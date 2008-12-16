@@ -15,21 +15,10 @@ c --- trcout      advect tracer and save results in history/restart file
 c --- dotrcr      perform column physics operations on tracer array(s)
 c
       logical, public:: diagno,thermo,windf,relax,trcout,dotrcr
-!!      common/swtchs/diagno,thermo,windf,relax,trcout,dotrcr
-
-
-c     real taux,tauy,wndspd,radflx,airtmp,precip,vapmix,freshw,diafor
-c    .    ,pwall,swall,twall
-!!      real taux,tauy,oice,oemnp,ustar,ustarb,oflxa2o,osalt
-!!      real freshw,diafor
 c
-!!      common/varbls/time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3
-!!     .     ,area,avgbot,watcum,empcum,slfcum,sala2o,tavini
       real, public :: time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
      .     area,avgbot,watcum,empcum,slfcum,sala2o,tavini
-
-!!      common/varbl2/nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
-!!     .             ,ls2,ls3,oddev
+c
       integer, public ::  nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
      .             ,ls2,ls3,oddev
 c
@@ -58,17 +47,12 @@ c ---' salmin' = minimum salinity allowed in an isopycnic layer
 c --- 'acurcy' = permissible roundoff error in column integral calc.
 c --- 'nhr   ' = coupling freq. in hours
 c
-!!      common/parms1/thbase,theta(kdm),baclin,batrop,thkdff,
-!!     .              veldff,temdff,viscos,diapyc,vertmx,h1,slip,cbar,
-!!     .              diagfq,wuv1,wuv2,wts1,wts2,acurcy,wbaro,thkmin,
-!!     .              thkbot,botmin,ekman,sigjmp,salmin(kdm)
       dimension theta(kdm),salmin(kdm)
       real, public ::
      &     theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
      .     diapyc,diapyn,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,
      &     acurcy, wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
-!!      common/parms2/trcfrq,ntracr,nhr,mixfrq
       integer, public ::       trcfrq,ntracr,nhr,mixfrq
 c
 c --- 'tenm,onem,...' = pressure thickness values corresponding to 10m,1m,...
@@ -82,21 +66,9 @@ c --- 'evaplh' = latent heat of evaporation (j/g)
 c --- 'thref'  = reference value of specific volume (cm**3/g)
 c --- 'epsil'  = small nonzero number used to prevent division by zero
 c
-!!      common/consts/tenm,onem,tencm,onecm,onemm,g,csubp,spcifh,cd,ct,
-!!     .              airdns,evaplh,thref,epsil,huge,radian,pi
-c
       real, public ::
      &     tenm,onem,tencm,onecm,onemm,g,csubp,spcifh,cd,ct,airdns,
      .     evaplh,thref,epsil,huge,radian,pi
-c
-c --- grid point where detailed diagnostics are desired:
-      common/testpt/itest,jtest
-      integer, public :: itest,jtest
-c
-c ---      equatn   --  the i index of the equator
-c
-!!      common/grdparms/equatn
-      real, public :: equatn
 c
       character*60, public ::
      &     flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
@@ -104,12 +76,6 @@ c
      .            ,flnminp,flnmint,flnmins
      .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
      .            ,flnmo2a_e,flnmo2a_n
-!!      common/iovars/flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
-!!     .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
-!!     .            ,flnminp,flnmint,flnmins
-!!     .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_tau,flnmo2a
-!!     .            ,flnmo2a_e,flnmo2a_n
-
 
 c --- opening the bering strait requires information exchange across a
 c --- 'u' face represented in 2 different locations in the tri-pole grid.
@@ -135,9 +101,6 @@ c
       integer, public, parameter :: iatln= 2,iatls= 1,jatl=312
 #endif
 c-----------------------------------------------------------------------------
-c
-!!      include 'dimensions.h'
-!!!!      include 'common_blocks.h'
 c
 c --- layer densities (theta units):
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -170,6 +133,7 @@ c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
 c --- 'equatn' = the i index of the equator
+      real, public :: equatn
 #ifdef HYCOM_RESOLUTION_2deg
       data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
       data equatn/122./
@@ -224,9 +188,6 @@ c --- 'epsil'  = small nonzero number used to prevent division by zero
       data g/9.806/,csubp/1005.7/,spcifh/4185./
       data airdns/1.2/,evaplh/2.47e6/,thref/1.e-3/,epsil/1.e-11/
 c
-c --- 'itest,jtest' = grid point where detailed diagnostics are desired
-      data itest,jtest/-1,-1/
-c
 c ---  s w i t c h e s    (if set to .true., then...)
 c --- thermo      use thermodynamic forcing functions
 c --- windf       use wind stress forcing function
@@ -279,9 +240,14 @@ c
 
       integer, public :: lp
 c
-      common /linepr/ lp
 c --- 'lp' = logical unit number for printer output
       data lp/6/
 
+c --- grid point where detailed diagnostics are desired:
+      integer, public :: itest=-1, jtest=-1
+c
+c --- ocean mixed layer schemes
+c     integer, public :: imxlkpp=0, ipartkpp=0, imxlgis=0, iktdpth=0
+      integer, public :: iocnmx=-1
 
       end module HYCOM_SCALARS

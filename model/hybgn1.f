@@ -8,7 +8,7 @@ c --- and between pcm and ppm
 c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
-     &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge
+     &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,itest,jtest
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, GLOBALSUM, AM_I_ROOT
       implicit none
@@ -17,8 +17,7 @@ c --- ---------------------
 c --- hybrid grid generator (coordinate restoration exclusively by "dilution")
 c --- ---------------------
 c
-      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja,itest,jtest
-      common/testpt/itest,jtest
+      integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja
 c
       real delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
      .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,scalt,scals,

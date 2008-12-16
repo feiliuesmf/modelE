@@ -4,9 +4,8 @@ c
 c --- Delete 'array' elements outside 'mask'. Then
 c --- break 'array' into sections, each 'nchar' characters wide, for printing.
 c
+      USE HYCOM_SCALARS, only : lp
       implicit none
-      integer lp
-      common/linepr/lp
 c
       integer idm,ii,jj
       character title*(*)
@@ -46,11 +45,10 @@ ccc 2    write (lp,'(32i4)') (int(work(i,j)),j=j1,j2)
 c
       subroutine linout(value,char,index)
 c
+      USE HYCOM_SCALARS, only : lp
       implicit none
       real value
       integer index
-      integer lp
-      common/linepr/lp
 c
       integer, parameter :: length=77
       character*1 char,line(length)
@@ -253,15 +251,15 @@ c
 c --- find maximum and minimum in 'array'. only check points where mask > 0
 c
       USE HYCOM_DIM_GLOB, only : jchunk
+      USE HYCOM_SCALARS, only : lp
       implicit none
       integer jmax
       parameter (jmax=2000)
-      integer lp,i,j,idm,ii,jj,mask(idm,jj),ipos,jpos,ineg,jneg,
+      integer i,j,idm,ii,jj,mask(idm,jj),ipos,jpos,ineg,jneg,
      .        jpoj(jmax),ipoj(jmax),jnej(jmax),inej(jmax)
       real array(idm,jj),difpos,difneg,difpoj(jmax),difnej(jmax),huge
       character name*(*)
       data huge/1.e33/
-      common/linepr/lp
 c
 !!! hack : not defined ?
       ipos = 0 ; jpos = 0
@@ -437,8 +435,7 @@ c
 c
       real array(idm,jdm),scale,offset
       character what*12
-      integer lp,idm,jdm,i,j,iz,jz,jwrap
-      common /linepr/ lp
+      integer idm,jdm,i,j,iz,jz,jwrap
       jwrap(j)=mod(j-1+jdm,jdm)+1               !  for use in cyclic domain
 c
  100  format(a12,9i7)
@@ -869,10 +866,9 @@ c
       implicit none
       integer lgth,idim,ii,jj,i,j
       parameter (lgth=1600)
-      integer lp,imn,imx,jmn,jmx,
+      integer imn,imx,jmn,jmx,
      .        imnj(lgth),imxj(lgth),jmnj(lgth),jmxj(lgth)
       real sqrt2,contur,q,ratio,amn,amx,amnj(lgth),amxj(lgth)
-      common/linepr/lp
       real array(idim,jj)
       data sqrt2/1.414/
 c
@@ -946,8 +942,6 @@ c --- simulate a contour line plot on the printer
 c
       USE HYCOM_SCALARS, only : lp
       implicit none
-      integer lp
-      common/linepr/lp
 c
       integer idim,ii,jj
       real array(idim,jj),dec

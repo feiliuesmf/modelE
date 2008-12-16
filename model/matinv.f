@@ -104,11 +104,9 @@ c ---    surface layer needs +delt1*surfaceflux/(h(1)*bet)
 c ---    bottom  layer needs +tri(nlayer,1)*diff(nlayer+1)*yo(nlayer+1))/bet
 c
       USE HYCOM_DIM_GLOB, only : kdm
-      USE HYCOM_SCALARS, only : lp
+      USE HYCOM_SCALARS, only : lp, itest, jtest
       implicit none
       integer k
-      integer itest,jtest
-      common/testpt/itest,jtest
 c
 c --- input
       real tcu (kdm),     ! upper coeff. for (k-1) on k line of tridmatrix

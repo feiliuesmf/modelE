@@ -5,6 +5,7 @@ c --- version 2.8 -- cyclic and noncyclic b.c. combined
       USE HYCOM_DIM
       USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
      &                          haveLatitude,GLOBALSUM
+      USE HYCOM_SCALARS, only: itest,jtest
 
       implicit none
 c
@@ -32,13 +33,12 @@ c
      .     vlumj(J_0H:J_1H)
 
       real dt,onemu,q,clip,vlume,amount,bfore,after
-      integer iord,itest,jtest,ip1,im1,jp1,jm1
+      integer iord,ip1,im1,jp1,jm1
       logical wrap,recovr
       data recovr/.false./
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
       parameter (onemu=.0098)				!  SI units
-      common/testpt/itest,jtest
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 c --- optional code for checking conservation properties

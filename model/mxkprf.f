@@ -24,6 +24,15 @@ c --- k-profile vertical mixing models (as of june 2008)
 c ---   a) large, mc williams, doney kpp vertical diffusion
 c ---   b) mellor-yamada 2.5 vertical diffusion			<== REMOVED
 c ---   c) giss vertical diffusion
+c
+c --- iocnmx
+c ---    0       no action aside from applying surface forcing
+c ---    1       full-column kpp
+c ---    2       partial column kpp
+c ---    3       giss (canuto) scheme
+c ---    5       same as 1 but using kraus-turner ml depth
+c ---    6       same as 2 but using kraus-turner ml depth
+c ---    7       same as 3 but using kraus-turner ml depth
 c ---------------------------------------------------------
 c
       include 'kprf_scalars.h'
@@ -35,7 +44,6 @@ c
       integer i,j,l,k
       integer   ja,jb,kn,ntr
       logical   vrbos
-      logical,parameter :: ktdpth=.true.	! use Kraus Turner ML depth
 c
       real     sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds,krturn
       external sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds,krturn
@@ -55,115 +63,116 @@ c
      . '  entering mxkprf:  temp    saln    dens    thkns    dpth',
      .     (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .      dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-cdiag    if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
-cdiag. '  entering mxkprf:  thkns   tracer1    tracer2    tracer3',
-cdiag.     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
-cdiag    if (vrbos) write (lp,109) nstep,i,j,
-cdiag. '  entering mxkprf:    u     dp_u         v     dp_v',(k,
-cdiag.     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
-cdiag.      dpv(i,j,k+nn)/onem,k=1,kk)
+         if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
+     . '  entering mxkprf:  thkns   tracer1    tracer2    tracer3',
+     .     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
+         if (vrbos) write (lp,109) nstep,i,j,
+     . '  entering mxkprf:    u     dp_u         v     dp_v',(k,
+     .     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
+     .      dpv(i,j,k+nn)/onem,k=1,kk)
         end do
        end do
       end do
-!$OMP   END PARALLEL DO
+!$OMP END PARALLEL DO
 c
       do k=1,kk
         CALL HALO_UPDATE(ogrid,v(:,:,k+nn),FROM=NORTH)
       end do
 c
-      if (ktdpth) then
+      if (iocnmx.gt.4) then        ! use Kraus Turner ML depth
 c
 c --- advect mixed layer depth with vertically averaged velocity field
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 9 j=J_0,J_1
-      do 9 k=1,kk
-      do 9 l=1,isp(j)
-      do 9 i=ifp(j,l),ilp(j,l)
- 9    p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
+        do 9 j=J_0,J_1
+        do 9 k=1,kk
+        do 9 l=1,isp(j)
+        do 9 i=ifp(j,l),ilp(j,l)
+ 9      p(i,j,k+1)=p(i,j,k)+dp(i,j,k+mm)
 c$OMP END PARALLEL DO
 c
-      call HALO_UPDATE(ogrid,dpmixl(:,:,m),FROM=SOUTH)
-      call HALO_UPDATE(ogrid,pbot,FROM=SOUTH)
-      do k=1,kk
-        call HALO_UPDATE(ogrid,v(:,:,k+nn),FROM=SOUTH)
-        call HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
-      end do
+        call HALO_UPDATE(ogrid,dpmixl(:,:,m),FROM=SOUTH)
+        call HALO_UPDATE(ogrid,pbot,FROM=SOUTH)
+        do k=1,kk
+          call HALO_UPDATE(ogrid,v(:,:,k+nn),FROM=SOUTH)
+          call HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
+        end do
 
 c$OMP PARALLEL DO PRIVATE(kn,ja,jb,pa,pb)
 c$OMP+            SCHEDULE(STATIC,jchunk)
-      do 2 j=J_0,J_1
-      ja = PERIODIC_INDEX(j-1, jj)
-      jb = PERIODIC_INDEX(j+1, jj)
+        do 2 j=J_0,J_1
+        ja = PERIODIC_INDEX(j-1, jj)
+        jb = PERIODIC_INDEX(j+1, jj)
 c
-      do 3 l=1,isu(j)
-      do 3 i=ifu(j,l),ilu(j,l)
-      uflux(i,j)=0.
-      do 4 k=1,kk
-      kn=k+nn
-      pb=min(dpmixl(i,j,m)+dpmixl(i-1,j,m),p(i,j,k+1)+p(i-1,j,k+1))
-      pa=min(dpmixl(i,j,m)+dpmixl(i-1,j,m),p(i,j,k  )+p(i-1,j,k  ))
-      if (pa.eq.pb) exit
- 4    uflux(i,j)=uflux(i,j)
-     .  +.25*(u(i-1,j,kn)+u(i+1,j,kn)+2.*u(i,j,kn))*(pb-pa)
- 3    uflux(i,j)=uflux(i,j)*(dpmixl(i,j,m)-dpmixl(i-1,j,m))*scuy(i,j)/
-     .  min(dpmixl(i,j,m)+dpmixl(i-1,j,m),pbot(i,j)+pbot(i-1,j))
+        do 3 l=1,isu(j)
+        do 3 i=ifu(j,l),ilu(j,l)
+        uflux(i,j)=0.
+        do 4 k=1,kk
+        kn=k+nn
+        pb=min(dpmixl(i,j,m)+dpmixl(i-1,j,m),p(i,j,k+1)+p(i-1,j,k+1))
+        pa=min(dpmixl(i,j,m)+dpmixl(i-1,j,m),p(i,j,k  )+p(i-1,j,k  ))
+        if (pa.eq.pb) exit
+ 4      uflux(i,j)=uflux(i,j)
+     .    +.25*(u(i-1,j,kn)+u(i+1,j,kn)+2.*u(i,j,kn))*(pb-pa)
+        uflux(i,j)=uflux(i,j)*(dpmixl(i,j,m)-dpmixl(i-1,j,m))*scuy(i,j)/
+     .    min(dpmixl(i,j,m)+dpmixl(i-1,j,m),pbot(i,j)+pbot(i-1,j))
+ 3      continue
 c
-      do 5 l=1,isv(j)
-      do 5 i=ifv(j,l),ilv(j,l)
-      vflux(i,j)=0.
-      do 6 k=1,kk
-      kn=k+nn
-      pb=min(dpmixl(i,j,m)+dpmixl(i,ja ,m),p(i,j,k+1)+p(i,ja ,k+1))
-      pa=min(dpmixl(i,j,m)+dpmixl(i,ja ,m),p(i,j,k  )+p(i,ja ,k  ))
-      if (pa.eq.pb) exit
- 6    vflux(i,j)=vflux(i,j)
-     .  +.25*(v(i,ja ,kn)+v(i,jb ,kn)+2.*v(i,j,kn))*(pb-pa)
- 5    vflux(i,j)=vflux(i,j)*(dpmixl(i,j,m)-dpmixl(i,ja ,m))*scvx(i,j)/
-     .  min(dpmixl(i,j,m)+dpmixl(i,ja ,m),pbot(i,j)+pbot(i,ja ))
- 2    continue
-c
+        do 5 l=1,isv(j)
+        do 5 i=ifv(j,l),ilv(j,l)
+        vflux(i,j)=0.
+        do 6 k=1,kk
+        kn=k+nn
+        pb=min(dpmixl(i,j,m)+dpmixl(i,ja ,m),p(i,j,k+1)+p(i,ja ,k+1))
+        pa=min(dpmixl(i,j,m)+dpmixl(i,ja ,m),p(i,j,k  )+p(i,ja ,k  ))
+        if (pa.eq.pb) exit
+ 6      vflux(i,j)=vflux(i,j)
+     .    +.25*(v(i,ja ,kn)+v(i,jb ,kn)+2.*v(i,j,kn))*(pb-pa)
+        vflux(i,j)=vflux(i,j)*(dpmixl(i,j,m)-dpmixl(i,ja ,m))*scvx(i,j)/
+     .    min(dpmixl(i,j,m)+dpmixl(i,ja ,m),pbot(i,j)+pbot(i,ja ))
+ 5      continue
+ 2      continue
 c$OMP END PARALLEL DO
 c
-      call HALO_UPDATE(ogrid,vflux,FROM=NORTH)
+        call HALO_UPDATE(ogrid,vflux,FROM=NORTH)
 c
 c$OMP PARALLEL DO PRIVATE(jb,thkold,pres,dens,tem,sal,buoyfl,vrbos)
-c$OMP+    SCHEDULE(STATIC,jchunk)
-      do 13 j=J_0,J_1
-      jb = PERIODIC_INDEX(j+1, jj)
-      do 13 l=1,isp(j)
-      do 13 i=ifp(j,l),ilp(j,l)
-      vrbos=i.eq.itest .and. j.eq.jtest
-      thkold=dpmixl(i,j,n)
-      dpmixl(i,j,n)=min(pbot(i,j),
-     .dpmixl(i,j,n)-.5*(uflux(i+1,j)+uflux(i,j)
-     .                 +vflux(i,jb )+vflux(i,j))*scp2i(i,j)*delt1)
-      dpmixl(i,j,m)=.5*dpmixl(i,j,m)+.25*(thkold+dpmixl(i,j,n))
+c$OMP+      SCHEDULE(STATIC,jchunk)
+        do 13 j=J_0,J_1
+        jb = PERIODIC_INDEX(j+1, jj)
+        do 13 l=1,isp(j)
+        do 13 i=ifp(j,l),ilp(j,l)
+        vrbos=i.eq.itest .and. j.eq.jtest
+        thkold=dpmixl(i,j,n)
+        dpmixl(i,j,n)=min(pbot(i,j),
+     .  dpmixl(i,j,n)-.5*(uflux(i+1,j)+uflux(i,j)
+     .                   +vflux(i,jb )+vflux(i,j))*scp2i(i,j)*delt1)
+        dpmixl(i,j,m)=.5*dpmixl(i,j,m)+.25*(thkold+dpmixl(i,j,n))
 c
 c --- set dpmixl to kraus turner mixed layer depth
 c
-      pres(1)=0.
-      do k=1,kk
-       kn=k+nn
-       pres(k+1)=pres(k)+dp(i,j,kn)
-       dens(k)=th3d(i,j,kn)
-      end do
-      tem=.5*(temp(i,j,k1m)+temp(i,j,k1n))
-      sal=.5*(saln(i,j,k1m)+saln(i,j,k1n))
-      buoyfl=-g*thref**2*(dsigds(tem,sal)*salflx(i,j)
-     .                   +dsigdt(tem,sal)*surflx(i,j)/spcifh)
-      dpmixl(i,j,n)=max(thkmin*onem,min(pbot(i,j),
+        pres(1)=0.
+        do k=1,kk
+         kn=k+nn
+         pres(k+1)=pres(k)+dp(i,j,kn)
+         dens(k)=th3d(i,j,kn)
+        end do
+        tem=.5*(temp(i,j,k1m)+temp(i,j,k1n))
+        sal=.5*(saln(i,j,k1m)+saln(i,j,k1n))
+        buoyfl=-g*thref**2*(dsigds(tem,sal)*salflx(i,j)
+     .                     +dsigdt(tem,sal)*surflx(i,j)/spcifh)
+        dpmixl(i,j,n)=max(thkmin*onem,min(pbot(i,j),
      .   krturn(pres,dens,dpmixl(i,j,m),buoyfl,ustar(i,j),corio(i,j))))
 c
-      if (vrbos) write (lp,'(i7,2i4,a,2es11.2,f8.1)') nstep,i,j,
-     . '   buoyfl,ustar,mldpth:',buoyfl,ustar(i,j),dpmixl(i,j,n)/onem
+        if (vrbos) write (lp,'(i7,2i4,a,2es11.2,f8.1)') nstep,i,j,
+     .   '   buoyfl,ustar,mldpth:',buoyfl,ustar(i,j),dpmixl(i,j,n)/onem
  13   continue
 c$OMP END PARALLEL DO
 c
-      end if		! ktdpth
+      end if				! use KT depth
 c
 c --- except for KPP, surface boundary layer is the mixed layer
-      if (mxlgis) then
+      if (mod(iocnmx,4).eq.3) then		! GISS scheme
         hblmax = bldmax*onem
 !$OMP   PARALLEL DO PRIVATE(j,l,i)
 !$OMP&         SCHEDULE(STATIC,jchunk)
@@ -176,7 +185,7 @@ c --- except for KPP, surface boundary layer is the mixed layer
             enddo !i
           enddo !l
         enddo !j
-      endif !mxlgis
+      endif				! GISS scheme
 c --- diffusivity/viscosity calculation
 c
       CALL HALO_UPDATE(ogrid,corio,FROM=NORTH)
@@ -184,7 +193,7 @@ c
 !$OMP PARALLEL DO PRIVATE(j)
 !$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
-        call mxkprfaj(ktdpth,n,nn,k1m,k1n, j)
+        call mxkprfaj(n,nn,k1m,k1n, j)
       enddo
 !$OMP END PARALLEL DO
 c
@@ -206,27 +215,29 @@ ccc      endif
 c
 c ---   final mixing of variables at p points
 c
+      if (iocnmx.ne.0) then		! carry out mixing
 !$OMP PARALLEL DO PRIVATE(j)
 !$OMP&         SCHEDULE(STATIC,jchunk)
-      do j=J_0,J_1
-        call mxkprfbj(nn, j)
-      enddo
+        do j=J_0,J_1
+          call mxkprfbj(nn, j)
+        enddo
 !$OMP END PARALLEL DO
 c
 c --- final velocity mixing at u,v points
 c
-      CALL HALO_UPDATE(ogrid,vcty,FROM=SOUTH)  
+        CALL HALO_UPDATE(ogrid,vcty,FROM=SOUTH)  
 
 !$OMP PARALLEL DO PRIVATE(j)
 !$OMP&         SCHEDULE(STATIC,jchunk)
-      do j=J_0,J_1
-        call mxkprfcj(nn, j)
-      enddo
+        do j=J_0,J_1
+          call mxkprfcj(nn, j)
+        enddo
 !$OMP END PARALLEL DO
+      end if				! carry out mixing
 c
 c --- mixed layer diagnostics
 c
-      if (diagno .or. mxlgis) then
+      if (iocnmx.eq.0 .or. iocnmx.eq.3) then
 c
 c --- diagnose new mixed layer depth based on density jump criterion
 !$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,
@@ -348,7 +359,7 @@ c ---               linear between cell centers
      &                         (zgrid(i,j,k+1)-zgrid(i,j,k  )) )
                     thtop = max( thjmp(k-1), min( thjmp(k), thtop ) )
 *
-                    if (i.eq.itest.and.j.eq.jtest) then
+                    if (vrbos) then
                       write (lp,'(i9,2i5,i3,a,2f7.3,f7.4,f9.2)')
      &                  nstep,i,j,k,
      &                  '  thi,thsur,jmp,zi =',
@@ -376,7 +387,7 @@ c
      &                              (thjmp(k)+epsil-thtop) )
                   endif !part of layer
 *
-                  if (i.eq.itest.and.j.eq.jtest) then
+                  if (vrbos) then
                     write (lp,'(i9,2i5,i3,a,f7.3,f7.4,f9.2)')
      &                nstep,i,j,k,
      &                '   thsur,top,dpmixl =',
@@ -395,7 +406,7 @@ c
 c ---   smooth the mixed layer (might end up below the bottom).
 CTNLt   call psmoo(dpmixl(:,:,n), 0)   ! TEST TEST TEST
 c
-      endif  !diagno .or. mxlgis
+      endif  ! iocnmx = 0 or 3
 c
       if (diagno) then
 c
@@ -407,8 +418,10 @@ c
           do l=1,isp(j)
             do i=ifp(j,l),ilp(j,l)
               vrbos=i.eq.itest .and. j.eq.jtest
-              dpmixl(i,j,n)=min(dpmixl(i,j,n),p(i,j,kk+1))
-              dpmixl(i,j,m)=    dpmixl(i,j,n)
+              if (iocnmx.le.3) then
+                dpmixl(i,j,n)=min(dpmixl(i,j,n),p(i,j,kk+1))
+                dpmixl(i,j,m)=    dpmixl(i,j,n)
+              end if
               delp=min(p(i,j,2),dpmixl(i,j,n))
               tmix(i,j)=delp*temp(i,j,k1n)
               smix(i,j)=delp*saln(i,j,k1n)
@@ -435,10 +448,10 @@ c
         enddo !j
 !$OMP   END PARALLEL DO
 c
-      do k=1,kk
-        CALL HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
-      end do
-      CALL HALO_UPDATE(ogrid,dpmixl(:,:,n),FROM=SOUTH)
+        do k=1,kk
+          CALL HALO_UPDATE(ogrid,p(:,:,k+1),FROM=SOUTH)
+        end do
+        CALL HALO_UPDATE(ogrid,dpmixl(:,:,n),FROM=SOUTH)
 
 !$OMP   PARALLEL DO PRIVATE(j,l,i,k,kn,delp,dpmx)
 !$OMP&         SCHEDULE(STATIC,jchunk)
@@ -491,13 +504,13 @@ c
      .'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
      .     temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .      dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-cdiag    if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
-cdiag.'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
-cdiag.     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
-cdiag    if (vrbos) write (lp,109) nstep,i,j,
-cdiag.'   exiting mxkprf:    u     dp_u         v     dp_v',(k,
-cdiag.     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
-cdiag.      dpv(i,j,k+nn)/onem,k=1,kk)
+         if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
+     .'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
+     .     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
+         if (vrbos) write (lp,109) nstep,i,j,
+     .'   exiting mxkprf:    u     dp_u         v     dp_v',(k,
+     .     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
+     .      dpv(i,j,k+nn)/onem,k=1,kk)
 c
          dpmxav(i,j)=dpmxav(i,j)+dpmixl(i,j,n)
         end do
@@ -509,28 +522,31 @@ c
       end subroutine mxkprf
 c
 c
-      subroutine mxkprfaj(ktdpth,n,nn,k1m,k1n, j)
+      subroutine mxkprfaj(n,nn,k1m,k1n, j)
 c
 c --- calculate viscosity and diffusivity
 c
       USE HYCOM_DIM, only: isp, ifp, ilp
+      USE HYCOM_SCALARS, only : itest,jtest,iocnmx
       implicit none
       include 'kprf_scalars.h'
 c
       integer,intent(IN) :: n,nn,k1m,k1n,j
-      logical,intent(IN) :: ktdpth
       integer i,l
+      logical vrbos
 c
-      if (mxlkpp) then
+      if (mod(iocnmx,4).le.2) then
         do l=1,isp(j)
           do i=ifp(j,l),ilp(j,l)
-            call mxkppaij(ktdpth,n,nn,k1m,k1n, i,j)
+            vrbos=i.eq.itest .and. j.eq.jtest
+            call mxkppaij(n,nn,k1m,k1n, i,j,vrbos)
           enddo
         enddo
-      else if (mxlgis) then
+      else if (mod(iocnmx,4).eq.3) then
         do l=1,isp(j)
           do i=ifp(j,l),ilp(j,l)
-            call mxgissaij(nn,k1m,k1n, i,j)
+            vrbos=i.eq.itest .and. j.eq.jtest
+            call mxgissaij(nn,k1m,k1n, i,j,vrbos)
           enddo
         enddo
       endif
@@ -544,13 +560,16 @@ c
 c --- final mixing at p points
 c
       USE HYCOM_DIM, only : isp,ifp,ilp
+      USE HYCOM_SCALARS, only : itest,jtest
       implicit none
       integer,intent(IN) :: nn,j
       integer i,l
+      logical vrbos
 c
       do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
-          call mxkprfbij(nn, i,j)
+          vrbos=i.eq.itest .and. j.eq.jtest
+          call mxkprfbij(nn, i,j,vrbos)
         enddo
       enddo
 c
@@ -565,20 +584,24 @@ c
 
       USE HYCOM_DIM, only: isu, ifu, ilu
       USE HYCOM_DIM, only: isv, ifv, ilv
+      USE HYCOM_SCALARS, only : itest,jtest
 
       implicit none
       integer,intent(IN) :: nn,j
       integer            :: i,l 
+      logical vrbos
 c
       do l=1,isu(j)
         do i=ifu(j,l),ilu(j,l)
-          call mxkprfciju(nn, i,j)
+          vrbos=i.eq.itest .and. j.eq.jtest
+          call mxkprfciju(nn, i,j,vrbos)
         enddo
       enddo
 c
       do l=1,isv(j)
         do i=ifv(j,l),ilv(j,l)
-          call mxkprfcijv(nn, i,j)
+          vrbos=i.eq.itest .and. j.eq.jtest
+          call mxkprfcijv(nn, i,j,vrbos)
         enddo
       enddo
 c
@@ -586,7 +609,7 @@ c
       end subroutine mxkprfcj
 c
 c
-      subroutine mxkppaij(ktdpth,n,nn,k1m,k1n, i,j)
+      subroutine mxkppaij(n,nn,k1m,k1n, i,j,vrbos)
 c
 c --- hycom version 1.0
 c -------------------------------------------------------------
@@ -616,7 +639,7 @@ c
 c
       implicit none
       integer,intent(IN) :: n,nn,k1m,k1n,i,j
-      logical,intent(IN) :: ktdpth
+      logical,intent(IN) :: vrbos
       real, parameter :: difmax = 9999.0e-4  !maximum diffusion/viscosity
       real, parameter :: dp0bbl =   20.0     !truncation dist. for bot. b.l.
       real, parameter :: ricrb  =    0.45    !critical bulk Ri for bot. b.l.
@@ -760,8 +783,6 @@ c --- shortwave flux penetration depends on kpar or jerlov water type.
 c
       if     (jerlv0.eq.0) then
         beta_r = 2.0/onem
-CTNL    beta_b = ( akpar(i,j,lm0)*wm0+akpar(i,j,lm1)*wm1
-CTNL &            +akpar(i,j,lm2)*wm2+akpar(i,j,lm3)*wm3)/onem
         beta_b = akpar(i,j,jmon)/onem
         beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
@@ -787,12 +808,12 @@ c --- evenly re-distribute the flux below the bottom
       endif
       swfbqp = swfbqp/pij(k+1)
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) then
-cdiag   write (lp,'(a,4f10.4)')
-cdiag&   'frac[rb],beta[rb] =',
-cdiag&   frac_r,frac_b,onem*beta_r,onem*beta_b
-cdiag   call flush(lp)
-cdiag endif
+      if (vrbos) then
+        write (lp,'(a,4f10.4)')
+     &   'frac[rb],beta[rb] =',
+     &   frac_r,frac_b,onem*beta_r,onem*beta_b
+        call flush(lp)
+      endif
 c
       do k=1,kk
         kn=k+nn
@@ -812,20 +833,20 @@ c
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k) 
-cdiag       if (i.eq.itest.and.j.eq.jtest) then
-cdiag         write (lp,101) nstep,i,j,k, 
-cdiag&          1.0,swfrac(k+1),dtemp,dsaln
-cdiag         call flush(lp)
-cdiag       endif
+            if (vrbos) then
+              write (lp,101) nstep,i,j,k, 
+     &          1.0,swfrac(k+1),dtemp,dsaln
+              call flush(lp)
+            endif
           elseif (k.le.klist(i,j)) then
             dtemp=(swfrac(k)-swfrac(k+1))*sswflx(i,j)*
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=0.0
-cdiag       if (i.eq.itest.and.j.eq.jtest) then
-cdiag         write (lp,101) nstep,i,j,k,
-cdiag&          swfrac(k),swfrac(k+1),dtemp
-cdiag         call flush(lp)
-cdiag       endif
+            if (vrbos) then
+              write (lp,101) nstep,i,j,k,
+     &          swfrac(k),swfrac(k+1),dtemp
+              call flush(lp)
+            endif
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
@@ -864,6 +885,8 @@ c --- modify t and s; set old value arrays at p points for initial iteration
           vold (k)=.5*(v(i,j,kn)+v(i  ,jb ,kn))
         endif
       enddo
+c
+      if (iocnmx.eq.0) return			! skip mixing
 c
       k=klist(i,j)
       kn=k+nn
@@ -913,9 +936,6 @@ c --- perform niter iterations to execute the semi-implicit solution of the
 c --- diffusion equation. at least two iterations are recommended
 c
       do iter=1,niter
-      if (ktdpth .and. iter.eq.niter) then
-        hbl=dpmixl(i,j,n)/onem	! use Kraus-Turner ML depth
-      else			! define ML depth in terms of Richardson Nr.
 c
 c --- calculate layer variables required to estimate bulk richardson number
 c
@@ -924,8 +944,8 @@ c --- averaged over -2*epsilon*zgrid, but no more than 8m.
         zrefmn = -4.0
         zrefo  =  1.0  ! impossible value
         do k=1,klist(i,j)
-          zref=max(epsilon*zgrid(i,j,k),zrefmn)	! nearest to zero
-          if (zref.ne.zrefo) then		! new zref
+          zref=max(epsilon*zgrid(i,j,k),zrefmn)  ! nearest to zero
+          if (zref.ne.zrefo) then  ! new zref
             wref =-2.0*zref
             qwref=1.0/wref
             wq=min(hwide(1),wref)*qwref
@@ -947,10 +967,10 @@ c --- averaged over -2*epsilon*zgrid, but no more than 8m.
           zrefo=zref
 c
           ritop(k)=(zref-zgrid(i,j,k))*
-     &             (bref+g*thref*thold(k))
+     &               (bref+g*thref*thold(k))
           dvsq(k)=(uref-uold(k))**2+(vref-vold(k))**2
 *
-*         if (i.eq.itest.and.j.eq.jtest) then
+*         if (vrbos) then
 *           if     (k.eq.1) then
 *             write(lp,'(3a)')
 *    &          ' k        z  zref',
@@ -974,12 +994,12 @@ c
             swfrac(k)=0.0
           endif
           swfrac(k)=swfrac(k)-swfbqp*zgrid(i,j,k)*onem  !spread out bottom frac
-cdiag     if (i.eq.itest.and.j.eq.jtest) then
-cdiag       write (lp,'(i9,2i5,i3,a,f8.2,f8.3)')
-cdiag&          nstep,i,j,k,
-cdiag&          '  z,swfrac =',zgrid(i,j,k),swfrac(k)
-cdiag       call flush(lp)
-cdiag     endif
+          if (vrbos) then
+            write (lp,'(i9,2i5,i3,a,f8.2,f8.3)')
+     &          nstep,i,j,k,
+     &          '  z,swfrac =',zgrid(i,j,k),swfrac(k)
+            call flush(lp)
+          endif
         enddo  !k=1,klist
 c
 c --- calculate interface variables required to estimate interior diffusivities
@@ -1062,12 +1082,17 @@ c --- diffusive convection case
           enddo
         endif
 c
-cdiag   if (i.eq.itest.and.j.eq.jtest) then
-cdiag      write (lp,102) (nstep,iter,i,j,k,
-cdiag&     hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-cdiag&       k=1,kk+1)
-cdiag      call flush(lp)
-cdiag   endif
+        if (vrbos) then
+           write (lp,102) (nstep,iter,i,j,k,
+     &   hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
+     &     k=1,kk+1)
+           call flush(lp)
+        endif
+c
+        if (iocnmx.gt.4) then
+          hbl=dpmixl(i,j,n)/onem	! use Kraus-Turner ML depth
+c
+        else
 c
 c --- calculate boundary layer diffusivity profiles and match these to the
 c --- previously-calculated interior diffusivity profiles
@@ -1085,174 +1110,176 @@ c --- at z=-hbl). the turbulent boundary layer depth is diagnosed first, the
 c --- boundary layer diffusivity profiles are calculated, then the boundary
 c --- and interior diffusivity profiles are combined.
 c
-c --- minimum hbl is    top mid-layer + 1 cm or bldmin,
+c --- minimum hbl is  top mid-layer + 1 cm or bldmin,
 c --- maximum hbl is bottom mid-layer - 1 cm or bldmax.
 c
-        hblmin=max(              hwide(1)+0.01,bldmin)
-        hblmax=min(-zgrid(i,j,klist(i,j))-0.01,bldmax)
+          hblmin=max(              hwide(1)+0.01,bldmin)
+          hblmax=min(-zgrid(i,j,klist(i,j))-0.01,bldmax)
 c
 c --- buoyfl = total buoyancy flux (m**2/sec**3) into atmos.
 c --- note: surface density increases (column is destabilized) if buoyfl > 0
 c --- buoysw = shortwave radiation buoyancy flux (m**2/sec**3) into atmos.
 c --- salflx, sswflx and surflx are positive into the ocean
-      tmn=.5*(temp(i,j,k1m)+temp(i,j,k1n))
-      smn=.5*(saln(i,j,k1m)+saln(i,j,k1n))
-      dsgdt=          dsigdt(tmn,smn)
-      buoyfs=g*thref*(dsigds(tmn,smn)*salflx(i,j)*thref)
-      buoyfl=buoyfs+
-     &       g*thref*(dsgdt          *surflx(i,j)*thref/spcifh)
-      buoysw=g*thref*(dsgdt          *sswflx(i,j)*thref/spcifh)
+          tmn=.5*(temp(i,j,k1m)+temp(i,j,k1n))
+          smn=.5*(saln(i,j,k1m)+saln(i,j,k1n))
+          dsgdt=          dsigdt(tmn,smn)
+          buoyfs=g*thref*(dsigds(tmn,smn)*salflx(i,j)*thref)
+          buoyfl=buoyfs+
+     &           g*thref*(dsgdt          *surflx(i,j)*thref/spcifh)
+          buoysw=g*thref*(dsgdt          *sswflx(i,j)*thref/spcifh)
 c 
 c --- diagnose the new boundary layer depth as the depth where a bulk
 c --- richardson number exceeds ric
 c
 c --- initialize hbl and nbl to bottomed out values
-        kup2=1
-        kup =2
-        kdn =3
-        rib(kup2)=0.0
-        rib(kup) =0.0
-        nbl=klist(i,j)
-        hbl=hblmax
+          kup2=1
+          kup =2
+          kdn =3
+          rib(kup2)=0.0
+          rib(kup) =0.0
+          nbl=klist(i,j)
+          hbl=hblmax
 c
 c --- diagnose hbl and nbl
-        do k=2,nbl
-          case=-zgrid(i,j,k)
-          bfsfc=buoyfl-swfrac(k)*buoysw
-          if     (bfsfc.le.0.0) then
-            stable=1.0
-            dnorm =1.0
-          else
-            stable=0.0
-            dnorm =epsilon
-          endif
+          do k=2,nbl
+            case=-zgrid(i,j,k)
+            bfsfc=buoyfl-swfrac(k)*buoysw
+            if     (bfsfc.le.0.0) then
+              stable=1.0
+              dnorm =1.0
+            else
+              stable=0.0
+              dnorm =epsilon
+            endif
 c
 c --- compute turbulent velocity scales at dnorm, for
 c --- hbl = case = -zgrid(i,j,k)
-          call wscale(i,j,case,dnorm,bfsfc,wm,ws,1)
+            call wscale(i,j,case,dnorm,bfsfc,wm,ws,1)
 c
 c --- compute the turbulent shear contribution to rib
-          if     (max(dbloc(k),dbloc(k+1)).gt.0.0) then
-            bfq=0.5*(dbloc(k  )/(zgrid(i,j,k-1)-zgrid(i,j,k  ))+
-     &               dbloc(k+1)/(zgrid(i,j,k  )-zgrid(i,j,k+1)) )
-            if     (bfq.gt.0.0) then
-              bfq=sqrt(bfq)
+            if     (max(dbloc(k),dbloc(k+1)).gt.0.0) then
+              bfq=0.5*(dbloc(k  )/(zgrid(i,j,k-1)-zgrid(i,j,k  ))+
+     &                 dbloc(k+1)/(zgrid(i,j,k  )-zgrid(i,j,k+1)) )
+              if     (bfq.gt.0.0) then
+                bfq=sqrt(bfq)
+              else
+                bfq=0.0  !neutral or unstable
+              endif
             else
               bfq=0.0  !neutral or unstable
             endif
-          else
-            bfq=0.0  !neutral or unstable
-          endif
-          if     (bfq.gt.0.0) then
-            if     (cv.ne.0.0) then
-              cvk=cv
-            else !frequency dependent version
-              cvk=max(cv_max-cv_bfq*bfq,cv_min) !between cv_min and cv_max
-            endif
-            vtsq=-zgrid(i,j,k)*ws*bfq*vtc*cvk
-          else
-            vtsq=0.0
-          endif !bfq>0:else
+            if     (bfq.gt.0.0) then
+              if     (cv.ne.0.0) then
+                cvk=cv
+              else !frequency dependent version
+                cvk=max(cv_max-cv_bfq*bfq,cv_min) !between cv_min and cv_max
+              endif
+              vtsq=-zgrid(i,j,k)*ws*bfq*vtc*cvk
+            else
+              vtsq=0.0
+            endif !bfq>0:else
 c
 c --- compute bulk richardson number at new level
-          rib(kdn)=ritop(k)/(dvsq(k)+vtsq+epsil)
-          if (nbl.eq.klist(i,j).and.rib(kdn).ge.ricr) then
-c ---       interpolate to find hbl as the depth where rib = ricr
-            if     (k.eq.2 .or. hblflg.eq.0) then  !nearest interface
-              hbl = -zgrid(i,j,k-1)+0.5*hwide(k-1)
-            elseif (k.lt.4 .or. hblflg.eq.1) then  !linear
-              hbl = -zgrid(i,j,k-1)+
-     &                 (zgrid(i,j,k-1)-zgrid(i,j,k))*
-     &                 (ricr-rib(kup))/(rib(kdn)-rib(kup)+epsil)
-            else !quadratic
+            rib(kdn)=ritop(k)/(dvsq(k)+vtsq+epsil)
+            if (nbl.eq.klist(i,j).and.rib(kdn).ge.ricr) then
+c ---     interpolate to find hbl as the depth where rib = ricr
+              if     (k.eq.2 .or. hblflg.eq.0) then  !nearest interface
+                hbl = -zgrid(i,j,k-1)+0.5*hwide(k-1)
+              elseif (k.lt.4 .or. hblflg.eq.1) then  !linear
+                hbl = -zgrid(i,j,k-1)+
+     &                   (zgrid(i,j,k-1)-zgrid(i,j,k))*
+     &                   (ricr-rib(kup))/(rib(kdn)-rib(kup)+epsil)
+              else !quadratic
 c
-c ---         Determine the coefficients A,B,C of the polynomial
-c ---           Y(X) = A * (X-X2)**2 + B * (X-X2) + C
-c ---         which goes through the data: (X[012],Y[012])
+c ---           Determine the coefficients A,B,C of the polynomial
+c ---             Y(X) = A * (X-X2)**2 + B * (X-X2) + C
+c ---           which goes through the data: (X[012],Y[012])
 c
-              x0 = zgrid(i,j,k-2)
-              x1 = zgrid(i,j,k-1)
-              x2 = zgrid(i,j,k)
-              y0 = rib(kup2)
-              y1 = rib(kup)
-              y2 = rib(kdn)
-              ahbl = ( (y0-y2)*(x1-x2) -
-     &                 (y1-y2)*(x0-x2)  )/
-     &               ( (x0-x2)*(x1-x2)*(x0-x1) )
-              bhbl = ( (y1-y2)*(x0-x2)**2 -
-     &                 (y0-y2)*(x1-x2)**2  ) /
-     &               ( (x0-x2)*(x1-x2)*(x0-x1) )
-              if     (abs(bhbl).gt.epsil) then
-                lhbl = abs(ahbl)/abs(bhbl).gt.epsil
-              else
-                lhbl = .true.
-              endif
-              if     (lhbl) then !quadratic
-c ---           find root of Y(X)-RICR nearest to X2
-                chbl = y2 - ricr
-                dhbl = bhbl**2 - 4.0*ahbl*chbl
-                if     (dhbl.lt.0.0) then !linear
-                  hbl = -(x2 + (x1-x2)*(y2-ricr)/(y2-y1+epsil))
+                x0 = zgrid(i,j,k-2)
+                x1 = zgrid(i,j,k-1)
+                x2 = zgrid(i,j,k)
+                y0 = rib(kup2)
+                y1 = rib(kup)
+                y2 = rib(kdn)
+                ahbl = ( (y0-y2)*(x1-x2) -
+     &                   (y1-y2)*(x0-x2)  )/
+     &                 ( (x0-x2)*(x1-x2)*(x0-x1) )
+                bhbl = ( (y1-y2)*(x0-x2)**2 -
+     &                   (y0-y2)*(x1-x2)**2  ) /
+     &                 ( (x0-x2)*(x1-x2)*(x0-x1) )
+                if     (abs(bhbl).gt.epsil) then
+                  lhbl = abs(ahbl)/abs(bhbl).gt.epsil
                 else
-                  dhbl = sqrt(dhbl)
-                  if     (abs(bhbl+dhbl).ge.
-     &                    abs(bhbl-dhbl)    ) then
-                    hbl = -(x2 - 2.0*chbl/(bhbl+dhbl))
+                  lhbl = .true.
+                endif
+                if     (lhbl) then !quadratic
+c ---             find root of Y(X)-RICR nearest to X2
+                  chbl = y2 - ricr
+                  dhbl = bhbl**2 - 4.0*ahbl*chbl
+                  if     (dhbl.lt.0.0) then !linear
+                    hbl = -(x2 + (x1-x2)*(y2-ricr)/(y2-y1+epsil))
                   else
-                    hbl = -(x2 - 2.0*chbl/(bhbl-dhbl))
-                  endif !nearest root
-                endif !bhbl**2-4.0*ahbl*chbl.lt.0.0:else
-              else !linear
-                hbl = -(x2 + (x1-x2)*(y2-ricr)/(y2-y1+epsil))
-              endif !quadratic:linear
-            endif !linear:quadratic
-            nbl=k
-            if (hbl.lt.hblmin) then
-              hbl=hblmin
-              nbl=2
+                    dhbl = sqrt(dhbl)
+                    if     (abs(bhbl+dhbl).ge.
+     &                      abs(bhbl-dhbl)    ) then
+                      hbl = -(x2 - 2.0*chbl/(bhbl+dhbl))
+                    else
+                      hbl = -(x2 - 2.0*chbl/(bhbl-dhbl))
+                    endif !nearest root
+                  endif !bhbl**2-4.0*ahbl*chbl.lt.0.0:else
+                else !linear
+                  hbl = -(x2 + (x1-x2)*(y2-ricr)/(y2-y1+epsil))
+                endif !quadratic:linear
+              endif !linear:quadratic
+              nbl=k
+              if (hbl.lt.hblmin) then
+                hbl=hblmin
+                nbl=2
+              endif
+              if (hbl.gt.hblmax) then
+                hbl=hblmax
+                nbl=klist(i,j)
+              endif
+              exit !k-loop
             endif
-            if (hbl.gt.hblmax) then
-              hbl=hblmax
-              nbl=klist(i,j)
-            endif
-            exit !k-loop
-          endif
 c
-          ksave=kup2
-          kup2=kup
-          kup =kdn
-          kdn =ksave
-        enddo  !k=1,nbl
+            ksave=kup2
+            kup2=kup
+            kup =kdn
+            kdn =ksave
+          enddo  !k=1,nbl
 c
 c --- calculate swfrml, the fraction of solar radiation left at depth hbl
-        if     (-hbl*onem*beta_r.gt.-10.0) then
-          swfrml=frac_r*exp(-hbl*onem*beta_r)+
-     &           frac_b*exp(-hbl*onem*beta_b)
-        elseif (-hbl*onem*beta_b.gt.-10.0) then
-          swfrml=frac_b*exp(-hbl*onem*beta_b)
-        else
-          swfrml=0.0
-        endif
-        swfrml=swfrml-swfbqp*hbl*onem  !spread out bottom frac
-cdiag   if (i.eq.itest.and.j.eq.jtest) then
-cdiag     write (lp,'(i9,2i5,i3,a,f8.2,f6.3)')
-cdiag&        nstep,i,j,nbl,
-cdiag&        '  hbl,swfrml =',hbl,swfrml
-cdiag     call flush(lp)
-cdiag   endif
+          if     (-hbl*onem*beta_r.gt.-10.0) then
+            swfrml=frac_r*exp(-hbl*onem*beta_r)+
+     &             frac_b*exp(-hbl*onem*beta_b)
+          elseif (-hbl*onem*beta_b.gt.-10.0) then
+            swfrml=frac_b*exp(-hbl*onem*beta_b)
+          else
+            swfrml=0.0
+          endif
+          swfrml=swfrml-swfbqp*hbl*onem  !spread out bottom frac
+          if (vrbos) then
+            write (lp,'(i9,2i5,i3,a,4es8.1)')
+     &          nstep,i,j,nbl,
+     &          '  hbl,swfrml =',hbl,swfrml
+            call flush(lp)
+          endif
 c
 c --- limit check on hbl for negative (stablizing) surface buoyancy forcing
-        bfsfc=buoyfl-swfrml*buoysw
-        if (bfsfc.le.0.0) then
-          bfsfc=bfsfc-epsil  !insures bfsfc never=0
-          hmonob(i,j)=min(-cmonob*ustar(i,j)**3/(vonk*bfsfc), hblmax)
-          hbl=max(hblmin,
-     &            min(hbl,
-     &                hekman(i,j),
-     &                hmonob(i,j)))
-        else
-          hmonob(i,j)=hblmax
-        endif
+          bfsfc=buoyfl-swfrml*buoysw
+          if (bfsfc.le.0.0) then
+            bfsfc=bfsfc-epsil  !insures bfsfc never=0
+            hmonob(i,j)=min(-cmonob*ustar(i,j)**3/(vonk*bfsfc), hblmax)
+            hbl=max(hblmin,
+     &              min(hbl,
+     &                  hekman(i,j),
+     &                  hmonob(i,j)))
+          else
+            hmonob(i,j)=hblmax
+          endif
+          dpmixl(i,j,n)=hbl*onem
+        end if		! KT or Ri-based ML depth
 c
 c --- find new nbl and re-calculate swfrml
         nbl=klist(i,j)
@@ -1271,12 +1298,12 @@ c --- find new nbl and re-calculate swfrml
           swfrml=0.0
         endif
         swfrml=swfrml-swfbqp*hbl*onem  !spread out bottom frac
-cdiag   if (i.eq.itest.and.j.eq.jtest) then
-cdiag     write (lp,'(i9,2i5,i3,a,f8.2,f6.3)')
-cdiag&        nstep,i,j,nbl,
-cdiag&        '  hbl,swfrml =',hbl,swfrml
-cdiag     call flush(lp)
-cdiag   endif
+        if (vrbos) then
+          write (lp,'(i9,2i5,i3,a,4e10.2)')
+     &        nstep,i,j,nbl,
+     &        '  hbl,swfrml =',hbl,swfrml
+          call flush(lp)
+        endif
 c
 c --- find forcing stability and buoyancy forcing for final hbl values
 c --- determine case (for case=0., hbl lies between -zgrid(i,j,nbl)
@@ -1430,12 +1457,12 @@ c --- combine interior and boundary layer coefficients and nonlocal term
           enddo
         endif !.not.bblkpp
 c
-cdiag   if (i.eq.itest.and.j.eq.jtest) then
-cdiag     write (lp,103) (nstep,iter,i,j,k,
-cdiag&    hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-cdiag&      ghats(i,j,k),k=1,kk+1)
-cdiag     call flush(lp)
-cdiag   endif
+        if (vrbos) then
+          write (lp,103) (nstep,iter,i,j,k,
+     &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
+     &    ghats(i,j,k),k=1,kk+1)
+          call flush(lp)
+        endif
 c
 c --- save array dpbl=onem*hbl for ice, output and diagnosis
         dpbl(i,j)=onem*hbl
@@ -1467,8 +1494,8 @@ c --- below the base of model layer 1
 c
         hbblmin=1.0
         hbblmax=zgridb(2)
-*       hbblmax=min(-hbl-zgrid(i,j,klist(i,j)+1),2.0*thkbot)
-c       
+*     hbblmax=min(-hbl-zgrid(i,j,klist(i,j)+1),2.0*thkbot)
+c     
 c --- buoyfl = buoyancy flux (m**2/sec**3) into bottom due to heating by
 c ---          the penetrating shortwave radiation
 c --- note: bottom density increases (column is destabilized) if buoyfl < 0
@@ -1496,7 +1523,7 @@ c
         endif
         buoysw=-g*thref*dsgdt*sswflx(i,j)*thref/spcifh
         buoyfl=-swfrac(klist(i,j)+1)*buoysw
-c       
+c     
 c --- diagnose the new boundary layer depth as the depth where a bulk
 c --- richardson number exceeds ric
 c
@@ -1519,8 +1546,8 @@ c --- bottom buoyancy is estimated assuming a linear vertical
 c --- profile across the bottom layer
 c
         bref=g*thref*(0.5*(3.0*thold(klist(i,j))-
-     &       thold(klist(i,j)-1))+35.)		! 35 stands for thbase
-c       
+     &     thold(klist(i,j)-1))+35.)		! 35 stands for thbase
+c     
 c --- diagnose hbbl and nbbl
         do k=klist(i,j),nbbl,-1
           ritop(k)=max(zgridb(k)*(bref-g*thref*thold(k)),
@@ -1640,7 +1667,7 @@ c
 c --- do not execute the remaining bottom boundary layer algorithm if
 c --- vertical resolution is not available in the boundary layer
 c
-*       if (hbbl.lt.0.5*hwide(klist(i,j))) then
+*     if (hbbl.lt.0.5*hwide(klist(i,j))) then
         if (hbbl.lt.0.5*    hwide(klist(i,j))+
      &              0.5*min(hwide(klist(i,j)  ),
      &                      hwide(klist(i,j)-1) )) then
@@ -1735,7 +1762,7 @@ c
           bblmc(k,3)=bblmc(k,3)*dstar
         endif
 c
- 201    continue  ! skip bbl algorithm due to poor vertical resolution
+ 201  continue  ! skip bbl algorithm due to poor vertical resolution
 c
 c --- save array dpbbl=onem*hbbl for output and diagnosis, and for momtum.f
         dpbbl(i,j)=onem*hbbl
@@ -1759,19 +1786,38 @@ c --- select maximum viscosity/diffusivity at all interfaces
           endif
         enddo
 c
-cdiag   if (i.eq.itest.and.j.eq.jtest) then
-cdiag     write (lp,103) (nstep,iter,i,j,k,
-cdiag&    hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-cdiag&    ghats(i,j,k),k=kk,1,-1)
-cdiag     call flush(lp)
-cdiag   endif
-cdiag   if(i.eq.itest.and.j.eq.jtest.and.mod(nstep,20).eq.0) then
-cdiag     print *,'nbbl,hbbl',nbbl,hbbl
-cdiag   endif
+        if (vrbos) then
+          write (lp,103) (nstep,iter,i,j,k,
+     &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
+     &  ghats(i,j,k),k=kk,1,-1)
+          call flush(lp)
+        endif
+        if(vrbos .and. mod(nstep,20).eq.0) then
+          print *,'nbbl,hbbl',nbbl,hbbl
+        endif
 c
         endif    ! bblkpp
 c
-        if (iter.lt.niter) then
+c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
+c --- to turn off mixing below mixed layer, reduce -klist- to mxlyr depth
+        if (mod(iocnmx,4).eq.2) then
+          q=0.
+          do k=1,klist(i,j)
+            q=q+dpmm(k)
+            if (q.ge.dpmixl(i,j,n)) exit
+          end do
+cc        if (k.gt.klist(i,j)) then
+cc          print *,'warning: klist redefinition problem, i,j,k,klist ='
+cc   .       ,i,j,k,klist(i,j)
+cc          print *,'q,dpmixl:',q,dpmixl(i,j,n)
+cc        end if
+          klist(i,j)=min(k+1,klist(i,j))
+          if (vrbos) write (lp,'(i9,2i5,a,i3)') nstep,i,j,
+     .      '  no diffusion beyond layer',klist(i,j)
+        end if                  ! iocnmx = 2
+c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
+c
+        if (iocnmx.le.2) then
 c
 c --- perform the vertical mixing at p points
 c
@@ -1833,13 +1879,13 @@ c --- s solution
           call tridrhs(hm,s1do,diffs,ghat,ghatflux,tri,nlayer,rhs,delt1)
           call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,s1do,s1dn,diffs)
 c
-cdiag     if (i.eq.itest.and.j.eq.jtest) then
-cdiag       write (lp,104) (nstep,iter,i,j,k,
-cdiag&        hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
-cdiag&        0.0,0.0,
-cdiag&        k=1,nlayer)
-cdiag       call flush(lp)
-cdiag     endif
+          if (vrbos) then
+            write (lp,104) (nstep,iter,i,j,k,
+     &        hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
+     &        0.0,0.0,
+     &        k=1,nlayer)
+            call flush(lp)
+          endif
 c
 c --- u solution
           call tridcof(diffm,tri,nlayer,tcu,tcc,tcl)
@@ -1854,11 +1900,11 @@ c --- v solution
           enddo
           call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,v1do,v1dn,diffm)
 c
-cdiag     if (i.eq.itest.and.j.eq.jtest) then
-cdiag       write (lp,105) (nstep,iter,i,j,k,
-cdiag&        hm(k),u1do(k),u1dn(k),v1do(k),v1dn(k),k=1,nlayer)
-cdiag       call flush(lp)
-cdiag     endif
+          if (vrbos) then
+            write (lp,105) (nstep,iter,i,j,k,
+     &        hm(k),u1do(k),u1dn(k),v1do(k),v1dn(k),k=1,nlayer)
+            call flush(lp)
+          endif
 c
 c --- reset old variables in preparation for next iteration
           do k=1,nlayer+1
@@ -1887,8 +1933,7 @@ crb         if (iter.lt.niter) then
               vold(k)=v1dn(k)
 crb         endif
           enddo
-        endif		! iter < niter
-      end if		! ktdpth
+        end if		! iocnmx = 1 or 2
       end do		! iteration loop
 c
  101  format(i9,2i5,i3,'swfrac,dn,dtemp,dsaln ',2f8.3,2f12.6)
@@ -1906,7 +1951,7 @@ c
       end subroutine mxkppaij
 c
 c
-      subroutine mxgissaij(nn,k1m,k1n, i,j)
+      subroutine mxgissaij(nn,k1m,k1n, i,j,vrbos)
 c
 c --- hycom version 2.1
 c--------------------------------------------------------------------
@@ -1978,11 +2023,16 @@ c
       USE MODEL_COM, only: jmon
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
-      USE HYCOM_ARRAYS_GLOB
+      USE HYCOM_ARRAYS
       USE KPRF_ARRAYS
+      USE KPRF_ARRAYS_LOC_RENAMER, only:
+     +    akpar, betabl, betard, redfac, sswflx,
+     +    zgrid, vcty, dift, difs, mixflx, dpbl,
+     +    jerlov, buoflx, bhtflx
 c
       implicit none
       integer,intent(IN) :: nn,k1m,k1n,i,j
+      logical,intent(IN) :: vrbos
 c
       include 'kprf_scalars.h'
 c
@@ -2065,8 +2115,6 @@ c --- shortwave flux penetration depends on kpar or jerlov water type.
 c
       if     (jerlv0.eq.0) then
         beta_r = 2.0/onem
-CTNL    beta_b = ( akpar(i,j,lm0)*wm0+akpar(i,j,lm1)*wm1
-CTNL &            +akpar(i,j,lm2)*wm2+akpar(i,j,lm3)*wm3)/onem
         beta_b = akpar(i,j,jmon)/onem
         beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
@@ -2114,20 +2162,20 @@ c
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k)
-cdiag       if (i.eq.itest.and.j.eq.jtest) then
-cdiag         write (lp,101) nstep,i,j,k,
-cdiag&          0.,1.-swfrac(k+1),dtemp,dsaln
-cdiag         call flush(lp)
-cdiag       endif
+            if (vrbos) then
+              write (lp,101) nstep,i,j,k,
+     &          0.,1.-swfrac(k+1),dtemp,dsaln
+              call flush(lp)
+            endif
           elseif (k.le.klist(i,j)) then
             dtemp=(swfrac(k)-swfrac(k+1))*sswflx(i,j)*
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=0.0
-cdiag       if (i.eq.itest.and.j.eq.jtest) then
-cdiag         write (lp,101) nstep,i,j,k,
-cdiag&          1.-swfrac(k),1.-swfrac(k+1),dtemp
-cdiag         call flush(lp)
-cdiag       endif
+            if (vrbos) then
+              write (lp,101) nstep,i,j,k,
+     &          1.-swfrac(k),1.-swfrac(k+1),dtemp
+              call flush(lp)
+            endif
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
@@ -2243,35 +2291,35 @@ c --- set 1-d array values; use cgs units
       ria(k)=0.0
       rid(k)=0.0
 c
-cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   do k=1,klist(i,j)
-cdiag   write(6,'(a,i9,i3,2f10.3,f9.1,f8.5,2f8.2)') 'giss1din1',
-cdiag&        nstep,k,zgrid(i,j,k),hwide(k),z1d(k),
-cdiag&        th1d(k),u1d(k),v1d(k)
-cdiag   enddo
-cdiag   write(6,'(a,a9,a3,3a13)') 
-cdiag&    'giss1din2','    nstep','  k',
-cdiag&    '           s2','          ria','          rid'
-cdiag   do k=1,klist(i,j)
-cdiag   write(6,'(a,i9,i3,1p,3e13.5)') 'giss1din2',
-cdiag&        nstep,k,s2(k),ria(k),rid(k)
-cdiag   enddo
-cdiag endif
+      if (vrbos) then
+        do k=1,klist(i,j)
+        write(6,'(a,i9,i3,2f10.3,f9.1,f8.5,2f8.2)') 'giss1din1',
+     &        nstep,k,zgrid(i,j,k),hwide(k),z1d(k),
+     &        th1d(k),u1d(k),v1d(k)
+        enddo
+        write(6,'(a,a9,a3,3a13)') 
+     &    'giss1din2','    nstep','  k',
+     &    '           s2','          ria','          rid'
+        do k=1,klist(i,j)
+        write(6,'(a,i9,i3,1p,3e13.5)') 'giss1din2',
+     &        nstep,k,s2(k),ria(k),rid(k)
+        enddo
+      endif
 c
       al0=0.17*hbl/onecm
 c
 c --- Write internal turbulence quantities to fort.91 when writing enabled.
 c ---  Headers for each outputstep.
 c ---  Add S_M,H,S to outputs.
-cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write(lp,'(a,i9)') 'nstep = ',nstep
-cdiag   write(lp,*) 'hbl,al0 = ',hbl/onecm,al0
-cdiag   write(lp,*) 'b1 = ',b1
-cdiag   write(lp,'(a)')    "  z          al         slq2       "//
-cdiag&                     "ri1        rid1       "//
-cdiag&                     "sm         sh         ss         "//
-cdiag&                     "v_back     t_back     s_back     "
-cdiag endif
+      if (vrbos) then
+        write(lp,'(a,i9)') 'nstep = ',nstep
+        write(lp,*) 'hbl,al0 = ',hbl/onecm,al0
+        write(lp,*) 'b1 = ',b1
+        write(lp,'(a)')    "  z          al         slq2       "//
+     &                     "ri1        rid1       "//
+     &                     "sm         sh         ss         "//
+     &                     "v_back     t_back     s_back     "
+      endif
 c
       if     (latdiw) then
         acorio = max(acormin, !f(1degN)
@@ -2421,7 +2469,7 @@ c ---  find \theta_r for the Ri_T = 0 case. Treat "0/0 = 1".
             if(ric.eq.0.0) then
               theta_r = atan(1.0)
             else
-              theta_r = pi/2.0       ! Arctangent of infinity.
+              theta_r = pidbl/2.0       ! Arctangent of infinity.
             endif
           else
             theta_r = atan(ric/rit)
@@ -2430,7 +2478,7 @@ c
 c --- Make sure the right choice of arctan(Ri_C/Ri_T) [\theta_r] is made.
 c --- Arctan only covers the range (-pi/2,pi/2) which theta_r may be outside.
 c --- Want to consider statically stable case only: Ri > 0.
-          if (abs(theta_r).gt.(pi/2.)) then
+          if (abs(theta_r).gt.(pidbl/2.)) then
             write(lp,*) 
      &       "************************************************"
             write(lp,*) "Error detected in turbulence module." 
@@ -2438,14 +2486,14 @@ c --- Want to consider statically stable case only: Ri > 0.
             call flush(lp)
                    stop '(mxgissaij)'
           endif
-          if (theta_r.lt.(-pi)/4.) then
-            theta_r = theta_r + pi
+          if (theta_r.lt.(-pidbl)/4.) then
+            theta_r = theta_r + pidbl
           endif
 c
 c --- MAKE 'jtheta' A NON-NEGATIVE INDEX - ZERO AT THETA = -PI/4 .
 c --- The fortran function "INT" rounds to the integer *NEAREST TO ZERO*
 c --- **I.E. ROUNDS **UP** .or.NEGATIVE NUMBERS**, DOWN ONLY .or.POSITIVES.
-          jtheta_r0 = INT((theta_r + (pi/4.))/deltheta_r)
+          jtheta_r0 = INT((theta_r + (pidbl/4.))/deltheta_r)
           jtheta_r1 = jtheta_r0+1
 c
 c --- INTRODUCE 'itheta' HERE .or.THE INDEX THAT IS ZERO AT THETA=0.
@@ -2475,7 +2523,7 @@ c
           endif
 c
 c --- Angle in degrees.
-          theta_r_deg = theta_r*180./pi
+          theta_r_deg = theta_r*180./pidbl
 c
 c --- Sound the alarm if have unrealizability outside expected range in angle.
           if ((itheta_r1.gt.3*n_theta_r_oct).or.
@@ -2759,10 +2807,10 @@ c
 c
 c --- Write internal turbulence quantities
 c --- Add S_M,H,S to outputs
-cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write(lp,9000) z1d(k),al,slq2,ri1,rid1,sm,sh,ss,
-cdiag&                 v_back(k),t_back(k),s_back(k)
-cdiag endif
+      if (vrbos) then
+        write(lp,9000) z1d(k),al,slq2,ri1,rid1,sm,sh,ss,
+     &                 v_back(k),t_back(k),s_back(k)
+      endif
 c
 c --- introduce foreground minimum shear squared due to internal waves
 c --- to allow mixing in the unstable zero shear case
@@ -2779,7 +2827,7 @@ c --- BECAUSE IT PRODUCES NEGATIVE DIFFUSIVITIES IN THIS CASE.
 c --- *INSTEAD USE "l_deep^2 S", WHERE "l_deep" IS DERIVED FROM "rho" PROFILE.
 c --- "|{{d \rho / dz} \over {d2 \rho / dz^2}}| takes place of MLD in l_deep".
 c --- BUT *REVERT* TO "MLD" IN CASES OF FIRST TWO LEVELS.
-cdiag   aldeep(k)=0.0
+        aldeep(k)=0.0
         if ((ifepson2.EQ.2).AND.(ifbelow.EQ.1)) then
           if (ri1.ge.0) then
               tmp=0.5*b1**2*ri1*slq2*epson2
@@ -2812,7 +2860,7 @@ c --- reversion to ifsalback=3 model for this purpose
           akh(k)=tmp*sh+t_back(k)
           aks(k)=tmp*ss+s_back(k)
 c
-cdiag     tmpk(k)=tmp
+          tmpk(k)=tmp
 c
  22   continue
 c
@@ -2846,16 +2894,16 @@ c --- store new k values in the 3-d arrays
           difs(i,j,kb)=difs(i,j,klist(i,j))
         endif
       enddo
-cdiag if (i.eq.itest .and. j.eq.jtest) then
-cdiag   write(6,'(a,a9,a3,5a13)') 
-cdiag&    'giss1dout','    nstep','  k',
-cdiag&    '          tmp','       aldeep',
-cdiag&    '          akm','          akh','          aks'
-cdiag   do k=1,klist(i,j)
-cdiag     write(6,'(a,i9,i3,1p,6e13.5)') 'giss1dout',
-cdiag&          nstep,k,tmpk(k),aldeep(k),akm(k),akh(k),aks(k)
-cdiag   enddo
-cdiag endif
+      if (vrbos) then
+        write(6,'(a,a9,a3,5a13)') 
+     &    'giss1dout','    nstep','  k',
+     &    '          tmp','       aldeep',
+     &    '          akm','          akh','          aks'
+        do k=1,klist(i,j)
+          write(6,'(a,i9,i3,1p,6e13.5)') 'giss1dout',
+     &          nstep,k,tmpk(k),aldeep(k),akm(k),akh(k),aks(k)
+        enddo
+      endif
 c
  9000 format(12(1pe11.3))
 c
@@ -2865,7 +2913,7 @@ c
       end subroutine mxgissaij
 c
 c
-      subroutine mxkprfbij(nn, i,j)
+      subroutine mxkprfbij(nn, i,j,vrbos)
 c
 c --- hycom version 1.0
 c -------------------------------------------------------------
@@ -2881,6 +2929,7 @@ c
 c
       implicit none
       integer,intent(IN) :: nn,i,j
+      logical,intent(IN) :: vrbos
 c
 c --- perform the final vertical mixing at p points
 c
@@ -2944,15 +2993,15 @@ c
       enddo
       zm(k)=zm(k-1)-0.001
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) then
-cdiag     write (lp,102) (nstep,i,j,k,
-cdiag&      hm(k),t1do(k),temp(i,j,kn),s1do(k),saln(i,j,kn),
-cdiag&      k=1,nlayer)
-cdiag     call flush(lp)
+      if (vrbos) then
+          write (lp,102) (nstep,i,j,k,
+     &      hm(k),t1do(k),temp(i,j,kn),s1do(k),saln(i,j,kn),
+     &      k=1,nlayer)
+          call flush(lp)
  102    format(25x,
      &     '  thick   t old   t ijo   s old   s ijo'
      &     /(i9,2i5,i3,2x,f9.2,4f8.3))
-cdiag endif !test
+      endif !test
 c
 c --- do rivers here because difs is also used for tracers.
 ccc      if     (thkriv.gt.0.0 .and. rivers(i,j,1).ne.0.0) then
@@ -3005,20 +3054,20 @@ c --- s solution
       call tridrhs(hm,s1do,diffs,ghat,ghatflux,tri,nlayer,rhs,delt1)
       call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,s1do,s1dn,diffs)
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) then
-cdiag     write (lp,103) (nstep,i,j,k,
-cdiag&    hm(max(1,k-1)),1.e4*difft(k),1.e4*diffs(k),
-cdiag&      ghat(k),k=1,nlayer+1)
-cdiag     write (lp,104) (nstep,i,j,k,
-cdiag&      hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
-cdiag&      k=1,nlayer)
-cdiag     call flush(lp)
+      if (vrbos) then
+          write (lp,103) (nstep,i,j,k,
+     &    hm(max(1,k-1)),1.e4*difft(k),1.e4*diffs(k),
+     &      ghat(k),k=1,nlayer+1)
+          write (lp,104) (nstep,i,j,k,
+     &      hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
+     &      k=1,nlayer)
+          call flush(lp)
  103    format(25x,'   thick    t diff    s diff   nonlocal'
      &     /(i9,2i5,i3,1x,3f10.2,f11.6))
  104    format(25x,
      &     '  thick   t old   t new   s old   s new'
      &     /(i9,2i5,i3,2x,f9.2,4f8.3))
-cdiag endif !test
+      endif !test
 c
 c --- standard tracer solution
       if     (ntrcr.gt.0) then
@@ -3066,7 +3115,7 @@ c
       end subroutine mxkprfbij
 c
 c
-      subroutine mxkprfciju(nn, i,j)
+      subroutine mxkprfciju(nn, i,j,vrbos)
 c
 c --- hycom version 1.0
 c -------------------------------------------------------------------------
@@ -3080,8 +3129,9 @@ c
       USE KPRF_ARRAYS_LOC_RENAMER, only: vcty
 c
       implicit none
+      include 'kprf_scalars.h'
       integer,intent(IN) :: nn,i,j
-      integer :: k
+      logical,intent(IN) :: vrbos
 c
 c --- local 1-d arrays for matrix solution
       real u1do(kdm+1),u1dn(kdm+1),
@@ -3094,14 +3144,23 @@ c --- tridiagonal matrix solution arrays
      &     tcl(kdm),         ! lower .....     (k-1) ..
      &     rhs(kdm)          ! right-hand-side terms
 c
-      real presu
-      integer ka,kn,nlayer
+      real presu,dpthmx
+      integer k,ka,kn,nlayer
 c
       nlayer=1
       presu=0.
+c --- dpthmx = depth range over which to mix momentum
+      dpthmx=depthu(i,j)-tencm
+c
+c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
+      if (mod(iocnmx,4).eq.2) dpthmx=min(dpthmx,
+     .   .5*max(dpmixl(i  ,j,1)+dpmixl(i  ,j,2),
+     .          dpmixl(i-1,j,1)+dpmixl(i-1,j,2)))
+c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
+c
       do k=1,kk+1
         kn=k+nn
-        if (presu.lt.depthu(i,j)-tencm) then
+        if (presu.lt.dpthmx) then
           diffm(k+1)=.5*(vcty(i,j,k+1)+vcty(i-1,j,k+1))
           u1do(k)=u(i,j,kn)
           hm(k)=max(onemm,dpu(i,j,kn))/onem
@@ -3143,17 +3202,17 @@ c --- solve the diffusion equation
         u(i,j,kn)=u1dn(k)
       enddo
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) then
-cdiag   write (lp,106) (nstep,i,j,k,
-cdiag&    hm(k),u1do(k),u1dn(k),k=1,nlayer)
-cdiag   call flush(lp)
-cdiag endif
+      if (vrbos) then
+        write (lp,106) (nstep,i,j,k,
+     &    hm(k),u1do(k),u1dn(k),k=1,nlayer)
+        call flush(lp)
+      endif
       return
  106  format(23x,'   thick   u old   u new'/(i9,2i5,i3,1x,f10.3,2f8.3))
       end subroutine mxkprfciju
 c
 c
-      subroutine mxkprfcijv(nn, i,j)
+      subroutine mxkprfcijv(nn, i,j,vrbos)
 c
 c --- hycom version 1.0
 c --------------------------------------------------------------------------
@@ -3167,7 +3226,9 @@ c
       USE KPRF_ARRAYS_LOC_RENAMER, only: vcty
 c
       implicit none
+      include 'kprf_scalars.h'
       integer,intent(IN) :: nn,i,j
+      logical,intent(IN) :: vrbos
 c
 c --- local 1-d arrays for matrix solution
       real v1do(kdm+1),v1dn(kdm+1),
@@ -3180,16 +3241,24 @@ c --- tridiagonal matrix solution arrays
      &     tcl(kdm),         ! lower .....     (k-1) ..
      &     rhs(kdm)          ! right-hand-side terms
 c
-      real presv
-      integer ja,ka,kn,nlayer
-      integer k
+      real presv,dpthmx
+      integer ja,k,ka,kn,nlayer
 c
       ja = PERIODIC_INDEX(j-1, jj)
       nlayer=1
       presv=0.
+c --- dpthmx = depth range over which to mix momentum
+      dpthmx=depthv(i,j)-tencm
+c
+c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
+      if (mod(iocnmx,4).eq.2) dpthmx=min(dpthmx,
+     .   .5*max(dpmixl(i,j  ,1)+dpmixl(i,j  ,2),
+     .          dpmixl(i,ja ,1)+dpmixl(i,ja ,2)))
+c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
+c
       do k=1,kk+1
         kn=k+nn
-        if (presv.lt.depthv(i,j)-tencm) then
+        if (presv.lt.dpthmx) then
           diffm(k+1)=.5*(vcty(i,j,k+1)+vcty(i,ja ,k+1))
           v1do(k)=v(i,j,kn)
           hm(k)=max(onemm,dpv(i,j,kn))/onem
@@ -3232,11 +3301,11 @@ c --- solve the diffusion equation
         v(i,j,kn)=v1dn(k)
       enddo
 c
-cdiag if (i.eq.itest.and.j.eq.jtest) then
-cdiag   write (lp,107) (nstep,i,j,k,
-cdiag&    hm(k),v1do(k),v1dn(k),k=1,nlayer)
-cdiag   call flush(lp)
-cdiag endif
+      if (vrbos) then
+        write (lp,107) (nstep,i,j,k,
+     &    hm(k),v1do(k),v1dn(k),k=1,nlayer)
+        call flush(lp)
+      endif
       return
  107  format(23x,'   thick   v old   v new'/(i9,2i5,i3,1x,f10.3,2f8.3))
       end subroutine mxkprfcijv
@@ -3255,8 +3324,9 @@ c
 c
       include 'kprf_scalars.h'
 c
-      integer isb
-      real    zlevel,dnorm,bflux,wm,ws
+      real,   intent(IN) :: zlevel,dnorm,bflux
+      integer,intent(IN) :: isb
+      real,  intent(OUT) :: wm,ws
 c
 c --- isb determines whether the calculation is for the surface or
 c --- bottom boundary layer

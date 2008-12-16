@@ -6,15 +6,14 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
      &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,thref,g
-     &     ,spcifh,thkdff,thkmin,baclin
+     &     ,spcifh,thkdff,thkmin,baclin,itest,jtest
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH, GLOBALSUM
      &     , AM_I_ROOT
       implicit none
 c
       integer,intent(IN) :: m,n,mm,nn,k1m,k1n
-      integer i,j,k,l,ja,jb,kn,knp1,itest,jtest
-      common/testpt/itest,jtest
+      integer i,j,k,l,ja,jb,kn,knp1
       real turgen,dpth,ekminv,obuinv,ex,alf1,alf2,cp1,cp3,ape,cc4,spe,
      .     em,en,ea1,ea2,em1,em2,em3,em4,em5,ustar3,thkold,thknew,
      .     pnew,q,temdp,saldp,thermg,small,tem,sal,rho,sup,slo,

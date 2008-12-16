@@ -13,6 +13,7 @@ c  dt     - temporal increment
 c  fco,fc - depth of the layer at previous and new time step
 c
       USE HYCOM_DIM_GLOB
+      USE HYCOM_SCALARS, only : itest,jtest
 
       implicit none
       integer i,j,l,ia,ib,ja,jb
@@ -23,12 +24,11 @@ c
      .     flx(idm,jdm),fly(idm,jdm),uan(idm,jdm),van(idm,jdm),
      .     flxdiv(idm,jdm),clipj(jdm),vlumj(jdm)
       real dt,onemu,q,clip,vlume,amount,bfore,after,epsil
-      integer iord,itest,jtest,jaa
+      integer iord,jaa
       logical wrap,recovr
       data recovr/.false./
 c
       parameter (epsil=1.e-11,onemu=.0098)
-      common/testpt/itest,jtest
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 c --- optional code for checking conservation properties

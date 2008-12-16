@@ -88,7 +88,6 @@ c --- advect tracer over 'mixfrq' time steps
 c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp,oddev
-      USE HYCOM_ARRAYS_GLOB
       USE HYCOM_ARRAYS, only : ufxcum_loc => ufxcum,
      &     vfxcum_loc => vfxcum, p_loc => p, dp_loc => dp,
      &     scp2_loc => scp2,
@@ -254,7 +253,7 @@ c  scali  - inverse of scal
 c  fco,fc - depth of the layer at previous and new time step
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : lp
+      USE HYCOM_SCALARS, only : lp, itest, jtest
       USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
      &                         haveLatitude, GLOBALSUM, esmf_bcast
       implicit none
@@ -290,12 +289,11 @@ c
       real a(kdm),b(kdm),c(kdm),athird,dx,fcdx,yl,yr
       real onemu,q,clip,vlume,amount,bfore,after,slab,dslab,thkchg,
      .     fluxdv,epsil
-      integer iord,ip1,im1,jp1,jm1,kp,jaa,itest,jtest
+      integer iord,ip1,im1,jp1,jm1,kp,jaa
       character string*16
       logical wrap,recovr
       data recovr/.false./
       parameter (athird=1./3.)
-      common/testpt/itest,jtest
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
       parameter (epsil=1.e-11,onemu=1.e-6)

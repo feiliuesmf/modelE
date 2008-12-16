@@ -171,8 +171,6 @@ c
      .          flnm*60
       data charac/'1','2','3','4','5','6','7','8','9','0',
      .            'A','B','C','D','E','F','G','H','I','J'/
-c     data iatest,jatest/26,7/            ! Weddell Sea
-c     data iatest,jatest/33,40/           ! Iceland
       data iatest,jatest/31,41/           ! Iceland
       data nflip/0/
 c
@@ -384,9 +382,7 @@ c
 99009 format (f12.3,a,i8)
       endif ! AM_I_ROOT
 c
-
       if (nstep.eq.0 .or. nstep.eq.nstep0) then
-
 c
 c$OMP PARALLEL SHARED(mo0)
 c$    mo0=OMP_GET_NUM_THREADS()
@@ -456,34 +452,26 @@ c
       nstepi=real(nhr)*3600./baclin + .0001
 
       if (AM_I_ROOT()) then
+c
       write (lp,'(i4,'' barotropic steps per baroclinic time step'')')
      .  lstep
       write (lp,*) "time0/nstep0=",time0,nstep0
       write (lp,'(a,i4,a,i4,a)') "ogcm exchange w. agcm every",nstepi,
      .   " steps, i.e.",nhr," hr"
+      write (lp,*) "itest,jtest=",itest,jtest
       endif ! AM_I_ROOT
 c
 c --- set up parameters defining the geographic environment
 c
 css   call geopar                ! moved to agcm for zero start or below
 css   call inicon                ! moved to agcm
-      if (mxlkpp) then
-        call inikpp                 ! kpp
-        if (mxlgis) stop 'wrong kprf: kpp=gis=true'
-        print *,'chk: mxlkpp=true'
-cddd        write(*,'(a,2f9.3)')' chk qkpar=',
-cddd     .  1./akpar(itest,jtest,1),1./(betabl(2)*onem)
-      elseif (mxlgis) then
-        call inigis                 ! giss
-        print *,'chk: mxlgis=true'
-      else
-        stop 'wrong kprf: kpp=gis=false'
-      endif
 c
-      mixfrq=int(43200./baclin+.0001)
+c     mixfrq=int(43200./baclin+.0001)
+      mixfrq=1                   ! mixing every time step
       trcfrq=int(43200./baclin+.0001)
-      if (AM_I_ROOT())
-     &  write (lp,'(a,i4,a)') 'trcfrq set to',trcfrq,' steps'
+      if (AM_I_ROOT()) 
+     &  write (lp,'(2(a,i4),a)') 'mixfrq/trcfrq set to'
+     &   ,mixfrq,'/',trcfrq,' steps'
 
       if (trcout) dotrcr=.true.
 c
@@ -574,8 +562,6 @@ c$OMP END PARALLEL DO
 #ifdef TRACERS_GASEXCH_ocean
       otrac(:,:,:) = 0.d0
 #endif
-
-
 c
 c --- ---------------------
 c --- sub loop starts here
@@ -604,7 +590,7 @@ c
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
 c
-      if (nstep.eq.1) diagno=.true.
+      if (nstep.eq.1 .or. nstep.eq.24) diagno=.true.
       diag_ape=.false.
 c
       trcadv_time = 0.0
@@ -614,7 +600,6 @@ c
 c
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
-cdiag print *,'past tradv0'
         dotrcr=.false.
 c
 c --- inject tracer into ogcm
@@ -695,7 +680,6 @@ c
       call system_clock(before)
 
       call cnuity(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past cnuity'
 c
 CTNL  call hycom_arrays_checksum     ! save CPU's time
       call system_clock(after)
@@ -712,7 +696,6 @@ c --- long time step tracer advection: build up mass flux time integral
         if (n.eq.oddev) then
           call tradv1(n,nn)
         endif
-cdiag print *,'past tradv1'
 c
         if (mod(nstep,trcfrq).eq.0) then
           dotrcr=.true.         !  start tracer advection/turb.mixing cycle
@@ -754,7 +737,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
       call tsadvc(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past tsadvc'
+cdiag if (AM_I_ROOT()) print *,'passed tsadvc'
 
       call system_clock(after)
       tsadvc_time = real(after-before)/real(rate)
@@ -773,7 +756,7 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call momtum(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past momtum'
+cdiag if (AM_I_ROOT()) print *,'passed momtum'
 c
       call system_clock(after)
       momtum_time = real(after-before)/real(rate)
@@ -783,7 +766,6 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call barotp(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past barotp'
 
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
@@ -792,8 +774,8 @@ ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-      call convec(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past convec'
+      if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
+     .      call convec(m,n,mm,nn,k1m,k1n)
 c
       call system_clock(after)
       convec_time = real(after-before)/real(rate)
@@ -812,8 +794,8 @@ ccc      call comparall(m,n,mm,nn,string)
 c
 c     before = after
 
-      call diapfl(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past diapfl'
+      if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
+     .      call diapfl(m,n,mm,nn,k1m,k1n)
 c
 c     call system_clock(after)
 c     diapfl_time = real(after-before)/real(rate)
@@ -824,7 +806,6 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call thermf(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past thermf'
 c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
@@ -834,7 +815,6 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call eice(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past eice'
       call system_clock(after)
       enloan_time = real(after-before)/real(rate)
 c
@@ -844,7 +824,7 @@ c
       else
          call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hrs
       end if
-cdiag print *,'past mxlayr'
+c     if (AM_I_ROOT())  print *,'passed mxkprf'
 c
       call system_clock(after)
       mxlayr_time = real(after-before)/real(rate)
@@ -884,7 +864,6 @@ c
       before = after
 
       call hybgen(m,n,mm,nn,k1m,k1n)
-cdiag print *,'past hybgen'
 
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
@@ -1315,6 +1294,7 @@ cddd     .      nstep,iatest,jatest,atrac(iatest,jatest,nt)
       endif
  204  continue
 c$OMP END PARALLEL DO
+#ifdef HYCOM_RESOLUTION_2deg
 c --- enhance flow through Denmark Strait
       do j=39,43
       do i=j-10,j-8
@@ -1324,6 +1304,7 @@ c --- enhance flow through Denmark Strait
 cdiag if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
       enddo
       enddo
+#endif  
 c
 cdiag if (time.le.1)
 cdiag.write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')

@@ -22,7 +22,8 @@
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
-     &    , nstep0, nstep, time0, time
+     &  , nstep0, nstep, time0, time, itest, jtest
+     &  , iocnmx
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
       USE param
       implicit none
@@ -34,13 +35,25 @@
       ! move to global atm grid
       call gather_atm
 
-             call geopar(iniOCEAN)
-
+      call sync_param( "itest", itest)
+      call sync_param( "jtest", jtest)
+      call sync_param( "iocnmx", iocnmx)
+c
+      call geopar(iniOCEAN)
+c
+      if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
+     .                                                              then
+        call inikpp
+      elseif (iocnmx.eq.3 .or. iocnmx.eq.7) then
+        call inigis
+      else
+         stop 'wrong: need to choose one ocean mixing scheme'
+      endif
+c
       if (AM_I_ROOT()) then ! work on global grids here
       
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
       call inicon
-
 c
 c --- increase temp by 2 deg
 c     do 21 j=1,jj
