@@ -137,34 +137,28 @@ C****
 #ifdef CUBE_GRID
 c***  instanciate CS grid and transfer basic domain decomposition 
 c***  info to dd2d structure ( DEBUG ONLY ) 
-      call init_csgrid_debug(dd2d,48,48)
-
+c      call init_csgrid_debug(dd2d,48,48)
+c
 c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
-c      call regrid_input
-
-      call init_regrid(xcs2ll,dd2d,48,48,6,288,180,1)
-      allocate(tsource(isd:ied,jsd:jed))
-      tsource(:,:)=-200*gid+15
-      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
-      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-     &     xcs2ll%ntilestarget),
-     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-     &     xcs2ll%ntilestarget) )
+c      call regrid_input(dd2d)
+c
+c      call init_regrid(xcs2ll,dd2d,48,48,6,288,180,1)
+c      allocate(tsource(isd:ied,jsd:jed))
+c      tsource(:,:)=-200*gid+15
+c      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
+c      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+c     &     xcs2ll%ntilestarget),
+c     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+c     &     xcs2ll%ntilestarget) )
 c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
-      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
+c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
+      call init_app(grid,im,jm,lm)
 #else
       call init_app(grid,im,jm,lm)
 #endif
 #endif
 
 #ifndef ADIABATIC
-
-C****
-C**** Initialize exchange grid for diagnostics
-C****
-#ifdef CUBE_GRID
-      call init_xgrid(im,jm,ic,jc)
-#endif
 
 
 #ifdef TRACERS_ON

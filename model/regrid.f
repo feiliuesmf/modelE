@@ -1097,76 +1097,76 @@ c      write(*,*) "arr=",arr(:,:)
       end subroutine sumxpe2d_exact
 c*
 
-      subroutine init_csgrid_debug(dd2d,imc,jmc)
-
-!@sum  temporary instanciation of CS grid and domain decomp. using direct
-!@+    access to MPP. Used only for debugging purpose.
-!@auth Denis Gueyffier
-
-      use dd2d_utils
-      use mpp_mod
-      use mpp_domains_mod
-      use fv_mp_mod, only : mp_start,mp_stop
-     &     ,fv_domain_decomp=>domain_decomp
-      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
-      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
-      use fv_grid_utils_mod, only : cosa_s,sina_s
-     &     ,grid_utils_init
-c     &     ,sw_corner,se_corner,ne_corner,nw_corner
-      use fv_arrays_mod, only: fv_atmos_type
-      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
-     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
-      use fv_control_mod, only : uniform_ppm,c2l_ord
-      
-      implicit none
-      integer :: i,j,npz
-      integer :: npes,ndims
-      integer :: commID
-      integer, dimension(:), allocatable :: pelist
-      integer :: ng, imc,jmc
-      real*8, dimension(:,:), allocatable :: P
-
-      type (dd2d_grid), intent(inout) :: dd2d
-      type(fv_atmos_type) :: atm
-      character*80 :: grid_name = 'Gnomonic'
-      character*120:: grid_file = 'Inline'
-      logical :: non_ortho
-
-c***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
-
-      call mpp_init(MPP_VERBOSE)
-c code copied from fv_init:
-      npes = mpp_npes()
-      allocate(pelist(npes))
-      call mpp_get_current_pelist( pelist, commID=commID )
-      call mp_start(commID)
-c      write(6,*) 'commID ',commID
-      
-      ng = 3 ! number of ghost zones required
-
-      call fv_domain_decomp(imc+1,jmc+1,6,ng,grid_type)
-c      call mp_stop()
-
-      ndims = 2
-      npz = 5
-      call init_grid(atm,grid_name,grid_file,
-     &     imc+1, jmc+1, npz, ndims, 6, ng)
-
-      non_ortho=.true.
-      call grid_utils_init(Atm, imc+1, jmc+1, npz, Atm%grid, Atm%agrid,
-     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
-     &     uniform_ppm, grid_type, c2l_ord)
-
-c**   transfering domain decomposition info to Max's dd2d derived type
-      call init_dd2d_grid(
-     &     imc,jmc,6, 
-     &     is,ie,js,je,isd,ied,jsd,jed,dd2d)
-      
-      write(*,*) "is,ie,js,je,isd,ied,jsd,jed==",
-     &     is,ie,js,je,isd,ied,jsd,jed
-
-      end subroutine init_csgrid_debug
-c****
+c      subroutine init_csgrid_debug(dd2d,imc,jmc)
+c
+c!@sum  temporary instanciation of CS grid and domain decomp. using direct
+c!@+    access to MPP. Used only for debugging purpose.
+c!@auth Denis Gueyffier
+c
+c      use dd2d_utils
+c      use mpp_mod
+c      use mpp_domains_mod
+c      use fv_mp_mod, only : mp_start,mp_stop
+c     &     ,fv_domain_decomp=>domain_decomp
+c      use fv_mp_mod, only : is, ie, js, je, isd, ied, jsd, jed
+c      use fv_mp_mod, only : gid, domain, tile, npes_x, npes_y
+c      use fv_grid_utils_mod, only : cosa_s,sina_s
+c     &     ,grid_utils_init
+cc     &     ,sw_corner,se_corner,ne_corner,nw_corner
+c      use fv_arrays_mod, only: fv_atmos_type
+c      use fv_grid_tools_mod,  only: init_grid, cosa, sina, area, area_c,
+c     &     dx, dy, dxa, dya, dxc, dyc, grid_type, dx_const, dy_const
+c      use fv_control_mod, only : uniform_ppm,c2l_ord
+c      
+c      implicit none
+c      integer :: i,j,npz
+c      integer :: npes,ndims
+c      integer :: commID
+c      integer, dimension(:), allocatable :: pelist
+c      integer :: ng, imc,jmc
+c      real*8, dimension(:,:), allocatable :: P
+c
+c      type (dd2d_grid), intent(inout) :: dd2d
+c      type(fv_atmos_type) :: atm
+c      character*80 :: grid_name = 'Gnomonic'
+c      character*120:: grid_file = 'Inline'
+c      logical :: non_ortho
+c
+cc***  Temporarily use instanciation of grid through fv_grid_tools_mod's init_grid()
+c
+c      call mpp_init(MPP_VERBOSE)
+cc code copied from fv_init:
+c      npes = mpp_npes()
+c      allocate(pelist(npes))
+c      call mpp_get_current_pelist( pelist, commID=commID )
+c      call mp_start(commID)
+cc      write(6,*) 'commID ',commID
+c      
+c      ng = 3 ! number of ghost zones required
+c
+c      call fv_domain_decomp(imc+1,jmc+1,6,ng,grid_type)
+cc      call mp_stop()
+c
+c      ndims = 2
+c      npz = 5
+c      call init_grid(atm,grid_name,grid_file,
+c     &     imc+1, jmc+1, npz, ndims, 6, ng)
+c
+c      non_ortho=.true.
+c      call grid_utils_init(Atm, imc+1, jmc+1, npz, Atm%grid, Atm%agrid,
+c     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
+c     &     uniform_ppm, grid_type, c2l_ord)
+c
+cc**   transfering domain decomposition info to Max's dd2d derived type
+c      call init_dd2d_grid(
+c     &     imc,jmc,6, 
+c     &     is,ie,js,je,isd,ied,jsd,jed,dd2d)
+c      
+c      write(*,*) "is,ie,js,je,isd,ied,jsd,jed==",
+c     &     is,ie,js,je,isd,ied,jsd,jed
+c
+c      end subroutine init_csgrid_debug
+cc****
 
 
 

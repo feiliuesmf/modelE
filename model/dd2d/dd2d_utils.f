@@ -295,6 +295,9 @@ c
       grid%jsd = jsd
       grid%jed = jed
 
+      write(*,*) "init_dd2d_grid, is, ie, js, je"
+      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
+
       call mpi_comm_rank(MPI_COMM_WORLD,grid%gid,ierr)
       call mpi_comm_size(MPI_COMM_WORLD,grid%nproc,ierr)
       grid%nproc_tile = grid%nproc/grid%ntiles

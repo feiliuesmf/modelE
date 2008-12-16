@@ -11,13 +11,15 @@
 #define USE_MPI
 #endif
 
-#define DECOMP
+
 
 #ifdef USE_ESMF
       use ESMF_Mod
 #endif
       use ESMF_CUSTOM_MOD, Only: NORTH, SOUTH
-
+#ifdef CUBE_GRID
+      use dd2d_utils, only : dd2d_grid
+#endif
 #ifdef USE_MPP
       use mpp_mod,         only : mpp_pe, mpp_npes, mpp_root_pe
       use mpp_mod,         only : mpp_error, NOTE, FATAL
@@ -421,6 +423,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_MPP
          TYPE (domain2D ) :: domain
 #endif
+#ifdef CUBE_GRID
+         type(dd2d_grid) :: dd2d
+#endif
          ! Parameters for Global domain
          INTEGER :: IM_WORLD        ! Number of Longitudes
          INTEGER :: JM_WORLD        ! Number of latitudes
@@ -451,7 +456,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          INTEGER :: log_unit ! for debugging
          !@var lookup_pet index of PET for a given J
          INTEGER, DIMENSION(:), POINTER :: lookup_pet
-         LOGICAL :: BC_PERIODIC
+         LOGICAL :: BC_PERIODIC         
       END TYPE DIST_GRID
 
       TYPE (DIST_GRID) :: GRID, GRID_TRANS
@@ -579,7 +584,9 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM,bc_periodic,
      &                     CREATE_CAP)
 #endif
-
+#ifdef CUBE_GRID
+      use dd2d_utils, only : init_dd2d_grid, dd2d_grid
+#endif
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
@@ -761,6 +768,16 @@ cddd        grd_dum%J_STRT_STGR = 2
 cddd      ENDIF
       grd_dum%J_STRT_STGR   = max(2,J0_DUM)
       grd_dum%J_STOP_STGR   = J1_DUM
+
+#ifdef CUBE_GRID
+c***  gluing dd2d derived type to dist_grid derived type
+           call init_dd2d_grid(
+     &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,6, 
+     &     grd_dum%I_STRT,grd_dum%I_STOP,
+     &     grd_dum%J_STRT,grd_dum%J_STOP,
+     &     grd_dum%I_STRT_HALO,grd_dum%I_STOP_HALO,
+     &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,grd_dum%dd2d)
+#endif
 
       grd_dum%HAVE_SOUTH_POLE = (RANK_LAT == 0)
       grd_dum%HAVE_NORTH_POLE = (RANK_LAT == NP_LAT - 1)

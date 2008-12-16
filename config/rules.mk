@@ -142,7 +142,7 @@ ifeq ($(FVCORE),YES)
   ifndef FVCORE_ROOT
      FVCORE_ROOT = false
   endif
-  CPPFLAGS += -DUSE_FVCORE
+  CPPFLAGS += -DUSE_FVCORE 
   ifneq ($(FVCUBED),YES)
      FVINC = -I$(FVCORE_ROOT)/$(MACHINE)/include
   endif
@@ -154,7 +154,10 @@ endif
 ifeq ($(SKIP_FV),YES)
   CPPFLAGS+=-DSKIP_FV
 endif
-
+ifeq ($(CUBE_GRID),YES)
+CPPFLAGS += -DCUBE_GRID
+LIBS += -L${BASELIBDIR}/lib -lesmf -lstdc++ -lrt
+endif
 ifeq ($(MPP),YES)  
 CPPFLAGS += -DUSE_MPP
 FFLAGS += -I$(MPPDIR)/include
