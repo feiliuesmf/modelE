@@ -85,8 +85,8 @@ ccc   land ice data
       EQUIVALENCE (XLABEL,LABEL)
       REAL*8 TSFREZ1(IM,JM,ktsf),TDIURN1(IM,JM,KTD)
       REAL*8 TSFREZ2(IM,JM,ktsf),TDIURN2(IM,JM,KTD)
-      real*8 AJ1(JM*kaj*ntype),AREG1(nreg*kaj),apj1(JM*kapj)
-      real*8 AJ2(JM*kaj*ntype),AREG2(nreg*kaj),apj2(JM*kapj)
+      real*8 AJ1(JM*kaj*ntype),AREG1(nreg*kaj)
+      real*8 AJ2(JM*kaj*ntype),AREG2(nreg*kaj)
       real*8 AJL1(JM*LM*kajl),ASJL1(JM*lm_req*KASJL),aij1(IM*JM*KAIJ)
       real*8 AJL2(JM*LM*kajl),ASJL2(JM*lm_req*KASJL),aij2(IM*JM*KAIJ)
       real*8 AIL1(IM*LM*KAIL),ENER1(NEHIST*HIST_DAYS),CONSRV1(JM*KCON)
@@ -174,7 +174,7 @@ C****
       logical :: debug = .true. , no_diag = .false.
 C****
       if(debug) then ! check all diag-dimensions
-        write(0,*) 'aj',JM*kaj*ntype,nreg*kaj,JM*kapj
+        write(0,*) 'aj',JM*kaj*ntype,nreg*kaj
         write(0,*) 'AJL',JM*LM*kajl,JM*lm_req*KASJL,IM*JM*KAIJ
         write(0,*) 'AIL',IM*LM*KAIL,NEHIST*HIST_DAYS,JM*KCON
         write(0,*) 'SPECA',(IMH+1)*KSPECA*NSPHER,KTPE*NHEMI
@@ -183,13 +183,13 @@ C****
         write(0,*) 'ajk',JM*LM*KAJK,IM*JM*LM*KAIJK
         write(0,*) 'isccp',ntau*npres*nisccp
         write(0,*) 'hdiu',(HR_IN_MONTH+4)*NDIUVAR*NDIUPT
-        write(0,*) 'all',JM*kaj*ntype+nreg*kaj+JM*kapj+
+        write(0,*) 'all',JM*kaj*ntype+nreg*kaj+
      *  JM*LM*kajl+JM*lm_req*KASJL+IM*JM*KAIJ+IM*LM*KAIL+
      *  NEHIST*HIST_DAYS+JM*KCON+(IMH+1)*KSPECA*NSPHER+KTPE*NHEMI+
      *  HR_IN_DAY*NDIUVAR*NDIUPT+2*Max12HR_sequ*NWAV_DAG*KWP+
      *  JM*LM*KAJK+IM*JM*LM*KAIJK+ntau*npres*nisccp+
      *  (HR_IN_MONTH+4)*NDIUVAR*NDIUPT
-        write(0,*) 'kacc',JM*KAJ*NTYPE + NREG*KAJ + JM*KAPJ
+        write(0,*) 'kacc',JM*KAJ*NTYPE + NREG*KAJ  
      *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
@@ -309,7 +309,7 @@ C**** check which ocean
 #endif
          if (debug) write(0,*) 'trying to read diag'
          READ (1,ERR=100) HEADER,keyct,KEYNR,TSFREZ1,idacc1,
-     *  AJ1,AREG1,apj1,AJL1,ASJL1,aij1,AIL1,ENER1,CONSRV1,SPECA1,
+     *  AJ1,AREG1,AJL1,ASJL1,aij1,AIL1,ENER1,CONSRV1,SPECA1,
      *  ATPE1,ADIUR1,WAVE1,AJK1,AIJK1,AISCCP1,HDIURN1,TDIURN1,OA1
      *        ,ITAU2
          GOTO 200
@@ -446,7 +446,7 @@ C**** check which ocean
 #endif
          if (debug) write(0,*) 'trying to read diag'
          READ (2,ERR=300) HEADER,keyct,KEYNR,TSFREZ2,idacc2,
-     *     AJ2,AREG2,apj2,AJL2,ASJL2,aij2,AIL2,ENER2,CONSRV2,SPECA2,
+     *     AJ2,AREG2,AJL2,ASJL2,aij2,AIL2,ENER2,CONSRV2,SPECA2,
      *     ATPE2,ADIUR2,WAVE2,AJK2,AIJK2,AISCCP2,HDIURN2,TDIURN2,OA2
      *    ,ITAU2
          GOTO 400
@@ -613,7 +613,6 @@ c only check diagnostics if no prognostic errors
        else
       ERRQ=COMP8 ('AJ    ',JM,kaj,ntype,AJ1,AJ2)
       ERRQ=COMP8 ('AREG  ',nreg,kaj,1  ,AREG1,AREG2)
-      ERRQ=COMP8 ('APJ   ',JM,kapj,1   ,APJ1,APJ2)
       ERRQ=COMP8 ('AJL   ',JM,LM,kajl ,AJL1,AJL2)
       ERRQ=COMP8 ('ASJL  ',JM,lm_req,KASJL,ASJL1,ASJL2)
       ERRQ=COMP8 ('AIJ   ',IM,JM,KAIJ,AIJ1,AIJ2)

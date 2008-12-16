@@ -303,7 +303,7 @@
 
 #ifndef SKIP_DIAG
       use diag_com, only : keynr,tsfrez=>tsfrez_loc,tdiurn,oa
-      use diag_com, only : aj=>aj_loc,aregj=>aregj_loc,apj=>apj_loc &
+      use diag_com, only : aj=>aj_loc,aregj=>aregj_loc, &
            ,ajl=>ajl_loc,asjl=>asjl_loc,aij=>aij_loc &
            ,ail=>ail_loc,energy,consrv=>consrv_loc &
            ,speca,atpe,adiurn,wave,ajk=>ajk_loc,aijk=>aijk_loc,aisccp
@@ -571,7 +571,6 @@
         ! diagnostics from diag_com
         check("aj",aj)
         check("aregj",aregj)
-        check("apj",apj)
         check("ajl",ajl)
         check("asjl",asjl)
         check("aij",aij)
