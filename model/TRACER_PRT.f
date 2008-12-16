@@ -456,16 +456,14 @@ C****
      &   ,dsig,ls1,pednl00,pdsigl00
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
-      USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,apj,ia_dga
+      USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,ia_dga,ajl
+     *     ,jl_dpa
       USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
      *     , units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
      *     jls_3Dsource, jlnt_conc, jlnt_mass, jlnt_nt_tot, jlnt_nt_mm,
      *     jlnt_lscond,  jlnt_turb,  jlnt_vt_tot, jlnt_vt_mm, jlnt_mc,
-     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls
-#ifdef TRACERS_SPECIAL_Lerner
-      USE TRDIAG_COM, only : jls_source
-#endif
+     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls, jls_source
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
 #endif
@@ -510,8 +508,12 @@ C****
 !       pdsigjl(j,l)=PDSIG(l)
 !     end do
       do L=1,LS1-1
-        pdsigjl(1:JM,L)=dsig(l)*onespo(1:JM)*APJ(1:JM,1)/
-     *     (fim*IDACC(ia_dga)+teeny)
+c        pdsigjl(1:JM,L)=dsig(l)*onespo(1:JM)*APJ(1:JM,1)/
+c     *     (fim*IDACC(ia_dga)+teeny)
+        do j=1,jm
+          pdsigjl(J,L)=dsig(l)*onespo(J)*SUM(AJL(J,1:LS1-1,JL_DPA))/
+     *         (fim*IDACC(ia_dga)+teeny)
+        end do
       end do
       do L=LS1,LM
         pdsigjl(1:JM,L)=pdsigl00(l)   ! psfmpt*dsig(l)
