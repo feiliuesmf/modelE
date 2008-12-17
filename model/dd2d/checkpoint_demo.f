@@ -14,7 +14,7 @@ c
 
       SUBROUTINE io_rsf(kunit,it,iaction,ioerr)
       USE DOMAIN_DECOMP, only : am_i_root
-      USE READ_ICBC, only : REWIND_PARALLEL
+      USE pario_fbsa, only : REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
      *                     ,ioread,ioread_nodiag,iowrite_mon
      &     ,itimei

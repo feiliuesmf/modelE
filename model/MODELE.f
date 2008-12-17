@@ -1042,6 +1042,7 @@ C****
       USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
 #ifdef CUBE_GRID
+      USE regrid_com, only : x_2gridsroot
       use pario_fbsa, only : READT_PARALLEL
 #else
       USE DOMAIN_DECOMP, only : READT_PARALLEL
@@ -1054,9 +1055,6 @@ C****
       USE ATMDYN, only : init_ATMDYN
 #ifdef USE_ENT
       USE ENT_DRV, only : init_module_ent
-#endif
-#ifdef CUBE_GRID
-      USE regrid_com, only : x_2gridsroot
 #endif
       IMPLICIT NONE
       CHARACTER(*) :: ifile
@@ -1388,7 +1386,7 @@ C**** Set flag to initialise pbl and snow variables
 #endif
         if (istart.eq.1) redogh=.true.
 
-#if !defined (CUBE_GRID) && !defined(NO_LAND_SURFACE)
+#if  !defined(NO_LAND_SURFACE)
 C**** Read in ground initial conditions
         call read_ground_ic() ! code moved to IORSF
 #endif
