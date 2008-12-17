@@ -365,81 +365,81 @@ c
       if(grid%am_i_globalroot .or. bc_all) iarr = arr
       end subroutine read_nc_3D_int
 
-      subroutine defvar_0D(grid,fid,arr,varinfo)
+      subroutine defvar_0D(grid,fid,arr,varinfo,r4_on_disk)
       real*8 :: arr
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_0D
-      subroutine defvar_1D(grid,fid,arr,varinfo)
+      subroutine defvar_1D(grid,fid,arr,varinfo,r4_on_disk)
       real*8 :: arr(:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_1D
-      subroutine defvar_2D(grid,fid,arr,varinfo)
+      subroutine defvar_2D(grid,fid,arr,varinfo,r4_on_disk)
       real*8 :: arr(:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_2D
-      subroutine defvar_3D(grid,fid,arr,varinfo)
+      subroutine defvar_3D(grid,fid,arr,varinfo,r4_on_disk)
       real*8 :: arr(:,:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_3D
-      subroutine defvar_4D(grid,fid,arr,varinfo)
+      subroutine defvar_4D(grid,fid,arr,varinfo,r4_on_disk)
       real*8 :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_4D
-      subroutine defvar_5D(grid,fid,arr,varinfo)
+      subroutine defvar_5D(grid,fid,arr,varinfo,r4_on_disk)
       real*8 :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_5D
 
-      subroutine defvar_0D_int(grid,fid,arr,varinfo)
+      subroutine defvar_0D_int(grid,fid,arr,varinfo,r4_on_disk)
       integer :: arr
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_0D_int
-      subroutine defvar_1D_int(grid,fid,arr,varinfo)
+      subroutine defvar_1D_int(grid,fid,arr,varinfo,r4_on_disk)
       integer :: arr(:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_1D_int
-      subroutine defvar_2D_int(grid,fid,arr,varinfo)
+      subroutine defvar_2D_int(grid,fid,arr,varinfo,r4_on_disk)
       integer :: arr(:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_2D_int
-      subroutine defvar_3D_int(grid,fid,arr,varinfo)
+      subroutine defvar_3D_int(grid,fid,arr,varinfo,r4_on_disk)
       integer :: arr(:,:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_3D_int
-      subroutine defvar_4D_int(grid,fid,arr,varinfo)
+      subroutine defvar_4D_int(grid,fid,arr,varinfo,r4_on_disk)
       integer :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_4D_int
-      subroutine defvar_5D_int(grid,fid,arr,varinfo)
+      subroutine defvar_5D_int(grid,fid,arr,varinfo,r4_on_disk)
       integer :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_5D_int
 
-      subroutine defvar_2D_logical(grid,fid,arr,varinfo)
+      subroutine defvar_2D_logical(grid,fid,arr,varinfo,r4_on_disk)
       logical :: arr(:,:)
 c netcdf file will represent logical as 0/1 int
       integer, parameter :: dtype=nf_int
