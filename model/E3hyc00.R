@@ -116,9 +116,9 @@ TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 latlonij=latlon195x180_20w.4bin    ! lat & lon at each i,j
 hycomtopo=depth195x180_20w.4bin    ! topography used in ocean model
-temp_ini=temp195x180x20jan_vhv.txt ! sea surface temperature as initial condition
-salt_ini=salt195x180x20jan_vhv.txt ! salinity as initial condition
-pout_ini=pout195x180x20jan_vhv.txt ! layer pressure as initial condition
+temp_ini=temp195x180x20feb_vhv.txt ! sea surface temperature as initial condition
+salt_ini=salt195x180x20feb_vhv.txt ! salinity as initial condition
+pout_ini=pout195x180x20feb_vhv.txt ! layer pressure as initial condition
 ibasin=ibasin195x180_20w.txt       ! basin mask
 flxa2o=flxa2o195x180.8bin          ! coupler weights for flux from atm to ocean
 taua2o=taua2o195x180.8bin          ! coupler weights for vector from atm to ocean
@@ -206,9 +206,14 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=48
-itest=-1
-jtest=-1
-iocnmx=0
+itest=-1           ! default is -1
+jtest=-1            ! default is -1
+iocnmx=0            ! default is 0
+brntop=0.           ! default is 0.
+brnbot=300.         ! default is 300.
+ocnmx_factor_s=1    ! default is 1.
+ocnmx_factor_t=1    ! default is 1.
+
 &&END_PARAMETERS
 
  &INPUTZ

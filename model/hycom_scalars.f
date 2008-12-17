@@ -247,7 +247,12 @@ c --- grid point where detailed diagnostics are desired:
       integer, public :: itest=-1, jtest=-1
 c
 c --- ocean mixed layer schemes
-c     integer, public :: imxlkpp=0, ipartkpp=0, imxlgis=0, iktdpth=0
-      integer, public :: iocnmx=-1
+      integer, public :: iocnmx=0
+c
+c --- brntop/brnbot:top/bottom of depth interval over which to distribute brine
+      real, public :: brntop=0., brnbot=300.
+c
+c --- ocnmx_factor_s/ocnmx_factor_t:factor to reduce difs/dift in mxkprf.f
+      real, public :: ocnmx_factor_s=1., ocnmx_factor_t=1.
 
       end module HYCOM_SCALARS

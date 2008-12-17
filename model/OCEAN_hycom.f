@@ -23,7 +23,8 @@
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
      &  , nstep0, nstep, time0, time, itest, jtest
-     &  , iocnmx
+     &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
+
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
       USE param
       implicit none
@@ -38,6 +39,10 @@
       call sync_param( "itest", itest)
       call sync_param( "jtest", jtest)
       call sync_param( "iocnmx", iocnmx)
+      call sync_param( "brntop", brntop)
+      call sync_param( "brnbot", brnbot)
+      call sync_param( "ocnmx_factor_s", ocnmx_factor_s)
+      call sync_param( "ocnmx_factor_t", ocnmx_factor_t)
 c
       call geopar(iniOCEAN)
 c

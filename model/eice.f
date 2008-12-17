@@ -8,7 +8,7 @@ c
       USE HYCOM_DIM,only : isp,ifp,ilp,kk,idm,jchunk,
      *                     J_0,J_1,J_0H,J_1H
       USE HYCOM_SCALARS, only : thkmin,onem,lp,nstep,delt1,g,spcifh
-     &     ,equatn,epsil,itest,jtest
+     &     ,equatn,epsil,brntop,brnbot,itest,jtest
       USE HYCOM_ARRAYS
 c
       implicit none
@@ -19,7 +19,7 @@ c
      .     paybak,borrow,total,totalx,qmax,qmx(J_0H:J_1H),heatfx,dtdflx,
      .     icex(idm,J_0H:J_1H),work(idm,J_0H:J_1H),dm,
      .     salflx2(idm,J_0H:J_1H),top,bot,
-     .     thkinv,brntop,brnbot
+     .     thkinv
       integer imx(J_0H:J_1H),jmx(J_0H:J_1H),k1
       logical dosmoo,pump,vrbos
 c
@@ -43,7 +43,6 @@ c --- brnbot = bottom of depth interval over which to distribute brine
 c
       data thin/0.2/,rhoice/917./,thkmax/10./
      .    ,kice/2.04/,fusion/334.e3/,rate/5.e-6/,dtdflx/0.05/
-     .    ,brntop/20./ brnbot/300./
 c
 c --- energy loan: add extra energy to the ocean to keep SST from dropping
 c --- below tmelt in winter. return this borrowed energy to the 'energy bank'

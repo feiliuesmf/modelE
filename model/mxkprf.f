@@ -1823,8 +1823,8 @@ c --- perform the vertical mixing at p points
 c
           do k=1,klist(i,j)
             kn=k+nn
-            difft(k+1)=dift(i,j,k+1)
-            diffs(k+1)=difs(i,j,k+1)
+            difft(k+1)=dift(i,j,k+1)*ocnmx_factor_t
+            diffs(k+1)=difs(i,j,k+1)*ocnmx_factor_s
             diffm(k+1)=vcty(i,j,k+1)
             ghat(k+1)=ghats(i,j,k+1)
             t1do(k)=temp(i,j,kn)
@@ -2965,8 +2965,8 @@ c
 c
       do k=1,nlayer
         kn=k+nn
-        difft( k+1)=dift(i,j,k+1)
-        diffs( k+1)=difs(i,j,k+1)
+        difft( k+1)=dift(i,j,k+1)*ocnmx_factor_t
+        diffs( k+1)=difs(i,j,k+1)*ocnmx_factor_s
         difftr(k+1)=difs(i,j,k+1)
         ghat(k+1)= ghats(i,j,k+1)
         t1do(k)=temp(i,j,kn)
