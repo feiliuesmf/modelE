@@ -16,7 +16,7 @@ c
 #undef _ARRDIMSL_
 #define _ARRDIMSL_ :,:
       subroutine do_2D
-#include "gs_setup.inc"
+#include "dd2d/gs_setup.inc"
       return
       end subroutine
 c
@@ -25,7 +25,7 @@ c
 #undef _ARRDIMSL_
 #define _ARRDIMSL_ :,:,:
       subroutine do_3D
-#include "gs_setup.inc"
+#include "dd2d/gs_setup.inc"
       return
       end subroutine
 c
@@ -34,7 +34,7 @@ c
 #undef _ARRDIMSL_
 #define _ARRDIMSL_ :,:,:,:
       subroutine do_4D
-#include "gs_setup.inc"
+#include "dd2d/gs_setup.inc"
       return
       end subroutine
 c
@@ -43,6 +43,6 @@ c
 #undef _ARRDIMSL_
 #define _ARRDIMSL_ :,:,:,:,:
       subroutine do_5D
-#include "gs_setup.inc"
+#include "dd2d/gs_setup.inc"
       return
       end subroutine
