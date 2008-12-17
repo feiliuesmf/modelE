@@ -168,7 +168,7 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #endif
 #endif
 
-#endif ! ADIABATIC
+#endif /* ADIABATIC */
 
       call alloc_drv()
 
@@ -203,7 +203,7 @@ c        print *,sname,'Before:istart,ifile = ',istart,ifile
 c        print *,sname,'Before:im,jm        = ',im,jm
 #endif
 
-#endif ! ADIABATIC
+#endif /* ADIABATIC */
 
 #ifdef USE_FVCORE
       CALL INPUT (istart,ifile,clock)
