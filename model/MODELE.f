@@ -135,24 +135,24 @@ C****
       call init_app(grid,im,jm,lm,J_TARG)
 #else
 #ifdef CUBE_GRID
-c***  instanciate CS grid and transfer basic domain decomposition 
-c***  info to dd2d structure ( DEBUG ONLY ) 
-c      call init_csgrid_debug(dd2d,48,48)
-c
-c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
-c      call regrid_input(dd2d)
-c
-c      call init_regrid(xcs2ll,dd2d,48,48,6,288,180,1)
-c      allocate(tsource(isd:ied,jsd:jed))
-c      tsource(:,:)=-200*gid+15
-c      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
-c      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-c     &     xcs2ll%ntilestarget),
-c     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-c     &     xcs2ll%ntilestarget) )
-c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
-c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
+
       call init_app(grid,im,jm,lm)
+
+c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
+c      call regrid_input(grid%dd2d)
+
+      call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
+      allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
+     &     grid%dd2d%jsd:grid%dd2d%jed))
+      tsource(:,:)=-200*grid%dd2d%gid+15
+      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
+      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+     &     xcs2ll%ntilestarget),
+     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+     &     xcs2ll%ntilestarget) )
+      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
+c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
+
 #else
       call init_app(grid,im,jm,lm)
 #endif
@@ -1039,8 +1039,13 @@ C****
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
-      USE DOMAIN_DECOMP, only : grid, GET, READT_PARALLEL, AM_I_ROOT
+      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
+#ifdef CUBE_GRID
+      use pario_fbsa, only : READT_PARALLEL
+#else
+      USE DOMAIN_DECOMP, only : READT_PARALLEL
+#endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
       USE CONSTANT, only : hrday
