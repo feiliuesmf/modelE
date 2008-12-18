@@ -211,8 +211,8 @@ jtest=-1            ! default is -1
 iocnmx=0            ! default is 0
 brntop=0.           ! default is 0.
 brnbot=300.         ! default is 300.
-ocnmx_factor_s=1    ! default is 1.
-ocnmx_factor_t=1    ! default is 1.
+ocnmx_factor_s=1.   ! default is 1.
+ocnmx_factor_t=1.   ! default is 1.
 
 &&END_PARAMETERS
 
