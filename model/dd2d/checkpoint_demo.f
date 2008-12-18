@@ -624,6 +624,7 @@ c close netcdf restart file
         call read_dist_data(grid%dd2d,fid,'fr_sat_ij',fr_sat_ij)
         call read_dist_data(grid%dd2d,fid,'qg_ij',qg_ij)
         call read_dist_data(grid%dd2d,fid,'snoage',snoage,jdim=3)
+        tsns_ij(:,:) = tearth(:,:) ! default if not in input file
         call read_dist_data(grid%dd2d,fid,'tsns_ij',tsns_ij)
       end select
       return
@@ -885,6 +886,11 @@ c close netcdf restart file
       case (ioread)            ! input from restart file
         call read_dist_data(grid%dd2d,fid,'snowli',snowli)
         call read_dist_data(grid%dd2d,fid,'tlandi',tlandi,jdim=3)
+c set some defaults for quantities which may not be in the
+c restart file
+        mdwnimp(:,:) = 0.; edwnimp(:,:) = 0.
+        accpda = 0.; eaccpda = 0.
+        accpdg = 0.; eaccpdg = 0.
         call read_dist_data(grid%dd2d,fid,'mdwnimp',mdwnimp)
         call read_dist_data(grid%dd2d,fid,'edwnimp',edwnimp)
         call read_data(grid%dd2d,fid,'accpda',accpda,bcast_all=.true.)
