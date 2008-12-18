@@ -822,7 +822,7 @@ c***  gluing dd2d derived type to dist_grid derived type
       Deallocate(AI)
 #endif
 
-#ifdef USE_MPP && USE_ESMF
+#if (defined USE_MPP) && (defined  USE_ESMF)
 # ifdef USE_FVCUBED
 
       if (present(CREATE_CAP)) then
