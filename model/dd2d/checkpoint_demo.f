@@ -144,6 +144,7 @@ c close netcdf restart file
       implicit none
       integer :: iu_GIC,ioerr
       call openunit("GIC",iu_GIC,.true.,.true.)
+      write(*,*) "Reading ground IC"
       ioerr=-1
       read(iu_GIC) ! ignore first line (ocean ic done in init_OCEAN)
       call io_seaice (iu_GIC,ioreadnt,ioerr)

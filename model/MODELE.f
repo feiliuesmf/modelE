@@ -139,8 +139,9 @@ C****
       call init_app(grid,im,jm,lm)
 
 c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
-c      call regrid_input(grid%dd2d)
+      call regrid_input(grid%dd2d)
 
+      call stop_model("stop  ",255)
       call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
       allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
      &     grid%dd2d%jsd:grid%dd2d%jed))
@@ -1386,10 +1387,10 @@ C**** Set flag to initialise pbl and snow variables
 #endif
         if (istart.eq.1) redogh=.true.
 
-#if  !defined(NO_LAND_SURFACE)
+c#if  !defined(NO_LAND_SURFACE)
 C**** Read in ground initial conditions
         call read_ground_ic() ! code moved to IORSF
-#endif
+c#endif
 
       END IF
 

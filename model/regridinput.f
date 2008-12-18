@@ -695,41 +695,41 @@ c***  Write Netcdf file
 
     
 c***  Define OCN variables
-      call defvar(dd2d,fid,Tocn_out,'tocean_glob(d3,im,jm,tile)')
-      call defvar(dd2d,fid,MixLD_out,'z1o_glob(im,jm,tile)')
+      call defvar(dd2d,fid,Tocn_out,'tocean(d3,im,jm,tile)')
+      call defvar(dd2d,fid,MixLD_out,'z1o(im,jm,tile)')
 c***  Define SICE variables
-      call defvar(dd2d,fid,F_out,'rsi_glob(im,jm,tile)')
-      call defvar(dd2d,fid,H_out,'hsi_glob(lmi,im,jm,tile)')
-      call defvar(dd2d,fid,snw_out,'snowi_glob(im,jm,tile)')
-      call defvar(dd2d,fid,msi_out,'msi_glob(im,jm,tile)')
-      call defvar(dd2d,fid,ssi_out,'ssi_glob(lmi,im,jm,tile)')
+      call defvar(dd2d,fid,F_out,'rsi(im,jm,tile)')
+      call defvar(dd2d,fid,H_out,'hsi(lmi,im,jm,tile)')
+      call defvar(dd2d,fid,snw_out,'snowi(im,jm,tile)')
+      call defvar(dd2d,fid,msi_out,'msi(im,jm,tile)')
+      call defvar(dd2d,fid,ssi_out,'ssi(lmi,im,jm,tile)')
       call defvar(dd2d,fid,pond_melt_out,
-     &     'pond_melt_glob(im,jm,tile)')
+     &     'pond_melt(im,jm,tile)')
       call defvar(dd2d,fid,flag_dsws_out,
-     &     'flag_dsws_glob(im,jm,tile)')
+     &     'flag_dsws(im,jm,tile)')
 c***  Define EARTH variables
-      call defvar(dd2d,fid,snowe_out,'snowe_glob(im,jm,tile)')
-      call defvar(dd2d,fid,Te_out,'tearth_glob(im,jm,tile)')
-      call defvar(dd2d,fid,WTRe_out,'wearth_glob(im,jm,tile)')
-      call defvar(dd2d,fid,ICEe_out,'aiearth_glob(im,jm,tile)')
-      call defvar(dd2d,fid,SNOage_out,'snoage_glob(d3,im,jm,tile)')
+      call defvar(dd2d,fid,snowe_out,'snowe(im,jm,tile)')
+      call defvar(dd2d,fid,Te_out,'tearth(im,jm,tile)')
+      call defvar(dd2d,fid,WTRe_out,'wearth(im,jm,tile)')
+      call defvar(dd2d,fid,ICEe_out,'aiearth(im,jm,tile)')
+      call defvar(dd2d,fid,SNOage_out,'snoage(d3,im,jm,tile)')
       call defvar(dd2d,fid,evmax_out,
-     &     'evap_max_ij_glob(im,jm,tile)')
-      call defvar(dd2d,fid,fsat_out,'fr_sat_ij_glob(im,jm,tile)')
-      call defvar(dd2d,fid,gq_out,'qg_ij_glob(im,jm,tile)')
+     &     'evap_max_ij(im,jm,tile)')
+      call defvar(dd2d,fid,fsat_out,'fr_sat_ij(im,jm,tile)')
+      call defvar(dd2d,fid,gq_out,'qg_ij(im,jm,tile)')
 c***  Define SOIL variables     ! this is the old SOIL02 version, implement the new version
-      call defvar(dd2d,fid,Wb_out,'wb_glob(ngm,im,jm,tile)')
+      call defvar(dd2d,fid,Wb_out,'wb(ngm,im,jm,tile)')
       call defvar(dd2d,fid,Wv_out,
-     &     'wv_glob(zero_to_ngm,im,jm,tile)')
+     &     'wv(zero_to_ngm,im,jm,tile)')
       call defvar(dd2d,fid,HTb_out,
-     &     'htb_glob(zero_to_ngm,im,jm,tile)')
+     &     'htb(zero_to_ngm,im,jm,tile)')
       call defvar(dd2d,fid,HTv_out,
-     &     'htv_glob(zero_to_ngm,im,jm,tile)')
+     &     'htv(zero_to_ngm,im,jm,tile)')
       call defvar(dd2d,fid,SNWbv_out,
-     &     'snowbv_glob(ls_nfrac,im,jm,tile)')
+     &     'snowbv(ls_nfrac,im,jm,tile)')
 c***  Define GLAIC variables
-      call defvar(dd2d,fid,SNOW_out,'snowli_glob(im,jm,tile)')
-      call defvar(dd2d,fid,T_out,'tlandi_glob(d2,im,jm,tile)')
+      call defvar(dd2d,fid,SNOW_out,'snowli(im,jm,tile)')
+      call defvar(dd2d,fid,T_out,'tlandi(d2,im,jm,tile)')
       
       if (am_i_root()) then
          status = nf_enddef(fid)
@@ -737,34 +737,34 @@ c***  Define GLAIC variables
       endif
 
 c***  Write OCN variables
-      call write_data(dd2d,fid,'tocean_glob',Tocn_out)
-      call write_data(dd2d,fid,'z1o_glob',MixLD_out)
+      call write_data(dd2d,fid,'tocean',Tocn_out)
+      call write_data(dd2d,fid,'z1o',MixLD_out)
 c***  Write SICE variables
-      call write_data(dd2d,fid,'rsi_glob',F_out)
-      call write_data(dd2d,fid,'hsi_glob',H_out)
-      call write_data(dd2d,fid,'snowi_glob',snw_out)
-      call write_data(dd2d,fid,'msi_glob',msi_out)
-      call write_data(dd2d,fid,'ssi_glob',ssi_out)
-      call write_data(dd2d,fid,'pond_melt_glob',pond_melt_out)
-      call write_data(dd2d,fid,'flag_dsws_glob',flag_dsws_out)
+      call write_data(dd2d,fid,'rsi',F_out)
+      call write_data(dd2d,fid,'hsi',H_out)
+      call write_data(dd2d,fid,'snowi',snw_out)
+      call write_data(dd2d,fid,'msi',msi_out)
+      call write_data(dd2d,fid,'ssi',ssi_out)
+      call write_data(dd2d,fid,'pond_melt',pond_melt_out)
+      call write_data(dd2d,fid,'flag_dsws',flag_dsws_out)
 c***  Write EARTH variables
-      call write_data(dd2d,fid,'snowe_glob',snowe_out)
-      call write_data(dd2d,fid,'tearth_glob',Te_out)
-      call write_data(dd2d,fid,'wearth_glob',WTRe_out)
-      call write_data(dd2d,fid,'aiearth_glob',ICEe_out)
-      call write_data(dd2d,fid,'snoage_glob',SNOage_out)
-      call write_data(dd2d,fid,'evap_max_ij_glob',evmax_out)
-      call write_data(dd2d,fid,'fr_sat_ij_glob',fsat_out)
-      call write_data(dd2d,fid,'qg_ij_glob',gq_out)
+      call write_data(dd2d,fid,'snowe',snowe_out)
+      call write_data(dd2d,fid,'tearth',Te_out)
+      call write_data(dd2d,fid,'wearth',WTRe_out)
+      call write_data(dd2d,fid,'aiearth',ICEe_out)
+      call write_data(dd2d,fid,'snoage',SNOage_out)
+      call write_data(dd2d,fid,'evap_max_ij',evmax_out)
+      call write_data(dd2d,fid,'fr_sat_ij',fsat_out)
+      call write_data(dd2d,fid,'qg_ij',gq_out)
 c***  Write SOIL variables     ! this is the old SOIL02 version, implement the new version
-      call write_data(dd2d,fid,'wb_glob',Wb_out)
-      call write_data(dd2d,fid,'wv_glob',Wv_out)
-      call write_data(dd2d,fid,'htb_glob',HTb_out)
-      call write_data(dd2d,fid,'htv_glob',HTv_out)
-      call write_data(dd2d,fid,'snowbv_glob',SNWbv_out)
+      call write_data(dd2d,fid,'wb',Wb_out)
+      call write_data(dd2d,fid,'wv',Wv_out)
+      call write_data(dd2d,fid,'htb',HTb_out)
+      call write_data(dd2d,fid,'htv',HTv_out)
+      call write_data(dd2d,fid,'snowbv',SNWbv_out)
 c***  Write GLAIC variables
-      call write_data(dd2d,fid,'snowli_glob',SNOW_out)
-      call write_data(dd2d,fid,'tlandi_glob',T_out)
+      call write_data(dd2d,fid,'snowli',SNOW_out)
+      call write_data(dd2d,fid,'tlandi',T_out)
 
 
       deallocate (Tocn_out,MixLD_out,F_out,H_out,
