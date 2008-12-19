@@ -1387,10 +1387,10 @@ C**** Set flag to initialise pbl and snow variables
 #endif
         if (istart.eq.1) redogh=.true.
 
-c#if  !defined(NO_LAND_SURFACE)
+#if !defined(NO_LAND_SURFACE) || defined(CUBE_GRID)
 C**** Read in ground initial conditions
         call read_ground_ic() ! code moved to IORSF
-c#endif
+#endif
 
       END IF
 
