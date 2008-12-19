@@ -82,7 +82,7 @@ C****
       USE LANDICE_COM, only : snowli
 #ifdef TRACERS_WATER
      *     ,trlndi
-#endif      
+#endif
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
      *     ,tfrez,dEidTi,alami
       USE SEAICE_COM, only : rsi,msi,snowi,flag_dsws,ssi
@@ -1000,7 +1000,7 @@ C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
       if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
-           DTH1(I,J)=DTH1(I,J) 
+           DTH1(I,J)=DTH1(I,J)
      &              +ash*DTSURF*ptype/(SHA*MA1*P1K)
            DQ1(I,J)=DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
            SHFLX = SHFLX + ASH*ptype
@@ -1008,11 +1008,11 @@ cccccc for SCM use ARM provided fluxes for designated box
            write(iu_scm_prt,980) I,PTYPE,DTH1(I,J),DQ1(I,J),
      &           EVPFLX,SHFLX
  980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
-     &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)   
+     &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
            DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
            DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
-c          write(iu_scm_prt,981) I,PTYPE,DTH1(I,J),DQ1(I,J) 
+c          write(iu_scm_prt,981) I,PTYPE,DTH1(I,J),DQ1(I,J)
 c981       format(1x,'SURFACE GCM   I PTYPE DTH1 DQ1 ',
 c    &            i5,f9.4,f9.5,f9.6)
       endif
@@ -1305,7 +1305,11 @@ C****
 C****
 C**** UPDATE FIRST LAYER QUANTITIES
 C****
-!$OMP  PARALLEL DO PRIVATE (I,J,N,FTEVAP,FQEVAP,P1K)
+!$OMP  PARALLEL DO PRIVATE (I,J
+#ifdef TRACERS_ON
+!$OMP*    ,N
+#endif
+!$OMP*    ,FTEVAP,FQEVAP,P1K)
 !$OMP*          SCHEDULE(DYNAMIC,2)
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
