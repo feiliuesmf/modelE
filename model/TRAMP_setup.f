@@ -1420,6 +1420,7 @@
 !   The reference document does not use the terms pressure and temperature
 !   above 86 km.
 !----------------------------------------------------------------------------
+      USE CONSTANT, only : radius, 
       IMPLICIT NONE
 !============================================================================
 !     A R G U M E N T S                                                     |
@@ -1431,7 +1432,7 @@
 !============================================================================
 !     L O C A L   C O N S T A N T S                                         |
 !============================================================================
-      REAL,PARAMETER:: REARTH = 6369.0             ! radius of the Earth (km)
+      REAL,PARAMETER:: REARTH = radius*1000.           ! radius of the Earth (km)
       REAL,PARAMETER:: GMR = 34.163195                 ! hydrostatic constant
       INTEGER,PARAMETER:: NTAB=8   ! number of entries in the defining tables
 !============================================================================
