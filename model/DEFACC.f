@@ -118,7 +118,7 @@ c
       ia_j(k) = ia_rad
 c
       k=k+1
-      J_TRNFP0=  k ! TRNFP0=AJ(ALBVIS)+A2BYA1*AJ(TRHDT)/DTS(W/m**2)2 D1
+      J_TRNFP0=  k ! TRNFP0 (W/m**2)2 D1
       name_j(k) = 'net_lw_p0'
       lname_j(k) = 'THERMAL RADIATION EMITTED BY PLANET'
       units_j(k) = 'W/m^2'
@@ -127,7 +127,7 @@ c
       ia_j(k) = ia_rad
 c
       k=k+1
-      J_TRNFP1=  k ! TRNFP1=AJ(ALBNIR)+A2BYA1*AJ(TRHDT)/DTS(W/m**2)2 D1
+      J_TRNFP1=  k ! TRNFP1=AJ(ALBNIR) D1
       name_j(k) = 'net_lw_p1'
       lname_j(k) = 'NET THERMAL RADIATION AT PTOP'
       units_j(k) = 'W/m^2'

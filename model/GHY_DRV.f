@@ -1356,7 +1356,7 @@ c***********************************************************************
      &     ,hdiurn=>hdiurn_loc
 #endif
      *     ,tsfrez=>tsfrez_loc,tdiurn,jreg
-     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_trnfp0
+     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
      *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
@@ -1383,7 +1383,7 @@ c***********************************************************************
      &     ,grav
 #endif
       use model_com, only : dtsrc,nisurf,jdate
-     *     ,jday,jhour,nday,itime,modrd,itearth
+     *     ,jday,jhour,nday,itime,itearth
 #ifdef SCM
      &     ,I_TARG,J_TARG
 #endif
@@ -1589,8 +1589,6 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
      *       *PTYPE
       END IF
-      if(modrd.eq.0)aij(i,j,ij_trnfp0)=aij(i,j,ij_trnfp0)+trhdt*ptype
-     *     /dtsrc
       aij(i,j,ij_srtr)=aij(i,j,ij_srtr)+(srhdt+trhdt)*ptype
       aij(i,j,ij_neth)=aij(i,j,ij_neth)+(srhdt+trhdt+shdt+evhdt)*ptype
       aij(i,j,ij_evap)=aij(i,j,ij_evap)+aevap*ptype

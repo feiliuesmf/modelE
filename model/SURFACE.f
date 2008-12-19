@@ -14,7 +14,7 @@ C****
      *     ,deltx,teeny,rhows,grav
       USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,ndasf,fland,flice,focean,IVSP,IVNP
-     *     ,nday,modrd,itime,jhour,itocean
+     *     ,nday,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
 #ifdef SCM
      *     ,I_TARG,J_TARG
@@ -53,7 +53,7 @@ C****
       USE PBL_DRV, only : pbl, t_pbl_args
       USE DIAG_COM, only : ia_srf,oa,aij=>aij_loc
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
-     *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_trnfp0
+     *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
      *     ,ij_f0oi,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt
@@ -1055,8 +1055,6 @@ C**** QUANTITIES ACCUMULATED FOR LATITUDE-LONGITUDE MAPS IN DIAGIJ
           AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
      *         *PTYPE
         END IF
-        IF(MODRD.EQ.0) AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)+TRHDT
-     *       *PTYPE/DTSRC
         AIJ(I,J,IJ_SRTR)=AIJ(I,J,IJ_SRTR)+(SRHEAT*DTSURF+TRHDT)*PTYPE
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+(SRHEAT*DTSURF+TRHDT+SHDT
      *       +EVHDT)*PTYPE
