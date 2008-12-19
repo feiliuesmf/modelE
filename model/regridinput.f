@@ -11,7 +11,7 @@ c      call init_regrid(xll2cs,360,180,1,90,90,6)
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
       if (AM_I_ROOT()) then
-c         call regridTOPO(xll2cs)
+         call regridTOPO(xll2cs)
 c         call regridOSST(xll2cs)
 c         call regridSICE(xll2cs)
 c         call regridCDN(xll2cs)
@@ -22,7 +22,7 @@ c         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
 ccc   Then regrid Initial Condition 
       endif
-         call regridGIC(xll2cs,dd2d)
+c         call regridGIC(xll2cs,dd2d)
 c         call regridAIC(xll2cs)
 
       end subroutine regrid_input
@@ -37,11 +37,12 @@ c
       use regrid_com
       implicit none
       include 'netcdf.inc'
-      character*80 :: TITLE,name,ncfile
+      character*80 :: TITLE(nrecmax),name,ncfile
       type (x_2gridsroot), intent(inout) :: x2grids
       real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
+      real*4, allocatable :: ttargr4(:,:,:,:)
       integer :: iu_TOPO,i,j,k,irec,iunit,imt,jmt,ntt,maxrec,status,
-     &     vid,fid
+     &     vid,fid,ir
 
       imt=x2grids%imtarget
       jmt=x2grids%jmtarget
@@ -49,7 +50,9 @@ c
 
       write(*,*) "imt jmt ntt",imt,jmt,ntt
 
-      allocate( ttargglob(imt,jmt,ntt,nrecmax),ones(imt,jmt,ntt) )
+      allocate( ttargglob(imt,jmt,ntt,nrecmax),
+     &     ttargr4(imt,jmt,ntt,nrecmax),
+     &     ones(imt,jmt,ntt) )
 
       name="Z72X46N.cor4_nocasp"
 
@@ -59,7 +62,7 @@ c
 
       write(*,*) "iu_TOPO",iu_TOPO
 
-      call read_regrid_4D_1R(x2grids,iu_TOPO,ttargglob,maxrec)
+      call read_regrid_4D_1R(x2grids,iu_TOPO,TITLE,ttargglob,maxrec)
 
 c
 c     CONSISTENCY CHECKS: 1) FOCEAN+FLAKE+FGRND+FGICE=1 
@@ -89,7 +92,22 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       enddo
 
       close(iu_TOPO)
- 
+
+      name="Z72X46N.cor4_nocasp.CS"
+
+      write(*,*) name
+
+      open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='unknown')
+
+      ttargr4=ttargglob
+
+      do ir=1,maxrec
+         write(unit=iu_TOPO) TITLE(ir), ttargr4(:,:,:,ir)
+         write(*,*) TITLE(ir), ttargr4(:,:,:,ir)
+      enddo
+
+      close(iu_TOPO)
+
       ncfile="topo6tiles.nc"
 
       status = nf_open(trim(ncfile),nf_write,fid)
@@ -111,6 +129,9 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       status = nf_close(fid)
 
       deallocate(ttargglob,ones)
+
+
+
       
       end subroutine regridTOPO 
 c*
@@ -387,6 +408,8 @@ c
 
       type (x_2gridsroot), intent(in) :: x2grids
       type (dd2d_grid), intent(in) :: dd2d
+
+c*    read
       real*8, allocatable :: Tocn(:,:,:),MixLD(:,:)        ! OCN01
       real*8, allocatable :: F(:,:),H(:,:,:),snw(:,:),msi(:,:),
      &     ssi(:,:,:),pond_melt(:,:)
@@ -397,6 +420,7 @@ c
      &     HTv(:,:,:),SNWbv(:,:,:)                         ! SOILS02
       real*8, allocatable :: SNOW(:,:),T(:,:,:)            ! GLAIC01
 
+c*    write
       real*8, allocatable :: Tocn_out(:,:,:,:),MixLD_out(:,:,:)   ! OCN01
       real*8, allocatable :: F_out(:,:,:),H_out(:,:,:,:),
      &     snw_out(:,:,:),msi_out(:,:,:),ssi_out(:,:,:,:),
@@ -405,8 +429,8 @@ c
       real*8, allocatable :: snowe_out(:,:,:),Te_out(:,:,:),
      &     WTRe_out(:,:,:), ICEe_out(:,:,:),SNOage_out(:,:,:,:),
      &     evmax_out(:,:,:),fsat_out(:,:,:),gq_out(:,:,:)         ! EARTH01
-      real*8, allocatable :: Wb_out(:,:,:,:),Wv_out(:,:,:,:),
-     &     HTb_out(:,:,:,:),HTv_out(:,:,:,:),SNWbv_out(:,:,:,:)   ! SOILS02
+      real*8, allocatable :: W_out(:,:,:,:,:),
+     &     HT_out(:,:,:,:,:),SNWbv_out(:,:,:,:)                   ! SOILS02
       real*8, allocatable :: SNOW_out(:,:,:),T_out(:,:,:,:)       ! GLAIC01
 
       real*8, allocatable :: tsource(:,:,:)
@@ -416,6 +440,7 @@ c
       integer :: iu_GIC,iuout,ims,jms,nts,imt,jmt,ntt
       integer :: i,j,k,l,fid,status,ntiles,im,jm,d2,d3
      
+
       ims=x2grids%imsource
       jms=x2grids%jmsource
       nts=x2grids%ntilessource
@@ -447,8 +472,8 @@ c
      &     WTRe_out(imt,jmt,ntt),ICEe_out(imt,jmt,ntt), 
      &     SNOage_out(3,imt,jmt,ntt),evmax_out(imt,jmt,ntt),
      &     fsat_out(imt,jmt,ntt),gq_out(imt,jmt,ntt),
-     &     Wb_out(6,imt,jmt,ntt),Wv_out(7,imt,jmt,ntt),
-     &     HTb_out(7,imt,jmt,ntt),HTv_out(7,imt,jmt,ntt), 
+     &     W_out(7,2,imt,jmt,ntt),
+     &     HT_out(7,2,imt,jmt,ntt),
      &     SNWbv_out(2,imt,jmt,ntt),
      &     SNOW_out(imt,jmt,ntt),T_out(2,imt,jmt,ntt) )
 
@@ -606,7 +631,7 @@ c***  Compatibility
          enddo
          call root_regrid(x2grids,tsource,ttargglob)
          write(*,*) "k=",k
-         Wb_out(k,:,:,:)=ttargglob(:,:,:)
+         W_out(k,1,:,:,:)=ttargglob(:,:,:)
       enddo
 
       do k=1,7
@@ -617,7 +642,7 @@ c***  Compatibility
          enddo
          call root_regrid(x2grids,tsource,ttargglob)
          write(*,*) "k=",k
-         Wv_out(k,:,:,:)=ttargglob(:,:,:)
+         W_out(k,2,:,:,:)=ttargglob(:,:,:)
       enddo
 
       do k=1,7
@@ -628,7 +653,7 @@ c***  Compatibility
          enddo
          call root_regrid(x2grids,tsource,ttargglob)
          write(*,*) "k=",k
-         HTb_out(k,:,:,:)=ttargglob(:,:,:)
+         HT_out(k,1,:,:,:)=ttargglob(:,:,:)
       enddo
 
       do k=1,7
@@ -639,7 +664,7 @@ c***  Compatibility
          enddo
          call root_regrid(x2grids,tsource,ttargglob)
          write(*,*) "k=",k
-         HTv_out(k,:,:,:)=ttargglob(:,:,:)
+         HT_out(k,2,:,:,:)=ttargglob(:,:,:)
       enddo
 
       do k=1,2
@@ -718,13 +743,9 @@ c***  Define EARTH variables
       call defvar(dd2d,fid,fsat_out,'fr_sat_ij(im,jm,tile)')
       call defvar(dd2d,fid,gq_out,'qg_ij(im,jm,tile)')
 c***  Define SOIL variables     ! this is the old SOIL02 version, implement the new version
-      call defvar(dd2d,fid,Wb_out,'wb(ngm,im,jm,tile)')
-      call defvar(dd2d,fid,Wv_out,
-     &     'wv(zero_to_ngm,im,jm,tile)')
-      call defvar(dd2d,fid,HTb_out,
-     &     'htb(zero_to_ngm,im,jm,tile)')
-      call defvar(dd2d,fid,HTv_out,
-     &     'htv(zero_to_ngm,im,jm,tile)')
+      call defvar(dd2d,fid,W_out,'w_ij(ngm,ls_nfrac,im,jm,tile)')
+      call defvar(dd2d,fid,HT_out,
+     &     'ht_ij(zero_to_ngm,ls_nfrac,im,jm,tile)')
       call defvar(dd2d,fid,SNWbv_out,
      &     'snowbv(ls_nfrac,im,jm,tile)')
 c***  Define GLAIC variables
@@ -757,10 +778,8 @@ c***  Write EARTH variables
       call write_data(dd2d,fid,'fr_sat_ij',fsat_out)
       call write_data(dd2d,fid,'qg_ij',gq_out)
 c***  Write SOIL variables     ! this is the old SOIL02 version, implement the new version
-      call write_data(dd2d,fid,'wb',Wb_out)
-      call write_data(dd2d,fid,'wv',Wv_out)
-      call write_data(dd2d,fid,'htb',HTb_out)
-      call write_data(dd2d,fid,'htv',HTv_out)
+      call write_data(dd2d,fid,'w_ij',W_out)
+      call write_data(dd2d,fid,'ht_ij',HT_out)
       call write_data(dd2d,fid,'snowbv',SNWbv_out)
 c***  Write GLAIC variables
       call write_data(dd2d,fid,'snowli',SNOW_out)
@@ -771,8 +790,8 @@ c***  Write GLAIC variables
      &     snw_out,msi_out,ssi_out,pond_melt_out,
      &     flag_dsws_out,snowe_out,Te_out,
      &     WTRe_out,ICEe_out,SNOage_out,evmax_out,
-     &     fsat_out,gq_out,Wb_out,Wv_out,
-     &     HTb_out,HTv_out,SNWbv_out,
+     &     fsat_out,gq_out,W_out,
+     &     HT_out,SNWbv_out,
      &     SNOW_out,T_out )
 
       
@@ -1072,7 +1091,8 @@ c         write(*,*) "TOUT>>",tout(:,:,:),"<<<"
 c*
 
 
-      subroutine read_regrid_4D_1R(x2grids,iuin,ttargglob,maxrec)
+      subroutine read_regrid_4D_1R(x2grids,iuin,TITLE,
+     &     ttargglob,maxrec)
       use regrid_com
       implicit none
       type(x_2gridsroot), intent(in) :: x2grids
@@ -1081,7 +1101,7 @@ c*
       real*8, allocatable :: tsource(:,:,:,:)
       real*8 :: ttargglob(x2grids%imtarget,x2grids%jmtarget,
      &     x2grids%ntilestarget,nrecmax)
-      character*80 :: TITLE(nrecmax)
+      character*80, intent(inout) :: TITLE(nrecmax)
       integer :: ir,ims,jms,nts
 
       ims=x2grids%imsource

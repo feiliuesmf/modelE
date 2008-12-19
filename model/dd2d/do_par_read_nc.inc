@@ -11,9 +11,11 @@
         if(rc.ne.nf_noerr) write(6,*) 'variable ',
      &       trim(varname),' not found in input file - skipping'
       endif
+      write(*,*) trim(varname)
       call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       if(rc.ne.nf_noerr) return
       tag=1024
+      write(*,*) "jdim=",jdim
       if(present(jdim)) then
         jd=jdim
       else
@@ -25,6 +27,7 @@
         allocate(arr1d(nsend))
         srt(:) = 1
         nd = size(shape(arr))
+	write(*,*) "jd nd shape(arr)=",jd,nd, shape(arr)
         cnt(1:nd) = shape(arr)
         cnt(jd-1) = grid%npx
         cnt(nd+1) = 1

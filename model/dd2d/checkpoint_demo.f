@@ -138,11 +138,26 @@ c close netcdf restart file
 !@auth  M. Kelley
 !@ver   1.0
 !@calls io_seaice,io_earth,io_soils,io_landice
-      use model_com, only : ioreadnt
-      use filemanager, only : openunit,closeunit
+      use model_com, only : ioreadnt,ioread
+      use filemanager, only : openunit,closeunit,nameunit
       use domain_decomp, only : am_i_root
       implicit none
-      integer :: iu_GIC,ioerr
+      include 'netcdf.inc'
+      integer :: iu_GIC,ioerr,status,fid
+      character*16 :: name
+#ifdef CUBE_GRID
+c      if(am_i_root()) then
+c     here we use openunit and nameunit only to get the file name
+         status = nf_open("GIC",nf_nowrite,fid)
+      IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
+c      endif
+      write(*,*) "Reading ground IC"
+      call par_io_seaice (fid,ioread)
+      call par_io_earth  (fid,ioread)
+      call par_io_soils  (fid,ioread)
+      call par_io_landice(fid,ioread)
+      status = nf_close(fid)
+#else
       call openunit("GIC",iu_GIC,.true.,.true.)
       write(*,*) "Reading ground IC"
       ioerr=-1
@@ -157,6 +172,7 @@ c close netcdf restart file
         call stop_model("INPUT: GIC READ IN ERROR",255)
       end if
       call closeunit (iu_GIC)
+#endif
       return
       end subroutine read_ground_ic
 
@@ -796,30 +812,45 @@ c close netcdf restart file
       use domain_decomp, only : grid
       use pario, only : write_dist_data,read_dist_data
       implicit none
-      integer fid   !@var fid unit number of read/write
-      integer iaction !@var iaction flag for reading or writing to file
+      integer fid               !@var fid unit number of read/write
+      integer iaction           !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)            ! output to standard restart file
-        call write_dist_data(grid%dd2d, fid, 'rsi', rsi)
-        call write_dist_data(grid%dd2d, fid, 'snowi', snowi)
-        call write_dist_data(grid%dd2d, fid, 'msi', msi)
-        call write_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt)
-        call write_dist_data(grid%dd2d, fid, 'flag_dsws', flag_dsws)
-        call write_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=3)
-        call write_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=3)
+      call write_dist_data(grid%dd2d, fid, 'rsi', rsi)
+      call write_dist_data(grid%dd2d, fid, 'snowi', snowi)
+      call write_dist_data(grid%dd2d, fid, 'msi', msi)
+      call write_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt)
+      call write_dist_data(grid%dd2d, fid, 'flag_dsws', flag_dsws)
+      call write_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=3)
+      call write_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=3)
 #ifdef TRACERS_WATER
-        call write_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
+      call write_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
 #endif
-      case (ioread)            ! input from restart file
-        call read_dist_data(grid%dd2d, fid, 'rsi', rsi)
-        call read_dist_data(grid%dd2d, fid, 'snowi', snowi)
-        call read_dist_data(grid%dd2d, fid, 'msi', msi)
-        call read_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt)
-        call read_dist_data(grid%dd2d, fid, 'flag_dsws', flag_dsws)
-        call read_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=3)
-        call read_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=3)
+      case (ioread)             ! input from restart file
+#ifdef CUBE_GRID
+      call read_dist_data(grid%dd2d, fid, 'rsi', rsi,jdim=3)
+      write(*,*) "DEBUG after read rsi"
+      call read_dist_data(grid%dd2d, fid, 'snowi', snowi, jdim=3)
+      call read_dist_data(grid%dd2d, fid, 'msi', msi, jdim=3)
+      call read_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt,
+     &     jdim=3)
+      call read_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=4)
+      call read_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=4)
+c      call read_dist_data(grid%dd2d, fid, 'flag_dsws' 
+c     &     ,flag_dsws,jdim=3)
+
+#else 
+      call read_dist_data(grid%dd2d, fid, 'rsi', rsi)
+     
+      call read_dist_data(grid%dd2d, fid, 'snowi', snowi)
+      call read_dist_data(grid%dd2d, fid, 'msi', msi)
+      call read_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt)
+      call read_dist_data(grid%dd2d, fid, 'flag_dsws', flag_dsws)
+      call read_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=3)
+      call read_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=3)
+#endif
 #ifdef TRACERS_WATER
-        call read_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
+      call read_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
 #endif
       end select
       return

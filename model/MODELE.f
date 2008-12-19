@@ -141,11 +141,10 @@ C****
 c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
       call regrid_input(grid%dd2d)
 
-      call stop_model("stop  ",255)
       call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
       allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
      &     grid%dd2d%jsd:grid%dd2d%jed))
-      tsource(:,:)=-200*grid%dd2d%gid+15
+      tsource(:,:)=grid%dd2d%gid
       write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
       allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
      &     xcs2ll%ntilestarget),
