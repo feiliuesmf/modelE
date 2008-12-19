@@ -85,7 +85,8 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT !_netcdf                       ! post-processing output
 
 Data input files:
-AIC=AIC.RES_M23.D771201
+! AIC=AIC.RES_M23.D771201
+AIC=1JAN2000.rsfEoo1TdsM23
 GIC=GIC.E046D3M20A.1DEC1955
 OCNML=Z1O.B4X5.cor ! needed for post-processing only
 OSST=OST4X5.B.1975-84avg.Hadl1.1
@@ -390,6 +391,6 @@ PIratio_CFC   = 0.000d0 ! {CFC IC's and L=1 overwriting}
    kdiag = 0,0,0,0,0,0,0,0,0,0,0,0,0,
    YEARI=2000,MONTHI=1,DATEI=1,HOURI=0,
    YEARE=2001,MONTHE=1,DATEE=1,HOURE=1,
-   ISTART=2,IRANDI=0, YEARE=2000, MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=8,IRANDI=0, YEARE=2000, MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
 
