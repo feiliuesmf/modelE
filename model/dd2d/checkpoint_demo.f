@@ -143,15 +143,13 @@ c close netcdf restart file
       use domain_decomp, only : am_i_root
       implicit none
       include 'netcdf.inc'
-      integer :: iu_GIC,ioerr,status,fid
-      character*16 :: name
+      integer :: iu_GIC,ioerr,status,fid,ierr
+      character*120 :: name
 #ifdef CUBE_GRID
-c      if(am_i_root()) then
-c     here we use openunit and nameunit only to get the file name
-         status = nf_open("GIC",nf_nowrite,fid)
+      name="GIC"
+      write(*,*) name
+      status=nf_open(trim(name),nf_nowrite,fid)
       IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
-c      endif
-      write(*,*) "Reading ground IC"
       call par_io_seaice (fid,ioread)
       call par_io_earth  (fid,ioread)
       call par_io_soils  (fid,ioread)
@@ -827,28 +825,14 @@ c      endif
       call write_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
 #endif
       case (ioread)             ! input from restart file
-#ifdef CUBE_GRID
-      call read_dist_data(grid%dd2d, fid, 'rsi', rsi,jdim=3)
-      write(*,*) "DEBUG after read rsi"
-      call read_dist_data(grid%dd2d, fid, 'snowi', snowi, jdim=3)
-      call read_dist_data(grid%dd2d, fid, 'msi', msi, jdim=3)
-      call read_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt,
-     &     jdim=3)
-      call read_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=4)
-      call read_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=4)
-c      call read_dist_data(grid%dd2d, fid, 'flag_dsws' 
-c     &     ,flag_dsws,jdim=3)
-
-#else 
-      call read_dist_data(grid%dd2d, fid, 'rsi', rsi)
-     
+      write(*,*) "IOREAD"
+      call read_dist_data(grid%dd2d, fid, 'rsi', rsi)  
       call read_dist_data(grid%dd2d, fid, 'snowi', snowi)
       call read_dist_data(grid%dd2d, fid, 'msi', msi)
       call read_dist_data(grid%dd2d, fid, 'pond_melt', pond_melt)
       call read_dist_data(grid%dd2d, fid, 'flag_dsws', flag_dsws)
       call read_dist_data(grid%dd2d, fid, 'hsi', hsi, jdim=3)
       call read_dist_data(grid%dd2d, fid, 'ssi', ssi, jdim=3)
-#endif
 #ifdef TRACERS_WATER
       call read_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
 #endif

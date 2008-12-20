@@ -27,7 +27,6 @@
         allocate(arr1d(nsend))
         srt(:) = 1
         nd = size(shape(arr))
-	write(*,*) "jd nd shape(arr)=",jd,nd, shape(arr)
         cnt(1:nd) = shape(arr)
         cnt(jd-1) = grid%npx
         cnt(nd+1) = 1
