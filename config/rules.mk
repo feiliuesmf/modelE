@@ -97,6 +97,11 @@ endif
 MACHINE = $(shell uname)
 include $(CONFIG_DIR)/machine.$(MACHINE).mk
 
+# if COMPILER is not defined try default
+ifndef COMPILER
+COMPILER = $(MACHINE)
+endif
+
 #include compiler-specific options
 include $(CONFIG_DIR)/compiler.$(COMPILER).mk
 
