@@ -6,7 +6,7 @@
 
       public ssto2a,veca2o,flxa2o,veco2a,tempro2a
 
-      public nwgta2o,nwgta2o2,nwgto2a
+      public nwgta2o,nwgto2a
 
       public wlista2o,wtaua2o
      .    ,wlisto2a
@@ -26,15 +26,15 @@
      .                                 ,nlisto2a_n
 
 
-      integer nwgta2o,nwgta2o2,nwgto2a
+      integer nwgta2o,nwgto2a
 #ifdef HYCOM_RESOLUTION_2deg
-      parameter (nwgta2o=18,nwgta2o2=18,nwgto2a=39)      ! 2deg: 195x180
+      parameter (nwgta2o=18,nwgto2a=39)      ! 2deg: 195x180
 #endif
 #ifdef HYCOM_RESOLUTION_1deg
-      parameter (nwgta2o=37,nwgta2o2=37,nwgto2a=48)      ! 1deg: 387x360
+      parameter (nwgta2o=37,nwgto2a=48)      ! 1deg: 387x360
 #endif
 c
-      real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o2)
+      real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o)
      .    ,wlisto2a(iia,jja,nwgto2a)
      .    ,wlisto2a_e(iia,jja,nwgto2a)
      .    ,wlisto2a_n(iia,jja,nwgto2a)
@@ -42,7 +42,7 @@ c
      .    ,ocellsz(iio,jjo),coso(iio,jjo),sino(iio,jjo)
       integer ilista2o(iio,jjo,nwgta2o),jlista2o(iio,jjo,nwgta2o)
      .                                 ,nlista2o(iio,jjo)
-     .       ,itaua2o(iio,jjo,nwgta2o2), jtaua2o(iio,jjo,nwgta2o2)
+     .       ,itaua2o(iio,jjo,nwgta2o), jtaua2o(iio,jjo,nwgta2o)
      .                                 , ntaua2o(iio,jjo)
       integer ilisto2a(iia,jja,nwgto2a),jlisto2a(iia,jja,nwgto2a)
      .                                 ,nlisto2a(iia,jja)

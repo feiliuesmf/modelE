@@ -555,39 +555,37 @@ c     close(301)
 c
 !!! it would be cleaner to move the following part to cpler.f -IA
 
-      if (iio*jjo*((nwgta2o*2 +1)*4+nwgta2o *8).ne.nsize1 .or.
-     .    iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8).ne.nsize1 .or.
-     .    iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8).ne.nsize2) then
-        write(lp,'(a,3i12,a,3i12)') 'wrong size in cpler '
+      if (iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8).ne.nsize1 .or.
+     .    iia*jja*((nwgto2a*2+1)*4+nwgto2a*8).ne.nsize2) then
+        write(lp,'(a,2i12,a,2i12)') 'wrong size in cpler '
      .  ,iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
-     .  ,iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8)
-     .  ,iia*jja*((nwgto2a*2 +1)*4+nwgto2a *8)
-     .  ,' should be ',nsize1,nsize1,nsize2
+     .  ,iia*jja*((nwgto2a*2+1)*4+nwgto2a*8)
+     .  ,' should be ',nsize1,nsize2
         stop ' wrong size in cpler'
       endif
 c
       open(14,file=flnma2o,form='unformatted',status='old',
-     .  access='direct',recl=iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8))
+     .  access='direct',recl=nsize1)
       read(14,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
       close(14)
 c
       open(15,file=flnma2o_tau,form='unformatted',status='old',
-     .  access='direct',recl=iio*jjo*((nwgta2o2*2+1)*4+nwgta2o2*8))
+     .  access='direct',recl=nsize1)
       read(15,rec=1) itaua2o,jtaua2o,wtaua2o,ntaua2o
       close(15)
 c
       open(16,file=flnmo2a,form='unformatted',status='old',
-     .  access='direct',recl=iia*jja*((nwgto2a*2+1)*4+nwgto2a*8))
+     .  access='direct',recl=nsize2)
       read(16,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
       close(16)
 c
       open(17,file=flnmo2a_e,form='unformatted',status='old',
-     .  access='direct',recl=iia*jja*((nwgto2a*2+1)*4+nwgto2a*8))
+     .  access='direct',recl=nsize2)
       read(17,rec=1) ilisto2a_e,jlisto2a_e,wlisto2a_e,nlisto2a_e
       close(17)
 c
       open(18,file=flnmo2a_n,form='unformatted',status='old',
-     .  access='direct',recl=iia*jja*((nwgto2a*2+1)*4+nwgto2a*8))
+     .  access='direct',recl=nsize2)
       read(18,rec=1) ilisto2a_n,jlisto2a_n,wlisto2a_n,nlisto2a_n
       close(18)
 c
@@ -620,9 +618,10 @@ c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
 c
       function sphdis(x1,y1,x2,y2)
 c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
+      USE CONSTANT, only: radius
       implicit none
-      real x1,y1,x2,y2,sphdis,ang,radius,radian
-      data radius/6375.e3/,radian/57.2957795/
+      real x1,y1,x2,y2,sphdis,ang,radian
+      data radian/57.2957795/
 c
       ang=mod(y2-y1+540.,360.)-180.
       sphdis=radius*acos(min(1.,cosd(90.-x1)*cosd(90.-x2)
