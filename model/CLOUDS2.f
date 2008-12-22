@@ -377,7 +377,7 @@ C**** functions
 !@var UMDN,VMDN dummy variables
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
       REAL*8, DIMENSION(LM) ::
-     * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR,WCU,ENT,DET,BUOY
+     * SMOLD,QMOLD, DQM,DSM,DQMR,DSMR,WCU,ENT,DET,BUOY,WCU2
 !@var SMOLD,QMOLD profiles prior to any moist convection
       REAL*8, DIMENSION(LM) :: F,CMNEG
       REAL*8, DIMENSION(NMOM,LM) :: FMOM
@@ -558,7 +558,7 @@ C     REAL*8 RHO   ! air density
 !CN0 is the No parameter in the Marshall-Palmer distribution
 #endif
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
-      INTEGER,  PARAMETER :: ITMAX=50
+      INTEGER,  PARAMETER :: ITMAX=50,ITMAX1=2
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
 !@var WV convective vertical velocity
@@ -1085,6 +1085,7 @@ C     IF(IC.EQ.2) CONTCE=.6
       IF(IC.EQ.1) WCU(LMIN)=MAX(.5D0,2.D0*WTURB(LMIN))
 C     WCU(LMIN)=MAX(.5D0,SQRT(W2L(LMIN)))
 C     IF(IC.EQ.1) WCU(LMIN)=MAX(.5D0,2.D0*SQRT(W2L(LMIN)))
+      WCU2(LMIN)=WCU(LMIN)*WCU(LMIN)
  220  L=LMAX+1
       HDEP=AIRM(L)*TL(L)*RGAS/(GRAV*PL(L))
 C**** TEST FOR SUFFICIENT AIR, MOIST STATIC STABILITY AND ENERGY
@@ -1385,7 +1386,7 @@ C     ENT(L)=CONTCE/(300.*WCU(L-1)+teeny)    ! Neggers formula
       ENDIF
       IF(ENT(L).GT.0.D0) THEN
       FENTR=1000.D0*ENT(L)*GZL(L)*FPLUME
-C     FENTR=ETAL(L)*FPLUME
+C     FENTR=ETAL(L)*FPLUME           ! old formula
       IF(FENTR+FPLUME.GT.1.) THEN
         FENTR=1.-FPLUME
         ENT(L)=0.001d0*FENTR/(GZL(L)*FPLUME)
@@ -1394,7 +1395,7 @@ C     FENTR=ETAL(L)*FPLUME
       MPOLD=MPLUME
       FPOLD=FPLUME
       ETAL1=FENTR/(FPLUME+teeny)
-      FPLUME=FPLUME+FENTR
+C     FPLUME=FPLUME+FENTR            ! calculated later
       EPLUME=MPLUME*ETAL1
 C**** Reduce EPLUME so that mass flux is less than mass in box
       IF (EPLUME.GT.AIRM(L)*0.975d0-MPLUME) THEN
@@ -1403,7 +1404,8 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       MPLUME=MPLUME+EPLUME
       ETAL1=EPLUME/MPOLD
       FENTR=ETAL1*FPOLD
-      ENT(L)=0.001d0*FENTR/(GZL(L)*FPLUME)
+      ENT(L)=0.001d0*FENTR/(GZL(L)*FPOLD)         ! FPLUME)
+      FPLUME=FPLUME+FENTR            ! calculated here
       FENTRA = EPLUME*BYAM(L)
       DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
       DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
@@ -1477,8 +1479,8 @@ C     IF(ETADN.GT.1d-10) GO TO 291 ! comment out for multiple downdrafts
       QMIX=.5*(QUP+QMP/MPLUME)
 C     WMIX=.5*(WMUP+WMDN)
 C     SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
-      SVMIX=SMIX*(1.+DELTX*QMIX)
-      SVUP=SUP*(1.+DELTX*QUP)
+      SVMIX=SMIX                    ! *(1.+DELTX*QMIX)
+      SVUP=SUP                      ! *(1.+DELTX*QUP)
       DMMIX=(SVUP-SVMIX)*PLK(L)
 C    *  +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
       IF(DMMIX.LT.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
@@ -1535,9 +1537,13 @@ C        VMDN(K)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
 C****
 C**** COMPUTE CUMULUS V. VELOCITY
 C****
-  291 W2TEM=.16667D0*GRAV*BUOY(L)/(WCU(L-1)+teeny)-WCU(L-1)*
+C 291 W2TEM=.16667D0*GRAV*BUOY(L)/(WCU(L-1)+teeny)-WCU(L-1)*
+  291 W2TEM=.16667D0*GRAV*BUOY(L)-WCU(L-1)*WCU(L-1)*
      *      (.66667D0*DET(L)+ENT(L))
-      WCU(L)=WCU(L-1)+HDEP*W2TEM
+      WCU2(L)=WCU2(L-1)+2.*HDEP*W2TEM    ! use WCU2
+C     WCU(L)=WCU(L-1)+HDEP*W2TEM
+      WCU(L)=0.
+      IF (WCU2(L).GT.0.D0) WCU(L)=SQRT(WCU2(L))
       IF (WCU(L).GE.0.D0) WCU(L)=MIN(50.D0,WCU(L))
       IF (WCU(L).LT.0.D0) WCU(L)=MAX(-50.D0,WCU(L))
 #ifdef SCM
@@ -1582,7 +1588,7 @@ C**** Tracers at top of plume
 #endif
       MPMAX=MPLUME
       LMAX = LMAX + 1
-      IF(WCU(L).LT.0.D0) GO TO 340
+      IF(WCU2(L).LT.0.D0) GO TO 340    ! use WCU(L)*WCU(L)
 C     WV=WMAX                                    ! old specification of WV
 C     IF(PL(L).GT.700..AND.PLE(1).GT.700.)
 C    *  WV=WMAX*(PLE(1)-PL(L))/(PLE(1)-700.)
@@ -1877,8 +1883,8 @@ C       DDRAFT=DDRAFT*(1.+ETAL(L))     ! add in entrainment
         IF(DDRUP.GT.DDRAFT) DDRAFT=DDRUP
         SMIX=SMDN/(DDRUP+teeny)
         QMIX=QMDN/(DDRUP+teeny)
-        SVMIX=SMIX*(1.+DELTX*QMIX)*PLK(L-1)
-        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
+        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
         IF ((SVMIX-SVM1).GE.DTMIN1) THEN
 C       IF ((SMIX-SM1(L-1)*BYAM(L-1))*PLK(L-1).GE.DTMIN1) THEN
           DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
@@ -1951,8 +1957,8 @@ C     IF (L.LE.LMIN.AND.L.GT.1) THEN
       IF (L.GT.1) THEN
         SMIX=SMDN/(DDRAFT+teeny)
         QMIX=QMDN/(DDRAFT+teeny)
-        SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX)
-        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
+        SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
+        SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
         IF (L.LE.LMIN.AND.SVMIX.GE.SVM1) GO TO 345
 C       IF (L.LE.LMIN.AND.SMIX.GE.(SM1(L-1)*BYAM(L-1))) GO TO 345
       ENDIF
@@ -2032,28 +2038,31 @@ C**** simple upwind scheme for momentum
       ENDDO
   380 ALPHA=BETA
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
-      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)
-      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +  DSMR(LDMIN:LMAX)
-      SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) + DSMOMR(:,LDMIN:LMAX)
+      DO ITER=1,ITMAX1 ! iterate subsidence 2 times to improve stability
+      FITMAX=ITMAX1
+      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)/FITMAX
+      SM(LDMIN:LMAX) =  SM(LDMIN:LMAX)  +  DSMR(LDMIN:LMAX)/FITMAX
+      SMOM(:,LDMIN:LMAX)=SMOM(:,LDMIN:LMAX)+DSMOMR(:,LDMIN:LMAX)/FITMAX
 C****
       nsub = lmax-ldmin+1
       cmneg=0.      ! initialization
-      cmneg(ldmin:lmax)=-cm(ldmin:lmax)
+      cmneg(ldmin:lmax)=-cm(ldmin:lmax)/FITMAX
       cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
       call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierrt,lerrt)
-      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)
-      SMOM(:,LDMIN:LMAX) =  SMOM(:,LDMIN:LMAX) +  DSMOM(:,LDMIN:LMAX)
+      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)/FITMAX
+      SMOM(:,LDMIN:LMAX)=SMOM(:,LDMIN:LMAX)+DSMOM(:,LDMIN:LMAX)/FITMAX
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
 C****
-      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)
-      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)
-      QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) + DQMOMR(:,LDMIN:LMAX)
+      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)/FITMAX
+      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)/FITMAX
+      QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOMR(:,LDMIN:LMAX)/FITMAX
       call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
-      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)
-      QMOM(:,LDMIN:LMAX) =  QMOM(:,LDMIN:LMAX) +  DQMOM(:,LDMIN:LMAX)
+      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)/FITMAX
+      QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOM(:,LDMIN:LMAX)/FITMAX
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
+      END DO        ! end of iteration for subsidence
 C**** diagnostics
       DO L=LDMIN,LMAX
         FCDH=0.
@@ -2069,7 +2078,8 @@ C       IF(L.EQ.LDMIN) FCDH1=CDHSUM1-EVPSUM
      *    (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
-        IF(L.GT.LLMIN) DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
+        DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
+C       IF(L.GT.LLMIN) DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 C       IF(L.EQ.1) THEN
 C         IF(DDMFLX(1).GT.0.) WRITE(6,*) 'DDM TDN1 QDN1=',
 C    *      DDMFLX(1),TDNL(1),QDNL(1)
@@ -2079,19 +2089,24 @@ C       END IF
       END DO
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
+      DO ITER=1,ITMAX1 ! iterate subsidence 2 times to improve stability
+      FITMAX=ITMAX1
       DO N=1,NTX
 c        if (debug.and.n.eq.1) print*,"cld0",i_debug,ldmin,lmax
 c     *       ,DTMR(LDMIN:LMAX,N),DTM(LDMIN:LMAX,N)
 c        if (debug.and.n.eq.1) print*,"cld1",TM(LDMIN:LMAX,N)
-      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)
-      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)
+      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)/FITMAX
+      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)/FITMAX
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
+     &                      /FITMAX
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,t_qlimit(n),1, zdir,ierrt,lerrt)
-      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)
+      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)/FITMAX
 c        if (debug .and.n.eq.1) print*,"cld2",TM(LDMIN:LMAX,N)
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
+     &                      /FITMAX
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
+      END DO
       END DO
 #endif
 C**** save new 'environment' profile for static stability calc.
@@ -3241,7 +3256,7 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
           IF(DWDT.LT.0d0) DWDT=0d0
           IF(DWDT.GT.WMX(L)) DWDT=WMX(L)
 C**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
-          QHEAT(L)=-DWDT*LHX*BYDTsrc      
+          QHEAT(L)=-DWDT*LHX*BYDTsrc
           PREP(L)=MAX(0d0,(WMX(L)-DWDT)*BYDTsrc) ! precip out cloud water
           WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
 #ifdef SCM
