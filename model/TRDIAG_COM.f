@@ -13,6 +13,7 @@
      *     , ntsurfsrcmax, nt3Dsrcmax
 #ifdef TRACERS_AMP
      *     ,ntmAMP
+      USE AERO_CONFIG,only: nbins
 #endif
 #endif
       IMPLICIT NONE
@@ -98,7 +99,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=1623
+      INTEGER,PARAMETER :: ktaijs=2223
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -170,6 +171,8 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
+!@var ijts_AMPpdf special diagnostic for not-transported tracers
+      INTEGER ijts_AMPpdf(1,nbins)
 !@var ijts_AMPext special diagnostic for not-transported tracers
       INTEGER ijts_AMPext(lm,6)
 !@var ijts_AMPm tracer independent array for AMP modes

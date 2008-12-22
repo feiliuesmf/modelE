@@ -68,7 +68,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       SUBROUTINE MATRIX_DRV
       USE TRACER_COM
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPp,ijts_AMPe
-     $             ,ijts_AMPm,ijts_AMPext,
+     $             ,ijts_AMPm,ijts_AMPext,ijts_AMPpdf,
      $             tajln=>tajln_loc,itcon_AMP,itcon_AMPe,itcon_AMPm
      $             ,itcon_surf
       USE AMP_AEROSOL
@@ -100,6 +100,8 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: SPCMASS(NMASS_SPCS+2)
       REAL(8):: DT_AERO(NDIAG_AERO,NAEROBOX) !NDIAG_AERO=15
       REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL 
+      REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
+      REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       INTEGER:: j,l,i,n,J_0, J_1
 C**** functions
       REAL(8):: QSAT
@@ -201,6 +203,7 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
        CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO) 
+       CALL SIZE_PDFS(AERO,PDF1,PDF2)
  
        DO n=1, ntmAMP
           if(AMP_NUMB_MAP(n).eq. 0) then
@@ -279,6 +282,8 @@ c - 2d PRT Diagnostic
        end select
 
       enddo !n
+c - special diag: Size distribution pdfs
+       if (l.eq.1) taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byam(l,i,j))
 c - N_SSA, N_SSC, M_SSA_SU
         taijs(i,j,ijts_AMPext(l,1))=taijs(i,j,ijts_AMPext(l,1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j))
         taijs(i,j,ijts_AMPext(l,2))=taijs(i,j,ijts_AMPext(l,2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j))
@@ -395,7 +400,89 @@ c -----------------------------------------------------------------
  
       RETURN
       END SUBROUTINE SPCMASSES
+     
+      SUBROUTINE SIZE_PDFS(AERO,PDF1,PDF2)
+      USE AERO_PARAM, ONLY: PI6, DENSP, IXXX, IYYY, ILAY
+      USE AERO_CONFIG, ONLY: NMODES, NAEROBOX,NBINS
+      USE AERO_SETUP, ONLY: SIG0, CONV_DPAM_TO_DGN, NUMB_MAP, MODE_NAME
+      USE AMP_AEROSOL, only: DIAM
+      IMPLICIT NONE
 
+      ! Arguments.
+       REAL(8), INTENT(IN) :: AERO(NAEROBOX)! aerosol conc. [ug/m^3] or [#/m^3]
+
+      ! Local variables. 
+
+      INTEGER :: I, N
+!      INTEGER, PARAMETER :: NBINS = 30! 200    ! number of bins [1]     defined in config 
+      REAL(8) :: DGRID(NBINS)              ! fixed diameter        grid [um]
+      REAL(8) :: MGRID(NBINS)              ! fixed mass/particle   grid [ug/particle]
+      REAL(8) :: DLOWER(NBINS)             ! lower boundary fixed diameter grid [um]
+      REAL(8) :: DUPPER(NBINS)             ! upper boundary fixed diameter grid [um]
+      REAL(8) :: NTOT(NMODES)              ! number concentration for each mode [#/m^3]
+      REAL(8) :: PDF(NBINS,2,NMODES)       ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
+      REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
+      REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
+      REAL(8) :: DNDLOGD(NMODES)           ! dN/dlog10(Dp) [ #/m^3]
+      REAL(8) :: DMDLOGD(NMODES)           ! dM/dlog10(Dp) [ug/m^3]
+      REAL(8) :: RDMIN                     ! reciprocal of DMIN to optimize coagulation [1/um]
+      REAL(8) :: RDLOGDSC                  ! reciprocal of log10 of the grid spacing [1]
+      REAL(8) :: SCALE, F, SUM1, SUM2      ! scratch variables 
+      REAL(8) :: DMINL, DMAXL, DG          ! diameters [um]  
+      REAL(8) :: FLN                       ! function for lognormal distribution [1]  
+      REAL(8), PARAMETER :: DMIN =  0.001D+00   ! smallest particle diameter of the discrete grid [um]
+      REAL(8), PARAMETER :: DMAX = 20.000D+00   ! largest  particle diameter of the discrete grid [um]
+
+
+        DMAXL = DMAX
+        DMINL = DMIN
+
+      SCALE    = ( DMAXL / DMINL )**(1.0D+00/REAL(NBINS-1))
+      RDLOGDSC = 1.0D+00 / LOG10( SCALE )
+      RDMIN    = 1.0D+00 / DMINL
+      DO I=1, NBINS
+        DGRID(I)  = DMINL * SCALE**(I-1)                  ! [um]
+        DLOWER(I) = DGRID(I) / SCALE**0.5D+00             ! [um]
+        DUPPER(I) = DGRID(I) * SCALE**0.5D+00             ! [um]
+        MGRID(I)  = 1.0D-06 * DENSP * PI6 * DGRID(I)**3   ! [ug/particle]
+        DO N=1, NMODES
+          DG = 1.0D+06 * DIAM(IXXX,IYYY,ILAY,N) * CONV_DPAM_TO_DGN(N)   ! convert [m] to [um] and Dbar to Dg
+          NTOT(N) = AERO( NUMB_MAP(N) )
+          F = NTOT(N) * FLN( DGRID(I), DG, SIG0(N) )
+          PDF(I,1,N) = F * ( DUPPER(I) - DLOWER(I) )
+          PDF(I,2,N) = PDF(I,1,N) * MGRID(I)
+          DNDLOGD(N) = PDF(I,1,N) * RDLOGDSC * 1.0D-06           ! convert from [#/m^3] to [#/cm^3]
+          DNDLOGD(N) = MAX( DNDLOGD(N), 1.0D-30 )
+          DMDLOGD(N) = PDF(I,2,N) * RDLOGDSC                     ! [ug/m^3]
+          DMDLOGD(N) = MAX( DMDLOGD(N), 1.0D-30 )
+        ENDDO
+c        WRITE(IUNIT,91) I, DGRID(I), DNDLOGD(:)
+c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
+      ENDDO
+
+        PDF1(:) = 0.0D+00
+        PDF2(:) = 0.0D+00
+      DO N=1, NMODES
+        DO I=1, NBINS
+          PDF1(I) = PDF1(I)  + PDF(I,1,N)
+          PDF2(I) = PDF2(I)  + PDF(I,2,N)
+          SUM1 = SUM1 + PDF(I,1,N)
+          SUM2 = SUM2 + PDF(I,2,N)
+        ENDDO
+      ENDDO
+
+      RETURN 
+      END SUBROUTINE SIZE_PDFS
+
+
+      REAL(8) FUNCTION FLN(X,XG,SIGMAG)
+      REAL(8) :: X      ! particle radius or diameter [any units]
+      REAL(8) :: XG     ! geometric mean radius or diameter [any units]
+      REAL(8) :: SIGMAG ! geometric standard deviation [monodisperse = 1.0]
+      REAL(8), PARAMETER :: SQRTTWOPI = 2.506628275D+00
+      FLN = EXP(-0.5D+00*(LOG(X/XG)/LOG(SIGMAG))**2) / (X*LOG(SIGMAG)*SQRTTWOPI)
+      RETURN
+      END FUNCTION FLN
       subroutine alloc_tracer_amp_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time

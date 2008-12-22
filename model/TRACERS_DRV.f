@@ -82,10 +82,11 @@
 
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST, 
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
+      USE AERO_CONFIG, only: nbins
 #endif
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer :: l,k,kk,n,ltop,g,kr,n1
+      integer :: l,k,kk,n,ltop,g,kr,n1,m
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
       CHARACTER*17 :: cform
 #ifdef TRACERS_ON
@@ -3641,6 +3642,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_AMPe(:)=0
       ijts_AMPp(:,:)=0
       ijts_AMPext(:,:)=0
+      ijts_AMPpdf(:,:)=0
       ijts_AMPm(:,:,:)=0
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
@@ -7263,6 +7265,19 @@ c clear sky longwave radiative forcing
 c end special radiation diagnostic
 
 c - Tracer independent Diagnostic
+      do L=1,1    !LTOP
+      do m=1,NBINS
+        k = k + 1
+         ijts_AMPpdf(l,m)=k
+         ijts_index(k) = n
+         ia_ijts(k) = ia_src
+         write(lname_ijts(k),'(a15,i2.2,i2.2)') 'NUMB_PDF BIN L=',L,M
+         write(sname_ijts(k),'(a9,i2.2,i2.2)') 'N_PDF_BIN',L,M
+         ijts_power(k) = -2
+         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+      end do
+      end do
       do L=1,LTOP
         k = k + 1
          ijts_AMPext(l,1)=k
