@@ -9,16 +9,11 @@ c set-up for MPI implementation
       call alloc_model_com(grid)
       call alloc_smomtq(grid)
 
-#if defined( ADIABATIC) && defined(CUBE_GRID)
-      write(*,*) "HERE"
+#if (defined( ADIABATIC) && defined(CUBE_GRID))
       call alloc_fluxes(grid)
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
       call alloc_pbl_com(grid)
-#ifndef CUBE_GRID
-      call alloc_icedyn(grid)   
-      call alloc_icedyn_com(grid)
-#endif
       call alloc_diag_com(grid)
       call alloc_diag_loc(grid)
       call alloc_strat_com(grid)
@@ -28,6 +23,23 @@ c set-up for MPI implementation
       call alloc_lakes_com(grid)
       call alloc_landice_com(grid) 
 #endif
+#if !defined(ADIABATIC)
+      call alloc_fluxes(grid)
+      call alloc_clouds_com(grid)
+      call alloc_ghy_com(grid)
+      call alloc_pbl_com(grid)
+      call alloc_icedyn(grid)
+      call alloc_icedyn_com(grid)
+      call alloc_diag_com(grid)
+      call alloc_diag_loc(grid)
+      call alloc_strat_com(grid)
+      call alloc_seaice_com(grid)
+      call alloc_rad_com(grid)
+      call alloc_lakes(grid)
+      call alloc_lakes_com(grid)
+      call alloc_landice_com(grid)
+#endif
+
 #ifdef CALCULATE_FLAMMABILITY
       call alloc_flammability(grid)
 #endif
