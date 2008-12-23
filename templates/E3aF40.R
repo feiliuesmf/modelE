@@ -119,6 +119,10 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
+ 
+U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.57      ! same as balanced preliminary run w/clim.ocn
 U00wtrX=1.46    ! same as balanced preliminary run w/clim.ocn
 

@@ -308,6 +308,10 @@ XCDNST=300.,10000.   ! strat. gw drag parameters
 
 KOCEAN=0
 ocn_cycl=1      ! =0 if ocean varies from year to year
+ 
+U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice  = .60   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 u00wtrx = 1.43  ! 1980 conditions (NEEDS TO BE VERIFIED!)
 cond_scheme=2   ! more elaborate conduction scheme (GHY, Nancy Kiang)

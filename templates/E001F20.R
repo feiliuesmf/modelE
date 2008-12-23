@@ -101,6 +101,10 @@ ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 do_polefix=0    ! polefix enhancements not yet valid for 2x2.5 resolution
 
 KOCEAN=0
+ 
+U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.45   ! tune this first to get reas.alb/cldcvr (range: .4-.6), then
 U00wtrX=1.
 

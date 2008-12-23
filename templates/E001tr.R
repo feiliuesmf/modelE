@@ -182,6 +182,10 @@ CMTN=0.25
 
 xCDpbl=1.
 cond_scheme=1   ! 2 = more elaborate conduction scheme (GHY, Nancy Kiang)
+ 
+U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.61      ! U00ice up  => nethtz0 down (alb down) goals: nethtz0=0 (ann.
 U00wtrX=1.259   ! U00wtrX up => nethtz0 up   (alb down)           global mean)
 ! HRMAX=550.    ! HRMAX up   => nethtz0 down (alb up  )        plan.alb 30%

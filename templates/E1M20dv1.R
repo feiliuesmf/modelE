@@ -153,6 +153,10 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 ! tuning param.: this setting works for 1850; use U00wtrX=1.28 for 1979
+ 
+U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.62      ! U00ice+.01 =>dBal=1.5,dPl.alb=-.9%   goals:Bal=0,plan.alb=30%
 U00wtrX=1.29    ! U00wtrX+.01=>dBal=0.7,dPl.alb=-.25%  Bal=glb.ann NetHt at z0
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
