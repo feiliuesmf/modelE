@@ -125,7 +125,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       
       IMPLICIT NONE
       type (dist_grid), intent(in) :: grid
-      integer ::  J_1H, J_0H
+      integer ::  J_1H, J_0H, I_0H, I_1H
       integer :: IER
       logical :: init = .false.
 
@@ -133,49 +133,51 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       init=.true.
 
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0H = grid%I_STRT)HALO
+      I_1H = grid%I_STOP_HALO
 
-      allocate( craft(IM,J_0H:J_1H,LM)
+      allocate( craft(I_0H:I_1H,J_0H:J_1H,LM)
      * ,STAT=IER )
-      allocate( DMSinput(IM,J_0H:J_1H,12) ,STAT=IER)
+      allocate( DMSinput(I_0H:I_1HJ_0H:J_1H,12) ,STAT=IER)
 c     if (imAER.eq.1) then  !don't know if this is OK
-      allocate( DMS_AER(IM,J_0H:J_1H,366) ,STAT=IER)
-      allocate( SS1_AER(IM,J_0H:J_1H,366) ,STAT=IER)
-      allocate( SS2_AER(IM,J_0H:J_1H,366) ,STAT=IER) 
+      allocate( DMS_AER(I_0H:I_1HJ_0H:J_1H,366) ,STAT=IER)
+      allocate( SS1_AER(I_0H:I_1HJ_0H:J_1H,366) ,STAT=IER)
+      allocate( SS2_AER(I_0H:I_1HJ_0H:J_1H,366) ,STAT=IER) 
 c     endif
-      allocate( SO2_src(IM,J_0H:J_1H,nso2src) ,STAT=IER) 
-      allocate( BCI_src(IM,J_0H:J_1H) ,STAT=IER)
-      allocate( BCB_src(IM,J_0H:J_1H,lmAER,12),STAT=IER )
-      allocate( hbc(IM,J_0H:J_1H,2),hoc(IM,J_0H:J_1H,2)
-     *  ,hso2(IM,J_0H:J_1H,2) ,STAT=IER)
-      allocate( BCBt_src(IM,J_0H:J_1H) ,STAT=IER)
-      allocate( OCI_src(IM,J_0H:J_1H,nomsrc) ,STAT=IER)
-      allocate( OCB_src(IM,J_0H:J_1H,lmAER,12) ,STAT=IER)
-      allocate( OCT_src(IM,J_0H:J_1H,12) ,STAT=IER)
-      allocate( OCBt_src(IM,J_0H:J_1H) ,STAT=IER)
-      allocate( BCI_src_3D(IM,J_0H:J_1H,lm) ,STAT=IER)
-      allocate( ss_src(IM,J_0H:J_1H,nsssrc) ,STAT=IER)
-      allocate( SO2_src_3D(IM,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
-      allocate( SO2_biosrc_3D(IM,J_0H:J_1H,lmAER,12) ,STAT=IER)
-      allocate( SO2t_src(IM,J_0H:J_1H,lmAER) ,STAT=IER)
-      allocate( oh(IM,J_0H:J_1H,lm),dho2(IM,J_0H:J_1H,lm),
-     * perj(IM,J_0H:J_1H,lm),tno3(IM,J_0H:J_1H,lm)
-     * ,o3_offline(IM,J_0H:J_1H,lm),STAT=IER )
-      allocate( ohr(IM,J_0H:J_1H,lm),dho2r(IM,J_0H:J_1H,lm),
-     * perjr(IM,J_0H:J_1H,lm),tno3r(IM,J_0H:J_1H,lm),
-     * ohsr(IM,J_0H:J_1H,lm),STAT=IER )
-      allocate( snosiz(IM,J_0H:J_1H) ,STAT=IER)
+      allocate( SO2_src(I_0H:I_1HJ_0H:J_1H,nso2src) ,STAT=IER) 
+      allocate( BCI_src(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
+      allocate( BCB_src(I_0H:I_1HJ_0H:J_1H,lmAER,12),STAT=IER )
+      allocate( hbc(I_0H:I_1HJ_0H:J_1H,2),hoc(I_0H:I_1HJ_0H:J_1H,2)
+     *  ,hso2(I_0H:I_1HJ_0H:J_1H,2) ,STAT=IER)
+      allocate( BCBt_src(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
+      allocate( OCI_src(I_0H:I_1HJ_0H:J_1H,nomsrc) ,STAT=IER)
+      allocate( OCB_src(I_0H:I_1HJ_0H:J_1H,lmAER,12) ,STAT=IER)
+      allocate( OCT_src(I_0H:I_1HJ_0H:J_1H,12) ,STAT=IER)
+      allocate( OCBt_src(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
+      allocate( BCI_src_3D(I_0H:I_1HJ_0H:J_1H,lm) ,STAT=IER)
+      allocate( ss_src(I_0H:I_1HJ_0H:J_1H,nsssrc) ,STAT=IER)
+      allocate( SO2_src_3D(I_0H:I_1HJ_0H:J_1H,lm,nso2src_3d),STAT=IER )
+      allocate( SO2_biosrc_3D(I_0H:I_1HJ_0H:J_1H,lmAER,12) ,STAT=IER)
+      allocate( SO2t_src(I_0H:I_1HJ_0H:J_1H,lmAER) ,STAT=IER)
+      allocate( oh(I_0H:I_1HJ_0H:J_1H,lm),dho2(I_0H:I_1HJ_0H:J_1H,lm),
+     * perj(I_0H:I_1HJ_0H:J_1H,lm),tno3(I_0H:I_1HJ_0H:J_1H,lm)
+     * ,o3_offline(I_0H:I_1HJ_0H:J_1H,lm),STAT=IER )
+      allocate( ohr(I_0H:I_1HJ_0H:J_1H,lm),dho2r(I_0H:I_1HJ_0H:J_1H,lm),
+     * perjr(I_0H:I_1HJ_0H:J_1H,lm),tno3r(I_0H:I_1HJ_0H:J_1H,lm),
+     * ohsr(I_0H:I_1HJ_0H:J_1H,lm),STAT=IER )
+      allocate( snosiz(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
 #ifdef TRACERS_RADON
-      allocate( rn_src(IM,J_0H:J_1H,12) ,STAT=IER)
+      allocate( rn_src(I_0H:I_1HJ_0H:J_1H,12) ,STAT=IER)
 #endif
 c Nitrate aerosols
 ! I,J
-      allocate(  NH3_src_con(IM,J_0H:J_1H) )
-      allocate(  NH3_src_cyc(IM,J_0H:J_1H) )
-      allocate( hnh3_cyc(IM,J_0H:J_1H,2), STAT=IER )
-      allocate( hnh3_con(IM,J_0H:J_1H,2), STAT=IER )
+      allocate(  NH3_src_con(I_0H:I_1HJ_0H:J_1H) )
+      allocate(  NH3_src_cyc(I_0H:I_1HJ_0H:J_1H) )
+      allocate( hnh3_cyc(I_0H:I_1HJ_0H:J_1H,2), STAT=IER )
+      allocate( hnh3_con(I_0H:I_1HJ_0H:J_1H,2), STAT=IER )
 c off line 
-      allocate(  off_HNO3(IM,J_0H:J_1H,LM)     )
-      allocate(  off_SS(IM,J_0H:J_1H,LM)     )
+      allocate(  off_HNO3(I_0H:I_1HJ_0H:J_1H,LM)     )
+      allocate(  off_SS(I_0H:I_1HJ_0H:J_1H,LM)     )
 
       return
       end subroutine alloc_aerosol_sources      
@@ -204,8 +206,8 @@ c
       character*10 :: mon_files(nmons) = (/'O3_FIELD'/)
       logical :: mon_bins(nmons)=(/.true./) ! binary file?
       real*8 :: frac
-      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,levo3,1)
-     &        :: src
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,levo3,1):: src
       real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb
       save jdlast,mon_units,imon,ifirst,tlca,tlcb
       INTEGER :: J_1, J_0, J_0H, J_1H
@@ -214,8 +216,11 @@ c
 
       if (ifirst) then
         call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        allocate(tlca(im,j_0H:j_1H,levo3,nmons),
-     &           tlcb(im,j_0H:j_1H,levo3,nmons))
+        I_0H = grid%I_STRT_HALO
+        I_1H = grid%I_STOP_HALO
+
+        allocate(tlca(i_0H:i_1H,j_0H:j_1H,levo3,nmons),
+     &           tlcb(i_0H:i_1H,j_0H:j_1H,levo3,nmons))
         ifirst=.false.
       endif
       k=1
@@ -267,10 +272,10 @@ c
       integer Ldim,L,imon,iu,jdlast
       character(len=300) :: out_line
       real*8 :: frac
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     A2D,B2D,dummy
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::
-     &     tlca,tlcb,data1
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
 
       integer :: J_0, J_1
 
@@ -338,8 +343,8 @@ c**** Interpolate two months of data to current day
       IMPLICIT NONE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     &    intent(out) :: OUT
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
       INTEGER, PARAMETER :: nlevnc =23
       REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
       REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
@@ -356,8 +361,10 @@ c ----------------------------------------------------------------
 
       if (first_call==1) then
         first_call=0
-        allocate( IN1(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
-        allocate( IN2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
+        allocate( IN1(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
+        allocate( IN2(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
       endif
       if (step_rea.ne.jmon) then 
         step_rea = JMON
@@ -412,8 +419,8 @@ c -----------------------------------------------------------------
       IMPLICIT NONE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     &    intent(out) :: OUT
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
       INTEGER, PARAMETER :: nlevnc =23
       REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
       REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
@@ -430,8 +437,10 @@ c ----------------------------------------------------------------
 
       if (first_call_ss==1) then
         first_call_ss=0
-        allocate( IN1_ss(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
-        allocate( IN2_ss(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
+        allocate( IN1_ss(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
+        allocate( IN2_ss(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
       endif
       if (step_rea_ss.ne.jmon) then 
         step_rea_ss = JMON
@@ -490,7 +499,7 @@ C**** Monthly sources are interpolated each day
 c    * ,DTsrc,ls1,jmon,t,lm
       USE DOMAIN_DECOMP, only : GRID, GET,readt_parallel 
      * ,AM_I_ROOT
-      USE GEOM, only: BYDXYP
+      USE GEOM, only: BYAXYP
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit,
      * nameunit
@@ -513,7 +522,7 @@ c    *  ,SO2_biosrc_3D
       real*8, allocatable, dimension(:,:,:) :: tlca,tlcb  ! for monthly sources
       real*8 frac,bySperHr
       integer :: imon(nmons)
-      integer i,j,jj,nt,iact,iu,k,j_0,j_1
+      integer i,j,jj,nt,iact,iu,k,j_0,j_1,i_0,i_1
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
@@ -521,7 +530,9 @@ C Edgar-1995 has its own biomass (2D) source and diagnostic.
 C To avoid complications with indexing of 3D sources, leave in the
 C 3D biomass array and diagnostic but fill it with Edgar 1995
 C emissions. Make all levels other than surface equal to zero (nbell)
-       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 c      so2_biosrc_3D(:,j_0:j_1,:,:)=0.
 C Now the Edgar-1995 sources
@@ -544,9 +555,10 @@ C**** The EDGAR-1995 sources are in KGSO2/4x5grid/HR and need to be
 C**** converted to KGSO2/m2/sec:
 C****
       if (ifirst) then
-       Allocate(tlca(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons),
-     &           tlcb(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
-c      allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
+        Allocate(tlca(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *       ,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons)
+     *       ,tlcb(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *       ,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
         call openunit(ann_files,ann_units,ann_bins,.true.)
         k = 0
         do iu = 1,nanns
@@ -555,7 +567,9 @@ c         call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           call readt_parallel (grid,
      &         ann_units(iu),nameunit(ann_units(iu)),0,src(:,:,k),1)
           do j=j_0,j_1
-            src(:,j,k) = src(:,j,k)*bydxyp(j)*bySperHr
+            do i=i_0,i_1
+              src(i,j,k) = src(i,j,k)*byaxyp(i,j)*bySperHr
+            end do
           end do
         end do
         call closeunit(ann_units)
@@ -575,12 +589,14 @@ C****
         call read_monthly_sources(mon_units(jj),jdlast,
      *    tlca(:,:,jj),tlcb(:,:,jj),src(:,:,k),frac,imon(jj))
         do j=j_0,j_1
+          do i=i_0,i_1
 C Also fill 3D biomass array
 C Units are kgSO2/s
-c         if (k.eq.6) then
-c         so2_biosrc_3D(:,j,1,jmon)= src(:,j,k)*bySperHr
-c         endif
-          src(:,j,k) = src(:,j,k)*bydxyp(j)*bySperHr
+c           if (k.eq.6) then
+c             so2_biosrc_3D(i,j,1,jmon)= src(i,j,k)*bySperHr
+c           endif
+            src(i,j,k) = src(i,j,k)*byaxyp(i,j)*bySperHr
+          end do
         end do
       end do
       jdlast = jday
@@ -596,7 +612,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
      * ,SO2_biosrc_3D,SO2t_src
       USE MODEL_COM, only: jyear,im,jm,jmon
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE TRACER_COM, only: aer_int_yr,imPI,imAER
       USE FILEMANAGER, only: openunit,closeunit
       USE CONSTANT, only: sday
@@ -604,8 +620,8 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       integer ihyr,l,ii,jj,ll,iuc,mm,iact,j,mmm
       integer J_0,J_1,J_0H,J_1H
       real*8 carbstuff,tfac
-      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     *  ratb,rato
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::ratb,rato
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
@@ -630,7 +646,7 @@ c     call closeunit(iuc)
       if (ii.eq.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      carbstuff=carbstuff*dxyp(jj)
+      carbstuff=carbstuff*axyp(ii,jj)
       BCB_src(ii,jj,1,mm)=carbstuff
       end do
       call closeunit(iuc)
@@ -657,7 +673,7 @@ c     call closeunit(iuc)
       if (ii.eq.0.) exit 
       if (jj<j_0 .or. jj>j_1) cycle
       if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      carbstuff=carbstuff*dxyp(jj)
+      carbstuff=carbstuff*axyp(ii,jj)
       OCB_src(ii,jj,1,mm)=carbstuff !this is OM
       end do
       call closeunit(iuc)
@@ -703,18 +719,18 @@ c     call closeunit(iuc)
 
       SUBROUTINE read_hist_BCOC(iact)
 c historic BC emissions
+      USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP, only :  GRID, GET 
       USE TRACER_COM, only: aer_int_yr
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
-      USE GEOM, only: dxyp
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,16) :: 
-     * hOC_all,hBC_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,16) ::hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm
       save jb1,jb2
       
@@ -817,9 +833,9 @@ c   then open new files
       hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
       hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
 c kg/year to kg/s
-      hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/(365.d0*24.d0*3600.d0)
+      hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
 c OM=1.4 x OC
-      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/(365.d0*24.d0*3600.d0)*1.4d0
+      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/syr*1.4d0
       endif
 c interpolate to model year
 c    
@@ -835,18 +851,18 @@ c
       
       SUBROUTINE read_hist_SO2(iact)
 c historic BC emissions
+      USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit
       USE DOMAIN_DECOMP, only :  GRID, GET 
       USE TRACER_COM, only: aer_int_yr
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
-      USE GEOM, only: dxyp
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) :: 
-     * hso2_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) ::hso2_all
       real*8 d1,d2,d3,xso2ff
       save jb1,jb2
       
@@ -856,73 +872,72 @@ c historic BC emissions
       SO2_src(:,:,:)=0.d0
 
       if (aer_int_yr.eq.0) then
-      ihyr=jyear
+        ihyr=jyear
       else
-      ihyr=aer_int_yr
+        ihyr=aer_int_yr
       endif
-       if (ihyr.lt.1890) ihyr=1890
-c if run just starting or if it is a new year
-c   then open new files
+      if (ihyr.lt.1890) ihyr=1890
+c     if run just starting or if it is a new year
+c     then open new files
       if (iact.eq.0.or.jday.eq.1) then
-       hso2_all(:,:,:)=0.0
-       hso2(:,:,:)=0.0
-      if (ihyr.ge.1890.and.ihyr.lt.1900) then
-      jb1=1890
-      jb2=1900
-      irr=1
-      else if (ihyr.ge.1900.and.ihyr.lt.1910) then
-      jb1=1900
-      jb2=1910
-      irr=2
-      else if (ihyr.ge.1910.and.ihyr.le.1920) then
-      jb1=1910
-      jb2=1920
-      irr=3
-      else if (ihyr.ge.1920.and.ihyr.le.1930) then
-      jb1=1920
-      jb2=1930
-      irr=4
-      else if (ihyr.ge.1930.and.ihyr.le.1940) then
-      jb1=1930
-      jb2=1940
-      irr=5
-      else if (ihyr.ge.1940.and.ihyr.le.1950) then
-      jb1=1940
-      jb2=1950
-      irr=6
-      else if (ihyr.ge.1950.and.ihyr.le.1960) then
-      jb1=1950
-      jb2=1960
-      irr=7
-      else if (ihyr.ge.1960.and.ihyr.le.1970) then
-      jb1=1960
-      jb2=1970
-      irr=8
-      else if (ihyr.ge.1970.and.ihyr.le.1980) then
-      jb1=1970
-      jb2=1980
-      irr=9
-      else if (ihyr.ge.1980.and.ihyr.le.1990) then
-      jb1=1980
-      jb2=1990
-      irr=10
-      else if (ihyr.ge.1990.and.ihyr.le.2001) then
-      jb1=1990
-      jb2=2000
-      irr=11
-      endif
-      call openunit('SO2_INDh',iuc, .false.,.true.)
-      do 
-      read(iuc,*) ii,jj,iy,xso2ff
-      if (iy.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      hso2_all(ii,jj,iy)=xso2ff
-      end do
-      call closeunit(iuc)
-      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+        hso2_all(:,:,:)=0.0
+        hso2(:,:,:)=0.0
+        if (ihyr.ge.1890.and.ihyr.lt.1900) then
+          jb1=1890
+          jb2=1900
+          irr=1
+        else if (ihyr.ge.1900.and.ihyr.lt.1910) then
+          jb1=1900
+          jb2=1910
+          irr=2
+        else if (ihyr.ge.1910.and.ihyr.le.1920) then
+          jb1=1910
+          jb2=1920
+          irr=3
+        else if (ihyr.ge.1920.and.ihyr.le.1930) then
+          jb1=1920
+          jb2=1930
+          irr=4
+        else if (ihyr.ge.1930.and.ihyr.le.1940) then
+          jb1=1930
+          jb2=1940
+          irr=5
+        else if (ihyr.ge.1940.and.ihyr.le.1950) then
+          jb1=1940
+          jb2=1950
+          irr=6
+        else if (ihyr.ge.1950.and.ihyr.le.1960) then
+          jb1=1950
+          jb2=1960
+          irr=7
+        else if (ihyr.ge.1960.and.ihyr.le.1970) then
+          jb1=1960
+          jb2=1970
+          irr=8
+        else if (ihyr.ge.1970.and.ihyr.le.1980) then
+          jb1=1970
+          jb2=1980
+          irr=9
+        else if (ihyr.ge.1980.and.ihyr.le.1990) then
+          jb1=1980
+          jb2=1990
+          irr=10
+        else if (ihyr.ge.1990.and.ihyr.le.2001) then
+          jb1=1990
+          jb2=2000
+          irr=11
+        endif
+        call openunit('SO2_INDh',iuc, .false.,.true.)
+        do 
+          read(iuc,*) ii,jj,iy,xso2ff
+          if (iy.eq.0) exit
+          if (jj<j_0 .or. jj>j_1) cycle
+          hso2_all(ii,jj,iy)=xso2ff
+        end do
+        call closeunit(iuc)
+        hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
 c kg/year to kg/s and x2 to convert from S to SO2
-      hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)  
-     *  *2.d0/(365.d0*24.d0*3600.d0)
+        hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)*2.d0/syr
       endif
 c interpolate to model year
 c    
@@ -930,7 +945,7 @@ c
       d2=real(jb2-ihyr)
       d3=real(jb2-jb1)
       SO2_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
-     * +d2*hso2(:,j_0:j_1,1))/d3
+     *     +d2*hso2(:,j_0:j_1,1))/d3
   
       end subroutine read_hist_SO2    
       
@@ -943,12 +958,12 @@ c historic BC emissions
       USE TRACER_COM, only: aer_int_yr
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
-      USE GEOM, only: dxyp
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) :: 
-     * hnh3_con_all,hnh3_cyc_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) ::hnh3_con_all
+     *     ,hnh3_cyc_all
       real*8 d1,d2,d3,xso2ff
       save jb1,jb2
       
@@ -1142,7 +1157,7 @@ c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
       USE CONSTANT, only: sday
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,imAER
       USE MODEL_COM, only: jmon,jday
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
@@ -1170,7 +1185,7 @@ c if after Feb 28 skip the leapyear day
          if (jday.gt.59) jread=jday+1
 c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
 c     *      =DMS_AER(i,j,jread)*72.d0
-         erate=DMS_AER(i,j,jread)/sday/dxyp(j)*tr_mm(n_DMS)/32.d0
+         erate=DMS_AER(i,j,jread)/sday/axyp(i,j)*tr_mm(n_DMS)/32.d0
         endif
         DMS_flux=erate          ! units are kg/m2/s
 c
@@ -1183,7 +1198,7 @@ c
 c want kg seasalt/m2/s, for now in 2 size bins
       USE TRACER_COM, only: imAER
       USE CONSTANT, only: sday
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE MODEL_COM, only: jday
       USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2
       use param, only: sync_param
@@ -1213,11 +1228,11 @@ c     units are kg salt/m2/s
 c if after Feb 28 skip the leapyear day
          jread=jday
          if (jday.gt.59) jread=jday+1
-        if (ibin.eq.1) then
-         ss=SS1_AER(i,j,jread)/sday/dxyp(j)
-        else 
-         ss=SS2_AER(i,j,jread)/sday/dxyp(j)
-        endif
+         if (ibin.eq.1) then
+           ss=SS1_AER(i,j,jread)/(sday*axyp(i,j))
+         else 
+           ss=SS2_AER(i,j,jread)/(sday*axyp(i,j))
+         endif
        endif
       return
       end subroutine read_seasalt_sources
@@ -1227,19 +1242,19 @@ c if after Feb 28 skip the leapyear day
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
       USE TRACER_COM
-      USE TRDIAG_COM, only : tajls=>tajls_loc
+      USE TRDIAG_COM, only : 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) 
-     *     ,jls_OHconk,jls_HO2con,jls_NO3,jls_phot
+     *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     &     ,jls_OHcon
+     &     jls_OHcon
 #endif
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_DATA, write_parallel
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
-      USE GEOM, only: dxyp,imaxj,BYDXYP
+      USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
@@ -1269,7 +1284,7 @@ c    * perjr_glob,tno3r_glob,ohsr_glob
      *  ohsr_real
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,j_0,j_1,
-     * j_0s,j_1s,mmm,J_0H,J_1H
+     * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
@@ -1279,6 +1294,8 @@ c    * perjr_glob,tno3r_glob,ohsr_glob
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1,
      *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
      * J_STOP_SKP=J_1S)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** initialise source arrays
 ccOMP PARALLEL DO PRIVATE (L)
@@ -1335,7 +1352,7 @@ ccOMP END PARALLEL DO
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-         if(AM_I_ROOT( ))then
+        if(AM_I_ROOT( ))then
         call openunit('AER_CHEM',iuc,.true.,.true.)
         do ii=1,jmon
           read(iuc) ichemi
@@ -1373,10 +1390,10 @@ c I have to read in every timestep unless I can find a better way
 c
 c skip poles because there was a bug in the input file over the pole
         do j=j_0s,j_1s   
-        do i=1,im
-        maxl=ltropo(i,j)
+        do i=i_0,i_1
+          maxl=ltropo(i,j)
         do l=maxl,lm
-        ohr(i,j,l)=ohsr(i,j,l)
+          ohr(i,j,l)=ohsr(i,j,l)
         end do
         end do
         end do
@@ -1406,7 +1423,7 @@ c     endif
 C**** THIS LOOP SHOULD BE PARALLELISED
       do 20 l=1,lm
       do 21 j=j_0,j_1
-      do 22 i=1,imaxj(j)
+      do 22 i=i_0,imaxj(j)
 C Initialise       
         maxl = ltropo(i,j)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1415,7 +1432,7 @@ C Initialise
       if(l.le.maxl) then
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*dxyp(j)
+      mm=am(l,i,j)*axyp(i,j)
       tt = 1.d0/te
 
 c DMM is number density of air in molecules/cm3
@@ -1502,7 +1519,7 @@ c SO2 production from DMS
           
           
           najl = jls_NO3
-          tajls(j,l,najl) = tajls(j,l,najl)+ttno3
+          call inc_tajls(i,j,l,najl,ttno3)
 #endif
         end select
         
@@ -1514,7 +1531,7 @@ c SO2 production from DMS
 
       do 30 l=1,lm
       do 31 j=j_0,j_1
-      do 32 i=1,imaxj(j)
+      do 32 i=i_0,imaxj(j)
 
       maxl = ltropo(i,j)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1524,15 +1541,15 @@ c SO2 production from DMS
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
-      mm=am(l,i,j)*dxyp(j)
+      mm=am(l,i,j)*axyp(i,j)
       tt = 1.d0/te
       dmm=ppres/(.082d0*te)*6.02d20
       ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
 #ifdef TRACERS_HETCHEM
       if (COUPLED_CHEM.ne.1) then
-      o3mc = o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
+      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
       else
-      o3mc = trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYDXYP(J)*BYAM(L,I,J)
+        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*BYAM(L,I,J)
       endif
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -1569,9 +1586,9 @@ c         najl = jls_OHcon
 c#else
           najl = jls_OHconk
 c#endif
-          tajls(j,l,najl) = tajls(j,l,najl)+oh(i,j,l)
+          call inc_tajls(i,j,l,najl,oh(i,j,l))
           najl = jls_HO2con
-          tajls(j,l,najl) = tajls(j,l,najl)+dho2(i,j,l)
+          call inc_tajls(i,j,l,najl,dho2(i,j,l))
 
 #ifdef TRACERS_HETCHEM
        case ('SO4_d1')
@@ -1635,7 +1652,7 @@ c H2O2 losses:5 and 6
      *         /dtsrc
           
           najl = jls_phot
-          tajls(j,l,najl) = tajls(j,l,najl)+perj(i,j,l)
+          call inc_tajls(i,j,l,najl,perj(i,j,l))
         end select
 
  140    CONTINUE
@@ -1661,7 +1678,7 @@ c     use RAD_COM, only: cosz1
      *  rad1,rad2,rad3,stfac,vlat_inc,vlon_inc
       real*8, DIMENSION(IM,JM) :: suncos,tczen
       integer i,j,hrstrt,jdstrt,ihr,l,j_0,j_1,j_0h,j_1h,
-     * j_0s,j_1s 
+     * j_0s,j_1s,i_0,i_1
       integer, DIMENSION(IM,JM) :: nradn
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE      
 
@@ -1673,31 +1690,34 @@ c     use RAD_COM, only: cosz1
      *               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-C*
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
       vlat_inc=176.d0/real(jm-2.d0)
       vlon_inc=360.d0/real(im)
-      DO 100 j = j_0,j_1
-      DO 100 i = 1,im
+      DO j = j_0,j_1
+        DO i = i_0,i_1
 C*** Calculate cos theta (RAD) at the beginning of the time step (RAD)
-      vlon = 180.d0 - (i-1)*vlon_inc
-      vlat=-90.d0+(j-1)*vlat_inc
-      if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
-      if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
-c      if (j.eq.1) vlat=-88.d0
-c      if (j.eq.46) vlat=88.d0
-      TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc
-      p1 = 15.d0*(timec/3600.d0 + hrstrt - vlon/15.d0 - 12.d0)
-      fact = (jdstrt + timec/86400.d0 - 81.1875d0)*ang1
-      p2 = 23.5d0*sin(fact*radian)
-      p3 = vlat
+          vlon = 180.d0 - (i-1)*vlon_inc
+          vlat=-90.d0+(j-1)*vlat_inc
+          if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
+          if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
+c     if (j.eq.1) vlat=-88.d0
+c     if (j.eq.46) vlat=88.d0
+          TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc
+          p1 = 15.d0*(timec/3600.d0 + hrstrt - vlon/15.d0 - 12.d0)
+          fact = (jdstrt + timec/86400.d0 - 81.1875d0)*ang1
+          p2 = 23.5d0*sin(fact*radian)
+          p3 = vlat
 C*
-      rad = (SIN(p3*radian)*SIN(p2*radian)) +
-     1            (COS(p1*radian)*COS(p2*radian)*COS(p3*radian))
-      if (rad.lt.0.d0) rad = 0.d0
-      suncos(I,J) = rad
+          rad = (SIN(p3*radian)*SIN(p2*radian)) +
+     1         (COS(p1*radian)*COS(p2*radian)*COS(p3*radian))
+          if (rad.lt.0.d0) rad = 0.d0
+          suncos(I,J) = rad
 c     if (i.eq.30.and.j.eq.40) write(6,*) 'ohrad',timec,jday,jhour,
 c    * rad,p1,p2,p3
- 100  CONTINUE
+        end do
+      end do
 c Scale OH and PERJ depending on time of day
 c   [OH] is approximately proportional to cos(zenith angle),
 c   therefore OH is calculated as
@@ -1709,79 +1729,79 @@ c ** beginning of the day.
 c etc for NO3, PERJ. The 6 is because TCZEN is average of 6 times
 c    NO3 is different since we want to have it nonzero only during dark
 C----------------------------------------------------------------------
-        do j = j_0, j_1
-           do i = 1, im
-             tczen(i,j) = 0.
-             nradn(i,j)=0
-             vlon = 180.d0 - (i-1)*vlon_inc
-             vlat=-90.d0+(j-1)*vlat_inc
-      if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
-      if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
+      do j = j_0, j_1
+        do i = i_0, i_1
+          tczen(i,j) = 0.
+          nradn(i,j)=0
+          vlon = 180.d0 - (i-1)*vlon_inc
+          vlat=-90.d0+(j-1)*vlat_inc
+          if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
+          if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
 c             if (j.eq.1) vlat=-88.d0
 c             if (j.eq.46) vlat=88.d0
-              do ihr = 0,20,4
-                 ctime = (jday*24.d0) + ihr
-                 p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
-                 fact = (ctime/24.d0 - 81.1875d0)*ang1
-                 p2 = 23.5d0 * sin(fact*radian)
-                 p3 = vlat
-                 rad1 = sin(p3*radian) * sin(p2*radian) +
-     m             cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
-                 if (rad1.lt.0.d0) rad1 = 0.d0
-                 if (rad1.eq.0.0) nradn(i,j)=nradn(i,j)+1
-c
-                 ctime = (jday*24.d0) + ihr+2
-                 p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
-                 fact = (ctime/24.d0 - 81.1875d0)*ang1
-                 p2 = 23.5d0 * sin(fact*radian)
-                 p3 = vlat
-                 rad2 = sin(p3*radian) * sin(p2*radian) +
-     m             cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
-                 if (rad2.lt.0.d0) rad2 = 0.d0
-                 if (rad2.eq.0.0) nradn(i,j)=nradn(i,j)+2
-c
-                 ctime = (jday*24) + ihr+4
-                 p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
-                 fact = (ctime/24.d0 - 81.1875d0)*ang1
-                 p2 = 23.5d0 * sin(fact*radian)
-                 p3 = vlat
-                 rad3 = sin(p3*radian) * sin(p2*radian) +
-     m              cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
-                 if (rad3.lt.0.d0) rad3 = 0.d0
-                 if (rad3.eq.0.0) nradn(i,j)=nradn(i,j)+1
-c
-                 rad = (rad1 + 2.d0*rad2 + rad3)/4.d0
-                 tczen(i,j) = tczen(i,j) + rad
-                 if(tczen(i,j).eq.0.) tczen(i,j) = teeny
-              end do
-           end do
+          do ihr = 0,20,4
+            ctime = (jday*24.d0) + ihr
+            p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
+            fact = (ctime/24.d0 - 81.1875d0)*ang1
+            p2 = 23.5d0 * sin(fact*radian)
+            p3 = vlat
+            rad1 = sin(p3*radian) * sin(p2*radian) +
+     m           cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
+            if (rad1.lt.0.d0) rad1 = 0.d0
+            if (rad1.eq.0.0) nradn(i,j)=nradn(i,j)+1
+c     
+            ctime = (jday*24.d0) + ihr+2
+            p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
+            fact = (ctime/24.d0 - 81.1875d0)*ang1
+            p2 = 23.5d0 * sin(fact*radian)
+            p3 = vlat
+            rad2 = sin(p3*radian) * sin(p2*radian) +
+     m           cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
+            if (rad2.lt.0.d0) rad2 = 0.d0
+            if (rad2.eq.0.0) nradn(i,j)=nradn(i,j)+2
+c     
+            ctime = (jday*24) + ihr+4
+            p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
+            fact = (ctime/24.d0 - 81.1875d0)*ang1
+            p2 = 23.5d0 * sin(fact*radian)
+            p3 = vlat
+            rad3 = sin(p3*radian) * sin(p2*radian) +
+     m           cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
+            if (rad3.lt.0.d0) rad3 = 0.d0
+            if (rad3.eq.0.0) nradn(i,j)=nradn(i,j)+1
+c     
+            rad = (rad1 + 2.d0*rad2 + rad3)/4.d0
+            tczen(i,j) = tczen(i,j) + rad
+            if(tczen(i,j).eq.0.) tczen(i,j) = teeny
+          end do
         end do
+      end do
 c**************************
-          do j = j_0,j_1
-           do l = 1,lm
-            do i = 1,im
-c Get NO3 only if dark, weighted by number of dark hours
-c        if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
+      do l = 1,lm
+        do j = j_0,j_1
+          do i = i_0,i_1
+c     Get NO3 only if dark, weighted by number of dark hours
+c     if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
             if (suncos(i,j).eq.0.and.nradn(i,j).gt.0) then
-            tno3(i,j,l)=tno3r(i,j,l)*24.d0/real(nradn(i,j))  !DMK jmon
+              tno3(i,j,l)=tno3r(i,j,l)*24.d0/real(nradn(i,j)) !DMK jmon
             else
-            tno3(i,j,l)=0.d0
+              tno3(i,j,l)=0.d0
             endif
-  88          if (tczen(i,j).eq.teeny) then
-                 oh(i,j,l) = 0.d0
-                 perj(i,j,l)=0.d0
-                 dho2(i,j,l)=0.d0
-              else
-                stfac=suncos(i,j)/tczen(i,j)
-                if (stfac.gt.1) then
-                 stfac=1.
-                endif
-                 oh(i,j,l)=ohr(i,j,l)*6.d0*stfac    !jmon
-                 perj(i,j,l)=perjr(i,j,l)*6.d0*stfac !dmk jmon
-                 dho2(i,j,l)=dho2r(i,j,l)*6.d0*stfac !dmk jmon
-              end if
-           end do
-         end do
+ 88         if (tczen(i,j).eq.teeny) then
+              oh(i,j,l) = 0.d0
+              perj(i,j,l)=0.d0
+              dho2(i,j,l)=0.d0
+            else
+              stfac=suncos(i,j)/tczen(i,j)
+              if (stfac.gt.1) then
+                stfac=1.
+              endif
+              oh(i,j,l)=ohr(i,j,l)*6.d0*stfac !jmon
+              perj(i,j,l)=perjr(i,j,l)*6.d0*stfac !dmk jmon
+              dho2(i,j,l)=dho2r(i,j,l)*6.d0*stfac !dmk jmon
+            end if
+          end do
+        end do
       end do
       RETURN
       END subroutine SCALERAD
@@ -2195,7 +2215,7 @@ C
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit
       USE FLUXES, only: tr3Dsource
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE TRACER_COM, only: itime_tr0,trname,n_SO2,n_BCIA
       use AEROSOL_SOURCES, only: Laircrs,aircrafts_Tyr1,aircrafts_Tyr2
       use param, only: sync_param
@@ -2216,14 +2236,14 @@ c
       logical :: LINJECTS
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
       real*8 bySperHr
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircrs,1)
-     &                                     :: src
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircrs,1):: src
       REAL*8, DIMENSION(LM)                :: pres
       REAL*4, PARAMETER, DIMENSION(Laircrs) :: PAIRL =
      & (/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
      &    410.60,355.99,307.42,264.36,226.32,193.30,165.10,
      &    141.01,120.44,102.87,87.866,75.048/)
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 c
 C**** Local parameters and variables and arguments:
       logical :: trans_emis=.false.
@@ -2233,6 +2253,8 @@ C     19x12=228 records. Read it in here and interpolated each day.
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C****
 C**** Monthly sources are interpolated to the current day
@@ -2258,22 +2280,22 @@ C====
       tr3Dsource(:,J_0:J_1,:,2,n_BCIA) = 0.d0
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       DO J=J_0,J_1
-       DO I=1,IM
+       DO I=I_0,I_1
 c multiply N by 3.3 to get NOx
 c divide NOx emission by 35 to get S, *2 to get SO2
 c divide NOx emission by 350 to get BC
-        tr3Dsource(i,j,1,2,n_SO2) = SRC(I,J,1,1)*dxyp(j)*3.3d0/35.d0
+        tr3Dsource(i,j,1,2,n_SO2) = SRC(I,J,1,1)*axyp(i,j)*3.3d0/35.d0
      *  *2.d0
-        tr3Dsource(i,j,1,2,n_BCIA) = SRC(I,J,1,1)*dxyp(j)*3.3d0/350.d0
+        tr3Dsource(i,j,1,2,n_BCIA) = SRC(I,J,1,1)*axyp(i,j)*3.3d0/350.d0
         DO LL=2,Laircrs
           LINJECTS=.TRUE.
           DO L=1,LM
            IF(PAIRL(LL) > PRES(L).AND.LINJECTS) THEN
              tr3Dsource(i,j,l,2,n_SO2) =
-     &  tr3Dsource(i,j,l,2,n_SO2) + SRC(I,J,LL,1)*dxyp(j)/35.d0*2.d0
+     &  tr3Dsource(i,j,l,2,n_SO2) + SRC(I,J,LL,1)*axyp(i,j)/35.d0*2.d0
      *       *3.3d0
              tr3Dsource(i,j,l,2,n_BCIA) =
-     &  tr3Dsource(i,j,l,2,n_BCIA) + SRC(I,J,LL,1)*dxyp(j)/350.d0
+     &  tr3Dsource(i,j,l,2,n_BCIA) + SRC(I,J,LL,1)*axyp(i,j)/350.d0
      *       *3.3d0
              LINJECTS=.FALSE.
            ENDIF
@@ -2301,10 +2323,11 @@ c divide NOx emission by 350 to get BC
       integer Ldim,L,imon,iu,ipos,k,nn
       character(len=300) :: out_line
       real*8 :: frac, alpha
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     A2D,B2D,dummy
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::
-     &     tlca,tlcb,data1,sfc_a,sfc_b
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
+     *     ,sfc_a,sfc_b
       logical, intent(in):: trans_emis
       integer, intent(in):: yr1,yr2
 

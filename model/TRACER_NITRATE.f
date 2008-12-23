@@ -8,7 +8,7 @@
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
      $                     ,dtsrc
-      USE GEOM, only: dxyp,BYDXYP
+      USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc    ! latent heat of evaporation at 0 C       
       USE FLUXES, only: tr3Dsource
       USE DYNAMICS,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
@@ -28,7 +28,7 @@
       REAL*4 :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
       REAL*4 :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
       REAL*8 :: yM,yS
-      INTEGER:: j,l,i,J_0, J_1,n
+      INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1
 C**** functions
       REAL*8 :: QSAT, AVOL
       REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,8) ::
@@ -36,6 +36,8 @@ C**** functions
       LOGICAL, SAVE :: NO_SS = .TRUE.
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
@@ -55,7 +57,7 @@ C**** functions
 
       DO L=1,LM                            
       DO J=J_0,J_1                               
-      DO I=1,IM                      
+      DO I=I_0,I_1
 ! meteo
       YI(1,1) = pk(l,i,j)*t(i,j,l)           !should be in [K]
       YI(1,2) = q(i,j,l)/QSAT (pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
@@ -66,23 +68,23 @@ C**** functions
       yS =  1.d6 * 1.d6 /6.022e23
       yM    = YI(1,11)/(YI(1,1)*1.38d-19) * yS
       YI(1,3) = trm(i,j,l,n_NH3)*yM*mass2vol(n_NH3)*
-     *        BYDXYP(J)*BYAM(L,I,J)        ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
+     *     BYAXYP(I,J)*BYAM(L,I,J) ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
       YI(1,3) = YI(1,3) + (trm(i,j,l,n_NH4)*yM*mass2vol(n_NH4)*
-     *        BYDXYP(J)*BYAM(L,I,J))        ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
+     *     BYAXYP(I,J)*BYAM(L,I,J)) ! NH3  (g) + NH4+  (p)   [umol/m^3 air]
 c#ifdef TRACERS_HETCHEM
 c      YI(1,4) = (trm(i,j,l,n_SO4)+trm(i,j,l,n_SO4_d1)+
 c     *          trm(i,j,l,n_SO4_d2)+trm(i,j,l,n_SO4_d3))
 c     *         * yM*mass2vol(n_SO4)*
-c     *       BYDXYP(J)*BYAM(L,I,J)        ! H2SO4    + SO4-- (p)   [umol/m^3 air]
+c     *         BYAXYP(I,J)*BYAM(L,I,J)    ! H2SO4    + SO4-- (p)   [umol/m^3 air]
 c#else
       YI(1,4) = trm(i,j,l,n_SO4)*yM*mass2vol(n_SO4)*
-     *         BYDXYP(J)*BYAM(L,I,J)        ! H2SO4    + SO4-- (p)   [umol/m^3 air]
+     *     BYAXYP(I,J)*BYAM(L,I,J) ! H2SO4    + SO4-- (p)   [umol/m^3 air]
 c#endif
 #ifdef  TRACERS_SPECIAL_Shindell
       YI(1,5) = trm(i,j,l,n_HNO3)*yM*mass2vol(n_HNO3)*
-     *         BYDXYP(J)*BYAM(L,I,J)        ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
+     *     BYAXYP(I,J)*BYAM(L,I,J)   ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
       YI(1,5) =YI(1,5)+ (trm(i,j,l,n_NO3p)*yM*mass2vol(n_NO3p)*
-     *         BYDXYP(J)*BYAM(L,I,J) )      ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
+     *     BYAXYP(I,J)*BYAM(L,I,J) ) ! HNO3 (g) + NO3-  (p)   [umol/m^3 air]
 #else 
 !off-line HNO3
       YI(1,5) = off_HNO3(i,j,l)*yM!*(mair/63.018)    ! HNO3 (g)   [umol/m^3 air]
@@ -96,27 +98,27 @@ c#endif
       YI(1,7) = off_SS(i,j,l)*0.5
      *         *yM*(mair/36.5)*0.1  ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
       else
-      YI(1,6) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
-     *         *yM*(mair/23.)*
-     *         BYDXYP(J)*BYAM(L,I,J) *0.1 ! Na+ (ss  + xsod) (a)   [umol/m^3 air]
-      YI(1,7) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
-     *         *yM*(mair/36.5)*
-     *         BYDXYP(J)*BYAM(L,I,J)*0.1  ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
+        YI(1,6) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
+     *       *yM*(mair/23.)*
+     *       BYAXYP(I,J)*BYAM(L,I,J) *0.1 ! Na+ (ss  + xsod) (a)   [umol/m^3 air]
+        YI(1,7) = (trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))*0.5
+     *       *yM*(mair/36.5)*
+     *       BYAXYP(I,J)*BYAM(L,I,J)*0.1 ! HCl  (g) + Cl-   (p)   [umol/m^3 air]
       endif
 #ifdef  TRACERS_DUST
 ! estimated after Trochkine et al. 2003, dust = 10% Ca + 10% K + 20% Mg +[60% (Na, Al, Si, Fe)]
       YI(1,8) = (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
      *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.1
      *         *yM*(mair/39.1)*
-     *         BYDXYP(J)*BYAM(L,I,J)        ! K+   (p) from Dust     [umol/m^3 air]
+     *         BYAXYP(I,J)*BYAM(L,I,J)   ! K+   (p) from Dust     [umol/m^3 air]
       YI(1,9) = (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
      *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.1 
      *         *yM*(mair/40.)*
-     *         BYDXYP(J)*BYAM(L,I,J)        ! Ca++ (p) from Dust     [umol/m^3 air]
+     *         BYAXYP(I,J)*BYAM(L,I,J) ! Ca++ (p) from Dust     [umol/m^3 air]
       YI(1,10)= (trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+
      *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.2
      *         *yM*(mair/24.3)*
-     *         BYDXYP(J)*BYAM(L,I,J)        ! Mg++ (p) from Dust     [umol/m^3 air]  
+     *         BYAXYP(I,J)*BYAM(L,I,J) ! Mg++ (p) from Dust     [umol/m^3 air]  
 #else
       YI(1,8) = (sum(offdust(i,j,l,:)))*0.1
      *         *yM*(mair/39.1)        ! K+   (p) from Dust     [umol/m^3 air]
@@ -136,27 +138,27 @@ c#endif
       YO(1,9)  = MAX(YO(1,9),1.D-30)
 ! Nitrate production   
       tr3Dsource(i,j,l,1,n_NO3p)= ((YO(1,20)
-     *        /(yM*mass2vol(n_NO3p)* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_NO3p)* BYAXYP(I,J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NO3p)) /dtsrc
 ! Ammonia residual
       tr3Dsource(i,j,l,1,n_NH3) = ((YO(1,10)
-     *        /(yM*mass2vol(n_NH3)* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_NH3)* BYAXYP(I,J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NH3)) /dtsrc
 ! Ammonium production
       tr3Dsource(i,j,l,1,n_NH4) = ((YO(1,19) 
-     *        /(yM*mass2vol(n_NH4)* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_NH4)* BYAXYP(I,J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_NH4))/dtsrc
 ! Aerosol Water [ug/m3]
 
 c aval [m3/gb] mass of air pro m3      
-c      AVOL = am(l,i,j)*dxyp(j)/mair*1000.d0*gasc*
+c      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*
 c     *      (pk(l,i,j)*t(i,j,l)) /(pmid(l,i,j)     *100.)
 c      trm(i,j,l,n_AW) = YO(1,12) *AVOL * 1.d-9
 
 #ifdef  TRACERS_SPECIAL_Shindell
 ! Nitric Acid residual
       tr3Dsource(i,j,l,3,n_HNO3) =((YO(1,9)
-     *        /(yM*mass2vol(n_HNO3)* BYDXYP(J)*BYAM(L,I,J)) )
+     *        /(yM*mass2vol(n_HNO3)* BYAXYP(I,J)*BYAM(L,I,J)) )
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
 

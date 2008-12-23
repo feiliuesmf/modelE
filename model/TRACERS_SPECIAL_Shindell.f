@@ -110,33 +110,35 @@
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H
+      integer :: ier, J_1H, J_0H, I_1H, I_0H
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
  
 #ifdef GFED_3D_BIOMASS
-      allocate( GFED_BB(IM,J_0H:J_1H,LbbGFED,ntm) )
+      allocate( GFED_BB(I_0H:I_1H,J_0H:J_1H,LbbGFED,ntm) )
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-      allocate( first_mod(IM,J_0H:J_1H,nra_ch4) )
-      allocate( iHch4(IM,J_0H:J_1H,nra_ch4) )
-      allocate( iDch4(IM,J_0H:J_1H,nra_ch4) )
-      allocate( i0ch4(IM,J_0H:J_1H,nra_ch4) )
-      allocate( day_ncep(IM,J_0H:J_1H,max_days,nra_ncep) )
-      allocate( DRA_ch4(IM,J_0H:J_1H,max_days,nra_ch4) )
-      allocate( avg_model(IM,J_0H:J_1H,nra_ch4) )
-      allocate( PRS_ch4(IM,J_0H:J_1H,nra_ch4) )
-      allocate( avg_ncep(IM,J_0H:J_1H,nra_ncep) )
-      allocate( sum_ncep(IM,J_0H:J_1H,nra_ncep) )
-      allocate( HRA_ch4(IM,J_0H:J_1H,maxHR_ch4,nra_ch4) )
-      allocate( PTBA(IM,J_0H:J_1H,nncep) )
-      allocate( PTBA1(IM,J_0H:J_1H,nncep) )
-      allocate( PTBA2(IM,J_0H:J_1H,nncep) )
-      allocate( add_wet_src(IM,J_0H:J_1H) )
+      allocate( first_mod(I_0H:I_1H,J_0H:J_1H,nra_ch4) )
+      allocate( iHch4(I_0H:I_1H,J_0H:J_1H,nra_ch4) )
+      allocate( iDch4(I_0H:I_1H,J_0H:J_1H,nra_ch4) )
+      allocate( i0ch4(I_0H:I_1H,J_0H:J_1H,nra_ch4) )
+      allocate( day_ncep(I_0H:I_1H,J_0H:J_1H,max_days,nra_ncep) )
+      allocate( DRA_ch4(I_0H:I_1H,J_0H:J_1H,max_days,nra_ch4) )
+      allocate( avg_model(I_0H:I_1H,J_0H:J_1H,nra_ch4) )
+      allocate( PRS_ch4(I_0H:I_1H,J_0H:J_1H,nra_ch4) )
+      allocate( avg_ncep(I_0H:I_1H,J_0H:J_1H,nra_ncep) )
+      allocate( sum_ncep(I_0H:I_1H,J_0H:J_1H,nra_ncep) )
+      allocate( HRA_ch4(I_0H:I_1H,J_0H:J_1H,maxHR_ch4,nra_ch4) )
+      allocate( PTBA(I_0H:I_1H,J_0H:J_1H,nncep) )
+      allocate( PTBA1(I_0H:I_1H,J_0H:J_1H,nncep) )
+      allocate( PTBA2(I_0H:I_1H,J_0H:J_1H,nncep) )
+      allocate( add_wet_src(I_0H:I_1H,J_0H:J_1H) )
 #endif      
       
       return
@@ -187,15 +189,17 @@
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H
+      integer :: ier, J_1H, J_0H, I_0H, I_1H
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
  
-      allocate( RNOx_lgt(IM,J_0H:J_1H) )
+      allocate( RNOx_lgt(I_0H:I_1H,J_0H:J_1H) )
       
       return
       end subroutine alloc_lightning
@@ -211,7 +215,7 @@ C**** Right now, there is just one L=1 source that changes
 C**** linearly in time (at 1% increase per year)
 
       USE MODEL_COM, only: itime,itimei,DTsrc,im,jm
-      USE GEOM, only: dxyp,IMAXJ  
+      USE GEOM, only: axyp,IMAXJ  
       USE DYNAMICS, only: am
       USE TRACER_COM, only: trname,trm,n_GLT,vol2mass
       USE TRACER_SOURCES, only: GLTic
@@ -220,7 +224,7 @@ C**** linearly in time (at 1% increase per year)
       
       IMPLICIT NONE
       
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I_0, I_1
            
 !@var by_s_in_yr recip. of # seconds in a year
 !@var new_mr mixing ratio to overwrite in L=1 this time step
@@ -230,6 +234,8 @@ C**** linearly in time (at 1% increase per year)
       integer i,j
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       bydtsrc=1.d0/DTsrc
       by_s_in_yr = 1.d0/(365.d0*24.d0*60.d0*60.d0)
@@ -239,8 +245,8 @@ C 1% every year, linearly in time. (note: vol2mass should
 C just be 1 for this tracer, but kept it in here, in case
 C we change that.)
       new_mr = GLTic*(1.d0+(Itime-ItimeI)*DTsrc*by_s_in_yr*1.d-2) !pppv
-      do j=J_0,J_1; do i=1,imaxj(j)
-        new_mass=new_mr*vol2mass(n_GLT)*am(1,i,j)*DXYP(j) ! kg
+      do j=J_0,J_1; do i=I_0,imaxj(j)
+        new_mass=new_mr*vol2mass(n_GLT)*am(1,i,j)*AXYP(i,j) ! kg
         tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
         !i.e. tr3Dsource in kg/s 
       end do   ; end do
@@ -262,7 +268,6 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only      : bygrav
       USE MODEL_COM, only     : fland,IM,LS1,LM
       USE DYNAMICS, only      : LTROPO, PHI
-      USE GEOM, only          : BYDXYP
       USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
 c
       IMPLICIT NONE
@@ -283,12 +288,14 @@ c
       REAL*8, DIMENSION(16) :: HEIGHT
       REAL*8 :: ALTTROP,ALTTOP
       
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 c
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=I_0,I_1
 C****    Lightning source function altitude dependence:
 C****    Determine if latitude is tropical:
          IF(J > JS.AND.J <= JN) THEN
@@ -361,7 +368,7 @@ C
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit
       USE FLUXES, only: tr3Dsource
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft, 
      & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
      & num_sectors,n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
@@ -385,14 +392,14 @@ c
       logical :: LINJECT
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
       real*8 bySperHr      
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1)
-     &                                     :: src
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1):: src
       REAL*8, DIMENSION(LM)                :: pres
       REAL*4, PARAMETER, DIMENSION(Laircr) :: PAIRL =
      & (/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
      &    410.60,355.99,307.42,264.36,226.32,193.30,165.10,
      &    141.01,120.44,102.87,87.866,75.048/)
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 c
 C**** Local parameters and variables and arguments:
       logical :: trans_emis=.false.
@@ -404,6 +411,8 @@ C     19x12=228 records. Read it in here and interpolated each day.
       if (itime < itime_tr0(n_NOx)) return
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C****
 C**** Monthly sources are interpolated to the current day
@@ -428,14 +437,15 @@ C====
       tr3Dsource(:,J_0:J_1,:,nAircraft,n_NOx) = 0.d0
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       DO J=J_0,J_1
-       DO I=1,IM
-        tr3Dsource(i,j,1,nAircraft,n_NOx) = SRC(I,J,1,1)*dxyp(j)
+       DO I=I_0,I_1
+        tr3Dsource(i,j,1,nAircraft,n_NOx) = SRC(I,J,1,1)*axyp(i,j)
         DO LL=2,Laircr
           LINJECT=.TRUE.
           DO L=1,LM
            IF(PAIRL(LL) > PRES(L).AND.LINJECT) THEN
              tr3Dsource(i,j,l,nAircraft,n_NOx) =
-     &       tr3Dsource(i,j,l,nAircraft,n_NOx) + SRC(I,J,LL,1)*dxyp(j)
+     &            tr3Dsource(i,j,l,nAircraft,n_NOx) + SRC(I,J,LL,1)
+     *            *axyp(i,j)
              LINJECT=.FALSE.
            ENDIF
           ENDDO ! L
@@ -524,16 +534,17 @@ c
       logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
       REAL*8, DIMENSION(LM)    :: pres,srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
-      REAL*8, 
-     &DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls)
-     &                                                         :: src
-      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &      field
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls):: src
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::field
       logical :: trans_emis=.false.
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       call GET(grid, J_STRT=J_0, J_STOP=J_1)
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       select case(trim(fn))
       case('DMS_FIELD') ; nc=1
@@ -555,7 +566,7 @@ C====
 C====   Place field onto model levels
 C====              
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
-      DO J=J_0,J_1; DO I=1,IM
+      DO J=J_0,J_1; DO I=I_0,I_1
         srcLin(1:Lsulf)=src(I,J,1:Lsulf,nc)
         call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
         field(I,J,1:LM)=srcLout(1:LM)
@@ -581,10 +592,11 @@ C
       integer Ldim,L,imon,iu,ipos,k,nn
       character(len=300) :: out_line
       real*8 :: frac, alpha
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     A2D,B2D,dummy
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::
-     &     tlca,tlcb,data1,sfc_a,sfc_b
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
+     *     ,sfc_a,sfc_b
       logical, intent(in):: trans_emis
       integer, intent(in):: yr1,yr2
      
@@ -782,24 +794,24 @@ C       Initial latitudinal gradient for CH4:
         IF(J < JEQ)THEN ! Southern Hemisphere
           select case(fix_CH4_chemistry)
           case default
-            CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6*DXYP(J)
+            CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6
           case(1)
-            CH4INIT=pfix_CH4_S*vol2mass(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_S*vol2mass(n_CH4)
           end select
         ELSE             ! Northern Hemisphere
           select case(fix_CH4_chemistry)
           case default
-            CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6*DXYP(J)
+            CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6
           case(1)
-            CH4INIT=pfix_CH4_N*vol2mass(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_N*vol2mass(n_CH4)
           end select
         ENDIF
         select case(icall)
         case(0) ! initial conditions
-          trm(:,j,l,n_CH4)=am(L,:,J)*CH4INIT
+          trm(:,j,l,n_CH4)=am(L,:,J)*CH4INIT*AXYP(:,J)
         case(1) ! overwriting
           tr3Dsource(:,j,l,nStratwrite,n_CH4) = 
-     &    (am(L,:,J)*CH4INIT-trm(:,j,l,n_CH4))*bydtsrc
+     &    (am(L,:,J)*CH4INIT*AXYP(:,J)-trm(:,j,l,n_CH4))*bydtsrc
         end select
       END DO
       END DO
@@ -815,17 +827,17 @@ c     mixing ratios to 1.79 (observed):
           select case(fix_CH4_chemistry)
           case default
             CH4INIT=
-     &      ch4_init_sh/1.79d0*vol2mass(n_CH4)*1.E-6*DXYP(J)
+     &      ch4_init_sh/1.79d0*vol2mass(n_CH4)*1.E-6
           case(1)
-            CH4INIT=pfix_CH4_S/1.79d0*vol2mass(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_S/1.79d0*vol2mass(n_CH4)
           end select
         ELSE             ! Northern Hemisphere
           select case(fix_CH4_chemistry)
           case default
             CH4INIT=
-     &      ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6*DXYP(J)
+     &      ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6
           case(1)
-            CH4INIT=pfix_CH4_N/1.79d0*vol2mass(n_CH4)*DXYP(J)
+            CH4INIT=pfix_CH4_N/1.79d0*vol2mass(n_CH4)
           end select
         ENDIF
         IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics
@@ -835,10 +847,10 @@ c     mixing ratios to 1.79 (observed):
         END IF
         select case(icall)
         case(0) ! initial conditions
-          trm(:,j,l,n_CH4)= am(L,:,J)*CH4INIT
+          trm(:,j,l,n_CH4)= am(L,:,J)*CH4INIT*AXYP(:,J)
         case(1) ! overwriting
           tr3Dsource(:,j,l,nStratwrite,n_CH4) =
-     &    (am(L,:,J)*CH4INIT-trm(:,j,l,n_CH4))*bydtsrc
+     &    (am(L,:,J)*CH4INIT*AXYP(:,J)-trm(:,j,l,n_CH4))*bydtsrc
         end select
       end do   ! j
       end do   ! l
@@ -858,7 +870,6 @@ C**** GLOBAL parameters and variables:
 C
       USE LIGHTNING, only : JN,JS,RNOx_lgt
       USE MODEL_COM, only : fland
-      USE GEOM,      only : bydxyp
       USE CONSTANT,  only : bygrav
       USE DYNAMICS,  only : gz
       USE TRDIAG_COM, only : ijs_CtoG,ijs_flash,taijs=>taijs_loc
@@ -1224,7 +1235,6 @@ C
       USE DYNAMICS, only: GZ
       USE CONSTANT, only: sday,hrday,byGRAV
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only: bydxyp
       USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm,
      & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
      & num_sectors,n_max_sect,num_regions,ef_fact,ef_fact3D
@@ -1246,14 +1256,16 @@ c
       logical :: trans_emis=.false.
       integer :: yr1=0, yr2=0
       real*8 frac, PIfact, bySperHr, a, b, c, ha, hb, hc
-      REAL*8,DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LbbGFED,ntm)
-     &                                     ::src
+      REAL*8,DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LbbGFED,ntm)::src
       REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
      & (/ 50.  ,300., 750.,1500.,2500., 4500./)
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       if (itime < itime_tr0(nt)) return
 
@@ -1277,12 +1289,12 @@ C****
      & src(:,:,:,nt),trans_emis,yr1,yr2)
       call closeunit(mon_units)
 
-      do L=1,LbbGFED; do j=j_0,j_1; do i=1,IM
+      do L=1,LbbGFED; do j=j_0,j_1; do i=I_0, I_1
         GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
       enddo         ; enddo       ; enddo
 cDMK hardwire to reduce tropical burning for 1890
 c     do L=1,LbbGFED 
-c     do i=1,IM
+c     do i=I_0,I_1
 c     do j=j_0,MIN(j_1,15) 
 c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
 c     enddo          
@@ -1365,13 +1377,15 @@ c
       REAL*4, PARAMETER, DIMENSION(LbbGFED) :: zmid =
      & (/ 50.  ,300., 750.,1500.,2500., 4500./)
 
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       fact_SO4=0.0375d0
 
-      do J=J_0,J_1 ; do I=1,IM
+      do J=J_0,J_1 ; do I=I_0,I_1
         do LL=1,LbbGFED
           Luse=0
           loop_L: do L=1,LM
@@ -1433,8 +1447,8 @@ c
      & (/'PREC_NCEP ','TEMP_NCEP ','BETA_NCEP ','ALPHA_NCEP'/)
       logical, dimension(nncep) :: ncep_bins =
      & (/.true.,.true.,.true.,.true./)
-      real*8,dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nra_ncep)::
-     &                                                day_ncep_tmp
+      real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nra_ncep)::day_ncep_tmp
 
       INTEGER :: J_1, J_0, J_0H, J_1H
 
@@ -1536,9 +1550,11 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       real*8 :: zm,zmcount
       real*8, dimension(IM,JM) :: src_glob
 
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       if(ns_wet < 0 .or. ns_wet > ntsurfsrcmax)call stop_model
      & ('problem with ns_wet parameter',255)
@@ -1557,7 +1573,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       do m=1,nra_ncep
         loop_j: do j=J_0,J_1
           if(j == 1 .or. j==jm) cycle loop_j
-          loop_i: do i=1,imaxj(j)
+          loop_i: do i=I_0,imaxj(j)
             add_wet_src(i,j)=0.d0
             if(fearth(i,j) <= 0.) cycle loop_i
             if(first_mod(i,j,m)/=1.and.sfc_src(i,j,n,ns_wet)/=0.)
@@ -1576,7 +1592,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
        do j=J_0,J_1
        if(j == 1 .or. j==jm) cycle ! skip the poles
        if(fearth(i,j) <= 0.) cycle ! and boxes with no land
-       do i=1,imaxj(j)
+       do i=I_0,imaxj(j)
 
          ! if either {(point is not in U.S. or E.U.) .or. (it is but 
          ! the exclusion of U.S. and E.U. wetlands is OFF)} AND
@@ -1602,7 +1618,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
                zm=0.d0; zmcount=0.d0
                select case (nn_or_zon)
                case(1) ! use zonal average (of existing wetlands)
-                 do ii=1,im
+                 do ii=I_0, I_1  !EXCEPTIONAL CASE? 
                   if(sfc_src(ii,j,n,ns_wet) > 0.d0)then
                     zm=zm+sfc_src(ii,j,n,ns_wet)
                     zmcount=zmcount+1.d0
@@ -1646,7 +1662,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
 ! Limit wetlands source to be positive:
       do j=J_0,J_1  
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           if((sfc_src(i,j,n,ns_wet)+add_wet_src(i,j))<0.)
      &    add_wet_src(i,j)=-1.d0*sfc_src(i,j,n,ns_wet)
         enddo
@@ -1678,8 +1694,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
       implicit none
 
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     tlca,tlcb,data
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::tlca,tlcb,data
       real*8 :: frac,alpha
       integer ::  imon,iu,k
       character(len=300) :: out_line

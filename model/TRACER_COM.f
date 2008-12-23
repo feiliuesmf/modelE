@@ -22,7 +22,7 @@ C**** Each tracer has a variable name and a unique index
 
 !@var ntm_O18: Number of TRACERS_SPECIAL_O18 tracers.
 #ifdef TRACERS_SPECIAL_O18
-      integer, parameter :: ntm_o18=3
+      integer, parameter :: ntm_o18=2
 #else
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */
@@ -235,7 +235,7 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
      *    'Water   ',
 #endif  /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_O18
-     *     'H2O18   ','HDO     ', 'H2O17   ',
+     *     'H2O18   ','HDO     ',   !'H2O17   ',
 #endif  /* TRACERS_SPECIAL_O18 */
 #ifdef TRACERS_GASEXCH_ocean_CFC
      *     'CFCn    ',

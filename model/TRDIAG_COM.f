@@ -763,3 +763,40 @@ C*** Unpack read global data into local distributed arrays
       return
       end subroutine scatter_trdiag
 #endif
+
+
+C**** routines for accumulating zonal mean diags (lat/lon grid)
+
+      SUBROUTINE INC_TAJLS(I,J,L,TJL_INDEX,ACC)
+!@sum inc_tajl adds ACC located at atmospheric gridpoint I,J,L
+!@+   to the latitude-height zonal sum TAJLS(J,L,TJL_INDEX).
+!@+   This is a trivial version for the latlon grid.
+!@auth M. Kelley
+      USE TRDIAG_COM, only : tajls=>tajls_loc
+      IMPLICIT NONE
+!@var I,J,L atm gridpoint indices for the accumulation
+      INTEGER, INTENT(IN) :: I,J,L
+!@var JL_INDEX index of the diagnostic being accumulated
+      INTEGER, INTENT(IN) :: TJL_INDEX
+!@var ACC increment of the diagnostic being accumulated
+      REAL*8, INTENT(IN) :: ACC
+      TAJLS(J,L,TJL_INDEX) = TAJLS(J,L,TJL_INDEX) + ACC
+      RETURN
+      END SUBROUTINE INC_TAJLS
+
+      SUBROUTINE INC_TAJLN(I,J,L,TJL_INDEX,N,ACC)
+!@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L
+!@+   and tracer n to the latitude-height zonal sum TAJLN(J,L,TJL_INDEX,N).
+!@+   This is a trivial version for the latlon grid.
+!@auth M. Kelley
+      USE TRDIAG_COM, only : tajln=>tajln_loc
+      IMPLICIT NONE
+!@var I,J,L atm gridpoint indices, N tracer # for the accumulation
+      INTEGER, INTENT(IN) :: I,J,L,N
+!@var TJL_INDEX index of the diagnostic being accumulated
+      INTEGER, INTENT(IN) :: TJL_INDEX
+!@var ACC increment of the diagnostic being accumulated
+      REAL*8, INTENT(IN) :: ACC
+      TAJLN(J,L,TJL_INDEX,N) = TAJLN(J,L,TJL_INDEX,N) + ACC
+      RETURN
+      END SUBROUTINE INC_TAJLN

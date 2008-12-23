@@ -22,7 +22,7 @@ c
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,O3_tracer_save,H2ObyCH4,
      &                        SRDN,rad_to_file
-      USE GEOM, only        : BYDXYP, DXYP, LAT_DG, IMAXJ
+      USE GEOM, only        : BYAXYP, AXYP, LAT_DG, IMAXJ
       USE FLUXES, only      : tr3Dsource
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
@@ -45,7 +45,7 @@ c
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only: avg_model,n__sw
 #endif
-      USE TRDIAG_COM, only    : jls_N2O5sulf,tajls=>tajls_loc,
+      USE TRDIAG_COM, only    : jls_N2O5sulf,
      & taijs=>taijs_loc,ijs_JH2O2,ijs_NO3,jls_COp,jls_COd,jls_Oxp,
      & jls_Oxd,ijs_NO2_col,ijs_NO2_count
 #ifdef SHINDELL_STRAT_CHEM
@@ -305,7 +305,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
               else
                 avgTT_CH4_part(J) = avgTT_CH4_part(J) +
      &          trm(I,J,LTROPO(I,J),n_CH4)
-     &          *mass2vol(n_CH4)*BYDXYP(J)*BYAM(LTROPO(I,J),I,J)
+     &          *mass2vol(n_CH4)*BYAXYP(I,J)*BYAM(LTROPO(I,J),I,J)
               endif
               countTT_part(J) = countTT_part(J) + 1.d0
             end do
@@ -325,7 +325,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         avgIso=0.d0
         do i=1,IMAXJ(j)
           avgIso=avgIso+trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    bydxyp(j)*byAM(1,i,j)
+     &    byaxyp(i,j)*byAM(1,i,j)
         enddo
         avgIso=avgIso/real(IMAXJ(j))
         do i=1,IMAXJ(j)
@@ -337,7 +337,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
           do L=1,maxl
             acetone(i,j,L)=max(0.d0, ! in molec/cm3
      &      (1.25d0*(avgIso-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &      bydxyp(j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+     &      byaxyp(i,j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
           enddo
           do L=maxl+1,LM
             acetone(i,j,L)=0.d0
@@ -401,15 +401,15 @@ c Calculate M and set fixed ratios for O2 & H2:
 c Tracers (converted from mass to number density):
        do igas=1,ntm_chem
          y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
-     &   BYDXYP(J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*BYAM(L,I,J)
        enddo
 
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,l)=trm(i,j,l,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
-     &   BYDXYP(J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*BYAM(L,I,J)
          yso2(i,j,l)=trm(i,j,l,n_so2)*y(nM,L)*(28.0D0/64.0D0)*
-     &   BYDXYP(J)*BYAM(L,I,J)
+     &   BYAXYP(I,J)*BYAM(L,I,J)
        else
          ! Convert from pptv to molecule cm-3:
          ydms(i,j,l)=dms_offline(i,j,l)*1.0D-12*y(nM,L)
@@ -430,7 +430,7 @@ C WHY IS THIS NECESSARY ANY MORE, NOW THAT GET_CH4_IC IS CALLED?
 #ifdef SHINDELL_STRAT_CHEM
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
-     & BYDXYP(J)*BYAM(L,I,J)
+     & BYAXYP(I,J)*BYAM(L,I,J)
 #endif
 
 c Limit N2O5 number density:
@@ -785,13 +785,13 @@ CCCCCCCCCCCCCCCC NIGHTTIME  TROPOSPHERE  CCCCCCCCCCCCCCCCCCCCCC
 
         if (coupled_chem == 1) then
           ! Convert SO4 from mass (kg) to aerosol surface per grid box:
-          fact_so4 = BYDXYP(J)*BYAM(L,I,J)*28.0D0*y(nM,L) ! *96/96
+          fact_so4 = BYAXYP(I,J)*BYAM(L,I,J)*28.0D0*y(nM,L) ! *96/96
           ! sulfate(I,J,L)=(trm(I,J,L,n_SO4)*fact_so4*3.0D0)
      &    ! /(3.9D-6*avog*1.1D0)
           sulfate(I,J,L)=trm(I,J,L,n_SO4)*fact_so4*byavog*1.063636d7
         endif
 
-        pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
+        pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.d0
 C       Calculate sulfate sink, and cap it at 90% of N2O5:
@@ -799,8 +799,7 @@ C       Calculate sulfate sink, and cap it at 90% of N2O5:
      &  dt2*sulfate(I,J,L)*y(n_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
         if(wprod_sulf > 0.9d0*y(n_N2O5,L))wprod_sulf=0.9d0*y(n_N2O5,L)
         prod_sulf=wprod_sulf*pfactor
-        TAJLS(J,L,jls_N2O5sulf)=TAJLS(J,L,jls_N2O5sulf)
-     &  -(prod_sulf*vol2mass(n_N2O5))
+        CALL INC_TAJLS(I,J,L,jls_N2O5sulf,-prod_sulf*vol2mass(n_N2O5))
 
 C*****************************************************************
 c        g signifies gas phase
@@ -998,12 +997,12 @@ C -- CO --
         endif
         wprodCO=gwprodHNO3   ! <<< note
         if(changeL(L,n_CO) >= 0.) then  
-          TAJLS(J,L,jls_COp)=TAJLS(J,L,jls_COp)+changeL(L,n_CO)
+          CALL INC_TAJLS(I,J,L,jls_COp,changeL(L,n_CO))
 #ifdef HTAP_LIKE_DIAGS
           TAIJS(I,J,ijs_COp(L))=TAIJS(I,J,ijs_COp(L))+changeCO*cpd
 #endif
         else
-          TAJLS(J,L,jls_COd)=TAJLS(J,L,jls_COd)+changeL(L,n_CO)
+          CALL INC_TAJLS(I,J,L,jls_COd,changeL(L,n_CO))
 #ifdef HTAP_LIKE_DIAGS
           TAIJS(I,J,ijs_COd(L))=TAIJS(I,J,ijs_COd(L))+changeCO*cpd
 #endif
@@ -1224,7 +1223,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME STRATOSPHERE CCCCCCCCCCCCCCCCCCCCCCC
 #ifdef SHINDELL_STRAT_CHEM
        do L=maxl+1,LM ! (stratosphere)
 
-         pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
+         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
          bypfactor=1.D0/pfactor
          wprod_sulf=DT2*y(n_N2O5,L)*rr(106,L) !rxn on sulfate & PSCs
          if(wprod_sulf >= 0.5d0*y(n_N2O5,L))wprod_sulf=0.5d0*y(n_N2O5,L)
@@ -1408,12 +1407,12 @@ c --  Ox --   ( Ox from gas phase rxns)
              changeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*bypfactor
            END IF
            if(changeL(L,n_Ox) >= 0.) then  
-             TAJLS(J,L,jls_Oxp)=TAJLS(J,L,jls_Oxp)+changeL(L,n_Ox)
+             CALL INC_TAJLS(I,J,L,jls_Oxp,changeL(L,n_Ox))
 #ifdef HTAP_LIKE_DIAGS
              TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+changeOx*cpd
 #endif
            else
-             TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+changeL(L,n_Ox)
+             CALL INC_TAJLS(I,J,L,jls_Oxd,changeL(L,n_Ox))
 #ifdef HTAP_LIKE_DIAGS
              TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+changeOx*cpd
 #endif
@@ -1517,9 +1516,9 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
 CCCCCCCCCCCCCCCCCCCC END CHEM DIAG SECT CCCCCCCCCCCCCCCCCCCCCCC
 
          if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
-     &   TAJLS(J,L,jls_ClOcon)=TAJLS(J,L,jls_ClOcon)+y(nClO,L)/y(nM,L)
+     &   CALL INC_TAJLS(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
          if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
-     &   TAJLS(J,L,jls_H2Ocon)=TAJLS(J,L,jls_H2Ocon)+y(nH2O,L)/y(nM,L)
+     &   CALL INC_TAJLS(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
 
        enddo ! end stratosphere loop
 CCCCCCCCCCCCCCCC END NIGHTTIME STRATOSPHERE CCCCCCCCCCCCCCCCCCC
@@ -1562,13 +1561,13 @@ c 1.8 ppbv CFC plus 0.8 ppbv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_ClOx,L)=(trm(I,J,L,n_ClOx)+changeL(L,n_ClOx))*y(nM,L)*
-     &    mass2vol(n_ClOx)*BYDXYP(J)*BYAM(L,I,J)
+     &    mass2vol(n_ClOx)*BYAXYP(ImJ)*BYAM(L,I,J)
           y(n_HCl,L)= (trm(I,J,L,n_HCl)+changeL(L,n_HCl))*y(nM,L)*
-     &    mass2vol(n_HCl)*BYDXYP(J)*BYAM(L,I,J)
+     &    mass2vol(n_HCl)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_HOCl,L)=(trm(I,J,L,n_HOCl)+changeL(L,n_HOCl))*y(nM,L)*
-     &    mass2vol(n_HOCl)*BYDXYP(J)*BYAM(L,I,J)
+     &    mass2vol(n_HOCl)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_ClONO2,L)=(trm(I,J,L,n_ClONO2)+changeL(L,n_ClONO2))*
-     &    y(nM,L)*mass2vol(n_ClONO2)*BYDXYP(J)*BYAM(L,I,J)
+     &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*BYAM(L,I,J)
           CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(n_CFC,1)/(1.8d-9*y(nM,1)))
           CLTOT=CLTOT+0.8d-9
@@ -1604,13 +1603,13 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_BrOx,L)=(trm(I,J,L,n_BrOx)+changeL(L,n_BrOx))*y(nM,L)*
-     &    mass2vol(n_BrOx)*BYDXYP(J)*BYAM(L,I,J)
+     &    mass2vol(n_BrOx)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_HBr,L)= (trm(I,J,L,n_HBr)+changeL(L,n_HBr))*y(nM,L)*
-     &    mass2vol(n_HBr)*BYDXYP(J)*BYAM(L,I,J)
+     &    mass2vol(n_HBr)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_HOBr,L)=(trm(I,J,L,n_HOBr)+changeL(L,n_HOBr))*y(nM,L)*
-     &    mass2vol(n_HOBr)*BYDXYP(J)*BYAM(L,I,J)
+     &    mass2vol(n_HOBr)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_BrONO2,L)=(trm(I,J,L,n_BrONO2)+changeL(L,n_BrONO2))*
-     &    y(nM,L)*mass2vol(n_BrONO2)*BYDXYP(J)*BYAM(L,I,J)
+     &    y(nM,L)*mass2vol(n_BrONO2)*BYAXYP(I,J)*BYAM(L,I,J)
      
           CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(1.0d-3/1.8d0)
      &    *y(n_CFC,1)/(1.8d-9*y(nM,1)))
@@ -1643,7 +1642,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         endif ! L > maxl
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-        pfactor=dxyp(J)*AM(L,I,J)/y(nM,L)
+        pfactor=axyp(i,J)*AM(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -1657,7 +1656,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         END DO
 
         ! save NO2 mass for sub-daily diagnosic:
-        mNO2(i,j,L)=y(nNO2,L)*46.0055*DXYP(J)*AM(L,i,j)*bymair/y(nM,L)
+        mNO2(i,j,L)=y(nNO2,L)*46.0055*AXYP(I,J)*AM(L,i,j)*bymair/y(nM,L)
      
 #ifdef TRACERS_HETCHEM
         tr3Dsource(i,j,l,nChemistry,n_N_d1) = changeL(l,n_N_d1) *bydtsrc
@@ -1752,11 +1751,11 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
       do j=J_0,J_1
-       fact6=2.69d20*dxyp(j)*byavog
        fact5=fact6 
        fact4=fact6
        do i=1,IMAXJ(j)
-        fact1=bymair*am(1,i,j)*dxyp(j)
+        fact6=2.69d20*axyp(i,j)*byavog
+        fact1=bymair*am(1,i,j)*axyp(i,j)
         if(use_rad_n2o == 0)fact4=fact1 
         if(use_rad_cfc == 0)fact5=fact1
         if(use_rad_n2o > 0)fact2=rad_to_chem(3,1,i,j)
@@ -1787,26 +1786,26 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
             if(correct_strat_Ox) then
              tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &       dxyp(j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*bydtsrc
+     &       axyp(i,j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*bydtsrc
             else
              tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &       dxyp(j)*O3MULT                   -trm(i,j,L,n_Ox))*bydtsrc
+     &       axyp(i,j)*O3MULT                   -trm(i,j,L,n_Ox))*bydtsrc
             end if
             ! -- ClOx --
             tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &      *vol2mass(n_CLOx)*am(L,i,j)*dxyp(j)
+     &      *vol2mass(n_CLOx)*am(L,i,j)*axyp(i,j)
      &      -trm(i,j,L,n_ClOx))*bydtsrc    
             ! -- BrOx --
             tr3Dsource(i,j,L,nChemistry,n_BrOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &      *vol2mass(n_BrOx)*am(L,i,j)*dxyp(j)
+     &      *vol2mass(n_BrOx)*am(L,i,j)*axyp(i,j)
      &      -trm(i,j,L,n_BrOx))*bydtsrc
             ! -- NOx --
             if(PIfact(n_NOx) /= 1.) ! what's this for? I forget.
      &      tr3Dsource(i,j,L,nChemistry,n_NOx)=0.d0 !75=1*300*2.5*.1
             tr3Dsource(i,j,L,nStratwrite,n_NOx)=(75.d-11
-     &      *am(L,i,j)*dxyp(j)*PIfact(n_NOx)-trm(i,j,L,n_NOx))*bydtsrc 
+     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-trm(i,j,L,n_NOx))*bydtsrc 
           end do ! I 
         end do   ! J
        end if    ! pressure
@@ -1845,9 +1844,9 @@ C Calculate an average tropical CH4 value near 569 hPa::
       count_569_part(:)=0.d0
       DO J=J_0,J_1
         if(LAT_DG(J,1) >= -30. .and. LAT_DG(J,1) <= 30.)then
-          do I=1,IMAXJ(J)
+          do I=I_0,IMAXJ(J)
             count_569_part(J)=count_569_part(J)+1.d0
-            CH4_569_part(J)=CH4_569_part(J)+1.d6*bydxyp(j)*
+            CH4_569_part(J)=CH4_569_part(J)+1.d6*byaxyp(i,j)*
      &      (F569M*trm(I,J,L569M,n_CH4)*byam(L569M,I,J)+
      &      F569P*trm(I,J,L569P,n_CH4)*byam(L569P,I,J))
           end do
@@ -1873,14 +1872,14 @@ C Calculate an average tropical CH4 value near 569 hPa::
          do L=maxl+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
           if(correct_strat_Ox) then
-            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*DXYP(J)*O3MULT
+            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*AXYP(I,J)*O3MULT
      &      *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
           else
-            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*DXYP(J)*O3MULT
+            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*AXYP(I,J)*O3MULT
      &                          - trm(I,J,L,n_Ox)
           end if
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
-          FACT1=2.0d-9*DXYP(J)*am(L,I,J)*byam75
+          FACT1=2.0d-9*AXYP(I,J)*am(L,I,J)*byam75
 C         We think we have too little stratospheric NOx, so, to
 C         increase the flux into the troposphere, increasing
 C         previous stratospheric value by 70% here: GSF/DTS 9.15.03: 
@@ -1896,7 +1895,7 @@ C         previous stratospheric value by 70% here: GSF/DTS 9.15.03:
           changeL(L,n_HO2NO2)=FACT1*70.d0*PIfact(n_HO2NO2)
      &                                         - trm(I,J,L,n_HO2NO2)
           changeL(L,n_CO)=(COlat(J3)*COalt(L)*1.d-9*vol2mass(n_CO)
-     &    *AM(L,I,J)*DXYP(J))*0.4d0*PIfact(n_CO)-trm(I,J,L,n_CO)!<<40%
+     &    *AM(L,I,J)*AXYP(I,J))*0.4d0*PIfact(n_CO)-trm(I,J,L,n_CO)!<<40%
           changeL(L,n_PAN)     = FACT1*1.d-4*PIfact(n_PAN)
      &                           - trm(I,J,L,n_PAN)
           changeL(L,n_Isoprene)= FACT1*1.d-4*PIfact(n_Isoprene)
@@ -1933,12 +1932,12 @@ C to 1.79:
             if(j <= jm/2)then; PIfact(n_CH4)=pfix_CH4_S
             else             ; PIfact(n_CH4)=pfix_CH4_N
             end if
-            changeL(L,n_CH4)=am(l,i,j)*dxyp(j)*vol2mass(n_CH4)
+            changeL(L,n_CH4)=am(l,i,j)*axyp(i,j)*vol2mass(n_CH4)
      &      *PIfact(n_CH4)  - trm(I,J,L,n_CH4)
           case default
             ! also ensure that strat overwrite is only a sink:
             changeL(L,n_CH4)=-MAX(0d0,trm(I,J,L,n_CH4)-
-     &      (AM(L,I,J)*DXYP(J)*CH4FACT*1.d-6))
+     &      (AM(L,I,J)*AXYP(I,J)*CH4FACT*1.d-6))
           end select
           else   ! ------ fixed CH4 set in get_CH4_IC(1) -------------
             changeL(L,n_CH4)=0.d0
@@ -1976,7 +1975,7 @@ c Save new tracer Ox field for use in radiation or elsewhere:
            o3_tracer_save(l,i,j)=(trm(i,j,l,n_Ox) +
      &     (tr3Dsource(i,j,l,nChemistry,n_Ox) + 
      &     tr3Dsource(i,j,l,nStratwrite,n_Ox))*dtsrc)
-     &     *bydxyp(j)*byO3MULT
+     &     *byaxyp(i,j)*byO3MULT
            DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
          end do
          if(maxl < LM) then

@@ -17,7 +17,7 @@
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
-     *     tajln  => tajln_loc, tij_mass, tij_conc, jlnt_conc, jlnt_mass
+     *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : jlnt_cldh2o
 #endif

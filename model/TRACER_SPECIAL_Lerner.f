@@ -144,7 +144,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM
-cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
+cc      USE TRDIAG_COM, only : jls_3Dsource
       USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
       USE PRATHER_CHEM_COM, only: nstrtc
       USE FLUXES, only: tr3Dsource
@@ -154,11 +154,13 @@ cc      USE TRDIAG_COM, only : tajls,jls_3Dsource
       real*8 told(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
       real*8 f0l,f1l,f2l,g0l,g1l,g2l,t0l,t1l,t2l,facbb
 
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       nsc = n_MPtable(n)
       facbb = 1.
@@ -178,7 +180,7 @@ C-----TSCPARM->TLtrm contains mean loss freq in grid box:
         if (f0l.le.0.) go to 140
         f1l = tltzm(j,lr,nsc)  ! FOM of loss freq from tables
         f2l = tltzzm(j,lr,nsc)  ! SOM of loss freq from tables
-        do 130 i=1,imaxj(j)
+        do 130 i=I_0,imaxj(j)
           if (trm(i,j,l,n).le.0.) go to 130
 C------Couple the moments of the loss freq with moments of the tracer:
 C       dSo  = dt*( So*Lo + Sz*Lz/3 + Szz*Lzz/5)
@@ -210,8 +212,8 @@ C**** moments ARE NOT modified in apply_tracer_3Dsource
 cc      najl = jls_3Dsource(ns,n)
 cc      do l=1,lm
 cc      do j=J_0,J_1
-cc      do i=1,imaxj(j)
-cc        tajls(j,l,najl) = tajls(j,l,najl)+(trm(i,j,l,n)-told(i,j,l))
+cc      do i=I_0,imaxj(j)
+cc        call inc_tajls(i,j,l,najl,trm(i,j,l,n)-told(i,j,l))
 cc      end do
 cc      end do
 cc      end do
@@ -296,12 +298,14 @@ C---- CTM layers LM down
       logical, save :: ifirst=.true.
       save tauy,infile,FRQfile
 
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
       if(.not.ifirst .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0) )
@@ -355,7 +359,7 @@ C**** Apply the chemistry
   550 continue
       do l=1,lm-nstrtc
       do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
         end do
       end do
@@ -487,7 +491,7 @@ c
       USE MODEL_COM, only: jm,jmon,t,itime,dtsrc
       USE DOMAIN_DECOMP, only: GRID, GET
       USE CONSTANT, only : grav,rgas
-      USE GEOM, only: imaxj,dxyp
+      USE GEOM, only: imaxj,axyp
       USE DYNAMICS, only: pmid,pk,pdsig
       USE TRACER_COM
       USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
@@ -497,20 +501,22 @@ c
       real*8 rprod,rloss,factor,tk
 C**** dz = -dP/rhoG; rho=PRT; Deposition velocity
       real*8 dz(im,jm)
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Convert from kg/cm3/s to kg
         do l=1,lmtc
         do j=J_0,J_1
-        do i=1,imaxj(j)
+        do i=I_0,imaxj(j)
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
           dz(i,j) = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
-          factor = dtsrc*dxyp(j)*dz(i,j)*1.d6    !/cm3->/m3
+          factor = dtsrc*axyp(i,j)*dz(i,j)*1.d6    !/cm3->/m3
           rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg
           rloss = O3trop_Loss(i,j,l,jmon)*factor*trm(i,j,l,n)
           if(trm(i,j,l,n) +(rprod-rloss).lt.0.) then
@@ -548,17 +554,19 @@ C****
       USE FLUXES, only: trsource
       implicit none
       integer i,j,l,n,ns
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
       real*8 tmsurf,dmass,tk
 C**** dz = -dP/rhoG; rho=PRT; Deposition velocity
       real*8 dz(im,jm)
 
 C**** Extract useful local domain parameters from "grid"
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       l=1
       do j=j_0,j_1
-        do i=1,imaxj(j)
+        do i=i_0,imaxj(j)
 c         write(*,*)' pdsig',l,i,j,pdsig(l,i,j)
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
           dz(i,j) = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
@@ -616,7 +624,7 @@ cXXXXX DSOL NOT USED XXXXX
       USE MODEL_COM, only: itime,im,jm,lm,t,dtsrc
       USE DOMAIN_DECOMP, only: GRID, GET
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
-      USE GEOM, only: imaxj,dxyp
+      USE GEOM, only: imaxj,axyp
       USE TRACER_COM
       USE PRATHER_CHEM_COM, only: nstrtc
       USE LINOZ_CHEM_COM, only: tlT0M,TLTZM,TLTZZM,dsol
@@ -628,11 +636,13 @@ cXXXXX DSOL NOT USED XXXXX
      &  climo3,climpml,dersol
       real*8 dmass,T0Mold
       integer i,j,l,lr,n,ns,najl   ,kx
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 cc      najl = jls_3Dsource(ns,n)
 c start at top layer and continue to lowest layer for strat. chem
@@ -640,18 +650,18 @@ c start at top layer and continue to lowest layer for strat. chem
         LR = LM+1-L
         DO 320 J=J_0,J_1
             if (tlT0M(j,lr,5) == 0.) go to 320
-          do 310 i=1,imaxj(j)
+          do 310 i=I_0,imaxj(j)
             if (trm(i,j,l,n).le.0.d0) goto 310
 
 c calculate ozone column above box (and save)
 c   dcolo3 = ozone column (in DU) in given layer
 c   colo3 =  ozone column above layer + half of column in layer
             if (l.eq.lm) then           !top model layer
-              dcolo3(i,j,l) = trm(i,j,l,n) / dxyp(j) *
+              dcolo3(i,j,l) = trm(i,j,l,n) / axyp(i,j) *
      &          avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
               colo3(i,j,l) = dcolo3(i,j,l)*0.5
             else
-              dcolo3(i,j,l) = trm(i,j,l,n)/ dxyp(J) *
+              dcolo3(i,j,l) = trm(i,j,l,n)/ axyp(I,J) *
      &          avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
               colo3(i,j,l) = colo3(i,j,l+1) +
      &          (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
@@ -661,18 +671,18 @@ c ****** O3 Chemistry  ******
 c store tracer mass before chemistry
             T0Mold=trm(i,j,l,n)
 c climatological P-L:
-            climpml=tlT0M(j,lr,4)/mass2vol(n)*am(l,i,j)*dxyp(j)
+            climpml=tlT0M(j,lr,4)/mass2vol(n)*am(l,i,j)*axyp(i,j)
 c local ozone feedback:
             dero3=tlT0M(j,lr,5)
-            climo3=tlT0M(j,lr,1)/mass2vol(n)*am(l,i,j)*dxyp(j)
+            climo3=tlT0M(j,lr,1)/mass2vol(n)*am(l,i,j)*axyp(i,j)
 c column ozone feedback:
-            derco3=tlT0M(j,lr,7)/mass2vol(n)*am(l,i,j)*dxyp(j)
+            derco3=tlT0M(j,lr,7)/mass2vol(n)*am(l,i,j)*axyp(i,j)
             dco3=(colo3(i,j,l)-tlT0M(j,lr,3))
 c temperature feedback: T is potential temp, need to convert
-            dertmp=tlT0M(j,lr,6)/mass2vol(n)*am(l,i,j)*dxyp(j)
+            dertmp=tlT0M(j,lr,6)/mass2vol(n)*am(l,i,j)*axyp(i,j)
             dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
-CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*am(l,i,j)*dxyp(j)
+CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*am(l,i,j)*axyp(i,j)
 c calulate steady-state ozone:
             sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
 CXXX        sso3=climo3 -
@@ -690,7 +700,7 @@ cc            else
 cc               trm(i,j,l,n) = T0Mold + dmass
             end if
             tr3Dsource(i,j,l,ns,n) = dmass/dtsrc
-cc            tajls(j,l,najl) = tajls(j,l,najl) + dmass
+cc            call inc_tajls(i,j,l,najl,dmass)
 c scale moments by fractional change in total tracer mass
 cc        if (dmass.lt.0.d0) then
 cc          scalmom = trm(i,j,l,n)/T0Mold
@@ -1150,7 +1160,7 @@ C****
 C**** psf, ptrop, pdn ..... in pascals (mb*100)
       ptrop = ptop*100.
       DO 440 J=J_0,J_1
-      DO 440 I=1,IM
+      DO 440 I=I_0,I_1
       PDN = pedn(1,i,j)*100.
       psurf = pdn
       CDN = CO2JK(J,0)

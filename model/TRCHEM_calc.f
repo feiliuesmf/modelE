@@ -9,10 +9,10 @@ C**** GLOBAL parameters and variables:
 C
       USE SOMTQ_COM, only       : qmom
       USE MODEL_COM, only       : im,jm,lm,ls1,Q,ptop,psf,sig
-      USE DOMAIN_DECOMP,only    : GRID,GET,write_parallel
-      USE DYNAMICS, only        : am, byam,LTROPO
-      USE GEOM, only            : BYDXYP,dxyp,LAT_DG,LON_DG
-      USE TRDIAG_COM, only : jls_OHcon,jls_day,tajls=>tajls_loc,
+      USE DOMAIN_DECOMP,only    : grid,get,write_parallel
+      USE DYNAMICS, only        : am, byam,ltropo
+      USE GEOM, only            : byaxyp,axyp,lat_dg,lon_dg
+      USE TRDIAG_COM, only : jls_OHcon,jls_day,
      & jls_Oxp,jls_Oxd,jls_COp,jls_COd,taijs=>taijs_loc,ijs_OH,ijs_HO2
 #ifdef HTAP_LIKE_DIAGS
      & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp,ijs_CH4d
@@ -73,7 +73,7 @@ C**** Local parameters and variables and arguments:
 !@var iN2O5decomp N2O5 decomposition reaction
 !@var iPANdecomp PAN decomposition reaction
 !@var rMAbyM is airmass over air concentration
-!@var dxbym2v is dxyp over mass2volume
+!@var dxbym2v is axyp over mass2volume
 !@var sv_changeN2O N2O change without portion making N2 (for N cons)
 !@var vClONO2, vBrONO2 temporary vars within N conservation
 !@var changeH2O chemical change in H2O
@@ -434,8 +434,8 @@ C       --- y --- :
 C       --- Q --- :
         Q(I,J,L) = Q(I,J,L) + changeH2O(L)/(y(nM,L)*MWabyMWw)
 C       -- diag --:
-        TAJLS(J,L,jls_H2Ochem)=TAJLS(J,L,jls_H2Ochem)+changeH2O(L)
-     &  *AM(L,I,J)*dxyp(J)/(y(nM,L)*MWabyMWw)
+        CALL INC_TAJLS(I,J,L,jls_H2Ochem,changeH2O(L)
+     &       *AM(L,I,J)*axyp(I,J)/(y(nM,L)*MWabyMWw))
 C       -- Qmom --:
         if(changeH2O(L) < 0.)then
            qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2
@@ -814,22 +814,22 @@ c Loops to calculate tracer changes:
 
       do igas=1,ntm_chem ! TRACER LOOP -----------------
       
-       dxbym2v=dxyp(J)*vol2mass(igas)
+       dxbym2v=axyp(I,J)*vol2mass(igas)
        do L=1,maxl
          conc2mass=rMAbyM(L)*dxbym2v
          changeL(L,igas)=
      &   (dest(igas,L)+prod(igas,L))*conc2mass
          if(igas == n_CO)then
-           TAJLS(J,L,jls_COp)=TAJLS(J,L,jls_COp)+prod(igas,L)*conc2mass
-           TAJLS(J,L,jls_COd)=TAJLS(J,L,jls_COd)+dest(igas,L)*conc2mass       
+           CALL INC_TAJLS(I,J,L,jls_COp,prod(igas,L)*conc2mass)
+           CALL INC_TAJLS(I,J,L,jls_COd,dest(igas,L)*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
            TAIJS(I,J,ijs_COp(L))=TAIJS(I,J,ijs_COp(L))+prod(igas,L)*cpd
            TAIJS(I,J,ijs_COd(L))=TAIJS(I,J,ijs_COd(L))+dest(igas,L)*cpd
 #endif
          endif
          if(igas == n_Ox)then
-           TAJLS(J,L,jls_Oxp)=TAJLS(J,L,jls_Oxp)+prod(igas,L)*conc2mass
-           TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+dest(igas,L)*conc2mass        
+           CALL INC_TAJLS(I,J,L,jls_Oxp,prod(igas,L)*conc2mass)
+           CALL INC_TAJLS(I,J,L,jls_Oxd,dest(igas,L)*conc2mass)       
 #ifdef HTAP_LIKE_DIAGS
            TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+prod(igas,L)*cpd
            TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+dest(igas,L)*cpd
@@ -1061,7 +1061,7 @@ c Conserve ClOx with respect to HOCl:
 #ifdef SHINDELL_STRAT_CHEM
 c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
       sv_changeN2O(1:maxl)=
-     &-chemrate(87,1:maxl)*dxyp(J)*rMAbyM(1:maxl)*vol2mass(n_N2O)
+     &-chemrate(87,1:maxl)*axyp(i,j)*rMAbyM(1:maxl)*vol2mass(n_N2O)
 #endif
 
 c Ensure nitrogen conservation,
@@ -1090,7 +1090,7 @@ c (since equilibration of short lived gases may alter this):
 #endif
 #ifdef TRACERS_HETCHEM
         write(out_line,*) 'HNO3 loss on dust replaced for cons ',
-     &  (krate(i,j,lprn,1,1)*y(n_HNO3,lprn)*dt2)*rMAbyM(lprn)*dxyp(J)
+     &  (krate(i,j,lprn,1,1)*y(n_HNO3,lprn)*dt2)*rMAbyM(lprn)*axyp(I,J)
         call write_parallel(trim(out_line),crit=jay)
 #endif
       endif
@@ -1118,7 +1118,7 @@ c First check for nitrogen loss > 100% :
 #endif
 #ifdef TRACERS_HETCHEM
         changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(i,j,l,1,1)
-     &  *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
+     &  *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(i,j)*vol2mass(n_HNO3)
         if(i == iprn .and. j == jprn) then
           write(out_line,*)
      &    changeL(L,n_HNO3),krate(i,j,l,1,1),y(n_HNO3,l)
@@ -1270,13 +1270,13 @@ c          reduce NOx destruction to match N production:
          endif
 #ifdef TRACERS_HETCHEM
          changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(i,j,l,1,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
          changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(i,j,l,2,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
          changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(i,j,l,3,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
          changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(i,j,l,4,1)
-     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*dxyp(J)*vol2mass(n_HNO3)
+     &   *y(n_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
 #endif
 
         end if ! skipped section above if ratio very close to one
@@ -1299,16 +1299,16 @@ c         rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
           NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
           NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
           changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
-     &    *(dxyp(J)*rMAbyM(L))*vol2mass(n_NOx)
-          conc2mass=dxyp(J)*rMAbyM(L)*vol2mass(n_Ox)
+     &    *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
+          conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
           changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
           if(NprodOx <  0.) then ! necessary?
-            TAJLS(J,L,jls_Oxd)=TAJLS(J,L,jls_Oxd)+NprodOx*conc2mass
+            CALL INC_TAJLS(I,J,L,jls_Oxd,NprodOx*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
             TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+NprodOx*cpd
 #endif
           else 
-            TAJLS(J,L,jls_Oxp)=TAJLS(J,L,jls_Oxp)+NprodOx*conc2mass
+            CALL INC_TAJLS(I,J,L,jls_Oxp,NprodOx*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
             TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+NprodOx*cpd
 #endif
@@ -1327,7 +1327,7 @@ c Remove some of the HNO3 formed heterogeneously, as it doesn't come
 c back to the gas phase:
       do L=1,maxL
         if(pscX(L)) changeL(L,n_HNO3)=changeL(L,n_HNO3)-
-     &  2.0d-3*y(n_HNO3,L)*(dxyp(J)*rMAbyM(L))*vol2mass(n_HNO3)
+     &  2.0d-3*y(n_HNO3,L)*(axyp(i,j)*rMAbyM(L))*vol2mass(n_HNO3)
       enddo
 #endif
 
@@ -1335,7 +1335,7 @@ c Print chemical changes in a particular grid box if desired:
       if(prnchg .and. J==jprn .and. I==iprn)then
        do igas=1,ntm_chem
          changeA=changeL(Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
-     &   bydxyp(J)*byam(lprn,I,J)
+     &   byaxyp(i,J)*byam(lprn,I,J)
          if(y(igas,lprn) == 0.d0)then
            write(out_line,156) ay(igas),': ',changeA,' molecules;  y=0'
            call write_parallel(trim(out_line),crit=jay)
@@ -1426,7 +1426,7 @@ c Limit the change due to chemistry:
 C**** special diags not associated with a particular tracer
       DO L=1,maxl
         if (y(nOH,L) > 0.d0 .and. y(nOH,L) < 1.d20)then
-          TAJLS(J,L,jls_OHcon)=TAJLS(J,L,jls_OHcon)+y(nOH,L)
+          CALL INC_TAJLS(I,J,L,jls_OHcon,y(nOH,L))
           TAIJS(I,J,ijs_OH(L))=TAIJS(I,J,ijs_OH(L))+y(nOH,L)
 #ifdef HTAP_LIKE_DIAGS
      &                                             /y(nM,L)
@@ -1436,12 +1436,12 @@ C**** special diags not associated with a particular tracer
      &  TAIJS(I,J,ijs_HO2(L))=TAIJS(I,J,ijs_HO2(L))+y(nHO2,L)
 #ifdef SHINDELL_STRAT_CHEM
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
-     &  TAJLS(J,L,jls_ClOcon)=TAJLS(J,L,jls_ClOcon)+y(nClO,L)/y(nM,L)
+     &  CALL INC_TAJLS(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
-     &  TAJLS(J,L,jls_H2Ocon)=TAJLS(J,L,jls_H2Ocon)+y(nH2O,L)/y(nM,L)
+     &  CALL INC_TAJLS(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
 #endif
       END DO
-      TAJLS(J,1,jls_day)=TAJLS(J,1,jls_day)+1.d0 
+      CALL INC_TAJLS(I,J,1,jls_day,1.d0)
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)

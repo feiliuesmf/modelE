@@ -447,8 +447,7 @@ C**** Tracers dry deposition flux.
       USE TRACER_COM, only : ntm,trm,trmom,ntsurfsrc,ntisurfsrc,trname
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRDIAG_COM, only : taijs=>taijs_loc
-      USE TRDIAG_COM, only : tajls=>tajls_loc,ijts_source,jls_source
-     *     ,itcon_surf
+      USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
       USE DOMAIN_DECOMP, ONLY : GRID, GET
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
@@ -456,9 +455,12 @@ C**** Tracers dry deposition flux.
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
       REAL*8 ftr1
 
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
@@ -476,14 +478,15 @@ C**** diagnostics
           najl = jls_source(ns,n)
           IF (najl > 0) THEN
             DO J=J_0,J_1
-              tajls(j,1,najl) = tajls(j,1,najl)+
-     *             sum(trsource(1:imaxj(j),j,ns,n))*dtstep
+              DO I=I_0,imaxj(j)
+                call inc_tajls(i,j,1,najl,trsource(i,j,ns,n)*dtstep)
+              END DO
             END  DO
           END IF
           dtracer(:)=0.
           DO J=J_0,J_1
             dtracer(j)=0.
-            do i=1,imaxj(j)
+            do i=i_0,imaxj(j)
               dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
             end do
           end do
@@ -508,7 +511,7 @@ C**** Technically speaking the vertical moments should be modified here
 C**** as well. But for consistency with water vapour we only modify
 C**** moments for dew.
         do j=J_0,J_1
-          do i=1,imaxj(j)
+          do i=i_0,imaxj(j)
             if (trsrfflx(i,j,n).lt.0 .and. trm(i,j,1,n).gt.0) then
               ftr1=-trsrfflx(i,j,n)*dtstep/trm(i,j,1,n)
               trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
@@ -529,13 +532,13 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : jm,im,lm,dtsrc
-      USE GEOM, only : imaxj,bydxyp,lat_dg,lon_dg
+      USE GEOM, only : imaxj,byaxyp,lat_dg,lon_dg
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
      * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
      * ,tr_sect_index3D,num_tr_sectors3d
       USE FLUXES, only : tr3Dsource
-      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_3Dsource,itcon_3Dsrc
+      USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
       IMPLICIT NONE
@@ -545,9 +548,11 @@ C****
       real*8 fr3d,taijsum(im,grid%j_strt_halo:grid%j_stop_halo,lm)
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
-      INTEGER :: J_0, J_1
+      INTEGER :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Ensure that this is a valid tracer and source
       if (n.eq.0 .or. ns.eq.0) return
@@ -567,7 +572,7 @@ C**** apply tracer source alterations if requested in rundeck:
       do nsect=1,num_tr_sectors3d(n,ns)
       do l=1,lm ! making non-openMP suspecting bug...
       do j=j_0,j_1
-      do i=1,imaxj(j)
+      do i=i_0,imaxj(j)
         do kreg=1,num_regions
           if(lat_dg(j,1) >= REG_S(kreg) .and. lat_dg(j,1)
      &    <= REG_N(kreg) .and. lon_dg(i,1) >= REG_W(kreg)
@@ -587,7 +592,7 @@ C**** apply tracer source alterations if requested in rundeck:
 !$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm
       do j=j_0,j_1
-      do i=1,imaxj(j)
+      do i=i_0,imaxj(j)
 C**** calculate fractional loss
         fr3d=0.
         if (tr3Dsource(i,j,l,ns,n).lt.0.) then
@@ -600,14 +605,14 @@ C**** calculate fractional loss
 C**** update tracer mass and diagnostics
         trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
         if (1.-fr3d.le.1d-16) trm(i,j,l,n) = 0.
-        IF (jls_3Dsource(ns,n) > 0) tajls(j,l,najl)
-     &       =tajls(j,l,najl)+tr3Dsource(i,j,l,ns,n)*dtsrc
+        IF (jls_3Dsource(ns,n) > 0) call inc_tajls(i,j,l,najl
+     *       ,tr3Dsource(i,j,l,ns,n)*dtsrc) 
         taijsum(i,j,l)=tr3Dsource(i,j,l,ns,n)*dtsrc
       end do; end do; end do
 !$OMP END PARALLEL DO
       if (naij.gt.0) then
       do j=j_0,j_1
-        do i=1,imaxj(j)
+        do i=i_0,imaxj(j)
           taijs(i,j,naij) = taijs(i,j,naij) + sum(taijsum(i,j,:))
         end do
       end do
@@ -620,6 +625,7 @@ C****
       END SUBROUTINE apply_tracer_3Dsource
 
       end module apply3d
+
       SUBROUTINE TDECAY
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
@@ -635,16 +641,18 @@ C****
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
 #endif
-      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_decay,itcon_decay
+      USE TRDIAG_COM, only : jls_decay,itcon_decay
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       logical, save :: ifirst=.true.
-      integer n,najl,j,l
-      integer :: J_0, J_1
+      integer n,najl,j,l,i
+      integer :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       if (ifirst) then
         do n=1,ntm
@@ -686,14 +694,15 @@ C**** atmospheric diagnostics
           najl = jls_decay(n)
           do l=1,lm
           do j=J_0,J_1
-            tajls(j,l,najl)=tajls(j,l,najl)+sum(trm(1:imaxj(j),j,l,n)
+            do i=I_0,imaxj(j)
+              call inc_tajls(i,j,l,najl,trm(i,j,l,n)
 #ifdef TRACERS_WATER
-     *           +trwm(1:imaxj(j),j,l,n)
+     *             +trwm(i,j,l,n)
 #endif
-     *           -told(1:imaxj(j),j,l))
+     *             -told(i,j,l))
+            enddo
           enddo
           enddo
-
 
           call DIAGTCA(itcon_decay(n),n)
         end if
@@ -708,7 +717,7 @@ C****
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : grav,deltx,lhe,rgas
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
-      USE GEOM, only : imaxj,bydxyp
+      USE GEOM, only : imaxj,byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE DYNAMICS, only : gz,pmid,pk
       USE TRACER_COM, only : ntm,trm,trmom,itime_tr0,trradius
@@ -717,17 +726,19 @@ C****
      *     ,AMP_MODES_MAP,ntmAMP
       USE AMP_AEROSOL, only : DIAM, AMP_dens
 #endif
-      USE TRDIAG_COM, only : tajls=>tajls_loc,jls_grav
+      USE TRDIAG_COM, only : jls_grav
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
      *     ,vgs,tr_radius,tr_dens
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       integer n,najl,i,j,l
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
@@ -740,7 +751,7 @@ C**** Gravitational settling
 !$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
 !$OMP* fgrfluxd,fluxd,fluxu,tr_dens,tr_radius)
           do j=J_0,J_1
-          do i=1,imaxj(j)
+          do i=I_0,imaxj(j)
             fluxd=0.
             do l=lm,1,-1        ! loop down
 
@@ -790,8 +801,9 @@ C**** Calculate height differences using geopotential
           IF (najl > 0) THEN
             do l=1,lm
               do j=J_0,J_1
-                tajls(j,l,najl)=tajls(j,l,najl)
-     &               +sum(trm(1:imaxj(j),j,l,n)-told(1:imaxj(j),j,l))
+                do i=I_0,imaxj(j)
+                  call inc_tajls(i,j,l,najl,trm(i,j,l,n)-told(i,j,l))
+                enddo
               enddo
             enddo
           END IF
@@ -912,7 +924,7 @@ c**** Interpolate two months of data to current day
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : ls1,im,jm,lm,q,wm
-      USE GEOM, only : dxyp,imaxj
+      USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE DYNAMICS, only : am
       USE FLUXES, only : gtracer
@@ -921,11 +933,14 @@ c**** Interpolate two months of data to current day
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
-      REAL*8 relerr, errmax,errsc
+      REAL*8 relerr, errmax,errsc,tmax,amax,qmax,wmax,twmax,qmomax(nmom)
+     *     ,tmomax(nmom)
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
-      INTEGER :: J_0, J_1, nj
+      INTEGER :: J_0, J_1, nj, I_0,I_1
       CALL GET(GRID, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
       nj = J_1 - J_0 + 1
 
       CALL CHECK4(gtracer(1,1,1,J_0),NTM,4,IM,nJ,SUBR,'GTRACE')
@@ -942,7 +957,7 @@ C**** check for negative tracer amounts (if t_qlimit is set)
           QCHECKT=.false.
           do l=1,lm
           do j=j_0,j_1
-          do i=1,imaxj(j)
+          do i=i_0,imaxj(j)
             if (trm(i,j,l,n).lt.0) then
               if (AM_I_ROOT())
      *         write(6,*) "Negative mass for ",trname(n),i,j,l,trm(i,j,l
@@ -962,18 +977,18 @@ C**** check whether air mass is conserved
           errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
           do l=1,lm
           do j=j_0,j_1
-          do i=1,imaxj(j)
-            relerr=abs(trm(i,j,l,n)-am(l,i,j)*dxyp(j))/
-     *           (am(l,i,j)*dxyp(j))
+          do i=i_0,imaxj(j)
+            relerr=abs(trm(i,j,l,n)-am(l,i,j)*axyp(i,j))/
+     *           (am(l,i,j)*axyp(i,j))
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
+              tmax=trm(i,j,l,n) ; amax=am(l,i,j)*axyp(i,j)
             end if
           end do
           end do
           end do
           print*,"Relative error in air mass after ",trim(subr),":",imax
-     *         ,jmax,lmax,errmax,trm(imax,jmax,lmax,n),am(lmax,imax
-     *         ,jmax)*dxyp(jmax)
+     *         ,jmax,lmax,errmax,tmax,amax
         end if
 
 #ifdef TRACERS_WATER
@@ -981,33 +996,34 @@ C**** check whether air mass is conserved
           errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
           do l=1,lm
           do j=j_0,j_1
-          do i=1,imaxj(j)
-            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*am(l,i,j)*dxyp(j)
+          do i=i_0,imaxj(j)
+            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*am(l,i,j)*axyp(i,j)
             if (errsc.eq.0.) errsc=1.
-            relerr=abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*dxyp(j))/errsc
+            relerr=abs(trm(i,j,l,n)-q(i,j,l)*am(l,i,j)*axyp(i,j))/errsc
             if (wm(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
-     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*am(l,i,j)*dxyp(j))
-     *           /(wm(i,j,l)*am(l,i,j)*dxyp(j)))
+     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*am(l,i,j)*axyp(i,j
+     *           ))/(wm(i,j,l)*am(l,i,j)*axyp(i,j)))
             if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
      *           .gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
-     *           ,n),wm(i,j,l)*am(l,i,j)*dxyp(j)
+     *           ,n),wm(i,j,l)*am(l,i,j)*axyp(i,j)
             do m=1,nmom
               relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*am(l,i,j
-     *             )*dxyp(j))/errsc)
+     *             )*axyp(i,j))/errsc)
             end do
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
+              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*am(l,i,j)*axyp(i,j)
+              twmax=trwm(i,j,l,n) ; wmax=wm(i,j,l)*am(l,i,j)*axyp(i,j)
+              tmomax(:)=trmom(:,i,j,l,n)
+              qmomax(:)=qmom(:,i,j,l)*am(l,i,j)*axyp(i,j)
             end if
           end do
           end do
           end do
           print*,"Relative error in water mass after ",trim(subr),":"
-     *         ,imax,jmax,lmax,errmax,trm(imax,jmax,lmax,n),q(imax,jmax
-     *         ,lmax)*am(lmax,imax,jmax)*dxyp(jmax),trwm(imax,jmax,lmax
-     *         ,n),wm(imax,jmax,lmax)*am(lmax,imax,jmax)*dxyp(jmax)
-     *         ,(trmom(m,imax,jmax,lmax,n),qmom(m,imax,jmax,lmax)
-     *         *am(lmax,imax,jmax)*dxyp(jmax),m=1,nmom)
+     *         ,imax,jmax,lmax,errmax,tmax,qmax,twmax,wmax,(tmomax(m)
+     *         ,qmomax(m),m=1,nmom) 
         end if
 #endif
       end do
@@ -1950,8 +1966,10 @@ c****   Interpolate two months of data to current day
       character*2 :: fnum
       character*124 :: sectors_are,regions_are
 
-      INTEGER J_0, J_1
+      INTEGER J_0, J_1, I_0, I_1
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       sectors_are=' '
       regions_are=' '
@@ -2018,7 +2036,7 @@ c****   Interpolate two months of data to current day
 ! write out regions to GISS-format IJ file, each restart:
       if(alter_sources)then
         ef_REG_IJ(:,J_0:J_1)=0.d0
-        do j=J_0,J_1; do i=1,imaxj(j); do n=1,num_regions
+        do j=J_0,J_1; do i=i_0,imaxj(j); do n=1,num_regions
           if(lat_dg(j,1) >= REG_S(n) .and. lat_dg(j,1)
      &    <= REG_N(n) .and. lon_dg(i,1) >= REG_W(n)
      &    .and. lon_dg(i,1) < REG_E(n) ) ef_REG_IJ(i,j)=
