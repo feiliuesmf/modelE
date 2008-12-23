@@ -760,7 +760,7 @@ C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only  : im,jm,lm,ls1,JEQ,DTsrc
       USE DOMAIN_DECOMP, only : GRID,GET, write_parallel,am_i_root
-      USE GEOM, only       : dxyp
+      USE GEOM, only       : axyp
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
       USE TRACER_COM, only : trm, n_CH4, nStratwrite, vol2mass
