@@ -106,7 +106,7 @@
 !@var title header read in from file
       REAL*8, DIMENSION(LM) :: PRES, tempOx2
       REAL*8, DIMENSION(LcorrOx) :: tempOx1
-      integer iu_data,m,i,j,nq
+      integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
       real*8, dimension(im,jm,LCOalt) :: N2OICIN_glob,CH4ICIN_glob,
