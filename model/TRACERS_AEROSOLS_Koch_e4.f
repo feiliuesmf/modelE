@@ -133,51 +133,52 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       init=.true.
 
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H = grid%I_STRT)HALO
+      I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
       allocate( craft(I_0H:I_1H,J_0H:J_1H,LM)
      * ,STAT=IER )
-      allocate( DMSinput(I_0H:I_1HJ_0H:J_1H,12) ,STAT=IER)
+      allocate( DMSinput(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 c     if (imAER.eq.1) then  !don't know if this is OK
-      allocate( DMS_AER(I_0H:I_1HJ_0H:J_1H,366) ,STAT=IER)
-      allocate( SS1_AER(I_0H:I_1HJ_0H:J_1H,366) ,STAT=IER)
-      allocate( SS2_AER(I_0H:I_1HJ_0H:J_1H,366) ,STAT=IER) 
+      allocate( DMS_AER(I_0H:I_1H,J_0H:J_1H,366) ,STAT=IER)
+      allocate( SS1_AER(I_0H:I_1H,J_0H:J_1H,366) ,STAT=IER)
+      allocate( SS2_AER(I_0H:I_1H,J_0H:J_1H,366) ,STAT=IER) 
 c     endif
-      allocate( SO2_src(I_0H:I_1HJ_0H:J_1H,nso2src) ,STAT=IER) 
-      allocate( BCI_src(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
-      allocate( BCB_src(I_0H:I_1HJ_0H:J_1H,lmAER,12),STAT=IER )
-      allocate( hbc(I_0H:I_1HJ_0H:J_1H,2),hoc(I_0H:I_1HJ_0H:J_1H,2)
-     *  ,hso2(I_0H:I_1HJ_0H:J_1H,2) ,STAT=IER)
-      allocate( BCBt_src(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
-      allocate( OCI_src(I_0H:I_1HJ_0H:J_1H,nomsrc) ,STAT=IER)
-      allocate( OCB_src(I_0H:I_1HJ_0H:J_1H,lmAER,12) ,STAT=IER)
-      allocate( OCT_src(I_0H:I_1HJ_0H:J_1H,12) ,STAT=IER)
-      allocate( OCBt_src(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
-      allocate( BCI_src_3D(I_0H:I_1HJ_0H:J_1H,lm) ,STAT=IER)
-      allocate( ss_src(I_0H:I_1HJ_0H:J_1H,nsssrc) ,STAT=IER)
-      allocate( SO2_src_3D(I_0H:I_1HJ_0H:J_1H,lm,nso2src_3d),STAT=IER )
-      allocate( SO2_biosrc_3D(I_0H:I_1HJ_0H:J_1H,lmAER,12) ,STAT=IER)
-      allocate( SO2t_src(I_0H:I_1HJ_0H:J_1H,lmAER) ,STAT=IER)
-      allocate( oh(I_0H:I_1HJ_0H:J_1H,lm),dho2(I_0H:I_1HJ_0H:J_1H,lm),
-     * perj(I_0H:I_1HJ_0H:J_1H,lm),tno3(I_0H:I_1HJ_0H:J_1H,lm)
-     * ,o3_offline(I_0H:I_1HJ_0H:J_1H,lm),STAT=IER )
-      allocate( ohr(I_0H:I_1HJ_0H:J_1H,lm),dho2r(I_0H:I_1HJ_0H:J_1H,lm),
-     * perjr(I_0H:I_1HJ_0H:J_1H,lm),tno3r(I_0H:I_1HJ_0H:J_1H,lm),
-     * ohsr(I_0H:I_1HJ_0H:J_1H,lm),STAT=IER )
-      allocate( snosiz(I_0H:I_1HJ_0H:J_1H) ,STAT=IER)
+      allocate( SO2_src(I_0H:I_1H,J_0H:J_1H,nso2src) ,STAT=IER) 
+      allocate( BCI_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
+      allocate( BCB_src(I_0H:I_1H,J_0H:J_1H,lmAER,12),STAT=IER )
+      allocate( hbc(I_0H:I_1H,J_0H:J_1H,2),hoc(I_0H:I_1H,J_0H:J_1H,2)
+     *  ,hso2(I_0H:I_1H,J_0H:J_1H,2) ,STAT=IER)
+      allocate( BCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
+      allocate( OCI_src(I_0H:I_1H,J_0H:J_1H,nomsrc) ,STAT=IER)
+      allocate( OCB_src(I_0H:I_1H,J_0H:J_1H,lmAER,12) ,STAT=IER)
+      allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+      allocate( OCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
+      allocate( BCI_src_3D(I_0H:I_1H,J_0H:J_1H,lm) ,STAT=IER)
+      allocate( ss_src(I_0H:I_1H,J_0H:J_1H,nsssrc) ,STAT=IER)
+      allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
+      allocate( SO2_biosrc_3D(I_0H:I_1H,J_0H:J_1H,lmAER,12) ,STAT=IER)
+      allocate( SO2t_src(I_0H:I_1H,J_0H:J_1H,lmAER) ,STAT=IER)
+      allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
+     * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)
+     * ,o3_offline(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+      allocate( ohr(I_0H:I_1H,J_0H:J_1H,lm),
+     * dho2r(I_0H:I_1H,J_0H:J_1H,lm),
+     * perjr(I_0H:I_1H,J_0H:J_1H,lm),tno3r(I_0H:I_1H,J_0H:J_1H,lm),
+     * ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+      allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
 #ifdef TRACERS_RADON
-      allocate( rn_src(I_0H:I_1HJ_0H:J_1H,12) ,STAT=IER)
+      allocate( rn_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif
 c Nitrate aerosols
 ! I,J
-      allocate(  NH3_src_con(I_0H:I_1HJ_0H:J_1H) )
-      allocate(  NH3_src_cyc(I_0H:I_1HJ_0H:J_1H) )
-      allocate( hnh3_cyc(I_0H:I_1HJ_0H:J_1H,2), STAT=IER )
-      allocate( hnh3_con(I_0H:I_1HJ_0H:J_1H,2), STAT=IER )
+      allocate(  NH3_src_con(I_0H:I_1H,J_0H:J_1H) )
+      allocate(  NH3_src_cyc(I_0H:I_1H,J_0H:J_1H) )
+      allocate( hnh3_cyc(I_0H:I_1H,J_0H:J_1H,2), STAT=IER )
+      allocate( hnh3_con(I_0H:I_1H,J_0H:J_1H,2), STAT=IER )
 c off line 
-      allocate(  off_HNO3(I_0H:I_1HJ_0H:J_1H,LM)     )
-      allocate(  off_SS(I_0H:I_1HJ_0H:J_1H,LM)     )
+      allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
+      allocate(  off_SS(I_0H:I_1H,J_0H:J_1H,LM)     )
 
       return
       end subroutine alloc_aerosol_sources      
@@ -210,7 +211,7 @@ c
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,levo3,1):: src
       real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb
       save jdlast,mon_units,imon,ifirst,tlca,tlcb
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0H, I_1H
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
@@ -1247,7 +1248,7 @@ c if after Feb 28 skip the leapyear day
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     &     jls_OHcon
+     &     ,jls_OHcon
 #endif
       USE DOMAIN_DECOMP, only: AM_I_ROOT
       USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_DATA, write_parallel
