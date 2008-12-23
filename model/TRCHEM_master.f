@@ -159,11 +159,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &            countTT_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO),
      &          count_569_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
 
 
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
+     &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = have_south_pole,
