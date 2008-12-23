@@ -97,8 +97,8 @@
       USE LIGHTNING, only : RNOx_lgt
 #endif
 #ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM,only: tajln=>tajln_loc,jlnt_mc,jlnt_lscond,itcon_mc
-     *     ,itcon_ss,taijn=>taijn_loc,tajls=>tajls_loc,taijs=>taijs_loc
+      USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc
+     *     ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
      *     ,jls_prec,tij_prec
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -727,7 +727,7 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
           call inc_ajl(i,j,l,jl_mchphas,DPHASE(L)*BYDSIG(L))
           call inc_ajl(i,j,l,jl_mcdtotw,DTOTW(L)*BYDSIG(L))
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
-CCC  *         (DGDSM(L)+DPHASE(L))*(DXYP(J)*BYDSIG(L))
+CCC  *         (DGDSM(L)+DPHASE(L))*(AXYP(I,J)*BYDSIG(L))
           AIL(I,J,L,IL_MC) = AIL(I,J,L,IL_MC) +
      &         (DPHASE(L)+DGDSM(L))*(AXYP(I,J)*BYDSIG(L))
           call inc_ajl(i,j,l,jl_mcheat,(DPHASE(L)+DGDSM(L))*BYDSIG(L))
@@ -886,11 +886,12 @@ C**** TRACERS: Use only the active ones
      *         + trsvwml(nx,l)
 #endif
 #ifndef SKIP_TRACER_DIAGS
-          tajln(j,l,jlnt_mc,n) = tajln(j,l,jlnt_mc,n) +
-     &          (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
+          call inc_tajln(i,j,l,jlnt_mc,n,
+     &         (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
+     *         )
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
@@ -1325,11 +1326,12 @@ C**** TRACERS: Use only the active ones
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
 #ifndef SKIP_TRACER_DIAGS
-          tajln(j,l,jlnt_lscond,n) = tajln(j,l,jlnt_lscond,n) +
+          call inc_tajln(i,j,l,jlnt_lscond,n,
      &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
+     &         )
 #endif  /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
           trwm(i,j,l,n) = trwml(nx,l)
@@ -1339,10 +1341,9 @@ C**** TRACERS: Use only the active ones
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
-            tajls(j,l,jls_incloud(1,n))=tajls(j,l,jls_incloud(1,n))+
-     *           dt_sulf_mc(n,l)*(1.-fssl(l))
-            tajls(j,l,jls_incloud(2,n))=tajls(j,l,jls_incloud(2,n))+
-     *           dt_sulf_ss(n,l)
+            call inc_tajls(i,j,l,jls_incloud(1,n),
+     *           dt_sulf_mc(n,l)*(1.-fssl(l)))
+            call inc_tajls(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
           if (ijts_aq(n).gt.0) then
             taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+
      *           dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
@@ -1360,10 +1361,10 @@ C**** TRACERS: Use only the active ones
 C**** diagnostics
         if (dowetdep(n)) then
 #ifndef SKIP_TRACER_DIAGS
-          if (jls_prec(1,n).gt.0) tajls(j,1,jls_prec(1,n))=tajls(j,1
-     *         ,jls_prec(1,n))+trprec(n,i,j)*byaxyp(i,j)
-          if (jls_prec(2,n).gt.0) tajls(j,1,jls_prec(2,n))=tajls(j,1
-     *         ,jls_prec(2,n))+trprec(n,i,j)*focean(i,j)*byaxyp(i,j)
+          if (jls_prec(1,n).gt.0) call inc_tajls(i,j,1,jls_prec(1,n),
+     *         trprec(n,i,j)*byaxyp(i,j))
+          if (jls_prec(2,n).gt.0) call inc_tajls(i,j,1,jls_prec(2,n),
+     *         trprec(n,i,j)*focean(i,j)*byaxyp(i,j))
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*byaxyp(i,j)
 #ifdef TRACERS_COSMO
@@ -1377,18 +1378,18 @@ c     accumulates special wet depo diagnostics
 c     ..........
           IF (diag_wetdep == 1) THEN
             DO l=1,lmcmax
-              IF (jls_trdpmc(1,n) > 0) tajls(j,l,jls_trdpmc(1,n))
-     &             =tajls(j,l,jls_trdpmc(1,n))+trcond_mc(l,nx)
-              IF (jls_trdpmc(2,n) > 0) tajls(j,l,jls_trdpmc(2,n))
-     &             =tajls(j,l,jls_trdpmc(2,n))+trdvap_mc(l,nx)
-              IF (jls_trdpmc(3,n) > 0) tajls(j,l,jls_trdpmc(3,n))
-     &             =tajls(j,l,jls_trdpmc(3,n))+trflcw_mc(l,nx)
-              IF (jls_trdpmc(4,n) > 0) tajls(j,l,jls_trdpmc(4,n))
-     &             =tajls(j,l,jls_trdpmc(4,n))+trprcp_mc(l,nx)
-              IF (jls_trdpmc(5,n) > 0) tajls(j,l,jls_trdpmc(5,n))
-     &             =tajls(j,l,jls_trdpmc(5,n))+trnvap_mc(l,nx)
-              IF (jls_trdpmc(6,n) > 0) tajls(j,l,jls_trdpmc(6,n))
-     &             =tajls(j,l,jls_trdpmc(6,n))+trwash_mc(l,nx)
+              IF (jls_trdpmc(1,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(1
+     *             ,n),trcond_mc(l,nx))
+              IF (jls_trdpmc(2,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(2
+     *             ,n),trdvap_mc(l,nx))
+              IF (jls_trdpmc(3,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(3
+     *             ,n),trflcw_mc(l,nx))
+              IF (jls_trdpmc(4,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(4
+     *             ,n),trprcp_mc(l,nx))
+              IF (jls_trdpmc(5,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(5
+     *             ,n),trnvap_mc(l,nx))
+              IF (jls_trdpmc(6,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(6
+     *             ,n),trwash_mc(l,nx))
             END DO
             IF (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n))
      &          =taijs(i,j,ijts_trdpmc(1,n))+SUM(trcond_mc(1:lmcmax,nx))
@@ -1403,18 +1404,18 @@ c     ..........
             IF (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n))
      &          =taijs(i,j,ijts_trdpmc(6,n))+SUM(trwash_mc(1:lmcmax,nx))
             DO l=1,lp50
-              IF (jls_trdpls(1,n) > 0) tajls(j,l,jls_trdpls(1,n))
-     &             =tajls(j,l,jls_trdpls(1,n))+trwash_ls(l,nx)
-              IF (jls_trdpls(2,n) > 0) tajls(j,l,jls_trdpls(2,n))
-     &             =tajls(j,l,jls_trdpls(2,n))+trprcp_ls(l,nx)
-              IF (jls_trdpls(3,n) > 0) tajls(j,l,jls_trdpls(3,n))
-     &             =tajls(j,l,jls_trdpls(3,n))+trclwc_ls(l,nx)
-              IF (jls_trdpls(4,n) > 0) tajls(j,l,jls_trdpls(4,n))
-     &             =tajls(j,l,jls_trdpls(4,n))+trevap_ls(l,nx)
-              IF (jls_trdpls(5,n) > 0) tajls(j,l,jls_trdpls(5,n))
-     &             =tajls(j,l,jls_trdpls(5,n))+trclwe_ls(l,nx)
-              IF (jls_trdpls(6,n) > 0) tajls(j,l,jls_trdpls(6,n))
-     &             =tajls(j,l,jls_trdpls(6,n))+trcond_ls(l,nx)
+              IF (jls_trdpls(1,n) > 0) call inc_tajls(i,j,l,jls_trdpls(1
+     *             ,n),trwash_ls(l,nx))
+              IF (jls_trdpls(2,n) > 0) call inc_tajls(i,j,l,jls_trdpls(2
+     *             ,n),trprcp_ls(l,nx))
+              IF (jls_trdpls(3,n) > 0) call inc_tajls(i,j,l,jls_trdpls(3
+     *             ,n),trclwc_ls(l,nx))
+              IF (jls_trdpls(4,n) > 0) call inc_tajls(i,j,l,jls_trdpls(4
+     *             ,n),trevap_ls(l,nx))
+              IF (jls_trdpls(5,n) > 0) call inc_tajls(i,j,l,jls_trdpls(5
+     *             ,n),trclwe_ls(l,nx))
+              IF (jls_trdpls(6,n) > 0) call inc_tajls(i,j,l,jls_trdpls(6
+     *             ,n),trcond_ls(l,nx))
             END DO
             IF (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n))
      &           =taijs(i,j,ijts_trdpls(1,n))+SUM(trwash_ls(1:lp50,nx))
@@ -1490,8 +1491,7 @@ c     ..........
           trm(i,j,l,n1)=tm_dust(l,n)
           trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
           trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
-          tajls(j,l,jls_wet(n1))=tajls(j,l,jls_wet(n1))
-     &         +trprc_dust(l,n)
+          call inc_tajls(i,j,l,jls_wet(n1),trprc_dust(l,n))
           taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1))
      &         +trprc_dust(l,n)
         END DO

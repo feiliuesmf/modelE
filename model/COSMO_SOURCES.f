@@ -22,17 +22,18 @@
       USE PARAM, only : sync_param
       USE TRACER_COM
       USE DOMAIN_DECOMP, only : GRID, get
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1H, J_0H, I_0H, I_1H
 
       call sync_param("variable_phi",variable_phi)
 
       CALL GET(grid,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
       
-      
-      ALLOCATE(be7_src_3d (1:im, J_0H:J_1H, 1:lm))
-      ALLOCATE(be10_src_3d (1:im, J_0H:J_1H, 1:lm))
-      ALLOCATE(BE7W_acc (1:im, J_0H:J_1H))
-      ALLOCATE(BE7D_acc (1:im, J_0H:J_1H))
+      ALLOCATE(be7_src_3d (I_0H:I_1H, J_0H:J_1H, 1:lm))
+      ALLOCATE(be10_src_3d (I_0H:I_1H, J_0H:J_1H, 1:lm))
+      ALLOCATE(BE7W_acc (I_0H:I_1H, J_0H:J_1H))
+      ALLOCATE(BE7D_acc (I_0H:I_1H, J_0H:J_1H))
  
       if (variable_phi .eq. 0) call read_Be_source_noAlpha
       print*, "variable_phi = ", variable_phi
@@ -55,7 +56,7 @@
       USE CONSTANT, only : avog
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE DOMAIN_DECOMP, only : GRID, get
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -65,9 +66,11 @@
 C**** constants used in file to make numbers neater
       real*8 :: tfacti, tfact2
       real*8 :: be7_src_param=1 
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Open source file
       call openunit('BE7_COSMO_NO_ALPHA', iuc, .false., .true.)
@@ -77,12 +80,12 @@ C**** ibe has units atoms/g/s
       call closeunit(iuc)
 
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
-      do l=1,lm; do j=J_0,J_1; do i=1,im
-        be7_src_3d(i,j,l)=ibe(j,l)*dxyp(j)*(tr_mm(n_Be7)*tfacti/avog)
+      do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti/avog)
       end do ; end do ; end do
 
 C**** multiply by air mass to put in the right units
-      do l=1,lm; do j=J_0,J_1; do i=1,im
+      do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
          be10_src_3d(i,j,l) = 0.52d0 * be7_src_param * be7_src_3d(i,j,l)
      $        * tr_mm(n_Be10)/tr_mm(n_Be7)
           end do; end do; end do
@@ -104,7 +107,7 @@ C**** multiply by air mass to put in the right units
       USE CONSTANT, only : avog
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE DOMAIN_DECOMP, only : GRID, get
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -115,13 +118,12 @@ C**** multiply by air mass to put in the right units
 C**** constants used in file to make numbers neater
       real*8 :: tfacti, tfact2, tfacti_10
       real*8 :: be7_src_param=1 
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0,I_1
 
 !      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-c      ALLOCATE(ibe (1:im, J_0H:J_1H))
-c      ALLOCATE(ibm (1:im, J_0H:J_1H))
-c      ALLOCATE(ibe_10 (1:im, J_0H:J_1H))
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C**** Open source file
       print*, "layers = ", layers
@@ -140,8 +142,8 @@ C**** ibe has units atoms/g/s
       
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "converting"
-      do l=1,lm; do j=J_0,J_1 ; do i=1,im
-         be7_src_3d(i,j,l)=ibe(j,l)*dxyp(j)*(tr_mm(n_Be7)*tfacti/avog)
+      do l=1,lm; do j=J_0,J_1 ; do i=I_0,I_1
+        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti/avog)
       end do ; end do ; end do
 
 C     repeat for Be10:
@@ -158,9 +160,9 @@ C**** ibe has units atoms/g/s
       
 C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       print*, "converting"
-      do l=1,lm; do j=J_0,J_1 ; do i=1,im
-         be10_src_3d(i,j,l)=ibe_10(j,l)*dxyp(j)*(tr_mm(n_Be10)*tfacti_10
-     $        /avog)
+      do l=1,lm; do j=J_0,J_1 ; do i=I_0,I_1
+        be10_src_3d(i,j,l)=ibe_10(j,l)*axyp(i,j)*(tr_mm(n_Be10)
+     *       *tfacti_10/avog)
 
       end do ; end do ; end do
       print*, "finished converting"
@@ -175,7 +177,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
 !@auth C Field
 
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE MODEL_COM, only : jyear
       USE CONSTANT, only : avog
       USE TRACER_COM
@@ -286,12 +288,12 @@ c        print*, "phi_record (1) = ", phi_record(1)
       
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "converting units for Be10 and Be7"
-      do l=1,lm; do j=J_0,J_1; do i=1,im
-         be10_src_3d(i,j,l)=ibe_10(j,l)*dxyp(j)*(tr_mm(n_Be10)*tfacti_10
-     $        /avog)
+      do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+        be10_src_3d(i,j,l)=ibe_10(j,l)*axyp(i,j)*(tr_mm(n_Be10)
+     *       *tfacti_10/avog)
          
-         be7_src_3d(i,j,l)=ibe_7(j,l)*dxyp(j)*(tr_mm(n_Be7)*tfacti_7
-     $        /avog)
+        be7_src_3d(i,j,l)=ibe_7(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti_7
+     $       /avog)
       end do ; end do ; end do
       
       print*, "be7_src_param = ", be7_src_param
@@ -311,7 +313,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
 !@sum Production values are in atoms/g/s.
 !@auth C Field
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only: dxyp
+      USE GEOM, only: axyp
       USE MODEL_COM, only : jday, jmon, itime
       USE CONSTANT, only : avog
       USE TRACER_COM
@@ -336,9 +338,11 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       real :: slope(npress), slope_1(npress)
       real :: slope_2(npress), slope_3(npress), slope_4(npress) 
       integer :: iuc, i, j, k, l, m, n, iphi, ipc
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_0, I_1
 
       CALL GET(grid,J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 ! files needed:
 !     BE_DAILY_PROD = Be23_TEST_all_UsoskinLinear_v3.dat = contains production values for all vertical layers, all pc values and all phi values (units are atoms/g/s).
@@ -423,7 +427,7 @@ c      iphi = 14
       
 
       do j = J_0,J_1
-         do i = 1,IM
+         do i = I_0,I_1
             pc_month =  pc_table(i,j,jmon)
             if ((i .eq. 10) .and. (j .eq. J_1)) then
                print*, "pc_month = ", pc_month, jmon,i,j
@@ -499,10 +503,10 @@ c     created:
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
             do k=1,npress
 !               print*, "converting atoms/g/s to kg/kg"
-              be7_src_3d(i,j,k)=new_prod(k)*dxyp(j)*(tr_mm(n_Be7)
+              be7_src_3d(i,j,k)=new_prod(k)*axyp(i,j)*(tr_mm(n_Be7)
      $              /avog)
               if ((i .eq. 10) .and. (j .eq. 46) .and. (k .eq. 1)) then
-                 print*, "DXYP = ", dxyp(j)
+                 print*, "DXYP = ", axyp(i,j)
                  print*, "tr_mm(n_Be7) = ", tr_mm(n_Be7)
                  print*, " "
               end if

@@ -28,7 +28,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
 #ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM, only: tajln=>tajln_loc,jlnt_turb
+      USE TRDIAG_COM, only: jlnt_turb
 #endif
       USE FLUXES, only : trflux1
 #endif
@@ -403,8 +403,8 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             do nx=1,nta
               n=ntix(nx)
 #ifndef SKIP_TRACER_DIAGS
-              tajln(j,l,jlnt_turb,n)=tajln(j,l,jlnt_turb,n) +
-     &             (trij(l,nx)-tr0ij(l,nx))*am(l,i,j)*axyp(i,j)
+              call inc_tajln(i,j,l,jlnt_turb,n,
+     *           (trij(l,nx)-tr0ij(l,nx))*am(l,i,j)*axyp(i,j))
 #endif
               trm(i,j,l,n)=trij(l,nx)*am(l,i,j)*axyp(i,j)
 cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)

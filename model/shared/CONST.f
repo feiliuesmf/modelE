@@ -159,6 +159,8 @@ C**** Astronomical constants
 
 !@param sday  sec per day (s)
       real*8,parameter :: sday = 86400.
+!@param syr  sec per year (s)
+      real*8,parameter :: syr = sday*365.
 
 !@param hrday  hours in a day (hrs)
       real*8,parameter :: hrday = sday/3600.

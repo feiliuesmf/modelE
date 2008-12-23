@@ -119,7 +119,7 @@ C****
       USE COSMO_SOURCES, only : BE7D_acc
 #endif
 #ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM, only : taijn=>taijn_loc, tajls=>tajls_loc,
+      USE TRDIAG_COM, only : taijn=>taijn_loc, 
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
      *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
@@ -914,8 +914,8 @@ C****
 #ifdef TRACERS_AMP
         DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
 #else
-        tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *       trc_flux*axyp(i,j)*ptype*dtsurf   ! why not for all aerosols?
+        call inc_tajls(i,j,1,jls_isrc(1,n),trc_flux*axyp(i,j)*
+     *       ptype*dtsurf)   ! why not for all aerosols?
 #endif
 #endif
 
@@ -1233,10 +1233,10 @@ C**** Save surface tracer concentration whether calculated or not
           if (tr_wd_type(n).eq.nWater) then
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *           trevapor(n,itype,i,j)*ptype
-            tajls(j,1,jls_isrc(1,n))=tajls(j,1,jls_isrc(1,n))
-     *           +trevapor(n,itype,i,j)*ptype
-            if (focean(i,j).gt.0) tajls(j,1,jls_isrc(2,n))=tajls(j,1
-     *           ,jls_isrc(2,n))+trevapor(n,itype,i,j)*ptype
+            call inc_tajls(i,j,1,jls_isrc(1,n),trevapor(n,itype,i,j)
+     *           *ptype)
+            if (focean(i,j).gt.0) call inc_tajls(i,j,1,jls_isrc(2,n)
+     *           ,trevapor(n,itype,i,j)*ptype) 
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype

@@ -40,7 +40,7 @@ c******************   TRACERS             ******************************
 #endif
 #endif
       use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv,
-     *   taijs=>taijs_loc,ijts_isrc,jls_isrc,tajls=>tajls_loc,
+     *   taijs=>taijs_loc,ijts_isrc,jls_isrc,
      *   itcon_surf
 #ifdef TRACERS_WATER
      *     ,tij_evap,tij_grnd,tij_soil,tij_snow
@@ -415,8 +415,8 @@ C**** fixed datasets are used, it can happen over land as well.
 #ifdef TRACERS_AMP
         DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
 #else
-        tajls(j,1,jls_isrc(1,n)) = tajls(j,1,jls_isrc(1,n))+
-     *       trc_flux*axyp(i,j)*ptype*dtsurf   ! why not for all aerosols?
+        call inc_tajls(i,j,1,jls_isrc(1,n),
+     *       trc_flux*axyp(i,j)*ptype*dtsurf)   ! why not for all aerosols?
 #endif
 
 #endif
@@ -449,19 +449,16 @@ ccc dust emission from earth
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
      &         *axyp(i,j)*ptype*dtsurf
-          tajls(j,1,jls_isrc(nDustEmjl,n))
-     &         =tajls(j,1,jls_isrc(nDustEmjl,n))
-     &         +pbl_args%dust_flux(n1)*axyp(i,j)
-     &         *ptype*dtsurf
+          call inc_tajls(i,j,1,jls_isrc(nDustEmjl,n),
+     &         pbl_args%dust_flux(n1)*axyp(i,j)*ptype*dtsurf)
 #ifdef TRACERS_DUST
           IF (imDust == 0) THEN
             taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           +pbl_args%dust_flux2(n1)
      &           *axyp(i,j)*ptype*dtsurf
-            tajls(j,1,jls_isrc(nDustEm2jl,n))
-     &           =tajls(j,1,jls_isrc(nDustEm2jl,n))
-     &           +pbl_args%dust_flux2(n1)*axyp(i,j)*ptype*dtsurf
+            call inc_tajls(i,j,1,jls_isrc(nDustEm2jl,n),
+     &           pbl_args%dust_flux2(n1)*axyp(i,j)*ptype*dtsurf)
           END IF
 #endif
 
@@ -557,8 +554,8 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fb*(sum( tr_wsn(nx,1:nsn(1),1) ))+
      &       fv*(sum( tr_wsn(nx,1:nsn(2),2) ))
      *       )
-        if (tr_wd_TYPE(n).eq.nWATER) tajls(j,1,jls_isrc(1,n))=
-     *       tajls(j,1,jls_isrc(1,n))+trevapor(n,itype,i,j)*ptype
+        if (tr_wd_TYPE(n).eq.nWATER) call inc_tajls(i,j,1,jls_isrc(1,n),
+     *       trevapor(n,itype,i,j)*ptype)
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -568,16 +565,13 @@ c Accumulates dust events. One diagnostic field for all dust tracers
 c ..........
       taijs(i,j,ijts_spec(nDustEv1ij))=taijs(i,j,ijts_spec(nDustEv1ij))
      &     +pbl_args%dust_event1
-      tajls(j,1,jls_spec(nDustEv1jl))=tajls(j,1,jls_spec(nDustEv1jl))
-     &     +pbl_args%dust_event1
+      call inc_tajls(i,j,1,jls_spec(nDustEv1jl),pbl_args%dust_event1)
       taijs(i,j,ijts_spec(nDustEv2ij))=taijs(i,j,ijts_spec(nDustEv2ij))
      &     +pbl_args%dust_event2
-      tajls(j,1,jls_spec(nDustEv2jl))=tajls(j,1,jls_spec(nDustEv2jl))
-     &     +pbl_args%dust_event2
+      call inc_tajls(i,j,1,jls_spec(nDustEv2jl),pbl_args%dust_event2)
       taijs(i,j,ijts_spec(nDustWthij))=taijs(i,j,ijts_spec(nDustWthij))
      &     +pbl_args%wtrsh*ptype
-      tajls(j,1,jls_spec(nDustWthjl))=tajls(j,1,jls_spec(nDustWthjl))
-     &     +pbl_args%wtrsh*ptype
+      call inc_tajls(i,j,1,jls_spec(nDustWthjl),pbl_args%wtrsh*ptype)
 #endif
 
 c     ..........
@@ -850,7 +844,7 @@ c**** input/output for PBL
 #endif
 
 C****   define local grid
-      integer J_0, J_1, J_0H, J_1H ,I_0,I_1
+      integer J_0, J_1, J_0H, J_1H, I_0, I_1
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -3606,7 +3600,7 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use model_com, only : im, fim, focean, jm, flice
-      use geom, only : imaxj, dxyp
+      use geom, only : imaxj, axyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth
       !use veg_com, only : afb
