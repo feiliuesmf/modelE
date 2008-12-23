@@ -15,7 +15,6 @@
       call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       if(rc.ne.nf_noerr) return
       tag=1024
-      write(*,*) "jdim=",jdim
       if(present(jdim)) then
         jd=jdim
       else
@@ -43,12 +42,16 @@ c read from netcdf file
           if(dst_pe.gt.0) then
             call mpi_send(arr1d,nsend,MPI_DOUBLE_PRECISION,dst_pe,
      &           tag,MPI_COMM_WORLD,ierr)
+	    write(*,*) "glob root sends packet",grid%gid
           endif
         enddo
       elseif(grid%am_i_rowroot) then
         call mpi_recv(arr1d,nsend,MPI_DOUBLE_PRECISION,0,
      &       tag,MPI_COMM_WORLD,mpi_status,ierr)
+	    write(*,*) "row root received packet",grid%gid
       endif
+      write(*,*) "before unpack_row, gid=",grid%gid
       call unpack_row(grid,arr1d,arr,jdim=jd)
+      write(*,*) "after unpack_row, gid=",grid%gid
       if(grid%am_i_rowroot) deallocate(arr1d)
 

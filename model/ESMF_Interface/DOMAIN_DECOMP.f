@@ -532,11 +532,13 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 
 #ifdef USE_ESMF
+      write(*,*) "INIT_GRID 1 USE ESMF"
       call INIT_GRID(grd_dum,IM,JM,LM,vm=vm,CREATE_CAP=.true.)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
       WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
      &     RANK_LON
 #else
+      write(*,*) "INIT_GRID 2"
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
 #endif
 #endif
@@ -557,6 +559,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
 #endif
+      write(*,*) "INIT_GRID 3"
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
 #endif
 
@@ -565,7 +568,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       WRITE(buffer,'(a,i3.3)') 'LOG_',my_pet
       CALL openunit(TRIM(buffer), grd_dum%log_unit)
 #endif
-
 
       END SUBROUTINE INIT_APP
 
@@ -629,6 +631,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       integer, allocatable            :: IMS(:), JMS(:)
 #endif
 #endif
+      
+      write(*,*) "BEGIN INIT_GRID"
 
 #ifdef USE_FVCUBED
       grid_size(1)=IM;   grid_size(2)=JM*6
@@ -727,6 +731,12 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%I_STOP        = I1_DUM
       grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-width_)
       grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+width_)
+#ifdef CUBE_GRID
+      write(*,*) "i0dum-width",I0_DUM-width_
+      write(*,*) "i1dum+width",I1_DUM+width_
+      grd_dum%I_STRT_HALO   = MIN( 1, I0_DUM-width_)
+      grd_dum%I_STOP_HALO   = MAX(IM, I1_DUM+width_)
+#endif
       grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES - RANK_LAT*IM/NPES
 
       grd_dum%J_STRT        = J0_DUM
@@ -750,6 +760,10 @@ ccc I think the following will do the same and will be compatible with SCM
       grd_dum%J_STRT_SKP = max (   2, J0_DUM)
       grd_dum%J_STOP_SKP = min (JM-1, J1_DUM)
 
+#ifdef CUBE_GRID
+      grd_dum%J_STRT_SKP =  grd_dum%J_STRT 
+      grd_dum%J_STOP_SKP =  grd_dum%J_STOP
+#endif
 #ifdef USE_MPI
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
@@ -771,20 +785,25 @@ cddd      ENDIF
 
 #ifdef CUBE_GRID
 c***  gluing dd2d derived type to dist_grid derived type
+      write(*,*) "calling init_dd2d_init from Domain decomp"
+
            call init_dd2d_grid(
      &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,6, 
      &     grd_dum%I_STRT,grd_dum%I_STOP,
      &     grd_dum%J_STRT,grd_dum%J_STOP,
      &     grd_dum%I_STRT_HALO,grd_dum%I_STOP_HALO,
      &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,grd_dum%dd2d)
-#endif
 
+      grd_dum%HAVE_SOUTH_POLE = .false.
+      grd_dum%HAVE_NORTH_POLE = .false.
+#else
       grd_dum%HAVE_SOUTH_POLE = (RANK_LAT == 0)
       grd_dum%HAVE_NORTH_POLE = (RANK_LAT == NP_LAT - 1)
 
       J_EQUATOR = JM/2
       grd_dum%HAVE_EQUATOR    =
      &      (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
+#endif
 
       if (present(J_SCM)) then
         ! assume J_SCM is in "general position"

@@ -139,18 +139,18 @@ C****
       call init_app(grid,im,jm,lm)
 
 c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
-      call regrid_input(grid%dd2d)
+c      call regrid_input(grid%dd2d)
 
-      call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
-      allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
-     &     grid%dd2d%jsd:grid%dd2d%jed))
-      tsource(:,:)=grid%dd2d%gid
-      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
-      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-     &     xcs2ll%ntilestarget),
-     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-     &     xcs2ll%ntilestarget) )
-      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
+c      call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
+c      allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
+c     &     grid%dd2d%jsd:grid%dd2d%jed))
+c      tsource(:,:)=grid%dd2d%gid
+c      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
+c      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+c     &     xcs2ll%ntilestarget),
+c     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
+c     &     xcs2ll%ntilestarget) )
+c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
 c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 
 #else
@@ -169,6 +169,13 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #endif
 
 #endif /* ADIABATIC */
+
+      write(*,*) "-->I_STRT,I_STOP,J_STRT,J_STOP,I_STRT_HALO,
+     &     I_STOP_HALO,J_STRT_HALO,J_STOP_HALO",
+     &     grid%I_STRT,grid%I_STOP,
+     &     grid%J_STRT,grid%J_STOP,
+     &     grid%I_STRT_HALO,grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO,grid%J_STOP_HALO
 
       call alloc_drv()
 

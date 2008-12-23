@@ -162,7 +162,8 @@ endif
 ifeq ($(CUBE_GRID),YES)
 CPPFLAGS += -DCUBE_GRID
 FFLAGS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
-LIBS += -L${BASELIBDIR}/lib -lesmf -lstdc++ -lrt
+LIBS += -L${BASELIBDIR}/lib -lesmf -lrt -lstdc++
+#-lstdc++ -lrt
 LIBS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
 endif
 ifeq ($(MPP),YES)  

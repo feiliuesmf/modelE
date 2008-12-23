@@ -2144,12 +2144,16 @@ C**** albedo calculations
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
+      write(*,*) "seaice i_0h i_1h=",i_0h,i_1h
+
       ALLOCATE( RSI(I_0H:I_1H, J_0H:J_1H),
      *     SNOWI(I_0H:I_1H, J_0H:J_1H),
      *     MSI(I_0H:I_1H, J_0H:J_1H),
      *     pond_melt(I_0H:I_1H, J_0H:J_1H),
      *     flag_dsws(I_0H:I_1H, J_0H:J_1H),
      *     STAT=IER)
+
+      write(*,*) "SHAPE(RSI)=",shape(rsi)
 
 !hack hack hack !!!!!!!! 
       rsi = 0.d0   !!!!  call to io_seaice may be missing during postproc.

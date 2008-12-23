@@ -147,14 +147,13 @@ c close netcdf restart file
       character*120 :: name
 #ifdef CUBE_GRID
       name="GIC"
-      write(*,*) name
-      status=nf_open(trim(name),nf_nowrite,fid)
+      if (am_i_root()) status=nf_open(trim(name),nf_nowrite,fid)
       IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
       call par_io_seaice (fid,ioread)
       call par_io_earth  (fid,ioread)
       call par_io_soils  (fid,ioread)
       call par_io_landice(fid,ioread)
-      status = nf_close(fid)
+      if (am_i_root()) status = nf_close(fid)
 #else
       call openunit("GIC",iu_GIC,.true.,.true.)
       write(*,*) "Reading ground IC"
