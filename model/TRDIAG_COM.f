@@ -171,8 +171,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_spec index for TAIJS for special diags. not associated with single
 !@var ijts_spec tracer
       INTEGER :: ijts_spec(MaxSpec)
+#ifdef TRACERS_AMP
 !@var ijts_AMPpdf special diagnostic for not-transported tracers
       INTEGER ijts_AMPpdf(1,nbins)
+#endif
 !@var ijts_AMPext special diagnostic for not-transported tracers
       INTEGER ijts_AMPext(lm,6)
 !@var ijts_AMPm tracer independent array for AMP modes
