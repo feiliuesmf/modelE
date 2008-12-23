@@ -734,8 +734,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef CUBE_GRID
       write(*,*) "i0dum-width",I0_DUM-width_
       write(*,*) "i1dum+width",I1_DUM+width_
-      grd_dum%I_STRT_HALO   = MIN( 1, I0_DUM-width_)
-      grd_dum%I_STOP_HALO   = MAX(IM, I1_DUM+width_)
+      grd_dum%I_STRT_HALO   = I0_DUM-width_
+      grd_dum%I_STOP_HALO   = I1_DUM+width_
 #endif
       grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES - RANK_LAT*IM/NPES
 
