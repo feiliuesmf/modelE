@@ -11243,7 +11243,7 @@ CGreg: certain things now done outside the loops for speed:
      *     aa=1.d-20,
      *     b= 0.357d-22,         ! 1.7d-22*0.21d0*1.d-20/aa
      *     c= 1.155d-11,         ! 5.5d-20*0.21d0*1.d-11/aa
-     *     d= 4.0d-11,           ! 4.0d-20*1.d-11/aa
+     *     d= 4.0d-11            ! 4.0d-20*1.d-11/aa
 
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
