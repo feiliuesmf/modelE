@@ -732,8 +732,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-width_)
       grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+width_)
 #ifdef CUBE_GRID
-      write(*,*) "i0dum-width",I0_DUM-width_
-      write(*,*) "i1dum+width",I1_DUM+width_
       grd_dum%I_STRT_HALO   = I0_DUM-width_
       grd_dum%I_STOP_HALO   = I1_DUM+width_
 #endif
@@ -785,8 +783,6 @@ cddd      ENDIF
 
 #ifdef CUBE_GRID
 c***  gluing dd2d derived type to dist_grid derived type
-      write(*,*) "calling init_dd2d_init from Domain decomp"
-
            call init_dd2d_grid(
      &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,6, 
      &     grd_dum%I_STRT,grd_dum%I_STOP,

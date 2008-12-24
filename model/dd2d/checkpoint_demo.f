@@ -824,7 +824,7 @@ c close netcdf restart file
       call write_dist_data(grid%dd2d, fid, 'trsi', trsi, jdim=4)
 #endif
       case (ioread)             ! input from restart file
-      write(*,*) "IOREAD"
+c      write(*,*) "IOREAD"
       call read_dist_data(grid%dd2d, fid, 'rsi', rsi)  
       call read_dist_data(grid%dd2d, fid, 'snowi', snowi)
       call read_dist_data(grid%dd2d, fid, 'msi', msi)
