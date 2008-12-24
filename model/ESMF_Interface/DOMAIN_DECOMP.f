@@ -532,13 +532,13 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 
 #ifdef USE_ESMF
-      write(*,*) "INIT_GRID 1 USE ESMF"
+      !! write(*,*) "INIT_GRID 1 USE ESMF"
       call INIT_GRID(grd_dum,IM,JM,LM,vm=vm,CREATE_CAP=.true.)
       Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
       WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
      &     RANK_LON
 #else
-      write(*,*) "INIT_GRID 2"
+      !! write(*,*) "INIT_GRID 2"
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
 #endif
 #endif
@@ -559,7 +559,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
 #endif
-      write(*,*) "INIT_GRID 3"
+      !! write(*,*) "INIT_GRID 3"
       call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
 #endif
 
@@ -632,7 +632,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
 #endif
       
-      write(*,*) "BEGIN INIT_GRID"
+      !! write(*,*) "BEGIN INIT_GRID"
 
 #ifdef USE_FVCUBED
       grid_size(1)=IM;   grid_size(2)=JM*6
