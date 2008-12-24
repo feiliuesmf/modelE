@@ -14,10 +14,10 @@
       USE GEOM, only : imaxj, kmaxj, ravj, idij, idjj
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
-      USE DIAG_COM, only : ajl=>ajl_loc,jl_trbhr,jl_damdc,jl_trbdlht
+      USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only: TRM,TRMOM,NTM
-      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc,JLNT_TURB
+      USE TRDIAG_COM, only: JLNT_TURB
 #endif
       USE DYNAMICS, only : pk,pdsig,plij,pedn
       USE PBLCOM, only : dclev,w2gcm,w2_l1
@@ -31,7 +31,7 @@
       INTEGER, DIMENSION(IM) :: IDI,IDJ    !@var ID
       REAL*8, DIMENSION(IM) :: RA !@var
       REAL*8, DIMENSION(IM) :: UMS,VMS !@var
-      INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN
+      INTEGER I,J,L,K,IMAX,KMAX,IM1,LMAX,LMIN,N
 C
       REAL*8  UKP1(IM,LM), VKP1(IM,LM), UKPJM(IM,LM),VKPJM(IM,LM)
 
@@ -170,10 +170,8 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
         BYSDPL = 1.D0/SDPL
 #endif
       DO L=LMIN,LMAX
-         AJL(J,L,JL_TRBHR)=AJL(J,L,JL_TRBHR)+
-     &        (THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J)
-         AJL(J,L,JL_TRBDLHT)=AJL(J,L,JL_TRBDLHT)+
-     &        (QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA
+      CALL INC_AJL(I,J,L,JL_TRBHR,(THM-T(I,J,L))*PK(L,I,J)*PLIJ(L,I,J))
+      CALL INC_AJL(I,J,L,JL_TRBDLHT,(QMS-Q(I,J,L))*PDSIG(L,I,J)*LHE/SHA)
       T(I,J,L)=THM
       TMOM(XYMOMS,I,J,L)=TMOMS(XYMOMS)/PKMS
       TMOM(ZMOMS,I,J,L)=0.
@@ -181,8 +179,10 @@ C**** MIX THROUGH SUBSEQUENT UNSTABLE LAYERS
       QMOM(XYMOMS,I,J,L)=QMOMS(XYMOMS)*RDP
       QMOM(ZMOMS,I,J,L)=0.
 #ifdef TRACERS_ON
-        TAJLN(J,L,JLNT_TURB,:)=TAJLN(J,L,JLNT_TURB,:) +
-     &     (TRMS(:)*(DP(L)*BYSDPL)-TRM(I,J,L,:))
+      DO N=1,NTM
+        CALL INC_TAJLN(I,J,L,JLNT_TURB,N,TRMS(N)*(DP(L)*BYSDPL)-TRM(I,J
+     *       ,L,N))
+      END DO
       TRM(I,J,L,:) = TRMS(:)*(DP(L)*BYSDPL)
       TRMOM(XYMOMS,I,J,L,:) = TRMOMS(XYMOMS,:)*(DP(L)*BYSDPL)
       TRMOM(ZMOMS,I,J,L,:) = 0.
@@ -207,8 +207,8 @@ c           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)
 c    &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*RA(K)
 c           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)
 c    &           +(VMS(K)-VT(IDI(K),IDJ(K),L))*RA(K)
-c           AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)
-c    &           +(UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K)
+c           CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,
+c    &           (UMS(K)-UT(IDI(K),IDJ(K),L))*PLIJ(L,I,J)*RA(K))
 c        ENDDO
 c     ENDDO
       DO L=LMIN,LMAX
@@ -266,8 +266,8 @@ c       DO I=1,IM
             IDI(K)=IDIJ(K,I,J)
             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
-            AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *            UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+            CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKM(K,I,J,L)*PLIJ(L,I
+     *           ,J)*RA(K))
 c           write(0,*) 'new winds L K u v   ',L,K,
 c    *              u(idi(k),idj(k),l),
 c    *              v(idi(k),idj(k),l)
@@ -287,8 +287,8 @@ c       END DO
         DO K=1,KMAXJ(J)
           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKP1(K,L)*RA(K)
           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKP1(K,L)*RA(K)
-          AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *       UKP1(K,L)*PLIJ(L,1,J)*RA(K)
+          CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKP1(K,L)*PLIJ(L,1,J)
+     *         *RA(K))
        END DO ; END DO
       ElSE ! need contribution from southern neighbor
         J=J_0-1
@@ -306,8 +306,8 @@ c       END DO
               IDI(K)=IDIJ(K,I,J)
               U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
               V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
-              AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *             UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+              CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKM(K,I,J,L)*PLIJ(L
+     *             ,I,J)*RA(K))
             END IF
           END DO ; END DO
         END DO
@@ -327,8 +327,8 @@ C
             IDI(K)=IDIJ(K,I,J)
             U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
             V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
-            AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *            UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+            CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKM(K,I,J,L)*PLIJ(L,I
+     *           ,J)*RA(K))
           END DO ; END DO
         END DO
       END DO
@@ -347,8 +347,8 @@ C
         DO K=1,KMAX
           U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKPJM(K,L)*RA(K)
           V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKPJM(K,L)*RA(K)
-          AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *        UKPJM(K,L)*PLIJ(L,1,J)*RA(K)
+          CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKPJM(K,L)*PLIJ(L,1,J)
+     *         *RA(K))
        END DO ; END DO
 
       ELSE
@@ -368,8 +368,8 @@ C**** First half of loop cycle for j=j_1 for internal blocks
               IDI(K)=IDIJ(K,I,J)
               U(IDI(K),IDJ(K),L)=U(IDI(K),IDJ(K),L)+UKM(K,I,J,L)*RA(K)
               V(IDI(K),IDJ(K),L)=V(IDI(K),IDJ(K),L)+VKM(K,I,J,L)*RA(K)
-              AJL(IDJ(K),L,JL_DAMDC)=AJL(IDJ(K),L,JL_DAMDC)+
-     *              UKM(K,I,J,L)*PLIJ(L,I,J)*RA(K)
+              CALL INC_AJL(IDI(K),IDJ(K),L,JL_DAMDC,UKM(K,I,J,L)*PLIJ(L
+     *             ,I,J)*RA(K))
             END DO 
           END DO
         END DO
