@@ -213,7 +213,7 @@ C     REAL*8, DIMENSION(IM,LM) :: UMDNL,VMDNL
 !@var TRDNL tracer concentration in lowest downdraft (kg/kg)
       REAL*8, DIMENSION(NTM,LM) :: TRDNL
       COMMON/CLD_TRCCOM/TM,TMOM,TRDNL
-!$OMP  THREADPRIVATE (/CLD_TRCCOM/)
+!xOMP  THREADPRIVATE (/CLD_TRCCOM/)
 #ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
@@ -272,11 +272,11 @@ c for diagnostics
 #endif
 #endif
 #ifdef TRACERS_WATER
-!$OMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
+!xOMP  THREADPRIVATE (/CLD_WTRTRCCOM/)
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-!$OMP  THREADPRIVATE (/CLD_PRECDUST/)
+!xOMP  THREADPRIVATE (/CLD_PRECDUST/)
 #endif
 #endif
 #endif
@@ -347,7 +347,7 @@ C    *  ,DDR,SMDNL,QMDNL,SMOMDNL,QMOMDNL
      *  ,NLSW,NLSI,NMCW,NMCI
 #endif
      *  ,prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
-!$OMP  THREADPRIVATE (/CLDPRV/)
+!xOMP  THREADPRIVATE (/CLDPRV/)
 
       CONTAINS
 
