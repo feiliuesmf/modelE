@@ -103,15 +103,9 @@ module FV_INTERFACE_MOD
   Real*8, parameter :: PRESSURE_UNIT_FV    =    1 ! 1 pa
   Real*8, parameter :: PRESSURE_UNIT_RATIO = PRESSURE_UNIT_GISS/PRESSURE_UNIT_FV
 
-#ifdef USE_FVCUBED
   character(len=*), parameter :: FVCORE_INTERNAL_RESTART = 'dyncore_internal_restart'
   character(len=*), parameter :: FVCORE_IMPORT_RESTART   = 'dyncore_import_restart'
   character(len=*), parameter :: FVCORE_LAYOUT           = 'fvcore_layout.rc'
-#else
-  character(len=*), parameter :: FVCORE_INTERNAL_RESTART = 'fv_internal_restart.dat'
-  character(len=*), parameter :: FVCORE_IMPORT_RESTART   = 'fv_import_restart.dat'
-  character(len=*), parameter :: FVCORE_LAYOUT           = 'fv_layout.rc'
-#endif
 
   character(len=*), parameter :: TENDENCIES_FILE = 'tendencies_checkpoint'
 
@@ -156,9 +150,15 @@ contains
 
     !  Create the dynamics component, using same layout as application
     !  ------------------------------------------------------------------
+#ifdef USE_FVCUBED
+    fv % gc = ESMF_GridCompCreate ( vm=vm, name='FVCORE', &
+         & grid=grid, gridcomptype=ESMF_ATM,              &
+         & config=cf, rc=rc)
+#else
     fv % gc = ESMF_GridCompCreate ( vm=vm, name='FV dynamics', &
          & grid=grid, gridcomptype=ESMF_ATM,              &
          & config=cf, rc=rc)
+#endif
     VERIFY_(rc)
 
     ! Create couplings
@@ -452,11 +452,12 @@ contains
     integer :: rc
     character(len=*), intent(in) :: fv_fname, fv_dfname
 
-    call saveTendencies(fv, fv_dfname)
+    call saveTendencies(fv, FVCORE_IMPORT_RESTART)
     call ESMF_GridCompFinalize ( fv % gc, fv % import, fv % export, clock, rc=rc )
 
     if (AM_I_ROOT()) then
        call system('mv ' // FVCORE_INTERNAL_RESTART // ' ' // trim(fv_fname) )
+       call system('mv ' // FVCORE_IMPORT_RESTART // ' ' // trim(fv_dfname) )
     end if
 
     Deallocate(fv % U_old, fv % V_old, fv % dPT_old, fv % dT_old, fv % PE_old)
@@ -597,6 +598,8 @@ contains
     character(len=*), intent(in) :: fv_fname, fv_dfname
 
     call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, GEOS_RecordPhase, rc=rc)
+    call saveTendencies(fv, FVCORE_IMPORT_RESTART)
+
     ! Now move the file into a more useful name
     if (AM_I_ROOT()) then
     ! 1) FV names restarts as: fvcore_internal_checkoint.YYYYMMDD_HHMMz.bin
@@ -607,9 +610,8 @@ contains
        write(suffix,'(".",i4.4,i2.2,i2.2,"_",i2.2,i2.2,"z.bin")'), &
             & year, month, day, hour, minute
        call system('mv ' // FVCORE_INTERNAL_RESTART // suffix // ' ' // trim(fv_fname) )
+       call system('mv ' // FVCORE_IMPORT_RESTART // ' ' // trim(fv_dfname) )
     end if
-
-    call saveTendencies(fv, fv_dfname)
 
   end subroutine checkpoint
 
@@ -723,11 +725,11 @@ contains
 
     call openunit(config_file, iunit, qbin=.false., qold=.false.)
 #ifdef USE_FVCUBED
-    write(iunit,*)'DYNAMICS_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
-    write(iunit,*)'#DYNAMICS_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
-!!$ write(iunit,*)'DYNAMICS_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
-!!$ write(iunit,*)'DYNAMICS_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
-    write(iunit,*)'DYNAMICS_LAYOUT:                    ', FVCORE_LAYOUT
+    write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
+    write(iunit,*)'#FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
+!!$ write(iunit,*)'FVCORE_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
+!!$ write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
+    write(iunit,*)'FVCORE_LAYOUT:                    ', FVCORE_LAYOUT
 #else
     write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
     write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
@@ -778,7 +780,7 @@ contains
     real*8, allocatable, dimension(:,:,:) :: PE, PKZ, PT
 
 #ifdef USE_FVCUBED
-    Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='DYNAMICS_INTERNAL_RESTART_FILE:', &
+    Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
 #else
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &

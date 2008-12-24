@@ -94,6 +94,7 @@ C**** Command line options
       Type (FV_CORE) :: fv
       Type (ESMF_CLOCK) :: clock
       character(len=28) :: fv_fname, fv_dfname
+      character(len=1)  :: suffix
 #endif
 #ifdef BLK_2MOM
       LOGICAL      :: ldummy=.false.
@@ -265,6 +266,15 @@ C****
 C**** Initialize FV dynamical core (ESMF component) if requested
 C****
 #ifdef USE_FVCORE
+
+#ifdef USE_FVCUBED
+        !if(AM_I_ROOT()) then
+        ! write(suffix,'(i1)') kdisk
+        ! call system('cp  fv.'// suffix // ' dyncore_internal_restart')
+        ! call system('cp dfv.'// suffix // ' dyncore_import_restart')
+        !end if
+#endif
+
       Call Initialize(fv, istart, vm, grid%esmf_grid, clock,fv_config)
 #endif
 
@@ -798,11 +808,15 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
      *     call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
       call io_rsf(iu_RSF,Itime,iowrite,ioerr)
       IF (AM_I_ROOT()) call closeunit(iu_RSF)
+#endif
+
 #ifdef USE_FVCORE
          fv_fname='fv.' ; write(fv_fname(4:4),'(i1)') kdisk
          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
          call Finalize(fv, clock, fv_fname, fv_dfname)
 #endif
+
+#ifndef ADIABATIC
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
@@ -814,6 +828,8 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call closeunit(iu_scm_prt)
       call closeunit(iu_scm_diag)
 #endif
+#endif
+
       IF (AM_I_ROOT())
      *   WRITE (6,'(/////4(1X,33("****")/)//,A,I8
      *             ///4(1X,33("****")/))')
@@ -821,10 +837,11 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       IF (Itime.ge.ItimeE) CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
+
+#ifndef ADIABATIC
 #ifdef BLK_2MOM
       ldummy=cleanup_bulk2m_driver()
 #endif
-
 #endif
 
       CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
@@ -1732,7 +1749,7 @@ C**** CHOOSE DATA SET TO RESTART ON
       call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.true.)
 #ifdef USE_FVCORE
         write(suffix,'(i1)') kdisk
-        call system('cp  fv.'// suffix // ' fv_internal_restart.dat')
+        call system('cp  fv.'// suffix // ' dyncore_internal_restart')
         call system('cp dfv.'// suffix // ' tendencies_checkpoint')
 #endif
       CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
