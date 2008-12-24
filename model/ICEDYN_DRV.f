@@ -1,4 +1,4 @@
-C**** 
+c**** 
 C**** ICEDYN_DRV.f    Sea ICE DYNamics    2006/12/21
 C****
 #include "rundeck_opts.h"
@@ -532,9 +532,10 @@ c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
 C**** NOTE: UOSURF, VOSURF are expected to be on the A-grid
 
-C**** Update halo for USI,UOSURF,PGFU
+C**** Update halo for USI,UOSURF,VOSURF,PGFU
       CALL HALO_UPDATE(grid, USI   , from=NORTH    )
       CALL HALO_UPDATE(grid, UOSURF, from=NORTH    )
+      CALL HALO_UPDATE(grid, VOSURF, from=NORTH    )
       CALL HALO_UPDATE(grid, PGFU  , from=NORTH    )
 
       do j=j_0,j_1s
