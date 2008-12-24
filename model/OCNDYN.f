@@ -3454,6 +3454,7 @@ c        SRUNO=oSMELTI(I,J)/(DXYPJ)
 c        SRUNI=oSMELTI(I,J)/(DXYPJ)+RATOC(J)*oSRUNOSI(I,J)
 c        SROX(1)=oSOLAR(1,I,J)*RATOC(J) ! open water
 c        SROX(2)=oSOLAR(3,I,J)*RATOC(J) ! through ice
+
         RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J,1)             !  kg/m^2
         RUNI = oFLOWO(I,J) + oMELTI(I,J) + oRUNOSI(I,J)               !  kg/m^2
         ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J,1)                !  J/m^2
@@ -3485,7 +3486,6 @@ c        SROX(2)=oSOLAR(3,I,J)*RATOC(J) ! through ice
 #endif
 
 #endif
-
         CALL OSOURC(ROICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
      *         ,RUNI,ERUNO,ERUNI,SRUNO,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
@@ -5443,6 +5443,7 @@ C**** surface tracer concentration
       call HNTR8P (aONES, aFtemp, oFtemp)
       oRSI_glob(:,:) = oFtemp(:,:)                         
 
+      aFtemp(:,:) = 0.
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
@@ -5610,6 +5611,120 @@ C**** surface tracer concentration
         oEGMELT_glob(:,J) = oFtemp(:,J)*oDXYPO(J)                     !  J  
       END DO
 
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRFLOWO_glob(N,I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oTRFLOWO_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
+      END DO
+
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRMELTI_glob(N,I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oTRMELTI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
+      END DO
+
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRUNOSI_glob(N,I,J)                           !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
+      oTRUNOSI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
+      END DO
+
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTREVAPOR_glob(N,1,I,J)                        !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aOOCN, aFtemp, oFtemp)
+      oTREVAPOR_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
+      END DO
+
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYPO(J)                 !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      DO J = 1,JMO
+        oTRGMELT_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)                     !  kg  
+      END DO
+      END DO
+
+#ifdef TRACERS_DRYDEP
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRDRYDEP_glob(N,1,I,J)                        !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oTRDRYDEP_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
+      END DO
+#endif
+#endif
+#endif
+#ifdef TRACERS_GASEXCH_Natassa
+      DO N=1,NTM
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aTRGASEX_glob(N,1,I,J)                         !  kg/m^2
+          ELSE
+            aFtemp(I,J) = 0.
+          END IF 
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aONES, aFtemp, oFtemp)
+      oTRGASEX_glob(N,1,:,:) = oFtemp(:,:)                               !  kg/m^2
+      END DO
+#endif
+
       aDMUAsp = aDMUA_glob(1,1,1)
       aDMVAsp = aDMVA_glob(1,1,1)
       aDMUAnp = aDMUA_glob(1,JMA,1)
@@ -5684,105 +5799,6 @@ C**** surface tracer concentration
       call HNTR8  (aONES, aDMVI_glob, oDMVI_glob)      !!  V-grid => V-grid
       oDMVI_glob(:,JMO) = 0.0                          !!  should not be used
 
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRFLOWO_glob(N,I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRFLOWO_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRMELTI_glob(N,I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRMELTI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRUNOSI_glob(N,I,J)                           !  kg/m^2
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oTRUNOSI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTREVAPOR_glob(N,1,I,J)                        !  kg/m^2
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aOOCN, aFtemp, oFtemp)
-      oTREVAPOR_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYPO(J)                 !  kg/m^2   
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oTRGMELT_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)                     !  kg  
-      END DO
-      END DO
-
-#ifdef TRACERS_DRYDEP
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRDRYDEP_glob(N,1,I,J)                        !  kg/m^2
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRDRYDEP_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
-      END DO
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_Natassa
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRGASEX_glob(N,1,I,J)                         !  kg/m^2
-          END IF 
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRGASEX_glob(N,1,:,:) = oFtemp(:,:)                               !  kg/m^2
-      END DO
-#endif
       
       RETURN
       END SUBROUTINE INT_AG2OG_oceans 
