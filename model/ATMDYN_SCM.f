@@ -21,10 +21,6 @@
       return
       end SUBROUTINE init_ATMDYN
 
-
-
-
-
       SUBROUTINE DYNAM
       USE MODEL_COM, only : im,lm,t,p,q,ls1,NSTEPSCM     
       USE SOMTQ_COM, only : tmom,mz
@@ -154,7 +150,7 @@ c
       USE RESOLUTION , only : LM
 
       USE MODEL_COM , only : P,DSIG, I_TARG, J_TARG   
-      USe GEOM , only : DXYP
+      USe GEOM , only : AXYP
    
       USE SCMCOM , only : SG_WINDIV, SG_CONV    
    
@@ -173,7 +169,7 @@ c     want to fill SD (IDUM,JDUM)  check out
 
       DO L=1,LM
          SG_CONV(L) = SG_WINDIV(L)*DSIG(L)*P(I_TARG,J_TARG)
-     &                 *DXYP(J_TARG)*ARMFAC
+     &                 *AXYP(I_TARG,J_TARG)*ARMFAC
       ENDDO
 
       return
@@ -501,7 +497,7 @@ c     END IF
 
 
       subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
-!@sum  tropwmo calculates tropopasue height according to WMO formula
+!@sum  tropwmo calculates tropopause height according to WMO formula
 !@auth D. Nodorp/T. Reichler/C. Land
 !@+    GISS Modifications by Jean Lerner/Gavin Schmidt
 !@ver  1.0
@@ -534,7 +530,6 @@ c     END IF
 !@+
       USE MODEL_COM, only : klev=>lm
       USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
-      USE DOMAIN_DECOMP, Only : grid, GET
       implicit none
 
       real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
@@ -654,14 +649,11 @@ c****
       return
       end subroutine tropwmo
 
+C**** Dummy routines
 
       SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( PUA,PVA,dt)
-      USE CONSTANT,      only: BY3
-      use DOMAIN_DECOMP, only: grid, get, halo_update, SOUTH
-      USE DOMAIN_DECOMP, only : haveLatitude
-      use DIAG_COM, only: AIJ => AIJ_loc,
-     &     IJ_FGZU, IJ_FGZV, IJ_FMV, IJ_FMU
-      use MODEL_COM, only: IM,JM,LM
+!@sum COMPUTE_DYNAM_AIJ_DIAGNOSTICS Dummy
+      use DOMAIN_DECOMP, only: grid
 
       real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
@@ -671,13 +663,9 @@ c****
       END SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS
      
 
-
       SUBROUTINE COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
-      USE CONSTANT, only: rgas, bygrav
-      !use MODEL_COM, only: NIdyn
+!@sum COMPUTE_WSAVE Dummy
       use DOMAIN_DECOMP, only: grid, GET
-      use GEOM, only: bydxyp
-      use MODEL_COM, only: IM,JM,LM
 
       real*8, dimension(:, grid%J_STRT_HALO:, :), intent(out) :: WSAVE
       real*8, dimension(:, grid%J_STRT_HALO:, :), intent(in)  :: SDA, T
@@ -688,7 +676,7 @@ c****
       END SUBROUTINE COMPUTE_WSAVE
 
       function getTotalEnergy() result(totalEnergy)
-!@sum  getTotalEnergy returns the sum of kinetic and potential energy.
+!@sum  getTotalEnergy Dummy
 !@auth Tom Clune (SIVO)
 !@ver  1.0
       use GEOM, only: DXYP, AREAG
@@ -696,93 +684,35 @@ c****
       USE DOMAIN_DECOMP, only : haveLatitude
       REAL*8 :: totalEnergy
 
-c     REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::KEJ,PEJ,TEJ
-c     REAL*8 :: totalPotentialEnergy
-c     REAL*8 :: totalKineticEnergy
-c     integer :: J_0, J_1
-c     logical :: HAVE_SOUTH_POLE
-
       totalEnergy = 0.
 
-c     call get(grid, J_STRT=J_0, J_STOP=J_1,
-c    *     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
-
-c     call conserv_PE(PEJ)
-c     call conserv_KE(KEJ)
-c     if (haveLatitude(grid, J=1)) KEJ(1) = 0
-
-c     TEJ(J_0:J_1)= (KEJ(J_0:J_1) + PEJ(J_0:J_1)*DXYP(J_0:J_1))/AREAG
-
-c     CALL GLOBALSUM(grid, TEJ, totalEnergy, ALL=.true.)
-
+      return
       end function getTotalEnergy
 
 
       subroutine addEnergyAsDiffuseHeat(deltaEnergy)
-!@sum  addEnergyAsDiffuseHeat adds in energy increase as diffuse heat.
+!@sum  addEnergyAsDiffuseHeat Dummy
 !@auth Tom Clune (SIVO)
 !@ver  1.0
-      use CONSTANT, only: sha, mb2kg
-      use MODEL_COM, only: T, PSF, PMTOP, LM
-      use DYNAMICS, only: PK
-      use DOMAIN_DECOMP, only: grid, get
       real*8, intent(in) :: deltaEnergy
 
-c     real*8 :: ediff
-c     integer :: l
-c     integer :: J_0, J_1
-
-c     call get(grid, J_STRT=J_0, J_STOP=J_1)
-
-c     ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
-c!$OMP  PARALLEL DO PRIVATE (L)
-c     do l=1,lm
-c       T(:,J_0:J_1,L)=T(:,J_0:J_1,L)-ediff/PK(L,:,J_0:J_1)
-c     end do
-c!$OMP  END PARALLEL DO
-
+      return
       end subroutine addEnergyAsDiffuseHeat
      
 
 C***** Add in dissipiated KE as heat locally
       subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
-!@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
+!@sum  addEnergyAsLocalHeat Dummy
 !@auth Tom Clune (SIVO)
 !@ver  1.0
-      use CONSTANT, only: SHA
-      use GEOM, only: IDIJ, IDJJ, RAPJ, IMAXJ, KMAXJ
-      use MODEL_COM, only: LM
-      use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
-      use DIAG_COM, only: ajl => ajl_loc
+      use DOMAIN_DECOMP, only: grid, get
       implicit none
       real*8 :: deltaKE(:,grid%j_strt_halo:,:)
       real*8 :: T(:,grid%j_strt_halo:,:)
       real*8 :: PK(:,:,grid%j_strt_halo:)
       integer, optional, intent(in) :: diagIndex
 
-c     integer :: i, j, k, l
-c     real*8 :: ediff
-c     integer :: J_0, J_1
-
-c     call get(grid, J_STRT=J_0, J_STOP=J_1)
-c     CALL HALO_UPDATE(grid, deltaKE, FROM=NORTH)
-C!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
-c     DO L=1,LM
-c       DO J=J_0,J_1
-c         DO I=1,IMAXJ(J)
-c           ediff=0.
-c           DO K=1,KMAXJ(J)     ! loop over surrounding vel points
-c             ediff=ediff+deltaKE(IDIJ(K,I,J),IDJJ(K,J),L)*RAPJ(K,J)
-c           END DO
-c           ediff = ediff / (SHA*PK(L,I,J))
-c           T(I,J,L)=T(I,J,L)-ediff
-c           if (present(diagIndex)) then
-c             AJL(J,L,diagIndex) = AJL(J,L,diagIndex) - ediff
-c           end if
-c         END DO
-c       END DO
-c     END DO
-C!$OMP  END PARALLEL DO
+      return
       end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN
@@ -801,4 +731,3 @@ C!$OMP  END PARALLEL DO
 
 
       end module ATMDYN_QDYNAM
-

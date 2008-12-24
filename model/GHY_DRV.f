@@ -3646,9 +3646,6 @@ C****
       if (HAVE_SOUTH_POLE) heatg(2:im,1) =heatg(1,1)
       if (HAVE_NORTH_POLE) heatg(2:im,jm)=heatg(1,jm)
 c****
-ccc debugging ...
-ccc      print *,'conserv_htg energy ',
-ccc     &     sum(heatg(1:jm)*dxyp(1:jm))/(sum(dxyp(1:jm))*im)
       end subroutine conserv_htg
 
 

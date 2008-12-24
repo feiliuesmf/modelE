@@ -2027,8 +2027,6 @@ C****
 #endif
 
       if (Kradia.gt.0) then   !  radiative forcing run
-        !CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,0)
-        !CALL init_module_ent(iniENT,grid,jday,dxyp)
         CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(0,num_acc_files) !post-processing
         if (AM_I_ROOT()) Then
@@ -2041,8 +2039,6 @@ C****
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
-!      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART)
-!      CALL init_module_ent(iniENT,grid,jday,dxyp)
 #endif
 
 #ifndef ADIABATIC

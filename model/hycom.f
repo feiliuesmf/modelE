@@ -104,7 +104,7 @@ c
 
       !USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : fsss,tfrez,Ei ! number, functions - ok
-      USE GEOM, only : dxyp ! ok
+      USE GEOM, only : axyp ! ok
       !USE MODEL_COM, only : focean
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
@@ -255,18 +255,18 @@ c --- accumulate
       aemnp_loc(ia,ja)=aemnp_loc(ia,ja)                               ! kg/m*m => m/s
      .+((prec_loc(ia,ja)-evapor_loc(ia,ja,1))*(1.-rsi_loc(ia,ja))         ! open water
      .+(flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja))/
-     .                       (dxyp(ja)*focean_loc(ia,ja))!ocn/ice
+     .                       (axyp(ia,ja)*focean_loc(ia,ja))!ocn/ice
      .+(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref        ! ice
      .                                /(3600.*real(nhr))
       aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                           ! J/m*m => W/m*m
      . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))           ! ocean water
      . +(eflowo_loc(ia,ja)+egmelt_loc(ia,ja)+emelti_loc(ia,ja))
-     .                              /(dxyp(ja)*focean_loc(ia,ja)) ! ocn or ice
+     .                              /(axyp(ia,ja)*focean_loc(ia,ja)) ! ocn or ice
      . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))    ! ice
      .                                 /(3600.*real(nhr))
       asalt_loc(ia,ja)=asalt_loc(ia,ja)                            ! kg/m*m/sec salt
      .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)         !
-     .   +smelti_loc(ia,ja)/(dxyp(ja)*focean_loc(ia,ja)))          !
+     .   +smelti_loc(ia,ja)/(axyp(ia,ja)*focean_loc(ia,ja)))          !
      .                             /(3600.*real(nhr))
        aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
      .                                  dtsrc/(real(nhr)*3600.)

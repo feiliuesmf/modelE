@@ -1104,7 +1104,7 @@ C**** REPLICATE VALUES AT POLE
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
       USE MODEL_COM
-      USE GEOM, only : dlat_dg, imaxj, dxyp, axyp, areag, byaxyp
+      USE GEOM, only : dlat_dg, imaxj, axyp, areag, byaxyp
      &     ,lat2d,lon2d
 c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR

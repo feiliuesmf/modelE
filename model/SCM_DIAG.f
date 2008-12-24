@@ -19,7 +19,7 @@ C--- Added by J.W. starting ---C
       USE DYNAMICS, only : PK,GZ
 C--- Added by J.W. ending ---C
       USE CONSTANT, only : SHA, GRAV   
-      USE GEOM, only : dxyp 
+      USE GEOM, only : axyp 
       USE FILEMANAGER, only : openunit,closeunit
       
 
@@ -270,8 +270,8 @@ c        write(iu_scm_prt,80) L,CUMFLX(L),DWNFLX(L),CUMHET(L),CUMOST(L)
 c 80     format(1x,'L  flx dwn  het mst ',i5,4(f12.3))    
 c        CUMFLX(L) = CUMFLX(L)/DTSRC
 c        DWNFLX(L) = DWNFLX(L)/DTSRC
-c        CUMHET(L) = CUMHET(L)*10.E-13*SHA*DXYP(J_TARG)/(GRAV*DTSRC)
-c        CUMOST(L) = CUMOST(L)*10.E-13*SHA*DXYP(J_TARG)/(GRAV*DTSRC)
+c        CUMHET(L) = CUMHET(L)*10.E-13*SHA*AXYP(I_TARG,J_TARG)/(GRAV*DTSRC)
+c        CUMOST(L) = CUMOST(L)*10.E-13*SHA*AXYP(I_TARG,J_TARG)/(GRAV*DTSRC)
 c     enddo
 
 c     Use the hourly version of the ARM data to save as a diagnostic

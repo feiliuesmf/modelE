@@ -17,7 +17,7 @@
 
       USE TRACER_COM                   !, only : rxts,trm
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
-      USE GEOM,       only:  bydxyp
+      USE GEOM,       only:  byaxyp
       USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
@@ -166,10 +166,10 @@ c--------------------------------------------------------------
       DO l  = 1,lm   
       DO j  = J_0,J_1  
       
-      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* bydxyp (j)
-      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* bydxyp (j)
-      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* bydxyp (j)
-      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* bydxyp (j)
+      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* byaxyp (:,j)
       
       enddo
       enddo
@@ -290,7 +290,7 @@ c      print*,' STAUB', il,dustnc(36,28,1,nd)
 
       USE TRACER_COM                   !, only : rxts,trm
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
-      USE GEOM,       only:  bydxyp
+      USE GEOM,       only:  byaxyp
       USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
       USE DOMAIN_DECOMP, only : GRID, GET
@@ -445,10 +445,10 @@ c  Or use online dust
       
       DO l  = 1,lm   
       DO j  = J_0,J_1   
-      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* bydxyp (j)
-      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* bydxyp (j)
-      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* bydxyp (j)
-      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* bydxyp (j)
+      dusttx(:,j,l,5)= trm(:,j,l,n_clay) * byam(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,6)= trm(:,j,l,n_silt1)* byam(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,7)= trm(:,j,l,n_silt2)* byam(l,:,j)* byaxyp (:,j)
+      dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* byaxyp (:,j)
       enddo
       enddo
 #else

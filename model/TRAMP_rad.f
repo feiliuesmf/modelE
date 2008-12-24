@@ -136,7 +136,7 @@ c -----------------------------------------------------------------
       USE TRACER_COM,  only: TRM, ntmAMP, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP,trname
       USE AERO_CONFIG, only: NMODES
       USE AERO_SETUP,  only: SIG0   !(nmodes * npoints) lognormal parameters for each mode
-      USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
+      USE GEOM,        only: BYAXYP ! inverse area of gridbox [m-2]
       IMPLICIT NONE
 
       ! Arguments: 
@@ -194,12 +194,12 @@ c Andies data incl Solar weighting - integral over 6 radiation band
            if(trname(n)(6:8).eq.'_SS') Mass(AMP_MODES_MAP(n),5) =trm(i,j,l,n)
           else                           ! Number
 !          [ - ]                        [#/gb]         [m-2]      
-           NUMB_LEV(l,AMP_NUMB_MAP(n)) =trm(i,j,l,n) * bydxyp(j)
+           NUMB_LEV(l,AMP_NUMB_MAP(n)) =trm(i,j,l,n) * byaxyp(i,j)
         endif
          ENDDO
 
-      NUMB_LEV(l,7) = NUMB_SS(i,j,l,1) *  bydxyp(j)
-      NUMB_LEV(l,8) = NUMB_SS(i,j,l,2) *  bydxyp(j)
+      NUMB_LEV(l,7) = NUMB_SS(i,j,l,1) *  byaxyp(i,j)
+      NUMB_LEV(l,8) = NUMB_SS(i,j,l,2) *  byaxyp(i,j)
 
       ! + Volume Fraction
       DO n=1,nmodes  ![#/m2]         pi/4     [m2]

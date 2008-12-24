@@ -11,7 +11,6 @@ c
      &                       dtsrc,Itime,ItimeI,T,JEQ
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE DYNAMICS, only   : am, byam, PMID, PK
-      USE GEOM, only       : BYDXYP,dxyp
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
       USE TRACER_COM, only : ntm, trm, TR_MM, ntm_soa
 

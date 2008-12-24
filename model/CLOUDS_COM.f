@@ -56,7 +56,7 @@ C**** variables saved for surface wind spectrum calculations
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: DDML
 
 C**** variables used (and saved) for gravity wave drag calculations
-!@var AIRX, AIRMX*DXYP(J) convective mass flux (kg/s)
+!@var AIRX, AIRMX*AREA convective mass flux (kg/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIRX
 !@var LMC max layer of mc convective mass flux.
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: LMC

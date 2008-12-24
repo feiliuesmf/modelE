@@ -186,12 +186,14 @@ C-------- special section for ghg runs ---------
         rad_to_file(1,:,:,J_0:J_1)=rad_to_chem(1,:,:,J_0:J_1)
         rad_to_file(2,:,:,J_0:J_1)=rad_to_chem(2,:,:,J_0:J_1)
         do j=J_0,J_1
-          rad_to_file(3,:,:,j)=rad_to_chem(3,:,:,j)*2.69e20*byavog*
-     &    dxyp(j)*tr_mm(n_N2O) ! i.e. in trm units now!
-          rad_to_file(4,:,:,j)=rad_to_chem(4,:,:,j)*2.69e20*byavog*
-     &    dxyp(j)*tr_mm(n_CH4) ! i.e. in trm units now!
-          rad_to_file(5,:,:,j)=rad_to_chem(5,:,:,j)*2.69e20*byavog*
-     &    dxyp(j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
+          do i=I_0,I_1
+            rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*byavog*
+     &           axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
+            rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*byavog*
+     &           axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
+            rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*byavog*
+     &           axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
+          enddo
         enddo 
         do m=1,5
           call PACK_COLUMN
