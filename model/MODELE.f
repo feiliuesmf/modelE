@@ -134,9 +134,6 @@ C****
       call sync_param( "J_TARG", J_TARG )
       call init_app(grid,im,jm,lm,J_TARG)
 #else
-#ifdef CUBE_GRID
-
-      call init_app(grid,im,jm,lm)
 
 c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
 c      call regrid_input(grid%dd2d)
@@ -153,9 +150,7 @@ c     &     xcs2ll%ntilestarget) )
 c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
 c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 
-#else
       call init_app(grid,im,jm,lm)
-#endif
 #endif
 
 #ifndef ADIABATIC
@@ -169,13 +164,6 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #endif
 
 #endif /* ADIABATIC */
-
-      write(*,*) "-->I_STRT,I_STOP,J_STRT,J_STOP,I_STRT_HALO,
-     &     I_STOP_HALO,J_STRT_HALO,J_STOP_HALO",
-     &     grid%I_STRT,grid%I_STOP,
-     &     grid%J_STRT,grid%J_STOP,
-     &     grid%I_STRT_HALO,grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO,grid%J_STOP_HALO
 
       call alloc_drv()
 
