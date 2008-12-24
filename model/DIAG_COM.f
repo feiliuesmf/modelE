@@ -530,7 +530,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
      *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
-     &     ,jl_dpa,jl_dpb
+     &     ,jl_dpa,jl_dpb,jl_dpasrc,jl_dwasrc
 
 !@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined
 !@+   (1 for primary latitudes, 2 for secondary latitudes)

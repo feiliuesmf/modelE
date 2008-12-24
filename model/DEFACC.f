@@ -3944,7 +3944,25 @@ c
       ia_jl(k) = ia_dga
       jgrid_jl(k) = 2
 
-
+c
+      k=k+1
+      jl_dpasrc = k
+      sname_jl(k) = 'jl_dpasrc'
+      lname_jl(k) = 'MASS AT PRIMARY GRID CELLS (SRC TIME)'
+      units_jl(k) = 'kg/m2'
+      scale_jl(k) = 1. ! not printed
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
+      k=k+1
+      jl_dwasrc = k
+      sname_jl(k) = 'jl_dwasrc'
+      lname_jl(k) = 'CONDENSATE MASS AT PRIMARY GRID CELLS'
+      units_jl(k) = 'kg/m2'
+      scale_jl(k) = 1. ! not printed
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = 1
+c
       if (AM_I_ROOT()) then
          if (k .gt. kajl) then
             write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k

@@ -13,13 +13,14 @@
 !@ver  1.0
       USE DOMAIN_DECOMP, only : GRID, GET
       USE MODEL_COM, only: im,jm,lm,itime,wm
+      USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
      *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : jlnt_cldh2o
+     *     ,jlnt_cldh2o
 #endif
       USE DYNAMICS, only: am,byam
       implicit none
@@ -39,10 +40,25 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
 C****
 C**** Accumulate concentration for all tracers
 C****
+
+C**** save some basic model diags for weighting
+!$OMP PARALLEL DO PRIVATE (I,J,L)
+      do l=1,lm
+        do j=J_0,J_1
+          do i=I_0,imaxj(j)
+            call inc_ajl(i,j,l,jl_dpasrc,am(l,i,j))
+            call inc_ajl(i,j,l,jl_dwasrc,am(l,i,j)*wm(i,j,l))
+          end do
+        end do
+      end do
+!$OMP END PARALLEL DO
+
       do 600 n=1,ntm
       IF (itime.lt.itime_tr0(n)) cycle
 C**** Latitude-longitude by layer concentration
@@ -55,7 +71,7 @@ C**** Latitude-longitude by layer concentration
 C**** Average concentration; surface concentration; total mass
 !$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
       do j=J_0,J_1
-      do i=1,im
+      do i=I_0,I_1
         tsum = sum(trm(i,j,:,n))*bydxyp(j)  !sum over l
         asum = sum(am(:,i,j))     !sum over l
         taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
@@ -66,10 +82,12 @@ C**** Zonal mean concentration and mass
 !$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
+        end do
         tsum = sum(trm(1:imaxj(j),j,l,n)) !sum over i
         asum = sum(am(l,1:imaxj(j),j))    !sum over i
         tajln(j,l,jlnt_conc,n) = tajln(j,l,jlnt_conc,n)+tsum/asum
-        tajln(j,l,jlnt_mass,n) = tajln(j,l,jlnt_mass,n)+tsum
       enddo; enddo
 !$OMP END PARALLEL DO
 
@@ -79,10 +97,13 @@ C**** Zonal mean cloud water concentration
 !$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
-        tsum = sum(trwm(1:imaxj(j),j,l,n)) !sum over i
-        asum = sum(wm(1:imaxj(j),j,l)*am(l,1:imaxj(j),j))    !sum over i
-        if (asum.gt.0) tajln(j,l,jlnt_cldh2o,n) =
-     *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
+        do i=I_0,imaxj(j)
+          call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
+c        tsum = sum(trwm(1:imaxj(j),j,l,n)) !sum over i
+c        asum = sum(wm(1:imaxj(j),j,l)*am(l,1:imaxj(j),j))    !sum over i
+c        if (asum.gt.0) tajln(j,l,jlnt_cldh2o,n) =
+c     *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
+        end do
       enddo; enddo
 !$OMP END PARALLEL DO
       end if
@@ -396,7 +417,7 @@ C****
 
 
       SUBROUTINE JLt_TITLEX
-!@sum JLt_TITLEX sets up titles, etc. for composit JL output (tracers)
+!@sum JLt_TITLEX sets up titles, etc. for composite JL output (tracers)
 !@auth J. Lerner
 !@ver  1.0
       USE TRACER_COM
@@ -457,7 +478,7 @@ C****
       USE GEOM, only: bydxyp,dxyp,lat_dg
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,ia_dga,ajl
-     *     ,jl_dpa
+     *     ,jl_dpa,jl_dpasrc,jl_dwasrc
       USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
      *     , units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -465,7 +486,7 @@ C****
      *     jlnt_lscond,  jlnt_turb,  jlnt_vt_tot, jlnt_vt_mm, jlnt_mc,
      *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls, jls_source
 #ifdef TRACERS_WATER
-      USE TRDIAG_COM, only : jlnt_cldh2o
+     *     ,jlnt_cldh2o
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
@@ -542,7 +563,8 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       do l=1,lm
       do j=1,JM
         if (tajln(j,l,k,n_water).gt.0) then
-          a(j,l)=1d3*(tajln(j,l,k,n)/(trw0(n)*tajln(j,l,k,n_water))-1.)
+          a(j,l)=1d3*(tajln(j,l,jlnt_mass,n)/(trw0(n)*tajln(j,l
+     *         ,jlnt_mass,n_water))-1.)
         else
           a(j,l)=undef
         end if
@@ -553,9 +575,22 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       else
 #endif
 
-      scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
+      scalet = scale_jln(n)*scale_jlq(k)  !/idacc(ia_jlq(k))
       jtpow = ntm_power(n)+jlq_power(k)
       scalet = scalet*10.**(-jtpow)
+      do l=1,lm
+      do j=1,JM
+        if (ajl(j,l,jl_dpasrc).gt.0) then
+          a(j,l)=tajln(j,l,jlnt_mass,n)/ajl(j,l,jl_dpasrc)
+        else
+          a(j,l)=undef
+        end if
+      end do
+      end do
+      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+     *     plm,a,scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+C**** original version (temporary)
+      scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
 
@@ -607,11 +642,22 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
         CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *       plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
       else
-        scalet = scale_jlq(k)/idacc(ia_jlq(k))
+        scalet = scale_jlq(k)  !/idacc(ia_jlq(k))
         jtpow = ntm_power(n)+jlq_power(k)
         scalet = scalet*10.**(-jtpow)
+        do l=1,lm
+          do j=1,JM
+            if (ajl(j,l,jl_dwasrc).gt.0) then
+              a(j,l)=tajln(j,l,k,n)/ajl(j,l,jl_dwasrc)
+            else
+              a(j,l)=undef
+            end if
+          end do
+        end do
         CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *       plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+     *       plm,a,scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+c        CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
+c     *       plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
       end if
       end if
 #endif
