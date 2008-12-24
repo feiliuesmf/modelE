@@ -69,7 +69,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE TRACER_COM
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPp,ijts_AMPe
      $             ,ijts_AMPm,ijts_AMPext,ijts_AMPpdf,
-     $             tajln=>tajln_loc,itcon_AMP,itcon_AMPe,itcon_AMPm
+     $             itcon_AMP,itcon_AMPe,itcon_AMPm
      $             ,itcon_surf
       USE AMP_AEROSOL
       USE AEROSOL_SOURCES, only: off_HNO3
@@ -78,7 +78,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
      $                     ,dtsrc
-      USE GEOM, only: dxyp,imaxj,BYDXYP
+      USE GEOM, only: axyp,imaxj,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trsrfflx,trflux1
       USE DYNAMICS,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
@@ -102,13 +102,16 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL 
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      INTEGER:: j,l,i,n,J_0, J_1
+      INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1
 C**** functions
       REAL(8):: QSAT
 c***  daily output
       character*30 diam_1
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
@@ -130,7 +133,7 @@ c***  daily output
 
       DO L=1,LM                            
       DO J=J_0,J_1                          
-      DO I=1,IM                     
+      DO I=I_0,I_1                     
 
       IXXX = I
       IYYY = J
@@ -147,7 +150,7 @@ c***  daily output
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
 c avol [m3/gb] mass of air pro m3      
-      AVOL = am(l,i,j)*dxyp(j)/mair*1000.d0*gasc*tk/pres 
+      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 c conversion trm [kg/gb] -> [ug /m^3]
@@ -274,7 +277,7 @@ C** Surabi's addition to save as /cm-3 or just mult. std o/p by 1.2*1.e-16 to ge
 c       taijs(i,j,ijts_AMPm(l,2,n))=taijs(i,j,ijts_AMPm(l,2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*1.e-6)
 c       if(NACTV(i,j,l,AMP_MODES_MAP(n)) .gt. 10.)
 c    *  write(6,*)"Aerosolconv",AVOL*byam(l,i,j),NACTV(i,j,l,AMP_MODES_MAP(n)),
-c    *l,i,j,n,dxyp(j),mair,gasc,tk,pres,am(l,i,j)
+c    *l,i,j,n,axyp(i,j),mair,gasc,tk,pres,am(l,i,j)
 
 c - 2d PRT Diagnostic
          DTR_AMPm(1,j,n)=DTR_AMPm(1,j,n)+(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6*1d18)
