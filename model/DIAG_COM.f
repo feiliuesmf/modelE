@@ -35,7 +35,7 @@ c**** area weight for zig-zag diagnostics on budget grid
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg
 
 !@param KAJ number of accumulated zonal budget diagnostics
-      INTEGER, PARAMETER, public :: KAJ=80
+      INTEGER, PARAMETER, public :: KAJ=81
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
 
@@ -348,7 +348,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
      *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW,
      *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
-     *     J_RUN, J_ERUN, J_HZ0, J_H2OCH4,
+     *     J_RUN, J_ERUN, J_HZ0, J_H2OCH4, J_LWCORR,
      *     J_RVRD,J_ERVR,J_IMELT, J_HMELT, J_SMELT,J_IMPLM, J_IMPLH,
      *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_BRTEMP, J_HZ2,
      *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,

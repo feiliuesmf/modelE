@@ -1248,7 +1248,7 @@ c****
       e1(i,j,4)=e1(i,j,4)+af1dt
 
       call ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
-     &     ,rcdmws,cdm,cdh,cdq,qg
+     &     ,rcdmws,cdm,cdh,cdq,qg,dlwdt
      &     ,pbl_args, pbl_args%dtsurf
      &     ,idx
 #ifdef TRACERS_DUST
@@ -1334,7 +1334,7 @@ c***********************************************************************
 c***********************************************************************
 
       subroutine ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
-     &     ,rcdmws,cdm,cdh,cdq,qg, pbl_args, dtsurf
+     &     ,rcdmws,cdm,cdh,cdq,qg,dlwdt, pbl_args, dtsurf
      &     ,idx
 #ifdef TRACERS_DUST
      &     ,n,n1
@@ -1353,7 +1353,8 @@ c***********************************************************************
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
-     *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2,ij_g05
+     *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2
+     *     ,j_lwcorr,ij_g05
      *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
      *     ,ij_gpp,ij_rauto,ij_clab,ij_soilresp,ij_soilCpoolsum
      *     ,ij_pblht,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23
@@ -1418,7 +1419,7 @@ c***********************************************************************
 
       implicit none
       integer, intent(in) :: i,j,ns,moddsf,moddd
-      real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg
+      real*8, intent(in) :: rcdmws,cdm,cdh,cdq,qg,dlwdt
       type (t_pbl_args) :: pbl_args
       real*8, intent(in) :: dtsurf
       INTEGER, INTENT(IN) :: idx(:)
@@ -1554,6 +1555,7 @@ c           for diagnostic purposes also compute gdeep 1 2 3
 c**** quantities accumulated for regions in diagj
       call inc_areg(i,j,jr,j_trhdt,trhdt*ptype*axyp(i,j))
       call inc_areg(i,j,jr,j_shdt , shdt*ptype*axyp(i,j))
+      call inc_areg(i,j,jr,j_lwcorr,dlwdt*ptype*axyp(i,j))
       call inc_areg(i,j,jr,j_evhdt,evhdt*ptype*axyp(i,j))
       call inc_areg(i,j,jr,j_evap ,aevap*ptype*axyp(i,j))
       call inc_areg(i,j,jr,j_erun ,(aeruns+aerunu)*ptype*axyp(i,j))
@@ -1718,6 +1720,7 @@ c**** quantities accumulated for surface type tables in diagj
       call inc_aj(i,j,itearth,j_trhdt,trhdt*ptype)
       call inc_aj(i,j,itearth,j_evhdt,evhdt*ptype)
       call inc_aj(i,j,itearth,j_shdt , shdt*ptype)
+      call inc_aj(i,j,itearth,j_lwcorr, dlwdt*ptype)
       call inc_aj(i,j,itearth,j_erun ,(aeruns+aerunu)*ptype)
       call inc_aj(i,j,itearth,j_run  ,  (aruns+arunu)*ptype)
       if(moddsf.eq.0) then

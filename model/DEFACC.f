@@ -154,6 +154,15 @@ c
       ia_j(k) = ia_rad
 c
       k=k+1
+      J_LWCORR= k ! LWUP(RAD)-LW(SURF)   (W/m2)                        
+      name_j(k) = 'LWCORR'
+      lname_j(k) = 'LW RAD/SURF CORRECTION'
+      units_j(k) = 'W/m^2'
+      stitle_j(k)= ' LW TO L1'
+      scale_j(k) = 1./DTSRC
+      ia_j(k) = ia_src
+c
+      k=k+1
       J_BRTEMP= k ! BTEMPW-TF                                     2 RD
       name_j(k) = 'btemp_window'
       lname_j(k) = 'BRIGHTNESS TEMP THROUGH WINDOW REGION'

@@ -56,7 +56,7 @@ C****
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt
      *     ,ij_srtr,ij_neth,ij_ws,ij_ts,ij_us,ij_vs,ij_taus,ij_tauus
      *     ,ij_tauvs,ij_qs,ij_tg1,ij_evap,ij_evapo,ij_tgo,ij_f0oc
-     *     ,ij_f0oi,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt
+     *     ,ij_f0oi,ij_evapi,ij_f0li,ij_evapli,j_evap,j_evhdt,j_lwcorr
      *     ,j_tsrf,j_shdt,j_trhdt,j_type,j_tg1,j_tg2,ijdd,idd_spr
      *     ,idd_pt5,idd_ts,idd_tg1
      *     ,idd_q5,idd_qs,idd_qg,idd_swg
@@ -1010,15 +1010,11 @@ cccccc for SCM use ARM provided fluxes for designated box
  980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
      &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
       else
-           DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
-           DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
-c          write(iu_scm_prt,981) I,PTYPE,DTH1(I,J),DQ1(I,J)
-c981       format(1x,'SURFACE GCM   I PTYPE DTH1 DQ1 ',
-c    &            i5,f9.4,f9.5,f9.6)
-      endif
-#else
-      DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K)  ! +ve up
+#endif
+      DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K) ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
+#ifdef SCM
+      endif
 #endif
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)
       DMVA(I,J,ITYPE)=DMVA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(VS-VOCEAN)
@@ -1031,6 +1027,7 @@ C****
         CALL INC_AJ(I,J,IDTYPE,J_EVHDT,EVHDT*PTYPE)
         CALL INC_AJ(I,J,IDTYPE,J_SHDT , SHDT*PTYPE)
         CALL INC_AJ(I,J,IDTYPE,J_TRHDT,TRHDT*PTYPE)
+        CALL INC_AJ(I,J,IDTYPE,J_LWCORR,dLWDT*PTYPE)
         IF(MODDSF.EQ.0) THEN
           CALL INC_AJ(I,J,IDTYPE,J_TSRF,(TS-TF)*PTYPE)
           CALL INC_AJ(I,J,IDTYPE,J_TYPE,        PTYPE)
@@ -1039,7 +1036,8 @@ C****
         END IF
 C**** QUANTITIES ACCUMULATED FOR REGIONS IN DIAGJ
         CALL INC_AREG(I,J,JR,J_TRHDT,TRHDT*PTYPE*AXYP(I,J))
-        CALL INC_AREG(I,J,JR,J_SHDT ,SHDT *PTYPE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_SHDT,  SHDT*PTYPE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_LWCORR,dLWDT*PTYPE*AXYP(I,J))
         CALL INC_AREG(I,J,JR,J_EVHDT,EVHDT*PTYPE*AXYP(I,J))
         CALL INC_AREG(I,J,JR,J_EVAP ,EVAP *PTYPE*AXYP(I,J))
         IF(MODDSF.EQ.0) THEN
