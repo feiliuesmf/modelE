@@ -184,7 +184,7 @@ Atmosphere: Change of TPE by Radiation (10^-2 W/m^2) / 100
  = Global: [NET RAD AT P1 - NET RAD AT Z0]
 
 Atmosphere: Change of TPE by Surface Inter (10^-2 W/m^2) / 100  =
-Global: - [SENSBL HEAT FLX]
+Global: - [SENSBL HEAT FLX] - [LW TO L1]
 
 Atmosphere: Change of TPE by Condensation (10^-2 W/m^2) / 100 +
 Atmosphere: Change of ENRG WAT by Condensation (10^-2 W/m^2) / 100 =
