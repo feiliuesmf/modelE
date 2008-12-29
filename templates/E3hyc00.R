@@ -154,6 +154,10 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
+!     if CLOUDS2_E1 is replaced by CLOUDS2, use:
+! U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+! U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+!     instead of:
 U00ice=.57      ! increase U00ice to decrease albedo    goals: NetHtz0=0,plan.alb=30%
 U00wtrX=1.44    ! U00wtrX+.01=>nethtz0+.7               for global annual mean
 !use  U00wtrX=1.38    for 1979 atmosphere/ocean

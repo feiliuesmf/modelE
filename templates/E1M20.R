@@ -292,7 +292,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! RES_M12 DIAG_RES_M FFT72
 !     replace section in "Data input files" AIC by
 ! AIC=AIC.RES_M12.D771201   ! observed init cond   (atm. only)       ISTART=2
-! In &&PARAMETERS : Retune U00ice/U00wtrX if necessary
+! In &&PARAMETERS : Retune U00a/U00b if necessary
 ! [ for higher resolution in the stratosphere, retune X_SDRAG,C_SDRAG or
 !   switch to a model with a gravity wave drag parameterization ]
 
@@ -314,5 +314,5 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! TOP_INDEX=top_index_144x90.ij.ext
 !     set in &&PARAMETERS : DT=225. DT_XUfilter=225. DT_XVfilter=225.
 !                          ..._yr=1950 (to be consistent with OSST)
-!                          retune U00ice/U00wtrX (if necessary)
+!                          retune U00a/U00b (if necessary)
 !             [ in F20:    retune X_SDRAG,C_SDRAG (if necessary) ]
