@@ -794,7 +794,8 @@ ccc      call comparall(m,n,mm,nn,string)
 c
 c     before = after
 
-      if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
+      if ((iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) .and.
+     .                          nstep*baclin.ge.12.*3600) 
      .      call diapfl(m,n,mm,nn,k1m,k1n)
 c
 c     call system_clock(after)
