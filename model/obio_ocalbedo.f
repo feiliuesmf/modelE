@@ -8,7 +8,7 @@
 ***** where implicitly it is assumed that
 ***** wind,solz,bocvn,xocvn,chl are in the atmos gird if hycgr=.false. 
 ***** wind,solz,                are in the ocean gird if hycgr=.true.
-***** when this routine is called from within hycom, it does not compute
+***** when this routine is called from within ocean, it does not compute
 ***** albedo coefficients. Those are computed on the atmos grid.
 ***** when this routine is called from within ocean, it does not pass
 ***** reflectances
@@ -172,7 +172,7 @@ c      endif
       endif
 
       if (hycgr) return  !we do not compute albedo coefs
-                         !from within hycom, but from atmos
+                         !from within ocean, but from atmos
       
 !!!!!!!!!! Boris' part !!!!!!!!!!!!!!!!!
 !diffuse spectral reflectance average

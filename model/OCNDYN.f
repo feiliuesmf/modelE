@@ -63,17 +63,26 @@ C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
 
+
+C**** Add ocean biology
+#ifdef TRACERS_OceanBiology
+      call obio_model
+#endif
+
+
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S == 0) CALL DIAGCA (11)
 
+
 C**** Calculate vertical diffusion
       CALL OCONV
          CALL CHECKO('OCONV ')
 
 C**** Apply bottom and coastal drags
+
       if (OBottom_drag  == 1) CALL OBDRAG
       if (OCoastal_drag == 1) CALL OCOAST
          CALL TIMER (MNOW,MSGSO)
@@ -271,6 +280,9 @@ C***  Get the data from the ocean grid to the atmospheric grid
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
 #ifdef TRACERS_OCEAN
      *     ,oc_tracer_mean,ntm
+#endif
+#ifdef TRACERS_OceanBiology
+      USE obio_forc, only : obio_restart
 #endif
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
@@ -602,6 +614,12 @@ C**** Initialize KPP mixing scheme
 C**** Initialize some info passed to atmsophere
       uosurf=0 ; vosurf=0. ; ogeoza=0.
 
+C**** Set initialization flag for ocean biology
+#ifdef TRACERS_OceanBiology
+      obio_restart=.false.
+      if (istart.le.2) obio_restart=.true.
+#endif
+
 C**** Set atmospheric surface variables
       IF (ISTART.gt.0) CALL TOC2SST
 
@@ -661,8 +679,14 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
       USE OCEAN
+#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANR_DIM, only : ogrid
+      USE obio_com, only : itest,jtest,gcmax
+      USE obio_forc, only : avgq,tirrq3d,ihra
+#endif
 
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP, only : AM_I_ROOT,PACK_DATA
 
       IMPLICIT NONE
 
@@ -672,6 +696,16 @@ C****
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDYN01"
+#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+      integer i,j,k
+!@var TRNHEADER Character string label for individual records
+      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
+#endif
+#ifdef TRACERS_OceanBiology
+      real*8, allocatable :: avgq_glob(:,:,:),tirrq3d_glob(:,:,:),
+     &     gcmax_glob(:,:,:)
+      integer, allocatable :: ihra_glob(:,:)
+#endif
 #ifdef TRACERS_OCEAN
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
@@ -679,6 +713,20 @@ C****
       write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
      *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
 #endif
+#ifdef TRACERS_OceanBiology
+      if (AM_I_ROOT()) then
+        allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
+     &       ihra_glob(idm,jdm), gcmax_glob(idm,jdm,kdm) )
+      endif
+      call pack_data(ogrid, avgq,    avgq_glob)
+      call pack_data(ogrid, tirrq3d, tirrq3d_glob)
+      call pack_data(ogrid, ihra,    ihra_glob)
+      call pack_data(ogrid, gcmax,   gcmax_glob)
+
+      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
+     *     'R8 dim(im,jm,',LMO,',',NTM,'):avgq,gcmax,tirrq3d,ihra'
+#endif
+
 
       write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
      *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
@@ -694,6 +742,39 @@ C****
 #ifdef TRACERS_OCEAN
           WRITE (kunit,err=10) TRMODULE_HEADER
      *     ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
+#endif
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      WRITE (kunit,err=10) TRNMODULE_HEADER
+     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+      i=itest
+      j=jtest
+      do k=1,kdm
+      write(*,'(a,i2,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
+     .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
+     &       ihra_glob(i,j),atrac(10,20,1)
+      enddo
+#else
+#ifdef TRACERS_GASEXCH_ocean
+      WRITE (kunit,err=10) TRNMODULE_HEADER
+     . ,atrac
+      i=itest
+      j=jtest
+      do k=1,kdm
+      write(*,'(a,i2,e12.4)') ' tst1a k=',k,
+     &      atrac(10,20,1)
+      enddo
+#endif
+#ifdef TRACERS_OceanBiology
+      WRITE (kunit,err=10) TRNMODULE_HEADER
+     . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+      i=itest
+      j=jtest
+      do k=1,kdm
+      write(*,'(a,i2,3(e12.4,1x),i3)') ' tst1a k=',k,
+     .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
+     &       ihra_glob(i,j)
+      enddo
+#endif
 #endif
         end if
       CASE (IOREAD:)            ! input from restart file
@@ -711,6 +792,7 @@ C****
      *             ,MODULE_HEADER
               GO TO 10
             END IF
+
 #ifdef TRACERS_OCEAN
             READ (kunit,err=10) TRHEADER
      *        ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
@@ -720,6 +802,43 @@ C****
               GO TO 10
             END IF
 #endif
+
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+      READ (kunit,err=10) TRNHEADER
+     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER 
+              GO TO 10
+            END IF
+#else
+#ifdef TRACERS_GASEXCH_ocean
+      READ (kunit,err=10) TRNHEADER
+     . ,atrac
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
+#ifdef TRACERS_OceanBiology
+      READ (kunit,err=10) TRNHEADER
+     . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+      i=itest
+      j=jtest
+      do k=1,kdm
+      write(*,'(a,i2,3(e12.4,1x),i3)') ' tst1b k=',k,
+     .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
+     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
+      enddo
+            IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRNHEADER
+     .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+#endif
+#endif
+
            end if
            call scatter_ocean (0)  ! mo,uo,vo,g0m,x-z,s0m,x-z,ogz's,tr
           CASE (irsficnt) ! restarts (never any tracer data)
@@ -4961,7 +5080,11 @@ C**** Check
       USE OCEANRES,   only : IMO, JMO, LMO
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: NTM
+#else
       USE TRACER_COM, only: NTM
+#endif
 #endif
 
       USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
@@ -5343,6 +5466,17 @@ C**** surface tracer concentration
 #ifdef TRACERS_GASEXCH_Natassa
      *     , aTRGASEX_glob, oTRGASEX_glob
 #endif      
+#ifdef OBIO_RAD_coupling
+     *     , avisdir_glob,ovisdir_glob
+     *     , asrvissurf_glob
+     *     , avisdif_glob,ovisdif_glob
+     *     , anirdir_glob,onirdir_glob
+     *     , anirdif_glob,onirdif_glob
+#endif
+#ifdef TRACERS_OceanBiology
+     *     , aCOSZ1_glob, osolz_glob
+     *     , awind_glob,  owind_glob
+#endif
      *     )     
 !@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC 
 !!      from atmospheric grid to the ocean grid
@@ -5354,7 +5488,11 @@ C**** surface tracer concentration
       USE MODEL_COM, only : IVSPA=>IVSP, IVNPA=>IVNP
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
+#endif
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
@@ -5398,6 +5536,14 @@ C**** surface tracer concentration
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
 #endif
+#ifdef TRACERS_OceanBiology
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: avisdir_glob
+     *    ,asrvissurf_glob
+     *    ,avisdif_glob,anirdir_glob,anirdif_glob
+#endif
+#ifdef TRACERS_OceanBiology
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: aCOSZ1_glob,awind_glob
+#endif
 
 !!!   Global arrays on ocean grid
 
@@ -5424,6 +5570,13 @@ C**** surface tracer concentration
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
+#endif
+#ifdef OBIO_RAD_coupling
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: ovisdir_glob,
+     *   ovisdif_glob,onirdir_glob,onirdif_glob
+#endif
+#ifdef TRACERS_OceanBiology
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: osolz_glob,owind_glob
 #endif
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aOOCN
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
@@ -5725,6 +5878,78 @@ C**** surface tracer concentration
       END DO
 #endif
 
+#ifdef OBIO_RAD_coupling
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = avisdir_glob(I,J)
+     .                  * asrvissurf_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+          END IF
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      ovisdir_glob(:,:) = oFtemp(:,:)                               
+
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = avisdif_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+          END IF
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      ovisdif_glob(:,:) = oFtemp(:,:)                               
+
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = anirdir_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+          END IF
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      onirdir_glob(:,:) = oFtemp(:,:)                               
+
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = anirdif_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+          END IF
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      onirdif_glob(:,:) = oFtemp(:,:)                               
+#endif
+
+#ifdef TRACERS_OceanBiology
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aCOSZ1_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+          END IF
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      osolz_glob(:,:) = oFtemp(:,:)                               
+      write(*,*)'OCNDYN, solz=',osolz_glob(16,45)
+
+      DO J=1,JMA
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = awind_glob(I,J)*(aDXYP(J)/aDXYPO(J))
+          END IF
+        END DO
+      END DO
+      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
+      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
+      owind_glob(:,:) = oFtemp(:,:)                               
+#endif
+
       aDMUAsp = aDMUA_glob(1,1,1)
       aDMVAsp = aDMVA_glob(1,1,1)
       aDMUAnp = aDMUA_glob(1,JMA,1)
@@ -5799,6 +6024,7 @@ C**** surface tracer concentration
       call HNTR8  (aONES, aDMVI_glob, oDMVI_glob)      !!  V-grid => V-grid
       oDMVI_glob(:,JMO) = 0.0                          !!  should not be used
 
+>>>>>>> 2.172
       
       RETURN
       END SUBROUTINE INT_AG2OG_oceans 
@@ -5822,7 +6048,11 @@ C**** surface tracer concentration
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
+#endif
 #endif
 
       USE GEOM,  only : aDXYP=>DXYP,aDXYPO, aIMAXJ=>IMAXJ, aDLATM=>DLATM
@@ -5940,7 +6170,11 @@ C**** surface tracer concentration
       USE OCEAN, only : IMO=>IM,JMO=>JM
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
+#endif
 #endif
 
       USE DOMAIN_DECOMP, only : agrid=>grid, AM_I_ROOT
@@ -5969,6 +6203,17 @@ C**** surface tracer concentration
 #ifdef TRACERS_GASEXCH_Natassa
       USE FLUXES, only : aTRGASEX=>TRGASEX
 #endif
+#ifdef OBIO_RAD_coupling
+      USE RAD_COM, only : avisdir    => FSRDIR
+     *                   ,asrvissurf => SRVISSURF
+     *                   ,avisdif    => FSRDIF
+     *                   ,anirdir    => DIRNIR
+     *                   ,anirdif    => DIFNIR
+#endif
+#ifdef TRACERS_OceanBiology
+      USE RAD_COM, only : aCOSZ1=>COSZ1
+      USE PBLCOM, only : awind=>wsavg
+#endif
 
       USE OFLUXES, only : oRSI, oSOLAR, oE0, oEVAPOR
      *     , oRUNOSI, oERUNOSI, oSRUNOSI
@@ -5988,6 +6233,13 @@ C**** surface tracer concentration
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       USE OFLUXES, only : oTRGASEX
+#endif
+#ifdef OBIO_RAD_coupling
+      USE obio_forc, only : ovisdir,ovisdif,onirdir,onirdif
+#endif
+#ifdef TRACERS_OceanBiology
+      USE obio_forc, only : osolz
+      USE obio_forc, only : owind
 #endif
 
       IMPLICIT NONE
@@ -6015,6 +6267,14 @@ C**** surface tracer concentration
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
 #endif
+#ifdef OBIO_RAD_coupling
+      REAL*8, DIMENSION(IMA,JMA) :: avisdir_glob
+     *                             ,asrvissurf_glob,avisdif_glob
+     *                             ,anirdir_glob,anirdif_glob
+#endif
+#ifdef TRACERS_OceanBiology
+      REAL*8, DIMENSION(IMA,JMA) :: aCOSZ1_glob, awind_glob
+#endif
 
 !!!   Global arrays on ocean grid
 
@@ -6037,6 +6297,13 @@ C**** surface tracer concentration
 #endif
 #ifdef TRACERS_GASEXCH_Natassa
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
+#endif
+#ifdef OBIO_RAD_coupling
+      REAL*8, DIMENSION(IMO,JMO) :: ovisdir_glob,
+     *  ovisdif_glob,onirdir_glob,onirdif_glob
+#endif
+#ifdef TRACERS_OceanBiology
+      REAL*8, DIMENSION(IMO,JMO) :: osolz_glob, owind_glob
 #endif
 
 C***  Gather arrays on atmospheric grid into the global arrays 
@@ -6075,6 +6342,17 @@ C***  Gather arrays on atmospheric grid into the global arrays
 #ifdef TRACERS_GASEXCH_Natassa
       CALL PACK_BLOCK (agrid,  aTRGASEX,  aTRGASEX_glob)
 #endif      
+#ifdef OBIO_RAD_coupling
+      CALL PACK_DATA  (agrid, avisdir, avisdir_glob)
+      CALL PACK_DATA  (agrid, asrvissurf, asrvissurf_glob)
+      CALL PACK_DATA  (agrid, avisdif, avisdif_glob)
+      CALL PACK_DATA  (agrid, anirdir, anirdir_glob)
+      CALL PACK_DATA  (agrid, anirdif, anirdif_glob)
+#endif
+#ifdef TRACERS_OceanBiology
+      CALL PACK_DATA  (agrid,  aCOSZ1,  aCOSZ1_glob)
+      CALL PACK_DATA  (agrid,   awind,   awind_glob)
+#endif      
 C* 
 C***  Do interpolation to the ocean grid 
 C* 
@@ -6107,6 +6385,17 @@ C*
 #ifdef TRACERS_GASEXCH_Natassa
      *     , aTRGASEX_glob, oTRGASEX_glob
 #endif      
+#ifdef OBIO_RAD_coupling
+     *     , avisdir_glob,ovisdir_glob
+     *     , asrvissurf_glob
+     *     , avisdif_glob,ovisdif_glob
+     *     , anirdir_glob,onirdir_glob
+     *     , anirdif_glob,onirdif_glob
+#endif
+#ifdef TRACERS_OceanBiology
+     *     , aCOSZ1_glob, osolz_glob
+     *     ,  awind_glob, owind_glob
+#endif
      *     )     
       end if 
 
@@ -6146,6 +6435,16 @@ C***  Scatter the arrays to the ocean grid
 #ifdef TRACERS_GASEXCH_Natassa
       CALL UNPACK_BLOCK (ogrid,  oTRGASEX_glob,  oTRGASEX)
 #endif      
+#ifdef OBIO_RAD_coupling
+      CALL UNPACK_DATA  (ogrid,ovisdir_glob,ovisdir)
+      CALL UNPACK_DATA  (ogrid,ovisdif_glob,ovisdif)
+      CALL UNPACK_DATA  (ogrid,onirdir_glob,onirdir)
+      CALL UNPACK_DATA  (ogrid,onirdif_glob,onirdif)
+#endif
+#ifdef TRACERS_OceanBiology
+      CALL UNPACK_DATA  (ogrid,  osolz_glob,  osolz)
+      CALL UNPACK_DATA  (ogrid,  owind_glob,  owind)
+#endif
       
       RETURN
       END SUBROUTINE AG2OG_oceans 
@@ -6162,7 +6461,11 @@ C***  Scatter the arrays to the ocean grid
       USE OCEAN, only : IMO=>IM,JMO=>JM, FOCEAN, IMAXJ
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
+#endif
 #endif
 
       USE DOMAIN_DECOMP, only : agrid=>grid, AM_I_ROOT

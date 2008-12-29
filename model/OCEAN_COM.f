@@ -11,7 +11,7 @@ C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
       Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       Use OCN_TRACER_COM, Only : ntm
 #endif
 
@@ -96,9 +96,10 @@ C**** ocean related parameters
 !@var OPBOT ocean bottom pressure (diagnostic only) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPBOT
 
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)
-      REAL*8, DIMENSION(IM,JM,LMO,NTM) :: ! for i/o, straits, GM ?
+! for i/o, straits, GM ?
+      REAL*8, DIMENSION(IM,JM,LMO,NTM) :: 
      *       TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMO,TXMO,TYMO,TZMO
 #endif
@@ -347,9 +348,13 @@ C****
 
       USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
       USE OCN_TRACER_COM, only : ntm
+#endif
+#ifdef TRACERS_OceanBiology
+      USE obio_forc, only: alloc_obio_forc
+      USE obio_com,  only: alloc_obio_com
 #endif
       USE OCEAN_DYN, only : DH,VBAR, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
@@ -381,7 +386,7 @@ C****
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ_SV (IM,J_0H:J_1H), STAT = IER)
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
@@ -413,6 +418,11 @@ c??   call ALLOC_GM_COM(grid)
       call alloc_odiag(ogrid)
       call alloc_afluxes(grid)
       call ALLOC_OFLUXES(ogrid)
+
+#ifdef TRACERS_OceanBiology
+      call alloc_obio_forc
+      call alloc_obio_com
+#endif
 
       return
       end subroutine alloc_ocean

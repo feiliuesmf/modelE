@@ -36,7 +36,10 @@
 #endif
 #endif
 #ifdef TRACERS_OCEAN
+#ifdef TRACERS_OCEAN_INDEP
+#else
       USE TRACER_COM, only :  trglac,trw0
+#endif
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM

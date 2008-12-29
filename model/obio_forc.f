@@ -1,20 +1,26 @@
 #include "rundeck_opts.h"
+
       MODULE obio_forc
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo 
+#else
+      USE hycom_dim_glob
+#endif
       USE obio_dim
 
-      USE hycom_dim_glob
+
       implicit none
 
 
       integer, ALLOCATABLE, DIMENSION(:,:) :: ihra            !counter for daylight hours
 
-      !real, ALLOCATABLE, DIMENSION(:,:)    :: asolz
-      !real, ALLOCATABLE, DIMENSION(:,:)    :: awind           !wind speed from modelE (see hycom2.f)
+!@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
+!@var WSAVG     COMPOSITE SURFACE WIND MAGNITUDE (M/S)
       real, ALLOCATABLE, DIMENSION(:,:)    :: osolz
-      real, ALLOCATABLE, DIMENSION(:,:)    :: owind           !wind speed in hycom grid (see hycom2.f)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: owind           !wind speed in ocean grid (see hycom2.f)
       real, ALLOCATABLE, DIMENSION(:,:)    :: osolz_glob
-      real, ALLOCATABLE, DIMENSION(:,:)    :: owind_glob           !wind speed in hycom grid (see hycom2.f)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: owind_glob      !wind speed in ocean grid (see hycom2.f)
 
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
@@ -23,12 +29,12 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity from climatology in 'umol/kg'
 
 #ifdef OBIO_RAD_coupling
-!      real*8, ALLOCATABLE, DIMENSION(:,:)    :: avisdir,avisdif
-!     .                                         ,anirdir,anirdif
       real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir,ovisdif
      .                                         ,onirdir,onirdif
-      real*8, ALLOCATABLE, DIMENSION(:,:)   :: ovisdir_glob,ovisdif_glob
-     .                                        ,onirdir_glob,onirdif_glob
+      real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir_glob
+     .                                         ,ovisdif_glob
+     .                                         ,onirdir_glob
+     .                                         ,onirdif_glob
 #endif
 #ifndef OBIO_RAD_coupling
       real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa       !direct,diffuse downwelling irradiance
@@ -70,55 +76,70 @@
 !$OMP THREADPRIVATE(/bmud/)
 
       real atmCO2
-!     real, parameter :: atmCO2=368.6          !uatm for year 2000
-!                  !     atmCO2=280.           !uatm for preindustial runs
-!                  !     atmCO2=371.3          !uatm or ppmv (equivalent);
-!                                              !global mean
-!                                              !2000-2003 from OCMIP
 
+#ifdef OBIO_ON_GARYocean
+      logical obio_restart
+#endif
       contains
 
+!------------------------------------------------------------------------------
       subroutine alloc_obio_forc
 
       USE obio_dim
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+#else
       USE hycom_dim_glob
-      USE hycom_dim, only : j_0h,j_1h
+      USE hycom_dim, only : i_0h,i_1h,j_0h,j_1h
+#endif
 
-      !ALLOCATE(asolz(iia,jja))
-      !ALLOCATE(awind(iia,jja))
-      ALLOCATE(osolz(idm,j_0h:j_1h))
-      ALLOCATE(owind(idm,j_0h:j_1h))
+
+      implicit none
+
+#ifdef OBIO_ON_GARYocean
+      INTEGER :: j_0h,j_1h,i_0h,i_1h
+
+      I_0H = ogrid%I_STRT_HALO
+      I_1H = ogrid%I_STOP_HALO
+      J_0H = ogrid%J_STRT_HALO
+      J_1H = ogrid%J_STOP_HALO
+#endif
+
+      ALLOCATE(osolz(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(owind(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(osolz_glob(idm,jdm))
       ALLOCATE(owind_glob(idm,jdm))
 
-      ALLOCATE(tirrq3d(idm,j_0h:j_1h,kdm))
-      ALLOCATE(ihra(idm,j_0h:j_1h))
-      ALLOCATE(avgq(idm,j_0h:j_1h,kdm))
-!      ALLOCATE(atmFe(idm,jdm),atmFe_all(idm,jdm,12))
-!      ALLOCATE(alk(idm,jdm,kdm))
-      ALLOCATE(atmFe(idm,jdm),atmFe_all(idm,j_0h:j_1h,12))
-      ALLOCATE(alk(idm,j_0h:j_1h,kdm))
+      ALLOCATE(tirrq3d(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(   ihra(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(   avgq(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(    alk(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(atmFe(idm,jdm),atmFe_all(i_0h:i_1h,j_0h:j_1h,12))
 
 
 #ifdef OBIO_RAD_coupling
-!      ALLOCATE(avisdir(iia,jja),avisdif(iia,jja)
-!     .        ,anirdir(iia,jja),anirdif(iia,jja))
-      ALLOCATE(ovisdir(idm,j_0h:j_1h),ovisdif(idm,j_0h:j_1h)
-     .        ,onirdir(idm,j_0h:j_1h),onirdif(idm,j_0h:j_1h))
+      ALLOCATE(ovisdir(i_0h:i_1h,j_0h:j_1h)
+     .        ,ovisdif(i_0h:i_1h,j_0h:j_1h)
+     .        ,onirdir(i_0h:i_1h,j_0h:j_1h)
+     .        ,onirdif(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ovisdir_glob(idm,jdm),ovisdif_glob(idm,jdm)
      .        ,onirdir_glob(idm,jdm),onirdif_glob(idm,jdm))
 #endif
-cddd#ifndef OBIO_RAD_coupling
-cddd      ALLOCATE(Eda(idm,jdm,nlt,nhn,12))
-cddd      ALLOCATE(Esa(idm,jdm,nlt,nhn,12))
-cddd#endif
 
       end subroutine alloc_obio_forc
 
+!------------------------------------------------------------------------------
       subroutine scatter_obio_forc_arrays
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+#endif
+      USE DOMAIN_DECOMP, ONLY: unpack_data
+
+      implicit none
 
       call unpack_data( ogrid, owind_glob, owind )
       call unpack_data( ogrid, osolz_glob, osolz )

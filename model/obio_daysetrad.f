@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       subroutine obio_daysetrad(vrbos,i,j)
 c
 c  Sets daily parameters for ocean irradiance.
@@ -7,8 +9,13 @@ c
       USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
      .                    ,acdom
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo
+#else
       USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : lp, nstep
+      USE hycom_scalars, only : nstep
+#endif
+
       implicit none
 
       integer :: i,j,k

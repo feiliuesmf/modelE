@@ -106,7 +106,7 @@ C****
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
+      USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water,n_obio
 #endif
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
@@ -115,7 +115,11 @@ C****
       USE GEOM, only : lat_dg, lon_dg, dlat
       USE ODIAG
 #ifdef TRACERS_OCEAN
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only : to_per_mil
+#else
       USE TRDIAG_COM, only : to_per_mil
+#endif
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJM,SFIJS,ADENOM
@@ -1385,7 +1389,11 @@ C**** This is a horrible resolution-dependent hack!
       USE DIAG_COM, only : qdiag,zoc
       USE ODIAG
 #ifdef TRACERS_OCEAN
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only : to_per_mil
+#else
       USE TRDIAG_COM, only : to_per_mil
+#endif
 #endif
       IMPLICIT NONE
       INTEGER, PARAMETER :: NSEC=3, NBAS=4

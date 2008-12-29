@@ -9,11 +9,15 @@
       USE DOMAIN_DECOMP, ONLY: grid
       USE DIAG_COM, only: npts !npts are conservation quantities
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
      *     , ntsurfsrcmax, nt3Dsrcmax
 #ifdef TRACERS_AMP
      *     ,ntmAMP
       USE AERO_CONFIG,only: nbins
+#endif
 #endif
 #endif
       IMPLICIT NONE

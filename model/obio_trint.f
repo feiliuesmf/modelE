@@ -1,34 +1,65 @@
-      subroutine obio_trint(nn)
+#include "rundeck_opts.h"
 
+#ifdef OBIO_ON_GARYocean
+      subroutine obio_trint
+#else
+      subroutine obio_trint(nn)
+#endif
+
+#ifdef OBIO_ON_GARYocean
+      Use OCEANRES,  only: idm=>imo,jdm=>jmo,kdm=>lmo,dZO
+      USE OCEAN, only : focean
+      USE OCEANR_DIM, only : ogrid
+      USE obio_com, only: tracer, tracer_loc
+      USE OCN_TRACER_COM, only : ntrcr=>ntm
+      USE MODEL_COM, only : nstep=>itime
+      USE GEOM, only : dxyp
+#else
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr
       USE hycom_arrays_glob, only : tracer,dp,scp2
       USE hycom_scalars, only : nstep
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+#endif
+
+      USE DOMAIN_DECOMP, only: AM_I_ROOT,GLOBALSUM 
+
+
       implicit none
 
       integer i,j,k,l,kn,nn
       integer ntr
-      real sum,sum_area,summ
+      real sumo,sum_area,summ
+      real :: arraySum
+      real :: sumtrac(idm,jdm,kdm)
 
       !!! need to gather tracer etc. before calling this routine
       if ( AM_I_ROOT() ) then
 
-      print*,'   '
-      write(*,*)'nn=',nn
       do ntr=1,ntrcr
       summ=0.
-        do k=1,kk
-        sum=0.
+        do k=1,kdm
+        sumo=0.
         sum_area=0.
-        do j=1,jj
-        do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
-           kn=k+nn
-           sum=sum+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
-           sum_area=sum_area+dp(i,j,kn)*scp2(i,j)
+        do j=1,jdm
+        do i=1,idm
+#ifdef OBIO_ON_GARYocean
+         kn=k
+         IF (FOCEAN(i,j).gt.0) then
+           sumo=sumo+dzo(kn)*tracer(i,j,k,ntr)*dxyp(j)
+           sum_area=sum_area+dzo(kn)*dxyp(j)
+           summ=summ+dzo(kn)*tracer(i,j,k,ntr)*dxyp(j)
 
+!        if (ntr.eq.1) then
+!        write(*,'(a,4i5,4e12.4)')'obio_trint: ',
+!    .      i,j,k,ntr,tracer(i,j,k,ntr),dxyp(j),dzo(kn),summ
+!        endif
+         endif !focean
+#else
+         kn=k+nn
+           sumo=sumo+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
+           sum_area=sum_area+dp(i,j,kn)*scp2(i,j)
            summ=summ+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
-        enddo
+#endif
+          
         enddo
         enddo
         enddo
@@ -37,7 +68,13 @@
       enddo
       print*,'   '
 
-      endif
+      endif   !if am_i_root
+
+      do ntr=1,ntrcr
+        sumtrac=tracer(:,:,:,ntr)
+        call GLOBALSUM(ogrid,sum(sumtrac,dim=3),arraySum)
+        if(AM_I_ROOT()) write(*,*) __FILE__,__LINE__, ntr, arraySum
+      enddo
 
       return
       end

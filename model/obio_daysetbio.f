@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       subroutine obio_daysetbio(vrbos,i,j)
 c
 c  Sets daily parameters for bio.
@@ -9,8 +11,15 @@ c
       USE obio_com,   only : tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo
+      !????? what is nstep?????
+#else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
+
+#endif
+
       implicit none
 
       integer i,j,k

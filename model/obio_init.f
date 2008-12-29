@@ -19,9 +19,14 @@ c
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro
 
-
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+#else
       USE hycom_dim_glob, only : idm,jdm,kdm
       USE hycom_scalars, only : nstep
+#endif
+
+
       implicit none  
 
       integer i,j,k
@@ -42,6 +47,8 @@ c
       character cacbc*11,cabw*10
       character*80 filename
 
+      real ena(idm,jdm,12)
+
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
 
       data a0,a1,a2,a3 /0.9976,0.2194,5.554E-2,6.7E-3/
@@ -55,7 +62,9 @@ c  Computes constants over entire run of model, reads in required
 c  data files, and otherwise obtains one-time-only information
 c  necessary for the run.
 
-      !!!call get_param("atmCO2",atmCO2)
+#ifndef TRACERS_GASEXCH_ocean_CO2
+      call get_param("atmCO2",atmCO2)
+#endif
  
 c  Degrees to radians conversion
       pi = dacos(-1.0D0)
@@ -312,11 +321,11 @@ c  Read in factors to compute average irradiance
        enddo
       enddo
       call closeunit(iu_fac)
-      if (AM_I_ROOT()) then
-      print*,'nstep, facirr(10,18,1)=',nstep,facirr4(10,18,1,1)
-      print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
-      print*, '    '
-      endif
+!     if (AM_I_ROOT()) then
+!     print*,'nstep, facirr(10,18,1)=',nstep,facirr4(10,18,1,1)
+!     print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
+!     print*, '    '
+!     endif
 
 #ifndef OBIO_RAD_coupling
 !ifst part from ocalbedo.f
@@ -415,7 +424,9 @@ c  Read in factors to compute average irradiance
       print*, '    '
       endif
 
-#ifndef OBIO_SPEED_HACKS
+!!!! this part of the code is done only when reading OASIM data which
+!!!! is written in hycom format. Never use with gary's ocean. 
+!!!! till I say so!
       ALLOCATE (Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12))
 
       open(unit=iu_bio,file='oasimdirect'
@@ -436,7 +447,6 @@ c  Read in factors to compute average irradiance
       enddo
       enddo
       close(iu_bio)
-#endif
 #endif  /*OBIO_RAD_coupling*/
 
 !read in atmospheric iron deposition (this will also be changed later...)
@@ -456,7 +466,14 @@ c  Read in factors to compute average irradiance
 !     enddo
 !     close(iu_bio)
         filename='atmFe_inicond'
+#ifdef OBIO_ON_GARYocean
+        call bio_inicond2D_g(filename,atmFe_all(:,:,:),.true.)
+        !!call bio_inicond2D_g(filename,ena(:,:,:),.true.)
+        !!atmFe_all = ena
+    
+#else
         call bio_inicond2D(filename,atmFe_all(:,:,:),.true.)
+#endif
 cdiag   do k=1,12
 cdiag   do j=1,jdm
 cdiag   do i=1,idm
@@ -467,25 +484,30 @@ cdiag   enddo
 cdiag   enddo
       endif
 
-      if (IRON_from.eq.1) then
-      !this needs to be changed according to bio_inicond2D
-      !not done yet, because ron's iron fluxes too big.
-      call stop_model("obio_init:IRON_from.eq.1 not implemented",255)
-      call openunit('atmFedirect1',iu_bio)
-      do imon=1,12  !1 year of monthly values
-       do j=1,jdm
-        do i=1,idm
-        read(iu_bio,'(e12.4)')atmFe_all(i,j,imon)
-        enddo
-       enddo
-      enddo
-      call closeunit(iu_bio)
-      endif
+!     if (IRON_from.eq.1) then
+!     !this needs to be changed according to bio_inicond2D
+!     !not done yet, because ron's iron fluxes too big.
+!     call stop_model("obio_init:IRON_from.eq.1 not implemented",255)
+!     call openunit('atmFedirect1',iu_bio)
+!     do imon=1,12  !1 year of monthly values
+!      do j=1,jdm
+!       do i=1,idm
+!       read(iu_bio,'(e12.4)')atmFe_all(i,j,imon)
+!       enddo
+!      enddo
+!     enddo
+!     call closeunit(iu_bio)
+!     endif
 
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
         filename='alk_inicond'
+#ifdef OBIO_ON_GARYocean
+        print*, 'going for alkalinity...'
+        call bio_inicond_g(filename,alk(:,:,:))
+#else
         call bio_inicond(filename,alk(:,:,:))
+#endif
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
         alk = 0.
       endif
@@ -528,6 +550,119 @@ cdiag   enddo
       return
       end
 c------------------------------------------------------------------------------
+#ifdef OBIO_ON_GARYocean
+
+      subroutine bio_inicond2D_g(filename,fldo,dateline)
+
+!read in a field at 1x1 resolution
+!convert to 4x5 grid
+!convert to ocean grid 
+!this routine only for (i,j,monthly) arrays
+
+      USE FILEMANAGER, only: openunit,closeunit
+      USE OCEANR_DIM, only : ogrid
+      USE OCEANRES, only : idm=>imo,jdm=>jmo
+      USE OCEAN, only : oDLATM=>DLATM
+
+      USE DOMAIN_DECOMP, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+
+      implicit none
+
+      integer i,j,k,l,n
+      integer, parameter :: igrd=360,jgrd=180,kgrd=12
+      integer iu_file,lgth
+
+      real data(igrd,jgrd,kgrd)
+      real data_min(kgrd),data_max(kgrd)
+      real data_mask(igrd,jgrd)
+      real fldo(ogrid%I_STRT_HALO:ogrid%I_STOP_HALO,
+     .          ogrid%J_STRT_HALO:ogrid%J_STOP_HALO,kgrd)
+      real fldo_glob(idm,jdm,kgrd)
+      real idl_n
+
+      logical vrbos,dateline
+
+      character*80 filename
+
+      if ( AM_I_ROOT() ) then
+
+!--------------------------------------------------------------
+      lgth=len_trim(filename)
+      print*, 'obio_init: reading from file...',filename(1:lgth)
+      call openunit(filename,iu_file,.false.,.true.)
+
+!iron gocart data start from dateline
+!      missing values are -9999
+       do k=1,kgrd
+       data_min(k)=1.e10
+       data_max(k)=-1.e10
+         do i=1,igrd
+           do j=1,jgrd
+             read(iu_file,'(e12.4)')data(i,j,k)
+             !preserve the mean for later
+              if (data(i,j,k)>0.) then
+                data_min(k)=min(data_min(k),data(i,j,k))
+                data_max(k)=max(data_max(k),data(i,j,k))
+             endif
+           enddo
+         enddo
+      enddo
+      call closeunit(iu_file)
+
+!--------------------------------------------------------------
+      do k=1,kgrd
+
+      do i=1,igrd
+      do j=1,jgrd
+
+        !mask
+        data_mask(i,j)=0.d0
+        if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
+
+cdiag   if (k.eq.1)
+cdiag.    write(*,'(a,3i5,2e12.4)')'before hntr80 ',
+cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
+
+
+      enddo    ! i-loop
+      enddo    ! j-loop
+
+      !iron gocart data start from dateline
+      if (dateline) idl_n=0.d0   !no of poits away from dateline
+      call HNTR80(igrd,jgrd,idl_n,60.d0,
+     .             idm,jdm,0.d0,oDLATM,-9999.d0)
+
+      !use hntr8p in order to get correct polar value: 
+      !i.e. average longitudinal value everywhere
+
+      call HNTR8P (data_mask,data(:,:,k),fldo_glob(:,:,k))
+
+cdiag if (k.eq.1) then
+cdiag do i=1,idm
+cdiag do j=1,jdm
+cdiag  write(*,'(a,3i5,e12.4)')'after hntr8p ',
+cdiag.    i,j,k,fldo_glob(i,j,k)
+cdiag enddo
+cdiag enddo
+cdiag endif
+
+      enddo    ! k-loop
+
+
+!--------------------------------------------------------------
+
+      endif   !AM_I_ROOT
+
+      call unpack_data(ogrid, fldo_glob, fldo)
+
+      return
+  
+      end subroutine bio_inicond2D_g
+
+#endif
+
+c------------------------------------------------------------------------------
+#ifndef OBIO_ON_GARYocean
       subroutine bio_inicond2D(filename,fldo,dateline)
 
 !read in a field at 1x1 resolution
@@ -541,9 +676,7 @@ c
 
       USE FILEMANAGER, only: openunit,closeunit
 
-
-!      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
+      !!USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim, only : ogrid,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
       USE DOMAIN_DECOMP, only: AM_I_ROOT,unpack_data !ESMF_BCAST
@@ -553,7 +686,6 @@ c
       integer, parameter :: igrd=360,jgrd=180,kgrd=12
       integer iu_file,lgth
       integer i1,j1,iii,jjj,isum,kmax
-      integer nodc_kmax
 
       real data(igrd,jgrd,kgrd)
       real data2(iia,jja,kgrd)
@@ -693,3 +825,4 @@ c$OMP END PARALLEL DO
       return
   
       end subroutine bio_inicond2D
+#endif

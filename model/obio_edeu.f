@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       subroutine obio_edeu(kmax,vrbos,i,j)
  
 c  Model of irradiance in the water column.  Accounts for three 
@@ -18,7 +20,12 @@ c  final is quanta for phytoplankton growth.
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo
+#else
       USE hycom_dim_glob, only : kdm
+#endif
+
       implicit none
 
 

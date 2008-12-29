@@ -7,10 +7,14 @@
 
       USE obio_dim
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo
+#else
       USE hycom_dim_glob
+#endif
+
       implicit none
 
-!this part is taken out of common_blocks.h in hycom
 c --- dobio       activate Watson Gregg's ocean biology code
       logical dobio
       data dobio/.true./
@@ -27,11 +31,25 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2_glob
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
+#ifdef OBIO_ON_GARYocean
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer        !only for gary ocean
 
+
+      !test point
+!!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific
+      integer, parameter :: itest=32, jtest=20    !southern ocean; Pacific             #endif
+
+#ifdef OBIO_ON_GARYocean
+      real, parameter :: obio_deltath = 0.5  !time step in hours
+      real, parameter :: obio_deltat = obio_deltath    !time step in hrs 
+                                                       !because all rates are in hrs
+#else
       real, parameter :: obio_deltath = 1.0  !time step in hours
       !!real, parameter :: obio_deltat = obio_deltath*3600.0 !time step in seconds
       real, parameter :: obio_deltat = obio_deltath    !time step in hrs 
                                                        !because all rates are in hrs
+#endif
  
 
       integer, parameter :: EUZ_DEFINED=1
@@ -157,30 +175,63 @@ C endif
 
       contains
 
+!------------------------------------------------------------------------------
       subroutine alloc_obio_com
 
       USE obio_dim
-      USE hycom_dim_glob
-      USE hycom_dim, only : j_0h,j_1h
 
-      ALLOCATE(tzoo2d(idm,j_0h:j_1h))
-      ALLOCATE(tfac3d(idm,j_0h:j_1h,kdm),bn3d(idm,j_0h:j_1h,kdm))
-      ALLOCATE(wshc3d(idm,j_0h:j_1h,kdm),Fescav3d(idm,j_0h:j_1h,kdm))
-      ALLOCATE(obio_wsd2d(idm,j_0h:j_1h,nchl),
-     &     obio_wsh2d(idm,j_0h:j_1h,nchl))
-      ALLOCATE(rmuplsr3d(idm,j_0h:j_1h,kdm,nchl),
-     &     rikd3d(idm,j_0h:j_1h,kdm,nchl))
-      ALLOCATE(acdom3d(idm,j_0h:j_1h,kdm,nlt))
-      ALLOCATE(gcmax(idm,j_0h:j_1h,kdm))
-      ALLOCATE(pCO2(idm,j_0h:j_1h))           
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+      USE DOMAIN_DECOMP, only : get
+      USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
+#else
+      USE hycom_dim_glob 
+      USE hycom_dim, only : i_0h,i_1h,j_0h,j_1h
+#endif
+
+      implicit none
+
+#ifdef OBIO_ON_GARYocean
+c**** Extract domain decomposition info
+      INTEGER :: j_0h,j_1h,i_0h,i_1h
+
+      I_0H = ogrid%I_STRT_HALO
+      I_1H = ogrid%I_STOP_HALO
+      J_0H = ogrid%J_STRT_HALO
+      J_1H = ogrid%J_STOP_HALO
+
+
+      ALLOCATE(tracer_loc(i_0h:i_1h,j_0h:j_1h,kdm,
+     .                    ntyp+n_inert+ndet+ncar))
+      ALLOCATE(tracer(idm,jdm,kdm,ntyp+n_inert+ndet+ncar))
+#endif
+
+      ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(tfac3d(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(bn3d(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(Fescav3d(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(obio_wsd2d(i_0h:i_1h,j_0h:j_1h,nchl),
+     &         obio_wsh2d(i_0h:i_1h,j_0h:j_1h,nchl))
+      ALLOCATE(rmuplsr3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl),
+     &            rikd3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl))
+      ALLOCATE(acdom3d(i_0h:i_1h,j_0h:j_1h,kdm,nlt))
+      ALLOCATE(gcmax(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
       ALLOCATE(pCO2_glob(idm,jdm))           
-      ALLOCATE(pp2tot_day(idm,j_0h:j_1h))
-      ALLOCATE(tot_chlo(idm,j_0h:j_1h))
+      ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
 
       end subroutine alloc_obio_com
 
+!------------------------------------------------------------------------------
       subroutine gather_pCO2
+
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
       USE HYCOM_DIM, only : ogrid
+#endif
       USE DOMAIN_DECOMP, ONLY: PACK_DATA
  
       call pack_data( ogrid, pCO2, pCO2_glob )

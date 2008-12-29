@@ -1,8 +1,14 @@
 #include "rundeck_opts.h"
 
+#ifdef OBIO_ON_GARYocean
+      subroutine obio_model
+#else
       subroutine obio_model(nn,mm)
+#endif
 
-! main biology routine
+!@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
+!@auth Natassa Romanou/Watson Gregg
+!@ver  1.0
 
       USE obio_dim
       USE obio_incom
@@ -20,6 +26,9 @@
 #else
      .                    ,Eda,Esa,Eda2,Esa2
 #endif
+#ifdef OBIO_ON_GARYocean
+     .                    ,obio_restart
+#endif
       USE obio_com,  only: gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
@@ -31,6 +40,10 @@
      .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day
      .                    ,tot_chlo,acdom3d
+#ifdef OBIO_ON_GARYocean
+     .                    ,itest,jtest,obio_deltat
+     .                    ,tracer_loc,tracer
+#endif
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
      . ,itime,iyear1,jdendofm,jyear,aMON
@@ -44,71 +57,126 @@
 #endif
 
 
-
+#ifdef OBIO_ON_GARYocean
+      USE MODEL_COM,  only : nstep=>itime
+      USE GEOM,       only : LON_DG,LAT_DG
+      USE CONSTANT,   only : grav
+      USE OCEANR_DIM, only : ogrid
+      USE OCEANRES,   only : kdm=>lmo,dzo
+      USE OFLUXES,    only : oRSI,oAPRESS
+      USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
+     .                      ,trmo,txmo,tymo,tzmo
+      USE KPP_COM,    only : kpl,kpl_glob
+#else
       USE hycom_dim
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest
+#endif
 
       USE DOMAIN_DECOMP, only: AM_I_ROOT
-cddd      USE hycom_arrays_glob, only: gather_hycom_arrays,
-cddd     &     scatter_hycom_arrays
+
       implicit none
 
-      integer i,j,k,l,nn,mm,km 
+      integer i,j,k,l,km,nn,mm 
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer iu_pco2,ll,iu_tend
+      integer ifst
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
-
-#ifndef TRACERS_GASEXCH_ocean_CO2
-#ifdef TRACERS_OceanBiology     !obio but not gasexch
-       real*8, dimension(1) :: tracflx1d   !only one flux in this case
-#endif
+#ifdef OBIO_ON_GARYocean
+      real temgs,g,s,temgsp,pres
+      real time,dtr,ftr
+      integer i_0h,i_1h,j_0h,j_1h
 #endif
       character string*80
       character jstring*3
 
       logical vrbos,noon,errcon
 
-      integer iout
+      data ifst/0/
 
 !--------------------------------------------------------
       diagno_bio=.false.
+#ifdef OBIO_ON_GARYocean
+      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12) then
+          if (mod(nstep,2).eq.0)
+     .    diagno_bio=.true. ! end of month,mid-day
+      endif
+#else
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12)
-     .                           diagno_bio=.true. ! end of month,mid-day
+     .    diagno_bio=.true. ! end of month,mid-day
+#endif
 
 !Cold initialization
-       if (nstep.eq.1) then
+
+#ifdef OBIO_ON_GARYocean
+      if (obio_restart.and.ifst.eq.0) then
+      print*, 'COLD INITIALIZATION....'
+      ifst=ifst+1
+#else
+      if (nstep.eq.1) then
         trcout=.true.
+#endif
 
-        if (AM_I_ROOT()) write(lp,'(a)')'BIO:Ocean Biology starts ....'
+      if (AM_I_ROOT()) write(*,'(a)')'BIO:Ocean Biology starts ....'
 
-        call obio_init
-       !tracer array initialization.
-        !note: we do not initialize obio_P,det and car
-        call obio_bioinit(nn)
+      call obio_init
+      !tracer array initialization.
+      !note: we do not initialize obio_P,det and car
+#ifdef OBIO_ON_GARYocean
+      call obio_bioinit_g
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!! obio-bioinit_g computes the tracers RL in kg/kg but we need
+! to convert to trmo with units kg. So:
+! trmo = RL     * mo * dxypo
+! [kg] [kg/kg] [kg/m2] [m2]
+! same for the trzmo = RZ * mo * dxyp
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        !diagno_bio=.true.
-        !write(0,*) "obio: cold init ok"
-       endif  ! 
+#else
+      call obio_bioinit(nn)
+#endif
+      endif   !if nstep=1 or obio_restart
+
+
 
 !Warm initialization
+
+#ifdef OBIO_ON_GARYocean
+      if (.not.obio_restart) then
+      print*, 'WARM INITIALIZATION....'
+          call obio_init
+      endif !for restart only
+#else
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
-         write(lp,'(a)')'For restart runs.....'
-         write(lp,'(a,2i9,f10.3)')
+         write(*,'(a)')'For restart runs.....'
+         write(*,'(a,2i9,f10.3)')
      .            'nstep0,nstep,time=',nstep0,nstep,time
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint(nn)
-        !write(0,*) "obio: warm init ok"
+         call obio_trint
        endif !for restart only
+#endif
 
+#ifdef OBIO_ON_GARYocean
+      time = float(nstep)
+      i_0h=ogrid%I_STRT_HALO
+      i_1h=ogrid%I_STOP_HALO
+      j_0h=ogrid%J_STRT_HALO
+      j_1h=ogrid%J_STOP_HALO
+#endif
+
+#ifdef OBIO_ON_GARYocean
+      write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
+     .      LAT_DG(jtest,2),LON_DG(itest,2)
+#else
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
      .      latij(itest,jtest,3),lonij(itest,jtest,3)
+#endif
 
 !--------------------------------------------------------
 
@@ -128,7 +196,7 @@ cddd     &     scatter_hycom_arrays
        !endif
  
       if (AM_I_ROOT()) then
-       write(lp,'(a,i15,1x,f9.3,2x,3i5)')
+       write(*,'(a,i15,1x,f9.3,2x,3i5)')
      .    'BIO: nstep,time,day_of_month,hour_of_day,jday=',
      .    nstep,time,day_of_month,hour_of_day,jday
       endif
@@ -136,6 +204,9 @@ cddd     &     scatter_hycom_arrays
          ihr0 = int(hour_of_day/2)
 
       if (diagno_bio) then
+#ifdef OBIO_ON_GARYocean
+        write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
+#else
 !       do 16 lgth=60,1,-1
 !         if (flnmovt(lgth:lgth).ne.' ') go to 17
 ! 16    continue
@@ -152,33 +223,37 @@ cddd     &     scatter_hycom_arrays
        else
          write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
        endif
+#endif
 
        print*,' '
        print*, 'BIO: saving in pco2 and tend files'
        print*,' '
        jstring='xxx'
-       if(j_1.lt.100)write(jstring(1:2),'(i2)')j_1
-       if(j_1.ge.100)write(jstring(1:3),'(i3)')j_1
+       if(j_1h.lt.100)write(jstring(1:2),'(i2)')j_1h
+       if(j_1h.ge.100)write(jstring(1:3),'(i3)')j_1h
        print*, 'pco2.'//jstring//string
        call openunit('pco2.'//jstring//string,iu_pco2)
        call openunit('tend.'//jstring//string,iu_tend)
 
       endif  !diagno_bio
 
+      write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
+     .      itest,jtest,LON_DG(itest,1),LAT_DG(jtest,1)
+
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
-       do 1000 j=j_0,j_1             !1,jj
+#ifdef OBIO_ON_GARYocean
+       do 1000 j=j_0h,j_1h
+       do 1000 i=i_0h,i_1h
+       IF(FOCEAN(I,J).gt.0.) THEN
+#else
+       do 1000 j=j_0h,j_1h             !1,jj
        do 1000 l=1,isp(j)
        do 1000 i=ifp(j,l),ilp(j,l)
+#endif
 
-         if( j<=90 ) then
-           iout = 820
-         else
-           iout = 821
-         endif
-
-cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
+cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
@@ -186,56 +261,42 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
        !surface forcing atmFe test case
        !atmFe(i,j)=0.
 
-!!!!
-!!!#define DEBUG_OBIO_MODEL
-#ifdef DEBUG_OBIO_MODEL
-       write(iout,*) "ij",i,j
-#ifdef OBIO_RAD_coupling
-       write(iout,*) ovisdir(i,j),__LINE__
-       write(iout,*) ovisdif(i,j),__LINE__
-       write(iout,*) onirdir(i,j),__LINE__
-       write(iout,*) onirdif(i,j),__LINE__
-#endif
-       write(iout,*) owind(i,j),__LINE__
-       write(iout,*) osolz(i,j),__LINE__
-       write(iout,*) sum(atmFe_all(i,j,:)),__LINE__
-       write(iout,*) sum(tracflx(i,j,:)),__LINE__
-       write(iout,*) ihra(i,j),__LINE__
-       write(iout,*) atmFe(i,j),__LINE__
-       write(iout,*) oice(i,j),__LINE__
-       write(iout,*) pCO2(i,j),__LINE__
-       write(iout,*) sum(temp(i,j,:)),__LINE__
-       write(iout,*) sum(saln(i,j,:)),__LINE__
-       write(iout,*) sum(dpinit(i,j,:)),__LINE__
-       write(iout,*) sum(avgq(i,j,:)),__LINE__
-       write(iout,*) sum(gcmax(i,j,:)),__LINE__
-       write(iout,*) sum(tirrq3d(i,j,:)),__LINE__
-       write(iout,*) sum(alk(i,j,:)),__LINE__
-       write(iout,*) tzoo2d(i,j),__LINE__
-       write(iout,*) sum(tfac3d(i,j,:)),__LINE__
-       write(iout,*) sum(rmuplsr3d(i,j,:,:)),__LINE__
-       write(iout,*) sum(rikd3d(i,j,:,:)),__LINE__
-       write(iout,*) sum(obio_wsd2d(i,j,:)),__LINE__
-       write(iout,*) sum(obio_wsh2d(i,j,:)),__LINE__
-       write(iout,*) sum(bn3d(i,j,:)),__LINE__
-       write(iout,*) sum(wshc3d(i,j,:)),__LINE__
-       write(iout,*) sum(Fescav3d(i,j,:)),__LINE__
-       write(iout,*) sum(acdom3d(i,j,:,:)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,:)),__LINE__
-#endif
-!!!!
-
        !fill in reduced rank arrays
        ihra_ij=ihra(i,j)
        atmFe_ij=atmFe(i,j)
+#ifdef OBIO_ON_GARYocean
+       covice_ij=oRSI(i,j)
+#else
        !!covice_ij=covice(i,j)  !for standalone hycom
-       covice_ij=oice(i,j)      !for modelE
+       covice_ij=oice(i,j)      !for modelE-hycom
+#endif
+
        pCO2_ij=pCO2(i,j)
+
+#ifdef OBIO_ON_GARYocean
+       pres = oAPRESS(i,j)    !surface atm. pressure
+       do k=1,lmm(i,j)
+         pres=pres+MO(I,J,k)*GRAV*.5
+         g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+         s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+cdiag    if(vrbos) write(*,'(a,5i5,7e12.4)')'pres,temp,saln: ',
+cdiag.       nstep,i,j,k,lmm(i,j),MO(I,J,k),oAPRESS(i,j),pres,
+cdiag.       G0M(I,J,k),g,S0M(I,J,k),s
+!!!!     temp1d(k)=TEMGS(g,s)           !potential temperature
+         temp1d(k)=TEMGSP(g,s,pres)     !in situ   temperature
+          saln1d(k)=s*1000.             !convert to psu (eg. ocean mean salinity=35psu)
+           dp1d(k)=dzo(k)               !thickenss of each layer in meters
+           if(vrbos) write(*,'(a,5i5,5e12.4)')
+     .       'obio_model,dp,p,temp,temgs,saln: ',
+     .       nstep,i,j,k,lmm(i,j),dp1d(k),pres,temp1d(k),
+     .       TEMGS(g,s),saln1d(k)
+#else
        do k=1,kdm
         km=k+mm
          temp1d(k)=temp(i,j,km)
           saln1d(k)=saln(i,j,km)
            dp1d(k)=dpinit(i,j,k)/onem
+#endif
             avgq1d(k)=avgq(i,j,k)
              gcmax1d(k)=gcmax(i,j,k)
               tirrq(k)=tirrq3d(i,j,k)
@@ -265,12 +326,22 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
         do nt=1,ncar
        car(k,nt)=tracer(i,j,k,ntyp+n_inert+ndet+nt)
        enddo
-       enddo  !k=1,kdm
+       enddo  !k=1,kdm or lmm
 
        p1d(1)=0.
        do k=2,kdm+1
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
+cdiag write(*,'(a,4i5,2e12.4)')'obio_model, depths: ',
+cdiag.  nstep,i,j,k,dp1d(k-1),p1d(k)
+
        enddo
+
+#ifdef OBIO_ON_GARYocean
+      kmax = lmm(i,j)
+cdiag if(vrbos)write(*,'(a,4i5)')'nstep,i,j,kmax= ',
+cdiag.         nstep,i,j,kmax
+
+#else
 
 ! --- find number of non-massless layers in column
 !     do kmax=kdm,1,-1
@@ -284,7 +355,7 @@ cdiag  write(lp,'(a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
         if (dp1d(kmax).lt.1.e-2) exit
       end do
       kmax=kmax-1
-cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
+cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
       !ensure that all massless layers have same concentration
       !as last mass one
@@ -300,6 +371,7 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
         car(k,nt)=   car(kmax,nt)
        enddo
       enddo
+#endif
 
 
 #ifdef OBIO_RAD_coupling
@@ -308,8 +380,9 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        onirdir_ij=onirdir(i,j)
        onirdif_ij=onirdif(i,j)
 
-       if (vrbos) print*,'obio_model, radiation:',
-     .    nstep,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
+       if (vrbos)write(*,'(/,a,3i5,4e12.4)')
+     .    'obio_model, radiation: ',
+     .    nstep,i,j,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 #else
        !OASIM spectral irradiance data just above the surface
        !Eda and Esa fields have ihr=1:12, ie every 2hrs
@@ -325,18 +398,6 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !    .                  +Esa(i,j,ichan,ihr,l3)*w3
 !       enddo
 !      enddo
-
-       do ihr=1,nhn
-        do ichan=1,nlt
-#ifndef OBIO_SPEED_HACKS
-         Eda2(ichan,ihr)=Eda(i,j,ichan,ihr,JMON)
-         Esa2(ichan,ihr)=Esa(i,j,ichan,ihr,JMON)
-#else
-         Eda2(ichan,ihr)=1.
-         Esa2(ichan,ihr)=1.
-#endif
-        enddo
-       enddo
 #endif
 
        !solz is read inside hycom.f and forfun.f
@@ -366,22 +427,26 @@ cdiag write(lp,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        !atmospheric deposition iron * solubility
        atmFe_ij=atmFe_all(i,j,JMON)*0.02
 
-cdiag  if (vrbos) then
-cdiag    write(*,'(a,i5,2i4,6e12.4)')'obio forcing ',
-cdiag.   nstep,i,j,Eda2(7,6),Esa2(7,6),solz,sunz,wind,atmFe_ij
-cdiag  endif
+       if (vrbos) then
+         write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
+     .   nstep,i,j,solz,sunz,wind,atmFe_ij
+       endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
        do nt=1,ntm
           tracflx1d(nt) = tracflx(i,j,nt)
-!         write(*,'(a,3i5,2e12.4)')'obio_model, tracflx:',
+!         write(*,'(/,a,3i5,2e12.4)')'obio_model, tracflx:',
 !    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
        enddo
 #endif
 
        !------------------------------------------------------------
        !at the beginning of each day only
+#ifdef OBIO_ON_GARYocean
+       if (hour_of_day.eq.0) then
+#else
        if (hour_of_day.eq.1) then
+#endif
 
          if (day_of_month.eq.1)ihra_ij=1
           call obio_daysetrad(vrbos,i,j)
@@ -408,21 +473,23 @@ cdiag  endif
              enddo
 
          if (day_of_month.eq.1)ihra_ij=1
-cdiag    if (vrbos) then
-cdiag     write (lp,103) nstep,i,j,
-cdiag.' aftrsetrad   dpth     dp       nitr    ',
-cdiag.'   ammo     sili     iron',
-cdiag.    (k,p(i,j,k+1)/onem,dp1d(k),obio_P(k,1),obio_P(k,2),
-cdiag.                     obio_P(k,3),obio_P(k,4),k=1,kdm)
 
-cdiag     write (lp,104) nstep,i,j,
-cdiag.' aftrsetrad   dpth     diat       chlo    ',
-cdiag.' cyan       cocc     herb',
-cdiag.    (k,p(i,j,k+1)/onem,obio_P(k,5),obio_P(k,6),obio_P(k,7),
-cdiag.                       obio_P(k,8),obio_P(k,9),k=1,kdm)
-cdiag    endif
+
+         if (vrbos) then
+          write (*,103) nstep,i,j,
+     .' aftrsetrad   dpth     dp       nitr    ',
+     .'   ammo     sili     iron',
+     .    (k,p1d(k+1),dp1d(k),obio_P(k,1),obio_P(k,2),
+     .                        obio_P(k,3),obio_P(k,4),k=1,kdm)
+
+          write (*,104) nstep,i,j,
+     .' aftrsetrad   dpth     dp       diat       chlo    ',
+     .' cyan       cocc     herb',
+     .    (k,p1d(k+1),dp1d(k),obio_P(k,5),obio_P(k,6),obio_P(k,7),
+     .                        obio_P(k,8),obio_P(k,9),k=1,kdm)
+         endif
  103     format(i9,2i5,a,a/(25x,i3,6(1x,es9.2)))
- 104     format(i9,2i5,a,a/(25x,i3,6(1x,es9.2)))
+ 104     format(i9,2i5,a,a/(25x,i3,7(1x,es9.2)))
 
        endif   !end of calculations for the beginning of day
 
@@ -450,10 +517,11 @@ cdiag    endif
      .                      rod,ros,.true.,vrbos,i,j)
 
 
-cdiag    if (vrbos)
-cdiag.     write(lp,105)nstep,'surf refl dir, surf refl diff',
-cdiag.                        (k,rod(k),ros(k),k=1,nlt)
- 105  format(i9,a/(28x,i3,2(1x,es9.2)))
+         if (vrbos)
+     .     write(*,105)nstep,
+     .  ' channel, surf refl dir, surf refl diff',
+     .                        (k,rod(k),ros(k),k=1,nlt)
+ 105  format(i9,a/(18x,i3,2(1x,es9.2)))
 
          !only call obio_sfcirr for points in light
          tot = 0.0
@@ -469,7 +537,7 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
           tot = tot + Ed(ichan)+Es(ichan)
 
 cdiag if (nstep.eq.12)
-cdiag.write(*,'(a,4i5,3e12.4)')'obio_model, tirrq: ',
+cdiag.write(*,'(/,a,4i5,3e12.4)')'obio_model, tirrq: ',
 cdiag.           nstep,i,j,ichan,
 cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
 
@@ -479,7 +547,7 @@ cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
           tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
 
 cdiag if (nstep.eq.12)
-cdiag.write(*,'(a,4i5,3e12.4)')'obio_model, tirrq: ',
+cdiag.write(*,'(/,a,4i5,3e12.4)')'obio_model, tirrq: ',
 cdiag.           nstep,i,j,ichan,Ed(ichan)
 
 #endif
@@ -492,53 +560,53 @@ cdiag.           nstep,i,j,ichan,Ed(ichan)
       
       !check
       if (vrbos) then
-        write(lp,'(a,3i9)')
+        write(*,'(a,3i9)')
      .       'obio_model: counter days,   i,j,nstep=',i,j,nstep
-        write(lp,'(3(a,i9))')'hour of day=',hour_of_day,
+        write(*,'(3(a,i9))')'hour of day=',hour_of_day,
      .                       ', day of month=',day_of_month,
      .                       ', ihr0=',ihr0
 
-cdiag   write(lp,'(a)')
+cdiag   write(*,'(a)')
 cdiag.'    k     dp          u            v         temp         saln'
 cdiag   do k=1,kdm
-cdiag   write(lp,'(i5,5e12.4)')
-cdiag   write(lp,*)
+cdiag   write(*,'(i5,5e12.4)')
+cdiag   write(*,*)
 cdiag.  k,dp1d(k),u(i,j,k+mm),v(i,j,k+mm),
 cdiag.    temp(i,j,k+mm),saln(i,j,k+mm)
 cdiag   enddo
 
-        write(lp,'(a)')
+        write(*,'(a)')
      .'    k     P(1)      P(2)         P(3)       P(4)         P(5) '
         do k=1,kdm
-        write(lp,'(i5,7e12.4)')
-!       write(lp,*)
+        write(*,'(i5,7e12.4)')
+!       write(*,*)
      .   k,obio_P(k,1),obio_P(k,2),obio_P(k,3),obio_P(k,4),
      .   obio_P(k,5),obio_P(k,6),obio_P(k,7)
         enddo
 
-        write(lp,'(a)')
+        write(*,'(a)')
      .'    k     P(8)      P(9)         P(11)      P(12)        P(13)'
         do k=1,kdm
-        write(lp,'(i5,7e12.4)')
-!       write(lp,*)
+        write(*,'(i5,7e12.4)')
+!       write(*,*)
      .   k,obio_P(k,8),obio_P(k,9),det(k,1),det(k,2),
      .   det(k,3),car(k,1),car(k,2)
         enddo
 
-        write(lp,'(2a)')
+        write(*,'(2a)')
 cdiag.'    Ed          Es          solz         sunz',
 cdiag.'       atmFe       wind'
-!       write(lp,'(6e12.4)')
-cdiag   write(lp,*)
+!       write(*,'(6e12.4)')
+cdiag   write(*,*)
 cdiag.   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
        endif
 
-cdiag    if (vrbos)
-cdiag.     write(lp,106)nstep,'dir dwn irr,diff dwn irr',
-cdiag.     write(lp,*)nstep,'dir dwn irr,diff dwn irr',
-cdiag.                  (ichan,Ed(ichan),Es(ichan),
-cdiag.                  tot,ichan=1,nlt)
- 106  format(i9,a/(28x,i3,3(1x,es9.2)))
+         if (vrbos)
+     .     write(*,106)nstep,
+     .    '      channel, dir dwn irr, diff dwn irr,  tot',
+     .                  (ichan,Ed(ichan),Es(ichan),
+     .                  tot,ichan=1,nlt)
+ 106  format(i9,a/(18x,i3,3(1x,es9.2)))
 
 
          !this part decomposes light into gmao bands-- dont need it
@@ -552,11 +620,11 @@ cdiag.                  tot,ichan=1,nlt)
 
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
-cdiag    if (vrbos)
-cdiag.     write(lp,107)nstep,' k   avgq    tirrq',
-cdiag.     write(lp,*)nstep,' k   avgq    tirrq',
-cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
- 107  format(i9,a/(28x,i3,2(1x,es9.2)))
+         if (vrbos)
+     .     write(*,107)nstep,
+     .       '           k   avgq    tirrq',
+     .                 (k,avgq1d(k),tirrq(k),k=1,kdm)
+ 107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
@@ -568,19 +636,19 @@ cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
        !------------------------------------------------------------
        !compute tendency terms on the m level
 cdiag     if (vrbos) then
-cdiag     write (lp,103) nstep,i,j,
+cdiag     write (*,103) nstep,i,j,
 cdiag.' bfreptend  dpth       dp       nitr    ',
 cdiag.'     ammo     sili     iron',
 cdiag.    (k,p(i,j,k+1)/onem,dp1d(k),obio_P(k,1),obio_P(k,2),
 cdiag.                       obio_P(k,3),obio_P(k,4),k=1,kdm)
 
-cdiag     write (lp,104) nstep,i,j,
+cdiag     write (*,104) nstep,i,j,
 cdiag.' bfreptend  dpth     diat       chlo    ',
 cdiag.' cyan       cocc     herb',
 cdiag.    (k,p(i,j,k+1)/onem,obio_P(k,5),obio_P(k,6),obio_P(k,7),
 cdiag.                       obio_P(k,8),obio_P(k,9),k=1,kdm)
 
-cdiag     write (lp,104) nstep,i,j,
+cdiag     write (*,104) nstep,i,j,
 cdiag.' bfreptend  dpth     nitr_det  sili_det iron_det   doc   ',
 cdiag.'    dic ',
 cdiag.    (k,p(i,j,k+1)/onem,det(k,1),det(k,2),det(k,3),
@@ -595,11 +663,11 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
 
        !------------------------------------------------------------
 cdiag  if (vrbos)then
-cdiag   write(lp,108)nstep,' aftrptend dpth      dp     P_tend(1:9)',
+cdiag   write(*,108)nstep,' aftrptend dpth      dp     P_tend(1:9)',
 cdiag.    (k,p(i,j,k+1)/onem,dp1d(k),P_tend(k,1),P_tend(k,2),
 cdiag.     P_tend(k,3),P_tend(k,4),P_tend(k,5),P_tend(k,6),
 cdiag.     P_tend(k,7),P_tend(k,8),P_tend(k,9),k=1,kdm)
-cdiag   write(lp,109)nstep,
+cdiag   write(*,109)nstep,
 cdiag.    ' aftrptend dpth      dp     D_tend(1:3) and C_tend(1:2)',
 cdiag.    (k,p(i,j,k+1)/onem,dp1d(k),D_tend(k,1),D_tend(k,2),
 cdiag.     D_tend(k,3),C_tend(k,1),C_tend(k,2),k=1,kdm)
@@ -609,8 +677,19 @@ cdiag  endif
 
        !------------------------------------------------------------
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   CONSTRUCTION site   !!!!!!!!!!!!!!
+#ifdef OBIO_ON_GARYocean
+       !update biology to new time level
+       !also do phyto sinking and detrital settling here
+       !MUST CALL sinksettl BEFORE update
+       call obio_sinksettl(vrbos,kmax,errcon,i,j)
+       call obio_update(vrbos,kmax,i,j)
+#else
        !update biology from m to n level
-       call obio_update(vrbos,kmax,errcon,i,j)
+       !also do phyto sinking and detrital settling here
+       !MUST CALL sinksettl AFTER update
+       call obio_update(vrbos,kmax,i,j)
+       call obio_sinksettl(vrbos,kmax,errcon,i,j)
        if (errcon) then
           write (*,'(a,2i5)') 'error update at i,j =',i,j
           do k=1,kdm
@@ -618,27 +697,29 @@ cdiag  endif
           enddo
           stop
        endif
+#endif
 
 cdiag     if (vrbos) then
-cdiag     write (lp,*)'     '
-cdiag     write (lp,103) nstep,i,j,
+cdiag     write (*,*)'     '
+cdiag     write (*,103) nstep,i,j,
 cdiag.' aftrupdate dpth     dp        nitr      ammo      sili',
 cdiag.'      iron',
 cdiag.  (k,p(i,j,k+1)/onem,dp1d(k),obio_P(k,1),obio_P(k,2),
 cdiag.                     obio_P(k,3),obio_P(k,4),k=1,kdm)
 
-cdiag     write (lp,104) nstep,i,j,
+cdiag     write (*,104) nstep,i,j,
 cdiag.' aftrupdate dpth     diat      chlo        cyan',
 cdiag.'      cocc      herb',
 cdiag.  (k,p(i,j,k+1)/onem,obio_P(k,5),obio_P(k,6),obio_P(k,7),
 cdiag.                       obio_P(k,8),obio_P(k,9),k=1,kdm)
 
-cdiag     write (lp,104) nstep,i,j,
+cdiag     write (*,104) nstep,i,j,
 cdiag.' aftrupdate dpth     nitr_det  sili_det    iron_det',
 cdiag.'      doc       dic ',
 cdiag.    (k,p(i,j,k+1)/onem,det(k,1),det(k,2),det(k,3),
 cdiag.                       car(k,1),car(k,2),k=1,kdm)
 cdiag     endif
+
 
        !------------------------------------------------------------
 
@@ -653,14 +734,20 @@ cdiag     endif
 
       if (diagno_bio) then
         do k=1,kdm
+#ifdef OBIO_ON_GARYocean
+        write(iu_tend,'(4i5,6e12.4)')
+     .      nstep,i,j,k,p1d(k+1),rhs(k,14,5),rhs(k,14,10)
+     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
+#else
         write(iu_tend,'(4i5,6e12.4)')
      .      nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
      .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
+#endif
         enddo
       endif
 
        !------------------------------------------------------------
-       !update tracer array
+       !update 3d tracer array
        do k=1,kmax
         do nt=1,ntyp+n_inert
          tracer(i,j,k,nt)=obio_P(k,nt)
@@ -678,6 +765,26 @@ cdiag     endif
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
 
+#ifdef OBIO_ON_GARYocean
+      !update trmo etc arrays
+       do k=1,kmax
+       do nt=1,ntyp+n_inert+ndet+ncar
+        if(nt.le.ntyp+n_inert)dtr = P_tend(k,nt)*obio_deltat
+        if(nt.gt.ntyp+n_inert.and.nt.le.ntyp+n_inert+ndet)
+     .     dtr = D_tend(k,nt-ntyp-n_inert)*obio_deltat
+        if(nt.gt.ntyp+n_inert+ndet)
+     .     dtr = C_tend(k,nt-ntyp-n_inert-ndet)*obio_deltat
+        if (dtr.lt.0) then
+          ftr = -dtr/trmo(i,j,k,nt)
+          txmo(i,j,k,nt)=trmo(i,j,k,nt)*(1.-ftr)
+          tymo(i,j,k,nt)=tymo(i,j,k,nt)*(1.-ftr)
+          tzmo(i,j,k,nt)=tzmo(i,j,k,nt)*(1.-ftr)       
+        endif
+        trmo(i,j,k,nt)=trmo(i,j,k,nt)+dtr
+       enddo
+       enddo
+#endif
+
        ihra(i,j)=ihra_ij
 
        !compute total chlorophyl at surface layer
@@ -685,7 +792,8 @@ cdiag     endif
        do nt=1,nchl
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
-       if (vrbos) write(*,*)'obio_model, tot_chlo= ',tot_chlo(i,j)
+       if (vrbos) write(*,'(/,a,e12.4)')
+     .       'obio_model, tot_chlo= ',tot_chlo(i,j)
 
        !compute total primary production per day
         if (hour_of_day.eq.1) then
@@ -710,57 +818,30 @@ cdiag  endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
-       if (vrbos) print*,'obio_model, pco2,tracflx=',
-     .     nstep,i,j,pCO2_ij,tracflx1d(1)
 
        if (diagno_bio) then
+#ifdef OBIO_ON_GARYocean
+       if (kpl(i,j).gt.0) then    !??/why kpl(2,90)=0???
+#endif
+         print*,'while writing pco2 output:',i,j,kpl(i,j)
          write(iu_pco2,'(3i7,22e12.4)')
      .     nstep,i,j
      .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
      .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
-     .    ,dpmixl(i,j,mm)/onem,alk1d(1),pp2tot_day(i,j)
+#ifdef OBIO_ON_GARYocean
+     .    ,p1d(kpl(i,j))
+#else
+     .    ,dpmixl(i,j,mm)/onem
+#endif
+     .    ,alk1d(1),pp2tot_day(i,j)
+#ifdef OBIO_ON_GARYocean
+       endif
+#endif
        endif
 
-!!!!
-#ifdef #ifdef DEBUG_OBIO_MODEL
-       write(iout,*) ihra(i,j),__LINE__
-       write(iout,*) atmFe(i,j),__LINE__
-       write(iout,*) oice(i,j),__LINE__
-       write(iout,*) pCO2(i,j),__LINE__
-       write(iout,*) sum(temp(i,j,:)),__LINE__
-       write(iout,*) sum(saln(i,j,:)),__LINE__
-       write(iout,*) sum(dpinit(i,j,:)),__LINE__
-       write(iout,*) sum(avgq(i,j,:)),__LINE__
-       write(iout,*) sum(gcmax(i,j,:)),__LINE__
-       write(iout,*) sum(tirrq3d(i,j,:)),__LINE__
-       write(iout,*) sum(alk(i,j,:)),__LINE__
-       write(iout,*) tzoo2d(i,j),__LINE__
-       write(iout,*) sum(tfac3d(i,j,:)),__LINE__
-       write(iout,*) sum(rmuplsr3d(i,j,:,:)),__LINE__
-       write(iout,*) sum(rikd3d(i,j,:,:)),__LINE__
-       write(iout,*) sum(obio_wsd2d(i,j,:)),__LINE__
-       write(iout,*) sum(obio_wsh2d(i,j,:)),__LINE__
-       write(iout,*) sum(bn3d(i,j,:)),__LINE__
-       write(iout,*) sum(wshc3d(i,j,:)),__LINE__
-       write(iout,*) sum(Fescav3d(i,j,:)),__LINE__
-       write(iout,*) sum(acdom3d(i,j,:,:)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,1)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,2)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,3)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,4)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,5)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,6)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,7)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,8)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,9)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,10)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,11)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,12)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,13)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,14)),__LINE__
-       write(iout,*) sum(tracer(i,j,:,15)),__LINE__
+#ifdef OBIO_ON_GARYocean
+      endif   !if focean>0
 #endif
-!!!!
 
  1000 continue
 c$OMP END PARALLEL DO
@@ -772,4 +853,5 @@ c$OMP END PARALLEL DO
 
 
       return
-      end
+
+      end subroutine obio_model

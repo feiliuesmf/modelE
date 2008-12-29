@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       subroutine obio_ptend(vrbos,kmax,i,j)
 
 c  Computes tendencies of biological particles (units/hr)
@@ -24,8 +26,14 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,rhs,pp2_1d
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo
+      USE MODEL_COM, only : nstep=>itime
+#else  !HYCOM ocean 
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
+#endif
+
       implicit none
 
       integer i,j,k
@@ -674,4 +682,4 @@ c Save method for hard boundary condition (no flux)
 c      srate = 0.0 - obio_wsh(n)*tracer(i,k-1,m,n)
 
       return
-      end
+      end subroutine obio_ptend

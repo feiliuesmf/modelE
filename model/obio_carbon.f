@@ -12,21 +12,28 @@ c
       USE MODEL_COM, only: dtsrc
 
       USE obio_dim
-      USE obio_forc, only: wind,atmCO2
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
      .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
      .                      ,excz,resz,remin,excp,resp
+      USE obio_forc, only: wind,atmCO2
       USE obio_com, only : bn,C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
+
+#ifdef OBIO_ON_GARYocean
+      USE MODEL_COM, only : nstep=>itime
+      USE OCEANRES, only : kdm=>lmo
+#else
+      USE hycom_dim_glob, only : kdm
+      USE hycom_scalars, only : nstep
+#endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE TRACER_COM, only : ntm,tr_mm    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : tracflx1d
 #endif
       
-      USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : nstep
+
       implicit none
 
 
@@ -43,17 +50,6 @@ c
 
       logical vrbos
 
-
-      !write(903,*) i,j,gro,vrbos,kmax
-cddd      write(904,*) i,j,dtsrc,wind,atmCO2,
-cddd     &     cnratio,rlamdoc,rkdoc1,rkdoc2
-cddd     .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
-cddd     .                      ,excz,resz,remin,excp,resp,
-cddd     &     bn,C_tend,obio_P,P_tend,car
-cddd     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
-cddd     .                    ,temp1d,saln1d,dp1d,rhs,alk1d,
-cddd     &     ntm,tr_mm,
-cddd     &     tracflx1d
 
       do nt=1,ncar
        do k=1,kdm
@@ -116,22 +112,10 @@ cddd     &     tracflx1d
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
 
-cdiag   if (vrbos .and. k.eq.1)then
-cdiag      if (nstep.eq.120)write(909,'(a)')
-cdiag.       'nstep,k,dicresz,mgchltouMC,docbac,tfac(k),det(k,1)'
-cdiag      write(909,'(2i7,5e12.4)')
-cdiag.        nstep,k,dicresz,mgchltouMC,docbac,tfac(k),det(k,1)
-
-cdiag      if (nstep.eq.120)write(910,'(a)')
-cdiag.'nstep,k,tzoo,resz,P(k,ntyp),tfac(k),sst,P(k,1),car(k,1),det(k,1)'
-cdiag      write(910,'(2i7,8e12.4)')
-cdiag.   nstep,k,tzoo,resz,obio_P(k,ntyp),tfac(k),temp1d(k)
-cdiag.  ,obio_P(k,1),car(k,1),det(k,1)
-cdiag   endif
-
       enddo  !k=1,kmax
 
-cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
+        if (vrbos) write(*,'(a,i7,e12.4)')
+     .        'obio_carbon1: ', nstep,C_tend(1,2)
 
 ! Phytoplankton components related to growth
       do k = 1,kmax
@@ -160,12 +144,6 @@ cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'1: ', nstep,C_tend(1,2)
           sumutk = sumutk + totgro
          sumres = sumres + dicresp
 
-cdiag    if (vrbos .and. k.eq.1)
-cdiag    if(nstep.eq.12.and.k.eq.1)write(*,'(a,5i5,10e12.4)')
-cdiag.   'obio_carbon1:',
-cdiag.   nstep,nt+nnut,i,j,k,gro(k,nt),obio_P(k,nt+nnut),totgro,
-cdiag.   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
-
         enddo !nt
 
         term = sumdoc * mgchltouMC * pnoice     !phyto prod DOC
@@ -178,20 +156,28 @@ cdiag.   excp,docexcp,resp,dicresp,sumdoc,sumutk,sumres
 
       enddo !k=1,kmax
 
-cdiag   if (vrbos) write(908,'(a,i7,e12.4)')'2: ', nstep,C_tend(1,2)
+      if (vrbos) write(*,'(a,i7,e12.4)')
+     .    'obio_carbon2: ', nstep,C_tend(1,2)
 
 c pCO2
-#ifndef pCO2_ONLINE
-      call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
-      if(vrbos)print*, 'carbon: OFFLINE',nstep,i,j,pCO2_ij
-#else
+#ifdef pCO2_ONLINE
       !this ppco2 routine comes from OCMIP. I am not using psurf
       !and thus not compute dtco2 because these are computed in PBL
       call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
      .           obio_P(1,1),obio_P(1,3),atmCO2,
      .           pCO2_ij,pHsfc)
 
-      if(vrbos)print*, 'carbon: ONLINE',nstep,i,j,pCO2_ij,pHsfc
+      if(vrbos)write(*,'(/,a,3i5,7e12.4)')
+     . 'before ppco2: ',nstep,i,j,temp1d(1),saln1d(1),
+     .                  car(1,2),alk1d(1),
+     .                  obio_P(1,1),obio_P(1,3),atmCO2
+
+      if(vrbos)write(*,'(/,a,3i5,2e12.4)')
+     .    'carbon: ONLINE',nstep,i,j,pCO2_ij,pHsfc
+#else
+      call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
+      if(vrbos)write(*,'(a,3i5,e12.4)')
+     .    'carbon: OFFLINE',nstep,i,j,pCO2_ij
 #endif
 
 c Update DIC for sea-air flux of CO2
@@ -209,7 +195,7 @@ c Update DIC for sea-air flux of CO2
       C_tend(k,2) = C_tend(k,2) + term
 
          if (vrbos)
-     .   write(6,'(a,3i7,i3,4e12.4)')
+     .   write(*,'(a,3i7,i3,4e12.4)')
      .     'obio_carbon (coupled):',
      .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
 
@@ -261,6 +247,7 @@ c Update DIC for sea-air flux of CO2
       end
 
 c ---------------------------------------------------------------------------
+#ifndef pCO2_ONLINE
       subroutine ppco2tab(T,S,car1D,TA,pco21D)
  
 c  Computes pCO2 in the surface layer and delta pCO2 with the
@@ -273,9 +260,9 @@ c  DIC  1800    2450    2
 c  TA   2000    2500    2
 c
 
+      USE obio_dim, only: ALK_CLIM
       USE obio_incom, only : it0inc,idicinc,itainc,pco2tab
      .                      ,nt0,nsal,ndic,nta
-      USE obio_dim, only: ALK_CLIM
 
       implicit none
 
@@ -326,15 +313,11 @@ c    .             'correction in ppco2tab, ita =',ita,nta,TA
        if (idic.lt. 1) idic= max(idic,1)
        if (ita.lt.  1) ita = max(ita,1)
 
-#ifndef OBIO_SPEED_HACKS
        pco21D = pco2tab(it0,isal,idic,ita)
-#else
-       pco21D = 440
-#endif
 
       return
       end
-
+#endif
 
 c ---------------------------------------------------------------------------
       subroutine ppco2(T,S,car1D,TA,nitr,silic,atmCO2,
@@ -402,12 +385,28 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.17 $
-c_ $Date: 2008/10/06 13:39:57 $   ;  $State: Exp $
+c_ $Revision: 2.18 $
+c_ $Date: 2008/12/29 20:12:48 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.18  2008/12/29 20:12:48  aromanou
+c_
+c_ "fishes in another ocean"
+c_
+c_ ocean carbon bio-geo-chemistry module (NOBM; Watson Gregg) coupled to Gary
+c_ Russell ocean. Gas exchange still on ocean grid. To be changed soon...
+c_
+c_ Relevant rundeck is E1arobio_g.R based on Larissa's E1F40o13.R
+c_
+c_ Tested results so as not to cause problems to other rundecks. (Larissa, I did
+c_ my best...)
+c_
+c_ More testing needed to
+c_ -- verify there are no restart problems/multiple processor problems
+c_ -- few points remain unclear till ocean geometry is settled in Gary's ocean model
+c_
 c_ Revision 2.17  2008/10/06 13:39:57  aromanou
 c_
 c_ small changes to correct deep fluxes.
@@ -769,12 +768,28 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.17 $
-c_ $Date: 2008/10/06 13:39:57 $   ;  $State: Exp $
+c_ $Revision: 2.18 $
+c_ $Date: 2008/12/29 20:12:48 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.18  2008/12/29 20:12:48  aromanou
+c_
+c_ "fishes in another ocean"
+c_
+c_ ocean carbon bio-geo-chemistry module (NOBM; Watson Gregg) coupled to Gary
+c_ Russell ocean. Gas exchange still on ocean grid. To be changed soon...
+c_
+c_ Relevant rundeck is E1arobio_g.R based on Larissa's E1F40o13.R
+c_
+c_ Tested results so as not to cause problems to other rundecks. (Larissa, I did
+c_ my best...)
+c_
+c_ More testing needed to
+c_ -- verify there are no restart problems/multiple processor problems
+c_ -- few points remain unclear till ocean geometry is settled in Gary's ocean model
+c_
 c_ Revision 2.17  2008/10/06 13:39:57  aromanou
 c_
 c_ small changes to correct deep fluxes.
@@ -891,12 +906,28 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.17 $
-c_ $Date: 2008/10/06 13:39:57 $   ;  $State: Exp $
+c_ $Revision: 2.18 $
+c_ $Date: 2008/12/29 20:12:48 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.18  2008/12/29 20:12:48  aromanou
+c_
+c_ "fishes in another ocean"
+c_
+c_ ocean carbon bio-geo-chemistry module (NOBM; Watson Gregg) coupled to Gary
+c_ Russell ocean. Gas exchange still on ocean grid. To be changed soon...
+c_
+c_ Relevant rundeck is E1arobio_g.R based on Larissa's E1F40o13.R
+c_
+c_ Tested results so as not to cause problems to other rundecks. (Larissa, I did
+c_ my best...)
+c_
+c_ More testing needed to
+c_ -- verify there are no restart problems/multiple processor problems
+c_ -- few points remain unclear till ocean geometry is settled in Gary's ocean model
+c_
 c_ Revision 2.17  2008/10/06 13:39:57  aromanou
 c_
 c_ small changes to correct deep fluxes.

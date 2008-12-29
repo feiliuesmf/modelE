@@ -11,7 +11,11 @@
       USE OCEANR_DIM, only : grid=>ogrid
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
+#endif
 #endif
 
       IMPLICIT NONE

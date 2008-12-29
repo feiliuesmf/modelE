@@ -20,9 +20,12 @@ CAOO   Just to test CVS
       USE RANDOM
       USE GETTIME_MOD
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
       USE TRACER_COM, only: mtrace
 #ifdef TRAC_ADV_CPU
       USE TRACER_COM, only: mtradv
+#endif
 #endif
 #endif
       USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
@@ -254,7 +257,10 @@ C**** INITIALIZE TIME PARAMETERS
         CALL daily_OCEAN(.false.)          ! not end_of_day
         CALL CALC_AMPK(LS1-1)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
         CALL daily_tracer(0)
+#endif
 #endif
            if (kradia.le.0) CALL CHECKT ('INPUT ')
       end if
@@ -636,8 +642,11 @@ C****
         call daily_ICE
         call daily_LI
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
         call daily_tracer(1)
            CALL TIMER (MNOW,MTRACE)
+#endif
 #endif
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
@@ -1024,12 +1033,15 @@ C****
       USE DYNAMICS, only : pk,pmid,pedn
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
       USE TRACER_COM,only: MTRACE,NTM,TRNAME
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,mchem
 #endif
 #ifdef TRAC_ADV_CPU
       USE TRACER_COM,only: MTRADV
+#endif
 #endif
 #endif
 #ifdef TRACERS_AMP
@@ -1190,9 +1202,12 @@ C**** Other speciality descriptions can be added/used locally
       CALL SET_TIMER(" DIAGNOSTICS",MDIAG)
       CALL SET_TIMER("       OTHER",MELSE)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
       CALL SET_TIMER("     TRACERS",MTRACE)
 #ifdef TRAC_ADV_CPU
       CALL SET_TIMER(" TRACER ADV.",MTRADV)
+#endif
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1207,8 +1222,11 @@ C****
       call set_param("LS1",LS1)
       call set_param("PLBOT",Plbot,LM+1)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
       call set_param("NTM",NTM)
       call set_param("TRNAME",TRNAME,ntm)
+#endif
 #endif
 C****
 C**** Print Header and Label (2 lines) from rundeck
@@ -1251,6 +1269,10 @@ C****
 #ifdef TRACERS_GASEXCH_ocean
       write(6,*) '          '
       write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
+#ifdef TRACERS_OceanBiology
+      write(6,*) '          '
+      write(6,*) '...and Natassa Romanou/Watson Gregg ocean biology '
+#endif
 #ifdef TRACERS_GASEXCH_ocean_CFC
       write(6,*) '****CFC flux across air/sea interface****'
 #endif
@@ -1975,7 +1997,10 @@ C**** Check polar uniformity
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
 C**** MUST be before other init routines
+#ifdef TRACERS_OceanBiology
+#else
       call init_tracer
+#endif
 #endif
 
 C**** Initialise some modules before finalising Land/LI mask
@@ -2370,8 +2395,11 @@ C**** Check Earth arrays
 C**** Check Land Ice arrays
         CALL CHECKLI(SUBR)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+#else
 C**** check tracers
         CALL CHECKTR(SUBR)
+#endif
 #endif
       END IF
 

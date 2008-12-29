@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE obio_incom
 
 ! parameters and arrays neccessary for obio_init and obio_bioinit
@@ -124,12 +126,18 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
 
       subroutine alloc_obio_incom
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
+#else
       USE hycom_dim_glob
+#endif
+
+      implicit none
 
 !*******NEED TO DEALLOCATE LATER: only the first two lines
-
       ALLOCATE(ir(idm,jdm))
       ALLOCATE(Fer(idm,jdm,kdm),dicmod(idm,jdm,kdm),dic(idm,jdm,kdm))
+
 
       end subroutine alloc_obio_incom
 

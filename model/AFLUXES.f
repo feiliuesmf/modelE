@@ -8,7 +8,11 @@
       USE RESOLUTION, ONLY : IMA=>IM, JMA=>JM
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OceanBiology
+      USE OCN_TRACER_COM, only: NTM
+#else
       USE TRACER_COM, only: NTM
+#endif
 #endif
 
 ! Arrays  aMO,aUO1,aVO1,aG0M,aS0M,aOGEOZ,aOGEOZ_SV,aTRAC are ocean quantities

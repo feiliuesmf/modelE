@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       subroutine obio_sfcirr(noon,rod,ros,vrbos)
  
 c  Computes irradiance just below sea surface (i.e., accounts
@@ -8,7 +10,7 @@ c  in light, and computes average cosine for direct irradiance.
       USE obio_incom, only :rad
       USE obio_forc,  only :rmud,Ed,Es,solz
       USE obio_com,   only :npst,npnd,hour_of_day,day_of_month
- 
+
       implicit none
 
       integer iprt,nl

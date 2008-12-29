@@ -857,7 +857,7 @@ C**** Make sure to use geostrophy for ocean tilt term in ice dynamics
 C**** (if required). Since ocean currents are zero, this implies no sea
 C**** surface tilt term.
       osurf_tilt = 0
-C****
+
       RETURN
       END SUBROUTINE init_OCEAN
 

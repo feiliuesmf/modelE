@@ -1,3 +1,6 @@
+#include "rundeck_opts.h"
+
+#ifndef OBIO_ON_GARYocean     !not on Gary's ocean
       subroutine obio_bioinit(nn)
  
 !note: 
@@ -1081,3 +1084,5 @@ c
      .  (k,xnew(k),ynew(k),k=1,knew),knew+1,xnew(knew+1)
       return
       end
+
+#endif    /* not on gary's ocean */

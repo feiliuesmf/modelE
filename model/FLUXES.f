@@ -8,7 +8,11 @@
       USE DOMAIN_DECOMP, ONLY : grid
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#ifdef TRACERS_OCEAN_INDEP
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE TRACER_COM, only: ntm
+#endif
 #endif
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACER_SRCS
