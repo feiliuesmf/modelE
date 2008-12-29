@@ -192,6 +192,7 @@ c
       USE obio_com,  only : gcmax
 #endif
       USE HYCOM_ARRAYS_GLOB
+      USE param
       IMPLICIT NONE
       !!! hack
       !!!real asst
@@ -212,6 +213,9 @@ c
      &     gcmax_glob(:,:,:)
       integer, allocatable :: ihra_glob(:,:)
 #endif
+
+      call sync_param( "itest", itest)
+      call sync_param( "jtest", jtest)
 
 #ifdef TRACERS_OCEAN
 !@var TRHEADER Character string label for individual records
@@ -310,6 +314,7 @@ css#endif
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       i=itest
       j=jtest
+      print*,'test point at:',itest,jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -389,6 +394,7 @@ c
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       i=itest
       j=jtest
+      print*, 'itest, jtest=',itest,jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),

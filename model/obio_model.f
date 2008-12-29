@@ -47,7 +47,7 @@
 
       USE hycom_dim
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
-     .                            ,p,dpmixl
+     .                            ,p,dpmixl,latij,lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest
 
@@ -106,6 +106,9 @@ cddd     &     scatter_hycom_arrays
          call obio_trint(nn)
         !write(0,*) "obio: warm init ok"
        endif !for restart only
+
+      write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
+     .      latij(itest,jtest,3),lonij(itest,jtest,3)
 
 !--------------------------------------------------------
 
