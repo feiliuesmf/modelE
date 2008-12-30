@@ -1064,11 +1064,13 @@ C****
       USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
       USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, HERE
+      USE DOMAIN_DECOMP, only : NORTH, HERE
 #ifdef CUBE_GRID
-      USE regrid_com, only : x_2gridsroot
+      use regrid_com, only : x_2gridsroot
+      use dd2d_utils, only : halo_update
       use pario_fbsa, only : READT_PARALLEL
 #else
+      USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE DOMAIN_DECOMP, only : READT_PARALLEL
 #endif
 #ifdef USE_FVCORE
@@ -1081,6 +1083,9 @@ C****
       USE ENT_DRV, only : init_module_ent
 #endif
       IMPLICIT NONE
+#ifdef CUBE_GRID
+      include 'netcdf.inc'
+#endif
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_REG,iu_RSF unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_REG,iu_RSF,iu_IFILE
@@ -1111,12 +1116,15 @@ C****
       integer :: minti,minte
       character(len=1) :: suffix
 #endif
-#ifdef RECT_REG  /* regions defined as rectangles */
+#ifdef CUBE_GRID
+C***  regions defined as rectangles 
       integer, dimension(23) :: NRECT
       character*4, dimension(23,6) :: CORLON,CORLAT 
       real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners 
       integer :: ireg,irect,icorlon,icorlat
       real*8::lon,lat
+c***
+      integer :: fid,status
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1474,9 +1482,13 @@ C****                                                    currently
            VSAVG(1:im,JM)=V(1,JM,1)
          End If
 
+#ifdef CUBE_GRID
+         call halo_update(grid%dd2d,u)  ! Max : can you confirm this?
+         call halo_update(grid%dd2d,v)  ! idem
+#else
          CALL HALO_UPDATE(grid, U, FROM=NORTH)
          CALL HALO_UPDATE(grid, V, FROM=NORTH)
-
+#endif
 
 #ifdef SCM
         DO J=J_0S,J_1S
@@ -1651,7 +1663,7 @@ C**** Check consistency of starting time
         ENDIF
       END IF
 
-#ifndef NO_LAND_SURFACE
+#if !defined(NO_LAND_SURFACE)
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
 
@@ -1882,7 +1894,7 @@ C**** Set julian date information
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
-#ifndef NO_LAND_SURFACE
+#if !defined(NO_LAND_SURFACE) || defined(CUBE_GRID)
 C****
 C**** READ IN TIME-INDEPENDENT ARRAYS
 C****
@@ -1890,11 +1902,11 @@ C****
         CALL CALC_AMPK(LM)
 
 C****   READ SPECIAL REGIONS FROM UNIT 29
-#ifndef RECT_REG
+#ifndef CUBE_GRID
         call openunit("REG",iu_REG,.true.,.true.)
         READ(iu_REG) TITREG,JREG,NAMREG
 #else
-c**** Regions are defined in input file as union of rectangles
+c**** Regions are defined in reg.txt input file as union of rectangles
 c**** independant of resolution & grid type
         
         call openunit("REG",iu_REG,.false.,.true.)
@@ -1950,11 +1962,6 @@ c              write(*,*) "i,j, jreg",i,j,jreg(i,j)
 #endif
         IF (AM_I_ROOT()) then
             WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
-         do i=1,IM
-           do j=1,JM
-c         write(*,*) "i,j, jreg",i,j,jreg(i,j)
-           enddo 
-         enddo
         endif 
         call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
@@ -2007,14 +2014,26 @@ C**** Initialise some modules before finalising Land/LI mask
 C**** Initialize ice
       CALL init_ice(iniOCEAN,istart)
 C**** Initialize lake variables (including river directions)
+#ifndef CUBE_GRID
       CALL init_LAKES(inilake,istart)
+#endif
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
+#ifdef CUBE_GRID
+      if (am_i_root()) then
+         status=nf_open("GIC",nf_nowrite,fid)
+         write(*,*) "status GIC ocean=",status
+         IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
+      endif
+      call par_io_ocean (fid,ioread)
+      if (am_i_root()) status = nf_close(fid)
+#else
       CALL init_OCEAN(iniOCEAN,istart)
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
 C**** Initialize land ice (must come after oceans)
+
       CALL init_LI(istart)
 
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
@@ -2054,7 +2073,6 @@ C**** Ensure that no round off error effects land with ice and earth
          FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
-
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
@@ -2064,6 +2082,7 @@ C****
       ISTART_kradia = ISTART
       if ( Kradia.gt.0 ) ISTART_kradia = 0
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia, nl_soil)
+#endif
 #ifdef USE_ENT
       CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
 #endif

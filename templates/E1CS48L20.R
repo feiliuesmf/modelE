@@ -64,11 +64,11 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093 ! soil/topography bdy.conds
+TOPO=Z_CS48 SOIL=S4X50093 ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V72X46.1.cor2_no_crops CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
 CDN=CD4X500S                      ! surf.drag coefficient
-REG=REG4X5                        ! special regions-diag
+REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR               ! river direction file
 TOP_INDEX=top_index_72x46.ij      ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
