@@ -55,9 +55,9 @@ advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.
 barotp|-r8|                         ! barotropic eqn.
 bigrid|-r8|                         ! basin grid
-!blkdat|-r8| 
 blkprf|-r8|                         ! block data
 cnuity|-r8|                         ! continuity eqn.
+convec|-r8|                         ! convection
 cpler |-r8|                         ! coupler
 diapfx|-r8|                         ! diapycnal diffusion
 dpthuv|-r8| dpudpv|-r8|             ! off-center depth
@@ -65,7 +65,7 @@ eice  |-r8|                         ! ice forming
 geopar|-r8|                         ! geography related parameters
 hybgn1|-r8|                         ! grid generator
 inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions 
-matinv|-r8| mxkprf|-r8|             ! KPP mixing scheme, apply to ML only
+matinv|-r8| mxkprf|-r8| mxlayr|-r8| ! mixing scheme
 momtum|-r8|                         ! momemtum Eqn.
 prtetc|-r8|                         ! print routines, etc.
 reflux|-r8|                         ! flux conversion
@@ -73,8 +73,6 @@ sigetc|-r8|                         ! eqn.of state, etc.
 thermf|-r8|                         ! thermal forcing
 trcadv|-r8|                         ! tracer advection
 tsadvc|-r8| advem|-r8|              ! advecting t/s
-mxlayr|-r8|
-convec|-r8|
 
 Data input files:
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.) needs GIC, ISTART=2
@@ -156,8 +154,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 !     if CLOUDS2_E1 is replaced by CLOUDS2, use: 
-U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+! U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 !     instead of:
 U00ice=.57      ! increase U00ice to decrease albedo    goals: NetHtz0=0,plan.alb=30%
 U00wtrX=1.44    ! U00wtrX+.01=>nethtz0+.7               for global annual mean
@@ -211,6 +209,15 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=48
+!!!!!!!!!! H Y C O M parameters !!!!!!!!!!!!!!
+itest=-1            ! default is -1
+jtest=-1            ! default is -1
+iocnmx=0            ! default is 0
+brntop=0.           ! default is 0.
+brnbot=300.         ! default is 300.
+ocnmx_factor_s=1.   ! default is 1.
+ocnmx_factor_t=1.   ! default is 1.
+
 &&END_PARAMETERS
 
  &INPUTZ
