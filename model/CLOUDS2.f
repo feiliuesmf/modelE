@@ -578,6 +578,7 @@ C     REAL*8 RHO   ! air density
       INTEGER, INTENT(OUT) :: IERR,LERR
 !@var DUM, DVM changes of UM,VM
       REAL*8, DIMENSION(KMAX,LM) :: DUM,DVM,UMDNL,VMDNL
+      REAL*8, DIMENSION(KMAX) :: SUMU,SUMV,SUMU1,SUMV1
 
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 !@var BELOW_CLOUD logical- is the current level below cloud?
@@ -1489,7 +1490,7 @@ C     IF(SMIX.GE.SUP) CDHDRT=CDHDRT+CDHEAT(L)
 C     IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
 C     IF(PL(L).GT.700.) GO TO 291   ! do we need this condition?
       LDRAFT=L                      ! the highest downdraft level
-      ETADN=.20d0      ! reduce ETADN to improve computational stability
+      ETADN=BY3    ! .20d0 ! reduce ETADN to improve computational stability
       FLEFT=1.-.5*ETADN
       DDRAFT=ETADN*MPLUME
       DDR(L)=DDRAFT
@@ -2018,6 +2019,11 @@ C**** in opposite sense than normal (positive is down))
         CM(L) = 0.
       END DO
 C**** simple upwind scheme for momentum
+      DO K=1,KMAX
+        SUMU(K)=sum(UM(K,LDMIN:LMAX))
+        SUMV(K)=sum(VM(K,LDMIN:LMAX))
+      END DO
+      SUMDP=sum(AIRM(LDMIN:LMAX))
       ALPHA=0.
       DO 380 L=LDMIN,LMAX
       CLDM=CCM(L)
@@ -2037,6 +2043,16 @@ C**** simple upwind scheme for momentum
      *    VM(K,L)+RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L))
       ENDDO
   380 ALPHA=BETA
+      DO K=1,KMAX
+        SUMU1(K)=sum(UM(K,LDMIN:LMAX))
+        SUMV1(K)=sum(VM(K,LDMIN:LMAX))
+      END DO
+      DO K=1,KMAX                          ! momentum adjustment
+        UM(K,LDMIN:LMAX)=UM(K,LDMIN:LMAX)-(SUMU1(K)-SUMU(K))*
+     *    AIRM(LDMIN:LMAX)/SUMDP
+        VM(K,LDMIN:LMAX)=VM(K,LDMIN:LMAX)-(SUMV1(K)-SUMV(K))*
+     *    AIRM(LDMIN:LMAX)/SUMDP
+      END DO
 C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
       DO ITER=1,ITMAX1 ! iterate subsidence 2 times to improve stability
       FITMAX=ITMAX1
