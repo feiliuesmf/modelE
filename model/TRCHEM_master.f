@@ -1564,7 +1564,7 @@ c 1.8 ppbv CFC plus 0.8 ppbv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(n_ClOx,L)=(trm(I,J,L,n_ClOx)+changeL(L,n_ClOx))*y(nM,L)*
-     &    mass2vol(n_ClOx)*BYAXYP(ImJ)*BYAM(L,I,J)
+     &    mass2vol(n_ClOx)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_HCl,L)= (trm(I,J,L,n_HCl)+changeL(L,n_HCl))*y(nM,L)*
      &    mass2vol(n_HCl)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_HOCl,L)=(trm(I,J,L,n_HOCl)+changeL(L,n_HOCl))*y(nM,L)*
@@ -1789,10 +1789,11 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
             if(correct_strat_Ox) then
              tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &       axyp(i,j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*bydtsrc
+     &       axyp(i,j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*
+     &       bydtsrc
             else
              tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &       axyp(i,j)*O3MULT                   -trm(i,j,L,n_Ox))*bydtsrc
+     &       axyp(i,j)*O3MULT                -trm(i,j,L,n_Ox))*bydtsrc
             end if
             ! -- ClOx --
             tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
@@ -1808,7 +1809,7 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             if(PIfact(n_NOx) /= 1.) ! what's this for? I forget.
      &      tr3Dsource(i,j,L,nChemistry,n_NOx)=0.d0 !75=1*300*2.5*.1
             tr3Dsource(i,j,L,nStratwrite,n_NOx)=(75.d-11
-     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-trm(i,j,L,n_NOx))*bydtsrc 
+     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-trm(i,j,L,n_NOx))*bydtsrc
           end do ! I 
         end do   ! J
        end if    ! pressure
