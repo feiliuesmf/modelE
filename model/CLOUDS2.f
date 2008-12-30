@@ -1075,8 +1075,8 @@ C****
       LDRAFT=LM
       EVPSUM=0.
       DDRAFT=0.
-C     LFRZ=0
-      LFRZ=1                    ! preventing blow-up
+      LFRZ=0
+C     LFRZ=1                    ! preventing blow-up
       LMAX=LMIN
 C     CONTCE=.3
 C     IF(IC.EQ.2) CONTCE=.6
@@ -1600,7 +1600,11 @@ C     IF(PL(L).LT.400.) WV=WMAX*((PL(L)-PLE(LM+1))/(400.-PLE(LM+1)))**PN
       DCG=MIN(DCG,1.D-2)
       DCI=((WV/11.72)*(PL(L)/1000.)**.4)**2.439
       DCI=MIN(DCI,1.D-2)
-      TIG=TF-4.*WCU(LFRZ)
+      IF(LFRZ.EQ.0) THEN
+        TIG=TF           ! initialization
+      ELSE
+        TIG=TF-4.*WCU(LFRZ)
+      END IF
       IF(TIG.LT.TI-10.d0) TIG=TI-10.d0
       IF (TP.GE.TF) THEN ! water phase
         DDCW=6d-3/FITMAX
@@ -1657,7 +1661,9 @@ C     ELSE IF (TP.LE.TI) THEN ! pure ice phase
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
       ELSE ! mixed phase
 C       FG=(TP-TI)/(TF-TI)     ! use TIG instead TI
-        FG=(TP-TIG)/(TF-TIG)
+        FG=(TP-TIG)/(TF-TIG+teeny)
+        IF(FG.GT.1d0) FG=1d0
+        IF(FG.LT.0d0) FG=0d0
         IF(TL(LMIN).LE.TF.OR.TL(LMIN+1).LE.TF) FG=0.d0
         FI=1.-FG
         CONDIP(L)=RHOIP*(PI*by6)*CN0I*EXP(-FLAMI*DCI)*
