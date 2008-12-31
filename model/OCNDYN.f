@@ -281,9 +281,6 @@ C***  Get the data from the ocean grid to the atmospheric grid
 #ifdef TRACERS_OCEAN
      *     ,oc_tracer_mean,ntm
 #endif
-#ifdef TRACERS_OceanBiology
-      USE obio_forc, only : obio_restart
-#endif
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
@@ -614,12 +611,6 @@ C**** Initialize KPP mixing scheme
 C**** Initialize some info passed to atmsophere
       uosurf=0 ; vosurf=0. ; ogeoza=0.
 
-C**** Set initialization flag for ocean biology
-#ifdef TRACERS_OceanBiology
-      obio_restart=.false.
-      if (istart.le.2) obio_restart=.true.
-#endif
-
 C**** Set atmospheric surface variables
       IF (ISTART.gt.0) CALL TOC2SST
 
@@ -680,9 +671,10 @@ C****
      *     ,irsficnt,irerun,lhead
       USE OCEAN
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+      USE MODEL_COM, only: nstep=>itime
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEANR_DIM, only : ogrid
-      USE obio_com, only : itest,jtest,gcmax
+      USE obio_com, only : itest,jtest,gcmax,nstep0
       USE obio_forc, only : avgq,tirrq3d,ihra
 #endif
 
@@ -724,7 +716,7 @@ C****
       call pack_data(ogrid, gcmax,   gcmax_glob)
 
       write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-     *     'R8 dim(im,jm,',LMO,',',NTM,'):avgq,gcmax,tirrq3d,ihra'
+     * 'R8 dim(im,jm,',LMO,',',NTM,'):nstep0,avgq,gcmax,tirrq3d,ihra'
 #endif
 
 
@@ -745,7 +737,8 @@ C****
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+      print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
@@ -756,7 +749,7 @@ C****
 #else
 #ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,atrac
+     . ,nstep,atrac
       i=itest
       j=jtest
       do k=1,kdm
@@ -766,7 +759,8 @@ C****
 #endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+      print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
@@ -805,7 +799,7 @@ C****
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER
-     . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep0,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER 
@@ -823,7 +817,8 @@ C****
 #endif
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER
-     . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+      print*,'nstep0= ',nstep0
       i=itest
       j=jtest
       do k=1,kdm

@@ -26,9 +26,6 @@
 #else
      .                    ,Eda,Esa,Eda2,Esa2
 #endif
-#ifdef OBIO_ON_GARYocean
-     .                    ,obio_restart
-#endif
       USE obio_com,  only: gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
@@ -42,7 +39,7 @@
      .                    ,tot_chlo,acdom3d
 #ifdef OBIO_ON_GARYocean
      .                    ,itest,jtest,obio_deltat
-     .                    ,tracer_loc,tracer
+     .                    ,tracer_loc,tracer,nstep0
 #endif
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
@@ -58,7 +55,7 @@
 
 
 #ifdef OBIO_ON_GARYocean
-      USE MODEL_COM,  only : nstep=>itime
+      USE MODEL_COM,  only : nstep=>itime,itimei
       USE GEOM,       only : LON_DG,LAT_DG
       USE CONSTANT,   only : grav
       USE OCEANR_DIM, only : ogrid
@@ -83,7 +80,6 @@
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer iu_pco2,ll,iu_tend
-      integer ifst
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GARYocean
@@ -95,8 +91,6 @@
       character jstring*3
 
       logical vrbos,noon,errcon
-
-      data ifst/0/
 
 !--------------------------------------------------------
       diagno_bio=.false.
@@ -113,9 +107,12 @@
 !Cold initialization
 
 #ifdef OBIO_ON_GARYocean
-      if (obio_restart.and.ifst.eq.0) then
+      print*, 'itimei,nstep,nstep0 =',
+     .         itimei,nstep,nstep0
+
+      if (nstep.eq.itimei) then
       print*, 'COLD INITIALIZATION....'
-      ifst=ifst+1
+      nstep0=0
 #else
       if (nstep.eq.1) then
         trcout=.true.
@@ -129,26 +126,46 @@
 #ifdef OBIO_ON_GARYocean
       call obio_bioinit_g
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! obio-bioinit_g computes the tracers RL in kg/kg but we need
+!!!! obio-bioinit_g computes the tracers RL in uM or other but we need
 ! to convert to trmo with units kg. So:
-! trmo = RL     * mo * dxypo
-! [kg] [kg/kg] [kg/m2] [m2]
+! trmo = RL  MB*1e-3/rho_water     * mo * dxypo
+! [kg]   [Kg,tracer/Kg,water]     [kg/m2] [m2]
 ! same for the trzmo = RZ * mo * dxyp
+
+! P1 =  1e-6*MB_nitr*1e-3/rho_water *mo*dxypo
+! P2 =  1e-6*MB_ammo*1e-3/rho_water *mo*dxypo
+! P3 =  1e-6*MB_sili*1e-3/rho_water *mo*dxypo
+! P4 =  1e-9*MB_iron*1e-3/rho_water *mo*dxypo
+! P5 =  1e-3/rho_water *mo*dxypo
+! P6 =  1e-3/rho_water *mo*dxypo
+! P7 =  1e-3/rho_water *mo*dxypo
+! P8 =  1e-3/rho_water *mo*dxypo
+! P9 =  1e-3/rho_water *mo*dxypo
+! P10=  1e-6*MB_nitr*1e-3/rho_water *mo*dxypo
+! P11=  1e-6*MB_nitr*1e-3/rho_water *mo*dxypo
+! P12=  1e-6*MB_sili*1e-3/rho_water *mo*dxypo
+! P13=  1e-9*MB_iron*1e-3/rho_water *mo*dxypo
+! P14=  1e-6*MB_doc*1e-3/rho_water *mo*dxypo
+! P15=  1e-6*MB_dic*1e-3/rho_water *mo*dxypo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #else
       call obio_bioinit(nn)
 #endif
-      endif   !if nstep=1 or obio_restart
+      endif   !if nstep=1 or nstep=itimei
 
 
 
 !Warm initialization
 
 #ifdef OBIO_ON_GARYocean
-      if (.not.obio_restart) then
+      if (nstep0 .gt. itimei .and. nstep.eq.nstep0) then
       print*, 'WARM INITIALIZATION....'
           call obio_init
+
+      !change units
+      tracer(:,:,:,:) = trmo(:,:,:,:)
+
       endif !for restart only
 #else
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then

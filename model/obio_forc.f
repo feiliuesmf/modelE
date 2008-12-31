@@ -77,9 +77,6 @@
 
       real atmCO2
 
-#ifdef OBIO_ON_GARYocean
-      logical obio_restart
-#endif
       contains
 
 !------------------------------------------------------------------------------

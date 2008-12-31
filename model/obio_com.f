@@ -35,10 +35,13 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer        !only for gary ocean
 
+      integer nstep0
+
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific
-      integer, parameter :: itest=32, jtest=20    !southern ocean; Pacific             #endif
+      integer, parameter :: itest=32, jtest=20    !southern ocean; Pacific             
+#endif
 
 #ifdef OBIO_ON_GARYocean
       real, parameter :: obio_deltath = 0.5  !time step in hours
@@ -237,6 +240,5 @@ c**** Extract domain decomposition info
       call pack_data( ogrid, pCO2, pCO2_glob )
 
       end subroutine gather_pCO2
-
 
       END MODULE obio_com

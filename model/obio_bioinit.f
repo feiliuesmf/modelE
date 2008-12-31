@@ -352,7 +352,7 @@ cdiag call closeunit(iu_bioinit)
 cdiag enddo
 
       if (AM_I_ROOT())
-     .print*,'COLD INITIALIZATION'
+     .print*,'obio_bioinit: '
       call obio_trint(nn)
 
       return
