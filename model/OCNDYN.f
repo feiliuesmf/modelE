@@ -6024,8 +6024,6 @@ C**** surface tracer concentration
       call HNTR8  (aONES, aDMVI_glob, oDMVI_glob)      !!  V-grid => V-grid
       oDMVI_glob(:,JMO) = 0.0                          !!  should not be used
 
->>>>>>> 2.172
-      
       RETURN
       END SUBROUTINE INT_AG2OG_oceans 
 
