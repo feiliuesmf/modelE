@@ -2822,6 +2822,11 @@ C**** THE LIQUID WATER CONTENT IS PREDICTED
 C****
       IERR=0
 C****
+
+!!! hack to make sure that LHX is defined
+!!! those familiar with this code please fix this !
+      LHX = LHE
+
       debug_out=.false.
       PRCPSS=0.
       HCNDSS=0.
