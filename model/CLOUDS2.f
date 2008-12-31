@@ -2825,7 +2825,7 @@ C****
 
 !!! hack to make sure that LHX is defined
 !!! those familiar with this code please fix this !
-      LHX = LHE
+C     LHX = LHE             ! fixed
 
       debug_out=.false.
       PRCPSS=0.
@@ -2910,12 +2910,12 @@ C**** COMPUTE VERTICAL VELOCITY IN CM/S
          VVEL=-.5*(SDL(L)+SDL(L+1))*TEMP
       END IF
 C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
-      CM00=1.d-4
-      IF(LHX.EQ.LHS.AND.SVWMXL(L).LE.0d0) CM00=1.d-3
-      IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
-      CM0=CM00
-      VDEF=VVEL-VSUBL(L)
-      IF(VDEF.GT.0.) CM0=CM00*10.**(-VDEF)
+C     CM00=1.d-4
+C     IF(LHX.EQ.LHS.AND.SVWMXL(L).LE.0d0) CM00=1.d-3
+C     IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
+C     CM0=CM00
+C     VDEF=VVEL-VSUBL(L)
+C     IF(VDEF.GT.0.) CM0=CM00*10.**(-VDEF)
 c      FCLD=1.-CLEARA(L)+1.E-20            !!!
       FCLD=(1.-CLEARA(L))*FSSL(L)+teeny
 C**** COMPUTE THE PROBABILITY OF ICE FORMATION, FUNI, AND
@@ -2957,7 +2957,7 @@ C       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
           LHX=LHS
         ENDIF
 
-        IF (L.LT.LP50) THEN
+        IF (L.LT.LP50) THEN                     
 C**** Decide whether precip initiates B-F process
           PML=WMX(L)*AIRM(L)*BYGRAV
           PMI=PREICE(L+1)*DTsrc
@@ -2965,6 +2965,10 @@ C**** Decide whether precip initiates B-F process
 C**** Calculate probability of ice precip seeding a water cloud
           IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
             PRATIO=MIN(PMI/(PML+1.E-20),10d0)
+            CM00=3.d-5           ! reduced by a factor of 3
+            CM0=CM00
+            VDEF=VVEL-VSUBL(L)
+            IF(VDEF.GT.0.) CM0=CM00*10.**(-VDEF)
             CBFC0=.5*CM0*CBF*DTsrc
             PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
             IF(PFR.GT.RANDNO) THEN
@@ -2978,6 +2982,13 @@ C**** If liquid rain falls into an ice cloud, B-F must occur
         END IF
       END IF
       IF(LHX.EQ.LHS .AND. (OLDLHX.EQ.LHE.OR.OLDLAT.EQ.LHE)) BANDF=.TRUE.
+C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
+      CM00=1.d-4
+      IF(LHX.EQ.LHS.AND.SVWMXL(L).LE.0d0) CM00=1.d-3
+      IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
+      CM0=CM00
+      VDEF=VVEL-VSUBL(L)
+      IF(VDEF.GT.0.) CM0=CM00*10.**(-VDEF)
 
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
