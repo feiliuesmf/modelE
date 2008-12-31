@@ -64,13 +64,13 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z_CS48 SOIL=S4X50093 ! soil/topography bdy.conds
+TOPO=Z_CS48 SOIL=SOIL_CS48.ext ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V72X46.1.cor2_no_crops CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
-CDN=CD4X500S                      ! surf.drag coefficient
+CDN=CD_CS48.ext                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR               ! river direction file
-TOP_INDEX=top_index_72x46.ij      ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_CS48.ext      ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
@@ -118,6 +118,9 @@ DTFIX=300
 KOCEAN=0 ! 0 or 1 , use =0 if ocn is prescribed, use =1 if ocn is predicted
 Kvflxo=0 ! use 1 ONLY to save VFLXO daily to prepare for q-flux run ?
 ocn_cycl=1  ! ? use =0 if prescribed ocean varies from year to year
+
+variable_lk=1 ! let lakes grow or shrink in horizontal extent
+init_flake=0
 
 ! drag params if grav.wave drag is not used and top is at .01mb
 X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)

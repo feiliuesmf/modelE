@@ -138,10 +138,11 @@ C****
       call sync_param( "J_TARG", J_TARG )
       call init_app(grid,im,jm,lm,J_TARG)
 #else
+      call init_app(grid,im,jm,lm)
 
-c***  Initialize cs2ll exchange grid object and test regriding routines, ( DEBUG only )
-c      call regrid_input(grid%dd2d)
-
+#ifdef CUBE_GRID
+c***  Initialize regriding routines, ( DEBUG only )
+c       call regrid_input(grid%dd2d)
 c      call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
 c      allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
 c     &     grid%dd2d%jsd:grid%dd2d%jed))
@@ -153,8 +154,8 @@ c     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
 c     &     xcs2ll%ntilestarget) )
 c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
 c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
+#endif
 
-      call init_app(grid,im,jm,lm)
 #endif
 
 #ifndef ADIABATIC
@@ -2073,6 +2074,7 @@ C**** Ensure that no round off error effects land with ice and earth
          FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
+#endif
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
@@ -2082,7 +2084,6 @@ C****
       ISTART_kradia = ISTART
       if ( Kradia.gt.0 ) ISTART_kradia = 0
       CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia, nl_soil)
-#endif
 #ifdef USE_ENT
       CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
 #endif
@@ -2102,7 +2103,7 @@ C****
       end if                  !  Kradia>0; radiative forcing run
 #endif
 
-#ifndef ADIABATIC
+#if !defined(ADIABATIC) || defined(CUBE_GRID)
 
 C**** Initialize pbl (and read in file containing roughness length data)
       if(istart.gt.0) CALL init_pbl(iniPBL)

@@ -11,14 +11,14 @@ c      call init_regrid(xll2cs,360,180,1,90,90,6)
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
       if (AM_I_ROOT()) then
-         call regridTOPO(xll2cs)
+c         call regridTOPO(xll2cs)
 c         call regridOSST(xll2cs)
 c         call regridSICE(xll2cs)
 c         call regridCDN(xll2cs)
 c         call regridVEG(xll2cs)
 c         call regridRVR(xll2cs) ! empty for the moment
 c         call regridCROPS(xll2cs)
-c         call regridTOPINDEX(xll2cs)
+         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
 ccc   Then regrid Initial Condition 
       endif

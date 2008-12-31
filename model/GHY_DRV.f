@@ -1765,7 +1765,12 @@ c**** modifications needed for split of bare soils into 2 types
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf,shw_kg=>shw
       use DOMAIN_DECOMP, only : GRID, DIST_GRID
-      use DOMAIN_DECOMP, only : GET,READT_PARALLEL, DREAD_PARALLEL
+      use DOMAIN_DECOMP, only : GET
+#ifdef CUBE_GRID
+      use pario_fbsa, only : DREAD_PARALLEL, READT_PARALLEL
+#else
+      use DOMAIN_DECOMP, only : DREAD_PARALLEL, READT_PARALLEL
+#endif
       use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
       use DOMAIN_DECOMP, only : GLOBALSUM
       use model_com, only : fearth0,itime,nday,jyear,fland,flice
