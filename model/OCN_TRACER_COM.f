@@ -56,16 +56,17 @@ C**** this defines tracer parameters that are local to ocean code
 
       LOGICAL, DIMENSION(ntm) :: t_qlimit=.true. 
       INTEGER, DIMENSION(ntm) :: itime_tr0 = 0, ntrocn = 0
-      INTEGER :: n_age = 0, n_water = 0, n_obio = 0
+      INTEGER :: n_water = 0
 
 #else   /* not tracers_ocean_indep */
 
 C**** use only agcm data
       USE TRACER_COM, only : ntm, trname, itime_tr0, trdecay,
-     *        t_qlimit, trw0, ntrocn, n_age, n_water
+     *        t_qlimit, trw0, ntrocn,n_water
 
 
 #endif  /* TRACERS_OCEAN_INDEP */
+      INTEGER :: n_age = 0, n_obio = 0
 
       END MODULE OCN_TRACER_COM
 #endif
