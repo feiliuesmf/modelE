@@ -27,8 +27,8 @@ Preprocessor Options
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
 !  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
-!  OFF #ifdef SULF_ONLY_AEROSOLS        ! when using Koch aerosols,omit BC,OC,SS
-!  OFF #ifdef HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
+!  OFF #define SULF_ONLY_AEROSOLS        ! when using Koch aerosols,omit BC,OC,SS
+!  OFF #define HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
