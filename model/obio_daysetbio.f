@@ -13,7 +13,6 @@ c
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
-      !????? what is nstep?????
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep

@@ -64,6 +64,7 @@
       USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
       USE KPP_COM,    only : kpl,kpl_glob
+      USE OCN_TRACER_COM,    only : obio_tr_mm
 #else
       USE hycom_dim
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
@@ -83,8 +84,10 @@
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GARYocean
-      real temgs,g,s,temgsp,pres
-      real time,dtr,ftr
+      Real*8,External   :: VOLGSP
+      real*8 temgs,g,s,temgsp,pres
+      real*8 time,dtr,ftr,rho_water
+      real*8 trmo_unit_factor(kdm,ntyp+n_inert+ndet+ncar)
       integer i_0h,i_1h,j_0h,j_1h
 #endif
       character string*80
@@ -125,30 +128,6 @@
       !note: we do not initialize obio_P,det and car
 #ifdef OBIO_ON_GARYocean
       call obio_bioinit_g
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! obio-bioinit_g computes the tracers RL in uM or other but we need
-! to convert to trmo with units kg. So:
-! trmo = RL  MB*1e-3/rho_water     * mo * dxypo
-! [kg]   [Kg,tracer/Kg,water]     [kg/m2] [m2]
-! same for the trzmo = RZ * mo * dxyp
-
-! P1 =  1e-6*MB_nitr*1e-3/rho_water *mo*dxypo
-! P2 =  1e-6*MB_ammo*1e-3/rho_water *mo*dxypo
-! P3 =  1e-6*MB_sili*1e-3/rho_water *mo*dxypo
-! P4 =  1e-9*MB_iron*1e-3/rho_water *mo*dxypo
-! P5 =  1e-3/rho_water *mo*dxypo
-! P6 =  1e-3/rho_water *mo*dxypo
-! P7 =  1e-3/rho_water *mo*dxypo
-! P8 =  1e-3/rho_water *mo*dxypo
-! P9 =  1e-3/rho_water *mo*dxypo
-! P10=  1e-6*MB_nitr*1e-3/rho_water *mo*dxypo
-! P11=  1e-6*MB_nitr*1e-3/rho_water *mo*dxypo
-! P12=  1e-6*MB_sili*1e-3/rho_water *mo*dxypo
-! P13=  1e-9*MB_iron*1e-3/rho_water *mo*dxypo
-! P14=  1e-6*MB_doc*1e-3/rho_water *mo*dxypo
-! P15=  1e-6*MB_dic*1e-3/rho_water *mo*dxypo
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 #else
       call obio_bioinit(nn)
 #endif
@@ -162,10 +141,6 @@
       if (nstep0 .gt. itimei .and. nstep.eq.nstep0) then
       print*, 'WARM INITIALIZATION....'
           call obio_init
-
-      !change units
-      tracer(:,:,:,:) = trmo(:,:,:,:)
-
       endif !for restart only
 #else
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
@@ -296,17 +271,36 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
          pres=pres+MO(I,J,k)*GRAV*.5
          g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
          s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
-cdiag    if(vrbos) write(*,'(a,5i5,7e12.4)')'pres,temp,saln: ',
-cdiag.       nstep,i,j,k,lmm(i,j),MO(I,J,k),oAPRESS(i,j),pres,
-cdiag.       G0M(I,J,k),g,S0M(I,J,k),s
 !!!!     temp1d(k)=TEMGS(g,s)           !potential temperature
          temp1d(k)=TEMGSP(g,s,pres)     !in situ   temperature
           saln1d(k)=s*1000.             !convert to psu (eg. ocean mean salinity=35psu)
            dp1d(k)=dzo(k)               !thickenss of each layer in meters
-           if(vrbos) write(*,'(a,5i5,5e12.4)')
-     .       'obio_model,dp,p,temp,temgs,saln: ',
-     .       nstep,i,j,k,lmm(i,j),dp1d(k),pres,temp1d(k),
-     .       TEMGS(g,s),saln1d(k)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! array tracer has units [mole]/m3. convert to/from trmo with units kg as follows:
+! trmo = tracer * MB*1e-3/rho_water     * mo * dxypo
+! note that occassionally tracer is in milimoles and othertimes in micromoles
+! trmo_unit_factor below has units m^3 and depends on which 
+! layer you are: trmo = tracer * factor,  tracer=trmo/factor
+! txmo,tzmo,tymo are all computed based on trmo
+! this should be done at every timestep except when COLD INITIALIZATION
+! because then trmo=0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         pres=pres+MO(I,J,k)*GRAV*.5
+         g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+         s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+         rho_water = 1d0/VOLGSP(g,s,pres)
+         do nt=1,ntyp+n_inert+ndet+ncar
+           trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! milimoles/m3=> kg/m3
+     .                            * MO(I,J,k)*DXYPO(J)/rho_water  ! kg/m3 => kg
+           if (nt.eq.4.or.nt.eq.13)
+     .         trmo_unit_factor(k,nt) = 1d-3*trmo_unit_factor(k,nt) !nanomoles/m3 => kg
+           if (nt.ge.5.and.nt.le.9)
+     .         trmo_unit_factor(k,nt) = obio_tr_mm(nt)/1d-3     ! mg/m3 => kg
+
+           if (nstep0 .gt. itimei) then
+              tracer(i,j,k,nt) = trmo(i,j,k,nt) / trmo_unit_factor(k,nt)
+           endif
+         enddo
 #else
        do k=1,kdm
         km=k+mm
@@ -786,18 +780,25 @@ cdiag     endif
       !update trmo etc arrays
        do k=1,kmax
        do nt=1,ntyp+n_inert+ndet+ncar
-        if(nt.le.ntyp+n_inert)dtr = P_tend(k,nt)*obio_deltat
-        if(nt.gt.ntyp+n_inert.and.nt.le.ntyp+n_inert+ndet)
-     .     dtr = D_tend(k,nt-ntyp-n_inert)*obio_deltat
-        if(nt.gt.ntyp+n_inert+ndet)
-     .     dtr = C_tend(k,nt-ntyp-n_inert-ndet)*obio_deltat
+
+!       if(nt.le.ntyp+n_inert)dtr = P_tend(k,nt)*obio_deltat
+!       if(nt.gt.ntyp+n_inert.and.nt.le.ntyp+n_inert+ndet)
+!    .     dtr = D_tend(k,nt-ntyp-n_inert)*obio_deltat
+!       if(nt.gt.ntyp+n_inert+ndet)
+!    .     dtr = C_tend(k,nt-ntyp-n_inert-ndet)*obio_deltat
+
+          dtr = tracer(i,j,k,nt) * trmo_unit_factor(k,nt) 
+     .        - trmo(i,j,k,nt)
+
         if (dtr.lt.0) then
           ftr = -dtr/trmo(i,j,k,nt)
           txmo(i,j,k,nt)=trmo(i,j,k,nt)*(1.-ftr)
           tymo(i,j,k,nt)=tymo(i,j,k,nt)*(1.-ftr)
           tzmo(i,j,k,nt)=tzmo(i,j,k,nt)*(1.-ftr)       
         endif
+
         trmo(i,j,k,nt)=trmo(i,j,k,nt)+dtr
+
        enddo
        enddo
 #endif
@@ -840,7 +841,6 @@ cdiag  endif
 #ifdef OBIO_ON_GARYocean
        if (kpl(i,j).gt.0) then    !??/why kpl(2,90)=0???
 #endif
-         print*,'while writing pco2 output:',i,j,kpl(i,j)
          write(iu_pco2,'(3i7,22e12.4)')
      .     nstep,i,j
      .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)

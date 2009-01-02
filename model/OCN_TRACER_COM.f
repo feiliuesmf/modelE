@@ -45,6 +45,21 @@ C**** this defines tracer parameters that are local to ocean code
      .                                ,'       DOC'
      .                                ,'       DIC'/)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
+      REAL*8  :: obio_tr_mm(ntm)= (/ 14.
+     .                             , 14.
+     .                             , 28.055
+     .                             , 55.845
+     .                             , 1.
+     .                             , 1.
+     .                             , 1.
+     .                             , 1.
+     .                             , 1.
+     .                             , 14.
+     .                             , 14.
+     .                             , 28.055
+     .                             , 55.845
+     .                             , 12.
+     .                             , 12. /)
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #else
