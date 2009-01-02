@@ -1702,6 +1702,7 @@ C****
                   MSI(I,J)=AC2OIM
 
                   TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
+                  GTEMPR(1,I,J)=0.
                   MLDLK(I,J)=MINMLD
                   FLAKE(I,J)=0.
                   FLAND(I,J)=1.

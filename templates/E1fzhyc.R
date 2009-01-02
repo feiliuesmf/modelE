@@ -11,9 +11,10 @@ time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs
 filters: U,V in E-W direction (after every dynamics time step)
          sea level pressure (after every physics time step)
 
-Preprocessor Options
+preprocessor Options
 ! #define TRACERS_ON                  ! include tracers code
 ! #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+#define CHECK_OCEAN_HYCOM             ! needed for CMPE002 only 
 #define HYCOM_RESOLUTION_2deg         ! use 2deg resolution for HYCOM ocean
 #define TRACERS_HYCOM_Ventilation
 End Preprocessor Options
@@ -64,7 +65,7 @@ dpthuv|-r8| dpudpv|-r8|             ! off-center depth
 eice  |-r8|                         ! ice forming
 geopar|-r8|                         ! geography related parameters
 hybgn1|-r8|                         ! grid generator
-inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions 
+inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
 matinv|-r8| mxkprf|-r8| mxlayr|-r8| ! mixing scheme
 momtum|-r8|                         ! momemtum Eqn.
 prtetc|-r8|                         ! print routines, etc.
@@ -78,7 +79,7 @@ Data input files:
 AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.) needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
 CDN=CD4X500S.ext                  ! surf.drag coefficient
-VEG=V72X46.1.cor2_no_crops.ext 
+VEG=V72X46.1.cor2_no_crops.ext
 CROPS=CROPS_72X46N.cor4.ext       ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N.2deg_rfn_20w  ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
@@ -153,7 +154,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-!     if CLOUDS2_E1 is replaced by CLOUDS2, use: 
+!     if CLOUDS2_E1 is replaced by CLOUDS2, use:
 ! U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 ! U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 !     instead of:
@@ -222,6 +223,6 @@ ocnmx_factor_t=1.   ! default is 1.
 
  &INPUTZ
    YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, ! IYEAR1=YEARI (default) or earlier
-   YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,     KDIAG=13*0,
+   YEARE=1800,MONTHE=01,DATEE=03,HOURE=00,     KDIAG=13*0,
    ISTART=2,IRANDI=0,YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
