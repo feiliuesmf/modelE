@@ -505,7 +505,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        endif   !end of calculations for the beginning of day
 
 
-
        !------------------------------------------------------------
 #ifndef OBIO_RAD_coupling
        !Eda and Esa OASIM data is given every 2hrs

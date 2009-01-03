@@ -22,6 +22,7 @@ c  final is quanta for phytoplankton growth.
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
+      USE MODEL_COM,  only : nstep=>itime
 #else
       USE hycom_dim_glob, only : kdm
 #endif
@@ -131,27 +132,27 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
           do ntr = 1,nchl
              fac = fac + fchl(ntr)*facirr(ih,ich,ntr,icd)
 
-cdiag        if(vrbos)
-cdiag.         write(lp,'(a,3i7,e12.4,4i7,2e12.4)')
-cdiag.        'edeu diag: ',
-cdiag.        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
-cdiag.        facirr(ih,ich,ntr,icd),fac
+             if(vrbos)
+     .         write(*,'(a,3i7,e12.4,4i7,2e12.4)')
+     .        'edeu diag: ',
+     .        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
+     .        facirr(ih,ich,ntr,icd),fac
           enddo
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
-cdiag     if(k.eq.1)
-cdiag.       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',
-cdiag.              nstep,i,j,k,fac,Etopq,
-cdiag.              Ebotq,rmus,tirrq(k)
+          if(k.eq.1)
+     .       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',
+     .              nstep,i,j,k,fac,Etopq,
+     .              Ebotq,rmus,tirrq(k)
 
        enddo  !k
  
 c  Irradiance summary loops
+
       do k = 1,kmax
        avgq1d(k) = avgq1d(k) + tirrq(k)
       enddo
- 
 
       return
       end

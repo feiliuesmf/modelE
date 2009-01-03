@@ -678,7 +678,7 @@ C****
       USE obio_forc, only : avgq,tirrq3d,ihra
 #endif
 
-      USE DOMAIN_DECOMP, only : AM_I_ROOT,PACK_DATA
+      USE DOMAIN_DECOMP, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
 
       IMPLICIT NONE
 
@@ -737,14 +737,14 @@ C****
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,nstep,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,i2,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &       ihra_glob(i,j)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
@@ -758,13 +758,15 @@ C****
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
+      !note: we need to writing out nstep here which is the last timestep
+      !that the model did
       WRITE (kunit,err=10) TRNMODULE_HEADER
      . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,i2,3(e12.4,1x),i3)') ' tst1a k=',k,
+      write(*,'(a,3i5,3(e12.4,1x),i3)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
      &       ihra_glob(i,j)
       enddo
@@ -799,7 +801,7 @@ C****
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER
-     . ,nstep0,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER 
@@ -822,7 +824,7 @@ C****
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,i2,3(e12.4,1x),i3)') ' tst1b k=',k,
+      write(*,'(a,3i5,3(e12.4,1x),i3)') ' tst1b k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
      .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
       enddo
@@ -852,6 +854,17 @@ C****
            return
         END SELECT
       END SELECT
+
+#ifdef TRACERS_OceanBiology
+      call unpack_data(ogrid, avgq_glob, avgq)
+      call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
+      call unpack_data(ogrid, ihra_glob, ihra)
+      call unpack_data(ogrid, gcmax_glob, gcmax)
+      if (AM_I_ROOT()) then
+        deallocate( avgq_glob,tirrq3d_glob,
+     &       ihra_glob, gcmax_glob )
+      endif
+#endif
 
       RETURN
  10   IOERR=1
