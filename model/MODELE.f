@@ -275,11 +275,11 @@ C****
 #ifdef USE_FVCORE
 
 #ifdef USE_FVCUBED
-        !if(AM_I_ROOT()) then
-        ! write(suffix,'(i1)') kdisk
-        ! call system('cp  fv.'// suffix // ' dyncore_internal_restart')
-        ! call system('cp dfv.'// suffix // ' dyncore_import_restart')
-        !end if
+        if(AM_I_ROOT()) then
+         write(suffix,'(i1)') kdisk
+         call system('cp  fv.'// suffix // ' dyncore_internal_restart')
+         call system('cp dfv.'// suffix // ' dyncore_import_restart')
+        end if
 #endif
 
       Call Initialize(fv, istart, vm, grid%esmf_grid, clock,fv_config)

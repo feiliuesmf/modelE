@@ -627,6 +627,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_MPP
       integer :: npx, npy, ng
       integer :: isd, ied , jsd, jed
+      integer :: capnx, capny
 #ifdef USE_ESMF
       integer, allocatable            :: IMS(:), JMS(:)
 #endif
@@ -842,7 +843,11 @@ c***  gluing dd2d derived type to dist_grid derived type
 
       if (present(CREATE_CAP)) then
          if (CREATE_CAP) then
-            cf = load_cap_config('cap.rc',IM,JM*6,LM,1,NPES)
+
+            capnx = int(floor(sqrt(real(NPES/6))))
+            capny = NPES / capnx
+
+            cf = load_cap_config('cap.rc',IM,JM*6,LM,capnx,capny)
             vm_ => modelE_vm
             If (Present(vm)) vm_ => vm
             print*, 'Started AppGridCreateF'
@@ -6006,7 +6011,7 @@ cddd      End If
          num_contact = 12
          !--- cubic grid always have six tiles, so npes should be multiple of 6
          if( mod(npes,ntiles) .NE. 0 .OR. npx-1 .NE. npy-1) then
-               call mpp_error(NOTE,'init_domain: Cubic_grid mosaic')
+               call stop_model('NPES not divisible by ntiles', 255)
                return
          end if
          npes_per_tile = npes/ntiles

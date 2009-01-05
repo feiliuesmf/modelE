@@ -211,6 +211,7 @@ contains
     call ESMFL_StateGetPointerToData ( fv % export,fv % q,'Q',rc=rc)
     VERIFY_(rc)
     Call get(modelE_grid, J_STRT=J_0, J_STOP=J_1)
+    fv%q = 0.0
 !!$    Allocate(fv % Qtr(IM,J_0:J_1,LM))
 
 
@@ -238,6 +239,10 @@ contains
       Integer :: unit
       Integer :: npes
 
+#ifdef USE_FVCUBED
+      Integer :: mppnx, mppny
+#endif
+
       call esmf_vmget(fv % vm, petcount = npes, rc=rc)
       Allocate(AI(npes,3))
       call esmf_gridgetallaxisindex(fv % grid, globalai=ai, horzrelloc=ESMF_CELL_CENTER,  &
@@ -245,14 +250,18 @@ contains
 
       unit = GetFile(fname, form="formatted", rc=rc)
 #ifdef USE_FVCUBED
+
+      mppnx = int(floor(sqrt(real(NPES/6))))
+      mppny = (NPES / mppnx) / 6
+
       Write(unit,*)'      npx: ',IM
       Write(unit,*)'      npy: ',JM
       Write(unit,*)'      npz: ',LM
       Write(unit,*)'       dt: ',DT
       Write(unit,*)'   nsplit: ',0
       Write(unit,*)'       nq: ',1
-      Write(unit,*)'   npes_x: ',1
-      Write(unit,*)'   npes_y: ',1
+      Write(unit,*)'   npes_x: ',mppnx
+      Write(unit,*)'   npes_y: ',mppny
       Write(unit,*)' consv_te: ',0.
 #else
       write(unit,*)' # empty line #'
@@ -503,7 +512,7 @@ contains
        Call ConvertPressure_GISS2FV( Tendency(EdgePressure_GISS(), fv % PE_old), fv % dpedt)
 
 #ifdef NO_FORCING
-       call clearTendencies()
+       call clearTendencies(fv)
 #endif
 
   end subroutine compute_tendencies
@@ -544,7 +553,7 @@ contains
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
     CALL CALC_PIJL(LM,P,PIJL)
-#endif
+#endif 
 
     Call Copy_modelE_to_FV_import(fv)
 
@@ -569,8 +578,8 @@ contains
        call reset_qmom
 #endif
 
-       phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
 #ifdef FVCUBED_SKIPPED_THIS
+       phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
        call compute_mass_flux_diags(phi, pu, pv, dt)
 #endif
 
@@ -724,19 +733,11 @@ contains
     VERIFY_(rc)
 
     call openunit(config_file, iunit, qbin=.false., qold=.false.)
-#ifdef USE_FVCUBED
     write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
-    write(iunit,*)'#FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
+    write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
 !!$ write(iunit,*)'FVCORE_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
 !!$ write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
     write(iunit,*)'FVCORE_LAYOUT:                    ', FVCORE_LAYOUT
-#else
-    write(iunit,*)'FVCORE_INTERNAL_CHECKPOINT_FILE:  ', FVCORE_INTERNAL_RESTART
-    write(iunit,*)'FVCORE_INTERNAL_RESTART_FILE:     ', FVCORE_INTERNAL_RESTART
-!!$    write(iunit,*)'FVCORE_IMPORT_CHECKPOINT_FILE:    ', TENDENCIES_FILE
-!!$    write(iunit,*)'FVCORE_IMPORT_RESTART_FILE:       ', TENDENCIES_FILE
-    write(iunit,*)'FVCORE_LAYOUT_FILE:               ', FVCORE_LAYOUT
-#endif
     write(iunit,*)'RUN_DT:                           ', DT
     call closeUnit(iunit)
 
@@ -779,13 +780,8 @@ contains
     real*8, allocatable, dimension(:,:,:) :: V_d
     real*8, allocatable, dimension(:,:,:) :: PE, PKZ, PT
 
-#ifdef USE_FVCUBED
     Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
          & default=FVCORE_INTERNAL_RESTART,rc=rc)
-#else
-    Call ESMF_ConfigGetAttribute(cf, value=rst_file, label='FVCORE_INTERNAL_RESTART_FILE:', &
-         & default=FVCORE_INTERNAL_RESTART,rc=rc)
-#endif
 
     if(istart .ge. extend_run) then
     ! Check to see if restart file exists
@@ -801,6 +797,7 @@ contains
        return
     end if
 
+#ifndef USE_FVCUBED
     ! If we got to here, then this means then we'll have to create a restart file
     ! from scratch.
     unit = GetFile(rst_file, form="unformatted", rc=rc)
@@ -854,6 +851,7 @@ contains
     Deallocate(PKZ)
 
     Call Free_File(unit)
+#endif
 
   CONTAINS
 
@@ -1126,9 +1124,11 @@ contains
 #endif
 
     ! Moisture
+#ifndef ADIABATIC
     fv % Q = Reverse(Q(I_0:I_1,j_0:j_1,:))
 #ifdef NO_FORCING
     fv % Q = 0
+#endif
 #endif
 
   End Subroutine Copy_modelE_to_FV_import
