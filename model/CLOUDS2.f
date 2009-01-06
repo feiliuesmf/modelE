@@ -940,7 +940,7 @@ C**** moved up.
          FSSL_tmp=1.d0-(1.d0+FSUB_tmp)*FCONV_tmp
          IF(FSSL_tmp.LT.CLDMIN) FSSL_tmp=CLDMIN
          IF(FSSL_tmp.GT.1.d0-CLDMIN) FSSL_tmp=1.d0-CLDMIN
-         FMC1=1.d0-FSSL_tmp+teeny
+         FMC1=(1.d0-FSSL_tmp)+teeny
       ELSE
 C**** guard against possibility of too big a plume
         MPLUME=MIN(0.95d0*AIRM(LMIN)*FMC1,MPLUME)
@@ -958,7 +958,7 @@ C**** guard against possibility of too big a plume
          FSSL_tmp=1.d0-(1.d0+FSUB_tmp)*FCONV_tmp
          IF(FSSL_tmp.LT.CLDMIN) FSSL_tmp=CLDMIN
          IF(FSSL_tmp.GT.1.d0-CLDMIN) FSSL_tmp=1.d0-CLDMIN
-         FMC1=1.d0-FSSL_tmp+teeny
+         FMC1=(1.d0-FSSL_tmp)+teeny
 C        MCCONT=0
 C        MC1=.FALSE.
          MPLUME=MPLUM1*FCTYPE
@@ -1661,7 +1661,7 @@ C     ELSE IF (TP.LE.TI) THEN ! pure ice phase
      *    6.*DCI/(FLAMI*FLAMI*FLAMI)+6./FLAMI**4)
       ELSE ! mixed phase
 C       FG=(TP-TI)/(TF-TI)     ! use TIG instead TI
-        FG=(TP-TIG)/(TF-TIG+teeny)
+        FG=(TP-TIG)/((TF-TIG)+teeny)
         IF(FG.GT.1d0) FG=1d0
         IF(FG.LT.0d0) FG=0d0
         IF(TL(LMIN).LE.TF.OR.TL(LMIN+1).LE.TF) FG=0.d0
@@ -1702,7 +1702,7 @@ c#endif
       COND(L)=COND(L)-CONDV(L)         ! CONDP1(L)
 C       WRITE(6,*) L,DWCU,WCU(L),CONDV(L),CONDP1(L),CONDP(L),COND(L)
 #ifdef TRACERS_WATER
-      FQCONDV=CONDV(L)/(COND(L)+CONDV(L)+teeny)
+      FQCONDV=CONDV(L)/((COND(L)+CONDV(L))+teeny)
       TRCONDV(:,L)=FQCONDV*TRCOND(:,L)
       TRCOND (:,L)=TRCOND(:,L)-TRCONDV(:,L)
 #endif
@@ -3394,7 +3394,7 @@ C**** adjust gradients down if Q decreases
 C**** update tracers from cloud formation (in- and below-cloud
 C****    precipitation, evaporation, condensation, and washout)
 c CLDSAVT is current FCLD
-        IF(RH(L).LE.1.) CLDSAVT=1.-DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(RH(L).LE.1.)CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
@@ -3565,7 +3565,7 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
 C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
       RH1(L)=QL(L)/QSATC
       IF(LHX.EQ.LHS) THEN
-        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
         IF(CLEARA(L).GT.1.) CLEARA(L)=1.
         IF(RH(L).GT.1.) CLEARA(L)=0.
         IF(WMX(L).LE.0.) CLEARA(L)=1.
@@ -3603,7 +3603,7 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
       WMXTR = WMX(L)
-        IF(RH(L).LE.1.) CLDSAVT=1.-DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(RH(L).LE.1.)CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
@@ -3661,7 +3661,7 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
       TNEW=TL(L)
 !     if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       END IF
-      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
       IF(RH(L).GT.1.) CLEARA(L)=0.
       IF(WMX(L).LE.0.) CLEARA(L)=1.
@@ -3692,7 +3692,7 @@ C**** set phase of condensation for next box down
       IF (PREBAR(L).gt.0 .AND. LHP(L).EQ.LHS) PREICE(L)=PREBAR(L)
       IF (PREBAR(L).le.0) LHP(L)=0.
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
-      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
       IF(RH(L).GT.1.) CLEARA(L)=0.
       IF(WMX(L).LE.0.) CLEARA(L)=1.
@@ -3745,7 +3745,7 @@ C****
         CK=DSE/(SLHE*DWM+teeny)
         SIGK=0.
         IF(CKR.GT.CKM) CYCLE
-        IF(CK.GT.CKR) SIGK=COESIG*((CK-CKR)/(CKM-CKR+teeny))**5
+        IF(CK.GT.CKR) SIGK=COESIG*((CK-CKR)/((CKM-CKR)+teeny))**5
         EXPST=EXP(-SIGK*DTsrc)
         IF(L.LE.1) CKIJ=EXPST
         DSEC=DWM*TL(L)/BETA
@@ -3862,7 +3862,7 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
 #endif
         TRWML(1:NTX,L+1)=0.
 #endif
-        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/(1.-RH00(L)+teeny))
+        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
         IF(CLEARA(L).GT.1.) CLEARA(L)=1.
         IF(RH(L).GT.1.) CLEARA(L)=0.
         CLDSSL(L)=FSSL(L)*(1.-CLEARA(L))
