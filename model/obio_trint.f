@@ -70,11 +70,15 @@
 
       endif   !if am_i_root
 
-      do ntr=1,ntrcr
-        sumtrac=tracer(:,:,:,ntr)
-        call GLOBALSUM(ogrid,sum(sumtrac,dim=3),arraySum)
-        if(AM_I_ROOT()) write(*,*) __FILE__,__LINE__, ntr, arraySum
-      enddo
+      print*, 'CAN YOU DO THIS???? '
+
+!     do ntr=1,ntrcr
+!       write(*,*),'ntr =',ntr
+!       sumtrac=tracer_loc(:,:,:,ntr)
+!       write(*,*),'doing sumtrac'
+!       call GLOBALSUM(ogrid,sum(sumtrac,dim=3),arraySum)
+!       if(AM_I_ROOT()) write(*,*) __FILE__,__LINE__, ntr, arraySum
+!     enddo
 
       return
       end

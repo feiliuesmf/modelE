@@ -88,7 +88,8 @@
       real*8 temgs,g,s,temgsp,pres
       real*8 time,dtr,ftr,rho_water
       real*8 trmo_unit_factor(kdm,ntyp+n_inert+ndet+ncar)
-      integer i_0h,i_1h,j_0h,j_1h
+!     integer i_0h,i_1h,j_0h,j_1h
+      integer i_0,i_1,j_0,j_1
 #endif
       character string*80
       character jstring*3
@@ -156,10 +157,14 @@
 
 #ifdef OBIO_ON_GARYocean
       time = float(nstep)
-      i_0h=ogrid%I_STRT_HALO
-      i_1h=ogrid%I_STOP_HALO
-      j_0h=ogrid%J_STRT_HALO
-      j_1h=ogrid%J_STOP_HALO
+!     i_0h=ogrid%I_STRT_HALO
+!     i_1h=ogrid%I_STOP_HALO
+!     j_0h=ogrid%J_STRT_HALO
+!     j_1h=ogrid%J_STOP_HALO
+      i_0=ogrid%I_STRT
+      i_1=ogrid%I_STOP
+      j_0=ogrid%J_STRT
+      j_1=ogrid%J_STOP
 #endif
 
 #ifdef OBIO_ON_GARYocean
@@ -221,8 +226,13 @@
        print*, 'BIO: saving in pco2 and tend files'
        print*,' '
        jstring='xxx'
+#ifdef OBIO_ON_GARYocean
+       if(j_1.lt.100)write(jstring(1:2),'(i2)')j_1
+       if(j_1.ge.100)write(jstring(1:3),'(i3)')j_1
+#else
        if(j_1h.lt.100)write(jstring(1:2),'(i2)')j_1h
        if(j_1h.ge.100)write(jstring(1:3),'(i3)')j_1h
+#endif
        print*, 'pco2.'//jstring//string
        call openunit('pco2.'//jstring//string,iu_pco2)
        call openunit('tend.'//jstring//string,iu_tend)
@@ -236,8 +246,10 @@ c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
 #ifdef OBIO_ON_GARYocean
-       do 1000 j=j_0h,j_1h
-       do 1000 i=i_0h,i_1h
+!      do 1000 j=j_0h,j_1h
+!      do 1000 i=i_0h,i_1h
+       do 1000 j=j_0,j_1
+       do 1000 i=i_0,i_1
        IF(FOCEAN(I,J).gt.0.) THEN
 #else
        do 1000 j=j_0h,j_1h             !1,jj
