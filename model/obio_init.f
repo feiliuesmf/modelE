@@ -47,8 +47,6 @@ c
       character cacbc*11,cabw*10
       character*80 filename
 
-      real ena(idm,jdm,12)
-
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
 
       data a0,a1,a2,a3 /0.9976,0.2194,5.554E-2,6.7E-3/
@@ -468,9 +466,6 @@ c  Read in factors to compute average irradiance
         filename='atmFe_inicond'
 #ifdef OBIO_ON_GARYocean
         call bio_inicond2D_g(filename,atmFe_all(:,:,:),.true.)
-        !!call bio_inicond2D_g(filename,ena(:,:,:),.true.)
-        !!atmFe_all = ena
-    
 #else
         call bio_inicond2D(filename,atmFe_all(:,:,:),.true.)
 #endif
@@ -647,7 +642,6 @@ cdiag enddo
 cdiag endif
 
       enddo    ! k-loop
-
 
 !--------------------------------------------------------------
 

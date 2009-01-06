@@ -679,6 +679,7 @@ C****
 #endif
 
       USE DOMAIN_DECOMP, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
+     .                         ,ESMF_BCAST
 
       IMPLICIT NONE
 
@@ -860,6 +861,9 @@ C****
       call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
       call unpack_data(ogrid, ihra_glob, ihra)
       call unpack_data(ogrid, gcmax_glob, gcmax)
+      
+      call ESMF_BCAST(ogrid,nstep0)
+      
       if (AM_I_ROOT()) then
         deallocate( avgq_glob,tirrq3d_glob,
      &       ihra_glob, gcmax_glob )
