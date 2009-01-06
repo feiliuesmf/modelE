@@ -2086,13 +2086,14 @@ C****
       IMPLICIT NONE
       integer, intent(in) :: istart,num_acc_files
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
-     *     ,jday0,jday,moff,kb,iu_ACC,l850,l300,l50
+     *     ,jday0,jday,moff,kb,l850,l300,l50
       REAL*8 PLE_tmp
       CHARACTER CONPT(NPTS)*10
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER :: J_0,J_1, I_0,I_1
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
+      character(len=80) :: filenm
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
@@ -2161,10 +2162,8 @@ C****          write(6,*) 'non-consecutive period:',monacc
           XLABEL(120:132)=acc_period(1:3)//' '//acc_period(4:Ldate)
 C****          write(6,*) XLABEL
           CALL WRITE_PARALLEL(XLABEL, UNIT=6)
-          call openunit(acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
-     *         ,iu_ACC,.true.,.false.)
-          call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
-          call closeunit(iu_ACC)
+          filenm=acc_period(1:Ldate)//'.acc'//XLABEL(1:LRUNID)
+          call io_rsf (filenm,Itime,iowrite_single,ioerr)
         end if
         ItimeE = -1
         close (6)

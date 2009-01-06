@@ -1,27 +1,30 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE io_rsf(kunit,it,iaction,ioerr)
+      SUBROUTINE io_rsf(filenm,it,iaction,ioerr)
 !@sum   io_rsf controls the reading and writing of the restart files
 !@auth  Gavin Schmidt
 !@ver   1.0
 !@calls io_model,io_ocean,io_lakes,io_seaice,io_earth,io_soils,io_snow
 !@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 !@+     io_ocdiag,io_icedyn,io_icdiag
-      USE DOMAIN_DECOMP, only : REWIND_PARALLEL
+      USE FILEMANAGER, only : openunit,closeunit
+      USE DOMAIN_DECOMP, only : am_i_root !REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
-     *                     ,ioread,ioread_nodiag 
+     *                     ,ioread,ioread_nodiag,iowrite 
 
       IMPLICIT NONE
+!@var filenm name of file to be read or written
+      character(len=*) :: filenm
 !@var iaction flag for reading or writing rsf file
-!@var kunit Fortran unit number of file i/o
-      INTEGER, INTENT(IN) :: iaction,kunit
+      INTEGER, INTENT(IN) :: iaction
 !@var it hour of model run
       INTEGER, INTENT(INOUT) :: it
 !@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var IT1 hour for correct reading check
 !@var ITM maximum hour for post-processing
-      INTEGER IT1,itm,iact
+!@var kunit Fortran unit number of file i/o
+      INTEGER IT1,itm,iact,kunit
       logical skip_diag
 
       iact=iaction   ; skip_diag=.false.
@@ -30,7 +33,17 @@
       end if
 
       ioerr=-1
-      if (kunit.gt.0) CALL REWIND_PARALLEL( kunit )
+
+      if(iaction.le.iowrite) then
+c open output files with status = 'UNKNOWN'
+        if(am_i_root()) ! only root PE can write
+     &       call openunit(trim(filenm),kunit,.true.,.false.)
+      elseif(iaction.ge.ioread) then
+c open input files with status = 'OLD'
+c all PEs need to read the label records, so no am_i_root check
+        call openunit(trim(filenm),kunit,.true.,.true.)
+      endif
+c      if (kunit.gt.0) CALL REWIND_PARALLEL( kunit )
 
 C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 C**** Particular values may produce variations in indiv. i/o routines
@@ -90,6 +103,8 @@ C**** Calls to individual i/o routines
 C**** return maximum time
    10 it=itm
 
+      if(am_i_root() .or. iaction.ge.ioread) call closeunit(kunit)
+
       RETURN
       END SUBROUTINE io_rsf
 
@@ -119,3 +134,31 @@ C**** return maximum time
       call closeunit (iu_GIC)
       return
       end subroutine read_ground_ic
+
+      subroutine find_later_rsf(kdisk)
+!@sum set kdisk such that Itime in rsf_file_name(kdisk) is
+!@+   the larger of the Itimes in rsf_file_name(1:2).
+!@+   Transplanted from INPUT.
+      USE FILEMANAGER, only : openunit,closeunit
+      use model_com, only : rsf_file_name
+      implicit none
+      integer, intent(out) :: kdisk
+      integer :: Itime1,Itime2,kunit
+      Itime1=-1
+      call openunit(rsf_file_name(1),kunit,.true.,.true.)
+      READ (kunit,ERR=410) Itime1
+ 410  continue
+      call closeunit(kunit)
+      Itime2=-1
+      call openunit(rsf_file_name(2),kunit,.true.,.true.)
+      READ (kunit,ERR=420) Itime2
+ 420  continue
+      call closeunit(kunit)
+      if (Itime1+Itime2.LE.-2) then
+        call stop_model(
+     &       'FIND_LATER_RSF: ERRORS ON BOTH RESTART FILES',255)
+      endif
+      KDISK=1
+      IF (Itime2.GT.Itime1) KDISK=2
+      return
+      end subroutine find_later_rsf

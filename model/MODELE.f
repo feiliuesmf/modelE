@@ -74,9 +74,10 @@ c$$$      USE MODEL_COM, only: clock
       IMPLICIT NONE
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
-      INTEGER iu_VFLXO,iu_ACC,iu_RSF,iu_ODA
+      INTEGER iu_VFLXO,iu_ODA
       INTEGER :: MDUM = 0
 
+      character(len=80) :: filenm
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
       REAL*8 DTIME,TOTALT , oa_glob(im,jm,koa)
@@ -329,11 +330,7 @@ C**** write restart information alternately onto 2 disk files
       IF (MOD(Itime-ItimeI,Ndisk).eq.0) THEN
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
-         iu_RSF=-1
-         IF (AM_I_ROOT())
-     *        call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
-         call io_rsf(iu_RSF,Itime,iowrite,ioerr)
-         IF (AM_I_ROOT()) call closeunit(iu_RSF)
+         call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
 #ifdef USE_FVCORE
          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
@@ -718,20 +715,14 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
             if(m.gt.12) m = m-12
             monacc(m) = 1
           end do
-          If (AM_I_ROOT())
-     *       call openunit(aDATE(1:7)//'.acc'//XLABEL(1:LRUNID),iu_ACC,
-     *        .true.,.false.)
-          call io_rsf (iu_ACC,Itime,iowrite_single,ioerr)
-          If (AM_I_ROOT()) call closeunit(iu_ACC)
+          filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
+          call io_rsf (filenm,Itime,iowrite_single,ioerr)
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
             call set_param( "IRAND", IRAND, 'o' )
-            IF (AM_I_ROOT())
-     *          call openunit('1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
-     *           ,iu_RSF,.true.,.false.)
-            call io_rsf(iu_RSF,Itime,iowrite_mon,ioerr)
-            IF (AM_I_ROOT()) call closeunit(iu_RSF)
+            filenm='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
+            call io_rsf(filenm,Itime,iowrite_mon,ioerr)
 #ifdef USE_FVCORE
             fv_fname  = '1'//aDATE(8:14)//'.fv'//XLABEL(1:LRUNID)
             fv_dfname = '1'//aDATE(8:14)//'.dfv'//XLABEL(1:LRUNID)
@@ -814,10 +805,7 @@ C****
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
-      IF (AM_I_ROOT())
-     *     call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.false.)
-      call io_rsf(iu_RSF,Itime,iowrite,ioerr)
-      IF (AM_I_ROOT()) call closeunit(iu_RSF)
+      call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
 #endif
 
 #ifdef USE_FVCORE
@@ -1088,8 +1076,8 @@ C****
       include 'netcdf.inc'
 #endif
       CHARACTER(*) :: ifile
-!@var iu_AIC,iu_TOPO,iu_REG,iu_RSF unit numbers for input files
-      INTEGER iu_AIC,iu_TOPO,iu_REG,iu_RSF,iu_IFILE
+!@var iu_AIC,iu_TOPO,iu_REG unit numbers for input files
+      INTEGER iu_AIC,iu_TOPO,iu_REG,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
       INTEGER I,J,L,K,LID1,LID2,ITYPE,IM1,NOFF,ioerr,num_acc_files
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
@@ -1101,7 +1089,7 @@ C****
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
      *             ISTART, IRANDI=0
       REAL*8 TIJL,CDM,TEMP,X
-      INTEGER Itime1,Itime2,ItimeX,IhrX, LMR
+      INTEGER ItimeX,IhrX, LMR
 
 !@ egcm_init_max maximum initial vaule of egcm
       real*8, parameter :: egcm_init_max=0.5d0
@@ -1357,9 +1345,7 @@ C***********************************************************************
         do
           call nextarg(filenm, 0)
           if ( filenm == "" ) exit ! end of args
-          call openunit(filenm,iu_AIC,.true.,.true.)
-          call io_rsf(iu_AIC,itime,ioread_single,ioerr)
-          call closeunit(iu_AIC)
+          call io_rsf(filenm,itime,ioread_single,ioerr)
           num_acc_files = num_acc_files + 1
         end do
         GO TO 500
@@ -1380,9 +1366,6 @@ C****                     7 - from mod. II' M-file - reset snow/ocn ****
 C****                     8 - from current model M-file - no resets ****
 C****                                                               ****
 C***********************************************************************
-C**** get unit for atmospheric initial conditions if needed
-      IF (ISTART.gt.1) call openunit("AIC",iu_AIC,.true.,.true.)
-c      write(*,*) "ISTART=",ISTART
 C****
 C**** Set quantities that are derived from the namelist parameters
 C****
@@ -1444,6 +1427,10 @@ C****
 C**** Use title of first record to get the date and make sure  ???
 C**** it is consistent with IHRI (at least equal mod 8760)     ???
 C****            not yet implemented but could easily be done  ???
+
+C**** open atmospheric initial conditions file
+        call openunit("AIC",iu_AIC,.true.,.true.)
+
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 Csoon   READ (iu_AIC) XLABEL(1:80)
 
@@ -1466,6 +1453,10 @@ Csoon   READ (iu_AIC) XLABEL(1:80)
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,Q(:,:,L),1) ! Q
         END DO
         CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1)  ! Tsurf
+
+C**** Close "AIC"
+        call closeunit(iu_AIC)
+
       END IF
 
 C****
@@ -1615,20 +1606,20 @@ C****
 C**** I.C FROM FULL MODEL RESTART FILE (but re-initialise ocean)
 C****
       CASE (4)
-        call io_rsf(iu_AIC,IhrX,irsficno,ioerr)
+        call io_rsf("AIC",IhrX,irsficno,ioerr)
         if (ioerr.eq.1) goto 800
         iniOCEAN = .TRUE. ! read in ocean ic
 C****
 C**** I.C FROM FULL MODEL RESTART FILE (but no tracers)
 C****
       CASE (5)             ! this model's rsf file, no tracers
-        call io_rsf(iu_AIC,IhrX,irsficnt,ioerr)
+        call io_rsf("AIC",IhrX,irsficnt,ioerr)
         if (ioerr.eq.1) goto 800
 C****
 C**** I.C FROM RESTART FILE that may not match land-ocean mask  ISTART=6
 C****
       CASE (6)             ! converted model II' (B399) format (no snow)
-        call io_rsf(iu_AIC,IhrX,irsficno,ioerr)
+        call io_rsf("AIC",IhrX,irsficno,ioerr)
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         inipbl  = .TRUE.      ! initialise pbl profiles
@@ -1638,7 +1629,7 @@ C****
 C**** I.C FROM RESTART FILE WITH almost COMPLETE DATA    ISTART=7
 C****
       CASE (7)             ! converted model II' (B399) format (no snow)
-        call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
+        call io_rsf("AIC",IhrX,irsfic,ioerr)
         if (ioerr.eq.1) goto 800
         iniSNOW = .TRUE.      ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
@@ -1648,7 +1639,7 @@ C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
 c        iniSNOW = .TRUE.  ! Special for non-0k
 c        iniPBL=.TRUE.           ! Special for non-0k
-        call io_rsf(iu_AIC,IhrX,irsfic,ioerr)
+        call io_rsf("AIC",IhrX,irsfic,ioerr)
         !iniSNOW = .TRUE.      ! extract snow data from first soil layer
         iniPBL=.TRUE.
         if (ioerr.eq.1) goto 800
@@ -1697,9 +1688,6 @@ C****        tropospheric temperatures changed by at most 1 degree C
       END IF
 #endif
 
-C**** Close "AIC" here if it was opened
-      IF (ISTART.gt.1) call closeunit(iu_AIC)
-
       IF (AM_I_ROOT())
      *     WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
      *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
@@ -1723,17 +1711,17 @@ C****
 C****   DATA FROM end-of-month RESTART FILE     ISTART=9
 C****        mainly used for REPEATS and delayed EXTENSIONS
       CASE (1:9)                      !  diag.arrays are not read in
-        call openunit("AIC",iu_AIC,.true.,.true.)
-        if(istart.eq.9) call io_rsf(iu_AIC,Itime,irerun,ioerr)
+        if(istart.eq.9) call io_rsf("AIC",Itime,irerun,ioerr)
 #ifdef USE_FVCORE
         call system('cp AICfv  fv_internal_restart.dat')
         call system('cp AICdfv tendencies_checkpoint')
 #endif
         if(istart.le.8) then         !  initial start of rad.forcing run
+          call openunit("AIC",iu_AIC,.true.,.true.)
           call io_label(iu_AIC,Itime,ItimeX,irerun,ioerr)
           if (Kradia.gt.0) call io_rad (iu_AIC,irsfic,ioerr)
+          call closeunit(iu_AIC)
         end if
-        call closeunit(iu_AIC)
         if (ioerr.eq.1) goto 800
         WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
      *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
@@ -1763,33 +1751,19 @@ C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
 C****
 C**** CHOOSE DATA SET TO RESTART ON
       CASE (10,13:)
-         Itime1=-1
-         call openunit(rsf_file_name(1),iu_RSF,.true.,.true.)
-         READ (iu_RSF,ERR=410) Itime1
-         call closeunit(iu_RSF)
-  410    continue !REWIND 1
-         Itime2=-1
-         call openunit(rsf_file_name(2),iu_RSF,.true.,.true.)
-         READ (iu_RSF,ERR=420) Itime2
-         call closeunit(iu_RSF)
-  420    continue !REWIND 2
-         IF (Itime1+Itime2.LE.-2.) GO TO 850
-                               KDISK=1
-         IF (Itime2.GT.Itime1) KDISK=2
+         call find_later_rsf(kdisk)
          IF (ISTART.GE.13)     KDISK=3-KDISK
       CASE (11,12)
                                KDISK=ISTART-10
       END SELECT
   430 continue
-      call openunit(rsf_file_name(KDISK),iu_RSF,.true.,.true.)
 #ifdef USE_FVCORE
         write(suffix,'(i1)') kdisk
         call system('cp  fv.'// suffix // ' dyncore_internal_restart')
         call system('cp dfv.'// suffix // ' tendencies_checkpoint')
 #endif
       CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
-      call io_rsf(iu_RSF,Itime,ioread,ioerr)
-      call closeunit(iu_RSF)
+      call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
       if (ioerr.eq.1) then
          if (istart.gt.10) go to 850  ! no 2nd chance if istart/=10
          KDISK=3-KDISK                ! try the earlier restart file
