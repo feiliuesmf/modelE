@@ -226,6 +226,8 @@ c
 c --- final velocity mixing at u,v points
 c
         CALL HALO_UPDATE(ogrid,vcty,FROM=SOUTH)  
+        CALL HALO_UPDATE(ogrid,dpmixl(:,:,1),FROM=SOUTH)
+        CALL HALO_UPDATE(ogrid,dpmixl(:,:,2),FROM=SOUTH)
 
 !$OMP PARALLEL DO PRIVATE(j)
 !$OMP&         SCHEDULE(STATIC,jchunk)
