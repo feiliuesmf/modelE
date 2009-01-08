@@ -298,6 +298,11 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 ! because then trmo=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          rho_water = 1d0/VOLGSP(g,s,pres)
+
+         if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
+     .             'obio_model,t,s,p,rho= '
+     .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
+
          do nt=1,ntyp+n_inert+ndet+ncar
            trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! milimoles/m3=> kg/m3
      .                            * MO(I,J,k)*DXYPO(J)/rho_water  ! kg/m3 => kg
