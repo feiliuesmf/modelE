@@ -353,7 +353,7 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       RETURN
       END
 
-      SUBROUTINE READT (IUNIT,NSKIP,AIN,LENGTH,AOUT,IPOS)
+      SUBROUTINE READT (IUNIT,NSKIP,LENGTH,AOUT,IPOS)
 !@sum   READT  read in title and real*4 array and convert to real*8
 !@auth  Original Development Team
 !@ver   1.0
@@ -364,20 +364,26 @@ C**** do transfer backwards in case AOUT and AIN are same workspace
       INTEGER, INTENT(IN) :: NSKIP    !@var  NSKIP  no. of R*4's to skip
       INTEGER, INTENT(IN) :: LENGTH       !@var  LENGTH size of array
       INTEGER, INTENT(IN) :: IPOS  !@var  IPOS   no. of recs. to advance
-      REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
+      !REAL*4, INTENT(OUT) :: AIN(LENGTH)  !@var  AIN    real*4 array
       REAL*8, INTENT(OUT) :: AOUT(LENGTH) !@var  AOUT   real*8 array
       REAL*4 :: X               !@var  X      dummy variable
       INTEGER :: N              !@var  N      loop variable
       CHARACTER*80 TITLE        !@var  TITLE  title of file record
+      real*4, allocatable :: buf(:)
+
+      allocate( buf(LENGTH) )
 
       DO N=1,IPOS-1
         READ (IUNIT,END=920)
       END DO
-      READ (IUNIT,ERR=910,END=920) TITLE,(X,N=1,NSKIP),AIN
+      READ (IUNIT,ERR=910,END=920) TITLE,(X,N=1,NSKIP),buf
 C**** do transfer backwards in case AOUT and AIN are same workspace
-      DO N=LENGTH,1,-1
-        AOUT(N)=AIN(N)
-      END DO
+!!! THIS DOESN''T WORK IN F90+  !!! stop using such hacks !
+!      DO N=LENGTH,1,-1
+!        AOUT(N)=AIN(N)
+!      END DO
+      AOUT(:) = buf(:)
+      deallocate( buf )
       WRITE(6,*) "Read from file ",TRIM(NAME(IUNIT)),": ",TRIM(TITLE)
       RETURN
   910 WRITE(6,*) 'READ ERROR ON FILE ',NAME(IUNIT)

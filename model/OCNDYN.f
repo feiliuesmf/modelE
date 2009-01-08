@@ -309,6 +309,7 @@ c**** Extract domain decomposition info
 C****
 C**** Check that KOCEAN is set correctly
 C****
+
       IF (KOCEAN == 0) THEN
         call stop_model(
      &       "Must have KOCEAN > 0 for interactive ocean runs",255)
@@ -369,9 +370,9 @@ C**** Read in table function for specific volume
 
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
       call openunit("TOPO_OC",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
-      CALL READT (iu_TOPO,0,HATMO ,IM*JM,HATMO ,4) ! Atmo. Topography
-      CALL READT (iu_TOPO,0,HOCEAN,IM*JM,HOCEAN,1) ! Ocean depths
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
+      CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
       call closeunit(iu_TOPO)
 
 C**** Calculate J1O = least J with some ocean

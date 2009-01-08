@@ -55,7 +55,7 @@ C**** In particular, for LMOM=12, the total depth is 5015m
 
 C**** READ IN EDDY DIFFUSIVITY AT BASE OF MIXED LAYER
       CALL openunit("EDDY",iu_EDDY,.TRUE.,.TRUE.)
-      CALL READT (iu_EDDY,0,EDO,IM*JM,EDO,1)
+      CALL READT (iu_EDDY,0,IM*JM,EDO,1)
       call closeunit(iu_EDDY)
 
 C**** DEFINE THE VERTICAL LAYERING EVERYWHERE EXCEPT LAYER 1 THICKNESS
