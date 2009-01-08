@@ -7,7 +7,6 @@
       USE CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6
      *     ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi
       USE MODEL_COM, only : lm,dtsrc,itime,coupled_chem
-      USE GEOM, only : dxp,dyp
 #ifdef SCM
      &                      ,I_TARG,J_TARG
       USE SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
@@ -21,8 +20,7 @@ C--- Added by J.W. ending ---C
      &                    TPALL,PRCCGRP,PRCCICE,MCCOND,
      &                    PRESAV,LHPSAV,PREMC,LHPMC
 #endif
-! 5/7/07 including SCM changes and capturing convective condensate  a. wolf
-!        running with dry convection instead of ATURB
+      USE GEOM, only : dxp,dyp
 
 
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
