@@ -297,9 +297,6 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 ! this should be done at every timestep except when COLD INITIALIZATION
 ! because then trmo=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         pres=pres+MO(I,J,k)*GRAV*.5
-         g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
-         s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
          rho_water = 1d0/VOLGSP(g,s,pres)
          do nt=1,ntyp+n_inert+ndet+ncar
            trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! milimoles/m3=> kg/m3
@@ -498,19 +495,19 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
          if (day_of_month.eq.1)ihra_ij=1
 
 
-         if (vrbos) then
-          write (*,103) nstep,i,j,
-     .' aftrsetrad   dpth     dp       nitr    ',
-     .'   ammo     sili     iron',
-     .    (k,p1d(k+1),dp1d(k),obio_P(k,1),obio_P(k,2),
-     .                        obio_P(k,3),obio_P(k,4),k=1,kdm)
+cdiag    if (vrbos) then
+cdiag     write (*,103) nstep,i,j,
+cdiag.' aftrsetrad   dpth     dp       nitr    ',
+cdiag.'   ammo     sili     iron',
+cdiag.    (k,p1d(k+1),dp1d(k),obio_P(k,1),obio_P(k,2),
+cdiag.                        obio_P(k,3),obio_P(k,4),k=1,kdm)
 
-          write (*,104) nstep,i,j,
-     .' aftrsetrad   dpth     dp       diat       chlo    ',
-     .' cyan       cocc     herb',
-     .    (k,p1d(k+1),dp1d(k),obio_P(k,5),obio_P(k,6),obio_P(k,7),
-     .                        obio_P(k,8),obio_P(k,9),k=1,kdm)
-         endif
+cdiag     write (*,104) nstep,i,j,
+cdiag.' aftrsetrad   dpth     dp       diat       chlo    ',
+cdiag.' cyan       cocc     herb',
+cdiag.    (k,p1d(k+1),dp1d(k),obio_P(k,5),obio_P(k,6),obio_P(k,7),
+cdiag.                        obio_P(k,8),obio_P(k,9),k=1,kdm)
+cdiag    endif
  103     format(i9,2i5,a,a/(25x,i3,6(1x,es9.2)))
  104     format(i9,2i5,a,a/(25x,i3,7(1x,es9.2)))
 
@@ -539,10 +536,10 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
      .                      rod,ros,.true.,vrbos,i,j)
 
 
-         if (vrbos)
-     .     write(*,105)nstep,
-     .  ' channel, surf refl dir, surf refl diff',
-     .                        (k,rod(k),ros(k),k=1,nlt)
+cdiag    if (vrbos)
+cdiag.     write(*,105)nstep,
+cdiag.  ' channel, surf refl dir, surf refl diff',
+cdiag.                        (k,rod(k),ros(k),k=1,nlt)
  105  format(i9,a/(18x,i3,2(1x,es9.2)))
 
          !only call obio_sfcirr for points in light
@@ -642,10 +639,10 @@ cdiag.   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
 
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
-         if (vrbos)
-     .     write(*,107)nstep,
-     .       '           k   avgq    tirrq',
-     .                 (k,avgq1d(k),tirrq(k),k=1,kdm)
+cdiag    if (vrbos)
+cdiag.     write(*,107)nstep,
+cdiag.       '           k   avgq    tirrq',
+cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
 

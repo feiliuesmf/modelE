@@ -21,7 +21,7 @@ c  in light, and computes average cosine for direct irradiance.
       data rn /1.341/  !refractive index of seawater
       data iprt /13/
  
-      if (vrbos) write(*,*)'obio_sfcirr, rod= ',rod
+cdiag if (vrbos) write(*,*)'obio_sfcirr, rod= ',rod
 
 c  Compute irradiance for the day, for this hour
       do nl = 1,nlt

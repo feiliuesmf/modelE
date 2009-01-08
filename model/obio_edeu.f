@@ -132,19 +132,19 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
           do ntr = 1,nchl
              fac = fac + fchl(ntr)*facirr(ih,ich,ntr,icd)
 
-             if(vrbos)
-     .         write(*,'(a,3i7,e12.4,4i7,2e12.4)')
-     .        'edeu diag: ',
-     .        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
-     .        facirr(ih,ich,ntr,icd),fac
+cdiag        if(vrbos)
+cdiag.         write(*,'(a,3i7,e12.4,4i7,2e12.4)')
+cdiag.        'edeu diag: ',
+cdiag.        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
+cdiag.        facirr(ih,ich,ntr,icd),fac
           enddo
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
-          if(k.eq.1)
-     .       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',
-     .              nstep,i,j,k,fac,Etopq,
-     .              Ebotq,rmus,tirrq(k)
+cdiag     if(k.eq.1)
+cdiag.       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',
+cdiag.              nstep,i,j,k,fac,Etopq,
+cdiag.              Ebotq,rmus,tirrq(k)
 
        enddo  !k
  

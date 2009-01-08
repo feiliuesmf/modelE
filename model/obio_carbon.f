@@ -114,8 +114,8 @@ c
 
       enddo  !k=1,kmax
 
-        if (vrbos) write(*,'(a,i7,e12.4)')
-     .        'obio_carbon1: ', nstep,C_tend(1,2)
+cdiag   if (vrbos) write(*,'(a,i7,e12.4)')
+cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
 
 ! Phytoplankton components related to growth
       do k = 1,kmax
@@ -156,8 +156,8 @@ c
 
       enddo !k=1,kmax
 
-      if (vrbos) write(*,'(a,i7,e12.4)')
-     .    'obio_carbon2: ', nstep,C_tend(1,2)
+cdiag if (vrbos) write(*,'(a,i7,e12.4)')
+cdiag.    'obio_carbon2: ', nstep,C_tend(1,2)
 
 c pCO2
 #ifdef pCO2_ONLINE
@@ -385,12 +385,15 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.18 $
-c_ $Date: 2008/12/29 20:12:48 $   ;  $State: Exp $
+c_ $Revision: 2.19 $
+c_ $Date: 2009/01/08 14:33:26 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.19  2009/01/08 14:33:26  aromanou
+c_ corrected pressure and in situ temp calculation in obio_model.
+c_
 c_ Revision 2.18  2008/12/29 20:12:48  aromanou
 c_
 c_ "fishes in another ocean"
@@ -768,12 +771,15 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.18 $
-c_ $Date: 2008/12/29 20:12:48 $   ;  $State: Exp $
+c_ $Revision: 2.19 $
+c_ $Date: 2009/01/08 14:33:26 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.19  2009/01/08 14:33:26  aromanou
+c_ corrected pressure and in situ temp calculation in obio_model.
+c_
 c_ Revision 2.18  2008/12/29 20:12:48  aromanou
 c_
 c_ "fishes in another ocean"
@@ -906,12 +912,15 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.18 $
-c_ $Date: 2008/12/29 20:12:48 $   ;  $State: Exp $
+c_ $Revision: 2.19 $
+c_ $Date: 2009/01/08 14:33:26 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.19  2009/01/08 14:33:26  aromanou
+c_ corrected pressure and in situ temp calculation in obio_model.
+c_
 c_ Revision 2.18  2008/12/29 20:12:48  aromanou
 c_
 c_ "fishes in another ocean"
