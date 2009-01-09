@@ -331,8 +331,9 @@ C****
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: amp
       integer :: j,l
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      INTEGER :: I_0, I_1, J_0, J_1
+      CALL GET(grid, I_STRT = I_0, I_STOP = I_1, J_STRT = J_0, 
+     &               J_STOP = J_1)
 
 C
 !$OMP  PARALLEL DO PRIVATE(J,L)
@@ -340,13 +341,13 @@ C
         IF(L.LT.LS1) THEN
 ccc   do l=1,ls1-1
           do j=J_0,J_1
-            amp(:,j,l) = p(:,j)*axyp(:,j)*dsig(l)
+            amp(I_0:I_1,j,l) = p(I_0:I_1,j)*axyp(I_0:I_1,j)*dsig(l)
           enddo
 ccc   enddo
         ELSE
 ccc   do l=ls1,lm
           do j=J_0,J_1
-            amp(:,j,l) = (psf-ptop)*axyp(:,j)*dsig(l)
+            amp(I_0:I_1,j,l) = (psf-ptop)*axyp(I_0:I_1,j)*dsig(l)
           enddo
         END IF
 ccc   enddo

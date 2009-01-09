@@ -549,11 +549,9 @@ contains
     integer :: L,istep, NS, NIdyn_fv
     integer :: rc
 
-#ifdef FVCUBED_SKIPPED_THIS
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
     CALL CALC_PIJL(LM,P,PIJL)
-#endif 
 
     Call Copy_modelE_to_FV_import(fv)
 
@@ -578,8 +576,8 @@ contains
        call reset_qmom
 #endif
 
-#ifdef FVCUBED_SKIPPED_THIS
        phi = compute_phi(P, T, TMOM(MZ,:,:,:), ZATMO)
+#ifdef FVCUBED_SKIPPED_THIS
        call compute_mass_flux_diags(phi, pu, pv, dt)
 #endif
 
@@ -1562,10 +1560,11 @@ contains
     REAL*8 :: PDN, PKDN, PKPDN, PKPPDN
     INTEGER :: I, J, L
 
-    INTEGER :: J_0, J_1
+    INTEGER :: I_0, I_1, J_0, J_1
     LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 
-    call get(grid, J_STRT=J_0, J_STOP=J_1, HAVE_NORTH_POLE=HAVE_NORTH_POLE, &
+    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1, &
+         & HAVE_NORTH_POLE = HAVE_NORTH_POLE, &
          & HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
 
     DO L=LS1,LM+1
@@ -1575,7 +1574,12 @@ contains
 !$OMP  PARALLEL DO PRIVATE(I,J,L,DP,P0,PIJ,PHIDN,TZBYDP,X,
 !$OMP*             BYDP,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP)
     DO J=J_0,J_1
-       DO I=1,IMAXJ(J)
+       
+#ifdef USE_FVCUBED
+        DO I=I_0,I_1
+#else
+        DO I=1,IMAXJ(J)
+#endif
 
           PIJ=P(I,J)
 
