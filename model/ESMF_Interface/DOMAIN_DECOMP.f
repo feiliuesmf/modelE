@@ -5547,10 +5547,35 @@ C--------------------------------
       Integer :: vtype1, vtype2
       Integer :: ier
 
+#ifdef MPITYPE_LOOKUP_HACK
+      type mpi_types_str
+      integer n_blocks,blocklen,stride,vtype
+      end type mpi_types_str
+
+      type(mpi_types_str), save :: mt(1024)
+      integer, save :: mt_count = 0
+      integer m
+
+
+      !write(444,*) base_type,dist_idx,counts
+
+#endif
+
       n_blocks = Product(counts(dist_idx+1:))
       blocklen = Product(counts(:dist_idx-1))
       stride = counts(dist_idx) * blocklen
       ext_lb = 0
+
+#ifdef MPITYPE_LOOKUP_HACK
+      do m=1,mt_count
+        if ( n_blocks == mt(m)%n_blocks .and.
+     &       blocklen == mt(m)%blocklen .and.
+     &       stride   == mt(m)%stride ) then
+          new_type = mt(m)%vtype 
+          return
+        endif
+      enddo
+#endif
 
       Call MPI_Type_vector(n_blocks, blocklen, stride, base_type,
      &     vtype1, ier)
@@ -5564,6 +5589,17 @@ C--------------------------------
       Call MPI_Type_Free(vtype1, ier)
 
       Call MPI_Type_Commit(vtype2, ier)
+
+#ifdef MPITYPE_LOOKUP_HACK
+      mt_count = mt_count + 1
+      print *,"NEW MPI_Type: ", mt_count
+      if ( mt_count > 1024 ) call stop_model("mt_count > 1024",255)
+      mt(mt_count)%n_blocks = n_blocks
+      mt(mt_count)%blocklen = blocklen
+      mt(mt_count)%stride = stride
+      mt(mt_count)%vtype = vtype2
+#endif
+
       new_type = vtype2
 
       End Function CreateDist_MPI_Type
@@ -5647,7 +5683,9 @@ cddd      End If
      &                    MPI_COMM_WORLD, status, ier)
       End If
 
+#ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ier)
+#endif
 
       End SUBROUTINE SendRecv
 
@@ -5701,7 +5739,9 @@ cddd      End If
      &                    MPI_COMM_WORLD, status, ier)
       End If
 
+#ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ier)
+#endif
 
       End SUBROUTINE SendRecv_int
 
@@ -5770,10 +5810,14 @@ cddd      End If
 
       End Do
 
+#ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ier)
+#endif
 
       Deallocate(rcounts,displs)
+#ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(orig_type, ier)
+#endif
 
       End SUBROUTINE gather
 
@@ -5826,8 +5870,10 @@ cddd      End If
      &     arr_loc(offset), rcount, new_type,
      &     root, MPI_COMM_WORLD, ier)
 
+#ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ier)
       Call MPI_Type_Free(orig_type, ier)
+#endif
 
       Deallocate(scounts,displs)
       Deallocate(AI)
