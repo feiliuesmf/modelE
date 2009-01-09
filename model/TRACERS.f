@@ -974,7 +974,7 @@ C**** check for negative tracer amounts (if t_qlimit is set)
 C**** check whether air mass is conserved
 
         if (trname(n).eq.'Air') then
-          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
+          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 ; tmax=0. ; amax=0.
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
@@ -993,7 +993,9 @@ C**** check whether air mass is conserved
 
 #ifdef TRACERS_WATER
         if (trname(n).eq.'Water') then
-          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1
+          errmax = 0. ; lmax=1 ; imax=1 ; jmax=1 
+          tmax=0. ; twmax=0. ; qmax=0. ; wmax=0.
+          tmomax = 0. ; qmomax = 0. 
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
