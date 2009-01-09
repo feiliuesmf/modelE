@@ -5549,7 +5549,7 @@ C--------------------------------
 
 #ifdef MPITYPE_LOOKUP_HACK
       type mpi_types_str
-      integer n_blocks,blocklen,stride,vtype
+      integer n_blocks,blocklen,stride,base_type,vtype
       end type mpi_types_str
 
       type(mpi_types_str), save :: mt(1024)
@@ -5570,7 +5570,8 @@ C--------------------------------
       do m=1,mt_count
         if ( n_blocks == mt(m)%n_blocks .and.
      &       blocklen == mt(m)%blocklen .and.
-     &       stride   == mt(m)%stride ) then
+     &       stride   == mt(m)%stride   .and.
+     &       base_type   == mt(m)%base_type ) then
           new_type = mt(m)%vtype 
           return
         endif
@@ -5597,6 +5598,7 @@ C--------------------------------
       mt(mt_count)%n_blocks = n_blocks
       mt(mt_count)%blocklen = blocklen
       mt(mt_count)%stride = stride
+      mt(mt_count)%base_type = base_type
       mt(mt_count)%vtype = vtype2
 #endif
 
