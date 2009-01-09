@@ -397,13 +397,13 @@
       call getarg ( 2, file_name(2) )
 
       do i=1,2
-        call openunit( file_name(i), fd, .true., .true. )
+        !call openunit( file_name(i), fd, .true., .true. )
 #ifndef SKIP_DIAG
-        call io_rsf( fd, Itime(i), ioread, ioerr )
+        call io_rsf( file_name(i), Itime(i), ioread, ioerr )
 #else
-        call io_rsf( fd, Itime(i), ioread_nodiag, ioerr )
+        call io_rsf( file_name(i), Itime(i), ioread_nodiag, ioerr )
 #endif
-        call closeunit( fd )
+        !call closeunit( fd )
         if ( ioerr == 1 ) then
            print *, 'There was an error while reading input file.'
            print *, 'You are probably using incompatible version'
