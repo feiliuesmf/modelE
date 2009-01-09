@@ -20,7 +20,7 @@ C--- Added by J.W. ending ---C
      &                    TPALL,PRCCGRP,PRCCICE,MCCOND,
      &                    PRESAV,LHPSAV,PREMC,LHPMC
 #endif
-      USE GEOM, only : dxp,dyp
+      USE GEOM, only : dxp,dyp,axyp
 
 
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
@@ -48,7 +48,7 @@ C**** parameters and constants
 C     REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
       REAL*8 WMUI                          !@param WMUI WMU for ice clouds
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
-      REAL*8, PARAMETER :: FDDRT=.5d0 !@param FDDRT COND evaporation in downdraft
+      REAL*8, PARAMETER :: FDDRT=1.d0 !@param FDDRT COND evaporation in downdraft
       REAL*8, PARAMETER :: FDDET=.25d0 !@param FDDET remainder of downdraft
       REAL*8, PARAMETER :: DTMIN1=1.d0 !@param DTMIN1 min DT to stop downdraft drop
       REAL*8, PARAMETER :: SLHE=LHE*BYSHA
@@ -728,7 +728,9 @@ C**** OUTER MC LOOP OVER BASE LAYER
           LHX=LHE
           IF(TL(L).LT.TF) LHX=LHS
           U00L(L)=1.d0-2.*(U00b*.001*.050*(HPBL/500.)*
-     *      (.001*DYP(2))**.33)/(QSAT(TL(L),LHX,PL(L)))
+     *      (.001*SQRT(AXYP(i_debug,j_debug)))**.33)/
+     *      (QSAT(TL(L),LHX,PL(L)))
+C    *      (.001*DYP(2))**.33)/(QSAT(TL(L),LHX,PL(L)))
         END IF
       END DO
       DO 600 LMIN=1,LMCM-1
@@ -2955,7 +2957,7 @@ C       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
           LHX=LHS
         ENDIF
 
-        IF (L.LT.LP50) THEN                     
+        IF (L.LT.LP50) THEN
 C**** Decide whether precip initiates B-F process
           PML=WMX(L)*AIRM(L)*BYGRAV
           PMI=PREICE(L+1)*DTsrc
