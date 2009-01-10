@@ -1095,3 +1095,32 @@ c for which scalars is bcast_all=.true. necessary?
       end select
       return
       end subroutine par_io_acc
+
+      subroutine find_later_rsf(kdisk)
+!@sum set kdisk such that Itime in rsf_file_name(kdisk) is
+!@+   the larger of the Itimes in rsf_file_name(1:2).
+!@+   Transplanted from INPUT.
+      USE FILEMANAGER, only : openunit,closeunit
+      use model_com, only : rsf_file_name
+      implicit none
+      integer, intent(out) :: kdisk
+      integer :: Itime1,Itime2,kunit
+      Itime1=-1
+      call openunit(rsf_file_name(1),kunit,.true.,.true.)
+      READ (kunit,ERR=410) Itime1
+ 410  continue
+      call closeunit(kunit)
+      Itime2=-1
+      call openunit(rsf_file_name(2),kunit,.true.,.true.)
+      READ (kunit,ERR=420) Itime2
+ 420  continue
+      call closeunit(kunit)
+      if (Itime1+Itime2.LE.-2) then
+        call stop_model(
+     &       'FIND_LATER_RSF: ERRORS ON BOTH RESTART FILES',255)
+      endif
+      KDISK=1
+      IF (Itime2.GT.Itime1) KDISK=2
+      return
+      end subroutine find_later_rsf
+
