@@ -2402,7 +2402,7 @@ C**** check negative tracer mass
         end if
 C**** Check conservation of water tracers in sea ice
         if (trname(n).eq.'Water') then
-          errmax = 0. ; imax=1 ; jmax=1
+          errmax = 0. ; imax=I_0 ; jmax=J_0
           do j=J_0, J_1
           do i=I_0,imaxj(j)
             if ((focean(i,j)+flake(i,j))*rsi(i,j).gt.0) then

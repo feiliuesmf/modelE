@@ -3050,7 +3050,7 @@ c**** check tracers
 
         ! check if water == water
         if (trname(n) == 'Water') then
-          errmax = 0. ; imax=1 ; jmax=1
+          errmax = 0. ; imax=I_0 ; jmax=J_0
           do j=J_0, J_1
             do i=I_0,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
@@ -3082,7 +3082,7 @@ c**** check tracers
 cddd     &         ,w_ij(1:ngm,1,imax,jmax)*rhow
 cddd     &         ,w_ij(0:ngm,2,imax,jmax)*rhow
 
-          errmax = 0. ; imax=1 ; jmax=1
+          errmax = 0. ; imax=I_0 ; jmax=J_0
           do j=J_0, J_1
             do i=I_0,imaxj(j)
               if ( fearth(i,j) <= 0.d0 ) cycle
