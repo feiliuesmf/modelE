@@ -705,6 +705,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm
+      USE GEOM, only : j_budg, j_0b, j_1b
       USE DOMAIN_DECOMP, only : GET, GRID
       USE DIAG_COM, only : consrv=>consrv_loc,nofm
       IMPLICIT NONE
@@ -720,15 +721,11 @@ C****
       integer, parameter :: jm_budg=jm ! for now
       REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
       INTEGER :: I,J,NM,NI,JB
-      INTEGER :: I_0,I_1, J_0,J_1, J_0B,J_1B
+      INTEGER :: I_0,I_1,J_0,J_1
 
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
-
-C J_0B, J_1B are the min/max zonal budget latitudes for this processor
-      J_0B = J_0 ! for now
-      J_1B = J_1 ! for now
 
 C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
@@ -743,7 +740,12 @@ C**** Calculate zonal sums
         TOTALJ(J_0B:J_1B)=0.
         DO J=J_0,J_1
         DO I=I_0,I_1
-          JB = J !JBUDG_OF_IJ(I,J)=J for now
+#ifdef CUBE_GRID
+c see should be valid for all grids
+          JB = J_BUDG(I,J) 
+#else
+          JB = J  ! should also be equal to J_BUDG(I,J) in latlon case
+#endif
           TOTALJ(JB) = TOTALJ(JB) + TOTAL(I,J)
         END DO
         END DO

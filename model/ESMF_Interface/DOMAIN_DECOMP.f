@@ -2383,7 +2383,7 @@ c**** arr  is overwritten by itself after reduction
 
       IM   = grd_dum%IM_WORLD
       JM   = grd_dum%JM_WORLD
-
+c      write(*,*) "DD dread parallel IM,JM",IM,JM
       If (AM_I_ROOT()) then
          READ (IUNIT,IOSTAT=IERR) AIN
 C****  convert from real*4 to real*8
@@ -2428,6 +2428,7 @@ C****  convert from real*4 to real*8
       IM   = grd_dum%IM_WORLD
       JM   = grd_dum%JM_WORLD
       NM   = size(AVAR,3)
+c      write(*,*) "DD dread parallel IM,JM,NM",IM,JM,NM
 
       If (AM_I_ROOT()) then
          READ (IUNIT,IOSTAT=IERR) AIN

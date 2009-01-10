@@ -713,13 +713,19 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE FILEMANAGER
       USE PARAM
       USE DOMAIN_DECOMP, only : GRID, GET, am_I_root,
-     *                          DREAD_PARALLEL,
-     *                          MREAD_PARALLEL,
-     *                          READT_PARALLEL,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
+#ifdef CUBE_GRID
+      USE pario_fbsa, only :    DREAD_PARALLEL,
+     *                          MREAD_PARALLEL,
+     *                          READT_PARALLEL
+#else
+      USE DOMAIN_DECOMP, only : DREAD_PARALLEL,
+     *                          MREAD_PARALLEL,
+     *                          READT_PARALLEL
+#endif        
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
-     *     ,iyear1,ioreadnt,jmpery
+     *     ,iyear1,ioreadnt,ioread,jmpery
       USE GEOM, only : imaxj
       USE CONSTANT, only : tf
 #ifdef TRACERS_GASEXCH_ocean
@@ -738,9 +744,11 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX
       USE DIAG_COM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
+      include 'netcdf.inc'
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
       CHARACTER CONPT(NPTS)*10
+      integer :: fid,status
 !@var iu_OHT unit number for reading in ocean heat transports & z12o_max
       INTEGER :: iu_OHT,iu_GIC
       INTEGER :: I,J,m,ISTART,ioerr
@@ -770,16 +778,29 @@ C****   set conservation diagnostic for ocean heat
       call sync_param( "qfluxX"   ,qfluxX)
 
 C**** if starting from AIC/GIC files need additional read for ocean
+
       if (istart.le.2) then
+#ifdef CUBE_GRID
+         if (am_i_root()) then
+            status=nf_open("GIC",nf_nowrite,fid)
+            write(*,*) "status GIC ocean=",status
+            IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
+         endif
+         call par_io_ocean (fid,ioread)
+         if (am_i_root()) status = nf_close(fid)
+#else
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
+
         call io_ocean (iu_GIC,ioreadnt,ioerr)
         if (ioerr.eq.1) then
           WRITE(6,*) "I/O ERROR IN GIC FILE: KUNIT=",iu_GIC
           call stop_model("INPUT: GIC READ IN ERROR",255)
         end if
         call closeunit (iu_GIC)
+#endif
       end if
+
 
       if (kocean.eq.0) then
         call sync_param( "ocn_cycl", ocn_cycl ) ! 1:cycle data 0:dont
@@ -796,7 +817,6 @@ C****   set up unit numbers for ocean climatologies
 
 C****   Read in constant factor relating RSI to MSI from sea ice clim.
         CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),0,DM,1)
-
       else !  IF (KOCEAN.eq.1) THEN
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C****   read in ocean heat transport coefficients
@@ -857,7 +877,9 @@ C**** Make sure to use geostrophy for ocean tilt term in ice dynamics
 C**** (if required). Since ocean currents are zero, this implies no sea
 C**** surface tilt term.
       osurf_tilt = 0
-
+#ifdef CUBE_GRID
+        write(*,*) "end init ocean..."
+#endif
       RETURN
       END SUBROUTINE init_OCEAN
 

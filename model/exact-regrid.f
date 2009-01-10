@@ -576,10 +576,10 @@ C**** Functions of Longitude
       If (CosOofG(G) /= 0)  SecOofG(G) = 1 / CosOofG(G)
    10 If (TanOofG(G) /= 0)  CotOofG(G) = 1 / TanOofG(G)
 C**** Functions of Latitude
+c**** up to 1x1 resolution. for .5 degrees use HDLATD = Nint(360./HM) / 2
       HDLATD = Nint (180./HM)  !  latitude spacing in degrees
       Do 20 H=1,HM-1
    20 AofH(H) = HDLATD*(H-HM/2)*TWOPIQ/360  !  unequal spacing at poles
-C  20 AofH(H) = (H-HM/2)*TWOPIQ/(2*HM)      !  equal spacing everywhere
       AofH(0) = - TWOPIQ / 4
       AofH(HM) =  TWOPIQ / 4
       Do 30 H=0,HM

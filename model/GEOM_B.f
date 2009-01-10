@@ -89,6 +89,8 @@ C**** some B-grid conservation quantities
 !@var J_BUDG a mapping array that takes every grid point to the 
 !@+   zonal mean budget array
       integer, allocatable, dimension(:,:) :: J_BUDG
+!@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
+      integer :: j_0b, j_1b
 
       CONTAINS
 

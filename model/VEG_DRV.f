@@ -32,7 +32,12 @@
 !@sum reads vegetation arrays and rundeck parameters
       use filemanager
       use param
-      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL, AM_I_ROOT
+      use DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+#ifdef CUBE_GRID
+      use pario_fbsa, only : READT_PARALLEL
+#else
+      use DOMAIN_DECOMP, only : READT_PARALLEL
+#endif
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
       use model_com, only : jyear,focean
@@ -141,8 +146,10 @@ c**** check whether ground hydrology data exist at this point.
             write(6,*) 'Vegetation data is missing at some pts'
             write(6,*) 'If you have a non-standard land mask, please'
             write(6,*) 'consider using extended GH data and rfs file.'
+#ifndef CUBE_GRID
             call stop_model(
      &           'Vegetation data is missing at some cells',255)
+#endif
          end if
       endif
 

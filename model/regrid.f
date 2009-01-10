@@ -439,7 +439,7 @@ c*
 c     ll2cs
          
          if (AM_I_ROOT()) then   
-            write(*,*) "ROOT REGRID LL2CS"
+c            write(*,*) "ROOT REGRID LL2CS"
  
             atarget(:,:,:) = 0.d0
             ttarget(:,:,:) = 0.d0
@@ -467,7 +467,7 @@ c     ll2cs
                   enddo
                enddo
             enddo
-            write(6,*) "END ROOT REGRID LL2CS"
+c            write(6,*) "END ROOT REGRID LL2CS"
          endif
          
       endif

@@ -16,6 +16,9 @@ Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 End Preprocessor Options
 
+Run Options
+STACKSIZE=524288
+
 Object modules: (in order of decreasing priority)
 RES_CS48L20 DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
 MODEL_COM GEOM_B checkpoint_demo              ! model variables and geometry
@@ -57,8 +60,8 @@ Data input files:
 AIC=AIC.RES_CS48L20.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.CS48L20.1DEC1955.ext.nc      ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
-OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
+OSST=OST_CS48.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
+SICE=SICE_CS48.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 !? for 1979 OSST=OST4X5.B.1975-84avg.Hadl1.1
 !? for 1979 SICE=SICE4X5.B.1975-84avg.Hadl1.1
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
@@ -66,7 +69,7 @@ OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processin
     ! resolution dependent files
 TOPO=Z_CS48 SOIL=SOIL_CS48.ext ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
+VEG=V_CS48.1.cor2_no_crops.ext CROPS=CROPS_CS48.cor4.ext 
 CDN=CD_CS48.ext                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR               ! river direction file

@@ -143,7 +143,7 @@ C****
 
 #ifdef CUBE_GRID
 c***  Initialize regriding routines, ( DEBUG only )
-c       call regrid_input(grid%dd2d)
+c      call regrid_input(grid%dd2d)
 c      call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
 c      allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
 c     &     grid%dd2d%jsd:grid%dd2d%jed))
@@ -1016,7 +1016,12 @@ C****
       USE SCMCOM, only : iu_scm_prt
 #endif
       USE SOMTQ_COM, only : tmom,qmom
+#ifdef CUBE_GRID
+c      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and line below removed
+      USE GEOM, only : geom_b,imaxj   
+#else
       USE GEOM, only : geom_b,imaxj
+#endif
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc
       USE DYNAMICS, only : pk,pmid,pedn
@@ -1072,9 +1077,6 @@ C****
       USE ENT_DRV, only : init_module_ent
 #endif
       IMPLICIT NONE
-#ifdef CUBE_GRID
-      include 'netcdf.inc'
-#endif
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO,iu_REG unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_REG,iu_IFILE
@@ -1156,8 +1158,13 @@ C****
       SIG(:)  = (sige(1:lm)+sige(2:lm+1))*0.5d0
       DSIG(:) =  sige(1:lm)-sige(2:lm+1)
       byDSIG  =  1./DSIG
+#ifdef CUBE_GRID
+c      call geom_cs
+      call geom_b
+#else
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
+#endif
 C**** Calculate default vertical arrays (including rad. eq. layers)
       LMR=LM+LM_REQ
       CALL CALC_VERT_AMP(PSFMPT,LMR,PL00,AML00,PDSIGL00,PEDNL00,PMIDL00)
@@ -1463,24 +1470,6 @@ C****
 C**** Derive other data from primary data if necessary - ISTART=1,2
 C****                                                    currently
       IF (ISTART.LE.2) THEN
-         If (HAVE_SOUTH_POLE) THEN
-           WSAVG(1:im,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
-           USAVG(1:im,1)=U(1,2,1)
-           VSAVG(1:im,1)=V(1,2,1)
-         End If
-         If (HAVE_NORTH_POLE) THEN
-           WSAVG(1:im,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
-           USAVG(1:im,JM)=U(1,JM,1)
-           VSAVG(1:im,JM)=V(1,JM,1)
-         End If
-
-#ifdef CUBE_GRID
-         call halo_update(grid%dd2d,u)  ! Max : can you confirm this?
-         call halo_update(grid%dd2d,v)  ! idem
-#else
-         CALL HALO_UPDATE(grid, U, FROM=NORTH)
-         CALL HALO_UPDATE(grid, V, FROM=NORTH)
-#endif
 
 #ifdef SCM
         DO J=J_0S,J_1S
@@ -1501,6 +1490,18 @@ c in this case, assume input U/V are on the A grid
         END DO
         END DO
 #else
+         If (HAVE_SOUTH_POLE) THEN
+           WSAVG(1:im,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
+           USAVG(1:im,1)=U(1,2,1)
+           VSAVG(1:im,1)=V(1,2,1)
+         End If
+         If (HAVE_NORTH_POLE) THEN
+           WSAVG(1:im,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
+           USAVG(1:im,JM)=U(1,JM,1)
+           VSAVG(1:im,JM)=V(1,JM,1)
+         End If
+         CALL HALO_UPDATE(grid, U, FROM=NORTH)
+         CALL HALO_UPDATE(grid, V, FROM=NORTH)
         DO J=J_0S,J_1S
         IM1=IM
         DO I=1,IM
@@ -1995,22 +1996,16 @@ C**** Initialize lake variables (including river directions)
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor
-#ifdef CUBE_GRID
-      if (am_i_root()) then
-         status=nf_open("GIC",nf_nowrite,fid)
-         write(*,*) "status GIC ocean=",status
-         IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
-      endif
-      call par_io_ocean (fid,ioread)
-      if (am_i_root()) status = nf_close(fid)
-#else
+
       CALL init_OCEAN(iniOCEAN,istart)
 C**** Initialize ice dynamics code (if required)
+#ifndef CUBE_GRID
       CALL init_icedyn(iniOCEAN)
+
 C**** Initialize land ice (must come after oceans)
 
       CALL init_LI(istart)
-
+#endif
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=J_0,J_1
@@ -2048,7 +2043,7 @@ C**** Ensure that no round off error effects land with ice and earth
          FEARTH(2:IM,JM)=FEARTH(1,JM)
          FLICE(2:IM,JM)=FLICE(1,JM)
       End If
-#endif
+
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)

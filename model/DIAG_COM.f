@@ -1324,7 +1324,7 @@ C**** Should this be here?
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
 !@auth Gavin Schmidt
-      USE GEOM, only : j_budg, lat_dg, lat2d_dg,lat2d
+      USE GEOM, only : j_budg,j_0b,j_1b, lat_dg, lat2d_dg,lat2d
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP, only :GRID,GET
       IMPLICIT NONE
@@ -1348,6 +1348,13 @@ C**** this should be valid for all grids (lat/lon, cubed sphere,...)
         END DO
       END DO
 
+#ifdef CUBE_GRID
+      j_0b=MINVAL( J_BUDG(I_0:I_1,J_0:J_1) )
+      j_1b=MAXVAL( J_BUDG(I_0:I_1,J_0:J_1) )
+#else
+      j_0b = j_0
+      j_1b = j_1
+#endif
       RETURN
       END SUBROUTINE SET_J_BUDG
 

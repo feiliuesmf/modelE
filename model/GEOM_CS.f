@@ -30,37 +30,51 @@
 !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: axyp, byaxyp
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: axyp, byaxyp, dxyp, bydxyp,
+     &     dxp, dyp
 
+      integer, allocatable, dimension(:) :: imaxj
+
+!@var J_BUDG a mapping array that takes every grid point to the
+!@+   zonal mean budget array
+      integer, allocatable, dimension(:,:) :: J_BUDG
+!@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
+      integer :: j_0b, j_1b
+
+      CONTAINS
 
       SUBROUTINE GEOM_CS
 !@sum  GEOM_CS Calculate spherical geometry for CS grid
 !@auth T. Clune
 !@ver  1.0 (CS grid version)
       USE CONSTANT, only : RADIUS,TWOPI,radian
-      use fv_grid_tools_mod, only: agrid, corner_grid => gridarea
+      use fv_grid_tools_mod, only: agrid, corner_grid => grid, area
       use DOMAIN_DECOMP, only: grid, get
       implicit none
 
-      integer :: i0h, i1h
-      integer :: j0h, j1h
+      integer :: i0h, i1h, i1
+      integer :: j0h, j1h, j0, j1
       
-      call get(grid, J_STRT_HALO=j0h, J_STOP_HALO=j1h, I_STRT_HALO=i0h, I_STOP_HALO=i1h)
+      call get(grid, J_STRT_HALO=j0h, J_STOP_HALO=j1h,
+     &     J_STRT=j0, J_STOP=j1,
+     &     I_STRT_HALO=i0h, I_STOP_HALO=i1h, 
+     &     I_STOP=i1)
 
-      allocate(lat2d(i0h:i1h, j0h:j1h)
-      allocate(lon2d(i0h:i1h, j0h:j1h)
+      allocate(lat2d(i0h:i1h, j0h:j1h))
+      allocate(lon2d(i0h:i1h, j0h:j1h))
 
-      allocate(lat2d_deg(i0h:i1h, j0h:j1h)
-      allocate(lon2d_deg(i0h:i1h, j0h:j1h)
+      allocate(lat2d_dg(i0h:i1h, j0h:j1h))
+      allocate(lon2d_dg(i0h:i1h, j0h:j1h))
 
-      allocate(sinlat2d(i0h:i1h, j0h:j1h)
-      allocate(coslat2d(i0h:i1h, j0h:j1h)
+      allocate(sinlat2d(i0h:i1h, j0h:j1h))
+      allocate(coslat2d(i0h:i1h, j0h:j1h))
 
-      allocate(lat2d_corner(i0h:i1h+1, j0h:j1h+1)
-      allocate(lon2d_corner(i0h:i1h+1, j0h:j1h+1)
+      allocate(lat2d_corner(i0h:i1h+1, j0h:j1h+1))
+      allocate(lon2d_corner(i0h:i1h+1, j0h:j1h+1))
 
-      allocate(axyp(i0h:i1h, j0h:j1h)
-      allocate(byaxyp(i0h:i1h, j0h:j1h)
+      allocate(axyp(i0h:i1h, j0h:j1h))
+      allocate(byaxyp(i0h:i1h, j0h:j1h))
+      allocate(imaxj(j0:j1))
 
       AREAG = 2 * TWOPI * RADIUS*RADIUS
 
@@ -78,6 +92,15 @@ C**** some B-grid conservation quantities
 
       DXYP = area(:,:)
       BYDXYP = 1/DXYP
+
+      call set_j_budg   !called after lat2d_dg is initialized
+      call set_wtbudg !sets area weights
+
+      imaxj(:)=i1
+
+c     values below are wrong
+      DXP(:,:)  = 1.0 ! this needs to be calculated 
+      DYP(:,:)  = 1.0 ! this needs to be calculated
 
       END SUBROUTINE GEOM_CS
 

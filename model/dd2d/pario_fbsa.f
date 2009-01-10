@@ -128,20 +128,36 @@ C****  convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
       CHARACTER(len=*), INTENT(IN)  :: NAME        !@var  NAME  name of record being read
       REAL*8, INTENT(OUT) :: AVAR(:,:,:) !@var  AOUT real*8 array
-      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
+      real*4, allocatable :: ain(:,:,:,:)
+      real*8, allocatable :: aout(:,:,:,:)
+
+c      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+c     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
+c      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+c     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
       INTEGER :: IERR
+
+#ifdef CUBE_GRID
+      write(*,*) "inside Dread_parallel"
+      write(*,*) "grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &     grd_dum%dd2d%ntiles",
+     &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &     grd_dum%dd2d%ntiles
+#endif
+
+      allocate( AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &     grd_dum%dd2d%ntiles),
+     &     AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &     grd_dum%dd2d%ntiles)   )
 
       If (AM_I_ROOT()) then
          READ (IUNIT,IOSTAT=IERR) AIN
-C****  convert from real*4 to real*8
+C**** convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
       call unpack_data(grd_dum%dd2d,aout,avar)
-
+      
       if (AM_I_ROOT()) then
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
@@ -151,6 +167,8 @@ C****  convert from real*4 to real*8
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
+
+      deallocate (ain,aout)
 
       END SUBROUTINE DREAD_PARALLEL_3D
 
@@ -241,13 +259,16 @@ C****  convert from real*4 to real*8
       REAL*8,       INTENT(OUT) :: AVAR(:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS       !@var  IPOS  no. of recs. to advance
       REAL*4 :: X                         !@var  X dummy variable
-      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
+      REAL*4,allocatable :: AIN(:,:,:)
+      REAL*8,allocatable :: AOUT(:,:,:)
       INTEGER :: N
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
       INTEGER :: IERR
+
+      allocate( AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &     grd_dum%dd2d%ntiles),
+     &     AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &     grd_dum%dd2d%ntiles)   )
 
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
@@ -256,9 +277,12 @@ C****  convert from real*4 to real*8
          READ (IUNIT, IOSTAT=IERR) TITLE, (X,N=1,NSKIP), AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
+c         write(*,*) "AOUT=",AOUT
       EndIf
 
       call unpack_data(grd_dum%dd2d,aout,avar)
+
+c      write(*,*) "avar=",avar
 
       if (AM_I_ROOT()) then
          If (IERR==0) Then
@@ -270,6 +294,8 @@ C****  convert from real*4 to real*8
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
+
+      deallocate(ain,aout)
 
       END SUBROUTINE READT_PARALLEL_2D
 
@@ -284,13 +310,16 @@ C****  convert from real*4 to real*8
       REAL*8,       INTENT(OUT) :: AVAR(:,:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
       REAL*4 :: X                         !@var  X dummy variable
-      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
+      real*4, allocatable :: ain(:,:,:,:)
+      real*8, allocatable :: aout(:,:,:,:)
       INTEGER :: N                        !@var  N loop variable
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
       INTEGER :: IERR
+
+      allocate( AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &     grd_dum%dd2d%ntiles),
+     &     AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &     grd_dum%dd2d%ntiles)   )
 
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
