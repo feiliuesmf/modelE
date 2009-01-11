@@ -715,8 +715,15 @@ c allocates gather/scatter workspace
       real*8 :: arr(:,:)
       integer :: jdim
       integer :: nl,nk
+      integer :: xdim
       nl = 1
       nk = 1
+c      do xdim=1,jdim-2
+c        nl = nl*size(arr,xdim)
+c      enddo
+      do xdim=jdim+1,2
+        nk = nk*size(arr,xdim)
+      enddo
       return
       end subroutine get_nlnk_2D
       subroutine get_nlnk_3D(arr,jdim,nl,nk)

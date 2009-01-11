@@ -1,5 +1,6 @@
       module pario
       use dd2d_utils, only : dd2d_grid,pack_row,unpack_row,get_nlnk
+     &     ,pack_data
       implicit none
       save
       private
@@ -9,6 +10,8 @@
 c
 c i/o interfaces
 c
+      public :: par_open,par_close
+
       public :: write_dist_data,read_dist_data
       interface write_dist_data
         module procedure par_write_nc_2D
@@ -74,38 +77,146 @@ c
         module procedure defvar_2D_logical
       end interface
 
+      public :: write_attr
+      interface write_attr
+        module procedure write_attr_text
+        module procedure write_attr_0D_r8
+        module procedure write_attr_1D_r8
+        module procedure write_attr_0D_int
+        module procedure write_attr_1D_int
+      end interface
+
+      public :: read_attr
+      interface read_attr
+        module procedure read_attr_text
+        module procedure read_attr_r8
+        module procedure read_attr_int
+      end interface
+
+      interface len_of_obj
+        module procedure len_of_text
+        module procedure len_of_int0D
+        module procedure len_of_int1D
+        module procedure len_of_r80D
+        module procedure len_of_r81D
+      end interface
+
+      interface pack_row_no_xdim
+        module procedure pack_row_no_xdim_2d
+        module procedure pack_row_no_xdim_3d
+        module procedure pack_row_no_xdim_4d
+        module procedure pack_row_no_xdim_5d
+      end interface
+      interface unpack_row_no_xdim
+        module procedure unpack_row_no_xdim_2d
+        module procedure unpack_row_no_xdim_3d
+        module procedure unpack_row_no_xdim_4d
+        module procedure unpack_row_no_xdim_5d
+      end interface
+
+      interface par_write_jdecomp_optimized
+        module procedure par_write_ij
+        module procedure par_write_ijx
+        module procedure par_write_ijxx
+        module procedure par_write_ijxxx
+      end interface
+
+      integer, parameter :: success = 0, fail = -1
+
       contains
 
-      subroutine par_write_nc_2D(grid,fid,varname,arr,jdim)
+      function par_open(grid,fname,mode)
+      type(dd2d_grid), intent(in) :: grid
+      character(len=*) :: fname
+      character(len=*) :: mode
+      integer :: par_open
+      integer :: rc,rc2,fid,vid,wc,idum
+      if(grid%am_i_globalroot) then
+        if(trim(mode).eq.'create') then
+c          rc = nf_create(trim(fname),nf_clobber,fid)
+          rc = nf_create(trim(fname),nf_64bit_offset,fid) ! when files get big
+          if(rc.ne.nf_noerr) write(6,*)
+     &         'error creating ',trim(fname)
+        elseif(trim(mode).eq.'write') then
+          rc = nf_open(trim(fname),nf_write,fid)
+          if(rc.ne.nf_noerr) write(6,*)
+     &         'error opening ',trim(fname)
+        elseif(trim(mode).eq.'read') then
+          rc = nf_open(trim(fname),nf_nowrite,fid)
+          if(rc.ne.nf_noerr) then
+            write(6,*) 'error opening ',trim(fname)
+          else
+            rc2 = nf_inq_varid(fid,'write_status',vid)
+            rc2 = nf_get_var_int(fid,vid,wc)
+            if(wc.ne.success) then
+              write(6,*) 'input file ',trim(fname),
+     &             ' does not appear to have been written successfully:'
+              write(6,*) 'write_status = ',wc
+            endif
+          endif
+        endif
+      endif
+      call stoprc(rc,nf_noerr)
+      if(trim(mode).eq.'read') call stoprc(wc,success)
+c define/overwrite the success flag for error checking
+      if(grid%am_i_globalroot) then
+        if(trim(mode).eq.'create') then
+          rc = nf_def_var(fid,'write_status',nf_int,0,idum,vid)
+          rc = nf_enddef(fid)
+          rc = nf_put_var_int(fid,vid,fail)
+          rc = nf_redef(fid)
+        elseif(trim(mode).eq.'write') then
+          rc = nf_inq_varid(fid,'write_status',vid)
+          rc = nf_put_var_int(fid,vid,fail)
+          rc = nf_sync(fid)
+        endif
+      endif
+      par_open = fid
+      return
+      end function par_open
+
+      subroutine par_close(grid,fid)
+      type(dd2d_grid), intent(in) :: grid
+      integer :: fid
+      integer :: rc,vid
+      if(grid%am_i_globalroot) then
+        rc = nf_inq_varid(fid,'write_status',vid)
+        rc = nf_put_var_int(fid,vid,success)
+        rc = nf_close(fid)
+      endif
+      return
+      end subroutine par_close
+
+      subroutine par_write_nc_2D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:)
 #include "dd2d/do_par_write_nc.inc"
       end subroutine par_write_nc_2D
-      subroutine par_write_nc_3D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_3D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:,:)
 #include "dd2d/do_par_write_nc.inc"
       end subroutine par_write_nc_3D
-      subroutine par_write_nc_4D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_4D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:,:,:)
 #include "dd2d/do_par_write_nc.inc"
       end subroutine par_write_nc_4D
-      subroutine par_write_nc_5D(grid,fid,varname,arr,jdim)
+      subroutine par_write_nc_5D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:,:,:,:)
 #include "dd2d/do_par_write_nc.inc"
       end subroutine par_write_nc_5D
 
-      subroutine par_read_nc_2D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_2D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:)
 #include "dd2d/do_par_read_nc.inc"
       end subroutine par_read_nc_2D
-      subroutine par_read_nc_3D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_3D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:,:)
 #include "dd2d/do_par_read_nc.inc"
       end subroutine par_read_nc_3D
-      subroutine par_read_nc_4D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_4D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:,:,:)
 #include "dd2d/do_par_read_nc.inc"
       end subroutine par_read_nc_4D
-      subroutine par_read_nc_5D(grid,fid,varname,arr,jdim)
+      subroutine par_read_nc_5D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:,:,:,:)
 #include "dd2d/do_par_read_nc.inc"
       end subroutine par_read_nc_5D
@@ -365,81 +476,82 @@ c
       if(grid%am_i_globalroot .or. bc_all) iarr = arr
       end subroutine read_nc_3D_int
 
-      subroutine defvar_0D(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_0D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_0D
-      subroutine defvar_1D(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_1D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr(:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_1D
-      subroutine defvar_2D(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_2D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr(:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_2D
-      subroutine defvar_3D(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_3D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr(:,:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_3D
-      subroutine defvar_4D(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_4D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_4D
-      subroutine defvar_5D(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_5D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_double
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_5D
 
-      subroutine defvar_0D_int(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_0D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
       integer :: arr
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_0D_int
-      subroutine defvar_1D_int(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_1D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
       integer :: arr(:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_1D_int
-      subroutine defvar_2D_int(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_2D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
       integer :: arr(:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_2D_int
-      subroutine defvar_3D_int(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_3D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
       integer :: arr(:,:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_3D_int
-      subroutine defvar_4D_int(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_4D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
       integer :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_4D_int
-      subroutine defvar_5D_int(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_5D_int(grid,fid,arr,varinfo,r4_on_disk,defby)
       integer :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_5D_int
 
-      subroutine defvar_2D_logical(grid,fid,arr,varinfo,r4_on_disk)
+      subroutine defvar_2D_logical(grid,fid,arr,varinfo,r4_on_disk,
+     &     defby)
       logical :: arr(:,:)
 c netcdf file will represent logical as 0/1 int
       integer, parameter :: dtype=nf_int
@@ -447,17 +559,144 @@ c netcdf file will represent logical as 0/1 int
       return
       end subroutine defvar_2D_logical
 
+      subroutine write_attr_text(grid,fid,varname,attname,attval)
+      character(len=*) :: attval
+      include 'dd2d/setup_attput.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_put_att_text(fid,vid,trim(attname),attlen,attval)
+        if(do_enddef) rc2 = nf_enddef(fid)
+      endif
+      call stoprc(rc,nf_noerr)
+      return
+      end subroutine write_attr_text
+      subroutine write_attr_0D_int(grid,fid,varname,attname,attval)
+      integer :: attval
+      include 'dd2d/setup_attput.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_put_att_int(fid,vid,trim(attname),nf_int,attlen,attval)
+        if(do_enddef) rc2 = nf_enddef(fid)
+      endif
+      call stoprc(rc,nf_noerr)
+      return
+      end subroutine write_attr_0D_int
+      subroutine write_attr_1D_int(grid,fid,varname,attname,attval)
+      integer :: attval(:)
+      include 'dd2d/setup_attput.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_put_att_int(fid,vid,trim(attname),nf_int,attlen,attval)
+        if(do_enddef) rc2 = nf_enddef(fid)
+      endif
+      call stoprc(rc,nf_noerr)
+      return
+      end subroutine write_attr_1D_int
+      subroutine write_attr_0D_r8(grid,fid,varname,attname,attval)
+      real*8 :: attval
+      include 'dd2d/setup_attput.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_put_att_double(fid,vid,trim(attname),nf_double,attlen,
+     &       attval)
+        if(do_enddef) rc2 = nf_enddef(fid)
+      endif
+      call stoprc(rc,nf_noerr)
+      return
+      end subroutine write_attr_0D_r8
+      subroutine write_attr_1D_r8(grid,fid,varname,attname,attval)
+      real*8 :: attval(:)
+      include 'dd2d/setup_attput.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_put_att_double(fid,vid,trim(attname),nf_double,attlen,
+     &       attval)
+        if(do_enddef) rc2 = nf_enddef(fid)
+      endif
+      call stoprc(rc,nf_noerr)
+      return
+      end subroutine write_attr_1D_r8
+
+      subroutine read_attr_text(grid,fid,varname,attname,attlen,
+     &         attstr,attnum)
+      character(len=*) :: attstr
+      include 'dd2d/setup_attget.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_get_att_text(fid,vid,trim(attname),tmpstr)
+c        do l=1,attlen
+c          tmpstr(l) = attstr(l:l)
+c        enddo
+      endif
+      call stoprc(rc,nf_noerr)
+      call mpi_bcast(tmpstr,attlen,MPI_CHARACTER,0,
+     &     MPI_COMM_WORLD,ierr)
+      attstr=''
+      do l=1,attlen
+        attstr(l:l) = tmpstr(l)
+      enddo
+      return
+      end subroutine read_attr_text
+      subroutine read_attr_int(grid,fid,varname,attname,attlen,
+     &         attval,attnum)
+      integer :: attval(1)
+      include 'dd2d/setup_attget.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_get_att_int(fid,vid,trim(attname),attval)
+      endif
+      call stoprc(rc,nf_noerr)
+      call mpi_bcast(attval,attlen,MPI_INTEGER,0,
+     &     MPI_COMM_WORLD,ierr)
+      return
+      end subroutine read_attr_int
+      subroutine read_attr_r8(grid,fid,varname,attname,attlen,
+     &         attval,attnum)
+      real*8 :: attval(1)
+      include 'dd2d/setup_attget.inc'
+      if(grid%am_i_globalroot) then
+        rc = nf_get_att_double(fid,vid,trim(attname),attval)
+      endif
+      call stoprc(rc,nf_noerr)
+      call mpi_bcast(attval,attlen,MPI_DOUBLE_PRECISION,0,
+     &     MPI_COMM_WORLD,ierr)
+      return
+      end subroutine read_attr_r8
+
+      function len_of_text(cstr)
+      integer :: len_of_text
+      character(len=*) :: cstr
+      len_of_text = len_trim(cstr)
+      return
+      end function len_of_text
+      function len_of_int0D(i)
+      integer :: len_of_int0D
+      integer :: i
+      len_of_int0D = 1
+      return
+      end function len_of_int0D
+      function len_of_int1D(i)
+      integer :: len_of_int1D
+      integer :: i(:)
+      len_of_int1D = size(i)
+      return
+      end function len_of_int1D
+      function len_of_r80D(r8)
+      integer :: len_of_r80D
+      real*8 :: r8
+      len_of_r80D = 1
+      return
+      end function len_of_r80D
+      function len_of_r81D(r8)
+      integer :: len_of_r81D
+      real*8 :: r8(:)
+      len_of_r81D = size(r8)
+      return
+      end function len_of_r81D
 
       subroutine define_var(fid,dtype,
      &     varinfo_in,ndims_in,shp_in,im_in,jm_in,
-     &     ntiles,rc)
-      integer :: fid,dtype,rc
+     &     ntiles,rc,vid)
+      integer :: fid,dtype,rc,vid
       character(len=*) :: varinfo_in
       integer :: ndims_in,shp_in(ndims_in),im_in,jm_in,ntiles
       character(len=40) :: vname,dname
       character(len=80) :: varinfo
       character*1, dimension(:), allocatable :: char_arr
-      integer :: i,ndims,l,l1,l2,xdim,lv,vid,dsize,status
+      integer :: i,ndims,l,l1,l2,xdim,lv,dsize,status
      &     ,dsizx
       integer :: dids(7)
       logical :: is_dist
@@ -514,7 +753,6 @@ c
           endif
           dname=varinfo(l1:l2)
           dsize = shp_in(xdim)
-          write(*,*) vname," ",dname," ",dsize
           if(dname(1:6).eq.'dist_i') then
             dname=dname(6:len_trim(dname))
             dsize = im_in
@@ -563,4 +801,186 @@ c
       return
       end subroutine define_var
 
+      subroutine pack_row_no_xdim_2d(grid,arr,arr1d,jdim)
+      real*8 arr(:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_to_1D_no_xdim(arr,arr1d,nl,nj,nk,j1,j2)
+      return
+      end subroutine pack_row_no_xdim_2d
+      subroutine pack_row_no_xdim_3d(grid,arr,arr1d,jdim)
+      real*8 arr(:,:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_to_1D_no_xdim(arr,arr1d,nl,nj,nk,j1,j2)
+      return
+      end subroutine pack_row_no_xdim_3d
+      subroutine pack_row_no_xdim_4d(grid,arr,arr1d,jdim)
+      real*8 arr(:,:,:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_to_1D_no_xdim(arr,arr1d,nl,nj,nk,j1,j2)
+      return
+      end subroutine pack_row_no_xdim_4d
+      subroutine pack_row_no_xdim_5d(grid,arr,arr1d,jdim)
+      real*8 arr(:,:,:,:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_to_1D_no_xdim(arr,arr1d,nl,nj,nk,j1,j2)
+      return
+      end subroutine pack_row_no_xdim_5d
+
+      subroutine unpack_row_no_xdim_2d(grid,arr1d,arr,jdim)
+      real*8 arr(:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_from_1D_no_xdim(arr1d,arr,nl,nj,nk,j1,j2)
+      return
+      end subroutine unpack_row_no_xdim_2d
+      subroutine unpack_row_no_xdim_3d(grid,arr1d,arr,jdim)
+      real*8 arr(:,:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_from_1D_no_xdim(arr1d,arr,nl,nj,nk,j1,j2)
+      return
+      end subroutine unpack_row_no_xdim_3d
+      subroutine unpack_row_no_xdim_4d(grid,arr1d,arr,jdim)
+      real*8 arr(:,:,:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_from_1D_no_xdim(arr1d,arr,nl,nj,nk,j1,j2)
+      return
+      end subroutine unpack_row_no_xdim_4d
+      subroutine unpack_row_no_xdim_5d(grid,arr1d,arr,jdim)
+      real*8 arr(:,:,:,:,:)
+      include 'dd2d/row_setup_no_xdim.inc'
+      call copy_from_1D_no_xdim(arr1d,arr,nl,nj,nk,j1,j2)
+      return
+      end subroutine unpack_row_no_xdim_5d
+
+      subroutine par_write_ij(grid,fid,vid,arr,jdim)
+      type(dd2d_grid), intent(in) :: grid
+      real*8 :: arr(:,:)
+      integer :: fid,vid,jdim
+      real*8, allocatable :: arrgij(:,:)
+      integer :: rc
+      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      call pack_data(grid,arr,arrgij)
+      if(grid%am_i_globalroot) then
+        rc = nf_put_var_double(fid,vid,arrgij)
+        deallocate(arrgij)
+      endif
+      return
+      end subroutine par_write_ij
+      subroutine par_write_ijx(grid,fid,vid,arr,jdim)
+      type(dd2d_grid), intent(in) :: grid
+      real*8 :: arr(:,:,:)
+      integer :: fid,vid,jdim
+      real*8, allocatable :: arrgij(:,:)
+      integer :: rc,k,srt(3),cnt(3)
+      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      srt(1:2) = 1; cnt(1:3) = (/ grid%npx, grid%npy, 1 /)
+      do k=1,size(arr,3)
+        call pack_data(grid,arr(:,:,k),arrgij)
+        srt(3) = k
+        if(grid%am_i_globalroot)
+     &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgij)
+      enddo
+      if(grid%am_i_globalroot) deallocate(arrgij)
+      return
+      end subroutine par_write_ijx
+      subroutine par_write_ijxx(grid,fid,vid,arr,jdim)
+      type(dd2d_grid), intent(in) :: grid
+      real*8 :: arr(:,:,:,:)
+      integer :: fid,vid,jdim
+      real*8, allocatable :: arrgij(:,:)
+      integer :: rc,k,l,srt(4),cnt(4)
+      if(jdim.eq.3) then
+        call par_write_xijx(grid,fid,vid,arr,jdim)
+        return
+      endif
+      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      srt(1:2) = 1; cnt(1:4) = (/ grid%npx, grid%npy, 1, 1 /)
+      do l=1,size(arr,4)
+      srt(4) = l
+      do k=1,size(arr,3)
+        call pack_data(grid,arr(:,:,k,l),arrgij)
+        srt(3) = k
+        if(grid%am_i_globalroot)
+     &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgij)
+      enddo
+      enddo
+      if(grid%am_i_globalroot) deallocate(arrgij)
+      return
+      end subroutine par_write_ijxx
+      subroutine par_write_ijxxx(grid,fid,vid,arr,jdim)
+      type(dd2d_grid), intent(in) :: grid
+      real*8 :: arr(:,:,:,:,:)
+      integer :: fid,vid,jdim
+      real*8, allocatable :: arrgij(:,:)
+      integer :: rc,k,l,m,srt(5),cnt(5)
+      if(grid%am_i_globalroot) allocate(arrgij(grid%npx,grid%npy))
+      srt(1:2) = 1; cnt(1:5) = (/ grid%npx, grid%npy, 1, 1, 1 /)
+      do m=1,size(arr,5)
+      srt(5) = m
+      do l=1,size(arr,4)
+      srt(4) = l
+      do k=1,size(arr,3)
+        call pack_data(grid,arr(:,:,k,l,m),arrgij)
+        srt(3) = k
+        if(grid%am_i_globalroot)
+     &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgij)
+      enddo
+      enddo
+      enddo
+      if(grid%am_i_globalroot) deallocate(arrgij)
+      return
+      end subroutine par_write_ijxxx
+      subroutine par_write_xijx(grid,fid,vid,arr,jdim)
+      type(dd2d_grid), intent(in) :: grid
+      real*8 :: arr(:,:,:,:)
+      integer :: fid,vid,jdim
+      real*8, allocatable :: arrgxij(:,:,:)
+      integer :: rc,k,srt(4),cnt(4)
+      if(grid%am_i_globalroot)
+     &     allocate(arrgxij(size(arr,1),grid%npx,grid%npy))
+      srt(1:3) = 1; cnt(1:4) = (/ size(arr,1), grid%npx, grid%npy, 1 /)
+      do k=1,size(arr,4)
+        call pack_data(grid,arr(:,:,:,k),arrgxij,jdim=3)
+        srt(4) = k
+        if(grid%am_i_globalroot)
+     &       rc = nf_put_vara_double(fid,vid,srt,cnt,arrgxij)
+      enddo
+      if(grid%am_i_globalroot) deallocate(arrgxij)
+      return
+      end subroutine par_write_xijx
+
       end module pario
+
+      subroutine copy_to_1D_no_xdim(arr,arr1d,nl,nj,nk,j1,j2)
+      implicit none
+      real*8 arr(nl,nj,nk)
+      real*8 arr1d(1)
+      integer :: nl,nj,nk,j1,j2
+      integer :: j,k,l,n
+      n = 0
+      do k=1,nk
+      do j=j1,j2
+      do l=1,nl
+        n = n + 1
+        arr1d(n) = arr(l,j,k)
+      enddo
+      enddo
+      enddo
+      return
+      end subroutine copy_to_1D_no_xdim
+      subroutine copy_from_1D_no_xdim(arr1d,arr,nl,nj,nk,j1,j2)
+      implicit none
+      real*8 arr(nl,nj,nk)
+      real*8 arr1d(1)
+      integer :: nl,nj,nk,j1,j2
+      integer :: j,k,l,n
+      n = 0
+      do k=1,nk
+      do j=j1,j2
+      do l=1,nl
+        n = n + 1
+        arr(l,j,k) = arr1d(n)
+      enddo
+      enddo
+      enddo
+      return
+      end subroutine copy_from_1D_no_xdim
