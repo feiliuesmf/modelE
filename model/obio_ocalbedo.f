@@ -175,15 +175,6 @@ c      endif
                          !from within ocean, but from atmos
       
 !!!!!!!!!! Boris' part !!!!!!!!!!!!!!!!!
-!diffuse spectral reflectance average
-! c=0.03   0.0404007
-! c=0.1   0.0271808
-! c=0.3    0.0195185
-! c=1.0    0.015129
-! c=3.0    0.0136362
-! c=10.0   0.012881
-! Average : 0.0214577 
-
 C**** get chlorophyll term
       ! function obio_reflectance calculates reflectance 
       ! as a function of chl and wavelength (lam)
@@ -218,22 +209,3 @@ ccc   if (vrbos) write(*,*)'ocalbedo, refl:',refl
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       return
       end subroutine obio_ocalbedo
-
-
-      real*8 function ref(chl)
-!@sum calculate reflectance as a function of chlorophyll calculation
-      implicit none
-      real*8, intent(in) :: chl  !@var chl Chlorohpyll concentration
-
-C**** formula from ??????
-C**** Who knows? - no longer used - rjh 9/25/2008
-      if (chl .le. 0.03) then 
-        ref = 0.004d0
-      else      
-        ref = exp(-4.13846d0-0.0246239d0*chl) 
-     .       + exp(-3.44072d0-9.54688d0*chl)
-      endif
-     
-      return
-      end function ref
-

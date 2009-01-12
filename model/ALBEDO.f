@@ -415,14 +415,14 @@ C**** call routine to calculate Gregg version of albedo, including
 C**** Chlorophyll effect
 
       vrbos=.false.
-      if (ILON.eq.37.and.JLAT.eq.23) vrbos=.true.
+c      if (ILON.eq.37.and.JLAT.eq.23) vrbos=.true.
 
-      if (vrbos) then
-      do L=1,6
-      write(*,'(a,2i5,2d12.4)')'BEFOR OCALBEDO: ', 
-     .        ILON,JLAT,BOCVN(L), XOCVN(L)
-      enddo
-      endif
+c      if (vrbos) then
+c      do L=1,6
+c      write(*,'(a,2i5,2d12.4)')'BEFOR OCALBEDO: ', 
+c     .        ILON,JLAT,BOCVN(L), XOCVN(L)
+c      enddo
+c      endif
 
       !call obio_ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
@@ -430,12 +430,12 @@ C**** Chlorophyll effect
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
      .                    LOC_CHL,dummy1,dummy2,.false.,vrbos)
 
-      if (vrbos) then
-      do L=1,6
-      write(*,'(a,2i5,2d12.4)')'AFTER OCALBEDO: ', 
-     .        ILON, JLAT, BOCVN(L), XOCVN(L)
-      enddo
-      endif
+c      if (vrbos) then
+c      do L=1,6
+c      write(*,'(a,2i5,2d12.4)')'AFTER OCALBEDO: ', 
+c     .        ILON, JLAT, BOCVN(L), XOCVN(L)
+c      enddo
+c      endif
 #endif
 
 C**** For lakes increase albedo if lakes are very shallow
