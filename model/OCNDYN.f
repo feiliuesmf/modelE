@@ -1165,7 +1165,7 @@ C**** Check for negative tracers
         end if
 C**** Check conservation of water tracers in ocean
         if (trname(n) == 'Water') then
-          errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
+          errmax = 0. ; imax=1 ; jmax=J_0 ; lmax=1
           do l=1,lmo
           do j=j_0,j_1
           do i=1,imaxj(j)
