@@ -86,7 +86,7 @@ c
 
       call get_nlnk(local_arr,jd,nl,nk)
 
-      if(nproc_comm.gt.1) then
+      if(nproc_comm.gt.1 .or. nt.gt.1) then
         call alloc_gs_wksp(grid,nl,nk,1+j2g-j1g,nt,am_i_gsroot)
 
 c calculate gatherv/scatterv info

@@ -913,7 +913,7 @@ c
       integer :: i,j,l,k,m,n,n0,nsend,iproc
       integer :: ierr
 
-      if(nproc_comm.eq.1) then
+      if(nproc_comm.eq.1 .and. nt.eq.1) then
         global_arr(:,i1g:i2g,j1g:j2g,:,1)=local_arr(:,i1g:i2g,j1g:j2g,:)
         return
       endif
@@ -1015,7 +1015,7 @@ c
       integer :: i,j,l,k,m,n,n0,nrecv,iproc
       integer :: ierr
 
-      if(nproc_comm.eq.1) then
+      if(nproc_comm.eq.1 .and. nt.eq.1) then
         local_arr(:,i1g:i2g,j1g:j2g,:)=global_arr(:,i1g:i2g,j1g:j2g,:,1)
         return
       endif
@@ -1124,7 +1124,7 @@ c
       integer, dimension(6) :: cntsijkg,displsijkg
       integer, dimension(:), allocatable :: cntsijk,displsijk
 
-      if(nproc_comm.eq.1) then
+      if(nproc_comm.eq.1 .and. nt.eq.1) then
         global_arr(i1g:i2g,j1g:j2g,:,1)=local_arr(i1g:i2g,j1g:j2g,:)
         return
       endif
@@ -1245,7 +1245,7 @@ c
       integer, dimension(6) :: cntsijkg,displsijkg
       integer, dimension(:), allocatable :: cntsijk,displsijk
 
-      if(nproc_comm.eq.1) then
+      if(nproc_comm.eq.1 .and. nt.eq.1) then
         local_arr(i1g:i2g,j1g:j2g,:)=global_arr(i1g:i2g,j1g:j2g,:,1)
         return
       endif
