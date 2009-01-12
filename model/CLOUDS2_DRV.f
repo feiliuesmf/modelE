@@ -436,8 +436,11 @@ C
       DO L=1,LM
       DO I=I_0,I_1
         GZIL(I,L) = GZ(I,J,L)
-C        SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
+#ifdef SCM        
+        SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
+#else
         SD_CLDIL(I,L) = SDA(I,J,L)/DTsrc ! averaged SD
+#endif
         WMIL(I,L) = WM(I,J,L)
         TMOMIL(:,I,L) = T3MOM(:,I,J,L)
         QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
@@ -1198,18 +1201,17 @@ C**** WRITE TO GLOBAL ARRAYS
 #endif
 #endif
 #endif
-
       TTOLD(:,I,J)=TH(:)
       QTOLD(:,I,J)=QL(:)
-
+ 
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
-C**** accumulate precip specially for SUBDD
-      P_acc(I,J)=P_acc(I,J)+PRCP
-      PM_acc(I,J)=PM_acc(I,J)+PRCP-PRECSS(I,J)
 C**** The PRECSS array is only used if a distinction is being made
 C**** between kinds of rain in the ground hydrology.
       PRECSS(I,J)=PRCPSS*100.*BYGRAV  ! large scale precip (kg/m^2)
+C**** accumulate precip specially for SUBDD
+      P_acc(I,J)=P_acc(I,J)+PRCP
+      PM_acc(I,J)=PM_acc(I,J)+PRCP-PRECSS(I,J)
 #ifdef SCM
 c**** save total precip for time step (in mm/hr) for SCM
       if (I.eq.I_TARG .and. J.eq.J_TARG) then
