@@ -25,8 +25,7 @@
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
      &     ,isccp_reg2d,aisccp2d,ukm,vkm
 #ifdef CLD_AER_CDNC
-     *     ,oldnl,oldni
-     *     ,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
+     *     ,oldnl,oldni,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
@@ -66,8 +65,7 @@
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
       USE AERO_CONFIG, only: NMODES
-      USE AMP_AEROSOL, only: NACTV
-     & ,NACTC
+      USE AMP_AEROSOL, only: NACTV, NACTC
 #endif
 #endif
 #ifdef TRACERS_ON
@@ -146,10 +144,8 @@
      *     ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1
 #ifdef CLD_AER_CDNC
      *     ,acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim
-     *     ,alwim,alwis,alwwm,alwws
-     *     ,nlsw,nlsi,nmcw,nmci
-     *     ,oldcdl,oldcdi
-     *     ,sme
+     *     ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci
+     *     ,oldcdl,oldcdi,sme
      *     ,cteml,cd3dl,cl3dl,ci3dl,cdn3dl,cre3dl,smlwp
      *     ,wmclwp,wmctwp
 #endif
@@ -157,12 +153,9 @@
       USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
      *                    SCM_ATURB_FLAG,iu_scm_prt
       USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
-C--- Added by J.W. starting ---C
      &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
      &                    ENTSCM,ENTALL,ENTDEEP,
-     &                    DETRAINDEEP,
-C--- Added by J.W. ending ---C
-     &                     TPALL,PRCSS,PRCMC
+     &                    DETRAINDEEP,TPALL,PRCSS,PRCMC
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
@@ -172,7 +165,7 @@ C--- Added by J.W. ending ---C
       USE SEAICE_COM, only : rsi
       USE GHY_COM, only : snoage,fearth
       USE LAKES_COM, only : flake
-      USE FLUXES, only : prec,eprec,precss,gtemp
+      USE FLUXES, only : prec,eprec,precss,gtempr
 #ifdef TRACERS_WATER
      *     ,trprec
 #else
@@ -238,7 +231,8 @@ c     *           TLS,QLS,TMC,QMC
       REAL*8 :: HCNDMC,PRCP,TPRCP,EPRCP,ENRGP,WMERR,ALPHA1,ALPHA2,ALPHAS
       REAL*8 :: DTDZ,DTDZS,DUDZ,DVDZ,DUDZS,DVDZS,THSV,THV1,THV2,QG,TGV
       REAL*8 :: DH1S,BYDH1S,DH12,BYDH12,DTDZG,DUDZG,DVDZG,SSTAB,DIFT,CSC
-     *     ,E,E1,ep,TSV,q0,q1,q2,WM1,WMI
+     *     ,TSV,WM1,WMI
+cECON*     ,E,E1,W1,ep,ep1,TSV,q0,q1,q2,WM1,WMI
 !@var HCNDMC heating due to moist convection
 !@var PRCP precipitation
 !@var TPRCP temperature of mc. precip  (deg. C)
@@ -266,16 +260,12 @@ Cred*                       Reduced Arrays 1                 *********
 C        not clear yet whether they still speed things up
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) ::
      &     GZIL,SD_CLDIL,WMIL
-C      REAL*8  GZIL(IM,LM), SD_CLDIL(IM,LM), WMIL(IM,LM)
       real*8, dimension(NMOM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) ::
      &     TMOMIL,QMOMIL
-c      REAL*8  TMOMIL(NMOM,IM,LM),  QMOMIL(NMOM,IM,LM)
-Cred*                   end Reduced Arrays 1
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
-CRKF...FIX
       REAL*8  UKMSP(IM,LM), VKMSP(IM,LM), UKMNP(IM,LM),VKMNP(IM,LM)
       REAL*4 WCU500(IM,16),SAVWCU(IM,16,LM),SAVEN1(IM,16,LM),
      *  SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
@@ -294,7 +284,6 @@ CRKF...FIX
 #endif
       REAL*8 :: tmp(NDIUVAR)
       REAL*8 :: AISCCPSUM(ntau,npres,nisccp)
-      INTEGER :: ii, ivar
 #ifndef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -419,8 +408,9 @@ C****
 !xOMP*  ITROP,IERR, J,JERR,JR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !xOMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !xOMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
-!xOMP*  LP600,LP850,CSC,DIFT, E,E1,ep,q0,q1,q2,WM1,WMI,sunlit)
-!xOMP*    SCHEDULE(DYNAMIC,2)
+!xOMP*  LP600,LP850,CSC,DIFT, WM1,WMI,sunlit
+cECON !xOMP*  E,E1,W1,ep,ep1,q0,q1,q2,
+!xOMP*    ) SCHEDULE(DYNAMIC,2)
 !xOMP*    REDUCTION(+:ICKERR,JCKERR)
 C
       DO J=J_0,J_1
@@ -487,14 +477,12 @@ C****
              do L=1,LM
                 WCUALL(L,1,LL)=0.
                 WCUALL(L,2,LL)=0.
-C--- Added by J.W. starting ---C
                 MPLUMEALL(L,1,LL)=0.
                 MPLUMEALL(L,2,LL)=0.
                 ENTALL(L,1,LL)=0.
                 ENTALL(L,2,LL)=0.
                 DETRAINDEEP(L,1,LL) = 0.0
                 DETRAINDEEP(L,2,LL) = 0.0
-C--- Added by J.W. ending ---C
                 TPALL(L,1,LL)=0.
                 TPALL(L,2,LL)=0.
                 PRCCDEEP(L,1,LL) = 0.0
@@ -506,12 +494,10 @@ C--- Added by J.W. ending ---C
           do L=1,LM
              WCUDEEP(L,1) = 0.0
              WCUDEEP(L,2) = 0.0
-C--- Added by J.W. starting ---C
              MPLUMEDEEP(L,1) = 0.0
              MPLUMEDEEP(L,2) = 0.0
              ENTDEEP(L,1) = 0.0
              ENTDEEP(L,2) = 0.0
-C--- Added by J.W. ending ---C
           enddo
       endif
 #endif
@@ -568,22 +554,18 @@ C**not sure if this needed
       DO L=1,LM
 C**** TEMPERATURES
         SM(L)  =T(I,J,L)*AIRM(L)
-Cred    SMOM(:,L) =T3MOM(:,I,J,L)*AIRM(L)
         SMOM(:,L) =TMOMIL(:,I,L)*AIRM(L)
         SMOMMC(:,L) =SMOM(:,L)
         SMOMLS(:,L) =SMOM(:,L)
         TL(L)=T(I,J,L)*PLK(L)
 C**** MOISTURE (SPECIFIC HUMIDITY)
         QM(L)  =Q(I,J,L)*AIRM(L)
-Cred    QMOM(:,L) =Q3MOM(:,I,J,L)*AIRM(L)
         QMOM(:,L) =QMOMIL(:,I,L)*AIRM(L)
         QMOMMC(:,L) =QMOM(:,L)
         QMOMLS(:,L) =QMOM(:,L)
-Cred    WML(L)=WM(I,J,L)
         WML(L)=WMIL(I,L)
         QL(L) =Q(I,J,L)
 C**** others
-Cred    SDL(L)=SD_CLOUDS(I,J,L)*BYAXYP(I,J)
         SDL(L)=SD_CLDIL(I,L)*BYAXYP(I,J)
         TVL(L)=TL(L)*(1.+DELTX*QL(L))
         W2L(L)=W2GCM(L,I,J)
@@ -592,7 +574,6 @@ Cred    SDL(L)=SD_CLOUDS(I,J,L)*BYAXYP(I,J)
         SAVE1L(L)=0.
         SAVE2L(L)=0.
         IF(L.LE.LM-2)
-Cred *    ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*1.d-3*BYGRAV
      *    ETAL(L+1)=.5*ENTCON*(GZIL(I,L+2)-GZIL(I,L))*1.d-3*BYGRAV
         IF(L.LE.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
       END DO
@@ -607,7 +588,6 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
       do l=1,lm
         tm(l,nx) = trm(i,j,l,ntix(nx))
-        if (debug .and. nx.eq.1) print*,"drv0",i,l,tm(l,nx)
         tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx))
       end do
       end do
@@ -673,26 +653,32 @@ C****        sum(WML(:)*(LHE-SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 C**** The LH_clw term is slightly different after MSTCNV:
 C****   LH_clw = sum((WML(:)*(LHE-SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))
 C****                *AIRM(:))*100.*BYGRAV
-C**** and again after LSCOND:
+C**** After LSCOND, latent heat changes to:
 C****          = sum(WMX(:)*(LHE-SVLHXL(:))*AIRM(:))*100.*BYGRAV
 C****
-cECON
-cECON      q0 = sum(QM(:)+WML(:)*AIRM(:))*100.*BYGRAV
-cECON
-cECON      E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
-cECON     *     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
+C**** Note that the column changes after MSTCNV only apply to the
+C**** moist convective fraction (1-FSSL(:)), and after LSCOND, FSSL(:).
+C**** Condensate is always defined over the whole box.
+C****
+c**** uncomment lines marked ECON to check energy conservation
+c**** uncomment lines marked QCON to check water conservation
+
+cQCON q0 = sum(QM(:)+WML(:)*AIRM(:))*100.*BYGRAV
+cECON  E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
+cECON*     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 
 C**** MOIST CONVECTION
-
       CALL MSTCNV(IERR,LERR,i,j)
 
-cECON  E1 = ( sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum((WML(:)*(LHE
-cECON *     -SVLHXL(:))+SVWMXL(:)*(LHE-SVLATL(:)))*AIRM(:)))*100.*BYGRAV
+cECON E1 = ( sum( ((T(I,J,:)*PLK(:)-TL(:))*AIRM(:)*SHA + (Q(I,J,:)
+cECON*     *AIRM(:)-QM(:))*LHE)*(1.-FSSL(:)))-sum(SVWMXL(:)*(LHE
+cECON*     -SVLATL(:))*AIRM(:)))*100.*BYGRAV 
+cQCON q1 = sum( (Q(I,J,:)*AIRM(:)-QM(:))*(1.-FSSL(:))-SVWMXL(:)*AIRM(:))
+cQCON*     *100.*BYGRAV
 
 C**** Error reports
       if (ierr.gt.0) then
         write(6,*) "Error in moist conv: i,j,l=",i,j,lerr
-ccc     if (ierr.eq.2) call stop_model("Subsid error: abs(c) > 1",255)
         if (ierr.eq.2) ickerr = ickerr + 1
       end if
 
@@ -777,27 +763,27 @@ C*** End Accumulate 3D convective latent heating
 #ifdef CLD_AER_CDNC
         DO L =1,LM
         IF (NMCW.ge.1) then
-         AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)
-         AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)
-         AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)
-         AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)
-         AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)
-         AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)
-         call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L))
-c        write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
-c    *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
+          AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)
+          AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)
+          AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)
+          AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)
+          AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)
+          AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)
+          call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L))
+c         write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
+c     *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
         ENDIF
 
         IF (NMCI.ge.1) then
-         AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)
-         AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
-         AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
-         call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L))
-         AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)
-         AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)
-         AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)
-c        write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
-c    *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
+          AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)
+          AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
+          AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
+          call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L))
+          AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)
+          AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)
+          AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)
+c         write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
+c     *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
         ENDIF
 
         ENDDO
@@ -814,13 +800,21 @@ C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
 C         EPRCP=PRCP*TPRCP*SHW
           EPRCP=0.
           ENRGP=ENRGP+EPRCP
+cECON     ep=0.
         ELSE
 C         EPRCP=PRCP*TPRCP*SHI
           EPRCP=0.
           ENRGP=ENRGP+EPRCP-PRCP*LHM
+cECON     ep=-PRCP*LHM
           AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCP
         END IF
         AIJ(I,J,IJ_PRECMC)=AIJ(I,J,IJ_PRECMC)+PRCP
+
+C**** Uncomment next lines for check on conservation
+cECON   if (abs(E1-ep).gt.0.01) print*,"energy err0",i,j,(E1-ep)
+cECON*       *GRAV/100.,E,E1,ep,prcp,tprcp
+cQCON   if (abs(q1-prcp).gt.0.01) print*,"water err0",i,j,(q1-prcp)
+cQCON*       *GRAV/100.,q0,q1,prcp
 
         DO L=1,LMCMAX
           T(I,J,L)=(1.-FSSL(L))*SM(L)*BYAM(L)+FSSL(L)*TLS(I,J,L)
@@ -832,30 +826,9 @@ C         EPRCP=PRCP*TPRCP*SHI
           DO K=1,KMAX
             UM1(K,L)=UM(K,L)
             VM1(K,L)=VM(K,L)
-CCC         UMC(IDI(K),IDJ(K),L)=UMC(IDI(K),IDJ(K),L)+
-CCC  *                   (UM(K,L)*BYAM(L)-UC(IDI(K),IDJ(K),L))
-CCC         U(IDI(K),IDJ(K),L)=(1.-FSSL(L))*UMC(IDI(K),IDJ(K),L)+
-CCC  *                   FSSL(L)*ULS(IDI(K),IDJ(K),L)
-CCC         VMC(IDI(K),IDJ(K),L)=VMC(IDI(K),IDJ(K),L)+
-CCC  *                   (VM(K,L)*BYAM(L)-VC(IDI(K),IDJ(K),L))
-CCC         V(IDI(K),IDJ(K),L)=(1.-FSSL(L))*VMC(IDI(K),IDJ(K),L)+
-CCC  *                   FSSL(L)*VLS(IDI(K),IDJ(K),L)
           END DO
         END DO
-C       IF(I.EQ.05.AND.J.GE.16.AND.J.LE.31)
-C    *  WRITE(6,199) I,J,SAVWL(5),SAVWL1(5),SAVE1L(5),SAVE2L(5)
-C 199   FORMAT(1X,2I3,12E15.3)
-C       IF(J.GE.16.AND.J.LE.31) THEN  ! for checking WCU and ENT
-C         DO L=1,LM
-C           SAVWCU(I,J-15,L)=SAVWL(L)
-C           SAVWC1(I,J-15,L)=SAVWL1(L)
-C           SAVEN1(I,J-15,L)=SAVE1L(L)
-C           SAVEN2(I,J-15,L)=SAVE2L(L)
-C           IF(L.EQ.5) WCU500(I,J-15)=SAVWL1(L)
-C           IF(I.EQ.21.AND.L.EQ.5) W500P1(J-15)=SAVWL(L)
-C           IF(I.EQ.21.AND.L.EQ.5) ENTJ(J-15)=SAVE1L(L)*1000.
-C         END DO
-C       END IF
+
         CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
         FSS(:,I,J)=FSSL(:)
         AIRX(I,J) = AIRXL*AXYP(I,J)
@@ -871,10 +844,7 @@ C       END IF
           TRDN1(:,I,J)=1d-2*TRDNL(:,DDML(I,J))*GRAV*BYAXYP(I,J) ! downdraft tracer conc
 #endif
         END IF
-c       IF (DDMFLX(1).GT.0.) THEN
-c         WRITE(6,*) 'I J DDMS TDN1 QDN1=',
-c    *      I,J,DDMS(I,J),TDN1(I,J),QDN1(I,J)
-c       END IF
+
 C**** level 1 downfdraft mass flux/rho (m/s)
         DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)
      *       *DTSrc)
@@ -898,10 +868,6 @@ C**** TRACERS: Use only the active ones
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
           trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
-#endif
-      if (debug .and. nx.eq.1) print*,"drv1",i,l,tm(l,nx)
-#ifdef TRACERS_WATER
-     &     ,trsvwml(nx,l)
 #endif
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
           tmomsv(:,l,nx) = tmom(:,l,nx)
@@ -928,17 +894,13 @@ C****
       WMX(:)=WML(:)+SVWMXL(:)
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
 #ifdef SCM
-      if (I.eq.I_TARG .and. J.eq.J_TARG) then
-         AQ(:) = ((SCM_SAVE_Q(:)+SCM_DEL_Q(:))-QTOLD(:,I,J))
-     &               *BYDTsrc
-      endif
+      if (I.eq.I_TARG .and. J.eq.J_TARG) AQ(:) = ((SCM_SAVE_Q(:)
+     *     +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc 
 #endif
       RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
       FSSL(:)=FSS(:,I,J)
       DO L=1,LM
         DO K=1,KMAX
-c          UM(K,L) = ULS(IDI(K),IDJ(K),L)*AIRM(L)
-c          VM(K,L) = VLS(IDI(K),IDJ(K),L)*AIRM(L)
           UM(K,L) = U_0(K,L)*AIRM(L)
           VM(K,L) = V_0(K,L)*AIRM(L)
         END DO
@@ -1003,19 +965,19 @@ C**** BOUNDARY LAYER IS AT OR BELOW FIRST LAYER (E.G. AT NIGHT)
 C       WRITE (6,*)'I,J,QG,TGV,THSV,RIS,RI1=',I,J,QG,TGV,THSV,RIS,RI1
       ENDIF
 
-c**** uncomment lines marked ECON to check energy conservation
-cECON  E = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
-cECON *     *AIRM(1:LP50))*LHE +sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
-cECON *     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))  )*100.
-cECON *     *BYGRAV
-cECON     q1 = sum((Q(I,J,:)+WML(:)+SVWMXL(:))*AIRM(:))*100.*BYGRAV+PRCP
-cECON      if (abs(q0-q1).gt.1d-13) print*,"pr0",i,j,q0,q1,prcp
+C**** Uncomment next few lines for check on conservation
+cECON W1 = sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
+cECON*     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))
+cECON E = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
+cECON*     *AIRM(1:LP50))*LHE )*100.*BYGRAV
+
 C**** LARGE-SCALE CLOUDS AND PRECIPITATION
       CALL LSCOND(IERR,WMERR,LERR,i,j)
 
-cECON  E1 = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
-cECON *     *AIRM(1:LP50))*LHE +sum(WMX(1:LP50)*(LHE-SVLHXL(1:LP50))
-cECON *     *AIRM(1:LP50)) )*100.*BYGRAV
+cECON E1 = ( sum( ((TLS(I,J,1:LP50)-TH(1:LP50))*PLK(1:LP50)*AIRM(1:LP50)
+cECON*     *SHA +(QLS(I,J,1:LP50)-QL(1:LP50))*AIRM(1:LP50)*LHE)
+cECON*     *FSSL(1:LP50))+W1-sum(WMX(1:LP50)*(LHE-SVLHXL(1:LP50))
+cECON*     *AIRM(1:LP50)) )*100.*BYGRAV
 
 C**** Error reports
       IF (IERR.ne.0) WRITE(99,'(I10,3I4,A,D14.5,A)')
@@ -1056,18 +1018,18 @@ C**** NEED TO TAKE ACCOUNT OF LATENT HEAT THOUGH
 C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHW
         EPRCP=0.
         ENRGP=ENRGP+EPRCP
-cECON    ep=0.
+cECON   ep1=0.
       ELSE
 C       EPRCP=PRCPSS*100.*BYGRAV*TPRCP*SHI
         EPRCP=0.
         ENRGP=ENRGP+EPRCP-PRCPSS*100.*BYGRAV*LHM
-cECON    ep=-PRCPSS*100.*BYGRAV*LHM
+cECON   ep1=-PRCPSS*100.*BYGRAV*LHM
         AIJ(I,J,IJ_SNWF)=AIJ(I,J,IJ_SNWF)+PRCPSS*100.*BYGRAV
       END IF
 
-cECON  if (abs(E-E1-ep).gt.0.01) print*,"energy err",i,j,E-E1-ep,
-cECON *     E,E1,ep,prcpss,lhp(1)
-
+cECON if (abs(E1-ep1).gt.0.01) print*,"energy err1",i,j,(E1-ep1)
+cECON*     *GRAV*1d-2,E1-ep1,E1,ep1,prcpss*100.*BYGRAV,lhp(1)
+      
 C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
@@ -1080,18 +1042,18 @@ C**** PRECIPITATION DIAGNOSTICS
         AIJ(I,J,IJ_FWOC)=AIJ(I,J,IJ_FWOC)+
      *       PRCP*FOCEAN(I,J)*(1.-RSI(I,J))
 
-      IF(ENRGP.LT.0.) THEN ! MODIFY SNOW AGES AFTER SNOW FALL
+      IF(ENRGP.LT.0.) THEN    ! MODIFY SNOW AGES AFTER SNOW FALL
         DO ITYPE=1,3
           SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*EXP(-PRCP)
         END DO
       END IF
-C**** some water diagnostics
+
+C**** cloud water diagnostics
       WM1=0  ; WMI=0
       DO L=1,LP50
         WM1=WM1+WMX(L)*AIRM(L)
         IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
       END DO
-c is this the same as IJ_WMSUM?
       AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
       AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 
@@ -1113,11 +1075,12 @@ C**** Calculate ISCCP cloud diagnostics if required
           phalf(l)=ple(LM+2-L)*100.
           at(l)=tl(LM+1-L)  ! in situ temperature
 
-C**** set tg1 from GTEMP array (or save in SURFACE?)
-c          skt=tf+tg1(i,j)
-          skt=tf + (focean(i,j)+flake(i,j))*(1.-rsi(i,j))*gtemp(1,1,i,j)
-     *         + (focean(i,j)+flake(i,j))*rsi(i,j)*gtemp(1,2,i,j)
-     *         + flice(i,j)*gtemp(1,3,i,j)+fearth(i,j)*gtemp(1,4,i,j)
+C**** set skt from radiative temperature
+          skt=sqrt(sqrt(
+     *         (focean(i,j)+flake(i,j))*(1.-rsi(i,j))*gtempr(1,i,j)**4+
+     *         (focean(i,j)+flake(i,j))*    rsi(i,j) *gtempr(2,i,j)**4+
+     *         flice(i,j) *gtempr(3,i,j)**4+
+     *         fearth(i,j)*gtempr(4,i,j)**4))
           dem_s(l)=0.
           dem_c(l)=0.
           if(svlhxl(LM+1-L) .eq. lhe )   ! large-scale water cloud
@@ -1140,6 +1103,7 @@ c          skt=tf+tg1(i,j)
      &       cc,conv,dtau_s,dtau_c,skt,
      &       at,dem_s,dem_c,itrop,fq_isccp,ctp,tauopt,nbox,jerr)
         if(jerr.ne.0) jckerr = jckerr + 1
+
 C**** set ISCCP diagnostics
         AIJ(I,J,IJ_SCLDI) = AIJ(I,J,IJ_SCLDI) + sunlit
         if (nbox.gt.0.and.sunlit.gt.0) then
@@ -1243,9 +1207,6 @@ c       write(6,*) "CTEM_DRV",CTEML(L),CTEM(I,J,L),L,I,J
         SMOM(:,L)=SMOM(:,L)*FSSL(L)+SMOMMC(:,L)*(1.-FSSL(L))
         QMOM(:,L)=QMOM(:,L)*FSSL(L)+QMOMMC(:,L)*(1.-FSSL(L))
 C**** update moment changes
-Cred    T3MOM(:,I,J,L)=SMOM(:,L)*BYAM(L)
-Cred    Q3MOM(:,I,J,L)=QMOM(:,L)*BYAM(L)
-Cred    WM(I,J,L)=WMX(L)
         TMOMIL(:,I,L)=SMOM(:,L)*BYAM(L)
         QMOMIL(:,I,L)=QMOM(:,L)*BYAM(L)
         WMIL(I,L)=WMX(L)
@@ -1253,10 +1214,6 @@ Cred    WM(I,J,L)=WMX(L)
 C**** CALCULATE WIND TENDENCIES AND STORE IN UKM,VKM
          IF(J.EQ.1 .AND. HAVE_SOUTH_POLE)  THEN
             DO K=1,IM ! KMAX
-CCC            UKMSP(K,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
-CCC  *           (1.-FSSL(L))-UC(IDI(K),IDJ(K),L)
-CCC            VKMSP(K,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
-CCC  *           (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
               UKMSP(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
      *             -UKMSP(K,L)
               VKMSP(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
@@ -1264,10 +1221,6 @@ CCC  *           (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             END DO
          ELSE IF(J.EQ.JM .AND. HAVE_NORTH_POLE)  THEN
             DO K=1,IM ! KMAX
-CCC            UKMNP(K,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
-CCC  *           (1.-FSSL(L))-UC(IDI(K),IDJ(K),L)
-CCC            VKMNP(K,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
-CCC  *           (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
               UKMNP(K,L)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
      *             -UKMNP(K,L)
               VKMNP(K,L)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
@@ -1275,10 +1228,6 @@ CCC  *           (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             END DO
          ELSE
             DO K=1,KMAX
-CCC           UKM(K,I,J,L)=UM(K,L)*BYAM(L)*FSSL(L)+UMC(IDI(K),IDJ(K),L)*
-CCC  *           (1.-FSSL(L))-UC(IDI(K),IDJ(K),L)
-CCC           VKM(K,I,J,L)=VM(K,L)*BYAM(L)*FSSL(L)+VMC(IDI(K),IDJ(K),L)*
-CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             UKM(K,L,I,J)=(UM(K,L)*FSSL(L)+UM1(K,L)*(1.-FSSL(L)))*BYAM(L)
      *             -UKM(K,L,I,J)
             VKM(K,L,I,J)=(VM(K,L)*FSSL(L)+VM1(K,L)*(1.-FSSL(L)))*BYAM(L)
@@ -1286,6 +1235,12 @@ CCC  *          (1.-FSSL(L))-VC(IDI(K),IDJ(K),L)
             END DO
          END IF
       ENDDO
+
+C**** Uncomment next two lines for check on water conservation
+cQCON q2=sum((Q(I,J,:)+WMX(:))*AIRM(:))*100*BYGRAV+PRCP
+cQCON if (abs(q2-q0).gt.1d-13) print*,"water err1",i,j,q2-q0,q2,q0,q1
+cQCON*     ,prcp
+
 #ifdef CLD_AER_CDNC
         DO L=1,LM
          IF (NLSW.ge.1) then
@@ -1309,14 +1264,13 @@ c    * ,ACDNWS(L),NLSW,itime,l
          AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)
          AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)
         ENDIF
-c       STOP "CLOUDS2_DRV_F26"
 
         ENDDO
 
 #endif
-cECON      q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
-cECON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
-cECON     *     *bygrav
+cQCON q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
+cQCON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
+cQCON*     *bygrav
 
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
