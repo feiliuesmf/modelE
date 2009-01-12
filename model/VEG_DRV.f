@@ -608,8 +608,13 @@ c shc(0,2) is the heat capacity of the canopy
 !@ver  1.0
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm
+#ifdef CUBE_GRID
+      use pario_fbsa, only : READT_PARALLEL
+#else
+      use DOMAIN_DECOMP, only : READT_PARALLEL
+#endif
       USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
-     &     ,readt_parallel,backspace_parallel
+     &     ,backspace_parallel
       use veg_com, only : vdata
       USE GEOM, only : imaxj
       use veg_drv, only : upd_gh
