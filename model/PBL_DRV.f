@@ -387,7 +387,11 @@ c -------------------------------------------------------------
       USE PBLCOM
       USE DOMAIN_DECOMP, only : GRID, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE,NORTH
+#ifdef CUBE_GRID
+      use pario_fbsa, only : READT_PARALLEL
+#else
       USE DOMAIN_DECOMP, only : READT_PARALLEL
+#endif
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
