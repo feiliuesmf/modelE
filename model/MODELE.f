@@ -2105,12 +2105,16 @@ C**** Initialize nudging
 
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
+#ifndef CUBE_GRID
       CALL FFT0 (IM)
+#endif
       CALL init_CLD
       CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE
       if(istart.gt.0) CALL init_QUS(grid,im,jm,lm)
+#ifndef CUBE_GRID
       if(istart.gt.0) CALL init_ATMDYN
+#endif
       CALL init_RAD(istart)
       if (AM_I_ROOT()) then
          WRITE (6,INPUTZ)
