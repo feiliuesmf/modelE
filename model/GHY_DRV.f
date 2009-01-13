@@ -2106,10 +2106,10 @@ ccc to something more appropriate
       do j=J_0,J_1
         do i=I_0,I_1
           if ( fearth(i,j) .le. 0.d0 ) cycle
-          if( evap_max_ij < .9d0 ) cycle
+          if( evap_max_ij(i,j) < .9d0 ) cycle
           qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,pedn(1,i,j))
-          r_sat_ij(:,:) = 0.d0
-          evap_max_ij(:,:) = 0.d0
+          fr_sat_ij(i,j) = 0.d0
+          evap_max_ij(i,j) = 0.d0
         enddo
       enddo
 !        fr_sat_ij(:,:) = 0.d0
