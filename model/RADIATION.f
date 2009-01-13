@@ -294,8 +294,12 @@ C------------------------------------------
      H              HLB0(LX+1),PLB0(LX+1),TLM0(LX),U0GAS3(LX)
      A             ,TKPFW(630),TKPFT(900),AO3(460)
      D             ,FPXCO2(LX),FPXOZO(LX) !nu ,PIAERO(10)
-     E ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8),QDST55(8) !?DST
+!     E ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8),QDST55(8) !?DST   !ron
      D             ,TRAX(LX,33,5),DBLN(30),TCLMIN
+      
+      real*8, dimension(:,:), allocatable :: QXDUST, QSDUST, QCDUST, !ron 
+     *     ATDUST                                                    !ron
+      real*8, dimension(  :), allocatable :: QDST55                  !ron
 
 C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
 #ifndef USE_RADIATION_E1
@@ -427,8 +431,13 @@ C     Layer  1    2    3    4    5    6    7    8    9
       INTEGER, PARAMETER :: La720=3 ! top low cloud level (aerosol-grid)
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
-      REAL*4 TDUST(72,46,9,8,12)
-      REAL*8 DDJDAY(9,8,72,46)
+!      REAL*4 TDUST(72,46,9,8,12)                                   !ron
+!      REAL*8 DDJDAY(9,8,72,46)                                     !ron
+      REAL*4, dimension(:,:,:,:,:), allocatable :: TDUST            !ron       
+      REAL*8, dimension(:,:,:,:  ), allocatable :: DDJDAY           !ron
+      integer :: imd, jmd, lmd, nsized, nmond ! dimensions of TDUST !ron
+      character*80 :: dtitle ! dust info                            !ron
+      real*8, dimension(:), allocatable :: redust, rodust, plbdust  !ron
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
       REAL*8 V4TAUR(1800,24,5),FDATA(80),GDATA(80)
@@ -704,7 +713,7 @@ C      ACID1 SSALT SLFT1 SLFT2 BSLT1 BSLT2 DUST1 DUST2 DUST3 CARB1 CARB2
 !nu       DUST1      DUST2      DUST3      CARB1      CARB2
 !nu  2   0.91995,   0.78495,   0.63594,   0.31482,   0.47513/)
 
-      REAL*8, dimension(8) ::
+        REAL*8, dimension(8) ::
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
      *  REFDRY=(/0.200, 1.000, 0.300, 0.300, 0.100, 0.100, 1.000,1.000/)
@@ -750,18 +759,18 @@ C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
       REAL*8, dimension(8) :: FS8OPX_orig, FT8OPX_orig
 #endif
 
-      REAL*8, dimension(8) ::
+!      REAL*8, dimension(8) ::                                                    !ron
 C                          MINERAL DUST PARAMETERS
 C                         CLAY                  SILT
 #ifndef USE_RADIATION_E1
-     *REDUST=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,2.773D0,5.545D0,
-     &                                        8D0/) ! <- not used; 3 silt only
+!     *REDUST=(/0.132D0,0.23D0,0.416D0,0.766D0,1.386D0,2.773D0,5.545D0,           !ron
+!     &                                        8D0/) ! <- not used; 3 silt only   !ron
 #else
-     *REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)
+!     *REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)                       !ron
 #endif
-!nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
-     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,
-     &                                        2.65D0/)! <- not used; 3 silt only
+!nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)                 
+!     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,                  !ron 
+!     &                                        2.65D0/)! <- not used; 3 silt only !ron
 !nu  *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 !nu  *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 
@@ -1278,10 +1287,31 @@ C-----------------------------------------------------------------------
 CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
 C                  Map: IJ=72x46,  Lay: L=1-9, Siz: S=1-8, Month: M=1-12
 C                  -----------------------------------------------------
+!     New way to read offline dust: first read in dimensions,         !ron
+!     then allocate arrays                                            !ron
 
       IF(MADDST < 1) GO TO 699
       NRFU=NRFUN(6)
-      READ (NRFU) TDUST
+!      READ (NRFU) TDUST                                              !ron
+      write(*,*) 'READ Offline DUST Distribution:'                    !ron
+      read(nrfu) dtitle, imd, jmd, lmd, nsized, nmond ! offline dims  !ron
+      write(*,*) trim(dtitle)                                         !ron
+      write(*,*) 'Offline Dust Dims: imd, jmd, lmd, nsized, nmond: ', !ron 
+     *     imd, jmd, lmd, nsized, nmond                               !ron
+      if (imd.ne.mlon72 .or. jmd.ne.mlat46) then                      !ron
+         write(*,*) 'STOP, RCOMP1 offline DUST file has different'//  !ron
+     *      'horizontal resolution that assumed: IMD=/=72 or JMD=/=46'!ron
+         stop                                                         !ron
+      endif                                                           !ron
+
+      allocate( plbdust(lmd+1) )                                      !ron
+      allocate( redust(nsized), rodust(nsized) )                      !ron
+      allocate( tdust (imd,jmd,lmd,nsized,nmond) )                    !ron
+      allocate( ddjday(lmd,nsized,imd,jmd)       )                    !ron
+      allocate( QXDUST(6,nsized), QSDUST(6,nsized), QCDUST(6,nsized), !ron
+     *   ATDUST(33,nsized), QDST55(nsized) )                          !ron
+
+      read(nrfu) plbdust, redust, rodust, tdust ! read offline dust   !ron
 
   699 CONTINUE
 
@@ -3994,13 +4024,19 @@ C                        -----------------------------------------------
 
 C     Select Desert Dust (NA=7) Mie scattering parameters for REDUST(N)
 !nu   REAL*8 TAUCON(8),pidust(8)
+      REAL*8 TAUCON(8)                                              !ron
       !INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
+!      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)     !ron
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
       INTEGER I,J,K,L,N,MI,MJ
 
-      DO 110 N=1,8
+!      DO 110 N=1,8     !ron
+      DO 110 N=1,nsized !ron
       CALL GETMIE(7,REDUST(N),QXDUST(1,N),QSDUST(1,N),QCDUST(1,N)
      +                    ,ATDUST(1,N),QDST55(N))
+!     now convert from concentration to AOT                       !ron
+      TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))          !ron
+      tdust(:,:,:,N,:) = tdust(:,:,:,N,:)*taucon(N)               !ron
 !nu   TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
 !nu   PIDUST(N)=QSDUST(6,N)/(QXDUST(6,N)+1.D-10)
   110 CONTINUE
@@ -4014,7 +4050,8 @@ C--------------------------------
       subroutine UPDDST(JYEARD,JJDAYD)
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
+!      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)     !ron
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
       INTEGER I,J,K,L,N,MI,MJ
 C     ------------------------------------------------------------------
 C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,12) read in in RCOMP1
@@ -4032,12 +4069,16 @@ C      -----------------------------------------------------------------
       IF(MI > 12) MI=1
       MJ=MI+1
       IF(MJ > 12) MJ=1
-      DO 510 J=1,46
-      DO 510 I=1,72
-      DO 510 N=1,8
-      DO 510 L=1,9
+!      DO 510 J=1,46    !ron
+!      DO 510 I=1,72    !ron
+!      DO 510 N=1,8     !ron
+!      DO 510 L=1,9     !ron
+      DO 510 J=1,jmd    !ron
+      DO 510 I=1,imd    !ron
+      DO 510 N=1,nsized !ron
+      DO 510 L=1,lmd    !ron
       DDJDAY(L,N,I,J)=WTMI*TDUST(I,J,L,N,MI)+WTMJ*TDUST(I,J,L,N,MJ)
-  510 CONTINUE
+ 510  CONTINUE
       RETURN        !  DDJDAY(9,8,72,46) is used in GETDST via ILON,JLAT
       end subroutine UPDDST
 
@@ -4046,11 +4087,15 @@ C-----------------
 C-----------------
       subroutine GETDST
       IMPLICIT NONE
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)
+!      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)     !ron
+      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
       INTEGER I,J,K,L,N,MI,MJ
 
-      DO 200 N=1,8
-      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NL+1)
+!      DO 200 N=1,8                                                      !ron
+      DO 200 N=1,nsized                                                  !ron
+!      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NL+1) !ron
+         CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBdust,lmd+1,                !ron
+     *        DTAULX(1,N),PLB,NL+1)                                      !ron
   200 CONTINUE
 
 C                     Apply Solar/Thermal Optical Depth Scaling Factors
@@ -4071,20 +4116,26 @@ C                              ----------------------------------------
 
       DO 270 L=L1,NL
       DO 260 K=1,6
-      SRDGQL=0.
-      DO 250 N=1,8
-      SRDEXT(L,K)=SRDEXT(L,K)+QXDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-      SRDSCT(L,K)=SRDSCT(L,K)+QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-      SRDGQL     =SRDGQL +
-     +            QCDUST(K,N)*QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7)
-  250 CONTINUE
+      SRDGQL=0.                                                         !ron
+!      DO 250 N=1, 8                                                    !ron
+!      SRDEXT(L,K)=SRDEXT(L,K)+QXDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7) !ron
+!      SRDSCT(L,K)=SRDSCT(L,K)+QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7) !ron
+!      SRDGQL     =SRDGQL +                                             !ron
+!     +            QCDUST(K,N)*QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7) !ron
+      SRDEXT(L,K)= SRDEXT(L,K) +                                        !ron
+     *     sum( QXDUST(K,:)*DTAULX(L,:) )*FSXTAU*FS8OPX(7)              !ron
+      SRDSCT(L,K)= SRDSCT(L,K) +                                        !ron
+     *     sum( QSDUST(K,:)*DTAULX(L,:) )*FSXTAU*FS8OPX(7)              !ron
+      SRDGQL     =                                                      !ron
+     +     sum( QCDUST(K,:)*QSDUST(K,:)*DTAULX(L,:) )*FSXTAU*FS8OPX(7)  !ron
+!  250 CONTINUE                                                         !ron
       SRDGCB(L,K)=SRDGQL/(SRDSCT(L,K)+1.D-10)
   260 CONTINUE
   270 CONTINUE
 
       DO 280 L=L1,NL
       DO 280 K=1,33
-      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,:)*FTXTAU*FT8OPX(7)) ! 1:8
+      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,:)*FTXTAU*FT8OPX(7)) ! 1:nsized !ron
   280 CONTINUE
 
       RETURN
