@@ -102,7 +102,7 @@ TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 ! TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000
 ! TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN6=dust8.tau9x8x13
+RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux      ! need KSOLAR=2
