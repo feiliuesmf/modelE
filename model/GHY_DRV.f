@@ -2450,7 +2450,7 @@ ccc better check it
           write(99,*) 'snowd corrected: old=', snowd(ibv)
           snowd(ibv) = w(1,ibv)-dz(1)*thetm(1,ibv) - 1.d-10
           write(99,*) '                 new=', snowd(ibv)
-          if ( snowd(ibv) .lt. -0.001d0 )
+          if ( snowd(ibv) .lt. -0.01d0 )
      &         call stop_model('set_snow: neg. snow',255)
           if ( snowd(ibv) .lt. 0.d0 ) snowd(ibv) = 0.d0 ! rounding error
         endif
