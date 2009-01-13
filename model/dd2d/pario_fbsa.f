@@ -93,14 +93,17 @@
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
       CHARACTER(len=*), INTENT(IN)  :: NAME      !@var  NAME  name of record being read
       REAL*8,INTENT(OUT) :: AVAR(:,:)
-      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &     grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &      grd_dum%dd2d%ntiles)                   !@var  AOUT real*8 array
+      REAL*4,allocatable :: AIN(:,:,:)  !@var  AIN  real*4 array for reading
+      REAL*8,allocatable :: AOUT(:,:,:) !@var  AOUT real*8 array for scatter
       INTEGER :: IERR
     ! now local
 
       If (AM_I_ROOT()) then
+        allocate(
+     &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%dd2d%ntiles),
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%dd2d%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
@@ -109,6 +112,7 @@ C****  convert from real*4 to real*8
       call unpack_data(grd_dum%dd2d,aout,avar)
 
       if (AM_I_ROOT()) then
+         deallocate (ain,aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
@@ -117,7 +121,7 @@ C****  convert from real*4 to real*8
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
-
+      return
       END SUBROUTINE DREAD_PARALLEL_2D
 
       SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR)
@@ -128,29 +132,16 @@ C****  convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
       CHARACTER(len=*), INTENT(IN)  :: NAME        !@var  NAME  name of record being read
       REAL*8, INTENT(OUT) :: AVAR(:,:,:) !@var  AOUT real*8 array
-      real*4, allocatable :: ain(:,:,:,:)
-      real*8, allocatable :: aout(:,:,:,:)
-
-c      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-c     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-c      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-c     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
+      real*4, allocatable :: ain(:,:,:,:)  !@var  AIN  real*4 array for reading
+      real*8, allocatable :: aout(:,:,:,:) !@var  AOUT real*8 array for scatter
       INTEGER :: IERR
 
-#ifdef CUBE_GRID
-      write(*,*) "inside Dread_parallel"
-      write(*,*) "grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &     grd_dum%dd2d%ntiles",
-     &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &     grd_dum%dd2d%ntiles
-#endif
-
-      allocate( AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &     grd_dum%dd2d%ntiles),
-     &     AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &     grd_dum%dd2d%ntiles)   )
-
       If (AM_I_ROOT()) then
+         allocate(
+     &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%dd2d%ntiles),
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%dd2d%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) AIN
 C**** convert from real*4 to real*8
          AOUT=AIN
@@ -159,6 +150,7 @@ C**** convert from real*4 to real*8
       call unpack_data(grd_dum%dd2d,aout,avar)
       
       if (AM_I_ROOT()) then
+         deallocate (ain,aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
@@ -167,9 +159,7 @@ C**** convert from real*4 to real*8
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
-
-      deallocate (ain,aout)
-
+      return
       END SUBROUTINE DREAD_PARALLEL_3D
 
       SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,NSKIP,AVAR)
@@ -183,13 +173,16 @@ C**** convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: NSKIP     !@var  NSKIP no. of R*4's to skip
       REAL*8, INTENT(OUT)  :: AVAR(:,:) !@var  AOUT real*8 array
       REAL*4 :: X                         !@var  X dummy variable
-      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
+      REAL*4,allocatable :: AIN(:,:,:)  !@var  AIN  real*4 array for reading
+      REAL*8,allocatable :: AOUT(:,:,:) !@var  AOUT real*8 array for scatter
       INTEGER :: N,IERR
 
       If (AM_I_ROOT()) then
+        allocate(
+     &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%dd2d%ntiles),
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%dd2d%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) M,(X,N=1,NSKIP), AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
@@ -199,6 +192,7 @@ C****  convert from real*4 to real*8
       CALL ESMF_BCAST(grd_dum, M   )
 
       if (AM_I_ROOT()) then
+         deallocate (ain,aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
@@ -207,7 +201,7 @@ C****  convert from real*4 to real*8
             call stop_model('MREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
-
+      return
       END SUBROUTINE MREAD_PARALLEL_2D
 
       SUBROUTINE MREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,M,NSKIP,AVAR)
@@ -221,13 +215,16 @@ C****  convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: NSKIP       !@var  NSKIP no. of R*4's to skip
       REAL*8,      INTENT(OUT)  :: AVAR(:,:,:) !@var  AOUT real*8 array
       REAL*4 :: X                         !@var  X dummy variable
-      REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &      grd_dum%dd2d%ntiles)                    !@var  AIN  real*4 array
-      REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &      grd_dum%dd2d%ntiles)                    !@var  AOUT real*8 array
+      real*4, allocatable :: ain(:,:,:,:) !@var  AIN  real*4 array for reading
+      real*8, allocatable :: aout(:,:,:,:)!@var  AOUT real*8 array for scatter
       INTEGER :: N,IERR
 
       If (AM_I_ROOT()) then
+         allocate(
+     &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%dd2d%ntiles),
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%dd2d%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) M,(X,N=1,NSKIP), AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
@@ -237,6 +234,7 @@ C****  convert from real*4 to real*8
       CALL ESMF_BCAST(grd_dum, M   )
 
       if (AM_I_ROOT()) then
+         deallocate(ain,aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
@@ -245,7 +243,7 @@ C****  convert from real*4 to real*8
             call stop_model('MREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
-
+      return
       END SUBROUTINE MREAD_PARALLEL_3D
 
       SUBROUTINE READT_PARALLEL_2D (grd_dum,IUNIT,NAME,NSKIP,AVAR,IPOS)
@@ -259,32 +257,30 @@ C****  convert from real*4 to real*8
       REAL*8,       INTENT(OUT) :: AVAR(:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS       !@var  IPOS  no. of recs. to advance
       REAL*4 :: X                         !@var  X dummy variable
-      REAL*4,allocatable :: AIN(:,:,:)
-      REAL*8,allocatable :: AOUT(:,:,:)
+      REAL*4,allocatable :: AIN(:,:,:)  !@var  AIN  real*4 array for reading
+      REAL*8,allocatable :: AOUT(:,:,:) !@var  AOUT real*8 array for scatter
       INTEGER :: N
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
       INTEGER :: IERR
 
-      allocate( AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &     grd_dum%dd2d%ntiles),
-     &     AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &     grd_dum%dd2d%ntiles)   )
-
       If (AM_I_ROOT()) then
+        allocate(
+     &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%dd2d%ntiles),
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%dd2d%ntiles)   )
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
          END DO
          READ (IUNIT, IOSTAT=IERR) TITLE, (X,N=1,NSKIP), AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
-c         write(*,*) "AOUT=",AOUT
       EndIf
 
       call unpack_data(grd_dum%dd2d,aout,avar)
 
-c      write(*,*) "avar=",avar
-
       if (AM_I_ROOT()) then
+         deallocate(ain,aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
@@ -294,9 +290,7 @@ c      write(*,*) "avar=",avar
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
-
-      deallocate(ain,aout)
-
+      return
       END SUBROUTINE READT_PARALLEL_2D
 
       SUBROUTINE READT_PARALLEL_3D (grd_dum,IUNIT,NAME,NSKIP,AVAR,IPOS)
@@ -310,18 +304,18 @@ c      write(*,*) "avar=",avar
       REAL*8,       INTENT(OUT) :: AVAR(:,:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
       REAL*4 :: X                         !@var  X dummy variable
-      real*4, allocatable :: ain(:,:,:,:)
-      real*8, allocatable :: aout(:,:,:,:)
+      real*4, allocatable :: ain(:,:,:,:) !@var  AIN  real*4 array for reading
+      real*8, allocatable :: aout(:,:,:,:)!@var  AOUT real*8 array for scatter
       INTEGER :: N                        !@var  N loop variable
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
       INTEGER :: IERR
 
-      allocate( AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &     grd_dum%dd2d%ntiles),
-     &     AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &     grd_dum%dd2d%ntiles)   )
-
       If (AM_I_ROOT()) then
+         allocate(
+     &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%dd2d%ntiles),
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%dd2d%ntiles)   )
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
          END DO
@@ -333,6 +327,7 @@ C****  convert from real*4 to real*8
       call unpack_data(grd_dum%dd2d,aout,avar)
 
       if (am_i_root()) then
+         deallocate(ain,aout)
          If (IERR==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
@@ -342,7 +337,7 @@ C****  convert from real*4 to real*8
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
-
+      return
       END SUBROUTINE READT_PARALLEL_3D
 
       subroutine read_parallel_integer_0 (data_int, unit)
