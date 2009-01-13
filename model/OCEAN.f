@@ -204,17 +204,20 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           LSTMON=JMON-1
           if (lstmon.eq.0) lstmon = 12
           CALL READT_PARALLEL
-     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),IM*JM,ERSI0,LSTMON)
+     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),TEMP_LOCAL,LSTMON)
+          ERSI0 = TEMP_LOCAL(:,:,2)
           if (ocn_cycl.eq.1) then
             CALL READT_PARALLEL
-     *           (grid,iu_OSST,NAMEUNIT(iu_OSST),IM*JM,EOST0,LSTMON)
+     *           (grid,iu_OSST,NAMEUNIT(iu_OSST),TEMP_LOCAL,LSTMON)
+            EOST0 = TEMP_LOCAL(:,:,2)
           else ! if (ocn_cycl.eq.2) then
             LSTMON=JMON-1+(JYEAR-IYEAR1)*JMperY
   290       call READ_PARALLEL(M, iu_OSST)
             if (m.lt.lstmon) go to 290
             CALL BACKSPACE_PARALLEL( iu_OSST )
             CALL MREAD_PARALLEL
-     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,IM*JM,EOST0)
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),m,TEMP_LOCAL)
+            EOST0 = TEMP_LOCAL(:,:,2)
             IF (AM_I_ROOT())
      *      WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M
             IF(M.NE.LSTMON)
@@ -231,9 +234,11 @@ C****   READ IN LAST MONTH'S END-OF-MONTH DATA
           if (m.lt.lstmon) go to 310
           CALL BACKSPACE_PARALLEL( iu_SICE )
           CALL MREAD_PARALLEL
-     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,IM*JM,EOST0)
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST), m,TEMP_LOCAL)
+          EOST0 = TEMP_LOCAL(:,:,2)
           CALL MREAD_PARALLEL
-     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,IM*JM,ERSI0)
+     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),m1,TEMP_LOCAL)
+          ERSI0 = TEMP_LOCAL(:,:,2)
           IF (AM_I_ROOT())
      *    WRITE(6,*) 'Read End-of-month ocean data from ',JMON-1,M,M1
           IF(M.NE.M1.OR.M.NE.LSTMON)
@@ -253,17 +258,17 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
           call READ_PARALLEL(dummy, iu_SICE)
         end if
         CALL READT_PARALLEL
-     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),0,TEMP_LOCAL,1)
+     *           (grid,iu_SICE,NAMEUNIT(iu_SICE),TEMP_LOCAL,1)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
         if (ocn_cycl.eq.1) then
           CALL READT_PARALLEL
-     *           (grid,iu_OSST,NAMEUNIT(iu_OSST),0,TEMP_LOCAL,1)
+     *           (grid,iu_OSST,NAMEUNIT(iu_OSST),TEMP_LOCAL,1)
           AOST  = TEMP_LOCAL(:,:,1)
           EOST1 = TEMP_LOCAL(:,:,2)
         else  ! if (ocn_cycl.eq.2) then
           CALL MREAD_PARALLEL
-     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,TEMP_LOCAL)
           AOST  = TEMP_LOCAL(:,:,1)
           EOST1 = TEMP_LOCAL(:,:,2)
           IF (AM_I_ROOT())
@@ -273,11 +278,11 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
         end if
       else   !  if (ocn_cycl==0 .or. ocn_cyc>2) then
         CALL MREAD_PARALLEL
-     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,0,TEMP_LOCAL)
+     *           (GRID,iu_OSST,NAMEUNIT(iu_OSST),M,TEMP_LOCAL)
         AOST  = TEMP_LOCAL(:,:,1)
         EOST1 = TEMP_LOCAL(:,:,2)
         CALL MREAD_PARALLEL
-     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,0,TEMP_LOCAL)
+     *           (GRID,iu_SICE,NAMEUNIT(iu_SICE),M1,TEMP_LOCAL)
         ARSI  = TEMP_LOCAL(:,:,1)
         ERSI1 = TEMP_LOCAL(:,:,2)
         IF (AM_I_ROOT())
@@ -476,13 +481,13 @@ C**** Read in climatological ocean mixed layer depths efficiently
       IF (JDLAST.eq.0) THEN ! need to read in first month climatology
         IMON=1          ! IMON=January
         IF (JDAY.LE.16)  THEN ! JDAY in Jan 1-15, first month is Dec
-          CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,XZO,12)
+          CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),XZO,12)
           CALL REWIND_PARALLEL( iu_OCNML )
         ELSE            ! JDAY is in Jan 16 to Dec 16, get first month
   520     IMON=IMON+1
           IF (JDAY.GT.JDmidOFM(IMON) .and. IMON.LE.12) GO TO 520
           CALL READT_PARALLEL
-     *           (grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,XZO,IMON-1)
+     *           (grid,iu_OCNML,NAMEUNIT(iu_OCNML),XZO,IMON-1)
           IF (IMON.EQ.13)  CALL REWIND_PARALLEL( iu_OCNML )
         END IF
       ELSE                      ! Do we need to read in second month?
@@ -501,7 +506,7 @@ C**** Read in climatological ocean mixed layer depths efficiently
         XZO = XZN
         IF (IMON.EQ.13) CALL REWIND_PARALLEL( iu_OCNML )
       END IF
-      CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,XZN,1)
+      CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),XZN,1)
  530  JDLAST=JDAY
 
 C**** Interpolate the mixed layer depth z1o to the current day and
@@ -816,7 +821,7 @@ C****   set up unit numbers for ocean climatologies
         end if
 
 C****   Read in constant factor relating RSI to MSI from sea ice clim.
-        CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),0,DM,1)
+        CALL READT_PARALLEL(grid,iu_SICE,NAMEUNIT(iu_SICE),DM,1)
       else !  IF (KOCEAN.eq.1) THEN
 C****   DATA FOR QFLUX MIXED LAYER OCEAN RUNS
 C****   read in ocean heat transport coefficients
@@ -832,7 +837,7 @@ C****   Set up unit number of observed mixed layer depth data
 C****   find and limit ocean ann max mix layer depths
         z12o = 0.
         do m=1,jmpery
-          CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),0,z1ox,1)
+          CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_OCNML),z1ox,1)
           do j=j_0,j_1
           do i=i_0,i_1
 ccc         z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )

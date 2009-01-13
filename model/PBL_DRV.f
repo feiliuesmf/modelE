@@ -437,7 +437,7 @@ C****
 
 C things to be done regardless of inipbl
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
-      CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),0,roughl,1)
+      CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),roughl,1)
       call closeunit(iu_CDN)
       call sync_param( 'XCDpbl', XCDpbl )
       call sync_param( 'skin_effect', skin_effect )

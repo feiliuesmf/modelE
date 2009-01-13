@@ -885,12 +885,12 @@ C****
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
         if (jday.le.16)  then ! JDAY in Jan 1-15, first month is Dec
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,12)
+          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,12)
           CALL REWIND_PARALLEL( iu )
         else            ! JDAY is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
           if (jday.gt.idofm(imon) .AND. imon.le.12) go to 120
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlca,imon-1)
+          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,imon-1)
           if (imon.eq.13)  CALL REWIND_PARALLEL( iu )
         end if
       else              ! Do we need to read in second month?
@@ -908,7 +908,7 @@ C****
         tlca(:,:) = tlcb(:,:)
         if (imon.eq.13) CALL REWIND_PARALLEL( iu  )
       end if
-      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),0,tlcb,1)
+      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlcb,1)
   130 continue
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
@@ -1643,7 +1643,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           select case(freq(n,ns))
           case('a')        ! annual file, only read first time
             if(ifirst2(n,ns)) then
-              call readt_parallel(grid,iu,fname,0,sfc_src(:,:,n,ns),1)
+              call readt_parallel(grid,iu,fname,sfc_src(:,:,n,ns),1)
               write(out_line,*)trim(nameT(n,ns)),
      &        ' ',trim(ssname(n,ns)),' ann source read.'
               call write_parallel(trim(out_line))
@@ -1677,8 +1677,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
               endif
             enddo
 !should do! if(ifirst2(n,ns)) then
-              call readt_parallel(grid,iu,fname,0,sfc_a(:,:),ipos)
-              call readt_parallel(grid,iu,fname,0,sfc_b(:,:),1)
+              call readt_parallel(grid,iu,fname,sfc_a(:,:),ipos)
+              call readt_parallel(grid,iu,fname,sfc_b(:,:),1)
 !should do! endif
             sfc_src(:,:,n,ns)=sfc_a(:,:)*(1.d0-alpha)+sfc_b(:,:)*alpha
             if(alpha>0.d0)then 
@@ -1845,18 +1845,18 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       if(ty_start(n,ns)==ty_end(n,ns))then
         imon=1
         if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-          call readt_parallel(grid,iu,nameunit(iu),0,tlca,12)
+          call readt_parallel(grid,iu,nameunit(iu),tlca,12)
           call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
         else            ! JDAY is in Jan 16 to Dec 16, get first month
           do while(jday > idofm(imon) .AND. imon <= 12)
             imon=imon+1
           enddo
-          call readt_parallel(grid,iu,nameunit(iu),0,tlca,imon-1)
+          call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
           if (imon == 13)then
             call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
           endif
         end if
-        call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+        call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 
 c****   Interpolate two months of data to current day
         frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
@@ -1888,19 +1888,19 @@ c****   Interpolate two months of data to current day
 !
         imon=1
         if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-         call readt_parallel(grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+12)
+         call readt_parallel(grid,iu,nameunit(iu),tlca,(ipos-1)*12+12)
          do nn=1,12; call backspace_parallel(iu); enddo
         else            ! JDAY is in Jan 16 to Dec 16, get first month
          do while(jday > idofm(imon) .AND. imon <= 12)
            imon=imon+1
          enddo
          call  readt_parallel
-     &   (grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+imon-1)
+     &   (grid,iu,nameunit(iu),tlca,(ipos-1)*12+imon-1)
          if (imon == 13)then
            do nn=1,12; call backspace_parallel(iu); enddo               
          endif
         end if
-        call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+        call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 c****   Interpolate two months of data to current day
         frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
         sfc_a(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
@@ -1909,19 +1909,19 @@ c****   Interpolate two months of data to current day
         ipos=ipos+1
         imon=1
         if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-         call readt_parallel(grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+12)
+         call readt_parallel(grid,iu,nameunit(iu),tlca,(ipos-1)*12+12)
          do nn=1,12; call backspace_parallel(iu); enddo
         else            ! JDAY is in Jan 16 to Dec 16, get first month
          do while(jday > idofm(imon) .AND. imon <= 12)
            imon=imon+1
          enddo
          call readt_parallel
-     &   (grid,iu,nameunit(iu),0,tlca,(ipos-1)*12+imon-1)
+     &   (grid,iu,nameunit(iu),tlca,(ipos-1)*12+imon-1)
          if (imon == 13)then
            do nn=1,12; call backspace_parallel(iu); enddo
          endif
         end if
-        call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+        call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 c****   Interpolate two months of data to current day
         frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
         sfc_b(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)

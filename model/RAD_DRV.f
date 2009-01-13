@@ -1055,7 +1055,8 @@ C**** READ IN LAST MONTH'S END-OF-MONTH DATA
         LSTMON=JMON-1
         if (lstmon.eq.0) lstmon = 12
         CALL READT_PARALLEL
-     *       (grid,iu_CHL,NAMEUNIT(iu_CHL),IM*JM,ECHL0,LSTMON)
+     *       (grid,iu_CHL,NAMEUNIT(iu_CHL),TEMP_LOCAL,LSTMON)
+        ECHL0 = TEMP_LOCAL(:,:,2)
       ELSE
 C**** COPY END-OF-OLD-MONTH DATA TO START-OF-NEW-MONTH DATA
         ECHL0=ECHL1
@@ -1064,7 +1065,7 @@ C**** READ IN CURRENT MONTHS DATA: MEAN AND END-OF-MONTH
       IMON0=JMON
       if (jmon.eq.1) CALL REWIND_PARALLEL( iu_CHL )
       CALL READT_PARALLEL
-     *     (grid,iu_CHL,NAMEUNIT(iu_CHL),0,TEMP_LOCAL,1)
+     *     (grid,iu_CHL,NAMEUNIT(iu_CHL),TEMP_LOCAL,1)
       ACHL  = TEMP_LOCAL(:,:,1)
       ECHL1 = TEMP_LOCAL(:,:,2)
 

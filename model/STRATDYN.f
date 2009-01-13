@@ -142,7 +142,7 @@ C****
 C**** TOPOGRAPHY VARIANCE FOR MOUNTAIN WAVES
 C****
       call openunit("ZVAR",iu_ZVAR,.true.,.true.)
-      CALL READT_PARALLEL(grid,iu_ZVAR,NAMEUNIT(iu_ZVAR),0,TEMP_LOCAL,1)
+      CALL READT_PARALLEL(grid,iu_ZVAR,NAMEUNIT(iu_ZVAR),TEMP_LOCAL,1)
       ZVART(:,:) = TEMP_LOCAL(:,:,1)
       ZVARX(:,:) = TEMP_LOCAL(:,:,2)
       ZVARY(:,:) = TEMP_LOCAL(:,:,3)

@@ -613,9 +613,9 @@ C
       imon=1                ! imon=January
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*11)
+        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
         do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo  
         call rewind_parallel(iu)
@@ -624,15 +624,15 @@ C
           imon=imon+1
         enddo
         if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-2))
+        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
         do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo   
         if(imon==13) call rewind_parallel(iu)
       end if
       do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
       enddo 
 c**** Interpolate two months of data to current day
@@ -667,9 +667,9 @@ c**** Interpolate two months of data to current day
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
-     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
         do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
@@ -679,9 +679,9 @@ c**** Interpolate two months of data to current day
         enddo
         if(am_i_root())write(6,*) 'Not using this first record:' 
         call readt_parallel
-     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
         do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo
         if(imon==13)then
@@ -689,9 +689,9 @@ c**** Interpolate two months of data to current day
         endif
       end if
 CCCCC write(6,*) 'Not using this first record:'
-CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
+CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
       enddo
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
@@ -704,9 +704,9 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
-     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*11)
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
         do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
@@ -716,9 +716,9 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
         enddo
         if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
-     &  (grid,iu,nameunit(iu),0,dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
         do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),0,A2D,1)
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
           tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
         enddo
         if(imon==13)then
@@ -726,9 +726,9 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
         endif
       end if
 CCCCCCwrite(6,*) 'Not using this first record:'
-CCCCCCcall readt_parallel(grid,iu,nameunit(iu),0,dummy,Ldim*(imon-1))
+CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),0,B2D,1)
+        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
       enddo
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
@@ -1706,18 +1706,18 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
       imon=1
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        call readt_parallel(grid,iu,nameunit(iu),0,tlca,12)
+        call readt_parallel(grid,iu,nameunit(iu),tlca,12)
         call rewind_parallel( iu )
       else            ! JDAY is in Jan 16 to Dec 16, get first month
         do while(jday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
-        call readt_parallel(grid,iu,nameunit(iu),0,tlca,imon-1)
+        call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
         if (imon == 13)then
           call rewind_parallel( iu )
         endif
       end if
-      call readt_parallel(grid,iu,nameunit(iu),0,tlcb,1)
+      call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))

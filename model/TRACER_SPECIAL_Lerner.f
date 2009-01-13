@@ -951,7 +951,7 @@ C****
         do iu = 1,nanns-3
           k = k+1
           call readt_parallel (grid,
-     &         ann_units(iu),nameunit(ann_units(iu)),0,src(:,:,k),1)
+     &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
 !ref      call readt          (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           src(:,:,k) = src(:,:,k)*adj(k)/(sday*JDperY)
         end do
@@ -1056,7 +1056,7 @@ C****
         do iu = 1,nanns
           k = k+1
           call readt_parallel (grid,
-     &         ann_units(iu),nameunit(ann_units(iu)),0,src(:,:,k),1)
+     &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
 !ref      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
           src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)/(sday*JDperY)
         end do

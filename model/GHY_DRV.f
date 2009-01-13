@@ -1911,9 +1911,9 @@ c**** read soils parameters
 c**** read topmodel parameters
         call openunit("TOP_INDEX",iu_TOP_INDEX,.true.,.true.)
         call READT_PARALLEL
-     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),0,top_index_ij,1)
+     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),top_index_ij,1)
         call READT_PARALLEL
-     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),0,top_dev_ij  ,1)
+     *    (grid,iu_TOP_INDEX,NAMEUNIT(iu_TOP_INDEX),top_dev_ij  ,1)
         call closeunit (iu_TOP_INDEX)
       else  ! reset to default data
         if ( istart>0 .and. istart<8 ) then ! reset all

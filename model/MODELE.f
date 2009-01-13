@@ -1441,25 +1441,25 @@ C**** open atmospheric initial conditions file
         XLABEL(1:80)='Observed atmospheric data from NMC tape'
 Csoon   READ (iu_AIC) XLABEL(1:80)
 
-        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,P,1) ! Psurf
+        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),P,1) ! Psurf
         DO J=J_0,J_1
           DO I=I_0,I_1
             P(I,J)=P(I,J)-PTOP                        ! Psurf -> P
           END DO
         END DO
         DO L=1,LM
-        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,U(:,:,L),1) ! U
+        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),U(:,:,L),1) ! U
         END DO
         DO L=1,LM
-        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,V(:,:,L),1) ! V
+        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),V(:,:,L),1) ! V
         END DO
         DO L=1,LM
-        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,T(:,:,L),1) ! Temperature
+        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),T(:,:,L),1) ! Temperature
         END DO
         DO L=1,LM  ! alternatively, only read in L=1,LS1 ; skip rest
-        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,Q(:,:,L),1) ! Q
+        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),Q(:,:,L),1) ! Q
         END DO
-        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),0,TSAVG,1)  ! Tsurf
+        CALL READT_PARALLEL(grid,iu_AIC,NAMEUNIT(iu_AIC),TSAVG,1)  ! Tsurf
 
 C**** Close "AIC"
         call closeunit(iu_AIC)
@@ -1947,12 +1947,12 @@ C**** Note that FLAKE0 is read in only to provide initial values
 C**** Actual array is set from restart file.
       call openunit("TOPO",iu_TOPO,.true.,.true.)
 
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FOCEAN,1) ! Ocean fraction
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLAKE0,1) ! Orig. Lake fraction
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FEARTH0,1) ! Earth frac. (no LI)
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,FLICE ,1) ! Land ice fraction
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,ZATMO ,1) ! Topography
-      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),0,HLAKE ,2) ! Lake Depths
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),FOCEAN,1) ! Ocean fraction
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),FLAKE0,1) ! Orig. Lake fraction
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),FEARTH0,1) ! Earth frac. (no LI)
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),FLICE ,1) ! Land ice fraction
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),ZATMO ,1) ! Topography
+      CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),HLAKE ,2) ! Lake Depths
       ZATMO(:,J_0:J_1) = ZATMO(:,J_0:J_1)*GRAV                  ! Geopotential
 
       call closeunit(iu_TOPO)

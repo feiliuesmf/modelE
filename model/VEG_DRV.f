@@ -86,7 +86,7 @@ c**** read land surface parameters or use defaults
       call openunit("VEG",iu_VEG,.true.,.true.)
       do k=1,10                 !  11 ????
         CALL READT_PARALLEL
-     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),0,vdata(:,:,K),1)
+     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),vdata(:,:,K),1)
       end do
 c**** zero-out vdata(11) until it is properly read in
       vdata(:,:,11) = 0.
@@ -98,7 +98,7 @@ c**** add data on c4 grass
         call openunit("VEG_C4",iu_VEG,.true.,.true.)
         allocate( veg_c4(I_0H:I_1H,J_0H:J_1H) )
         CALL READT_PARALLEL
-     *       (grid,iu_VEG,NAMEUNIT(iu_VEG),0,veg_c4(:,:),1)
+     *       (grid,iu_VEG,NAMEUNIT(iu_VEG),veg_c4(:,:),1)
         do j=J_0,J_1
           do i=I_0,I_1
             if (fearth(i,j).gt.0) then
@@ -668,7 +668,7 @@ C****     open and read first record of input file
         read(iu) title
         read(title,*) year1
         call backspace_parallel(iu)
-        call readt_parallel(grid,iu,nameunit(iu),0,crop1,1)
+        call readt_parallel(grid,iu,nameunit(iu),crop1,1)
 
         year2 = year1; crop2 = crop1
         if (year1.ge.year)          year2=year+1
@@ -682,7 +682,7 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
          read(iu,end=10) title
          read(title,*) year2
          call backspace_parallel(iu)
-         call readt_parallel(grid,iu,nameunit(iu),0,crop2,1)
+         call readt_parallel(grid,iu,nameunit(iu),crop2,1)
       end do
       wt = (year-year1)/(real(year2-year1,kind=8))
    10 continue

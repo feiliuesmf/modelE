@@ -2455,7 +2455,7 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE DREAD_PARALLEL_3D
 
-      SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,NSKIP,AVAR)
+      SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,AVAR)
 !@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
@@ -2463,7 +2463,6 @@ C****  convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
       CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of record being read
       INTEGER,      INTENT(OUT) :: M         !@var  M      initial integer
-      INTEGER,      INTENT(IN)  :: NSKIP     !@var  NSKIP no. of R*4's to skip
       REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
       REAL*4 :: X                         !@var  X dummy variable
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
@@ -2476,7 +2475,7 @@ C****  convert from real*4 to real*8
       JM   = grd_dum%JM_WORLD
 
       If (AM_I_ROOT()) then
-         READ (IUNIT,IOSTAT=IERR) M,(X,N=1,NSKIP), AIN
+         READ (IUNIT,IOSTAT=IERR) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2501,7 +2500,7 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE MREAD_PARALLEL_2D
 
-      SUBROUTINE MREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,M,NSKIP,AVAR)
+      SUBROUTINE MREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,M,AVAR)
 !@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
@@ -2509,7 +2508,6 @@ C****  convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
       CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of record being read
       INTEGER,      INTENT(OUT) :: M           !@var  M      initial integer
-      INTEGER,      INTENT(IN)  :: NSKIP       !@var  NSKIP no. of R*4's to skip
       REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
       REAL*4 :: X                         !@var  X dummy variable
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
@@ -2524,7 +2522,7 @@ C****  convert from real*4 to real*8
       NM   = size(AVAR,3)
 
       If (AM_I_ROOT()) then
-         READ (IUNIT,IOSTAT=IERR) M,(X,N=1,NSKIP), AIN
+         READ (IUNIT,IOSTAT=IERR) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2549,14 +2547,13 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE MREAD_PARALLEL_3D
 
-      SUBROUTINE READT_PARALLEL_2D (grd_dum,IUNIT,NAME,NSKIP,AVAR,IPOS)
+      SUBROUTINE READT_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR,IPOS)
 !@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
       CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
-      INTEGER,      INTENT(IN)  :: NSKIP      !@var  NSKIP no. of R*4's to skip
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS       !@var  IPOS  no. of recs. to advance
       REAL*4 :: X                         !@var  X dummy variable
@@ -2575,7 +2572,7 @@ C****  convert from real*4 to real*8
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
          END DO
-         READ (IUNIT, IOSTAT=IERR) TITLE, (X,N=1,NSKIP), AIN
+         READ (IUNIT, IOSTAT=IERR) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2600,14 +2597,13 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE READT_PARALLEL_2D
 
-      SUBROUTINE READT_PARALLEL_3D (grd_dum,IUNIT,NAME,NSKIP,AVAR,IPOS)
+      SUBROUTINE READT_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
 !@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
       CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of record being read
-      INTEGER,      INTENT(IN)  :: NSKIP        !@var  NSKIP no. of R*4's to skip
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
       REAL*4 :: X                         !@var  X dummy variable
@@ -2626,7 +2622,7 @@ C****  convert from real*4 to real*8
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
          END DO
-         READ (IUNIT, IOSTAT=IERR) TITLE, (X,N=1,NSKIP), AIN
+         READ (IUNIT, IOSTAT=IERR) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
