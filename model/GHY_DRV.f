@@ -1896,19 +1896,7 @@ c**** read land surface parameters or use defaults
 c**** read soils parameters
         call openunit("SOIL",iu_SOIL,.true.,.true.)
         ALLOCATE(TEMP_LOCAL(I_0H:I_1H,J_0H:J_1H,11*NGM+1))
-#ifdef CUBE_GRID
-      write(*,*) "bef dread parallel soil"
-c      write(*,*) "I_0H,I_1H,J_0H,J_1H,11*NGM+1",I_0H,I_1H,J_0H,
-c     &     J_1H,11*NGM+1
-c      write(*,*) "grid%IM_WORLD,grid%JM_WORLD,size(temp_local,3),
-c     &     grid%dd2d%ntiles",
-c     &     grid%IM_WORLD,grid%JM_WORLD,size(TEMP_LOCAL,3),
-c     &     grid%dd2d%ntiles
-#endif
-      call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
-#ifdef CUBE_GRID
-      write(*,*) "aft dread parallel soil"
-#endif
+        call DREAD_PARALLEL(grid,iu_SOIL,NAMEUNIT(iu_SOIL),TEMP_LOCAL)
         DZ_IJ(:,:,:)   = TEMP_LOCAL(:,:,1:NGM)
          Q_IJ(I_0:I_1,J_0:J_1,:,:) =
      &       RESHAPE( TEMP_LOCAL(I_0:I_1,J_0:J_1,1+NGM:) ,
@@ -1990,10 +1978,8 @@ c**** check whether ground hydrology data exist at this point.
         write(6,*) 'Ground Hydrology data is missing at some pts'
         write(6,*) 'If you have a non-standard land mask, please'
         write(6,*) 'consider using extended GH data and rfs file.'
-#ifndef CUBE_GRID
         call stop_model(
      &       'Ground Hydrology data is missing at some cells',255)
-#endif
       endif
 
 
