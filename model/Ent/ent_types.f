@@ -166,6 +166,8 @@
          real*8 :: phenofactor_d !Drought deciduousness
          integer :: phenostatus
          real*8 :: CB_d !daily carbon balance
+         real*8 :: turnover_amp
+         real*8 :: llspan
          real*8 :: Sacclim ! state of acclimation/frost hardiness [deg C]
 
          !* PHYSIOLOGICAL STATUS *!  !NYK
@@ -440,6 +442,7 @@
          real*8 :: soiltemp_10d
          real*8 :: airtemp_10d
          real*8 :: paw_10d          
+         real*8 :: par_10d
          real*8 :: gdd
          real*8 :: ncd
          real*8 :: ld

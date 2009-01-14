@@ -185,7 +185,7 @@
 !          betad = cop%stressH2O
 
           call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc,O2pres
-     i         ,cop%stressH2O,cop%Sacclim)
+     i         ,cop%stressH2O,cop%Sacclim,cop%llspan)
 
           call canopyfluxes(dtsec, cop%pft
      &         ,pp%albedo(1)

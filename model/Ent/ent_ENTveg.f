@@ -42,15 +42,24 @@
 !----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
 !----cropsc4 cropstree
 !----sand bdirt
-!KIM - temp. values, NK-update
+!KIM - temp. values, NK-update, KIM - modified to have a realistic numbers
+c$$$      real*8, parameter :: alamax(N_COVERTYPES) =
+c$$$     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+c$$$     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+c$$$     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
       real*8, parameter :: alamax(N_COVERTYPES) =
-     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
-     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+     $     (/ 7.0d0, 7.0d0, 6.0d0, 6.0d0, 5.0d0 ,5.0d0, 4.0d0
+     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
      &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
 
+
+c$$$      real*8, parameter :: alamin(N_COVERTYPES) =
+c$$$     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
+c$$$     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
       real*8, parameter :: alamin(N_COVERTYPES) =
-     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
-     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+     $     (/ 5.0d0, 5.0d0, 4.0d0, 4.0d0, 1.0d0, 1.0d0, 1.0d0
+     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
      &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
 
       integer, parameter :: laday(N_COVERTYPES) =

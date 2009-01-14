@@ -692,7 +692,8 @@ cddd      !!print *,'QQQQ ',A,ci
       
 !=================================================
 
-      subroutine calc_Pspar(dtsec,pft,Pa,Tl,O2pres,stressH2O,Sacclim)
+      subroutine calc_Pspar(dtsec,pft,Pa,Tl,O2pres,stressH2O,
+     &                      Sacclim,llspan)
       !@sum calc_Pspar Collatz photosynthesis parameters in type pspar, which
       !@sum is GLOBAL TO MODULE.
       !@sum Later need to replace these with von Caemmerer book Arrhenius
@@ -706,6 +707,7 @@ cddd      !!print *,'QQQQ ',A,ci
       real*8,intent(in) :: O2pres !O2 partial pressure in leaf (Pa)
       real*8,intent(in) :: stressH2O
       real*8,intent(in) :: Sacclim !state of acclimation/frost hardiness
+      real*8,intent(in) :: llspan !mean leaf life span
 !      type(photosynthpar),intent(inout) :: pspar !Moved to global to module.
       integer :: p
 
@@ -716,15 +718,19 @@ cddd      !!print *,'QQQQ ',A,ci
 !      real*8,parameter :: Ko              !Michaelis-Menten constant for O2 (Pa)
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
+      real*8 :: fparlimit !light(i.e.,PAR) control
 
       facclim = frost_hardiness(Sacclim)
+     
+      fparlimit = par_phenology(pft,llspan)
 
       p = pft
       pspar%pft = pft
       pspar%PARabsorb = pftpar(p)%PARabsorb !Collatz et al. (1991)
 !      pspar%Vcmax = pftpar(p)%Vcmax/(1 + exp((-220.e03+703.*(Tl+Kelvin))
 !     &     /(Rgas*(Tl+Kelvin))))
-      pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)* facclim
+      pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)
+     &            * facclim * fparlimit
       pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
       pspar%Gammastar = calc_CO2compp(O2pres,Tl) !(Pa) (Collatz)
@@ -1007,6 +1013,23 @@ cddd      end function calc_ci
       endif
 
       end function frost_hardiness
+!-----------------------------------------------------------------------------
+      real*8 function par_phenology(pft,llspan) Result(fparlimit)  
+      integer, intent(in) :: pft
+      real*8, intent(in) :: llspan
+      real*8, parameter :: vc_tran =9.d0 ! 7.2     !transition
+      real*8, parameter :: vc_slop = 10.d0 !16.9    !slope
+      real*8, parameter :: vc_amp = 30.d0 !29.8    !amplitude
+      real*8, parameter :: vc_min = 25.d0 !7.7     !minimum
 
+      if (llspan > 0.d0) then
+         fparlimit = (vc_amp/(1.d0+(llspan/vc_tran)**vc_slop)+vc_min)
+     &               /pftpar(pft)%Vcmax
+      else
+         fparlimit = 1.d0
+      endif
+
+      end function par_phenology        
+!-----------------------------------------------------------------------------
       end module photcondmod
 

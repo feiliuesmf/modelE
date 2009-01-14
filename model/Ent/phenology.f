@@ -1,6 +1,9 @@
       module phenology
 !@sum Routines to calculate phenological change in an entcell:
 !@sum budburst/leafout, albedo change, senescence
+!@auth Y. Kim
+
+!#define PHENOLOGY_DIAG
 
       use ent_types
       use ent_const
@@ -15,8 +18,9 @@
       public litter_cohort, litter_patch   !Now called from veg_update
       private growth_cpools_active
       private growth_cpools_structural
-      private senesce_cpools
+!      private senesce_cpools
       private photosyn_acclim
+      private phenology_diag
 
       !************************************************************************
       !* GROWTH MODEL CONSTANTS - phenology & carbon allocation 
@@ -31,6 +35,7 @@
       !1000.0: sapwood density (kg/m3)
       !2.0:  biomass per carbon (kg/kgC)
       !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
+      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282
       real*8, parameter :: iqsw=1000.0d0/3900.0d0/2.0d0
       !hw_fract: ratio of above ground stem to total stem (stem plus structural roots)
       real*8, parameter :: hw_fract = 0.70d0 
@@ -51,6 +56,8 @@
       real*8, parameter :: airt_min_w = 5.d0
       !ld_threshold (minute): light length constraint for cold-deciduous woody PFTs (White et al. 1997)
       real*8, parameter :: ld_threshold = 655.d0
+      real*8, parameter :: ld_min =600.d0
+      real*8, parameter :: ld_max =610.d0
       !tsoil_threshold1, tsoil_threshold2 : soil temperature constraint for cold-deciduous woody PFTs (White et al. 1997)
 !      real*8, parameter :: tsoil_threshold1 = 11.15d0
 !      real*8, parameter :: tsoil_threshold2 = 2.d0
@@ -59,11 +66,14 @@
       !paw_: water threshold (unitless)  
       !_w for woody & _h for herbaceous      
       real*8, parameter :: paw_max_w = 0.3d0
-      real*8, parameter :: paw_min_w = 0.0d0
+      real*8, parameter :: paw_min_w = -0.1d0
       real*8, parameter :: paw_res_w = 0.25d0
-      real*8, parameter :: paw_max_h = 0.3d0
-      real*8, parameter :: paw_min_h = 0.2d0
+      real*8, parameter :: paw_max_h = 0.4d0
+      real*8, parameter :: paw_min_h = 0.01d0
       real*8, parameter :: paw_res_h = 1.0d0
+      !light-controll: par_turnover_int & par_turnover_slope
+      real*8, parameter :: par_turnover_int = -10.6d0 
+      real*8, parameter :: par_turnover_slope = 0.18d0  
       !r_fract: fraction of excess c going to seed reproduction 
       real*8, parameter :: r_fract = 0.3d0
       !c_fract: fraction of excess c going to clonal reproduction - only for herbaceous
@@ -92,7 +102,8 @@
       pp%cellptr%soiltemp_10d = 0.0d0
       pp%cellptr%airtemp_10d = 0.0d0
       pp%cellptr%paw_10d = 0.50d0
-
+      pp%cellptr%par_10d = 100.d0
+      pp%cellptr%light_prev = pp%cellptr%CosZen
       !call entcell_print( 6, pp%cellptr )
 
       cop => pp%tallest   
@@ -120,7 +131,10 @@
          cop%C_froot =  q*1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
          ialloc = (1.0d0+q+h*qsw)
          cop%C_sw = cop%C_fol * h * qsw  
-   
+         cop%llspan = 36.d0  !late successional tropical
+         cop%phenostatus = 1
+         cop%C_lab = 0.5 * cop%C_fol
+
          cop => cop%shorter  
 
       end do
@@ -145,6 +159,7 @@
       real*8 :: smpsat, bch
       real*8 :: watsat, watdry 
       real*8 :: paw
+      real*8 :: par
 
       real*8 :: airtemp
       real*8 :: wat   
@@ -154,12 +169,16 @@
       real*8 :: soiltemp_10d      
       real*8 :: airtemp_10d
       real*8 :: paw_10d
+      real*8 :: par_10d
 
       real*8 :: gdd
       real*8 :: ncd
       real*8 :: ld
 
-      real*8 :: zweight
+      real*8 :: par_crit
+      logical :: par_limit
+      real*8 :: turnover0, llspan0
+      real*8 :: zweight, zweight30
       
       sand = pp%cellptr%soil_texture(1)*100.d0
       clay = pp%cellptr%soil_texture(3)*100.d0
@@ -168,8 +187,6 @@
       watsat = 0.489d0 - 0.00126d0*sand 
       watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch) 
   
-c$$$      smpsc = -200000.d0 !grass
-
       airtemp =  pp%cellptr%TairC
       wat = pp%cellptr%Soilmoist(1)  !assign these only to top 30 cm for now -PK 3/16/07
       soiltemp = pp%cellptr%Soiltemp(1)
@@ -177,54 +194,77 @@ c$$$      smpsc = -200000.d0 !grass
       soiltemp_10d = pp%cellptr%soiltemp_10d
       airtemp_10d = pp%cellptr%airtemp_10d
       paw_10d = pp%cellptr%paw_10d
+      par_10d = pp%cellptr%par_10d  
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
       ld =  pp%cellptr%ld
 
-      zweight=exp(-1.d0/(10.d0*86400.d0/dtsec)) !weighting factor for 10-day running average
+      zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
+      zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
+
+      !10-day running average of Soil Temperature
+      soiltemp_10d=zweight*soiltemp_10d+(1.0d0-zweight)*soiltemp
+      
+      !10-day running average of Air Temperature
+      airtemp_10d=zweight*airtemp_10d+(1.0d0-zweight)*airtemp
+      
+      !10-day running average of Plant Available Water  
+      paw = min( max(wat-watdry,0.d0) 
+     &     /(watsat-watdry), 1.d0)   
+      paw_10d=zweight*paw_10d+(1.0d0-zweight)*paw
+
+      !10-day running average of PAR
+      par = pp%cellptr%IPARdif + pp%cellptr%IPARdir
+      par_10d=zweight*par_10d+(1.0d0-zweight)*par
+
+      !GDD & NCD - Once a day
+      if (dailyupdate) then
+         !Growing degree days
+         if (airtemp_10d .ge. airtemp_par) then
+            gdd = gdd + ( airtemp_10d - airtemp_par )
+         end if
+         !Number of chilling days
+         if (airtemp_10d .lt. airtemp_par) then
+            ncd = ncd +  1.d0
+         end if
+      end if
+      
+      !Photoperiod (Day length) in minute
+      if ( coszen .gt. 0.d0 ) then
+         ld = ld + dtsec/60.d0
+      end if
 
       cop => pp%tallest
       do while(ASSOCIATED(cop))
          
-         !daily carbon balance for growth
-         cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n
+         cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n*1000.d0
 
-         !10-day running average of Soil Temperature
-         soiltemp_10d=zweight*soiltemp_10d+(1.0d0-zweight)*soiltemp
-      
-         !10-day running average of Air Temperature
-         airtemp_10d=zweight*airtemp_10d+(1.0d0-zweight)*airtemp
-   
-         !10-day running average of Plant Available Water  
-         paw = min( max(wat-watdry,0.d0) 
-     &         /(watsat-watdry), 1.d0)   
-         paw_10d=zweight*paw_10d+(1.0d0-zweight)*paw
+         !*********************************************
+         !* evergreen broadleaf - PAR limited    
+         !*********************************************     
+         par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+     &               (pfpar(cop%pft)%leaftype.eq.BROADLEAF)) 
 
-c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))      
-
-         !GDD & NCD - Once a day
-         if (dailyupdate) then
-            !Growing degree days
-            if (airtemp_10d .ge. airtemp_par) then
-               gdd = gdd + ( airtemp_10d - airtemp_par )
-            end if
-
-            !Number of chilling days
-            if (airtemp_10d .lt. airtemp_par) then
-               ncd = ncd +  1.d0
-            end if
-
-         end if
-  
-         !Photoperiod (Day length) in minute
-         if ( coszen .gt. 0.d0 ) then
-            ld = ld + dtsec/60.d0
-         end if
+         if (par_limit) then
+            par_crit = - par_turnover_int/par_turnover_slope 
+            turnover0 = min(100.d0, max(0.01d0, 
+     &         par_turnover_slope*par_10d + par_turnover_int))
+            if (par_10d .lt. par_crit) turnover0 = 0.01d0
+            cop%turnover_amp=(1.d0-zweight)*cop%turnover_amp 
+     &         +zweight*turnover0
+     
+            llspan0 = pfpar(cop%pft)%lrage*12.d0/cop%turnover_amp
+            cop%llspan=(1.d0-zweight30)*cop%llspan
+     &         +zweight30*llspan0     
+         else
+            cop%turnover_amp = 1.d0
+            cop%llspan = -999.d0
+         endif
 
 
-!**************************************************************
-!* Update photosynthetic acclimation factor for evergreen veg
-!**************************************************************
+         !**************************************************************
+         !* Update photosynthetic acclimation factor for evergreen veg
+         !**************************************************************
 
          if (config%do_frost_hardiness) then
             if (((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
@@ -247,6 +287,7 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       pp%cellptr%soiltemp_10d = soiltemp_10d
       pp%cellptr%airtemp_10d = airtemp_10d
       pp%cellptr%paw_10d = paw_10d
+      pp%cellptr%par_10d = par_10d
       pp%cellptr%gdd = gdd
       pp%cellptr%ncd = ncd
       pp%cellptr%ld =  ld
@@ -263,26 +304,20 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       type(cohort), pointer :: cop
   
       real*8 :: gdd_threshold
-
       integer :: pft
       integer :: phenotype
-
       real*8 :: soiltemp_10d      
       real*8 :: airtemp_10d
       real*8 :: paw_10d
-
       real*8 :: gdd
       real*8 :: ncd
-  
+      real*8 :: ld 
       real*8 :: phenofactor_c
       real*8 :: phenofactor_d
       real*8 :: phenofactor
-
+      real*8 :: airt_adj
       integer :: phenostatus
-      
-!      real*8 :: pawmin,pawmax,pawres
-
-      logical :: temp_limit, water_limit !, light_limit
+      logical :: temp_limit, water_limit 
       logical :: fall
       logical :: woody
 
@@ -291,16 +326,12 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       paw_10d = pp%cellptr%paw_10d
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
-
-      gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
-
+      ld = pp%cellptr%ld
       pp%cellptr%light_prev=pp%cellptr%light
       pp%cellptr%light=pp%cellptr%CosZen
-      if (pp%cellptr%light .le. pp%cellptr%light_prev ) then
-         fall = .true.
-      else
-         fall = .false.
-      end if
+
+      gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
+      fall = (pp%cellptr%light .le. pp%cellptr%light_prev )
       
       cop => pp%tallest
       do while(ASSOCIATED(cop))       
@@ -326,8 +357,12 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
             water_limit = .true.            
          end if
 
+         airt_adj=0.d0
+         if (pft.eq.DROUGHTDECIDBROAD)airt_adj=5.0d0
+
          woody = pfpar(pft)%woody
 
+         !temperature-controlled woody
          if (temp_limit .and. woody) then
             if ((.not. fall) .and.
      &         (phenostatus.le.2).and.(gdd.gt.gdd_threshold)) then
@@ -339,9 +374,11 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
                end if
             end if
             if (fall .and. 
-     &         (phenostatus.ge.3).and.(airtemp_10d.lt.airt_max_w)) then
+     &         (phenostatus.ge.3).and.
+     &         (airtemp_10d.lt.airt_max_w+airt_adj)) then
                phenofactor_c = min(phenofactor_c,max(0.d0,
-     &            (airtemp_10d-airt_min_w)/(airt_max_w-airt_min_w)))
+     &            (airtemp_10d-airt_min_w-airt_adj)/
+     &            (airt_max_w-airt_min_w)))
                if (phenofactor_c .eq. 0.d0) then
                   phenostatus = 1
                   ncd = 0.d0             !zero-out
@@ -350,17 +387,31 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
                   phenostatus = 4
                end if 
             end if
+            if ((phenostatus.ge.3).and.(ld.lt.ld_max)) then
+               phenofactor_c = min(phenofactor_c, max(0.d0,
+     &          (ld - ld_min)/(ld_max-ld_min)))
+               if (phenofactor_c .eq. 0.0d0) then
+                 phenostatus =1
+                 ncd =0.d0
+                 gdd =0.d0
+               else
+                 phenostatus=2
+               end if
+            end if 
          end if
          
+         !temperature-controlled herbaceous 
          if (temp_limit .and. (.not.woody) )then
             phenofactor_c = 1.d0 !not yet implemented
          end if            
                  
+         !water-controoled woody
          if (water_limit .and. woody .and. (phenostatus.ge.2)) then
             phenofactor_d = min(1.d0,max(0.d0,
      &         ((paw_10d-paw_min_w)/(paw_max_w-paw_min_w))**paw_res_w))
          end if
   
+         !water-controlled herbaceous
          if (water_limit .and. (.not. woody)) then
             if ((phenostatus.le.2).and.(paw_10d.gt.paw_min_h))then
                phenofactor_d = min(1.d0,
@@ -385,21 +436,19 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
          if (.not.water_limit) phenofactor_d = 1.d0
       
          phenofactor = phenofactor_c * phenofactor_d
+
          cop%phenofactor_c=phenofactor_c
          cop%phenofactor_d=phenofactor_d
          cop%phenofactor=phenofactor
          cop%phenostatus=phenostatus
-
-         
-    
+   
          cop => cop%shorter 
       
       end do   
 
-!      pp%cellptr%ld =  0.d0     !zero-out every day
+      pp%cellptr%ld =  0.d0     !zero-out every day
       pp%cellptr%gdd = gdd      !it should be cohort level!
       pp%cellptr%ncd = ncd
-
 
       end subroutine pheno_update
       !*********************************************************************   
@@ -415,18 +464,18 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       type(cohort), pointer :: cop
       real*8 :: dtsec
       integer :: pft
+      logical :: woody
+      logical :: is_annual 
+      logical :: par_limit
       ! phenofactor phenological elongation factor [0,1] (unitless)
       real*8 :: phenofactor
       real*8 :: C_fol_old,C_froot_old,C_sw_old,C_hw_old,C_croot_old
-      real*8 :: C_fol
+      real*8 :: C_fol, C_froot, C_croot, C_sw, C_hw
       real*8 :: C_lab
       ! Cactive active carbon pool, including foliage, sapwood and fine root (gC/pool/individual)
       real*8 :: Cactive
       ! Cactive_max maximum active carbon pool allowed by the allometric constraint 
       real*8 :: Cactive_max
-      real*8 :: C_hw
-      real*8 :: C_croot
-      real*8 :: C_froot
       ! Cdead dead carbon pool, including hardwood and coarse root (gC/pool/individual)
       real*8 :: Cdead
       ! qsw 
@@ -437,23 +486,26 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
       real*8 :: h
       ! plant population (#-individual/m2-ground)
       real*8 :: nplant
-      real*8 :: ialloc
+      real*8 :: alloc,ialloc
       real*8 :: senescefrac !This is now net fraction of foliage that is litter.
       ! CB_d daily carbon balance (gC/individual)
       real*8 :: CB_d
       real*8 :: laipatch
-!      real*8 :: C_fol_max
       real*8 :: qf
       real*8 :: dCrepro, dC_lab
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_auto_patch, resp_root_patch !kg-C/m/s
-      logical :: woody
-      logical :: is_annual
-
+      integer :: cohortnum
+      real*8 :: sla
+      real*8 :: dummy
+ 
+     !Initialize
       laipatch = 0.d0
-      Clossacc(:,:,:) = 0.d0 !Initialize
+      Clossacc(:,:,:) = 0.d0 
       resp_auto_patch = 0.d0
       resp_root_patch = 0.d0
+      cohortnum = 0
+
       cop => pp%tallest
 
       do while(ASSOCIATED(cop))
@@ -464,93 +516,103 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
          h = cop%h
          nplant = cop%n
          woody = pfpar(pft)%woody
+         C_lab = cop%C_lab 
+         C_fol = cop%C_fol
+         C_froot = cop%C_froot
+         C_sw = cop%C_sw
+         C_hw = cop%C_hw
+         C_croot = cop%C_croot 
+         CB_d = cop%CB_d 
+
+         cohortnum = cohortnum + 1
+
+
          is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
-       
-         if (woody) then 
-            qsw = pfpar(pft)%sla*iqsw
-         else 
-            qsw=0.0d0           !no allocation to the wood
+        !------------------------------------------------
+        !*calculate allometric relation - qsw, qf, ialloc
+        !------------------------------------------------ 
+         qsw  = pfpar(pft)%sla*iqsw
+         !qsw  = sla(pft,cop%llspan)*iqsw !qsw*h: ratio of sapwood to leaf biomass
+         if (.not.woody) qsw = 0.0d0 !for herbaceous, no allocation to the wood        
+         
+         qf = q !q: ratio of root to leaf biomass
+         if (is_annual .and. pfpar(pft)%leaftype.eq.MONOCOT)
+     &      qf=q*phenofactor !for annual grasses, fine roots are prop. to the foliage
+         
+         alloc = phenofactor+qf+h*qsw
+         if (alloc .ne. 0.0d0) then
+           ialloc = 1/(phenofactor+qf+h*qsw)
+         else
+           ialloc = 0.d0
          end if
-         
-         if (is_annual .and. pfpar(pft)%leaftype .eq. MONOCOT) then
-            qf = q * phenofactor 
-         else
-            qf = q 
-         endif 
-         ialloc = phenofactor+qf+h*qsw
-         
-         Cactive = cop%C_froot + cop%C_fol + cop%C_sw
+
+        !---------------------------------------- 
+        !*determine plant carbon pools 
+        !---------------------------------------- 
+         Cactive = C_froot + C_fol + C_sw
+         Cdead = C_hw + C_croot  
+         C_fol_old = C_fol
+         C_froot_old = C_froot
+         C_croot_old = C_croot
+         C_sw_old = C_sw
+         C_hw_old = C_hw
+
          if (woody) then  
-            Cactive_max=dbh2Cfol(pft,dbh)*ialloc
+            Cactive_max=dbh2Cfol(pft,dbh)*alloc
          else
-            Cactive_max=height2Cfol(pft,5.0d0)*ialloc
+            Cactive_max=height2Cfol(pft,5.0d0)*alloc
            !no allometric constraints in the carbon allocation, 
            !then 5.0d0 is arbitrary number (must be tall enough, then 5m)
          end if
-         C_lab = cop%C_lab !Corrected units*1000.d0 
-         C_fol_old = cop%C_fol
-         C_fol = cop%C_fol
-         C_froot_old = cop%C_froot
-         C_froot = cop%C_froot
-         C_sw_old = cop%C_sw
-         C_hw_old = cop%C_hw
-         C_hw = cop%C_hw
-         C_croot = cop%C_croot
-         C_croot_old = cop%C_croot
-         Cdead = C_hw + C_croot   
-         
-         CB_d = cop%CB_d  !Corrected units*1000.d0
-         
-        !allocate the labile carbon to the active/dead pools or 
-        !store the carbon for the reproduction use
-         
-        !active growth: increment Cactive and decrease C_lab
-         call  growth_cpools_active(phenofactor,Cactive_max,
-     &        CB_d,Cactive,C_lab)
-         if (phenofactor .ne. 0.d0) then    
-            C_fol = phenofactor* Cactive/ialloc !C_fol should be updated for structural growth!
-         else
-            C_fol = 0.d0
-         endif
 
-         !structural/active/reproductive
-         call growth_cpools_structural(pft,dbh,h,qsw,qf,
-     i        C_fol, Cactive_max, 
-     o        Cactive,C_lab,Cdead,dCrepro) 
-         if (phenofactor .ne. 0.d0) then    
-            C_fol = phenofactor* Cactive/ialloc
-         else
-            C_fol = 0.d0
-         endif
+         !----------------------------------------------------
+         !*active growth: increment Cactive and decrease C_lab
+         !----------------------------------------------------
+         call  growth_cpools_active(phenofactor,ialloc,Cactive_max,
+     &        CB_d,Cactive,C_lab,C_fol)
+      
+         !----------------------------------------------------  
+         !*update the active pools
+         !----------------------------------------------------
+         cop%C_lab = C_lab
+         cop%C_fol = phenofactor * Cactive *ialloc
+         cop%C_froot = Cactive * qf * ialloc
+         cop%C_sw = Cactive * h *qsw * ialloc
 
-         !senesce: phenological portion - OLD
-!         call senesce_cpools(annual,C_fol_old,C_fol,
-!     o        C_lab,Cactive, senescefrac, dC_lab)
-         
-         !senesce and accumulate litter: turnover + C_lab change + growth respiration
+         !----------------------------------------------------   
+         !*senesce and accumulate litter
+         !---------------------------------------------------- 
+         !phenology + turnover + C_lab change + growth respiration
          !senescefrac returned is fraction of foliage that is litter.
+
          call litter_cohort(SDAY,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc)
-         Cactive = cop%C_fol + cop%C_froot + cop%C_sw
 
-         !update the active and structural pools   
-         if (phenofactor .ne. 0.d0) then    
-            cop%C_fol = phenofactor* Cactive/ialloc
-         else
-            cop%C_fol = 0.d0
-         endif
-         cop%C_froot = Cactive *(qf/ialloc)
-         cop%C_sw = Cactive *(h*qsw/ialloc)
+         !Put senesced amount into litterfall into the soil.
+
+         !----------------------------------------------------
+         !*structural/active/reproductive
+         !----------------------------------------------------
+          call growth_cpools_structural(pft,dbh,h,qsw,qf,
+     &        Cactive_max,C_fol, 
+     &        Cactive,C_lab,Cdead,dCrepro) 
+          cop%pptr%Reproduction(cop%pft) = 
+     &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n 
+         
+         !----------------------------------------------------  
+         !*update the active and structural pools
+         !----------------------------------------------------
+         cop%C_lab = C_lab 
+         cop%C_fol = phenofactor * Cactive *ialloc
+         cop%C_froot = Cactive * qf * ialloc
+         cop%C_sw = Cactive * h *qsw * ialloc
          cop%C_hw = Cdead * hw_fract
          cop%C_croot = Cdead * (1-hw_fract)                  
 
-         !update the labile and reproduction
-!         cop%C_lab = C_lab !g-C/individual.  Already updated in litter_cohort. OLD: 0.001d0*C_lab !g/individual -> kg/ind.
-         cop%pptr%Reproduction(cop%pft) = 
-     &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
-
-         !update the plant size 
+         !----------------------------------------------------  
+         !*update the plant size, LAI & nitrogen
+         !----------------------------------------------------  
          if (woody) then
             cop%dbh = Cdead2dbh(pft,Cdead)
             cop%h = dbh2height(pft,cop%dbh)
@@ -559,59 +621,38 @@ c$$$         soilmetric = min (smpsc, smpsat*paw**(-bch))
             cop%h = Cfol2height(pft,cop%C_fol)
          end if
          
-         !update the senescefrac & LAI & Nitrogen
-         cop%senescefrac = senescefrac
          cop%LAI=cop%C_fol/1000.0d0*pfpar(pft)%sla*cop%n
+         !cop%LAI=cop%C_fol/1000.0d0*sla(pft,cop%llspan)*cop%n
          if (cop%LAI .lt. EPS) cop%LAI=EPS
-         cop%Ntot = cop%nm * cop%LAI 
          laipatch = laipatch + cop%lai  
 
-         !Put senesced amount into litterfall into the soil.
+         cop%Ntot = cop%nm * cop%LAI 
 
-         !reproduction
-c$$$         if (annual) then
-c$$$            if (phenofactor .gt. 0.d0 .AND. cop%h .lt. 0.05d0) then
-c$$$               cop%h = 0.05d0
-c$$$               cop%C_fol = height2Cfol(pft,cop%h)
-c$$$               cop%LAI=cop%n*pfpar(pft)%sla*
-c$$$     &              (height2Cfol(pft,cop%h)/1000.0d0) 
-c$$$               cop%C_froot = q*cop%C_fol
-c$$$            else if(phenofactor .eq. 0.d0) then
-c$$$               cop%C_lab =0.d0
-c$$$            end if
-c$$$         end if
+         if (is_annual) then
+            if (phenofactor .gt. 0.d0 .AND. cop%h .lt. 0.025d0) then
+               cop%h = 0.025d0
+               cop%C_fol = height2Cfol(pft,cop%h)
+               cop%LAI=cop%n*pfpar(pft)%sla*
+     &              (height2Cfol(pft,cop%h)/1000.0d0) 
+               cop%C_froot = q*cop%C_fol
+            else if(phenofactor .eq. 0.d0) then
+               cop%C_lab =0.d0
+            end if
+         end if
 
                 
          !zero-out the daily accumulated carbon 
          cop%CB_d = 0.d0    
 
-!This write statement has some syntax error. If needed, please put in subroutine.
-!         write(990,'(i4,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g,g)')
-!     &        cop%pft,  
-!     &        cop%phenofactor_c,
-!     &        cop%phenofactor_d,
-!     &        cop%phenostatus,
-!     &        cop%LAI,
-!     &        cop%C_fol,
-!     &        cop%C_lab,
-!     &        cop%C_sw,
-!     &        cop%C_hw,
-!     &        cop%C_froot,
-!     &        cop%C_croot,
-!     &        cop%NPP,
-!     &        cop%dbh,
-!     &        cop%h,
-!     &        cop%CB_d,
-!     &        cop%senescefrac,
-!     &        cop%cellptr%airtemp_10d,
-!     &        cop%cellptr%soiltemp_10d,
-!     &        cop%cellptr%paw_10d,
-!     &        cop%cellptr%gdd,
-!     &        cop%cellptr%ncd,
-!     &        cop%cellptr%CosZen
          !* Summarize for patch level *!
-         resp_auto_patch = resp_auto_patch  + cop%R_auto !!Total respiration flux including growth increment.
-         resp_root_patch = resp_root_patch + cop%R_root !Total respiration flux including growth increment.
+         !Total respiration flux including growth increment.
+         resp_auto_patch = resp_auto_patch  + cop%R_auto 
+         resp_root_patch = resp_root_patch + cop%R_root
+
+#ifdef PHENOLOGY_DIAG
+         call phenology_diag(cohortnum,cop)  
+#endif
+
          cop => cop%shorter 
       end do !looping through cohorts
 
@@ -624,57 +665,61 @@ c$$$         end if
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
       pp%NPP = pp%GPP - resp_auto_patch
       pp%cellptr%ld =  0.d0  
+
       end subroutine veg_update
 
       !*********************************************************************
-      subroutine growth_cpools_active(phenofactor, 
-     &     Cactive_max,CB_d,Cactive,C_lab)
-      
+      subroutine growth_cpools_active(phenofactor,ialloc, 
+     &     Cactive_max,CB_d,Cactive,C_lab,C_fol)
+     
       real*8, intent(in) :: phenofactor
+      real*8, intent(in) :: ialloc
       real*8, intent(in) :: Cactive_max
       real*8, intent(in) :: CB_d
       real*8, intent(inout) :: Cactive
       real*8, intent(inout) :: C_lab
-    
+      real*8, intent(inout) :: C_fol
       real*8 :: Cactive_pot
       real*8 ::dC_lab  !g-C/individual. Negative for reduction of C_lab for growth.
+      real*8 :: dC_remainder
 
-                              
-      if ((phenofactor .eq. 0.d0) .AND. (CB_d .gt. 0.d0)) then
-         dC_lab = 0.d0 !store the carbon in the labile
-      else
-         if (phenofactor .gt. 0.d0) then
+      !-------------------------------
+      !*calculate the change in C_lab 
+      !-------------------------------                     
+      if (CB_d .gt. 0.d0) then
+         if (phenofactor .eq. 0.d0) then
+            dC_lab = 0.d0 !store the carbon in the labile
+         else 
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (cuurent size)
-            Cactive_pot = Cactive + CB_d          
-            if (Cactive .gt. Cactive_max) then 
-              dC_lab = Cactive - Cactive_max
-            else if (Cactive_pot .gt. Cactive_max) then
-              dC_lab= Cactive - Cactive_max  
-            else
-              dC_lab = -CB_d
-            end if
-         else
-           !Negative CB_d:  Don't grow.
-           !compensate it with the active carbon rather than the labile carbon.
-!           dC_lab_growth_a1 = -CB_d 
-           !compensate it with the labile carbon rather than the active carbon.
-           !Don't grow.
-           dC_lab = 0.d0
+            Cactive_pot = Cactive + CB_d   
+            dC_lab = Cactive - min(Cactive_max, Cactive_pot)
+         end if
+      else !negative CB_d
+         if (C_lab .lt. 0.d0) then
+            dC_lab = - C_lab
+         else 
+            dC_lab = 0.d0
          end if
       end if
+
+      !------------------------
+      !*update the carbon pools
+      !------------------------
       C_lab = C_lab + dC_lab
       Cactive = Cactive - dC_lab 
-
+c$$$      C_fol = phenofactor * Cactive * ialloc
+c$$$      dC_remainder = (1.d0-phenofactor )*Cactive*ialloc 
+c$$$      Cactive = Cactive + dC_remainder
 
       end subroutine growth_cpools_active
 
-
       !*********************************************************************
       subroutine growth_cpools_structural(pft,dbh,h,qsw,qf,
-     &      C_fol,Cactive_max,Cactive,
-     &      C_lab, Cdead,dCrepro)
+     &      Cactive_max,C_fol,Cactive,
+     &      C_lab, Cdead, dCrepro)
+
       use ent_prescr_veg
 
       integer, intent(in) :: pft
@@ -687,10 +732,8 @@ c$$$         end if
       real*8, intent(inout) :: Cactive
       real*8, intent(inout) :: C_lab
       real*8, intent(inout) :: Cdead
-      
       real*8, intent(out) :: dCrepro
       real*8 :: dCdead 
-
       real*8 :: dCactive
       !gr_fract: fraction of excess c going to structural growth
       real*8 :: gr_fract  
@@ -700,8 +743,10 @@ c$$$         end if
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
 
-      !herbaceous
-      if (.not.pfpar(pft)%woody) then 
+      !--------------------------------------------------
+      !*calculate the growth fraction for different pools
+      !--------------------------------------------------        
+      if (.not.pfpar(pft)%woody) then !herbaceous
          if (C_lab .gt. 0.d0 )then
             qs = 0.d0  !no structural pools
             gr_fract = 1.d0 - (r_fract + c_fract)
@@ -709,8 +754,6 @@ c$$$         end if
             qs = 0.d0 
             gr_fract = 1.d0
          end if
-      !woody
-      else
          if (C_fol .gt. 0.d0 .and. 
      &       Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
             if (dbh .le. maxdbh(pft))then
@@ -735,46 +778,49 @@ c$$$         end if
       dCactive = gr_fract / (1.d0 + qs) * C_lab
       dCrepro =  ( 1.d0 - gr_fract ) * C_lab 
 
+      !------------------------
+      !*update the carbon pools
+      !------------------------
       C_lab = 0.d0
       Cdead = Cdead + dCdead
       Cactive = Cactive + dCactive
 
       end subroutine growth_cpools_structural
       !*********************************************************************
-      subroutine senesce_cpools(is_annual, C_fol_old,C_fol,Cactive,
-     &                          senescefrac, dC_lab)
-      logical, intent(in) :: is_annual  !NOT USED
-      real*8, intent(in) :: C_fol_old
-      real*8, intent(in) :: C_fol
-      !real*8, intent(in) :: C_lab
-      real*8, intent(inout) :: Cactive
-      real*8, intent(out) :: senescefrac
-      real*8, intent(out) :: dC_lab
-      !---- Local ------
-      real*8 :: dC_fol
-      real*8 :: dCactive
-
-      senescefrac = 0.d0
-      if (C_fol_old .gt. C_fol) then 
-         !with senescening, the part of foliage carbon goes to the litter pool
-         ! and the remained goes to the labile.
-         dC_fol = C_fol - C_fol_old !negative
-         dCactive = dC_fol 
-         dC_lab = - dCactive * l_fract
-         if (C_fol_old .ne. 0.d0 ) then 
-            senescefrac = -dC_fol * (1.d0 - l_fract) 
-     &           /C_fol_old
-         endif    
-      else
-         dCactive = 0.d0
-         dC_lab = 0.d0         
-      endif
-
-      !C_lab = C_lab + dC_lab  
-      !Instead, return dC_lab
-      Cactive= Cactive + dCactive
-      
-      end subroutine senesce_cpools
+c$$$      subroutine senesce_cpools(is_annual, C_fol_old,C_fol,Cactive,
+c$$$     &                          senescefrac, dC_lab)
+c$$$      logical, intent(in) :: is_annual  !NOT USED
+c$$$      real*8, intent(in) :: C_fol_old
+c$$$      real*8, intent(in) :: C_fol
+c$$$      !real*8, intent(in) :: C_lab
+c$$$      real*8, intent(inout) :: Cactive
+c$$$      real*8, intent(out) :: senescefrac
+c$$$      real*8, intent(out) :: dC_lab
+c$$$      !---- Local ------
+c$$$      real*8 :: dC_fol
+c$$$      real*8 :: dCactive
+c$$$
+c$$$      senescefrac = 0.d0
+c$$$      if (C_fol_old .gt. C_fol) then 
+c$$$         !with senescening, the part of foliage carbon goes to the litter pool
+c$$$         ! and the remained goes to the labile.
+c$$$         dC_fol = C_fol - C_fol_old !negative
+c$$$         dCactive = dC_fol 
+c$$$         dC_lab = - dCactive * l_fract
+c$$$         if (C_fol_old .ne. 0.d0 ) then 
+c$$$            senescefrac = -dC_fol * (1.d0 - l_fract) 
+c$$$     &           /C_fol_old
+c$$$         endif    
+c$$$      else
+c$$$         dCactive = 0.d0
+c$$$         dC_lab = 0.d0         
+c$$$      endif
+c$$$
+c$$$      !C_lab = C_lab + dC_lab  
+c$$$      !Instead, return dC_lab
+c$$$      Cactive= Cactive + dCactive
+c$$$      
+c$$$      end subroutine senesce_cpools
 
       !*********************************************************************
       subroutine litter_cohort(dt,
@@ -825,7 +871,7 @@ c$$$         end if
 
       !* NLIVE POOLS *! 
       facclim = frost_hardiness(cop%Sacclim)
-      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
       turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
       turnoverdtwood = facclim*(1.d0-exp(-annK(pft,WOOD)*SDAY)) !Sapwood not hardwood
       !* Turnover draws down C_lab. *!
@@ -1149,6 +1195,18 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
 !     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
 
       end subroutine photosyn_acclim
+!*************************************************************************
+      real*8 function sla(pft,llspan)
+      integer, intent(in) :: pft
+      real*8, intent(in) :: llspan
+      
+      if (llspan .gt. 0.d0) then 
+         sla = 10.0**(1.6923-0.3305*log10(llspan))
+      else 
+         sla = pfpar(pft)%sla
+      endif
+      end function sla
+!*************************************************************************
 
 !*********************************************************************
       real*8 function dbh2Cfol(pft,dbh)
@@ -1293,5 +1351,39 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
 
       end function frost_hardiness
 !*************************************************************************
+      subroutine phenology_diag(cohortnum, cop)
+      implicit none
+      type(cohort), pointer ::cop
+      integer :: cohortnum
+     
+         write(990,'(2(i5),24(1pe16.8))')
+     &        cohortnum,
+     &        cop%pft,  
+     &        cop%phenofactor_c,
+     &        cop%phenofactor_d,
+     &        cop%phenostatus,
+     &        cop%LAI,
+     &        cop%C_fol,
+     &        cop%C_lab,
+     &        cop%C_sw,
+     &        cop%C_hw,
+     &        cop%C_froot,
+     &        cop%C_croot,
+     &        cop%NPP,
+     &        cop%dbh,
+     &        cop%h,
+     &        cop%CB_d,
+     &        cop%senescefrac,
+     &        cop%llspan,
+     &        cop%turnover_amp,
+     &        cop%cellptr%airtemp_10d,
+     &        cop%cellptr%soiltemp_10d,
+     &        cop%cellptr%paw_10d,
+     &        cop%cellptr%par_10d,
+     &        cop%cellptr%gdd,
+     &        cop%cellptr%ncd,
+     &        cop%cellptr%CosZen
 
+      end subroutine phenology_diag
+!*************************************************************************
       end module phenology

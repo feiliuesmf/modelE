@@ -34,7 +34,10 @@
       integer, parameter :: EVERGRNEEDLE = 6
       integer, parameter :: TROPRAINF = 7
       integer, parameter :: CROPS = 8
-
+!##### TEMPORARY HACK - YK #####
+!to avoid the conflict in phenology.f
+      integer, parameter :: DROUGHTDECIDBROAD = 20
+!##### TEMPORARY HACK - YK #####
       !*-----------------------------------------
       !* Veg types correspondence between models:
 *       LSM:   1  2    3  4  5  6  7  8  9 10 11 12 13 14^M

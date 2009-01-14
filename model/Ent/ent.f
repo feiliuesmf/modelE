@@ -143,8 +143,11 @@
       integer :: patchnum
       type(patch),pointer :: pp
       !TIMESTRUCT should be used once it is ready!
-      logical :: dailyupdate    !temp. for Phenology
-
+      logical :: initial, dailyupdate    !temp. for Phenology
+      
+      !* Timing - temporarily
+      initial = (time .eq. 0.d0)
+      dailyupdate = (mod(time,86400.d0) .eq. 0.d0) .and. .not.initial
 
       !* Loop through patches
       patchnum = 0
@@ -153,17 +156,9 @@
         patchnum = patchnum + 1
         call photosynth_cond(dtsec, pp)
 
-        if(config%do_phenology)then
-          if (time .EQ. 0.d0) then !######## temporarily #############
-             call veg_init(pp)
-          end if
-        endif
-
-        if (mod(time,86400.d0) .EQ. 0.d0) then !temporarily
-          dailyupdate=.true.
-        else 
-          dailyupdate=.false.
-        end if
+!YK-beg of temp hack##################################################
+        if (config%do_phenology .and. initial) call veg_init(pp)
+!YK-end of temp hack##################################################
 
         call clim_stats(dtsec,pp,config,dailyupdate)
 
