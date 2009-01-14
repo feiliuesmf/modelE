@@ -4,7 +4,6 @@
 !@sum veg_drv contains variables and routines for vegetation driver
 !@auth I. Alienov, N. Kiang
 
-      use model_com, only : im,jm
       implicit none
       private
       save
@@ -607,7 +606,6 @@ c shc(0,2) is the heat capacity of the canopy
 !@auth R. Ruedy
 !@ver  1.0
       USE FILEMANAGER
-      USE MODEL_COM, only : im,jm
 #ifdef CUBE_GRID
       use pario_fbsa, only : READT_PARALLEL
 #else
@@ -622,7 +620,7 @@ c shc(0,2) is the heat capacity of the canopy
       integer, intent(in) :: year
       logical, intent(in) :: reset_veg
 
-      real*8 wt,crops         ! temporary vars ! ,crop(im,jm)
+      real*8 wt,crops
 
       integer :: year1,year2,year_old=-1, iu, i,j,k
       real*8, Allocatable :: crop1(:,:), crop2(:,:), vdata0(:,:,:)

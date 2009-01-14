@@ -85,7 +85,7 @@ c**** Do not use global variables for that purpose !
         real*8 dtsurf,zs1,tgv,tkv,qg_sat,qg_aver,hemi,tr4
         real*8 evap_max,fr_sat,uocean,vocean,psurf,trhr0
         real*8 tg,elhx,qsol,sss_loc
-        logical :: pole,ocean,ddml_eq_1
+        logical :: ocean,ddml_eq_1
         ! inout:
         real*8 gusti,tdns,qdns,tprime,qprime,snow
         ! output:

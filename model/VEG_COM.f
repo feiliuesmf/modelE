@@ -4,7 +4,6 @@
 !@sum  GHY_COM contains the areas used by the Ground Hydrology routines
 !@auth N. Kiang, I. Aleinov
 !@ver  1.0
-      use model_com, only : im,jm
       use ghy_com, only : ngm,imt,nlsn
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm

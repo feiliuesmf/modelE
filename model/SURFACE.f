@@ -12,17 +12,15 @@ C****
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,rhows,grav
-      USE MODEL_COM, only : im,jm,dtsrc,nisurf,u,v,t,p,q
-     *     ,idacc,ndasf,fland,flice,focean,IVSP,IVNP
+      USE MODEL_COM, only : dtsrc,nisurf,u,v,t,p,q
+     *     ,idacc,ndasf,fland,flice,focean
      *     ,nday,itime,jhour,itocean
      *     ,itoice,itlake,itlkice,itlandi,qcheck,UOdrag,jdate
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET, CHECKSUM
-      USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
-      USE GEOM, only : axyp,imaxj,byaxyp,idjj,idij,rapj,kmaxj,sinip
-     *     ,cosip,lat2d
+      USE DOMAIN_DECOMP, only : GRID, GET
+      USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
@@ -150,7 +148,7 @@ C****
 
       IMPLICIT NONE
 
-      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE,IM1
+      INTEGER I,J,K,KR,JR,NS,NSTEPS,MODDSF,MODDD,ITYPE,IH,IHM,IDTYPE
      *     ,ii
       REAL*8 PLAND,PLICE,POICE,POCEAN,PIJ,PS,P1K
      *     ,ELHX,MSI2,CDTERM,CDENOM,dF1dTG,HCG1,HCG2,EVHDT,F1DT
@@ -171,8 +169,8 @@ C****
       REAL*8 QSAT,DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 hemi,qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0
-      logical pole
+      real*8 qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0
+c      logical pole
 c
       logical :: lim_lake_evap,lim_dew ! for tracer convenience
 #ifdef TRACERS_ON
@@ -333,13 +331,13 @@ C****
 !$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,
 !$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
 !$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,
-!$OMP*  HTLIM,I,ITYPE,IDTYPE,IM1, J,K,
+!$OMP*  HTLIM,I,ITYPE,IDTYPE, J,K,
 !$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
 !$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1,
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS, SHEAT,SRHEAT,
 !$OMP*  SNOW,SHDT, T2DEN,T2CON,T2MUL,TS,
 !$OMP*  THV1,TG,TG1,TG2,TR4,TRHDT,TRHEAT,Z1BY6L,dlwdt,
-!$OMP*  HEMI,POLE,UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr,tmp
+!$OMP*  UOCEAN,VOCEAN,QG_SAT,US,VS,WS,WS0,QSRF,pbl_args,jr,tmp
 #if defined(TRACERS_ON)
 !$OMP*  ,n,nx,nsrc,totflux,trs,trsfac,trconstflx,trgrnd,trgrnd2
 !$OMP*  ,trc_flux
@@ -358,11 +356,8 @@ C****
 
 C**** Start loop over grid points
       DO J=J_0,J_1
-      HEMI=1.
-      IF(J.LE.JM/2) HEMI=-1.
-      POLE= (J.EQ.1 .or. J.EQ.JM)
+c      POLE= (J.EQ.1 .or. J.EQ.JM)
 
-      IM1=IM
       DO I=I_0,IMAXJ(J)
 
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
@@ -634,7 +629,7 @@ C =====================================================================
       pbl_args%qg_sat = qg_sat
       pbl_args%qg_aver = qg_sat   ! QG_AVER=QG_SAT
       pbl_args%hemi = sign(1d0,lat2d(i,j))
-      pbl_args%pole = pole
+c      pbl_args%pole = pole
       pbl_args%evap_max = 1.
       pbl_args%fr_sat = 1. ! entire surface is saturated
       pbl_args%uocean = uocean
@@ -1280,7 +1275,6 @@ C****
 C****
       END IF
       END DO   ! end of itype loop
-      IM1=I
       END DO   ! end of I loop
 
       END DO   ! end of J loop

@@ -81,7 +81,7 @@ c
 !@VAR QSOL   = solar heating (W/m2)
       real*8 zs1,psi,hemi
 !@var POLE   = .TRUE. if at the north or south pole, .FALSE. otherwise
-      logical pole
+c      logical pole
 
 !**** the following is output from advance (mostly passed through pbl_args)
 !@var US     = x component of surface wind, positive eastward (m/s)
@@ -121,7 +121,7 @@ c
 ccc extract data needed in driver from the pbl_args structure
       zs1 = pbl_args%zs1
       hemi = pbl_args%hemi
-      pole = pbl_args%pole
+c      pole = pbl_args%pole
 
       ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
       ! tprime,qprime are the pertubation of t and q due to gustiness
@@ -741,7 +741,6 @@ C**** initialise some pbl common variables
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP, only : GRID, GET
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1

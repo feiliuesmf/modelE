@@ -928,7 +928,7 @@ c**** conditions at the south/north pole
 
       pbl_args%dtsurf=dtsrc/nisurf
       pbl_args%hemi = sign(1d0,lat2d(i,j))
-      pbl_args%pole= ( j.eq.1 .or. j.eq.jm )
+c      pbl_args%pole= ( j.eq.1 .or. j.eq.jm )
 
 c****
 c**** determine surface conditions
