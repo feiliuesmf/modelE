@@ -3,7 +3,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       SUBROUTINE HETCDUST
 !
-! Version 1.   (version 2 needs to be written... without integration over ndr)
+! Version 1. 
 !
 !-----------------------------------------------------------------------
 !   Computation of heterogeneous reaction rates on dust aerosol surfaces
@@ -158,9 +158,7 @@ C Net removal rate [s-1]
 
   
 c--------------------------------------------------------------
-
-#ifdef TRACERS_DUST      
-
+ 
       dusttx(:,:,:,:)= 0.
       
       DO l  = 1,lm   
@@ -174,13 +172,6 @@ c--------------------------------------------------------------
       enddo
       enddo
 
-#else
-c Read dust fields from files
-      CALL READDUST(dusttx)
-      print*, 'OFF-LINE DUST TRACER'
-c      print*,'MAX OFF LINE:  ',maxval(dusttx(:,:,:,:))
-c      print*,dusttx(30,23,3,:)
-#endif
 c--------------------------------------------------------------
 c--------------------------------------------------------------
 
@@ -190,11 +181,7 @@ C Net removal rates [s-1]
         krate(:,:,:,:,:) = 0.
         rxtnox(:,:,:,:,:)=0
       DO il = 1,rhet    ! Loop over het reactions
-#ifdef TRACERS_DUST
       DO nd = 5,ndtr    ! Loop over dust tracers
-#else
-      DO nd = 1,ndtr    ! Loop over dust tracers
-#endif
       DO l  = 1,lm   
       DO j  = J_0,J_1
       DO i  = 1,im
@@ -243,26 +230,13 @@ c radii interpolation
       ENDDO ! i
       ENDDO ! j
       ENDDO ! l
-c      print*,' KRATE NR:,',il,'D TRA',nd,'SAHARA',rxtnox(36,28,1,nd,il)
-c      print*,' STAUB', il,dustnc(36,28,1,nd)
       ENDDO ! nd
       
-#ifdef TRACERS_DUST
       DO nd = 5,ndtr  !1,ndtr
         krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il) 
      & + rxtnox(:,J_0:J_1,:,nd,il)
       ENDDO
         krate(:,J_0:J_1,:,2,il) = rxtnox(:,J_0:J_1,:,5,il)
-#else
-      DO nd = 1,ndtr  !1,ndtr
-        krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il) 
-     & + rxtnox(:,J_0:J_1,:,nd,il)
-      ENDDO
-      DO nd = 1,5  !1,ndtr
-        krate(:,J_0:J_1,:,2,il) = krate(:,J_0:J_1,:,2,il) 
-     &  + rxtnox(:,J_0:J_1,:,nd,il)
-      ENDDO
-#endif
         krate(:,J_0:J_1,:,3,il) = rxtnox(:,J_0:J_1,:,6,il)
         krate(:,J_0:J_1,:,4,il) = rxtnox(:,J_0:J_1,:,7,il)
         krate(:,J_0:J_1,:,5,il) = rxtnox(:,J_0:J_1,:,8,il)
@@ -440,7 +414,6 @@ C Net removal rate [s-1]
 c--------------------------------------------------------------
 
 c  Or use online dust 
-#ifdef TRACERS_DUST      
       dusttx(:,:,:,:)= 0.d0
       
       DO l  = 1,lm   
@@ -451,11 +424,7 @@ c  Or use online dust
       dusttx(:,j,l,8)= trm(:,j,l,n_silt3)* byam(l,:,j)* byaxyp (:,j)
       enddo
       enddo
-#else
-c Read dust fields from files
-      CALL READDUST(dusttx)
-      print*, 'OFF-LINE DUST TRACER'
-#endif
+    
 c--------------------------------------------------------------
 c--------------------------------------------------------------
 
@@ -463,11 +432,7 @@ c INTERPOLATION FROM LOOK UP TABLES
  
 C Net removal rate for SO2 [s-1]  
 
-#ifdef TRACERS_DUST
       DO nd = 5,ndtr    ! Loop over dust tracers
-#else
-      DO nd = 1,ndtr    ! Loop over dust tracers
-#endif
       DO l  = 1,lm   
       DO j  = J_0,J_1
       DO i  = 1,im
@@ -523,107 +488,14 @@ c        if  (dustnc(i,j,l,nd).gt.1000.)
 
          rxts(:,:,:) = 0.d0
 
-#ifdef TRACERS_DUST
       DO nd = 5,ndtr  !1,ndtr
         rxts(:,j_0:J_1,:) = rxts(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
       ENDDO
         rxts1(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,5)
-#else
-      DO nd = 1,ndtr  !1,ndtr
-        rxts(:,j_0:J_1,:) = rxts(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
-      ENDDO
-      DO nd = 1,5  !1,ndtr
-        rxts1(:,j_0:J_1,:) = rxts1(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
-      ENDDO
-#endif
         rxts2(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,6)
         rxts3(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,7)
         rxts4(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,8)
 
 
       end subroutine sulfdust
-
-      SUBROUTINE READDUST(dusttx)  
-                                  
-!@sum     READ IN MONTHLY MEAN DESERT DUST (CLAY,SILT) CONCENTRATION (KG/KG) 
-!@auth    Original by Ina Tegen, Modified by Jan     Modified by Susana 
-!@ver     05/15/03
-!@calls   -
-!@cont    List of program units contained within a file or module + other info.
-!@fun     FUNCNAME Denotes a function
-!@param   PARAMNAME Denotes a parameter (in the FORTRAN sense)
-!@var     VARNAME Denotes a variable (in the FORTRAN sense)
-!@dbparam VARNAME Denotes a database parameter (in the modelE sense)
-!@nlparam VARNAME Denotes a NAMELIST parameter (in the modelE sense)
-!@+       Continuation line for @sum/@calls/@con
-C     ------------------------------------------------------------------ 
-
-      USE MODEL_COM, only    : im,lm,jday
-      USE FILEMANAGER, only  : openunit, closeunit
-      USE DOMAIN_DECOMP, only : GRID, GET
-      IMPLICIT NONE
-
-      integer, parameter     :: ndtr = 8  ! # dust tracers
-      integer nn,n,j,i,l,ma,mb
-      INTEGER J_0, J_1
-      REAL*8    wmb,wma,xmo        ! alles integer ???
-      integer odust_trcl
-      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
-     *        dusttx
-      REAL*4,
-     *   DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,9,ndtr,12)::
-     *  OFFDUST
-      REAL*4,
-     *  DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,12)::
-     *  DUST
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-                
-      call openunit ("OFFDUST",odust_trcl,.TRUE.,.TRUE.)
-      READ(odust_trcl) OFFDUST
-      call closeunit(odust_trcl)
-
-      do nn=1,12
-         do n=1,ndtr
-            do j=J_0,J_1
-               do i=1,im                                                 
-                  do l=1,6                                               
-                     DUST(i,j,l,n,nn)=OFFDUST(i,j,l,n,nn)                    
-                  end do                                                 
-      DUST(i,j,7,n,nn)=(30.*OFFDUST(i,j,6,n,nn)+45.
-     .                 *OFFDUST(i,j,7,n,nn))/75.  
-      DUST(i,j,8,n,nn)=OFFDUST(i,j,7,n,nn)  
-      DUST(i,j,9,n,nn)=OFFDUST(i,j,8,n,nn)             
-      DUST(i,j,10,n,nn)=(30.*OFFDUST(i,j,8,n,nn)+10.
-     .                  *OFFDUST(i,j,9,n,nn))/40.  
-      DUST(i,j,11,n,nn)=OFFDUST(i,j,9,n,nn)         
-      DUST(i,j,12,n,nn)=OFFDUST(i,j,9,n,nn)                                
-                  do l=13,lm                                               
-                     DUST(i,j,l,n,nn)=OFFDUST(i,j,9,n,nn)                    
-                  end do    
-               end do                                                    
-            end do                                                       
-         end do                
-      end do                                                        
-C
-C------------------------                                          
-      ENTRY DAYDST                                                 
-C------------------------
-c     XMO=(JDAY+14.75)/30.5                                        
-      XMO=(JDAY+15.25)/30.5                                        
-      MA=XMO                                                       
-      MB=MA+1                                                      
-      WMB=XMO-MA                                                   
-      WMA=1.0-WMB                                                  
-      IF(MA.LT.1)  MA=12                                           
-      IF(MB.GT.12) MB=1                                            
-C                                                                  
-
-      DUSTTX(:,J_0:J_1,:,:)=WMA*DUST(:,J_0:J_1,:,:,MA)+
-     & WMB*DUST(:,J_0:J_1,:,:,MB) 
-
-      RETURN
-      END
 #endif   

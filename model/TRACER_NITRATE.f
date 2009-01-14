@@ -31,8 +31,6 @@
       INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1
 C**** functions
       REAL*8 :: QSAT, AVOL
-      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,8) ::
-     * offdust
       LOGICAL, SAVE :: NO_SS = .TRUE.
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
@@ -43,9 +41,6 @@ C**** functions
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
 
-#ifndef TRACERS_DUST
-      CALL READDUST(offdust)
-#endif
 
       do n=1,ntm
       if (trname(n).eq.'seasalt1')    NO_SS=.FALSE.
@@ -119,13 +114,6 @@ c#endif
      *         trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3))*0.2
      *         *yM*(mair/24.3)*
      *         BYAXYP(I,J)*BYAM(L,I,J) ! Mg++ (p) from Dust     [umol/m^3 air]  
-#else
-      YI(1,8) = (sum(offdust(i,j,l,:)))*0.1
-     *         *yM*(mair/39.1)        ! K+   (p) from Dust     [umol/m^3 air]
-      YI(1,9) = (sum(offdust(i,j,l,:)))*0.1 
-     *         *yM*(mair/40.)         ! Ca++ (p) from Dust     [umol/m^3 air]
-      YI(1,10)= (sum(offdust(i,j,l,:)))*0.2
-     *         *yM*(mair/24.3)        ! Mg++ (p) from Dust     [umol/m^3 air]    
 #endif
 
 
