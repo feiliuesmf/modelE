@@ -794,7 +794,6 @@ C*** Unpack read global data into local distributed arrays
       CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
       return
       end subroutine scatter_trdiag
-#endif
 
 
 C**** routines for accumulating zonal mean diags (lat/lon grid)
@@ -832,3 +831,4 @@ C**** routines for accumulating zonal mean diags (lat/lon grid)
       TAJLN(J,L,TJL_INDEX,N) = TAJLN(J,L,TJL_INDEX,N) + ACC
       RETURN
       END SUBROUTINE INC_TAJLN
+#endif

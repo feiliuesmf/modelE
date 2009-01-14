@@ -444,7 +444,7 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
