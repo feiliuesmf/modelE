@@ -6144,6 +6144,7 @@ C**** surface tracer concentration
           END IF 
         END DO
       END DO
+      END DO   !N-loop
 
 #ifdef TRACERS_OCEAN
       DO NT=1,NTM
@@ -6165,7 +6166,6 @@ C**** surface tracer concentration
       END DO
       END DO
 #endif
-      END DO
 
       END SUBROUTINE INT_OG2AG_oceans 
 
