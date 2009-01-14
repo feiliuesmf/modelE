@@ -373,6 +373,22 @@ C**** include some extra troposphere only ones
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
 
+#ifdef NEW_IO
+c declarations that facilitate summation of acc-files when using
+c the new i/o system
+      target :: 
+     &     TAIJLN_loc,TAIJN_loc,TAIJS_loc,
+     &     TAJLN_loc,TAJLS_loc,TCONSRV_loc
+      real*8, allocatable, dimension(:,:,:,:), target ::
+     &     taijln_fromdisk,taijn_fromdisk,tajln_fromdisk
+      real*8, allocatable, dimension(:,:,:), target ::
+     &     taijs_fromdisk,tajls_fromdisk,tconsrv_fromdisk
+      real*8, dimension(:,:,:,:), pointer ::
+     &     taijln_ioptr,taijn_ioptr,tajln_ioptr
+      real*8, dimension(:,:,:), pointer ::
+     &     taijs_ioptr,tajls_ioptr,tconsrv_ioptr
+#endif
+
       END MODULE TRDIAG_COM
 
 #ifdef TRACERS_ON

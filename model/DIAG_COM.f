@@ -684,6 +684,47 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 !@param L_ROSSBY_NUMBER length scale for budget-page Rossby number
       real*8, parameter, public :: l_rossby_number=1d6 ! 1000 km
 
+#ifdef NEW_IO
+c declarations that facilitate summation of acc-files when using
+c the new i/o system
+      target :: aj_loc,aregj_loc,ajl_loc,asjl_loc,aij_loc,ajk_loc,
+     &     speca,adiurn,aisccp,tsfrez_loc,energy,atpe,consrv_loc,
+     &     wave,aijk_loc,ail_loc,tdiurn,oa
+#ifndef NO_HDIURN
+      target ::  HDIURN
+#endif
+      target :: MONACC
+      INTEGER, DIMENSION(:), public, pointer :: MONACC_ioptr
+      INTEGER, DIMENSION(12), public, target :: MONACC_fromdisk
+      INTEGER, public :: ITIME_sv=-1, ITIME0_sv=-1
+      REAL*8, dimension(:,:,:), public, target, allocatable ::
+     &     AJ_fromdisk,AREGJ_fromdisk,
+     &     AJL_fromdisk,ASJL_fromdisk,
+     &     AIJ_fromdisk,AJK_fromdisk,
+     &     SPECA_fromdisk,ADIURN_fromdisk,
+     &     AISCCP_fromdisk,TSFREZ_fromdisk,
+     &     TDIURN_fromdisk,OA_fromdisk
+      REAL*8, dimension(:,:,:), public, pointer ::
+     &     AJ_ioptr,AREGJ_ioptr,
+     &     AJL_ioptr,ASJL_ioptr,
+     &     AIJ_ioptr,AJK_ioptr,
+     &     SPECA_ioptr,ADIURN_ioptr,
+     &     AISCCP_ioptr,TSFREZ_ioptr,
+     &     TDIURN_ioptr,OA_ioptr
+      REAL*8, dimension(:,:), public, target, allocatable ::
+     &     ENERGY_fromdisk,CONSRV_fromdisk,ATPE_fromdisk
+      REAL*8, dimension(:,:), public, pointer ::
+     &     ENERGY_ioptr,CONSRV_ioptr,ATPE_ioptr
+      REAL*8, dimension(:,:,:,:), public, target, allocatable ::
+     &     WAVE_fromdisk,AIJK_fromdisk,AIL_fromdisk
+      REAL*8, dimension(:,:,:,:), public, pointer ::
+     &     WAVE_ioptr,AIJK_ioptr,AIL_ioptr
+#ifndef NO_HDIURN
+      REAL*8, public, target, allocatable ::  HDIURN_fromdisk(:,:,:)
+      REAL*8, public, pointer ::  HDIURN_ioptr(:,:,:)
+#endif
+#endif
+
       END MODULE DIAG_COM
 
       SUBROUTINE ALLOC_DIAG_COM(grid)

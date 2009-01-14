@@ -77,6 +77,30 @@ C****
 !@var TLNST strait diagnostics
       REAL*8, DIMENSION(LMO,NMST,KOLNST,NTM):: TLNST
 #endif
+
+#ifdef NEW_IO
+c declarations that facilitate summation of acc-files when using
+c the new i/o system
+      target :: oij_loc,oijl_loc,ol,olnst
+      real*8, dimension(:,:,:), target, allocatable ::
+     &     oij_fromdisk
+      real*8, dimension(:,:,:,:), target, allocatable ::
+     &     oijl_fromdisk
+      real*8, DIMENSION(LMO,KOL), target :: OL_fromdisk
+      real*8, DIMENSION(LMO,NMST,KOLNST), target :: OLNST_fromdisk
+      real*8, dimension(:,:), pointer :: ol_ioptr
+      real*8, dimension(:,:,:), pointer :: oij_ioptr,olnst_ioptr
+      real*8, dimension(:,:,:,:), pointer :: oijl_ioptr
+#ifdef TRACERS_OCEAN
+      target :: toijl_loc,tlnst
+      real*8, dimension(:,:,:,:,:), target, allocatable ::
+     &     toijl_fromdisk
+      real*8, DIMENSION(LMO,NMST,KOLNST,NTM), target:: TLNST_fromdisk
+      real*8, dimension(:,:,:,:,:), pointer :: toijl_ioptr
+      real*8, dimension(:,:,:,:), pointer :: tlnst_ioptr
+#endif
+#endif
+
       END MODULE ODIAG
 
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
