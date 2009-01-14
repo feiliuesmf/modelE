@@ -127,6 +127,7 @@
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITE_PARALLEL
       PUBLIC :: WRITEI_PARALLEL
+      PUBLIC :: WRITEI8_PARALLEL
       PUBLIC :: TRANSP
       PUBLIC :: TRANSPOSE_COLUMN
 !@var GLOBALMIN Generic wrapper for Real
@@ -268,6 +269,10 @@ c        MODULE PROCEDURE SUMXPE_5D
 
       interface WRITEI_PARALLEL
         module procedure WRITEI_PARALLEL_2D
+      end interface
+
+      interface WRITEI8_PARALLEL
+        module procedure WRITEI8_PARALLEL_3D
       end interface
 
 
@@ -2688,6 +2693,38 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       end if
 
       END SUBROUTINE WRITEI_PARALLEL_2D
+
+      SUBROUTINE WRITEI8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf,it)
+!@sum WRITEI8_PARALLEL  Parallel version of UTILDBL.f:WRITEI8 for (im,jm,:) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
+      INTEGER,      INTENT(IN)  :: it       !@var  it iteration
+      REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3))
+      INTEGER :: IERR
+
+#ifdef USE_MPI
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
+#else
+      buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
+     &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
+#endif
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE WRITEI8_PARALLEL_3D
 
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)

@@ -4,13 +4,14 @@ CAOO   Just to test CVS
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  1.0 (Based originally on B399)
-      USE FILEMANAGER, only : openunit,closeunit
+      USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
       USE PARSER
       USE MODEL_COM
       USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
+      use domain_decomp, only : writei8_parallel
 #ifdef CUBE_GRID
       USE regrid_com, only : x_2grids,isd,jsd,ied,jed,gid
       use dd2d_utils
@@ -80,7 +81,7 @@ c$$$      USE MODEL_COM, only: clock
       character(len=80) :: filenm
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-      REAL*8 DTIME,TOTALT , oa_glob(im,jm,koa)
+      REAL*8 DTIME,TOTALT
 
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
@@ -671,9 +672,10 @@ C****
       IF (Kvflxo.EQ.0.) OA(:,:,4:KOA)=0. ! to prepare for future saves
       IF (Kvflxo.NE.0.) THEN
          IF (MOD(Itime,NDAY).eq.0) THEN
-            call pack_data (grid, OA, OA_glob)
-            if (am_I_root())
-     *         call WRITEI8 (iu_vflxo,Itime,OA_glob,im*jm*koa)
+c            call pack_data (grid, OA, OA_glob)
+c            if (am_I_root()) call WRITEI8 (iu_vflxo,Itime,OA_glob,im*jm*koa)
+           call writei8_parallel(grid,iu_vflxo,
+     &          nameunit(iu_vflxo),oa,Itime)
 C**** ZERO OUT INTEGRATED QUANTITIES
             OA(:,:,4:KOA)=0.
          ELSEIF (MOD(Itime,NDAY/2).eq.0) THEN
