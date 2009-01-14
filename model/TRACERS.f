@@ -545,7 +545,9 @@ C****
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
       integer, intent(in) :: n,ns
-      real*8 fr3d,taijsum(im,grid%j_strt_halo:grid%j_stop_halo,lm)
+      real*8 fr3d,taijsum(grid%i_strt_halo:grid%i_stop_halo,
+     &                    grid%j_strt_halo:grid%j_stop_halo,lm)
+
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1, I_0, I_1
@@ -645,7 +647,8 @@ C****
       USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
-      real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
+      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       logical, save :: ifirst=.true.
       integer n,najl,j,l,i
       integer :: J_0, J_1, I_0, I_1
@@ -731,7 +734,8 @@ C****
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
      *     ,vgs,tr_radius,tr_dens
-      real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
+      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
       integer n,najl,i,j,l
       integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
@@ -873,7 +877,8 @@ C****
       USE DOMAIN_DECOMP, only : READT_PARALLEL, REWIND_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
       real*8 :: frac
       integer imon,iu,jdlast
@@ -1608,7 +1613,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       character(len=300) :: out_line
       logical,dimension(ntm,ntsurfsrcmax) :: ifirst2=.true.
       real*8 :: alpha
-      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      & sfc_a,sfc_b
       
       save ifirst2
@@ -1828,13 +1834,15 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       implicit none
 
-      real*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
       real*8 :: frac,alpha
       integer ::  imon,iu,n,ns,ipos,k,nn
       character*80 :: junk
       character(len=300) :: out_line
-      real*8, dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      & sfc_a,sfc_b
 
       integer :: J_0, J_1

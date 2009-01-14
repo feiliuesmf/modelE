@@ -8483,7 +8483,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       REAL*8 :: trinit =1., tmominit=0.
       real*8 tracerTs
 
-      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                    ic14CO2
       REAL*4, DIMENSION(im,jm,lm) ::  CO2ic   !each proc. reads global array
       REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
@@ -8523,12 +8524,15 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
     (defined TRACERS_AMP)
       integer start(3),count(3),status,ncidu,id1
       REAL*8 dmsconc
-      real*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      * bci_src1,bci_src2,bci_src3,bci_src4
      * ,oci_src1,oci_src2,oci_src3,oci_src4
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,8) ::
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,8) ::
      *  OCI_src5
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *  volc_exp
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll
       INTEGER iuc2

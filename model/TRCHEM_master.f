@@ -148,7 +148,8 @@ C Some variables defined especially for MPI compliance :         C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       real*8, dimension(5,LM,IM,JM) :: rad_to_file_glob
       real*8, dimension(LM,IM,JM)   :: ss27_glob
-      real*8 :: ss27(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*8 :: ss27(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(JM)         :: DU_O3_glob
 #ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(JM,LM)      :: photO2_glob

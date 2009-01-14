@@ -151,7 +151,8 @@ cc      USE TRDIAG_COM, only : jls_3Dsource
       implicit none
       integer i,j,l,lr,n,ns,najl,nsc
       real*8, parameter :: by7=1./7.d0
-      real*8 told(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
+      real*8 told(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &            GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
       real*8 f0l,f1l,f2l,g0l,g1l,g2l,t0l,t1l,t2l,facbb
 
       INTEGER :: J_1, J_0, I_0, I_1
@@ -630,8 +631,10 @@ cXXXXX DSOL NOT USED XXXXX
       USE LINOZ_CHEM_COM, only: tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
       implicit none
-      real*8 dcolo3(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
-     &  colo3(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
+     &     dcolo3,colo3
+      real*8
      &  dero3,scalmom,pmltot,dertmp,dtmp,derco3,dco3,sso3,
      &  climo3,climpml,dersol
       real*8 dmass,T0Mold
@@ -921,7 +924,7 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0H, I_1H
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -945,7 +948,10 @@ C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
          CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-         Allocate(tlca(im,j_0H:j_1H,nmons),tlcb(im,j_0H:j_1H,nmons))
+         I_0H=GRID%I_STRT_HALO
+         I_1H=GRID%I_STOP_HALO
+         Allocate(tlca(i_0H:i_1H,j_0H:j_1H,nmons))
+         Allocate(tlcb(i_0H:i_1H,j_0H:j_1H,nmons))
         k = 0
         call openunit(ann_files,ann_units,ann_bins)
         do iu = 1,nanns-3
@@ -1037,7 +1043,7 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      integer :: J_0, J_1
+      integer :: J_0, J_1, J_0H, J_1H, I_0H, I_1H
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
@@ -1049,8 +1055,12 @@ C**** Annual sources are in KG C/M2/Y
 C**** Sources need to be kg/m^2 s; convert /year to /s
 C****
       if (ifirst) then
-        Allocate(tlca(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons),
-     &           tlcb(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,nmons))
+        I_0H=GRID%I_STRT_HALO
+        I_1H=GRID%I_STOP_HALO
+        J_0H=GRID%J_STRT_HALO
+        J_1H=GRID%J_STOP_HALO
+        Allocate(tlca(i_0H:i_1H,j_0H:j_1H,nmons))
+        Allocate(tlcb(i_0H:i_1H,j_0H:j_1H,nmons))
         call openunit(ann_files,ann_units,ann_bins)
         k = 0
         do iu = 1,nanns
@@ -1103,7 +1113,8 @@ C****
       REAL*4 CO2W(37,0:30)
       real*8 p(0:60)
       real*8 CO2JK(GRID%J_STRT_HALO:GRID%J_STOP_HALO,0:kmwco2)
-      real*8 CO2IJL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      real*8 CO2IJL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &              GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       CHARACTER*80 TITLE
       integer i,j,jw,k,l,n,iu_in,iu_out
       real*8 pup,cup,pdn,cdn,psum,csum,psurf,ptrop,w,zk !,stratm
