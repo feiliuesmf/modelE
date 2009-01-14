@@ -591,20 +591,6 @@ C****
 
       CALL GET( grid,  J_STRT_HALO = J_0H,  J_STOP_HALO = J_1H )
 
-      ALLOCATE ( taijln4(IM,JM,LM,ntm), stat=status )
-      ALLOCATE ( taijn4(IM,JM,ktaij,ntm), stat=status )
-      ALLOCATE ( TAIJS4(IM,JM,ktaijs), stat=status )
-      ALLOCATE ( TAJLN4(JM,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS4(JM,LM,ktajls), stat=status )
-      ALLOCATE ( TCONSRV4(JM,ktcon,ntmxcon), stat=status )
-
-      ALLOCATE ( TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
-      ALLOCATE ( TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
-      ALLOCATE ( TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
-      ALLOCATE ( TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
-
       write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
      *   'R8 TACC(',ktacc,'),it'
 
@@ -632,6 +618,24 @@ C***  PACK distributed arrays into global ones in preparation for output
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! accumulate diagnostic files
+          if(am_i_root()) then
+            ALLOCATE (taijln4(IM,JM,LM,ntm), stat=status )
+            ALLOCATE (taijn4(IM,JM,ktaij,ntm), stat=status )
+            ALLOCATE (TAIJS4(IM,JM,ktaijs), stat=status )
+            ALLOCATE (TAJLN4(JM,LM,ktajlx,ntm), stat=status )
+            ALLOCATE (TAJLS4(JM,LM,ktajls), stat=status )
+            ALLOCATE (TCONSRV4(JM,ktcon,ntmxcon), stat=status )
+          else ! allocate to nonzero size to be safe
+            ALLOCATE(taijln4(1,1,1,1),taijn4(1,1,1,1),
+     &           TAIJS4(1,1,1),TAJLN4(1,1,1,1),TAJLS4(1,1,1),
+     &           TCONSRV4(1,1,1))
+          endif
+          ALLOCATE (TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
+          ALLOCATE (TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
+          ALLOCATE (TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+          ALLOCATE (TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm),stat=status)
+          ALLOCATE (TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ),stat=status)
+          ALLOCATE (TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon),stat=status)
           if ( AM_I_ROOT() ) then
             READ (kunit,err=10) HEADER,
      *         TAIJLN4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4,it_check
@@ -661,6 +665,21 @@ C****     Accumulate diagnostics (converted back to real*8)
           TAJLN_loc =   TAJLN_loc+TAJLN4_loc(J_0H:J_1H,:,:,:)
           TAJLS_loc  =  TAJLS_loc+TAJLS4_loc(J_0H:J_1H,:,:)
           TCONSRV_loc = TCONSRV_loc+TCONSRV4_loc(J_0H:J_1H,:,:)
+
+          DEALLOCATE ( taijln4 )
+          DEALLOCATE ( taijn4 )
+          DEALLOCATE ( TAIJS4 )
+          DEALLOCATE ( TAJLN4 )
+          DEALLOCATE ( TAJLS4 )
+          DEALLOCATE ( TCONSRV4 )
+
+          DEALLOCATE ( TAIJLN4_loc )
+          DEALLOCATE ( TAIJN4_loc )
+          DEALLOCATE ( TAIJS4_loc )
+          DEALLOCATE ( TAJLN4_loc )
+          DEALLOCATE ( TAJLS4_loc )
+          DEALLOCATE ( TCONSRV4_loc )
+
 !         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
 !           PRINT*,"Discrepancy in module version ",HEADER
 !    *           ,MODULE_HEADER
@@ -688,20 +707,6 @@ C*** Unpack read global data into local distributed arrays
         END SELECT
       END SELECT
 
-      DEALLOCATE ( taijln4 )
-      DEALLOCATE ( taijn4 )
-      DEALLOCATE ( TAIJS4 )
-      DEALLOCATE ( TAJLN4 )
-      DEALLOCATE ( TAJLS4 )
-      DEALLOCATE ( TCONSRV4 )
-
-      DEALLOCATE ( TAIJLN4_loc )
-      DEALLOCATE ( TAIJN4_loc )
-      DEALLOCATE ( TAIJS4_loc )
-      DEALLOCATE ( TAJLN4_loc )
-      DEALLOCATE ( TAJLS4_loc )
-      DEALLOCATE ( TCONSRV4_loc )
-
       RETURN
  10   IOERR=1
       RETURN
@@ -710,7 +715,7 @@ C*** Unpack read global data into local distributed arrays
 
       SUBROUTINE ALLOC_TRDIAG_COM
       USE TRDIAG_COM
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
       INTEGER :: J_0H,J_1H
       INTEGER :: status
 
@@ -723,18 +728,18 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAJLN_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
-
-      ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
-      ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
-      ALLOCATE ( TAIJS( IM,JM,ktaijs   ), stat=status )
-      ALLOCATE ( TAJLN(    JM,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS(    JM,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV(  JM,ktcon,ntmxcon), stat=status )
 #ifdef TRACERS_DRYDEP
       ALLOCATE (dtr_dd(J_0H:J_1H,Ntm,2),stat=status)
 #endif
+      if(am_i_root()) then
+        ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
+        ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
+        ALLOCATE ( TAIJS( IM,JM,ktaijs   ), stat=status )
+        ALLOCATE ( TAJLN(    JM,LM,ktajlx,ntm), stat=status )
+        ALLOCATE ( TAJLS(    JM,LM,ktajls    ), stat=status )
+        ALLOCATE ( TCONSRV(  JM,ktcon,ntmxcon), stat=status )
+      endif
 #endif
-
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM
 
