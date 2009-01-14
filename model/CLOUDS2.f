@@ -527,7 +527,7 @@ c for sulfur chemistry
 !@var WORK work done on convective plume
 !@var MC1 true for the first convective event
 !@var RFMC1 true for ???
-      LOGICAL MC1, RFMC1 
+      LOGICAL MC1, RFMC1
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
 !@param RHOG,RHOIP density of graupel and ice particles
@@ -546,7 +546,7 @@ C     REAL*8 RHO   ! air density
 #endif
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
       INTEGER,  PARAMETER :: ITMAX=50,ITMAX1=2
-      REAL*8, PARAMETER :: FITMAX=1d0/ITMAX, FITMAX1=1d0/ITMAX1 
+      REAL*8, PARAMETER :: FITMAX=1d0/ITMAX, FITMAX1=1d0/ITMAX1
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
 !@var WV convective vertical velocity
@@ -809,7 +809,7 @@ C**** Initialise plume characteristics
         FCTYPE=1.
         IF(MPLUME.GT.FMP0) FCTYPE=FMP0/MPLUME
         IF(IC.EQ.2) FCTYPE=1.-FCTYPE
-        IF(FCTYPE.LT.0.001) CYCLE 
+        IF(FCTYPE.LT.0.001) CYCLE
       END IF
       MPLUM1=MPLUME
 
@@ -844,7 +844,7 @@ C**** guard against possibility of too big a plume
       END IF
 
       DO L=1,LM
-        COND(L)=0.    ;    CDHEAT(L)=0. !;  VLAT(L)=LHE 
+        COND(L)=0.    ;    CDHEAT(L)=0. !;  VLAT(L)=LHE
         CONDP(L)=0.   ;  CONDP1(L)=0. ;    CONDGP(L)=0.
         CONDIP(L)=0.  ;  CONDV(L)=0.  ;    HEAT1(L)=0.
         DM(L)=0.      ;  DMR(L)=0.    ;    DDR(L)=0.
@@ -868,7 +868,7 @@ C**** guard against possibility of too big a plume
 #ifdef TRACERS_ON
       DTM(:,1:NTX) = 0.   ;   DTMOM(:,:,1:NTX) = 0.
       DTMR(:,1:NTX) = 0.  ;  DTMOMR(:,:,1:NTX) = 0.
-      TMDNL(:,1:NTX) = 0.  ;  TMOMDNL(:,:,1:NTX) = 0. 
+      TMDNL(:,1:NTX) = 0.  ;  TMOMDNL(:,:,1:NTX) = 0.
       TPOLD = 0.
 #endif
 #ifdef TRACERS_WATER
@@ -1312,7 +1312,7 @@ C     IF(SMIX.GE.SUP) CDHDRT=CDHDRT+CDHEAT(L)
 C     IF(SMIX.GE.SUP) GO TO 291     ! the mixture is buoyant
       LDRAFT=L                      ! the highest downdraft level
       ETADN=BY3    ! .20d0 ! reduce ETADN to improve computational stability
-      
+
 C**** To test with code with no downdrafts, set etadn=0. here
 C**** etadn=0.  ! test
 
@@ -1494,7 +1494,7 @@ C**** convert condp to the same units as cond
       CONDP1(L)=.01d0*CONDP1(L)*CCM(L-1)*TL(L)*RGAS/PL(L)
 
 C**** To test code with no precipitation from deep convection
-C**** set CONDP(L)=0. here. 
+C**** set CONDP(L)=0. here.
 C**** To test code with no vertical advection of condensate
 C**** set CONDP1(L)=COND(L) here.
 
@@ -1608,7 +1608,7 @@ C****
       LLMIN=LDMIN
       EDRAFT=0.
 
-      IF(ETADN.GT.1d-10) THEN ! downdraft possible 
+      IF(ETADN.GT.1d-10) THEN ! downdraft possible
       DDRAFT=DDR(LDRAFT)
       DDROLD=DDRAFT
       SMDN=SMDNL(LDRAFT)
@@ -1770,7 +1770,7 @@ C**** ALLOW FOR DOWNDRAFT TO DROP BELOW LMIN, IF IT'S NEGATIVELY BUOYANT
         SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
         SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1))
         IF (L.LE.LMIN.AND.SVMIX.GE.SVM1) EXIT
-        DDM(L-1)=DDRAFT     
+        DDM(L-1)=DDRAFT
         DDROLD=DDRAFT
         DDRAFT=DDRAFT+DDR(L-1)    ! add in downdraft one layer below
         SMDN=SMDN+SMDNL(L-1)
@@ -2012,9 +2012,9 @@ C**** check whether environment is the same phase as cond
       TOLD=SMOLD(LMAX)*PLK(LMAX)*BYAM(LMAX)
       lhp(lmax)=lhe
       if (TOLD.le.TF) lhp(lmax)=lhs
- 
+
 C**** adjust phase of precip to that of environment
-      if ((TOLD.gt.TF .and. vlat(Lmax).eq.lhs) .or. (TOLD.LE.TF .and. 
+      if ((TOLD.gt.TF .and. vlat(Lmax).eq.lhs) .or. (TOLD.LE.TF .and.
      *     vlat(lmax).eq.lhe)) then
         FSSUM = 0
         IF (ABS(PLK(LMAX)*SM(LMAX)).gt.teeny .and. ((lhp(lmax)-vlat(lmax
@@ -2031,7 +2031,7 @@ c     *     = -heat1(lmax)/(PLK(LMAX)*SM(LMAX))
 c      SM(LMAX)=SM(LMAX)-heat1(lmax)/PLK(LMAX)
 c      SMOM(:,LMAX) =  SMOM(:,LMAX)*(1.-FSSUM)
 
- 
+
 #ifdef TRACERS_WATER
 C**** Tracer precipitation
 C Note that all of the tracers that condensed do not precipitate here,
@@ -2133,7 +2133,7 @@ C**** set phase of precip based on local environment temperature
       FPRCP=0.
       SLH=LHX*BYSHA
 
-      IF (PRCP.GT.0.) THEN 
+      IF (PRCP.GT.0.) THEN
 
       if (mcloud.gt.0) call get_dq_evap(smold(l),qmold(l),plk(l),airm(l)
      *     ,lhx,pl(l),prcp*AIRM(L)/MCLOUD,dqsum,fprcp)
@@ -2141,7 +2141,7 @@ C**** set phase of precip based on local environment temperature
 
       PRCP=PRCP-DQSUM
       QM(L)=QM(L)+DQSUM
- 
+
       END IF
 
 C**** UPDATE TEMPERATURE DUE TO NET REEVAPORATION IN CLOUDS
@@ -2361,7 +2361,7 @@ C**** CALCULATE OPTICAL THICKNESS
       WMSUM=0.
 #ifdef CLD_AER_CDNC
       WMCLWP=0.  ; WMCTWP=0. ; ACDNWM=0. ; ACDNIM=0.
-      AREWM=0.   ; AREIM=0.  ; ALWWM=0.  ; ALWIM=0.  
+      AREWM=0.   ; AREIM=0.  ; ALWWM=0.  ; ALWIM=0.
       NMCW=0     ; NMCI=0
 #endif
       DO L=1,LMCMAX
@@ -2379,7 +2379,7 @@ C**** CALCULATE OPTICAL THICKNESS
           IF(L.LE.LMCMIN .AND. PLE(LMCMIN)-PLE(LMCMAX+1).GE.450.)
      *         TAUMCL(L)=AIRM(L)*.02d0
         END IF
-        IF(SVLATL(L).EQ.0.) THEN   
+        IF(SVLATL(L).EQ.0.) THEN
           SVLATL(L)=LHE
           IF ( (TPSAV(L).gt.0. .and. TPSAV(L).LT.TF) .or.
      *         (TPSAV(L).eq.0. .and. TL(L).lt.TF) ) SVLATL(L)=LHS
@@ -2448,7 +2448,7 @@ c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
           IF(PL(L).LT.850.d0) U00L(L)=0.
         END DO
       END IF
-      
+
       RETURN
       END SUBROUTINE MSTCNV
 
@@ -3773,6 +3773,13 @@ C**** CALCULATE OPTICAL THICKNESS
             CLDSSL(L)=MIN(CLDSSL(L)**(2.*BY3),FSSL(L))
             TAUSSL(L)=TAUSSL(L)*CLDSV1(L)**BY3
           END IF
+        END IF
+        IF(TAUSSL(L).LT.0.) THEN
+          WRITE(6,*) 'negative TAUSS CLDSS WMX I J L=',TAUSSL(L),
+     *      CLDSSL(L),WMX(L),i_debug,j_debug,L
+          TAUSSL(L)=0.
+          CLDSSL(L)=0.
+          WMX(L)=0.
         END IF
       END DO
 
@@ -5276,7 +5283,7 @@ c      end if
       USE CONSTANT, only : bysha
       IMPLICIT NONE
 !@var SM,QM heat and water content
-      REAL*8, INTENT(IN) :: sm,qm  
+      REAL*8, INTENT(IN) :: sm,qm
 !@var MASS air mass
 !@var PLK P**K for mid point
 !@var LHX relevant latent heat
@@ -5307,7 +5314,7 @@ C**** condensing (DQSUM > 0)
       END IF
 
       return
-      end subroutine get_dq_cond 
+      end subroutine get_dq_cond
 
       subroutine get_dq_evap(sm,qm,plk,mass,lhx,pl,cond,   ! input
      *                       dqsum,fevp) ! output
@@ -5320,7 +5327,7 @@ C**** condensing (DQSUM > 0)
 !@var PLK P**K for mid point
 !@var LHX relevant latent heat
 !@var PL mid point pressure
-!@var COND amount of condensate 
+!@var COND amount of condensate
       REAL*8, INTENT(IN) :: plk,mass,lhx,pl,cond
 !@var DQSUM amount of water change (+ve is evaporation)
 !@var FEVP fractional amount of condensate that evaporates
@@ -5341,12 +5348,12 @@ C**** condensing (DQSUM > 0)
           QMT=QMT-DQ
           DQSUM=DQSUM-DQ
         END DO
-C**** evaporating (DQSUM < 0)
+C**** evaporating (DQ < 0, DQSUM > 0)
         DQSUM=MAX(0d0,MIN(DQSUM,COND))
         FEVP=DQSUM/COND
       END IF
 
       return
-      end subroutine get_dq_evap 
+      end subroutine get_dq_evap
 
 
