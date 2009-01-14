@@ -1150,7 +1150,8 @@ C****
       INTEGER, DIMENSION(ktmax) :: nt,ijtype,Iord,irange,iacc
       CHARACTER, DIMENSION(ktmax) :: lname*80,name*30,units*30
       REAL*8, DIMENSION(ktmax) :: scale
-      REAL*8, DIMENSION(IM,JM,ktmax) :: aij1,aij2
+c      REAL*8, DIMENSION(IM,JM,ktmax) :: aij1,aij2
+      REAL*8, DIMENSION(:,:,:), allocatable :: aij1,aij2
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       CHARACTER xlb*32,title*48
@@ -1161,6 +1162,8 @@ C****
       REAL*8 :: DAYS,gm
 
       if (kdiag(8).ge.1) return
+
+      allocate(aij1(IM,JM,ktmax),aij2(IM,JM,ktmax))
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG)call open_ij(trim(acc_period)//'.ijt'//XLABEL(1:LRUNID)
      *     ,im,jm)
@@ -1517,7 +1520,11 @@ c**** copy virtual half-page to paper if appropriate
         end if
       end do
 
-      if (.not.qdiag) RETURN
+      if (.not.qdiag) then
+        deallocate(aij1,aij2)
+        RETURN
+      endif
+
 C**** produce binary files of remaining fields if appropriate
       do n=1,ktmax
         if (Qk(n)) then
@@ -1531,6 +1538,7 @@ C**** produce binary files of remaining fields if appropriate
       end do
       if(qdiag) call close_ij
 
+      deallocate(aij1,aij2)
       RETURN
 C****
   902 FORMAT ('0',15X,'From:',I6,A6,I2,',  Hr',I3,
