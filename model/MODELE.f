@@ -212,10 +212,12 @@ c        print *,sname,'Before:im,jm        = ',im,jm
       CALL INPUT (istart,ifile)
 #endif
 
-#ifndef ADIABATIC
+#if !defined(ADIABATIC) || defined( CUBE_GRID)
 
+#ifndef CUBE_GRID
 C**** Set run_status to "run in progress"
       if(istart > 0) call write_run_status("Run in progress...",1)
+#endif
 
 C****
 C**** If run is already done, just produce diagnostic printout
@@ -331,6 +333,9 @@ C**** write restart information alternately onto 2 disk files
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
          call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+#ifdef CUBE_GRID
+         call stop_model("AFTER io_rsf()",255)
+#endif
 #ifdef USE_FVCORE
          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
@@ -1999,9 +2004,8 @@ C****  KOCEAN = 0 => RSI/MSI factor
 
       CALL init_OCEAN(iniOCEAN,istart)
 C**** Initialize ice dynamics code (if required)
-#ifndef CUBE_GRID
       CALL init_icedyn(iniOCEAN)
-
+#ifndef CUBE_GRID
 C**** Initialize land ice (must come after oceans)
 
       CALL init_LI(istart)

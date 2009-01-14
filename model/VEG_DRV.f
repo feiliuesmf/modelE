@@ -145,10 +145,8 @@ c**** check whether ground hydrology data exist at this point.
             write(6,*) 'Vegetation data is missing at some pts'
             write(6,*) 'If you have a non-standard land mask, please'
             write(6,*) 'consider using extended GH data and rfs file.'
-#ifndef CUBE_GRID
             call stop_model(
      &           'Vegetation data is missing at some cells',255)
-#endif
          end if
       endif
 

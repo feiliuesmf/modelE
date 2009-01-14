@@ -3,28 +3,30 @@
       use dd2d_utils
       implicit none
       type (dd2d_grid), intent(in) :: dd2d
-      type (x_2gridsroot) :: xll2cs
+      type (x_2gridsroot) :: xll72X46C32,xll144X90C32
 
-      call init_regrid_root(xll2cs,72,46,1,48,48,6)
+      call init_regrid_root(xll72X46C32,72,46,1,32,32,6)
+c      call init_regrid_root(xll144X90C32,72,46,1,32,32,6)
 c      call init_regrid_root(xll2cs,360,180,1,48,48,6)
-c      call init_regrid_root(xll2cs,144,90,1,48,48,6)
+c      call init_regrid_root(xll72X46C32,144,90,1,48,48,6)
 
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
       if (AM_I_ROOT()) then
-c         call regridTOPO(xll2cs)
-c         call regridOSST(xll2cs)
-c         call regridSICE(xll2cs)
-c         call regridCDN(xll2cs)
-         call regridVEG(xll2cs)
-c         call regridRVR(xll2cs) ! empty for the moment
-c         call regridCROPS(xll2cs)
-c         call regridTOPINDEX(xll2cs)
-c         call regridSOIL(xll2cs)
+c         call regridTOPO(xll72X46C32)
+c         call regridOSST(xll72X46C32)
+c         call regridSICE(xll72X46C32)
+c         call regridCDN(xll72X46C32)
+c         call regridVEG(xll72X46C32)
+c         call regridRVR(xll72X46C32) ! empty for the moment
+c         call regridCROPS(xll72X46C32)
+c         call regridTOPINDEX(xll72X46C32)
+c         call regridSOIL(xll72X46C32)
 ccc   Then regrid Initial Condition 
       endif
-c         call regridGIC(xll2cs,dd2d)
-c         call regridAIC(xll2cs)
+c         call regridGIC(xll144X90C32,dd2d)
+         call regridAIC(xll72X46C32)
+
       end subroutine regrid_input
 c*
 
@@ -33,7 +35,6 @@ c*
 c
 c     for 1x1 resolution : Jeff posted Z1X1N and Z1X1N_MODELE on Discover
 c
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
       include 'netcdf.inc'
@@ -140,7 +141,6 @@ c     for 1x1 resolution :  Gary on Athena clima1/OBS/AMIP/1x1
 c     Also SST1x1_HadISST from Hadley (Jeff Jonas) - check if this  
 c     has been interpolated from lower resolution 
 
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -169,7 +169,6 @@ c     Also ICE_1x1_HadISST from Hadley (Jeff Jonas) - check if this
 c     has been interpolated from lower resolution 
 c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
 
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -257,7 +256,7 @@ c         write(unit=iuout) TITLE2(ir),tout1(:,:,:),tout2(:,:,:)
 
       subroutine regridCDN(x2grids)
 c     for 1x1 resolution: Jeff uses CDN=AL30RL360X180N.rep
-      USE FILEMANAGER, only : openunit,closeunit
+
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -288,8 +287,9 @@ c	was just transfered to 360X180 grid without any change)
       name="V72X46.1.cor2_no_crops.ext"
 
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
+c     &     convert='big_endian')
 
-      call read_regrid_write_4D_1R_rmax(x2grids,name,iu_VEG,10)
+      call read_regrid_write_veg(x2grids,name,iu_VEG)
            
       close(iu_VEG)
       
@@ -299,7 +299,7 @@ c*
 
       subroutine regridRVR(x2grids)
 c	empty for the moment
-      USE FILEMANAGER, only : openunit,closeunit
+
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(inout) :: x2grids
@@ -339,7 +339,6 @@ c     include those cells in the regridding computations.
 c     Alternatively you can use top_index_360x180.ij.rep which is 
 c     direct transfer from top_index_144x90.ij.ext 
 
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -467,10 +466,6 @@ c     &     convert='big_endian')
       inds=inds+30
       bigarrout(:,:,inds+1,:)=slout(:,:,:)
 
-      write(*,*) "last index soil =",inds+1
-
-      write(*,*) "bigarrout=",bigarrout
-
       write(unit=iuout) bigarrout
       
       close(iuout)
@@ -485,7 +480,6 @@ c*
 c
 c     for 1x1 resolution: Jeff uses GIC=GIC.360X180.DEC01.1.rep
 c
-      USE FILEMANAGER, only : openunit,closeunit
       use DOMAIN_DECOMP,only : am_i_root
       use regrid_com
       use dd2d_utils
@@ -858,7 +852,6 @@ c*
 c
 c     for 1x1 resolution : Jeff uses AIC=AIC.RES_X40.D771201N.rep
 c
-      USE FILEMANAGER, only : openunit,closeunit
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -906,6 +899,37 @@ c      write(*,*) "DATA=",data
       close(iuin)
 
       end subroutine read_recs_1R
+c*
+
+      subroutine read_recs_1R_r4_r8(tsource,iuin,TITLE,maxrec,
+     *     im1,jm1,ntl)
+      use regrid_com
+      implicit none
+      integer i,j,k,irec
+      integer, intent(in) :: im1,jm1,ntl
+      real*8, intent(inout) :: tsource(im1,jm1,ntl,nrecmax)
+      real*4 :: ts4(im1,jm1,ntl,nrecmax)
+      integer, intent(in) :: iuin
+      character*80, intent(inout) :: TITLE(nrecmax)
+      integer, intent(out) :: maxrec
+
+      write(*,*) "iuin",iuin
+      irec=1
+
+      do
+         read(unit=iuin,END=30) TITLE(irec), ts4(:,:,:,irec)
+         tsource(:,:,:,irec)=ts4(:,:,:,irec)
+         write(*,*) "TITLE, irec",TITLE(irec),irec
+         irec=irec+1
+      enddo
+
+ 30   continue
+
+      maxrec=irec-1
+
+      close(iuin)
+
+      end subroutine read_recs_1R_r4_r8
 c*
 
 
@@ -1056,7 +1080,7 @@ c*
      &     ttargglob(imt,jmt,ntt) )
       tsource(:,:,:,:)=0.0
       
-      call read_recs_1R_r8(tsource,iuin,TITLE,
+      call read_recs_1R_r4_r8(tsource,iuin,TITLE,
      &        maxrec,ims,jms,nts)
       
       write(*,*) "maxrec",maxrec
@@ -1092,9 +1116,10 @@ c*
       integer, intent(in):: rmax
       integer :: iuout
       real*8, allocatable :: tsource(:,:,:,:)
-      real*8, allocatable :: ttargglob(:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:),arrsum(:,:,:)
       real*4, allocatable :: tout(:,:,:),data(:,:,:,:)
-      character*80 :: TITLE(nrecmax),outunformat
+      character*80, allocatable :: TITLE(:)
+      character*80 :: outunformat
       integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt
 
       ims=x2grids%imsource
@@ -1107,9 +1132,10 @@ c*
       write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
      &     ims,jms,nts,imt,jmt,ntt
       allocate (tsource(ims,jms,nts,nrecmax),
-     &     ttargglob(imt,jmt,ntt),
+     &     ttargglob(imt,jmt,ntt),arrsum(ims,jmt,ntt),
      &     tout(imt,jmt,ntt),
-     &     data(ims,jms,nts,nrecmax) )
+     &     data(ims,jms,nts,rmax),
+     &     TITLE(rmax))
       tsource(:,:,:,:)=0.0
       data(:,:,:,:)=0.0
       
@@ -1129,20 +1155,82 @@ c*
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
+c,
+c     &     convert='big_endian')
+
+      arrsum(:,:,:)=0.
 
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
+         arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
          tout(:,:,:)=ttargglob(:,:,:)
          write(unit=iuout) TITLE(ir),tout(:,:,:)
          write(*,*) "TITLE",TITLE(ir)
 c         write(*,*) "TOUT>>",tout,"<<<"
       enddo
 
+      write(*,*) "SUM ARRAY=",arrsum
+
+      close(iuout) 
+
+      deallocate(tsource,ttargglob,arrsum,tout,data,TITLE)
+
+      end subroutine read_regrid_write_4D_1R_rmax
+c*
+
+      subroutine read_regrid_write_veg(x2grids,name,iuin)
+      use regrid_com
+      implicit none
+      type(x_2gridsroot), intent(in) :: x2grids
+      character*80, intent(in) :: name
+      integer, intent(in) :: iuin
+      integer :: iuout
+      real*8, allocatable :: tsource(:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:)
+      real*4, allocatable :: tout(:,:,:),data(:,:,:)
+c      real*4 :: vadata(11,4,3)
+      character*80 :: TITLE
+      character*80 :: outunformat
+      integer :: ir,ims,jms,nts,imt,jmt,ntt
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+     &     ims,jms,nts,imt,jmt,ntt
+
+      allocate (tsource(ims,jms,nts),data(ims,jms,nts),
+     &     ttargglob(imt,jmt,ntt),tout(imt,jmt,ntt))
+c     arrsum(imt,jmt,ntt)
+     
+      
+      outunformat=trim(name)//".CS"
+      write(*,*) outunformat
+
+      iuout=20
+
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      do ir=1,10
+         read(unit=iuin) TITLE,data
+         write(*,*) "TITLE, ir",TITLE,ir
+         tsource= data
+         call root_regrid(x2grids,tsource,ttargglob)
+c         arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
+         tout=ttargglob
+         write(unit=iuout) TITLE,tout
+      enddo
+
       close(iuout) 
 
       deallocate(tsource,ttargglob,tout,data)
 
-      end subroutine read_regrid_write_4D_1R_rmax
+      end subroutine read_regrid_write_veg
 c*
 
 

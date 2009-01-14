@@ -13,12 +13,14 @@
       USE CONSTANT, only : rhows,rhoi,shw,by12,tf
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP, only : GRID, GET,
-     *                          DREAD_PARALLEL,
-     *                          MREAD_PARALLEL,
-     *                          READT_PARALLEL,
      *                          READ_PARALLEL,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
+#ifdef CUBE_GRID
+      use pario_fbsa, only : MREAD_PARALLEL,READT_PARALLEL
+#else
+      use domain_decomp, only : MREAD_PARALLEL,READT_PARALLEL
+#endif
       USE MODEL_COM, only : im,jm,lm,focean,fland,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
@@ -721,13 +723,9 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
 #ifdef CUBE_GRID
-      USE pario_fbsa, only :    DREAD_PARALLEL,
-     *                          MREAD_PARALLEL,
-     *                          READT_PARALLEL
+      USE pario_fbsa, only : MREAD_PARALLEL,READT_PARALLEL
 #else
-      USE DOMAIN_DECOMP, only : DREAD_PARALLEL,
-     *                          MREAD_PARALLEL,
-     *                          READT_PARALLEL
+      USE DOMAIN_DECOMP, only : MREAD_PARALLEL,READT_PARALLEL
 #endif        
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
      *     ,iyear1,ioreadnt,ioread,jmpery
