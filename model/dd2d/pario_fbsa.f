@@ -19,6 +19,10 @@
 !@+    BACKSPACE, REWIND, and SKIP are provided for
 !@+    plug compatibility with the DOMAIN_DECOMP module.
 !@+    
+!@+    A rarely-used OUTPUT interface is also provided:
+!@+    WRITEI8_PARALLEL: integer m, real*8 arr(im,jm,ntiles),   integer m
+!@+                or    integer m, real*8 arr(im,jm,:,ntiles), integer m
+!@+        
 !@+    Although intended for cubed sphere migration purposes, the
 !@+    routines in this module will also work for a single-tile
 !@+    latitude-longitude grid with 1D domain decomposition provided
@@ -28,7 +32,7 @@
       module pario_fbsa
       use filemanager, only : openunit,closeunit
       use domain_decomp, only : dist_grid,am_i_root,esmf_bcast
-      use dd2d_utils, only : unpack_data
+      use dd2d_utils, only : unpack_data, pack_data
       private
 
       public :: openunit,closeunit
@@ -39,6 +43,7 @@
       PUBLIC :: MREAD_PARALLEL
       PUBLIC :: READT_PARALLEL
       PUBLIC :: READ_PARALLEL
+      PUBLIC :: WRITEI8_PARALLEL
 
       INTERFACE DREAD_PARALLEL
         MODULE PROCEDURE DREAD_PARALLEL_2D
@@ -57,6 +62,10 @@
 
       interface READ_PARALLEL
          module procedure READ_PARALLEL_INTEGER_0
+      end interface
+
+      interface WRITEI8_PARALLEL
+        module procedure WRITEI8_PARALLEL_3D
       end interface
 
       contains
@@ -343,5 +352,37 @@ C****  convert from real*4 to real*8
       if(am_i_root()) read(unit) data_int
       CALL ESMF_BCAST(grd_dum, data_int)
       end subroutine read_parallel_integer_0
+
+      SUBROUTINE WRITEI8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf,it)
+!@sum WRITEI8_PARALLEL  Parallel version of UTILDBL.f:WRITEI8 for (im,jm,:) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      REAL*8,       INTENT(IN) :: buf(:,:,:)  !@var  buf real*8 array
+      INTEGER,      INTENT(IN)  :: it       !@var  it iteration
+      REAL*8, dimension(:,:,:,:), allocatable :: buf_glob
+      INTEGER :: IERR
+
+      if(am_i_root()) then
+        allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3),
+     &       grd_dum%dd2d%ntiles))
+      endif
+      call pack_data(grd_dum%dd2d,buf,buf_glob)
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
+        deallocate(buf_glob)
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('WRITEI8_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE WRITEI8_PARALLEL_3D
 
       end module pario_fbsa
