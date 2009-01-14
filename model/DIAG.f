@@ -2063,7 +2063,7 @@ C****
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
      *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
-      USE GEOM, only : imaxj,lonlat_to_ij
+      USE GEOM, only : axyp,imaxj,lonlat_to_ij
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
@@ -2076,6 +2076,7 @@ C****
       USE DIAG_COM, only : TF_DAY1, TF_LAST, TF_LKON, TF_LKOFF
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
+      USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
       USE diag_com,ONLY : adiurn_dust,adiurn_loc
 #ifndef NO_HDIURN
      &     ,hdiurn_loc
@@ -2084,7 +2085,8 @@ C****
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
-      USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL
+      USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL,
+     &     AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       integer, intent(in) :: istart,num_acc_files
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
@@ -2096,10 +2098,103 @@ C****
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
       character(len=80) :: filenm
+!@var iu_REG unit number for regions file
+      INTEGER iu_REG
+#ifdef CUBE_GRID
+C***  regions defined as rectangles 
+      integer, dimension(23) :: NRECT
+      character*4, dimension(23,6) :: CORLON,CORLAT 
+      real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners 
+      integer :: ireg,irect,icorlon,icorlat
+      real*8::lon,lat
+#else
+c dummy global array to read special-format regions file lacking a
+c a parallelized i/o routine that understands it
+      integer :: jreg_glob(im,jm)
+#endif
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     area_part
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
+
+
+C****   READ SPECIAL REGIONS
+#ifndef CUBE_GRID
+      call openunit("REG",iu_REG,.true.,.true.)
+      READ(iu_REG) TITREG,JREG_glob,NAMREG
+      jreg(i_0:i_1,j_0:j_1) = jreg_glob(i_0:i_1,j_0:j_1)
+#else
+c**** Regions are defined in reg.txt input file as union of rectangles
+c**** independant of resolution & grid type
+        
+      call openunit("REG",iu_REG,.false.,.true.)
+      READ(iu_REG,'(A80)') TITREG !read title
+      READ (iu_REG,'(I2)') (NRECT(I), I=1,23 ) !#of rectangles per region
+      READ (iu_REG,'(A4,1X,A4)') (NAMREG(1,I),NAMREG(2,I),I=1,23) !Read region name
+        
+c**** Read cordinates of rectangles
+c**** (NWcorner long, NW corner lat, SE corner long, SE corner lat)(1:23)
+c**** 0555 = no rectangle
+      READ (iu_REG,'(11(A4,1X),A4)') (      
+     &       CORLON(I,1),CORLAT(I,1),
+     &       CORLON(I,2),CORLAT(I,2),
+     &       CORLON(I,3),CORLAT(I,3),
+     &       CORLON(I,4),CORLAT(I,4),
+     &       CORLON(I,5),CORLAT(I,5),
+     &       CORLON(I,6),CORLAT(I,6), I=1,23)
+ 
+c**** Convert to integer
+      do i=1,23
+        do j=1,6
+          read(corlon(i,j),'(I4)') icorlon
+          dcorlon(i,j) =icorlon
+          read(corlat(i,j),'(I4)') icorlat
+          dcorlat(i,j) =icorlat
+        enddo
+      enddo
+
+      JREG(:,:)=24
+
+c**** determine which cell is inside a rectangular region
+      do j=j_0,j_1
+        do i=i_0,i_1
+          lon=360.*lon2d(i,j)/twopi-180.
+          lat=360.*lat2d(i,j)/twopi
+          do ireg=1,23
+            do irect=1,NRECT(ireg)
+              if ( (lat <= dcorlat(ireg,2*irect-1) )
+     &             .and.
+     &             (lat >= dcorlat(ireg,2*irect) )
+     &             .and.
+     &             (lon >= dcorlon(ireg,2*irect-1) )
+     &             .and.
+     &             (lon <= dcorlon(ireg,2*irect) ) ) then
+                JREG(i,j)=ireg
+              endif
+            enddo
+          enddo
+c              write(*,*) "i,j, jreg",i,j,jreg(i,j)
+        enddo
+      enddo
+#endif
+      IF (AM_I_ROOT()) then
+        WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
+      endif 
+      call closeunit(iu_REG)
+c
+c calculate the areas of the special regions
+c
+      do n=1,nreg
+        where(jreg(i_0:i_1,j_0:j_1).eq.n)
+          area_part(i_0:i_1,j_0:j_1) = axyp(i_0:i_1,j_0:j_1)
+        elsewhere
+          area_part(i_0:i_1,j_0:j_1) = 0d0
+        end where
+        call globalsum(grid,area_part,sarea_reg(n),all=.true.)
+      enddo
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)

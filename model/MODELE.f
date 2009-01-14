@@ -1055,9 +1055,8 @@ c      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and lin
       USE AERO_DIAM
       USE AMP_AEROSOL
 #endif
-      USE DIAG_COM, only : acc_period,monacc,jreg,titreg,namreg
+      USE DIAG_COM, only : acc_period,monacc
      &  ,hr_in_day,iwrite,jwrite,itwrite,kdiag,qdiag,qdiag_ratios,oa
-      USE GEOM,only : lat2d,lon2d
       USE PBLCOM
      &     , only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,ustar_pbl
      &  ,egcm,w2gcm,tgvavg,qgavg
@@ -1085,8 +1084,8 @@ c      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and lin
 #endif
       IMPLICIT NONE
       CHARACTER(*) :: ifile
-!@var iu_AIC,iu_TOPO,iu_REG unit numbers for input files
-      INTEGER iu_AIC,iu_TOPO,iu_REG,iu_IFILE
+!@var iu_AIC,iu_TOPO unit numbers for input files
+      INTEGER iu_AIC,iu_TOPO,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
       INTEGER I,J,L,K,LID1,LID2,ITYPE,IM1,NOFF,ioerr,num_acc_files
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
@@ -1113,16 +1112,6 @@ c      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and lin
       type (ESMF_Clock) :: clock
       integer :: minti,minte
       character(len=1) :: suffix
-#endif
-#ifdef CUBE_GRID
-C***  regions defined as rectangles 
-      integer, dimension(23) :: NRECT
-      character*4, dimension(23,6) :: CORLON,CORLAT 
-      real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners 
-      integer :: ireg,irect,icorlon,icorlat
-      real*8::lon,lat
-c***
-      integer :: fid,status
 #endif
       CHARACTER NLREC*80,filenm*100,RLABEL*132
       NAMELIST/INPUTZ/ ISTART,IRANDI
@@ -1883,70 +1872,6 @@ C**** READ IN TIME-INDEPENDENT ARRAYS
 C****
       if (Kradia.le.0) then   !  full model
         CALL CALC_AMPK(LM)
-
-C****   READ SPECIAL REGIONS FROM UNIT 29
-#ifndef CUBE_GRID
-        call openunit("REG",iu_REG,.true.,.true.)
-        READ(iu_REG) TITREG,JREG,NAMREG
-#else
-c**** Regions are defined in reg.txt input file as union of rectangles
-c**** independant of resolution & grid type
-        
-        call openunit("REG",iu_REG,.false.,.true.)
-        READ(iu_REG,'(A80)') TITREG !read title
-        READ (iu_REG,'(I2)') (NRECT(I), I=1,23 ) !#of rectangles per region
-        READ (iu_REG,'(A4,1X,A4)') (NAMREG(1,I),NAMREG(2,I),I=1,23) !Read region name
-        
-c**** Read cordinates of rectangles
-c**** (NWcorner long, NW corner lat, SE corner long, SE corner lat)(1:23)
-c**** 0555 = no rectangle
-        READ (iu_REG,'(11(A4,1X),A4)') (      
-     &       CORLON(I,1),CORLAT(I,1),
-     &       CORLON(I,2),CORLAT(I,2),
-     &       CORLON(I,3),CORLAT(I,3),
-     &       CORLON(I,4),CORLAT(I,4),
-     &       CORLON(I,5),CORLAT(I,5),
-     &       CORLON(I,6),CORLAT(I,6), I=1,23)
- 
-c**** Convert to integer
-        do i=1,23
-           do j=1,6
-              read(corlon(i,j),'(I4)') icorlon
-              dcorlon(i,j) =icorlon
-              read(corlat(i,j),'(I4)') icorlat
-              dcorlat(i,j) =icorlat
-           enddo
-        enddo
-
-c**** JREG is a global array visible from every proc.
-      JREG(:,:)=24
-
-c**** determine which cell is inside a rectangular region
-        do j=1,JM
-           do i=1,IM
-              lon=360.*lon2d(i,j)/twopi-180.
-              lat=360.*lat2d(i,j)/twopi
-              do ireg=1,23
-                 do irect=1,NRECT(ireg)
-                    if ( (lat <= dcorlat(ireg,2*irect-1) )
-     &                   .and.
-     &                   (lat >= dcorlat(ireg,2*irect) )
-     &                   .and.
-     &                   (lon >= dcorlon(ireg,2*irect-1) )
-     &                   .and.
-     &                   (lon <= dcorlon(ireg,2*irect) ) ) then
-                       JREG(i,j)=ireg
-                    endif
-                 enddo
-              enddo
-c              write(*,*) "i,j, jreg",i,j,jreg(i,j)
-           enddo
-        enddo
-#endif
-        IF (AM_I_ROOT()) then
-            WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
-        endif 
-        call closeunit(iu_REG)
       end if  ! full model: Kradia le 0
 
 C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA

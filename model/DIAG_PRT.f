@@ -870,12 +870,12 @@ c
      *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
      *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4,
-     *     ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt
+     *     ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt,
+     &     sarea=>sarea_reg
       USE BDJ
       IMPLICIT NONE
       REAL*8, DIMENSION(NREG,KAJ) :: AREG
       REAL*8, DIMENSION(JM), SAVE :: S1
-      REAL*8, DIMENSION(NREG), SAVE :: SAREA
       REAL*8, DIMENSION(JM) :: FLAT
       REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
       REAL*8, DIMENSION(2) :: FHEM
@@ -936,13 +936,8 @@ C**** weighting functions for surface types
         IFIRST=0
 C**** INITIALIZE CERTAIN QUANTITIES
         call j_titles
-        SAREA=0.
         DO J=1,JM
           S1(J)=IM
-          DO I=1,IM
-            JR=JREG(I,J)
-            SAREA(JR)=SAREA(JR)+DXYP(J)
-          END DO
         END DO
         S1(1)=1.
         S1(JM)=1.

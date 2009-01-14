@@ -50,9 +50,11 @@ c**** area weight for zig-zag diagnostics on budget grid
 
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4, public :: TITREG*80,NAMREG(2,23)
-!@var JREH lat/lon array defining regions for AREG diagnostics
-cgsfc      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
-      INTEGER, DIMENSION(IM,JM), public :: JREG
+!@var JREG lat/lon array defining regions for AREG diagnostics
+      INTEGER, ALLOCATABLE, DIMENSION(:,:), public :: JREG
+cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
+!@var SAREA_REG areas of the special regions
+      REAL*8, DIMENSION(NREG), public :: SAREA_REG
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
       INTEGER, PARAMETER, public :: KAJL=70+KEP, KAJLX=KAJL+50
@@ -759,7 +761,7 @@ c the new i/o system
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
-      ALLOCATE( ! JREG(I_0H:I_1H, J_0H:J_1H),
+      ALLOCATE(  JREG(I_0H:I_1H, J_0H:J_1H),
      &         SQRTM(I_0H:I_1H, J_0H:J_1H),
      &         STAT = IER)
 
