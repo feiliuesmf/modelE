@@ -108,26 +108,28 @@ C*********************************************************************
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H
+      integer :: ier, J_1H, J_0H, I_1H, I_0H
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO
  
       allocate(  dtr_dd(J_0H:J_1H,ntm,2)    )
-      allocate(   XYLAI(IM,J_0H:J_1H,NTYPE) )
-      allocate(    XLAI(IM,J_0H:J_1H,NTYPE) )
-      allocate(   XLAI2(IM,J_0H:J_1H,NTYPE) )
-      allocate(   FRCLND(IM,J_0H:J_1H)      )      
-      allocate(   IJREG(IM,J_0H:J_1H)       )
-      allocate(    IREG(IM,J_0H:J_1H)       )
-      allocate(IREG_loc(IM,J_0H:J_1H)       )
-      allocate(  IJLAND(IM,J_0H:J_1H,NTYPE) )
-      allocate(   IJUSE(IM,J_0H:J_1H,NTYPE) )
-      allocate(   ILAND(IM,J_0H:J_1H,NTYPE) )
-      allocate(    IUSE(IM,J_0H:J_1H,NTYPE) )
+      allocate(   XYLAI(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(    XLAI(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(   XLAI2(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(   FRCLND(I_0H:I_1H,J_0H:J_1H)      )      
+      allocate(   IJREG(I_0H:I_1H,J_0H:J_1H)       )
+      allocate(    IREG(I_0H:I_1H,J_0H:J_1H)       )
+      allocate(IREG_loc(I_0H:I_1H,J_0H:J_1H)       )
+      allocate(  IJLAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(   IJUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(   ILAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(    IUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
             
       return
       end subroutine alloc_trdrydep 

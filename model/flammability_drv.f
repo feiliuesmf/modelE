@@ -31,12 +31,14 @@
       implicit none
       
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H       
+      integer :: ier, J_1H, J_0H, I_1H, I_0H
 
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO 
 
-      allocate( flammability(IM,J_0H:J_1H) )
-      allocate(    veg_density(IM,J_0H:J_1H) )
+      allocate( flammability(I_0H:I_1H,J_0H:J_1H) )
+      allocate(    veg_density(I_0H:I_1H,J_0H:J_1H) )
 
       return
       end subroutine alloc_flammability

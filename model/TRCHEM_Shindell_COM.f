@@ -757,54 +757,56 @@ C**************  Not Latitude-Dependant ****************************
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H
+      integer :: ier, J_1H, J_0H, I_1H, I_0H
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO
  
       allocate(    corrOxIN(J_0H:J_1H,LcorrOx,12) )
       allocate(      corrOx(J_0H:J_1H,LM,12)      )
-      allocate(          ss(JPPJ,LM,IM,J_0H:J_1H) )
-      allocate(     acetone(IM,J_0H:J_1H,LM)      )
-      allocate(        yNO3(IM,J_0H:J_1H,LM)      )
-      allocate(        mNO2(IM,J_0H:J_1H,LM)      )
-      allocate(        pHOx(IM,J_0H:J_1H,LM)      )
-      allocate(        pNOx(IM,J_0H:J_1H,LM)      )
-      allocate(         pOx(IM,J_0H:J_1H,LM)      )
-      allocate(      yCH3O2(IM,J_0H:J_1H,LM)      )
-      allocate(       yC2O3(IM,J_0H:J_1H,LM)      )
-      allocate(        yROR(IM,J_0H:J_1H,LM)      )
-      allocate(        yXO2(IM,J_0H:J_1H,LM)      )
-      allocate(   yAldehyde(IM,J_0H:J_1H,LM)      )
-      allocate(       yXO2N(IM,J_0H:J_1H,LM)      )
-      allocate(      yRXPAR(IM,J_0H:J_1H,LM)      )
-      allocate(          TX(IM,J_0H:J_1H,LM)      )
-      allocate(     sulfate(IM,J_0H:J_1H,LM)      )
-      allocate(        OxIC(IM,J_0H:J_1H,LM)      )
-      allocate(      CH4ICX(IM,J_0H:J_1H,LM)      )
-      allocate( dms_offline(IM,J_0H:J_1H,LM)      )
-      allocate( so2_offline(IM,J_0H:J_1H,LM)      )
-      allocate(        yso2(IM,J_0H:J_1H,LM)      )
-      allocate(        ydms(IM,J_0H:J_1H,LM)      )
-      allocate(      OxICIN(IM,J_0H:J_1H,LCOalt)  )
-      allocate(     CH4ICIN(IM,J_0H:J_1H,LCOalt)  )
+      allocate(          ss(JPPJ,LM,I_0H:I_1H,J_0H:J_1H) )
+      allocate(     acetone(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        pNOx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(         pOx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      yCH3O2(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(       yC2O3(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        yROR(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        yXO2(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(   yAldehyde(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(       yXO2N(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(          TX(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      CH4ICX(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        yso2(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        ydms(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      OxICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
+      allocate(     CH4ICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(       DU_O3(J_0H:J_1H)            )
 #ifdef SHINDELL_STRAT_CHEM
-      allocate(       pClOx(IM,J_0H:J_1H,LM)      )
-      allocate(        pClx(IM,J_0H:J_1H,LM)      )
-      allocate(      pOClOx(IM,J_0H:J_1H,LM)      ) 
-      allocate(       pBrOx(IM,J_0H:J_1H,LM)      )
-      allocate(        yCl2(IM,J_0H:J_1H,LM)      ) 
-      allocate(      yCl2O2(IM,J_0H:J_1H,LM)      )
-      allocate(      N2OICX(IM,J_0H:J_1H,LM)      )
-      allocate(       CFCIC(IM,J_0H:J_1H,LM)      )
-      allocate(         SF3(IM,J_0H:J_1H,LM)      )
-      allocate(         SF2(IM,J_0H:J_1H,LM)      )
-      allocate(     N2OICIN(IM,J_0H:J_1H,LCOalt)  )
-      allocate(     CFCICIN(IM,J_0H:J_1H,LCOalt)  )
+      allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        pClx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      pOClOx(I_0H:I_1H,J_0H:J_1H,LM)      ) 
+      allocate(       pBrOx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        yCl2(I_0H:I_1H,J_0H:J_1H,LM)      ) 
+      allocate(      yCl2O2(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      N2OICX(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(       CFCIC(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(         SF3(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(         SF2(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(     N2OICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
+      allocate(     CFCICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
 #endif
       
       return

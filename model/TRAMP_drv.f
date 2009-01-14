@@ -500,28 +500,29 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H
+      integer :: ier, J_1H, J_0H, I_1H, I_0H
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
- 
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO 
 
 ! I,J,L
-      allocate(  AQsulfRATE(IM,J_0H:J_1H,LM)   )
+      allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
 ! other dimensions
       allocate(  DTR_AMPe(J_0H:J_1H,ntmAMP)    )
       allocate(  DTR_AMPm(2,J_0H:J_1H,ntmAMP)  )
       allocate(  DTR_AMP(7,J_0H:J_1H,ntmAMP)   )
-      allocate(  DIAM(IM,J_0H:J_1H,LM,nmodes)  )
-      allocate(  MASSH2O(IM,J_0H:J_1H,LM,nmodes)  )
-      allocate(  AMP_TR_MM(IM,J_0H:J_1H,LM,nmodes)  )
-      allocate(  AMP_dens(IM,J_0H:J_1H,LM,nmodes)  )
-      allocate(  NACTV(IM,J_0H:J_1H,LM,nmodes) )
-      allocate(  VDDEP_AERO(IM,J_0H:J_1H,nmodes,2))
-      allocate(  NUMB_SS(IM,J_0H:J_1H,LM,2))
+      allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  MASSH2O(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  AMP_dens(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
+      allocate(  VDDEP_AERO(I_0H:I_1H,J_0H:J_1H,nmodes,2))
+      allocate(  NUMB_SS(I_0H:I_1H,J_0H:J_1H,LM,2))
 
       NACTV   = 1.0D-30
       DIAM    = 1.0D-30

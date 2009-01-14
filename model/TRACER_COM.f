@@ -1026,33 +1026,40 @@ C**** arrays that could be general, but are only used by chemistry
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1H, J_0H, I_1H, I_0H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO
 
-      ALLOCATE(   ef_REG_IJ(IM,J_0H:J_1H) )
-      ALLOCATE(     oh_live(IM,J_0H:J_1H,LM),
-     *             no3_live(IM,J_0H:J_1H,LM),
-     *                  trm(IM,J_0H:J_1H,LM,NTM),
-     *                trmom(NMOM,IM,J_0H:J_1H,LM,NTM),
-     *                trdn1(NTM,IM,J_0H:J_1H),
-     *              sfc_src(IM,J_0H:J_1H,ntm,ntsurfsrcmax))
+      ALLOCATE(   ef_REG_IJ(I_0H:I_1H,J_0H:J_1H) )
+      ALLOCATE(     oh_live(I_0H:I_1H,J_0H:J_1H,LM),
+     *             no3_live(I_0H:I_1H,J_0H:J_1H,LM),
+     *                  trm(I_0H:I_1H,J_0H:J_1H,LM,NTM),
+     *                trmom(NMOM,I_0H:I_1H,J_0H:J_1H,LM,NTM),
+     *                trdn1(NTM,I_0H:I_1H,J_0H:J_1H),
+     *              sfc_src(I_0H:I_1H,J_0H:J_1H,ntm,ntsurfsrcmax))
 
 #ifdef TRACERS_WATER
-      ALLOCATE(        trwm(IM,J_0H:J_1H,LM,NTM) )
+      ALLOCATE(        trwm(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
 #endif
 #ifdef TRACERS_HETCHEM
-      ALLOCATE( rxts(IM,J_0H:J_1H,LM),rxts1(IM,J_0H:J_1H,LM),
-     *         rxts2(IM,J_0H:J_1H,LM),rxts3(IM,J_0H:J_1H,LM),
-     *         rxts4(IM,J_0H:J_1H,LM),krate(IM,J_0H:J_1H,LM,8,rhet))
+      ALLOCATE( rxts(I_0H:I_1H,J_0H:J_1H,LM),
+     *          rxts1(I_0H:I_1H,J_0H:J_1H,LM),
+     *          rxts2(I_0H:I_1H,J_0H:J_1H,LM),
+     *          rxts3(I_0H:I_1H,J_0H:J_1H,LM),
+     *          rxts4(I_0H:I_1H,J_0H:J_1H,LM),
+     *          krate(I_0H:I_1H,J_0H:J_1H,LM,8,rhet))
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP)
-      ALLOCATE(  rsulf1(IM,J_0H:J_1H,LM),rsulf2(IM,J_0H:J_1H,LM),
-     *           rsulf3(IM,J_0H:J_1H,LM),rsulf4(IM,J_0H:J_1H,LM) )
+      ALLOCATE(  rsulf1(I_0H:I_1H,J_0H:J_1H,LM),
+     *           rsulf2(I_0H:I_1H,J_0H:J_1H,LM),
+     *           rsulf3(I_0H:I_1H,J_0H:J_1H,LM),
+     *           rsulf4(I_0H:I_1H,J_0H:J_1H,LM) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM

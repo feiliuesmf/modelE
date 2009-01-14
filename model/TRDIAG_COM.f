@@ -587,9 +587,11 @@ C****
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TCONSRV4_loc
       INTEGER :: status
 
-      INTEGER :: J_0H, J_1H
+      INTEGER :: J_0H, J_1H, I_0H, I_1H
 
       CALL GET( grid,  J_STRT_HALO = J_0H,  J_STOP_HALO = J_1H )
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO
 
       write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
      *   'R8 TACC(',ktacc,'),it'
@@ -630,9 +632,10 @@ C***  PACK distributed arrays into global ones in preparation for output
      &           TAIJS4(1,1,1),TAJLN4(1,1,1,1),TAJLS4(1,1,1),
      &           TCONSRV4(1,1,1))
           endif
-          ALLOCATE (TAIJLN4_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
-          ALLOCATE (TAIJN4_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
-          ALLOCATE (TAIJS4_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+          ALLOCATE (TAIJLN4_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm),stat=status)
+          ALLOCATE (TAIJN4_loc(I_0H:I_1H,J_0H:J_1H,ktaij,ntm),
+     &         stat=status)
+          ALLOCATE (TAIJS4_loc(I_0H:I_1H,J_0H:J_1H,ktaijs),stat=status)
           ALLOCATE (TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm),stat=status)
           ALLOCATE (TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ),stat=status)
           ALLOCATE (TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon),stat=status)
@@ -716,15 +719,17 @@ C*** Unpack read global data into local distributed arrays
       SUBROUTINE ALLOC_TRDIAG_COM
       USE TRDIAG_COM
       USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
-      INTEGER :: J_0H,J_1H
+      INTEGER :: J_0H,J_1H, I_0H,I_1H
       INTEGER :: status
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO
 
 #ifdef TRACERS_ON 
-      ALLOCATE ( TAIJLN_loc(IM,J_0H:J_1H,LM,ntm), stat=status )
-      ALLOCATE ( TAIJN_loc( IM,J_0H:J_1H,ktaij,ntm), stat=status )
-      ALLOCATE ( TAIJS_loc( IM,J_0H:J_1H,ktaijs   ), stat=status )
+      ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
+      ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )
+      ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
       ALLOCATE ( TAJLN_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )

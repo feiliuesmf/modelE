@@ -1611,13 +1611,15 @@ C****
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1H, J_0H, I_1H, I_0H
       INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H=GRID%I_STRT_HALO
+      I_1H=GRID%I_STOP_HALO
 
       ALLOCATE( jlatmd(J_0H:J_1H),
      *          STAT=IER )
@@ -1627,8 +1629,8 @@ C****
      *          tltzzm(J_0H:J_1H,lm,n_MPtable_max),
      *          STAT=IER )
 
-      ALLOCATE(  CH4_src(im,J_0H:J_1H,nch4src),
-     *           CO2_src(im,J_0H:J_1H,nco2src),
+      ALLOCATE(  CH4_src(I_0H:I_1H,J_0H:J_1H,nch4src),
+     *           CO2_src(I_0H:I_1H,J_0H:J_1H,nco2src),
      *           STAT=IER )
 
 C**** ESMF: This array is read in only
