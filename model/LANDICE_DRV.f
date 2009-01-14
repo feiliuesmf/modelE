@@ -53,7 +53,8 @@
       INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
       INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
       REAL*8 FAC_SH,FAC_NH
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA_part
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA_part
       LOGICAL :: do_glmelt
       INTEGER I,J,N
       INTEGER :: I_0,I_1, J_0,J_1
@@ -158,7 +159,7 @@ c     NH melt area
 
 C**** integrate area (which will depend on resolution/landmask)
 C**** Antarctica melt area
-      FWAREA_part=0. ; loc_gla = .false.
+      loc_gla = .false.
 #ifndef SCM
       DO J=MAX(J_0,JML),MIN(J_1,JMU)
         DO I=1,IM
@@ -166,27 +167,47 @@ C**** Antarctica melt area
             IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
      *           .IMU2) THEN
               LOC_GLA(I,J)=.TRUE.
-              FWAREA_part(J)=FWAREA_part(J)+AXYP(I,J)*FOCEAN(I,J)
             END IF
           END IF
         END DO
       END DO
 #endif
+c separate loop for area calculation - logical mask will
+c soon be read in from a file
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        if(loc_gla(i,j)) then
+          FWAREA_part(I,J)=AXYP(I,J)*FOCEAN(I,J)
+        else
+          FWAREA_part(I,J)=0.
+        endif
+      ENDDO
+      ENDDO
       CALL GLOBALSUM(grid, FWAREA_part, FWAREA_SH, all=.true.)
 
 C**** Greenland melt area
-      FWAREA_part=0. ; loc_glg = .false.
+      loc_glg = .false.
 #ifndef SCM
       DO N=1,NBOX
         I=IFW(N)
         J=JFW(N)
         If (J >= J_0 .and. J <= J_1) THEN
           LOC_GLG(I,J)=.TRUE.
-          FWAREA_part(J)=FWAREA_part(J)+AXYP(I,J)*FOCEAN(I,J)
         END IF
       END DO
-      CALL GLOBALSUM(grid, FWAREA_part, FWAREA_NH, all=.true.)
 #endif
+c separate loop for area calculation - logical mask will
+c soon be read in from a file
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        if(loc_glg(i,j)) then
+          FWAREA_part(I,J)=AXYP(I,J)*FOCEAN(I,J)
+        else
+          FWAREA_part(I,J)=0.
+        endif
+      ENDDO
+      ENDDO
+      CALL GLOBALSUM(grid, FWAREA_part, FWAREA_NH, all=.true.)
 
 C**** Intialise gmelt fluxes
       GMELT = 0. ; EGMELT = 0.
