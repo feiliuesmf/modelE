@@ -2720,7 +2720,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
             RETURN
          Else
             WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
-            call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
+            call stop_model('WRITEI8_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
 
