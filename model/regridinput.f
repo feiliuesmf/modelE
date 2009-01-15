@@ -3,11 +3,13 @@
       use dd2d_utils
       implicit none
       type (dd2d_grid), intent(in) :: dd2d
-      type (x_2gridsroot) :: xll72X46C32,xll144X90C32
+      type (x_2gridsroot) :: xll2cs
 
-      call init_regrid_root(xll72X46C32,72,46,1,32,32,6)
+c,xll144X90C32
+
+c      call init_regrid_root(xll2cs,72,46,1,32,32,6)
 c      call init_regrid_root(xll144X90C32,72,46,1,32,32,6)
-c      call init_regrid_root(xll2cs,360,180,1,48,48,6)
+      call init_regrid_root(xll2cs,360,180,1,32,32,6)
 c      call init_regrid_root(xll72X46C32,144,90,1,48,48,6)
 
 ccc   regrid boundary condition files 
@@ -22,10 +24,9 @@ c         call regridRVR(xll72X46C32) ! empty for the moment
 c         call regridCROPS(xll72X46C32)
 c         call regridTOPINDEX(xll72X46C32)
 c         call regridSOIL(xll72X46C32)
-ccc   Then regrid Initial Condition 
       endif
-c         call regridGIC(xll144X90C32,dd2d)
-         call regridAIC(xll72X46C32)
+      call regridGIC(xll2cs,dd2d)
+c         call regridAIC(xll2cs,dd2d)
 
       end subroutine regrid_input
 c*
@@ -533,8 +534,8 @@ c*    write
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
 
 c      name="GIC.E046D3M20A.1DEC1955.ext"
-c      name="GIC.360X180.DEC01.1.rep"
-      name="GIC.144X90.DEC01.1.ext"
+      name="GIC.360X180.DEC01.1.rep"
+c      name="GIC.144X90.DEC01.1.ext"
 
       open(iu_GIC,FILE=name,FORM='unformatted', STATUS='old')
 
@@ -848,24 +849,97 @@ c*
 
 
 
-      subroutine regridAIC(x2grids)
+      subroutine regridAIC(x2grids,dd2d)
 c
 c     for 1x1 resolution : Jeff uses AIC=AIC.RES_X40.D771201N.rep
 c
       use regrid_com
+      use pario, only : defvar,write_data
+      use dd2d_utils
       implicit none
-      type (x_2gridsroot), intent(in) :: x2grids
-      character*80 TITLE,name
+      include 'netcdf.inc'
+      type(x_2gridsroot), intent(in) :: x2grids
+      type (dd2d_grid), intent(in) :: dd2d
+      integer :: iuout
+      real*8, allocatable :: tsource(:,:,:)
+      real*4, allocatable :: ts4(:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:),tcopy(:,:,:)
+      character*80 :: TITLE,outunformat,outnc,name
+      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,
+     &     status,fid,vid
       integer iu_AIC
      
-      name="AIC.RES_M20A.D771201"
 
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "ims,jms,nts,imt,jmt,ntt r8",
+     &     ims,jms,nts,imt,jmt,ntt
+      allocate (tsource(ims,jms,nts),ts4(ims,jms,nts),
+     &     ttargglob(imt,jmt,ntt),tcopy(imt,jmt,ntt) )
+
+      tsource(:,:,:)=0.0
+
+      name="AIC.RES_M20A.D771201"
       open(iu_AIC,FILE=name,FORM='unformatted', STATUS='old')
-      
-      call read_regrid_write_4D_1R_r8(x2grids,name,iu_AIC)
-      
-      close(iu_AIC)
-      
+
+      outunformat=trim(name)//".CS"
+      write(*,*) outunformat
+
+      iuout=20
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      irec=1
+
+      do
+         read(unit=iu_AIC,END=30) TITLE, ts4
+         tsource=ts4
+         write(*,*) "TITLE, irec",TITLE,irec
+         call root_regrid(x2grids,tsource,ttargglob)
+
+         if (irec .eq. 1) tcopy=ttargglob
+
+         write(unit=iuout) TITLE,ttargglob
+         irec=irec+1
+      enddo
+   
+ 30   continue
+
+      maxrec=irec-1
+
+      write(*,*) "maxrec",maxrec
+
+      close(iuout) 
+
+      write(*,*) "here w r8"
+
+      outnc=trim(name)//"-CS.nc"
+      write(*,*) outnc
+
+      if (am_i_root()) then
+         write(*,*) "TCOPY=",tcopy
+         status = nf_create(outnc,nf_clobber,fid)
+         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
+      endif
+
+      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
+
+      if (am_i_root()) then
+         status = nf_enddef(fid)
+         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
+      endif
+
+      call write_data(dd2d,fid,'press',tcopy)
+
+      deallocate(tsource,ts4,ttargglob,tcopy)
+    
+      if(am_i_root()) status = nf_close(fid)
+
       end subroutine regridAIC
 c*
 
@@ -1055,17 +1129,22 @@ c      write(*,*) "TOUT=",tout
 c*
 
 
-      subroutine read_regrid_write_4D_1R_r8(x2grids,name,iuin)
+      subroutine read_regrid_write_4D_1R_r8(dd2d,x2grids,name,iuin)
       use regrid_com
+      use pario, only : defvar,write_data
+      use dd2d_utils
       implicit none
+      include 'netcdf.inc'
       type(x_2gridsroot), intent(in) :: x2grids
+      type (dd2d_grid), intent(in) :: dd2d
       character*80, intent(in) :: name
       integer, intent(in) :: iuin
       integer :: iuout
       real*8, allocatable :: tsource(:,:,:,:)
-      real*8, allocatable :: ttargglob(:,:,:)
-      character*80 :: TITLE(nrecmax),outunformat
-      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt
+      real*8, allocatable :: ttargglob(:,:,:),tcopy(:,:,:)
+      character*80 :: TITLE(nrecmax),outunformat,outnc
+      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,
+     &     status,fid,vid
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -1074,10 +1153,10 @@ c*
       jmt=x2grids%jmtarget
       ntt=x2grids%ntilestarget
 
-      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt r8",iuin,
      &     ims,jms,nts,imt,jmt,ntt
       allocate (tsource(ims,jms,nts,nrecmax),
-     &     ttargglob(imt,jmt,ntt) )
+     &     ttargglob(imt,jmt,ntt),tcopy(imt,jmt,ntt) )
       tsource(:,:,:,:)=0.0
       
       call read_recs_1R_r4_r8(tsource,iuin,TITLE,
@@ -1094,13 +1173,34 @@ c*
 
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
+         if (ir .eq. 1) tcopy=ttargglob
          write(unit=iuout) TITLE(ir),ttargglob(:,:,:)
          write(*,*) "TITLE",TITLE(ir)
       enddo
 
       close(iuout) 
 
-      deallocate(tsource,ttargglob)
+      write(*,*) "here w r8"
+
+      outnc=trim(name)//"-CS.nc"
+      write(*,*) outnc
+
+      if (am_i_root()) then
+         write(*,*) "TCOPY=",tcopy
+         status = nf_create(outnc,nf_clobber,fid)
+         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
+      endif
+
+      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
+
+      if (am_i_root()) then
+         status = nf_enddef(fid)
+         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
+      endif
+
+      call write_data(dd2d,fid,'press',tcopy)
+
+      deallocate(tsource,ttargglob,tcopy)
 
       end subroutine read_regrid_write_4D_1R_r8
 c*

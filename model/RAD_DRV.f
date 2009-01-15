@@ -974,8 +974,12 @@ C**** Read in the factors used for alterations:
 !@calls RADPAR:RCOMPT
       USE CONSTANT, only : by12
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : am_I_root,GRID,GET,READT_PARALLEL
-     *     ,REWIND_PARALLEL
+      USE DOMAIN_DECOMP, only : am_I_root,GRID,GET,REWIND_PARALLEL
+#ifndef CUBE_GRID
+     *     ,READT_PARALLEL
+#else
+      use pario_fbsa, only : READT_PARALLEL
+#endif
       USE MODEL_COM, only : jday,jyear,im,jm,focean,jmon,JDendOfM
      *     ,JDmidOfM, jdate
       USE GEOM, only : imaxj

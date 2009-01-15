@@ -325,7 +325,7 @@ C****
 
       DO WHILE (Itime.lt.ItimeE)
 
-#ifndef ADIABATIC
+#if !defined( ADIABATIC ) || defined( CUBE_GRID)
 
 c$$$         call test_save(__LINE__, itime)
 C**** Every Ndisk Time Steps (DTsrc), starting with the first one,
@@ -434,7 +434,7 @@ c     enddo
 #endif
 #endif
 
-#ifndef ADIABATIC
+#if !defined( ADIABATIC ) || defined( CUBE_GRID)
 
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
