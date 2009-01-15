@@ -125,6 +125,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 CO2_IC=CO2ijl_IC_Jan1_scale334_M23  !wofsy+B140TQaM9
 CO2_FOS_FUEL=CO2_sources/gcm_data/CO2FOS_MRL_4X5
 CO2_FERT=CO2_sources/gcm_data/CO2fert01_4X5

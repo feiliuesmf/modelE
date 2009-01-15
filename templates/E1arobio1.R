@@ -161,6 +161,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 OCMIP_cfc=OCMIP_cfc.dat
 !!!!!!!!!!!!!!!!!!! HYCOM input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 latlonij=latlon195x180_20w.4bin    ! lat & lon at each i,j

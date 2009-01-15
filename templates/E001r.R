@@ -84,6 +84,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 RADJAN=E001/RADJAN1950    ! replace E001 by the control run
 RADFEB=E001/RADFEB1950    ! assuming that the saved data are
 RADMAR=E001/RADMAR1950    ! still in the original directory

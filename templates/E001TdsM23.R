@@ -102,6 +102,7 @@ RADN1=sgpgxg.table8  ! rad.tables
 RADN2=radfil33k      ! 8/2003 version
 RADN3=miescatpar.abcdv2
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 TAero_PRE=sep2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons

@@ -110,6 +110,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E1M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn; use up to 72 (or 80) columns and ??
@@ -312,6 +313,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! REG=REG2X2.5_CAFE     ! special regions-diag
 ! RVR=RD_modelE_F.RVR      ! river direction file
 ! TOP_INDEX=top_index_144x90.ij.ext
+! GLMELT=GLMELT_144X90.OCN    ! glacial melt distribution
 !     set in &&PARAMETERS : DT=225. DT_XUfilter=225. DT_XVfilter=225.
 !                          ..._yr=1950 (to be consistent with OSST)
 !                          retune U00a/U00b (if necessary)

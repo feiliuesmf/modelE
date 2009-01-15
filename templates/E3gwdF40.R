@@ -97,6 +97,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90.ij.ext
 ZVAR=ZVAR2X25A     ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E3gwdF40 (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn; use up to 72 (or 80) columns and ??

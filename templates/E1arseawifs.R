@@ -105,6 +105,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
                                          !to be used with CHL_from_SeaWIFs

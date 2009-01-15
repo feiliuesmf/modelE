@@ -92,6 +92,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90.ij.ext
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
 SCMSRF=SCM.TWPUPD.surface.dat
 SCMLAY=SCM.TWPUPD.layer.dat
 

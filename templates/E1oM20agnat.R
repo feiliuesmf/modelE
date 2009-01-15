@@ -115,6 +115,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E1oM20agnat (coupled version, 4x5, 20 lyrs, 1880 atm; use up to 72 (or 80) columns and ??

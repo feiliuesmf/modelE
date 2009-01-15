@@ -95,6 +95,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E3hkpp1 (E3 + HYCOM/KPP, nonloc=.false.)

@@ -110,6 +110,7 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
+GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E1CS48L20 (ModelE1 Cubed Sphere C48, 20 lyrs, 1880 atm/ocn;
