@@ -45,6 +45,13 @@
 !@+        gather/scatter operations are over all tiles.  The last
 !@+        index of global_array is the tile index in this case.
 !@+
+!@+     globalsum(grid,local_arr,arrsum,all)
+!@+        calculates the global sum of distributed array local_arr
+!@+        and stores the result in arrsum; the result is
+!@+        independent of the number of PEs.  If all=.true., all
+!@+        PEs receive the result. Currently only implemented for
+!@+        real*8 local_arr(i,j).
+!@+
 !@+     pack_row(grid,local_array,row_array_1d,jdim)
 !@+     unpack_row(grid,row_array_1d,local_array,jdim)
 !@+        These routines are like pack_data/unpack_data, but only
@@ -99,6 +106,7 @@ c public interfaces
       public :: pack_data,unpack_data
       public :: pack_row,unpack_row
       public :: halo_update
+      public :: globalsum
 
       public :: init_dd2d_grid
       public :: dd2d_grid
@@ -238,6 +246,13 @@ c
         module procedure halo_update_4D
 c        module procedure halo_update_2D_int
       end interface halo_update
+
+c
+c globalsum interfaces
+c
+      interface globalsum
+        module procedure globalsum_2D_r8
+      end interface globalsum
 
 c
 c get non-distributed dimensions
@@ -710,6 +725,37 @@ c allocates gather/scatter workspace
       endif
       return
       end subroutine alloc_gs_wksp
+
+      subroutine globalsum_2D_r8(grid,arr,arrsum,all)
+      type(dd2d_grid), intent(in) :: grid
+      real*8, intent(in) :: arr(:,:)
+      real*8 :: arrsum
+      logical, intent(in), optional :: all
+      real*8, dimension(:,:), allocatable :: arrtile
+      real*8 :: arrsum_tile
+      integer :: ierr
+      if(grid%am_i_tileroot) then
+        allocate(arrtile(grid%npx,grid%npy))
+      endif
+      call pack_data(grid,arr,arrtile)
+      if(grid%am_i_tileroot) then
+        arrsum_tile = sum(arrtile)
+        deallocate(arrtile)
+        if(grid%ntiles.gt.1) then
+          call mpi_reduce(arrsum_tile,arrsum,1,MPI_DOUBLE_PRECISION,
+     &         MPI_SUM,0,grid%comm_intertile,ierr)
+        else
+          arrsum = arrsum_tile
+        endif
+      endif
+      if(present(all)) then
+        if(all) then
+          call mpi_bcast(arrsum,1,MPI_DOUBLE_PRECISION,0,
+     &         MPI_COMM_WORLD,ierr)
+        endif
+      endif
+      return
+      end subroutine globalsum_2D_r8
 
       subroutine get_nlnk_2D(arr,jdim,nl,nk)
       real*8 :: arr(:,:)
