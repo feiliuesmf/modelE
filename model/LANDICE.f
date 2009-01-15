@@ -254,8 +254,8 @@ C**** CALCULATE TG2
 !@var MDWNIMP downward implicit ice amount accumulator (kg)
 !@var EDWNIMP downward implicit energy amount accumulator (J)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MDWNIMP, EDWNIMP
-!@var LOC_GLA, LOC_GLG mask for glmelt around Antarctica and Greeland
-      LOGICAL, ALLOCATABLE, DIMENSION(:,:) :: LOC_GLA, LOC_GLG
+!@var LOC_GLM mask for glmelt around Antarctica and Greeland
+      LOGICAL, ALLOCATABLE, DIMENSION(:,:) :: LOC_GLM
 
 #ifdef TRACERS_WATER
 !@var TRSNOWLI tracer amount in land ice snow (kg/m^2)
@@ -277,8 +277,7 @@ C**** CALCULATE TG2
 !@ver  1.0
       USE DOMAIN_DECOMP, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
-      USE LANDICE_COM, ONLY : SNOWLI, TLANDI, MDWNIMP, EDWNIMP, LOC_GLA,
-     *     LOC_GLG
+      USE LANDICE_COM, ONLY : SNOWLI, TLANDI, MDWNIMP, EDWNIMP, LOC_GLM
 #ifdef TRACERS_WATER
       USE LANDICE_COM, ONLY : TRSNOWLI, TRLNDI, TRDWNIMP
       USE TRACER_COM, only : ntm
@@ -298,8 +297,7 @@ C**** CALCULATE TG2
      *          TLANDI(2,I_0H:I_1H,J_0H:J_1H),
      *          MDWNIMP(I_0H:I_1H,J_0H:J_1H),
      *          EDWNIMP(I_0H:I_1H,J_0H:J_1H),
-     *          LOC_GLA(I_0H:I_1H,J_0H:J_1H),
-     *          LOC_GLG(I_0H:I_1H,J_0H:J_1H),
+     *          LOC_GLM(I_0H:I_1H,J_0H:J_1H),
      *          STAT=IER)
 #ifdef TRACERS_WATER
       ALLOCATE( TRSNOWLI(NTM,I_0H:I_1H,J_0H:J_1H),

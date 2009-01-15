@@ -13,8 +13,9 @@
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : edpery,sday,lhm,tf
+      USE FILEMANAGER
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
-      USE GEOM, only : axyp,imaxj
+      USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg,snmin
@@ -23,8 +24,7 @@
      *     ,traccpda,traccpdg
 #endif
 #endif               /* TNL: inserted */
-      USE LANDICE_COM, only : tlandi,snowli,loc_gla,loc_glg,mdwnimp
-     *     ,edwnimp
+      USE LANDICE_COM, only : tlandi,snowli,loc_glm,mdwnimp,edwnimp
 #ifdef TRACERS_WATER
      *     ,trsnowli,trlndi,trdwnimp
 #endif
@@ -44,20 +44,17 @@
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
       USE DOMAIN_DECOMP, only : GRID,GET, GLOBALSUM
-      use rad_com, only : paleo_orb_yr,calc_orb_par_sp,paleo_orb_par
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
-
-      INTEGER, PARAMETER :: NBOXMAX=40
-      INTEGER IFW(NBOXMAX),JFW(NBOXMAX)
-      INTEGER :: JML, JMU, IML1, IMU1, IML2, IMU2, NBOX
-      REAL*8 FAC_SH,FAC_NH
-      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA_part
+      REAL*8 FAC_SH,FAC_NH,gsum,hsum(2)
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO
+     *     ,grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA
       LOGICAL :: do_glmelt
-      INTEGER I,J,N
+      INTEGER I,J,N, iu_GL, I72
       INTEGER :: I_0,I_1, J_0,J_1
+      CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
+      CHARACTER*72 :: TITLE
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -93,121 +90,43 @@ C**** and from 0-60W and 135W to 165E
 C**** Around Greenland the freshwater is added to both the east and
 C**** west coasts in the one grid box closest to the coast which is
 C**** determined by the direction in the river flow file.
-C**** This information could be read in from a file.
-      IF (JM.eq.46) THEN        ! 4x5
-c     SH melt area
-        JML=4 ; JMU=8 ; IML1=24 ; IMU1=36
-        IML2=69 ; IMU2=11 
-c     Default NH melt area
-        NBOX=10                  ! check: nbox <= NBOXMAX=40
-        IFW(1:10) = (/26,25,25,25,29,29,30,31,32,33/)
-        JFW(1:10) = (/39,40,41,42,39,40,40,40,41,42/)
-        do_glmelt=.true.
-c**** LGM 21k Alternative for NH melt area
-        if( (paleo_orb_yr.gt.18000).and.(paleo_orb_yr.lt.24000) ) then
-          write(6,*) "Amending NH Glacial Melt appropriate to 21ka, LGM"
-          NBOX=27               ! For LGM 21k, check nbox <= NBOXMAX=40
-          IFW(1:9) = (/26,25,25,25,29,30,31,32,33/) ! Greenland
-          JFW(1:9) = (/39,40,41,42,39,40,40,41,42/) ! Greenland
-          IFW(10:22) = (/9,10,11,23,24,25,26,26,26,25,24,24,23/) ! LIS/N.Am
-          JFW(10:22) = (/38,37,36,34,34,34,34,36,37,38,39,40,41/) ! LIS/N.Am
-          IFW(23:27) = (/35,38,39,39,38/) ! Fenno-Scandian
-          JFW(23:27) = (/39,41,41,42,43/) ! Fenno-Scandian
-        elseif( (paleo_orb_yr.gt.8500).and.(paleo_orb_yr.lt.9500) )
-     *         then
-          write(6,*) "Amending NH Glacial Melt appropriate to 9ka, EH"
-          NBOX=15             ! For Early Holocene,  check nbox <= NBOXMAX=40
-          IFW(1:9) = (/26,25,25,25,29,30,31,32,33/) ! Greenland
-          JFW(1:9) = (/39,40,41,42,39,40,40,41,42/) ! Greenland
-          IFW(10:15) = (/26,26,25,24,24,23/) ! LIS/N.Am
-          JFW(10:15) = (/36,37,38,39,40,41/) ! LIS/N.Am
-        endif
-        if( calc_orb_par_sp.ne.0 ) then ! EOCENE 55 MA ONLY
-          write(6,*)
-     *         "Amending NH Glacial Melt in LANDICE_DRV "
-     *         ,"appropriate to 55 Ma, Eocene currently"
-          write(0,*)
-     *         "Amending NH Glacial Melt in LANDICE_DRV "
-     *         ,"appropriate to 55 Ma, Eocene currently"
-          NBOX=6       ! check nbox <= NBOXMAX=40
-          IFW(1:2) = (/29,29/) ! Greenland
-          JFW(1:2) = (/39,38/) ! Greenland
-          IFW(3:5) = (/10,11,12 /) ! Rockies
-          JFW(3:5) = (/40,39,38 /) ! Rockies
-          IFW(6:6) = (/63 /) ! Proto-Himalaya
-          JFW(6:6) = (/38 /) ! Proto-Himalaya
-        endif
+C**** This information is now read in from the GLMELT file.
 
-      ELSEIF (JM.eq.90) THEN    ! 2x2.5
-c     SH melt area
-        JML=7 ; JMU=11 ; IML1= 48 ; IMU1=69
-                         IML2=136 ; IMU2=18   
-c     NH melt area
-        NBOX=18               ! check: nbox <= NBOXMAX=40
-        IFW(1:18) = (/50,50,51,51,51,52,53,56,56,57,58,59,60,61,62,63
-     *       ,64,64/)
-        JFW(1:18) = (/82,81,80,79,78,77,76,76,77,78,78,78,79,79,79,80
-     *       ,81,82/)
-        do_glmelt=.true.
-      ELSEIF (JM.eq.24) THEN    ! 8x10 (do nothing)
-        do_glmelt=.false.
-      ELSE  ! unknown resolution
-        WRITE(*,*) "Glacial Melt flux: unknown resolution JM=",JM
-        WRITE(*,*) "Please edit init_LI if glacial melt is required."
-        do_glmelt=.false.
-      END IF
+C**** Read in GLMELT file to distribute glacial melt (CGLM is global)
+      IF (JM.gt.24) THEN ! for finer that old 8x10
 
-C**** integrate area (which will depend on resolution/landmask)
-C**** Antarctica melt area
-      loc_gla = .false.
-#ifndef SCM
-      DO J=MAX(J_0,JML),MIN(J_1,JMU)
-        DO I=1,IM
-          IF (FOCEAN(I,J).GT.0.) THEN
-            IF ((I.GE.IML1.AND.I.LE.IMU1) .or. I.GE.IML2 .or. I.LE
-     *           .IMU2) THEN
-              LOC_GLA(I,J)=.TRUE.
-            END IF
+      call openunit("GLMELT",iu_GL,.false.,.true.)
+      READ  (iu_GL,'(A72)') TITLE
+      WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
+      READ  (iu_GL,*)
+
+C**** assumes a 72-column width slab - will need adjusting for CS
+      DO I72=1,1+(IM-1)/72
+        DO J=JM,1,-1
+          READ (iu_GL,'(72A1)')
+     *         (CGLM(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
+        END DO
+      END DO
+C****
+      call closeunit(iu_GL)
+
+C**** Calculate hemispheric areas (weighted by area and landmask)
+C**** This could be extended by a different number in GLMELT to
+C**** give ice sheet (rather than hemispheric) dependent areas
+      FWAREA=0
+      DO J=J_0,J_1
+        DO I=I_0,I_1
+          LOC_GLM(I,J)=CGLM(I,J).eq."1" 
+          IF (LOC_GLM(I,J) .and. FOCEAN(I,J).gt.0 ) THEN
+            FWAREA(I,J)=FWAREA(I,J)+AXYP(I,J)*FOCEAN(I,J)
           END IF
         END DO
       END DO
-#endif
-c separate loop for area calculation - logical mask will
-c soon be read in from a file
-      DO J=J_0,J_1
-      DO I=I_0,I_1
-        if(loc_gla(i,j)) then
-          FWAREA_part(I,J)=AXYP(I,J)*FOCEAN(I,J)
-        else
-          FWAREA_part(I,J)=0.
-        endif
-      ENDDO
-      ENDDO
-      CALL GLOBALSUM(grid, FWAREA_part, FWAREA_SH, all=.true.)
 
-C**** Greenland melt area
-      loc_glg = .false.
-#ifndef SCM
-      DO N=1,NBOX
-        I=IFW(N)
-        J=JFW(N)
-        If (J >= J_0 .and. J <= J_1) THEN
-          LOC_GLG(I,J)=.TRUE.
-        END IF
-      END DO
-#endif
-c separate loop for area calculation - logical mask will
-c soon be read in from a file
-      DO J=J_0,J_1
-      DO I=I_0,I_1
-        if(loc_glg(i,j)) then
-          FWAREA_part(I,J)=AXYP(I,J)*FOCEAN(I,J)
-        else
-          FWAREA_part(I,J)=0.
-        endif
-      ENDDO
-      ENDDO
-      CALL GLOBALSUM(grid, FWAREA_part, FWAREA_NH, all=.true.)
+      CALL GLOBALSUM(grid, FWAREA,  gsum, hsum, all=.true.)
+      FWAREA_NH=hsum(1) ; FWAREA_SH=hsum(2)
+
+      END IF
 
 C**** Intialise gmelt fluxes
       GMELT = 0. ; EGMELT = 0.
@@ -260,7 +179,7 @@ C**** Set GL MELT arrays
 #ifndef SCM
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
-          IF (LOC_GLA(I,J)) THEN
+          IF (LOC_GLM(I,J) .and. lat2D(I,J).lt.0 ) THEN ! SH
              GMELT(I,J) =  ACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! kg
             EGMELT(I,J) = EACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
@@ -269,7 +188,7 @@ C**** Set GL MELT arrays
 #endif
 #endif /* TNL: inserted */
           END IF
-          IF (LOC_GLG(I,J)) THEN
+          IF (LOC_GLM(I,J) .and. lat2D(I,J).gt.0 ) THEN ! NH
              GMELT(I,J) =  ACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
             EGMELT(I,J) = EACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
@@ -647,7 +566,7 @@ C****
       USE CONSTANT, only : edpery,sday,lhm,shi
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc,jday,jyear
      *     ,itime,itimei,nday,JDperY
-      USE GEOM, only : axyp,imaxj
+      USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg
@@ -656,8 +575,7 @@ C****
      *     ,traccpda,traccpdg
 #endif
 #endif    /* TNL: inserted */
-      USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp,loc_gla
-     *     ,loc_glg
+      USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp,loc_glm
 #ifdef TRACERS_WATER
      *     ,ntm,trsnowli,trlndi,trdwnimp
 #endif
@@ -790,7 +708,7 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
 C**** Set GL MELT arrays
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
-          IF (LOC_GLA(I,J)) THEN
+          IF (LOC_GLM(I,J) .and. lat2D(I,J).lt.0 ) THEN ! SH
               GMELT(I,J)  =  ACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J)  ! kg
               EGMELT(I,J) = EACCPDA*FAC_SH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
@@ -799,7 +717,7 @@ C**** Set GL MELT arrays
 #endif
 #endif    /* TNL: inserted */
           END IF
-          IF (LOC_GLG(I,J)) THEN
+          IF (LOC_GLM(I,J) .and. lat2D(I,J).gt.0 ) THEN ! NH
              GMELT(I,J) =  ACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! kg
             EGMELT(I,J) = EACCPDG*FAC_NH*AXYP(I,J)*FOCEAN(I,J) ! J
 #ifdef TRACERS_WATER  /* TNL: inserted */
