@@ -58,6 +58,7 @@
       integer :: n,p, i
       real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
+      real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_tmp !YK
 
       Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero
 
@@ -148,21 +149,38 @@
 !(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
 !(2) first non-header row should have total site-measured pool (in g/m2);
 !(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
+!###YK- hack but better way...at least, do not need to change according to the sites.
       call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
       read(iu_SOILCARB,*)  !skip optional header row(s)
       read(iu_SOILCARB,*) total_Cpool(:)
       do i=1,NPOOLS-NLIVE
-        read(iu_SOILCARB,*) Cpool_fracs(GRASSC3,i,:)
+        read(iu_SOILCARB,*) Cpool_tmp(i,:)
       end do
 
       do p=1,N_PFT      
        do n=1,N_CASA_LAYERS 
         do i=NLIVE+1,NPOOLS
+         Cpool_fracs(p,i-NLIVE,n) = Cpool_tmp(i-NLIVE,n)
          Tpool_ini(p,CARBON,i-NLIVE,n,I0:I1,J0:J1) =
      &          Cpool_fracs(p,i-NLIVE,n)*total_Cpool(n)
         end do
        end do
       end do
+c$$$      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
+c$$$      read(iu_SOILCARB,*)  !skip optional header row(s)
+c$$$      read(iu_SOILCARB,*) total_Cpool(:)
+c$$$      do i=1,NPOOLS-NLIVE
+c$$$        read(iu_SOILCARB,*) Cpool_fracs(GRASSC3,i,:)
+c$$$      end do
+c$$$
+c$$$      do p=1,N_PFT      
+c$$$       do n=1,N_CASA_LAYERS 
+c$$$        do i=NLIVE+1,NPOOLS
+c$$$         Tpool_ini(p,CARBON,i-NLIVE,n,I0:I1,J0:J1) =
+c$$$     &          Cpool_fracs(p,i-NLIVE,n)*total_Cpool(n)
+c$$$        end do
+c$$$       end do
+c$$$      end do
 !####
 #else
 !***  
