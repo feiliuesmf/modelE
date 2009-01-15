@@ -26,6 +26,7 @@
 #if defined(MACHINE_SGI) \
  || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) && ! defined(COMPILER_NAG) ) \
  || defined(MACHINE_DEC) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_Intel8) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       FUNCTION RANDU (X)
 !@sum   RANDU calculates a random number based on the seed IX
@@ -106,14 +107,18 @@
       Integer :: n
       Integer :: i
       Real*8  :: x
+      integer, save :: first_call=1
 
-#ifdef USE_ESMF      
+#ifdef USE_ESMF
+      if ( first_call .ne. 0 ) then
       Write(6,*) ' ***********************************************'
       Write(6,*) ' Warning: slow implementation of burn_random()  '
       Write(6,*) ' on this platform.  Better performance can be   '
       Write(6,*) ' achieved by using a recursion relation for most'
       Write(6,*) ' random number generators. (contact Tom Clune)  '
       Write(6,*) ' ***********************************************'
+      first_call = 0
+      endif
 #endif
 
       Do i = 1, n
@@ -199,6 +204,7 @@
 #if defined(MACHINE_SGI) \
  || ( defined(MACHINE_Linux) && ! defined(COMPILER_G95) && ! defined(COMPILER_NAG) ) \
  || defined(MACHINE_DEC) \
+ || ( defined(MACHINE_MAC) && defined(COMPILER_Intel8) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
       call signal( sig, prog, -1 ) 
 #elif defined( MACHINE_IBM ) \
