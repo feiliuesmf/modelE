@@ -1,7 +1,7 @@
 
 # hack for LAM that comes in Linux distrubution
 # (compiled with g95 ? )
-CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE
+CPPFLAGS += -DMPILIB_DOUBLE_UNDERSCORE -DMPI_DEFS_HACK
 
 ifneq (${MPIDIR},)
 LIBS += -L${MPIDIR}/lib

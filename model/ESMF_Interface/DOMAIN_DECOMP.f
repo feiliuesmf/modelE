@@ -1,4 +1,6 @@
+#ifdef MPI_DEFS_HACK
 #include "mpi_defs.h"
+#endif
 
       MODULE DOMAIN_DECOMP
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information

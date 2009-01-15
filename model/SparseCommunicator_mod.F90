@@ -1,4 +1,7 @@
+#ifdef MPI_DEFS_HACK
 #include "mpi_defs.h"
+#endif
+
 module SparseCommunicator_mod
    
    implicit none

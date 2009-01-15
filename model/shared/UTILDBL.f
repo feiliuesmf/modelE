@@ -711,7 +711,9 @@ C****      '(' is required, so it is inserted
       integer :: mpi_err
       integer :: rank
 #ifdef USE_MPI
-#include "mpi_defs.h"
+#  ifdef MPI_DEFS_HACK
+#  include "mpi_defs.h"
+#  endif
 #include "mpif.h"
 #endif
 
