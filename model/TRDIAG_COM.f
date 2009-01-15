@@ -795,15 +795,15 @@ C*** Unpack read global data into local distributed arrays
       return
       end subroutine scatter_trdiag
 
-
 C**** routines for accumulating zonal mean diags (lat/lon grid)
 
       SUBROUTINE INC_TAJLS(I,J,L,TJL_INDEX,ACC)
 !@sum inc_tajl adds ACC located at atmospheric gridpoint I,J,L
-!@+   to the latitude-height zonal sum TAJLS(J,L,TJL_INDEX).
-!@+   This is a trivial version for the latlon grid.
+!@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajls=>tajls_loc
+      USE DIAG_COM, only : wtbudg
+      USE GEOM, only : j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -811,16 +811,21 @@ C**** routines for accumulating zonal mean diags (lat/lon grid)
       INTEGER, INTENT(IN) :: TJL_INDEX
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
-      TAJLS(J,L,TJL_INDEX) = TAJLS(J,L,TJL_INDEX) + ACC
+C**** accumulate I,J value on the budget grid using j_budg to assign
+C**** each point to a zonal mean (not bitwise reproducible for MPI).
+      TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
+     *     wtbudg(I,J)*ACC      !wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+
       RETURN
       END SUBROUTINE INC_TAJLS
 
       SUBROUTINE INC_TAJLN(I,J,L,TJL_INDEX,N,ACC)
 !@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L
-!@+   and tracer n to the latitude-height zonal sum TAJLN(J,L,TJL_INDEX,N).
-!@+   This is a trivial version for the latlon grid.
+!@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajln=>tajln_loc
+      USE DIAG_COM, only : wtbudg
+      USE GEOM, only : j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices, N tracer # for the accumulation
       INTEGER, INTENT(IN) :: I,J,L,N
@@ -828,7 +833,9 @@ C**** routines for accumulating zonal mean diags (lat/lon grid)
       INTEGER, INTENT(IN) :: TJL_INDEX
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
-      TAJLN(J,L,TJL_INDEX,N) = TAJLN(J,L,TJL_INDEX,N) + ACC
+      TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)=TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)
+     *     + wtbudg(I,J)*ACC    !wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+
       RETURN
       END SUBROUTINE INC_TAJLN
 #endif
