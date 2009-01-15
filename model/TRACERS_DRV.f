@@ -10014,31 +10014,56 @@ C**** Source over South America
         source = .04d0*anngas*steppy
         ie = lon_to_i(-40.d0)
         iw = lon_to_i(-50.d0)
-        j = lat_to_j(-23.d0) 
+        jn = lat_to_j(-22.5d0) 
+        js = lat_to_j(-23.5d0) 
         sarea_prt  = 0.
-        if (j >= J_0 .and. j <= J_1) then
+        do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
             sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
           enddo
-        end if
+        enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        if (j >= J_0 .and. j <= J_1) then
+        do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
             trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
           enddo
-        end if
+        enddo
 C**** Source over South Africa
         source = .02d0*anngas*steppy
-        j = lat_to_j(-34.d0) 
-        i = lon_to_i(20.d0)
-        IF (j >= J_0 .and. j <= J_1 .and.
-     *      i >= I_0 .and. i <= i_1) trsource(i,j,1,n) = source
+        jn = lat_to_j(-33.d0) 
+        js = lat_to_j(-34.d0) 
+        ie = lon_to_i(19.d0)
+        iw = lon_to_i(18.d0)
+        sarea_prt  = 0.
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        enddo
 C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
-        j = lat_to_j(-34.d0) 
-        i = lon_to_i(150.d0)
-        IF (j >= J_0 .and. j <= J_1 .and.
-     *      i >= I_0 .and. i <= i_1) trsource(i,j,1,n) = source
+        jn = lat_to_j(-33.5d0) 
+        js = lat_to_j(-34.5d0) 
+        ie = lon_to_i(150.5d0)
+        iw = lon_to_i(149.5d0)
+        sarea_prt  = 0.
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
+            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
+          enddo
+        enddo
+        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
+        do j=max(js,j_0),min(jn,j_1)
+          do i=max(iw,i_0),min(ie,i_1)
+            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+          enddo
+        enddo
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
         !print out global average for each time step before weighing
