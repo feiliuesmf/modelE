@@ -834,8 +834,8 @@ c**** input/output for PBL
 #ifdef USE_ENT
       real*8 Ca !@Ca concentration of CO2 at surface (mol/m3)
       real*8 vis_rad, direct_vis_rad, cos_zen_angle
-      integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
-      integer :: JEQUATOR=JM/2
+      !integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
+      !integer :: JEQUATOR=JM/2
 #endif
 #ifdef WATER_PROPORTIONAL
       real*8, dimension(ntm) :: conc1
@@ -895,8 +895,8 @@ c****
 
 #ifdef USE_ENT
       !--- at the moment update vegetation every time step
-      hemi(:,max(JEQUATOR+1,J_0):J_1) = 1
-      hemi(:,J_0:min(JEQUATOR,J_1)) = -1
+      !hemi(:,max(JEQUATOR+1,J_0):J_1) = 1
+      !hemi(:,J_0:min(JEQUATOR,J_1)) = -1
   !    call ent_prescribe_vegupdate(dtsrc/nisurf,entcells,
   !   &     hemi,jday,jyear,.false.,.false.)
 
