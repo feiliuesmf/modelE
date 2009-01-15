@@ -2058,12 +2058,12 @@ C****
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : sday,kapa,undef
+      USE CONSTANT, only : sday,kapa,undef,twopi
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
      *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
-      USE GEOM, only : axyp,imaxj,lonlat_to_ij
+      USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d,lat2d
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
