@@ -4217,7 +4217,7 @@ C****
         END DO
 C**** At North Pole
         !following uses jm and jm-1 data, if both are not on same
-        !processor (need to check this), halo_date is required.
+        !processor (need to check this), halo_update is required.
         IF(HAVE_NORTH_POLE) THEN
           IF(L.LE.LMU(1,JM)) THEN
             DO I=1,IM
@@ -5092,12 +5092,8 @@ C**** Check
       USE RESOLUTION, only : IMA=>IM, JMA=>JM 
       USE OCEANRES,   only : IMO, JMO, LMO
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
-      USE OCN_TRACER_COM, only: NTM
-#else
-      USE TRACER_COM, only: NTM
-#endif
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only: NTM, conc_from_fw
 #endif
 
       USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
@@ -5216,6 +5212,7 @@ c     *          oDXYPO(j), aDXYPO(j)
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
       DO NT = 1,NTM
+        if (conc_from_fw(nt)) then  ! define conc from fresh water
         DO J=1,JMO
           DO I=1,oIMAXJ(J)
             IF (oFOCEAN(I,J).gt.0.) THEN
@@ -5226,7 +5223,17 @@ C**** surface tracer concentration
             END IF
           END DO
         END DO
-
+        else  ! define conc from total sea water mass
+        DO J=1,JMO
+          DO I=1,oIMAXJ(J)
+            IF (oFOCEAN(I,J).gt.0.) THEN
+              oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J))
+            ELSE
+              oFtemp(I,J)=0.
+            END IF
+          END DO
+        END DO
+        end if
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
         call HNTR8P (oFweight, oFtemp, aFtemp)        
         aTRAC_glob(:,:,NT)=aFtemp(:,:)

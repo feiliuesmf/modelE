@@ -826,6 +826,8 @@ C note, tr_evap_fact is not dimensioned as NTM:
       real*8, dimension(ntm) :: trw0
 !@var NTROCN scaling power factor for ocean/ice tracer concentrations
       integer, dimension(ntm) :: ntrocn
+!@var conc_from_fw true if ocean conc is defined using fresh water
+      logical, dimension(ntm) :: conc_from_fw = .true.
 #endif
 
 #ifdef TRACERS_OCEAN

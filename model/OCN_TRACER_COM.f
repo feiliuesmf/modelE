@@ -47,8 +47,8 @@ C**** this defines tracer parameters that are local to ocean code
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
       REAL*8  :: obio_tr_mm(ntm)= (/ 14.
      .                             , 14.
-     .                             , 28.055
-     .                             , 55.845
+     .                             , 28.055d0
+     .                             , 55.845d0
      .                             , 1.
      .                             , 1.
      .                             , 1.
@@ -56,16 +56,20 @@ C**** this defines tracer parameters that are local to ocean code
      .                             , 1.
      .                             , 14.
      .                             , 14.
-     .                             , 28.055
-     .                             , 55.845
+     .                             , 28.055d0
+     .                             , 55.845d0
      .                             , 12.
      .                             , 12. /)
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
+!@param conc_from_fw definition for defining surface ocean conc
+      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
 #else
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ '     Water'/)
       REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
+!@param conc_from_fw definition for defining surface ocean conc
+      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .true.
 #endif  /* TRACERS_OceanBiology */
 #endif  /*TRACERS_AGE_OCEAN */
 
@@ -77,8 +81,7 @@ C**** this defines tracer parameters that are local to ocean code
 
 C**** use only agcm data
       USE TRACER_COM, only : ntm, trname, itime_tr0, trdecay,
-     *        t_qlimit, trw0, ntrocn,n_water
-
+     *        t_qlimit, trw0, ntrocn, n_water, conc_from_fw
 
 #endif  /* TRACERS_OCEAN_INDEP */
       INTEGER :: n_age = 0, n_obio = 0
