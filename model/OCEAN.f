@@ -747,7 +747,9 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX
       USE DIAG_COM, only : npts,icon_OCE,conpt0
       IMPLICIT NONE
+#ifdef CUBE_GRID
       include 'netcdf.inc'
+#endif
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
       CHARACTER CONPT(NPTS)*10
