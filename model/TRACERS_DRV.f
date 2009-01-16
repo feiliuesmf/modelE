@@ -10037,13 +10037,13 @@ C**** Source over South Africa
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
+            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
           enddo
         enddo
 C**** Source over Australia and New Zealand
@@ -10055,13 +10055,13 @@ C**** Source over Australia and New Zealand
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + dxyp(j)*fearth(i,j)
+            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*dxyp(j)*fearth(i,j)/sarea
+            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
           enddo
         enddo
 
