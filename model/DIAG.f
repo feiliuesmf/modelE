@@ -974,6 +974,9 @@ C****
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
       USE PARAM
+#ifdef CALCULATE_FLAMMABILITY
+      use flammability_com, only : raP_acc
+#endif
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACER_DIAGS
       USE TRACER_COM, only : ntm, trm, trname
@@ -1143,6 +1146,7 @@ C****
 !@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
 !@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID
+!@+                    RAPR,
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    z*, r*, t*, q*  (on any model level, note lowercase)
 !@+                    U*, V*, W*, C*  (on any model level)
@@ -1354,6 +1358,11 @@ C**** simple diags (one record per file)
 c          data=sday*prec/dtsrc
           data=sday*P_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           P_acc=0.
+#ifdef CALCULATE_FLAMMABILITY
+        case ("RAPR")   !running avg precip (mm/day)
+          data=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
+          raP_acc=0.
+#endif
         case ("MCP")       ! moist conv precip (mm/day)
           data=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
