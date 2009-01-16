@@ -1367,7 +1367,7 @@ C**** Should this be here?
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
 !@auth Gavin Schmidt
-      USE GEOM, only : j_budg,j_0b,j_1b, lat_dg, lat2d_dg,lat2d
+      USE GEOM, only : j_budg,j_0b,j_1b, lat2d_dg
       USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP, only :GRID,GET
       IMPLICIT NONE
@@ -1427,7 +1427,7 @@ c      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
       SUBROUTINE INC_AREG(I,J,JR,J_DIAG,ACC)
 !@sum inc_areg grid dependent incrementer for regional budget diags
 !@auth Gavin Schmidt
-      USE DIAG_COM, only : aregj=>aregj_loc
+      USE DIAG_COM, only : aregj=>aregj_loc,wtbudg
       USE GEOM, only : j_budg
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
@@ -1440,17 +1440,18 @@ c      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
 
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
-      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)+ACC
-      
+c      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)+ACC
+      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)
+     &     +wtbudg(I,J)*ACC      
       RETURN
       END SUBROUTINE INC_AREG
 
       SUBROUTINE INC_AJL(I,J,L,JL_INDEX,ACC)
 !@sum inc_ajl adds ACC located at atmospheric gridpoint I,J,L
 !@+   to the latitude-height zonal sum AJL(J,L,JL_INDEX).
-!@+   This is a trivial version for the latlon grid.
 !@auth M. Kelley
-      USE DIAG_COM, only : ajl=>ajl_loc
+      USE DIAG_COM, only : ajl=>ajl_loc,wtbudg
+      USE GEOM, only : j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1458,7 +1459,9 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       INTEGER, INTENT(IN) :: JL_INDEX
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
-      AJL(J,L,JL_INDEX) = AJL(J,L,JL_INDEX) + ACC
+c      AJL(J,L,JL_INDEX) = AJL(J,L,JL_INDEX) + ACC
+      AJL(J_BUDG(I,J),L,JL_INDEX) = AJL(J_BUDG(I,J),L,JL_INDEX)
+     &     +wtbudg(I,J)*ACC 
       RETURN
       END SUBROUTINE INC_AJL
 
