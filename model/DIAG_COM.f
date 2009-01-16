@@ -1391,13 +1391,13 @@ C**** this should be valid for all grids (lat/lon, cubed sphere,...)
         END DO
       END DO
 
-#ifdef CUBE_GRID
+
       j_0b=MINVAL( J_BUDG(I_0:I_1,J_0:J_1) )
       j_1b=MAXVAL( J_BUDG(I_0:I_1,J_0:J_1) )
-#else
-      j_0b = j_0
-      j_1b = j_1
-#endif
+
+c      write(*,*) "j_0b - j_0", j_0b - j_0
+c      write(*,*) "j_1b - j_1", j_1b - j_1
+
       RETURN
       END SUBROUTINE SET_J_BUDG
 

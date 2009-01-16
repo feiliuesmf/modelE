@@ -740,12 +740,8 @@ C**** Calculate zonal sums
         TOTALJ(J_0B:J_1B)=0.
         DO J=J_0,J_1
         DO I=I_0,I_1
-#ifdef CUBE_GRID
-c see should be valid for all grids
           JB = J_BUDG(I,J) 
-#else
-          JB = J  ! should also be equal to J_BUDG(I,J) in latlon case
-#endif
+c          write(*,*) "JB-J=",JB-J
           TOTALJ(JB) = TOTALJ(JB) + TOTAL(I,J)
         END DO
         END DO
