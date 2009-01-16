@@ -578,7 +578,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
 #ifdef SHINDELL_STRAT_CHEM
 c           reduce rates for gases that photolyze in window region
 c           (~200nm):
-            if(inss == 28)ss(inss,L,I,J)=ss(inss,L,I,J)*1.25d-1 !N2O
+            if(inss == 28)ss(inss,L,I,J)=ss(inss,L,I,J)*2.50d-1 !N2O
             if(inss == 26)ss(inss,L,I,J)=ss(inss,L,I,J)*1.25d-1 !CFC
 #endif
           enddo
@@ -1355,7 +1355,7 @@ c          doesn't come back to the gas phase:
            changeHNO3 = changeHNO3 - 3.0d-3*y(n_HNO3,L)
          endif
 
-         if(aero(L)  /=  0)
+         if(aero(L)  /=  0 .and. pres2(L)>=31.6d0)
      &   changeHNO3 = changeHNO3 -1.2d-4*y(n_HNO3,L)
          if(aero(L)  /=  0.and.pres2(L) <= 50.d0.and.pres2(L) > 38.d0)
      &   changeHNO3 = changeHNO3 +9.6d-5*y(n_HNO3,L)
@@ -1558,7 +1558,7 @@ c Tropospheric halogen sink Br & Cl :
           changeL(L,n_BrONO2)=-trm(I,J,L,n_BrONO2)*0.9d0
         END IF
 
-c Set CLTOT based on CFCs (3.0 ppbv yield from complete oxidation of
+c Set CLTOT based on CFCs (2.4 ppbv yield from complete oxidation of
 c 1.8 ppbv CFC plus 0.8 ppbv background) :
         if(L > maxl)then
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1572,7 +1572,7 @@ c 1.8 ppbv CFC plus 0.8 ppbv background) :
      &    mass2vol(n_HOCl)*BYAXYP(I,J)*BYAM(L,I,J)
           y(n_ClONO2,L)=(trm(I,J,L,n_ClONO2)+changeL(L,n_ClONO2))*
      &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*BYAM(L,I,J)
-          CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
+          CLTOT=((y(n_CFC,1)/y(nM,1)-y(n_CFC,L)/y(nM,L))*(2.4d0/1.8d0)*
      &    y(n_CFC,1)/(1.8d-9*y(nM,1)))
           CLTOT=CLTOT+0.8d-9
           CLTOT=CLTOT*y(nM,L)/
