@@ -36,3 +36,81 @@
 
       return
       end subroutine calc_flammability
+
+
+      subroutine prec_running_average(p,avg,iH,iD,i0,first,HRA,DRA,PRS)
+!@sum prec_running_average keeps a running average of the model
+!@+ precipitation variable for use in the flammability model.
+!@+ In practive, this does hourly and daily running averages and
+!@+ uses those to get the period-long running average, to avoid
+!@+ saving a huge array.
+!@+ Can't I remove the I,J's from this routine?
+!@auth Greg Faluvegi
+!@ver 1.0
+      use flammability_com, only: nday=>nday_prec,nmax=>maxHR_prec
+ 
+      implicit none
+      
+!@var p model variable which will be used in the average (precip)
+!@var temp just for holding current day average for use in avg_prec
+!@var nmax number of accumulations in one day (for checking)
+!@var bynmax reciprocal of nmax
+!@var bynday reciprocal of nday
+!@var i0 see i0fl(i,j) (day in period pointer)
+!@var iH see iHfl(i,j) (hour in day index)
+!@var iD see iDfl(i,j) (day in period index)
+!@var first see first_prec(i,j) whether in first period
+!@var HRA see HRAfl(i,j,time) (hourly average)
+!@var DRA see DRAfl(i,j,time) (daily average)
+!@var PRS see PRSfl(i,j) (period running sum)
+!@var avg see ravg_prec(i,j) the running average prec returned
+      real*8, intent(IN) :: p
+      real*8, dimension(nday) :: DRA
+      real*8, dimension(nmax) :: HRA
+      real*8 :: temp, bynmax, PRS, avg, iH, iD, i0, first, bynday
+      integer :: n
+
+      if(nint(iH) < 0 .or. nint(iH) > nmax) then
+        write(6,*) 'iH maxHR_prec=',iH,nint(iH),nmax
+        call stop_model('iHfl or maxHR_prec problem',255)
+      endif
+      bynmax=1.d0/real(nmax)
+      bynday=1.d0/real(nday)
+      iH = iH + 1.d0
+      HRA(nint(iH)) = p
+      ! do no more, unless it is the end of the day:
+
+      if(nint(iH) == nmax) then ! end of "day":
+        iH = 0.d0
+        if(nint(first) == 1) then ! first averaging period only
+          iD = iD + 1.d0
+          do n=1,nmax
+            DRA(nint(iD)) = DRA(nint(iD)) + HRA(n)
+          end do
+          DRA(nint(iD)) = DRA(nint(iD))*bynmax
+          if(nint(iD) == nday) then ! end first period
+            PRS = 0.d0
+            do n=1,nday
+              PRS = PRS + DRA(n)
+            end do
+            avg = PRS * bynday
+            first=0.d0
+            iD=0.d0
+            i0=0.d0
+          end if
+        else ! not first averaging period: update the running average
+          i0 = i0 + 1.d0 ! move pointer
+          if(nint(i0) == nday+1) i0=1.d0 ! reset pointer
+          temp=0.d0
+          do n=1,nmax
+            temp = temp + HRA(n)
+          end do
+          temp = temp * bynmax ! i.e. today's average
+          PRS = PRS - DRA(nint(i0))
+          DRA(nint(i0)) = temp
+          PRS = PRS + DRA(nint(i0))
+          avg = PRS * bynday
+        end if
+      end if
+
+      end subroutine prec_running_average

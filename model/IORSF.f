@@ -82,6 +82,9 @@ C**** Calls to individual i/o routines
         call io_somtq  (kunit,iact,ioerr)
         call io_rad    (kunit,iact,ioerr)
         call io_icedyn (kunit,iact,ioerr)
+#ifdef CALCULATE_FLAMMABILITY
+        call io_flammability(kunit,iact,ioerr)
+#endif
 #ifdef TRACERS_ON
         call io_tracer (kunit,iact,ioerr)
 #endif
