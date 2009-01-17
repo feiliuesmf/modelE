@@ -118,20 +118,25 @@ c     *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : GRID, GET
-      USE MODEL_COM, only : jm
+      USE GEOM, only : j_budg, j_0b, j_1b
+      USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
+      USE DOMAIN_DECOMP, only : GRID, GET
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var TOTAL amount of conserved quantity at this time
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
+      REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
       INTEGER :: nm,ni
-      INTEGER :: J_0, J_1
+      INTEGER :: I, J, I_0, I_1, J_0, J_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1,2...12:  See DIAGCA in DIAG.f
@@ -147,13 +152,23 @@ C**** Calculate current value TOTAL
 
         nm=nofmt(m,nt)
         ni=nofmt(1,nt)
+
+C**** Calculate zonal sums
+        totalj(j_0b:j_1b)=0.
+        do j=j_0,j_1
+        do i=i_0,i_1
+          totalj(j_budg(i,j)) = totalj(j_budg(i,j)) + total(i,j)
+        end do
+        end do
+
 c**** Accumulate difference from last time in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(J_0:J_1,nm,nt) =
-     &    tconsrv(J_0:J_1,nm,nt)+(total(J_0:J_1)-tconsrv(J_0:J_1,ni,nt))  !do 1,jm
+          tconsrv(J_0b:J_1b,nm,nt) =
+     &         tconsrv(J_0b:J_1b,nm,nt)+(totalj(J_0b:J_1b)
+     *         -tconsrv(J_0b:J_1b,ni,nt)) 
         end if
 C**** Save current value in TCONSRV(NI)
-        tconsrv(J_0:J_1,ni,nt)=total(J_0:J_1)   !do 1,jm
+        tconsrv(J_0b:J_1b,ni,nt)=totalj(J_0b:J_1b)
       end if
       return
       end subroutine diagtca
@@ -162,7 +177,7 @@ C**** Save current value in TCONSRV(NI)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP, only : GRID, GET
-      use model_com, only : lm,ls1,jm,fim
+      use model_com, only : lm,ls1,jm,fim,im
       use geom, only : imaxj
       use tracer_com, only : trm,trname
 #ifdef TRACERS_WATER
@@ -171,47 +186,41 @@ C**** Save current value in TCONSRV(NI)
       implicit none
       integer, intent(in) :: nt
 !@var total = zonal total of tracer (kg)
-      real*8, intent(out),
-     *        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
-      real*8 :: sstm,stm
+      real*8, intent(out), dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &     GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: total
       integer :: i,j,l,ltop
 
       INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
       ltop=lm
 #ifdef TRACERS_SPECIAL_Shindell
       if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx') ltop=LS1-1
 #endif
 
-!$OMP PARALLEL DO PRIVATE (J,L,I,SSTM,STM)
-      do j=J_0,J_1
-        sstm = 0.
-        do l=1,ltop
-          stm = 0.
-          do i=1,imaxj(j)
-            stm = stm+trm(i,j,l,nt)
+!$OMP PARALLEL DO PRIVATE (J,L,I)
+      do l=1,ltop
+        do j=J_0,J_1
+          do i=I_0,imaxj(j)
+            total(i,j) = total(i,j) + trm(i,j,l,nt)
 #ifdef TRACERS_WATER
      *           +trwm(i,j,l,nt)
 #endif
           end do
-          sstm = sstm+stm
         end do
-        total(j) = sstm
       end do
 !$OMP END PARALLEL DO
-      IF (HAVE_SOUTH_POLE) total(1) = fim*total(1)
-      IF (HAVE_NORTH_POLE) total(jm)= fim*total(jm)
+      IF (HAVE_SOUTH_POLE) total(2:im,1) = fim*total(1,1)
+      IF (HAVE_NORTH_POLE) total(2:im,jm)= fim*total(1,jm)
       return
       end subroutine consrv_tr
 
@@ -220,8 +229,10 @@ C****
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
+      USE GEOM, only : j_budg, j_0b, j_1b
+      USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP, only : GRID, GET
-      USE MODEL_COM, only: jm,fim
+      USE MODEL_COM, only: jm,fim,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
 
@@ -230,11 +241,12 @@ C****
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var DTRACER change of conserved quantity at this time
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DTRACER
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DTRACER
+      REAL*8, DIMENSION(JM_BUDG) :: DTJ
       INTEGER :: j,nm
-      REAL*8 stm
 
-      INTEGER :: J_0, J_1
+      INTEGER :: I, I_0, I_1, J_0, J_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -242,6 +254,8 @@ C****
       CALL GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE,
      &               J_STRT = J_0, J_STOP = J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
@@ -254,12 +268,22 @@ C**** no calculation is done.
 
       if (nofmt(m,nt).gt.0) then
 C**** Calculate latitudinal mean of chnage DTRACER
-        IF (HAVE_SOUTH_POLE) dtracer(1) = fim*dtracer(1)
-        IF (HAVE_NORTH_POLE) dtracer(jm)= fim*dtracer(jm)
+        IF (HAVE_SOUTH_POLE) dtracer(2:im,1) = fim*dtracer(1,1)
+        IF (HAVE_NORTH_POLE) dtracer(2:im,jm)= fim*dtracer(1,jm)
+
+C**** Calculate zonal sums
+        DTJ(J_0B:J_1B)=0.
+        DO J=J_0,J_1
+          DO I=I_0,I_1
+            DTJ(J_BUDG(I,J)) = DTJ(J_BUDG(I,J)) + DTRACER(I,J)
+          END DO
+        END DO
+
         nm=nofmt(m,nt)
-c**** Accumulate difference in TCONSRV(NM)
+C**** Accumulate difference in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(J_0:J_1,nm,nt)=tconsrv(J_0:J_1,nm,nt)+dtracer(J_0:J_1)
+          tconsrv(J_0b:J_1b,nm,nt)=tconsrv(J_0b:J_1b,nm,nt)
+     *         +dtj(J_0b:J_1b)
         end if
 C**** No need to save current value
       end if

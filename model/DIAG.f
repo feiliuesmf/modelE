@@ -704,10 +704,9 @@ C****
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : jm
       USE GEOM, only : j_budg, j_0b, j_1b
+      USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg
       USE DOMAIN_DECOMP, only : GET, GRID
-      USE DIAG_COM, only : consrv=>consrv_loc,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
@@ -718,12 +717,11 @@ C****
 !@var TOTAL amount of conserved quantity at this time
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TOTAL
-      integer, parameter :: jm_budg=jm ! for now
       REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
-      INTEGER :: I,J,NM,NI,JB
+      INTEGER :: I,J,NM,NI
       INTEGER :: I_0,I_1,J_0,J_1
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
@@ -739,11 +737,9 @@ C**** Calculate current value TOTAL
 C**** Calculate zonal sums
         TOTALJ(J_0B:J_1B)=0.
         DO J=J_0,J_1
-        DO I=I_0,I_1
-          JB = J_BUDG(I,J) 
-c          write(*,*) "JB-J=",JB-J
-          TOTALJ(JB) = TOTALJ(JB) + TOTAL(I,J)
-        END DO
+          DO I=I_0,I_1
+            TOTALJ(J_BUDG(I,J)) = TOTALJ(J_BUDG(I,J)) + TOTAL(I,J)
+          END DO
         END DO
 C**** Accumulate difference from last time in CONSRV(NM)
         IF (M.GT.1) THEN

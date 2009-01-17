@@ -9878,7 +9878,6 @@ C**** at the start of any day
 #endif
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
-      USE AMP_AEROSOL, only: DTR_AMPe
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
       implicit none
@@ -10438,7 +10437,6 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
-      USE AMP_AEROSOL, only: DTR_AMPe
       USE TRDIAG_COM, only : itcon_AMP, itcon_AMPe,itcon_AMPm
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif

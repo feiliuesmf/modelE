@@ -6752,16 +6752,6 @@ cddd#endif
       if(am_i_root()) call alloc_diag_com_glob
 
       call Gather_Diagnostics()
-c      CALL PACK_DATAj(GRID, AJ_loc,  AJ)
-c      CALL PACK_DATA(GRID, AREGJ_loc,  AREGJ)
-c      CALL PACK_DATAj(GRID, APJ_loc, APJ)
-c      CALL PACK_DATAj(GRID, AJK_loc, AJK)
-c      CALL PACK_DATA (GRID, AIJ_loc, AIJ)
-c      CALL PACK_DATA (GRID, AIJK_loc, AIJK)
-c      CALL PACK_DATAj(GRID, ASJL_loc, ASJL)
-c      CALL PACK_DATAj(GRID, AJL_loc,  AJL)
-c      CALL PACK_DATAj(GRID, CONSRV_loc,  CONSRV)
-c      CALL PACK_DATA (GRID, TSFREZ_loc,  TSFREZ)
 
 #ifdef TRACERS_ON
       call gather_trdiag
@@ -6819,13 +6809,13 @@ cddd      DEALLOCATE(tmp)
 #ifndef CUBE_GRID
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
       CALL UNPACK_DATA(GRID, AREGJ,  AREGJ_loc)
+      CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc)
+      CALL UNPACK_DATAj(GRID, AJL,  AJL_loc)
+      CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc)
 #endif
       CALL UNPACK_DATAj(GRID, AJK, AJK_loc)
       CALL UNPACK_DATA (GRID, AIJ, AIJ_loc)
       CALL UNPACK_DATA (GRID, AIJK, AIJK_loc)
-      CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc)
-      CALL UNPACK_DATAj(GRID, AJL,  AJL_loc)
-      CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc)
       CALL UNPACK_DATA (GRID, TSFREZ,  TSFREZ_loc)
 
 #ifdef TRACERS_ON

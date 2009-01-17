@@ -765,20 +765,20 @@ c the new i/o system
      &         SQRTM(I_0H:I_1H, J_0H:J_1H),
      &         STAT = IER)
 
-      ALLOCATE( CONSRV_loc(J_0H:J_1H, KCON),
-     &         STAT = IER)
-
       ALLOCATE(
 #ifdef CUBE_GRID    /* global-size arrays */
      &     AJ_loc(JM_BUDG, KAJ, NTYPE),
      &     AREGJ_loc(NREG,JM_BUDG,KAJ),
      &     AJL_loc(JM_BUDG, LM, KAJL),
+     &     ASJL_loc(JM_BUDG,LM_REQ,KASJL),
+     &     CONSRV_loc(JM_BUDG, KCON),
 #else               /* distributed arrays */
      &     AJ_loc(J_0H:J_1H, KAJ, NTYPE),   
      &     AREGJ_loc(NREG,J_0H:J_1H,KAJ),
      &     AJL_loc(J_0H:J_1H, LM, KAJL),
+     &     ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
+     &     CONSRV_loc(J_0H:J_1H, KCON),
 #endif
-     &         ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         AJK_loc(J_0H:J_1H,LM,KAJK),
      &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
@@ -821,13 +821,14 @@ c the new i/o system
       if(.not.AM_I_ROOT()) return
 
 c     ALLOCATE( ! JREG(IM, JM))
-      ALLOCATE( CONSRV(JM, KCON),
+      ALLOCATE( CONSRV(JM_BUDG, KCON),
      &         STAT = IER)
 
-      ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE), !AJ, AREGJ and AJL are defined on budget grid, JM -> JM_BUDG. 
+ !AJ, AREGJ, AJL and ASJL are defined on budget grid, JM -> JM_BUDG. 
+      ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE),
      &         AREGJ(NREG,JM_BUDG,KAJ),
      &         AJL(JM_BUDG, LM, KAJL),
-     &         ASJL(JM,LM_REQ,KASJL),
+     &         ASJL(JM_BUDG,LM_REQ,KASJL),
      &         AIJ(IM,JM,KAIJ),
      &         AJK(JM,LM,KAJK),
      &         TSFREZ(IM,JM,KTSF),
@@ -883,9 +884,9 @@ c     DEALLOCATE( ! JREG)
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
-      INTEGER, PARAMETER :: KACC= JM*KAJ*NTYPE + JM*NREG*KAJ
-     *     + JM*LM*KAJL + JM*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM*KCON +
+      INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + JM_BUDG*NREG*KAJ
+     *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
+     *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
@@ -893,10 +894,10 @@ c     DEALLOCATE( ! JREG)
      *     + NDIUVAR*NDIUPT*HR_IN_MONTH
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
-      ! REAL*4 AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ)
-      ! REAL*4 AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
+      ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREGJ4(NREG,JM_BUDG,KAJ)
+      ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
       ! REAL*4 AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
-      ! REAL*4 CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
+      ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
       ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
       ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       ! REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
@@ -1162,10 +1163,10 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
         CALL UNPACK_DATA(grid, AREGJ,  AREGJ_loc)
         CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
-#endif
         CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
-        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
         CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
+#endif
+        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
         CALL UNPACK_DATAj(grid, AJK,    AJK_loc)
         CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
         CALL UNPACK_DATA(grid,  AIL,   AIL_loc)
@@ -1174,11 +1175,11 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine Scatter_Diagnostics
 
       Subroutine alloc_diag_r4
-        allocate (AJ4(JM,KAJ,NTYPE),AREGJ4(NREG,JM,KAJ))
-        allocate (AJL4(JM,LM,KAJL),ASJL4(JM,LM_REQ,KASJL))
+        allocate (AJ4(JM_BUDG,KAJ,NTYPE),AREGJ4(NREG,JM_BUDG,KAJ))
+        allocate (AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
         allocate (AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
-        allocate (CONSRV4(JM,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
+        allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
         allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
         allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
         allocate (AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK))
@@ -1210,17 +1211,21 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL SUMXPE(AJ_loc, AJ, increment=.true.)
       CALL SUMXPE(AREGJ_loc, AREGJ, increment=.true.)
       CALL SUMXPE(AJL_loc, AJL, increment=.true.)
+      CALL SUMXPE(ASJL_loc, ASJL, increment=.true.)
+      CALL SUMXPE(CONSRV_loc, CONSRV, increment=.true.)
       AJ_loc(:,:,:)=0.
       AREGJ_loc(:,:,:)=0.
       AJK_loc(:,:,:)=0.
+      ASJL_loc(:,:,:)=0.
+      CONSRV_loc(:,:)=0.
 #else
       CALL PACK_DATAj(grid, AJ_loc,     AJ)
       CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
       CALL PACK_DATAj(grid, AJL_loc,    AJL)
-#endif
       CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
-      CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
       CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
+#endif
+      CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
       CALL PACK_DATAj(grid, AJK_loc,    AJK)
       CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
       CALL PACK_DATA(grid,  AIL_loc,   AIL)
@@ -1362,8 +1367,6 @@ c**** Compute area weights of zig-zag grid cells
       RETURN
       END SUBROUTINE set_wtbudg
 
-
-C**** Should this be here?
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
 !@auth Gavin Schmidt
@@ -1384,7 +1387,6 @@ C**** define atmospheric grid
       ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER) 
 
       DO J=J_0H,J_1H
-c        J_BUDG(I_0H:I_1H,J)=J   ! temporary
 C**** this should be valid for all grids (lat/lon, cubed sphere,...)
         DO I=I_0,I_1
            J_BUDG(I,J)=NINT(1+(lat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
@@ -1416,10 +1418,10 @@ c      write(*,*) "j_1b - j_1", j_1b - j_1
       REAL*8, INTENT(IN) :: ACC
 
 C**** accumulate I,J value on the budget grid using j_budg to assign
-C**** each point to a zonal mean (not bitwise reprodcible for MPI).
-c      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
+C**** each point to a zonal mean (not bitwise reproducible for MPI).
+      !   wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
       AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)
-     &     +wtbudg(I,J)*ACC     !wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+     &     +wtbudg(I,J)*ACC    
 
       RETURN
       END SUBROUTINE INC_AJ
@@ -1440,9 +1442,9 @@ c      AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)+ACC
 
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
-c      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)+ACC
       AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)
      &     +wtbudg(I,J)*ACC      
+
       RETURN
       END SUBROUTINE INC_AREG
 
@@ -1459,9 +1461,10 @@ c      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)+ACC
       INTEGER, INTENT(IN) :: JL_INDEX
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
-c      AJL(J,L,JL_INDEX) = AJL(J,L,JL_INDEX) + ACC
+
       AJL(J_BUDG(I,J),L,JL_INDEX) = AJL(J_BUDG(I,J),L,JL_INDEX)
      &     +wtbudg(I,J)*ACC 
+
       RETURN
       END SUBROUTINE INC_AJL
 
@@ -1470,7 +1473,8 @@ c      AJL(J,L,JL_INDEX) = AJL(J,L,JL_INDEX) + ACC
 !@+   to the latitude-height zonal sum ASJL(J,L,JL_INDEX).
 !@+   This is a trivial version for the latlon grid.
 !@auth M. Kelley
-      USE DIAG_COM, only : asjl=>asjl_loc
+      USE DIAG_COM, only : asjl=>asjl_loc,wtbudg
+      USE GEOM, only : j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1478,7 +1482,10 @@ c      AJL(J,L,JL_INDEX) = AJL(J,L,JL_INDEX) + ACC
       INTEGER, INTENT(IN) :: SJL_INDEX
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
-      ASJL(J,L,SJL_INDEX) = ASJL(J,L,SJL_INDEX) + ACC
+
+      ASJL(J_BUDG(I,J),L,SJL_INDEX) = ASJL(J_BUDG(I,J),L,SJL_INDEX)
+     *     +wtbudg(I,J)*ACC
+
       RETURN
       END SUBROUTINE INC_ASJL
 

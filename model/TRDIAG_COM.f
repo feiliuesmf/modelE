@@ -366,7 +366,7 @@ C**** include some extra troposphere only ones
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
 !@var dtr_dd to save drydep change for conservation quantities
-      REAL*8,ALLOCATABLE :: dtr_dd(:,:,:)
+      REAL*8,ALLOCATABLE :: dtr_dd(:,:,:,:)
 !@var itcon_wt Index array for dust/mineral dust deposition conserv. diags
       INTEGER,DIMENSION(ntmxcon) :: itcon_wt
 #endif
@@ -539,6 +539,7 @@ C****
       USE MODEL_COM, only: im,jm,lm
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
+      USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP, only : PACK_DATA,PACK_J,UNPACK_DATA,UNPACK_J
       USE DOMAIN_DECOMP, only : AM_I_ROOT
       USE DOMAIN_DECOMP, only : ESMF_BCAST
@@ -571,7 +572,8 @@ C****
 !@param KTACC total number of tracer diagnostic words
       INTEGER, PARAMETER ::
      *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
-     *        JM*LM*ktajlx*NTM + JM*LM*ktajls + JM*ntmxcon*ktcon
+     *     JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls + JM_BUDG*ntmxcon
+     *     *ktcon
 !@var TA..4(...) dummy arrays for reading diagnostics files
       real*4, allocatable, dimension(:,:,:,:) :: taijln4
       real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
@@ -599,12 +601,9 @@ C****
       SELECT CASE (IACTION)
       CASE (IOWRITE,IOWRITE_SINGLE)  
 C***  PACK distributed arrays into global ones in preparation for output
-        CALL PACK_DATA(grid,TAIJLN_loc, TAIJLN)
-        CALL PACK_DATA(grid,TAIJN_loc, TAIJN )
-        CALL PACK_DATA(grid,TAIJS_loc, TAIJS )
-        CALL PACK_J(grid,TAJLN_loc, TAJLN )
-        CALL PACK_J(grid,TAJLS_loc, TAJLS )
-        CALL PACK_J(grid,TCONSRV_loc, TCONSRV )
+
+        call gather_trdiag
+
         SELECT CASE (IACTION)
           CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
           IF (AM_I_ROOT())  WRITE (kunit,err=10) MODULE_HEADER,
@@ -624,9 +623,9 @@ C***  PACK distributed arrays into global ones in preparation for output
             ALLOCATE (taijln4(IM,JM,LM,ntm), stat=status )
             ALLOCATE (taijn4(IM,JM,ktaij,ntm), stat=status )
             ALLOCATE (TAIJS4(IM,JM,ktaijs), stat=status )
-            ALLOCATE (TAJLN4(JM,LM,ktajlx,ntm), stat=status )
-            ALLOCATE (TAJLS4(JM,LM,ktajls), stat=status )
-            ALLOCATE (TCONSRV4(JM,ktcon,ntmxcon), stat=status )
+            ALLOCATE (TAJLN4(JM_BUDG,LM,ktajlx,ntm), stat=status )
+            ALLOCATE (TAJLS4(JM_BUDG,LM,ktajls), stat=status )
+            ALLOCATE (TCONSRV4(JM_BUDG,ktcon,ntmxcon), stat=status )
           else ! allocate to nonzero size to be safe
             ALLOCATE(taijln4(1,1,1,1),taijn4(1,1,1,1),
      &           TAIJS4(1,1,1),TAJLN4(1,1,1,1),TAJLS4(1,1,1),
@@ -654,12 +653,8 @@ C***  PACK distributed arrays into global ones in preparation for output
           end if
           
 C*** Unpack read global data into (real*8) local distributed arrays
-          CALL UNPACK_DATA( grid, real(TAIJLN4,kind=8), TAIJLN4_loc)
-          CALL UNPACK_DATA( grid, real(TAIJN4,kind=8) , TAIJN4_loc)
-          CALL UNPACK_DATA( grid, real(TAIJS4,kind=8) , TAIJS4_loc)
-          CALL UNPACK_J( grid, real(TAJLN4,kind=8)  , TAJLN4_loc)
-          CALL UNPACK_J( grid, real(TAJLS4,kind=8)  , TAJLS4_loc)
-          CALL UNPACK_J( grid, real(TCONSRV4,kind=8), TCONSRV4_loc)
+
+          call scatter_trdiag
 
 C****     Accumulate diagnostics (converted back to real*8)
           TAIJLN_loc =  TAIJLN_loc+TAIJLN4_loc(:,J_0H:J_1H,:,:) 
@@ -700,12 +695,9 @@ C****     Accumulate diagnostics (converted back to real*8)
             END IF
           end if
 C*** Unpack read global data into local distributed arrays
-          CALL UNPACK_DATA( grid,TAIJLN, TAIJLN_loc)
-          CALL UNPACK_DATA( grid,TAIJN , TAIJN_loc)
-          CALL UNPACK_DATA( grid,TAIJS , TAIJS_loc)
-          CALL UNPACK_J( grid,TAJLN  , TAJLN_loc)
-          CALL UNPACK_J( grid,TAJLS  , TAJLS_loc)
-          CALL UNPACK_J( grid,TCONSRV, TCONSRV_loc)
+
+          call scatter_trdiag
+
           CALL ESMF_BCAST( grid, it )
         END SELECT
       END SELECT
@@ -717,6 +709,7 @@ C*** Unpack read global data into local distributed arrays
 #endif
 
       SUBROUTINE ALLOC_TRDIAG_COM
+      USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM
       USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
       INTEGER :: J_0H,J_1H, I_0H,I_1H
@@ -730,19 +723,25 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )
       ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
+#ifdef CUBE_GRID    /* global-size arrays */
+      ALLOCATE ( TAJLN_loc(  JM_BUDG,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS_loc(  JM_BUDG,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV_loc(JM_BUDG,ktcon,ntmxcon), stat=status )
+#else               /* distributed arrays */
       ALLOCATE ( TAJLN_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
       ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
       ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
+#endif
 #ifdef TRACERS_DRYDEP
-      ALLOCATE (dtr_dd(J_0H:J_1H,Ntm,2),stat=status)
+      ALLOCATE (dtr_dd(I_0H:I_1H,J_0H:J_1H,Ntm,2),stat=status)
 #endif
       if(am_i_root()) then
         ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
         ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
         ALLOCATE ( TAIJS( IM,JM,ktaijs   ), stat=status )
-        ALLOCATE ( TAJLN(    JM,LM,ktajlx,ntm), stat=status )
-        ALLOCATE ( TAJLS(    JM,LM,ktajls    ), stat=status )
-        ALLOCATE ( TCONSRV(  JM,ktcon,ntmxcon), stat=status )
+        ALLOCATE ( TAJLN(JM_BUDG,LM,ktajlx,ntm), stat=status )
+        ALLOCATE ( TAJLS(JM_BUDG,LM,ktajls    ), stat=status )
+        ALLOCATE ( TCONSRV(JM_BUDG,ktcon,ntmxcon), stat=status )
       endif
 #endif
       RETURN
@@ -752,34 +751,40 @@ C*** Unpack read global data into local distributed arrays
       subroutine reset_trdiag
       USE TRDIAG_COM, only: TAIJLN_loc, TAIJN_loc, 
      *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc
-   !  *     ,taijln,taijn,taijs,TAJLN,TAJLS,TCONSRV ! not needed ?? 
       implicit none
-      !!! TAJLN=0. ; TAJLS=0. ; TCONSRV=0. ! not needed ?
+
        TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
-      !!! TAIJLN=0.    ; TAIJN=0.     ; TAIJS=0.  ! not needed ?
       TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
+
       return
       end subroutine reset_trdiag
-#endif
 
-#ifdef TRACERS_ON
       subroutine gather_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
      *     TCONSRV, TCONSRV_loc
-      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj
+      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj,sumxpe
       implicit none
+
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
       CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
       CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
-      CALL PACK_DATAj(GRID, TAJLN_loc , TAJLN)
-      CALL PACK_DATAj(GRID, TAJLS_loc , TAJLS)
-      CALL PACK_DATAj(GRID, TCONSRV_loc, TCONSRV)
-      return
-      end subroutine gather_trdiag
+#ifdef CUBE_GRID
+      CALL SUMXPE(TAJLN_loc, TAJLN, increment=.true. )
+      CALL SUMXPE(TAJLS_loc, TAJLS, increment=.true. )
+      CALL SUMXPE(TCONSRV_loc, TCONSRV, increment=.true. )
+      TAJLN_loc = 0.
+      TAJLS_loc = 0.
+      TCONSRV_loc = 0.
+#else
+      CALL PACK_DATAj (grid,TAJLN_loc, TAJLN )
+      CALL PACK_DATAj (grid,TAJLS_loc, TAJLS )
+      CALL PACK_DATAj (grid,TCONSRV_loc, TCONSRV )
 #endif
 
-#ifdef TRACERS_ON
+      return
+      end subroutine gather_trdiag
+
       subroutine scatter_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
@@ -789,9 +794,11 @@ C*** Unpack read global data into local distributed arrays
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
       CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
       CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
+#ifndef CUBE_GRID
       CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc)
       CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc)
       CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
+#endif
       return
       end subroutine scatter_trdiag
 

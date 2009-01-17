@@ -284,7 +284,7 @@ C**** Zero out fluxes summed over type and surface time step
       TRDRYDEP = 0. ; dtr_dd=0.
 #endif
 #ifdef TRACERS_AMP
-      DTR_AMPe(J_0:J_1,:) = 0.d0
+      DTR_AMPe(I_0:I_1,J_0:J_1,:) = 0.d0
 #endif
 #ifdef SCM
       EVPFLX= 0.0d0
@@ -907,7 +907,7 @@ C****
      &       trc_flux*axyp(i,j)*ptype*dtsurf
 
 #ifdef TRACERS_AMP
-        DTR_AMPe(j,n)=DTR_AMPe(j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
+        DTR_AMPe(i,j,n)=DTR_AMPe(i,j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
 #else
         call inc_tajls(i,j,1,jls_isrc(1,n),trc_flux*axyp(i,j)*
      *       ptype*dtsurf)   ! why not for all aerosols?
@@ -955,9 +955,9 @@ C****
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
      *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
 #endif
-          dtr_dd(j,n,1)=dtr_dd(j,n,1)-
+          dtr_dd(i,j,n,1)=dtr_dd(i,j,n,1)-
      &         ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n)
-          dtr_dd(j,n,2)=dtr_dd(j,n,2)-
+          dtr_dd(i,j,n,2)=dtr_dd(i,j,n,2)-
      &         ptype*rtsdt*axyp(i,j)* pbl_args%gs_vel(n)
         end if
 #endif
@@ -1382,9 +1382,9 @@ C**** Save for tracer dry deposition conservation quantity:
       do n=1,ntm
         if(dodrydep(n)) then
           if (itcon_dd(n,1).gt.0)
-     *    call diagtcb(dtr_dd(:,n,1),itcon_dd(n,1),n)  ! turb dep
+     *         call diagtcb(dtr_dd(:,:,n,1),itcon_dd(n,1),n) ! turb dep
           if (itcon_dd(n,2).gt.0)
-     *         call diagtcb(dtr_dd(:,n,2),itcon_dd(n,2),n) ! grav sett
+     *         call diagtcb(dtr_dd(:,:,n,2),itcon_dd(n,2),n) ! grav sett
         end if
       end do
 #endif

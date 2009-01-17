@@ -452,7 +452,8 @@ C**** Tracers dry deposition flux.
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO
+     *     ,grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
       REAL*8 ftr1
 
       INTEGER :: J_0, J_1, I_0, I_1
@@ -483,15 +484,13 @@ C**** diagnostics
               END DO
             END  DO
           END IF
-          dtracer(:)=0.
           DO J=J_0,J_1
-            dtracer(j)=0.
             do i=i_0,imaxj(j)
-              dtracer(j)=dtracer(j)+trsource(i,j,ns,n)*dtstep
+              dtracer(i,j)=trsource(i,j,ns,n)*dtstep
             end do
           end do
           if (itcon_surf(ns,n).gt.0)
-     *         call DIAGTCB(dtracer(:),itcon_surf(ns,n),n)
+     *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do

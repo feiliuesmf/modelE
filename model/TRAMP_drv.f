@@ -25,9 +25,9 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: DTR_AMPe   !(jm,ntmAMP) ! Emission diagnostic - hardcoded to 10 in TRDIAG
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMP    !(7,jm,ntmAMP)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMPm   !(2,jm,ntmAMP)	  
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMPe   !(im,jm,ntmAMP) ! Emission diagnostic - hardcoded to 10 in TRDIAG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DTR_AMP    !(im,jm,7,ntmAMP)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DTR_AMPm   !(im,jm,2,ntmAMP)	  
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NUMB_SS  ! Sea salt number concentration [#/gb]
 #ifdef BLK_2MOM
       REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: NACTC      ! = 1.0D-30  ![#/m3](l,nmodes)
@@ -102,7 +102,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL 
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1
+      INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1, m
 C**** functions
       REAL(8):: QSAT
 c***  daily output
@@ -115,8 +115,8 @@ c***  daily output
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
-      DTR_AMP(:,J_0:J_1,:)      = 0.d0
-      DTR_AMPm(:,J_0:J_1,:)     = 0.d0
+      DTR_AMP(I_0:I_1,J_0:J_1,:,:)      = 0.d0
+      DTR_AMPm(I_0:I_1,J_0:J_1,:,:)     = 0.d0
       NACTV(:,J_0:J_1,:,:)      = 0.d0 
       VDDEP_AERO(:,J_0:J_1,:,:) = 0.d0 
       DIAM(:,J_0:J_1,:,:)       = 0.d0
@@ -237,35 +237,63 @@ c Update physical properties per mode
        do n=1,ntmAMP
 c Diagnostic of Processes - Sources and Sincs - timestep included
           if(AMP_NUMB_MAP(n).eq. 0) then  !taijs [kg/s] -> in acc [kg/m2*s]
-        taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(9,AMP_AERO_MAP(n))* AVOL / 1.d9)
-      DTR_AMP(1,j,n)=DTR_AMP(1,j,n)+(DT_AERO(9,AMP_AERO_MAP(n))* AVOL /1.d9)
-        taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(10,AMP_AERO_MAP(n))* AVOL/ 1.d9)
-      DTR_AMP(2,j,n)=DTR_AMP(2,j,n)+(DT_AERO(10,AMP_AERO_MAP(n))* AVOL /1.d9)
-        taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(11,AMP_AERO_MAP(n))* AVOL/ 1.d9)
-      DTR_AMP(3,j,n)=DTR_AMP(3,j,n)+(DT_AERO(11,AMP_AERO_MAP(n))* AVOL /1.d9)
-        taijs(i,j,ijts_AMPp(4,n)) =taijs(i,j,ijts_AMPp(4,n))+(DT_AERO(12,AMP_AERO_MAP(n))* AVOL/ 1.d9)
-      DTR_AMP(4,j,n)=DTR_AMP(4,j,n)+(DT_AERO(12,AMP_AERO_MAP(n))* AVOL /1.d9)
-        taijs(i,j,ijts_AMPp(5,n)) =taijs(i,j,ijts_AMPp(5,n))+(DT_AERO(13,AMP_AERO_MAP(n))* AVOL/ 1.d9)
-      DTR_AMP(5,j,n)=DTR_AMP(5,j,n)+(DT_AERO(13,AMP_AERO_MAP(n))* AVOL /1.d9)
-        taijs(i,j,ijts_AMPp(6,n)) =taijs(i,j,ijts_AMPp(6,n))+(DT_AERO(14,AMP_AERO_MAP(n))* AVOL/ 1.d9)
-      DTR_AMP(6,j,n)=DTR_AMP(6,j,n)+(DT_AERO(14,AMP_AERO_MAP(n))* AVOL /1.d9)
-        taijs(i,j,ijts_AMPp(7,n)) =taijs(i,j,ijts_AMPp(7,n))+(DT_AERO(15,AMP_AERO_MAP(n))* AVOL/ 1.d9)
-      DTR_AMP(7,j,n)=DTR_AMP(7,j,n)+(DT_AERO(15,AMP_AERO_MAP(n))* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))
+     *           +(DT_AERO(9,AMP_AERO_MAP(n))* AVOL / 1.d9)
+            DTR_AMP(i,j,1,n)=DTR_AMP(i,j,1,n)+(DT_AERO(9,AMP_AERO_MAP(n)
+     *           )* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))
+     *           +(DT_AERO(10,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+            DTR_AMP(i,j,2,n)=DTR_AMP(i,j,2,n)+(DT_AERO(10,AMP_AERO_MAP(n
+     *           ))* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))
+     *           +(DT_AERO(11,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+            DTR_AMP(i,j,3,n)=DTR_AMP(i,j,3,n)+(DT_AERO(11,AMP_AERO_MAP(n
+     *           ))* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(4,n)) =taijs(i,j,ijts_AMPp(4,n))
+     *           +(DT_AERO(12,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+            DTR_AMP(i,j,4,n)=DTR_AMP(i,j,4,n)+(DT_AERO(12,AMP_AERO_MAP(n
+     *           ))* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(5,n)) =taijs(i,j,ijts_AMPp(5,n))
+     *           +(DT_AERO(13,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+            DTR_AMP(i,j,5,n)=DTR_AMP(i,j,5,n)+(DT_AERO(13,AMP_AERO_MAP(n
+     *           ))* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(6,n)) =taijs(i,j,ijts_AMPp(6,n))
+     *           +(DT_AERO(14,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+            DTR_AMP(i,j,6,n)=DTR_AMP(i,j,6,n)+(DT_AERO(14,AMP_AERO_MAP(n
+     *           ))* AVOL /1.d9)
+            taijs(i,j,ijts_AMPp(7,n)) =taijs(i,j,ijts_AMPp(7,n))
+     *           +(DT_AERO(15,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+            DTR_AMP(i,j,7,n)=DTR_AMP(i,j,7,n)+(DT_AERO(15,AMP_AERO_MAP(n
+     *           ))* AVOL /1.d9)
           else
-        taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(2,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(1,j,n)=DTR_AMP(1,j,n)+(DT_AERO(2,AMP_AERO_MAP(n)) * AVOL)
-        taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(3,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(2,j,n)=DTR_AMP(2,j,n)+(DT_AERO(3,AMP_AERO_MAP(n)) * AVOL)
-       taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(1,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(3,j,n)=DTR_AMP(3,j,n)+(DT_AERO(1,AMP_AERO_MAP(n)) * AVOL)
-        taijs(i,j,ijts_AMPp(4,n)) =taijs(i,j,ijts_AMPp(4,n))+(DT_AERO(4,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(4,j,n)=DTR_AMP(4,j,n)+(DT_AERO(4,AMP_AERO_MAP(n)) * AVOL)
-        taijs(i,j,ijts_AMPp(5,n)) =taijs(i,j,ijts_AMPp(5,n))+(DT_AERO(5,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(5,j,n)=DTR_AMP(5,j,n)+(DT_AERO(5,AMP_AERO_MAP(n)) * AVOL)
-        taijs(i,j,ijts_AMPp(6,n)) =taijs(i,j,ijts_AMPp(6,n))+(DT_AERO(6,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(6,j,n)=DTR_AMP(6,j,n)+(DT_AERO(6,AMP_AERO_MAP(n)) * AVOL)
-        taijs(i,j,ijts_AMPp(7,n)) =taijs(i,j,ijts_AMPp(7,n))+(DT_AERO(7,AMP_AERO_MAP(n))* AVOL)
-      DTR_AMP(7,j,n)=DTR_AMP(7,j,n)+(DT_AERO(7,AMP_AERO_MAP(n)) * AVOL)
+            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))
+     *           +(DT_AERO(2,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,1,n)=DTR_AMP(i,j,1,n)+(DT_AERO(2,AMP_AERO_MAP(n)
+     *           )* AVOL)
+            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))
+     *           +(DT_AERO(3,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,2,n)=DTR_AMP(i,j,2,n)+(DT_AERO(3,AMP_AERO_MAP(n)
+     *           )* AVOL)
+            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))
+     *           +(DT_AERO(1,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,3,n)=DTR_AMP(i,j,3,n)+(DT_AERO(1,AMP_AERO_MAP(n)
+     *           )* AVOL)
+            taijs(i,j,ijts_AMPp(4,n)) =taijs(i,j,ijts_AMPp(4,n))
+     *           +(DT_AERO(4,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,4,n)=DTR_AMP(i,j,4,n)+(DT_AERO(4,AMP_AERO_MAP(n)
+     *           )* AVOL)
+            taijs(i,j,ijts_AMPp(5,n)) =taijs(i,j,ijts_AMPp(5,n))
+     *           +(DT_AERO(5,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,5,n)=DTR_AMP(i,j,5,n)+(DT_AERO(5,AMP_AERO_MAP(n)
+     *           )* AVOL)
+            taijs(i,j,ijts_AMPp(6,n)) =taijs(i,j,ijts_AMPp(6,n))
+     *           +(DT_AERO(6,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,6,n)=DTR_AMP(i,j,6,n)+(DT_AERO(6,AMP_AERO_MAP(n)
+     *           )* AVOL)
+            taijs(i,j,ijts_AMPp(7,n)) =taijs(i,j,ijts_AMPp(7,n))
+     *           +(DT_AERO(7,AMP_AERO_MAP(n))* AVOL)
+            DTR_AMP(i,j,7,n)=DTR_AMP(i,j,7,n)+(DT_AERO(7,AMP_AERO_MAP(n)
+     *           )* AVOL)
           endif
        select case (trname(n)) !taijs [kg * m2/kg air] -> in acc [kg/kg air]
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ','N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
@@ -280,8 +308,10 @@ c    *  write(6,*)"Aerosolconv",AVOL*byam(l,i,j),NACTV(i,j,l,AMP_MODES_MAP(n)),
 c    *l,i,j,n,axyp(i,j),mair,gasc,tk,pres,am(l,i,j)
 
 c - 2d PRT Diagnostic
-         DTR_AMPm(1,j,n)=DTR_AMPm(1,j,n)+(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6*1d18)
-         DTR_AMPm(2,j,n)=DTR_AMPm(2,j,n)+NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL
+        DTR_AMPm(i,j,1,n)=DTR_AMPm(i,j,1,n)+(DIAM(i,j,l,AMP_MODES_MAP(n)
+     *       )*1d6*1d18)
+        DTR_AMPm(i,j,2,n)=DTR_AMPm(i,j,2,n)+NACTV(i,j,l,AMP_MODES_MAP(n)
+     *       )*AVOL
        end select
 
       enddo !n
@@ -310,22 +340,18 @@ c     enddo
 
       do n=1,ntmAMP 
 
-      CALL DIAGTCB(DTR_AMP(1,:,n),itcon_amp(1,n),n)
-      CALL DIAGTCB(DTR_AMP(2,:,n),itcon_amp(2,n),n)
-      CALL DIAGTCB(DTR_AMP(3,:,n),itcon_amp(3,n),n)
-      CALL DIAGTCB(DTR_AMP(4,:,n),itcon_amp(4,n),n)
-      CALL DIAGTCB(DTR_AMP(5,:,n),itcon_amp(5,n),n)
-      CALL DIAGTCB(DTR_AMP(6,:,n),itcon_amp(6,n),n)
-      CALL DIAGTCB(DTR_AMP(7,:,n),itcon_amp(7,n),n)
+        do m=1,7
+          CALL DIAGTCB(DTR_AMP(:,:,m,n),itcon_amp(m,n),n)
+        end do
 
        select case (trname(n))       
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
      *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
-      CALL DIAGTCB(DTR_AMPm(1,:,n),itcon_AMPm(1,n),n)
-      CALL DIAGTCB(DTR_AMPm(2,:,n),itcon_AMPm(2,n),n)
+      CALL DIAGTCB(DTR_AMPm(:,:,1,n),itcon_AMPm(1,n),n)
+      CALL DIAGTCB(DTR_AMPm(:,:,2,n),itcon_AMPm(2,n),n)
       CASE('M_DD1_DU ','M_DD2_DU ','M_DDD_DU','M_SSA_SS ','M_SSC_SS ','M_SSS_SS')
-      CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
+      CALL DIAGTCB(DTR_AMPe(:,:,n),itcon_surf(1,n),n)
        end select
       enddo
 
@@ -513,9 +539,9 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 ! I,J,L
       allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
 ! other dimensions
-      allocate(  DTR_AMPe(J_0H:J_1H,ntmAMP)    )
-      allocate(  DTR_AMPm(2,J_0H:J_1H,ntmAMP)  )
-      allocate(  DTR_AMP(7,J_0H:J_1H,ntmAMP)   )
+      allocate(  DTR_AMPe(I_0H:I_1H,J_0H:J_1H,ntmAMP)    )
+      allocate(  DTR_AMPm(I_0H:I_1H,J_0H:J_1H,2,ntmAMP)  )
+      allocate(  DTR_AMP(I_0H:I_1H,J_0H:J_1H,7,ntmAMP)   )
       allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  MASSH2O(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )

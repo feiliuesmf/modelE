@@ -73,7 +73,6 @@ C*********************************************************************
 !@var XLAI2 leaf area index variable
 !@var DRYCOEFF polynomial fittings coeffcients  
 !@var CZ Altitude (m) at which deposition velocity would be computed
-!@var dtr_dd to save drydep change for conservation quantities
 !@var ILAND Land type ID for element LDT=1,IREG(I,J)
 !@var IUSE per mil fraction of grid area with by land type element LDT
 !@var FRCLND land fraction 
@@ -81,7 +80,6 @@ C*********************************************************************
      &                      NTYPE   = 16,
      &                      NVEGTYPE= 74
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: XYLAI,XLAI,XLAI2
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: dtr_dd    
       REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: FRCLND,IREG_loc 
       REAL*8, DIMENSION(NPOLY)               :: DRYCOEFF
       INTEGER, ALLOCATABLE, DIMENSION(:,:)   :: IJREG,IREG
@@ -100,7 +98,7 @@ C*********************************************************************
 !@auth G.Faluvegi
 !@ver  1.0
       use domain_decomp, only : dist_grid, get
-      use tracers_DRYDEP, only: ntype,dtr_dd,XYLAI,XLAI,XLAI2,IJREG,
+      use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
      &              IREG_loc,   IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND
       use tracer_com, only    : ntm
       use model_com, only     : im
@@ -118,7 +116,6 @@ C*********************************************************************
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
  
-      allocate(  dtr_dd(J_0H:J_1H,ntm,2)    )
       allocate(   XYLAI(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(    XLAI(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(   XLAI2(I_0H:I_1H,J_0H:J_1H,NTYPE) )
