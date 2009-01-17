@@ -121,8 +121,7 @@ C**** Some local constants
      &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,jet
-      USE DOMAIN_DECOMP, only : GET, HALO_UPDATE,
-     &                          GRID, SOUTH, NORTH
+      USE DOMAIN_DECOMP, only : GET, HALO_UPDATE, GRID
       USE GETTIME_MOD
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
