@@ -53,6 +53,9 @@ MODULE jw
        !
        !
        !
+  ! Note that these constants are fixed to these values for these 
+  ! experiments only for the sake of consistency across platforms, they
+  ! are not used in the full model.
        Rd         = 287.d0    ,&! gas constant J/(K kg)
        g          = 9.80616d0 ,&! gravitational acceleration (m/s^2)
        a          = 6371229.d0,&! Earth's radius in m

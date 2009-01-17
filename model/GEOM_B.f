@@ -418,7 +418,6 @@ c this version is for the latlon grid.
       implicit none
       integer lat_to_J
       real*8, intent(in) :: DEG
-      real*8 :: dlon_dg
       lat_to_J = jm/2 + (DEG+.5*dlat_dg+.01)/dlat_dg
       return
       end function lat_to_J
