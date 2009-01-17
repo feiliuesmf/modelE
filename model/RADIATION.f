@@ -1298,11 +1298,12 @@ C                  -----------------------------------------------------
       write(*,*) trim(dtitle)                                         !ron
       write(*,*) 'Offline Dust Dims: imd, jmd, lmd, nsized, nmond: ', !ron 
      *     imd, jmd, lmd, nsized, nmond                               !ron
-      if (imd.ne.mlon72 .or. jmd.ne.mlat46) then                      !ron
-         write(*,*) 'STOP, RCOMP1 offline DUST file has different'//  !ron
-     *      'horizontal resolution that assumed: IMD=/=72 or JMD=/=46'!ron
-         stop                                                         !ron
-      endif                                                           !ron
+      if (imd.eq.0)
+     *     call stop_model('Please update dust file RADN6', 255) 
+      if (imd.ne.mlon72 .or. jmd.ne.mlat46) call stop_model(
+     *     'RCOMP1 offline DUST file has different'// 
+     *     ' horizontal resolution that assumed: IMD=/=72 or JMD=/=46',
+     *     255)
 
       allocate( plbdust(lmd+1) )                                      !ron
       allocate( redust(nsized), rodust(nsized) )                      !ron
