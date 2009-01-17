@@ -361,17 +361,18 @@ exec "$debugger ./$runID.exe; rm -f AIC GIC OIC; ./${runID}uln; rm -f lock";
 
 
 ## hack to set "ulimit" for openmpi jobs
-$stack_in_wrapper = ($MIN_STACK>1024000) ? $MIN_STACK : 1024000;
-if ( $MPIDISTR =~ /openmpi/ ) {
-print <<`EOC`;
-    echo "#!/bin/sh" > ${runID}.wrapper
-    echo "ulimit -s $stack_in_wrapper" >> ${runID}.wrapper
-    echo `pwd`/"$runID.exe \\\$\@" >> ${runID}.wrapper
-EOC
-} else {
-    `ln -sf $runID.exe $runID.wrapper`;
-}
-`chmod 755 $runID.wrapper`;
+# seems it is not needed any more (and sometimes causes problems)
+#$stack_in_wrapper = ($MIN_STACK>1024000) ? $MIN_STACK : 1024000;
+#if ( $MPIDISTR =~ /openmpi/ ) {
+#print <<`EOC`;
+#    echo "#!/bin/sh" > ${runID}.wrapper
+#    echo "ulimit -s $stack_in_wrapper" >> ${runID}.wrapper
+#    echo `pwd`/"$runID.exe \\\$\@" >> ${runID}.wrapper
+#EOC
+#} else {
+#    `ln -sf $runID.exe $runID.wrapper`;
+#}
+#`chmod 755 $runID.wrapper`;
 
 ## Running the model
 print <<`EOC`;
@@ -385,7 +386,7 @@ print <<`EOC`;
     NP=$nproc
     echo "#!/bin/sh" > setup_command
     echo cd `pwd` >> setup_command
-    echo "$run_command ./"$runID".wrapper -i I >> ${runID}.PRT" >> setup_command
+    echo "$run_command ./"$runID".exe -i I >> ${runID}.PRT" >> setup_command
     chmod 755 setup_command
     $qsub_command ./setup_command
     rc=`head -1 run_status`
@@ -455,7 +456,7 @@ print RUNID <<EOF;
     . ./runtime_opts
     if [ -s nctemp ] ; then $NETCDFBIN/ncgen -b -o nctemp.nc nctemp ; fi
     ./${runID}ln
-    $run_command ./${runID}.wrapper -i ./\$IFILE > \$PRTFILE
+    $run_command ./${runID}.exe -i ./\$IFILE > \$PRTFILE
     rc=`head -1 run_status`
     ./${runID}uln
     rm -f lock
