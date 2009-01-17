@@ -29,9 +29,11 @@ c                                          and pk is t mess up factor
       real                  :: erf
       integer, parameter    :: ndtr = 8  ! # dust bins
       REAL*8, 
-     * DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,rhet) :: 
+     * DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *           GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,rhet) :: 
      * rxtnox
-      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
      * dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
@@ -274,7 +276,8 @@ c radii interpolation
 !-----------------------------------------------------------------------
       real                   :: erf
       integer, parameter     :: ndtr = 8  ! # dust bins
-      REAL*8, DIMENSION(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) ::
      * rxt,dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
