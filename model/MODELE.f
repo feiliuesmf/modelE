@@ -9,7 +9,7 @@ CAOO   Just to test CVS
       USE PARAM
       USE PARSER
       USE MODEL_COM
-      USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT,pack_data
+      USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
       USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
       use domain_decomp, only : writei8_parallel
 #ifdef CUBE_GRID
