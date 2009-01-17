@@ -39,7 +39,7 @@ C**** Variables used in DIAG5 calculations
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
       USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
-     &    ,pua,pva,sda,ps,mb,pk,pmid,sd_clouds,pedn
+     &    ,pua,pva,sda,ps,mb,pk,pmid,pedn
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE, GLOBALSUM
@@ -388,7 +388,7 @@ C**** vertically integrated atmospheric fluxes
       USE MODEL_COM, only : im,imh,jm,lm,ls1,dsig,bydsig,byim
      &     ,zatmo,sige,do_polefix
       USE GEOM, only : dyp,dxv,polwt,imaxj
-      USE DYNAMICS, only : pit,sd,conv,pu,pv,sd_clouds,spa
+      USE DYNAMICS, only : pit,sd,conv,pu,pv,spa
       USE DOMAIN_DECOMP, only : grid, GET
       USE DOMAIN_DECOMP, only : HALO_UPDATE
       USE DOMAIN_DECOMP, only : NORTH, SOUTH
@@ -1983,14 +1983,13 @@ c      USE GEOM, only : ravps,ravpn
       END SUBROUTINE calc_kea_3d
 
       subroutine recalc_agrid_uv
-!@sum Computes u_a,v_a from u and v
+!@sum recalc_agrid_uv Computes u_a,v_a from u and v
 !@var u x-component at secondary grids (B_grid)
 !@var v y-component at secondary grids (B_grid)
 !@var u_a x-component at primary grids (A_grid)
 !@var v_a y-component at primary grids (A_grid)
 !@auth Ye Cheng
 !@ver  1.0
-
       USE MODEL_COM, only : im,jm,lm,u,v
       USE DYNAMICS, only : ua=>ualij,va=>valij
       USE DOMAIN_DECOMP, only : grid,get,NORTH, HALO_UPDATE_COLUMN
@@ -2156,6 +2155,7 @@ C****
       enddo
       return
       end subroutine regrid_atov_1d
+
       subroutine get_nuv(nuv)
       use model_com, only : im
       USE DOMAIN_DECOMP, only : GRID
@@ -2164,12 +2164,14 @@ C****
       nuv = 2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)
       return
       end subroutine get_nuv
+
       subroutine get_vpkey_of_n(n,vpkey)
       implicit none
       integer :: n,vpkey
       vpkey = 1+(n-1)/2
       return
       end subroutine get_vpkey_of_n
+
       subroutine get_regrid_info_for_n(n,ilist,jlist,wts,nnbr)
       use model_com, only : im
       use geom, only : rapvn,rapvs
@@ -2187,6 +2189,7 @@ C****
       wts(1:4) = (/ rapvn(jv-1), rapvn(jv-1), rapvs(jv), rapvs(jv) /)
       return
       end subroutine get_regrid_info_for_n
+
       subroutine get_uv_of_n(n,uv)
       use model_com, only : im,lm,u,v
       use domain_decomp, only : am_i_root
@@ -2202,6 +2205,7 @@ C****
       endif
       return
       end subroutine get_uv_of_n
+
       subroutine store_uv_of_n(n,uv)
       use model_com, only : im,lm,u,v
       implicit none
@@ -2216,6 +2220,7 @@ C****
       endif
       return
       end subroutine store_uv_of_n
+
       subroutine get_ivjv_of_n(n,iv,jv)
       use model_com, only : im
       USE DOMAIN_DECOMP, only : GRID

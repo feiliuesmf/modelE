@@ -409,7 +409,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
 
 
       subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
-!@sum  tropwmo calculates tropopasue height according to WMO formula
+!@sum  tropwmo calculates tropopause height according to WMO formula
 !@auth D. Nodorp/T. Reichler/C. Land
 !@+    GISS Modifications by Jean Lerner/Gavin Schmidt
 !@ver  1.0
@@ -442,7 +442,6 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@+
       USE MODEL_COM, only : klev=>lm
       USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
-      USE DOMAIN_DECOMP, Only : grid, GET
       implicit none
 
       real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
@@ -643,7 +642,6 @@ C***** Add in dissipiated KE as heat locally
       use MODEL_COM, only: LM
       use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
      &     ,am_i_root
-      use DIAG_COM, only: ajl => ajl_loc
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
@@ -652,7 +650,7 @@ C***** Add in dissipiated KE as heat locally
      &                     grid%j_strt_halo:grid%j_stop_halo) :: PK
 c      integer, optional, intent(in) :: diagIndex
 
-      integer :: i, j, k, l
+      integer :: i, j, l
       real*8 :: ediff
       integer :: I_0, I_1, J_0, J_1
 
@@ -667,7 +665,7 @@ c      integer, optional, intent(in) :: diagIndex
         ediff = deltaKE(I,J,L) / (SHA*PK(L,I,J))
         T(I,J,L)=T(I,J,L)-ediff
 c        if (present(diagIndex)) then
-c          AJL(J,L,diagIndex) = AJL(J,L,diagIndex) - ediff
+c          CALL INC_AJL(I,J,L,diagIndex,-ediff)
 c        end if
       END DO
       END DO
