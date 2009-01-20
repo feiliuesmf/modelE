@@ -1250,14 +1250,14 @@ c if after Feb 28 skip the leapyear day
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,jls_OHcon
 #endif
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
-      USE DOMAIN_DECOMP, only : GRID, GET, UNPACK_DATA, write_parallel
+      USE DOMAIN_DECOMP, only: AM_I_ROOT, DREAD8_PARALLEL,DREAD_PARALLEL
+      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,tno3,ohsr,o3_offline
        USE CONSTANT, only : mair
@@ -1276,20 +1276,15 @@ c Aerosol chemistry
      *       ,d41,d42,d43,o3mc,rsulfo3
 #endif
       real*8 bciage,ociage
-c     real*8, dimension(im,jm,lm,12) :: ohr_glob,dho2r_glob,
-c    * perjr_glob,tno3r_glob,ohsr_glob
-      real*8, dimension(im,jm,lm) :: 
-     * ohr_globm,dho2r_globm,
-     * perjr_globm,tno3r_globm,ohsr_glob
-      real*4, dimension(im,jm) :: 
-     *  ohsr_real
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
       integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,nm,najl,j_0,j_1,
      * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
-      integer maxl
+      integer maxl,nrecs_skip
       save ifirst
       
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1,
@@ -1353,39 +1348,23 @@ ccOMP END PARALLEL DO
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-        if(AM_I_ROOT( ))then
-        call openunit('AER_CHEM',iuc,.true.,.true.)
-        do ii=1,jmon
-          read(iuc) ichemi
-          read(iuc) ohr_globm
-          read(iuc) dho2r_globm
-          read(iuc) perjr_globm
-          read(iuc) tno3r_globm
-c         ohr_glob(:,:,:,ii)=ohr_globm(:,:,:)
-c         dho2r_glob(:,:,:,ii)=dho2r_globm(:,:,:)
-c         perjr_glob(:,:,:,ii)=perjr_globm(:,:,:)
-c         tno3r_glob(:,:,:,ii)=tno3r_globm(:,:,:)
-        end do
-cDMK I could move these loops outside AM_I_ROOT
+        call openunit('AER_CHEM',iuc,.true.)
+        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),ohr,recs_to_skip=
+     &       5*(jmon-1)+1)      ! 5 recs/month + ichemi for this month
+        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),dho2r)
+        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjr)
+        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3r)
         call closeunit(iuc)
-        endif
         
-        call UNPACK_DATA( grid, ohr_globm, ohr )
-        call UNPACK_DATA( grid, dho2r_globm, dho2r )
-        call UNPACK_DATA( grid, perjr_globm, perjr )
-        call UNPACK_DATA( grid, tno3r_globm, tno3r )
-
-         if(AM_I_ROOT( ))then
-        call openunit('AER_OH_STRAT',iuc2,.true.,.true.)
-        do ii=1,jmon  !12
+        call openunit('AER_OH_STRAT',iuc2,.true.)
+        nrecs_skip=lm*(jmon-1) ! skip all the preceding months
         do ll=1,lm
-         read(iuc2) ohsr_real
-          ohsr_glob(:,:,ll)=ohsr_real(:,:)*1.D5
-        end do
-        end do
+          call DREAD_PARALLEL(grid,iuc2,nameunit(iuc2),ohsr_in,
+     &       recs_to_skip=nrecs_skip)
+          ohsr(:,:,ll)=ohsr_in(:,:)*1.D5
+          nrecs_skip=0 ! do not skip any more records
+        enddo
         call closeunit(iuc2)
-        endif
-        call UNPACK_DATA( grid, ohsr_glob, ohsr )
 
 c I have to read in every timestep unless I can find a better way
 c
