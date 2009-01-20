@@ -376,7 +376,20 @@ C**** Find the ntx active tracers ntix(1->ntx)
         ntix(nx) = n
       end do
       ntx = nx
+
+      dtr_mc =0. ; dtr_ss = 0.
+#ifndef TRACERS_WATER
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      dtr_wt = 0.D0
 #endif
+#endif
+#ifdef TRACERS_AMP
+      AQsulfRATE = 0.d0
+#endif
+
+#endif
+
 C****
 C**** MAIN J LOOP
 C****
@@ -437,18 +450,6 @@ C
       END DO
       END DO
 Cred* end Reduced Arrays 2
-#ifdef TRACERS_ON
-      dtr_mc(i,j,:)=0. ; dtr_ss(i,j,:)=0.
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      dtr_wt(i,j,:)=0.D0
-#endif
-#endif
-#ifdef TRACERS_AMP
-      AQsulfRATE(:,j,:) = 0.d0
-#endif
-#endif
       kmax = kmaxj(j)
 C****
 C**** MAIN I LOOP
