@@ -40,7 +40,7 @@ C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
       REAL*8, DIMENSION(JM) :: DXYP,BYDXYP, aDXYPO
       REAL*8, DIMENSION(:,:), ALLOCATABLE ::
-     &     AXYP,BYAXYP,LAT2D,LON2D,LAT2D_DG,SINLAT2D,COSLAT2D
+     &     AXYP,BYAXYP,LAT2D,LON2D,LAT2D_DG,LON2D_DG,SINLAT2D,COSLAT2D
      &    ,ddx_ci,ddx_cj,ddy_ci,ddy_cj
 !@var AREAG global integral of area (m^2)
       REAL*8 :: AREAG
@@ -132,6 +132,7 @@ C**** some B-grid conservation quantities
      &    ,lat2d(i_0h:i_1h,j_0h:j_1h)
      &    ,lat2d_dg(i_0h:i_1h,j_0h:j_1h)
      &    ,lon2d(i_0h:i_1h,j_0h:j_1h)
+     &    ,lon2d_dg(i_0h:i_1h,j_0h:j_1h)
      &    ,sinlat2d(i_0h:i_1h,j_0h:j_1h)
      &    ,coslat2d(i_0h:i_1h,j_0h:j_1h)
      &    ,ddx_ci(i_0h:i_1h,j_0h:j_1h)
@@ -343,12 +344,13 @@ c
         axyp(i,j) = dxyp(j)
         byaxyp(i,j) = bydxyp(j)
         lat2d(i,j) = lat(j)
-        lat2d_dg(i,j)=lat2d(i,j)/radian
+        lat2d_dg(i,j) = lat_dg(j,1)
         sinlat2d(i,j) = sin(lat(j))
         coslat2d(i,j) = cos(lat(j))
       enddo
       do i=i_0,i_1
-        lon2d(i,j) = lon(i)
+        lon2d(i,j) = lon(i) ! i=1 is dlon/2
+        lon2d_dg(i,j) = lon_dg(i,1) ! i=1 is -180 + dlon/2
       enddo
       enddo
 
