@@ -15,6 +15,11 @@ module FV_INTERFACE_MOD
   use esmf_mod
 !!$  use GEOS_Mod, Only: ESMFL_StateGetPointerToData
   use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
+
+#ifdef USE_FVCUBED
+  use FV_StateMod, only:INTERP_DGRID_TO_AGRID, INTERP_AGRID_TO_DGRID
+#endif
+
   implicit none
   private
 
