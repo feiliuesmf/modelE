@@ -123,9 +123,10 @@
       PUBLIC :: BACKSPACE_PARALLEL
       PUBLIC :: REWIND_PARALLEL
       PUBLIC :: SKIP_PARALLEL
-      PUBLIC :: DREAD_PARALLEL
+      PUBLIC :: DREAD_PARALLEL,DREAD8_PARALLEL
       PUBLIC :: MREAD_PARALLEL
-      PUBLIC :: READT_PARALLEL
+      PUBLIC :: READT_PARALLEL,WRITET_PARALLEL
+      PUBLIC :: READT8_PARALLEL,READT8_COLUMN,WRITET8_COLUMN
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITE_PARALLEL
       PUBLIC :: WRITEI_PARALLEL
@@ -243,6 +244,11 @@ c        MODULE PROCEDURE SUMXPE_5D
         MODULE PROCEDURE DREAD_PARALLEL_3D
       END INTERFACE
 
+      INTERFACE DREAD8_PARALLEL
+c        MODULE PROCEDURE DREAD_PARALLEL_2D
+        MODULE PROCEDURE DREAD8_PARALLEL_3D
+      END INTERFACE
+
       INTERFACE MREAD_PARALLEL
         MODULE PROCEDURE MREAD_PARALLEL_2D
         MODULE PROCEDURE MREAD_PARALLEL_3D
@@ -251,6 +257,24 @@ c        MODULE PROCEDURE SUMXPE_5D
       INTERFACE READT_PARALLEL
         MODULE PROCEDURE READT_PARALLEL_2D
         MODULE PROCEDURE READT_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE WRITET_PARALLEL
+        MODULE PROCEDURE WRITET_PARALLEL_2D
+c        MODULE PROCEDURE READT_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE READT8_PARALLEL
+c        MODULE PROCEDURE READT8_PARALLEL_2D
+        MODULE PROCEDURE READT8_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE READT8_COLUMN
+        MODULE PROCEDURE READT8_COLUMN_3D
+      END INTERFACE
+
+      INTERFACE WRITET8_COLUMN
+        MODULE PROCEDURE WRITET8_COLUMN_3D
       END INTERFACE
 
       interface READ_PARALLEL
@@ -2372,14 +2396,16 @@ c**** arr  is overwritten by itself after reduction
 
       END SUBROUTINE SKIP_PARALLEL
 
-      SUBROUTINE DREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR)
+      SUBROUTINE DREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR,
+     &     recs_to_skip)
 !@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
+      INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var  AOUT real*8 array
 
@@ -2392,6 +2418,11 @@ c**** arr  is overwritten by itself after reduction
       JM   = grd_dum%JM_WORLD
 c      write(*,*) "DD dread parallel IM,JM",IM,JM
       If (AM_I_ROOT()) then
+         if(present(recs_to_skip)) then
+           do n=1,recs_to_skip
+             READ (IUNIT,IOSTAT=IERR)
+           enddo
+         endif
          READ (IUNIT,IOSTAT=IERR) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
@@ -2415,14 +2446,16 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE DREAD_PARALLEL_2D
 
-      SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR)
+      SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,
+     &     recs_to_skip)
 !@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
+      INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
@@ -2438,6 +2471,11 @@ C****  convert from real*4 to real*8
 c      write(*,*) "DD dread parallel IM,JM,NM",IM,JM,NM
 
       If (AM_I_ROOT()) then
+         if(present(recs_to_skip)) then
+           do n=1,recs_to_skip
+             READ (IUNIT,IOSTAT=IERR)
+           enddo
+         endif
          READ (IUNIT,IOSTAT=IERR) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
@@ -2462,16 +2500,56 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE DREAD_PARALLEL_3D
 
+      SUBROUTINE DREAD8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,
+     &     recs_to_skip)
+!@sum DREAD_PARALLEL  read an array real*8 avar(im,jm,:)
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of file being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var AVAR real*8 array
+      INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
+      REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
+      INTEGER :: N,IERR
+
+      If (AM_I_ROOT()) then
+        if(present(recs_to_skip)) then
+          do n=1,recs_to_skip
+            READ (IUNIT,IOSTAT=IERR)
+          enddo
+        endif
+        READ (IUNIT,IOSTAT=IERR) AGLOB
+      EndIf
+
+#ifdef USE_MPI
+      Call scatter(grd_dum, AGLOB, AVAR, shape(AVAR), 2)
+#else
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
+     &     AGLOB(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
+#endif
+
+      if (AM_I_ROOT()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            call stop_model('DREAD8_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE DREAD8_PARALLEL_3D
+
       SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,AVAR)
 !@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of file being read
       INTEGER,      INTENT(OUT) :: M         !@var  M      initial integer
       REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
-      REAL*4 :: X                         !@var  X dummy variable
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
@@ -2513,10 +2591,9 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of file being read
       INTEGER,      INTENT(OUT) :: M           !@var  M      initial integer
       REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
-      REAL*4 :: X                         !@var  X dummy variable
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
@@ -2560,10 +2637,9 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS       !@var  IPOS  no. of recs. to advance
-      REAL*4 :: X                         !@var  X dummy variable
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
@@ -2610,10 +2686,9 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
-      REAL*4 :: X                         !@var  X dummy variable
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
@@ -2654,6 +2729,119 @@ C****  convert from real*4 to real*8
 
       END SUBROUTINE READT_PARALLEL_3D
 
+      SUBROUTINE READT8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
+!@sum READT8_PARALLEL read in real*8 (im,jm,:) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of file being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:)  !@var  AOUT real*8 array
+      INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
+      REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
+      INTEGER :: N                        !@var  N loop variable
+      CHARACTER*80 :: TITLE               !@var  TITLE title of file record
+      INTEGER :: IERR
+
+      If (AM_I_ROOT()) then
+         DO N=1,IPOS-1
+            READ (IUNIT,IOSTAT=IERR)
+         END DO
+         READ (IUNIT, IOSTAT=IERR) TITLE, AGLOB
+      EndIf
+
+#ifdef USE_MPI
+      Call scatter(grd_dum, AGLOB, AVAR, shape(AVAR), 2)
+#else
+      AVAR(:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
+     &     AGLOB(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
+#endif
+
+      if (am_i_root()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT8_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE READT8_PARALLEL_3D
+
+      SUBROUTINE READT8_COLUMN_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
+!@sum READT8_COLUMN read in real*8 (:,im,jm) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of file being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,:,grd_dum%J_STRT_HALO:)  !@var  AVAR real*8 array
+      INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
+      REAL*8 :: AGLOB(size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var AGLOB global array
+      INTEGER :: N                        !@var  N loop variable
+      CHARACTER*80 :: TITLE               !@var  TITLE title of file record
+      INTEGER :: IERR
+
+      If (AM_I_ROOT()) then
+         DO N=1,IPOS-1
+            READ (IUNIT,IOSTAT=IERR)
+         END DO
+         READ (IUNIT, IOSTAT=IERR) TITLE, AGLOB
+      EndIf
+
+#ifdef USE_MPI
+      Call scatter(grd_dum, AGLOB, AVAR, shape(AVAR), 3)
+#else
+      AVAR(:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     AGLOB(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      if (am_i_root()) then
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT8_COLUMN: READ ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE READT8_COLUMN_3D
+
+      SUBROUTINE WRITET8_COLUMN_3D (grd_dum,IUNIT,NAME,buf,title)
+!@sum WRITET8_COLUMN write title*80, real*8 buf(:,im,jm)
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being read
+      REAL*8,       INTENT(IN) :: buf(:,:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
+      CHARACTER*80,  INTENT(IN)  :: title
+      REAL*8 :: buf_glob(size(buf,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD)
+      INTEGER :: IERR
+
+#ifdef USE_MPI
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 3)
+#else
+      buf_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     buf(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) title, buf_glob
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('WRITET8_COLUMN: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE WRITET8_COLUMN_3D
 
       SUBROUTINE WRITEI_PARALLEL_2D (grd_dum,IUNIT,NAME,buf,it)
 !@sum WRITEI_PARALLEL  Parallel version of UTILDBL.f:WRITEI for (im,jm) arrays
@@ -2696,13 +2884,45 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       END SUBROUTINE WRITEI_PARALLEL_2D
 
+      SUBROUTINE WRITET_PARALLEL_2D (grd_dum,IUNIT,NAME,buf,title)
+!@sum WRITET_PARALLEL  write character*80 title, real(buf(1:im,1:jm),kind=4)
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
+      REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
+      CHARACTER*80,  INTENT(IN)  :: title
+      REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
+      INTEGER :: IERR
+
+#ifdef USE_MPI
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
+#else
+      buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) title, real(buf_glob,kind=4)
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('WRITET_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE WRITET_PARALLEL_2D
+
       SUBROUTINE WRITEI8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf,it)
 !@sum WRITEI8_PARALLEL  Parallel version of UTILDBL.f:WRITEI8 for (im,jm,:) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
       INTEGER,      INTENT(IN)  :: it       !@var  it iteration
       REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3))
