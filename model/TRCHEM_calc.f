@@ -11,7 +11,7 @@ C
       USE MODEL_COM, only       : im,jm,lm,ls1,Q,ptop,psf,sig
       USE DOMAIN_DECOMP,only    : grid,get,write_parallel
       USE DYNAMICS, only        : am, byam,ltropo
-      USE GEOM, only            : byaxyp,axyp,lat_dg,lon_dg
+      USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : jls_OHcon,jls_day,
      & jls_Oxp,jls_Oxd,jls_COp,jls_COd,taijs=>taijs_loc,ijs_OH,ijs_HO2
 #ifdef HTAP_LIKE_DIAGS

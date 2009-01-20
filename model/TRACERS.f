@@ -531,7 +531,7 @@ C****
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : jm,im,lm,dtsrc
-      USE GEOM, only : imaxj,byaxyp,lat_dg,lon_dg
+      USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
      * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
@@ -575,9 +575,9 @@ C**** apply tracer source alterations if requested in rundeck:
       do j=j_0,j_1
       do i=i_0,imaxj(j)
         do kreg=1,num_regions
-          if(lat_dg(j,1) >= REG_S(kreg) .and. lat_dg(j,1)
-     &    <= REG_N(kreg) .and. lon_dg(i,1) >= REG_W(kreg)
-     &    .and. lon_dg(i,1) < REG_E(kreg) )then
+          if(lat2d_dg(i,j) >= REG_S(kreg) .and. lat2d_dg(i,j)
+     &    <= REG_N(kreg) .and. lon2d_dg(i,j) >= REG_W(kreg)
+     &    .and. lon2d_dg(i,j) < REG_E(kreg) )then
             nn=tr_sect_index3D(n,ns,nsect)
             if(ef_FACT3d(nn,kreg) > -1.e20)
      &      tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
@@ -1960,12 +1960,12 @@ c****   Interpolate two months of data to current day
 !@auth Greg Faluvegi
 
       use TRACER_COM, only : n_max_sect,reg_n,reg_s,reg_e,reg_w,
-     & n_max_reg,alter_sources,ef_REG_IJ,ef_REG_IJ_glob,
-     & ef_REG_IJ_glob4,ef_fact,num_regions,num_sectors,sect_name
+     & n_max_reg,alter_sources,ef_REG_IJ,
+     & ef_fact,num_regions,num_sectors,sect_name
       USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
-     & UNPACK_DATAj,write_parallel
-      USE GEOM, only: lat_dg, lon_dg, imaxj
-      USE FILEMANAGER, only: openunit,closeunit
+     & UNPACK_DATAj,writet_parallel
+      USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE PARAM, only : sync_param
 
       implicit none
@@ -2046,19 +2046,15 @@ c****   Interpolate two months of data to current day
       if(alter_sources)then
         ef_REG_IJ(:,J_0:J_1)=0.d0
         do j=J_0,J_1; do i=i_0,imaxj(j); do n=1,num_regions
-          if(lat_dg(j,1) >= REG_S(n) .and. lat_dg(j,1)
-     &    <= REG_N(n) .and. lon_dg(i,1) >= REG_W(n)
-     &    .and. lon_dg(i,1) < REG_E(n) ) ef_REG_IJ(i,j)=
+          if(lat2d_dg(i,j) >= REG_S(n) .and. lat2d_dg(i,j)
+     &    <= REG_N(n) .and. lon2d_dg(i,j) >= REG_W(n)
+     &    .and. lon2d_dg(i,j) < REG_E(n) ) ef_REG_IJ(i,j)=
      &    max(ef_REG_IJ(i,j),dble(n))
         enddo; enddo; enddo
-        call pack_data(grid,ef_REG_IJ,ef_REG_IJ_glob)
-        if(am_i_root( ))then
-          title='Regions defined in rundeck for altering tracer sources'
-          call openunit('EF_REG',iu,.true.)
-          ef_REG_IJ_glob4(:,:)=sngl(ef_REG_IJ_glob(:,:))
-          write(iu)title,ef_REG_IJ_glob4
-          call closeunit(iu)
-        endif
+        title='Regions defined in rundeck for altering tracer sources'
+        call openunit('EF_REG',iu,.true.)
+        call WRITET_PARALLEL(grid,iu,nameunit(iu),ef_REG_IJ,title)
+        call closeunit(iu)
       endif
 
       end subroutine setup_emis_sectors_regions

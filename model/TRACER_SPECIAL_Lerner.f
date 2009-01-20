@@ -395,21 +395,30 @@ C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
 C**** Harvard troposphere production and loss rates, deposition vel
 !@var O3trop_Loss, O3trop_Prod, O3_DepVel: production and loss
 !@+       rates, deposition vel from L. Mickley
-      real*4 O3trop_Loss(im,jm,lm,12),
-     *       O3trop_Prod(im,jm,lm,12),O3_DepVel(im,jm,12)
+      real*8, dimension(:,:,:,:), allocatable ::
+     &     O3trop_Loss,O3trop_Prod ! (im,jm,lm,12)
+      real*8, dimension(:,:,:), allocatable ::
+     &     O3_DepVel !(im,jm,12)
 
       contains
       SUBROUTINE LINOZ_SETUP(n_O3)
 C**** Needed for linoz chemistry
-      USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      USE DOMAIN_DECOMP, only: AM_I_ROOT,grid,readt_parallel
       implicit none
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
       real*8    XPSD,XPSLM1,XPSL
+      real*8, dimension(:,:,:), allocatable :: arr_dummy_3d
+      real*8, dimension(:,:), allocatable :: arr_dummy_2d
 
       call set_prather_constants
       lmtc = lm-nstrtc
+
+      allocate(arr_dummy_3d(grid%i_strt_halo:grid%i_stop_halo,
+     &                      grid%j_strt_halo:grid%j_stop_halo,lmtc))
+      allocate(arr_dummy_2d(grid%i_strt_halo:grid%i_stop_halo,
+     &                      grid%j_strt_halo:grid%j_stop_halo))
 
       call openunit('LINOZ_TABLE',iu,.false.,.true.)
       read (iu,'(a)')   titlch
@@ -433,31 +442,28 @@ C****
 C     Loss rates
       call openunit('LO3_Trop_loss',iu,.true.,.true.)
       do m = 1,12
-        read (iu) TITLCH,
-     *  (((O3trop_Loss(i,j,l,m),i=1,im),j=1,jm),l=1,lmtc)
+        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_3d,0)
+        O3trop_Loss(:,:,1:lmtc,m) = arr_dummy_3d
       enddo
       call closeunit(iu)
-      if (AM_I_ROOT()) write(6,*) TITLCH
-      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)') 'O3 trop loss rates read'
+
 C     Production rates
       call openunit('LO3_Trop_prod',iu,.true.,.true.)
       do m = 1,12
-        read (iu) TITLCH,
-     *  (((O3trop_Prod(i,j,l,m),i=1,im),j=1,jm),l=1,lmtc)
+        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_3d,0)
+        O3trop_Prod(:,:,1:lmtc,m) = arr_dummy_3d
       enddo
       call closeunit(iu)
-      if (AM_I_ROOT()) write(6,*) TITLCH
-      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)')
-     *     'O3 trop production rates read'
+
 C     Deposition velocities
       call openunit('LINOZ_Dep_vel',iu,.true.,.true.)
       do m = 1,12
-         read(iu) TITLCH,((O3_DepVel(i,j,m),i=1,im),j=1,jm)
+        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_2d,0)
+        O3_DepVel(:,:,m) = arr_dummy_2d
       enddo
       call closeunit(iu)
-      if (AM_I_ROOT()) write(6,*) TITLCH
-      if (AM_I_ROOT()) WRITE(6,'(1X,A,I5)')
-     *     'O3 deposition velocities read'
+
+      deallocate(arr_dummy_3d,arr_dummy_2d)
 
 C**** This code moved from STRT2M to go faster
 c-----------------------------------------------------------------------
@@ -1662,18 +1668,24 @@ C**** ESMF: This array is read in only
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1H, J_0H, I_1H, I_0H
       INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = GRID%I_STRT_HALO
+      I_1H = GRID%I_STOP_HALO
 
       ALLOCATE(  TLT0M(J_0H:J_1H,lm,nctable),
      *           TLTZM(J_0H:J_1H,lm,nctable),
      *          TLTZZM(J_0H:J_1H,lm,nctable),
      *          STAT=IER )
+
+      allocate(O3trop_Loss(I_0H:I_1H,J_0H:J_1H,lm,12),
+     &         O3trop_Prod(I_0H:I_1H,J_0H:J_1H,lm,12),
+     &           O3_DepVel(I_0H:I_1H,J_0H:J_1H,12))
 
       END SUBROUTINE ALLOC_LINOZ_CHEM_COM
 

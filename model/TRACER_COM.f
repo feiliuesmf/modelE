@@ -984,8 +984,6 @@ C**** arrays that could be general, but are only used by chemistry
       real*8, dimension(n_max_sect,n_max_reg) :: ef_fact,ef_fact3D
 ! variables for outputting a map of the regions:
       real*8, allocatable, dimension(:,:) :: ef_REG_IJ
-      real*8, dimension(IM,JM) :: ef_REG_IJ_glob
-      real*4, dimension(IM,JM) :: ef_REG_IJ_glob4
 ! --- end of source-altering section ----------------------------
 
 !@param nChemistry index for tracer chemistry 3D source

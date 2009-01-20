@@ -13,16 +13,16 @@ c
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP,only: GRID,GET,AM_I_ROOT,PACK_COLUMN,
      &                        GLOBALSUM, PACK_DATA, PACK_DATAj,
-     &                        write_parallel
+     &                        write_parallel,writet8_column
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
      &                        COUPLED_CHEM,JHOUR
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,bygrav
       USE DYNAMICS, only    : pedn,LTROPO
-      USE FILEMANAGER, only : openunit,closeunit
+      USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,O3_tracer_save,H2ObyCH4,
      &                        SRDN,rad_to_file
-      USE GEOM, only        : BYAXYP, AXYP, LAT_DG, IMAXJ
+      USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D
       USE FLUXES, only      : tr3Dsource
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
@@ -146,7 +146,9 @@ C**** Local parameters and variables and arguments:
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Some variables defined especially for MPI compliance :         C 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      real*8, dimension(5,LM,IM,JM) :: rad_to_file_glob
+      real*8 :: ghg_out(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+
       real*8, dimension(LM,IM,JM)   :: ss27_glob
       real*8 :: ss27(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -154,11 +156,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 #ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(JM,LM)      :: photO2_glob
 #endif
-      real*8 :: avgTT_CH4_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &          avgTT_H2O_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &            CH4_569_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &            countTT_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &          count_569_part(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     avgTT_CH4_part,avgTT_H2O_part,countTT_part,
+     &     CH4_569_part,count_569_part
       
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
@@ -196,18 +197,15 @@ C-------- special section for ghg runs ---------
      &           axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
           enddo
         enddo 
+        write(ghg_name,'(I4)') JYEAR  
+        ghg_file='GHG_IC_'//ghg_name
+        call openunit(ghg_file,iu,.true.,.false.)
         do m=1,5
-          call PACK_COLUMN
-     &    (grid, rad_to_file(m,:,:,:), rad_to_file_glob(m,:,:,:))
-        end do
+          ghg_out = rad_to_file(m,:,:,:)
+          CALL WRITET8_COLUMN(grid,iu,NAMEUNIT(iu),GHG_OUT,ghg_file)
+        enddo
+        call closeunit(iu)          
         if(AM_I_ROOT( ))then
-          write(ghg_name,'(I4)') JYEAR  
-          ghg_file='GHG_IC_'//ghg_name
-          call openunit(ghg_file,iu,.true.,.false.)
-          do j=1,5
-            write(iu)ghg_file,rad_to_file_glob(j,:,:,:)
-          enddo
-          call closeunit(iu)          
           write(6,*)'Stopping in masterchem to output inital'
           write(6,*)'conditions for ghgs. You must now recompile'
           write(6,*)'(rerun setup) after removing the'
@@ -231,7 +229,7 @@ C Some INITIALIZATIONS :
 #ifdef INTERACTIVE_WETLANDS_CH4
 C Not really related to chemistry, but convenient place to update
 C running-averages for interactive wetlands CH4:
-      do J=J_0,J_1; do I=1,IMAXJ(J)
+      do J=J_0,J_1; do I=I_0,IMAXJ(J)
         temp_SW=ALB(I,J,1)*(SRDN(I,J)+1.d-20)*COSZ1(I,J)
         call running_average(temp_SW,I,J,1.d0,n__sw)
       end do      ; end do
@@ -294,26 +292,25 @@ C (note this section is already done in DIAG.f)
 #ifdef SHINDELL_STRAT_CHEM
 C info to set strat H2O based on tropical tropopause H2O and CH4:
       if(Itime == ItimeI)then
-        avgTT_H2O_part(:)=0.d0
-        avgTT_CH4_part(:)=0.d0
-        countTT_part(:)=0.d0
+        avgTT_H2O_part(:,:)=0.d0
+        avgTT_CH4_part(:,:)=0.d0
+        countTT_part(:,:)=0.d0
         do J=J_0S,J_1S
-          if(LAT_DG(J,1) >= -20. .and. LAT_DG(J,1) <= 20.)then
-            do I=1,IMAXJ(J)
-              avgTT_H2O_part(J) = avgTT_H2O_part(J) + 
-     &                            Q(I,J,LTROPO(I,J))*MWabyMWw
+          do I=I_0,IMAXJ(J)
+            if(LAT2D_DG(I,J) >= -20. .and. LAT2D_DG(I,J) <= 20.)then
+              avgTT_H2O_part(I,J) = Q(I,J,LTROPO(I,J))*MWabyMWw
               if(use_rad_ch4 > 0) then
-                avgTT_CH4_part(J) = avgTT_CH4_part(J) + 
+                avgTT_CH4_part(I,J) =
      &          rad_to_chem(4,LTROPO(I,J),I,J)
      &          *2.69d20*byavog*mair*BYAM(LTROPO(I,J),I,J)
               else
-                avgTT_CH4_part(J) = avgTT_CH4_part(J) +
+                avgTT_CH4_part(I,J) =
      &          trm(I,J,LTROPO(I,J),n_CH4)
      &          *mass2vol(n_CH4)*BYAXYP(I,J)*BYAM(LTROPO(I,J),I,J)
               endif
-              countTT_part(J) = countTT_part(J) + 1.d0
-            end do
-          end if
+              countTT_part(I,J) = 1.d0
+            end if
+          end do
         end do
         CALL GLOBALSUM(grid, avgTT_CH4_part, avgTT_CH4, all=.true.)
         CALL GLOBALSUM(grid, avgTT_H2O_part, avgTT_H2O, all=.true.)
@@ -573,7 +570,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
           do inss=1,JPPJ
             ss(inss,L,I,J)=zj(L,inss)
             if(inss /= 22)ss(inss,L,I,J)=ss(inss,L,I,J)*
-     &      (by35*SQRT(1.224d3*(cos(ABS(LAT_DG(J,1))*radian))**2.
+     &      (by35*SQRT(1.224d3*(cos(ABS(LAT2D_DG(I,J))*radian))**2.
      &      +1.d0)) ! spherical correction but excluding ClONO2.
 #ifdef SHINDELL_STRAT_CHEM
 c           reduce rates for gases that photolyze in window region
@@ -600,7 +597,7 @@ C (Drew says the ratio would be the same.)
             if((SF3_FACT+1.3d-6) < 0.)call stop_model
      &      ('(SF3_FACT+1.3d-6) < 0 in master',255)
             SF3(I,J,L)=6.d0*(SF3_FACT+1.3d-6)*EXP(-1.d-7*colmO2**.35)
-     &      *by35*SQRT(1.224d3*(cos(ABS(LAT_DG(J,1))*radian))**2.+1.d0)
+     &      *by35*SQRT(1.224d3*(cos(ABS(LAT2D_DG(I,J))*radian))**2.+1d0)
             SF3(I,J,L)=SF3(I,J,L)*5.d-2
           else
             SF3(I,J,L)=0.d0
@@ -615,7 +612,7 @@ C bands (0-0) and (1-0); =  bin5_flux[present] / bin5_flux[1988] :
               SF2(I,J,L)=4.75d-6*EXP(-1.5d-20*colmO2)
             endif
             SF2(I,J,L)=SF2(I,J,L)*SF2_fact*
-     &      by35*SQRT(1.224d3*(cos(ABS(LAT_DG(J,1))*radian))**2.+1.d0)
+     &      by35*SQRT(1.224d3*(cos(ABS(LAT2D_DG(I,J))*radian))**2.+1.d0)
           else
             SF2(I,J,L)=0.d0
           endif
@@ -637,10 +634,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       pscX(:)=.false.
       do L=1,LM 
         if(pres2(L) <= 250.d0 .and. pres2(L) >= 30.d0)then    ! pres crit for now
-          if(lat_dg(J,1)<=PSClatS.or.lat_dg(J,1)>=PSClatN)then! lat crit for now
-            if(lat_dg(J,1)<=PSClatS)then
+          if(lat2D_dg(I,J)<=PSClatS.or.lat2D_dg(I,J)>=PSClatN)then! lat crit for now
+            if(lat2d_dg(I,J)<=PSClatS)then
               Ttemp=ta(L)+Tpsc_offset_S
-            else if(lat_dg(J,1)>=PSClatN)then
+            else if(lat2d_dg(I,J)>=PSClatN)then
               Ttemp=ta(L)+Tpsc_offset_N
             endif
             if(Ttemp <= T_thresh)then                      ! cold enough forya?
@@ -1679,7 +1676,7 @@ CCCCC!$OMP END PARALLEL DO
 
 #ifdef SHINDELL_STRAT_CHEM
       if(prnchg)then
-       DO J=J_0,J_1; DO I=1,IMAXJ(J)
+       DO J=J_0,J_1; DO I=I_0,IMAXJ(J)
          ss27(1:LM,I,J)=ss(27,1:LM,I,J)
        ENDDO; ENDDO
        CALL PACK_COLUMN(grid,ss27,ss27_glob)
@@ -1845,17 +1842,17 @@ C determine pre-industrial factors, if any:
       endif
 
 C Calculate an average tropical CH4 value near 569 hPa::
-      CH4_569_part(:)=0.d0   
-      count_569_part(:)=0.d0
+      CH4_569_part(:,:)=0.d0   
+      count_569_part(:,:)=0.d0
       DO J=J_0,J_1
-        if(LAT_DG(J,1) >= -30. .and. LAT_DG(J,1) <= 30.)then
-          do I=I_0,IMAXJ(J)
-            count_569_part(J)=count_569_part(J)+1.d0
-            CH4_569_part(J)=CH4_569_part(J)+1.d6*byaxyp(i,j)*
+        do I=I_0,IMAXJ(J)
+        if(LAT2D_DG(I,J) >= -30. .and. LAT2D_DG(I,J) <= 30.)then
+            count_569_part(I,J)=1.d0
+            CH4_569_part(I,J)=1.d6*byaxyp(i,j)*
      &      (F569M*trm(I,J,L569M,n_CH4)*byam(L569M,I,J)+
      &      F569P*trm(I,J,L569P,n_CH4)*byam(L569P,I,J))
-          end do
         end if
+        end do
       END DO
       CALL GLOBALSUM(grid,  CH4_569_part,  CH4_569, all=.true.)
       CALL GLOBALSUM(grid,count_569_part,count_569, all=.true.)
@@ -1934,8 +1931,8 @@ C to 1.79:
           END IF
           select case(PI_run)
           case(1) ! preindustrial
-            if(j <= jm/2)then; PIfact(n_CH4)=pfix_CH4_S
-            else             ; PIfact(n_CH4)=pfix_CH4_N
+            if(lat2d(i,j).lt.0.)then; PIfact(n_CH4)=pfix_CH4_S
+            else                    ; PIfact(n_CH4)=pfix_CH4_N
             end if
             changeL(L,n_CH4)=am(l,i,j)*axyp(i,j)*vol2mass(n_CH4)
      &      *PIfact(n_CH4)  - trm(I,J,L,n_CH4)
@@ -2014,7 +2011,7 @@ c Save new tracer Ox field for use in radiation or elsewhere:
 !
       use model_com, only: jday,jhour,LS1,LM
       use dynamics, only: pmid
-      use geom, only:  lat ! lat is in radians
+      use geom, only:  lat2d ! lat is in radians
       use constant, only: twopi,pi,radian,teeny
 
 !@var dec declination angle of the earth
@@ -2032,8 +2029,8 @@ c Save new tracer Ox field for use in radiation or elsewhere:
       dec=radian*23.455d0*COS( ((jday-173)*twopi)/365.d0 )
       lha=twopi*real(jhour)/24.d0
 
-      CC=COS(lat(J))*COS(dec)
-      SS=SIN(lat(J))*SIN(dec)
+      CC=COS(lat2d(I,J))*COS(dec)
+      SS=SIN(lat2d(I,J))*SIN(dec)
 
       sec_func=1.d0/max(teeny,COS(lha)*CC+SS)
  
@@ -2064,7 +2061,6 @@ c Save new tracer Ox field for use in radiation or elsewhere:
 C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: LM,JM,LS1,JEQ,ptop,psf,sig,Itime,ItimeI
       USE RAD_COM, only  : rad_to_chem
-      USE GEOM, only     : LAT_DG
       USE CONSTANT, only : PI
       USE DYNAMICS, only : LTROPO
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,

@@ -154,7 +154,7 @@ C       Set limits on NO, NO2, NOx:
 C**** GLOBAL parameters and variables:
 
       USE MODEL_COM, only : LM,LS1,ptop,psf,sig
-      USE GEOM, only : LAT_DG
+      USE GEOM, only : LAT2D_DG
       USE DYNAMICS, only: LTROPO
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
@@ -272,7 +272,7 @@ c which also produces HO2 and R15 then S4/(S4+S14) fraction.
 c---->   warning: OH caps follow   <----
 !4x5hard if(j <= 3 .and. y(nOH,L) >= 3.d5) y(nOH,L)=3.d5
 !4x5hard if(j >= 44 .and. y(nOH,L) >= 3.d5)y(nOH,L)=3.d5
-         if(lat_dg(j,1) <= -80. .or. lat_dg(j,1) >= 80.)then
+         if(lat2d_dg(i,j) <= -80. .or. lat2d_dg(i,j) >= 80.)then
            y(nOH,L)=min(y(nOH,L),3.d5)
          endif
        else

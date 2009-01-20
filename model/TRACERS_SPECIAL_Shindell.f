@@ -1537,7 +1537,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
      &   gw_ulim,gw_llim,SW_lim,exclude_us_eu,nra_ch4,first_mod,
      &   n__temp,n__sw,n__gwet,n__SAT,nn_or_zon,ice_age,add_wet_src
-      use GEOM, only : lat_dg, lon_dg, imaxj
+      use GEOM, only : lat2d_dg, lon2d_dg, imaxj
       use ghy_com, only : top_dev_ij,fearth
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
 
@@ -1598,11 +1598,11 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
          ! the exclusion of U.S. and E.U. wetlands is OFF)} AND
          ! (the point has some land):
 
-         if((exclude_us_eu == 0 .OR. .NOT.((lon_dg(i,1)
-     &   >= -122.5.and.lon_dg(i,1) <= -72.5.and.lat_dg(j,1) >= 34.0
-     &   .and.lat_dg(j,1) <= 46.5).or.(lon_dg(i,1) >= -12.5.and.
-     &   lon_dg(i,1) <= 17.5.and.lat_dg(j,1) >= 37.5.and.lat_dg(j,1)
-     &   <= 62.0))) .AND. (fland(i,j) > 0.))then
+         if((exclude_us_eu == 0 .OR. .NOT.((lon2d_dg(i,j)
+     &   >= -122.5.and.lon2d_dg(i,j) <= -72.5.and.lat2d_dg(i,j) >= 34.0
+     &   .and.lat2d_dg(i,j) <= 46.5).or.(lon2d_dg(i,j) >= -12.5.and.
+     &   lon2d_dg(i,j) <= 17.5.and.lat2d_dg(i,j) >= 37.5
+     &        .and.lat2d_dg(i,j)<= 62.0))) .AND. (fland(i,j) > 0.))then
 
            ! if the topography slope, surface are temp., SW radiation,
            ! and ground wetness are within certain limits:
@@ -1671,8 +1671,10 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 ! Optionally disallow  emissions over glacier latitudes:
       if(ice_age /= 0.) then
         do j=J_0,J_1 
-          if(abs(lat_dg(j,1))>abs(ice_age))
+        do i=I_0,imaxj(j)
+          if(abs(lat2d_dg(i,j))>abs(ice_age))
      &    add_wet_src(i,j)=-1.d0*sfc_src(i,j,n,ns_wet)
+        enddo
         enddo
       endif
 

@@ -47,7 +47,7 @@ c                                          and pk is t mess up factor
 !-----------------------------------------------------------------------
 
 
-      INTEGER J_0, J_1
+      INTEGER J_0, J_1, I_0, I_1
       integer :: i, j, k, nd, l ,ll, il
       integer, parameter :: ktoa = 300
 ! 1-SO2
@@ -81,6 +81,9 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+
 !-----------------------------------------------------------------
 !    1000 Intervals for Radius = 0.01ym ->10ym
 !-----------------------------------------------------------------
@@ -186,7 +189,7 @@ C Net removal rates [s-1]
       DO nd = 5,ndtr    ! Loop over dust tracers
       DO l  = 1,lm   
       DO j  = J_0,J_1
-      DO i  = 1,im
+      DO i  = I_0,I_1
 
        if(dusttx(i,j,l,nd).GT.0.) then
 c number concentration
@@ -290,7 +293,7 @@ c radii interpolation
 !       ... Local variables
 !-----------------------------------------------------------------------
       integer :: i, j, k, nd, l ,ll
-      INTEGER J_0, J_1
+      INTEGER J_0, J_1, I_0, I_1
       integer, parameter :: ktoa = 300
 ! 1-SO2
 c      real, parameter :: alph1  = 0.0001 !uptake coeff of Rossi EPFL (independent of humidity)
@@ -324,6 +327,8 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 !-----------------------------------------------------------------
 !    1000 Intervals for Radius = 0.01ym ->10ym
@@ -438,7 +443,7 @@ C Net removal rate for SO2 [s-1]
       DO nd = 5,ndtr    ! Loop over dust tracers
       DO l  = 1,lm   
       DO j  = J_0,J_1
-      DO i  = 1,im
+      DO i  = I_0,I_1
 
 c number concentration
         dustnc(i,j,l,nd) = dusttx(i,j,l,nd)/pi*6/rop(nd)/

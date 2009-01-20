@@ -761,10 +761,12 @@ C
       INTEGER, DIMENSION(NVEGTYPE) :: IZO
       INTEGER :: I,J,K,L,NWAT2,IDUMMY,iu_data,iols
       INTEGER, DIMENSION(NWAT) :: IWATER
-      integer :: J_0, J_1, J_1H, J_0H
+      integer :: J_0, J_1, J_1H, J_0H, I_0, I_1
       
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &                 J_STRT     =J_0 , J_STOP     =J_1 )
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
       
       if ( AM_I_ROOT() ) then
         write(6,*) 'READING land types and fractions ...'
@@ -782,7 +784,7 @@ C
       CALL UNPACK_DATA(grid, ILAND_glob, ILAND)
       CALL UNPACK_DATA(grid, IUSE_glob, IUSE)
       DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           FRCLND(I,J) = 1000.d0
           IJREG(I,J) = IREG(I,J)
           DO K=1,IJREG(I,J)
@@ -852,10 +854,12 @@ C**** Local parameters and variables and arguments
       integer :: IMUL,ITD,M,K,I,J
       REAL*8 :: byrITD
       INTEGER, SAVE :: ISAVE=0
-      integer :: J_0, J_1, J_1H, J_0H
+      integer :: J_0, J_1, J_1H, J_0H, I_0, I_1
       
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &                 J_STRT     =J_0 , J_STOP     =J_1 )
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
      
       DO M=1,JMperY
         STARTDAY(M) = JDmidOfM(M) - 1
@@ -877,7 +881,7 @@ C**** Local parameters and variables and arguments
         byrITD = 1.E0/REAL(ITD)
         CALL READLAI
         DO J=J_0,J_1
-          DO I=1,IM
+          DO I=I_0,I_1
             DO K=1,IREG(I,J)
               XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
               XLAI(I,J,K) = XLAI(I,J,K) + XLAI2(I,J,K)*REAL(IMUL)
@@ -894,7 +898,7 @@ C**** Local parameters and variables and arguments
           byrITD = 1.d0/REAL(ITD)
           CALL READLAI
           DO J=J_0,J_1
-            DO I=1,IM
+            DO I=I_0,I_1
               DO K=1,IREG(I,J)        
                 XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
               END DO
@@ -902,7 +906,7 @@ C**** Local parameters and variables and arguments
           END DO
         ELSE   
           DO J=J_0,J_1
-            DO I=1,IM
+            DO I=I_0,I_1
               DO K=1,IREG(I,J)
                 XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K)
               END DO
@@ -911,7 +915,7 @@ C**** Local parameters and variables and arguments
         END IF
       END IF
       DO J=J_0,J_1
-        DO I=1,IM
+        DO I=I_0,I_1
           DO K=1,IJREG(I,J)
             XYLAI(I,J,K)=XLAI(I,J,K)
           END DO

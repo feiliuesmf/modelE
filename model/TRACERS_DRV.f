@@ -14,7 +14,7 @@
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
-     & UNPACK_DATAj,write_parallel
+     & UNPACK_DATAj,write_parallel,readt8_parallel
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
       USE GEOM, only: axyp,byaxyp
@@ -84,7 +84,7 @@
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
 #endif
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
       integer :: l,k,kk,n,ltop,g,kr,n1,m
       character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
@@ -109,8 +109,6 @@
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
-      real*8, dimension(im,jm,LCOalt) :: N2OICIN_glob,CH4ICIN_glob,
-     & OxICIN_glob,CFCICIN_glob
       real*8, dimension(jm,LcorrOx,12) :: corrOxIN_glob
 #ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(6) :: temp_ghg
@@ -363,14 +361,9 @@ C**** Define individual tracer characteristics
           tcscale(n_MPtable(n)) = 1.
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-          if(AM_I_ROOT( ))then
-            call openunit('N2O_IC',iu_data,.true.,.true.)
-            read (iu_data) title,N2OICIN_glob
-            call closeunit(iu_data)
-          endif
-          write(out_line,*) title,' read from N2O_IC'
-          call write_parallel(trim(out_line))
-          call UNPACK_DATA( grid, N2OICIN_glob, N2OICIN )
+          call openunit('N2O_IC',iu_data,.true.,.true.)
+          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),N2OICIN,0)
+          call closeunit(iu_data)
           do j=J_0,J_1  ; do i=I_0,I_1
            N2OICINL(:)=N2OICIN(i,j,:) ! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
@@ -417,14 +410,10 @@ C         Interpolate CH4 altitude-dependence to model resolution:
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINT,LM,PRES,CH4altT,.true.)
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PRES,CH4altX,.true.)
           if(fix_CH4_chemistry.eq.-1)then
-            if(AM_I_ROOT( ))then
-              call openunit('CH4_IC',iu_data,.true.,.true.)
-              read (iu_data) title,CH4ICIN_glob
-              call closeunit(iu_data)
-            endif
-            write(out_line,*) title,' read from CH4_IC'
-            call write_parallel(trim(out_line))
-            call UNPACK_DATA( grid, CH4ICIN_glob, CH4ICIN )
+            call openunit('CH4_IC',iu_data,.true.,.true.)
+            CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),
+     &           CH4ICIN,0)
+            call closeunit(iu_data)
             do j=J_0,J_1  ; do i=I_0,I_1
              CH4ICINL(:)=CH4ICIN(I,J,:)! now in PPPM
              CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PRES,CH4ICL,.true.)
@@ -544,14 +533,9 @@ C**** Get solar variability coefficient from namelist if it exits
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox')
       n_Ox = n
-          if(AM_I_ROOT( ))then
-            call openunit('Ox_IC',iu_data,.true.,.true.)
-            read (iu_data) title,OxICIN_glob
-            call closeunit(iu_data)
-          endif
-          write(out_line,*) title,' read from Ox_IC'
-          call write_parallel(trim(out_line))
-          call UNPACK_DATA( grid, OxICIN_glob, OxICIN )
+          call openunit('Ox_IC',iu_data,.true.,.true.)
+          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),OxICIN,0)
+          call closeunit(iu_data)
           do j=J_0,J_1  ; do i=I_0,I_1
            OxICINL(:)=OxICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
@@ -677,15 +661,12 @@ C          check on GHG file's 1995 value for CFCs:
            if(temp_year<1995)
      &     call stop_model('please check on cfc_rad95 1',255)
            call closeunit(iu_data)
-C          read the CFC initial conditions:
-           call openunit('CFC_IC',iu_data,.true.,.true.)
-           read (iu_data) title,CFCICIN_glob
-           call closeunit(iu_data)
           endif
-          write(out_line,*) title,' read from CFC_IC'
-          call write_parallel(trim(out_line))
-          call UNPACK_DATA( grid, CFCICIN_glob, CFCICIN )
-          do j=J_0,J_1  ; do i=1,im
+C          read the CFC initial conditions:
+          call openunit('CFC_IC',iu_data,.true.,.true.)
+          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),CFCICIN,0)
+          call closeunit(iu_data)
+          do j=J_0,J_1  ; do i=I_0,I_1
            CFCICINL(:)=CFCICIN(I,J,:)! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PRES,CFCICL,.true.)
            CFCIC(I,J,:)=CFCICL(:)*am(:,i,j)*axyp(i,j)
@@ -8395,7 +8376,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP, only: AM_I_ROOT,readt_parallel,readt8_column
       USE PARAM, only : get_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf
@@ -8425,14 +8406,14 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : gtracer
 #endif
-      USE GEOM, only: axyp,byaxyp,lat_dg
+      USE GEOM, only: axyp,byaxyp,lat2d_dg
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
       USE PBLCOM, only: npbl,trabl,qabl,tsavg
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
 #endif
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : O3_tracer_save,rad_to_file
       USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM,ch4icx,
@@ -8485,8 +8466,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
-     *                                                    ic14CO2
-      REAL*4, DIMENSION(im,jm,lm) ::  CO2ic   !each proc. reads global array
+     *                                CO2ic,ic14CO2
       REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
@@ -8509,7 +8489,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_SPECIAL_Shindell
       character*4 ghg_name
       character*80 ghg_file
-      real*8, dimension(5,LM,IM,JM) :: rad_to_file_glob
+      real*8, dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ghg_in
 !@var imonth dummy index for choosing the right month
 !@var ICfactor varying factor for altering initial conditions
       INTEGER imonth, J2
@@ -8598,10 +8579,8 @@ C**** set some defaults for water tracers
 
         case ('CO2')
           call openunit('CO2_IC',iu_data,.true.,.true.)
-C**** ESMF: Each processor reads the global array co2ic
-          read (iu_data) title,co2ic
+          CALL READT_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),CO2IC,0)
           call closeunit(iu_data)
-          if (AM_I_ROOT()) write(6,*) title,' read from CO2_IC'
           do l=1,lm         !ppmv==>ppmm
           do j=J_0,J_1
             trm(:,j,l,n) = co2ic(:,j,l)*am(l,:,j)*axyp(:,j)*1.54d-6
@@ -8625,7 +8604,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
           case(1)     ; ICfactor=PIratio_N2O
           case default; ICfactor=1.d0
           end select
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
           end do   ; end do   ; end do
          else
@@ -8634,22 +8613,19 @@ C**** ESMF: Each processor reads the global array: N2Oic
           case(1)     ; ICfactor=PIratio_N2O
           case default; ICfactor=1.d0
           end select
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
           end do   ; end do   ; end do
 #else
-          if(AM_I_ROOT( ))then
-            write(ghg_name,'(I4)') JYEAR
-            ghg_file='GHG_IC_'//ghg_name
-            call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,3;read(iu_data)title,rad_to_file_glob(m,:,:,:);enddo
-            call closeunit(iu_data)
-          endif
+          write(ghg_name,'(I4)') JYEAR
+          ghg_file='GHG_IC_'//ghg_name
+          call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,3
-            call UNPACK_COLUMN
-     &      (grid, rad_to_file_glob(m,:,:,:), rad_to_file(m,:,:,:))
-          end do
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+            CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
+            rad_to_file(m,:,:,:) = ghg_in(:,:,:)
+          enddo
+          call closeunit(iu_data)
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = rad_to_file(3,l,i,j)
           end do   ; end do   ; end do
 #endif
@@ -8678,7 +8654,7 @@ C****
       trm(:,j_0,:,n) = 0.
       trm(:,j_1,:,n) = 0.
       DO J=J_0,J_1
-      DO I=1,IM
+      DO I=I_0,I_1
         PUP = STRATM*GRAV
         DO LS=LM,1,-1
           PDN = PUP + AM(ls,I,J)*GRAV
@@ -8714,7 +8690,7 @@ C****
             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
           case(-1) ! ICs from file...
             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
-            do l=ls1,lm; do j=J_0,J_1; do i=1,im
+            do l=ls1,lm; do j=J_0,J_1; do i=I_0,I_1
               trm(I,J,L,n) = CH4ICX(I,J,L)
             end do   ; end do   ; end do
           end select
@@ -8729,23 +8705,20 @@ C****
             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
           case(-1) ! ICs from file...
             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
-            do l=ls1,lm; do j=J_0,J_1; do i=1,im
+            do l=ls1,lm; do j=J_0,J_1; do i=I_0,I_1
               trm(I,J,L,n) = CH4ICX(I,J,L)
             end do   ; end do   ; end do
           end select
 #else
-          if(AM_I_ROOT( ))then
-            write(ghg_name,'(I4)') JYEAR
-            ghg_file='GHG_IC_'//ghg_name
-            call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,4;read(iu_data)title,rad_to_file_glob(m,:,:,:);enddo
-            call closeunit(iu_data)
-          endif
+          write(ghg_name,'(I4)') JYEAR
+          ghg_file='GHG_IC_'//ghg_name
+          call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,4
-            call UNPACK_COLUMN
-     &      (grid, rad_to_file_glob(m,:,:,:), rad_to_file(m,:,:,:))
-          end do
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+            CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
+            rad_to_file(m,:,:,:) = ghg_in(:,:,:)
+          enddo
+          call closeunit(iu_data)
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = rad_to_file(4,l,i,j)
           end do   ; end do   ; end do
 #endif
@@ -8807,9 +8780,9 @@ c     tmominit = 0.
 
         do l=1,lm
         do j=J_0,J_1
-          trm(:,j,l,n) =  q(:,j,l)*am(l,:,j)*axyp(:,j)*trinit
-          trwm(:,j,l,n)= wm(:,j,l)*am(l,:,j)*axyp(:,j)*trinit
-          do i=1,im
+          do i=I_0,I_1
+            trm(i,j,l,n) =  q(i,j,l)*am(l,i,j)*axyp(i,j)*trinit
+            trwm(i,j,l,n)= wm(i,j,l)*am(l,i,j)*axyp(i,j)*trinit
             trmom(:,i,j,l,n) = qmom(:,i,j,l)*am(l,i,j)*axyp(i,j)
      *           *tmominit
           end do
@@ -8830,16 +8803,18 @@ c     tmominit = 0.
           enddo
         endif
         if (trname(n).eq."HTO") then ! initialise bomb source
-          do l=ls1-1,ls1+1      ! strat. source
-            do j=J_0,J_1   ! lat 44 N - 56 N
-              if (nint(lat_dg(j,1)).ge.44 .and. nint(lat_dg(j,1)).le.56)
-     *             trm(:,j,l,n)= q(:,j,l)*am(l,:,j)*axyp(:,j)*1d10*1d-18
-            end do
+          do l=ls1-1,ls1+1      ! strat. source lat 44 N - 56 N
+          do j=J_0,J_1   
+          do i=I_0,I_1
+            if(nint(lat2d_dg(i,j)).ge.44.and.nint(lat2d_dg(i,j)).le.56)
+     *           trm(i,j,l,n)= q(i,j,l)*am(l,i,j)*axyp(i,j)*1d10*1d-18
+          end do
+          end do
           end do
         end if
 
         do j=J_0,J_1
-          do i=1,im
+          do i=I_0,I_1
             tracerTs=trw0(n)
 #ifdef TRACERS_SPECIAL_O18
 c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
@@ -8920,7 +8895,7 @@ c**** earth
 
 #ifdef TRACERS_SPECIAL_Shindell
         case ('Ox')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = OxIC(I,J,L)
             O3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
@@ -8932,7 +8907,7 @@ c**** earth
           case(1)     ; ICfactor=PIratio_N
           case default; ICfactor=1.d0
           end select
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-11*ICfactor
 #ifdef SHINDELL_STRAT_CHEM
             if(PRES(L).lt.10.)trm(i,j,l,n)=trm(i,j,l,n)*3.d2
@@ -8942,25 +8917,25 @@ c**** earth
 
 #if (defined TRACERS_SPECIAL_Shindell) && (defined SHINDELL_STRAT_CHEM)
         case ('ClOx')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClOxalt(l)
           end do; end do; end do
 
         case ('BrOx')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*BrOxalt(l)
           end do; end do; end do
 
         case ('HCl')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*HClalt(l)
           end do; end do; end do
 
         case ('ClONO2')
-          do l=1,lm; do j=J_0,J_1; do i=1,im
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
      &      am(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-11*ClONO2alt(l)
           end do; end do; end do
@@ -9140,17 +9115,14 @@ C         AM=kg/m2, and AXYP=m2:
             trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
           end do   ; end do   ; end do
 #else
-          if(AM_I_ROOT( ))then
-            write(ghg_name,'(I4)') JYEAR
-            ghg_file='GHG_IC_'//ghg_name
-            call openunit(ghg_file,iu_data,.true.,.true.)
-            do m=1,5;read(iu_data)title,rad_to_file_glob(m,:,:,:);enddo
-            call closeunit(iu_data)
-          endif
+          write(ghg_name,'(I4)') JYEAR
+          ghg_file='GHG_IC_'//ghg_name
+          call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,5
-            call UNPACK_COLUMN
-     &      (grid, rad_to_file_glob(m,:,:,:), rad_to_file(m,:,:,:))
-          end do
+            CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
+            rad_to_file(m,:,:,:) = ghg_in(:,:,:)
+          enddo
+          call closeunit(iu_data)
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = rad_to_file(5,l,i,j)
           end do   ; end do   ; end do
@@ -9848,7 +9820,8 @@ C**** at the start of any day
       USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
      * ,AM_I_ROOT
 
-      USE GEOM, only: axyp,areag,lat_dg,lon_dg,imaxj,lon_to_i,lat_to_j
+      USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,
+     &     lon_to_i,lat_to_j,lat2d
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
@@ -9884,13 +9857,15 @@ C**** at the start of any day
       integer :: i,j,ns,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im)
-      REAL*8 :: sarea_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER ie,iw,js,jn
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
       real*8  :: factor
-      real*8  :: trsource_prt(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*8  :: trsource_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                        GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(ntm) :: trsource_glbavg
 #endif
       INTEGER I_0, I_1, J_0, J_1
@@ -9943,10 +9918,10 @@ C**** Source over United States and Canada
         iw = lon_to_i(-125.d0)
         jn = lat_to_j(50.d0)
         js = lat_to_j(30.d0)
-        sarea_prt(:)  = 0.
+        sarea_prt(:,:)  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -9961,10 +9936,10 @@ C**** Source over Europe and Russia
         iw = lon_to_i(-10.d0)
         jn = lat_to_j(65.d0)
         js = lat_to_j(35.d0)
-        sarea_prt(:)  = 0.
+        sarea_prt(:,:)  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -9979,10 +9954,10 @@ C**** Source over Far East
         iw = lon_to_i(120.d0)
         jn = lat_to_j(45.d0)
         js = lat_to_j(20.d0)
-        sarea_prt  = 0.
+        sarea_prt(:,:)  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -10000,7 +9975,7 @@ C**** Source over Middle East
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -10018,7 +9993,7 @@ C**** Source over South America
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -10036,7 +10011,7 @@ C**** Source over South Africa
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -10054,7 +10029,7 @@ C**** Source over Australia and New Zealand
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(j) = sarea_prt(j) + axyp(i,j)*fearth(i,j)
+            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
           enddo
         enddo
         CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
@@ -10069,15 +10044,15 @@ C**** Source over Australia and New Zealand
         !in the OCMIP values
         sarea  = 0.
         trsource_glbavg(n)=0.
-        sarea_prt(:)  = 0.
-        trsource_prt(:) = 0.
+        sarea_prt(:,:)  = 0.
+        trsource_prt(:,:) = 0.
         do j=J_0,J_1
          imax=72
          if (j .eq. 1 .or. j .eq. 46) imax=1
           do i=I_0,I_1
            factor = axyp(i,j)*fearth(i,j)
-           sarea_prt(j)= sarea_prt(j) + FACTOR
-           trsource_prt(j) = trsource_prt(j) + trsource(i,j,1,n)*FACTOR
+           sarea_prt(i,j)= FACTOR
+           trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
           enddo
         enddo
 
@@ -10113,15 +10088,15 @@ cdiag.          JDperY,hrday,dtsrc,3600,trsource_glbavg(n)
         !recompute global average after weighting in OCMIP
         sarea  = 0.
         trsource_glbavg(n)=0.
-        sarea_prt(:)  = 0.
-        trsource_prt(:) = 0.
+        sarea_prt(:,:)  = 0.
+        trsource_prt(:,:) = 0.
         do j=J_0,J_1
          imax=72
          if (j .eq. 1 .or. j .eq. 46) imax=1
           do i=I_0,I_1
            factor = axyp(i,j)*fearth(i,j)
-           sarea_prt(j)= sarea_prt(j) + FACTOR
-           trsource_prt(j) = trsource_prt(j) + trsource(i,j,1,n)*FACTOR
+           sarea_prt(i,j)= FACTOR
+           trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
           enddo
         enddo
 
@@ -10152,10 +10127,11 @@ C**** source from ice-free land
               trsource(i,j,1,n) = 3.2d-16*steppd*axyp(i,j)*fearth(i,j)
 c add code to implement Conen and Robertson - linear decrease in Rn222
 c   emission from 1 at 30N to 0.2 at 70N and 0.2 north of 70N
-           if (nint(lat_dg(j,1)).gt.30.and.nint(lat_dg(j,1)).lt.70) then
-           trsource(i,j,1,n)=trsource(i,j,1,n)*(1.d0-(lat_dg(j,1)-30.d0)
-     *            /40.d0*0.8d0)
-           else if (nint(lat_dg(j,1)).ge.70) then
+           if (nint(lat2d_dg(i,j)).gt.30 .and.
+     &         nint(lat2d_dg(i,j)).lt.70) then
+             trsource(i,j,1,n)=trsource(i,j,1,n)*
+     &            (1.d0-(lat2d_dg(i,j)-30.d0)/40.d0*0.8d0)
+           else if (nint(lat2d_dg(i,j)).ge.70) then
              trsource(i,j,1,n)=0.2*trsource(i,j,1,n)
            endif
           else if (rnsrc.eq.2) then !Schery and Wasiolek
@@ -10218,23 +10194,21 @@ C****
       tmon = (itime-itime_tr0(n))*jmpery/(nday*jdpery)
       trsource(:,J_0:J_1,1,n) = 0.
       do j=J_0,J_1
-         if (j <= jm/2) then
-            do i=I_0,I_1
+      do i=I_0,I_1
+         if (lat2d(i,j).lt.0.) then
                tnew = am(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
      *          (44.5 + tmon*(1.02535d0 - tmon*
      *                  (2.13565d-2 - tmon*8.61853d-5)))
                if (tnew.lt.trm(i,j,1,n))
      *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
-            end do
          else
-            do i=1,im
                tnew = am(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
      *          (73.0 - tmon*(0.27823d0 + tmon*
      *                  (3.45648d-3 - tmon*4.21159d-5)))
                if (tnew.lt.trm(i,j,1,n))
      *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
-            end do
          endif
+      end do
       end do
 
 C****
@@ -10247,7 +10221,7 @@ C****
         trsource(:,J_0:J_1,:,n)=0.d0
         do j=J_0,J_1
          scca(:) = 0.d0
-          do i = 1,im
+          do i = I_0,I_1
            if (cosz1(i,j) > 0.) scca(i) = cosz1(i,j) * 4.
           enddo
             trsource(:,j,1,n) = NH3_src_con(:,j) +
@@ -10384,9 +10358,9 @@ c!OMSP
             do j=J_0,J_1                  ! and latitudes
               do i=I_0,imaxj(j)             ! and longitudes 
                 do kreg=1,num_regions     ! and defined regions
-          if(lat_dg(j,1) >= reg_S(kreg) .and. lat_dg(j,1) ! check if
-     &    <= reg_N(kreg) .and. lon_dg(i,1) >= reg_W(kreg) ! in region
-     &    .and. lon_dg(i,1) < reg_E(kreg) ) then
+          if(lat2d_dg(i,j) >= reg_S(kreg) .and. lat2d_dg(i,j) ! check if
+     &    <= reg_N(kreg) .and. lon2d_dg(i,j) >= reg_W(kreg) ! in region
+     &    .and. lon2d_dg(i,j) < reg_E(kreg) ) then
             if(ef_fact(tr_sect_index(n,ns,nsect),kreg) > -1.e20)
      &      trsource(i,j,ns,n)=trsource(i,j,ns,n)*
      &      ef_FACT(tr_sect_index(n,ns,nsect),kreg)
