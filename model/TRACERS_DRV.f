@@ -8755,7 +8755,7 @@ C****
           call get_wofsy_gas_IC(trname(n),CH4ic)
           do l=1,lm         !ppbv==>ppbm
           do j=J_0,J_1
-            trm(:,j,l,n) = am(l,:,j)*axyp(i,j)*CH4ic(j,l)*0.552d-9
+            trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*CH4ic(j,l)*0.552d-9
           enddo; enddo
 #endif
 

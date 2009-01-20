@@ -1130,6 +1130,8 @@ C****
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 C****
 C**** Read in CO2 concentrations from workshop
