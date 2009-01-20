@@ -8516,11 +8516,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *  volc_exp
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll
-      INTEGER iuc2
+      INTEGER iuc2,lmax
       real*8 carbstuff,ccnv,carb(8)
-      real*8, DIMENSION(im,jm,lm) :: craft_glob
-      real*4, DIMENSION(im,jm,lm) :: craft_read
-      character*56 titleg
 #endif
 !#ifdef TRACERS_GASEXCH_CO2_Igor
       real*8 atmCO2
@@ -9297,24 +9294,28 @@ C    Initialize:
 C Put aircraft for so2 and BC
       if (imPI.eq.0) then
       if (imAER.ne.1.and.imAER.ne.3) then
+
       if ( AM_I_ROOT() ) then
-C    Initialize:
-          so2_src_3d(:,:,:,2)= 0.d0
-          bci_src_3d(:,:,:)=0.d0
+        write(6,*) 'Reading of the AIRCRAFT file now uses ',
+     &       'READT_PARALLEL which expects 80-character titles. ',
+     &       'Please expand the 56-character AIRCRAFT titles ',
+     &       'and then delete this warning/stop statement.'
+      endif
+      call stop_model('AIRCRAFT file',255)
+
+      so2_src_3d(:,:,:,2)= 0.d0
+      bci_src_3d(:,:,:)=0.d0
+      craft(:,:,:) = 0d0
       call openunit('AIRCRAFT',iuc2,.true.,.true.)
       if (lm.eq.23) then
-      DO L=1,LS1+1
-      READ(iuc2) titleg,((craft_read(i,j,l),i=1,im),j=1,jm)
-      END DO
+        lmax = ls1+1
       else
-      DO L=1,LM
-      READ(iuc2) titleg,((craft_read(i,j,l),i=1,im),j=1,jm)
+        lmax = lm
+      endif
+      DO L=1,LMAX
+        CALL READT_PARALLEL(grid,iuc2,NAMEUNIT(iuc2),craft(:,:,l),0)
       END DO
-      endif
       call closeunit(iuc2)
-      craft_glob(:,:,:)=craft_read(:,:,:)
-      endif
-      CALL UNPACK_DATA(grid, craft_glob, craft)
 
 c craft is Kg fuel/day. Convert to Kg SO2/s. 2.3 factor
 c adjusts 2015 source to 1990 source.
