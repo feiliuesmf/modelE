@@ -56,10 +56,10 @@ c$$$      USE MODEL_COM, only: clock
 #ifndef CUBE_GRID
       USE ATMDYN, only : DYNAM,SDRAG
      &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-      USE ATMDYN_QDYNAM, only : QDYNAM
-#endif
 #ifdef TRACERS_ON
      &     ,trdynam
+#endif
+      USE ATMDYN_QDYNAM, only : QDYNAM
 #endif
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
