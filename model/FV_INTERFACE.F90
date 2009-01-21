@@ -1769,6 +1769,7 @@ contains
 ! Change Units of vertical mass fluxes
     do l=0,lm
        do j=j_0,j_1
+          area = DXYP(j)
           do i=I_0,I_1
              mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (mb m^2/s)
           enddo
