@@ -130,7 +130,11 @@ C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
+#ifdef CUBE_GRID
+      USE GEOM, only : bydyp,bydxp
+#else
       USE GEOM, only : bydyp,bydxp,cosip,sinip
+#endif
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       USE DOMAIN_DECOMP, only : grid, GET
@@ -160,10 +164,12 @@ C**** to be used in the PBL, at the primary grids
       DO I=1,IM
         DO J=J_0S,J_1S
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
+#ifndef CUBE_GRID  ! bydyp on cubed sphere?
           DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
      2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
           DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
      2         +ZATMO(I,J+1)-ZATMO(I,J-1))*BYDYP(J)*.5d0
+#endif
         END DO
       END DO
 
@@ -174,10 +180,12 @@ C**** to be used in the PBL, at the primary grids
         I=IM
         DO IP1=1,IM
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
+#ifndef CUBE_GRID  ! bydxp on cubed sphere?
           DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
      2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
           DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
      2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
+#endif
           IM1=I
           I=IP1
         END DO

@@ -357,7 +357,11 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
      *     ,kradia,lm_req,pednl00
       USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
+#ifdef CUBE_GRID
+      USE GEOM, only : lat_dg 
+#else
       USE GEOM, only : dlat,lat_dg
+#endif
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
@@ -547,12 +551,16 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
         SPHIS=-1.
         CPHIS=0.
       else
+#ifndef CUBE_GRID
         PHIS=DLAT*(J_0-1-.5*JM)
+#endif
         SPHIS=SIN(PHIS)
         CPHIS=COS(PHIS)
       end if
       DO J=J_0,J_1S
+#ifndef CUBE_GRID
         PHIN=DLAT*(J-.5*JM)
+#endif
         SPHIN=SIN(PHIN)
         CPHIN=COS(PHIN)
         PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)

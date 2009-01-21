@@ -19,7 +19,10 @@
       USE DOMAIN_DECOMP, only : GLOBALSUM,AM_I_ROOT
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
-      USE GEOM, only : imaxj,kmaxj,ravj,axyp,byaxyp
+      USE GEOM, only : imaxj,axyp,byaxyp, kmaxj
+#ifndef CUBE_GRID
+      USE GEOM, only : ravj
+#endif
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
@@ -349,6 +352,7 @@ C**** UPDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
       CALL HALO_UPDATE(grid, U, from= NORTH)
       CALL HALO_UPDATE(grid, V, from= NORTH)
 
+
       call recalc_agrid_uv ! may not be necessary - check later
 
 c
@@ -502,9 +506,11 @@ C****
           enddo
       endif
 #endif
+#ifndef CUBE_GRID
       DO K=1,KMAX
         RA(K)=RAVJ(K,J)
       END DO
+#endif
 C**** PRESSURES, AND PRESSURE TO THE KAPA
       PL(:) =PMID(:,I,J)
       PLE(:)=PEDN(:,I,J)
@@ -1591,7 +1597,8 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       USE CONSTANT, only : grav,by3,radian
       USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
       USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
-      USE GEOM, only : lat_dg,lat2d,kmaxj
+      USE GEOM, only : lat_dg,lat2d, kmaxj
+
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,U00a,U00b       ! tuning knobs to replace U00ice and U00wtrX
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau

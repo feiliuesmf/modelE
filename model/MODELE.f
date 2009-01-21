@@ -53,10 +53,11 @@ c$$$      USE MODEL_COM, only: clock
       USE ESMF_MOD, only: ESMF_Clock
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
 #endif
-
+#ifndef CUBE_GRID
       USE ATMDYN, only : DYNAM,SDRAG
      &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-
+      USE ATMDYN_QDYNAM, only : QDYNAM
+#endif
 #ifdef TRACERS_ON
      &     ,trdynam
 #endif
@@ -65,7 +66,6 @@ c$$$      USE MODEL_COM, only: clock
       USE AERO_CONFIG, ONLY: NMODES
 #endif
 #endif
-      USE ATMDYN_QDYNAM, only : QDYNAM
 #ifdef SCM
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
      &    SCM_DEL_Q,iu_scm_prt,iu_scm_diag
@@ -171,9 +171,7 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #endif
 
 #endif /* ADIABATIC */
-
       call alloc_drv()
-
 #ifndef ADIABATIC
 
 C****
@@ -207,6 +205,8 @@ c        print *,sname,'Before:im,jm        = ',im,jm
 
 #endif /* ADIABATIC */
 
+
+C**** Read input/ic files
 #ifdef USE_FVCORE
       CALL INPUT (istart,ifile,clock)
 #else
@@ -334,9 +334,6 @@ C**** write restart information alternately onto 2 disk files
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
          call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
-#ifdef CUBE_GRID
-         call stop_model("AFTER io_rsf()",255)
-#endif
 #ifdef USE_FVCORE
          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
@@ -381,10 +378,12 @@ C****
       CALL CHECKT ('DYNAM0')
       if (kradia.le.0) then                   ! full model,kradia le 0
          MODD5D=MOD(Itime-ItimeI,NDA5D)
-         IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
-         IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
-         IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
+         IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
+#ifndef CUBE_GRID
+         IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
+#endif
+         IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
       PTOLD = P ! save for clouds
 C**** Initialize pressure for mass fluxes used by tracers and Q
@@ -440,7 +439,9 @@ C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
+#ifndef CUBE_GRID
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(PUA, PVA, DT)
+#endif
 #ifdef SCM
        do L=1,LM
           CONV(I_TARG,J_TARG,L) = SG_CONV(L)
@@ -454,8 +455,9 @@ C**** Scale WM mixing ratios to conserve liquid water
         WM(:,:,L)=WM(:,:,L)* (PTOLD/P)
       END DO
 !$OMP  END PARALLEL DO
-
+#ifndef CUBE_GRID
       CALL QDYNAM  ! Advection of Q by integrated fluxes
+#endif
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
@@ -476,20 +478,25 @@ C**** calculate zenith angle for current time step
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MSURF)
+#ifndef CUBE_GRID
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
+#endif
 C****
 C**** INTEGRATE SOURCE TERMS
 C****
 
+#ifndef CUBE_GRID
 c calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
-
+#endif
          IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
+#ifndef CUBE_GRID
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
+#endif
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 
 C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
@@ -501,7 +508,9 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
          CALL TIMER (MNOW,MCNDS)
+#ifndef CUBE_GRID
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
+#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
       end if                                  ! full model,kradia le 0
 C**** RADIATION, SOLAR AND THERMAL
@@ -512,7 +521,9 @@ C**** RADIATION, SOLAR AND THERMAL
       end if
          CALL TIMER (MNOW,MRAD)
       if (kradia.le.0) then                    ! full model,kradia le 0
+#ifndef CUBE_GRID
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
+#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -581,11 +592,14 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
          CALL CHECKT ('DISSIP')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
+#ifndef CUBE_GRID
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
+#endif
 
 C**** SEA LEVEL PRESSURE FILTER
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(ia_filt)=IDACC(ia_filt)+1
+#ifndef CUBE_GRID
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
            CALL FILTER
@@ -593,6 +607,7 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL TIMER (MNOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
            CALL DIAGCA (8)
+#endif
       END IF
 #ifdef TRACERS_ON
 C**** 3D Tracer sources and sinks
@@ -632,7 +647,9 @@ C****
         if(Kradia==10) CALL daily_OCEAN(.true.) ! to test OCLIM
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
       else                                ! full model, kradia le 0
+#ifndef CUBE_GRID
            CALL DIAG5A (1,0)
+#endif
            CALL DIAGCA (1)
         CALL DAILY(.true.)                 ! end_of_day
         CALL daily_RAD(.true.)
@@ -654,7 +671,9 @@ C****
 #endif
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
+#ifndef CUBE_GRID
            CALL DIAG5A (16,NDAY*NIdyn)
+#endif
            CALL DIAGCA (10)
         call sys_flush(6)
       end if   ! kradia: full model (or rad.forcing run)
@@ -1024,8 +1043,8 @@ C****
 #endif
       USE SOMTQ_COM, only : tmom,qmom
 #ifdef CUBE_GRID
-c      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and line below removed
-      USE GEOM, only : geom_b,imaxj   
+      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and line below removed
+c      USE GEOM, only : geom_b,imaxj   
 #else
       USE GEOM, only : geom_b,imaxj
 #endif
@@ -1078,7 +1097,9 @@ c      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and lin
       USE CONSTANT, only : hrday
       USE ESMF_MOD, only: ESMF_Clock
 #endif
+#ifndef CUBE_GRID
       USE ATMDYN, only : init_ATMDYN
+#endif
 #ifdef USE_ENT
       USE ENT_DRV, only : init_module_ent
 #endif
@@ -1155,8 +1176,7 @@ C****
       DSIG(:) =  sige(1:lm)-sige(2:lm+1)
       byDSIG  =  1./DSIG
 #ifdef CUBE_GRID
-c      call geom_cs
-      call geom_b
+      call geom_cs
 #else
 C**** CALCULATE SPHERICAL GEOMETRY
       CALL GEOM_B
@@ -1940,7 +1960,11 @@ C**** Initialize land ice (must come after oceans)
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=J_0,J_1
+#ifdef CUBE_GRID
+      DO I=I_0,I_1         
+#else
       DO I=I_0,IMAXJ(J)
+#endif
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
           IF (FLAKE(I,J).gt.0) THEN

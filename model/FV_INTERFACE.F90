@@ -83,7 +83,7 @@ module FV_INTERFACE_MOD
 
   Interface ConvertPotTemp_GISS2FV
      Module Procedure CnvPotTemp_GISS2FV_r8
-     Module Procedure CnvPotTemp_GISS2FV_r4
+     Module Procedure CnvPotTemp_GISS2V_r4
   End Interface
 
   Interface ConvertPotTemp_FV2GISS
@@ -1364,10 +1364,10 @@ contains
 
     deallocate(ub_halo, Vb_halo)
 
+#ifndef CUBE_GRID
     ! Polar conditions are a bit more complicated
     ! First determine an "absolute" U, V at the pole, then use sin/cos to
     ! map to the individual longitudes.
-
     If (HAVE_SOUTH_POLE) then
        Call FixPole(U_b(:,2,:), V_b(:,2,:), U_a(:,1,:), V_a(:,1,:))
     End If
@@ -1375,7 +1375,6 @@ contains
     If (HAVE_NORTH_POLE) then
        Call FixPole(U_b(:,JM,:), V_b(:,JM,:), U_a(:,JM,:), V_a(:,JM,:))
     End If
-
   Contains
     ! This routine works for both poles.
     ! The sign is correct for the NP, but (-1) appears as a factor twice
@@ -1400,6 +1399,7 @@ contains
       end do
 
     End Subroutine FixPole
+#endif
   end subroutine Regrid_B_to_A
 
   !--------------------------------------------------------------------
@@ -1422,7 +1422,7 @@ contains
 
     Call Get(grid, j_strt=j_0, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s, &
          & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
+#ifndef CUBE_GRID
     If (HAVE_SOUTH_POLE) Then
        ! 1st interpolate to 'A' grid
        Call FixPole(U_b(:,2,:), V_b(:,2,:), U_d(:,1,:))
@@ -1435,7 +1435,7 @@ contains
        Call FixPole(U_b(:,JM,:), V_b(:,JM,:), U_d(:,JM,:))
      ! V_d(:,JM,:) = (V_b(:,JM,:) + CSHIFT(V_b(:,JM,:),1,1))/2
     End If
-
+#endif
 ! V-grid
     Do k = 1, LM
        Do j = j_0s, j_1s
@@ -1457,6 +1457,7 @@ contains
        End Do
     End Do
 
+#ifndef CUBE_GRID
   Contains
 
     Subroutine FixPole(Ub, Vb, Ud)
@@ -1477,7 +1478,7 @@ contains
       end do
 
     End Subroutine FixPole
-
+#endif
   End Subroutine regrid_B_to_D
 
   ! Reverse the order of vertical levels.
@@ -1659,7 +1660,9 @@ contains
 
   subroutine accumulate_mass_fluxes(fv)
     Use Resolution, only: IM,JM,LM,LS1
+#ifndef CUBE_GRID
     USE GEOM, ONLY: DYP, DXV, DXYP, IMAXJ, BYIM
+#endif
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     USE MODEL_COM, only: DTsrc,DT,DSIG
@@ -1688,7 +1691,7 @@ contains
     real*8, parameter :: pi=3.14159265358979323846
     real*8, parameter :: radius= 6376000.00000000
 
-
+#ifndef CUBE_GRID
 
     DTfac = DT
 
@@ -1766,7 +1769,6 @@ contains
 ! Change Units of vertical mass fluxes
     do l=0,lm
        do j=j_0,j_1
-          area = DXYP(j)
           do i=I_0,I_1
              mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (mb m^2/s)
           enddo
@@ -1787,7 +1789,7 @@ contains
     PUA(I_0:I_1,J_0:J_1,:) = PUA(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
     PVA(I_0:I_1,J_0:J_1,:) = PVA(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
     SDA(I_0:I_1,J_0:J_1,1:LM-1) = SDA(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
-
+#endif
   end subroutine accumulate_mass_fluxes
 
   subroutine set_zonal_flow(U_d, V_d, j0, j1)
@@ -1996,7 +1998,9 @@ contains
       write(unit,*)' Level Average for ' // trim(name)
       write(unit,*)'*********************************'
       do k = 1, LM
+#ifndef CUBE_GRID   ! dxyp(i,j) in 2d
          write(unit,*) k, sum(sum(array(:,1:JM,k),1)*dxyp(1:jm))/AREAG
+#endif
       end do
       write(unit,*)' '
     end subroutine write_avg

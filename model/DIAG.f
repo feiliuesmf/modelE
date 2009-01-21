@@ -99,8 +99,7 @@ C**** Some local constants
       USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
-      USE GEOM, only : sinlat2d,coslat2d,sinp,cosp,dlat,axyp
-     *     ,imaxj,ddy_ci,ddy_cj
+      USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
      *     ail=>ail_loc
@@ -2063,7 +2062,10 @@ C****
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
      *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
-      USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d,lat2d
+      USE GEOM, only : axyp,imaxj,lon2d,lat2d
+#ifndef CUBE_GRID
+      USE GEOM, only : lonlat_to_ij
+#endif
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
@@ -2211,7 +2213,9 @@ c defaults for diurnal diagnostics
      &     /),(/2,4/))
       call sync_param( "LLDD", LLDD(1:2,1), 2*NDIUPT )
       do n=1,ndiupt
+#ifndef CUBE_GRID
         call lonlat_to_ij(lldd(1,n),ijdd(1,n))
+#endif
       enddo
 #endif
 
@@ -2589,14 +2593,13 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
         ENDDO
         ENDDO
       END IF
-
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
 C**** The AIJ diagnostics are set once a year (zero otherwise)
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           if(lat2d(i,j).lt.0.) then
-C**** initiallise/save South. Hemi. on Feb 28
+C**** initialize/save South. Hemi. on Feb 28
             IF (JDAY.eq.59 .and. TSFREZ(I,J,TF_LKOFF).ne.undef) THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,365)
@@ -2657,7 +2660,6 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 #ifdef HTAP_LIKE_DIAGS
       ttausv_count=0.d0
 #endif
-
       END SUBROUTINE daily_DIAG
 
 

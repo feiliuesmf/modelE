@@ -21,14 +21,14 @@ STACKSIZE=524288
 
 Object modules: (in order of decreasing priority)
 RES_C32M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-MODEL_COM GEOM_B checkpoint_demo              ! model variables and geometry
+MODEL_COM GEOM_CS checkpoint_demo              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 dd2d_utils pario_nc pario_fbsa
 regrid regrid_com regridinput
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
-ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
+ATMDYN_COM ATM_DUM !MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_INTERFACE                     ! FV dynamical core wrapper
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -48,7 +48,7 @@ OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
+DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 CONST UTILDBL SYSTEM                ! utilities
 POUT                                ! post-processing output
 
@@ -72,6 +72,7 @@ VEG=V_CS32 CROPS=CROPS_CS32
 CDN=CD_CS32                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR               ! river direction file
+GLMELT=GLMELT_4X5.OCN       ! glacial melt distribution
 TOP_INDEX=top_index_CS32      ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files

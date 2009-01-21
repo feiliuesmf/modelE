@@ -424,7 +424,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,dxv,dyv,dxp,dyp,imaxj
+      USE GEOM, only : axyp,dyv,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -839,11 +839,15 @@ C****
 
       function horzdist_2pts(i1,j1,i2,j2)
       use constant, only : radius
-      use geom, only : dxp,dyv,dyp,dxv,lon2d,sinlat2d,coslat2d,axyp
+#if defined CUBED_SPHERE || CUBE_GRID
+      use geom, only : lon2d,sinlat2d,coslat2d,axyp
+#else
+      use geom, only : dxp,dyv,dyp,dxv
+#endif
       implicit none
       real*8 :: horzdist_2pts
       integer :: i1,j1,i2,j2
-#ifdef CUBED_SPHERE
+#if defined CUBED_SPHERE || CUBE_GRID
       real*8 :: x1,y1,z1, x2,y2,z2
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = SQRT(AXYP(I1,J1))

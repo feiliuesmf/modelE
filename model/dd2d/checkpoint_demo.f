@@ -61,7 +61,8 @@ c determine which netcdf restart file we are writing and open it
       if(iaction.ne.iowrite_mon) then ! fort.[12]
         if(am_i_root()) then
           inquire(kunit,name=fname)
-          status = nf_open(trim(fname)//'.nc',nf_write,fid)
+          status = nf_open('fort.1.nc',nf_write,fid)
+c          status = nf_open(trim(fname)//'.nc',nf_write,fid)
         endif
       else ! end-of-month restart file.  do not define acc arrays.
         if(am_i_root()) then

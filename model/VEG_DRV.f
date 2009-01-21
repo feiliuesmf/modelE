@@ -392,7 +392,6 @@ c**** calculate root fraction afr averaged over vegetation types
       end do
 
       ! write(98,*) afr
-
       return
       end subroutine upd_gh
 
@@ -685,7 +684,6 @@ C****     save orig. (no-crop) vdata to preserve restart-independence
 
       if (AM_I_ROOT()) write(6,*)
      *     'Using crops data from year',year1+wt*(year2-year1)
-
 C**** Modify the vegetation fractions
       do j=J_0,J_1
       do i=I_0,imaxj(j)
@@ -701,7 +699,6 @@ C**** Modify the vegetation fractions
       if(reset_veg) call upd_gh
 
       year_old = year
-
       return
       end subroutine updveg
 
