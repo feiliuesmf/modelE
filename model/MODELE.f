@@ -434,7 +434,6 @@ c     enddo
 #endif
 
 #if !defined( ADIABATIC ) || defined( CUBE_GRID)
-
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
       finalTotalEnergy = getTotalEnergy()
@@ -1952,11 +1951,9 @@ C****  KOCEAN = 0 => RSI/MSI factor
       CALL init_OCEAN(iniOCEAN,istart)
 C**** Initialize ice dynamics code (if required)
       CALL init_icedyn(iniOCEAN)
-#ifndef CUBE_GRID
 C**** Initialize land ice (must come after oceans)
 
       CALL init_LI(istart)
-#endif
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=J_0,J_1
