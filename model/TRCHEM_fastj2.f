@@ -17,7 +17,7 @@ c  D. Shindell, Aug. 2002
 
 C**** GLOBAL parameters and variables:
 
-      USE DOMAIN_DECOMP,only : GRID,GET
+      USE DOMAIN_DECOMP_ATM,only : GRID,GET
       USE MODEL_COM, only    : LM
       USE CONSTANT, only     : radian
       USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
@@ -313,7 +313,7 @@ C------ Calculate remaining J-values with T-dep X-sections
 !@ver  1.0 (based on ds4p_fastj2_M23)
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE MODEL_COM, only: JM, month=>JMON 
       USE TRCHEM_Shindell_COM, only: SZA,NBFASTJ,MXFASTJ,DMFASTJ2,TJ2,
      &             masfac,dlogp2,oref2,tref2,DO32,AER2,PFASTJ2,ZFASTJ2
@@ -708,7 +708,7 @@ C--------------------------------------------------------------------
 C
 C**** GLOBAL parameters and variables:
 C
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE MODEL_COM, only: LM
       USE TRCHEM_Shindell_COM, only: NBFASTJ,POMEGA,NCFASTJ2,
      & POMEGAJ,MIEDX2,QAAFASTJ,SSA,NLBATM,DO32,DMFASTJ2,QRAYL,

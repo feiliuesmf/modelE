@@ -31,8 +31,8 @@
 
       subroutine ent_read_state( kunit )
 !@sum read ent state from the file
-      use domain_decomp, only : grid, am_i_root, get
-      use domain_decomp, only : send_to_j, recv_from_j
+      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_1d, only : send_to_j, recv_from_j
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
       !---
@@ -83,8 +83,8 @@
 
       subroutine ent_write_state( kunit )
 !@sum write ent state to the file
-      use domain_decomp, only : grid, am_i_root, get
-      use domain_decomp, only : send_to_j, recv_from_j
+      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_1d, only : send_to_j, recv_from_j
       !use ent_com, only : entcells
       integer, intent(in) :: kunit
       !---
@@ -141,8 +141,8 @@
 !@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
-      use domain_decomp, only : grid, am_i_root
-      use domain_decomp, only : pack_data, unpack_data
+      use domain_decomp_1d, only : grid, am_i_root
+      use domain_decomp_1d, only : pack_data, unpack_data
       use ent_com, only : Cint, Qfol, cnc_ij,
      &     ent_read_state,ent_write_state
       use ent_mod
@@ -205,7 +205,7 @@
 !@ver  1.0
       USE ENT_MOD
       USE ENT_COM
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

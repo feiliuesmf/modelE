@@ -23,7 +23,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
-      USE DOMAIN_DECOMP, ONLY : grid, get, halo_update_column
+      USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update_column
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
@@ -579,7 +579,7 @@ c
       USE GEOM, only : imaxj
       USE MODEL_COM, only : im,jm
       USE DYNAMICS, only : pmid,pk,pedn
-      USE DOMAIN_DECOMP, ONLY : grid
+      USE DOMAIN_DECOMP_ATM, ONLY : grid
 
       implicit none
 

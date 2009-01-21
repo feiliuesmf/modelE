@@ -13,7 +13,7 @@ c
 
 
       SUBROUTINE io_rsf(kunit,it,iaction,ioerr)
-      USE DOMAIN_DECOMP, only : am_i_root
+      USE DOMAIN_DECOMP_1D, only : am_i_root
       USE pario_fbsa, only : REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
      *                     ,ioread,ioread_nodiag,iowrite_mon
@@ -141,7 +141,7 @@ c close netcdf restart file
 !@calls io_seaice,io_earth,io_soils,io_landice
       use model_com, only : ioreadnt,ioread
       use filemanager, only : openunit,closeunit,nameunit
-      use domain_decomp, only : am_i_root
+      use domain_decomp_1d, only : am_i_root
       implicit none
       include 'netcdf.inc'
       integer :: iu_GIC,ioerr,status,fid,ierr
@@ -199,7 +199,7 @@ c close netcdf restart file
 
       subroutine def_rsf_model(fid)
       use model_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -216,7 +216,7 @@ c close netcdf restart file
       end subroutine def_rsf_model
       subroutine par_io_model(fid,iaction)
       use model_com
-      use domain_decomp, only: grid
+      use domain_decomp_1d, only: grid
       use pario, only : write_dist_data,read_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
@@ -248,7 +248,7 @@ c close netcdf restart file
 
       subroutine def_rsf_somtq(fid)
       use somtq_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -258,7 +258,7 @@ c close netcdf restart file
       end subroutine def_rsf_somtq
       subroutine par_io_somtq(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       use somtq_com
       implicit none
@@ -277,7 +277,7 @@ c close netcdf restart file
 
       subroutine def_rsf_clouds(fid)
       use clouds_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -294,7 +294,7 @@ c close netcdf restart file
       end subroutine def_rsf_clouds
       subroutine par_io_clouds(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       use clouds_com
       implicit none
@@ -327,7 +327,7 @@ c close netcdf restart file
 
       subroutine def_rsf_rad(fid)
       use rad_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -379,7 +379,7 @@ c close netcdf restart file
       USE tracer_com , only : ntm
 #endif
       use rad_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
       implicit none
@@ -465,7 +465,7 @@ c close netcdf restart file
 
       subroutine def_rsf_pbl(fid)
       use pblcom
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -493,7 +493,7 @@ c close netcdf restart file
       subroutine par_io_pbl(fid,iaction)
       use model_com, only : ioread,iowrite
       use pblcom
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
@@ -531,7 +531,7 @@ c close netcdf restart file
 
       subroutine def_rsf_bldat(fid)
       use pblcom
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -553,7 +553,7 @@ c close netcdf restart file
 
       subroutine par_io_bldat(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       use pblcom
       implicit none
@@ -592,7 +592,7 @@ c close netcdf restart file
 
       subroutine def_rsf_earth(fid)
       use ghy_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -613,7 +613,7 @@ c close netcdf restart file
       subroutine par_io_earth(fid,iaction)
       use model_com, only : ioread,iowrite
       use ghy_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
@@ -646,7 +646,7 @@ c close netcdf restart file
 
       subroutine def_rsf_soils(fid)
       use ghy_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -667,7 +667,7 @@ c close netcdf restart file
 
       subroutine par_io_soils(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only: grid
+      use domain_decomp_1d, only: grid
       use pario, only : write_dist_data,read_dist_data
       use ghy_com
       implicit none
@@ -696,7 +696,7 @@ c close netcdf restart file
 
       subroutine def_rsf_snow(fid)
       use ghy_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -719,7 +719,7 @@ c close netcdf restart file
 
       subroutine par_io_snow(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       use ghy_com
       implicit none
@@ -754,7 +754,7 @@ c close netcdf restart file
 
       subroutine def_rsf_vegetation(fid)
       use veg_com, only : Cint, Qfol, cnc_ij
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -766,7 +766,7 @@ c close netcdf restart file
 
       subroutine par_io_vegetation(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       use veg_com, only : Cint, Qfol, cnc_ij
       implicit none
@@ -787,7 +787,7 @@ c close netcdf restart file
 
       subroutine def_rsf_seaice(fid)
       use seaice_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -807,7 +807,7 @@ c close netcdf restart file
       subroutine par_io_seaice(fid,iaction)
       use model_com, only : ioread,iowrite
       use seaice_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       implicit none
       integer fid               !@var fid unit number of read/write
@@ -843,7 +843,7 @@ c      write(*,*) "IOREAD"
       subroutine def_rsf_landice(fid)
       use landice_com
       use landice
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -871,7 +871,7 @@ c      write(*,*) "IOREAD"
 
       subroutine par_io_landice(fid,iaction)
       use model_com, only : ioread,iowrite
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
       use landice_com
@@ -929,7 +929,7 @@ c restart file
 
       subroutine def_rsf_lakes(fid)
       use lakes_com
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -945,7 +945,7 @@ c restart file
       end subroutine def_rsf_lakes
 
       subroutine par_io_lakes(fid,iaction)
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       use lakes_com
       implicit none
@@ -976,7 +976,7 @@ c restart file
 
       subroutine def_rsf_ocean(fid)
       use static_ocean
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -988,7 +988,7 @@ c restart file
       subroutine par_io_ocean(fid,iaction)
       use model_com, only : ioread,iowrite
       use static_ocean
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
@@ -1009,7 +1009,7 @@ c restart file
       use diag_com, only : tsfrez=>tsfrez_loc,aij=>aij_loc,
      &     ail=>ail_loc,aijk=>aijk_loc,oa,tdiurn,speca,atpe,
      &     keyct,keynr,atpe,adiurn,hdiurn,energy,wave,aisccp
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -1047,7 +1047,7 @@ c     *     AJ,AREG,APJ,AJL,ASJL,CONSRV,AJK
       use diag_com, only : tsfrez=>tsfrez_loc,aij=>aij_loc,
      &     ail=>ail_loc,aijk=>aijk_loc,oa,tdiurn,speca,atpe,
      &     keyct,keynr,atpe,adiurn,hdiurn,energy,wave,aisccp
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use pario, only : write_dist_data,read_dist_data
      &     ,write_data,read_data
       implicit none

@@ -28,7 +28,7 @@ C****
 C**** Note: W(,,1) is really PIT, the pressure tendency, but is not used
 C****
       USE MODEL_COM, only : im,jm,lm,byim,pdsigl00
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
      *                          SOUTH, NORTH, ESMF_BCAST
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
       USE  DIAG_COM, only : ajl=>ajl_loc,kajl,kep,pl=>plm
@@ -825,7 +825,7 @@ CW      CALL WRITJL ('DUDT: TRANS-EULE',DUR,SCALEP)
 !@auth B. Suozzo
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,BYIM
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_1D, only : GRID, GET
       USE GEOM, only : imaxj
       IMPLICIT NONE
 

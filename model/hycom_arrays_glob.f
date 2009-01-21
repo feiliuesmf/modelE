@@ -323,7 +323,7 @@ c
       subroutine scatter_hycom_arrays
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
 
       !return
 
@@ -464,7 +464,7 @@ c
       subroutine gather_hycom_arrays
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
 
       !return
 

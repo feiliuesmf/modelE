@@ -5,7 +5,7 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, ONLY : grid
+      USE DOMAIN_DECOMP_ATM, ONLY : grid
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 #ifdef TRACERS_OCEAN_INDEP
@@ -233,7 +233,7 @@ C**** fluxes associated with variable lake fractions
 !@auth  Rosalinda de Fainchtein
 !@ver  1.0
       USE CONSTANT, only : tf
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE FLUXES
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm

@@ -28,7 +28,7 @@ c z_extra variables
       contains
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
-      USE DOMAIN_DECOMP, only :
+      USE DOMAIN_DECOMP_1D, only :
      &     grid, get, HALO_UPDATE,HALO_UPDATE_COLUMN, NORTH,SOUTH
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
@@ -214,9 +214,9 @@ c
 !@+   too small during any of the operator splitting steps of each cycle
 !@auth Maxwell Kelley
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
      &     ,halo_updatej, globalmax
-      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH, AM_I_ROOT, here
+      USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT, here
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       real*8, intent(in) :: dt_dummy
@@ -735,7 +735,7 @@ c      ierr=0
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE TRACER_ADV
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -775,7 +775,7 @@ C****
       subroutine aadvqx(rm,rmom,mass,mu,jmin,jmax,nstep,safv)
 !@sum  AADVQX advection driver for x-direction
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP, only : grid, GET
+      use DOMAIN_DECOMP_1D, only : grid, GET
       use QUSDEF
       use QUSCOM, only : im,jm
       implicit none
@@ -1032,9 +1032,9 @@ c****
       subroutine aadvqy(rm,rmom,mass,mv  ,sbf,sbm,sfbm,sbfv)
 !@sum  AADVQY advection driver for y-direction
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP, only : grid, get
-      use DOMAIN_DECOMP, only : halo_update,halo_update_column
-      use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
+      use DOMAIN_DECOMP_1D, only : grid, get
+      use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column
+      use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
       use QUSCOM, only : im,jm,byim
       implicit none
@@ -1310,7 +1310,7 @@ c**** average and unscale polar boxes
      &     ,scf,scm,sfcm)
 !@sum  AADVQZ advection driver for z-direction
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP, only : grid, GET
+      use DOMAIN_DECOMP_1D, only : grid, GET
       use QUSDEF
       use QUSCOM, only : im
       implicit none
@@ -1465,7 +1465,7 @@ c
       subroutine aadvqx2(rm,rmom,mass,mu,jmin,jmax,nstep,safv)
 !@sum  AADVQX2 version of AADVQX without flux limiter
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP, only : grid, GET
+      use DOMAIN_DECOMP_1D, only : grid, GET
       use QUSDEF
       use QUSCOM, only : im,jm
       implicit none
@@ -1627,9 +1627,9 @@ c****
       subroutine aadvqy2(rm,rmom,mass,mv  ,sbf,sbm,sfbm,sbfv)
 !@sum  AADVQY2 version of AADVQY without flux limiter
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP, only : grid, get
-      use DOMAIN_DECOMP, only : halo_update,halo_update_column
-      use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
+      use DOMAIN_DECOMP_1D, only : grid, get
+      use DOMAIN_DECOMP_1D, only : halo_update,halo_update_column
+      use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use QUSDEF
       use QUSCOM, only : im,jm,byim
       implicit none
@@ -1823,7 +1823,7 @@ c**** average and unscale polar boxes
      &     ,scf,scm,sfcm)
 !@sum  AADVQZ2 version of AADVQZ without flux limiter
 !@auth Maxwell Kelley
-      use DOMAIN_DECOMP, only : grid, GET
+      use DOMAIN_DECOMP_1D, only : grid, GET
       use QUSDEF
       use QUSCOM, only : im
       implicit none

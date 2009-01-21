@@ -304,8 +304,8 @@ C****
      *     ,ssist,mmst,g0mst,s0mst,gxmst,sxmst,gzmst,szmst,must,lmst,ist
      *     ,jst,xst,yst
 
-!      use domain_decomp, only: am_i_root, grid, get
-      use domain_decomp, only: am_i_root, get
+!      use domain_decomp_1d, only: am_i_root, grid, get
+      use domain_decomp_1d, only: am_i_root, get
       USE OCEANR_DIM, only : grid=>ogrid
 
       Use SparseCommunicator_mod
@@ -812,8 +812,8 @@ C****
      *     ,irerun,lhead
       USE STRAITS
 
-!      use domain_decomp, only : grid,am_i_root
-      use domain_decomp, only : am_i_root
+!      use domain_decomp_1d, only : grid,am_i_root
+      use domain_decomp_1d, only : am_i_root
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -920,8 +920,8 @@ C****
       SUBROUTINE BCAST_straits (skip_tracers)
       USE STRAITS
 
-!      use domain_decomp, only : grid,ESMF_BCAST
-      use domain_decomp, only : ESMF_BCAST
+!      use domain_decomp_1d, only : grid,ESMF_BCAST
+      use domain_decomp_1d, only : ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE

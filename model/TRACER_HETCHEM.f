@@ -21,7 +21,7 @@
       USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
@@ -272,7 +272,7 @@ c radii interpolation
       USE GEOM,       only:  byaxyp
       USE DYNAMICS,   only:  byam ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
 !-----------------------------------------------------------------------
 !       ... Dummy arguments

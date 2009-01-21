@@ -9,8 +9,8 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm,focean
       USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -55,9 +55,9 @@ C**** Check for reasonable values for ocean variables
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE STATIC_OCEAN
-      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_COLUMN, PACK_DATA
-      USE DOMAIN_DECOMP, only : UNPACK_COLUMN, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA
+      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -109,8 +109,8 @@ C****
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GET
       IMPLICIT NONE
 !@var OCEANE ocean energy (J/M^2)
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,

@@ -111,8 +111,8 @@ c the new i/o system
      *     ,irsfic,irerun,irsficno,ioread_single,lhead
       USE ODIAG
 
-!      USE DOMAIN_DECOMP, only: grid, AM_I_ROOT
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+!      USE DOMAIN_DECOMP_1D, only: grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -276,7 +276,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : jm
-      USE DOMAIN_DECOMP, only : GET, GRID, CHECKSUMj
+      USE DOMAIN_DECOMP_1D, only : GET, GRID, CHECKSUMj
       USE DIAG_COM, only : consrv=>consrv_loc,nofm
       IMPLICIT NONE
 !@var M index denoting from where routine is called
@@ -464,7 +464,7 @@ C****
 !@auth Reto Ruedy
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, only : dist_grid,get
+      USE DOMAIN_DECOMP_1D, only : dist_grid,get
 
       USE ODIAG
 
@@ -528,8 +528,8 @@ C****
 
       USE ODIAG
 
-!      use domain_decomp, only : grid, pack_data
-      use domain_decomp, only : pack_data
+!      use domain_decomp_1d, only : grid, pack_data
+      use domain_decomp_1d, only : pack_data
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -549,8 +549,8 @@ C****
 
       USE ODIAG
 
-!      use domain_decomp, only : grid, unpack_data, ESMF_BCAST
-      use domain_decomp, only : unpack_data, ESMF_BCAST
+!      use domain_decomp_1d, only : grid, unpack_data, ESMF_BCAST
+      use domain_decomp_1d, only : unpack_data, ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE

@@ -275,7 +275,7 @@ C**** CALCULATE TG2
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,LM
       USE LANDICE_COM, ONLY : SNOWLI, TLANDI, MDWNIMP, EDWNIMP, LOC_GLM
 #ifdef TRACERS_WATER
@@ -314,9 +314,9 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
-      USE DOMAIN_DECOMP, only : UNPACK_COLUMN, ESMF_BCAST,
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : UNPACK_COLUMN, ESMF_BCAST,
      *     BACKSPACE_PARALLEL
       USE LANDICE_COM
       USE LANDICE

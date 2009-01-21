@@ -5,7 +5,7 @@
 !@ver  1.0
       USE QUSDEF
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, only : grid
+      USE DOMAIN_DECOMP_ATM, only : grid
       IMPLICIT NONE
       SAVE
 !     REAL*8, DIMENSION(NMOM,IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO ,LM)  
@@ -19,7 +19,7 @@
 !@+    must now be dynamic for the distributed memory implementation.
 !@auth Rosalinda de Fainchtein
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE QUSDEF, ONLY : NMOM
       USE MODEL_COM, ONLY : LM
       USE SOMTQ_COM, ONLY : TMOM,QMOM
@@ -45,8 +45,8 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : PACK_COLUMN, UNPACK_COLUMN
       USE SOMTQ_COM
       IMPLICIT NONE
 
@@ -98,7 +98,7 @@
 
       subroutine tq_zmom_init(t,q,pmid,pedn)
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, ONLY: grid
+      USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM
       implicit none
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,

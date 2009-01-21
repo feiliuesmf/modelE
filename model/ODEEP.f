@@ -38,7 +38,7 @@ c      INTEGER, PARAMETER :: LMOM = 9    ! good for 1000m
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : tg3m,stg3,dtg3,rtgo,dz,dzo,bydzo,edo,lmom
       USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP, only : GRID, am_I_root, unpack_data
+      USE DOMAIN_DECOMP_ATM, only : GRID, am_I_root, unpack_data
 
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -95,8 +95,8 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsficno,lhead
       USE STATIC_OCEAN
       USE ODEEP_COM
-      USE DOMAIN_DECOMP, only : GRID, am_I_root, pack_data, unpack_data
-      USE DOMAIN_DECOMP, only : pack_column, unpack_column
+      USE DOMAIN_DECOMP_ATM, only : GRID,am_I_root,pack_data,unpack_data
+      USE DOMAIN_DECOMP_ATM, only : pack_column, unpack_column
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -173,8 +173,8 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,iowrite_single
      *     ,ioread_single,lhead,im,jm
       USE ODEEP_COM
-      USE DOMAIN_DECOMP, only : GRID, am_I_root
-      USE DOMAIN_DECOMP, only : pack_column, unpack_column
+      USE DOMAIN_DECOMP_ATM, only : GRID, am_I_root
+      USE DOMAIN_DECOMP_ATM, only : pack_column, unpack_column
 
       IMPLICIT NONE
 
@@ -257,7 +257,7 @@ C**** Thus it is only initiallised here for case ii).
       USE GEOM, only : imaxj
       USE STATIC_OCEAN, only : tocean,z1o,z12o
       USE ODEEP_COM, only : dz,rtgo,lmom
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var OCEANE ocean energy (J/M^2)
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -311,7 +311,7 @@ C****
       USE DIAG_COM, only : aj,j_ftherm
       USE FLUXES, only : gtemp,gtempr
       USE STATIC_OCEAN, only : z12o,tocean
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
       REAL*8, PARAMETER :: PERDAY=1./365d0
 !@param ALPHA degree of implicitness (1 fully implicit,0 fully explicit)
@@ -433,7 +433,7 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
       USE MODEL_COM, only : im,jm
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
       USE STATIC_OCEAN, only : tocean
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from
@@ -530,7 +530,7 @@ C****
       SUBROUTINE ALLOC_ODEEP(grid)
       USE MODEL_COM, only : im
       USE ODEEP_COM, only  : lmom,TG3M,RTGO,sTG3,dTG3
-      USE DOMAIN_DECOMP, only : DIST_GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : DIST_GRID,GET
       IMPLICIT NONE
       INTEGER :: J_0H,J_1H,IER,I_0H,I_1H
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -554,7 +554,7 @@ C****
 !@ver  1.0
 
       USE ODEEP_COM, only  : RTGO,RTGO_diag
-      use domain_decomp, only : grid, pack_column
+      use domain_decomp_atm, only : grid, pack_column
 
       IMPLICIT NONE
       

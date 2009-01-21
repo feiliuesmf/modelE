@@ -31,11 +31,11 @@
 !@sum reads vegetation arrays and rundeck parameters
       use filemanager
       use param
-      use DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
 #ifdef CUBE_GRID
       use pario_fbsa, only : READT_PARALLEL
 #else
-      use DOMAIN_DECOMP, only : READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
 #endif
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
@@ -157,7 +157,7 @@ c**** check whether ground hydrology data exist at this point.
 !@sum initializes (or re-initializes) the vegetation data
       use constant, only : twopi,one
       use param
-      use DOMAIN_DECOMP, only : GRID, GET, READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
       use model_com, only : focean
       use geom, only : lat2d
       use veg_com !, only : vdata,Cint,Qfol
@@ -398,7 +398,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine reset_veg_to_defaults( reset_prognostic )
       use veg_com, only: vdata
-      use DOMAIN_DECOMP, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -606,9 +606,9 @@ c shc(0,2) is the heat capacity of the canopy
 #ifdef CUBE_GRID
       use pario_fbsa, only : READT_PARALLEL
 #else
-      use DOMAIN_DECOMP, only : READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
      &     ,backspace_parallel
       use veg_com, only : vdata
       USE GEOM, only : imaxj

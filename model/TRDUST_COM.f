@@ -82,7 +82,7 @@ c**** default case
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
-      USE domain_decomp,ONLY : dist_grid
+      USE domain_decomp_atm, ONLY : dist_grid
       USE resolution,ONLY : Lm
       USE model_com,ONLY : JMperY,JDperY
       USE tracer_com,ONLY : Ntm_dust
@@ -141,8 +141,8 @@ c**** default case
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
       USE filemanager,ONLY: nameunit,openunit,closeunit
-      USE domain_decomp,ONLY: am_i_root,dread_parallel,esmf_bcast,grid,
-     &     unpack_data,write_parallel
+      USE domain_decomp_atm, ONLY: am_i_root,dread_parallel,esmf_bcast,
+     &     grid,unpack_data,write_parallel
       USE resolution, ONLY : Im,Jm
       USE model_com,ONLY : JDperY,JMperY
       USE tracer_com,ONLY : imDUST,kim,kjm,table1,x11,x21,Ntm_dust

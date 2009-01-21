@@ -376,7 +376,7 @@ cddd      end subroutine alloc_locals
 !!!!!!! packing and what needs unpacking
 
       subroutine gather_atm
-      USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA, PACK_COLUMN, PACK_BLOCK
+      USE DOMAIN_DECOMP_1D, ONLY: GRID,PACK_DATA,PACK_COLUMN,PACK_BLOCK
 
       call pack_data( grid,  PREC_loc, PREC )
       call pack_data( grid,  EVAPOR_loc, EVAPOR )
@@ -435,7 +435,7 @@ cddd      end subroutine alloc_locals
 
       
       subroutine scatter_atm
-      USE DOMAIN_DECOMP, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN,
+      USE DOMAIN_DECOMP_1D, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN,
      &     UNPACK_BLOCK
 
       call unpack_data( grid,  PREC, PREC_loc )

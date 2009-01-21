@@ -13,10 +13,10 @@
 #ifdef SCM
      &     ,I_TARG,J_TARG,NSTEPSCM
 #endif
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET
-      USE DOMAIN_DECOMP, only : CHECKSUM, NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
-      USE DOMAIN_DECOMP, only : GLOBALSUM,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : CHECKSUM, NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE_COLUMN,CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM,AM_I_ROOT
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : imaxj,axyp,byaxyp, kmaxj
@@ -1596,7 +1596,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
 !@ver  1.0 (taken from CB265)
       USE CONSTANT, only : grav,by3,radian
       USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
-      USE DOMAIN_DECOMP, only : GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
       USE GEOM, only : lat_dg,lat2d, kmaxj
 
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice

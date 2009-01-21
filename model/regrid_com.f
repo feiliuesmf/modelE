@@ -13,7 +13,7 @@
 !@auth Denis Gueyffier (dgueyffier@nasa.giss.gov)
 
 
-      use DOMAIN_DECOMP, only: AM_I_ROOT,SUMXPE
+      use DOMAIN_DECOMP_1D, only: AM_I_ROOT,SUMXPE
       use dd2d_utils, only : dd2d_grid
 
       integer ::  is,ie,js,je,isd,ied,jsd,jed,gid,mytile

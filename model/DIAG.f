@@ -61,8 +61,8 @@ C**** Some local constants
       END MODULE DIAG_LOC
 
       SUBROUTINE ALLOC_DIAG_LOC(grid)
-      USE DOMAIN_DECOMP, only : GET
-      USE DOMAIN_DECOMP, only : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
+      USE DOMAIN_DECOMP_ATM, only : DIST_GRID
       USE MODEL_COM, only : lm
       USE DIAG_LOC, only  : W,TX
       IMPLICIT NONE
@@ -120,7 +120,7 @@ C**** Some local constants
      &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,jet
-      USE DOMAIN_DECOMP, only : GET, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, HALO_UPDATE, GRID
       USE GETTIME_MOD
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -704,7 +704,7 @@ C****
 !@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg
-      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
@@ -762,7 +762,7 @@ C****
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,fim,p,pstrat
       USE GEOM, only : imaxj
-      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RMASS
@@ -799,7 +799,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,t,p,ptop,zatmo
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pk,pdsig
-      USE DOMAIN_DECOMP, only : GET,GRID
+      USE DOMAIN_DECOMP_ATM, only : GET,GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TPE
@@ -839,7 +839,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,fim,wm,q
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig
-      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
 
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -882,7 +882,7 @@ C****
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
-      USE DOMAIN_DECOMP, only : GET, GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
       REAL*8, PARAMETER :: HSCALE = 7.8d0 ! km
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1207,7 +1207,7 @@ C****
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pm_acc,pmb
-      USE DOMAIN_DECOMP, only : GRID,GET,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -1914,7 +1914,7 @@ c****
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
-      use domain_decomp, only : grid,get,writei_parallel
+      use domain_decomp_atm, only : grid,get,writei_parallel
       real*4, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: data
       integer kunit
@@ -1939,7 +1939,7 @@ c**** fix polar values
 
       USE MODEL_COM, only : u,v,t,p,q,jdate,jhour,ptop,sig
       USE CONSTANT, only : bygrav
-      USE domain_decomp,ONLY : am_i_root,get,globalsum,grid
+      USE domain_decomp_atm, ONLY : am_i_root,get,globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
       USE DYNAMICS, only : phi,wsave,pek,byam
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
@@ -2087,7 +2087,7 @@ C****
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
-      USE DOMAIN_DECOMP, only: GRID,GET,WRITE_PARALLEL,
+      USE DOMAIN_DECOMP_ATM, only: GRID,GET,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       integer, intent(in) :: istart,num_acc_files
@@ -2508,7 +2508,7 @@ c
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DIAG_COM
       USE PARAM
-      USE DOMAIN_DECOMP, only: grid, CHECKSUM
+      USE DOMAIN_DECOMP_ATM, only: grid, CHECKSUM
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
       INTEGER jd0
@@ -2561,7 +2561,7 @@ c
       USE DIAG_COM, only : aij=>aij_loc
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
-      USE DOMAIN_DECOMP, only : GRID,GET,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef HTAP_LIKE_DIAGS
       USE RAD_COM, only:  ttausv_sum,ttausv_count
 #endif
@@ -2673,7 +2673,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
      *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
      *     ,lname_consrv,units_consrv
-      USE DOMAIN_DECOMP, only : WRITE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(NPTS) :: QCON
@@ -2785,7 +2785,7 @@ C****
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J
       INTEGER :: J_0,J_1,I_0,I_1

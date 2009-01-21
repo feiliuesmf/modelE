@@ -9,9 +9,9 @@ CAOO   Just to test CVS
       USE PARAM
       USE PARSER
       USE MODEL_COM
-      USE DOMAIN_DECOMP, ONLY : init_app,grid,AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
-      use domain_decomp, only : writei8_parallel
+      USE DOMAIN_DECOMP_ATM, ONLY : init_app,grid,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : ESMF_BCAST
+      use domain_decomp_atm, only : writei8_parallel
 #ifdef CUBE_GRID
       USE regrid_com, only : x_2grids,isd,jsd,ied,jed,gid
       use dd2d_utils
@@ -901,7 +901,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
      *     paleo_orb_par
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE PARAM
       implicit none
       INTEGER L,LCSDRAG
@@ -1082,15 +1082,15 @@ c      USE GEOM, only : geom_b,imaxj
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
-      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : NORTH, HERE
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : NORTH, HERE
 #ifdef CUBE_GRID
       use regrid_com, only : x_2gridsroot
       use dd2d_utils, only : halo_update
       use pario_fbsa, only : READT_PARALLEL
 #else
-      USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
 #endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
@@ -2119,7 +2119,7 @@ C****
      *     ,ntm
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4
-      USE DOMAIN_DECOMP, only : grid, GET, GLOBALSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, GLOBALSUM, AM_I_ROOT
 c      USE ATMDYN, only : CALC_AMPK
 #ifdef NEW_COSZ
       use RAD_COSZ0, only : update_dusk
@@ -2261,7 +2261,7 @@ C**** CORRECTED.
       USE CONSTANT, only : tf
       USE MODEL_COM
       USE DYNAMICS, only : pk
-      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
       USE soil_drv, only : checke
       IMPLICIT NONE
       INTEGER I,J,L
@@ -2392,7 +2392,7 @@ C**** check tracers
 !@ver 1.0
       USE MODEL_COM
       USE FILEMANAGER, only : openunit,closeunit
-      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use domain_decomp_atm, only: AM_I_ROOT
       implicit none
       integer :: ItimeMax=-1, Itime1, Itime2, itm, ioerr1=-1, ioerr2=-1
       integer :: iu_rsf

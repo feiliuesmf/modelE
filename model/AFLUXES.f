@@ -40,7 +40,7 @@
 !@auth  Larissa Nazarenko 
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE AFLUXES
 
       IMPLICIT NONE

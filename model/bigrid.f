@@ -8,7 +8,7 @@ c
 c --- this version works for both cyclic and noncyclic domains.
 c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, pack_data
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp
       implicit none
@@ -209,7 +209,7 @@ c --- jf(i,k) gives column index of first point in row i for k-th section
 c --- jl(i,k) gives column index of last point
 c --- js(i) gives number of sections in row i (maximum: ms)
 c
-      USE DOMAIN_DECOMP, only : pack_data, esmf_bcast
+      USE DOMAIN_DECOMP_1D, only : pack_data, esmf_bcast
       USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none

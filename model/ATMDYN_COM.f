@@ -2,7 +2,7 @@
 !@sum  DYNAMICS contains all the pressure and momentum related variables
 !@auth Original development team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : grid
+      USE DOMAIN_DECOMP_ATM, ONLY : grid
       USE RESOLUTION , ONLY : LM
       IMPLICIT NONE
       SAVE
@@ -85,7 +85,7 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
 
 
       SUBROUTINE ALLOC_DYNAMICS(grid)
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION , ONLY : LM
       USE DYNAMICS, ONLY : PLIJ,PDSIG,AM,BYAM,PMID,PK,PEDN,PEK,
      $                     SD_CLOUDS,GZ,PU,PV,CONV,PHI,SPA,DUT,

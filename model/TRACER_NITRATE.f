@@ -14,7 +14,7 @@
       USE DYNAMICS,   only: pmid,pk,byam,am   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
 !                                             BYAM  1/Air mass (m^2/kg)
-      USE DOMAIN_DECOMP,only: GRID, GET
+      USE DOMAIN_DECOMP_ATM,only: GRID, GET
 
       IMPLICIT NONE
       ! Call parameters for the EQSAM thermodynamic model. 

@@ -7,7 +7,7 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,lm_req
-      USE DOMAIN_DECOMP, only : grid
+      USE DOMAIN_DECOMP_ATM, only : grid
       USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
@@ -221,8 +221,8 @@ C**** Local variables initialised in init_RAD
 !@auth Rodger Abel
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP, ONLY : GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : GET
       USE MODEL_COM, ONLY : IM, JM, LM, LM_REQ
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : Ntm
@@ -324,11 +324,11 @@ C**** Local variables initialised in init_RAD
 #endif
       USE RAD_COM
       USE PARAM
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY : UNPACK_COLUMN, PACK_COLUMN
-      USE DOMAIN_DECOMP, ONLY : UNPACK_BLOCK , PACK_BLOCK
-      USE DOMAIN_DECOMP, ONLY : UNPACK_DATA  , PACK_DATA
-      USE DOMAIN_DECOMP, ONLY : ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : UNPACK_COLUMN, PACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, ONLY : UNPACK_BLOCK , PACK_BLOCK
+      USE DOMAIN_DECOMP_ATM, ONLY : UNPACK_DATA  , PACK_DATA
+      USE DOMAIN_DECOMP_ATM, ONLY : ESMF_BCAST
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

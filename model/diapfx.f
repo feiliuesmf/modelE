@@ -1,7 +1,7 @@
       subroutine diapfl(m,n,mm,nn,k1m,k1n)
 c
 c --- hycom version 0.9.2
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE HYCOM_DIM, only : jj,kk,isp,ifp,ilp,idm,kdm,ntrcr
      &     ,jchunk, J_0, J_1
       USE HYCOM_SCALARS, only : diapyc,nstep,dotrcr

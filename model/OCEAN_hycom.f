@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
       USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
      &     asst,atempr,im,jm
 #ifdef TRACERS_GASEXCH_ocean
@@ -172,7 +172,7 @@ c
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
 !@ver  1.0       
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, pack_data, unpack_data,
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data,
      &     ESMF_BCAST
       USE HYCOM_ATM, only : gather_atm,scatter_atm,
      &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
@@ -533,7 +533,7 @@ c
 !!      USE MODEL_COM, only : im,jm
 !!      USE FLUXES, only : gtemp
 !!      USE MODEL_COM, only : focean
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE HYCOM_ATM, only : gather_atm, focean,gtemp,im,jm
       IMPLICIT NONE
       integer i,j
@@ -596,7 +596,7 @@ C     nothing to gather - ocean prescribed
 
 
       subroutine alloc_ocean
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE HYCOM_DIM, only : init_hycom_grid, alloc_hycom_dim
       USE HYCOM_ARRAYS, only : alloc_hycom_arrays
 

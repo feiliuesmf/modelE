@@ -8,7 +8,7 @@ c
      &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,thref,g
      &     ,spcifh,thkdff,thkmin,baclin,itest,jtest
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, NORTH, GLOBALSUM
      &     , AM_I_ROOT
       implicit none
 c

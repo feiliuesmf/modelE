@@ -709,9 +709,9 @@ c****
       use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt
       use SCMDIAG, only : EVPFLX,SHFLX
 #endif
-      use DOMAIN_DECOMP, only : GRID, GET
-      use DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, NORTH
-      use DOMAIN_DECOMP, only : GLOBALSUM, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : HALO_UPDATE, CHECKSUM, NORTH
+      use DOMAIN_DECOMP_ATM, only : GLOBALSUM, AM_I_ROOT
       use geom, only : imaxj,lat2d
       use dynamics, only : pmid,pk,pek,pedn,am
       use rad_com, only : trhr,fsf, cosz1,trsurf
@@ -1386,7 +1386,7 @@ c***********************************************************************
       use SCMDIAG, only : EVPFLX,SHFLX
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt
 #endif
-      use DOMAIN_DECOMP, only : grid
+      use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
       use rad_com, only : trhr,fsf, cosz1
 
@@ -1743,7 +1743,7 @@ c***********************************************************************
 !@var fract_snow snow cover fraction (0-1)
 !@var snow_water snow water equivalent (m)
 !@var top_dev standard deviation of the surface elevation
-      use DOMAIN_DECOMP, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       use constant, only : teeny
       real*8, intent(out) :: fract_snow
       real*8, intent(in) :: snow_water, top_dev
@@ -1764,15 +1764,15 @@ c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf,shw_kg=>shw
-      use DOMAIN_DECOMP, only : GRID, DIST_GRID
-      use DOMAIN_DECOMP, only : GET
+      use DOMAIN_DECOMP_ATM, only : GRID, DIST_GRID
+      use DOMAIN_DECOMP_ATM, only : GET
 #ifdef CUBE_GRID
       use pario_fbsa, only : DREAD_PARALLEL, READT_PARALLEL
 #else
-      use DOMAIN_DECOMP, only : DREAD_PARALLEL, READT_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
 #endif
-      use DOMAIN_DECOMP, only : CHECKSUM, HERE, CHECKSUM_COLUMN
-      use DOMAIN_DECOMP, only : GLOBALSUM
+      use DOMAIN_DECOMP_ATM, only : CHECKSUM, HERE, CHECKSUM_COLUMN
+      use DOMAIN_DECOMP_ATM, only : GLOBALSUM
       use model_com, only : fearth0,itime,nday,jyear,fland,flice
      &     ,focean
       use lakes_com, only : flake
@@ -2552,7 +2552,7 @@ ccc (to make the data compatible with snow model)
 
       subroutine reset_gh_to_defaults( reset_prognostic )
       !use model_com, only: vdata
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       use ghy_com
 #ifndef USE_ENT
       use veg_drv, only : reset_veg_to_defaults
@@ -2668,7 +2668,7 @@ cddd#endif
 cddd#ifndef USE_ENT
 cddd      use veg_com, only: afb
 cddd#endif
-cddd      USE DOMAIN_DECOMP, ONLY : GRID, GET
+cddd      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 cddd!      use veg_drv, only : veg_set_cell
 cddd
 cddd      implicit none
@@ -2841,7 +2841,7 @@ cdddc**** add calculation of wfc2
 cdddc**** based on combination of layers 2-n, as in retp2
 cddd      use sle001, only : tp, ht, w, shc, fice, snowd, ws, fb, fv,
 cddd     &    n, dz, fsn, thetm, shi, shw, ijdebug
-cddd      USE DOMAIN_DECOMP, ONLY : GRID, GET
+cddd      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 cddd      implicit none
 cddd
 cddd      real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
@@ -2926,7 +2926,7 @@ cdddc**** output:
 cdddc**** tg2av - temperature of layers 2 to ngm, c
 cdddc**** ice2av - ice amount in layers 2 to ngm, kg/m+2
 cdddc**** wtr2av - water in layers 2 to ngm, kg/m+2
-cddd      USE DOMAIN_DECOMP, ONLY : GRID, GET
+cddd      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 cddd      use sle001
 cddd      implicit none
 cddd      real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
@@ -2977,7 +2977,7 @@ cddd      end subroutine retp2
      &     ,tr_w_ij,tr_wsn_ij
       USE TRACER_COM, only : ntm, trname, t_qlimit
 #endif
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       implicit none
 !@var subr identifies where check was called from
       character*6, intent(in) :: subr
@@ -3167,7 +3167,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
 #endif
       use surf_albedo, only: albvnh, updsur  !nyk
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       !use sle001, only : fb,fv,ws
       use sle001, only : get_soil_properties
 #ifdef USE_ENT
@@ -3378,8 +3378,8 @@ c****
 !@ver  1.0
       use model_com, only : itearth
       use geom, only : imaxj,axyp
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
-      use DOMAIN_DECOMP, only : GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
      *     fearth
@@ -3495,7 +3495,7 @@ c****
       !use veg_com, only : afb
       use LAKES_COM, only : flake
       use LANDICE_COM,only : MDWNIMP
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, HERE
       implicit none
 !@var waterg ground water (kg/m^2)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -3554,7 +3554,7 @@ c****
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
       !use LAKES_COM, only : flake
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, HERE
       implicit none
       real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO),
@@ -3616,7 +3616,7 @@ c****
      *     ,fearth
       !use veg_com, only : afb
       use LAKES_COM, only : flake
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, HERE
       implicit none
 !@var heatg ground heat (J/m^2)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -3667,7 +3667,7 @@ ccc of the 'surface' to check water conservation
       use constant, only : rhow
       use geom, only : imaxj
       use model_com, only : im,jm
-      use DOMAIN_DECOMP, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       use fluxes, only : prec,evapor,runoe
       use ghy_com, only : ngm,w_ij,ht_ij,snowbv,dz_ij
      *     ,fearth
@@ -3750,7 +3750,7 @@ ccc just checking ...
       use model_com, only : focean
       use sle001, only : thm
       use fluxes, only : DMWLDF
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
 cddd      integer, intent(in) :: jday
@@ -3838,7 +3838,7 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
       use model_com, only : focean
       use sle001, only : thm
       use fluxes, only : DMWLDF
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
 cddd      integer, intent(in) :: jday
@@ -4010,7 +4010,7 @@ cddd      sinday=sin(twopi/edpery*jday)
      &     ,DTRL
 #endif
       use GEOM, only : BYAXYP
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       use soil_drv, only : snow_cover ! conserv_wtg_1
       use snow_drvm, only : snow_cover_same_as_rad
 
@@ -4286,7 +4286,7 @@ c**** Also reset snow fraction for albedo computation
       use sle001, only : thm
       use LAKES_COM, only : flake, svflake
       use dynamics, only : pedn
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
       !---
@@ -4402,7 +4402,7 @@ c**** wearth+aiearth are used in radiation only
       use MODEL_COM, only : ITEARTH
       USE DIAG_COM, only : j_implh,j_implm
      *     ,JREG
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, GLOBALSUM
 
       implicit none
       !! integer, intent(in) :: jday

@@ -32,11 +32,11 @@
 #endif
       USE FILEMANAGER, only : openunit,closeunit
 
-!      USE DOMAIN_DECOMP, only : grid, get, haveLatitude, GLOBALSUM,
-      USE DOMAIN_DECOMP, only : get, haveLatitude, GLOBALSUM,
+!      USE DOMAIN_DECOMP_1D, only : grid, get, haveLatitude, GLOBALSUM,
+      USE DOMAIN_DECOMP_1D, only : get, haveLatitude, GLOBALSUM,
      *     ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid
-      USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
 
       IMPLICIT NONE
@@ -332,8 +332,8 @@ C****
       USE OCEAN, only : trmo,txmo,tymo,tzmo, dxypo, mo, imaxj, focean,
      *     lmm
 
-!      USE DOMAIN_DECOMP, only : grid,get
-      USE DOMAIN_DECOMP, only : get
+!      USE DOMAIN_DECOMP_1D, only : grid,get
+      USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -372,8 +372,8 @@ C****
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,lmm,trmo
       USE STRAITS, only : nmst,jst,trmst
 
-!      USE DOMAIN_DECOMP, only : GET, GRID
-      USE DOMAIN_DECOMP, only : GET
+!      USE DOMAIN_DECOMP_1D, only : GET, GRID
+      USE DOMAIN_DECOMP_1D, only : GET
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE

@@ -8,7 +8,7 @@ c --- version 2.8.2
       USE HYCOM_SCALARS, only : lstep,wbaro,dlt,slip,thref,veldff,nstep,
      &                          ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH
       USE HYCOM_ARRAYS_GLOB, only : scatter_hycom_arrays,
      &                              gather_hycom_arrays
 

@@ -97,7 +97,7 @@ C*********************************************************************
 !@+    at run-time
 !@auth G.Faluvegi
 !@ver  1.0
-      use domain_decomp, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, get
       use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
      &              IREG_loc,   IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND
       use tracer_com, only    : ntm
@@ -730,7 +730,7 @@ C--   read polynomial coefficients for drydep:
 C
 C**** GLOBAL parameters and variables:  
 C
-      use domain_decomp, only : grid, get, AM_I_ROOT, UNPACK_DATA,
+      use domain_decomp_atm, only : grid, get, AM_I_ROOT, UNPACK_DATA,
      & write_parallel
       USE FILEMANAGER, only   : openunit,closeunit
       USE MODEL_COM, only     : im,jm 
@@ -838,7 +838,7 @@ C******************** END MODIN SECTION **************************
 !@auth HARVARD CTM
 !@calls READLAI
 C**** GLOBAL parameters and variables:  
-      use domain_decomp, only : grid, get
+      use domain_decomp_atm, only : grid, get
       USE tracers_DRYDEP, only: IJREG,XYLAI,XLAI,XLAI2,IREG
       USE MODEL_COM, only: IM,JM,JDmidOfM,JMperY,JDAY,JMON
       IMPLICIT NONE
@@ -934,7 +934,8 @@ C**** Local parameters and variables and arguments
 !@calls openunit
 
 C**** GLOBAL parameters and variables:  
-      use domain_decomp, only : grid,get,AM_I_ROOT,UNPACK_DATA,PACK_DATA
+      use domain_decomp_atm, only : grid,get,AM_I_ROOT,UNPACK_DATA,
+     &     PACK_DATA
       USE tracers_DRYDEP, only: XLAI,XLAI2,IREG,ntype
       USE MODEL_COM, only: IM,JM,JMON,JMperY
       USE FILEMANAGER, only: openunit,closeunit

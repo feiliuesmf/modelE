@@ -15,7 +15,7 @@ C**** SPA and PU directly from the dynamics. (Future work).
      &     ,cosip,sinip
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
-      USE DOMAIN_DECOMP, only : grid, GET, HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
       real*8 :: dpsi,dpsj,dg1i,dg1j,dgsi,dgsj
@@ -137,10 +137,10 @@ C**** SPA and PU directly from the dynamics. (Future work).
 #endif
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
-      USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_ATM, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only : haveLatitude
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
       INTEGER I,J,K,IP1,IM1,J1
@@ -242,7 +242,7 @@ C**** to be used in the PBL, at the primary grids
 !@ver  1.0
       USE MODEL_COM, only : lm,ls1,psfmpt
 C****
-      USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP_ATM, Only : grid, GET
       implicit none
       REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
@@ -266,7 +266,7 @@ C****
       USE CONSTANT, only : bygrav,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,p
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
-      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
+      USE DOMAIN_DECOMP_ATM, Only : grid, GET, HALO_UPDATE, SOUTH
       IMPLICIT NONE
 
       INTEGER :: I,J,L  !@var I,J,L  loop variables
@@ -331,7 +331,7 @@ C**** Fill in polar boxes
       USE MODEL_COM, only : im,jm,lm,ls1,dsig,psf,ptop
       USE GEOM, only : axyp
 C****
-      USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP_ATM, Only : grid, GET
       implicit none
       REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
@@ -374,7 +374,7 @@ C****
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
-      USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP_ATM, Only : grid, GET
       IMPLICIT NONE
       INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
@@ -574,7 +574,7 @@ c****
 !@auth Tom Clune (SIVO)
 !@ver  1.0
       use GEOM, only: AXYP, AREAG
-      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
+      use DOMAIN_DECOMP_ATM, only: grid, GLOBALSUM, get
       REAL*8 :: totalEnergy
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -604,7 +604,7 @@ c****
       use CONSTANT, only: sha, mb2kg
       use MODEL_COM, only: T, PSF, PMTOP, LM
       use DYNAMICS, only: PK
-      use DOMAIN_DECOMP, only: grid, get
+      use DOMAIN_DECOMP_ATM, only: grid, get
       implicit none
       real*8, intent(in) :: deltaEnergy
 
@@ -648,7 +648,7 @@ C***** Add in dissipiated KE as heat locally
       use CONSTANT, only: SHA
       use GEOM, only: IMAXJ
       use MODEL_COM, only: LM
-      use DOMAIN_DECOMP, only: grid, get, HALO_UPDATE, NORTH
+      use DOMAIN_DECOMP_ATM, only: grid, get, HALO_UPDATE, NORTH
      &     ,am_i_root
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
@@ -688,7 +688,7 @@ C**** and convert to WSAVE, units of m/s):
       subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
       use CONSTANT, only: rgas, bygrav
       !use MODEL_COM, only: NIdyn
-      use DOMAIN_DECOMP, only: grid, GET
+      use DOMAIN_DECOMP_ATM, only: grid, GET
       use GEOM, only: byaxyp
       use MODEL_COM, only: IM,JM,LM
       implicit none
@@ -728,7 +728,7 @@ C**** and convert to WSAVE, units of m/s):
       function nij_before_j0(j0)
 #ifdef CUBED_SPHERE
       use resolution, only : im,jm
-      use domain_decomp, only : tile
+      use domain_decomp_atm, only : tile
 #else
       use geom, only : imaxj
 #endif
@@ -745,7 +745,7 @@ C**** and convert to WSAVE, units of m/s):
       function nij_after_j1(j1)
       use resolution, only : im,jm
 #ifdef CUBED_SPHERE
-      use domain_decomp, only : tile
+      use domain_decomp_atm, only : tile
 #else
       use geom, only : imaxj
 #endif

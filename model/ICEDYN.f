@@ -19,7 +19,7 @@ C*************************************************************
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
       USE CONSTANT, only : radian,radius
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : DIST_GRID
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
       IMPLICIT NONE
       SAVE
@@ -99,8 +99,8 @@ C**** Geometry
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
 
       IMPLICIT NONE
       INTEGER I,J
@@ -241,8 +241,8 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
 !@sum  PLAST Calculates strain rates and viscosity for dynamic ice
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid%j_strt_halo:grid%j_stop_halo)
      &        :: E11,E22,E12
@@ -336,9 +336,9 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
-      USE DOMAIN_DECOMP, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
       USE TRIDIAG_MOD, only : TRIDIAG, TRIDIAG_new
       IMPLICIT NONE
 
@@ -847,8 +847,8 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
 
       SUBROUTINE setup_icedyn_grid
       USE MODEL_COM, only : dts=>dtsrc
-      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       IMPLICIT NONE
       REAL*8 :: dlat,dlon,phit,phiu,fjeq,acor,acoru
       INTEGER I,J,k
@@ -1031,8 +1031,8 @@ c set cyclic conditions on eastern and western boundary
 !@sum  vpicedyn is the entry point into the viscous-plastic ice
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP, only : grid, GET, NORTH,SOUTH,GLOBALSUM
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE,am_i_root
+      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH,GLOBALSUM
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,am_i_root
       USE MODEL_COM, only : itime,qcheck
       USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
      *        ,uvm,dxu,dyu,amass
@@ -1159,9 +1159,9 @@ C**** modified to reflect the differences should be created in DOMAIN_DECOMP
 C**** and used in the calling routine. No modification should be necesary
 C**** to ALLOC_ICEDYN.
 
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP, ONLY : GET
-      USE DOMAIN_DECOMP, ONLY : INIT_APP,INIT_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : GET
+      USE DOMAIN_DECOMP_1D, ONLY : INIT_APP,INIT_GRID
       USE ICEDYN, ONLY : FOCEAN
       USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
      &                   ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY,

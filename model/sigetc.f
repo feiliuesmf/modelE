@@ -215,7 +215,7 @@ c --- exchange p-point values (half grid size away from seam)
 c
 c --- exchange information across bering strait seam
 c
-      USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
+      USE DOMAIN_DECOMP_1D, only : send_to_j, recv_from_j
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
       USE HYCOM_SCALARS, only : ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
 
@@ -279,7 +279,7 @@ c --- copy information across bering strait seam
 c --- from jpac to jatl
 c ---     field(iatls,jatl) = - field(ipacn,jpac)
 c
-      USE DOMAIN_DECOMP, only : send_to_j, recv_from_j
+      USE DOMAIN_DECOMP_1D, only : send_to_j, recv_from_j
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H,I_0H,I_1H
       USE HYCOM_SCALARS, only : ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
 

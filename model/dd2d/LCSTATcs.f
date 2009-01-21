@@ -27,7 +27,7 @@ c
 !@sum init_diag_latcirc allocate/initialize contents of module diag_latcirc
 !@auth M. Kelley
       use geom, only : lon,lat
-      use domain_decomp, only : grid
+      use domain_decomp_1d, only : grid
       use cs2ll_utils
       use diag_latcirc
       call init_cs2ll_type(grid%dd2d,imlon,jmlat,cs2ll,lon,lat)
@@ -56,7 +56,7 @@ c
      &     jk_vtameddy,jk_totvtam,jk_eddvtpt,jk_cldh2o
       use dynamics, only : phi,plij,sd,pmid,pedn
       use diag_loc, only : w,tx
-      use domain_decomp, only : get, grid, am_i_root
+      use domain_decomp_1d, only : get, grid, am_i_root
       implicit none
       real*8, dimension(imh+1,nspher) :: ke,ke_part
       real*8, dimension(imh+1) :: xu,xv,xke
@@ -517,7 +517,7 @@ C****
 c      use diag_com, only : ajl=>ajl_loc,jl_ape
       use diag_loc, only : lupa,ldna
       use dynamics, only : pk,pdsig,sqrtp
-      use domain_decomp, only : grid,am_i_root,sumxpe,write_parallel
+      use domain_decomp_1d, only : grid,am_i_root,sumxpe,write_parallel
       use diag_latcirc
 
       implicit none
@@ -777,7 +777,7 @@ c****
      &     ,kwp,re_and_im,ia_12hr
       use diag_loc, only : ldex
       use diag_latcirc
-      use domain_decomp, only : sumxpe,am_i_root
+      use domain_decomp_1d, only : sumxpe,am_i_root
       implicit none
 
       real*8, dimension(0:imh) :: an,bn

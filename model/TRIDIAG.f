@@ -92,8 +92,8 @@ c     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
 !@auth Numerical Recipes
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP, ONLY : TRANSP
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : TRANSP
       IMPLICIT NONE
 
       Type (DIST_GRID), Intent(IN) :: grid

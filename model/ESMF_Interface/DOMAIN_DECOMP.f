@@ -2,7 +2,7 @@
 #include "mpi_defs.h"
 #endif
 
-      MODULE DOMAIN_DECOMP
+      MODULE DOMAIN_DECOMP_1D
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
 !@auth NCCS ASTG
@@ -6497,5 +6497,8 @@ cddd      End If
 #endif
 
 
-      END MODULE DOMAIN_DECOMP
+      END MODULE DOMAIN_DECOMP_1D
 
+      MODULE DOMAIN_DECOMP_ATM
+      USE DOMAIN_DECOMP_1D
+      END MODULE DOMAIN_DECOMP_ATM

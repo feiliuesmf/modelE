@@ -6,7 +6,6 @@
 !@auth M.S.Yao/T. Del Genio (modularisation by Gavin Schmidt)
 !@ver  1.0 (taken from CB265)
       USE MODEL_COM, only : IM,JM,LM
-      USE DOMAIN_DECOMP, only : grid
       IMPLICIT NONE
       SAVE
 !@var TTOLD,QTOLD previous potential temperature, humidity
@@ -79,7 +78,7 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE MODEL_COM, ONLY : IM,LM
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
@@ -169,8 +168,8 @@ C**** Initialise some output used in dynamics
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : AM_I_ROOT, GRID
+      USE DOMAIN_DECOMP_ATM, only : PACK_COLUMN, UNPACK_COLUMN
       USE CLOUDS_COM
       IMPLICIT NONE
 

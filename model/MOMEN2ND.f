@@ -28,8 +28,8 @@
 !@ver  1.0
       USE MODEL_COM, only : im,imh,jm,lm,ls1,mrch,dsig,psfmpt,modd5k
      &     ,do_polefix
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt,conv

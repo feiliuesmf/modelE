@@ -130,7 +130,7 @@ contains
     use GEOS_BaseMod, only: GEOS_FieldCreate
     use GEOS_IOMod, only: GETFILE, Free_file
 #endif
-    use DOMAIN_DECOMP, only : modelE_grid => grid, get, AM_I_ROOT
+    use domain_decomp_atm, only : modelE_grid => grid, get, AM_I_ROOT
 
     type (fv_core),    intent(inout) :: fv
     integer,           intent(in) :: istart
@@ -308,7 +308,7 @@ contains
   function EdgePressure_GISS() Result(PE)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
-    use DOMAIN_DECOMP, only: grid, get
+    use domain_decomp_atm, only: grid, get
     USE CONSTANT, only: KAPA
 
     REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
@@ -333,7 +333,7 @@ contains
   function DeltPressure_GISS() Result(dP)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: dP(IM,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
@@ -353,7 +353,7 @@ contains
   function DeltPressure_DryTemp_GISS() Result(dPT)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: dPT(IM,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
@@ -372,7 +372,7 @@ contains
 
 
   Subroutine allocate_tendency_storage(fv, istart)
-    Use DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
+    Use Domain_decomp_atm, only: GRID, GET, AM_I_ROOT
     USE RESOLUTION, only: IM, LM, LS1
     USE MODEL_COM, only: U, V, T
     use FILEMANAGER
@@ -439,7 +439,7 @@ contains
 
     subroutine readArr(iunit, arr)
       use resolution, only: IM, JM
-      use DOMAIN_DECOMP, only: grid, unpack_data, get
+      use domain_decomp_atm, only: grid, unpack_data, get
       integer, intent(in) :: iunit
       real*8, intent(out) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
@@ -460,7 +460,7 @@ contains
   End Subroutine allocate_tendency_storage
 
   subroutine finalize(fv, clock, fv_fname, fv_dfname)
-    USE DOMAIN_DECOMP, only: am_I_root
+    USE DOMAIN_DECOMP_ATM, only: am_I_root
     Type (FV_Core) :: fv
     type (esmf_clock), intent(in) :: clock
     integer :: rc
@@ -494,7 +494,7 @@ contains
   subroutine compute_tendencies(fv)
     USE RESOLUTION, only: IM, LM
     USE MODEL_COM, Only: U, V, T
-    USE DOMAIN_DECOMP, only: grid, get
+    USE DOMAIN_DECOMP_ATM, only: grid, get
     USE DYNAMICS, only: DUT, DVT
     USE CONSTANT, only: KAPA
     Implicit None
@@ -537,7 +537,7 @@ contains
   End Function Tendency
 
   subroutine run_fv(fv, clock)
-    USE DOMAIN_DECOMP, only: grid, halo_update, get, grid, NORTH
+    USE DOMAIN_DECOMP_ATM, only: grid, halo_update, get, grid, NORTH
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
     USE MODEL_COM, only : NIdyn, DT, DTSRC
     USE SOMTQ_COM, only: QMOM, TMOM, MZ
@@ -600,7 +600,7 @@ contains
 #else
     use GEOS_mod, only: GEOS_RecordPhase
 #endif
-    use DOMAIN_DECOMP, only: AM_I_ROOT
+    use domain_decomp_atm, only: AM_I_ROOT
     Type (FV_Core),    intent(inout) :: fv
     type (esmf_clock), intent(in) :: clock
     integer :: rc
@@ -630,7 +630,7 @@ contains
   end subroutine checkpoint
 
   subroutine saveTendencies(fv, fv_dfname)
-    use DOMAIN_DECOMP, only: AM_I_ROOT
+    use domain_decomp_atm, only: AM_I_ROOT
     use FILEMANAGER
     type (fv_core),    intent(inout) :: fv
     integer :: iunit
@@ -650,7 +650,7 @@ contains
 
     subroutine saveArr(iunit, arr)
       use resolution, only: IM, JM
-      use DOMAIN_DECOMP, only: grid, pack_data, get
+      use domain_decomp_atm, only: grid, pack_data, get
       integer, intent(in) :: iunit
       real*8, intent(in) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
@@ -755,7 +755,7 @@ contains
   !----------------------------
 
   Subroutine Create_Restart_File(fv, istart, cf, clock)
-    USE DOMAIN_DECOMP, ONLY: GRID, GET, AM_I_ROOT
+    USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
 #ifdef USE_FVCUBED
     Use MAPL_IOMod, only: GETFILE, Free_file, GEOS_VarWrite=>MAPL_VarWrite, Write_parallel
 #else
@@ -873,7 +873,7 @@ contains
     End Function VirtualTemp
 
     Subroutine ComputePressureLevels(unit, grid, T_virt, P, sig, sige, ptop, kapa, PE, PKZ)
-      USE DOMAIN_DECOMP, only: dist_grid, get
+      USE DOMAIN_DECOMP_ATM, only: dist_grid, get
       USE RESOLUTION, only: IM, LM, LS1
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
@@ -928,7 +928,7 @@ contains
     End Subroutine ComputePressureLevels
 
     Subroutine ComputeRestartVelocities(unit, grid, U_b, V_b, U_d, V_d)
-      use domain_decomp, only: DIST_GRID, NORTH, HALO_UPDATE
+      use domain_decomp_atm, only: DIST_GRID, NORTH, HALO_UPDATE
 
       Integer, intent(in) :: unit
       Type (Dist_Grid) :: grid
@@ -994,7 +994,7 @@ contains
   subroutine reset_tmom
 
       USE MODEL_COM, only : im,jm,lm,t
-      USE DOMAIN_DECOMP, ONLY: grid
+      USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM, only : mz,tmom,qmom
       USE DYNAMICS, only : pmid,pedn
       implicit none
@@ -1031,7 +1031,7 @@ contains
   subroutine reset_qmom
 
       USE MODEL_COM, only : im,jm,lm,q
-      USE DOMAIN_DECOMP, ONLY: grid
+      USE DOMAIN_DECOMP_ATM, ONLY: grid
       USE SOMTQ_COM, only : mz,tmom,qmom
       USE DYNAMICS, only : pmid,pedn
       implicit none
@@ -1071,7 +1071,7 @@ contains
   function PKZ_GISS() Result(PKZ)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
-    use DOMAIN_DECOMP, only: grid, get
+    use domain_decomp_atm, only: grid, get
     USE CONSTANT, only: KAPA
 
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
@@ -1096,7 +1096,7 @@ contains
   function DryTemp_GISS() Result(T_dry)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
@@ -1113,7 +1113,7 @@ contains
     USE MODEL_COM, only:  Q     ! Secific Humidity
     USE MODEL_COM, only:  ZATMO ! Geopotential Height?
     USE MODEL_COM, Only : U, V, T
-    Use DOMAIN_DECOMP, Only: grid, Get
+    Use Domain_decomp_atm, Only: grid, Get
     Type (FV_CORE) :: fv
 
     Integer :: nq
@@ -1144,7 +1144,7 @@ contains
     USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
     Use MODEL_COM, only : Ptop, P
-    USE DOMAIN_DECOMP, only: grid, GET, SOUTH, NORTH, HALO_UPDATE
+    USE DOMAIN_DECOMP_ATM, only: grid, GET, SOUTH, NORTH, HALO_UPDATE
     USE GEOM
     Type (FV_CORE) :: fv
     real*4, Dimension(:,:,:), Pointer :: U_a, V_a, T_fv, PLE
@@ -1284,7 +1284,7 @@ contains
   !------------------------------------------------------------------------
   subroutine Regrid_A_to_B(U_a, V_a, U_b, V_b)
     Use Resolution, only : IM, LM
-    Use DOMAIN_DECOMP, only : grid, get, SOUTH, HALO_UPDATE
+    Use Domain_decomp_atm, only : grid, get, SOUTH, HALO_UPDATE
     Real*4, intent(in), Dimension(:,grid % J_STRT:,:) :: U_a, V_a
     Real*8, intent(out),Dimension(:,grid % J_STRT:,:) :: U_b, V_b
 
@@ -1327,7 +1327,7 @@ contains
   !------------------------------------------------------------------------
   subroutine Regrid_B_to_A(U_b, V_b, U_a, V_a)
     Use Resolution, only : IM, JM, LM
-    Use DOMAIN_DECOMP, only : grid, get, NORTH, HALO_UPDATE
+    Use Domain_decomp_atm, only : grid, get, NORTH, HALO_UPDATE
     Real*8, intent(in), Dimension(:,grid % J_STRT:,:) :: U_b, V_b
     Real*4, intent(out), Dimension(:,grid % J_STRT:,:) :: U_a, V_a
 
@@ -1409,7 +1409,7 @@ contains
   !--------------------------------------------------------------------
   Subroutine regrid_B_to_D(u_b, v_b, u_d, v_d)
     USE RESOLUTION, only: IM, JM, LM
-    Use DOMAIN_DECOMP, only: grid, get
+    Use Domain_decomp_atm, only: grid, get
     Implicit None
     Real*8, intent(in) :: U_b(:,grid % j_strt_halo:,:)
     Real*8, intent(in) :: V_b(:,grid % j_strt_halo:,:)
@@ -1516,7 +1516,7 @@ contains
 
   Subroutine Write_Profile(arr, name)
     Use RESOLUTION,    Only: IM, JM, LM
-    Use DOMAIN_DECOMP, Only: grid, PACK_DATA, AM_I_ROOT
+    Use Domain_decomp_atm, Only: grid, PACK_DATA, AM_I_ROOT
     Real*8, intent(in) :: arr(:,:,:)
     character(len=*), intent(in) :: name
 
@@ -1551,7 +1551,7 @@ contains
     USE CONSTANT, only: KAPA, BYKAPA, BYKAPAP1, BYKAPAP2, RGAS
     USE MODEL_COM, only: LS1, LM, DSIG, SIG, SIGE, PTOP, PSFMPT
     USE MODEL_COM, only: IM, JM, LM
-    USE DOMAIN_DECOMP, Only: grid, Get
+    USE DOMAIN_DECOMP_ATM, Only: grid, Get
     USE GEOM, only: IMAXJ
     implicit none
 
@@ -1666,7 +1666,7 @@ contains
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     USE MODEL_COM, only: DTsrc,DT,DSIG
-    USE DOMAIN_DECOMP, only: get, grid, NORTH, SOUTH, HALO_UPDATE
+    USE DOMAIN_DECOMP_ATM, only: get, grid, NORTH, SOUTH, HALO_UPDATE
 !   Use Constant, only: radius,pi,grav
     implicit none
     type (FV_core) :: fv
@@ -1794,7 +1794,7 @@ contains
 
   subroutine set_zonal_flow(U_d, V_d, j0, j1)
     use GEOM, only: cosp
-    use DOMAIN_DECOMP, only: grid
+    use domain_decomp_atm, only: grid
     Real*8, intent(out) :: U_d(:,grid % j_strt:,:)
     Real*8, intent(out) :: V_d(:,grid % j_strt:,:)
     integer :: j0, j1
@@ -2021,7 +2021,7 @@ contains
 
   Subroutine Write_Profile(arr, name)
     Use RESOLUTION,    Only: IM, JM, LM
-    Use DOMAIN_DECOMP, Only: grid, PACK_DATA, AM_I_ROOT
+    Use Domain_decomp_atm, Only: grid, PACK_DATA, AM_I_ROOT
     Real*8, intent(in) :: arr(:,:,:)
     character(len=*), intent(in) :: name
 
@@ -2055,7 +2055,7 @@ contains
   function PKZ_GISS() Result(PKZ)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
-    use DOMAIN_DECOMP, only: grid, get
+    use domain_decomp_atm, only: grid, get
     USE CONSTANT, only: KAPA
 
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
@@ -2080,7 +2080,7 @@ contains
   function DryTemp_GISS() Result(T_dry)
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only: T
-    USE DOMAIN_DECOMP, only: grid, GET
+    USE DOMAIN_DECOMP_ATM, only: grid, GET
 
     REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
     REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)

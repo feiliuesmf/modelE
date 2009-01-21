@@ -31,7 +31,7 @@
 !@+
       module pario_fbsa
       use filemanager, only : openunit,closeunit
-      use domain_decomp, only : dist_grid,am_i_root,esmf_bcast
+      use domain_decomp_1d, only : dist_grid,am_i_root,esmf_bcast
       use dd2d_utils, only : unpack_data, pack_data
       private
 

@@ -185,7 +185,7 @@ C endif
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE DOMAIN_DECOMP, only : get
+      USE DOMAIN_DECOMP_1D, only : get
       USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
 #else
       USE hycom_dim_glob 
@@ -235,7 +235,7 @@ c**** Extract domain decomposition info
 #else
       USE HYCOM_DIM, only : ogrid
 #endif
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
  
       call pack_data( ogrid, pCO2, pCO2_glob )
 

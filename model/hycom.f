@@ -84,7 +84,7 @@ c underestimated in HYCOM. This problem is alleviated by using
 c vertical mixing schemes like KPP (with time step trcfrq*baclin).
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH,
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
      &                         haveLatitude, GLOBALSUM, ESMF_BCAST
       USE HYCOM_ATM !, only : gather_atm, scatter_atm
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
@@ -1347,7 +1347,7 @@ c------------------------------------------------------------------
       subroutine gather2_atm
 
       USE HYCOM_ATM
-      USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: GRID, PACK_DATA
      &      ,PACK_COLUMN, PACK_BLOCK
 #ifdef TRACERS_OceanBiology 
       USE obio_forc, only: awind,asolz
@@ -1400,7 +1400,7 @@ c------------------------------------------------------------------
       subroutine scatter2_atm
 
       USE HYCOM_ATM
-      USE DOMAIN_DECOMP, ONLY: grid, UNPACK_DATA, UNPACK_COLUMN,
+      USE DOMAIN_DECOMP_1D, ONLY: grid, UNPACK_DATA, UNPACK_COLUMN,
      &     UNPACK_BLOCK
       implicit none 
 
@@ -1425,7 +1425,7 @@ c------------------------------------------------------------------
       USE HYCOM_ARRAYS_GLOB
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none 
 
 
@@ -1474,7 +1474,7 @@ c------------------------------------------------------------------
       USE HYCOM_ARRAYS_GLOB, only : p_glob => p, util1_glob => util1,
      &                                           util2_glob => util2
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
 
       implicit none
       integer :: i, j, k
@@ -1521,7 +1521,7 @@ c------------------------------------------------------------------
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
       USE HYCOM_ARRAYS_GLOB, only : omlhc
       USE hycom_arrays_glob_renamer, only : omlhc_loc
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
@@ -1538,7 +1538,7 @@ c------------------------------------------------------------------
       subroutine gather7hycom(usf_loc,vsf_loc,usf,vsf)
 
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real :: usf_loc(idm,J_0H:J_1H), vsf_loc(idm,J_0H:J_1H)
       real :: usf(idm,jdm), vsf(idm,jdm)
@@ -1551,7 +1551,7 @@ c------------------------------------------------------------------
       subroutine hycom_arrays_checksum
       USE HYCOM_DIM, only: ogrid, J_0, J_1
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, GLOBALSUM
 
       implicit none
       real :: arraySum
@@ -1945,7 +1945,7 @@ c
 c------------------------------------------------------------------
       subroutine scatter1_hycom_arrays
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
       USE HYCOM_ARRAYS_GLOB
       use hycom_arrays_glob_renamer
       USE KPRF_ARRAYS, ONLY: sswflx, sswflx_loc,
@@ -1971,7 +1971,7 @@ c------------------------------------------------------------------
       USE HYCOM_ARRAYS, only : tracer_loc => tracer
       USE HYCOM_ARRAYS_GLOB, only : tracer
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
  
       call unpack_data( ogrid,  tracer, tracer_loc )
 
@@ -1981,7 +1981,7 @@ c------------------------------------------------------------------
       USE HYCOM_ARRAYS, only : tracer_loc => tracer
       USE HYCOM_ARRAYS_GLOB, only : tracer
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
  
       call pack_data( ogrid,  tracer_loc, tracer )
 
@@ -1991,7 +1991,7 @@ c------------------------------------------------------------------
       USE HYCOM_ARRAYS, only : dpinit_loc => dpinit
       USE HYCOM_ARRAYS_GLOB, only : dpinit
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
  
       call pack_data( ogrid,  dpinit_loc, dpinit )
 

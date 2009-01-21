@@ -20,7 +20,7 @@
 !@+    at run-time
 !@auth G.Faluvegi
 !@ver  1.0
-      use domain_decomp, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, get
       use biogenic_emis, only:  baseisop,nvegtype
       use model_com, only: im
 
@@ -153,7 +153,7 @@
       use tracers_drydep, only : ijreg,ijland
       use constant, only   : avog
       use geom, only : axyp,imaxj
-      use domain_decomp, only : get, grid
+      use domain_decomp_atm, only : get, grid
 
       implicit none
 

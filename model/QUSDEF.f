@@ -233,10 +233,10 @@ c adv1d advects tracers in x-direction using the qus
 c the order of the moments in dir is: x,y,z,xx,yy,zz,xy,yz,zx
 c--------------------------------------------------------------
       use QUSDEF, only : nmom,prather_limits
-      USE DOMAIN_DECOMP, only: grid, GET
-      USE DOMAIN_DECOMP, only: NORTH, SOUTH
-      USE DOMAIN_DECOMP, only: HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only: CHECKSUM
+      USE DOMAIN_DECOMP_1D, only: grid, GET
+      USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only: HALO_UPDATE, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, only: CHECKSUM
       implicit none
       !
 !@var s      mean tracer amount (kg or J)

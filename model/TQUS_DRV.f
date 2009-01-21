@@ -33,7 +33,7 @@ c****   rmom = moments of tracer mass
 c****     ma (kg) = fluid mass
 c****
       USE MODEL_COM, only : fim
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_1D, only : GRID, GET
 
       USE QUSCOM, ONLY : MFLX,nmom
       USE DYNAMICS, ONLY: pu=>pua, pv=>pva, sd=>sda, mb,ma
@@ -172,8 +172,8 @@ C**** deal with vertical polar box diagnostics outside ncyc loop
 c****
 C**** The MA array space is temporarily put to use in this section
       USE DYNAMICS, ONLY: mu=>pua, mv=>pva, mw=>sda, mb, ma
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP, ONLY : NORTH, SOUTH, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT
       USE QUSCOM, ONLY : IM,JM,LM
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT
@@ -435,7 +435,7 @@ c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
       use QUSDEF
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, GLOBALSUM
 ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       use QUSCOM, only : im,jm,lm, xstride
       implicit none
@@ -521,9 +521,9 @@ c****     rm (kg) = tracer mass
 c****   rmom (kg) = moments of tracer mass
 c****   mass (kg) = fluid mass
 c****
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
-      use DOMAIN_DECOMP, only : AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY : TRANSP, TRANSPOSE_COLUMN
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, GLOBALSUM
+      use DOMAIN_DECOMP_1D, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY : TRANSP, TRANSPOSE_COLUMN
       use CONSTANT, only : teeny
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
@@ -716,7 +716,7 @@ c****   mass (kg) = fluid mass
 c****
       use CONSTANT, only : teeny
       use GEOM, only : imaxj
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_1D, only : GRID, GET
       use QUSDEF
 ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
@@ -802,7 +802,7 @@ c****
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mu=>pua
       IMPLICIT NONE
@@ -887,8 +887,8 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE, NORTH, SOUTH
-      USE DOMAIN_DECOMP, ONLY : GLOBALSUM, GLOBALMAX
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE, NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM, GLOBALMAX
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mv=>pva
       IMPLICIT NONE
@@ -996,7 +996,7 @@ C
 !@+    using Courant limits
 !@auth J. Lerner and M. Kelley
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, GLOBALSUM
       USE QUSCOM, ONLY : IM,JM,LM,byim
       USE DYNAMICS, ONLY: mw=>sda
       IMPLICIT NONE
@@ -1081,7 +1081,7 @@ C
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE TRACER_ADV
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

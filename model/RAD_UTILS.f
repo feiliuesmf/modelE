@@ -2514,7 +2514,7 @@ C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
      E                 ,RHDATA)                     !  RH info   (190,9)
 
       USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
 
       INTEGER NAER,KDREAD

@@ -2,7 +2,7 @@
       MODULE COSMO_SOURCES
 
       USE TRACER_COM
-      USE DOMAIN_DECOMP, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, get
 
       SAVE
 !@var be7_ and be10_src_3d Source functions for 7Be & 10Be (kg tracer)/( (kg air)/m^2 s )
@@ -21,7 +21,7 @@
      $     BE7W_acc, BE7D_acc, variable_phi
       USE PARAM, only : sync_param
       USE TRACER_COM
-      USE DOMAIN_DECOMP, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, get
       INTEGER :: J_1H, J_0H, I_0H, I_1H
 
       call sync_param("variable_phi",variable_phi)
@@ -57,7 +57,7 @@
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: axyp
-      USE DOMAIN_DECOMP, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, get
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer, parameter :: layers=23
@@ -108,7 +108,7 @@ C**** multiply by air mass to put in the right units
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: axyp
-      USE DOMAIN_DECOMP, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, get
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
       integer, parameter :: layers=23
@@ -181,7 +181,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       USE MODEL_COM, only : jyear
       USE CONSTANT, only : avog
       USE TRACER_COM
-      USE DOMAIN_DECOMP, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, get
       USE COSMO_SOURCES, only : be7_src_3d, be10_src_3d
      
       IMPLICIT NONE
@@ -317,7 +317,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       USE MODEL_COM, only : jday, jmon, itime
       USE CONSTANT, only : avog
       USE TRACER_COM
-      USE DOMAIN_DECOMP, only : GRID, get
+      USE DOMAIN_DECOMP_ATM, only : GRID, get
       USE COSMO_SOURCES, only : be7_src_3d
 
       IMPLICIT NONE

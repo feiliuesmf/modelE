@@ -122,7 +122,7 @@ contains
 
   subroutine gatherDistributedQuantities()
     use MODEL_COM, only: IM, JM
-    USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA, PACK_COLUMN, PACK_BLOCK
+    USE DOMAIN_DECOMP_1D, ONLY: GRID, PACK_DATA, PACK_COLUMN, PACK_BLOCK
     use hybrid_mpi_omp_renamer
     ! initial 1-processor implementation
 
@@ -170,7 +170,7 @@ contains
 
   subroutine scatterDistributedQuantities()
     use MODEL_COM, only: IM, JM
-    USE DOMAIN_DECOMP, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN, UNPACK_BLOCK
+    USE DOMAIN_DECOMP_1D, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN, UNPACK_BLOCK
     use hybrid_mpi_omp_renamer
 
     ! The following quantities are import only, and do not need to be
@@ -195,7 +195,7 @@ contains
 
   subroutine gatherDistributedQuantities_IO()
     use MODEL_COM, only: IM, JM
-    USE DOMAIN_DECOMP, ONLY: GRID, PACK_DATA, PACK_COLUMN, PACK_BLOCK
+    USE DOMAIN_DECOMP_1D, ONLY: GRID, PACK_DATA, PACK_COLUMN, PACK_BLOCK
     use hybrid_mpi_omp_renamer
     ! initial 1-processor implementation
 
@@ -213,7 +213,7 @@ contains
 
   subroutine scatterDistributedQuantities_IO()
     use MODEL_COM, only: IM, JM
-    USE DOMAIN_DECOMP, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN
+    USE DOMAIN_DECOMP_1D, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN
     use hybrid_mpi_omp_renamer
     ! initial 1-processor implementation
 
@@ -225,7 +225,7 @@ contains
   subroutine init_hybrid_coupler()
     use MODEL_COM, only: IM, JM
     use FLUXES, only: NSTYPE
-    use DOMAIN_DECOMP, only: AM_I_ROOT
+    use domain_decomp_1d, only: AM_I_ROOT
 
     integer :: OMP_NUM_THREADS
     integer, parameter :: BUF_LEN=20
@@ -290,7 +290,7 @@ contains
   end subroutine init_hybrid_coupler
 
   subroutine finalize()
-    use DOMAIN_DECOMP, only: AM_I_ROOT
+    use domain_decomp_1d, only: AM_I_ROOT
 
     if (.not. AM_I_ROOT()) return
 

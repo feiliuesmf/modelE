@@ -2,7 +2,7 @@
       subroutine alloc_drv()
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
-      USE DOMAIN_DECOMP, ONLY : grid
+      USE DOMAIN_DECOMP_ATM, ONLY : grid
       IMPLICIT NONE
 
       call alloc_dynamics(grid)

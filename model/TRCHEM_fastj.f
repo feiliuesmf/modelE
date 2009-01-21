@@ -14,7 +14,7 @@
 !@calls CTM_ADJ,INT_PROF,PRTATM,JVALUE,JRATET
 
 !**** GLOBAL parameters and variables:
-      use domain_decomp,only : grid,get
+      use domain_decomp_atm,only : grid,get
       use model_com, only    : LM,LS1
       use constant, only     : radian
       use dynamics, only     : ltropo

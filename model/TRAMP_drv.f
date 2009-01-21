@@ -89,7 +89,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
       USE AERO_SETUP
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
-      USE DOMAIN_DECOMP,only: GRID, GET
+      USE DOMAIN_DECOMP_ATM,only: GRID, GET
 
       IMPLICIT NONE
 
@@ -517,7 +517,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 !@+    at run-time
 !@auth Susanne Bauer
 !@ver  1.0
-      use domain_decomp, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, get
       use model_com, only     : im,lm
       use tracer_com, only    : ntmAMP
       use amp_aerosol

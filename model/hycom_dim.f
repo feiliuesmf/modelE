@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 c-----------------------------------------------------------------------------
       module hycom_dim
-      USE DOMAIN_DECOMP, only : DIST_GRID, aGrid => grid  ! aGrid is 'a' grd
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID, aGrid => grid  ! aGrid is 'a' grd
 
       implicit none
 
@@ -71,7 +71,7 @@ c
       contains
 
       subroutine init_hycom_grid
-      USE DOMAIN_DECOMP, only : init_grid, get
+      USE DOMAIN_DECOMP_1D, only : init_grid, get
 
       call init_grid( ogrid, idm, jdm, 1, bc_periodic=.true. )
       call get(ogrid, J_STRT     =J_0,    J_STOP     =J_1,

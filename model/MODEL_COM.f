@@ -5,7 +5,7 @@
 !@ver  1.0
       USE RESOLUTION, only : im,jm,lm,ls1,kep,istrat,
      *     psf,pmtop,ptop,psfmpt,pstrat,plbot
-!      USE DOMAIN_DECOMP, only : grid
+!      USE DOMAIN_DECOMP_ATM, only : grid
 !AOO      USE ESMF_CUSTOM_MOD, ONLY: FIELD
 c$$$#ifdef USE_FVCORE
 c$$$      USE ESMF_MOD, only: esmf_clock
@@ -281,7 +281,7 @@ c the new i/o system
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE
       USE MODEL_COM, ONLY : ZATMO,HLAKE,FLAND,FOCEAN,FLICE,FLAKE0,
@@ -447,7 +447,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : AM_I_ROOT
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
       USE PARAM
       IMPLICIT NONE
@@ -531,7 +531,7 @@ C**** keep track of min/max time over the combined diagnostic period
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE DOMAIN_DECOMP, only: grid, PACK_DATA, UNPACK_DATA, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: grid,PACK_DATA,UNPACK_DATA,AM_I_ROOT
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

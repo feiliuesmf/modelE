@@ -76,7 +76,7 @@
 !@ver  1.0 (CS grid version)
       USE CONSTANT, only : RADIUS,TWOPI,radian
       use fv_grid_tools_mod, only: agrid, corner_grid => grid, area
-      use DOMAIN_DECOMP, only: grid, get
+      use DOMAIN_DECOMP_ATM, only: grid, get
       implicit none
 
       integer :: i0h, i1h, i0, i1

@@ -13,8 +13,8 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
-     & UNPACK_DATAj,write_parallel,readt8_parallel
+      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,PACK_DATA,
+     &     UNPACK_DATA,UNPACK_DATAj,write_parallel,readt8_parallel
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
       USE GEOM, only: axyp,byaxyp
@@ -8376,7 +8376,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,readt_parallel,readt8_column
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,readt_parallel,
+     &     readt8_column
       USE PARAM, only : get_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf
@@ -8386,8 +8387,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
-      USE DOMAIN_DECOMP, only : GRID,GET,UNPACK_COLUMN, write_parallel,
-     *     UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,UNPACK_COLUMN,
+     &     write_parallel,UNPACK_DATA
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *     tr_mm,rnsrc,vol2mass
@@ -9599,7 +9600,7 @@ c **** reads in files for dust/mineral tracers
 C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
      $     ,flake0
-      USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
@@ -9818,7 +9819,7 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc,jmon,nday
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, write_parallel
      * ,AM_I_ROOT
 
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,
@@ -10384,7 +10385,7 @@ c!OMSP
 !@+   is used, all diagnostics and moments are updated automatically.
 !@auth Jean Lerner/Greg Faluvegi
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
-      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,AM_I_ROOT
       USE TRACER_COM
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime,jmon, dtsrc
@@ -11231,7 +11232,7 @@ C**** no fractionation for ice evap
 !@auth Bell
 !@ver  1.0
       USE MODEL_COM, only: im,jm,lm,t,ls1
-      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
       USE DYNAMICS, only: pmid,am,pk,LTROPO
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4

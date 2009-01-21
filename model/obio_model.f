@@ -73,7 +73,7 @@
      .                        ,time,lp,itest,jtest
 #endif
 
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       implicit none
 

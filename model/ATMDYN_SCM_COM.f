@@ -2,7 +2,7 @@
 !@sum  DYNAMICS contains all the pressure and momentum related variables
 !@auth Original development team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : grid
+      USE DOMAIN_DECOMP_1D, ONLY : grid
       USE RESOLUTION , ONLY : LM
       IMPLICIT NONE
       SAVE
@@ -87,7 +87,7 @@ c     INTEGER, DIMENSION(2) :: t_sdrag, t_calc_trop
 
 
       SUBROUTINE ALLOC_DYNAMICS(grid)
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE RESOLUTION , ONLY : LM
       USE DYNAMICS, ONLY : PLIJ,PDSIG,AM,BYAM,PMID,PK,PEDN,PEK,
      $                     SD_CLOUDS,GZ,PU,PV,CONV,PHI,SPA,DUT,

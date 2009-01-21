@@ -1022,7 +1022,7 @@ C**** arrays that could be general, but are only used by chemistry
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE TRACER_COM
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

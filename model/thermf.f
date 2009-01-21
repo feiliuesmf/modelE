@@ -7,7 +7,7 @@ c --- hycom version 0.9
       USE HYCOM_SCALARS, only : baclin,thref,watcum,empcum,nstep,nstep0
      &     ,diagno,lp,area,spcifh,avgbot,g,onem,slfcum
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only : AM_I_ROOT, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, GLOBALSUM
       implicit none
 c
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n

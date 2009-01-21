@@ -79,7 +79,7 @@ c maximum of 100 variables in output file, 7 dimensions for each
 #ifdef USE_ESMF
       USE ESMF_MOD, Only: ESMF_VMGet
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
-      use domain_decomp, only: grid
+      use domain_decomp_1d, only: grid
 #endif
       integer :: gfid
       character(len=80) :: gfile ! global template file
@@ -366,7 +366,7 @@ c
 #ifdef USE_ESMF
       USE ESMF_MOD, Only: ESMF_VMGet
       USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
-      use domain_decomp, only: grid, am_i_root
+      use domain_decomp_1d, only: grid, am_i_root
       implicit none
       include 'netcdf.inc'
       integer :: status,ifid,gfid,ivarid,ovarid
@@ -511,7 +511,7 @@ c
 !@ver  1.0
       use inst_ncout
       use MODEL_COM, only : im
-      use domain_decomp, only: grid, pack_data, am_i_root
+      use domain_decomp_1d, only: grid, pack_data, am_i_root
       implicit none
       character(len=30) :: varname
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: xij
@@ -527,7 +527,7 @@ c
 !@ver  1.0
       use inst_ncout
       use MODEL_COM, only : im,lm
-      use domain_decomp, only: grid, pack_data, am_i_root
+      use domain_decomp_1d, only: grid, pack_data, am_i_root
       implicit none
       character(len=30) :: varname
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: xijl
@@ -543,7 +543,7 @@ c
 !@ver  1.0
       use inst_ncout
       use MODEL_COM, only : im,lm
-      use domain_decomp, only: grid, pack_column, am_i_root
+      use domain_decomp_1d, only: grid, pack_column, am_i_root
       implicit none
       character(len=30) :: varname
       real*8, dimension(lm,im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: xlij

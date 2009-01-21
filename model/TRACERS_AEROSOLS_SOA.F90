@@ -7,7 +7,7 @@ module TRACERS_SOA
 !@+   tropospheric chemistry and aerosols to be activated.
 !@auth Kostas Tsigaridis (ktsigaridis@giss.nasa.gov)
 use RESOLUTION, only: LM
-use DOMAIN_DECOMP,only: write_parallel
+use DOMAIN_DECOMP_ATM,only: write_parallel
 use TRACER_COM, only: ntm,ntm_soa,tr_mm,&
                       n_isoprene,&
                       n_isopp1a,n_isopp2a

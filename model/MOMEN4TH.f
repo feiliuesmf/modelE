@@ -32,9 +32,9 @@ cddd      END subroutine init_MOM
       USE GEOM, only : fcor,dxyp,dxv,ravpn,ravps
       USE DYNAMICS, only : pu,pv,pit,sd,spa,dut,dvt
       !USE DIAG, only : diagcd
-      USE DOMAIN_DECOMP, only : grid, NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, CHECKSUM, GET
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : grid, NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, CHECKSUM, GET
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
 

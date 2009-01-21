@@ -303,7 +303,7 @@ c
 
       subroutine gather_kprf_arrays
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
 
       call pack_data( ogrid,  klstsv_loc, klstsv )
       call pack_data( ogrid,  jerlov_loc, jerlov )
@@ -337,7 +337,7 @@ c
 
       subroutine scatter_kprf_arrays
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
 
       call unpack_data( ogrid,  klstsv, klstsv_loc )
       call unpack_data( ogrid,  jerlov, jerlov_loc )

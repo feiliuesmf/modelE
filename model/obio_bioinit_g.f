@@ -47,7 +47,7 @@ c  Carbon type 2    = DIC
       USE OCEAN, only : LMOM=>LMM,ZOE=>ZE
       USE OCEANR_DIM, only : ogrid
 
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,pack_data,unpack_data
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
  
       implicit none
 
@@ -626,7 +626,7 @@ c------------------------------------------------------------------------------
 !read in a field and convert to ocean grid (using Gary Russel's routine) 
 
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       USE OCEANRES, only : imo,jmo,lmo
       USE OCEAN, only : oDLATM=>DLATM,LMOM=>LMM,ZOE=>ZE,FOCEAN

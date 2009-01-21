@@ -110,7 +110,7 @@ C**** ocean related parameters
 
       subroutine gather_ocean (icase)
 
-      use domain_decomp, only: pack_data
+      use domain_decomp_1d, only: pack_data
       use OCEANR_DIM, only : grid=>ogrid
 
       integer, intent(in) :: icase
@@ -153,7 +153,7 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
 
       subroutine scatter_ocean (icase)
 
-      use domain_decomp, only: unpack_data
+      use domain_decomp_1d, only: unpack_data
       use OCEANR_DIM, only : grid=>ogrid
 
       integer, intent(in) :: icase
@@ -340,7 +340,7 @@ C****
 !@auth Rodger Abel
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, only : dist_grid,get, grid
+      USE DOMAIN_DECOMP_1D, only : dist_grid,get, grid
 
       USE OCEANR_DIM
 

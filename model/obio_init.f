@@ -5,7 +5,7 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE PARAM, only: get_param
 
       USE obio_dim
@@ -559,7 +559,7 @@ c------------------------------------------------------------------------------
       USE OCEANRES, only : idm=>imo,jdm=>jmo
       USE OCEAN, only : oDLATM=>DLATM
 
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
 
       implicit none
 
@@ -673,7 +673,7 @@ c
       !!USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim, only : ogrid,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
       implicit none
 
       integer i,j,k,l,n

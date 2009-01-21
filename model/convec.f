@@ -10,7 +10,7 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH,NORTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,NORTH
 
       implicit none
       integer,intent(IN) :: m,n,mm,nn,k1m,k1n

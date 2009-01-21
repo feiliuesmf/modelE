@@ -30,8 +30,8 @@
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0oi,j_imelt,j_smelt
      *     ,j_hmelt,ij_fwio,ij_htio,ij_stio
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -180,8 +180,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trlake
 #endif
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 coriol,ustar,Tm,Sm,Si,Tic,dh,mflux,hflux,sflux,fluxlim
@@ -312,8 +312,8 @@ C****
 #ifdef TRACERS_WATER
      *     ,trmelti,gtracer
 #endif
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGUSED,RUN0,SALT,POCEAN,TFO
@@ -461,8 +461,8 @@ C****
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_rsoi,ij_msi
      *     ,j_imelt,j_hmelt,j_smelt,j_rsnow,ij_rsit,ij_rsnw,ij_snow
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
@@ -712,8 +712,8 @@ C****
      *     ,dtrsi,gtracer
 #endif
       USE LAKES_COM, only : flake
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
@@ -933,8 +933,8 @@ C****
       USE DIAG_COM, only : oa
       USE SEAICE_COM, only : hsi,snowi
       USE FLUXES, only : fwsim
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE
       INTEGER I,J
       integer :: I_0, I_1, J_0, J_1
@@ -985,8 +985,8 @@ C****
       USE DIAG_COM, only : npts,icon_OMSI,icon_OHSI,icon_OSSI,icon_LMSI
      *     ,icon_LHSI,conpt0
       USE PARAM
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE. , iniOCEAN
       CHARACTER CONPT(NPTS)*10
@@ -1105,7 +1105,7 @@ C****
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
 !@var ICE total ocean snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1140,7 +1140,7 @@ C****
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total ocean snow and ice energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1175,7 +1175,7 @@ C****
       USE MODEL_COM, only : im,jm,fim,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,ssi,lmi
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var SALT total salt in ocean ice (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1216,7 +1216,7 @@ C****
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE LAKES_COM, only : flake
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var ICE total lake snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1252,7 +1252,7 @@ C****
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       USE LAKES_COM, only : flake
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total lake snow and ice energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1295,8 +1295,8 @@ C****
 #ifdef TRACERS_WATER
      &     ,gtracer
 #endif
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE
       INTEGER I,J, J_0, J_1 ,I_0,I_1
       REAL*8 MSI1

@@ -13,7 +13,7 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp,oddev
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
       integer i,j,k,l,n,nn
 c
@@ -51,7 +51,7 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp,oddev,delt1
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
       integer i,j,k,l,n,nn
 c
@@ -93,7 +93,7 @@ c
      &     scp2_loc => scp2,
      &     scp2i_loc => scp2i, util1_loc => util1, util2_loc => util2,
      &     tracer_loc => tracer, dpinit_loc => dpinit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH
       implicit none
       integer i,j,k,l,n,nn,ib,jb
 c
@@ -254,7 +254,7 @@ c  fco,fc - depth of the layer at previous and new time step
 c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : lp, itest, jtest
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
      &                         haveLatitude, GLOBALSUM, esmf_bcast
       implicit none
       integer i,j,k,l,ia,ib,ja,jb
@@ -796,7 +796,7 @@ c
       subroutine compBforeAfter(bfore,after,bforej,afterj)
 
       USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, jj, ogrid 
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
 
       real bfore,after
@@ -819,7 +819,7 @@ c
       subroutine bforejAfterjGath(bforej,afterj,bforej_G,afterj_G)
 
       USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
       real :: bforej(J_0H:J_1H),afterj(J_0H:J_1H)
       real :: bforej_G(jdm),afterj_G(jdm)

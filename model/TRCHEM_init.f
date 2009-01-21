@@ -8,7 +8,7 @@
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE MODEL_COM, only: Itime, ItimeI, IM
-      USE DOMAIN_DECOMP, only : GET,grid
+      USE DOMAIN_DECOMP_ATM, only : GET,grid
       USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only:nc,ny,numfam,JPPJ,nn,ks,nps,nds,
      &    ndnr,kps,kds,kpnr,kdnr,nnr,kss,nr,npnr,nr2,nr3,nmm,nhet,
@@ -113,7 +113,7 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
 !@calls lstnumc
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: nr,nr2,nr3,nmm,nhet,pe,ea,nst,ro,
      &                               r1,sn,sb,nn,nnr,nc
@@ -230,7 +230,7 @@ C**** Local parameters and variables and arguments:
 !@calls lstnum
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel 
+      USE DOMAIN_DECOMP_ATM, only: write_parallel 
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: nss,ks,kss,nc,JPPJ
 
@@ -342,7 +342,7 @@ c Chemical and photolytic production:
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, p_4, nfam,
      &                               prnls
 
@@ -442,7 +442,7 @@ c           check that reaction is intrafamily
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE TRCHEM_Shindell_COM, only: kpnr,npnr,kdnr,ndnr,kps,nps,
      &                         ny,nn,nnr,ks,kss,ay,kds,nds,nc
 
@@ -592,7 +592,7 @@ C**** Local parameters and variables and arguments:
 !@calls RD_TJPL,RD_PROF
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: jfacta, jlabel,jppj
 #ifdef SHINDELL_STRAT_CHEM
@@ -689,7 +689,7 @@ c  Ensure all aerosol types are valid selections:
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE TRCHEM_Shindell_COM, only: NJVAL,WBIN,WL,NWWW,FL,QRAYL,QBC,
      &    Q1D,TQQ,QQQ,NAA,QAAFASTJ,NK,WAAFASTJ,PAA,zpdep,npdep,jpdep,
      &    lpdep,NS,TITLE0,NW1,NW2,TITLEJ,JPPJ,jind,jlabel,jfacta,
@@ -891,7 +891,7 @@ C Read aerosol phase functions:
 !@ver  1.0 
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: NWWW,FL,FLX,DUMMY,rad_FL
 #ifdef SHINDELL_STRAT_CHEM
@@ -964,7 +964,7 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP, only: write_parallel
+      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE TRCHEM_Shindell_COM, only: TITLE0,
 #ifdef SHINDELL_STRAT_CHEM
      & TREF2, OREF2, BREF2, ZZHT

@@ -14,7 +14,7 @@ C**** These variables are used by both ozone and strat chem routines
       contains
       subroutine set_prather_constants
       USE MODEL_COM, only: jm,lm,pednl00 ! ,psfmpt,sige,ptop
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE PARAM
       implicit none
       real*8 yedge(GRID%J_STRT_HALO:GRID%J_STOP_HALO+1)
@@ -80,7 +80,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 C**** Prather stratospheric chemistry
       USE FILEMANAGER, only: openunit,closeunit
       USE PRATHER_CHEM_COM, only: set_prather_constants
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
 !     nsc = n_MPtable(n)
       integer nsc,j,k,m,iu
@@ -140,7 +140,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
 !@var facbb: APPLY AN AD-HOC FACTOR TO BRING CH4 INTO BALANCE
       USE CONSTANT, only: by3
       USE MODEL_COM, only: im,jm,lm,dtsrc
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM
@@ -226,7 +226,7 @@ cc      end do
 C**** This is called at the beginning of each month
 C**** Prather strat chem
       USE MODEL_COM, only: jm,lm,jmon
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
       USE TRACERS_MPchem_COM, only: tscparm,n_MPtable_max,
      *    tltrm,tltzm,tltzzm,lz_schem,lz_sx,ps
@@ -284,7 +284,7 @@ C---- CTM layers LM down
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
       USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
-      USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT, ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, ESMF_BCAST
       USE GEOM, only: imaxj
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
@@ -404,7 +404,7 @@ C**** Harvard troposphere production and loss rates, deposition vel
       SUBROUTINE LINOZ_SETUP(n_O3)
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit,nameunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,grid,readt_parallel
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,grid,readt_parallel
       implicit none
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
@@ -496,7 +496,7 @@ c   Troposphere is forced by Harvard tables
 c-----------------------------------------------------------------------
 c
       USE MODEL_COM, only: jm,jmon,t,itime,dtsrc
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE CONSTANT, only : grav,rgas
       USE GEOM, only: imaxj,axyp
       USE DYNAMICS, only: pmid,pk,pdsig
@@ -550,7 +550,7 @@ C****
 C**** Deposition from layer 1
 C**** Deposition Velocity is in cm/sec.  Convert to kg
 C****
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE LINOZ_CHEM_COM, only: O3_DepVel
       USE MODEL_COM, only: im,jm,jmon,t,itime,dtsrc
       USE DYNAMICS, only: pmid,pk,pdsig
@@ -629,7 +629,7 @@ cXXXXX DSOL NOT USED XXXXX
 
       USE CONSTANT, only : avog
       USE MODEL_COM, only: itime,im,jm,lm,t,dtsrc
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE DYNAMICS, only: pk,am,ltropo   ! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,axyp
       USE TRACER_COM
@@ -728,7 +728,7 @@ c-----------------------------------------------------------------------
 c-------- monthly fixup of chemistry PARAM'S
 c
       USE MODEL_COM, only: jmon,jm,lm
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
       USE LINOZ_CHEM_COM, only: nctable,TLPARM,
      *    tlt0m,tltzm,tltzzm,lz_linoz,lz_lx,ps
@@ -896,7 +896,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,JDperY,im,jm,jday,focean,fearth0,flake0
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, readt_parallel, AM_I_ROOT
       USE TRACER_COM, only: itime_tr0,trname
       USE FILEMANAGER, only: openunit,closeunit
       USE FILEMANAGER, only: nameunit
@@ -1022,8 +1022,8 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE CONSTANT, only: sday
       USE MODEL_COM, only: itime,jday,JDperY,im,jm
-      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       USE TRACER_COM, only: itime_tr0,trname
       USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
       USE FILEMANAGER, only: openunit,closeunit
@@ -1110,7 +1110,7 @@ C**** October 1963 14CO2 Concentrations for GCM  2/26/99
 C**** 2/2/2: generalized code for modelE
 C****
       USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop
-      USE DOMAIN_DECOMP, only: GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only : DLAT_DG
@@ -1485,7 +1485,7 @@ C****    But what WOULD be correct???
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE MODEL_COM, ONLY: im,jm,lm,ls1,sige,psf,ptop,amonth,jmon0
-      USE DOMAIN_DECOMP, only: GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT
       USE DYNAMICS, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only : DLAT_DG,lat_dg
@@ -1626,7 +1626,7 @@ C****
       USE TRACERS_MPchem_COM
       USE CO2_SOURCES
       USE CH4_SOURCES
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -1664,7 +1664,7 @@ C**** ESMF: This array is read in only
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE LINOZ_CHEM_COM
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

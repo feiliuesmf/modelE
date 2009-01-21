@@ -12,7 +12,7 @@ c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : acurcy
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       implicit none
       integer i,j,k,l,ja
 c

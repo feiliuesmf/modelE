@@ -102,7 +102,7 @@
 !@+    at run-time
 !@auth G.Faluvegi
 !@ver  1.0
-      use domain_decomp, only : dist_grid, get, write_parallel
+      use domain_decomp_atm, only : dist_grid, get, write_parallel
       use model_com, only     : im
       use tracer_com, only : ntm
       use tracer_sources
@@ -182,7 +182,7 @@
 !@+    at run-time
 !@auth G.Faluvegi
 !@ver  1.0
-      use domain_decomp, only : dist_grid, get, write_parallel
+      use domain_decomp_atm, only : dist_grid, get, write_parallel
       use LIGHTNING, only     : RNOx_lgt
       use model_com, only     : im
 
@@ -220,7 +220,7 @@ C**** linearly in time (at 1% increase per year)
       USE TRACER_COM, only: trname,trm,n_GLT,vol2mass
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
-      USE DOMAIN_DECOMP, ONLY : GET, grid, write_parallel
+      USE DOMAIN_DECOMP_ATM, ONLY : GET, grid, write_parallel
       
       IMPLICIT NONE
       
@@ -268,7 +268,7 @@ C**** GLOBAL parameters and variables:
       USE CONSTANT, only      : bygrav
       USE MODEL_COM, only     : fland,IM,LS1,LM
       USE DYNAMICS, only      : LTROPO, PHI
-      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
 c
       IMPLICIT NONE
 c
@@ -364,7 +364,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop,psf,sig
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit
       USE FLUXES, only: tr3Dsource
@@ -509,7 +509,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
 C
@@ -584,8 +584,9 @@ C
       USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
       USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
-     & ,write_parallel,backspace_parallel,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
+     &     ,REWIND_PARALLEL
+     &     ,write_parallel,backspace_parallel,am_i_root
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
@@ -759,7 +760,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only  : im,jm,lm,ls1,JEQ,DTsrc
-      USE DOMAIN_DECOMP, only : GRID,GET, write_parallel,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET, write_parallel,am_i_root
       USE GEOM, only       : axyp
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
@@ -1231,7 +1232,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE DYNAMICS, only: GZ
       USE CONSTANT, only: sday,hrday,byGRAV
       USE FILEMANAGER, only: openunit,closeunit
@@ -1357,7 +1358,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: im,jm,lm
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE DYNAMICS, only: GZ
       USE CONSTANT, only: byGRAV
       USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm,n_SO4
@@ -1431,7 +1432,7 @@ c
 !@auth Greg Faluvegi based on Jean Lerner
 
       USE MODEL_COM, only: itime,im,jm,jday,itimei
-      USE DOMAIN_DECOMP, only: GRID, GET, am_i_root, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, am_i_root, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
       USE TRACER_SOURCES, only: nday_ncep,by_nday_ncep,first_ncep,
@@ -1530,7 +1531,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@+ wetland distribution changes.
 !@auth Greg Faluvegi
       USE MODEL_COM, only: itime,im,jm,fland,jday
-      USE DOMAIN_DECOMP, only: GRID, GET, pack_data,
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, pack_data,
      &                         unpack_data, am_i_root, write_parallel
       USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
@@ -1690,7 +1691,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@auth Greg Faluvegi, Jean Lerner and others
 
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, write_parallel,
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM,jyear
 

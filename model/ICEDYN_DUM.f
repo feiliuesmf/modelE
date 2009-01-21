@@ -2,7 +2,7 @@
       integer :: imic=0
       contains
       subroutine alloc_icedyn(grid)
-      use DOMAIN_DECOMP, only : DIST_GRID
+      use DOMAIN_DECOMP_1D, only : DIST_GRID
       TYPE (DIST_GRID), INTENT(IN) :: grid
       return
       end subroutine alloc_icedyn
@@ -15,7 +15,7 @@
       real*8,dimension(2) :: icij=0,ticij=0
       contains
       subroutine alloc_icedyn_com(grid)
-      use DOMAIN_DECOMP, only : DIST_GRID
+      use DOMAIN_DECOMP_1D, only : DIST_GRID
       TYPE (DIST_GRID), INTENT(IN) :: grid
       return
       end subroutine alloc_icedyn_com
@@ -39,7 +39,7 @@
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhows
       USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
-      USE DOMAIN_DECOMP, only : grid, get
+      USE DOMAIN_DECOMP_1D, only : grid, get
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
       USE SEAICE_COM, only : rsi

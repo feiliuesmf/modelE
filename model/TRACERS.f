@@ -21,7 +21,7 @@
       USE TRACER_COM
       USE TRDIAG_COM
       USE PARAM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: l,k,n
       character*10, DIMENSION(NTM) :: CMR,CMRWT
@@ -448,7 +448,7 @@ C**** Tracers dry deposition flux.
       USE FLUXES, only : trsource,trflux1,trsrfflx
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
-      USE DOMAIN_DECOMP, ONLY : GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,ns,naij,najl,j,i
@@ -539,7 +539,7 @@ C****
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
-      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -643,7 +643,7 @@ C****
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -729,7 +729,7 @@ C****
       USE AMP_AEROSOL, only : DIAM, AMP_dens
 #endif
       USE TRDIAG_COM, only : jls_grav
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
       real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
      *     ,vgs,tr_radius,tr_dens
@@ -872,8 +872,8 @@ C****
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : READT_PARALLEL, REWIND_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       implicit none
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -933,7 +933,7 @@ c**** Interpolate two months of data to current day
       USE DYNAMICS, only : am
       USE FLUXES, only : gtracer
       USE TRACER_COM
-      USE DOMAIN_DECOMP, ONLY: GRID, GET, HERE, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, HERE, AM_I_ROOT
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
@@ -1045,7 +1045,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
      &,coupled_chem
-      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &,PACK_DATAj, UNPACK_DATAj, PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
      &,UNPACK_COLUMN, esmf_bcast, get
       USE TRACER_COM
@@ -1508,7 +1508,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use TRACER_COM, only : ntsurfsrcmax,trname,
      & num_tr_sectors,n_max_sect,tr_sect_index,num_sectors,
      & tr_sect_name, sect_name
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE PARAM, only : sync_param
     
@@ -1598,7 +1598,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
       USE MODEL_COM, only: itime,jday,jyear,im,jm
-      USE DOMAIN_DECOMP, only: GRID, GET, readt_parallel, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET,
+     &     readt_parallel, write_parallel
       USE FILEMANAGER, only: openunit,closeunit, nameunit
       USE TRACER_COM,only:itime_tr0,trname,sfc_src,ntm,ntsurfsrcmax,
      & freq,nameT,ssname,ty_start,ty_end,kstep
@@ -1714,7 +1715,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth Greg Faluvegi
      
       use TRACER_COM, only : trname,nameT
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
 
       implicit none
@@ -1826,7 +1827,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth Greg Faluvegi, Jean Lerner and others
 
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT, write_parallel,
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM,jyear
       USE TRACER_COM, only: ssname,nameT,ty_start,ty_end,kstep
@@ -1962,8 +1963,8 @@ c****   Interpolate two months of data to current day
       use TRACER_COM, only : n_max_sect,reg_n,reg_s,reg_e,reg_w,
      & n_max_reg,alter_sources,ef_REG_IJ,
      & ef_fact,num_regions,num_sectors,sect_name
-      USE DOMAIN_DECOMP, only:GRID,GET,AM_I_ROOT,PACK_DATA,UNPACK_DATA,
-     & UNPACK_DATAj,writet_parallel
+      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,PACK_DATA,
+     &     UNPACK_DATA,UNPACK_DATAj,writet_parallel
       USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE PARAM, only : sync_param

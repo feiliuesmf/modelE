@@ -7,10 +7,10 @@
 !@ver  1.0
       USE CONSTANT, only : lhe,sha,deltx
       USE MODEL_COM, only : im,jm,lm,u,v,q,t
-      USE DOMAIN_DECOMP, only : grid, get
-      USE DOMAIN_DECOMP, only : halo_update, checksum
-      USE DOMAIN_DECOMP, only : halo_update_column, checksum_column
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : halo_update, checksum
+      USE DOMAIN_DECOMP_ATM, only : halo_update_column, checksum_column
+      USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
       USE GEOM, only : imaxj, kmaxj, ravj, idij, idjj
       USE QUSDEF, only : nmom,zmoms,xymoms
       USE SOMTQ_COM, only : tmom,qmom
@@ -390,10 +390,10 @@ C***
 #ifdef SCM
      *                      ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP, only : grid, get
-      USE DOMAIN_DECOMP, only : halo_update,checksum
-      USE DOMAIN_DECOMP, only : halo_update_column,checksum_column
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_ATM, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
+      USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
+      USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
       USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,axyp
       USE DYNAMICS, only : byam,am
 #ifdef TRACERS_ON

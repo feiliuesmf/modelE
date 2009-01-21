@@ -33,8 +33,8 @@ C****
       USE MODEL_COM
       USE GEOM, only : lon,sinip,cosip
       USE RAD_COM, only : cosd,sind,sinj,cosj
-      USE DOMAIN_DECOMP, ONLY: grid
-      USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, ONLY: grid
+      USE DOMAIN_DECOMP_ATM, ONLY: HALO_UPDATE
       IMPLICIT NONE
       SAVE
       REAL*8 ROT1,ROT2
@@ -356,7 +356,7 @@ C**** CONSTANT NIGHTIME AT THIS LATITUDE
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
      *     ,kradia,lm_req,pednl00
-      USE DOMAIN_DECOMP, only : grid, get, write_parallel, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
 #ifdef CUBE_GRID
       USE GEOM, only : lat_dg 
 #else
@@ -982,7 +982,7 @@ C**** Read in the factors used for alterations:
 !@calls RADPAR:RCOMPT
       USE CONSTANT, only : by12
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : am_I_root,GRID,GET,REWIND_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,GET,REWIND_PARALLEL
 #ifndef CUBE_GRID
      *     ,READT_PARALLEL
 #else
@@ -1165,7 +1165,7 @@ C     OUTPUT DATA
 #ifdef HTAP_LIKE_DIAGS
      &     ,ttausv_sum,ttausv_count
 #endif
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -1213,9 +1213,9 @@ C     OUTPUT DATA
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
      .                  ,chl
 #endif
-      USE DOMAIN_DECOMP, ONLY: grid,GET, write_parallel
-      USE DOMAIN_DECOMP, ONLY: HALO_UPDATE
-      USE DOMAIN_DECOMP, ONLY: GLOBALSUM, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, ONLY: HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM, HERE
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
@@ -2784,7 +2784,7 @@ C**** Same for upward thermal
 !@auth R. Ruedy
 !@ver  1.0
 
-      use domain_decomp, only : write_parallel
+      use domain_decomp_atm, only : write_parallel
       USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
       USE RAD_COM, only : ghg_yr
       IMPLICIT NONE
@@ -2836,7 +2836,7 @@ C**** Same for upward thermal
 !@sum  reads H2O production rates induced by CH4 (Tim Hall)
 !@auth R. Ruedy
 !@ver  1.0
-      use domain_decomp, only : grid,get,write_parallel
+      use domain_decomp_atm, only : grid,get,write_parallel
       implicit none
       integer, parameter:: jma=18,lma=24
       integer m,iu,jm,lm,j,j1,j2,l,ll,ldn(lm),lup(lm)
@@ -3451,7 +3451,7 @@ C                    Ocean         Land      ! r**3: r=.085,.052 microns
 !@ver  1.0
       USE FILEMANAGER
       USE RAD_COM, only : depoBC
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer, intent(in)   :: year
 

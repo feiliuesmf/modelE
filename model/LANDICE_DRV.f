@@ -43,7 +43,7 @@
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
-      USE DOMAIN_DECOMP, only : GRID,GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
@@ -232,8 +232,8 @@ C****
 #endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
-      USE DOMAIN_DECOMP, only : GRID,GET
-      USE DOMAIN_DECOMP, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPIJ
@@ -359,8 +359,8 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE*DXYPIJ) ! (Tg=0)
       USE TRDIAG_COM, only : taijn=>taijn_loc , tij_rvr
 #endif
 #endif
-      USE DOMAIN_DECOMP, only : GRID,GET
-      USE DOMAIN_DECOMP, only : GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPIJ
@@ -497,7 +497,7 @@ C****
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli
       USE LANDICE, only : lndice,ace1li,ace2li
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var ICE total land ice snow and ice mass (kg/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -532,7 +532,7 @@ C****
       USE GEOM, only : imaxj
       USE LANDICE_COM, only : snowli,tlandi
       USE LANDICE, only : ace1li,ace2li
-      USE DOMAIN_DECOMP, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
 !@var EICE total land ice energy (J/m^2)
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -589,7 +589,7 @@ C****
       USE TRACER_COM, only :  trw0, nWater, trname
 #endif
       USE PARAM
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
      *     ESMF_BCAST
       IMPLICIT NONE
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
@@ -748,7 +748,7 @@ C**** reset implicit accumulators
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : im,jm,qcheck,flice
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname

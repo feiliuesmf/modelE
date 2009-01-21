@@ -134,7 +134,7 @@
 #else
       USE HYCOM_DIM, only : ogrid
 #endif
-      USE DOMAIN_DECOMP, ONLY: unpack_data
+      USE DOMAIN_DECOMP_1D, ONLY: unpack_data
 
       implicit none
 

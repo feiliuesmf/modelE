@@ -10,7 +10,8 @@ c
       USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
      &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,itest,jtest
       USE HYCOM_ARRAYS
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, GLOBALSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, GLOBALSUM,
+     &     AM_I_ROOT
       implicit none
 c
 c --- ---------------------

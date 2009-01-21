@@ -7,7 +7,7 @@ c
 c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
 cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq

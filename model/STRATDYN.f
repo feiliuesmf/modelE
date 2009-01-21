@@ -70,7 +70,7 @@ C**** accumulated in the routines contained herein
       USE PARAM
       USE CONSTANT, only : twopi,kapa
       USE MODEL_COM, only : im,jm,lm,do_gwdrag,pednl00,pmidl00
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,AM_I_ROOT,
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE,AM_I_ROOT,
      *                          NORTH, SOUTH, PACK_DATA,
      *                          DREAD_PARALLEL,
      *                          READT_PARALLEL
@@ -203,7 +203,7 @@ C**** This version only does diffusion for lowest LDIFM layers.
 C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
       USE MODEL_COM, only : im,jm,lm,ptop,ls1,mrch
-      USE DOMAIN_DECOMP, ONLY : GRID, GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
@@ -441,7 +441,7 @@ C****
 !@auth Bob Suozzo/Jean Lerner
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE PBLCOM, only : usurf=>usavg,vsurf=>vsavg
       IMPLICIT NONE
@@ -552,9 +552,9 @@ C****
       USE CONSTANT, only : grav,sha,twopi,kapa,rgas
       USE MODEL_COM, only : im,jm,lm,byim,nidyn
      *     ,ls1,mrch,zatmo
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
       USE CLOUDS_COM, only : airx,lmc
       USE STRAT, only : nm,xcdnst,defrm,zvart,zvarx,zvary,zwt,ldef
      *     ,lbreak,ld2,lshr,pk,pmid, ek,qgwmtn, qgwshr, qgwdef, qgwcnv
@@ -1228,7 +1228,7 @@ C**** and DEFRM2 like CURL (i.e., like FLUX and CIRCULATION),
 C**** except the "V" signs are switched.  DEFRM is RMS on u,v grid
 C****
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP, only : GRID, GET, HALO_UPDATE,
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH, HALO_UPDATE_COLUMN,
      *     haveLatitude
       USE DYNAMICS, only : pu,pv
@@ -1394,9 +1394,9 @@ C****
 !@ver  1.0
       USE MODEL_COM
       USE CLOUDS_COM, only : airx,lmc
-      USE DOMAIN_DECOMP, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP, only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -1439,7 +1439,7 @@ C****
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE STRAT
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

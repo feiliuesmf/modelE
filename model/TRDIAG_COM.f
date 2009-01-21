@@ -6,7 +6,6 @@
 !@auth Jean Lerner
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
-      USE DOMAIN_DECOMP, ONLY: grid
       USE DIAG_COM, only: npts !npts are conservation quantities
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 #ifdef TRACERS_OceanBiology
@@ -540,10 +539,11 @@ C****
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP, only : PACK_DATA,PACK_J,UNPACK_DATA,UNPACK_J
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
-      USE DOMAIN_DECOMP, only : ESMF_BCAST
-      USE DOMAIN_DECOMP, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : PACK_DATA,PACK_J
+      USE DOMAIN_DECOMP_ATM, only : UNPACK_DATA,UNPACK_J
+      USE DOMAIN_DECOMP_ATM, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only : grid, GET
       USE TRACER_COM, only: ntm
 
       USE TRDIAG_COM, only : taijln_loc, taijln
@@ -711,7 +711,7 @@ C*** Unpack read global data into local distributed arrays
       SUBROUTINE ALLOC_TRDIAG_COM
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM
-      USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT, GRID
       INTEGER :: J_0H,J_1H, I_0H,I_1H
       INTEGER :: status
 
@@ -763,7 +763,7 @@ C*** Unpack read global data into local distributed arrays
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
      *     TCONSRV, TCONSRV_loc
-      USE DOMAIN_DECOMP, ONLY : GRID, PACK_DATA, PACK_DATAj,sumxpe
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, PACK_DATA, PACK_DATAj,sumxpe
       implicit none
 
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
@@ -789,7 +789,7 @@ C*** Unpack read global data into local distributed arrays
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
      *     TCONSRV, TCONSRV_loc
-      USE DOMAIN_DECOMP, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       implicit none
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
       CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)

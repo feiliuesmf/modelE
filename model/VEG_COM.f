@@ -41,8 +41,8 @@
 !@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
-      use domain_decomp, only : grid, am_i_root
-      use domain_decomp, only : pack_data, unpack_data
+      use domain_decomp_atm, only : grid, am_i_root
+      use domain_decomp_atm, only : pack_data, unpack_data
       use veg_com, only : Cint, Qfol, cnc_ij
       implicit none
 
@@ -91,7 +91,7 @@
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE VEG_COM
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

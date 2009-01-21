@@ -743,7 +743,7 @@ C**************  Not Latitude-Dependant ****************************
 !@+    at run-time
 !@auth G.Faluvegi
 !@ver  1.0
-      use domain_decomp, only : dist_grid, get
+      use domain_decomp_atm, only : dist_grid, get
       use model_com, only     : im,lm
       use TRCHEM_Shindell_COM, only: DU_O3,corrOxIN,corrOx,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,

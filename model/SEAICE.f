@@ -2081,7 +2081,7 @@ c        Em= 0.
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : grid
+      USE DOMAIN_DECOMP_ATM, only : grid
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -2120,8 +2120,8 @@ C**** albedo calculations
 !@+    run-time
 !@auth Rodger Abel
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP, ONLY : GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : GET
       USE MODEL_COM, ONLY : IM, JM
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : NTM
@@ -2185,10 +2185,10 @@ C**** albedo calculations
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
-      USE DOMAIN_DECOMP, only : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
-      USE DOMAIN_DECOMP, only : UNPACK_COLUMN, UNPACK_DATA
-      USE DOMAIN_DECOMP, only :  UNPACK_BLOCK
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
+      USE DOMAIN_DECOMP_ATM, only : UNPACK_COLUMN, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only :  UNPACK_BLOCK
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -2295,8 +2295,8 @@ C**** albedo calculations
 #endif
       USE LAKES_COM, only : flake
       USE FLUXES
-      USE DOMAIN_DECOMP, only : GRID
-      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_ATM, only : GET
       IMPLICIT NONE
 
 !@var SUBR identifies where CHECK was called from

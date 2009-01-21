@@ -48,7 +48,7 @@ c#endif
      &     ,radian,radius
       use MODEL_COM, only : jm,lm,ls1,dtsrc,sige,kocean,qcheck
       use DIAG_COM
-      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -823,7 +823,7 @@ c
       use constant
       use MODEL_COM
       use DIAG_COM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk,l
 c
@@ -3296,7 +3296,7 @@ c
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
       use MODEL_COM, only : fim,dtsrc,nidyn,byim,do_gwdrag,qcheck
       use DIAG_COM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -3991,7 +3991,7 @@ c
       use CONSTANT, only : grav,sday,sha,bygrav
       use MODEL_COM, only : byim,qcheck
       use DIAG_COM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4046,7 +4046,7 @@ c
       use MODEL_COM, only : fim,byim,dt,qcheck
       use GEOM, only : dlon
       use DIAG_COM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4500,7 +4500,7 @@ c
       use CONSTANT, only : bygrav,tf,sha
       use MODEL_COM, only : qcheck,dtsrc
       use DIAG_COM
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4812,7 +4812,7 @@ c
       subroutine wave_defs
       use DIAG_COM
       use MODEL_COM, only : qcheck
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
 c
@@ -4942,7 +4942,7 @@ c
       use MODEL_COM, only : dtsrc,nisurf,qcheck,lm
       use DIAG_COM
       use SOCPBL, only : npbl=>n
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk,l, lmax_dd0=5, lmax_dd2=11  ! why?
       character*2 lst(lm)

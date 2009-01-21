@@ -104,7 +104,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       
       subroutine alloc_aerosol_sources(grid)
 !@auth D. Koch
-      use domain_decomp, only: dist_grid, get
+      use domain_decomp_atm, only: dist_grid, get
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
      * nso2src,SO2_src,BCI_src,BCB_src,BCBt_src,lmAER,nomsrc,
      * OCI_src,OCT_src,OCB_src,OCBt_src,BCI_src_3D,imAER,
@@ -190,7 +190,7 @@ C
       use model_com, only: jday,im,jm,lm
       use filemanager, only: openunit,closeunit
       use aerosol_sources, only: o3_offline
-      use domain_decomp, only: grid, get, write_parallel
+      use domain_decomp_atm, only: grid, get, write_parallel
 C     
       implicit none
 
@@ -265,8 +265,8 @@ c
 !@auth Jean Lerner and others / Greg Faluvegi
       USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
-     & ,write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL,
+     &     REWIND_PARALLEL,write_parallel
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
@@ -340,7 +340,7 @@ c**** Interpolate two months of data to current day
 
       SUBROUTINE READ_OFFHNO3(OUT)
       USE MODEL_COM, only : im,jm,lm,jdate,JDendOFM,jmon
-      USE DOMAIN_DECOMP, only : grid,unpack_data,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid,unpack_data,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
@@ -416,7 +416,7 @@ c -----------------------------------------------------------------
 
       SUBROUTINE READ_OFFSS(OUT)
       USE MODEL_COM, only : im,jm,lm,jdate,jmon,JDendOFM
-      USE DOMAIN_DECOMP, only : grid,unpack_data,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid,unpack_data,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
@@ -498,7 +498,7 @@ C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE MODEL_COM, only: itime,jday,JDperY,im,jm
 c    * ,DTsrc,ls1,jmon,t,lm
-      USE DOMAIN_DECOMP, only : GRID, GET,readt_parallel 
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel 
      * ,AM_I_ROOT
       USE GEOM, only: BYAXYP
       USE CONSTANT, only: sday,hrday
@@ -612,7 +612,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE AEROSOL_SOURCES, only: BCB_src,OCB_src,BCBt_src,OCBt_src,lmAER
      * ,SO2_biosrc_3D,SO2t_src
       USE MODEL_COM, only: jyear,im,jm,jmon
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only: axyp
       USE TRACER_COM, only: aer_int_yr,imPI,imAER
       USE FILEMANAGER, only: openunit,closeunit
@@ -723,7 +723,7 @@ c historic BC emissions
       USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only :  GRID, GET 
+      USE DOMAIN_DECOMP_ATM, only :  GRID, GET 
       USE TRACER_COM, only: aer_int_yr
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
@@ -855,7 +855,7 @@ c historic BC emissions
       USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only :  GRID, GET 
+      USE DOMAIN_DECOMP_ATM, only :  GRID, GET 
       USE TRACER_COM, only: aer_int_yr
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
@@ -955,7 +955,7 @@ c historic BC emissions
       USE MODEL_COM, only: jyear, jday,im,jm
       USE CONSTANT, only: sday
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only :  GRID, GET 
+      USE DOMAIN_DECOMP_ATM, only :  GRID, GET 
       USE TRACER_COM, only: aer_int_yr
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
@@ -1072,7 +1072,7 @@ c
 !@auth Koch
 c want kg SO2/m2/s
       USE MODEL_COM, only: im,jm,jmon,jday
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE TRACER_COM
       USE FILEMANAGER, only: openunit,closeunit
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D,lmAER
@@ -1250,8 +1250,9 @@ c if after Feb 28 skip the leapyear day
 #ifdef TRACERS_SPECIAL_Shindell
      &     ,jls_OHcon
 #endif
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, DREAD8_PARALLEL,DREAD_PARALLEL
-      USE DOMAIN_DECOMP, only : GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
@@ -1650,7 +1651,7 @@ c H2O2 losses:5 and 6
       SUBROUTINE SCALERAD
       use MODEL_COM, only: im,jm,lm,jday,jhour,jmon,itime,nday,dtsrc
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
-      USE DOMAIN_DECOMP, only:GRID,GET      
+      USE DOMAIN_DECOMP_ATM, only:GRID,GET      
       use CONSTANT, only: radian,teeny
 c     use RAD_COM, only: cosz1
       implicit none
@@ -2191,7 +2192,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop,psf,sig
-      USE DOMAIN_DECOMP, only: GRID, GET, write_parallel
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE CONSTANT, only: sday,hrday
       USE FILEMANAGER, only: openunit,closeunit
       USE FLUXES, only: tr3Dsource
@@ -2295,8 +2296,8 @@ c divide NOx emission by 350 to get BC
       USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
       USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP, only : GRID,GET,READT_PARALLEL,REWIND_PARALLEL
-     & ,write_parallel,backspace_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
+     &     ,REWIND_PARALLEL,write_parallel,backspace_parallel
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable

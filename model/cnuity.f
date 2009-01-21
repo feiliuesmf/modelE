@@ -3,7 +3,7 @@
 c
 c --- micom version 2.9
 c --- hycom version 0.9
-      USE DOMAIN_DECOMP, only : HALO_UPDATE,NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,NORTH,SOUTH
       USE HYCOM_DIM, only : ii,jj,isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv,kk
      &     ,ip,idm,ii1,JDM
      &     ,jchunk

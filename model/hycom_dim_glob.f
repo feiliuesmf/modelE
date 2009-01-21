@@ -140,7 +140,7 @@ cddd     .     msk
       contains
 
       subroutine gather_hycom_dim
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA,PACK_DATAJ
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA,PACK_DATAJ
 
       !write(0,*) "ok ",__FILE__,__LINE__
 

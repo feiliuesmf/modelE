@@ -56,7 +56,7 @@
       subroutine gather_tracer_gasexch_com_arrays
 
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
 
       call pack_data( ogrid, tracflx,tracflx_glob )
 
@@ -66,7 +66,7 @@
       subroutine scatter_tracer_gasexch_com_arrays
 
       USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP, ONLY: UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
 
       call unpack_data( ogrid, tracflx_glob,tracflx )
 
@@ -98,7 +98,7 @@
       USE obio_com, only : pCO2 !=>pCO2_glob
       !!!USE obio_com, only : pCO2
       USE obio_forc, only : atmCO2
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, pack_data, unpack_data
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data
 
       implicit none
       real*8, allocatable :: pCO2_glob(:,:)

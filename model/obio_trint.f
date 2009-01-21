@@ -20,7 +20,7 @@
       USE hycom_scalars, only : nstep
 #endif
 
-      USE DOMAIN_DECOMP, only: AM_I_ROOT,GLOBALSUM 
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,GLOBALSUM 
 
 
       implicit none

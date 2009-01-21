@@ -98,7 +98,7 @@ C**** some B-grid conservation quantities
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
-      use domain_decomp, only : grid
+      use domain_decomp_atm, only : grid
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 

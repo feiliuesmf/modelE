@@ -10,8 +10,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH
-      USE DOMAIN_DECOMP, only : WRITE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trname,ntm
 #endif
@@ -387,7 +387,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@+    at run-time
 !@auth Raul Garza-Robles
 !@ver  1.0
-      USE DOMAIN_DECOMP, only: DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, only: DIST_GRID, GET
       USE MODEL_COM, only : IM, JM
       USE LAKES, ONLY: RATE, DHORZ,KDIREC,IFLOW,JFLOW,
      *     KD911,IFL911,JFL911 
@@ -421,8 +421,8 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,jday,fearth0
-      USE DOMAIN_DECOMP, only : GRID,WRITE_PARALLEL
-      USE DOMAIN_DECOMP, only : GET,NORTH,SOUTH,HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GET,NORTH,SOUTH,HALO_UPDATE
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : axyp,dyv,imaxj
 #ifdef TRACERS_WATER
@@ -884,7 +884,7 @@ c perhaps replace these calculations with great circle distances later
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland,dtsrc
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
      *        GLOBALSUM, HALO_UPDATE_COLUMN
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
@@ -1232,7 +1232,7 @@ C****
       USE CONSTANT, only : rhow,sday,teeny,undef
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,NORTH,SOUTH,
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH,
      *    WRITE_PARALLEL
       USE GEOM, only : byaxyp
       USE DIAG_COM, only : aij,ij_mrvr
@@ -1326,7 +1326,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,qcheck,focean
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname, t_qlimit
@@ -1490,7 +1490,7 @@ C****
 
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
      *     ,j_implh 
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
      *     GLOBALSUM
       IMPLICIT NONE
       integer i,j,J_0,J_1,I_0,I_1,jr,itm
@@ -1759,7 +1759,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, GRID,GET,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET,NORTH,SOUTH
       USE GEOM, only : imaxj,axyp,byaxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
@@ -1862,7 +1862,7 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,dtsrc,itlake,itlkice
-      USE DOMAIN_DECOMP, only : GRID, GET,GLOBALSUM, HALO_UPDATE,
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET,GLOBALSUM, HALO_UPDATE,
      *    NORTH,SOUTH
 
       USE GEOM, only : imaxj,axyp
@@ -2079,7 +2079,7 @@ C****
       USE LAKES_COM, only : tlake,mwl,mldlk,gml,flake
       USE SEAICE, only : xsi,ace1i,rhoi
       USE SEAICE_COM, only : rsi,hsi,msi,snowi
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
       CHARACTER*2, INTENT(IN) :: STR
       INTEGER, PARAMETER :: NDIAG=4
@@ -2125,7 +2125,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,fland,fim
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : mwl,flake
       IMPLICIT NONE
@@ -2164,7 +2164,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,zatmo,fim,fland
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : imaxj,byaxyp
       USE LAKES_COM, only : gml,mwl,flake
       IMPLICIT NONE

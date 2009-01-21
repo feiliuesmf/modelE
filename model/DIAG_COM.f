@@ -734,8 +734,8 @@ c the new i/o system
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP, ONLY : GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, ONLY : GET
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
@@ -807,7 +807,7 @@ c the new i/o system
 !@ver  1.0
       USE RESOLUTION, ONLY : IM,JM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
-      USE DOMAIN_DECOMP, Only : AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,AJL
@@ -851,7 +851,7 @@ c     ALLOCATE( ! JREG(IM, JM))
 !@sum  To deallocate global arrays not currently needed
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, Only : AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : AJ,AREGJ,JREG,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
@@ -876,11 +876,11 @@ c     DEALLOCATE( ! JREG)
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
      *    ,Kradia
       USE DIAG_COM
-      USE DOMAIN_DECOMP, Only : grid, GET, PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP, Only : PACK_DATAj, UNPACK_DATAj, LOG_PARALLEL
-      USE DOMAIN_DECOMP, Only : PACK_COLUMN, UNPACK_COLUMN
-      USE DOMAIN_DECOMP, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
-      USE DOMAIN_DECOMP, Only : ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, Only : grid, GET, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, Only : PACK_DATAj, UNPACK_DATAj
+      USE DOMAIN_DECOMP_ATM, Only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
+      USE DOMAIN_DECOMP_ATM, Only : ESMF_BCAST
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
@@ -1203,7 +1203,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       END SUBROUTINE io_diags
 
       Subroutine Gather_Diagnostics()
-      use domain_decomp, only : grid,pack_data,pack_dataj,sumxpe
+      use domain_decomp_atm, only : grid,pack_data,pack_dataj,sumxpe
       use diag_com
       implicit none
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
@@ -1340,7 +1340,7 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
 !auth Denis Gueyffier
       USE GEOM, only : j_budg, axyp
       USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc
-      USE DOMAIN_DECOMP, only :GRID,GET
+      USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       INTEGER :: IER
@@ -1372,7 +1372,7 @@ c**** Compute area weights of zig-zag grid cells
 !@auth Gavin Schmidt
       USE GEOM, only : j_budg,j_0b,j_1b, lat2d_dg
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP, only :GRID,GET
+      USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
@@ -1495,7 +1495,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : axypband_loc,axypband,JM_BUDG
-      USE DOMAIN_DECOMP, only :grid,GET,sumxpe
+      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       logical :: increment

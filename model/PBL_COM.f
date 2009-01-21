@@ -66,10 +66,10 @@
 !@ver  1.0
       USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
-      USE DOMAIN_DECOMP, only : grid, GET, CHECKSUM, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : pack_column, pack_data
-      USE DOMAIN_DECOMP, only : unpack_column, unpack_data
-      USE DOMAIN_DECOMP, only : pack_block , unpack_block
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, CHECKSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : pack_column, pack_data
+      USE DOMAIN_DECOMP_ATM, only : unpack_column, unpack_data
+      USE DOMAIN_DECOMP_ATM, only : pack_block , unpack_block
 #ifdef TRACERS_ON
       use tracer_com, only : trname
 #endif
@@ -220,10 +220,10 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP, only : GET, grid, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : CHECKSUM, CHECKSUM_COLUMN
-      USE DOMAIN_DECOMP, only : UNPACK_DATA, UNPACK_COLUMN
-      USE DOMAIN_DECOMP, only : PACK_DATA, PACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : GET, grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : CHECKSUM, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : UNPACK_DATA, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : PACK_DATA, PACK_COLUMN
       USE PBLCOM
       IMPLICIT NONE
 
@@ -307,7 +307,7 @@
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE PBLCOM
-      USE DOMAIN_DECOMP, ONLY : DIST_GRID, GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 

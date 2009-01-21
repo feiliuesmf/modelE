@@ -9,7 +9,7 @@ C**** GLOBAL parameters and variables:
 C
       USE SOMTQ_COM, only       : qmom
       USE MODEL_COM, only       : im,jm,lm,ls1,Q,ptop,psf,sig
-      USE DOMAIN_DECOMP,only    : grid,get,write_parallel
+      USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
       USE DYNAMICS, only        : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : jls_OHcon,jls_day,
@@ -1587,7 +1587,7 @@ c Individual Species:
 
 C**** GLOBAL parameters and variables:
 
-      USE DOMAIN_DECOMP, only : write_parallel
+      USE DOMAIN_DECOMP_ATM, only : write_parallel
       USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, p_4, numfam, y,
      &                              p_2, p_3
 

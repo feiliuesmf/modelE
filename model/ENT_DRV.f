@@ -24,7 +24,7 @@
       use ent_com, only : entcells,Cint,Qfol,cnc_ij
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use model_com, only : focean, FLICE
-      use DOMAIN_DECOMP, only : GRID, GET
+      use DOMAIN_DECOMP_1D, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in
       real*8, intent(in) :: focean1(:,:)

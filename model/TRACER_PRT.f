@@ -11,7 +11,7 @@
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE MODEL_COM, only: im,jm,lm,itime,wm
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,bydxyp
@@ -121,7 +121,7 @@ c     *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
@@ -176,7 +176,7 @@ C**** Save current value in TCONSRV(NI)
       subroutine consrv_tr(nt,total)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       use model_com, only : lm,ls1,jm,fim,im
       use geom, only : imaxj
       use tracer_com, only : trm,trname
@@ -232,7 +232,7 @@ C****
 !@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE MODEL_COM, only: jm,fim,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       IMPLICIT NONE
@@ -497,7 +497,7 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE MODEL_COM, only: jm,lm,fim,itime,idacc,xlabel,lrunid
      &   ,dsig,ls1,pednl00,pdsigl00
       USE GEOM, only: bydxyp,dxyp,lat_dg
@@ -983,7 +983,7 @@ C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE
 C****
       USE CONSTANT, only : undef
-      USE DOMAIN_DECOMP, only : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM
       USE MODEL_COM, only: jm,lm,jdate,jdate0,amon,amon0,jyear,jyear0
      *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg

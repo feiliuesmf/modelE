@@ -875,7 +875,7 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
-      use DOMAIN_DECOMP, only: AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -2185,7 +2185,7 @@ C
 
 !!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
       USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE PARAM
       IMPLICIT NONE
 
@@ -8001,7 +8001,7 @@ c      USE SURF_ALBEDO, only : AVSCAT, ANSCAT, AVFOAM, ANFOAM,
 c     *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
 c     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
       USE SURF_ALBEDO, only : get_albedo_data
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       IMPLICIT NONE
 C
 C     ------------------------------------------------------------------

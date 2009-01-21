@@ -16,7 +16,7 @@ c --- hycom version 2.1
       USE KPRF_ARRAYS_LOC_RENAMER, only: dpbl, zgrid, vcty
       USE KPRF_ARRAYS_LOC_RENAMER, only: tmix, smix, thmix, umix, vmix
 
-      USE DOMAIN_DECOMP, only : HALO_UPDATE,SOUTH,NORTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,NORTH
       implicit none
 c
 c ---------------------------------------------------------

@@ -3,7 +3,7 @@
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
       USE HYCOM_DIM
-      USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
      &                          haveLatitude,GLOBALSUM
       USE HYCOM_SCALARS, only: itest,jtest
 

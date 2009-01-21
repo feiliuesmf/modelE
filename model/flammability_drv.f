@@ -50,7 +50,7 @@
 !@+    at run-time
 !@auth Greg Faluvegi
 !@ver  1.0
-      use domain_decomp, only: dist_grid, get
+      use domain_decomp_atm, only: dist_grid, get
       use model_com, only: im
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
@@ -88,7 +88,7 @@
       use model_com, only: im,jm,Itime,ItimeI
       use flammability_com, only: flammability, veg_density, first_prec
      & ,missing
-      use domain_decomp,only: grid, get, am_i_root, write_parallel,
+      use domain_decomp_atm,only: grid, get, am_i_root, write_parallel,
      & unpack_data
       use filemanager, only: openunit, closeunit
 
@@ -129,7 +129,8 @@
 !@auth Greg Faluvegi (based on Jean Lerner io_tracer)
 !@ver  1.0 
       use model_com, only: im,jm,ioread,iowrite,irsfic,irsficno,irerun
-      use domain_decomp, only: get,grid,am_i_root,pack_data,unpack_data
+      use domain_decomp_atm, only: get,grid,am_i_root,
+     &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
      & DRAfl,HRAfl,maxHR_prec,nday_prec
 
@@ -235,7 +236,7 @@
 !@auth Greg Faluvegi based on direction from Olga Pechony
 !@ver  1.0 
       use model_com, only: im, jm, dtsrc, ptop, p
-      use domain_decomp,only: grid, get
+      use domain_decomp_atm,only: grid, get
       use flammability_com, only: flammability,veg_density,ravg_prec,
      & ravg_prec,iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,missing,
      & raP_acc

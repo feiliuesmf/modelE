@@ -19,7 +19,7 @@ C****
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE GEOM, only : axyp,imaxj,byaxyp,lat2d
       USE SOMTQ_COM, only : tmom,qmom,mz
       USE DYNAMICS, only : pmid,pk,pedn,pek,am,byam

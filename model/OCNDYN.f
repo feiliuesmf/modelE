@@ -30,12 +30,12 @@ C?*** For serial GM/straits computations, pack data into global arrays
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
 
-!      USE DOMAIN_DECOMP, only : grid,get, haveLatitude
-      USE DOMAIN_DECOMP, only : get, haveLatitude
+!      USE DOMAIN_DECOMP_1D, only : grid,get, haveLatitude
+      USE DOMAIN_DECOMP_1D, only : get, haveLatitude
       USE OCEANR_DIM, only : grid=>ogrid
 
 C?*** For serial ODIF/GM/straits computations:
-      USE DOMAIN_DECOMP, only : AM_I_ROOT, pack_data, unpack_data
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
       USE OCEAN, only : scatter_ocean_straits, gather_ocean_straits
 
@@ -286,8 +286,8 @@ C***  Get the data from the ocean grid to the atmospheric grid
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
 
-!      USE DOMAIN_DECOMP, only : grid,get
-      USE DOMAIN_DECOMP, only : get
+!      USE DOMAIN_DECOMP_1D, only : grid,get
+      USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -679,7 +679,7 @@ C****
       USE obio_forc, only : avgq,tirrq3d,ihra
 #endif
 
-      USE DOMAIN_DECOMP, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
      .                         ,ESMF_BCAST
 
       IMPLICIT NONE
@@ -1038,8 +1038,8 @@ C****
       USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
 #endif
       USE OCEAN
-!      USE DOMAIN_DECOMP, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
+!      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1209,8 +1209,8 @@ C****
       USE CONSTANT, only : shw
       USE OCEAN, only : im,jm,lmo,ivnp,fim,imaxj,focean,mo,uo,vo,lmm
 
-      USE DOMAIN_DECOMP, only : GRID, GET, SOUTH, HALO_UPDATE
-!      USE DOMAIN_DECOMP, only : GET, SOUTH, HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, SOUTH, HALO_UPDATE
+!      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE
 !      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1257,8 +1257,8 @@ C****
       USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
       USE STRAITS, only : nmst,jst,g0mst
 
-      USE DOMAIN_DECOMP, only : GRID, GET
-!      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_1D, only : GRID, GET
+!      USE DOMAIN_DECOMP_1D, only : GET
 !      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1300,8 +1300,8 @@ C****
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
       USE STRAITS, only : nmst,jst,mmst
 
-      USE DOMAIN_DECOMP, only : GRID, GET, pack_data
-!      USE DOMAIN_DECOMP, only : GET, pack_data
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, pack_data
+!      USE DOMAIN_DECOMP_1D, only : GET, pack_data
 !      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1347,8 +1347,8 @@ C****
       USE CONSTANT, only : radius,omega
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosm,cosq,lmu
 
-      USE DOMAIN_DECOMP, only : GET, GRID
-!      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_1D, only : GET, GRID
+!      USE DOMAIN_DECOMP_1D, only : GET
 !      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1401,8 +1401,8 @@ C****
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
       USE STRAITS, only : nmst,jst,s0mst
 
-      USE DOMAIN_DECOMP, only : GET, GRID
-!      USE DOMAIN_DECOMP, only : GET
+      USE DOMAIN_DECOMP_1D, only : GET, GRID
+!      USE DOMAIN_DECOMP_1D, only : GET
 !      USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -1447,8 +1447,8 @@ C****
       Use OCEAN, Only: IM,JM,LMO, IVSP,IVNP, DXYP=>DXYPO, COSU,SINU,
      *                 COSI=>COSIC,SINI=>SINIC, MO,UO,VO, VONP
 
-!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
-      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -1522,8 +1522,8 @@ C****
      *                  COSU,SINU, COSI=>COSIC,SINI=>SINIC,
      *                  zDXYP=>BYDXYPO, MO,UO,VO, VONP
 
-!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
-      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -1610,8 +1610,8 @@ C****
      *                 DXYP=>DXYPO,DYP=>DYPO,DXV=>DXVO, MO,UO,VO
       Use OCEAN_DYN, Only: MU,MV,MW, SMU,SMV,SMW, CONV
 
-!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
-      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH,SOUTH
+!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH,SOUTH
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -1735,7 +1735,7 @@ C****
      *  JMPF=>J40S  !  greatest J in SH where polar filter is applied
       Use FILEMANAGER, Only: OPENUNIT, CLOSEUNIT
 
-!      Use DOMAIN_DECOMP, Only: GRID
+!      Use DOMAIN_DECOMP_1D, Only: GRID
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -1872,7 +1872,7 @@ C****
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM
       Use OCEAN_DYN, Only: MW, CONV
 
-!      Use DOMAIN_DECOMP, Only: GRID
+!      Use DOMAIN_DECOMP_1D, Only: GRID
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -1918,8 +1918,8 @@ C****
      *                 COSU,SINU, SINxY,TANxY, MO,UO,VO
       Use OCEAN_DYN, Only: MU,MV,MW
 
-!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH,SOUTH
-      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH,SOUTH
+!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH,SOUTH
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH,SOUTH
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -2197,8 +2197,8 @@ C****
      *                 COSI=>COSIC,SINI=>SINIC, OPRESS,OGEOZ,OPBOT
       Use OCEAN_DYN, Only: VBAR,dH, GUP,GDN, SUP,SDN
 
-!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
-      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -2344,8 +2344,8 @@ C****
      *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO
       Use OCEAN_DYN, Only: MMI, GUP,GDN, SUP,SDN
 
-!      Use DOMAIN_DECOMP, Only: GRID, HALO_UPDATE, NORTH
-      Use DOMAIN_DECOMP, Only: HALO_UPDATE, NORTH
+!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -2394,8 +2394,8 @@ C****
       USE OCEAN, only : im,jm,lmo
       USE OCEAN_DYN, only : mb=>mmi,smu,smv,smw
 
-!      use domain_decomp, only : grid, get
-      use domain_decomp, only : get
+!      use domain_decomp_1d, only : grid, get
+      use domain_decomp_1d, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -2458,8 +2458,8 @@ C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
 
-!      use domain_decomp, only : grid, get
-      use domain_decomp, only : get
+!      use domain_decomp_1d, only : grid, get
+      use domain_decomp_1d, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -2633,12 +2633,12 @@ c****     rm     (kg) = tracer mass
 c****   rx,ry,rz (kg) = 1st moments of tracer mass
 c****     mo     (kg) = ocean mass
 c****
-!      use DOMAIN_DECOMP, only : grid, get, halo_update
-      use DOMAIN_DECOMP, only : get, halo_update
+!      use DOMAIN_DECOMP_1D, only : grid, get, halo_update
+      use DOMAIN_DECOMP_1D, only : get, halo_update
       USE OCEANR_DIM, only : grid=>ogrid
 
-      use DOMAIN_DECOMP, only : halo_update_column
-      use DOMAIN_DECOMP, only : NORTH, SOUTH, AM_I_ROOT
+      use DOMAIN_DECOMP_1D, only : halo_update_column
+      use DOMAIN_DECOMP_1D, only : NORTH, SOUTH, AM_I_ROOT
       use OCEAN, only : im,jm,lmo,lmm,focean
       implicit none
       REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
@@ -2788,13 +2788,13 @@ c adv1d advects tracers in j-direction using the lin ups scheme
 c--------------------------------------------------------------
       use ocean, only: im,jm,lmo,lmm,focean
 
-!      USE DOMAIN_DECOMP, only: grid, GET
-      USE DOMAIN_DECOMP, only: GET
+!      USE DOMAIN_DECOMP_1D, only: grid, GET
+      USE DOMAIN_DECOMP_1D, only: GET
       USE OCEANR_DIM, only : grid=>ogrid
 
-      USE DOMAIN_DECOMP, only: NORTH, SOUTH
-      USE DOMAIN_DECOMP, only: HALO_UPDATE, HALO_UPDATE_COLUMN
-      USE DOMAIN_DECOMP, only: CHECKSUM
+      USE DOMAIN_DECOMP_1D, only: NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only: HALO_UPDATE, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, only: CHECKSUM
       implicit none
       !
 !@var s mean tracer amount (kg or J)
@@ -3099,8 +3099,8 @@ C****                    M (kg) = ocean mass
 C****
       USE OCEAN, only : im,jm,lmo,lmm,focean
 
-!      use domain_decomp, only : grid, get
-      use domain_decomp, only : get
+!      use domain_decomp_1d, only : grid, get
+      use domain_decomp_1d, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -3282,8 +3282,8 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
      *                 COSI=>COSIC,SINI=>SINIC
 
-!      use domain_decomp, only : grid, get, halo_update, north, south
-      use domain_decomp, only : get, halo_update, north, south
+!      use domain_decomp_1d, only : grid, get, halo_update, north, south
+      use domain_decomp_1d, only : get, halo_update, north, south
       USE OCEANR_DIM, only : grid=>ogrid
 
       Implicit None
@@ -3379,8 +3379,8 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,ntm,txmo,tymo
 #endif
-!      use domain_decomp, only : grid, get
-      use domain_decomp, only : get
+!      use domain_decomp_1d, only : grid, get
+      use domain_decomp_1d, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -3437,7 +3437,7 @@ C**** Reduce South-North gradient of tracers
      *     , IVNP, UO,VO, MO,DXYSO,DXYNO,DXYVO
      *     , LMU,LMV, COSIC,SINIC, RATOC
 
-      USE DOMAIN_DECOMP, only : get, halo_update, north
+      USE DOMAIN_DECOMP_1D, only : get, halo_update, north
 
       USE OCEANR_DIM, only : ogrid
 
@@ -3516,7 +3516,7 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,TRMO, NTM
 #endif
 
-      USE DOMAIN_DECOMP, only : get
+      USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE, only : Ei,FSSS
@@ -3851,7 +3851,7 @@ C****
      *     , trmo,dxypo
 #endif
 
-      USE DOMAIN_DECOMP, only : get, pack_data,unpack_data
+      USE DOMAIN_DECOMP_1D, only : get, pack_data,unpack_data
      *     , AM_I_ROOT, agrid=>grid
      *     , PACK_COLUMN, UNPACK_COLUMN
       USE OCEANR_DIM, only : ogrid
@@ -4007,11 +4007,11 @@ C****
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
 
-!      USE DOMAIN_DECOMP, ONLY : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, ONLY : GET, AM_I_ROOT
+!      USE DOMAIN_DECOMP_1D, ONLY : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
-      USE DOMAIN_DECOMP, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
-      USE DOMAIN_DECOMP, ONLY : haveLatitude
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, ONLY : haveLatitude
 
       IMPLICIT NONE
       REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
@@ -4634,7 +4634,7 @@ c      USE OCEAN, only : dxypo
      *     ,trgasex
 #endif
 
-      use domain_decomp, only : grid, get
+      use domain_decomp_1d, only : grid, get
 
       IMPLICIT NONE
       INTEGER I,J
@@ -4752,8 +4752,8 @@ c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
       USE MODEL_COM, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm,imaxj,ratoc
 
-!      use domain_decomp, only : grid,get
-      use domain_decomp, only : get
+!      use domain_decomp_1d, only : grid,get
+      use domain_decomp_1d, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -4913,7 +4913,7 @@ C****
 #endif
 #endif              
  
-      use domain_decomp, only : get
+      use domain_decomp_1d, only : get
 
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES, only : maxgl
@@ -4961,9 +4961,9 @@ C****
       USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
      *     ,wist
 
-!      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get, AM_I_ROOT,
+!      use DOMAIN_DECOMP_1D, only: grid, GLOBALSUM, get, AM_I_ROOT,
 !     *     ESMF_BCAST
-      use DOMAIN_DECOMP, only: GLOBALSUM, get, AM_I_ROOT,
+      use DOMAIN_DECOMP_1D, only: GLOBALSUM, get, AM_I_ROOT,
      *     ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid
 
@@ -5065,7 +5065,7 @@ C**** Check
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE DOMAIN_DECOMP, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
 
       IMPLICIT NONE
 
@@ -5276,7 +5276,7 @@ C**** surface tracer concentration
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      use domain_decomp, only: agrid=>grid, pack_data
+      use domain_decomp_1d, only: agrid=>grid, pack_data
       use OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
@@ -5316,7 +5316,7 @@ C**** surface tracer concentration
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      use domain_decomp, only: agrid=>grid,unpack_data
+      use domain_decomp_1d, only: agrid=>grid,unpack_data
 
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0
      *     , aS0, aOGEOZ,aOGEOZ_SV
@@ -6195,7 +6195,7 @@ C**** surface tracer concentration
 #endif
 #endif
 
-      USE DOMAIN_DECOMP, only : agrid=>grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid, AM_I_ROOT
      *     , PACK_DATA,UNPACK_DATA, PACK_COLUMN, UNPACK_COLUMN
      *     , PACK_BLOCK, UNPACK_BLOCK
       USE OCEANR_DIM, only : ogrid
@@ -6486,7 +6486,7 @@ C***  Scatter the arrays to the ocean grid
 #endif
 #endif
 
-      USE DOMAIN_DECOMP, only : agrid=>grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid, AM_I_ROOT
      *     , PACK_COLUMN, UNPACK_COLUMN, PACK_DATA
      *     , PACK_BLOCK, UNPACK_BLOCK
       USE OCEANR_DIM, only : ogrid

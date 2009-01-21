@@ -81,8 +81,8 @@ C**** Ice advection diagnostics
 !@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
 
-      USE DOMAIN_DECOMP, only : GET
-      USE DOMAIN_DECOMP, only : DIST_GRID
+      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE MODEL_COM, only : im
       USE ICEDYN, only : imic
       USE ICEDYN, only : grid_MIC
@@ -147,7 +147,7 @@ C**** grid_MIC stencils.
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
-      USE DOMAIN_DECOMP, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
       USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM
       IMPLICIT NONE
@@ -205,9 +205,9 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
-      USE DOMAIN_DECOMP, only : GET, AM_I_ROOT
-      USE DOMAIN_DECOMP, only : PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP, only : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
       USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM
       IMPLICIT NONE
@@ -356,8 +356,8 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhoi,grav,omega,rhows
       USE MODEL_COM, only : im,jm,dts=>dtsrc,focean
-      USE DOMAIN_DECOMP, only : grid, DIST_GRID, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : grid, DIST_GRID, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
       USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
@@ -765,9 +765,9 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
-      USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE, SOUTH, NORTH
-      USE DOMAIN_DECOMP, only : HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, NORTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj
 c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
@@ -1691,7 +1691,7 @@ C****
 !@auth Gavin Schmidt
 C**** temporary assumption that ice velocities are on atmos B grid 
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP, only : get,grid,HALO_UPDATE,SOUTH,NORTH
+      USE DOMAIN_DECOMP_1D, only : get,grid,HALO_UPDATE,SOUTH,NORTH
       USE GEOM, only : imaxj,idjj,idij,rapj,kmaxj,sinip,cosip
       IMPLICIT NONE
       REAL*8, INTENT(IN), DIMENSION(IM,

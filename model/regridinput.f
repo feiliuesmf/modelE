@@ -481,7 +481,7 @@ c*
 c
 c     for 1x1 resolution: Jeff uses GIC=GIC.360X180.DEC01.1.rep
 c
-      use DOMAIN_DECOMP,only : am_i_root
+      use DOMAIN_DECOMP_1D,only : am_i_root
       use regrid_com
       use dd2d_utils
       use pario, only : defvar,write_data

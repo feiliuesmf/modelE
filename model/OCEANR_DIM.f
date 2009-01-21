@@ -4,7 +4,7 @@
 !@auth Larissa Nazarenko
 !@ver  1.0
       MODULE OCEANR_DIM
-      USE DOMAIN_DECOMP, only : DIST_GRID
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE OCEANRES,  only : imo,jmo, lmo
 
       implicit none
@@ -27,7 +27,7 @@ c
       contains
 
       subroutine init_oceanr_grid
-      USE DOMAIN_DECOMP, only : init_grid, get
+      USE DOMAIN_DECOMP_1D, only : init_grid, get
  
 !      TYPE(DIST_GRID) :: ogrid   ! ocean (Russell) grid
 

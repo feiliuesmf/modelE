@@ -385,12 +385,12 @@ c -------------------------------------------------------------
       USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
       USE GHY_COM, only : fearth
       USE PBLCOM
-      USE DOMAIN_DECOMP, only : GRID, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE,NORTH
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE,NORTH
 #ifdef CUBE_GRID
       use pario_fbsa, only : READT_PARALLEL
 #else
-      USE DOMAIN_DECOMP, only : READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
 #endif
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
@@ -602,7 +602,7 @@ c  capability is added in future versions of the model.
 c ----------------------------------------------------------------------
       USE MODEL_COM
       USE GEOM, only : imaxj
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE PBLCOM, only : ipbl,wsavg,tsavg,qsavg,usavg,vsavg,tauavg
      &     ,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
       IMPLICIT NONE
@@ -741,7 +741,7 @@ C**** initialise some pbl common variables
 !@sum  CHECKPBL Checks whether PBL data are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE PBLCOM, only : wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg
      *     ,ustar_pbl,uflux,vflux,tflux,qflux,tgvavg,qgavg,w2_l1
       IMPLICIT NONE

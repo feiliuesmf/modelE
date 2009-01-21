@@ -50,7 +50,7 @@ c  Carbon type 2    = DIC
       USE hycom_arrays_glob, only : tracer,dpinit
       USE hycom_scalars, only: onem
 
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 cddd      USE hycom_arrays_glob, only: gather_hycom_arrays,
 cddd     &     scatter_hycom_arrays
 
@@ -664,7 +664,7 @@ c     input: flda (W/m*m), output: fldo (W/m*m)
 c
 
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
       USE hycom_arrays_glob, only : dpinit

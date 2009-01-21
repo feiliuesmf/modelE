@@ -13,7 +13,7 @@ c --- hycom version 1.0 -- cyclic in j
      &     ip, iu, iv, iq, ifp, ilp, isp, ifq, ilq, isq,
      &     ifu, ilu, isu, ifv, ilv, isv, jchunk
 
-      USE DOMAIN_DECOMP, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
      &                          GLOBALMIN,GLOBALMAX
 
       implicit none
@@ -326,7 +326,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ! gather variables for printing
 
       USE HYCOM_DIM, only: ogrid, idm, jdm, J_0H, J_1H
-      USE DOMAIN_DECOMP, ONLY: PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
 
       implicit none
       real temp(idm,J_0H:J_1H), saln(idm,J_0H:J_1H)

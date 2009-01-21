@@ -24,7 +24,7 @@
       SUBROUTINE DYNAM
       USE MODEL_COM, only : im,lm,t,p,q,ls1,NSTEPSCM     
       USE SOMTQ_COM, only : tmom,mz
-      USE DOMAIN_DECOMP, only : grid
+      USE DOMAIN_DECOMP_1D, only : grid
       USE DYNAMICS, only : PMID,PEDN     
 
 
@@ -182,7 +182,7 @@ c     want to fill SD (IDUM,JDUM)  check out
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ls1,psfmpt
 C****
-      USE DOMAIN_DECOMP, Only : grid, GET
+      USE DOMAIN_DECOMP_1D, Only : grid, GET
       implicit none
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: pijl
@@ -206,8 +206,8 @@ C****
       USE CONSTANT, only : bygrav,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,p
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
-      USE DOMAIN_DECOMP, Only : grid, GET, HALO_UPDATE, SOUTH
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, Only : grid, GET, HALO_UPDATE, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
 
       INTEGER :: I,J,L  !@var I,J,L  loop variables
@@ -277,10 +277,10 @@ C**** SPA and PU directly from the dynamics. (Future work).
       USE GEOM, only : bydyp,bydxp,cosip,sinip
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
-      USE DOMAIN_DECOMP, only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
       INTEGER I,J,K,IP1,IM1,J1
@@ -316,10 +316,10 @@ c**** Extract domain decomposition info
      &     ,do_polefix,I_TARG,J_TARG   
       USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
       USE DYNAMICS, only : gz,pu,pit,phi,spa,dut,dvt
-      USE DOMAIN_DECOMP, Only : grid, GET
-      USE DOMAIN_DECOMP, only : HALO_UPDATE
-      USE DOMAIN_DECOMP, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, Only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       USE SCMCOM, only : iu_scm_prt
       IMPLICIT NONE
 
@@ -445,8 +445,8 @@ c     END SUBROUTINE AFLUX
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
       USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
-      USE DOMAIN_DECOMP, Only : grid, GET
-      USE DOMAIN_DECOMP, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, Only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
       INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
@@ -653,7 +653,7 @@ C**** Dummy routines
 
       SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS( PUA,PVA,dt)
 !@sum COMPUTE_DYNAM_AIJ_DIAGNOSTICS Dummy
-      use DOMAIN_DECOMP, only: grid
+      use DOMAIN_DECOMP_1D, only: grid
 
       real*8, intent(in) :: PUA(:,grid%J_STRT_HALO:,:)
       real*8, intent(in) :: PVA(:,grid%J_STRT_HALO:,:)
@@ -665,7 +665,7 @@ C**** Dummy routines
 
       SUBROUTINE COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
 !@sum COMPUTE_WSAVE Dummy
-      use DOMAIN_DECOMP, only: grid, GET
+      use DOMAIN_DECOMP_1D, only: grid, GET
 
       real*8, dimension(:, grid%J_STRT_HALO:, :), intent(out) :: WSAVE
       real*8, dimension(:, grid%J_STRT_HALO:, :), intent(in)  :: SDA, T
@@ -680,8 +680,8 @@ C**** Dummy routines
 !@auth Tom Clune (SIVO)
 !@ver  1.0
       use GEOM, only: DXYP, AREAG
-      use DOMAIN_DECOMP, only: grid, GLOBALSUM, get
-      USE DOMAIN_DECOMP, only : haveLatitude
+      use DOMAIN_DECOMP_1D, only: grid, GLOBALSUM, get
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       REAL*8 :: totalEnergy
 
       totalEnergy = 0.
@@ -705,7 +705,7 @@ C***** Add in dissipiated KE as heat locally
 !@sum  addEnergyAsLocalHeat Dummy
 !@auth Tom Clune (SIVO)
 !@ver  1.0
-      use DOMAIN_DECOMP, only: grid, get
+      use DOMAIN_DECOMP_1D, only: grid, get
       implicit none
       real*8 :: deltaKE(:,grid%j_strt_halo:,:)
       real*8 :: T(:,grid%j_strt_halo:,:)
