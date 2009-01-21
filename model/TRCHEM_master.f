@@ -1888,7 +1888,7 @@ C         previous stratospheric value by 70% here: GSF/DTS 9.15.03:
           changeL(L,n_NOx)=trm(I,J,L,n_Ox)*2.3d-4*1.7d0*PIfact(n_NOx)
      &                                         - trm(I,J,L,n_NOx)
           changeL(L,n_N2O5)=  FACT1*PIfact(n_N2O5)- trm(I,J,L,n_N2O5)
-          changeL(L,n_HNO3)=trm(I,J,L,n_Ox)*4.2d-3*PIfact(n_HNO3)
+          changeL(L,n_HNO3)=trm(I,J,L,n_Ox)*1.d-3*PIfact(n_HNO3)
      &                                         - trm(I,J,L,n_HNO3)
           changeL(L,n_H2O2)=  FACT1            - trm(I,J,L,n_H2O2)
           changeL(L,n_CH3OOH)=FACT1            - trm(I,J,L,n_CH3OOH)
