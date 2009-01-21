@@ -83,7 +83,7 @@ module FV_INTERFACE_MOD
 
   Interface ConvertPotTemp_GISS2FV
      Module Procedure CnvPotTemp_GISS2FV_r8
-     Module Procedure CnvPotTemp_GISS2V_r4
+     Module Procedure CnvPotTemp_GISS2FV_r4
   End Interface
 
   Interface ConvertPotTemp_FV2GISS
