@@ -658,7 +658,7 @@ c      integer, optional, intent(in) :: diagIndex
       I_0 = grid%i_strt
       I_1 = grid%i_stop
 
-!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff,K)
+!$OMP  PARALLEL DO PRIVATE(I,J,L,ediff)
       DO L=1,LM
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
