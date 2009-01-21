@@ -131,7 +131,7 @@ C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
 #ifdef CUBE_GRID
-      USE GEOM, only : bydyp,bydxp
+      USE GEOM, only : cosip,sinip
 #else
       USE GEOM, only : bydyp,bydxp,cosip,sinip
 #endif
