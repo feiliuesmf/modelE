@@ -52,7 +52,6 @@ C**** initiallise work arrays
       MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
 
 C***  Get the data from the atmospheric grid to the ocean grid
-
       call AG2OG_oceans
 C****
 C**** Integrate Ocean Dynamics terms
@@ -345,6 +344,7 @@ C**** Arrays needed each ocean model run
 C****
       CALL GEOMO
 
+      CALL OFFT0(IM) 
 C**** Calculate ZE 
 
       ZE(0) = 0d0
@@ -396,6 +396,7 @@ C     L=LMO
   160 LMM(I,J)=L
       HOCEAN(I,J) = -HATMO(I,J) + ZE(L)
   170 CONTINUE
+
 C**** Calculate LMU
       I=IM
       DO 180 J=1,JM    ! global arrays (fixed from now on)
@@ -1202,239 +1203,301 @@ C****
 C****
       END SUBROUTINE CHECKO
 
-      SUBROUTINE conserv_OKE(OKE)
-!@sum  conserv_OKE calculates zonal ocean kinetic energy
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : shw
-      USE OCEAN, only : im,jm,lmo,ivnp,fim,imaxj,focean,mo,uo,vo,lmm
-
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, SOUTH, HALO_UPDATE
-!      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE
-!      USE OCEANR_DIM, only : grid=>ogrid
-
-      IMPLICIT NONE
-!@var OKE zonal ocean kinetic energy per unit area (J/m**2)
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OKE
-      INTEGER I,J,L,IP1
-
-      INTEGER :: J_0S, J_1S
-      LOGICAL :: HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-      CALL HALO_UPDATE(grid, VO, FROM=SOUTH)
-      OKE=0.
-      DO J=J_0S,J_1S
-        I=IM
-        DO IP1=1,IM
-          DO L=1,LMM(I,J)
-            OKE(J) = OKE(J)+((MO(I,J,L)+MO(IP1,J,L))*UO(I,J,L)*UO(I,J,L)
-     *      + MO(I,J,L)*(VO(I,J-1,L)*VO(I,J-1,L) + VO(I,J,L)*VO(I,J,L)))
-          END DO
-          I=IP1
-        END DO
-        OKE(J)=OKE(J)*0.25
-      END DO
-      if(HAVE_NORTH_POLE) then
-        DO L=1,LMM(1,JM)
-          OKE(JM) = OKE(JM) +
-     +      MO(1,JM,L) * (1.5*IM*(UO(IM,JM,L)**2 + UO(IVNP,JM,L)**2) +
-     +                    Sum(VO(:,JM-1,L)*VO(:,JM-1,L)) )
-        END DO
-        OKE(JM)= OKE(JM)*0.25
-      end if
+      Subroutine CONSERV_OMS (aOMASS)
 C****
-      RETURN
-      END SUBROUTINE conserv_OKE
-
-      SUBROUTINE conserv_OCE(OCEANE)
-!@sum  conserv_OCE calculates zonal ocean potential enthalpy(atmos grid)
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE GEOM, only : bydxyp
-      USE OCEAN, only : im,jm,fim,imaxj,focean,g0m,lmm
-      USE STRAITS, only : nmst,jst,g0mst
-
-      USE DOMAIN_DECOMP_1D, only : GRID, GET
-!      USE DOMAIN_DECOMP_1D, only : GET
-!      USE OCEANR_DIM, only : grid=>ogrid
-
-      IMPLICIT NONE
-!@var OCEANE zonal ocean potential enthalpy (J/m^2)
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OCEANE
-      INTEGER I,J,L,N
-
-      INTEGER :: J_0, J_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
-     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-      DO J=J_0,J_1
-        OCEANE(J)=0
-        DO I=1,IMAXJ(J)
-          DO L=1,LMM(I,J)
-            OCEANE(J) = OCEANE(J) + G0M(I,J,L)*FOCEAN(I,J)*BYDXYP(J)
-          END DO
-        END DO
-      END DO
-      if(HAVE_SOUTH_POLE) OCEANE(1) =FIM*OCEANE(1)
-      if(HAVE_NORTH_POLE) OCEANE(JM)=FIM*OCEANE(JM)
-C**** include straits variables
-      DO N=1,NMST
-        J=JST(N,1)
-       if(j.lt.j_0 .or. j.gt.j_1) cycle
-        OCEANE(J)=OCEANE(J)+SUM(G0MST(:,N))*BYDXYP(J)
-      END DO
+!@sum   CONSERV_OMS calculates zonal ocean mass (kg/m^2) on atmo-grid
+!@auth  Gavin Schmidt
+!@ver   2008/12/22
 C****
-      RETURN
-      END SUBROUTINE conserv_OCE
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
 
-      SUBROUTINE conserv_OMS(OMASS)
-!@sum  conserv_OMS calculates zonal ocean mass (on atmos grid)
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE GEOM, only : bydxyp
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,g0m,lmm,dxypo
-      USE STRAITS, only : nmst,jst,mmst
+      USE OCEAN, only : IMO=>IM,JMO=>JM
+     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, MO
 
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, pack_data
-!      USE DOMAIN_DECOMP_1D, only : GET, pack_data
-!      USE OCEANR_DIM, only : grid=>ogrid
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET, SOUTH, HALO_UPDATE
 
-      IMPLICIT NONE
-!@var OMASS zonal ocean mass (kg/m^2)
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OMASS
-      REAL*8, DIMENSION(JM) :: OMSSV
-      COMMON /OCCONS/OMSSV
-      INTEGER I,J,L,N
-
-      INTEGER :: J_0, J_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
-     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-      DO J=J_0,J_1
-        OMASS(J)=0
-        DO I=1,IMAXJ(J)
-          DO L=1,LMM(I,J)
-            OMASS(J) = OMASS(J) + MO(I,J,L)*FOCEAN(I,J)
-          END DO
-        END DO
-        OMASS(J)=OMASS(J)*DXYPO(J)*BYDXYP(J)
-      END DO
-      if (HAVE_SOUTH_POLE) OMASS(1) =FIM*OMASS(1)
-      if (HAVE_NORTH_POLE) OMASS(JM)=FIM*OMASS(JM)
-C**** include straits variables
-      DO N=1,NMST
-        J=JST(N,1)
-        if(j.lt.j_0 .or. j.gt.j_1) cycle
-        OMASS(J)=OMASS(J)+SUM(MMST(:,N))*BYDXYP(J)
-      END DO
-C**** save mass for AM calculation
-      OMSSV(J_0:J_1) = OMASS(J_0:J_1)
+      Use STRAITS,       Only: NMST,JST,LMST, MMST
+c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      Use OCEANR_DIM,    Only: oGRID
+      Implicit None
+!@var aOMASS zonal ocean mass per whole latitude band area (kg/m^2)
+      Real*8    :: oOMASS(oGRID%J_STRT:oGRID%J_STOP),
+     *             aOMASS(aGRID%J_STRT:aGRID%J_STOP)
+      Integer*4 :: J1O,JNO, I,J,N
 C****
-      RETURN
-      END SUBROUTINE conserv_OMS
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      Do J=Max(J1O,2),Min(JNO,JMO-1)
+        oOMASS(J) = 0
+        Do I=1,IMO
+          oOMASS(J) = oOMASS(J) + Sum(MO(I,J,:LMM(I,J)))    
+        EndDo
+        oOMASS(J) = oOMASS(J)/IMO    
+      EndDo
+      If (J1O == 1)    oOMASS(1)   = Sum(MO(1,1  ,:LMM(1,1)))
+      If (JNO == JMO)  oOMASS(JMO) = Sum(MO(1,JMO,:LMM(1,JMO)))
+C**** Include ocean mass of straits
+      Do N=1,NMST
+        J = JST(N,1)
+        If (J >= J1O .and. J <= JNO)
+     *    oOMASS(J) = oOMASS(J) + Sum(MMST(:LMST(N),N))*ozDXYP(J)
+      EndDo
+C**** Interpolate data from ocean resolution to atmosphere resolution
+      Call OJtoAJ (oOMASS,aOMASS)
+      Return
+      End Subroutine CONSERV_OMS
 
-      SUBROUTINE conserv_OAM(OAM)
-!@sum  conserv_OAM calculates zonal ocean angular momentum
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : radius,omega
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,uo,cosm,cosq,lmu
-
-      USE DOMAIN_DECOMP_1D, only : GET, GRID
-!      USE DOMAIN_DECOMP_1D, only : GET
-!      USE OCEANR_DIM, only : grid=>ogrid
-
-      IMPLICIT NONE
-!@var OAM ocean angular momentum divided by area (kg/s)
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OAM
-      REAL*8, DIMENSION(JM) :: OMSSV
-      COMMON /OCCONS/OMSSV
-      INTEGER I,J,L,IP1
-      REAL*8 UMILx2
-
-      INTEGER :: J_0S, J_1S
-      LOGICAL :: HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-      OAM=0
-      DO J=J_0S,J_1S
-        UMILx2 = 0.
-        I=IM
-        DO IP1=1,IM
-          DO L=1,LMU(I,J)
-            UMILx2 = UMILx2 + UO(I,J,L)*(MO(I,J,L)+MO(IP1,J,L))
-          END DO
-          I=IP1
-        END DO
-c       OAM(J) = UMIL*COSPO(J) + OMSSV(J)*RADIUS*OMEGA*(COSVO(J-1)
-c    *       *COSVO(J-1)+COSVO(J)*COSVO(J))
-c       OAM(J)=0.5*RADIUS*OAM(J)
-        OAM(J) = RADIUS*(OMSSV(J)*RADIUS*OMEGA*COSQ(J) +
-     +                   .5*UMILx2*COSM(J))
-      END DO
-
-      if (HAVE_NORTH_POLE)
-     *  OAM(JM) = RADIUS*OMSSV(JM)*RADIUS*OMEGA*COSQ(JM)
-c     DO L=1,LMU(1,JM)
-c       UMIL = UMIL + UO(1,JM,L)*MO(1,JM,L)
-c     END DO
-c     OAM(JM) = UMIL*COSPO(JM)*IM*2. +OMSSV(JM)*RADIUS*OMEGA
-c    *     *COSVO(JM-1)*COSVO(JM-1)
-c     OAM(JM)=0.5*RADIUS*OAM(JM)
+      Subroutine CONSERV_OSL (aOSALT)
 C****
-      RETURN
-      END SUBROUTINE conserv_OAM
-
-      SUBROUTINE conserv_OSL(OSALT)
-!@sum  conserv_OSL calculates zonal ocean salt on atmos grid
-!@auth Gavin Schmidt
-!@ver  1.0
-      USE GEOM, only : bydxyp
-      USE OCEAN, only : im,jm,fim,imaxj,focean,mo,s0m,lmm
-      USE STRAITS, only : nmst,jst,s0mst
-
-      USE DOMAIN_DECOMP_1D, only : GET, GRID
-!      USE DOMAIN_DECOMP_1D, only : GET
-!      USE OCEANR_DIM, only : grid=>ogrid
-
-      IMPLICIT NONE
-!@var OSALT zonal ocean salt (kg/m^2)
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OSALT
-      INTEGER I,J,L,N
-
-      INTEGER :: J_0, J_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      CALL GET(grid, J_STRT=J_0,    J_STOP=J_1,
-     &  HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-      DO J=J_0,J_1
-        OSALT(J)=0
-        DO I=1,IMAXJ(J)
-          DO L=1,LMM(I,J)
-            OSALT(J) = OSALT(J) + S0M(I,J,L)*FOCEAN(I,J)*BYDXYP(J)
-          END DO
-        END DO
-      END DO
-      if (HAVE_SOUTH_POLE) OSALT(1) =FIM*OSALT(1)
-      if (HAVE_NORTH_POLE) OSALT(JM)=FIM*OSALT(JM)
-C**** include straits variables
-      DO N=1,NMST
-        J=JST(N,1)
-        if(j.lt.j_0 .or. j.gt.j_1) cycle
-        OSALT(J)=OSALT(J)+SUM(S0MST(:,N))*BYDXYP(J)
-      END DO
+!@sum   CONSERV_OSL calculates zonal ocean salt (kg/m^2) on atmo-grid
+!@auth  Gavin Schmidt
+!@ver   2008/12/22
 C****
-      RETURN
-      END SUBROUTINE conserv_OSL
+      USE OCEAN, only : IMO=>IM,JMO=>JM
+     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, S0M
+
+      Use STRAITS,       Only: NMST,JST,LMST, S0MST
+c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      USE DOMAIN_DECOMP_1D, only : GET, aGRID=>GRID
+      Use OCEANR_DIM,    Only: oGRID
+      Implicit None
+!@var aOSALT zonal ocean salt per whole latitude band area (kg/m^2)
+      Real*8    :: oOSALT(oGRID%J_STRT:oGRID%J_STOP),
+     *             aOSALT(aGRID%J_STRT:aGRID%J_STOP)
+      Integer*4 :: J1O,JNO, I,J,N
+C****
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      Do J=Max(J1O,2),Min(JNO,JMO-1)
+        oOSALT(J) = 0
+        Do I=1,IMO
+          oOSALT(J) = oOSALT(J) + Sum(S0M(I,J,:LMM(I,J)))    
+        EndDo
+        oOSALT(J) = oOSALT(J) / IMO    
+      EndDo
+      If (J1O == 1)    oOSALT(1)   = Sum(S0M(1,1  ,:LMM(1,1)))
+      If (JNO == JMO)  oOSALT(JMO) = Sum(S0M(1,JMO,:LMM(1,JMO)))
+C**** Include ocean salt of straits
+      Do N=1,NMST
+        J = JST(N,1)
+        If (J >= J1O .and. J <= JNO)
+     *    oOSALT(J) = oOSALT(J) + Sum(S0MST(:LMST(N),N))   
+      EndDo
+C**** Divide salt (kg per cell) by grid cell area
+      oOSALT(:) = oOSALT(:) * ozDXYP(J1O:JNO)
+C**** Interpolate data from ocean resolution to atmosphere resolution
+      Call OJtoAJ (oOSALT,aOSALT)
+      Return
+      End Subroutine CONSERV_OSL
+
+      Subroutine CONSERV_OCE (aOCEANE)
+C****
+!@sum   CONSERV_OCE calculates zonal ocean potential enthalpy (J/m^2)
+!@auth  Gavin Schmidt
+!@ver   2008/12/22
+C****
+      USE OCEAN, only : IMO=>IM,JMO=>JM
+     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, G0M 
+
+      Use STRAITS,       Only: NMST,JST,LMST, G0MST
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET
+c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      Use OCEANR_DIM,    Only: oGRID
+      Implicit None
+!@var aOCEANE zonal ocean potential enthalpy per band area (J/m^2)
+      Real*8    :: oOCEANE(oGRID%J_STRT:oGRID%J_STOP),
+     *             aOCEANE(aGRID%J_STRT:aGRID%J_STOP)
+      Integer*4 :: J1O,JNO, I,J,N
+C****
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      Do J=Max(J1O,2),Min(JNO,JMO-1)
+        oOCEANE(J) = 0
+        Do I=1,IMO
+          oOCEANE(J) = oOCEANE(J) + Sum(G0M(I,J,:LMM(I,J)))    
+        EndDo
+        oOCEANE(J) = oOCEANE(J) / IMO    
+      EndDo
+      If (J1O == 1)    oOCEANE(1)   = Sum(G0M(1,1  ,:LMM(1,1)))
+      If (JNO == JMO)  oOCEANE(JMO) = Sum(G0M(1,JMO,:LMM(1,JMO)))
+C**** Include ocean potential enthalpy of straits
+      Do N=1,NMST
+        J = JST(N,1)
+        If (J >= J1O .and. J <= JNO)
+     *    oOCEANE(J) = oOCEANE(J) + Sum(G0MST(:LMST(N),N))    
+      EndDo
+C**** Divide potential enthalpy (J per cell) by grid cell area
+      oOCEANE(:) = oOCEANE(:) * ozDXYP(J1O:JNO)
+C**** Interpolate data from ocean resolution to atmosphere resolution
+      Call OJtoAJ (oOCEANE,aOCEANE)
+      Return
+      End Subroutine CONSERV_OCE
+
+      Subroutine CONSERV_OKE (aOKE)
+C****
+!@sum   CONSERV_OKE calculates zonal ocean kinetic energy
+!@auth  Gavin Schmidt
+!@ver   2008/12/23
+C****
+      USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
+     *     , oDXYP=>DXYPO, LMOM=>LMM, MO,UO,VO  
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET, SOUTH, HALO_UPDATE
+c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET, SOUTH, HALO_UPDATE
+      Use OCEANR_DIM,    Only: oGRID
+      Implicit None
+!@var aOKE zonal ocean kinetic energy per whole band area (J/m^2)
+      Real*8    :: oOKE(oGRID%J_STRT:oGRID%J_STOP),
+     *             aOKE(aGRID%J_STRT:aGRID%J_STOP)
+      Integer*4 :: J1O,JNO, I,J,L,Ip1
+C****
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      Call HALO_UPDATE (oGRID, VO, From=South)
+      Do J=Max(J1O,2),Min(JNO,JMO-1)
+        oOKE(J) = 0
+        I=IMO
+        Do Ip1=1,IMO
+          Do L=1,LMOM(I,J)
+            oOKE(J) = oOKE(J) + ((MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)**2 
+     +              + MO(I,J,L)*(VO(I,J-1,L)**2 + VO(I,J,L)**2))  
+          EndDo
+          I=Ip1    
+        EndDo
+        oOKE(J) = oOKE(J) / IMO    
+      EndDo
+C**** oOKE at J = 1: south pole
+C     If (J1O == 1)  Then
+C       Do L=1,LMOM(1,1)
+C         oOKE(1) = oOKE(1) + MO(1,1,L) *
+C    *              (1.5*IMO*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) +
+C    +               Sum(VO(:,1,L)**2))/IMO)  ;  EndDo  ;  EndIf
+C**** oOKE at J = JMO: north pole
+      If (JNO == JMO)  Then
+        oOKE(JMO) = 0.0
+        Do L=1,LMOM(1,JMO)
+          oOKE(JMO) = oOKE(JMO) + MO(1,JMO,L) 
+     *              * (1.5*IMO*(UO(IMO,JMO,L)**2 + UO(IVNPO,JMO,L)**2) 
+     +              + Sum(VO(:,JMO-1,L)**2)/IMO)    
+        EndDo    
+      EndIf
+      oOKE(:) = oOKE(:)*.25
+C**** Interpolate data from ocean resolution to atmosphere resolution
+      Call OJtoAJ (oOKE,aOKE)
+      Return
+      End Subroutine CONSERV_OKE
+
+      Subroutine CONSERV_OAM (aOAM)
+C****
+!@sum   CONSERV_OAM calculates zonal ocean angular momentum (kg/s)
+!@auth  Gavin Schmidt
+!@ver   2008/12/24
+C****
+      Use CONSTANT,      Only: RADIUS,OMEGA
+      USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
+     *     , oDXYP=>DXYPO, LMOM=>LMM,LMOU=>LMU, MO,UO
+     *     , oCOSQ=>COSQ, oCOSM=>COSM  
+
+      USE DOMAIN_DECOMP_1D, only : GET, aGRID=>GRID
+c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      Use OCEANR_DIM,    Only: oGRID
+      Implicit None
+!@var aOAM ocean angular momentum per whole latitude band area (kg/s)
+      Real*8    :: oOAM(oGRID%J_STRT:oGRID%J_STOP), oOMASS,oUMILx2,
+     *             aOAM(aGRID%J_STRT:aGRID%J_STOP)
+      Integer*4 :: J1O,JNO, I,J,L,Ip1
+C****
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+
+      Do J=Max(J1O,2),Min(JNO,JMO-1)
+        oOMASS  = 0
+        oUMILx2 = 0
+        I=IMO
+        Do Ip1=1,IMO
+          oOMASS = oOMASS + Sum(MO(I,J,:LMOM(I,J)))
+          Do L=1,LMOU(I,J)
+            oUMILx2 = oUMILx2 + (MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)
+            EndDo
+          I=Ip1    
+        EndDo
+        oOAM(J) = (.5*oUMILx2*oCOSM(J) + RADIUS*OMEGA*oCOSQ(J)*oOMASS)*
+     *            RADIUS / IMO    
+      EndDo
+C     If (J1O == 1)  oOAM(1 = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
+C    *                        Sum(MO(1,1,:LMOM(1,1))) / IMO
+      If (JNO == JMO)  oOAM(JMO) = RADIUS*RADIUS*OMEGA*oCOSQ(JMO)*
+     *                             Sum(MO(1,JMO,:LMOM(1,JMO))) / IMO
+C**** Interpolate data from ocean resolution to atmosphere resolution
+      Call OJtoAJ (oOAM,aOAM)
+      Return
+      End Subroutine CONSERV_OAM
+
+      Subroutine OJtoAJ (oQJ,aQJ)
+C****
+!@sum   OJtoAJ interpolates latitudinal average A-grid ocean data that
+C****   is per unit area from ocean resolution to atmosphere resolution.
+C****   QJ is conserved:  sum[oDXYP(:)*oQJ(:)] = sum[aDXYP(:)*aQJ(:)]
+!@auth  Gary L. Russell
+!@ver   2008/12/23
+C****
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
+      Use GEOM,          Only: aDXYP=>DXYP,  aDLATM=>DLATM
+      Use OCEAN,         Only: IMO=>IM,JMO=>JM 
+     *     , oDXYP=>DXYPO, oDLATM=>DLATM
+      Use DOMAIN_DECOMP_1D, Only: aGRID=>GRID, AM_I_ROOT, GET, PACK_DATA
+      Use OCEANR_DIM,    Only: oGRID
+      Implicit None
+      Real*8    :: oQJ(oGRID%J_STRT:oGRID%J_STOP),
+     *             aQJ(aGRID%J_STRT:aGRID%J_STOP),
+     *             oONES(JMO),oQJGLOB(JMO),aQJGLOB(JMA)
+      Integer*4 :: J1O,JNO, J1A,JNA, J
+C****
+      If (JMA==JMO)  GoTo 100
+      If (JMA== 90 .and. JMO==180)  GoTo 200
+C     If (ATMO == 'CUBE-SPHERE')  GoTo 300
+C****
+C**** Non-standard regular latitude-longitude resolution
+C****
+      Call PACK_DATA (oGRID,oQJ,oQJGLOB)
+      If (AM_I_ROOT())  Then
+        oONES(:) = 1
+        Call HNTR80 (1,JMO,0d0,oDLATM, 1,JMA,0d0,aDLATM, 0d0)
+        Call HNTR8  (oONES,oQJGLOB,aQJGLOB)    
+      EndIf
+      Call UNPACK_DATA (aGRID,aQJGLOB,aQJ)
+      Return
+C****
+C**** JMA = JMO
+C****
+  100 Call GET (aGRID, J_STRT=J1A, J_STOP=JNA)
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      If (J1A /= J1O .or. JNA /= JNO)  Then
+        Write (6,*) 'Atmosphere and ocean latitude bands do not' //
+     *              ' line up for a processor.'
+        Write (6,*) 'J1O,JNO,J1A,JNA=',J1O,JNO,J1A,JNA
+        Call STOP_MODEL ('J1A >< J1O or JNA >< JNO in OJtoAJ', 255)
+      EndIf
+      aQJ(:) = oQJ(:)
+      Return
+C****
+C**** JMA = 90 and JMO = 180
+C****
+  200 Call GET (aGRID, J_STRT=J1A, J_STOP=JNA)
+      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      
+      If ((J1A-1)*2 /= (J1O-1) .or. JNA*2 /= JNO) then
+        Write (6,*) 'Atmosphere and ocean latitude bands do not' //
+     *              ' line up for a processor.'
+        Write (6,*) 'J1O,JNO,J1A,JNA=',J1O,JNO,J1A,JNA
+        Call STOP_MODEL ('JNA*2 >< JNO in OJtoAJ', 255)    
+      EndIf
+      Do J=J1A,JNA
+        aQJ(J) = IMO*(oDXYP(J*2-1)*oQJ(J*2-1) +
+     +               oDXYP(J*2)*oQJ(J*2)) / (IMA*aDXYP(J))    
+      EndDo
+      
+      Return
+C****
+C**** ATMO = 'CUBE-SPHERE'
+C****
+C 300
+      End Subroutine OJtoAJ
 
       Subroutine OVtoM (MM,UM,VM)
 C****
@@ -1851,12 +1914,12 @@ C****
 C**** No land cells at this latitude and layer,
 C**** perform standard polar filter
 C****
-  300 Call FFT (X(1,J,L),AN,BN)
+  300 Call OFFT (X(1,J,L),AN,BN)
       Do 310 N=NMIN(J),IMz2-1
       AN(N) = AN(N)*SMOOTH(N,J)
   310 BN(N) = BN(N)*SMOOTH(N,J)
       AN(IMz2) = AN(IMz2)*SMOOTH(IMz2,J)
-      Call FFTI (AN,BN,X(1,J,L))
+      Call OFFTI (AN,BN,X(1,J,L))
 C****
   400 Continue
   410 Continue
@@ -2442,179 +2505,208 @@ C     end if
       RETURN
       END SUBROUTINE OADVT
 
-      SUBROUTINE OADVTX (RM,RX,RY,RZ,MO,MU,DT,QLIMIT,OIJL)
-!@sum  OADVTX advects tracer in x direction using linear upstream scheme
-!@auth Gary Russell
-!@ver  1.0
-C**** If QLIMIT is true, the gradients are
-C**** limited to prevent the mean tracer from becoming negative.
+      Subroutine OADVTX (RM,RX,RY,RZ,MM,MU,DT,QLIMIT,OIJL)
+C****
+!@sum   OADVTX advects tracer in X direction via Linear Upstream Scheme
+!@auth  Gary L. Russell
+!@ver   2009/01/14
+C****
+C**** If QLIMIT is true, gradients are limited to prevent mean tracer
+C**** from becoming negative; Abs[A(I)] must not exceed 1.
 C****
 C**** Input: DT (s) = time step
 C****     MU (kg/s) = west to east mass flux
 C****        QLIMIT = whether slope limitations should be used
 C**** Input and Output: RM (kg) = tracer mass
 C****             RX,RY,RZ (kg) = first moments of tracer mass
-C****                    M (kg) = ocean mass
+C****                   MM (kg) = ocean mass
 C****
-      USE OCEAN, only : im,jm,lmo,lmm,focean
-
-!      use domain_decomp_1d, only : grid, get
-      use domain_decomp_1d, only : get
-      USE OCEANR_DIM, only : grid=>ogrid
-
-      IMPLICIT NONE
-      REAL*8, INTENT(INOUT),
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
-     *  RM,RX,RY,RZ, OIJL, MO
-      REAL*8, INTENT(IN),
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MU
-      LOGICAL*4, INTENT(IN) :: QLIMIT
-      REAL*8, INTENT(IN) :: DT
-      REAL*8, DIMENSION(IM) :: AM,A,FM,FX,FY,FZ
-      REAL*8 RXY
-      INTEGER I,J,L,IM1,IP1,ICKERR
-
-      INTEGER :: J_0S,J_1S
-
-      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S)
-
+      Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM, zDXYP=>BYDXYPO, FOCEAN
+      Use OCEANR_DIM, Only: oGRID
+      Implicit None
+C**** Interface variables
+      Logical*4,Intent(In) :: QLIMIT
+      Real*8,   Intent(In) :: DT
+      Real*8,Intent(InOut),
+     *  Dimension(IM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO, LMO) ::
+     *  RM,RX,RY,RZ, MM,MU, OIJL
+C**** Local variables
+      Integer*4 I,J,L, Im1,Ip1, J1P,JNP, N,NCOURANT
+      Real*8    AM(IM),A(IM),FM(IM),FX(IM),FY(IM),FZ(IM),
+     *          MMnew, zCOURANT, RXY
+C**** Extract domain decomposition band parameters
+      J1P = Max (oGRID%J_STRT, 2)     !  Exclude south pole
+      JNP = Min (oGRID%J_STOP, JM-1)  !  Exclude north pole
+C****
 C**** Loop over layers and latitudes
-      ICKERR=0
-!$OMP PARALLEL DO  PRIVATE(I,J,L,IP1,IM1,A,AM,FM,FX,FY,FZ,RXY)
-!$OMP&             REDUCTION(+:ICKERR)
-      DO 320 L=1,LMO
-      DO 320 J=J_0S,J_1S
+C****
+!$OMP ParallelDo   Private (I,J,L,Ip1,Im1, A,AM,FM,FX,FY,FZ,RXY)
+      Do 320 L=1,LMO
+      Do 320 J=J1P,JNP
+C****
+C**** Determine number of Courant iterations NCOURANT
+C****
+      NCOURANT = 1
+      Im1=IM-1
+      I = IM
+      Do 40 Ip1=1,IM
+      If (MU(I,J,L)) 10,30,20
+C**** MU < 0, insist that  -AM(I)/N < MM(Ip1)
+C****                 and  -AM(I)/N < MM(Ip1) + [AM(I)-AM(Ip1)]*(N-1)/N
+   10 MMnew = MM(Ip1,J,L) + DT*(MU(I,J,L)-MU(Ip1,J,L))
+      If (MMnew <= 0)  GoTo 801
+      If (-DT*MU(I,J,L) > NCOURANT*MM(Ip1,J,L))  Then
+        NCOURANT = Ceiling (-DT*MU(I,J,L)/MM(Ip1,J,L))
+        Write (6,901) NCOURANT,I,J,L, DT*MU(I,J,L)*zDXYP(J),
+     *                MM(Ip1,J,L)*zDXYP(J),MMnew*zDXYP(J)  ;  EndIf
+      If (-DT*MU(Ip1,J,L) > NCOURANT*MMnew)  Then
+        NCOURANT = Ceiling (-DT*MU(Ip1,J,L)/MMnew)
+        Write (6,901) NCOURANT,I,J,L, DT*MU(I,J,L)*zDXYP(J),
+     *                MM(Ip1,J,L)*zDXYP(J),MMnew*zDXYP(J)  ;  EndIf
+      GoTo 30
+C**** MU > 0, insist that  AM(I)/N < MM(I)
+C****                 and  AM(I)/N < MM(I) + [AM(Im1)-AM(I)]*(N-1)/N
+   20 MMnew = MM(I,J,L) + DT*(MU(Im1,J,L)-MU(I,J,L))
+      If (MMnew <= 0)  GoTo 802
+      If (DT*MU(I,J,L) > NCOURANT*MM(I,J,L))  Then
+        NCOURANT = Ceiling (DT*MU(I,J,L)/MM(I,J,L))
+        Write (6,901) NCOURANT,I,J,L, DT*MU(I,J,L)*zDXYP(J),
+     *                MM(I,J,L)*zDXYP(J),MMnew*zDXYP(J)  ;  EndIf
+      If (DT*MU(Im1,J,L) > NCOURANT*MMnew)  Then
+        NCOURANT = Ceiling (DT*MU(Im1,J,L)/MMnew)
+        Write (6,901) NCOURANT,I,J,L, DT*MU(I,J,L)*zDXYP(J),
+     *                MM(I,J,L)*zDXYP(J),MMnew*zDXYP(J)  ;  EndIf
+   30 Im1=I
+      I=Ip1
+   40 Continue
+C**** Loop over Courant iterations
+      zCOURANT = 1d0 / NCOURANT
+      Do 320 N=1,NCOURANT
 C****
 C**** Calculate FM (kg), FX (kg**2), FY (kg) and FZ (kg)
 C****
       I=IM
-      DO 140 IP1=1,IM
-      AM(I) = DT*MU(I,J,L)
-      IF(AM(I)) 110,120,130
+      Do 140 Ip1=1,IM
+      AM(I) = DT*MU(I,J,L)*zCOURANT
+      If (AM(I)) 110,120,130
 C**** Ocean mass flux is negative
-  110 A(I)  = AM(I)/MO(IP1,J,L)
-      IF(A(I).LT.-1d0)  WRITE (6,*) 'A<-1:',I,J,L,A(I),MO(IP1,J,L)
-      FM(I) = A(I)*(RM(IP1,J,L)-(1d0+A(I))*RX(IP1,J,L))
-      FX(I) = AM(I)*(A(I)*A(I)*RX(IP1,J,L)-3d0*FM(I))
-      FY(I) = A(I)*RY(IP1,J,L)
-      FZ(I) = A(I)*RZ(IP1,J,L)
-      GO TO 140
+  110 A(I)  = AM(I) / MM(Ip1,J,L)
+      FM(I) = A(I) * (RM(Ip1,J,L) - (1+A(I))*RX(Ip1,J,L))
+      FX(I) = AM(I) * (A(I)*A(I)*RX(Ip1,J,L) - 3*FM(I))
+      FY(I) = A(I)*RY(Ip1,J,L)
+      FZ(I) = A(I)*RZ(Ip1,J,L)
+      GoTo 140
 C**** Ocean mass flux is zero
-  120 A(I)  = 0.
-      FM(I) = 0.
-      FX(I) = 0.
-      FY(I) = 0.
-      FZ(I) = 0.
-      GO TO 140
+  120 A(I)  = 0
+      FM(I) = 0
+      FX(I) = 0
+      FY(I) = 0
+      FZ(I) = 0
+      GoTo 140
 C**** Ocean mass flux is positive
-  130 A(I)  = AM(I)/MO(I,J,L)
-      IF(A(I).GT.1d0)  WRITE (6,*) 'A>1:',I,J,L,A(I),MO(I,J,L)
-      FM(I) = A(I)*(RM(I,J,L)+(1d0-A(I))*RX(I,J,L))
-      FX(I) = AM(I)*(A(I)*A(I)*RX(I,J,L)-3d0*FM(I))
+  130 A(I)  = AM(I) / MM(I,J,L)
+      FM(I) = A(I) * (RM(I,J,L) + (1-A(I))*RX(I,J,L))
+      FX(I) = AM(I) * (A(I)*A(I)*RX(I,J,L) - 3*FM(I))
       FY(I) = A(I)*RY(I,J,L)
       FZ(I) = A(I)*RZ(I,J,L)
-  140 I=IP1
+  140 I=Ip1
 C****
 C**** Modify the tracer moments so that the tracer mass in each
 C**** division is non-negative
 C****
-      IF(.NOT.QLIMIT)  GO TO 300
-      IM1=IM
-      DO 290 I=1,IM
-      IF(A(IM1).GE.0.)  GO TO 240
-C**** Water is leaving through the left edge: 2 or 3 divisions
-      IF(FM(IM1).LE.0.)  GO TO 210
+      If (.not.QLIMIT)  GoTo 300
+      Im1=IM
+      Do 290 I=1,IM
+      If (A(Im1) >= 0)  GoTo 240
+C**** Water is leaving through left edge: 2 or 3 divisions
+      If (FM(Im1) <= 0)  GoTo 210
 C**** Left most division is negative, RML = -FM(I-1) < 0: Case 2 or 4
-      RX(I,J,L) = RM(I,J,L)/(1d0+A(IM1))
-      FM(IM1) = 0.
-      FX(IM1) = AM(IM1)*A(IM1)*A(IM1)*RX(I,J,L)
-      IF(A(I).LE.0.)  GO TO 290
-      FM(I) = A(I)*(RM(I,J,L)+(1d0-A(I))*RX(I,J,L))
-      FX(I) = AM(I)*(A(I)*A(I)*RX(I,J,L)-3d0*FM(I))
-      GO TO 290
+      RX(I,J,L) = RM(I,J,L) / (1+A(Im1))
+      FM(Im1) = 0
+      FX(Im1) = AM(Im1)*A(Im1)*A(Im1)*RX(I,J,L)
+      If (A(I) <= 0)  GoTo 290
+      FM(I) = A(I) * (RM(I,J,L) + (1-A(I))*RX(I,J,L))
+      FX(I) = AM(I) * (A(I)*A(I)*RX(I,J,L) - 3*FM(I))
+      GoTo 290
 C**** Left most division is non-negative, RML = -FM(I-() > 0:
 C**** Case 1, 3 or 5
-  210 IF(A(I).LE.0.)  GO TO 230
-C**** Water is leaving through the right edge: 3 divisions
-      IF(FM(I).GE.0.)  GO TO 290
+  210 If (A(I) <= 0)  GoTo 230
+C**** Water is leaving through right edge: 3 divisions
+      If (FM(I) >= 0)  GoTo 290
 C**** Right most division is negative, RMR = FM(I) < 0: Case 3 or 5
-  220 RX(I,J,L) = -RM(I,J,L)/(1d0-A(I))
-      FM(I) = 0.
+  220 RX(I,J,L) = -RM(I,J,L) / (1-A(I))
+      FM(I) = 0
       FX(I) = AM(I)*A(I)*A(I)*RX(I,J,L)
-      FM(IM1) = A(IM1)*(RM(I,J,L)-(1d0+A(IM1))*RX(I,J,L))
-      FX(IM1) = AM(IM1)*(A(IM1)*A(IM1)*RX(I,J,L)-3d0*FM(IM1))
-      GO TO 290
-C**** No water is leaving through the right edge: 2 divisions
-  230 IF(RM(I,J,L)+FM(IM1).GE.0.)  GO TO 290
+      FM(Im1) = A(Im1) * (RM(I,J,L) - (1+A(Im1))*RX(I,J,L))
+      FX(Im1) = AM(Im1) * (A(Im1)*A(Im1)*RX(I,J,L) - 3*FM(Im1))
+      GoTo 290
+C**** No water is leaving through right edge: 2 divisions
+  230 If (RM(I,J,L)+FM(Im1) >= 0)  GoTo 290
 C**** Right most division is negative, RMR = RM(I,J)+FM(I-1) < 0: Case 3
-      RX(I,J,L) = RM(I,J,L)/A(IM1)
-      FM(IM1) = -RM(I,J,L)
-      FX(IM1) = AM(IM1)*(A(IM1)+3d0)*RM(I,J,L)
-      GO TO 290
+      RX(I,J,L) = RM(I,J,L) / A(Im1)
+      FM(Im1) = -RM(I,J,L)
+      FX(Im1) = AM(Im1)*(A(Im1)+3)*RM(I,J,L)
+      GoTo 290
 C**** No water is leaving through the left edge: 1 or 2 divisions
-  240 IF(A(I).LE.0.)  GO TO 290
-C**** Water is leaving through the right edge: 2 divisions
-      IF(FM(I).GE.0.)  GO TO 250
+  240 If (A(I) <= 0)  GoTo 290
+C**** Water is leaving through right edge: 2 divisions
+      If (FM(I) >= 0)  GoTo 250
 C**** Right most division is negative, RMR = FM(I) < 0: Case 3
-      RX(I,J,L) = -RM(I,J,L)/(1d0-A(I))
-      FM(I) = 0.
+      RX(I,J,L) = -RM(I,J,L) / (1-A(I))
+      FM(I) = 0
       FX(I) = AM(I)*A(I)*A(I)*RX(I,J,L)
-      GO TO 290
+      GoTo 290
 C**** Right most division is non-negative, RMR = FM(I) > 0: Case 1 or 2
-  250 IF(RM(I,J,L)-FM(I).GE.0.)  GO TO 290
+  250 If (RM(I,J,L)-FM(I) >= 0)  GoTo 290
 C**** Left most division is negative, RML = RM(I,J)-FM(I) < 0: Case 2
-      RX(I,J,L) = RM(I,J,L)/A(I)
+      RX(I,J,L) = RM(I,J,L) / A(I)
       FM(I) = RM(I,J,L)
-      FX(I) = AM(I)*(A(I)-3d0)*RM(I,J,L)
+      FX(I) = AM(I)*(A(I)-3)*RM(I,J,L)
 C****
-  290 IM1=I
+  290 Im1=I
 C****
 C**** Calculate new tracer mass and first moments of tracer mass
 C****
-  300 IM1=IM
-      DO 310 I=1,IM
-      IF(L.GT.LMM(I,J))  GO TO 310
-      RM(I,J,L) = RM(I,J,L) +  (FM(IM1)-FM(I))
-      RX(I,J,L) = (RX(I,J,L)*MO(I,J,L) + (FX(IM1)-FX(I))
-     *  + 3d0*((AM(IM1)+AM(I))*RM(I,J,L)-MO(I,J,L)*(FM(IM1)+FM(I))))
-     *  / (MO(I,J,L)+AM(IM1)-AM(I))
-      RY(I,J,L) = RY(I,J,L) + (FY(IM1)-FY(I))
-      RZ(I,J,L) = RZ(I,J,L) + (FZ(IM1)-FZ(I))
+  300 Im1=IM
+      Do 310 I=1,IM
+      If (L > LMOM(I,J))  GoTo 310
+      RM(I,J,L) = RM(I,J,L) +  (FM(Im1)-FM(I))
+      RX(I,J,L) = (RX(I,J,L)*MM(I,J,L) + (FX(Im1)-FX(I)) +
+     +    3*((AM(Im1)+AM(I))*RM(I,J,L)-MM(I,J,L)*(FM(Im1)+FM(I))))
+     /  / (MM(I,J,L)+AM(Im1)-AM(I))
+      RY(I,J,L) = RY(I,J,L) + (FY(Im1)-FY(I))
+      RZ(I,J,L) = RZ(I,J,L) + (FZ(Im1)-FZ(I))
+      MM(I,J,L) = MM(I,J,L) + (AM(Im1)-AM(I))
+        OIJL(I,J,L) = OIJL(I,J,L) + FM(I)
+C**** Limit tracer gradients if necessary
+      If (QLIMIT)  Then
+        If (RM(I,J,L) < 0)  GoTo 831
+        RXY = Abs(RX(I,J,L)) + Abs(RY(I,J,L))
+        If (RXY > RM(I,J,L))  Then
+          RX(I,J,L) = RX(I,J,L)*(RM(I,J,L) / (RXY+Tiny(RXY)))
+          RY(I,J,L) = RY(I,J,L)*(RM(I,J,L) / (RXY+Tiny(RXY)))  ;  EndIf
+        If (Abs(RZ(I,J,L)) > RM(I,J,L))
+     *    RZ(I,J,L) = Sign (RM(I,J,L),RZ(I,J,L))  ;  EndIf
 C****
-      if ( QLIMIT ) then ! limit tracer gradients
-        RXY = abs(RX(I,J,L)) + abs(RY(I,J,L))
-        if ( RXY > RM(I,J,L) ) then
-          RX(I,J,L) = RX(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
-          RY(I,J,L) = RY(I,J,L)*( RM(I,J,L)/(RXY + tiny(RXY)) )
-        end if
-        if ( abs(RZ(I,J,L)) > RM(I,J,L) )
-     *       RZ(I,J,L) = sign(RM(I,J,L), RZ(I,J,L)+0d0)
-      end if
+  310 Im1=I     !  End of Do loop over I
+  320 Continue  !  End of Do loops over N,J,L
+      Return
 C****
-      MO(I,J,L) = MO(I,J,L) +  AM(IM1)-AM(I)
-         IF(MO(I,J,L).LE.0.)                ICKERR=ICKERR+1
-         IF(QLIMIT .AND. RM(I,J,L).LT.0.)   ICKERR=ICKERR+1
-         OIJL(I,J,L) = OIJL(I,J,L) + FM(I)
-  310 IM1=I
-  320 CONTINUE
-!$OMP END PARALLEL DO
-
-C**** IF NO ERROR HAS OCCURRED - RETURN, ELSE STOP
-      IF(ICKERR == 0)  RETURN
-      DO 440 L=1,LMO
-      DO 440 J=J_0S,J_1S
-      DO 440 I=1,IM
-         IF(FOCEAN(I,J).gt.0 .and. MO(I,J,L).LE.0.)  GO TO 800
-         IF(QLIMIT .AND. RM(I,J,L).LT.0.) GO TO 810
-  440 CONTINUE
-      WRITE(6,*) 'ERROR CHECK INCONSISTENCY: OADVTX ',ICKERR
-      call stop_model("OADVTX",255)
-
-  800 WRITE (6,*) 'MO<0 in OADVTX:',I,J,L,MO(I,J,L)
-  810 WRITE (6,*) 'RM in OADVTX:',I,J,L,RM(I,J,L)
-c      WRITE (6,*) 'A=',(I,A(I),I=1,IM)
-      call stop_model("OADVTX",255)
-      END SUBROUTINE OADVTX
+  801 Write (6,*) 'MMnew < 0 in OADVTX'
+      Write (6,*) 'I,J,L,MOold,MOnew,AM(Im1),AM(I) (kg/m^2)=',Ip1,J,L,
+     *            MM(Ip1,J,L)*zDXYP(J), MMnew*zDXYP(J),
+     *            DT*MU(I,J,L)*zDXYP(J), DT*MU(Ip1,J,L)*zDXYP(J)
+      Call STOP_MODEL ('OADVTX',255)
+  802 Write (6,*) 'MMnew < 0 in OADVTX'
+      Write (6,*) 'I,J,L,MOold,MOnew,AM(Im1),AM(I) (kg/m^2)=',I,J,L,
+     *            MM(I,J,L)*zDXYP(J), MMnew*zDXYP(J),
+     *            DT*MU(Im1,J,L)*zDXYP(J), DT*MU(I,J,L)*zDXYP(J)
+      Call STOP_MODEL ('OADVTX',255)
+  831 Write (6,*) 'RM < 0 in OADVTX:',I,J,L,RM(I,J,L)
+      Call STOP_MODEL ('OADVTX',255)
+C****
+  901 Format (/ 'NCOURANT,I,J,L,AM,MMold,MMnew(kg/m^2)=',4I5,3F12.2)
+      EndSubroutine OADVTX
 
       subroutine oadvty (rm,rx,ry,rz,mo,mv,dt,qlimit,oijl)
 !@sum  OADVTY advection driver for y-direction
@@ -3553,7 +3645,7 @@ C**** Surface stress is applied to V component at the North Pole
       real*8 fracls
 #endif
 #endif
-
+ 
       integer ::  J_1, J_0
       logical :: have_south_pole, have_north_pole
 
@@ -4421,6 +4513,13 @@ c         RU(IIP) = RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
 c    *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
 c     END IF
+
+      DO J = J_0S, J_1S
+        DO I=1,IM
+        if (BU(I,J).EQ.0.) write (6,*) ' Inside ODIFF: BU=0, I,J= ',i,j
+        if (BV(I,J).EQ.0.) write (6,*) ' Inside ODIFF: BV=0, I,J= ',i,j
+        END DO
+      END DO
 C**** Call tridiagonal solver
       DO J = J_0S, J_1S
         CALL TRIDIAG(AU(:,J), BU(:,J), CU(:,J), RU(:,J), UO(:,J,L), IM)
@@ -4693,6 +4792,7 @@ C****
 
         END DO
       END DO
+
 C**** do poles
       if (HAVE_NORTH_POLE) then
       IF (FOCEAN(1,JMA).gt.0) THEN
@@ -4839,7 +4939,8 @@ c GISS-ESMF EXCEPTIONAL CASE - AT2OV not needed yet - nothing done yet
 !@var N number of fields
       INTEGER, INTENT(IN) :: NF
 !@var FIELDA array on atmospheric tracer grid
-      REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
+c      REAL*8, INTENT(IN), DIMENSION(NF,IMA,JMA) :: FIELDA
+      REAL*8, INTENT(IN), DIMENSION(NF,IMO,JMO) :: FIELDA
 !@var FIELDO array on oceanic tracer grid
       REAL*8, INTENT(OUT), DIMENSION(NF,IMO,JMO) :: FIELDO
       INTEGER I,J,IP1
@@ -6323,6 +6424,7 @@ C**** surface tracer concentration
 #ifdef TRACERS_OceanBiology
       REAL*8, DIMENSION(IMO,JMO) :: osolz_glob, owind_glob
 #endif
+
 
 C***  Gather arrays on atmospheric grid into the global arrays 
 
