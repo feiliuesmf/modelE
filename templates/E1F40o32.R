@@ -1,4 +1,4 @@
-E1F40o32.R GISS Model E  coupled version          larissa   08/08/2008
+E1F40o32.R GISS Model E  coupled version          larissa   01/22/2009
 
 E1F40o32: 2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
@@ -47,36 +47,39 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-SparseCommunicator_mod              ! sparse gather/scatter module
 ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
-OCNFUNTAB                           ! ocean function look up table
-SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_RES_F                          ! diagnostics (resolution dependent)
-CONST FFT144 UTILDBL SYSTEM         ! utilities
-POUT                                ! post-processing output
+OCNFUNTAB                              ! ocean function look up table
+SNOW_DRV SNOW                          ! snow model
+RAD_COM RAD_DRV RADIATION              ! radiation modules
+RAD_UTILS ALBEDO                       ! radiation and albedo
+DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
+DIAG_RES_F                             ! diagnostics (resolution dependent)
+CONST FFT144 OFFT144E UTILDBL SYSTEM   ! utilities
+POUT                                   ! post-processing output
+SparseCommunicator_mod                 ! sparse gather/scatter module
 
 Data input files:
-AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
-OIC=OIC.WOA98.2HX2.L32.D1201
-OFTAB=OFTABLE_NEW                   ! ocean function table
-AVR=OPF.E2HX2.L32                    ! ocean filter
-KBASIN=KB144X90.modelE              ! ocean basin designations
-TOPO_OC=Z144X90N_nocasp.1 ! ocean bdy.cond
-CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS_144X90N_nocasp.ext
-SOIL=S144X900098M.ext TOPO=Z144X90N_nocasp.1 ! bdy.cond
-REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.RVR      ! river direction file
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_Ma_2000             ! rad.tables and history files
+AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext      ! initial ground conditions      ISTART=2
+OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
+TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
+TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
+OFTAB=OFTABLE_NEW               ! ocean function table
+AVR=OPF.E2HX2.L32               ! ocean filter
+KBASIN=KB144X90.modelE          ! ocean basin designations
+CDN=CD144X90.ext                ! neutral drag coefficient 
+VEG=V144X90_no_crops.ext        ! vegatation file 
+CROPS=CROPS_144X90N_nocasp.ext  ! crops  
+SOIL=S144X900098M.ext           ! soil properties
+REG=REG2X2.5                    ! special regions-diag
+RVR=RD_modelE_F.RVR             ! river direction file
+RADN1=sgpgxg.table8             ! rad.tables and history files
+RADN2=LWTables33k.1a            ! rad.tables and history files
+RADN4=LWTables33k.1b            ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000           ! rad.tables and history files
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates

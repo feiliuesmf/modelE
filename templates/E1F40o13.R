@@ -1,4 +1,4 @@
-E1F40o13.R GISS Model E  coupled version          larissa   08/08/2008
+E1F40o13.R GISS Model E  coupled version          larissa   01/22/2009
 
 E1F40o13: 2x2.5x40 layers modelE version, 1850 atm.; 13 layers in the ocean
 
@@ -46,19 +46,19 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-SparseCommunicator_mod              ! sparse gather/scatter module
 ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
-OCNFUNTAB                           ! ocean function look up table
-SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO                    ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_RES_F                          ! diagnostics (resolution dependent)
-CONST FFT144 UTILDBL SYSTEM         ! utilities
-POUT                                ! post-processing output
+OCNFUNTAB                              ! ocean function look up table
+SNOW_DRV SNOW                          ! snow model
+RAD_COM RAD_DRV RADIATION              ! radiation modules
+RAD_UTILS ALBEDO                       ! radiation and albedo
+DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
+DIAG_RES_F                             ! diagnostics (resolution dependent)
+CONST FFT144 OFFT144E UTILDBL SYSTEM   ! utilities
+POUT                                   ! post-processing output
+SparseCommunicator_mod                 ! sparse gather/scatter module
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2

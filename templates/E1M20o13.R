@@ -1,4 +1,4 @@
-E1M20o13.R GISS Model E  coupled version          larissa   08/08/2008
+E1M20o13.R GISS Model E  coupled version          larissa   01/22/2009
 
 E1M20o13: 4x5x20 layers modelE version, 1880 atm.; 13 layers in the ocean
 
@@ -43,7 +43,6 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-SparseCommunicator_mod              ! sparse gather/scatter module
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
@@ -54,8 +53,9 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST FFT72 UTILDBL SYSTEM          ! utilities
+CONST FFT72 OFFT72E UTILDBL SYSTEM  ! utilities
 POUT                                ! post-processing output
+SparseCommunicator_mod              ! sparse gather/scatter module
 
 Data input files:
 AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2

@@ -1,4 +1,4 @@
-E1oM20agnat.R GISS Model E  coupled version          larissa   08/08/2008
+E1oM20agnat.R GISS Model E  coupled version          larissa   01/22/2009
 
 E1oM20agnat: replace this section by a description of what distinguishes this run ?
        Use as many lines as you need. Look carefully at all the possible    ?
@@ -52,7 +52,7 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST FFT72 UTILDBL SYSTEM          ! utilities
+CONST FFT72 OFFT72E UTILDBL SYSTEM  ! utilities
 POUT                                ! post-processing output
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -1,4 +1,4 @@
-E1M20o32.R GISS Model E  coupled version          larissa   08/08/2008
+E1M20o32.R GISS Model E  coupled version          larissa   01/22/2009
 
 E1M20o32: 4x5x20 layers modelE version, 1880 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.5X4.L32.D1201 
@@ -44,7 +44,6 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-SparseCommunicator_mod              ! sparse gather/scatter module
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
@@ -55,13 +54,14 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST FFT72 UTILDBL SYSTEM          ! utilities
+CONST FFT72 OFFT72E UTILDBL SYSTEM  ! utilities
 POUT                                ! post-processing output
+SparseCommunicator_mod              ! sparse gather/scatter module
 
 Data input files:
 AIC=AIC.RES_M20A.D771201           ! initial conditions (atm.)     needs GIC,OIC ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955        ! initial conditions (ground)         and 300 year spin-up
-OIC=OIC.WOA98.5X4.L32.D1201        ! ocean initial conditions
+OIC=OIC.E5X4.L32.D1201             ! ocean initial conditions
 OFTAB=OFTABLE_NEW                  ! ocean function table
 AVR=OPF.E5X4.L32                   ! ocean filter
 KBASIN=KB4X513.OCN.gas1            ! ocean basin designations
