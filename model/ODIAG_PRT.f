@@ -112,7 +112,9 @@ C****
      *     ,imaxj,lmm,ze,dxvo,dypo
       USE DIAG_COM, only : qdiag,acc_period
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
-      USE GEOM, only : lat_dg, lon_dg, dlat
+
+      USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG 
+
       USE ODIAG
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_OceanBiology
@@ -904,19 +906,19 @@ C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
       ACMAX=0 ; ACMIN=100.
       DO J=2,JM-1
         DO I=1,IM
-          if (lat_dg(j,2).ge.24 .and. lat_dg(j,2).le.38 .and. lon_dg(i
-     $         ,2).ge.-80 .and. lon_dg(i,2).le.-60) then
+          if (oLAT_DG(j,2).ge.24 .and. oLAT_DG(j,2).le.38 .and. oLON_DG
+     $         (i,2).ge.-80 .and. oLON_DG(i,2).le.-60) then
             IF (SFIJM(I,J).GT.GSMAX) GSMAX=SFIJM(I,J)
             IF (SFIJM(I,J).LT.GSMIN) GSMIN=SFIJM(I,J)
           end if
-          if (lat_dg(j,2).ge.24 .and. lat_dg(j,2).le.38 .and. lon_dg(i
-     $         ,2).ge.135 .and. lon_dg(i,2).le.155) then
+          if (oLAT_DG(j,2).ge.24 .and. oLAT_DG(j,2).le.38 .and. oLON_DG
+     $         (i,2).ge.135 .and. oLON_DG(i,2).le.155) then
             IF (SFIJM(I,J).GT.CKMAX) CKMAX=SFIJM(I,J)
             IF (SFIJM(I,J).LT.CKMIN) CKMIN=SFIJM(I,J) 
           end if
-          if (lat_dg(j,2).ge.-72 .and. lat_dg(j,2).le.-54
-     $         .and. lon_dg(i,2).ge.-65-0.5*dlat .and. lon_dg(i,2).le.
-     $         -65+0.5*dlat) then
+          if (oLAT_DG(j,2).ge.-72 .and. oLAT_DG(j,2).le.-54
+     $         .and. oLON_DG(i,2).ge.-65-0.5*oDLAT_DG .and. oLON_DG(i,2)
+     $         .le. -65+0.5*oDLAT_DG) then
             IF (SFIJM(I,J).GT.ACMAX) ACMAX=SFIJM(I,J)
             IF (SFIJM(I,J).LT.ACMIN) ACMIN=SFIJM(I,J)
           end if
@@ -973,7 +975,9 @@ C****
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj,ze
       USE DIAG_COM, only : qdiag,acc_period,zoc1
-      USE GEOM, only : lat_dg,dlat
+
+      USE OCEAN, only : oDLAT_DG, oLAT_DG 
+
       USE ODIAG
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
@@ -1020,18 +1024,18 @@ C**** Output Key diagnostics
       do L=1,LMO-1
         do J=2,JM-1
 C**** North Atl. + North Pac. overturning
-          if (lat_dg(j+1,2).gt.48-0.5*dlat .and. lat_dg(j+1,2).lt.
-     *         48+0.5*dlat .and. 0.5*(ZE(L)+ZE(L-1)).le.900 .and. 0.5
-     *         *(ZE(L)+ZE(L+1)).gt.900) then 
+          if (oLAT_DG(j+1,2).gt.48-0.5*oDLAT_DG .and. oLAT_DG(j+1,2)
+     *         .lt. 48+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.900 
+     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.900) then 
              WRITE(6,'(A46,F6.2)') 
      *            " North Atlantic overturning: 900m 48N: ",SFM(j,l,1)
              WRITE(6,'(A46,F6.2)') 
      *            " North Pacific overturning:  900m 48N: ",SFM(j,l,2)
           end if
 C**** AABW production
-          if (lat_dg(j+1,2).ge.-52-0.5*dlat .and. lat_dg(j+1,2).lt.
-     *         -52+0.5*dlat .and. 0.5*(ZE(L)+ZE(L-1)).le.3000 .and. 0.5
-     *         *(ZE(L)+ZE(L+1)).gt.3000) then 
+          if (oLAT_DG(j+1,2).ge.-52-0.5*oDLAT_DG .and. oLAT_DG(j+1,2)
+     *         .lt. -52+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.3000 
+     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.3000) then 
              WRITE(6,'(A46,F6.2)') " Antarctic Bottom Water production:"
      *            //" 3000m 52S: ",SFM(j,l,4)
           end if
