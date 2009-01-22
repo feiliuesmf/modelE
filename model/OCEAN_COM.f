@@ -53,10 +53,11 @@ C**** Global arrays needed for i/o, GM,straits,odiff ?
 
 C**** ocean geometry (should this be in a separate module?)
       Real*8 
-     *     DLON,   !@var DLON longitudinal spacing in radians
-     *     DLAT,   !@var DLAT latitudinal spacing in radians
-     *     DLATM,  !@var DLATM latitudinal spacing in minutes
-     *     FJEQ    !@var FJEQ location of equator in grid units 
+     *     DLON,    !@var DLON longitudinal spacing in radians
+     *     DLAT,    !@var DLAT latitudinal spacing in radians
+     *     DLATM,   !@var DLATM latitudinal spacing in minutes
+     *     FJEQ     !@var FJEQ location of equator in grid units 
+     *   , oDLAT_DG ! grid spacing in latitude (deg) 
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO
@@ -72,6 +73,10 @@ C**** ocean geometry (should this be in a separate module?)
      *  COSU(IM),  !  COSine of longitude of eastern edge of grid cell
      *  SINxY(JM), !  DLAT * SINe of latitude used by Coriolis force
      *  TANxY(JM)  !  DLAT * TANgent of latitude used by metric term
+!@var  oLAT_DG latitude of mid points of primary and sec. grid boxs (deg)
+      REAL*8, DIMENSION(JM,2) :: oLAT_DG
+!@var  oLON_DG longitude of mid points of prim. and sec. grid boxes (deg)
+      REAL*8, DIMENSION(IM,2) :: oLON_DG
 !@var  IMAXJ varying number of used longitudes
       INTEGER, DIMENSION(JM) :: IMAXJ
       INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV

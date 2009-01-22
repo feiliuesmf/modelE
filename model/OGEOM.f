@@ -7,6 +7,7 @@ C****
 !@ver  2.0
       Use CONSTANT, Only: TWOPI,RADIUS,OMEGA,PI
 
+      USE RESOLUTION, only : JMA=>JM 
       Use GEOM,  Only: DXYPA=>DXYP, zDXYPA=>BYDXYP
       Use OCEAN, Only: IM,JM,DLON,DLAT,DLATM,FJEQ,
      *                 DXYP=>DXYPO, DXYVO, DXYS=>DXYSO, DXYN=>DXYNO,
@@ -16,6 +17,7 @@ C****
      *                 COSM,COSQ, SINxY,TANxY, DXPGF,DYPGF,
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
      *                 J1O, JMPF=>J40S, IMAXJ
+     *               , oDLAT_DG, oLAT_DG, oLON_DG
       Implicit None
       Integer*4 I,J
       Real*8 LATS, !@var LATS LATitude in radians at South edge of primary cell
@@ -35,6 +37,26 @@ C**** Define some key values that depend on resolution (and grid)
         DLAT = PI/REAL(JM)
         DLATM= NINT(30d0*360d0/REAL(JM))
       END IF
+
+      oDLAT_DG=180./REAL(JM)                   
+
+C**** LONGITUDES (degrees)
+      oLON_DG(1,1) = -180.+360./(2.*FLOAT(IM))
+      oLON_DG(1,2) = -180.+360./    FLOAT(IM)
+      DO I=2,IM
+        oLON_DG(I,1) = oLON_DG(I-1,1)+360./FLOAT(IM)
+        oLON_DG(I,2) = oLON_DG(I-1,2)+360./FLOAT(IM)
+      END DO
+C**** LATITUDES (degrees)
+      oLAT_DG(1,1:2)=-90.
+      oLAT_DG(JM,1)=90.
+      DO J=2,JM-1
+        oLAT_DG(J,1)=oDLAT_DG*(J-FJEQ)    ! primary (tracer) latitudes
+      END DO
+      DO J=2,JM
+        oLAT_DG(J,2)=oDLAT_DG*(J-JM/2-1)  ! secondary (velocity) latitudes
+      END DO
+
 C****
 C**** Calculate geometric parameters defined at V latitudes
 C****
@@ -105,9 +127,11 @@ C****
       SINU(IM) = 0
       COSU(IM) = 1
 C**** Calculate area ratios for converting atmospheric grid to ocean
-      Do J=1,JM
-        RATOC(J) = DXYPA(J)*zDXYP(J)
-        ROCAT(J) = DXYP(J)*zDXYPA(J)  ;  EndDo
+      Do J=1,JMA
+c        RATOC(J) = DXYPA(J)*zDXYP(J)
+c        ROCAT(J) = DXYP(J)*zDXYPA(J)  ;  EndDo
+        RATOC(J) = 1.0
+        ROCAT(J) = 1.0  ;  EndDo
 C**** Calculate JMPF = greatest J in SH where polar filter is applied
       Do J=1,JM/2
         If (RLAT(J) > -40*TWOPI/360)  Then  !  find first J north of 40S
