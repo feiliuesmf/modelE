@@ -314,9 +314,9 @@ C**** CALCULATE TG2
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
-      USE DOMAIN_DECOMP_ATM, only : UNPACK_COLUMN, ESMF_BCAST,
+      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA, PACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, ESMF_BCAST,
      *     BACKSPACE_PARALLEL
       USE LANDICE_COM
       USE LANDICE

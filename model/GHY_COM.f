@@ -265,9 +265,9 @@ C**** Initialize to zero
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE GHY_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : PACK_DATA, PACK_COLUMN
-      USE DOMAIN_DECOMP_ATM, only : UNPACK_DATA, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -381,10 +381,10 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, CHECKSUM_COLUMN
-      USE DOMAIN_DECOMP_ATM, ONLY:  PACK_COLUMN, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, ONLY: PACK_BLOCK, UNPACK_BLOCK
-      USE DOMAIN_DECOMP_ATM, ONLY: UNPACK_COLUMN
+      USE DOMAIN_DECOMP_1D, ONLY: GRID, GET, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP_1D, ONLY:  PACK_COLUMN, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_BLOCK, UNPACK_BLOCK
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_COLUMN
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -532,9 +532,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_ATM, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : PACK_BLOCK  , PACK_COLUMN
-      USE DOMAIN_DECOMP_ATM, only : UNPACK_BLOCK, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_BLOCK  , PACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : UNPACK_BLOCK, UNPACK_COLUMN
       USE GHY_COM
       IMPLICIT NONE
 
@@ -658,8 +658,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
-      use domain_decomp_atm, only : grid, am_i_root
-      use domain_decomp_atm, only : pack_data, unpack_data
+      use domain_decomp_1d, only : grid, am_i_root
+      use domain_decomp_1d, only : pack_data, unpack_data
       use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
       use param
       implicit none

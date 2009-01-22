@@ -2185,10 +2185,10 @@ C**** albedo calculations
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irsfic,irsficno,irerun
       USE SEAICE_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
-      USE DOMAIN_DECOMP_ATM, only : UNPACK_COLUMN, UNPACK_DATA
-      USE DOMAIN_DECOMP_ATM, only :  UNPACK_BLOCK
+      USE DOMAIN_DECOMP_1D, only : GRID, GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, PACK_DATA, PACK_BLOCK
+      USE DOMAIN_DECOMP_1D, only : UNPACK_COLUMN, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only :  UNPACK_BLOCK
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

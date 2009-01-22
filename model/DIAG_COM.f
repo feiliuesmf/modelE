@@ -876,11 +876,11 @@ c     DEALLOCATE( ! JREG)
      *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
      *    ,Kradia
       USE DIAG_COM
-      USE DOMAIN_DECOMP_ATM, Only : grid, GET, PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP_ATM, Only : PACK_DATAj, UNPACK_DATAj
-      USE DOMAIN_DECOMP_ATM, Only : PACK_COLUMN, UNPACK_COLUMN
-      USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
-      USE DOMAIN_DECOMP_ATM, Only : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, Only : grid, GET, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, Only : PACK_DATAj, UNPACK_DATAj
+      USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
+      USE DOMAIN_DECOMP_1D, Only : ESMF_BCAST
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements

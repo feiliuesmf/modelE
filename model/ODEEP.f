@@ -95,8 +95,8 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsficno,lhead
       USE STATIC_OCEAN
       USE ODEEP_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID,am_I_root,pack_data,unpack_data
-      USE DOMAIN_DECOMP_ATM, only : pack_column, unpack_column
+      USE DOMAIN_DECOMP_1D, only : GRID,am_I_root,pack_data,unpack_data
+      USE DOMAIN_DECOMP_1D, only : pack_column, unpack_column
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -173,8 +173,8 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsfic,irerun,iowrite_single
      *     ,ioread_single,lhead,im,jm
       USE ODEEP_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, am_I_root
-      USE DOMAIN_DECOMP_ATM, only : pack_column, unpack_column
+      USE DOMAIN_DECOMP_1D, only : GRID, am_I_root
+      USE DOMAIN_DECOMP_1D, only : pack_column, unpack_column
 
       IMPLICIT NONE
 

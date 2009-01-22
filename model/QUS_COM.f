@@ -45,8 +45,8 @@
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP_ATM, only : grid, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : PACK_COLUMN, UNPACK_COLUMN
+      USE DOMAIN_DECOMP_1D, only : grid, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN
       USE SOMTQ_COM
       IMPLICIT NONE
 

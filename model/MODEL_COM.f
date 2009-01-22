@@ -447,7 +447,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE DOMAIN_DECOMP_ATM, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE TIMINGS, only : ntimemax,ntimeacc,timestr,timing
       USE PARAM
       IMPLICIT NONE
@@ -531,7 +531,7 @@ C**** keep track of min/max time over the combined diagnostic period
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM
-      USE DOMAIN_DECOMP_ATM, only: grid,PACK_DATA,UNPACK_DATA,AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: grid,PACK_DATA,UNPACK_DATA,AM_I_ROOT
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

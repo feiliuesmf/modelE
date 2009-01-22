@@ -539,11 +539,11 @@ C****
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_ATM, only : PACK_DATA,PACK_J
-      USE DOMAIN_DECOMP_ATM, only : UNPACK_DATA,UNPACK_J
-      USE DOMAIN_DECOMP_ATM, only : AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : ESMF_BCAST
-      USE DOMAIN_DECOMP_ATM, only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA,PACK_J
+      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA,UNPACK_J
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only : grid, GET
       USE TRACER_COM, only: ntm
 
       USE TRDIAG_COM, only : taijln_loc, taijln

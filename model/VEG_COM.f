@@ -41,8 +41,8 @@
 !@ver  1.0
       use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
       use model_com, only : im,jm
-      use domain_decomp_atm, only : grid, am_i_root
-      use domain_decomp_atm, only : pack_data, unpack_data
+      use domain_decomp_1d, only : grid, am_i_root
+      use domain_decomp_1d, only : pack_data, unpack_data
       use veg_com, only : Cint, Qfol, cnc_ij
       implicit none
 

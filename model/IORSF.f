@@ -8,7 +8,7 @@
 !@+     io_landice,io_bldat,io_pbl,io_clouds,io_somtq,io_rad,io_diags
 !@+     io_ocdiag,io_icedyn,io_icdiag
       USE FILEMANAGER, only : openunit,closeunit
-      USE DOMAIN_DECOMP_ATM, only : am_i_root !REWIND_PARALLEL
+      USE DOMAIN_DECOMP_1D, only : am_i_root !REWIND_PARALLEL
       USE MODEL_COM, only : ioread_single,iowrite_single,Kradia
      *                     ,ioread,ioread_nodiag,iowrite 
 
@@ -119,7 +119,7 @@ C**** return maximum time
 !@calls io_seaice,io_earth,io_soils,io_landice
       use model_com, only : ioreadnt
       use filemanager, only : openunit,closeunit
-      use domain_decomp_atm, only : am_i_root
+      use domain_decomp_1d, only : am_i_root
       implicit none
       integer :: iu_GIC,ioerr
       call openunit("GIC",iu_GIC,.true.,.true.)

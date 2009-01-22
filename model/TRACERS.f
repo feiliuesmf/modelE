@@ -1045,7 +1045,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
      &,coupled_chem
-      USE DOMAIN_DECOMP_ATM, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
      &,PACK_DATAj, UNPACK_DATAj, PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
      &,UNPACK_COLUMN, esmf_bcast, get
       USE TRACER_COM
