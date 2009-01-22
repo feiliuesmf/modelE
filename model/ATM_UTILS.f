@@ -274,11 +274,11 @@ C****
       REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
       REAL*8, DIMENSION(LMAX+1) :: PEDNL
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, I_0H, I_1H
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0H, I_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_HALO= J_0H,
+     &               J_STRT_HALO= J_0H, J_STOP_HALO= J_1H,
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0H = grid%I_STRT_HALO
@@ -293,10 +293,10 @@ C**** Note Air mass is calculated in (kg/m^2)
 C**** Fill in polar boxes
       IF (have_south_pole) P(2:IM,1) = P(1,1)
       IF (have_north_pole) P(2:IM,JM)= P(1,JM)
-      Call HALO_UPDATE(grid, P, FROM=SOUTH)
+      Call HALO_UPDATE(grid, P)
 
 !$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
-      DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
+      DO J=J_0H,J_1H ! filling halo for P is faster than PDSIG
         DO I=I_0H,I_1H
 
           CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
