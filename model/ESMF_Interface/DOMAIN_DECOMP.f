@@ -1062,18 +1062,22 @@ c***  gluing dd2d derived type to dist_grid derived type
 #endif
       END SUBROUTINE HALO_UPDATEj_2D
 
-      SUBROUTINE HALO_UPDATE_3D(grd_dum, arr, from)
+      SUBROUTINE HALO_UPDATE_3D(grd_dum, arr, from, jdim)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(INOUT) ::
-     &                 arr(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
+      REAL*8,            INTENT(INOUT) :: arr(:,:,:)
       INTEGER, OPTIONAL, INTENT(IN)    :: from
+      INTEGER, OPTIONAL, INTENT(IN)    :: jdim
 
-      INTEGER :: L
+      INTEGER :: jd
 
 #ifdef USE_MPI
-
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
+      if(present(jdim)) then
+        jd = jdim
+      else
+        jd = 2
+      endif
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), jd, from
      &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_3D
