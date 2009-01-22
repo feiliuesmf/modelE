@@ -129,7 +129,7 @@
 !@auth Greg Faluvegi (based on Jean Lerner io_tracer)
 !@ver  1.0 
       use model_com, only: im,jm,ioread,iowrite,irsfic,irsficno,irerun
-      use domain_decomp_atm, only: get,grid,am_i_root,
+      use domain_decomp_1d, only: get,grid,am_i_root,
      &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
      & DRAfl,HRAfl,maxHR_prec,nday_prec
