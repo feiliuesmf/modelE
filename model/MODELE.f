@@ -1042,10 +1042,9 @@ C****
 #endif
       USE SOMTQ_COM, only : tmom,qmom
 #ifdef CUBE_GRID
-      use GEOM, only : geom_cs,imaxj  ! this will be uncommented later, and line below removed
-c      USE GEOM, only : geom_b,imaxj   
+       use GEOM, only : geom_cs,imaxj  
 #else
-      USE GEOM, only : geom_b,imaxj
+       USE GEOM, only : geom_b,imaxj
 #endif
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc
@@ -1957,11 +1956,7 @@ C**** Initialize land ice (must come after oceans)
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
 C**** as residual terms. (deals with SP=>DP problem)
       DO J=J_0,J_1
-#ifdef CUBE_GRID
-      DO I=I_0,I_1         
-#else
       DO I=I_0,IMAXJ(J)
-#endif
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
           IF (FLAKE(I,J).gt.0) THEN
