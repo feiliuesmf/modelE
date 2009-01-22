@@ -23,7 +23,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
       USE DYNAMICS, only : pk,pdsig,plij,pek,byam,am
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
-      USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update_column
+      USE DOMAIN_DECOMP_ATM, ONLY : grid, get, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,itime_tr0,trm,t_qlimit  !,trmom
@@ -457,11 +457,11 @@ c
       endif
 
 
-      CALL HALO_UPDATE_COLUMN(grid, km_3d)
-      CALL HALO_UPDATE_COLUMN(grid, dz_3d)
-      CALL HALO_UPDATE_COLUMN(grid, dze_3d)
-      CALL HALO_UPDATE_COLUMN(grid, rho_3d)
-      CALL HALO_UPDATE_COLUMN(grid, rhoe_3d)
+      CALL HALO_UPDATE(grid, km_3d, jdim=3)
+      CALL HALO_UPDATE(grid, dz_3d, jdim=3)
+      CALL HALO_UPDATE(grid, dze_3d, jdim=3)
+      CALL HALO_UPDATE(grid, rho_3d, jdim=3)
+      CALL HALO_UPDATE(grid, rhoe_3d, jdim=3)
 
 c
 c put A-grid surface stresses on the velocity grid

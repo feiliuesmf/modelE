@@ -604,10 +604,10 @@ C**** read in named rivers (if any)
 
 
 C**** Create integral direction array KDIREC/KD911 from CDIREC
-      CALL HALO_UPDATE(GRID, FEARTH0, FROM=NORTH+SOUTH) ! fixed 
-      CALL HALO_UPDATE(GRID, FLICE,  FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(GRID, FLAKE0, FROM=NORTH+SOUTH)  ! fixed
-      CALL HALO_UPDATE(GRID, FOCEAN, FROM=NORTH+SOUTH)  ! fixed
+      CALL HALO_UPDATE(GRID, FEARTH0) ! fixed 
+      CALL HALO_UPDATE(GRID, FLICE)
+      CALL HALO_UPDATE(GRID, FLAKE0)  ! fixed
+      CALL HALO_UPDATE(GRID, FOCEAN)  ! fixed
 
       ! Use unusual loop bounds to fill KDIREC/KD911 in halo
 #ifdef SCM
@@ -787,7 +787,7 @@ C**** South Pole is a special case
 C****
 C**** Calculate river flow RATE (per source time step)
 C****
-      CALL HALO_UPDATE(GRID, zatmo, FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(GRID, zatmo)
 
       SPEED0= .35d0  ! m/s
       SPMIN = .15d0  ! m/s
@@ -885,7 +885,7 @@ c perhaps replace these calculations with great circle distances later
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland,dtsrc
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
-     *        GLOBALSUM, HALO_UPDATE_COLUMN
+     *        GLOBALSUM
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
      *     jreg,j_rvrd,j_ervr,ij_fwoc
@@ -950,19 +950,19 @@ C****
       TRFLOWO = 0.
 #endif
 
-      CALL HALO_UPDATE(GRID, FLAND,FROM=NORTH+SOUTH) ! fixed
-      CALL HALO_UPDATE(GRID,FOCEAN,FROM=NORTH+SOUTH) ! fixed
-      CALL HALO_UPDATE(GRID,FEARTH,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(GRID, ZATMO,FROM=NORTH+SOUTH) ! fixed
-      CALL HALO_UPDATE(GRID, HLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, FLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,   MWL,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid, TLAKE,FROM=NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  RATE,FROM=NORTH+SOUTH) ! fixed
+      CALL HALO_UPDATE(GRID, FLAND) ! fixed
+      CALL HALO_UPDATE(GRID,FOCEAN) ! fixed
+      CALL HALO_UPDATE(GRID,FEARTH)
+      CALL HALO_UPDATE(GRID, ZATMO) ! fixed
+      CALL HALO_UPDATE(GRID, HLAKE)
+      CALL HALO_UPDATE(grid, FLAKE)
+      CALL HALO_UPDATE(grid,   MWL)
+      CALL HALO_UPDATE(grid, TLAKE)
+      CALL HALO_UPDATE(grid,  RATE) ! fixed
 #ifdef TRACERS_WATER
-      CALL HALO_UPDATE_COLUMN(grid,  GTRACER(:,1,:,:),NORTH+SOUTH)
-      CALL HALO_UPDATE_COLUMN(grid,  TRLAKE(:,1,:,:),NORTH+SOUTH)
-      CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:),FROM=NORTH+SOUTH)
+      CALL HALO_UPDATE(grid,  GTRACER(:,1,:,:), jdim=3)
+      CALL HALO_UPDATE(grid,  TRLAKE(:,1,:,:), jdim=3)
+      CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:))
 #endif
 
 C**** Calculate fluxes downstream if lake mass is above sill height (HLAKE (m))
