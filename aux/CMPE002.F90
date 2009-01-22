@@ -263,7 +263,7 @@
 !ccc module to allocate dynamic arrays
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays
-      use domain_decomp, only : init_app, grid, finish_app
+      use domain_decomp_1d, only : init_app, grid, finish_app
       use model_com, only : ioread,ioread_nodiag
       use model_com, only : im,jm,lm
 !ccc  modules with data to compare

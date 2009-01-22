@@ -19,7 +19,7 @@ C****        SNOW = daily snow amounts (from vertflux)
 C****
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays: part 1 of 3
-      use domain_decomp, only : init_app, grid, finish_app
+      use domain_decomp_1d, only : init_app, grid, finish_app
 !AOO                        end of part 1 of 3
       USE STATIC_OCEAN
       USE SEAICE, only : ace1i,ac2oim

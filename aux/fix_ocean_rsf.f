@@ -8,7 +8,7 @@ C**** f90 -o fix_ocean_rsf fix_ocean_rsf.o ../decks/Exyz_bin/Exyz.a
 C****    -O2 -64 -mips4 -static -OPT:reorg_comm=off -w2 -listing -mp
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
-      USE DOMAIN_DECOMP, ONLY : init_decomp
+      USE DOMAIN_DECOMP_1D, ONLY : init_decomp
       USE CONSTANT, only : grav,rhows,bygrav
       USE MODEL_COM, only : im,jm,lm,p,xlabel,iowrite,ptop,irerun
      *     ,iowrite_mon,focean,nday,itime,itimei,itimee,itime0,iyear1
