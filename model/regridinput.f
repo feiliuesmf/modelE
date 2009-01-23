@@ -5,11 +5,9 @@
       type (dd2d_grid), intent(in) :: dd2d
       type (x_2gridsroot) :: xll2cs
 
-c,xll144X90C32
-
-c      call init_regrid_root(xll2cs,72,46,1,32,32,6)
+      call init_regrid_root(xll2cs,72,46,1,32,32,6)
 c      call init_regrid_root(xll144X90C32,72,46,1,32,32,6)
-      call init_regrid_root(xll2cs,360,180,1,32,32,6)
+c      call init_regrid_root(xll2cs,360,180,1,32,32,6)
 c      call init_regrid_root(xll72X46C32,144,90,1,48,48,6)
 
 ccc   regrid boundary condition files 
@@ -25,8 +23,8 @@ c         call regridCROPS(xll72X46C32)
 c         call regridTOPINDEX(xll72X46C32)
 c         call regridSOIL(xll72X46C32)
       endif
-      call regridGIC(xll2cs,dd2d)
-c         call regridAIC(xll2cs,dd2d)
+c      call regridGIC(xll2cs,dd2d)
+         call regridAIC(xll2cs,dd2d)
 
       end subroutine regrid_input
 c*
@@ -884,6 +882,7 @@ c
 
       tsource(:,:,:)=0.0
 
+      if (am_i_root()) then
       name="AIC.RES_M20A.D771201"
       open(iu_AIC,FILE=name,FORM='unformatted', STATUS='old')
 
@@ -896,6 +895,8 @@ c
 
       irec=1
 
+      write(*,*) "TOTO"
+      
       do
          read(unit=iu_AIC,END=30) TITLE, ts4
          tsource=ts4
@@ -904,7 +905,8 @@ c
 
          if (irec .eq. 1) tcopy=ttargglob
 
-         write(unit=iuout) TITLE,ttargglob
+         write(unit=iuout) TITLE,real(ttargglob,KIND=4)
+c          write(unit=iuout) TITLE,ttargglob
          irec=irec+1
       enddo
    
@@ -915,31 +917,34 @@ c
       write(*,*) "maxrec",maxrec
 
       close(iuout) 
+      close(iu_AIC)
 
-      write(*,*) "here w r8"
-
-      outnc=trim(name)//"-CS.nc"
-      write(*,*) outnc
-
-      if (am_i_root()) then
-         write(*,*) "TCOPY=",tcopy
-         status = nf_create(outnc,nf_clobber,fid)
-         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
       endif
 
-      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
+      write(*,*) "here w r4"
 
-      if (am_i_root()) then
-         status = nf_enddef(fid)
-         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
-      endif
-
-      call write_data(dd2d,fid,'press',tcopy)
+c      outnc=trim(name)//"-CS.nc"
+c      write(*,*) outnc
+c
+c      if (am_i_root()) then
+c         write(*,*) "TCOPY=",tcopy
+c         status = nf_create(outnc,nf_clobber,fid)
+c         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
+c      endif
+c
+c      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
+c
+c      if (am_i_root()) then
+c         status = nf_enddef(fid)
+c         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
+c      endif
+c
+c      call write_data(dd2d,fid,'press',tcopy)
+c
+c      if(am_i_root()) status = nf_close(fid)
 
       deallocate(tsource,ts4,ttargglob,tcopy)
-    
-      if(am_i_root()) status = nf_close(fid)
-
+ 
       end subroutine regridAIC
 c*
 

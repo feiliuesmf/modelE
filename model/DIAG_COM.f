@@ -1355,7 +1355,7 @@ c**** Compute area weights of zig-zag grid cells
       allocate(axypband(JM_BUDG),axypband_loc(JM_BUDG))
       call set_zzarea()
       do J=J_0,J_1
-         do I=J_0,I_1
+         do I=I_0,I_1
             wtbudg(I,J)=axyp(I,J)/axypband(J_BUDG(I,J))
          enddo
       enddo

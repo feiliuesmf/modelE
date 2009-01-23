@@ -142,6 +142,8 @@ C****
 #else
       call init_app(grid,im,jm,lm)
 
+c      call glmeltt2b()
+
 #ifdef CUBE_GRID
 c***  Initialize regriding routines, ( DEBUG only )
 c      call regrid_input(grid%dd2d)
@@ -2167,6 +2169,7 @@ C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
 C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
 #ifndef SCM
+#ifndef CUBE_GRID
       DO J=J_0,J_1
       DO I=I_0,I_1
         CMASS(I,J)=P(I,J)*AXYP(I,J)
@@ -2188,6 +2191,7 @@ C****   except if it was just done (restart from itime=itimei)
          IF (ABS(DELTAP).gt.1d-6)
      *      WRITE (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
       end if
+#endif
 #endif
 
       IF (.not.end_of_day) RETURN
