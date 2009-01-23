@@ -1,6 +1,6 @@
-E1arobiot.R GISS Model E  2007 modelE              aromanou 10/01/08
+E1arobio1.R GISS Model E  2007 modelE              aromanou 10/01/08
 
-E1arobiot: obio + gas exch + radiation coupling + pco2 online
+E1arobio1: obio + gas exch + radiation coupling + pco2 online
          modelE has new KPP-KRT mixing scheme
          modelE equiv to frozen version, coupled to hycom ocean model
          control run with 1850 atmosphere/ocean
@@ -58,7 +58,7 @@ POUT                                ! post-processing output
 hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8| hycom_atm|-r8|
 hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
 hycom_scalars|-r8| hycom_dim_glob|-r8|
-kprf_arrays_loc_renamer|r-8|
+kprf_arrays_loc_renamer|-r8|
 hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
 advfct|-r8|                         ! advection
 archyb|-r8|                         ! continuity eqn.
@@ -198,7 +198,7 @@ CHL_DATA=CHL_WG_4x5                      !CHL_WG_4x5 in Gary'socean grid
 
 
 Label and Namelist:
-E1arobiot (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1arobio1 (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
 
 DTFIX=300
 
