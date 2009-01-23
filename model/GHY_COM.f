@@ -84,6 +84,8 @@ C**** arrays needed to restart from a "new" GIC
 
 !@var GDEEP keeps average (2:n) values of temperature, water and ice
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GDEEP
+!@var GSAVEL indiv layers temp,water,ice (for diag exporting)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: GSAVEL
 
 !@dbparam snoage_def determines how snowage is calculated:
 !@+       = 0     independent of temperature
@@ -206,6 +208,8 @@ cddd     *         STAT=IER)
      *         STAT=IER)
 
       ALLOCATE(     GDEEP(I_0H:I_1H,J_0H:J_1H,3),
+     *         STAT=IER)
+      ALLOCATE(    GSAVEL(I_0H:I_1H,J_0H:J_1H,ngm,3),
      *         STAT=IER)
 
       ALLOCATE(      TOP_INDEX_IJ(I_0H:I_1H,J_0H:J_1H),

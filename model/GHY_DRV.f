@@ -1401,8 +1401,9 @@ c***********************************************************************
      &    ,aepc,aepb,aepp,zw,tbcs,tsns
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
      &    ,tg2av,wtr2av,ace2av
+     &    ,tg_L,wtr_L,ace_L
 
-      use ghy_com, only : gdeep, fearth
+      use ghy_com, only : gdeep, gsaveL, fearth
       USE CLOUDS_COM, only : DDMS
 
       use pbl_drv, only : t_pbl_args
@@ -1530,6 +1531,9 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       gdeep(i,j,1)=tg2av
       gdeep(i,j,2)=wtr2av
       gdeep(i,j,3)=ace2av
+      gsaveL(i,j,:,1)=tg_L(:)
+      gsaveL(i,j,:,2)=wtr_L(:)
+      gsaveL(i,j,:,3)=ace_L(:)
 
       aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
       aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
