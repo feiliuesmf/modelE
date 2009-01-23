@@ -116,6 +116,7 @@ obio_update|-r8|                    !
 obio_carbon|-r8|                    ! 
 obio_trint|-r8|                     ! 
 obio_reflectance|-r8|
+obio_sinksettl|-r8|
 
 
 Data input files:
