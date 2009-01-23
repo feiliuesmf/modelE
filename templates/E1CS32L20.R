@@ -72,7 +72,6 @@ VEG=V_CS32 CROPS=CROPS_CS32
 CDN=CD_CS32                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR               ! river direction file
-GLMELT=GLMELT_4X5.OCN       ! glacial melt distribution
 TOP_INDEX=top_index_CS32      ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
