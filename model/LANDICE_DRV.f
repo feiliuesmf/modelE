@@ -50,7 +50,7 @@
       REAL*8 FAC_SH,FAC_NH,gsum,hsum(2)
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO
      *     ,grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA
-      LOGICAL :: do_glmelt
+      LOGICAL :: do_glmelt = .false.
       INTEGER I,J,N, iu_GL, I72
       INTEGER :: I_0,I_1, J_0,J_1
       CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
