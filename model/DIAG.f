@@ -1106,6 +1106,13 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
      *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
             end do
           end select
+          select case (namedd(k)(1:2))
+          case ("GT","GW","GI")
+            ! soil variables on soil levels
+            kunit=kunit+1
+            write(name,'(A2,A3,A7)') namedd(k)(1:2),'ALL',aDATE(1:7)
+            call openunit(name,iu_SUBDD(kunit),.true.,.false.)
+          end select
         else                    ! single file per name
           kunit=kunit+1
           call openunit(trim(namedd(k))//aDATE(1:7),iu_SUBDD(kunit),
@@ -1139,15 +1146,15 @@ C****
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
 !@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
-!@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID
-!@+                    RAPR,
+!@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID,
+!@+                    GTALL, GWALL, GIALL (on soil levels)
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    z*, r*, t*, q*  (on any model level, note lowercase)
 !@+                    U*, V*, W*, C*  (on any model level)
 !@+                    O*, N*, c*, n*  (Ox, NOx, CO, NO2 on any model level)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
-!@+                    SO4
+!@+                    SO4, RAPR
 !@+                    7BEW, 7BED, BE7ATM
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
 !@+                    TAUSS,TAUMC,CLDSS,CLDMC
@@ -1165,7 +1172,7 @@ C****
      *     ,flice,nday,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg
-      USE GHY_COM, only : gdeep
+      USE GHY_COM, only : gdeep,gsaveL,ngm
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
 #ifdef CLD_AER_CDNC
      *           ,ctem,cd3d,ci3d,cl3d,cdn3d,cre3d,clwp
@@ -1214,7 +1221,7 @@ C****
       IMPLICIT NONE
       REAL*4, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATA
-      INTEGER :: I,J,K,L,kp,kunit,n,n1,n_fidx
+      INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,n_fidx
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole
@@ -1501,9 +1508,55 @@ c          data=sday*prec/dtsrc
         polefix=.true.
         call write_data(data,kunit,polefix)
         cycle
+ 10     continue
+
+C**** diags on soil levels
+        select case (namedd(k)(1:2))
+        case ("GT","GW","GI") ! soil temperature, water, ice
+          if (namedd(k)(3:5) .eq. "ALL") then
+            kunit=kunit+1
+            do ks=1,ngm
+              select case (namedd(k)(1:2))
+              case ("GT")        ! soil temperature lvls 2-6, land (C)
+                do j=J_0,J_1
+                  do i=I_0,imaxj(j)
+                    if (fearth(i,j).gt.0) then
+                      data(i,j)=gsaveL(i,j,ks,1)
+                    else
+                      data(i,j)=undef
+                    end if
+                  end do
+                end do
+              case ("GW")        ! ground wetness lvls 2-6, land (m)
+                do j=J_0,J_1
+                  do i=I_0,imaxj(j)
+                    if (fearth(i,j).gt.0) then
+                      data(i,j)=gsaveL(i,j,ks,2)
+                    else
+                      data(i,j)=undef
+                    end if
+                  end do
+                end do
+              case ("GI")  ! ground ice lvls 2-6, land (m, liq equiv)
+                do j=J_0,J_1
+                  do i=I_0,imaxj(j)
+                    if (fearth(i,j).gt.0) then
+                      data(i,j)=gsaveL(i,j,ks,3)
+                    else
+                      data(i,j)=undef
+                    end if
+                  end do
+                end do
+              end select
+              polefix=.true.
+              call write_data(data,kunit,polefix)
+            end do
+            cycle
+          end if
+        end select
 
 C**** diags on fixed pressure levels or velocity
- 10     select case (namedd(k)(1:1))
+        select case (namedd(k)(1:1))
         case ("Z","R","T","Q")  ! heights, rel/spec humidity or temp
 C**** get pressure level
           do kp=1,kgz_max
