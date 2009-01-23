@@ -895,8 +895,6 @@ c
 
       irec=1
 
-      write(*,*) "TOTO"
-      
       do
          read(unit=iu_AIC,END=30) TITLE, ts4
          tsource=ts4
