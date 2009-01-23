@@ -13,7 +13,7 @@
       USE OCEAN,          only : focean
       USE obio_com,       only : tracer,tracer_glob
 #else
-      USE hycom_dim_glob, only : kdm,jj,isp,ifp,ilp,ip,ntrcr
+      USE hycom_dim_glob, only : kdm,jj,isp,ifp,ilp,ip,ntrcr,idm,jdm
       USE hycom_arrays_glob, only : tracer
 #endif
 

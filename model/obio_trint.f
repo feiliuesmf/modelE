@@ -15,7 +15,7 @@
       USE MODEL_COM, only : nstep=>itime
       USE GEOM, only : dxyp
 #else
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr
+      USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr,idm,jdm,kdm
       USE hycom_arrays_glob, only : tracer,dp,scp2
       USE hycom_scalars, only : nstep
 #endif

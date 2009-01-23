@@ -239,8 +239,11 @@
 
       endif  !diagno_bio
 
+#ifdef OBIO_ON_GARYocean
       write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
      .      itest,jtest,LON_DG(itest,1),LAT_DG(jtest,1)
+#endif
+
 
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)

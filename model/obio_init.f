@@ -670,7 +670,7 @@ c
 
       USE FILEMANAGER, only: openunit,closeunit
 
-      !!USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
+      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
       USE hycom_dim, only : ogrid,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
