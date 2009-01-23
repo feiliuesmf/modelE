@@ -526,7 +526,7 @@ c for sulfur chemistry
 !@var TEMWM,TEM,WTEM,WCONST dummy variables
 !@var WORK work done on convective plume
 !@var MC1 true for the first convective event
-!@var RFMC1 true for ???
+!@var RFMC1 skip redoing fmc1 calc if true
       LOGICAL MC1, RFMC1
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
@@ -1319,8 +1319,9 @@ C**** etadn=0.  ! test
       FLEFT=1.-.5*ETADN
       DDRAFT=ETADN*MPLUME
       DDR(L)=DDRAFT
+      CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN      ! calculate before CDHDRT
       CDHDRT=CDHDRT-CDHDRT*.5*ETADN+CDHEAT(L)    ! SLH*COND(L)
-      CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN
+C     CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN
       FDDP = .5*DDRAFT/MPLUME
       FDDL = .5*DDRAFT*BYAM(L)
       MPLUME=FLEFT*MPLUME
@@ -2808,7 +2809,7 @@ C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
-      IF(LHX.EQ.LHS.AND.WMX(L).LE.0d0) THEN          ! Sessen and Dodd formula
+      IF(LHX.EQ.LHS.AND.WMX(L).LE.0d0) THEN          ! Sassen and Dodd formula
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=.00536d0*TL(L)-.276d0
 C       RH1(L)=QL(L)/QSATE
