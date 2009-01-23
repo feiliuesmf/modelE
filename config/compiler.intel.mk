@@ -27,8 +27,8 @@ F90FLAGS += -assume protect_parens -fp-model strict
 endif
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -CB -fpe0
-LFLAGS += -CB -fpe0
-F90FLAGS += -CB -fpe0
-LFLAGSF += -CB -fpe0
+FFLAGS += -CB -fpe0 -check uninit -ftrapuv
+LFLAGS += -CB -fpe0 -check uninit -ftrapuv
+F90FLAGS += -CB -fpe0 -check uninit -ftrapuv
+LFLAGSF += -CB -fpe0 -check uninit -ftrapuv
 endif
