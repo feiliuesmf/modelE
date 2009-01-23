@@ -1517,7 +1517,7 @@ C**** diags on soil levels
             kunit=kunit+1
             do ks=1,ngm
               select case (namedd(k)(1:2))
-              case ("GT")        ! soil temperature lvls 2-6, land (C)
+              case ("GT")        ! soil temperature lvls 1-6, land (C)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
@@ -1527,7 +1527,7 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
-              case ("GW")        ! ground wetness lvls 2-6, land (m)
+              case ("GW")        ! ground wetness lvls 1-6, land (m)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
@@ -1537,7 +1537,7 @@ C**** diags on soil levels
                     end if
                   end do
                 end do
-              case ("GI")  ! ground ice lvls 2-6, land (m, liq equiv)
+              case ("GI")  ! ground ice lvls 1-6, land (m, liq equiv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     if (fearth(i,j).gt.0) then
