@@ -7420,8 +7420,8 @@ C**** set some defaults
           kt_power_change(n) = -14
 
           g=13; itcon_3Dsrc(nChemistry,N) = g
-          qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)='
-     *         Chemistry'
+          qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)=
+     *         'Chemistry'
           qsum(itcon_3Dsrc(nChemistry,N))=.true.
           g=g+1; itcon_3Dsrc(nStratwrite,N) = g
           qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)
