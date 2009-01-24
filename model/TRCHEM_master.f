@@ -69,7 +69,7 @@ C**** Local parameters and variables and arguments:
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
       REAL*8, PARAMETER  :: bymair = 1.d0/mair
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
-!@var FACT1,2,3 temp variable for start overwrite
+!@var FACT1,2,3 temp variable for strat overwrite
 !@var bydtsrc reciprocal of the timestep dtsrc
 !@var local logical for error checking 
 !@var byam75 the reciprocal air mass near 75 hPa level
@@ -284,7 +284,7 @@ C (note this section is already done in DIAG.f)
         END DO
       ENDIF
       DO L=1,LM
-        DO J=J_0S,J_1S
+        DO J=J_0,J_1
           TX(1:IM,J,L)=T(1:IM,J,L)*PK(L,1:IM,J)
         END DO
       END DO
@@ -295,7 +295,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         avgTT_H2O_part(:,:)=0.d0
         avgTT_CH4_part(:,:)=0.d0
         countTT_part(:,:)=0.d0
-        do J=J_0S,J_1S
+        do J=J_0,J_1
           do I=I_0,IMAXJ(J)
             if(LAT2D_DG(I,J) >= -20. .and. LAT2D_DG(I,J) <= 20.)then
               avgTT_H2O_part(I,J) = Q(I,J,LTROPO(I,J))*MWabyMWw
@@ -1752,11 +1752,11 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
       do j=J_0,J_1
-       fact5=fact6 
-       fact4=fact6
        do i=1,IMAXJ(j)
         fact6=2.69d20*axyp(i,j)*byavog
         fact1=bymair*am(1,i,j)*axyp(i,j)
+        fact5=fact6 
+        fact4=fact6
         if(use_rad_n2o == 0)fact4=fact1 
         if(use_rad_cfc == 0)fact5=fact1
         if(use_rad_n2o > 0)fact2=rad_to_chem(3,1,i,j)
