@@ -220,10 +220,60 @@ C****
         end do
       end do
 !$OMP END PARALLEL DO
-      IF (HAVE_SOUTH_POLE) total(2:im,1) = fim*total(1,1)
-      IF (HAVE_NORTH_POLE) total(2:im,jm)= fim*total(1,jm)
+      IF (HAVE_SOUTH_POLE) total(2:im,1) = total(1,1)
+      IF (HAVE_NORTH_POLE) total(2:im,jm)= total(1,jm)
       return
       end subroutine consrv_tr
+
+      SUBROUTINE INC_DIAGTCB(I,J,DTRACER,M,NT)
+!@sum  INC_DIAGTCB Keeps track of the conservation properties of tracers
+!@+    This routine takes an already calculated difference
+!@auth Gary Russell/Gavin Schmidt/Jean Lerner
+!@ver  1.0
+      USE GEOM, only : j_budg
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE MODEL_COM, only: jm,fim,im
+      USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
+      IMPLICIT NONE
+
+!@var M index denoting which process changed the tracer
+      INTEGER, INTENT(IN) :: m
+!@var NT index denoting tracer number
+      INTEGER, INTENT(IN) :: nt
+!@var DTRACER change of conserved quantity at this time
+      REAL*8  :: DTRACER
+      INTEGER :: i,j,nm
+
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+C****
+C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
+C**** M=1,2...12:  See DIAGCA in DIAG.f
+C****   13+ AFTER Sources and Sinks
+C****
+C**** NOFMT contains the indexes of the TCONSRV array where each
+C**** change is to be stored for each quantity. If NOFMT(M,NT)=0,
+C**** no calculation is done.
+
+      nm=nofmt(m,nt)
+      if (nm .gt.0) then
+C**** Calculate latitudinal mean of change DTRACER
+        IF (HAVE_SOUTH_POLE) dtracer = fim*dtracer
+        IF (HAVE_NORTH_POLE) dtracer = fim*dtracer
+
+C**** Accumulate difference in TCONSRV(NM)
+        if (m.gt.1) then
+          tconsrv(J_BUDG(I,J),nm,nt)=tconsrv(J_BUDG(I,J),nm,nt)+dtracer
+        end if
+C**** No need to save current value
+      end if
+      return
+      end subroutine inc_diagtcb
 
       SUBROUTINE DIAGTCB (DTRACER,M,NT)
 !@sum  DIAGTCB Keeps track of the conservation properties of tracers
@@ -269,8 +319,8 @@ C**** no calculation is done.
 
       if (nofmt(m,nt).gt.0) then
 C**** Calculate latitudinal mean of chnage DTRACER
-        IF (HAVE_SOUTH_POLE) dtracer(2:im,1) = fim*dtracer(1,1)
-        IF (HAVE_NORTH_POLE) dtracer(2:im,jm)= fim*dtracer(1,jm)
+        IF (HAVE_SOUTH_POLE) dtracer(2:im,1) = dtracer(1,1)
+        IF (HAVE_NORTH_POLE) dtracer(2:im,jm)= dtracer(1,jm)
 
 C**** Calculate zonal sums
         DTJ(J_0B:J_1B)=0.
