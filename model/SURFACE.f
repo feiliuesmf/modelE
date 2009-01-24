@@ -122,15 +122,12 @@ C****
      *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
-     *      , itcon_dd, dtr_dd
+     *      , itcon_dd
 #endif
 #ifdef BIOGENIC_EMISSIONS
      *     ,  ijs_isoprene
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
-#ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only: DTR_AMPe
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust, only : hbaij,ricntd
@@ -281,10 +278,7 @@ C**** Zero out fluxes summed over type and surface time step
       TREVAPOR = 0. ; TRUNOE = 0.
 #endif
 #ifdef TRACERS_DRYDEP
-      TRDRYDEP = 0. ; dtr_dd=0.
-#endif
-#ifdef TRACERS_AMP
-      DTR_AMPe(I_0:I_1,J_0:J_1,:) = 0.d0
+      TRDRYDEP = 0.
 #endif
 #ifdef SCM
       EVPFLX= 0.0d0
@@ -907,7 +901,8 @@ C****
      &       trc_flux*axyp(i,j)*ptype*dtsurf
 
 #ifdef TRACERS_AMP
-        DTR_AMPe(i,j,n)=DTR_AMPe(i,j,n)+trc_flux*axyp(i,j)*ptype*dtsurf
+        if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
+     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
 #else
         call inc_tajls(i,j,1,jls_isrc(1,n),trc_flux*axyp(i,j)*
      *       ptype*dtsurf)   ! why not for all aerosols?
@@ -955,10 +950,11 @@ C****
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
      *         *pbl_args%dep_vel(n)+ptype*rtsdt* pbl_args%gs_vel(n)
 #endif
-          dtr_dd(i,j,n,1)=dtr_dd(i,j,n,1)-
-     &         ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n)
-          dtr_dd(i,j,n,2)=dtr_dd(i,j,n,2)-
-     &         ptype*rtsdt*axyp(i,j)* pbl_args%gs_vel(n)
+
+          if (itcon_dd(n,1).gt.0) call inc_diagtcb(i,j,-
+     &     ptype*rtsdt*axyp(i,j)*pbl_args%dep_vel(n),itcon_dd(n,1),n)
+          if (itcon_dd(n,2).gt.0) call inc_diagtcb(i,j,-
+     &     ptype*rtsdt*axyp(i,j)*pbl_args%gs_vel(n),itcon_dd(n,2),n)
         end if
 #endif
       END DO
@@ -1376,18 +1372,6 @@ C**** For distributed implementation - ensure point is on local process.
       END IF
 C****
       END DO   ! end of surface time step
-
-#ifdef TRACERS_DRYDEP
-C**** Save for tracer dry deposition conservation quantity:
-      do n=1,ntm
-        if(dodrydep(n)) then
-          if (itcon_dd(n,1).gt.0)
-     *         call diagtcb(dtr_dd(:,:,n,1),itcon_dd(n,1),n) ! turb dep
-          if (itcon_dd(n,2).gt.0)
-     *         call diagtcb(dtr_dd(:,:,n,2),itcon_dd(n,2),n) ! grav sett
-        end if
-      end do
-#endif
 
       RETURN
 C****

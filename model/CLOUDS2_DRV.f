@@ -192,14 +192,6 @@
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm)
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,ntm) :: dtr_mc, dtr_ss
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     *     ,dtr_wt
-#endif
-#endif
       INTEGER NX
 #ifdef TRACERS_SPECIAL_Shindell
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
@@ -380,13 +372,6 @@ C**** Find the ntx active tracers ntix(1->ntx)
       end do
       ntx = nx
 
-      dtr_mc =0. ; dtr_ss = 0.
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      dtr_wt = 0.D0
-#endif
-#endif
 #ifdef TRACERS_AMP
       AQsulfRATE = 0.d0
 #endif
@@ -860,12 +845,13 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
         do l=1,lm
-          dtr_mc(i,j,nx)=dtr_mc(i,j,nx)+(tm(l,nx)-trm(i,j,l,n))*(1.
-     *         -fssl(l))
+#ifndef SKIP_TRACER_DIAGS
+           if (itcon_mc(n).gt.0) call inc_diagtcb(i,j,
+     *          (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
-#ifndef SKIP_TRACER_DIAGS
+     *          ,itcon_mc(n),n)
           call inc_tajln(i,j,l,jlnt_mc,n,
      &         (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
 #ifdef TRACERS_WATER
@@ -1284,11 +1270,13 @@ C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
         do l=1,lp50
-          dtr_ss(i,j,nx)=dtr_ss(i,j,nx)+tm(l,nx)-trm(i,j,l,n)*fssl(l)
+#ifndef SKIP_TRACER_DIAGS
+           if (itcon_ss(n).gt.0) call inc_diagtcb(i,j,
+     *          tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
-#ifndef SKIP_TRACER_DIAGS
+     *          ,itcon_ss(n),n)
           call inc_tajln(i,j,l,jlnt_lscond,n,
      &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
@@ -1450,7 +1438,8 @@ c     ..........
         n1=n_fidx+n-1
         trprec_dust(n,i,j)=0.D0
         DO l=1,Lm
-          dtr_wt(i,j,n1)=dtr_wt(i,j,n1)+tm_dust(l,n)-trm(i,j,l,n1)
+          if (itcon_wt(n).gt.0) call inc_diagtcb(i,j,
+     *          tm_dust(l,n)-trm(i,j,l,n1),itcon_wt(n),n)
           trm(i,j,l,n1)=tm_dust(l,n)
           trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
           trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
@@ -1522,23 +1511,6 @@ C
          WRITE(6,*)  'ISCCP CLOUD TYPING ERROR'
          call stop_model('ISCCP CLOUD TYPING ERROR',255)
       END IF
-
-#ifndef SKIP_TRACER_DIAGS
-#ifdef TRACERS_ON
-C**** Save the conservation quantities for tracers
-      do nx=1,ntx
-        n=ntix(nx)
-        if (itcon_mc(n).gt.0) call diagtcb(dtr_mc(:,:,nx),itcon_mc(n),n)
-        if (itcon_ss(n).gt.0) call diagtcb(dtr_ss(:,:,nx),itcon_ss(n),n)
-#ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        if (itcon_wt(n).gt.0) call diagtcb(dtr_wt(:,:,nx),itcon_wt(n),n)
-#endif
-#endif
-      end do
-#endif
-#endif /*SKIP_TRACER_DIAGS*/
 
 #ifdef SKIP_TRACER_DIAGS
 #ifdef TRACERS_WATER

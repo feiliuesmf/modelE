@@ -79,7 +79,7 @@ C**** Average concentration; surface concentration; total mass
       enddo; enddo
 !$OMP END PARALLEL DO
 C**** Zonal mean concentration and mass
-!$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
+!$OMP PARALLEL DO PRIVATE (I,L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
         do i=I_0,imaxj(j)
@@ -94,7 +94,7 @@ C**** Zonal mean concentration and mass
 #ifdef TRACERS_WATER
 C**** Zonal mean cloud water concentration
       if (dowetdep(n)) then
-!$OMP PARALLEL DO PRIVATE (L,J,TSUM,ASUM)
+!$OMP PARALLEL DO PRIVATE (I,L,J,TSUM,ASUM)
       do l=1,lm
       do j=J_0,J_1
         do i=I_0,imaxj(j)
@@ -232,17 +232,19 @@ C****
 !@ver  1.0
       USE GEOM, only : j_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: jm,fim,im
+      USE MODEL_COM, only: fim,jm
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
       IMPLICIT NONE
 
+!@var I, J indices denoting gird box
+      INTEGER, INTENT(IN) :: I,J
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
 !@var NT index denoting tracer number
       INTEGER, INTENT(IN) :: nt
 !@var DTRACER change of conserved quantity at this time
       REAL*8  :: DTRACER
-      INTEGER :: i,j,nm
+      INTEGER :: nm
 
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
@@ -263,8 +265,8 @@ C**** no calculation is done.
       nm=nofmt(m,nt)
       if (nm .gt.0) then
 C**** Calculate latitudinal mean of change DTRACER
-        IF (HAVE_SOUTH_POLE) dtracer = fim*dtracer
-        IF (HAVE_NORTH_POLE) dtracer = fim*dtracer
+        IF (HAVE_SOUTH_POLE .AND. J.EQ.1) dtracer = fim*dtracer
+        IF (HAVE_NORTH_POLE .AND. J.EQ.JM) dtracer = fim*dtracer
 
 C**** Accumulate difference in TCONSRV(NM)
         if (m.gt.1) then
@@ -318,7 +320,7 @@ C**** change is to be stored for each quantity. If NOFMT(M,NT)=0,
 C**** no calculation is done.
 
       if (nofmt(m,nt).gt.0) then
-C**** Calculate latitudinal mean of chnage DTRACER
+C**** Calculate latitudinal mean of change DTRACER
         IF (HAVE_SOUTH_POLE) dtracer(2:im,1) = dtracer(1,1)
         IF (HAVE_NORTH_POLE) dtracer(2:im,jm)= dtracer(1,jm)
 
