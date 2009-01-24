@@ -710,7 +710,13 @@ c     write(0,*) 'SCM no diags   print_diags'
       IF (partial.eq.0 .and. KDIAG(6).LT.9) CALL DIAGDD  ! full period
       IF (KDIAG(13).LT.9) CALL DIAGDH
       IF (KDIAG(4).LT.9) CALL DIAG4
+
+      END IF
+
       IF (KDIAG(11).LT.9) CALL diag_RIVER
+
+      IF (AM_I_ROOT()) THEN
+
       IF (KDIAG(12).LT.9) CALL diag_OCEAN
       IF (KDIAG(12).LT.9) CALL diag_ICEDYN
       IF (isccp_diags.eq.1) CALL diag_ISCCP

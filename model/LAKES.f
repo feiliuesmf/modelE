@@ -1226,87 +1226,112 @@ C****
 
       SUBROUTINE diag_RIVER
 !@sum  diag_RIVER prints out the river outflow for various rivers
+!@sum  (now parallel)
 !@auth Gavin Schmidt
 !@ver  1.0
 
       USE CONSTANT, only : rhow,sday,teeny,undef
-      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon
+      USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,jyear,amon,im,jm
      *     ,jdate,jhour,itime,dtsrc,idacc,itime0,nday,jdpery,jmpery
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH,
-     *    WRITE_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,pack_data,
+     $     AM_I_ROOT, get
       USE GEOM, only : byaxyp
-      USE DIAG_COM, only : aij,ij_mrvr
+      USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,trw0,n_water,itime_tr0
      *     ,tr_wd_type,nwater
-      USE TRDIAG_COM, only : taijn
+      USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
       USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
       IMPLICIT NONE
-      REAL*8 RVROUT(6), SCALERVR, DAYS
-      INTEGER INM,I,N
+      REAL*8 RVROUT(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &     GRID%J_STRT_HALO:GRID%J_STOP_HALO), SCALERVR, DAYS
+      REAL*8 RVROUT_GLOB(IM,JM)
+      INTEGER INM,I,N,J
 #ifdef TRACERS_WATER
-      REAL*8 TRRVOUT(6,NTM)
+      REAL*8 TRVROUT(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &     GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTM)
 #endif
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
+      integer :: I_0, I_1, J_0, J_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
 
       DAYS=(Itime-Itime0)/REAL(nday,kind=8)
       WRITE(out_line,900) JYEAR0,AMON0,JDATE0,JHOUR0,JYEAR,AMON,JDATE,
      *      JHOUR,ITIME,DAYS
-      CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
+      IF (AM_I_ROOT()) CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
 C**** convert kg/(source time step) to km^3/mon
       SCALERVR = 1d-9*SDAY*JDPERY/(JMPERY*RHOW*DTSRC)
-      DO INM=1,NRVR,6
-        DO I=1,MIN(6,NRVR+1-INM)
-          RVROUT(I) = SCALERVR*AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)
-     *         ,IJ_MRVR)/IDACC(1)
+
+C**** loop over whole grid
+      DO J=J_0,J_1
+        DO I=I_0,I_1
+          RVROUT(I,J)=0.
+#ifdef TRACERS_WATER
+          TRVROUT(I,J,:)=0.
+#endif
+          DO INM=1,NRVR
+            if (I.eq.IRVRMTH(INM).and. J.eq.JRVRMTH(INM)) THEN
+              RVROUT(I,J) = SCALERVR*AIJ(I,J,IJ_MRVR)/IDACC(1)
+#ifdef TRACERS_WATER
+              IF (RVROUT(I,J).gt.0)  THEN
+                DO N=1,NTM
+                  if (to_per_mil(n).gt.0) then
+                    if (TAIJN(I,J,TIJ_RVR,N_water).gt.0) then
+                      TRVROUT(I,J,N)=1d3*(TAIJN(I,J,TIJ_RVR,N)/(trw0(n)
+     $                      *TAIJN(I,J,TIJ_RVR,N_water))-1.)
+                    else
+                      TRVROUT(I,J,N)=undef
+                    endif
+                  else
+                    TRVROUT(I,J,N)=scale_tij(TIJ_RVR,n)*TAIJN(I,J
+     $                    ,TIJ_RVR,N)/(AIJ(I,J,IJ_MRVR)*BYAXYP(I,J)
+     $                    +teeny)
+                  end if
+                END DO
+              ELSE
+                TRVROUT(I,J,:)=undef
+              END IF
+#endif
+            end if
+          END DO
         END DO
-        WRITE(out_line,901)
-     *     (NAMERVR(I-1+INM),RVROUT(I),I=1,MIN(6,NRVR+1-INM))
-        CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
       END DO
+
+C**** gather diags + print out on root processor
+      call pack_data(grid,rvrout,rvrout_glob)
+
+      IF (AM_I_ROOT()) THEN
+        DO INM=1,NRVR,6
+          WRITE(out_line,901)
+     *          (NAMERVR(I-1+INM),RVROUT_glob(IRVRMTH(I-1+INM),JRVRMTH(I
+     $          -1+INM)),I=1,MIN(6,NRVR+1-INM))
+          CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
+        END DO
+      END IF
 
 #ifdef TRACERS_WATER
       DO N=1,NTM
         if (itime.ge.itime_tr0(n) .and. tr_wd_TYPE(n).eq.nWater) then
-          WRITE(out_line,*) "River outflow tracer concentration "
-     *         ,trim(units_tij(tij_rvr,n)),":",TRNAME(N)
-          CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
-          DO INM=1,NRVR,6
-            DO I=1,MIN(6,NRVR+1-INM)
-              IF (AIJ(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),IJ_MRVR).gt.0)
-     *             THEN
-              if (to_per_mil(n).gt.0) then
-c                TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
-c     *               +INM),TIJ_RVR,N)/(trw0(n)*AIJ(IRVRMTH(I-1+INM)
-c     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*
-c     *               BYAXYP(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM))
-c     *               ) -1.)
-                if (TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM),TIJ_RVR
-     *               ,N_water).gt.0) then
-                  TRRVOUT(I,N)=1d3*(TAIJN(IRVRMTH(I-1+INM),JRVRMTH(I-1
-     *                 +INM),TIJ_RVR,N)/(trw0(n)*TAIJN(IRVRMTH(I-1+INM)
-     *                 ,JRVRMTH(I-1+INM),TIJ_RVR,N_water))-1.)
-                else
-                  TRRVOUT(I,N)=undef
-                endif
-              else
-                TRRVOUT(I,N)=scale_tij(TIJ_RVR,n)*TAIJN(IRVRMTH(I-1+INM)
-     *               ,JRVRMTH(I-1+INM),TIJ_RVR,N)/(AIJ(IRVRMTH(I-1+INM)
-     *               ,JRVRMTH(I-1+INM),IJ_MRVR)*
-     *               BYAXYP(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM))
-     *               +teeny)
-              end if
-              ELSE
-                TRRVOUT(I,N)=undef
-              END IF
-            END DO
-            WRITE(out_line,901) (NAMERVR(I-1+INM),TRRVOUT(I,N),
-     *           I=1,MIN(6,NRVR+1-INM))
+
+          call pack_data(grid,trvrout(:,:,N),rvrout_glob)
+
+          IF (AM_I_ROOT()) THEN
+            WRITE(out_line,*) "River outflow tracer concentration "
+     *            ,trim(units_tij(tij_rvr,n)),":",TRNAME(N)
             CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
-          END DO
+            DO INM=1,NRVR,6
+              WRITE(out_line,901) (NAMERVR(I-1+INM)
+     $              ,RVROUT_glob(IRVRMTH(I-1+INM),JRVRMTH(I-1+INM)),I
+     $              =1,MIN(6,NRVR+1-INM))
+              CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
+            END DO
+          END IF
         end if
       END DO
 #endif
