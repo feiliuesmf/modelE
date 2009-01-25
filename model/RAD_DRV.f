@@ -52,7 +52,7 @@ C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       REAL*8 S2DAWN,S2DUSK,ECOSZ,ECOSQZ,CLT1,CLT2,ZERO2,CDUSK,DUSK,DAWN
      *     ,SDUSK,SDAWN,CJCD,SJSD,SR1,CR1,SR2,CR2,DROT
       INTEGER :: I_0, I_1, J_0, J_1
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
 
 C****
       I_0 = grid%I_STRT
@@ -61,8 +61,6 @@ C****
       J_1 = grid%J_STOP
       J_0S = grid%J_STRT_SKP
       J_1S = grid%J_STOP_SKP
-      J_0STG = grid%J_STRT_STGR
-      J_1STG = grid%J_STOP_STGR
 
       if ( present(COSZA) ) goto 777 ! COSZS
 C****
@@ -983,11 +981,7 @@ C**** Read in the factors used for alterations:
       USE CONSTANT, only : by12
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,GET,REWIND_PARALLEL
-#ifndef CUBE_GRID
      *     ,READT_PARALLEL
-#else
-      use pario_fbsa, only : READT_PARALLEL
-#endif
       USE MODEL_COM, only : jday,jyear,im,jm,focean,jmon,JDendOfM
      *     ,JDmidOfM, jdate
       USE GEOM, only : imaxj
@@ -1214,8 +1208,7 @@ C     OUTPUT DATA
      .                  ,chl
 #endif
       USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
-      USE DOMAIN_DECOMP_ATM, ONLY: HALO_UPDATE
-      USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY: GLOBALSUM
       USE RAD_COSZ0, only : COSZT,COSZS
 
 #ifdef TRACERS_ON
@@ -1313,7 +1306,7 @@ C
 
       INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: J_0, J_1, I_0, I_1
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       character(len=300) :: out_line
 
@@ -1333,8 +1326,6 @@ C****
       J_1 = grid%J_STOP
       J_0S = grid%J_STRT_SKP
       J_1S = grid%J_STOP_SKP
-      J_0STG = grid%J_STRT_STGR
-      J_1STG = grid%J_STOP_STGR
 
 
 C****

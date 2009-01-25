@@ -12,15 +12,11 @@
 !@+    PRECIP_OC,OCEANS
       USE CONSTANT, only : rhows,rhoi,shw,by12,tf
       USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_1D, only : GRID, GET,
+      USE DOMAIN_DECOMP_ATM, only : GET,
      *                          READ_PARALLEL,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
-#ifdef CUBE_GRID
-      use pario_fbsa, only : MREAD_PARALLEL,READT_PARALLEL
-#else
-      use domain_decomp_1d, only : MREAD_PARALLEL,READT_PARALLEL
-#endif
+     &     ,MREAD_PARALLEL,READT_PARALLEL
       USE MODEL_COM, only : im,jm,lm,focean,fland,flice
      *     ,Iyear1,Itime,jmon,jdate,jday,jyear,jmpery,JDendOfM,JDmidOfM
      *     ,ItimeI,kocean,itocean,itoice
@@ -84,6 +80,7 @@ C     *     ,CRSI,KRSI
 !@sum         depths are changed (generally once a day)
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean)
+      USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 TGAVE,DWTRO,WTR1O,WTR2O
@@ -142,8 +139,7 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@sum OCLIM calculates daily ocean data from ocean/sea ice climatologies
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
-      USE DOMAIN_DECOMP_1D, only : HERE
-      USE DOMAIN_DECOMP_1D, ONLY : GLOBALSUM,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID,GLOBALSUM,AM_I_ROOT
       USE GEOM, ONLY : lat2d
       IMPLICIT NONE
 
@@ -673,7 +669,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      &                          DM,AOST,EOST1,EOST0,BOST,
      &                          COST,ARSI,ERSI1,ERSI0,BRSI,CRSI,XZO,XZN
       USE STATIC_OCEAN, only  : KRSI
-      USE DOMAIN_DECOMP_1D, only : DIST_GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : DIST_GRID,GET
       IMPLICIT NONE
       INTEGER :: I_0H,I_1H,J_0H,J_1H,IER
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -719,14 +715,10 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 !@ver  1.0
       USE FILEMANAGER
       USE PARAM
-      USE DOMAIN_DECOMP_1D, only : GRID, GET, am_I_root,
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, am_I_root,
      *                          REWIND_PARALLEL,
      *                          BACKSPACE_PARALLEL
-#ifdef CUBE_GRID
-      USE pario_fbsa, only : MREAD_PARALLEL,READT_PARALLEL
-#else
-      USE DOMAIN_DECOMP_1D, only : MREAD_PARALLEL,READT_PARALLEL
-#endif        
+     &     ,MREAD_PARALLEL,READT_PARALLEL
       USE MODEL_COM, only : im,jm,fland,flice,kocean,focean
      *     ,iyear1,ioreadnt,ioread,jmpery
       USE GEOM, only : imaxj
@@ -899,7 +891,7 @@ C**** surface tilt term.
       USE FLUXES, only : gtemp,mlhc,fwsim,gtempr
       USE STATIC_OCEAN, only : tocean,ostruc,oclim,z1o,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
-      USE DOMAIN_DECOMP_1D, only : GRID,GET
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       IMPLICIT NONE
       INTEGER I,J
       LOGICAL, INTENT(IN) :: end_of_day
@@ -967,7 +959,7 @@ C****
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       USE STATIC_OCEAN, only : tocean,z1o
-      USE DOMAIN_DECOMP_1D, only : GRID,GET,AM_I_ROOT,GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       USE DIAG_COM, only : NREG, KAJ
       IMPLICIT NONE
       REAL*8 TGW,PRCP,WTRO,ENRGP,ERUN4,POCEAN,POICE,SNOW
@@ -1059,7 +1051,7 @@ C****
 #endif
       USE STATIC_OCEAN, only : tocean,z1o,ota,otb,otc,osourc,qfluxX,
      *     sinang,sn2ang,sn3ang,sn4ang,cosang,cs2ang,cs3ang,cs4ang
-      USE DOMAIN_DECOMP_1D, only : GRID,GET,AM_I_ROOT,GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       USE DIAG_COM, only : NREG, KAJ
       IMPLICIT NONE
 C**** grid box variables
@@ -1177,7 +1169,7 @@ C****
       USE FLUXES, only : fwsim,msicnv,mlhc
       USE DIAG_COM, only : J_IMPLM,J_IMPLH,jreg,aij=>aij_loc,j_imelt
      *     ,j_hmelt,j_smelt, ij_fwio, NREG,KAJ
-      USE DOMAIN_DECOMP_1D, only : GRID,GET,AM_I_ROOT,GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR,N
       REAL*8 DXYPIJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
@@ -1333,7 +1325,7 @@ C****
       USE GEOM, only : imaxj
       USE TRACER_COM, only : trw0,ntm,itime_tr0
       USE FLUXES, only : gtracer
-      USE DOMAIN_DECOMP_1D, only : grid,get
+      USE DOMAIN_DECOMP_ATM, only : grid,get
       IMPLICIT NONE
       INTEGER i,j,n
       INTEGER :: j_0,j_1,i_0,i_1

@@ -32,11 +32,7 @@
       use filemanager
       use param
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
-#ifdef CUBE_GRID
-      use pario_fbsa, only : READT_PARALLEL
-#else
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-#endif
       use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       use veg_com
       use model_com, only : jyear,focean
@@ -48,7 +44,7 @@
       logical, intent(in) :: redogh
 
       INTEGER :: J_1, J_0, J_1H, J_0H, I_1H, I_0H, I_1, I_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
       integer iu_veg
@@ -65,7 +61,6 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
@@ -253,7 +248,7 @@ c****
       integer variable_lk
 
       INTEGER :: I_0, I_1, J_1, J_0, J_1H, J_0H
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 !      entry upd_gh ! need to redo if vdata changes
@@ -262,7 +257,6 @@ C**** Extract parameters from "grid" in case we entered here
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -403,7 +397,7 @@ c**** calculate root fraction afr averaged over vegetation types
       integer i,j
 
       INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
@@ -411,7 +405,6 @@ C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -603,11 +596,7 @@ c shc(0,2) is the heat capacity of the canopy
 !@auth R. Ruedy
 !@ver  1.0
       USE FILEMANAGER
-#ifdef CUBE_GRID
-      use pario_fbsa, only : READT_PARALLEL
-#else
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-#endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
      &     ,backspace_parallel
       use veg_com, only : vdata
@@ -626,7 +615,7 @@ c shc(0,2) is the heat capacity of the canopy
       character*80 title
 
       INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H, I_0H, I_1H
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
@@ -635,7 +624,6 @@ C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
      &               J_STRT_HALO =J_0H,   J_STOP_HALO =J_1H,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT

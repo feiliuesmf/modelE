@@ -385,13 +385,7 @@ c -------------------------------------------------------------
       USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
       USE GHY_COM, only : fearth
       USE PBLCOM
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE,NORTH
-#ifdef CUBE_GRID
-      use pario_fbsa, only : READT_PARALLEL
-#else
-      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-#endif
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij

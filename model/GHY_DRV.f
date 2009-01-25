@@ -708,9 +708,7 @@ c****
       use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt
       use SCMDIAG, only : EVPFLX,SHFLX
 #endif
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
-      use DOMAIN_DECOMP_ATM, only : HALO_UPDATE, CHECKSUM, NORTH
-      use DOMAIN_DECOMP_ATM, only : GLOBALSUM, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
       use geom, only : imaxj,lat2d
       use dynamics, only : pmid,pk,pek,pedn,am
       use rad_com, only : trhr,fsf, cosz1,trsurf
@@ -1767,15 +1765,8 @@ c**** modifications needed for split of bare soils into 2 types
       use filemanager
       use param
       use constant, only : twopi,rhow,edpery,sha,lhe,tf,shw_kg=>shw
-      use DOMAIN_DECOMP_ATM, only : GRID, DIST_GRID
-      use DOMAIN_DECOMP_ATM, only : GET
-#ifdef CUBE_GRID
-      use pario_fbsa, only : DREAD_PARALLEL, READT_PARALLEL
-#else
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
-#endif
-      use DOMAIN_DECOMP_ATM, only : CHECKSUM, HERE, CHECKSUM_COLUMN
-      use DOMAIN_DECOMP_ATM, only : GLOBALSUM
       use model_com, only : fearth0,itime,nday,jyear,fland,flice
      &     ,focean
       use lakes_com, only : flake
@@ -3382,7 +3373,6 @@ c****
       use model_com, only : itearth
       use geom, only : imaxj,axyp
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-      use DOMAIN_DECOMP_ATM, only : GLOBALSUM
       use ghy_com, only : snowe, tearth,wearth,aiearth,w_ij
      *     ,snowbv,fr_snow_ij,fr_snow_rad_ij, gdeep, dzsn_ij, nsn_ij,
      *     fearth
@@ -3498,7 +3488,7 @@ c****
       !use veg_com, only : afb
       use LAKES_COM, only : flake
       use LANDICE_COM,only : MDWNIMP
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       implicit none
 !@var waterg ground water (kg/m^2)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -3557,7 +3547,7 @@ c****
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
       !use LAKES_COM, only : flake
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       implicit none
       real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO),
@@ -3619,7 +3609,7 @@ c****
      *     ,fearth
       !use veg_com, only : afb
       use LAKES_COM, only : flake
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, HERE
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
       implicit none
 !@var heatg ground heat (J/m^2)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -4405,7 +4395,7 @@ c**** wearth+aiearth are used in radiation only
       use MODEL_COM, only : ITEARTH
       USE DIAG_COM, only : j_implh,j_implm
      *     ,JREG
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
 
       implicit none
       !! integer, intent(in) :: jday
