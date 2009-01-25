@@ -85,7 +85,10 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
 !aoo since DIST_GRID is public ESMF_GRID has to be public
 !aoo (SGI compiler complains)
       PUBLIC :: ESMF_GRID
+
+#ifdef USE_ESMF
       public :: load_cap_config
+#endif
 
       TYPE(ESMF_GridComp)  :: compmodelE
       TYPE (ESMF_DELayout) :: ESMF_LAYOUT
