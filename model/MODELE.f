@@ -9,12 +9,11 @@ CAOO   Just to test CVS
       USE PARAM
       USE PARSER
       USE MODEL_COM
-      USE DOMAIN_DECOMP_ATM, ONLY : init_app,grid,AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, ONLY : ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, ONLY : init_app,AM_I_ROOT,ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
       use domain_decomp_atm, only : writei8_parallel
 #ifdef CUBE_GRID
-      USE regrid_com, only : x_2grids,isd,jsd,ied,jed,gid
-      use dd2d_utils
+      USE regrid_com, only : x_2grids
 #endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
@@ -109,7 +108,6 @@ C**** Command line options
 #endif
 #ifdef CUBE_GRID
       type (x_2grids) :: xcs2ll
-      type (dd2d_grid) :: dd2d
       real*8, dimension(:,:), allocatable :: tsource
       real*8, dimension(:,:,:), allocatable :: ttarget,atarget
 #endif
@@ -136,11 +134,14 @@ C****
       call fms_init( )
 #endif
 
+      call init_app()
 #ifdef SCM
       call sync_param( "J_TARG", J_TARG )
-      call init_app(grid,im,jm,lm,J_TARG)
+      call init_grid(grid, im, jm, lm, j_scm=j_targ)
 #else
-      call init_app(grid,im,jm,lm)
+c initialize the atmospheric domain decomposition
+c for now, CREATE_CAP is only relevant to the cubed sphere grid
+      call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
 
 c      call glmeltt2b()
 
@@ -1082,16 +1083,9 @@ C****
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
       USE SOIL_DRV, only: init_gh
+      USE DOMAIN_DECOMP_1D, only : HERE
       USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : NORTH, HERE
-#ifdef CUBE_GRID
-      use regrid_com, only : x_2gridsroot
-      use dd2d_utils, only : halo_update
-      use pario_fbsa, only : READT_PARALLEL
-#else
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-#endif
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE,READT_PARALLEL
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: init_app_clock
       USE CONSTANT, only : hrday
@@ -1144,9 +1138,6 @@ C****    List of parameters that are disregarded at restarts
       character*132 :: bufs
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
-#ifdef CUBE_GRID
-      type (x_2gridsroot) :: xll2csroot
-#endif
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1516,8 +1507,8 @@ c in this case, assume input U/V are on the A grid
            USAVG(1:im,JM)=U(1,JM,1)
            VSAVG(1:im,JM)=V(1,JM,1)
          End If
-         CALL HALO_UPDATE(grid, U, FROM=NORTH)
-         CALL HALO_UPDATE(grid, V, FROM=NORTH)
+         CALL HALO_UPDATE(grid, U)
+         CALL HALO_UPDATE(grid, V)
         DO J=J_0S,J_1S
         IM1=IM
         DO I=1,IM
@@ -1909,6 +1900,11 @@ C**** Actual array is set from restart file.
 
       call closeunit(iu_TOPO)
 
+      CALL HALO_UPDATE(GRID, FOCEAN)
+      CALL HALO_UPDATE(GRID, FLAKE0)
+      CALL HALO_UPDATE(GRID, FEARTH0)
+      CALL HALO_UPDATE(GRID, ZATMO)
+
 C**** Check polar uniformity
       if(have_south_pole) then
         do i=2,im
@@ -2169,7 +2165,9 @@ C**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
 C****
 C**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
 #ifndef SCM
-#ifndef CUBE_GRID
+#ifdef CUBE_GRID
+c skip the globalsum until AXYP is set properly
+#else
       DO J=J_0,J_1
       DO I=I_0,I_1
         CMASS(I,J)=P(I,J)*AXYP(I,J)
