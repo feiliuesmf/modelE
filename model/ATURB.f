@@ -660,7 +660,7 @@ c
       integer :: i,j,l  !@var i,j,l loop variable
 
       INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -671,8 +671,6 @@ C****
       J_1 = grid%J_STOP
       J_0S = grid%J_STRT_SKP
       J_1S = grid%J_STOP_SKP
-      J_0STG = grid%J_STRT_STGR
-      J_1STG = grid%J_STOP_STGR
 
       !@ temp0 virtual temperature (K) at (i,j) and SIG(l)
       !@ temp1 virtual temperature (K) at (i,j) and SIG(l+1)
