@@ -439,7 +439,7 @@ contains
 
     subroutine readArr(iunit, arr)
       use resolution, only: IM, JM
-      use domain_decomp_atm, only: grid, unpack_data, get
+      use domain_decomp_1d, only: grid, unpack_data, get
       integer, intent(in) :: iunit
       real*8, intent(out) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
@@ -537,7 +537,7 @@ contains
   End Function Tendency
 
   subroutine run_fv(fv, clock)
-    USE DOMAIN_DECOMP_ATM, only: grid, halo_update, get, grid, NORTH
+    USE DOMAIN_DECOMP_ATM, only: grid, halo_update, get, grid
     USE MODEL_COM, Only : U, V, T, P, IM, JM, LM, ZATMO
     USE MODEL_COM, only : NIdyn, DT, DTSRC
     USE SOMTQ_COM, only: QMOM, TMOM, MZ
@@ -650,7 +650,7 @@ contains
 
     subroutine saveArr(iunit, arr)
       use resolution, only: IM, JM
-      use domain_decomp_atm, only: grid, pack_data, get
+      use domain_decomp_1d, only: grid, pack_data, get
       integer, intent(in) :: iunit
       real*8, intent(in) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
@@ -928,7 +928,7 @@ contains
     End Subroutine ComputePressureLevels
 
     Subroutine ComputeRestartVelocities(unit, grid, U_b, V_b, U_d, V_d)
-      use domain_decomp_atm, only: DIST_GRID, NORTH, HALO_UPDATE
+      use domain_decomp_1d, only: DIST_GRID, NORTH, HALO_UPDATE
 
       Integer, intent(in) :: unit
       Type (Dist_Grid) :: grid
@@ -1144,7 +1144,7 @@ contains
     USE DYNAMICS, ONLY: PUA,PVA,SDA, PU, PV, SD
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
     Use MODEL_COM, only : Ptop, P
-    USE DOMAIN_DECOMP_ATM, only: grid, GET, SOUTH, NORTH, HALO_UPDATE
+    USE DOMAIN_DECOMP_ATM, only: grid, GET
     USE GEOM
     Type (FV_CORE) :: fv
     real*4, Dimension(:,:,:), Pointer :: U_a, V_a, T_fv, PLE
@@ -1284,7 +1284,7 @@ contains
   !------------------------------------------------------------------------
   subroutine Regrid_A_to_B(U_a, V_a, U_b, V_b)
     Use Resolution, only : IM, LM
-    Use Domain_decomp_atm, only : grid, get, SOUTH, HALO_UPDATE
+    Use Domain_decomp_1d, only : grid, get, SOUTH, HALO_UPDATE
     Real*4, intent(in), Dimension(:,grid % J_STRT:,:) :: U_a, V_a
     Real*8, intent(out),Dimension(:,grid % J_STRT:,:) :: U_b, V_b
 
@@ -1327,7 +1327,7 @@ contains
   !------------------------------------------------------------------------
   subroutine Regrid_B_to_A(U_b, V_b, U_a, V_a)
     Use Resolution, only : IM, JM, LM
-    Use Domain_decomp_atm, only : grid, get, NORTH, HALO_UPDATE
+    Use Domain_decomp_1d, only : grid, get, NORTH, HALO_UPDATE
     Real*8, intent(in), Dimension(:,grid % J_STRT:,:) :: U_b, V_b
     Real*4, intent(out), Dimension(:,grid % J_STRT:,:) :: U_a, V_a
 
@@ -1516,7 +1516,7 @@ contains
 
   Subroutine Write_Profile(arr, name)
     Use RESOLUTION,    Only: IM, JM, LM
-    Use Domain_decomp_atm, Only: grid, PACK_DATA, AM_I_ROOT
+    Use Domain_decomp_1d, Only: grid, PACK_DATA, AM_I_ROOT
     Real*8, intent(in) :: arr(:,:,:)
     character(len=*), intent(in) :: name
 
@@ -1666,7 +1666,7 @@ contains
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
     USE MODEL_COM, only: DTsrc,DT,DSIG
-    USE DOMAIN_DECOMP_ATM, only: get, grid, NORTH, SOUTH, HALO_UPDATE
+    USE DOMAIN_DECOMP_ATM, only: get, grid
 !   Use Constant, only: radius,pi,grav
     implicit none
     type (FV_core) :: fv
