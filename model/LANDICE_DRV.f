@@ -47,9 +47,9 @@
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
-      REAL*8 FAC_SH,FAC_NH,gsum,hsum(2)
-      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO
-     *     ,grid%J_STRT_HALO:grid%J_STOP_HALO)::FWAREA
+      REAL*8 FAC_SH,FAC_NH
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: FWAREA_s,FWAREA_n
       LOGICAL :: do_glmelt = .false.
       INTEGER I,J,N, iu_GL, I72
       INTEGER :: I_0,I_1, J_0,J_1
@@ -113,18 +113,22 @@ C****
 C**** Calculate hemispheric areas (weighted by area and landmask)
 C**** This could be extended by a different number in GLMELT to
 C**** give ice sheet (rather than hemispheric) dependent areas
-      FWAREA=0
+      FWAREA_s(:,:)=0
+      FWAREA_n(:,:)=0
       DO J=J_0,J_1
         DO I=I_0,I_1
           LOC_GLM(I,J)=CGLM(I,J).eq."1" 
           IF (LOC_GLM(I,J) .and. FOCEAN(I,J).gt.0 ) THEN
-            FWAREA(I,J)=FWAREA(I,J)+AXYP(I,J)*FOCEAN(I,J)
+            IF(LAT2D(I,J).LT.0.) THEN
+              FWAREA_s(I,J)=AXYP(I,J)*FOCEAN(I,J)
+            ELSE
+              FWAREA_n(I,J)=AXYP(I,J)*FOCEAN(I,J)
+            ENDIF
           END IF
         END DO
       END DO
-
-      CALL GLOBALSUM(grid, FWAREA,  gsum, hsum, all=.true.)
-      FWAREA_NH=hsum(1) ; FWAREA_SH=hsum(2)
+      CALL GLOBALSUM(grid, FWAREA_s, FWAREA_SH, all=.true.)
+      CALL GLOBALSUM(grid, FWAREA_n, FWAREA_NH, all=.true.)
 
       END IF
 
@@ -233,7 +237,6 @@ C****
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_f0li,ij_f1li,ij_erun2
      *     ,ij_runli,j_run,j_implh,j_implm
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
-      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM, CHECKSUM, CHECKSUM_COLUMN
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,PRCP,ENRGP,EDIFS,DIFS,ERUN2,RUN0,PLICE,DXYPIJ
@@ -360,7 +363,6 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE*DXYPIJ) ! (Tg=0)
 #endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
-      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPIJ
@@ -599,7 +601,8 @@ C****
 #ifdef TRACERS_WATER
       REAL*8 trdwnimp_SH(NTM),trdwnimp_NH(NTM)
 #endif
-      REAL*8 :: HSUM(2),GSUM
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: mask_s,arr_s,arr_n
       INTEGER :: J_0,J_1,I_0,I_1,I,J,ITM
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
@@ -616,17 +619,36 @@ C**** we aren't getting that right anyway.
 ! only adjust after at least one full year
         IF (itime.ge.itimei+JDperY*nday .and. glmelt_on==1) THEN
 
+          do j=j_0,j_1; do i=i_0,i_1
+            if(lat2d(i,j).lt.0.) then
+              mask_s(i,j) = 1.
+            else
+              mask_s(i,j) = 0.
+            endif
+          enddo; enddo
+
 ! mass and energy (kg, J)
-          CALL GLOBALSUM(grid, MDWNIMP, gsum, hsum ,ALL=.TRUE.)
-          mdwnimp_SH=hsum(1) ;  mdwnimp_NH=hsum(2)
-          CALL GLOBALSUM(grid, EDWNIMP, gsum, hsum ,ALL=.TRUE.)
-          edwnimp_SH=hsum(1) ;  edwnimp_NH=hsum(2)
+          do j=j_0,j_1; do i=i_0,i_1
+            arr_s(i,j) = mdwnimp(i,j)*mask_s(i,j)
+            arr_n(i,j) = mdwnimp(i,j)*(1.-mask_s(i,j))
+          enddo; enddo
+          CALL GLOBALSUM(grid, arr_s, mdwnimp_SH ,ALL=.TRUE.)
+          CALL GLOBALSUM(grid, arr_n, mdwnimp_NH ,ALL=.TRUE.)
+          do j=j_0,j_1; do i=i_0,i_1
+            arr_s(i,j) = edwnimp(i,j)*mask_s(i,j)
+            arr_n(i,j) = edwnimp(i,j)*(1.-mask_s(i,j))
+          enddo; enddo
+          CALL GLOBALSUM(grid, arr_s, edwnimp_SH ,ALL=.TRUE.)
+          CALL GLOBALSUM(grid, arr_n, edwnimp_NH ,ALL=.TRUE.)
 
 #ifdef TRACERS_WATER
           DO ITM=1,NTM
-            CALL GLOBALSUM(grid, TRDWNIMP(ITM,:,:), gsum, hsum ,ALL=
-     *           .TRUE.)
-            trdwnimp_SH(ITM)=hsum(1) ;  trdwnimp_NH(ITM)=hsum(2)
+            do j=j_0,j_1; do i=i_0,i_1
+              arr_s(i,j) = trdwnimp(itm,i,j)*mask_s(i,j)
+              arr_n(i,j) = trdwnimp(itm,i,j)*(1.-mask_s(i,j))
+            enddo; enddo
+            CALL GLOBALSUM(grid, arr_s, trdwnimp_SH(itm) ,ALL=.TRUE.)
+            CALL GLOBALSUM(grid, arr_n, trdwnimp_NH(itm) ,ALL=.TRUE.)
           END DO
 #endif
 
@@ -748,7 +770,7 @@ C**** reset implicit accumulators
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : im,jm,qcheck,flice
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname
