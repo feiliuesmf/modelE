@@ -5,7 +5,6 @@
 !@ver  1.0
       USE QUSDEF
       USE MODEL_COM, only : im,jm,lm
-      USE DOMAIN_DECOMP_ATM, only : grid
       IMPLICIT NONE
       SAVE
 !     REAL*8, DIMENSION(NMOM,IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO ,LM)  
@@ -111,7 +110,7 @@
       REAL*8 :: rdsig
 
       INTEGER :: I_0, I_1, J_1, J_0
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -121,8 +120,6 @@ C****
       J_1 = grid%J_STOP
       J_0S = grid%J_STRT_SKP
       J_1S = grid%J_STOP_SKP
-      J_0STG = grid%J_STRT_STGR
-      J_1STG = grid%J_STOP_STGR
 
 C**** INITIALIZES VERTICAL SLOPES OF T,Q
       DO J=J_0,J_1

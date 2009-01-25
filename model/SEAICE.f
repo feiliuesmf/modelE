@@ -2081,7 +2081,6 @@ c        Em= 0.
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_ATM, only : grid
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif

@@ -7,7 +7,6 @@
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,lm_req
-      USE DOMAIN_DECOMP_ATM, only : grid
       USE RADPAR, only : S0,ITRMAX
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
