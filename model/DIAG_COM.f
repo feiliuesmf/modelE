@@ -1203,7 +1203,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       END SUBROUTINE io_diags
 
       Subroutine Gather_Diagnostics()
-      use domain_decomp_atm, only : grid,pack_data,pack_dataj,sumxpe
+      use domain_decomp_1d, only : grid,pack_data,pack_dataj,sumxpe
       use diag_com
       implicit none
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
