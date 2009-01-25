@@ -1,6 +1,6 @@
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       logical, intent(in), optional :: no_xdim
       real*8, dimension(:), allocatable :: arr1d

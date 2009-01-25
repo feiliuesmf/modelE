@@ -1,4 +1,4 @@
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       integer :: fid
       character(len=*) :: varname,attname
       integer :: rc,rc2,vid,ierr,attlen,attlenx

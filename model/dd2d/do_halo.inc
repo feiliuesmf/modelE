@@ -1,4 +1,4 @@
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       integer, intent(in), optional :: jdim
       integer :: nl,nk
       integer :: xdim,jd,np,pep1,pem1,isize,jsize

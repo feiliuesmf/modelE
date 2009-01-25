@@ -9,14 +9,14 @@
 !@+
 !@usage Access is through the following types/interfaces.
 !@+
-!@+     Below, grid is an instance of the dd2d_grid derived type,
+!@+     Below, grid is an instance of the dist_grid derived type,
 !@+     and the optional argument jdim indicates which array index
 !@+     corresponds to the last distributed dimension (usually, j).
 !@+     If jdim is not specified, it is assumed to be 2.
 !@+
-!@+     dd2d_grid: a derived type containing domain decomp info,
+!@+     dist_grid: a derived type containing domain decomp info,
 !@+     initialized by calling subroutine
-!@+     init_dd2d_grid(
+!@+     init_dist_grid(
 !@+     &     npx,npy,ntiles, ! x,y size of tile and # of tiles
 !@+     &     is,ie,js,je,    ! start, end of local i,j domain
 !@+     &     isd,ied,jsd,jed, ! start, end of local data domain (not used)
@@ -97,6 +97,11 @@ c during the sendrecv along the second periodic direction.
 c However, for PEs on or next to the UL-LR diagonal of each cubed
 c sphere tile, one extra call to mpi_sendrecv is needed.
 c
+
+#ifdef USE_ESMF
+      use ESMF_Mod
+#endif
+
       implicit none
       private
       save
@@ -108,9 +113,9 @@ c public interfaces
       public :: halo_update
       public :: globalsum
 
-      public :: init_dd2d_grid
-      public :: dd2d_grid
-      type dd2d_grid
+      public :: init_dist_grid
+      public :: dist_grid
+      type dist_grid
         integer :: npx ! number of i cells
         integer :: npy ! number of j cells
         integer :: is  ! first i index of computational domain
@@ -199,7 +204,45 @@ c special processors for a cubed sphere layout
         integer :: pe_send_ne ! PE for extra send to the NE
         integer :: pe_send_sw ! PE for extra send to the SW
 
-      end type dd2d_grid
+c
+c the following is for use in modelE only:
+c
+#ifdef USE_ESMF
+        TYPE (ESMF_Grid) :: ESMF_GRID
+#endif
+         ! Parameters for Global domain
+        INTEGER :: IM_WORLD     ! Number of Longitudes
+        INTEGER :: JM_WORLD     ! Number of latitudes
+         ! Parameters for local domain
+        INTEGER :: I_STRT       ! Begin local domain longitude index
+        INTEGER :: I_STOP       ! End   local domain longitude index
+        INTEGER :: J_STRT       ! Begin local domain latitude  index
+        INTEGER :: J_STOP       ! End   local domain latitude  index
+        INTEGER :: J_STRT_SKP   ! Begin local domain exclusive of S pole
+        INTEGER :: J_STOP_SKP   ! End   local domain exclusive of N pole
+        INTEGER :: ni_loc       ! for transpose
+         ! Parameters for halo of local domain
+        INTEGER :: I_STRT_HALO  ! Begin halo longitude index
+        INTEGER :: I_STOP_HALO  ! End   halo longitude index
+        INTEGER :: J_STRT_HALO  ! Begin halo latitude  index
+        INTEGER :: J_STOP_HALO  ! End   halo latitude  index
+         ! Parameters for staggered "B" grid
+         ! Note that global staggered grid begins at "2".
+        INTEGER :: J_STRT_STGR  ! Begin local staggered domain
+        INTEGER :: J_STOP_STGR  ! End   local staggered domain
+         ! Controls for special cases
+        LOGICAL :: HAVE_SOUTH_POLE ! South pole is in local domain
+        LOGICAL :: HAVE_NORTH_POLE ! North pole is in local domain
+        LOGICAL :: HAVE_EQUATOR ! Equator (JM+1)/2 is in local domain
+
+        INTEGER, DIMENSION(:), POINTER :: DJ_MAP
+        INTEGER :: DJ
+        INTEGER :: log_unit     ! for debugging
+         !@var lookup_pet index of PET for a given J
+        INTEGER, DIMENSION(:), POINTER :: lookup_pet
+        LOGICAL :: BC_PERIODIC
+
+      end type dist_grid
 
 c
 c pack/unpack interfaces
@@ -281,13 +324,13 @@ c
 
       contains
 
-      subroutine init_dd2d_grid(
+      subroutine init_dist_grid(
      &     npx,npy,ntiles,
      &     is,ie,js,je,
      &     isd,ied,jsd,jed,
      &     grid)
       integer, intent(in) :: npx,npy,ntiles,is,ie,js,je,isd,ied,jsd,jed
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       integer :: i,itile,ierr,iproc,n,ihem,ihem_sv,modrank,midp1
      &     ,group_world,group_mytile,group_intertile
      &     ,group_halo,halo_comm,group_row,row_comm,xpos,ypos
@@ -310,7 +353,7 @@ c
       grid%jsd = jsd
       grid%jed = jed
 
-      write(*,*) "init_dd2d_grid, is, ie, js, je"
+      write(*,*) "init_dist_grid, is, ie, js, je"
       write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
 
       call mpi_comm_rank(MPI_COMM_WORLD,grid%gid,ierr)
@@ -625,7 +668,7 @@ c
       endif
 
       return
-      end subroutine init_dd2d_grid
+      end subroutine init_dist_grid
 
 #undef _GATHER_
 #undef _SCATTER_
@@ -682,7 +725,7 @@ c
       end subroutine halo_update_4D
 
 c      subroutine halo_update_2D_int(grid,iarr)
-c      type(dd2d_grid) :: grid
+c      type(dist_grid) :: grid
 c      integer, dimension(:,:) :: iarr
 c      real*8 :: arr(size(iarr,1),size(iarr,2))
 c      arr = iarr
@@ -693,7 +736,7 @@ c      end subroutine halo_update_2D_int
 
       subroutine alloc_gs_wksp(grid,nl,nk,nj,nt,am_i_gsroot)
 c allocates gather/scatter workspace
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       integer :: nl,nk,nj,nt
       integer :: lsize,tsize,nlk
       logical :: am_i_gsroot
@@ -727,7 +770,7 @@ c allocates gather/scatter workspace
       end subroutine alloc_gs_wksp
 
       subroutine globalsum_2D_r8(grid,arr,arrsum,all)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8, intent(in) :: arr(:,:)
       real*8 :: arrsum
       logical, intent(in), optional :: all
@@ -941,10 +984,10 @@ c on the diagonal
      &     ,cnts,cntsg,displs,displsg
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
       implicit none
       include 'mpif.h'
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       real*8 local_arr(nl,i1:i2,j1:j2,nk)
       real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
@@ -1043,10 +1086,10 @@ c
      &     ,cnts,cntsg,displs,displsg
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
       implicit none
       include 'mpif.h'
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       real*8 local_arr(nl,i1:i2,j1:j2,nk)
       real*8 global_arr(nl,i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
@@ -1149,10 +1192,10 @@ c copy the the local receive buffer into the local array
      &     ,cntsij,displsij,cntsijg,displsijg
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
       implicit none
       include 'mpif.h'
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       real*8 local_arr(i1:i2,j1:j2,nk)
       real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt
@@ -1270,10 +1313,10 @@ c
      &     ,cntsij,displsij,cntsijg,displsijg
      &     ,buf1d_local,buf1d_tile,bufij_tile
      &     )
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
       implicit none
       include 'mpif.h'
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       real*8 local_arr(i1:i2,j1:j2,nk)
       real*8 global_arr(i1g:i2g,j1g:j2g,nk,nt)
       integer :: i1,i2,j1,j2,nl,nk,nt

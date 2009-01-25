@@ -8,7 +8,7 @@
 #ifdef _SCATTER_
      &     (grid,global_arr,local_arr,jdim)
 #endif
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       real*8 :: local_arr(_ARRDIMSL_)
 
 #ifdef MULTITILE

@@ -1,4 +1,4 @@
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8 arr1d(:)
       integer :: jdim
       integer :: nj,hwidth,j1,j2,nl,nk,xdim,ndim

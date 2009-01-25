@@ -493,7 +493,7 @@ c*
 
       type (x_2grids), intent(inout) :: x2grids
       type (x_grid) :: xgrid
-      type (dd2d_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: dd2d
 
       real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
       integer, allocatable, dimension(:) :: tile        !local variable
@@ -1126,7 +1126,7 @@ c      integer, dimension(:), allocatable :: pelist
 c      integer :: ng, imc,jmc
 c      real*8, dimension(:,:), allocatable :: P
 c
-c      type (dd2d_grid), intent(inout) :: dd2d
+c      type (dist_grid), intent(inout) :: dd2d
 c      type(fv_atmos_type) :: atm
 c      character*80 :: grid_name = 'Gnomonic'
 c      character*120:: grid_file = 'Inline'
@@ -1158,7 +1158,7 @@ c     &     area, area_c, cosa, sina, dx, dy, dxa, dya, non_ortho,
 c     &     uniform_ppm, grid_type, c2l_ord)
 c
 cc**   transfering domain decomposition info to Max's dd2d derived type
-c      call init_dd2d_grid(
+c      call init_dist_grid(
 c     &     imc,jmc,6, 
 c     &     is,ie,js,je,isd,ied,jsd,jed,dd2d)
 c      

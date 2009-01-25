@@ -1,4 +1,4 @@
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: fid
       character(len=*) :: varname
       integer :: vid,rc

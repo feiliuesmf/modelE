@@ -1,4 +1,4 @@
-      type(dd2d_grid) :: grid
+      type(dist_grid) :: grid
       integer :: fid
       logical, intent(in), optional :: r4_on_disk
       character(len=*), intent(in), optional :: defby

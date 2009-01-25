@@ -14,7 +14,7 @@
 
 
       use DOMAIN_DECOMP_1D, only: AM_I_ROOT,SUMXPE
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
 
       integer ::  is,ie,js,je,isd,ied,jsd,jed,gid,mytile
 

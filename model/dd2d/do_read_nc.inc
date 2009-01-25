@@ -1,6 +1,6 @@
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       logical, intent(in), optional :: bcast_all
       integer :: vid,rc,ierr,nd,arrsize,shp(7)
       if(grid%am_i_globalroot) then

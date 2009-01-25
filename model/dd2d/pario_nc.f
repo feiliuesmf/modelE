@@ -1,5 +1,5 @@
       module pario
-      use dd2d_utils, only : dd2d_grid,pack_row,unpack_row,get_nlnk
+      use dd2d_utils, only : dist_grid,pack_row,unpack_row,get_nlnk
      &     ,pack_data
       implicit none
       save
@@ -126,7 +126,7 @@ c
       contains
 
       function par_open(grid,fname,mode)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       character(len=*) :: fname
       character(len=*) :: mode
       integer :: par_open
@@ -176,7 +176,7 @@ c define/overwrite the success flag for error checking
       end function par_open
 
       subroutine par_close(grid,fid)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: fid
       integer :: rc,vid
       if(grid%am_i_globalroot) then
@@ -224,7 +224,7 @@ c define/overwrite the success flag for error checking
       subroutine par_read_nc_2D_int(grid,fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2))
       call read_dist_data(grid,fid,varname,arr)
@@ -233,7 +233,7 @@ c define/overwrite the success flag for error checking
       subroutine par_read_nc_3D_int(grid,fid,varname,iarr,jdim)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
@@ -247,7 +247,7 @@ c define/overwrite the success flag for error checking
       subroutine par_read_nc_4D_int(grid,fid,varname,iarr,jdim)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3),size(iarr,4))
@@ -262,7 +262,7 @@ c define/overwrite the success flag for error checking
       subroutine par_write_nc_2D_int(grid,fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2))
       arr = iarr
@@ -271,7 +271,7 @@ c define/overwrite the success flag for error checking
       subroutine par_write_nc_3D_int(grid,fid,varname,iarr,jdim)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
@@ -285,7 +285,7 @@ c define/overwrite the success flag for error checking
       subroutine par_write_nc_4D_int(grid,fid,varname,iarr,jdim)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3),size(iarr,4))
@@ -300,7 +300,7 @@ c define/overwrite the success flag for error checking
       subroutine par_read_nc_2D_logical(grid,fid,varname,larr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
       real*8 :: arr(size(larr,1),size(larr,2))
       call read_dist_data(grid,fid,varname,arr)
@@ -309,7 +309,7 @@ c define/overwrite the success flag for error checking
       subroutine par_write_nc_2D_logical(grid,fid,varname,larr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
       real*8 :: arr(size(larr,1),size(larr,2))
       where(larr)
@@ -381,7 +381,7 @@ c define/overwrite the success flag for error checking
       subroutine write_nc_0D_int(grid,fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr
       real*8 :: arr
       arr = iarr
@@ -390,7 +390,7 @@ c define/overwrite the success flag for error checking
       subroutine write_nc_1D_int(grid,fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:)
       real*8 :: arr(size(iarr))
       arr = iarr
@@ -399,7 +399,7 @@ c define/overwrite the success flag for error checking
       subroutine write_nc_2D_int(grid,fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2))
       arr = iarr
@@ -408,7 +408,7 @@ c define/overwrite the success flag for error checking
       subroutine write_nc_3D_int(grid,fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
       arr = iarr
@@ -418,7 +418,7 @@ c define/overwrite the success flag for error checking
       subroutine read_nc_0D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr
       logical, intent(in), optional :: bcast_all
       real*8 :: arr
@@ -433,7 +433,7 @@ c define/overwrite the success flag for error checking
       subroutine read_nc_1D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:)
       logical, intent(in), optional :: bcast_all
       real*8 :: arr(size(iarr))
@@ -448,7 +448,7 @@ c define/overwrite the success flag for error checking
       subroutine read_nc_2D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       logical, intent(in), optional :: bcast_all
       real*8 :: arr(size(iarr,1),size(iarr,2))
@@ -463,7 +463,7 @@ c define/overwrite the success flag for error checking
       subroutine read_nc_3D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
       character(len=*) :: varname
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       logical, intent(in), optional :: bcast_all
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
@@ -852,7 +852,7 @@ c
       end subroutine unpack_row_no_xdim_5d
 
       subroutine par_write_ij(grid,fid,vid,arr,jdim)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8 :: arr(:,:)
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
@@ -866,7 +866,7 @@ c
       return
       end subroutine par_write_ij
       subroutine par_write_ijx(grid,fid,vid,arr,jdim)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8 :: arr(:,:,:)
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
@@ -883,7 +883,7 @@ c
       return
       end subroutine par_write_ijx
       subroutine par_write_ijxx(grid,fid,vid,arr,jdim)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8 :: arr(:,:,:,:)
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
@@ -907,7 +907,7 @@ c
       return
       end subroutine par_write_ijxx
       subroutine par_write_ijxxx(grid,fid,vid,arr,jdim)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8 :: arr(:,:,:,:,:)
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgij(:,:)
@@ -930,7 +930,7 @@ c
       return
       end subroutine par_write_ijxxx
       subroutine par_write_xijx(grid,fid,vid,arr,jdim)
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       real*8 :: arr(:,:,:,:)
       integer :: fid,vid,jdim
       real*8, allocatable :: arrgxij(:,:,:)

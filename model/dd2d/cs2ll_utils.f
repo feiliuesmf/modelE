@@ -19,7 +19,7 @@
 !@+     cs2ll_type: a derived type containing communication and
 !@+     interpolation info, initialized by calling subroutine
 !@+        init_cs2ll_type(
-!@+     &     grid,        ! an instance of dd2d_grid for the cubed sphere
+!@+     &     grid,        ! an instance of dist_grid for the cubed sphere
 !@+     &     imlon,jmlat, ! number of longitudes and latitudes
 !@+     &     cs2ll,       ! the instance of cs2ll_type to be initialized
 !@+     &     lons,lats    ! 1D arrays containing longitudes and latitudes
@@ -122,8 +122,8 @@
       contains
 
       subroutine init_cs2ll_type(grid,imlon,jmlat,cs2ll,lons,lats)
-      use dd2d_utils, only : dd2d_grid
-      type(dd2d_grid), intent(in) :: grid
+      use dd2d_utils, only : dist_grid
+      type(dist_grid), intent(in) :: grid
       type(cs2ll_type), intent(out) :: cs2ll
       integer, intent(in) :: imlon,jmlat
       real*8, dimension(imlon), intent(in) :: lons
@@ -442,7 +442,7 @@ c 2. tan(lat) proportional to cos(lon) along a great circle y=const
       cosx = cos(xx)
       coslon = cosx/sqrt(2d0-cosx*cosx)
       lat = atan(coslon*sqrt(2d0)*tan(yy))
-      lon = sign(acos(coslon),x)
+      lon = sign(acos(coslon),xx)
       if(tile.eq.3 .or. tile.eq.6) then ! rotate pole
         rotlon = lon
         rotlat = lat
@@ -523,10 +523,10 @@ c SH x,y = NH x,y flipped around the axis x+y=0
 
       subroutine interp_xy_4D(grid,cs2ll,arrcs,arrll,nl,nk)
 c note: need to call halo_update and fill cube corners
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
       use cs2ll_utils, only : cs2ll_type
       implicit none
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       type(cs2ll_type), intent(in) :: cs2ll
       integer :: nl,nk
       real*8, dimension(nl,grid%isd:grid%ied,grid%jsd:grid%jed,nk)
@@ -561,10 +561,10 @@ c note: need to call halo_update and fill cube corners
 
       subroutine interp_xy_3D(grid,cs2ll,arrcs,arrll,nk)
 c note: need to call halo_update and fill cube corners
-      use dd2d_utils, only : dd2d_grid
+      use dd2d_utils, only : dist_grid
       use cs2ll_utils, only : cs2ll_type
       implicit none
-      type(dd2d_grid), intent(in) :: grid
+      type(dist_grid), intent(in) :: grid
       type(cs2ll_type), intent(in) :: cs2ll
       integer :: nk
       real*8, dimension(grid%isd:grid%ied,grid%jsd:grid%jed,nk)

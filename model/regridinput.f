@@ -2,7 +2,7 @@
       use regrid_com
       use dd2d_utils
       implicit none
-      type (dd2d_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: dd2d
       type (x_2gridsroot) :: xll2cs
 
       call init_regrid_root(xll2cs,72,46,1,32,32,6)
@@ -488,7 +488,7 @@ c
       include 'netcdf.inc'
 
       type (x_2gridsroot), intent(in) :: x2grids
-      type (dd2d_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: dd2d
 
 c*    read
       real*8, allocatable :: Tocn(:,:,:),MixLD(:,:)        ! OCN01
@@ -857,7 +857,7 @@ c
       implicit none
       include 'netcdf.inc'
       type(x_2gridsroot), intent(in) :: x2grids
-      type (dd2d_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: dd2d
       integer :: iuout
       real*8, allocatable :: tsource(:,:,:)
       real*4, allocatable :: ts4(:,:,:)
@@ -1139,7 +1139,7 @@ c*
       implicit none
       include 'netcdf.inc'
       type(x_2gridsroot), intent(in) :: x2grids
-      type (dd2d_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: dd2d
       character*80, intent(in) :: name
       integer, intent(in) :: iuin
       integer :: iuout

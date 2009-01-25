@@ -110,15 +110,15 @@
       If (AM_I_ROOT()) then
         allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &       grd_dum%dd2d%ntiles),
+     &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &       grd_dum%dd2d%ntiles)   )
+     &       grd_dum%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-      call unpack_data(grd_dum%dd2d,aout,avar)
+      call unpack_data(grd_dum,aout,avar)
 
       if (AM_I_ROOT()) then
          deallocate (ain,aout)
@@ -148,15 +148,15 @@ C****  convert from real*4 to real*8
       If (AM_I_ROOT()) then
          allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &       grd_dum%dd2d%ntiles),
+     &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &       grd_dum%dd2d%ntiles)   )
+     &       grd_dum%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) AIN
 C**** convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-      call unpack_data(grd_dum%dd2d,aout,avar)
+      call unpack_data(grd_dum,aout,avar)
       
       if (AM_I_ROOT()) then
          deallocate (ain,aout)
@@ -188,15 +188,15 @@ C**** convert from real*4 to real*8
       If (AM_I_ROOT()) then
         allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &       grd_dum%dd2d%ntiles),
+     &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &       grd_dum%dd2d%ntiles)   )
+     &       grd_dum%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-      call unpack_data(grd_dum%dd2d,aout,avar)
+      call unpack_data(grd_dum,aout,avar)
       CALL ESMF_BCAST(grd_dum, M   )
 
       if (AM_I_ROOT()) then
@@ -229,15 +229,15 @@ C****  convert from real*4 to real*8
       If (AM_I_ROOT()) then
          allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &       grd_dum%dd2d%ntiles),
+     &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &       grd_dum%dd2d%ntiles)   )
+     &       grd_dum%ntiles)   )
          READ (IUNIT,IOSTAT=IERR) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-      call unpack_data(grd_dum%dd2d,aout,avar)
+      call unpack_data(grd_dum,aout,avar)
       CALL ESMF_BCAST(grd_dum, M   )
 
       if (AM_I_ROOT()) then
@@ -272,9 +272,9 @@ C****  convert from real*4 to real*8
       If (AM_I_ROOT()) then
         allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &       grd_dum%dd2d%ntiles),
+     &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
-     &       grd_dum%dd2d%ntiles)   )
+     &       grd_dum%ntiles)   )
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
          END DO
@@ -283,7 +283,7 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-      call unpack_data(grd_dum%dd2d,aout,avar)
+      call unpack_data(grd_dum,aout,avar)
 
       if (AM_I_ROOT()) then
          deallocate(ain,aout)
@@ -318,9 +318,9 @@ C****  convert from real*4 to real*8
       If (AM_I_ROOT()) then
          allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &       grd_dum%dd2d%ntiles),
+     &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
-     &       grd_dum%dd2d%ntiles)   )
+     &       grd_dum%ntiles)   )
          DO N=1,IPOS-1
             READ (IUNIT,IOSTAT=IERR)
          END DO
@@ -329,7 +329,7 @@ C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
 
-      call unpack_data(grd_dum%dd2d,aout,avar)
+      call unpack_data(grd_dum,aout,avar)
 
       if (am_i_root()) then
          deallocate(ain,aout)
@@ -367,9 +367,9 @@ C****  convert from real*4 to real*8
 
       if(am_i_root()) then
         allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3),
-     &       grd_dum%dd2d%ntiles))
+     &       grd_dum%ntiles))
       endif
-      call pack_data(grd_dum%dd2d,buf,buf_glob)
+      call pack_data(grd_dum,buf,buf_glob)
 
       If (AM_I_ROOT()) then
         WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
