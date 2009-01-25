@@ -2,6 +2,10 @@
 #include "mpi_defs.h"
 #endif
 
+#ifndef USE_FVCUBED
+#define DOMAIN_DECOMP_ATM_IS_1D
+#endif
+
       MODULE DOMAIN_DECOMP_1D
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
@@ -14,14 +18,18 @@
 #endif
 
 
-
 #ifdef USE_ESMF
       use ESMF_Mod
 #endif
       use ESMF_CUSTOM_MOD, Only: NORTH, SOUTH
-#ifdef CUBE_GRID
-      use dd2d_utils, only : dd2d_grid
+
+c retaining for now, but disabling, the MPP+FVCUBED coding in this file
+#undef USE_MPP
+#ifdef USE_FVCUBED
+#define USE_DD2D_UTILS
+#undef USE_FVCUBED
 #endif
+
 #ifdef USE_MPP
       use mpp_mod,         only : mpp_pe, mpp_npes, mpp_root_pe
       use mpp_mod,         only : mpp_error, NOTE, FATAL
@@ -33,6 +41,10 @@
       use mpp_domains_mod, only : mpp_get_data_domain
       use mpp_domains_mod, only : mpp_update_domains
       use mpp_parameter_mod, only : WUPDATE, EUPDATE, SUPDATE, NUPDATE
+#endif
+
+#ifdef USE_DD2D_UTILS
+      use dd2d_utils, only : dist_grid,init_dist_grid
 #endif
 
       IMPLICIT NONE
@@ -73,6 +85,7 @@
 !aoo since DIST_GRID is public ESMF_GRID has to be public
 !aoo (SGI compiler complains)
       PUBLIC :: ESMF_GRID
+      public :: load_cap_config
 
       TYPE(ESMF_GridComp)  :: compmodelE
       TYPE (ESMF_DELayout) :: ESMF_LAYOUT
@@ -83,7 +96,7 @@
       PUBLIC :: DIST_GRID
 !@var  grid Default decomposition; globally accessible for convenience.
       PUBLIC :: grid
-!@var INIT_APP Initialize default decomposition
+!@var INIT_APP set some parameters and initialize ESMF
       PUBLIC :: INIT_APP
       PUBLIC :: INIT_GRID
       PUBLIC :: DESTROY_GRID
@@ -447,15 +460,13 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       INTEGER, PARAMETER :: HALO_WIDTH = 1
       integer ::  root
 
+#ifndef USE_DD2D_UTILS
       ! Local grid information
       TYPE DIST_GRID
 
          TYPE (ESMF_Grid) :: ESMF_GRID
 #ifdef USE_MPP
          TYPE (domain2D ) :: domain
-#endif
-#ifdef CUBE_GRID
-         type(dd2d_grid) :: dd2d
 #endif
          ! Parameters for Global domain
          INTEGER :: IM_WORLD        ! Number of Longitudes
@@ -489,6 +500,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          INTEGER, DIMENSION(:), POINTER :: lookup_pet
          LOGICAL :: BC_PERIODIC         
       END TYPE DIST_GRID
+#endif
 
       TYPE (DIST_GRID) :: GRID, GRID_TRANS
 
@@ -509,8 +521,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 !@var RANK_LAT_RANK index of _this_ process in meridional set.
       INTEGER :: RANK_LAT
 
-      TYPE (ESMF_DELayout) :: ESMF_LAYOUT_def
-      Integer :: pe
       integer, parameter :: ROOT_ID=0
       INTEGER, PUBLIC :: CHECKSUM_UNIT
 
@@ -518,89 +528,127 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       CONTAINS
 
+
       ! This routine initializes the quantities described above.
       ! The initialization should proceed prior to any grid computations.
-      SUBROUTINE INIT_APP(grd_dum,IM,JM,LM, J_SCM)
-      USE FILEMANAGER, Only : openunit
-
+      subroutine init_app
 #ifdef USE_ESMF
-      USE ESMF_CUSTOM_MOD, Only: Initialize_App
-      USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+      USE ESMF_CUSTOM_MOD, Only: modelE_vm
 #endif
-!AOO      USE ESMF_CUSTOM_MOD, Only: modelE_grid
-
-      IMPLICIT NONE
-      TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
-      INTEGER, INTENT(IN) :: IM, JM, LM
-      INTEGER, OPTIONAL, INTENT(IN) :: J_SCM ! single column model
-      INTEGER             :: rc
-      INTEGER             :: pet
-      CHARACTER(LEN=20) :: buffer
-
-#ifndef USE_MPP
-#ifdef USE_ESMF
-      ! Initialize ESMF
-      Call Initialize_App(IM, JM, LM,rc=rc)
-
-      Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
+      integer :: rc
       root = ROOT_ID
-      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
-
-      ! The default layout is not what we want - it splits in the "I" direction.
-      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
-
-      NP_LON = 1
-      NP_LAT = NPES
-      RANK_LAT = my_pet
-      RANK_LON = 0
-#else
-      MY_PET = 0
-      NPES = 1
-      NP_LON = 1
-      NP_LAT = 1
-      RANK_LON = 0
-      RANK_LAT = 0
-#endif
+      MY_PET = root
+      NPES   = 1
 
 #ifdef USE_ESMF
-      !! write(*,*) "INIT_GRID 1 USE ESMF"
-      call INIT_GRID(grd_dum,IM,JM,LM,vm=vm,CREATE_CAP=.true.)
-      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
-      WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
-     &     RANK_LON
-#else
-      !! write(*,*) "INIT_GRID 2"
-      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
-#endif
+      Call ESMF_Initialize(vm=modelE_vm, rc=rc)
+      Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES, rc=rc)
+      compmodelE  = ESMF_GridCompCreate(modelE_vm,"ModelE ESMF", rc=rc)
+      ESMF_Layout = ESMF_DELayoutCreate(modelE_vm,
+     &     deCountList = (/ 1, NPES /))
+c along with ESMF_GridCompCreate, move this somewhere into init_grid?
+c Separate atm/ocn/seaice components
+c      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
 #endif
 
 #ifdef USE_MPP
-      NP_LON = 1
-      NP_LAT = mpp_npes()
-      RANK_LAT = mpp_pe()
+c fms_init() has already been called.  Move that call here?
+#ifndef USE_ESMF
+      MY_PET = mpp_pe()
+      NPES   = mpp_npes()
+#endif
+#endif
+
+      NP_LON   = 1
       RANK_LON = 0
-      MY_PET=mpp_pe()
-      NPES=mpp_npes()
-      root=mpp_root_pe()
+      NP_LAT   = NPES
+      RANK_LAT = my_pet
+      return
+      end subroutine init_app
 
-#ifdef USE_ESMF
-      ! Initialize ESMF
-      Call Initialize_App(IM, JM, LM,rc=rc)
-      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
-
-      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
-#endif
-      !! write(*,*) "INIT_GRID 3"
-      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
-#endif
-
-#ifdef DEBUG_DECOMP
-      IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
-      WRITE(buffer,'(a,i3.3)') 'LOG_',my_pet
-      CALL openunit(TRIM(buffer), grd_dum%log_unit)
-#endif
-
-      END SUBROUTINE INIT_APP
+!      ! This routine initializes the quantities described above.
+!      ! The initialization should proceed prior to any grid computations.
+!      SUBROUTINE INIT_APP(grd_dum,IM,JM,LM, J_SCM)
+!      USE FILEMANAGER, Only : openunit
+!
+!#ifdef USE_ESMF
+!      USE ESMF_CUSTOM_MOD, Only: Initialize_App
+!      USE ESMF_CUSTOM_MOD, Only: vm => modelE_vm
+!#endif
+!!AOO      USE ESMF_CUSTOM_MOD, Only: modelE_grid
+!
+!      IMPLICIT NONE
+!      TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
+!      INTEGER, INTENT(IN) :: IM, JM, LM
+!      INTEGER, OPTIONAL, INTENT(IN) :: J_SCM ! single column model
+!      INTEGER             :: rc
+!      INTEGER             :: pet
+!      CHARACTER(LEN=20) :: buffer
+!
+!#ifndef USE_MPP
+!#ifdef USE_ESMF
+!      ! Initialize ESMF
+!      Call Initialize_App(IM, JM, LM,rc=rc)
+!
+!      Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
+!      root = ROOT_ID
+!      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
+!
+!      ! The default layout is not what we want - it splits in the "I" direction.
+!      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
+!
+!      NP_LON = 1
+!      NP_LAT = NPES
+!      RANK_LAT = my_pet
+!      RANK_LON = 0
+!#else
+!      MY_PET = 0
+!      NPES = 1
+!      NP_LON = 1
+!      NP_LAT = 1
+!      RANK_LON = 0
+!      RANK_LAT = 0
+!#endif
+!
+!#ifdef USE_ESMF
+!      !! write(*,*) "INIT_GRID 1 USE ESMF"
+!      call INIT_GRID(grd_dum,IM,JM,LM,vm=vm,CREATE_CAP=.true.)
+!      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
+!      WRITE(*,*)'Domain Decomposition for rank: ',MY_PET,RANK_LAT,
+!     &     RANK_LON
+!#else
+!      !! write(*,*) "INIT_GRID 2"
+!      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM)
+!#endif
+!#endif
+!
+!#ifdef USE_MPP
+!      NP_LON = 1
+!      NP_LAT = mpp_npes()
+!      RANK_LAT = mpp_pe()
+!      RANK_LON = 0
+!      MY_PET=mpp_pe()
+!      NPES=mpp_npes()
+!      root=mpp_root_pe()
+!
+!#ifdef USE_ESMF
+!      ! Initialize ESMF
+!      Call Initialize_App(IM, JM, LM,rc=rc)
+!      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
+!
+!      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
+!#endif
+!      !! write(*,*) "INIT_GRID 3"
+!      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
+!#endif
+!
+!#ifdef DEBUG_DECOMP
+!      IF (AM_I_ROOT()) CALL openunit('CHKSUM_DECOMP', CHECKSUM_UNIT)
+!      WRITE(buffer,'(a,i3.3)') 'LOG_',my_pet
+!      CALL openunit(TRIM(buffer), grd_dum%log_unit)
+!#endif
+!
+!      END SUBROUTINE INIT_APP
 
       SUBROUTINE DESTROY_GRID(grd_dum)
       TYPE (DIST_GRID), INTENT(INOUT) :: grd_dum
@@ -616,9 +664,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #else
       SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM,bc_periodic,
      &                     CREATE_CAP)
-#endif
-#ifdef CUBE_GRID
-      use dd2d_utils, only : init_dd2d_grid, dd2d_grid
 #endif
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
@@ -763,10 +808,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       grd_dum%I_STOP        = I1_DUM
       grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-width_)
       grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+width_)
-#ifdef CUBE_GRID
-      grd_dum%I_STRT_HALO   = I0_DUM-width_
-      grd_dum%I_STOP_HALO   = I1_DUM+width_
-#endif
       grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES - RANK_LAT*IM/NPES
 
       grd_dum%J_STRT        = J0_DUM
@@ -790,10 +831,6 @@ ccc I think the following will do the same and will be compatible with SCM
       grd_dum%J_STRT_SKP = max (   2, J0_DUM)
       grd_dum%J_STOP_SKP = min (JM-1, J1_DUM)
 
-#ifdef CUBE_GRID
-      grd_dum%J_STRT_SKP =  grd_dum%J_STRT 
-      grd_dum%J_STOP_SKP =  grd_dum%J_STOP
-#endif
 #ifdef USE_MPI
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
@@ -813,24 +850,21 @@ cddd      ENDIF
       grd_dum%J_STRT_STGR   = max(2,J0_DUM)
       grd_dum%J_STOP_STGR   = J1_DUM
 
-#ifdef CUBE_GRID
-c***  gluing dd2d derived type to dist_grid derived type
-           call init_dd2d_grid(
-     &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,6, 
-     &     grd_dum%I_STRT,grd_dum%I_STOP,
-     &     grd_dum%J_STRT,grd_dum%J_STOP,
-     &     grd_dum%I_STRT_HALO,grd_dum%I_STOP_HALO,
-     &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,grd_dum%dd2d)
-
-      grd_dum%HAVE_SOUTH_POLE = .false.
-      grd_dum%HAVE_NORTH_POLE = .false.
-#else
       grd_dum%HAVE_SOUTH_POLE = (RANK_LAT == 0)
       grd_dum%HAVE_NORTH_POLE = (RANK_LAT == NP_LAT - 1)
 
       J_EQUATOR = JM/2
       grd_dum%HAVE_EQUATOR    =
      &      (J0_DUM <= J_EQUATOR) .AND. (J1_DUM >= J_EQUATOR)
+
+#ifdef USE_DD2D_UTILS
+c need to initialize the dd2d version of dist_grid for I/O
+           call init_dist_grid(
+     &     grd_dum%IM_WORLD,grd_dum%JM_WORLD,1, 
+     &     grd_dum%I_STRT,grd_dum%I_STOP,
+     &     grd_dum%J_STRT,grd_dum%J_STOP,
+     &     grd_dum%I_STRT_HALO,grd_dum%I_STOP_HALO,
+     &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,grd_dum)
 #endif
 
       if (present(J_SCM)) then
@@ -6503,6 +6537,10 @@ cddd      End If
 
       END MODULE DOMAIN_DECOMP_1D
 
+#ifdef DOMAIN_DECOMP_ATM_IS_1D
+c If the atmosphere has a 1D domain decomposition, pass along the contents
+c of DOMAIN_DECOMP_1D
       MODULE DOMAIN_DECOMP_ATM
       USE DOMAIN_DECOMP_1D
       END MODULE DOMAIN_DECOMP_ATM
+#endif
