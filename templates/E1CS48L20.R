@@ -28,6 +28,7 @@ PARAM PARSER                        ! parameter database
 dd2d_utils pario_nc pario_fbsa
 regrid regrid_com regridinput
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_INTERFACE                     ! FV dynamical core wrapper
