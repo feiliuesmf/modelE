@@ -5,7 +5,7 @@
 C**** Note this must be compiled using the deep ocean gcmlib
 !AOO use statements added for domain_decomp and dynamics to pull in
 !AOO dynamically allocated arrays:  part 1 of 3
-      use domain_decomp_1d, only : init_app, grid, finish_app
+      use domain_decomp_1d, only : init_app, init_grid,grid, finish_app
 !AOO end of part 1 of 3
       USE MODEL_COM, only : ioread,Itime,im,jm,lm,amonth
       USE DIAG_COM, only : ij_tgo2,aij
@@ -17,7 +17,8 @@ C**** Note this must be compiled using the deep ocean gcmlib
      *     ,iu_oda,lf
 
 !AOO calls to init routines for dynamically allocated arrays:part 2 of 3
-      call init_app(grid,im,jm,lm)
+      call init_app()
+      call init_grid(grid,im,jm,lm)
       call alloc_drv()
 !AOO end of part 2 of 3
 C**** ZERO OUT ACCUMULATING ARRAYS

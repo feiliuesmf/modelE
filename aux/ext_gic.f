@@ -24,7 +24,7 @@ C**** must be compiled after the model
 !     USE LANDICE_COM, only : tlandi,snowli
 !     USE LAKES_COM, only : flake
       USE FILEMANAGER
-      USE DOMAIN_DECOMP_1D, ONLY : init_app,grid,finish_app
+      USE DOMAIN_DECOMP_1D, ONLY : init_app,init_grid,grid,finish_app
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60              ,clabel*156
       INTEGER IARGC,iu_GIC,I,J,L,N,ioerr,iu_TOPO   ,jc(100)
@@ -58,7 +58,8 @@ C**** must be compiled after the model
         STOP
       END IF
 
-        call init_app(grid,im,jm,lm)
+        call init_app()
+        call init_grid(grid,im,jm,lm)
         call alloc_drv()
 
       IF (IARGC() >= 3 ) extend_gh = .true.
