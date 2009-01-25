@@ -10,8 +10,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH
-      USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trname,ntm
 #endif
@@ -81,6 +79,7 @@ C**** 1-8 anti-clockwise from top RH corner
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : qcheck
+      USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
       IMPLICIT NONE
 !@var MLAKE,ELAKE mass and energy in lake layers (kg,J /m^2)
       REAL*8, INTENT(INOUT), DIMENSION(2) :: MLAKE,ELAKE
@@ -422,7 +421,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,jday,fearth0
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL
-      USE DOMAIN_DECOMP_ATM, only : GET,NORTH,SOUTH,HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : axyp,dyv,imaxj
 #ifdef TRACERS_WATER
@@ -604,10 +603,7 @@ C**** read in named rivers (if any)
 
 
 C**** Create integral direction array KDIREC/KD911 from CDIREC
-      CALL HALO_UPDATE(GRID, FEARTH0) ! fixed 
       CALL HALO_UPDATE(GRID, FLICE)
-      CALL HALO_UPDATE(GRID, FLAKE0)  ! fixed
-      CALL HALO_UPDATE(GRID, FOCEAN)  ! fixed
 
       ! Use unusual loop bounds to fill KDIREC/KD911 in halo
 #ifdef SCM
@@ -787,7 +783,6 @@ C**** South Pole is a special case
 C****
 C**** Calculate river flow RATE (per source time step)
 C****
-      CALL HALO_UPDATE(GRID, zatmo)
 
       SPEED0= .35d0  ! m/s
       SPMIN = .15d0  ! m/s
@@ -884,8 +879,7 @@ c perhaps replace these calculations with great circle distances later
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland,dtsrc
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,NORTH,SOUTH,GET,
-     *        GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
      *     jreg,j_rvrd,j_ervr,ij_fwoc
@@ -951,9 +945,7 @@ C****
 #endif
 
       CALL HALO_UPDATE(GRID, FLAND) ! fixed
-      CALL HALO_UPDATE(GRID,FOCEAN) ! fixed
       CALL HALO_UPDATE(GRID,FEARTH)
-      CALL HALO_UPDATE(GRID, ZATMO) ! fixed
       CALL HALO_UPDATE(GRID, HLAKE)
       CALL HALO_UPDATE(grid, FLAKE)
       CALL HALO_UPDATE(grid,   MWL)
@@ -1348,7 +1340,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : rhow
       USE MODEL_COM, only : im,jm,hlake,qcheck,focean
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm, trname, t_qlimit
@@ -1512,8 +1504,7 @@ C****
 
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
      *     ,j_implh 
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GET, GRID,NORTH,SOUTH,
-     *     GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
       integer i,j,J_0,J_1,I_0,I_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
@@ -1781,7 +1772,7 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET,NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE GEOM, only : imaxj,axyp,byaxyp
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
@@ -1884,8 +1875,7 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,dtsrc,itlake,itlkice
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET,GLOBALSUM, HALO_UPDATE,
-     *    NORTH,SOUTH
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
 
       USE GEOM, only : imaxj,axyp
       USE FLUXES, only : runosi, erunosi, e0, evapor, dmsi, dhsi, dssi,
