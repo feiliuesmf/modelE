@@ -137,10 +137,10 @@ C**** SPA and PU directly from the dynamics. (Future work).
 #endif
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
-      USE DOMAIN_DECOMP_ATM, only : grid, GET
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_ATM, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
       REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
       INTEGER I,J,K,IP1,IM1,J1
@@ -266,7 +266,7 @@ C****
       USE CONSTANT, only : bygrav,kapa
       USE MODEL_COM, only : im,jm,lm,ls1,p
       USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
-      USE DOMAIN_DECOMP_ATM, Only : grid, GET, HALO_UPDATE, SOUTH
+      USE DOMAIN_DECOMP_ATM, Only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
 
       INTEGER :: I,J,L  !@var I,J,L  loop variables
@@ -379,11 +379,10 @@ C****
       INTEGER I,J,L,IERR
       REAL*8, DIMENSION(LM) :: TL
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, I_0,I_1
+      INTEGER :: J_0, J_1, J_0S, J_1S, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -648,8 +647,7 @@ C***** Add in dissipiated KE as heat locally
       use CONSTANT, only: SHA
       use GEOM, only: IMAXJ
       use MODEL_COM, only: LM
-      use DOMAIN_DECOMP_ATM, only: grid, get, HALO_UPDATE, NORTH
-     &     ,am_i_root
+      use DOMAIN_DECOMP_ATM, only: grid, get
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::

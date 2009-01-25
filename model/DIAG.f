@@ -1967,7 +1967,8 @@ c****
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
-      use domain_decomp_atm, only : grid,get,writei_parallel
+      use domain_decomp_1d, only : grid,get,writei_parallel
+! need to add writei_parallel to domain_decomp_atm
       real*4, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: data
       integer kunit
@@ -2561,7 +2562,7 @@ c
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DIAG_COM
       USE PARAM
-      USE DOMAIN_DECOMP_ATM, only: grid, CHECKSUM
+      USE DOMAIN_DECOMP_ATM, only: grid
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
       INTEGER jd0

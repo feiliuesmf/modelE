@@ -13,9 +13,8 @@
 #ifdef SCM
      &     ,I_TARG,J_TARG,NSTEPSCM
 #endif
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
-      USE DOMAIN_DECOMP_ATM, only : NORTH,SOUTH
-      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GLOBALSUM
       USE QUSDEF, only : nmom
       USE SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
       USE GEOM, only : imaxj,axyp,byaxyp, kmaxj
@@ -338,11 +337,6 @@ C     But save the current seed in case isccp_routine is activated
       SAVEN2=0.
       W500P1=0.
       ENTJ=0.
-C
-C**** UPDATE HALOS of U and V FOR DISTRIBUTED PARALLELIZATION
-      CALL HALO_UPDATE(grid, U, from= NORTH)
-      CALL HALO_UPDATE(grid, V, from= NORTH)
-
 
       call recalc_agrid_uv ! may not be necessary - check later
 
@@ -1518,11 +1512,13 @@ C
 #endif
 #endif
 
+#ifndef CUBE_GRID
 C**** Accumulate AISCCP array
       if(isccp_diags.eq.1) then
         CALL GLOBALSUM(grid,AISCCP2D,AISCCPSUM)
         AISCCP=AISCCP+AISCCPSUM
       endif
+#endif
 
 C
 C     NOW UPDATE THE MODEL WINDS
