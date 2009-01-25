@@ -558,7 +558,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 
       MODULE DIAG_SERIAL
       USE MODEL_COM, ONLY : IM, JM
-      USE DOMAIN_DECOMP_ATM, only : grid, DIST_GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : grid, DIST_GRID, AM_I_ROOT
       USE DIAGKS
 
       PRIVATE
@@ -864,7 +864,7 @@ c
 !@auth G. Schmidt/R. Reto/G. Russell
       use filemanager
       USE CONSTANT, only : teeny
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only : im,jm,lm,fim,
      &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,ls1,itime,itime0,nday,xlabel,lrunid,ntype
@@ -1653,7 +1653,7 @@ c Check the count
       SUBROUTINE DIAGJK
       USE CONSTANT, only :
      &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,lm_req,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
@@ -2987,7 +2987,7 @@ C****
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
       USE CONSTANT, only : teeny
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE WORKJK
@@ -3226,7 +3226,7 @@ C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED AS THE SUMMATION OF DSIG TIMES THE
 C**** NUMBERS ABOVE (POSSIBLY MULTIPLIED BY A FACTOR OF 10)
 C****
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
@@ -3438,7 +3438,7 @@ C**** WHEN JWT=2, ALL NUMBERS ARE PER UNIT AREA.
 C**** J1 INDICATES PRIMARY OR SECONDARY GRID.
 C**** THE BOTTOM LINE IS CALCULATED USING VWT(J,L) AS VERTICAL WEIGHTS
 C****
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE CONSTANT, only : teeny
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
@@ -4698,7 +4698,7 @@ c**** fill in some key numbers
 !@sum ij_avg finds num/den and various averages from num and den
 !@auth R.Ruedy
 !@ver  1.0
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :  im,jm,fim,jeq
       USE GEOM, only : wtj,Jrange_hemi
@@ -4775,7 +4775,7 @@ c**** find hemispheric and global means
 !@auth Gary Russell,Maxwell Kelley,Reto Ruedy
 !@ver   1.0
       USE CONSTANT, only : sha,teeny
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     im,jm,lm,byim,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
@@ -5272,7 +5272,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
@@ -6744,8 +6744,8 @@ cddd#endif
      *     AREGJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
-      USE DOMAIN_DECOMP_ATM, ONLY : CHECKSUMj,CHECKSUM,am_i_root
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
+      USE DOMAIN_DECOMP_1D, ONLY : CHECKSUMj,CHECKSUM,am_i_root
       USE CONSTANT, only : NaN
       IMPLICIT NONE
 cddd      INTEGER :: J_0, J_1, J_0H, J_1H
@@ -6808,8 +6808,8 @@ cddd      DEALLOCATE(tmp)
       USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc, AREGJ, AREGJ_loc,
      *     AJK, AJK_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
      *     AJL,  AJL_loc, CONSRV, CONSRV_loc, TSFREZ, TSFREZ_loc
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
-      USE DOMAIN_DECOMP_ATM, ONLY : am_i_root
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+      USE DOMAIN_DECOMP_1D, ONLY : am_i_root
       IMPLICIT NONE
 
 #ifndef CUBE_GRID
