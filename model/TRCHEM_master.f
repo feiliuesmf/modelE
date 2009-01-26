@@ -367,7 +367,7 @@ CCCC!$OMP* N_ALKYLNIT)
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       DO J=J_0,J_1                  ! >>>> MAIN J LOOP BEGINS <<<<
 
-      DO I=1,IMAXJ(J)               ! >>>> MAIN I LOOP BEGINS <<<<
+      DO I=I_0,IMAXJ(J)             ! >>>> MAIN I LOOP BEGINS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       if(checktracer_on==1) call checktracer(I,J)
@@ -1752,7 +1752,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
       do j=J_0,J_1
-       do i=1,IMAXJ(j)
+       do i=I_0,IMAXJ(j)
         fact6=2.69d20*axyp(i,j)*byavog
         fact1=bymair*am(1,i,j)*axyp(i,j)
         fact5=fact6 
@@ -1782,7 +1782,7 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
       do L=LS1,LM
        if(pres2(L) < pltOx)then
         do j=J_0,J_1         
-          do i=1,IMAXJ(j)
+          do i=I_0,IMAXJ(j)
             ! -- Ox --
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
             if(correct_strat_Ox) then
@@ -1863,7 +1863,7 @@ C Calculate an average tropical CH4 value near 569 hPa::
 
       do j=J_0,J_1
        J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
-       do i=1,IMAXJ(J)
+       do i=I_0,IMAXJ(J)
          select case(which_trop)
          case(0); maxl=ltropo(I,J)
          case(1); maxl=ls1-1
@@ -1963,7 +1963,7 @@ CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 c Save new tracer Ox field for use in radiation or elsewhere:
       do j=J_0,J_1
         DU_O3(J)=0.d0 ! Drew's diagnostic...
-        do i=1,imaxj(j) 
+        do i=I_0,imaxj(j) 
 #ifdef SHINDELL_STRAT_CHEM
          maxl = LM
 #else
