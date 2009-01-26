@@ -3,6 +3,7 @@
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       logical, intent(in), optional :: no_xdim
+#ifndef SERIAL_MODE
       real*8, dimension(:), allocatable :: arr1d
       integer :: nl,nk,jd,nd,nsend,ierr,src_pe,tag,modpe,vid,rc
       integer :: mpi_status(mpi_status_size)
@@ -71,3 +72,7 @@ c zonal strips if they are available
      &       tag,MPI_COMM_WORLD,ierr)
       endif
       if(grid%am_i_rowroot) deallocate(arr1d)
+#else
+c call write_data when in serial mode
+      call write_data(grid,fid,varname,arr)
+#endif

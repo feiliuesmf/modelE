@@ -10,16 +10,15 @@
         else
           rc = nf_inq_varid(fid,trim(varname),vid)
           if(rc.ne.nf_noerr) write(6,*) 'variable ',
-     &         trim(varname),' not found in input file - skipping'
+     &         trim(varname),' not found in output file - stopping'
         endif
       endif
-      call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      if(rc.ne.nf_noerr) return
+      call stoprc(rc,nf_noerr)
 
       if(grid%am_i_globalroot) then
 c
 c see whether the attribute needs to be defined.
-c if the attribute exists but with a different size, delete it
+c if the attribute exists but with a different size, delete it.
 c if the file is not in define mode, put it into define mode
 c
         attlen = len_of_obj(attval)

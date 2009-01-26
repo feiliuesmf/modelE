@@ -1,10 +1,25 @@
       module pario
-      use dd2d_utils, only : dist_grid,pack_row,unpack_row,get_nlnk
-     &     ,pack_data
+
+#ifdef OFFLINE
+#else
+c see whether model E is running in serial mode
+#ifndef USE_ESMF
+#define SERIAL_MODE
+#endif
+#endif
+
+      use dd2d_utils, only : dist_grid
+#ifndef SERIAL_MODE
+c these routines are only needed when running on multiple CPUs
+      use dd2d_utils, only : pack_row,unpack_row,get_nlnk,pack_data
+#endif
       implicit none
       save
       private
+
+#ifndef SERIAL_MODE
       include 'mpif.h'
+#endif
       include 'netcdf.inc'
 
 c
@@ -46,6 +61,7 @@ c
         module procedure write_nc_1D_int
         module procedure write_nc_2D_int
         module procedure write_nc_3D_int
+        module procedure write_nc_2D_logical
       end interface write_data
       interface read_data
         module procedure read_nc_0D
@@ -58,6 +74,7 @@ c
         module procedure read_nc_1D_int
         module procedure read_nc_2D_int
         module procedure read_nc_3D_int
+        module procedure read_nc_2D_logical
       end interface read_data
 
       public :: defvar
@@ -89,8 +106,10 @@ c
       public :: read_attr
       interface read_attr
         module procedure read_attr_text
-        module procedure read_attr_r8
-        module procedure read_attr_int
+        module procedure read_attr_0D_r8
+        module procedure read_attr_1D_r8
+        module procedure read_attr_0D_int
+        module procedure read_attr_1D_int
       end interface
 
       interface len_of_obj
@@ -101,6 +120,15 @@ c
         module procedure len_of_r81D
       end interface
 
+      interface broadcast
+        module procedure broadcast_0D_int
+        module procedure broadcast_1D_int
+        module procedure broadcast_0D_r8
+        module procedure broadcast_1D_r8
+      end interface broadcast
+
+#ifndef SERIAL_MODE
+c these routines are only needed when running on multiple CPUs
       interface pack_row_no_xdim
         module procedure pack_row_no_xdim_2d
         module procedure pack_row_no_xdim_3d
@@ -120,6 +148,7 @@ c
         module procedure par_write_ijxx
         module procedure par_write_ijxxx
       end interface
+#endif /* not SERIAL_MODE */
 
       integer, parameter :: success = 0, fail = -1
 
@@ -147,13 +176,21 @@ c          rc = nf_create(trim(fname),nf_clobber,fid)
             write(6,*) 'error opening ',trim(fname)
           else
             rc2 = nf_inq_varid(fid,'write_status',vid)
-            rc2 = nf_get_var_int(fid,vid,wc)
-            if(wc.ne.success) then
-              write(6,*) 'input file ',trim(fname),
-     &             ' does not appear to have been written successfully:'
-              write(6,*) 'write_status = ',wc
+            if(rc2.eq.nf_noerr) then
+              rc2 = nf_get_var_int(fid,vid,wc)
+              if(wc.ne.success) then
+                write(6,*) 'input file ',trim(fname),
+     &            ' does not appear to have been written successfully:'
+                write(6,*) 'write_status = ',wc
+              endif
+            else
+              wc = success
             endif
           endif
+        else
+          write(6,*) 'par_open: invalid mode ',trim(mode)
+          write(6,*) 'mode must be one of [create write read]'
+          rc = nf_noerr + 1
         endif
       endif
       call stoprc(rc,nf_noerr)
@@ -181,7 +218,9 @@ c define/overwrite the success flag for error checking
       integer :: rc,vid
       if(grid%am_i_globalroot) then
         rc = nf_inq_varid(fid,'write_status',vid)
-        rc = nf_put_var_int(fid,vid,success)
+        if(rc.eq.nf_noerr) then
+          rc = nf_put_var_int(fid,vid,success)
+        endif
         rc = nf_close(fid)
       endif
       return
@@ -323,10 +362,44 @@ c define/overwrite the success flag for error checking
       subroutine stoprc(rc,rc_ok)
       integer :: rc,rc_ok
       integer :: mpi_err
+#ifndef SERIAL_MODE
       call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,mpi_err)
       if(rc.ne.rc_ok) call mpi_abort(MPI_COMM_WORLD,1,mpi_err)
+#else
+      if(rc.ne.rc_ok) stop
+#endif
       return
       end subroutine stoprc
+
+      subroutine broadcast_0D_int(i)
+      integer :: i
+#ifndef SERIAL_MODE
+      integer :: ierr
+      call mpi_bcast(i,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif
+      end subroutine broadcast_0D_int
+      subroutine broadcast_1D_int(i)
+      integer :: i(:)
+#ifndef SERIAL_MODE
+      integer :: ierr
+      call mpi_bcast(i,size(i),MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+#endif
+      end subroutine broadcast_1D_int
+      subroutine broadcast_0D_r8(r8)
+      real*8 :: r8
+#ifndef SERIAL_MODE
+      integer :: ierr
+      call mpi_bcast(r8,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+#endif
+      end subroutine broadcast_0D_r8
+      subroutine broadcast_1D_r8(r8)
+      real*8 :: r8(:)
+#ifndef SERIAL_MODE
+      integer :: ierr
+      call mpi_bcast(r8,size(r8),MPI_DOUBLE_PRECISION,0,
+     &     MPI_COMM_WORLD,ierr)
+#endif
+      end subroutine broadcast_1D_r8
 
       subroutine write_nc_0D(grid,fid,varname,arr)
       real*8 :: arr
@@ -414,6 +487,19 @@ c define/overwrite the success flag for error checking
       arr = iarr
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_3D_int
+      subroutine write_nc_2D_logical(grid,fid,varname,larr)
+      integer :: fid
+      character(len=*) :: varname
+      type(dist_grid), intent(in) :: grid
+      logical :: larr(:,:)
+      real*8 :: arr(size(larr,1),size(larr,2))
+      where(larr)
+        arr = 1d0
+      else where
+        arr = 0d0
+      end where
+      call write_data(grid,fid,varname,arr)
+      end subroutine write_nc_2D_logical
 
       subroutine read_nc_0D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -475,6 +561,21 @@ c define/overwrite the success flag for error checking
       call read_data(grid,fid,varname,arr,bcast_all=bc_all)
       if(grid%am_i_globalroot .or. bc_all) iarr = arr
       end subroutine read_nc_3D_int
+      subroutine read_nc_2D_logical(grid,fid,varname,larr,bcast_all)
+      integer :: fid
+      character(len=*) :: varname
+      type(dist_grid), intent(in) :: grid
+      logical :: larr(:,:)
+      logical, intent(in), optional :: bcast_all
+      real*8 :: arr(size(larr,1),size(larr,2))
+      logical :: bc_all
+      bc_all=.false.
+      if(present(bcast_all)) then
+        if(bcast_all) bc_all=.true.
+      endif
+      call read_data(grid,fid,varname,arr,bcast_all=bc_all)
+      if(grid%am_i_globalroot .or. bc_all) larr = arr.eq.1d0
+      end subroutine read_nc_2D_logical
 
       subroutine defvar_0D(grid,fid,arr,varinfo,r4_on_disk,defby)
       real*8 :: arr
@@ -561,7 +662,7 @@ c netcdf file will represent logical as 0/1 int
 
       subroutine write_attr_text(grid,fid,varname,attname,attval)
       character(len=*) :: attval
-      include 'dd2d/setup_attput.inc'
+#include "dd2d/setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_text(fid,vid,trim(attname),attlen,attval)
         if(do_enddef) rc2 = nf_enddef(fid)
@@ -571,7 +672,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine write_attr_text
       subroutine write_attr_0D_int(grid,fid,varname,attname,attval)
       integer :: attval
-      include 'dd2d/setup_attput.inc'
+#include "dd2d/setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_int(fid,vid,trim(attname),nf_int,attlen,attval)
         if(do_enddef) rc2 = nf_enddef(fid)
@@ -581,7 +682,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine write_attr_0D_int
       subroutine write_attr_1D_int(grid,fid,varname,attname,attval)
       integer :: attval(:)
-      include 'dd2d/setup_attput.inc'
+#include "dd2d/setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_int(fid,vid,trim(attname),nf_int,attlen,attval)
         if(do_enddef) rc2 = nf_enddef(fid)
@@ -591,7 +692,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine write_attr_1D_int
       subroutine write_attr_0D_r8(grid,fid,varname,attname,attval)
       real*8 :: attval
-      include 'dd2d/setup_attput.inc'
+#include "dd2d/setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_double(fid,vid,trim(attname),nf_double,attlen,
      &       attval)
@@ -602,7 +703,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine write_attr_0D_r8
       subroutine write_attr_1D_r8(grid,fid,varname,attname,attval)
       real*8 :: attval(:)
-      include 'dd2d/setup_attput.inc'
+#include "dd2d/setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_double(fid,vid,trim(attname),nf_double,attlen,
      &       attval)
@@ -613,48 +714,67 @@ c netcdf file will represent logical as 0/1 int
       end subroutine write_attr_1D_r8
 
       subroutine read_attr_text(grid,fid,varname,attname,attlen,
-     &         attstr,attnum)
-      character(len=*) :: attstr
-      include 'dd2d/setup_attget.inc'
+     &         attval,attnum)
+      character(len=*) :: attval
+#include "dd2d/setup_attget.inc"
       if(grid%am_i_globalroot) then
         rc = nf_get_att_text(fid,vid,trim(attname),tmpstr)
-c        do l=1,attlen
-c          tmpstr(l) = attstr(l:l)
-c        enddo
       endif
       call stoprc(rc,nf_noerr)
+#ifndef SERIAL_MODE
       call mpi_bcast(tmpstr,attlen,MPI_CHARACTER,0,
      &     MPI_COMM_WORLD,ierr)
-      attstr=''
+#endif
+      attval=''
       do l=1,attlen
-        attstr(l:l) = tmpstr(l)
+        attval(l:l) = tmpstr(l)
       enddo
       return
       end subroutine read_attr_text
-      subroutine read_attr_int(grid,fid,varname,attname,attlen,
+      subroutine read_attr_0D_int(grid,fid,varname,attname,attlen,
      &         attval,attnum)
-      integer :: attval(1)
-      include 'dd2d/setup_attget.inc'
+      integer :: attval
+#include "dd2d/setup_attget.inc"
       if(grid%am_i_globalroot) then
         rc = nf_get_att_int(fid,vid,trim(attname),attval)
       endif
       call stoprc(rc,nf_noerr)
-      call mpi_bcast(attval,attlen,MPI_INTEGER,0,
-     &     MPI_COMM_WORLD,ierr)
+      call broadcast(attval)
       return
-      end subroutine read_attr_int
-      subroutine read_attr_r8(grid,fid,varname,attname,attlen,
+      end subroutine read_attr_0D_int
+      subroutine read_attr_1D_int(grid,fid,varname,attname,attlen,
      &         attval,attnum)
-      real*8 :: attval(1)
-      include 'dd2d/setup_attget.inc'
+      integer :: attval(:)
+#include "dd2d/setup_attget.inc"
+      if(grid%am_i_globalroot) then
+        rc = nf_get_att_int(fid,vid,trim(attname),attval)
+      endif
+      call stoprc(rc,nf_noerr)
+      call broadcast(attval)
+      return
+      end subroutine read_attr_1D_int
+      subroutine read_attr_0D_r8(grid,fid,varname,attname,attlen,
+     &         attval,attnum)
+      real*8 :: attval
+#include "dd2d/setup_attget.inc"
       if(grid%am_i_globalroot) then
         rc = nf_get_att_double(fid,vid,trim(attname),attval)
       endif
       call stoprc(rc,nf_noerr)
-      call mpi_bcast(attval,attlen,MPI_DOUBLE_PRECISION,0,
-     &     MPI_COMM_WORLD,ierr)
+      call broadcast(attval)
       return
-      end subroutine read_attr_r8
+      end subroutine read_attr_0D_r8
+      subroutine read_attr_1D_r8(grid,fid,varname,attname,attlen,
+     &         attval,attnum)
+      real*8 :: attval(:)
+#include "dd2d/setup_attget.inc"
+      if(grid%am_i_globalroot) then
+        rc = nf_get_att_double(fid,vid,trim(attname),attval)
+      endif
+      call stoprc(rc,nf_noerr)
+      call broadcast(attval)
+      return
+      end subroutine read_attr_1D_r8
 
       function len_of_text(cstr)
       integer :: len_of_text
@@ -801,6 +921,7 @@ c
       return
       end subroutine define_var
 
+#ifndef SERIAL_MODE
       subroutine pack_row_no_xdim_2d(grid,arr,arr1d,jdim)
       real*8 arr(:,:)
       include 'dd2d/row_setup_no_xdim.inc'
@@ -947,6 +1068,7 @@ c
       if(grid%am_i_globalroot) deallocate(arrgxij)
       return
       end subroutine par_write_xijx
+#endif /* not SERIAL_MODE */
 
       end module pario
 

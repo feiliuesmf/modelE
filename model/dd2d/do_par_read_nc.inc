@@ -3,6 +3,7 @@
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       logical, intent(in), optional :: no_xdim
+#ifndef SERIAL_MODE
       real*8, dimension(:), allocatable :: arr1d
       integer :: nl,nk,jd,nd,nsend,ierr,dst_pe,tag,modpe,vid,rc
       integer :: mpi_status(mpi_status_size)
@@ -67,3 +68,7 @@ c read from netcdf file
         call unpack_row_no_xdim(grid,arr1d,arr,jd)
       endif
       if(grid%am_i_rowroot) deallocate(arr1d)
+#else
+c call read_data when in serial mode
+      call read_data(grid,fid,varname,arr)
+#endif

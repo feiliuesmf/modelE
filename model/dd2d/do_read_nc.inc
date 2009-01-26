@@ -9,6 +9,7 @@
      &       trim(varname),' not found in input file - skipping'
         rc = nf_get_var_double(fid,vid,arr)
       endif
+#ifndef SERIAL_MODE
       if(present(bcast_all)) then
         if(bcast_all) then
           nd = size(shape(arr))
@@ -22,3 +23,4 @@
      &         MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
         endif
       endif
+#endif
