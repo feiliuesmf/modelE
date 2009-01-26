@@ -738,10 +738,10 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX
       USE DIAG_COM, only : npts,icon_OCE,conpt0
-      IMPLICIT NONE
 #ifdef CUBE_GRID
-      include 'netcdf.inc'
+      use pario, only : par_open, par_close
 #endif
+      IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       LOGICAL, INTENT(IN) :: iniOCEAN  ! true if starting from ic.
       CHARACTER CONPT(NPTS)*10
@@ -778,13 +778,9 @@ C**** if starting from AIC/GIC files need additional read for ocean
 
       if (istart.le.2) then
 #ifdef CUBE_GRID
-         if (am_i_root()) then
-            status=nf_open("GIC",nf_nowrite,fid)
-            write(*,*) "status GIC ocean=",status
-            IF (status .ne. NF_NOERR) write(*,*) "nf_open error"
-         endif
-         call par_io_ocean (fid,ioread)
-         if (am_i_root()) status = nf_close(fid)
+        fid = par_open(grid,'GIC','read')
+        call par_io_ocean (fid,ioread)
+        call par_close(grid,fid)
 #else
         call openunit("GIC",iu_GIC,.true.,.true.)
         ioerr=-1
@@ -874,9 +870,6 @@ C**** Make sure to use geostrophy for ocean tilt term in ice dynamics
 C**** (if required). Since ocean currents are zero, this implies no sea
 C**** surface tilt term.
       osurf_tilt = 0
-#ifdef CUBE_GRID
-        write(*,*) "end init ocean..."
-#endif
       RETURN
       END SUBROUTINE init_OCEAN
 
