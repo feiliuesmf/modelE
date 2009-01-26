@@ -98,6 +98,14 @@ c However, for PEs on or next to the UL-LR diagonal of each cubed
 c sphere tile, one extra call to mpi_sendrecv is needed.
 c
 
+#ifdef OFFLINE
+#else
+c see whether model E is running in serial mode
+#ifndef USE_ESMF
+#define SERIAL_MODE
+#endif
+#endif
+
 #ifdef USE_ESMF
       use ESMF_Mod
 #endif
@@ -105,13 +113,6 @@ c
       implicit none
       private
       save
-      include 'mpif.h'
-
-c public interfaces
-      public :: pack_data,unpack_data
-      public :: pack_row,unpack_row
-      public :: halo_update
-      public :: globalsum
 
       public :: init_dist_grid
       public :: dist_grid
@@ -126,19 +127,20 @@ c public interfaces
         integer :: ied ! last  i index of data domain
         integer :: jsd ! first j index of data domain
         integer :: jed ! last  j index of data domain
+        logical :: am_i_globalroot ! am I the root for all processes
+        integer :: ntiles ! number of tiles globally
 
+#ifndef SERIAL_MODE
         integer :: gid ! rank of my processor
         integer :: nproc ! number of processors
         integer :: nproc_tile ! number of processors on my tile
         integer :: nprocx ! number of processors in the x direction
         integer :: nprocy ! number of processors in the y direction
         integer :: tile ! my tile ID
-        integer :: ntiles ! number of tiles globally
         integer :: rank_tile ! MPI rank on my tile
         integer :: comm_tile ! MPI communicator for my tile
         integer :: comm_intertile ! MPI communicator between tiles
         logical :: am_i_tileroot ! am I the root for my tile
-        logical :: am_i_globalroot ! am I the root for all processes
         integer :: root_mytile ! who is root for my tile
         integer, dimension(:), allocatable :: isr ! first i of each PE on my tile
         integer, dimension(:), allocatable :: ier ! last i of each PE on my tile
@@ -204,6 +206,8 @@ c special processors for a cubed sphere layout
         integer :: pe_send_ne ! PE for extra send to the NE
         integer :: pe_send_sw ! PE for extra send to the SW
 
+#endif /* not SERIAL_MODE */
+
 c
 c the following is for use in modelE only:
 c
@@ -243,6 +247,16 @@ c
         LOGICAL :: BC_PERIODIC
 
       end type dist_grid
+
+#ifndef SERIAL_MODE
+
+      include 'mpif.h'
+
+c public interfaces
+      public :: pack_data,unpack_data
+      public :: pack_row,unpack_row
+      public :: halo_update
+      public :: globalsum
 
 c
 c pack/unpack interfaces
@@ -322,6 +336,8 @@ c
      &    ,bufij_tile_size=0
 
 
+#endif /* not SERIAL_MODE */
+
       contains
 
       subroutine init_dist_grid(
@@ -341,6 +357,7 @@ c
       integer, dimension(:), allocatable :: proclist
       logical :: swap_ne,swap_sw,on_ullr
 
+      grid%am_i_globalroot = .true. ! initialize to serial-mode default
       grid%npx = npx
       grid%npy = npy
       grid%ntiles = ntiles
@@ -353,6 +370,11 @@ c
       grid%jsd = jsd
       grid%jed = jed
 
+#ifdef SERIAL_MODE
+      return
+      end subroutine init_dist_grid
+
+#else
       write(*,*) "init_dist_grid, is, ie, js, je"
       write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
 
@@ -976,7 +998,11 @@ c on the diagonal
       return
       end subroutine traverse_square_ccw
 
+#endif /* not SERIAL_MODE */
+
       end module dd2d_utils
+
+#ifndef SERIAL_MODE
 
       subroutine gather4D(grid,local_arr,global_arr
      &     ,i1,i2,j1,j2,nl,nk,nt,has_halo
@@ -1511,3 +1537,5 @@ c
       endif
       return
       end subroutine sendrecv4D
+
+#endif /* not SERIAL_MODE */
