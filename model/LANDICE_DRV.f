@@ -43,13 +43,15 @@
 #endif
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM, READT_PARALLEL
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
       REAL*8 FAC_SH,FAC_NH
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: FWAREA_s,FWAREA_n
+     *                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     FWAREA_s,FWAREA_n,
+     &     r8mask ! dummy array to read in 0/1 mask
       LOGICAL :: do_glmelt = .false.
       INTEGER I,J,N, iu_GL, I72
       INTEGER :: I_0,I_1, J_0,J_1
@@ -95,11 +97,17 @@ C**** This information is now read in from the GLMELT file.
 C**** Read in GLMELT file to distribute glacial melt (CGLM is global)
       IF (JM.gt.24) THEN ! for finer that old 8x10
 
+#ifdef CUBE_GRID
+c read a binary version of GLMELT
+      call openunit("GLMELT",iu_GL,.true.,.true.)
+      call readt_parallel(grid,iu_gl,nameunit(iu_gl),r8mask,1)
+      loc_glm(i_0:i_1,j_0:j_1) = r8mask(i_0:i_1,j_0:j_1).eq.1d0
+#else
+c every PE reads the ascii version of GLMELT
       call openunit("GLMELT",iu_GL,.false.,.true.)
       READ  (iu_GL,'(A72)') TITLE
       WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
       READ  (iu_GL,*)
-
 C**** assumes a 72-column width slab - will need adjusting for CS
       DO I72=1,1+(IM-1)/72
         DO J=JM,1,-1
@@ -107,7 +115,13 @@ C**** assumes a 72-column width slab - will need adjusting for CS
      *         (CGLM(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
         END DO
       END DO
+      DO J=J_0,J_1
+        DO I=I_0,I_1
+          LOC_GLM(I,J)=CGLM(I,J).eq."1" 
+        ENDDO
+      ENDDO
 C****
+#endif
       call closeunit(iu_GL)
 
 C**** Calculate hemispheric areas (weighted by area and landmask)
@@ -117,7 +131,6 @@ C**** give ice sheet (rather than hemispheric) dependent areas
       FWAREA_n(:,:)=0
       DO J=J_0,J_1
         DO I=I_0,I_1
-          LOC_GLM(I,J)=CGLM(I,J).eq."1" 
           IF (LOC_GLM(I,J) .and. FOCEAN(I,J).gt.0 ) THEN
             IF(LAT2D(I,J).LT.0.) THEN
               FWAREA_s(I,J)=AXYP(I,J)*FOCEAN(I,J)
