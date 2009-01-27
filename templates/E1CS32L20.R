@@ -74,6 +74,7 @@ CDN=CD_CS32                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RD_modelE_M.RVR               ! river direction file
 TOP_INDEX=top_index_CS32      ! only used if #define do_topmodel_runoff
+GLMELT=GLMELT_CS32   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
@@ -110,7 +111,6 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E1CS32L20 (ModelE1 Cubed Sphere C32, 20 lyrs, 1880 atm/ocn;
