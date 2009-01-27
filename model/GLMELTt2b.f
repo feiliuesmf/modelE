@@ -1,10 +1,11 @@
       program glmeltt2b
       implicit none
-      integer, parameter :: IM=72,JM=46,ncols=72
-      character*72 :: TITLE
-      character*80 :: TITLE80,fname,oname
+      integer, parameter :: IM=72,JM=46
+      integer ncols
+      character*1 :: char(256)
+      character*80 :: fname,oname
       CHARACTER*1, DIMENSION(IM,JM) :: CGLM   ! global array
-      integer :: iu_GL,Irow,i,j,len
+      integer :: iu_GL,Irow,i,j,len,status
       real*4, allocatable :: RGLM(:,:)
 
       iu_GL=20
@@ -13,16 +14,18 @@
       open(unit=iu_GL,FILE=fname,FORM ="FORMATTED",
      &     status ="UNKNOWN")
 
-      READ  (iu_GL,100) TITLE
-  100 FORMAT(A<ncols>)
+      do 
+      read(iu_GL,'(256A1)',size=ncols,advance='no',eor=800) char
+      write(*,*) char
+      enddo
+  800 write(*,*) "ncols",ncols
 
-      WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
       READ  (iu_GL,*)
 
 C**** assumes a fix width slab - will need adjusting for CS
       DO Irow=1,1+(IM-1)/ncols
         DO J=JM,1,-1
-          READ (iu_GL,'(72A1)')
+          READ (iu_GL,200)
      *         (CGLM(I,J),I=ncols*(Irow-1)+1,MIN(IM,Irow*ncols))
         END DO
       END DO
@@ -41,7 +44,7 @@ C****
          enddo
       enddo
 
-      write(*,*) "RGLM=",RGLM
+c      write(*,*) "RGLM=",RGLM
       close(iu_GL)
 
       oname=trim(fname)//".bin"
@@ -50,9 +53,7 @@ C****
       open(unit=3200, FILE=oname,FORM='unformatted',STATUS='unknown')
 
 
-      TITLE80=TITLE    
-      TITLE80=trim(TITLE80)
-      write(3200) TITLE80,RGLM
+      write(3200) char(1:80),RGLM
       close(unit=3200)
       deallocate(RGLM)
 
