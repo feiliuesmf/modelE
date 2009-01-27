@@ -543,22 +543,19 @@ C**** Set orbital parameters appropriately
         eccn=eccn_def
       end if
 
+#ifndef CUBE_GRID
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       if (HAVE_SOUTH_POLE) then
         PHIS=-.25*TWOPI
         SPHIS=-1.
         CPHIS=0.
       else
-#ifndef CUBE_GRID
         PHIS=DLAT*(J_0-1-.5*JM)
-#endif
         SPHIS=SIN(PHIS)
         CPHIS=COS(PHIS)
       end if
       DO J=J_0,J_1S
-#ifndef CUBE_GRID
         PHIN=DLAT*(J-.5*JM)
-#endif
         SPHIN=SIN(PHIN)
         CPHIN=COS(PHIN)
         PHIM=(PHIN*SPHIN+CPHIN-PHIS*SPHIS-CPHIS)/(SPHIN-SPHIS)
@@ -581,6 +578,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
 #ifdef NEW_COSZ
       call cosz_init
 #endif
+#endif /* not CUBE_GRID */
 C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
 C****
