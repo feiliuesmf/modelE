@@ -1495,7 +1495,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : axypband_loc,axypband,JM_BUDG
-      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe
+      USE DOMAIN_DECOMP_ATM, only :grid,GET,sumxpe,esmf_bcast
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       logical :: increment
@@ -1514,7 +1514,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 
       increment = .false.
       call SUMXPE(axypband_loc,axypband,increment)   !summing global area
-
+      call esmf_bcast(grid,axypband)
       end subroutine set_zzarea
 c*
 
