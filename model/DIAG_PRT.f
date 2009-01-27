@@ -6046,7 +6046,8 @@ C****
 
 C**** Select fields
       DO K=1,KAIJKx
-        if (.not.Qk(k).or.k.eq.ijk_dp.or.k.eq.ijl_cf) cycle
+        if (.not.Qk(k).or.k.eq.ijk_dp.or.k.eq.ijl_cf.or.k.eq.ijl_llh
+     *   .or.k.eq.ijl_mctlh.or.k.eq.ijl_mcdlh.or.k.eq.ijl_mcslh) cycle
         SMAP(:,:,:) = UNDEF
         SMAPJK(:,:) = UNDEF
         SMAPK(:)    = UNDEF
@@ -6161,7 +6162,7 @@ C*** Begin *** 3-D latent heating diags ***
           END DO
           IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
          END DO
-         WRITE(TITLEX(41:47),'(A)') CPRESS(L)
+         WRITE(TITLEX(41:48),'(A)') CPRESS(L)
          TITLEL(L) = TITLEX//XLB
        END DO
        CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
@@ -6184,7 +6185,7 @@ C*** Begin *** 3-D latent heating diags ***
           END DO
           IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
          END DO
-         WRITE(TITLEX(36:42),'(A)') CPRESS(L)
+         WRITE(TITLEX(36:43),'(A)') CPRESS(L)
          TITLEL(L) = TITLEX//XLB
        END DO
        CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
@@ -6207,7 +6208,7 @@ C*** Begin *** 3-D latent heating diags ***
           END DO
           IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
          END DO
-         WRITE(TITLEX(36:42),'(A)') CPRESS(L)
+         WRITE(TITLEX(36:43),'(A)') CPRESS(L)
          TITLEL(L) = TITLEX//XLB
        END DO
        CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
@@ -6230,7 +6231,7 @@ C*** Begin *** 3-D latent heating diags ***
           END DO
           IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
          END DO
-         WRITE(TITLEX(36:42),'(A)') CPRESS(L)
+         WRITE(TITLEX(36:43),'(A)') CPRESS(L)
          TITLEL(L) = TITLEX//XLB
        END DO
        CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
