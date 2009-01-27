@@ -367,7 +367,7 @@ C**** Define individual tracer characteristics
           do j=J_0,J_1  ; do i=I_0,I_1
            N2OICINL(:)=N2OICIN(i,j,:) ! now in PPPM
            CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PRES,N2OICL,.true.)
-           N2OICX(I,J,:)=N2OICL(:)*am(:,i,j)*axyp(:,j)
+           N2OICX(I,J,:)=N2OICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
 #endif
 
