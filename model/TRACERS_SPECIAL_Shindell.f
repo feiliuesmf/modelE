@@ -410,6 +410,7 @@ C     19x12=228 records. Read it in here and interpolated each day.
 
       if (itime < itime_tr0(n_NOx)) return
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1) 
       call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -434,7 +435,7 @@ C****
 C====
 C====   Place aircraft sources onto model levels:
 C====
-      tr3Dsource(:,J_0:J_1,:,nAircraft,n_NOx) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx) = 0.d0
       PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       DO J=J_0,J_1
        DO I=I_0,I_1
@@ -601,9 +602,10 @@ C
       logical, intent(in):: trans_emis
       integer, intent(in):: yr1,yr2
      
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)     
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)     
 
 C No doubt this code can be combined/compressed, but I am going to
 C do the transient and non-transient cases separately for the moment:
@@ -617,7 +619,7 @@ C
         call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo  
         call rewind_parallel(iu)
       else              ! JDAY is in Jan 16 to Dec 16, get first month
@@ -628,18 +630,18 @@ C
         call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo   
         if(imon==13) call rewind_parallel(iu)
       end if
       do L=1,Ldim
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
       enddo 
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      data1(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      data1(I_0:I_1,J_0:J_1,:) =
+     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
       write(out_line,*) '3D source monthly factor=',frac
       call write_parallel(trim(out_line))
 
@@ -671,7 +673,7 @@ c**** Interpolate two months of data to current day
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
       else              ! JDAY is in Jan 16 to Dec 16, get first month
@@ -683,7 +685,7 @@ c**** Interpolate two months of data to current day
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo
         if(imon==13)then
           do nn=1,12*Ldim; call backspace_parallel(iu); enddo
@@ -693,11 +695,11 @@ CCCCC write(6,*) 'Not using this first record:'
 CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       do L=1,Ldim
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
       enddo
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      sfc_a(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      sfc_a(I_0:I_1,J_0:J_1,:) =
+     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
       call rewind_parallel( iu )
 
       ipos=ipos+1
@@ -708,7 +710,7 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
       else              ! JDAY is in Jan 16 to Dec 16, get first month
@@ -720,7 +722,7 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
         do L=1,Ldim
           call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo
         if(imon==13)then
           do nn=1,12*Ldim; call backspace_parallel(iu); enddo
@@ -730,16 +732,16 @@ CCCCCCwrite(6,*) 'Not using this first record:'
 CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       do L=1,Ldim
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
+        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
       enddo
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      sfc_b(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
+      sfc_b(I_0:I_1,J_0:J_1,:) =
+     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
 
 ! now interpolate between the two time periods:
 
-      data1(:,J_0:J_1,:) =
-     & sfc_a(:,J_0:J_1,:)*(1.d0-alpha) + sfc_b(:,J_0:J_1,:)*alpha
+      data1(I_0:I_1,J_0:J_1,:) = sfc_a(I_0:I_1,J_0:J_1,:)*(1.d0-alpha) 
+     & + sfc_b(I_0:I_1,J_0:J_1,:)*alpha
 
       write(out_line,*) '3D source at',
      &100.d0*alpha,' % of period ',k,' to ',k+kstep,
@@ -783,9 +785,10 @@ c
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT,bydtsrc
       INTEGER I, J, L, icall
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)   
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)   
       
       bydtsrc=1.d0/DTsrc
 C     First, the troposphere:
@@ -809,10 +812,10 @@ C       Initial latitudinal gradient for CH4:
         ENDIF
         select case(icall)
         case(0) ! initial conditions
-          trm(:,j,l,n_CH4)=am(L,:,J)*CH4INIT*AXYP(:,J)
+          trm(I_0:I_1,j,l,n_CH4)=am(L,I_0:I_1,J)*CH4INIT*AXYP(I_0:I_1,J)
         case(1) ! overwriting
-          tr3Dsource(:,j,l,nStratwrite,n_CH4) = 
-     &    (am(L,:,J)*CH4INIT*AXYP(:,J)-trm(:,j,l,n_CH4))*bydtsrc
+          tr3Dsource(I_0:I_1,j,l,nStratwrite,n_CH4) = (am(L,I_0:I_1,J)*
+     &    CH4INIT*AXYP(I_0:I_1,J)-trm(I_0:I_1,j,l,n_CH4))*bydtsrc
         end select
       END DO
       END DO
@@ -848,10 +851,10 @@ c     mixing ratios to 1.79 (observed):
         END IF
         select case(icall)
         case(0) ! initial conditions
-          trm(:,j,l,n_CH4)= am(L,:,J)*CH4INIT*AXYP(:,J)
+          trm(I_0:I_1,j,l,n_CH4)=am(L,I_0:I_1,J)*CH4INIT*AXYP(I_0:I_1,J)
         case(1) ! overwriting
-          tr3Dsource(:,j,l,nStratwrite,n_CH4) =
-     &    (am(L,:,J)*CH4INIT*AXYP(:,J)-trm(:,j,l,n_CH4))*bydtsrc
+          tr3Dsource(I_0:I_1,j,l,nStratwrite,n_CH4) = (am(L,I_0:I_1,J)*
+     &    CH4INIT*AXYP(I_0:I_1,J)-trm(I_0:I_1,j,l,n_CH4))*bydtsrc
         end select
       end do   ! j
       end do   ! l
@@ -1170,7 +1173,8 @@ C
       integer, intent(IN):: m, I, J
       integer n, nmax
       
-      if(Itime == ItimeI)first_mod(:,:,m)=1 ! Ititialize
+      ! overzealous initialization, but OK I think:
+      if(Itime == ItimeI)first_mod(:,:,m)=1 
             
       if(m > nra_ch4.or.m < 1)call stop_model('nra_ch4 problem',255)
       if(iH(I,J,m) < 0.or.iH(I,J,m) > maxHR_ch4) then
@@ -1451,13 +1455,14 @@ c
       real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nra_ncep)::day_ncep_tmp
 
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (fix_CH4_chemistry == 1) return ! don't bother if no CH4 chem
 
-      if(Itime == ItimeI)first_ncep(:)=1 ! Initialize
+      if(Itime == ItimeI)first_ncep(:)=1 ! initialize
 
       by_nday_ncep(:)=1.d0/real(nday_ncep(:))
 
@@ -1489,28 +1494,32 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
         if(m > nra_ncep)call stop_model('check on ncep index m',255)
         if(first_ncep(m) == 1)then !accumulate first nday_ncep(m) days
           iday_ncep(m) = iday_ncep(m) + 1
-          day_ncep(:,J_0:J_1,iday_ncep(m),m)=PTBA(:,J_0:J_1,m)
+          day_ncep(I_0:I_1,J_0:J_1,iday_ncep(m),m)=
+     &    PTBA(I_0:I_1,J_0:J_1,m)
           if(iday_ncep(m) == nday_ncep(m))then !end of averaging period
-            sum_ncep(:,J_0:J_1,m)=0.d0
+            sum_ncep(I_0:I_1,J_0:J_1,m)=0.d0
             do n=1,nday_ncep(m)
-              sum_ncep(:,J_0:J_1,m)=
-     &        sum_ncep(:,J_0:J_1,m) + day_ncep(:,J_0:J_1,n,m)
+              sum_ncep(I_0:I_1,J_0:J_1,m)=
+     &        sum_ncep(I_0:I_1,J_0:J_1,m)+day_ncep(I_0:I_1,J_0:J_1,n,m)
             end do
             first_ncep(m)= 0
             iday_ncep(m) = 0
             i0_ncep(m)   = 0
-            avg_ncep(:,J_0:J_1,m)=sum_ncep(:,J_0:J_1,m)*by_nday_ncep(m)
+            avg_ncep(I_0:I_1,J_0:J_1,m)=
+     &      sum_ncep(I_0:I_1,J_0:J_1,m)*by_nday_ncep(m)
           end if
         else                     ! no longer first averaging period
           i0_ncep(m) = i0_ncep(m) + 1
           if(i0_ncep(m) > nday_ncep(m)) i0_ncep(m) = 1
-          day_ncep_tmp(:,J_0:J_1,m) = PTBA(:,J_0:J_1,m)
-          sum_ncep(:,J_0:J_1,m)=
-     &    sum_ncep(:,J_0:J_1,m) - day_ncep(:,J_0:J_1,i0_ncep(m),m)
-          day_ncep(:,J_0:J_1,i0_ncep(m),m) = day_ncep_tmp(:,J_0:J_1,m)
-          sum_ncep(:,J_0:J_1,m)=
-     &    sum_ncep(:,J_0:J_1,m) + day_ncep(:,J_0:J_1,i0_ncep(m),m)
-          avg_ncep(:,J_0:J_1,m) = sum_ncep(:,J_0:J_1,m)*by_nday_ncep(m)
+          day_ncep_tmp(I_0:I_1,J_0:J_1,m) = PTBA(I_0:I_1,J_0:J_1,m)
+          sum_ncep(I_0:I_1,J_0:J_1,m)= sum_ncep(I_0:I_1,J_0:J_1,m) - 
+     &    day_ncep(I_0:I_1,J_0:J_1,i0_ncep(m),m)
+          day_ncep(I_0:I_1,J_0:J_1,i0_ncep(m),m) = 
+     &    day_ncep_tmp(I_0:I_1,J_0:J_1,m)
+          sum_ncep(I_0:I_1,J_0:J_1,m)= sum_ncep(I_0:I_1,J_0:J_1,m) + 
+     &    day_ncep(I_0:I_1,J_0:J_1,i0_ncep(m),m)
+          avg_ncep(I_0:I_1,J_0:J_1,m) = sum_ncep(I_0:I_1,J_0:J_1,m)*
+     &    by_nday_ncep(m)
         endif
       end do ! m
 
@@ -1703,9 +1712,10 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       integer ::  imon,iu,k
       character(len=300) :: out_line
 
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
       imon=1
       if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
@@ -1724,7 +1734,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      data(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+      data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
+     & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
 
       return
       end subroutine read_mon_src_3

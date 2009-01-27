@@ -882,9 +882,10 @@ C****
       real*8 :: frac
       integer imon,iu,jdlast
 
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
@@ -909,14 +910,15 @@ C****
         end if
         if (jday.le.idofm(imon)) go to 130
         imon=imon+1     ! read in new month of data
-        tlca(:,:) = tlcb(:,:)
+        tlca(I_0:I_1,J_0:J_1) = tlcb(I_0:I_1,J_0:J_1)
         if (imon.eq.13) CALL REWIND_PARALLEL( iu  )
       end if
       CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlcb,1)
   130 continue
 c**** Interpolate two months of data to current day
       frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-      data(:,J_0:J_1) = tlca(:,J_0:J_1)*frac + tlcb(:,J_0:J_1)*(1.-frac)
+      data(I_0:I_1,J_0:J_1) = tlca(I_0:I_1,J_0:J_1)*frac + 
+     & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
       return
       end subroutine read_monthly_sources
 #endif
@@ -1106,9 +1108,10 @@ C**** check whether air mass is conserved
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACER01"
 #endif
 
-      INTEGER :: J_0, J_1, J_1H, J_0H
+      INTEGER :: J_0, J_1, J_1H, J_0H, I_0, I_1
 
-      CALL GET(grid,J_STRT=J_0,J_STOP=J_1, 
+      CALL GET(grid,I_STRT=I_0,I_STOP=I_1, 
+     &              J_STRT=J_0,J_STOP=J_1, 
      &         J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
       if(am_i_root()) allocate(
@@ -1301,19 +1304,19 @@ C**** check whether air mass is conserved
         end do
         if(am_i_root())write(kunit,err=10)header,HRA_ch4_glob
        header='INTERACTIVE_WETLANDS_CH4: i0ch4(i,j,#raC) (real)'
-        r0ch4(:,J_0:J_1,:)=REAL(i0ch4(:,J_0:J_1,:))
+        r0ch4(I_0:I_1,J_0:J_1,:)=REAL(i0ch4(I_0:I_1,J_0:J_1,:))
         call pack_data(grid,r0ch4(:,:,:),Rijch4_glob(:,:,:))
         if(am_i_root())write(kunit,err=10)header,Rijch4_glob
        header='INTERACTIVE_WETLANDS_CH4: iDch4(i,j,#raC) (real)'
-        rDch4(:,J_0:J_1,:)=REAL(iDch4(:,J_0:J_1,:))
+        rDch4(I_0:I_1,J_0:J_1,:)=REAL(iDch4(I_0:I_1,J_0:J_1,:))
         call pack_data(grid,rDch4(:,:,:),Rijch4_glob(:,:,:))
         if(am_i_root())write(kunit,err=10)header,Rijch4_glob
        header='INTERACTIVE_WETLANDS_CH4: iHch4(i,j,#raC) (real)'
-        rHch4(:,J_0:J_1,:)=REAL(iHch4(:,J_0:J_1,:))
+        rHch4(I_0:I_1,J_0:J_1,:)=REAL(iHch4(I_0:I_1,J_0:J_1,:))
         call pack_data(grid,rHch4(:,:,:),Rijch4_glob(:,:,:))
         if(am_i_root())write(kunit,err=10)header,Rijch4_glob
        header='INTERACTIVE_WETLANDS_CH4: first_mod(i,j,#raC) (real)'
-        rfirst_mod(:,J_0:J_1,:)=REAL(first_mod(:,J_0:J_1,:))
+        rfirst_mod(I_0:I_1,J_0:J_1,:)=REAL(first_mod(I_0:I_1,J_0:J_1,:))
         call pack_data(grid,rfirst_mod(:,:,:),Rijch4_glob(:,:,:))
         if(am_i_root())write(kunit,err=10)header,Rijch4_glob
        header='INTERACTIVE_WETLANDS_CH4: iday_ncep,i0_ncep,first_ncep'
@@ -1446,16 +1449,17 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
           end do             ;end do
           if(am_i_root())read(kunit,err=10)header,Rijch4_glob
           call unpack_data(grid,Rijch4_glob(:,:,:),r0ch4(:,:,:))
-          i0ch4(:,J_0:J_1,:)=NINT(r0ch4(:,J_0:J_1,:))
+          i0ch4(I_0:I_1,J_0:J_1,:)=NINT(r0ch4(I_0:I_1,J_0:J_1,:))
           if(am_i_root())read(kunit,err=10)header,Rijch4_glob
           call unpack_data(grid,Rijch4_glob(:,:,:),rDch4(:,:,:)) 
-          iDch4(:,J_0:J_1,:)=NINT(rDch4(:,J_0:J_1,:))
+          iDch4(I_0:I_1,J_0:J_1,:)=NINT(rDch4(I_0:I_1,J_0:J_1,:))
           if(am_i_root())read(kunit,err=10)header,Rijch4_glob
           call unpack_data(grid,Rijch4_glob(:,:,:),rHch4(:,:,:)) 
-          iHch4(:,J_0:J_1,:)=NINT(rHch4(:,J_0:J_1,:))
+          iHch4(I_0:I_1,J_0:J_1,:)=NINT(rHch4(I_0:I_1,J_0:J_1,:))
           if(am_i_root())read(kunit,err=10)header,Rijch4_glob
           call unpack_data(grid,Rijch4_glob(:,:,:),rfirst_mod(:,:,:))
-          first_mod(:,J_0:J_1,:)=NINT(rfirst_mod(:,J_0:J_1,:))
+          first_mod(I_0:I_1,J_0:J_1,:)=
+     &    NINT(rfirst_mod(I_0:I_1,J_0:J_1,:))
           if(am_i_root())read(kunit,err=10)
      &    header,iday_ncep,i0_ncep,first_ncep
 C**** ESMF: Broadcast all non-distributed read arrays.
@@ -1619,15 +1623,15 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       
       save ifirst2
 
-      INTEGER :: J_1, J_0, J_0H, J_1H
+      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
       if (itime < itime_tr0(n)) return
       if (nsrc <= 0) return
    
-      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
       do ns=1,nsrc
 
 ! open file and read its header:
@@ -1686,7 +1690,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
               call readt_parallel(grid,iu,fname,sfc_a(:,:),ipos)
               call readt_parallel(grid,iu,fname,sfc_b(:,:),1)
 !should do! endif
-            sfc_src(:,:,n,ns)=sfc_a(:,:)*(1.d0-alpha)+sfc_b(:,:)*alpha
+            sfc_src(I_0:I_1,J_0:J_1,n,ns)=sfc_a(I_0:I_1,J_0:J_1)*
+     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
             if(alpha>0.d0)then 
               write(out_line,*)
      &        trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
@@ -1845,9 +1850,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      & sfc_a,sfc_b
 
-      integer :: J_0, J_1
+      integer :: J_0, J_1, I_0, I_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
 ! -------------- non-transient emissions ----------------------------!
       if(ty_start(n,ns)==ty_end(n,ns))then
@@ -1868,7 +1874,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
 c****   Interpolate two months of data to current day
         frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-        data(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+        data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
+     &  tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
         write(out_line,*)
      &  trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' interp to now ',frac
         call write_parallel(trim(out_line))
@@ -1911,7 +1918,8 @@ c****   Interpolate two months of data to current day
         call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 c****   Interpolate two months of data to current day
         frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-        sfc_a(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+        sfc_a(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
+     &  tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
         call rewind_parallel( iu );if (AM_I_ROOT()) read( iu ) junk
 
         ipos=ipos+1
@@ -1932,11 +1940,13 @@ c****   Interpolate two months of data to current day
         call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 c****   Interpolate two months of data to current day
         frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
-        sfc_b(:,J_0:J_1)=tlca(:,J_0:J_1)*frac+tlcb(:,J_0:J_1)*(1.-frac)
+        sfc_b(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
+     &  tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
 
 ! now interpolate between the two time periods:
 
-        data(:,:)=sfc_a(:,:)*(1.d0-alpha)+sfc_b(:,:)*alpha
+        data(I_0:I_1,J_0:J_1)=sfc_a(I_0:I_1,J_0:J_1)*(1.d0-alpha) + 
+     &  sfc_b(I_0:I_1,J_0:J_1)*alpha
 
         if(alpha>0.d0)then 
           write(out_line,*)
@@ -2045,7 +2055,7 @@ c****   Interpolate two months of data to current day
 
 ! write out regions to GISS-format IJ file, each restart:
       if(alter_sources)then
-        ef_REG_IJ(:,J_0:J_1)=0.d0
+        ef_REG_IJ(I_0:I_1,J_0:J_1)=0.d0
         do j=J_0,J_1; do i=i_0,imaxj(j); do n=1,num_regions
           if(lat2d_dg(i,j) >= REG_S(n) .and. lat2d_dg(i,j)
      &    <= REG_N(n) .and. lon2d_dg(i,j) >= REG_W(n)

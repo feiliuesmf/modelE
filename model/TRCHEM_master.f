@@ -185,8 +185,10 @@ C-------- special section for ghg runs ---------
       write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
       call write_parallel(trim(out_line))
       if(use_rad_ch4>0 .or. use_rad_n2o>0 .or. use_rad_cfc>0)then
-        rad_to_file(1,:,:,J_0:J_1)=rad_to_chem(1,:,:,J_0:J_1)
-        rad_to_file(2,:,:,J_0:J_1)=rad_to_chem(2,:,:,J_0:J_1)
+        rad_to_file(1,:,I_0:I_1,J_0:J_1)=
+     &  rad_to_chem(1,:,I_0:I_1,J_0:J_1)
+        rad_to_file(2,:,I_0:I_1,J_0:J_1)=
+     &  rad_to_chem(2,:,I_0:I_1,J_0:J_1)
         do j=J_0,J_1
           do i=I_0,I_1
             rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*byavog*
@@ -201,7 +203,7 @@ C-------- special section for ghg runs ---------
         ghg_file='GHG_IC_'//ghg_name
         call openunit(ghg_file,iu,.true.,.false.)
         do m=1,5
-          ghg_out = rad_to_file(m,:,:,:)
+          ghg_out(:,I_0:I_1,J_0:J_1)=rad_to_file(m,:,I_0:I_1,J_0:J_1)
           CALL WRITET8_COLUMN(grid,iu,NAMEUNIT(iu),GHG_OUT,ghg_file)
         enddo
         call closeunit(iu)          
@@ -274,27 +276,27 @@ C (note this section is already done in DIAG.f)
       IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           TX(1,1,L)=T(1,1,L)*PK(L,1,1)
-          TX(2:IM,1,L)=TX(1,1,L)
+          TX(I_0:I_1,1,L)=TX(1,1,L)
         END DO
       ENDIF  
       IF(HAVE_NORTH_POLE) THEN
         DO L=1,LM
           TX(1,JM,L)=T(1,JM,L)*PK(L,1,JM)
-          TX(2:IM,JM,L)=TX(1,JM,L)
+          TX(I_0:I_1,JM,L)=TX(1,JM,L)
         END DO
       ENDIF
       DO L=1,LM
         DO J=J_0,J_1
-          TX(1:IM,J,L)=T(1:IM,J,L)*PK(L,1:IM,J)
+          TX(I_0:I_1,J,L)=T(I_0:I_1,J,L)*PK(L,I_0:I_1,J)
         END DO
       END DO
 
 #ifdef SHINDELL_STRAT_CHEM
 C info to set strat H2O based on tropical tropopause H2O and CH4:
       if(Itime == ItimeI)then
-        avgTT_H2O_part(:,:)=0.d0
-        avgTT_CH4_part(:,:)=0.d0
-        countTT_part(:,:)=0.d0
+        avgTT_H2O_part(I_0:I_1,J_0:J_1)=0.d0
+        avgTT_CH4_part(I_0:I_1,J_0:J_1)=0.d0
+        countTT_part(I_0:I_1,J_0:J_1)=0.d0
         do J=J_0,J_1
           do I=I_0,IMAXJ(J)
             if(LAT2D_DG(I,J) >= -20. .and. LAT2D_DG(I,J) <= 20.)then
@@ -379,7 +381,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       DO L=1,LM
 c Initialize the 2D change variable:
-       changeL(L,:)=0.d0
+       changeL(L,:)=0.d0  ! (LM,NTM)
 c Save presure and temperature in local arrays:
        pres(L)=PMID(L,I,J)
        ta(L)  =TX(I,J,L)
@@ -1842,8 +1844,8 @@ C determine pre-industrial factors, if any:
       endif
 
 C Calculate an average tropical CH4 value near 569 hPa::
-      CH4_569_part(:,:)=0.d0   
-      count_569_part(:,:)=0.d0
+      CH4_569_part(I_0:I_1,J_0:J_1)=0.d0   
+      count_569_part(I_0:I_1,J_0:J_1)=0.d0
       DO J=J_0,J_1
         do I=I_0,IMAXJ(J)
         if(LAT2D_DG(I,J) >= -30. .and. LAT2D_DG(I,J) <= 30.)then
@@ -1869,7 +1871,7 @@ C Calculate an average tropical CH4 value near 569 hPa::
          case(1); maxl=ls1-1
          case default; call stop_model('which_trop problem 5',255)
          end select
-         changeL(:,:)=0.d0 ! initilize the change
+         changeL(:,:)=0.d0 ! initilize the change (LM,NTM)
          
          do L=maxl+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:

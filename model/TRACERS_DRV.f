@@ -8620,7 +8620,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
           call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,3
             CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
-            rad_to_file(m,:,:,:) = ghg_in(:,:,:)
+            rad_to_file(m,:,I_0:I_1,J_0:J_1)=ghg_in(:,I_0:I_1,J_0:J_1)
           enddo
           call closeunit(iu_data)
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
@@ -8713,7 +8713,7 @@ C****
           call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,4
             CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
-            rad_to_file(m,:,:,:) = ghg_in(:,:,:)
+            rad_to_file(m,:,I_0:I_1,J_0:J_1)=ghg_in(:,I_0:I_1,J_0:J_1)
           enddo
           call closeunit(iu_data)
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
@@ -9118,7 +9118,7 @@ C         AM=kg/m2, and AXYP=m2:
           call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,5
             CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
-            rad_to_file(m,:,:,:) = ghg_in(:,:,:)
+            rad_to_file(m,:,I_0:I_1,J_0:J_1)=ghg_in(:,I_0:I_1,J_0:J_1)
           enddo
           call closeunit(iu_data)
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
@@ -9728,12 +9728,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         if(n==n_CH4)then
 #ifdef WATER_MISC_GRND_CH4_SRC
          call read_sfc_sources(n,ntsurfsrc(n)-3)
-         sfc_src(:,J_0:J_1,n,ntsurfsrc(n)  )=
-     &   1.698d-12*fearth0(:,J_0:J_1) ! 5.3558e-5 Jean
-         sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1)=
-     &   5.495d-11*flake0(:,J_0:J_1)  ! 17.330e-4 Jean
-         sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-2)=
-     &   1.141d-12*focean(:,J_0:J_1)  ! 3.5997e-5 Jean
+         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)  )=
+     &   1.698d-12*fearth0(I_0:I_1,J_0:J_1) ! 5.3558e-5 Jean
+         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-1)=
+     &   5.495d-11*flake0(I_0:I_1,J_0:J_1)  ! 17.330e-4 Jean
+         sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-2)=
+     &   1.141d-12*focean(I_0:I_1,J_0:J_1)  ! 3.5997e-5 Jean
 #else
          if(ntsurfsrc(n) > 0) call read_sfc_sources(n,ntsurfsrc(n))
 #endif
@@ -9749,11 +9749,11 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           if(ntsurfsrc(n)>0) call read_sfc_sources(n,ntsurfsrc(n))
           select case (trname(n))
           case ('NOx')
-            tr3Dsource(:,J_0:J_1,:,nAircraft,n)  = 0.
+            tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n)  = 0.
             call get_aircraft_NOx
 !           (lightning called from tracer_3Dsource)
           case ('N2O5')
-            tr3Dsource(:,J_0:J_1,:,:,n) = 0.
+            tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
             if (COUPLED_CHEM.ne.1)
      &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
           end select
@@ -10237,18 +10237,20 @@ C****
      &      'Alkenes','Paraffin','HCl','HOCl','ClONO2','HBr','HOBr',
      &      'BrONO2','N2O','CFC')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
-          trsource(:,j,ns,n) = sfc_src(:,j,n,ns)*axyp(:,j)
+          trsource(I_0:I_1,j,ns,n)=
+     &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
         end do ; end do
       case ('CH4')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
-          trsource(:,j,ns,n) = sfc_src(:,j,n,ns)*axyp(:,j)
+          trsource(I_0:I_1,j,ns,n)= 
+     &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
         end do ; end do
 #ifdef INTERACTIVE_WETLANDS_CH4
         if(ntsurfsrc(n) > 0) then
           call alter_wetlands_source(n,ns_wet)
           do j=J_0,J_1
-            trsource(:,j,ns_wet,n)=trsource(:,j,ns_wet,n)+
-     &      add_wet_src(:,j)*axyp(:,j)
+            trsource(I_0:I_1,j,ns_wet,n)=trsource(I_0:I_1,j,ns_wet,n)+
+     &      add_wet_src(I_0:I_1,j)*axyp(I_0:I_1,j)
           enddo
         endif
 #endif
@@ -10742,39 +10744,39 @@ C sources are done? -- GSF 11/26/02)
 c
       CALL TIMER (MNOW,MTRACE)
 #ifdef SHINDELL_STRAT_EXTRA
-      tr3Dsource(:,J_0:J_1,:,1,n_GLT) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_GLT) = 0.d0
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
       call apply_tracer_3Dsource(nAircraft,n_NOx)
-      tr3Dsource(:,J_0:J_1,:,nOther,n_NOx) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)
 #ifdef GFED_3D_BIOMASS
-      tr3Dsource(:,J_0:J_1,:,nBiomass,n_NOx) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_NOx) = 0.d0
       call dist_GFED_biomass_burning(n_NOx)
       call apply_tracer_3Dsource(nBiomass,n_NOx)
-      tr3Dsource(:,J_0:J_1,:,nBiomass,n_CO) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_CO) = 0.d0
       call dist_GFED_biomass_burning(n_CO)
       call apply_tracer_3Dsource(nBiomass,n_CO)
-      tr3Dsource(:,J_0:J_1,:,nBiomass,n_Alkenes) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_Alkenes) = 0.d0
       call dist_GFED_biomass_burning(n_Alkenes)
       call apply_tracer_3Dsource(nBiomass,n_Alkenes)
-      tr3Dsource(:,J_0:J_1,:,nBiomass,n_Paraffin) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_Paraffin) = 0.d0
       call dist_GFED_biomass_burning(n_Paraffin)
       call apply_tracer_3Dsource(nBiomass,n_Paraffin)
 #endif /*GFED_3D_BIOMASS*/
 
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
-      tr3Dsource(:,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
-      tr3Dsource(:,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.d0
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
-      tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
-      tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
-      tr3Dsource(:,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-      tr3Dsource(:,J_0:J_1,:,nChemistry,n_soa_i:n_soa_e)  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_soa_i:n_soa_e)  = 0.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 C**** Call the model CHEMISTRY and OVERWRITEs:
@@ -10795,11 +10797,11 @@ C**** Apply chemistry and overwrite changes:
 #endif
 #ifdef TRACERS_NITRATE
 #ifdef TRACERS_SPECIAL_Shindell
-       tr3Dsource(:,J_0:J_1,:,3,n_HNO3) = 0.d0
+       tr3Dsource(I_0:I_1,J_0:J_1,:,3,n_HNO3) = 0.d0
 #endif
-       tr3Dsource(:,J_0:J_1,:,1,n_NO3p) = 0.d0
-       tr3Dsource(:,J_0:J_1,:,1,n_NH4)  = 0.d0
-       tr3Dsource(:,J_0:J_1,:,1,n_NH3)  = 0.d0
+       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NO3p) = 0.d0
+       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NH4)  = 0.d0
+       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NH3)  = 0.d0
 
        call EQSAM_DRV
 
