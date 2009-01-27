@@ -6,25 +6,26 @@
       type (x_2gridsroot) :: xll2cs
 
       call init_regrid_root(xll2cs,72,46,1,32,32,6)
-c      call init_regrid_root(xll144X90C32,72,46,1,32,32,6)
+c      call init_regrid_root(xll2cs,72,46,1,32,32,6)
 c      call init_regrid_root(xll2cs,360,180,1,32,32,6)
-c      call init_regrid_root(xll72X46C32,144,90,1,48,48,6)
+c      call init_regrid_root(xll2cs,144,90,1,48,48,6)
 
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
       if (AM_I_ROOT()) then
-c         call regridTOPO(xll72X46C32)
-c         call regridOSST(xll72X46C32)
-c         call regridSICE(xll72X46C32)
-c         call regridCDN(xll72X46C32)
-c         call regridVEG(xll72X46C32)
-c         call regridRVR(xll72X46C32) ! empty for the moment
-c         call regridCROPS(xll72X46C32)
-c         call regridTOPINDEX(xll72X46C32)
-c         call regridSOIL(xll72X46C32)
+c         call regridTOPO(xll2cs)
+c         call regridOSST(xll2cs)
+c         call regridSICE(xll2cs)
+c         call regridCDN(xll2cs)
+c         call regridVEG(xll2cs)
+c         call regridRVR(xll2cs) ! empty for the moment
+c         call regridCROPS(xll2cs)
+c         call regridTOPINDEX(xll2cs)
+c         call regridSOIL(xll2cs)
+         call regridGLMELT(xll2cs)
       endif
 c      call regridGIC(xll2cs,dd2d)
-         call regridAIC(xll2cs,dd2d)
+c         call regridAIC(xll2cs,dd2d)
 
       end subroutine regrid_input
 c*
@@ -54,8 +55,9 @@ c
      &     ttargr4(imt,jmt,ntt,nrecmax),
      &     ones(imt,jmt,ntt) )
 
-      name="Z72X46N.cor4_nocasp"
 
+      iu_TOPO=20
+      name="Z72X46N.cor4_nocasp"
       write(*,*) name
 
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
@@ -148,9 +150,7 @@ c     has been interpolated from lower resolution
      &     OSTend(x2grids%imsource,x2grids%jmsource)
       integer iu_OSST,i,j,k
 
-c      call openunit ("OSST",iu_OSST,.true.,.true.)     
-
-c      name="OST4X5.B.1993-2002avg.Hadl1.1"
+      iu_OSST=20
       name="OST4X5.B.1876-85avg.Hadl1.1"
       open(iu_OSST, FILE=name,FORM='unformatted', STATUS='old')
 
@@ -181,6 +181,7 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       integer iu_SICE,i,j,k,ims,jms,nts,imt,jmt,ntt,iuout,
      &    maxrec,ir
 
+      iu_SICE=19
       name="SICE4X5.B.1876-85avg.Hadl1.1"
       write(*,*) name
       open (iu_SICE, FILE=name,FORM='unformatted', STATUS='old')
@@ -262,6 +263,7 @@ c     for 1x1 resolution: Jeff uses CDN=AL30RL360X180N.rep
       character*80 TITLE,name
       integer iu_CDN
 
+      iu_CDN=20
       name="CD4X500S.ext"
       open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
 
@@ -270,6 +272,7 @@ c     for 1x1 resolution: Jeff uses CDN=AL30RL360X180N.rep
       
       end subroutine regridCDN
 c*
+
 
 
 
@@ -283,8 +286,8 @@ c	was just transfered to 360X180 grid without any change)
       character*80 TITLE,name
       integer iu_VEG
 	
+      iu_VEG=20
       name="V72X46.1.cor2_no_crops.ext"
-
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
 c     &     convert='big_endian')
 
@@ -318,8 +321,8 @@ c*
       character*80 name
       integer iu_CROPS
 
+      iu_CROPS=20
       name="CROPS_72X46N.cor4.ext"
-
       open(iu_CROPS,FILE=name,FORM='unformatted', STATUS='old')
 
       call read_regrid_write_4D_1R(x2grids,name,iu_CROPS)
@@ -343,9 +346,9 @@ c     direct transfer from top_index_144x90.ij.ext
       type (x_2gridsroot), intent(in) :: x2grids
       character*80 TITLE,name
       integer iu_TOP_INDEX
-     
-      name="top_index_72x46.ij.ext"
 
+      iu_TOP_INDEX=20
+      name="top_index_72x46.ij.ext"
       open(iu_TOP_INDEX,FILE=name,FORM='unformatted', STATUS='old')
       
       call read_regrid_write_4D_1R(x2grids,name,iu_TOP_INDEX)
@@ -382,8 +385,8 @@ c
 
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
 
+      iu_SOIL=20
       name="S4X50093.ext"
-
       open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
 c ,
 c     &     convert='big_endian')
@@ -474,6 +477,25 @@ c*
       
       
 
+      subroutine regridGLMELT(x2grids)
+      use regrid_com
+      implicit none
+      type (x_2gridsroot), intent(in) :: x2grids
+      character*80 TITLE,name
+      integer iu_GLMELT
+
+      name="GLMELT_4X5.OCN.bin"
+      write(*,*) name
+
+      iu_GLMELT=20
+      open (iu_GLMELT,FILE=name,FORM='unformatted', STATUS='old')
+
+      call read_regrid_write_GLMELT(x2grids,name,iu_GLMELT)
+      close(iu_GLMELT)
+      
+      end subroutine regridGLMELT
+
+
 
       subroutine regridGIC(x2grids,dd2d)
 c
@@ -535,6 +557,7 @@ c      name="GIC.E046D3M20A.1DEC1955.ext"
       name="GIC.360X180.DEC01.1.rep"
 c      name="GIC.144X90.DEC01.1.ext"
 
+      iu_GIC=20
       open(iu_GIC,FILE=name,FORM='unformatted', STATUS='old')
 
       allocate (Tocn(3,ims,jms),MixLD(ims,jms),
@@ -861,7 +884,8 @@ c
       integer :: iuout
       real*8, allocatable :: tsource(:,:,:)
       real*4, allocatable :: ts4(:,:,:)
-      real*8, allocatable :: ttargglob(:,:,:),tcopy(:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:),tcopy(:,:,:),
+     &     tcopy2(:,:,:),tcopy3(:,:,:),tcopy4(:,:,:)
       character*80 :: TITLE,outunformat,outnc,name
       integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,
      &     status,fid,vid
@@ -878,9 +902,14 @@ c
       write(*,*) "ims,jms,nts,imt,jmt,ntt r8",
      &     ims,jms,nts,imt,jmt,ntt
       allocate (tsource(ims,jms,nts),ts4(ims,jms,nts),
-     &     ttargglob(imt,jmt,ntt),tcopy(imt,jmt,ntt) )
+     &     ttargglob(imt,jmt,ntt),tcopy(imt,jmt,ntt),
+     &     tcopy2(imt,jmt,ntt), 
+     &     tcopy3(imt,jmt,ntt), 
+     &     tcopy4(imt,jmt,ntt))
 
       tsource(:,:,:)=0.0
+
+      iu_AIC=20
 
       if (am_i_root()) then
       name="AIC.RES_M20A.D771201"
@@ -902,6 +931,9 @@ c
          call root_regrid(x2grids,tsource,ttargglob)
 
          if (irec .eq. 1) tcopy=ttargglob
+         if (irec .eq. 82) tcopy2=ttargglob
+         if (irec .eq. 2) tcopy3=ttargglob
+         if (irec .eq. 22) tcopy4=ttargglob
 
          write(unit=iuout) TITLE,real(ttargglob,KIND=4)
 c          write(unit=iuout) TITLE,ttargglob
@@ -921,27 +953,34 @@ c          write(unit=iuout) TITLE,ttargglob
 
       write(*,*) "here w r4"
 
-c      outnc=trim(name)//"-CS.nc"
-c      write(*,*) outnc
-c
-c      if (am_i_root()) then
-c         write(*,*) "TCOPY=",tcopy
-c         status = nf_create(outnc,nf_clobber,fid)
-c         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
-c      endif
-c
-c      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
-c
-c      if (am_i_root()) then
-c         status = nf_enddef(fid)
-c         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
-c      endif
-c
-c      call write_data(dd2d,fid,'press',tcopy)
-c
-c      if(am_i_root()) status = nf_close(fid)
+      outnc=trim(name)//"-CS.nc"
+      write(*,*) outnc
 
-      deallocate(tsource,ts4,ttargglob,tcopy)
+      if (am_i_root()) then
+         write(*,*) "TCOPY=",tcopy
+         status = nf_create(outnc,nf_clobber,fid)
+         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
+      endif
+
+      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
+      call defvar(dd2d,fid,tcopy2,'surf_temp(im,jm,tile)')
+      call defvar(dd2d,fid,tcopy3,'u974(im,jm,tile)')
+      call defvar(dd2d,fid,tcopy4,'v974(im,jm,tile)')
+
+      if (am_i_root()) then
+         status = nf_enddef(fid)
+         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
+      endif
+
+      call write_data(dd2d,fid,'press',tcopy)
+      call write_data(dd2d,fid,'surf_temp',tcopy2)
+      call write_data(dd2d,fid,'u974',tcopy3)
+      call write_data(dd2d,fid,'v974',tcopy4)
+
+      if(am_i_root()) status = nf_close(fid)
+
+      deallocate(tsource,ts4,ttargglob,tcopy,tcopy2,
+     &     tcopy3,tcopy4)
  
       end subroutine regridAIC
 c*
@@ -1111,6 +1150,7 @@ c*
       outunformat=trim(name)//".CS"
       
       write(*,*) outunformat
+
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
@@ -1123,8 +1163,6 @@ c*
       enddo
 
       close(iuout) 
-
-c      write(*,*) "TOUT=",tout
 
       deallocate(tsource,ttargglob,tout)
 
@@ -1440,4 +1478,69 @@ c      write(*,*) "TITLE RECS",TITLE(:)
 
       end subroutine read_regrid_write_4D_2R
 
+
+
+      subroutine read_regrid_write_GLMELT(x2grids,name,iuin)
+      use regrid_com
+      implicit none
+      type(x_2gridsroot), intent(in) :: x2grids
+      character*80, intent(in) :: name
+      integer, intent(in) :: iuin
+      integer :: iuout
+      real*8, allocatable :: tsource(:,:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:)
+      real*4, allocatable :: tout(:,:,:)
+      character*80 :: TITLE(nrecmax),outunformat
+      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,itile,i,j
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+     &     ims,jms,nts,imt,jmt,ntt
+      allocate (tsource(ims,jms,nts,nrecmax),
+     &     ttargglob(imt,jmt,ntt),
+     &     tout(imt,jmt,ntt))
+      tsource(:,:,:,:)=0.0
+
+      call read_recs_1R(tsource,iuin,TITLE,
+     &        maxrec,ims,jms,nts)
+
+      write(*,*) "maxrec",maxrec
+
+      outunformat=trim(name)//".CS"
+
+      write(*,*) outunformat
+
+      iuout=20
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      do ir=1,maxrec
+         call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
+         do itile=1,ntt
+           do i=1,imt
+             do j=1,jmt
+             if (ttargglob(i,j,itile) .le. 0.) then
+               tout(i,j,itile)=0.
+             else
+               tout(i,j,itile)=1.
+             endif
+            enddo
+           enddo
+          enddo
+         write(unit=iuout) TITLE(ir),tout(:,:,:)
+         write(*,*) "TITLE",TITLE(ir)
+      enddo
+
+      close(iuout)
+
+      deallocate(tsource,ttargglob,tout)
+
+      end subroutine read_regrid_write_GLMELT
+c*
 
