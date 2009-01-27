@@ -574,17 +574,11 @@ C****
      *     *ktcon
 !@var TA..4(...) dummy arrays for reading diagnostics files
       real*4, allocatable, dimension(:,:,:,:) :: taijln4
-      real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
       real*4, allocatable, dimension(:,:,:,:) :: taijn4
-      real*8, allocatable, dimension(:,:,:,:) :: taijn4_loc
       REAL*4, allocatable, DIMENSION(:,:,:)   :: TAIJS4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TAIJS4_loc
       REAL*4, allocatable, DIMENSION(:,:,:,:) :: TAJLN4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN4_loc
       REAL*4, allocatable, DIMENSION(:,:,:)   :: TAJLS4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TAJLS4_loc
       REAL*4, allocatable, DIMENSION(:,:,:)   :: TCONSRV4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: TCONSRV4_loc
       INTEGER :: status
 
       INTEGER :: J_0H, J_1H, I_0H, I_1H
@@ -624,19 +618,7 @@ C***  PACK distributed arrays into global ones in preparation for output
             ALLOCATE (TAJLN4(JM_BUDG,LM,ktajlx,ntm), stat=status )
             ALLOCATE (TAJLS4(JM_BUDG,LM,ktajls), stat=status )
             ALLOCATE (TCONSRV4(JM_BUDG,ktcon,ntmxcon), stat=status )
-          else ! allocate to nonzero size to be safe
-            ALLOCATE(taijln4(1,1,1,1),taijn4(1,1,1,1),
-     &           TAIJS4(1,1,1),TAJLN4(1,1,1,1),TAJLS4(1,1,1),
-     &           TCONSRV4(1,1,1))
-          endif
-          ALLOCATE (TAIJLN4_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm),stat=status)
-          ALLOCATE (TAIJN4_loc(I_0H:I_1H,J_0H:J_1H,ktaij,ntm),
-     &         stat=status)
-          ALLOCATE (TAIJS4_loc(I_0H:I_1H,J_0H:J_1H,ktaijs),stat=status)
-          ALLOCATE (TAJLN4_loc(    J_0H:J_1H,LM,ktajlx,ntm),stat=status)
-          ALLOCATE (TAJLS4_loc(    J_0H:J_1H,LM,ktajls    ),stat=status)
-          ALLOCATE (TCONSRV4_loc(  J_0H:J_1H,ktcon,ntmxcon),stat=status)
-          if ( AM_I_ROOT() ) then
+
             READ (kunit,err=10) HEADER,
      *         TAIJLN4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4,it_check
             if (it.ne.it_check) then
@@ -648,33 +630,27 @@ C***  PACK distributed arrays into global ones in preparation for output
      *             ,MODULE_HEADER
               GO TO 10
             END IF
+
+C**** Accumulate diagnostics on global arrays (convert to real*8)
+            TAIJLN = TAIJLN + TAIJLN4
+            TAIJN  = TAIJN  + TAIJN4
+            TAIJS  = TAIJS  + TAIJS4
+            TAJLN  = TAJLN  + TAJLN4
+            TAJLS  = TAJLS  + TAJLS4
+            TCONSRV= TCONSRV+ TCONSRV4
+            
+            DEALLOCATE ( taijln4 )
+            DEALLOCATE ( taijn4 )
+            DEALLOCATE ( TAIJS4 )
+            DEALLOCATE ( TAJLN4 )
+            DEALLOCATE ( TAJLS4 )
+            DEALLOCATE ( TCONSRV4 )
+
           end if
-          
 C*** Unpack read global data into (real*8) local distributed arrays
 
           call scatter_trdiag
 
-C****     Accumulate diagnostics (converted back to real*8)
-          TAIJLN_loc =  TAIJLN_loc+TAIJLN4_loc(:,J_0H:J_1H,:,:) 
-          TAIJN_loc =   TAIJN_loc+TAIJN4_loc(:,J_0H:J_1H,:,:)
-          TAIJS_loc  =  TAIJS_loc+TAIJS4_loc(:,J_0H:J_1H,:)   
-          TAJLN_loc =   TAJLN_loc+TAJLN4_loc(J_0H:J_1H,:,:,:)
-          TAJLS_loc  =  TAJLS_loc+TAJLS4_loc(J_0H:J_1H,:,:)
-          TCONSRV_loc = TCONSRV_loc+TCONSRV4_loc(J_0H:J_1H,:,:)
-
-          DEALLOCATE ( taijln4 )
-          DEALLOCATE ( taijn4 )
-          DEALLOCATE ( TAIJS4 )
-          DEALLOCATE ( TAJLN4 )
-          DEALLOCATE ( TAJLS4 )
-          DEALLOCATE ( TCONSRV4 )
-
-          DEALLOCATE ( TAIJLN4_loc )
-          DEALLOCATE ( TAIJN4_loc )
-          DEALLOCATE ( TAIJS4_loc )
-          DEALLOCATE ( TAJLN4_loc )
-          DEALLOCATE ( TAJLS4_loc )
-          DEALLOCATE ( TCONSRV4_loc )
 
 !         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
 !           PRINT*,"Discrepancy in module version ",HEADER
