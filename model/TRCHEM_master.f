@@ -2419,7 +2419,7 @@ c check for unreal (not-a-number) tracers (maybe SGI only?):
           write(6,*)trim(message(L))
         endif
       enddo
-      if(is_error)call stop_model('error in checktracer',255)
+      if(is_error==1)call stop_model('error in checktracer',255)
    
       RETURN
 
