@@ -266,6 +266,7 @@ contains
       Write(unit,*)'   npes_x: ',mppnx
       Write(unit,*)'   npes_y: ',mppny
       Write(unit,*)' consv_te: ',0.
+      Write(unit,*)' dgrid_imports: ',.true.
 #else
       write(unit,*)' # empty line #'
       Write(unit,*)'xy_yz_decomp:',1,npes,npes,1
@@ -520,6 +521,8 @@ contains
     USE DOMAIN_DECOMP_ATM, only: grid, get
     USE DYNAMICS, only: DUT, DVT
     USE CONSTANT, only: KAPA
+    USE FV_StateMod, only:  agrid_imports
+
     Implicit None
     Type (FV_CORE) :: fv
 
@@ -530,7 +533,13 @@ contains
     ! U, V
     DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), fv % U_old(I_0:I_1,J_0:J_1,:))
     DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), fv % V_old(I_0:I_1,J_0:J_1,:))
-    call ConvertUV_GISS2FV(DUT(I_0:I_1,J_0:J_1,:), DVT(I_0:I_1,J_0:J_1,:), fv % dudt, fv % dvdt)
+
+    if(agrid_imports) then
+       call ConvertUV_GISS2FV(DUT(I_0:I_1,J_0:J_1,:), DVT(I_0:I_1,J_0:J_1,:), fv % dudt, fv % dvdt)
+    else 
+       fv % dudt = reverse(DUT(I_0:I_1,J_0:J_1,:))
+       fv % dvdt = reverse(DVT(I_0:I_1,J_0:J_1,:))
+    endif
 
     ! delta pressure weighted Temperature
     fv  %  dtdt = reverse(DeltPressure_GISS() * Tendency(DryTemp_GISS(), fv % dT_old)) * &
