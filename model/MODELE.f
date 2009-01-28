@@ -175,8 +175,8 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 
 #endif /* ADIABATIC */
       call alloc_drv()
-#ifndef ADIABATIC
 
+#if !defined(ADIABATIC) || defined( CUBE_GRID)
 C****
 C**** INITIALIZATIONS
 C****
