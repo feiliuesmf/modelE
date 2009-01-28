@@ -3477,6 +3477,7 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
       IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
       IF(RH(L).GT.1.) CLEARA(L)=0.
+      IF(WMX(L).LE.teeny) WMX(L)=0.
       IF(WMX(L).LE.0.) CLEARA(L)=1.
       IF(CLEARA(L).LT.0.) CLEARA(L)=0.
       CLDSSL(L)=FSSL(L)*(1.-CLEARA(L))
@@ -3508,6 +3509,7 @@ C****
         SM(L+1)=TH(L+1)*AIRM(L+1)
         QM(L+1)=QL(L+1)*AIRM(L+1)
         WMXM(L+1)=WMX(L+1)*AIRM(L+1)
+        IF(WMX(L+1).GT.teeny) CYCLE
         TOLD=TL(L)
         TOLDU=TL(L+1)
         QOLD=QL(L)
@@ -3515,6 +3517,7 @@ C****
         FCLD=(1.-CLEARA(L))*FSSL(L)+teeny
         IF(CLEARA(L).EQ.1. .OR. (CLEARA(L).LT.1..AND.CLEARA(L+1).LT.1.))
      *       CYCLE
+C       IF(WMX(L).EQ.0. .OR. (WMX(L).GT.0..AND.WMX(L+1).GT.0.)) CYCLE
         SEDGE=THBAR(TH(L+1),TH(L))
         DSE=(TH(L+1)-SEDGE)*PLK(L+1)+(SEDGE-TH(L))*PLK(L)+
      *       SLHE*(QL(L+1)-QL(L))
@@ -3589,7 +3592,7 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
           DSEDIF=DSE-DSEC
           IF(DSEDIF.GT.1d-3) FPLUME=FPLUME-DFX
           IF(DSEDIF.LT.-1d-3) FPLUME=FPLUME+DFX
-          IF(ABS(DSEDIF).LE.1d-3.OR.FPLUME.GT.FPMAX) EXIT
+          IF(ABS(DSEDIF).LE.1d-3.OR.FPLUME.GT.FPMAX*FSSL(L)) EXIT
         END DO
 C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
         SMN12=SMN1*PLK(L)+SMN2*PLK(L+1)
