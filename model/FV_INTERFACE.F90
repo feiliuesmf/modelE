@@ -184,12 +184,10 @@ contains
        Call Write_Layout(FVCORE_LAYOUT, fv)
     End If
 
-#ifdef CREATE_FV_RESTART
     ! The FV components requires its own restart file for managing
     ! its internal state.  We check to see if the file already exists, and if not
     ! create one based upon modelE's internal state.
     call create_restart_file(fv, istart, cf, clock)
-#endif
 
 !   print*,'calling fv initialize'
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
@@ -374,17 +372,22 @@ contains
   Subroutine allocate_tendency_storage(fv, istart)
     Use Domain_decomp_atm, only: GRID, GET, AM_I_ROOT
     USE RESOLUTION, only: IM, LM, LS1
-    USE MODEL_COM, only: U, V, T
+    USE MODEL_COM, only: U, V, T, DTsrc
     use FILEMANAGER
     Implicit None
     Type (FV_Core) :: fv
     integer, intent(in) :: istart
 
-    Integer :: I_0, I_1, J_0H, J_1H, J_0, J_1
+    Integer :: I_0, I_1, J_0, J_1, J_0H, J_1H
     integer :: iunit
+!local
+      real*8,allocatable :: U_temp(:,:,:)
+      real*8,allocatable :: V_temp(:,:,:)
+      real*8,allocatable :: U_d(:,:,:)
+      real*8,allocatable :: V_d(:,:,:)
 
-    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_strt_halo=J_0H, J_stop_halo=J_1H, &
-         & J_STRT=J_0, J_STOP=J_1)
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, &
+         & J_STRT=J_0, J_STOP=J_1, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
     ! 1) Link/copy modelE data to import state
     call ESMFL_StateGetPointerToData ( fv % import,fv % dudt,'DUDT',rc=rc)
@@ -408,8 +411,28 @@ contains
     select case (istart)
     case (:initial_start)
        ! Do a cold start.  Set Old = Current.
+#ifdef USE_FVCUBED
+       Allocate(U_d(I_0:I_1,J_0:J_1+1,LM), &
+                V_d(I_0:I_1+1,J_0:J_1,LM))
+       Allocate(U_temp(I_0:I_1,J_0:J_1,LM), &
+                V_temp(I_0:I_1,J_0:J_1,LM))
+
+       U_temp(I_0:I_1,J_0:J_1,:) = U(I_0:I_1,J_0:J_1,:)
+       V_temp(I_0:I_1,J_0:J_1,:) = V(I_0:I_1,J_0:J_1,:)
+       Call INTERP_AGRID_TO_DGRID(Reverse(U_temp), Reverse(V_temp), U_d, V_d)
+       U(I_0:I_1,J_0:J_1,:) = U_d(I_0:I_1,J_0:J_1,:)
+       V(I_0:I_1,J_0:J_1,:) = V_d(I_0:I_1,J_0:J_1,:)
+
+       Deallocate(U_d, V_d)
+       Deallocate(U_temp, V_temp)
+
+       ! the tendency must be scaled by DT for use by the core's ADD_INCS routine
+       fv % dudt=U(I_0:I_1,J_0:J_1,:)/DTsrc
+       fv % dvdt=V(I_0:I_1,J_0:J_1,:)/DTsrc
+#else
        fv % dudt=0
        fv % dvdt=0
+#endif
        fv % dtdt=0
        fv % dpedt=0
 
@@ -554,7 +577,16 @@ contains
 
     REAL*8, DIMENSION(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM) :: PIJL
     integer :: L,istep, NS, NIdyn_fv
+    integer :: addIncsPhase
     integer :: rc
+
+! Phase number used to invoke the core's RunAddIncs routine changes
+! between latlon and cubedsphere cores
+#ifdef USE_FVCUBED
+    addIncsPhase = 1
+#else
+    addIncsPhase = 91
+#endif
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
@@ -568,7 +600,7 @@ contains
     NIdyn_fv = DTsrc / (DT)
     do istep = 1, NIdyn_fv
 
-       call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, 91, rc=rc )
+       call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, addIncsPhase, rc=rc )
        call clearTendencies(fv)
        call ESMF_GridCompRun ( fv % gc, fv % import, fv % export, clock, rc=rc )
 
@@ -802,7 +834,6 @@ contains
        return
     end if
 
-#ifndef USE_FVCUBED
     ! If we got to here, then this means then we'll have to create a restart file
     ! from scratch.
     unit = GetFile(rst_file, form="unformatted", rc=rc)
@@ -827,8 +858,13 @@ contains
     Allocate(U_d(I_0:I_1, J_0:J_1, LM))
     Allocate(V_d(I_0:I_1, J_0:J_1, LM))
 
+#ifdef USE_FVCUBED
+    U_d = 0.d0
+    V_d = 0.d0
+#else
     write(*,*)'Calling ComputeRestartVelocities()'
     Call ComputeRestartVelocities(unit, grid, U, V, U_d, V_d)
+#endif
 
 !!$      call set_zonal_flow(U_d, V_d, j_0, j_1)
 
@@ -856,7 +892,6 @@ contains
     Deallocate(PKZ)
 
     Call Free_File(unit)
-#endif
 
   CONTAINS
 

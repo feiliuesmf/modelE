@@ -52,7 +52,7 @@ Data input files:
 ! AICfv=1DECxxxx.fvEyyyy          ! initial conditions (fv internal) only for ISTART=9
 ! AICdfv=1DECxxxx.dfvEyyyy        ! tendencies                       only for ISTART=9
     ! or start up from observed conditions
-AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
+AIC=AIC_CS32                      ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955       ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)

@@ -1437,7 +1437,6 @@ C****
 C**** Get primary Atmospheric data from NMC tapes - ISTART=2
 C****
       IF (ISTART.EQ.2) THEN
-#if !defined(NO_LAND_SURFACE) || defined(CUBE_GRID)
 C**** Use title of first record to get the date and make sure  ???
 C**** it is consistent with IHRI (at least equal mod 8760)     ???
 C****            not yet implemented but could easily be done  ???
@@ -1520,7 +1519,6 @@ c in this case, assume input U/V are on the A grid
         IM1=I
         END DO
         END DO
-#endif
 #endif
         CDM=.001d0
 
