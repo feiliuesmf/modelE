@@ -149,7 +149,7 @@ cc      USE TRDIAG_COM, only : jls_3Dsource
       USE PRATHER_CHEM_COM, only: nstrtc
       USE FLUXES, only: tr3Dsource
       implicit none
-      integer i,j,l,lr,n,ns,najl,nsc
+      integer i,j,l,lr,n,ns,najl,nsc,lmtc
       real*8, parameter :: by7=1./7.d0
       real*8 told(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &            GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
@@ -173,7 +173,8 @@ C-----uses S.O.M. formulation for vertical losses
 C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
 
       told(:,:,:) = trm(:,:,:,n)
-      do 150 l=lm,lm+1-nstrtc,-1
+      lmtc = lm-nstrtc
+      do 150 l=lm,lmtc+1,-1
       lr = lm+1-l
       do 140 j=J_0,J_1
 C-----TSCPARM->TLtrm contains mean loss freq in grid box:
@@ -292,7 +293,7 @@ C---- CTM layers LM down
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
-      integer n,ns,i,j,l,FRQfile,infile
+      integer n,ns,i,j,l,FRQfile,infile,lmtc
       REAL*4 taux
       real*8 tauy,tune
       parameter (tune = 445./501.)
@@ -313,6 +314,7 @@ C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
      *  go to 550                           !  no need to update frqlos
 
 C**** Create interpolated table for this resolution
+      lmtc = lm-nstrtc
       IF (AM_I_ROOT()) THEN
         if (ifirst ) then
          call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
@@ -343,10 +345,10 @@ C**** FOR END OF YEAR, USE FIRST RECORD
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
-        do l=1,lm-nstrtc
+        do l=1,lmtc
           frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
         end do
-        do l=1,lm-nstrtc
+        do l=1,lmtc
           frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
         end do
 
@@ -358,7 +360,7 @@ C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
 
 C**** Apply the chemistry
   550 continue
-      do l=1,lm-nstrtc
+      do l=1,lmtc
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
@@ -1365,11 +1367,14 @@ C****
       subroutine get_Trop_chem_CH4_freq(in_file,interp_file)
 !@sum get_Trop_chem_CH4_freq interpolates troposphereic chemical
 !@+     rates for CH4 from n-grid, 9 layers to 4X5, lm layers
+!@+     The resulting rate file is written to disk for use throughout
+!@+     the run.  The rates are changed every 5 days.
 !@auth Jean Lerner
 C****  Input: CLIM.RUN.OHCH4.FRQ
 C**** Output: temporary file for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
-C****    CHECK IT with checkfile=.true.!!!
+C**** However, we'll stop at LMTC, which is lower, and let strat
+C****   chem pick up from there.
       USE MODEL_COM, only: im,jm,lm,psf,pmidl00
       USE GEOM, only : DLAT_DG
       USE FILEMANAGER, only: openunit,closeunit
@@ -1380,17 +1385,24 @@ C****    CHECK IT with checkfile=.true.!!!
       parameter (km=im*jm, imo=36,jmo=24,lmo=9,kmo=imo*jmo)
       character*80 title
       logical :: debug=.true.,checkfile=.false.
-      real*4 tau,fold(kmo,lmo)   ,rlat(jm)
-      real*8 wta(kmo),foldlm(kmo,lm),
-     *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm),divj
+c     real*4 fold(kmo,lmo)   ,rlat(jm)
+c     real*8 wta(kmo),foldlm(kmo,lm),
+c    *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
+      real*4 tau
+      real*4, ALLOCATABLE, DIMENSION(:,:) :: fold
+      real*8, ALLOCATABLE, DIMENSION(:,:) :: foldlm,fnew
+      real*8, ALLOCATABLE, DIMENSION(:) :: wta
+      real*8 pold(lmo),pnew(lm),ain(lmo),aout(lm),divj
       real*8 :: sigo(lmo) = (/.974264d0,.907372d0,.796957d0,.640124d0,
      *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
 
+      ALLOCATE (fold(kmo,lmo),foldlm(kmo,lm),fnew(km,lm),wta(kmo))
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
       pnew(:) = pmidl00(1:lm)    ! sig(:)*psfmpt+ptop
       wta = 1.
 !     find a top for the output data (a drop sloppy!)
+!     Note: ltopx is always higher than lmtc so it doesn't matter..
       do 5 l=1,lm
         ltopx = l
         if (pnew(l).lt.pold(lmo)) go to 10
@@ -1407,7 +1419,6 @@ C**** interpolate vertically  fold-->foldlm
       do i=1,kmo
         ain(:) = fold(i,:)
         debug = .false.
-c       if (i.eq.kmo/2) debug = .true.
         aout = 0.
         call v_int(debug,ltopx,lmo,pold,ain,lm,pnew,aout)
         foldlm(i,:) = aout(:)
@@ -1420,23 +1431,24 @@ C**** interpolate horizontally  foldlm-->fnew
   500 continue
       call closeunit(in_file)
       rewind (interp_file)
+      DEALLOCATE (fold,foldlm,fnew,wta)
       write(6,*) ' SUBROUTINE get_Trop_chem_CH4_freq executed'
 C**** confirmation check at i=1 for last tau
-      if (checkfile) then
-        do j=1,jmo;  rlat(j) = j;  end do
-        title = 'old'
-        call openunit('OHCH4_FRQ_check_in',ifilea,.true.)
-        write (ifileA) title,jmo,lmo,1,1,
-     *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
-     *   sngl(pold),1.,1.
-        call closeunit(ifileA)
-        do j=1,jm;  rlat(j) = j;  end do
-        title = 'new'
-        call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
-        write (ifileA) title,jm,lm,1,1,
-     *   ((sngl(fnew(j,l)),j=1,km,im),l=1,lm),rlat,sngl(pnew),1.,1.
-        call closeunit(ifileA)
-      end if
+!     if (checkfile) then
+!       do j=1,jmo;  rlat(j) = j;  end do
+!       title = 'old'
+!       call openunit('OHCH4_FRQ_check_in',ifilea,.true.)
+!       write (ifileA) title,jmo,lmo,1,1,
+!    *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
+!    *   sngl(pold),1.,1.
+!       call closeunit(ifileA)
+!       do j=1,jm;  rlat(j) = j;  end do
+!       title = 'new'
+!       call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
+!       write (ifileA) title,jm,lm,1,1,
+!    *   ((sngl(fnew(j,l)),j=1,km,im),l=1,lm),rlat,sngl(pnew),1.,1.
+!       call closeunit(ifileA)
+!     end if
       return
       end subroutine get_Trop_chem_CH4_freq
 
@@ -1628,10 +1640,8 @@ C****
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, GET
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
-
       INTEGER :: J_1H, J_0H, I_1H, I_0H
-      INTEGER :: IER
-
+      INTEGER :: IER, lmtc
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -1641,21 +1651,20 @@ C****
 
       ALLOCATE( jlatmd(J_0H:J_1H),
      *          STAT=IER )
-
       ALLOCATE(  tltrm(J_0H:J_1H,lm,n_MPtable_max),
      *           tltzm(J_0H:J_1H,lm,n_MPtable_max),
      *          tltzzm(J_0H:J_1H,lm,n_MPtable_max),
      *          STAT=IER )
-
       ALLOCATE(  CH4_src(I_0H:I_1H,J_0H:J_1H,nch4src),
      *           CO2_src(I_0H:I_1H,J_0H:J_1H,nco2src),
      *           STAT=IER )
 
 C**** ESMF: This array is read in only
-      ALLOCATE(   frqlos(IM,JM,LM),
+      lmtc = lm-nstrtc
+      ALLOCATE(   frqlos(IM,JM,lmtc),
      *          STAT=IER)
-
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
+
 
       SUBROUTINE ALLOC_LINOZ_CHEM_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
