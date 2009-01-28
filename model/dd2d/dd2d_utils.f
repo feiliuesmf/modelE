@@ -1027,6 +1027,7 @@ c on the diagonal
 c
       integer :: i,j,l,k,m,n,n0,nsend,iproc
       integer :: ierr
+      real*8 :: r8dum
 
       if(nproc_comm.eq.1 .and. nt.eq.1) then
         global_arr(:,i1g:i2g,j1g:j2g,:,1)=local_arr(:,i1g:i2g,j1g:j2g,:)
@@ -1095,10 +1096,17 @@ c
 c if a multi-tile gather, collect the tiles on global root
 c
             nsend = nl*grid%npx*grid%npy
+            if(grid%am_i_globalroot) then
             call mpi_gatherv(bufij_tile,nsend,MPI_DOUBLE_PRECISION,
      &         global_arr(1,1,1,k,1),cntsg,displsg,
      &           MPI_DOUBLE_PRECISION,
      &           0,grid%comm_intertile,ierr)
+            else
+            call mpi_gatherv(bufij_tile,nsend,MPI_DOUBLE_PRECISION,
+     &         r8dum,                cntsg,displsg,
+     &           MPI_DOUBLE_PRECISION,
+     &           0,grid%comm_intertile,ierr)
+            endif
           endif
         endif
 
@@ -1129,6 +1137,7 @@ c
 c
       integer :: i,j,l,k,m,n,n0,nrecv,iproc
       integer :: ierr
+      real*8 :: r8dum
 
       if(nproc_comm.eq.1 .and. nt.eq.1) then
         local_arr(:,i1g:i2g,j1g:j2g,:)=global_arr(:,i1g:i2g,j1g:j2g,:,1)
@@ -1163,10 +1172,17 @@ c
 c if a multi-tile scatter, global root first sends to tile roots.
 c
             nrecv = nl*grid%npx*grid%npy
+            if(grid%am_i_globalroot) then
             call mpi_scatterv(global_arr(1,1,1,k,1),cntsg,displsg,
      &           MPI_DOUBLE_PRECISION,
      &           bufij_tile,nrecv,MPI_DOUBLE_PRECISION,
      &           0,grid%comm_intertile,ierr)
+            else
+            call mpi_scatterv(r8dum,                cntsg,displsg,
+     &           MPI_DOUBLE_PRECISION,
+     &           bufij_tile,nrecv,MPI_DOUBLE_PRECISION,
+     &           0,grid%comm_intertile,ierr)
+            endif
             m = 0
             do iproc=1,grid%nproc_tile
               do j=grid%jsr(iproc),grid%jer(iproc)
@@ -1238,6 +1254,7 @@ c
       integer :: ierr
       integer, dimension(6) :: cntsijkg,displsijkg
       integer, dimension(:), allocatable :: cntsijk,displsijk
+      real*8 :: r8dum
 
       if(nproc_comm.eq.1 .and. nt.eq.1) then
         global_arr(i1g:i2g,j1g:j2g,:,1)=local_arr(i1g:i2g,j1g:j2g,:)
@@ -1316,10 +1333,17 @@ c
             cntsijkg(1:nt) = cntsijg(1:nt)*nk12
             displsijkg(1:nt) = displsijg(1:nt)*nk
             nsend = nk12*grid%npx*grid%npy
+            if(grid%am_i_globalroot) then
             call mpi_gatherv(bufij_tile,nsend,MPI_DOUBLE_PRECISION,
      &           global_arr(1,1,k1,1),cntsijkg,displsijkg,
      &           MPI_DOUBLE_PRECISION,
      &           0,grid%comm_intertile,ierr)
+            else
+            call mpi_gatherv(bufij_tile,nsend,MPI_DOUBLE_PRECISION,
+     &           r8dum,               cntsijkg,displsijkg,
+     &           MPI_DOUBLE_PRECISION,
+     &           0,grid%comm_intertile,ierr)
+            endif
           endif
         endif
 
@@ -1359,6 +1383,7 @@ c
       integer :: ierr
       integer, dimension(6) :: cntsijkg,displsijkg
       integer, dimension(:), allocatable :: cntsijk,displsijk
+      real*8 :: r8dum
 
       if(nproc_comm.eq.1 .and. nt.eq.1) then
         local_arr(i1g:i2g,j1g:j2g,:)=global_arr(i1g:i2g,j1g:j2g,:,1)
@@ -1401,10 +1426,17 @@ c
             cntsijkg(1:nt) = cntsijg(1:nt)*nk12
             displsijkg(1:nt) = displsijg(1:nt)*nk
             nrecv = nk12*grid%npx*grid%npy
+            if(grid%am_i_globalroot) then
             call mpi_scatterv(global_arr(1,1,k1,1),cntsijkg,displsijkg,
      &           MPI_DOUBLE_PRECISION,
      &           bufij_tile,nrecv,MPI_DOUBLE_PRECISION,
      &           0,grid%comm_intertile,ierr)
+            else
+            call mpi_scatterv(r8dum,               cntsijkg,displsijkg,
+     &           MPI_DOUBLE_PRECISION,
+     &           bufij_tile,nrecv,MPI_DOUBLE_PRECISION,
+     &           0,grid%comm_intertile,ierr)
+            endif
             m = 0
             do iproc=1,grid%nproc_tile
               do k=k1,k2
