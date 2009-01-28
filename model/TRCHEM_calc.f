@@ -361,8 +361,11 @@ c       Set value for ROR:
         endif
         yROR(I,J,L)=y(nROR,L)
 
-c       Add parrafin loss term via rxpar reaction:
+c       Add parrafin loss term via rxpar reaction and
+c       prod term via isoprene rxns:
         dest(n_Paraffin,L)=dest(n_Paraffin,L)-y(nRXPAR,L)*RXPAR_PAR*dt2
+        prod(n_Paraffin,L)=prod(n_Paraffin,L)+0.63d0*y(n_Isoprene,L)
+     &  *(rr(30,L)*y(nOH,L)+rr(31,L)*y(nO3,L))*dt2
 
 c       Add CH3OOH production via XO2N + HO2:
         prod(n_CH3OOH,L)=prod(n_CH3OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
