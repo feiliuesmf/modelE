@@ -207,8 +207,10 @@ c define/overwrite the success flag for error checking
           rc = nf_put_var_int(fid,vid,fail)
           rc = nf_sync(fid)
         endif
+        par_open = fid
+      else
+        par_open = -1
       endif
-      par_open = fid
       return
       end function par_open
 
