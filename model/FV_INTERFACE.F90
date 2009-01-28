@@ -310,16 +310,16 @@ contains
     use domain_decomp_atm, only: grid, get
     USE CONSTANT, only: KAPA
 
-    REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
+    REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
 
-    INTEGER :: L, j_0, j_1
+    INTEGER :: L, i_0, i_1, j_0, j_1
 
-    call get(grid, J_STRT=J_0, J_STOP=J_1)
+    call get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM+1
 
        If (L < LS1) THEN
-          PE(:,:,L) = SIGE(L)*P(:,J_0:J_1) + Ptop
+          PE(:,:,L) = SIGE(L)*P(I_0:I_1,J_0:J_1) + Ptop
        Else
           PE(:,:,L)  = SIGE(L)*PSFMPT + Ptop
        End IF
@@ -334,11 +334,10 @@ contains
     Use MODEL_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: dP(IM,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
+    REAL*8 :: dP(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
 
-    INTEGER :: J_0,J_1,k
-    Call Get(grid, J_STRT=J_0, J_STOP=J_1)
+    INTEGER :: k
 
     PE = EdgePressure_GISS()
     do k = 1, LM
@@ -354,9 +353,9 @@ contains
     Use MODEL_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: dPT(IM,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PE(IM,grid % J_STRT:grid % J_STOP,LM+1)
-    REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: dPT(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
+    REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: J_0,J_1,k
     Call Get(grid, J_STRT=J_0, J_STOP=J_1)
@@ -468,9 +467,15 @@ contains
       real*8, intent(out) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
       real*8, allocatable :: globalArr(:,:,:)
+      integer :: I_0, I_1, j_0, j_1
+      integer :: i_0h, i_1h
+      integer :: j_0h, j_1h
 
+      Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+           & i_strt_halo = i_0h, i_stop_halo = i_1h, &
+           & j_strt_halo = j_0h, j_stop_halo = j_1h)
       allocate(globalArr(IM,JM,size(arr,3)))
-      allocate(padArr(1:IM,j_0h:j_1h, size(arr,3)))
+      allocate(padArr(i_0h:i_1h,j_0h:j_1h, size(arr,3)))
 
       if (AM_I_ROOT()) read(iunit) globalArr
       call unpack_data(grid, globalArr, padArr)
@@ -697,12 +702,14 @@ contains
       real*8, allocatable :: padArr(:,:,:)
       real*8, allocatable :: globalArr(:,:,:)
       integer :: I_0, I_1, j_0, j_1
+      integer :: i_0h, i_1h
       integer :: j_0h, j_1h
 
       Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+           & i_strt_halo = i_0h, i_stop_halo = i_1h, &
            & j_strt_halo = j_0h, j_stop_halo = j_1h)
       allocate(globalArr(IM,JM,size(arr,3)))
-      allocate(padArr(1:IM,j_0h:j_1h, size(arr,3)))
+      allocate(padArr(i_0h:i_1h,j_0h:j_1h, size(arr,3)))
 
       padArr(I_0:I_1,j_0:j_1,:) = arr(:,:,:)
       call pack_data(grid, padArr, globalArr)
@@ -1118,16 +1125,16 @@ contains
     use domain_decomp_atm, only: grid, get
     USE CONSTANT, only: KAPA
 
-    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
-    INTEGER :: L, j_0, j_1
-
-    call get(grid, J_STRT=J_0, J_STOP=J_1)
+    INTEGER :: L
+    INTEGER :: I_0, I_1, J_0,J_1
+    Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
 
     Do L = 1, LM
 
        If (L < LS1) THEN
-          PKZ(:,:,L) = (SIG(L)*P(:,J_0:J_1) + Ptop) ** KAPA
+          PKZ(:,:,L) = (SIG(L)*P(I_0:I_1,J_0:J_1) + Ptop) ** KAPA
        Else
           PKZ(:,:,L) = (SIG(L)*PSFMPT + Ptop) ** KAPA
        End IF
@@ -1142,8 +1149,8 @@ contains
     Use MODEL_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: I_0, I_1, J_0,J_1
     Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
@@ -2073,9 +2080,9 @@ contains
     Integer :: k, km
     Real*8 :: rng(3,LM)
     Real*8 :: arr_global(IM,JM,size(arr,3))
-    Real*8 :: arr_tmp(IM,grid % j_STRT_HALO:grid % J_stop_HALO,size(arr,3))
+    Real*8 :: arr_tmp(grid % I_STRT_HALO:grid % I_STOP_HALO,grid % j_STRT_HALO:grid % J_stop_HALO,size(arr,3))
 
-    arr_tmp(:,grid % J_strt:grid % J_STOP,:)=arr
+    arr_tmp(grid % I_STRT:grid % I_STOP,grid % J_strt:grid % J_STOP,:)=arr
 
     Call PACK_DATA(grid, arr_tmp, arr_global)
 
@@ -2103,7 +2110,7 @@ contains
     use domain_decomp_atm, only: grid, get
     USE CONSTANT, only: KAPA
 
-    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: L, j_0, j_1, I_0, I_1
 
@@ -2127,8 +2134,8 @@ contains
     Use MODEL_COM, only: T
     USE DOMAIN_DECOMP_ATM, only: grid, GET
 
-    REAL*8 :: T_dry(IM,grid % J_STRT:grid % J_STOP,LM)
-    REAL*8 :: PKZ(IM,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: T_dry(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
+    REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
     INTEGER :: I_0, I_1, J_0,J_1
     Call Get(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
