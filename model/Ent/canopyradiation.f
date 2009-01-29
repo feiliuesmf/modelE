@@ -269,6 +269,8 @@
 
       pptr%albedo(1) = Id * sout%albd(1,1) + Ii * sout%albi(1,1)
       pptr%albedo(2) = Id * sout%albd(1,2) + Ii * sout%albi(1,2)
+      pptr%TRANS_SW = Id * (sout%ftdd(1,1) + sout%ftid(1,1)) + Ii 
+     &    * sout%ftii(1,1)
  
       end subroutine get_canopy_rad
 
@@ -304,6 +306,8 @@
      &        rifp, sunlit, shaded)
       endif
       
+      height_levels = pptr%crad%heights
+      
       end subroutine GORT_clumping
 
       !*********************************************************************
@@ -317,10 +321,11 @@
       type(gort_input) ::  gin  ! input structure for gort model
       type(patch), pointer :: pptr
 
-      integer :: N_height_level
+      integer :: N_height_level, N2
+      integer :: ilevel, jlevel, tmpl
       real*8 :: clumpd, clumpi
-      real*8, dimension(:), pointer :: fp, rdfp, rifp, efp 
-      real*8, dimension(:), pointer :: height_levels 
+      real*8, dimension(:), pointer :: fp, rdfp, rifp, efp, fpt 
+      real*8, dimension(:), pointer :: height_levels, crad_heights 
       real*8, dimension(:), pointer :: sunlit     ! sunlit leaf area fraction
       real*8, dimension(:), pointer :: shaded     ! shaded leaf area fraction
       real*8 :: tmp_zenith
@@ -335,16 +340,30 @@
       ! Check the validity of the inputs
       call check_inputs(gin)
 
-      ! define the vertical layers
+      ! define the vertical layers, 
+      ! first at interval of 1m, then rescale to input height level 
       call get_height_level(gin, height_levels)
       N_height_level = size(height_levels)
+      crad_heights = pptr%crad%heights
+      N2 = size(crad_heights)
 
       ! get intermediate variables, clump and fp
-      allocate(fp(N_height_level))
-      allocate(rdfp(N_height_level))
-      allocate(rifp(N_height_level))
-      allocate(efp(N_height_level))
-      call get_foliage_profile(gin,height_levels,fp)
+      allocate(fpt(N_height_level))
+      allocate(fp(N2))
+      allocate(rdfp(N2))
+      allocate(rifp(N2))
+      allocate(efp(N2))
+      call get_foliage_profile(gin,height_levels,fpt)
+      
+      ! rescale to input height level
+      do ilevel = 1, N2
+         do jlevel = 1, N_height_level
+            if (crad_heights(ilevel) .ge. height_levels(jlevel)) then
+               tmpl = jlevel
+	    end if
+	 end do
+	 fp(ilevel) = sum(fpt(tmpl:N_height_level))*gin%delta_z
+      end do
       clumpd = get_analytical_clump(gin)
       tmp_zenith=gin%zenith
       gin%zenith = ang_dif
@@ -356,11 +375,15 @@
       rdfp = clumpd * fp
       rifp = clumpi * fp
       
-      allocate(sunlit(N_height_level))
-      allocate(shaded(N_height_level))
-      sunlit = T(efp, gin%delta_z, gin%zenith)
+      allocate(sunlit(N2))
+      allocate(shaded(N2))
+      sunlit = T(efp, gin%zenith)
       shaded = 1 - sunlit
             
+      ! pptr%crad%heights = height_levels
+      pptr%crad%LAI = rdfp
+      pptr%crad%GORTclump = clumpd
+
       end subroutine run_single_gort
 
       !*********************************************************************
@@ -385,15 +408,17 @@
 
 
       ! local variables
-      integer :: num_profiles, iprofile, N_height_level, i
-      integer :: N_convolute_height_level, ilevel, iszn
+      integer :: num_profiles, iprofile, N_height_level, N2, i
+      integer :: ilevel, jlevel, tmpl, iszn
       real*8    :: szn, delta_z, dszn
       real*8    :: tmp_zenith
       real*8    :: clumpd, clumpi
       type(profile_params), dimension(:), pointer :: all_convolute_input
       real*8, dimension(:), pointer   :: fp, efp   ! convoluted effective foliage profile
+      real*8, dimension(:), pointer   :: fpt, rdfpt, rifpt, efpt
       real*8, dimension(:), pointer   :: tmp_fp, tmp_rdfp, tmp_rifp  
       real*8, dimension(:), pointer   :: tmp_height_levels, tmp_efp
+      real*8, dimension(:), pointer   :: crad_heights
 
       real*8, dimension(:), pointer   :: d_fp, d_rdfp, d_rifp, d_efp 
       real*8, dimension(:), pointer   :: d_height_levels
@@ -482,17 +507,36 @@
 
       ! print *, 'Calling convolute ......' 
       call convolute(all_convolute_input,       ! input
-     &   fp, rdfp, rifp, efp, height_levels)    ! convoluted output, also run_gort output
+     &   fpt, rdfpt, rifpt, efpt, height_levels)    ! convoluted output, also run_gort output
+
+      N_height_level = size(height_levels)
+      crad_heights = pptr%crad%heights
+      N2 = size(crad_heights)
+      allocate(fp(N2))
+      allocate(rdfp(N2))
+      allocate(rifp(N2))
+      allocate(efp(N2))
+      ! rescale to input height level
+      do ilevel = 1, N2
+         do jlevel = 1, N_height_level
+	    if (crad_heights(ilevel) .ge. height_levels(jlevel)) then
+	       tmpl = jlevel
+	    end if
+	 end do
+	 fp(ilevel) = sum(fpt(tmpl:N_height_level))*gin(1)%delta_z
+	 rdfp(ilevel) = sum(rdfpt(tmpl:N_height_level))*gin(1)%delta_z
+	 rifp(ilevel) = sum(rifpt(tmpl:N_height_level))*gin(1)%delta_z
+	 efp(ilevel) = sum(efpt(tmpl:N_height_level))*gin(1)%delta_z
+      end do
 
 
       ! Compute the transmit, sunlit, shaded from efp
       ! Sunlit and Shaded will be the run_gort output, but transmit will be depending on 
       ! if transmit from diffuse light needs to be considered
-      N_convolute_height_level = size(height_levels)
-      delta_z = height_levels(2)-height_levels(1)
-      allocate(sunlit(N_convolute_height_level))
-      allocate(shaded(N_convolute_height_level))
-      sunlit = T(efp, delta_z, szn)
+
+      allocate(sunlit(N2))
+      allocate(shaded(N2))
+      sunlit = T(efp, szn)
       shaded = 1 - sunlit
 
       do iprofile=1, num_profiles
@@ -503,6 +547,10 @@
          deallocate(all_convolute_input(iprofile)%height_levels)
       end do
       deallocate(all_convolute_input)
+
+      ! pptr%crad%heights = height_levels
+      pptr%crad%LAI = rdfp
+      pptr%crad%GORTclump = clumpd
 
       end subroutine run_convolute_gort
 
@@ -774,8 +822,8 @@
             h4 = -f*p3 - c1*d
             tmp8 = h4/sigma
 
-            delta_z = height_levels(2)-height_levels(1)
-            vai(p) = sum(rdfp(1:N_height_level))*delta_z
+            ! delta_z = height_levels(2)-height_levels(1)
+            vai(p) = rdfp(1)
             ! PET, 3/1/04: added this test to avoid floating point errors in exp()
             t1 = min(h*vai(p), 40.d0)
             s1 = exp(-t1)
@@ -800,7 +848,7 @@
             albd(p,ib) = h1/sigma + h2 + h3
 
             do ilevel=1, N_height_level
-               evai(ilevel) = sum(rdfp(ilevel:N_height_level))*delta_z   ! cumulative clumping factor * foliage profile
+               evai(ilevel) = rdfp(ilevel)   ! cumulative clumping factor * foliage profile
 
                t1 = min(h*evai(ilevel), 40.d0)
                s1 = exp(-t1)
@@ -838,7 +886,7 @@
             h4 = -f*p3 - c1*d
             tmp8 = h4/sigma
 
-            vai(p) = sum(rifp(1:N_height_level))*delta_z
+            vai(p) = rifp(1)
             t1 = min(h*vai(p), 40.d0)
             s1 = exp(-t1)
             t1 = min(twostext(p)*vai(p), 40.d0)
@@ -862,7 +910,7 @@
             albi(p,ib) = h7 + h8
 
             do ilevel=1, N_height_level
-               evai(ilevel) = sum(rifp(ilevel:N_height_level))*delta_z   ! cumulative clumping factor * foliage profile
+               evai(ilevel) = rifp(ilevel)   ! cumulative clumping factor * foliage profile
 
                t1 = min(h*evai(ilevel), 40.d0)
                s1 = exp(-t1)
@@ -895,12 +943,12 @@
 
 ! ----------------------------------------------------------
 
-      function T(fp, delta_z, szn)
+      function T(fp, szn)
 
       ! return a transmittance array based on the size of input fp
 
       real*8, dimension(:), pointer :: fp
-      real*8 :: delta_z, szn
+      real*8 :: szn
       real*8, dimension(size(fp)) :: T
    
       ! local vars
@@ -908,8 +956,7 @@
 
       N_height_level = size(fp)
       do ilevel=1, N_height_level
-        T(ilevel) = exp((-sum(fp(ilevel:N_height_level))*delta_z) 
-     &     /cos(szn))
+        T(ilevel) = exp(-fp(ilevel) / cos(szn))
       end do
 
       end function 
@@ -1430,7 +1477,7 @@
           gin(1)%horz_radius = cop%crown_dx
           gin(1)%vert_radius = cop%crown_dy
           gin(1)%zenith = acos(pp%cellptr%CosZen)
-          gin(1)%delta_z = 0.1
+          gin(1)%delta_z = 1.0
           vc = 1.33333 * PI * gin(1)%horz_radius ** 2 * 
      &	     gin(1)%vert_radius
           gin(1)%dens_foliage = cop%LAI / (vc * gin(1)%dens_tree)
@@ -1452,7 +1499,7 @@
               gin(i)%horz_radius = cop%crown_dx
               gin(i)%vert_radius = cop%crown_dy
               gin(i)%zenith = acos(pp%cellptr%CosZen)
-              gin(i)%delta_z = 0.1
+              gin(i)%delta_z = 1.0
               vc = 1.33333 * PI * gin(i)%horz_radius ** 2 * 
      &	         gin(i)%vert_radius
               gin(i)%dens_foliage = cop%LAI / (vc * gin(i)%dens_tree)
