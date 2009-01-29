@@ -94,18 +94,14 @@ c
 c
       USE HYCOM_DIM, only : J_0,J_1,isp,ifp,ilp,jchunk
       USE HYCOM_SCALARS, only : onem
-      USE HYCOM_ARRAYS,  only : latij, depths
+      USE HYCOM_ARRAYS_GLOB, only : latij, depths
       USE KPRF_ARRAYS,   only : jerlov_loc, betard, betabl, redfac
       implicit none
       integer i,j,l
       include 'kprf_scalars.h'
 c
-      !write(750,*) isp
-      !write(751,*) ifp
-      !write(752,*) ilp
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 199 j=J_0,J_1
-       !write(0,*) j
       do 199 l=1,isp(j)
       do 199 i=ifp(j,l),ilp(j,l)
 c --- map shallow depths ('brown' water) to high jerlov numbers
