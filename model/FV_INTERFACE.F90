@@ -16,8 +16,11 @@ module FV_INTERFACE_MOD
 !!$  use GEOS_Mod, Only: ESMFL_StateGetPointerToData
   use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
 
+  USE CONSTANT, only: RGAS, KAPA, BYKAPA, BYKAPAP1, BYKAPAP2
 #ifdef USE_FVCUBED
   use FV_StateMod, only:INTERP_DGRID_TO_AGRID, INTERP_AGRID_TO_DGRID
+  use FV_StateMod, only:FV_RESET_CONSTANTS
+  use CONSTANT, only: pi, omega, sha, radius, rvap, grav, lhe
 #endif
 
   implicit none
@@ -194,6 +197,19 @@ contains
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
 
+#ifdef USE_FVCUBED
+    call  FV_RESET_CONSTANTS( FV_PI=pi, &
+                            & FV_OMEGA=omega ,&
+                            & FV_CP=rgas/kapa ,&
+                            & FV_RADIUS=radius ,&
+                            & FV_RGAS=rgas ,&
+                            & FV_RVAP=rvap ,&
+                            & FV_KAPPA=kapa ,&
+                            & FV_GRAV=grav ,&
+                            & FV_HLV=lhe ,&
+                            & FV_ZVIR=rvap/rgas-1  )
+#endif
+
     ! Initialize component (and import/export states)
     !  ----------------------------------------------
     Call allocate_tendency_storage(fv, istart)
@@ -308,7 +324,6 @@ contains
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, SIGE, Ptop, PSFMPT, P
     use domain_decomp_atm, only: grid, get
-    USE CONSTANT, only: KAPA
 
     REAL*8 :: PE(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM+1)
 
@@ -1123,7 +1138,6 @@ contains
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
     use domain_decomp_atm, only: grid, get
-    USE CONSTANT, only: KAPA
 
     REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
@@ -1275,7 +1289,6 @@ contains
 
   ! Convert potential temperature between the two representations.
   subroutine CnvPotTemp_GISS2FV_r8(PT_giss, PT_fv)
-    Use CONSTANT, only : KAPA
     Real*8, intent(in) :: PT_giss(:,:,:)
     Real*8, intent(out) :: PT_fv(:,:,:)
 
@@ -1285,7 +1298,6 @@ contains
 
   ! Convert potential temperature between the two representations.
   subroutine CnvPotTemp_GISS2FV_r4(PT_giss, PT_fv)
-    Use CONSTANT, only : KAPA
     Real*8, intent(in) :: PT_giss(:,:,:)
     Real*4, intent(out) :: PT_fv(:,:,:)
 
@@ -1299,7 +1311,6 @@ contains
   ! a reference pressure of 10^5 pa.
   !------------------------------------------------------------------------
   subroutine CnvPotTemp_FV2GISS_r4(PT_fv, PT_giss)
-    Use CONSTANT, only : KAPA
     Real*4, intent(in) :: PT_fv(:,:,:)
     Real*8, intent(out) :: PT_giss(:,:,:)
 
@@ -1599,7 +1610,6 @@ contains
   End Subroutine Write_Profile
 
   function compute_phi(P, T, SZ, zatmo) result(phi)
-    USE CONSTANT, only: KAPA, BYKAPA, BYKAPAP1, BYKAPAP2, RGAS
     USE MODEL_COM, only: LS1, LM, DSIG, SIG, SIGE, PTOP, PSFMPT
     USE MODEL_COM, only: IM, JM, LM
     USE DOMAIN_DECOMP_ATM, Only: grid, Get
@@ -2108,7 +2118,6 @@ contains
     USE RESOLUTION, only: IM, LM, LS1
     Use MODEL_COM, only : SIG, Ptop, PSFMPT, P
     use domain_decomp_atm, only: grid, get
-    USE CONSTANT, only: KAPA
 
     REAL*8 :: PKZ(grid % I_STRT:grid % I_STOP,grid % J_STRT:grid % J_STOP,LM)
 
