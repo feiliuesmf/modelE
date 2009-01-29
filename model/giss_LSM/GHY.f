@@ -175,6 +175,7 @@ ccc   beta''s
      &     ,abetad,abetav,abetat,abetap,abetab,abeta
 ccc   output from former retp2
       real*8, public :: tg2av,wtr2av,ace2av
+      real*8, public, dimension(ngm) :: tg_L,wtr_L,ace_L
 
 !@var zw water table (not computed ?)
       real*8, public :: zw(2)
@@ -398,6 +399,7 @@ C***
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
      &     ,betadl,ws_can,shc_can,tg2av,wtr2av,ace2av
+     &     ,tg_L,wtr_L,ace_L
 #ifdef TRACERS_WATER
      &     ,trpr,trdd, tr_surf, tr_w, tr_wsn,tr_evap,tr_rnff ! ntg
      &     ,atr_evap,atr_rnff,atr_g
@@ -1905,7 +1907,7 @@ c****
 
       subroutine advnc(
 #ifdef USE_ENT
-     &     time, entcell,
+     &      entcell,
      &     Ca, cosz1, vis_rad, direct_vis_rad,
      &     Qf,
 #else
@@ -1954,7 +1956,7 @@ c**** soils28   common block     9/25/90
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8, intent(inout) :: Qf
-      real*8 ::  time
+      real*8, save ::  time = 0.d0
 #else
       use vegetation, only: update_veg_locals,t_vegcell
       ! arguments
@@ -2395,6 +2397,8 @@ C**** finalise surface tracer concentration here
        write(933,*) "qprime        ", qprime        
 #endif
 
+       time = time + dt
+
       return
   900 continue
       write(99,*)'limit exceeded'
@@ -2605,12 +2609,25 @@ ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       tg2av=0.d0
       wtr2av=0.d0
       ace2av=0.d0
+      tg_L(:)=0.d0
+      wtr_L(:)=0.d0
+      ace_L(:)=0.d0
+      tg_L(1)=tg_L(1) + (fb*tp(1,1)+fv*tp(1,2))
+      wtr_L(1)=wtr_L(1) + 1.d3*(fb*w(1,1)*(1.d0-fice(1,1))
+     &     + fv*w(1,2)*(1.d0-fice(1,2)))
+      ace_L(1)=ace_L(1) + 1.d3*(fb*w(1,1)*fice(1,1)
+     &     + fv*w(1,2)*fice(1,2))
       do k=2,n
         tg2av = tg2av + (fb*tp(k,1) + fv*tp(k,2))*dz(k)
         wtr2av = wtr2av + fb*w(k,1)*(1.d0-fice(k,1))
      &       + fv*w(k,2)*(1.d0-fice(k,2))
         ace2av = ace2av + fb*w(k,1)*fice(k,1)
      &       + fv*w(k,2)*fice(k,2)
+        tg_L(k)=tg_L(k) + (fb*tp(k,1)+fv*tp(k,2))
+        wtr_L(k)=wtr_L(k) + 1.d3*(fb*w(k,1)*(1.d0-fice(k,1))
+     &       + fv*w(k,2)*(1.d0-fice(k,2)))
+        ace_L(k)=ace_L(k) + 1.d3*(fb*w(k,1)*fice(k,1)
+     &       + fv*w(k,2)*fice(k,2))
       enddo
       tg2av = tg2av/sum(dz(2:n))
       ! convert to kg/m^2
