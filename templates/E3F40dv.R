@@ -107,8 +107,8 @@ TOP_INDEX=top_index_144x90.ij.ext
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
 ! probably need these (should convert to 144x90)
-!soil_textures=soil_textures_top30cm
-!SOILCARB_global=soilcarb_top30cm_nmaps_4x5bin.dat
+soil_textures=soil_textures_top30cm_2x2.5
+SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
 
 
 Label and Namelist:
