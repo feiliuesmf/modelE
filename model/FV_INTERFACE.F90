@@ -28,7 +28,6 @@ module FV_INTERFACE_MOD
 
   ! except for
 
-  public :: Write_Profile
   public :: FV_CORE                ! Derived type to encapsulate FV + modelE data
   public :: Init_app_clock         ! modelE does not use ESMF clocks, but ESMF requires one
   public :: Initialize             ! Uses modelE data to initialize the FV gridded component
@@ -541,7 +540,6 @@ contains
     USE DOMAIN_DECOMP_ATM, only: grid, get
     USE DYNAMICS, only: DUT, DVT
     USE CONSTANT, only: KAPA
-    USE FV_StateMod, only:  agrid_imports
 
     Implicit None
     Type (FV_CORE) :: fv
@@ -554,12 +552,12 @@ contains
     DUT(I_0:I_1,J_0:J_1,:) = Tendency(U(I_0:I_1,J_0:J_1,:), fv % U_old(I_0:I_1,J_0:J_1,:))
     DVT(I_0:I_1,J_0:J_1,:) = Tendency(V(I_0:I_1,J_0:J_1,:), fv % V_old(I_0:I_1,J_0:J_1,:))
 
-    if(agrid_imports) then
-       call ConvertUV_GISS2FV(DUT(I_0:I_1,J_0:J_1,:), DVT(I_0:I_1,J_0:J_1,:), fv % dudt, fv % dvdt)
-    else 
-       fv % dudt = reverse(DUT(I_0:I_1,J_0:J_1,:))
-       fv % dvdt = reverse(DVT(I_0:I_1,J_0:J_1,:))
-    endif
+#ifdef USE_FVCUBED
+      fv % dudt = reverse(DUT(I_0:I_1,J_0:J_1,:))
+      fv % dvdt = reverse(DVT(I_0:I_1,J_0:J_1,:))
+#else
+      call ConvertUV_GISS2FV(DUT(I_0:I_1,J_0:J_1,:), DVT(I_0:I_1,J_0:J_1,:), fv % dudt, fv % dvdt)
+#endif
 
     ! delta pressure weighted Temperature
     fv  %  dtdt = reverse(DeltPressure_GISS() * Tendency(DryTemp_GISS(), fv % dT_old)) * &
@@ -1576,39 +1574,6 @@ contains
 
   End Function reverse_3d_r4
 
-  Subroutine Write_Profile(arr, name)
-    Use RESOLUTION,    Only: IM, JM, LM
-    Use Domain_decomp_1d, Only: grid, PACK_DATA, AM_I_ROOT
-    Real*8, intent(in) :: arr(:,:,:)
-    character(len=*), intent(in) :: name
-
-    Integer :: k, km
-    Real*8 :: rng(3,LM)
-    Real*8 :: arr_global(IM,JM,size(arr,3))
-    Real*8 :: arr_tmp(IM,grid % j_STRT_HALO:grid % J_stop_HALO,size(arr,3))
-
-    arr_tmp(:,grid % J_strt:grid % J_STOP,:)=arr
-
-    Call PACK_DATA(grid, arr_tmp, arr_global)
-
-    IF (AM_I_ROOT()) Then
-       rng(1,:) = MINVAL(MINVAL(arr_global,DIM=1),DIM=1)
-       rng(2,:) = MAXVAL(MAXVAL(arr_global,DIM=1),DIM=1)
-       rng(3,:) = SUM(SUM(arr_global,DIM=1),DIM=1)/(IM*JM)
-
-       print*,'***********'
-       print*,'stats for ',trim(name)
-       km = size(arr,3)
-
-       Do k = 1, km
-          Write(*,'(a,i4.0,3(f21.9,1x))')'k:',k,rng(:,k)
-       End Do
-       print*,'***********'
-       print*,' '
-    End IF
-
-  End Subroutine Write_Profile
-
   function compute_phi(P, T, SZ, zatmo) result(phi)
     USE MODEL_COM, only: LS1, LM, DSIG, SIG, SIGE, PTOP, PSFMPT
     USE MODEL_COM, only: IM, JM, LM
@@ -1868,28 +1833,6 @@ contains
     end do
   end subroutine set_zonal_flow
 
-  subroutine printSnapshot(fv)
-    use MODEL_COM, only: U, V, T, Q, P
-    type (fv_core) :: fv
-    integer, save :: counter = 0
-
-    counter = counter + 1
-    write(40,*)'Iteration: ',counter
-    write(40,*)'U : ', U(4, 3, 3)
-    write(40,*)'V : ', V(4, 3, 3)
-    write(40,*)'T : ', T(4, 3, 3)
-    write(40,*)'Q : ', Q(4, 3, 3)
-    write(40,*)'P : ', P(4, 3)
-    write(40,*)'dudt  : ', fv % dudt(4, 3, 3), sum(fv% dudt)
-    write(40,*)'dvdt  : ', fv % dvdt(4, 3, 3), sum(fv% dvdt)
-    write(40,*)'dtdt  : ', fv % dtdt(4, 3, 3), sum(fv% dtdt)
-    write(40,*)'dpedt : ', fv % dpedt(4, 3, 14), sum(fv% dpedt)
-    write(40,*)'Q     : ', fv % q(4, 3, 3)
-    write(40,*)'PHIS  : ', fv % phis(4, 3)
-    write(40,*)'*******'
-    write(40,*)' '
-  end subroutine printSnapshot
-
 end module FV_INTERFACE_MOD
 
 !----------------------------------------------------------------
@@ -1909,210 +1852,14 @@ Subroutine abort_core(line,rc)
 
 End Subroutine abort_core
 
-module dynamics_save
-
-  implicit none
-  private
-
-  public :: initialize
-  public :: save_dynamics_state
-  public :: restore_dynamics_state
-  public :: write_dynamics_state
-
-  real*8, allocatable, dimension(:,:,:), save :: U_save, V_save, T_save
-  real*8, allocatable, dimension(:,:), save :: P_save
-  real*8, allocatable, dimension(:,:,:), save :: Q_save, WM_save
-  real*8, allocatable, dimension(:,:,:), save :: gz_save, phi_save
-  real*8, allocatable, dimension(:,:,:,:), save :: tmom_save
-  real*8, allocatable, dimension(:,:,:), save :: pdsig_save
-
-contains
-
-  subroutine initialize()
-    use resolution, only : IM, JM, LM
-    use somtq_com, only : tmom, NMOM
-
-    allocate(U_save(IM,1:JM,LM))
-    allocate(V_save(IM,1:JM,LM))
-    allocate(T_save(IM,1:JM,LM))
-    allocate(P_save(IM,1:JM))
-    allocate(Q_save(IM,1:JM,LM))
-    allocate(WM_save(IM,1:JM,LM))
-
-    allocate(gz_save(IM,1:JM,LM))
-    allocate(phi_save(IM,1:JM,LM))
-    allocate(tmom_save(NMOM,IM,1:JM,LM))
-    allocate(pdsig_save(LM,IM,1:JM))
-
-  end subroutine initialize
-
-  subroutine save_dynamics_state()
-    use resolution, only : IM, JM, LM
-    use model_com, only: U, V, T, P, Q, WM
-    use dynamics, only: gz, phi, pdsig
-    use somtq_com, only : tmom
-
-    U_save = U(:,1:JM,:)
-    V_save = V(:,1:JM,:)
-    T_save = T(:,1:JM,:)
-    P_save = P(:,1:JM)
-    Q_save = Q(:,1:JM,:)
-    WM_save = WM(:,1:JM,:)
-
-    gz_save = gz(:,1:JM,:)
-    phi_save = phi(:,1:JM,:)
-    tmom_save = tmom(:,:,1:JM,:)
-    pdsig_save = pdsig(:,:,1:JM)
-
-  end subroutine save_dynamics_state
-
-  subroutine restore_dynamics_state()
-    use resolution, only : IM, JM, LM
-    use model_com, only: U, V, T, P, Q, WM
-    use dynamics, only: gz, phi, pdsig
-    use somtq_com, only : tmom
-
-    U(:,1:JM,:) = U_save
-    V(:,1:JM,:) = V_save
-    T(:,1:JM,:) = T_save
-    P(:,1:JM)   = P_save
-    Q(:,1:JM,:) = Q_save
-    WM(:,1:JM,:) = WM_save
-
-    gz(:,1:JM,:)   = gz_save
-    phi(:,1:JM,:)  = phi_save
-    tmom(:,:,1:JM,:) = tmom_save
-    pdsig(:,:,1:JM) = pdsig_save
-
-  end subroutine restore_dynamics_state
-
-  subroutine write_dynamics_state(dyn)
-    use resolution, only : IM, JM, LM
-    use model_com, only: U, V, T, P
-    character(len=*), intent(in) :: dyn
-    integer :: unit
-
-    select case(dyn)
-    case ('FV')
-       unit = 21
-    case ('MODELE A')
-       unit = 22
-    case ('MODELE B')
-       unit = 23
-    case ('MODELE C')
-       unit = 24
-    case default
-    end select
-
-    write(unit) 'U',U(:,1:JM,:)
-    write(unit) 'V',V(:,1:JM,:)
-    write(unit) 'T',T(:,1:JM,:)
-    write(unit) 'P',P(:,1:JM)
-
-
-    select case(dyn)
-    case ('FV')
-       unit = 31
-    case ('MODELE A')
-       unit = 32
-    case ('MODELE B')
-       unit = 33
-    case ('MODELE C')
-       unit = 34
-    case default
-    end select
-
-    write(*,*) 'DYNAMICS for ' // trim(dyn)
-    call write_surface_zone('U',U(:,:,1))
-    call write_surface_zone('V',V(:,:,1))
-    call write_surface_zone('T',T(:,:,1))
-    call write_surface_zone('P',P(:,:))
-
-    call write_avg('U',U)
-    call write_avg('V',V)
-    call write_avg('T',T)
-
-  contains
-
-    subroutine write_surface_zone(name, array)
-      character(len=*), intent(in) :: name
-      real*8, intent(in) :: array(:,:)
-      integer :: j
-
-      write(unit,*)' '
-      write(unit,*)'*********************************'
-      write(unit,*)'Surface Zonal Average for ' // trim(name)
-      write(unit,*)'*********************************'
-      do j = 1, JM
-         write(unit,*) j, sum(array(:,j))/IM
-      end do
-      write(unit,*)' '
-    end subroutine write_surface_zone
-
-    subroutine write_avg(name, array)
-      use geom, only: AREAG, dxyp
-      character(len=*), intent(in) :: name
-      real*8, intent(in) :: array(:,:,:)
-      integer :: k
-
-      write(unit,*)' '
-      write(unit,*)'*********************************'
-      write(unit,*)' Level Average for ' // trim(name)
-      write(unit,*)'*********************************'
-      do k = 1, LM
-#ifndef CUBE_GRID   ! dxyp(i,j) in 2d
-         write(unit,*) k, sum(sum(array(:,1:JM,k),1)*dxyp(1:jm))/AREAG
-#endif
-      end do
-      write(unit,*)' '
-    end subroutine write_avg
-
-  end subroutine write_dynamics_state
-
-
-end module dynamics_save
-
 #else
 
 module FV_INTERFACE_MOD
   implicit none
   private
-  public :: DryTemp_GISS, Write_Profile
+  public :: DryTemp_GISS
 
 contains
-
-  Subroutine Write_Profile(arr, name)
-    Use RESOLUTION,    Only: IM, JM, LM
-    Use Domain_decomp_atm, Only: grid, PACK_DATA, AM_I_ROOT
-    Real*8, intent(in) :: arr(:,:,:)
-    character(len=*), intent(in) :: name
-
-    Integer :: k, km
-    Real*8 :: rng(3,LM)
-    Real*8 :: arr_global(IM,JM,size(arr,3))
-    Real*8 :: arr_tmp(grid % I_STRT_HALO:grid % I_STOP_HALO,grid % j_STRT_HALO:grid % J_stop_HALO,size(arr,3))
-
-    arr_tmp(grid % I_STRT:grid % I_STOP,grid % J_strt:grid % J_STOP,:)=arr
-
-    Call PACK_DATA(grid, arr_tmp, arr_global)
-
-    IF (AM_I_ROOT()) Then
-       rng(1,:) = MINVAL(MINVAL(arr_global,DIM=1),DIM=1)
-       rng(2,:) = MAXVAL(MAXVAL(arr_global,DIM=1),DIM=1)
-       rng(3,:) = SUM(SUM(arr_global,DIM=1),DIM=1)/(IM*JM)
-
-       print*,'***********'
-       print*,'stats for ',trim(name)
-       km = size(arr,3)
-
-       Do k = 1, km
-          Write(*,'(a,i4.0,3(f21.9,1x))')'k:',k,rng(:,k)
-       End Do
-       print*,'***********'
-       print*,' '
-    End IF
-
-  End Subroutine Write_Profile
 
   function PKZ_GISS() Result(PKZ)
     USE RESOLUTION, only: IM, LM, LS1
