@@ -481,8 +481,13 @@
       ecp%soil_texture(:) = soil_texture(:)
 
       !Soil porosity and wilting? hygroscopic? point for water stress2 calculation. From soilbgc.f.
-      sandfrac = pp%cellptr%soil_texture(1)
-      clayfrac = pp%cellptr%soil_texture(3)
+!??      sandfrac = pp%cellptr%soil_texture(1)
+!??      clayfrac = pp%cellptr%soil_texture(3)
+! is it supposed to be
+      sandfrac = soil_texture(1)
+      clayfrac = soil_texture(3)
+
+
       watsat =  0.489d0 - 0.00126d0*sandfrac !porosity, saturated soil fraction
       smpsat = -10.d0*(10.d0**(1.88d0-0.0131d0*sandfrac))
       bch = 2.91d0 + 0.159d0*clayfrac
