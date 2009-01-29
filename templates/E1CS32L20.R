@@ -32,7 +32,7 @@ DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global dist
 DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM !MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
-FV_INTERFACE FV_CS_Mod FV_UTILS     ! FV dynamical core wrapper
+FV_UTILS FV_CS_Mod FV_INTERFACE     ! FV dynamical core wrapper
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
