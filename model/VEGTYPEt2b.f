@@ -53,10 +53,8 @@ c***  for fortran arrays
          do J=1,JM
             write(*,*) "ireg=",IREG_glob(I,J)
             do K=1,IREG_glob(I,J)
-                write(*,*) "iland(",K,")=",ILAND_GLOB(I,J,K)
                FUSE_glob(I,J,ILAND_GLOB(I,J,K)+1)=
      &              IUSE_glob(I,J,K)/1000.
-               write(*,*) FUSE_glob(I,J,ILAND_GLOB(I,J,K)+1)
             enddo
          enddo
       enddo
@@ -75,6 +73,14 @@ c***  for fortran arrays
          write(3200) TITLE_VEG_TYPE,FUSE_glob(:,:,iveg+1)
       enddo
 
+c***  Check that fractions at a particular cell add up to 1
+      if (any(abs(sum(FUSE_glob,3)-1.0) .gt. 0.001)) then 
+         write(6,*) "Warning veg. fractions at cell:",i,j,
+     &        "do not add up to 1. Difference is more than 1 per mil"
+      endif
+
+c      write(6,*) sum(FUSE_glob,3)
+ 
       close(unit=3200)
 
       end program vegtypet2b
