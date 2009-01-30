@@ -6274,11 +6274,13 @@ cddd      End If
    !     print*, 'load_cap_config: ', IM, JM, LM, NP_X, NP_Y
  
          call openunit(config_file, iunit, qbin=.false., qold=.false.)
-         write(iunit,*)'IM:  ', IM
-         write(iunit,*)'JM:  ', JM
-         write(iunit,*)'LM:  ', LM
-         write(iunit,*)'NX:  ', NP_X
-         write(iunit,*)'NY:  ', NP_Y
+         if(am_i_root()) then
+           write(iunit,*)'IM:  ', IM
+           write(iunit,*)'JM:  ', JM
+           write(iunit,*)'LM:  ', LM
+           write(iunit,*)'NX:  ', NP_X
+           write(iunit,*)'NY:  ', NP_Y
+         endif
          call closeUnit(iunit)
 
          Call ESMF_VMGetGlobal(vm, rc)
