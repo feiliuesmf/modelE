@@ -44,6 +44,7 @@
       PUBLIC :: READT_PARALLEL
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITEI8_PARALLEL
+      PUBLIC :: DREAD8_PARALLEL,DWRITE8_PARALLEL
 
       INTERFACE DREAD_PARALLEL
         MODULE PROCEDURE DREAD_PARALLEL_2D
@@ -67,6 +68,14 @@
       interface WRITEI8_PARALLEL
         module procedure WRITEI8_PARALLEL_3D
       end interface
+
+      INTERFACE DREAD8_PARALLEL
+        MODULE PROCEDURE DREAD8_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE DWRITE8_PARALLEL
+        MODULE PROCEDURE DWRITE8_PARALLEL_3D
+      END INTERFACE
 
       contains
 
@@ -170,6 +179,39 @@ C**** convert from real*4 to real*8
       end if
       return
       END SUBROUTINE DREAD_PARALLEL_3D
+
+      SUBROUTINE DREAD8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR)
+!@sum DREAD_PARALLEL  read real*8 avar(im,jm,:) from disk
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME    !@var NAME name of file being read
+      REAL*8, INTENT(OUT) :: AVAR(:,:,:)       !@var  AVAR array to be read
+      real*8, allocatable :: aglob(:,:,:,:) !@var AGLOB real*8 array for read/scatter
+      INTEGER :: IERR
+
+      If (AM_I_ROOT()) then
+         allocate(
+     &       AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%ntiles)   )
+         READ (IUNIT,IOSTAT=IERR) AGLOB
+      EndIf
+
+      call unpack_data(grd_dum,aglob,avar)
+      
+      if (AM_I_ROOT()) then
+         deallocate (aglob)
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            call stop_model('DREAD8_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
+      return
+      END SUBROUTINE DREAD8_PARALLEL_3D
 
       SUBROUTINE MREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,M,AVAR)
 !@sum MREAD_PARALLEL  Parallel version of UTILDBL.f:MREAD for (im,jm) arrays
@@ -359,9 +401,9 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER(len=*), INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      CHARACTER(len=*), INTENT(IN)  :: NAME   !@var NAME name of file being written
       REAL*8,       INTENT(IN) :: buf(:,:,:)  !@var  buf real*8 array
-      INTEGER,      INTENT(IN)  :: it       !@var  it iteration
+      INTEGER,      INTENT(IN)  :: it         !@var  it integer to be written
       REAL*8, dimension(:,:,:,:), allocatable :: buf_glob
       INTEGER :: IERR
 
@@ -384,5 +426,36 @@ C****  convert from real*4 to real*8
       end if
 
       END SUBROUTINE WRITEI8_PARALLEL_3D
+
+      SUBROUTINE DWRITE8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf)
+!@sum DWRITE8_PARALLEL  Write real*8 buf(im,jm,:) to disk as real*8
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME   !@var NAME name of file being written
+      REAL*8,       INTENT(IN) :: buf(:,:,:)  !@var  buf real*8 array
+      REAL*8, dimension(:,:,:,:), allocatable :: buf_glob
+      INTEGER :: IERR
+
+      if(am_i_root()) then
+        allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3),
+     &       grd_dum%ntiles))
+      endif
+      call pack_data(grd_dum,buf,buf_glob)
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) buf_glob
+        deallocate(buf_glob)
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('DWRITE8_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE DWRITE8_PARALLEL_3D
 
       end module pario_fbsa
