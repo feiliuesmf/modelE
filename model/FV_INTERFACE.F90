@@ -457,14 +457,14 @@ contains
        fv % PE_old   = EdgePressure_GISS()
     case (extend_run:)
        ! input couplings are in a file somewhere and already read in
-       if (AM_I_ROOT()) call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
+       call openunit(TENDENCIES_FILE, iunit, qbin=.true.,qold=.true.)
        call readArr(iunit, fv % U_old)
        call readArr(iunit, fv % V_old)
        call readArr(iunit, fv % dPT_old)
        call readArr(iunit, fv % PE_old)
        call readArr(iunit, fv % dT_old)
+       call closeunit(iunit)
        if (AM_I_ROOT()) then 
-         call closeunit(iunit)
          call system('rm ' // TENDENCIES_FILE ) ! clean up
        end if
        call compute_tendencies(fv)
@@ -475,12 +475,10 @@ contains
   contains
 
     subroutine readArr(iunit, arr)
-      use resolution, only: IM, JM
-      use domain_decomp_1d, only: grid, unpack_data, get
+      use domain_decomp_atm, only: grid, dread8_parallel, get
       integer, intent(in) :: iunit
       real*8, intent(out) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
-      real*8, allocatable :: globalArr(:,:,:)
       integer :: I_0, I_1, j_0, j_1
       integer :: i_0h, i_1h
       integer :: j_0h, j_1h
@@ -488,15 +486,13 @@ contains
       Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
            & i_strt_halo = i_0h, i_stop_halo = i_1h, &
            & j_strt_halo = j_0h, j_stop_halo = j_1h)
-      allocate(globalArr(IM,JM,size(arr,3)))
+
       allocate(padArr(i_0h:i_1h,j_0h:j_1h, size(arr,3)))
 
-      if (AM_I_ROOT()) read(iunit) globalArr
-      call unpack_data(grid, globalArr, padArr)
+      call dread8_parallel(grid, iunit, nameunit(iunit), padArr)
       arr(:,:,:) = padArr(I_0:I_1,j_0:j_1,:)
 
       deallocate(padArr)
-      deallocate(globalArr)
 
     end subroutine readArr
 
@@ -695,7 +691,7 @@ contains
     integer :: iunit
     character(len=*), intent(in) :: fv_dfname
 
-    if (AM_I_ROOT()) call openunit(trim(fv_dfname) , iunit, qbin=.true.)
+    call openunit(trim(fv_dfname) , iunit, qbin=.true.)
 
     call saveArr(iunit, fv % U_old)
     call saveArr(iunit, fv % V_old)
@@ -703,17 +699,15 @@ contains
     call saveArr(iunit, fv % PE_old)
     call saveArr(iunit, fv % dT_old)
 
-    if (AM_I_ROOT()) call closeunit(iunit)
+    call closeunit(iunit)
 
   contains
 
     subroutine saveArr(iunit, arr)
-      use resolution, only: IM, JM
-      use domain_decomp_1d, only: grid, pack_data, get
+      use domain_decomp_atm, only: grid, dwrite8_parallel, get
       integer, intent(in) :: iunit
       real*8, intent(in) :: arr(:,:,:)
       real*8, allocatable :: padArr(:,:,:)
-      real*8, allocatable :: globalArr(:,:,:)
       integer :: I_0, I_1, j_0, j_1
       integer :: i_0h, i_1h
       integer :: j_0h, j_1h
@@ -721,15 +715,12 @@ contains
       Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
            & i_strt_halo = i_0h, i_stop_halo = i_1h, &
            & j_strt_halo = j_0h, j_stop_halo = j_1h)
-      allocate(globalArr(IM,JM,size(arr,3)))
       allocate(padArr(i_0h:i_1h,j_0h:j_1h, size(arr,3)))
 
       padArr(I_0:I_1,j_0:j_1,:) = arr(:,:,:)
-      call pack_data(grid, padArr, globalArr)
-      if (AM_I_ROOT()) write(iunit) globalArr
+      call dwrite8_parallel(grid, iunit, nameunit(iunit), padArr)
 
       deallocate(padArr)
-      deallocate(globalArr)
 
     end subroutine saveArr
 
@@ -1469,7 +1460,7 @@ contains
   !--------------------------------------------------------------------
   Subroutine regrid_B_to_D(u_b, v_b, u_d, v_d)
     USE RESOLUTION, only: IM, JM, LM
-    Use Domain_decomp_atm, only: grid, get
+    Use Domain_decomp_1d, only: grid, get
     Implicit None
     Real*8, intent(in) :: U_b(:,grid % j_strt_halo:,:)
     Real*8, intent(in) :: V_b(:,grid % j_strt_halo:,:)
