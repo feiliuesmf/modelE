@@ -1935,10 +1935,10 @@ C**** MUST be before other init routines
 C**** Initialise some modules before finalising Land/LI mask
 C**** Initialize ice
       CALL init_ice(iniOCEAN,istart)
+
 C**** Initialize lake variables (including river directions)
-#ifndef CUBE_GRID
       CALL init_LAKES(inilake,istart)
-#endif
+
 C**** Initialize ocean variables
 C****  KOCEAN = 1 => ocean heat transports/max. mixed layer depths
 C****  KOCEAN = 0 => RSI/MSI factor

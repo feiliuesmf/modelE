@@ -468,6 +468,8 @@ c***      Type (ESMF_HaloDirection) :: direction
       I_1H = grid%I_STOP_HALO
       iwrap = I_0H == I_0
 
+#ifndef CUBE_GRID
+
 C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
@@ -812,6 +814,11 @@ C****
         END DO
       END DO
 
+C**** assume that at the start GHY is in balance with LAKES
+      SVFLAKE = FLAKE
+
+#endif /* NOT CUBE_GRID */
+
 C**** Set conservation diagnostics for Lake mass and energy
       CONPT=CONPT0
       CONPT(4)="PREC+LAT M"
@@ -822,9 +829,6 @@ C**** Set conservation diagnostics for Lake mass and energy
       QCON=(/ F, F, F, T, T, F, F, T, T, F, F/)
       CALL SET_CON(QCON,CONPT,"LAK ENRG","(10**3 J/M^2)   ",
      *     "(10**-3 W/M^2)  ",1d-3,1d3,icon_LKE)
-
-C**** assume that at the start GHY is in balance with LAKES
-      SVFLAKE = FLAKE
 
       RETURN
 C****
