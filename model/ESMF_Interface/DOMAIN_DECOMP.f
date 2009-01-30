@@ -139,7 +139,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
       PUBLIC :: BACKSPACE_PARALLEL
       PUBLIC :: REWIND_PARALLEL
       PUBLIC :: SKIP_PARALLEL
-      PUBLIC :: DREAD_PARALLEL,DREAD8_PARALLEL
+      PUBLIC :: DREAD_PARALLEL,DREAD8_PARALLEL,DWRITE8_PARALLEL
       PUBLIC :: MREAD_PARALLEL
       PUBLIC :: READT_PARALLEL,WRITET_PARALLEL
       PUBLIC :: READT8_PARALLEL,READT8_COLUMN,WRITET8_COLUMN
@@ -264,6 +264,10 @@ c        MODULE PROCEDURE SUMXPE_5D
 c        MODULE PROCEDURE DREAD_PARALLEL_2D
         MODULE PROCEDURE DREAD8_PARALLEL_3D
       END INTERFACE
+
+      interface DWRITE8_PARALLEL
+        module procedure DWRITE8_PARALLEL_3D
+      end interface
 
       INTERFACE MREAD_PARALLEL
         MODULE PROCEDURE MREAD_PARALLEL_2D
@@ -2988,6 +2992,40 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       end if
 
       END SUBROUTINE WRITEI8_PARALLEL_3D
+
+      SUBROUTINE DWRITE8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf)
+!@sum DWRITE8_PARALLEL  Writes real*8 (im,jm,:) arrays as real*8 on disk
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
+      REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
+      REAL*8, dimension (:,:,:), allocatable :: buf_glob ! global array written to disk
+      INTEGER :: IERR
+
+      if(am_i_root()) allocate(
+     &     buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3)))
+#ifdef USE_MPI
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
+#else
+      buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
+     &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
+#endif
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=IERR) buf_glob
+        deallocate(buf_glob)
+         If (IERR==0) Then
+            WRITE(6,*) "Wrote to file ",TRIM(NAME)
+            RETURN
+         Else
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            call stop_model('DWRITE8_PARALLEL: WRITE ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE DWRITE8_PARALLEL_3D
 
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)
