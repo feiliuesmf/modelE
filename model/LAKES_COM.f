@@ -168,3 +168,58 @@ c            GO TO 10
  10   IOERR=1
       RETURN
       END SUBROUTINE io_lakes
+
+#ifdef NEW_IO
+      subroutine def_rsf_lakes(fid)
+!@sum  def_rsf_lakes defines lake array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use lakes_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,mldlk,'mldlk(dist_im,dist_jm)')
+      call defvar(grid,fid,mwl,'mwl(dist_im,dist_jm)')
+      call defvar(grid,fid,tlake,'tlake(dist_im,dist_jm)')
+      call defvar(grid,fid,gml,'gml(dist_im,dist_jm)')
+      call defvar(grid,fid,flake,'flake(dist_im,dist_jm)')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,trlake,'trlake(ntm,d2,dist_im,dist_jm)')
+#endif
+      return
+      end subroutine def_rsf_lakes
+
+      subroutine new_io_lakes(fid,iaction)
+!@sum  new_io_lakes read/write lake arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use lakes_com
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'mldlk', mldlk)
+        call write_dist_data(grid, fid, 'mwl',   mwl)
+        call write_dist_data(grid, fid, 'tlake', tlake)
+        call write_dist_data(grid, fid, 'gml',   gml)
+        call write_dist_data(grid, fid, 'flake', flake)
+#ifdef TRACERS_WATER
+        call write_dist_data(grid, fid, 'trlake', trlake, jdim=4)
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'mldlk', mldlk)
+        call read_dist_data(grid, fid, 'mwl',   mwl)
+        call read_dist_data(grid, fid, 'tlake', tlake)
+        call read_dist_data(grid, fid, 'gml',   gml)
+        call read_dist_data(grid, fid, 'flake', flake)
+#ifdef TRACERS_WATER
+        call read_dist_data(grid, fid, 'trlake', trlake, jdim=4)
+#endif
+      end select
+      return
+      end subroutine new_io_lakes
+#endif /* NEW_IO */

@@ -301,6 +301,145 @@
       RETURN
       END SUBROUTINE io_bldat
 
+#ifdef NEW_IO
+      subroutine def_rsf_pbl(fid)
+!@sum  def_rsf_pbl defines pbl array structures in restart files
+!@auth M. Kelley
+!@ver  beta
+      use pblcom
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      character(len=29) :: dimstr
+      dimstr='(npbl,nstype,dist_im,dist_jm)'
+      call defvar(grid,fid,uabl,'uabl'//dimstr)
+      call defvar(grid,fid,vabl,'vabl'//dimstr)
+      call defvar(grid,fid,tabl,'tabl'//dimstr)
+      call defvar(grid,fid,qabl,'qabl'//dimstr)
+      call defvar(grid,fid,eabl,'eabl'//dimstr)
+      dimstr='(nstype,dist_im,dist_jm)'
+      call defvar(grid,fid,cmgs,'cmgs'//dimstr)
+      call defvar(grid,fid,chgs,'chgs'//dimstr)
+      call defvar(grid,fid,cqgs,'cqgs'//dimstr)
+      call defvar(grid,fid,ipbl,'ipbl'//dimstr)
+#ifdef TRACERS_ON
+      call defvar(grid,fid,trabl,
+     &     'trabl(npbl,ntm,nstype,dist_im,dist_jm)')
+#endif
+      return
+      end subroutine def_rsf_pbl
+
+      subroutine new_io_pbl(fid,iaction)
+!@sum  new_io_pbl read/write pbl arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use pblcom
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'uabl', uabl, jdim=4)
+        call write_dist_data(grid, fid, 'vabl', vabl, jdim=4)
+        call write_dist_data(grid, fid, 'tabl', tabl, jdim=4)
+        call write_dist_data(grid, fid, 'qabl', qabl, jdim=4)
+        call write_dist_data(grid, fid, 'eabl', eabl, jdim=4)
+        call write_dist_data(grid, fid, 'cmgs', cmgs, jdim=3)
+        call write_dist_data(grid, fid, 'chgs', chgs, jdim=3)
+        call write_dist_data(grid, fid, 'cqgs', cqgs, jdim=3)
+        call write_dist_data(grid, fid, 'ipbl', ipbl, jdim=3)
+#ifdef TRACERS_ON
+        call write_dist_data(grid, fid, 'trabl', trabl, jdim=5)
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'uabl', uabl, jdim=4)
+        call read_dist_data(grid, fid, 'vabl', vabl, jdim=4)
+        call read_dist_data(grid, fid, 'tabl', tabl, jdim=4)
+        call read_dist_data(grid, fid, 'qabl', qabl, jdim=4)
+        call read_dist_data(grid, fid, 'eabl', eabl, jdim=4)
+        call read_dist_data(grid, fid, 'cmgs', cmgs, jdim=3)
+        call read_dist_data(grid, fid, 'chgs', chgs, jdim=3)
+        call read_dist_data(grid, fid, 'cqgs', cqgs, jdim=3)
+        call read_dist_data(grid, fid, 'ipbl', ipbl, jdim=3)
+#ifdef TRACERS_ON
+        call read_dist_data(grid, fid, 'trabl', trabl, jdim=5)
+#endif
+      end select
+      return
+      end subroutine new_io_pbl
+
+      subroutine def_rsf_bldat(fid)
+!@sum  def_rsf_bldat defines bldat array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use pblcom
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,wsavg,'wsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,tsavg,'tsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,qsavg,'qsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,dclev,'dclev(dist_im,dist_jm)')
+      call defvar(grid,fid,usavg,'usavg(dist_im,dist_jm)')
+      call defvar(grid,fid,vsavg,'vsavg(dist_im,dist_jm)')
+      call defvar(grid,fid,tauavg,'tauavg(dist_im,dist_jm)')
+      call defvar(grid,fid,tgvavg,'tgvavg(dist_im,dist_jm)')
+      call defvar(grid,fid,qgavg,'qgavg(dist_im,dist_jm)')
+      call defvar(grid,fid,ustar_pbl,
+     &     'ustar_pbl(nstype,dist_im,dist_jm)')
+      call defvar(grid,fid,egcm,'egcm(lm,dist_im,dist_jm)')
+      call defvar(grid,fid,w2gcm,'w2gcm(lm,dist_im,dist_jm)')
+      return
+      end subroutine def_rsf_bldat
+
+      subroutine new_io_bldat(fid,iaction)
+!@sum  new_io_bldat read/write bldat arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use pblcom
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'wsavg',wsavg)
+        call write_dist_data(grid,fid,'tsavg',tsavg)
+        call write_dist_data(grid,fid,'qsavg',qsavg)
+        call write_dist_data(grid,fid,'dclev',dclev)
+        call write_dist_data(grid,fid,'usavg',usavg)
+        call write_dist_data(grid,fid,'vsavg',vsavg)
+        call write_dist_data(grid,fid,'tauavg',tauavg)
+        call write_dist_data(grid,fid,'tgvavg',tgvavg)
+        call write_dist_data(grid,fid,'qgavg',qgavg)
+        call write_dist_data(grid,fid,'ustar_pbl',ustar_pbl,jdim=3)
+        call write_dist_data(grid,fid,'egcm',egcm, jdim=3)
+        call write_dist_data(grid,fid,'w2gcm',w2gcm, jdim=3)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid,fid,'wsavg',wsavg)
+        call read_dist_data(grid,fid,'tsavg',tsavg)
+        call read_dist_data(grid,fid,'qsavg',qsavg)
+        call read_dist_data(grid,fid,'dclev',dclev)
+        call read_dist_data(grid,fid,'usavg',usavg)
+        call read_dist_data(grid,fid,'vsavg',vsavg)
+        call read_dist_data(grid,fid,'tauavg',tauavg)
+        call read_dist_data(grid,fid,'tgvavg',tgvavg)
+        call read_dist_data(grid,fid,'qgavg',qgavg)
+        call read_dist_data(grid,fid,'ustar_pbl',ustar_pbl,jdim=3)
+        call read_dist_data(grid,fid,'egcm',egcm, jdim=3)
+        call read_dist_data(grid,fid,'w2gcm',w2gcm, jdim=3)
+      end select
+      return
+      end subroutine new_io_bldat
+#endif /* NEW_IO */
+
       SUBROUTINE ALLOC_PBL_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time

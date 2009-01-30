@@ -270,3 +270,64 @@ C***ESMF: Unpack global arrays into distributed local arrays.
       endif
       end subroutine deallocate_me
       END SUBROUTINE io_clouds
+
+#ifdef NEW_IO
+      subroutine def_rsf_clouds(fid)
+!@sum  def_rsf_clouds defines cloud array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use clouds_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      character(len=20) :: lijstr
+      lijstr='(lm,dist_im,dist_jm)'
+      call defvar(grid,fid,ttold,'ttold'//lijstr)
+      call defvar(grid,fid,qtold,'qtold'//lijstr)
+      call defvar(grid,fid,svlhx,'svlhx'//lijstr)
+      call defvar(grid,fid,rhsav,'rhsav'//lijstr)
+      call defvar(grid,fid,cldsav,'cldsav'//lijstr)
+#ifdef CLD_AER_CDNC
+      call defvar(grid,fid,oldnl,'oldnl'//lijstr)
+      call defvar(grid,fid,oldni,'oldni'//lijstr)
+#endif
+      return
+      end subroutine def_rsf_clouds
+
+      subroutine new_io_clouds(fid,iaction)
+!@sum  new_io_clouds read/write cloud arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use clouds_com
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)           ! output to restart file
+        call write_dist_data(grid, fid, 'ttold', ttold, jdim=3)
+        call write_dist_data(grid, fid, 'qtold', qtold, jdim=3)
+        call write_dist_data(grid, fid, 'svlhx', svlhx, jdim=3)
+        call write_dist_data(grid, fid, 'rhsav', rhsav, jdim=3)
+        call write_dist_data(grid, fid, 'cldsav', cldsav, jdim=3)
+#ifdef CLD_AER_CDNC
+        call write_dist_data(grid, fid, 'oldnl', oldnl, jdim=3)
+        call write_dist_data(grid, fid, 'oldni', oldni, jdim=3)
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'ttold', ttold, jdim=3)
+        call read_dist_data(grid, fid, 'qtold', qtold, jdim=3)
+        call read_dist_data(grid, fid, 'svlhx', svlhx, jdim=3)
+        call read_dist_data(grid, fid, 'rhsav', rhsav, jdim=3)
+        call read_dist_data(grid, fid, 'cldsav', cldsav, jdim=3)
+#ifdef CLD_AER_CDNC
+        call read_dist_data(grid, fid, 'oldnl', oldnl, jdim=3)
+        call read_dist_data(grid, fid, 'oldni', oldni, jdim=3)
+#endif
+      end select
+      return
+      end subroutine new_io_clouds
+#endif /* NEW_IO */

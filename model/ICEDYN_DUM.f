@@ -1,8 +1,10 @@
+#include "rundeck_opts.h"
+
       MODULE ICEDYN
       integer :: imic=0
       contains
       subroutine alloc_icedyn(grid)
-      use DOMAIN_DECOMP_1D, only : DIST_GRID
+      use DOMAIN_DECOMP_ATM, only : DIST_GRID
       TYPE (DIST_GRID), INTENT(IN) :: grid
       return
       end subroutine alloc_icedyn
@@ -15,7 +17,7 @@
       real*8,dimension(2) :: icij=0,ticij=0
       contains
       subroutine alloc_icedyn_com(grid)
-      use DOMAIN_DECOMP_1D, only : DIST_GRID
+      use DOMAIN_DECOMP_ATM, only : DIST_GRID
       TYPE (DIST_GRID), INTENT(IN) :: grid
       return
       end subroutine alloc_icedyn_com
@@ -31,15 +33,25 @@
       ENTRY ADVSI
       ENTRY init_icedyn
       ENTRY diag_ICEDYN
+#ifdef NEW_IO
+      entry def_rsf_icedyn
+      entry new_io_icedyn
+      entry def_rsf_icdiag
+      entry new_io_icdiag
+      entry set_ioptrs_iceacc_default
+      entry set_ioptrs_iceacc_sumfiles
+      entry sumfiles_iceacc
+#endif
       RETURN
       END SUBROUTINE ICEDYN_DUM
+
 
       SUBROUTINE DYNSI
 !@sum DYNSI simple coding to estimate ice-ocean friction velocity
 !@auth Gavin Schmidt
       USE CONSTANT, only : rhows
       USE MODEL_COM, only : im,jm,kocean,focean,dtsrc
-      USE DOMAIN_DECOMP_1D, only : grid, get
+      USE DOMAIN_DECOMP_ATM, only : grid, get
       USE GEOM, only : imaxj
       USE SEAICE, only : oi_ustar0
       USE SEAICE_COM, only : rsi

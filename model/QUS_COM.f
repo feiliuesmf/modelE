@@ -95,6 +95,44 @@
 
       END SUBROUTINE io_somtq
 
+#ifdef NEW_IO
+      subroutine def_rsf_somtq(fid)
+!@sum  def_rsf_somtq defines QUS T/Q array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use somtq_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,tmom,'tmom(nmom,dist_im,dist_jm,lm)')
+      call defvar(grid,fid,qmom,'qmom(nmom,dist_im,dist_jm,lm)')
+      return
+      end subroutine def_rsf_somtq
+
+      subroutine new_io_somtq(fid,iaction)
+!@sum  new_io_somtq read/write QUS T/Q arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use somtq_com
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)           ! output to restart file
+        call write_dist_data(grid, fid, 'tmom', tmom, jdim=3)
+        call write_dist_data(grid, fid, 'qmom', qmom, jdim=3)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'tmom', tmom, jdim=3)
+        call read_dist_data(grid, fid, 'qmom', qmom, jdim=3)
+      end select
+      return
+      end subroutine new_io_somtq
+#endif /* NEW_IO */
+
       subroutine tq_zmom_init(t,q,pmid,pedn)
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, ONLY: grid

@@ -878,6 +878,161 @@ C****
 C****
       END SUBROUTINE io_ocdyn
 
+#ifdef NEW_IO
+      subroutine def_rsf_ocean(fid)
+!@sum  def_rsf_ocean defines ocean array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use ocean
+      use straits
+      USE OCEANR_DIM, only : grid=>ogrid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,mo,'mo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,uo,'uo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,vo,'vo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,g0m,'g0m(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gxmo,'gxmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gymo,'gymo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,gzmo,'gzmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,s0m,'s0m(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,sxmo,'sxmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,symo,'symo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,szmo,'szmo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,ogeoz,'ogeoz(dist_imo,dist_jmo)')
+      call defvar(grid,fid,ogeoz_sv,'ogeoz_sv(dist_imo,dist_jmo)')
+c straits arrays
+      call defvar(grid,fid,must,'must(lmo,nmst)')
+      call defvar(grid,fid,g0mst,'g0mst(lmo,nmst)')
+      call defvar(grid,fid,gxmst,'gxmst(lmo,nmst)')
+      call defvar(grid,fid,gzmst,'gzmst(lmo,nmst)')
+      call defvar(grid,fid,s0mst,'s0mst(lmo,nmst)')
+      call defvar(grid,fid,sxmst,'sxmst(lmo,nmst)')
+      call defvar(grid,fid,szmst,'szmst(lmo,nmst)')
+      call defvar(grid,fid,rsist,'rsist(nmst)')
+      call defvar(grid,fid,rsixst,'rsixst(nmst)')
+      call defvar(grid,fid,msist,'msist(two,nmst)')
+      call defvar(grid,fid,hsist,'hsist(lmi,nmst)')
+      call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
+#ifdef TRACERS_OCEAN
+c tracer arrays
+      call defvar(grid,fid,trmo,'trmo(dist_imo,dist_jmo,lmo,ntm)')
+      call defvar(grid,fid,txmo,'txmo(dist_imo,dist_jmo,lmo,ntm)')
+      call defvar(grid,fid,tymo,'tymo(dist_imo,dist_jmo,lmo,ntm)')
+      call defvar(grid,fid,tzmo,'tzmo(dist_imo,dist_jmo,lmo,ntm)')
+c tracer arrays in straits
+      call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntm)')
+      call defvar(grid,fid,txmst,'txmst(lmo,nmst,ntm)')
+      call defvar(grid,fid,tzmst,'tzmst(lmo,nmst,ntm)')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,trsist,'trsist(ntm,lmi,nmst)')
+#endif
+#endif
+      return
+      end subroutine def_rsf_ocean
+
+      subroutine new_io_ocean(fid,iaction)
+!@sum  new_io_ocean read/write ocean arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use ocean
+      use straits
+      USE OCEANR_DIM, only : grid=>ogrid
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'mo',mo)
+        call write_dist_data(grid,fid,'uo',uo)
+        call write_dist_data(grid,fid,'vo',vo)
+        call write_dist_data(grid,fid,'g0m',g0m)
+        call write_dist_data(grid,fid,'gxmo',gxmo)
+        call write_dist_data(grid,fid,'gymo',gymo)
+        call write_dist_data(grid,fid,'gzmo',gzmo)
+        call write_dist_data(grid,fid,'s0m',s0m)
+        call write_dist_data(grid,fid,'sxmo',sxmo)
+        call write_dist_data(grid,fid,'symo',symo)
+        call write_dist_data(grid,fid,'szmo',szmo)
+        call write_dist_data(grid,fid,'ogeoz',ogeoz)
+        call write_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
+c straits arrays
+        call write_data(grid,fid,'must',must)
+        call write_data(grid,fid,'g0mst',g0mst)
+        call write_data(grid,fid,'gxmst',gxmst)
+        call write_data(grid,fid,'gzmst',gzmst)
+        call write_data(grid,fid,'s0mst',s0mst)
+        call write_data(grid,fid,'sxmst',sxmst)
+        call write_data(grid,fid,'szmst',szmst)
+        call write_data(grid,fid,'rsist',rsist)
+        call write_data(grid,fid,'rsixst',rsixst)
+        call write_data(grid,fid,'msist',msist)
+        call write_data(grid,fid,'hsist',hsist)
+        call write_data(grid,fid,'ssist',ssist)
+#ifdef TRACERS_OCEAN
+c tracer arrays
+        call write_dist_data(grid,fid,'trmo',trmo)
+        call write_dist_data(grid,fid,'txmo',txmo)
+        call write_dist_data(grid,fid,'tymo',tymo)
+        call write_dist_data(grid,fid,'tzmo',tzmo)
+c tracer arrays in straits
+        call write_data(grid,fid,'trmst',trmst)
+        call write_data(grid,fid,'txmst',txmst)
+        call write_data(grid,fid,'tzmst',tzmst)
+#ifdef TRACERS_WATER
+        call write_data(grid,fid,'trsist',trsist)
+#endif
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid,fid,'mo',mo)
+        call read_dist_data(grid,fid,'uo',uo)
+        call read_dist_data(grid,fid,'vo',vo)
+        call read_dist_data(grid,fid,'g0m',g0m)
+        call read_dist_data(grid,fid,'gxmo',gxmo)
+        call read_dist_data(grid,fid,'gymo',gymo)
+        call read_dist_data(grid,fid,'gzmo',gzmo)
+        call read_dist_data(grid,fid,'s0m',s0m)
+        call read_dist_data(grid,fid,'sxmo',sxmo)
+        call read_dist_data(grid,fid,'symo',symo)
+        call read_dist_data(grid,fid,'szmo',szmo)
+        call read_dist_data(grid,fid,'ogeoz',ogeoz)
+        call read_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
+c straits arrays
+        call read_data(grid,fid,'must',must,bcast_all=.true.)
+        call read_data(grid,fid,'g0mst',g0mst,bcast_all=.true.)
+        call read_data(grid,fid,'gxmst',gxmst,bcast_all=.true.)
+        call read_data(grid,fid,'gzmst',gzmst,bcast_all=.true.)
+        call read_data(grid,fid,'s0mst',s0mst,bcast_all=.true.)
+        call read_data(grid,fid,'sxmst',sxmst,bcast_all=.true.)
+        call read_data(grid,fid,'szmst',szmst,bcast_all=.true.)
+        call read_data(grid,fid,'rsist',rsist,bcast_all=.true.)
+        call read_data(grid,fid,'rsixst',rsixst,bcast_all=.true.)
+        call read_data(grid,fid,'msist',msist,bcast_all=.true.)
+        call read_data(grid,fid,'hsist',hsist,bcast_all=.true.)
+        call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
+#ifdef TRACERS_OCEAN
+c tracer arrays
+        call read_dist_data(grid,fid,'trmo',trmo)
+        call read_dist_data(grid,fid,'txmo',txmo)
+        call read_dist_data(grid,fid,'tymo',tymo)
+        call read_dist_data(grid,fid,'tzmo',tzmo)
+c tracer arrays in straits
+        call read_data(grid,fid,'trmst',trmst,bcast_all=.true.)
+        call read_data(grid,fid,'txmst',txmst,bcast_all=.true.)
+        call read_data(grid,fid,'tzmst',tzmst,bcast_all=.true.)
+#ifdef TRACERS_WATER
+        call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
+#endif
+#endif
+      end select
+      return
+      end subroutine new_io_ocean
+#endif /* NEW_IO */
+
       SUBROUTINE CHECKO_serial(SUBR)
 !@sum  CHECKO Checks whether Ocean variables are reasonable (serial version)
 !@auth Original Development Team

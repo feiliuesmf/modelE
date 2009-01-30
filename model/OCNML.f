@@ -101,6 +101,67 @@ c***        Z1O(:,J_0:J_1) = Z1O_glob(:,J_0:J_1)
 C****
       END SUBROUTINE io_ocean
 
+#ifdef NEW_IO
+      subroutine def_rsf_ocean(fid)
+!@sum  def_rsf_ocean defines ocean array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use static_ocean
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,tocean,'tocean(d3,dist_im,dist_jm)')
+      call defvar(grid,fid,z1o,'z1o(dist_im,dist_jm)')
+      return
+      end subroutine def_rsf_ocean
+
+      subroutine new_io_ocean(fid,iaction)
+!@sum  new_io_ocean read/write ocean arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use static_ocean
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'tocean', tocean, jdim=3)
+        call write_dist_data(grid, fid, 'z1o', z1o)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'tocean', tocean, jdim=3)
+        call read_dist_data(grid, fid, 'z1o', z1o)
+      end select
+      return
+      end subroutine new_io_ocean
+
+c
+c the following are dummy routines
+c
+      subroutine def_rsf_ocdiag(fid)
+      implicit none
+      integer fid
+      return
+      end subroutine def_rsf_ocdiag
+      subroutine new_io_ocdiag(fid,iaction)
+      implicit none
+      integer fid,iaction
+      return
+      end subroutine new_io_ocdiag
+      subroutine set_ioptrs_ocnacc_default
+      return
+      end subroutine set_ioptrs_ocnacc_default
+      subroutine set_ioptrs_ocnacc_sumfiles
+      return
+      end subroutine set_ioptrs_ocnacc_sumfiles
+      subroutine sumfiles_ocnacc
+      return
+      end subroutine sumfiles_ocnacc
+#endif /* NEW_IO */
+
       SUBROUTINE conserv_OCE(OCEANE)
 !@sum  conserv_OCE calculates ocean energy for Qflux ocean
 !@auth Gavin Schmidt

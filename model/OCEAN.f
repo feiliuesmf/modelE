@@ -779,7 +779,7 @@ C**** if starting from AIC/GIC files need additional read for ocean
       if (istart.le.2) then
 #ifdef CUBE_GRID
         fid = par_open(grid,'GIC','read')
-        call par_io_ocean (fid,ioread)
+        call new_io_ocean (fid,ioread)
         call par_close(grid,fid)
 #else
         call openunit("GIC",iu_GIC,.true.,.true.)

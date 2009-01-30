@@ -1518,3 +1518,358 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       end subroutine set_zzarea
 c*
 
+#ifdef NEW_IO
+      subroutine def_rsf_acc(fid,r4_on_disk)
+!@sum  def_rsf_acc defines accumulation array structure in restart/acc files
+!@auth M. Kelley
+!@ver  beta
+      use model_com, only : idacc
+      use diag_com, only : monacc,
+     &     aj=>aj_ioptr,aij=>aij_ioptr,
+     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,ajk=>ajk_ioptr,
+     &     consrv=>consrv_ioptr,
+     &     ail=>ail_ioptr,aijk=>aijk_ioptr,aregj=>aregj_ioptr,
+     &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
+     &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
+     &     energy=>energy_ioptr,wave=>wave_ioptr,
+     &     aisccp=>aisccp_ioptr
+#ifndef NO_HDIURN
+      use diag_com, only :  hdiurn=>hdiurn_ioptr
+#endif
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      use diag_com, only : name_ij
+      implicit none
+      integer fid   !@var fid file id
+      logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
+
+      call defvar(grid,fid,idacc,'monacc(twelve)')
+      call defvar(grid,fid,idacc,'idacc(nsampl)')
+      call defvar(grid,fid,tdiurn,'tdiurn(dist_im,dist_jm,ktd)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,oa,'oa(dist_im,dist_jm,koa)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,aij,'aij(dist_im,dist_jm,kaij)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,ail,'ail(dist_im,dist_jm,lm,kail)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,aijk,'aijk(dist_im,dist_jm,lm,kaijk)',
+     &     r4_on_disk=r4_on_disk)
+
+#ifndef CUBE_GRID
+      call defvar(grid,fid,aj,'aj(dist_jm,kaj,ntype)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,aregj,'aregj(nreg,dist_jm,kaj)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,ajl,'ajl(dist_jm,lm,kajl)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,asjl,'asjl(dist_jm,lm_req,kasjl)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,ajk,'ajk(dist_jm,lm,kajk)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,consrv,'consrv(dist_jm,kcon)',
+     &     r4_on_disk=r4_on_disk)
+#endif
+
+      call defvar(grid,fid,energy,'energy(nehist,hist_days)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,speca,
+     &     'speca(imh_plus_1,kspeca,nspher)',r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,atpe,'atpe(ktpe,nhemi)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,wave,
+     &     'wave(re_and_im,max12hr_sequ,nwav_dag,kwp)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,aisccp,'aisccp(ntau,npres,nisccp)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,adiurn,
+     &     'adiurn(ndiuvar,ndiupt,hr_in_day)',r4_on_disk=r4_on_disk)
+#ifndef NO_HDIURN
+      call defvar(grid,fid,hdiurn,
+     &     'hdiurn(ndiuvar,ndiupt,hr_in_month)',r4_on_disk=r4_on_disk)
+#endif
+
+      return
+      end subroutine def_rsf_acc
+
+      subroutine new_io_acc(fid,iaction)
+!@sum  new_io_acc read/write accumulation arrays from/to restart/acc files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite,idacc=>idacc_ioptr
+c in the postprocessing case where arrays are read from disk and summed,
+c these i/o pointers point to temporary arrays.  Otherwise, they point to
+c the instances of the arrays used during normal operation. 
+      use diag_com, only :
+     &     aj=>aj_ioptr,aij=>aij_ioptr,
+     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,ajk=>ajk_ioptr,
+     &     consrv=>consrv_ioptr,
+     &     ail=>ail_ioptr,aijk=>aijk_ioptr,aregj=>aregj_ioptr,
+     &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
+     &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
+     &     energy=>energy_ioptr,wave=>wave_ioptr,
+     &     aisccp=>aisccp_ioptr,
+     &     monacc=>monacc_ioptr
+#ifndef NO_HDIURN
+      use diag_com, only :  hdiurn=>hdiurn_ioptr
+#endif
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+     &     ,write_data,read_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart or acc file
+        call write_data(grid,fid,'monacc',monacc)
+        call write_data(grid,fid,'idacc',idacc)
+        call write_data(grid,fid,'energy',energy)
+        call write_data(grid,fid,'speca',speca)
+        call write_data(grid,fid,'atpe',atpe)
+        call write_data(grid,fid,'wave',wave)
+        call write_data(grid,fid,'aisccp',aisccp)
+        call write_data(grid,fid,'adiurn',adiurn)
+#ifndef NO_HDIURN
+        call write_data(grid,fid,'hdiurn',hdiurn)
+#endif
+        call write_dist_data(grid,fid,'tdiurn',tdiurn)
+        call write_dist_data(grid,fid,'oa',oa)
+        call write_dist_data(grid,fid,'aij',aij)
+        call write_dist_data(grid,fid,'ail',ail)
+        call write_dist_data(grid,fid,'aijk',aijk)
+
+#ifndef CUBE_GRID
+        call write_dist_data(grid,fid,'aj',aj,jdim=1)
+        call write_dist_data(grid,fid,'aregj',aregj,
+     &       jdim=2,no_xdim=.true.)
+        call write_dist_data(grid,fid,'ajl',ajl,jdim=1)
+        call write_dist_data(grid,fid,'asjl',asjl,jdim=1)
+        call write_dist_data(grid,fid,'ajk',ajk,jdim=1)
+        call write_dist_data(grid,fid,'consrv',consrv,jdim=1)
+#endif
+
+      case (ioread)            ! input from restart or acc file
+c for which scalars is bcast_all=.true. necessary?
+        call read_data(grid,fid,'monacc',monacc,bcast_all=.true.)
+        call read_data(grid,fid,'idacc',idacc,bcast_all=.true.)
+        call read_data(grid,fid,'energy',energy,bcast_all=.true.)
+        call read_data(grid,fid,'speca',speca,bcast_all=.true.)
+        call read_data(grid,fid,'atpe',atpe,bcast_all=.true.)
+        call read_data(grid,fid,'wave',wave,bcast_all=.true.)
+        call read_data(grid,fid,'aisccp',aisccp,bcast_all=.true.)
+        call read_data(grid,fid,'adiurn',adiurn,bcast_all=.true.)
+#ifndef NO_HDIURN
+        call read_data(grid,fid,'hdiurn',hdiurn,bcast_all=.true.)
+#endif
+        call read_dist_data(grid,fid,'tdiurn',tdiurn)
+        call read_dist_data(grid,fid,'oa',oa)
+        call read_dist_data(grid,fid,'aij',aij)
+        call read_dist_data(grid,fid,'ail',ail)
+        call read_dist_data(grid,fid,'aijk',aijk)
+
+#ifndef CUBE_GRID
+        call read_dist_data(grid,fid,'aj',aj,jdim=1)
+        call read_dist_data(grid,fid,'aregj',aregj,
+     &       jdim=2,no_xdim=.true.)
+        call read_dist_data(grid,fid,'ajl',ajl,jdim=1)
+        call read_dist_data(grid,fid,'asjl',asjl,jdim=1)
+        call read_dist_data(grid,fid,'ajk',ajk,jdim=1)
+        call read_dist_data(grid,fid,'consrv',consrv,jdim=1)
+#endif
+
+      end select
+      return
+      end subroutine new_io_acc
+
+      subroutine def_rsf_longacc(fid,r4_on_disk)
+!@sum  def_rsf_longacc defines accumulation array structure in restart/acc files
+!@auth M. Kelley
+!@ver  beta
+      use diag_com, only : tsfrez=>tsfrez_ioptr,keyct,keynr
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid           !@var fid file id
+      logical :: r4_on_disk !@var r4_on_disk if true, real*8 stored as real*4
+      call defvar(grid,fid,keyct,'keyct')
+      call defvar(grid,fid,keynr,'keynr(nkeynr,nkeymo)')
+      call defvar(grid,fid,tsfrez,'tsfrez(dist_im,dist_jm,ktsf)',
+     &     r4_on_disk=r4_on_disk)
+      return
+      end subroutine def_rsf_longacc
+
+      subroutine new_io_longacc(fid,iaction)
+!@sum  new_io_longacc read/write accumulation arrays from/to restart+acc files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+c in the postprocessing case where arrays are read from disk and summed,
+c these i/o pointers point to temporary arrays.  Otherwise, they point to
+c the instances of the arrays used during normal operation. 
+      use diag_com, only : tsfrez=>tsfrez_ioptr,keyct,keynr
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+     &     ,write_data,read_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart or acc file
+        call write_data(grid,fid,'keyct',keyct)
+        call write_data(grid,fid,'keynr',keynr)
+        call write_dist_data(grid,fid,'tsfrez',tsfrez)
+      case (ioread)            ! input from restart or acc file
+c for which scalars is bcast_all=.true. necessary?
+        call read_data(grid,fid,'keyct',keyct,bcast_all=.true.)
+        call read_data(grid,fid,'keynr',keynr,bcast_all=.true.)
+        call read_dist_data(grid,fid,'tsfrez',tsfrez)
+      end select
+      return
+      end subroutine new_io_longacc
+
+      subroutine set_ioptrs_atmacc_default
+c point i/o pointers for diagnostic accumlations to the
+c instances of the arrays used during normal operation. 
+      use diag_com
+      implicit none
+      energy_ioptr => energy!_loc
+      speca_ioptr  => speca!_loc
+      atpe_ioptr   => atpe!_loc
+      wave_ioptr   => wave!_loc
+      aisccp_ioptr => aisccp!_loc
+      adiurn_ioptr => adiurn!_loc
+#ifndef NO_HDIURN
+      hdiurn_ioptr => hdiurn!_loc
+#endif
+      tdiurn_ioptr => tdiurn!_loc
+      oa_ioptr     => oa!_loc
+      aij_ioptr    => aij_loc
+      ail_ioptr    => ail_loc
+      aijk_ioptr   => aijk_loc
+      aj_ioptr     => aj_loc
+      aregj_ioptr  => aregj_loc
+      ajl_ioptr    => ajl_loc
+      asjl_ioptr   => asjl_loc
+      ajk_ioptr    => ajk_loc
+      consrv_ioptr => consrv_loc
+      tsfrez_ioptr => tsfrez_loc
+      return
+      end subroutine set_ioptrs_atmacc_default
+
+      subroutine set_ioptrs_atmacc_sumfiles
+c point i/o pointers for diagnostic accumlations to temporary
+c arrays that hold data read from disk
+      use diag_com
+      use domain_decomp_atm, only : grid
+      implicit none
+      integer :: j_0h,j_1h,i_0h,i_1h
+
+c
+c allocate arrays (local size) and set i/o pointers
+c
+      if(allocated(aj_fromdisk)) return
+
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+
+      allocate (energy_fromdisk(nehist,hist_days))
+      energy_ioptr => energy_fromdisk
+
+      allocate (speca_fromdisk(imh+1,kspeca,nspher))
+      speca_ioptr => speca_fromdisk
+
+      allocate (atpe_fromdisk(ktpe,nhemi))
+      atpe_ioptr => atpe_fromdisk
+
+      allocate (wave_fromdisk(re_and_im,max12hr_sequ,nwav_dag,kwp))
+      wave_ioptr => wave_fromdisk
+
+      allocate (aisccp_fromdisk(ntau,npres,nisccp))
+      aisccp_ioptr => aisccp_fromdisk
+
+      allocate (adiurn_fromdisk(ndiuvar,ndiupt,hr_in_day))
+      adiurn_ioptr => adiurn_fromdisk
+
+#ifndef NO_HDIURN
+      allocate (hdiurn_fromdisk(ndiuvar,ndiupt,hr_in_month))
+      hdiurn_ioptr => hdiurn_fromdisk
+#endif
+
+      allocate(tdiurn_fromdisk(i_0h:i_1h,j_0h:j_1h,ktd))
+      tdiurn_ioptr => tdiurn_fromdisk
+
+      allocate(oa_fromdisk(i_0h:i_1h,j_0h:j_1h,koa))
+      oa_ioptr => oa_fromdisk
+
+      allocate(aij_fromdisk(i_0h:i_1h,j_0h:j_1h,kaij))
+      aij_ioptr => aij_fromdisk
+
+      allocate(ail_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kail))
+      ail_ioptr => ail_fromdisk
+
+      allocate(aijk_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kaijk))
+      aijk_ioptr => aijk_fromdisk
+
+#ifndef CUBE_GRID
+      allocate(aj_fromdisk(j_0h:j_1h, kaj, ntype))
+      aj_ioptr => aj_fromdisk
+
+      allocate(aregj_fromdisk(nreg,j_0h:j_1h,kaj))
+      aregj_ioptr => aregj_fromdisk
+
+      allocate(ajl_fromdisk(j_0h:j_1h, lm, kajl))
+      ajl_ioptr => ajl_fromdisk
+
+      allocate(asjl_fromdisk(j_0h:j_1h,lm_req,kasjl))
+      asjl_ioptr => asjl_fromdisk
+
+      allocate(ajk_fromdisk(j_0h:j_1h,lm,kajk))
+      ajk_ioptr => ajk_fromdisk
+
+      allocate(consrv_fromdisk(j_0h:j_1h, kcon))
+      consrv_ioptr => consrv_fromdisk
+#endif
+
+      allocate(tsfrez_fromdisk(i_0h:i_1h,j_0h:j_1h,ktsf))
+      tsfrez_ioptr => tsfrez_fromdisk
+
+      return
+      end subroutine set_ioptrs_atmacc_sumfiles
+
+      subroutine sumfiles_atmacc
+c increment diagnostic accumlations with the data that was
+c read from disk and stored in the _fromdisk arrays.
+      use diag_com
+      implicit none
+
+      energy = energy + energy_fromdisk
+      speca  = speca  + speca_fromdisk
+      atpe   = atpe   + atpe_fromdisk
+      wave   = wave   + wave_fromdisk
+      aisccp = aisccp + aisccp_fromdisk
+      adiurn = adiurn + adiurn_fromdisk
+#ifndef NO_HDIURN
+      hdiurn = hdiurn + hdiurn_fromdisk
+#endif
+
+      tdiurn = tdiurn + tdiurn_fromdisk
+      oa     = oa     + oa_fromdisk
+
+      aij_loc    = aij_loc    + aij_fromdisk
+      ail_loc    = ail_loc    + ail_fromdisk
+      aijk_loc   = aijk_loc   + aijk_fromdisk
+
+#ifndef CUBE_GRID
+      aj_loc     = aj_loc     + aj_fromdisk
+      aregj_loc  = aregj_loc  + aregj_fromdisk
+      ajl_loc    = ajl_loc    + ajl_fromdisk
+      asjl_loc   = asjl_loc   + asjl_fromdisk
+      ajk_loc    = ajk_loc    + ajk_fromdisk
+      consrv_loc = consrv_loc + consrv_fromdisk
+#endif
+
+      return
+      end subroutine sumfiles_atmacc
+#endif /* NEW_IO */

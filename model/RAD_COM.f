@@ -613,3 +613,150 @@ C**** Local variables initialised in init_RAD
       endif
       end subroutine freemem
       END SUBROUTINE io_rad
+
+#ifdef NEW_IO
+      subroutine def_rsf_rad(fid)
+!@sum  def_rsf_rad defines radiation array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use rad_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+
+      call defvar(grid,fid,s0,'s0')
+      call defvar(grid,fid,rqt,'rqt(lm_req,dist_im,dist_jm)')
+      call defvar(grid,fid,kliq,'kliq(lm,four,dist_im,dist_jm)')
+      call defvar(grid,fid,srhr,'srhr(zero_to_lm,dist_im,dist_jm)')
+      call defvar(grid,fid,trhr,'trhr(zero_to_lm,dist_im,dist_jm)')
+      call defvar(grid,fid,trsurf,'trsurf(nstype,dist_im,dist_jm)')
+      call defvar(grid,fid,fsf,'fsf(nstype,dist_im,dist_jm)')
+      call defvar(grid,fid,fsrdir,'fsrdir(dist_im,dist_jm)')
+      call defvar(grid,fid,srvissurf,'srvissurf(dist_im,dist_jm)')
+      call defvar(grid,fid,srdn,'srdn(dist_im,dist_jm)')
+      call defvar(grid,fid,cfrac,'cfrac(dist_im,dist_jm)')
+      call defvar(grid,fid,salb,'salb(dist_im,dist_jm)')
+      call defvar(grid,fid,fsrdif,'fsrdif(dist_im,dist_jm)')
+      call defvar(grid,fid,dirnir,'dirnir(dist_im,dist_jm)')
+      call defvar(grid,fid,difnir,'difnir(dist_im,dist_jm)')
+      call defvar(grid,fid,rcld,'rcld(lm,dist_im,dist_jm)')
+#ifdef TRACERS_ON
+#ifdef TRACERS_SPECIAL_Shindell
+      call defvar(grid,fid,o3_tracer_save,
+     &     'o3_tracer_save(lm,dist_im,dist_jm)')
+      call defvar(grid,fid,rad_to_chem,
+     &     'rad_to_chem(five,lm,dist_im,dist_jm)')
+#endif
+#ifdef TRACERS_DUST
+      call defvar(grid,fid,srnflb_save,
+     &     'srnflb_save(dist_im,dist_jm,lm)')
+      call defvar(grid,fid,trnflb_save,
+     &     'trnflb_save(dist_im,dist_jm,lm)')
+#endif
+      call defvar(grid,fid,ttausv_save,
+     &     'ttausv_save(dist_im,dist_jm,ntm,lm)')
+      call defvar(grid,fid,ttausv_cs_save,
+     &     'ttausv_cs_save(dist_im,dist_jm,ntm,lm)')
+#endif
+#ifdef HTAP_LIKE_DIAGS
+      call defvar(grid,fid,ttausv_sum,
+     &     'ttausv_sum(dist_im,dist_jm,ntm)')
+      call defvar(grid,fid,ttausv_count,'ttausv_count')
+#endif
+      return
+      end subroutine def_rsf_rad
+
+      subroutine new_io_rad(fid,iaction)
+!@sum  new_io_rad read/write radiation arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+#ifdef TRACERS_ON
+      USE tracer_com , only : ntm
+#endif
+      use rad_com
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_data(grid, fid,'s0', s0)
+        call write_dist_data(grid, fid,'rqt',  rqt, jdim=3)
+        call write_dist_data(grid, fid,'kliq', kliq, jdim=4)
+        call write_dist_data(grid, fid,'srhr', srhr, jdim=3)
+        call write_dist_data(grid, fid,'trhr', trhr, jdim=3)
+        call write_dist_data(grid, fid,'trsurf', trsurf, jdim=3)
+        call write_dist_data(grid, fid,'fsf',  fsf, jdim=3)
+        call write_dist_data(grid, fid,'salb', salb)
+        call write_dist_data(grid, fid,'fsrdir', fsrdir)
+        call write_dist_data(grid, fid,'srvissurf', srvissurf)
+        call write_dist_data(grid, fid,'fsrdif', fsrdif)
+        call write_dist_data(grid, fid,'dirnir', dirnir)
+        call write_dist_data(grid, fid,'difnir', difnir)
+        call write_dist_data(grid, fid,'srdn',   srdn)
+        call write_dist_data(grid, fid,'cfrac',  cfrac)
+        call write_dist_data(grid, fid,'rcld', rcld, jdim=3)
+#ifdef TRACERS_SPECIAL_Shindell
+        call write_dist_data(grid,fid,
+     &       'o3_tracer_save', o3_tracer_save, jdim=3)
+        call write_dist_data(grid,fid,
+     &       'rad_to_chem', rad_to_chem, jdim=4)
+#endif
+#ifdef TRACERS_DUST
+        call write_dist_data(grid,fid,'srnflb_save',srnflb_save)
+        call write_dist_data(grid,fid,'trnflb_save',trnflb_save)
+#endif
+#ifdef TRACERS_ON
+        call write_dist_data(grid,fid,'ttausv_save',ttausv_save)
+        call write_dist_data(grid,fid,'ttausv_cs_save',
+     &       ttausv_cs_save)
+#endif
+#ifdef HTAP_LIKE_DIAGS
+        call write_data(grid, fid,'ttausv_count',ttausv_count)
+        call write_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
+#endif
+      case (ioread)
+        call read_data(grid, fid,'s0', s0, bcast_all=.true.)
+        call read_dist_data(grid, fid,'rqt',  rqt, jdim=3)
+        call read_dist_data(grid, fid,'kliq', kliq, jdim=4)
+        call read_dist_data(grid, fid,'srhr', srhr, jdim=3)
+        call read_dist_data(grid, fid,'trhr', trhr, jdim=3)
+        call read_dist_data(grid, fid,'trsurf', trsurf, jdim=3)
+        call read_dist_data(grid, fid,'fsf',  fsf, jdim=3)
+        call read_dist_data(grid, fid,'salb', salb)
+        call read_dist_data(grid, fid,'fsrdir', fsrdir)
+        call read_dist_data(grid, fid,'srvissurf', srvissurf)
+        call read_dist_data(grid, fid,'fsrdif', fsrdif)
+        call read_dist_data(grid, fid,'dirnir', dirnir)
+        call read_dist_data(grid, fid,'difnir', difnir)
+        call read_dist_data(grid, fid,'srdn',   srdn)
+        call read_dist_data(grid, fid,'cfrac',  cfrac)
+        call read_dist_data(grid, fid,'rcld', rcld, jdim=3)
+#ifdef TRACERS_SPECIAL_Shindell
+        call read_dist_data(grid,fid,
+     &       'o3_tracer_save', o3_tracer_save, jdim=3)
+        call read_dist_data(grid,fid,
+     &       'rad_to_chem', rad_to_chem, jdim=4)
+#endif
+#ifdef TRACERS_DUST
+        call read_dist_data(grid,fid,'srnflb_save',srnflb_save)
+        call read_dist_data(grid,fid,'trnflb_save',trnflb_save)
+#endif
+#ifdef TRACERS_ON
+        call read_dist_data(grid,fid,'ttausv_save',ttausv_save)
+        call read_dist_data(grid,fid,'ttausv_cs_save',
+     &       ttausv_cs_save)
+#endif
+#ifdef HTAP_LIKE_DIAGS
+        call read_data(grid, fid,'ttausv_count',ttausv_count,
+     &       bcast_all=.true.)
+        call read_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
+#endif
+      end select
+      return
+      end subroutine new_io_rad
+#endif /* NEW_IO */

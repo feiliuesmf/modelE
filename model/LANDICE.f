@@ -444,3 +444,97 @@ C********* Load data into distributed arrays
       END SUBROUTINE io_landice
 
 
+#ifdef NEW_IO
+      subroutine def_rsf_landice(fid)
+!@sum  def_rsf_landice defines landice array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use landice_com
+      use landice
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm)')
+      call defvar(grid,fid,tlandi,'tlandi(d2,dist_im,dist_jm)')
+      call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
+      call defvar(grid,fid,edwnimp,'edwnimp(dist_im,dist_jm)')
+      call defvar(grid,fid,accpda,'accpda')
+      call defvar(grid,fid,eaccpda,'eaccpda')
+      call defvar(grid,fid,accpdg,'accpdg')
+      call defvar(grid,fid,eaccpdg,'eaccpdg')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,trsnowli,
+     &     'trsnowli(ntm,dist_im,dist_jm)')
+      call defvar(grid,fid,trlndi,'trlndi(ntm,dist_im,dist_jm)')
+      call defvar(grid,fid,trdwnimp,
+     &     'trdwnimp(ntm,dist_im,dist_jm)')
+#ifdef TRACERS_OCEAN
+      call defvar(grid,fid,traccpda,'traccpda(ntm)')
+      call defvar(grid,fid,traccpdg,'traccpdg(ntm)')
+#endif
+#endif
+      return
+      end subroutine def_rsf_landice
+
+      subroutine new_io_landice(fid,iaction)
+!@sum  new_io_landice read/write landice arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      use landice_com
+      use landice
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'snowli',snowli)
+        call write_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
+        call write_dist_data(grid,fid,'mdwnimp',mdwnimp)
+        call write_dist_data(grid,fid,'edwnimp',edwnimp)
+        call write_data(grid,fid,'accpda',accpda)
+        call write_data(grid,fid,'eaccpda',eaccpda)
+        call write_data(grid,fid,'accpdg',accpdg)
+        call write_data(grid,fid,'eaccpdg',eaccpdg)
+#ifdef TRACERS_WATER
+        call write_dist_data(grid,fid,'trsnowli',trsnowli,jdim=3)
+        call write_dist_data(grid,fid,'trlndi',trlndi,jdim=3)
+        call write_dist_data(grid,fid,'trdwnimp',trdwnimp,jdim=3)
+#ifdef TRACERS_OCEAN
+        call write_data(grid,fid,'traccpda',traccpda)
+        call write_data(grid,fid,'traccpdg',traccpdg)
+#endif
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid,fid,'snowli',snowli)
+        call read_dist_data(grid,fid,'tlandi',tlandi,jdim=3)
+c set some defaults for quantities which may not be in the
+c restart file
+        mdwnimp(:,:) = 0.; edwnimp(:,:) = 0.
+        accpda = 0.; eaccpda = 0.
+        accpdg = 0.; eaccpdg = 0.
+        call read_dist_data(grid,fid,'mdwnimp',mdwnimp)
+        call read_dist_data(grid,fid,'edwnimp',edwnimp)
+        call read_data(grid,fid,'accpda',accpda,bcast_all=.true.)
+        call read_data(grid,fid,'eaccpda',eaccpda,bcast_all=.true.)
+        call read_data(grid,fid,'accpdg',accpdg,bcast_all=.true.)
+        call read_data(grid,fid,'eaccpdg',eaccpdg,bcast_all=.true.)
+#ifdef TRACERS_WATER
+        call read_dist_data(grid,fid,'trsnowli',trsnowli,jdim=3)
+        call read_dist_data(grid,fid,'trlndi',trlndi,jdim=3)
+        call read_dist_data(grid,fid,'trdwnimp',trdwnimp,jdim=3)
+#ifdef TRACERS_OCEAN
+        call read_data(grid,fid,'traccpda',traccpda,
+     &       bcast_all=.true.)
+        call read_data(grid,fid,'traccpdg',traccpdg,
+     &       bcast_all=.true.)
+#endif
+#endif
+      end select
+      return
+      end subroutine new_io_landice
+#endif /* NEW_IO */

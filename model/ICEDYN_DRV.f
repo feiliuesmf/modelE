@@ -336,6 +336,109 @@ C**** accumulate diagnostics
 C****
       END SUBROUTINE io_icdiag
 
+#ifdef NEW_IO
+      subroutine def_rsf_icedyn(fid)
+!@sum  def_rsf_icedyn defines ice dynam array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      USE ICEDYN, only : grid=>grid_MIC
+      use icedyn_com
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,rsix,'rsix(dist_imic,dist_jmic)')
+      call defvar(grid,fid,rsiy,'rsiy(dist_imic,dist_jmic)')
+      call defvar(grid,fid,usi,'usi(dist_imic,dist_jmic)')
+      call defvar(grid,fid,vsi,'vsi(dist_imic,dist_jmic)')
+      return
+      end subroutine def_rsf_icedyn
+
+      subroutine new_io_icedyn(fid,iaction)
+!@sum  new_io_icedyn read/write ice dynam arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      USE ICEDYN, only : grid=>grid_MIC
+      use icedyn_com
+      use model_com, only : ioread,iowrite
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)           ! output to restart file
+        call write_dist_data(grid, fid, 'rsix', rsix)
+        call write_dist_data(grid, fid, 'rsiy', rsiy)
+        call write_dist_data(grid, fid, 'usi', usi)
+        call write_dist_data(grid, fid, 'vsi', vsi)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'rsix', rsix)
+        call read_dist_data(grid, fid, 'rsiy', rsiy)
+        call read_dist_data(grid, fid, 'usi', usi)
+        call read_dist_data(grid, fid, 'vsi', vsi)
+      end select
+      return      
+      end subroutine new_io_icedyn
+
+      subroutine def_rsf_icdiag(fid,r4_on_disk)
+!@sum  def_rsf_icdiag defines ice diag array structure in restart/acc files
+!@auth M. Kelley
+!@ver  beta
+      USE ICEDYN, only : grid=>grid_MIC
+      use icedyn
+      use icedyn_com
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      logical :: r4_on_disk !@var r4_on_disk if true, real*8 stored as real*4
+      call defvar(grid,fid,icij,'icij(dist_imic,dist_jmic,kicij)',
+     &     r4_on_disk=r4_on_disk)
+      return
+      end subroutine def_rsf_icdiag
+
+      subroutine new_io_icdiag(fid,iaction)
+!@sum  new_io_icdiag read/write ice diag arrays from/to restart+acc files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      USE ICEDYN, only : grid=>grid_MIC
+      use icedyn_com
+      use model_com, only : ioread,iowrite
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)           ! output to restart or acc file
+        call write_dist_data(grid, fid, 'icij', icij)
+      case (ioread)            ! input from restart or acc file
+        call read_dist_data(grid, fid, 'icij', icij)
+      end select
+      return      
+      end subroutine new_io_icdiag
+
+      subroutine set_ioptrs_iceacc_default
+c point i/o pointers for diagnostic accumlations to the
+c instances of the arrays used during normal operation. 
+c temporarily empty.
+      return
+      end subroutine set_ioptrs_iceacc_default
+
+      subroutine set_ioptrs_iceacc_sumfiles
+c point i/o pointers for diagnostic accumlations to temporary
+c arrays that hold data read from disk.
+c temporarily empty.
+      return
+      end subroutine set_ioptrs_iceacc_sumfiles
+
+      subroutine sumfiles_iceacc
+c increment diagnostic accumlations with the data that was
+c read from disk and stored in the _fromdisk arrays.
+c temporarily empty.
+      return
+      end subroutine sumfiles_iceacc
+
+#endif /* NEW_IO */
+
+
       SUBROUTINE reset_icdiag
 !@sum reset_icdiag resets ice dynamic diagnostic arrays
 !@auth Gavin Schmidt

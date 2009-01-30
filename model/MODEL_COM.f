@@ -631,6 +631,66 @@ C**** keep track of min/max time over the combined diagnostic period
       end subroutine freemem
       END SUBROUTINE io_model
 
+#ifdef NEW_IO
+      subroutine def_rsf_model(fid)
+!@sum  def_rsf_model defines U,V,T,P,Q,WM array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use model_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      character(len=20) :: ijlstr
+      ijlstr='(dist_im,dist_jm,lm)'
+      call defvar(grid,fid,u,'u'//ijlstr)
+      call defvar(grid,fid,v,'v'//ijlstr)
+      call defvar(grid,fid,t,'t'//ijlstr)
+      call defvar(grid,fid,q,'q'//ijlstr)
+      call defvar(grid,fid,wm,'wm'//ijlstr)
+      call defvar(grid,fid,p,'p(dist_im,dist_jm)')
+#ifdef BLK_2MOM
+      call defvar(grid,fid,wmice,'wmice'//ijlstr)
+#endif
+      return
+      end subroutine def_rsf_model
+
+      subroutine new_io_model(fid,iaction)
+!@sum  new_io_model read/write U,V,T,P,Q,WM arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com
+      use domain_decomp_atm, only: grid
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'u', u)
+        call write_dist_data(grid, fid, 'v', v)
+        call write_dist_data(grid, fid, 't', t)
+        call write_dist_data(grid, fid, 'p', p)
+        call write_dist_data(grid, fid, 'q', q)
+        call write_dist_data(grid, fid, 'wm', wm)
+#ifdef BLK_2MOM
+        call write_dist_data(grid, fid, 'wmice', wmice)
+#endif
+      case (ioread)             ! input from restart file
+        call read_dist_data(grid, fid, 'u', u)
+        call read_dist_data(grid, fid, 'v', v)
+        call read_dist_data(grid, fid, 't', t)
+        call read_dist_data(grid, fid, 'p', p)
+        call read_dist_data(grid, fid, 'q', q)
+        call read_dist_data(grid, fid, 'wm', wm)
+#ifdef BLK_2MOM
+        call read_dist_data(grid, fid, 'wmice', wmice)
+#endif
+      end select
+      return
+      end subroutine new_io_model
+#endif /* NEW_IO */
+
       subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt

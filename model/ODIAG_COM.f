@@ -240,6 +240,143 @@ C**** accumulate diagnostics
 C****
       END SUBROUTINE io_ocdiag
 
+#ifdef NEW_IO
+      subroutine def_rsf_ocdiag(fid,r4_on_disk)
+!@sum  def_rsf_ocdiag defines ocean diag array structure in restart+acc files
+!@auth M. Kelley
+!@ver  beta
+      use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_loc
+#ifdef TRACERS_OCEAN
+      use odiag, only : tlnst,toijl=>toijl_loc
+#endif
+      USE OCEANR_DIM, only : grid=>ogrid
+      use pario, only : defvar
+      implicit none
+      integer fid            !@var fid file id
+      logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
+      call defvar(grid,fid,oij,'oij(dist_imo,dist_jmo,koij)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,oijl,
+     &     'oijl(dist_imo,dist_jmo,lmo,koijl)',r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,ol,'ol(lmo,kol)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,olnst,'olnst(lmo,nmst,kolnst)',
+     &     r4_on_disk=r4_on_disk)
+#ifdef TRACERS_OCEAN
+      call defvar(grid,fid,toijl,
+     &     'toijl(dist_imo,dist_jmo,lmo,ktoijl,ntm)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntm)',
+     &     r4_on_disk=r4_on_disk)
+#endif
+      return
+      end subroutine def_rsf_ocdiag
+
+      subroutine new_io_ocdiag(fid,iaction)
+!@sum  new_io_ocdiag read/write ocean arrays from/to restart+acc files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      USE OCEANR_DIM, only : grid=>ogrid
+c in the postprocessing case where arrays are read from disk and summed,
+c these i/o pointers point to temporary arrays.  Otherwise, they point to
+c the instances of the arrays used during normal operation. 
+      use odiag, only : ol=>ol_ioptr,olnst=>olnst_ioptr,
+     &     oij=>oij_ioptr,oijl=>oijl_ioptr
+#ifdef TRACERS_OCEAN
+      use odiag, only : tlnst=>tlnst_ioptr,toijl=>toijl_ioptr
+#endif
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart or acc file
+        call write_dist_data(grid,fid,'oij',oij)
+        call write_dist_data(grid,fid,'oijl',oijl)
+        call write_data(grid,fid,'ol',ol)
+c straits arrays
+        call write_data(grid,fid,'olnst',olnst)
+#ifdef TRACERS_OCEAN
+        call write_dist_data(grid,fid,'toijl',toijl)
+        call write_data(grid,fid,'tlnst',tlnst)
+#endif
+      case (ioread)            ! input from restart or acc file
+        call read_dist_data(grid,fid,'oij',oij)
+        call read_dist_data(grid,fid,'oijl',oijl)
+        call read_data(grid,fid,'ol',ol,bcast_all=.true.)
+c straits arrays
+        call read_data(grid,fid,'olnst',olnst,bcast_all=.true.)
+#ifdef TRACERS_OCEAN
+        call read_dist_data(grid,fid,'toijl',toijl)
+        call read_data(grid,fid,'tlnst',tlnst,bcast_all=.true.)
+#endif
+      end select
+      return
+      end subroutine new_io_ocdiag
+
+      subroutine set_ioptrs_ocnacc_default
+c point i/o pointers for diagnostic accumlations to the
+c instances of the arrays used during normal operation. 
+      use odiag
+      implicit none
+      oij_ioptr    => oij_loc
+      oijl_ioptr   => oijl_loc
+      ol_ioptr     => ol
+      olnst_ioptr  => olnst
+#ifdef TRACERS_OCEAN
+      toijl_ioptr  => toijl_loc
+      tlnst_ioptr  => tlnst
+#endif
+      return
+      end subroutine set_ioptrs_ocnacc_default
+
+      subroutine set_ioptrs_ocnacc_sumfiles
+c point i/o pointers for diagnostic accumlations to temporary
+c arrays that hold data read from disk
+      use odiag
+      USE OCEANR_DIM, only : grid=>ogrid
+      implicit none
+      integer :: j_0h,j_1h
+c
+c allocate arrays (local size) and set i/o pointers
+c
+      if(allocated(oij_fromdisk)) return
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+      allocate(oij_fromdisk(im,j_0h:j_1h,koij))
+      oij_ioptr => oij_fromdisk
+      allocate(oijl_fromdisk(im,j_0h:j_1h,lmo,koijl))
+      oijl_ioptr => oijl_fromdisk
+      ol_ioptr     => ol_fromdisk
+      olnst_ioptr  => olnst_fromdisk
+#ifdef TRACERS_OCEAN
+      allocate(toijl_fromdisk(im,j_0h:j_1h,lmo,ktoijl,ntm))
+      toijl_ioptr  => toijl_fromdisk
+      tlnst_ioptr  => tlnst_fromdisk
+#endif
+      return
+      end subroutine set_ioptrs_ocnacc_sumfiles
+
+      subroutine sumfiles_ocnacc
+c increment diagnostic accumlations with the data that was
+c read from disk and stored in the _fromdisk arrays.
+      use odiag
+      implicit none
+      oij_loc    = oij_loc    + oij_fromdisk
+      oijl_loc   = oijl_loc   + oijl_fromdisk
+      ol         = ol         + ol_fromdisk
+      olnst      = olnst      + olnst_fromdisk
+#ifdef TRACERS_OCEAN
+      toijl_loc  = toijl_loc  + toijl_fromdisk
+      tlnst      = tlnst      + tlnst_fromdisk
+#endif
+      return
+      end subroutine sumfiles_ocnacc
+
+#endif /* NEW_IO */
+
       SUBROUTINE DIAGCO (M)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt

@@ -655,6 +655,188 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       END SUBROUTINE io_snow
 
+#ifdef NEW_IO
+      subroutine def_rsf_earth(fid)
+!@sum  def_rsf_earth defines earth array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use ghy_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,snowe,'snowe(dist_im,dist_jm)')
+      call defvar(grid,fid,tearth,'tearth(dist_im,dist_jm)')
+      call defvar(grid,fid,wearth,'wearth(dist_im,dist_jm)')
+      call defvar(grid,fid,aiearth,'aiearth(dist_im,dist_jm)')
+      call defvar(grid,fid,evap_max_ij,
+     &     'evap_max_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,fr_sat_ij,
+     &     'fr_sat_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,qg_ij,'qg_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,tsns_ij,'tsns_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,snoage,'snoage(d3,dist_im,dist_jm)')
+      return
+      end subroutine def_rsf_earth
+
+      subroutine new_io_earth(fid,iaction)
+!@sum  new_io_earth read/write earth arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use ghy_com
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'snowe',snowe)
+        call write_dist_data(grid,fid,'tearth',tearth)
+        call write_dist_data(grid,fid,'wearth',wearth)
+        call write_dist_data(grid,fid,'aiearth',aiearth)
+        call write_dist_data(grid,fid,'evap_max_ij',evap_max_ij)
+        call write_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
+        call write_dist_data(grid,fid,'qg_ij',qg_ij)
+        call write_dist_data(grid,fid,'snoage',snoage,jdim=3)
+        call write_dist_data(grid,fid,'tsns_ij',tsns_ij)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid,fid,'snowe',snowe)
+        call read_dist_data(grid,fid,'tearth',tearth)
+        call read_dist_data(grid,fid,'wearth',wearth)
+        call read_dist_data(grid,fid,'aiearth',aiearth)
+        call read_dist_data(grid,fid,'evap_max_ij',evap_max_ij)
+        call read_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
+        call read_dist_data(grid,fid,'qg_ij',qg_ij)
+        call read_dist_data(grid,fid,'snoage',snoage,jdim=3)
+        tsns_ij(:,:) = tearth(:,:) ! default if not in input file
+        call read_dist_data(grid,fid,'tsns_ij',tsns_ij)
+      end select
+      return
+      end subroutine new_io_earth
+
+      subroutine def_rsf_soils(fid)
+!@sum  def_rsf_soils defines soils array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use ghy_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,w_ij,
+     &     'w_ij(zero_to_ngm,ls_nfrac,dist_im,dist_jm)')
+      call defvar(grid,fid,ht_ij,
+     &     'ht_ij(zero_to_ngm,ls_nfrac,dist_im,dist_jm)')
+      call defvar(grid,fid,snowbv,
+     &     'snowbv(ls_nfrac,dist_im,dist_jm)')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,tr_w_ij,
+     &     'tr_w_ij(ntm,zero_to_ngm,ls_nfrac,dist_im,dist_jm)')
+      call defvar(grid,fid,trsnowbv0,
+     &     'trsnowbv0(ntm,bv,dist_im,dist_jm)')
+#endif
+      return
+      end subroutine def_rsf_soils
+
+      subroutine new_io_soils(fid,iaction)
+!@sum  new_io_soils read/write soil arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only: grid
+      use pario, only : write_dist_data,read_dist_data
+      use ghy_com
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid,fid,'w_ij',w_ij,jdim=4)
+        call write_dist_data(grid,fid,'ht_ij',ht_ij,jdim=4)
+        call write_dist_data(grid,fid,'snowbv',snowbv,jdim=3)
+#ifdef TRACERS_WATER
+        call write_dist_data(grid,fid,'tr_w_ij',tr_w_ij,jdim=5)
+        call write_dist_data(grid,fid,'trsnowbv0',trsnowbv0,jdim=4)
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid,fid,'w_ij',w_ij,jdim=4)
+        call read_dist_data(grid,fid,'ht_ij',ht_ij,jdim=4)
+        call read_dist_data(grid,fid,'snowbv',snowbv,jdim=3)
+#ifdef TRACERS_WATER
+        call read_dist_data(grid,fid,'tr_w_ij',tr_w_ij,jdim=5)
+        call read_dist_data(grid,fid,'trsnowbv0',trsnowbv0,jdim=4)
+#endif
+      end select
+      return
+      end subroutine new_io_soils
+
+      subroutine def_rsf_snow(fid)
+!@sum  def_rsf_snow defines snow array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use ghy_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,dzsn_ij,
+     &     'dzsn_ij(nlsn,bv,dist_im,dist_jm)')
+      call defvar(grid,fid,wsn_ij,
+     &     'wsn_ij(nlsn,bv,dist_im,dist_jm)')
+      call defvar(grid,fid,hsn_ij,
+     &     'hsn_ij(nlsn,bv,dist_im,dist_jm)')
+      call defvar(grid,fid,nsn_ij,
+     &     'nsn_ij(bv,dist_im,dist_jm)')
+      call defvar(grid,fid,fr_snow_ij,
+     &     'fr_snow_ij(bv,dist_im,dist_jm)')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,tr_wsn_ij,
+     &     'tr_wsn_ij(ntm,nlsn,bv,dist_im,dist_jm)')
+#endif
+      return
+      end subroutine def_rsf_snow
+
+      subroutine new_io_snow(fid,iaction)
+!@sum  new_io_snow read/write snow arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use ghy_com
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)           ! output to restart file
+        call write_dist_data(grid, fid, 'dzsn_ij', dzsn_ij,jdim=4)
+        call write_dist_data(grid, fid, 'wsn_ij', wsn_ij,jdim=4)
+        call write_dist_data(grid, fid, 'hsn_ij', hsn_ij,jdim=4)
+        call write_dist_data(grid, fid, 'nsn_ij', nsn_ij, jdim=3)
+        call write_dist_data(grid, fid, 'fr_snow_ij',
+     &       fr_snow_ij,jdim=3)
+#ifdef TRACERS_WATER
+        call write_dist_data(grid, fid, 'tr_wsn_ij',
+     &       tr_wsn_ij,jdim=5)
+#endif
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'dzsn_ij', dzsn_ij,jdim=4)
+        call read_dist_data(grid, fid, 'wsn_ij', wsn_ij,jdim=4)
+        call read_dist_data(grid, fid, 'hsn_ij', hsn_ij,jdim=4)
+        call read_dist_data(grid, fid, 'nsn_ij', nsn_ij, jdim=3)
+        call read_dist_data(grid, fid, 'fr_snow_ij',
+     &       fr_snow_ij,jdim=3)
+#ifdef TRACERS_WATER
+        call read_dist_data(grid, fid, 'tr_wsn_ij',
+     &       tr_wsn_ij,jdim=5)
+#endif
+      end select
+      return      
+      end subroutine new_io_snow
+#endif /* NEW_IO */
+
 #ifdef USE_ENT
       subroutine io_veg_related(kunit,iaction,ioerr)
 !@sum  reads and writes data needed to drive vegetation module

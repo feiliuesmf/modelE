@@ -2278,6 +2278,68 @@ C**** albedo calculations
       RETURN
       END SUBROUTINE io_seaice
 
+#ifdef NEW_IO
+      subroutine def_rsf_seaice(fid)
+!@sum  def_rsf_seaice defines seaice array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use seaice_com
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,rsi,'rsi(dist_im,dist_jm)')
+      call defvar(grid,fid,snowi,'snowi(dist_im,dist_jm)')
+      call defvar(grid,fid,msi,'msi(dist_im,dist_jm)')
+      call defvar(grid,fid,pond_melt,'pond_melt(dist_im,dist_jm)')
+      call defvar(grid,fid,flag_dsws,'flag_dsws(dist_im,dist_jm)')
+      call defvar(grid,fid,hsi,'hsi(lmi,dist_im,dist_jm)')
+      call defvar(grid,fid,ssi,'ssi(lmi,dist_im,dist_jm)')
+#ifdef TRACERS_WATER
+      call defvar(grid,fid,trsi,'trsi(ntm,lmi,dist_im,dist_jm)')
+#endif
+      return
+      end subroutine def_rsf_seaice
+
+      subroutine new_io_seaice(fid,iaction)
+!@sum  new_io_seaice read/write seaice arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use seaice_com
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid      !@var fid unit number of read/write
+      integer iaction  !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to standard restart file
+        call write_dist_data(grid, fid, 'rsi', rsi)
+        call write_dist_data(grid, fid, 'snowi', snowi)
+        call write_dist_data(grid, fid, 'msi', msi)
+        call write_dist_data(grid, fid, 'pond_melt', pond_melt)
+        call write_dist_data(grid, fid, 'flag_dsws', flag_dsws)
+        call write_dist_data(grid, fid, 'hsi', hsi, jdim=3)
+        call write_dist_data(grid, fid, 'ssi', ssi, jdim=3)
+#ifdef TRACERS_WATER
+        call write_dist_data(grid, fid, 'trsi', trsi, jdim=4)
+#endif
+      case (ioread)             ! input from restart file
+        call read_dist_data(grid, fid, 'rsi', rsi)
+        call read_dist_data(grid, fid, 'snowi', snowi)
+        call read_dist_data(grid, fid, 'msi', msi)
+        call read_dist_data(grid, fid, 'pond_melt', pond_melt)
+        call read_dist_data(grid, fid, 'flag_dsws', flag_dsws)
+        call read_dist_data(grid, fid, 'hsi', hsi, jdim=3)
+        call read_dist_data(grid, fid, 'ssi', ssi, jdim=3)
+#ifdef TRACERS_WATER
+        call read_dist_data(grid, fid, 'trsi', trsi, jdim=4)
+#endif
+      end select
+      return
+      end subroutine new_io_seaice
+#endif /* NEW_IO */
+
       SUBROUTINE CHECKI(SUBR)
 !@sum  CHECKI Checks whether Ice values are reasonable
 !@auth Original Development Team
