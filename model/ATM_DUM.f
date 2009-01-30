@@ -4,10 +4,12 @@
 
 
       SUBROUTINE conserv_AM(AM)
-      USE MODEL_COM, only : im
       USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
+      am = 0d0
+      return
       end subroutine
 
 
@@ -15,20 +17,22 @@
       USE MODEL_COM, only : im
       USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
+      rke = 0d0
       end subroutine
 
       SUBROUTINE calc_kea_3d(kea)
       USE MODEL_COM, only : im,lm
       USE DOMAIN_DECOMP_ATM, only :  GRID
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: KEA
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: KEA
+      kea = 0d0
       end subroutine
-
 
       subroutine recalc_agrid_uv
       end subroutine
-
 
       subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
       USE MODEL_COM, only : im,jm,lm
