@@ -22,7 +22,8 @@ c         call regridRVR(xll2cs) ! empty for the moment
 c         call regridCROPS(xll2cs)
 c         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
-         call regridGLMELT(xll2cs)
+c         call regridGLMELT(xll2cs)
+         call regridVEGFRAC(xll2cs)
       endif
 c      call regridGIC(xll2cs,dd2d)
 c         call regridAIC(xll2cs,dd2d)
@@ -130,7 +131,7 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       write(*,*) "STATUS",NF_STRERROR(status),"<<"
       status = nf_close(fid)
 
-      deallocate(ttargglob,ones)
+      deallocate(ttargglob,ones,ttargr4)
    
       end subroutine regridTOPO 
 c*
@@ -296,6 +297,62 @@ c     &     convert='big_endian')
       close(iu_VEG)
       
       end subroutine regridVEG
+c*
+
+
+      subroutine read_regrid_write_veg(x2grids,name,iuin)
+      use regrid_com
+      implicit none
+      type(x_2gridsroot), intent(in) :: x2grids
+      character*80, intent(in) :: name
+      integer, intent(in) :: iuin
+      integer :: iuout
+      real*8, allocatable :: tsource(:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:)
+      real*4, allocatable :: tout(:,:,:),data(:,:,:)
+c      real*4 :: vadata(11,4,3)
+      character*80 :: TITLE
+      character*80 :: outunformat
+      integer :: ir,ims,jms,nts,imt,jmt,ntt
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+     &     ims,jms,nts,imt,jmt,ntt
+
+      allocate (tsource(ims,jms,nts),data(ims,jms,nts),
+     &     ttargglob(imt,jmt,ntt),tout(imt,jmt,ntt))
+c     arrsum(imt,jmt,ntt)
+     
+      
+      outunformat=trim(name)//".CS"
+      write(*,*) outunformat
+
+      iuout=20
+
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      do ir=1,10
+         read(unit=iuin) TITLE,data
+         write(*,*) "TITLE, ir",TITLE,ir
+         tsource= data
+         call root_regrid(x2grids,tsource,ttargglob)
+c         arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
+         tout=ttargglob
+         write(unit=iuout) TITLE,tout
+      enddo
+
+      close(iuout) 
+
+      deallocate(tsource,ttargglob,tout,data)
+
+      end subroutine read_regrid_write_veg
 c*
 
 
@@ -494,7 +551,148 @@ c*
       close(iu_GLMELT)
       
       end subroutine regridGLMELT
+c*
 
+
+
+      subroutine read_regrid_write_GLMELT(x2grids,name,iuin)
+      use regrid_com
+      implicit none
+      type(x_2gridsroot), intent(in) :: x2grids
+      character*80, intent(in) :: name
+      integer, intent(in) :: iuin
+      integer :: iuout
+      real*8, allocatable :: tsource(:,:,:,:)
+      real*8, allocatable :: ttargglob(:,:,:)
+      real*4, allocatable :: tout(:,:,:)
+      character*80 :: TITLE(nrecmax),outunformat
+      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,itile,i,j
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+     &     ims,jms,nts,imt,jmt,ntt
+      allocate (tsource(ims,jms,nts,nrecmax),
+     &     ttargglob(imt,jmt,ntt),
+     &     tout(imt,jmt,ntt))
+      tsource(:,:,:,:)=0.0
+
+      call read_recs_1R(tsource,iuin,TITLE,
+     &        maxrec,ims,jms,nts)
+
+      write(*,*) "maxrec",maxrec
+
+      outunformat=trim(name)//".CS"
+
+      write(*,*) outunformat
+
+      iuout=20
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+
+      do ir=1,maxrec
+         call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
+         do itile=1,ntt
+           do i=1,imt
+             do j=1,jmt
+             if (ttargglob(i,j,itile) .le. 0.) then
+               tout(i,j,itile)=0.
+             else
+               tout(i,j,itile)=1.
+             endif
+            enddo
+           enddo
+          enddo
+         write(unit=iuout) TITLE(ir),tout(:,:,:)
+         write(*,*) "TITLE",TITLE(ir)
+      enddo
+
+      close(iuout)
+
+      deallocate(tsource,ttargglob,tout)
+
+      end subroutine read_regrid_write_GLMELT
+c*
+
+
+
+      subroutine regridVEGFRAC(x2grids)
+c
+c     regriding vegetation fraction used by tracers code
+c
+      use regrid_com
+      implicit none
+      include 'netcdf.inc'
+      character*80 :: TITLE(nrecmax),name,oname,TITLEFILE
+      type (x_2gridsroot), intent(inout) :: x2grids
+      real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
+      real*4, allocatable :: ttargr4(:,:,:,:)
+      integer :: iu_VEGFRAC,iu_VEGFRACCS,i,j,k,irec,iunit,imt,jmt,
+     &     ntt,maxrec,status,vid,fid,ir
+
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "imt jmt ntt",imt,jmt,ntt
+
+      allocate( ttargglob(imt,jmt,ntt,nrecmax),
+     &     ttargr4(imt,jmt,ntt,nrecmax),
+     &     ones(imt,jmt,ntt) )
+
+      ttargglob(:,:,:,:) = 0.0
+
+      iu_VEGFRAC=20
+      name="vegtype.global4X5.bin"
+      write(*,*) name
+
+      open( iu_VEGFRAC, FILE=name,FORM='unformatted', STATUS='old')
+
+
+c***  first read file title
+c      read(iu_VEGFRAC) TITLEFILE
+      write(6,*) TITLEFILE
+
+      call read_regrid_4D_1R(x2grids,iu_VEGFRAC,TITLE,ttargglob,maxrec)
+
+c***  
+c***  CONSISTENCY CHECKS: 1) sum(fractions)=1 
+c***  
+
+      ones=sum(ttargglob(1:imt,1:jmt,1:ntt,1:maxrec),4)
+      
+      if (any( abs(ones(1:imt,1:jmt,1:ntt) - 1.0) .gt. 1.d-3 ) ) then 
+         write(*,*) "WARNING FRACTIONS DO NOT ADD UP TO 1 
+     &        EVERYWHERE ON CUBED SPHERE"
+         write(*,*) "ones=",ones
+      endif
+
+      close(iu_VEGFRAC)
+
+      oname=trim(name)//".CS"
+
+      write(*,*) oname
+
+      open( iu_VEGFRACCS, FILE=oname,FORM='unformatted', 
+     &     STATUS='unknown')
+
+      ttargr4=ttargglob
+
+      do ir=1,maxrec
+         write(unit=iu_VEGFRACCS) TITLE(ir), ttargr4(:,:,:,ir)
+      enddo
+
+      close(iu_VEGFRACCS)
+
+      deallocate(ttargglob,ones,ttargr4)
+   
+      end subroutine regridVEGFRAC
+c*
 
 
       subroutine regridGIC(x2grids,dd2d)
@@ -1002,7 +1200,7 @@ c*
 
       do
          read(unit=iuin,END=30) TITLE(irec), data(:,:,:,irec)
-         write(*,*) "TITLE, irec",TITLE(irec),irec
+c         write(*,*) "TITLE, irec",TITLE(irec),irec
          tsource(:,:,:,irec)= data(:,:,:,irec)
          irec=irec+1
       enddo
@@ -1319,60 +1517,6 @@ c         write(*,*) "TOUT>>",tout,"<<<"
       end subroutine read_regrid_write_4D_1R_rmax
 c*
 
-      subroutine read_regrid_write_veg(x2grids,name,iuin)
-      use regrid_com
-      implicit none
-      type(x_2gridsroot), intent(in) :: x2grids
-      character*80, intent(in) :: name
-      integer, intent(in) :: iuin
-      integer :: iuout
-      real*8, allocatable :: tsource(:,:,:)
-      real*8, allocatable :: ttargglob(:,:,:)
-      real*4, allocatable :: tout(:,:,:),data(:,:,:)
-c      real*4 :: vadata(11,4,3)
-      character*80 :: TITLE
-      character*80 :: outunformat
-      integer :: ir,ims,jms,nts,imt,jmt,ntt
-
-      ims=x2grids%imsource
-      jms=x2grids%jmsource
-      nts=x2grids%ntilessource
-      imt=x2grids%imtarget
-      jmt=x2grids%jmtarget
-      ntt=x2grids%ntilestarget
-
-      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
-     &     ims,jms,nts,imt,jmt,ntt
-
-      allocate (tsource(ims,jms,nts),data(ims,jms,nts),
-     &     ttargglob(imt,jmt,ntt),tout(imt,jmt,ntt))
-c     arrsum(imt,jmt,ntt)
-     
-      
-      outunformat=trim(name)//".CS"
-      write(*,*) outunformat
-
-      iuout=20
-
-      open( iuout, FILE=outunformat,
-     &     FORM='unformatted', STATUS="UNKNOWN")
-
-      do ir=1,10
-         read(unit=iuin) TITLE,data
-         write(*,*) "TITLE, ir",TITLE,ir
-         tsource= data
-         call root_regrid(x2grids,tsource,ttargglob)
-c         arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
-         tout=ttargglob
-         write(unit=iuout) TITLE,tout
-      enddo
-
-      close(iuout) 
-
-      deallocate(tsource,ttargglob,tout,data)
-
-      end subroutine read_regrid_write_veg
-c*
 
 
       subroutine read_regrid_4D_1R(x2grids,iuin,TITLE,
@@ -1405,7 +1549,7 @@ c*
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),
      &        ttargglob(:,:,:,ir))
-         write(*,*) "TITLE",TITLE(ir)
+c         write(*,*) "TITLE",TITLE(ir)
       enddo
 
       deallocate(tsource)
@@ -1477,70 +1621,3 @@ c      write(*,*) "TITLE RECS",TITLE(:)
      &     tbig)
 
       end subroutine read_regrid_write_4D_2R
-
-
-
-      subroutine read_regrid_write_GLMELT(x2grids,name,iuin)
-      use regrid_com
-      implicit none
-      type(x_2gridsroot), intent(in) :: x2grids
-      character*80, intent(in) :: name
-      integer, intent(in) :: iuin
-      integer :: iuout
-      real*8, allocatable :: tsource(:,:,:,:)
-      real*8, allocatable :: ttargglob(:,:,:)
-      real*4, allocatable :: tout(:,:,:)
-      character*80 :: TITLE(nrecmax),outunformat
-      integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,itile,i,j
-
-      ims=x2grids%imsource
-      jms=x2grids%jmsource
-      nts=x2grids%ntilessource
-      imt=x2grids%imtarget
-      jmt=x2grids%jmtarget
-      ntt=x2grids%ntilestarget
-
-      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
-     &     ims,jms,nts,imt,jmt,ntt
-      allocate (tsource(ims,jms,nts,nrecmax),
-     &     ttargglob(imt,jmt,ntt),
-     &     tout(imt,jmt,ntt))
-      tsource(:,:,:,:)=0.0
-
-      call read_recs_1R(tsource,iuin,TITLE,
-     &        maxrec,ims,jms,nts)
-
-      write(*,*) "maxrec",maxrec
-
-      outunformat=trim(name)//".CS"
-
-      write(*,*) outunformat
-
-      iuout=20
-      open( iuout, FILE=outunformat,
-     &     FORM='unformatted', STATUS="UNKNOWN")
-
-      do ir=1,maxrec
-         call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
-         do itile=1,ntt
-           do i=1,imt
-             do j=1,jmt
-             if (ttargglob(i,j,itile) .le. 0.) then
-               tout(i,j,itile)=0.
-             else
-               tout(i,j,itile)=1.
-             endif
-            enddo
-           enddo
-          enddo
-         write(unit=iuout) TITLE(ir),tout(:,:,:)
-         write(*,*) "TITLE",TITLE(ir)
-      enddo
-
-      close(iuout)
-
-      deallocate(tsource,ttargglob,tout)
-
-      end subroutine read_regrid_write_GLMELT
-c*
-

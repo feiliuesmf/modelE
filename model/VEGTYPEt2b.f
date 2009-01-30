@@ -62,10 +62,11 @@ c***  for fortran arrays
       
       oname=trim(fname)//".bin"
       write(*,*) oname
-      open(unit=3200, FILE=oname,FORM='unformatted',STATUS='unknown')
-      TITLE="vegetation fractions, 4x5 grid, please add more info here"
 
-      write(3200) TITLE
+      open(unit=3200, FILE=oname,FORM='unformatted',STATUS='unknown')
+
+c      TITLE="vegetation fractions, 4x5 grid, please add more info here"
+c      write(3200) TITLE
 
       do iveg=0,NVEGTYPE-1
          write(vegtype,'(i2)') iveg
