@@ -309,12 +309,12 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      lmtc = lm-nstrtc
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
       if(.not.ifirst .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0) )
      *  go to 550                           !  no need to update frqlos
 
 C**** Create interpolated table for this resolution
-      lmtc = lm-nstrtc
       IF (AM_I_ROOT()) THEN
         if (ifirst ) then
          call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
