@@ -491,8 +491,6 @@ C**** fix roughness length for ocean ice that turned to land ice
           elhx=lhs
         endif
 
-        call recalc_agrid_uv ! is this the best place for this call?
-
         do j=J_0,J_1
           jlat=j
           do i=I_0,imaxj(j)

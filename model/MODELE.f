@@ -1051,7 +1051,7 @@ C****
 #endif
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc
-      USE DYNAMICS, only : pk,pmid,pedn
+      USE DYNAMICS, only : pk,pmid,pedn,ualij,valij
       USE CLOUDS_COM, only : ttold,qtold,svlhx,rhsav,cldsav
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 #ifdef TRACERS_OceanBiology
@@ -1139,12 +1139,10 @@ C****    List of parameters that are disregarded at restarts
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0,I_1
+      INTEGER :: J_0, J_1, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 CCCC      INTEGER :: stdin ! used to read 'I' file
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP  = J_1S,
-     &               J_STRT_HALO= J_0H, J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -1477,49 +1475,27 @@ C**** Derive other data from primary data if necessary - ISTART=1,2
 C****                                                    currently
       IF (ISTART.LE.2) THEN
 
-#ifdef SCM
-        DO J=J_0S,J_1S
-        DO I=1,IM
-          WSAVG(I,J)=SQRT(U(I,J,1)**2+V(I,J,1)**2)
-          USAVG(I,J)=U(I,J,1)
-          VSAVG(I,J)=V(I,J,1)
-        END DO
-        END DO
-#else
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-c in this case, assume input U/V are on the A grid
-        DO J=J_0S,J_1S
+#if defined(SCM) || defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c in these cases, assume input U/V are on the A grid
+        DO J=J_0,J_1
         DO I=I_0,I_1
-          USAVG(I,J)=U(I,J,1)
-          VSAVG(I,J)=V(I,J,1)
-          WSAVG(I,J)=SQRT(USAVG(I,J)**2+VSAVG(I,J)**2)
+          ualij(:,i,j) = u(i,j,:)
+          valij(:,i,j) = v(i,j,:)
         END DO
         END DO
 #else
-         If (HAVE_SOUTH_POLE) THEN
-           WSAVG(1:im,1)=SQRT(U(1,2,1)*U(1,2,1)+V(1,2,1)*V(1,2,1))
-           USAVG(1:im,1)=U(1,2,1)
-           VSAVG(1:im,1)=V(1,2,1)
-         End If
-         If (HAVE_NORTH_POLE) THEN
-           WSAVG(1:im,JM)=SQRT(U(1,JM,1)*U(1,JM,1)+V(1,JM,1)*V(1,JM,1))
-           USAVG(1:im,JM)=U(1,JM,1)
-           VSAVG(1:im,JM)=V(1,JM,1)
-         End If
-         CALL HALO_UPDATE(grid, U)
-         CALL HALO_UPDATE(grid, V)
-        DO J=J_0S,J_1S
-        IM1=IM
-        DO I=1,IM
-          WSAVG(I,J)=.25*SQRT(
-     *         (U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))**2
-     *         +(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))**2)
-          USAVG(I,J)=.25*(U(IM1,J,1)+U(I,J,1)+U(IM1,J+1,1)+U(I,J+1,1))
-          VSAVG(I,J)=.25*(V(IM1,J,1)+V(I,J,1)+V(IM1,J+1,1)+V(I,J+1,1))
-        IM1=I
-        END DO
-        END DO
+c assume input U/V are on the B grid.  Need to calculate A-grid winds.
+        call recalc_agrid_uv
 #endif
+
+        do j=j_0,j_1
+        do i=i_0,i_1
+          usavg(i,j) = ualij(1,i,j)
+          vsavg(i,j) = valij(1,i,j)
+          wsavg(i,j) = sqrt(usavg(i,j)**2 + vsavg(i,j)**2)
+        enddo
+        enddo
+
         CDM=.001d0
 
 #ifdef SCM
@@ -1590,7 +1566,6 @@ C**** Initialize surface friction velocity
         END DO
 C**** INITIALIZE VERTICAL SLOPES OF T,Q
         call tq_zmom_init(t,q,PMID,PEDN)
-#endif
 
       END IF
 
@@ -2122,10 +2097,9 @@ c      USE ATMDYN, only : CALC_AMPK
       INTEGER n
 #endif
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, I_0,I_1
+      INTEGER :: J_0, J_1, I_0,I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
