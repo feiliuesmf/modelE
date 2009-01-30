@@ -81,7 +81,7 @@ GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 VEG=V72X46.1.cor2_no_crops.ext
 CROPS=CROPS_72X46N.cor4.ext       ! veg. fractions, crops history
-SOIL=S4X50093.ext TOPO=Z72X46N.2deg_rfn_20w  ! soil/topography bdy.conds
+SOIL=S4X50093.ext TOPO=Z72X46N.2deghycom ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.RVR.2deghycom_20w
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -115,12 +115,12 @@ BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_72x46.ij.ext
 MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
-latlonij=latlon195x180_20w.4bin    ! lat & lon at each i,j
-hycomtopo=depth195x180_20w.4bin    ! topography used in ocean model
+latlonij=latlon195x180.4bin    ! lat & lon at each i,j
+hycomtopo=depth195x180.4bin    ! topography used in ocean model
 temp_ini=temp195x180x20jan_vhv.txt ! sea surface temperature as initial condition
 salt_ini=salt195x180x20jan_vhv.txt ! salinity as initial condition
 pout_ini=pout195x180x20jan_vhv.txt ! layer pressure as initial condition
-ibasin=ibasin195x180_20w.txt       ! basin mask
+ibasin=ibasin195x180.txt       ! basin mask
 flxa2o=flxa2o195x180.8bin          ! coupler weights for flux from atm to ocean
 taua2o=taua2o195x180.8bin          ! coupler weights for vector from atm to ocean
 ssto2a=ssto2a195x180.8bin          ! coupler weights for sst from ocean to atm
@@ -130,7 +130,7 @@ cososino=cososino195x180.8bin      ! cos/sin of i,j axis angle on ocean grid
 kpar=seawifs_kpar_195x180.tbin     ! monthly/annual seawifs_kpar data
 
 Label and Namelist:
-E1fzhyc (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen version + hycom)
+E1fzhyc (ModelE 4x5, 20 lyrs, 1850 atm/ocn - frozen E1 version + 2deg hycom)
 
 DTFIX=300
 
@@ -199,7 +199,7 @@ DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=480       ! use =480 on halem
+Ndisk=480
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf
@@ -215,15 +215,14 @@ nssw=48
 itest=-1            ! default is -1
 jtest=-1            ! default is -1
 iocnmx=2            ! default is 0
-brntop=0.           ! default is 0.
-brnbot=300.         ! default is 300.
-ocnmx_factor_s=1.   ! default is 1.
-ocnmx_factor_t=1.   ! default is 1.
+brntop=20.          ! default is 0.
+brnbot=200.         ! default is 300.
+jerlv0=1            ! default is 0
 
 &&END_PARAMETERS
 
  &INPUTZ
    YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, ! IYEAR1=YEARI (default) or earlier
-   YEARE=1800,MONTHE=01,DATEE=03,HOURE=00,     KDIAG=13*0,
+   YEARE=1800,MONTHE=01,DATEE=04,HOURE=00,     KDIAG=13*0,
    ISTART=2,IRANDI=0,YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
