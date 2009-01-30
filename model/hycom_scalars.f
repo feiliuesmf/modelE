@@ -28,7 +28,6 @@ c --- 'thkdff' = diffusion velocity (cm/s) for thickness diffusion
 c --- 'veldff' = diffusion velocity (cm/s) for momentum dissipation
 c --- 'temdff' = diffusion velocity (cm/s) for temp/salin. mixing
 c --  'viscos' is nondimensional, used in deformation-dependent viscosity
-c --- 'diapyc' = diapycnal diffusivity times buoyancy freq. (cm**2/s**2)
 c --- 'trcfrq' = number of time steps between tracer transport calculations
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- slip = +1  for free-slip boundary cond., slip = -1  for non-slip cond.
@@ -50,7 +49,7 @@ c
       dimension theta(kdm),salmin(kdm)
       real, public ::
      &     theta,thbase,baclin,batrop,thkdff,veldff,temdff,viscos,
-     .     diapyc,diapyn,vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,
+     .     vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,
      &     acurcy, wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
       integer, public ::       trcfrq,ntracr,nhr,mixfrq
@@ -151,12 +150,9 @@ c --- 'vertmx' = scale velocity for vertical momentum mixing (m/s)
 c     data thkdff/.005/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
       data thkdff/.10/,veldff/.1/,temdff/.02/,viscos/0.3/,vertmx/0./
 c
-c --- 'diapyc' = diapycnal diffusivity (m^2/s)
-c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- 'thkmin' = minimum mixed-layer thickness (m)
 c --- 'acurcy' = permissible roundoff error in column integral calc.
-      data diapyn/3.e-7/,diapyc/1.e-2/
       data h1/98060./,thkmin/5./,acurcy/1.e-11/,botmin/30./
 c
 c --- slip=+1  for free-slip boundary cond., slip=-1  for non-slip cond.
@@ -249,10 +245,17 @@ c
 c --- ocean mixed layer schemes
       integer, public :: iocnmx=0
 c
+c --- initial jerlov water type (1 to 5; 0 to use KPAR)
+      integer, public :: jerlv0=0
+c
 c --- brntop/brnbot:top/bottom of depth interval over which to distribute brine
       real, public :: brntop=0., brnbot=300.
 c
 c --- ocnmx_factor_s/ocnmx_factor_t:factor to reduce difs/dift in mxkprf.f
       real, public :: ocnmx_factor_s=1., ocnmx_factor_t=1.
-
+c
+c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
+c --- 'diapyc' = diapycnal diffusivity (m^2/s)
+      real, public ::  diapyn=3.e-7, diapyc=1.e-4
+c
       end module HYCOM_SCALARS

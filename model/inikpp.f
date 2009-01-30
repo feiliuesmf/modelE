@@ -93,7 +93,7 @@ c
       subroutine initurb
 c
       USE HYCOM_DIM, only : J_0,J_1,isp,ifp,ilp,jchunk
-      USE HYCOM_SCALARS, only : onem
+      USE HYCOM_SCALARS, only : onem, jerlv0
       USE HYCOM_ARRAYS_GLOB, only : latij, depths
       USE KPRF_ARRAYS,   only : jerlov_loc, betard, betabl, redfac
       implicit none

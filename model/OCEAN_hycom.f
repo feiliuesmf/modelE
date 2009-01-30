@@ -24,6 +24,7 @@
       USE HYCOM_SCALARS, only : delt1, salmin
      &  , nstep0, nstep, time0, time, itest, jtest
      &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
+     &  , diapyn, diapyc, jerlv0
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
       USE param
@@ -43,6 +44,9 @@
       call sync_param( "brnbot", brnbot)
       call sync_param( "ocnmx_factor_s", ocnmx_factor_s)
       call sync_param( "ocnmx_factor_t", ocnmx_factor_t)
+      call sync_param( "diapyn", diapyn)
+      call sync_param( "diapyc", diapyc)
+      call sync_param( "jerlv0", jerlv0)
 c
       call geopar(iniOCEAN)
 c

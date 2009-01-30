@@ -4,7 +4,6 @@ c
 c
       data dp00  /   3.0  / ! deep    z-level spacing minimum thickness (m)
       data locsig/ .false./ ! locally-referenced pot. density for stability
-      data jerlv0/   0    / ! initial jerlov water type (1 to 5; 0 to use KPAR) 
       data cb    /   3.e-3/ ! coefficient of quadratic bottom friction  
       data tmljmp/   0.2  / ! equivalent temperature jump across mixed-layer (degC)
       data rigr  /   0.25 / ! PWP:     critical gradient richardson number
