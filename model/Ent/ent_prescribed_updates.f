@@ -371,6 +371,8 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         call litter_cohort(SDAY,
      i       C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &       cop,Clossacc)
+!        write(992,*)C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
+!     &       cop%C_fol,cop%C_froot,cop%C_hw,cop%C_sw,cop%C_croot
       endif
         !*## DEBUG ##*!
 !#ifdef DEBUG

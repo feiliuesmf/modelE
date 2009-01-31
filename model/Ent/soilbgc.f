@@ -152,7 +152,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 *---Step 1a: TEMPERATURE AND MOISTURE CONSTRAINTS ON DECOMP 
 ! TEMPERATURE DEPENDENCE
       !* Original CASA.
-!            bgtemp(:) = (Q10 ** ((Soiltemp(:) - 30.d0) / 10.d0))  !original CASA function -PK
+            bgtemp(:) = (Q10 ** ((Soiltemp(:) - 30.d0) / 10.d0))  !original CASA function -PK
       !* Function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
         !allows for variable Q10 rather than fixed 
 !            bgtemp(:) = 0.56d0+
@@ -165,8 +165,8 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 !     &     0.125d0 + (1.d0-0.125d0)/(30.d0-0.d0)*Soiltemp(:))) !linear, Del Grosso intercept -NK
 !      bgtemp = max(0.d0, min(1.d0,
 !     &     0.d0 + (1.d0-0.d0)/(30.d0-0.d0)*Soiltemp(:))) !linear, zero intercept at freezing - NK
-      bgtemp = max(0.046d0, min(1.d0,
-     &     0.046d0 + (1.d0-0.046d0)/(30.d0-0.d0)*Soiltemp(:))) !linear, log-fitted intercept to original Del Grosso data -NK
+!      bgtemp = max(0.046d0, min(1.d0,
+!     &     0.046d0 + (1.d0-0.046d0)/(30.d0-0.d0)*Soiltemp(:))) !linear, log-fitted intercept to original Del Grosso data -NK
       
       !* S-function fit to Del Grosso. - NK
 !      bgtemp=1.15d0*(1.d0/(1.d0+EXP(-0.14d0*(Soiltemp(:)-17.d0))))
@@ -180,7 +180,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
             smpsat = -10.d0 * ( 10.d0**(1.88d0-
      &           (0.0131d0*sandfrac*100.d0)) )
             bch = 2.91d0 + 0.159d0*(clayfrac*100.d0)
-            watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+            watdry = 0.5d0*watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
             watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
 !! 03/11/21 note: there are no limits on Wlim, except if Soiltemp < 0
 !!Wlim ultimately used to get total C loss per pool,  

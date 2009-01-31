@@ -87,7 +87,7 @@
      &     2.25d0, 0.6d0, 2.8d0, 5.5d0, 50.0d0,0.15d0,1.4d0,2,
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      &     pftype(2,.false., 3,-2030.d0,  .30d0, .10d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
-     &     10.0d0, 1.2d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,0.d0,4, ! Ponca nf and SLA
+     &     11.7d0, 1.2d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,0.d0,4, ! Vaira SLA from adjustment for C_labile.
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      &     pftype(2,.true., 1,-153.d0,  .40d0, .22d0,  1.3d0, !shrub
      &     3.25d0, 0.6d0, 1.0d0, 5.5d0, 57.5d0, 0.15d0,0.32d0,3,
@@ -99,7 +99,7 @@
      &     8.3d0, 0.6d0, 1.2d0, 58.0d0, 50.0d0, 0.2d0,0.093,2, !SLA for Quercus ilex, Mediavilla & Escudero(2003)
      &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0), !late successional
      &     pftype(1,.true., 2,-153.d0,  .50d0, .25d0,  0.9d0, !evergrneedle
-     &     5.9d0, 1.2d0, 4.d0,42.0d0, 80.0d0,0.25d0,0.184d0,1, !SLA for Pinus sylvestris, Pensa and Sellin (2002).SLA-CLM 10. lrage WAS 5.0!!!! 3.0 is test Pinus sylvestris 2-4 years!!!-NYK
+     &     5.9d0, 1.2d0, 4.d0,42.0d0, 80.0d0,0.25d0,0.184d0,1, !SLA for Pinus sylvestris, Pensa and Sellin (2002).SLA-CLM 10. lrage WAS 5.0!!!! Pinus sylvestris 2-4 years!!!-NYK
 !     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 27.14d0, -0.0388d0), !early succ
      &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 22.79d0, -0.0445d0), !late succ
      &     pftype(1,.true., 1, -153.d0,  .60d0, .29d0,  1.1d0, !troprainf

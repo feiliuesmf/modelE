@@ -826,14 +826,31 @@ c$$$      end subroutine senesce_cpools
       subroutine litter_cohort(dt,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc)
+!@sum litter_cohort. Calculates at daily time step litterfall from cohort 
+!@sum     to soil, tissue growth,growth respiration, and updates the following
+!@sum     variables:
+!@sum     cohort: C_lab
+!@sum             C_growth (daily total tissue growth respiration),
+!@sum             senescefrac
+!@sum     patch:  Clossacc
+      !* NOTES:
       !* Determine litter from cohort carbon pools and accumulate litter into
       !* Clossacc array.  
       !* Active pool loss to litter from turnover is replenished by same amount
       !* from C_lab, so no change to standing pools except for C_lab.
+      !* Turnover tissue provides retranslocated carbon back to C_lab.
       !* No litter from sapwood.
       !* Dead pool loss to litter from turnover is replenished by same amount
       !* from C_lab, but without retranslocation. ## MAY WANT TO EXPERIMENT.
+      !* Tissue growth respiration in C_growth is allocated by canopy
+      !* biophysics module to fluxes over the course of the whole (next) day.
       !* After CASA, but called at daily time step. - NYK 7/27/06
+      !* Update cohort pools - SUMMARY *!
+      !C_fol replenished from C_lab: no change
+      !C_froot replenished from C_lab: no change
+      !C_sw =  No litter from sapwood
+      !C_hw replenished from C_lab: no change
+      !C_croot replenished from C_lab: no change
 
       use cohorts, only : calc_CASArootfrac 
       use biophysics, only: Resp_can_growth
@@ -851,12 +868,13 @@ c$$$      end subroutine senesce_cpools
       real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
 !      real*8 :: turnoverdttotal!Total
       real*8 :: loss_leaf, loss_froot, loss_hw,loss_croot, loss_live !g-C/individual
-      real*8 :: dC_fol, dC_froot, dC_hw, dC_sw, dC_croot !g-C/individual
+      real*8 :: dC_fol, dC_froot, dC_hw, dC_sw, dC_croot,dC_lab !g-C/individual
       real*8 :: adj !Adjustment to keep loss less than C_lab
       real*8 :: resp_growth,resp_growth_root !g-C/individ/ms/s
+      real*8 :: resp_turnover, resp_newgrowth !g-C/individ
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
       real*8 :: Csum
-      real*8 :: dC_total
+      real*8 :: dC_total, dClab_dbiomass
       real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
 
       Closs(:,:,:) = 0.d0
@@ -878,39 +896,93 @@ c$$$      end subroutine senesce_cpools
       !* Calculate adjustment factor if loss amount is too large for C_lab.
       loss_leaf = C_fol_old * turnoverdtleaf 
       loss_froot =  C_froot_old * turnoverdtfroot
-      loss_hw = C_hw_old * turnoverdtwood
+
+      !Wood losses:  
+      loss_hw = C_hw_old * turnoverdtwood 
       loss_croot = C_croot_old * turnoverdtwood
       loss_live = loss_leaf + loss_froot
 
-      if ( loss_live .ne. 0.d0 ) then
-        adj = min(1.d0,max(0.d0,(cop%C_lab-EPS)/(loss_live)))
-      else 
-        adj = 0.d0
-      endif
-
-      loss_leaf = adj*loss_leaf
-      loss_froot = adj*loss_froot
+      !* Change in plant tissue pools. *!
       dC_fol = cop%C_fol-C_fol_old
       dC_froot = cop%C_froot - C_froot_old
       dC_hw = cop%C_hw - C_hw_old
       dC_sw = cop%C_sw - C_sw_old
       dC_croot = cop%C_croot - C_croot_old
-      resp_growth_root =  Resp_can_growth(cop%pft,
-     &     loss_froot+loss_croot  !Turnover growth
-     &     +max(0.d0,dC_froot) !New biomass growth
-     &     +max(0.d0,dC_croot), !New biomass growth
-     &     0.d0)
-      resp_growth =  Resp_can_growth(cop%pft,
-     &     loss_leaf+loss_hw  !Turnover growth
-     &     +max(0.d0,dC_fol), !New biomass growth
-     &     0.d0)
-     &     + resp_growth_root !Belowground
 
-      do i=1,N_CASA_LAYERS      !do this over all CASA layers -PK
+      !* Distinguish respiration from turnover vs. from new growth.
+      resp_turnover = 0.16d0*loss_froot + 0.014d0*loss_leaf !Coefficients from Amthor (2000) Table 3
+      resp_newgrowth = 0.16d0*max(0.d0,dC_froot) + 
+     &     0.14d0*(max(0.d0,dC_fol)+max(0.d0,dC_sw))
+!      resp_turnover = Resp_can_growth(cop%pft,
+!     &       loss_leaf+loss_froot,0.d0)
+!      resp_newgrowth = Resp_can_growth(cop%pft,
+!     &     max(0.d0, dC_fol) + max(0.d0,dC_froot)
+!     &     + max(0.d0,dC_sw),0.d0)
 
-        !* Calculate litter from turnover and from senescence*!
-        !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
-        ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
+      !* C_lab required for biomass growth or senescence (not turnover)
+      dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!Growth of new tissue
+     &     + max(0.d0,dC_hw) + max(0.d0,dC_croot) 
+     &     + max(0.d0,dC_sw)
+     &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
+     &     + max(0.d0,-dC_sw))
+
+      !* Growth and retranslocation.
+      !* NOTE: Respiration is distributed over the day by canopy module,
+      !*       so does not decrease C_lab here.
+      dC_lab = 
+     &     - (1-l_fract)*(loss_leaf + loss_froot) !Retranslocated carbon from turnover
+     &     - loss_hw - loss_croot !Transfer to dead tissue pool.
+     &     - dClab_dbiomass         !Growth (new growth or senescence)
+          !- resp_growth             !!! moved -resp_growth to cop%C_growth to distribute over the day
+
+      !* Limit turnover litter if losses and respiration exceed C_lab.*!
+      if (cop%C_lab+dC_lab-resp_turnover-resp_newgrowth.lt.0.d0) then
+        if ((0.5d0*cop%C_lab - dClab_dbiomass-resp_newgrowth).lt.0.d0)
+     &       then
+          adj = 0.d0            !No turnover litter to preserve C_lab for growth.
+                                !C_lab will probably go negative here, but only a short while.
+        else                    !Reduce rate of turnover litter.
+          adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
+     &         ((1-l_fract)*(loss_leaf + loss_froot)
+     &         + loss_hw + loss_croot
+     &         + resp_turnover)
+        endif
+      else
+        adj = 1.d0
+      endif
+
+      !* Adjust turnover losses to accommodate low C_lab. *!
+      loss_leaf = adj*loss_leaf
+      loss_froot = adj*loss_froot
+      loss_hw = adj*loss_hw
+      loss_croot = adj*loss_croot
+
+      !* Recalculate respiration.  Distinguish below- vs. above-ground autotrophic respiration.
+!      resp_growth_root =  Resp_can_growth(cop%pft,
+!     &     loss_froot !+loss_croot  !Turnover growth
+!     &     +max(0.d0,dC_froot) !New biomass growth
+!     &     +max(0.d0,dC_croot), !New biomass growth
+!     &     ,0.d0)
+!      resp_growth =  Resp_can_growth(cop%pft,
+!     &     loss_leaf !+loss_hw  !Turnover growth
+!     &     +max(0.d0,dC_fol)+max(0.d0,dC_sw), !New biomass growth
+!     &     0.d0)
+!     &     + resp_growth_root !Belowground
+      resp_growth_root = 0.16d0 * (  !Coefficient from Amthor (2000) Table 3
+     &     loss_froot           !Turnover growth
+     &     + max(0.d0,dC_froot)) !New biomass growth
+      resp_growth = resp_growth_root + 0.14d0 * !Coefficient from Amthor (2000) Table 3
+     &     ( loss_leaf !Turnover growth    
+     &     +max(0.d0,dC_fol)+max(0.d0,dC_sw)) !New biomass growth
+
+!      write(991,*)  facclim,loss_froot,loss_croot,max(0.d0,dC_froot),
+!     &     max(0.d0,dC_croot), loss_leaf,loss_hw,
+!     &     max(0.d0,dC_fol), max(0.d0,dC_sw) !New biomass growth
+
+      !* Calculate litter from turnover and from senescence*!
+      !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
+      ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
+      do i=1,N_CASA_LAYERS   
         if (i.eq.1) then        !only top CASA layer has leaf and wood litter -PK   
           Closs(CARBON,LEAF,i) = cop%n * (1.d0-l_fract) * (loss_leaf +
      &         max(0.d0,-dC_fol))
@@ -928,7 +1000,6 @@ c$$$      end subroutine senesce_cpools
         Closs(CARBON,FROOT,i) = cop%n * (1.d0-l_fract)
      &       * fracrootCASA(i) 
      &       * (loss_froot + max(0.d0,-dC_froot))
-
       enddo
 
       dC_total = 0.d0
@@ -974,46 +1045,39 @@ c$$$      end subroutine senesce_cpools
      &       + Closs(CARBON,WOOD,i)
       end do                    !loop through CASA layers-->cumul litter per pool per layer -PK
       !print *,"Clossacc",Clossacc(CARBON,:,:)
-      !* Update cohort pools *!
-      !C_fol replenished from C_lab: no change
-      !C_froot replenished from C_lab: no change
-      !C_sw =  No litter from sapwood
-      !C_hw replenished from C_lab: no change
-      !C_croot replenished from C_lab: no change
 
-      !########### HACK ###################################################
+      !################ ###################################################
       !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
       !#### GROWTH RESPIRATION FROM CHANGE IN LAI NEEDS TO BE SAVED AS 
       !#### A RESTART VARIABLE IN ORDER TO SEND THAT FLUX TO THE ATMOSPHERE.
-      !#### SINCE WE DON'T HAVE TIME TO REDO RESTARTS BEFORE AGU,
-      !#### THIS HACK HERE SETS GROWTH RESPIRATION FROM CHANGED LAI TO ZERO.
-!      resp_growth = 0.d0
-!      resp_growth_root = 0.d0
-      !############ END HACK ##############################################
+      !#### Igor has put in code to distribute C_growth over the day.
+      !####################################################################
 
-      cop%C_lab = cop%C_lab - (1.d0-l_fract)*(loss_leaf + loss_froot) 
-     &     - loss_hw - loss_croot ! - resp_growth !!! moved -resp_growth to canopyspitters
-     &     - max(0.d0, dC_fol) - max(0.d0,dC_froot) - max(0.d0,dC_hw)
-     &     - max(0.d0,dC_croot)
-     &     + l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) )
-     &     - dC_sw
-      cop%C_growth = resp_growth*cop%n*1.d-3
+!      write(990,*) cop%C_lab,cop%GPP,cop%R_auto,cop%R_auto,
+!     &     loss_leaf,loss_froot,loss_hw,loss_croot
+      cop%C_lab = cop%C_lab - (1.d0-l_fract)*(loss_leaf + loss_froot) !Turnover
+     &     - loss_hw - loss_croot
+     &     - max(0.d0, dC_fol) - max(0.d0,dC_froot) - max(0.d0,dC_hw) !New growth
+     &     - max(0.d0,dC_croot) - max(0.d0,dC_sw)
+     &     + l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Senescence retranslocation
+     &     + max(0.d0,-dC_sw))
+      cop%C_growth = resp_growth*cop%n*1.d-3  !* moved -resp_growth to canopyspitters
 
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
-
       !* Update cohort fluxes with growth respiration *!
 ! this doesn't belong here
 cddd      i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
 cddd      cop%R_auto = cop%R_auto + i2a*resp_growth
 cddd      cop%R_root = cop%R_root + i2a*resp_growth_root
 cddd      cop%NPP = cop%GPP - cop%R_auto
+
       if (C_fol_old.eq.0.d0) then
         cop%senescefrac = 0.d0
       else
         cop%senescefrac = l_fract *
      &       (max(0.d0,C_fol_old - cop%C_fol) + loss_leaf)/C_fol_old
       endif
-!      write(997,*) C_fol_old, cop%C_fol, loss_leaf, cop%senescefrac
+
       !* Return Clossacc *!
       Csum = 0.d0
       do i=1,NPOOLS

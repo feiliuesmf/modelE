@@ -174,9 +174,10 @@
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
          real*8,pointer :: stressH2Ol(:) !Water stress in layers.
          real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
-         ! diags and hacks
-         real*8 :: C_total
-         real*8 :: C_growth
+         !* Additional C accounting
+         real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2/day)
+                             !*  Save C_growth to restart to distribute flux over the day.
+         real*8 :: C_total   !* Hack to check for C balance.
       end type cohort
 
 !****************************************************************************

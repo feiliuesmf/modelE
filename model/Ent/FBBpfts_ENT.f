@@ -71,11 +71,13 @@
 
      &     pspartype(1          !2. EVERGREEN BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BET & BDT temperate & tropical, Table 3.1 (Oleson, et al 2004)
-     &     ,69.d0               !Vmax25, CLM BET temperate, Table 8.2 (Oleson, et al 2004)
+!     &     ,69.d0               !Vmax25, CLM BET temperate, Table 8.2 (Oleson, et al 2004)
+!     &     ,54.d0               !Tapajo KM67
+     &     ,50.d0               !
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,8.0d0               !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
-     &     ,2.8d0),               !Nleaf (gN/m2-leaf). Increment for late succ., Friend&Kiang (2005), Table 1.
+     &     ,2.5d0),               !Nleaf (gN/m2-leaf). fort.995=read.table("../Code/GISSClim/GISSClim/WorkSpace/r_ent_fbb_tnfg/fort.995", header=TRUE)
 
      &     pspartype(1          !3. EVERGREEN NEEDLELEAF EARLY SUCCESSIONAL
      &     ,.93d0               !from leaf VIS 1-albedo,CLM NET & NDT temperate & boreal, Table 3.1 (Oleson, et al 2004)

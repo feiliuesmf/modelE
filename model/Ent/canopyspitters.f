@@ -219,7 +219,7 @@
           cop%GPP = Atot * fdry_pft_eff * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
-          Anet = cop%GPP - Rd
+          Anet = cop%GPP - Rd !Right now Rd and Respiration_autotrophic are inconsistent-NK
           !Rd = Rd * fdry_pft_eff  !Assume respiration rate is not affected.
         else
           cop%GCANOPY=0.d0 !May want minimum conductance for stems & cuticle.
@@ -627,8 +627,9 @@
      &     TcanopyK,cop%n) !Foliage
 !     &     cop%LAI*1.d0!*exp(308.56d0*(1/71.02d0  - (1/(TcanopyK-227.13d0)))) !Temp factor 1 at TcanopyC=25
       Resp_sw = 0.012D-6 *  !kg-C/m2/s
-     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996)
-     &     330.d0,TcanopyK,cop%n) 
+!     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
+     &     Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
+     &     58.d0,TcanopyK,cop%n) 
       Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
 !      Resp_lab = 0.012D-6 * !kg-C/m2/s
 !     &     Resp_can_maint(cop%pft,cop%C_lab, !Storage - MAY BE NON-RESPIRING
@@ -639,13 +640,13 @@
       Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
-      !* Growth respiration tied to GPP
-      Resp_growth = 0.012D-6 * Resp_can_growth(cop%pft, 
-     &     cop%GPP/0.012D-6,(Resp_maint)/0.012D-6 )
-
-      !* actual growth respiration
-      Resp_growth_1 = cop%C_growth/(24.d0*3600.d0)
+      !* actual growth respiration tied to tissue growth.
+      Resp_growth_1 = cop%C_growth/(24.d0*3600.d0) !Convert from d-1 to s-1.
       !cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
+
+      !* Growth respiration tied to GPP; with compensation for tissue growth respiration.
+      Resp_growth = Resp_can_growth(cop%pft, 
+     &     cop%GPP,Resp_maint, Resp_growth_1)
 
       !* Total respiration : maintenance + growth
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
@@ -654,8 +655,9 @@
 
 !#define OFFLINE 1
 #ifdef OFFLINE
-      write(998,*) Resp_fol,Resp_sw,Resp_lab,Resp_root,Resp_maint
-     &     ,Resp_growth
+      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
+     &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
+      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 #endif
       end subroutine Respiration_autotrophic
 
@@ -682,12 +684,18 @@
       !---Local-------
       real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
 !      real*8,parameter :: k_Ent = 2.d0 !Correction factor to k_CLM until find where they got their k_CLM.
-      real*8,parameter :: k_Ent = 1.d0 !Correction factor to k_CLM until find where they got their k_CLM.
       real*8,parameter :: ugBiomass_per_gC = 2.d6
       real*8,parameter :: ugBiomass_per_umolCO2 = 28.5
-      
+!      real*8 :: k_pft !Factor for different PFT respiration rates.
+
+!      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
+!        k_pft = 2.d0
+!      else
+!        k_pft = 1.d0
+!      endif
+
       if (T_k>228.15d0) then ! set to cut-off at 45 deg C 
-         R_maint = n * pfpar(pft)%r * k_Ent * k_CLM * (C/CN) *   !C in CLM is g-C/individual
+         R_maint = n * pfpar(pft)%r * k_CLM * (C/CN) *   !C in CLM is g-C/individual
      &        exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
      &        ugBiomass_per_gC/ugBiomass_per_umolCO2
       else 
@@ -717,18 +725,27 @@
       end function OptCurve
 
 !---------------------------------------------------------------------!
-      real*8 function Resp_can_growth(pft,Acan,Rmaint) Result(R_growth)
-      !Canopy growth respiration (umol/m2/s) (Actually, whatever units are input).
-      !Based on photosynthetic activity. From CLM3.0.= 0.25*(Acan-Rmaint)
+      real*8 function Resp_can_growth(pft,Acan,Rmaint,Rtgrowth) 
+     &     Result(R_growth)
+      !Canopy growth respiration (Whatever units are input for Acan and Rmaint).
+      !Based on photosynthetic activity. See Amthor (2000) review of
+      ! Mcree - de Wit - Penning de Vries - Thornley respiration paradigms.
+      ! See also Ruimy et al. (1996) analysis of growth_r.
       !Fixed to min 0.d0 like ED2. - NYK
       integer :: pft
-      real*8 :: Acan !Canopy photosynthesis rate (umol/m2/s)
-      real*8 :: Rmaint !Canopy maintenance respiration rate (umol/m2/s)
+      real*8 :: Acan !Canopy photosynthesis rate (mass/m2/s)(any units)
+      real*8 :: Rmaint !Canopy maintenance respiration rate (mass/m2/s)
+      real*8 :: Rtgrowth !Growth respiration from tissue growth (mass/m2/s)
       real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
 
-!      growth_r = pfpar(pft)%r * 0.5d0    !Factor 0.5 gives growth_r=0.3 for C3 grass.
-      growth_r = 0.25d0   
-      R_growth = max(0.d0, growth_r * (Acan - Rmaint))
+!      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
+      if (pfpar(pft)%woody) then
+        growth_r = 0.4d0 !Amthor (2000) range 0.39-0.77
+      else
+        growth_r = 0.28d0       !0.28 Value from Ruimy et al. (1996)
+      endif
+
+      R_growth = max(0.d0, growth_r*(Acan - Rmaint) - Rtgrowth)
       end function Resp_can_growth
 
 !################# RADIATIVE TRANSFER ######################################

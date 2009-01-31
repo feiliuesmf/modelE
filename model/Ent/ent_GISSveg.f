@@ -20,10 +20,19 @@
 !*********************************************************************
 !--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
       real*8, parameter :: alamax(N_COVERTYPES) =
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+      !* Matthews LAI *!
+!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+!     &     ,0.d0, 0.d0, 2.d0 /)
+      !* Revised Matthews LAI *!
+     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,4.5d0
      &     ,0.d0, 0.d0, 2.d0 /)
+
       real*8, parameter :: alamin(N_COVERTYPES) =
-     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+      !* Matthews LAI *!
+!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+!     &     ,0.d0, 0.d0, 1.d0 /)
+      !* Revised Matthews LAI *!
+     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 6.0d0,6.0d0,1.0d0
      &     ,0.d0, 0.d0, 1.d0 /)
       integer, parameter :: laday(N_COVERTYPES) =
      $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
@@ -475,17 +484,19 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
       !----Local------
-!      real*8 :: cpoolHW !Dummy check in case compile assignment tardy.
+      real*8 :: max_cpoolFOL
 
       ! just in case, set to 0 to avoid possible NaNs
       cpool(:) = 0.d0 !g-C/individual plant
-      
+
+      max_cpoolFOL = alamax(pft+COVEROFFSET)/pfpar(pft)%sla/popdens*1d3
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
 !      if (pft.ne.GRASSC3) then  !Woody
       if (pfpar(pft)%woody ) then !Woody
-        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
+!        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
+        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * max_cpoolFOL * h  !Bsw CONSTANT
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
  !       cpoolHW  = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
@@ -501,13 +512,26 @@ c**** calculate root fraction afr averaged over vegetation types
 
 !*************************************************************************
       subroutine prescr_init_Clab(pft,n,cpool)
-!@sum prescr_init_Clab - Initializes labile carbon pool to half mass of alamax.
+!@sum prescr_init_Clab - Initializes labile carbon pool to 4x mass of 
+!@sum (alamax - alamin) for woody and perennial plants.
+!@sum 4x requirement is from Bill Parton (personal communication).
+!@sum For herbaceous annuals, assume seed provides 0.5 of alamax mass (guess).
+
       implicit none
       integer, intent(in) :: pft
       real*8, intent(in) :: n !Density (#/m^2)
       real*8, intent(inout) :: cpool(N_BPOOLS) !g-C/pool/plant
       
-      cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/pfpar(pft)%sla/n*1d3 !g-C/individ.
+!      cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/pfpar(pft)%sla/n*1d3 !g-C/individ.
+
+      if (pfpar(pft)%phenotype.ne.ANNUAL) then
+        !Enough to grow peak foliage and fine roots.
+        cpool(LABILE) = (alamax(pft+COVEROFFSET)-alamin(pft+COVEROFFSET)
+     &       )*4.d0/pfpar(pft)%sla/n*1d3 !g-C/individ.
+      else
+        cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/
+     &       pfpar(pft)%sla/n*1d3 !g-C/individ.
+      endif
 
       end subroutine prescr_init_Clab
 !*************************************************************************

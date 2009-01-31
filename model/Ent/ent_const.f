@@ -109,8 +109,10 @@
       !************************************************
       !*  GISS VEGETATION CONSTANTS                   *
       !************************************************
-      integer,parameter :: N_PFT = 8
-      integer,parameter :: N_OTHER = 2 ! algae, c4 grass
+      integer,parameter :: N_PFT = 16
+      integer,parameter :: N_OTHER = 0
+!      integer,parameter :: N_PFT = 8 !8
+!      integer,parameter :: N_OTHER = 2 !2 algae, c4 grass
 #endif
       !************************************************
       !* GENERIC VEGETATION CONSTANTS                 *
@@ -130,8 +132,8 @@
       !************************************************
       !*  GISS SOIL CONSTANTS                         *
       !************************************************
-      
-      integer,parameter :: N_SOILCOV = 2 !light sand, dark dirt (GISS)
+
+      integer,parameter :: N_SOILCOV = 2 !2-light sand, dark dirt (GISS) 
       integer,parameter :: N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER
 
 

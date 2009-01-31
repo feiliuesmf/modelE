@@ -236,13 +236,13 @@ c$$$      end do
       call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
 
       call prescr_get_hdata(hdata) !height
-      !print *,'hdata',hdata
+      print *,'hdata',hdata
       call prescr_get_initnm(nmdata) !nm
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_woodydiameter(hdata,dbhdata)
-      !print *,"dbhdata",dbhdata
+      print *,"dbhdata",dbhdata
       call prescr_get_pop(dbhdata,popdata)
-      !print *,"popdata",popdata
+      print *,"popdata",popdata
       call prescr_get_crownrad(popdata,craddata)
       call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &     laidata,hdata,dbhdata,popdata,cpooldata)
@@ -466,7 +466,7 @@ c$$$      end do
       integer i,j,jeq
 
       jeq = JM/2
-      print *,"Got here in prescr_get_carbonplant"
+!      print *,"Got here in prescr_get_carbonplant"
 
       cpooldata(:,:,:,:) = 0.d0  !Zero initialize
       do j=J0,J1
