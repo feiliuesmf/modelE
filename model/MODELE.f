@@ -10,7 +10,7 @@ CAOO   Just to test CVS
       USE PARSER
       USE MODEL_COM
       USE DOMAIN_DECOMP_1D, ONLY : init_app,AM_I_ROOT,ESMF_BCAST
-      USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
+      USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid,sumxpe
       use domain_decomp_atm, only : writei8_parallel
 #ifdef CUBE_GRID
       USE regrid_com, only : x_2grids
@@ -80,6 +80,7 @@ c$$$      USE MODEL_COM, only: clock
       character(len=80) :: filenm
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
+      INTEGER, DIMENSION(0:NTIMEMAX) ::TIMING_glob
       REAL*8 DTIME,TOTALT
 
       CHARACTER aDATE*14
@@ -769,15 +770,18 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (MNOW,MDIAG)
-        TOTALT=SUM(TIMING(1:NTIMEACC))
+        CALL SUMXPE(TIMING, TIMING_glob, increment=.true.)
+        if (am_i_root()) then
+        TOTALT=SUM(TIMING_glob(1:NTIMEACC))  ! over all processors
         DO M=1,NTIMEACC
-          PERCENT(M) = 100d0*TIMING(M)/(TOTALT+.00001)
+          PERCENT(M) = 100d0*TIMING_glob(M)/(TOTALT+.00001)
         END DO
-c        TOTALT=(MNOW-MSTART)/(60.*100.) ! wrong when clock rolls over
-        TOTALT=TOTALT/(60.*100.)           ! in minutes
+        TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
+        TOTALT=TOTALT/(60.*100.)       ! in minutes
         DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
         WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
+        end if
         TIMING = 0
         MSTART= MNOW
 

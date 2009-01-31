@@ -222,6 +222,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
 
       INTERFACE SUMXPE
         MODULE PROCEDURE SUMXPE_1D
+        MODULE PROCEDURE SUMXPE_1D_I
         MODULE PROCEDURE SUMXPE_2D
         MODULE PROCEDURE SUMXPE_3D
 c        MODULE PROCEDURE SUMXPE_4D
@@ -1660,6 +1661,61 @@ c**** arr is overwritten by itself after reduction
 #endif
       endif
       END SUBROUTINE SUMXPE_1D
+
+      SUBROUTINE SUMXPE_1D_I(arr, arr_master, increment)
+      IMPLICIT NONE
+      INTEGER, DIMENSION(:) :: arr
+      INTEGER, DIMENSION(:), optional :: arr_master
+      logical, intent(in), optional :: increment
+      INTEGER, DIMENSION(:), ALLOCATABLE :: arr_tmp
+      logical :: increment_
+      logical :: loc_
+      integer :: ier,arr_size
+      if(present(increment)) then
+        increment_ = increment
+      else
+        increment_ = .false.
+      endif
+      if (present(arr_master)) then
+         loc_ = .true.
+      else
+         loc_ = .false.
+         increment_ = .false.
+      endif
+      if (loc_) then
+#ifdef USE_ESMF
+      arr_size = size(arr)
+      if(increment_) then
+        allocate(arr_tmp(arr_size))
+        call mpi_reduce(arr,arr_tmp,arr_size,MPI_INTEGER,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+        arr_master = arr_master + arr_tmp
+        deallocate(arr_tmp)
+      else
+        call mpi_reduce(arr,arr_master,arr_size,MPI_INTEGER,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+      endif
+#else
+      if(increment_) then
+        arr_master = arr_master + arr
+      else
+        arr_master = arr
+      endif
+#endif
+      else  
+c**** arr plays both roles of local and global array
+c**** arr is overwritten by itself after reduction
+#ifdef USE_ESMF
+         arr_size = size(arr)
+         allocate(arr_tmp(arr_size))
+         call mpi_reduce(arr,arr_tmp,arr_size,
+     &        MPI_INTEGER,MPI_SUM,root,
+     &        MPI_COMM_WORLD, ier)
+         arr=reshape(arr_tmp,shape(arr))
+         deallocate(arr_tmp)
+#endif
+      endif
+      END SUBROUTINE SUMXPE_1D_I
 
       SUBROUTINE SUMXPE_2D(arr, arr_master, increment)
       IMPLICIT NONE
