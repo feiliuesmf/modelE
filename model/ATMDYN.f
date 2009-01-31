@@ -1850,12 +1850,12 @@ C**** (technically we should use U,V from before but this is ok)
 
       SUBROUTINE conserv_AM(AM)
 !@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
-!@sum  multiplied by cell area
+!@sum  per unit area
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : omega,radius,mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,u,psfmpt,pstrat
-      USE GEOM, only : cosv,dxyn,dxys,dxyv
+      USE GEOM, only : cosv,dxyn,dxys,dxyv,byaxyp
       USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP_1D, only : CHECKSUM
       IMPLICIT NONE
@@ -1863,10 +1863,12 @@ C**** (technically we should use U,V from before but this is ok)
       INTEGER :: I,IP1,J,L
       REAL*8 :: PSJ,PSIJ,UE,UEDMS,FACJ
 
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG
+      INTEGER :: J_0S, J_1S, J_0STG, J_1STG, J_0, J_1, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GET(grid, J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *               I_STRT=I_0, I_STOP=I_1,
+     *               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -1897,10 +1899,15 @@ C****
       END DO
       END DO
 
-c
 c move to A grid
-c
       call regrid_btoa_ext(am)
+
+c scale by area
+      DO J=J_0,J_1
+        DO I=I_0,I_1
+          am(I,J)=am(I,J)*BYAXYP(I,J)
+        END DO
+      END DO
 
       RETURN
 C****
@@ -1908,22 +1915,24 @@ C****
 
       SUBROUTINE conserv_KE(RKE)
 !@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
-!@sum  multiplied by cell area
+!@sum  (J/m2)
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
-      USE GEOM, only : dxyn,dxys,dxyv
+      USE GEOM, only : dxyn,dxys,dxyv,byaxyp
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP_1D, only : SOUTH
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
       INTEGER :: I,IP1,J,L
-      INTEGER :: J_0STG,J_1STG
+      INTEGER :: J_0STG,J_1STG, J_0, J_1, I_0, I_1
       REAL*8 :: PSJ,PSIJ
 
-      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *               I_STRT=I_0, I_STOP=I_1,
+     *               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
 
 C****
 C**** KINETIC ENERGY ON B GRID
@@ -1950,10 +1959,15 @@ C****
       END DO
       END DO
 
-c
 c move to A grid
-c
       call regrid_btoa_ext(rke)
+
+c scale by area
+      DO J=J_0,J_1
+        DO I=I_0,I_1
+          rke(I,J)=rke(I,J)*BYAXYP(I,J)
+        END DO
+      END DO
 
       RETURN
 C****
@@ -2448,7 +2462,7 @@ c      contains
 !@ver  1.0
       USE CONSTANT, only : omega,mb2kg
       USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
-      USE GEOM, only : cosv,radius,ravpn,ravps
+      USE GEOM, only : cosv,radius,ravpn,ravps,bydxyp
       USE DIAG_COM, only : consrv=>consrv_loc
       USE DYNAMICS, only : PIT
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID
@@ -2550,12 +2564,12 @@ c
       call regrid_to_primary_1d(damb)
       N=NAMOFM(M)
       DO J=J_0,J_1
-        CONSRV(J,N)=CONSRV(J,N)+DAMB(J)
+        CONSRV(J,N)=CONSRV(J,N)+DAMB(J)*BYDXYP(J)
       ENDDO
       call regrid_to_primary_1d(dkeb)
       N=NKEOFM(M)
       DO J=J_0,J_1
-        CONSRV(J,N)=CONSRV(J,N)+DKEB(J)
+        CONSRV(J,N)=CONSRV(J,N)+DKEB(J)*BYDXYP(J)
       ENDDO
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN

@@ -589,9 +589,10 @@ c****
       call conserv_KE(KEIJ)
       DO J=J_0,J_1
       DO I=I_0,I_1
-        TEIJ(I,J)= (KEIJ(I,J) + PEIJ(I,J)*AXYP(I,J))/AREAG
+        TEIJ(I,J)= (KEIJ(I,J) + PEIJ(I,J))*AXYP(I,J)/AREAG
       ENDDO
       ENDDO
+
       CALL GLOBALSUM(grid, TEIJ, totalEnergy, ALL=.true.)
 
       end function getTotalEnergy
