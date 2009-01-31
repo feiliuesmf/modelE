@@ -109,10 +109,8 @@
       !************************************************
       !*  GISS VEGETATION CONSTANTS                   *
       !************************************************
-      integer,parameter :: N_PFT = 16
-      integer,parameter :: N_OTHER = 0
-!      integer,parameter :: N_PFT = 8 !8
-!      integer,parameter :: N_OTHER = 2 !2 algae, c4 grass
+      integer,parameter :: N_PFT = 8 !8
+      integer,parameter :: N_OTHER = 2 !2 algae, c4 grass
 #endif
       !************************************************
       !* GENERIC VEGETATION CONSTANTS                 *
