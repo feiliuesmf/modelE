@@ -17,20 +17,38 @@ ent_types.f  ent_prescribed_updates.f
 
 # different versions of the code
 ifeq ($(PFT_MODEL),ENT)
-FSRCS += ent_pfts_ENT.f  ent_ENTveg.f
+  FSRCS += ent_ENTveg.f
+  ifeq ($(FLUXNET),YES)
+    FSRCS += ent_pfts_ENT_FLUXNET.f
+  else
+    FSRCS += ent_pfts_ENT.f
+  endif
 else
-FSRCS += ent_pfts.f  ent_GISSveg.f
+    FSRCS += ent_GISSveg.f
+  ifeq ($(FLUXNET),YES)
+    FSRCS += ent_pfts_FLUXNET.f
+  else
+    FSRCS += ent_pfts.f
+  endif
 endif
 
 ifeq ($(PS_MODEL),FBB)
-FSRCS += FBBphotosynthesis.f  canopyspitters.f 
-      ifeq ($(PFT_MODEL),ENT)
+  FSRCS += FBBphotosynthesis.f  canopyspitters.f 
+  ifeq ($(PFT_MODEL),ENT)
+    ifeq ($(FLUXNET),YES)
+      FSRCS += FBBpfts_ENT_FLUXNET.f
+    else
       FSRCS += FBBpfts_ENT.f
-      else
+    endif
+  else
+    ifeq ($(FLUXNET),YES)
+      FSRCS += FBBpfts_FLUXNET.f
+    else
       FSRCS += FBBpfts.f
-      endif
+    endif
+  endif
 else
-FSRCS += biophysics.f
+  FSRCS += biophysics.f
 endif
 
 
