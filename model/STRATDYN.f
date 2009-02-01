@@ -211,9 +211,7 @@ C****
      *     vsurf=>vsavg
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif,JL_dTdtsdrg
       USE STRAT, only : defrm,pk,pmid,ang_gwd
-c      USE DIAG, only : diagcd
       USE TRIDIAG_MOD, only :  TRIDIAG
-c      USE ATMDYN, only: addEnergyAsLocalHeat
       IMPLICIT NONE
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
@@ -565,8 +563,6 @@ C****
      *     ,ajl=>ajl_loc,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
      *     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
-c      USE DIAG, only : diagcd
-c      USE ATMDYN, only: addEnergyAsLocalHeat
       USE RANDOM
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
