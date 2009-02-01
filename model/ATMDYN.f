@@ -2386,7 +2386,7 @@ c
 
       SUBROUTINE regrid_btoa_3d(x)
       USE MODEL_COM, only : im,jm,lm,byim
-c      USE GEOM, only : ravps,ravpn
+      USE GEOM, only : ravps,ravpn,dxyp,dxyv
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
       USE DOMAIN_DECOMP_1D, only : NORTH
       IMPLICIT NONE
@@ -2396,24 +2396,23 @@ c      USE GEOM, only : ravps,ravpn
       call halo_update(grid,x,from=north)
       DO L=1,LM
       if(grid%have_south_pole) then
-        x(:,1,l) = sum(x(:,2,l))*byim
+        x(:,1,l) = sum(x(:,2,l))*byim*(DXYP(1)/DXYV(2))
       endif
       DO J=GRID%J_STRT_SKP,GRID%J_STOP_SKP
       IM1=IM
       XIM1J = x(im1,j,l)
       DO I=1,IM
         XIJ = x(i,j,l)
-        X(I,J,L)=.25*(XIM1J+XIJ+
-     &       x(im1,j+1,l)+x(i,j+1,l))
-c        X(I,J,L)=(
-c     &       ravps(j)*(x(im1,j,l)+x(i,j,l))
-c     &      +ravpn(j)*(x(im1,j+1,l)+x(i,j+1,l))
+c        X(I,J,L)=.25*(XIM1J+XIJ+
+c     &       x(im1,j+1,l)+x(i,j+1,l))
+        X(I,J,L)=(ravps(j)*(XIM1J+XIJ)
+     &      +ravpn(j)*(x(im1,j+1,l)+x(i,j+1,l)))
         XIM1J = XIJ
         IM1=I
       ENDDO
       ENDDO
       if(grid%have_north_pole) then
-        x(:,jm,l) = sum(x(:,jm,l))*byim
+        x(:,jm,l) = sum(x(:,jm,l))*byim*(DXYP(jm)/DXYV(jm))
       endif
       ENDDO
       RETURN

@@ -642,7 +642,7 @@ C**** temporarily store latest KE in DKE array
 C***** Add in dissipiated KE as heat locally
       subroutine addEnergyAsLocalHeat(deltaKE, T, PK)!, diagIndex)
 !@sum  addEnergyAsLocalHeat adds in dissipated kinetic energy as heat locally.
-!@sum  deltaKE is now on the A grid!!!
+!@sum  deltaKE is on the A grid (J/kg)
 !@auth Tom Clune (SIVO)
 !@ver  1.0
       use CONSTANT, only: SHA
