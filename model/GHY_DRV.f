@@ -2298,7 +2298,7 @@ ccc still not quite correct (assumes fw=1)
 c for canopy:
       w(0,2) = ws_can*earth_sat(0,2)
       call temperature_to_heat( ht(0,2),
-     &     earth_tp(k,ibv), earth_ice(k,ibv), w(0,2), shc_can )
+     &     earth_tp(0,2), earth_ice(0,2), w(0,2), shc_can )
 
 c outer loop over ibv
       do ibv=1,2
