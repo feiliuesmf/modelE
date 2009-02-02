@@ -67,6 +67,12 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_biosrc_3D !(im,jm,lmAER,12)
 !@var SO2t_src SO2 biomass trend source
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: SO2t_src !(im,jm,lmAER)
+!@var BC_ship kg/s
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: BC_ship !(im,jm,12)
+!@var POM_ship kg/s
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: POM_ship !(im,jm,12)
+!@var SO2_ship kg/s
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: SO2_ship !(im,jm,12)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
@@ -114,6 +120,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * tno3r,oh,dho2,perj,tno3,ohsr
      * ,o3_offline
      * ,snosiz
+     * ,BC_ship,SO2_ship,POM_ship
      * ,craft,so2t_src, off_HNO3,off_SS
      * ,NH3_src_con, NH3_src_cyc
      * ,hnh3_con,hnh3_cyc
@@ -167,6 +174,9 @@ c     endif
      * perjr(I_0H:I_1H,J_0H:J_1H,lm),tno3r(I_0H:I_1H,J_0H:J_1H,lm),
      * ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
+      allocate( BC_ship(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+      allocate( POM_ship(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+      allocate( SO2_ship(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #ifdef TRACERS_RADON
       allocate( rn_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif
@@ -606,6 +616,52 @@ c           endif
       call sys_flush(6)
 C****
       END SUBROUTINE read_E95_SO2_source
+ 
+      SUBROUTINE get_ships(iact)
+      USE AEROSOL_SOURCES, only: BC_ship,POM_ship,SO2_ship
+      USE MODEL_COM, only: im,jm,jmon
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE FILEMANAGER, only: openunit,closeunit
+      IMPLICIT NONE
+      integer J_0,J_1,J_0H,J_1H,ii,jj,mm,iuc,iact
+      real*8 carbstuff
+      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+     *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      if (iact.eq.0) then
+      BC_ship(:,:,:)=0.d0
+      POM_ship(:,:,:)=0.d0
+      SO2_ship(:,:,:)=0.d0
+      call openunit('BC_SHIPS',iuc,.false.,.true.)
+      do 
+      read(iuc,*) ii,jj,mm,carbstuff
+      if (ii.eq.0) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+c     carbstuff=carbstuff*1.E-6
+      BC_ship(ii,jj,mm)=carbstuff
+      end do
+      call closeunit(iuc)
+      call openunit('POM_SHIPS',iuc,.false.,.true.)
+      do 
+      read(iuc,*) ii,jj,mm,carbstuff
+      if (ii.eq.0) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+c     carbstuff=carbstuff*1.E-6
+      POM_ship(ii,jj,mm)=carbstuff
+      end do
+      call closeunit(iuc)
+      call openunit('SO2_SHIPS',iuc,.false.,.true.)
+      do 
+      read(iuc,*) ii,jj,mm,carbstuff
+      if (ii.eq.0) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+c     carbstuff=carbstuff*1.E-6
+      SO2_ship(ii,jj,mm)=carbstuff
+      end do
+      call closeunit(iuc)
+      endif
+      END SUBROUTINE get_ships
+
 
       SUBROUTINE get_hist_BM(iact)
 c historic biomass: linear increase in tropics from 1/2 present day in 1875
@@ -629,15 +685,15 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
 
       if (iact.eq.0) then
       so2_biosrc_3D(:,:,:,:)= 0.d0
-c     call openunit('SO2_BIOMASS',iuc,.false.,.true.)
-c     do
-c     read(iuc,*) ii,jj,mm,ll,carbstuff
-c     if (ii.eq.0) exit
-c     if (jj<j_0 .or. jj>j_1) cycle
-c     if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-c     SO2_biosrc_3D(ii,jj,ll,mm)=carbstuff/(sday*30.4d0)
-c     end do
-c     call closeunit(iuc)
+      call openunit('SO2_BIOMASS',iuc,.false.,.true.)
+      do
+      read(iuc,*) ii,jj,mm,ll,carbstuff
+      if (ii.eq.0) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
+      SO2_biosrc_3D(ii,jj,ll,mm)=carbstuff/(sday*30.4d0)
+      end do
+      call closeunit(iuc)
       if (imAER.eq.1) go to 33
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
@@ -729,93 +785,31 @@ c historic BC emissions
      * ,hbc,hoc
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
-     * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,16) ::hOC_all,hBC_all
+     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
+     * hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm
-      save jb1,jb2
+      save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
+c if run just starting or if it is a new year
+c   then open new files
+c     if (iact.eq.0.or.jday.eq.1) then
       BCI_src(:,:)=0.d0
       OCI_src(:,:,:)=0.d0
-
       if (aer_int_yr.eq.0) then
       ihyr=jyear
       else
       ihyr=aer_int_yr
       endif
-      if (ihyr.lt.1850) ihyr=1850
-c if run just starting or if it is a new year
-c   then open new files
-      if (iact.eq.0.or.jday.eq.1) then
       hbc(:,:,:)=0.0
       hoc(:,:,:)=0.0
       hoc_all(:,:,:)=0.0
       hbc_all(:,:,:)=0.0
-      if (ihyr.ge.1850.and.ihyr.lt.1860) then
-      jb1=1850
-      jb2=1860
-      irr=1
-      else if (ihyr.ge.1860.and.ihyr.lt.1870) then
-      jb1=1860
-      jb2=1870
-      irr=2
-      else if (ihyr.ge.1870.and.ihyr.lt.1880) then
-      jb1=1870
-      jb2=1880
-      irr=3
-      else if (ihyr.ge.1880.and.ihyr.lt.1890) then
-      jb1=1880
-      jb2=1890
-      irr=4
-      else if (ihyr.ge.1890.and.ihyr.lt.1900) then
-      jb1=1890
-      jb2=1900
-      irr=5
-      else if (ihyr.ge.1900.and.ihyr.lt.1910) then
-      jb1=1900
-      jb2=1910
-      irr=6
-      else if (ihyr.ge.1910.and.ihyr.le.1920) then
-      jb1=1910
-      jb2=1920
-      irr=7
-      else if (ihyr.ge.1920.and.ihyr.le.1930) then
-      jb1=1920
-      jb2=1930
-      irr=8
-      else if (ihyr.ge.1930.and.ihyr.le.1940) then
-      jb1=1930
-      jb2=1940
-      irr=9
-      else if (ihyr.ge.1940.and.ihyr.le.1950) then
-      jb1=1940
-      jb2=1950
-      irr=10
-      else if (ihyr.ge.1950.and.ihyr.le.1960) then
-      jb1=1950
-      jb2=1960
-      irr=11
-      else if (ihyr.ge.1960.and.ihyr.le.1970) then
-      jb1=1960
-      jb2=1970
-      irr=12
-      else if (ihyr.ge.1970.and.ihyr.le.1980) then
-      jb1=1970
-      jb2=1980
-      irr=13
-      else if (ihyr.ge.1980.and.ihyr.le.1990) then
-      jb1=1980
-      jb2=1990
-      irr=14
-      else if (ihyr.ge.1990.and.ihyr.le.2001) then
-      jb1=1990
-      jb2=2000
-      irr=15
-      endif
       call openunit('BC_INDh',iuc, .false.,.true.)
+      read(iuc,*) ndec,idec1
       do 
       read(iuc,*) ii,jj,iy,xbcff
       IF (iy.EQ.0) exit
@@ -824,6 +818,7 @@ c   then open new files
       end do
       call closeunit(iuc)
       call openunit('OC_INDh',iuc, .false.,.true.)
+      read(iuc,*) ndec,idec1
       do 
       read(iuc,*) ii,jj,iy,xbcff
       IF (iy.EQ.0) exit
@@ -831,13 +826,30 @@ c   then open new files
       hoc_all(ii,jj,iy)=xbcff
       end do
       call closeunit(iuc)
+c     endif
+
+      if (ihyr.lt.idec1) ihyr=idec1
+      idecl=idec1+(ndec-1)*10
+      if (ihyr.ge.idecl) ihyr=idecl
+
+      do i=1,ndec
+      jbt=idec1+(i-1)*10
+      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+      jb1=jbt
+      jb2=jbt+10
+      irr=i
+      go to 23
+      endif
+      end do
+  23  continue
       hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
       hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
 c kg/year to kg/s
       hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
 c OM=1.4 x OC
       hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/syr*1.4d0
-      endif
+c     endif
+cdmk check this endif above
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
@@ -861,85 +873,53 @@ c historic BC emissions
      * ,hso2
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
-     * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) ::hso2_all
+     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
+     * hso2_all
       real*8 d1,d2,d3,xso2ff
-      save jb1,jb2
+      save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
+c if run just starting or if it is a new year
+c   then open new files
+c     if (iact.eq.0.or.jday.eq.1) then
       SO2_src(:,:,:)=0.d0
-
       if (aer_int_yr.eq.0) then
         ihyr=jyear
       else
         ihyr=aer_int_yr
       endif
-      if (ihyr.lt.1890) ihyr=1890
-c     if run just starting or if it is a new year
-c     then open new files
-      if (iact.eq.0.or.jday.eq.1) then
-        hso2_all(:,:,:)=0.0
-        hso2(:,:,:)=0.0
-        if (ihyr.ge.1890.and.ihyr.lt.1900) then
-          jb1=1890
-          jb2=1900
-          irr=1
-        else if (ihyr.ge.1900.and.ihyr.lt.1910) then
-          jb1=1900
-          jb2=1910
-          irr=2
-        else if (ihyr.ge.1910.and.ihyr.le.1920) then
-          jb1=1910
-          jb2=1920
-          irr=3
-        else if (ihyr.ge.1920.and.ihyr.le.1930) then
-          jb1=1920
-          jb2=1930
-          irr=4
-        else if (ihyr.ge.1930.and.ihyr.le.1940) then
-          jb1=1930
-          jb2=1940
-          irr=5
-        else if (ihyr.ge.1940.and.ihyr.le.1950) then
-          jb1=1940
-          jb2=1950
-          irr=6
-        else if (ihyr.ge.1950.and.ihyr.le.1960) then
-          jb1=1950
-          jb2=1960
-          irr=7
-        else if (ihyr.ge.1960.and.ihyr.le.1970) then
-          jb1=1960
-          jb2=1970
-          irr=8
-        else if (ihyr.ge.1970.and.ihyr.le.1980) then
-          jb1=1970
-          jb2=1980
-          irr=9
-        else if (ihyr.ge.1980.and.ihyr.le.1990) then
-          jb1=1980
-          jb2=1990
-          irr=10
-        else if (ihyr.ge.1990.and.ihyr.le.2001) then
-          jb1=1990
-          jb2=2000
-          irr=11
-        endif
-        call openunit('SO2_INDh',iuc, .false.,.true.)
-        do 
-          read(iuc,*) ii,jj,iy,xso2ff
-          if (iy.eq.0) exit
-          if (jj<j_0 .or. jj>j_1) cycle
-          hso2_all(ii,jj,iy)=xso2ff
-        end do
-        call closeunit(iuc)
-        hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+       hso2_all(:,:,:)=0.0
+       hso2(:,:,:)=0.0
+      call openunit('SO2_INDh',iuc, .false.,.true.)
+      read(iuc,*) ndec,idec1
+      do 
+      read(iuc,*) ii,jj,iy,xso2ff
+      if (iy.eq.0) exit
+      if (jj<j_0 .or. jj>j_1) cycle
+      hso2_all(ii,jj,iy)=xso2ff
+      end do
+      call closeunit(iuc)
+      if (ihyr.lt.idec1) ihyr=idec1
+      idecl=idec1+(ndec-1)*10
+      if (ihyr.ge.idecl) ihyr=idecl
+
+      do i=1,ndec
+      jbt=idec1+(i-1)*10
+      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+      jb1=jbt
+      jb2=jbt+10
+      irr=i
+      go to 23
+      endif
+      end do
+  23  continue
+      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
 c kg/year to kg/s and x2 to convert from S to SO2
         hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)*2.d0/syr
-      endif
+c     endif
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
@@ -961,91 +941,61 @@ c historic BC emissions
      * NH3_src_cyc,hnh3_cyc,hnh3_con
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
-     * iy,ip, j_0,j_1,j_0h,j_1h
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,12) ::hnh3_con_all
-     *     ,hnh3_cyc_all
+     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
+     * hnh3_con_all,hnh3_cyc_all
       real*8 d1,d2,d3,xso2ff
-      save jb1,jb2
+      save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
+c if run just starting or if it is a new year
+c   then open new files
+c     if (iact.eq.0.or.jday.eq.1) then
       NH3_src_con(:,:)=0.d0
       NH3_src_cyc(:,:)=0.d0
-
       if (aer_int_yr.eq.0) then
       ihyr=jyear
       else
       ihyr=aer_int_yr
       endif
-        if (ihyr.lt.1890) ihyr=1890
-c if run just starting or if it is a new year
-c   then open new files
-      if (iact.eq.0.or.jday.eq.1) then
        hnh3_con_all(:,:,:)=0.0
        hnh3_con(:,:,:)=0.0
        hnh3_cyc_all(:,:,:)=0.0
        hnh3_cyc(:,:,:)=0.0
-      if (ihyr.ge.1890.and.ihyr.lt.1900) then
-      jb1=1890
-      jb2=1900
-      irr=1
-      else if (ihyr.ge.1900.and.ihyr.lt.1910) then
-      jb1=1900
-      jb2=1910
-      irr=2
-      else if (ihyr.ge.1910.and.ihyr.le.1920) then
-      jb1=1910
-      jb2=1920
-      irr=3
-      else if (ihyr.ge.1920.and.ihyr.le.1930) then
-      jb1=1920
-      jb2=1930
-      irr=4
-      else if (ihyr.ge.1930.and.ihyr.le.1940) then
-      jb1=1930
-      jb2=1940
-      irr=5
-      else if (ihyr.ge.1940.and.ihyr.le.1950) then
-      jb1=1940
-      jb2=1950
-      irr=6
-      else if (ihyr.ge.1950.and.ihyr.le.1960) then
-      jb1=1950
-      jb2=1960
-      irr=7
-      else if (ihyr.ge.1960.and.ihyr.le.1970) then
-      jb1=1960
-      jb2=1970
-      irr=8
-      else if (ihyr.ge.1970.and.ihyr.le.1980) then
-      jb1=1970
-      jb2=1980
-      irr=9
-      else if (ihyr.ge.1980.and.ihyr.le.1990) then
-      jb1=1980
-      jb2=1990
-      irr=10
-      else if (ihyr.ge.1990.and.ihyr.le.2001) then
-      jb1=1990
-      jb2=2000
-      irr=11
-      endif
+
       call openunit('NH3SOURCE_CYC',iuc, .false.,.true.)
-      do ip=1,8909
+      read(iuc,*) ndec,idec1
+      do ip=1,30000
       read(iuc,*) ii,jj,iy,xso2ff
+      if (iy.eq.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       hnh3_cyc_all(ii,jj,iy)=xso2ff
       end do
       call closeunit(iuc)
       call openunit('NH3SOURCE_CON',iuc, .false.,.true.)
-      do ip=1,29532
+      read(iuc,*) ndec,idec1
+      do ip=1,60000
       read(iuc,*) ii,jj,iy,xso2ff
+      if (iy.eq.0) exit
       if (jj<j_0 .or. jj>j_1) cycle
       hnh3_con_all(ii,jj,iy)=xso2ff
       end do
       call closeunit(iuc)
+      if (ihyr.lt.idec1) ihyr=idec1
+      idecl=idec1+(ndec-1)*10
+      if (ihyr.ge.idecl) ihyr=idecl
+      do i=1,ndec
+      jbt=idec1+(i-1)*10
+      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+      jb1=jbt
+      jb2=jbt+10
+      irr=i
+      go to 23
+      endif
+      end do
+  23  continue
       hnh3_con(:,j_0:j_1,1:2)=hnh3_con_all(:,j_0:j_1,irr:irr+1)
       hnh3_cyc(:,j_0:j_1,1:2)=hnh3_cyc_all(:,j_0:j_1,irr:irr+1)
 c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
@@ -1053,7 +1003,7 @@ c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
      *  *1.2142/(sday*30.4*12.)
       hnh3_cyc(:,j_0:j_1,1:2)=hnh3_cyc(:,j_0:j_1,1:2)  
      *  *1.2142/(sday*30.4*12.)
-      endif
+c     endif
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
@@ -1256,6 +1206,7 @@ c if after Feb 28 skip the leapyear day
       USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
+      USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit,nameunit
@@ -1272,7 +1223,7 @@ c Aerosol chemistry
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
-     * r5,d5,dmssink
+     * r5,d5,dmssink,bdy
 #ifdef TRACERS_HETCHEM
      *       ,d41,d42,d43,o3mc,rsulfo3
 #endif
@@ -1356,7 +1307,7 @@ c      if (ifirst) then
         call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjr)
         call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3r)
         call closeunit(iuc)
-        
+        if (im.eq.72) then
         call openunit('AER_OH_STRAT',iuc2,.true.)
         nrecs_skip=lm*(jmon-1) ! skip all the preceding months
         do ll=1,lm
@@ -1367,8 +1318,6 @@ c      if (ifirst) then
         enddo
         call closeunit(iuc2)
 
-c I have to read in every timestep unless I can find a better way
-c
 c skip poles because there was a bug in the input file over the pole
         do j=j_0s,j_1s   
         do i=i_0,i_1
@@ -1378,17 +1327,27 @@ c skip poles because there was a bug in the input file over the pole
         end do
         end do
         end do
+cdmk turning these off because I don't have 2x2.5
+c       ifirst=.false.
+        else    !need to scale inputs (10^5 mol/cm3)
+        ohr(:,:,:)=ohr(:,:,:)*1.D5
+        tno3r(:,:,:)=tno3r(:,:,:)*1.D5
+        dho2r(:,:,:)=dho2r(:,:,:)*1.D7
+        perjr(:,:,:)=perjr(:,:,:)*1.D2
+        endif   !im.eq.72
+c I have to read in every timestep unless I can find a better way
+c
 c impose diurnal variability
-        CALL SCALERAD
-      endif
+        CALL SCALERAD2
+c       write(6,*) ' RRR OXID2 ',ohr(10,45,1),
+c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
+       endif   !coupled_chem.eq.0
 
 C Calculation of gas phase reaction rates
 C In coupled chemistry case, routine called from masterchem
-c      if (coupled_chem.eq.0) then
 #ifndef  TRACERS_SPECIAL_Shindell  
-      CALL GET_SULF_GAS_RATES
+        CALL GET_SULF_GAS_RATES
 #endif
-c      endif
 
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
@@ -1406,11 +1365,12 @@ C**** THIS LOOP SHOULD BE PARALLELISED
       do 21 j=j_0,j_1
       do 22 i=i_0,imaxj(j)
 C Initialise       
-        maxl = ltropo(i,j)
+c       maxl = ltropo(i,j)
+        bdy = dclev(i,j) 
 #ifdef TRACERS_SPECIAL_Shindell
         if(which_trop.eq.1)maxl=ls1-1
 #endif
-      if(l.le.maxl) then
+c     if(l.le.maxl) then
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
       mm=am(l,i,j)*axyp(i,j)
@@ -1463,7 +1423,7 @@ C***3.DMS + NO3 -> HNO3 + SO2
 
 c     NO3 is in mixing ratio: convert to molecules/cm3
 c - not necessary for Shindell source
-          if (l.gt.8) then
+          if (l.gt.bdy) then
             ttno3=0.d0
             go to 87
           endif
@@ -1505,7 +1465,7 @@ c SO2 production from DMS
         end select
         
  23   CONTINUE
-        endif
+c       endif
  22   CONTINUE
  21   CONTINUE
  20   CONTINUE
@@ -1514,11 +1474,11 @@ c SO2 production from DMS
       do 31 j=j_0,j_1
       do 32 i=i_0,imaxj(j)
 
-      maxl = ltropo(i,j)
+c     maxl = ltropo(i,j)
 #ifdef TRACERS_SPECIAL_Shindell
       if(which_trop.eq.1)maxl=ls1-1
 #endif
-      if(l.le.maxl) then
+c     if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -1622,9 +1582,17 @@ C     HO2 + HO2 + H2O + M ->
           dho2kg = dho2(i,j,l)*mm*te*.082056d0/(ppres*28.97d0*6.02d20)
           eeee = eh2o*(ek9+ek9t)*dtt*dho2mc
           xk9 = dho2kg*eeee
+c         if (i.eq.2.and.l.eq.1.and.j.eq.46) write(6,*) 
+c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
+c    *    ,eh2o,ek9,ek9t,dtt
+c         if (i.eq.72.and.l.eq.1.and.j.le.46) write(6,*) 
+c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
 c H2O2 production: eqn 9
          
           tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
+c        if (i.eq.10.and.j.eq.45.and.l.eq.1) then
+c        write(6,*) 'RRR OXID H2O2',xk9,dho2kg,eeee
+c         endif
 c H2O2 losses:5 and 6
           r5 = perj(i,j,l)
           d5 = exp(-r5*dtsrc)
@@ -1640,7 +1608,7 @@ c H2O2 losses:5 and 6
 
  33   CONTINUE
 #endif
-      endif
+c     endif
  32   CONTINUE
  31   CONTINUE
  30   CONTINUE
@@ -1653,7 +1621,7 @@ c H2O2 losses:5 and 6
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID,GET      
       use CONSTANT, only: radian,teeny
-c     use RAD_COM, only: cosz1
+      use RAD_COM, only: cosz1
       implicit none
       real*8 ang1,xnair,vlon,vlat,ctime,timec,p1,p2,p3,fact,rad,
      *  rad1,rad2,rad3,stfac,vlat_inc,vlon_inc
@@ -1786,6 +1754,60 @@ c     if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
       end do
       RETURN
       END subroutine SCALERAD
+      SUBROUTINE SCALERAD2
+      use MODEL_COM, only: im,jm,lm
+      use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
+      USE DOMAIN_DECOMP_ATM, only:GRID,GET
+      use RAD_COM, only: cosz1
+      implicit none
+      real*8, DIMENSION(IM,JM) :: suncos
+      real*8, DIMENSION(JM) :: tczen
+      real*8 stfac
+      integer i,j,l,j_0,j_1,j_0h,j_1h,
+     * j_0s,j_1s
+      integer, DIMENSION(JM) :: nradn
+      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+     *               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      nradn(:)=0
+      tczen(:)=0.d0
+      do 100 j = j_0,j_1
+      do 100 i = 1, im
+      if (cosz1(i,j).gt.0.) then
+      tczen(j)=tczen(j)+cosz1(i,j)
+      else
+      nradn(j)=nradn(j)+1
+      endif
+ 100  continue
+          do j = j_0,j_1
+           do l = 1,lm
+            do i = 1,im
+c Get NO3 only if dark, weighted by number of dark hours
+c        if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
+            if (cosz1(i,j).le.0.and.nradn(j).gt.0) then
+            tno3(i,j,l)=tno3r(i,j,l)*real(IM)/real(nradn(j))  !DMK jmon
+            else
+            tno3(i,j,l)=0.d0
+            endif
+             if (cosz1(i,j).gt.0.) then
+                stfac=cosz1(i,j)/tczen(j)*real(IM)
+                 oh(i,j,l)=ohr(i,j,l)*stfac
+                 perj(i,j,l)=perjr(i,j,l)*stfac
+                 dho2(i,j,l)=dho2r(i,j,l)*stfac
+              end if
+c            if (l.eq.1.and.j.eq.23.and.i.eq.10) write(6,*)
+c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
+           end do
+         end do
+      end do
+
+      RETURN
+      END subroutine SCALERAD2
+
 
 
       SUBROUTINE GET_SULFATE(L,temp,fcloud,

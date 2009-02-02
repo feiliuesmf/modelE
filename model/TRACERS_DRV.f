@@ -754,21 +754,14 @@ C         Interpolate CO altitude-dependence to model resolution:
       case ('Alkenes')
       n_Alkenes = n
           ntm_power(n) = -10
-          tr_mm(n) = 46.59d0 ! i.e. carbon mass, weighted as:
-C 68.6% indust. x (41.2% Propene(3C) + 58.8% other Alkenes/ynes(4.8C)) +
-C 31.2% biomass burn x (47.9% Propene + 52.1% other Alkenes/ynes)= 3.88C
-C This number wasn't adjusted when the vegetation was added.
+          tr_mm(n) = 46.11d0 ! i.e. VOC-not-carbon mass, as weighted by the
+                  !subspecies ann glob emissions for AR5 v1 
 
       case ('Paraffin')
       n_Paraffin = n
           ntm_power(n) = -10
-          tr_mm(n) = 59.50d0 ! i.e. carbon mass, weighted as:
-C 94.2%indust. x (12.% Ethane(2C) + 11.1% Propane(3C) + 20.5% Butane(4C)
-C + 18.% Pentane(5C) + 34.% higher Alkanes(7.5C) + 4.4% Ketones(4.6C)) +
-C 5.8% biomass burning x (51.9% Ethane(2C) + 15.1% Propane(3C)
-C + 4.5% Butane(4C) + 10.8% Pentane(5C) + 12.6% higher alkanes(8C)
-C + 5.1% Ketones(3.6C)) = 4.95 C
-C This number wasn't adjusted when the vegetation source was added.
+          tr_mm(n) = 76.41d0 ! i.e. VOC-not-carbon mass, as weighted by the
+                  !subspecies ann glob emissions for AR5 v1 
 
 #endif  /* TRACERS_SPECIAL_Shindell */
 
@@ -846,7 +839,7 @@ C This number wasn't adjusted when the vegetation source was added.
 #ifdef EDGAR_1995
           ntsurfsrc(n) = 6
 #else
-          ntsurfsrc(n) = 1   !Industrial
+          ntsurfsrc(n) = 2   !Industrial,ships
 #endif
           tr_mm(n) = 64.
           tr_RKD(n) =0.0118d0 !mole/J or  1.2  M/atm
@@ -862,7 +855,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
 #ifdef EDGAR_1995
           ntsurfsrc(n) = 6
 #else
-          ntsurfsrc(n) = 1   !Industrial
+          ntsurfsrc(n) = 2   !Industrial,ships
 #endif
           tr_mm(n) = 96.
           trpdens(n)=1.7d3   !kg/m3 this is sulfate value
@@ -930,7 +923,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('BCII')  !Insoluble industrial BC
       n_BCII = n
           ntm_power(n) = -12
-          ntsurfsrc(n) = 1
+          ntsurfsrc(n) = 2  !Industrial, ships
           tr_mm(n) = 12.
           trpdens(n)=1.3d3   !kg/m3
           trradius(n)=1.d-7 !m
@@ -957,7 +950,7 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('OCII') !Insoluble industrial organic mass
       n_OCII = n
           ntm_power(n) = -11
-          ntsurfsrc(n) = 2 !Terpene and industrial emissions
+          ntsurfsrc(n) = 3 !Terpene, industrial, ships 
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
@@ -2753,6 +2746,13 @@ c industrial source
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Ship_src_of'//trname(n)
+        lname_jls(k) = 'SO2 ship source'
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 c volcanic production of SO2
         k = k + 1
@@ -2905,6 +2905,13 @@ c industrial source
         jls_source(1,n) = k
         sname_jls(k) = 'Industrial_src_of'//trname(n)
         lname_jls(k) = 'SO4 industrial source'
+        jls_ltop(k) = 1
+        jls_power(k) =0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Ship_src_of'//trname(n)
+        lname_jls(k) = 'SO4 ship source'
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -3080,6 +3087,13 @@ c gravitational settling of BCII
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(2,n) = k
+        sname_jls(k) = 'Ship_src_'//trname(n)
+        lname_jls(k) = 'BCII ship source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('BCIA')
         k = k + 1
@@ -3149,6 +3163,13 @@ c gravitational settling of OCII
         jls_source(2,n) = k
         sname_jls(k) = 'terpene_src_'//TRIM(trname(n))
         lname_jls(k) = 'OCII Terpene source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_source(3,n) = k
+        sname_jls(k) = 'Ship_src_'//TRIM(trname(n))
+        lname_jls(k) = 'OCII ship source'
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -4179,6 +4200,15 @@ c put in chemical production
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'BC ship source'
+        sname_ijts(k) = 'BC_Ship_source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
         ijts_3Dsource(1,n) = k   ! defined but not output
         ijts_index(k) = n
         ia_ijts(k) = ia_src
@@ -4627,6 +4657,15 @@ c BCB clear sky longwave radiative forcing
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_source(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'ship source'
+        sname_ijts(k) = 'OC_Ship_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5229,6 +5268,15 @@ c emissions of industrial SO2
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Ship SO2 source'
+        sname_ijts(k) = 'SO2_source_from_ships'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
         case ('SO4')
 c put in production of SO4 from gas phase
@@ -5304,6 +5352,15 @@ c SO4 from industrial emissions
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO4 source'
         sname_ijts(k) = 'SO4_source_from_industry'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        k = k + 1
+        ijts_source(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Ship SO4 source'
+        sname_ijts(k) = 'SO4_source_from_ships'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -7722,16 +7779,19 @@ C**** set some defaults
             itcon_surf(1,N) = 18
             qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
             qsum(itcon_surf(1,N))=.false.
-            itcon_mc(n) =19
-            qcon(itcon_mc(n)) = .true.  ; conpts(7) = 'MOIST CONV'
+            itcon_surf(2,N) = 19
+            qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'ship src'
+            qsum(itcon_surf(2,N))=.false.
+            itcon_mc(n) =20
+            qcon(itcon_mc(n)) = .true.  ; conpts(8) = 'MOIST CONV'
             qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =20
-            qcon(itcon_ss(n)) = .true.  ; conpts(8) = 'LS COND'
+            itcon_ss(n) =21
+            qcon(itcon_ss(n)) = .true.  ; conpts(9) = 'LS COND'
             qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
             if(dodrydep(n)) then
-              itcon_dd(n,1)=21
-              qcon(itcon_dd(n,1)) = .true. ; conpts(9) = 'TURB DEP'
+              itcon_dd(n,1)=22
+              qcon(itcon_dd(n,1)) = .true. ; conpts(10) = 'TURB DEP'
               qsum(itcon_dd(n,1)) = .false.
             end if
 #endif
@@ -7782,19 +7842,22 @@ C**** set some defaults
             itcon_surf(1,N) = 16
             qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
             qsum(itcon_surf(1,N)) = .false.
-            itcon_mc(n) =17
-            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+           itcon_surf(2,N) = 17
+           qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'ship src'
+           qsum(itcon_surf(2,N)) = .false.
+            itcon_mc(n) =18
+            qcon(itcon_mc(n)) = .true.  ; conpts(6) = 'MOIST CONV'
             qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =18
-            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+            itcon_ss(n) =19
+            qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
             qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
             if(dodrydep(n)) then
-              itcon_dd(n,1)=19
-              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
+              itcon_dd(n,1)= 20
+              qcon(itcon_dd(n,1)) = .true. ; conpts(8) = 'TURB DEP'
               qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=20
-              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
+              itcon_dd(n,2)=21
+              qcon(itcon_dd(n,2)) = .true. ; conpts(9) = 'GRAV SET'
               qsum(itcon_dd(n,2)) = .false.
             end if
 #endif
@@ -7811,19 +7874,22 @@ C**** set some defaults
             itcon_surf(1,N) = 15
             qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
             qsum(itcon_surf(1,N)) = .false.
-            itcon_mc(n) = 16
-            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+            itcon_surf(2,N) = 16
+            qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
+            qsum(itcon_surf(2,N)) = .false.
+            itcon_mc(n) = 17
+            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
             qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 17
-            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+            itcon_ss(n) = 18
+            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
             qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
             if(dodrydep(n)) then
-              itcon_dd(n,1)=18
-              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+              itcon_dd(n,1)=19
+              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
               qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=19
-              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+              itcon_dd(n,2)=20
+              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
               qsum(itcon_dd(n,2)) = .false.
             end if
 #endif
@@ -7905,19 +7971,22 @@ C**** set some defaults
             itcon_surf(2,N) = 15
             qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'Terpene src'
             qsum(itcon_surf(2,N)) = .false.
-            itcon_mc(n) = 16
-            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+            itcon_surf(3,N) = 16
+            qcon(itcon_surf(3,N)) = .true.; conpts(4) = 'ship src'
+            qsum(itcon_surf(3,N)) = .false.
+            itcon_mc(n) = 17
+            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
             qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 17
-            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+            itcon_ss(n) = 18
+            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
             qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
             if(dodrydep(n)) then
-              itcon_dd(n,1)=18
-              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+              itcon_dd(n,1)=19
+              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
               qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=19
-              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+              itcon_dd(n,2)=20
+              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
               qsum(itcon_dd(n,2)) = .false.
             end if
 #endif
@@ -9782,6 +9851,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('SO2')
         call read_hist_SO2(iact)
+        call get_ships(iact)  !reads in SO2, BC and POM sources
         call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
         call read_hist_BCOC(iact)
@@ -9842,7 +9912,8 @@ C**** at the start of any day
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src,BCI_src,OCI_src,BCB_src,
-     * OCB_src,OCT_src,NH3_src_con,NH3_src_cyc
+     * OCB_src,OCT_src,NH3_src_con,NH3_src_cyc,
+     * BC_ship,POM_ship,SO2_ship
 #endif
 #ifdef TRACERS_RADON
       USE AEROSOL_SOURCES, only: rn_src
@@ -10271,15 +10342,12 @@ c       endif
          end do
         end do
 #else
-        do ns=1,ntsurfsrc(n)
+c       do ns=1,ntsurfsrc(n)
          do j=J_0,J_1
-            if (ntsurfsrc(n).eq.1) then
-            trsource(:,j,ns,n) = so2_src(:,j,ns)*0.975d0
-            else
-            trsource(:,j,ns,n) = so2_src(:,j,ns)
-            endif
+            trsource(:,j,1,n) = so2_src(:,j,1)*0.975d0
          end do
-        end do
+c       end do
+        trsource(:,j_0:j_1,2,n)=SO2_ship(:,j_0:j_1,jmon)*0.975
 #endif
 
 c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
@@ -10295,6 +10363,7 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
        do j=J_0,J_1
          trsource(:,j,1,n) = so2_src(:,j,1)*0.0375d0
        end do
+        trsource(:,j_0:j_1,2,n)=SO2_ship(:,j_0:j_1,jmon)*0.0375d0
 #endif
 #else
 #ifdef EDGAR_1995
@@ -10307,6 +10376,7 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
          do j=J_0,J_1
             trsource(:,j,1,n) = .99*so2_src(:,j,1)*0.0375d0
          end do
+        trsource(:,j_0:j_1,2,n)=.99*SO2_ship(:,j_0:j_1,jmon)*0.0375d0
 #endif
 #endif
 
@@ -10322,17 +10392,20 @@ c we assume 97.5% emission as SO2, 2.5% as sulfate (*tr_mm/tr_mm)
          do j=J_0,J_1
             trsource(:,j,1,n) = 0.01* so2_src(:,j,1)*0.0375d0
          end do
+        trsource(:,j_0:j_1,2,n)=.01*SO2_ship(:,j_0:j_1,jmon)*0.0375d0
 #endif
 #endif
 c! TRACERS_AMP
       case ('BCII')
          do j=J_0,J_1
             trsource(:,j,1,n) = BCI_src(:,j)
+            trsource(:,j,2,n) = BC_ship(:,j,jmon)
          end do
       case ('OCII')
          do j=J_0,J_1
             trsource(:,j,1,n) = OCI_src(:,j,1)
             trsource(:,j,2,n) = OCT_src(:,j,jmon)
+            trsource(:,j,3,n) = POM_ship(:,j,jmon)
          end do
 
 #ifdef TRACERS_OM_SP
@@ -10346,10 +10419,12 @@ c!OMSP
        case ('M_BC1_BC')
          do j=J_0,J_1
           trsource(:,j,1,n) = BCI_src(:,j)
+            trsource(:,j,2,n) = BC_ship(:,j,jmon)
          end do
        case ('M_OCC_OC')
          do j=J_0,J_1
           trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
+     *     +POM_ship(:,j,jmon)
          end do
 #endif
 #endif
