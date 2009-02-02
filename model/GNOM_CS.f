@@ -73,7 +73,7 @@
 !@sum  GEOM_CS Calculate geometry for CS grid
 !@auth M. Kelley
 !@ver  1.0 (Gnomonic CS grid version)
-      USE CONSTANT, only : RADIUS,TWOPI,radian
+      USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
       implicit none
       real*8 :: x,y
@@ -150,6 +150,7 @@ c
         lon2d_dg(i,j) = lon2d(i,j)/radian
         sinlat2d(i,j) = sin(lat2d(i,j))
         coslat2d(i,j) = cos(lat2d(i,j))
+        lon2d(i,j) = lon2d(i,j) + pi ! IDL has a value of zero
       enddo
       enddo
 
@@ -170,17 +171,18 @@ c halo everything just in case
 
       do j=j0,j1
       do i=i0,i1
-      dloni = lon2d(i+1,j)-lon2d(i-1,j)
-      dlati = lat2d(i+1,j)-lat2d(i-1,j)
-      dlonj = lon2d(i,j+1)-lon2d(i,j-1)
-      dlatj = lat2d(i,j+1)-lat2d(i,j-1)
-      if(dloni.lt.0.) dloni=dloni+twopi
-      if(dlonj.lt.0.) dlonj=dlonj+twopi
-      bydet = 1d0/(dloni*dlatj-dlonj*dlati)
-      ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
-      ddx_cj(i,j) = -dlonj*bydet/(radius*coslat2d(i,j))
-      ddy_ci(i,j) = -dlati*bydet/radius
-      ddy_cj(i,j) =  dloni*bydet/radius
+        dloni = lon2d(i+1,j)-lon2d(i-1,j)
+        dlati = lat2d(i+1,j)-lat2d(i-1,j)
+        dlonj = lon2d(i,j+1)-lon2d(i,j-1)
+        dlatj = lat2d(i,j+1)-lat2d(i,j-1)
+c account for discontinuity of lon2d at the international date line
+        if(abs(dloni).gt.pi) dloni=dloni-twopi*sign(1d0,dloni)
+        if(abs(dlonj).gt.pi) dlonj=dlonj-twopi*sign(1d0,dlonj)
+        bydet = 1d0/(dloni*dlatj-dlonj*dlati)
+        ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
+        ddx_cj(i,j) = -dlati*bydet/(radius*coslat2d(i,j))
+        ddy_ci(i,j) = -dlonj*bydet/radius
+        ddy_cj(i,j) =  dloni*bydet/radius
       enddo
       enddo
 
