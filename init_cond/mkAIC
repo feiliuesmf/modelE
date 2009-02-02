@@ -1,9 +1,12 @@
 #!/bin/ksh
 . ~/.modelErc
 
-echo "usage: ${0##*/} [ B|C dlat_dg (to be executed in ../init_cond)"
+if [[ $1 != RES* ]] 
+then echo "usage: ${0##*/} RES*.f [ B|C dlat_dg (to be executed in ../init_cond)"
+     echo "no action" exit ; fi
 
-if [ ! -f ./mkAIC.bin ] ; then echo "do 'make mkAIC.bin' first" ; exit 1 ; fi 
+RES=${1%.f} ; shift
+make mkAIC.bin RES_FILE=${RES} 
 
 if [[ $GCMSEARCHPATH = "" ]] ; then
     echo "Please specify GCMSEARCHPATH in your ~/.modelErc"
