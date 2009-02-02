@@ -544,9 +544,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       USE ESMF_CUSTOM_MOD, Only: modelE_vm
 #endif
       integer :: rc
-      root = ROOT_ID
-      MY_PET = root
-      NPES   = 1
 
 #ifdef USE_ESMF
       Call ESMF_Initialize(vm=modelE_vm, rc=rc)
@@ -1594,7 +1591,7 @@ c need to initialize the dd2d version of dist_grid for I/O
       USE FILEMANAGER, ONLY : closeunit
       IMPLICIT NONE
 
-      INTEGER :: ier
+      INTEGER :: rc
 
 #ifdef DEBUG_DECOMP
       CALL closeunit(CHECKSUM_UNIT)
@@ -1602,7 +1599,7 @@ c need to initialize the dd2d version of dist_grid for I/O
 #endif
 
 #ifdef USE_ESMF
-      CALL ESMF_FINALIZE(rc=ier)
+      CALL ESMF_FINALIZE(rc=rc)
 #endif
 
       END SUBROUTINE FINISH_APP
@@ -1615,7 +1612,7 @@ c need to initialize the dd2d version of dist_grid for I/O
       REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
       logical :: increment_
       logical :: loc_
-      integer :: ier,arr_size
+      integer :: ierr,arr_size
       if(present(increment)) then
         increment_ = increment
       else
@@ -1633,12 +1630,12 @@ c need to initialize the dd2d version of dist_grid for I/O
       if(increment_) then
         allocate(arr_tmp(arr_size))
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
-     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         arr_master = arr_master + arr_tmp
         deallocate(arr_tmp)
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
-     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
       if(increment_) then
@@ -1655,7 +1652,7 @@ c**** arr is overwritten by itself after reduction
          allocate(arr_tmp(arr_size))
          call mpi_reduce(arr,arr_tmp,arr_size,
      &        MPI_DOUBLE_PRECISION,MPI_SUM,root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1670,7 +1667,7 @@ c**** arr is overwritten by itself after reduction
       INTEGER, DIMENSION(:), ALLOCATABLE :: arr_tmp
       logical :: increment_
       logical :: loc_
-      integer :: ier,arr_size
+      integer :: ierr,arr_size
       if(present(increment)) then
         increment_ = increment
       else
@@ -1688,12 +1685,12 @@ c**** arr is overwritten by itself after reduction
       if(increment_) then
         allocate(arr_tmp(arr_size))
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_INTEGER,
-     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         arr_master = arr_master + arr_tmp
         deallocate(arr_tmp)
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_INTEGER,
-     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
       if(increment_) then
@@ -1710,7 +1707,7 @@ c**** arr is overwritten by itself after reduction
          allocate(arr_tmp(arr_size))
          call mpi_reduce(arr,arr_tmp,arr_size,
      &        MPI_INTEGER,MPI_SUM,root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1725,7 +1722,7 @@ c**** arr is overwritten by itself after reduction
       REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
       logical :: increment_
       logical :: loc_
-      integer :: ier,arr_size
+      integer :: ierr,arr_size
       if(present(increment)) then
         increment_ = increment
       else
@@ -1744,13 +1741,13 @@ c**** arr is overwritten by itself after reduction
             allocate(arr_tmp(arr_size))
             call mpi_reduce(arr,arr_tmp,arr_size,
      &           MPI_DOUBLE_PRECISION,MPI_SUM,root,
-     &           MPI_COMM_WORLD, ier)
+     &           MPI_COMM_WORLD, ierr)
             arr_master = arr_master + reshape(arr_tmp,shape(arr))
             deallocate(arr_tmp)
          else
             call mpi_reduce(arr,arr_master,arr_size,
      &           MPI_DOUBLE_PRECISION,MPI_SUM,root,
-     &           MPI_COMM_WORLD, ier)
+     &           MPI_COMM_WORLD, ierr)
          endif
 #else 
          if(increment_) then
@@ -1767,7 +1764,7 @@ c**** arr is overwritten by itself after reduction
          allocate(arr_tmp(arr_size))
          call mpi_reduce(arr,arr_tmp,arr_size,
      &        MPI_DOUBLE_PRECISION,MPI_SUM,root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1782,7 +1779,7 @@ c**** arr is overwritten by itself after reduction
       REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
       logical :: increment_
       logical :: loc_
-      integer :: ier,arr_size
+      integer :: ierr,arr_size
       if(present(increment)) then
         increment_ = increment
       else
@@ -1800,12 +1797,12 @@ c**** arr is overwritten by itself after reduction
       if(increment_) then
         allocate(arr_tmp(arr_size))
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
-     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         arr_master = arr_master + reshape(arr_tmp,shape(arr))
         deallocate(arr_tmp)
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
-     &       MPI_SUM,root,MPI_COMM_WORLD, ier)
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
       endif
 #else
       if(increment_) then
@@ -1822,7 +1819,7 @@ c**** arr  is overwritten by itself after reduction
          allocate(arr_tmp(arr_size))
          call mpi_reduce(arr,arr_tmp,arr_size,
      &        MPI_DOUBLE_PRECISION,MPI_SUM,root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
          arr=reshape(arr_tmp,shape(arr))
          deallocate(arr_tmp)
 #endif
@@ -1840,7 +1837,7 @@ c**** arr  is overwritten by itself after reduction
       LOGICAL, OPTIONAL, INTENT(IN) :: all
 
       LOGICAL :: all_
-      INTEGER :: status
+      INTEGER :: ierr
 
       all_ = .false.
       If (Present(all)) all_ = all
@@ -1848,10 +1845,10 @@ c**** arr  is overwritten by itself after reduction
 #ifdef USE_MPI
       If (all_) Then
          call MPI_Allreduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM,
-     &        MPI_COMM_WORLD, status)
+     &        MPI_COMM_WORLD, ierr)
       Else
          call MPI_Reduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM, root,
-     &        MPI_COMM_WORLD, status)
+     &        MPI_COMM_WORLD, ierr)
       End If
 #else
       isum = ivar
@@ -1871,7 +1868,7 @@ c**** arr  is overwritten by itself after reduction
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
       INTEGER, OPTIONAL, INTENT(IN) :: jband(2)
 
-      INTEGER :: i_0, i_1, j_0, j_1, IM, JM, J, ier
+      INTEGER :: i_0, i_1, j_0, j_1, IM, JM, J, ierr
       REAL*8  :: garr(grd_dum%jm_world)
       LOGICAL :: istag_, iskip_
 
@@ -1906,7 +1903,7 @@ c**** arr  is overwritten by itself after reduction
 #ifdef DEBUG_DECOMP
       If (Size(arr) /= grd_dum%j_stop_halo-grd_dum%j_strt_halo+1) Then
 #ifdef USE_MPI
-        CALL MPI_ABORT(ier)
+        CALL MPI_ABORT(ierr)
 #else
         STOP
 #endif
@@ -1945,9 +1942,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) THEN
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
-     &           MPI_COMM_WORLD, ier)
+     &           MPI_COMM_WORLD, ierr)
             If (Present(hsum)) Call MPI_BCAST(hsum,2,
-     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ier)
+     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ierr)
          End If
       End If
 #endif
@@ -1966,7 +1963,7 @@ c**** arr  is overwritten by itself after reduction
       INTEGER,OPTIONAL,  INTENT(IN) :: istag
       INTEGER,OPTIONAL,  INTENT(IN) :: iskip
 
-      INTEGER :: i_0, i_1, j_0, j_1, IM, JM, J,J_0STG, ier, J_0S,J_1S
+      INTEGER :: i_0, i_1, j_0, j_1, IM, JM, J,J_0STG, ierr, J_0S,J_1S
       REAL*8  :: zon(grd_dum%j_strt:grd_dum%j_stop)
       REAL*8  :: garr(grd_dum%jm_world)
       LOGICAL :: istag_,iskip_
@@ -2037,9 +2034,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
-     &           MPI_COMM_WORLD, ier)
+     &           MPI_COMM_WORLD, ierr)
             If (Present(hsum))     Call MPI_BCAST(hsum,2,
-     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ier)
+     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ierr)
          End If
       End If
 #endif
@@ -2138,7 +2135,7 @@ c**** arr  is overwritten by itself after reduction
       INTEGER :: k
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
       Logical :: all_
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world)
 #endif
@@ -2165,7 +2162,7 @@ c**** arr  is overwritten by itself after reduction
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       End If
 #else
       gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ),2)
@@ -2183,7 +2180,7 @@ c**** arr  is overwritten by itself after reduction
       INTEGER :: k
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
       Logical :: all_
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
@@ -2210,7 +2207,7 @@ c**** arr  is overwritten by itself after reduction
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2,:),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       End If
 #else
       gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ,:),2)
@@ -2226,7 +2223,7 @@ c**** arr  is overwritten by itself after reduction
 
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM, LM
       Logical :: all_
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       REAL*8  :: garr(size(arr,1),grd_dum%jm_world,size(arr,3))
 #endif
@@ -2304,7 +2301,7 @@ c**** arr  is overwritten by itself after reduction
 
       Call MPI_ALLTOALLV(send_buf, scnts, sdspl, mpi_double_precision,
      &             recv_buf, rcnts, rdspl, mpi_double_precision,
-     &             mpi_comm_world, ier)
+     &             mpi_comm_world, ierr)
 
       tsum=sum(recv_buf,2)
 
@@ -2316,7 +2313,7 @@ c**** arr  is overwritten by itself after reduction
 
       Call MPI_GatherV(tsum, dik, mpi_double_precision,
      & gsum, dik_map, rdspl, mpi_double_precision,
-     & root, mpi_comm_world, ier)
+     & root, mpi_comm_world, ierr)
 
       Deallocate(recv_buf)
       Deallocate(send_buf)
@@ -2324,7 +2321,7 @@ c**** arr  is overwritten by itself after reduction
 
       if (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       End If
 #else
       gsum = Sum(arr(:,j_0:j_1,:),2)
@@ -2341,7 +2338,7 @@ c**** arr  is overwritten by itself after reduction
       LOGICAL,OPTIONAL,  INTENT(IN) :: all
 
       INTEGER :: k
-      INTEGER :: ier
+      INTEGER :: ierr
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM
       REAL*8  :: garr(grd_dum%jm_world,size(arr,2))
       LOGICAL :: istag_
@@ -2389,9 +2386,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,Size(gsum),MPI_DOUBLE_PRECISION,root,
-     &           MPI_COMM_WORLD, ier)
+     &           MPI_COMM_WORLD, ierr)
             If (Present(hsum)) Call MPI_BCAST(hsum,size(hsum),
-     &           MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, ier)
+     &           MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, ierr)
          End If
       End If
 #endif
@@ -2404,7 +2401,6 @@ c**** arr  is overwritten by itself after reduction
       Logical, Optional, INTENT(IN) :: all
 
       INTEGER :: k
-      INTEGER :: ier
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM
       REAL*8  :: garr(size(arr,1),size(arr,2),size(arr,3),
      &     grd_dum%jm_world)
@@ -2441,7 +2437,6 @@ c**** arr  is overwritten by itself after reduction
       Logical, Optional, INTENT(IN) :: all
 
       INTEGER :: k
-      INTEGER :: ier
       INTEGER :: i_0, i_1, j_0, j_1, IM, JM
       REAL*8  :: garr(size(arr,1),size(arr,2),size(arr,3),
      &     grd_dum%jm_world)
@@ -2512,7 +2507,7 @@ c**** arr  is overwritten by itself after reduction
 
       INTEGER :: N                        !@var  N loop variable
       INTEGER :: IM,JM
-      INTEGER :: IERR
+      INTEGER :: rc
     ! now local
 
       IM   = grd_dum%IM_WORLD
@@ -2521,10 +2516,10 @@ c      write(*,*) "DD dread parallel IM,JM",IM,JM
       If (AM_I_ROOT()) then
          if(present(recs_to_skip)) then
            do n=1,recs_to_skip
-             READ (IUNIT,IOSTAT=IERR)
+             READ (IUNIT,IOSTAT=rc)
            enddo
          endif
-         READ (IUNIT,IOSTAT=IERR) AIN
+         READ (IUNIT,IOSTAT=rc) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2536,11 +2531,11 @@ C****  convert from real*4 to real*8
      &     AOUT(:,grd_dum%J_STRT:grd_dum%J_STOP)
 #endif
       if (AM_I_ROOT()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2561,7 +2556,7 @@ C****  convert from real*4 to real*8
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
       INTEGER :: IM,JM,NM
-      INTEGER :: IERR
+      INTEGER :: rc
     ! now local
 #ifdef USE_ESMF
 #endif
@@ -2574,10 +2569,10 @@ c      write(*,*) "DD dread parallel IM,JM,NM",IM,JM,NM
       If (AM_I_ROOT()) then
          if(present(recs_to_skip)) then
            do n=1,recs_to_skip
-             READ (IUNIT,IOSTAT=IERR)
+             READ (IUNIT,IOSTAT=rc)
            enddo
          endif
-         READ (IUNIT,IOSTAT=IERR) AIN
+         READ (IUNIT,IOSTAT=rc) AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2590,11 +2585,11 @@ C****  convert from real*4 to real*8
 #endif
 
       if (AM_I_ROOT()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
             call stop_model('DREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2612,15 +2607,15 @@ C****  convert from real*4 to real*8
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var AVAR real*8 array
       INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
-      INTEGER :: N,IERR
+      INTEGER :: N,rc
 
       If (AM_I_ROOT()) then
         if(present(recs_to_skip)) then
           do n=1,recs_to_skip
-            READ (IUNIT,IOSTAT=IERR)
+            READ (IUNIT,IOSTAT=rc)
           enddo
         endif
-        READ (IUNIT,IOSTAT=IERR) AGLOB
+        READ (IUNIT,IOSTAT=rc) AGLOB
       EndIf
 
 #ifdef USE_MPI
@@ -2631,11 +2626,11 @@ C****  convert from real*4 to real*8
 #endif
 
       if (AM_I_ROOT()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
             call stop_model('DREAD8_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2655,13 +2650,13 @@ C****  convert from real*4 to real*8
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
       INTEGER :: IM,JM
-      INTEGER :: IERR
+      INTEGER :: rc
     ! now local
       IM   = grd_dum%IM_WORLD
       JM   = grd_dum%JM_WORLD
 
       If (AM_I_ROOT()) then
-         READ (IUNIT,IOSTAT=IERR) M, AIN
+         READ (IUNIT,IOSTAT=rc) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2675,11 +2670,11 @@ C****  convert from real*4 to real*8
 #endif
 
       if (AM_I_ROOT()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
             call stop_model('MREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2699,7 +2694,7 @@ C****  convert from real*4 to real*8
       REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
       INTEGER :: N                        !@var  N loop variable
       INTEGER :: IM,JM,NM
-      INTEGER :: IERR
+      INTEGER :: rc 
     ! now local
 
       IM   = grd_dum%IM_WORLD
@@ -2707,7 +2702,7 @@ C****  convert from real*4 to real*8
       NM   = size(AVAR,3)
 
       If (AM_I_ROOT()) then
-         READ (IUNIT,IOSTAT=IERR) M, AIN
+         READ (IUNIT,IOSTAT=rc) M, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2721,11 +2716,11 @@ C****  convert from real*4 to real*8
 #endif
 
       if (AM_I_ROOT()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',IERR
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
             call stop_model('MREAD_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2746,7 +2741,7 @@ C****  convert from real*4 to real*8
       INTEGER :: N                        !@var  N loop variable
       INTEGER :: IM,JM
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
-      INTEGER :: IERR
+      INTEGER :: rc
     ! now local
 
       IM   = grd_dum%IM_WORLD
@@ -2754,9 +2749,9 @@ C****  convert from real*4 to real*8
 
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
-            READ (IUNIT,IOSTAT=IERR)
+            READ (IUNIT,IOSTAT=rc)
          END DO
-         READ (IUNIT, IOSTAT=IERR) TITLE, AIN
+         READ (IUNIT, IOSTAT=rc) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2769,12 +2764,12 @@ C****  convert from real*4 to real*8
 #endif
 
       if (AM_I_ROOT()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
-     &           TRIM(TITLE),' IOSTAT=',IERR
+     &           TRIM(TITLE),' IOSTAT=',rc
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2795,7 +2790,7 @@ C****  convert from real*4 to real*8
       INTEGER :: N                        !@var  N loop variable
       INTEGER :: IM,JM,NM
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
-      INTEGER :: IERR
+      INTEGER :: rc
     ! now local
       IM   = grd_dum%IM_WORLD
       JM   = grd_dum%JM_WORLD
@@ -2803,9 +2798,9 @@ C****  convert from real*4 to real*8
 
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
-            READ (IUNIT,IOSTAT=IERR)
+            READ (IUNIT,IOSTAT=rc)
          END DO
-         READ (IUNIT, IOSTAT=IERR) TITLE, AIN
+         READ (IUNIT, IOSTAT=rc) TITLE, AIN
 C****  convert from real*4 to real*8
          AOUT=AIN
       EndIf
@@ -2818,12 +2813,12 @@ C****  convert from real*4 to real*8
 #endif
 
       if (am_i_root()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
-     &           ',TRIM(TITLE),' IOSTAT=',IERR
+     &           ',TRIM(TITLE),' IOSTAT=',rc
             call stop_model('READT_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2842,13 +2837,13 @@ C****  convert from real*4 to real*8
       REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
       INTEGER :: N                        !@var  N loop variable
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
-      INTEGER :: IERR
+      INTEGER :: rc
 
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
-            READ (IUNIT,IOSTAT=IERR)
+            READ (IUNIT,IOSTAT=rc)
          END DO
-         READ (IUNIT, IOSTAT=IERR) TITLE, AGLOB
+         READ (IUNIT, IOSTAT=rc) TITLE, AGLOB
       EndIf
 
 #ifdef USE_MPI
@@ -2859,12 +2854,12 @@ C****  convert from real*4 to real*8
 #endif
 
       if (am_i_root()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
-     &           ',TRIM(TITLE),' IOSTAT=',IERR
+     &           ',TRIM(TITLE),' IOSTAT=',rc
             call stop_model('READT8_PARALLEL: READ ERROR',255)
          EndIf
       end if
@@ -2883,13 +2878,13 @@ C****  convert from real*4 to real*8
       REAL*8 :: AGLOB(size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var AGLOB global array
       INTEGER :: N                        !@var  N loop variable
       CHARACTER*80 :: TITLE               !@var  TITLE title of file record
-      INTEGER :: IERR
+      INTEGER :: rc
 
       If (AM_I_ROOT()) then
          DO N=1,IPOS-1
-            READ (IUNIT,IOSTAT=IERR)
+            READ (IUNIT,IOSTAT=rc)
          END DO
-         READ (IUNIT, IOSTAT=IERR) TITLE, AGLOB
+         READ (IUNIT, IOSTAT=rc) TITLE, AGLOB
       EndIf
 
 #ifdef USE_MPI
@@ -2900,12 +2895,12 @@ C****  convert from real*4 to real*8
 #endif
 
       if (am_i_root()) then
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
             WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
-     &           ',TRIM(TITLE),' IOSTAT=',IERR
+     &           ',TRIM(TITLE),' IOSTAT=',rc
             call stop_model('READT8_COLUMN: READ ERROR',255)
          EndIf
       end if
@@ -2922,7 +2917,7 @@ C****  convert from real*4 to real*8
       REAL*8,       INTENT(IN) :: buf(:,:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       CHARACTER*80,  INTENT(IN)  :: title
       REAL*8 :: buf_glob(size(buf,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD)
-      INTEGER :: IERR
+      INTEGER :: rc
 
 #ifdef USE_MPI
       Call gather(grd_dum, buf, buf_glob, shape(buf), 3)
@@ -2932,12 +2927,12 @@ C****  convert from real*4 to real*8
 #endif
 
       If (AM_I_ROOT()) then
-        WRITE (IUNIT, IOSTAT=IERR) title, buf_glob
-         If (IERR==0) Then
+        WRITE (IUNIT, IOSTAT=rc) title, buf_glob
+         If (rc==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
             call stop_model('WRITET8_COLUMN: WRITE ERROR',255)
          EndIf
       end if
@@ -2958,7 +2953,7 @@ C****  convert from real*4 to real*8
 !@var buf_glob real*4 array
       REAL*4 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
       REAL*8 :: buf_glob8(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
-      INTEGER :: IERR
+      INTEGER :: rc
 
 !!! not sure if it is implemented for real*4 ...
 #ifdef USE_MPI
@@ -2973,12 +2968,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #endif
 
       If (AM_I_ROOT()) then
-        WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
-         If (IERR==0) Then
+        WRITE (IUNIT, IOSTAT=rc) it, buf_glob, it
+         If (rc==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
             call stop_model('WRITEI_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
@@ -2995,7 +2990,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       CHARACTER*80,  INTENT(IN)  :: title
       REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
-      INTEGER :: IERR
+      INTEGER :: rc
 
 #ifdef USE_MPI
       Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
@@ -3005,12 +3000,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #endif
 
       If (AM_I_ROOT()) then
-        WRITE (IUNIT, IOSTAT=IERR) title, real(buf_glob,kind=4)
-         If (IERR==0) Then
+        WRITE (IUNIT, IOSTAT=rc) title, real(buf_glob,kind=4)
+         If (rc==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
             call stop_model('WRITET_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
@@ -3027,7 +3022,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
       INTEGER,      INTENT(IN)  :: it       !@var  it iteration
       REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3))
-      INTEGER :: IERR
+      INTEGER :: rc 
 
 #ifdef USE_MPI
       Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
@@ -3037,12 +3032,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #endif
 
       If (AM_I_ROOT()) then
-        WRITE (IUNIT, IOSTAT=IERR) it, buf_glob, it
-         If (IERR==0) Then
+        WRITE (IUNIT, IOSTAT=rc) it, buf_glob, it
+         If (rc==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
             call stop_model('WRITEI8_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
@@ -3058,7 +3053,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
       REAL*8, dimension (:,:,:), allocatable :: buf_glob ! global array written to disk
-      INTEGER :: IERR
+      INTEGER :: rc
 
       if(am_i_root()) allocate(
      &     buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3)))
@@ -3070,13 +3065,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #endif
 
       If (AM_I_ROOT()) then
-        WRITE (IUNIT, IOSTAT=IERR) buf_glob
+        WRITE (IUNIT, IOSTAT=rc) buf_glob
         deallocate(buf_glob)
-         If (IERR==0) Then
+         If (rc==0) Then
             WRITE(6,*) "Wrote to file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',IERR
+            WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
             call stop_model('DWRITE8_PARALLEL: WRITE ERROR',255)
          EndIf
       end if
@@ -3095,7 +3090,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, allocatable, dimension(:)            ::
      &     sendcounts, displs
       integer                                       :: nDEs
-      integer                                       :: status
+      integer                                       :: rc
+      integer                                       :: ierr
       integer                                       :: recvcount
 
       integer                                       :: I, J
@@ -3112,13 +3108,13 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #else
       Call ESMF_GridGetAllAxisIndex(egrid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
-      allocate (sendcounts(NPES), displs(0:NPES), stat=status)
+      allocate (sendcounts(NPES), displs(0:NPES), stat=rc)
 
       if (AM_I_ROOT()) then
-        allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+        allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=rc)
       else
         allocate(VAR(1))
       endif
@@ -3146,11 +3142,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_ScatterV(var, sendcounts, displs,
      &     MPI_INTEGER         , local_array, recvcount,
-     &     MPI_INTEGER         , root, MPI_COMM_WORLD, status)
+     &     MPI_INTEGER         , root, MPI_COMM_WORLD, ierr)
 
-        deallocate(VAR, stat=status)
+        deallocate(VAR, stat=rc)
 
-      deallocate(sendcounts, displs, stat=status)
+      deallocate(sendcounts, displs, stat=rc)
       deallocate(AI)
 #else
       local_array=global_array
@@ -3170,7 +3166,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, allocatable, dimension(:)            ::
      &     sendcounts, displs
       integer                                       :: nDEs
-      integer                                       :: status
+      integer                                       :: rc
+      integer                                       :: ierr
       integer                                       :: recvcount
 
       integer                                       :: I, J, II, JJ, III
@@ -3187,12 +3184,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #else
       Call ESMF_GridGetAllAxisIndex(egrid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
-      allocate (sendcounts(NPES), displs(0:NPES), stat=status)
+      allocate (sendcounts(NPES), displs(0:NPES), stat=rc)
 
       if (AM_I_ROOT()) then
-        allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+        allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=rc)
       else
         allocate(VAR(1))
       endif
@@ -3223,11 +3220,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_ScatterV(var, sendcounts, displs,
      &     MPI_LOGICAL         , local_array, recvcount,
-     &     MPI_LOGICAL         , root, MPI_COMM_WORLD, status)
+     &     MPI_LOGICAL         , root, MPI_COMM_WORLD, ierr)
 
-        deallocate(VAR, stat=status)
+        deallocate(VAR, stat=rc)
 
-      deallocate(sendcounts, displs, stat=status)
+      deallocate(sendcounts, displs, stat=rc)
       deallocate(AI)
 #else
       local_array=global_array
@@ -3245,7 +3242,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
       integer                                       :: nDEs
-      integer                                       :: status
+      integer                                       :: rc
+      integer                                       :: ierr
       integer                                       :: sendcount
 
       integer                                       :: I, J
@@ -3263,12 +3261,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
-      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
+      allocate (recvcounts(NPES), displs(0:NPES), stat=rc)
 
-      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=rc)
 
       displs(0) = 0
       do I = 1,NPES
@@ -3288,7 +3286,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array, sendcount, MPI_INTEGER         ,
      &     var, recvcounts, displs,
-     &     MPI_INTEGER         , root, MPI_COMM_WORLD, status)
+     &     MPI_INTEGER         , root, MPI_COMM_WORLD, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3304,8 +3302,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &         JN-J1+1/))
         enddo
       endif
-      deallocate(VAR, stat=status)
-      deallocate(recvcounts, displs, stat=status)
+      deallocate(VAR, stat=rc)
+      deallocate(recvcounts, displs, stat=rc)
       DEALLOCATE(AI)
 
 
@@ -3321,7 +3319,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
       integer                                       :: nDEs
-      integer                                       :: status
+      integer                                       :: rc
+      integer                                       :: ierr
       integer                                       :: sendcount
 
       integer                                       :: I, J
@@ -3337,11 +3336,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #else
       Call ESMF_GridGetAllAxisIndex(e_grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
-      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
+      allocate (recvcounts(NPES), displs(0:NPES), stat=rc)
 
-      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=rc)
 
 
       displs(0) = 0
@@ -3361,7 +3360,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array, sendcount, MPI_LOGICAL,
      &     var, recvcounts, displs,
-     &     MPI_LOGICAL, root, MPI_COMM_WORLD, status)
+     &     MPI_LOGICAL, root, MPI_COMM_WORLD, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3378,8 +3377,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         enddo
       endif
 
-      deallocate(VAR, stat=status)
-      deallocate(recvcounts, displs, stat=status)
+      deallocate(VAR, stat=rc)
+      deallocate(recvcounts, displs, stat=rc)
       Deallocate(AI)
       end subroutine Esmf_LArrayGather_IJ
 !------------------------------------------------------------
@@ -3394,7 +3393,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
       integer                                       :: nDEs
-      integer                                       :: status
+      integer                                       :: rc 
+      integer                                       :: ierr
       integer                                       :: sendcount
 
       integer                                       :: I,J
@@ -3411,12 +3411,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
-      allocate (recvcounts(NPES), displs(0:NPES), stat=status)
+      allocate (recvcounts(NPES), displs(0:NPES), stat=rc)
 
-      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=status)
+      allocate(VAR(0:size(GLOBAL_ARRAY)-1), stat=rc)
 
       displs(0) = 0
       do I = 1,NPES
@@ -3434,7 +3434,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array,sendcount,MPI_INTEGER,
      &     var, recvcounts, displs,
-     &     MPI_INTEGER, root, MPI_COMM_WORLD, status)
+     &     MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3446,8 +3446,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         enddo
       endif
 
-      deallocate(VAR, stat=status)
-      deallocate(recvcounts, displs, stat=status)
+      deallocate(VAR, stat=rc)
+      deallocate(recvcounts, displs, stat=rc)
       Deallocate(AI)
 
       end subroutine Esmf_ArrayGather_J_int
@@ -3622,12 +3622,6 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         type (ESMF_Grid), intent(IN) :: grid
         integer, intent(OUT)         :: NX, NY
 
-
-    ! local vars
-
-        integer :: counts(2)
-        integer :: status
-
         NX = 1
         NY = NPES
 
@@ -3642,10 +3636,10 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
     ! local vars
         type (ESMF_DELayout) :: layout
 
-        integer :: status
+        integer :: rc
 
 #ifdef USE_ESMF
-        call ESMF_GridGet(grid, delayout=layout, rc=status)
+        call ESMF_GridGet(grid, delayout=layout, rc=rc)
 #endif
         NX0 = 0
         NY0 = my_pet
@@ -3913,7 +3907,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         character(LEN=ESMF_MAXSTR) :: FILENAME
         logical                :: IS_NAMED
         integer                :: IOSTAT
-        integer                :: status
+        integer                :: ierr
 
         if (ESMF_AM_I_ROOT(layout)) then
            if (present(UNIT)) then
@@ -3947,7 +3941,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
         CALL MPI_BCAST(data, 1, MPI_INTEGER, root,
-     &       MPI_COMM_WORLD, status)
+     &       MPI_COMM_WORLD, ierr)
 #endif
 
         return
@@ -3984,7 +3978,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         character(LEN=ESMF_MAXSTR) :: FILENAME
         logical                :: IS_NAMED
         integer                :: IOSTAT
-        integer                :: status
+        integer                :: ierr
 
         if (ESMF_AM_I_ROOT(layout)) then
            if (present(UNIT)) then
@@ -4018,7 +4012,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
         CALL MPI_BCAST(data, size(data), MPI_INTEGER, root,
-     &       MPI_COMM_WORLD, status)
+     &       MPI_COMM_WORLD, ierr)
 #endif
 
         return
@@ -4056,7 +4050,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         character(LEN=ESMF_MAXSTR) :: FILENAME
         logical                :: IS_NAMED
         integer                :: IOSTAT
-        integer                :: status
+        integer                :: ierr
 
         if (ESMF_AM_I_ROOT(layout)) then
            if (present(UNIT)) then
@@ -4090,7 +4084,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
         CALL MPI_BCAST(data, Size(data), MPI_DOUBLE_PRECISION, root,
-     &       MPI_COMM_WORLD, status)
+     &       MPI_COMM_WORLD, ierr)
 #endif
 
         return
@@ -4108,14 +4102,14 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         integer :: i
     ! local vars
         integer :: deId
-        integer :: status
+        integer :: rc
 
         type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
 
         Allocate(AI(1:NPES,3))
         call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, AI,
      &       horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
         deId = ESMF_GRID_PE_NUM_FM_PE_LOC(grid%ESMF_GRID, X_LOC, Y_LOC)
 
 
@@ -4141,8 +4135,6 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         type (ESMF_DELayout) :: layout
         logical              :: R
 
-        integer :: status
-
 #ifdef USE_MPI
         R = .false.
         if (my_pet == root) R = .true.
@@ -4157,11 +4149,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         logical              :: R
 
         integer :: rank
-        integer :: status
+        integer :: ierr
 
 #ifdef USE_MPI
         R = .false.
-        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, status)
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierr)
         if (rank == root) R = .true.
 #else
       R = .true.
@@ -4182,11 +4174,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         type (ESMF_DELayout) :: layout
         integer :: nx, ny
-        integer :: status
+        integer :: rc
 
 #ifdef USE_MPI
 #ifdef USE_ESMF
-        call ESMF_GridGet(grid, delayout=layout, rc=status)
+        call ESMF_GridGet(grid, delayout=layout, rc=rc)
 #endif
         deid = y_loc
 #else
@@ -4207,11 +4199,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         integer, intent(OUT)         :: IM_WORLD, JM_WORLD
 
 ! local vars
-        integer status
+        integer rc
         integer, dimension(ESMF_MAXGRIDDIM) :: dims
 
         call ESMF_GridGet(grid, horzRelLoc=ESMF_CELL_CENTER,
-     &     globalcellcountperdim=dims, rc=status)
+     &     globalcellcountperdim=dims, rc=rc)
 
         IM_WORLD = dims(1)
         JM_WORLD = dims(2)
@@ -4227,10 +4219,10 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       type (ESMF_DELayout) :: layout
       integer, optional  :: rc
 
-      integer :: status
+      integer :: ierr
 
 #ifdef USE_MPI
-      call MPI_BARRIER(MPI_COMM_WORLD, status)
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       if (present(rc)) then
          rc = ESMF_SUCCESS
       endif
@@ -4254,7 +4246,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       Character(Len=*) :: file
       Integer :: line
 
-      INTEGER :: ier
+      INTEGER :: ierr
       Integer, Allocatable :: lines(:)
 
 #ifdef DEBUG_DECOMP
@@ -4266,14 +4258,14 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_MPI
        ALLOCATE(lines(npes))
        Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER,
-     &      MPI_COMM_WORLD, ier)
+     &      MPI_COMM_WORLD, ierr)
        If (Any(lines /= line))
      &      call stop_model('HERE: synchronization error -severe.',255)
        Deallocate(lines)
 #endif
 #endif
 #ifdef USE_MPI
-      CALL MPI_BARRIER(MPI_COMM_WORLD, ier)
+      CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
 #endif
       END SUBROUTINE HERE
 
@@ -4317,11 +4309,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8,            INTENT(IN)  :: val
       REAL*8,            INTENT(OUT) :: val_min
 
-      INTEGER  :: ier
+      INTEGER  :: ierr
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_min, 1, MPI_DOUBLE_PRECISION,MPI_MIN,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #else
       val_min = val
 #endif
@@ -4334,11 +4326,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8,            INTENT(IN)  :: val
       REAL*8,            INTENT(OUT) :: val_max
 
-      INTEGER  :: ier
+      INTEGER  :: ierr
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION,MPI_MAX,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #else
       val_max = val
 #endif
@@ -4351,11 +4343,11 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER,            INTENT(IN)  :: val
       INTEGER,            INTENT(OUT) :: val_max
 
-      INTEGER  :: ier
+      INTEGER  :: ierr
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #else
       val_max = val
 #endif
@@ -5436,11 +5428,11 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(InOut) :: arr
 
-      INTEGER :: ier
+      INTEGER :: ierr
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_0D
@@ -5450,11 +5442,11 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(InOut) :: arr(:)
 
-      INTEGER :: ier
+      INTEGER :: ierr
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_1D
@@ -5464,11 +5456,11 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(InOut) :: arr(:,:)
 
-      INTEGER :: ier
+      INTEGER :: ierr
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_2D
@@ -5478,11 +5470,11 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(InOut) :: arr(:,:,:)
 
-      INTEGER :: ier
+      INTEGER :: ierr
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_3D
@@ -5492,11 +5484,11 @@ C--------------------------------
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(InOut) :: arr(:,:,:,:)
 
-      INTEGER :: ier
+      INTEGER :: ierr
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_4D
@@ -5505,10 +5497,10 @@ C--------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_INTEGER,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_0D
 
@@ -5516,10 +5508,10 @@ C--------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:)
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_1D
 
@@ -5527,10 +5519,10 @@ C--------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:,:)
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_2D
 
@@ -5538,10 +5530,10 @@ C--------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:,:,:)
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_3D
 
@@ -5549,10 +5541,10 @@ C--------------------------------
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(InOut) :: arr(:,:,:,:)
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
-     &     MPI_COMM_WORLD, ier)
+     &     MPI_COMM_WORLD, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_4D
 
@@ -5570,7 +5562,7 @@ C--------------------------------
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,nk,k
-      INTEGER :: status, ier, p
+      INTEGER :: ierr, p, rc
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt
       INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
       LOGICAL :: reverse_
@@ -5596,7 +5588,7 @@ C--------------------------------
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
       DO p = 0, npes - 1
@@ -5645,11 +5637,11 @@ C--------------------------------
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       End If
 
       icnt = 0
@@ -5692,7 +5684,7 @@ C--------------------------------
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ
-      INTEGER :: status, ier, p
+      INTEGER :: ierr, p, rc
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt
       INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
       LOGICAL :: reverse_
@@ -5718,7 +5710,7 @@ C--------------------------------
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
       DO p = 0, npes - 1
@@ -5764,11 +5756,11 @@ C--------------------------------
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       End If
 
       icnt = 0
@@ -5812,7 +5804,7 @@ C--------------------------------
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,k
-      INTEGER :: status, ier, p
+      INTEGER :: ierr, p, rc
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt
       INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
       INTEGER :: n, nk
@@ -5840,7 +5832,7 @@ C--------------------------------
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=status)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
       DO p = 0, npes - 1
@@ -5890,11 +5882,11 @@ C--------------------------------
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ier)
+     &        MPI_COMM_WORLD, ierr)
       End If
 
       icnt = 0
@@ -5936,7 +5928,7 @@ C--------------------------------
       Integer :: new_len
       INTEGER(KIND=MPI_ADDRESS_KIND) disp(2), ext_lb, base_byte_len
       Integer :: vtype1, vtype2
-      Integer :: ier
+      Integer :: ierr
 
 #ifdef MPITYPE_LOOKUP_HACK
       type mpi_types_str
@@ -5970,17 +5962,17 @@ C--------------------------------
 #endif
 
       Call MPI_Type_vector(n_blocks, blocklen, stride, base_type,
-     &     vtype1, ier)
-      !Call MPI_Type_extent(base_type, base_byte_len, ier)
-      Call MPI_Type_get_extent(base_type, ext_lb, base_byte_len, ier)
+     &     vtype1, ierr)
+      !Call MPI_Type_extent(base_type, base_byte_len, ierr)
+      Call MPI_Type_get_extent(base_type, ext_lb, base_byte_len, ierr)
       new_len = base_byte_len * blocklen
       !Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /),
       disp(1)=0; disp(2)=new_len;
       Call MPI_Type_create_struct(2, (/ 1, 1 /), disp,
-     &     (/ vtype1, MPI_UB /), vtype2, ier)
-      Call MPI_Type_Free(vtype1, ier)
+     &     (/ vtype1, MPI_UB /), vtype2, ierr)
+      Call MPI_Type_Free(vtype1, ierr)
 
-      Call MPI_Type_Commit(vtype2, ier)
+      Call MPI_Type_Commit(vtype2, ierr)
 
 #ifdef MPITYPE_LOOKUP_HACK
       mt_count = mt_count + 1
@@ -6038,10 +6030,11 @@ cddd      End If
       Integer :: npy, npx, px, py, pe_south, pe_north
       Integer :: off(4)
       Integer :: USABLE_FROM
-      Integer :: status(MPI_STATUS_SIZE), ier
+      Integer :: status(MPI_STATUS_SIZE), ierr
       Integer :: n, sz
       Logical :: bc_periodic
 
+ 
       USABLE_FROM = usableFrom(from)
       bc_periodic = isPeriodic(bc_periodic_)
 
@@ -6066,18 +6059,18 @@ cddd      End If
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
      &                    arr(off(4)), 1, new_type, pe_north, tag,
-     &                    MPI_COMM_WORLD, status, ier)
+     &                    MPI_COMM_WORLD, status, ierr)
       End If
 
       IF(FILL(SOUTH)) THEN
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(3)), 1, new_type, pe_north, tag,
      &                    arr(off(1)), 1, new_type, pe_south, tag,
-     &                    MPI_COMM_WORLD, status, ier)
+     &                    MPI_COMM_WORLD, status, ierr)
       End If
 
 #ifndef MPITYPE_LOOKUP_HACK
-      Call MPI_Type_Free(new_type, ier)
+      Call MPI_Type_Free(new_type, ierr)
 #endif
 
       End SUBROUTINE SendRecv
@@ -6095,7 +6088,7 @@ cddd      End If
       Integer :: npy, npx, px, py, pe_south, pe_north
       Integer :: off(4)
       Integer :: USABLE_FROM
-      Integer :: status(MPI_STATUS_SIZE), ier
+      Integer :: status(MPI_STATUS_SIZE), ierr
       Integer :: n, sz
       Logical :: bc_periodic
 
@@ -6122,18 +6115,18 @@ cddd      End If
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
      &                    arr(off(4)), 1, new_type, pe_north, tag,
-     &                    MPI_COMM_WORLD, status, ier)
+     &                    MPI_COMM_WORLD, status, ierr)
       End If
 
       IF(FILL(SOUTH)) THEN
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(3)), 1, new_type, pe_north, tag,
      &                    arr(off(1)), 1, new_type, pe_south, tag,
-     &                    MPI_COMM_WORLD, status, ier)
+     &                    MPI_COMM_WORLD, status, ierr)
       End If
 
 #ifndef MPITYPE_LOOKUP_HACK
-      Call MPI_Type_Free(new_type, ier)
+      Call MPI_Type_Free(new_type, ierr)
 #endif
 
       End SUBROUTINE SendRecv_int
@@ -6149,7 +6142,7 @@ cddd      End If
 
       Logical :: all_
       Integer :: new_type, orig_type
-      Integer :: ier
+      Integer :: ierr, rc
       Integer :: p, scount, offset
       Integer, Allocatable :: rcounts(:), displs(:)
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
@@ -6165,10 +6158,10 @@ cddd      End If
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
-     &       vertRelLoc=ESMF_CELL_CELL, rc=ier)
+     &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
-      allocate (rcounts(NPES), displs(NPES), stat=ier)
+      allocate (rcounts(NPES), displs(NPES), stat=rc)
       Do p = 1, npes
         rcounts(p) = AI(p,2)%max - AI(p,2)%min + 1
         displs(p) = AI(p,2)%min - 1
@@ -6194,22 +6187,22 @@ cddd      End If
       If (all_) Then
         Call MPI_AllGatherV(arr_loc(offset), scount, orig_type,
      &       arr_glob(1), rcounts, displs, new_type,
-     &       MPI_COMM_WORLD, ier)
+     &       MPI_COMM_WORLD, ierr)
       Else
         Call MPI_GatherV(arr_loc(offset), scount, orig_type,
      &       arr_glob(1), rcounts, displs, new_type,
-     &       root, MPI_COMM_WORLD, ier)
+     &       root, MPI_COMM_WORLD, ierr)
       End If
 
       End Do
 
 #ifndef MPITYPE_LOOKUP_HACK
-      Call MPI_Type_Free(new_type, ier)
+      Call MPI_Type_Free(new_type, ierr)
 #endif
 
       Deallocate(rcounts,displs)
 #ifndef MPITYPE_LOOKUP_HACK
-      Call MPI_Type_Free(orig_type, ier)
+      Call MPI_Type_Free(orig_type, ierr)
 #endif
 
       End SUBROUTINE gather
@@ -6223,7 +6216,7 @@ cddd      End If
       Integer :: dist_idx
 
       Integer :: new_type, orig_type
-      Integer :: ier
+      Integer :: rc, ierr
       Integer :: p, rcount, offset
       Integer, Allocatable :: scounts(:), displs(:)
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
@@ -6238,10 +6231,10 @@ cddd      End If
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
       Call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, globalAI=AI,
-     &   horzRelLoc=ESMF_CELL_CENTER, vertRelLoc=ESMF_CELL_CELL, rc=ier)
+     &   horzRelLoc=ESMF_CELL_CENTER, vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
 
-      allocate (scounts(NPES), displs(NPES), stat=ier)
+      allocate (scounts(NPES), displs(NPES), stat=rc)
       Do p = 1, npes
         scounts(p) = AI(p,2)%max - AI(p,2)%min + 1
         displs(p) = AI(p,2)%min - 1
@@ -6261,11 +6254,11 @@ cddd      End If
 
       Call MPI_ScatterV(arr_glob(1), scounts, displs, orig_type,
      &     arr_loc(offset), rcount, new_type,
-     &     root, MPI_COMM_WORLD, ier)
+     &     root, MPI_COMM_WORLD, ierr)
 
 #ifndef MPITYPE_LOOKUP_HACK
-      Call MPI_Type_Free(new_type, ier)
-      Call MPI_Type_Free(orig_type, ier)
+      Call MPI_Type_Free(new_type, ierr)
+      Call MPI_Type_Free(orig_type, ierr)
 #endif
 
       Deallocate(scounts,displs)
@@ -6288,10 +6281,10 @@ cddd      End If
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Real*8, Intent(In) :: arr(:)
       Integer, Intent(In) :: j_dest, tag
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
+     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
 #endif
       end subroutine SEND_TO_J_1D
 
@@ -6300,10 +6293,10 @@ cddd      End If
       TYPE (DIST_GRID), INTENT(In) :: grd_dum
       Integer, Intent(In) :: arr
       Integer, Intent(In) :: j_dest, tag
-      INTEGER :: ier
+      INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, 1, MPI_INTEGER,
-     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ier)
+     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
 #endif
       end subroutine ISEND_TO_J_0D
 
@@ -6313,9 +6306,9 @@ cddd      End If
       Real*8, Intent(In) :: arr(:)
       Integer, Intent(In) :: j_src, tag
 #ifdef USE_MPI
-      INTEGER :: ier, status(MPI_STATUS_SIZE)
+      INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
+     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
 #endif
       end subroutine RECV_FROM_J_1D
 
@@ -6325,9 +6318,9 @@ cddd      End If
       Integer, Intent(In) :: arr
       Integer, Intent(In) :: j_src, tag
 #ifdef USE_MPI
-      INTEGER :: ier, status(MPI_STATUS_SIZE)
+      INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER,
-     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ier)
+     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
 #endif
       end subroutine IRECV_FROM_J_0D
 
