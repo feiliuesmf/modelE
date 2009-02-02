@@ -258,6 +258,10 @@ C****
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 
+c avoid uninitialized variable problems when the first gridpoint
+c in the domain is ocean
+      SNOW = 0.
+
 C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
       DO J=J_0,J_1
       DO I=I_0,I_1
