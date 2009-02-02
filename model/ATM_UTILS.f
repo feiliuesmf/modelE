@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#ifdef NEW_PGRAD_PBL
+#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
 !@sum  This version works for a nonorthogonal grid
@@ -9,53 +9,37 @@
 C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
-      USE CONSTANT, only : rgas,radius
-      USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
+      USE CONSTANT, only : rgas
+      USE MODEL_COM, only : t,p,zatmo,sig
       USE GEOM, only : ddx_ci,ddx_cj,ddy_ci,ddy_cj
-     &     ,cosip,sinip
       USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       IMPLICIT NONE
-      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
+      REAL*8 :: by_rho1
       real*8 :: dpsi,dpsj,dg1i,dg1j,dgsi,dgsj
       real*8 :: dpsdx,dpsdy,dg1dx,dg1dy,dgsdx,dgsdy
-      INTEGER I,J,K,IP1,IM1,J1,IM1S,IP1S,IP1E
+      INTEGER I,J
 
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, I_0, I_1, I_0H, I_1H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      INTEGER :: J_0, J_1, I_0, I_1
+      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
-      I_0H = GRID%I_STRT_HALO
-      I_1H = GRID%I_STOP_HALO
 
 
 C**** (Pressure gradient)/density at first layer and surface
 C**** to be used in the PBL, at the primary grids
 
-      ! for dPdy/rho at non-pole grids
       CALL HALO_UPDATE(grid, P)
-      CALL HALO_UPDATE(grid, PHI)
-      CALL HALO_UPDATE(grid, ZATMO)
+      CALL HALO_UPDATE(grid, PHI(:,:,1))
+c      CALL HALO_UPDATE(grid, ZATMO)
 
-      IF(I_0H.LT.I_0) THEN      ! halo cells exist in I direction
-        IM1S=I_0-1; IP1S=I_0+1; IP1E=I_1+1
-      ELSE                      ! periodic
-        IM1S=IM-1; IP1S=1; IP1E=IM
-      ENDIF
-
-      DO J=J_0S,J_1S
-      IM1=IM1S
-      I=IM1S+1
-      DO IP1=IP1S,IP1E
-        dpsi = p(ip1,j)-p(im1,j)
-        dg1i = phi(ip1,j,1)-phi(im1,j,1)
-        dgsi = zatmo(ip1,j)-zatmo(im1,j)
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        dpsi = p(i+1,j)-p(i-1,j)
+        dg1i = phi(i+1,j,1)-phi(i-1,j,1)
+        dgsi = zatmo(i+1,j)-zatmo(i-1,j)
         dpsj = p(i,j+1)-p(i,j-1)
         dg1j = phi(i,j+1,1)-phi(i,j-1,1)
         dgsj = zatmo(i,j+1)-zatmo(i,j-1)
@@ -70,54 +54,10 @@ C**** to be used in the PBL, at the primary grids
         DPDX_BY_RHO_0(I,J)=dpsdx*by_rho1+dgsdx
         DPDY_BY_RHO(I,J)=dpsdy*sig(1)*by_rho1+dg1dy
         DPDY_BY_RHO_0(I,J)=dpsdy*by_rho1+dgsdy
-        IM1=I
-        I=IP1
       ENDDO
       ENDDO
 
-c
-c the following are for a latlon grid only
-c
-      IF (have_south_pole) THEN
-        hemi = -1.; J1 = 2
-        dpx1=0. ; dpy1=0.
-        dpx0=0. ; dpy0=0.
-        DO K=1,IM
-          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
-          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
-          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
-          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
-        END DO
-        DPDX_BY_RHO(1,1)  =dpx1*BYIM
-        DPDY_BY_RHO(1,1)  =dpy1*BYIM
-        DPDX_BY_RHO_0(1,1)=dpx0*BYIM
-        DPDY_BY_RHO_0(1,1)=dpy0*BYIM
-      END IF
-
-      If (have_north_pole) THEN
-          hemi= 1.; J1=JM-1
-        dpx1=0. ; dpy1=0.
-        dpx0=0. ; dpy0=0.
-        DO K=1,IM
-          dpx1=dpx1+(DPDX_BY_RHO(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO(K,J1)*SINIP(K))
-          dpy1=dpy1+(DPDY_BY_RHO(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO(K,J1)*SINIP(K))
-          dpx0=dpx0+(DPDX_BY_RHO_0(K,J1)*COSIP(K)
-     2         -hemi*DPDY_BY_RHO_0(K,J1)*SINIP(K))
-          dpy0=dpy0+(DPDY_BY_RHO_0(K,J1)*COSIP(K)
-     2         +hemi*DPDX_BY_RHO_0(K,J1)*SINIP(K))
-        END DO
-        DPDX_BY_RHO(1,JM)  =dpx1*BYIM
-        DPDY_BY_RHO(1,JM)  =dpy1*BYIM
-        DPDX_BY_RHO_0(1,JM)=dpx0*BYIM
-        DPDY_BY_RHO_0(1,JM)=dpy0*BYIM
-      END IF
-
+      return
       END SUBROUTINE PGRAD_PBL
 
 #else
@@ -725,16 +665,16 @@ C**** and convert to WSAVE, units of m/s):
       end subroutine COMPUTE_WSAVE
 
       function nij_before_j0(j0)
-#ifdef CUBED_SPHERE
+#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
       use resolution, only : im,jm
-      use domain_decomp_atm, only : tile
+      use domain_decomp_atm, only : grid
 #else
       use geom, only : imaxj
 #endif
       implicit none
       integer :: nij_before_j0,j0
-#ifdef CUBED_SPHERE
-      nij_before_j0 = im*((tile-1)*jm + (j0-1))
+#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+      nij_before_j0 = im*((grid%tile-1)*jm + (j0-1))
 #else
       nij_before_j0 = SUM(IMAXJ(1:J0-1))
 #endif
@@ -743,15 +683,15 @@ C**** and convert to WSAVE, units of m/s):
 
       function nij_after_j1(j1)
       use resolution, only : im,jm
-#ifdef CUBED_SPHERE
-      use domain_decomp_atm, only : tile
+#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+      use domain_decomp_atm, only : grid
 #else
       use geom, only : imaxj
 #endif
       implicit none
       integer :: nij_after_j1,j1
-#ifdef CUBED_SPHERE
-      nij_after_j1 = im*((6-tile)*jm + (jm-j1))
+#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
+      nij_after_j1 = im*((6-grid%tile)*jm + (jm-j1))
 #else
       nij_after_j1 = SUM(IMAXJ(J1+1:JM))
 #endif
@@ -762,7 +702,7 @@ C**** and convert to WSAVE, units of m/s):
       use resolution, only : im,jm
       implicit none
       integer :: nij_after_i1,i1
-#ifdef CUBED_SPHERE
+#if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
       nij_after_i1 = im-i1
 #else
       nij_after_i1 = 0
