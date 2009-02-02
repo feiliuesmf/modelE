@@ -468,8 +468,6 @@ c***      Type (ESMF_HaloDirection) :: direction
       I_1H = grid%I_STOP_HALO
       iwrap = I_0H == I_0
 
-#ifndef CUBE_GRID
-
 C****
 C**** LAKECB  MWL      Mass of water in lake (kg)
 C****         GML      Liquid lake enthalpy (J)
@@ -603,6 +601,9 @@ C**** read in named rivers (if any)
       END IF
  10   call closeunit (iu_RVR)
 
+#ifdef CUBE_GRID
+      cdirec = ACHAR(48) ! make kdirec = 0
+#endif
 
 C**** Create integral direction array KDIREC/KD911 from CDIREC
       CALL HALO_UPDATE(GRID, FLICE)
@@ -817,8 +818,6 @@ C****
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
 
-#endif /* NOT CUBE_GRID */
-
 C**** Set conservation diagnostics for Lake mass and energy
       CONPT=CONPT0
       CONPT(4)="PREC+LAT M"
@@ -994,7 +993,7 @@ C**** Loop now includes polar boxes
         else
           iloop_min=i_0h
           iloop_max=i_1h
-          if(j.lt.j_0 .or. j.gt.j_1) then
+          if(ju.lt.1 .or. ju.gt.jm) then
 c avoid nonexistent SW/NW/SE/NE halo corner of a cubed sphere face.
 c instead, mark nonexistent cells with a code in the KDIREC array?
             iloop_min=max(iloop_min,1)
