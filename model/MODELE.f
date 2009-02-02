@@ -112,7 +112,7 @@ C**** Command line options
       real*8, dimension(:,:), allocatable :: tsource
       real*8, dimension(:,:,:), allocatable :: ttarget,atarget
 #endif
-      integer :: L
+      integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
 
@@ -163,6 +163,9 @@ c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
 #endif
 
 #endif
+
+      I_0 = GRID%I_STRT; I_1 = GRID%I_STOP
+      J_0 = GRID%J_STRT; J_1 = GRID%J_STOP
 
 #ifndef ADIABATIC
 
@@ -421,20 +424,21 @@ c     enddo
       CALL DYNAM()
 #else
 
-#ifndef USE_FVCUBED
       ! Using FV instead
         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
-#endif
+
       call Run(fv, clock)
 
 #ifndef USE_FVCUBED
       CALL SDRAG (DTsrc)
+#endif
         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
           call DIAGA
+#ifndef USE_FVCUBED
           call DIAGB
           call EPFLUX (U,V,T,P)
-        endif
 #endif
+        endif
 #endif
 
 #if !defined( ADIABATIC ) || defined( CUBE_GRID)
@@ -455,7 +459,11 @@ C**** Currently energy is put in uniformly weighted by mass
 C**** Scale WM mixing ratios to conserve liquid water
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
-        WM(:,:,L)=WM(:,:,L)* (PTOLD/P)
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        WM(I,J,L)=WM(I,J,L)* (PTOLD(I,J)/P(I,J))
+      END DO
+      END DO
       END DO
 !$OMP  END PARALLEL DO
 #ifndef CUBE_GRID
@@ -2075,7 +2083,7 @@ C****
 !@calls constant:orbit, calc_ampk, getdte
       USE MODEL_COM, only : im,jm,lm,ls1,ptop,psf,p,q
      *     ,itime,itimei,iyear1,nday,jdpery,jdendofm
-     *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype
+     *     ,jyear,jmon,jday,jdate,jhour,aMON,aMONTH,ftype,ntype
       USE GEOM, only : areag,axyp,imaxj,lat2d
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
@@ -2095,7 +2103,7 @@ c      USE ATMDYN, only : CALC_AMPK
       REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,xdH2O,EDPY,VEDAY
       REAL*8 :: CMASS(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                grid%J_STRT_HALO:grid%J_STOP_HALO)
-      INTEGER i,j,l,iy
+      INTEGER i,j,l,iy,it
       LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_WATER
       INTEGER n
@@ -2180,7 +2188,7 @@ c     &    write(6,*) 'add in stratosphere: H2O gen. by CH4(ppm)=',xCH4
         do l=1,lm
         do j=J_0,J_1
         do i=I_0,imaxj(j)
-#ifdef DELAY_QMA_JINTERP
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
           call lat_interp_qma(lat2d(i,j),l,jmon,xdH2O)
 #else
           xdH2O = dH2O(j,l,jmon)
@@ -2198,8 +2206,9 @@ C**** Add water to relevant tracers as well
             end if
           end do
 #endif
-          aj(j,j_h2och4,:)=aj(j,j_h2och4,:)+
-     +                       xCH4*xdH2O*ftype(:,i,j)
+          do it=1,ntype
+            call inc_aj(i,j,it,j_h2och4,xCH4*xdH2O*ftype(it,i,j))
+          end do
         end do
         end do
         If (HAVE_NORTH_POLE) q(2:im,jm,l)=q(1,jm,l)
