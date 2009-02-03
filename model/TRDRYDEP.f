@@ -746,7 +746,11 @@ C
      & IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX,NVEGTYPE,FRCLND,
      & ILAND,IUSE,IREG_loc
 #ifdef BIN_TRACERS
+#ifndef CUBE_GRID
      &     ,FUSE_loc,order_loc
+#else
+       integer, dimension(IM,JM) :: regcount
+#endif
 #endif
       IMPLICIT NONE
 c
@@ -800,28 +804,47 @@ c     Read binary file defined on CS surface
             call readt_parallel(grid,iu_data,nameunit(iu_data),
      &           FUSE_loc(:,:,K),1)
          enddo
+#ifndef CUBE_GRID
          do K=1,NVEGTYPE
             call readt_parallel(grid,iu_data,nameunit(iu_data),
      &           order_loc(:,:,K),1)
          enddo
+#endif
          call closeunit(iu_data)
       endif
       do J=J_0,J_1
          do I=I_0,I_1
             do K=1,NVEGTYPE
+#ifdef CUBE_GRID
+               regcount(I,J)=0
+#else
                iord_loc(I,J,K)=0
+#endif
                if (FUSE_loc(I,J,K) .gt. 1.e-6) then
+#ifdef CUBE_GRID
+                   regcount(I,J)=regcount(I,J)+1
+                   ILAND(I,J,regcount(I,J))=K-1
+                   IUSE(I,J,regcount(I,J))=
+                   IUSE_dbg(I,J,regcount(I,J))=
+      &                 IUSE(I,J,regcount(I,J))
+#else
                   iord_loc(I,J,K)=NINT(order_loc(I,J,K))
                   ILAND(I,J,iord_loc(I,J,K))=K-1
                   IUSE(I,J,iord_loc(I,J,K))=
      &                 NINT(1000.*FUSE_loc(I,J,K))
                   IUSE_dbg(I,J,iord_loc(I,J,K))=
      &             IUSE(I,J,iord_loc(I,J,K))
+#endif
                endif
             enddo
+#ifdef CUBE_GRID
+            IREG(I,J)=regcount(I,J)
+            write(*,*) "regcount(",I,",",J,")=",regcount(I,J)
+#else
             icol(:)=iord_loc(I,J,:)
             IREG(I,J)=maxval(icol)
 c            write(*,*) "IREG(",I,",",J,")=",IREG(I,J)
+#endif
          enddo
       enddo
 
