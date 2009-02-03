@@ -19,6 +19,7 @@ Preprocessor Options
 #define TRACERS_DRYDEP              ! include tracer dry deposition
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define BC_ALB                      !optional tracer BC affects snow albedo
+!#define BIN_TRACERS
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -128,6 +129,7 @@ GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 ATMFJ=chem_files/jv_atms.dat
 DRYCOEFF=chem_files/drydep.coef
 VEGTYPE=chem_files/vegtype.global
+VEGTYPEBIN=chem_files/vegtype.global4X5.bin
 OLSON=chem_files/drydep.table
 LAI01=chem_files/lai01.global
 LAI02=chem_files/lai02.global
