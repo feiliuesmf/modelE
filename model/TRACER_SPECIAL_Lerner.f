@@ -323,6 +323,8 @@ C**** Create interpolated table for this resolution
          call get_Trop_chem_CH4_freq(FRQname)
          ifirst = 0
         END IF
+        ! the following call is actually serving as MPI_Barrier
+        ! do not remove it unless you know what you are doing
         call esmf_bcast(grid, ifirst)
         call openunit(FRQname,FRQfile,.true.,.true.)
       end if
