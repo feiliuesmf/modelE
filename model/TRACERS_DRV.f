@@ -8574,7 +8574,6 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       integer start(3),count(3),status,ncidu,id1
-      REAL*8 dmsconc
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      * bci_src1,bci_src2,bci_src3,bci_src4
@@ -8585,7 +8584,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *  volc_exp
-      INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll
+      INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll,iudms
       INTEGER iuc2,lmax
       real*8 carbstuff,ccnv,carb(8)
 #endif
@@ -9291,17 +9290,12 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c read in DMS source
       if (imAER.ne.1) then !initialize interactive DMS (non-AeroCom)
-
-          DMSinput(:,:,:)= 0.d0
-       call openunit('DMS_SEA',mon_unit,.false.,.true.)
-      do
-       READ(mon_unit,901) ii,jj,mm,dmsconc
-       IF (II.EQ.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       DMSinput(ii,jj,mm)=dmsconc
-      end do
-        call closeunit(mon_unit)
-
+      call openunit('DMS_SEA',iudms,.true.,.true.)
+        DMSinput(:,:,:)= 0.d0
+       do mm=1,12
+       call readt_parallel(grid,iudms,title,DMSinput(:,:,mm),0)
+       end do
+       call closeunit(iudms)
       else  ! AEROCOM DMS
          status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
          status=NF_INQ_VARID(ncidu,'dms',id1)
@@ -9582,14 +9576,11 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
 c Terpenes
       if (imAER.ne.1) then
         OCT_src(:,:,:)=0.d0
-      call openunit('TERPENE',mon_unit,.false.,.true.)
-      do
-      read(mon_unit,*) ii,jj,mm,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      OCT_src(ii,jj,mm)=carbstuff
-      end do
-      call closeunit(mon_unit)
+      call openunit('TERPENE',iuc,.true.,.true.)
+       do mm=1,12
+       call readt_parallel(grid,iuc,title,OCT_src(:,:,mm),0)
+       end do
+       call closeunit(iuc)
 c units are mg Terpene/m2/month
       do j=J_0,J_1; do mm=1,12; do i=I_0,I_1
        OCT_src(i,j,mm) = OCT_src(i,j,mm)
