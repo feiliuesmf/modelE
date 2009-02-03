@@ -48,7 +48,7 @@ ICEDYN_DUM
 !ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 CONST UTILDBL SYSTEM                ! utilities
