@@ -545,6 +545,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #endif
       integer :: rc
 
+      NPES = 1                  ! default NPES = 1 for serial run
+
 #ifdef USE_ESMF
       Call ESMF_Initialize(vm=modelE_vm, rc=rc)
       Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES, rc=rc)
@@ -2499,7 +2501,7 @@ c**** arr  is overwritten by itself after reduction
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME      !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
       INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
@@ -2549,7 +2551,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME        !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
       INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
@@ -2603,7 +2605,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME        !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var AVAR real*8 array
       INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
@@ -2643,7 +2645,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME      !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME      !@var  NAME  name of file being read
       INTEGER,      INTENT(OUT) :: M         !@var  M      initial integer
       REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
@@ -2687,7 +2689,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME        !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME        !@var  NAME  name of file being read
       INTEGER,      INTENT(OUT) :: M           !@var  M      initial integer
       REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
@@ -2733,7 +2735,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS       !@var  IPOS  no. of recs. to advance
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
@@ -2782,7 +2784,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME         !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
       REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
@@ -2831,7 +2833,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME         !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,grd_dum%J_STRT_HALO:,:)  !@var  AOUT real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
       REAL*8 :: AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var AGLOB global array
@@ -2872,7 +2874,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME         !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME         !@var  NAME  name of file being read
       REAL*8,       INTENT(OUT) :: AVAR(:,:,grd_dum%J_STRT_HALO:)  !@var  AVAR real*8 array
       INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
       REAL*8 :: AGLOB(size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var AGLOB global array
@@ -2913,7 +2915,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being read
+      CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of file being read
       REAL*8,       INTENT(IN) :: buf(:,:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       CHARACTER*80,  INTENT(IN)  :: title
       REAL*8 :: buf_glob(size(buf,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD)
@@ -2945,7 +2947,7 @@ C****  convert from real*4 to real*8
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of record being read
+      CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of record being read
       REAL*4,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       INTEGER,      INTENT(IN)  :: it       !@var  it iteration
       REAL*8 :: buf8(grd_dum%IM_WORLD,
@@ -2986,7 +2988,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
+      CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of file being written
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:)  !@var  buf real*8 array
       CHARACTER*80,  INTENT(IN)  :: title
       REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD)
@@ -3018,7 +3020,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
+      CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of file being written
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
       INTEGER,      INTENT(IN)  :: it       !@var  it iteration
       REAL*8 :: buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3))
@@ -3050,7 +3052,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
       INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
-      CHARACTER*16, INTENT(IN)  :: NAME       !@var  NAME  name of file being written
+      CHARACTER*(*), INTENT(IN)  :: NAME       !@var  NAME  name of file being written
       REAL*8,       INTENT(IN) :: buf(:,grd_dum%J_STRT_HALO:,:)  !@var  buf real*8 array
       REAL*8, dimension (:,:,:), allocatable :: buf_glob ! global array written to disk
       INTEGER :: rc
