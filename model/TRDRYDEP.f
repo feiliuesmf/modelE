@@ -87,7 +87,9 @@ C*********************************************************************
       INTEGER, DIMENSION(NVEGTYPE)           :: IDEP
       INTEGER, DIMENSION(NTYPE)              :: IRI,IRLU,IRAC,IRGSS,
      &                                      IRGSO,IRCLS,IRCLO,IVSMAX
-       
+#ifdef BIN_TRACERS
+      real*8 , allocatable, dimension(:,:,:) :: FUSE_loc,order_loc
+#endif       
       END MODULE tracers_DRYDEP
 
 
@@ -99,7 +101,10 @@ C*********************************************************************
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
-     &              IREG_loc,   IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND
+     &     IREG_loc,IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND,nvegtype
+#ifdef BIN_TRACERS
+     &     ,FUSE_loc,order_loc
+#endif
       use tracer_com, only    : ntm
       use model_com, only     : im
 
@@ -127,7 +132,10 @@ C*********************************************************************
       allocate(   IJUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(   ILAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(    IUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-            
+#ifdef BIN_TRACERS
+      allocate(FUSE_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
+      allocate(order_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
+#endif              
       return
       end subroutine alloc_trdrydep 
 
@@ -731,13 +739,15 @@ C
 C**** GLOBAL parameters and variables:  
 C
       use domain_decomp_atm, only : grid, get, AM_I_ROOT, UNPACK_DATA,
-     & write_parallel
-      USE FILEMANAGER, only   : openunit,closeunit
+     & write_parallel,readt_parallel
+      USE FILEMANAGER, only   : openunit,closeunit,nameunit
       USE MODEL_COM, only     : im,jm 
       USE tracers_DRYDEP, only: IJREG,IJLAND,IJUSE,IREG,NTYPE,IDEP,
      & IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX,NVEGTYPE,FRCLND,
      & ILAND,IUSE,IREG_loc
-     
+#ifdef BIN_TRACERS
+     &     ,FUSE_loc,order_loc
+#endif
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments
@@ -755,6 +765,12 @@ C
       integer, dimension(IM,JM) :: IREG_glob
       real*8 , dimension(IM,JM) :: IREG_real
       integer, dimension(IM,JM,NTYPE) :: ILAND_glob,IUSE_glob
+#ifdef BIN_TRACERS
+      integer, dimension(IM,JM,NVEGTYPE) :: iord_loc
+      integer, dimension(NVEGTYPE) :: icol
+      integer, allocatable, dimension(:,:,:) :: IUSE_dbg,ILAND_dbg
+      integer :: I_0h, I_1h
+#endif
       INTEGER, PARAMETER :: NWAT=6
       CHARACTER*1, dimension(70) :: COM
       character(len=300) :: out_line
@@ -768,21 +784,73 @@ C
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
       
+
+#ifdef BIN_TRACERS
+
+      I_0h= GRID%I_STRT_HALO
+      I_1h= GRID%I_STOP_HALO
+      allocate(    IUSE_dbg(I_0H:I_1H,J_0H:J_1H,NTYPE))
+     
+
       if ( AM_I_ROOT() ) then
-        write(6,*) 'READING land types and fractions ...'
-        call openunit('VEGTYPE',iu_data,.false.,.true.)
-100     READ(iu_data,'(20I4)',end=110) I,J,IREG_glob(I,J),
-     &  (ILAND_glob(I,J,K),K=1,IREG_glob(I,J)),
-     &  (IUSE_glob(I,J,K),K=1,IREG_glob(I,J))
-        IREG_real(:,:)=REAL(IREG_glob(:,:))
-        GO TO 100
-110     CONTINUE
-        call closeunit(iu_data)
+c     Read binary file defined on CS surface
+         write(6,*) 'READING land fractions from binary file'
+         call openunit('VEGTYPEBIN',iu_data,.true.,.true.)
+         do K=1,NVEGTYPE
+            call readt_parallel(grid,iu_data,nameunit(iu_data),
+     &           FUSE_loc(:,:,K),1)
+         enddo
+         do K=1,NVEGTYPE
+            call readt_parallel(grid,iu_data,nameunit(iu_data),
+     &           order_loc(:,:,K),1)
+         enddo
+         call closeunit(iu_data)
+      endif
+      do J=J_0,J_1
+         do I=I_0,I_1
+            do K=1,NVEGTYPE
+               iord_loc(I,J,K)=0
+               if (FUSE_loc(I,J,K) .gt. 1.e-6) then
+                  iord_loc(I,J,K)=NINT(order_loc(I,J,K))
+                  ILAND(I,J,iord_loc(I,J,K))=K-1
+                  IUSE(I,J,iord_loc(I,J,K))=
+     &                 NINT(1000.*FUSE_loc(I,J,K))
+                  IUSE_dbg(I,J,iord_loc(I,J,K))=
+     &             IUSE(I,J,iord_loc(I,J,K))
+               endif
+            enddo
+            icol(:)=iord_loc(I,J,:)
+            IREG(I,J)=maxval(icol)
+c            write(*,*) "IREG(",I,",",J,")=",IREG(I,J)
+         enddo
+      enddo
+
+#else 
+      if ( AM_I_ROOT() ) then
+         write(6,*) 'READING land types and fractions ...'
+         call openunit('VEGTYPE',iu_data,.false.,.true.)
+ 100     READ(iu_data,'(20I4)',end=110) I,J,IREG_glob(I,J),
+     &        (ILAND_glob(I,J,K),K=1,IREG_glob(I,J)),
+     &        (IUSE_glob(I,J,K),K=1,IREG_glob(I,J))
+         IREG_real(:,:)=REAL(IREG_glob(:,:))
+         GO TO 100
+ 110     CONTINUE
+         call closeunit(iu_data)
       endif
       CALL UNPACK_DATA(grid, IREG_real, IREG_loc)
       IREG(:,J_0:J_1)=NINT(IREG_loc(:,J_0:J_1))
       CALL UNPACK_DATA(grid, ILAND_glob, ILAND)
       CALL UNPACK_DATA(grid, IUSE_glob, IUSE)
+
+c      do J=J_0,J_1
+c         do I=I_0,I_1
+c            do K=1,IREG(i,j)
+c               write(*,*) "iuse (",I,",",J,",",K,")=",
+c     &              IUSE(i,j,K)-IUSE_dbg(i,j,K)
+c            enddo
+c         enddo
+c      enddo
+#endif
       DO J=J_0,J_1
         DO I=I_0,I_1
           FRCLND(I,J) = 1000.d0
