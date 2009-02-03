@@ -134,7 +134,7 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
 
       type UnitStr
         logical in_use                     ! is the unit in use or not
-        character*16 filename              ! the name on the file
+        character*80 filename              ! the name on the file
       end type UnitStr
 
       type (UnitStr) :: Units( MINUNIT:MAXUNIT ) = UnitStr(.false.," ")
@@ -144,7 +144,7 @@ C**** correct argument in DQSATDT is the actual LH at TM i.e. LH=LH(TM)
       function nameunit( unit )
 !@sum nameunit returns the name of the file corresponding to unit <unit>
       implicit none
-      character*16 nameunit
+      character*80 nameunit
       integer, intent(in) :: unit
 
       if ( unit>MAXUNIT .or. unit<MINUNIT
@@ -221,7 +221,7 @@ C**** parse options
 
       Units(iunit)%in_use = .true.
       name_len = len_trim(filename)
-      Units(iunit)%filename = filename( max(1,name_len-15) : name_len )
+      Units(iunit)%filename = filename( max(1,name_len-79) : name_len )
       return
 
  10   write(6,*) "FILEMANAGER: Error opening file ",trim(filename)
