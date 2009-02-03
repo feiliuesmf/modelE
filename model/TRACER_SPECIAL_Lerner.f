@@ -285,23 +285,26 @@ C---- CTM layers LM down
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
       USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, ESMF_BCAST
+      USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
+     *  readt8_parallel,rewind_parallel,haveLatitude,esmf_bcast
       USE GEOM, only: imaxj
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
       USE CH4_SOURCES, only : frqlos
       USE FLUXES, only: tr3Dsource
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
-      integer n,ns,i,j,l,FRQfile,infile,lmtc
-      REAL*4 taux
+      integer n,ns,i,j,l,FRQfile,lmtc
       real*8 tauy,tune
+      real*8, save :: taux=0.
       parameter (tune = 445./501.)
-      logical, save :: ifirst=.true.
-      save tauy,infile,FRQfile
-
+      integer, save :: ifirst=1
+      character*80 titlex
+      real*8, dimension(:,:,:), allocatable :: arr_dummy_3d
+      save tauy,FRQfile
       INTEGER :: J_1, J_0, I_0, I_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      character*16, save :: FRQname='OHCH4_FRQ_interp'
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -309,22 +312,28 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      lmtc = lm-nstrtc
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
-      if(.not.ifirst .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0) )
+      lmtc = lm-nstrtc
+      if((ifirst.eq.0) .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0))
      *  go to 550                           !  no need to update frqlos
 
 C**** Create interpolated table for this resolution
-      IF (AM_I_ROOT()) THEN
-        if (ifirst ) then
-         call openunit('CH4_TROP_FRQ',infile,.true.,.true.)
-         call get_Trop_chem_CH4_freq(infile,FRQfile)
-        end if
+      if (ifirst==1) then
+        IF (AM_I_ROOT()) THEN
+         call get_Trop_chem_CH4_freq(FRQname)
+         ifirst = 0
+        END IF
+        call esmf_bcast(grid, ifirst)
+        call openunit(FRQname,FRQfile,.true.,.true.)
+      end if
 C**** Read chemical loss rate dataset (5-day frequency)
   510   continue
-        read (FRQfile,end=515) taux,frqlos
+        allocate(arr_dummy_3d(grid%i_strt_halo:grid%i_stop_halo,
+     &                        grid%j_strt_halo:grid%j_stop_halo,lmtc))
+        if (taux.eq.8640.) go to 515  ! last record on file
+        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0,title=titlex)
+        read (titlex,'(f10.0)') taux
         tauy = nint(taux)+(jyear-1950)*8760.
-c       IF (itime+ 60..gt.tauy+120.) go to 510
         IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
         IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
           write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
@@ -332,31 +341,36 @@ c       IF (itime+ 60..gt.tauy+120.) go to 510
           call stop_model(
      &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)
         end if
-        rewind (FRQfile)
         go to 518
 C**** FOR END OF YEAR, USE FIRST RECORD
   515   continue
-        rewind (FRQfile)
-        read (FRQfile,end=515) taux,frqlos
-        rewind (FRQfile)
+        call rewind_parallel(FRQfile)
+        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0,title=titlex)
+        read (titlex,'(f10.0)') taux
         tauy = nint(taux)+(jyear-1950)*8760.
+        call rewind_parallel(FRQfile)  ! start over
   518   continue
+
+        frqlos = arr_dummy_3d
+        deallocate (arr_dummy_3d)
+
         WRITE(6,'(2A,2F10.0,2I10)')
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
 C**** AVERAGE POLES
-        do l=1,lmtc
-          frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
-        end do
-        do l=1,lmtc
-          frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
-        end do
+        if(haveLatitude(grid,J=1)) then
+          do l=1,lmtc
+            frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
+          end do
+        end if
+        if(haveLatitude(grid,J=JM)) then
+          do l=1,lmtc
+            frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
+          end do
+        end if
 
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
         frqlos(:,:,:) = frqlos(:,:,:)*tune
-      END IF ! AM_i_ROOT
-      ifirst = .false.
-      call ESMF_BCAST( grid, frqlos)
 
 C**** Apply the chemistry
   550 continue
@@ -1364,14 +1378,14 @@ C****
       end module lhntr_com
 
 
-      subroutine get_Trop_chem_CH4_freq(in_file,interp_file)
+      subroutine get_Trop_chem_CH4_freq(FRQname)
 !@sum get_Trop_chem_CH4_freq interpolates troposphereic chemical
 !@+     rates for CH4 from n-grid, 9 layers to 4X5, lm layers
 !@+     The resulting rate file is written to disk for use throughout
 !@+     the run.  The rates are changed every 5 days.
 !@auth Jean Lerner
 C****  Input: CLIM.RUN.OHCH4.FRQ
-C**** Output: temporary file for this vertical resolution
+C**** Output: temporary file is for this vertical resolution
 C**** WARNING: RESULTS ARE INTENDED FOR USE TO ABOUT 26.5 mb ONLY
 C**** However, we'll stop at LMTC, which is lower, and let strat
 C****   chem pick up from there.
@@ -1380,11 +1394,11 @@ C****   chem pick up from there.
       USE FILEMANAGER, only: openunit,closeunit
       USE lhntr_com, only: LHNTR,LHNTR0
       implicit none
-      integer l,i,j,km,imo,jmo,lmo,kmo,in_file,interp_file,ifileA,ltopx
-     *     ,it
+      integer l,i,j,km,imo,jmo,lmo,kmo,InFile,interp_file,ltopx,it
       parameter (km=im*jm, imo=36,jmo=24,lmo=9,kmo=imo*jmo)
       character*80 title
-      logical :: debug=.true.,checkfile=.false.
+      character*16 :: FRQname
+      logical :: debug=.true.
 c     real*4 fold(kmo,lmo)   ,rlat(jm)
 c     real*8 wta(kmo),foldlm(kmo,lm),
 c    *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
@@ -1397,6 +1411,7 @@ c    *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
      *    .470418d0,.318899d0,.195759d0,.094938d0,.016897d0/)
 
       ALLOCATE (fold(kmo,lmo),foldlm(kmo,lm),fnew(km,lm),wta(kmo))
+
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
       pnew(:) = pmidl00(1:lm)    ! sig(:)*psfmpt+ptop
@@ -1411,10 +1426,13 @@ c    *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
       divj = 180./dlat_dg !divj is number of whole grid boxes from SP to NP
       call LHNTR0(imo,jmo,-.25d0,22.5d0, im,jm,0.d0,divj,0.d0)
 
-      call openunit('OHCH4_FRQ_temporary',interp_file,.true.)
+!     Open input and output files
+      call openunit('CH4_TROP_FRQ',InFile,.true.,.true.) !uninterpolated
+      call openunit(FRQname,interp_file,.true.,.false.)
+
 C**** outer loop over tau
       do 500 it=0,8640,120
-      read (in_file) tau,fold
+      read (InFile) tau,fold
 C**** interpolate vertically  fold-->foldlm
       do i=1,kmo
         ain(:) = fold(i,:)
@@ -1427,28 +1445,14 @@ C**** interpolate horizontally  foldlm-->fnew
       do l=1,lm
         call LHNTR(wta,foldlm(1,l),fnew(1,l),imo,jmo,im,jm)
       end do
-      write(interp_file) tau,fnew
+C**** Write interpolated file in more standard format
+      write(title,'(f10.0,a)') tau,' CLIM.RUN.OHCH4.FRQ interpolated'
+      write(interp_file) title,fnew
   500 continue
-      call closeunit(in_file)
-      rewind (interp_file)
+      call closeunit(InFile)
+      call closeunit(interp_file)
       DEALLOCATE (fold,foldlm,fnew,wta)
       write(6,*) ' SUBROUTINE get_Trop_chem_CH4_freq executed'
-C**** confirmation check at i=1 for last tau
-!     if (checkfile) then
-!       do j=1,jmo;  rlat(j) = j;  end do
-!       title = 'old'
-!       call openunit('OHCH4_FRQ_check_in',ifilea,.true.)
-!       write (ifileA) title,jmo,lmo,1,1,
-!    *   ((fold(j,l),j=1,kmo,imo),l=1,lmo),(rlat(j),j=1,jmo),
-!    *   sngl(pold),1.,1.
-!       call closeunit(ifileA)
-!       do j=1,jm;  rlat(j) = j;  end do
-!       title = 'new'
-!       call openunit('OHCH4_FRQ_check_out',ifilea,.true.)
-!       write (ifileA) title,jm,lm,1,1,
-!    *   ((sngl(fnew(j,l)),j=1,km,im),l=1,lm),rlat,sngl(pnew),1.,1.
-!       call closeunit(ifileA)
-!     end if
       return
       end subroutine get_Trop_chem_CH4_freq
 
@@ -1486,7 +1490,7 @@ C****    But what WOULD be correct???
       if (debug) write(6,*)l,lbot,ltop,pint,plbot,pltop,
      *  ain(lbot),ain(ltop),aout(l)
   190 continue
-      aout(ltopx) = ain(lm_old)   !!! fudgy
+      aout(ltopx) = ain(lm_old)   !!! fudgy, but it doesn't matter
       if (debug)write(6,*) 'data out',(aout(l),l=1,lm_new)
       return
       end subroutine v_int
@@ -1618,11 +1622,11 @@ C****
 C****
 C**** Write GAS concentration on GCM grid boxes to disk (to check)
 C****
-      call openunit('CH4check',iu,.true.)
-      TITLEW =
-     * 'Wolfsy CH4 1995 CONCENTRATION for '//amonth(jmon0)//' 1'
-      WRITE (iu) TITLEW,sngl(GASJL)
-      call closeunit(iu)
+c     call openunit('CH4check',iu,.true.)
+c     TITLEW =
+c    * 'Wolfsy CH4 1995 CONCENTRATION for '//amonth(jmon0)//' 1'
+c     WRITE (iu) TITLEW,sngl(GASJL)
+c     call closeunit(iu)
 
       RETURN
       END SUBROUTINE get_wofsy_gas_IC
@@ -1661,7 +1665,7 @@ C****
 
 C**** ESMF: This array is read in only
       lmtc = lm-nstrtc
-      ALLOCATE(   frqlos(IM,JM,lmtc),
+      ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
      *          STAT=IER)
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 
