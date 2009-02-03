@@ -14,6 +14,9 @@
       open(unit=iu_GL,FILE=fname,FORM ="FORMATTED",
      &     status ="UNKNOWN")
 
+      write(*,*) "usage: converts txt file to binary. 
+     &     Title (1st line) MUST have same number of characters as 
+     &     all other lines in the file (for example 72)"
       do 
       read(iu_GL,'(256A1)',size=ncols,advance='no',eor=800) char
       write(*,*) char
