@@ -7,6 +7,7 @@
 !@! enddo 
 !@  note that the upper bound is now NVEGTYPE. 
 !@+ The main change is that now the file contains many entries where IUSE_glob=0.
+!@+ Explanation about ordering of veg. types
 !@+
 !@+ The arrays IREG_glob and ILAND_GLOB are deduced from
 !@+ IUSE_glob by checking which values of IREG_glob are nonzero
@@ -24,7 +25,7 @@
       INTEGER, PARAMETER :: NWAT=6
       integer, dimension(IM,JM) :: IREG_glob
       integer, dimension(IM,JM,NTYPE) :: ILAND_glob,IUSE_glob
-      real*4, dimension(IM,JM,NVEGTYPE) :: FUSE_glob   !fraction btw 0. and 1.
+      real*4, dimension(IM,JM,NVEGTYPE) :: FUSE_glob,order   !fraction btw 0. and 1., index for veg. type ordering
       CHARACTER*1, dimension(70) :: COM
       character(len=300) :: out_line
       INTEGER, DIMENSION(NVEGTYPE) :: IZO
@@ -51,11 +52,12 @@ c***  Warning : ILAND_GLOB takes values between 0 and 73, and 0 isn't a friendly
 c***  for fortran arrays
       do I=1,IM
          do J=1,JM
-            write(*,*) "ireg=",IREG_glob(I,J)
             do K=1,IREG_glob(I,J)
                FUSE_glob(I,J,ILAND_GLOB(I,J,K)+1)=
      &              IUSE_glob(I,J,K)/1000.
+               order(I,J,ILAND_GLOB(I,J,K)+1)=K
             enddo
+            write(*,*) "ireg=",IREG_glob(I,J),maxval(order(I,J,:),3)
          enddo
       enddo
       
@@ -73,6 +75,12 @@ c      write(3200) TITLE
          TITLE_VEG_TYPE="veg type="//vegtype
          write(3200) TITLE_VEG_TYPE,FUSE_glob(:,:,iveg+1)
       enddo
+      do iveg=0,NVEGTYPE-1
+         write(vegtype,'(i2)') iveg
+         TITLE_VEG_TYPE="order type="//vegtype
+         write(3200) TITLE_VEG_TYPE,order(:,:,iveg+1)
+      enddo
+
 
 c***  Check that fractions at a particular cell add up to 1
       if (any(abs(sum(FUSE_glob,3)-1.0) .gt. 0.001)) then 
