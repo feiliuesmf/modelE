@@ -14,6 +14,7 @@ filters:    U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
+#define NEW_IO
 End Preprocessor Options
 
 Run Options
@@ -21,7 +22,7 @@ STACKSIZE=524288
 
 Object modules: (in order of decreasing priority)
 RES_C32M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-MODEL_COM GEOM_CS checkpoint_demo              ! model variables and geometry
+MODEL_COM GEOM_CS IO_DRV             ! model variables and geometry
 !GNOM_CS                             ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
