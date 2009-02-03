@@ -825,6 +825,7 @@ c     Read binary file defined on CS surface
                    regcount(I,J)=regcount(I,J)+1
                    ILAND(I,J,regcount(I,J))=K-1
                    IUSE(I,J,regcount(I,J))=
+     &                 NINT(1000.*FUSE_loc(I,J,K))
                    IUSE_dbg(I,J,regcount(I,J))=
       &                 IUSE(I,J,regcount(I,J))
 #else
