@@ -286,7 +286,7 @@ C---- CTM layers LM down
 !@auth Jean Lerner
       USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
-     *  readt8_parallel,rewind_parallel,haveLatitude,esmf_bcast,
+     *  readt8_parallel,haveLatitude,esmf_bcast,
      *  backspace_parallel
       USE GEOM, only: imaxj
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -352,11 +352,11 @@ C**** Read chemical loss rate dataset (5-day frequency)
         go to 518
 C**** FOR END OF YEAR, USE FIRST RECORD
   515   continue
-        call rewind_parallel(FRQfile)
+        rewind FRQfile
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
         taux = 0.d0   ! we know this
         tauy = nint(taux)+(jyear-1950)*8760.
-        call rewind_parallel(FRQfile)  ! start over
+        rewind FRQfile  ! start over
   518   continue
 
         frqlos = arr_dummy_3d
