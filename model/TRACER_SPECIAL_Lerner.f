@@ -286,7 +286,8 @@ C---- CTM layers LM down
 !@auth Jean Lerner
       USE MODEL_COM, only: im,jm,lm,byim,jyear,nday,jday,itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, AM_I_ROOT, 
-     *  readt8_parallel,rewind_parallel,haveLatitude,esmf_bcast
+     *  readt8_parallel,rewind_parallel,haveLatitude,esmf_bcast,
+     *  backspace_parallel
       USE GEOM, only: imaxj
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
@@ -299,10 +300,12 @@ C---- CTM layers LM down
       real*8, save :: taux=0.
       parameter (tune = 445./501.)
       integer, save :: ifirst=1
-      character*80 titlex
+      character*80 title
       real*8, dimension(:,:,:), allocatable :: arr_dummy_3d
       save tauy,FRQfile
       INTEGER :: J_1, J_0, I_0, I_1
+      INTEGER :: J_1H, J_0H, I_1H, I_0H
+      INTEGER :: IER
       character*16, save :: FRQname='OHCH4_FRQ_interp'
 
 C****
@@ -311,6 +314,9 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
       lmtc = lm-nstrtc
@@ -328,33 +334,33 @@ C**** Create interpolated table for this resolution
         call esmf_bcast(grid, ifirst)
         call openunit(FRQname,FRQfile,.true.,.true.)
       end if
+      ALLOCATE(arr_dummy_3d(I_0H:I_1H,J_0H:J_1H,lmtc), STAT=IER)
 C**** Read chemical loss rate dataset (5-day frequency)
   510   continue
-        allocate(arr_dummy_3d(grid%i_strt_halo:grid%i_stop_halo,
-     &                        grid%j_strt_halo:grid%j_stop_halo,lmtc))
         if (taux.eq.8640.) go to 515  ! last record on file
-        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0,title=titlex)
-        read (titlex,'(f10.0)') taux
+        read(FRQfile) title
+        read (title,'(f10.0)') taux
         tauy = nint(taux)+(jyear-1950)*8760.
         IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
+        call backspace_parallel(FRQfile)
+        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
         IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
-          write(6,*)' PROBLEM MATCHING itime ON FLUX FILE',TAUX,TAUY,
-     &       JYEAR
+          write(6,*)'PROBLEM MATCHING itime on FRQ file',taux,tauy,jyear
           call stop_model(
-     &       'PROBLEM MATCHING itime ON FLUX FILE in Trop_chem_CH4',255)
+     &       'PROBLEM MATCHING itime on FRQ file in Trop_chem_CH4',255)
         end if
         go to 518
 C**** FOR END OF YEAR, USE FIRST RECORD
   515   continue
         call rewind_parallel(FRQfile)
-        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0,title=titlex)
-        read (titlex,'(f10.0)') taux
+        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
+        taux = 0.d0   ! we know this
         tauy = nint(taux)+(jyear-1950)*8760.
         call rewind_parallel(FRQfile)  ! start over
   518   continue
 
         frqlos = arr_dummy_3d
-        deallocate (arr_dummy_3d)
+        DEALLOCATE (arr_dummy_3d)
 
         WRITE(6,'(2A,2F10.0,2I10)')
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
@@ -370,7 +376,6 @@ C**** AVERAGE POLES
             frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
           end do
         end if
-
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
         frqlos(:,:,:) = frqlos(:,:,:)*tune
 
