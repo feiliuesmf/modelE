@@ -13,7 +13,8 @@ c
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,PACK_COLUMN,
      &                        GLOBALSUM, PACK_DATA, PACK_DATAj,
-     &                        write_parallel,writet8_column
+     &                        write_parallel,writet8_column,
+     &                        writet_parallel
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
      &                        COUPLED_CHEM,JHOUR
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,bygrav
@@ -140,7 +141,7 @@ C**** Local parameters and variables and arguments:
      &                             istep
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
-      CHARACTER*80              :: ghg_file,title
+      CHARACTER*80              :: ss27_file,ghg_file,title
       character(len=300)        :: out_line
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -149,9 +150,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       real*8 :: ghg_out(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
-      real*8, dimension(LM,IM,JM)   :: ss27_glob
-      real*8 :: ss27(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*8 :: ss27x2(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(JM)         :: DU_O3_glob
 #ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(JM,LM)      :: photO2_glob
@@ -1678,27 +1678,20 @@ CCCCC!$OMP END PARALLEL DO
 
 #ifdef SHINDELL_STRAT_CHEM
       if(prnchg)then
-       DO J=J_0,J_1; DO I=I_0,IMAXJ(J)
-         ss27(1:LM,I,J)=ss(27,1:LM,I,J)
-       ENDDO; ENDDO
-       CALL PACK_COLUMN(grid,ss27,ss27_glob)
-       IF(AM_I_ROOT()) THEN
-         write(6,*) 'Map of O3 production from O2 (Herz & SRB)'
-         if(which_trop == 0)write(6,*)
-     &   'NOTE: lower limit of strat is actually LTROPO(I,J), however!'
-         write(6,'(a4,7(i10))') 'Jqq:',(Jqq,Jqq=3,44,6)
-         do Lqq=LM,LS1,-1 ! inconvenient to print down to LTROPO(I,J)
-           do jqq=1,JM
-             photO2_glob(Jqq,Lqq)=0.d0
-             do Iqq=1,IMAXJ(jqq)
-               photO2_glob(Jqq,Lqq)=photO2_glob(Jqq,Lqq)
-     &         +2.d0*ss27_glob(Lqq,Iqq,Jqq) ! makes 2 Os
-             enddo
-           enddo
-           write(6,'(i2,7(1x,E10.3))') 
-     &     Lqq,(photO2_glob(Jqq,Lqq)/REAL(IMAXJ(Jqq)),Jqq=3,44,6)
-         enddo
-       END IF ! end AM_I_ROOT
+        ss27_file='ss27x2_diag' ! note makes 2 O's
+        title='Map of O3 production from O2 (Herz & SRB)'
+        call openunit(ss27_file,iu,.true.)
+        do L=LS1,LM
+          ss27x2(I_0:I_1,J_0:J_1)=2.d0*ss(27,L,I_0:I_1,J_0:J_1)
+          call writet_parallel(grid,iu,nameunit(iu),ss27x2,title)
+        enddo
+        call closeunit(iu)
+        out_line='writing O3 production from O2 Map TO FILE, L=LS1,LM'
+        call write_parallel(trim(out_line))
+        if(which_trop == 0) then
+          out_line='Lower limit of strat is LTROPO(I,J), however!'
+          call write_parallel(trim(out_line))
+        endif
       endif
 #endif
 
