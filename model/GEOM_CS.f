@@ -145,19 +145,20 @@ c      BYAXYP = 1/AXYP
 
       imaxj(:)=i1
 
-      do j=j0s,j1s
+      do j=j0,j1
       do i=i0,i1
-      dloni = lon2d(i+1,j)-lon2d(i-1,j)
-      dlati = lat2d(i+1,j)-lat2d(i-1,j)
-      dlonj = lon2d(i,j+1)-lon2d(i,j-1)
-      dlatj = lat2d(i,j+1)-lat2d(i,j-1)
-      if(dloni.lt.0.) dloni=dloni+twopi
-      if(dlonj.lt.0.) dlonj=dlonj+twopi
-      bydet = 1d0/(dloni*dlatj-dlonj*dlati)
-      ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
-      ddx_cj(i,j) = -dlonj*bydet/(radius*coslat2d(i,j))
-      ddy_ci(i,j) = -dlati*bydet/radius
-      ddy_cj(i,j) =  dloni*bydet/radius
+        dloni = lon2d(i+1,j)-lon2d(i-1,j)
+        dlati = lat2d(i+1,j)-lat2d(i-1,j)
+        dlonj = lon2d(i,j+1)-lon2d(i,j-1)
+        dlatj = lat2d(i,j+1)-lat2d(i,j-1)
+c account for discontinuity of lon2d at the international date line
+        if(abs(dloni).gt.pi) dloni=dloni-twopi*sign(1d0,dloni)
+        if(abs(dlonj).gt.pi) dlonj=dlonj-twopi*sign(1d0,dlonj)
+        bydet = 1d0/(dloni*dlatj-dlonj*dlati)
+        ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
+        ddx_cj(i,j) = -dlati*bydet/(radius*coslat2d(i,j))
+        ddy_ci(i,j) = -dlonj*bydet/radius
+        ddy_cj(i,j) =  dloni*bydet/radius
       enddo
       enddo
 
