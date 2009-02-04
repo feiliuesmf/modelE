@@ -66,7 +66,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
 !@param checktracer_on integer to turn on the checktracer call
-!@param correct_strat_Ox logical tourn on lower strat Ox corrections
 !@param MWabyMWw ratio of molecular weights of air/water
 !@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
@@ -79,11 +78,9 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param byradian 1/radian = conversion from radians to degrees
 !@param LCOalt number of levels in the COaltIN array 
 !@param LCH4alt number of levels in the CH4altIN array
-!@param LcorrOx number of levels in the corrOxIN array
 !@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
-!@param PcorrOx pressures at LcorrOx levels
 !@param NCFASTJ2 number of levels in the fastj2 atmosphere
 !@param NBFASTJ for fastj2 (=LM+1)
 !@param MXFASTJ "Number of aerosol/cloud types supplied from CTM"
@@ -105,7 +102,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & LCOalt =   23,
      & JCOlat =   19,
      & LCH4alt=    6,
-     & LcorrOX=    7,
      & p_1   =     2 
 #ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER ::
@@ -273,8 +269,6 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
      & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
      & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
      & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
-      REAL*8, PARAMETER, DIMENSION(LcorrOx) :: PcorrOx =
-     & (/278.7d0, 217.9d0, 170.5d0, 133.1d0, 101.3d0, 71.0d0, 43.8d0/)
       REAL*8, PARAMETER, DIMENSION(M__)  :: EMU = (/.06943184420297D0,
      &        .33000947820757D0,.66999052179243D0,.93056815579703D0/), 
      &                                    WTFASTJ=(/.17392742256873D0,
@@ -365,8 +359,7 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                     ,PSClatN       =  30.d0
 #endif
 
-      LOGICAL, PARAMETER :: luselb            = .false.,
-     &                      correct_strat_Ox  = .true.
+      LOGICAL, PARAMETER :: luselb            = .false.
 
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var nn reactant's number in mol list, first index reactant 1 or 2,
@@ -561,10 +554,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@+   conservation (strat)
 !@var chemrate,photrate ?   
 !@var MDOFM cumulative days at end of each month
-!@var corrOxIN correction factor to tweak inital Ox in stratosphere
-!@+   on LcorrOx levels
-!@var corrOx correction factor to tweak inital Ox in stratosphere
-!@+   on LM levels
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -615,8 +604,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 
 C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: DU_O3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: corrOxIN,acetone
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: corrOx
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: acetone
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
@@ -745,10 +733,10 @@ C**************  Not Latitude-Dependant ****************************
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use model_com, only     : im,lm
-      use TRCHEM_Shindell_COM, only: DU_O3,corrOxIN,corrOx,ss,yNO3,
+      use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
-     & OxICIN,CH4ICIN,LcorrOx,JPPJ,LCOalt,acetone,mNO2
+     & OxICIN,CH4ICIN,JPPJ,LCOalt,acetone,mNO2
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
@@ -767,8 +755,6 @@ C**************  Not Latitude-Dependant ****************************
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
  
-      allocate(    corrOxIN(J_0H:J_1H,LcorrOx,12) )
-      allocate(      corrOx(J_0H:J_1H,LM,12)      )
       allocate(          ss(JPPJ,LM,I_0H:I_1H,J_0H:J_1H) )
       allocate(     acetone(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,LM)      )

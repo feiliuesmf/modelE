@@ -40,13 +40,12 @@
 #endif /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
-     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
+     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
-     &     OxICIN,OxIC,OxICINL,OxICL,corrOxIN,corrOx,LcorrOx,PcorrOx
-     &     ,pfix_CH4_N,pfix_CH4_S,fix_CH4_chemistry,which_trop,
-     &     PI_run,PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other,
-     &     PIratio_indus,PIratio_bburn,CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,
-     &     rad_FL,use_rad_ch4,checktracer_on
+     &     OxICIN,OxIC,OxICINL,OxICL,pfix_CH4_N,pfix_CH4_S,
+     &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
+     &     PIratio_CO_S,PIratio_other,PIratio_indus,PIratio_bburn,
+     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
@@ -105,11 +104,9 @@
 !@var iu_data unit number
 !@var title header read in from file
       REAL*8, DIMENSION(LM) :: PRES, tempOx2
-      REAL*8, DIMENSION(LcorrOx) :: tempOx1
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
-      real*8, dimension(jm,LcorrOx,12) :: corrOxIN_glob
 #ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(6) :: temp_ghg
       integer :: temp_year
@@ -541,29 +538,6 @@ C**** Get solar variability coefficient from namelist if it exits
            CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PRES,OxICL,.true.)
            OxIC(I,J,:)=OxICL(:)*am(:,i,j)*axyp(i,j)
           end do     ; end do
-c         read stratospheric correction from files:
-          if(AM_I_ROOT( ))then
-            call openunit('Ox_corr',iu_data,.true.,.true.)
-            read (iu_data) title,corrOxIN_glob
-            call closeunit(iu_data)
-          endif
-          write(out_line,*) title,' read from Ox_corr'
-          call write_parallel(trim(out_line))
-          do m=1,12
-           call
-     &     UNPACK_DATAj(grid,corrOxIN_glob(:,:,m),corrOxIN(:,:,m))
-           DO J=J_0,J_1
-            tempOx1(:)=CorrOxIN(J,:,M)
-            CALL LOGPINT(LcorrOX,PcorrOx,tempOx1,LM,PRES,
-     &                   tempOx2,.true.)
-            CorrOx(J,:,M)=tempOx2(:)
-           END DO
-          enddo
-C         Only alter Ox between 250 and 30 hPa:
-          DO L=1,LM
-            IF(PRES(L).lt.30.d0.or.PRES(L).gt.250.d0)
-     &      corrOx(:,L,:)=1.0d0
-          END DO
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP

@@ -105,7 +105,6 @@ C**** Local parameters and variables and arguments:
 !@var avgTT_H2O Itime avg H2O # density at LTROPO between 20N and 20S
 !@var countTT # of points between 20N and 20S on LTROPO plane
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
-!@var imonth,m only needed to choose Ox strat correction factors
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 !@var sumOx for summing regional Ox tracers
 !@var bysumOx reciprocal of sum of regional Ox tracers
@@ -137,7 +136,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,
-     &                             Jqq,Iqq,imonth,m,maxl,iu,ih0,ih,
+     &                             Jqq,Iqq,maxl,iu,ih0,ih,
      &                             istep
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
@@ -1705,23 +1704,6 @@ C If fix_CH4_chemistry is turned on, reset the CH4 tracer everywhere
 C to initial conditions (in mixing ratio units) :
       if(fix_CH4_chemistry == 1) call get_CH4_IC(1)
    
-C If desired, use correction factors on stratospheric Ox:   
-      if(correct_strat_Ox) then
-        imonth= 1
-        DO m=2,12
-          IF((JDAY <= MDOFM(m)).AND.(JDAY > MDOFM(m-1))) THEN
-            imonth=m
-            EXIT
-          END IF
-        END DO
-        if(Itime == ItimeI) then
-          write(out_line,*)'Warning: Please remember that Ox'
-     &    //' stratospheric correction factors are on and change with'
-     &    //' time.'
-          call write_parallel(trim(out_line))
-        end if
-      end if
-
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Special cases of overwriting, when doing stratospheric chemistry C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     
@@ -1780,14 +1762,8 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
           do i=I_0,IMAXJ(j)
             ! -- Ox --
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
-            if(correct_strat_Ox) then
-             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &       axyp(i,j)*O3MULT*corrOx(J,L,imonth)-trm(i,j,L,n_Ox))*
-     &       bydtsrc
-            else
-             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &       axyp(i,j)*O3MULT                -trm(i,j,L,n_Ox))*bydtsrc
-            end if
+            tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
+     &      axyp(i,j)*O3MULT                -trm(i,j,L,n_Ox))*bydtsrc
             ! -- ClOx --
             tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_ClOx)=(1.d-11*ClOxalt(l)
@@ -1868,13 +1844,8 @@ C Calculate an average tropical CH4 value near 569 hPa::
          
          do L=maxl+1,LM    ! >> BEGIN LOOP OVER STRATOSPHERE <<
 c         Update stratospheric ozone to amount set in radiation:
-          if(correct_strat_Ox) then
-            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*AXYP(I,J)*O3MULT
-     &      *corrOx(J,L,imonth) - trm(I,J,L,n_Ox)
-          else
-            changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*AXYP(I,J)*O3MULT
-     &                          - trm(I,J,L,n_Ox)
-          end if
+          changeL(L,n_Ox)=rad_to_chem(1,L,I,J)*AXYP(I,J)*O3MULT
+     &                                         - trm(I,J,L,n_Ox)
           byam75=F75P*byam(L75P,I,J)+F75M*byam(L75M,I,J)
           FACT1=2.0d-9*AXYP(I,J)*am(L,I,J)*byam75
 C         We think we have too little stratospheric NOx, so, to

@@ -1053,7 +1053,7 @@ C**** check whether air mass is conserved
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ,ydms,yso2,sulfate
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
      &,acetone
 #ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
@@ -1084,7 +1084,7 @@ C**** check whether air mass is conserved
 #endif
   
 #ifdef TRACERS_SPECIAL_Shindell
-      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob,corrOx_glob
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
 #ifdef INTERACTIVE_WETLANDS_CH4 
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
@@ -1125,7 +1125,6 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       if(am_i_root()) allocate(
      &     Aijl_glob(IM,JM,LM)
-     &    ,corrOx_glob(JM,LM,12)
      &    ,ss_glob(JPPJ,LM,IM,JM) )
 #ifdef INTERACTIVE_WETLANDS_CH4 
       if(am_i_root()) allocate(
@@ -1181,11 +1180,6 @@ C**** check whether air mass is conserved
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
-       header='TRACERS_SPECIAL_Shindell: corrOx(j,L,12)'
-        do itm=1,12
-         call pack_dataj(grid,corrOx(:,:,itm),corrOx_glob(:,:,itm))
-        end do
-        if(am_i_root())write(kunit,err=10)header,corrOx_glob
        header='TRACERS_SPECIAL_Shindell: ss(JPPJ,l,i,j)'
         call pack_block(grid,ss(:,:,:,:),ss_glob(:,:,:,:))
         if(am_i_root())write(kunit,err=10)header,ss_glob
@@ -1361,10 +1355,6 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
-          if(am_i_root())read(kunit,err=10)header,corrOx_glob
-          do itm=1,12
-           call unpack_dataj(grid,corrOx_glob(:,:,itm),corrOx(:,:,itm))
-          end do
           if(am_i_root())read(kunit,err=10)header,ss_glob
           call unpack_block(grid,ss_glob(:,:,:,:),ss(:,:,:,:))
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
@@ -1488,7 +1478,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     )
 
 #ifdef TRACERS_SPECIAL_Shindell
-      if(am_i_root()) deallocate(Aijl_glob,corrOx_glob,ss_glob)
+      if(am_i_root()) deallocate(Aijl_glob,ss_glob)
 #ifdef INTERACTIVE_WETLANDS_CH4 
       if(am_i_root()) deallocate(day_ncep_glob,DRA_ch4_glob,
      & sum_ncep_glob,PRS_ch4_glob,HRA_ch4_glob,Rijch4_glob )
@@ -1512,7 +1502,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use pario, only : defvar
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,ydms,yso2,sulfate
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &,acetone
 #ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
@@ -1546,8 +1536,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
 #ifdef TRACERS_SPECIAL_Shindell       
       compstr='TRACERS_SPECIAL_Shindell'
-      call defvar(grid,fid,corrOx,'corrOx(dist_jm,lm,twelve)'
-     &     ,defby=compstr)
       call defvar(grid,fid,ss,'ss(JPPJ,lm,dist_im,dist_jm)'
      &     ,defby=compstr)
       call defvar(grid,fid,yNO3,'yNO3'//ijldims,defby=compstr)
@@ -1631,7 +1619,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use tracer_com
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,ydms,yso2,sulfate
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &,acetone
 #ifdef SHINDELL_STRAT_CHEM
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
@@ -1666,7 +1654,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         enddo
 
 #ifdef TRACERS_SPECIAL_Shindell       
-        call write_dist_data(grid,fid,'corrOx',corrOx,jdim=1)
         call write_dist_data(grid,fid,'ss',ss,jdim=4)
         call write_dist_data(grid,fid,'yNO3',yNO3)
         call write_dist_data(grid,fid,'pHOx',pHOx)
@@ -1734,7 +1721,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         enddo
 
 #ifdef TRACERS_SPECIAL_Shindell       
-        call read_dist_data(grid,fid,'corrOx',corrOx,jdim=1)
         call read_dist_data(grid,fid,'ss',ss,jdim=4)
         call read_dist_data(grid,fid,'yNO3',yNO3)
         call read_dist_data(grid,fid,'pHOx',pHOx)
