@@ -797,7 +797,7 @@ c allocates gather/scatter workspace
       real*8 :: arrsum
       logical, intent(in), optional :: all
       real*8, dimension(:,:), allocatable :: arrtile
-      real*8 :: arrsum_tile
+      real*8 :: arrsum_tile,arrsums(6)
       integer :: ierr
       if(grid%am_i_tileroot) then
         allocate(arrtile(grid%npx,grid%npy))
@@ -807,8 +807,9 @@ c allocates gather/scatter workspace
         arrsum_tile = sum(arrtile)
         deallocate(arrtile)
         if(grid%ntiles.gt.1) then
-          call mpi_reduce(arrsum_tile,arrsum,1,MPI_DOUBLE_PRECISION,
-     &         MPI_SUM,0,grid%comm_intertile,ierr)
+          call mpi_gather(arrsum_tile,1,MPI_DOUBLE_PRECISION,arrsums,
+     &         1,MPI_DOUBLE_PRECISION,0,grid%comm_intertile,ierr)
+          if(grid%am_i_globalroot) arrsum=sum(arrsums(1:grid%ntiles))
         else
           arrsum = arrsum_tile
         endif
@@ -821,6 +822,39 @@ c allocates gather/scatter workspace
       endif
       return
       end subroutine globalsum_2D_r8
+
+c      subroutine globalsum_2D_r8(grid,arr,arrsum,all)
+c      type(dist_grid), intent(in) :: grid
+c      real*8, intent(in) :: arr(:,:)
+c      real*8 :: arrsum
+c      logical, intent(in), optional :: all
+c      real*16 :: arrsum_local, arrsum_global
+c      real*16, dimension(:), allocatable :: arrsums
+c      integer :: i,j,hi,hj,ierr
+c      hi = (size(arr,1)-(1+grid%ie-grid%is))/2
+c      hj = (size(arr,2)-(1+grid%je-grid%js))/2
+c      arrsum_local = 0.
+c      do j=1+hj,size(arr,2)-hj
+c      do i=1+hi,size(arr,1)-hi
+c        arrsum_local = arrsum_local + real(arr(i,j),kind=16)
+c      enddo
+c      enddo
+c      if(grid%am_i_globalroot) allocate(arrsums(grid%nproc))
+c      call mpi_gather(arrsum_local,2,MPI_DOUBLE_PRECISION,
+c     &     arrsums, 2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+c      if(grid%am_i_globalroot) then
+c        arrsum_global = sum(arrsums)
+c        deallocate(arrsums)
+c        arrsum =  real(arrsum_global,kind=8)
+c      endif
+c      if(present(all)) then
+c        if(all) then
+c          call mpi_bcast(arrsum,1,MPI_DOUBLE_PRECISION,0,
+c     &         MPI_COMM_WORLD,ierr)
+c        endif
+c      endif
+c      return
+c      end subroutine globalsum_2D_r8
 
       subroutine get_nlnk_2D(arr,jdim,nl,nk)
       real*8 :: arr(:,:)
