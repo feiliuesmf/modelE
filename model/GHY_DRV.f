@@ -2158,6 +2158,26 @@ c**** fix initial conditions for soil water if necessry
       endif
 
 
+c**** fix initial conditions for soil heat if necessry
+      if ( istart < 9 ) then
+        do j=J_0,J_1
+          do i=I_0,I_1
+            if ( focean(i,j) >= 1.d0 ) cycle
+            if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
+#ifdef USE_ENT
+            call stop_model("fix*_ic not implemented for Ent",255)
+#else
+            call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
+            shc_can = vegcell%shc_can
+#endif
+            call fix_heat_ic(w_ij(:,:,i,j), ht_ij(:,:,i,j),
+     &           shc_can,
+     &           q_ij(i,j,:,:), dz_ij(i,j,:), i, j )
+          enddo
+        enddo
+      endif
+
+
 c**** remove all land snow from initial conditions
 c**** (useful when changing land/vegetation mask)
       if ( reset_snow_ic .ne. 0 .and. istart < 9 ) then
@@ -2315,6 +2335,65 @@ c initialize soil (w, ht) from earth_*
       enddo
 
       end subroutine fix_water_ic
+
+
+      subroutine fix_heat_ic(
+     &     w, ht,
+     &     shc_can,
+     &     q, dz, i, j )
+
+      use constant, only : rhow
+     &     ,shi_kg=>shi,lhm
+      use snow_model, only: snow_redistr, snow_fraction
+      use ghy_com, only : ngm
+      use sle001, only : get_soil_properties
+      !-- out
+      real*8, intent(inout) :: ht(0:,:)
+      !-- in
+      real*8, intent(in) :: w(0:,:)
+      real*8, intent(in) :: shc_can
+      real*8, intent(in) :: q(:,:), dz(:)
+      integer i, j
+      !--- local
+      real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2), temp, fice
+      real*8 :: t_max=80.d0, t_min=-80.d0
+      integer ibv, k
+
+c for canopy:
+      call heat_to_temperature(temp,
+     &     fice, ht(0,2), w(0,2), shc_can)
+      if ( temp > t_max .or. temp < t_min ) then
+        print *,"fix_heat_ic: correcting canopy temp", temp,
+     &       "cell= ", i,j
+        temp = max( temp, t_min )
+        temp = min( temp, t_max )
+        call temperature_to_heat( ht(0,2),
+     &       temp, fice, w(0,2), shc_can )
+      endif
+
+c outer loop over ibv
+      do ibv=1,2
+
+        call get_soil_properties( q, dz,
+     &     thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
+
+        do k=1,ngm
+
+          call heat_to_temperature(temp,
+     &         fice, ht(k,ibv), w(k,ibv), shc(k,ibv))
+          if ( temp > t_max .or. temp < t_min ) then
+            print *,"fix_heat_ic: correcting soil temp", temp,
+     &           "cell= ", i,j, "layer= ", ibv, k
+            temp = max( temp, t_min )
+            temp = min( temp, t_max )
+            call temperature_to_heat( ht(k,ibv),
+     &           temp, fice, w(k,ibv), shc(k,ibv) )
+          endif
+
+        enddo
+      enddo
+
+      end subroutine fix_heat_ic
 
 
       subroutine tp_sat_2_ht_w(
