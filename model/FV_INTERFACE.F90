@@ -598,7 +598,6 @@ contains
     Type (ESMF_Clock) :: clock
     type (ESMF_TimeInterval) :: timeInterval
 
-    REAL*8, DIMENSION(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM) :: PIJL
     integer :: L,istep, NS, NIdyn_fv
     integer :: addIncsPhase
     integer :: rc
@@ -613,7 +612,6 @@ contains
 
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
     call calc_amp(P, MA)
-    CALL CALC_PIJL(LM,P,PIJL)
 
     Call Copy_modelE_to_FV_import(fv)
 
@@ -816,7 +814,6 @@ contains
     USE RESOLUTION, only: IM, JM, LM, LS1
     Use MODEL_COM, only: sige, sig, Ptop, DT, PMTOP
     Use MODEL_COM, only: U, V, T, P, PSFMPT, Q
-    USE GEOM, only: AREAG, DXYP
     Use Constant, only: omega, radius, grav, rgas, kapa, deltx
 
     Type (FV_Core), Intent(InOut) :: fv
@@ -932,10 +929,14 @@ contains
       USE RESOLUTION, only: IM, LM, LS1
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
-      real*8, dimension(:,grid % j_strt_halo:,:) :: T_virt
-      real*8, dimension(:,grid % j_strt_halo:) :: P
-      real*8, dimension(IM,grid % j_strt:grid % j_stop,LM) :: PKZ
-      real*8, dimension(IM,grid % j_strt:grid % j_stop,LM+1) :: PE
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                        grid%j_strt_halo:grid%j_stop_halo,LM) :: T_virt
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                        grid%j_strt_halo:grid%j_stop_halo) :: P
+      real*8, dimension(grid%i_strt:grid%i_stop, &
+                        grid%j_strt:grid%j_stop,LM) :: PKZ
+      real*8, dimension(grid%i_strt:grid%i_stop, &
+                        grid%j_strt:grid%j_stop,LM+1) :: PE
       real*8 :: sig(:), sige(:)
       real*8 :: ptop, kapa
 
@@ -949,7 +950,7 @@ contains
       PE = -99999
       PKZ = -99999
 
-      Call ConvertPressure_GISS2FV(EdgePressure_GISS(), PE(:,j_0:j_1,:))
+      Call ConvertPressure_GISS2FV(EdgePressure_GISS(), PE)
 
       !Allocate(pe_trans(IM,LM+1,j_0h:j_1h),pk(IM,j_0h:j_1h,LM+1), peln(IM,LM+1,j_0h:j_1h))
       ! Compute PKZ - Consistent mean for p^kappa
@@ -966,14 +967,14 @@ contains
       !     &  PK(:,j_0:j_1,:), KAPA, LM+1-LS1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
       !deallocate(pe_trans, pk, peln)
 
-      Allocate(pk(IM,j_0h:j_1h,LM+1))
+      Allocate(pk(i_0:i_1,j_0:j_1,LM+1))
       PK(I_0:I_1,J_0:J_1,:) = PE**KAPA
       do l=1,LM
         do j=j_0,j_1
           do i=I_0,I_1
             if (PE(i,j,l+1)-PE(i,j,l) /= 0.0) then
                PKZ(i,j,l) = ( PK(i,j,l+1)-PK(i,j,l) ) / &
-                            ( KAPA*log( PE(i,j,l+1)-PE(i,j,l) ) )
+                            ( KAPA*log( PE(i,j,l+1)/PE(i,j,l) ) )
             endif
           enddo
         enddo
@@ -982,6 +983,7 @@ contains
 
     End Subroutine ComputePressureLevels
 
+#ifndef USE_FVCUBED
     Subroutine ComputeRestartVelocities(unit, grid, U_b, V_b, U_d, V_d)
       use domain_decomp_1d, only: DIST_GRID, NORTH, HALO_UPDATE
 
@@ -996,6 +998,7 @@ contains
       Call Regrid_B_to_D(Reverse(U_b), Reverse(V_b), U_d, V_d)
 
     End Subroutine ComputeRestartVelocities
+#endif
 
     Subroutine Compute_ak_bk(ak, bk, sige, Ptop, PSFMPT, unit)
       USE RESOLUTION, only: LM, LS1
@@ -1220,7 +1223,9 @@ contains
       VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,V_a,'V',rc=rc)
       VERIFY_(rc)
+#ifndef USE_FVCUBED
     call Regrid_A_to_B(Reverse(U_a), Reverse(V_a), U(I_0:I_1,J_0:J_1,:), V(I_0:I_1,J_0:J_1,:))
+#endif
     fv % U_old = U(I_0:I_1,J_0:J_1,:)
     fv % V_old = V(I_0:I_1,J_0:J_1,:)
 
@@ -1306,14 +1311,16 @@ contains
     ! As an export, FV provides Pot Temp with a reference
     ! pressure of 10^5 Pa, whereas GISS uses 100 Pa (1 mb)
     REAL*8, PARAMETER :: REF_RATIO = 100000 / 100
-    integer :: n
+    integer :: m,n
 
     ! PT_GISS has a halo, while PT_fv does not.
+    m = size(PT_GISS,1) ! exclude halo
     n = size(PT_GISS,2) ! exclude halo
-    PT_giss(:,2:n-1,:) = Reverse(PT_fv / REF_RATIO ** KAPA)
+    PT_giss(2:m-1,2:n-1,:) = Reverse(PT_fv / REF_RATIO ** KAPA)
 
   end Subroutine CnvPotTemp_FV2GISS_r4
 
+#ifndef USE_FVCUBED
   !------------------------------------------------------------------------
   ! Given velocities from modelE (B grid, k=1 bottom), produce
   ! velocities for import to FV (A grid, k=1 top)
@@ -1415,7 +1422,6 @@ contains
 
     deallocate(ub_halo, Vb_halo)
 
-#ifndef CUBE_GRID
     ! Polar conditions are a bit more complicated
     ! First determine an "absolute" U, V at the pole, then use sin/cos to
     ! map to the individual longitudes.
@@ -1450,7 +1456,7 @@ contains
       end do
 
     End Subroutine FixPole
-#endif
+
   end subroutine Regrid_B_to_A
 
   !--------------------------------------------------------------------
@@ -1473,7 +1479,7 @@ contains
 
     Call Get(grid, j_strt=j_0, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s, &
          & HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-#ifndef CUBE_GRID
+
     If (HAVE_SOUTH_POLE) Then
        ! 1st interpolate to 'A' grid
        Call FixPole(U_b(:,2,:), V_b(:,2,:), U_d(:,1,:))
@@ -1486,7 +1492,7 @@ contains
        Call FixPole(U_b(:,JM,:), V_b(:,JM,:), U_d(:,JM,:))
      ! V_d(:,JM,:) = (V_b(:,JM,:) + CSHIFT(V_b(:,JM,:),1,1))/2
     End If
-#endif
+
 ! V-grid
     Do k = 1, LM
        Do j = j_0s, j_1s
@@ -1508,7 +1514,6 @@ contains
        End Do
     End Do
 
-#ifndef CUBE_GRID
   Contains
 
     Subroutine FixPole(Ub, Vb, Ud)
@@ -1529,8 +1534,10 @@ contains
       end do
 
     End Subroutine FixPole
-#endif
+
   End Subroutine regrid_B_to_D
+
+#endif /* NOT USE_FVCUBED */
 
   ! Reverse the order of vertical levels.
   Function reverse_3d_r8(A) Result(B)
@@ -1572,11 +1579,12 @@ contains
     USE GEOM, only: IMAXJ
     implicit none
 
-    real*8, intent(in) :: P(:,grid % J_STRT_HALO:)
-    real*8, intent(in) :: T(:,grid % J_STRT_HALO:,:)
-    real*8, intent(in) :: SZ(:,grid % J_STRT_HALO:,:)
-    real*8, intent(in) :: ZATMO(:,grid % J_STRT_HALO:)
-    real*8 :: phi(IM,grid % J_STRT_HALO:grid % J_STOP_HALO,LM)
+    real*8, intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                                  grid%j_strt_halo:grid%j_stop_halo) :: p,zatmo
+    real*8, intent(in), dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                                  grid%j_strt_halo:grid%j_stop_halo,lm) :: t,sz
+    real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                      grid%j_strt_halo:grid%j_stop_halo,lm) :: phi
 
     REAL*8 :: PKE(LS1:LM+1)
     REAL*8 :: PIJ, PHIDN
@@ -1677,8 +1685,9 @@ contains
 
   subroutine accumulate_mass_fluxes(fv)
     Use Resolution, only: IM,JM,LM,LS1
-#ifndef CUBE_GRID
-    USE GEOM, ONLY: DYP, DXV, DXYP, IMAXJ, BYIM
+    USE GEOM, ONLY: AXYP
+#ifndef USE_FVCUBED
+    USE GEOM, ONLY: DYP, DXV
 #endif
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
@@ -1708,8 +1717,6 @@ contains
     real*8, parameter :: pi=3.14159265358979323846
     real*8, parameter :: radius= 6376000.00000000
 
-#ifndef CUBE_GRID
-
     DTfac = DT
 
     Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
@@ -1731,6 +1738,20 @@ contains
     call ESMFL_StateGetPointerToData ( fv % export,PLE,'PLE',rc=rc)
     VERIFY_(rc)
 
+
+    PU(I_0:I_1,J_0:J_1,1:LM) = mfx_X
+    PV(I_0:I_1,J_0:J_1,1:LM) = mfx_Y
+
+#ifdef NO_MASS_FLUX
+    mfx_X = 0
+    mfx_Y = 0
+    mfx_Z = 0
+#endif
+    PU = Reverse(PU)/PRESSURE_UNIT_RATIO
+    PV = Reverse(PV)/PRESSURE_UNIT_RATIO
+    mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
+
+#ifndef USE_FVCUBED
     allocate ( sine(jm) )
     allocate ( cosp(jm) )
     allocate ( cose(jm) )
@@ -1748,19 +1769,6 @@ contains
        cose(j) = 0.5 * (cosp(j-1) + cosp(j))
     enddo
        cose(1) = cose(2)
-
-    PU(I_0:I_1,J_0:J_1,1:LM) = mfx_X
-    PV(I_0:I_1,J_0:J_1,1:LM) = mfx_Y
-
-#ifdef NO_MASS_FLUX
-    mfx_X = 0
-    mfx_Y = 0
-    mfx_Z = 0
-#endif
-    PU = Reverse(PU)/PRESSURE_UNIT_RATIO
-    PV = Reverse(PV)/PRESSURE_UNIT_RATIO
-    mfx_Z = Reverse(mfx_Z)/PRESSURE_UNIT_RATIO
-
 ! Adjust area scale factors between FV and GISS
     do l=1,lm
        do j=j_0,j_1
@@ -1783,11 +1791,16 @@ contains
           PU(:,j,l) = TMPim1
        enddo
     enddo
+    deallocate ( sine )
+    deallocate ( cosp )
+    deallocate ( cose )
+#endif
+
 ! Change Units of vertical mass fluxes
     do l=0,lm
        do j=j_0,j_1
-          area = DXYP(j)
           do i=I_0,I_1
+             area = AXYP(i,j)
              mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (mb m^2/s)
           enddo
        enddo
@@ -1796,10 +1809,6 @@ contains
     ! Surface Pressure tendency - vert integral of horizontal convergence
     PIT(I_0:I_1,J_0:J_1) = mfx_Z(:,:,0) + sum(SD(I_0:I_1,J_0:J_1,1:LM-1),3)
 
-    deallocate ( sine )
-    deallocate ( cosp )
-    deallocate ( cose )
-
     ! Recopy into CONV to support prior usage
     CONV(I_0:I_1,J_0:J_1,1) = PIT(I_0:I_1,J_0:J_1)
     CONV(I_0:I_1,J_0:J_1,2:LM) = SD(I_0:I_1,J_0:J_1,1:LM-1)
@@ -1807,9 +1816,9 @@ contains
     PUA(I_0:I_1,J_0:J_1,:) = PUA(I_0:I_1,J_0:J_1,:) + PU(I_0:I_1,J_0:J_1,:)*DTfac
     PVA(I_0:I_1,J_0:J_1,:) = PVA(I_0:I_1,J_0:J_1,:) + PV(I_0:I_1,J_0:J_1,:)*DTfac
     SDA(I_0:I_1,J_0:J_1,1:LM-1) = SDA(I_0:I_1,J_0:J_1,1:LM-1) + SD(I_0:I_1,J_0:J_1,1:LM-1)*DTfac
-#endif
   end subroutine accumulate_mass_fluxes
 
+#ifndef USE_FVCUBED
   subroutine set_zonal_flow(U_d, V_d, j0, j1)
     use GEOM, only: cosp
     use domain_decomp_atm, only: grid
@@ -1823,6 +1832,7 @@ contains
        V_d(:,j,:) = 0
     end do
   end subroutine set_zonal_flow
+#endif
 
 end module FV_INTERFACE_MOD
 
