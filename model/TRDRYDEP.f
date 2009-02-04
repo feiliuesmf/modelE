@@ -89,6 +89,7 @@ C*********************************************************************
      &                                      IRGSO,IRCLS,IRCLO,IVSMAX
 #ifdef BIN_TRACERS
       real*8 , allocatable, dimension(:,:,:) :: FUSE_loc,order_loc
+      real*8 , allocatable, dimension(:,:,:) :: XOLAI_loc,XOLAI2_loc
 #endif       
       END MODULE tracers_DRYDEP
 
@@ -103,7 +104,7 @@ C*********************************************************************
       use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
      &     IREG_loc,IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND,nvegtype
 #ifdef BIN_TRACERS
-     &     ,FUSE_loc,order_loc
+     &     ,FUSE_loc,order_loc,XOLAI_loc,XOLAI2_loc
 #endif
       use tracer_com, only    : ntm
       use model_com, only     : im
@@ -133,6 +134,8 @@ C*********************************************************************
       allocate(   ILAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(    IUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
 #ifdef BIN_TRACERS
+      allocate(XOLAI_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
+      allocate(XOLAI2_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
       allocate(FUSE_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
       allocate(order_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
 #endif              
@@ -566,6 +569,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          end if  ! do drydep
         END DO   ! tracer loop                  
 
+
+c        do k=1,ntm
+c           write(12,*) dep_vel(k) 
+c        enddo
       CASE DEFAULT
         call stop_model('ITYPE error in TRDRYDEP',255)
       END SELECT
@@ -746,11 +753,7 @@ C
      & IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX,NVEGTYPE,FRCLND,
      & ILAND,IUSE,IREG_loc
 #ifdef BIN_TRACERS
-#ifndef CUBE_GRID
-     &     ,FUSE_loc,order_loc
-#else
-       integer, dimension(IM,JM) :: regcount
-#endif
+     &     ,FUSE_loc
 #endif
       IMPLICIT NONE
 c
@@ -774,6 +777,7 @@ C
       integer, dimension(NVEGTYPE) :: icol
       integer, allocatable, dimension(:,:,:) :: IUSE_dbg,ILAND_dbg
       integer :: I_0h, I_1h
+      integer, dimension(IM,JM) :: regcount
 #endif
       INTEGER, PARAMETER :: NWAT=6
       CHARACTER*1, dimension(70) :: COM
@@ -790,64 +794,35 @@ C
       
 
 #ifdef BIN_TRACERS
-
       I_0h= GRID%I_STRT_HALO
       I_1h= GRID%I_STOP_HALO
-      allocate(    IUSE_dbg(I_0H:I_1H,J_0H:J_1H,NTYPE))
-     
-
+   
       if ( AM_I_ROOT() ) then
-c     Read binary file defined on CS surface
+c     Read binary file 
          write(6,*) 'READING land fractions from binary file'
          call openunit('VEGTYPEBIN',iu_data,.true.,.true.)
          do K=1,NVEGTYPE
             call readt_parallel(grid,iu_data,nameunit(iu_data),
      &           FUSE_loc(:,:,K),1)
          enddo
-#ifndef CUBE_GRID
-         do K=1,NVEGTYPE
-            call readt_parallel(grid,iu_data,nameunit(iu_data),
-     &           order_loc(:,:,K),1)
-         enddo
-#endif
+
          call closeunit(iu_data)
       endif
       do J=J_0,J_1
          do I=I_0,I_1
+            regcount(I,J)=0
             do K=1,NVEGTYPE
-#ifdef CUBE_GRID
-               regcount(I,J)=0
-#else
-               iord_loc(I,J,K)=0
-#endif
                if (FUSE_loc(I,J,K) .gt. 1.e-6) then
-#ifdef CUBE_GRID
                    regcount(I,J)=regcount(I,J)+1
                    ILAND(I,J,regcount(I,J))=K-1
                    IUSE(I,J,regcount(I,J))=
-     &                 NINT(1000.*FUSE_loc(I,J,K))
-                   IUSE_dbg(I,J,regcount(I,J))=
-      &                 IUSE(I,J,regcount(I,J))
-#else
-                  iord_loc(I,J,K)=NINT(order_loc(I,J,K))
-                  ILAND(I,J,iord_loc(I,J,K))=K-1
-                  IUSE(I,J,iord_loc(I,J,K))=
-     &                 NINT(1000.*FUSE_loc(I,J,K))
-                  IUSE_dbg(I,J,iord_loc(I,J,K))=
-     &             IUSE(I,J,iord_loc(I,J,K))
-#endif
-               endif
-            enddo
-#ifdef CUBE_GRID
-            IREG(I,J)=regcount(I,J)
-            write(*,*) "regcount(",I,",",J,")=",regcount(I,J)
-#else
-            icol(:)=iord_loc(I,J,:)
-            IREG(I,J)=maxval(icol)
-c            write(*,*) "IREG(",I,",",J,")=",IREG(I,J)
-#endif
-         enddo
-      enddo
+     &                  NINT(1000.*FUSE_loc(I,J,K))
+                endif
+             enddo
+             IREG(I,J)=regcount(I,J)
+c             write(*,*) "IREG(",I,",",J,")=",IREG(I,J)
+          enddo
+       enddo
 
 #else 
       if ( AM_I_ROOT() ) then
@@ -1027,8 +1002,11 @@ C**** Local parameters and variables and arguments
 
 C**** GLOBAL parameters and variables:  
       use domain_decomp_atm, only : grid,get,AM_I_ROOT,UNPACK_DATA,
-     &     PACK_DATA
-      USE tracers_DRYDEP, only: XLAI,XLAI2,IREG,ntype
+     &     PACK_DATA,readt_parallel
+      USE tracers_DRYDEP, only: XLAI,XLAI2,IREG,ntype,nvegtype
+#ifdef BIN_TRACERS
+     &     ,XOLAI_loc,XOLAI2_loc,ILAND
+#endif
       USE MODEL_COM, only: IM,JM,JMON,JMperY
       USE FILEMANAGER, only: openunit,closeunit
 
@@ -1045,11 +1023,52 @@ C**** Local parameters and variables and arguments
       INTEGER :: I,J,K,IUNIT,MMM,INDEX
       real*8, dimension(im,jm,ntype) :: XLAI_glob, XLAI2_glob
       integer, dimension(IM,JM) :: IREG_glob
-      integer :: J_0, J_1, J_1H, J_0H
+      integer :: I_0,I_1,J_0, J_1, J_1H, J_0H
+      character*80 :: fbin
       
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &                 J_STRT     =J_0 , J_STOP     =J_1 )
+      call get( grid , J_STRT     =J_0 , J_STOP     =J_1 ,
+     &                 I_STRT     =I_0 , I_STOP     =I_1 ) 
 
+
+#ifdef BIN_TRACERS
+C       Read current month's lai:
+        fbin='LAI'//CMONTH(JMON)//"BIN"
+        write(*,*) fbin
+        call openunit(trim(fbin),IUNIT,.true.,.true.)
+        do K=1,nvegtype
+            call readt_parallel(grid,IUNIT,fbin,
+     &           XOLAI_loc(:,:,K),1)
+        enddo
+         do J=J_0,J_1
+          do I=I_0,I_1
+            do K=1,IREG(I,J)
+               XLAI(I,J,K)=XOLAI_loc(I,J,ILAND(I,J,K))
+            enddo
+          enddo
+        enddo
+        call closeunit(IUNIT)
+c       Read following month's lai
+        IF(JMON == 12) THEN
+          MMM=0
+        ELSE
+          MMM=JMON
+        END IF
+        fbin='LAI'//CMONTH(MMM+1)//"BIN"
+        write(*,*) fbin
+        call openunit(trim(fbin),IUNIT,.true.,.true.)
+        do K=1,nvegtype
+            call readt_parallel(grid,IUNIT,fbin,
+     &           XOLAI2_loc(:,:,K),1)
+        enddo
+         do J=J_0,J_1
+          do I=I_0,I_1
+            do K=1,IREG(I,J)
+               XLAI2(I,J,K)=XOLAI2_loc(I,J,ILAND(I,J,K))
+            enddo
+          enddo
+        enddo
+        call closeunit(IUNIT)
+#else
       CALL PACK_DATA(grid, IREG, IREG_glob) 
       if ( AM_I_ROOT() ) then      
 C       lai's are in reference coordinates.  initialize them:
@@ -1057,13 +1076,14 @@ C       lai's are in reference coordinates.  initialize them:
           XLAI_glob(I,J,K)= 0.d0
           XLAI2_glob(I,J,K)=0.d0
         END DO   ;  END DO   ; END DO
-      
+
 C       Read current month's lai:
         call openunit('LAI'//CMONTH(JMON),IUNIT,.false.,.true.)
 10      READ(IUNIT,"(3I3,20F5.1)",END=20) I,J,INDEX,
      &  (XLAI_glob(I,J,K),K=1,INDEX)
         GOTO 10
 20      call closeunit(iunit)
+
       endif
       
       CALL UNPACK_DATA(grid, XLAI_glob, XLAI)
@@ -1083,7 +1103,7 @@ C       Read following month's lai:
       endif
       
       CALL UNPACK_DATA(grid, XLAI2_glob, XLAI2)
-
+#endif
       RETURN
       END SUBROUTINE READLAI
 #endif

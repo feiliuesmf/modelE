@@ -23,7 +23,8 @@ c         call regridCROPS(xll2cs)
 c         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
 c         call regridGLMELT(xll2cs)
-         call regridVEGFRAC(xll2cs)
+c         call regridVEGFRAC(xll2cs)
+         call regridLAI(xll2cs)
       endif
 c      call regridGIC(xll2cs,dd2d)
 c         call regridAIC(xll2cs,dd2d)
@@ -693,6 +694,54 @@ c***
    
       end subroutine regridVEGFRAC
 c*
+
+
+
+
+      subroutine regridLAI(x2grids)
+c
+c     regriding LAI used by tracers code
+c
+      use regrid_com
+      implicit none
+      include 'netcdf.inc'
+      character*80 :: TITLE(nrecmax),name,oname,TITLEFILE
+      type (x_2gridsroot), intent(inout) :: x2grids
+      real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
+      real*4, allocatable :: ttargr4(:,:,:,:)
+      integer :: iu_LAI,iu_LAICS,i,j,k,irec,iunit,imt,jmt,
+     &     ntt,maxrec,status,vid,fid,ir,imonth
+      character(len=2) :: c2month 
+      character(len=1) :: c1month 
+
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "imt jmt ntt",imt,jmt,ntt
+
+      iu_LAI=20
+      
+      do imonth=1,12
+         if (imonth .lt. 10) then
+            write(c1month,'(i1)') imonth
+            c2month="0"//c1month
+         else
+            write(c2month,'(i2)') imonth
+         endif
+         name='lai'//c2month//'.global.bin'
+         write(*,*) name
+               
+         open( iu_LAI, FILE=name,FORM='unformatted', STATUS='old')
+
+         call read_regrid_write_4D_1R(x2grids,name,iu_LAI)
+         
+         close(iu_LAI)
+      enddo
+   
+      end subroutine regridLAI
+c*
+
 
 
       subroutine regridGIC(x2grids,dd2d)

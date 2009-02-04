@@ -31,7 +31,8 @@
 
       INTEGER :: I,J,K,L,iu_data,iveg
       character*80 :: fname,oname,TITLE_VEG_TYPE,TITLE
-      character(len=2) :: vegtype 
+      character(len=2) :: vegtype,c2month 
+      character(len=1) :: c1month 
 
       write(6,*) 'READING land types and fractions'
       write(6,*) 'and converting to binary'
@@ -54,7 +55,7 @@ c***  for fortran arrays
             do K=1,IREG_glob(I,J)
                FUSE_glob(I,J,ILAND_GLOB(I,J,K)+1)=
      &              IUSE_glob(I,J,K)/1000.
-               order(I,J,ILAND_GLOB(I,J,K)+1)=K
+c               order(I,J,ILAND_GLOB(I,J,K)+1)=K
             enddo
          enddo
       enddo
@@ -73,11 +74,11 @@ c      write(3200) TITLE
          TITLE_VEG_TYPE="veg type="//vegtype
          write(3200) TITLE_VEG_TYPE,FUSE_glob(:,:,iveg+1)
       enddo
-      do iveg=0,NVEGTYPE-1
-         write(vegtype,'(i2)') iveg
-         TITLE_VEG_TYPE="order type="//vegtype
-         write(3200) TITLE_VEG_TYPE,order(:,:,iveg+1)
-      enddo
+c      do iveg=0,NVEGTYPE-1
+c         write(vegtype,'(i2)') iveg
+c         TITLE_VEG_TYPE="order type="//vegtype
+c         write(3200) TITLE_VEG_TYPE,order(:,:,iveg+1)
+c      enddo
 
 
 c***  Check that fractions at a particular cell add up to 1
@@ -90,35 +91,46 @@ c      write(6,*) sum(FUSE_glob,3)
  
       close(unit=3200)
 
-C      Read lai:
-      fname='lai01.global'
-      open(20,FILE=fname,FORM="FORMATTED",status="UNKNOWN")
-10      READ(20,"(3I3,20F5.1)",END=20) I,J,INDEX,
-     &  (XLAI_glob(I,J,K),K=1,INDEX)
-        GOTO 10
-20      close(20)
+C     Read lai:
+      do imonth=1,12
+         if (imonth .lt. 10) then
+            write(c1month,'(i1)') imonth
+            c2month="0"//c1month
+         else
+            write(c2month,'(i2)') imonth
+         endif
+         fname='lai'//c2month//'.global'
+         write(*,*) fname
+         open(20,FILE=fname,FORM="FORMATTED",status="UNKNOWN")
+ 10      READ(20,"(3I3,20F5.1)",END=20) I,J,INDEX,
+     &        (XLAI_glob(I,J,K),K=1,INDEX)
+         GOTO 10
+ 20     close(20)
+        
+        XLAI_out(:,:,:)=0.
+        
+        do I=1,IM
+           do J=1,JM
+              do K=1,IREG_glob(I,J)
+                 XLAI_out(I,J,ILAND_GLOB(I,J,K)+1)=
+     &                XLAI_glob(I,J,K)
+              enddo
+           enddo
+        enddo
+        
+        oname=trim(fname)//".bin"
+        write(*,*) oname
+        open(unit=3200, FILE=oname,FORM='unformatted',
+     &       STATUS='unknown')
+        
+        do iveg=0,NVEGTYPE-1
+           write(vegtype,'(i2)') iveg
+           TITLE_VEG_TYPE="LAI corresponding to veg type="//vegtype
+           write(3200) TITLE_VEG_TYPE,XLAI_out(:,:,iveg+1)
+        enddo
+        
+        close(3200)
 
-      XLAI_out(:,:,:)=0.
-
-      do I=1,IM
-         do J=1,JM
-            do K=1,IREG_glob(I,J)
-               XLAI_out(I,J,ILAND_GLOB(I,J,K)+1)=
-     &              XLAI_glob(I,J,K)
-            enddo
-         enddo
       enddo
-
-      oname=trim(fname)//".bin"
-      write(*,*) oname
-      open(unit=3200, FILE=oname,FORM='unformatted',STATUS='unknown')
-
-      do iveg=0,NVEGTYPE-1
-         write(vegtype,'(i2)') iveg
-         TITLE_VEG_TYPE="LAI corresponding to veg type="//vegtype
-         write(3200) TITLE_VEG_TYPE,XLAI_out(:,:,iveg+1)
-      enddo
-
-      close(3200)
 
       end program vegtypet2b
