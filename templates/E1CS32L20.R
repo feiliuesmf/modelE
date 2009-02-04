@@ -53,7 +53,6 @@ RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 CONST UTILDBL SYSTEM                ! utilities
-POUT                                ! post-processing output
 
 Data input files:
     ! start up from restart file of earlier run
