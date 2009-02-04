@@ -933,7 +933,7 @@ c***  Compatibility
       SNOW_out(:,:,:)=ttargglob(:,:,:)
 
       do k=1,2
-         tsource(i,j,1)=T(k,i,j)
+         tsource(:,:,1)=T(k,:,:)
          call root_regrid(x2grids,tsource,ttargglob)
          T_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
