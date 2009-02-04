@@ -117,8 +117,8 @@
      &     4.0d0, 42.0d0, 80.d0, 0.25d0, 0.184d0, 1,
      &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 22.79d0, -0.0445d0),
      ! !* 5 - cold deciduous broadleaf early successional
-     &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.5d0, 11.5d0,0.6d0, 
-     &     0.75d0, 58.0d0, 57.d0, 0.2d0, 0.093d0, 2,
+     &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.5d0, 12.4d0,0.6d0, 
+     &     1.2d0, 58.0d0, 57.d0, 0.2d0, 0.093d0, 2,
      &     0.0240d0, 1.860d0, 0.1480d0, 2.411d0, 25.18d0, -0.0496d0),
      ! !* 6 - cold deciduous broadleaf late successional
      &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.4d0, 11.5d0,0.6d0, 

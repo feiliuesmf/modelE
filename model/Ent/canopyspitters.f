@@ -655,7 +655,7 @@
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
-!#define OFFLINE 1
+#define OFFLINE 1
 #ifdef OFFLINE
       write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
      &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
@@ -703,7 +703,7 @@
         !*Original CASA *!
 !     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * 
 !     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
-        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  81.02 = 30+273.15-227.13.
+        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  76.02 = 30+273.15-227.13.
      &       exp(308.56d0*                                     
      &       (1/min(max(56.02d0,T_k_10d-227.13d0),76.02d0)
      &       - (1/(T_k-227.13d0))))
