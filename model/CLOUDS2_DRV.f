@@ -484,7 +484,9 @@ C****
           enddo
       endif
 #endif
-#ifndef CUBE_GRID
+#ifdef CUBE_GRID
+      ra = .5d0
+#else
       DO K=1,KMAX
         RA(K)=RAVJ(K,J)
       END DO
