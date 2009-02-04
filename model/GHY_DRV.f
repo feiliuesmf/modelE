@@ -723,7 +723,7 @@ c****
      &    ashg,alhg, !fv,fb,
      &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
-     &    tbcs,tsns,af0dt,af1dt
+     &    tbcs,tsns,af0dt,af1dt,ijdebug
 !!!     &    qm1,qs,
 !!!     &    pres,rho,ts,ch,srht,trht
 !!!     &   ,vs,vs0,tprime,qprime
@@ -773,6 +773,11 @@ c****
 #endif
 #ifndef USE_ENT
       use vegetation, only : t_vegcell
+#endif
+#ifdef TRACERS_ON
+!!! need for Ca hack
+      use geom, only : byaxyp
+      use tracer_com, only : trm
 #endif
       implicit none
 
@@ -897,8 +902,9 @@ c****
   !    call ent_prescribe_vegupdate(dtsrc/nisurf,entcells,
   !   &     hemi,jday,jyear,.false.,.false.)
 
-      call update_vegetation_data( entcells,
-     &     im, jm, 1, im, J_0, J_1, jday, jyear )
+       ! moved to daily_earth
+!      call update_vegetation_data( entcells,
+!     &     im, jm, 1, im, J_0, J_1, jday, jyear )
 #endif
 
 !$OMP  PARALLEL DO PRIVATE
@@ -1068,6 +1074,10 @@ c     call qsbal
 
 #ifdef USE_ENT
 ccc stuff needed for dynamic vegetation
+ccc switch to Ca from tracers
+!!! HACK : assume n==1 is CO2
+!      Ca = trm(i,j,1,1)*byaxyp(i,j)/ma1*29.d0/44.d0
+!     &     *ps*100.0/gasc/ts
       Ca = CO2X*CO2ppm*(1.0D-06)*ps*100.0/gasc/ts
       if (vegCO2X_off==0) Ca = Ca * CO2X
 !!      vis_rad        = SRVISSURF(i,j)
@@ -1101,6 +1111,7 @@ ccc stuff needed for dynamic vegetation
 !      endif
       call get_fb_fv( fb, fv, i, j )
       !write(401,*) "cdh", i,j,cdh
+      ijdebug=i*1000+j
       call advnc(
 #ifdef USE_ENT
      &     entcells(i,j), Ca,
@@ -3301,6 +3312,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
+      use ent_drv, only : update_vegetation_data
 #else
       use veg_drv, only : veg_set_cell
       use vegetation, only : t_vegcell
@@ -3354,6 +3366,10 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
  !       hemi(:,J_0:JEQUATOR) = -1
  !       call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
  !     endif
+
+      call update_vegetation_data( entcells,
+     &     im, jm, 1, im, J_0, J_1, jday, jyear )
+
       !if(cond_scheme.eq.2) call updsur (0,jday)
       ! we don't use cond_scheme==1 any more, so call it always
       call updsur (0,jday)
