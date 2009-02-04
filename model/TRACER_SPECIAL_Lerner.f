@@ -332,39 +332,45 @@ C**** Create interpolated table for this resolution
         ! the following call is actually serving as MPI_Barrier
         ! do not remove it unless you know what you are doing
         call esmf_bcast(grid, ifirst)
-        call openunit(FRQname,FRQfile,.true.,.true.)
+        IF (AM_I_ROOT()) 
+     *  call openunit(FRQname,FRQfile,.true.,.true.)
       end if
       ALLOCATE(arr_dummy_3d(I_0H:I_1H,J_0H:J_1H,lmtc), STAT=IER)
 C**** Read chemical loss rate dataset (5-day frequency)
   510   continue
         if (taux.eq.8640.) go to 515  ! last record on file
-        read(FRQfile) title
-        read (title,'(f10.0)') taux
-        tauy = nint(taux)+(jyear-1950)*8760.
-        IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
-        call backspace_parallel(FRQfile)
+        IF (AM_I_ROOT()) THEN
+          read(FRQfile) title
+          read (title,'(f10.0)') taux
+          tauy = nint(taux)+(jyear-1950)*8760.
+          IF ((itime*Dtsrc/3600.)+60.gt.tauy+120.) go to 510
+          backspace(FRQfile)
+        END IF
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
         IF ((itime*Dtsrc/3600.)+180..le.tauy+120.) then
           write(6,*)'PROBLEM MATCHING itime on FRQ file',taux,tauy,jyear
           call stop_model(
      &       'PROBLEM MATCHING itime on FRQ file in Trop_chem_CH4',255)
         end if
+        IF (AM_I_ROOT()) rewind FRQfile
         go to 518
 C**** FOR END OF YEAR, USE FIRST RECORD
   515   continue
-        rewind FRQfile
+        IF (AM_I_ROOT()) rewind FRQfile
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
         taux = 0.d0   ! we know this
         tauy = nint(taux)+(jyear-1950)*8760.
-        rewind FRQfile  ! start over
+        IF (AM_I_ROOT()) rewind FRQfile  ! start over
   518   continue
 
         frqlos = arr_dummy_3d
         DEALLOCATE (arr_dummy_3d)
 
+        IF (AM_I_ROOT()) THEN
         WRITE(6,'(2A,2F10.0,2I10)')
      * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
      * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
+        END IF
 C**** AVERAGE POLES
         if(haveLatitude(grid,J=1)) then
           do l=1,lmtc
