@@ -243,8 +243,22 @@ cddd      enddo
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
       !-----Local---------
+      integer hemi(I0:I1,J0:J1)
       integer i,j
 
+!!!! HACK : trying to update Ent exactly like in ent_prog
+
+            !* Set hemisphere flags.
+      if ( J0<=JM/2 )   hemi(:,J0:min(JM/2,J1))   = -1    ! S.
+      if ( J1>=JM/2+1 ) hemi(:,max(JM/2+1,J0):J1) =  1    ! N.
+ 
+          call ent_prescribe_vegupdate(entcells,hemi,jday,year,
+     &         do_giss_phenology=.true.,
+     &         do_giss_albedo=.true.,
+     &         do_giss_lai=.true.,
+     &         update_crops=.false. )
+
+      return
 
       call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
       call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
