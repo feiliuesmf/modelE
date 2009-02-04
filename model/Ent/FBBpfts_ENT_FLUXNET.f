@@ -70,6 +70,8 @@
      &     ,2.7d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
      &     pspartype(1          !2. EVERGREEN BROADLEAF LATE SUCCESSIONAL
+!YK - KM67, Tapajo Nataional Forest, Santarem, Brazil
+!YK - Nleaf = Vcmax/20: Vcmax 20~80 & Nleaf 1~4
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BET & BDT temperate & tropical, Table 3.1 (Oleson, et al 2004)
 !     &     ,69.d0               !Vmax25, CLM BET temperate, Table 8.2 (Oleson, et al 2004)
      &     ,54.d0               !Tapajo KM67
