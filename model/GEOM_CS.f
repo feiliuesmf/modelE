@@ -5,7 +5,7 @@
 !@ver  1.0 (CS grid version)
 !@cont GEOM_CS
 
-      USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
+      USE MODEL_COM, only : IM,JM
       USE CONSTANT, only : radius
       IMPLICIT NONE
       SAVE
@@ -31,26 +31,6 @@
       REAL*8, ALLOCATABLE :: ddy_ci(:,:),ddy_cj(:,:)
       real*8 :: dloni,dlonj,dlati,dlatj,bydet
 
-!@var quantities below are temporary fix - quantity may not be used on CS
-      REAL*8, parameter :: dlon =1.0 
-      REAL*8, parameter :: dlat_dg = 1.0
-      REAL*8, dimension(JM) :: lat
-      REAL*8, dimension(IM) :: lon
-      REAL*8, dimension(JM,2) :: lat_dg
-      REAL*8, dimension(IM,2) :: lon_dg
-      REAL*8, DIMENSION(JM) :: COSP,COSV
-      REAL*8, DIMENSION(JM) :: SINP
-      REAL*8 :: SINV
-      REAL*8, DIMENSION(JM,2,2) :: WTJ
-      INTEGER, parameter :: J1U = 2
-      INTEGER, parameter, dimension(2,2,2) :: JRANGE_HEMI = reshape(
-     *  (/1,JM/2,  1+JM/2,JM,  J1U,J1U-1+JM/2, J1U-1+JM/2,JM+J1U-2/),
-     *  (/2,2,2/))
-      REAL*8, DIMENSION(JM) :: DXYV,BYDXYV,DYV
-      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP
-!@var
-
-
 !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: axyp, byaxyp
       REAL*8, ALLOCATABLE, DIMENSION(:) :: dxyp, bydxyp
@@ -59,8 +39,6 @@
 
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
-
-      integer, parameter :: jg_u=2, jg_ke=2
 
 !@var J_BUDG a mapping array that takes every grid point to the
 !@+   zonal mean budget array
@@ -74,7 +52,7 @@
 !@sum  GEOM_CS Calculate spherical geometry for CS grid
 !@auth T. Clune
 !@ver  1.0 (CS grid version)
-      USE CONSTANT, only : RADIUS,TWOPI,radian
+      USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use fv_grid_tools_mod, only: agrid, corner_grid => grid, area
       use DOMAIN_DECOMP_ATM, only: grid, get
       implicit none
@@ -161,25 +139,6 @@ c account for discontinuity of lon2d at the international date line
         ddy_cj(i,j) =  dloni*bydet/radius
       enddo
       enddo
-
-c     some values below may be inexact or deprecated - temporary fix for compilation
-      kmaxj(:)= 2
-      DYV(:) = 1.0
-      lat(:) = 1.0 
-      lon(:) = 1.0
-      lat_dg(:,:) = 1.0
-      lon_dg(:,:) = 1.0
-      cosp(:) = 1.0
-      cosv(:) = 1.0
-      sinp(:) = 1.0
-      sinv = 1.0
-      wtj(:,:,:) = 1.0
-      cosip(:)= 1.0
-      sinip(:) = 1.0
-c     end inexact
-
-      write(*,*) "WARNING : kmaxj, DYP, lat, lon, lat_dg, 
-     &     lon_dg, ... may have inexact values"
 
       END SUBROUTINE GEOM_CS
 
