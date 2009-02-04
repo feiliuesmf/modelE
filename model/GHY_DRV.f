@@ -2145,6 +2145,18 @@ cddd            snowbv(1:2,i,j)   = snowd(1:2)
         end do
       end if
 
+c**** fix initial conditions for soil water if necessry
+      if ( istart < 9 ) then
+        do j=J_0,J_1
+          do i=I_0,I_1
+            if ( focean(i,j) >= 1.d0 ) cycle
+            if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
+            call fix_water_ic( w_ij(:,:,i,j),
+     &           q_ij(i,j,:,:), dz_ij(i,j,:), i, j )
+          enddo
+        enddo
+      endif
+
 
 c**** remove all land snow from initial conditions
 c**** (useful when changing land/vegetation mask)
@@ -2260,6 +2272,49 @@ ccc still not quite correct (assumes fw=1)
      &     "conversion old_gic_2_modele not supported yet",255)
 
       end subroutine old_gic_2_modele
+
+
+      subroutine fix_water_ic( w, q, dz, i, j )
+      use ghy_com, only : ngm
+      use sle001, only : get_soil_properties
+      !-- out
+      real*8, intent(inout) :: w(0:,:)
+      !-- in
+      real*8, intent(in) :: q(:,:), dz(:)
+      integer, intent(in) :: i, j
+      !--- local
+      real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2)
+      real*8 wmax,wmin
+      integer ibv, k
+
+c outer loop over ibv
+      do ibv=1,2
+
+        call get_soil_properties( q, dz,
+     &     thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
+
+c initialize soil (w, ht) from earth_*
+        do k=1,ngm
+          wmax = dz(k)*thets(k,ibv)
+          wmin = dz(k)*thetm(k,ibv)
+          if ( w(k,ibv) > wmax ) then
+            print *,"fix_water_ic: reducing water, cell ", i, j,
+     &           "layer ", k, ibv,
+     &           w(k,ibv), " -> ", wmax
+            print *, "q= ", q(:,k)
+            w(k,ibv) = wmax
+          endif
+          if ( w(k,ibv) < wmin ) then
+            print *,"fix_water_ic: increasing water, cell ", i, j,
+     &           "layer ", k, ibv,
+     &           w(k,ibv), " -> ", wmin
+            print *, "q= ", q(:,k)
+            w(k,ibv) = wmin
+          endif
+        enddo
+      enddo
+
+      end subroutine fix_water_ic
 
 
       subroutine tp_sat_2_ht_w(
