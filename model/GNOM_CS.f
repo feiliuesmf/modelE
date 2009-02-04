@@ -30,36 +30,14 @@
       REAL*8, ALLOCATABLE :: ddx_ci(:,:),ddx_cj(:,:)
       REAL*8, ALLOCATABLE :: ddy_ci(:,:),ddy_cj(:,:)
 
-!@var quantities below are temporary fix - quantity may not be used on CS
-      REAL*8, parameter :: dlon =1.0 
-      REAL*8, parameter :: dlat_dg = 1.0
-      REAL*8, dimension(JM) :: lat
-      REAL*8, dimension(IM) :: lon
-      REAL*8, dimension(JM,2) :: lat_dg
-      REAL*8, dimension(IM,2) :: lon_dg
-      REAL*8, DIMENSION(JM) :: COSP,COSV
-      REAL*8, DIMENSION(JM) :: SINP
-      REAL*8 :: SINV
-      REAL*8, DIMENSION(JM,2,2) :: WTJ
-      INTEGER, parameter :: J1U = 2
-      INTEGER, parameter, dimension(2,2,2) :: JRANGE_HEMI = reshape(
-     *  (/1,JM/2,  1+JM/2,JM,  J1U,J1U-1+JM/2, J1U-1+JM/2,JM+J1U-2/),
-     *  (/2,2,2/))
-      REAL*8, DIMENSION(JM) :: DXYV,BYDXYV,DYV
-      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP
-!@var
-
-
 !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: axyp, byaxyp
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: dxyp, bydxyp
 
       integer, allocatable, dimension(:) :: imaxj
 
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
 
-      integer, parameter :: jg_u=2, jg_ke=2
 
 !@var J_BUDG a mapping array that takes every grid point to the
 !@+   zonal mean budget array
@@ -115,8 +93,6 @@
 
       allocate(axyp(i0h:i1h, j0h:j1h))
       allocate(byaxyp(i0h:i1h, j0h:j1h))
-      allocate(dxyp(j0h:j1h))
-      allocate(bydxyp(j0h:j1h))
 
       allocate(imaxj(j0:j1))
 
@@ -186,25 +162,9 @@ c account for discontinuity of lon2d at the international date line
       enddo
       enddo
 
-c     some values below may be inexact or deprecated - temporary fix for compilation
       kmaxj(:)= 2
-      DYV(:) = 1.0
-      lat(:) = 1.0 
-      lon(:) = 1.0
-      lat_dg(:,:) = 1.0
-      lon_dg(:,:) = 1.0
-      cosp(:) = 1.0
-      cosv(:) = 1.0
-      sinp(:) = 1.0
-      sinv = 1.0
-      wtj(:,:,:) = 1.0
-      cosip(:)= 1.0
-      sinip(:) = 1.0
-c     end inexact
 
-      write(*,*) "WARNING : kmaxj, DYP, lat, lon, lat_dg, 
-     &     lon_dg, ... may have inexact values"
-
+      return
       END SUBROUTINE GEOM_CS
 
       subroutine csxy2ll(x,y,tile,lon,lat)
