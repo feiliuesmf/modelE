@@ -1801,7 +1801,7 @@ contains
        do j=j_0,j_1
           do i=I_0,I_1
              area = AXYP(i,j)
-             mfx_Z(i,j-j_0+1,l) = grav*area*mfx_Z(i,j-j_0+1,l) ! convert to (mb m^2/s)
+             mfx_Z(i-i_0+1,j-j_0+1,l) = grav*area*mfx_Z(i-i_0+1,j-j_0+1,l) ! convert to (mb m^2/s)
           enddo
        enddo
     enddo
