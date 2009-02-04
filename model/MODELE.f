@@ -840,8 +840,7 @@ C****
 C**** END OF MAIN LOOP
 C****
 
-#ifndef ADIABATIC
-
+#if !defined( ADIABATIC ) || defined( CUBE_GRID)
 C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
       CALL RFINAL (IRAND)
       call set_param( "IRAND", IRAND, 'o' )
@@ -854,7 +853,7 @@ C**** ALWAYS PRINT OUT RSF FILE WHEN EXITING
          call Finalize(fv, clock, fv_fname, fv_dfname)
 #endif
 
-#ifndef ADIABATIC
+#if !defined( ADIABATIC ) || defined( CUBE_GRID)
       if (AM_I_ROOT()) then
       WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *  '0Restart file written on fort.',KDISK,'Year',JYEAR,
