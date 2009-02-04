@@ -700,12 +700,19 @@
 
       if (T_k>228.15d0) then    ! set to cut-off at 45 deg C 
         R_maint = n * pfpar(pft)%r * k_CLM * (C/CN) * !C in CLM is g-C/individual
-!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * !*Original*!
+        !*Original CASA *!
+!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * 
 !     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
-     &       exp(308.56d0*                                     !*Acclimation*! 56.02 = 10+273.15-227.13.  81.02 = 30+273.15-227.13.
+        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  81.02 = 30+273.15-227.13.
+     &       exp(308.56d0*                                     
      &       (1/min(max(56.02d0,T_k_10d-227.13d0),76.02d0)
      &       - (1/(T_k-227.13d0))))
      &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
+        !*Acclimation horizontal shift.
+!     &       exp(308.56d0*                                     
+!     &       (1/56.02d0 
+!     &       - (1/(T_k-min(35.d0,max(10.d0,T_k_d))+10.d0-227.13d0))))
+!     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
       else 
          R_maint = 0.d0
       endif
