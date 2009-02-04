@@ -189,7 +189,7 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
             smpsat = -10.d0 * ( 10.d0**(1.88d0-
      &           (0.0131d0*sandfrac*100.d0)) )
             bch = 2.91d0 + 0.159d0*(clayfrac*100.d0)
-            watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+            watdry = 0.5d0*watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
             watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
 !! 03/11/21 note: there are no limits on Wlim, except if Soiltemp < 0
 !!Wlim ultimately used to get total C loss per pool,  

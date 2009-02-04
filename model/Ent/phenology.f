@@ -913,9 +913,13 @@ c$$$      end subroutine senesce_cpools
       dC_croot = cop%C_croot - C_croot_old
 
       !* Distinguish respiration from turnover vs. from new growth.
+      !* ### With constant prescribed structural tissue, dC_sw=0.d0,but
+      !* ### there must still be regrowth of sapwood to replace that converted
+      !* ### to dead heartwood.  For a hack, loss_hw is regrown as sapwood to
+      !* ### maintain a carbon balance. 
       resp_turnover = 0.16d0*loss_froot + 0.014d0*loss_leaf !Coefficients from Amthor (2000) Table 3
       resp_newgrowth = 0.16d0*max(0.d0,dC_froot) + 
-     &     0.14d0*(max(0.d0,dC_fol)+max(0.d0,dC_sw))
+     &     0.14d0*(max(0.d0,dC_fol)+max(0.d0,dC_sw)+max(0.d0,loss_hw))
 !      resp_turnover = Resp_can_growth(cop%pft,
 !     &       loss_leaf+loss_froot,0.d0)
 !      resp_newgrowth = Resp_can_growth(cop%pft,
@@ -924,7 +928,8 @@ c$$$      end subroutine senesce_cpools
 
       !* C_lab required for biomass growth or senescence (not turnover)
       dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!Growth of new tissue
-     &     + max(0.d0,dC_sw)
+     &     + max(0.d0,dC_sw)    !For constant structural tissue, dC_sw=0, but still need to account for sapwood growth.
+     &     + max(0.d0,loss_hw)  !This is sapwood growth to replace that converted to heartwood.
      &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
      &     + max(0.d0,-dC_sw))
 

@@ -102,7 +102,6 @@
       !************************************************
       !*  ENT PLANT FUNCTIONAL TYPE CONSTANTS         *
       !************************************************
-!      integer,parameter :: N_PFT = 13
       integer,parameter :: N_PFT = 16
       integer,parameter :: N_OTHER = 0
 #else

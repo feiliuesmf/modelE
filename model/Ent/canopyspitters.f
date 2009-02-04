@@ -711,7 +711,7 @@
         !*Acclimation horizontal shift.
 !     &       exp(308.56d0*                                     
 !     &       (1/56.02d0 
-!     &       - (1/(T_k-min(35.d0,max(10.d0,T_k_d))+10.d0-227.13d0))))
+!     &       - (1/(T_k-min(30.d0,max(10.d0,T_k_10d))+10.d0-227.13d0))))
 !     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
       else 
          R_maint = 0.d0
