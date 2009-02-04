@@ -85,8 +85,8 @@ CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT !_netcdf                       ! post-processing output
 
 Data input files:
-! AIC=AIC.RES_M23.D771201
-AIC=1JAN2000.rsfEoo1TdsM23
+AIC=AIC.RES_M23.D771201
+!! AIC=1JAN2000.rsfEoo1TdsM23
 GIC=GIC.E046D3M20A.1DEC1955
 OCNML=Z1O.B4X5.cor ! needed for post-processing only
 OSST=OST4X5.B.1975-84avg.Hadl1.1
@@ -175,8 +175,6 @@ Ox_IC=gsin/Ox_init_cond_M23_4x5_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
-! next one needed only if correct_strat_Ox=.true.
-Ox_corr=gsin/corrOx_modelE_v4
 !----------Default emissions case (giss/geia)------------------------
 CO_01=CO_sources/CO_GEIA_industrial_head
 CO_02=CO_sources/CO_GEIA_biomass_burning_head
@@ -398,6 +396,6 @@ PIratio_CFC   = 0.000d0 ! {CFC IC's and L=1 overwriting}
    kdiag = 0,0,0,0,0,0,0,0,0,0,0,0,0,
    YEARI=2000,MONTHI=1,DATEI=1,HOURI=0,
    YEARE=2001,MONTHE=1,DATEE=1,HOURE=1,
-   ISTART=8,IRANDI=0, YEARE=2000, MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=2,IRANDI=0, YEARE=2000, MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
 
