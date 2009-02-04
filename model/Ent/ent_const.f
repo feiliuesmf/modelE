@@ -76,8 +76,8 @@
 
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
-      real*8,parameter :: sday = 86400.! sec per day (s)
-      real*8,parameter :: SECPY = 31536000  ! sec per year (s)
+      real*8,parameter :: sday = 86400.d0! sec per day (s)
+      real*8,parameter :: SECPY = 31536000.d0  ! sec per year (s)
 
       !************************************************************************
       !********************
@@ -167,7 +167,7 @@
       integer,parameter :: Nitrogen = 2
 !      integer,parameter :: ptrace = 2  !num. nutrient pools used in CASA resp. routine -PK
       integer,parameter :: nresp_pools = 14  !num. pools used in CASA resp. routine -PK
-      real*8,parameter :: Q10 = 2.        !Q10 used in belowground calculations --> value from lit -PK 5/25/06
+      real*8,parameter :: Q10 = 2.d0        !Q10 used in belowground calculations --> value from lit -PK 5/25/06
 
       !* Live pool array indices
       integer,parameter :: LEAF = 1  !Array index

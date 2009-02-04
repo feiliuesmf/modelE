@@ -71,7 +71,7 @@
       type(psdrvtype) :: psdrvpar !Met biophysics drivers, except for radiation.
       real*8 :: ci_umol !umol/mol, Leaf internal CO2 
       real*8 :: ca_umol !umol/mol, Ambient air CO2
-      real*8 :: TsurfK, TcanK,Pa !,rh
+      real*8 :: TsurfK, TcanK, TsoilK, Pa !,rh
       real*8 :: CosZen !,betad
       real*8 :: IPAR            !Incident PAR 400-700 nm (W m-2)
       real*8 :: fdir            !Fraction of IPAR that is direct
@@ -143,6 +143,7 @@
       ca_umol = pp%cellptr%Ca * molconc_to_umol  !NOT USED
       TcanK = pp%cellptr%TcanopyC + KELVIN
       TsurfK = pp%cellptr%TairC + KELVIN
+      TsoilK = pp%cellptr%Soiltemp(1) + KELVIN
       call biophysdrv_setup(ca_umol,ci_umol,
      &     pp%cellptr%TcanopyC,Pa,
      &     min(1.d0,  !RH
@@ -229,7 +230,9 @@
         endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
-        call Respiration_autotrophic(dtsec, psdrvpar%Tc, cop)
+        call Respiration_autotrophic(dtsec, TcanK,TsoilK,
+     &       pp%cellptr%airtemp_10d+KELVIN,
+     &       pp%cellptr%soiltemp_10d+KELVIN, cop)
 
         call Allocate_NPP_to_labile(dtsec, cop)
 
@@ -602,41 +605,40 @@
       end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
 
-      subroutine Respiration_autotrophic(dtsec,TcanopyC,cop)
+      subroutine Respiration_autotrophic(dtsec,TcanopyK,TsoilK,
+     &     TairK_10d, TsoilK_10d,cop)
       !@sum Autotrophic respiration - updates cohort respiration,NPP,C_lab
       !@sum Returns kg-C/m^2/s
-
+      use photcondmod, only:  frost_hardiness
       implicit none
       real*8,intent(in) :: dtsec
-      real*8,intent(in) :: TcanopyC
+      real*8,intent(in) :: TcanopyK
+      real*8,intent(in) :: TsoilK
+      real*8,intent(in) :: TairK_10d
+      real*8,intent(in) :: TsoilK_10d
       type(cohort),pointer :: cop
       !----Local-----
       real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
-      real*8 ::Resp_growth, C2N, TcanopyK, Resp_growth_1
+      real*8 ::Resp_growth, C2N, Resp_growth_1
+      real*8 :: facclim
 
-      !NOTE: NEED TO FIX Canopy maintenance respiration for different
-      !C:N ratios for the different pools.
-
-      TcanopyK = TcanopyC + Kelvin
+      facclim = frost_hardiness(cop%Sacclim)
       C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
 
       !* Maintenance respiration - leaf + sapwood + storage
-      Resp_fol = 0.012D-6 * !kg-C/m2/s
+      Resp_fol = facclim*0.012D-6 * !kg-C/m2/s
 !!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
      &     Resp_can_maint(cop%pft, cop%C_fol,C2N,
-     &     TcanopyK,cop%n) !Foliage
+     &     TcanopyK, TairK_10d, cop%n) !Foliage
 !     &     cop%LAI*1.d0!*exp(308.56d0*(1/71.02d0  - (1/(TcanopyK-227.13d0)))) !Temp factor 1 at TcanopyC=25
-      Resp_sw = 0.012D-6 *  !kg-C/m2/s
+      Resp_sw = facclim*0.012D-6 *  !kg-C/m2/s
 !     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
-     &     Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
-     &     58.d0,TcanopyK,cop%n) 
+     &     Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - 330 C:N mass ratio from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood, range 42-73.5 kg-C/kg-N
+     &     330.d0,TcanopyK,TairK_10d, cop%n) 
       Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
-!      Resp_lab = 0.012D-6 * !kg-C/m2/s
-!     &     Resp_can_maint(cop%pft,cop%C_lab, !Storage - MAY BE NON-RESPIRING
-!      &     C2N,TcanopyK,cop%n)
-      !* Assume root C:N same as foliage C:N
-      Resp_root = 0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
-     &     C2N,TcanopyK,cop%n)
+      !* Assume fine root C:N same as foliage C:N
+      Resp_root = facclim*0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
+     &     C2N,TsoilK,TsoilK_10d,cop%n) 
       Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
@@ -662,7 +664,7 @@
       end subroutine Respiration_autotrophic
 
 !---------------------------------------------------------------------!
-      real*8 function Resp_can_maint(pft,C,CN,T_k,n) 
+      real*8 function Resp_can_maint(pft,C,CN,T_k,T_k_10d,n) 
      &     Result(R_maint)
       !Canopy maintenance respiration (umol/m2-ground/s)
       !Based on biomass amount (total N in pool). From CLM3.0.
@@ -680,6 +682,8 @@
       real*8 :: CN              !C:N ratio of the respective pool
 !      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)
       real*8 :: T_k             !Temperature of canopy (Kelvin)
+      real*8 :: T_k_10d         !Temperature of air 10-day average (Kelvin)
+                                !  Ideally this should be canopy temp, but 10-day avg. okay.
       real*8 :: n               !Density of individuals (no./m2)
       !---Local-------
       real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
@@ -694,10 +698,14 @@
 !        k_pft = 1.d0
 !      endif
 
-      if (T_k>228.15d0) then ! set to cut-off at 45 deg C 
-         R_maint = n * pfpar(pft)%r * k_CLM * (C/CN) *   !C in CLM is g-C/individual
-     &        exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) *
-     &        ugBiomass_per_gC/ugBiomass_per_umolCO2
+      if (T_k>228.15d0) then    ! set to cut-off at 45 deg C 
+        R_maint = n * pfpar(pft)%r * k_CLM * (C/CN) * !C in CLM is g-C/individual
+!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * !*Original*!
+!     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
+     &       exp(308.56d0*                                     !*Acclimation*! 56.02 = 10+273.15-227.13.  81.02 = 30+273.15-227.13.
+     &       (1/min(max(56.02d0,T_k_10d-227.13d0),76.02d0)
+     &       - (1/(T_k-227.13d0))))
+     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
       else 
          R_maint = 0.d0
       endif

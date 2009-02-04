@@ -24,7 +24,10 @@
 !     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
 !     &     ,0.d0, 0.d0, 2.d0 /)
       !* Revised Matthews LAI *!
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,4.5d0
+!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,4.5d0
+!     &     ,0.d0, 0.d0, 2.d0 /)
+      !* FLUXNET Sites *!
+     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,6.0d0,7.0d0,4.5d0
      &     ,0.d0, 0.d0, 2.d0 /)
 
       real*8, parameter :: alamin(N_COVERTYPES) =
@@ -32,8 +35,12 @@
 !     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
 !     &     ,0.d0, 0.d0, 1.d0 /)
       !* Revised Matthews LAI *!
-     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 6.0d0,6.0d0,1.0d0
+!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 6.0d0,6.0d0,1.0d0
+!     &     ,0.d0, 0.d0, 1.d0 /)
+      !* FLUXNET site *!
+     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 4.5d0,6.0d0,1.0d0
      &     ,0.d0, 0.d0, 1.d0 /)
+
       integer, parameter :: laday(N_COVERTYPES) =
      $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
      &     ,0, 0, 196 /)
@@ -495,8 +502,8 @@ c**** calculate root fraction afr averaged over vegetation types
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
 !      if (pft.ne.GRASSC3) then  !Woody
       if (pfpar(pft)%woody ) then !Woody
-!        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw
-        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * max_cpoolFOL * h  !Bsw CONSTANT
+!        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw 0.00128 is an error in ED paper.
+        cpool(SW) = 0.128d0 * pfpar(pft)%sla * max_cpoolFOL * h  !Bsw CONSTANT
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
  !       cpoolHW  = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 

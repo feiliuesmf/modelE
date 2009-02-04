@@ -890,8 +890,10 @@ c$$$      end subroutine senesce_cpools
       !* NLIVE POOLS *! 
       facclim = frost_hardiness(cop%Sacclim)
       turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+!      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
       turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
-      turnoverdtwood = facclim*(1.d0-exp(-annK(pft,WOOD)*SDAY)) !Sapwood not hardwood
+      turnoverdtwood = (1.d0-exp(-annK(pft,WOOD)*SDAY))  !Sapwood not hardwood
+
       !* Turnover draws down C_lab. *!
       !* Calculate adjustment factor if loss amount is too large for C_lab.
       loss_leaf = C_fol_old * turnoverdtleaf 
@@ -901,6 +903,7 @@ c$$$      end subroutine senesce_cpools
       loss_hw = C_hw_old * turnoverdtwood 
       loss_croot = C_croot_old * turnoverdtwood
       loss_live = loss_leaf + loss_froot
+
 
       !* Change in plant tissue pools. *!
       dC_fol = cop%C_fol-C_fol_old
@@ -921,7 +924,6 @@ c$$$      end subroutine senesce_cpools
 
       !* C_lab required for biomass growth or senescence (not turnover)
       dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!Growth of new tissue
-     &     + max(0.d0,dC_hw) + max(0.d0,dC_croot) 
      &     + max(0.d0,dC_sw)
      &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
      &     + max(0.d0,-dC_sw))
@@ -931,7 +933,6 @@ c$$$      end subroutine senesce_cpools
       !*       so does not decrease C_lab here.
       dC_lab = 
      &     - (1-l_fract)*(loss_leaf + loss_froot) !Retranslocated carbon from turnover
-     &     - loss_hw - loss_croot !Transfer to dead tissue pool.
      &     - dClab_dbiomass         !Growth (new growth or senescence)
           !- resp_growth             !!! moved -resp_growth to cop%C_growth to distribute over the day
 
@@ -944,7 +945,6 @@ c$$$      end subroutine senesce_cpools
         else                    !Reduce rate of turnover litter.
           adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
      &         ((1-l_fract)*(loss_leaf + loss_froot)
-     &         + loss_hw + loss_croot
      &         + resp_turnover)
         endif
       else
@@ -1046,6 +1046,13 @@ c$$$      end subroutine senesce_cpools
       end do                    !loop through CASA layers-->cumul litter per pool per layer -PK
       !print *,"Clossacc",Clossacc(CARBON,:,:)
 
+!      write(992,*) C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
+!     &     cop%C_lab,cop%C_fol,cop%C_froot,cop%C_hw,cop%C_sw,
+!     &     cop%C_croot, cop%dbh,loss_leaf,loss_froot,loss_hw,loss_croot,
+!     &     dC_fol,dC_froot,dC_hw,dC_sw,dC_croot,
+!     &     Closs(CARBON,:,:), Clossacc(CARBON,:,:),adj,cop%turnover_amp,
+!     &     facclim,turnoverdtleaf,turnoverdtfroot, turnoverdtwood
+
       !################ ###################################################
       !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
       !#### GROWTH RESPIRATION FROM CHANGE IN LAI NEEDS TO BE SAVED AS 
@@ -1053,12 +1060,11 @@ c$$$      end subroutine senesce_cpools
       !#### Igor has put in code to distribute C_growth over the day.
       !####################################################################
 
-!      write(990,*) cop%C_lab,cop%GPP,cop%R_auto,cop%R_auto,
-!     &     loss_leaf,loss_froot,loss_hw,loss_croot
+
       cop%C_lab = cop%C_lab - (1.d0-l_fract)*(loss_leaf + loss_froot) !Turnover
-     &     - loss_hw - loss_croot
-     &     - max(0.d0, dC_fol) - max(0.d0,dC_froot) - max(0.d0,dC_hw) !New growth
-     &     - max(0.d0,dC_croot) - max(0.d0,dC_sw)
+!     &     - loss_hw - loss_croot
+     &     - max(0.d0, dC_fol) - max(0.d0,dC_froot) !- max(0.d0,dC_hw) !New growth
+     &      - max(0.d0,dC_sw) !- max(0.d0,dC_croot)
      &     + l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Senescence retranslocation
      &     + max(0.d0,-dC_sw))
       cop%C_growth = resp_growth*cop%n*1.d-3  !* moved -resp_growth to canopyspitters

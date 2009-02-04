@@ -12,6 +12,7 @@ can!#define DEBUG 1
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
+     &     ,frost_hardiness
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error

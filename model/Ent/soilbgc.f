@@ -153,6 +153,14 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 ! TEMPERATURE DEPENDENCE
       !* Original CASA.
             bgtemp(:) = (Q10 ** ((Soiltemp(:) - 30.d0) / 10.d0))  !original CASA function -PK
+      !* Exponential Arrhenius temperature response (close to Q10 but smaller at 0 Celsius).
+!      do i = 1,N_CASA_LAYERS
+!        if (Soiltemp(i).le.-33.d0) then
+!          bgtemp(i) = 0.d0
+!        else
+!          bgtemp(i) = exp(308.56d0*(1/63.15d0 - 1/(Soiltemp(i)+33.15))) !exp(308.56d0*(1/(KELVIN+30.d0-240.d0) - 1/(Soiltemp(:)+KELVIN-240.d0)
+!        endif
+!      enddo
       !* Function f(Tsoil) from DelGrosso et al. (Biogeoch. 73, 2005)**  -PK 2/07
         !allows for variable Q10 rather than fixed 
 !            bgtemp(:) = 0.56d0+
@@ -175,12 +183,13 @@ C.. Note: these should be over dead pools only (see resp_pool_index)
 * mimic calculation of bevap in surphy.F to get Wlim
 * but use Soilmoist,Soiltemp instead of h2osoi,tsoi 
 *   watdry = water content when evapotranspiration stops = wp
+*   watdry x 0.5d0 = rough estimate of hygroscopic point for microbial respiration.
 ! Equations take soil textures in percents rather than fractions.
             watsat = 0.489d0 - 0.00126d0*(sandfrac*100.d0)
             smpsat = -10.d0 * ( 10.d0**(1.88d0-
      &           (0.0131d0*sandfrac*100.d0)) )
             bch = 2.91d0 + 0.159d0*(clayfrac*100.d0)
-            watdry = 0.5d0*watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+            watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
             watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
 !! 03/11/21 note: there are no limits on Wlim, except if Soiltemp < 0
 !!Wlim ultimately used to get total C loss per pool,  

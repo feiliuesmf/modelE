@@ -32,6 +32,7 @@
       real*8 :: Tc              !Canopy (foliage) temperature (Celsius)
       real*8 :: Pa              !Atmospheric pressure (Pa)
       real*8 :: rh              !Relative humidity (fraction)
+      real*8 :: facclim         !Frost hardiness scaling coeff. (fraction)
       end type psdrvtype
 
 
