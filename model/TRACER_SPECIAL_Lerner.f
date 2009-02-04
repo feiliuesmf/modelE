@@ -535,8 +535,7 @@ c
       implicit none
       integer i,j,l,n,nsp,nsl
       real*8 rprod,rloss,factor,tk
-C**** dz = -dP/rhoG; rho=PRT; Deposition velocity
-      real*8 dz(im,jm)
+      real*8 dz != -dP/rhoG; rho=PRT; Deposition velocity
       INTEGER :: J_1, J_0, I_0, I_1
 
 C****
@@ -551,8 +550,8 @@ C**** Convert from kg/cm3/s to kg
         do j=J_0,J_1
         do i=I_0,imaxj(j)
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
-          dz(i,j) = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
-          factor = dtsrc*axyp(i,j)*dz(i,j)*1.d6    !/cm3->/m3
+          dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
+          factor = dtsrc*axyp(i,j)*dz*1.d6    !/cm3->/m3
           rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg
           rloss = O3trop_Loss(i,j,l,jmon)*factor*trm(i,j,l,n)
           if(trm(i,j,l,n) +(rprod-rloss).lt.0.) then
@@ -592,8 +591,7 @@ C****
       integer i,j,l,n,ns
       INTEGER :: J_1, J_0, I_0, I_1
       real*8 tmsurf,dmass,tk
-C**** dz = -dP/rhoG; rho=PRT; Deposition velocity
-      real*8 dz(im,jm)
+      real*8 dz ! = -dP/rhoG; rho=PRT; Deposition velocity
 
 C**** Extract useful local domain parameters from "grid"
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -605,14 +603,14 @@ C**** Extract useful local domain parameters from "grid"
         do i=i_0,imaxj(j)
 c         write(*,*)' pdsig',l,i,j,pdsig(l,i,j)
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
-          dz(i,j) = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
+          dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           tmsurf = max(0.d0,trm(i,j,l,n)
      *                -trmom(mz,I,J,L,n)+trmom(mzz,I,J,L,n))
-          dmass = -O3_DepVel(i,j,jmon)*tmsurf*dtsrc/(dz(i,j)*100.)
+          dmass = -O3_DepVel(i,j,jmon)*tmsurf*dtsrc/(dz*100.)
           if(trm(i,j,l,n) + dmass .lt.0.) then
             write(6,'(a,3i3,2f12.0,3E12.3,i9,e12.3,2f7.1)')
      *      ' Negative O3 from deposition', i,j,l,trm(i,j,l,n),
-     *      dmass,O3_DepVel(i,j,jmon),dz(i,j),tmsurf,itime
+     *      dmass,O3_DepVel(i,j,jmon),dz,tmsurf,itime
      *      ,pdsig(l,i,j),tk,pmid(l,i,j)
             dmass = -trm(i,j,l,n)
 c           trm(i,j,l,n) = 0.d0
