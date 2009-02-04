@@ -6504,9 +6504,10 @@ C****
 !@sum diag_isccp prints out binary and prt output for isccp histograms
 !@auth Gavin Schmidt
       USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc,im
-      USE GEOM, only : dxyp
+      USE GEOM, only : dxyp,lat_dg
       USE DIAG_COM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
      *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
+     &     ,isccp_late
       IMPLICIT NONE
 
       CHARACTER*80 :: TITLE(nisccp) = (/
@@ -6520,6 +6521,18 @@ C****
 
       character*30 :: sname
       character*50 :: lname,units
+
+c latlon-specific code moved from init_CLD
+      do j=1,JM
+        isccp_reg(j)=0
+        do n=1,nisccp
+           if(lat_dg(j,1).ge.isccp_late(n) .and.
+     &        lat_dg(j,1).lt.isccp_late(n+1)) then
+              isccp_reg(j)=n
+              exit
+           endif
+        enddo
+      end do
 
 C**** calculate area weightings (including fraction of time that clouds
 C**** could be observed).

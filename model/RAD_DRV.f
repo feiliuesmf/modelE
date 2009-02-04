@@ -38,10 +38,8 @@ C****
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
      *     ,kradia,lm_req,pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
-#ifdef CUBE_GRID
+#ifndef CUBE_GRID
       USE GEOM, only : lat_dg 
-#else
-      USE GEOM, only : dlat,lat_dg
 #endif
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
@@ -756,7 +754,7 @@ C**** REPLICATE VALUES AT POLE
       USE CONSTANT, only : sday,lhe,lhs,twopi,tf,stbo,rhow,mair,grav
      *     ,bysha,pi,radian
       USE MODEL_COM
-      USE GEOM, only : dlat_dg, imaxj, axyp, areag, byaxyp
+      USE GEOM, only : imaxj, axyp, areag, byaxyp
      &     ,lat2d,lon2d
 c      USE ATMDYN, only : CALC_AMPK
       USE RADPAR

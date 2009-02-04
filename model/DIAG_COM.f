@@ -5,8 +5,9 @@
 !@ver  1.0
       USE CONSTANT, only : twopi
       USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat,lm_req
+#ifndef CUBE_GRID
       USE GEOM, only : dlon
-
+#endif
       IMPLICIT NONE
       SAVE
       private
@@ -676,7 +677,11 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       integer, public :: linect
 
 !@var XWON scale factor for diag. printout needed for Wonderland model
+#ifndef CUBE_GRID
       REAL*8, public :: XWON = TWOPI/(DLON*FIM)
+#else
+      REAL*8, public :: XWON = 1d0
+#endif
 
 !@var LMOMAX max no. of layers in any ocean
       INTEGER, PARAMETER, public :: LMOMAX=50

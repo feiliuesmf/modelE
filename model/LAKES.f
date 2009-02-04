@@ -423,7 +423,10 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,dyv,imaxj
+      USE GEOM, only : axyp,imaxj
+#ifndef CUBE_GRID
+     &     ,dyv
+#endif
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -456,6 +459,9 @@ c***      Type (ESMF_HaloDirection) :: direction
 !@var iwrap true if I direction is periodic and has no halo
       logical :: iwrap
       real*8 :: horzdist_2pts ! external function for now
+#ifdef CUBE_GRID
+      real*8 :: dyv(2) ! dummy to allow compilation.  not used.
+#endif
 
       CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
@@ -837,7 +843,7 @@ C****
 
       function horzdist_2pts(i1,j1,i2,j2)
       use constant, only : radius
-#if defined CUBED_SPHERE || CUBE_GRID
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       use geom, only : lon2d,sinlat2d,coslat2d,axyp
 #else
       use geom, only : dxp,dyv,dyp,dxv
@@ -845,12 +851,11 @@ C****
       implicit none
       real*8 :: horzdist_2pts
       integer :: i1,j1,i2,j2
-#if defined CUBED_SPHERE || CUBE_GRID
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       real*8 :: x1,y1,z1, x2,y2,z2
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = SQRT(AXYP(I1,J1))
       else                      ! use great circle distance
-c MAKE SURE SINLAT,COSLAT ARRAYS ARE HALOED
         x1 = coslat2d(i1,j1)*cos(lon2d(i1,j1))
         y1 = coslat2d(i1,j1)*sin(lon2d(i1,j1))
         z1 = sinlat2d(i1,j1)

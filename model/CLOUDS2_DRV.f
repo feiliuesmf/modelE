@@ -1564,7 +1564,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       USE CONSTANT, only : grav,by3,radian
       USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
       USE DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
-      USE GEOM, only : lat_dg,lat2d, kmaxj
+      USE GEOM, only : lat2d, kmaxj
 
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,U00a,U00b       ! tuning knobs to replace U00ice and U00wtrX
@@ -1656,16 +1656,6 @@ C**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS (MATCHES ISCCP DEFNs)
      *     ' LAYERS',I3,'-',I2,'   HIGH CLOUDS IN LAYERS',I3,'-',I2)
 
 C**** Define regions for ISCCP diagnostics
-      do j=1,JM ! purposefully not J_0,J_1
-        isccp_reg(j)=0
-        do n=1,nisccp
-           if(lat_dg(j,1).ge.isccp_late(n) .and.
-     &        lat_dg(j,1).lt.isccp_late(n+1)) then
-              isccp_reg(j)=n
-              exit
-           endif
-        enddo
-      end do
 
 c allocate/define distributed 2D ISCCP arrays
 c      if (isccp_diags.eq.1) then

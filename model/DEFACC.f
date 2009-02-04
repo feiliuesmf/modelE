@@ -30,9 +30,9 @@ c      call il_defs
 !@+   KE diagnostics
 !@auth M. Kelley
       use DIAG_COM
-      use GEOM, only : jg_u, jg_ke
-      jgrid_u = jg_u
-      jgrid_ke = jg_ke
+c      use GEOM, only : jg_u, jg_ke
+      jgrid_u = 2 !jg_u
+      jgrid_ke = 2 !jg_ke
 c#ifdef AGRID_DIAG
 c      jgrid_u = 1
 c      jgrid_ke = 1
@@ -4044,7 +4044,6 @@ c
       subroutine jk_defs
       use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,bymrat
       use MODEL_COM, only : fim,byim,dt,qcheck
-      use GEOM, only : dlon
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
@@ -4247,7 +4246,7 @@ c
       sname_jk(k) = 'npts_avg' !'AJK24'
       lname_jk(k) = 'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE (CP)'
       units_jk(k) = '1'
-      scale_jk(k) = TWOPI/(DLON*FIM)
+      scale_jk(k) = XWON !TWOPI/(DLON*FIM)
       ia_jk(k) = ia_dga
       jgrid_jk(k) = 2
 c
