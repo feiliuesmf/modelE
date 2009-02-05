@@ -171,9 +171,9 @@ setup_gfdl: gcm $(SETUP_GFDL)
 	@$(SETUP_GFDL) $(RUN)
 
 
-aux:
+aux rvr CMPE002:
 	$(MAKE) -C $(MODEL_DIR) $(V) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
-	$(MAKE) -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+	$(MAKE) -C $(AUX_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 auxqflux: aux
 	$(MAKE) qflux -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
