@@ -2176,7 +2176,8 @@ c**** fix initial conditions for soil heat if necessry
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 #ifdef USE_ENT
-            call stop_model("fix*_ic not implemented for Ent",255)
+            !call stop_model("fix*_ic not implemented for Ent",255)
+            shc_can = 1.d30 ! i.e. don't check canopy heat
 #else
             call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
             shc_can = vegcell%shc_can
