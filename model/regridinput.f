@@ -1,14 +1,26 @@
-      subroutine regrid_input(dd2d)
+      subroutine regrid_input(grid)
+!@sum Input file regridding routines. Uses x_2gridsroot derived type
+!@    to define source and target grids.
+!@    Can be called anywhere from modelE.f after dist_grid has been initialized
+!@    Will soon become a standalone program
+!@auth Denis Gueyffier
       use regrid_com
       use dd2d_utils
       implicit none
-      type (dist_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: grid
       type (x_2gridsroot) :: xll2cs
+      integer :: imsource,jmsource,ntilessource,imtarget,
+     &     jmtarget,ntilestarget
 
-      call init_regrid_root(xll2cs,72,46,1,32,32,6)
-c      call init_regrid_root(xll2cs,72,46,1,32,32,6)
-c      call init_regrid_root(xll2cs,360,180,1,32,32,6)
-c      call init_regrid_root(xll2cs,144,90,1,48,48,6)
+      imsource=360
+      jmsource=180
+      ntilessource=1
+      imtarget=grid%IM_WORLD
+      jmtarget=grid%JM_WORLD
+      ntilestarget=grid%ntiles
+
+      call init_regrid_root(xll2cs,imsource,jmsource,ntilessource,
+     &     imtarget, jmtarget,ntilestarget)
 
 ccc   regrid boundary condition files 
       write(*,*) "IN REGRID INPUT"
@@ -24,10 +36,10 @@ c         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
 c         call regridGLMELT(xll2cs)
 c         call regridVEGFRAC(xll2cs)
-         call regridLAI(xll2cs)
+c         call regridLAI(xll2cs)
       endif
-c      call regridGIC(xll2cs,dd2d)
-c         call regridAIC(xll2cs,dd2d)
+      call regridGIC(xll2cs,grid)
+c     call regridAIC(xll2cs,grid)
 
       end subroutine regrid_input
 c*
