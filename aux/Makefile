@@ -12,8 +12,8 @@ DECKS_DIR = $(MODEL_E_ROOT)/decks
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 ESMF_Interface=$(MODEL_DIR)/ESMF_Interface
 CONFIG_DIR = $(MODEL_E_ROOT)/config
-MOD_DIR = $(MODEL_DIR)/mod
-INCLUDE_DIR = $(MODEL_DIR)/mod
+MOD_DIR = $(MODEL_DIR)    
+INCLUDE_DIR = $(MODEL_DIR)
 
 RUN     =
 RUNDECK = $(DECKS_DIR)/$(RUN).R
@@ -45,6 +45,7 @@ CMPE001:  $(BIN_DIR)/CMPE001
 qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 # $(BIN_DIR)/rsfE001.addO.exe $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf $(BIN_DIR)/conv_gic !! all obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
+rvr: $(BIN_DIR)/RDconvert
 
 # include file with implicit rules
 include $(CONFIG_DIR)/rules.mk
@@ -139,6 +140,12 @@ $(BIN_DIR)/mkdeep.exe: mkdeep.o $(GCMLIB)
 #$(GCMLIB): FORCE
 #	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
 #endif
+
+RDconvert.o: $(GCMLIB)
+
+$(BIN_DIR)/RDconvert: RDconvert.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+
 
 status:
 	echo "AUX build successful"
