@@ -1,16 +1,22 @@
       program vegtypet2b
-!@sum converting txt file vegtype.global to binary. 
-!@+ In addtion we adopt a new format which is compatible with 
-!@+ what's used elsewhere in the model:
-!@+ do K-1:VEGTYPE
+!@sum converting txt file vegtype.global and LAI files to binary. 
+!@+ We adopt a format which is compatible with 
+!@+ the binary format used elsewhere in the model:
+!@+ do K=1:NVEGTYPE
 !@+ read(iu_data) TITLE_VEG_TYPE(K), IUSE_glob(1:IM,1:JM,K)
 !@! enddo 
 !@  note that the upper bound is now NVEGTYPE. 
 !@+ The main change is that now the file contains many entries where IUSE_glob=0.
-!@+ Add explanation about ordering of veg. types
-!@+
-!@+ The arrays IREG_glob and ILAND_GLOB are deduced from
-!@+ IUSE_glob by checking which values of IREG_glob are nonzero
+!@+ We use an increasing ordering of the vegetation types (do K=1:NVEGTYPE). This 
+!@+ provides a global definition of the ordering instead of the local definition used
+!@+ in the native txt files, i.e
+!@+ NATIVE:  
+!@+    cell i=22, j=11,  7  0  24  25  52  53  8  54  73 263 100 413  12  12 127
+!@+ INCREASING ORDER: 
+!@+    cell i=22, j=11,  7  0  8  24  25  52  53  54  73  12 263 100 413  12 127
+!@+   
+!@+ When reading the new binary file the arrays IREG_glob and ILAND_GLOB can be deduced 
+!@+ simply by checking which entries of IUSE_glob are nonzero
 !@+ 
 !@+ The new binary file vegtype.global is used in a separate routine (regridinput) to regrid 
 !@+ the fractions IUSE_glob to the cubed-sphere in such a way that sum(IUSE(I0,J0,:),3) = 1000 

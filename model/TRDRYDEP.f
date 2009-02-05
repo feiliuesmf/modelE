@@ -1,5 +1,9 @@
 #include "rundeck_opts.h"
 
+#ifdef CUBE_GRID
+#define BIN_TRACERS
+#endif
+
       MODULE tracers_DRYDEP
 
 !@sum  tracers_DRYDEP tracer dry deposition from Harvard CTM.
@@ -794,6 +798,7 @@ C
       
 
 #ifdef BIN_TRACERS
+c***  Read VEGTYPEt2b.f for documentation about the binary format
       I_0h= GRID%I_STRT_HALO
       I_1h= GRID%I_STOP_HALO
    
@@ -1031,7 +1036,8 @@ C**** Local parameters and variables and arguments
 
 
 #ifdef BIN_TRACERS
-C       Read current month's lai:
+c***  Read VEGTYPEt2b.f for documentation about the binary format
+c       Read current month's lai:
         fbin='LAI'//CMONTH(JMON)//"BIN"
         write(*,*) fbin
         call openunit(trim(fbin),IUNIT,.true.,.true.)
