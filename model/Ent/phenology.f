@@ -920,7 +920,7 @@ c$$$      end subroutine senesce_cpools
       resp_turnover = 0.16d0*loss_froot + 0.014d0*loss_leaf !Coefficients from Amthor (2000) Table 3
       resp_newgrowth = 0.16d0*max(0.d0,dC_froot) + 
      &     0.14d0*(max(0.d0,dC_fol)+max(0.d0,dC_sw))
-     &     +0.14d0*(max(0.d0,loss_hw)+max(0.d0,loss_croot)) !##THIS IS RESPIRATION FOR REGROWTH OF SAPWOOD TO ACCOUNT FOR CONVERSION TO HEARTWOOD WITH CONSTANT PLANT STRUCTURE.
+     &     +0.16d0*(max(0.d0,loss_hw)+max(0.d0,loss_croot)) !##THIS IS RESPIRATION FOR REGROWTH OF SAPWOOD TO ACCOUNT FOR CONVERSION TO HEARTWOOD WITH CONSTANT PLANT STRUCTURE.
 
       !* C_lab required for biomass growth or senescence (not turnover)
       dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!Growth of new tissue
@@ -972,9 +972,11 @@ c$$$      end subroutine senesce_cpools
       resp_growth_root = 0.16d0 * (  !Coefficient from Amthor (2000) Table 3
      &     loss_froot           !Turnover growth
      &     + max(0.d0,dC_froot)) !New biomass growth
+     &     + 0.16d0*loss_croot   !### Hack for regrowth of sapwood converted to replace senesced coarse root.
       resp_growth = resp_growth_root + 0.14d0 * !Coefficient from Amthor (2000) Table 3
      &     ( loss_leaf !Turnover growth    
      &     +max(0.d0,dC_fol)+max(0.d0,dC_sw)) !New biomass growth
+     &     + 0.16d0*loss_hw     !### Hack for regrowth of sapwood converted to replace senesced coarse root.
 
 !      write(991,*)  facclim,loss_froot,loss_croot,max(0.d0,dC_froot),
 !     &     max(0.d0,dC_croot), loss_leaf,loss_hw,
@@ -1063,7 +1065,8 @@ c$$$      end subroutine senesce_cpools
 
       cop%C_lab = cop%C_lab + dC_lab
 
-      cop%C_growth = resp_growth*cop%n*1.d-3  !* moved -resp_growth to canopyspitters
+      !* Tissue growth respiration is subtracted at physical time step in canopyspitters.f.
+      cop%C_growth = resp_growth*cop%n*1.d-3  
 
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
       !* Update cohort fluxes with growth respiration *!
