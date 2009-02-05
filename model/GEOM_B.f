@@ -397,8 +397,8 @@ c this version is for the latlon grid.  ll are in degrees east.
       integer, intent(out) :: ij(2)
       real*8 :: dlon_dg
       dlon_dg = 360./dble(im)
-      ij(1) = im/2 + (ll(1)+.5*dlon_dg+.01)/dlon_dg
-      ij(2) = jm/2 + (ll(2)+.5*dlat_dg+.01)/dlat_dg
+      ij(1) = im/2 + 1 + (ll(1)+.01)/dlon_dg
+      ij(2) = jm/2 + 1 + (ll(2)+.01)/dlat_dg
       return
       end subroutine lonlat_to_ij
 
@@ -410,7 +410,7 @@ c this version is for the latlon grid.  DEG is in degrees east.
       real*8, intent(in) :: DEG
       real*8 :: dlon_dg
       dlon_dg = 360./dble(im)
-      lon_to_I = im/2 + (DEG+.5*dlon_dg+.01)/dlon_dg
+      lon_to_I = im/2 + 1 + (DEG+.01)/dlon_dg
       return
       end function lon_to_I
 
@@ -420,7 +420,7 @@ c this version is for the latlon grid.
       implicit none
       integer lat_to_J
       real*8, intent(in) :: DEG
-      lat_to_J = jm/2 + (DEG+.5*dlat_dg+.01)/dlat_dg
+      lat_to_J = jm/2 + 1 + (DEG+.01)/dlat_dg
       return
       end function lat_to_J
 
