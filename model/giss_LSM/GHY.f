@@ -105,7 +105,9 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 #undef TRACERS_WATER
 #endif
 
-!#define EVAP_VEG_GROUND
+#ifdef USE_ENT
+#define EVAP_VEG_GROUND
+#endif
 !#define RAD_VEG_GROUND
 !#define INTERCEPT_TEMPORAL
 
@@ -965,7 +967,7 @@ c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
       ! use alpha=1 , sai=.2  (no reason, just need to set it to something)
       eta = exp( -lai - .2d0 )
       ch_vg = ch*eta + .0025d0*(1.d0-eta)
-      epvg  = rho3*ch*( vs*(qvg-qs)-v_qprime )
+      epvg  = rho3*ch_vg*( vs*(qvg-qs)-v_qprime )
 #endif
 
 c     bare soil evaporation
