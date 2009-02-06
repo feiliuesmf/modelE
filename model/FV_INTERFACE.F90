@@ -213,8 +213,13 @@ contains
     !  ----------------------------------------------
     Call allocate_tendency_storage(fv, istart)
 
+#ifdef USE_FVCUBED
+    call allocateFvExport3D ( fv % export,'U_DGRID' )
+    call allocateFvExport3D ( fv % export,'V_DGRID' )
+#else
     call allocateFvExport3D ( fv % export,'U' )
     call allocateFvExport3D ( fv % export,'V' )
+#endif
     call allocateFvExport3D ( fv % export,'TH' )
     call allocateFvExport3D ( fv % export,'PLE' )
     call allocateFvExport3D ( fv % export,'Q' )
@@ -433,7 +438,7 @@ contains
 
        U_temp(I_0:I_1,J_0:J_1,:) = U(I_0:I_1,J_0:J_1,:)
        V_temp(I_0:I_1,J_0:J_1,:) = V(I_0:I_1,J_0:J_1,:)
-       Call INTERP_AGRID_TO_DGRID(Reverse(U_temp), Reverse(V_temp), U_d, V_d)
+       Call INTERP_AGRID_TO_DGRID(U_temp, V_temp, U_d, V_d)
        U(I_0:I_1,J_0:J_1,:) = U_d(I_0:I_1,J_0:J_1,:)
        V(I_0:I_1,J_0:J_1,:) = V_d(I_0:I_1,J_0:J_1,:)
 
@@ -441,8 +446,8 @@ contains
        Deallocate(U_temp, V_temp)
 
        ! the tendency must be scaled by DT for use by the core's ADD_INCS routine
-       fv % dudt=U(I_0:I_1,J_0:J_1,:)/DTsrc
-       fv % dvdt=V(I_0:I_1,J_0:J_1,:)/DTsrc
+       fv % dudt=Reverse(U(I_0:I_1,J_0:J_1,:))/DTsrc
+       fv % dvdt=Reverse(V(I_0:I_1,J_0:J_1,:))/DTsrc
 #else
        fv % dudt=0
        fv % dvdt=0
@@ -1204,7 +1209,7 @@ contains
     USE DOMAIN_DECOMP_ATM, only: grid, GET
     USE GEOM
     Type (FV_CORE) :: fv
-    real*4, Dimension(:,:,:), Pointer :: U_a, V_a, T_fv, PLE
+    real*4, Dimension(:,:,:), Pointer :: U_a, V_a, U_d, V_d, T_fv, PLE
 
     Integer :: unit
 
@@ -1219,11 +1224,18 @@ contains
 
     ! Velocity field
     !---------------
+#ifdef USE_FVCUBED
+    call ESMFL_StateGetPointerToData ( fv % export,U_d,'U_DGRID',rc=rc)
+      VERIFY_(rc)
+    call ESMFL_StateGetPointerToData ( fv % export,V_d,'V_DGRID',rc=rc)
+      VERIFY_(rc)
+    U(I_0:I_1,J_0:J_1,:) = Reverse(U_d)
+    V(I_0:I_1,J_0:J_1,:) = Reverse(V_d)
+#else
     call ESMFL_StateGetPointerToData ( fv % export,U_a,'U',rc=rc)
       VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,V_a,'V',rc=rc)
       VERIFY_(rc)
-#ifndef USE_FVCUBED
     call Regrid_A_to_B(Reverse(U_a), Reverse(V_a), U(I_0:I_1,J_0:J_1,:), V(I_0:I_1,J_0:J_1,:))
 #endif
     fv % U_old = U(I_0:I_1,J_0:J_1,:)
