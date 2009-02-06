@@ -9,9 +9,6 @@
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
      &     ,AFLUX, COMPUTE_MASS_FLUX_DIAGS
      &     ,SDRAG
-#ifdef TRACERS_ON
-     &     ,trdynam
-#endif
      &     ,fcuva,fcuvb
 
 C**** Variables used in DIAG5 calculations
@@ -325,55 +322,6 @@ C**** Restart after 8 steps due to divergence of solutions
          enddo
       endif
       end subroutine COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-
-
-#ifdef TRACERS_ON
-      SUBROUTINE TrDYNAM
-!@sum  TrDYNAM is the driver to integrate tracer dynamic terms
-!@auth J. Lerner
-!@ver  1.0
-      USE MODEL_COM, only: im,jm,lm,itime,dt,byim
-      USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
-      USE TRACER_ADV
-#ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc, TAIJN=>TAIJN_LOC,
-     *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
-     *     tij_uflx,tij_vflx
-#endif
-      IMPLICIT NONE
-      REAL*8 DTLF,byncyc
-      INTEGER N
-
-C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
-      DO N=1,NTM
-        IF (itime.LT.itime_tr0(N)) cycle
-        sfbm = 0.; sbm = 0.; sbf = 0.
-        sfcm = 0.; scm = 0.; scf = 0.
-        safv = 0.; sbfv = 0.
-
-        CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
-
-C**** Flux diagnostics
-#ifndef SKIP_TRACER_DIAGS
-        byncyc = 1./ncyc
-        TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
-        TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)
-     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
-        TAJLN(:,:,jlnt_vt_tot,n) = TAJLN(:,:,jlnt_vt_tot,n) + scf(:,:)
-        TAJLN(:,:,jlnt_vt_mm, n) = TAJLN(:,:,jlnt_vt_mm, n)
-     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
-
-#ifdef TRACERS_WATER
-C**** vertically integrated atmospheric fluxes
-        TAIJN(:,:,tij_uflx,n) = TAIJN(:,:,tij_uflx,n) + safv(:,:)
-        TAIJN(:,:,tij_vflx,n) = TAIJN(:,:,tij_vflx,n) + sbfv(:,:)
-#endif
-#endif
-
-      ENDDO
-      RETURN
-      END SUBROUTINE TrDYNAM
-#endif
 
       SUBROUTINE AFLUX (U,V,PIJL)
 !@sum  AFLUX Calculates horizontal/vertical air mass fluxes
@@ -4264,15 +4212,12 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       RETURN
       END SUBROUTINE DIAG7A
 
-      module ATMDYN_QDYNAM
-      USE ATMDYN
-      implicit none
-      private
-
-      public QDYNAM
-
-      contains
-
+c      module ATMDYN_QDYNAM
+c      USE ATMDYN
+c      implicit none
+c      private
+c      public QDYNAM
+c      contains
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
 !@+          of pre-computing Courant limits using mean fluxes
@@ -4338,6 +4283,52 @@ C****
 
       RETURN
       END SUBROUTINE QDYNAM
+c      end module ATMDYN_QDYNAM
 
+#ifdef TRACERS_ON
+      SUBROUTINE TrDYNAM
+!@sum  TrDYNAM is the driver to integrate tracer dynamic terms
+!@auth J. Lerner
+!@ver  1.0
+      USE MODEL_COM, only: im,jm,lm,itime,dt,byim
+      USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
+      USE TRACER_ADV
+#ifndef SKIP_TRACER_DIAGS
+      USE TRDIAG_COM, only: TAJLN=>TAJLN_loc, TAIJN=>TAIJN_LOC,
+     *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
+     *     tij_uflx,tij_vflx
+#endif
+      IMPLICIT NONE
+      REAL*8 DTLF,byncyc
+      INTEGER N
 
-      end module ATMDYN_QDYNAM
+C**** uses the fluxes pua,pva,sda from DYNAM and QDYNAM
+      DO N=1,NTM
+        IF (itime.LT.itime_tr0(N)) cycle
+        sfbm = 0.; sbm = 0.; sbf = 0.
+        sfcm = 0.; scm = 0.; scf = 0.
+        safv = 0.; sbfv = 0.
+
+        CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
+
+C**** Flux diagnostics
+#ifndef SKIP_TRACER_DIAGS
+        byncyc = 1./ncyc
+        TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
+        TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)
+     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
+        TAJLN(:,:,jlnt_vt_tot,n) = TAJLN(:,:,jlnt_vt_tot,n) + scf(:,:)
+        TAJLN(:,:,jlnt_vt_mm, n) = TAJLN(:,:,jlnt_vt_mm, n)
+     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+
+#ifdef TRACERS_WATER
+C**** vertically integrated atmospheric fluxes
+        TAIJN(:,:,tij_uflx,n) = TAIJN(:,:,tij_uflx,n) + safv(:,:)
+        TAIJN(:,:,tij_vflx,n) = TAIJN(:,:,tij_vflx,n) + sbfv(:,:)
+#endif
+#endif
+
+      ENDDO
+      RETURN
+      END SUBROUTINE TrDYNAM
+#endif
