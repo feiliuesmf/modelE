@@ -219,7 +219,7 @@ c
       enddo
       lwrap = .false.
       if(lt1.gt.lt2) then
-        if(lt1.lt.dusk .and. lt2.gt.dawn) then
+        if(lt1.le.dusk .and. lt2.gt.dawn) then
 c
 c daylight at lt1 and lt2, brief darkness in between.
 c computation will be divided into two parts:
