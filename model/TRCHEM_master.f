@@ -136,8 +136,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,
-     &                             Jqq,Iqq,maxl,iu,ih0,ih,
-     &                             istep
+     &                             Jqq,Iqq,maxl,iu,ih0,ih,m,istep
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ss27_file,ghg_file,title
