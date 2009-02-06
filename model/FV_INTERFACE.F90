@@ -934,45 +934,27 @@ contains
       USE RESOLUTION, only: IM, LM, LS1
       Integer, intent(in) :: unit
       type (dist_grid) :: grid
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
-                        grid%j_strt_halo:grid%j_stop_halo,LM) :: T_virt
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
-                        grid%j_strt_halo:grid%j_stop_halo) :: P
-      real*8, dimension(grid%i_strt:grid%i_stop, &
-                        grid%j_strt:grid%j_stop,LM) :: PKZ
-      real*8, dimension(grid%i_strt:grid%i_stop, &
-                        grid%j_strt:grid%j_stop,LM+1) :: PE
+      real*8, dimension(grid % i_strt_halo:,grid % j_strt_halo:,:) :: T_virt
+      real*8, dimension(grid % i_strt_halo:,grid % j_strt_halo:) :: P
+      real*8, dimension(grid % i_strt:grid % i_stop,grid % j_strt:grid % j_stop,LM) :: PKZ
+      real*8, dimension(grid % i_strt:grid % i_stop,grid % j_strt:grid % j_stop,LM+1) :: PE
       real*8 :: sig(:), sige(:)
       real*8 :: ptop, kapa
 
-      Integer :: I_0, I_1, j_0, j_1, j_0h, j_1h
+      Integer :: I_0, I_1, i_0h, i_1h, j_0, j_1, j_0h, j_1h
       Integer :: I,J,L,L_fv
       Real*8, Allocatable :: PK(:,:,:), PELN(:,:,:), PE_trans(:,:,:)
 
       !    Request local bounds from modelE grid.
-      Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, j_strt_halo=j_0h, j_stop_halo=j_1h)
+      Call GET(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+            & i_strt_halo=i_0h, i_stop_halo=i_1h, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
       PE = -99999
       PKZ = -99999
 
-      Call ConvertPressure_GISS2FV(EdgePressure_GISS(), PE)
+      Call ConvertPressure_GISS2FV(EdgePressure_GISS(), PE(i_0:i_1,j_0:j_1,:))
 
-      !Allocate(pe_trans(IM,LM+1,j_0h:j_1h),pk(IM,j_0h:j_1h,LM+1), peln(IM,LM+1,j_0h:j_1h))
-      ! Compute PKZ - Consistent mean for p^kappa
-      ! use pkez() routine within the FV dycore component.
-      !
-      !Do j = j_0, j_1
-      !   PE_trans(:,:,j) = PE(:,j,:)
-      !END DO
-      !pk=0
-      !peln=0
-      !pkz=0
-      !
-      !CALL pkez(1, IM, LM, J_0, J_1, 1, LM, 1, IM, PE_trans(:,:,j_0:j_1), &
-      !     &  PK(:,j_0:j_1,:), KAPA, LM+1-LS1, PELN(:,:,j_0:j_1), pkz(:,j_0:j_1,:), .true.)
-      !deallocate(pe_trans, pk, peln)
-
-      Allocate(pk(i_0:i_1,j_0:j_1,LM+1))
+      Allocate(pk(i_0h:i_1h,j_0h:j_1h,LM+1))
       PK(I_0:I_1,J_0:J_1,:) = PE**KAPA
       do l=1,LM
         do j=j_0,j_1
@@ -983,7 +965,7 @@ contains
             endif
           enddo
         enddo
-      enddo 
+      enddo
       deallocate(pk)
 
     End Subroutine ComputePressureLevels
