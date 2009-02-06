@@ -1337,7 +1337,7 @@ C**** Input:
 C**** Output:
 !@var    SF = stream function (kg/s)
 C****
-      USE OCEAN, only : im,jm,lmo,lmm
+      Use OCEAN, Only: IM,JM,LMO, LMM, oDLAT_DG,oFJEQ=>FJEQ
       USE STRAITS, only : nmst,lmst
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: FAC,FACST
@@ -1345,7 +1345,7 @@ C****
       REAL*8, INTENT(IN), DIMENSION(LMO,NMST) :: OLNST
       REAL*8, INTENT(OUT), DIMENSION(IM,JM) :: SF
       REAL*8, DIMENSION(4) :: SUMB
-      INTEGER :: I,J,L
+      Integer*4 :: I,J,L, NSUM
       REAL*8 TSUM
 C****
 C**** Integrate up from South Pole
@@ -1364,18 +1364,17 @@ C****
       CALL STRMIJ_STRAITS(J,SF,OLNST,FACST)
 
       END DO
-C**** Correct SF for mean E-W drift (SF over topography --> 0)
-C**** by setting SF to be zero over mid N. America
-C**** This is a horrible resolution-dependent hack!
-      TSUM=0.
-      IF (JM.eq.46) TSUM=SUM(SF(14:17,34))/4.   ! 4x5
-! hack to avoid an out of bounds error 
-      IF (JM.eq.90) TSUM=SUM(SF(28:34,NINT(JM*0.7222)))/7.   ! 2x2.5
-      DO J=1,JM-1
-        DO I=1,IM
-          SF(I,J)=SF(I,J)-TSUM
-        END DO
-      END DO
+C**** 
+C**** Recalibrate SF to be 0 over middle of North America
+C**** Include UO cells whose centers reside in 110-90 W, 32-40 N
+C****
+      NSUM = 0
+      TSUM = 0
+      Do J = Ceiling(oFJEQ+32/oDLAT_DG), Floor(oFJEQ+40/oDLAT_DG)
+      Do I = Ceiling(70*IM/360.), Floor(90*IM/360.)
+        TSUM = TSUM + SF(I,J)
+        NSUM = NSUM + 1  ;  EndDo  ;  EndDo
+      SF(:,:) = SF(:,:) - TSUM/NSUM
       RETURN
       END
 
