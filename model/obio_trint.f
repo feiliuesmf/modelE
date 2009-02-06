@@ -70,8 +70,6 @@
 
       endif   !if am_i_root
 
-      print*, 'CAN YOU DO THIS???? '
-
 !     do ntr=1,ntrcr
 !       write(*,*),'ntr =',ntr
 !       sumtrac=tracer_loc(:,:,:,ntr)
