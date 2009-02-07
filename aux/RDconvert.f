@@ -331,6 +331,8 @@ C**** output binary file
       if (am_i_root()) then
       call openunit(trim(filein)//".bin",iu_RVR,.true.,.false.)
       write(iu_RVR) titlei
+      write(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *     ,lon_rvr(1:nrvr)
       title="Latitude of downstream river direction box"
       write(iu_RVR) title,down_lat
       title="Longitude of downstream river direction box"
@@ -339,8 +341,6 @@ C**** output binary file
       write(iu_RVR) title,down_lat_911
       title="Longitude of emergency downstream river direction box"
       write(iu_RVR) title,down_lon_911
-      write(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
-     *     ,lon_rvr(1:nrvr)
 
       call closeunit(iu_RVR)
       end if
@@ -355,14 +355,14 @@ C**** read in binary file:
 
       call openunit(trim(filein),iu_RVR,.true.,.true.)
       read(iu_RVR) titlei
+      read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *     ,lon_rvr(1:nrvr)
       CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lat_loc,1)
       CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lon_loc,1)
       CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lat_911_loc
      *     ,1)
       CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lon_911_loc
      *     ,1)
-      read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
-     *     ,lon_rvr(1:nrvr)
       call closeunit(iu_RVR)
 
       IFLOW=0 ; JFLOW=0
