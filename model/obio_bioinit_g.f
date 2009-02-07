@@ -43,8 +43,8 @@ c  Carbon type 2    = DIC
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax,tracer_loc,tracer
 
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
-      USE OCEAN, only : LMOM=>LMM,ZOE=>ZE
+      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
+      USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
       USE OCEANR_DIM, only : ogrid
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -184,8 +184,7 @@ c  Create arrays
 
           !Ammonium
           tracer(i,j,k,2) = 0.5
-          LM =  LMOM(I,J)
-          if (ZOE(LM) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
+          if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
 
           !Silica
           !read earlier from file
@@ -203,7 +202,7 @@ c          endif
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
-          if (ZOE(LM) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
+          if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo
@@ -303,24 +302,23 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-!     do nt=1,ntyp+n_inert+ndet+ncar
-!       ntchar='00'
-!       if(nt.le.9)write(ntchar,'(i1)')nt
-!       if(nt.gt.9)write(ntchar,'(i2)')nt
-!       print*,'BIO: saving initial tracer fields '
-!    .        ,'bioinit_tracer'//ntchar
-!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-!     do k=1,kdm
-!     do j=1,jdm
-!     do i=1,idm
-!          LM =  LMOM(I,J)
-!          write(iu_bioinit,'(3i4,2e12.4)')
-!    .           i,j,k,ZOE(LM),tracer(i,j,k,nt)
-!       enddo
-!       enddo
-!       enddo
-!     call closeunit(iu_bioinit)
-!     enddo
+      do nt=1,ntyp+n_inert+ndet+ncar
+        ntchar='00'
+        if(nt.le.9)write(ntchar,'(i1)')nt
+        if(nt.gt.9)write(ntchar,'(i2)')nt
+        print*,'BIO: saving initial tracer fields '
+     .        ,'bioinit_tracer'//ntchar
+        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+      do k=1,kdm
+      do j=1,jdm
+      do i=1,idm
+           write(iu_bioinit,'(3i4,4e12.4)')
+     .           i,j,k,dzo(k),tracer(i,j,k,nt),focean(i,j),hocean(i,j)
+        enddo
+        enddo
+        enddo
+      call closeunit(iu_bioinit)
+      enddo
 
       print*,'bioinit: COLD INITIALIZATION'
       call obio_trint
