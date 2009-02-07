@@ -487,9 +487,13 @@ C****
 #ifdef CUBE_GRID
       ra = .5d0
 #else
+#ifdef ALT_CLDMIX_UV
+      ra(1:kmax) = 1d0
+#else
       DO K=1,KMAX
         RA(K)=RAVJ(K,J)
       END DO
+#endif
 #endif
 C**** PRESSURES, AND PRESSURE TO THE KAPA
       PL(:) =PMID(:,I,J)

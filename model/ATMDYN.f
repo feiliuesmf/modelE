@@ -2284,9 +2284,11 @@ c
           dv(3,l,i,j) = dvsp(im ,l)
           dv(4,l,i,j) = dvsp(i  ,l)
         enddo
+#ifndef ALT_CLDMIX_UV
 c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
         du(:,:,:,j) = du(:,:,:,j)*.5
         dv(:,:,:,j) = dv(:,:,:,j)*.5
+#endif
       endif
       if(grid%have_north_pole) then
         j=jm
@@ -2305,9 +2307,11 @@ c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
           dv(1,l,i,j) = dvnp(im ,l)
           dv(2,l,i,j) = dvnp(i  ,l)
         enddo
+#ifndef ALT_CLDMIX_UV
 c compensate for the factor of 2 in ravj(jm).  change ravj(jm) later.
         du(:,:,:,j) = du(:,:,:,j)*.5
         dv(:,:,:,j) = dv(:,:,:,j)*.5
+#endif
       endif
 c
 c now do the averaging
@@ -2315,17 +2319,29 @@ c
       do j=j_0stg,j_1stg
       do i=1,im-1
       do l=1,lm
-        u(i,j,l)=u(i,j,l)+ !.25*
+        u(i,j,l)=u(i,j,l)+
+#ifdef ALT_CLDMIX_UV
+     &       .25*
+#endif
      &       (du(4,l,i,j-1)+du(3,l,i+1,j-1)+du(2,l,i,j)+du(1,l,i+1,j))
-        v(i,j,l)=v(i,j,l)+ !.25*
+        v(i,j,l)=v(i,j,l)+
+#ifdef ALT_CLDMIX_UV
+     &       .25*
+#endif
      &       (dv(4,l,i,j-1)+dv(3,l,i+1,j-1)+dv(2,l,i,j)+dv(1,l,i+1,j))
       enddo ! l
       enddo ! i
       i = im
       do l=1,lm
-        u(i,j,l)=u(i,j,l)+ !.25*
+        u(i,j,l)=u(i,j,l)+
+#ifdef ALT_CLDMIX_UV
+     &       .25*
+#endif
      &       (du(4,l,i,j-1)+du(3,l,1,j-1)+du(2,l,i,j)+du(1,l,1,j))
-        v(i,j,l)=v(i,j,l)+ !.25*
+        v(i,j,l)=v(i,j,l)+
+#ifdef ALT_CLDMIX_UV
+     &       .25*
+#endif
      &       (dv(4,l,i,j-1)+dv(3,l,1,j-1)+dv(2,l,i,j)+dv(1,l,1,j))
       enddo ! l
       enddo ! j
