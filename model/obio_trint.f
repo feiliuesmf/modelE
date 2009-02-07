@@ -17,7 +17,7 @@
 #else
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr,idm,jdm,kdm
       USE hycom_arrays_glob, only : tracer,dp,scp2
-      USE hycom_scalars, only : nstep
+      USE hycom_scalars, only : nstep,huge
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,GLOBALSUM 
@@ -50,16 +50,18 @@
          endif !focean
 #else
          kn=k+nn
+         if (dp(i,j,kn)<huge) then
            sumo=sumo+dp(i,j,kn)*scp2(i,j)
            sum_area=sum_area+scp2(i,j)
            summ=summ+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
+         endif
 #endif
           
         enddo
         enddo
         enddo
       write(*,*)
-     .  'tot intgrl trcr ',ntr,nstep,summ,summ/sumo
+     .  'total intgrl tracer ',ntr,nstep,summ,summ/sumo
       enddo
       print*,'   '
 
