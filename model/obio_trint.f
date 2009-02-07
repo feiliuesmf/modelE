@@ -36,27 +36,22 @@
 
       do ntr=1,ntrcr
       summ=0.
+      sumo=0.
         do k=1,kdm
-        sumo=0.
         sum_area=0.
         do j=1,jdm
         do i=1,idm
 #ifdef OBIO_ON_GARYocean
          kn=k
-         IF (FOCEAN(i,j).gt.0) then
-           sumo=sumo+dzo(kn)*tracer(i,j,k,ntr)*dxyp(j)
-           sum_area=sum_area+dzo(kn)*dxyp(j)
-           summ=summ+dzo(kn)*tracer(i,j,k,ntr)*dxyp(j)
-
-!        if (ntr.eq.1) then
-!        write(*,'(a,4i5,4e12.4)')'obio_trint: ',
-!    .      i,j,k,ntr,tracer(i,j,k,ntr),dxyp(j),dzo(kn),summ
-!        endif
+         if (FOCEAN(i,j).gt.0) then
+           sumo=sumo+dzo(kn)*dxyp(j)     !sum volume
+           sum_area=sum_area+dxyp(j)     !sum area
+           summ=summ+dzo(kn)*tracer(i,j,k,ntr)*dxyp(j)   !sum over volume
          endif !focean
 #else
          kn=k+nn
-           sumo=sumo+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
-           sum_area=sum_area+dp(i,j,kn)*scp2(i,j)
+           sumo=sumo+dp(i,j,kn)*scp2(i,j)
+           sum_area=sum_area+scp2(i,j)
            summ=summ+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
 #endif
           
@@ -64,7 +59,7 @@
         enddo
         enddo
       write(*,*)
-     .  'total intgrl for tracer ',ntr,nstep,summ,summ/sum_area
+     .  'tot intgrl trcr ',ntr,nstep,summ,summ/sumo
       enddo
       print*,'   '
 
