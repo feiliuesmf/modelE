@@ -62,6 +62,7 @@ c
         module procedure write_nc_2D_int
         module procedure write_nc_3D_int
         module procedure write_nc_2D_logical
+        module procedure write_nc_1D_array_of_strings
       end interface write_data
       interface read_data
         module procedure read_nc_0D
@@ -92,6 +93,7 @@ c
         module procedure defvar_4D_int
         module procedure defvar_5D_int
         module procedure defvar_2D_logical
+        module procedure defvar_1D_array_of_strings
       end interface
 
       public :: write_attr
@@ -459,7 +461,7 @@ c define/overwrite the success flag for error checking
       type(dist_grid), intent(in) :: grid
       integer :: iarr
       real*8 :: arr
-      arr = iarr
+      if(grid%am_i_globalroot) arr = iarr
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_0D_int
       subroutine write_nc_1D_int(grid,fid,varname,iarr)
@@ -468,7 +470,7 @@ c define/overwrite the success flag for error checking
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:)
       real*8 :: arr(size(iarr))
-      arr = iarr
+      if(grid%am_i_globalroot) arr = iarr
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_1D_int
       subroutine write_nc_2D_int(grid,fid,varname,iarr)
@@ -477,7 +479,7 @@ c define/overwrite the success flag for error checking
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2))
-      arr = iarr
+      if(grid%am_i_globalroot) arr = iarr
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_2D_int
       subroutine write_nc_3D_int(grid,fid,varname,iarr)
@@ -486,7 +488,7 @@ c define/overwrite the success flag for error checking
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
-      arr = iarr
+      if(grid%am_i_globalroot) arr = iarr
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_3D_int
       subroutine write_nc_2D_logical(grid,fid,varname,larr)
@@ -495,13 +497,31 @@ c define/overwrite the success flag for error checking
       type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
       real*8 :: arr(size(larr,1),size(larr,2))
-      where(larr)
-        arr = 1d0
-      else where
-        arr = 0d0
-      end where
+      if(grid%am_i_globalroot) then
+        where(larr)
+          arr = 1d0
+        else where
+          arr = 0d0
+        end where
+      endif
       call write_data(grid,fid,varname,arr)
       end subroutine write_nc_2D_logical
+      subroutine write_nc_1D_array_of_strings(grid,fid,varname,arr)
+      integer :: fid
+      character(len=*) :: varname
+      type(dist_grid), intent(in) :: grid
+      character(len=*) :: arr(:)
+      integer :: rc,vid
+      if(grid%am_i_globalroot) then
+        rc = nf_inq_varid(fid,trim(varname),vid)
+        if(rc.ne.nf_noerr) write(6,*) 'variable ',
+     &       trim(varname),' not found in output file - stopping'
+      endif
+      call stoprc(rc,nf_noerr)
+      if(grid%am_i_globalroot) then
+        rc = nf_put_var_text(fid,vid,arr)
+      endif
+      end subroutine write_nc_1D_array_of_strings
 
       subroutine read_nc_0D_int(grid,fid,varname,iarr,bcast_all)
       integer :: fid
@@ -661,6 +681,26 @@ c netcdf file will represent logical as 0/1 int
       include 'dd2d/do_defvar_nc.inc'
       return
       end subroutine defvar_2D_logical
+
+      subroutine defvar_2D_char(grid,fid,arr,varinfo,r4_on_disk,
+     &     defby)
+      character :: arr(:,:)
+      integer, parameter :: dtype=nf_char
+      include 'dd2d/do_defvar_nc.inc'
+      return
+      end subroutine defvar_2D_char
+
+      subroutine defvar_1D_array_of_strings(grid,fid,arr,varinfo)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      character(len=*) :: arr(:)
+      character(len=*) :: varinfo
+      character, allocatable :: arr2d(:,:)
+      allocate(arr2d(len(arr(1)),size(arr,1)))
+      call defvar_2D_char(grid,fid,arr2d,varinfo)
+      deallocate(arr2d)
+      return
+      end subroutine defvar_1D_array_of_strings
 
       subroutine write_attr_text(grid,fid,varname,attname,attval)
       character(len=*) :: attval
