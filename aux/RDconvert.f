@@ -120,7 +120,7 @@ C**** Check for specified river mouths
           IF (FOCEAN(I,J).le.0) THEN
             WRITE(6,*)
      *       "Warning: Named river outlet must be in ocean",i
-     *           ,j,FOCEAN(I,J)
+     *           ,j,FOCEAN(I,J),CDIREC(I,J)
           END IF
         END IF
       END DO
@@ -448,55 +448,3 @@ C****
  911  FORMAT (72A1)
       end
 
-      integer function get_dir(I,J,ID,JD,IM,JM)
-      integer I,J,ID,JD,IM,JM
-      integer DI,DJ
-
-      DI=I-ID
-      IF (DI.eq.IM-1) DI=-1
-      IF (DI.eq.1-IM) DI=1
-      DJ=J-JD
-      get_dir=-99
-      if (DI.eq.-1 .and. DJ.eq.-1) then
-        get_dir=1
-      elseif (DI.eq.-1 .and. DJ.eq.0) then
-        get_dir=8
-      elseif (DI.eq.-1 .and. DJ.eq.1) then
-        get_dir=7
-      elseif (DI.eq.0 .and. DJ.eq.1) then
-        get_dir=6
-      elseif (DI.eq.0 .and. DJ.eq.0) then
-        get_dir=0
-      elseif (DI.eq.0 .and. DJ.eq.-1) then
-        get_dir=2
-      elseif (DI.eq.1 .and. DJ.eq.-1) then
-        get_dir=3
-      elseif (DI.eq.1 .and. DJ.eq.0) then
-        get_dir=4
-      elseif (DI.eq.1 .and. DJ.eq.1) then
-        get_dir=5
-      end if
-      if (J.eq.JM) then         ! north pole
-        if (DI.eq.0) then
-          get_dir=6
-        else
-          get_dir=8
-        end if
-      elseif (J.eq.1) then      ! south pole
-        if (DI.eq.0) then
-          get_dir=2
-        else
-          get_dir=8
-        end if
-      elseif (J.eq.JM-1) then
-        if (JD.eq.JM) get_dir=2
-      elseif (J.eq.2) then
-        if (JD.eq.1) get_dir=6
-      end if
-      if (get_dir.eq.-99) then
-        print*,"get_dir error",i,j,id,jd
-        get_dir=0
-      end if
-         
-      return
-      end function get_dir
