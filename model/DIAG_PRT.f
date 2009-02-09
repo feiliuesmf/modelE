@@ -68,6 +68,8 @@ C****
       INTEGER, DIMENSION(nj_out) :: INUM_J_O, IDEN_J_O
 !@var SCALE_J_O scale for calculated J diags
       REAL*8, DIMENSION(nj_out) :: SCALE_J_O
+!@var FMT_J_O Format strings for zonal J diagnostics
+      character(len=30), dimension(nj_out), public :: fmt_j_o,fmt_reg_o
 
       END MODULE BDJ
 
@@ -749,7 +751,13 @@ c     write(0,*) 'SCM no diags   print_diags'
      *     ,j_sranir,j_clddep,j_pcldmc
       USE BDJ
       IMPLICIT NONE
+      character(len=30), parameter ::
+     &     fmt907='(A16,3F7.2,2X,24I4)'
+     &    ,fmt912='(A16,3F7.3,2X,24I4)'
+     &    ,fmt909='(A16,1X,23I5)'
       INTEGER :: K
+      fmt_j_o = fmt912
+      fmt_reg_o = fmt909
 C**** These information are for J zonal budget calulated diagnostics
 C**** Note that we assume that they are all ratios of two existing
 C**** records.
@@ -854,6 +862,7 @@ c
       inum_j_o(k)  = J_CLDDEP
       iden_j_o(k)  = J_PCLDMC
       scale_j_o(k) = 1.
+      fmt_j_o(k) = fmt907
 
       RETURN
       END SUBROUTINE J_TITLES
@@ -877,7 +886,7 @@ c
      *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
      *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4,
      *     ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt,
-     &     sarea=>sarea_reg
+     &     sarea=>sarea_reg,fmt_j,fmt_reg
       USE BDJ
       IMPLICIT NONE
       REAL*8, DIMENSION(NREG,KAJ) :: AREG
@@ -1063,26 +1072,13 @@ C**** Save BUDG for full output
       LNAMEO(N)=LNAME_J(N)
       SNAMEO(N)=NAME_J(N)
       UNITSO(N)=UNITS_J(N)
-C**** select output format depending on field name
-      SELECT CASE (name_j(N)(3:len_trim(name_j(N))))
-      CASE ('sstab_trop')
-        WRITE (6,906) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
-     *       (FLAT(J),J=JM,INC,-INC)
-      CASE ('evap','prec','ross_num_strat','ross_num_trop'
-     *       ,'ross_radius_strat','ross_radius_trop','ht_runoff'
-     *       ,'river_discharge','ice_melt','impl_m_flux','ht_rvr_disch',
-     *       'wat_runoff','ssprec','mcprec','h2o_from_ch4'
-     *       ,'lapse_rate','lapse_rate_m','lapse_rate_c'
-     *       ,'ht_thermocline','salt_runoff','s_ice_melt')
-        WRITE (6,911) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
-     *       (FLAT(J),J=JM,INC,-INC)
-      CASE ('ocn_ht_trans','prec_ht_flx','ht_ice_melt')
-        WRITE (6,912) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+      IF(INDEX(FMT_J(N),'24I').GT.0) THEN ! integer format
+        WRITE (6,FMT_J(N)) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
-      CASE DEFAULT
-        WRITE (6,907) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
-     *       (MLAT(J),J=JM,INC,-INC)
-      END SELECT
+      ELSE                                ! real format
+        WRITE (6,FMT_J(N)) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+     *       (FLAT(J),J=JM,INC,-INC)
+      ENDIF
       IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
       if (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
 C**** CALCULATE AND PRINT DERIVED RATIOS
@@ -1125,14 +1121,13 @@ C**** Save BUDG for full output
       SNAMEO(KA+k_j_out)=NAME_J_O(KA)
       UNITSO(KA+k_j_out)=UNITS_J_O(KA)
 C****
-      SELECT CASE (name_j_o(ka))
-      CASE ('mc_clddp')
-        WRITE (6,907) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
+      IF(INDEX(FMT_J_O(KA),'24I').GT.0) THEN ! integer format
+        WRITE (6,FMT_J_O(KA)) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
      *       (MLAT(J),J=JM,INC,-INC)
-      CASE DEFAULT
-        WRITE (6,912) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
-     *       (MLAT(J),J=JM,INC,-INC)
-      END SELECT
+      ELSE                                   ! real format
+        WRITE (6,FMT_J_O(KA)) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
+     *       (FLAT(J),J=JM,INC,-INC)
+      ENDIF
       END DO
       KDER=KDER+NDERN(NDER)
       NDER=NDER+1
@@ -1177,23 +1172,13 @@ C GISS-ESMF Exceptional Case
         MLAT(JR)=NINT(FLAT(JR))
       END DO
 C**** select output format based on field name
-      SELECT CASE (name_j(N)(3:len_trim(name_j(N))))
-      CASE ('evap','prec','ocn_lak_ice_frac','snow_cover'
-     *     ,'ht_ice_melt','impl_m_flux','impl_ht','h2o_from_ch4'
-     *     ,'ice_melt','ht_runoff','wat_g1','river_discharge'
-     *     ,'ht_rvr_disch','ice_g1','snowdp','wat_runoff','ssprec'
-     *     ,'mcprec','atmh2o','ht_thermocline','salt_runoff'
-     *     ,'s_ice_melt')
-        WRITE (6,910) STITLE_J(N),(FLAT(JR),JR=1,23)
-      CASE ('sstab_trop','sstab_strat','ross_num_strat'
-     *       ,'ross_num_trop','ross_radius_strat','ross_radius_trop'
-     *       ,'surf_type_frac','lapse_rate','lapse_rate_m'
-     *       ,'lapse_rate_c','rich_num_trop','rich_num_strat'
-     *       ,'dtdlat_strat','dtdlat_trop')
-        CONTINUE     ! no output for not-calculated quantities
-      CASE DEFAULT
-        WRITE (6,909) STITLE_J(N),(MLAT(JR),JR=1,23)
-      END SELECT
+      IF(TRIM(FMT_REG(N)).NE.'not computed') THEN
+        IF(INDEX(FMT_REG(N),'23I').GT.0) THEN ! integer format
+          WRITE (6,FMT_REG(N)) STITLE_J(N),(MLAT(JR),JR=1,23)
+        ELSE                                  ! real format
+          WRITE (6,FMT_REG(N)) STITLE_J(N),(FLAT(JR),JR=1,23)
+        ENDIF
+      ENDIF
       IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
       IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
 C**** CALCULATE AND PRINT DERIVED RATIOS FOR REGIONAL STATISTICS
@@ -1207,7 +1192,11 @@ C**** differentiate normal ratios from albedo calculations
           IF (QALB) FLAT(JR)=100.-FLAT(JR)
           MLAT(JR)=FLAT(JR)+.5
         END DO
-        WRITE (6,909) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
+        IF(INDEX(FMT_REG_O(KA),'23I').GT.0) THEN ! integer format
+          WRITE (6,FMT_REG_O(KA)) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
+        ELSE                                     ! real format
+          WRITE (6,FMT_REG_O(KA)) STITLE_J_O(KA),(FLAT(JR),JR=1,23)
+        ENDIF
       END DO
       KDER=KDER+NDERN(NDER)
       NDER=NDER+1

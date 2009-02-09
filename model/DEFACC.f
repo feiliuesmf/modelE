@@ -50,6 +50,14 @@ c#endif
       use DIAG_COM
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
+      character(len=30), parameter ::
+     &     fmt906='(A16,3F7.2,2X,24F4.1)'
+     &    ,fmt907='(A16,3F7.2,2X,24I4)'
+     &    ,fmt911='(A16,3F7.3,2X,24F4.1)'
+     &    ,fmt912='(A16,3F7.3,2X,24I4)'
+     &    ,fmt909='(A16,1X,23I5)'
+     &    ,fmt910='(A16,1X,23F5.1)'
+     &    ,fmtnone='not computed'
       integer :: k,kk
 c
       do k=1,kaj
@@ -59,6 +67,8 @@ c
          stitle_j(k)= 'no output'
          scale_j(k) = 1.
          ia_j(k)    = 1.
+         fmt_j(k) = fmt907
+         fmt_reg(k) = fmt909
       enddo
 c
       k=0
@@ -251,6 +261,7 @@ c
       stitle_j(k)= ' PRECIP HEAT FLX'
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt912
 c
       k=k+1
       J_HZ0   = k ! HEATZ0=RHDT+SHDT+EVHDT+EPRCP (J/m**2)   1 D1
@@ -269,6 +280,8 @@ c
       stitle_j(k)= '0HT RVR DISCH   '
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_HZ1   = k ! Net heating at ocean surface                  1 D1
@@ -287,6 +300,8 @@ c
       stitle_j(k)= '0HEAT RUNOFF '
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_HMELT = k ! net amount of energy associated with ice melt/form
@@ -296,6 +311,8 @@ c
       stitle_j(k)= ' HT ICE MLT/FORM'
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt912
+      fmt_reg(k) = fmt910
 c
 C**** Note this is used for ice in fixed SST runs, but for ocean in
 C**** qflux runs. Over land, it is always used for landice changes.
@@ -307,6 +324,7 @@ C**** qflux runs. Over land, it is always used for landice changes.
       stitle_j(k)= ' DWN IMPL HT FLX'
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_HZ2   = k !
@@ -325,6 +343,8 @@ c
       stitle_j(k)= '1SS PRECIP(MM/D)'
       scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_PRCPMC= k ! PRCPMC (100 PA)                               1 CN
@@ -334,6 +354,8 @@ c
       stitle_j(k)= ' MC PRECIP(MM/D)'
       scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_PRCP  = k ! PRCP=AJ(PRCPSS)+AJ(PRCPMC) (100 PA)           1 D1
@@ -343,6 +365,8 @@ c
       stitle_j(k)= ' PRECIP (MM/DAY)'
       scale_j(k) = 100.*SDAY/(DTsrc*GRAV)
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_EVAP  = k ! EVAP (KG/m**2)                                1 GD
@@ -352,6 +376,8 @@ c
       stitle_j(k)= ' EVAPOR (MM/DAY)'
       scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_RUN  = k ! RUNOFF (KG/m**2)                                1 GP
@@ -361,6 +387,8 @@ c
       stitle_j(k)= '0WATER RUNOFF'
       scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_RVRD  = k ! RIVER DISCHARGE                           1 GP
@@ -370,6 +398,8 @@ c
       stitle_j(k)= ' RVR DISCH(MM/D)'
       scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_IMELT = k ! net amount ice melt/formation in oc/lk  1 GP
@@ -379,6 +409,8 @@ c
       stitle_j(k)= ' ICE MELT/FORM  '
       scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
 C**** Note this is used for ice in fixed SST runs, but for ocean in
 C**** qflux runs. Over land, it is always used for landice changes.
@@ -391,6 +423,8 @@ C**** qflux runs. Over land, it is always used for landice changes.
       stitle_j(k)= ' DWN IMPL WT FLX'
       scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_H2OCH4 = k               !                                 1 GP
@@ -400,6 +434,8 @@ c
       stitle_j(k)= ' H2O BY CH4(x1M)'
       scale_j(k) = 2d6
       ia_j(k) = ia_12hr
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_SMELT= k ! salt flux associated with ice melt/formation   1 GD
@@ -409,6 +445,8 @@ c
       stitle_j(k)= '0SALT MELT (x1K)'
       scale_j(k) = 1000.*SDAY/DTSRC
       ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_TG1   = k ! TG1 (K-TF)                                    1 GD
@@ -464,6 +502,7 @@ c
 c      scale_j(k) = .5D2*(JM-1.)/((SIGE(LS1)-SIGE(LSTR+1)+1d-12)*180.)
       scale_j(k) = 100.*radius*radian
       ia_j(k) = ia_dga
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_DTDJT = k ! T(J+1)-T(J-1)  (SUM OVER TROPOSPHERE OF)      4 DA
@@ -474,6 +513,7 @@ c
 c      scale_j(k) = .5d2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
       scale_j(k) = 100.*radius*radian
       ia_j(k) = ia_dga
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_DTSGST= k ! DTH/DPHI  (STRATOSPHERE)                      4 DA
@@ -483,6 +523,7 @@ c
       stitle_j(k)= '0STAT STB(STRAT)'
       scale_j(k) = 1.D3*GRAV*P1000K
       ia_j(k) = ia_dga
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_DTDGTR= k ! DTH/DPHI  (TROPOSPHERE)                       4 DA
@@ -492,6 +533,8 @@ c
       stitle_j(k)= ' STAT STB(TROPO)'
       scale_j(k) = 1.D3*GRAV*P1000K
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt906
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_RICST = k ! .0625*DTH*DLNP/(DU*DU+DV*DV)  (STRATOSPHERE)  4 DA
@@ -501,6 +544,7 @@ c
       stitle_j(k)= '0RICH NUM(STRAT)'
       scale_j(k) = 1.
       ia_j(k) = ia_dga
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_RICTR = k ! .0625*DTH*DLNP/(DU*DU+DV*DV)  (TROPOSPHERE)   4 DA
@@ -510,6 +554,7 @@ c
       stitle_j(k)= ' RICH NUM(TROPO)'
       scale_j(k) = 1.
       ia_j(k) = ia_dga
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_ROSST = k ! UMAX/(FCOR)  (STRATOSPHERE)              4 DA
@@ -519,6 +564,8 @@ c
       stitle_j(k)= ' ROSS NUM(STRAT)'
       scale_j(k) = 1./(L_ROSSBY_NUMBER)
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_ROSTR = k ! UMAX/(FCOR)  (TROPOSPHERE)               4 DA
@@ -528,6 +575,8 @@ c
       stitle_j(k)= ' ROSS NUM(TROPO)'
       scale_j(k) = 1./(L_ROSSBY_NUMBER)
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_LSTR  = k ! SQRT(DPHI*DLOGTH)/SINJ  (STRATOSPHERE)           4 DA
@@ -537,6 +586,8 @@ c
       stitle_j(k)= ' L(STRAT)(10**6)'
       scale_j(k) = 1d-6!/(2.*OMEGA)
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_LTRO  = k ! SQRT(DPHI*DLOGTH)/SINJ  (TROPOSPHERE)            4 DA
@@ -546,6 +597,8 @@ c
       stitle_j(k)=  ' L(TROP) (10**6)'
       scale_j(k) = 1d-6!/(2.*OMEGA)
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_GAM   = k ! GAM  (K/m)  (*SIG(TROPOSPHERE)/GRAV)          4 DA
@@ -555,6 +608,8 @@ c
       stitle_j(k)= '0GAM(K/KM)      '
       scale_j(k) = 1d3*GRAV
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_GAMM  = k ! GAMM  (K-S**2/m**2)  (SIG(TROPOSPHERE)/GAMD)  4 DA
@@ -564,6 +619,8 @@ c
       stitle_j(k)= ' GAMM(K/KM)     '
       scale_j(k) = 1.D3*GAMD/(SIGE(1)-SIGE(LS1))
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_GAMC  = k ! GAMC  (K/m)                                   4 DA
@@ -573,6 +630,8 @@ c
       stitle_j(k)= ' GAMC(K/KM)     '
       scale_j(k) = 1d3
       ia_j(k) = ia_dga
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmtnone
 c
       k=k+1
       J_PCLDSS= k ! PCLDSS (1)  (COMPOSITE OVER ATMOSPHERE)       2 RD
@@ -609,6 +668,7 @@ c
       stitle_j(k)= ' H2O OF ATM (MM)'
       scale_j(k) = 100.*BYGRAV
       ia_j(k) = ia_dga
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_WTR1  = k ! WTR1 (KG/m**2)                                1 GD
@@ -618,6 +678,7 @@ c
       stitle_j(k)= '0WATER IN G1    '
       scale_j(k) = 1.
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_ACE1  = k ! ACE1 (KG/m**2)                                1 GD
@@ -627,6 +688,7 @@ c
       stitle_j(k)= ' ICE IN G1      '
       scale_j(k) = 1.
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_WTR2  = k ! WTR2 (KG/m**2)                                1 GD
@@ -654,6 +716,7 @@ c
       stitle_j(k)= ' SNOW DEPTH     '
       scale_j(k) = 1.
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_RSNOW = k ! PSNOW (1)                                     4 DA
@@ -663,6 +726,7 @@ c
       stitle_j(k)= ' SNOW COVER     '
       scale_j(k) = 100.
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt910
 c
       k=k+1
       J_RSI   = k ! RSI (1)                                       1 GD
@@ -672,6 +736,7 @@ c
       stitle_j(k)= ' OC/LK ICE COVER'
       scale_j(k) = 100.
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt910
 c
       IF (KOCEAN.gt.0) THEN ! only for non-fixed SST runs
       k=k+1
@@ -682,6 +747,7 @@ c
       stitle_j(k)= '0OCEAN TRNS CONV'
       scale_j(k) = 1./DTSRC
       ia_j(k) = ia_src
+      fmt_reg(k) = fmt912
 c
       k=k+1
       J_FTHERM= k ! ENERGY DIFFUSION INTO THERMOCLINE (W/m**2) .5*9 MN
@@ -691,6 +757,8 @@ c
       stitle_j(k)= ' HT INTO THRMOCL'
       scale_j(k) = 2d3*SHW/SDAY
       ia_j(k) = ia_12hr
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
       END IF
 c
       k=k+1
@@ -701,6 +769,8 @@ c
       stitle_j(k)= ' SURF TYPE FRACT'
       scale_j(k) = 100.
       ia_j(k) = ia_srf
+      fmt_reg(k) = fmtnone
+
 c set the number of directly output budget diagnostics
       k_j_out=k
 c None of the following will be printed out:

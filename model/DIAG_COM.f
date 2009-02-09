@@ -370,6 +370,8 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, dimension(kaj), public :: ia_j
 !@var k_j_out number of directly printed out budget diags
       integer, public :: k_j_out
+!@var FMT_J Format strings for zonal J diagnostics
+      character(len=30), dimension(kaj), public :: fmt_j,fmt_reg
 
       character(len=20), dimension(kaj), public :: name_reg
 
