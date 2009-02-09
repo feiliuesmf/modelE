@@ -31,8 +31,6 @@ c set-up for MPI implementation
       call alloc_biogenic_emis(grid)
 #endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
-#else
       call alloc_tracer_com(grid)
 #ifdef TRACERS_DRYDEP
       call alloc_trdrydep(grid)
@@ -55,7 +53,6 @@ c set-up for MPI implementation
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       CALL alloc_dust(grid)
-#endif
 #endif
 #endif
       call alloc_tracer_adv(grid)
