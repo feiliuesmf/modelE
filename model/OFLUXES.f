@@ -10,12 +10,8 @@
 !      USE DOMAIN_DECOMP_1D, ONLY : grid
       USE OCEANR_DIM, only : grid=>ogrid
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
-      USE OCN_TRACER_COM, only: ntm
-#else
+#if (defined TRACERS_ON)
       USE TRACER_COM, only: ntm
-#endif
 #endif
 
       IMPLICIT NONE
@@ -118,9 +114,6 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       USE CONSTANT, only : tf
       USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
       USE OFLUXES
-#ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm
-#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grd_dum
 

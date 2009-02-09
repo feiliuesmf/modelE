@@ -19,12 +19,9 @@
       USE RANDOM
       USE GETTIME_MOD
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
-#else
       USE TRACER_COM, only: mtrace
 #ifdef TRAC_ADV_CPU
       USE TRACER_COM, only: mtradv
-#endif
 #endif
 #endif
       USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
@@ -110,7 +107,6 @@ C**** Command line options
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
-
 C****
 C**** Processing command line options
 C****
@@ -497,7 +493,6 @@ C****
 c calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
 #endif
-         IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
 #ifndef CUBE_GRID

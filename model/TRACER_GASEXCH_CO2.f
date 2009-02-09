@@ -54,7 +54,7 @@
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only   : idm=>imo,jdm=>jmo
-      USE RESOLUTION, only : iia=>im,jja=>jm
+      USE MODEL_COM, only : iia=>im,jja=>jm
       USE OCEANR_DIM, only : ogrid
 #else
       USE hycom_dim_glob
@@ -116,7 +116,7 @@
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only   : idm=>imo,jdm=>jmo
       USE OCEANR_DIM, only : ogrid
-      USE MODEL_COM,  only : nstep=>itime,focean
+      USE MODEL_COM,  only : nstep=>itime,focean, iia=>im,jja=>jm
       USE FLUXES, only: GTRACER
 #else
       USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
