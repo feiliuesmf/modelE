@@ -8,7 +8,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
 !@sum  LAKES subroutines for Lakes and Rivers
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0 (based on LB265)
-      USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny
+      USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
       USE MODEL_COM, only : im,jm
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trname,ntm
@@ -420,10 +420,10 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,jday,fearth0
-      USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL
-      USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE
+      USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
+      USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,imaxj
+      USE GEOM, only : axyp,dyv,imaxj,lonlat_to_ij
 #ifndef CUBE_GRID
      &     ,dyv
 #endif
@@ -459,6 +459,12 @@ c***      Type (ESMF_HaloDirection) :: direction
 !@var iwrap true if I direction is periodic and has no halo
       logical :: iwrap
       real*8 :: horzdist_2pts ! external function for now
+      REAL*8, allocatable, dimension(:,:) :: down_lat_loc
+     *     ,down_lon_loc,down_lat_911_loc,down_lon_911_loc
+      INTEGER, dimension(2) :: ij
+      REAL*8, dimension(2) :: ll
+      REAL*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
+      INTEGER get_dir
 #ifdef CUBE_GRID
       real*8 :: dyv(2) ! dummy to allow compilation.  not used.
 #endif
@@ -581,214 +587,95 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
         END DO
       END DO
       END IF
-C****
-C**** Always initiallise River direction and Rate
-C**** Read in CDIREC: Number = octant direction
-C****                 upper case = river mouth
-C****                 lower case = emergency octant direction 
-      call openunit("RVR",iu_RVR,.false.,.true.)
-      READ  (iu_RVR,910) TITLEI
+
+C**** setting river directions
+      IFLOW=0  ; JFLOW=0
+      IFL911=0 ; JFL911=0
+      KDIREC=0 ; KD911=0
+      RATE=0.  ; nrvr=0
+
+#if !defined CUBE_GRID || defined SCM
+
+C**** Read in down stream lat/lon positions
+      allocate(down_lat_loc(I_0H:I_1H,J_0H:J_1H),
+     *     down_lon_loc(I_0H:I_1H,J_0H:J_1H),
+     *     down_lat_911_loc(I_0H:I_1H,J_0H:J_1H),
+     *     down_lon_911_loc(I_0H:I_1H,J_0H:J_1H) )
+
+      call openunit("RVR",iu_RVR,.true.,.true.)
+      read(iu_RVR) titlei
       WRITE (out_line,*) 'River Direction file read: ',TITLEI
+      read(iu_RVR) titlei,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *     ,lon_rvr(1:nrvr)
       CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
-      READ  (iu_RVR,910)
-      DO I72=1,1+(IM-1)/72
-        DO J=JM, 1, -1
-          READ  (iu_RVR,911) (CDIREC(I,J),I=72*(I72-1)+1,MIN(IM,I72*72))
-        END DO
-      END DO
-C**** read in named rivers (if any)
-      READ (iu_RVR,*,END=10)
-      READ (iu_RVR,'(A80)',END=10) TITLEI
-      READ (iu_RVR,*,END=10)
-      IF (TITLEI.eq."Named River Mouths:") THEN
-        DO I=1,NRVRMX,5
-          READ(iu_RVR,'(5(A8,1X))') NAMERVR(I:MIN(NRVRMX,I+4))
-        END DO
-      END IF
- 10   call closeunit (iu_RVR)
+      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lat_loc,1)
+      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lon_loc,1)
+      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lat_911_loc
+     *     ,1)
+      CALL READT_PARALLEL(grid,iu_RVR,NAMEUNIT(iu_RVR),down_lon_911_loc
+     *     ,1)
+      call closeunit(iu_RVR)
 
-#ifdef CUBE_GRID
-      cdirec = ACHAR(48) ! make kdirec = 0
-#endif
-
-C**** Create integral direction array KDIREC/KD911 from CDIREC
+      CALL HALO_UPDATE(GRID, down_lat_loc)
+      CALL HALO_UPDATE(GRID, down_lon_loc)
+      CALL HALO_UPDATE(GRID, down_lat_911_loc)
+      CALL HALO_UPDATE(GRID, down_lon_911_loc)
       CALL HALO_UPDATE(GRID, FLICE)
 
-      ! Use unusual loop bounds to fill KDIREC/KD911 in halo
-#ifdef SCM
-      DO J=J_0,J_1
-#else
-      DO J=MAX(1,J_0-1),MIN(JM,J_1+1)
-#endif
-      DO I=I_0, I_1
-C**** KD: -16 = blank, 0-8 directions >8 named rivers, >48 emerg. dir
-        KD= ICHAR(CDIREC(I,J)) - 48
-        KDE=KD
-        IF (KDE.gt.48) THEN
-           KDE=KDE-48  ! emergency direction for no outlet boxes
-           KD=0        ! normally no outlet
-        END IF
-C**** If land but no ocean, and no direction, print warning
-        IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
-     *       FOCEAN(I,J).le.0 .and. (KD.gt.8 .or. KD.lt.0)) THEN
-          WRITE(6,*) "Land box has no river direction I,J: ",I,J
-     *     ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
-        END IF
-C**** Default direction is down (if ocean box), or no outlet (if not)
-C**** Also ensure that all ocean boxes are done properly
-        IF ((KD.lt.0 .or. KD.gt.8) .or. FOCEAN(I,J).eq.1.) THEN
-          KDIREC(I,J)=0
-          KD911(I,J) =0
-        ELSE
-          KDIREC(I,J) = KD
-          KD911(I,J)  = KDE
-        END IF
-C**** Check for specified river mouths
-        IF (KD.GE.17 .AND. KD.LE.42) THEN
-          IF (FOCEAN(I,J).le.0) THEN
-            WRITE(6,*)
-     *       "Warning: Named river outlet must be in ocean",i
-     *           ,j,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J)
-     *           ,FEARTH0(I,J)
-          END IF
-        END IF
-      END DO
-      END DO
-
-      INM=0
-      DO J=1,JM
-      DO I=1,IM
-C**** KD: -16 = blank, 0-8 directions >8 named rivers
-        KD= ICHAR(CDIREC(I,J)) - 48
-C**** Check for specified river mouths
-        IF (KD.GE.17 .AND. KD.LE.42) THEN
-          INM=INM+1
-          IRVRMTH(INM)=I
-          JRVRMTH(INM)=J
-          IF (CDIREC(I,J).ne.NAMERVR(INM)(1:1)) THEN
-            WRITE(6,*)
-     *           "Warning: Named river in RVR does not correspond"
-     *           //" with letter in direction file. Please check"
-            WRITE(6,*) "INM, CDIREC, NAMERVR = ",INM,CDIREC(I,J)
-     *           ," ",NAMERVR(INM)
-            NAMERVR(INM)=CDIREC(I,J)  ! set default
-          END IF
-        END IF
-      END DO
-      END DO
-      NRVR=INM
 C****
 C**** From each box calculate the downstream river box
 C****
-      ! odd bounds to fill IFLOW and JFLOW in halo
-      if(have_south_pole) then
-        jmin_fill=2
-      else
-        jmin_fill=J_0H
-      endif
-      if(have_north_pole) then
-        jmax_fill=JM-1
-      else
-        jmax_fill=J_1H
-      endif
-#ifdef SCM
-        DO J=J_0H,J_1H
-#else
-        DO J=JMIN_FILL,JMAX_FILL
-#endif
+      DO J=MAX(1,J_0H),MIN(J_1H,JM)
         DO I=I_0H,I_1H
-c should put in a check here whether we are at a nonexistent SW/NW/SE/NE
-c halo corner of a cubed sphere face - see later whether necessary here.
-          SELECT CASE (KDIREC(I,J))
-          CASE (0)
-            IFLOW(I,J) = I
-            JFLOW(I,J) = J
-          CASE (1)
-            IFLOW(I,J) = I+1
-            JFLOW(I,J) = J+1
-            IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
-          CASE (2)
-            IFLOW(I,J) = I
-            JFLOW(I,J) = J+1
-          CASE (3)
-            IFLOW(I,J) = I-1
-            JFLOW(I,J) = J+1
-            IF(I.eq.1 .and. iwrap)  IFLOW(I,J) = IM
-          CASE (4)
-            IFLOW(I,J) = I-1
-            JFLOW(I,J) = J
-            IF(I.eq.1 .and. iwrap)  IFLOW(I,J) = IM
-          CASE (5)
-            IFLOW(I,J) = I-1
-            JFLOW(I,J) = J-1
-            IF(I.eq.1 .and. iwrap)  IFLOW(I,J) = IM
-          CASE (6)
-            IFLOW(I,J) = I
-            JFLOW(I,J) = J-1
-          CASE (7)
-            IFLOW(I,J) = I+1
-            JFLOW(I,J) = J-1
-            IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
-          CASE (8)
-            IFLOW(I,J) = I+1
-            JFLOW(I,J) = J
-            IF(I.eq.IM .and. iwrap)  IFLOW(I,J) = 1
-          END SELECT
+          if (down_lon_loc(i,j).gt.-1000.) then
+            ll(1)=down_lon_loc(i,j)
+            ll(2)=down_lat_loc(i,j)
+            call lonlat_to_ij(ll,ij) 
+            IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
 
-          if(jflow(i,j).ge.j_0h .and. jflow(i,j).le.j_1h .and.
-     &       iflow(i,j).ge.i_0h .and. iflow(i,j).le.i_1h) then
             DHORZ(I,J) = horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
-          endif
 
-C****
-          SELECT CASE (KD911(I,J))   ! emergency directions
-          CASE (1)
-            IFL911(I,J) = I+1
-            JFL911(I,J) = J+1
-            IF(I.eq.IM .and. iwrap)  IFL911(I,J) = 1
-          CASE (2)
-            IFL911(I,J) = I
-            JFL911(I,J) = J+1
-          CASE (3)
-            IFL911(I,J) = I-1
-            JFL911(I,J) = J+1
-            IF(I.eq.1 .and. iwrap)  IFL911(I,J) = IM
-          CASE (4)
-            IFL911(I,J) = I-1
-            JFL911(I,J) = J
-            IF(I.eq.1 .and. iwrap)  IFL911(I,J) = IM
-          CASE (5)
-            IFL911(I,J) = I-1
-            JFL911(I,J) = J-1
-            IF(I.eq.1 .and. iwrap)  IFL911(I,J) = IM
-          CASE (6)
-            IFL911(I,J) = I
-            JFL911(I,J) = J-1
-          CASE (7)
-            IFL911(I,J) = I+1
-            JFL911(I,J) = J-1
-            IF(I.eq.IM .and. iwrap)  IFL911(I,J) = 1
-          CASE (8)
-            IFL911(I,J) = I+1
-            JFL911(I,J) = J
-            IF(I.eq.IM .and. iwrap)  IFL911(I,J) = 1
-          END SELECT
+          else  ! if land but no ocean, print warning
+            IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
+     *           FOCEAN(I,J).le.0 ) THEN
+              WRITE(6,*) "Land box has no river direction I,J: ",I,J
+     *             ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
+            END IF
+          end if
+
+          if (down_lon_911_loc(i,j).gt.-1000.) then
+            ll(1)=down_lon_911_loc(i,j)
+            ll(2)=down_lat_911_loc(i,j)
+            call lonlat_to_ij(ll,ij)
+            IFL911(I,J)=ij(1) ; JFL911(I,J)=ij(2)
+         endif
+
+C**** do we need get_dir? maybe only need to set KD=0 or >0?
+          IF (IFLOW(I,J).gt.0) KDIREC(I,J)=get_dir(I,J,IFLOW(I,J)
+     *         ,JFLOW(I,J),IM,JM)
+          IF (IFL911(I,J).gt.0) KD911(I,J)=get_dir(I,J,IFL911(I,J)
+     *         ,JFL911(I,J),IM,JM)
+
         END DO
       END DO
-C**** South Pole is a special case
-      IF (HAVE_SOUTH_POLE) Then
-         DO I=1,IM
-            IF(KDIREC(I,1).eq.2)  THEN
-               IFLOW(1,1) = I
-               JFLOW(1,1) = 2
-               DHORZ(1,1) = DYV(2) ! DYV(1)
-            END IF
-            IF(KDIREC(I,2).eq.6)  THEN
-               IFLOW(I,2) = 1
-               JFLOW(I,2) = 1
-            END IF
-         END DO
-      END IF
+
+C**** define river mouths
+      do inm=1,nrvr
+        ll(1)=lon_rvr(inm)
+        ll(2)=lat_rvr(inm)
+        call lonlat_to_ij(ll,ij)
+        IRVRMTH(INM)=ij(1) ; JRVRMTH(INM)=ij(2)
+        if (IRVRMTH(INM).ge.I_0H .and. IRVRMTH(INM).le.I_1H .and.
+     *       JRVRMTH(INM).ge.J_0H .and. JRVRMTH(INM).le.J_1H) THEN
+          IF (FOCEAN(IRVRMTH(INM),JRVRMTH(INM)).le.0) WRITE(6,*)
+     *         "Warning: Named river outlet must be in ocean"
+     *         ,INM,IRVRMTH(INM),JRVRMTH(INM),NAMERVR(INM)
+     *         ,FOCEAN(IRVRMTH(INM),JRVRMTH(INM)),FLICE(IRVRMTH(INM)
+     *         ,JRVRMTH(INM)),FLAKE0(IRVRMTH(INM),JRVRMTH(INM))
+     *         ,FEARTH0(IRVRMTH(INM),JRVRMTH(INM))
+        end if
+      end do
+
 C****
 C**** Calculate river flow RATE (per source time step)
 C****
@@ -797,15 +684,8 @@ C****
       SPMIN = .15d0  ! m/s
       SPMAX = 5.     ! m/s
       DZDH1 = .00005 ! ratio 
-#ifdef SCM
-      DO JU = J_0, J_1
-#else
       DO JU = J_0, J_1S
-#endif
         DO IU=I_0,IMAXJ(JU)
-#ifdef SCM
-          DZDH = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
-#else
           IF(KDIREC(IU,JU).gt.0) THEN
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
@@ -813,13 +693,14 @@ C****
           ELSE
             DZDH  = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
           END IF
-#endif
           SPEED = SPEED0*DZDH/DZDH1
           IF(SPEED.lt.SPMIN)  SPEED = SPMIN
           IF(SPEED.gt.SPMAX)  SPEED = SPMAX
           RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
         END DO
       END DO
+
+#endif
 
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
@@ -879,6 +760,60 @@ c perhaps replace these calculations with great circle distances later
       endif
 #endif
       end function horzdist_2pts
+
+      integer function get_dir(I,J,ID,JD,IM,JM)
+!@sum get_dir derives the locally orientated river direction
+      integer I,J,ID,JD,IM,JM
+      integer DI,DJ
+
+      DI=I-ID
+      IF (DI.eq.IM-1) DI=-1
+      IF (DI.eq.1-IM) DI=1
+      DJ=J-JD
+      get_dir=-99
+      if (DI.eq.-1 .and. DJ.eq.-1) then
+        get_dir=1
+      elseif (DI.eq.-1 .and. DJ.eq.0) then
+        get_dir=8
+      elseif (DI.eq.-1 .and. DJ.eq.1) then
+        get_dir=7
+      elseif (DI.eq.0 .and. DJ.eq.1) then
+        get_dir=6
+      elseif (DI.eq.0 .and. DJ.eq.0) then
+        get_dir=0
+      elseif (DI.eq.0 .and. DJ.eq.-1) then
+        get_dir=2
+      elseif (DI.eq.1 .and. DJ.eq.-1) then
+        get_dir=3
+      elseif (DI.eq.1 .and. DJ.eq.0) then
+        get_dir=4
+      elseif (DI.eq.1 .and. DJ.eq.1) then
+        get_dir=5
+      end if
+      if (J.eq.JM) then         ! north pole
+        if (DI.eq.0) then
+          get_dir=6
+        else
+          get_dir=8
+        end if
+      elseif (J.eq.1) then      ! south pole
+        if (DI.eq.0) then
+          get_dir=2
+        else
+          get_dir=8
+        end if
+      elseif (J.eq.JM-1) then
+        if (JD.eq.JM) get_dir=2
+      elseif (J.eq.2) then
+        if (JD.eq.1) get_dir=6
+      end if
+      if (get_dir.eq.-99) then
+        print*,"get_dir error",i,j,id,jd
+        get_dir=0
+      end if
+         
+      return
+      end function get_dir
 
       SUBROUTINE RIVERF
 !@sum  RIVERF transports lake water from each grid box downstream
