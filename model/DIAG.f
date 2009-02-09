@@ -2252,26 +2252,47 @@ c
         call globalsum(grid,area_part,sarea_reg(n),all=.true.)
       enddo
 
+
+C**** Initialse diurnal diagnostic locations (taken from the 4x5 res)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-C**** Initialise resolution dependent diagnostic parameters
-      call diag_res
+      NAMDD =
+     &   (/'AUSD', 'MWST', 'SAHL', 'EPAC', 'AF01',
+     &     'AF02', 'AF03', 'AF04', 'AF05', 'ASA1',
+     &     'AF06', 'AME1', 'AF07', 'AF08', 'AF09',
+     &     'ARAB', 'AF10', 'AF11', 'ASA2', 'AUS1',
+     &     'AUS2', 'AUS3', 'AF12', 'AF13', 'ASA3',
+     &     'AF14', 'ASA4', 'AUS4', 'AME2', 'AF15',
+     &     'AME3', 'AF16', 'AF17', 'AF18' /)
+      LLDD = RESHAPE( (/
+     &   132.5,-26.,  -97.5, 42.,    2.5, 14.,
+     &  -117.5, -2.,   32.5, 18.,   22.5, 30.,
+     &    -2.5, 26.,  -12.5, 26.,   12.5, 18.,
+     &    62.5, 38.,   17.5, 18.,  -67.5,-42.,
+     &    -7.5, 26.,   22.5, 26.,   27.5, 30.,
+     &    42.5, 34.,   12.5, 14.,   -2.5, 22.,
+     &    62.5, 42.,  137.5,-30.,  137.5,-26.,
+     &   127.5,-30.,   22.5, 18.,   -2.5, 18.,
+     &   102.5, 42.,    7.5, 30.,   72.5, 26.,
+     &   132.5,-30.,  -67.5,-38.,    2.5, 26.,
+     &   -67.5,-46.,   22.5, 22.,    2.5, 22.,
+     &    17.5, 30.  /),(/2,NDIUPT/))
 #else
 c defaults for diurnal diagnostics
       NAMDD = (/ 'AUSD', 'MWST', 'SAHL', 'EPAC' /)      
-      LLDD = RESHAPE( (/  ! taken from the 4x5 resolution
+      LLDD = RESHAPE( (/  
      &      132.5, -26.,
      &      -97.5,  42.,
      &        2.5,  14.,
      &     -117.5,  -2.
      &     /),(/2,4/))
+#endif
       call sync_param( "LLDD", LLDD(1:2,1), 2*NDIUPT )
       do n=1,ndiupt
 #ifndef CUBE_GRID
         call lonlat_to_ij(lldd(1,n),ijdd(1,n))
 #endif
       enddo
-#endif
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
 c if people still want to specify dd points as ij, let them
