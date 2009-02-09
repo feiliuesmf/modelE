@@ -1743,7 +1743,7 @@ C**** then finding the drag and applying it to the reduced winds
         X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*VSDRAGL(L)/DPS
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
-        AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG)-U(I,J,L)*X
+        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X)
         DP=DPS*DXYV(J)
         ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
         DUT(I,J,L)=-X*U(I,J,L)*DP
@@ -1775,7 +1775,7 @@ C*
           do l = 1,lmax
             du = ang_mom(i,j)/sum_airm(i,j)
             DUT(I,J,L) = DUT(I,J,L) + du*dpl(l)
-            AJL(J,L,JL_DUDTSDRG) = AJL(J,L,JL_DUDTSDRG) + du
+            call inc_ajl(i,j,l,JL_DUDTSDRG,du)
             dke(i,j,l) = dke(i,j,l) + du*(u(i,j,l)+0.5*du)
             U(I,J,L)=U(I,J,L) + du
           end do
@@ -3668,7 +3668,7 @@ C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
       USE CONSTANT, only : sha
-      USE MODEL_COM, only : im,imh,jm,lm,fim,
+      USE MODEL_COM, only : im,imh,jm,lm,fim,byim,
      &     DSIG,IDACC,JEQ,LS1,MDIAG,
      &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
@@ -3895,7 +3895,7 @@ C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
           END DO
 
           if(m5.eq.7) then
-            AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+SUM(X*X)*GMEAN(L)
+            AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+SUM(X*X)*GMEAN(L)*BYIM*BYIM
           endif
 
           IF(J.EQ.1 .or. J.EQ.JM) THEN

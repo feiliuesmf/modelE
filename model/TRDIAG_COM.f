@@ -926,7 +926,7 @@ C**** routines for accumulating zonal mean diags (lat/lon grid)
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
       TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
-     *     wtbudg(I,J)*ACC      !wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+     *     ACC!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
 
       RETURN
       END SUBROUTINE INC_TAJLS
@@ -946,7 +946,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
       TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)=TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)
-     *     + wtbudg(I,J)*ACC    !wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+     *     + ACC!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
 
       RETURN
       END SUBROUTINE INC_TAJLN

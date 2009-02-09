@@ -1343,6 +1343,7 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       subroutine set_wtbudg()
 !@sum Precomputes area weights for zonal means on budget grid
 !auth Denis Gueyffier
+      USE MODEL_COM, only : byim
       USE GEOM, only : j_budg, axyp
       USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
@@ -1365,8 +1366,8 @@ c**** Compute area weights of zig-zag grid cells
          enddo
       enddo
 #else
-      wtbudg(:,:)=1.  !on lat-lon gird, area weighting performed at print time
-      write(6,*) "WTBUDG=1"
+      wtbudg(:,:)=byim
+      write(6,*) "WTBUDG=byim"
 #endif
         
       RETURN
@@ -1448,7 +1449,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
       AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)
-     &     +wtbudg(I,J)*ACC      
+     &     +ACC      
 
       RETURN
       END SUBROUTINE INC_AREG
@@ -1472,6 +1473,24 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 
       RETURN
       END SUBROUTINE INC_AJL
+
+      SUBROUTINE INC_AJL2(I,J,L,JL_INDEX,ACC)
+c temporary variant of inc_ajl without any weighting
+      USE DIAG_COM, only : ajl=>ajl_loc
+      USE GEOM, only : j_budg
+      IMPLICIT NONE
+!@var I,J,L atm gridpoint indices for the accumulation
+      INTEGER, INTENT(IN) :: I,J,L
+!@var JL_INDEX index of the diagnostic being accumulated
+      INTEGER, INTENT(IN) :: JL_INDEX
+!@var ACC increment of the diagnostic being accumulated
+      REAL*8, INTENT(IN) :: ACC
+
+      AJL(J_BUDG(I,J),L,JL_INDEX) = AJL(J_BUDG(I,J),L,JL_INDEX)
+     &     +ACC 
+
+      RETURN
+      END SUBROUTINE INC_AJL2
 
       SUBROUTINE INC_ASJL(I,J,L,SJL_INDEX,ACC)
 !@sum inc_asjl adds ACC located at atmospheric gridpoint I,J,L

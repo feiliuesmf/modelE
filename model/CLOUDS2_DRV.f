@@ -710,12 +710,10 @@ CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(AXYP(I,J)*BYDSIG(L))
           AIL(I,J,L,IL_MC) = AIL(I,J,L,IL_MC) +
      &         (DPHASE(L)+DGDSM(L))*(AXYP(I,J)*BYDSIG(L))
-          call inc_ajl(i,j,l,jl_mcheat,(DPHASE(L)+DGDSM(L))*BYDSIG(L))
-          call inc_ajl(i,j,l,jl_mcdry,(DQCOND(L)-DGDQM(L))*BYDSIG(L))
-          call inc_ajl(i,j,l,jl_mcshlw,
-     &         (DPHASHLW(L)+DGSHLW(L))*BYDSIG(L))
-          call inc_ajl(i,j,l,jl_mcdeep,
-     &         (DPHADEEP(L)+DGDEEP(L))*BYDSIG(L))
+          call inc_ajl(i,j,l,jl_mcheat,(DPHASE(L)+DGDSM(L)))
+          call inc_ajl(i,j,l,jl_mcdry,(DQCOND(L)-DGDQM(L)))
+          call inc_ajl(i,j,l,jl_mcshlw,(DPHASHLW(L)+DGSHLW(L)))
+          call inc_ajl(i,j,l,jl_mcdeep,(DPHADEEP(L)+DGDEEP(L)))
 C*** Begin Accumulate 3D convective latent heating
          if(lh_diags.eq.1) then
           AIJK(I,J,L,IJL_MCTLH)=AIJK(I,J,L,IJL_MCTLH)+

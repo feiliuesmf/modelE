@@ -51,8 +51,8 @@ C**** save some basic model diags for weighting
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_ajl(i,j,l,jl_dpasrc,am(l,i,j))
-            call inc_ajl(i,j,l,jl_dwasrc,am(l,i,j)*wm(i,j,l))
+            call inc_ajl2(i,j,l,jl_dpasrc,am(l,i,j))
+            call inc_ajl2(i,j,l,jl_dwasrc,am(l,i,j)*wm(i,j,l))
           end do
         end do
       end do

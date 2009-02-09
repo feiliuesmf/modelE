@@ -3314,7 +3314,7 @@ c
       sname_jl(k) = 'mc_mflx' !                  'FMX(MC)*P'
       lname_jl(k) = 'VERTICAL MASS EXCHANGE FROM MOIST CONVECTION'
       units_jl(k) = 'mb/s'
-      scale_jl(k) = 1./(FIM*DTsrc)
+      scale_jl(k) = 1./(DTsrc)
       pow_jl(k) = -5
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
@@ -3324,7 +3324,7 @@ c
       sname_jl(k) = 'mc_dflx' !                  'DDMX(MC)*P'
       lname_jl(k) = 'DOWNDRAFT MASS FLUX FROM MOIST CONVECTION'
       units_jl(k) = 'mb/s'
-      scale_jl(k) = 1./(FIM*DTsrc)
+      scale_jl(k) = 1./(DTsrc)
       pow_jl(k) = -5
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
@@ -3380,7 +3380,7 @@ c
       sname_jl(k) = 'avail_pe' !
       lname_jl(k) = 'AVAILABLE POTENTIAL ENERGY'
       units_jl(k) = 'm^2/s^2'
-      scale_jl(k) = .5*RGAS*BYIM
+      scale_jl(k) = .5*RGAS
       ia_jl(k) = ia_d5s
       jgrid_jl(k) = 1
 c
@@ -3390,7 +3390,7 @@ c
       lname_jl(k) = 'DTEMP/DT BY DYNAMICS'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
-      scale_jl(k) = SDAY*NIDYN/(2*dtsrc*FIM) ! 1/dt_lf(days)*(1/im)
+      scale_jl(k) = SDAY*NIDYN/(2*dtsrc) ! 1/dt_lf(days)
       ia_jl(k) = ia_dga
       jgrid_jl(k) = 1
 c
@@ -3399,7 +3399,7 @@ c
       sname_jl(k) = 'totcld' !
       lname_jl(k) = 'TOTAL CLOUD COVER' !'PCLD*P (TOTAL)'
       units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
+      scale_jl(k) = 100.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -3527,7 +3527,7 @@ c
       sname_jl(k) = 'sscld' !
       lname_jl(k) = 'SUPER SATURATION CLOUD COVER' !'PCLD*P (SS)'
       units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
+      scale_jl(k) = 100.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -3536,7 +3536,7 @@ c
       sname_jl(k) = 'mccld' !
       lname_jl(k) = 'MOIST CONVECTIVE CLOUD COVER' !'PCLD*P (MC)'
       units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
+      scale_jl(k) = 100.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -3686,7 +3686,7 @@ c
       lname_jl(k) = 'DU/DT BY SDRAG'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
-      scale_jl(k) = 1./(FIM*DTsrc)
+      scale_jl(k) = 1./(DTsrc)
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
 c
@@ -3705,7 +3705,7 @@ c
       sname_jl(k) = 'tke' !
       lname_jl(k) = 'TURBULENT KINETIC ENERGY'
       units_jl(k) = 'm^2/s^2'
-      scale_jl(k) = BYIM
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3802,7 +3802,7 @@ c
       sname_jl(k) = 'rhe'
       lname_jl(k) = 'EFFECTIVE RELATIVE HUMIDITY' ! from cloud scheme
       units_jl(k) = '%'
-      scale_jl(k) = 100.*byim
+      scale_jl(k) = 100.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3811,7 +3811,7 @@ c
       sname_jl(k) = 'cldmc'   ! no output
       lname_jl(k) = 'MOIST CONVECTIVE CLOUD FRACTION' !from cloud scheme
       units_jl(k) = '%'
-      scale_jl(k) = 100.*byim
+      scale_jl(k) = 100.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3820,7 +3820,7 @@ c
       sname_jl(k) = 'cldss'  ! no output
       lname_jl(k) = 'LARGE-SCALE CLOUD FRACTION' ! from cloud scheme
       units_jl(k) = '%'
-      scale_jl(k) = 100.*byim
+      scale_jl(k) = 100.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3829,7 +3829,7 @@ c
       sname_jl(k) = 'csizmc'
       lname_jl(k) = 'MOIST CONVECTIVE EFFECTIVE CLOUD PARTICLE SIZE'
       units_jl(k) = 'micron'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3838,7 +3838,7 @@ c
       sname_jl(k) = 'csizss'
       lname_jl(k) = 'LARGE-SCALE EFFECTIVE CLOUD PARTICLE SIZE'
       units_jl(k) = 'micron'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 #ifdef CLD_AER_CDNC
@@ -3849,7 +3849,7 @@ c
       sname_jl(k) = 'cnumwm'
       lname_jl(k) = 'WARM MOIST CONVECTIVE CLOUD DROPLET NUMBER'
       units_jl(k) = 'cm^-3'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3858,7 +3858,7 @@ c
       sname_jl(k) = 'cnumws'
       lname_jl(k) = 'WARM LARGE-SCALE CLOUD DROPLET NUMBER'
       units_jl(k) = 'cm^-3'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3867,7 +3867,7 @@ c
       sname_jl(k) = 'cnumim'
       lname_jl(k) = 'COLD MOIST CONVECTIVE CLOUD DROPLET NUMBER'
       units_jl(k) = 'cm^-3'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 c
@@ -3876,7 +3876,7 @@ c
       sname_jl(k) = 'cnumis'
       lname_jl(k) = 'COLD LARGE-SCALE CLOUD DROPLET NUMBER'
       units_jl(k) = 'cm^-3'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_src
       jgrid_jl(k) = 1
 #endif
@@ -3886,7 +3886,7 @@ c
       sname_jl(k) = 'wcld' !
       lname_jl(k) = 'WATER CLOUD COVER' !'PCLD*P'
       units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
+      scale_jl(k) = 100.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -3895,7 +3895,7 @@ c
       sname_jl(k) = 'icld' !
       lname_jl(k) = 'ICE CLOUD COVER' !'PCLD*P'
       units_jl(k) = '%'
-      scale_jl(k) = 100.*BYIM
+      scale_jl(k) = 100.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -3922,7 +3922,7 @@ c
       sname_jl(k) = 'wcsiz'
       lname_jl(k) = 'EFFECTIVE WATER CLOUD PARTICLE SIZE' ! SIZ*OPT.DPTH
       units_jl(k) = 'micron'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -3931,7 +3931,7 @@ c
       sname_jl(k) = 'icsiz'
       lname_jl(k) = 'EFFECTIVE ICE CLOUD PARTICLE SIZE' ! SIZ*OPT.DPTH
       units_jl(k) = 'micron'
-      scale_jl(k) = byim
+      scale_jl(k) = 1.
       ia_jl(k) = ia_rad
       jgrid_jl(k) = 1
 c
@@ -4007,28 +4007,28 @@ c
       name_sjl(k) = 'ASJL01'
       lname_sjl(k) = 'TX'
       units_sjl(k) = 'C'
-      scale_sjl(k) = BYIM
+      scale_sjl(k) = 1.
       ia_sjl(k) = ia_dga
 c
       k=k+1
       name_sjl(k) = 'ASJL02'
       lname_sjl(k) = 'HEIGHT'
       units_sjl(k) = '100 M'
-      scale_sjl(k) = BYIM*.01*BYGRAV
+      scale_sjl(k) = .01*BYGRAV
       ia_sjl(k) = ia_dga
 c
       k=k+1
       name_sjl(k) = 'srad_heat' !'ASJL03'
       lname_sjl(k) = 'SOLAR RADIATION HEATING RATE' !'SRHR'
       units_sjl(k) = '10**-2 K/DAY' !'W/m^2'
-      scale_sjl(k) = 100.D-2*GRAV*SDAY*BYIM/SHA
+      scale_sjl(k) = 100.D-2*GRAV*SDAY/SHA
       ia_sjl(k) = ia_rad
 c
       k=k+1
       name_sjl(k) = 'trad_cool' !'ASJL04'
       lname_sjl(k) = 'THERMAL RADIATION COOLING RATE' !'TRHR'
       units_sjl(k) = '10**-2 K/DAY' !'W/m^2'
-      scale_sjl(k) = -100.D-2*GRAV*SDAY*BYIM/SHA
+      scale_sjl(k) = -100.D-2*GRAV*SDAY/SHA
       ia_sjl(k) = ia_rad
 c
       if (AM_I_ROOT()) then

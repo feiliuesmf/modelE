@@ -1764,7 +1764,7 @@ c        BYPV(J,1)=IDACC(ia_dga)/(APJ(J,2)+teeny)
          BYPV(:,L) = BYPV(:,1)
       ENDDO
       DO L=LS1,LM
-        BYP(:,L) = ONESPO(:)*BYIM/PSFMPT
+        BYP(:,L) = ONESPO(:)/PSFMPT
         BYPV(:,L) = ONES(1:JM)*BYIM/PSFMPT
       ENDDO
 c      DO L=1,LM
@@ -2034,7 +2034,7 @@ C**** STANDING EDDY, EDDY AND TOTAL KINETIC ENERGY
 C**** POTENTIAL TEMPERATURE, POTENTIAL VORTICITY
       DO 205 LR=1,LM_REQ
       DO 205 J=1,JM
-  205 ARQX(J,LR)=ASJL(J,LR,1)*BYIMDA*ONESPO(J)+TF
+  205 ARQX(J,LR)=ASJL(J,LR,1)*BYIADA*ONESPO(J)+TF
       N = JK_THETA
       SCALET = SCALE_JK(n)
       SCALES = P1000K
@@ -2706,7 +2706,7 @@ C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_TRBHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
-      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_TRBDLHT
@@ -2721,22 +2721,22 @@ C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCHEAT
       SCALET = scale_jl(n)/idacc(ia_jl(n))
-      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCDEEP
       SCALET = scale_jl(n)/idacc(ia_jl(n))
-      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCSHLW
       SCALET = scale_jl(n)/idacc(ia_jl(n))
-      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCDRY
       SCALET = scale_jl(n)/idacc(ia_jl(n))
-      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** Weighted average cloud sizes
@@ -2853,7 +2853,7 @@ C****
 C**** VERTICAL TRANSPORT OF ANGULAR MOMENTUM BY SMALL SCALE MOTIONS
       n = JL_DAMDC
       SCALET = scale_jl(n)/idacc(ia_jl(n))
-      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
+      ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       ax(1:jm:jm-1,1:lm) = ax(1:jm:jm-1,1:lm)*byim
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
@@ -2923,7 +2923,7 @@ C**** scale with density for m^2/s^2 unit. Note that RHO is really a JK.
       AX(J,L)=BYDAPO(J)*
      &     (AJL(J+1,L,JL_EPFLXN)*DXV(J+1)*BYPV(J+1,1)-
      &      AJL(J  ,L,JL_EPFLXN)*DXV(J)*BYPV(J,1))/IDACC(IA_DGA)
-     *   +.5*(BUP-BDN)*BYP(J,1)/(DSIG(L)*IDACC(IA_DGA))
+     *   +.5*(BUP-BDN)*BYIM*BYP(J,1)/(DSIG(L)*IDACC(IA_DGA))
       BDN=BUP
       ENDDO
       ENDDO

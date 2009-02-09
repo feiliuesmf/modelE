@@ -395,7 +395,7 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             km_3d(l,i,j)=km(l)
             ! ACCUMULATE DIAGNOSTICS for t and q
             call inc_ajl(i,j,l,JL_TRBHR,
-     &           (tijl-t0ijl)*PK(L,I,J)*PLIJ(L,I,J))
+     &           (tijl-t0ijl)*PK(L,I,J)*PDSIG(L,I,J))
             call inc_ajl(i,j,l,JL_TRBDLHT,
      &           (q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA)
             call inc_ajl(i,j,l,JL_TRBKE,e(l))
@@ -530,7 +530,7 @@ c
       DO I=I_0,I_1
       DO L=1,LM
         call inc_ajl(i,j,l,JL_DAMDC,
-     &       (u_3d_agrid(L,I,J)-uasv(L,I,J))*PLIJ(L,I,J))
+     &       (u_3d_agrid(L,I,J)-uasv(L,I,J))*PDSIG(L,I,J))
       END DO
       END DO
       END DO
