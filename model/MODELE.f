@@ -1,5 +1,4 @@
 #include "rundeck_opts.h"
-CAOO   Just to test CVS
       PROGRAM GISS_modelE
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
@@ -1109,7 +1108,7 @@ C****
 !@var iu_AIC,iu_TOPO unit numbers for input files
       INTEGER iu_AIC,iu_TOPO,iu_IFILE
 !@var num_acc_files number of acc files for diag postprocessing
-      INTEGER I,J,L,K,LID1,LID2,ITYPE,IM1,NOFF,ioerr,num_acc_files
+      INTEGER I,J,L,K,LID1,LID2,IM1,NOFF,ioerr,num_acc_files
 !@nlparam HOURI,DATEI,MONTHI,YEARI        start of model run
 !@nlparam TIMEE,HOURE,DATEE,MONTHE,YEARE,IHOURE   end of model run
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
