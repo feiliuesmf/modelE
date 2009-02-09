@@ -62,7 +62,7 @@ TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093.ext                 ! bdy.cond
 VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4.ext
 CDN=CD4X500S.ext
 REG=REG4X5           ! special regions-diag
-RVR=RD_modelE_M.RVR      ! river direction file
+RVR=RD_modelE_M.RVR.bin      ! river direction file
 TOP_INDEX=top_index_72x46.ij.ext
 ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 !                                             (end of section 2 of data input files)

@@ -86,7 +86,7 @@ OCNML=Z1O.B4X5.cor                ! mixed layer depth (use for post processing)
 CDN=CD4X500S VEG=V72X46.1.cor2    ! surf.drag - vegetation fractions
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR                   ! river direction file
+RVR=RD_modelE_M.RVR.bin                   ! river direction file
 ZVAR=ZVAR4X5         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files

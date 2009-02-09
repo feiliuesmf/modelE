@@ -59,7 +59,7 @@ SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
 CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS_144X90N_nocasp.ext
 SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.RVR      ! river direction file
+RVR=RD_modelE_F.RVR.bin      ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files

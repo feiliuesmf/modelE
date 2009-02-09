@@ -64,7 +64,7 @@ TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093.ext ! soil/topography bdy.conds
 VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4.ext  ! veg. fractions, crops history
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR               ! river direction file
+RVR=RD_modelE_M.RVR.bin               ! river direction file
 TOP_INDEX=top_index_72x46.ij.ext  ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -311,7 +311,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS_144X90N_nocasp.ext
 ! SOIL=S144X900098M.ext                 TOPO=Z144X90N_nocasp
 ! REG=REG2X2.5_CAFE     ! special regions-diag
-! RVR=RD_modelE_F.RVR      ! river direction file
+! RVR=RD_modelE_F.RVR.bin      ! river direction file
 ! TOP_INDEX=top_index_144x90.ij.ext
 ! GLMELT=GLMELT_144X90.OCN    ! glacial melt distribution
 !     set in &&PARAMETERS : DT=225. DT_XUfilter=225. DT_XVfilter=225.

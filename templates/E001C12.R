@@ -52,7 +52,7 @@ SICE=SICE8X10.B.1946-55avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD8X10.modelE VEG=V8X10.modelE
 SOIL=S8X10.modelE TOPO=Z8X10.modelE ! bdy.cond
 REG=REG8X10          ! special regions-diag
-RVR=RD8X10.RVR       ! river direction file
+RVR=RD8X10.RVR.bin       ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files

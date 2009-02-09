@@ -74,7 +74,7 @@ TOPO=Z_CS48 SOIL=SOIL_CS48.ext ! soil/topography bdy.conds
 VEG=V_CS48.1.cor2_no_crops.ext CROPS=CROPS_CS48.cor4.ext 
 CDN=CD_CS48.ext                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RD_modelE_M.RVR               ! river direction file
+RVR=RD_modelE_M.RVR.bin               ! river direction file
 TOP_INDEX=top_index_CS48.ext      ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files

@@ -73,7 +73,7 @@ TOPO=Z_CS32 SOIL=SOIL_CS32 ! soil/topography bdy.conds
 VEG=V_CS32 CROPS=CROPS_CS32 
 CDN=CD_CS32                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RD_modelE_M.RVR               ! river direction file
+RVR=RD_modelE_M.RVR.bin               ! river direction file
 TOP_INDEX=top_index_CS32      ! only used if #define do_topmodel_runoff
 GLMELT=GLMELT_CS32   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
