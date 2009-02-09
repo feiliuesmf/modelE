@@ -29,7 +29,7 @@ c  P(9) = herbivores (mg chl m-3)
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
       USE MODEL_COM, only : nstep=>itime
-#else  !HYCOM ocean 
+#else  /* HYCOM ocean */
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
 #endif

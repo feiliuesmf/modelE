@@ -68,7 +68,7 @@
       enddo
 
 
-#else     !!!!HYCOM!!!!
+#else     /* HYCOM */
       if (kmax.le.1) return
 
 
