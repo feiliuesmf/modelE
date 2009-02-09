@@ -302,23 +302,23 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-      do nt=1,ntyp+n_inert+ndet+ncar
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-      do k=1,kdm
-      do j=1,jdm
-      do i=1,idm
-           write(iu_bioinit,'(3i4,4e12.4)')
-     .           i,j,k,dzo(k),tracer(i,j,k,nt),focean(i,j),hocean(i,j)
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
-      enddo
+cdiag do nt=1,ntyp+n_inert+ndet+ncar
+cdiag   ntchar='00'
+cdiag   if(nt.le.9)write(ntchar,'(i1)')nt
+cdiag   if(nt.gt.9)write(ntchar,'(i2)')nt
+cdiag   print*,'BIO: saving initial tracer fields '
+cdiag.        ,'bioinit_tracer'//ntchar
+cdiag   call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+cdiag do k=1,kdm
+cdiag do j=1,jdm
+cdiag do i=1,idm
+cdiag      write(iu_bioinit,'(3i4,4e12.4)')
+cdiag.           i,j,k,dzo(k),tracer(i,j,k,nt),focean(i,j),hocean(i,j)
+cdiag   enddo
+cdiag   enddo
+cdiag   enddo
+cdiag call closeunit(iu_bioinit)
+cdiag enddo
 
       print*,'bioinit: COLD INITIALIZATION'
       call obio_trint

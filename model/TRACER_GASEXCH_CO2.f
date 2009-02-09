@@ -4,7 +4,16 @@
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
 
-      USE hycom_dim
+! #ifdef OBIO_ON_GARYocean
+      ! USE MODEL_COM,  only : nstep=>itime,itimei
+      ! USE OCEANR_DIM, only : ogrid
+      ! USE OCEANRES,   only : kdm=>lmo,dzo
+      ! USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
+      ! .                      ,trmo,txmo,tymo,tzmo
+! #else
+      ! USE hycom_dim
+! #endif
+
       implicit none
 
 #include "dimension2.h"
@@ -42,9 +51,23 @@
       subroutine alloc_tracer_gasexch_com
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
-      USE hycom_dim_glob
 
-      ALLOCATE(tracflx(idm,j_0h:j_1h,ntm))
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only   : idm=>imo,jdm=>jmo
+      USE RESOLUTION, only : iia=>im,jja=>jm
+      USE OCEANR_DIM, only : ogrid
+#else
+      USE hycom_dim_glob
+      USE HYCOM_DIM, only : ogrid
+#endif
+      integer i_0,i_1,j_0,j_1
+
+      i_0=ogrid%I_STRT
+      i_1=ogrid%I_STOP
+      j_0=ogrid%J_STRT
+      j_1=ogrid%J_STOP
+
+      ALLOCATE(tracflx(i_0:i_1,j_0:j_1,ntm))
       ALLOCATE(tracflx_glob(idm,jdm,ntm))
 
       ALLOCATE(atracflx(iia,jja,ntm),atrac(iia,jja,ntm))
@@ -55,7 +78,11 @@
 !------------------------------------------------------------------------------
       subroutine gather_tracer_gasexch_com_arrays
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
       USE HYCOM_DIM, only : ogrid
+#endif
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
 
       call pack_data( ogrid, tracflx,tracflx_glob )
@@ -65,7 +92,11 @@
 !------------------------------------------------------------------------------
       subroutine scatter_tracer_gasexch_com_arrays
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
       USE HYCOM_DIM, only : ogrid
+#endif
       USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
 
       call unpack_data( ogrid, tracflx_glob,tracflx )
@@ -82,11 +113,17 @@
 !this routine is called from inside OCEAN_hycom.f and only from ROOT 
 !therefore arrays here have to be global
 
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only   : idm=>imo,jdm=>jmo
+      USE OCEANR_DIM, only : ogrid
+      USE MODEL_COM,  only : nstep=>itime,focean
+      USE FLUXES, only: GTRACER
+#else
       USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
       USE HYCOM_DIM, only : ogrid
       USE hycom_atm, only : GTRACER, focean
       USE HYCOM_SCALARS, only : nstep
-      USE HYCOM_CPLER, only : ssto2a
+#endif
 
       USE PARAM, only: get_param
 
@@ -143,7 +180,11 @@ c ---------------------------------------------------------------------
       USE CONSTANT, only:    rhows,mair
       USE TRACER_COM, only : ntm,trname,tr_mm
       USE obio_incom, only : awan
+#ifdef OBIO_ON_GARYocean
+      USE MODEL_COM,  only : nstep=>itime
+#else
       USE HYCOM_SCALARS, only : nstep
+#endif
       
       implicit none
 

@@ -133,10 +133,12 @@ C****
       USE tracers_dust, only : hbaij,ricntd
 #endif
 #endif
-!!! nstep from hicom is currently not used (and it shouldn't be used outside
-!!! of hycom)
 #ifdef TRACERS_GASEXCH_ocean
+#ifdef OBIO_ON_GARYocean
+      USE MODEL_COM, only: nstep=>itime
+#else
       USE HYCOM_SCALARS, only: nstep
+#endif
 #endif
       USE SOIL_DRV, only: earth
 

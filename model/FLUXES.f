@@ -236,10 +236,14 @@ C**** fluxes associated with variable lake fractions
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE FLUXES
 #ifdef TRACERS_ON
+#ifdef TRACERS_OCEAN_INDEP
+      USE OCN_TRACER_COM, only: ntm
+#else
       USE tracer_com,ONLY : Ntm
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,Ntm_dust
+#endif
 #endif
 #endif
       IMPLICIT NONE

@@ -61,7 +61,7 @@
         enddo
         enddo
       write(*,*)
-     .  'total intgrl tracer ',ntr,nstep,summ,summ/sumo
+     .  'total intgrl tracer:',ntr,nstep,summ,summ/sumo
       enddo
       print*,'   '
 
