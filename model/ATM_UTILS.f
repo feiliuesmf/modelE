@@ -557,13 +557,14 @@ c****
       I_1 = grid%I_STOP
 
       ediff = deltaEnergy / ((PSF-PMTOP)*SHA*mb2kg)
+#ifndef CUBE_GRID
 !$OMP  PARALLEL DO PRIVATE (L)
       do l=1,lm
         T(I_0:I_1,J_0:J_1,L)=T(I_0:I_1,J_0:J_1,L)
      &       -ediff/PK(L,I_0:I_1,J_0:J_1)
       end do
 !$OMP  END PARALLEL DO
-
+#endif
       end subroutine addEnergyAsDiffuseHeat
 
       SUBROUTINE DISSIP
