@@ -2749,7 +2749,7 @@ c
       units_ij(k) = 'mm H2O'
       ia_ij(k) = ia_src
       scale_ij(k) = 1000.
-      iw_ij(k) = iw_veg
+      iw_ij(k) = iw_bare
       ir_ij(k) = ir_0_3550
 c
       k=k+1
