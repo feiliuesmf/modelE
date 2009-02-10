@@ -40,6 +40,9 @@ c  Carbon type 2    = DIC
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
+#ifdef TRACERS_Alkalinity
+     .    ,alk_glob
+#endif
       USE obio_com, only: gcmax
  
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
@@ -68,13 +71,10 @@ cddd     &     scatter_hycom_arrays
       character*2 ntchar
       character*80 filename
 
-      !real dic_glob(iio,jjo,kdm)
-
       common /bir/ nir(nrg)
 
       call alloc_obio_incom
 
-      !call gather_hycom_arrays ! shoul remove later
       call gather_tracer
       call gather_dpinit
 
@@ -93,7 +93,10 @@ c  Initialize
       filename='dic_inicond'
       call bio_inicond(filename,dic(:,:,:))
 
-      !dic(:,j_0h:j_1h,:) = dic_glob(:,:,:)
+#ifdef TRACERS_Alkalinity
+      filename='alk_inicond'
+      call bio_inicond(filename,alk_glob(:,:,:))
+#endif
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
 !     /archive/u/aromanou/Watson_new/BioInit/CHL_WG_4x5

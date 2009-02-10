@@ -104,6 +104,12 @@ c
       common /bkpt/ P_tend(kdm,ntyp+n_inert)
 !$OMP THREADPRIVATE(/bkpt/)
 
+#ifdef TRACERS_Alkalinity
+      real A_tend                             !alk tendency (dA/dt)
+      common /akpt/ A_tend(kdm)
+!$OMP THREADPRIVATE(/akpt/)
+#endif
+
       real rmuplsr                            !growth+resp rate
       common /bgro/ rmuplsr(kdm,nchl)   
 !$OMP THREADPRIVATE(/bgro/)

@@ -604,6 +604,8 @@ cdiag. upn,upa,upf,ups
 
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
+
+      call obio_alkalinity
   
 cdiag if(vrbos) then
 cdiag do k=1,kdm

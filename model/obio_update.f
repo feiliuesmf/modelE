@@ -11,13 +11,16 @@ c  leap frog method.
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
      .                   ,rhs
+#ifdef TRACERS_Alkalinity
+     .                   ,A_tend,alk1d
+#endif
 
       implicit none
 
       integer :: i,j,k
  
       integer :: nt,kmax
-      real    :: Pnew,Dnew,Cnew
+      real    :: Pnew,Dnew,Cnew,Anew
       logical :: vrbos
  
 c  Loop to update
@@ -40,6 +43,11 @@ c   in update.F, but P has not been updated yet
          Cnew = (car(k,nt) +  C_tend(k,nt)*obio_deltat)
          car(k,nt) = Cnew
         enddo
+
+#ifdef TRACERS_Alkalinity
+         Anew = (alk1d(k) +  A_tend(k)*obio_deltat)
+         alk1d(k) = Anew
+#endif
 
  1000 continue
 

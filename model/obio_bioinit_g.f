@@ -104,6 +104,12 @@ c  Initialize
       call bio_inicond_g(filename,fldo2,fldoz)
       dic(:,:,:)=fldo2
 
+#ifdef TRACERS_Alkalinity
+      filename='alk_inicond'
+      call bio_inicond(filename,fldo2,fldoz)
+      alk(:,:,:)=fldo2
+#endif
+
 !!these rno3 and so2_init fields are not correct. There are void points due to
 !mismatch of the noaa grid and the ocean grid. To fill in have to do
 !the interpolation in matlab (furtuna).

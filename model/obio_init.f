@@ -494,11 +494,13 @@ cdiag   enddo
 !     call closeunit(iu_bio)
 !     endif
 
+#ifdef TRACERS_Alkalinity
+! Alkalinity will be read in from obio_bioinit
+#else
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
         filename='alk_inicond'
 #ifdef OBIO_ON_GARYocean
-        print*, 'going for alkalinity...'
         call bio_inicond_g(filename,alk(:,:,:))
 #else
         call bio_inicond(filename,alk(:,:,:))
@@ -506,6 +508,7 @@ cdiag   enddo
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
         alk = 0.
       endif
+#endif
 
 ! printout some key information
       if (AM_I_ROOT()) then

@@ -26,7 +26,10 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:)    :: atmFe
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe_all       !surface iron deposition
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity from climatology in 'umol/kg'
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
+#ifdef TRACERS_Alkalinity
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk_glob        !alkalinity in 'umol/kg'
+#endif
 
 #ifdef OBIO_RAD_coupling
       real*8, ALLOCATABLE, DIMENSION(:,:)    :: ovisdir,ovisdif
@@ -113,6 +116,9 @@
       ALLOCATE(   avgq(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(    alk(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(atmFe(idm,jdm),atmFe_all(i_0h:i_1h,j_0h:j_1h,12))
+#ifdef TRACERS_Alkalinity
+      ALLOCATE(alk_glob(idm,jdm,kdm))
+#endif
 
 
 #ifdef OBIO_RAD_coupling

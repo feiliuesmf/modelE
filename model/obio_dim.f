@@ -11,6 +11,7 @@
 !  P(8) = coccolithophores (mg chl m-3)
 !  P(9) = herbivores (mg chl m-3)
 !  P(10)= inert tracer modelled after nitrate
+!  P(11) = alkalinity (units????)
 !  Detrital components
 !  det(1) = N/C detritus (uM)
 !  det(2) = silica detritus (uM)
@@ -29,7 +30,9 @@
      .                     ,n_inert=1
      .                     ,ndet=3
      .                     ,ncar=2
-     .                     ,FLUXDEF=0
+#ifdef TRACERS_Alkalinity
+     .                     ,nalk=1
+#endif
 
 
       integer, parameter :: nlt=33,   !number of spectral channels
@@ -47,6 +50,9 @@
       integer, parameter :: ALK_CLIM=0    !0-Alk is function of Salinity
                                           !1-Alk is from climatology (GLODAP annmean)
                                           !2-Alk is prognostic
+#ifdef TRACERS_Alkalinity
+      integer, parameter :: ALK_CLIM=2
+#endif
       integer, parameter :: IRON_from=0   !0-Iron from GOCART model
                                           !1-Iron from Ron Miller's dust fluxes
 
