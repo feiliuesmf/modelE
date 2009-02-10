@@ -1476,6 +1476,16 @@ c in these cases, assume input U/V are on the A grid
 #else
 c assume input U/V are on the B grid.  Need to calculate A-grid winds.
         call recalc_agrid_uv
+c the latlon version of recalc_agrid_uv does not fill the poles.
+c replicate polar data to avoid compiler traps in INPUT only.  
+        if(have_south_pole) then
+          ualij(1,2:im,1) = ualij(1,1,1)
+          valij(1,2:im,1) = valij(1,1,1)
+        endif
+        if(have_north_pole) then
+          ualij(1,2:im,jm) = ualij(1,1,jm)
+          valij(1,2:im,jm) = valij(1,1,jm)
+        endif
 #endif
 
         do j=j_0,j_1
