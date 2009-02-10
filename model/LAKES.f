@@ -423,7 +423,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,dyv,imaxj,lonlat_to_ij
+      USE GEOM, only : axyp,imaxj,lonlat_to_ij
 #ifndef CUBE_GRID
      &     ,dyv
 #endif
