@@ -686,17 +686,19 @@ C****
       DZDH1 = .00005 ! ratio 
       DO JU = J_0, J_1S
         DO IU=I_0,IMAXJ(JU)
-          IF(KDIREC(IU,JU).gt.0) THEN
-            JD=JFLOW(IU,JU)
-            ID=IFLOW(IU,JU)
-            DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / (GRAV*DHORZ(IU,JU))
-          ELSE
-            DZDH  = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
+          IF (FOCEAN(IU,JU).lt.1.) THEN
+            IF(KDIREC(IU,JU).gt.0) THEN
+              JD=JFLOW(IU,JU)
+              ID=IFLOW(IU,JU)
+              DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / (GRAV*DHORZ(IU,JU))
+            ELSE
+              DZDH  = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
+            END IF
+            SPEED = SPEED0*DZDH/DZDH1
+            IF(SPEED.lt.SPMIN)  SPEED = SPMIN
+            IF(SPEED.gt.SPMAX)  SPEED = SPMAX
+            RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
           END IF
-          SPEED = SPEED0*DZDH/DZDH1
-          IF(SPEED.lt.SPMIN)  SPEED = SPMIN
-          IF(SPEED.gt.SPMAX)  SPEED = SPMAX
-          RATE(IU,JU) = DTsrc*SPEED/DHORZ(IU,JU)
         END DO
       END DO
 
@@ -1802,7 +1804,6 @@ C**** no regional diagnostics required
 
 C**** save area diag
         AIJ(I,J,IJ_LK) = AIJ(I,J,IJ_LK) + FLAKE(I,J)
-
       END IF
       END DO
       END DO
