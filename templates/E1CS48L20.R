@@ -21,8 +21,8 @@ Run Options
 STACKSIZE=524288
 
 Object modules: (in order of decreasing priority)
-RES_CS48L20 DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-MODEL_COM GEOM_B IO_DRV               ! model variables and geometry
+RES_CS48L20 DIAG_RES_M FFTW_COM          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
+MODEL_COM GEOM_CS IO_DRV               ! model variables and geometry
 !GNOM_CS                             ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead

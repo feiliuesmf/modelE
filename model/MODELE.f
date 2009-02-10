@@ -1045,6 +1045,9 @@ C****
 #else
        USE GEOM, only : geom_b,imaxj
 #endif
+#ifdef CUBE_GRID 
+      use fftw_com
+#endif
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc
       USE DYNAMICS, only : pk,pmid,pedn,ualij,valij
@@ -2007,9 +2010,7 @@ C**** Initialize nudging
 
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
-#ifndef CUBE_GRID
       CALL FFT0 (IM)
-#endif
       CALL init_CLD
       CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE

@@ -15,7 +15,7 @@ endif
 # to Fortarn compiler, like
 # -g        - include debugging information
 # -listing  - create listings (.L)
-EXTRA_FFLAGS =
+EXTRA_FFLAGS = 
 
 # EXTRA_LFLAGS specifies some extra flags you want to pass 
 # to linker. Currently needed as a hack to compile hybrid MPI/OpenMP
@@ -135,7 +135,6 @@ ifeq ($(FVCUBED),YES)
 
   # For now, cubed-sphere tests do not build with CUBE_GRID and CUBED_SPHERE directives
   # CPPFLAGS += -DCUBE_GRID -DCUBED_SPHERE
-
   FVINC = -I$(FVCUBED_ROOT)/$(MACHINE)/include
   INCS += $(FVINC) $(FVINC)/MAPL_Base $(FVINC)/MAPL_cfio $(FVINC)/FVdycoreCubed_GridComp  -I$(BASELIBDIR)/include/esmf
   LIBS += -L$(FVCUBED_ROOT)/$(MACHINE)/lib -lFVdycoreCubed_GridComp -lfvdycore -lMAPL_cfio -lMAPL_Base -lFVdycoreCubed_GridComp -lfvdycore -L$(BASELIBDIR)/lib -lesmf
@@ -161,10 +160,13 @@ ifeq ($(SKIP_FV),YES)
 endif
 ifeq ($(CUBE_GRID),YES)
 CPPFLAGS += -DCUBE_GRID
+FFLAGS +=-I/home/dgueyffi/fftw/include
 FFLAGS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
 LIBS += -L${BASELIBDIR}/lib -lesmf -lrt -lstdc++
 #-lstdc++ -lrt
 LIBS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
+LIBS += -L/home/dgueyffi/fftw/lib -lfftw3 -lm
+
 endif
 ifeq ($(MPP),YES)  
 CPPFLAGS += -DUSE_MPP
