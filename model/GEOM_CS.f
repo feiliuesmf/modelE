@@ -1,3 +1,6 @@
+#define VERIFY_(rc) If (rc /= ESMF_SUCCESS) Call abort_core(__LINE__,rc)
+#define RETURN_(status) If (Present(rc)) rc=status; return
+
 #include "rundeck_opts.h"
       MODULE GEOM
 !@sum  GEOM contains spherical geometric variables and arrays
@@ -7,6 +10,8 @@
 
       USE MODEL_COM, only : IM,JM
       USE CONSTANT, only : radius
+      use ESMF_Mod
+
       IMPLICIT NONE
       SAVE
 
@@ -54,20 +59,22 @@
 !@ver  1.0 (CS grid version)
       USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use fv_grid_tools_mod, only: agrid, corner_grid => grid, area
-      use DOMAIN_DECOMP_ATM, only: grid, get
+      use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
+
       implicit none
 
       integer :: i0h, i1h, i0, i1
       integer :: j0h, j1h, j0, j1, j0s, j1s
       integer :: i,j
+
       call get(grid, J_STRT_HALO=j0h, J_STOP_HALO=j1h,
      &     J_STRT=j0, J_STOP=j1,
      &     I_STRT_HALO=i0h, I_STOP_HALO=i1h, 
      &     I_STRT=i0,I_STOP=i1, 
      &     J_STRT_SKP=j0s, J_STOP_SKP=j1s)
 
-      write(*,*) "geom  i0h,i1h,i1,j0h,j1h,j0,j1=",
-     &     i0h,i1h,i1,j0h,j1h,j0,j1
+      write(*,*) "geom  i0h,i1h,i0,i1,j0h,j1h,j0,j1=",
+     &     i0h,i1h,i0,i1,j0h,j1h,j0,j1
 
       allocate(lat2d(i0h:i1h, j0h:j1h))
       allocate(lon2d(i0h:i1h, j0h:j1h))
@@ -102,11 +109,20 @@
       ! From FV CS grid
 c      lon2d = agrid(:,:,1)
 c      lat2d = agrid(:,:,2)
-       lon2d(:,:) = 1.0  ! until problem with Initialize(fv) is fixed
-       lat2d(:,:) = 1.0  ! idem
 
 c      lon2d_corner = corner_grid(:,:,1)
 c      lat2d_corner = corner_grid(:,:,2)
+
+      call getLatLon_from_ESMFgrid(grid%esmf_grid,
+     &         i0, i1, j0, j1, i0h, i1h, j0h, j1h,
+     &         lat2d, lon2d, lon2d_corner, lat2d_corner)
+
+
+!    Update halo
+      call halo_update(grid, lat2d)
+      call halo_update(grid, lon2d)
+      call halo_update(grid, lon2d_corner)
+      call halo_update(grid, lat2d_corner)
 
       lat2d_dg = lat2d/radian
       lon2d_dg = lon2d/radian
@@ -141,6 +157,142 @@ c account for discontinuity of lon2d at the international date line
       enddo
 
       END SUBROUTINE GEOM_CS
+!------------------------------------------------------------------------------
+!
+      subroutine getLatLon_from_ESMFgrid(ESMFgrid, 
+     &         i0, i1, j0, j1,  i0h, i1h, j0h, j1h,
+     &         lat2d, lon2d, lon2d_corner, lat2d_corner)
+
+!@sum  Extracts the lat/lon information (cell center and corners) from the
+!      ESMF grid subdomains.
+!@ver  1.0 (CS grid version)
+!@fun  getLatLon_from_ESMFgrid
+!
+      use ESMF_Mod
+!
+      implicit none
+!
+!@var  i0, i1, j0, j1.      ESMF subdomain horizontal dimension limits.  
+      integer         , intent(in) :: i0, i1, j0, j1
+
+!@var  i0h, i1h, j0h, j1h.  ESMF subdomain horizontal dimension limits including the halo.  
+      integer         , intent(in) :: i0h, i1h, j0h, j1h
+
+!@var  ESMFgrid.            ESMF grid 
+      type (ESMF_Grid), intent(in):: ESMFgrid
+!
+! INPUT/OUTPUT PARAMETERS:
+!@var  lat2d                Contains latitudes for ESMF subdomain grid
+      REAL*8 :: lat2d(i0h:i1h,j0h:j1h)
+
+!@var  lat2d                Contains longitudes for ESMF subdomain grid
+      REAL*8 :: lon2d(i0h:i1h,j0h:j1h)
+
+!@var  lon2d_corner        Contains the longitudes at the corners of the 
+!                           ESMF subdomain grid 
+      REAL*8 :: lon2d_corner(i0h:i1h+1,j0h:j1h+1)
+
+!@var  lat2d_corner         Contains the latitudes at the corners of the 
+!                           ESMF subdomain grid 
+      REAL*8 :: lat2d_corner(i0h:i1h+1,j0h:j1h+1)
+
+! LOCAL VARIABLES:
+      type (ESMF_Array),  pointer :: coords(:)
+      real(ESMF_KIND_R8), pointer :: lons(:,:)
+      real(ESMF_KIND_R8), pointer :: lats(:,:)
+      type (ESMF_Array),  target  :: tarray(2)
+      integer                     :: DIMS(2), STATUS
+      integer			  :: counts(2), myPE
+      type (ESMF_Array),  pointer     :: coordArray(:)
+      real(ESMF_KIND_R8), pointer     :: lons3(:,:,:)
+      real(ESMF_KIND_R8), pointer     :: lats3(:,:,:)
+
+      call ESMF_GridGet(ESMFgrid, 
+     &         horzRelLoc            = ESMF_CELL_CENTER, 
+     &         globalCellCountPerDim = DIMS, RC=STATUS) 
+      VERIFY_(STATUS)
+
+
+!    Get ESMF number of subdomain grid points in each direction.  (variable counts)  
+!    ESMF 2D subdomain variables are dimensioned as 1 to count(1) in the I-direction
+!    and 1 to count(2) in the J-direction.   
+
+      call ESMF_GridGetDELocalInfo(ESMFgrid, 
+     &         horzRelLoc           = ESMF_CELL_CENTER, 
+     &         myDE                 = myPE,
+     &         localCellCountPerDim = counts,
+     &         RC=STATUS)
+      VERIFY_(STATUS)
+
+
+!    Get lat/lons at cell center locations with Global I,J indices
+!    Recall ESMF grid is indexed as IM x 6*JM and modelE is IM x JM
+
+      coords=>tarray
+      call ESMF_GridGetCoord(ESMFgrid, 
+     &         horzRelloc  = ESMF_CELL_CENTER, 
+     &         centerCoord = coords, rc=status)
+      VERIFY_(STATUS)
+
+!    Get Cell Center Locations
+!    Longitudes
+
+      call ESMF_ArrayGetData(coords(1), lons, RC=status)
+      VERIFY_(STATUS)
+
+!    Latitudes
+      call ESMF_ArrayGetData(coords(2), lats, RC=status)
+      VERIFY_(STATUS)
+
+      lon2d(i0:i1,j0:j1) = lons(:,:)
+      lat2d(i0:i1,j0:j1) = lats(:,:)
+      
+!    Get lat/lons at cell corners
+
+      coordArray=>tarray
+
+      call ESMF_GridGetCoord(ESMFgrid, 
+     &          horzRelloc  = ESMF_CELL_CENTER, 
+     &          cornerCoord = coordArray, rc=status)
+      VERIFY_(STATUS)
+
+!    We are counting on ESMF returning corners numbered
+!    counter clockwise from the SW, so 1=SW, 2=SE, 3=NE, 4=NW
+
+      call ESMF_ArrayGetData(coordArray(1), lons3, RC=status)
+      VERIFY_(STATUS)
+
+      call ESMF_ArrayGetData(coordArray(2), lats3, RC=status)
+      VERIFY_(STATUS)
+
+!    Extract the SW corner of each cell (covers the entire subdomain)
+      lon2d_corner(i0:i1, j0:j1) = lons3(1,:,:)
+      lat2d_corner(i0:i1, j0:j1) = lats3(1,:,:)
+
+!    Extract only the NE corner of the subdomain.  ( two grid lines)
+
+!    Right boundary of subdomain 
+      lon2d_corner(i1+1,j0+1:j1+1) = lons3(3,counts(1),1:counts(2))
+      lat2d_corner(i1+1,j0+1:j1+1) = lats3(3,counts(1),1:counts(2))
+
+!    Top boundary of subdomain
+      lon2d_corner(i0+1:i1,j1+1) = lons3(3,1:counts(1)-1,counts(2))
+      lat2d_corner(i0+1:i1,j1+1) = lats3(3,1:counts(1)-1,counts(2))
+
+!    SE: Extract only the lat/lons at the lower right corner of the subdomain
+
+      lon2d_corner(i1+1,j0) = lons3(2,counts(1),1)
+      lat2d_corner(i1+1,j0) = lats3(2,counts(1),1)
+
+!    NW: Extract only the lat/lons at the upper left corner of the subdomain
+
+      lon2d_corner(i0,j1+1) = lons3(4,1,counts(2))
+      lat2d_corner(i0,j1+1) = lats3(4,1,counts(2))
+
+      return
+
+      end subroutine getLatLon_from_ESMFgrid
+!------------------------------------------------------------------------------
 
       END MODULE GEOM
 
