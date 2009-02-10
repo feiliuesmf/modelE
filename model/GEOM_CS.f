@@ -51,6 +51,7 @@
 !@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
       integer :: j_0b, j_1b
 
+
       CONTAINS
 
       SUBROUTINE GEOM_CS
@@ -293,6 +294,19 @@ c account for discontinuity of lon2d at the international date line
 
       end subroutine getLatLon_from_ESMFgrid
 !------------------------------------------------------------------------------
+
+
+      subroutine lonlat_to_ij(ll,ij)
+c converts lon,lat=ll(1:2) into model i,j=ij(1:2)
+c this is a dummy version to allow compilation of new river/lakes routine
+c Will be fixed soon.
+      implicit none
+      real*8, intent(in) :: ll(2)
+      integer, intent(out) :: ij(2)
+      ij(1) = 1
+      ij(2) = 1
+      return
+      end subroutine lonlat_to_ij
 
       END MODULE GEOM
 
