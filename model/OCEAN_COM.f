@@ -361,6 +361,10 @@ C****
       USE obio_forc, only: alloc_obio_forc
       USE obio_com,  only: alloc_obio_com
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+      USE TRACER_GASEXCH_COM, only: alloc_tracer_gasexch_com
+#endif
+
       USE OCEAN_DYN, only : DH,VBAR, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
 
@@ -427,6 +431,9 @@ c??   call ALLOC_GM_COM(grid)
 #ifdef TRACERS_OceanBiology
       call alloc_obio_forc
       call alloc_obio_com
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      call alloc_tracer_gasexch_com
 #endif
 
       return

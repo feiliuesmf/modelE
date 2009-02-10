@@ -4,16 +4,6 @@
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
 
-! #ifdef OBIO_ON_GARYocean
-      ! USE MODEL_COM,  only : nstep=>itime,itimei
-      ! USE OCEANR_DIM, only : ogrid
-      ! USE OCEANRES,   only : kdm=>lmo,dzo
-      ! USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
-      ! .                      ,trmo,txmo,tymo,tzmo
-! #else
-      ! USE hycom_dim
-! #endif
-
       implicit none
 
 #include "dimension2.h"
@@ -66,6 +56,9 @@
       i_1=ogrid%I_STOP
       j_0=ogrid%J_STRT
       j_1=ogrid%J_STOP
+
+      print*,'alloc_tracer_gasexch_com:',i_0,i_1,j_0,j_1
+      print*, ntm
 
       ALLOCATE(tracflx(i_0:i_1,j_0:j_1,ntm))
       ALLOCATE(tracflx_glob(idm,jdm,ntm))

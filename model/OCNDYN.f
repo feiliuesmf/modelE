@@ -5353,7 +5353,8 @@ C**** Check
       USE OCEANRES,   only : IMO, JMO, LMO
 
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only: NTM, conc_from_fw
+      USE TRACER_COM, only: ntm
+      USE OCN_TRACER_COM, only: conc_from_fw
 #endif
 
       USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
@@ -6403,7 +6404,6 @@ C**** surface tracer concentration
           END IF 
         END DO
       END DO
-      END DO   !N-loop
 
 #ifdef TRACERS_OCEAN
       DO NT=1,NTM
@@ -6425,6 +6425,7 @@ C**** surface tracer concentration
       END DO
       END DO
 #endif
+      END DO   !N-loop
 
       END SUBROUTINE INT_OG2AG_oceans 
 
