@@ -17,9 +17,12 @@ C****
      *      LMO = 13, !  maximum number of ocean layers in a column
      *  LMO_MIN =  2, !  minimum number of ocean layers in a column
      *    LSRPD =  3, !  deepest layer for penetrating solar radiation
-     *    MAXGL =  5  !  maximum no. layers for depositing glac. melt
+     *    MAXGL =  5, !  maximum no. layers for depositing glac. melt
+     *   NOCEAN =  1  !  NDYNO must be multiple of 2*NOCEAN
 C*** 
 C***
+      Real*8,Parameter ::
+     *   AKHMIN = 1.5d8
       Real*8,Parameter ::
 
      *     dZO(LMO)  =   !  approximate thicknesses (m) of ocean layers

@@ -14,6 +14,7 @@
 C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : trmo_glob,txmo_glob,tymo_glob,tzmo_glob
 #endif
+      USE OCEANRES, only : NOCEAN
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo
      *     ,s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso
      *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP !,VOSP,IVSP
@@ -42,7 +43,7 @@ C?*** For serial ODIF/GM/straits computations:
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
      *     MM0,MM1,MMX,UM0,VM0,UM1,VM1
-      INTEGER NS,I,J,L,mnow,n
+      INTEGER NS,I,J,L,mnow,n,NO
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H
@@ -91,6 +92,7 @@ C**** Apply bottom and coastal drags
 C****
 C**** Integrate Ocean Dynamics
 C****
+      Do 500 NO=1,NOCEAN
 C**** initialize summed mass fluxes
 !$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
@@ -102,7 +104,7 @@ C**** initialize summed mass fluxes
 
       CALL OPGF0
 
-      NS=NDYNO
+      NS = NDYNO / NOCEAN
 C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
       CALL OFLUX  (NS,MMI,.FALSE.)
       CALL OADVM (MM1,MMI,DTOFS)
@@ -203,6 +205,7 @@ C**** Advection of Potential Enthalpy and Salt
         CALL TIMER (MNOW,MDYNO)
 
         IF (MODD5S == 0) CALL DIAGCA (12)
+ 500  CONTINUE
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
@@ -4247,7 +4250,8 @@ C**** (If longitudinal variation is wanted just make K arrays K(I,J))
 C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
 C****
-      USE CONSTANT, only :twopi,rhows,omega,radius
+      USE CONSTANT, only : twopi,rhows,omega,radius
+      USE OCEANRES, only : AKHMIN
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,
      *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,DLAT,
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
@@ -4261,7 +4265,7 @@ C****
       USE DOMAIN_DECOMP_1D, ONLY : haveLatitude
 
       IMPLICIT NONE
-      REAL*8, PARAMETER :: AKHMIN=1.5d8, FSLIP=0.
+      REAL*8, PARAMETER :: FSLIP=0.
 
       REAL*8, DIMENSION(grid%j_strt_halo:grid%j_stop_halo) ::
      *     KYPXP,KXPYV,KYVXV,KXVYP
@@ -6273,16 +6277,8 @@ C**** surface tracer concentration
       aDMUInp = 0.0  !!  aDMUI_glob(  IMA,JMA)
       aDMVInp = 0.0  !!  aDMVI_glob(IVNPA,JMA)
 
-      aFtemp(:,  1) = 0.0  !!  aDMUIsp*aCOSU(:) - aDMVIsp*aSINU(:)
-      aFtemp(:,JMA) = 0.0  !!  aDMUInp*aCOSU(:) + aDMVInp*aSINU(:)
-
-      DO J=2,JMA-1
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aDMUI_glob(I,J)                           !  kg/m s
-          END IF 
-        END DO
-      END DO
+      aFtemp(:,:)   = aDMUI_glob(:,:)
+      aFtemp(:,JMA) = 0.0  
       call HNTR80 (IMA,JMA,.5d0,aDLATM, IMO,JMO,.5d0,oDLATM, 0.d0)
       call HNTR8  (aONES, aFtemp, oDMUI_glob)          !!  U-grid => U-grid
 
