@@ -210,9 +210,8 @@ c**** Extract domain decomposition info
       J_1H = ogrid%J_STOP_HALO
 
 
-      ALLOCATE(tracer_loc(i_0h:i_1h,j_0h:j_1h,kdm,
-     .                    ntyp+n_inert+ndet+ncar))
-      ALLOCATE(tracer(idm,jdm,kdm,ntyp+n_inert+ndet+ncar))
+      ALLOCATE(tracer_loc(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
+      ALLOCATE(tracer(idm,jdm,kdm,ntrac))
 #endif
 
       ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))

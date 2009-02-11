@@ -122,6 +122,26 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       common/exifst3/wfac
 #endif
 
+#ifdef TRACERS_Alkalinity
+      real, parameter ::  rain_ratio=0.07
+      real, parameter ::  npratio   =16     ! N:P Redfield ratio
+      real, parameter ::  cpratio   =117    ! C:P Redfield ratio,
+                                            ! these values are from OCMIP 
+                                            ! protocol (Najjar and Orr, 1998)
+                   ! Yamanaka and Tajika(1996) suggest R=0.08, rCP=106
+
+! sigma  fraction of net downward flux of organic matter across the
+!        compensation depth that is in dissolved form, ie form of
+!        export production that is in dissolved form
+      real, parameter ::  sigma_Ca  = 0.67 ! (Yamanaka and Tajika, 1997)
+
+      real, parameter ::  d_Ca = 3500.    ! in meters (Yamanaka and Tajika, 1996)
+
+!zc compensation depth
+      real, parameter :: zc = 75. ! in meters (from OCMIP)
+
+#endif
+
       contains
 
       subroutine alloc_obio_incom

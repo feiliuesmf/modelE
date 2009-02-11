@@ -45,8 +45,10 @@ c   in update.F, but P has not been updated yet
         enddo
 
 #ifdef TRACERS_Alkalinity
+        do nt = 1,nalk
          Anew = (alk1d(k) +  A_tend(k)*obio_deltat)
          alk1d(k) = Anew
+        enddo
 #endif
 
  1000 continue

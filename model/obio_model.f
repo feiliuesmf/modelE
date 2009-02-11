@@ -87,7 +87,7 @@
       Real*8,External   :: VOLGSP
       real*8 temgs,g,s,temgsp,pres
       real*8 time,dtr,ftr,rho_water
-      real*8 trmo_unit_factor(kdm,ntyp+n_inert+ndet+ncar)
+      real*8 trmo_unit_factor(kdm,ntrac)
 !     integer i_0h,i_1h,j_0h,j_1h
       integer i_0,i_1,j_0,j_1
 #endif
@@ -304,7 +304,7 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
      .             'obio_model,t,s,p,rho= '
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
 
-         do nt=1,ntyp+n_inert+ndet+ncar
+         do nt=1,ntrac
            trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! milimoles/m3=> kg/m3
      .                            * MO(I,J,k)*DXYPO(J)/rho_water  ! kg/m3 => kg
            if (nt.eq.4.or.nt.eq.13)
@@ -326,7 +326,9 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
             avgq1d(k)=avgq(i,j,k)
              gcmax1d(k)=gcmax(i,j,k)
               tirrq(k)=tirrq3d(i,j,k)
+#ifndef TRACERS_Alkalinity
               alk1d(k)=alk(i,j,k)
+#endif
               !----daysetbio/daysetrad arrays----!
               tzoo=tzoo2d(i,j)
               tfac(k)=tfac3d(i,j,k)
@@ -352,6 +354,11 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
         do nt=1,ncar
        car(k,nt)=tracer(i,j,k,ntyp+n_inert+ndet+nt)
        enddo
+#ifdef TRACERS_Alkalinity
+       do nt=1,nalk
+       alk1d(k)=tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)
+       enddo
+#endif
        enddo  !k=1,kdm or lmm
 
        p1d(1)=0.
@@ -783,6 +790,11 @@ cdiag     endif
         do nt=1,ncar
          tracer(i,j,k,ntyp+n_inert+ndet+nt)=car(k,nt)
         enddo
+#ifdef TRACERS_Alkalinity
+        do nt=1,nalk
+         tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)=alk1d(k)
+        enddo
+#endif
 
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
@@ -793,13 +805,7 @@ cdiag     endif
 #ifdef OBIO_ON_GARYocean
       !update trmo etc arrays
        do k=1,kmax
-       do nt=1,ntyp+n_inert+ndet+ncar
-
-!       if(nt.le.ntyp+n_inert)dtr = P_tend(k,nt)*obio_deltat
-!       if(nt.gt.ntyp+n_inert.and.nt.le.ntyp+n_inert+ndet)
-!    .     dtr = D_tend(k,nt-ntyp-n_inert)*obio_deltat
-!       if(nt.gt.ntyp+n_inert+ndet)
-!    .     dtr = C_tend(k,nt-ntyp-n_inert-ndet)*obio_deltat
+       do nt=1,ntrac
 
           dtr = tracer(i,j,k,nt) * trmo_unit_factor(k,nt) 
      .        - trmo(i,j,k,nt)

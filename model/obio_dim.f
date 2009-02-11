@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       MODULE obio_dim
 
 !  Biological constituents and their units
@@ -34,6 +36,11 @@
      .                     ,nalk=1
 #endif
 
+      integer, parameter :: ntrac = nnut+nchl+nzoo+n_inert+ndet+ncar
+#ifdef TRACERS_Alkalinity
+     .                            + nalk
+#endif
+
 
       integer, parameter :: nlt=33,   !number of spectral channels
      .                      nh=200,   !number of depths for mean irradiance
@@ -47,11 +54,12 @@
 
       integer, parameter :: nrg=13    !number of oceanographic basins
 
+#ifdef TRACERS_Alkalinity
+      integer, parameter :: ALK_CLIM=2
+#else
       integer, parameter :: ALK_CLIM=0    !0-Alk is function of Salinity
                                           !1-Alk is from climatology (GLODAP annmean)
                                           !2-Alk is prognostic
-#ifdef TRACERS_Alkalinity
-      integer, parameter :: ALK_CLIM=2
 #endif
       integer, parameter :: IRON_from=0   !0-Iron from GOCART model
                                           !1-Iron from Ron Miller's dust fluxes
