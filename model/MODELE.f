@@ -1617,11 +1617,10 @@ C****
 C****   Data from current type of RESTART FILE           ISTART=8
 C****
       CASE (8)  ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
+        call io_rsf("AIC",IhrX,irsfic,ioerr)
+c if starting with a different land mask, these maybe necessary
 c        iniSNOW = .TRUE.  ! Special for non-0k
 c        iniPBL=.TRUE.           ! Special for non-0k
-        call io_rsf("AIC",IhrX,irsfic,ioerr)
-        !iniSNOW = .TRUE.      ! extract snow data from first soil layer
-        iniPBL=.TRUE.
         if (ioerr.eq.1) goto 800
       END SELECT
 
@@ -1989,6 +1988,7 @@ C****
 #if !defined(ADIABATIC) || defined(CUBE_GRID)
 
 C**** Initialize pbl (and read in file containing roughness length data)
+      if (iniPBL) call recalc_agrid_uv   ! PBL needs A-grid winds
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
 C**** Initialize the use of gravity wave drag diagnostics
