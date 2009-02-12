@@ -1,6 +1,97 @@
+      subroutine bilin_cs2ll_vec(grid,xll2cs,uin_glob,vin_glob,
+     &     uout_loc,vout_loc)
+!@sum Bilinearly interpolate vector field from cubed sphere to latlon grid
+!@+    vector field is defined on sphere (Earth) and takes values on tangent bundle (i.e. plane locally tangent to sphere) 
+!@+   input field is global 
+!@+   interpolation is performed in the local cs domain
+!@+   output field is local to each cs domain 
+!@+
+!@+  (uin12,vin12)      (uin22,vin22)
+!@+   x-------------------x  <--lat2
+!@+   |                   |
+!@+   |       +           |
+!@+   | (lon2d, lat2d)    |
+!@+   |                   |
+!@+   x___________________x  <--lat1
+!@+ (uin11,vin11)     (uin21,vin21)
+!@+   ^                   ^
+!@+   |                   |
+!@+  lon1               lon2
+!@+
+!@var uin_glob input vector x-component (lat=cste) -- global
+!@var vin_glob input vector y-component (lon=cste) -- global
+!@var uout_loc output vector x-component (lat=cste) --local
+!@var vout_loc output vector y-component (lon=cste) --local
+!@auth Denis Gueyffier
+      
+      use regrid_com
+      use geom, only : lat2d, lon2d
+      implicit none
+      type (dist_grid), intent(in) :: grid
+      type(x_2grids), intent(in) :: xll2cs
+      real*8, intent(out) :: uout_loc(is:ie,js:je),
+     &     vout_loc(is:ie,js:je)
+      real*8, intent(in) :: 
+     &     uin_glob(xll2cs%imsource,xll2cs%imsource),
+     &     vin_glob(xll2cs%imsource,xll2cs%imsource)
+      real*8 :: u11,u12,u21,u22
+      real*8 :: v11,v12,v21,v22
+      real*8 :: lon1,lon2,lat1,lat2, dlon, dlat
+      real*8 :: dnm, pi
+      integer :: i,j, ims,jms, i_lon,j_lat, im_lon, jm_lat
+
+      pi = 4.0d0*atan(1.d0)
+
+      im_lon = xll2cs%imsource
+      jm_lat = xll2cs%jmsource
+
+c***  loop on CS points in local domain
+      do j=js,je
+         do i=is,ie
+
+            dlon=pi/IM_lon
+            dlat=2*pi/JM_lat
+            I_lon=NInt(lon2d(i,j)/dlon)
+            J_lat=NInt(lat2d(i,j)/dlat)
+            
+            lat1=J_lat*dlat
+            lon1=I_lon*dlon
+            lat2=(J_lat+1)*dlat
+            lon2=(I_lon+1)*dlon
+            
+            u11=uin_glob(I_lon,J_lat)
+            u21=uin_glob(I_lon+1,J_lat+1)
+            u12=uin_glob(I_lon,J_lat+1)
+            u22=uin_glob(I_lon+1,J_lat+1)
+            
+            v11=vin_glob(I_lon,J_lat)
+            v21=vin_glob(I_lon+1,J_lat+1)
+            v12=vin_glob(I_lon,J_lat+1)
+            v22=vin_glob(I_lon+1,J_lat+1)
+
+            dnm=1.d0/( (lon2-lon1)*(lat2-lat1) )
+
+            uout_loc(i,j)=dnm*( 
+     &             u11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
+     &           + u21*( lon2d(i,j)-lon1 )*( lat2-lat2d(i,j) ) 
+     &           + u12*( lon2-lon2d(i,j) )*( lat2d(i,j)-lat1 )
+     &           + u22*( lon2d(i,j)-lon1 )*( lat2d(i,j)-lat1 ) 
+     &           )
+
+            vout_loc(i,j)=dnm*( 
+     &             v11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
+     &           + v21*( lon2d(i,j)-lon1 )*( lat2-lat2d(i,j) ) 
+     &           + v12*( lon2-lon2d(i,j) )*( lat2d(i,j)-lat1 )
+     &           + v22*( lon2d(i,j)-lon1 )*( lat2d(i,j)-lat1 ) 
+     &           )
+         enddo
+      enddo
+
+      end subroutine bilin_cs2ll_vec
+
+
       subroutine init_xgrid_zonal(x2grids,imsource,jmsource,
      &     ntilessource,imtarget,jmtarget,ntilestarget)
-
 !@sum Initialize exchange grid for constant latitude band zonal means (no zigzag)
 !@auth Denis Gueyffier
       use regrid_com
