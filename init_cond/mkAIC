@@ -6,7 +6,7 @@ then echo "usage: ${0##*/} RES*.f [ B|C dlat_dg (to be executed in ../init_cond)
      echo "no action" exit ; fi
 
 RES=${1%.f} ; shift
-make mkAIC.bin RES_FILE=${RES} 
+gmake mkAIC.bin RES_FILE=${RES} 
 
 if [[ $GCMSEARCHPATH = "" ]] ; then
     echo "Please specify GCMSEARCHPATH in your ~/.modelErc"
