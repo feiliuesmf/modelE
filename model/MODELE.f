@@ -37,7 +37,7 @@
       USE fms_mod,         only : fms_init, fms_end
 #endif
 #ifdef USE_FVCORE
-      USE FV_INTERFACE_MOD, only: fv_core
+      USE FV_INTERFACE_MOD, only: fv_core_wrapper
       USE FV_INTERFACE_MOD, only: Initialize
       USE FV_INTERFACE_MOD, only: Run
       USE FV_INTERFACE_MOD, only: Checkpoint
@@ -88,7 +88,7 @@ C**** Command line options
       integer :: tloopbegin, tloopend
 #ifdef USE_FVCORE
       Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
-      Type (FV_CORE) :: fv
+      Type (FV_CORE_WRAPPER) :: fv
       Type (ESMF_CLOCK) :: clock
       character(len=28) :: fv_fname, fv_dfname
       character(len=1)  :: suffix

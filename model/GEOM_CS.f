@@ -10,6 +10,7 @@
 
       USE MODEL_COM, only : IM,JM
       USE CONSTANT, only : radius
+      use FV_UTILS, only : abort_core
       use ESMF_Mod
 
       IMPLICIT NONE
