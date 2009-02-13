@@ -1,6 +1,6 @@
 !@sum  NASA GISS Land Surface Model (LSM) - module sle001
 !@sum  See end of file for development history (1988 - 2009)
-!@auth Abramopoulos, Rosenzweig, Aleinov, Puma
+!@auth I. Aleinov, F. Abramopoulos, C. Rosenzweig, M. Puma
 
 #include "rundeck_opts.h"
 #ifdef TRACERS_ATM_ONLY
@@ -11,6 +11,7 @@
 #ifdef USE_ENT
 #define EVAP_VEG_GROUND
 #endif
+!#define CLIM_SOILMOIST
 !#define RAD_VEG_GROUND
 !#define INTERCEPT_TEMPORAL
 
@@ -67,12 +68,12 @@ ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
      &     ,aflmlt,aintercep,aevapvg,aevapvs,aevapbs
-     &     ,asrht,atrht,aalbedo,alai
+     &     ,asrht,atrht,aalbedo
      &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
      &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
      &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
      &     ,aCdeadpool_soilmic,aCdeadpool_slow,aCdeadpool_passive
-
+     &     ,alai
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -280,7 +281,7 @@ C***
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
-     &     ,aevapvg,aevapvs,aevapbs
+     &     ,aevapvg,aevapvs,aevapbs,alai
      &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
@@ -295,7 +296,7 @@ C***
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
      &     ,vs,vs0,tprime,qprime
-     &     ,asrht,atrht,aalbedo,alai
+     &     ,asrht,atrht,aalbedo
      &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
      &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
      &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
@@ -808,6 +809,7 @@ c     Get canopy conductivity cnc and gpp
       ! bare soil
       evap_max_sat = fb*fr_snow(1)*evap_max_snow(1)
       evap_max_nsat = fb*(1.-fr_snow(1))*evap_max_dry(1)
+
       ! canopy
       evap_max_sat = evap_max_sat +
      &     fv*( fr_snow(2)*fm*evap_max_snow(2) +
@@ -864,7 +866,7 @@ c     epvs = rho3*cna*(qvs-qs)
 #ifdef EVAP_VEG_GROUND
 c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
       ! use alpha=1 , sai=.2  (no reason, just need to set it to something)
-      eta = exp( -lai - .2d0 )
+      eta = exp( -2.d0*(lai + .2d0) )
       ch_vg = ch*eta + .0025d0*(1.d0-eta)
       epvg  = rho3*ch_vg*( vs*(qvg-qs)-v_qprime )
 #endif
@@ -1640,12 +1642,20 @@ ccc   the canopy
       w(0,2) = w(0,2) + ( fc(1) - fc(0) )*dts
       ht(0,2)=ht(0,2) + ( fch(1) - fch(0) )*dts
 ccc   the soil
+
       do ibv=i_bare,i_vege
+#ifdef CLIM_SOILMOIST
+ccc     rest of the fluxes
+        do k=1,n
+          ht(k,ibv) = ht(k,ibv) +
+     &         ( fh(k+1,ibv) - fh(k,ibv) )*dts
+#else
 ccc     surface runoff
         w(1,ibv) = w(1,ibv) - rnf(ibv)*dts
         ht(1,ibv) = ht(1,ibv) - shw*max(tp(1,ibv),0.d0)*rnf(ibv)*dts
 ccc     rest of the fluxes
         do k=1,n
+
           w(k,ibv) = w(k,ibv) +
      &         ( f(k+1,ibv) - f(k,ibv) - rnff(k,ibv)
      &         - fd*(1.-fr_snow(2)*fm)*evapdl(k,ibv)
@@ -1655,9 +1665,9 @@ ccc     rest of the fluxes
      &         shw*max(tp(k,ibv),0.d0)*( rnff(k,ibv)
 !     &         + fd*(1.-fr_snow(2)*fm)*evapdl(k,ibv)   !!! hack !!!
      &         ) )*dts
+#endif
         end do
       end do
-
 ccc   do we need this check ?
       if ( w(0,2) < 0.d0 ) then
         if (w(0,2)<-1.d-12)write(0,*)'GHY:CanopyH2O<0 at',ijdebug,w(0,2)
@@ -1665,6 +1675,7 @@ ccc   do we need this check ?
       endif
 
 ccc check for under/over-saturation
+#ifndef CLIM_SOILMOIST
       do ibv=i_bare,i_vege
         do k=1,n
           if ( w(k,ibv) < dz(k)*thetm(k,ibv) - 1.d-14 ) then
@@ -1677,7 +1688,7 @@ ccc check for under/over-saturation
           w(k,ibv) = min( w(k,ibv), ws(k,ibv) )
         enddo
       enddo
-
+#endif
       return
       end subroutine apply_fluxes
 
@@ -1859,7 +1870,7 @@ c**** soils28   common block     9/25/90
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8, intent(inout) :: Qf
-      real*8 :: time!      real*8, save, time = 0.d0
+      real*8, save:: time = 0.d0
 #else
       use vegetation, only: update_veg_locals,t_vegcell
       ! arguments
@@ -3196,8 +3207,6 @@ cddd      print *, 'tr_wsn 2 ', tr_wsn(1,:,2)
 !!! test
  !     tr_wsn(1,:,1) = wsn_for_tr(:,1) * fr_snow(1) * 1000.d0
  !     tr_wsn(1,:,2) = wsn_for_tr(:,2) * fr_snow(2) * 1000.d0
-
-
       tr_w_o(:m,:,i_bare:i_vege) = tr_w(:m,:,i_bare:i_vege)
       tr_wsn_o(:m,:,i_bare:i_vege) = tr_wsn(:m,:,i_bare:i_vege)
 
