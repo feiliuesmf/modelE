@@ -18,8 +18,9 @@
 
       USE obio_dim
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
-     .      npratio,uMtomgm3
-      USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,rhs,zc,alk1d
+     .      npratio,uMtomgm3,cnratio
+      USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
+     .      rhs,zc,alk1d,bn
 
       USE hycom_scalars, only:nstep
 
@@ -35,7 +36,7 @@
 !J_Ca is therefore defined mid-layer (dp points)
 
 !compute sources/sinks of phosphate
-!J_PO4 units uM=mili-mole/m^3
+!J_PO4 units uM/hr
       do k=1,kmax
       term = 0.1 * P_tend(k,1)    !approximate by nitrate conc
                                   !NO3/PO4 ratio from Conkright et al, 1994
@@ -59,11 +60,12 @@
       do nt=nchl1,nchl2
       do k=1,kmax
          if (p1d(kmax+1).gt.zc)     !total depth must be greater than 200m
-     .        pp=pp+pp2_1d(k,nt)    
+     .        pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.e-3)/bn(k)/cnratio   
               
       enddo
       enddo
       Jprod = pp/uMtomgm3    !convert to uM C
+                             !Jprod units uM/hr
 
 
 !integrate net primary production down to zc
@@ -86,10 +88,8 @@
       do k=1,kmax
          if (p1d(k) .le. zc)  then
              J_Ca(k) = rain_ratio*cpratio*(1.-sigma_Ca)*Jprod
-                             !!!!! is this a tendency term???
          else
              J_Ca(k) = -1* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)
-                             !!!!! is this a tendency term???
          endif
        term = -1.*npratio * J_PO4(k) + 2.* J_Ca(k)
        rhs(k,15,4) = term
