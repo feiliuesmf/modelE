@@ -1521,11 +1521,14 @@ C****
         oOKE(J) = oOKE(J) / IMO    
       EndDo
 C**** oOKE at J = 1: south pole
-C     If (J1O == 1)  Then
-C       Do L=1,LMOM(1,1)
-C         oOKE(1) = oOKE(1) + MO(1,1,L) *
-C    *              (1.5*IMO*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) +
-C    +               Sum(VO(:,1,L)**2))/IMO)  ;  EndDo  ;  EndIf
+      If (J1O == 1)  Then
+        oOKE(1) = 0.0
+        Do L=1,LMOM(1,1)
+          oOKE(1) = oOKE(1) + MO(1,1,L) *
+     *              (1.5*IMO*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) +
+     +               Sum(VO(:,1,L)**2)/IMO)
+        EndDo    
+      EndIf
 C**** oOKE at J = JMO: north pole
       If (JNO == JMO)  Then
         oOKE(JMO) = 0.0
