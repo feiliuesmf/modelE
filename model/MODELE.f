@@ -1581,6 +1581,8 @@ C**** after changing to a new horizontal grid)
 C     redoGH=.TRUE.
 C**** Set flag to initialise pbl/snow variables if obsolete or missing
 C     iniPBL=.TRUE.  ; iniSNOW = .TRUE.
+C**** if iniPBL is to be used, you must set A-grid winds as well
+C     call recalc_agrid_uv
         go to 890            !  not implemented; stop model
 C****
 C**** I.C FROM FULL MODEL RESTART FILE (but re-initialise ocean)

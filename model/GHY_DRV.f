@@ -2307,6 +2307,7 @@ ccc still not quite correct (assumes fw=1)
 
 
       subroutine fix_water_ic( w, q, dz, i, j )
+      use model_com, only : qcheck
       use ghy_com, only : ngm
       use sle001, only : get_soil_properties
       !-- out
@@ -2330,17 +2331,16 @@ c initialize soil (w, ht) from earth_*
           wmax = dz(k)*thets(k,ibv)
           wmin = dz(k)*thetm(k,ibv)
           if ( w(k,ibv) > wmax ) then
-            print *,"fix_water_ic: reducing water, cell ", i, j,
-     &           "layer ", k, ibv,
-     &           w(k,ibv), " -> ", wmax
-            print *, "q= ", q(:,k)
+            if (qcheck) print *,"fix_water_ic: reducing water, cell ", 
+     *            i, j, "layer ", k, ibv, w(k,ibv), " -> ", wmax
+            if (qcheck) print *, "q= ", q(:,k)
             w(k,ibv) = wmax
           endif
           if ( w(k,ibv) < wmin ) then
-            print *,"fix_water_ic: increasing water, cell ", i, j,
-     &           "layer ", k, ibv,
+            if (qcheck) print *,"fix_water_ic: increasing water, cell ",
+     &            i, j, "layer ", k, ibv,
      &           w(k,ibv), " -> ", wmin
-            print *, "q= ", q(:,k)
+            if (qcheck) print *, "q= ", q(:,k)
             w(k,ibv) = wmin
           endif
         enddo
