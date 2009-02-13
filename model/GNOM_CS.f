@@ -59,7 +59,7 @@
       integer :: i0h, i1h, i0, i1
       integer :: j0h, j1h, j0, j1
       integer :: i,j
-      real*8 :: dloni,dlonj,dlati,dlatj,bydet
+      real*8 :: dloni,dlonj,dlati,dlatj,bydet,shiftwest
 
       real*8, dimension(grid%i_strt:grid%i_stop+1,
      &                  grid%j_strt:grid%j_stop+1) :: axyp_int
@@ -99,6 +99,8 @@
 
       AREAG = 2 * TWOPI * RADIUS*RADIUS
 
+c     shift grid 10 degrees West to avoid corner over Japan
+      shiftwest = twopi/36.
 c
 c calculate corner lons/lats and areas integrated from the center
 c of this cube face
@@ -108,6 +110,9 @@ c
         x = -1d0 + 2d0*(i-1)/im
         y = -1d0 + 2d0*(j-1)/im
         call csxy2ll(x,y,grid%tile,lon2d_corner(i,j),lat2d_corner(i,j))
+        lon2d_corner(i,j)=lon2d_corner(i,j)-shiftwest
+        if ( lon2d_corner(i,j) .lt. -pi) lon2d_corner(i,j)=
+     &       lon2d_corner(i,j) + twopi
         axyp_int(i,j) = aint(x,y)
       enddo
       enddo
@@ -123,6 +128,8 @@ c
         x = -1d0 + 2d0*(dble(i)-.5d0)/im
         y = -1d0 + 2d0*(dble(j)-.5d0)/im
         call csxy2ll(x,y,grid%tile,lon2d(i,j),lat2d(i,j))
+        lon2d(i,j)=lon2d(i,j)-shiftwest
+        if ( lon2d(i,j) .lt. -pi) lon2d(i,j)= lon2d(i,j) + twopi
         lat2d_dg(i,j) = lat2d(i,j)/radian
         lon2d_dg(i,j) = lon2d(i,j)/radian
         sinlat2d(i,j) = sin(lat2d(i,j))
