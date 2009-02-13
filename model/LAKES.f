@@ -641,6 +641,7 @@ C****
               WRITE(6,*) "Land box has no river direction I,J: ",I,J
      *             ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
             END IF
+            DHORZ(I,J) = horzdist_2pts(i,j,i,j)
           end if
 
           if (down_lon_911_loc(i,j).gt.-1000.) then
