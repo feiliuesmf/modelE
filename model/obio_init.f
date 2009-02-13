@@ -496,6 +496,7 @@ cdiag   enddo
 
 #ifdef TRACERS_Alkalinity
 ! Alkalinity will be read in from obio_bioinit
+! don't do anything here
 #else
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology

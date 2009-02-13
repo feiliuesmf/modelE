@@ -33,7 +33,7 @@ c-----------------------------------------------------------------------------
 #endif
 
 #ifdef TRACERS_OceanBiology
-      integer, parameter :: ntrcr = 15
+      integer, parameter :: ntrcr = 16
 #else
       integer, parameter :: ntrcr = 1
 #endif

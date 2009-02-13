@@ -96,6 +96,16 @@ c  Initialize
 #ifdef TRACERS_Alkalinity
       filename='alk_inicond'
       call bio_inicond(filename,alk_glob(:,:,:))
+      do k=1,kdm
+      do j=1,jdm
+      do i=1,idm
+         if(alk_glob(i,j,k).lt.0.) alk_glob(i,j,k)=0.
+
+         write(*,'(a,3i5,e12.4)')'obio_bioinit: ',
+     .         i,j,k,alk_glob(i,j,k)
+      enddo
+      enddo
+      enddo
 #endif
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
@@ -340,7 +350,7 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-cdiag do nt=1,ntyp+n_inert+ndet+ncar
+cdiag do nt=1,ntrac
 cdiag   ntchar='00'
 cdiag   if(nt.le.9)write(ntchar,'(i1)')nt
 cdiag   if(nt.gt.9)write(ntchar,'(i2)')nt

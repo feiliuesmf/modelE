@@ -500,7 +500,7 @@ cdiag.   obio_P(k,2)
 
         !Net primary production
         pp2_1d(k,nt) = gro(k,nt)
-     .               / phygross*max(p1d(k+1),1.e-3)*cchlratio*pnoice
+     .               * phygross*max(p1d(k+1),1.e-3)*cchlratio*pnoice
 
       endif
 !!#endif
@@ -605,7 +605,7 @@ cdiag. upn,upa,upf,ups
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
 
-      call obio_alkalinity(kmax)
+      call obio_alkalinity(vrbos,kmax,i,j)
   
 cdiag if(vrbos) then
 cdiag do k=1,kdm

@@ -18,13 +18,14 @@ c  final is quanta for phytoplankton growth.
      .                      ,rmus,nl450
       USE obio_forc,  only : Ed,Es,rmud,tirrq
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
-     .                      ,obio_P,p1d
+     .                      ,obio_P,p1d,zc
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
       USE MODEL_COM,  only : nstep=>itime
 #else
       USE hycom_dim_glob, only : kdm
+      USE hycom_scalars, only:nstep
 #endif
 
       implicit none
@@ -148,11 +149,29 @@ cdiag.              Ebotq,rmus,tirrq(k)
 
        enddo  !k
  
+#ifdef TRACERS_Alkalinity
+!define compensation depth
+!     zc = 75. ! in meters (from OCMIP)
+
+!alternatively, zc is the depth of that light is 1% of top
+      zc=p1d(2)
+      do k=kmax,3,-1
+         if (tirrq(k).ge.tirrq(1)/100.) then
+             zc = p1d(k)
+             exit
+         endif
+      enddo
+#endif
+
 c  Irradiance summary loops
 
       do k = 1,kmax
        avgq1d(k) = avgq1d(k) + tirrq(k)
+
+cdiag write(*,'(a,4i5,3e12.4)')'obio_edeu tirrq: ',
+cdiag.       nstep,i,j,k,p1d(k),tirrq(k),zc
       enddo
+
 
       return
       end

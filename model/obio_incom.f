@@ -57,7 +57,7 @@ C if CARBON == 1
       real, parameter :: resp=0.05              !respiration of DIC by phyto %growth
       real, parameter :: excz=0.05/24.0         !excretion of DOC by zoopl/hr
       real, parameter :: resz=0.05/24.0         !respiration of DIC by zoopl/hr
-      real, parameter :: phygross=1.0+excp+resp !factor to derive gross PP!
+      real, parameter :: phygross=1.0-(excp+resp) !factor to derive gross PP!
 
       real, parameter :: rlamdoc=0.017/24.0    !N-dependent DOC remin/hr
       real, parameter :: rkdoc1=0.3*10.0       !N-dep half sat uM(PO4) modified
@@ -136,10 +136,6 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       real, parameter ::  sigma_Ca  = 0.67 ! (Yamanaka and Tajika, 1997)
 
       real, parameter ::  d_Ca = 3500.    ! in meters (Yamanaka and Tajika, 1996)
-
-!zc compensation depth
-      real, parameter :: zc = 75. ! in meters (from OCMIP)
-
 #endif
 
       contains

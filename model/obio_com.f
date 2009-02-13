@@ -108,6 +108,10 @@ c
       real A_tend                             !alk tendency (dA/dt)
       common /akpt/ A_tend(kdm)
 !$OMP THREADPRIVATE(/akpt/)
+
+      real zc                                 !compensation depth
+      common /bzc/zc
+!$OMP THREADPRIVATE(/bzc/)
 #endif
 
       real rmuplsr                            !growth+resp rate
@@ -173,7 +177,10 @@ C endif
       integer :: day_of_month, hour_of_day
 
       real :: rhs
-      common /brhs/ rhs(kdm,14,16)
+      common /brhs/ rhs(kdm,15,16)      !secord arg-refers to tracer definition 
+                                        !we are not using n_inert (always ntrac-1)
+                                        !second argument refers to process that
+                                        !contributes to tendency 
 !$OMP THREADPRIVATE(/brhs/)
 
       real :: pp2_1d          
