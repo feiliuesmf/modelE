@@ -9378,9 +9378,7 @@ C    Initialize:
       call closeunit(iuc)
 
 c Biomass for AeroCom
-c change to use generally
-c     if (imAER.eq.1) then
-#ifndef EDGAR_1995
+      if (imAER.eq.1) then
        so2_biosrc_3D(:,:,:,:)= 0.d0
       call openunit('SO2_BIOMASS',iuc,.false.)
       do
@@ -9391,7 +9389,7 @@ c     if (imAER.eq.1) then
       SO2_biosrc_3D(ii,jj,ll,mmm)=carbstuff/(sday*30.4d0)
       end do
       call closeunit(iuc)
-#endif
+      endif
 c
       if (imAER.eq.1) then
 c volcano - explosive, for AeroCom
@@ -9408,114 +9406,6 @@ c volcano - explosive, for AeroCom
      * volc_exp(:,j_0:j_1,:)
       endif
 ! ----------------------------------------------------
-c read in BC and OC sources
-c Industrial BC/OC
-      if (imPI.eq.0) then
-      if (imAER.ge.0.and.imAER.le.2) then
-c  !else use historic emissions
-          BCI_src1(:,:)= 0.d0
-          BCI_src(:,:)=0.d0
-       call openunit('BC_BIOFUEL',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       BCI_src1(ii,jj)=carbstuff
-       end do
-
-       call closeunit(iuc)
-       BCI_src(:,J_0:J_1)=BCI_src1(:,J_0:J_1)
-       BCI_src2(:,:)=0.d0
-       call openunit('BC_FOSSIL_FUEL',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       BCI_src2(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src2(:,J_0:J_1)
-       if (imAER.eq.2) then  !more sectors to read in
-
-       BCI_src3(:,:)=0.d0
-       call openunit('BC_IND',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       BCI_src3(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src3(:,J_0:J_1)
-
-       BCI_src4(:,:)=0.d0
-       call openunit('BC_TRANS',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       BCI_src4(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       BCI_src(:,J_0:J_1)=BCI_src(:,J_0:J_1)+BCI_src4(:,J_0:J_1)
-       endif  !imAER=2
-
-       OCI_src1(:,:)=0.d0
-       OCI_src(:,:,1)= 0.d0
-       call openunit('OC_BIOFUEL',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       OCI_src1(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       OCI_src(:,J_0:J_1,1)=OCI_src1(:,J_0:J_1)
-       OCI_src2(:,:)=0.d0
-
-       call openunit('OC_FOSSIL_FUEL',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       OCI_src2(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src2(:,J_0:J_1)
-
-       if (imAER.eq.2) then
-       OCI_src3(:,:)=0.d0
-       call openunit('OC_IND',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       OCI_src3(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src3(:,J_0:J_1)
-       OCI_src4(:,:)=0.d0
-       call openunit('OC_TRANS',iuc,.false.,.true.)
-       do
-       read(iuc,*) ii,jj,carbstuff
-       if (ii.eq.0) exit
-       if (jj<j_0 .or. jj>j_1) cycle
-       OCI_src4(ii,jj)=carbstuff
-       end do
-       call closeunit(iuc)
-       OCI_src(:,J_0:J_1,1)=OCI_src(:,J_0:J_1,1)+OCI_src4(:,J_0:J_1)
-       endif !imAER=2
-c convert from year to second
-       ccnv=1.d0/(sday*365.d0)
-       OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*ccnv
-
-c convert sectoral OC emissions to OM
-c  for all Bond emissions
-       if (imAER.eq.2.or.imAER.eq.0) 
-     *  OCI_src(:,j_0:j_1,1)=OCI_src(:,j_0:j_1,1)*1.3d0
-       BCI_src(:,j_0:j_1)=BCI_src(:,j_0:j_1)*ccnv
-      endif  !imAER=0,1,2
-      endif  !imPI
 c Biomass BC/OC for AEROCOM, with their own 3D distribution
 c  (otherwise it is done in get_hist_BM, across boundary layer)
       if (imAER.eq.1) then ! AEROCOM
@@ -9811,7 +9701,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       end do
 #endif
 
-        if (imAER.eq.3) then !historic
+        if (imAER.eq.3) then 
         do n=1,ntm
         select case (trname(n))
         case ('SO2')
@@ -9819,25 +9709,22 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call get_ships(iact)  !reads in SO2, BC and POM sources
         call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
-        call read_hist_BCOC(iact)
+        call get_BCOC(iact)
         case ('M_BC1_BC')  !this does BC and OC
-        call read_hist_BCOC(iact)
+        call get_BCOC(iact)
         case ('BCB')  ! this does BCB and OCB and SO2
-        call get_hist_BM(iact)
+        call get_hist_BMB(iact)
         case ('M_BOC_BC')  ! this does BCB and OCB and SO2
-        call get_hist_BM(iact)
+        call get_hist_BMB(iact)
         case ('NH3')
         call read_hist_NH3(iact)
         end select
         end do
         endif
-        if (imAER.eq.0.or.imAER.eq.2) then ! biomass
-         call get_hist_BM(iact)
-        endif
 c      if (COUPLED_CHEM.ne.1) call get_O3_offline
 #endif
 #ifdef TRACERS_OM_SP
-        call get_hist_BM(iact)
+        call get_hist_BMB(iact)
 #endif
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
@@ -10530,9 +10417,19 @@ c End Laki code
       if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3) 
      * call apply_tracer_3Dsource(2,n) ! aircraft
 #ifndef EDGAR_1995
-      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=so2t_src(:,J_0:J_1,1:lmAER)
-     *     *0.975d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+C**** biomass source for SO2 
+      tr3Dsource(:,J_0:J_1,:,3,n) = 0.
+      if (imAER.ne.1) then
+      do j=J_0,J_1; do i=I_0,I_1
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,3,n) = SO2t_src(i,j,1)/real(blay)*0.975d0
+      end do
+      end do; end do
+      else
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n) = SO2t_src(:,J_0:J_1,1:lmAER)
+     *  *0.975d0
+      endif
       call apply_tracer_3Dsource(3,n) ! biomass
 #endif
       case ('SO4')
@@ -10540,9 +10437,18 @@ C**** three 3D sources ( volcanos and biomass) read in from files
       tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,1)*0.0375d0
       call apply_tracer_3Dsource(2,n) ! volcanos
 #ifndef EDGAR_1995
-      tr3Dsource(:,J_0:J_1,1:lmAER,3,n)=so2t_src(:,J_0:J_1,1:lmAER)
-     *     *0.0375d0
-      tr3Dsource(:,J_0:J_1,lmAER+1:lm,3,n) = 0.
+      tr3Dsource(:,J_0:J_1,:,3,n) = 0.
+      if (imAER.ne.1) then
+      do j=J_0,J_1; do i=I_0,I_1
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,3,n) = SO2t_src(i,j,1)/real(blay)*0.0375d0
+      end do
+      end do; end do
+      else
+      tr3Dsource(:,J_0:J_1,1:lmAER,3,n) = SO2t_src(:,J_0:J_1,1:lmAER)
+     *  *0.0375d0
+      endif
       call apply_tracer_3Dsource(3,n) ! biomass
 #endif
 #ifdef TRACERS_AMP
@@ -10551,14 +10457,26 @@ C**** three 3D sources ( volcanos and biomass) read in from files
 #ifdef TRACERS_AMP_M4
       tr3Dsource(:,J_0:J_1,:,2,n) = SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
 #ifndef EDGAR_1995
-      tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
-     &      + so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0
+      tr3Dsource(:,J_0:J_1,:,2,n) = 0.
+      do j=J_0,J_1; do i=I_0,I_1
+      blay=int(dclev(i,j)+0.5)
+      do l=1,blay
+      tr3Dsource(i,j,l,2,n) = SO2t_src(i,j,1)/real(blay)*0.0375d0
+      end do
+      end do; end do
+      else
+      tr3Dsource(:,J_0:J_1,1:lmAER,2,n) = SO2t_src(:,J_0:J_1,1:lmAER)
+     *  *0.0375d0
+      endif
+c     tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
+c    &      + so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0
 #endif
       call apply_tracer_3Dsource(2,n) ! biomass+volcano
 #else
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.99
      &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
 #ifndef EDGAR_1995
+c DMK not sure what this is about:
       tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
      &      + (0.99* so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0)
 #endif
@@ -10571,6 +10489,7 @@ c      enddo ; enddo
       tr3Dsource(:,J_0:J_1,:,2,n) = 0.01
      &                           *SO2_src_3d(:,J_0:J_1,:,1)*0.0375d0
 #ifndef EDGAR_1995
+c DMK or here:
       tr3Dsource(:,J_0:J_1,1:lmAER,2,n)= tr3Dsource(:,J_0:J_1,:,2,n)
      &      + (0.01* so2t_src(:,J_0:J_1,1:lmAER) * 0.0375d0)
 #endif

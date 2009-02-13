@@ -663,96 +663,41 @@ c     carbstuff=carbstuff*1.E-6
       END SUBROUTINE get_ships
 
 
-      SUBROUTINE get_hist_BM(iact)
+      SUBROUTINE get_hist_BMB(iact)
 c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE AEROSOL_SOURCES, only: BCB_src,OCB_src,BCBt_src,OCBt_src,lmAER
      * ,SO2_biosrc_3D,SO2t_src
       USE MODEL_COM, only: jyear,im,jm,jmon
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE GEOM, only: axyp
-      USE TRACER_COM, only: aer_int_yr,imPI,imAER
+      USE TRACER_COM, only: aer_int_yr
       USE FILEMANAGER, only: openunit,closeunit
-      USE CONSTANT, only: sday
       IMPLICIT NONE
-      integer ihyr,l,ii,jj,ll,iuc,mm,iact,j,mmm
+      integer ihyr,iuc,mm,iact,j
       integer J_0,J_1,J_0H,J_1H
-      real*8 carbstuff,tfac
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::ratb,rato
+      real*8 tfac
+      character*80 title
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
       if (iact.eq.0) then
       so2_biosrc_3D(:,:,:,:)= 0.d0
-      call openunit('SO2_BIOMASS',iuc,.false.,.true.)
-      do
-      read(iuc,*) ii,jj,mm,ll,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      SO2_biosrc_3D(ii,jj,ll,mm)=carbstuff/(sday*30.4d0)
-      end do
-      call closeunit(iuc)
-      if (imAER.eq.1) go to 33
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
-      call openunit('BC_BIOMASS',iuc,.false.,.true.)
-      do 
-      read(iuc,*) mm,ii,jj,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      carbstuff=carbstuff*axyp(ii,jj)
-      BCB_src(ii,jj,1,mm)=carbstuff
-      end do
-      call closeunit(iuc)
-      if (imAER.eq.2) then
-      if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
-      ratb(:,:)=0.d0
-      call openunit('BC_BM_RAT',iuc,.false.,.true.)
-      do 
-      read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      ratb(ii,jj)=carbstuff
-      end do
-      call closeunit(iuc)
-      do mm=1,12
-      BCB_src(:,J_0:j_1,1,mm)=BCB_src(:,j_0:j_1,1,mm)
-     *  *ratb(:,j_0:j_1)
-      end do
-      endif
-      endif  
-      call openunit('OC_BIOMASS',iuc,.false.,.true.)
-      do 
-      read(iuc,*) mm,ii,jj,carbstuff
-      if (ii.eq.0.) exit 
-      if (jj<j_0 .or. jj>j_1) cycle
-      if (imPI.eq.1) carbstuff=carbstuff*0.5d0
-      carbstuff=carbstuff*axyp(ii,jj)
-      OCB_src(ii,jj,1,mm)=carbstuff !this is OM
-      end do
-      call closeunit(iuc)
-      if (imAER.eq.2) then
-      if (aer_int_yr.lt.1990.or.aer_int_yr.gt.2010) then
-      rato(:,:)=0.d0
-      call openunit('OC_BM_RAT',iuc,.false.,.true.)
-      do 
-      read(iuc,*) ii,jj,carbstuff
-      if (ii.eq.0.) exit 
-      if (jj<j_0 .or. jj>j_1) cycle
-      rato(ii,jj)=carbstuff
-      end do
-      call closeunit(iuc)
-      do mm=1,12
-      OCB_src(:,j_0:j_1,1,mm)=OCB_src(:,j_0:j_1,1,mm)
-     * *rato(:,j_0:j_1)
-      end do
-      endif
-      endif
-      endif
-
+c 
+      call openunit('BC_BIOMASS',iuc,.true.,.true.)
+       do mm=1,12
+       call readt_parallel(grid,iuc,title,BCB_src(:,:,1,mm),0)
+       end do
+       call closeunit(iuc)
+c
+      call openunit('OC_BIOMASS',iuc,.true.,.true.)
+       do mm=1,12
+       call readt_parallel(grid,iuc,title,OCB_src(:,:,1,mm),0)
+       end do
+       call closeunit(iuc)
+       endif
+c scale by year
        if (aer_int_yr.eq.0) then
        ihyr=jyear
        else
@@ -760,35 +705,43 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
        endif
        if (ihyr.lt.1875) ihyr=1875
 
-       BCBt_src(:,:)=BCB_src(:,:,1,jmon)
-       OCBt_src(:,:)=OCB_src(:,:,1,jmon)
-       SO2t_src(:,:,:)=SO2_biosrc_3D(:,:,:,jmon)
-       if (ihyr.le.2001.and.imAER.eq.3) then
+       BCBt_src(:,j_0:j_1)=BCB_src(:,j_0:j_1,1,jmon)*axyp(:,j_0:j_1)
+     * /1000.d0
+       OCBt_src(:,j_0:j_1)=OCB_src(:,j_0:j_1,1,jmon)*axyp(:,j_0:j_1)
+     * /1000.d0
+c For now, derive SO2 biomass burning from OC, justified by
+c    emission factors in Andreae and Merlot (2001)
+       SO2t_src(:,j_0:j_1,1)=OCBt_src(:,j_0:j_1)/10.d0
+c
+       if (ihyr.le.2001) then
        tfac=0.5d0*(1.d0+real(ihyr-1875)/125.d0)
        do j=MAX(j_0,15),MIN(j_1,29)
-       BCBt_src(:,j)=BCB_src(:,j,1,jmon)*tfac
-       OCBt_src(:,j)=OCB_src(:,j,1,jmon)*tfac
-       SO2t_src(:,j,:)=SO2_biosrc_3D(:,j,:,jmon)*tfac
+       BCBt_src(:,j)=BCBt_src(:,j)*tfac
+       OCBt_src(:,j)=OCBt_src(:,j)*tfac
+       SO2t_src(:,j,1)=SO2t_src(:,j,1)*tfac
        end do
        endif
- 33   continue
-      end subroutine get_hist_BM
+      end subroutine get_hist_BMB
 
-      SUBROUTINE read_hist_BCOC(iact)
-c historic BC emissions
+      SUBROUTINE get_BCOC(iact)
+c Carbonaceous aerosol emissions
       USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_ATM, only :  GRID, GET 
-      USE TRACER_COM, only: aer_int_yr
+      USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
+      USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
+     * ty_start,ty_end,n_bcii,n_ocii
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
       implicit none
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
+     * ,n,tys,tye,ns 
+c     intent(in) :: n
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
      * hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm
+      character*80 :: title 
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
@@ -808,32 +761,33 @@ c     if (iact.eq.0.or.jday.eq.1) then
       hoc(:,:,:)=0.0
       hoc_all(:,:,:)=0.0
       hbc_all(:,:,:)=0.0
-      call openunit('BC_INDh',iuc, .false.,.true.)
-      read(iuc,*) ndec,idec1
-      do 
-      read(iuc,*) ii,jj,iy,xbcff
-      IF (iy.EQ.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      hbc_all(ii,jj,iy)=xbcff
+c for now we assume the number of decades BC and OC are the same   
+      call openunit('BC_INDh',iuc, .true.,.true.)
+      ns=1
+      n=n_BCII
+      call read_emis_header(n,ns,iuc)
+      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+      do iy=1,ndec
+       call readt_parallel(grid,iuc,title,hbc_all(:,:,iy),0)
       end do
       call closeunit(iuc)
-      call openunit('OC_INDh',iuc, .false.,.true.)
-      read(iuc,*) ndec,idec1
-      do 
-      read(iuc,*) ii,jj,iy,xbcff
-      IF (iy.EQ.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      hoc_all(ii,jj,iy)=xbcff
-      end do
-      call closeunit(iuc)
-c     endif
 
-      if (ihyr.lt.idec1) ihyr=idec1
-      idecl=idec1+(ndec-1)*10
-      if (ihyr.ge.idecl) ihyr=idecl
+      call openunit('OC_INDh',iuc, .true.,.true.)
+      ns=1
+      n=n_OCII
+      call read_emis_header(n,ns,iuc)
+      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+      do iy=1,ndec
+       call readt_parallel(grid,iuc,title,hoc_all(:,:,iy),0)
+      end do
+      call closeunit(iuc)
+      tye=ty_end(n,ns)
+      tys=ty_start(n,ns)
+      if (ihyr.lt.tys) ihyr=tys
+      if (ihyr.ge.tye) ihyr=tye
 
       do i=1,ndec
-      jbt=idec1+(i-1)*10
+      jbt=tys+(i-1)*10
       if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
       jb1=jbt
       jb2=jbt+10
@@ -848,8 +802,6 @@ c kg/year to kg/s
       hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
 c OM=1.4 x OC
       hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/syr*1.4d0
-c     endif
-cdmk check this endif above
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
@@ -860,7 +812,7 @@ c
       OCI_src(:,j_0:j_1,1)=(d1*hoc(:,j_0:j_1,2)
      * +d2*hoc(:,j_0:j_1,1))/d3
   
-      end subroutine read_hist_BCOC
+      end subroutine get_BCOC
       
       SUBROUTINE read_hist_SO2(iact)
 c historic BC emissions
@@ -1338,7 +1290,7 @@ c       ifirst=.false.
 c I have to read in every timestep unless I can find a better way
 c
 c impose diurnal variability
-        CALL SCALERAD2
+        CALL SCALERAD
 c       write(6,*) ' RRR OXID2 ',ohr(10,45,1),
 c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
        endif   !coupled_chem.eq.0
@@ -1617,144 +1569,6 @@ c     endif
       END subroutine aerosol_gas_chem
 
       SUBROUTINE SCALERAD
-      use MODEL_COM, only: im,jm,lm,jday,jhour,jmon,itime,nday,dtsrc
-      use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
-      USE DOMAIN_DECOMP_ATM, only:GRID,GET      
-      use CONSTANT, only: radian,teeny
-      use RAD_COM, only: cosz1
-      implicit none
-      real*8 ang1,xnair,vlon,vlat,ctime,timec,p1,p2,p3,fact,rad,
-     *  rad1,rad2,rad3,stfac,vlat_inc,vlon_inc
-      real*8, DIMENSION(IM,JM) :: suncos,tczen
-      integer i,j,hrstrt,jdstrt,ihr,l,j_0,j_1,j_0h,j_1h,
-     * j_0s,j_1s,i_0,i_1
-      integer, DIMENSION(IM,JM) :: nradn
-      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE      
-
-      ang1 = 90.d0/91.3125d0
-      xnair = 6.022d23 * 1.d3 / 28.9644d0
-      jdstrt=0
-      hrstrt=0
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
-     *               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
-      vlat_inc=176.d0/real(jm-2.d0)
-      vlon_inc=360.d0/real(im)
-      DO j = j_0,j_1
-        DO i = i_0,i_1
-C*** Calculate cos theta (RAD) at the beginning of the time step (RAD)
-          vlon = 180.d0 - (i-1)*vlon_inc
-          vlat=-90.d0+(j-1)*vlat_inc
-          if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
-          if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
-c     if (j.eq.1) vlat=-88.d0
-c     if (j.eq.46) vlat=88.d0
-          TIMEC = (mod(itime,365*nday) + 0.5)*DTsrc
-          p1 = 15.d0*(timec/3600.d0 + hrstrt - vlon/15.d0 - 12.d0)
-          fact = (jdstrt + timec/86400.d0 - 81.1875d0)*ang1
-          p2 = 23.5d0*sin(fact*radian)
-          p3 = vlat
-C*
-          rad = (SIN(p3*radian)*SIN(p2*radian)) +
-     1         (COS(p1*radian)*COS(p2*radian)*COS(p3*radian))
-          if (rad.lt.0.d0) rad = 0.d0
-          suncos(I,J) = rad
-c     if (i.eq.30.and.j.eq.40) write(6,*) 'ohrad',timec,jday,jhour,
-c    * rad,p1,p2,p3
-        end do
-      end do
-c Scale OH and PERJ depending on time of day
-c   [OH] is approximately proportional to cos(zenith angle),
-c   therefore OH is calculated as
-c **
-c **    OH4HR(i,j,l) = OH5DY(i,j,l) * 6 * SUNCOS(i,j) / TCZEN(i,j)
-c **
-c ** where TCZEN(i,j) is the total cos(zenith angle) calculated at the
-c ** beginning of the day.
-c etc for NO3, PERJ. The 6 is because TCZEN is average of 6 times
-c    NO3 is different since we want to have it nonzero only during dark
-C----------------------------------------------------------------------
-      do j = j_0, j_1
-        do i = i_0, i_1
-          tczen(i,j) = 0.
-          nradn(i,j)=0
-          vlon = 180.d0 - (i-1)*vlon_inc
-          vlat=-90.d0+(j-1)*vlat_inc
-          if (HAVE_SOUTH_POLE.and.j.eq.j_0s-1) vlat=-88.d0
-          if (HAVE_NORTH_POLE.and.j.eq.j_1s+1) vlat=88.d0      
-c             if (j.eq.1) vlat=-88.d0
-c             if (j.eq.46) vlat=88.d0
-          do ihr = 0,20,4
-            ctime = (jday*24.d0) + ihr
-            p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
-            fact = (ctime/24.d0 - 81.1875d0)*ang1
-            p2 = 23.5d0 * sin(fact*radian)
-            p3 = vlat
-            rad1 = sin(p3*radian) * sin(p2*radian) +
-     m           cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
-            if (rad1.lt.0.d0) rad1 = 0.d0
-            if (rad1.eq.0.0) nradn(i,j)=nradn(i,j)+1
-c     
-            ctime = (jday*24.d0) + ihr+2
-            p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
-            fact = (ctime/24.d0 - 81.1875d0)*ang1
-            p2 = 23.5d0 * sin(fact*radian)
-            p3 = vlat
-            rad2 = sin(p3*radian) * sin(p2*radian) +
-     m           cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
-            if (rad2.lt.0.d0) rad2 = 0.d0
-            if (rad2.eq.0.0) nradn(i,j)=nradn(i,j)+2
-c     
-            ctime = (jday*24) + ihr+4
-            p1 = 15.d0*(ctime - vlon/15.d0 - 12.d0)
-            fact = (ctime/24.d0 - 81.1875d0)*ang1
-            p2 = 23.5d0 * sin(fact*radian)
-            p3 = vlat
-            rad3 = sin(p3*radian) * sin(p2*radian) +
-     m           cos(p3*radian) * cos(p2*radian) * cos(p1*radian)
-            if (rad3.lt.0.d0) rad3 = 0.d0
-            if (rad3.eq.0.0) nradn(i,j)=nradn(i,j)+1
-c     
-            rad = (rad1 + 2.d0*rad2 + rad3)/4.d0
-            tczen(i,j) = tczen(i,j) + rad
-            if(tczen(i,j).eq.0.) tczen(i,j) = teeny
-          end do
-        end do
-      end do
-c**************************
-      do l = 1,lm
-        do j = j_0,j_1
-          do i = i_0,i_1
-c     Get NO3 only if dark, weighted by number of dark hours
-c     if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
-            if (suncos(i,j).eq.0.and.nradn(i,j).gt.0) then
-              tno3(i,j,l)=tno3r(i,j,l)*24.d0/real(nradn(i,j)) !DMK jmon
-            else
-              tno3(i,j,l)=0.d0
-            endif
- 88         if (tczen(i,j).eq.teeny) then
-              oh(i,j,l) = 0.d0
-              perj(i,j,l)=0.d0
-              dho2(i,j,l)=0.d0
-            else
-              stfac=suncos(i,j)/tczen(i,j)
-              if (stfac.gt.1) then
-                stfac=1.
-              endif
-              oh(i,j,l)=ohr(i,j,l)*6.d0*stfac !jmon
-              perj(i,j,l)=perjr(i,j,l)*6.d0*stfac !dmk jmon
-              dho2(i,j,l)=dho2r(i,j,l)*6.d0*stfac !dmk jmon
-            end if
-          end do
-        end do
-      end do
-      RETURN
-      END subroutine SCALERAD
-      SUBROUTINE SCALERAD2
       use MODEL_COM, only: im,jm,lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID,GET
@@ -1806,7 +1620,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       end do
 
       RETURN
-      END subroutine SCALERAD2
+      END subroutine SCALERAD
 
 
 
