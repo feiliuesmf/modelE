@@ -1,103 +1,6 @@
-c**** SLE001 E001M12 SOMTQ SLB211M9
-c**** (same as frank''s soils64+2bare_soils+old runoff)
-c**** change to evap calculation to prevent negative runoff
-c**** soils45 but with snowmelt subroutine snmlt changed
-c**** to melt snow before 1st layer ground ice.
-ccc   comments from new soils
-c**** 8/11/97 - modified to include snow model
-c**** 10/29/96 - aroot and broot back to original values; added
-c**** call to cpars to change vegetation parameters for pilps.
-c**** 9/7/96 - back to heat capacities/10
-c**** 5/14/96 - added soils64 surface runoff changes/corrections
-c**** 11/13/95 - changed aroot and broot for rainf for 1.5m root depth
-c**** 10/11/95 - back to full heat capacity, to avoid cd oscillations.
-c**** changes for pilps: (reversed)
-c**** use soils100.com instead of soils45.com
-c**** set im=36,jm=24
-c**** set sdata,vdata and fdata to real*4
-c**** divide canopy heat capacities by 10.d0
-c**** change aroot of grass to 1.0d0, to reduce root depth.
-c**** end of changes for pilps
-c**** changes for pilps: (kept)
-c**** modify gdtm surface flux timestep limits
-c**** define new diagnostics
-c**** zero out diagnostics at start of advnc
-c**** end of changes for pilps
-c**** modified for 2 types of bare soils
-c****
-c**** soils62 soils45 soils45          cdfxa 04/27/95
-c**** same as soils45 but with snowmelt subroutine snmlt changed
-c**** to melt snow before 1st layer ground ice.
-ccc   end comments from new soils
-c**** also corrects evaps calculation.
-c**** also includes masking effects in radation fluxes.
-c**** modifies timestep for canopy fluxes.
-c**** soils45 10/4/93
-c**** uses bedrock as a soil texture.  soil depth of 3.5m
-c**** everywhere, where layers can have bedrock.
-c**** requires sm693.data instead of sm691.data.
-c**** sdata needs to be changed in calling program.
-c**** soils44b 8/25/93
-c**** uses snow conductivity of .088 w m-1 c-1 instead of .3d0
-c**** soils44 8/16/93
-c**** adds bedrock for heat calculations, to fill out the
-c**** number of layers to ngm.
-c**** soils43 6/25/93
-c**** comments out call to fhlmt heat flux limits.
-c**** uses ghinij to return wfc1, eliminates rewfc.
-c**** soils42 6/15/93
-c**** adds snow insulation
-c**** soils41 5/24/93
-c**** uses snow masking depth from vegetation height to determine
-c**** fraction of snow that is exposed.
-c**** reth must be called prior to retp.
-c**** soils40 5/10/93
-c**** removes snow from canopy and places it on vegetated soil.
-c**** soils39 4/19/93
-c**** modifications for real*8 or real*4 runs.  common block
-c**** ordering changed for efficient alignment.  sdata,fdata,
-c**** and vdata are explicitly real*4.  on ibm rs/6000, should
-c**** be compiled with -qdpc=e option for real*8 operation.
-c**** to run real*4, change implicit statement in include file.
-c**** soils38 2/9/93
-c**** adds heat flux correction to handle varying coefficients
-c**** of drag.
-c**** soils37 1/25/93
-c**** changes soil crusting parameter ku/d from .05 per hour to .1d0,
-c**** to agree with morin et al.
-c**** soils36 11/12/92
-c**** calculates heat conductivity of soils using devries method.
-c**** changes loam material heat capacity and conductivity
-c**** to mineral values.
-c**** soils35 10/27/92
-c**** includes effect of soil crusting for infiltration by
-c**** modifying hydraulic conductivity calculation of layer
-c**** 1 in hydra.
-c**** soils34 8/28/92
-c**** uses effective leaf area index alaie for purposes of
-c**** canopy conductance calculation.
-c**** soils33 8/9/92
-c**** changes canopy water storage capacity to .1mm per lai from 1.d0
-c**** soils32 7/15/92
-c**** 1) for purposes of infiltration only, reduces soil conductivity
-c**** by (1-thetr*fice) instead of (1-fice).
-c**** 2) betad is reduced by fraction of ice in each layer.
-c**** 3) transpired water is removed by betad fraction in each layer,
-c**** instead of by fraction of roots. prevents negative runoff.
-c**** 4) speeds up hydra by using do loop instead of if check,
-c**** by using interpolation point from bisection instead of logs,
-c**** and by avoiding unnecessary calls to hydra.  also elimates call
-c**** to hydra in ma89ezm9.f.
-c**** soils31 7/1/92
-c**** 1) fixes fraction of roots when soil depth is less than root
-c**** depth, thus fixing non-conservation of water.
-c**** soils30 6/4/92
-c**** 1) uses actual final snow depth in flux limit calculations,
-c**** instead of upper and lower limits.  fixes spurious drying
-c**** of first layer.
-c**** Added gpp, GPP terms  4/25/03 nyk
-c**** Added decks parameter cond_scheme  5/1/03 nyk
-c**** Added decks parameter vegCO2X_off  3/2/04 nyk
+!@sum  NASA GISS Land Surface Model (LSM) - module sle001
+!@sum  See end of file for development history (1988 - 2009)
+!@auth Abramopoulos, Rosenzweig, Aleinov, Puma
 
 #include "rundeck_opts.h"
 #ifdef TRACERS_ATM_ONLY
@@ -124,7 +27,6 @@ c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
       implicit none
       save
-
 
       private
 
@@ -165,7 +67,7 @@ ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
      &     ,aflmlt,aintercep,aevapvg,aevapvs,aevapbs
-     &     ,asrht,atrht,aalbedo
+     &     ,asrht,atrht,aalbedo,alai
      &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
      &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
      &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
@@ -393,7 +295,7 @@ C***
      &     ,ijdebug,n,nsn !nth
      &     ,flux_snow,wsn_for_tr,trans_sw
      &     ,vs,vs0,tprime,qprime
-     &     ,asrht,atrht,aalbedo
+     &     ,asrht,atrht,aalbedo,alai
      &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
      &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
      &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
@@ -411,12 +313,9 @@ c     next line out (debug_data used only for debug output)
 c    &     ,debug_data           ! needs to go to compile on COMPAQ
 !$OMP  THREADPRIVATE (/GHYTPC/)
 C***
-C***
 
 ccc   external functions
       real*8, external :: qsat,dqsatdt
-
-
 
       contains
 
@@ -837,9 +736,9 @@ ccc !!! it''s a hack should call it somewhere else !!!
 #endif
         ! dry canopy
 !!! this needs "qs" from the previous time step
-c     betad is the the root beta for transpiration.
-c     hw is the wilting point.
-c     fr(k) is the fraction of roots in layer k
+!     betad is the the root beta for transpiration.
+!     hw is the wilting point.
+!     fr(k) is the fraction of roots in layer k
 #ifdef USE_ENT
         betad = sum( betadl(1:n) )
         if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
@@ -1907,6 +1806,8 @@ c****
       alb = fr_sn*alb_sn + (1.d0-fr_sn)*(albedo_6b(1)+albedo_6b(2))*.5d0
       end function ghy_albedo
 
+!-----------------------------------------------------------------------
+
       subroutine advnc(
 #ifdef USE_ENT
      &      entcell,
@@ -1958,7 +1859,7 @@ c**** soils28   common block     9/25/90
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8, intent(inout) :: Qf
-      real*8, save ::  time = 0.d0
+      real*8 :: time!      real*8, save, time = 0.d0
 #else
       use vegetation, only: update_veg_locals,t_vegcell
       ! arguments
@@ -2502,8 +2403,9 @@ ccc   max in the following expression removes extra drip because of dew
 !      !Accumulated autotrophic respiration [kg/m2]
         arauto = arauto + rauto*dts
 
-!      !Instantaneous labile carbon pool [kg/m2]
+!      !Instantaneous labile carbon pool [kg/m2] and leaf area index [-]
         aclab = clab
+        alai = lai
 
 !      !Accumulated soil respiration [kg C/m2]       
         asoilresp = asoilresp + R_soil*dts
@@ -2662,6 +2564,7 @@ c zero out accumulations
       agpp=0.d0   ! Ent DGVM , nyk 4/25/03
       arauto=0.d0 ! Ent DGVM
       aclab=0.d0  ! Ent DGVM
+      alai = 0.d0
       asoilresp = 0.d0         ! Ent DGVM (soil bgc)
       asoilCpoolsum = 0.d0     ! Ent DGVM (soil bgc)
       aevapvg=0.d0             ! evap from vegetated soil
@@ -3854,9 +3757,109 @@ c    &       'GHY: water conservation problem in veg. soil',255)
 
       end module sle001
 
-
-
-ccccccccccc  notes ccccccccccccccccc
+c****------------------------------------------------------------------
+c**** DEVELOPMENT NOTES FOR  MODULE sle001 in GHY.f
+c****
+c**** SLE001 E001M12 SOMTQ SLB211M9
+c**** (same as frank''s soils64+2bare_soils+old runoff)
+c**** change to evap calculation to prevent negative runoff
+c**** soils45 but with snowmelt subroutine snmlt changed
+c**** to melt snow before 1st layer ground ice.
+ccc   comments from new soils
+c**** 8/11/97 - modified to include snow model
+c**** 10/29/96 - aroot and broot back to original values; added
+c**** call to cpars to change vegetation parameters for pilps.
+c**** 9/7/96 - back to heat capacities/10
+c**** 5/14/96 - added soils64 surface runoff changes/corrections
+c**** 11/13/95 - changed aroot and broot for rainf for 1.5m root depth
+c**** 10/11/95 - back to full heat capacity, to avoid cd oscillations.
+c**** changes for pilps: (reversed)
+c**** use soils100.com instead of soils45.com
+c**** set im=36,jm=24
+c**** set sdata,vdata and fdata to real*4
+c**** divide canopy heat capacities by 10.d0
+c**** change aroot of grass to 1.0d0, to reduce root depth.
+c**** end of changes for pilps
+c**** changes for pilps: (kept)
+c**** modify gdtm surface flux timestep limits
+c**** define new diagnostics
+c**** zero out diagnostics at start of advnc
+c**** end of changes for pilps
+c**** modified for 2 types of bare soils
+c****
+c**** soils62 soils45 soils45          cdfxa 04/27/95
+c**** same as soils45 but with snowmelt subroutine snmlt changed
+c**** to melt snow before 1st layer ground ice.
+ccc   end comments from new soils
+c**** also corrects evaps calculation.
+c**** also includes masking effects in radation fluxes.
+c**** modifies timestep for canopy fluxes.
+c**** soils45 10/4/93
+c**** uses bedrock as a soil texture.  soil depth of 3.5m
+c**** everywhere, where layers can have bedrock.
+c**** requires sm693.data instead of sm691.data.
+c**** sdata needs to be changed in calling program.
+c**** soils44b 8/25/93
+c**** uses snow conductivity of .088 w m-1 c-1 instead of .3d0
+c**** soils44 8/16/93
+c**** adds bedrock for heat calculations, to fill out the
+c**** number of layers to ngm.
+c**** soils43 6/25/93
+c**** comments out call to fhlmt heat flux limits.
+c**** uses ghinij to return wfc1, eliminates rewfc.
+c**** soils42 6/15/93
+c**** adds snow insulation
+c**** soils41 5/24/93
+c**** uses snow masking depth from vegetation height to determine
+c**** fraction of snow that is exposed.
+c**** reth must be called prior to retp.
+c**** soils40 5/10/93
+c**** removes snow from canopy and places it on vegetated soil.
+c**** soils39 4/19/93
+c**** modifications for real*8 or real*4 runs.  common block
+c**** ordering changed for efficient alignment.  sdata,fdata,
+c**** and vdata are explicitly real*4.  on ibm rs/6000, should
+c**** be compiled with -qdpc=e option for real*8 operation.
+c**** to run real*4, change implicit statement in include file.
+c**** soils38 2/9/93
+c**** adds heat flux correction to handle varying coefficients
+c**** of drag.
+c**** soils37 1/25/93
+c**** changes soil crusting parameter ku/d from .05 per hour to .1d0,
+c**** to agree with morin et al.
+c**** soils36 11/12/92
+c**** calculates heat conductivity of soils using devries method.
+c**** changes loam material heat capacity and conductivity
+c**** to mineral values.
+c**** soils35 10/27/92
+c**** includes effect of soil crusting for infiltration by
+c**** modifying hydraulic conductivity calculation of layer
+c**** 1 in hydra.
+c**** soils34 8/28/92
+c**** uses effective leaf area index alaie for purposes of
+c**** canopy conductance calculation.
+c**** soils33 8/9/92
+c**** changes canopy water storage capacity to .1mm per lai from 1.d0
+c**** soils32 7/15/92
+c**** 1) for purposes of infiltration only, reduces soil conductivity
+c**** by (1-thetr*fice) instead of (1-fice).
+c**** 2) betad is reduced by fraction of ice in each layer.
+c**** 3) transpired water is removed by betad fraction in each layer,
+c**** instead of by fraction of roots. prevents negative runoff.
+c**** 4) speeds up hydra by using do loop instead of if check,
+c**** by using interpolation point from bisection instead of logs,
+c**** and by avoiding unnecessary calls to hydra.  also elimates call
+c**** to hydra in ma89ezm9.f.
+c**** soils31 7/1/92
+c**** 1) fixes fraction of roots when soil depth is less than root
+c**** depth, thus fixing non-conservation of water.
+c**** soils30 6/4/92
+c**** 1) uses actual final snow depth in flux limit calculations,
+c**** instead of upper and lower limits.  fixes spurious drying
+c**** of first layer.
+c**** Added gpp, GPP terms  4/25/03 nyk
+c**** Added decks parameter cond_scheme  5/1/03 nyk
+c**** Added decks parameter vegCO2X_off  3/2/04 nyk
 
 ccc just in case, the thickness of layers is:
 c     n, dz =  1,  9.99999642372131348E-2
