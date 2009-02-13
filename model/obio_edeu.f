@@ -18,7 +18,10 @@ c  final is quanta for phytoplankton growth.
      .                      ,rmus,nl450
       USE obio_forc,  only : Ed,Es,rmud,tirrq
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
-     .                      ,obio_P,p1d,zc
+     .                      ,obio_P,p1d
+#ifdef TRACERS_Alkalinity
+     *                      ,zc
+#endif
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
