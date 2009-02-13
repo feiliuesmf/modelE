@@ -7,10 +7,8 @@
       USE MODEL_COM, only : im,jm,lm
       USE DOMAIN_DECOMP_ATM, ONLY : grid
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      USE TRACER_COM, only: ntm
-#endif
 #ifdef TRACERS_ON
+      USE TRACER_COM, only: ntm
 #ifndef SKIP_TRACER_SRCS
      *     ,ntsurfsrcmax,nt3Dsrcmax
 #endif
@@ -177,13 +175,14 @@ C**** fluxes associated with variable lake fractions
 #endif
 !@var ftrsi_io ice-ocean tracer fluxes under ice (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: ftrsi_io
-#else
+#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 !@var trprec_dust dust/mineral tracers in precip [kg]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:):: trprec_dust
 #endif
-#endif
+
 #ifdef TRACERS_DRYDEP
 !@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRDRYDEP 
@@ -202,7 +201,7 @@ C**** fluxes associated with variable lake fractions
 !@+   [kg/m^2/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux2_glob
 #endif
-#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) 
 #ifdef TRACERS_DRYDEP
@@ -220,6 +219,7 @@ C**** fluxes associated with variable lake fractions
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
 !@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: DTRSI
+#endif
 #endif
 
       END MODULE FLUXES
@@ -380,12 +380,13 @@ C**** fluxes associated with variable lake fractions
        ALLOCATE( TRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 #endif
-#else
+#endif
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       ALLOCATE(trprec_dust(Ntm_dust,I_0H:I_1H ,J_0H:J_1H),STAT=ier)
 #endif
-#endif
+
 #ifdef TRACERS_DRYDEP
        ALLOCATE(TRDRYDEP( NTM , NSTYPE , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
@@ -407,11 +408,11 @@ C**** fluxes associated with variable lake fractions
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)
       ALLOCATE(dust_flux2_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #endif
-#endif
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       ALLOCATE( DTRSI( NTM ,    2   , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
+#endif
 #endif
 
       END SUBROUTINE ALLOC_FLUXES

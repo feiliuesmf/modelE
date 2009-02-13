@@ -3781,14 +3781,14 @@ C**** Surface stress is applied to V component at the North Pole
 #ifdef TRACERS_WATER
      *     , oTRFLOWO, oTREVAPOR
      *     , oTRUNOSI, oTRMELTI
+#endif
+     *     , oDTRSI
 #ifdef TRACERS_DRYDEP
      *     , oTRDRYDEP
 #endif
-#endif
-     *     , oDTRSI
-#endif
 #ifdef TRACERS_GASEXCH_Natassa
-      USE OFLUXES, only : oTRGASEX
+     *     , oTRGASEX
+#endif
 #endif
 
       IMPLICIT NONE
@@ -5584,7 +5584,7 @@ C**** surface tracer concentration
      *     , aS0, aOGEOZ,aOGEOZ_SV
      *     , aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
      *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_ON
      *     , aTRAC, aTRAC_glob
 #endif
 
@@ -5597,7 +5597,7 @@ C**** surface tracer concentration
 
       CALL UNPACK_DATA(agrid,       aG0_glob, aG0 )
       CALL UNPACK_DATA(agrid,       aS0_glob, aS0 )
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_ON
       CALL UNPACK_DATA(agrid,     aTRAC_glob, aTRAC )
 #endif
 
@@ -6305,7 +6305,10 @@ C**** surface tracer concentration
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
      *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_OCEAN
-     *     , oDTRSI_glob, aDTRSI_glob
+     *     , oDTRSI_glob
+#endif
+#ifdef TRACERS_ON
+     *     , aDTRSI_glob
 #endif
      *     )     
 !@sum  INT_OG2AG is for interpolation of arrays from subr.GROUND_OC 
@@ -6319,12 +6322,11 @@ C**** surface tracer concentration
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
-      USE OCN_TRACER_COM, only: ntm
-#else
-      USE TRACER_COM, only: ntm
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: ntm_atm=>ntm
 #endif
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only: ntm
 #endif
 
       USE GEOM,  only : aDXYP=>DXYP,aDXYPO, aIMAXJ=>IMAXJ, aDLATM=>DLATM
@@ -6345,8 +6347,8 @@ C**** surface tracer concentration
 
       REAL*8, INTENT(INOUT), DIMENSION(2,IMA,JMA) :: 
      *     aDMSI_glob, aDHSI_glob, aDSSI_glob
-#ifdef TRACERS_OCEAN
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,2,IMA,JMA) :: aDTRSI_glob
+#ifdef TRACERS_ON
+      REAL*8, INTENT(INOUT), DIMENSION(NTM_ATM,2,IMA,JMA) :: aDTRSI_glob
 #endif
 
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp
@@ -6406,7 +6408,9 @@ C**** surface tracer concentration
         END DO
       END DO
 
-#ifdef TRACERS_OCEAN
+#if (defined TRACERS_OCEAN) && (defined TRACERS_ON)
+
+      IF (NTM == NTM_ATM) THEN
       DO NT=1,NTM
       DO J=1,JMO
         DO I=1,oIMAXJ(J)
@@ -6425,6 +6429,11 @@ C**** surface tracer concentration
         END DO
       END DO
       END DO
+      ELSE
+C**** if number of ocean and atm. tracers are not the same
+C**** do something in here
+
+      END IF
 #endif
       END DO   !N-loop
 
@@ -6733,12 +6742,11 @@ C***  Scatter the arrays to the ocean grid
 
       USE OCEAN, only : IMO=>IM,JMO=>JM, FOCEAN, IMAXJ
 
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
-      USE OCN_TRACER_COM, only: ntm
-#else
-      USE TRACER_COM, only: ntm
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: ntm_atm=>ntm
 #endif
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only: ntm
 #endif
 
       USE DOMAIN_DECOMP_1D, only : agrid=>grid, AM_I_ROOT
@@ -6750,7 +6758,7 @@ C***  Scatter the arrays to the ocean grid
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_ON
      *     , aDTRSI=>DTRSI
 #endif
 
@@ -6765,8 +6773,8 @@ C***  Scatter the arrays to the ocean grid
 
       INTEGER, PARAMETER :: NSTYPE=4
       REAL*8, DIMENSION(2,IMA,JMA) :: aDMSI_glob, aDHSI_glob, aDSSI_glob
-#ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM,2,IMA,JMA) :: aDTRSI_glob
+#ifdef TRACERS_ON
+      REAL*8, DIMENSION(NTM_ATM,2,IMA,JMA) :: aDTRSI_glob
 #endif
 
 !!!   Global arrays on ocean grid
@@ -6784,7 +6792,7 @@ C***    since they were already filled in for LAKES
       CALL PACK_COLUMN(agrid,    aDMSI,    aDMSI_glob)
       CALL PACK_COLUMN(agrid,    aDHSI,    aDHSI_glob)
       CALL PACK_COLUMN(agrid,    aDSSI,    aDSSI_glob)
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_ON
       CALL PACK_BLOCK  (agrid, aDTRSI, aDTRSI_glob)
 #endif
       
@@ -6804,7 +6812,10 @@ C*
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
      *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_OCEAN
-     *     , oDTRSI_glob, aDTRSI_glob
+     *     , oDTRSI_glob
+#endif
+#ifdef TRACERS_ON
+     *     , aDTRSI_glob
 #endif
      *     )     
       end if 
@@ -6814,7 +6825,7 @@ C***  Scatter the arrays to the atmospheric grid
       CALL UNPACK_COLUMN (agrid, aDMSI_glob, aDMSI)
       CALL UNPACK_COLUMN (agrid, aDHSI_glob, aDHSI)
       CALL UNPACK_COLUMN (agrid, aDSSI_glob, aDSSI)
-#ifdef TRACERS_OCEAN
+#ifdef TRACERS_ON
       CALL UNPACK_BLOCK  (agrid, aDTRSI_glob, aDTRSI)
 #endif
 

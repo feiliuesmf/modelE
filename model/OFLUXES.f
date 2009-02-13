@@ -10,8 +10,8 @@
 !      USE DOMAIN_DECOMP_1D, ONLY : grid
       USE OCEANR_DIM, only : grid=>ogrid
 
-#if (defined TRACERS_ON)
-      USE TRACER_COM, only: ntm
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only: ntm
 #endif
 
       IMPLICIT NONE
@@ -65,7 +65,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 !@var RSI fraction of open water area covered in ice
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oRSI
 
-#ifdef TRACERS_ON
+#ifdef TRACERS_OCEAN
 
 #ifdef TRACERS_GASEXCH_Natassa
 !@var TRGASEX  tracer gas exchange over each type (kg/m^2)
@@ -85,24 +85,16 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 !@var TRPREC tracers in precip (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: oTRPREC
 
-#ifdef TRACERS_OCEAN
 !@var TRGMELT tracer from glacial melt into ocean (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oTRGMELT
 #endif
-
-#endif
+!@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oDTRSI
 
 #ifdef TRACERS_DRYDEP
 !@var TRDRYDEP tracer dry deposition by type (kg/m^2) (positive down)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oTRDRYDEP 
 #endif
-
-
-#endif
-
-#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
-!@var DTRSI tracer flux in sea ice under ice and on open water (kg/m^2)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oDTRSI
 #endif
 
       END MODULE OFLUXES
@@ -165,9 +157,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &   STAT = IER)
 
 
-!TRACERS_ON**********************
-
-#ifdef TRACERS_ON
+!TRACERS **********************
+#ifdef TRACERS_OCEAN
 
       !:-:-I-J arrays
 #ifdef TRACERS_GASEXCH_Natassa
@@ -191,21 +182,20 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &           oTRFLOWO ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &           oTRMELTI ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
-#ifdef TRACERS_OCEAN
+
        ALLOCATE( oTRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 #endif
-#endif
+
 #ifdef TRACERS_DRYDEP
        ALLOCATE(oTRDRYDEP( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
          oTRDRYDEP = 0.   !Initialize to 0.
 #endif
-#endif
 
-#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       ALLOCATE( oDTRSI( NTM ,    2   , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 #endif
+
 
       END SUBROUTINE ALLOC_OFLUXES
