@@ -1045,10 +1045,9 @@ C**** save plume temperature after possible condensation
       CDHEAT(L)=SLH*COND(L)          ! cal CDHEAT before add CONDV
       CDHSUM=CDHSUM+CDHEAT(L)
       COND(L)=COND(L)+CONDV(L-1)     ! add in the vertical transported COND
-c      IF (VLAT(L-1).ne.VLAT(L)) HEAT1(L)=HEAT1(L)+(VLAT(L-1)-VLAT(L))
-c     *     *CONDV(L-1)*BYSHA    ! phase change of uplifted condesate
+
       IF (VLAT(L-1).ne.VLAT(L)) THEN
-        SMP=SMP-(VLAT(L-1)-VLAT(L))*CONDV(L-1)*BYSHA/PLK(L) ! phase change of uplifted condesate
+        SMP=SMP-(VLAT(L-1)-VLAT(L))*CONDV(L-1)*BYSHA/PLK(L) ! phase change of uplifted condensate
         CDHEAT(L)=CDHEAT(L)-(VLAT(L-1)-VLAT(L))*CONDV(L-1)*BYSHA
         CDHSUM=CDHSUM-(VLAT(L-1)-VLAT(L))*CONDV(L-1)*BYSHA
       END IF
@@ -1632,17 +1631,6 @@ C****
       LHX=VLAT(L)               ! LHX consistency
       SLH=LHX*BYSHA
       TNX1=SMDN*PLK(L)/DDRAFT   ! save for tracers
-c      TNX=TNX1
-c      QNX=QMDN/DDRAFT
-c      DQSUM=0.
-c      DO 520 N=1,3
-c        QSATC=QSAT(TNX,LHX,PL(L))
-c        DQ=(QSATC-QNX)/(1.+SLH*QSATC*DQSATDT(TNX,LHX))
-c        TNX=TNX-SLH*DQ
-c        QNX=QNX+DQ
-c 520    DQSUM=DQSUM+DQ*DDRAFT
-c      IF(DQSUM.LT.0.) DQSUM=0.
-c      IF(DQSUM.GT.COND(L)) DQSUM=COND(L)
 
       call get_dq_evap(smdn,qmdn,plk(l),ddraft,lhx,pl(l),cond(l)
      *     ,dqsum,fqcond1)
@@ -2021,11 +2009,16 @@ C**** adjust phase of precip to that of environment
         IF (ABS(PLK(LMAX)*SM(LMAX)).gt.teeny .and. ((lhp(lmax)-vlat(lmax
      *       ))*PRCP*BYSHA).lt.0) FSSUM = -(lhp(lmax)-vlat(lmax))*PRCP
      *       *BYSHA/(PLK(LMAX)*SM(LMAX))
+        if (debug) print*,"cnv0",lmax,(lhp(lmax)-vlat(lmax))*PRCP*BYSHA
+     $       /PLK(LMAX),lhp(lmax),vlat(lmax)
         SM(LMAX)=SM(LMAX)+(lhp(lmax)-vlat(lmax))*PRCP*BYSHA/PLK(LMAX)
         SMOM(:,LMAX) =  SMOM(:,LMAX)*(1.-FSSUM)
       end if
 
 C**** add in heat1 from lmax
+      if (heat1(lmax).ne.0) print*,"cnvA",i_debug,j_debug,lmax
+     $     ,heat1(lmax),vlat(lmax),lhp(lmax),prcp
+
 c      FSSUM = 0
 c      IF (ABS(PLK(LMAX)*SM(LMAX)).gt.teeny .and. HEAT1(lmax).gt.0) FSSUM
 c     *     = -heat1(lmax)/(PLK(LMAX)*SM(LMAX))
@@ -2112,6 +2105,7 @@ C**** phase of condensate is defined by VLAT (based on plume T).
 
 C**** decide whether to melt frozen precip
       IF (lhp(l).eq.lhs .and. TOLD.GT.TF.AND.TOLD1.LE.TF) then
+         if (debug) print*,"cnv1",l,lhp(l),told,told1,LHM*PRCP*BYSHA
 c      IF(L.EQ.LFRZ.OR.(L.LE.LMIN.AND.TOLD.GE.TF.AND.TOLD1.LT.TF.AND.L.GT
 c     *     .LFRZ)) then
         HEAT1(L)=HEAT1(L)+LHM*PRCP*BYSHA
@@ -2119,12 +2113,15 @@ c     *     .LFRZ)) then
       end if
 C**** and deal with possible inversions and re-freezing of rain
       IF (lhp(l).eq.lhe .and. TOLD.LE.TF.AND.TOLD1.GT.TF) then
+         if (debug) print*,"cnv2",l,lhp(l),told,told1,-LHM*PRCP*BYSHA
         HEAT1(L)=HEAT1(L)-LHM*PRCP*BYSHA
         lhp(l)=lhs
       end if
 C**** check for possible inconsistency with cond at this level
       IF (LHP(L).NE.VLAT(L).AND. COND(L).GT.0) then ! convert to cond to precip phase
         HEAT1(L)=HEAT1(L)+(VLAT(L)-LHP(L))*COND(L)*BYSHA
+        if (debug) print*,"cnv3",l,lhp(l),vlat(l),cond(l),(VLAT(L)-LHP(L
+     $       ))*COND(L)*BYSHA
       END IF
 
 C**** set phase of precip based on local environment temperature
@@ -2149,6 +2146,7 @@ C**** UPDATE TEMPERATURE DUE TO NET REEVAPORATION IN CLOUDS
       FSSUM = 0
       IF (ABS(PLK(L)*SM(L)).gt.teeny .and. (SLH*DQSUM+HEAT1(L)).gt.0)
      *     FSSUM = (SLH*DQSUM+HEAT1(L))/(PLK(L)*SM(L))
+      if (debug) print*,"cnv4",l,SLH*DQSUM,HEAT1(L)
       SM(L)=SM(L)-(SLH*DQSUM+HEAT1(L))/PLK(L)
       SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
 
@@ -2278,6 +2276,7 @@ c     *         ,THLAW
 
 C**** ADD PRECIPITATION AND LATENT HEAT BELOW
       PRHEAT=CDHEAT(L)+SLH*PRCP
+      if (debug) print*,"cnv5",l,prcp,cond(l)
       PRCP=PRCP+COND(L)
 #ifdef TRACERS_WATER
       TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
@@ -2348,7 +2347,8 @@ C**** ADJUSTMENT TO CONSERVE CP*T DURING SUBSIDENCE
         DO L=LMCMIN,LMCMAX
           DGDSM(L)=DGDSM(L)-SUMAJ*AIRM(L)*FMC1/SUMDP
           SM(L)=SM(L)-SUMAJ*AIRM(L)/(SUMDP*PLK(L))
-        END DO
+          if (debug) print*,"cnv6",l,SUMAJ*AIRM(L)/SUMDP
+      END DO
 
 C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
         AIRXL = 0.
@@ -2773,6 +2773,7 @@ C       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
           IF(LHX.EQ.LHE) BANDF=.TRUE.
           LHX=LHS
         END IF
+        if (debug) print*,"ls0",l,oldlhx,oldlat,lhx,lhp(l)
 
         IF (L.LT.LP50) THEN
 C**** Decide whether precip initiates B-F process
@@ -2821,6 +2822,8 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
       IF(OLDLHX.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=-WML(L)*LHM
       IF(OLDLAT.EQ.LHE.AND.LHX.EQ.LHS) HCHANG=HCHANG+SVWMXL(L)*LHM
       IF(OLDLAT.EQ.LHS.AND.LHX.EQ.LHE) HCHANG=HCHANG-SVWMXL(L)*LHM
+        if (debug) print*,"ls1",l,hchang
+
       SVLHXL(L)=LHX
       TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
       TH(L)=TL(L)/PLK(L)
@@ -3071,11 +3074,13 @@ C**** QHEAT, AND NEW CLOUD WATER CONTENT, WMNEW
      *       +teeny)
         IF(ER(L).EQ.0.AND.WMX(L).LE.0.) DRHDT=0.
         QHEAT(L)=FSSL(L)*(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
+        if (debug) print*,"ls2",l,qheat(l)
         DWDT=QHEAT(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
         WMNEW =WMX(L)+DWDT*DTsrc
         IF(WMNEW.LT.0.) THEN
           WMNEW=0.
           QHEAT(L)=(-WMX(L)*BYDTsrc+PREP(L))*LHX-CLEARA(L)*FSSL(L)*ER(L)
+        if (debug) print*,"ls3",l,qheat(l)
         END IF
       ELSE
 C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
@@ -3089,6 +3094,7 @@ C**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
 
 C**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
           QHEAT(L)=-DWDT*LHX*BYDTsrc
+        if (debug) print*,"ls4",l,qheat(l)
           PREP(L)=MAX(0d0,(WMX(L)-DWDT)*BYDTsrc) ! precip out cloud water
           WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
 #ifdef SCM
@@ -3102,6 +3108,7 @@ C**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
      *       ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ER(L)=MAX(0d0,MIN(ER(L),ERMAX))
         QHEAT(L)=QHEAT(L)-CLEARA(L)*FSSL(L)*ER(L)
+        if (debug) print*,"ls5",l,qheat(l),lhx
         WMNEW=0.
       END IF
 
@@ -3114,13 +3121,19 @@ C**** In such a case, no energy of phase change is needed.
       IF (LHP(L+1).EQ.LHS.AND.LHP(L).EQ.LHE.AND.PREICE(L+1).GT.0) THEN
         HPHASE=HPHASE+LHM*PREICE(L+1)*GRAV*BYAM(L)
         PREICE(L+1)=0.
+        if (debug) print*,"ls6",l,hphase,lhp(l),lhp(l+1),lhe
       END IF
 C**** PHASE CHANGE OF PRECIP, FROM WATER TO ICE
-      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0)
-     *     HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+      IF (LHP(L+1).EQ.LHE.AND.LHP(L).EQ.LHS.AND.PREBAR(L+1).GT.0) THEN
+         HPHASE=HPHASE-LHM*PREBAR(L+1)*GRAV*BYAM(L)
+         if (debug) print*,"ls7",l,hphase,lhp(l),lhp(l+1),lhe
+      END IF
+
 C**** Make sure energy is conserved for transfers between P and CLW
-      IF (LHP(L).NE.LHX)
-     *     HPHASE=HPHASE+(ER(L)*CLEARA(L)*FSSL(L)/LHX-PREP(L))*LHM
+      IF (LHP(L).NE.LHX) THEN
+         HPHASE=HPHASE+(ER(L)*CLEARA(L)*FSSL(L)/LHX-PREP(L))*LHM
+         if (debug) print*,"ls8",l,hphase
+      END IF
 C**** COMPUTE THE PRECIP AMOUNT ENTERING THE LAYER TOP
       IF (ER(L).eq.ERMAX) THEN ! to avoid round off problem
         PREBAR(L)=PREBAR(L+1)*(1.-CLEARA(L)*FSSL(L))+
@@ -3134,6 +3147,7 @@ C**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
       IF(QNEW.LT.0.) THEN
         QNEW=0.
         QHEAT(L)=QL(L)*LHX*BYDTsrc*FSSL(L)
+        if (debug) print*,"ls9",l,qheat(l)
         DWDT1=QHEAT(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
         WMNEW=WMX(L)+DWDT1*DTsrc
 C**** IF WMNEW .LT. 0., THE COMPUTATION IS UNSTABLE
@@ -3180,6 +3194,8 @@ C**** adjust gradients down if Q decreases
 !       debug_out=.true.
 !     end if
       TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny)
+        if (debug) print*,"lsA",l,qheat(l),hphase,lhx
+
       TH(L)=TL(L)/PLK(L)
       QSATC=QSAT(TL(L),LHX,PL(L))
       RH(L)=QL(L)/QSATC
@@ -3187,7 +3203,13 @@ C**** adjust gradients down if Q decreases
 C**** update tracers from cloud formation (in- and below-cloud
 C****    precipitation, evaporation, condensation, and washout)
 c CLDSAVT is current FCLD
-        IF(RH(L).LE.1.)CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+        IF(RH(L).LE.1.) THEN
+          IF (RH00(L).lt.1.) then
+            CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+          ELSE
+            CLDSAVT=0.
+          END IF
+        END IF
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
@@ -3356,7 +3378,13 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
 C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
       RH1(L)=QL(L)/QSATC
       IF(LHX.EQ.LHS) THEN
-        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+        IF(RH(L).LE.1.)  THEN
+          IF (RH00(L).lt.1.) then
+            CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+          ELSE
+            CLEARA(L)=0.
+          END IF
+        END IF
         IF(CLEARA(L).GT.1.) CLEARA(L)=1.
         IF(RH(L).GT.1.) CLEARA(L)=0.
         IF(WMX(L).LE.0.) CLEARA(L)=1.
@@ -3376,6 +3404,8 @@ C    * QL QSAT=',L,TL(L),RH(L),RH1(L),RHW,QL(L),QSATE
       call get_dq_cond(tl(l),ql(l),1d0,1d0,lhx,pl(l),dqsum,fcond)
 
       IF(DQSUM.GT.0.) THEN
+        if (debug) print*,"lsB",l,slh*dqsum
+
       TL(L)=TL(L)+SLH*DQSUM
       QL(L)=QL(L)-DQSUM
       WMX(L)=WMX(L)+DQSUM*FSSL(L)
@@ -3443,7 +3473,13 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
 !     if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       END IF
 
-      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+      IF(RH(L).LE.1.) THEN
+        IF (RH00(L).lt.1.) THEN
+          CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+        ELSE
+          CLEARA(L)=0.
+        END IF
+      END IF
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
       IF(RH(L).GT.1.) CLEARA(L)=0.
       IF(WMX(L).LE.0.) CLEARA(L)=1.
@@ -3462,6 +3498,7 @@ C**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
         PREBAR(L)=PREBAR(L)+WMX(L)*AIRM(L)*BYGRAV*BYDTsrc
         IF(LHP(L).EQ.LHS .AND. LHX.EQ.LHE) THEN
           HCHANG=WMX(L)*LHM
+          if (debug) print*,"lsC",l,hchang
           TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
 !         if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
           TH(L)=TL(L)/PLK(L)
@@ -3474,7 +3511,13 @@ C**** set phase of condensation for next box down
       IF (PREBAR(L).gt.0 .AND. LHP(L).EQ.LHS) PREICE(L)=PREBAR(L)
       IF (PREBAR(L).le.0) LHP(L)=0.
 C**** COMPUTE THE LARGE-SCALE CLOUD COVER
-      IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+      IF(RH(L).LE.1.) THEN
+        IF (RH00(L).lt.1.) THEN
+          CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+        ELSE
+          CLEARA(L)=0.
+        END IF
+      END IF
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
       IF(RH(L).GT.1.) CLEARA(L)=0.
       IF(WMX(L).LE.teeny) WMX(L)=0.
@@ -3535,7 +3578,6 @@ C       IF(WMX(L).EQ.0. .OR. (WMX(L).GT.0..AND.WMX(L+1).GT.0.)) CYCLE
         IF(L.LE.1) CKIJ=EXPST
         DSEC=DWM*TL(L)/BETA
         IF(CK.LT.CKR) CYCLE
-C       FPMAX=MIN(1d0,1.-EXPST)
         FPMAX=MIN(1d0,1.-EXPST)       ! full CTE strength
 #ifdef CLD_AER_CDNC
         SMFPML(L)=FPMAX
@@ -3543,6 +3585,8 @@ C       FPMAX=MIN(1d0,1.-EXPST)
         IF(FPMAX.LE.0.) CYCLE
         IF(DSE.GE.DSEC) CYCLE
 C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
+        if (debug) print*,"lse",l,wmxm(l:l+1),svlhxl(l:l+1)
+
         AIRMR=(AIRM(L+1)+AIRM(L))*BYAM(L+1)*BYAM(L)
         SMO1=SM(L)
         QMO1=QM(L)
@@ -3590,10 +3634,14 @@ C**** MIXING TO REMOVE CLOUD-TOP ENTRAINMENT INSTABILITY
      *         (2.+(1.+BYMRAT*TLT1/SLHE)*SLHE*DQSDT)
           DSEC=DWM*TLT1/BETA
           DSEDIF=DSE-DSEC
+          if (debug) print*,"lsf",iter,dsedif,fplume,dfx,smn1,smn2
           IF(DSEDIF.GT.1d-3) FPLUME=FPLUME-DFX
           IF(DSEDIF.LT.-1d-3) FPLUME=FPLUME+DFX
           IF(ABS(DSEDIF).LE.1d-3.OR.FPLUME.GT.FPMAX*FSSL(L)) EXIT
         END DO
+c        IF (FPLUME.GT.FPMAX) print*,"lsH",i_debug,j_debug,fplume,fpmax
+c     $       ,fssl(l),dfx,iter
+
 C**** UPDATE TEMPERATURE, SPECIFIC HUMIDITY AND MOMENTUM DUE TO CTEI
         SMN12=SMN1*PLK(L)+SMN2*PLK(L+1)
         SMN1=SMN1-(SMN12-SMO12)*AIRM(L)/((AIRM(L)+AIRM(L+1))*PLK(L))
@@ -3634,7 +3682,17 @@ C**** mix cloud liquid water tracers as well
         END DO
 C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
         QL(L+1)=QL(L+1)+WMX(L+1)/(FSSL(L)+teeny)
+        if (wmxm(l+1).gt.0. .and. svlhxl(l+1).gt.0 .and. svlhxl(l+1).ne
+     $       .svlhxl(l)) print*,"lsT",i_debug,j_debug,wmxm(l)*svlhxl(l)
+     $       +wmxm(l+1)*svlhxl(l+1)-wmx(l)*airm(l)*svlhxl(l)-wmx(l+1)
+     $       *airm(l+1)*svlhxl(l+1),wmxm(l:l+1),svlhxl(l:l+1)
+c**** assumes that wmx(l+1) is same phase as wmx(l)?
+c**** energy fix?
+        TH(L+1)=TH(L+1)-((SVLHXL(L+1)-SVLHXL(L))*BYSHA)*WMXM(L+1)/AIRM(L
+     $       +1)/(PLK(L+1)*FSSL(L)+teeny)
+
         TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/(PLK(L+1)*FSSL(L)+teeny)
+        if (debug) print*,"lsD",l+1,LHX*WMX(L+1)
         TL(L+1)=TH(L+1)*PLK(L+1)
 !       if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
         RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
@@ -3647,7 +3705,13 @@ C**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
 #endif
         TRWML(1:NTX,L+1)=0.
 #endif
-        IF(RH(L).LE.1.) CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+        IF(RH(L).LE.1.) THEN
+          IF (RH00(L).lt.1.) THEN
+            CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+          ELSE
+            CLEARA(L)=0.
+          END IF
+        END IF
         IF(CLEARA(L).GT.1.) CLEARA(L)=1.
         IF(RH(L).GT.1.) CLEARA(L)=0.
         CLDSSL(L)=FSSL(L)*(1.-CLEARA(L))
