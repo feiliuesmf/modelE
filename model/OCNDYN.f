@@ -1599,6 +1599,7 @@ C****
       Use OCEAN,         Only: IMO=>IM,JMO=>JM 
      *     , oDXYP=>DXYPO, oDLATM=>DLATM
       Use DOMAIN_DECOMP_1D, Only: aGRID=>GRID, AM_I_ROOT, GET, PACK_DATA
+      Use DOMAIN_DECOMP_1D, Only: UNPACK_DATA
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
       Real*8    :: oQJ(oGRID%J_STRT:oGRID%J_STOP),
