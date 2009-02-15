@@ -18,7 +18,7 @@ C**** must be compiled after the model
      $     ,lmc,airx
       USE DIAG_COM, only : keynr,tsfrez
       USE PBLCOM, only : uabl,vabl,tabl,qabl,eabl,cm=>cmgs,ch=>chgs,cq
-     *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,    
+     *     =>cqgs,ipbl,wsavg,tsavg,qsavg,dclev,usavg,vsavg,tauavg,
      *     ustar_pbl,egcm,tgvavg,qgavg
       USE STATIC_OCEAN, only : tocean,z1o,sss0
       USE SEAICE_COM, only : rsi,msi,hsi,snowi,ssi,pond_melt,flag_dsws
@@ -191,16 +191,13 @@ C**** extending ground hydrology
           end do
         end do
       endif
-      
+
 C**** set default foliage values
       Qfol=3.D-6
       Cint=0.0127D0
       cnc_ij=0.d0
 
-      call openunit (trim(outfile),iu_AIC, .true.,.false.)
-
-      call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
-      close (iu_AIC)
+      call io_rsf(trim(outfile),ItimeX,iowrite_mon,ioerr)
       print*,ioerr
       print*,"New rsf file written out to ",trim(outfile)
       stop

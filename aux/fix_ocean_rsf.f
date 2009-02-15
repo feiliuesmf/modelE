@@ -1,10 +1,10 @@
       program fix_ocean_rsf
 C**** take ocean rsf files in modelE format and ensure that sea level is
 C**** near zero with same pot. T and S
-C**** compile with: 
-C****   gmake aux RUN=Exyz 
+C**** compile with:
+C****   gmake aux RUN=Exyz
 C****   cd ../aux ; gmake fix_ocean_rsf.o
-C**** f90 -o fix_ocean_rsf fix_ocean_rsf.o ../decks/Exyz_bin/Exyz.a 
+C**** f90 -o fix_ocean_rsf fix_ocean_rsf.o ../decks/Exyz_bin/Exyz.a
 C****    -O2 -64 -mips4 -static -OPT:reorg_comm=off -w2 -listing -mp
 C**** Note that since it uses modules and routines from the model, it
 C**** must be compiled after the model
@@ -28,8 +28,8 @@ C**** must be compiled after the model
       USE FLUXES, only : ogeoza
       IMPLICIT NONE
       CHARACTER infile*60, outfile*60,title*80
-      INTEGER IARGC,iu_AIC,I,J,L,N,ioerr,iu_TOPO,iu_OFTAB 
-      REAL*8 TAUX,X 
+      INTEGER IARGC,I,J,L,N,ioerr,iu_TOPO,iu_OFTAB
+      REAL*8 TAUX,X
       REAL*8 MSI1,tfo,MSL,AREA,PHIE,RATIO,MSL1,MSL2
       REAL*8, DIMENSION(IM,JM,LMO) :: UM0=0,VM0=0,MN,SN,GN
       INTEGER NS,mnow,ItimeX
@@ -37,8 +37,8 @@ C**** must be compiled after the model
       IF (IARGC().lt.1) THEN
         PRINT*,"Fix ocean rsf files to have 0m mean sea level"
         PRINT*," Needs TOPO set"
-        PRINT*,"fix_ocean_rsf <rsf_file>" 
-        PRINT*,"Output is in <rsf_file>.adj" 
+        PRINT*,"fix_ocean_rsf <rsf_file>"
+        PRINT*,"Output is in <rsf_file>.adj"
         STOP
       END IF
 
@@ -48,15 +48,13 @@ C**** must be compiled after the model
 !
       CALL GETARG(1,infile)
 
-      call openunit (trim(infile), iu_AIC, .true. , .true. )
-      call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
-      call closeunit (iu_AIC)
+      call io_rsf(trim(infile),ItimeX,irerun,ioerr)
 
 C**** read in FLAKE/FOCEAN data
       call openunit ("TOPO", iu_TOPO, .true., .true.)
-      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! ocean fraction
-      CALL READT (iu_TOPO,0,HATMO ,IM*JM,HATMO ,4) ! Atmo. Topography
-      CALL READT (iu_TOPO,0,HOCEAN,IM*JM,HOCEAN,1) ! Ocean depths
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
+      CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
       call closeunit (iu_TOPO)
 
 C**** get geometry
@@ -110,7 +108,7 @@ C**** Calculate geopotential by integrating from the bottom up
             PHIE = PHIE + VBAR(I,J,L)*MO(I,J,L)*GRAV
           END DO
           OGEOZA(I,J) = PHIE
-C**** add in sea ice 
+C**** add in sea ice
           OGEOZA(I,J)=OGEOZA(I,J)*BYGRAV+
      *         RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS
         END IF
@@ -179,10 +177,10 @@ C**** Calculate geopotential by integrating from the bottom up
             PHIE = PHIE + VBAR(I,J,L)*MO(I,J,L)*GRAV
           END DO
           OGEOZA(I,J) = PHIE
-C**** save new values 
+C**** save new values
           OGEOZ(I,J)=OGEOZA(I,J)
           OGEOZ_SV(I,J)=OGEOZA(I,J)
-C**** add in sea ice 
+C**** add in sea ice
           OGEOZA(I,J)=OGEOZA(I,J)*BYGRAV+
      *         RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I)/RHOWS
         END IF
@@ -207,9 +205,7 @@ C**** calculate area weighted mean
       print*,"New mean sea level",MSL
 
       outfile=trim(infile)//".adj"
-      call openunit (trim(outfile),iu_AIC, .true.,.false.)
-      call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
-      call closeunit (iu_AIC)
+      call io_rsf(trim(outfile),ItimeX,iowrite_mon,ioerr)
       print*,ioerr
 
       print*,"New rsf file written out to ",trim(outfile)

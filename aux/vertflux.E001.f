@@ -84,7 +84,7 @@ C****
       years = last_year-first_year+1
       SYEARS = SYEAR*years
       call openunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+      CALL READT (iu_SICE,0,IM*JM,DM,1)
 C****
 C**** Calculate spherical geometry
 C****
@@ -93,7 +93,7 @@ C****
 C**** Read in FOCEAN - ocean fraction
 C****
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C****
 C**** Zero out the vertical flux and its components

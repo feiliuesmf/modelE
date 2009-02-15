@@ -46,7 +46,7 @@ C****
      *  CV(IM,JM,2),AV(IM,JM,4,2),BV(IM,JM,4,2),AE(IM,JM,4),BE(IM,JM,4)
       CHARACTER*80 TITLE(5),TITLE0, RunID, file_name
       REAL*4 month_day(12)
-      INTEGER iu_AIC,ioerr,iu_TOPO,iu_MLMAX,iu_VFLX,iu_OHTLP,iu_OCNOUT
+      INTEGER ioerr,iu_TOPO,iu_MLMAX,iu_VFLX,iu_OHTLP,iu_OCNOUT
      *     ,iu_XCORR,iu_OHT
       INTEGER ItimeX
       REAL*8 onht(jm,2),toceansv(3,IM,JM)
@@ -108,12 +108,12 @@ C****
 C**** Read in input files
 C****
       call openunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+      CALL READT (iu_SICE,0,IM*JM,DM,1)
 C*
 C**** Read in FOCEAN - ocean fraction
 C*
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C*
 C**** Read in ocean data below mixed layer on December 31
@@ -140,7 +140,7 @@ C**** Set up unit number of mixed layer depth climatogies
 C**** find and limit ocean ann max mix layer depths
       z12o = 0.
       do m=1,jmpery
-        CALL READT (iu_OCNML,0,z1ox,IM*JM,z1ox,1)
+        CALL READT (iu_OCNML,0,IM*JM,z1ox,1)
         do j=1,jm
         do i=1,im
 ccc       z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
@@ -322,9 +322,7 @@ C**** Combine final restart file of PRESCRIBED OCEAN DATA model run
 C**** with mean & bottom temperature of 2nd ocean layer to create
 C**** Initial Conditions for a PREDICTED OCEAN DATA model run.
 C****
-      call openunit("RSFIC",iu_AIC,.true.,.true.)
-      call io_rsf(iu_AIC,ItimeX,irerun,ioerr)
-      call closeunit(iu_AIC)
+      call io_rsf("RSFIC",ItimeX,irerun,ioerr)
 C*
 C****  Set the ocean temperature below the mixed layer
 C*
@@ -334,9 +332,7 @@ C*
       timing = 0
       timestr = " "
 C*
-      call openunit("RSFNEW",iu_AIC,.true.,.false.)
-      call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
-      call closeunit(iu_AIC)
+      call io_rsf("RSFNEW",ItimeX,iowrite_mon,ioerr)
 
 C**** Output aplot format file of ocean heat transports
       print*,"Calculating global northward heat transport..."

@@ -30,16 +30,13 @@ C**** must be compiled after the model
 
       print*,trim(infile)
 
-      OPEN(kunit,FILE=trim(infile),FORM="UNFORMATTED",STATUS="OLD")
-
       iaction=irsfic
       ioerr=-1
-      call io_rsf  (kunit,it,iaction,ioerr)
+      call io_rsf  (trim(infile),it,iaction,ioerr)
       if (ioerr.eq.1) then
         WRITE(6,*) "I/O ERROR IN RSF FILE: KUNIT=",kunit
        stop 'no action'
       end if
-      CLOSE (kunit)
 
       OPEN(kunit,FILE=trim(outfile),
      *     FORM="UNFORMATTED",STATUS="UNKNOWN")

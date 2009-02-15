@@ -40,7 +40,7 @@ C**** must be compiled after the model
       IF (IARGC().lt.2) THEN
         PRINT*,"Convert rsf files from old format to new"
         PRINT*,"To create a restart file for the standard land mask:"
-        PRINT*,"conv_rsf in_file rsf_file [-g gic_file] [-e ind_file]" 
+        PRINT*,"conv_rsf in_file rsf_file [-g gic_file] [-e ind_file]"
         PRINT*,"To create a restart file with the extended land"
         PRINT*,"surface data (which can be used with any land mask):"
         PRINT*,"use '-e conv_indices_file' option"
@@ -65,7 +65,7 @@ C**** must be compiled after the model
           cycle
         endif
       enddo
-        
+
 
       if ( extend_gh ) then
         call openunit (trim(cindex_file), iu_CI, .true. , .true. )
@@ -111,8 +111,8 @@ C**** must be compiled after the model
 
 C**** read in FLAKE/FOCEAN data
       call openunit ("TOPO", iu_TOPO, .true., .true.)
-      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! ocean fraction
-      CALL READT (iu_TOPO,0,FLAKE,IM*JM,FLAKE,1) ! Lake fraction
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,FLAKE ,1) ! Lake fraction
       call closeunit (iu_TOPO)
 
 C**** convert sea ice temperatures into enthalpy
@@ -208,10 +208,7 @@ C**** set default foliage values
       Cint=0.0127D0
       cnc_ij=0.d0
 
-      call openunit (trim(outfile),iu_AIC, .true.,.false.)
-
-      call io_rsf(iu_AIC,ItimeX,iowrite_mon,ioerr)
-      call closeunit (iu_AIC)
+      call io_rsf(trim(outfile),ItimeX,iowrite_mon,ioerr)
       print*,ioerr
       print*,"New rsf file written out to ",trim(outfile)
 

@@ -48,7 +48,7 @@ C****
 C**** Read in FOCEAN - ocean fraction
 C****
       call openunit("TOPO",iu_TOPO,.true.,.true.)
-      CALL READT (iu_TOPO,0,FOCEAN,IM*JM,FOCEAN,1) ! Ocean fraction
+      CALL READT (iu_TOPO,0,IM*JM,FOCEAN,1) ! Ocean fraction
       call closeunit(iu_TOPO)
 C*
       fland = 1.- focean
@@ -56,7 +56,7 @@ C*
 C**** Read in aux. sea-ice file
 C*
       call openunit("SICE",iu_SICE,.true.,.true.)
-      CALL READT (iu_SICE,0,DM,IM*JM,DM,1)
+      CALL READT (iu_SICE,0,IM*JM,DM,1)
 C****
 C**** Calculate spherical geometry
 C****
@@ -68,7 +68,7 @@ C**** Set up unit number of mixed layer depth climatogies
 C**** find and limit ocean ann max mix layer depths
       z12o = 0.
       do m=1,12
-        CALL READT (iu_OCNML,0,z1ox,IM*JM,z1ox,1)
+        CALL READT (iu_OCNML,0,IM*JM,z1ox,1)
         do j=1,jm
         do i=1,im
 ccc       z12o(i,j)=min( z12o_max , max(z12o(i,j),z1ox(i,j)) )
