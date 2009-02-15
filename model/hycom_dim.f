@@ -32,9 +32,14 @@ c-----------------------------------------------------------------------------
       integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
 #endif
 
-#ifdef TRACERS_OceanBiology
+#ifdef TRACERS_Alkalinity
       integer, parameter :: ntrcr = 16
 #else
+#ifdef TRACERS_OceanBiology
+      integer, parameter :: ntrcr = 15
+#endif
+#endif
+#ifdef TRACERS_HYCOM_Ventilation
       integer, parameter :: ntrcr = 1
 #endif
 c
