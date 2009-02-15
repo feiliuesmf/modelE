@@ -3378,11 +3378,11 @@ C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
 C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
       RH1(L)=QL(L)/QSATC
       IF(LHX.EQ.LHS) THEN
-        IF(RH(L).LE.1.)  THEN
+        IF(RH(L).LE.1.) THEN
           IF (RH00(L).lt.1.) then
             CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
           ELSE
-            CLEARA(L)=0.
+            CLEARA(L)=1.
           END IF
         END IF
         IF(CLEARA(L).GT.1.) CLEARA(L)=1.
@@ -3420,7 +3420,13 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
       WMXTR = WMX(L)
-        IF(RH(L).LE.1.)CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+        IF(RH(L).LE.1.) THEN                                           
+          IF (RH00(L).lt.1.) then
+            CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
+          ELSE
+            CLDSAVT=0.
+          END IF
+        END IF
         IF(CLDSAVT.LT.0.) CLDSAVT=0.
         IF(RH(L).GT.1.) CLDSAVT=1.
         IF (CLDSAVT.GT.1.) CLDSAVT=1.
@@ -3477,7 +3483,7 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
         IF (RH00(L).lt.1.) THEN
           CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
         ELSE
-          CLEARA(L)=0.
+          CLEARA(L)=1.
         END IF
       END IF
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
@@ -3515,7 +3521,7 @@ C**** COMPUTE THE LARGE-SCALE CLOUD COVER
         IF (RH00(L).lt.1.) THEN
           CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
         ELSE
-          CLEARA(L)=0.
+          CLEARA(L)=1.
         END IF
       END IF
       IF(CLEARA(L).GT.1.) CLEARA(L)=1.
@@ -3709,7 +3715,7 @@ c**** energy fix?
           IF (RH00(L).lt.1.) THEN
             CLEARA(L)=DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
           ELSE
-            CLEARA(L)=0.
+            CLEARA(L)=1.
           END IF
         END IF
         IF(CLEARA(L).GT.1.) CLEARA(L)=1.
