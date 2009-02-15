@@ -1171,7 +1171,7 @@ C**** KPP variables
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
       REAL*8 UKJM(LMO,IM+2)  !  ,UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
       REAL*8 UKM(LMO,4,2,2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO),
-     *              OLJ(3,LMO,grid%J_STRT_HALO:grid%J_STOP_HALO)
+     *     OLJ(3,LMO,grid%J_STRT_HALO:grid%J_STOP_HALO),OLtemp(3,LMO)
 
       LOGICAL, PARAMETER :: LDD = .FALSE.
       INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
@@ -1869,12 +1869,13 @@ c         OL(L,L_SALT)= OL(L,L_SALT)+ OLJ(3,L,J)
 c       END DO
 c     END DO
 
-      olj(1,:,1) = OL(:,L_RHO )
-      olj(2,:,1) = OL(:,L_TEMP)
-      olj(3,:,1) = OL(:,L_SALT)
-      call globalsum(grid,OLJ(1,:,:),OL(:,L_RHO)  ,jband=(/1,jm/) )
-      call globalsum(grid,OLJ(2,:,:),OL(:,L_TEMP) ,jband=(/1,jm/) )
-      call globalsum(grid,OLJ(3,:,:),OL(:,L_SALT) ,jband=(/1,jm/) )
+      call globalsum(grid,OLJ(1,:,:),OLtemp(:,L_RHO)  ,jband=(/1,jm/) )
+      call globalsum(grid,OLJ(2,:,:),OLtemp(:,L_TEMP) ,jband=(/1,jm/) )
+      call globalsum(grid,OLJ(3,:,:),OLtemp(:,L_SALT) ,jband=(/1,jm/) )
+      OL(:,L_RHO ) = OL(:,L_RHO ) + OLtemp(:,L_RHO) 
+      OL(:,L_TEMP) = OL(:,L_TEMP) + OLtemp(:,L_TEMP)
+      OL(:,L_SALT) = OL(:,L_SALT) + OLtemp(:,L_SALT)
+
 C****
       RETURN
       END SUBROUTINE OCONV
