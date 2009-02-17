@@ -128,13 +128,13 @@ c
         x = -1d0 + 2d0*(dble(i)-.5d0)/im
         y = -1d0 + 2d0*(dble(j)-.5d0)/im
         call csxy2ll(x,y,grid%tile,lon2d(i,j),lat2d(i,j))
-        lon2d(i,j)=lon2d(i,j)-shiftwest
-        if ( lon2d(i,j) .lt. -pi) lon2d(i,j)= lon2d(i,j) + twopi
         lat2d_dg(i,j) = lat2d(i,j)/radian
         lon2d_dg(i,j) = lon2d(i,j)/radian
         sinlat2d(i,j) = sin(lat2d(i,j))
         coslat2d(i,j) = cos(lat2d(i,j))
         lon2d(i,j) = lon2d(i,j) + pi ! IDL has a value of zero
+        lon2d(i,j)=lon2d(i,j)-shiftwest
+        if ( lon2d(i,j) .lt. 0.) lon2d(i,j)= lon2d(i,j) + twopi
       enddo
       enddo
 
