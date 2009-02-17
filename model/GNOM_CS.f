@@ -309,3 +309,49 @@ c
       e2=e2/sqrt(sum(e2*e2))
       return
       end subroutine e1e2
+
+      subroutine trigint(tile,x_in,y_in,a,cltcln,cltsln,slt)
+c computes the integrals from 0 to x_in, 0 to y_in of
+c area:                   a
+c cos(lat)*cos(lon)*area: cltcln
+c cos(lat)*sin(lon)*area: cltsln
+c sin(lat)*area:          slt
+c 
+      implicit none
+      integer :: tile
+      real*8 :: x_in,y_in
+      real*8 :: a,cltcln,cltsln,slt
+      real*8 :: x,y,rtx,rty,atanx,atany
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      x = tan(g*x_in)*sqrt(2d0)
+      y = tan(g*y_in)*sqrt(2d0)
+      a = atan(x*y/sqrt(1.+x*x+y*y))
+      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+        x = +y_in
+        y = -x_in
+      elseif(tile.eq.6) then ! tile 6 = tile 3 flipped around the axis x+y=0
+        x = -y_in
+        y = -x_in
+      endif
+      rtx = sqrt(1.+x*x)
+      rty = sqrt(1.+y*y)
+      atanx = -.5*atan(x/rty)/rty
+      atany = -.5*atan(y/rtx)/rtx
+      if(tile.eq.3 .or. tile.eq.6) then ! polar tile
+        cltsln = atanx
+        cltcln = atany
+        slt    = -(x*atany + y*atanx)
+      else
+        slt    = atanx
+c longitude offsets and rotation on tiles 4/5
+        if(tile.eq.1 .or. tile.eq.4) then
+          cltsln = -atany
+          cltcln = x*atany + y*atanx
+        else
+          cltsln = x*atany + y*atanx
+          cltcln = atany
+        endif
+      endif
+      if(tile.ge.4) slt = -slt
+      return
+      end subroutine trigint
