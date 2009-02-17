@@ -250,4 +250,62 @@ c Will be fixed soon.
       end subroutine lonlat_to_ij
       END MODULE GEOM
 
-
+      subroutine e1e2(x,y,tile,e1,e2)
+c
+c this routine computes latlon-oriented basis vectors e1,e2 that
+c are parallel to cubed-sphere gridlines at a position x,y on tile.
+c e1(1:2) is parallel to the constant-y great circles and is
+c  proportional to (/ cos(lat)*dlon/dx, dlat/dx /)
+c e2(1:2) is parallel to the constant-x great circles and is
+c  proportional to (/ cos(lat)*dlon/dy, dlat/dy /)
+c
+      implicit none
+      real*8 :: x,y ! input
+      integer :: tile ! input
+      real*8, dimension(2) :: e1,e2
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      real*8 :: gx,gy,tangx,tangy,r2,tmpx,tmpy,tmpe(2)
+      gx = g*x
+      gy = g*y
+      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+        tmpx = gx
+        tmpy = gy
+        gx = +tmpy
+        gy = -tmpx
+      elseif(tile.eq.6) then    ! tile 6 = tile 3 flipped around the axis x+y=0
+        tmpx = gx
+        tmpy = gy
+        gx = -tmpy
+        gy = -tmpx
+      endif
+      tangx = tan(gx)
+      tangy = tan(gy)
+      r2 = 1d0/sqrt(1d0+2d0*(tangx**2+tangy**2))
+      if(tile.eq.3 .or. tile.eq.6) then
+        e1(1) = -tangy
+        e1(2) = -tangx*r2
+        e2(1) = tangx
+        e2(2) = -tangy*r2
+        if(tile.eq.6) then
+          tmpe(:) = -e1
+          e1(:) = -e2(:)
+          e2(:) = tmpe(:)
+          e1(2) = -e1(2)
+          e2(2) = -e2(2)
+        endif
+      else
+        e1(1)=1d0
+        e1(2)=-2d0*tangx*tangy*r2
+        e2(1)=0d0
+        e2(2)=1d0
+        if(tile.eq.4 .or. tile.eq.5) then
+          e2(1)=1d0
+          e2(2)=e1(2)
+          e1(1)=0d0
+          e1(2)=-1d0
+        endif
+      endif
+      e1=e1/sqrt(sum(e1*e1))
+      e2=e2/sqrt(sum(e2*e2))
+      return
+      end subroutine e1e2
