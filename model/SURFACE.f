@@ -992,7 +992,7 @@ c    *                   EVPFLX,SHFLX,ptype
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
       TGR4(ITYPE,I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
-      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-STBO*TR4)
+      dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-TRHR(0,I,J))+TRHDT
 C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
