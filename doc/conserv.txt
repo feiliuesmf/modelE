@@ -181,11 +181,11 @@ Atmosphere: Change of KE by Dynamics (10^-3 W/m^2) / 1000 = 0.
 
 Atmosphere: Change of TPE by Radiation (10^-2 W/m^2) / 100  
  = Global: [SW ABS BY ATMOS + NET LW AT P1 - NET LW AT Z0 
-	  + SW ABS BELOW P1 - SW ABS BELOW P0]
- = Global: [NET RAD AT P1 - NET RAD AT Z0]
+	  + SW ABS BELOW P1 - SW ABS BELOW P0 + LW TO L1]
+ = Global: [NET RAD AT P1 - NET RAD AT Z0 + LW TO L1]
 
 Atmosphere: Change of TPE by SURF+TURB (10^-2 W/m^2) / 100  =
-Global: - [SENSBL HEAT FLX] - [LW TO L1]
+Global:   - [SENSBL HEAT FLX + LW TO L1]
 
 Atmosphere: Change of TPE by CONDENSATN (10^-2 W/m^2) / 100 +
 Atmosphere: Change of ENRG WAT by CONDENSAT (10^-2 W/m^2) / 100 =
