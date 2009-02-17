@@ -323,9 +323,8 @@ c
       real*8 :: a,cltcln,cltsln,slt
       real*8 :: x,y,rtx,rty,atanx,atany
       real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
-      x = tan(g*x_in)*sqrt(2d0)
-      y = tan(g*y_in)*sqrt(2d0)
-      a = atan(x*y/sqrt(1.+x*x+y*y))
+      x = x_in
+      y = y_in
       if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
         x = +y_in
         y = -x_in
@@ -333,6 +332,9 @@ c
         x = -y_in
         y = -x_in
       endif
+      x = tan(g*x)*sqrt(2d0)
+      y = tan(g*y)*sqrt(2d0)
+      a = atan(x*y/sqrt(1.+x*x+y*y))
       rtx = sqrt(1.+x*x)
       rty = sqrt(1.+y*y)
       atanx = -.5*atan(x/rty)/rty
