@@ -6,7 +6,7 @@
 !@cont GEOM_CS
 
       USE MODEL_COM, only : IM,JM
-      USE CONSTANT, only : radius
+      USE CONSTANT, only : radius,twopi
       IMPLICIT NONE
       SAVE
 
@@ -29,6 +29,9 @@
 !@var ddx_ci, ddx_cj,ddy_ci ddy_cj 
       REAL*8, ALLOCATABLE :: ddx_ci(:,:),ddx_cj(:,:)
       REAL*8, ALLOCATABLE :: ddy_ci(:,:),ddy_cj(:,:)
+
+c     shift grid 10 degrees West to avoid corner over Japan
+      real*8, parameter :: shiftwest = twopi/36.
 
 !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: axyp, byaxyp
@@ -59,7 +62,7 @@
       integer :: i0h, i1h, i0, i1
       integer :: j0h, j1h, j0, j1
       integer :: i,j
-      real*8 :: dloni,dlonj,dlati,dlatj,bydet,shiftwest
+      real*8 :: dloni,dlonj,dlati,dlatj,bydet
 
       real*8, dimension(grid%i_strt:grid%i_stop+1,
      &                  grid%j_strt:grid%j_stop+1) :: axyp_int
@@ -99,8 +102,6 @@
 
       AREAG = 2 * TWOPI * RADIUS*RADIUS
 
-c     shift grid 10 degrees West to avoid corner over Japan
-      shiftwest = twopi/36.
 c
 c calculate corner lons/lats and areas integrated from the center
 c of this cube face
@@ -128,13 +129,14 @@ c
         x = -1d0 + 2d0*(dble(i)-.5d0)/im
         y = -1d0 + 2d0*(dble(j)-.5d0)/im
         call csxy2ll(x,y,grid%tile,lon2d(i,j),lat2d(i,j))
+        lon2d(i,j) = lon2d(i,j)-shiftwest
         lat2d_dg(i,j) = lat2d(i,j)/radian
         lon2d_dg(i,j) = lon2d(i,j)/radian
+        if(lon2d_dg(i,j) .lt. -180.) lon2d_dg(i,j)=lon2d_dg(i,j)+360.
         sinlat2d(i,j) = sin(lat2d(i,j))
         coslat2d(i,j) = cos(lat2d(i,j))
         lon2d(i,j) = lon2d(i,j) + pi ! IDL has a value of zero
-        lon2d(i,j)=lon2d(i,j)-shiftwest
-        if ( lon2d(i,j) .lt. 0.) lon2d(i,j)= lon2d(i,j) + twopi
+        if(lon2d(i,j) .lt. 0.) lon2d(i,j)= lon2d(i,j) + twopi
       enddo
       enddo
 
@@ -239,15 +241,79 @@ c x and y are nondimensional cube coordinates ranging from -1 to +1.
 
       subroutine lonlat_to_ij(ll,ij)
 c converts lon,lat=ll(1:2) into model i,j=ij(1:2)
-c this is a dummy version to allow compilation of new river/lakes routine
-c Will be fixed soon.
+c this version is for the gnomonic grid.  ll are in degrees east.
+c if lon,lat do not lie on this tile, i,j are set to -99
+      use model_com, only : im,jm
+      use constant, only : radian,pi,twopi
+      use domain_decomp_atm, only : grid
       implicit none
       real*8, intent(in) :: ll(2)
       integer, intent(out) :: ij(2)
-      ij(1) = 1
-      ij(2) = 1
+      real*8 :: x,y,lonshift
+      integer :: tile
+      lonshift = ll(1)*radian+shiftwest
+      if(lonshift.gt.pi) lonshift=lonshift-twopi
+      call ll2csxy(lonshift,ll(2)*radian,x,y,tile)
+      if(tile.eq.grid%tile) then
+        ij(1) = min(1+int(.5*(x+1d0)*im),im)
+        ij(2) = min(1+int(.5*(y+1d0)*jm),jm)
+      else
+        ij = -99
+      endif
       return
       end subroutine lonlat_to_ij
+
+      subroutine ll2csxy(lon,lat,x,y,tile)
+c converts lon,lat (radians) to x,y,tile where x,y vary between -1 and 1
+c and tile index indicates the face of the cube.
+c This routine places the center of face 1 at the IDL.
+      USE CONSTANT, only : PI
+      implicit none
+      real*8, parameter :: byg=1.62474893308877d0 ! byg=2/acos(1/3)
+      real*8 :: lon,lat ! input
+      real*8 :: x,y ! output
+      integer :: tile ! output
+      real*8 :: modlon,coslon,tanlat,tmpx,tmpy,bytanfac
+      modlon = lon
+      do while(modlon.lt.-pi/4d0)
+        modlon = modlon + pi/2d0
+      enddo
+      do while(modlon.gt.+pi/4d0)
+        modlon = modlon - pi/2d0
+      enddo
+      coslon = cos(modlon)
+      tanlat = tan(lat)
+      y = byg*atan(tanlat/(coslon*sqrt(2d0)))
+      if(abs(y).le.1d0) then
+c equatorial face
+        x = byg*atan(tan(modlon)/sqrt(2d0))
+c determine which face (1,2,4,5) we are on.  integer arithmetic
+        tile = 1 + int((lon+1.25*pi)*2./pi)
+        tile = tile +(tile/3) -5*(tile/5)
+        if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+          tmpx = x
+          tmpy = y
+          x = -tmpy
+          y = +tmpx
+        endif
+      else
+c polar face
+        bytanfac = sqrt(.5d0)/abs(tanlat)
+        x = byg*atan(bytanfac*cos(lon))
+        y = byg*atan(bytanfac*sin(lon))
+        if(lat.gt.0.) then
+          tile = 3
+        else ! tile 6 x,y = tile 3 x,y flipped around the axis x+y=0
+          tile = 6
+          tmpx = x
+          tmpy = y
+          x = -tmpy
+          y = -tmpx
+        endif
+      endif
+      return
+      end subroutine ll2csxy
+
       END MODULE GEOM
 
       subroutine e1e2(x,y,tile,e1,e2)
