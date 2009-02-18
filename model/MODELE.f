@@ -1990,7 +1990,9 @@ C****
 #if !defined(ADIABATIC) || defined(CUBE_GRID)
 
 C**** Initialize pbl (and read in file containing roughness length data)
+#ifndef CUBE_GRID /* until a better solution is found */
       if (iniPBL) call recalc_agrid_uv   ! PBL needs A-grid winds
+#endif
       if(istart.gt.0) CALL init_pbl(iniPBL)
 C****
 C**** Initialize the use of gravity wave drag diagnostics
