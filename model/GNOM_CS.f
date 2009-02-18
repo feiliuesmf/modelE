@@ -1,4 +1,29 @@
 #include "rundeck_opts.h"
+
+c
+c Definitions of non-dimensional cube coordinates x,y:
+c
+c Except where indicated otherwise, all routines in this file assume
+c that input/output x,y are defined to vary linearly with grid indices
+c i,j (im=jm):
+c x_edge(i) = -1+2*(i-1)/im    x_midpoint(i) = -1+2*(i-1/2)/im
+c y_edge(j) = -1+2*(j-1)/jm    y_midpoint(j) = -1+2*(j-1/2)/jm
+c
+c Grid spacing is taken to give equal lengths along cube edges, i.e.
+c y = lat/g when x=1; g is the latitude of cube corners.
+c g = acos(1/3)/2 = asin(1/sqrt(3)) = atan(1/sqrt(2))
+c
+c For convenience, many routines internally define an alternative
+c space denoted here as "capital" X,Y:
+c X = sqrt(2)*tan(g*x)  Y = sqrt(2)*tan(g*y)
+c X = tan(rotated_lon)  Y = tan(rotated_lat)/cos(rotated_lon)
+c In addition to allowing many formulas to be written more compactly,
+c this transformation has the following properties:
+c - great circles are straight lines in X-Y space
+c - latitude circles on polar tiles are X*X + Y*Y = const
+c - latitude circles on equatorial tiles are Y*Y = const*(1+X*X)
+c
+
       MODULE GEOM
 !@sum  GEOM contains geometric variables and arrays
 !@auth M. Kelley
@@ -103,7 +128,7 @@ c     shift grid 10 degrees West to avoid corner over Japan
       AREAG = 2 * TWOPI * RADIUS*RADIUS
 
 c
-c calculate corner lons/lats and areas integrated from the center
+c calculate corner lons/lats, and areas integrated from the center
 c of this cube face
 c
       do j=j0,j1+1
@@ -178,14 +203,8 @@ c account for discontinuity of lon2d at the international date line
       END SUBROUTINE GEOM_CS
 
       subroutine csxy2ll(x,y,tile,lon,lat)
+c converts x,y,tile to lon,lat (radians)
 c This routine places the center of tile 1 at the IDL.
-c Gnomonic (great circle) grid generation rules:
-c 1. y is proportional to latitude when lon=pi/4 (x=const)
-c 2. tan(lat) proportional to cos(lon) along a great circle y=const
-c x and y are nondimensional cube coordinates ranging from -1 to +1.
-c On a polar face, the transformation X=tan(g*x), Y=tan(g*y) makes
-c latitude lines into X*X+Y*Y=const and longitude lines into
-c Y/X=const, where g=.5*acos(1/3).
       USE CONSTANT, only : PI
       implicit none
       real*8 :: x,y ! input
@@ -227,7 +246,6 @@ c Y/X=const, where g=.5*acos(1/3).
       function aint(x,y)
 c calculates the area integral from the center of a cube face
 c to the point x,y.
-c x and y are nondimensional cube coordinates ranging from -1 to +1.
       implicit none
       real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
       real*8 :: x,y
@@ -264,8 +282,7 @@ c if lon,lat do not lie on this tile, i,j are set to -99
       end subroutine lonlat_to_ij
 
       subroutine ll2csxy(lon,lat,x,y,tile)
-c converts lon,lat (radians) to x,y,tile where x,y vary between -1 and 1
-c and tile index indicates the face of the cube.
+c converts lon,lat (radians) to x,y,tile.
 c This routine places the center of face 1 at the IDL.
       USE CONSTANT, only : PI
       implicit none
@@ -316,6 +333,54 @@ c polar face
 
       END MODULE GEOM
 
+      subroutine ll2csxy_vec(x_in,y_in,tile,ull,vll,uxy,vxy)
+c
+c Given latlon-oriented vector components ull,vll located at a
+c position x_in,y_in on tile, return "vector" components uxy,vxy
+c defining the directed great circle parallel to ull,vll.
+c This great circle is a straight line in the X-Y space of this tile:
+c         vxy*dX = uxy*dY
+c See the beginning of this file for "capital" X,Y definitions.
+c This routine could be made independent of the grid variant if
+c position were specified as lon,lat or "capital" X,Y.
+c
+      implicit none
+      real*8 :: x_in,y_in,ull,vll ! input
+      integer :: tile ! input
+      real*8 :: uxy,vxy ! output
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      real*8 :: x,y,rtxy,bymag,utmp,vtmp
+      x = x_in
+      y = y_in
+      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+        x = -y_in
+        y = +x_in
+      endif
+      x = tan(g*x)*sqrt(2d0)
+      y = tan(g*y)*sqrt(2d0)
+      rtxy = sqrt(1d0+x*x+y*y)
+      if(tile.eq.3 .or. tile.eq.6) then
+        uxy = -y*ull - x*rtxy*vll
+        vxy = +x*ull - y*rtxy*vll
+        if(tile.eq.6) then ! tile 6 = tile 3 flipped around the axis x+y=0
+          uxy = -uxy
+          vxy = -vxy
+        endif
+      else
+        uxy = (1.+x*x)*ull
+        vxy = x*y*ull + rtxy*vll
+        if(tile.eq.4 .or. tile.eq.5) then
+          utmp = uxy; vtmp = vxy
+          uxy = -vtmp
+          vxy = +utmp
+        endif
+      endif
+      bymag = 1d0/sqrt(uxy**2 + vxy**2)
+      uxy = uxy*bymag
+      vxy = vxy*bymag
+      return
+      end subroutine ll2csxy_vec
+
       subroutine e1e2(x,y,tile,e1,e2)
 c
 c this routine computes latlon-oriented basis vectors e1,e2 that
@@ -330,18 +395,13 @@ c
       integer :: tile ! input
       real*8, dimension(2) :: e1,e2
       real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
-      real*8 :: gx,gy,tangx,tangy,r2,tmpx,tmpy,tmpe(2)
+      real*8 :: gx,gy,tangx,tangy,r2,tmpx,tmpy
       gx = g*x
       gy = g*y
       if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
         tmpx = gx
         tmpy = gy
         gx = +tmpy
-        gy = -tmpx
-      elseif(tile.eq.6) then    ! tile 6 = tile 3 flipped around the axis x+y=0
-        tmpx = gx
-        tmpy = gy
-        gx = -tmpy
         gy = -tmpx
       endif
       tangx = tan(gx)
@@ -353,11 +413,8 @@ c
         e2(1) = tangx
         e2(2) = -tangy*r2
         if(tile.eq.6) then
-          tmpe(:) = -e1
-          e1(:) = -e2(:)
-          e2(:) = tmpe(:)
-          e1(2) = -e1(2)
-          e2(2) = -e2(2)
+          e1 = -e1
+          e2 = -e2
         endif
       else
         e1(1)=1d0
@@ -387,20 +444,19 @@ c
       integer :: tile
       real*8 :: x_in,y_in
       real*8 :: a,cltcln,cltsln,slt
-      real*8 :: x,y,rtx,rty,atanx,atany
+      real*8 :: x,y,tmpx,tmpy,rtx,rty,atanx,atany
       real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
-      x = x_in
-      y = y_in
-      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
-        x = +y_in
-        y = -x_in
-      elseif(tile.eq.6) then ! tile 6 = tile 3 flipped around the axis x+y=0
-        x = -y_in
-        y = -x_in
-      endif
-      x = tan(g*x)*sqrt(2d0)
-      y = tan(g*y)*sqrt(2d0)
+      x = tan(g*x_in)*sqrt(2d0)
+      y = tan(g*y_in)*sqrt(2d0)
       a = atan(x*y/sqrt(1.+x*x+y*y))
+      tmpx = x; tmpy = y
+      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
+        x = +tmpy
+        y = -tmpx
+      elseif(tile.eq.6) then ! tile 6 = tile 3 flipped around the axis x+y=0
+        x = -tmpy
+        y = -tmpx
+      endif
       rtx = sqrt(1.+x*x)
       rty = sqrt(1.+y*y)
       atanx = -.5*atan(x/rty)/rty
@@ -411,7 +467,7 @@ c
         slt    = -(x*atany + y*atanx)
       else
         slt    = atanx
-c longitude offsets and rotation on tiles 4/5
+c longitude offsets; rotation on tiles 4/5
         if(tile.eq.1 .or. tile.eq.4) then
           cltsln = -atany
           cltcln = x*atany + y*atanx
