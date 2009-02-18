@@ -2269,6 +2269,15 @@ C****
         jls_ltop(k) = LM
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifdef GFED_3D_BIOMASS
+        k = k + 1
+        jls_3Dsource(nBiomass,n) = k
+        sname_jls(k) = 'bburn_source_of'//trname(n)
+        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY BIOMASS BURNING'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif
 #else
         k = k + 1
         jls_source(6,n) = k
@@ -3957,6 +3966,17 @@ c put in chemical production
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifdef GFED_3D_BIOMASS
+        k = k + 1
+        ijts_3Dsource(nBiomass,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trname(n)//' Biomass Burning Source'
+        sname_ijts(k) = trname(n)//'_bburn'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif
 #else 
       k = k + 1
         ijts_source(6,n) = k
@@ -7500,6 +7520,12 @@ C**** set some defaults
             qsum(itcon_dd(n,1)) = .false.
           end if
 #endif
+#ifdef GFED_3D_BIOMASS
+           g=g+1; itcon_3Dsrc(nBiomass,N) = g
+           qcon(itcon_3Dsrc(nBiomass,N)) = .true.
+           conpts(g-12) = 'Biomass_Burning'
+           qsum(itcon_3Dsrc(nBiomass,N)) = .true.
+#endif
 #else  /* not TRACERS_SPECIAL_Shindell */
           itcon_surf(1,N) = 13
           qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
@@ -9664,6 +9690,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef INTERACTIVE_WETLANDS_CH4
          if(ntsurfsrc(n) > 0) call read_ncep_for_wetlands(iact)
 #endif
+#ifdef GFED_3D_BIOMASS
+         call get_GFED_biomass_burning(n)
+#endif
 #ifdef BIOGENIC_EMISSIONS
         else if (n==n_Isoprene)then
           if(ntsurfsrc(n)>0 .and. am_i_root( ) )write(6,*)
@@ -10712,6 +10741,9 @@ c
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)
 #ifdef GFED_3D_BIOMASS
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_CH4) = 0.d0
+      call dist_GFED_biomass_burning(n_CH4)
+      call apply_tracer_3Dsource(nBiomass,n_CH4)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_NOx) = 0.d0
       call dist_GFED_biomass_burning(n_NOx)
       call apply_tracer_3Dsource(nBiomass,n_NOx)
