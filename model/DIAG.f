@@ -2116,9 +2116,7 @@ C****
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
      *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
       USE GEOM, only : axyp,imaxj,lon2d,lat2d
-#ifndef CUBE_GRID
       USE GEOM, only : lonlat_to_ij
-#endif
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
@@ -2288,9 +2286,7 @@ c defaults for diurnal diagnostics
 #endif
       call sync_param( "LLDD", LLDD(1:2,1), 2*NDIUPT )
       do n=1,ndiupt
-#ifndef CUBE_GRID
         call lonlat_to_ij(lldd(1,n),ijdd(1,n))
-#endif
       enddo
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
