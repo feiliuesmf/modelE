@@ -186,10 +186,9 @@ C**** using the rad_forc_lev parameter.
      *     CCHL
 !@var iu_CHL unit for chlorophyll file
       INTEGER iu_CHL
-      REAL*8, ALLOCATABLE, DIMENSION(:)   ::  wfac
 #endif
-#ifdef OBIO_RAD_coupling
-      REAL*8, ALLOCATABLE, DIMENSION(:)   ::  wfac
+#if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
+      REAL*8,  DIMENSION(33)   ::  wfac
 #endif
 
 C**** Local variables initialised in init_RAD
@@ -232,9 +231,9 @@ C**** Local variables initialised in init_RAD
      *     trnflb_save, ttausv_save, ttausv_cs_save
      *     ,FSRDIF,DIRNIR,DIFNIR
 #ifdef CHL_from_SeaWIFs
-     *     ,achl,echl1,echl0,bchl,cchl,wfac
+     *     ,achl,echl1,echl0,bchl,cchl
 #endif
-#ifdef OBIO_RAD_coupling
+#if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
      *     ,wfac
 #endif
 #ifdef HTAP_LIKE_DIAGS
@@ -295,10 +294,6 @@ C**** Local variables initialised in init_RAD
      &         ECHL0(I_0H:I_1H,J_0H:J_1H),
      &         BCHL(I_0H:I_1H,J_0H:J_1H),
      &         CCHL(I_0H:I_1H,J_0H:J_1H),
-     &         wfac(1:33),
-#endif
-#ifdef OBIO_RAD_coupling
-     &         wfac(1:33),
 #endif
      *     STAT=IER)
 

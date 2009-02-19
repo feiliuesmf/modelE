@@ -415,7 +415,7 @@ C**** call routine to calculate Gregg version of albedo, including
 C**** Chlorophyll effect
 
       vrbos=.false.
-c      if (ILON.eq.37.and.JLAT.eq.23) vrbos=.true.
+      if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
 
 c      if (vrbos) then
 c      do L=1,6
@@ -427,8 +427,11 @@ c      endif
       !call obio_ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
+      print*,"alb1",WMAG,COSZ,LOC_CHL
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
-     .                    LOC_CHL,dummy1,dummy2,.false.,vrbos)
+     .     LOC_CHL,dummy1,dummy2,.false.,vrbos)
+      print*,"alb2",BOCVN,XOCVN
+      call sys_flush(6)
 
 c      if (vrbos) then
 c      do L=1,6

@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"      
 
       subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,
-     .                         rod,ros,hycgr,vrbos,i,j)
+     .                         rod,ros,hycgr,vrbos)
 
 ***********************************************************************
 ***** this routine is used by both atmosphere and ocean at each (i,j)
@@ -20,21 +20,17 @@ c  Albedo is provided as direct (albd) and diffuse (albs).
 c  Derive surface reflectance as a function of solz and wind
 c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
+      USE CONSTANT, only : pi,radian
       USE FILEMANAGER
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-#ifdef OBIO_RAD_coupling
-      USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
+#if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
+!wfac does not depend on (i,j) thus indept of grid choice
+      USE RAD_COM, only : wfac  
+#elif (defined  CHL_from_OBIO) ||  (defined TRACERS_OceanBiology)
+      USE obio_incom, only : wfac 
+#endif
+#if (defined OBIO_RAD_coupling) || (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
       USE obio_incom, only : lam
-#else   
-#ifdef CHL_from_OBIO
-      USE obio_incom, only : wfac, lam
-#endif
-#ifdef CHL_from_SeaWIFs
-      USE RAD_COM, only : wfac  !wfac does not depend on (i,j) thus indept of grid choice
-#endif
-#ifdef TRACERS_OceanBiology
-      USE obio_incom, only : wfac, lam
-#endif
 #endif
       implicit none
 
@@ -86,20 +82,17 @@ c     .                        0.066922,0.0497974/)
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       logical vrbos,hycgr
 
-      real*8 :: pi, rad, roair, rn, rod(nlt),ros(nlt)
+      real*8 :: roair, rn, rod(nlt),ros(nlt)
       integer :: ngiss
 
 cddd      write(915,*) i,j,wind,solz,bocvn,xocvn,chl,
 cddd     &     rod,ros,hycgr,vrbos,
 cddd     &     wfac
 
-      pi = dacos(-1.0D0)
-      rad = 180.0D0/pi
       rn = 1.341d0  ! index of refraction of pure seawater
       roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
 
-
-      sunz=acos(solz)*rad  !in degs
+      sunz=acos(solz)/radian  !in degs
 
 c  Foam and diffuse reflectance
       if (wind .gt. 4.0) then
@@ -122,7 +115,7 @@ c   Fresnel reflectance for sunz < 40, wind < 2 m/s
         if (sunz .eq. 0.0) then
           rospd = 0.0211d0
         else
-          rtheta = sunz/rad
+          rtheta = sunz*radian
           sintr = sin(rtheta)/rn
           rthetar = asin(sintr)
           rmin = rtheta - rthetar
@@ -171,8 +164,8 @@ c      endif
       enddo
       endif
 
-      if (hycgr) return  !we do not compute albedo coefs
-                         !from within ocean, but from atmos
+c      if (hycgr) return  !we do not compute albedo coefs
+c                         !from within ocean, but from atmos
       
 !!!!!!!!!! Boris' part !!!!!!!!!!!!!!!!!
 C**** get chlorophyll term

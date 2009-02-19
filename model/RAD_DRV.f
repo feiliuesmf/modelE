@@ -71,7 +71,7 @@ C****
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL
 #endif
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
      *     ,wfac
 #endif
       use RAD_COSZ0, only : cosz_init
@@ -99,10 +99,9 @@ C****
       LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
 
-#ifdef OBIO_RAD_coupling
+#if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
       integer, parameter :: nlt=33
-      real*8 :: pi, rad, roair, rn,
-     *     aw(nlt), bw(nlt), saw, sbw
+      real*8 :: aw(nlt), bw(nlt), saw, sbw
       real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, t, tlog, fac, rlam
       integer :: nl,ic , iu_bio, lambda, lam(nlt)
       character title*50
@@ -576,13 +575,8 @@ C**** Read in the factors used for alterations:
       call closeunit(iu2)
 #endif
 
-#ifdef OBIO_RAD_coupling
-      pi = dacos(-1.0D0)
-      rad = 180.0D0/pi
-      rn = 1.341d0  ! index of refraction of pure seawater
-      roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
-
-      call openunit('cfle1',iu_bio)
+#if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
+      call openunit('cfle1',iu_bio,.false.,.true.)
       do ic = 1,6
         read(iu_bio,'(a50)')title
       enddo
@@ -697,7 +691,6 @@ C**** Define CO2 (ppm) for rest of model
 
 #ifdef CHL_from_SeaWIFs
 C**** Read in Seawifs files here
-
       IF (JMON.NE.IMON0) THEN
       IF (IMON0==0) THEN
 C**** READ IN LAST MONTH'S END-OF-MONTH DATA
@@ -1226,6 +1219,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
 
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** Set Chlorophyll concentration
+      print*,"rad0",i,j,chl(i,j)
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 #endif
 
