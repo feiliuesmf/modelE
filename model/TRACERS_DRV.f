@@ -541,7 +541,7 @@ C**** Get solar variability coefficient from namelist if it exits
           ntm_power(n) = -8
           tr_mm(n) = 48.d0
 #ifdef TRACERS_DRYDEP
-          F0(n) = 1.4d0
+          F0(n) = 1.0d0
           HSTAR(n) = 1.d-2
 #endif
       case ('NOx')
