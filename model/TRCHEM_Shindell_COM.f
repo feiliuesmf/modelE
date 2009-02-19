@@ -76,9 +76,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param dlogp 10.d0**(-2./16.)
 !@param dlogp2 10.d0**(-1./16.)
 !@param byradian 1/radian = conversion from radians to degrees
-!@param LCOalt number of levels in the COaltIN array 
+!@param LCOalt number of levels in the several tracer IC arrays
 !@param LCH4alt number of levels in the CH4altIN array
-!@param JCOlat number of latitudes in the COlat array 
 !@param PCOalt pressures at LCOalt levels
 !@param PCH4alt pressures at LCH4alt levels
 !@param NCFASTJ2 number of levels in the fastj2 atmosphere
@@ -100,7 +99,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param PSClatN NH latitude limit for PSCs
       INTEGER, PARAMETER ::
      & LCOalt =   23,
-     & JCOlat =   19,
      & LCH4alt=    6,
      & p_1   =     2 
 #ifdef SHINDELL_STRAT_CHEM
@@ -262,7 +260,7 @@ C ----------------------------------------------
 #endif
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
-C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
+C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
       REAL*8, PARAMETER, DIMENSION(LCOalt) :: PCOalt = (/
      & 0.9720D+03,0.9445D+03,0.9065D+03,
      & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
@@ -273,12 +271,9 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
      &        .33000947820757D0,.66999052179243D0,.93056815579703D0/), 
      &                                    WTFASTJ=(/.17392742256873D0,
      &         .32607257743127D0,.32607257743127D0,.17392742256873D0/)
-      REAL*8, PARAMETER, DIMENSION(LCOalt) ::  
-     &     COaltIN = (/2d0,1.5625d0,1.375d0,1.25d0,1.125d0,1.0625d0,
-     &     1d0,1d0,1d0,1d0,1d0,.5d0,.375d0,.2d0,.2d0,.2d0,.2d0,.2d0,
-     &     .25d0,.4d0,2.5d0,12d0,60d0/)
 #ifdef SHINDELL_STRAT_CHEM
-     &     ,BrOxaltIN = (/1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,
+      REAL*8, PARAMETER, DIMENSION(LCOalt) ::  
+     &     BrOxaltIN = (/1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,1.d-2,
      &     1.d-2,1.d-2,1.d-2,1.d-2,0.12d0,0.12d0,0.12d0,0.12d0,0.06d0,
      &     0.06d0,0.06d0,0.06d0,0.06d0,0.06d0,0.06d0,0.06d0/)
      &     ,ClOxaltIN = (/1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,
@@ -296,9 +291,6 @@ C to define BrOx, ClOx,ClONOs,HCL,OxIC,CFCIC,N2OICX,CH4ICX too:
       REAL*8, PARAMETER, DIMENSION(LCH4alt) ::   
      &   CH4altINT =(/1.79d0, 1.75d0, 1.620d0,1.460d0,0.812d0,0.230d0/),
      &   CH4altINX =(/1.79d0, 1.75d0, 1.440d0,1.130d0,0.473d0,0.202d0/)    
-      REAL*8, PARAMETER, DIMENSION(JCOlat)  :: COlat = (/40.,40.,40.,40.
-     *     ,45.,50.,60.,70.,80.,90.,110.,125.,140.,165.,175.,180.,170.
-     *     ,165.,150./)
      
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
@@ -496,18 +488,15 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var ZJ photodissociation coefficient? (level,reaction)
 !@var RCLOUDFJ cloudiness (optical depth) parameter, radiation to fastj
 !@var SALBFJ surface albedo parameter from radiation to fastj
-!@var COlat carbon monoxide latitude distribution for init cond (ppbv)
-!@+ [CO] ppbv based on 10deg lat-variation Badr & Probert 1994 fig 9.
-!@var COaltIN adjustments of COlat by altitude (unitless,LCOalt levels)
-!@+ Multiplier of free trop [CO] by layer Badr & Probert 94 fig10 & 11,
-!@+ Lopez-Valverde et al 93 fig 3, and Warneck 88, ch1 fig14.
-!@var OxICIN Ox initial conditions (unit=KG,LCOalt levels)
+!@var OxICIN Ox initial conditions (unit=PPPM,LCOalt levels)
 !@var OxICINL column version of OxICIN
-!@var N2OICIN N2O initial conditions (unit=KG,LCOalt levels)
+!@var COICIN CO initial conditions (unit=PPPM,LCOalt levels)
+!@var COICINL column version of OxICIN
+!@var N2OICIN N2O initial conditions (unit=PPPM,LCOalt levels)
 !@var N2OICINL column version of N2OICIN
-!@var CH4ICIN CH4 initial conditions (unit=KG,LCOalt levels)
+!@var CH4ICIN CH4 initial conditions (unit=PPPM,LCOalt levels)
 !@var CH4ICINL column version of CH4ICIN
-!@var CFCICIN CFC initial conditions (unit=KG,LCOalt levels)
+!@var CFCICIN CFC initial conditions (unit=PPPM,LCOalt levels)
 !@var CFCICINL column version of CFCICIN
 !@var BrOxaltIN altitude dependence BrOx (unitless,LCOalt levels)
 !@var ClOxaltIN altitude dependence ClOx (unitless,LCOalt levels)
@@ -515,9 +504,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var HClaltIN altitude dependence HCl (unitless,LCOalt levels)
 !@var CH4altINT tropical strat adjustments to CH4 (LCH4alt levels)
 !@var CH4altINX xtra-tropical strat adjustments to CH4 LCH4alt levels)
-!@var COalt adjustments of COlat by altitude (unitless,LM levels)
 !@var OxIC Ox initial conditions (unit=KG,LM levels)
 !@var OxICL column version of OxIC
+!@var COIC CO initial conditions (unit=KG,LM levels)
+!@var COICL column version of COIC
 !@var N2OICX N2O initial conditions (unit=KG,LM levels) X=not Jean's
 !@var N2OICL column version of N2OICX
 !@var CH4ICX CH4 initial conditions (unit=KG,LM levels) X=not Jean's
@@ -608,13 +598,13 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
-     & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2  
+     & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
 #endif
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: OxICIN,CH4ICIN
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: COICIN,OxICIN,CH4ICIN
 #ifdef SHINDELL_STRAT_CHEM
-     &                                         ,N2OICIN,CFCICIN
+     &                                       ,N2OICIN,CFCICIN
 #endif
 
 C**************  Not Latitude-Dependant ****************************      
@@ -680,11 +670,11 @@ C**************  Not Latitude-Dependant ****************************
 #endif
       REAL*8, DIMENSION(NLFASTJ)       :: aer,ZFASTJ,O3J,TJ,DBC,
      &  DMFASTJ,XQO3,XQO2,DTAUDZ,TTAU,FTAU,PIAER,RZ,RQ,DO3,PIRAY
-      REAL*8, DIMENSION(LCOalt)        :: OxICINL,CH4ICINL
+      REAL*8, DIMENSION(LCOalt)        :: COICINL,OxICINL,CH4ICINL
 #ifdef SHINDELL_STRAT_CHEM
      &                                   ,N2OICINL,CFCICINL
 #endif
-      REAL*8, DIMENSION(LM)  :: COalt,CH4altT,CH4altX,OxICL,CH4ICL
+      REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX,COICL,OxICL,CH4ICL
 #ifdef SHINDELL_STRAT_CHEM
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt,odcol                    
      &                        ,N2OICL,CFCICL
@@ -735,8 +725,8 @@ C**************  Not Latitude-Dependant ****************************
       use model_com, only     : im,lm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     & TX,sulfate,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
-     & OxICIN,CH4ICIN,JPPJ,LCOalt,acetone,mNO2
+     & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
+     & COICIN,OxICIN,CH4ICIN,JPPJ,LCOalt,acetone,mNO2
 #ifdef SHINDELL_STRAT_CHEM
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
@@ -772,12 +762,14 @@ C**************  Not Latitude-Dependant ****************************
       allocate(          TX(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(      CH4ICX(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        yso2(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        ydms(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(      OxICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
+      allocate(      COICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(     CH4ICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(       DU_O3(J_0H:J_1H)            )
 #ifdef SHINDELL_STRAT_CHEM

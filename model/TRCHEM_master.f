@@ -100,7 +100,7 @@ C**** Local parameters and variables and arguments:
 !@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
 !@+   calculate nighttime chemistry changes
 !@var rlossN,rprodN,ratioN variables for nitrogen conservation
-!@var I,J,L,N,igas,inss,LL,Lqq,JJ,J3,L2,n2 dummy loop variables
+!@var I,J,L,N,igas,inss,LL,Lqq,JJ,L2,n2 dummy loop variables
 !@var avgTT_CH4 Itime avg CH4 # density at LTROPO between 20N and 20S
 !@var avgTT_H2O Itime avg H2O # density at LTROPO between 20N and 20S
 !@var countTT # of points between 20N and 20S on LTROPO plane
@@ -135,7 +135,7 @@ C**** Local parameters and variables and arguments:
      & countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp
       INTEGER, DIMENSION(LM)    :: aero
 #endif
-      INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,J3,L2,n2,
+      INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
      &                             Jqq,Iqq,maxl,iu,ih0,ih,m,istep
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
@@ -1832,7 +1832,6 @@ C Calculate an average tropical CH4 value near 569 hPa::
       r179=1.d0/1.79d0 ! 1.79 is observed trop. CH4
 
       do j=J_0,J_1
-       J3=MAX(1,NINT(float(j)*float(JCOlat)*BYFJM))! index for CO
        do i=I_0,IMAXJ(J)
          select case(which_trop)
          case(0); maxl=ltropo(I,J)
@@ -1861,9 +1860,9 @@ C         previous stratospheric value by 70% here: GSF/DTS 9.15.03:
           ! here 70. = 1.4E-7/2.0E-9
           changeL(L,n_HO2NO2)=FACT1*70.d0*PIfact(n_HO2NO2)
      &                                         - trm(I,J,L,n_HO2NO2)
-          changeL(L,n_CO)=(COlat(J3)*COalt(L)*1.d-9*vol2mass(n_CO)
-     &    *AM(L,I,J)*AXYP(I,J))*0.4d0*PIfact(n_CO)-trm(I,J,L,n_CO)!<<40%
-          changeL(L,n_PAN)     = FACT1*1.d-4*PIfact(n_PAN)
+          ! Don't know if we still want this 40% hardcode in here:
+          changeL(L,n_CO)=COIC(I,J,L)*0.4d0*PIfact(n_CO)-trm(I,J,L,n_CO)
+          changeL(L,n_PAN)= FACT1*1.d-4*PIfact(n_PAN)
      &                           - trm(I,J,L,n_PAN)
           changeL(L,n_Isoprene)= FACT1*1.d-4*PIfact(n_Isoprene)
      &                           - trm(I,J,L,n_Isoprene)

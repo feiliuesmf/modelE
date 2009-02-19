@@ -39,13 +39,14 @@
 #endif
 #endif /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:COaltIN,LCOalt,PCOalt,COalt,
+      USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,pfix_CH4_N,pfix_CH4_S,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,PIratio_indus,PIratio_bburn,
-     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4
+     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
+     &     COICIN,COIC,COICINL,COICL
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
@@ -698,10 +699,16 @@ C          read the CFC initial conditions:
 
       case ('CO')
       n_CO = n
+          call openunit('CO_IC',iu_data,.true.,.true.)
+          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),COICIN,0)
+          call closeunit(iu_data)
+          do j=J_0,J_1  ; do i=I_0,I_1
+           COICINL(:)=COICIN(I,J,:)! now in PPPM
+           CALL LOGPINT(LCOalt,PCOalt,COICINL,LM,PRES,COICL,.true.)
+           COIC(I,J,:)=COICL(:)*am(:,i,j)*axyp(i,j)
+          end do     ; end do
           ntm_power(n) = -8
           tr_mm(n) = 28.01d0
-C         Interpolate CO altitude-dependence to model resolution:
-          CALL LOGPINT(LCOalt,PCOalt,COaltIN,LM,PRES,COalt,.true.)
 
       case ('PAN')
       n_PAN = n
@@ -8486,8 +8493,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE FILEMANAGER, only: openunit,closeunit,nameunit
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : O3_tracer_save,rad_to_file
-      USE TRCHEM_Shindell_COM,only:O3MULT,COlat,MDOFM,ch4icx,
-     &  COalt,JCOlat,OxIC,byO3MULT,PI_run,fix_CH4_chemistry,
+      USE TRCHEM_Shindell_COM,only:O3MULT,MDOFM,ch4icx,
+     &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
      &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
 #ifdef SHINDELL_STRAT_CHEM
@@ -9062,10 +9069,8 @@ c**** earth
             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*1.d-12*ICfactor
           end do; end do; end do
 
-        case('CO')
-C         COlat=ppbv, COalt=no unit, vol2mass(n)=ratio of mol.wt.,
-C         AM=kg/m2, and AXYP=m2:
-          DO L=1,LM
+        case ('CO')
+          do l=1,lm 
             select case(PI_run)
             case(1) ! pre-industrial
               if(L.le.LS1-1) then
@@ -9075,15 +9080,10 @@ C         AM=kg/m2, and AXYP=m2:
               end if
             case default; ICfactor=1.d0
             end select
-            DO J=J_0,J_1
-              J2=MAX(1,NINT(float(J)*float(JCOlat)*BYJM))
-              DO I=I_0,I_1
-                trm(i,j,l,n)=COlat(J2)*COalt(L)*1.D-9*vol2mass(n)*
-     &          am(L,I,J)*AXYP(I,J)*ICfactor
-              END DO
-            END DO
-          END DO
-          J2=0
+            do j=J_0,J_1; do i=I_0,I_1
+              trm(I,J,L,n) = COIC(I,J,L)*ICfactor
+            end do   ; end do   
+          end do
 
         case ('PAN')
           select case(PI_run)
