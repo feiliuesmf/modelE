@@ -65,8 +65,6 @@ C**** variables used (and saved) for gravity wave drag calculations
 
 !@var ISCCP_REG2D distributed version of ISCCP_REG
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: ISCCP_REG2D
-!@var AISCCP2D AISCCP histogram with I,J dimensions
-      REAL*8, DIMENSION(:,:,:,:,:), ALLOCATABLE :: AISCCP2D
 
 !@var UKM,VKM arrays for vertical momentum mixing
       REAL*8, dimension(:,:,:,:), allocatable :: UKM,VKM

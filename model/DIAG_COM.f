@@ -229,7 +229,7 @@ C**** parameters and variables for ISCCP diags
 !@var isccp_reg latitudinal index for ISCCP histogram regions
       integer, public :: isccp_reg(JM)
 !@var AISCCP accumlated array of ISCCP histogram
-      real*8, public :: AISCCP(ntau,npres,nisccp)
+      real*8, public, dimension(ntau,npres,nisccp) :: AISCCP,AISCCP_loc
 
 !@param KGZ number of pressure levels for some diags
       INTEGER, PARAMETER, public :: KGZ = 13
@@ -1213,6 +1213,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       use domain_decomp_1d, only : grid,pack_data,pack_dataj,sumxpe
       use diag_com
       implicit none
+      call collect_scalars
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
 #ifdef CUBE_GRID 
       CALL SUMXPE(AJ_loc, AJ, increment=.true.)
@@ -1238,14 +1239,28 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL PACK_DATA(grid,  AIL_loc,   AIL)
       CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
       CALL PACK_DATA(grid,  OA, OA_glob)
+      return
+      End Subroutine Gather_Diagnostics
+
+      Subroutine Collect_Scalars()
+      use precision_mod
+      use domain_decomp_atm, only : grid,sumxpe,am_i_root
+      use diag_com
+      implicit none
       CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)
       ADIURN_loc=0
 #ifndef NO_HDIURN
       CALL SUMXPE(HDIURN_loc, HDIURN, increment=.true.)
       HDIURN_loc=0
 #endif
+      CALL SUMXPE(AISCCP_loc, AISCCP, increment=.true.)
+      AISCCP_loc=0
+      if(am_i_root()) then
+c for reproducibility on different numbers of processors
+        call reduce_precision(aisccp,1d-9)
+      endif
       return
-      End Subroutine Gather_Diagnostics
+      End Subroutine Collect_Scalars
 
       SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
 !@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
@@ -1647,6 +1662,7 @@ c the instances of the arrays used during normal operation.
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)            ! output to restart or acc file
+        call collect_scalars
         call write_data(grid,fid,'monacc',monacc)
         call write_data(grid,fid,'idacc',idacc)
         call write_data(grid,fid,'energy',energy)

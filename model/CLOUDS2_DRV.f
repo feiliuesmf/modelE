@@ -24,7 +24,7 @@
       USE RANDOM
       USE RAD_COM, only : cosz1
       USE CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav
-     &     ,isccp_reg2d,aisccp2d,ukm,vkm
+     &     ,isccp_reg2d,ukm,vkm
 #ifdef CLD_AER_CDNC
      *     ,oldnl,oldni,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
@@ -45,7 +45,7 @@
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
-     *     ntau,npres,aisccp,ij_precmc,ij_cldw,ij_cldi,
+     *     ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi,
      *     ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
      *     ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
 #ifdef CLD_AER_CDNC
@@ -276,7 +276,6 @@ C        not clear yet whether they still speed things up
       INTEGER :: idxd(n_idxd)
 #endif
       REAL*8 :: tmp(NDIUVAR)
-      REAL*8 :: AISCCPSUM(ntau,npres,nisccp)
 #ifndef TRACERS_WATER
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -285,7 +284,6 @@ C        not clear yet whether they still speed things up
 #endif
 
 C**** Initialize
-      if(isccp_diags.eq.1) AISCCP2D(:,:,:,:,:) = 0d0
 #ifdef TRACERS_SPECIAL_Shindell
       RNOx_lgt(:,:)=0.d0
 #endif
@@ -1110,7 +1108,8 @@ C**** Sum over itau=2,ntau (itau=1 is no cloud)
           AIJ(I,J,IJ_HCLDI)=AIJ(I,J,IJ_HCLDI)+sum(fq_isccp(2:ntau,1:3))
 C**** Save area weighted isccp histograms
           n=isccp_reg2d(i,j)
-          if (n.gt.0) AISCCP2D(:,:,n,I,J) = fq_isccp(:,:)*axyp(i,j)
+          if (n.gt.0) AISCCP(:,:,n) = AISCCP(:,:,n) +
+     &         fq_isccp(:,:)*axyp(i,j)
         end if
       end if
 
@@ -1516,14 +1515,6 @@ C
 #endif
 #endif
 
-#ifndef CUBE_GRID
-C**** Accumulate AISCCP array
-      if(isccp_diags.eq.1) then
-        CALL GLOBALSUM(grid,AISCCP2D,AISCCPSUM)
-        AISCCP=AISCCP+AISCCPSUM
-      endif
-#endif
-
 C
 C     NOW UPDATE THE MODEL WINDS
 C
@@ -1577,7 +1568,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
      *  ,entrainment_cont1,entrainment_cont2
      &  ,RA,UM,VM,UM1,VM1,U_0,V_0
       USE CLOUDS_COM, only : llow,lmid,lhi
-     &     ,isccp_reg2d,aisccp2d,UKM,VKM
+     &     ,isccp_reg2d,UKM,VKM
       USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
      &     ,isccp_diags,ntau,npres
       USE PARAM
@@ -1664,8 +1655,6 @@ C**** Define regions for ISCCP diagnostics
 c allocate/define distributed 2D ISCCP arrays
 c      if (isccp_diags.eq.1) then
         allocate(isccp_reg2d(i_0h:i_1h,j_0h:j_1h))
-        allocate(aisccp2d(ntau,npres,nisccp,i_0h:i_1h,j_0h:j_1h))
-        aisccp2d = 0d0
         do j=j_0,j_1
         do i=i_0,i_1
           isccp_reg2d(i,j)=0

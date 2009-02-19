@@ -2133,7 +2133,7 @@ C****
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
-      USE diag_com,ONLY : adiurn_dust,adiurn_loc
+      USE diag_com,ONLY : adiurn_dust,adiurn_loc,aisccp_loc
 #ifndef NO_HDIURN
      &     ,hdiurn_loc
 #endif
@@ -2566,6 +2566,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 c
 c zero out certain non-distributed arrays
 c
+      aisccp_loc = 0
       adiurn_loc = 0
 #ifndef NO_HDIURN
       hdiurn_loc = 0
@@ -2600,9 +2601,9 @@ c
       AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0
 #ifndef NO_HDIURN
-      HDIURN=0
+      HDIURN=0; HDIURN_loc=0
 #endif
-      ADIURN=0 ; AISCCP=0
+      ADIURN=0 ; ADIURN_loc=0; AISCCP=0; AISCCP_loc=0
 #ifdef TRACERS_ON
       call reset_trdiag
 #endif
