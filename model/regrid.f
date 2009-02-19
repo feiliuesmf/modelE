@@ -30,7 +30,7 @@
       implicit none
       type (dist_grid), intent(in) :: grid
       integer, intent(in) :: ims,jms
-      real*8, intent(out) :: uout_loc(grid%I_STRT:grid%I_STOP,
+      real*8, intent(inout) :: uout_loc(grid%I_STRT:grid%I_STOP,
      &     grid%J_STRT:grid%J_STOP),
      &     vout_loc(grid%I_STRT:grid%I_STOP,
      &     grid%J_STRT:grid%J_STOP)
@@ -39,62 +39,135 @@
      &     vin_glob(ims,jms)
       real*8 :: u11,u12,u21,u22
       real*8 :: v11,v12,v21,v22
-      real*8 :: lon1,lon2,lat1,lat2, dlon, dlat
+      real*8 :: lon1,lon2,lat1,lat2, lon_curr, lat_curr
       real*8 :: dnm, pi, dlat_dg, dlon_dg
-      integer :: i,j, i_lon,j_lat, im_lon, jm_lat
+      integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2, jeq
+
 
       pi = 4.0d0*atan(1.d0)
 
       dlat_dg=180./REAL(JMS)                   ! even spacing (default)
       IF (JMS.eq.46) dlat_dg=180./REAL(JMS-1)   ! 1/2 box at pole for 4x5
-
       dlon_dg = 360./dble(ims)
-      
-      write(*,*) "bilin is ie js je=",grid%i_strt,grid%i_stop,
-     &     grid%j_strt,grid%j_stop
+      jeq=0.5*(1+jms)
+c      
 c***  loop on CS points in local domain
+c
       do j=grid%j_strt,grid%j_stop
          do i=grid%i_strt,grid%i_stop
-            I_lon = ims/2 + 1 + NInt((lon2d_dg(i,j)+.01)/dlon_dg)
-            J_lat = jms/2 + 1 + NInt((lat2d_dg(i,j)+.01)/dlat_dg)
 
-            write(*,*) "ilon,jlat",i_lon,j_lat
+c     find (ilon,jlon) indices of latlon cell which contains the center of the (i,j) CS cell  
+            I_lon = ims/2 + 1  + (lon2d_dg(i,j)+.01)/dlon_dg
+            J_lat = jms/2 + 1  + (lat2d_dg(i,j)+.01)/dlat_dg
 
-            lat1=dlat_dg*(j_lat-.5*(1+jms) -0.5)
-            lon1=-180+dlon_dg*(i_lon-1.)
+c     find the indices of the 4 latlon cells surrounding the current CS cell
+c     first reconstruct latlon coordinates of current latlon cell
+            if (i_lon .ne. 1) then 
+               lon_curr = -180.+(i_lon-0.5)*dlon_dg
+            else
+               lon_curr = -180.+0.5*dlon_dg
+            endif
+            if (j_lat .ne. 1 .and. j_lat .ne. jms) then
+               lat_curr = dlat_dg*(j_lat - jeq)
+            elseif (j_lat .eq. 1) then
+               lat_curr = -90.
+            elseif (j_lat .eq. jms) then
+               lat_curr = 90
+            endif
 
-            lat2=dlat_dg*(j_lat-.5*(1+jms) + 1.5)
-            lon2=-180+dlon_dg*(i_lon+1.)
+            if (lon2d_dg(i,j) .gt. lon_curr) then
+               lon1 = lon_curr
+               I1=i_lon
+            else
+               lon1 = lon_curr - dlon_dg
+               I1 = i_lon - 1
+            endif
+            lon2 = lon1 + dlon_dg
+            I2 = I1+1
 
-c     correct fact that vector field defined at cell center
-            u11=uin_glob(I_lon,J_lat)
-            u21=uin_glob(I_lon+1,J_lat+1)
-            u12=uin_glob(I_lon,J_lat+1)
-            u22=uin_glob(I_lon+1,J_lat+1)
+            if (lat2d_dg(i,j) .gt. lat_curr) then
+               lat1 = lat_curr
+               J1 = j_lat
+            else
+               lat1 = lat_curr - dlat_dg
+               J1 = j_lat -1
+            endif
+            lat2 = lat1 + dlat_dg
+            J2 = J1 + 1
+
+
+c            write(*,100) "lon1 lon lon2",lon1,lon2d_dg(i,j),lon2
+c            write(*,100) "lat1 lat lat2",lat1,lat2d_dg(i,j),lat2
+c 100        format(A,3(1X,F8.2))
+
+            if ( I1 .ne. 0 .and. I2 .ne. ims+1 
+     &           .and. J1 .ne. 0 .and. J2. ne. jms+1) then
             
-            v11=vin_glob(I_lon,J_lat)
-            v21=vin_glob(I_lon+1,J_lat+1)
-            v12=vin_glob(I_lon,J_lat+1)
-            v22=vin_glob(I_lon+1,J_lat+1)
+               u11 = uin_glob(I1,J1)
+               u21 = uin_glob(I2,J1)
+               u12 = uin_glob(I1,J2)
+               u22 = uin_glob(I2,J2)
+               
+               v11 = vin_glob(I1,J1)
+               v21 = vin_glob(I2,J1)
+               v12 = vin_glob(I1,J2)
+               v22 = vin_glob(I2,J2)
+               
+c     Boundary conditions. As we do not have halo cells for global latlon arrays, 
+c     we do boundary conditions by hand
+            elseif ( I1 .eq. 0) then
+               u11 = uin_glob(ims,J1)
+               u12 = uin_glob(ims,J2)
+               
+               v11 = vin_glob(ims,J1)
+               v12 = vin_glob(ims,J2)
+               
+            elseif ( I2 .eq. ims+1) then
+               u21 = uin_glob(1,J1)
+               u22 = uin_glob(1,J2)
+               
+               v21 = vin_glob(1,J1)
+               v22 = vin_glob(1,J2)
+               
+            elseif ( J1 .eq. 0) then
+               u11 = uin_glob(I1,jms)
+               u21 = uin_glob(I2,jms)
+            
+               v11 = vin_glob(I1,jms)
+               v21 = vin_glob(I2,jms)
 
-            dnm=1.d0/( (lon2-lon1)*(lat2-lat1) )
-
+            elseif ( J2 .eq. jms+1) then
+               u12 = uin_glob(I1,1)
+               u22 = uin_glob(I2,1)
+               
+               v12 = vin_glob(I1,1)
+               v22 = vin_glob(I2,1)
+            endif
+            
+            dnm=1.d0/(dlon_dg*dlat_dg)
+            
             uout_loc(i,j)=dnm*( 
-     &             u11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
+     &           u11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
      &           + u21*( lon2d(i,j)-lon1 )*( lat2-lat2d(i,j) ) 
      &           + u12*( lon2-lon2d(i,j) )*( lat2d(i,j)-lat1 )
      &           + u22*( lon2d(i,j)-lon1 )*( lat2d(i,j)-lat1 ) 
      &           )
-
+            
             vout_loc(i,j)=dnm*( 
-     &             v11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
+     &           v11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
      &           + v21*( lon2d(i,j)-lon1 )*( lat2-lat2d(i,j) ) 
      &           + v12*( lon2-lon2d(i,j) )*( lat2d(i,j)-lat1 )
      &           + v22*( lon2d(i,j)-lon1 )*( lat2d(i,j)-lat1 ) 
      &           )
+
+c            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
+c     &       uout_loc(i,j)
+
          enddo
       enddo
 
+
+      
       end subroutine bilin_ll2cs_vec
 #endif
 

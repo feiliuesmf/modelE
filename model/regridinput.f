@@ -5,6 +5,7 @@
 !@    Will soon become a standalone program
 !@auth Denis Gueyffier
       use regrid_com
+      use GEOM, only : geom_cs
       implicit none
       type (dist_grid), intent(in) :: grid
       type (x_2gridsroot) :: xll2cs
@@ -23,6 +24,7 @@ c      jmsource=180
       call init_regrid_root(xll2cs,imsource,jmsource,ntilessource,
      &     imtarget, jmtarget,ntilestarget)
 
+      call geom_cs
 
 c***   regrid* = conservative regridding
 c***   interp* = bilinear interpolation
@@ -83,6 +85,10 @@ c*
 
       allocate(kdirec(grid%I_STRT:grid%I_STOP,
      &     grid%J_STRT:grid%J_STOP))
+      allocate(ucs_loc(grid%I_STRT:grid%I_STOP,
+     &     grid%J_STRT:grid%J_STOP),
+     &     vcs_loc(grid%I_STRT:grid%I_STOP,
+     &     grid%J_STRT:grid%J_STOP))
 
       iu_RVR=20
       name="RD_modelE_Fa.RVR.bin"
@@ -119,9 +125,12 @@ c     create vector field on latlon grid
             vll(i,j)=vll(i,j)/
      &           sqrt(ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j))
 
+c testing we interpolate exactly linear and constant fields
+c      ull(i,j)=2*i+3*j
+c      vll(:,:)=1.
+ 
          enddo
       enddo
-
 
 c     interpolate vectors field from latlon points to cubed-sphere points
 c     Note that the returned vector field V_cs = (ucs_loc, vcs_loc) is expressed 
@@ -129,10 +138,15 @@ c     in the latlon coordinate system
 
       write(*,*) "before bilin"
 
+c
+
       call bilin_ll2cs_vec(grid,ull,vll,ucs_loc,vcs_loc,ims,jms)
 
       call halo_update(grid,ucs_loc)
       call halo_update(grid,vcs_loc)
+
+      write(*,*) "ucs=",ucs_loc
+      write(*,*) "vcs=",vcs_loc
 
       write(*,*) "aft halo"
 
@@ -251,7 +265,7 @@ c
       enddo
 
 c     gather all river directions before writing to output file
-      call pack_data(grid,kdirec,kdirec_glob)
+c      call pack_data(grid,kdirec,kdirec_glob)
 
       if (am_i_root()) then
 c         write(iu_RVRCS) titlei
@@ -260,7 +274,7 @@ c         write(iu_RVRCS) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
 c     *        ,lon_rvr(1:nrvr)
       endif
 
-      deallocate(kdirec)
+      deallocate(kdirec,ucs_loc,vcs_loc)
       end subroutine interpRD
 c*
 #endif
