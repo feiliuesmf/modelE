@@ -1,7 +1,7 @@
       MODULE GM_COM
 !@sum  GM_COM variables related to GM isopycnal and Redi fluxes
 !@auth Gavin Schmidt/Dan Collins
-!@ver  1.0
+!@ver  2009/02/13
       USE CONSTANT, only : radius,omega,grav
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
      *     ,mo,dypo,dyvo,dxpo             
@@ -944,13 +944,14 @@ C****
       SUBROUTINE ISOSLOPE4
 !@sum  ISOSLOPE4 calculates the isopycnal slopes from density triads
 !@auth Gavin Schmidt/Dan Collins
-!@ver  1.0
+!@ver  2009/02/13
       USE GM_COM
       IMPLICIT NONE
       INTEGER I,J,L,IM1
       REAL*8 :: AIX0ST,AIX2ST,AIY0ST,AIY2ST,SIX0,SIX2,SIY0,SIY2,
      *          AIX1ST,AIX3ST,AIY1ST,AIY3ST,SIX1,SIX3,SIY1,SIY3
-      REAL*8 :: BYAIDT,DSX0,DSX1,DSX2,DSX3,DSY0,DSY1,DSY2,DSY3
+      Real*8 :: byAIDT, DSX0sq,DSX1sq,DSX2sq,DSX3sq,
+     *                  DSY0sq,DSY1sq,DSY2sq,DSY3sq
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE
       LOGICAL :: dothis
@@ -970,9 +971,10 @@ C**** diffusion coefficient is calculated for each triad as well.
 C**** The diffusion coefficient is taken from Visbeck et al (1997)
 C****
 C**** Main Loop over I,J and L
-!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I,AIX0ST,AIX2ST,AIY0ST,AIY2ST,
-!$OMP&  SIX0,SIX2,SIY0,SIY2,BYAIDT,DSX0,DSX2,DSY0,DSY2,AIX1ST,AIX3ST,
-!$OMP&  AIY1ST,AIY3ST,SIX1,SIX3,SIY1,SIY3,DSX1,DSX3,DSY1,DSY3)
+!$OMP PARALLEL DO  PRIVATE(L,J,IM1,I, byAIDT,
+!$omp&  AIX0ST,AIX1ST,AIX2ST,AIX3ST, AIY0ST,AIY1ST,AIY2ST,AIY3ST,
+!$OMP&  SIX0  ,SIX1  ,SIX2  ,SIX3  , SIY0  ,SIY1  ,SIY2  ,SIY3  ,
+!$OMP&  DSX0sq,DSX1sq,DSX2sq,DSX3sq, DSY0sq,DSY1sq,DSY2sq,DSY3sq)
       DO L=1,LMO
       !DO J=2,JM   !-1
       DO J=J_0STG,J_1STG  !-1
@@ -1003,15 +1005,15 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
         IF (L.gt.KPL(I,J).and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
-          BYAIDT = 1d0/(4.*DTS*(AINV(I,J)+ARIV(I,J)))
-          DSX0 = DXPO(J) * DZV(I,J,L) * BYAIDT
-          DSX2 = DXPO(J) * DZV(I,J,L) * BYAIDT
-          DSY0 = DYVO(J) * DZV(I,J,L) * BYAIDT
-          DSY2 = DYVO(J-1)*DZV(I,J,L) * BYAIDT
-          IF (ABS(SIX0).gt.DSX0) AIX0ST = AIX0ST * (DSX0/SIX0)**2
-          IF (ABS(SIX2).gt.DSX2) AIX2ST = AIX2ST * (DSX2/SIX2)**2
-          IF (ABS(SIY0).gt.DSY0) AIY0ST = AIY0ST * (DSY0/SIY0)**2
-          IF (ABS(SIY2).gt.DSY2) AIY2ST = AIY2ST * (DSY2/SIY2)**2
+          byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
+          DSX0sq = DZV(I,J,L)**2 * byAIDT
+          DSX2sq = DZV(I,J,L)**2 * byAIDT
+          DSY0sq = DZV(I,J,L)**2 * byAIDT
+          DSY2sq = DZV(I,J,L)**2 * byAIDT
+          If (SIX0**2 > DSX0sq)  AIX0ST = AIX0ST * DSX0sq / SIX0**2
+          If (SIX2**2 > DSX2sq)  AIX2ST = AIX2ST * DSX2sq / SIX2**2
+          If (SIY0**2 > DSY0sq)  AIY0ST = AIY0ST * DSY0sq / SIY0**2
+          If (SIY2**2 > DSY2sq)  AIY2ST = AIY2ST * DSY2sq / SIY2**2
         END IF
 C**** AI are always * layer thickness for vertical gradient in FXX, FYY
         AIX0(I,J,L) = AIX0ST * DZV(I,J,L) * BYDH(I,J,L)
@@ -1040,15 +1042,15 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
         IF (L.gt.KPL(I,J)+1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
-          BYAIDT = 1d0/(4.*DTS*(AINV(I,J)+ARIV(I,J)))
-          DSX1 = DXPO(J) * DZV(I,J,L-1) * BYAIDT
-          DSX3 = DXPO(J) * DZV(I,J,L-1) * BYAIDT
-          DSY1 = DYVO(J) * DZV(I,J,L-1) * BYAIDT
-          DSY3 = DYVO(J-1)*DZV(I,J,L-1) * BYAIDT
-          IF (ABS(SIX1).gt.DSX1) AIX1ST = AIX1ST * (DSX1/SIX1)**2
-          IF (ABS(SIX3).gt.DSX3) AIX3ST = AIX3ST * (DSX3/SIX3)**2
-          IF (ABS(SIY1).gt.DSY1) AIY1ST = AIY1ST * (DSY1/SIY1)**2
-          IF (ABS(SIY3).gt.DSY3) AIY3ST = AIY3ST * (DSY3/SIY3)**2
+          byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
+          DSX1sq = DZV(I,J,L-1)**2 * byAIDT
+          DSX3sq = DZV(I,J,L-1)**2 * byAIDT
+          DSY1sq = DZV(I,J,L-1)**2 * byAIDT
+          DSY3sq = DZV(I,J,L-1)**2 * byAIDT
+          If (SIX1**2 > DSX1sq)  AIX1ST = AIX1ST * DSX1sq / SIX1**2
+          If (SIX3**2 > DSX3sq)  AIX3ST = AIX3ST * DSX3sq / SIX3**2
+          If (SIY1**2 > DSY1sq)  AIY1ST = AIY1ST * DSY1sq / SIY1**2
+          If (SIY3**2 > DSY3sq)  AIY3ST = AIY3ST * DSY3sq / SIY3**2
         END IF
 C**** AI are always * layer thickness for vertical gradient in FXX, FYY
         AIX1(I,J,L) = AIX1ST * DZV(I,J,L-1) * BYDH(I,J,L)
