@@ -546,9 +546,9 @@ C**** save diagnostics
             JR=JREG(I,J)
             CALL INC_AREG(I,J,JR,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
      *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *           /MSI(I,J))*AXYP(I,J))
+     *           /MSI(I,J)))
             CALL INC_AREG(I,J,JR,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
-     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*AXYP(I,J))
+     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.))
 #ifdef TRACERS_WATER
             DO N=1,NTM
               TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -1008,8 +1008,8 @@ C**** Additional mass (precip) is balanced by deep removal
             CALL INC_AJ(I,J,ITOCEAN,J_IMPLH,ERUN4*POCEAN)
             CALL INC_AJ(I,J,ITOICE ,J_IMPLM, RUN4*POICE)
             CALL INC_AJ(I,J,ITOICE ,J_IMPLH,ERUN4*POICE)
-            CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J)*AXYP(I,J))
-            CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J)*AXYP(I,J))
+            CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J))
+            CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J))
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
@@ -1111,10 +1111,8 @@ C**** Ice-covered ocean diagnostics
             CALL INC_AJ(I,J,ITOICE,J_IMPLM, RUN4I*POICE)
             CALL INC_AJ(I,J,ITOICE,J_IMPLH,ERUN4I*POICE)
 C**** regional diagnostics
-            CALL INC_AREG(I,J,JR,J_IMPLM,( RUN4O*POCEAN+ RUN4I*POICE)
-     *           *DXYPIJ) 
-            CALL INC_AREG(I,J,JR,J_IMPLH,(ERUN4O*POCEAN+ERUN4I*POICE)
-     *           *DXYPIJ) 
+            CALL INC_AREG(I,J,JR,J_IMPLM,( RUN4O*POCEAN+ RUN4I*POICE)) 
+            CALL INC_AREG(I,J,JR,J_IMPLH,(ERUN4O*POCEAN+ERUN4I*POICE)) 
             MLHC(I,J)=SHW*WTRW
           ELSE
             ACEFO=0 ; ACEFI=0. ; ENRGFO=0. ; ENRGFI=0.
@@ -1165,7 +1163,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,GLOBALSUM
       IMPLICIT NONE
       INTEGER I,J,JR,N
-      REAL*8 DXYPIJ,RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
+      REAL*8 RUN4,ERUN4,TGW,POICE,POCEAN,Z1OMIN,MSINEW
       INTEGER :: J_0,J_1, I_0,I_1
 
       CALL GET(GRID,J_STRT=J_0,J_STOP=J_1)
@@ -1175,7 +1173,6 @@ C****
       IF (KOCEAN.ge.1) THEN     ! qflux model
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
         POICE=FOCEAN(I,J)*RSI(I,J)
         POCEAN=FOCEAN(I,J)*(1.-RSI(I,J))
@@ -1213,9 +1210,9 @@ C**** save diagnostics
      *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
                 CALL INC_AREG(I,J,JR,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
      *               *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-     *               /MSI(I,J))*DXYPIJ)
+     *               /MSI(I,J)))
                 CALL INC_AREG(I,J,JR,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
-     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)*DXYPIJ)
+     *               *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.))
 #ifdef TRACERS_WATER
                 DO N=1,NTM
                   TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
@@ -1242,8 +1239,8 @@ C**** Ice-covered ocean diagnostics
           CALL INC_AJ(I,J,ITOICE,J_IMPLM, RUN4*POICE)
           CALL INC_AJ(I,J,ITOICE,J_IMPLH,ERUN4*POICE)
 C**** regional diagnostics
-          CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J)*DXYPIJ)
-          CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J)*DXYPIJ)
+          CALL INC_AREG(I,J,JR,J_IMPLM, RUN4*FOCEAN(I,J))
+          CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J))
         END IF
       END DO
       END DO

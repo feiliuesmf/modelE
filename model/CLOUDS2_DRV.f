@@ -733,7 +733,7 @@ C*** End Accumulate 3D convective latent heating
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
         END DO
-        CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_PRCPMC,PRCPMC)
         DO KR=1,NDIUPT
         IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
           tmp(IDD_PR)  =+PRCPMC
@@ -977,7 +977,7 @@ C**** Accumulate diagnostics of LSCOND
          DO IT=1,NTYPE
            CALL INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
          END DO
-         CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS*AXYP(I,J))
+         CALL INC_AREG(I,J,JR,J_PRCPSS,PRCPSS)
          DO KR=1,NDIUPT
          IF(I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
            tmp(IDD_PR)  =+PRCPSS
@@ -1023,7 +1023,7 @@ C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
         END DO
-        CALL INC_AREG(I,J,JR,J_EPRCP,ENRGP*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_EPRCP,ENRGP)
         AIJ(I,J,IJ_PREC)=AIJ(I,J,IJ_PREC)+PRCP
         AIJ(I,J,IJ_NETH)=AIJ(I,J,IJ_NETH)+ENRGP
         AIJ(I,J,IJ_F0OC)=AIJ(I,J,IJ_F0OC)+

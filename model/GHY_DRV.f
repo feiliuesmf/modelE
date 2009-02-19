@@ -1565,17 +1565,17 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       if(ts.gt.tdiurn(i,j,4)) tdiurn(i,j,4)=ts
 
 c**** quantities accumulated for regions in diagj
-      call inc_areg(i,j,jr,j_trhdt,trhdt*ptype*axyp(i,j))
-      call inc_areg(i,j,jr,j_shdt , shdt*ptype*axyp(i,j))
-      call inc_areg(i,j,jr,j_lwcorr,dlwdt*ptype*axyp(i,j))
-      call inc_areg(i,j,jr,j_evhdt,evhdt*ptype*axyp(i,j))
-      call inc_areg(i,j,jr,j_evap ,aevap*ptype*axyp(i,j))
-      call inc_areg(i,j,jr,j_erun ,(aeruns+aerunu)*ptype*axyp(i,j))
-      call inc_areg(i,j,jr,j_run  ,  (aruns+arunu)*ptype*axyp(i,j))
+      call inc_areg(i,j,jr,j_trhdt,trhdt*ptype)
+      call inc_areg(i,j,jr,j_shdt , shdt*ptype)
+      call inc_areg(i,j,jr,j_lwcorr,dlwdt*ptype)
+      call inc_areg(i,j,jr,j_evhdt,evhdt*ptype)
+      call inc_areg(i,j,jr,j_evap ,aevap*ptype)
+      call inc_areg(i,j,jr,j_erun ,(aeruns+aerunu)*ptype)
+      call inc_areg(i,j,jr,j_run  ,  (aruns+arunu)*ptype)
       if ( moddsf == 0 ) then
-        call inc_areg(i,j,jr,j_tsrf,(ts-tf)*ptype*axyp(i,j))
-        call inc_areg(i,j,jr,j_tg1 , tg1   *ptype*axyp(i,j))
-        call inc_areg(i,j,jr,j_tg2 , tg2av *ptype*axyp(i,j))
+        call inc_areg(i,j,jr,j_tsrf,(ts-tf)*ptype)
+        call inc_areg(i,j,jr,j_tg1 , tg1   *ptype)
+        call inc_areg(i,j,jr,j_tg2 , tg2av *ptype)
       end if
 
 #ifdef SCM
@@ -3583,7 +3583,7 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
 
         !if (snowe(i,j).gt.0.) scove=pearth
         call inc_aj(i,j,itearth,j_rsnow,scove)
-        call inc_areg(i,j,jr,j_rsnow,scove*axyp(i,j))
+        call inc_areg(i,j,jr,j_rsnow,scove)
         aij(i,j,ij_rsnw)=aij(i,j,ij_rsnw)+scove
         aij(i,j,ij_snow)=aij(i,j,ij_snow)+snow*pearth
         aij(i,j,ij_rsit)=aij(i,j,ij_rsit)+scove
@@ -3593,11 +3593,11 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         call inc_aj(i,j,itearth,j_wtr2,wtr2*pearth)
         call inc_aj(i,j,itearth,j_ace2,ace2*pearth)
         call inc_aj(i,j,itearth,j_snow,snow*pearth)
-        call inc_areg(i,j,jr,j_snow,snow*pearth*axyp(i,j))
-        call inc_areg(i,j,jr,j_wtr1,wtr1*pearth*axyp(i,j))
-        call inc_areg(i,j,jr,j_ace1,ace1*pearth*axyp(i,j))
-        call inc_areg(i,j,jr,j_wtr2,wtr2*pearth*axyp(i,j))
-        call inc_areg(i,j,jr,j_ace2,ace2*pearth*axyp(i,j))
+        call inc_areg(i,j,jr,j_snow,snow*pearth)
+        call inc_areg(i,j,jr,j_wtr1,wtr1*pearth)
+        call inc_areg(i,j,jr,j_ace1,ace1*pearth)
+        call inc_areg(i,j,jr,j_wtr2,wtr2*pearth)
+        call inc_areg(i,j,jr,j_ace2,ace2*pearth)
 
         aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
@@ -4613,8 +4613,8 @@ c     *         w_ij(0:ngm,3,i,j) )*rhow
 #endif
               CALL INC_AJ(I,J,ITEARTH,J_IMPLH,dh*fearth(i,j))
               CALL INC_AJ(I,J,ITEARTH,J_IMPLM,dw*fearth(i,j))
-              CALL INC_AREG(I,J,JR,J_IMPLH,dh*fearth(i,j)*axyp(i,j))
-              CALL INC_AREG(I,J,JR,J_IMPLM,dw*fearth(i,j)*axyp(i,j))
+              CALL INC_AREG(I,J,JR,J_IMPLH,dh*fearth(i,j))
+              CALL INC_AREG(I,J,JR,J_IMPLM,dw*fearth(i,j))
 
               !print *,"remove_extra_snow", i,j,ibv,wsn_tot,eta,dw,dh
 

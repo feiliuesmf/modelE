@@ -22,7 +22,7 @@ C**** Accumulating_period information
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 
-C**** Define a budget grid (for AJ,AREG,CONSRV diags)
+C**** Define a budget grid (for AJ,CONSRV diags)
 C**** This is fixed for all grid types and resolutions
 !@param JM_BUDG grid size for budget page diags
 ! will be 46 based on basic 4x5 grid
@@ -46,8 +46,8 @@ c**** area weight for zig-zag diagnostics on budget grid
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: SQRTM
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER, public :: NREG=24
-!@var AREGJ regional budget diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AREGJ,AREGJ_loc
+!@var AREG regional budget diagnostics
+      REAL*8, DIMENSION(NREG,KAJ), public :: AREG,AREG_loc
 
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4, public :: TITREG*80,NAMREG(2,23)
@@ -696,7 +696,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 #ifdef NEW_IO
 c declarations that facilitate summation of acc-files when using
 c the new i/o system
-      target :: aj_loc,aregj_loc,ajl_loc,asjl_loc,aij_loc,ajk_loc,
+      target :: aj_loc,areg,ajl_loc,asjl_loc,aij_loc,ajk_loc,
      &     speca,adiurn,aisccp,tsfrez_loc,energy,atpe,consrv_loc,
      &     wave,aijk_loc,ail_loc,tdiurn,oa
 #ifndef NO_HDIURN
@@ -707,23 +707,23 @@ c the new i/o system
       INTEGER, DIMENSION(12), public, target :: MONACC_fromdisk
       INTEGER, public :: ITIME_sv=-1, ITIME0_sv=-1
       REAL*8, dimension(:,:,:), public, target, allocatable ::
-     &     AJ_fromdisk,AREGJ_fromdisk,
+     &     AJ_fromdisk,
      &     AJL_fromdisk,ASJL_fromdisk,
      &     AIJ_fromdisk,AJK_fromdisk,
      &     SPECA_fromdisk,ADIURN_fromdisk,
      &     AISCCP_fromdisk,TSFREZ_fromdisk,
      &     TDIURN_fromdisk,OA_fromdisk
       REAL*8, dimension(:,:,:), public, pointer ::
-     &     AJ_ioptr,AREGJ_ioptr,
+     &     AJ_ioptr,
      &     AJL_ioptr,ASJL_ioptr,
      &     AIJ_ioptr,AJK_ioptr,
      &     SPECA_ioptr,ADIURN_ioptr,
      &     AISCCP_ioptr,TSFREZ_ioptr,
      &     TDIURN_ioptr,OA_ioptr
       REAL*8, dimension(:,:), public, target, allocatable ::
-     &     ENERGY_fromdisk,CONSRV_fromdisk,ATPE_fromdisk
+     &     AREG_fromdisk,ENERGY_fromdisk,CONSRV_fromdisk,ATPE_fromdisk
       REAL*8, dimension(:,:), public, pointer ::
-     &     ENERGY_ioptr,CONSRV_ioptr,ATPE_ioptr
+     &     AREG_ioptr,ENERGY_ioptr,CONSRV_ioptr,ATPE_ioptr
       REAL*8, dimension(:,:,:,:), public, target, allocatable ::
      &     WAVE_fromdisk,AIJK_fromdisk,AIL_fromdisk
       REAL*8, dimension(:,:,:,:), public, pointer ::
@@ -747,7 +747,7 @@ c the new i/o system
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL,JM_BUDG
-      USE DIAG_COM, ONLY : SQRTM,AJ_loc,AREGJ_loc,JREG,AJL_loc
+      USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 
@@ -775,13 +775,11 @@ c the new i/o system
       ALLOCATE(
 #ifdef CUBE_GRID    /* global-size arrays */
      &     AJ_loc(JM_BUDG, KAJ, NTYPE),
-     &     AREGJ_loc(NREG,JM_BUDG,KAJ),
      &     AJL_loc(JM_BUDG, LM, KAJL),
      &     ASJL_loc(JM_BUDG,LM_REQ,KASJL),
      &     CONSRV_loc(JM_BUDG, KCON),
 #else               /* distributed arrays */
      &     AJ_loc(J_0H:J_1H, KAJ, NTYPE),   
-     &     AREGJ_loc(NREG,J_0H:J_1H,KAJ),
      &     AJL_loc(J_0H:J_1H, LM, KAJL),
      &     ASJL_loc(J_0H:J_1H,LM_REQ,KASJL),
      &     CONSRV_loc(J_0H:J_1H, KCON),
@@ -817,7 +815,7 @@ c the new i/o system
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
-      USE DIAG_COM, ONLY : AJ,AREGJ,JREG,AJL
+      USE DIAG_COM, ONLY : AJ,JREG,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
      *     ,JM_BUDG
@@ -831,9 +829,8 @@ c     ALLOCATE( ! JREG(IM, JM))
       ALLOCATE( CONSRV(JM_BUDG, KCON),
      &         STAT = IER)
 
- !AJ, AREGJ, AJL and ASJL are defined on budget grid, JM -> JM_BUDG. 
+ !AJ, AJL and ASJL are defined on budget grid, JM -> JM_BUDG. 
       ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE),
-     &         AREGJ(NREG,JM_BUDG,KAJ),
      &         AJL(JM_BUDG, LM, KAJL),
      &         ASJL(JM_BUDG,LM_REQ,KASJL),
      &         AIJ(IM,JM,KAIJ),
@@ -859,7 +856,7 @@ c     ALLOCATE( ! JREG(IM, JM))
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : AJ,AREGJ,JREG,AJL
+      USE DIAG_COM, ONLY : AJ,JREG,AJL
      *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
      *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
 
@@ -868,7 +865,7 @@ c     ALLOCATE( ! JREG(IM, JM))
       if(.not.AM_I_ROOT()) return
 
 c     DEALLOCATE( ! JREG)
-      DEALLOCATE( AJ,AREGJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,AIL,TSFREZ )
+      DEALLOCATE( AJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,AIL,TSFREZ )
 
       deallocate(TDIURN_glob,OA_glob)
 
@@ -891,7 +888,7 @@ c     DEALLOCATE( ! JREG)
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
-      INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + JM_BUDG*NREG*KAJ
+      INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
      *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
@@ -901,7 +898,7 @@ c     DEALLOCATE( ! JREG)
      *     + NDIUVAR*NDIUPT*HR_IN_MONTH
 #endif
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
-      ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREGJ4(NREG,JM_BUDG,KAJ)
+      ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ)
       ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
       ! REAL*4 AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
       ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
@@ -910,9 +907,9 @@ c     DEALLOCATE( ! JREG)
       ! REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
       ! REAL*4 AISCCP4(ntau,npres,nisccp)
       ! REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
-      REAL*4,allocatable, dimension(:,:,:) :: AJ4,AREGJ4, AJL4,ASJL4
+      REAL*4,allocatable, dimension(:,:,:) :: AJ4,AJL4,ASJL4
      *            ,AIJ4,AJK4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
-      REAL*4,allocatable, dimension(:,:) :: ENERGY4,CONSRV4,ATPE4
+      REAL*4,allocatable, dimension(:,:) :: AREG4,ENERGY4,CONSRV4,ATPE4
       REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIL4,AFLX4
 #ifndef NO_HDIURN
       ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
@@ -1019,7 +1016,7 @@ C**** The regular model (Kradia le 0)
 
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREGJ,AJL,ASJL,AIJ,
+     *     idacc, AJ,AREG,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
      *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #ifndef NO_HDIURN
@@ -1036,7 +1033,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,
      *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
-     *     REAL(AJ,KIND=4),REAL(AREGJ,KIND=4),
+     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),
      *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
      *     REAL(AIJ,KIND=4),REAL(AIL,KIND=4),
      *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
@@ -1058,7 +1055,7 @@ C**** The regular model (Kradia le 0)
       CASE (ioread)           ! input from restart file
         if (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *       idacc, AJ,AREGJ,AJL,ASJL,AIJ,AIL,
+     *       idacc, AJ,AREG,AJL,ASJL,AIJ,AIL,
      *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *       HDIURN,
@@ -1078,7 +1075,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) Then
           call alloc_diag_r4
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
-     *         idac1, AJ4,AREGJ4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
+     *         idac1, AJ4,AREG4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
      *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
 #ifndef NO_HDIURN
      *       HDIURN4,
@@ -1098,10 +1095,10 @@ C**** The regular model (Kradia le 0)
 #ifndef NO_HDIURN
           HDIURN=HDIURN+HDIURN4
 #endif
+          AREG  = AREG   + AREG4
           ! Now for the global versions of the distributed arrays
           TSFREZ= TSFREZ4       ! not accumulated
           AJ    = AJ     + AJ4
-          AREGJ = AREGJ  + AREGJ4
           AJL   = AJL    + AJL4
           ASJL  = ASJL   + ASJL4
           AIJ   = AIJ    + AIJ4
@@ -1168,7 +1165,6 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
 #ifndef CUBE_GRID
         CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
-        CALL UNPACK_DATA(grid, AREGJ,  AREGJ_loc)
         CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
         CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
         CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
@@ -1182,7 +1178,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine Scatter_Diagnostics
 
       Subroutine alloc_diag_r4
-        allocate (AJ4(JM_BUDG,KAJ,NTYPE),AREGJ4(NREG,JM_BUDG,KAJ))
+        allocate (AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ))
         allocate (AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
         allocate (AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
@@ -1198,7 +1194,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine alloc_diag_r4
 
       Subroutine dealloc_diag_r4
-        deallocate (AJ4,AREGJ4,  AJL4,ASJL4,AIJ4,AIL4)
+        deallocate (AJ4,AREG4,  AJL4,ASJL4,AIJ4,AIL4)
         deallocate (ENERGY4,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4)
         deallocate (AJK4,AIJK4, AISCCP4,TSFREZ4)
 #ifndef NO_HDIURN
@@ -1217,18 +1213,15 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
 #ifdef CUBE_GRID 
       CALL SUMXPE(AJ_loc, AJ, increment=.true.)
-      CALL SUMXPE(AREGJ_loc, AREGJ, increment=.true.)
       CALL SUMXPE(AJL_loc, AJL, increment=.true.)
       CALL SUMXPE(ASJL_loc, ASJL, increment=.true.)
       CALL SUMXPE(CONSRV_loc, CONSRV, increment=.true.)
       AJ_loc(:,:,:)=0.
-      AREGJ_loc(:,:,:)=0.
       AJK_loc(:,:,:)=0.
       ASJL_loc(:,:,:)=0.
       CONSRV_loc(:,:)=0.
 #else
       CALL PACK_DATAj(grid, AJ_loc,     AJ)
-      CALL PACK_DATA(grid, AREGJ_loc,  AREGJ)
       CALL PACK_DATAj(grid, AJL_loc,    AJL)
       CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
       CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
@@ -1247,6 +1240,8 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       use domain_decomp_atm, only : grid,sumxpe,am_i_root
       use diag_com
       implicit none
+      CALL SUMXPE(AREG_loc, AREG, increment=.true.)
+      AREG_loc(:,:)=0.
       CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)
       ADIURN_loc=0
 #ifndef NO_HDIURN
@@ -1257,6 +1252,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       AISCCP_loc=0
       if(am_i_root()) then
 c for reproducibility on different numbers of processors
+        call reduce_precision(areg,1d-9)
         call reduce_precision(aisccp,1d-9)
       endif
       return
@@ -1450,23 +1446,20 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       END SUBROUTINE INC_AJ
 
       SUBROUTINE INC_AREG(I,J,JR,J_DIAG,ACC)
-!@sum inc_areg grid dependent incrementer for regional budget diags
+!@sum inc_areg incrementer for regional budget diags
 !@auth Gavin Schmidt
-      USE DIAG_COM, only : aregj=>aregj_loc,wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : areg=>areg_loc,wtbudg
+      USE GEOM, only : j_budg,axyp
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
 !@var JR is the region
       INTEGER, INTENT(IN) :: I,J,JR
-!@var J_DIAG is placing of diagnostic element
+!@var J_DIAG identifier of diagnostic element
       INTEGER, INTENT(IN) :: J_DIAG
 !@var ACC value of the diagnostic to be accumulated
       REAL*8, INTENT(IN) :: ACC
 
-C**** accumulate I,J value on the budget grid using j_budg to assign
-C**** each point to a zonal mean (not bitwise reproducible for MPI).
-      AREGJ(JR,J_BUDG(I,J),J_DIAG) = AREGJ(JR,J_BUDG(I,J),J_DIAG)
-     &     +ACC      
+      AREG(JR,J_DIAG) = AREG(JR,J_DIAG)+ACC*AXYP(I,J)
 
       RETURN
       END SUBROUTINE INC_AREG
@@ -1569,7 +1562,7 @@ c*
      &     aj=>aj_ioptr,aij=>aij_ioptr,
      &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,ajk=>ajk_ioptr,
      &     consrv=>consrv_ioptr,
-     &     ail=>ail_ioptr,aijk=>aijk_ioptr,aregj=>aregj_ioptr,
+     &     ail=>ail_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
      &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
      &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
      &     energy=>energy_ioptr,wave=>wave_ioptr,
@@ -1600,8 +1593,6 @@ c*
 #ifndef CUBE_GRID
       call defvar(grid,fid,aj,'aj(dist_jm,kaj,ntype)',
      &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,aregj,'aregj(nreg,dist_jm,kaj)',
-     &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,ajl,'ajl(dist_jm,lm,kajl)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,asjl,'asjl(dist_jm,lm_req,kasjl)',
@@ -1612,6 +1603,8 @@ c*
      &     r4_on_disk=r4_on_disk)
 #endif
 
+      call defvar(grid,fid,areg,'areg(nreg,kaj)',
+     &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,energy,'energy(nehist,hist_days)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,speca,
@@ -1645,7 +1638,7 @@ c the instances of the arrays used during normal operation.
      &     aj=>aj_ioptr,aij=>aij_ioptr,
      &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,ajk=>ajk_ioptr,
      &     consrv=>consrv_ioptr,
-     &     ail=>ail_ioptr,aijk=>aijk_ioptr,aregj=>aregj_ioptr,
+     &     ail=>ail_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
      &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
      &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
      &     energy=>energy_ioptr,wave=>wave_ioptr,
@@ -1682,13 +1675,13 @@ c the instances of the arrays used during normal operation.
 
 #ifndef CUBE_GRID
         call write_dist_data(grid,fid,'aj',aj,jdim=1)
-        call write_dist_data(grid,fid,'aregj',aregj,
-     &       jdim=2,no_xdim=.true.)
         call write_dist_data(grid,fid,'ajl',ajl,jdim=1)
         call write_dist_data(grid,fid,'asjl',asjl,jdim=1)
         call write_dist_data(grid,fid,'ajk',ajk,jdim=1)
         call write_dist_data(grid,fid,'consrv',consrv,jdim=1)
 #endif
+
+        call write_data(grid,fid,'areg',areg)
 
       case (ioread)            ! input from restart or acc file
 c for which scalars is bcast_all=.true. necessary?
@@ -1711,13 +1704,13 @@ c for which scalars is bcast_all=.true. necessary?
 
 #ifndef CUBE_GRID
         call read_dist_data(grid,fid,'aj',aj,jdim=1)
-        call read_dist_data(grid,fid,'aregj',aregj,
-     &       jdim=2,no_xdim=.true.)
         call read_dist_data(grid,fid,'ajl',ajl,jdim=1)
         call read_dist_data(grid,fid,'asjl',asjl,jdim=1)
         call read_dist_data(grid,fid,'ajk',ajk,jdim=1)
         call read_dist_data(grid,fid,'consrv',consrv,jdim=1)
 #endif
+
+        call read_data(grid,fid,'areg',areg)
 
       end select
       return
@@ -1783,13 +1776,13 @@ c instances of the arrays used during normal operation.
 #ifndef NO_HDIURN
       hdiurn_ioptr => hdiurn!_loc
 #endif
+      areg_ioptr   => areg!_loc
       tdiurn_ioptr => tdiurn!_loc
       oa_ioptr     => oa!_loc
       aij_ioptr    => aij_loc
       ail_ioptr    => ail_loc
       aijk_ioptr   => aijk_loc
       aj_ioptr     => aj_loc
-      aregj_ioptr  => aregj_loc
       ajl_ioptr    => ajl_loc
       asjl_ioptr   => asjl_loc
       ajk_ioptr    => ajk_loc
@@ -1858,9 +1851,6 @@ c
       allocate(aj_fromdisk(j_0h:j_1h, kaj, ntype))
       aj_ioptr => aj_fromdisk
 
-      allocate(aregj_fromdisk(nreg,j_0h:j_1h,kaj))
-      aregj_ioptr => aregj_fromdisk
-
       allocate(ajl_fromdisk(j_0h:j_1h, lm, kajl))
       ajl_ioptr => ajl_fromdisk
 
@@ -1873,6 +1863,9 @@ c
       allocate(consrv_fromdisk(j_0h:j_1h, kcon))
       consrv_ioptr => consrv_fromdisk
 #endif
+
+      allocate(areg_fromdisk(nreg,kaj))
+      areg_ioptr => areg_fromdisk
 
       allocate(tsfrez_fromdisk(i_0h:i_1h,j_0h:j_1h,ktsf))
       tsfrez_ioptr => tsfrez_fromdisk
@@ -1905,12 +1898,13 @@ c read from disk and stored in the _fromdisk arrays.
 
 #ifndef CUBE_GRID
       aj_loc     = aj_loc     + aj_fromdisk
-      aregj_loc  = aregj_loc  + aregj_fromdisk
       ajl_loc    = ajl_loc    + ajl_fromdisk
       asjl_loc   = asjl_loc   + asjl_fromdisk
       ajk_loc    = ajk_loc    + ajk_fromdisk
       consrv_loc = consrv_loc + consrv_fromdisk
 #endif
+
+      areg       = areg       + areg_fromdisk
 
       return
       end subroutine sumfiles_atmacc

@@ -231,7 +231,7 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           DO IT=1,NTYPE
             CALL INC_AJ(I,J,IT,J_TX1,(TX(I,J,1)-TF)*FTYPE(IT,I,J))
           END DO
-          CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF)*DXYPJ)
+          CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF))
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           PS=P(I,J)+PTOP
           ZS=BYGRAV*ZATMO(I,J)
@@ -337,9 +337,8 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
               CALL INC_AJ(I,J,IT,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
      *             *FTYPE(IT,I,J)) 
             END DO
-            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
-     *           *DXYPJ) 
-            CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD*DXYPJ)
+            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)) 
+            CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD)
           END DO
         END DO
       END DO
@@ -357,7 +356,7 @@ C**** OLD TROPOSPHERIC STATIC STABILITY
           DO IT=1,NTYPE
             CALL INC_AJ(I,J,IT,J_DTDGTR,SS*FTYPE(IT,I,J))
           END DO
-          CALL INC_AREG(I,J,JR,J_DTDGTR,SS*DXYPJ)
+          CALL INC_AREG(I,J,JR,J_DTDGTR,SS)
           AIJ(I,J,IJ_DTDP)=AIJ(I,J,IJ_DTDP)+SS
         END DO
 C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
@@ -368,7 +367,7 @@ C**** OLD STRATOSPHERIC STATIC STABILITY (USE LSTR as approx 10mb)
           DO IT=1,NTYPE
             CALL INC_AJ(I,J,IT,J_DTSGST,SS*FTYPE(IT,I,J))
           END DO
-          CALL INC_AREG(I,J,JR,J_DTSGST,SS*DXYPJ)
+          CALL INC_AREG(I,J,JR,J_DTSGST,SS)
         END DO
 
 C****
@@ -2133,7 +2132,7 @@ C****
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
-      USE diag_com,ONLY : adiurn_dust,adiurn_loc,aisccp_loc
+      USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
 #ifndef NO_HDIURN
      &     ,hdiurn_loc
 #endif
@@ -2566,6 +2565,7 @@ C**** Initiallise ice freeze diagnostics at beginning of run
 c
 c zero out certain non-distributed arrays
 c
+      areg_loc = 0
       aisccp_loc = 0
       adiurn_loc = 0
 #ifndef NO_HDIURN
@@ -2596,7 +2596,7 @@ c
         go to 100
       end if
 
-      AJ_loc=0    ; AREGJ_loc=0
+      AJ_loc=0    ; AREG_loc=0; AREG=0
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0

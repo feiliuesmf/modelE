@@ -1083,8 +1083,8 @@ C**** accumulate river runoff diags (moved from ground)
                 AIJ(ID,JD,IJ_FWOC)=AIJ(ID,JD,IJ_FWOC)+DMM*BYAXYP(ID,JD)
               END IF
               JR=JREG(ID,JD)
-              CALL INC_AREG(ID,JD,JR,J_RVRD,DMM)
-              CALL INC_AREG(ID,JD,JR,J_ERVR,DGM+DPE)
+              CALL INC_AREG(ID,JD,JR,J_RVRD,DMM*BYAXYP(ID,JD))
+              CALL INC_AREG(ID,JD,JR,J_ERVR,(DGM+DPE)*BYAXYP(ID,JD))
               AIJ(ID,JD,IJ_MRVR)=AIJ(ID,JD,IJ_MRVR) + DMM
               AIJ(ID,JD,IJ_ERVR)=AIJ(ID,JD,IJ_ERVR) + DGM+DPE
 #ifdef TRACERS_WATER
@@ -1653,10 +1653,10 @@ C**** save some diags
 c                  CALL INC_AJ(I,J,ITLKICE,J_IMELT,PLKIC*IMLT)
 c                  CALL INC_AJ(I,J,ITLKICE,J_HMELT,PLKIC*HMLT)
 C**** Accumulate regional diagnostics
-c                  CALL INC_AREG(I,J,JR,J_IMELT,PLKIC*IMLT*AXYP(I,J))
-c                  CALL INC_AREG(I,J,JR,J_HMELT,PLKIC*HMLT*AXYP(I,J))
-                  CALL INC_AREG(I,J,JR,J_IMPLM,PLKIC*IMLT*AXYP(I,J))
-                  CALL INC_AREG(I,J,JR,J_IMPLH,PLKIC*HMLT*AXYP(I,J))
+c                  CALL INC_AREG(I,J,JR,J_IMELT,PLKIC*IMLT)
+c                  CALL INC_AREG(I,J,JR,J_HMELT,PLKIC*HMLT)
+                  CALL INC_AREG(I,J,JR,J_IMPLM,PLKIC*IMLT)
+                  CALL INC_AREG(I,J,JR,J_IMPLH,PLKIC*HMLT)
 C****
                   RSI(I,J)=0.
                   SNOWI(I,J)=0.
@@ -1997,8 +1997,8 @@ C**** Ice-covered ocean diagnostics
         CALL INC_AJ(I,J, ITLKICE,J_WTR1,MLAKE(1)*PLKICE)
         CALL INC_AJ(I,J, ITLKICE,J_WTR2,MLAKE(2)*PLKICE)
 C**** regional diags
-        CALL INC_AREG(I,J,JR,J_WTR1,MLAKE(1)*FLAKE(I,J)*AXYP(I,J))
-        CALL INC_AREG(I,J,JR,J_WTR2,MLAKE(2)*FLAKE(I,J)*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_WTR1,MLAKE(1)*FLAKE(I,J))
+        CALL INC_AREG(I,J,JR,J_WTR2,MLAKE(2)*FLAKE(I,J))
 #ifdef TRACERS_WATER
 C**** tracer diagnostics
         TAIJN(I,J,tij_lk1,:)=TAIJN(I,J,tij_lk1,:)+TRLAKEL(:,1) !*PLKICE?

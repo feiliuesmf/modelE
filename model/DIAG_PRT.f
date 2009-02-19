@@ -881,7 +881,7 @@ c
      &     jyear,jyear0,ls1,itime,itime0,nday,xlabel,lrunid,ntype
       USE GEOM, only : dxyp,lat,lat_dg
       USE DIAG_COM, only :
-     &     QDIAG,acc_period,aj,aregj,jreg,kdiag,namreg,nreg,kaj,ia_j,
+     &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
      &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
@@ -891,7 +891,6 @@ c
      &     sarea=>sarea_reg,fmt_j,fmt_reg
       USE BDJ
       IMPLICIT NONE
-      REAL*8, DIMENSION(NREG,KAJ) :: AREG
       REAL*8, DIMENSION(JM), SAVE :: S1
       REAL*8, DIMENSION(JM) :: FLAT
       REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
@@ -982,12 +981,6 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)  ! excl. regions, but types dimensioned 0:ntype_out
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
      *     ,ntype_out,jm,lat_dg)
-C**** Sum AREGJ over latitude to get AREG
-      DO K=1,KAJ
-        DO JR=1,NREG
-          CALL GLOBALSUM(GRID, AREGJ(JR,:,K), AREG(JR,K), ALL=.TRUE.)
-        END DO
-      END DO
 
 C**** CALCULATE THE DERIVED QUANTTIES
       BYA1=1./(IDACC(ia_srf)+teeny)
@@ -6714,8 +6707,8 @@ cddd      use ent_mod, only : ent_get_exports
 cddd#else
 cddd      USE VEG_COM,   only : vdata
 cddd#endif
-      USE DIAG_COM, only : AIJ,  AIJ_loc, AJ,   AJ_loc, AREGJ,
-     *     AREGJ_loc, AJK,  AJK_loc, AIJK, AIJK_loc,
+      USE DIAG_COM, only : AIJ,  AIJ_loc, AJ,   AJ_loc,
+     *     AJK,  AJK_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
       USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
@@ -6779,7 +6772,7 @@ cddd      DEALLOCATE(tmp)
       END SUBROUTINE DIAG_GATHER
 
       SUBROUTINE DIAG_SCATTER
-      USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc, AREGJ, AREGJ_loc,
+      USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc,
      *     AJK, AJK_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
      *     AJL,  AJL_loc, CONSRV, CONSRV_loc, TSFREZ, TSFREZ_loc
       USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
@@ -6788,7 +6781,6 @@ cddd      DEALLOCATE(tmp)
 
 #ifndef CUBE_GRID
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
-      CALL UNPACK_DATA(GRID, AREGJ,  AREGJ_loc)
       CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc)
       CALL UNPACK_DATAj(GRID, AJL,  AJL_loc)
       CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc)

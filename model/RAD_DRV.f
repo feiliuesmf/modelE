@@ -912,7 +912,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
      *     ,LFRC,JTIME,n1
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
-     *     ,TAUMCL,ELHX,CLDCV,DXYPIJ,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
+     *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
      *     ,tauex5,tauex6,tausct,taugcb,dcdnc
      *     ,QR(LM,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -1327,10 +1327,10 @@ C**** effective cloud cover diagnostics
            call inc_aj(i,j,it,J_CLDDEP,DEPTH*FTYPE(IT,I,J))
            call inc_aj(i,j,it,J_PCLD  ,CLDCV*FTYPE(IT,I,J))
          END DO
-         call inc_areg(i,j,jr,J_PCLDSS,CSS  *AXYP(I,J))
-         call inc_areg(i,j,jr,J_PCLDMC,CMC  *AXYP(I,J))
-         call inc_areg(i,j,jr,J_CLDDEP,DEPTH*AXYP(I,J))
-         call inc_areg(i,j,jr,J_PCLD  ,CLDCV*AXYP(I,J))
+         call inc_areg(i,j,jr,J_PCLDSS,CSS  )
+         call inc_areg(i,j,jr,J_PCLDMC,CMC  )
+         call inc_areg(i,j,jr,J_CLDDEP,DEPTH)
+         call inc_areg(i,j,jr,J_PCLD  ,CLDCV)
          AIJ(I,J,IJ_PMCCLD)=AIJ(I,J,IJ_PMCCLD)+CMC
          AIJ(I,J,IJ_CLDCV) =AIJ(I,J,IJ_CLDCV) +CLDCV
          DO L=1,LLOW
@@ -1991,11 +1991,11 @@ C**** Save clear sky/tropopause diagnostics here
      *        *CSZ2-TRNFLB(LTROPO(I,J)))*FTYPE(IT,I,J))
       END DO
       call inc_areg(i,j,jr,J_CLRTOA,OPNSKY*(SRNFLB(LM+LM_REQ+1)
-     *     *CSZ2-TRNFLB(LM+LM_REQ+1))*AXYP(I,J))
+     *     *CSZ2-TRNFLB(LM+LM_REQ+1)))
       call inc_areg(i,j,jr,J_CLRTRP,OPNSKY*(SRNFLB(LTROPO(I,J))
-     *     *CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J))
+     *     *CSZ2-TRNFLB(LTROPO(I,J))))
       call inc_areg(i,j,jr,J_TOTTRP,(SRNFLB(LTROPO(I,J))
-     *     *CSZ2-TRNFLB(LTROPO(I,J)))*AXYP(I,J))
+     *     *CSZ2-TRNFLB(LTROPO(I,J))))
 C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
       AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
@@ -2056,7 +2056,6 @@ C****
               call inc_ajl(i,j,l,jl_srhr,SRHR(L,I,J)*COSZ2(I,J))
               call inc_ajl(i,j,l,jl_trcr,TRHR(L,I,J))
             enddo
-            DXYPIJ=AXYP(I,J)
             CSZ2=COSZ2(I,J)
             JR=JREG(I,J)
             DO LR=1,LM_REQ
@@ -2111,24 +2110,24 @@ C**** Note: confusing because the types for radiation are a subset
          call inc_aj(I,J,ITLKICE,J_SRNFG,(FSF(2,I,J)*CSZ2)* FLAKE(I,J)
      *        *RSI(I,J))
 C****
-         call inc_areg(I,J,JR,J_SRINCP0,(S0*CSZ2)*DXYPIJ)
-         call inc_areg(I,J,JR,J_SRNFP0 ,(SNFS(3,I,J)*CSZ2)*DXYPIJ)
-         call inc_areg(I,J,JR,J_SRNFP1 ,(SNFS(2,I,J)*CSZ2)*DXYPIJ)
+         call inc_areg(I,J,JR,J_SRINCP0,(S0*CSZ2))
+         call inc_areg(I,J,JR,J_SRNFP0 ,(SNFS(3,I,J)*CSZ2))
+         call inc_areg(I,J,JR,J_SRNFP1 ,(SNFS(2,I,J)*CSZ2))
          call inc_areg(I,J,JR,J_SRINCG ,(SRHR(0,I,J)*CSZ2/
-     *        (ALB(I,J,1)+1.D-20))*DXYPIJ)
-         call inc_areg(I,J,JR,J_HATM,-(TNFS(2,I,J)-TNFS(1,I,J))*DXYPIJ)
-         call inc_areg(I,J,JR,J_SRNFG,(SRHR(0,I,J)*CSZ2)*DXYPIJ)
-         call inc_areg(I,J,JR,J_HSURF,-(TNFS(3,I,J)-TNFS(1,I,J))*DXYPIJ)
-         call inc_areg(I,J,JR,J_BRTEMP, BTMPW(I,J)*DXYPIJ)
-         call inc_areg(I,J,JR,J_TRINCG,TRINCG(I,J)*DXYPIJ)
-         call inc_areg(I,J,JR,J_TRNFP0,-TNFS(3,I,J)*DXYPIJ)
-         call inc_areg(I,J,JR,J_TRNFP1,-TNFS(2,I,J)*DXYPIJ)
+     *        (ALB(I,J,1)+1.D-20)))
+         call inc_areg(I,J,JR,J_HATM,-(TNFS(2,I,J)-TNFS(1,I,J)))
+         call inc_areg(I,J,JR,J_SRNFG,(SRHR(0,I,J)*CSZ2))
+         call inc_areg(I,J,JR,J_HSURF,-(TNFS(3,I,J)-TNFS(1,I,J)))
+         call inc_areg(I,J,JR,J_BRTEMP, BTMPW(I,J))
+         call inc_areg(I,J,JR,J_TRINCG,TRINCG(I,J))
+         call inc_areg(I,J,JR,J_TRNFP0,-TNFS(3,I,J))
+         call inc_areg(I,J,JR,J_TRNFP1,-TNFS(2,I,J))
          DO K=2,9
            JK=K+J_PLAVIS-2      ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              call inc_aj(I,J,IT,JK,(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J))
            END DO
-           call inc_areg(I,J,JR,JK,(S0*CSZ2)*ALB(I,J,K)*DXYPIJ)
+           call inc_areg(I,J,JR,JK,(S0*CSZ2)*ALB(I,J,K))
          END DO
          AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
          AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)

@@ -136,9 +136,9 @@ C**** Accumulate diagnostics for ice fraction
         END IF
 
 C**** Accumulate regional diagnostics
-        CALL INC_AREG(I,J,JR,J_IMELT,RUN0 *POICE*AXYP(I,J))
-        CALL INC_AREG(I,J,JR,J_SMELT,SRUN0*POICE*AXYP(I,J))
-        CALL INC_AREG(I,J,JR,J_HMELT,ERUN0*POICE*AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_IMELT,RUN0 *POICE)
+        CALL INC_AREG(I,J,JR,J_SMELT,SRUN0*POICE)
+        CALL INC_AREG(I,J,JR,J_HMELT,ERUN0*POICE)
 
       END IF
 
@@ -390,9 +390,9 @@ C**** accumulate diagnostics
            CALL INC_AJ(I,J,ITYPEO,J_HMELT,-ENRGUSED*(1.-ROICE)*PWATER)
            CALL INC_AJ(I,J,ITYPEO,J_SMELT,     SALT*(1.-ROICE)*PWATER)
            CALL INC_AJ(I,J,ITYPEO,J_IMELT,     RUN0*(1.-ROICE)*PWATER)
-           CALL INC_AREG(I,J,JR,J_HMELT,-ENRGUSED*PWATER*AXYP(I,J))
-           CALL INC_AREG(I,J,JR,J_SMELT,     SALT*PWATER*AXYP(I,J))
-           CALL INC_AREG(I,J,JR,J_IMELT,     RUN0*PWATER*AXYP(I,J))
+           CALL INC_AREG(I,J,JR,J_HMELT,-ENRGUSED*PWATER)
+           CALL INC_AREG(I,J,JR,J_SMELT,     SALT*PWATER)
+           CALL INC_AREG(I,J,JR,J_IMELT,     RUN0*PWATER)
 C**** Update prognostic sea ice variables + correction for rad. fluxes
             if (roice.gt.rsi(i,j)) ! ice from ocean
      *          call RESET_SURF_FLUXES(I,J,1,2,RSI(I,J),ROICE)
@@ -665,13 +665,10 @@ C**** snow cover diagnostic now matches that seen by the radiation
           CALL INC_AJ(I,J,ITYPE,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE)
           CALL INC_AJ(I,J,ITYPE,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
 
-          CALL INC_AREG(I,J,JR,J_RSNOW,SCOVI*AXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE
-     *         *AXYP(I,J)) 
-          CALL INC_AREG(I,J,JR,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE
-     *         *AXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE
-     *         *AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_RSNOW,SCOVI)
+          CALL INC_AREG(I,J,JR,J_IMELT,(FMOC+ RUN+MFLUX+MSNWIC)*POICE) 
+          CALL INC_AREG(I,J,JR,J_HMELT,(FHOC+ERUN+HFLUX+HSNWIC)*POICE)
+          CALL INC_AREG(I,J,JR,J_SMELT,(FSOC+SRUN+SFLUX+SSNWIC)*POICE)
 
       END IF
 C**** set total atmopsheric pressure anomaly in case needed by ocean
@@ -810,12 +807,9 @@ C**** Ice-covered ocean diagnostics
         CALL INC_AJ(I,J,ITYPE,J_HMELT,-ENRGFI*POICE)
         CALL INC_AJ(I,J,ITYPE,J_IMELT,-ACEFI *POICE)
 C**** regional diagnostics
-        CALL INC_AREG(I,J,JR,J_IMELT,-(ACEFO *POCEAN+ACEFI *POICE)
-     *       *AXYP(I,J))
-        CALL INC_AREG(I,J,JR,J_HMELT,-(ENRGFO*POCEAN+ENRGFI*POICE)
-     *       *AXYP(I,J))
-        CALL INC_AREG(I,J,JR,J_SMELT,-(SALTO *POCEAN+SALTI *POICE)
-     *       *AXYP(I,J))
+        CALL INC_AREG(I,J,JR,J_IMELT,-(ACEFO *POCEAN+ACEFI *POICE))
+        CALL INC_AREG(I,J,JR,J_HMELT,-(ENRGFO*POCEAN+ENRGFI*POICE))
+        CALL INC_AREG(I,J,JR,J_SMELT,-(SALTO *POCEAN+SALTI *POICE))
 
         CALL ADDICE (SNOW,ROICE,HSIL,SSIL,MSI2,TSIL,ENRGFO,ACEFO,ACEFI,
      *       ENRGFI,SALTO,SALTI,
@@ -858,10 +852,10 @@ C**** ACCUMULATE DIAGNOSTICS
         CALL INC_AJ(I,J,ITYPE,J_ACE2, MSI2*POICE)
         CALL INC_AJ(I,J,ITYPE,J_SNOW, SNOW*POICE)
         IF (JR.ne.24) THEN
-          CALL INC_AREG(I,J,JR,J_RSI ,      POICE*AXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_SNOW, SNOW*POICE*AXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_ACE1,ACE1I*POICE*AXYP(I,J))
-          CALL INC_AREG(I,J,JR,J_ACE2, MSI2*POICE*AXYP(I,J))
+          CALL INC_AREG(I,J,JR,J_RSI ,      POICE)
+          CALL INC_AREG(I,J,JR,J_SNOW, SNOW*POICE)
+          CALL INC_AREG(I,J,JR,J_ACE1,ACE1I*POICE)
+          CALL INC_AREG(I,J,JR,J_ACE2, MSI2*POICE)
         END IF
         AIJ(I,J,IJ_TSI)=AIJ(I,J,IJ_TSI)+
      *       POICE*(XSI(3)*TSIL(3)+XSI(4)*TSIL(4))
