@@ -172,6 +172,7 @@ LAI10=chem_files/lai10.global
 LAI11=chem_files/lai11.global
 LAI12=chem_files/lai12.global
 Ox_IC=gsin/Ox_init_cond_M23_4x5_conc
+CO_IC=gsin/CO_init_cond_M23_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
