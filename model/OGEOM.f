@@ -7,13 +7,12 @@ C****
 !@ver  2.0
       Use CONSTANT, Only: TWOPI,RADIUS,OMEGA,PI
 
-      USE RESOLUTION, only : JMA=>JM 
       Use GEOM,  Only: DXYPA=>DXYP, zDXYPA=>BYDXYP
       Use OCEAN, Only: IM,JM,DLON,DLAT,DLATM,FJEQ,
      *                 DXYP=>DXYPO, DXYVO, DXYS=>DXYSO, DXYN=>DXYNO,
      *                 DXP=>DXPO, DYP=>DYPO, DXV=>DXVO, DYV=>DYVO,
      *                 RLAT, COSV=>COSVO, SINP=>SINPO, COSP=>COSPO,
-     *                 RAMVS,RAMVN, zDXYP=>BYDXYPO, RATOC,ROCAT,
+     *                 RAMVS,RAMVN, zDXYP=>BYDXYPO,
      *                 COSM,COSQ, SINxY,TANxY, DXPGF,DYPGF,
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
      *                 J1O, JMPF=>J40S, IMAXJ
@@ -126,12 +125,6 @@ C****
    60 COSU(I)  = Cos (I*TWOPI/IM)
       SINU(IM) = 0
       COSU(IM) = 1
-C**** Calculate area ratios for converting atmospheric grid to ocean
-      Do J=1,JMA
-c        RATOC(J) = DXYPA(J)*zDXYP(J)
-c        ROCAT(J) = DXYP(J)*zDXYPA(J)  ;  EndDo
-        RATOC(J) = 1.0
-        ROCAT(J) = 1.0  ;  EndDo
 C**** Calculate JMPF = greatest J in SH where polar filter is applied
       Do J=1,JM/2
         If (RLAT(J) > -40*TWOPI/360)  Then  !  find first J north of 40S

@@ -80,8 +80,6 @@ C**** ocean geometry (should this be in a separate module?)
 !@var  IMAXJ varying number of used longitudes
       INTEGER, DIMENSION(JM) :: IMAXJ
       INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
-!@var RATOC,ROCAT Ratio of areas for converting atm. fluxes to ocean
-      REAL*8, DIMENSION(JM) :: RATOC,ROCAT
       Integer*4 J40S, !  maximum grid cell below 40S (used in OPFIL)
      *           J1O  !  most southern latitude (J) where ocean exists
 

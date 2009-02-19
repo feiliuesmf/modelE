@@ -3691,7 +3691,7 @@ C**** Reduce South-North gradient of tracers
 
       USE OCEAN, only : IMO=>IM,JMO=>JM
      *     , IVNP, UO,VO, MO,DXYSO,DXYNO,DXYVO
-     *     , LMU,LMV, COSIC,SINIC, RATOC
+     *     , LMU,LMV, COSIC,SINIC
 
       USE DOMAIN_DECOMP_1D, only : get, halo_update, north
 
@@ -3766,8 +3766,7 @@ C**** Surface stress is applied to V component at the North Pole
       USE CONSTANT, only : grav
 
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
-     *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO
-     *     , RATOC,ROCAT, OPRESS
+     *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO, OPRESS
 #ifdef TRACERS_OCEAN
      *     ,TRMO, NTM
 #endif
@@ -3830,18 +3829,6 @@ C****
         DXYPJ=DXYPJ*FOCEAN(I,J)     ! adjust areas for completeness
         BYDXYPJ=BYDXYPJ/FOCEAN(I,J) ! no change to results
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
-c        RUNO = (oFLOWO(I,J)+ oMELTI(I,J))/(DXYPJ)-
-c     *                                   RATOC(J)*oEVAPOR(I,J,1)
-c        RUNI = (oFLOWO(I,J)+ oMELTI(I,J))/(DXYPJ)+
-c     *                                   RATOC(J)*oRUNOSI(I,J)
-c        ERUNO=(oEFLOWO(I,J)+oEMELTI(I,J))/(DXYPJ)+
-c     *                                   RATOC(J)*oE0(I,J,1)
-c        ERUNI=(oEFLOWO(I,J)+oEMELTI(I,J))/(DXYPJ)+
-c     *                                   RATOC(J)*oERUNOSI(I,J)
-c        SRUNO=oSMELTI(I,J)/(DXYPJ)
-c        SRUNI=oSMELTI(I,J)/(DXYPJ)+RATOC(J)*oSRUNOSI(I,J)
-c        SROX(1)=oSOLAR(1,I,J)*RATOC(J) ! open water
-c        SROX(2)=oSOLAR(3,I,J)*RATOC(J) ! through ice
 
         RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J,1)             !  kg/m^2
         RUNI = oFLOWO(I,J) + oMELTI(I,J) + oRUNOSI(I,J)               !  kg/m^2
@@ -3930,12 +3917,6 @@ C**** Add evenly over open ocean and ice covered areas
         END DO
 
 C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
-c        oDMSI(1,I,J)=(DMOO+SUM(DM0))*ROCAT(J)
-c        oDMSI(2,I,J)=(DMOI+SUM(DM0))*ROCAT(J)
-c        oDHSI(1,I,J)=(DEOO+SUM(DE0))*ROCAT(J)
-c        oDHSI(2,I,J)=(DEOI+SUM(DE0))*ROCAT(J)
-c        oDSSI(1,I,J)=(DSOO+SUM(DS0))*ROCAT(J)
-c        oDSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
 
         oDMSI(1,I,J)=DMOO+SUM(DM0)                                    !  kg/m^2
         oDMSI(2,I,J)=DMOI+SUM(DM0)                                    !  kg/m^2
@@ -3945,8 +3926,6 @@ c        oDSSI(2,I,J)=(DSOI+SUM(DS0))*ROCAT(J)
         oDSSI(2,I,J)=DSOI+SUM(DS0)                                    !  kg/m^2
 
 #ifdef TRACERS_OCEAN
-c        oDTRSI(:,1,I,J)=(DTROO(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
-c        oDTRSI(:,2,I,J)=(DTROI(:)+SUM(DTR0(:,:),DIM=2))*ROCAT(J)
 
         oDTRSI(:,1,I,J)=DTROO(:)+SUM(DTR0(:,:),DIM=2)
         oDTRSI(:,2,I,J)=DTROI(:)+SUM(DTR0(:,:),DIM=2)
@@ -5015,7 +4994,7 @@ C****
 !@ver  1.0
 c GISS-ESMF EXCEPTIONAL CASE - AT2OT not needed yet - nothing done yet
       USE MODEL_COM, only : ima=>im,jma=>jm
-      USE OCEAN, only : imo=>im,jmo=>jm,imaxj,ratoc
+      USE OCEAN, only : imo=>im,jmo=>jm,imaxj
 
 !      use domain_decomp_1d, only : grid,get
       use domain_decomp_1d, only : get
@@ -5037,7 +5016,7 @@ C**** just scaling due to area differences for fluxes
       IF (QCONSERV) THEN
         DO J=1,JMO
           DO I=1,IMAXJ(J)
-            FIELDO(:,I,J) = FIELDA(:,I,J)*RATOC(J)
+            FIELDO(:,I,J) = FIELDA(:,I,J)
           END DO
         END DO
         DO I=2,IMO
@@ -5058,7 +5037,7 @@ c GISS-ESMF EXCEPTIONAL CASE - OT2AT not needed yet - nothing done yet
 !@ver  1.0
       USE MODEL_COM, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
-      USE OCEAN, only : imo=>im,jmo=>jm,rocat
+      USE OCEAN, only : imo=>im,jmo=>jm
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
       LOGICAL, INTENT(IN) :: QCONSERV
@@ -5075,7 +5054,7 @@ C**** just scaling due to area differences for fluxes
       IF (QCONSERV) THEN
         DO J=1,JMA
           DO I=1,IMAXJ(J)
-            FIELDA(:,I,J) = FIELDO(:,I,J)*ROCAT(J)
+            FIELDA(:,I,J) = FIELDO(:,I,J)
           END DO
         END DO
         DO I=2,IMA
@@ -5096,7 +5075,7 @@ C****
 c GISS-ESMF EXCEPTIONAL CASE - AT2OV not needed yet - nothing done yet
       USE MODEL_COM, only : ima=>im,jma=>jm
       USE GEOM, only : imaxj
-      USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs,ratoc
+      USE OCEAN, only : imo=>im,jmo=>jm,ramvn,ramvs
       IMPLICIT NONE
 !@var QCONSERV true if integrated field must be conserved
 !@var QU true if u-velocity pts. are wanted (false for v velocity pts.)
@@ -5116,14 +5095,14 @@ C**** Ocean velocities are on C grid
           DO J=1,JMO-1
             I=IMO
             DO IP1=1,IMO
-              FIELDO(:,I,J)=0.5*RATOC(J)*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
+              FIELDO(:,I,J)=0.5*(FIELDA(:,I,J)+FIELDA(:,IP1,J))
               I=IP1
             END DO
           END DO
 C**** do poles
           DO I=1,IMO
-            FIELDO(:,I,JMO) = FIELDA(:,1,JMO)*RATOC(JMO)
-            FIELDO(:,I,  1) = FIELDA(:,1,  1)*RATOC(JMO)
+            FIELDO(:,I,JMO) = FIELDA(:,1,JMO)
+            FIELDO(:,I,  1) = FIELDA(:,1,  1)
           END DO
         ELSE   ! no area weighting
           DO J=1,JMO-1
@@ -5143,8 +5122,8 @@ C**** do poles
         IF (QCONSERV) THEN
           DO J=1,JMO-1
             DO I=1,IMO
-              FIELDO(:,I,J) = RATOC(J)*RAMVN(J)*FIELDA(:,I,J)+
-     *             RATOC(J+1)*RAMVS(J+1)*FIELDA(:,I,J+1)
+              FIELDO(:,I,J) = RAMVN(J)*FIELDA(:,I,J)+
+     *             RAMVS(J+1)*FIELDA(:,I,J+1)
             END DO
           END DO
         ELSE
