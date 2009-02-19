@@ -167,22 +167,22 @@ c     All other cases are deduced by symetry
                VY=-VY   
             elseif (abs(VX) .le. eps .and. abs(VY) .gt. eps) then
                if (VY .gt. eps) then
-                  kdirec=2
+                  kdirec(i,j)=2
                   nocomp=1
                elseif (VY .lt. meps) then
-                  kdirec=6
+                  kdirec(i,j)=6
                   nocomp=1
                endif
             elseif (abs(VY) .le. eps .and. abs(VX) .gt. eps) then
                if (VX .gt. eps) then
-                  kdirec=8
+                  kdirec(i,j)=8
                   nocomp=1
                elseif (VX .lt. meps) then
-                  kdirec=4
+                  kdirec(i,j)=4
                   nocomp=1
                endif
             elseif (abs(VX) .le. eps .and. abs(VY) .lt. eps) then
-               kdirec=0
+               kdirec(i,j)=0
                nocomp=1
             endif
 
@@ -202,51 +202,51 @@ c
                if (slope/slope_diag .lt. 1.d0) then
                   if (slope/slope_diag .lt. 0.5d0) then
                      if (quadrant .eq. 1) then
-                        kdirec=8
+                        kdirec(i,j)=8
                      elseif (quadrant .eq. 2) then 
-                        kdirec=4
+                        kdirec(i,j)=4
                      elseif (quadrant .eq. 3) then
-                        kdirec=4
+                        kdirec(i,j)=4
                      elseif (quadrant .eq. 4) then
-                        kdirec=8
+                        kdirec(i,j)=8
                      endif
                   else
                      if (quadrant .eq. 1) then 
-                        kdirec=1
+                        kdirec(i,j)=1
                      elseif (quadrant .eq. 2) then
-                        kdirec=3
+                        kdirec(i,j)=3
                      elseif (quadrant .eq. 3) then
-                        kdirec=5
+                        kdirec(i,j)=5
                      elseif (quadrant .eq. 4) then
-                        kdirec=7
+                        kdirec(i,j)=7
                      endif
                   endif
                else   
                   if (slope_diag/slope .lt. 0.5) then 
                      if (quadrant .eq. 1) then 
-                        kdirec=2
+                        kdirec(i,j)=2
                      elseif (quadrant .eq. 2) then
-                        kdirec=2
+                        kdirec(i,j)=2
                      elseif (quadrant .eq. 3) then
-                        kdirec=6
+                        kdirec(i,j)=6
                      elseif (quadrant .eq. 4) then
-                        kdirec=6
+                        kdirec(i,j)=6
                      endif
                   else
                      if (quadrant .eq. 1) then 
-                        kdirec=1
+                        kdirec(i,j)=1
                      elseif (quadrant .eq. 2) then
-                        kdirec=3
+                        kdirec(i,j)=3
                      elseif (quadrant .eq. 3) then
-                        kdirec=5
+                        kdirec(i,j)=5
                      elseif (quadrant .eq. 4) then
-                        kdirec=7
+                        kdirec(i,j)=7
                      endif
                   endif
                endif
             endif
 
-            write(*,*) "KDIREC=",kdirec
+            write(*,*) "KDIREC(I,J)=",kdirec(i,j)
          enddo
       enddo
 
