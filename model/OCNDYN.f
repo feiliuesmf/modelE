@@ -205,6 +205,29 @@ C**** Advection of Potential Enthalpy and Salt
         CALL TIMER (MNOW,MDYNO)
 
         IF (MODD5S == 0) CALL DIAGCA (12)
+
+c????          Non-parallelized parts : straits
+c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
+
+      call gather_ocean_straits (2)
+
+      IF(AM_I_ROOT()) THEN
+C****
+C**** Acceleration and advection of tracers through ocean straits
+C****
+        CALL STPGF(DTS/NOCEAN)
+        CALL STADV(DTS/NOCEAN)
+          CALL CHECKO_serial ('STADV0')
+        IF (NO .EQ. NOCEAN) THEN 
+          CALL STCONV
+          CALL STBDRA
+        END IF
+      END IF
+
+      call scatter_ocean_straits (2)
+      call BCAST_straits (0)
+c????      end of serialized part
+        CALL CHECKO ('STADV ')
  500  CONTINUE
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
@@ -224,27 +247,6 @@ C**** Apply GM + Redi tracer fluxes
       CALL CHECKO ('GMDIFF')
       CALL TIMER (MNOW,MSGSO)
 
-c????          Non-parallelized parts : straits
-c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
-
-      call gather_ocean_straits (2)
-
-      IF(AM_I_ROOT()) THEN
-C****
-C**** Acceleration and advection of tracers through ocean straits
-C****
-        CALL STPGF
-        CALL STCONV
-        CALL STBDRA
-          CALL CHECKO_serial ('STBDRA')
-        CALL STADV
-          CALL CHECKO_serial ('STADV0')
-      END IF
-
-      call scatter_ocean_straits (2)
-      call BCAST_straits (0)
-c????      end of serialized part
-        CALL CHECKO ('STADV ')
 C**** remove STADVI since it is not really consistent with ICEDYN
 c      CALL STADVI
 c        CALL CHECKO ('STADVI')

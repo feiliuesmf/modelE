@@ -2,17 +2,18 @@
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_WATER
 #endif
-      SUBROUTINE STPGF
+      SUBROUTINE STPGF(DTS)
 !@sum  STPGF calculates pressure gradient force through strait
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only : grav,rrt12=>byrt12
-      USE OCEAN, only : dts, lmo,lmm,   dxypo,hocean,
+      USE OCEAN, only : lmo,lmm,   dxypo,hocean,
      *   mo=>mo_glob, opress=>opress_glob,
      *   g0m=>g0m_glob,gzmo=>gzmo_glob, s0m=>s0m_glob,szmo=>szmo_glob
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg
       IMPLICIT NONE
       INTEGER I,J,K,L,N
+      REAL*8, INTENT(IN) :: DTS  
       REAL*8 PE,PHIE,GUP,GDN,SUP,SDN,DP,PUP,PDN,VUP,VDN
       REAL*8 VOLGSP
       REAL*8, DIMENSION(LMO,2) :: MEND,PEND,PHI,DH
@@ -62,7 +63,7 @@ C****
       RETURN
       END SUBROUTINE STPGF
 
-      SUBROUTINE STADV
+      SUBROUTINE STADV(DTS)
 !@sum  STADV advects tracers and water mass through the straits
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
@@ -70,7 +71,7 @@ C****
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit
 #endif
-      USE OCEAN, only : dts,dxypo,bydxypo,mo=>mo_glob
+      USE OCEAN, only : dxypo,bydxypo,mo=>mo_glob
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
      *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
 #ifdef TRACERS_OCEAN
@@ -89,6 +90,7 @@ C****
       IMPLICIT NONE
       INTEGER I1,J1,I2,J2,N,L,ITR
 
+      REAL*8, INTENT(IN) :: DTS  
       REAL*8 MM1,MM2,AM
 C****
       DO N=1,NMST
