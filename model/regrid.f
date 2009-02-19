@@ -1,8 +1,9 @@
-      subroutine bilin_cs2ll_vec(grid,xll2cs,uin_glob,vin_glob,
-     &     uout_loc,vout_loc)
-!@sum Bilinearly interpolate vector field from cubed sphere to latlon grid
+#ifdef CUBE_GRID
+      subroutine bilin_ll2cs_vec(grid,uin_glob,vin_glob,
+     &     uout_loc,vout_loc,ims,jms)
+!@sum Bilinearly interpolate vector field from latlon grid to cubed-sphere
 !@+    vector field is defined on sphere (Earth) and takes values on tangent bundle (i.e. plane locally tangent to sphere) 
-!@+   input field is global 
+!@+   input field on latlon grid is global 
 !@+   interpolation is performed in the local cs domain
 !@+   output field is local to each cs domain 
 !@+
@@ -25,40 +26,47 @@
 !@auth Denis Gueyffier
       
       use regrid_com
-      use geom, only : lat2d, lon2d
+      use geom, only : lat2d, lon2d, lat2d_dg, lon2d_dg
       implicit none
       type (dist_grid), intent(in) :: grid
-      type(x_2grids), intent(in) :: xll2cs
-      real*8, intent(out) :: uout_loc(is:ie,js:je),
-     &     vout_loc(is:ie,js:je)
+      integer, intent(in) :: ims,jms
+      real*8, intent(out) :: uout_loc(grid%I_STRT:grid%I_STOP,
+     &     grid%J_STRT:grid%J_STOP),
+     &     vout_loc(grid%I_STRT:grid%I_STOP,
+     &     grid%J_STRT:grid%J_STOP)
       real*8, intent(in) :: 
-     &     uin_glob(xll2cs%imsource,xll2cs%imsource),
-     &     vin_glob(xll2cs%imsource,xll2cs%imsource)
+     &     uin_glob(ims,jms),
+     &     vin_glob(ims,jms)
       real*8 :: u11,u12,u21,u22
       real*8 :: v11,v12,v21,v22
       real*8 :: lon1,lon2,lat1,lat2, dlon, dlat
-      real*8 :: dnm, pi
-      integer :: i,j, ims,jms, i_lon,j_lat, im_lon, jm_lat
+      real*8 :: dnm, pi, dlat_dg, dlon_dg
+      integer :: i,j, i_lon,j_lat, im_lon, jm_lat
 
       pi = 4.0d0*atan(1.d0)
 
-      im_lon = xll2cs%imsource
-      jm_lat = xll2cs%jmsource
+      dlat_dg=180./REAL(JMS)                   ! even spacing (default)
+      IF (JMS.eq.46) dlat_dg=180./REAL(JMS-1)   ! 1/2 box at pole for 4x5
 
+      dlon_dg = 360./dble(ims)
+      
+      write(*,*) "bilin is ie js je=",grid%i_strt,grid%i_stop,
+     &     grid%j_strt,grid%j_stop
 c***  loop on CS points in local domain
-      do j=js,je
-         do i=is,ie
+      do j=grid%j_strt,grid%j_stop
+         do i=grid%i_strt,grid%i_stop
+            I_lon = ims/2 + 1 + NInt((lon2d_dg(i,j)+.01)/dlon_dg)
+            J_lat = jms/2 + 1 + NInt((lat2d_dg(i,j)+.01)/dlat_dg)
 
-            dlon=pi/IM_lon
-            dlat=2*pi/JM_lat
-            I_lon=NInt(lon2d(i,j)/dlon)
-            J_lat=NInt(lat2d(i,j)/dlat)
-            
-            lat1=J_lat*dlat
-            lon1=I_lon*dlon
-            lat2=(J_lat+1)*dlat
-            lon2=(I_lon+1)*dlon
-            
+            write(*,*) "ilon,jlat",i_lon,j_lat
+
+            lat1=dlat_dg*(j_lat-.5*(1+jms) -0.5)
+            lon1=-180+dlon_dg*(i_lon-1.)
+
+            lat2=dlat_dg*(j_lat-.5*(1+jms) + 1.5)
+            lon2=-180+dlon_dg*(i_lon+1.)
+
+c     correct fact that vector field defined at cell center
             u11=uin_glob(I_lon,J_lat)
             u21=uin_glob(I_lon+1,J_lat+1)
             u12=uin_glob(I_lon,J_lat+1)
@@ -87,8 +95,8 @@ c***  loop on CS points in local domain
          enddo
       enddo
 
-      end subroutine bilin_cs2ll_vec
-
+      end subroutine bilin_ll2cs_vec
+#endif
 
       subroutine init_xgrid_zonal(x2grids,imsource,jmsource,
      &     ntilessource,imtarget,jmtarget,ntilestarget)

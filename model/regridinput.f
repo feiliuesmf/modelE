@@ -5,15 +5,16 @@
 !@    Will soon become a standalone program
 !@auth Denis Gueyffier
       use regrid_com
-      use dd2d_utils
       implicit none
       type (dist_grid), intent(in) :: grid
       type (x_2gridsroot) :: xll2cs
       integer :: imsource,jmsource,ntilessource,imtarget,
      &     jmtarget,ntilestarget
 
-      imsource=360
-      jmsource=180
+      imsource=144
+      jmsource=90
+c      imsource=360
+c      jmsource=180
       ntilessource=1
       imtarget=grid%IM_WORLD
       jmtarget=grid%JM_WORLD
@@ -22,8 +23,11 @@
       call init_regrid_root(xll2cs,imsource,jmsource,ntilessource,
      &     imtarget, jmtarget,ntilestarget)
 
-ccc   regrid boundary condition files 
+
+c***   regrid* = conservative regridding
+c***   interp* = bilinear interpolation
       write(*,*) "IN REGRID INPUT"
+
       if (AM_I_ROOT()) then
 c         call regridTOPO(xll2cs)
 c         call regridOSST(xll2cs)
@@ -38,12 +42,228 @@ c         call regridGLMELT(xll2cs)
 c         call regridVEGFRAC(xll2cs)
 c         call regridLAI(xll2cs)
       endif
-      call regridGIC(xll2cs,grid)
+
+c      call regridGIC(xll2cs,grid)
 c     call regridAIC(xll2cs,grid)
+
+#ifdef CUBE_GRID
+      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
+#endif
 
       end subroutine regrid_input
 c*
 
+
+#ifdef CUBE_GRID
+      subroutine interpRD(grid,ims,jms,imt,jmt)
+      use regrid_com
+      use DOMAIN_DECOMP_ATM, only: halo_update,pack_data
+      use geom, only : ll2csxy_vec
+      implicit none
+      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
+      real*8,parameter :: twopi = 2d0*pi           !@param twopi 2*pi
+      real*8,parameter :: radian = pi/180d0        !@param radian pi/180
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      integer, parameter :: nrvrmx=42
+      type (dist_grid), intent(in) :: grid
+      integer, intent(in) :: ims,jms,imt,jmt
+      character*80 :: titlei,title2,title,name
+      real*4, dimension(ims,jms) :: down_lat,down_lon,down_lat_911
+     *     ,down_lon_911
+      real*8,dimension(ims,jms) :: ull,vll
+      real*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
+      character*8, dimension(nrvrmx) :: namervr
+      real*8, allocatable :: ucs_loc(:,:),vcs_loc(:,:)
+      real*8 :: eps, meps, norm, lon, lat
+         real*8 :: x,y,VX,VY,slope,slope_diag,Xhalf,Yhalf,Xone,Yone
+      integer iu_RVR, iu_RVRCS
+      integer :: nrvr, i,j, nocomp, quadrant
+      integer, allocatable, dimension(:,:) :: kdirec
+      real*4, dimension(imt,jmt,6) :: kdirec_glob
+
+      allocate(kdirec(grid%I_STRT:grid%I_STOP,
+     &     grid%J_STRT:grid%J_STOP))
+
+      iu_RVR=20
+      name="RD_modelE_Fa.RVR.bin"
+
+      write(*,*) name
+
+      if (am_i_root()) then
+      open( iu_RVR, FILE=name,FORM='unformatted', STATUS='old')
+      read(iu_RVR) titlei
+      read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *     ,lon_rvr(1:nrvr)
+      read(iu_RVR) title,down_lat
+      read(iu_RVR) title,down_lon
+      read(iu_RVR) title,down_lat_911
+      read(iu_RVR) title,down_lon_911
+      close(iu_RVR)
+      end if
+ 
+c      write(*,*) "down_lon=",down_lon
+
+c     create vector field on latlon grid
+      eps=1.d-6
+      meps=-1.d-6
+
+      do j=1,jms
+         lat=(180./real(jms))*(j-.5*(1+jms)) ! even spacing (default)
+         if (jms.eq.46) lat=(180./real(jms-1))*(j-.5*(1+jms)) ! 1/2 box at pole for 4x5
+         do i=1,ims
+            lon=-180+360*(i-.5)/real(ims)
+            ull(i,j)=down_lon(i,j) - lon
+            vll(i,j)=down_lat(i,j) - lat 
+            ull(i,j)=ull(i,j)/
+     &           sqrt(ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j))
+            vll(i,j)=vll(i,j)/
+     &           sqrt(ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j))
+
+         enddo
+      enddo
+
+
+c     interpolate vectors field from latlon points to cubed-sphere points
+c     Note that the returned vector field V_cs = (ucs_loc, vcs_loc) is expressed 
+c     in the latlon coordinate system
+
+      write(*,*) "before bilin"
+
+      call bilin_ll2cs_vec(grid,ull,vll,ucs_loc,vcs_loc,ims,jms)
+
+      call halo_update(grid,ucs_loc)
+      call halo_update(grid,vcs_loc)
+
+      write(*,*) "aft halo"
+
+      do j=grid%J_STRT,grid%J_STOP
+         do i=grid%I_STRT,grid%I_STOP
+
+            nocomp=0
+c     x,y coordinates of current CS cell center
+            x = -1.d0 + 2d0*(i-0.5)/imt
+            y = -1.d0 + 2d0*(j-0.5)/imt
+
+c     compute components of V_cs in XY plane V_cs = (VX,VY)
+            call ll2csxy_vec(x,y,grid%tile,ucs_loc(i,j),
+     &           vcs_loc(i,j),VX,VY)
+
+c testing - remove following line
+c            VX=0.d0 ; VY = 0.d0
+
+c     we assume V lies in first quadrant, VX > 0 && VY > 0. 
+c     All other cases are deduced by symetry
+            if (VX .gt. eps .and. VY .gt. eps) then
+               quadrant = 1
+            elseif ( VX .lt. meps .and. VY .gt. eps) then
+               quadrant=2
+               VX=-VX   
+            elseif ( VX .lt. meps .and. VY .lt. meps) then
+               quadrant=3
+               VX=-VX   
+               VY=-VY   
+            elseif ( VX .gt. eps .and. VY .lt. meps) then
+               quadrant=4
+               VY=-VY   
+            elseif (abs(VX) .le. eps .and. abs(VY) .gt. eps) then
+               if (VY .gt. eps) then
+                  kdirec=2
+                  nocomp=1
+               elseif (VY .lt. meps) then
+                  kdirec=6
+                  nocomp=1
+               endif
+            elseif (abs(VY) .le. eps .and. abs(VX) .gt. eps) then
+               if (VX .gt. eps) then
+                  kdirec=8
+                  nocomp=1
+               elseif (VX .lt. meps) then
+                  kdirec=4
+                  nocomp=1
+               endif
+            elseif (abs(VX) .le. eps .and. abs(VY) .lt. eps) then
+               kdirec=0
+               nocomp=1
+            endif
+
+            if (nocomp .ne. 1) then
+c
+c     compare slope VY/VX with (Yj+1-Yj+1/2)/(Xi+1-Xi+1/2) to decide which is the prefered direction
+c
+               slope=VY/VX
+               xone = -1.d0 + 2d0*i/imt  ! (xone,yone) upper right corner of cell
+               yone = -1.d0 + 2d0*j/imt
+               Xone = tan(g*xone)*sqrt(2d0)
+               Yone = tan(g*yone)*sqrt(2d0)
+               Xhalf = tan(g*x)*sqrt(2d0)
+               Yhalf = tan(g*y)*sqrt(2d0)
+               slope_diag=(Yone-Yhalf)/(Xone-Xhalf)
+
+               if (slope/slope_diag .lt. 1.d0) then
+                  if (slope/slope_diag .lt. 0.5d0) then
+                     if (quadrant .eq. 1) then
+                        kdirec=8
+                     elseif (quadrant .eq. 2) then 
+                        kdirec=4
+                     elseif (quadrant .eq. 3) then
+                        kdirec=4
+                     elseif (quadrant .eq. 4) then
+                        kdirec=8
+                     endif
+                  else
+                     if (quadrant .eq. 1) then 
+                        kdirec=1
+                     elseif (quadrant .eq. 2) then
+                        kdirec=3
+                     elseif (quadrant .eq. 3) then
+                        kdirec=5
+                     elseif (quadrant .eq. 4) then
+                        kdirec=7
+                     endif
+                  endif
+               else   
+                  if (slope_diag/slope .lt. 0.5) then 
+                     if (quadrant .eq. 1) then 
+                        kdirec=2
+                     elseif (quadrant .eq. 2) then
+                        kdirec=2
+                     elseif (quadrant .eq. 3) then
+                        kdirec=6
+                     elseif (quadrant .eq. 4) then
+                        kdirec=6
+                     endif
+                  else
+                     if (quadrant .eq. 1) then 
+                        kdirec=1
+                     elseif (quadrant .eq. 2) then
+                        kdirec=3
+                     elseif (quadrant .eq. 3) then
+                        kdirec=5
+                     elseif (quadrant .eq. 4) then
+                        kdirec=7
+                     endif
+                  endif
+               endif
+            endif
+
+            write(*,*) "KDIREC=",kdirec
+         enddo
+      enddo
+
+c     gather all river directions before writing to output file
+      call pack_data(grid,kdirec,kdirec_glob)
+
+      if (am_i_root()) then
+c         write(iu_RVRCS) titlei
+         write(iu_RVRCS) title2,kdirec_glob
+c         write(iu_RVRCS) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+c     *        ,lon_rvr(1:nrvr)
+      endif
+
+      deallocate(kdirec)
+      end subroutine interpRD
+c*
+#endif
 
       subroutine regridTOPO(x2grids)
 c
@@ -74,12 +294,15 @@ c
       name="Z72X46N.cor4_nocasp"
       write(*,*) name
 
+      if (am_i_root()) then
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
 
       write(*,*) "iu_TOPO",iu_TOPO
+      endif
 
       call read_regrid_4D_1R(x2grids,iu_TOPO,TITLE,ttargglob,maxrec)
 
+      if (am_i_root()) then
 c
 c     CONSISTENCY CHECKS: 1) FOCEAN+FLAKE+FGRND+FGICE=1 
 c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
@@ -123,6 +346,7 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       enddo
 
       close(iu_TOPO)
+      endif
 
       ncfile="topo6tiles.nc"
 
@@ -166,11 +390,13 @@ c     has been interpolated from lower resolution
 
       iu_OSST=20
       name="OST4X5.B.1876-85avg.Hadl1.1"
+      if (am_i_root()) then
       open(iu_OSST, FILE=name,FORM='unformatted', STATUS='old')
+      endif
 
       call read_regrid_write_4D_2R(x2grids,name,iu_OSST)
 
-      close(iu_OSST)
+      if (am_i_root()) close(iu_OSST)
 
       end subroutine regridOSST
 c
@@ -198,8 +424,6 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       iu_SICE=19
       name="SICE4X5.B.1876-85avg.Hadl1.1"
       write(*,*) name
-      open (iu_SICE, FILE=name,FORM='unformatted', STATUS='old')
-
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -214,9 +438,11 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
      &     tout(imt,jmt,ntt))
       tsource(:,:,:)=0.0
  
+      if (am_i_root()) then
+      open (iu_SICE, FILE=name,FORM='unformatted', STATUS='old')
       read(unit=iu_SICE) TITLE, tin
-
       tsource=tin
+      endif
 
       call root_regrid(x2grids,tsource(:,:,:),ttargglob)
       tout(:,:,:)=ttargglob(:,:,:)
@@ -225,10 +451,13 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       
       write(*,*) outunformat
       iuout=20
+
+      if (am_i_root()) then
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
       write(unit=iuout) TITLE,tout(:,:,:)
       write(*,*) TITLE
+      endif
 
       allocate (tsource1(ims,jms,nts,nrecmax),
      &     tsource2(ims,jms,nts,nrecmax),
@@ -252,9 +481,11 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
          tout2(:,:,:)=ttargglob2(:,:,:)
          tbig(:,:,1,:)=tout1(:,:,:)
          tbig(:,:,2,:)=tout2(:,:,:)
+         if (am_i_root()) then
          write(unit=iuout) TITLE2(ir),tbig
 c         write(unit=iuout) TITLE2(ir),tout1(:,:,:),tout2(:,:,:)
          write(*,*) "TITLE",TITLE2(ir)
+         endif
       enddo
 
       close(iuout)
@@ -262,7 +493,7 @@ c         write(unit=iuout) TITLE2(ir),tout1(:,:,:),tout2(:,:,:)
       deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tout1,tout2,
      &     tin,tout,tbig)
 
-      close(iu_SICE)
+      if (am_i_root()) close(iu_SICE)
       
       end subroutine regridSICE
 
@@ -279,10 +510,12 @@ c     for 1x1 resolution: Jeff uses CDN=AL30RL360X180N.rep
 
       iu_CDN=20
       name="CD4X500S.ext"
+      if (am_i_root()) then
       open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
+      endif
 
       call read_regrid_write_4D_1R(x2grids,name,iu_CDN)
-      close(iu_CDN)
+      if (am_i_root()) close(iu_CDN)
       
       end subroutine regridCDN
 c*
@@ -302,12 +535,15 @@ c	was just transfered to 360X180 grid without any change)
 	
       iu_VEG=20
       name="V72X46.1.cor2_no_crops.ext"
+
+      if (am_i_root()) then
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
 c     &     convert='big_endian')
+      endif
 
       call read_regrid_write_veg(x2grids,name,iu_VEG)
            
-      close(iu_VEG)
+      if (am_i_root()) close(iu_VEG)
       
       end subroutine regridVEG
 c*
@@ -348,39 +584,30 @@ c     arrsum(imt,jmt,ntt)
 
       iuout=20
 
-      open( iuout, FILE=outunformat,
-     &     FORM='unformatted', STATUS="UNKNOWN")
-
+      if (am_i_root()) then
+         open( iuout, FILE=outunformat,
+     &        FORM='unformatted', STATUS="UNKNOWN")
+      endif
+      
       do ir=1,10
-         read(unit=iuin) TITLE,data
-         write(*,*) "TITLE, ir",TITLE,ir
-         tsource= data
+         if (am_i_root()) then
+            read(unit=iuin) TITLE,data
+            write(*,*) "TITLE, ir",TITLE,ir
+            tsource= data
+         endif
          call root_regrid(x2grids,tsource,ttargglob)
-c         arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
+c     arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
          tout=ttargglob
-         write(unit=iuout) TITLE,tout
+         if (am_i_root()) then
+            write(unit=iuout) TITLE,tout
+         endif
       enddo
 
-      close(iuout) 
+      if (am_i_root()) close(iuout) 
 
       deallocate(tsource,ttargglob,tout,data)
 
       end subroutine read_regrid_write_veg
-c*
-
-
-      subroutine regridRVR(x2grids)
-c	empty for the moment
-
-      use regrid_com
-      implicit none
-      type (x_2gridsroot), intent(inout) :: x2grids
-      character*80 TITLE,name
-      integer iu_RVR
-
-ccc   EMPTY FOR THE MOMENT
-   
-      end subroutine regridRVR
 c*
 
 
@@ -393,11 +620,13 @@ c*
 
       iu_CROPS=20
       name="CROPS_72X46N.cor4.ext"
-      open(iu_CROPS,FILE=name,FORM='unformatted', STATUS='old')
+      if (am_i_root()) then
+         open(iu_CROPS,FILE=name,FORM='unformatted', STATUS='old')
+      endif
 
       call read_regrid_write_4D_1R(x2grids,name,iu_CROPS)
 
-      close(iu_CROPS)
+      if (am_i_root()) close(iu_CROPS)
 
       end subroutine regridCROPS
 c*
@@ -419,11 +648,12 @@ c     direct transfer from top_index_144x90.ij.ext
 
       iu_TOP_INDEX=20
       name="top_index_72x46.ij.ext"
-      open(iu_TOP_INDEX,FILE=name,FORM='unformatted', STATUS='old')
-      
+      if (am_i_root()) then
+         open(iu_TOP_INDEX,FILE=name,FORM='unformatted', STATUS='old')
+      endif
       call read_regrid_write_4D_1R(x2grids,name,iu_TOP_INDEX)
       
-      close(iu_TOP_INDEX)
+      if (am_i_root()) close(iu_TOP_INDEX)
       
       end subroutine regridTOPINDEX
 c*
@@ -457,9 +687,9 @@ c
 
       iu_SOIL=20
       name="S4X50093.ext"
+      if (am_i_root()) then
       open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
-c ,
-c     &     convert='big_endian')
+      endif
 
       allocate (dz(ims,jms,6),ftext(ims,jms,6,5),
      &     ftextk(ims,jms,6,5),sl(ims,jms),
@@ -470,9 +700,11 @@ c     &     convert='big_endian')
       allocate (tsource(ims,jms,nts),
      &     ttargglob(imt,jmt,ntt) )
 
-      read(iu_SOIL) dz,ftext,ftextk,sl
+      if (am_i_root()) then
+         read(iu_SOIL) dz,ftext,ftextk,sl
 
-      close(iu_SOIL)
+         close(iu_SOIL)
+      endif
       
       outunformat=trim(name)//".CS"
       
@@ -480,10 +712,10 @@ c     &     convert='big_endian')
 
       write(*,*) dz
       iuout=20
+      if (am_i_root()) then
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
-c ,
-c     &     convert='big_endian')
+      endif
 
       do k=1,6
          do j=1,jms
@@ -538,10 +770,12 @@ c     &     convert='big_endian')
       inds=inds+30
       bigarrout(:,:,inds+1,:)=slout(:,:,:)
 
-      write(unit=iuout) bigarrout
-      
-      close(iuout)
-      
+      if (am_i_root()) then
+         write(unit=iuout) bigarrout
+         
+         close(iuout)
+      endif
+
       end subroutine regridSOIL
 c*
       
@@ -558,10 +792,14 @@ c*
       write(*,*) name
 
       iu_GLMELT=20
-      open (iu_GLMELT,FILE=name,FORM='unformatted', STATUS='old')
-
+      
+      if (am_i_root()) then
+         open (iu_GLMELT,FILE=name,FORM='unformatted', STATUS='old')
+      endif
+   
       call read_regrid_write_GLMELT(x2grids,name,iu_GLMELT)
-      close(iu_GLMELT)
+
+      if (am_i_root()) close(iu_GLMELT)
       
       end subroutine regridGLMELT
 c*
@@ -595,6 +833,7 @@ c*
      &     tout(imt,jmt,ntt))
       tsource(:,:,:,:)=0.0
 
+      if (am_i_root()) then
       call read_recs_1R(tsource,iuin,TITLE,
      &        maxrec,ims,jms,nts)
 
@@ -607,6 +846,7 @@ c*
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
+      endif
 
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
@@ -621,11 +861,13 @@ c*
             enddo
            enddo
           enddo
-         write(unit=iuout) TITLE(ir),tout(:,:,:)
-         write(*,*) "TITLE",TITLE(ir)
+          if (am_i_root()) then
+             write(unit=iuout) TITLE(ir),tout(:,:,:)
+             write(*,*) "TITLE",TITLE(ir)
+          endif
       enddo
 
-      close(iuout)
+      if (am_i_root()) close(iuout)
 
       deallocate(tsource,ttargglob,tout)
 
@@ -660,16 +902,13 @@ c
 
       ttargglob(:,:,:,:) = 0.0
 
+
+      if (am_i_root()) then
       iu_VEGFRAC=20
       name="vegtype.global4X5.bin"
       write(*,*) name
-
       open( iu_VEGFRAC, FILE=name,FORM='unformatted', STATUS='old')
-
-
-c***  first read file title
-c      read(iu_VEGFRAC) TITLEFILE
-      write(6,*) TITLEFILE
+      endif
 
       call read_regrid_4D_1R(x2grids,iu_VEGFRAC,TITLE,ttargglob,maxrec)
 
@@ -685,22 +924,26 @@ c***
          write(*,*) "ones=",ones
       endif
 
-      close(iu_VEGFRAC)
+      if (am_i_root()) close(iu_VEGFRAC)
 
       oname=trim(name)//".CS"
 
-      write(*,*) oname
-
-      open( iu_VEGFRACCS, FILE=oname,FORM='unformatted', 
-     &     STATUS='unknown')
+      if (am_i_root()) then
+         write(*,*) oname
+         
+         open( iu_VEGFRACCS, FILE=oname,FORM='unformatted', 
+     &        STATUS='unknown')
+      endif
 
       ttargr4=ttargglob
 
-      do ir=1,maxrec
-         write(unit=iu_VEGFRACCS) TITLE(ir), ttargr4(:,:,:,ir)
-      enddo
-
-      close(iu_VEGFRACCS)
+      if (am_i_root()) then
+         do ir=1,maxrec
+            write(unit=iu_VEGFRACCS) TITLE(ir), ttargr4(:,:,:,ir)
+         enddo
+         
+         close(iu_VEGFRACCS)
+      endif
 
       deallocate(ttargglob,ones,ttargr4)
    
@@ -743,12 +986,14 @@ c
          endif
          name='lai'//c2month//'.global.bin'
          write(*,*) name
-               
-         open( iu_LAI, FILE=name,FORM='unformatted', STATUS='old')
+
+         if (am_i_root()) then               
+            open( iu_LAI, FILE=name,FORM='unformatted', STATUS='old')
+         endif
 
          call read_regrid_write_4D_1R(x2grids,name,iu_LAI)
          
-         close(iu_LAI)
+         if (am_i_root()) close(iu_LAI)
       enddo
    
       end subroutine regridLAI
@@ -817,7 +1062,10 @@ c      name="GIC.E046D3M20A.1DEC1955.ext"
 c      name="GIC.144X90.DEC01.1.ext"
 
       iu_GIC=20
+
+      if (am_i_root()) then
       open(iu_GIC,FILE=name,FORM='unformatted', STATUS='old')
+      endif
 
       allocate (Tocn(3,ims,jms),MixLD(ims,jms),
      &     F(ims,jms),H(4,ims,jms),snw(ims,jms),msi(ims,jms),
@@ -847,6 +1095,7 @@ c      name="GIC.144X90.DEC01.1.ext"
       allocate (tsource(ims,jms,nts),
      &     ttargglob(imt,jmt,ntt) )
 
+      if (am_i_root()) then
       read(iu_GIC) TITLEOCN01, Tocn,MixLD
       write(*,*) TITLEOCN01
       read(iu_GIC) TITLESICE02, F,H,snw,msi,ssi,pond_melt,flag_dsws
@@ -861,7 +1110,7 @@ c      name="GIC.144X90.DEC01.1.ext"
       write(*,*) TITLEGLAIC01
 
       close(iu_GIC)
-      
+      endif
 
             
       do k=1,3
@@ -1255,6 +1504,8 @@ c*
       integer, intent(in) :: iuin
       character*80, intent(inout) :: TITLE(nrecmax)
       integer, intent(out) :: maxrec
+
+      if (am_i_root()) then
       
       write(*,*) "iuin",iuin
       irec=1
@@ -1273,6 +1524,8 @@ c      write(*,*) "DATA=",data
 
       close(iuin)
 
+      endif
+
       end subroutine read_recs_1R
 c*
 
@@ -1287,6 +1540,8 @@ c*
       integer, intent(in) :: iuin
       character*80, intent(inout) :: TITLE(nrecmax)
       integer, intent(out) :: maxrec
+
+      if (am_i_root()) then
 
       write(*,*) "iuin",iuin
       irec=1
@@ -1304,6 +1559,8 @@ c*
 
       close(iuin)
 
+      endif
+
       end subroutine read_recs_1R_r4_r8
 c*
 
@@ -1318,6 +1575,8 @@ c*
       integer, intent(in) :: iuin
       character*80, intent(inout) :: TITLE(nrecmax)
       integer, intent(out) :: maxrec
+
+      if (am_i_root()) then
       
       write(*,*) "iuin",iuin
       irec=1
@@ -1333,6 +1592,8 @@ c*
       maxrec=irec-1
 
       close(iuin)
+
+      endif
 
       end subroutine read_recs_1R_r8
 c*
@@ -1351,6 +1612,8 @@ c*
       integer, intent(in) :: iuin
       character*80, intent(inout) :: TITLE(nrecmax)
       integer, intent(out) :: maxrec
+
+      if (am_i_root()) then
       
       write(*,*) "iuin",iuin
       irec=1
@@ -1369,6 +1632,8 @@ c*
       maxrec=irec-1
 
       close(iuin)
+
+      endif
 
       end subroutine read_recs_2R
 c*
@@ -1410,18 +1675,23 @@ c*
       
       write(*,*) outunformat
 
+      if (am_i_root()) then
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
 
+      endif
+
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
          tout(:,:,:)=ttargglob(:,:,:)
+         if (am_i_root()) then
          write(unit=iuout) TITLE(ir),tout(:,:,:)
          write(*,*) "TITLE",TITLE(ir)
+         endif
       enddo
 
-      close(iuout) 
+      if (am_i_root()) close(iuout) 
 
       deallocate(tsource,ttargglob,tout)
 
@@ -1464,6 +1734,7 @@ c*
       
       write(*,*) "maxrec",maxrec
       
+      if (am_i_root()) then
       outunformat=trim(name)//".CS"
       
       write(*,*) outunformat
@@ -1471,14 +1742,18 @@ c*
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
 
+      endif
+
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
          if (ir .eq. 1) tcopy=ttargglob
+         if (am_i_root()) then
          write(unit=iuout) TITLE(ir),ttargglob(:,:,:)
          write(*,*) "TITLE",TITLE(ir)
+         endif
       enddo
 
-      close(iuout) 
+      if (am_i_root()) close(iuout) 
 
       write(*,*) "here w r8"
 
@@ -1539,7 +1814,7 @@ c*
       tsource(:,:,:,:)=0.0
       data(:,:,:,:)=0.0
       
-
+      if (am_i_root()) then
       do irec=1,rmax
          read(unit=iuin) TITLE(irec), data(:,:,:,irec)
          write(*,*) "TITLE, irec",TITLE(irec),irec
@@ -1555,8 +1830,8 @@ c*
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
-c,
-c     &     convert='big_endian')
+
+      endif
 
       arrsum(:,:,:)=0.
 
@@ -1564,14 +1839,16 @@ c     &     convert='big_endian')
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
          arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
          tout(:,:,:)=ttargglob(:,:,:)
+         if (am_i_root()) then
          write(unit=iuout) TITLE(ir),tout(:,:,:)
          write(*,*) "TITLE",TITLE(ir)
-c         write(*,*) "TOUT>>",tout,"<<<"
+         endif
+
       enddo
 
       write(*,*) "SUM ARRAY=",arrsum
 
-      close(iuout) 
+      if (am_i_root()) close(iuout) 
 
       deallocate(tsource,ttargglob,arrsum,tout,data,TITLE)
 
@@ -1657,13 +1934,15 @@ c*
       
 c      write(*,*) "TITLE RECS",TITLE(:)
       write(*,*) "maxrec",maxrec
-      
+
+      if (am_i_root()) then      
       outunformat=trim(name)//".CS"
       
       write(*,*) outunformat
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
+      endif
 
       do ir=1,maxrec
          call root_regrid(x2grids,tsource1(:,:,:,ir),ttargglob1)
@@ -1672,11 +1951,13 @@ c      write(*,*) "TITLE RECS",TITLE(:)
          tout2(:,:,:)=ttargglob2(:,:,:)
          tbig(:,:,1,:)=tout1
          tbig(:,:,2,:)=tout2
+         if (am_i_root()) then
          write(unit=iuout) TITLE(ir),tbig
          write(*,*) "TITLE",TITLE(ir)
+         endif
       enddo
       
-      close(iuout) 
+      if (am_i_root()) close(iuout) 
 
       deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tout1,tout2,
      &     tbig)

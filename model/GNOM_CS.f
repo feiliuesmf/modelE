@@ -331,8 +331,6 @@ c polar face
       return
       end subroutine ll2csxy
 
-      END MODULE GEOM
-
       subroutine ll2csxy_vec(x_in,y_in,tile,ull,vll,uxy,vxy)
 c
 c Given latlon-oriented vector components ull,vll located at a
@@ -479,3 +477,5 @@ c longitude offsets; rotation on tiles 4/5
       if(tile.ge.4) slt = -slt
       return
       end subroutine trigint
+
+      END MODULE GEOM
