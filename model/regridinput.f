@@ -58,6 +58,17 @@ c*
 
 #ifdef CUBE_GRID
       subroutine interpRD(grid,ims,jms,imt,jmt)
+!@sum  Interpolates river directions from latlon grid to cubed sphere 
+!@+    using the following approach:
+!@+         1- The latlon river directions vector field is bilinearly 
+!@+           interpolated to the cubed sphere. The resulting vector 
+!@+           field is still expressed in the polar coordinates basis
+!@+         2- The vector field is then projected on a XY panel coordinate 
+!@+           system where cube sphere edges form perpendicular lines. 
+!@+           This allows us to avoid computing angles in cubed sphere metric.
+!@+         3- We compute "quantized" river directions by following vector 
+!@+           and picking corresponding rectangular cubed sphere cell 
+!@auth Denis Gueyffier
       use regrid_com
       use DOMAIN_DECOMP_ATM, only: halo_update,pack_data
       use geom, only : ll2csxy_vec
@@ -125,30 +136,24 @@ c     create vector field on latlon grid
             vll(i,j)=vll(i,j)/
      &           sqrt(ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j))
 
-c testing we interpolate exactly linear and constant fields
-c      ull(i,j)=2*i+3*j
-c      vll(:,:)=1.
- 
+c     Test cases of bilinear interpolation: uncomment lines below
+c     For normal use, keep lines commented 
+c     test1: checking if we interpolate exactly linear and constant fields
+c      ull(i,j)=2*i+3*j ; vll(i,j) = 1.
+c      ull(i,j)=1. ; vll(i,j)=1.
+c     test2: checking boundary conditions using periodic functions
+c            ull(i,j)=cos(2.*lon*radian) ; vll(i,j)=0. 
+c            write(60,*) lon,lat,ull(i,j)
          enddo
       enddo
 
 c     interpolate vectors field from latlon points to cubed-sphere points
 c     Note that the returned vector field V_cs = (ucs_loc, vcs_loc) is expressed 
 c     in the latlon coordinate system
-
-      write(*,*) "before bilin"
-
-c
-
       call bilin_ll2cs_vec(grid,ull,vll,ucs_loc,vcs_loc,ims,jms)
 
       call halo_update(grid,ucs_loc)
       call halo_update(grid,vcs_loc)
-
-      write(*,*) "ucs=",ucs_loc
-      write(*,*) "vcs=",vcs_loc
-
-      write(*,*) "aft halo"
 
       do j=grid%J_STRT,grid%J_STOP
          do i=grid%I_STRT,grid%I_STOP
@@ -514,7 +519,7 @@ c         write(unit=iuout) TITLE2(ir),tout1(:,:,:),tout2(:,:,:)
 
 
       subroutine regridCDN(x2grids)
-c     for 1x1 resolution: Jeff uses CDN=AL30RL360X180N.rep
+c     for 1x1 resolution: Jeff Jonas uses CDN=AL30RL360X180N.rep
 
       use regrid_com
       implicit none
@@ -539,8 +544,8 @@ c*
 
       subroutine regridVEG(x2grids)
 c     for 1x1 resolution: Jeff uses VEG=V360X180_no_crops.rep
-c	It is identical to V144X90_no_crops.ext (144X90 data 
-c	was just transfered to 360X180 grid without any change)
+c     It is identical to V144X90_no_crops.ext (144X90 data 
+c     was just transfered to 360X180 grid without any change)
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids

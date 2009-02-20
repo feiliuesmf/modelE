@@ -115,58 +115,63 @@ c 100        format(A,3(1X,F8.2))
                
 c     Boundary conditions. As we do not have halo cells for global latlon arrays, 
 c     we do boundary conditions by hand
-            elseif ( I1 .eq. 0) then
-               u11 = uin_glob(ims,J1)
-               u12 = uin_glob(ims,J2)
-               
-               v11 = vin_glob(ims,J1)
-               v12 = vin_glob(ims,J2)
-               
-            elseif ( I2 .eq. ims+1) then
-               u21 = uin_glob(1,J1)
-               u22 = uin_glob(1,J2)
-               
-               v21 = vin_glob(1,J1)
-               v22 = vin_glob(1,J2)
-               
-            elseif ( J1 .eq. 0) then
-               u11 = uin_glob(I1,jms)
-               u21 = uin_glob(I2,jms)
-            
-               v11 = vin_glob(I1,jms)
-               v21 = vin_glob(I2,jms)
+            else
 
-            elseif ( J2 .eq. jms+1) then
-               u12 = uin_glob(I1,1)
-               u22 = uin_glob(I2,1)
-               
-               v12 = vin_glob(I1,1)
-               v22 = vin_glob(I2,1)
+               if ( I1 .eq. 0) then
+                  write(*,*) "i1=0",i1
+                  u11 = uin_glob(ims,J1)
+                  u12 = uin_glob(ims,J2)
+                  
+                  v11 = vin_glob(ims,J1)
+                  v12 = vin_glob(ims,J2)
+               endif
+               if ( I2 .eq. ims+1) then
+                  write(*,*) "i2=ims+1",i2
+                  u21 = uin_glob(1,J1)
+                  u22 = uin_glob(1,J2)
+                  
+                  v21 = vin_glob(1,J1)
+                  v22 = vin_glob(1,J2)
+               endif
+               if ( J1 .eq. 0) then
+                  write(*,*) "j1=0",j1
+                  u11 = uin_glob(I1,jms)
+                  u21 = uin_glob(I2,jms)
+                  
+                  v11 = vin_glob(I1,jms)
+                  v21 = vin_glob(I2,jms)
+               endif
+               if ( J2 .eq. jms+1) then
+                  write(*,*) "j2=jms+1",j2
+                  u12 = uin_glob(I1,1)
+                  u22 = uin_glob(I2,1)
+                  
+                  v12 = vin_glob(I1,1)
+                  v22 = vin_glob(I2,1)
+               endif
             endif
-            
+
             dnm=1.d0/(dlon_dg*dlat_dg)
             
             uout_loc(i,j)=dnm*( 
-     &           u11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
-     &           + u21*( lon2d(i,j)-lon1 )*( lat2-lat2d(i,j) ) 
-     &           + u12*( lon2-lon2d(i,j) )*( lat2d(i,j)-lat1 )
-     &           + u22*( lon2d(i,j)-lon1 )*( lat2d(i,j)-lat1 ) 
+     &           u11*( lon2-lon2d_dg(i,j) )*( lat2-lat2d_dg(i,j) ) 
+     &           + u21*( lon2d_dg(i,j)-lon1 )*( lat2-lat2d_dg(i,j) ) 
+     &           + u12*( lon2-lon2d_dg(i,j) )*( lat2d_dg(i,j)-lat1 )
+     &           + u22*( lon2d_dg(i,j)-lon1 )*( lat2d_dg(i,j)-lat1 ) 
      &           )
             
             vout_loc(i,j)=dnm*( 
-     &           v11*( lon2-lon2d(i,j) )*( lat2-lat2d(i,j) ) 
-     &           + v21*( lon2d(i,j)-lon1 )*( lat2-lat2d(i,j) ) 
-     &           + v12*( lon2-lon2d(i,j) )*( lat2d(i,j)-lat1 )
-     &           + v22*( lon2d(i,j)-lon1 )*( lat2d(i,j)-lat1 ) 
+     &           v11*( lon2-lon2d_dg(i,j) )*( lat2-lat2d_dg(i,j) ) 
+     &           + v21*( lon2d_dg(i,j)-lon1 )*( lat2-lat2d_dg(i,j) ) 
+     &           + v12*( lon2-lon2d_dg(i,j) )*( lat2d_dg(i,j)-lat1 )
+     &           + v22*( lon2d_dg(i,j)-lon1 )*( lat2d_dg(i,j)-lat1 ) 
      &           )
 
-c            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
-c     &       uout_loc(i,j)
+            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
+     &           uout_loc(i,j)
 
          enddo
       enddo
-
-
       
       end subroutine bilin_ll2cs_vec
 #endif
