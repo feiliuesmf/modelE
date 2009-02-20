@@ -347,7 +347,7 @@ c
       integer :: tile ! input
       real*8 :: uxy,vxy ! output
       real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
-      real*8 :: x,y,rtxy,bymag,utmp,vtmp
+      real*8 :: x,y,rtxy,mag,bymag,utmp,vtmp
       x = x_in
       y = y_in
       if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
@@ -373,9 +373,12 @@ c
           vxy = +utmp
         endif
       endif
-      bymag = 1d0/sqrt(uxy**2 + vxy**2)
-      uxy = uxy*bymag
-      vxy = vxy*bymag
+      mag = sqrt(uxy**2 + vxy**2)
+      if (mag .gt. 1.d-8) then
+         bymag=1./mag
+         uxy = uxy*bymag
+         vxy = vxy*bymag
+      endif
       return
       end subroutine ll2csxy_vec
 
