@@ -1219,7 +1219,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
 
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** Set Chlorophyll concentration
-      print*,"rad0",i,j,chl(i,j)
+  !   print*,"rad0",i,j,chl(i,j)
       if (POCEAN.gt.0) LOC_CHL = chl(I,J)
 #endif
 

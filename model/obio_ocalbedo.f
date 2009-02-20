@@ -20,7 +20,7 @@ c  Albedo is provided as direct (albd) and diffuse (albs).
 c  Derive surface reflectance as a function of solz and wind
 c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
-      USE CONSTANT, only : pi,radian
+      USE CONSTANT, only : radian
       USE FILEMANAGER
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 #if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
@@ -177,7 +177,7 @@ ccc   if (vrbos) write(*,*)'ocalbedo, refl:',refl
       if (vrbos) then
       do nl=1,nlt
       write(*,'(a,i5,3e12.4,1x,l1)')'ocalbedo, aftr refl ',
-     .   nl,chl,lam(nl),refl(nlt),res
+     .   nl,chl,lam(nl),refl(nl),res
       enddo
       endif
 
