@@ -741,8 +741,7 @@ c the new i/o system
 !@+    run time
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
-      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP_ATM, ONLY : GET
+      USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
@@ -750,7 +749,7 @@ c the new i/o system
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
-
+      USE DIAG_COM, ONLY : JM,AJ,AJL,ASJL,CONSRV,AJK
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -803,74 +802,57 @@ c the new i/o system
 
       ALLOCATE( AIL_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIL))
 
+c allocate master copies of budget- and JK-arrays on root
+      if(am_i_root()) then
+        ALLOCATE(CONSRV(JM_BUDG, KCON),
+     &           AJ(JM_BUDG, KAJ, NTYPE),
+     &           AJL(JM_BUDG, LM, KAJL),
+     &           ASJL(JM_BUDG,LM_REQ,KASJL),
+     &           AJK(JM,LM,KAJK),
+     &           STAT = IER)
+      endif
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM
 
-      SUBROUTINE ALLOC_DIAG_COM_glob
-!@sum  To allocate arrays global arrays only when needed
+      SUBROUTINE ALLOC_ijdiag_glob
+!@sum  To allocate large global arrays only when needed
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE RESOLUTION, ONLY : IM,JM,LM
-      USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL
-      USE DIAG_COM, ONLY : AJ,JREG,AJL
-     *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
-     *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
-     *     ,JM_BUDG
-
+      USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIL
+      USE DIAG_COM, ONLY : AIJ,AIJK,AIL,TSFREZ,TDIURN_GLOB,OA_GLOB
       IMPLICIT NONE
       INTEGER :: IER
 
       if(.not.AM_I_ROOT()) return
 
-c     ALLOCATE( ! JREG(IM, JM))
-      ALLOCATE( CONSRV(JM_BUDG, KCON),
-     &         STAT = IER)
-
- !AJ, AJL and ASJL are defined on budget grid, JM -> JM_BUDG. 
-      ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE),
-     &         AJL(JM_BUDG, LM, KAJL),
-     &         ASJL(JM_BUDG,LM_REQ,KASJL),
-     &         AIJ(IM,JM,KAIJ),
-     &         AJK(JM,LM,KAJK),
+      ALLOCATE(AIJ(IM,JM,KAIJ),
      &         TSFREZ(IM,JM,KTSF),
-     &         STAT = IER)
-
-
-      ALLOCATE( AIJK(IM,JM,LM,KAIJK),
-     &         STAT = IER)
-
-      ALLOCATE( AIL(IM,JM,LM,KAIL),
-     &         STAT = IER)
-
-      allocate ( TDIURN_glob(IM, JM, KTD)
-     *     ,OA_glob(IM, JM, KOA))
+     &         AIJK(IM,JM,LM,KAIJK),
+     &         AIL(IM,JM,LM,KAIL),
+     &         TDIURN_glob(IM, JM, KTD),
+     *         OA_glob(IM, JM, KOA))
 
       RETURN
-      END SUBROUTINE ALLOC_DIAG_COM_glob
+      END SUBROUTINE ALLOC_ijdiag_glob
 
-      SUBROUTINE DEALLOC_DIAG_COM_glob
-!@sum  To deallocate global arrays not currently needed
+      SUBROUTINE DEALLOC_ijdiag_glob
+!@sum  To deallocate large global arrays not currently needed
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : AJ,JREG,AJL
-     *     ,ASJL,AIJ,CONSRV,AJK, AIJK, AIL
-     *     ,TSFREZ,TDIURN_GLOB,OA_GLOB
+      USE DIAG_COM, ONLY : AIJ,AIJK,AIL,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
 
       if(.not.AM_I_ROOT()) return
 
-c     DEALLOCATE( ! JREG)
-      DEALLOCATE( AJ,AJL,ASJL,AIJ,CONSRV,AJK,AIJK,AIL,TSFREZ )
-
-      deallocate(TDIURN_glob,OA_glob)
+      DEALLOCATE(AIJ,AIJK,AIL,TSFREZ,TDIURN_glob,OA_glob)
 
       RETURN
-      END SUBROUTINE DEALLOC_DIAG_COM_glob
+      END SUBROUTINE DEALLOC_ijdiag_glob
 
       SUBROUTINE io_diags(kunit,it,iaction,ioerr)
 !@sum  io_diag reads and writes diagnostics to file
@@ -1005,7 +987,7 @@ C**** The regular model (Kradia le 0)
      *   ',acc(',kacc,')'
       i_xtra = i_ida+9 + 5+8+1 + 1
 
-      call alloc_diag_com_glob
+      call alloc_ijdiag_glob
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)            ! output to standard restart file
@@ -1135,11 +1117,11 @@ C**** The regular model (Kradia le 0)
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
       END SELECT
 
-      call dealloc_diag_com_glob
+      call dealloc_ijdiag_glob
       RETURN
 
  10   IOERR=1
-      call dealloc_diag_com_glob
+      call dealloc_ijdiag_glob
       RETURN
 
       Contains
@@ -1162,15 +1144,9 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine BCAST_Scalars
 
       Subroutine Scatter_Diagnostics()
+        call scatter_zonal_diags()
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
-#ifndef CUBE_GRID
-        CALL UNPACK_DATAj(grid, AJ,     AJ_loc)
-        CALL UNPACK_DATAj(grid, AJL,    AJL_loc)
-        CALL UNPACK_DATAj(grid, ASJL,   ASJL_loc)
-        CALL UNPACK_DATAj(grid, CONSRV, CONSRV_loc)
-#endif
         CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
-        CALL UNPACK_DATAj(grid, AJK,    AJK_loc)
         CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
         CALL UNPACK_DATA(grid,  AIL,   AIL_loc)
         CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN)
@@ -1206,28 +1182,13 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       END SUBROUTINE io_diags
 
       Subroutine Gather_Diagnostics()
-      use domain_decomp_1d, only : grid,pack_data,pack_dataj,sumxpe
+      use domain_decomp_1d, only : grid,pack_data
       use diag_com
       implicit none
+      call gather_zonal_diags
       call collect_scalars
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
-#ifdef CUBE_GRID 
-      CALL SUMXPE(AJ_loc, AJ, increment=.true.)
-      CALL SUMXPE(AJL_loc, AJL, increment=.true.)
-      CALL SUMXPE(ASJL_loc, ASJL, increment=.true.)
-      CALL SUMXPE(CONSRV_loc, CONSRV, increment=.true.)
-      AJ_loc(:,:,:)=0.
-      AJK_loc(:,:,:)=0.
-      ASJL_loc(:,:,:)=0.
-      CONSRV_loc(:,:)=0.
-#else
-      CALL PACK_DATAj(grid, AJ_loc,     AJ)
-      CALL PACK_DATAj(grid, AJL_loc,    AJL)
-      CALL PACK_DATAj(grid, ASJL_loc,   ASJL)
-      CALL PACK_DATAj(grid, CONSRV_loc, CONSRV)
-#endif
       CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
-      CALL PACK_DATAj(grid, AJK_loc,    AJK)
       CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
       CALL PACK_DATA(grid,  AIL_loc,   AIL)
       CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
@@ -1257,6 +1218,34 @@ c for reproducibility on different numbers of processors
       endif
       return
       End Subroutine Collect_Scalars
+
+      Subroutine Gather_zonal_diags()
+      use domain_decomp_atm, only : grid
+      use diag_com
+! next commit: different grids have different methods for pack_dataj
+      use domain_decomp_1d, only : pack_dataj
+      implicit none
+      call pack_dataj(grid, AJ_loc,     AJ)
+      call pack_dataj(grid, AJL_loc,    AJL)
+      call pack_dataj(grid, ASJL_loc,   ASJL)
+      call pack_dataj(grid, CONSRV_loc, CONSRV)
+      call pack_dataj(grid, AJK_loc,    AJK)
+      return
+      End Subroutine Gather_zonal_diags
+
+      Subroutine Scatter_zonal_diags()
+      use domain_decomp_atm, only : grid
+      use diag_com
+! next commit: different grids have different methods for unpack_dataj
+      use domain_decomp_1d, only : unpack_dataj
+      implicit none
+      call unpack_dataj  (grid, aj,     aj_loc)
+      call unpack_dataj  (grid, ajl,    ajl_loc)
+      call unpack_dataj  (grid, asjl,   asjl_loc)
+      call unpack_dataj  (grid, consrv, consrv_loc)
+      call unpack_dataj  (grid, ajk,    ajk_loc)
+      return
+      End Subroutine Scatter_zonal_diags
 
       SUBROUTINE aPERIOD (JMON1,JYR1,months,years,moff,  aDATE,LDATE)
 !@sum  aPERIOD finds a 7 or 12-character name for an accumulation period
