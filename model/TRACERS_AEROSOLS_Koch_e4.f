@@ -671,7 +671,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE GEOM, only: axyp
       USE TRACER_COM, only: aer_int_yr
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
       integer ihyr,iuc,mm,iact,j
       integer J_0,J_1,J_0H,J_1H
@@ -687,13 +687,13 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
 c 
       call openunit('BC_BIOMASS',iuc,.true.,.true.)
        do mm=1,12
-       call readt_parallel(grid,iuc,title,BCB_src(:,:,1,mm),0)
+       call readt_parallel(grid,iuc,nameunit(iuc),BCB_src(:,:,1,mm),0)
        end do
        call closeunit(iuc)
 c
       call openunit('OC_BIOMASS',iuc,.true.,.true.)
        do mm=1,12
-       call readt_parallel(grid,iuc,title,OCB_src(:,:,1,mm),0)
+       call readt_parallel(grid,iuc,nameunit(iuc),OCB_src(:,:,1,mm),0)
        end do
        call closeunit(iuc)
        endif
@@ -727,7 +727,7 @@ c
 c Carbonaceous aerosol emissions
       USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
      * ty_start,ty_end,n_bcii,n_ocii
@@ -768,7 +768,7 @@ c for now we assume the number of decades BC and OC are the same
       call read_emis_header(n,ns,iuc)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
-       call readt_parallel(grid,iuc,title,hbc_all(:,:,iy),0)
+       call readt_parallel(grid,iuc,nameunit(iuc),hbc_all(:,:,iy),0)
       end do
       call closeunit(iuc)
 
@@ -778,7 +778,7 @@ c for now we assume the number of decades BC and OC are the same
       call read_emis_header(n,ns,iuc)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
-       call readt_parallel(grid,iuc,title,hoc_all(:,:,iy),0)
+       call readt_parallel(grid,iuc,nameunit(iuc),hoc_all(:,:,iy),0)
       end do
       call closeunit(iuc)
       tye=ty_end(n,ns)
