@@ -42,6 +42,7 @@ SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics (diag, diag_prt dummies in scm_diag) 
+DIAG_ZONAL                          ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
 CONST FFT144 UTILDBL SYSTEM         ! utilities
