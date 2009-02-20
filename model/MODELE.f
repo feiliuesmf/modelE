@@ -1289,7 +1289,7 @@ C****
       write(6,*) '...and secondary organic aerosols'
 #else
       call stop_model
-     ('SOA version needs other aerosols and tropo chemistry',255)
+     ('SOA version needs Koch aerosols and tropo chemistry',255)
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_DRYDEP
