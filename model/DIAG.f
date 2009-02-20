@@ -2580,7 +2580,7 @@ c
      *     Itime0,jhour0,jdate0,jmon0,amon0,jyear0,idacc,u
       USE DIAG_COM
       USE PARAM
-      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
       IMPLICIT NONE
       INTEGER :: isum !@var isum if =1 preparation to add up acc-files
       INTEGER jd0
@@ -2592,6 +2592,9 @@ c
         go to 100
       end if
 
+      if(am_i_root()) then
+        aj = 0; ajl = 0; asjl = 0; ajk = 0; consrv = 0
+      endif
       AJ_loc=0    ; AREG_loc=0; AREG=0
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0

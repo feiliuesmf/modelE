@@ -685,12 +685,12 @@ C*** Unpack read global data into local distributed arrays
 !@auth M. Kelley
 !@ver  beta
       use trdiag_com, only :
-     &     TAIJLN=>TAIJLN_loc,
-     &     TAIJN=>TAIJN_loc,
-     &     TAIJS=>TAIJS_loc,
-     &     TAJLN=>TAJLN_loc,
-     &     TAJLS=>TAJLS_loc,
-     &     TCONSRV=>TCONSRV_loc
+     &     TAIJLN=>TAIJLN_ioptr,
+     &     TAIJN=>TAIJN_ioptr,
+     &     TAIJS=>TAIJS_ioptr,
+     &     TAJLN=>TAJLN_ioptr,
+     &     TAJLS=>TAJLS_ioptr,
+     &     TCONSRV=>TCONSRV_ioptr
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
@@ -703,11 +703,11 @@ C*** Unpack read global data into local distributed arrays
       call defvar(grid,fid,taijn,
      &     'taijn(dist_im,dist_jm,ktaij,ntm)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,tajln,
-     &     'tajln(dist_jm,lm,ktajlx,ntm)',r4_on_disk=r4_on_disk)
+     &     'tajln(jm_budg,lm,ktajlx,ntm)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,tajls,
-     &     'tajls(dist_jm,lm,ktajls)',r4_on_disk=r4_on_disk)
+     &     'tajls(jm_budg,lm,ktajls)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,tconsrv,
-     &     'tconsrv(dist_jm,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
+     &     'tconsrv(jm_budg,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
       return
       end subroutine def_rsf_trdiag
 
@@ -733,19 +733,21 @@ c the instances of the arrays used during normal operation.
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)            ! output to restart or acc file
+        call gather_zonal_trdiag
         call write_dist_data(grid,fid,'taijln',taijln)
         call write_dist_data(grid,fid,'taijs',taijs)
         call write_dist_data(grid,fid,'taijn',taijn)
-        call write_dist_data(grid,fid,'tajln',tajln,jdim=1)
-        call write_dist_data(grid,fid,'tajls',tajls,jdim=1)
-        call write_dist_data(grid,fid,'tconsrv',tconsrv,jdim=1)
+        call write_data(grid,fid,'tajln',tajln)
+        call write_data(grid,fid,'tajls',tajls)
+        call write_data(grid,fid,'tconsrv',tconsrv)
       case (ioread)            ! input from restart or acc file
         call read_dist_data(grid,fid,'taijln',taijln)
         call read_dist_data(grid,fid,'taijs',taijs)
         call read_dist_data(grid,fid,'taijn',taijn)
-        call read_dist_data(grid,fid,'tajln',tajln,jdim=1)
-        call read_dist_data(grid,fid,'tajls',tajls,jdim=1)
-        call read_dist_data(grid,fid,'tconsrv',tconsrv,jdim=1)
+        call read_data(grid,fid,'tajln',tajln)
+        call read_data(grid,fid,'tajls',tajls)
+        call read_data(grid,fid,'tconsrv',tconsrv)
+        call scatter_zonal_trdiag
       end select
       return
       end subroutine new_io_trdiag
@@ -758,9 +760,9 @@ c instances of the arrays used during normal operation.
       taijln_ioptr  => taijln_loc
       taijs_ioptr   => taijs_loc
       taijn_ioptr   => taijn_loc
-      tajls_ioptr   => tajls_loc
-      tajln_ioptr   => tajln_loc
-      tconsrv_ioptr => tconsrv_loc
+      tajls_ioptr   => tajls!_loc
+      tajln_ioptr   => tajln!_loc
+      tconsrv_ioptr => tconsrv!_loc
       return
       end subroutine set_ioptrs_tracacc_default
 
@@ -768,7 +770,7 @@ c instances of the arrays used during normal operation.
 c point i/o pointers for diagnostic accumlations to temporary
 c arrays that hold data read from disk
       use trdiag_com
-      use domain_decomp_atm, only : grid
+      use domain_decomp_atm, only : grid,am_i_root
       implicit none
       integer :: i_0h,i_1h,j_0h,j_1h
 c
@@ -786,12 +788,14 @@ c
       taijs_ioptr => taijs_fromdisk
       allocate(taijn_fromdisk(i_0h:i_1h,j_0h:j_1h,ktaij,ntm))
       taijn_ioptr => taijn_fromdisk
-      allocate(tajls_fromdisk(j_0h:j_1h,lm,ktajls))
-      tajls_ioptr => tajls_fromdisk
-      allocate(tajln_fromdisk(j_0h:j_1h,lm,ktajlx,ntm))
-      tajln_ioptr => tajln_fromdisk
-      allocate(tconsrv_fromdisk(j_0h:j_1h,ktcon,ntmxcon))
-      tconsrv_ioptr => tconsrv_fromdisk
+      if(am_i_root()) then
+        allocate(tajls_fromdisk(jm_budg,lm,ktajls))
+        tajls_ioptr => tajls_fromdisk
+        allocate(tajln_fromdisk(jm_budg,lm,ktajlx,ntm))
+        tajln_ioptr => tajln_fromdisk
+        allocate(tconsrv_fromdisk(jm_budg,ktcon,ntmxcon))
+        tconsrv_ioptr => tconsrv_fromdisk
+      endif
       return
       end subroutine set_ioptrs_tracacc_sumfiles
 
@@ -799,13 +803,16 @@ c
 c increment diagnostic accumlations with the data that was
 c read from disk and stored in the _fromdisk arrays.
       use trdiag_com
+      use domain_decomp_atm, only : am_i_root
       implicit none
       taijln_loc  = taijln_loc  + taijln_fromdisk
       taijs_loc   = taijs_loc   + taijs_fromdisk
       taijn_loc   = taijn_loc   + taijn_fromdisk
-      tajls_loc   = tajls_loc   + tajls_fromdisk
-      tajln_loc   = tajln_loc   + tajln_fromdisk
-      tconsrv_loc = tconsrv_loc + tconsrv_fromdisk
+      if(am_i_root()) then
+        tajls   = tajls   + tajls_fromdisk
+        tajln   = tajln   + tajln_fromdisk
+        tconsrv = tconsrv + tconsrv_fromdisk
+      endif
       return
       end subroutine sumfiles_tracacc
 #endif /* TRACERS_ON */
@@ -816,26 +823,26 @@ c read from disk and stored in the _fromdisk arrays.
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM
       USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT, GRID
+      use diag_zonal, only : get_alloc_bounds
+      implicit none
       INTEGER :: J_0H,J_1H, I_0H,I_1H
       INTEGER :: status
-
+      integer :: j_0budg,j_1budg
+      
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
+
+      call get_alloc_bounds(grid,
+     &     j_strt_budg=j_0budg,j_stop_budg=j_1budg)
 
 #ifdef TRACERS_ON 
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )
       ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
-#ifdef CUBE_GRID    /* global-size arrays */
-      ALLOCATE ( TAJLN_loc(  JM_BUDG,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS_loc(  JM_BUDG,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV_loc(JM_BUDG,ktcon,ntmxcon), stat=status )
-#else               /* distributed arrays */
-      ALLOCATE ( TAJLN_loc(    J_0H:J_1H,LM,ktajlx,ntm), stat=status )
-      ALLOCATE ( TAJLS_loc(    J_0H:J_1H,LM,ktajls    ), stat=status )
-      ALLOCATE ( TCONSRV_loc(  J_0H:J_1H,ktcon,ntmxcon), stat=status )
-#endif
+      ALLOCATE ( TAJLN_loc(  J_0BUDG:J_1BUDG,LM,ktajlx,ntm),stat=status)
+      ALLOCATE ( TAJLS_loc(  J_0BUDG:J_1BUDG,LM,ktajls    ),stat=status)
+      ALLOCATE ( TCONSRV_loc(J_0BUDG:J_1BUDG,ktcon,ntmxcon),stat=status)
       if(am_i_root()) then
         ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
         ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
@@ -851,57 +858,69 @@ c read from disk and stored in the _fromdisk arrays.
 #ifdef TRACERS_ON
       subroutine reset_trdiag
       USE TRDIAG_COM, only: TAIJLN_loc, TAIJN_loc, 
-     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc
+     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc,
+     *     TAJLN, TAJLS, TCONSRV
+      USE DOMAIN_DECOMP_ATM, only : am_i_root
       implicit none
 
        TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
       TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
+      if(am_i_root()) then
+        TAJLN=0. ; TAJLS=0. ; TCONSRV=0.
+      endif
 
       return
       end subroutine reset_trdiag
 
       subroutine gather_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
-     *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, PACK_DATA, PACK_DATAj,sumxpe
+     *     TAIJS, TAIJS_loc
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, PACK_DATA
       implicit none
 
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
       CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
       CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
-#ifdef CUBE_GRID
-      CALL SUMXPE(TAJLN_loc, TAJLN, increment=.true. )
-      CALL SUMXPE(TAJLS_loc, TAJLS, increment=.true. )
-      CALL SUMXPE(TCONSRV_loc, TCONSRV, increment=.true. )
-      TAJLN_loc = 0.
-      TAJLS_loc = 0.
-      TCONSRV_loc = 0.
-#else
-      CALL PACK_DATAj (grid,TAJLN_loc, TAJLN )
-      CALL PACK_DATAj (grid,TAJLS_loc, TAJLS )
-      CALL PACK_DATAj (grid,TCONSRV_loc, TCONSRV )
-#endif
+      call gather_zonal_trdiag
 
       return
       end subroutine gather_trdiag
 
+      subroutine gather_zonal_trdiag
+      USE TRDIAG_COM, only : TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
+     *     TCONSRV, TCONSRV_loc
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DIAG_ZONAL, only : pack_lc
+      implicit none
+      call pack_lc   (grid, TAJLN_loc,  TAJLN )
+      call pack_lc   (grid, TAJLS_loc,  TAJLS )
+      call pack_lc   (grid, TCONSRV_loc,TCONSRV )
+      return
+      end subroutine gather_zonal_trdiag
+
       subroutine scatter_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
-     *     TAIJS, TAIJS_loc, TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
+     *     TAIJS, TAIJS_loc
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, UNPACK_DATA
       implicit none
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
       CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
       CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
-#ifndef CUBE_GRID
-      CALL UNPACK_DATAj(GRID, TAJLN , TAJLN_loc)
-      CALL UNPACK_DATAj(GRID, TAJLS , TAJLS_loc)
-      CALL UNPACK_DATAj(GRID, TCONSRV, TCONSRV_loc)
-#endif
+      call scatter_zonal_trdiag
       return
       end subroutine scatter_trdiag
+
+      subroutine scatter_zonal_trdiag
+      USE TRDIAG_COM, only : TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
+     *     TCONSRV, TCONSRV_loc
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID
+      USE DIAG_ZONAL, only : unpack_lc
+      implicit none
+      call unpack_lc (grid, TAJLN,  TAJLN_loc )
+      call unpack_lc (grid, TAJLS,  TAJLS_loc )
+      call unpack_lc (grid, TCONSRV,TCONSRV_loc )
+      return
+      end subroutine scatter_zonal_trdiag
 
 C**** routines for accumulating zonal mean diags (lat/lon grid)
 
