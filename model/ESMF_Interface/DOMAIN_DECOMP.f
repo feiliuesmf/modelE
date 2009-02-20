@@ -1630,11 +1630,13 @@ c need to initialize the dd2d version of dist_grid for I/O
 #ifdef USE_ESMF
       arr_size = size(arr)
       if(increment_) then
-        allocate(arr_tmp(arr_size))
+        if(am_i_root()) allocate(arr_tmp(arr_size))
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
-        arr_master = arr_master + arr_tmp
-        deallocate(arr_tmp)
+        if(am_i_root()) then
+          arr_master = arr_master + arr_tmp
+          deallocate(arr_tmp)
+        endif
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
@@ -1685,11 +1687,13 @@ c**** arr is overwritten by itself after reduction
 #ifdef USE_ESMF
       arr_size = size(arr)
       if(increment_) then
-        allocate(arr_tmp(arr_size))
+        if(am_i_root()) allocate(arr_tmp(arr_size))
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_INTEGER,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
-        arr_master = arr_master + arr_tmp
-        deallocate(arr_tmp)
+        if(am_i_root()) then
+          arr_master = arr_master + arr_tmp
+          deallocate(arr_tmp)
+        endif
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_INTEGER,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
@@ -1740,12 +1744,14 @@ c**** arr is overwritten by itself after reduction
 #ifdef USE_ESMF
          arr_size = size(arr)
          if(increment_) then
-            allocate(arr_tmp(arr_size))
+            if(am_i_root()) allocate(arr_tmp(arr_size))
             call mpi_reduce(arr,arr_tmp,arr_size,
      &           MPI_DOUBLE_PRECISION,MPI_SUM,root,
      &           MPI_COMM_WORLD, ierr)
-            arr_master = arr_master + reshape(arr_tmp,shape(arr))
-            deallocate(arr_tmp)
+            if(am_i_root()) then
+              arr_master = arr_master + reshape(arr_tmp,shape(arr))
+              deallocate(arr_tmp)
+            endif
          else
             call mpi_reduce(arr,arr_master,arr_size,
      &           MPI_DOUBLE_PRECISION,MPI_SUM,root,
@@ -1797,11 +1803,13 @@ c**** arr is overwritten by itself after reduction
 #ifdef USE_ESMF
       arr_size = size(arr)
       if(increment_) then
-        allocate(arr_tmp(arr_size))
+        if(am_i_root()) allocate(arr_tmp(arr_size))
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
-        arr_master = arr_master + reshape(arr_tmp,shape(arr))
-        deallocate(arr_tmp)
+        if(am_i_root()) then
+          arr_master = arr_master + reshape(arr_tmp,shape(arr))
+          deallocate(arr_tmp)
+        endif
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
