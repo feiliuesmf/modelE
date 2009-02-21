@@ -795,7 +795,6 @@ C     OUTPUT DATA
 #ifdef HTAP_LIKE_DIAGS
      &     ,ttausv_sum,ttausv_count
 #endif
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -1828,8 +1827,7 @@ c#endif
       END IF
 #endif
 
-      IF (AM_I_ROOT() .and.
-     *    I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
+      IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
       do L=1,LM
         rad_to_chem(:,L,i,j)=chem_out(L,:)
