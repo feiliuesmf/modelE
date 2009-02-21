@@ -9,7 +9,7 @@
      *     ,teeny,sday
       USE MODEL_COM, only : im,jm,lm,p,u,v,t,q,wm,JHOUR
      *     ,ls1,psf,ptop,dsig,bydsig,sig,DTsrc,ftype,jdate
-     *     ,ntype,itime,fim,focean,fland,flice,jyear,jmon
+     *     ,ntype,itime,focean,fland,flice,jyear,jmon
 #ifdef SCM
      &     ,I_TARG,J_TARG,NSTEPSCM
 #endif

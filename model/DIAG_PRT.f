@@ -5264,7 +5264,7 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
      &     jm,fim,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
      &     jyear,jyear0,nday,jeq,itime,itime0,xlabel
       USE GEOM, only :
-     &     areag,dxyp,dxyv,LAT_DG,WTJ
+     &     areag,dxyp,LAT_DG,WTJ
       USE DIAG_COM, only :
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
      *     inc=>incj,xwon,ia_inst
@@ -5304,8 +5304,8 @@ C**** CALCULATE ALL CONSERVED QUANTITIES ON TRACER GRID
          DO J=1,JM
             CSJ(J,N)    = CONSRV(J,N)*SCALE_CON(N)/
      &                           (IDACC(IA_CON(N))+1d-20)
-            CNSLAT(J,N) = CSJ(J,N)/FIM
-            CSJ(J,N)    = CSJ(J,N)*DXYP(J)
+            CNSLAT(J,N) = CSJ(J,N)
+            CSJ(J,N)    = CSJ(J,N)*DXYP(J)*FIM
          END DO
       END DO
       CALL GLOBALSUM(GRID, CSJ(:,N1:KCMX),
@@ -6711,8 +6711,8 @@ cddd#endif
      *     AJK,  AJK_loc, AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
-      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA, PACK_DATAj !, GET
-      USE DOMAIN_DECOMP_1D, ONLY : CHECKSUMj,CHECKSUM,am_i_root
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY : am_i_root
       USE CONSTANT, only : NaN
       IMPLICIT NONE
 cddd      INTEGER :: J_0, J_1, J_0H, J_1H

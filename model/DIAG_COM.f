@@ -847,7 +847,7 @@ c allocate master copies of budget- and JK-arrays on root
       USE DIAG_COM
       USE DOMAIN_DECOMP_1D, Only : grid, GET, PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
-      USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT, CHECKSUM, CHECKSUMj
+      USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, Only : ESMF_BCAST
       IMPLICIT NONE
 
@@ -1204,7 +1204,6 @@ c for reproducibility on different numbers of processors
       Subroutine Gather_zonal_diags()
       use domain_decomp_atm, only : grid
       use diag_com
-! next commit: different grids have different methods for pack_dataj
       use diag_zonal, only : pack_lc
       implicit none
       call pack_lc(grid, AJ_loc,     AJ)

@@ -1541,7 +1541,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 !@auth Greg Faluvegi
       USE MODEL_COM, only: itime,im,jm,fland,jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, pack_data,
-     &                         unpack_data, am_i_root, write_parallel
+     &                         am_i_root, write_parallel
       USE TRACER_COM, only: itime_tr0,trname,sfc_src,ntsurfsrcmax
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,

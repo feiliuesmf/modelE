@@ -3633,7 +3633,7 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : im, fim, focean, jm, flice
+      use model_com, only : im, focean, jm, flice
       use geom, only : imaxj,AXYP
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
@@ -3693,7 +3693,7 @@ c****
 !@auth Gavin Schmidt
 !@ver  1.0
       use constant, only : rhow
-      use model_com, only : im, fim, focean, im, jm
+      use model_com, only : focean, im, jm
       use geom, only : imaxj
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij
       !use veg_com, only : afb
@@ -3754,7 +3754,7 @@ c****
 !@sum  conserv_htg calculates ground energy incl. snow energy
 !@auth Gavin Schmidt
 !@ver  1.0
-      use model_com, only : im, fim, focean, jm, flice
+      use model_com, only : im, focean, jm, flice
       use geom, only : imaxj, axyp
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth

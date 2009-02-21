@@ -40,7 +40,7 @@ C****
       MODULE DIAG_LOC
 !@sum DIAG_LOC is a local module for some saved diagnostic calculations
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,imh,jm,lm
+      USE MODEL_COM, only : im,jm,lm
       IMPLICIT NONE
       SAVE
 C**** Variables passed from DIAGA to DIAGB
@@ -96,7 +96,7 @@ C**** Some local constants
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega
-      USE MODEL_COM, only : im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop
+      USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj
@@ -702,7 +702,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE GEOM, only : j_budg, j_0b, j_1b
-      USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg
+      USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg,wtbudg
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
 !@var M index denoting from where routine is called
@@ -736,6 +736,7 @@ C**** Calculate zonal sums
         DO J=J_0,J_1
           DO I=I_0,I_1
             TOTALJ(J_BUDG(I,J)) = TOTALJ(J_BUDG(I,J)) + TOTAL(I,J)
+     &           *WTBUDG(I,J)
           END DO
         END DO
 C**** Accumulate difference from last time in CONSRV(NM)
@@ -759,7 +760,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,fim,p,pstrat
+      USE MODEL_COM, only : im,jm,p,pstrat
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
@@ -795,7 +796,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : sha,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,t,p,ptop,zatmo
+      USE MODEL_COM, only : im,jm,lm,t,p,ptop,zatmo
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pk,pdsig
       USE DOMAIN_DECOMP_ATM, only : GET,GRID
@@ -835,7 +836,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,wm,q
+      USE MODEL_COM, only : im,jm,lm,wm,q
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
@@ -877,7 +878,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : mb2kg,shv,grav,lhe
-      USE MODEL_COM, only : im,jm,lm,fim,wm,t,q,p
+      USE MODEL_COM, only : im,jm,lm,wm,t,q,p
       USE GEOM, only : imaxj
       USE DYNAMICS, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx

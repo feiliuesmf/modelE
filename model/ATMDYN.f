@@ -2421,7 +2421,7 @@ c      contains
 !@auth Gary Russell
 !@ver  1.0
       USE CONSTANT, only : omega,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
+      USE MODEL_COM, only : im,jm,lm,fim,byim,mdiag,mdyn
       USE GEOM, only : cosv,radius,ravpn,ravps,bydxyp
       USE DIAG_COM, only : consrv=>consrv_loc
       USE DYNAMICS, only : PIT
@@ -2524,12 +2524,12 @@ c
       call regrid_to_primary_1d(damb)
       N=NAMOFM(M)
       DO J=J_0,J_1
-        CONSRV(J,N)=CONSRV(J,N)+DAMB(J)*BYDXYP(J)
+        CONSRV(J,N)=CONSRV(J,N)+DAMB(J)*BYDXYP(J)*BYIM
       ENDDO
       call regrid_to_primary_1d(dkeb)
       N=NKEOFM(M)
       DO J=J_0,J_1
-        CONSRV(J,N)=CONSRV(J,N)+DKEB(J)*BYDXYP(J)
+        CONSRV(J,N)=CONSRV(J,N)+DKEB(J)*BYDXYP(J)*BYIM
       ENDDO
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN

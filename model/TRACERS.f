@@ -1048,7 +1048,7 @@ C**** check whether air mass is conserved
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
      &,coupled_chem
       USE DOMAIN_DECOMP_1D, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
-     &,PACK_DATAj, UNPACK_DATAj, PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
+     &,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
      &,UNPACK_COLUMN, esmf_bcast, get
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2256,8 +2256,7 @@ c****   Interpolate two months of data to current day
       use TRACER_COM, only : n_max_sect,reg_n,reg_s,reg_e,reg_w,
      & n_max_reg,alter_sources,ef_REG_IJ,
      & ef_fact,num_regions,num_sectors,sect_name
-      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,PACK_DATA,
-     &     UNPACK_DATA,UNPACK_DATAj,writet_parallel
+      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,writet_parallel
       USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE PARAM, only : sync_param

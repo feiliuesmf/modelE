@@ -1095,7 +1095,7 @@ C****
 !@sum  conserv_MSI calculates total amount of snow and ice over ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,focean
+      USE MODEL_COM, only : im,jm,focean
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -1131,7 +1131,7 @@ C****
 !@sum  conserv_HSI calculates total ice energy over ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,focean
+      USE MODEL_COM, only : im,jm,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -1166,7 +1166,7 @@ C****
 !@sum  conserv_SSI calculates total amount of salt in ocean ice
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim,focean
+      USE MODEL_COM, only : im,jm,focean
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,ssi,lmi
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -1205,7 +1205,7 @@ C****
 !@sum  conserv_LMSI calculates total amount of snow and ice over lakes
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim
+      USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -1242,7 +1242,7 @@ C****
 !@sum  conserv_LHSI calculates total ice energy over lakes
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,fim
+      USE MODEL_COM, only : im,jm
       USE GEOM, only : imaxj
       USE SEAICE_COM, only : rsi,hsi
       USE LAKES_COM, only : flake

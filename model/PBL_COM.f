@@ -66,7 +66,7 @@
 !@ver  1.0
       USE MODEL_COM, only : ioread,irsfic,irerun,iowrite,irsficno,lhead
       USE PBLCOM
-      USE DOMAIN_DECOMP_1D, only : grid, GET, CHECKSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : pack_column, pack_data
       USE DOMAIN_DECOMP_1D, only : unpack_column, unpack_data
       USE DOMAIN_DECOMP_1D, only : pack_block , unpack_block
@@ -221,7 +221,6 @@
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead
       USE DOMAIN_DECOMP_1D, only : GET, grid, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : CHECKSUM, CHECKSUM_COLUMN
       USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN
       USE PBLCOM

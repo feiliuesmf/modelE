@@ -533,8 +533,6 @@ C****
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA,PACK_J
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA,UNPACK_J
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
       USE DOMAIN_DECOMP_1D, only : grid, GET
@@ -875,7 +873,7 @@ c read from disk and stored in the _fromdisk arrays.
       subroutine gather_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, PACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA
       implicit none
 
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
@@ -901,7 +899,7 @@ c read from disk and stored in the _fromdisk arrays.
       subroutine scatter_trdiag
       USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
      *     TAIJS, TAIJS_loc
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA
       implicit none
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
       CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)

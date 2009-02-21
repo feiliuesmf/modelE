@@ -13,8 +13,8 @@
 !@sum init_tracer initializes trace gas attributes and diagnostics
 !@auth J. Lerner
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,PACK_DATA,
-     &     UNPACK_DATA,UNPACK_DATAj,write_parallel,readt8_parallel
+      USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,
+     &     write_parallel,readt8_parallel
       USE CONSTANT, only: mair,mwat,sday
       USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
       USE GEOM, only: axyp,byaxyp
@@ -8463,8 +8463,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
-      USE DOMAIN_DECOMP_ATM, only : GRID,GET,UNPACK_COLUMN,
-     &     write_parallel,UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : GRID,GET,write_parallel
       USE SOMTQ_COM, only : qmom,mz,mzz
       USE TRACER_COM, only: ntm,trm,trmom,itime_tr0,trname,needtrs,
      *     tr_mm,rnsrc,vol2mass

@@ -11,8 +11,8 @@ c
 C**** GLOBAL parameters and variables:
 c
       USE SOMTQ_COM, only   : qmom
-      USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,PACK_COLUMN,
-     &                        GLOBALSUM, PACK_DATA, PACK_DATAj,
+      USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
+     &                        GLOBALSUM, PACK_DATA,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,

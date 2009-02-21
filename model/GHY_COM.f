@@ -385,7 +385,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_1D, ONLY: GRID, GET, CHECKSUM_COLUMN
+      USE DOMAIN_DECOMP_1D, ONLY: GRID, GET
       USE DOMAIN_DECOMP_1D, ONLY:  PACK_COLUMN, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY: PACK_BLOCK, UNPACK_BLOCK
       USE DOMAIN_DECOMP_1D, ONLY: UNPACK_COLUMN
