@@ -401,15 +401,15 @@ c
 
 c     gather all river directions before writing to output file
       call pack_data(grid,idown,idown_glob)
-      call pack_data(grid,kdown,jdown_glob)
+      call pack_data(grid,jdown,jdown_glob)
       call pack_data(grid,kdown,kdown_glob)
 
       idown_g=idown_glob
       jdown_g=jdown_glob
       kdown_g=kdown_glob
 
-      write(*,*) "idown=",idown_g
-      write(*,*) "jdown=",jdown_g
+c      write(*,*) "idown=",idown_g
+c      write(*,*) "jdown=",jdown_g
       
       if (am_i_root()) then
 c     write(iu_RVRCS) titlei
