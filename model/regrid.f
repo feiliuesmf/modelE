@@ -167,8 +167,8 @@ c     we do boundary conditions by hand
      &           + v22*( lon2d_dg(i,j)-lon1 )*( lat2d_dg(i,j)-lat1 ) 
      &           )
 
-            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
-     &           uout_loc(i,j)
+c            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
+c     &           uout_loc(i,j)
 
          enddo
       enddo
