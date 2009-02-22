@@ -427,6 +427,16 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
+c weighting fractions
+      INTEGER, public ::
+     &     IJ_PSOIL,IJ_CLRSKY,IJ_POCEAN,IJ_POPOCN,IJ_VSFR,IJ_BSFR
+c derived/composite diagnostics
+      INTEGER, public ::
+     *  ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
+     *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o, ij_msu2,ij_msu3,ij_msu4,
+     *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
+
 
 !@param LEGEND "contour levels" for ij-maps
       CHARACTER(LEN=40), DIMENSION(25), PARAMETER, public :: LEGEND=(/ !
@@ -491,13 +501,11 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public :: lh_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
-      REAL*8, DIMENSION(KAIJ), public :: SCALE_IJ
+      REAL*8, DIMENSION(KAIJX), public :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
       character(len=30), dimension(kaijx), public :: name_ij,units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=80), dimension(kaijx), public :: lname_ij
-!@var IW_IJ weighting indices for IJ diagnostics
-      integer, dimension(kaij), public :: iw_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter, public :: nwts_ij = 8
 !@var wt_ij various weight-arrays use in ij-diagnostics
@@ -506,11 +514,13 @@ C****      names, indices, units, idacc-numbers, etc.
       integer, parameter, public :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7, iw_land=8
 !@var IR_IJ range indices for IJ diagnostics
-      integer, dimension(kaij), public :: ir_ij
+      integer, dimension(kaijx), public :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
-      integer, dimension(kaij), public :: ia_ij
+      integer, dimension(kaijx), public :: ia_ij
 !@var [ij]grid_ij 1=primary grid  2=secondary grid
-      integer, dimension(kaij), public :: igrid_ij,jgrid_ij
+      integer, dimension(kaijx), public :: igrid_ij,jgrid_ij
+!@var denom_ij index of AIJ element to use as time/area weight
+      integer, dimension(kaijx), public :: denom_ij
 
 !@var JL_xxx names for JL diagnostic indices
       INTEGER, public ::

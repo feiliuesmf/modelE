@@ -1357,7 +1357,7 @@ c***********************************************************************
 #ifndef NO_HDIURN
      &     ,hdiurn=>hdiurn_loc
 #endif
-     *     ,tsfrez=>tsfrez_loc,tdiurn,jreg
+     *     ,tsfrez=>tsfrez_loc,tdiurn,jreg, ij_psoil,ij_vsfr,ij_bsfr
      *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
@@ -1496,41 +1496,44 @@ ccc the following values are returned by PBL
       shdt=-ashg
       evhdt=-alhg
 
+      aij(i,j,ij_psoil)=aij(i,j,ij_psoil)+ptype/nisurf
       aij(i,j,ij_fveg)=aij(i,j,ij_fveg)+fv/nisurf
-      aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb
-      aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd
-      aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw
-      aij(i,j,ij_g05)=aij(i,j,ij_g05)+abetab/nisurf
-      aij(i,j,ij_g06)=aij(i,j,ij_g06)+abetap/nisurf
-      aij(i,j,ij_g11)=aij(i,j,ij_g11)+abeta/nisurf
-      aij(i,j,ij_g12)=aij(i,j,ij_g12)+acna/nisurf
-      aij(i,j,ij_g13)=aij(i,j,ij_g13)+acnc/nisurf
-      aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp
-      aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto
-      aij(i,j,ij_clab)=aij(i,j,ij_clab)+aclab/nisurf
-      aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp
+      aij(i,j,ij_vsfr)=aij(i,j,ij_vsfr)+fv*ptype/nisurf
+      aij(i,j,ij_bsfr)=aij(i,j,ij_bsfr)+fb*ptype/nisurf
+      aij(i,j,ij_g18)=aij(i,j,ij_g18)+aevapb*ptype*fb
+      aij(i,j,ij_g19)=aij(i,j,ij_g19)+aevapd*ptype*fv
+      aij(i,j,ij_g20)=aij(i,j,ij_g20)+aevapw*ptype*fv
+      aij(i,j,ij_g05)=aij(i,j,ij_g05)+(abetab/nisurf)*fb*ptype
+      aij(i,j,ij_g06)=aij(i,j,ij_g06)+(abetap/nisurf)*ptype
+      aij(i,j,ij_g11)=aij(i,j,ij_g11)+(abeta/nisurf)*ptype
+      aij(i,j,ij_g12)=aij(i,j,ij_g12)+(acna/nisurf)*ptype
+      aij(i,j,ij_g13)=aij(i,j,ij_g13)+(acnc/nisurf)*ptype*fv
+      aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp*ptype
+      aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto*ptype
+      aij(i,j,ij_clab)=aij(i,j,ij_clab)+(aclab/nisurf)*ptype
+      aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp*ptype
       aij(i,j,ij_soilCpoolsum)=aij(i,j,ij_soilCpoolsum)
-     &     + asoilCpoolsum/nisurf
-      aij(i,j,ij_g26)=aij(i,j,ij_g26)+abetav/nisurf
-      aij(i,j,ij_g27)=aij(i,j,ij_g27)+abetat/nisurf
-      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp
+     &     + (asoilCpoolsum/nisurf)*ptype
+      aij(i,j,ij_g26)=aij(i,j,ij_g26)+(abetav/nisurf)*fv*ptype
+      aij(i,j,ij_g27)=aij(i,j,ij_g27)+(abetat/nisurf)*fv*ptype
+      aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp*ptype
       if (moddsf.eq.0) then
-        aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)
-        aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)
-        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(6,1)
-        aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)
-        aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)
-        aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)
-        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)
-        aij(i,j,ij_g25)=aij(i,j,ij_g25)+fb*zw(1)+fv*zw(2)
+        aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)*ptype*fb
+        aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)*ptype*fb
+        aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(6,1)*ptype*fb
+        aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)*ptype*fv
+        aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)*ptype*fv
+        aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)*ptype*fv
+        aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)*ptype*fv
+        aij(i,j,ij_g25)=aij(i,j,ij_g25)+(fb*zw(1)+fv*zw(2))*ptype
       end if
 ccc accumulate total heat storage
       if (moddsf.eq.0) then
         aij(i,j,ij_htsoil)=aij(i,j,ij_htsoil) +
-     &       fb*sum(ht(1:ngr,1)) + fv*sum(ht(0:ngr,2))
+     &       (fb*sum(ht(1:ngr,1)) + fv*sum(ht(0:ngr,2)))*ptype
         aij(i,j,ij_htsnow)=aij(i,j,ij_htsnow)
-     &       + fb*fr_snow(1)*sum(hsn(1:nsn(1),1))
-     &       + fv*fr_snow(2)*sum(hsn(1:nsn(2),2))
+     &       + (fb*fr_snow(1)*sum(hsn(1:nsn(1),1))
+     &         +fv*fr_snow(2)*sum(hsn(1:nsn(2),2)))*ptype
       endif
       trhdt=trheat*dtsurf-atrg
 c           for radiation find composite values over earth
@@ -1543,13 +1546,13 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       gsaveL(i,j,:,2)=wtr_L(:)
       gsaveL(i,j,:,3)=ace_L(:)
 
-      aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns
-      aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu
-      aij(i,j,ij_aeruns)=aij(i,j,ij_aeruns)+aeruns
-      aij(i,j,ij_aerunu)=aij(i,j,ij_aerunu)+aerunu
-      aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)
-      aij(i,j,ij_aflmlt)=aij(i,j,ij_aflmlt)+aflmlt
-      aij(i,j,ij_aintrcp)= aij(i,j,ij_aintrcp)+aintercep
+      aij(i,j,ij_rune)=aij(i,j,ij_rune)+aruns*ptype
+      aij(i,j,ij_arunu)=aij(i,j,ij_arunu)+arunu*ptype
+      aij(i,j,ij_aeruns)=aij(i,j,ij_aeruns)+aeruns*ptype
+      aij(i,j,ij_aerunu)=aij(i,j,ij_aerunu)+aerunu*ptype
+      aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)*ptype
+      aij(i,j,ij_aflmlt)=aij(i,j,ij_aflmlt)+aflmlt*ptype
+      aij(i,j,ij_aintrcp)= aij(i,j,ij_aintrcp)+aintercep*ptype*fv
 
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
@@ -1591,7 +1594,7 @@ c    &                  EVPFLX,SHFLX,ptype
 
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_shdt)=aij(i,j,ij_shdt)+shdt*ptype
-      aij(i,j,ij_beta)=aij(i,j,ij_beta)+abetad/nisurf
+      aij(i,j,ij_beta)=aij(i,j,ij_beta)+(abetad/nisurf)*fv*ptype
       IF (MODDSF.EQ.0) THEN
         AIJ(I,J,IJ_TRSDN)=AIJ(I,J,IJ_TRSDN)+TRHR(0,I,J)*PTYPE
         AIJ(I,J,IJ_TRSUP)=AIJ(I,J,IJ_TRSUP)+(TRHR(0,I,J)-TRHDT/DTSURF)
@@ -3463,6 +3466,7 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
             adlmass = aleafmass
             !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
             aij(i,j,ij_dleaf)=adlmass  !accumulate just instant. value
+     &           *fearth(i,j)
             !PRINT '(F4.4)',adlmass                            !DEBUG
             !call stop_model('Just did adlmass',255)           !DEBUG
 #endif
@@ -3499,12 +3503,13 @@ c****
           aij(i,j,ij_dtgdts)=aij(i,j,ij_dtgdts)+18.*((tdiurn(i,j,2)-
      *         tdiurn(i,j,1))/(tdiurn(i,j,4)-tdiurn(i,j,3)+1.d-20)-1.)
           aij(i,j,ij_tdsl)=aij(i,j,ij_tdsl)+
-     *         (tdiurn(i,j,4)-tdiurn(i,j,3))
+     *         (tdiurn(i,j,4)-tdiurn(i,j,3))*fearth(i,j)
           aij(i,j,ij_tdcomp)=aij(i,j,ij_tdcomp)+
      *         (tdiurn(i,j,6)-tdiurn(i,j,9))
-          aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+(tdiurn(i,j,4)-tf)
-          if (tdiurn(i,j,6).lt.aij(i,j,ij_tmnmx))
-     *         aij(i,j,ij_tmnmx)=tdiurn(i,j,6)
+          aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+
+     *         (tdiurn(i,j,4)-tf)*fearth(i,j)
+          if (tdiurn(i,j,6)-tf.lt.aij(i,j,ij_tmnmx))
+     *         aij(i,j,ij_tmnmx)=tdiurn(i,j,6)-tf
         end do
         end do
       end if
@@ -3599,19 +3604,21 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         call inc_areg(i,j,jr,j_wtr2,wtr2*pearth)
         call inc_areg(i,j,jr,j_ace2,ace2*pearth)
 
-        aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +f0dt+enrgp
-        aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)
-        aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)
-        aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)
+        aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +(f0dt+enrgp)*pearth
+        aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)*pearth
+        aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)*pearth
+        aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)*pearth
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
         do k=1,3
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+w_ij(k,1,i,j)
+     &         *pearth*fb
           aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+w_ij(k-1,2,i,j)
+     &         *pearth*fv
         end do
-        aij(i,j,ij_g04)=aij(i,j,ij_g04)+w_ij(6,1,i,j)
-        aij(i,j,ij_g10)=aij(i,j,ij_g10)+w_ij(6,2,i,j)
-        aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)
-        aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)
+        aij(i,j,ij_g04)=aij(i,j,ij_g04)+w_ij(6,1,i,j)*pearth*fb
+        aij(i,j,ij_g10)=aij(i,j,ij_g10)+w_ij(6,2,i,j)*pearth*fv
+        aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)*pearth*fb
+        aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)*pearth*fv
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
      &       ( fb*fr_snow_ij(1,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )

@@ -109,15 +109,6 @@ C****
       IMPLICIT NONE
       SAVE
 
-!@param nij_o total number of diagnostic ij-format fields
-      integer nij_o
-
-!@var ij_xxx non single-aij diagnostic names
-      INTEGER :: ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
-     *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_colh2o, ij_msu2,ij_msu3,ij_msu4,
-     *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
-
 !@var SENTDSE stand.eddy northw. transport of dry static energy * 16
 !@var TENTDSE trans.eddy northw. transport of dry static energy * 16
 !@var TMSU2-4 MSU channel 2-4 temperatures (C)
@@ -697,6 +688,8 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
 c     write(0,*) 'SCM no diags   print_diags'
       return
 #endif
+
+      call calc_derived_aij
 
       CALL DIAG_GATHER
 
@@ -4128,179 +4121,6 @@ C**FREQUENCY BAND AVERAGE
       RETURN
       END SUBROUTINE MEM
 
-
-      SUBROUTINE IJ_TITLEX
-!@sum  IJ_TITLEX defines name,lname,units for composite ij output
-!@+    the remaining attributes (value,wt,grid,range) are set in ij_MAPk
-!@auth G. Schmidt/M. Kelley
-!@ver  1.0
-      USE DIAG_COM
-      USE BDIJ
-      IMPLICIT NONE
-      INTEGER :: k,k1
-c
-      k = kaij
-c
-      k = k + 1
-
-      ij_topo = k
-      name_ij(k) = 'topog'
-      lname_ij(k) = 'TOPOGRAPHY'
-      units_ij(k) = 'METERS'
-
-      k = k + 1
-      ij_fland = k
-      name_ij(k) = 'frac_land'
-      lname_ij(k) = 'LAND COVERAGE'
-      units_ij(k) = '%'
-
-      k = k + 1
-      ij_jet = k
-      name_ij(k) = 'jet_speed'
-      lname_ij(k) = 'JET SPEED'
-      units_ij(k) = 'm/s'
-
-      k = k + 1
-      ij_wsmn = k
-      name_ij(k) = 'rt_usmn2_vsmn2'
-      lname_ij(k) = 'SURF WIND SPEED FROM Uav,Vav'
-      units_ij(k) = 'm/s'
-
-      k = k + 1
-      ij_jetdir = k
-      name_ij(k) = 'jet_dir'
-      lname_ij(k) = 'JET DIRECTION'
-      units_ij(k) = 'CW NOR'
-
-      k = k + 1
-      ij_wsdir = k
-      name_ij(k) = 'srf_wind_dir'
-      lname_ij(k) = 'SURFACE WIND DIRECTION'
-      units_ij(k) = 'CW NOR'
-
-      k = k + 1
-      ij_netrdp = k
-      name_ij(k) = 'net_rad_planet'
-      lname_ij(k) = 'NET RAD. OF PLANET'
-      units_ij(k) = 'W/m^2'
-
-      k = k + 1
-      ij_albp = k
-      name_ij(k) = 'plan_alb'
-      lname_ij(k) = 'PLANETARY ALBEDO'
-      units_ij(k) = '%'
-
-      k = k + 1
-      ij_albg = k
-      name_ij(k) = 'grnd_alb'
-      lname_ij(k) = 'GROUND ALBEDO'
-      units_ij(k) = '%'
-
-      k = k + 1
-      ij_albv = k
-      name_ij(k) = 'vis_alb'
-      lname_ij(k) = 'VISUAL ALBEDO'
-      units_ij(k) = '%'
-
-      k = k + 1
-      ij_albgv = k
-      name_ij(k) = 'grnd_alb_vis'
-      lname_ij(k) = 'GROUND ALBEDO IN VISUAL RANGE'
-      units_ij(k) = '%'
-
-      k = k + 1
-      ij_ntdsese = k
-      name_ij(k) = 'stand_eddy_nt_dse'
-      lname_ij(k) = 'NT DRY STAT ENR BY ST ED' ! NORTHWD TRANSP
-      units_ij(k) = 'E14 WT'
-
-      k = k + 1
-      ij_ntdsete = k
-      name_ij(k) = 'trans_eddy_nt_dse'
-      lname_ij(k) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
-      units_ij(k) = 'E14 WT'
-
-      ij_dzt1 = k+1
-      do k1 = 1,kgz_max-1
-        name_ij(k+k1) = 'dztemp_'//trim(pmname(k1))//
-     *    '-'//trim(pmname(k1+1))
-        lname_ij(k+k1) = 'THICKNESS TEMP '//trim(pmname(k1))//
-     *    '-'//pmname(k1+1)
-        units_ij(k+k1) = 'C'
-      end do
-      k = k + kgz_max -1
-
-      k = k + 1
-      ij_grow = k
-      name_ij(k) = 'grow_seas'
-      lname_ij(k) = 'GROWING SEASON'
-      units_ij(k) = 'days'
-
-      k = k + 1
-      ij_colh2o = k
-      name_ij(k) = 'pcol_h2o'
-      lname_ij(k) = 'PRECIPITABLE WATER'
-      units_ij(k) = 'cm'
-
-      k = k + 1
-      ij_msu2 = k
-      name_ij(k) = 'Tmsu_ch2'
-      lname_ij(k) = 'MSU-channel 2 TEMPERATURE'
-      units_ij(k) = 'C'
-
-      k = k + 1
-      ij_msu3 = k
-      name_ij(k) = 'Tmsu_ch3'
-      lname_ij(k) = 'MSU-channel 3 TEMPERATURE'
-      units_ij(k) = 'C'
-
-      k = k + 1
-      ij_msu4 = k
-      name_ij(k) = 'Tmsu_ch4'
-      lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
-      units_ij(k) = 'C'
-
-      k = k + 1
-      ij_Tatm = k
-      name_ij(k) = 'Tatm'
-      lname_ij(k) = 'ATMOSPHERIC TEMPERATURE'
-      units_ij(k) = 'C'
-
-      K = K+1
-      IJ_RTSE = K
-       NAME_IJ(K) = 'RTSE'
-      LNAME_IJ(K) = 'THERMAL RADIATION EMITTED by SURFACE'
-      UNITS_IJ(K) = 'W/m^2'
-
-      K = K+1
-      IJ_HWV = K
-       NAME_IJ(K) = 'HWV'
-      LNAME_IJ(K) = 'LATENT HEAT FLUX'
-      UNITS_IJ(K) = 'W/m^2'
-
-      K = K+1
-      IJ_PVS = K
-       NAME_IJ(K) = 'PVS'
-      LNAME_IJ(K) = 'SURFACE VAPOR PRESSURE'
-      UNITS_IJ(K) = 'mb'
-
-c Check the count
-      if (k .gt. kaijx) then
-        write (6,*) 'Increase kaijx=',kaijx,' to at least ',k
-        call stop_model('IJ_TITLES: kaijx too small',255)
-      end if
-
-      do k1 = k+1,kaijx
-        write(name_ij(k1),'(a3,i3.3)') 'AIJ',k1
-        lname_ij(k1) = 'unused'
-        units_ij(k1) = 'unused'
-      end do
-
-      return
-
-      END SUBROUTINE IJ_TITLEX
-
-
       subroutine IJ_MAPk (k,smap,smapj,gm,igrid,jgrid,irange,
      &     name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
@@ -4330,262 +4150,30 @@ c Check the count
 
 c**** Find & scale the numerators and find the appropriate denominators
 c****
-      adenom = 1.                                             ! default
-      anum = 0.
+      name = name_ij(k) ; lname = lname_ij(k) ; units = units_ij(k)
+      iwt = iw_all ; jgrid = jgrid_ij(k) ; irange = ir_ij(k)
+      igrid = igrid_ij(k)
 
 c**** the standard cases: aij(.,.,k) or aij(.,.,k)/aij(.,.,k1)
-      if (k .le. kaij) then
-        name = name_ij(k) ; lname = lname_ij(k) ; units = units_ij(k)
-        iwt = iw_ij(k) ; jgrid = jgrid_ij(k) ; irange = ir_ij(k)
-        igrid = igrid_ij(k)
-c**** offsets ("  + " or "  - " in lname_ij, i.e. 2 blanks,+|-,1 blank)
-        off = 0.
-        k1 = index(lname_ij(k),'  - ')
-        if (k1 .le. 0) k1 = index(lname_ij(k),'  + ')
-        if (k1 .gt. 0) then
-          if (index(lname_ij(k),'  + TF ') .gt. 0) then
-            off = TF                       ! should do in accum-phase ??
-          else if (index(lname_ij(k),'  - PTOP') .gt. 0)  then
-            off = -ptop
-          end if
-          lname(k1:80) = ' '
-        end if
-        byiacc = 1./(idacc(ia_ij(k))+teeny)
-        do j=1,jm
-        do i=1,im
-          anum(i,j) = aij(i,j,k)*(scale_ij(k)*byiacc) - off
-        end do
-        end do
+      byiacc = 1./(idacc(ia_ij(k))+teeny)
+      do j=1,jm
+      do i=1,im
+        anum(i,j) = aij(i,j,k)*(scale_ij(k)*byiacc)
+      end do
+      end do
 
 c**** ratios (the denominators)
-        k1 = index(lname_ij(k),' x ')
-        if (k1 .gt. 0 .and. qdiag_ratios) then
-          if (index(lname_ij(k),' x POPOCN') .gt. 0) then
-            do j=1,jm      ! open ocean only (incl. open lake)
-            do i=1,im
-c              adenom(i,j) = 1-fland_glob(i,j) - aij(i,j,ij_rsoi)
-c     *             /(idacc(ia_ij(ij_rsoi))+teeny)
-              adenom(i,j) =  wt_ij(i,j,2)+aij(i,j,ij_lk)
-     *             /(idacc(ia_ij(ij_lk))+teeny) - aij(i,j,ij_rsoi)
-     *             /(idacc(ia_ij(ij_rsoi))+teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x POCEAN') .gt. 0) then
-            do j=1,jm      ! full ocean box (no lake)
-            do i=1,im
-              adenom(i,j) = wt_ij(i,j,2) ! focean_glob
-            end do
-            end do
-          else if (index(lname_ij(k),' x POICE') .gt. 0) then
-            do j=1,jm      ! ice-covered only
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_rsoi)/(idacc(ia_ij(ij_rsoi))+teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x PLICE') .gt. 0) then
-            do j=1,jm      ! land ice-covered only
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_li)/(idacc(ia_ij(ij_li))+teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x PSOIL') .gt. 0) then
-            do j=1,jm      ! earth only (fland - flake - flice)
-            do i=1,im
-              adenom(i,j)=wt_ij(i,j,iw_soil)
-            end do
-            end do
-          else if (index(lname_ij(k),' x TOTAL CLOUD') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_cldcv)/(idacc(ia_ij(ij_cldcv))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x TAU>1 CLOUD') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_cldcv1)/(idacc(ia_ij(ij_cldcv1))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x WATER CLOUD') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_wtrcld)/(idacc(ia_ij(ij_wtrcld))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x ICE CLOUD') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_icecld)/(idacc(ia_ij(ij_icecld))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x CLRSKY') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=1.-aij(i,j,ij_cldcv)/(idacc(ia_ij(ij_cldcv))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x TOTAL ISCCP') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_tcldi)/(idacc(ia_ij(ij_tcldi))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x SUNLIT ISCCP') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_scldi)/(idacc(ia_ij(ij_scldi))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x P1000') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_p1000)/(idacc(ia_ij(ij_p1000))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x P925') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_p925)/(idacc(ia_ij(ij_p925))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x P850') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_p850)/(idacc(ia_ij(ij_p850))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x P700') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_p700)/(idacc(ia_ij(ij_p700))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x P600') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_p600)/(idacc(ia_ij(ij_p600))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x P500') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_p500)/(idacc(ia_ij(ij_p500))
-     *             +teeny)
-            end do
-            end do
-          else if (index(lname_ij(k),' x LKICE') .gt. 0) then
-            do j=1,jm
-            do i=1,im
-              adenom(i,j)=aij(i,j,ij_lkice)/(idacc(ia_ij(ij_lkice))
-     *             +teeny)
-            end do
-            end do
-          end if
-          lname(k1:80) = ' '
-        end if
-        go to 100
+      if (denom_ij(k) .gt. 0) then
+        adenom(:,:) = aij(:,:,denom_ij(k))/
+     &       (idacc( ia_ij(denom_ij(k)) )+teeny)
+      else
+        adenom = 1.             ! default
       end if
 
-c**** compound quantities defined with their attributes (k > kaij)
-c****
-      iwt = iw_all ; igrid = 1; jgrid = 1 ; irange = ir_pct   ! defaults
-      name  = name_ij(k)
-      lname = lname_ij(k) ; units = units_ij(k)
-
-c**** time independent arrays
-      if      (k.eq.ij_topo)  then
-        anum = zatmo_glob*bygrav    ; irange = ir_0_3550
-
-      else if (k.eq.ij_fland) then
-        anum = 100.*wt_ij(:,:,iw_land)
-
-c**** vectors: magnitude
-      else if (k.eq.ij_jet.or.k.eq.ij_wsmn) then
-          igrid = 1
-          jgrid = 1 ;  n1 = ij_ujet ; n2 = ij_vjet ; irange = ir_0_71
-        if (k.eq.ij_wsmn) then
-          igrid = 1
-          jgrid = 1 ;  n1 = ij_us   ; n2 = ij_vs   ; irange = ir_0_18
-        end if
-        byiacc=1./(idacc(ia_ij(n1))+teeny)
-        do j=1,jm
-        do i=1,im
-          anum(i,j)=sqrt(aij(i,j,n1)**2+aij(i,j,n2)**2)*
-     *      (scale_ij(n1)*byiacc)
-        end do
-        end do
-
-c**** vectors: direction clockwise north (-180 -> 180)
-      else if (k.eq.ij_jetdir .or. k.eq.ij_wsdir) then
-        irange = ir_angl
-        if (k.eq.ij_jetdir) then
-          igrid = 1 ; jgrid = 1 ; n1 = ij_ujet ; n2 = ij_vjet
-        else if (k.eq.ij_wsdir)  then
-          igrid = 1 ; jgrid = 1 ; n1 = ij_us   ; n2 = ij_vs
-        end if
-        do j=1,jm
-        do i=1,im
-          anum(i,j)=360.*atan2(aij(i,j,n1)+teeny,aij(i,j,n2)+teeny)
-     *         /twopi
-        end do
-        end do
-
-c**** linear combinations (sums, differences, etc)
-      else if (k.eq.ij_netrdp) then
-        irange = ir_m530_190
-        byiacc = 1./(idacc(ia_ij(ij_trnfp0))+teeny)
-        do j=1,jm
-        do i=1,im
-          anum(i,j)=(aij(i,j,ij_trnfp0)+aij(i,j,ij_srnfp0))*byiacc
-        end do
-        end do
-
-c**** ratios of lin. comb.: albedos from net radiation
-      else if (k.eq.ij_albp .or. k.eq.ij_albg) then
-        n1=ij_srnfp0
-        n2=ij_srincp0
-        if (k.eq.ij_albg) then
-          n2=ij_srincg
-          n1=ij_srnfg
-        end if
-        an2Zan1=idacc(ia_ij(n2))/(idacc(ia_ij(n1))+teeny)
-        do j=1,jm
-        do i=1,im
-          adenom(i,j)=aij(i,j,n2)
-          anum(i,j)=100.*(adenom(i,j)-aij(i,j,n1)*an2Zan1)
-        end do
-        end do
-
-c**** ratios: albedos from reflected radiation
-      else if (k.eq.ij_albv .or. k.eq.ij_albgv) then
-        n1=ij_srref
-        n2=ij_srincp0
-        if (k.eq.ij_albgv) then
-          n1=ij_srvis
-          n2=ij_srincp0
-        end if
-        an2Zan1=idacc(ia_ij(n2))/(idacc(ia_ij(n1))+teeny)
-        do j=1,jm
-        do i=1,im
-          anum(i,j)=100.*aij(i,j,n1)*an2Zan1
-          adenom(i,j)=aij(i,j,n2)
-        end do
-        end do
+c**** remaining special cases for compound quantities
 
 c**** precomputed fields: northward tranports by eddies, Tmsu
-      else if (k.eq.ij_ntdsese) then                   ! standing eddies
+      if (k.eq.ij_ntdsese) then                   ! standing eddies
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m95_265
         anum=SENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
         isumz = 1 ; isumg = 2
@@ -4604,29 +4192,8 @@ c**** precomputed fields: northward tranports by eddies, Tmsu
       else if (k.eq.ij_msu4) then                   ! T_msu_ch4
         anum=tmsu4  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
 
-c**** group of kgz_max-1 thickness temperatures (from heights)
-      else if (k.ge.ij_dzt1 .and. k.le.ij_dzt1+kgz_max-2) then
-        byiacc = 1./(idacc(ia_ij(ij_phi1k))+teeny) ; irange = ir_m80_28
-        k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
-        scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))
-        off = (ght(k1+1)-ght(k1)) * grav
-        do j=1,jm
-        do i=1,im
-          anum(i,j)=((aij(i,j,k2)-aij(i,j,k2-1))*byiacc + off)*scalek-tf
-        end do
-        end do
-
-c**** length of growing season   (not quite right ???)
-      else if (k.eq.ij_grow) then
-        byiacc = 1./(idacc(ia_inst)+teeny) ; irange = ir_0_180
-        do j=1,jm
-        do i=1,im
-          anum(i,j)=(tsfrez(i,j,tf_last)-tsfrez(i,j,tf_day1))*byiacc
-        end do
-        end do
-
 c**** precipitable water
-      else if (k.eq.ij_colh2o) then
+      else if (k.eq.ij_colh2o) then ! special because still on B-grid
         igrid = 2; jgrid = 2; irange = ir_ij(ij_prec)
         byiacc = .1*100.*bygrav/(idacc(ia_dga)+teeny)
         anum = 0.
@@ -4640,7 +4207,7 @@ c**** precipitable water
         anum = anum*byiacc
 
 c**** column atmospheric temperature
-      else if (k.eq.ij_tatm) then
+      else if (k.eq.ij_tatm) then ! special because still on B-grid
         do j=2,jm
         do i=1,im
           anum(i,j) = sum(aijk(i,j,1:lm,ijk_t))/
@@ -4648,28 +4215,10 @@ c**** column atmospheric temperature
         end do
         end do
 
-C**** Thermal Radiation Emitted by Surface (W/m^2)
-      elseif (K == IJ_RTSE) then
-        ANUM(:,:) = (AIJ(:,:,IJ_TRSUP) - AIJ(:,:,IJ_TRSDN)) /
-     /              IDACC(IA_IJ(IJ_TRSUP))
-
-C**** Water Vapor (latent) Heat flux (W/m^2)
-      elseif (K == IJ_HWV) then
-        ANUM(:,:) = AIJ(:,:,IJ_EVAP) * 2500000 /
-     /              (IDACC(IA_IJ(IJ_EVAP)) * DTsrc)
-
-C**** Surface Vapor Pressure (mb)
-      elseif (K == IJ_PVS) then
-        ANUM(:,:) = (AIJ(:,:,IJ_PRES) / IDACC(IA_IJ(IJ_PRES)) + PTOP) *
-     *              (AIJ(:,:,IJ_QS  ) / IDACC(IA_IJ(IJ_QS  )))
-
-      else  ! should not happen
-        write (6,*) 'no field defined for ij_index',k
-        call stop_model('ij_mapk: undefined extra ij_field',255)
       end if
 
 c**** Find final field and zonal, global, and hemispheric means
-  100 call ij_avg (anum,adenom,wt_ij(1,1,iwt),jgrid,isumz,isumg,  ! in
+      call ij_avg (anum,adenom,wt_ij(1,1,iwt),jgrid,isumz,isumg,  ! in
      *             smap,smapj,gm,nh,sh)                    ! out
 
 c**** fill in some key numbers
@@ -4802,7 +4351,7 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
      *     ,im,jm)
 
 C**** INITIALIZE CERTAIN QUANTITIES
-      call ij_titlex
+c      call ij_titlex
 C**** standard printout
       kmaplets = 57
       nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags +

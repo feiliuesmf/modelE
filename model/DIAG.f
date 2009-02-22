@@ -232,8 +232,8 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
             CALL INC_AJ(I,J,IT,J_TX1,(TX(I,J,1)-TF)*FTYPE(IT,I,J))
           END DO
           CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF))
-          AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ P(I,J)
           PS=P(I,J)+PTOP
+          AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ PS
           ZS=BYGRAV*ZATMO(I,J)
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TSAVG(I,J),ZS)-P1000
           AIJ(I,J,IJ_RH1)=AIJ(I,J,IJ_RH1)+Q(I,J,1)/QSAT(TX(I,J,1),LHE,
@@ -2885,3 +2885,99 @@ C**** cases where Earth and Land Ice are lumped together
       RETURN
 C****
       END SUBROUTINE UPDTYPE
+
+      subroutine calc_derived_aij
+      USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean
+      USE GEOM, only : imaxj
+      USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
+     &  ia_ij,ia_src,tf_last,tf_day1,
+     *  ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
+     *  ij_netrdp, ij_albp, ij_albg, ij_albv,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean,
+     *  ij_RTSE, ij_HWV, ij_PVS,
+     &  IJ_TRNFP0,IJ_SRNFP0,IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
+     &  IJ_SRREF,IJ_SRVIS,IJ_SRINCP0,IJ_SRINCG,IJ_SRNFG,IJ_PHI1K,
+     &  IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,
+     &  KGZ_MAX,GHT,PMB
+      IMPLICIT NONE
+      INTEGER :: I,J,K,K1,K2
+      INTEGER :: J_0,J_1,I_0,I_1
+      REAL*8 :: SCALEK
+
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+      J_0 = GRID%J_STRT
+      J_1 = GRID%J_STOP
+
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+
+        k = ij_topo
+        aij(i,j,k) = zatmo(i,j)*bygrav
+
+        k = ij_fland
+        aij(i,j,k) = (fearth0(i,j)+flice(i,j))*idacc(ia_src)
+
+        k = ij_netrdp
+        aij(i,j,k) = aij(i,j,ij_trnfp0)+aij(i,j,ij_srnfp0)
+
+        k = ij_grow
+        aij(i,j,k) = tsfrez(i,j,tf_last)-tsfrez(i,j,tf_day1)
+
+        k = ij_rtse
+        aij(i,j,k) = aij(i,j,ij_trsup) - aij(i,j,ij_trsdn)
+
+        k = ij_hwv
+        aij(i,j,k) = aij(i,j,ij_evap)
+
+        k = ij_pvs
+        aij(i,j,k) = aij(i,j,ij_qs)*
+     &       aij(i,j,ij_pres)/idacc(ia_ij(ij_pres))
+
+        k = ij_albv
+        aij(i,j,k) = aij(i,j,ij_srref)
+
+        k = ij_albgv
+        aij(i,j,k) = aij(i,j,ij_srvis)
+
+        k = ij_albp
+        aij(i,j,k) = aij(i,j,ij_srincp0)-aij(i,j,ij_srnfp0)*
+     &       idacc(ia_ij(ij_srincp0))/idacc(ia_ij(ij_srnfp0))
+
+        k = ij_albg
+        aij(i,j,k) = aij(i,j,ij_srincg)-aij(i,j,ij_srnfg)*
+     &       idacc(ia_ij(ij_srincg))/idacc(ia_ij(ij_srnfg))
+
+        do k=ij_dzt1,ij_dzt1+kgz_max-2
+          k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
+          scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))
+          aij(i,j,k) = (scalek*(ght(k1+1)-ght(k1))*grav-tf)*
+     &         idacc(ia_ij(ij_phi1k))
+     &         +scalek*(aij(i,j,k2)-aij(i,j,k2-1))
+        enddo
+
+        k = ij_jet
+        aij(i,j,k) = sqrt(aij(i,j,ij_ujet)**2+aij(i,j,ij_vjet)**2)
+
+        k = ij_wsmn
+        aij(i,j,k) = sqrt(aij(i,j,ij_us)**2+aij(i,j,ij_vs)**2)
+
+        k = ij_wsdir
+        aij(i,j,k) = atan2(aij(i,j,ij_us)+teeny,aij(i,j,ij_vs)+teeny)
+
+        k = ij_jetdir
+        aij(i,j,k)=atan2(aij(i,j,ij_ujet)+teeny,aij(i,j,ij_vjet)+teeny)
+
+        k = ij_clrsky
+        aij(i,j,k) = idacc(ia_ij(ij_cldcv))-aij(i,j,ij_cldcv)
+
+        k = ij_pocean
+        aij(i,j,k) = idacc(ia_ij(k))*focean(i,j)
+
+      ENDDO
+      ENDDO
+
+      return
+      end subroutine calc_derived_aij
