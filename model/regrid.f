@@ -30,10 +30,11 @@
       implicit none
       type (dist_grid), intent(in) :: grid
       integer, intent(in) :: ims,jms
-      real*8, intent(inout) :: uout_loc(grid%I_STRT:grid%I_STOP,
-     &     grid%J_STRT:grid%J_STOP),
-     &     vout_loc(grid%I_STRT:grid%I_STOP,
-     &     grid%J_STRT:grid%J_STOP)
+      real*8, intent(inout) :: 
+     &     uout_loc(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &     vout_loc(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
       real*8, intent(in) :: 
      &     uin_glob(ims,jms),
      &     vin_glob(ims,jms)
@@ -168,7 +169,7 @@ c     we do boundary conditions by hand
      &           )
 
 c            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
-c     &           uout_loc(i,j)
+c     &           vout_loc(i,j)
 
          enddo
       enddo

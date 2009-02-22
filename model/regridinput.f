@@ -71,7 +71,7 @@ c*
 !@auth Denis Gueyffier
       use regrid_com
       use DOMAIN_DECOMP_ATM, only: halo_update,pack_data
-      use geom, only : ll2csxy_vec
+      use geom, only : ll2csxy_vec, lon2d_dg,lat2d_dg
       implicit none
       real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
       real*8,parameter :: twopi = 2d0*pi           !@param twopi 2*pi
@@ -152,32 +152,31 @@ c
          do i=1,ims
             lon = -180.+(i-0.5)*dlon_dg
             if (i .eq. 1) lon = -180.+0.5*dlon_dg
-            if (down_lon(i,j) .lt. eps) then
+            if (abs(down_lon(i,j)) .lt. eps) then
                ull(i,j)=0.d0
             else
                ull(i,j)=down_lon(i,j) - lon
             endif
-            if (down_lat(i,j) .lt. eps) then
+            if (abs(down_lat(i,j)) .lt. eps) then
                vll(i,j)=0.d0
             else
                vll(i,j)=down_lat(i,j) - lat 
-            endif
-c            write(*,*) "ull, vll",ull(i,j),vll(i,j)
-            if ( ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j) .gt. 1.e-6) then
-               ull(i,j)=ull(i,j)/
-     &              sqrt(ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j))
-               vll(i,j)=vll(i,j)/
-     &              sqrt(ull(i,j)*ull(i,j)+vll(i,j)*vll(i,j))
             endif
 
 c     Test cases of bilinear interpolation: uncomment lines below
 c     For normal use, keep lines commented 
 c     test1: checking if we interpolate exactly linear and constant fields
-c      ull(i,j)=2*i+3*j ; vll(i,j) = 1.
-c      ull(i,j)=1. ; vll(i,j)=1.
+c      ull(i,j)=(2*i+3*j) ; vll(i,j) = (i+j)
+c      ull(i,j)=1. ; vll(i,j)=-1.
 c     test2: checking boundary conditions using periodic functions
-c            ull(i,j)=cos(2.*lon*radian) ; vll(i,j)=0. 
-c            write(60,*) lon,lat,ull(i,j)
+c            ull(i,j)=cos(lon*radian) ; vll(i,j)=sin(lon*radian)
+c            write(60,*) lon,lat,vll(i,j)
+
+            if (am_i_root()) then
+            write(70,200) lon,lat,ull(i,j),vll(i,j)
+ 200        format(4(1X,f8.3))
+            endif
+
          enddo
       enddo
 
@@ -186,13 +185,20 @@ c     Note that the returned vector field V_cs = (ucs_loc, vcs_loc) is expressed
 c     in the latlon coordinate system
       call bilin_ll2cs_vec(grid,ull,vll,ucs_loc,vcs_loc,ims,jms)
 
+      
       call halo_update(grid,ucs_loc)
       call halo_update(grid,vcs_loc)
 
       do j=grid%J_STRT,grid%J_STOP
          do i=grid%I_STRT,grid%I_STOP
 
+c            write(20+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
+c     &        vcs_loc(i,j)
+            write(60+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j)
+     &            ,2.*ucs_loc(i,j),2.*vcs_loc(i,j)
+
             nocomp=0
+
 c     x,y coordinates of current CS cell center
             x = -1.d0 + 2d0*(i-0.5)/imt
             y = -1.d0 + 2d0*(j-0.5)/imt
@@ -396,6 +402,9 @@ c
                if (grid%tile .eq. 6) kdown(i,j)=4       
             endif
 
+            write(70+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
+     &           lon2d_dg(idown(i,j),jdown(i,j))-lon2d_dg(i,j),
+     &           lat2d_dg(idown(i,j),jdown(i,j))-lat2d_dg(i,j)
          enddo
       enddo
 
@@ -408,7 +417,6 @@ c     gather all river directions before writing to output file
       jdown_g=jdown_glob
       kdown_g=kdown_glob
 
-c      write(*,*) "idown=",idown_g
 c      write(*,*) "jdown=",jdown_g
       
       if (am_i_root()) then
