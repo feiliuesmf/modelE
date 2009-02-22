@@ -4513,8 +4513,8 @@ c**** time independent arrays
 
 c**** vectors: magnitude
       else if (k.eq.ij_jet.or.k.eq.ij_wsmn) then
-          igrid = 2
-          jgrid = 2 ;  n1 = ij_ujet ; n2 = ij_vjet ; irange = ir_0_71
+          igrid = 1
+          jgrid = 1 ;  n1 = ij_ujet ; n2 = ij_vjet ; irange = ir_0_71
         if (k.eq.ij_wsmn) then
           igrid = 1
           jgrid = 1 ;  n1 = ij_us   ; n2 = ij_vs   ; irange = ir_0_18
@@ -4531,11 +4531,11 @@ c**** vectors: direction clockwise north (-180 -> 180)
       else if (k.eq.ij_jetdir .or. k.eq.ij_wsdir) then
         irange = ir_angl
         if (k.eq.ij_jetdir) then
-          igrid = 2 ; jgrid = 2 ; n1 = ij_ujet ; n2 = ij_vjet
+          igrid = 1 ; jgrid = 1 ; n1 = ij_ujet ; n2 = ij_vjet
         else if (k.eq.ij_wsdir)  then
           igrid = 1 ; jgrid = 1 ; n1 = ij_us   ; n2 = ij_vs
         end if
-        do j=2,jm
+        do j=1,jm
         do i=1,im
           anum(i,j)=360.*atan2(aij(i,j,n1)+teeny,aij(i,j,n2)+teeny)
      *         /twopi
