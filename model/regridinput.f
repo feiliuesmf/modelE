@@ -73,6 +73,7 @@ c*
       use DOMAIN_DECOMP_ATM, only: halo_update,pack_data
       use geom, only : ll2csxy_vec, lon2d_dg,lat2d_dg
       implicit none
+      include 'mpif.h'
       real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
       real*8,parameter :: twopi = 2d0*pi           !@param twopi 2*pi
       real*8,parameter :: radian = pi/180d0        !@param radian pi/180
@@ -83,14 +84,14 @@ c*
       character*80 :: titlei,title2,title,name,namecs
       real*4, dimension(ims,jms) :: down_lat,down_lon,down_lat_911
      *     ,down_lon_911
-      real*8,dimension(ims,jms) :: ull,vll
+      real*8,allocatable,dimension(:,:) :: ull,vll
       real*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
       character*8, dimension(nrvrmx) :: namervr
       real*8, allocatable :: ucs_loc(:,:),vcs_loc(:,:)
       real*8 :: eps, meps, norm, lon, lat, dlon_dg, dlat_dg
       real*8 :: x,y,VX,VY,slope,slope_diag,Xhalf,Yhalf,Xone,Yone
       integer iu_RVR, iu_RVRCS
-      integer :: nrvr, i,j, nocomp, quadrant,jeq
+      integer :: nrvr, i,j, nocomp, quadrant,jeq,nij,ierr
       integer, allocatable, dimension(:,:) :: kdirec
       real*8, allocatable, dimension(:,:) :: idown,jdown,kdown
       integer*4, dimension(imt,jmt,6) :: idown_g,jdown_g,kdown_g
@@ -99,6 +100,7 @@ c*
       allocate(kdirec(grid%I_STRT:grid%I_STOP,
      &     grid%J_STRT:grid%J_STOP))
       allocate(
+     &     ull(ims,jms),vll(ims,jms),
      &     ucs_loc(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO),
      &     vcs_loc(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -118,67 +120,74 @@ c*
       write(*,*) name
 
       if (am_i_root()) then
-      open( iu_RVR, FILE=name,FORM='unformatted', STATUS='old')
-      read(iu_RVR) titlei
-      read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
-     *     ,lon_rvr(1:nrvr)
-      read(iu_RVR) title,down_lat
-      read(iu_RVR) title,down_lon
-      read(iu_RVR) title,down_lat_911
-      read(iu_RVR) title,down_lon_911
-      close(iu_RVR)
-      end if
-
-c      write(*,*) "down_lon",down_lon
-
-c
+         open( iu_RVR, FILE=name,FORM='unformatted', STATUS='old')
+         read(iu_RVR) titlei
+         read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *        ,lon_rvr(1:nrvr)
+         read(iu_RVR) title,down_lat
+         read(iu_RVR) title,down_lon
+         read(iu_RVR) title,down_lat_911
+         read(iu_RVR) title,down_lon_911
+         close(iu_RVR)
+         
+      write(110,*) "down_lon",down_lon
+         
+         
+c     
 c     create vector field on latlon grid
-c
-      eps=1.d-6
-      meps=-1.d-6
-      dlat_dg=180./REAL(jms)                   ! even spacing (default)
-      IF (JMS.eq.46) dlat_dg=180./REAL(jms-1)   ! 1/2 box at pole for 4x5
-      dlon_dg = 360./dble(ims)
-      jeq=0.5*(1+jms)
-
-      do j=1,jms
-         if (j .ne. 1 .and. j .ne. jms) then
-            lat = dlat_dg*(j - jeq)
-         elseif (j .eq. 1) then
-            lat = -90.
-         elseif (j .eq. jms) then
-            lat = 90
-         endif
-         do i=1,ims
-            lon = -180.+(i-0.5)*dlon_dg
-            if (i .eq. 1) lon = -180.+0.5*dlon_dg
-            if (abs(down_lon(i,j)) .lt. eps) then
-               ull(i,j)=0.d0
-            else
-               ull(i,j)=down_lon(i,j) - lon
+c     
+         eps=1.d-6
+         meps=-1.d-6
+         dlat_dg=180./REAL(jms) ! even spacing (default)
+         IF (JMS.eq.46) dlat_dg=180./REAL(jms-1) ! 1/2 box at pole for 4x5
+         dlon_dg = 360./dble(ims)
+         jeq=0.5*(1+jms)
+         
+         do j=1,jms
+            if (j .ne. 1 .and. j .ne. jms) then
+               lat = dlat_dg*(j - jeq)
+            elseif (j .eq. 1) then
+               lat = -90.
+            elseif (j .eq. jms) then
+               lat = 90.
             endif
-            if (abs(down_lat(i,j)) .lt. eps) then
-               vll(i,j)=0.d0
-            else
-               vll(i,j)=down_lat(i,j) - lat 
-            endif
-
+            do i=1,ims
+               lon = -180.+(i-0.5)*dlon_dg
+               if (i .eq. 1) lon = -180.+0.5*dlon_dg
+               if (abs(down_lon(i,j)) .gt. 1./eps) then
+                  ull(i,j)=0.d0
+               else
+                  ull(i,j)=down_lon(i,j) - lon
+               endif
+               if (abs(down_lat(i,j)) .gt. 1./eps) then
+                  vll(i,j)=0.d0
+               else
+                  vll(i,j)=down_lat(i,j) - lat 
+               endif
+               
 c     Test cases of bilinear interpolation: uncomment lines below
 c     For normal use, keep lines commented 
 c     test1: checking if we interpolate exactly linear and constant fields
-c      ull(i,j)=(2*i+3*j) ; vll(i,j) = (i+j)
-c      ull(i,j)=1. ; vll(i,j)=-1.
+c     ull(i,j)=(2*i+3*j) ; vll(i,j) = (i+j)
+c     ull(i,j)=1. ; vll(i,j)=-1.
 c     test2: checking boundary conditions using periodic functions
-c            ull(i,j)=cos(lon*radian) ; vll(i,j)=sin(lon*radian)
-c            write(60,*) lon,lat,vll(i,j)
-
-            if (am_i_root()) then
-            write(70,200) lon,lat,ull(i,j),vll(i,j)
- 200        format(4(1X,f8.3))
-            endif
-
+c     ull(i,j)=cos(lon*radian) ; vll(i,j)=sin(lon*radian)
+c     write(60,*) lon,lat,vll(i,j)
+               
+               write(70,200) lon,lat,ull(i,j),vll(i,j)
+ 200              format(4(1X,f8.3))
+                  
+            enddo
          enddo
-      enddo
+      end if
+
+c     broadcast latlon field (ull,vll) to all PES
+      nij=ims*jms
+      call MPI_BCAST( ull, nij, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr ) 
+      call MPI_BCAST( vll, nij, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr ) 
+
 
 c     interpolate vectors field from latlon points to cubed-sphere points
 c     Note that the returned vector field V_cs = (ucs_loc, vcs_loc) is expressed 
@@ -191,76 +200,85 @@ c     in the latlon coordinate system
 
       do j=grid%J_STRT,grid%J_STOP
          do i=grid%I_STRT,grid%I_STOP
-
-c            write(20+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
+            
+c     write(20+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
 c     &        vcs_loc(i,j)
             write(60+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j)
-     &            ,2.*ucs_loc(i,j),2.*vcs_loc(i,j)
-
+     &           ,2.*ucs_loc(i,j),2.*vcs_loc(i,j)
+            
             nocomp=0
-
+            
 c     x,y coordinates of current CS cell center
             x = -1.d0 + 2d0*(i-0.5)/imt
             y = -1.d0 + 2d0*(j-0.5)/imt
-
+            
 c     compute components of V_cs in XY plane V_cs = (VX,VY)
-            call ll2csxy_vec(x,y,grid%tile,ucs_loc(i,j),
-     &           vcs_loc(i,j),VX,VY)
-
-c            write(*,100) "ucs vcs VX VY=",ucs_loc(i,j),vcs_loc(i,j),
+            if ( sqrt(ucs_loc(i,j)*ucs_loc(i,j)
+     &           +vcs_loc(i,j)*vcs_loc(i,j)) .lt. 1.e-4) then
+               kdirec(i,j) = 0
+               nocomp =1
+               
+c               write(*,*) "SMALL (ZERO) UCS VCS"
+            else
+               call ll2csxy_vec(x,y,grid%tile,ucs_loc(i,j),
+     &              vcs_loc(i,j),VX,VY)
+               
+c     write(*,100) "ucs vcs VX VY=",ucs_loc(i,j),vcs_loc(i,j),
 c     &           VX,VY
-c 100        format(A,4(1X,F8.2))
-
+c     100        format(A,4(1X,F8.2))
+               
 c     we assume V lies in first quadrant, VX > 0 && VY > 0. 
-c     All other cases are deduced by symetry
-            if (VX .gt. eps .and. VY .gt. eps) then
-               quadrant = 1
-            elseif ( VX .lt. meps .and. VY .gt. eps) then
-               quadrant=2
-               VX=-VX   
-            elseif ( VX .lt. meps .and. VY .lt. meps) then
-               quadrant=3
-               VX=-VX   
-               VY=-VY   
-            elseif ( VX .gt. eps .and. VY .lt. meps) then
-               quadrant=4
-               VY=-VY   
-            elseif (abs(VX) .le. eps .and. abs(VY) .gt. eps) then
-               if (VY .gt. eps) then
-                  kdirec(i,j)=2
-                  nocomp=1
-               elseif (VY .lt. meps) then
-                  kdirec(i,j)=6
+c     All other cases are deduced by symmetry
+               if (VX .gt. eps .and. VY .gt. eps) then
+                  quadrant = 1
+               elseif ( VX .lt. meps .and. VY .gt. eps) then
+                  quadrant=2
+                  VX=-VX   
+               elseif ( VX .lt. meps .and. VY .lt. meps) then
+                  quadrant=3
+                  VX=-VX   
+                  VY=-VY   
+               elseif ( VX .gt. eps .and. VY .lt. meps) then
+                  quadrant=4
+                  VY=-VY   
+               elseif (abs(VX) .le. eps .and. abs(VY) .gt. eps) then
+                  if (VY .gt. eps) then
+                     kdirec(i,j)=2
+                     nocomp=1
+                  elseif (VY .lt. meps) then
+                     kdirec(i,j)=6
+                     nocomp=1
+                  endif
+               elseif (abs(VY) .le. eps .and. abs(VX) .gt. eps) then
+                  if (VX .gt. eps) then
+                     kdirec(i,j)=8
+                     nocomp=1
+                  elseif (VX .lt. meps) then
+                     kdirec(i,j)=4
+                     nocomp=1
+                  endif
+               elseif (abs(VX) .le. eps .and. abs(VY) .lt. eps) then
+                  kdirec(i,j)=0
                   nocomp=1
                endif
-            elseif (abs(VY) .le. eps .and. abs(VX) .gt. eps) then
-               if (VX .gt. eps) then
-                  kdirec(i,j)=8
-                  nocomp=1
-               elseif (VX .lt. meps) then
-                  kdirec(i,j)=4
-                  nocomp=1
-               endif
-            elseif (abs(VX) .le. eps .and. abs(VY) .lt. eps) then
-               kdirec(i,j)=0
-               nocomp=1
-            endif
-
+            
+            endif    
+           
             if (nocomp .ne. 1) then
-c
+c     
 c     compare slope VY/VX with (Yj+1-Yj+1/2)/(Xi+1-Xi+1/2) to decide which is the prefered direction
-c
+c     
                slope=VY/VX
-c               write(*,*) "slope=",slope
-
-               xone = -1.d0 + 2d0*i/imt  ! (xone,yone) upper right corner of cell
+c     write(*,*) "slope=",slope
+               
+               xone = -1.d0 + 2d0*i/imt ! (xone,yone) upper right corner of cell
                yone = -1.d0 + 2d0*j/imt
                Xone = tan(g*xone)*sqrt(2d0)
                Yone = tan(g*yone)*sqrt(2d0)
                Xhalf = tan(g*x)*sqrt(2d0)
                Yhalf = tan(g*y)*sqrt(2d0)
                slope_diag=(Yone-Yhalf)/(Xone-Xhalf)
-
+               
                if (slope/slope_diag .lt. 1.d0) then
                   if (slope/slope_diag .lt. 0.5d0) then
                      if (quadrant .eq. 1) then
@@ -306,55 +324,56 @@ c               write(*,*) "slope=",slope
                      endif
                   endif
                endif
+               
             endif
-
-c            write(*,*) "KDIREC(I,J)=",kdirec(i,j)
-
-c
+            
+c            write(*,*) "KDIREC(i,j)=",kdirec(i,j)
+            
+c     
 c     The following is for Gary Russell's plotting program
-c
-          SELECT CASE (KDIREC(I,J))
-          CASE (0)
-            IDOWN(I,J) = real(I)
-            JDOWN(I,J) = real(J)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (1)
-            IDOWN(I,J) = real(I+1)
-            JDOWN(I,J) = real(J+1)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (2)
-            IDOWN(I,J) = real(I)
-            JDOWN(I,J) = real(J+1)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (3)
-            IDOWN(I,J) = real(I-1)
-            JDOWN(I,J) = real(J+1)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (4)
-            IDOWN(I,J) = real(I-1)
-            JDOWN(I,J) = real(J)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (5)
-            IDOWN(I,J) = real(I-1)
-            JDOWN(I,J) = real(J-1)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (6)
-            IDOWN(I,J) = real(I)
-            JDOWN(I,J) = real(J-1)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (7)
-            IDOWN(I,J) = real(I+1)
-            JDOWN(I,J) = real(J-1)
-            KDOWN(I,J) = real(grid%tile)
-          CASE (8)
-            IDOWN(I,J) = real(I+1)
-            JDOWN(I,J) = real(J)
-            KDOWN(I,J) = real(grid%tile)
-          END SELECT
-    
-         enddo
+c     
+            SELECT CASE (KDIREC(i,j))
+         CASE (0)
+            IDOWN(i,j) = real(i)
+            JDOWN(i,j) = real(j)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (1)
+            IDOWN(i,j) = real(i+1)
+            JDOWN(i,j) = real(j+1)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (2)
+            IDOWN(i,j) = real(i)
+            JDOWN(i,j) = real(j+1)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (3)
+            IDOWN(i,j) = real(i-1)
+            JDOWN(i,j) = real(j+1)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (4)
+            IDOWN(i,j) = real(i-1)
+            JDOWN(i,j) = real(j)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (5)
+            IDOWN(i,j) = real(i-1)
+            JDOWN(i,j) = real(j-1)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (6)
+            IDOWN(i,j) = real(i)
+            JDOWN(i,j) = real(j-1)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (7)
+            IDOWN(i,j) = real(i+1)
+            JDOWN(i,j) = real(j-1)
+            KDOWN(i,j) = real(grid%tile)
+         CASE (8)
+            IDOWN(i,j) = real(i+1)
+            JDOWN(i,j) = real(j)
+            KDOWN(i,j) = real(grid%tile)
+         END SELECT
+         
       enddo
-
+      enddo
+      
       call halo_update(grid,idown)
       call halo_update(grid,jdown)
       
@@ -368,6 +387,9 @@ c
                if (grid%tile .eq. 4) kdown(i,j)=6
                if (grid%tile .eq. 5) kdown(i,j)=6  
                if (grid%tile .eq. 6) kdown(i,j)=2              
+               write(*,300) "IMAX idown tile=",i,idown(i+1,j),
+     &              grid%tile,kdown(i,j)
+ 300           format(A,I3,F8.3,I3,F8.3)
             elseif (idown(i,j) .eq. 0 .and. (
      &              kdirec(i,j) .eq. 3 .or.
      &              kdirec(i,j) .eq. 4 .or. 
@@ -379,6 +401,8 @@ c
                if (grid%tile .eq. 4) kdown(i,j)=3
                if (grid%tile .eq. 5) kdown(i,j)=3  
                if (grid%tile .eq. 6) kdown(i,j)=5       
+               write(*,300) "imin idown tile=",i,idown(i-1,j),
+     &              grid%tile,kdown(i,j)
             endif
 
             if (jdown(i,j) .eq. jmt+1) then
@@ -389,6 +413,8 @@ c
                if (grid%tile .eq. 4) kdown(i,j)=5
                if (grid%tile .eq. 5) kdown(i,j)=1  
                if (grid%tile .eq. 6) kdown(i,j)=1              
+               write(*,300) "JMAX jdown tile=",j,jdown(i,j+1),
+     &              grid%tile,kdown(i,j)
             elseif (jdown(i,j) .eq. 0 .and. (
      &              kdirec(i,j) .eq. 5 .or.
      &              kdirec(i,j) .eq. 6 .or. 
@@ -400,6 +426,8 @@ c
                if (grid%tile .eq. 4) kdown(i,j)=2
                if (grid%tile .eq. 5) kdown(i,j)=4  
                if (grid%tile .eq. 6) kdown(i,j)=4       
+               write(*,300) "jmin jdown tile=",j,jdown(i,j-1),
+     &              grid%tile,kdown(i,j)
             endif
 
             write(70+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
@@ -413,13 +441,16 @@ c     gather all river directions before writing to output file
       call pack_data(grid,jdown,jdown_glob)
       call pack_data(grid,kdown,kdown_glob)
 
-      idown_g=idown_glob
-      jdown_g=jdown_glob
-      kdown_g=kdown_glob
-
-c      write(*,*) "jdown=",jdown_g
+      
       
       if (am_i_root()) then
+
+         idown_g=idown_glob
+         jdown_g=jdown_glob
+         kdown_g=kdown_glob
+         
+         write(*,*) "kdown=",kdown_g
+         
 c     write(iu_RVRCS) titlei
          title="downstream idown, jdown ,kdown"
          open( iu_RVRCS, FILE=namecs,FORM='unformatted', 
@@ -428,11 +459,12 @@ c     write(iu_RVRCS) titlei
 c     write(iu_RVRCS) title,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
 c     &        ,lon_rvr(1:nrvr)
          close(iu_RVRCS)
+         write(333,*) idown_g
       endif
-
+      
 c     end output for Gary Russell's plotting program
-
-      deallocate(kdirec,ucs_loc,vcs_loc,idown,jdown,kdown)
+      
+      deallocate(ull,vll,kdirec,ucs_loc,vcs_loc,idown,jdown,kdown)
 
       end subroutine interpRD
 c*

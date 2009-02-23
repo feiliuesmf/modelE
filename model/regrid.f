@@ -31,6 +31,7 @@
       type (dist_grid), intent(in) :: grid
       integer, intent(in) :: ims,jms
       real*8, intent(inout) :: 
+c     &       uout_loc(:,:),vout_loc(:,:)
      &     uout_loc(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO),
      &     vout_loc(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -42,8 +43,15 @@
       real*8 :: v11,v12,v21,v22
       real*8 :: lon1,lon2,lat1,lat2, lon_curr, lat_curr
       real*8 :: dnm, pi, dlat_dg, dlon_dg
-      integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2, jeq
+      integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2, jeq,
+     &      i0h,i1h,j0h,j1h
 
+      i0h=grid%I_STRT_HALO
+      i1h=grid%I_STOP_HALO
+      j0h=grid%J_STRT_HALO
+      j1h=grid%J_STOP_HALO
+
+      write(*,*) "i0h,i1h,j0h,j1h=",i0h,i1h,j0h,j1h,ims,jms
 
       pi = 4.0d0*atan(1.d0)
 
@@ -168,8 +176,12 @@ c     we do boundary conditions by hand
      &           + v22*( lon2d_dg(i,j)-lon1 )*( lat2d_dg(i,j)-lat1 ) 
      &           )
 
-c            write(30+grid%gid,*) lon2d_dg(i,j),lat2d_dg(i,j),
-c     &           vout_loc(i,j)
+            write(90+grid%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
+     &           uout_loc(i,j),vout_loc(i,j)
+ 200        format(4(1X,f8.3))
+
+            write(30+grid%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
+     &           vout_loc(i,j)
 
          enddo
       enddo
