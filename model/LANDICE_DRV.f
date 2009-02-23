@@ -44,6 +44,7 @@
       USE DIAG_COM, only : npts,icon_MLI,icon_HLI,title_con,conpt0
       USE PARAM
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, GLOBALSUM, READT_PARALLEL
+     &     ,AM_I_ROOT
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
       INTEGER, INTENT(IN) :: istart
@@ -106,7 +107,8 @@ c read a binary version of GLMELT
 c every PE reads the ascii version of GLMELT
       call openunit("GLMELT",iu_GL,.false.,.true.)
       READ  (iu_GL,'(A72)') TITLE
-      WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
+      IF(AM_I_ROOT())
+     &     WRITE (6,*) 'Read on unit ',iu_GL,': ',TITLE
       READ  (iu_GL,*)
 C**** assumes a 72-column width slab - will need adjusting for CS
       DO I72=1,1+(IM-1)/72

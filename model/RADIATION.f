@@ -1293,11 +1293,14 @@ C                  -----------------------------------------------------
       IF(MADDST < 1) GO TO 699
       NRFU=NRFUN(6)
 !      READ (NRFU) TDUST                                              !ron
-      write(*,*) 'READ Offline DUST Distribution:'                    !ron
+      if(am_i_root())
+     & write(*,*) 'READ Offline DUST Distribution:'                   !ron
       read(nrfu) dtitle, imd, jmd, lmd, nsized, nmond ! offline dims  !ron
+      if(am_i_root()) then
       write(*,*) trim(dtitle)                                         !ron
       write(*,*) 'Offline Dust Dims: imd, jmd, lmd, nsized, nmond: ', !ron 
      *     imd, jmd, lmd, nsized, nmond                               !ron
+      endif
       if (imd.eq.0)
      *     call stop_model('Please update dust file RADN6', 255) 
       if (imd.ne.mlon72 .or. jmd.ne.mlat46) call stop_model(
