@@ -2,12 +2,7 @@
 
       module flammability_com    
 !@sum for routines to calculate flammability potential of surface 
-!@+   vegetation. Right now this is exceedingly simple, not really
-!@+   warrenting its own codes, but I set it up in the usual 
-!@+   com/drv/physics way because likely one day it will have 
-!@+   more complicated coupling to the MODELE vegetation, pbl,
-!@+   surface, etc. codes. And then to the tracer code to alter
-!@+   emissions from fires.
+!@+   vegetation. Optionally also altering tracer biomass sources.
 !@auth Greg Faluvegi based on direction from Olga Pechony
 !@ver  1.0 (based on Olga's Word document Flammability.doc)
 
@@ -16,8 +11,14 @@
 
 ! main variables:
 !@var flammability unitless flammability coefficient
+!@var base_flam unitless flammability coefficient from a run with 
+!@+   baseline climate (e.g. GFED 1997-2002 period), monthly averages
 !@var vegetation density read from file for flammability calculation
       real*8, allocatable, dimension(:,:) :: flammability,veg_density
+#ifdef ALTER_BIOMASS_BY_FIRE
+!@var vegetation density read from file for flammability calculation
+     &                                       ,base_flam
+#endif
       real*8, parameter :: missing=-1.d30
 
 ! rest is for the running average:
@@ -55,6 +56,9 @@
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
+#ifdef ALTER_BIOMASS_BY_FIRE
+     & ,base_flam
+#endif
  
       implicit none
       
@@ -76,6 +80,9 @@
       allocate( PRSfl       (I_0H:I_1H,J_0H:J_1H) )
       allocate( raP_acc     (I_0H:I_1H,J_0H:J_1H) )
       allocate( HRAfl       (I_0H:I_1H,J_0H:J_1H,maxHR_prec) )
+#ifdef ALTER_BIOMASS_BY_FIRE
+      allocate( base_flam   (I_0H:I_1H,J_0H:J_1H) )
+#endif
 
       return
       end subroutine alloc_flammability

@@ -9718,6 +9718,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         endif
       end do
 #endif /* TRACERS_SPECIAL_Shindell */
+#ifdef ALTER_BIOMASS_BY_FIRE
+      call update_base_flammability
+#endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 #ifdef EDGAR_1995
@@ -9806,6 +9809,9 @@ C**** at the start of any day
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
+#ifdef ALTER_BIOMASS_BY_FIRE
+      USE flammability_com, only: missing,flammability,base_flam
+#endif
       implicit none
       integer :: i,j,ns,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -9814,6 +9820,11 @@ C**** at the start of any day
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER ie,iw,js,jn
 
+#ifdef ALTER_BIOMASS_BY_FIRE
+      real*8 :: zm,zmcount
+      integer :: ii
+      character(len=300) :: out_line
+#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
       real*8  :: factor
@@ -10330,6 +10341,41 @@ c!OMSP
           enddo
         enddo
       endif
+
+#ifdef ALTER_BIOMASS_BY_FIRE
+      do ns=1,ntsurfsrc(n)              ! loop over source
+        do nsect=1,num_tr_sectors(n,ns) ! and sectors for that source
+          if(tr_sect_name(n,ns,nsect)=='BBURN')then
+           do j=J_0,J_1                   ! and latitudes
+            do i=I_0,imaxj(j)             ! and longitudes 
+             if(flammability(i,j)/=missing)then ! enough info?
+              if(base_flam(i,j)/=0.)then
+                trsource(i,j,ns,n)=trsource(i,j,ns,n)*
+     &          flammability(i,j)/base_flam(i,j)
+              else
+                zm=0.d0; zmcount=0.d0
+                do ii=I_0, I_1  !EXCEPTIONAL CASE? 
+                  if(base_flam(ii,j) > 0.)then
+                    zm=zm+base_flam(ii,j)
+                    zmcount=zmcount+1.d0
+                  endif
+                enddo
+                if(zmcount <= 0.)then
+                  write(out_line,*)'zmcount for bburn src <=0 @IJ=',I,J
+                  call write_parallel(trim(out_line),unit=6,crit=.true.)
+                  call stop_model('need better base_flam treatment',255) 
+                else
+                  trsource(i,j,ns,n)=trsource(i,j,ns,n)*
+     &            flammability(i,j)/(zm/zmcount)
+                end if ! zonal avg base flammability ?
+              endif    ! have base flammability
+             endif     ! enough info built up
+            enddo      ! i
+           enddo       ! j
+          endif        ! biomass burning
+        enddo          ! sectors
+      enddo            ! sources
+#endif
 
       end do ! n - main tracer loop
 

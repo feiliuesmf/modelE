@@ -44,7 +44,6 @@
 !@+ In practive, this does hourly and daily running averages and
 !@+ uses those to get the period-long running average, to avoid
 !@+ saving a huge array.
-!@+ Can't I remove the I,J's from this routine?
 !@auth Greg Faluvegi
 !@ver 1.0
       use flammability_com, only: nday=>nday_prec,nmax=>maxHR_prec
@@ -114,3 +113,63 @@
       end if
 
       end subroutine prec_running_average
+
+
+#ifdef ALTER_BIOMASS_BY_FIRE
+      subroutine update_base_flammability
+!@sum reads base monthly base flammability and interpolates to
+!@+ current day, linearly. Suffers from same excessive reading
+!@+ as monthly surface sources at the moment.
+!@auth Greg Faluvegi, based on Jean Lerner, etc.
+      use model_com, only: itime,jday,jyear,im,jm,idofm=>JDmidOfM
+      use domain_decomp_atm, only:grid,get,readt_parallel,
+     & write_parallel,rewind_parallel
+      use filemanager, only: openunit,closeunit,nameunit
+      use flammability_com,only: base_flam 
+   
+      implicit none
+      
+      integer :: iu,imonFB
+      character(len=300) :: out_line
+      logical:: ifirstBF=.true.
+      integer :: J_1, J_0, I_0, I_1
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &                  tlca,tlcb
+      real*8 :: frac
+      
+      save ifirstBF,imonFB
+
+      call get(grid, J_STRT=J_0, J_STOP=J_1)
+      call get(grid, I_STRT=I_0, I_STOP=I_1)
+
+      call openunit('BASE_FLAM',iu,.true.)
+
+      imonFB=1
+      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+        call readt_parallel(grid,iu,nameunit(iu),tlca,12)
+        call rewind_parallel( iu )
+      else            ! JDAY is in Jan 16 to Dec 16, get first month
+        do while(jday > idofm(imonFB) .AND. imonFB <= 12)
+          imonFB=imonFB+1
+        enddo
+        call readt_parallel(grid,iu,nameunit(iu),tlca,imonFB-1)
+        if (imonFB == 13)then
+          call rewind_parallel( iu )
+        endif
+      end if
+      call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
+
+!     Interpolate two months of data to current day
+      frac = float(idofm(imonFB)-jday)/(idofm(imonFB)-idofm(imonFB-1))
+      base_flam(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
+     & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
+      write(out_line,*)'base flammability interpolated to now ',frac
+      call write_parallel(trim(out_line))
+
+      ifirstBF = .false. ! needed for future fix of excessive reading
+      call closeunit(iu)
+
+      return
+      end subroutine update_base_flammability
+#endif

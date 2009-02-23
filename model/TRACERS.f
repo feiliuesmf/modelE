@@ -540,6 +540,9 @@ C****
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
+#ifdef ALTER_BIOMASS_BY_FIRE
+      USE flammability_com, only: missing,flammability,base_flam
+#endif
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -550,6 +553,10 @@ C****
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1, I_0, I_1
+#ifdef ALTER_BIOMASS_BY_FIRE
+      real*8 :: zm,zmcount
+      integer :: ii
+#endif
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -589,6 +596,33 @@ C**** apply tracer source alterations if requested in rundeck:
       enddo
       enddo
       endif
+
+#if (defined ALTER_BIOMASS_BY_FIRE) && (defined GFED_3D_BIOMASS)
+      do l=1,lm ; do j=j_0,j_1 ; do i=i_0,imaxj(j)
+        if(flammability(i,j)/=missing) then
+         if(base_flam(i,j)/=0.)then
+           tr3Dsource(i,j,l,nBiomass,n) = tr3Dsource(i,j,l,nBiomass,n)*
+     &     flammability(i,j)/base_flam(i,j)
+         else
+           zm=0.d0; zmcount=0.d0
+           do ii=I_0, I_1  !EXCEPTIONAL CASE?
+             if(base_flam(ii,j) > 0.)then
+               zm=zm+base_flam(ii,j)
+               zmcount=zmcount+1.d0
+             endif
+           enddo
+           if(zmcount <= 0.)then
+             write(out_line,*)'zmcount for GFED src <=0 @IJ=',I,J
+             call write_parallel(trim(out_line),unit=6,crit=.true.)
+             call stop_model('need better base_flam treatment',255)
+          else
+             tr3Dsource(i,j,l,nBiomass,n)=tr3Dsource(i,j,l,nBiomass,n)*
+     &       flammability(i,j)/(zm/zmcount)
+          end if ! have zonal avg base flammability ?
+         endif   ! non-zerp base flammability ?
+        endif    ! enough flammability info accumulated?
+      enddo; enddo; enddo ! i,j,l
+#endif
 
 !$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm
