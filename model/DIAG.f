@@ -2981,3 +2981,73 @@ C****
 
       return
       end subroutine calc_derived_aij
+
+      SUBROUTINE DIAGJ_PREP
+      USE DOMAIN_DECOMP_ATM, ONLY : AM_I_ROOT
+      USE CONSTANT, only : teeny
+      USE MODEL_COM, only : dtsrc,idacc,ntype
+      USE DIAG_COM, only : jm_budg,
+     &     aj,ntype_out,wt=>wtj_comp,aj_out,areg,areg_out,
+     &     nreg,kaj,j_albp0,j_srincp0,j_albg,j_srincg,
+     &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
+     *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
+     *     j_prcpmc,j_hz0,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
+     *     j_hz2,j_ervr,
+     *     ia_src,ia_rad,
+     &     sarea=>sarea_reg
+      IMPLICIT NONE
+      REAL*8 :: A1BYA2
+      INTEGER :: J,JR,M,IT
+
+      IF(.NOT.AM_I_ROOT()) RETURN
+
+C**** CALCULATE THE DERIVED QUANTTIES
+      A1BYA2=IDACC(ia_src)/(IDACC(ia_rad)+teeny)
+      DO JR=1,23
+        AREG(JR,J_SRABS) =AREG(JR,J_SRNFP0)-AREG(JR,J_SRNFG)
+        AREG(JR,J_RNFP0) =AREG(JR,J_SRNFP0)+AREG(JR,J_TRNFP0)
+        AREG(JR,J_RNFP1) =AREG(JR,J_SRNFP1)+AREG(JR,J_TRNFP1)
+        AREG(JR,J_ALBP0)=AREG(JR,J_SRINCP0)-AREG(JR,J_SRNFP0)
+        AREG(JR,J_ALBG)=AREG(JR,J_SRINCG)-AREG(JR,J_SRNFG)
+        AREG(JR,J_RHDT)  =A1BYA2*AREG(JR,J_SRNFG)*DTSRC+AREG(JR,J_TRHDT)
+        AREG(JR,J_PRCP)  =AREG(JR,J_PRCPSS)+AREG(JR,J_PRCPMC)
+        AREG(JR,J_HZ0)=AREG(JR,J_RHDT)+AREG(JR,J_SHDT)+
+     *                 AREG(JR,J_EVHDT)+AREG(JR,J_EPRCP)
+        AREG(JR,J_HZ1)=AREG(JR,J_HZ0)+AREG(JR,J_ERVR)
+        AREG(JR,J_HZ2)=AREG(JR,J_HZ1)-AREG(JR,J_ERUN)-AREG(JR,J_IMPLH)
+      END DO
+      DO J=1,JM_BUDG
+      DO IT=1,NTYPE
+        AJ(J,J_SRABS ,IT)=AJ(J,J_SRNFP0,IT)-AJ(J,J_SRNFG,IT)
+        AJ(J,J_RNFP0 ,IT)=AJ(J,J_SRNFP0,IT)+AJ(J,J_TRNFP0,IT)
+        AJ(J,J_RNFP1 ,IT)=AJ(J,J_SRNFP1,IT)+AJ(J,J_TRNFP1,IT)
+        AJ(J,J_ALBP0,IT)=AJ(J,J_SRINCP0,IT)-AJ(J,J_SRNFP0,IT)
+        AJ(J,J_ALBG,IT)=AJ(J,J_SRINCG,IT)-AJ(J,J_SRNFG,IT)
+        AJ(J,J_RHDT  ,IT)=A1BYA2*AJ(J,J_SRNFG,IT)*DTSRC+AJ(J,J_TRHDT,IT)
+        AJ(J,J_PRCP  ,IT)=AJ(J,J_PRCPSS,IT)+AJ(J,J_PRCPMC,IT)
+        AJ(J,J_HZ0,IT)=AJ(J,J_RHDT,IT)+AJ(J,J_SHDT,IT)+
+     *                 AJ(J,J_EVHDT,IT)+AJ(J,J_EPRCP,IT)
+        AJ(J,J_HZ1,IT)=AJ(J,J_HZ0,IT)+AJ(J,J_ERVR,IT)
+        AJ(J,J_HZ2,IT)=AJ(J,J_HZ1,IT)-AJ(J,J_ERUN,IT)-AJ(J,J_IMPLH,IT)
+      END DO
+      END DO
+
+c
+c construct the composites of surface types
+c
+      aj_out = 0d0
+      do m=1,ntype_out
+        do it=1,ntype
+          aj_out(:,:,m) = aj_out(:,:,m) + aj(:,:,it)*wt(m,it)
+        enddo
+      enddo
+
+c
+c scale areg by area
+c
+      do jr=1,nreg
+        areg_out(jr,:) = areg(jr,:)/sarea(jr)
+      enddo
+
+      RETURN
+      END SUBROUTINE DIAGJ_PREP

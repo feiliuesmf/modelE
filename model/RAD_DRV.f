@@ -812,7 +812,9 @@ C     OUTPUT DATA
      *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
      *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
      *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
-     *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,j_plavis,ij_trnfp0,
+     *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,ij_trnfp0,
+     *     j_plavis, j_planir, j_albvis, j_albnir,
+     *     j_srrvis, j_srrnir, j_sravis, j_sranir,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
      *     ,ij_srvis,j_clrtoa,j_clrtrp,j_tottrp,il_rc
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
@@ -938,6 +940,7 @@ C
       INTEGER, PARAMETER :: NLOC_DIU_VARb = 3
       INTEGER :: idxb(NLOC_DIU_VARb)
 
+      integer :: aj_alb_inds(8)
 
       INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: J_0, J_1, I_0, I_1
@@ -1944,6 +1947,9 @@ C****
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
 
+      aj_alb_inds = (/ J_PLAVIS, J_PLANIR, J_ALBVIS, J_ALBNIR,
+     &                 J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR /)
+
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
         srnflb_save(i,j,1:11)=srnflb(1:11)
@@ -2121,7 +2127,7 @@ C****
          call inc_areg(I,J,JR,J_TRNFP0,-TNFS(3,I,J))
          call inc_areg(I,J,JR,J_TRNFP1,-TNFS(2,I,J))
          DO K=2,9
-           JK=K+J_PLAVIS-2      ! accumulate 8 radiation diags.
+           JK=AJ_ALB_INDS(K-1) ! accumulate 8 radiation diags.
            DO IT=1,NTYPE
              call inc_aj(I,J,IT,JK,(S0*CSZ2)*ALB(I,J,K)*FTYPE(IT,I,J))
            END DO

@@ -69,6 +69,7 @@ c
          ia_j(k)    = 1.
          fmt_j(k) = fmt907
          fmt_reg(k) = fmt909
+         iden_j(k)  = 0
       enddo
 c
       k=0
@@ -80,6 +81,116 @@ c
       units_j(k) = 'W/m^2'
       stitle_j(k)= ' INC SW (W/m^2)'
       scale_j(k) = 1.
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_ALBP0  = k ! J_SRINCP0-J_SRNFP0 will be calculated after acc
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'plan_alb'
+      lname_j(k) = ' TOTAL PLANETARY ALBEDO'
+      units_j(k) = '%'
+      stitle_j(k)= ' PLANETARY ALBDO'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_PLAVIS = k ! PLAVIS*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'plan_alb_vis'
+      lname_j(k) = 'PLANETARY ALBEDO IN VISUAL'
+      units_j(k) = '%'
+      stitle_j(k)= ' PLAN ALB VISUAL'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_PLANIR = k ! PLANIR*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'plan_alb_nir'
+      lname_j(k) = 'PLANETARY ALBEDO IN NEAR IR'
+      units_j(k) = '%'
+      stitle_j(k)= ' PLAN ALB NEARIR'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_ALBG  = k ! J_SRINCG-J_SRNFG will be calculated after acc
+      iden_j(k)  = J_SRINCG ! J_SRINCG not defined yet.  fixup below.
+      name_j(k) = 'surf_alb'
+      lname_j(k) = 'GROUND ALBEDO'
+      units_j(k) = '%'
+      stitle_j(k)= ' SURFACE G ALBDO'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_ALBVIS = k ! ALBVIS*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'surf_alb_vis'
+      lname_j(k) = 'GROUND ALBEDO IN VISUAL'
+      units_j(k) = '%'
+      stitle_j(k)= ' SURF ALB VISUAL'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_ALBNIR = k ! ALBNIR*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'surf_alb_nir'
+      lname_j(k) = 'GROUND ALBEDO IN NEAR IR'
+      units_j(k) = '%'
+      stitle_j(k)= ' SURF ALB NEARIR'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_SRRVIS = k ! SRRVIS*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'atm_alb_vis'
+      lname_j(k) = 'ATMOSPHERIC ALBEDO IN VISUAL'
+      units_j(k) = '%'
+      stitle_j(k)= '0ATMO ALB VISUAL'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_SRRNIR = k ! SRRNIR*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'atm_alb_nir'
+      lname_j(k) = 'ATMOSPHERIC ALBEDO IN NEAR IR'
+      units_j(k) = '%'
+      stitle_j(k)= ' ATMO ALB NEARIR'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_SRAVIS = k ! SRAVIS*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'atm_abs_vis'
+      lname_j(k) = 'ATMOSPHERIC ABSORPTION IN VISUAL'
+      units_j(k) = 'W/m**2'
+      stitle_j(k)= ' ATMO ABS VISUAL'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
+      ia_j(k) = ia_rad
+c
+      k = k + 1
+      J_SRANIR = k ! SRANIR*S0*COSZ (W/m**2)                       2 RD
+      iden_j(k)  = J_SRINCP0
+      name_j(k) = 'atm_abs_nir'
+      lname_j(k) = 'ATMOSPHERIC ABSORPTION IN NEAR IR'
+      units_j(k) = 'W/m**2'
+      stitle_j(k)= ' ATMO ABS NEARIR'
+      scale_j(k) = 100.
+      fmt_j(k) = fmt912
       ia_j(k) = ia_rad
 c
       k=k+1
@@ -661,6 +772,17 @@ c
       ia_j(k) = ia_rad
 c
       k=k+1
+      J_CLDDEP= k ! PBOTMC-PTOPMC (100 PA)                        2 RD
+      iden_j(k)  = J_PCLDMC
+      name_j(k) = 'mc_clddp'
+      lname_j(k) = 'MOIST CONVECTIVE CLOUD DEPTH'
+      units_j(k) = 'mb'
+      stitle_j(k)= ' MC CLD DPTH(MB)'
+      scale_j(k) = 1.
+      ia_j(k) = ia_rad
+      fmt_j(k) = fmt907
+c
+      k=k+1
       J_QP    = k ! Q*P (100 PA)  (INTEGRAL OVER ATMOSPHERE OF)   4 DA
       name_j(k) = 'atmh2o'
       lname_j(k) = 'WATER CONTENT OF ATMOSPHERE'
@@ -771,8 +893,6 @@ c
       ia_j(k) = ia_srf
       fmt_reg(k) = fmtnone
 
-c set the number of directly output budget diagnostics
-      k_j_out=k
 c None of the following will be printed out:
       k=k+1
       J_HSURF = k ! TRNFP0-TRNFG (W/m**2)                         2 RD
@@ -791,100 +911,36 @@ c
       stitle_j(k)= 'no output'
       scale_j(k) = 1.
       ia_j(k) = ia_rad
+
+c fixups for cases when denominator indices were not yet defined.
+c change specifification of denominators to use name_j instead.
+      iden_j(J_ALBG)  = J_SRINCG
+
 c
-      k=k+1
-C**** Note: next eight diagnostics must remain in order
-      J_PLAVIS= k ! PLAVIS*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'plan_refl_vis'
-      lname_j(k) = 'PLANETARY REFLECTED RAD. IN VISUAL'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_PLANIR= k ! PLANIR*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'plan_refl_nir'
-      lname_j(k) = 'PLANETARY REFLECTED RAD. IN NEAR IR'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_ALBVIS= k ! ALBVIS*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'surf_refl_vis'
-      lname_j(k) = 'GROUND REFLECTED RAD. IN VISUAL'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_ALBNIR= k ! ALBNIR*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'surf_refl_nir'
-      lname_j(k) = 'GROUND REFLECTED RAD. IN NEAR IR'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_SRRVIS= k ! SRRVIS*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'atm_refl_vis'
-      lname_j(k) = 'ATMOSPHERIC REFLECTED RAD. IN VISUAL'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_SRRNIR= k ! SRRNIR*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'atm_refl_nir'
-      lname_j(k) = 'ATMOSPHERIC REFLECTED RAD. IN NEAR IR'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_SRAVIS= k ! SRAVIS*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'atm_abs_vis'
-      lname_j(k) = 'ATMOSPHERIC ABSORPTION IN VISUAL'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_SRANIR= k ! SRANIR*S0*COSZ (W/m**2)                       2 RD
-      name_j(k) = 'atm_abs_nir'
-      lname_j(k) = 'ATMOSPHERIC ABSORPTION IN NEAR IR'
-      units_j(k) = 'W/m^2'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      k=k+1
-      J_CLDDEP= k ! PBOTMC-PTOPMC (100 PA)                        2 RD
-      name_j(k) = 'CLDDEP'
-      lname_j(k) = 'MOIST CONVECTIVE CLOUD DEPTH'
-      units_j(k) = 'mb'
-      stitle_j(k)= 'no output'
-      scale_j(k) = 1.
-      ia_j(k) = ia_rad
-c
-      if (AM_I_ROOT()) then
-         if (k .gt. kaj) then
-            write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
-            call stop_model( 'kaj too small', 255 )
-         end if
-         write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
-         if(.not.qcheck) return
-         do kk=1,k
+      if (k .gt. kaj) then
+        if(am_i_root()) then
+          write (6,*) 'j_defs: Increase kaj=',kaj,' to at least ',k
+        endif
+        call stop_model( 'kaj too small', 255 )
+      endif
+      if(am_i_root()) then
+        write (6,*) 'Number of AJ diagnostics defined: kajmax=',k
+        if(qcheck) then
+          do kk=1,k
             write (6,'(i4,'':'',a)') kk,trim(lname_j(kk))
-         end do
-      end if
+          end do
+        endif
+      endif
+
+      iden_reg(:) = iden_j(:)
+
+c set denominator to surface type fraction for qtys that are
+c not ratios
+      do k=1,kaj
+        if(k.eq.J_TYPE) cycle
+        if(iden_j(k).gt.0) cycle
+        iden_j(k)  = J_TYPE
+      enddo
 
       return
       end subroutine j_defs
@@ -1307,7 +1363,7 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
-      IJ_CLRSKY = k ! not accumlated
+      IJ_CLRSKY = k ! not accumulated
       lname_ij(k) = 'CLEAR SKY FRACTION'
       units_ij(k) = '%'
       name_ij(k) = 'clrsky'

@@ -28,9 +28,10 @@ c**** area weight for zig-zag diagnostics on budget grid
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg
 
 !@param KAJ number of accumulated zonal budget diagnostics
-      INTEGER, PARAMETER, public :: KAJ=81
+      INTEGER, PARAMETER, public :: KAJ=83
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
+     &     ,AJ_out
 
 !@var SQRTM moved from DIAG5A where it was a saved local array to this
 !@var place so its size could be allocated dynamically and still have
@@ -39,7 +40,8 @@ c**** area weight for zig-zag diagnostics on budget grid
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER, public :: NREG=24
 !@var AREG regional budget diagnostics
-      REAL*8, DIMENSION(NREG,KAJ), public :: AREG,AREG_loc
+      REAL*8, DIMENSION(NREG,KAJ), public :: AREG,AREG_loc,
+     &     AREG_out
 
 !@var TITREG,NAMREG title and names of regions for AREG diagnostics
       CHARACTER*4, public :: TITREG*80,NAMREG(2,23)
@@ -349,7 +351,8 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
      *     J_GAM,J_GAMM, J_GAMC,J_TRINCG, J_FTHERM, J_HSURF, J_HATM,
      *     J_PLAVIS,J_PLANIR,J_ALBVIS, J_ALBNIR, J_SRRVIS, J_SRRNIR,
-     *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP
+     *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP,
+     *     J_ALBP0,J_ALBG
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
       character(len=20), dimension(kaj), public :: name_j,units_j
 !@var LNAME_J Long names of zonal J diagnostics
@@ -360,10 +363,10 @@ C****      names, indices, units, idacc-numbers, etc.
       real*8, dimension(kaj), public :: scale_j
 !@var IA_J IDACC indexes for zonal J diagnostics
       integer, dimension(kaj), public :: ia_j
-!@var k_j_out number of directly printed out budget diags
-      integer, public :: k_j_out
 !@var FMT_J Format strings for zonal J diagnostics
       character(len=30), dimension(kaj), public :: fmt_j,fmt_reg
+!@var iden_j denominators for zonal J diagnostics
+      integer, dimension(kaj), public :: iden_j,iden_reg
 
       character(len=20), dimension(kaj), public :: name_reg
 
@@ -661,6 +664,23 @@ c derived/composite diagnostics
      &     (/ 'OCEAN   ','OCEANICE','EARTH   ',
      &        'LANDICE ','LAKE    ','LAKEICE ' /)
 
+!@param NTYPE_OUT number of output budgets pages
+      INTEGER, PARAMETER :: NTYPE_OUT=NTYPE+3  ! to include comp/regio
+C**** Expanded version of surfaces (including composites)
+!@var TERRAIN name of surface type
+      CHARACTER*16, DIMENSION(NTYPE_OUT), PARAMETER :: TERRAIN = (/
+     *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
+     *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
+     *     '     (LAKES)'/)
+C**** weighting functions for surface types
+      REAL*8, DIMENSION(NTYPE_OUT,NTYPE), PARAMETER ::
+     *     WTJ_COMP=RESHAPE(          ! separate types + composites
+     *     (/1.,1.,0.,1.,0.,0.,0.,0.,0., 1.,0.,1.,1.,0.,0.,0.,0.,0.,
+     *       1.,0.,0.,0.,1.,0.,0.,0.,0., 1.,0.,0.,0.,0.,1.,0.,0.,0.,
+     *       1.,0.,0.,0.,0.,0.,1.,0.,1., 1.,0.,0.,0.,0.,0.,0.,1.,1./),
+     *     (/NTYPE_OUT,NTYPE/) )
+      public :: ntype_out,terrain,wtj_comp
+
 c idacc-indices of various processes
       integer, parameter, public ::
      &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
@@ -744,7 +764,7 @@ c the new i/o system
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc
      *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
-      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AJK
+      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AJK,AJ_OUT,ntype_out
       use diag_zonal, only : get_alloc_bounds
 
       IMPLICIT NONE
@@ -803,6 +823,7 @@ c allocate master copies of budget- and JK-arrays on root
      &           ASJL(JM_BUDG,LM_REQ,KASJL),
      &           AJK(JMLAT,LM,KAJK),
      &           STAT = IER)
+        allocate(aj_out(jm_budg,kaj,ntype_out))
       endif
 
       RETURN

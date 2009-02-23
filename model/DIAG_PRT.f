@@ -51,32 +51,6 @@ C****
 
 !------------------------------------------------
 
-      MODULE BDJ
-!@sum  stores information for outputting composite zonal diagnostics
-!@auth M. Kelley
-      IMPLICIT NONE
-      SAVE
-!@param nj_out number of j-format output fields = 11
-      integer, parameter :: nj_out=11
-!@var units string containing output field units
-      CHARACTER(LEN=50), DIMENSION(nj_out) :: UNITS_J_O
-!@var lname string describing output field
-      CHARACTER(LEN=50), DIMENSION(nj_out) :: LNAME_J_O
-!@var sname string referencing output field in self-desc. output file
-      CHARACTER(LEN=30), DIMENSION(nj_out) :: NAME_J_O
-!@var stitle short title for print out
-      CHARACTER(LEN=16), DIMENSION(nj_out) :: STITLE_J_O
-!@var INUM_J_O,IDEN_J_O numerator and denominator for calculated J diags
-      INTEGER, DIMENSION(nj_out) :: INUM_J_O, IDEN_J_O
-!@var SCALE_J_O scale for calculated J diags
-      REAL*8, DIMENSION(nj_out) :: SCALE_J_O
-!@var FMT_J_O Format strings for zonal J diagnostics
-      character(len=30), dimension(nj_out), public :: fmt_j_o,fmt_reg_o
-
-      END MODULE BDJ
-
-!------------------------------------------------
-
       MODULE BDjkjl
 !@sum  stores information for outputting lat-sigma/pressure diagnostics
 !@auth M. Kelley
@@ -299,7 +273,7 @@ C****
       CASE ('J_totcld')           ; KEYNR( 2,keyct) = NINT(FGLOB)
       CASE ('J_snow_cover')       ; KEYNR( 5,keyct) = NINT(FNH)
       CASE ('J_ocn_lak_ice_frac') ; KEYNR( 6,keyct) = NINT(FNH)
-      CASE ('plan_alb')           ; KEYNR( 7,keyct) = NINT(10.*fglob)
+      CASE ('J_plan_alb')         ; KEYNR( 7,keyct) = NINT(10.*fglob)
       CASE ('J_sw_abs_atm')       ; KEYNR( 8,keyct) = NINT(fglob)
       CASE ('J_net_rad_p0')       ; KEYNR( 9,keyct) = NINT(fglob)
       CASE ('J_nt_ht_z0')         ; KEYNR(10,keyct) = NINT(fglob)
@@ -697,6 +671,7 @@ c     write(0,*) 'SCM no diags   print_diags'
 
       call certain_wind_averages
 
+      IF (KDIAG(1).LT.9) CALL DIAGJ_PREP
       IF (KDIAG(1).LT.9) CALL DIAGJ
       IF (KDIAG(2).LT.9) CALL DIAGJK
       IF (KDIAG(10).LT.9) CALL DIAGIL
@@ -736,202 +711,40 @@ c     write(0,*) 'SCM no diags   print_diags'
       return
       end subroutine print_diags
 
-
-      SUBROUTINE J_TITLES
-!@sum  J_TITLES calculated zonal diagnostics
-!@auth M. Kelley/G. Schmidt
-!@ver  1.0
-      USE DIAG_COM, only : j_srincp0,j_srnfp0,j_plavis,j_planir,j_srnfg
-     *     ,j_srincg,j_albvis,j_albnir,j_srrvis,j_srrnir,j_sravis
-     *     ,j_sranir,j_clddep,j_pcldmc
-      USE BDJ
-      IMPLICIT NONE
-      character(len=30), parameter ::
-     &     fmt907='(A16,3F7.2,2X,24I4)'
-     &    ,fmt912='(A16,3F7.3,2X,24I4)'
-     &    ,fmt909='(A16,1X,23I5)'
-      INTEGER :: K
-      fmt_j_o = fmt912
-      fmt_reg_o = fmt909
-C**** These information are for J zonal budget calulated diagnostics
-C**** Note that we assume that they are all ratios of two existing
-C**** records.
-c
-      k = 0
-c
-      k = k + 1
-      name_j_o(k) = 'plan_alb'
-      lname_j_o(k) = ' TOTAL PLANETARY ALBEDO'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' PLANETARY ALBDO'
-      inum_j_o(k)  = J_SRNFP0
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'plan_alb_vis'
-      lname_j_o(k) = 'PLANETARY ALBEDO IN VISUAL'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' PLAN ALB VISUAL'
-      inum_j_o(k)  = J_PLAVIS
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'plan_alb_nir'
-      lname_j_o(k) = 'PLANETARY ALBEDO IN NEAR IR'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' PLAN ALB NEARIR'
-      inum_j_o(k)  = J_PLANIR
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'surf_alb'
-      lname_j_o(k) = 'GROUND ALBEDO'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' SURFACE G ALBDO'
-      inum_j_o(k)  = J_SRNFG
-      iden_j_o(k)  = J_SRINCG
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'surf_alb_vis'
-      lname_j_o(k) = 'GROUND ALBEDO IN VISUAL'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' SURF ALB VISUAL'
-      inum_j_o(k)  = J_ALBVIS
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'surf_alb_nir'
-      lname_j_o(k) = 'GROUND ALBEDO IN NEAR IR'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' SURF ALB NEARIR'
-      inum_j_o(k)  = J_ALBNIR
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'atm_alb_vis'
-      lname_j_o(k) = 'ATMOSPHERIC ALBEDO IN VISUAL'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= '0ATMO ALB VISUAL'
-      inum_j_o(k)  = J_SRRVIS
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'atm_alb_nir'
-      lname_j_o(k) = 'ATMOSPHERIC ALBEDO IN NEAR IR'
-      units_j_o(k) = '%'
-      stitle_j_o(k)= ' ATMO ALB NEARIR'
-      inum_j_o(k)  = J_SRRNIR
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'atm_abs_vis'
-      lname_j_o(k) = 'ATMOSPHERIC ABSORPTION IN VISUAL'
-      units_j_o(k) = 'W/m**2'
-      stitle_j_o(k)= ' ATMO ABS VISUAL'
-      inum_j_o(k)  = J_SRAVIS
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'atm_abs_nir'
-      lname_j_o(k) = 'ATMOSPHERIC ABSORPTION IN NEAR IR'
-      units_j_o(k) = 'W/m**2'
-      stitle_j_o(k)= ' ATMO ABS NEARIR'
-      inum_j_o(k)  = J_SRANIR
-      iden_j_o(k)  = J_SRINCP0
-      scale_j_o(k) = 100.
-c
-      k = k + 1
-      name_j_o(k) = 'mc_clddp'
-      lname_j_o(k) = 'MOIST CONVECTIVE CLOUD DEPTH'
-      units_j_o(k) = 'mb'
-      stitle_j_o(k)= ' MC CLD DPTH(MB)'
-      inum_j_o(k)  = J_CLDDEP
-      iden_j_o(k)  = J_PCLDMC
-      scale_j_o(k) = 1.
-      fmt_j_o(k) = fmt907
-
-      RETURN
-      END SUBROUTINE J_TITLES
-
       SUBROUTINE DIAGJ
 !@sum DIAGJ produces area weighted statistics of zonal budget diags
 !@+   based on settings and quantities found in j_defs
-!@auth G. Schmidt/R. Reto/G. Russell
+!@auth G. Schmidt/R. Ruedy/G. Russell
       use filemanager
       USE CONSTANT, only : teeny
       USE DOMAIN_DECOMP_1D, only : GRID
-      USE MODEL_COM, only : im,jm,lm,fim,
-     &     dtsrc,idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
-     &     jyear,jyear0,ls1,itime,itime0,nday,xlabel,lrunid,ntype
-      USE GEOM, only : dxyp,lat,lat_dg
-      USE DIAG_COM, only :
-     &     QDIAG,acc_period,aj,areg,jreg,kdiag,namreg,nreg,kaj,ia_j,
-     &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
-     *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
-     *     j_prcpmc,j_hz0,j_hmelt,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
-     *     j_hz2,j_type,j_ervr,scale_j,stitle_j,lname_j,name_j,units_j,
-     *     k_j_out,ia_srf,ia_src,ia_rad,j_h2och4,
-     *     ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt,
-     &     sarea=>sarea_reg,fmt_j,fmt_reg
-      USE BDJ
+      USE MODEL_COM, only : im,jm,fim,
+     &     idacc,jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,itime,itime0,nday,xlabel,lrunid,ntype
+      USE GEOM, only : dxyp,lat_dg
+      USE DIAG_COM, only : aj=>aj_out,areg=>areg_out,
+     &     ntype_out,nreg,kaj,terrain,
+     &     QDIAG,acc_period,kdiag,namreg,ia_j,iden_j,iden_reg,
+     *     scale_j,stitle_j,lname_j,name_j,units_j,
+     *     fmt_j,fmt_reg
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM), SAVE :: S1
-      REAL*8, DIMENSION(JM) :: FLAT
-      REAL*8, DIMENSION(NTYPE,JM) :: SPTYPE
-      REAL*8, DIMENSION(2) :: FHEM
-      INTEGER, DIMENSION(JM) :: MLAT
-      LOGICAL QALB,qIbp
-      INTEGER, PARAMETER :: INC=1+(JM-1)/24,JMHALF=JM/2
-!@param NTYPE_OUT number of output budgets pages
-      INTEGER, PARAMETER :: NTYPE_OUT=NTYPE+3  ! to include comp/regio
-C**** Expanded version of surfaces (including composites)
-!@var TERRAIN name of surface type
-      CHARACTER*16, DIMENSION(0:NTYPE_OUT), PARAMETER :: TERRAIN = (/
-     *     '    (GLOBAL)','(OPEN OCEAN)',' (OCEAN ICE)','     (OCEAN)',
-     *     '      (LAND)','  (LAND ICE)',' (OPEN LAKE)','  (LAKE ICE)',
-     *     '     (LAKES)','   (REGIONS)'/)
-!@var Iterr terrain index chosen by kdiag(1) if >1 and <8
-      integer, dimension(2:7) :: Iterr = (/0, 1,2, 4,5, 8/)
+      LOGICAL qIbp
+      INTEGER, PARAMETER :: INC=1+(JM-1)/24
 C**** Arrays needed for full output
       REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
       CHARACTER*16, DIMENSION(KAJ) :: TITLEO
       CHARACTER*50, DIMENSION(KAJ) :: LNAMEO
       CHARACTER*30, DIMENSION(KAJ) :: SNAMEO
       CHARACTER*50, DIMENSION(KAJ) :: UNITSO
-C**** weighting functions for surface types
-      REAL*8, DIMENSION(0:NTYPE_OUT-1,NTYPE), PARAMETER ::
-     *     WT=RESHAPE(          ! separate types + composites
-     *     (/1.,1.,0.,1.,0.,0.,0.,0.,0., 1.,0.,1.,1.,0.,0.,0.,0.,0.,
-     *       1.,0.,0.,0.,1.,0.,0.,0.,0., 1.,0.,0.,0.,0.,1.,0.,0.,0.,
-     *       1.,0.,0.,0.,0.,0.,1.,0.,1., 1.,0.,0.,0.,0.,0.,0.,1.,1./),
-     *     (/NTYPE_OUT,NTYPE/) )
-!@var DERPOS character array that determines where derived arrays go
-!@var NDERN how many of the derived arrays go in
-!@var NDMAX max number of derived array place holders
-      INTEGER, PARAMETER :: NDMAX=2
-      INTEGER, DIMENSION(NDMAX), PARAMETER :: ! currently only 2 points
-     *     NDERN = (/10, 1/)    ! 10 rad/alb diags and 1 cld diag
-      CHARACTER*20, DIMENSION(NDMAX), PARAMETER ::
-     *     DERPOS = (/'inc_sw','totcld'/)
 
-      REAL*8 :: A1BYA2,A2BYA1,BYA1,BYIACC,FGLOB,GSUM,GSUM2,GWT
-     *     ,HSUM,HSUM2(2),HWT(2),QDEN,QJ,QNUM,DAYS,WTX
+      REAL*8 :: BYIACC,FGLOB,GSUM,GWT,FHEM(2),HWT(2),DAYS
 
-      REAL*8 :: HSUMJ(JM),HWTJ(JM),HSUMJ2(JM)
+      REAL*8, DIMENSION(JM) :: S1,FLAT,HSUMJ,HWTJ
+      INTEGER, DIMENSION(JM) :: MLAT
 
-      INTEGER :: I,IACC,J,JH,JR,K,KA,M,MD,N,ND,NN,IT,NDER,KDER
-     *     ,iu_Ibp
+      INTEGER :: IACC,J,JR,K,M,N,IT,iu_Ibp,n_out
       character*80 line
-      logical, save :: Qbp(0:NTYPE_OUT)
+      logical, save :: Qbp(NTYPE_OUT+1) ! +1 for regions
       INTEGER, SAVE :: IFIRST = 1
 
       CHARACTER*200    :: fmt903
@@ -943,21 +756,15 @@ C**** weighting functions for surface types
 
       IF (IFIRST.EQ.1) THEN
         IFIRST=0
-C**** INITIALIZE CERTAIN QUANTITIES
-        call j_titles
-        DO J=1,JM
-          S1(J)=IM
-        END DO
-        S1(1)=1.
-        S1(JM)=1.
         inquire(file='Ibp',exist=qIbp)
         Qbp=.true.
         if(.not.qIbp) then
           call openunit('Ibp',iu_Ibp,.false.,.false.)
           write (iu_Ibp,'(a)') 'List of budget-pages'
-          do m = 0,ntype_out
+          do m = 1,ntype_out
             write (iu_Ibp,'(i3,1x,a)') m,terrain(m)
           end do
+            write (iu_Ibp,'(i3,1x,a)') ntype_out+1,'   (REGIONS)'
         else if(kdiag(1).gt.0) then
           Qbp=.false.
           call openunit('Ibp',iu_Ibp,.false.,.true.)
@@ -966,180 +773,92 @@ C**** INITIALIZE CERTAIN QUANTITIES
           read(line,'(i3)') m
           Qbp(m)=.true.
           go to 10
-
    20     continue
         end if
       END IF
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      IF (QDIAG)  ! excl. regions, but types dimensioned 0:ntype_out
+      IF (QDIAG)
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
      *     ,ntype_out,jm,lat_dg)
 
-C**** CALCULATE THE DERIVED QUANTTIES
-      BYA1=1./(IDACC(ia_srf)+teeny)
-      A2BYA1=FLOAT(IDACC(ia_rad))/FLOAT(IDACC(ia_src))
-      A1BYA2=IDACC(ia_src)/(IDACC(ia_rad)+teeny)
-      DO JR=1,23 ! only 23 will fit on a green sheet
-        AREG(JR,J_SRABS) =AREG(JR,J_SRNFP0)-AREG(JR,J_SRNFG)
-        AREG(JR,J_RNFP0) =AREG(JR,J_SRNFP0)+AREG(JR,J_TRNFP0)
-        AREG(JR,J_RNFP1) =AREG(JR,J_SRNFP1)+AREG(JR,J_TRNFP1)
-        AREG(JR,J_RHDT)  =A1BYA2*AREG(JR,J_SRNFG)*DTSRC+AREG(JR,J_TRHDT)
-        AREG(JR,J_PRCP)  =AREG(JR,J_PRCPSS)+AREG(JR,J_PRCPMC)
-        AREG(JR,J_HZ0)=AREG(JR,J_RHDT)+AREG(JR,J_SHDT)+
-     *                 AREG(JR,J_EVHDT)+AREG(JR,J_EPRCP)
-        AREG(JR,J_HZ1)=AREG(JR,J_HZ0)+AREG(JR,J_ERVR)
-        AREG(JR,J_HZ2)=AREG(JR,J_HZ1)-AREG(JR,J_ERUN)-AREG(JR,J_IMPLH)
-      END DO
-      DO J=1,JM
-      DO IT=1,NTYPE
-        SPTYPE(IT,J) =AJ(J,J_TYPE,IT)*BYA1
-        AJ(J,J_SRABS ,IT)=AJ(J,J_SRNFP0,IT)-AJ(J,J_SRNFG,IT)
-        AJ(J,J_RNFP0 ,IT)=AJ(J,J_SRNFP0,IT)+AJ(J,J_TRNFP0,IT)
-        AJ(J,J_RNFP1 ,IT)=AJ(J,J_SRNFP1,IT)+AJ(J,J_TRNFP1,IT)
-        AJ(J,J_RHDT  ,IT)=A1BYA2*AJ(J,J_SRNFG,IT)*DTSRC+AJ(J,J_TRHDT,IT)
-        AJ(J,J_PRCP  ,IT)=AJ(J,J_PRCPSS,IT)+AJ(J,J_PRCPMC,IT)
-        AJ(J,J_HZ0,IT)=AJ(J,J_RHDT,IT)+AJ(J,J_SHDT,IT)+
-     *                 AJ(J,J_EVHDT,IT)+AJ(J,J_EPRCP,IT)
-        AJ(J,J_HZ1,IT)=AJ(J,J_HZ0,IT)+AJ(J,J_ERVR,IT)
-        AJ(J,J_HZ2,IT)=AJ(J,J_HZ1,IT)-AJ(J,J_ERUN,IT)-AJ(J,J_IMPLH,IT)
-      END DO
-      END DO
+      S1(:)=1.
+      S1(1)=FIM
+      S1(JM)=FIM
+
       DAYS=(Itime-Itime0)/FLOAT(nday)
 C****
 C**** LOOP OVER SURFACE TYPES: 1 TO NTYPE
 C****
       IF (KDIAG(1).GT.7) GO TO 510
-      DO M=0,NTYPE_OUT-1
-      if(.not.Qbp(M)) cycle
-      WRITE (6,901) XLABEL
-      WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
-     *  JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+
+      DO M=1,NTYPE_OUT
+        if(.not.Qbp(M)) cycle
+        WRITE (6,901) XLABEL
+        WRITE (6,902) TERRAIN(M),JYEAR0,AMON0,JDATE0,JHOUR0,
+     *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
 #if (defined COMPILER_PGI)
-      write(6,*) "skipping some info due to PGI bugs :-("
+        write(6,*) "skipping some info due to PGI bugs :-("
 #else
-      write(6,fmt=fmt903) NINT(LAT_DG(JM:INC:-INC,1))
+        write(6,fmt=fmt903) NINT(LAT_DG(JM:INC:-INC,1))
 #endif
-      WRITE (6,905)
-      NDER=1
-      KDER=1
-      DO N=1,k_j_out
-      IACC=IDACC(IA_J(N))
-C**** set weighting for denominator (different only for J_TYPE)
-      MD=M
-      IF (name_j(N).eq.'J_surf_type_frac') MD=0
-C     print *, __LINE__, __FILE__, M
-      DO J=1,JM
-C**** Sum over types
-          QJ=0
-          WTX=0
-          DO IT=1,NTYPE
-            QJ =QJ +WT(M ,IT)*AJ(J,N,IT)
-            WTX=WTX+WT(MD,IT)*SPTYPE(IT,J)
+        WRITE (6,905)
+        n_out = 0
+        DO N=1,kaj
+          if(trim(stitle_j(n)).eq.'no output') cycle
+          n_out = n_out + 1
+          FLAT(:)=S1(:)*AJ(:,N,M)*SCALE_J(N)/IDACC(IA_J(N))
+          HSUMJ(:)=FLAT(:)*DXYP(:)
+          IF(IDEN_J(N).GT.0) THEN
+            HWTJ(:)=S1(:)*AJ(:,IDEN_J(N),M)/IDACC(IA_J(IDEN_J(N)))
+          ELSE
+            HWTJ(:)=1d0
+          ENDIF
+          FLAT(:)=FLAT(:)/(HWTJ(:)+teeny)
+          HWTJ(:)=HWTJ(:)*DXYP(:)
+          DO J=1,JM
+            MLAT(J)=NINTlimit(FLAT(J) )
           END DO
-          QJ=QJ*SCALE_J(N)
-          WTX=WTX*IACC
-          FLAT(J)=QJ/(WTX+teeny)
-          MLAT(J)=NINTlimit(FLAT(J) )
-          HSUMJ(J)=QJ*DXYP(J)*(FIM+1.-S1(J))
-          HWTJ(j)=WTX*DXYP(J)*(FIM+1.-S1(J))
-      END DO
-
-      CALL GLOBALSUM(GRID, HSUMJ, GSUM, FHEM)
-      CALL GLOBALSUM(GRID, HWTJ,  GWT,  HWT)
-
-      FHEM(:)=FHEM(:)/(HWT(:)+teeny)
-      FGLOB=GSUM/(GWT+teeny)
-      IF (M.EQ.0) CALL KEYDJ (name_j(N),FGLOB,FHEM(2))
-
+          CALL GLOBALSUM(GRID, HSUMJ, GSUM, FHEM)
+          CALL GLOBALSUM(GRID, HWTJ,  GWT,  HWT)
+          FHEM(:)=FHEM(:)/(HWT(:)+teeny)
+          FGLOB=GSUM/(GWT+teeny)
+          IF (M.EQ.1) CALL KEYDJ (name_j(N),FGLOB,FHEM(2))
 C**** Save BUDG for full output
-      BUDG(1:JM,N)=FLAT(1:JM)
-      BUDG(JM+1,N)=FHEM(1)
-      BUDG(JM+2,N)=FHEM(2)
-      BUDG(JM+3,N)=FGLOB
-      TITLEO(N)=STITLE_J(N)
-      LNAMEO(N)=LNAME_J(N)
-      SNAMEO(N)=NAME_J(N)
-      UNITSO(N)=UNITS_J(N)
-      IF(INDEX(FMT_J(N),'24I').GT.0) THEN ! integer format
-        WRITE (6,FMT_J(N)) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
-     *       (MLAT(J),J=JM,INC,-INC)
-      ELSE                                ! real format
-        WRITE (6,FMT_J(N)) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
-     *       (FLAT(J),J=JM,INC,-INC)
-      ENDIF
-      IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
-      if (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
-C**** CALCULATE AND PRINT DERIVED RATIOS
-      DO KA=KDER,KDER+NDERN(NDER)-1
-        NN=INUM_J_O(KA)
-        ND=IDEN_J_O(KA)
-C**** differentiate normal ratios from albedo calculations
-        QALB=(name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
-        DO J=1,JM
-C**** Sum over types
-            QNUM=0
-            QDEN=0
-            DO IT=1,NTYPE
-              QNUM=QNUM+WT(M,IT)*AJ(J,NN,IT)
-              QDEN=QDEN+WT(M,IT)*AJ(J,ND,IT)
-            END DO
-            QNUM=QNUM*SCALE_J_O(KA)
-            FLAT(J)=QNUM/(QDEN+teeny)
-            if (QALB) FLAT(J)=100.-FLAT(J)
-            MLAT(J)=FLAT(J)+.5
-            HSUMJ(J)=QNUM*DXYP(J)*(FIM+1.-S1(J))
-            HSUMJ2(J)=QDEN*DXYP(J)*(FIM+1.-S1(J))
-        END DO
-
-        CALL GLOBALSUM(GRID, HSUMJ,  GSUM,  FHEM)
-        CALL GLOBALSUM(GRID, HSUMJ2, GSUM2, HSUM2)
-
-        FHEM(:)=FHEM(:)/(HSUM2(:)+teeny)
-        FGLOB=GSUM/(GSUM2+teeny)
-        if (QALB) FHEM(:)=100.-FHEM(:)
-        if (QALB) FGLOB=100.-FGLOB
-        IF (M.EQ.0) CALL KEYDJ (name_j_o(ka)(1:20),FGLOB,FHEM(2))
-C**** Save BUDG for full output
-      BUDG(1:JM,KA+k_j_out)=FLAT(1:JM)
-      BUDG(JM+1,KA+k_j_out)=FHEM(1)
-      BUDG(JM+2,KA+k_j_out)=FHEM(2)
-      BUDG(JM+3,KA+k_j_out)=FGLOB
-      TITLEO(KA+k_j_out)=STITLE_J_O(KA)
-      LNAMEO(KA+k_j_out)=LNAME_J_O(KA)
-      SNAMEO(KA+k_j_out)=NAME_J_O(KA)
-      UNITSO(KA+k_j_out)=UNITS_J_O(KA)
-C****
-      IF(INDEX(FMT_J_O(KA),'24I').GT.0) THEN ! integer format
-        WRITE (6,FMT_J_O(KA)) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
-     *       (MLAT(J),J=JM,INC,-INC)
-      ELSE                                   ! real format
-        WRITE (6,FMT_J_O(KA)) STITLE_J_O(KA),FGLOB,FHEM(2),FHEM(1),
-     *       (FLAT(J),J=JM,INC,-INC)
-      ENDIF
-      END DO
-      KDER=KDER+NDERN(NDER)
-      NDER=NDER+1
-      END IF
-      END IF
-      END DO
+          BUDG(1:JM,N)=FLAT(1:JM)
+          BUDG(JM+1,N)=FHEM(1)
+          BUDG(JM+2,N)=FHEM(2)
+          BUDG(JM+3,N)=FGLOB
+          TITLEO(N)=STITLE_J(N)
+          LNAMEO(N)=LNAME_J(N)
+          SNAMEO(N)=NAME_J(N)
+          UNITSO(N)=UNITS_J(N)
+          IF(INDEX(FMT_J(N),'24I').GT.0) THEN ! integer format
+            WRITE (6,FMT_J(N)) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+     *           (MLAT(J),J=JM,INC,-INC)
+          ELSE                                ! real format
+            WRITE (6,FMT_J(N)) STITLE_J(N),FGLOB,FHEM(2),FHEM(1),
+     *           (FLAT(J),J=JM,INC,-INC)
+          ENDIF
+        END DO ! end loop over quantities
 #if (defined COMPILER_PGI)
-      write(6,*) "skipping some info due to PGI bugs :-("
+        write(6,*) "skipping some info due to PGI bugs :-("
 #else
-      write(6,fmt=(fmt903)) NINT(LAT_DG(JM:INC:-INC,1))
+        write(6,fmt=(fmt903)) NINT(LAT_DG(JM:INC:-INC,1))
 #endif
-      WRITE (6,905)
-      IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,k_j_out
-     *     +nj_out,TERRAIN(M),M+1) ! the +1 is because M starts at 0
-      END DO
+        WRITE (6,905)
+        IF (QDIAG) CALL POUT_J(TITLEO,SNAMEO,LNAMEO,UNITSO,BUDG,n_out,
+     *       TERRAIN(M),M)
+      END DO ! end loop over types
       if(qdiag) call close_j
-      IF (.not.Qbp(ntype_out)) RETURN
+
+      IF (.not.Qbp(ntype_out+1)) RETURN
+
   510 CONTINUE
 C****
 C**** PRODUCE REGIONAL STATISTICS
 C****
-      if (AM_I_ROOT()) then
-         WRITE (6,901) XLABEL
-         WRITE (6,902) '   (REGIONS)    ',
+      WRITE (6,901) XLABEL
+      WRITE (6,902) '   (REGIONS)    ',
      *        JYEAR0,AMON0,JDATE0,JHOUR0,
      *        JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
 #if (defined COMPILER_PGI)
@@ -1149,47 +868,27 @@ C****
      *        (/23*2/) )
 #endif
 c     write(6,fmt=fmt918) NAMREG(1,1:23)
-      END IF
-      NDER=1
-      KDER=1
-      DO N=1,k_j_out
-      BYIACC=1./(IDACC(IA_J(N))+teeny)
-C GISS-ESMF Exceptional Case
-      DO JR=1,23
-        FLAT(JR)=AREG(JR,N)*SCALE_J(N)*BYIACC/SAREA(JR)
-        MLAT(JR)=NINT(FLAT(JR))
-      END DO
-C**** select output format based on field name
-      IF(TRIM(FMT_REG(N)).NE.'not computed') THEN
-        IF(INDEX(FMT_REG(N),'23I').GT.0) THEN ! integer format
-          WRITE (6,FMT_REG(N)) STITLE_J(N),(MLAT(JR),JR=1,23)
-        ELSE                                  ! real format
-          WRITE (6,FMT_REG(N)) STITLE_J(N),(FLAT(JR),JR=1,23)
-        ENDIF
-      ENDIF
-      IF (NDER.le.NDMAX) THEN   ! needed to avoid out of bounds address
-      IF (name_j(N)(3:len_trim(name_j(N))).EQ.DERPOS(NDER)) THEN
-C**** CALCULATE AND PRINT DERIVED RATIOS FOR REGIONAL STATISTICS
-      DO KA=KDER,KDER+NDERN(NDER)-1
-        NN=INUM_J_O(KA)
-        ND=IDEN_J_O(KA)
-C**** differentiate normal ratios from albedo calculations
-        QALB=(name_j_o(ka).eq.'plan_alb'.or.name_j_o(ka).eq.'surf_alb')
+
+      DO N=1,kaj
+        if(trim(stitle_j(n)).eq.'no output') cycle
+        BYIACC=1./(IDACC(IA_J(N))+teeny)
         DO JR=1,23
-          FLAT(JR)=SCALE_J_O(KA)*AREG(JR,NN)/(AREG(JR,ND)+teeny)
-          IF (QALB) FLAT(JR)=100.-FLAT(JR)
-          MLAT(JR)=FLAT(JR)+.5
-        END DO
-        IF(INDEX(FMT_REG_O(KA),'23I').GT.0) THEN ! integer format
-          WRITE (6,FMT_REG_O(KA)) STITLE_J_O(KA),(MLAT(JR),JR=1,23)
-        ELSE                                     ! real format
-          WRITE (6,FMT_REG_O(KA)) STITLE_J_O(KA),(FLAT(JR),JR=1,23)
+          FLAT(JR)=AREG(JR,N)*SCALE_J(N)*BYIACC
+        ENDDO
+        IF(IDEN_REG(N).GT.0) THEN ! ratio
+          DO JR=1,23
+            FLAT(JR)=FLAT(JR)
+     &           *IDACC(IA_J(IDEN_REG(N)))/(AREG(JR,IDEN_REG(N))+TEENY)
+          ENDDO
         ENDIF
-      END DO
-      KDER=KDER+NDERN(NDER)
-      NDER=NDER+1
-      END IF
-      END IF
+C**** select output format based on field name
+        IF(TRIM(FMT_REG(N)).NE.'not computed') THEN
+          IF(INDEX(FMT_REG(N),'23I').GT.0) THEN ! integer format
+            WRITE (6,FMT_REG(N)) STITLE_J(N),(NINT(FLAT(JR)),JR=1,23)
+          ELSE                                  ! real format
+            WRITE (6,FMT_REG(N)) STITLE_J(N),(FLAT(JR),JR=1,23)
+          ENDIF
+        ENDIF
       END DO
 #if (defined COMPILER_PGI)
       write(6,*) "skipping some info due to PGI bugs :-("
@@ -1206,12 +905,6 @@ C****
      *  'Dif:',F7.2,' Days')
   903 FORMAT ('0',131('-')/20X,'G      NH     SH   ',24I4)
   905 FORMAT (1X,131('-'))
-  906 FORMAT (A16,3F7.2,2X,24F4.1)
-  907 FORMAT (A16,3F7.2,2X,24I4)
-  909 FORMAT (A16,1X,23I5)
-  910 FORMAT (A16,1X,23F5.1)
-  911 FORMAT (A16,3F7.3,2X,24F4.1)
-  912 FORMAT (A16,3F7.3,2X,24I4)
   918 FORMAT ('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))
       END SUBROUTINE DIAGJ
 
@@ -4124,7 +3817,6 @@ C**FREQUENCY BAND AVERAGE
       subroutine IJ_MAPk (k,smap,smapj,gm,igrid,jgrid,irange,
      &     name,lname,units)
 !@sum IJ_MAPk returns the map data and related terms for the k-th field
-!+    (l)name/units are set in DEFACC/IJ_TITLEX but may be altered here
       USE CONSTANT, only : grav,rgas,sday,twopi,sha,kapa,bygrav,tf,undef
      *     ,teeny
       USE MODEL_COM, only : im,jm,fim,jeq,byim,DTsrc,ptop,IDACC,
@@ -4351,7 +4043,6 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
      *     ,im,jm)
 
 C**** INITIALIZE CERTAIN QUANTITIES
-c      call ij_titlex
 C**** standard printout
       kmaplets = 57
       nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags +
