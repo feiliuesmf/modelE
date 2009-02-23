@@ -1281,6 +1281,12 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
+#ifdef CALCULATE_FLAMMABILITY
+      write(6,*) '...and calculating sfc veg flammability'
+#endif
+#ifdef ALTER_BIOMASS_BY_FIRE
+      write(6,*) '...and altering biomass burning srcs by flammability'
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
       write(6,*) '...and Dorothy Koch aerosols'
 #endif
