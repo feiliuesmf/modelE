@@ -2892,7 +2892,7 @@ C****
       USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
-     &  ia_ij,ia_src,tf_last,tf_day1,
+     &  ia_ij,ia_src,ia_inst,tf_last,tf_day1,
      *  ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv,
      *  ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean,
@@ -2915,7 +2915,7 @@ C****
       DO I=I_0,IMAXJ(J)
 
         k = ij_topo
-        aij(i,j,k) = zatmo(i,j)*bygrav
+        aij(i,j,k) = zatmo(i,j)*bygrav*idacc(ia_inst)
 
         k = ij_fland
         aij(i,j,k) = (fearth0(i,j)+flice(i,j))*idacc(ia_src)
@@ -2924,7 +2924,8 @@ C****
         aij(i,j,k) = aij(i,j,ij_trnfp0)+aij(i,j,ij_srnfp0)
 
         k = ij_grow
-        aij(i,j,k) = tsfrez(i,j,tf_last)-tsfrez(i,j,tf_day1)
+        aij(i,j,k) = (tsfrez(i,j,tf_last)-tsfrez(i,j,tf_day1))
+     &       *idacc(ia_inst)
 
         k = ij_rtse
         aij(i,j,k) = aij(i,j,ij_trsup) - aij(i,j,ij_trsdn)
@@ -2966,9 +2967,11 @@ C****
 
         k = ij_wsdir
         aij(i,j,k) = atan2(aij(i,j,ij_us)+teeny,aij(i,j,ij_vs)+teeny)
+     &       *idacc(ia_inst)
 
         k = ij_jetdir
         aij(i,j,k)=atan2(aij(i,j,ij_ujet)+teeny,aij(i,j,ij_vjet)+teeny)
+     &       *idacc(ia_inst)
 
         k = ij_clrsky
         aij(i,j,k) = idacc(ia_ij(ij_cldcv))-aij(i,j,ij_cldcv)
