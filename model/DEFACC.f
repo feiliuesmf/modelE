@@ -5352,6 +5352,7 @@ c
          lname_dd(k) = 'unused'
          units_dd(k) = 'unused'
          scale_dd(k) = 1.
+         denom_dd(k) = 0
       enddo
 c
       k=0
@@ -5586,6 +5587,7 @@ c
 c
       k=k+1
       IDD_LDC=k
+      denom_dd(k) = IDD_DCF
       name_dd(k)='LDC'
       units_dd(k)='0.1 L'
       scale_dd(k)=10.

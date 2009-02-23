@@ -637,6 +637,7 @@ c derived/composite diagnostics
       character(len=20), dimension(ndiuvar), public :: name_dd,units_dd
       character(len=80), dimension(ndiuvar), public :: lname_dd
       real*8, dimension(ndiuvar), public :: scale_dd
+      integer, dimension(ndiuvar), public :: denom_dd
 
 !@var IDD_xxx names for diurnal diagnostics
       INTEGER, public ::

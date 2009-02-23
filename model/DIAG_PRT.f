@@ -4784,7 +4784,7 @@ C****
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID,NDAY
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,ndiupt,
      &     adiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd,name_dd
-     *     ,ia_12hr
+     *     ,denom_dd,ia_12hr
       IMPLICIT NONE
 
       REAL*8, DIMENSION(HR_IN_DAY+1) :: XHOUR
@@ -4835,8 +4835,7 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
           IF (LNAME_DD(KQ).eq."unused") CYCLE
           KP = KP+1
-          SELECT CASE (NAME_DD(KQ))
-          CASE DEFAULT
+          IF(DENOM_DD(KQ).EQ.0) THEN
 C**** NORMAL QUANTITIES
             AVE=0.
             DO IH=1,HR_IN_DAY
@@ -4844,18 +4843,18 @@ C**** NORMAL QUANTITIES
               XHOUR(IH)=ADIURN(KQ,KR,IH)*SCALE_DD(KQ)*BYIDAC
             END DO
             XHOUR(HR_IN_DAY+1)=AVE/FLOAT(HR_IN_DAY)*SCALE_DD(KQ)*BYIDAC
+          ELSE
 C**** RATIO OF TWO QUANTITIES
-          CASE ('LDC')
             AVEN=0.
             AVED=0.
             DO IH=1,HR_IN_DAY
               AVEN=AVEN+ADIURN(KQ,KR,IH)
-              AVED=AVED+ADIURN(KQ-1,KR,IH)
+              AVED=AVED+ADIURN(DENOM_DD(KQ),KR,IH)
               XHOUR(IH)=ADIURN(KQ,KR,IH)*SCALE_DD(KQ)/
-     *             (ADIURN(KQ-1,KR,IH)+1D-20)
+     *             (ADIURN(DENOM_DD(KQ),KR,IH)+1D-20)
             END DO
             XHOUR(HR_IN_DAY+1)=AVEN*SCALE_DD(KQ)/(AVED+1D-20)
-          END SELECT
+          ENDIF
           DO IS=1,HR_IN_DAY+1
             FHOUR(IS,KP)=XHOUR(IS)
             MHOUR(IS)=NINT(XHOUR(IS))
@@ -4890,7 +4889,7 @@ C****
      &     idacc,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,acc_period,units_dd,hr_in_month
      *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
-     *     ,name_dd,ia_12hr,NDIUPT
+     *     ,name_dd,denom_dd,ia_12hr,NDIUPT
       IMPLICIT NONE
       REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
@@ -4941,19 +4940,18 @@ C**** KP packs the quantities for postprocessing (skipping unused)
           IF (MOD(KQ-1,5).eq.0) WRITE(6,*)
           IF (LNAME_DD(KQ).eq."unused") CYCLE
           KP = KP+1
-          SELECT CASE (NAME_DD(KQ))
-          CASE DEFAULT
+          IF(DENOM_DD(KQ).EQ.0) THEN
 C**** NORMAL QUANTITIES
             DO IH=1,HR_IN_MONTH
               XHOUR(IH)=HDIURN(KQ,KR,IH)*SCALE_DD(KQ)*(24./NDAY)
             END DO
+          ELSE
 C**** RATIO OF TWO QUANTITIES
-          CASE ('LDC')
             DO IH=1,HR_IN_MONTH
               XHOUR(IH)=HDIURN(KQ,KR,IH)*SCALE_DD(KQ)/
-     *             (HDIURN(KQ-1,KR,IH)+1D-20)
+     *             (HDIURN(DENOM_DD(KQ),KR,IH)+1D-20)
             END DO
-          END SELECT
+          ENDIF
           DO IS=1,HR_IN_MONTH
             FHOUR(IS,KP)=XHOUR(IS)
             MHOUR(IS)=NINT(XHOUR(IS))
