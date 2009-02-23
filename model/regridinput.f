@@ -379,18 +379,21 @@ c
       
       do j=grid%J_STRT,grid%J_STOP
          do i=grid%I_STRT,grid%I_STOP
-            if (idown(i,j) .eq. imt+1) then
+            if (idown(i,j) .eq. real(imt+1)) then
                idown(i,j) = idown(i+1,j) 
                if (grid%tile .eq. 1) kdown(i,j)=2
                if (grid%tile .eq. 2) kdown(i,j)=4
                if (grid%tile .eq. 3) kdown(i,j)=4
                if (grid%tile .eq. 4) kdown(i,j)=6
                if (grid%tile .eq. 5) kdown(i,j)=6  
-               if (grid%tile .eq. 6) kdown(i,j)=2              
-               write(*,300) "IMAX idown tile=",i,idown(i+1,j),
+               if (grid%tile .eq. 6) kdown(i,j)=2           
+               if (idown(i,j) .eq. 0.) then
+                  idown(i,j)=1.
+               endif
+               write(*,300) "IMAX idown tile=",i,idown(i,j),
      &              grid%tile,kdown(i,j)
  300           format(A,I3,F8.3,I3,F8.3)
-            elseif (idown(i,j) .eq. 0 .and. (
+            elseif (idown(i,j) .eq. 0. .and. (
      &              kdirec(i,j) .eq. 3 .or.
      &              kdirec(i,j) .eq. 4 .or. 
      &              kdirec(i,j) .eq. 5      )) then
@@ -401,19 +404,25 @@ c
                if (grid%tile .eq. 4) kdown(i,j)=3
                if (grid%tile .eq. 5) kdown(i,j)=3  
                if (grid%tile .eq. 6) kdown(i,j)=5       
-               write(*,300) "imin idown tile=",i,idown(i-1,j),
+               if (idown(i,j) .eq. real(imt+1)) then
+                  idown(i,j)=real(imt)
+               endif
+               write(*,300) "imin idown tile=",i,idown(i,j),
      &              grid%tile,kdown(i,j)
             endif
 
-            if (jdown(i,j) .eq. jmt+1) then
+            if (jdown(i,j) .eq. real(jmt+1)) then
                jdown(i,j) = jdown(i,j+1) 
                if (grid%tile .eq. 1) kdown(i,j)=3
                if (grid%tile .eq. 2) kdown(i,j)=3
                if (grid%tile .eq. 3) kdown(i,j)=5
                if (grid%tile .eq. 4) kdown(i,j)=5
                if (grid%tile .eq. 5) kdown(i,j)=1  
-               if (grid%tile .eq. 6) kdown(i,j)=1              
-               write(*,300) "JMAX jdown tile=",j,jdown(i,j+1),
+               if (grid%tile .eq. 6) kdown(i,j)=1        
+               if (jdown(i,j) .eq. 0.) then
+                  jdown(i,j)=1.
+               endif
+               write(*,300) "JMAX jdown tile=",j,jdown(i,j),
      &              grid%tile,kdown(i,j)
             elseif (jdown(i,j) .eq. 0 .and. (
      &              kdirec(i,j) .eq. 5 .or.
@@ -426,7 +435,10 @@ c
                if (grid%tile .eq. 4) kdown(i,j)=2
                if (grid%tile .eq. 5) kdown(i,j)=4  
                if (grid%tile .eq. 6) kdown(i,j)=4       
-               write(*,300) "jmin jdown tile=",j,jdown(i,j-1),
+               if (jdown(i,j) .eq. real(jms+1)) then
+                  jdown(i,j)=real(jmt)
+               endif
+               write(*,300) "jmin jdown tile=",j,jdown(i,j),
      &              grid%tile,kdown(i,j)
             endif
 
@@ -440,7 +452,6 @@ c     gather all river directions before writing to output file
       call pack_data(grid,idown,idown_glob)
       call pack_data(grid,jdown,jdown_glob)
       call pack_data(grid,kdown,kdown_glob)
-
       
       
       if (am_i_root()) then
@@ -449,17 +460,15 @@ c     gather all river directions before writing to output file
          jdown_g=jdown_glob
          kdown_g=kdown_glob
          
-         write(*,*) "kdown=",kdown_g
+c         write(*,*) "kdown=",kdown_g
          
 c     write(iu_RVRCS) titlei
          title="downstream idown, jdown ,kdown"
          open( iu_RVRCS, FILE=namecs,FORM='unformatted', 
      &        STATUS='unknown')
          write(iu_RVRCS) title,idown_g,jdown_g,kdown_g
-c     write(iu_RVRCS) title,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
-c     &        ,lon_rvr(1:nrvr)
          close(iu_RVRCS)
-         write(333,*) idown_g
+c         write(333,*) idown_g
       endif
       
 c     end output for Gary Russell's plotting program
