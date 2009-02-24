@@ -1195,7 +1195,7 @@ c        IF (SICE(L).lt.ssimin*MICE(L)) SICE(L)=0.
         TSIL(L) = Ti(HICE(L)/MICE(L),1d3*SICE(L)/MICE(L))
 c        if (debug) write(6,'(A,I4,2F11.8)') "siC",l,tsil(l),ssil(l)
 
-        if (TSIL(L).gt.0) print*,"TSIL>0",TSIL(L),HICE(L),MICE(L),
+        if(TSIL(L).gt.1d-10)print*,"TSIL>1d-10",TSIL(L),HICE(L),MICE(L),
      *       SICE(L),SSIL(L),HICE(L)/MICE(L),-shw*mu*1d3*SSIL(L)/MICE(L)
      $       , Ti(HICE(L)/MICE(L),1d3*SSIL(L)/MICE(L))
         call sys_flush(6)
