@@ -9773,7 +9773,7 @@ C**** at the start of any day
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc,jmon,nday
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, write_parallel
-     * ,AM_I_ROOT
+     * ,AM_I_ROOT, pack_data
 
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,
      &     lon_to_i,lat_to_j,lat2d
@@ -9821,8 +9821,9 @@ C**** at the start of any day
       INTEGER ie,iw,js,jn
 
 #ifdef ALTER_BIOMASS_BY_FIRE
+      real*8, dimension(IM,JM) :: bflam_glob
       real*8 :: zm,zmcount
-      integer :: ii
+      integer :: ii,jj,ix,i3
       character(len=300) :: out_line
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
@@ -10352,22 +10353,34 @@ c!OMSP
               if(base_flam(i,j)/=0.)then
                 trsource(i,j,ns,n)=trsource(i,j,ns,n)*
      &          flammability(i,j)/base_flam(i,j)
-              else
+              else ! no base flammability, find nearest neighbor
                 zm=0.d0; zmcount=0.d0
-                do ii=I_0, I_1  !EXCEPTIONAL CASE? 
-                  if(base_flam(ii,j) > 0.)then
-                    zm=zm+base_flam(ii,j)
-                    zmcount=zmcount+1.d0
-                  endif
-                enddo
+                call pack_data(grid,base_flam(:,:),bflam_glob(:,:))
+                if(am_i_root( )) then
+                  ix=0
+                  do while(zmcount == 0.)
+                    ix=ix+1
+                    if(ix>im)call stop_model('ix>im biomas/fire',255)
+                    do ii=i-ix,i+ix ; i3=ii; do jj=j-ix,j+ix
+                       if(jj>0.and.jj<=jm)then
+                         if(ii <= 0)i3=ii+im
+                         if(ii > im)i3=ii-im
+                         if(bflam_glob(i3,jj) > 0.)then
+                           zm=zm+bflam_glob(i3,jj)
+                           zmcount=zmcount+1.d0
+                         endif
+                       endif
+                    enddo                  ; enddo
+                  enddo
+                endif ! root
                 if(zmcount <= 0.)then
                   write(out_line,*)'zmcount for bburn src <=0 @IJ=',I,J
                   call write_parallel(trim(out_line),unit=6,crit=.true.)
-                  call stop_model('need better base_flam treatment',255) 
+                  call stop_model('problem with base_flam',255)
                 else
                   trsource(i,j,ns,n)=trsource(i,j,ns,n)*
      &            flammability(i,j)/(zm/zmcount)
-                end if ! zonal avg base flammability ?
+                end if ! found neighbor base flammability ?
               endif    ! have base flammability
              endif     ! enough info built up
             enddo      ! i
