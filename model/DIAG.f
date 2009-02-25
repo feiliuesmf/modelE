@@ -701,7 +701,7 @@ C****
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE GEOM, only : j_budg, j_0b, j_1b
+      USE GEOM, only : j_budg, j_0b, j_1b, imaxj
       USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg,wtbudg
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
       IMPLICIT NONE
@@ -734,7 +734,7 @@ C**** Calculate current value TOTAL
 C**** Calculate zonal sums
         TOTALJ(J_0B:J_1B)=0.
         DO J=J_0,J_1
-          DO I=I_0,I_1
+          DO I=I_0,IMAXJ(J) ! not I_1 b/c latlon wtbudg differs at poles
             TOTALJ(J_BUDG(I,J)) = TOTALJ(J_BUDG(I,J)) + TOTAL(I,J)
      &           *WTBUDG(I,J)
           END DO

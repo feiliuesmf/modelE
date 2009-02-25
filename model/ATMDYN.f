@@ -1743,7 +1743,8 @@ C**** then finding the drag and applying it to the reduced winds
         X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*VSDRAGL(L)/DPS
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
-        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X)
+c        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X) ! for a-grid only
+        ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) -u(i,j,l)*x
         DP=DPS*DXYV(J)
         ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
         DUT(I,J,L)=-X*U(I,J,L)*DP
@@ -1775,7 +1776,8 @@ C*
           do l = 1,lmax
             du = ang_mom(i,j)/sum_airm(i,j)
             DUT(I,J,L) = DUT(I,J,L) + du*dpl(l)
-            call inc_ajl(i,j,l,JL_DUDTSDRG,du)
+c            call inc_ajl(i,j,l,JL_DUDTSDRG,du) ! for a-grid only
+            ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) +du
             dke(i,j,l) = dke(i,j,l) + du*(u(i,j,l)+0.5*du)
             U(I,J,L)=U(I,J,L) + du
           end do

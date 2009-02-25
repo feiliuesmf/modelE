@@ -739,7 +739,7 @@ C**** Arrays needed for full output
 
       REAL*8 :: BYIACC,FGLOB,GSUM,GWT,FHEM(2),HWT(2),DAYS
 
-      REAL*8, DIMENSION(JM) :: S1,FLAT,HSUMJ,HWTJ
+      REAL*8, DIMENSION(JM) :: FLAT,HSUMJ,HWTJ
       INTEGER, DIMENSION(JM) :: MLAT
 
       INTEGER :: IACC,J,JR,K,M,N,IT,iu_Ibp,n_out
@@ -781,10 +781,6 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
      &     call open_j(trim(acc_period)//'.j'//XLABEL(1:LRUNID)
      *     ,ntype_out,jm,lat_dg)
 
-      S1(:)=1.
-      S1(1)=FIM
-      S1(JM)=FIM
-
       DAYS=(Itime-Itime0)/FLOAT(nday)
 C****
 C**** LOOP OVER SURFACE TYPES: 1 TO NTYPE
@@ -806,10 +802,10 @@ C****
         DO N=1,kaj
           if(trim(stitle_j(n)).eq.'no output') cycle
           n_out = n_out + 1
-          FLAT(:)=S1(:)*AJ(:,N,M)*SCALE_J(N)/IDACC(IA_J(N))
+          FLAT(:)=AJ(:,N,M)*SCALE_J(N)/IDACC(IA_J(N))
           HSUMJ(:)=FLAT(:)*DXYP(:)
           IF(IDEN_J(N).GT.0) THEN
-            HWTJ(:)=S1(:)*AJ(:,IDEN_J(N),M)/IDACC(IA_J(IDEN_J(N)))
+            HWTJ(:)=AJ(:,IDEN_J(N),M)/IDACC(IA_J(IDEN_J(N)))
           ELSE
             HWTJ(:)=1d0
           ENDIF
@@ -1340,7 +1336,7 @@ c Check the count
       IMPLICIT NONE
 
       REAL*8, DIMENSION(JM) ::
-     &     BYDAPO,COSBYPDA,COSBYPV,DXCOSV,ONESPO
+     &     BYDAPO,COSBYPDA,COSBYPV,DXCOSV
      &    ,DXYPPO,BYDASQR,BYDXYU,BYDXYKE
       REAL*8, DIMENSION(JM+LM) :: ONES
       REAL*8, DIMENSION(JM,LM) :: AX,BX,CX,DX,VX,EX
@@ -1402,16 +1398,13 @@ C**** INITIALIZE CERTAIN QUANTITIES
       ONES=1.
       DO 40 J=1,JM
       DXYPPO(J)=DXYP(J)
-      ONESPO(J)=1.
       BYDAPO(J)=BYDXYP(J)
       BYDASQR(J)=BYDXYP(J)*BYDXYP(J)
    40 CONTINUE
 
       DXYPPO(1)=DXYP(1)*FIM
-      ONESPO(1)=FIM
       BYDAPO(1)=BYDAPO(1)*BYIM
       DXYPPO(JM)=DXYP(JM)*FIM
-      ONESPO(JM)=FIM
       BYDAPO(JM)=BYDAPO(JM)*BYIM
 
       if(jgrid_u.eq.2) then
@@ -1437,7 +1430,7 @@ c        BYPV(J,1)=IDACC(ia_dga)/(APJ(J,2)+teeny)
          BYPV(:,L) = BYPV(:,1)
       ENDDO
       DO L=LS1,LM
-        BYP(:,L) = ONESPO(:)/PSFMPT
+        BYP(:,L) = 1D0/PSFMPT
         BYPV(:,L) = ONES(1:JM)*BYIM/PSFMPT
       ENDDO
 c      DO L=1,LM
@@ -1574,13 +1567,13 @@ C**** TEMPERATURE, HEIGHT, SPECIFIC AND RELATIVE HUMIDITY
       SCALES = scale_sjl(1)/idacc(ia_sjl(1))
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &     PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n),
-     *     ASJL(1,1,1),SCALES,ONESPO,ONES)
+     *     ASJL(1,1,1),SCALES,ONES,ONES)
       n = JK_HGHT
       SCALET = SCALE_JK(n)
       SCALES = scale_sjl(2)/idacc(ia_sjl(2))
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
      &  PLM,AJK(1,1,n),SCALET,ONES,ONES,KM,2,JGRID_JK(n),
-     *  ASJL(1,1,2),SCALES,ONESPO,ONES)
+     *  ASJL(1,1,2),SCALES,ONES,ONES)
       n = JK_Q
       SCALET = SCALE_JK(n)
       CALL JKMAP(LNAME_JK(n),SNAME_JK(n),UNITS_JK(n),POW_JK(n),
@@ -1707,7 +1700,7 @@ C**** STANDING EDDY, EDDY AND TOTAL KINETIC ENERGY
 C**** POTENTIAL TEMPERATURE, POTENTIAL VORTICITY
       DO 205 LR=1,LM_REQ
       DO 205 J=1,JM
-  205 ARQX(J,LR)=ASJL(J,LR,1)*BYIADA*ONESPO(J)+TF
+  205 ARQX(J,LR)=ASJL(J,LR,1)*BYIADA+TF
       N = JK_THETA
       SCALET = SCALE_JK(n)
       SCALES = P1000K
@@ -2209,7 +2202,7 @@ C**** CHANGE IN EAST WIND BY VERTICAL DIFFUSION
       end if
 C**** DU/DT BY SDRAG
       n = jl_dudtsdrg
-      SCALET = scale_jl(n)/idacc(ia_jl(n))
+      SCALET = byim*scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** TEMPERATURE: RATE OF CHANGE, ADVECTION, EDDY CONVERGENCE
@@ -2252,7 +2245,7 @@ C**** CHANGE IN TEMPERATURE BY DYNAMICS
       n = JL_DTDYN
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,PKM,KM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,PKM,KM,2,JGRID_JL(n))
   799 CONTINUE
 
 C****
@@ -2280,14 +2273,14 @@ C**** SOLAR AND THERMAL RADIATION HEATING
       ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),
-     *     ASJL(1,1,3),SCALES,ONESPO,BYDPS)
+     *     ASJL(1,1,3),SCALES,ONES,BYDPS)
       n = JL_TRCR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       SCALES = scale_sjl(4)/idacc(ia_sjl(4))
       ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),
-     *     ASJL(1,1,4),SCALES,ONESPO,BYDPS)
+     *     ASJL(1,1,4),SCALES,ONES,BYDPS)
       DO J=1,JM
         DO LR=1,LM_REQ
           ARQX(J,LR)=ASJL(J,LR,3)+ASJL(J,LR,4)
@@ -2302,34 +2295,34 @@ C**** SOLAR AND THERMAL RADIATION HEATING
       ax(1:jm,1:lm) = ax(1:jm,1:lm)*bypdsig(1:jm,1:lm)
       CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
      &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n),
-     &     ARQX,SCALES,ONESPO,BYDPS)
+     &     ARQX,SCALES,ONES,BYDPS)
 
 C**** TOTAL, SUPER SATURATION, CONVECTIVE CLOUD COVER, EFFECTIVE RH
       n = JL_TOTCLD
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_SSCLD
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_MCCLD
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_RHE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** WATER CLOUD COVER AND ICE CLOUD COVER
       n = JL_wcld
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = JL_icld
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** WATER AND ICE CLOUD  optical depth
       SCALET = 1000./PSFMPT
       DO L=1,LM
@@ -2370,7 +2363,7 @@ C**** TURBULENT KINETIC ENERGY
       n = JL_TRBKE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
-     &     PLM,AJL(1,1,n),SCALET,ONESPO,ONES,LM,2,JGRID_JL(n))
+     &     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** HEATING BY LARGE SCALE COND., MOIST CONVECTION AND TURBULENCE
       n = JL_SSHR
       SCALET = scale_jl(n)/idacc(ia_jl(n))
@@ -2499,7 +2492,6 @@ C**** AVAILABLE POTENTIAL ENERGY
       n = JL_APE
       SCALET = scale_jl(n)/idacc(ia_jl(n))
       ax(1:jm,1:lm) = ajl(1:jm,1:lm,n)*byp(1:jm,1:lm)
-      ax(1:jm:jm-1,1:lm) = ax(1:jm:jm-1,1:lm)*byim
       CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
      &      PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C****

@@ -1357,8 +1357,7 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       subroutine set_wtbudg()
 !@sum Precomputes area weights for zonal means on budget grid
 !auth Denis Gueyffier
-      USE MODEL_COM, only : byim
-      USE GEOM, only : j_budg, axyp
+      USE GEOM, only : j_budg, axyp, imaxj
       USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
@@ -1380,8 +1379,9 @@ c**** Compute area weights of zig-zag grid cells
          enddo
       enddo
 #else
-      wtbudg(:,:)=byim
-      write(6,*) "WTBUDG=byim"
+      do J=J_0,J_1
+        wtbudg(:,j)=1d0/imaxj(j)
+      enddo
 #endif
         
       RETURN
