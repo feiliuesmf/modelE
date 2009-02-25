@@ -1643,9 +1643,9 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         endif ! L > maxl
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-        pfactor=axyp(i,J)*AM(L,I,J)/y(nM,L)
+        pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
-        call soa_aerosolphase(L,changeL,bypfactor)
+        call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

@@ -459,9 +459,9 @@ call write_parallel(trim(out_line),crit=.true.)
 end subroutine soa_init
 
 
-subroutine soa_aerosolphase(L,changeL,bypfactor)
+subroutine soa_aerosolphase(III,JJJ,L,changeL,bypfactor)
 
-use TRACER_COM, only: n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,&
+use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,&
 #ifdef TRACERS_NITRATE
                       n_nh4,n_no3p,&
 #endif
@@ -478,7 +478,9 @@ real*8, intent(in)                       :: bypfactor
 real*8, dimension(LM,ntm), intent(inout) :: changeL
 !@var jl looping index
 integer                                  :: jl
-integer, intent(in)                      :: L
+integer, intent(in)                      :: III,JJJ,L
+!@var iterbackward logical that imposes the iterative solution direction
+logical                                  :: iterbackward
 !
 ! For correction of Kp due to composition
 !
@@ -495,19 +497,33 @@ integer                     :: imf,jmf,kmf
 !@+         going to be used). The allowed range is 0.3 < zcoef < 5.0
 real*8, dimension(soacomp)  :: xmf,zcoef
 !@var kp final value of partitioning coefficient after applying all relevant parameters to the reference case kpart_ref
-real*8,dimension(n_soa_i:n_soa_e) :: kp !!!!!!!!!!!!!!!!!!!!!! CONTINUE FROM HERE !!!!!!!!!!!!!!!!!!!!!!!!! the documentation
+real*8,dimension(n_soa_i:n_soa_e) :: kp
 ! Other SOA parameters
+!@var M0err maximum error requested by the iterative solution. THIS IS COMPUTER ARCHITECTURE DEPENDENT!
 real*8, parameter           :: M0err=1.d-10
+!@var M0 the total aerosol concentration. After the end of the iterations, this is the solution.
+!@var PCP the total aerosol concentration that cannot evaporate. The abbreviation comes from
+!@+       Primary Carbonaceous Particles but it can also contain inorganic species or non-volatile SOA
+!@var M0temp the M0 before an iterative solution is found
+!@var M0a lower limit of M0 during iteration
+!@var M0b upper limit of M0 during iteration
+!@var M0err_curr the M0 error for the current iteration, based on M0a, M0b, M0err and computer architecture
 real*8                      :: M0,PCP,M0temp,M0a,M0b,M0err_curr
-real*8, dimension(nsoa)     :: soamass,partfact
+!@var soamass the total concentration that can partition
+!@var partfact,partfact1,partfact2 help variable for the M0 calculation
+real*8, dimension(nsoa)     :: soamass,partfact,partfact1,partfact2
+!@var iternum counter for the number of iterations per box (not saved)
 integer                     :: i,iternum
-!modelE!character(len=11), parameter :: itermethod="chord" ! valid values are "bisectional" and "chord"
+!@var x1,x2,y1,y2,a,b iteration help parameter
 real*8                      :: x1,x2,y1,y2,a,b
 
+!@var SO4part set to true if partitioning can occur in sulfur-containing aerosols
 logical, parameter :: SO4part=.true.
 #ifdef TRACERS_NITRATE
+!@var NH4part set to true if partitioning can occur in nitrogen-containing aerosols
 logical, parameter :: NH4part=.true.
 #endif
+!@var SOAevap set to true if SOA can evaporate after condensation
 logical, parameter :: SOAevap=.true.
 
 !DO JL=1,LM
@@ -519,9 +535,16 @@ DO JL=L,L
 ! thus we apply changeL artificially (but not hardcoded)
 !
   do i=1,ntm
-    y0_ug(i)=(y(i,jl)+changeL(jl,i)*bypfactor*mass2vol(i))*molec2ug(i)
+!    y0_ug(i)=max(0.d0,(y(i,jl)-changeL(jl,i)*bypfactor*mass2vol(i))*molec2ug(i))
+!    y_ug(i)=y(i,jl)*molec2ug(i)
+    y0_ug(i)=trm(III,JJJ,L,i)*bypfactor*mass2vol(i)*molec2ug(i)
+    y_ug(i)=(trm(III,JJJ,L,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
   enddo
-  y_ug=y0_ug
+!  do i=1,nsoa
+!print*,issoa(i)-1,y(issoa(i)-1,jl),changeL(jl,issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1),y0_ug(issoa(i)-1)
+!print*,issoa(i),y(issoa(i),jl),changeL(jl,issoa(i))*bypfactor*mass2vol(issoa(i)),y0_ug(issoa(i))
+!  enddo
+!call stop_model('kostas',255)
 
 !
 ! Calculate the primary aerosol able to absorb semivolatile compounds
@@ -713,35 +736,59 @@ DO JL=L,L
 !
 ! Iteration - chord method
 !
-  M0=M0b
+!ktt  M0=M0b
+  M0=M0a
+  iterbackward=.false.!ktt
 11  continue ! Try with another M0
   if (iternum==0) then
     x2=M0
+    M0err_curr=max(tiny(x2),x2*M0err)!ktt
     x1=x2-M0err_curr
+  else if (iterbackward) then!ktt
+    x2=M0!ktt
+    M0err_curr=max(tiny(x2),x2*M0err)!ktt
+    x1=x2-M0err_curr!ktt
   else
     x1=M0
+    M0err_curr=max(tiny(x1),x1*M0err)!ktt
     x2=x1+M0err_curr
   endif
   y1=PCP-x1
   y2=PCP-x2
-  if(.not.SOAevap) then
-    do i=1,nsoa
-      y1=y1+y_ug(issoa(i))
-      y2=y2+y_ug(issoa(i))
-    enddo
-  endif
+!ktt  if(.not.SOAevap) then
+!ktt    do i=1,nsoa
+!ktt      y1=y1+y_ug(issoa(i))
+!ktt      y2=y2+y_ug(issoa(i))
+!ktt    enddo
+!ktt  endif
   do i=1,nsoa
-    partfact(i)=kp(issoa(i))*x2/(1.d0+kp(issoa(i))*x2)
-    y2=y2+soamass(i)*partfact(i)
-    partfact(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)
-    y1=y1+soamass(i)*partfact(i)
+    partfact2(i)=kp(issoa(i))*x2/(1.d0+kp(issoa(i))*x2)!ktt
+    y2=y2+soamass(i)*partfact2(i)!ktt
+    partfact1(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)!ktt
+    y1=y1+soamass(i)*partfact1(i)!ktt
   enddo
-  iternum=iternum+1
-!  if(abs(y1).lt.M0err_curr/2.d0)goto 20
-  if(abs(y1).lt.M0err)goto 20
+  if(abs(y1).lt.M0err) then!ktt
+    if (abs(y2) < abs(y1)) then!ktt
+      partfact(:)=partfact2(:)!ktt
+      M0=x2!ktt
+    else!ktt
+      partfact(:)=partfact1(:)!ktt
+      M0=x1!ktt
+    endif!ktt
+    goto 20!ktt
+  endif!ktt
+  if(abs(y2).lt.M0err) then!ktt
+    partfact(:)=partfact2(:)!ktt
+    M0=x2!ktt
+    goto 20!ktt
+  endif!ktt
+!ktt  iternum=iternum+1
+!ktt!  if(abs(y1).lt.M0err_curr/2.d0)goto 20
+!ktt  if(abs(y1).lt.M0err)goto 20
 !
 ! Stop iteration after 100 iterations (no solution found)
 !
+  iternum=iternum+1!ktt
   if(iternum.ge.100) goto 30
 !
 ! If -M0err/2<M0temp<M0err/2, M0 is the solution (goto 20)
@@ -751,17 +798,32 @@ DO JL=L,L
   b=y1-a*x1
   M0=-b/a
   if (((iternum==1).and.(M0==x2)).or.((iternum>1).and.(M0==x1))) goto 20
-  if (M0.lt.0.d0) then
-    write(out_line,*)'WARNING: M0 set to zero (was ',M0,' after ',iternum,' iterations)'
-    call write_parallel(trim(out_line),crit=.true.)
-    M0=0.d0
-  endif
+!ktt  if (M0.lt.0.d0) then
+!ktt    write(out_line,*)'WARNING: M0 set to zero (was ',M0,' after ',iternum,' iterations)'
+!ktt    call write_parallel(trim(out_line),crit=.true.)
+!ktt    M0=0.d0
+!ktt  endif
+  if (M0<M0a .or. M0>M0b) then!ktt
+    iterbackward=.true.!ktt
+    M0=M0b!ktt
+  endif!ktt
   goto 11
 !
 ! No solution found, aerosol phase set to previous values, chemistry still applies to gas-phase species
 !
 30 continue
   write(*,"('WARNING: Too many iteration steps. SOA forced to the previous values. M0=',e,' PCP=',e)") M0,PCP
+!!ktdebug start
+!  do imf=1,101
+!  x1=M0a+float((imf-1)/100)*(M0b-M0a)
+!  do i=1,nsoa
+!    partfact1(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)!ktt
+!    y1=y1+soamass(i)*partfact1(i)!ktt
+!  enddo
+!  print*,imf,x1,y1,M0a,M0b,M0err_curr
+!  enddo
+!  call stop_model('kostas debugging',255)
+!!ktdebug stop
   goto 60
 !
 ! Found solution for M0
@@ -769,7 +831,7 @@ DO JL=L,L
 20 continue
   if (M0.ne.0.d0) then
     do i=1,nsoa
-      partfact(i)=max(0.d0,partfact(i))
+!ktt      partfact(i)=max(0.d0,partfact(i))
       if(SOAevap) then
         y_ug(issoa(i))=soamass(i)*partfact(i)             ! Calculate new aerosol-phase concentration
         y_ug(issoa(i)-1)=y_ug(issoa(i))/(kp(issoa(i))*M0) ! Calculate new gas-phase concentration
@@ -785,9 +847,11 @@ DO JL=L,L
 ! Save results to changeL (kg)
 !
   do i=1,nsoa
-    changeL(jl,issoa(i)-1)=changeL(jl,issoa(i)-1)+(y_ug(issoa(i)-1)-y0_ug(issoa(i)-1))/&
+!kt    changeL(jl,issoa(i)-1)=changeL(jl,issoa(i)-1)+(y_ug(issoa(i)-1)-y0_ug(issoa(i)-1))/&
+    changeL(jl,issoa(i)-1)=(y_ug(issoa(i)-1)-y0_ug(issoa(i)-1))/&
                            (molec2ug(issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1))
-    changeL(jl,issoa(i))=changeL(jl,issoa(i))+(y_ug(issoa(i))-y0_ug(issoa(i)))/&
+!kt    changeL(jl,issoa(i))=changeL(jl,issoa(i))+(y_ug(issoa(i))-y0_ug(issoa(i)))/&
+    changeL(jl,issoa(i))=(y_ug(issoa(i))-y0_ug(issoa(i)))/&
                          (molec2ug(issoa(i))*bypfactor*mass2vol(issoa(i)))
   enddo
 
@@ -799,19 +863,14 @@ end subroutine soa_aerosolphase
 real*8 function KpCALC(dH,Ksc,temp,Tsc)
 !-------------------------------------------------------------------------------
 !KpCALC calculates the temperature dependence of the partitioning coefficients
-!      interface
-!      ---------
-!      call KpCALC(dH,Ksc,temp)
-!        where: dH is the enthalpy of vaporization of the selected species, in KJ/mol
-!               Ksc is the partitioning coefficient of the selected species at temperature Tsc
-!               temp is the temperature in current box
-!      reference
-!      ---------
-!      Chung and Seinfeld, JGR, 2002
 !-------------------------------------------------------------------------------
 use CONSTANT, only: gasc
 implicit none
+!@var dH enthalpy of vaporization
 real*8, intent(in):: dH         ! KJ/mol
+!@var Ksc reference partitioning coefficient (from champber experiments at temperature Tsc)
+!@var temp temperature that the partitioning coefficient will be calculated
+!@var Tsc reference temperature (from champber experiments with partitioning coefficient Ksc)
 real*8, intent(in):: Ksc,temp,Tsc
 
 KpCALC=Ksc*(temp/Tsc)*exp(dH*1.d3/gasc*(1.d0/temp-1.d0/Tsc))

@@ -3930,13 +3930,13 @@ C**** This needs to be 'hand coded' depending on circumstances
 
 #ifdef TRACERS_AEROSOLS_SOA
       case ('isopp1g','isopp1a','isopp2g','isopp2a')
-c put in chemical production
+c chemical production
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' chemical source'
-        sname_ijts(k) = trim(trname(n))//'_chemical_source'
+        lname_ijts(k) = trim(trname(n))//' Chemistry'
+        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -9135,6 +9135,18 @@ c**** earth
           end do; end do; end do
 #endif
 
+#ifdef TRACERS_AEROSOLS_SOA
+        case('isopp1g','isopp1a','isopp2g','isopp2a')
+          select case(PI_run)
+          case(1)     ; ICfactor=PIratio_other
+          case default; ICfactor=1.d0
+          end select
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+            trm(i,j,l,n) =
+     &      am(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
+          end do; end do; end do
+#endif  /* TRACERS_AEROSOLS_SOA */
+
 #ifdef TRACERS_GASEXCH_ocean_CO2
         case ('CO2n')
 !#ifdef TRACERS_GASEXCH_CO2_Igor /* actually should use get_param by default*/
@@ -9292,7 +9304,8 @@ c read in DMS source
       call openunit('DMS_SEA',iudms,.true.,.true.)
         DMSinput(:,:,:)= 0.d0
        do mm=1,12
-       call readt_parallel(grid,iudms,title,DMSinput(:,:,mm),0)
+       call readt_parallel(grid,iudms,nameunit(iudms),
+     *                     DMSinput(:,:,mm),0)
        end do
        call closeunit(iudms)
       else  ! AEROCOM DMS
@@ -9467,7 +9480,7 @@ c Terpenes
         OCT_src(:,:,:)=0.d0
       call openunit('TERPENE',iuc,.true.,.true.)
        do mm=1,12
-       call readt_parallel(grid,iuc,title,OCT_src(:,:,mm),0)
+       call readt_parallel(grid,iuc,nameunit(iuc),OCT_src(:,:,mm),0)
        end do
        call closeunit(iuc)
 c units are mg Terpene/m2/month
