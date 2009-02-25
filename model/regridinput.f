@@ -91,11 +91,13 @@ c*
       real*8 :: eps, meps, norm, lon, lat, dlon_dg, dlat_dg
       real*8 :: x,y,VX,VY,slope,slope_diag,Xhalf,Yhalf,Xone,Yone
       integer iu_RVR, iu_RVRCS
-      integer :: nrvr, i,j, nocomp, quadrant,jeq,nij,ierr
+      integer :: nrvr, i,j, nocomp, quadrant,jeq,nij,ierr,
+     &     i0,i1,j0,j1,i0h,i1h,j0h,j1h,ii,jj,ti,imj,jmi,nijt
       integer, allocatable, dimension(:,:) :: kdirec
       real*8, allocatable, dimension(:,:) :: idown,jdown,kdown
       integer*4, dimension(imt,jmt,6) :: idown_g,jdown_g,kdown_g
-      real*8, dimension(imt,jmt,6) :: idown_glob,jdown_glob,kdown_glob
+      real*8,dimension(imt,jmt,6) :: idown_glob,jdown_glob,kdown_glob
+     &     ,lon_glob,lat_glob
 
       allocate(kdirec(grid%I_STRT:grid%I_STOP,
      &     grid%J_STRT:grid%J_STOP))
@@ -198,12 +200,38 @@ c     in the latlon coordinate system
       call halo_update(grid,ucs_loc)
       call halo_update(grid,vcs_loc)
 
-      do j=grid%J_STRT,grid%J_STOP
-         do i=grid%I_STRT,grid%I_STOP
+      ti=grid%tile
+
+      i0=grid%i_strt
+      i0h=grid%i_strt_halo
+      j0=grid%j_strt
+      j0h=grid%j_strt_halo
+
+      i1=grid%i_stop
+      i1h=grid%i_stop_halo
+      j1=grid%j_stop
+      j1h=grid%j_stop_halo
+
+      write(*,400) "i0h i0 i1 i1h j0h j0 j1 j1h",i0h,i0,i1,i1h,
+     &     j0h,j0,j1,j1h
+ 400   format (A,8(I3))
+
+c*    gather and broadcast lat/lon coordinates of CS cell centers
+c*    for plotting purpose only
+      call pack_data(grid,lon2d_dg,lon_glob)
+      call pack_data(grid,lat2d_dg,lat_glob)
+      nijt=imt*jmt*6
+      call MPI_BCAST( lat_glob, nijt, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr )
+      call MPI_BCAST( lon_glob, nijt, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr )
+ 
+      do j=j0,j1
+         do i=i0,i1
             
-c     write(20+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
+c     write(20+ti,200) lon2d_dg(i,j),lat2d_dg(i,j),
 c     &        vcs_loc(i,j)
-            write(60+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j)
+            write(60+ti,200) lon2d_dg(i,j),lat2d_dg(i,j)
      &           ,2.*ucs_loc(i,j),2.*vcs_loc(i,j)
             
             nocomp=0
@@ -220,7 +248,7 @@ c     compute components of V_cs in XY plane V_cs = (VX,VY)
                
 c               write(*,*) "SMALL (ZERO) UCS VCS"
             else
-               call ll2csxy_vec(x,y,grid%tile,ucs_loc(i,j),
+               call ll2csxy_vec(x,y,ti,ucs_loc(i,j),
      &              vcs_loc(i,j),VX,VY)
                
 c     write(*,100) "ucs vcs VX VY=",ucs_loc(i,j),vcs_loc(i,j),
@@ -332,119 +360,206 @@ c            write(*,*) "KDIREC(i,j)=",kdirec(i,j)
 c     
 c     The following is for Gary Russell's plotting program
 c     
+            KDOWN(i,j) = real(ti)
+
             SELECT CASE (KDIREC(i,j))
          CASE (0)
             IDOWN(i,j) = real(i)
             JDOWN(i,j) = real(j)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (1)
             IDOWN(i,j) = real(i+1)
             JDOWN(i,j) = real(j+1)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (2)
             IDOWN(i,j) = real(i)
             JDOWN(i,j) = real(j+1)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (3)
             IDOWN(i,j) = real(i-1)
             JDOWN(i,j) = real(j+1)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (4)
             IDOWN(i,j) = real(i-1)
             JDOWN(i,j) = real(j)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (5)
             IDOWN(i,j) = real(i-1)
             JDOWN(i,j) = real(j-1)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (6)
             IDOWN(i,j) = real(i)
             JDOWN(i,j) = real(j-1)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (7)
             IDOWN(i,j) = real(i+1)
             JDOWN(i,j) = real(j-1)
-            KDOWN(i,j) = real(grid%tile)
+
          CASE (8)
             IDOWN(i,j) = real(i+1)
             JDOWN(i,j) = real(j)
-            KDOWN(i,j) = real(grid%tile)
+
          END SELECT
          
       enddo
       enddo
-      
-      call halo_update(grid,idown)
-      call halo_update(grid,jdown)
-      
-      do j=grid%J_STRT,grid%J_STOP
-         do i=grid%I_STRT,grid%I_STOP
-            if (idown(i,j) .eq. real(imt+1)) then
-               idown(i,j) = idown(i+1,j) 
-               if (grid%tile .eq. 1) kdown(i,j)=2
-               if (grid%tile .eq. 2) kdown(i,j)=4
-               if (grid%tile .eq. 3) kdown(i,j)=4
-               if (grid%tile .eq. 4) kdown(i,j)=6
-               if (grid%tile .eq. 5) kdown(i,j)=6  
-               if (grid%tile .eq. 6) kdown(i,j)=2           
-               if (idown(i,j) .eq. 0.) then
-                  idown(i,j)=1.
-               endif
-               write(*,300) "IMAX idown tile=",i,idown(i,j),
-     &              grid%tile,kdown(i,j)
- 300           format(A,I3,F8.3,I3,F8.3)
-            elseif (idown(i,j) .eq. 0. .and. (
-     &              kdirec(i,j) .eq. 3 .or.
-     &              kdirec(i,j) .eq. 4 .or. 
-     &              kdirec(i,j) .eq. 5      )) then
-               idown(i,j) = idown(i-1,j) 
-               if (grid%tile .eq. 1) kdown(i,j)=5
-               if (grid%tile .eq. 2) kdown(i,j)=1
-               if (grid%tile .eq. 3) kdown(i,j)=1
-               if (grid%tile .eq. 4) kdown(i,j)=3
-               if (grid%tile .eq. 5) kdown(i,j)=3  
-               if (grid%tile .eq. 6) kdown(i,j)=5       
-               if (idown(i,j) .eq. real(imt+1)) then
-                  idown(i,j)=real(imt)
-               endif
-               write(*,300) "imin idown tile=",i,idown(i,j),
-     &              grid%tile,kdown(i,j)
-            endif
 
-            if (jdown(i,j) .eq. real(jmt+1)) then
-               jdown(i,j) = jdown(i,j+1) 
-               if (grid%tile .eq. 1) kdown(i,j)=3
-               if (grid%tile .eq. 2) kdown(i,j)=3
-               if (grid%tile .eq. 3) kdown(i,j)=5
-               if (grid%tile .eq. 4) kdown(i,j)=5
-               if (grid%tile .eq. 5) kdown(i,j)=1  
-               if (grid%tile .eq. 6) kdown(i,j)=1        
-               if (jdown(i,j) .eq. 0.) then
-                  jdown(i,j)=1.
+ 300           format(A,I3,I3,I3,A,F8.3,F8.3,F8.3)
+      
+      
+      do j=j0,j1
+         do i=i0,i1
+            imj=i1-j
+            jmi=j1-i
+            if (idown(i,j) .eq. i1h) then
+               ii=i1-j
+               if (ti.eq.1) then
+                   kdown(i,j)=2
+                   idown(i,j)=1
+                   jdown(i,j)=j
                endif
-               write(*,300) "JMAX jdown tile=",j,jdown(i,j),
-     &              grid%tile,kdown(i,j)
-            elseif (jdown(i,j) .eq. 0 .and. (
-     &              kdirec(i,j) .eq. 5 .or.
-     &              kdirec(i,j) .eq. 6 .or. 
-     &              kdirec(i,j) .eq. 7      )) then
-               jdown(i,j) = jdown(i,j-1) 
-               if (grid%tile .eq. 1) kdown(i,j)=6
-               if (grid%tile .eq. 2) kdown(i,j)=6
-               if (grid%tile .eq. 3) kdown(i,j)=2
-               if (grid%tile .eq. 4) kdown(i,j)=2
-               if (grid%tile .eq. 5) kdown(i,j)=4  
-               if (grid%tile .eq. 6) kdown(i,j)=4       
-               if (jdown(i,j) .eq. real(jms+1)) then
-                  jdown(i,j)=real(jmt)
+               if (ti.eq.2) then
+                   kdown(i,j)=4
+                   idown(i,j)=imj
+                   jdown(i,j)=1
                endif
-               write(*,300) "jmin jdown tile=",j,jdown(i,j),
-     &              grid%tile,kdown(i,j)
-            endif
+               if (ti.eq.3) then
+                   kdown(i,j)=4
+                   idown(i,j)=1
+                   jdown(i,j)=j
+               endif
+               if (ti.eq.4) then
+                   kdown(i,j)=6
+                   idown(i,j)=imj
+                   jdown(i,j)=1
+               endif
+               if (ti.eq.5) then
+                   kdown(i,j)=6
+                   idown(i,j)=1
+                   jdown(i,j)=j 
+               endif
+               if (ti.eq.6) then
+                   kdown(i,j)=2
+                   idown(i,j)=imj
+                   jdown(i,j)=1 
+               endif         
+               write(*,300) "case I+ ->i j tile =",i,j,ti,
+     &          "// id jd kd",idown(i,j),jdown(i,j),kdown(i,j)
+            elseif (idown(i,j) .eq. i0h .and. (
+     &              kdirec(i,j).eq.3 .or.
+     &              kdirec(i,j).eq.4 .or. 
+     &              kdirec(i,j).eq.5      )) then
+               if (ti.eq.1) then 
+                   kdown(i,j)=5
+                   idown(i,j)=imj
+                   jdown(i,j)=j1
+               endif
+               if (ti.eq.2) then 
+                   kdown(i,j)=1
+                   idown(i,j)=i1
+                   jdown(i,j)=j
+               endif
+               if (ti.eq.3) then
+                   kdown(i,j)=1
+                   idown(i,j)=imj
+                   jdown(i,j)=j1
+               endif
+               if (ti.eq.4) then
+                   kdown(i,j)=3
+                   idown(i,j)=i1
+                   jdown(i,j)=j
+               endif
+               if (ti.eq.5) then
+                   kdown(i,j)=3
+                   idown(i,j)=imj
+                   jdown(i,j)=j1  
+               endif
+               if (ti.eq.6) then
+                   kdown(i,j)=5
+                   idown(i,j)=i1
+                   jdown(i,j)=j
+               endif       
+               write(*,300) "case I- ->i j tile =",i,j,ti,
+     &          "// id jd kd",idown(i,j),jdown(i,j),kdown(i,j)
+             endif
 
-            write(70+grid%tile,200) lon2d_dg(i,j),lat2d_dg(i,j),
-     &           lon2d_dg(idown(i,j),jdown(i,j))-lon2d_dg(i,j),
-     &           lat2d_dg(idown(i,j),jdown(i,j))-lat2d_dg(i,j)
+            if (jdown(i,j) .eq. j1h) then
+               if (ti.eq.1) then 
+                   kdown(i,j)=3
+                   idown(i,j)=1
+                   jdown(i,j)=jmi
+               endif
+               if (ti.eq.2) then
+                   kdown(i,j)=3
+                   idown(i,j)=i
+                   jdown(i,j)=1
+               endif
+               if (ti.eq.3) then 
+                   kdown(i,j)=5
+                   idown(i,j)=1
+                   jdown(i,j)=jmi
+               endif
+               if (ti.eq.4) then
+                   kdown(i,j)=5
+                   idown(i,j)=i
+                   jdown(i,j)=1
+               endif
+               if (ti.eq.5) then
+                   kdown(i,j)=1
+                   idown(i,j)=1
+                   jdown(i,j)=jmi
+               endif  
+               if (ti.eq.6) then
+                   kdown(i,j)=1
+                   idown(i,j)=i
+                   jdown(i,j)=1
+               endif        
+               write(*,300) "case J+ ->i j tile =",i,j,ti,
+     &          "// id jd kd",idown(i,j),jdown(i,j),kdown(i,j)
+
+             elseif (jdown(i,j) .eq. j0h .and. (
+     &              kdirec(i,j).eq.5 .or.
+     &              kdirec(i,j).eq.6 .or. 
+     &              kdirec(i,j).eq.7      )) then
+               if (ti.eq.1) then
+                   kdown(i,j)=6
+                   idown(i,j)=i
+                   jdown(i,j)=j1
+               endif
+               if (ti.eq.2) then
+                   kdown(i,j)=6
+                   idown(i,j)=i1
+                   jdown(i,j)=jmi
+               endif
+               if (ti.eq.3) then
+                   kdown(i,j)=2
+                   idown(i,j)=i
+                   jdown(i,j)=j1
+               endif
+               if (ti.eq.4) then
+                   kdown(i,j)=2
+                   idown(i,j)=i1
+                   jdown(i,j)=jmi
+               endif
+               if (ti.eq.5) then
+                   kdown(i,j)=4
+                   idown(i,j)=i
+                   jdown(i,j)=j1 
+               endif 
+               if (ti.eq.6) then
+                   kdown(i,j)=4
+                   idown(i,j)=i1
+                   jdown(i,j)=jmi
+               endif
+               write(*,300) "case J- ->i j tile =",i,j,ti,
+     &          "// id jd kd",idown(i,j),jdown(i,j),kdown(i,j)
+             endif
+
+            write(70+ti,200) lon2d_dg(i,j),lat2d_dg(i,j),
+     &           lon_glob(idown(i,j),jdown(i,j),kdown(i,j))
+     &           -lon2d_dg(i,j),
+     &           lat_glob(idown(i,j),jdown(i,j),kdown(i,j))
+     &           -lat2d_dg(i,j)
          enddo
       enddo
 
@@ -455,20 +570,15 @@ c     gather all river directions before writing to output file
       
       
       if (am_i_root()) then
-
          idown_g=idown_glob
          jdown_g=jdown_glob
          kdown_g=kdown_glob
-         
-c         write(*,*) "kdown=",kdown_g
-         
 c     write(iu_RVRCS) titlei
          title="downstream idown, jdown ,kdown"
          open( iu_RVRCS, FILE=namecs,FORM='unformatted', 
      &        STATUS='unknown')
          write(iu_RVRCS) title,idown_g,jdown_g,kdown_g
          close(iu_RVRCS)
-c         write(333,*) idown_g
       endif
       
 c     end output for Gary Russell's plotting program
