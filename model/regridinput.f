@@ -12,10 +12,10 @@
       integer :: imsource,jmsource,ntilessource,imtarget,
      &     jmtarget,ntilestarget
 
-      imsource=144
-      jmsource=90
-c      imsource=360
-c      jmsource=180
+c      imsource=144
+c      jmsource=90
+      imsource=360
+      jmsource=180
       ntilessource=1
       imtarget=grid%IM_WORLD
       jmtarget=grid%JM_WORLD
@@ -88,11 +88,11 @@ c*
       real*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
       character*8, dimension(nrvrmx) :: namervr
       real*8, allocatable :: ucs_loc(:,:),vcs_loc(:,:)
-      real*8 :: eps, meps, norm, lon, lat, dlon_dg, dlat_dg
+      real*8 :: eps, meps, norm, lon, lat, dlon_dg, dlat_dg,fjeq
       real*8 :: x,y,VX,VY,slope,slope_diag,Xhalf,Yhalf,Xone,Yone
       integer iu_RVR, iu_RVRCS
-      integer :: nrvr, i,j, nocomp, quadrant,jeq,nij,ierr,
-     &     i0,i1,j0,j1,i0h,i1h,j0h,j1h,ii,jj,ti,imj,jmi,nijt
+      integer :: nrvr, i,j, nocomp, quadrant,nij,ierr,
+     &     i0,i1,j0,j1,i0h,i1h,j0h,j1h,ii,jj,ti,imj,jmi,nijt,imouth
       integer, allocatable, dimension(:,:) :: kdirec
       real*8, allocatable, dimension(:,:) :: idown,jdown,kdown
       integer*4, dimension(imt,jmt,6) :: idown_g,jdown_g,kdown_g
@@ -116,23 +116,37 @@ c*
 
       iu_RVR=20
       iu_RVRCS=21
-      name="RD_modelE_Fa.RVR.bin"
-      namecs="RD_CS32.bin"
+c      name="RD_modelE_Fa.RVR.bin"
+c      namecs="RD_CS32.bin"
+      name="RD_modelE_O.RVR.bin"
+      namecs="RD_CS90.bin"
 
       write(*,*) name
+
+      imouth = 0  ! input file doesn't contain river mouths
 
       if (am_i_root()) then
          open( iu_RVR, FILE=name,FORM='unformatted', STATUS='old')
          read(iu_RVR) titlei
-         read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
-     *        ,lon_rvr(1:nrvr)
+         write(*,*) titlei
+         if (imouth .eq. 1) then
+            read(iu_RVR) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *           ,lon_rvr(1:nrvr)
+         else
+            read(iu_RVR) title2
+         endif
+         write(*,*) title2
          read(iu_RVR) title,down_lat
+         write(*,*) title
          read(iu_RVR) title,down_lon
+         write(*,*) title
          read(iu_RVR) title,down_lat_911
+         write(*,*) title
          read(iu_RVR) title,down_lon_911
+         write(*,*) title
          close(iu_RVR)
          
-      write(110,*) "down_lon",down_lon
+      write(110,*) "down_lat",down_lat
          
          
 c     
@@ -140,14 +154,14 @@ c     create vector field on latlon grid
 c     
          eps=1.d-6
          meps=-1.d-6
-         dlat_dg=180./REAL(jms) ! even spacing (default)
+         dlat_dg=180./real(jms) ! even spacing (default)
          IF (JMS.eq.46) dlat_dg=180./REAL(jms-1) ! 1/2 box at pole for 4x5
-         dlon_dg = 360./dble(ims)
-         jeq=0.5*(1+jms)
+         dlon_dg = 360./real(ims)
+         fjeq=0.5*(1+jms)
          
          do j=1,jms
             if (j .ne. 1 .and. j .ne. jms) then
-               lat = dlat_dg*(j - jeq)
+               lat = dlat_dg*(j - fjeq)
             elseif (j .eq. 1) then
                lat = -90.
             elseif (j .eq. jms) then
