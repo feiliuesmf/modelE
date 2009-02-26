@@ -84,9 +84,6 @@ C**** Zonal mean concentration and mass
         do i=I_0,imaxj(j)
           call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
         end do
-        tsum = sum(trm(1:imaxj(j),j,l,n)) !sum over i
-        asum = sum(am(l,1:imaxj(j),j))    !sum over i
-        tajln(j,l,jlnt_conc,n) = tajln(j,l,jlnt_conc,n)+tsum/asum
       enddo; enddo
 !$OMP END PARALLEL DO
 
@@ -98,10 +95,6 @@ C**** Zonal mean cloud water concentration
       do j=J_0,J_1
         do i=I_0,imaxj(j)
           call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
-c        tsum = sum(trwm(1:imaxj(j),j,l,n)) !sum over i
-c        asum = sum(wm(1:imaxj(j),j,l)*am(l,1:imaxj(j),j))    !sum over i
-c        if (asum.gt.0) tajln(j,l,jlnt_cldh2o,n) =
-c     *       tajln(j,l,jlnt_cldh2o,n)+tsum/asum
         end do
       enddo; enddo
 !$OMP END PARALLEL DO
@@ -665,11 +658,6 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end do
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
      *     plm,a,scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
-C**** original version (temporary)
-      scalet = scale_jln(n)*scale_jlq(k)/idacc(ia_jlq(k))
-      scalet = scalet*10.**(-jtpow)
-      CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *     plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
 
 #ifdef TRACERS_WATER
       end if
