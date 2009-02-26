@@ -12,10 +12,14 @@
       integer :: imsource,jmsource,ntilessource,imtarget,
      &     jmtarget,ntilestarget
 
+c      imsource=72
+c      jmsource=46
+      imsource=288
+      jmsource=180
 c      imsource=144
 c      jmsource=90
-      imsource=360
-      jmsource=180
+c      imsource=360
+c      jmsource=180
       ntilessource=1
       imtarget=grid%IM_WORLD
       jmtarget=grid%JM_WORLD
@@ -24,14 +28,13 @@ c      jmsource=90
       call init_regrid_root(xll2cs,imsource,jmsource,ntilessource,
      &     imtarget, jmtarget,ntilestarget)
 
-      call geom_cs
 
 c***   regrid* = conservative regridding
 c***   interp* = bilinear interpolation
       write(*,*) "IN REGRID INPUT"
 
       if (AM_I_ROOT()) then
-c         call regridTOPO(xll2cs)
+         call regridTOPO(xll2cs)
 c         call regridOSST(xll2cs)
 c         call regridSICE(xll2cs)
 c         call regridCDN(xll2cs)
@@ -49,7 +52,8 @@ c      call regridGIC(xll2cs,grid)
 c     call regridAIC(xll2cs,grid)
 
 #ifdef CUBE_GRID
-      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
+c      call geom_cs
+c      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
 #endif
 
       end subroutine regrid_input
@@ -116,14 +120,14 @@ c*
 
       iu_RVR=20
       iu_RVRCS=21
-c      name="RD_modelE_Fa.RVR.bin"
-c      namecs="RD_CS32.bin"
-      name="RD_modelE_O.RVR.bin"
-      namecs="RD_CS90.bin"
+      name="RD_modelE_Fa.RVR.bin"
+      namecs="RD_CS32.bin"
+c      name="RD_modelE_O.RVR.bin"
+c      namecs="RD_CS90.bin"
 
       write(*,*) name
 
-      imouth = 0  ! input file doesn't contain river mouths
+      imouth = 1  ! if 0 then input file doesn't contain river mouths
 
       if (am_i_root()) then
          open( iu_RVR, FILE=name,FORM='unformatted', STATUS='old')
@@ -606,7 +610,7 @@ c*
 
       subroutine regridTOPO(x2grids)
 c
-c     for 1x1 resolution : Jeff posted Z1X1N and Z1X1N_MODELE on Discover
+c
 c
       use regrid_com
       implicit none
@@ -614,34 +618,65 @@ c
       character*80 :: TITLE(nrecmax),name,ncfile
       type (x_2gridsroot), intent(inout) :: x2grids
       real*8, allocatable :: ttargglob(:,:,:,:),ones(:,:,:)
+      real*8, allocatable :: tsource(:,:,:,:)
       real*4, allocatable :: ttargr4(:,:,:,:)
-      integer :: iu_TOPO,i,j,k,irec,iunit,imt,jmt,ntt,maxrec,status,
-     &     vid,fid,ir
+      real*4, allocatable :: tsourc4(:,:,:,:)
+      integer :: iu_TOPO,i,j,k,irec,iunit,imt,jmt,ntt,ims,jms,nts,
+     &     maxrec,status,vid,fid,ir
 
       imt=x2grids%imtarget
       jmt=x2grids%jmtarget
       ntt=x2grids%ntilestarget
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+
 
       write(*,*) "imt jmt ntt",imt,jmt,ntt
 
       allocate( ttargglob(imt,jmt,ntt,nrecmax),
      &     ttargr4(imt,jmt,ntt,nrecmax),
-     &     ones(imt,jmt,ntt) )
-
-
+     &     ones(imt,jmt,ntt), 
+     &     tsource(ims,jms,nts,nrecmax),
+     &     tsourc4(ims,jms,nts,nrecmax)  )
+      
       iu_TOPO=20
-      name="Z72X46N.cor4_nocasp"
-      write(*,*) name
+      name="Z288X180N"
+c      name="Z72X46N.cor4_nocasp"
+c      name="Z144X90N_nocasp"
 
-      if (am_i_root()) then
+      write(*,*) name
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
 
-      write(*,*) "iu_TOPO",iu_TOPO
-      endif
+c      write(*,*) "iu_TOPO",iu_TOPO
+c      call read_regrid_4D_1R(x2grids,iu_TOPO,TITLE,ttargglob,maxrec)
 
-      call read_regrid_4D_1R(x2grids,iu_TOPO,TITLE,ttargglob,maxrec)
+      tsource(:,:,:,:)=0.
+      ttargglob(:,:,:,:)=0.
 
-      if (am_i_root()) then
+      write(*,*) "ims, jms, nts=",ims,jms,nts
+            
+      irec=1
+
+      do
+         read(unit=iu_TOPO,END=30) TITLE(irec), tsourc4(:,:,:,irec)
+         write(*,*) "TITLE, irec",TITLE(irec),irec
+         tsource(:,:,:,irec)= tsourc4(:,:,:,irec)
+         irec=irec+1
+      enddo
+
+ 30   continue
+
+      maxrec=irec-1
+
+      write(*,*) "maxrec",maxrec
+      
+      do ir=1,maxrec
+         call root_regrid(x2grids,tsource(:,:,:,ir),
+     &        ttargglob(:,:,:,ir))
+        write(*,*) "TITLE",TITLE(ir)
+      enddo
+
 c
 c     CONSISTENCY CHECKS: 1) FOCEAN+FLAKE+FGRND+FGICE=1 
 c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
@@ -671,7 +706,7 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
 
       close(iu_TOPO)
 
-      name="Z72X46N.cor4_nocasp.CS"
+      name="Z_CS48"
 
       write(*,*) name
 
@@ -685,29 +720,29 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       enddo
 
       close(iu_TOPO)
-      endif
 
-      ncfile="topo6tiles.nc"
 
-      status = nf_open(trim(ncfile),nf_write,fid)
-      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN FILE"
-      status = nf_inq_varid(fid,'zatmo',vid)
-      write(*,*) NF_STRERROR(status)
-      status = nf_put_var_double(fid,vid,ttargglob(:,:,:,1))
-      write(*,*) "STATUS",NF_STRERROR(status),"<<"
-      status = nf_close(fid)
+c      ncfile="topo6tiles.nc"
 
-      ncfile="topo.nc"
+c      status = nf_open(trim(ncfile),nf_write,fid)
+c      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN FILE"
+c      status = nf_inq_varid(fid,'zatmo',vid)
+c      write(*,*) NF_STRERROR(status)
+c      status = nf_put_var_double(fid,vid,ttargglob(:,:,:,1))
+c      write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c      status = nf_close(fid)
 
-      status = nf_open(trim(ncfile),nf_write,fid)
-      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN FILE"
-      status = nf_inq_varid(fid,'zatmo',vid)
-      write(*,*) NF_STRERROR(status)
-      status = nf_put_var_double(fid,vid,ttargglob(:,:,2,1))
-      write(*,*) "STATUS",NF_STRERROR(status),"<<"
-      status = nf_close(fid)
+c      ncfile="topo.nc"
 
-      deallocate(ttargglob,ones,ttargr4)
+c      status = nf_open(trim(ncfile),nf_write,fid)
+c      if (status .ne. NF_NOERR) write(*,*) "UNABLE TO OPEN FILE"
+c      status = nf_inq_varid(fid,'zatmo',vid)
+c      write(*,*) NF_STRERROR(status)
+c      status = nf_put_var_double(fid,vid,ttargglob(:,:,2,1))
+c      write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c      status = nf_close(fid)
+
+      deallocate(ttargglob,ones,ttargr4,tsource)
    
       end subroutine regridTOPO 
 c*
@@ -1844,26 +1879,23 @@ c*
       character*80, intent(inout) :: TITLE(nrecmax)
       integer, intent(out) :: maxrec
 
-      if (am_i_root()) then
-      
       write(*,*) "iuin",iuin
+
       irec=1
 
       do
          read(unit=iuin,END=30) TITLE(irec), data(:,:,:,irec)
-c         write(*,*) "TITLE, irec",TITLE(irec),irec
+         write(*,*) "TITLE, irec",TITLE(irec),irec
          tsource(:,:,:,irec)= data(:,:,:,irec)
          irec=irec+1
       enddo
 
  30   continue
 
-c      write(*,*) "DATA=",data
       maxrec=irec-1
 
       close(iuin)
 
-      endif
 
       end subroutine read_recs_1R
 c*
@@ -2014,20 +2046,16 @@ c*
       
       write(*,*) outunformat
 
-      if (am_i_root()) then
       iuout=20
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
 
-      endif
 
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
          tout(:,:,:)=ttargglob(:,:,:)
-         if (am_i_root()) then
          write(unit=iuout) TITLE(ir),tout(:,:,:)
          write(*,*) "TITLE",TITLE(ir)
-         endif
       enddo
 
       if (am_i_root()) close(iuout) 
@@ -2209,6 +2237,7 @@ c*
       character*80, intent(inout) :: TITLE(nrecmax)
       integer :: ir,ims,jms,nts
 
+      
       ims=x2grids%imsource
       jms=x2grids%jmsource
       nts=x2grids%ntilessource
@@ -2217,6 +2246,7 @@ c*
       tsource(:,:,:,:)=0.
       ttargglob(:,:,:,:)=0.
 
+      write(*,*) "ims, jms, nts=",ims,jms,nts
             
       call read_recs_1R(tsource,iuin,TITLE,
      &        maxrec,ims,jms,nts)
@@ -2226,7 +2256,7 @@ c*
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),
      &        ttargglob(:,:,:,ir))
-c         write(*,*) "TITLE",TITLE(ir)
+c        write(*,*) "TITLE",TITLE(ir)
       enddo
 
       deallocate(tsource)
