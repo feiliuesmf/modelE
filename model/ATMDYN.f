@@ -2556,8 +2556,8 @@ c      end module DIAG
       SUBROUTINE DIAGB
 !@sum DIAGB calculate constant pressure diagnostics from within DYNAM
 C****
-C**** CONTENTS OF AJK(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
-C****   See jks_defs for contents
+C**** CONTENTS OF AGC(J,K,N)  (SUM OVER LONGITUDE AND TIME OF)
+C****   See gc_defs for contents
 C****
 C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
 C****   See ijks_defs for contents
@@ -2570,12 +2570,12 @@ C****
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DIAG_COM, only : ia_dga
-     &    ,ajk=>ajk_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
+     &    ,agc=>agc_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
      *     ,ijk_dse,klayer,idd_w,ijdd,ijk_r,ijk_w,ijk_pf,
      *      ijk_uv,ijk_vt,ijk_vq,ijk_vv,ijk_uu,ijk_tt,
-     &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_Q,JK_THETA,
-     &      JK_RH,JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
+     &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_THETA,
+     &      JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
      &      JK_TOTNTSH,JK_ZMFNTGEO,JK_TOTNTGEO,JK_ZMFNTLH,
      &      JK_TOTNTLH,JK_ZMFNTKE,JK_TOTNTKE,JK_ZMFNTMOM,JK_TOTNTMOM,
      &      JK_P2KEDPGF,JK_DPSQR,JK_NPTSAVG,
@@ -2586,7 +2586,7 @@ C****
      &      JK_DUDTTEM,JK_DTDTTEM,JK_EPFLXNCP,JK_EPFLXVCP,
      &      JK_UINST,JK_TOTDUDT,JK_TINST,
      &      JK_TOTDTDT,JK_EDDVTPT,JK_CLDH2O
-     &     ,ajl=>ajl_loc,jl_epflxn,jl_epflxv,jl_zmfntmom,jl_totntmom
+     &     ,jl_epflxn,jl_epflxv,jl_zmfntmom,jl_totntmom
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
      &     ,jl_dpb
       USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
@@ -2618,13 +2618,13 @@ C****
       REAL*8 ::
      &     BYDP,BYFIM,DP,DPDN,DP4,
      &     DPE,DPI,DPK,DPSQI,DPUP,DPUV,DUTI,DUTK,DVTI,DVTK,FIMI,
-     &     PAI,PAK,PDN,PHIPI,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
+     &     PAI,PAK,PDN,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
-     &     PZV4I,QK,QKI,QLH,QPI,QSATL,RHPI,SDK,
+     &     PZV4I,QK,QKI,SDK,
      &     SMALL,SP,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
      &     UDUTI,    UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
-     &     W4I,WI,WKE4I,WMPI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
+     &     W4I,WI,WKE4I,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WU4I,WUP,WZI,ZK,ZKI
      &     ,AMRHT,AMRHQ,AMUV,AMVQ,AMVT,AMUU,AMVV,AMTT
 
@@ -2689,9 +2689,9 @@ C****
         I=IP1
       END DO
 c      APJ(J,2)=APJ(J,2)+P4I*.25
-      AJL(J,1:LS1-1,JL_DPB) = AJL(J,1:LS1-1,JL_DPB) +
+      AGC(J,1:LS1-1,JL_DPB) = AGC(J,1:LS1-1,JL_DPB) +
      &     DSIG(1:LS1-1)*P4I*.25
-      AJL(J,LS1:LM,JL_DPB) = AJL(J,LS1:LM,JL_DPB) +
+      AGC(J,LS1:LM,JL_DPB) = AGC(J,LS1:LM,JL_DPB) +
      &     DSIG(LS1:LM)*PSFMPT*FIM
       DO L=1,LM
         PU4I=0.
@@ -2713,8 +2713,8 @@ c      APJ(J,2)=APJ(J,2)+P4I*.25
      *         *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
           I=IP1
         END DO
-        AJL(J,L,JL_ZMFNTMOM)=AJL(J,L,JL_ZMFNTMOM)+.25*PU4I*PV4I/P4I
-        AJL(J,L,JL_TOTNTMOM)=AJL(J,L,JL_TOTNTMOM)+.25*PUV4I
+        AGC(J,L,JL_ZMFNTMOM)=AGC(J,L,JL_ZMFNTMOM)+.25*PU4I*PV4I/P4I
+        AGC(J,L,JL_TOTNTMOM)=AGC(J,L,JL_TOTNTMOM)+.25*PUV4I
       END DO
       END DO
 
@@ -2758,7 +2758,7 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF(L.GE.LS1) SP=PSFMPT
   866 FPHI=FPHI+SP*V(I,J,L)*(.5*(THSEC(I)-THMN)*DUDP/DTHDP
      *   -U(I,J,L)+UMN)
-  868 AJL(J,L,JL_EPFLXN)=AJL(J,L,JL_EPFLXN)+FPHI
+  868 AGC(J,L,JL_EPFLXN)=AGC(J,L,JL_EPFLXN)+FPHI
 
 C**** VERTICAL COMPONENT
       CALL HALO_UPDATE(grid, V, FROM=NORTH)
@@ -2801,7 +2801,7 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF(L.GE.LS1-1) PITIJ=0.
       SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
   874 IM1=I
-      AJL(J,L,JL_EPFLXV)=AJL(J,L,JL_EPFLXV)+.25*
+      AGC(J,L,JL_EPFLXV)=AGC(J,L,JL_EPFLXV)+.25*
      &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU)
   878 CONTINUE
 
@@ -2811,19 +2811,14 @@ c
 
       pm_ge_ps(:,:,:)=-1.
 C****
-C**** INTERNAL QUANTITIES T,TH,Q,RH
+C**** INTERNAL QUANTITIES T,TH
 C****
       KM=LM
-      QLH=LHE
       DO 170 J=J_0,J_1
       DO 170 K=1,KM
       DPI=0.
       TPI=0.
-      PHIPI=0.
-      QPI=0.
-      WMPI=0.
       THPI=0.
-      RHPI=0.
       FIMI=0.
       DO 160 I=1,IMAXJ(J)
 C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
@@ -2851,31 +2846,19 @@ C**** ACCUMULATE HERE
       IF (LUP.EQ.L) PUP=PM(K+1)
       DP=PDN-PUP
       TPI=TPI+(TX(I,J,L)-TF)*DP
-      PHIPI=PHIPI+PHI(I,J,L)*DP
-      QPI=QPI+Q(I,J,L)*DP
-      WMPI=WMPI+WM(I,J,L)*DP
-CW       IF(WMPI.GT.1.E-3) WRITE(6,169) I,J,L,DP,WM(I,J,L),WMPI
-CW169 FORMAT(1X,'1616--',3I5,3E15.2)
       THPI=THPI+T(I,J,L)*DP
-      QSATL=QSAT(TX(I,J,L),QLH,PMIDL(L))
-      IF (QSATL.GT.1.) QSATL=1.
-      RHPI=RHPI+Q(I,J,L)*DP/QSATL
       IF (L.EQ.LUP) GO TO 160
       L=L+1
       PDN=PEDNL(L)
       GO TO 150
   160 CONTINUE
-      AJK(J,K,JK_NPTSAVG1)=AJK(J,K,JK_NPTSAVG1)+FIMI
-      AJK(J,K,JK_DPA)=AJK(J,K,JK_DPA)+DPI
-      AJK(J,K,JK_TEMP)=AJK(J,K,JK_TEMP)+TPI
-      AJK(J,K,JK_HGHT)=AJK(J,K,JK_HGHT)+PHIPI
-      AJK(J,K,JK_Q)=AJK(J,K,JK_Q)+QPI
-      AJK(J,K,JK_THETA)=AJK(J,K,JK_THETA)+THPI
-      AJK(J,K,JK_RH)=AJK(J,K,JK_RH)+RHPI
-      AJK(J,K,JK_CLDH2O)=AJK(J,K,JK_CLDH2O)+WMPI
+      AGC(J,K,JK_NPTSAVG1)=AGC(J,K,JK_NPTSAVG1)+FIMI
+      AGC(J,K,JK_DPA)=AGC(J,K,JK_DPA)+DPI
+      AGC(J,K,JK_TEMP)=AGC(J,K,JK_TEMP)+TPI
+      AGC(J,K,JK_THETA)=AGC(J,K,JK_THETA)+THPI
          TJK(J,K)=THPI/(DPI+teeny)
-         IF (IDACC(ia_dga).EQ.1) AJK(J,K,JK_TINST)=TJK(J,K)
-         AJK(J,K,JK_TOTDTDT)=TJK(J,K)-AJK(J,K,JK_TINST)
+         IF (IDACC(ia_dga).EQ.1) AGC(J,K,JK_TINST)=TJK(J,K)
+         AGC(J,K,JK_TOTDTDT)=TJK(J,K)-AGC(J,K,JK_TINST)
   170 CONTINUE
 C****
 C**** CALCULATE STABILITY AT ODD LEVELS ON PU GRID
@@ -3114,25 +3097,25 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
   340 I=IP1     !-->END I Loop (IP1) from IM to IM-1 (1-IM).
       DPM(K)=DPI/(FIMI+teeny)
       DPJK(J,K)=DPI
-      AJK(J,K,JK_DPB)=AJK(J,K,JK_DPB)+DPI
-      AJK(J,K,JK_DPSQR)=AJK(J,K,JK_DPSQR)+DPSQI
-      AJK(J,K,JK_NPTSAVG)=AJK(J,K,JK_NPTSAVG)+FIMI
+      AGC(J,K,JK_DPB)=AGC(J,K,JK_DPB)+DPI
+      AGC(J,K,JK_DPSQR)=AGC(J,K,JK_DPSQR)+DPSQI
+      AGC(J,K,JK_NPTSAVG)=AGC(J,K,JK_NPTSAVG)+FIMI
       IF (DPI.LT.teeny) DPI=teeny
-      AJK(J,K,JK_U)=AJK(J,K,JK_U)+PUI
-      AJK(J,K,JK_V)=AJK(J,K,JK_V)+PVI
-      AJK(J,K,JK_ZMFKE)=AJK(J,K,JK_ZMFKE)+(PUI*PUI+PVI*PVI)/DPI
-      AJK(J,K,JK_TOTKE)=AJK(J,K,JK_TOTKE)+PWWI
-      AJK(J,K,JK_ZMFNTSH)=AJK(J,K,JK_ZMFNTSH)+PT4I*PVI/DPI
-      AJK(J,K,JK_TOTNTSH)=AJK(J,K,JK_TOTNTSH)+PTV4I
-      AJK(J,K,JK_ZMFNTGEO)=AJK(J,K,JK_ZMFNTGEO)+PZ4I*PVI/DPI
-      AJK(J,K,JK_TOTNTGEO)=AJK(J,K,JK_TOTNTGEO)+PZV4I
-      AJK(J,K,JK_ZMFNTLH)=AJK(J,K,JK_ZMFNTLH)+PQ4I*PVI/DPI
-      AJK(J,K,JK_TOTNTLH)=AJK(J,K,JK_TOTNTLH)+PQV4I
-      AJK(J,K,JK_ZMFNTKE)=AJK(J,K,JK_ZMFNTKE)+PWWI*PVI/DPI
-      AJK(J,K,JK_TOTNTKE)=AJK(J,K,JK_TOTNTKE)+PWWVI
-      AJK(J,K,JK_ZMFNTMOM)=AJK(J,K,JK_ZMFNTMOM)+PUI*PVI/DPI
-      AJK(J,K,JK_TOTNTMOM)=AJK(J,K,JK_TOTNTMOM)+PUVI
-      AJK(J,K,JK_P2KEDPGF)=AJK(J,K,JK_P2KEDPGF)+VDVTI+UDUTI-
+      AGC(J,K,JK_U)=AGC(J,K,JK_U)+PUI
+      AGC(J,K,JK_V)=AGC(J,K,JK_V)+PVI
+      AGC(J,K,JK_ZMFKE)=AGC(J,K,JK_ZMFKE)+(PUI*PUI+PVI*PVI)/DPI
+      AGC(J,K,JK_TOTKE)=AGC(J,K,JK_TOTKE)+PWWI
+      AGC(J,K,JK_ZMFNTSH)=AGC(J,K,JK_ZMFNTSH)+PT4I*PVI/DPI
+      AGC(J,K,JK_TOTNTSH)=AGC(J,K,JK_TOTNTSH)+PTV4I
+      AGC(J,K,JK_ZMFNTGEO)=AGC(J,K,JK_ZMFNTGEO)+PZ4I*PVI/DPI
+      AGC(J,K,JK_TOTNTGEO)=AGC(J,K,JK_TOTNTGEO)+PZV4I
+      AGC(J,K,JK_ZMFNTLH)=AGC(J,K,JK_ZMFNTLH)+PQ4I*PVI/DPI
+      AGC(J,K,JK_TOTNTLH)=AGC(J,K,JK_TOTNTLH)+PQV4I
+      AGC(J,K,JK_ZMFNTKE)=AGC(J,K,JK_ZMFNTKE)+PWWI*PVI/DPI
+      AGC(J,K,JK_TOTNTKE)=AGC(J,K,JK_TOTNTKE)+PWWVI
+      AGC(J,K,JK_ZMFNTMOM)=AGC(J,K,JK_ZMFNTMOM)+PUI*PVI/DPI
+      AGC(J,K,JK_TOTNTMOM)=AGC(J,K,JK_TOTNTMOM)+PUVI
+      AGC(J,K,JK_P2KEDPGF)=AGC(J,K,JK_P2KEDPGF)+VDVTI+UDUTI-
      *   (PUI*DUTI+PVI*DVTI)/DPI
       SHETH(K)=(PSV4I-PS4I*PVI/DPI)*DXYV(J)/(STJK(J-1,K)*DXYN(J-1)+
      *   STJK(J,K)*DXYS(J))
@@ -3140,9 +3123,9 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
          VJK(J,K)=PVI/DPI
          PSIJK(J,K)=SHETH(K)/DPI
          UVJK(J,K)=(PUVI-PUI*PVI/DPI)/DPI
-         IF (IDACC(ia_dga).EQ.1) AJK(J,K,JK_UINST)=UJK(J,K)
-         AJK(J,K,JK_TOTDUDT)=UJK(J,K)-AJK(J,K,JK_UINST)
-  350 AJK(J,K,JK_SHETH)=AJK(J,K,JK_SHETH)+SHETH(K)
+         IF (IDACC(ia_dga).EQ.1) AGC(J,K,JK_UINST)=UJK(J,K)
+         AGC(J,K,JK_TOTDUDT)=UJK(J,K)-AGC(J,K,JK_UINST)
+  350 AGC(J,K,JK_SHETH)=AGC(J,K,JK_SHETH)+SHETH(K)
   390 CONTINUE
 
 C**** ZX for distributed parallelization
@@ -3247,7 +3230,7 @@ C**** ACCUMULATE ALL VERTICAL WINDS
       DO I=1,IMAXJ(J)
         WI=WI+W(I,J,K)
       END DO
-  565 AJK(J,K,JK_VVEL)=AJK(J,K,JK_VVEL)+WI
+  565 AGC(J,K,JK_VVEL)=AGC(J,K,JK_VVEL)+WI
 C****
 C**** ACCUMULATE T,Z,Q VERTICAL TRANSPORTS
 C****
@@ -3303,16 +3286,16 @@ C**** MERIDIONAL AVERAGING
   600 CONTINUE
       BYFIM=teeny
       IF (FIMI.GT.teeny) BYFIM=1./FIMI
-      AJK(J,K-1,JK_ZMFVTDSE)=AJK(J,K-1,JK_ZMFVTDSE)+
+      AGC(J,K-1,JK_ZMFVTDSE)=AGC(J,K-1,JK_ZMFVTDSE)+
      &     BYFIM*(SHA*TKI+ZKI)*WI
-      AJK(J,K-1,JK_TOTVTDSE)=AJK(J,K-1,JK_TOTVTDSE)+SHA*WTI+WZI
-      AJK(J,K-1,JK_ZMFVTLH)=AJK(J,K-1,JK_ZMFVTLH)+BYFIM*QKI*WI
-      AJK(J,K-1,JK_TOTVTLH)=AJK(J,K-1,JK_TOTVTLH)+WQI
-      AJK(J,K-1,JK_VTGEOEDDY)=AJK(J,K-1,JK_VTGEOEDDY)+WZI-BYFIM*WI*ZKI
-C     AJK(J,K-1,JK_BAREKEGEN)=AJK(J,K-1,JK_BAREKEGEN)+WTI-BYFIM*WI*TKI
+      AGC(J,K-1,JK_TOTVTDSE)=AGC(J,K-1,JK_TOTVTDSE)+SHA*WTI+WZI
+      AGC(J,K-1,JK_ZMFVTLH)=AGC(J,K-1,JK_ZMFVTLH)+BYFIM*QKI*WI
+      AGC(J,K-1,JK_TOTVTLH)=AGC(J,K-1,JK_TOTVTLH)+WQI
+      AGC(J,K-1,JK_VTGEOEDDY)=AGC(J,K-1,JK_VTGEOEDDY)+WZI-BYFIM*WI*ZKI
+C     AGC(J,K-1,JK_BAREKEGEN)=AGC(J,K-1,JK_BAREKEGEN)+WTI-BYFIM*WI*TKI
          WJK(J,K)=BYFIM*WI/DXYP(J)
          WTJK(J,K)=BYFIM*(WTHI-BYFIM*WI*THKI)/DXYP(J)
-         AJK(J,K-1,JK_EDDVTPT)=AJK(J,K-1,JK_EDDVTPT)+WTJK(J,K)
+         AGC(J,K-1,JK_EDDVTPT)=AGC(J,K-1,JK_EDDVTPT)+WTJK(J,K)
   610 CONTINUE
 C****
 C**** BAROCLINIC EDDY KINETIC ENERGY GENERATION
@@ -3362,7 +3345,7 @@ C**** ACCUMULATE HERE
       PAI=PAI+PAK
       WPA2I=WPA2I+(W(I,J,K)+WUP)*PAK
   626 CONTINUE
-  630 AJK(J,K,JK_BAREKEGEN)=AJK(J,K,JK_BAREKEGEN)-
+  630 AGC(J,K,JK_BAREKEGEN)=AGC(J,K,JK_BAREKEGEN)-
      &     (WPA2I-W2I*PAI/(FIMI+teeny))
 C****
 C**** ACCUMULATE UV VERTICAL TRANSPORTS
@@ -3431,9 +3414,9 @@ C**** MERIDIONAL AVERAGING
   700 I=IP1
       BYFIM=1./(FIMI+teeny)
          WUJK(J,K)=(WU4I-W4I*UKI*BYFIM)*BYFIM*BYDXYV(J)
-      AJK(J,K-1,JK_TOTVTKE)=AJK(J,K-1,JK_TOTVTKE)+WKE4I
-      AJK(J,K-1,JK_VTAMEDDY)=AJK(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
-  710 AJK(J,K-1,JK_TOTVTAM)=AJK(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
+      AGC(J,K-1,JK_TOTVTKE)=AGC(J,K-1,JK_TOTVTKE)+WKE4I
+      AGC(J,K-1,JK_VTAMEDDY)=AGC(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
+  710 AGC(J,K-1,JK_TOTVTAM)=AGC(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
 C****
 C**** POTENTIAL VORTICITY AND VERTICAL TRANSPORT OF POT. VORT.
 C****
@@ -3445,7 +3428,7 @@ C****
       DO 720 I=1,IM
       DUT(I,J,K)=JHEMI*STB(I,J,K)*(ZX(I,J,K)-FCOR(J))
   720 PVI=PVI+DUT(I,J,K)
-  730 AJK(J,K,JK_POTVORT)=AJK(J,K,JK_POTVORT)+PVI
+  730 AGC(J,K,JK_POTVORT)=AGC(J,K,JK_POTVORT)+PVI
       DO 760 K=2,KM
       W2I=0.
       PV2I=0.
@@ -3462,8 +3445,8 @@ C****
       WPV4I=WPV4I+W2*PV2
       FIMI=FIMI+1.
   740 I=IP1
-      AJK(J,K-1,JK_VTPV)=AJK(J,K-1,JK_VTPV)+WPV4I
-  760 AJK(J,K-1,JK_VTPVEDDY)=AJK(J,K-1,JK_VTPVEDDY)+
+      AGC(J,K-1,JK_VTPV)=AGC(J,K-1,JK_VTPV)+WPV4I
+  760 AGC(J,K-1,JK_VTPVEDDY)=AGC(J,K-1,JK_VTPVEDDY)+
      &     WPV4I-W2I*PV2I/(FIMI+teeny)
 C****
 C**** SPECIAL MEAN/EDDY DIAGNOSTICS ARE CALCULATED
@@ -3490,7 +3473,7 @@ c***      END DO
       DO 780 J=J_0STG,J_1STG
       TY(J,K)=(TJK(J,K)-TJK(J-1,K))/DYV(J)
 C**** E-P FLUX NORTHWARD COMPONENT
-      AJK(J,K,JK_EPFLXNCP)=AJK(J,K,JK_EPFLXNCP)+
+      AGC(J,K,JK_EPFLXNCP)=AGC(J,K,JK_EPFLXNCP)+
      &     PSIJK(J,K)*(UJK(J,KUP)-UJK(J,KDN))/
      *  (PMO(KUP)-PMO(KDN))-UVJK(J,K)
   780 CONTINUE
@@ -3520,28 +3503,28 @@ c***      END DO
       UY=(UJK(J+1,K)*DXV(J+1)-UJK(J,K)*DXV(J)-FCOR(J))/DXYP(J)
       PSIY=(PSIJK(J+1,K)*DXV(J+1)-PSIJK(J,K)*DXV(J))/DXYP(J)
 C**** ZONAL MEAN MOMENTUM EQUATION   (MEAN ADVECTION)
-      AJK(J,K,JK_DUDTMADV)=AJK(J,K,JK_DUDTMADV)-
+      AGC(J,K,JK_DUDTMADV)=AGC(J,K,JK_DUDTMADV)-
      &     .5*UY*(VJK(J,K)+VJK(J+1,K))-
      *  .25*((UP(J+1,K+1)+UP(J,K+1))*WJK(J,K+1)+(UP(J+1,K)+UP(J,K))*
      *   WJK(J,K))
 C**** ZONAL MEAN HEAT EQUATION   (MEAN ADVECTION)
-      AJK(J,K,JK_DTDTMADV)=AJK(J,K,JK_DTDTMADV)-
+      AGC(J,K,JK_DTDTMADV)=AGC(J,K,JK_DTDTMADV)-
      &     .5*(TY(J,K)*VJK(J,K)+TY(J+1,K)*VJK(J+1,K))
      *  -.5*STJK(J,K)*(WJK(J,K+1)+WJK(J,K))
 C**** LAGRANGIAN MEAN MOMENTUM EQUATION  (MEAN ADVECTION)
       VSTAR=.5*(VJK(J,K)+VJK(J+1,K)-.5*(PSIP(J,K)+PSIP(J,K+1)
      *  +PSIP(J+1,K)+PSIP(J+1,K+1)))
       WSTAR=.5*(WJK(J,K)+WJK(J,K+1))+PSIY
-      AJK(J,K,JK_DUDTTEM)=AJK(J,K,JK_DUDTTEM)-
+      AGC(J,K,JK_DUDTTEM)=AGC(J,K,JK_DUDTTEM)-
      &     UY*VSTAR-.25*(UP(J,K)+UP(J+1,K)+
      *  UP(J,K+1)+UP(J+1,K+1))*WSTAR
-      AJK(J,K,JK_DTDTTEM)=AJK(J,K,JK_DTDTTEM)-
+      AGC(J,K,JK_DTDTTEM)=AGC(J,K,JK_DTDTTEM)-
      &     .5*(TY(J+1,K)+TY(J,K))*VSTAR-
      *  STJK(J,K)*WSTAR
 C**** VERTICAL E-P FLUX
-      AJK(J,K-1,JK_EPFLXVCP)=AJK(J,K-1,JK_EPFLXVCP)-
+      AGC(J,K-1,JK_EPFLXVCP)=AGC(J,K-1,JK_EPFLXVCP)-
      &     WUJK(J,K)-.5*PSIJK(J,K)*UY
-      AJK(J,K,JK_EPFLXVCP)=AJK(J,K,JK_EPFLXVCP)-.5*PSIJK(J,K)*UY
+      AGC(J,K,JK_EPFLXVCP)=AGC(J,K,JK_EPFLXVCP)-.5*PSIJK(J,K)*UY
   800 CONTINUE
 C****
 C**** SPECTRAL ANALYSIS OF KINETIC ENERGIES AT CONSTANT PRESSURE
@@ -3675,7 +3658,7 @@ C****
      &     P,PTOP,PSFMPT,SIG,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
       USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
-      USE DIAG_COM, only : SQRTM,ajl=>ajl_loc,jl_ape
+      USE DIAG_COM, only : SQRTM,agc=>agc_loc,jl_ape
       USE DIAG_LOC, only : lupa,ldna
       USE DYNAMICS, only : sqrtp,pk
       USE DOMAIN_DECOMP_1D, only : GRID,GET,HALO_UPDATE, AM_I_ROOT
@@ -3897,7 +3880,7 @@ C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
           END DO
 
           if(m5.eq.7) then
-            AJL(J,L,JL_APE)=AJL(J,L,JL_APE)+SUM(X*X)*GMEAN(L)*BYIM*BYIM
+            AGC(J,L,JL_APE)=AGC(J,L,JL_APE)+SUM(X*X)*GMEAN(L)*BYIM*BYIM
           endif
 
           IF(J.EQ.1 .or. J.EQ.JM) THEN
@@ -4244,7 +4227,7 @@ c      contains
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,q,dt,byim
       USE SOMTQ_COM, only : qmom
-      USE DIAG_COM, only: ajl=>ajl_loc,jl_totntlh,jl_zmfntlh,jl_totvtlh
+      USE DIAG_COM, only: agc=>agc_loc,jl_totntlh,jl_zmfntlh,jl_totvtlh
      *     ,jl_zmfvtlh
       USE DYNAMICS, only: ps,mb,ma
       USE TRACER_ADV, only:
@@ -4280,11 +4263,11 @@ C**** ADVECT
         sfcm = 0.; scm = 0.; scf = 0.
       CALL AADVQ (Q,QMOM, .TRUE. ,'q       ')
         byncyc = 1./ncyc
-        AJL(:,:,jl_totntlh) = AJL(:,:,jl_totntlh) + sbf(:,:)
-        AJL(:,:,jl_zmfntlh) = AJL(:,:,jl_zmfntlh)
+        AGC(:,:,jl_totntlh) = AGC(:,:,jl_totntlh) + sbf(:,:)
+        AGC(:,:,jl_zmfntlh) = AGC(:,:,jl_zmfntlh)
      &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
-        AJL(:,:,jl_totvtlh) = AJL(:,:,jl_totvtlh) + scf(:,:)
-        AJL(:,:,jl_zmfvtlh)  = AJL(:,:,jl_zmfvtlh)
+        AGC(:,:,jl_totvtlh) = AGC(:,:,jl_totvtlh) + scf(:,:)
+        AGC(:,:,jl_zmfvtlh)  = AGC(:,:,jl_zmfvtlh)
      &    + scm(:,:)*sfcm(:,:)*byim*byncyc
 C****
 C**** convert from mass to concentration units (using updated MA)

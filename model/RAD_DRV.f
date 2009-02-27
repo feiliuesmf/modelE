@@ -820,6 +820,7 @@ C     OUTPUT DATA
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
+     *     ,jl_wcldwt,jl_icldwt
      *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
      *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
@@ -941,6 +942,7 @@ C
       INTEGER :: idxb(NLOC_DIU_VARb)
 
       integer :: aj_alb_inds(8)
+      real*8, dimension(lm_req) :: bydpreq
 
       INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: J_0, J_1, I_0, I_1
@@ -1294,10 +1296,12 @@ C**** save 3D cloud fraction as seen by radiation
               TAUWC(L)=cldx*TAUMCL
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
+              call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
+              call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
@@ -1306,10 +1310,12 @@ C**** save 3D cloud fraction as seen by radiation
               TAUWC(L)=cldx*TAUSSL
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
+              call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
             ELSE
               TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
+              call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
             END IF
           END IF
           call inc_ajl(i,j,l,jl_wcod,tauwc(l))
@@ -2054,6 +2060,7 @@ C**** output data: really needed only if kradia=2
 C**** 
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
 C**** 
+      bydpreq(:) = 1d0/(req_fac_d(:)*pmtop)
       DO 780 J=J_0,J_1
          DO 770 I=I_0,IMAXJ(J)
             do l=1,lm
@@ -2063,8 +2070,8 @@ C****
             CSZ2=COSZ2(I,J)
             JR=JREG(I,J)
             DO LR=1,LM_REQ
-              call inc_asjl(i,j,lr,3,SRHRS(LR,I,J)*CSZ2)
-              call inc_asjl(i,j,lr,4,TRHRS(LR,I,J))
+              call inc_asjl(i,j,lr,3,bydpreq(lr)*SRHRS(LR,I,J)*CSZ2)
+              call inc_asjl(i,j,lr,4,bydpreq(lr)*TRHRS(LR,I,J))
             END DO
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN

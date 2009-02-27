@@ -52,12 +52,12 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, DIMENSION(NREG), public :: SAREA_REG
 
 !@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
-      INTEGER, PARAMETER, public :: KAJL=70+KEP, KAJLX=KAJL+50
+      INTEGER, PARAMETER, public :: KAJL=60, KAJLX=KAJL+50
 !@var AJL latitude/height diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJL,AJL_loc
 
 !@param KASJL number of ASJL diagnostics
-      INTEGER, PARAMETER, public :: KASJL=4
+      INTEGER, PARAMETER, public :: KASJL=5
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
@@ -174,11 +174,11 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, DIMENSION(NDIUVAR,NDIUPT,HR_IN_MONTH), public :: HDIURN
      &     ,HDIURN_loc
 #endif
-!@param KAJK number of zonal constant pressure diagnostics
-!@param KAJKX number of zonal constant pressure composit diagnostics
-      INTEGER, PARAMETER, public :: KAJK=51, KAJKX=KAJK+100
-!@var AJK zonal constant pressure diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJK,AJK_loc
+!@param KAGC number of latitude-height General Circulation diags
+!@param KAGCX number of accumulated+derived GC diagnostics
+      INTEGER, PARAMETER, public :: KAGC=71+KEP, KAGCX=KAGC+100
+!@var AGC latitude-height General Circulation diagnostics
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
 
 !@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER, public :: KAIJK=28, kaijkx=kaijk+400
@@ -525,22 +525,23 @@ c derived/composite diagnostics
 !@var denom_ij index of AIJ element to use as time/area weight
       integer, dimension(kaijx), public :: denom_ij
 
-!@var JL_xxx names for JL diagnostic indices
+!@var JL_xxx, JK_xxx names for AJL indices
+!@+   JL/JK refer to model versus constant-pressure levels
       INTEGER, public ::
-     &     jl_mcmflx,jl_srhr,jl_trcr,jl_sshr,jl_trbhr,jl_mchr,jl_totntlh
-     *     ,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape,jl_dtdyn,jl_dudfmdrg
-     *     ,jl_totcld,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10,jl_mcdflx
-     *     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
-     *     ,jl_dumcdrgp20,jl_sscld,jl_mccld,jl_sdifcoef,jl_dudtsdif
-     *     ,jl_gwfirst,jl_dtdtsdrg,jl_epflxv,jl_rhe,jl_epflxn,jl_damdc
-     *     ,jl_dammc,jl_40,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac
-     *     ,jl_wwpac,jl_47,jl_zmfntmom,jl_totntmom,jl_mchphas,jl_mcdtotw
-     *     ,jl_dudtsdrg,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
-     *     ,jl_mcdeep,jl_mcshlw
-     *     ,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,jl_dudtvdif
-     *     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
-     *     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
-     &     ,jl_dpa,jl_dpb,jl_dpasrc,jl_dwasrc
+     &     jl_mcmflx,jl_srhr,jl_trcr,jl_sshr,jl_trbhr,jl_mchr
+     &     ,jl_dtdyn,jl_totcld,jl_mcdflx,jl_sscld,jl_mccld
+     &     ,jl_rhe,jl_damdc,jl_dammc,jl_mchphas,jl_mcdtotw
+     &     ,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
+     &     ,jl_mcdeep,jl_mcshlw,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss
+     &     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
+     &     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
+     &     ,jl_dpa,jl_dpasrc,jl_dwasrc,jl_wcldwt,jl_icldwt
+     &     ,jl_rad_cool
+     &     ,jl_epacwt,jl_wpacwt
+     &     ,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
+      INTEGER, public ::
+     &     JK_hght, JK_dpwt, JK_tx, JK_q, JK_cldh2o ,JK_rh
+
 
 !@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined
 !@+   (1 for primary latitudes, 2 for secondary latitudes)
@@ -556,10 +557,15 @@ c derived/composite diagnostics
       character(len=50), dimension(kajlx), public :: lname_jl,units_jl
 !@var SCALE_JL printout scaling factors for JL diagnostics
       REAL*8, dimension(kajlx), public :: scale_jl
-!@var IA_JL,JGRID_JL idacc-numbers,gridtypes for JL diagnostics
-      integer, dimension(kajlx), public :: ia_jl,jgrid_jl
+!@var IA_JL,JGRID_JL,LGRID_JL idacc-numbers,gridtypes for JL diagnostics
+      integer, dimension(kajlx), public :: ia_jl,jgrid_jl,lgrid_jl
 !@var POW_JL printed output scaled by 10**(-pow_jl)
       integer, dimension(kajlx), public :: pow_jl
+!@var DENOM_JL index of AJL element to use as weight
+      integer, dimension(kajlx), public :: denom_jl
+!@param [CTR,EDG]_[ML,CP] tags for center,edge model-layer,const-pres
+!@+   vertical grids
+      integer, parameter, public :: ctr_ml=1,edg_ml=2,ctr_cp=3,edg_cp=4
 
 !@var NAME_SJL Names of radiative-layer-only SJL diagnostics
       character(len=30), dimension(kasjl), public :: name_sjl
@@ -570,10 +576,10 @@ c derived/composite diagnostics
 !@var IA_SJL idacc-numbers for SJL diagnostics
       integer, dimension(kasjl), public :: ia_sjl
 
-!@var JK_xxx names for JK diagnostic indices
+!@var JK_xxx, JL_xxx names for AGC indices
+!@+   JL/JK refer to model versus constant-pressure levels
       INTEGER, public ::
-     &     JK_dpa ,JK_dpb ,JK_temp ,JK_hght
-     &    ,JK_q ,JK_theta ,JK_rh ,JK_u
+     &     JK_dpa ,JK_dpb ,JK_temp, JK_theta ,JK_u
      &    ,JK_v ,JK_zmfke ,JK_totke ,JK_zmfntsh
      &    ,JK_totntsh ,JK_zmfntgeo ,JK_totntgeo ,JK_zmfntlh
      &    ,JK_totntlh ,JK_zmfntke ,JK_totntke ,JK_zmfntmom
@@ -584,18 +590,27 @@ c derived/composite diagnostics
      &    ,JK_vtameddy ,JK_totvtam ,JK_sheth ,JK_dudtmadv
      &    ,JK_dtdtmadv ,JK_dudttem ,JK_dtdttem ,JK_epflxncp
      &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
-     &    ,JK_totdtdt ,JK_eddvtpt ,JK_cldh2o
+     &    ,JK_totdtdt ,JK_eddvtpt
+      INTEGER, public ::
+     &     jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape
+     &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
+     &     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
+     &     ,jl_dumcdrgp20,jl_sdifcoef,jl_dudtsdif
+     &     ,jl_gwfirst,jl_dtdtsdrg,jl_epflxv,jl_epflxn
+     &     ,jl_40,jl_47,jl_zmfntmom,jl_totntmom
+     &     ,jl_dudtsdrg,jl_dudtvdif,jl_dpb
 
-!@var SNAME_JK Names of lat-pressure JK diagnostics
-      character(len=30), dimension(kajkx), public :: sname_jk
-!@var LNAME_JK,UNITS_JK Descriptions/Units of JK diagnostics
-      character(len=50), dimension(kajkx), public :: lname_jk,units_jk
-!@var SCALE_JK printout scaling factors for JK diagnostics
-      REAL*8, dimension(kajkx), public :: scale_jk
-!@var IA_JK,JGRID_JK idacc-numbers,gridtypes for JK diagnostics
-      integer, dimension(kajkx), public :: ia_jk,jgrid_jk
-!@var POW_JK printed output scaled by 10**(-pow_jk)
-      integer, dimension(kajkx), public :: pow_jk
+
+!@var SNAME_GC Names of lat-pressure JK diagnostics
+      character(len=30), dimension(kagcx), public :: sname_gc
+!@var LNAME_GC,UNITS_GC Descriptions/Units of JK diagnostics
+      character(len=50), dimension(kagcx), public :: lname_gc,units_gc
+!@var SCALE_GC printout scaling factors for JK diagnostics
+      REAL*8, dimension(kagcx), public :: scale_gc
+!@var IA_GC,JGRID_GC idacc-numbers,gridtypes for JK diagnostics
+      integer, dimension(kagcx), public :: ia_gc,jgrid_gc
+!@var POW_GC printed output scaled by 10**(-pow_gc)
+      integer, dimension(kagcx), public :: pow_gc
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER, public ::
@@ -712,7 +727,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 #ifdef NEW_IO
 c declarations that facilitate summation of acc-files when using
 c the new i/o system
-      target :: aj,areg,ajl,asjl,aij_loc,ajk,
+      target :: aj,areg,ajl,asjl,aij_loc,agc,
      &     speca,adiurn,aisccp,tsfrez_loc,energy,atpe,consrv,
      &     wave,aijk_loc,ail_loc,tdiurn,oa
 #ifndef NO_HDIURN
@@ -725,14 +740,14 @@ c the new i/o system
       REAL*8, dimension(:,:,:), public, target, allocatable ::
      &     AJ_fromdisk,
      &     AJL_fromdisk,ASJL_fromdisk,
-     &     AIJ_fromdisk,AJK_fromdisk,
+     &     AIJ_fromdisk,AGC_fromdisk,
      &     SPECA_fromdisk,ADIURN_fromdisk,
      &     AISCCP_fromdisk,TSFREZ_fromdisk,
      &     TDIURN_fromdisk,OA_fromdisk
       REAL*8, dimension(:,:,:), public, pointer ::
      &     AJ_ioptr,
      &     AJL_ioptr,ASJL_ioptr,
-     &     AIJ_ioptr,AJK_ioptr,
+     &     AIJ_ioptr,AGC_ioptr,
      &     SPECA_ioptr,ADIURN_ioptr,
      &     AISCCP_ioptr,TSFREZ_ioptr,
      &     TDIURN_ioptr,OA_ioptr
@@ -760,12 +775,12 @@ c the new i/o system
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,GET,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
-      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAJK,KAIJK,
+      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc
-     *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AJK_loc,AIJK_loc,AIL_loc,AFLX_ST
+     *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AGC_loc,AIJK_loc,AIL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
-      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AJK,AJ_OUT,ntype_out
+      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AGC,AJ_OUT,ntype_out
       use diag_zonal, only : get_alloc_bounds
 
       IMPLICIT NONE
@@ -797,7 +812,7 @@ c the new i/o system
      &         AJL_loc(J_0BUDG:J_1BUDG, LM, KAJL),
      &         ASJL_loc(J_0BUDG:J_1BUDG,LM_REQ,KASJL),
      &         CONSRV_loc(J_0BUDG:J_1BUDG, KCON),
-     &         AJK_loc(J_0JK:J_1JK,LM,KAJK),
+     &         AGC_loc(J_0JK:J_1JK,LM,KAGC),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
      &         RH_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
@@ -822,7 +837,7 @@ c allocate master copies of budget- and JK-arrays on root
      &           AJ(JM_BUDG, KAJ, NTYPE),
      &           AJL(JM_BUDG, LM, KAJL),
      &           ASJL(JM_BUDG,LM_REQ,KASJL),
-     &           AJK(JMLAT,LM,KAJK),
+     &           AGC(JMLAT,LM,KAGC),
      &           STAT = IER)
         allocate(aj_out(jm_budg,kaj,ntype_out))
       endif
@@ -888,7 +903,7 @@ c allocate master copies of budget- and JK-arrays on root
      *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
-     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAJK +
+     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
 #ifndef NO_HDIURN
      *     + NDIUVAR*NDIUPT*HR_IN_MONTH
@@ -900,11 +915,11 @@ c allocate master copies of budget- and JK-arrays on root
       ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
       ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
       ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
-      ! REAL*4 AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK)
+      ! REAL*4 AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK)
       ! REAL*4 AISCCP4(ntau,npres,nisccp)
       ! REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
       REAL*4,allocatable, dimension(:,:,:) :: AJ4,AJL4,ASJL4
-     *            ,AIJ4,AJK4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
+     *            ,AIJ4,AGC4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
       REAL*4,allocatable, dimension(:,:) :: AREG4,ENERGY4,CONSRV4,ATPE4
       REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIL4,AFLX4
 #ifndef NO_HDIURN
@@ -1014,7 +1029,7 @@ C**** The regular model (Kradia le 0)
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc, AJ,AREG,AJL,ASJL,AIJ,
      *     AIL, ENERGY,CONSRV,
-     *     SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
+     *     SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *     HDIURN,
 #endif
@@ -1034,7 +1049,7 @@ C**** The regular model (Kradia le 0)
      *     REAL(AIJ,KIND=4),REAL(AIL,KIND=4),
      *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
-     *     REAL(WAVE,KIND=4),REAL(AJK,KIND=4),
+     *     REAL(WAVE,KIND=4),REAL(AGC,KIND=4),
      *     REAL(AIJK,KIND=4),REAL(AISCCP,KIND=4),
 #ifndef NO_HDIURN
      *     REAL(HDIURN,KIND=4),
@@ -1052,7 +1067,7 @@ C**** The regular model (Kradia le 0)
         if (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
      *       idacc, AJ,AREG,AJL,ASJL,AIJ,AIL,
-     *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AJK,AIJK,AISCCP,
+     *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *       HDIURN,
 #endif
@@ -1072,7 +1087,7 @@ C**** The regular model (Kradia le 0)
           call alloc_diag_r4
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
      *         idac1, AJ4,AREG4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
-     *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AJK4,AIJK4,AISCCP4,
+     *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AGC4,AIJK4,AISCCP4,
 #ifndef NO_HDIURN
      *       HDIURN4,
 #endif
@@ -1099,7 +1114,7 @@ C**** The regular model (Kradia le 0)
           ASJL  = ASJL   + ASJL4
           AIJ   = AIJ    + AIJ4
           CONSRV= CONSRV + CONSRV4
-          AJK   = AJK    + AJK4
+          AGC   = AGC    + AGC4
           AIJK  = AIJK   + AIJK4
           AIL   = AIL    + AIL4
 
@@ -1175,7 +1190,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
         allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
         allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
-        allocate (AJK4(JM,LM,KAJK),AIJK4(IM,JM,LM,KAIJK))
+        allocate (AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK))
         allocate (AISCCP4(ntau,npres,nisccp))
         allocate (TSFREZ4(IM,JM,KTSF))
 #ifndef NO_HDIURN
@@ -1186,7 +1201,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       Subroutine dealloc_diag_r4
         deallocate (AJ4,AREG4,  AJL4,ASJL4,AIJ4,AIL4)
         deallocate (ENERGY4,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4)
-        deallocate (AJK4,AIJK4, AISCCP4,TSFREZ4)
+        deallocate (AGC4,AIJK4, AISCCP4,TSFREZ4)
 #ifndef NO_HDIURN
         deallocate (HDIURN4)
 #endif
@@ -1242,7 +1257,7 @@ c for reproducibility on different numbers of processors
       call pack_lc(grid, AJL_loc,    AJL)
       call pack_lc(grid, ASJL_loc,   ASJL)
       call pack_lc(grid, CONSRV_loc, CONSRV)
-      call pack_lc(grid, AJK_loc,    AJK)
+      call pack_lc(grid, AGC_loc,    AGC)
       return
       End Subroutine Gather_zonal_diags
 
@@ -1255,7 +1270,7 @@ c for reproducibility on different numbers of processors
       call unpack_lc  (grid, ajl,    ajl_loc)
       call unpack_lc  (grid, asjl,   asjl_loc)
       call unpack_lc  (grid, consrv, consrv_loc)
-      call unpack_lc  (grid, ajk,    ajk_loc)
+      call unpack_lc  (grid, agc,    agc_loc)
       return
       End Subroutine Scatter_zonal_diags
 
@@ -1561,7 +1576,7 @@ c*
       use model_com, only : idacc
       use diag_com, only : monacc,
      &     aj=>aj_ioptr,aij=>aij_ioptr,
-     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,ajk=>ajk_ioptr,
+     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
      &     consrv=>consrv_ioptr,
      &     ail=>ail_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
      &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
@@ -1596,7 +1611,7 @@ c*
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,asjl,'asjl(jm_budg,lm_req,kasjl)',
      &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,ajk,'ajk(jmlat,lm,kajk)',
+      call defvar(grid,fid,agc,'agc(jmlat,lm,kagc)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,consrv,'consrv(jm_budg,kcon)',
      &     r4_on_disk=r4_on_disk)
@@ -1634,7 +1649,7 @@ c these i/o pointers point to temporary arrays.  Otherwise, they point to
 c the instances of the arrays used during normal operation. 
       use diag_com, only :
      &     aj=>aj_ioptr,aij=>aij_ioptr,
-     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,ajk=>ajk_ioptr,
+     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
      &     consrv=>consrv_ioptr,
      &     ail=>ail_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
      &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
@@ -1675,7 +1690,7 @@ c the instances of the arrays used during normal operation.
         call write_data(grid,fid,'aj',aj)
         call write_data(grid,fid,'ajl',ajl)
         call write_data(grid,fid,'asjl',asjl)
-        call write_data(grid,fid,'ajk',ajk)
+        call write_data(grid,fid,'agc',agc)
         call write_data(grid,fid,'consrv',consrv)
 
         call write_data(grid,fid,'areg',areg)
@@ -1702,7 +1717,7 @@ c for which scalars is bcast_all=.true. necessary?
         call read_data(grid,fid,'aj',aj)
         call read_data(grid,fid,'ajl',ajl)
         call read_data(grid,fid,'asjl',asjl)
-        call read_data(grid,fid,'ajk',ajk)
+        call read_data(grid,fid,'agc',agc)
         call read_data(grid,fid,'consrv',consrv)
         call scatter_zonal_diags
 
@@ -1781,7 +1796,7 @@ c instances of the arrays used during normal operation.
       aj_ioptr     => aj!_loc
       ajl_ioptr    => ajl!_loc
       asjl_ioptr   => asjl!_loc
-      ajk_ioptr    => ajk!_loc
+      agc_ioptr    => agc!_loc
       consrv_ioptr => consrv!_loc
       tsfrez_ioptr => tsfrez_loc
       return
@@ -1852,8 +1867,8 @@ c
       allocate(asjl_fromdisk(jm_budg,lm_req,kasjl))
       asjl_ioptr => asjl_fromdisk
 
-      allocate(ajk_fromdisk(jmlat,lm,kajk))
-      ajk_ioptr => ajk_fromdisk
+      allocate(agc_fromdisk(jmlat,lm,kagc))
+      agc_ioptr => agc_fromdisk
 
       allocate(consrv_fromdisk(jm_budg, kcon))
       consrv_ioptr => consrv_fromdisk
@@ -1894,7 +1909,7 @@ c read from disk and stored in the _fromdisk arrays.
         aj     = aj     + aj_fromdisk
         ajl    = ajl    + ajl_fromdisk
         asjl   = asjl   + asjl_fromdisk
-        ajk    = ajk    + ajk_fromdisk
+        agc    = agc    + agc_fromdisk
         consrv = consrv + consrv_fromdisk
 
         areg       = areg       + areg_fromdisk

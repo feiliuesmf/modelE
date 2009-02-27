@@ -99,7 +99,8 @@ C**** Some local constants
       USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
-      USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj
+      USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj,
+     &     lon2d_dg,byaxyp
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
      *     ail=>ail_loc
@@ -109,14 +110,17 @@ C**** Some local constants
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,il_u,il_v,il_w,il_tx,il_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
-     *     ,j_gamc,lstr,kgz_max,pmb,ght
+     *     ,j_gamc,lstr,kgz_max,pmb,ght,ple
      *     ,jl_dtdyn,jl_dpa
+     *     ,jl_epacwt,jl_uepac,jl_vepac,jl_wepac
+     *     ,jl_wpacwt,jl_uwpac,jl_vwpac,jl_wwpac
+     *     ,jk_dpwt,jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
 #ifdef HTAP_LIKE_DIAGS
      *     ,ij_templ,ij_gridh,ij_husl
 #endif
-      USE DYNAMICS, only : pk,phi,pmid,plij, SD,pedn,am
+      USE DYNAMICS, only : pk,phi,pmid,pdsig,plij, SD,pedn,am
      &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
       USE DIAG_LOC, only : w,tx,jet
@@ -132,7 +136,6 @@ C**** Some local constants
       INTEGER :: I,IM1,J,K,L,JR,
      &     IP1,LM1,LP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
-      REAL*8, DIMENSION(LM+1):: PLEI
       REAL*8 ::
      &     BBYGV,BYSDSG,DLNP,DLNP01,DLNP12,DLNP23,DBYSD,
      &     DXYPJ,
@@ -145,7 +148,15 @@ C**** Some local constants
       INTEGER nT,nQ,nRH
       REAL*8, PARAMETER :: EPSLON=1.
 
-      REAL*8 QSAT, SLP, PS, ZS
+      REAL*8 QSAT, SLP, PS, ZS, QLH
+
+      real*8, dimension(lm+1) :: pecp,pedge
+      real*8, dimension(lm) :: dpwt,txdp,phidp,qdp,rhdp,wmdp,rh
+      integer, parameter :: lmxmax=2*lm
+      integer :: lmx
+      real*8, dimension(lmxmax) :: dpx
+      integer, dimension(lmxmax) :: lmod,lcp
+
       INTEGER :: J_0, J_1, J_0S, J_1S, I_0,I_1,I_0H,I_1H
      &     ,IM1S,IP1S,IP1E
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -321,9 +332,9 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
             DXYPJ=AXYP(I,J)
             JR=JREG(I,J)
             PIJ=PLIJ(L,I,J)
-            call inc_ajl(i,j,l,jl_dpa,pij*dsig(l))
+            call inc_ajl(i,j,l,jl_dpa,pdsig(l,i,j))
 c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
-            call inc_ajl(i,j,l,jl_dtdyn,t(i,j,l))
+            call inc_ajl(i,j,l,jl_dtdyn,tx(i,j,l)*pdsig(l,i,j))
             AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
 #ifdef HTAP_LIKE_DIAGS
             AIJ(I,J,IJ_TEMPL(L))=AIJ(I,J,IJ_TEMPL(L))+TX(I,J,L)
@@ -575,10 +586,80 @@ c
       ENDDO
       ENDDO
 
+C****
+C**** CERTAIN HORIZONTAL WIND AVERAGES
+C****
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+
+        if(lon2d_dg(i,j).ge.-135. .and. lon2d_dg(i,j).le.-110.) then
+c east pacific
+          do l=1,lm
+            call inc_ajl(i,j,l,jl_epacwt,pdsig(l,i,j))
+            call inc_ajl(i,j,l,jl_uepac, pdsig(l,i,j)*ua(l,i,j))
+            call inc_ajl(i,j,l,jl_vepac, pdsig(l,i,j)*va(l,i,j))
+          enddo
+          do l=1,lm-1 ! using pdsig for vertical velocity weight
+            call inc_ajl(i,j,l,jl_wepac,
+     &           pdsig(l,i,j)*w(i,j,l)*byaxyp(i,j))
+          enddo
+        elseif(lon2d_dg(i,j).ge.150.) then
+c west pacific
+          do l=1,lm
+            call inc_ajl(i,j,l,jl_wpacwt,pdsig(l,i,j))
+            call inc_ajl(i,j,l,jl_uwpac, pdsig(l,i,j)*ua(l,i,j))
+            call inc_ajl(i,j,l,jl_vwpac, pdsig(l,i,j)*va(l,i,j))
+          enddo
+          do l=1,lm-1 ! using pdsig for vertical velocity weight
+            call inc_ajl(i,j,l,jl_wwpac,
+     &           pdsig(l,i,j)*w(i,j,l)*byaxyp(i,j))
+          enddo
+        endif
+
+      enddo
+      enddo
+
+c
+c constant-pressure diagnostics
+c
+      pecp(2:lm+1) = ple(1:lm)
+      pecp(1) = 1d30 ! ensure that all column mass is included
+      qlh=lhe
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        pedge(:) = pedn(:,i,j)
+        call get_dx_intervals(pedge,lm,pecp,lm,dpx,lmod,lcp,lmx,lmxmax)
+        do l=1,lm
+          dpwt(l) = 0d0
+          txdp(l) = 0d0
+          phidp(l) = 0d0
+          qdp(l) = 0d0
+          rhdp(l) = 0d0
+          wmdp(l) = 0d0
+          rh(l) = q(i,j,l)/min(1.,QSAT(TX(I,J,L),QLH,pmid(l,i,j)))
+        enddo
+        do l=1,lmx
+          dpwt(lcp(l))  = dpwt(lcp(l))  + dpx(l)
+          txdp(lcp(l))  = txdp(lcp(l))  + dpx(l)*(tx(i,j,lmod(l))-tf)
+          phidp(lcp(l)) = phidp(lcp(l)) + dpx(l)*phi(i,j,lmod(l))
+          qdp(lcp(l))   = qdp(lcp(l))   + dpx(l)*q(i,j,lmod(l))
+          rhdp(lcp(l))  = rhdp(lcp(l))  + dpx(l)*rh(lmod(l))
+          wmdp(lcp(l))  = wmdp(lcp(l))  + dpx(l)*wm(i,j,lmod(l))
+        enddo
+        do l=1,lm
+          call inc_ajl(i,j,l,jk_dpwt,  dpwt(l))
+          call inc_ajl(i,j,l,jk_tx,    txdp(l))
+          call inc_ajl(i,j,l,jk_hght,  phidp(l))
+          call inc_ajl(i,j,l,jk_q,     qdp(l))
+          call inc_ajl(i,j,l,jk_rh,    rhdp(l))
+          call inc_ajl(i,j,l,jk_cldh2o,wmdp(l))
+        enddo
+      enddo
+      enddo
+
 C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
       RETURN
-  999 FORMAT (' DTHETA/DP IS TOO SMALL AT J=',I4,' L=',I4,2F15.6)
 
       ENTRY DIAGA0
 c increment ajl(jl_dtdyn) by -t before dynamics.
@@ -592,13 +673,60 @@ c the tendency.
       DO L=1,LM
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        call inc_ajl(i,j,l,jl_dtdyn,-t(i,j,l))
+        call inc_ajl(i,j,l,jl_dtdyn,-t(i,j,l)*pk(l,i,j)*pdsig(l,i,j))
       END DO
       END DO
       END DO
       RETURN
 C****
       END SUBROUTINE DIAGA
+
+      subroutine get_dx_intervals(
+     &     xesrc,nsrc,xedst,ndst,dx,lsrc,ldst,nxchng,nmax)
+c
+c This routine returns information needed for conservative
+c remapping in 1 dimension.
+c Given two lists of points xesrc(1:nsrc+1) and xedst(1:ndst+1)
+c along the "x" axis, merge the two lists and calculate the
+c distance increments dx(1:nxchng) separating the points
+c in the merged list.  The i_th increment lies in the intervals
+c xesrc(lsrc(i):lsrc(i)+1) and xedst(ldst(i):ldst(i)+1).
+c Points in xedst lying outside the range xesrc(1:nsrc+1) are
+c not included.
+c
+      implicit none
+      integer :: nsrc,ndst,nxchng,nmax
+      real*8, dimension(nsrc+1) :: xesrc
+      real*8, dimension(ndst+1) :: xedst
+      real*8, dimension(nmax) :: dx
+      integer, dimension(nmax) :: lsrc,ldst
+      integer :: ls,ld
+      real*8 :: xlast,s
+      s = sign(1d0,xesrc(2)-xesrc(1))
+      ld = 1
+      xlast = max(s*xesrc(1),s*xedst(1))
+      do while(s*xedst(ld).le.xlast)
+        ld = ld + 1
+      enddo
+      ls = 2
+      do nxchng=1,nmax
+        lsrc(nxchng) = ls-1
+        ldst(nxchng) = ld-1
+        if(s*xedst(ld).le.s*xesrc(ls)) then
+          if(xedst(ld).eq.xesrc(ls)) ls = ls + 1
+          dx(nxchng) = s*xedst(ld)-xlast
+          xlast = s*xedst(ld)
+          ld = ld + 1
+        else
+          dx(nxchng) = s*xesrc(ls)-xlast
+          xlast = s*xesrc(ls)
+          ls = ls + 1
+        endif
+        if(ld.gt.ndst+1) exit
+        if(ls.gt.nsrc+1) exit
+      enddo
+      return
+      end subroutine get_dx_intervals
 
       SUBROUTINE DIAGCA (M)
 !@sum  DIAGCA Keeps track of the conservation properties of angular
@@ -2594,12 +2722,12 @@ c
       end if
 
       if(am_i_root()) then
-        aj = 0; ajl = 0; asjl = 0; ajk = 0; consrv = 0
+        aj = 0; ajl = 0; asjl = 0; agc = 0; consrv = 0
       endif
       AJ_loc=0    ; AREG_loc=0; AREG=0
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
       AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
-      SPECA=0 ; ATPE=0 ; WAVE=0 ; AJK_loc=0   ; AIJK_loc=0
+      SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0   ; AIJK_loc=0
 #ifndef NO_HDIURN
       HDIURN=0; HDIURN_loc=0
 #endif
@@ -3054,3 +3182,25 @@ c
 
       RETURN
       END SUBROUTINE DIAGJ_PREP
+
+      subroutine diagjl_prep
+      use model_com, only : lm,lm_req
+      use domain_decomp_atm, only : am_i_root
+      use diag_com, only : jm_budg,
+     &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool
+      implicit none
+      integer :: j,l,lr
+
+      if(.not.am_i_root()) return
+
+      do j=1,jm_budg
+        do lr=1,lm_req
+          asjl(j,lr,5)=asjl(j,lr,3)+asjl(j,lr,4)
+        enddo
+        do l=1,lm
+          ajl(j,l,jl_rad_cool)=ajl(j,l,jl_srhr)+ajl(j,l,jl_trcr)
+        enddo
+      enddo
+
+      return
+      end subroutine diagjl_prep

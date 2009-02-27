@@ -31,7 +31,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : GRID, GET, HALO_UPDATE,
      *                          SOUTH, NORTH, ESMF_BCAST
       USE GEOM, only : dxv,rapvn,rapvs,fcor,dxyv,cosv,cosp
-      USE  DIAG_COM, only : ajl=>ajl_loc,kajl,kep,pl=>plm
+      USE  DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
       USE DYNAMICS, only : w=>conv     ! I think this is right....?
 
       IMPLICIT NONE
@@ -41,7 +41,7 @@ C****
       REAL*8, INTENT(IN), 
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: P
 
-C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
+C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)
 c      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) ::
 c     *                                                            AEP
 
@@ -516,7 +516,7 @@ C****
       DO N=1,KEP-2
       DO L=1,LM
       DO J=J_0,J_1
-        AJL(J,L,KAJL-KEP+N)=AJL(J,L,KAJL-KEP+N)+XEP(J,L,N)
+        AGC(J,L,KAGC-KEP+N)=AGC(J,L,KAGC-KEP+N)+XEP(J,L,N)
 c        AEP(J,L,N)=AEP(J,L,N)+XEP(J,L,N)
       END DO
       END DO
@@ -525,7 +525,7 @@ c        AEP(J,L,N)=AEP(J,L,N)+XEP(J,L,N)
 C****
       ENTRY EPFLXI (U)
       CALL GET(grid, J_STRT_HALO=J_0H)
-      CALL AVGVI (U,AJL(J_0H,1,KAJL))
+      CALL AVGVI (U,AGC(J_0H,1,KAGC))
 c      CALL AVGVI (U,AEP(1,1,KEP))
 CW          WRITE (36,'('' TAU='',F12.0)') TAU
 CW          CALL WRITJL ('U - INITIAL     ',AEP(1,1,KEP),1.)
@@ -539,7 +539,7 @@ C****
       CALL AVGVI (U,AX)
       DO L=1,LM
       DO J=J_0STG,J_1STG
-        AJL(J,L,KAJL-1) = AX(J,L)-AJL(J,L,KAJL)
+        AGC(J,L,KAGC-1) = AX(J,L)-AGC(J,L,KAGC)
 c       AEP(J,L,KEP-1) = AX(J,L)-AEP(J,L,KEP)
       END DO
       END DO
@@ -574,7 +574,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,dsig,dtsrce=>dtsrc,fim
      *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
-      USE DIAG_COM, only : ajl,kajl,kep,jl_dpb
+      USE DIAG_COM, only : ajl,kagc,kep,agc,jl_dpb
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
      &     ,jl_dumcdrgm10,jl_dumcdrgp10
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
@@ -582,7 +582,7 @@ C****
      &     ,jl_dudtsdif,jl_damdc,jl_dammc,jl_dudtvdif
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
-C**** NOTE: AEP was a separate array but is now saved in AJL (pointer?)
+C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)
 c      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,KEP) ::
 c     *                                                             AEP
 
@@ -647,7 +647,7 @@ c GISS-ESMF EXCEPTIONAL CASE: OK AS A CONSTANT ON EACH PE
 !     end do
       DO L=1,LS1-1
       DO J=2,JM
-        BYDPJL(J,L)=(FIM*IDACC(4))/(AJL(J,L,JL_DPB)+1.D-20)
+        BYDPJL(J,L)=(FIM*IDACC(4))/(AGC(J,L,JL_DPB)+1.D-20)
       END DO
       END DO
       DO L=LS1,LM
@@ -660,7 +660,7 @@ C     CALL EPFLXF (U)
       DO N=1,KEP-2
       DO L=1,LM
       DO J=1,JM
-        XEP(J,L,N)=AJL(J,L,KAJL-KEP+N)*BYIAEP
+        XEP(J,L,N)=AGC(J,L,KAGC-KEP+N)*BYIAEP
 c        XEP(J,L,N)=AEP(J,L,N)*BYIAEP
       END DO
       END DO
@@ -668,7 +668,7 @@ c        XEP(J,L,N)=AEP(J,L,N)*BYIAEP
       DO N=KEP-1,KEP
       DO L=1,LM
       DO J=1,JM
-        XEP(J,L,N)=AJL(J,L,KAJL-KEP+N)
+        XEP(J,L,N)=AGC(J,L,KAGC-KEP+N)
 c        XEP(J,L,N)=AEP(J,L,N)
       END DO
       END DO
@@ -761,12 +761,12 @@ C****          prints maps of  (Array * SCALEP * ScaleJ * ScaleL)
 C****
       DO L=1,LM
       DO J=2,JM
-        DUDS(J,L)=((AJL(J,L,JL_DUDFMDRG)+AJL(J,L,JL_DUMTNDRG))+
-     &             (AJL(J,L,JL_DUSHRDRG)+AJL(J,L,JL_DUMCDRGM10))+
-     *       ((AJL(J,L,JL_DUMCDRGP10)+AJL(J,L,JL_DUMCDRGM40))+
-     &        (AJL(J,L,JL_DUMCDRGP40)+AJL(J,L,JL_DUMCDRGM20)))+
-     *        (AJL(J,L,JL_DUMCDRGP20)+
-     &         AJL(J,L,JL_DUDTSDIF)+AJL(J,L,JL_DUDTVDIF)))
+        DUDS(J,L)=((AGC(J,L,JL_DUDFMDRG)+AGC(J,L,JL_DUMTNDRG))+
+     &             (AGC(J,L,JL_DUSHRDRG)+AGC(J,L,JL_DUMCDRGM10))+
+     *       ((AGC(J,L,JL_DUMCDRGP10)+AGC(J,L,JL_DUMCDRGM40))+
+     &        (AGC(J,L,JL_DUMCDRGP40)+AGC(J,L,JL_DUMCDRGM20)))+
+     *        (AGC(J,L,JL_DUMCDRGP20)+
+     &         AGC(J,L,JL_DUDTSDIF)+AGC(J,L,JL_DUDTVDIF)))
       END DO
       END DO
       SCALE1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)
