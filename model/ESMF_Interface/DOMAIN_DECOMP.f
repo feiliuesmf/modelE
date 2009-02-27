@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 #ifdef MPI_DEFS_HACK
 #include "mpi_defs.h"
 #endif
@@ -6044,6 +6045,9 @@ cddd      End If
       Integer :: n, sz
       Logical :: bc_periodic
 
+#ifdef USE_SYSUSAGE
+      call sysusage(3,1)
+#endif
  
       USABLE_FROM = usableFrom(from)
       bc_periodic = isPeriodic(bc_periodic_)
@@ -6065,6 +6069,9 @@ cddd      End If
       off(3) = 1+sz*(n-2)
       off(4) = 1+sz*(n-1)
 
+#ifdef USE_SYSUSAGE
+      call sysusage(4,1)
+#endif
       IF(FILL(NORTH)) THEN
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
@@ -6078,9 +6085,15 @@ cddd      End If
      &                    arr(off(1)), 1, new_type, pe_south, tag,
      &                    MPI_COMM_WORLD, status, ierr)
       End If
+#ifdef USE_SYSUSAGE
+      call sysusage(4,2)
+#endif
 
 #ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ierr)
+#endif
+#ifdef USE_SYSUSAGE
+      call sysusage(3,2)
 #endif
 
       End SUBROUTINE SendRecv

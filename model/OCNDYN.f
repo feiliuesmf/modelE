@@ -5370,7 +5370,7 @@ C**** Check
       REAL*8  aUO1sp, aVO1sp, aUO1np, aVO1np 
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
 
-      write (555,*) ' INT_OG2AG#1: dLATMO,aDLATM= ',oDLATM,aDLATM
+!      write (555,*) ' INT_OG2AG#1: dLATMO,aDLATM= ',oDLATM,aDLATM
 
       oONES(:,:) = 1.d0
 
@@ -5430,8 +5430,8 @@ c     *          oDXYPO(j), aDXYPO(j)
             END IF
           END DO
         END DO
-        write (555,*) ' INT_OG2AG#2: L,SUM_oG0M,SUM_oFtemp,SUM_aG0 = ',
-     *                             L,SUM_oG0M,SUM_oFtemp,SUM_aG0  
+!        write (555,*) ' INT_OG2AG#2: L,SUM_oG0M,SUM_oFtemp,SUM_aG0 = ',
+!     *                             L,SUM_oG0M,SUM_oFtemp,SUM_aG0  
       END DO 
 
 !!!  Salinity for the 1st two ocean layers
@@ -5638,7 +5638,7 @@ C**** surface tracer concentration
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
       REAL*8  diff
 
-      write (555,*) ' INT_AG2OG_precip#1: oDLATM,aDLATM= ',oDLATM,aDLATM
+!      write (555,*) ' INT_AG2OG_precip#1: oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
       aFweight(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction 

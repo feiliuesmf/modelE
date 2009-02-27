@@ -107,6 +107,16 @@ C**** Command line options
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
       real*8 :: gettotalenergy ! external for now
+#ifdef USE_SYSUSAGE
+      integer :: i_su, max_su=3
+#endif
+
+#ifdef USE_SYSUSAGE
+      do i_su=0,max_su
+        call sysusage(i_su,0)
+      enddo
+#endif
+
 C****
 C**** Processing command line options
 C****
@@ -319,6 +329,10 @@ C****
 
 
       DO WHILE (Itime.lt.ItimeE)
+#ifdef USE_SYSUSAGE
+        call sysusage(0,1)
+#endif
+
 
 #if !defined( ADIABATIC ) || defined( CUBE_GRID)
 
@@ -407,7 +421,9 @@ c     enddo
 #endif
 ! ADIABATIC
 
-
+#ifdef USE_SYSUSAGE
+      call sysusage(1,1)
+#endif
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
@@ -465,6 +481,9 @@ C**** Scale WM mixing ratios to conserve liquid water
 #else
          CALL TIMER (MNOW,MTRACE)
 #endif
+#endif
+#ifdef USE_SYSUSAGE
+         call sysusage(1,2)
 #endif
 C****
 C**** Calculate tropopause level and pressure
@@ -568,7 +587,13 @@ C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
       CALL GROUND_E    ! diagnostic only - should be merged with EARTH
 C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
+#ifdef USE_SYSUSAGE
+      call sysusage(2,1)
+#endif
       CALL OCEANS
+#ifdef USE_SYSUSAGE
+      call sysusage(2,2)
+#endif
          CALL CHECKT ('OCEANS')
 C**** APPLY ICE FORMED IN THE OCEAN/LAKES TO ICE VARIABLES
       CALL FORM_SI
@@ -813,7 +838,9 @@ c$$$      call test_save(__LINE__, itime-1)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 #endif
 ! ADIABATIC
-
+#ifdef USE_SYSUSAGE
+      call sysusage(0,2)
+#endif
       END DO
 
       call gettime(tloopend)
@@ -849,6 +876,12 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call closeunit(iu_scm_prt)
       call closeunit(iu_scm_diag)
 #endif
+#endif
+
+#ifdef USE_SYSUSAGE
+      do i_su=0,max_su
+        call sysusage(i_su,3)
+      enddo
 #endif
 
       IF (AM_I_ROOT())
