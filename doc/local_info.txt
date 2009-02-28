@@ -2,9 +2,11 @@ Running on Discover (Reto Ruedy)
 +++++++++++++++++++
 News:
 ====
-Systems aliased "run" to some command involving Java: do: "unalias run"
-                                           or replace "run" by "runpbs"
-runpbs will put your job into the "background" queue if the time limit is set to 4 (hrs)
+modelE may also be compiled using openMPI or intelMPI to run on the new 8 cpu nodes
+run(pbs) was enhanced to deal with the new nodes and will allow to use <8 cpus per node:
+   run runID slow|fast|new|newN #_of_cpus_per_job time_limit(hours) (here: N=1-8)
+   all cpus are used unless N<8 in which case only N cpus/node are used; this may be
+   needed if the job requires a lot of memory.
 
 Generalities:
 ============
@@ -33,7 +35,9 @@ runpbs job1+job2+... should work fine for any modelE jobs; for
 non-modelE openMP jobs, create in the run directory a copy E4 of "E" which
 sets:   export OMP_NUM_THREADS=4    (before the *.exe line)
     or  setenv OMP_NUM_THREADS 4    (for csh tcsh users)
-Any number of mpi jobs that use the same number of nodes can be bundled
+Any number of scali mpi jobs that use the same number of nodes can be bundled
+openMPI jobs cannot be bundled, intelMPI could be bundled but it has
+not been implemented yet.
 
 Unresolved bugs:
 ===============
@@ -44,17 +48,13 @@ Unresolved bugs:
 - serial and parallel versions do not always give the same result
      hint: see next section (Consistency ...)
 
-- intel mpi: the model is unable to complete the first iteration - it stalls
+- intel mpi: may be used on all nodes (slower than scali)
 
 - scali mpi: cannot be used on the new 8-cpu nodes
 
-- openmpi: may be used on all nodes, HOWEVER: 
-   - stack limit default is too small and has to be reset AFTER mpirun
-     (-inherit_limits does not work yet)
-   - there also seems to be a memory leak type problem that severly limits
-     wall clock time (for E1M20, a 5-hour limit seems to work)
-   - We did not find out yet how to bundle openmpi jobs; the scali mpi trick
-     does not work !
+- openmpi: may be used on all nodes
+   - compile with: EXTRA_FFLAGS="-DMPITYPE_LOOKUP_HACK" to avoid memory leak
+   - Bundling openmpi jobs does not seem to be possible
 
 Compiler issues:
 ===============
@@ -67,9 +67,13 @@ Before doing so, load the appropriate modules, currently:
 and either
    module load comp/intel-9.1.042
    module load mpi/scali-5               ; # for scali mpi (on borga-e...)
-or  
+or
    module load comp/intel-9.1.052        ; # for openmpi
    module load mpi/openmpi-1.2.5/intel-9
+or
+   module load comp/intel-10.1.017       ; # for intel mpi
+   module load mpi/impi-3.2.011  
+
 This is to be put into your startup script (e.g. .profile if your login shell
 ksh), so these modules also get loaded when running in batch mode.
 "runpbs (=run)" was modified to load the appropriate modules for mpi batch jobs
@@ -141,10 +145,11 @@ sftp_help   get password-free access to dirac, other nodes, CVS repository
 run,runpbs  submit 1 or several jobs as a single batch job
   "run" has a systems default alias that may be bypassed typing "unalias run"
   "run" and "runpbs" are identical
-  Usage: runpbs runID [fast|slow|new] #_of_cpus #_of_wall_clock_hours
+  Usage: runpbs runID [fast|slow|newN] #_of_cpus #_of_wall_clock_hours
   Notes: 1) if #_of_wall_clock_hours=4, the job goes into the background queue -
             that background queue is often closed when the system is busy
          2) runpbs runID new ... sends the job to the new 8-processor nodes
+            if the 2nd arg ends in a digit N (N=1-8), at most N cpus per node are used.
 qsubI       get an interactive batch session (args: fast|slow|new #_of_cpus wc_time)
   Note: you may need a modified copy of "run" and "qsubI" if your group is not "a940a"
 ssw         stop a modelE run
@@ -161,7 +166,7 @@ pdE_mpi     may be used instead of a "qsubI" then "pdE" combination
 jE_to_lpl   extract an aplot-file for a selected field from *.jE* (budg.pg)
 qdf         display titles for ij-files, etc
 qdf1        display titles for rsf-files,acc-files
-q4df        display titles,etc for GISS/4D-files (e.g. *.jk* files) 
+q4df        display titles,etc for GISS/4D-files (e.g. *.jk* files)
 qit         display/check times/multiplicity for subdaily output files
 maxmin      find extremes for ij-files
 maxmin4     find extremes for GISS/4D-files
