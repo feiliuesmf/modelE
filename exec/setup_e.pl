@@ -232,7 +232,7 @@ foreach $_ ( @data_files ) {
 	#exit 1;
     }
     if ( $name !~ /^(AIC|OIC|GIC)$/ ) {
-	print RUNIDLN "ln -s $dest $name\n";
+	print RUNIDLN "ln -fs $dest $name\n";
 	print RUNIDULN "rm $name\n";
     } else {
 	`ln -sf $dest $name` ; 
