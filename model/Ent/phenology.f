@@ -178,7 +178,7 @@
       real*8 :: par_crit
       logical :: par_limit
       real*8 :: turnover0, llspan0
-      real*8 :: zweight, zweight30
+      real*8 :: zweight, zweight30, zweight90
       
       sand = pp%cellptr%soil_texture(1)*100.d0
       clay = pp%cellptr%soil_texture(3)*100.d0
@@ -201,6 +201,7 @@
 
       zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
       zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
+      zweight90=exp(-1.d0/(90.d0*86400.d0/dtsec)) 
 
       !10-day running average of Soil Temperature
       soiltemp_10d=zweight*soiltemp_10d+(1.0d0-zweight)*soiltemp
@@ -250,12 +251,12 @@
             turnover0 = min(100.d0, max(0.01d0, 
      &         par_turnover_slope*par_10d + par_turnover_int))
             if (par_10d .lt. par_crit) turnover0 = 0.01d0
-            cop%turnover_amp=(1.d0-zweight)*cop%turnover_amp 
-     &         +zweight*turnover0
+            cop%turnover_amp=zweight*cop%turnover_amp 
+     &         +(1.d0-zweight)*turnover0
      
             llspan0 = pfpar(cop%pft)%lrage*12.d0/cop%turnover_amp
-            cop%llspan=(1.d0-zweight30)*cop%llspan
-     &         +zweight30*llspan0     
+            cop%llspan=zweight90*cop%llspan
+     &         +(1.d0-zweight90)*llspan0     
          else
             cop%turnover_amp = 1.d0
             cop%llspan = -999.d0
@@ -754,6 +755,7 @@ c$$$      Cactive = Cactive + dC_remainder
             qs = 0.d0 
             gr_fract = 1.d0
          end if
+      else !woody
          if (C_fol .gt. 0.d0 .and. 
      &       Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
             if (dbh .le. maxdbh(pft))then
