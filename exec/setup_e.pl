@@ -284,16 +284,16 @@ if ( $uname =~ /IRIX64/ ) {
     $omp_run = "export MP_SET_NUMTHREADS=\$NP; "; #?? check
 } elsif ( $uname =~ /Linux/ ) {
     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
-    $mpi_run = "mpirun -np \$NP ";
+    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
     if ( $MPIDISTR =~ /SCALI/ ) {
 	$mpi_run .= "-inherit_limits ";
     }
     if ( $MPIDISTR =~ /openmpi/ ) {
-        $mpi_run = "mpirun --mca btl_openib_warn_no_hca_params_found 0 -np \$NP ";
+        $mpi_run .= "--mca btl_openib_warn_no_hca_params_found 0 ";
     }
 } elsif ( $uname =~ /Darwin/ ) {
     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
-    $mpi_run = "mpirun -np \$NP ";
+    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
 }
 
 chmod 0777 & $umask_inv, "${runID}ln", "${runID}uln", "runtime_opts";
