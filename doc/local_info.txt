@@ -72,7 +72,7 @@ or
    module load mpi/openmpi-1.2.5/intel-9
 or
    module load comp/intel-10.1.017       ; # for intel mpi
-   module load mpi/impi-3.2.011  
+   module load mpi/impi-3.2.011
 
 This is to be put into your startup script (e.g. .profile if your login shell
 ksh), so these modules also get loaded when running in batch mode.
@@ -145,7 +145,9 @@ sftp_help   get password-free access to dirac, other nodes, CVS repository
 run,runpbs  submit 1 or several jobs as a single batch job
   "run" has a systems default alias that may be bypassed typing "unalias run"
   "run" and "runpbs" are identical
-  Usage: runpbs runID [fast|slow|newN] #_of_cpus #_of_wall_clock_hours
+  Usage: runpbs runID [fast<N>|slow<N>|new<N>] #_of_cpus #_of_wall_clock_hours
+         The optional <N> limits the number of cpus per node used; it has to be 1-4 in the
+         first 2 cases and 1-8 in the last one (fast3 may be abbreviated by f3, new6 by n6)
   Notes: 1) if #_of_wall_clock_hours=4, the job goes into the background queue -
             that background queue is often closed when the system is busy
          2) runpbs runID new ... sends the job to the new 8-processor nodes
@@ -243,6 +245,20 @@ repeat steps 1-4 for the new run
 
 To set up the SAME run after fixing something or other, proceed as above, but
 first REMOVE ALL OLD FILES in the rundirectory Exyz (in particular Exyz.exe_serial)
+
+How many processors should be used per modelE run ?
+===================================================
+With openMP, you are limited to 1 node (i.e. 4 cpus on the old nodes,
+8 cpus on the new nodes)
+
+With mpi and as long as modelE uses a 1-dim. composition with respect to latitude J
+I would recommend at most JM/3 cpus; this assigns to each processor a region consisting
+of 3 latitudes (the halo always consists of 2 latitudes). It is highly recommended not
+to use more than JM/2 latitudes, since some parts of modelE assume that the processor
+whose region starts or ends at a pole also contains at least one other latitude. If
+that is not the case, the model will use undefined quantities and will malfunction.
+
+If memory is the problem, limit the number of cpus used per node (see runpbs).
 
 utilities for long jobs: (on ...../giss/exec)
 =======================
