@@ -916,8 +916,7 @@ C****
       LOGICAL qIjk,Ql(KAJLx),Qk(KAGCx)
       character*80 line
 
-!!!! hack, please check
-      k = 0
+      k = kajl
 
       inquire(file='Ijk',exist=qIjk)
       if(.not.qIjk) then
@@ -1278,7 +1277,7 @@ c Check the count
       end if
 
       if(.not.qIjk) then
-         write(iu_Ijk, FMT='(a)') 'list of JK-fields'
+         write(iu_Ijk, FMT='(a)') 'list of GC-fields'
          do kk = 1,k
            write (iu_Ijk, '(i3,1x,a)') kk,lname_gc(kk)
          end do
