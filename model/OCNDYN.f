@@ -1381,8 +1381,8 @@ c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOMASS zonal ocean mass per whole latitude band area (kg/m^2)
-      Real*8    :: oOMASS(oGRID%J_STRT:oGRID%J_STOP),
-     *             aOMASS(aGRID%J_STRT:aGRID%J_STOP)
+      Real*8    :: oOMASS(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     *             aOMASS(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
       Integer*4 :: J1O,JNO, I,J,N
 C****
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
@@ -1421,8 +1421,8 @@ c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOSALT zonal ocean salt per whole latitude band area (kg/m^2)
-      Real*8    :: oOSALT(oGRID%J_STRT:oGRID%J_STOP),
-     *             aOSALT(aGRID%J_STRT:aGRID%J_STOP)
+      Real*8    :: oOSALT(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     *             aOSALT(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
       Integer*4 :: J1O,JNO, I,J,N
 C****
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
@@ -1463,8 +1463,8 @@ c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOCEANE zonal ocean potential enthalpy per band area (J/m^2)
-      Real*8    :: oOCEANE(oGRID%J_STRT:oGRID%J_STOP),
-     *             aOCEANE(aGRID%J_STRT:aGRID%J_STOP)
+      Real*8    :: oOCEANE(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     *             aOCEANE(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
       Integer*4 :: J1O,JNO, I,J,N
 C****
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
@@ -1497,15 +1497,15 @@ C****
 !@ver   2008/12/23
 C****
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
-     *     , oDXYP=>DXYPO, LMOM=>LMM, MO,UO,VO  
+     *     , oDXYP=>DXYPO, LMOM=>LMM, MO,UO,VO
 
       USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET, SOUTH, HALO_UPDATE
 c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET, SOUTH, HALO_UPDATE
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOKE zonal ocean kinetic energy per whole band area (J/m^2)
-      Real*8    :: oOKE(oGRID%J_STRT:oGRID%J_STOP),
-     *             aOKE(aGRID%J_STRT:aGRID%J_STOP)
+      Real*8    :: oOKE(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     *             aOKE(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
       Integer*4 :: J1O,JNO, I,J,L,Ip1
 C****
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
@@ -1562,8 +1562,9 @@ c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOAM ocean angular momentum per whole latitude band area (kg/s)
-      Real*8    :: oOAM(oGRID%J_STRT:oGRID%J_STOP), oOMASS,oUMILx2,
-     *             aOAM(aGRID%J_STRT:aGRID%J_STOP)
+      Real*8    :: oOAM(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), 
+     *             aOAM(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     *             oOMASS,oUMILx2,
       Integer*4 :: J1O,JNO, I,J,L,Ip1
 C****
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
@@ -1607,8 +1608,8 @@ C****
       Use DOMAIN_DECOMP_1D, Only: UNPACK_DATA
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
-      Real*8    :: oQJ(oGRID%J_STRT:oGRID%J_STOP),
-     *             aQJ(aGRID%J_STRT:aGRID%J_STOP),
+      Real*8    :: oQJ(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     *             aQJ(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
      *             oONES(JMO),oQJGLOB(JMO),aQJGLOB(JMA)
       Integer*4 :: J1O,JNO, J1A,JNA, J
 C****
