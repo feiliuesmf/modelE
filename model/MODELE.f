@@ -1661,7 +1661,7 @@ C****
         call io_rsf("AIC",IhrX,irsfic,ioerr)
 c if starting with a different land mask, these maybe necessary
 c        iniSNOW = .TRUE.  ! Special for non-0k
-c        iniPBL=.TRUE.           ! Special for non-0k
+        iniPBL=.TRUE.           ! Special for non-0k
         if (ioerr.eq.1) goto 800
       END SELECT
 
