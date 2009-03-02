@@ -916,6 +916,9 @@ C****
       LOGICAL qIjk,Ql(KAJLx),Qk(KAGCx)
       character*80 line
 
+!!!! hack, please check
+      k = 0
+
       inquire(file='Ijk',exist=qIjk)
       if(.not.qIjk) then
          call openunit('Ijk',iu_Ijk,.false.,.false.)
