@@ -40,7 +40,8 @@ VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules LANDICE LANDICE_DRV                 ! land ice modules
+SEAICE SEAICE_DRV                   ! seaice modules 
+LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
 OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
