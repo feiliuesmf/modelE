@@ -741,7 +741,6 @@ c     intent(in) :: n
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
      * hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm
-      character*80 :: title 
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
@@ -818,14 +817,16 @@ c
 c historic BC emissions
       USE CONSTANT, only : syr
       USE MODEL_COM, only: jyear, jday,im,jm
-      USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_ATM, only :  GRID, GET 
-      USE TRACER_COM, only: aer_int_yr
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
+      USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
+     * ty_start,ty_end,n_so2
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
+     * ,n,tys,tye,ns
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
      * hso2_all
       real*8 d1,d2,d3,xso2ff
@@ -845,21 +846,22 @@ c     if (iact.eq.0.or.jday.eq.1) then
       endif
        hso2_all(:,:,:)=0.0
        hso2(:,:,:)=0.0
-      call openunit('SO2_INDh',iuc, .false.,.true.)
-      read(iuc,*) ndec,idec1
-      do 
-      read(iuc,*) ii,jj,iy,xso2ff
-      if (iy.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      hso2_all(ii,jj,iy)=xso2ff
+      call openunit('SO2_INDh',iuc, .true.,.true.)
+      ns=1
+      n=n_SO2
+      call read_emis_header(n,ns,iuc)
+      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+      do iy=1,ndec
+       call readt_parallel(grid,iuc,nameunit(iuc),hso2_all(:,:,iy),0)
       end do
       call closeunit(iuc)
-      if (ihyr.lt.idec1) ihyr=idec1
-      idecl=idec1+(ndec-1)*10
-      if (ihyr.ge.idecl) ihyr=idecl
+      tye=ty_end(n,ns)
+      tys=ty_start(n,ns)
+      if (ihyr.lt.tys) ihyr=tys
+      if (ihyr.ge.tye) ihyr=tye
 
       do i=1,ndec
-      jbt=idec1+(i-1)*10
+      jbt=tys+(i-1)*10
       if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
       jb1=jbt
       jb2=jbt+10
@@ -868,6 +870,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
       endif
       end do
   23  continue
+c
       hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
 c kg/year to kg/s and x2 to convert from S to SO2
         hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)*2.d0/syr
