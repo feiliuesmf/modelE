@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 can!#define DEBUG 1
       module  photcondmod
       !This version of photcondmod does leaf level
@@ -71,13 +72,14 @@ can!#define DEBUG 1
       end subroutine biophysdrv_setup
 !-----------------------------------------------------------------------------
       subroutine pscondleaf(pft,IPAR,psd,Gb,gsout,Aout,Rdout
-     &     ,sunlitshaded)
+     &     ,sunlitshaded,ISPout)
       implicit none
       integer,intent(in) :: pft
       real*8,intent(in) :: IPAR !umol m-2 s-1
       type(psdrvtype) :: psd
       real*8,intent(in) :: Gb !mol m-2 s-1
       real*8,intent(out) :: gsout, Aout, Rdout !ci in psd
+      real*8,intent(out) :: ISPout
       integer,intent(in) :: sunlitshaded
       !---Local---
       real*8 :: ci!, cs
@@ -95,8 +97,10 @@ cddd     &     pft,IPAR,psd%ca,ci,
 cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
         call Photosynth_analyticsoln(pft,IPAR,psd%ca,ci,
-     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded)
+     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded,
+     &  ISPout)
         psd%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
+
 !      endif
         
       !Biological limits for gs - cuticular conductance?
@@ -109,7 +113,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 !-----------------------------------------------------------------------------
 
       subroutine Photosynth_analyticsoln(pft,IPAR,ca,ci,Tl,Pa,rh,gb,
-     o     gs,Atot,Rd,sunlitshaded)
+     o     gs,Atot,Rd,sunlitshaded,isp)
       !@sum Photosynth_cubic Farquhar photosynthesis and Ball-Berry conductance
       !@sum and autotrophic respiration.  ci is solved for analytically for each
       !@sum of the limiting cases.
@@ -125,6 +129,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8,intent(out) :: gs  !Leaf stomatal conductance (mol-H2O m-2 s-1)
       real*8,intent(out) :: Atot !Leaf gross photosynthesis (CO2 uptake, micromol m-2 s-1)
       real*8,intent(out) :: Rd  !Dark = above-ground growth + maintenance respiration (umol m-2 s-1)
+      real*8,intent(out) :: isp ! Isoprene emission (umol C m-2 s-1)
       integer,intent(in) :: sunlitshaded !For diagnostic outputs only.
         !---Local----
 !      type(photosynthpar) :: pspar !Moved to global to module.
@@ -132,6 +137,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: cie, cic, cis   !Leaf internal CO2 (umol mol-1)
       real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
+      real*8 :: Aiso            ! Rate of photosynthesis for isoprene emissions (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
       real*8 :: Ae, Ac, As
       real*8 :: a1,f1,e1
@@ -171,6 +177,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
       Anet = min(Ae, Ac, As)
       Atot = Anet + Rd
+      Aiso = Ae + Rd
 
       if (Atot.lt.0.d0) then
         ! can only happen if ca < Gammastar . Does it make sense?
@@ -188,8 +195,81 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       gs = BallBerry(Anet, rh, cs, pspar)
       ci = cs - Anet/(gs/1.65d0)
 
+#ifdef PS_BVOC
+         call Voccalc(pft,pa,ca,ci,Tl,pspar%Gammastar,
+     & isp,Aiso)
+
+#else
+       isp=0.0d0
+#endif
+
       end subroutine Photosynth_analyticsoln
 
+!-----------------------------------------------------------------------------
+      subroutine Voccalc(pft,pa,ca,ci,Tl,Gammastar,isp,Aiso)
+!@sum Isoprene emissions coupled to photosynthesis
+
+      implicit none
+      integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
+      real*8,intent(in) :: ca   !Ambient air CO2 mole fraction (umol mol-1)      
+      real*8,intent(in) :: Pa   !Pressure (Pa)
+      real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
+      real*8,intent(in) :: Gammastar   
+      real*8,intent(in) :: Aiso   !(umol m-2 s-1)
+      real*8,intent(in) :: ci
+      real*8,intent(out) :: isp ! isoprene emission (umol C m-2 s-1)
+      type(photosynthpar) :: pspar
+        !---Local----
+      real*8 :: gammamol,fact
+      real*8 :: IBASER, Y_alpha, Y_eps, kapco2
+      real*8 :: tauiso
+      gammamol =  Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+
+C Y_alpha, Y_eps unitless
+  
+      Y_alpha=(ci-gammamol)/(6.0*(4.67*ci+9.33*gammamol))
+
+         if(pft.eq.1)then 
+         Y_eps = 0.0d0
+         endif
+         if(pft.eq.2)then 
+         Y_eps = 2.10d-02
+         endif
+         if(pft.eq.3)then 
+         Y_eps = 8.24d-02
+         endif
+         if(pft.eq.4)then 
+         Y_eps = 6.48d-02
+         endif
+         if(pft.eq.5)then 
+         Y_eps = 1.08d-01
+         endif
+         if(pft.eq.6)then 
+         Y_eps = 4.44d-02
+         endif
+         if(pft.eq.7)then 
+         Y_eps = 1.38d-01
+         endif
+         if(pft.eq.8)then 
+         Y_eps = 0.0d0
+         endif       
+
+       isp = Y_eps*Aiso*Y_alpha
+
+C Include CO2 effects
+
+       kapco2 = (0.7*370.0)/(0.7*ca)
+
+C Include temperature effects
+
+       tauiso = exp(0.1*(Tl-30.0))
+
+C Include seasonal effects? Add later.
+C Note can switch on and off kapco2
+
+       isp = isp*kapco2*tauiso
+
+      end subroutine Voccalc
 
 !-----------------------------------------------------------------------------
 cddd      subroutine Photosynth_analyticsoln1(pft,IPAR,ca,ci,Tl,Pa,rh,gb,

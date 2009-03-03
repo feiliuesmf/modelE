@@ -151,7 +151,8 @@
          real*8 :: Ci             !*Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: gcanopy        ! Conductance of water vapor/cohort (m/s)
          real*8 :: GPP            ! GPP flux/cohort/area cover (kg-C/m2/s)
-         real*8 :: NPP            ! NPP flux/cohort/area cover (kg-C/m2/s)
+         real*8 :: IPP            ! Isoprene emission flux (kg-C/m2/s)
+         real*8 :: NPP            ! NPP flux/cohort/area cover (kg-C/m2/s)        
          real*8 :: R_auto         ! Autotrophic respiration/cohort/area (kg-C/m2/s)
                                   ! = growth(Acan) + maint(fol,sapwood,root)
          real*8 :: R_root         ! Root respiration/cohort/area  (kg-C/m2/s) -PK 5/15/07
@@ -243,6 +244,7 @@
          real*8 :: GCANOPY        ! Conductance of water vapor (m/s)
          !* DIAGNOSTICS - FLUXES
          real*8 :: GPP            ! GPP flux (kg-C/m2/s)
+         real*8 :: IPP            ! Isoprene flux (kg-C/m2/s)
          real*8 :: NPP            ! NPP flux (kg-C/m2/s)
          real*8 :: R_auto         ! Autotrophic respiration (kg-C/m2/s)
                                   ! = growth(Acan) + maint(fol,sapwood,root)
@@ -365,6 +367,7 @@
          real*8 :: GCANOPY        ! Conductance of water vapor (m/s)
          !* EXPORT - FLUXES 
          real*8 :: GPP            ! GPP flux (kg-C/m2/s)
+         real*8 :: IPP            ! Isoprene flux (kg-C/m2/s)
          real*8 :: NPP            ! NPP flux (kg-C/m2/s)
          real*8 :: R_auto         ! Autotrophic respiration (kg-C/m2/s)
                                   ! = growth(Acan) + maint(fol,sapwood,root)

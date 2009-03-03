@@ -170,6 +170,7 @@
         pp%Ci = pp%Ci + cop%Ci * cop%LAI !wtd average
         pp%GCANOPY = pp%GCANOPY + cop%GCANOPY !total
         pp%GPP = pp%GPP + cop%GPP     !total
+        pp%IPP = pp%IPP + cop%IPP     !total
         pp%NPP = pp%NPP + cop%NPP     !total
         pp%R_auto = pp%R_auto + cop%R_auto        !total
         pp%R_root = pp%R_root + cop%R_root        !total 
@@ -288,6 +289,7 @@
       pp%Ci = 0.d0
       pp%GCANOPY = 0.d0
       pp%GPP = 0.d0
+      pp%IPP = 0.d0
       pp%NPP = 0.d0
       pp%R_auto = 0.d0
       pp%R_root = 0.d0  !PK 5/15/07

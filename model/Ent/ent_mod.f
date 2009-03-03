@@ -1868,6 +1868,8 @@ cddd      end interface ent_cell_update
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -1890,6 +1892,8 @@ cddd      end interface ent_cell_update
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -1939,6 +1943,11 @@ cddd      end interface ent_cell_update
       if ( present(canopy_gpp) )
      &     canopy_gpp =
      &     entcell%entcell%GPP
+
+C NADINE
+      if ( present(canopy_ipp) )
+     &     canopy_ipp =
+     &     entcell%entcell%IPP
 
       if ( present(roughness_length) )
      &     roughness_length =
@@ -2037,6 +2046,8 @@ cddd      end interface ent_cell_update
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -2059,6 +2070,8 @@ cddd      end interface ent_cell_update
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -2112,6 +2125,11 @@ cddd      end interface ent_cell_update
       if ( present(canopy_gpp) )
      &     canopy_gpp(i1) =
      &     entcell(i1)%entcell%GPP
+
+C NADINE
+      if ( present(canopy_ipp) )
+     &     canopy_ipp(i1) =
+     &     entcell(i1)%entcell%IPP
 
       if ( present(roughness_length) )
      &     roughness_length(i1) =
@@ -2211,6 +2229,8 @@ cddd      end interface ent_cell_update
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -2233,6 +2253,8 @@ cddd      end interface ent_cell_update
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -2287,6 +2309,11 @@ cddd      end interface ent_cell_update
       if ( present(canopy_gpp) )
      &     canopy_gpp(i1,i2) =
      &     entcell(i1,i2)%entcell%GPP
+
+C NADINE
+      if ( present(canopy_ipp) )
+     &     canopy_ipp(i1,i2) =
+     &     entcell(i1,i2)%entcell%IPP
 
       if ( present(roughness_length) )
      &     roughness_length(i1,i2) =

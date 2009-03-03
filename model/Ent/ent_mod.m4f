@@ -1042,6 +1042,8 @@ m4_loop(`
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -1064,6 +1066,8 @@ m4_loop(`
      &     leafinternal_CO2,
      &     foliage_humidity,
      &     canopy_gpp,
+C NADINE
+     &     canopy_ipp,
      &     roughness_length,
      &     flux_CO2,
      &     C_labile,
@@ -1117,6 +1121,11 @@ m4_loop(`
       if ( present(canopy_gpp) )
      &     canopy_gpp`'m4_brkts(m4_ind)`' =
      &     entcell`'m4_brkts(m4_ind)`'%entcell%GPP
+
+C NADINE
+      if ( present(canopy_ipp) )
+     &     canopy_ipp`'m4_brkts(m4_ind)`' =
+     &     entcell`'m4_brkts(m4_ind)`'%entcell%IPP
 
       if ( present(roughness_length) )
      &     roughness_length`'m4_brkts(m4_ind)`' =

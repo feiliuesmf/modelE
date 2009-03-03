@@ -78,9 +78,11 @@
       real*8 :: Gb !Leaf boundary layer conductance of water vapor(mol m-2 s-1)
       real*8 :: fdry_pft_eff ! pft-specific effective dry canoopy fraction   
       real*8 :: Anet,Atot,Rd    !umol m-2 s-1
+      real*8 :: Iemis ! Nadine's isoprene emission umol m-2 s-1
       real*8 :: GCANOPY,TRANS_SW ! Ci,NPP !,R_auto
       real*8 :: GCANOPYsum, Ciavg, GPPsum, NPPsum, R_autosum,C_labsum,
      &          R_rootsum  !PK 5/15/07
+      real*8 :: IPPsum
       real*8 :: molconc_to_umol
 
 #ifdef DEBUG
@@ -108,6 +110,7 @@
       Ciavg = 0.d0
       GPPsum = 0.d0
       NPPsum = 0.d0
+      IPPsum = 0.d0
       R_autosum = 0.d0
       R_rootsum = 0.d0
       C_labsum = 0.d0
@@ -196,6 +199,7 @@
      &         ,Gb
      &         ,psdrvpar
      &         ,GCANOPY,Anet,Atot,Rd !NOTE: Ci should be cohort level
+     &         ,Iemis
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
 !     &       ,if_ci)  
 
@@ -218,6 +222,7 @@
           cop%Ci = psdrvpar%ci * !ci is in mole fraction
      &         psdrvpar%Pa/(gasc * (psdrvpar%Tc+KELVIN)) !mol m-3
           cop%GPP = Atot * fdry_pft_eff * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
+          cop%IPP = Iemis * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
           Anet = cop%GPP - Rd !Right now Rd and Respiration_autotrophic are inconsistent-NK
@@ -226,6 +231,7 @@
           cop%GCANOPY=0.d0 !May want minimum conductance for stems & cuticle.
           cop%Ci = EPS
           cop%GPP = 0.d0
+          cop%IPP = 0.d0
           TRANS_SW = 1.d0
         endif
         !* Update cohort respiration components, NPP, C_lab
@@ -243,6 +249,7 @@
         GCANOPYsum = GCANOPYsum + cop%GCANOPY
         Ciavg = Ciavg + cop%Ci*cop%LAI
         GPPsum = GPPsum + cop%GPP
+        IPPsum = IPPsum + cop%IPP
         NPPsum = NPPsum + cop%NPP
         R_autosum = R_autosum + cop%R_auto
         R_rootsum = R_rootsum + cop%R_root  !PK 5/15/07
@@ -259,6 +266,7 @@
         pp%Ci = 0.d0
       endif
       pp%GPP = GPPsum
+      pp%IPP = IPPsum
       pp%NPP = NPPsum
       pp%R_auto = R_autosum
       pp%R_root = R_rootsum
@@ -270,6 +278,7 @@
 !      pp%C_lab = pp%C_lab + max(C_labsum, 0.d0)  !(kg/m2) ###Eventually need to convert to kg/individual.
       pp%C_lab = C_labsum!(kg/m2) ###Eventually need to convert to kg/individual.
 
+
       end subroutine photosynth_cond
 
 
@@ -278,7 +287,7 @@
      i     ,canalbedo,LAIcanopy,LAIcohort,IPAR,CosZen,fdir
      i     ,Gb
      i     ,psdrvpar
-     o     ,Gs,Anet,Atot,Rd,TRANS_SW)
+     o     ,Gs,Anet,Atot,Rd,Iemis,TRANS_SW)
 !     i     ,if_ci)
 !@sum canopyfluxes Calculates photosynthesis and conductance with
 !@sum Farqhuar et al. (1980) photosynthesis, Ball-Berry stomatal conductance,
@@ -318,11 +327,13 @@
       real*8,intent(out) :: Atot !Leaf gross photosynthesis (micromol m-2 s-1)
       real*8,intent(out) :: Rd  !Leaf respiration (umol/m2/s)
       real*8,intent(out) :: TRANS_SW !Transmittance of shortwave to ground surface.
+      real*8,intent(out) :: Iemis ! Leaf isoprene emission Nadine (micromol m-2 s-1)
 !      integer,intent(in) :: if_ci !FLAG 0-don't calculate ci, 1-calculate ci
       
       !-----Local---------------------
       real*8 :: Gsint           !Gs canopy conductance from qsimp integration (mol/m2/s)
       real*8 :: Rdint           !Rd canopy foliage respiration form qsimp integration (umol/m2/s)
+      real*8 :: Iint            !Iint Nadine's isoprene emission
       type(canraddrv) :: cradpar
       !real*8 :: Ciconc          !Leaf internal CO2 mole fraction calculate (umol mol-1)
 
@@ -334,7 +345,7 @@
       !Calculate net photosynthesis, integrate vertically with Simpson's Rule.
       !call qsimp(cradpar%LAI,cradpar,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
-      call qsimp(cradpar%LAI,cradpar,psdrvpar,Gb,Atot,Gsint,Rdint) 
+      call qsimp(cradpar%LAI,cradpar,psdrvpar,Gb,Atot,Gsint,Rdint,Iint) 
 !      write(993,*) cradpar,psdrvpar,ca,Gb,Atot,Gsint,Rdint
       !Calculate conductance and ci at the canopy level
 !      call Gs_bound(dt, LAI,Gsint, Gs) !Limit rate of change of Gs.
@@ -353,6 +364,7 @@
       Rd = Rdint
       Gs = Gsint
       Anet = Atot - Rd
+      Iemis = Iint
 
       call canopy_transmittance(TRANS_SW,CosZen,fdir,cradpar)
       !Return:  Ci, Gs, Anet
@@ -441,7 +453,8 @@
      i     ,Gb                  !Leaf boundary layer conductance (mol/m2/s)
      o     ,Alayer              !Leaf Net assimilation of CO2 in layer (umol m-2 s-1)
      o     ,gslayer            !Leaf Conductance of water vapor in layer (mol m-2 s-1)
-     o     ,Rdlayer)             !Leaf respiration (umol m-2 s-1)
+     o     ,Rdlayer             !Leaf respiration (umol m-2 s-1)
+     o     ,Ilayer)           ! Leaf isoprene emission (umol m-2 s-1)
       implicit none
       real*8,intent(in) :: Lcum
       type(canraddrv) :: crp
@@ -452,6 +465,7 @@
       real*8,intent(out) :: Alayer !Flux for single leaf
       real*8,intent(out) :: gslayer !Conductance for single leaf
       real*8,intent(out) :: Rdlayer !Respiration for single leaf
+      real*8,intent(out) :: Ilayer ! Isop emis for single leaf
       !------Local---------
       real*8 fsl  !Fraction of sunlit foliage in layer at Lc (unitless).
       real*8 Isl !PAR penetrating sunlit foliage at Lc (umol/m[foliage]2/s).
@@ -460,6 +474,8 @@
       real*8 Ash !Anet from shaded leaves (umol/m2/s)
       real*8 gssl,gssh !Leaf conductance, sunlit,shaded (mol-H2O/m2/s)
       real*8 Rdsl, Rdsh
+      real*8 Iemisl  ! Nadine's isop emis from sunlit leaves (umol/m2/s)
+      real*8 Iemiss  ! Nadine's isop emis from shaded leaves (umol/m2/s)
       integer :: sunlitshaded !1-sunlit, 2-shaded
 
       call canopy_rad(Lcum,crp,Isl,Ish,fsl)
@@ -468,17 +484,21 @@
 
       !Calculate photosynthesis and stomatal conductance.
 !      write(991,*) 'sunlit'
+
       sunlitshaded = 1
-      call pscondleaf(crp%pft,Isl,psd,Gb,gssl,Asl,Rdsl,sunlitshaded)
+      call pscondleaf(crp%pft,Isl,psd,Gb,gssl,Asl,Rdsl,sunlitshaded,
+     & Iemisl)
 !      write(992,*) 'shaded'
       sunlitshaded = 2
-      call pscondleaf(crp%pft,Ish,psd,Gb,gssh,Ash,Rdsh,sunlitshaded)
+      call pscondleaf(crp%pft,Ish,psd,Gb,gssh,Ash,Rdsh,sunlitshaded,
+     & Iemiss)
       !call Collatz(crp%pft, Isl,cs,Tl,rh, Pa,ci,gssl,Asl)
       !call Collatz(crp%pft, Ish,cs,Tl,rh, Pa,ci,gssh,Ash)
                    
       Alayer = fsl*Asl + (1.0d0 - fsl)*Ash
       gslayer = fsl*gssl + (1.0d0 - fsl)*gssh
       Rdlayer = fsl*Rdsl + (1.0d0 - fsl)*Rdsh
+      Ilayer = fsl*Iemisl + (1.0d0 - fsl)*Iemiss
 !#ifdef DEBUG
 !      write(998,*) Lcum,crp,Isl,Ish,fsl,psd,gssl,gssh,Asl,Ash,Rdsl,Rdsh
 !#endif
@@ -655,12 +675,12 @@
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
 
-#define OFFLINE 1
-#ifdef OFFLINE
-      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
-     &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
-      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
-#endif
+C#define OFFLINE 1
+C#ifdef OFFLINE
+C      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
+C     &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
+C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
+C#endif
       end subroutine Respiration_autotrophic
 
 !---------------------------------------------------------------------!
@@ -970,7 +990,7 @@
 !#############################################################################
 !###################### INTEGRATION ##########################################
 
-      subroutine qsimp(Xlim,crp,psp,Gb,S,Sg,Sr)
+      subroutine qsimp(Xlim,crp,psp,Gb,S,Sg,Sr,Si)
 !----------------------------------------------------------------------!
 ! qsimp calculates canopy photosynthesis by increasing the number of
 ! layers in the integration until the result (S) changes by less than
@@ -984,7 +1004,7 @@
       type(psdrvtype) :: psp
       real*8,intent(in) :: Gb
       !real*8,intent(in) :: ca, ci,T,P,RH
-      real*8,intent(out) :: S,Sg,Sr
+      real*8,intent(out) :: S,Sg,Sr,Si
 !----------------------------------------------------------------------!
 !Local variables
 !nu   real*8, parameter :: EPS=1.D-3
@@ -995,12 +1015,13 @@
       real*8 :: Ac,Bc
       real*8 :: OSTg, OSg, STg !NK
       real*8 :: OSTr, OSr, STr !NK
+      real*8 :: OSTi, OSi, STi !NK + NU
 !----------------------------------------------------------------------!
 ! Calculate canopy radiative transfer and photosynthesis in increasing 
 !   number of layers.
 ! NOTE:  ERROR is only calculated on photosynthesis value (ST).
 !        Corresponding conductance value is then returned also (STg).
-
+!        and isoprene emission value (STi)
       A=0.0D0
       B=Xlim      !Canopy LAI.  Ideally, qsimp should not see inside crp.
       Ac=0.0d0
@@ -1011,12 +1032,15 @@
       OSg= -1.D30 !NK
       OSTr=-1.D30 !NK
       OSr= -1.D30 !NK
+      OSTi= -1.D30 !NK + NU
+      OSi= -1.D30 !NK + NU
       layers=1
       do 11 IT=1,MAXIT
-         CALL TRAPZD(A,B,Ac,Bc,ST,STg,STr,IT,layers,crp,psp,Gb)
+         CALL TRAPZD(A,B,Ac,Bc,ST,STg,STr,STi,IT,layers,crp,psp,Gb)
          S=(4.D0*ST-OST)/3.D0
          Sg=(4.D0*STg-OSTg)/3.D0 !NK
          Sr=(4.D0*STr-OSTr)/3.D0 !NK
+         Si=(4.D0*STi-OSTi)/3.D0 !NK+NU
          ERROR=ABS(S-OS)
          IF (ERROR.lt.ERRLIM) RETURN
          OS=S
@@ -1025,13 +1049,16 @@
          OSTg=STg !NK
          OSr=Sr !NK
          OSTr=STr !NK
+         OSi=Si !NK + NU
+         OSTi=STi !NK + NU
+
          if(IT.gt.1) layers=layers*2
    11 enddo
       return
       end subroutine qsimp
 
 !======================================================================
-      subroutine trapzd(L1,L2,L1c,L2c,S,Sg,Sr,N,layers,crp,psp,Gb)
+      subroutine trapzd(L1,L2,L1c,L2c,S,Sg,Sr,Si,N,layers,crp,psp,Gb)
 !----------------------------------------------------------------------!
 ! Integrates canopy photosynthesis over canopy layers using Simpson's
 ! Rule (Press et al., 19??).
@@ -1040,29 +1067,34 @@
       implicit none
 !----------------------------------------------------------------------!
       real*8 L1,L2 !LAI of whole canopy
-      real*8 L1c,L2c,S,Sg,Sr !LAI and sums of cohort
+      real*8 L1c,L2c,S,Sg,Sr,Si !LAI and sums of cohort
       integer N,layers
       type(canraddrv) :: crp 
       type(psdrvtype) :: psp
       real*8,intent(in) :: Gb
       !-----Local------------------
       integer L
-      real*8 DEL,X,SUM,SUMg,SUMr,RCL
+      real*8 DEL,X,SUM,SUMg,SUMr,SUMi,RCL
       real*8 DELc
       real*8 Aleaf1 !Mean net photosynthesis at layer bottom (umol[CO2]/m2/s).
       real*8 Aleaf2 !Mean net photosynthesis at layer top (umol[CO2]/m2/s).
       real*8 gleaf1, gleaf2 !Mean conductance at L1, L2 (umol[H2O]/m2/s).
       real*8 Rdleaf1,Rdleaf2 !Mean leaf respiration at L1, L2 (umol[CO2]/m2/s)
+C NADINE CHECK UNITS - WE NEED umol C NOT CO2!
+      real*8 Ileaf1,Ileaf2 ! mean isop emis at L1,L2 (umol[C]/m2/s)
 
       if(N.eq.1)then
-         call photosynth_sunshd(L1,crp,psp,Gb,Aleaf1,gleaf1,Rdleaf1)
-         call photosynth_sunshd(L2,crp,psp,Gb,Aleaf2,gleaf2,Rdleaf2)
+         call photosynth_sunshd(L1,crp,psp,Gb,Aleaf1,gleaf1,Rdleaf1,
+     * Ileaf1)
+         call photosynth_sunshd(L2,crp,psp,Gb,Aleaf2,gleaf2,Rdleaf2,
+     * Ileaf2)
 !         S=0.5D0*(L2-L1)*(Aleaf1+Aleaf2)
 !         Sg=0.5d0*(L2-L1)*(gleaf1+gleaf2)
 !         Sr=0.5d0*(L2-L1)*(Rdleaf1+Rdleaf2)
          S=0.5D0*(L2c-L1c)*(Aleaf1+Aleaf2) !Cohort LAI for leaf processes.
          Sg=0.5d0*(L2c-L1c)*(gleaf1+gleaf2)
          Sr=0.5d0*(L2c-L1c)*(Rdleaf1+Rdleaf2)
+         Si=0.5d0*(L2c-L1c)*(Ileaf1+Ileaf2)
       else
          RCL=layers  ! convert to real*8
          DEL=(L2-L1)/RCL !Canopy LAI for radiative transfer.
@@ -1071,11 +1103,14 @@
          SUM=0.D0
          SUMg=0.d0
          SUMr=0.d0
+         SUMi=0.d0
          do 11 L=1,layers
-           call photosynth_sunshd(X,crp,psp,Gb,Aleaf1,gleaf1,Rdleaf1)
+           call photosynth_sunshd(X,crp,psp,Gb,Aleaf1,gleaf1,Rdleaf1,
+     *  Ileaf1)
            SUM = SUM + Aleaf1
            SUMg = SUMg + gleaf1
            SUMr = SUMr + Rdleaf1
+           SUMi = SUMi + Ileaf1
            X=X+DEL
    11    continue
 !         S=0.5D0*(S+(L2c-L1c)*SUM/RCL)
@@ -1084,6 +1119,7 @@
          S=0.5D0*(S+(L2-L1)*SUM/RCL)
          Sg=0.5D0*(Sg+(L2-L1)*SUMg/RCL)
          Sr=0.5D0*(Sr+(L2-L1)*SUMr/RCL)
+         Si=0.5D0*(Si+(L2-L1)*SUMi/RCL)
       endif
       return
       end subroutine trapzd

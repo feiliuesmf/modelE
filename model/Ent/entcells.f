@@ -50,6 +50,7 @@
       ecp%Ci = 0.0127D0         !Internal foliage CO2 (mol/m3) non-zero
       ecp%GCANOPY = 0.d0
       ecp%GPP = 0.d0
+      ecp%IPP = 0.d0
       ecp%NPP = 0.d0
       ecp%R_auto = 0.d0
       ecp%R_root = 0.d0  !PK 5/15/07
@@ -217,6 +218,7 @@
 
         !* DIAGNOSTICS
         ecp%GPP = ecp%GPP + pp%GPP*pp%area
+        ecp%IPP = ecp%IPP + pp%IPP*pp%area
         ecp%NPP = ecp%NPP + pp%NPP*pp%area
         ecp%R_auto = ecp%R_auto + pp%R_auto*pp%area
         ecp%R_root = ecp%R_root + pp%R_root*pp%area  !PK 5/15/07
@@ -303,6 +305,8 @@
         ecp%Ci = ecp%Ci/fa
         ecp%GCANOPY = ecp%GCANOPY/fa
         ecp%GPP = ecp%GPP/fa
+C NADINE - IS THIS CORRECT?
+        ecp%IPP = ecp%IPP/fa
         ecp%NPP = ecp%NPP/fa
         ecp%R_auto = ecp%R_auto/fa
         ecp%R_root = ecp%R_root/fa  !PK 5/15/07

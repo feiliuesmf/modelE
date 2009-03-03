@@ -262,6 +262,7 @@ cddd      end subroutine init_cohort_defaults
       cop%Ci =  0.0127D0        !Initial value not zero.
       cop%GCANOPY = 0.0
       cop%GPP = 0.0
+      cop%IPP = 0.0
       cop%NPP = 0.0
       cop%R_auto = 0.0
       cop%R_root = 0.0 !PK 5/15/07
