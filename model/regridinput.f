@@ -14,19 +14,22 @@
 
 c      imsource=72
 c      jmsource=46
-      imsource=288
-      jmsource=180
+c      imsource=288
+c      jmsource=180
 c      imsource=144
 c      jmsource=90
 c      imsource=360
 c      jmsource=180
+      imsource=720
+      jmsource=360
       ntilessource=1
+
       imtarget=grid%IM_WORLD
       jmtarget=grid%JM_WORLD
       ntilestarget=grid%ntiles
 
-      call init_regrid_root(xll2cs,imsource,jmsource,ntilessource,
-     &     imtarget, jmtarget,ntilestarget)
+c      call init_regrid_root(xll2cs,imsource,jmsource,ntilessource,
+c     &     imtarget, jmtarget,ntilestarget)
 
 
 c***   regrid* = conservative regridding
@@ -34,12 +37,11 @@ c***   interp* = bilinear interpolation
       write(*,*) "IN REGRID INPUT"
 
       if (AM_I_ROOT()) then
-         call regridTOPO(xll2cs)
+c         call regridTOPO(xll2cs)
 c         call regridOSST(xll2cs)
 c         call regridSICE(xll2cs)
 c         call regridCDN(xll2cs)
 c         call regridVEG(xll2cs)
-c         call regridRVR(xll2cs) ! empty for the moment
 c         call regridCROPS(xll2cs)
 c         call regridTOPINDEX(xll2cs)
 c         call regridSOIL(xll2cs)
@@ -47,13 +49,13 @@ c         call regridGLMELT(xll2cs)
 c         call regridVEGFRAC(xll2cs)
 c         call regridLAI(xll2cs)
       endif
-
-c      call regridGIC(xll2cs,grid)
+c     call regridGIC(xll2cs,grid)
 c     call regridAIC(xll2cs,grid)
 
 #ifdef CUBE_GRID
-c      call geom_cs
+      call geom_cs
 c      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
+      call regridRDSCAL(grid,imsource,jmsource,ntilessource)
 #endif
 
       end subroutine regrid_input
@@ -120,10 +122,10 @@ c*
 
       iu_RVR=20
       iu_RVRCS=21
-      name="RD_modelE_Fa.RVR.bin"
-      namecs="RD_CS32.bin"
-c      name="RD_modelE_O.RVR.bin"
-c      namecs="RD_CS90.bin"
+c      name="RD_modelE_Fa.RVR.bin"
+c      namecs="RD_CS32.bin"
+      name="RD_modelE_O.RVR.bin"
+      namecs="RD_CS90.bin"
 
       write(*,*) name
 
@@ -139,6 +141,7 @@ c      namecs="RD_CS90.bin"
          else
             read(iu_RVR) title2
          endif
+
          write(*,*) title2
          read(iu_RVR) title,down_lat
          write(*,*) title
@@ -150,8 +153,7 @@ c      namecs="RD_CS90.bin"
          write(*,*) title
          close(iu_RVR)
          
-      write(110,*) "down_lat",down_lat
-         
+         write(110,*) "down_lat",down_lat
          
 c     
 c     create vector field on latlon grid
@@ -163,7 +165,7 @@ c
          dlon_dg = 360./real(ims)
          fjeq=0.5*(1+jms)
          
-         do j=1,jms
+        do j=1,jms
             if (j .ne. 1 .and. j .ne. jms) then
                lat = dlat_dg*(j - fjeq)
             elseif (j .eq. 1) then
@@ -177,7 +179,7 @@ c
                if (abs(down_lon(i,j)) .gt. 1./eps) then
                   ull(i,j)=0.d0
                else
-                  ull(i,j)=down_lon(i,j) - lon
+                  ull(i,j)=(down_lon(i,j)- lon)*cos(lat*radian)
                endif
                if (abs(down_lat(i,j)) .gt. 1./eps) then
                   vll(i,j)=0.d0
@@ -196,7 +198,17 @@ c     write(60,*) lon,lat,vll(i,j)
                
                write(70,200) lon,lat,ull(i,j),vll(i,j)
  200              format(4(1X,f8.3))
-                  
+
+        if (lat .ge. 37. .and. abs(down_lon(i,j)) .lt. 1./eps
+     &                 .and. abs(down_lat(i,j)) .lt. 1./eps) then
+            write(100,200) 
+     &         cos(lat*radian)*cos(lon*radian),
+     &         cos(lat*radian)*sin(lon*radian),
+     &         cos(down_lat(i,j)*radian)*cos(down_lon(i,j)*radian)
+     &        -cos(lat*radian)*cos(lon*radian),
+     &         cos(down_lat(i,j)*radian)*sin(down_lon(i,j)*radian)
+     &        -cos(lat*radian)*sin(lon*radian)
+         endif
             enddo
          enddo
       end if
@@ -239,10 +251,10 @@ c*    for plotting purpose only
       call pack_data(grid,lon2d_dg,lon_glob)
       call pack_data(grid,lat2d_dg,lat_glob)
       nijt=imt*jmt*6
-      call MPI_BCAST( lat_glob, nijt, MPI_DOUBLE_PRECISION,
-     *     0, MPI_COMM_WORLD, ierr )
-      call MPI_BCAST( lon_glob, nijt, MPI_DOUBLE_PRECISION,
-     *     0, MPI_COMM_WORLD, ierr )
+      call MPI_BCAST(lat_glob,nijt,MPI_DOUBLE_PRECISION,
+     *     0,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(lon_glob,nijt,MPI_DOUBLE_PRECISION,
+     *     0,MPI_COMM_WORLD,ierr )
  
       do j=j0,j1
          do i=i0,i1
@@ -578,6 +590,15 @@ c
      &           -lon2d_dg(i,j),
      &           lat_glob(idown(i,j),jdown(i,j),kdown(i,j))
      &           -lat2d_dg(i,j)
+            write(80+ti,200) 
+     &         cos(lat2d_dg(i,j)*radian)*cos(lon2d_dg(i,j)*radian),
+     &         cos(lat2d_dg(i,j)*radian)*sin(lon2d_dg(i,j)*radian),
+     &         cos(lat_glob(idown(i,j),jdown(i,j),kdown(i,j))*radian)
+     &        *cos(lon_glob(idown(i,j),jdown(i,j),kdown(i,j))*radian )
+     &        -cos(lat2d_dg(i,j)*radian)*cos(lon2d_dg(i,j)*radian),
+     &         cos(lat_glob(idown(i,j),jdown(i,j),kdown(i,j))*radian)
+     &        *sin(lon_glob(idown(i,j),jdown(i,j),kdown(i,j))*radian )
+     &        -cos(lat2d_dg(i,j)*radian)*sin(lon2d_dg(i,j)*radian)      
          enddo
       enddo
 
@@ -745,6 +766,135 @@ c      status = nf_close(fid)
       deallocate(ttargglob,ones,ttargr4,tsource)
    
       end subroutine regridTOPO 
+c*
+
+
+
+      subroutine regridRDSCAL(grid,ims,jms,nts)
+c     
+c     regridding scalar quantities used to derive river directions 
+c     using simple sampling scheme (non conservative) 
+c
+      use regrid_com
+      use geom, only : lon2d_dg,lat2d_dg
+      use domain_decomp_atm, only : pack_data 
+      implicit none
+      include 'mpif.h'
+      type (dist_grid) :: grid
+      character*80 :: TITLE1,TITLE2,TITLE3,TITLE4,TITLE5,name
+      real*8,allocatable :: ttargglob(:,:,:)
+      real*8,allocatable :: tsource(:,:,:)
+      real*4,allocatable :: ttargupst4(:,:,:)
+      real*4,allocatable :: ttargdist4(:,:,:)
+      real*4,allocatable :: tsourc4(:,:,:)
+      integer, allocatable :: bassId(:,:,:),tbassId(:,:,:)
+      integer:: iu_RDSCAL,i,j,k,iunit,imt,jmt,ntt,ims,jms,nts,
+     &     status,nijt,ierr,ilon,jlat
+      real*8, allocatable :: lon_glob(:,:,:),lat_glob(:,:,:)
+      real*8 :: dlat_dg,dlon_dg
+
+      imt=grid%IM_WORLD
+      jmt=grid%JM_WORLD
+      ntt=grid%ntiles
+
+      write(*,*) "imt jmt ntt ims jms nts",imt,jmt,ntt,ims,jms,nts
+
+      allocate( 
+     &     ttargglob(imt,jmt,ntt),
+     &     ttargupst4(imt,jmt,ntt),
+     &     ttargdist4(imt,jmt,ntt),
+     &     tbassId(imt,jmt,ntt),
+     &     tsourc4(ims,jms,nts),
+     &     tsource(ims,jms,nts),
+     &     bassId(ims,jms,nts),
+     &     lon_glob(imt,jmt,ntt),
+     &     lat_glob(imt,jmt,ntt)
+     &     )
+      
+      write(*,*) "alloc"
+
+c*    gather and broadcast lat/lon coordinates of CS cell centers
+      call pack_data(grid,lon2d_dg,lon_glob)
+      call pack_data(grid,lat2d_dg,lat_glob)
+      nijt=imt*jmt*6
+      write(*,*) "aft pack"
+
+      call MPI_BCAST( lat_glob, nijt, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr )
+      call MPI_BCAST( lon_glob, nijt, MPI_DOUBLE_PRECISION,
+     *     0, MPI_COMM_WORLD, ierr )
+      write(*,*) "aft bcast"
+
+      dlon_dg = 360./dble(ims)
+      dlat_dg=180./real(jms) ! even spacing (default)
+      IF (jms.eq.46) dlat_dg=180./REAL(jms-1) ! 1/2 box at pole for 4x5
+c*
+
+      if (am_i_root()) then
+      iu_RDSCAL=20
+      name="STN-30p.bin"
+
+      write(*,*) name
+      open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='old')
+
+      write(*,*) "ims, jms, nts=",ims,jms,nts
+      read(iu_RDSCAL) TITLE1
+      write(*,*) TITLE1
+      read(iu_RDSCAL) TITLE2
+      write(*,*) TITLE2
+      read(iu_RDSCAL) TITLE3,bassId(:,:,:)
+      do k=1,ntt
+      do j=1,jmt
+      do i=1,imt
+      ilon=ims/2+1+int(real((lon_glob(i,j,k)+.01)/dlon_dg))
+      jlat=jms/2+1+int(real((lat_glob(i,j,k)+.01)/dlat_dg))
+      tbassId(i,j,k)=bassId(ilon,jlat,1)
+      enddo
+      enddo
+      enddo
+      write(*,*) TITLE3
+      read(iu_RDSCAL) TITLE4,tsourc4(:,:,:)
+      tsource(:,:,:)=tsourc4(:,:,:)
+      do k=1,ntt
+      do j=1,jmt
+      do i=1,imt
+      ilon=ims/2+1+int(real((lon_glob(i,j,k)+.01)/dlon_dg))
+      jlat=jms/2+1+int(real((lat_glob(i,j,k)+.01)/dlat_dg))
+      ttargdist4(i,j,k)=tsource(ilon,jlat,1)
+      enddo
+      enddo
+      enddo
+      write(*,*) TITLE4
+      read(iu_RDSCAL) TITLE5,tsourc4(:,:,:)
+      tsource(:,:,:)=tsourc4(:,:,:)
+      do k=1,ntt
+      do j=1,jmt
+      do i=1,imt
+      ilon = ims/2+1+int(real((lon_glob(i,j,k)+.01)/dlon_dg))
+      jlat = jms/2+1+int(real((lat_glob(i,j,k)+.01)/dlat_dg))
+      ttargupst4(i,j,k)=tsource(ilon,jlat,1)
+      enddo
+      enddo
+      enddo
+      write(*,*) TITLE5
+      close (iu_RDSCAL)
+
+      name="STN_C90"
+      write(*,*) name
+      open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='unknown')
+      write(iu_RDSCAL) TITLE1
+      write(iu_RDSCAL) TITLE2
+      write(iu_RDSCAL) TITLE3,tbassId(:,:,:)
+      write(iu_RDSCAL) TITLE4,ttargdist4(:,:,:)
+      write(iu_RDSCAL) TITLE5,ttargupst4(:,:,:)
+      close(iu_RDSCAL)
+      write(*,*) "bassid=",bassId  
+      endif
+
+      deallocate(ttargglob,tsource,ttargupst4,ttargdist4,bassId,
+     &             tbassId,lon_glob,lat_glob)
+
+      end subroutine regridRDSCAL
 c*
 
 
