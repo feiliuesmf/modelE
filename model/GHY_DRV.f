@@ -303,6 +303,10 @@ c**** prescribed dust emission
 #ifdef BIOGENIC_EMISSIONS
       use trdiag_com,ONLY : ijs_isoprene
 #endif
+#ifdef PS_BVOC
+      use trdiag_com,ONLY : ijs_isoprene
+      use sle001, only : aipp
+#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
@@ -511,6 +515,20 @@ ccc accumulate tracer dry deposition
      &    pbl_args%emisop*axyp(i,j)*ptype*dtsurf
         end select
 #endif
+#ifdef PS_BVOC
+        select case (trname(n))
+        case ('Isoprene')
+C Flux in kg/m2/s - put back into /s
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)+aipp
+     &         *axyp(i,j)*ptype/dtsurf
+c          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
+c     &    aipp*axyp(i,j)*ptype*dtsurf
+          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
+     &    aipp*axyp(i,j)*ptype
+
+        end select
+#endif
+
       end do
 
 C**** Save surface tracer concentration whether calculated or not
@@ -1364,7 +1382,7 @@ c***********************************************************************
      *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2
      *     ,j_lwcorr,ij_g05
      *     ,ij_g06,ij_g11,ij_g12,ij_g13,ij_g14,ij_g15,ij_g16,ij_g17
-     *     ,ij_gpp,ij_rauto,ij_clab,ij_soilresp,ij_soilCpoolsum
+     *     ,ij_gpp,ij_ipp,ij_rauto,ij_clab,ij_soilresp,ij_soilCpoolsum
      *     ,ij_pblht,ij_g18,ij_g19,ij_g20,ij_g21,ij_g22,ij_g23
      *     ,ij_g24,ij_g25,ij_g26,ij_g27,ijdd,idd_ts,idd_tg1,idd_qs
      *     ,idd_qg,idd_swg,idd_lwg,idd_sh,idd_lh,idd_hz0,idd_ug,idd_vg
@@ -1403,7 +1421,7 @@ c***********************************************************************
      &    ,fv,fb,atrg,ashg,alhg
      &    ,abetad,abetav,abetat
      &    ,abetap,abetab,abeta
-     &    ,acna,acnc,agpp,arauto,aclab,asoilresp,asoilCpoolsum
+     &    ,acna,acnc,agpp,aipp,arauto,aclab,asoilresp,asoilCpoolsum
      &    ,aevap,aevapw,aevapd,aevapb
      &    ,aruns,arunu,aeruns,aerunu,aflmlt,aintercep
      &    ,aepc,aepb,aepp,zw,tbcs,tsns
@@ -1509,6 +1527,7 @@ ccc the following values are returned by PBL
       aij(i,j,ij_g12)=aij(i,j,ij_g12)+(acna/nisurf)*ptype
       aij(i,j,ij_g13)=aij(i,j,ij_g13)+(acnc/nisurf)*ptype*fv
       aij(i,j,ij_gpp)=aij(i,j,ij_gpp)+agpp*ptype
+      aij(i,j,ij_ipp)=aij(i,j,ij_ipp)+aipp*ptype
       aij(i,j,ij_rauto)=aij(i,j,ij_rauto)+arauto*ptype
       aij(i,j,ij_clab)=aij(i,j,ij_clab)+(aclab/nisurf)*ptype
       aij(i,j,ij_soilresp)=aij(i,j,ij_soilresp)+asoilresp*ptype

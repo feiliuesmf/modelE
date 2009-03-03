@@ -160,6 +160,8 @@ ccc   main accumulators
 ccc   diagnostics accumulatars
       real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
+C NU's isoprene from FBB
+     &     ,aipp
      &     ,aflmlt,aintercep
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
@@ -233,7 +235,7 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad,betadl(ngm)
-      real*8 gpp,dts,trans_sw
+      real*8 gpp,dts,trans_sw,ipp
 !xxx      real*8, public :: cnc
 
 ccc fractions of dry,wet,covered by snow canopy
@@ -2101,7 +2103,8 @@ ccc unpack necessary data
      &         shortwave_transmit=TRANS_SW,
      &         leafinternal_CO2=Ci,
 !     &         foliage_humidity=Qf,
-     &         canopy_gpp=GPP
+     &         canopy_gpp=GPP,
+     &         canopy_ipp=IPP
      &         )
 
           !print *,"CNS=",cnc
@@ -2119,11 +2122,14 @@ ccc unpack necessary data
           Ci = 0.d0
 !          Qf = 0.d0
           GPP = 0.d0
+          IPP=0.0d0
         endif
+
 
 !        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
 !        print *,"GHY_FORCINGS: ", ijdebug, tp(0,2),
 !     &       vis_rad, direct_vis_rad, cosz1
+
 
         call evap_limits( .true., dum1, dum2 )
 #else
@@ -2374,6 +2380,8 @@ ccc   max in the following expression removes extra drip because of dew
 #ifdef USE_ENT
       !Ent veg accumulators. nyk
       agpp = agpp + gpp*dts
+      aipp = aipp + ipp*dts
+CCCCCCC
       if ( present(entcell) ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
      &       soilresp=R_soil, soilcpools=soilCpools)
@@ -2517,6 +2525,7 @@ c zero out accumulations
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
       agpp=0.d0   ! Ent DGVM , nyk 4/25/03
+      aipp=0.d0
       arauto=0.d0 ! Ent DGVM
       aclab=0.d0  ! Ent DGVM
       asoilresp = 0.d0         ! Ent DGVM (soil bgc)

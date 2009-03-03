@@ -2744,6 +2744,18 @@ c
       scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
       denom_ij(k) = IJ_PSOIL
 c     iw  built-in
+C NADINE
+      k=k+1 ! 
+      IJ_IPP = k    !kg[C]/m2/s
+      lname_ij(k) = 'ISOPRENE EMISSION FROM VEG'
+      !from kg[C]/m2/s, typical range to 30 gC/m2/year
+      units_ij(k) = 'g[C]/m2/day'
+      name_ij(k) = 'ipp'
+      !Scale for mg/m2/day
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY*1000./DTsrc    !scale from kg/s to g/day
+c      iw_ij(k) = iw_soil     !Weight over land
+c     iw  built-in
 c
       k=k+1 ! nyk 1/10/08
       IJ_RAUTO = k    !kg[C]/m2/s original units
