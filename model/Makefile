@@ -84,6 +84,9 @@ SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 CONFIG_DIR = $(MODEL_E_ROOT)/config
 TEMPLATES_DIR = $(MODEL_E_ROOT)/templates
 
+# hack for includes in subdirs to work correctly
+export INCLUDE_DIR := $(shell pwd)
+
 RUNSRC  = E1M20
 RUN     =
 RUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).R
