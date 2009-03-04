@@ -3632,12 +3632,6 @@ c
       ia_ij(k) = ia_inst
 
       k = k + 1
-      ij_colh2o = k
-      name_ij(k) = 'pcol_h2o'
-      lname_ij(k) = 'PRECIPITABLE WATER'
-      units_ij(k) = 'cm'
-
-      k = k + 1
       ij_msu2 = k
       name_ij(k) = 'Tmsu_ch2'
       lname_ij(k) = 'MSU-channel 2 TEMPERATURE'

@@ -3914,20 +3914,6 @@ c**** precomputed fields: northward tranports by eddies, Tmsu
       else if (k.eq.ij_msu4) then                   ! T_msu_ch4
         anum=tmsu4  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
 
-c**** precipitable water
-      else if (k.eq.ij_colh2o) then ! special because still on B-grid
-        igrid = 2; jgrid = 2; irange = ir_ij(ij_prec)
-        byiacc = .1*100.*bygrav/(idacc(ia_dga)+teeny)
-        anum = 0.
-        do l=1,lm
-        do j=1,jm
-        do i=1,im
-          anum(i,j) = anum(i,j) + aijk(i,j,l,ijk_q)
-        end do
-        end do
-        end do
-        anum = anum*byiacc
-
 c**** column atmospheric temperature
       else if (k.eq.ij_tatm) then ! special because still on B-grid
         do j=2,jm
@@ -4093,7 +4079,7 @@ C**** standard printout
      *  ij_albp,    ij_albv,    ij_trnfp0,   ! pg  5  row 1
      *  ij_albg,    ij_albgv,   ij_neth,     !        row 2
      *  ij_dsev,    ij_ntdsese, ij_ntdsete,  ! pg  6  row 1
-     *  ij_gwtr,    ij_wmsum,   ij_colh2o,   !        row 2
+     *  ij_gwtr,    ij_wmsum,   ij_qm,       !        row 2
      *  ij_cldcv,   ij_dcnvfrq, ij_scnvfrq,  ! pg  7  row 1
      *  ij_pmccld,  ij_pdcld,   ij_pscld,    !        row 2
      *  ij_wtrcld,  ij_optdw,   ij_cldtppr,  ! pg  8  row 1
