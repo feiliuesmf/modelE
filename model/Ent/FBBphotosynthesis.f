@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-can!#define DEBUG 1
+!#define DEBUG 1
       module  photcondmod
       !This version of photcondmod does leaf level
       !photosynthesis (Farquhar and von Caemmerer, 1982) and
@@ -1098,10 +1098,10 @@ cddd      end function calc_ci
       real*8 function par_phenology(pft,llspan) Result(fparlimit)  
       integer, intent(in) :: pft
       real*8, intent(in) :: llspan
-      real*8, parameter :: vc_tran =9.d0 ! 7.2     !transition
-      real*8, parameter :: vc_slop = 10.d0 !16.9    !slope
-      real*8, parameter :: vc_amp = 30.d0 !29.8    !amplitude
-      real*8, parameter :: vc_min = 25.d0 !7.7     !minimum
+      real*8, parameter :: vc_tran =12.d0 !9.d0 ! 7.2     !transition
+      real*8, parameter :: vc_slop = 15.d0 !10.d0 !16.9    !slope
+      real*8, parameter :: vc_amp = 15.d0 !30.d0 !29.8    !amplitude
+      real*8, parameter :: vc_min = 10.d0 !25.d0 !7.7     !minimum
 
       if (llspan > 0.d0) then
          fparlimit = (vc_amp/(1.d0+(llspan/vc_tran)**vc_slop)+vc_min)

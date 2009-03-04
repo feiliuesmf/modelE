@@ -72,7 +72,7 @@
       real*8, parameter :: paw_min_h = 0.01d0
       real*8, parameter :: paw_res_h = 1.0d0
       !light-controll: par_turnover_int & par_turnover_slope
-      real*8, parameter :: par_turnover_int = -10.6d0 
+      real*8, parameter :: par_turnover_int = -12.d0 !-10.6d0 
       real*8, parameter :: par_turnover_slope = 0.18d0  
       !r_fract: fraction of excess c going to seed reproduction 
       real*8, parameter :: r_fract = 0.3d0
@@ -743,6 +743,7 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8 :: dCfrootdCdead
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
+      logical, parameter :: growthED1=.true.
 
       !--------------------------------------------------
       !*calculate the growth fraction for different pools
@@ -756,6 +757,7 @@ c$$$      Cactive = Cactive + dC_remainder
             gr_fract = 1.d0
          end if
       else !woody
+         if (growthED1) then
          if (C_fol .gt. 0.d0 .and. 
      &       Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
             if (dbh .le. maxdbh(pft))then
@@ -774,6 +776,16 @@ c$$$      Cactive = Cactive + dC_remainder
             qs = 0.d0
             gr_fract = 1.d0
          end if
+         else !growthED1==false,i.e., based on ED2
+         if (C_lab .gt. 0.d0) then
+            qs = 1.d0
+            gr_fract = 1.d0 - r_fract 
+         else
+            qs = 0.d0
+            gr_fract = 1.d0
+         end if
+         end if
+
       end if
        
       dCdead = gr_fract * qs / (1.d0 + qs) * C_lab

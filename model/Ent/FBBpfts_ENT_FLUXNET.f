@@ -74,7 +74,7 @@
 !YK - Nleaf = Vcmax/20: Vcmax 20~80 & Nleaf 1~4
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BET & BDT temperate & tropical, Table 3.1 (Oleson, et al 2004)
 !     &     ,69.d0               !Vmax25, CLM BET temperate, Table 8.2 (Oleson, et al 2004)
-     &     ,54.d0               !Tapajo KM67
+     &     ,54.d0               !Tapajo KM67 !25.d0 test
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,8.0d0               !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
