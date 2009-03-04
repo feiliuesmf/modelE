@@ -117,7 +117,7 @@ C****
       USE COSMO_SOURCES, only : BE7D_acc
 #endif
 #ifndef SKIP_TRACER_DIAGS
-      USE TRDIAG_COM, only : taijn=>taijn_loc, 
+      USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
      *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
@@ -273,8 +273,8 @@ C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
         TGRN2(3,I,J)=GTEMP(2,3,I,J)
         TGR4(2,I,J)=GTEMPR(2,I,J)**4
         TGR4(3,I,J)=GTEMPR(3,I,J)**4
-      END DO
-      END DO
+      END DO 
+      END DO 
 
 
 C**** Zero out fluxes summed over type and surface time step
@@ -317,7 +317,7 @@ C**** Set up tracers for PBL calculation if required
           nx=nx+1
           ntix(nx) = n
         end if
-      end do
+      end do 
       ntx = nx
 #endif
 
@@ -393,7 +393,7 @@ C**** Set up tracers for PBL calculation if required
 C**** Calculate first layer tracer concentration
           pbl_args%trtop(nx)=trm(i,j,1,n)*byam(1,i,j)*byaxyp(i,j)
         end if
-      end do
+      end do 
 #endif
 
 C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
@@ -404,13 +404,13 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
              do ii=1,5
                tmp(IDD_PT5+ii-1)=PSK*T(I,J,ii)
                tmp(IDD_Q5+ii-1) =Q(I,J,ii)
-             end do
+             end do 
              ADIURN(idx1(:),kr,ih)=ADIURN(idx1(:),kr,ih)+tmp(idx1(:))
 #ifndef NO_HDIURN
              HDIURN(idx1(:),kr,ihm)=HDIURN(idx1(:),kr,ihm)+tmp(idx1(:))
 #endif
            END IF
-         END DO
+         END DO 
          END IF
 C**** save some ocean diags regardless of PTYPE
 C**** SSH does not work for qflux/fixed SST configurations
@@ -537,7 +537,7 @@ C****
 #ifdef TRACERS_WATER
       do nx=1,ntx
         trgrnd2(nx)=TRLNDI(ntix(nx),I,J)/(ACE1LI+ACE2LI)
-      end do
+      end do 
 #endif
       END IF
 
@@ -609,7 +609,7 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #ifndef SKIP_TRACER_SRCS
           do nsrc=1,ntsurfsrc(n)
             totflux(nx) = totflux(nx)+trsource(i,j,nsrc,n)
-          end do
+          end do 
           trconstflx(nx)=totflux(nx)*byaxyp(i,j)   ! kg/m^2/s
 #endif /*SKIP_TRACER_SRCS*/
 
@@ -621,7 +621,7 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
         !because we have no sources. is there a better way to do this?
         trconstflx(nx)=trgrnd(nx)
 #endif
-      end do
+      end do 
 #endif
 C =====================================================================
       pbl_args%dtsurf = dtsurf
@@ -964,17 +964,18 @@ C****
      &     ptype*rtsdt*axyp(i,j)*pbl_args%gs_vel(n),itcon_dd(n,2),n)
         end if
 #endif
-      END DO
+      END DO 
 #endif
 C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       F0DT=DTSURF*SRHEAT+TRHDT+SHDT+EVHDT
 C**** Limit heat fluxes out of lakes if near minimum depth
       IF (ITYPE.eq.1 .and. FLAKE(I,J).gt.0 .and.
-     *     E0(I,J,1)+F0DT+HTLIM.lt.0 .and. HTLIM.gt.0) THEN
+     *     E0(I,J,1)+F0DT+HTLIM.lt.0 .and. E0(I,J,1)+F0DT.lt.0) THEN
+        if (QCHECK.and.HTLIM.le.0) write(6,*) "NEW case:"
         if (QCHECK) write(6,*) "Limiting heat flux from lake",i,j,SHDT
      *       ,F0DT,E0(I,J,1),DTSURF*SRHEAT,TRHDT,EVHDT,HTLIM
-        SHDT = -(HTLIM+E0(I,J,1)+DTSURF*SRHEAT+TRHDT+EVHDT)
-        F0DT = -E0(I,J,1)-HTLIM
+        SHDT = -(max(0d0,HTLIM)+E0(I,J,1)+DTSURF*SRHEAT+TRHDT+EVHDT)
+        F0DT = -E0(I,J,1)-max(0d0,HTLIM)
         if (QCHECK) write(6,*) "New SHDT,F0DT",i,j,SHDT,F0DT
       END IF
       E0(I,J,ITYPE)=E0(I,J,ITYPE)+F0DT
@@ -1096,7 +1097,7 @@ c     ..........
           depo_turb_glob(i,j,itype,n)=ptype*rts*pbl_args%dep_vel(n)
           depo_grav_glob(i,j,itype,n)=ptype*rts*pbl_args%gs_vel(n)
         END IF
-      END DO
+      END DO 
 #endif
 #endif
 
@@ -1152,7 +1153,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                     tmp(idd_turb)=ptype*rts*pbl_args%dep_vel(n1)
                     tmp(idd_grav)=ptype*rts*pbl_args%gs_vel(n1)
                   END IF
-                END DO
+                END DO 
 #endif
                 tmp(idd_ws2)=ws*ws*ptype
                 tmp(idd_ustar)=pbl_args%ustar*ptype
@@ -1189,7 +1190,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               END IF
 #endif
             END IF
-          END DO
+          END DO 
         END IF
 C****
 #ifdef TRACERS_ON
@@ -1232,13 +1233,13 @@ C**** Save surface tracer concentration whether calculated or not
             call inc_tajls(i,j,1,jls_isrc(1,n),trevapor(n,itype,i,j)
      *           *ptype)
             if (focean(i,j).gt.0) call inc_tajls(i,j,1,jls_isrc(2,n)
-     *           ,trevapor(n,itype,i,j)*ptype) 
+     *           ,trevapor(n,itype,i,j)*ptype)
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype
 #endif
         end if
-      end do
+      end do 
 #endif /*SKIP_TRACER_DIAGS*/
 #endif
 C****
@@ -1281,7 +1282,7 @@ C****
       END DO   ! end of I loop
 
       END DO   ! end of J loop
-!$OMP  END PARALLEL DO
+!$OMP  END PARALLEL DO 
 
 
 C****
@@ -1336,9 +1337,9 @@ C**** Diurnal cycle of temperature diagnostics
         tdiurn(i,j,5)=tdiurn(i,j,5)+(tsavg(i,j)-tf)
         if(tsavg(i,j).gt.tdiurn(i,j,6)) tdiurn(i,j,6)=tsavg(i,j)
         if(tsavg(i,j).lt.tdiurn(i,j,9)) tdiurn(i,j,9)=tsavg(i,j)
-      END DO
-      END DO
-!$OMP  END PARALLEL DO
+      END DO 
+      END DO 
+!$OMP  END PARALLEL DO 
 #ifdef TRACERS_ON
 C****
 C**** Apply tracer surface sources and sinks
@@ -1374,7 +1375,7 @@ C**** For distributed implementation - ensure point is on local process.
 #endif
             END IF
           END IF
-       END DO
+       END DO 
 
       END IF
 C****
