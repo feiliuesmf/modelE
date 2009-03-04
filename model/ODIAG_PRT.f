@@ -111,6 +111,7 @@ C****
       USE OCEAN, only : im,jm,lmo,focean,dxypo,ndyno,dts,dto
      *     ,imaxj,lmm,ze,dxvo,dypo
       USE DIAG_COM, only : qdiag,acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
 
       USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG 
@@ -136,7 +137,10 @@ c for now we are assuming that igrid=jgrid in arguments to pout_ij
      *     ,KCMFfull(13) = (/1,2,3,4,5,6,7,8,9,10,11,12,13/)
       REAL*8 GOS,SOS,FAC,FACST,GSMAX,GSMIN,CKMIN,CKMAX,ACMIN,ACMAX
      *     ,TSUM,TEMGS,QJ(JM),QSUM,MQ,DLON,byiacc,volgs
-      CHARACTER NAME(KOLNST)*40,TITLE*80,lname*50,sname*30,units*50
+      CHARACTER NAME(KOLNST)*40,TITLE*80
+      CHARACTER(len=lname_strlen) :: lname
+      CHARACTER(len=sname_strlen) :: sname
+      CHARACTER(len=units_strlen) :: units
       character*50 :: unit_string
 
       QJ=0.
@@ -975,6 +979,7 @@ C****
      *     ,amon0,jdate,amon,jyear
       USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj,ze
       USE DIAG_COM, only : qdiag,acc_period,zoc1
+     &     ,sname_strlen,units_strlen,lname_strlen
 
       USE OCEAN, only : oDLAT_DG, oLAT_DG 
 
@@ -985,7 +990,10 @@ C****
       INTEGER I,J,K,L,NS,N,KB,IP1,LP1
      *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
       REAL*8 FAC,FACST
-      CHARACTER TITLE*80,lname*50,sname*30,units*50
+      CHARACTER TITLE*80
+      CHARACTER(len=lname_strlen) :: lname
+      CHARACTER(len=sname_strlen) :: sname
+      CHARACTER(len=units_strlen) :: units
 
       TITLE(51:80)=XLB
       LNAME=""
@@ -1091,7 +1099,7 @@ C****
      *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
       REAL*8 GOS,SOS,FAC,FACST,SCALEO(10),TSUM,TEMGS,MQ
       CHARACTER*40, DIMENSION(KOLNST) :: NAME = ""
-      CHARACTER :: TITLE*80,lname*50,sname*30,units*50
+      CHARACTER :: TITLE*80
 C****
 C**** Strait diagnostics
 C****
@@ -1390,6 +1398,7 @@ C****
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
      *     ,dxypo
       USE DIAG_COM, only : qdiag,zoc
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE ODIAG
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_OceanBiology
@@ -1406,7 +1415,10 @@ C****
 #ifdef TRACERS_OCEAN
       REAL*8 XBT(JM,LMO,0:NBAS,NTM),XT(IM,LMO,NTM),XBTW(JM,LMO,0:NBAS)
 #endif
-      CHARACTER TITLE*80,EW*1,NS*1,LNAME*50,SNAME*50,UNITS*50
+      CHARACTER TITLE*80,EW*1,NS*1
+      CHARACTER(len=lname_strlen) :: lname
+      CHARACTER(len=sname_strlen) :: sname
+      CHARACTER(len=units_strlen) :: units
       CHARACTER LABI*16,LABJ*16
       character*50 :: unit_string
 C**** these parameters control the output (Resolution dependent!)

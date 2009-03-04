@@ -14,7 +14,8 @@ C**** have to wait.
 !@sum  ncout handles the writing of output fields in netcdf-format
 !@auth M. Kelley
       use MODEL_COM, only : xlabel,lrunid
-      use DIAG_COM, only : acc_period
+      use DIAG_COM, only : acc_period,
+     &     sname_strlen,units_strlen,lname_strlen
       implicit none
 
       include 'netcdf.inc'
@@ -30,6 +31,7 @@ C**** have to wait.
      &    ,iu_ij,im,jm,lm,lm_req,im_data,iu_ijl
      &    ,iu_ijk,iu_il,iu_j,iu_jc,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
      &    ,iu_wp,def_missing,srt,cnt,write_whole_array
+     &    ,sname_strlen,units_strlen,lname_strlen
 
 !@var iu_ij,iu_jl,iu_il,iu_j !  units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_isccp,iu_diurn,iu_hdiurn
@@ -57,11 +59,11 @@ C**** have to wait.
 !@var cnt number of elements to output from current output field
       integer, dimension(7) :: srt,cnt
 !@var var_name string containing name of current output field
-      character(len=30) :: var_name='' ! is reset to '' after each write
+      character(len=sname_strlen) :: var_name='' ! is reset to '' after each write
 !@var units string containing units of current output field
-      character(len=30) :: units='' ! is reset to '' after each write
+      character(len=units_strlen) :: units='' ! is reset to '' after each write
 !@var long_name description of current output field
-      character(len=80) :: long_name='' ! is set to '' after each write
+      character(len=lname_strlen) :: long_name='' ! is set to '' after each write
 
 !@param ndfmax maximum number of allowed dimensions in output file
       integer, parameter :: ndfmax=100
@@ -440,11 +442,11 @@ c secondary grid
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var XIJ lat/lon output field
       REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
 !@var XJ lat sum/mean of output field
@@ -545,11 +547,11 @@ c secondary grid
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var J1,KLMAX variables required by pout_jl
       INTEGER, INTENT(IN) :: KLMAX,J1
 !@var XJL output field, dimensioned to accomodate pout_jl expectations
@@ -662,11 +664,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var KLMAX max level to output
 !@var J1 minimum j value to output (needed for secondary grid fields)
       INTEGER, INTENT(IN) :: KLMAX,J1
@@ -846,8 +848,9 @@ C**** set units
       INTEGER I,L
       REAL*8 XTEMP(IM,LM+LM_REQ+1)
       character(len=30) :: dim_name
-      character(len=20), intent(in) :: sname,unit
-      character(len=80), intent(in) :: lname
+      character(len=sname_strlen), intent(in) :: sname
+      character(len=units_strlen), intent(in) :: unit
+      character(len=lname_strlen), intent(in) :: lname
 
       out_fid = iu_il
 
@@ -959,9 +962,9 @@ C**** set dimensions
 c
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
 !@var LNAME,SNAME,UNITS_IN information strings for netcdf
-      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: LNAME
-      CHARACTER*30, DIMENSION(KAJ),INTENT(IN) :: SNAME
-      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS_IN
+      CHARACTER(len=lname_strlen), DIMENSION(KAJ),INTENT(IN) :: LNAME
+      CHARACTER(len=sname_strlen), DIMENSION(KAJ),INTENT(IN) :: SNAME
+      CHARACTER(len=units_strlen), DIMENSION(KAJ),INTENT(IN) :: UNITS_IN
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
       INTEGER, INTENT(IN) :: KMAX,iotype
@@ -1073,11 +1076,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: XIJK
 !@var XJK lat sum/mean of output field
@@ -1240,11 +1243,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(INOUT) :: XIJL
 !@var XJK lat sum/mean of output field
@@ -1350,11 +1353,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var XIJK tau/height/lat output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
       REAL*8, INTENT(IN) :: taum(IM), pres(JM)
@@ -1601,9 +1604,9 @@ C**** set dimensions
       INTEGER, INTENT(IN) :: KMAX
       CHARACTER*38, DIMENSION(kmax),INTENT(INOUT) :: TITLE
 !@var LNAME,SNAME,UNITS dummy strings
-      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: LNAME
-      CHARACTER*30, DIMENSION(kmax),INTENT(IN) :: SNAME
-      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: UNITS_IN
+      CHARACTER(len=lname_strlen), DIMENSION(kmax),INTENT(IN) :: LNAME
+      CHARACTER(len=sname_strlen), DIMENSION(kmax),INTENT(IN) :: SNAME
+      CHARACTER(len=units_strlen), DIMENSION(kmax),INTENT(IN) ::UNITS_IN
       REAL*8, DIMENSION(JM+3,kmax), INTENT(IN) :: cnslat
       INTEGER :: K
       character(len=30) :: dim_name

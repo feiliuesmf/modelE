@@ -7,6 +7,7 @@
 !ver   1.0
       USE MODEL_COM, only: im,jm,lm
       USE DIAG_COM, only: npts !npts are conservation quantities
+     &     ,sname_strlen,units_strlen,lname_strlen
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
      *     , ntsurfsrcmax, nt3Dsrcmax
@@ -47,9 +48,11 @@ C**** TAIJLN
       !real*4, dimension(IM,JM,LM,ntm)         :: taijln4
       !real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
-      character(len=30), dimension(lm,ntm) :: sname_ijt,units_ijt
+      character(len=sname_strlen), dimension(lm,ntm) :: sname_ijt
+      character(len=units_strlen), dimension(lm,ntm) :: units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
-      character(len=80), dimension(lm,ntm) :: lname_ijt = 'unused'
+      character(len=lname_strlen), dimension(lm,ntm) ::
+     &     lname_ijt = 'unused'
 !@var SCALE_IJT: printout scaling factor for tracer IJ diagnostics
       REAL*8, dimension(lm,ntm) :: scale_ijt
 !@var IR_IJT: range index of IJ diagnostics
@@ -83,9 +86,11 @@ C**** TAIJN
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
-      character(len=30), dimension(ktaij,ntm) :: sname_tij,units_tij
+      character(len=sname_strlen), dimension(ktaij,ntm) :: sname_tij
+      character(len=units_strlen), dimension(ktaij,ntm) :: units_tij
 !@var LNAME_TIJ: descriptions of tracer IJK diags
-      character(len=80), dimension(ktaij,ntm) :: lname_tij = 'unused'
+      character(len=lname_strlen), dimension(ktaij,ntm) ::
+     &     lname_tij = 'unused'
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
@@ -191,9 +196,11 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_3Dsource tracer independent array for TAIJS 3D src. diags
       INTEGER ijts_3Dsource(nt3Dsrcmax,ntm)
 !@var SNAME_IJTS, UNITS_IJTS: Names & units of lat-sigma tracer diags
-      character(len=30), dimension(ktaijs) :: sname_ijts,units_ijts
+      character(len=sname_strlen), dimension(ktaijs) :: sname_ijts
+      character(len=units_strlen), dimension(ktaijs) :: units_ijts
 !@var LNAME_IJTS: descriptions of tracer IJTS diags
-      character(len=80), dimension(ktaijs) :: lname_ijts = 'unused'
+      character(len=lname_strlen), dimension(ktaijs) ::
+     &     lname_ijts = 'unused'
 !@var SCALE_IJTS: printout scaling factor for tracer IJTS diagnostics
       REAL*8, dimension(ktaijs) :: scale_ijts
 !@var IA_IJTS: idacc-number for tracer source/sink IJ diags
@@ -222,10 +229,11 @@ C**** TAJLN
      &  jlnt_bepb,jlnt_cldh2o
 
 !@var SNAME_JLN: Names of lat-sigma tracer JL diagnostics
-      character(len=30), dimension(ktajlx,ntm) :: sname_jln
+      character(len=sname_strlen), dimension(ktajlx,ntm) :: sname_jln
 !@var LNAME_JLN,UNITS_JLN: descriptions/units of tracer JL diagnostics
-      character(len=50), dimension(ktajlx,ntm) :: lname_jln = 'unused'
-     *     ,units_jln
+      character(len=lname_strlen), dimension(ktajlx,ntm) ::
+     &     lname_jln = 'unused'
+      character(len=units_strlen), dimension(ktajlx,ntm) :: units_jln
 !@var SCALE_JLQ: printout scaling factor for tracer JL diagnostics
       REAL*8, dimension(ktajlx) :: scale_jlq
 !@var IA_JLQ,JGRID_JLQ: idacc-numbers,gridtypes for tracer JL diags
@@ -294,10 +302,11 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@var jwt_jls: Weighting index for jls diags 1=simple average, 2=by area
       integer, dimension(ktajls) :: jwt_jls
 !@var SNAME_JLS: Names of lat-sigma tracer JL sources/sinks
-      character(len=30), dimension(ktajls) :: sname_jls
+      character(len=sname_strlen), dimension(ktajls) :: sname_jls
 !@var LNAME_JLS,UNITS_JLS: descriptions/units of tracer JLS diags
-      character(len=50), dimension(ktajls) :: lname_jls = 'unused'
-     *     ,units_jls
+      character(len=lname_strlen), dimension(ktajls) ::
+     &     lname_jls = 'unused'
+      character(len=units_strlen), dimension(ktajls) :: units_jls
 !@var SCALE_JLS: printout scaling factor for tracer JLS diagnostics
       REAL*8, dimension(ktajls) :: scale_jls
 !@var IA_JLS,JGRID_JLS: idacc-numbers,gridtypes for tracer JL diags
@@ -337,9 +346,12 @@ C**** include some extra troposphere only ones
 !@var kt_power_inst,kt_power_change: Exponents for tracer conservation
       INTEGER, DIMENSION(ntm) :: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
-      character(len=30), dimension(ktcon,ntmxcon) ::
-     &   name_tconsrv,units_tconsrv
-      character(len=80), dimension(ktcon,ntmxcon) :: lname_tconsrv
+      character(len=sname_strlen), dimension(ktcon,ntmxcon) ::
+     &     name_tconsrv
+      character(len=units_strlen), dimension(ktcon,ntmxcon) ::
+     &     units_tconsrv
+      character(len=lname_strlen), dimension(ktcon,ntmxcon) ::
+     &     lname_tconsrv
 !@var SCALE_INST,SCALE_CHANGE: Scale factors for tracer conservation
       REAL*8, dimension(ntmxcon) :: SCALE_INST,SCALE_CHANGE
 !@var itcon_surf Index array for surface source/sink conservation diags

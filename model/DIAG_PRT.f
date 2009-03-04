@@ -21,8 +21,11 @@
 C****
 C**** TITLES FOR SUBROUTINE DIAG7
 C****
+      use diag_com, only : lname_strlen,sname_strlen,units_strlen
       COMMON/D7COM/LNAME,SNAME,UNITS
-      CHARACTER LNAME(12)*50,SNAME(12)*30,UNITS(12)*50
+      CHARACTER(len=lname_strlen) :: LNAME(12)
+      CHARACTER(len=sname_strlen) :: SNAME(12)
+      CHARACTER(len=units_strlen) ::  UNITS(12)
       DATA LNAME/
      1'WAVE POWER FOR U NEAR 850 MB AND EQUATOR  ',
      2'WAVE POWER FOR V NEAR 850 MB AND EQUATOR  ',
@@ -265,7 +268,8 @@ C**** ENTRIES CALLED FROM DIAGJ
 C****
 !      ENTRY KEYDJ (N,FGLOB,FNH)
       subroutine KEYDJ(name,FGLOB,FNH)
-      character*20 name
+      use diag_com, only : sname_strlen
+      character(len=sname_strlen) :: name
       real*8 FGLOB,FNH
 
       SELECT CASE ( name )
@@ -724,16 +728,16 @@ c     write(0,*) 'SCM no diags   print_diags'
      &     ntype_out,nreg,kaj,terrain,
      &     QDIAG,acc_period,kdiag,namreg,ia_j,iden_j,iden_reg,
      *     scale_j,stitle_j,lname_j,name_j,units_j,
-     *     fmt_j,fmt_reg
+     *     fmt_j,fmt_reg,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       LOGICAL qIbp
       INTEGER, PARAMETER :: INC=1+(JM-1)/24
 C**** Arrays needed for full output
       REAL*8, DIMENSION(JM+3,KAJ) :: BUDG
       CHARACTER*16, DIMENSION(KAJ) :: TITLEO
-      CHARACTER*50, DIMENSION(KAJ) :: LNAMEO
-      CHARACTER*30, DIMENSION(KAJ) :: SNAMEO
-      CHARACTER*50, DIMENSION(KAJ) :: UNITSO
+      CHARACTER(len=lname_strlen), DIMENSION(KAJ) :: LNAMEO
+      CHARACTER(len=sname_strlen), DIMENSION(KAJ) :: SNAMEO
+      CHARACTER(len=units_strlen), DIMENSION(KAJ) :: UNITSO
 
       REAL*8 :: BYIACC,FGLOB,GSUM,GWT,FHEM(2),HWT(2),DAYS
 
@@ -913,7 +917,7 @@ C****
       USE DIAG_COM
       IMPLICIT NONE
       INTEGER :: K,kk,iu_Ijk
-      LOGICAL qIjk,Ql(KAJLx),Qk(KAGCx)
+      LOGICAL qIjk,Ql(KAJL),Qk(KAGCx)
       character*80 line
 
       k = kajl
@@ -935,7 +939,7 @@ C****
          Ql(kk)=.true.
          go to 10
    20    continue
-         do kk=1,KAJLx
+         do kk=1,KAJL
            if(.not.Ql(kk)) sname_jl(kk)='skip'
          end do
        end if
@@ -2471,15 +2475,16 @@ C****
       USE WORKJK
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
-      USE DIAG_COM, only : QDIAG,acc_period,lm_req,inc=>incj,linect
+      USE DIAG_COM, only : QDIAG,acc_period,lm_req,inc=>incj,linect,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS,UNITS_WITH_SCALE
+      CHARACTER(LEN=units_strlen) :: UNITS,UNITS_WITH_SCALE
 !@var lname string describing output field
-      CHARACTER(LEN=50) :: LNAME
+      CHARACTER(LEN=lname_strlen) :: LNAME
 !@var sname string referencing output field
-      CHARACTER(LEN=30) :: SNAME
+      CHARACTER(LEN=sname_strlen) :: SNAME
 !@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64) :: TITLE
 
@@ -2710,15 +2715,15 @@ C****
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
       USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
-     *     ,jmby2
+     *     ,jmby2,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS,UNITS_WITH_SCALE
+      CHARACTER(LEN=units_strlen) :: UNITS,UNITS_WITH_SCALE
 !@var lname string describing output field
-      CHARACTER(LEN=50) :: LNAME
+      CHARACTER(LEN=lname_strlen) :: LNAME
 !@var sname string referencing output field
-      CHARACTER(LEN=30) :: SNAME
+      CHARACTER(LEN=sname_strlen) :: SNAME
 !@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64) :: TITLE
 
@@ -2923,15 +2928,15 @@ C****
       USE GEOM, only :
      &     LAT_DG,WTJ,JRANGE_HEMI
       USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
-     *     ,jmby2
+     *     ,jmby2,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS,UNITS_WITH_SCALE
+      CHARACTER(LEN=units_strlen) :: UNITS,UNITS_WITH_SCALE
 !@var lname string describing output field
-      CHARACTER(LEN=50) :: LNAME
+      CHARACTER(LEN=lname_strlen) :: LNAME
 !@var sname string referencing output field
-      CHARACTER(LEN=30) :: SNAME
+      CHARACTER(LEN=sname_strlen) :: SNAME
 !@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64) :: TITLE
 
@@ -3075,7 +3080,7 @@ C**** Vertical means
       use diag_com, only : qdiag,acc_period,inc=>incj,linect,
      &     ajl,denom_jl,ia_jl,scale_jl,sname_jl,lname_jl,units_jl,
      &     pow_jl,lgrid_jl,ctr_ml,edg_ml,ctr_cp,edg_cp,plm,ple,
-     &     asjl,scale_sjl,ia_sjl
+     &     asjl,scale_sjl,ia_sjl,sname_strlen,units_strlen,lname_strlen
       implicit none
       integer, intent(in) :: jl_index
       integer, intent(in), optional :: sjl_index
@@ -3094,9 +3099,9 @@ c      real*8, dimension(:,:), allocatable :: anum,aden,xjl
       character(len=16) :: clat='LATITUDE'
       character(len=16) :: cpres='PRESSURE (MB)'
       character xlb*16,titleo*80,tpow*8
-      character(len=50) :: units,units_with_scale
-      character(len=50) :: lname
-      character(len=30) :: sname
+      character(len=units_strlen) :: units,units_with_scale
+      character(len=lname_strlen) :: lname
+      character(len=sname_strlen) :: sname
       character(len=64) :: title
       character(len=4) :: vsword
 
@@ -3283,17 +3288,21 @@ c      deallocate(anum,aden,xjl)
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid,dtsrc
       USE DIAG_COM, only : ail,lm_req,acc_period, qdiag
      &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
+     &     ,sname_strlen,units_strlen,lname_strlen
      &     ,j5s,j5n,j5suv,j5nuv,j50n,j70n
      &     ,IL_U,IL_V,IL_TX,IL_W,IL_RH,IL_RC,IL_MC
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav
       USE GEOM, only : dxyp
       IMPLICIT NONE
-      CHARACTER sname*20,unit*20,lname*80
+      CHARACTER(len=sname_strlen) :: sname
+      CHARACTER(len=units_strlen) :: unit
+      CHARACTER(len=lname_strlen) :: lname
       REAL*8, DIMENSION(LM) :: ONES
       REAL*8, DIMENSION(IM,LM) :: XIL
       INTEGER, PARAMETER :: KAILX=15
-      character(len=20), dimension(kailx) :: name_il,units_il
-      character(len=80), dimension(kailx) :: lname_il
+      character(len=sname_strlen), dimension(kailx) :: name_il
+      character(len=units_strlen), dimension(kailx) :: units_il
+      character(len=lname_strlen), dimension(kailx) :: lname_il
       real*8, dimension(kailx) :: scale_il
       integer, dimension(kailx) :: ia_il,j1_il,j2_il,qty_il
       real*8 :: bydj,bydjuv,daeq
@@ -3500,11 +3509,13 @@ C**** INITIALIZE CERTAIN QUANTITIES
       USE MODEL_COM, only : im,jm,lm,dsig,jdate,jdate0,amon,amon0,jyear
      *     ,jyear0,sige,xlabel
       USE GEOM, only : dlon,lon_dg
-      USE DIAG_COM, only : qdiag,acc_period,inc=>inci,linect
+      USE DIAG_COM, only : qdiag,acc_period,inc=>inci,linect,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       CHARACTER XLB*80,CWORD*8
-      character(len=20), intent(in) :: sname,unit
-      character(len=80), intent(in) :: lname
+      character(len=sname_strlen), intent(in) :: sname
+      character(len=units_strlen), intent(in) :: unit
+      character(len=lname_strlen), intent(in) :: lname
       CHARACTER*64 :: TITLE
       CHARACTER*4, PARAMETER :: DASH='----'
       CHARACTER*4, DIMENSION(2), PARAMETER :: WORD=(/'SUM ','MEAN'/)
@@ -3580,7 +3591,8 @@ C****
       USE MODEL_COM, only :
      &     im,IDACC,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL,lrunid
       USE DIAG_COM, only : qdiag,ia_12hr,ia_inst,
-     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period
+     &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ,acc_period,
+     &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       INTEGER, DIMENSION(44) :: IPOWER
@@ -3599,7 +3611,10 @@ C****
       INTEGER, PARAMETER :: MMAX=12,NUAMAX=120,NUBMAX=15
 
       COMMON/D7COM/LNAME,SNAME,UNITS
-      CHARACTER TITLE(12)*66,LNAME(12)*50,SNAME(12)*30,UNITS(12)*50
+      CHARACTER TITLE(12)*66
+      CHARACTER(len=lname_strlen) :: LNAME(12)
+      CHARACTER(len=sname_strlen) :: SNAME(12)
+      CHARACTER(len=units_strlen) ::  UNITS(12)
 
       REAL*8, DIMENSION(12) :: SCALET
       DATA SCALET/1.,1., .1,1., .1,1., 4*1.D-3,1.D-4,1.D-5/
@@ -3845,8 +3860,9 @@ C**FREQUENCY BAND AVERAGE
       REAL*8, DIMENSION(JM) :: smapj
       integer, intent(in) :: k
       integer i,j,l,k1,k2,iwt,igrid,jgrid,irange,n1,n2
-      character(len=30) name,units
-      character(len=80) lname
+      character(len=sname_strlen) name
+      character(len=units_strlen) units
+      character(len=lname_strlen) lname
       real*8 :: gm,nh,sh, off, byiacc, scalek, an2Zan1
 !@var  isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg
@@ -4032,15 +4048,18 @@ c**** find hemispheric and global means
       IMPLICIT NONE
 
 !@var Qk: if Qk(k)=.true. field k still has to be processed
-      logical, dimension (kaijx) :: Qk
+      logical, dimension (kaij) :: Qk
 !@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
 !@+     only important for fields 1->nmaplets+nmaps (appear in printout)
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
-      INTEGER Iord(kaijx+10),nmaplets,nmaps ! 10 extra blank maplets
+      INTEGER Iord(kaij+10),nmaplets,nmaps ! 10 extra blank maplets
       INTEGER kmaplets
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
-      CHARACTER xlb*32,title*48,lname*80,name*30,units*30
+      CHARACTER(len=sname_strlen) :: name
+      CHARACTER(len=units_strlen) :: units
+      CHARACTER(len=lname_strlen) :: lname
+      CHARACTER xlb*32,title*48
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
       logical qIij
@@ -4122,7 +4141,7 @@ C**** Add the full-page maps (nmaps)
       iord(nmaplets+1:nmaplets+nmaps) = (/ij_slp,ij_ts/)
 c**** always skip unused fields
       Qk = .true.
-      do k=1,kaijx
+      do k=1,kaij
         if (index(lname_ij(k),'unused').gt.0) Qk(k) = .false.
       end do
 
@@ -4247,7 +4266,7 @@ C**** Print out full-page digital maps
 
       if (.not.qdiag) RETURN
 C**** produce binary files of remaining fields if appropriate
-      do k=1,kaijx
+      do k=1,kaij
         if (Qk(k)) then
           call ij_mapk (k,smap,smapj,gm,igrid,jgrid,irange,name,lname,
      &          units)
@@ -4446,8 +4465,8 @@ C****
 
       IMPLICIT NONE
       character*80 line
-      logical Qk(kaijx),Qktmp(kaijx)
-      INTEGER Iord(kaijx+10),nmaplets,nmaps,iu_Iij,k,
+      logical Qk(kaij),Qktmp(kaij)
+      INTEGER Iord(kaij+10),nmaplets,nmaps,iu_Iij,k,
      *   n,kmap(3)
 
 c**** Just list what's available - then do same for ijk-fields
@@ -4475,7 +4494,7 @@ c**** Just list what's available - then do same for ijk-fields
           end if
         end do
         write (iu_Iij,'(a)') 'List of other fields in binary output'
-        do k=1,kaijx
+        do k=1,kaij
           if (.not.Qktmp(k)) cycle
           write (iu_Iij,'(i3,1x,a)') k,lname_ij(k)
         end do
@@ -5117,9 +5136,10 @@ C****
 
       subroutine KEYVSUMS (QUANT,GSUM,HSUM,ASUM,SUMFAC)
       USE MODEL_COM, only : jm
+      use diag_com, only : sname_strlen
       implicit none
 !@var quant string designating the quantity for which to save keynrs
-      CHARACTER(LEN=30) :: QUANT
+      CHARACTER(LEN=sname_strlen) :: QUANT
       REAL*8, DIMENSION(JM) :: ASUM
       REAL*8, DIMENSION(2) :: HSUM
       REAL*8 :: GSUM,SUMFAC
@@ -5143,11 +5163,12 @@ C****
 
       subroutine keynrl(quant,l,flat)
       USE MODEL_COM, only : jm
+      use diag_com, only : sname_strlen
       implicit none
       integer :: l
       REAL*8, DIMENSION(JM) :: FLAT
 !@var quant string designating the quantity for which to save keynrs
-      CHARACTER(LEN=30) :: QUANT
+      CHARACTER(LEN=sname_strlen) :: QUANT
       if(quant.eq.'u') CALL KEYJKJ (L,FLAT)
       if(quant.eq.'psi_cp') CALL KEYJLS (L,FLAT)
       return
@@ -5749,7 +5770,7 @@ C****
       USE GEOM, only : dxyp,lat_dg
       USE DIAG_COM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
      *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
-     &     ,isccp_late
+     &     ,isccp_late,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       CHARACTER*80 :: TITLE(nisccp) = (/
@@ -5761,8 +5782,9 @@ C****
       REAL*8 AX(ntau-1,npres,nisccp),wisccp(nisccp)
       INTEGER N,ITAU,IPRESS,J,I
 
-      character*30 :: sname
-      character*50 :: lname,units
+      character(len=sname_strlen) :: sname
+      character(len=units_strlen) :: units
+      character(len=lname_strlen) :: lname
 
 c latlon-specific code moved from init_CLD
       do j=1,JM

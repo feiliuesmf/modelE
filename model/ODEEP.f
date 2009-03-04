@@ -487,9 +487,13 @@ C**** Check for reasonable values for ocean variables
       USE GEOM, only : imaxj,lat_dg
       USE ODEEP_COM, only : lmom,rtgo=>rtgo_diag,dz
       USE DIAG_COM, only : acc_period,qdiag,zoc
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
-      CHARACTER LNAME*50,SNAME*30,UNITS*50
+      CHARACTER(len=lname_strlen) :: LNAME
+      CHARACTER(len=sname_strlen) :: SNAME
+      CHARACTER(len=units_strlen) :: UNITS
+
       INTEGER I,J,L
       REAL*8 ATGO(JM,LMOM),SCALED,ONES(JM),focnj
 

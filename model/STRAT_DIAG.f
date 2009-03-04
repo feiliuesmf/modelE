@@ -580,6 +580,7 @@ C****
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dudtsdif,jl_damdc,jl_dammc,jl_dudtvdif
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
 C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)
@@ -590,7 +591,7 @@ c      COMMON /PROGCB/ U,V,T,SX,SY,SZ,P,Q   !not used?
 C**** diagnostic information for print out
 C**** this should be in an init_ep routine or something
       integer, parameter :: njl_out=7
-      character(len=50) :: lname(njl_out) = (/
+      character(len=lname_strlen) :: lname(njl_out) = (/
      *     'DU/DT BY EULER CIRC. + CONVEC + DRAG+DIF+ER2',
      *     'DU/DT BY MEAN ADVECTION                     ',
      *     'DU/DT BY EDDY CONVERGENCE                   ',
@@ -598,11 +599,11 @@ C**** this should be in an init_ep routine or something
      *     'DU/DT BY ELIASSEN-PALM DIVERGENCE           ',
      *     'DU/DT BY F.D. ERROR TERM 1                  ',
      *     'DU/DT BY F.D. ERROR TERM 2                  '/)
-      character(len=30) :: sname(njl_out) = (/
+      character(len=sname_strlen) :: sname(njl_out) = (/
      *     'dudt_sum1    ','dudt_meanadv ','dudt_eddycnv '
      *     ,'dudt_trnsadv ','dudt_epflxdiv','dudt_fderr1  '
      *     ,'dudt_fderr2  '/)
-      character(len=50) :: units(njl_out) = 'm/s^2'
+      character(len=units_strlen) :: units(njl_out) = 'm/s^2'
       integer, dimension(njl_out) :: pow = (/ -6,-6,-6,-6,-6,-6,-6 /)
 
 C**** ARRAYS CALCULATED HERE:

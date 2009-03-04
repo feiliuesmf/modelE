@@ -16,6 +16,7 @@ C**** have to wait.
       module gissout
 !@sum gissout contains variables for outputting GISS format binaries
 !@auth G. Schmidt
+      use diag_com, only : sname_strlen,units_strlen,lname_strlen
       implicit none
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn,iu_isccp
@@ -76,11 +77,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS
 !@var XIJ lat/lon output field
       REAL*8, DIMENSION(IM,JM), INTENT(IN) :: XIJ
 !@var XJ lat sum/mean of output field
@@ -131,11 +132,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var J1,KLMAX variables required by pout_jl
       INTEGER, INTENT(IN) :: KLMAX,J1
 !@var XJL output field, dimensioned to accomodate pout_jl expectations
@@ -195,11 +196,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS_IN*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS_IN
 !@var KLMAX max level to output
 !@var J1 minimum j value to output (needed for secondary grid fields)
       INTEGER, INTENT(IN) :: KLMAX,J1
@@ -289,8 +290,9 @@ C**** set units
 !@var ZONAL zonal sum/mean
       REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL
 
-      character(len=20), intent(in) :: sname,unit
-      character(len=80), intent(in) :: lname
+      character(len=sname_strlen), intent(in) :: sname
+      character(len=units_strlen), intent(in) :: unit
+      character(len=lname_strlen), intent(in) :: lname
       CHARACTER*16, INTENT(IN) :: CX,CY
       CHARACTER*16, PARAMETER :: CBLANK = ' '
       REAL*8 XCOOR(IM)
@@ -359,9 +361,9 @@ C**** set dimensions
       CHARACTER*16, DIMENSION(KAJ),INTENT(INOUT) :: TITLE
       CHARACTER*16 :: NEWTIT
 !@var LNAME,SNAME,UNITS dummy strings
-      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: LNAME
-      CHARACTER*30, DIMENSION(KAJ),INTENT(IN) :: SNAME
-      CHARACTER*50, DIMENSION(KAJ),INTENT(IN) :: UNITS
+      CHARACTER(len=lname_strlen), DIMENSION(KAJ),INTENT(IN) :: LNAME
+      CHARACTER(len=sname_strlen), DIMENSION(KAJ),INTENT(IN) :: SNAME
+      CHARACTER(len=units_strlen), DIMENSION(KAJ),INTENT(IN) :: UNITS
       CHARACTER*16, INTENT(IN) :: TERRAIN
       REAL*8, DIMENSION(JM+3,KAJ), INTENT(IN) :: BUDG
       INTEGER, INTENT(IN) :: KMAX,iotype
@@ -442,11 +444,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
 !@var XJK lat sum/mean of output field
@@ -506,11 +508,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJL
 !@var XJK lat sum/mean of output field
@@ -570,11 +572,11 @@ C**** set dimensions
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, DIMENSION(LM), INTENT(IN) :: TITLE*80
 !@var SNAME short name of field
-      CHARACTER, INTENT(IN) :: SNAME*30
+      CHARACTER(len=sname_strlen), INTENT(IN) :: SNAME
 !@var LNAME long name of field
-      CHARACTER, INTENT(IN) :: LNAME*50
+      CHARACTER(len=lname_strlen), INTENT(IN) :: LNAME
 !@var UNITS units of field
-      CHARACTER, INTENT(IN) :: UNITS*50
+      CHARACTER(len=units_strlen), INTENT(IN) :: UNITS
 !@var XIJK lat/lon/height output field
       REAL*8, DIMENSION(IM,JM,LM), INTENT(IN) :: XIJK
       REAL*8, INTENT(IN) :: taum(im), pres(jm)
@@ -780,9 +782,9 @@ C**** set dimensions
       INTEGER, INTENT(IN) :: KMAX
       CHARACTER*38, DIMENSION(kmax),INTENT(INOUT) :: TITLE
 !@var LNAME,SNAME,UNITS dummy strings
-      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: LNAME
-      CHARACTER*30, DIMENSION(kmax),INTENT(IN) :: SNAME
-      CHARACTER*50, DIMENSION(kmax),INTENT(IN) :: UNITS
+      CHARACTER(len=lname_strlen), DIMENSION(kmax),INTENT(IN) :: LNAME
+      CHARACTER(len=sname_strlen), DIMENSION(kmax),INTENT(IN) :: SNAME
+      CHARACTER(len=units_strlen), DIMENSION(kmax),INTENT(IN) :: UNITS
       REAL*8, DIMENSION(JM+3,kmax), INTENT(IN) :: cnslat
       INTEGER K,N,J
 

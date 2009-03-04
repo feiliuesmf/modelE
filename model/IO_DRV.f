@@ -28,6 +28,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       else                              ! normal conditions
         call set_ioptrs_acc_default
       endif
+      if(iaction.eq.iowrite_single) call set_ioptrs_acc_extended
 
       do_io_prog = .true.
       if(iaction.eq.iowrite_single) do_io_prog = .false.
@@ -71,6 +72,7 @@ c end-of-month acc file, no prognostic arrays
           call def_rsf_label(fid) 
           call def_acc_all(fid,.true.)     ! real*4 disk storage
           call def_rsf_longacc(fid,.true.) ! real*4 disk storage
+          call def_acc_meta(fid)
         endif
         call par_close(grid,fid)!if(am_i_root())status=nf_enddef(fid)
       elseif(iaction.eq.iowrite .and. it.eq.itimei) then
@@ -131,6 +133,7 @@ c
 c acc arrays
 c
       if(do_io_acc) then
+        if(iaction.eq.iowrite_single) call write_acc_meta(fid)
         call new_io_acc(fid,iorw)
         call new_io_ocdiag(fid,iorw)
         call new_io_icdiag(fid,iorw)
@@ -205,6 +208,7 @@ c
 !@sum  def_rsf_prog defines prognostic array structure in restart files
 !@auth M. Kelley
 !@ver  beta
+      implicit none
       integer :: fid
       call def_rsf_model  (fid) 
       call def_rsf_ocean  (fid)
@@ -227,10 +231,60 @@ c
       return
       end subroutine def_rsf_prog
 
+      subroutine def_acc_meta(fid)
+!@sum  def_acc_meta defines metadata in acc files
+!@auth M. Kelley
+!@ver  beta
+      USE MODEL_COM, only :
+     &     jhour,jhour0,jdate,jdate0,amon,amon0,
+     &     jyear,jyear0,itime,itime0,nday
+      use domain_decomp_atm, only : grid
+      use pario, only : write_attr
+      implicit none
+      integer :: fid         !@var fid file id
+      character(len=100) :: fromto
+      real*8 :: days
+
+      days=(itime-itime0)/float(nday)
+      write(fromto,902) jyear0,amon0,jdate0,jhour0,
+     &     jyear,amon,jdate,jhour,itime,days
+      call write_attr(grid,fid,'global','fromto',fromto)
+
+c this does not work for all idacc
+c      call write_attr(grid,fid,'idacc','reduction','sum')
+
+      call def_meta_atmacc(fid)
+c      call def_meta_ocdiag(fid)
+c      call def_meta_icdiag(fid)
+c#ifdef TRACERS_ON
+c      call def_meta_trdiag(fid)
+c#endif
+      return
+  902 FORMAT ('From:',I6,A6,I2,',  Hr',I3,
+     *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
+     *  'Dif:',F7.2,' Days')
+      end subroutine def_acc_meta
+
+      subroutine write_acc_meta(fid)
+!@sum  def_acc_meta writes metadata to acc files
+!@auth M. Kelley
+!@ver  beta
+      implicit none
+      integer :: fid         !@var fid file id
+      call write_meta_atmacc(fid)
+c      call write_meta_ocdiag(fid)
+c      call write_meta_icdiag(fid)
+c#ifdef TRACERS_ON
+c      call write_meta_trdiag(fid)
+c#endif
+      return
+      end subroutine write_acc_meta
+
       subroutine def_acc_all(fid,r4_on_disk)
 !@sum  def_acc_all defines acc array structure in restart files
 !@auth M. Kelley
 !@ver  beta
+      implicit none
       integer :: fid         !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
       call def_rsf_acc(fid,r4_on_disk)
@@ -412,7 +466,8 @@ c manage the reading/writing of timing information. could be done better
       integer :: pvali(1000)
       real*8 :: pvalr(1000)
       character(len=128) :: pname,pvalc(1000)
-      character(len=1000) :: cstr
+      integer, parameter :: lcstr=1000
+      character(len=lcstr) :: cstr
       select case (iaction)
       case (iowrite) ! output
         niparam = 0; nrparam = 0; ncparam = 0;
@@ -466,6 +521,7 @@ c strings with the character "|".
      &         call set_param( trim(pname), pvalr, plen, 'o' )
         enddo
         do n=1,ncparam
+          cstr(lcstr:lcstr)='x' ! workaround for length checking
           call read_attr(grid,fid,'cparam',pname,strlen,cstr,
      &         attnum=n)
 c Arrays of strings are not supported here.  Strings containing
@@ -507,6 +563,19 @@ c instances of the arrays used during normal operation.
 #endif
       return
       end subroutine set_ioptrs_acc_default
+
+      subroutine set_ioptrs_acc_extended
+c point i/o pointers for accumlated quantities to the
+c instances of the arrays holding derived quantities as well
+      implicit none
+      call set_ioptrs_atmacc_extended
+c      call set_ioptrs_ocnacc_extended
+c      call set_ioptrs_iceacc_extended
+c#ifdef TRACERS_ON
+c      call set_ioptrs_tracacc_extended
+c#endif
+      return
+      end subroutine set_ioptrs_acc_extended
 
       subroutine sumfiles_prep
 c point i/o pointers for diagnostic accumlations to temporary

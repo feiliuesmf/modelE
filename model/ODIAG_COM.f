@@ -10,6 +10,7 @@
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE DIAG_COM, only : npts  ! needed for conservation diags
+     &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8
@@ -27,11 +28,11 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB
 !@var lname_oij Long names for OIJ diagnostics
-      CHARACTER*50, DIMENSION(KOIJ) :: LNAME_OIJ
+      CHARACTER(len=lname_strlen), DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
-      CHARACTER*30, DIMENSION(KOIJ) :: SNAME_OIJ
+      CHARACTER(len=sname_strlen), DIMENSION(KOIJ) :: SNAME_OIJ
 !@var units_oij Units for OIJ diagnostics
-      CHARACTER*50, DIMENSION(KOIJ) :: UNITS_OIJ
+      CHARACTER(len=units_strlen), DIMENSION(KOIJ) :: UNITS_OIJ
 !@var ia_oij IDACC numbers for OIJ diagnostics
       INTEGER, DIMENSION(KOIJ) :: IA_OIJ
 !@var scale_oij scales for OIJ diagnostics

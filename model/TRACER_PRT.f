@@ -352,6 +352,7 @@ C**** No need to save current value
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv
       USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
+     &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       INTEGER, DIMENSION(JM) :: MAREA
@@ -366,9 +367,9 @@ c   JM+3 used for Lat, N-Hemi, S-Hemi, and Global Sums Storage
       REAL*8 :: aglob,ahem,feq,fnh,fsh,days
 C**** Arrays needed for full output and pdE
       CHARACTER*38, DIMENSION(KTCON) :: TITLEO
-      CHARACTER*50, DIMENSION(KTCON) :: LNAMEO
-      CHARACTER*30, DIMENSION(KTCON) :: SNAMEO
-      CHARACTER*50, DIMENSION(KTCON) :: UNITSO
+      CHARACTER(len=lname_strlen), DIMENSION(KTCON) :: LNAMEO
+      CHARACTER(len=sname_strlen), DIMENSION(KTCON) :: SNAMEO
+      CHARACTER(len=units_strlen), DIMENSION(KTCON) :: UNITSO
 
 
       if (kdiag(8).ge.2) return
@@ -548,6 +549,7 @@ C****
       USE TRACER_COM
       USE DIAG_COM, only: linect,plm,acc_period,qdiag,lm_req,ia_dga,ajl
      *     ,jl_dpa,jl_dpasrc,jl_dwasrc
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE TRDIAG_COM, only : PDSIGJL, tajln, tajls, lname_jln, sname_jln
      *     , units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -572,7 +574,10 @@ C****
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
       INTEGER :: J,L,N,K,jtpow,kw,n1,n2
-      CHARACTER :: lname*80,sname*30,units*50
+      character(len=lname_strlen) :: lname
+      character(len=sname_strlen) :: sname
+      character(len=units_strlen) :: units
+
       REAL*8 :: dD, d18O, d17O
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
@@ -1028,15 +1033,16 @@ C****
      *     ,xlabel,dsig,sige
       USE GEOM, only: wtj,jrange_hemi,lat_dg
       USE DIAG_COM, only: qdiag,acc_period,inc=>incj,linect,jmby2,lm_req
+     &     ,sname_strlen,units_strlen,lname_strlen
       USE TRDIAG_COM, only : pdsigjl
       IMPLICIT NONE
 
 !@var units string containing output field units
-      CHARACTER(LEN=50) :: UNITS
+      CHARACTER(LEN=units_strlen) :: UNITS
 !@var lname string describing output field
-      CHARACTER(LEN=50) :: LNAME
+      CHARACTER(LEN=lname_strlen) :: LNAME
 !@var sname string referencing output field
-      CHARACTER(LEN=30) :: SNAME
+      CHARACTER(LEN=sname_strlen) :: SNAME
 !@var title string, formed as concatentation of lname//units
       CHARACTER(LEN=64) :: TITLE
 
@@ -1213,7 +1219,9 @@ C****
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
       INTEGER nmaplets
       INTEGER, DIMENSION(ktmax) :: nt,ijtype,Iord,irange,iacc
-      CHARACTER, DIMENSION(ktmax) :: lname*80,name*30,units*30
+      CHARACTER(len=lname_strlen), DIMENSION(ktmax) :: lname
+      CHARACTER(len=sname_strlen), DIMENSION(ktmax) :: name
+      CHARACTER(len=units_strlen), DIMENSION(ktmax) :: units
       REAL*8, DIMENSION(ktmax) :: scale
 c      REAL*8, DIMENSION(IM,JM,ktmax) :: aij1,aij2
       REAL*8, DIMENSION(:,:,:), allocatable :: aij1,aij2
@@ -1597,8 +1605,8 @@ C**** produce binary files of remaining fields if appropriate
      *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
      *         ,lname(n),units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
-          call pout_ij(title//xlb,name,lname(n),units(n),smap,smapj,gm
-     *         ,jgrid,jgrid) ! assuming igrid=jgrid for now
+          call pout_ij(title//xlb,name(n),lname(n),units(n),smap,smapj,
+     *         gm,jgrid,jgrid) ! assuming igrid=jgrid for now
         end if
       end do
       if(qdiag) call close_ij
@@ -1628,8 +1636,9 @@ C****
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap,aij1,aij2
       REAL*8, DIMENSION(JM) :: smapj
       integer i,j,k,iwt,jgrid,irange,n,nmap,iacc
-      character(len=30) name,units
-      character(len=80) lname
+      character(len=sname_strlen) :: name
+      character(len=units_strlen) :: units
+      character(len=lname_strlen) :: lname
       real*8 :: gm,nh,sh, off, byiacc,scale
 !@var isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg,k1

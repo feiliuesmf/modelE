@@ -19,8 +19,10 @@ C**** Accumulating_period information
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 
-c!@var DXYP_BUDG area array on budget grid
-c      REAL*8, DIMENSION(JM_BUDG) :: DXYP_BUDG
+!@var LAT_BUDG latitudes of budget grid
+!@var DXYP_BUDG area array of budget grid
+      REAL*8, DIMENSION(JM_BUDG), public :: LAT_BUDG,DXYP_BUDG
+
 c**** area of zig-zag bands on budget grid
       REAL*8, ALLOCATABLE, DIMENSION(:), public :: axypband_loc,
      &   axypband
@@ -51,8 +53,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@var SAREA_REG areas of the special regions
       REAL*8, DIMENSION(NREG), public :: SAREA_REG
 
-!@param KAJL,KAJLX number of AJL diagnostics,KAJLX includes composites
-      INTEGER, PARAMETER, public :: KAJL=60, KAJLX=KAJL+50
+!@param KAJL number of AJL diagnostics
+      INTEGER, PARAMETER, public :: KAJL=60
 !@var AJL latitude/height diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJL,AJL_loc
 
@@ -61,8 +63,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@var ASJL latitude/height supplementary diagnostics (merge with AJL?)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
-!@param KAIJ,KAIJX number of AIJ diagnostics, KAIJX includes composites
-      INTEGER, PARAMETER, public :: KAIJ=328 , KAIJX=KAIJ+400
+!@param KAIJ number of AIJ diagnostics
+      INTEGER, PARAMETER, public :: KAIJ=328
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
@@ -180,7 +182,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@var AGC latitude-height General Circulation diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
 
-!@param KAIJK,KAIJX number of lat/lon constant pressure diagnostics
+!@param KAIJK,KAIJKX number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER, public :: KAIJK=28, kaijkx=kaijk+400
 !@var KAIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK,AIJK_loc
@@ -337,6 +339,9 @@ C****      names, indices, units, idacc-numbers, etc.
       REAL*8, dimension(ndparm_max), public :: dparm
       integer, public :: ndparm=0
 
+      integer, parameter, public ::
+     &     sname_strlen=30,units_strlen=30,lname_strlen=80
+
 !@var J_xxx zonal J diagnostic names
       INTEGER, public ::
      &     J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
@@ -354,9 +359,10 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP,
      *     J_ALBP0,J_ALBG
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
-      character(len=20), dimension(kaj), public :: name_j,units_j
+      character(len=sname_strlen), dimension(kaj), public :: name_j
+      character(len=units_strlen), dimension(kaj), public :: units_j
 !@var LNAME_J Long names of zonal J diagnostics
-      character(len=80), dimension(kaj), public :: lname_j
+      character(len=lname_strlen), dimension(kaj), public :: lname_j
 !@var STITLE_J short titles for print out for zonal J diagnostics
       character(len=16), dimension(kaj), public :: stitle_j
 !@var SCALE_J scale for zonal J diagnostics
@@ -368,7 +374,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var iden_j denominators for zonal J diagnostics
       integer, dimension(kaj), public :: iden_j,iden_reg
 
-      character(len=20), dimension(kaj), public :: name_reg
+      character(len=sname_strlen), dimension(kaj), public :: name_reg
 
 !@var IJ_xxx AIJ diagnostic names
       INTEGER, public ::
@@ -504,11 +510,12 @@ c derived/composite diagnostics
       INTEGER, public :: lh_diags = 0
 
 !@var SCALE_IJ scaling for weighted AIJ diagnostics
-      REAL*8, DIMENSION(KAIJX), public :: SCALE_IJ
+      REAL*8, DIMENSION(KAIJ), public :: SCALE_IJ
 !@var NAME_IJ,UNITS_IJ Names/Units of lat/lon IJ diagnostics
-      character(len=30), dimension(kaijx), public :: name_ij,units_ij
+      character(len=sname_strlen), dimension(kaij), public :: name_ij
+      character(len=units_strlen), dimension(kaij), public :: units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
-      character(len=80), dimension(kaijx), public :: lname_ij
+      character(len=lname_strlen), dimension(kaij), public :: lname_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter, public :: nwts_ij = 8
 !@var wt_ij various weight-arrays use in ij-diagnostics
@@ -517,13 +524,13 @@ c derived/composite diagnostics
       integer, parameter, public :: iw_all=1 , iw_ocn=2 , iw_lake=3,
      *   iw_lice=4 , iw_soil=5 , iw_bare=6 , iw_veg=7, iw_land=8
 !@var IR_IJ range indices for IJ diagnostics
-      integer, dimension(kaijx), public :: ir_ij
+      integer, dimension(kaij), public :: ir_ij
 !@var IA_IJ IDACC indexes for lat/lon IJ diagnostics
-      integer, dimension(kaijx), public :: ia_ij
+      integer, dimension(kaij), public :: ia_ij
 !@var [ij]grid_ij 1=primary grid  2=secondary grid
-      integer, dimension(kaijx), public :: igrid_ij,jgrid_ij
+      integer, dimension(kaij), public :: igrid_ij,jgrid_ij
 !@var denom_ij index of AIJ element to use as time/area weight
-      integer, dimension(kaijx), public :: denom_ij
+      integer, dimension(kaij), public :: denom_ij
 
 !@var JL_xxx, JK_xxx names for AJL indices
 !@+   JL/JK refer to model versus constant-pressure levels
@@ -552,25 +559,27 @@ c derived/composite diagnostics
      &     ijkgridc=igridc+jgridc+kgridc
 
 !@var SNAME_JL Names of lat-sigma JL diagnostics
-      character(len=30), dimension(kajlx), public :: sname_jl
+      character(len=sname_strlen), dimension(kajl), public :: sname_jl
 !@var LNAME_JL,UNITS_JL Descriptions/Units of JL diagnostics
-      character(len=50), dimension(kajlx), public :: lname_jl,units_jl
+      character(len=lname_strlen), dimension(kajl), public :: lname_jl
+      character(len=units_strlen), dimension(kajl), public :: units_jl
 !@var SCALE_JL printout scaling factors for JL diagnostics
-      REAL*8, dimension(kajlx), public :: scale_jl
+      REAL*8, dimension(kajl), public :: scale_jl
 !@var IA_JL,JGRID_JL,LGRID_JL idacc-numbers,gridtypes for JL diagnostics
-      integer, dimension(kajlx), public :: ia_jl,jgrid_jl,lgrid_jl
+      integer, dimension(kajl), public :: ia_jl,jgrid_jl,lgrid_jl
 !@var POW_JL printed output scaled by 10**(-pow_jl)
-      integer, dimension(kajlx), public :: pow_jl
+      integer, dimension(kajl), public :: pow_jl
 !@var DENOM_JL index of AJL element to use as weight
-      integer, dimension(kajlx), public :: denom_jl
+      integer, dimension(kajl), public :: denom_jl
 !@param [CTR,EDG]_[ML,CP] tags for center,edge model-layer,const-pres
 !@+   vertical grids
       integer, parameter, public :: ctr_ml=1,edg_ml=2,ctr_cp=3,edg_cp=4
 
 !@var NAME_SJL Names of radiative-layer-only SJL diagnostics
-      character(len=30), dimension(kasjl), public :: name_sjl
+      character(len=sname_strlen), dimension(kasjl), public :: name_sjl
 !@var LNAME_SJL,UNITS_SJL Descriptions/Units of SJL diagnostics
-      character(len=50), dimension(kasjl), public :: lname_sjl,units_sjl
+      character(len=lname_strlen), dimension(kasjl), public :: lname_sjl
+      character(len=units_strlen), dimension(kasjl), public :: units_sjl
 !@var SCALE_SJL printout scaling factors for SJL diagnostics
       REAL*8, dimension(kasjl), public :: scale_sjl
 !@var IA_SJL idacc-numbers for SJL diagnostics
@@ -601,13 +610,14 @@ c derived/composite diagnostics
      &     ,jl_dudtsdrg,jl_dudtvdif,jl_dpb
 
 
-!@var SNAME_GC Names of lat-pressure JK diagnostics
-      character(len=30), dimension(kagcx), public :: sname_gc
-!@var LNAME_GC,UNITS_GC Descriptions/Units of JK diagnostics
-      character(len=50), dimension(kagcx), public :: lname_gc,units_gc
-!@var SCALE_GC printout scaling factors for JK diagnostics
+!@var SNAME_GC Names of lat-pressure GC diagnostics
+      character(len=sname_strlen), dimension(kagcx), public :: sname_gc
+!@var LNAME_GC,UNITS_GC Descriptions/Units of GC diagnostics
+      character(len=lname_strlen), dimension(kagcx), public :: lname_gc
+      character(len=units_strlen), dimension(kagcx), public :: units_gc
+!@var SCALE_GC printout scaling factors for GC diagnostics
       REAL*8, dimension(kagcx), public :: scale_gc
-!@var IA_GC,JGRID_GC idacc-numbers,gridtypes for JK diagnostics
+!@var IA_GC,JGRID_GC idacc-numbers,gridtypes for GC diagnostics
       integer, dimension(kagcx), public :: ia_gc,jgrid_gc
 !@var POW_GC printed output scaled by 10**(-pow_gc)
       integer, dimension(kagcx), public :: pow_gc
@@ -627,19 +637,25 @@ c derived/composite diagnostics
       REAL*8, DIMENSION(KAIJKx), public :: OFF_IJK
 
 !@var NAME_IJK Names of lon-lat-pressure IJK diagnostics
-      character(len=30), dimension(kaijkx), public :: name_ijk
+      character(len=sname_strlen), dimension(kaijkx), public :: name_ijk
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
-      character(len=50), dimension(kaijkx), public ::
-     &     lname_ijk,units_ijk
+      character(len=lname_strlen), dimension(kaijkx), public ::
+     &     lname_ijk
+      character(len=units_strlen), dimension(kaijkx), public ::
+     &     units_ijk
 !@var jgrid_ijk 1=primary grid  2=secondary grid
       integer, dimension(KAIJKx), public :: jgrid_ijk
 
-      character(len=20), dimension(kwp), public :: name_wave,units_wave
-      character(len=80), dimension(kwp), public :: lname_wave
+      character(len=sname_strlen), dimension(kwp), public :: name_wave
+      character(len=units_strlen), dimension(kwp), public :: units_wave
+      character(len=lname_strlen), dimension(kwp), public :: lname_wave
 
-      character(len=20), dimension(kcon), public ::
-     &     name_consrv,units_consrv
-      character(len=80), dimension(kcon), public :: lname_consrv
+      character(len=sname_strlen), dimension(kcon), public ::
+     &     name_consrv
+      character(len=units_strlen), dimension(kcon), public ::
+     &     units_consrv
+      character(len=lname_strlen), dimension(kcon), public ::
+     &     lname_consrv
 
 !@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
       INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
@@ -649,8 +665,11 @@ c derived/composite diagnostics
       INTEGER, PARAMETER, public :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
       INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
-      character(len=20), dimension(ndiuvar), public :: name_dd,units_dd
-      character(len=80), dimension(ndiuvar), public :: lname_dd
+      character(len=sname_strlen), dimension(ndiuvar), public :: name_dd
+      character(len=units_strlen), dimension(ndiuvar), public ::
+     &     units_dd
+      character(len=lname_strlen), dimension(ndiuvar), public ::
+     &     lname_dd
       real*8, dimension(ndiuvar), public :: scale_dd
       integer, dimension(ndiuvar), public :: denom_dd
 
@@ -673,8 +692,9 @@ c derived/composite diagnostics
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff
-      character(len=20), dimension(ktsf), public :: name_tsf,units_tsf
-      character(len=80), dimension(ktsf), public :: lname_tsf
+      character(len=sname_strlen), dimension(ktsf), public :: name_tsf
+      character(len=units_strlen), dimension(ktsf), public :: units_tsf
+      character(len=lname_strlen), dimension(ktsf), public :: lname_tsf
 
       character(len=8), dimension(ntype), public :: stype_names=
      &     (/ 'OCEAN   ','OCEANICE','EARTH   ',
@@ -727,7 +747,7 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 #ifdef NEW_IO
 c declarations that facilitate summation of acc-files when using
 c the new i/o system
-      target :: aj,areg,ajl,asjl,aij_loc,agc,
+      target :: aj,aj_out,areg,areg_out,ajl,asjl,aij_loc,agc,
      &     speca,adiurn,aisccp,tsfrez_loc,energy,atpe,consrv,
      &     wave,aijk_loc,ail_loc,tdiurn,oa
 #ifndef NO_HDIURN
@@ -1373,7 +1393,12 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
 !@sum Precomputes area weights for zonal means on budget grid
 !auth Denis Gueyffier
       USE GEOM, only : j_budg, axyp, imaxj
-      USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc
+#ifndef CUBE_GRID   /* temporary */
+      USE GEOM, only : dxyp, lat_dg
+#endif
+      use model_com, only : fim
+      USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc,
+     &     lat_budg,dxyp_budg
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
@@ -1394,6 +1419,8 @@ c**** Compute area weights of zig-zag grid cells
          enddo
       enddo
 #else
+      lat_budg(:) = lat_dg(:,1)
+      dxyp_budg(:) = fim*dxyp(:)
       do J=J_0,J_1
         wtbudg(:,j)=1d0/imaxj(j)
       enddo
@@ -1773,6 +1800,183 @@ c for which scalars is bcast_all=.true. necessary?
       return
       end subroutine new_io_longacc
 
+      subroutine def_meta_atmacc(fid)
+!@sum  def_meta_atmacc defines metadata in atm acc files
+!@auth M. Kelley
+!@ver  beta
+      use diag_com, only :
+     &     ia_j,ia_jl,ia_ij,ia_con,
+     &     name_j,sname_jl,name_ij,name_dd,name_consrv,
+     &     lname_j,lname_jl,lname_ij,lname_dd,title_con,
+     &     units_j,units_jl,units_ij,units_dd,units_consrv,
+     &     scale_j,scale_jl,scale_ij,scale_dd,scale_con,
+     &     iden_j,iden_reg,denom_jl,denom_ij,denom_dd,
+     &     pow_jl,lgrid_jl,ir_ij,
+     &     stitle_j,fmt_j,fmt_reg,terrain,nreg,
+     &     lat_budg,dxyp_budg,lm,ple,plm,namdd,ijdd
+      use geom, only : lon2d_dg,lat2d_dg,axyp
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar,write_attr
+      implicit none
+      integer :: fid         !@var fid file id
+      character(len=8) :: namregx(nreg) ! dimension by nreg rather than 23
+      integer :: int_dummy
+
+      call defvar(grid,fid,lon2d_dg,'lon2d_dg(dist_im,dist_jm)')
+      call defvar(grid,fid,lat2d_dg,'lat2d_dg(dist_im,dist_jm)')
+      call defvar(grid,fid,axyp,'axyp(dist_im,dist_jm)')
+      call defvar(grid,fid,lat_budg,'lat_budg(jm_budg)')
+      call defvar(grid,fid,dxyp_budg,'area_budg(jm_budg)')
+      call defvar(grid,fid,plm(1:lm),'plm(lm)')
+      call defvar(grid,fid,ple,'ple(lm)')
+
+      call write_attr(grid,fid,'aj','reduction','sum')
+      call write_attr(grid,fid,'areg','reduction','sum')
+      call defvar(grid,fid,ia_j,'ia_j(kaj)')
+      call defvar(grid,fid,scale_j,'scale_j(kaj)')
+      call defvar(grid,fid,iden_j,'denom_j(kaj)')
+      call defvar(grid,fid,name_j,'sname_j(sname_strlen,kaj)')
+      call defvar(grid,fid,units_j,'units_j(units_strlen,kaj)')
+      call defvar(grid,fid,lname_j,'lname_j(lname_strlen,kaj)')
+      call defvar(grid,fid,stitle_j,'stitle_j(stitle_strlen,kaj)')
+      call defvar(grid,fid,fmt_j,'fmt_j(fmt_strlen,kaj)')
+      call defvar(grid,fid,fmt_reg,'fmt_reg(fmt_strlen,kaj)')
+      call defvar(grid,fid,iden_reg,'denom_reg(kaj)')
+      call defvar(grid,fid,terrain,'terrain(stype_strlen,ntype)')
+      call defvar(grid,fid,namregx,'namreg(reg_strlen,nreg)')
+
+      call write_attr(grid,fid,'consrv','reduction','sum')
+      call defvar(grid,fid,ia_con,'ia_consrv(kcon)')
+      call defvar(grid,fid,scale_con,'scale_consrv(kcon)')
+      call defvar(grid,fid,title_con,
+     &     'title_consrv(title_con_strlen,kcon)')
+      call defvar(grid,fid,name_consrv,
+     &     'sname_consrv(sname_strlen,kcon)')
+      call defvar(grid,fid,units_consrv,
+     &     'units_consrv(units_strlen,kcon)')
+
+      call write_attr(grid,fid,'ajl','reduction','sum')
+      call defvar(grid,fid,ia_jl,'ia_jl(kajl)')
+      call defvar(grid,fid,scale_jl,'scale_jl(kajl)')
+      call defvar(grid,fid,denom_jl,'denom_jl(kajl)')
+      call defvar(grid,fid,sname_jl,'sname_jl(sname_strlen,kajl)')
+      call defvar(grid,fid,units_jl,'units_jl(units_strlen,kajl)')
+      call defvar(grid,fid,lname_jl,'lname_jl(lname_strlen,kajl)')
+      call defvar(grid,fid,pow_jl,'pow_jl(kajl)')
+      call defvar(grid,fid,lgrid_jl,'lgrid_jl(kajl)')
+
+      call write_attr(grid,fid,'aij','reduction','sum')
+      call defvar(grid,fid,ia_ij,'ia_ij(kaij)')
+      call defvar(grid,fid,scale_ij,'scale_ij(kaij)')
+      call defvar(grid,fid,denom_ij,'denom_ij(kaij)')
+      call defvar(grid,fid,name_ij,'sname_ij(sname_strlen,kaij)')
+      call defvar(grid,fid,units_ij,'units_ij(units_strlen,kaij)')
+      call defvar(grid,fid,lname_ij,'lname_ij(lname_strlen,kaij)')
+      call defvar(grid,fid,ir_ij,'ir_ij(kaij)')
+
+      call write_attr(grid,fid,'adiurn','reduction','sum')
+#ifndef NO_HDIURN
+      call write_attr(grid,fid,'hdiurn','reduction','sum')
+#endif
+      call defvar(grid,fid,denom_dd,'denom_dd(ndiuvar)')
+      call defvar(grid,fid,scale_dd,'scale_dd(ndiuvar)')
+      call defvar(grid,fid,name_dd,'sname_dd(sname_strlen,ndiuvar)')
+      call defvar(grid,fid,units_dd,'units_dd(units_strlen,ndiuvar)')
+      call defvar(grid,fid,lname_dd,'lname_dd(lname_strlen,ndiuvar)')
+      call defvar(grid,fid,namdd,'namdd(namdd_strlen,ndiupt)')
+      call defvar(grid,fid,ijdd,'ijdd(two,ndiupt)')
+      call defvar(grid,fid,int_dummy,'ntime_dd')
+      call write_attr(grid,fid,'ntime_dd','reduction','sum')
+
+      return
+      end subroutine def_meta_atmacc
+
+      subroutine write_meta_atmacc(fid)
+!@sum  write_meta_atmacc write atm accumulation metadata to file
+!@auth M. Kelley
+      use model_com, only : nday,idacc
+      use diag_com, only :
+     &     ia_j,ia_jl,ia_ij,ia_con,
+     &     name_j,sname_jl,name_ij,name_dd,name_consrv,
+     &     lname_j,lname_jl,lname_ij,lname_dd,title_con,
+     &     units_j,units_jl,units_ij,units_dd,units_consrv,
+     &     scale_j,scale_jl,scale_ij,scale_dd,scale_con,
+     &     iden_j,iden_reg,denom_jl,denom_ij,denom_dd,
+     &     pow_jl,lgrid_jl,ir_ij,
+     &     stitle_j,fmt_j,fmt_reg,terrain,namreg,nreg,
+     &     lat_budg,dxyp_budg,lm,ple,plm,kcmx,kcon,ia_12hr,namdd,ijdd
+      use geom, only : lon2d_dg,lat2d_dg,axyp
+      use domain_decomp_atm, only : grid
+      use pario, only : write_data,write_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      character(len=8) :: namregx(nreg) ! dimension by nreg rather than 23
+      integer :: n,ntime_dd
+      
+      call write_dist_data(grid,fid,'lon2d_dg',lon2d_dg)
+      call write_dist_data(grid,fid,'lat2d_dg',lat2d_dg)
+      call write_dist_data(grid,fid,'axyp',axyp)
+      call write_data(grid,fid,'lat_budg',lat_budg)
+      call write_data(grid,fid,'area_budg',dxyp_budg)
+      call write_data(grid,fid,'plm',plm(1:lm))
+      call write_data(grid,fid,'ple',ple)
+
+
+      call write_data(grid,fid,'ia_j',ia_j)
+      call write_data(grid,fid,'scale_j',scale_j)
+      call write_data(grid,fid,'denom_j',iden_j)
+      call write_data(grid,fid,'sname_j',name_j)
+      call write_data(grid,fid,'units_j',units_j)
+      call write_data(grid,fid,'lname_j',lname_j)
+      call write_data(grid,fid,'stitle_j',stitle_j)
+      call write_data(grid,fid,'fmt_j',fmt_j)
+      call write_data(grid,fid,'fmt_reg',fmt_reg)
+      call write_data(grid,fid,'denom_reg',iden_reg)
+      call write_data(grid,fid,'terrain',terrain)
+      do n=1,23
+        namregx(n)=namreg(1,n)//namreg(2,n)
+      enddo
+      call write_data(grid,fid,'namreg',namregx)
+
+      do n=kcmx+1,kcon ! hack
+        title_con(n)='unused'
+      enddo
+      call write_data(grid,fid,'ia_consrv',ia_con)
+      call write_data(grid,fid,'scale_consrv',scale_con)
+      call write_data(grid,fid,'title_consrv',title_con)
+      call write_data(grid,fid,'sname_consrv',name_consrv)
+      call write_data(grid,fid,'units_consrv',units_consrv)
+
+      call write_data(grid,fid,'ia_jl',ia_jl)
+      call write_data(grid,fid,'scale_jl',scale_jl)
+      call write_data(grid,fid,'denom_jl',denom_jl)
+      call write_data(grid,fid,'sname_jl',sname_jl)
+      call write_data(grid,fid,'units_jl',units_jl)
+      call write_data(grid,fid,'lname_jl',lname_jl)
+      call write_data(grid,fid,'pow_jl',pow_jl)
+      call write_data(grid,fid,'lgrid_jl',lgrid_jl)
+
+      call write_data(grid,fid,'ia_ij',ia_ij)
+      call write_data(grid,fid,'scale_ij',scale_ij)
+      call write_data(grid,fid,'denom_ij',denom_ij)
+      call write_data(grid,fid,'sname_ij',name_ij)
+      call write_data(grid,fid,'units_ij',units_ij)
+      call write_data(grid,fid,'lname_ij',lname_ij)
+      call write_data(grid,fid,'ir_ij',ir_ij)
+
+      call write_data(grid,fid,'denom_dd',denom_dd)
+      call write_data(grid,fid,'scale_dd',scale_dd)
+      call write_data(grid,fid,'sname_dd',name_dd)
+      call write_data(grid,fid,'units_dd',units_dd)
+      call write_data(grid,fid,'lname_dd',lname_dd)
+      call write_data(grid,fid,'namdd',namdd)
+      call write_data(grid,fid,'ijdd',ijdd)
+      ntime_dd = (idacc(ia_12hr)/2)*(nday/24)
+      call write_data(grid,fid,'ntime_dd',ntime_dd)
+
+      return
+      end subroutine write_meta_atmacc
+
       subroutine set_ioptrs_atmacc_default
 c point i/o pointers for diagnostic accumlations to the
 c instances of the arrays used during normal operation. 
@@ -1801,6 +2005,16 @@ c instances of the arrays used during normal operation.
       tsfrez_ioptr => tsfrez_loc
       return
       end subroutine set_ioptrs_atmacc_default
+
+      subroutine set_ioptrs_atmacc_extended
+c point i/o pointers for diagnostic accumlations to the
+c instances of the arrays containing derived outputs
+      use diag_com
+      implicit none
+      aj_ioptr     => aj_out
+      areg_ioptr   => areg_out
+      return
+      end subroutine set_ioptrs_atmacc_extended
 
       subroutine set_ioptrs_atmacc_sumfiles
 c point i/o pointers for diagnostic accumlations to temporary

@@ -15,6 +15,7 @@ C****
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
+      USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
       IMPLICIT NONE
       SAVE
 
@@ -42,11 +43,11 @@ C**** Ice advection diagnostics
 !     REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ
 !@var lname_icij Long names for ICIJ diagnostics
-      CHARACTER*50, DIMENSION(KICIJ) :: LNAME_ICIJ
+      CHARACTER(len=lname_strlen), DIMENSION(KICIJ) :: LNAME_ICIJ
 !@var sname_icij Short names for ICIJ diagnostics
-      CHARACTER*30, DIMENSION(KICIJ) :: SNAME_ICIJ
+      CHARACTER(len=sname_strlen), DIMENSION(KICIJ) :: SNAME_ICIJ
 !@var units_icij Units for ICIJ diagnostics
-      CHARACTER*50, DIMENSION(KICIJ) :: UNITS_ICIJ
+      CHARACTER(len=units_strlen), DIMENSION(KICIJ) :: UNITS_ICIJ
 !@var ia_icij IDACC numbers for ICIJ diagnostics
       INTEGER, DIMENSION(KICIJ) :: IA_ICIJ
 !@var scale_icij scales for ICIJ diagnostics
@@ -62,11 +63,11 @@ C**** Ice advection diagnostics
 !@var ticij_xxx indices for TICIJ diags
       INTEGER :: tICIJ_tusi,tICIJ_tvsi
 !@var lname_ticij Long names for TICIJ diagnostics
-      CHARACTER*50, DIMENSION(KTICIJ) :: LNAME_TICIJ
+      CHARACTER(len=lname_strlen), DIMENSION(KTICIJ) :: LNAME_TICIJ
 !@var sname_ticij Short names for TICIJ diagnostics
-      CHARACTER*30, DIMENSION(KTICIJ) :: SNAME_TICIJ
+      CHARACTER(len=sname_strlen), DIMENSION(KTICIJ) :: SNAME_TICIJ
 !@var units_ticij Units for TICIJ diagnostics
-      CHARACTER*50, DIMENSION(KTICIJ) :: UNITS_TICIJ
+      CHARACTER(len=units_strlen), DIMENSION(KTICIJ) :: UNITS_TICIJ
 !@var ia_ticij IDACC numbers for TICIJ diagnostics
       INTEGER, DIMENSION(KTICIJ) :: IA_TICIJ
 !@var scale_ticij scales for TICIJ diagnostics
@@ -1683,7 +1684,8 @@ C**** set properties for TICIJ diagnostics
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm,trname,ntrocn
 #endif
-      USE DIAG_COM, only : qdiag,acc_period
+      USE DIAG_COM, only : qdiag,acc_period,
+     &     lname_strlen,sname_strlen,units_strlen
       USE ICEDYN_COM
       USE ICEDYN, only : focean
       USE FILEMANAGER, only : openunit
@@ -1691,7 +1693,10 @@ C**** set properties for TICIJ diagnostics
       REAL*8, DIMENSION(IMIC,JMIC) :: Q,ADENOM
       INTEGER I,J,L,N,KXLB,IP1,k1,k
       CHARACTER XLB*30
-      CHARACTER TITLE*80,lname*50,sname*30,units*50
+      CHARACTER TITLE*80
+      CHARACTER(len=lname_strlen) :: lname
+      CHARACTER(len=sname_strlen) :: sname
+      CHARACTER(len=units_strlen) :: units
       character*50 :: unit_string
       REAL*8 QJ(JM),QSUM
       REAL*8 byiacc

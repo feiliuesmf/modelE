@@ -953,7 +953,7 @@ c not ratios
       implicit none
       integer :: k,kk,k1,l
 c
-      do k=1,kaijx
+      do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
          lname_ij(k) = 'unused'
          units_ij(k) = 'unused'
@@ -3708,7 +3708,7 @@ c
       implicit none
       integer :: k,kk
 c
-      do k=1,kajlx
+      do k=1,kajl
          write(sname_jl(k),'(a3,i3.3)') 'AJL',k
          lname_jl(k) = 'unused'
          units_jl(k) = 'unused'
