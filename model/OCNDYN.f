@@ -1564,7 +1564,7 @@ c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
 !@var aOAM ocean angular momentum per whole latitude band area (kg/s)
       Real*8    :: oOAM(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), 
      *             aOAM(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
-     *             oOMASS,oUMILx2,
+     *             oOMASS,oUMILx2
       Integer*4 :: J1O,JNO, I,J,L,Ip1
 C****
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
