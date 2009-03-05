@@ -386,6 +386,7 @@ c read from disk and stored in the _fromdisk arrays.
       IMPLICIT NONE
 !@var M index denoting from where DIAGCO is called (see DIAGCA)
       INTEGER, INTENT(IN) :: M
+#ifndef CUBE_GRID
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
 
@@ -403,7 +404,7 @@ C**** OCEAN POTENTIAL ENTHALPY
 
 C**** OCEAN SALT
       CALL conserv_ODIAG(M,conserv_OSL,icon_OSL)
-
+#endif
 C****
       RETURN
       END SUBROUTINE DIAGCO

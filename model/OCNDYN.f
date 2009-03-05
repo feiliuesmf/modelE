@@ -1363,6 +1363,7 @@ C****
 C****
       END SUBROUTINE CHECKO
 
+#ifndef CUBE_GRID
       Subroutine CONSERV_OMS (aOMASS)
 C****
 !@sum   CONSERV_OMS calculates zonal ocean mass (kg/m^2) on atmo-grid
@@ -1663,6 +1664,7 @@ C**** ATMO = 'CUBE-SPHERE'
 C****
 C 300
       End Subroutine OJtoAJ
+#endif
 
       Subroutine OVtoM (MM,UM,VM)
 C****
@@ -4092,7 +4094,7 @@ C****
      *     , PACK_COLUMN, UNPACK_COLUMN
       USE OCEANR_DIM, only : ogrid
 
-      USE GEOM, only : dxyp
+c      USE GEOM, only : dxyp
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
@@ -4146,13 +4148,14 @@ C***    into the global arrays
       CALL PACK_DATA  (agrid, aERUNPSI, aERUNPSI_glob)
       CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      CALL PACK_COLUMN(agrid,  aTRPREC,  aTRPREC_glob)
+      CALL PACK_COLUMN(agrid,  aTRPREC,  aTRPREC_glob)    !pack_column in dd2d ?
       CALL PACK_COLUMN(agrid, aTRUNPSI, aTRUNPSI_glob)
 #endif      
 C* 
 C***  Do interpolation to the ocean grid 
 C* 
       if(AM_I_ROOT()) then
+#ifndef CUBE_GRID
         call INT_AG2OG_precip(
      *       aRSI_glob, aPREC_glob,aEPREC_glob
      *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
@@ -4162,7 +4165,8 @@ C*
      *     , aTRPREC_glob, aTRUNPSI_glob 
      *     , oTRPREC_glob, oTRUNPSI_glob 
 #endif 
-     *     )     
+     *     )
+#endif     
       end if 
       
 C***  Scatter the precipitation arrays to the ocean grid 
@@ -4860,7 +4864,8 @@ C****
       USE OCEANRES,   only : LMO_MIN
 
       USE MODEL_COM, only : FOCEAN
-      Use GEOM,      only : IMAXJ, DXYPO=>aDXYPO
+      Use GEOM,      only : IMAXJ
+c, DXYPO=>aDXYPO
 
 c      USE OCEAN, only : dxypo 
 
@@ -5200,7 +5205,9 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
 !      USE GEOM, only : dxyp,imaxj
+#ifndef CUBE_GRID
       USE GEOM, only : dxyp
+#endif
       USE CONSTANT, only : grav
       USE OCEAN, only : im,jm,lmo,focean,lmm,mo,s0m,sxmo
      *     ,symo,szmo,dxypo,oc_salt_mean,g0m, imaxj
@@ -5223,10 +5230,12 @@ C****
 
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
 
+#ifndef CUBE_GRID
       call conserv_OSL(OSALTJ)
       call conserv_OMS(OMASSJ)
       OSALTJ(:)=OSALTJ(:)*DXYP(:)
       OMASSJ(:)=OMASSJ(:)*DXYP(:)
+#endif
 
       CALL GLOBALSUM(grid, OSALTJ, totalSalt, ALL=.true.)
       CALL GLOBALSUM(grid, OMASSJ, totalMass, ALL=.true.)
@@ -5293,10 +5302,11 @@ C**** approximately adjust enthalpy to restore temperature
       CALL ESMF_BCAST(grid, SZMST)
 
 C**** Check
+#ifndef CUBE_GRID
       call conserv_OSL(OSALTJ)
       OSALTJ(:)=OSALTJ(:)*DXYP(:)
       CALL GLOBALSUM(grid, OSALTJ, totalSalt, ALL=.true.)
-
+#endif
       if (AM_I_ROOT()) then
         mean_S=1000*totalSalt/totalMass  ! psu
         write(6,*) "New ocean salinity: ",mean_S,oc_salt_mean
@@ -5319,15 +5329,18 @@ C**** Check
 !
 !!!  Do interpolation to the atmospheric grid
 !
+#ifndef CUBE_GRID
       if(AM_I_ROOT()) then
         call INT_OG2AG
       end if 
+#endif
 
       call scatter_ocean1
       
       RETURN
       END SUBROUTINE OG2AG 
 
+#ifndef CUBE_GRID
       SUBROUTINE INT_OG2AG
 !@sum  INT_OG2AG is for interpolation of arrays from ocean grid 
 !!      to the atmospheric grid
@@ -5516,6 +5529,8 @@ C**** surface tracer concentration
 
       RETURN
       END SUBROUTINE INT_OG2AG 
+#endif
+
 
       SUBROUTINE gather_ocean1 
 
@@ -5589,6 +5604,7 @@ C**** surface tracer concentration
       RETURN
       END SUBROUTINE scatter_ocean1
 
+#ifndef CUBE_GRID
       SUBROUTINE INT_AG2OG_precip(
      *       aRSI_glob, aPREC_glob,aEPREC_glob
      *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
@@ -5704,7 +5720,9 @@ C**** surface tracer concentration
       
       RETURN
       END SUBROUTINE INT_AG2OG_precip 
+#endif
 
+#ifndef CUBE_GRID
       SUBROUTINE INT_AG2OG_oceans(
      *       aRSI_glob, aFLOWO_glob,aEFLOWO_glob
      *     , aRUNOSI_glob,aSRUNOSI_glob,aERUNOSI_glob
@@ -6285,7 +6303,9 @@ C**** surface tracer concentration
 
       RETURN
       END SUBROUTINE INT_AG2OG_oceans 
+#endif
 
+#ifndef CUBE_GRID
       SUBROUTINE INT_OG2AG_oceans(
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
      *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
@@ -6423,6 +6443,7 @@ C**** do something in here
       END DO   !N-loop
 
       END SUBROUTINE INT_OG2AG_oceans 
+#endif
 
       SUBROUTINE AG2OG_oceans
 !@sum  AG2OG_oceans: all atmospheric arrays used in the subr. OCEANS are gathered 
@@ -6624,6 +6645,7 @@ C*
 C***  Do interpolation to the ocean grid 
 C* 
       if(AM_I_ROOT()) then
+#ifndef CUBE_GRID
         call INT_AG2OG_oceans(
      *       aRSI_glob, aFLOWO_glob,aEFLOWO_glob
      *     , aRUNOSI_glob,aSRUNOSI_glob,aERUNOSI_glob
@@ -6664,6 +6686,7 @@ C*
      *     ,  awind_glob, owind_glob
 #endif
      *     )     
+#endif
       end if 
 
 C***  Scatter the arrays to the ocean grid 
@@ -6792,6 +6815,7 @@ C***  Gather arrays on ocean grid into the global arrays
 C* 
 C***  Do interpolation to the atmospheric grid 
 C* 
+#ifndef CUBE_GRID
       if(AM_I_ROOT()) then
         call INT_OG2AG_oceans(
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
@@ -6804,6 +6828,7 @@ C*
 #endif
      *     )     
       end if 
+#endif
 
 C***  Scatter the arrays to the atmospheric grid 
 

@@ -727,7 +727,8 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
 
       close(iu_TOPO)
 
-      name="Z_CS48"
+c      name="Z_CS48"
+      name="Z_CS90"
 
       write(*,*) name
 
@@ -879,7 +880,9 @@ c*
       write(*,*) TITLE5
       close (iu_RDSCAL)
 
-      name="STN_C90"
+c      name="STN_C90"
+      name="STN_CS32"
+
       write(*,*) name
       open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='unknown')
       write(iu_RDSCAL) TITLE1

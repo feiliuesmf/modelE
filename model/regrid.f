@@ -416,7 +416,6 @@ c****
       end subroutine zonalmean_band
 c*
 
-
       subroutine parallel_regrid(x2grids,tsource,   
      &     ttarget,atarget)
 
@@ -502,11 +501,136 @@ c
 c     sum all contributions
 c     
          call SUMXPE(ttarget)
-         call SUMXPE(atarget)         
+         call SUMXPE(atarget)  
 
+c     rescale by local area
+         if (AM_I_ROOT()) then
+            ttarget(:,:,:) = ttarget(:,:,:)/atarget(:,:,:)       
+         endif
+         
       endif                     !ll2cs
 
       end subroutine parallel_regrid
+c*
+
+
+      subroutine parallel_regrid_wt(x2grids,tsource,   
+     &     ttarget,atarget,wsource)
+
+!@sum  same as parallel regrid but here we multiply by weight function wsource
+!@auth Denis Gueyffier
+      use regrid_com
+      implicit none
+      include 'netcdf.inc'
+      type (x_2grids), intent(in) :: x2grids
+      real*8 :: tsource(isd:ied,jsd:jed)
+      real*8 :: wsource(isd:ied,jsd:jed)
+      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+     &     ,atarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+      integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey
+      character*120:: ofi
+      integer ::  status, fid, vid
+
+
+       
+      if ( (x2grids%ntilessource .eq. 6) .and.   !cs2ll
+     &     (x2grids%ntilestarget .eq. 1) ) then   
+         
+         atarget(:,:,1) = 0.d0
+         ttarget(:,:,1) = 0.d0
+
+
+         do ikey=1,x2grids%xgrid%maxkey
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+            
+            atarget(ilon,jlat,1) = atarget(ilon,jlat,1) + 
+     &           wsource(icub,jcub)*x2grids%xgrid%xarea_key(ikey)
+            ttarget(ilon,jlat,1) = ttarget(ilon,jlat,1) + 
+     &           x2grids%xgrid%xarea_key(ikey)
+     &           *wsource(icub,jcub)*tsource(icub,jcub) 
+         enddo
+ 
+c     sum all contributions
+c     
+         call SUMXPE(ttarget)
+         call SUMXPE(atarget)
+         
+c     
+c     root proc section
+c     
+         if (AM_I_ROOT()) then   
+          
+            do j=1,x2grids%jmtarget
+               do i=1,x2grids%imtarget
+                  if (atarget(i,j,1) .le. 1.e-7) then
+                     ttarget(i,j,1)=0.0
+                  else
+                     ttarget(i,j,1) = ttarget(i,j,1)/atarget(i,j,1)
+                  endif
+               enddo
+            enddo
+          
+           
+            ofi='tstout.nc'
+            write(*,*) ofi
+            status = nf_open(trim(ofi),nf_write,fid)
+            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+            status = nf_inq_varid(fid,'lwup_sfc',vid)
+            write(*,*) NF_STRERROR(status)
+            status = nf_put_var_double(fid,vid,ttarget)
+            write(*,*) "STATUS",NF_STRERROR(status),"<<"
+            status = nf_close(fid)
+         endif
+
+      else if ( (x2grids%ntilessource .eq. 1) .and. !ll2cs
+     &        (x2grids%ntilestarget .eq. 6) ) then
+         atarget(:,:,:) = 0.d0
+         ttarget(:,:,:) = 0.d0
+
+         do ikey=1,x2grids%xgrid%maxkey
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+            
+            atarget(icub,jcub,itile) = atarget(icub,jcub,itile) + 
+     &           wsource(ilon,jlat)*x2grids%xgrid%xarea_key(ikey)
+            ttarget(icub,jcub,itile) = ttarget(icub,jcub,itile) + 
+     &           x2grids%xgrid%xarea_key(ikey)
+     &           *wsource(ilon,jlat)*tsource(ilon,jlat) 
+         enddo
+
+c
+c     sum all contributions
+c     
+         call SUMXPE(ttarget)
+         call SUMXPE(atarget)         
+c     
+c     root proc section
+c     
+         if (AM_I_ROOT()) then
+            do k=1,6
+               do j=1,x2grids%jmtarget
+                  do i=1,x2grids%imtarget
+                     if (atarget(i,j,k) .le. 1.e-7) then
+                        ttarget(i,j,k)=0.0
+                     else
+                        ttarget(i,j,k) = ttarget(i,j,k)/atarget(i,j,k)
+                     endif
+                  enddo
+               enddo
+            enddo
+         endif                  ! am_i_root
+      endif                     !ll2cs
+         
+      end subroutine parallel_regrid_wt
 c*
 
 

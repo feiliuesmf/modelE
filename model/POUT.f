@@ -271,7 +271,9 @@ C**** set units
 !@auth Gavin Schmidt
 !@ver  1.0
       USE GISSOUT
+#ifndef CUBE_GRID
       USE GEOM, only : lon_dg
+#endif
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
       CHARACTER, INTENT(IN) :: TITLE*80
@@ -299,8 +301,10 @@ C**** set units
       INTEGER I,L
 
 C**** Allow for the possibility of wrap-around arrays
+#ifndef CUBE_GRID
       XCOOR(1:IM-I1+1) = LON_DG(I1:IM,ISHIFT)
       IF (I1.gt.1) XCOOR(IM-I1+2:IM) = LON_DG(1:I1-1,ISHIFT)
+#endif
 
       WRITE (iu_il) TITLE,IM,KLMAX,1,1,
      *     ((REAL(XIL(I,L),KIND=4),I=1,IM),L=1,KLMAX)
