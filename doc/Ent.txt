@@ -1,0 +1,80 @@
+Working with Ent DGTEM (Dynamic Global Terrestrial Ecosystem Model) 
+===================================================================
+
+This document describes how to checkout, compile and run modelE
+coupled to Ent DGTEM.
+
+
+Getting the code
+================
+
+Ent is being developed as a universal DGTEM which can be used 
+either as a stand-alone model or as a module of any GCM. Currently
+it is coupled to GISS ModelE and to GMAO GCM. The universal 
+nature of Ent and the fact that some of participating developers 
+are working outside of GISS and are not related to ModelE project
+makes it inconvenient to keep Ent code inside ModelE. So for this
+project a separate repository was created "GISSClim" which keeps Ent
+code along with GISS LSM (Land Surface Model) code and corresponding
+stand-alone drivers. Those who work with stand-alone version of Ent
+have to checkout GISSClim repository. For those who want to run ModelE
+coupled to Ent a special cvs "module" was created "modelE_Ent". If one
+checks out this module, i.e. 
+
+  cvs checkout modelE_Ent
+
+cvs will combine code from modelE and from GISSClim and put it inside
+modelE_ent directory. The directory structure will remain similar to
+modelE but new subdirectories inside model/ directory will be
+created. These subdirectories will contain Ent code and will duplicate
+some of modelE code which is needed for Ent.
+
+
+Compiling the code
+==================
+
+Since in this new setup some of the code is located in subdirectories
+the Makefile had to be modified to be able to work with
+subdirectories. Basically a completely different makefile was written
+for this purpose. To switch to this new makefile you have to specify 
+
+  NEW_MAKEFILE_FORMAT=YES
+
+in your ~/.modelErc file. This new makefile expects two additional
+sections to be present inside the rundeck. Section "Components:" lists
+the names of the subdirectories (from now called "Components")
+containig the code which has to be compiled with the model. The
+section "Component Options:" contains the flags which have to be passed
+to each component (i.e. the flags which have to be set when local
+makefile is executed inside corresponding subdirectory). Each
+component (subdirectory) contains a makefile which in most cases is
+trivial: it conatins the list of source files and includes standard
+template makefiles from config/ directory (see model/shared/Makefile
+for an example). If rundeck should be able to modify the list of
+source files in the component that can be done by passing
+corresponding "Component Options:" (see how it is done inside
+model/Ent/Makedile). Current template rundeck for modelE coupled to
+Ent is E1M20dv1.R (see it as an example of how to use "Components:"
+and "Component Options:"). The commands supported by the new makefile
+are basically the same with some small differences. To compile and set
+up a typical modelE+Ent run you would do:
+
+# remove old object files if necessary (old "vclean")
+  make clean_all
+
+# create a rundeck
+  make rundeck RUN=my_run RUNSRC=E1M20dv1
+
+# build dependencies
+  make depend RUN=my_run ESMF=YES NPES=1
+
+# compile and do setup
+  make setup RUN=my_run ESMF=YES NPES=1
+
+
+Running the model
+=================
+
+You run the model coupled to Ent as you would run any version of
+modelE. See local_info.txt for information on how to effectively run
+the model on a particular architecture.
