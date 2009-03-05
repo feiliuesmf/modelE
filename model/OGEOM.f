@@ -6,8 +6,7 @@ C****
 !@auth Gary Russell
 !@ver  2.0
       Use CONSTANT, Only: TWOPI,RADIUS,OMEGA,PI
-
-      Use GEOM,  Only: DXYPA=>DXYP, zDXYPA=>BYDXYP
+      USE RESOLUTION, only : JMA=>JM 
       Use OCEAN, Only: IM,JM,DLON,DLAT,DLATM,FJEQ,
      *                 DXYP=>DXYPO, DXYVO, DXYS=>DXYSO, DXYN=>DXYNO,
      *                 DXP=>DXPO, DYP=>DYPO, DXV=>DXVO, DYV=>DYVO,
