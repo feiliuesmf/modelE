@@ -48,12 +48,12 @@ section "Component Options:" contains the flags which have to be passed
 to each component (i.e. the flags which have to be set when local
 makefile is executed inside corresponding subdirectory). Each
 component (subdirectory) contains a makefile which in most cases is
-trivial: it conatins the list of source files and includes standard
+trivial: it contains the list of source files and includes standard
 template makefiles from config/ directory (see model/shared/Makefile
 for an example). If rundeck should be able to modify the list of
 source files in the component that can be done by passing
 corresponding "Component Options:" (see how it is done inside
-model/Ent/Makedile). Current template rundeck for modelE coupled to
+model/Ent/Makefile). Current template rundeck for modelE coupled to
 Ent is E1M20dv1.R (see it as an example of how to use "Components:"
 and "Component Options:"). The commands supported by the new makefile
 are basically the same with some small differences. To compile and set
