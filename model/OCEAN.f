@@ -738,7 +738,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       USE STATIC_OCEAN, only : ota,otb,otc,z12o,dm,iu_osst,iu_sice
      *     ,iu_ocnml,tocean,ocn_cycl,sss0,qfluxX
       USE DIAG_COM, only : npts,icon_OCE,conpt0
-#ifdef CUBE_GRID
+#ifdef NEW_IO
       use pario, only : par_open, par_close
 #endif
       IMPLICIT NONE
@@ -777,7 +777,7 @@ C****   set conservation diagnostic for ocean heat
 C**** if starting from AIC/GIC files need additional read for ocean
 
       if (istart.le.2) then
-#ifdef CUBE_GRID
+#ifdef NEW_IO
         fid = par_open(grid,'GIC','read')
         call new_io_ocean (fid,ioread)
         call par_close(grid,fid)
