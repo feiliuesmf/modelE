@@ -1443,7 +1443,7 @@ C**** Include ocean salt of straits
      *    oOSALT(J) = oOSALT(J) + Sum(S0MST(:LMST(N),N))   
       EndDo
 C**** Divide salt (kg per cell) by grid cell area
-      oOSALT(:) = oOSALT(:) * ozDXYP(J1O:JNO)
+      oOSALT(J1O:JNO) = oOSALT(J1O:JNO) * ozDXYP(J1O:JNO)
 C**** Interpolate data from ocean resolution to atmosphere resolution
       Call OJtoAJ (oOSALT,aOSALT)
       Return
@@ -1485,7 +1485,7 @@ C**** Include ocean potential enthalpy of straits
      *    oOCEANE(J) = oOCEANE(J) + Sum(G0MST(:LMST(N),N))    
       EndDo
 C**** Divide potential enthalpy (J per cell) by grid cell area
-      oOCEANE(:) = oOCEANE(:) * ozDXYP(J1O:JNO)
+      oOCEANE(J1O:JNO) = oOCEANE(J1O:JNO) * ozDXYP(J1O:JNO)
 C**** Interpolate data from ocean resolution to atmosphere resolution
       Call OJtoAJ (oOCEANE,aOCEANE)
       Return
