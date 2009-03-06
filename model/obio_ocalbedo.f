@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"      
 
       subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,
-     .                         rod,ros,hycgr,vrbos)
+     .                         rod,ros,hycgr,vrbos,i,j)
 
 ***********************************************************************
 ***** this routine is used by both atmosphere and ocean at each (i,j)
@@ -32,6 +32,8 @@ c  et al., 1996 (JGR)
 #if (defined OBIO_RAD_coupling) || (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
       USE obio_incom, only : lam
 #endif
+      USE MODEL_COM,  only : nstep=>itime
+
       implicit none
 
       integer nl,i,j
@@ -85,10 +87,6 @@ c     .                        0.066922,0.0497974/)
       real*8 :: roair, rn, rod(nlt),ros(nlt)
       integer :: ngiss
 
-cddd      write(915,*) i,j,wind,solz,bocvn,xocvn,chl,
-cddd     &     rod,ros,hycgr,vrbos,
-cddd     &     wfac
-
       rn = 1.341d0  ! index of refraction of pure seawater
       roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
 
@@ -137,18 +135,8 @@ c   Fresnel reflectance for sunz < 40, wind < 2 m/s
 
 c  Reflectance totals
       do nl = 1,nlt
-c      if(vrbos.and..not.hycgr)then
-c          write(*,'(a,i5,7f12.6)') 'ROSP:ocalbedo A:',
-c     .    nl,wfac(nl),rof,rospd,rospd+rof*wfac(nl),
-c     .                    rosps,rosps+rof*wfac(nl)
-c      endif
         ros(nl) = rosps + rof*wfac(nl)
         rod(nl) = rospd + rof*wfac(nl)
-c      if(vrbos.and..not.hycgr)then
-c          write(*,'(a,i5,8f12.6)')'ocalbedo A1:',
-c     .    nl,wfac(nl),wind,sunz,rof,rospd,rosps,rod(nl),ros(nl)
-c      endif
-
       enddo
 
       if(vrbos.and..not.hycgr)then
@@ -172,15 +160,7 @@ C**** get chlorophyll term
       ! function obio_reflectance calculates reflectance 
       ! as a function of chl and wavelength (lam)
 
-      res = obio_reflectance(refl,chl,lam,nlt)
-ccc   if (vrbos) write(*,*)'ocalbedo, refl:',refl
-      if (vrbos) then
-      do nl=1,nlt
-      write(*,'(a,i5,3e12.4,1x,l1)')'ocalbedo, aftr refl ',
-     .   nl,chl,lam(nl),refl(nl),res
-      enddo
-      endif
-
+      res = obio_reflectance(refl,chl,lam,nlt,i,j)
  
 !  transition between band33 and band6 approximation
 
@@ -192,12 +172,18 @@ ccc   if (vrbos) write(*,*)'ocalbedo, refl:',refl
           if (refl(nl).lt.0) refl(nl) = 0.0
           ros(nl) = ros(nl) + refl(nl)
           sum1 = sum1+weight(nl)*rod(nl)
-          sum2 = sum2+weight(nl)*(ros(nl))
+          sum2 = sum2+weight(nl)*ros(nl)
         enddo
         part_sum=sum(weight(gband(ngiss):gband(ngiss+1)-1))
         xocvn(ngiss) = sum1/part_sum
         bocvn(ngiss) = sum2/part_sum
-      end do
+
+      if (xocvn(ngiss).ge.1. .or. bocvn(ngiss).ge.1.) then
+         print*, 'XOCVN/BOCVN greater than 1 at ngiss,i,j=',
+     .                ngiss,i,j
+         stop
+      endif
+      enddo
 
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       return

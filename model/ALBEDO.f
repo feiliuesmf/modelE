@@ -292,6 +292,12 @@ C     -------------------
      &     )
 !@sum GETSUR computes surface albedo for each grid box
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
+
+
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+      USE MODEL_COM,  only : nstep=>itime
+#endif
+
       implicit none
 
 !********* start  in/out *****************************
@@ -411,8 +417,7 @@ C
       END DO
 
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
-C**** call routine to calculate Gregg version of albedo, including
-C**** Chlorophyll effect
+C**** chlorophyl modification of albedo
 
       vrbos=.false.
       if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
@@ -427,10 +432,16 @@ c      endif
       !call obio_ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
-  !   print*,"alb1",WMAG,COSZ,LOC_CHL
+      do L=1,6
+      write(*,'(a,3i5,5e12.4)')"ALBEDO1: ",
+     . nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(L),XOCVN(L)
+      enddo
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
-     .     LOC_CHL,dummy1,dummy2,.false.,vrbos)
-  !   print*,"alb2",BOCVN,XOCVN
+     .     LOC_CHL,dummy1,dummy2,.false.,vrbos,ILON,JLAT)
+      do L=1,6
+      write(*,'(a,3i5,2e12.4)')"ALBEDO2: ",
+     .      nstep,ilon,jlat,BOCVN(L),XOCVN(L)
+      enddo
   !   call sys_flush(6)
 
 c      if (vrbos) then

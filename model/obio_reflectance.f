@@ -1,26 +1,58 @@
-      logical function obio_reflectance(r2,chl_in,lam,nlt)
-c  r2:  the reflectance calculated as a function of chl and wavelength
-c  chl: chloryphyl
-c       wavelength is from obio_init (as lam)
-c
+      logical function obio_reflectance(r2,chl_in,lam,nlt,ilon,jlat)
+
+!  r2:  the reflectance calculated as a function of chl and wavelength
+!  chl: chloryphyl
+!
+! compute Irradiance reflectance just below the surface (R = Eu(0-)/Ed(0-))
+! described in Morel & Maritorena (2001):  Bio-optical properties of
+! oceanic waters : a reappraisal. J. Geophys. Res., 106(C4) :
+! 7163-7180. 
+! Input : [Chl] in mg/m3 (self generated or as input), wavelengths ; ;
+! Output : R = Eu(0-)/Ed(0-) or Rrs = Lu(0+)/Ed(0+) at all wavelengths between
+! 350 and 700 nm with 5 nm step  
+! The program computes Kd (diffuse attenuation coefficient for
+! downwelling irradiance) as modeled in Morel & Maritorena (2001) and 
+! uses Kw with Pope & Fry (1997) for aw, Morel (1974) 
+! for bbw and Loisel & Morel (1998) for bp(550). 
+!
+!       wavelength is from obio_init (as lam)
+! *** undefined values are 1d30 
+
+! bbw_out backscattering coefficient in pure water
+! bbt     backscattering coefficient due to suspended particles
+! C       suspended particles (here chlorophyll) in mg/m^3
+! lam     in nm
+! Aw      diffuse albedo of seawater
+! aw    absorption coefficient of optically pure sea water
+! bw    scattering coefficient of optically pure sea water
+! Kw_out  vertical diffuse attenuation coefficient for pure water
+! Kd      diffuse attenuation coefficient for downward irradiance
+!         (spectral attenuation for downward irradiance)
+! r1      irradiance reflectance spectrum
+
+
 
       USE FILEMANAGER
+      USE MODEL_COM, only: nstep=>itime
 
       implicit  none
     
-c:   integer, parameter   :: num=71  ! Change this to nlt -rjh
       integer :: nlt 
       real*8, dimension(nlt) :: lam, bbw_out, aw_out, kw_out, Kd, a, 
      .   r1,r2, mud
       real*8  :: vx
-      integer  :: rx, i, j
+      integer  :: i, j
       logical key
       real*8 :: u1,err
+      integer :: ilon,jlat
   
 c:       Created below.  -rjh 9/18/2008 
-c:       Change wave references  to lam, num=nlt=33
 c:       Values interpolated/extrapolated from Morel 2001 Table 2
 c:        to lam using Matlab linear interp 
+c:       More changes, aromanou 3/4/2009
+c: corrections regarding out-of-bounds calculations of bbw_out, kw_out, 
+c: Kd and r1,r2
+c: r1,r2<0 are missing values
 
        real*8, dimension(33) :: X = (/0.234333,0.173333,0.15300, 
      &             0.13100,0.11748,0.12086,0.10165,0.08287,
@@ -36,25 +68,17 @@ c:        to lam using Matlab linear interp
 
 !    real*8, dimension(6,nlt) :: array_res
     
-      real*8, dimension(nlt) :: wave, u2, bbt, bb
+      real*8, dimension(nlt) :: u2, bbt, bb
       real*8 :: chl_in, bp550, var_exp
       integer :: count_loops, iterator
    
    
       logical :: get_virtual_index, kw, bbw, aw, bilin_mud
    
+
       key =.false.
     
    
-   
-! Change wave references  to lam, num=nlt=33
-  
-      key = get_virtual_index(487.4d0,lam,nlt,rx,vx)
-   
-      key =  bbw(lam,nlt,bbw_out)
-   
-! Let's start serious things
-    
       ! Backscattering
       bp550 = 0.416 * chl_in**0.766 ! Loisel & Morel (1998)
 	 
@@ -65,70 +89,102 @@ c:        to lam using Matlab linear interp
          var_exp = 0.0
       endif
 	 
+! Change wave references  to lam, num=nlt=33
+	key =  bbw(lam,nlt,bbw_out)
         do j = 1, nlt
+         !Morel and Maritorena (2001)
          bbt(j) = 0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in))*(lam(j)/
-     &                        550.0)**var_exp
-	    key =  bbw(lam,nlt,bbw_out)
-         bb(j) = bbw_out(j) + bbt(j) * bp550
+     .                        550.0)**var_exp
+         if (bbw_out(j) > 0.) then
+            bb(j) = bbw_out(j) + bbt(j) * bp550
+         else
+            bb(j) = bbt(j) * bp550
+         endif
        enddo
 	  
 	  if (chl_in <= 0.001) then 
 	    key =  aw(lam,nlt,aw_out)
 	    key =  kw(lam,nlt,kw_out)
 	    key =  bbw(lam,nlt,bbw_out)
-	    
 	     do j = 1, nlt
-            Kd(j) = kw_out(j)
-            bb(j) = bbw_out(j)
-            a(j) = aw_out(j)
+                Kd(j) = kw_out(j)
+                bb(j) = bbw_out(j)
+                 a(j) = aw_out(j)
 	     enddo
 	   
        else 
 	   key =  kw(lam,nlt,kw_out)
 	    do j = 1, nlt
-	     Kd(j) = kw_out(j) + X(j)*chl_in**e(j) ! Morel (1988)
+             if (kw_out(j) > 0.) then
+	         Kd(j) = kw_out(j) + X(j)*chl_in**e(j) ! Morel (1988)
+             else
+	         Kd(j) = X(j)*chl_in**e(j) ! Morel (1988)
+             endif
 	    enddo
 	  endif
-	  
+
 	  u1 = 0.75
 	  do j = 1, nlt
-	    r1(j) = 0.33*bb(j)/u1/Kd(j)
-!	    write(*,*) j, r1(j)
+            if (Kd(j)>0.) then
+	        r1(j) = 0.33*bb(j)/u1/Kd(j)
+            else
+	        r1(j) = -1.
+            endif
+
 	  enddo
-	  err = 1.0
 	
-	 key = bilin_mud(chl_in,lam,nlt,mud)!  Bilinear interpolation (chl and lambda) in the mu_d look-up table
-	
-	 ! Loop on wavelengths
-	  do j = 1, nlt 
-!       do j=1, 1
+         ! Bilinear interpolation (chl and lambda) in the mu_d look-up table
+	 key = bilin_mud(chl_in,lam,nlt,mud)
+
+	! Loop on wavelengths
+	err = 1.0
+	do j = 1, nlt 
         count_loops = 0
-        
-        do while (err >= 0.0001)
-            
-            u2(j) = mud(j)*(1.0-r1(j))/(1.+2.25*r1(j)) ! mu_d stuff
-            r2(j) = 0.33*bb(j)/u2(j)/Kd(j)
-            err = abs((r2(j)-r1(j))/r2(j))
+         do while (err >= 0.0001)
+            if (Kd(j)>0.) then
+                u2(j) = mud(j)*(1.0-r1(j))/(1.+2.25*r1(j)) ! mu_d stuff
+                r2(j) = 0.33*bb(j)/u2(j)/Kd(j)
+            else
+                r2(j) = -1.
+            endif
+
+            if (r2(j)>0.) err = abs((r2(j)-r1(j))/r2(j))
+
+            ! this err does not converge sometimes.
+            ! then u2 is very small and r2 becomes too large
+            ! do not allow r2 to be larger than 1
+            ! usually this happens for the two UV wavelenghts
+
+cdiag       if (r2(j) .gt. 1.) write(*,'(a,4i5,7e12.4,i5,e12.4)')
+cdiag.      'obio_reflectance, r2 ',
+cdiag.      nstep,ilon,jlat,j,r1(j),chl_in,mud(j),u2(j),bb(j),
+cdiag.      Kd(j),r2(j),count_loops,err
+
             r1(j) = r2(j)
             count_loops = count_loops + 1
-		  
-!		  write(*,*) mud(j),u2(j),r1(j),err
             if (count_loops > 100) then 
-!                  write(*,*) 'Loop > 100',lam(j)
                 err = 0.00001 
             endif
-    !        write(*,*) mud(j)            
-!		  write(*,*) count_loops, u2(j), err
-        enddo
-	 
+         enddo
 	   if (chl_in <= 0.001) then
 	      r2(j) = 0.3*bb(j)/a(j)
-	   endif
-	 
+           endif
 	   err = 1.0
 
-	  enddo  
-  
+        if (r2(j).gt.1.) then
+cdiag   write(*,'(a,4i5,10e12.4)')'obio_reflectance: ',
+cdiag.    nstep,ilon,jlat,j,lam(j),chl_in,bbw_out(j),bb(j),
+cdiag.    kw_out(j),Kd(j),u2(j),mud(j),r2(j),mud(j)
+
+
+          r2(j)=-1.
+          if (j.gt.2) then
+            print*, 'WARNING: CHLOROPHYL ALBEDO, TOO LARGE'
+          endif
+        
+        endif
+	enddo  
+
       obio_reflectance = .true.
  
       end function obio_reflectance
@@ -237,9 +293,9 @@ c:        to lam using Matlab linear interp
       real*8 :: min, max, int_bbw
    
 
+      ! Smith & Baker, 1981 lambdas: 200-800 nm with 10nm steps
       do i = 1, wl_sb_size
-         wl_sb(i) = (i-1)*10 + 200.0  ! Smith & Baker, 1981 lambdas: 200-800 nm with 10nm steps
-!	 write(*,*) i, wl_sb(i)
+         wl_sb(i) = (i-1)*10 + 200.0  
       enddo
    
       do i = 1, size_arr
@@ -263,7 +319,6 @@ c:        to lam using Matlab linear interp
 	
 	bbw_out(i) = int_bbw    
 	
-!	write(*,*) bbw_out(i)
       enddo
       bbw = .true.
       end function bbw
@@ -419,10 +474,8 @@ c:        to lam using Matlab linear interp
 
    
   	do row=1, 10
-!	write(*,*)
 	  do col=1, 6
 	   lut(row,col)=lutmud(col+6*(row-1))
-!	   write(*,*) lutmud(col+6*(row-1))
 	   enddo
 	enddo					 
   
@@ -443,7 +496,6 @@ c:        to lam using Matlab linear interp
           vic = (ic - 1) + (chlin - ch(ic - 1))/(ch(ic) - ch(ic - 1))
       endif
 	 
-!   write(*,*) ic, vic
    
         min_wl = minval(wl)
         max_wl = maxval(wl)
@@ -464,16 +516,13 @@ c:        to lam using Matlab linear interp
 	endif
 	
 	all_vil(k) = vil
-!	write(*,*) k, vil
 	
 	
       enddo
    
    
        do i=1, size_arr
- !     write(*,*) i, vic, all_vil(i)
-       intmud(i) = bilin(lut, 6, 10, vic, all_vil(i))
- !      write(*,*) intmud(i)
+       intmud(i) = bilin(lut, 6, 10, IDNINT(vic), IDNINT(all_vil(i)))
        enddo
 
 !   do i=1, 3
