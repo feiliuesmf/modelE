@@ -78,6 +78,8 @@ ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
      &     ,abetad,abetav,abetat,abetap,abetab,abeta
+C NU's isoprene from FBB
+     &     ,aipp
 ccc   output from former retp2
       real*8, public :: tg2av,wtr2av,ace2av
       real*8, public, dimension(ngm) :: tg_L,wtr_L,ace_L
@@ -146,7 +148,7 @@ ccc   tsn1 is private
       real*8 tsn1(2)
 
       real*8 betat,betad,betadl(ngm)
-      real*8 gpp,dts,trans_sw
+      real*8 gpp,dts,trans_sw,ipp
 !xxx      real*8, public :: cnc
 
 ccc fractions of dry,wet,covered by snow canopy
@@ -2119,7 +2121,8 @@ ccc unpack necessary data
      &         leafinternal_CO2=Ci,
 !     &         foliage_humidity=Qf,
      &         canopy_gpp=GPP,
-     &         leaf_area_index=lai
+     &         leaf_area_index=lai,
+     &         canopy_ipp=IPP
      &         )
 
           !print *,"CNS=",cnc
@@ -2138,6 +2141,7 @@ ccc unpack necessary data
 !          Qf = 0.d0
           GPP = 0.d0
           lai = 0.d0
+          IPP = 0.d0
         endif
 
 !        print *,"HGY_COND: ",ijdebug, cnc, betadl, Ci, Qf
@@ -2401,6 +2405,7 @@ ccc   max in the following expression removes extra drip because of dew
       agpp = agpp + gpp*dts        
       clab = 0.d0 ;  rauto = 0.d0 ; R_soil = 0.d0 
       soilCpools(:,:,:) = 0.d0
+      aipp = aipp + ipp*dts
       if ( present(entcell) ) then
       if ( process_vege ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
@@ -2573,6 +2578,7 @@ c zero out accumulations
       acna=0.d0   ! not accumulated : do we need it?
       acnc=0.d0   ! not accumulated : do we need it?
       agpp=0.d0   ! Ent DGVM , nyk 4/25/03
+      aipp=0.d0
       arauto=0.d0 ! Ent DGVM
       aclab=0.d0  ! Ent DGVM
       alai = 0.d0
