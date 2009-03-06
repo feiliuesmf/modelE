@@ -2810,9 +2810,10 @@ C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
-      IF(LHX.EQ.LHS.AND.WMX(L).LE.0d0) THEN          ! Sassen and Dodd formula
+      IF(LHX.EQ.LHS.AND.WMX(L).LE.0d0) THEN   ! Karcher and Lohmann formula
         QSATE=QSAT(TL(L),LHE,PL(L))
-        RHW=.00536d0*TL(L)-.276d0
+C       RHW=.00536d0*TL(L)-.276d0
+        RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
 C       RH1(L)=QL(L)/QSATE
         IF(TL(L).LT.238.16) RH1(L)=QL(L)/(QSATE*RHW)
       END IF
@@ -3392,7 +3393,8 @@ C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
         IF(QF.LT.0.) WRITE(6,*) 'L CA QF Q QSA=',L,CLEARA(L),QF,QL(L),
      *               QSATC
         QSATE=QSAT(TL(L),LHE,PL(L))
-        RHW=.00536d0*TL(L)-.276d0
+C       RHW=.00536d0*TL(L)-.276d0
+        RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
 C       RH1(L)=QF/QSATE
         IF(TL(L).LT.238.16.AND.WMX(L).LE.0d0) RH1(L)=QF/(QSATE*RHW)
       END IF
@@ -3420,7 +3422,7 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
       WMXTR = WMX(L)
-        IF(RH(L).LE.1.) THEN                                           
+        IF(RH(L).LE.1.) THEN
           IF (RH00(L).lt.1.) then
             CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
           ELSE
