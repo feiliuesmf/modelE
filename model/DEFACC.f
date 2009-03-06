@@ -4002,6 +4002,7 @@ c
 c
       k=k+1
       jl_cldmc= k
+      denom_jl(k) = jl_dpa
       sname_jl(k) = 'cldmc'   ! no output
       lname_jl(k) = 'MOIST CONVECTIVE CLOUD FRACTION' !from cloud scheme
       units_jl(k) = '%'
@@ -4009,6 +4010,7 @@ c
 c
       k=k+1
       jl_cldss= k
+      denom_jl(k) = jl_dpa
       sname_jl(k) = 'cldss'  ! no output
       lname_jl(k) = 'LARGE-SCALE CLOUD FRACTION' ! from cloud scheme
       units_jl(k) = '%'

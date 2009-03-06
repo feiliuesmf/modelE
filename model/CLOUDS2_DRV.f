@@ -723,9 +723,9 @@ C*** Begin Accumulate 3D convective latent heating
          endif
 C*** End Accumulate 3D convective latent heating
          call inc_ajl(i,j,l,jl_mcmflx,MCFLX(L))
-         call inc_ajl(i,j,l,jl_cldmc,CLDMCL(L))
+         call inc_ajl(i,j,l,jl_cldmc,CLDMCL(L)*AIRM(L))
          call inc_ajl(i,j,l,jl_mcdflx,DDMFLX(L))
-         call inc_ajl(i,j,l,jl_csizmc,CSIZEL(L)*CLDMCL(L))
+         call inc_ajl(i,j,l,jl_csizmc,CSIZEL(L)*CLDMCL(L)*AIRM(L))
 #ifdef HTAP_LIKE_DIAGS
           AIJ(I,J,IJ_MCamFX(L))=AIJ(I,J,IJ_MCamFX(L))+MCFLX(L)
 #endif
@@ -756,7 +756,7 @@ C*** End Accumulate 3D convective latent heating
           AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)
           AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)
           AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)
-          call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L))
+          call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
 c         write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
 c     *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
         ENDIF
@@ -765,7 +765,7 @@ c     *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
           AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)
           AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
           AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
-          call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L))
+          call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L)*AIRM(L))
           AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)
           AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)
           AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)
@@ -1188,8 +1188,8 @@ C*** Begin Accumulate 3D heating by large scale condensation --
 C*** End Accumulate 3D heating by large scale condensation --
        call inc_ajl(i,j,l,JL_MCLDHT,DCTEI(L))
        call inc_ajl(i,j,l,JL_RHE,RH1(L))
-       call inc_ajl(i,j,l,JL_CLDSS,CLDSSL(L))
-       call inc_ajl(i,j,l,JL_CSIZSS,CSIZEL(L)*CLDSSL(L))
+       call inc_ajl(i,j,l,JL_CLDSS,CLDSSL(L)*AIRM(L))
+       call inc_ajl(i,j,l,JL_CSIZSS,CSIZEL(L)*CLDSSL(L)*AIRM(L))
 c       write(6,*) "CTEM_DRV",CTEML(L),CTEM(I,J,L),L,I,J
 
         T(I,J,L)=TH(L)*FSSL(L)+TMC(I,J,L)*(1.-FSSL(L))
@@ -1240,7 +1240,7 @@ cQCON*     ,prcp
           AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)
           AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)
           AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)
-          call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L))
+          call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
 c     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),NLSW,itime,l
          ENDIF
@@ -1249,7 +1249,7 @@ c    * ,ACDNWS(L),NLSW,itime,l
          AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)
          AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)
          AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)
-         call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L))
+         call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L)*AIRM(L))
          AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)
          AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)
          AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)
