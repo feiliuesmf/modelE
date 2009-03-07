@@ -16,7 +16,6 @@
 ! for bbw and Loisel & Morel (1998) for bp(550). 
 !
 !       wavelength is from obio_init (as lam)
-! *** undefined values are 1d30 
 
 ! bbw_out backscattering coefficient in pure water
 ! bbt     backscattering coefficient due to suspended particles
@@ -39,7 +38,6 @@
       integer :: nlt 
       real*8, dimension(nlt) :: lam, bbw_out, aw_out, kw_out, Kd, a, 
      .   r2, mud
-      real*8  :: vx
       integer  :: i, j
       logical key
       integer :: ilon,jlat
@@ -64,13 +62,13 @@ c: r2<0 are missing values
      &             0.64700,0.67200,0.69700,0.60000,0.50000,
      &             0.30000,0,0,0,0,0,0,0,0,0,0,0,0,0,0/)
 
-!    real*8, dimension(6,nlt) :: array_res
-    
       real*8, dimension(nlt) :: u2, bbt, bb
       real*8 :: chl_in, bp550, var_exp, c, discr
       integer :: count_loops, iterator
    
       logical :: get_virtual_index, kw, bbw, aw, bilin_mud
+
+
 
       key =.false.
    
@@ -88,7 +86,10 @@ c: r2<0 are missing values
       key =  bbw(lam,nlt,bbw_out)
       do j = 1, nlt
         !Morel and Maritorena (2001)
-        bbt(j) = 0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in))*(lam(j)/
+!       bbt(j) = 0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in))*(lam(j)/
+!    .                        550.0)**var_exp
+! correction related to the Huot et al2008 paper
+        bbt(j) = (0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in)))*(lam(j)/
      .                        550.0)**var_exp
         if (bbw_out(j) > 0.) then
            bb(j) = bbw_out(j) + bbt(j) * bp550
