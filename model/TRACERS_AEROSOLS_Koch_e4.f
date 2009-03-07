@@ -1876,7 +1876,7 @@ c
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
       USE SEAICE_COM, only: trsi, snowi
       USE TRACER_COM, only: trname,n_BCB,n_BCII,n_BCIA
-      USE VEG_COM, only: afb
+      !USE VEG_COM, only: afb
       USE RADPAR, only: agesn
       USE FLUXES, only: gtracer,gtemp
       IMPLICIT NONE
@@ -1931,8 +1931,9 @@ c
       bcsnowb=0.
       bcsnowv=0.
       bcice=0.
-      fb=afb(i,j)
-      fv=1.-fb
+      !fb=afb(i,j)
+      !fv=1.-fb
+      call get_fb_fv( fb, fv, i, j )
       if (wsn_ij(1,1,i,j).gt.0.)  then
       bcsnowb=tr_wsn_ij(n_BCII,1,1,i,j)+
      *  tr_wsn_ij(n_BCIA,1,1,i,j)+tr_wsn_ij(n_BCB,1,1,i,j)
