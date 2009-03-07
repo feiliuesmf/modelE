@@ -1584,10 +1584,10 @@ C****
         oOAM(J) = (.5*oUMILx2*oCOSM(J) + RADIUS*OMEGA*oCOSQ(J)*oOMASS)*
      *            RADIUS / IMO    
       EndDo
-C     If (J1O == 1)  oOAM(1 = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
-C    *                        Sum(MO(1,1,:LMOM(1,1))) / IMO
-      If (JNO == JMO)  oOAM(JMO) = RADIUS*RADIUS*OMEGA*oCOSQ(JMO)*
-     *                             Sum(MO(1,JMO,:LMOM(1,JMO))) / IMO
+      If (J1O == 1) oOAM(1) = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
+     *                        Sum(MO(1,1,:LMOM(1,1))) / IMO
+      If (JNO == JMO) oOAM(JMO) = RADIUS*RADIUS*OMEGA*oCOSQ(JMO)*
+     *                            Sum(MO(1,JMO,:LMOM(1,JMO))) / IMO
 C**** Interpolate data from ocean resolution to atmosphere resolution
       Call OJtoAJ (oOAM,aOAM)
       Return
