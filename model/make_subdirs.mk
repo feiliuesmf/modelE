@@ -51,7 +51,12 @@ depend_all: $(COMPONENTS:=_dep)
 	$(MAKE1) depend
 
 
-FSRCS = $(addsuffix .f,$(strip $(OBJ_LIST)))
+FSRCS_TMP = $(addsuffix .f,$(strip $(OBJ_LIST)))
+F90SRCS_TMP = $(addsuffix .F90,$(strip $(OBJ_LIST)))
+FORTSRCS_PRESENT = $(wildcard *.f) $(wildcard *.F90)
+FSRCS = $(filter $(FORTSRCS_PRESENT), $(FSRCS_TMP))
+F90SRCS = $(filter $(FORTSRCS_PRESENT), $(F90SRCS_TMP))
+
 
 include $(CONFIG_DIR)/base.mk
 #sinclude $(DEPENDFILE)
