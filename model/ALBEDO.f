@@ -420,7 +420,7 @@ C
 C**** chlorophyl modification of albedo
 
       vrbos=.false.
-      if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
+c     if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
 
 c      if (vrbos) then
 c      do L=1,6
@@ -432,16 +432,20 @@ c      endif
       !call obio_ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
-      do L=1,6
-      write(*,'(a,3i5,5e12.4)')"ALBEDO1: ",
-     . nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(L),XOCVN(L)
-      enddo
+      if (vrbos) then
+        do L=1,6
+        write(*,'(a,3i5,5e12.4)')"ALBEDO1: ",
+     .   nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(L),XOCVN(L)
+        enddo
+      end if
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
      .     LOC_CHL,dummy1,dummy2,.false.,vrbos,ILON,JLAT)
-      do L=1,6
-      write(*,'(a,3i5,2e12.4)')"ALBEDO2: ",
+      if (vrbos) then
+        do L=1,6
+         write(*,'(a,3i5,2e12.4)')"ALBEDO2: ",
      .      nstep,ilon,jlat,BOCVN(L),XOCVN(L)
-      enddo
+        enddo
+      end if
   !   call sys_flush(6)
 
 c      if (vrbos) then

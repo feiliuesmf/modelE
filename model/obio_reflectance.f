@@ -28,7 +28,6 @@
 ! Kw_out  vertical diffuse attenuation coefficient for pure water
 ! Kd      diffuse attenuation coefficient for downward irradiance
 !         (spectral attenuation for downward irradiance)
-! r1      irradiance reflectance spectrum
 
 
 
@@ -39,11 +38,10 @@
     
       integer :: nlt 
       real*8, dimension(nlt) :: lam, bbw_out, aw_out, kw_out, Kd, a, 
-     .   r1,r2, mud
+     .   r2, mud
       real*8  :: vx
       integer  :: i, j
       logical key
-      real*8 :: u1,err
       integer :: ilon,jlat
   
 c:       Created below.  -rjh 9/18/2008 
@@ -51,8 +49,8 @@ c:       Values interpolated/extrapolated from Morel 2001 Table 2
 c:        to lam using Matlab linear interp 
 c:       More changes, aromanou 3/4/2009
 c: corrections regarding out-of-bounds calculations of bbw_out, kw_out, 
-c: Kd and r1,r2
-c: r1,r2<0 are missing values
+c: Kd and r2 (iterative procedure replaced by analytic solution)
+c: r2<0 are missing values
 
        real*8, dimension(33) :: X = (/0.234333,0.173333,0.15300, 
      &             0.13100,0.11748,0.12086,0.10165,0.08287,
@@ -69,15 +67,12 @@ c: r1,r2<0 are missing values
 !    real*8, dimension(6,nlt) :: array_res
     
       real*8, dimension(nlt) :: u2, bbt, bb
-      real*8 :: chl_in, bp550, var_exp
+      real*8 :: chl_in, bp550, var_exp, c, discr
       integer :: count_loops, iterator
    
-   
       logical :: get_virtual_index, kw, bbw, aw, bilin_mud
-   
 
       key =.false.
-    
    
       ! Backscattering
       bp550 = 0.416 * chl_in**0.766 ! Loisel & Morel (1998)
@@ -90,100 +85,59 @@ c: r1,r2<0 are missing values
       endif
 	 
 ! Change wave references  to lam, num=nlt=33
-	key =  bbw(lam,nlt,bbw_out)
-        do j = 1, nlt
-         !Morel and Maritorena (2001)
-         bbt(j) = 0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in))*(lam(j)/
+      key =  bbw(lam,nlt,bbw_out)
+      do j = 1, nlt
+        !Morel and Maritorena (2001)
+        bbt(j) = 0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in))*(lam(j)/
      .                        550.0)**var_exp
-         if (bbw_out(j) > 0.) then
-            bb(j) = bbw_out(j) + bbt(j) * bp550
-         else
-            bb(j) = bbt(j) * bp550
-         endif
-       enddo
-	  
-	  if (chl_in <= 0.001) then 
-	    key =  aw(lam,nlt,aw_out)
-	    key =  kw(lam,nlt,kw_out)
-	    key =  bbw(lam,nlt,bbw_out)
-	     do j = 1, nlt
-                Kd(j) = kw_out(j)
-                bb(j) = bbw_out(j)
-                 a(j) = aw_out(j)
-	     enddo
-	   
-       else 
-	   key =  kw(lam,nlt,kw_out)
-	    do j = 1, nlt
-             if (kw_out(j) > 0.) then
-	         Kd(j) = kw_out(j) + X(j)*chl_in**e(j) ! Morel (1988)
-             else
-	         Kd(j) = X(j)*chl_in**e(j) ! Morel (1988)
-             endif
-	    enddo
-	  endif
-
-	  u1 = 0.75
-	  do j = 1, nlt
-            if (Kd(j)>0.) then
-	        r1(j) = 0.33*bb(j)/u1/Kd(j)
-            else
-	        r1(j) = -1.
-            endif
-
-	  enddo
-	
-         ! Bilinear interpolation (chl and lambda) in the mu_d look-up table
-	 key = bilin_mud(chl_in,lam,nlt,mud)
-
-	! Loop on wavelengths
-	err = 1.0
-	do j = 1, nlt 
-        count_loops = 0
-         do while (err >= 0.0001)
-            if (Kd(j)>0.) then
-                u2(j) = mud(j)*(1.0-r1(j))/(1.+2.25*r1(j)) ! mu_d stuff
-                r2(j) = 0.33*bb(j)/u2(j)/Kd(j)
-            else
-                r2(j) = -1.
-            endif
-
-            if (r2(j)>0.) err = abs((r2(j)-r1(j))/r2(j))
-
-            ! this err does not converge sometimes.
-            ! then u2 is very small and r2 becomes too large
-            ! do not allow r2 to be larger than 1
-            ! usually this happens for the two UV wavelenghts
-
-cdiag       if (r2(j) .gt. 1.) write(*,'(a,4i5,7e12.4,i5,e12.4)')
-cdiag.      'obio_reflectance, r2 ',
-cdiag.      nstep,ilon,jlat,j,r1(j),chl_in,mud(j),u2(j),bb(j),
-cdiag.      Kd(j),r2(j),count_loops,err
-
-            r1(j) = r2(j)
-            count_loops = count_loops + 1
-            if (count_loops > 100) then 
-                err = 0.00001 
-            endif
-         enddo
-	   if (chl_in <= 0.001) then
-	      r2(j) = 0.3*bb(j)/a(j)
-           endif
-	   err = 1.0
-
-        if (r2(j).gt.1.) then
-cdiag   write(*,'(a,4i5,10e12.4)')'obio_reflectance: ',
-cdiag.    nstep,ilon,jlat,j,lam(j),chl_in,bbw_out(j),bb(j),
-cdiag.    kw_out(j),Kd(j),u2(j),mud(j),r2(j),mud(j)
-
-
-          r2(j)=-1.
-          if (j.gt.2) then
-            print*, 'WARNING: CHLOROPHYL ALBEDO, TOO LARGE'
-          endif
-        
+        if (bbw_out(j) > 0.) then
+           bb(j) = bbw_out(j) + bbt(j) * bp550
+        else
+           bb(j) = bbt(j) * bp550
         endif
-	enddo  
+      enddo
+	  
+      if (chl_in <= 0.001) then 
+        key =  aw(lam,nlt,aw_out)
+        key =  kw(lam,nlt,kw_out)
+        key =  bbw(lam,nlt,bbw_out)
+        do j = 1, nlt
+           Kd(j) = kw_out(j)
+           bb(j) = bbw_out(j)
+           a(j) = aw_out(j)
+        enddo
+	   
+      else 
+        key =  kw(lam,nlt,kw_out)
+        do j = 1, nlt
+          if (kw_out(j) > 0.) then
+            Kd(j) = kw_out(j) + X(j)*chl_in**e(j) ! Morel (1988)
+          else
+            Kd(j) = X(j)*chl_in**e(j) ! Morel (1988)
+          endif
+        enddo
+      endif
+
+      ! Bilinear interpolation (chl and lambda) in the mu_d look-up table
+      key = bilin_mud(chl_in,lam,nlt,mud)
+
+      ! Loop on wavelengths
+      do j = 1, nlt
+        if (chl_in <= 0.001) then
+          r2(j) = 0.3*bb(j)/a(j)
+        else if(Kd(j).le.0.) then
+          r2(j) = -1.
+        else
+          c = 0.33*bb(j)/Kd(j)/mud(j)
+          discr = (2.25*c - 1)**2 - 4*c
+          r2(j)=-1.
+          if(discr >= 0d0) r2(j) = .5*(1-2.25*c - sqrt(discr))
+          if(r2(j)>1) then     ! probably temporary monitoring ???
+            write(0,*) 'chlorophyll albedo too large',nstep,ilon,jlat,j
+            r2(j)=-1 
+          end if
+        end if
+      enddo  
 
       obio_reflectance = .true.
  
@@ -522,7 +476,7 @@ cdiag.    kw_out(j),Kd(j),u2(j),mud(j),r2(j),mud(j)
    
    
        do i=1, size_arr
-       intmud(i) = bilin(lut, 6, 10, IDNINT(vic), IDNINT(all_vil(i)))
+       intmud(i) = bilin(lut, 6, 10, NINT(vic), NINT(all_vil(i)))
        enddo
 
 !   do i=1, 3
