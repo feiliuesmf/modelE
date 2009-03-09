@@ -709,7 +709,7 @@ C**** keep track of min/max time over the combined diagnostic period
         Jmn=Jmn+1
       end do
       Jdate=Jd-JDendOfM(Jmn-1)
-      Jhour=nint(mod(It*hrday/Nday,hrday))
+      Jhour=mod(It*hrday/Nday,hrday)
       amn=amonth(Jmn)
 
       return
