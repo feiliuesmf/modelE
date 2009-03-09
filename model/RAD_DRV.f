@@ -804,7 +804,7 @@ C     OUTPUT DATA
      *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
      *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
 #endif
-      USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,ail=>ail_loc
+      USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      *     ,adiurn=>adiurn_loc,ndiuvar,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
@@ -816,7 +816,7 @@ C     OUTPUT DATA
      *     j_plavis, j_planir, j_albvis, j_albnir,
      *     j_srrvis, j_srrnir, j_sravis, j_sranir,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
-     *     ,ij_srvis,j_clrtoa,j_clrtrp,j_tottrp,il_rc
+     *     ,ij_srvis,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
@@ -825,7 +825,7 @@ C     OUTPUT DATA
      *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
      *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
      *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
-     *     ,ij_clr_sruptoa,ij_clr_truptoa,aijk=>aijk_loc,ijl_cf
+     *     ,ij_clr_sruptoa,ij_clr_truptoa,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
@@ -1288,7 +1288,7 @@ C**** Determine large scale and moist convective cloud cover for radia
           TOTCLD(L)=1.
           call inc_ajl(i,j,l,jl_totcld,1d0)
 C**** save 3D cloud fraction as seen by radiation
-          if(cldx>0) AIJK(I,J,L,IJL_CF)=AIJK(I,J,L,IJL_CF)+1.
+          if(cldx>0) AIJL(I,J,L,IJL_CF)=AIJL(I,J,L,IJL_CF)+1.
           IF(TAUMCL.GT.TAUSSL) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
@@ -2344,8 +2344,8 @@ c         AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*CSZ2)
       DO J=J_0,J_1
       DO I=I_0,I_1
       DO L=1,LM
-        AIL(i,j,l,IL_RC)=AIL(i,j,l,IL_RC)+
-     &       (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*AXYP(I,J)
+        AIJL(i,j,l,IJL_RC)=AIJL(i,j,l,IJL_RC)+
+     &       (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))
       END DO
       END DO
       END DO

@@ -20,6 +20,7 @@ c-----------------------------------------------------------------------
 c      call il_defs
       call wave_defs
       call gc_defs
+      call ijl_defs
       call ijk_defs
       call diurn_defs
       return
@@ -3061,44 +3062,6 @@ c
       scale_ij(k) = 1.
       denom_ij(k) = IJ_TCLDI
 
-C**** Also include MSU radiation diagnotsics here
-
-c      k=k+1 !
-c      IJ_MSU2 = k
-c      lname_ij(k) = 'MSU CHANNEL 2'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU2R = k
-c      lname_ij(k) = 'MSU CHANNEL 2R'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2R'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU3 = k
-c      lname_ij(k) = 'MSU CHANNEL 3'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU3'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU4 = k
-c      lname_ij(k) = 'MSU CHANNEL 4'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU4'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
       k=k+1
       IJ_PTROP = k
       lname_ij(k) = 'TROPOPAUSE PRESSURE (WMO)'
@@ -3631,29 +3594,75 @@ c
       ir_ij(k) = ir_0_180
       ia_ij(k) = ia_inst
 
+C**** Also include MSU radiation diagnotsics here
+
+c      k=k+1 !
+c      IJ_MSU2 = k
+c      lname_ij(k) = 'MSU CHANNEL 2'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU2'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
+
+c      k=k+1 !
+c      IJ_MSU2R = k
+c      lname_ij(k) = 'MSU CHANNEL 2R'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU2R'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
+
+c      k=k+1 !
+c      IJ_MSU3 = k
+c      lname_ij(k) = 'MSU CHANNEL 3'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU3'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
+
+c      k=k+1 !
+c      IJ_MSU4 = k
+c      lname_ij(k) = 'MSU CHANNEL 4'
+c      units_ij(k) = 'C'
+c      name_ij(k) = 'MSU4'
+c      ia_ij(k) = ia_inst
+c      ir_ij(k) = ir_m80_28
+c      scale_ij(k) = 1.
+
       k = k + 1
       ij_msu2 = k
       name_ij(k) = 'Tmsu_ch2'
       lname_ij(k) = 'MSU-channel 2 TEMPERATURE'
       units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
 
       k = k + 1
       ij_msu3 = k
       name_ij(k) = 'Tmsu_ch3'
       lname_ij(k) = 'MSU-channel 3 TEMPERATURE'
       units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
 
       k = k + 1
       ij_msu4 = k
       name_ij(k) = 'Tmsu_ch4'
       lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
       units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
 
       k = k + 1
       ij_Tatm = k
       name_ij(k) = 'Tatm'
       lname_ij(k) = 'ATMOSPHERIC TEMPERATURE'
       units_ij(k) = 'C'
+      denom_ij(k) = IJ_PRES
+      ia_ij(k) = ia_dga ! IA_IJL(IJK_TX)
 
       K = K+1
       IJ_RTSE = K
@@ -4937,6 +4946,234 @@ c
       return
       end subroutine gc_defs
 
+      subroutine ijl_defs
+      use CONSTANT, only : bygrav,sha
+      use MODEL_COM, only : dtsrc
+      use DIAG_COM
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      implicit none
+      integer :: k
+c
+      do k=1,kaijl
+         write(name_ijl(k),'(a4,i3.3)') 'AIJL',k
+         lname_ijl(k) = 'no output'
+         units_ijl(k) = 'unused'
+         scale_ijl(k) = 1.
+         denom_ijl(k) = 0
+         ia_ijl(k) = ia_src
+         lgrid_ijl(k) = ctr_ml
+      enddo
+
+c
+      k=0
+c
+      k=k+1
+      IJL_DP = k  ! not output - this field serves only as a weight
+      ia_ijl(k) = ia_dga
+c
+      k=k+1
+      IJK_DP = k  ! not output - this field serves only as a weight
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1
+      IJL_U = k   ! no 3D output yet - presently used only in DIAGIL
+      ia_ijl(k) = ia_dga
+c
+      k=k+1
+      IJL_V = k   ! no 3D output yet - presently used only in DIAGIL
+      ia_ijl(k) = ia_dga
+c
+      k=k+1
+      IJK_TX = k
+      name_ijl(k) = 'temp'
+      lname_ijl(k) = 'TEMPERATURE'
+      units_ijl(k) = 'C'
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1
+      IJK_Q = k
+      name_ijl(k) = 'q' !'QDP'
+      lname_ijl(k) = 'SPECIFIC HUMIDITY'
+      units_ijl(k) = 'kg/kg'
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1
+      IJL_W = k   ! no 3D output yet - presently used only in DIAGIL
+      ia_ijl(k) = ia_dga
+c
+      k=k+1
+      IJK_RH = k
+      name_ijl(k) = 'rh'
+      lname_ijl(k) = 'RELATIVE HUMIDITY'
+      units_ijl(k) = '%'
+      scale_ijl(k) = 100.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp
+c
+      k=k+1
+      IJL_RC = k   ! no 3D output yet - presently used only in DIAGIL
+      ia_ijl(k) = ia_rad
+      denom_ijl(k) = IJL_DP
+c
+      k=k+1
+      IJL_MC = k   ! no 3D output yet - presently used only in DIAGIL
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = IJL_DP
+c
+      k=k+1
+      IJL_CF=k
+      name_ijl(k) = 'cf'
+      lname_ijl(k) = 'CLOUD FRACTION'
+      units_ijl(k) = '%'
+      scale_ijl(k) = 100.
+      ia_ijl(k) = ia_rad
+c
+CC    Written out 3D latent heating profiles
+      if (lh_diags.eq.1) then
+
+      k=k+1
+      IJL_LLH=k
+      name_ijl(k) = 'LLH'
+      lname_ijl(k) = 'Heating by Large Scale Condensation'
+      units_ijl(k) = 'W/(m^2*mb)'
+      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = IJL_DP
+c
+      k=k+1
+      IJL_MCTLH=k
+      name_ijl(k) = 'CTLH'
+      lname_ijl(k) = 'Heating by Moist Convection'
+      units_ijl(k) = 'W/(m^2*mb)'
+      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = IJL_DP
+c
+      k=k+1
+      IJL_MCDLH=k
+      name_ijl(k) = 'CDLH'
+      lname_ijl(k) = 'Heating by Deep Convection'
+      units_ijl(k) = 'W/(m^2*mb)'
+      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = IJL_DP
+c
+      k=k+1
+      IJL_MCSLH=k
+      name_ijl(k) = 'CSLH'
+      lname_ijl(k) = 'Heating by Shallow Convection'
+      units_ijl(k) = 'W/(m^2*mb)'
+      scale_ijl(k) = 100.*BYGRAV*SHA/DTsrc
+      ia_ijl(k) = ia_src
+      denom_ijl(k) = IJL_DP
+
+      endif
+
+c
+#ifdef CLD_AER_CDNC
+      k=k+1
+      IJL_REWM=k
+      name_ijl(k) = 'rewm'
+      lname_ijl(k) = 'Warm C Reff'
+      units_ijl(k) = 'um'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_REWS=k
+      name_ijl(k) = 'rews'
+      lname_ijl(k) = 'Warm S Reff'
+      units_ijl(k) = 'um'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CDWM=k
+      name_ijl(k) = 'cdwm'
+      lname_ijl(k) = 'Warm C CDNC'
+      units_ijl(k) = 'cm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CDWS=k
+      name_ijl(k) = 'cdws'
+      lname_ijl(k) = 'Warm S CDNC'
+      units_ijl(k) = 'cm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CWWM=k
+      name_ijl(k) = 'cwwm'
+      lname_ijl(k) = 'Warm C LWC'
+      units_ijl(k) = 'gm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CWWS=k
+      name_ijl(k) = 'cwws'
+      lname_ijl(k) = 'Warm S LWC'
+      units_ijl(k) = 'gm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_REIM=k
+      name_ijl(k) = 'reim'
+      lname_ijl(k) = 'Cold C Reff'
+      units_ijl(k) = 'um'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_REIS=k
+      name_ijl(k) = 'reis'
+      lname_ijl(k) = 'Cold S Reff'
+      units_ijl(k) = 'um'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CDIM=k
+      name_ijl(k) = 'cdim'
+      lname_ijl(k) = 'Cold C CDNC'
+      units_ijl(k) = 'cm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CDIS=k
+      name_ijl(k) = 'cdis'
+      lname_ijl(k) = 'Cold S CDNC'
+      units_ijl(k) = 'cm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CWIM=k
+      name_ijl(k) = 'cwim'
+      lname_ijl(k) = 'Cold C LWC'
+      units_ijl(k) = 'gm-3'
+      ia_ijl(k) = ia_src
+c
+      k=k+1
+      IJL_CWIS=k
+      name_ijl(k) = 'cwis'
+      lname_ijl(k) = 'Cold S LWC'
+      units_ijl(k) = 'gm-3'
+      ia_ijl(k) = ia_src
+
+#endif
+
+      if (k .gt. kaijl) then
+        if(am_i_root())
+     &       write (6,*) 'ijl_defs: Increase kaijl=',kaijl,' to ',k
+        call stop_model( 'kaijl too small', 255 )
+      end if
+      if(AM_I_ROOT())
+     &     write (6,*) 'Number of AIJL diagnostics defined: kaijlmax=',k
+
+      return
+      end subroutine ijl_defs
+
       subroutine ijk_defs
       use CONSTANT, only : bygrav,tf,sha
       use MODEL_COM, only : qcheck,dtsrc
@@ -4957,16 +5194,16 @@ c
       k=0
 c
       k=k+1
-      IJK_U=k
-      name_ijk(k) = 'u' !'UDPB'
+      IJK_UB=k
+      name_ijk(k) = 'ub' !'UDPB'
       lname_ijk(k) = 'U-WIND'!            x delta p, b-grid'
       units_ijk(k) = 'm/s'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
       k=k+1
-      IJK_V=k
-      name_ijk(k) = 'v' !'VDPB'
+      IJK_VB=k
+      name_ijk(k) = 'vb' !'VDPB'
       lname_ijk(k) = 'V-WIND'!            x delta p, b-grid'
       units_ijk(k) = 'm/s'
       scale_ijk(k) = 1.
@@ -4981,36 +5218,20 @@ c
       off_ijk(k)   = 0.
 c
       k=k+1
-      IJK_DP=k
-      name_ijk(k) = 'dp' !'DPB'
+      IJK_DPB=k
+      name_ijk(k) = 'dpb' !'DPB'
       lname_ijk(k) = 'DELTA-P'!           b-grid'
       units_ijk(k) = '100 PA'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
 c
       k=k+1
-      IJK_T=k
-      name_ijk(k) = 't' !'TDPB'
+      IJK_TB=k
+      name_ijk(k) = 'tb' !'TDPB'
       lname_ijk(k) = 'TEMPERATURE'!       x delta p x 4, b-grid'
       units_ijk(k) = 'C'
       scale_ijk(k) = 1.
       off_ijk(k)   = -TF
-c
-      k=k+1
-      IJK_Q=k
-      name_ijk(k) = 'q' !'QDPB'
-      lname_ijk(k) = 'SPECIFIC HUMIDITY'! x delta p x 4, b-grid'
-      units_ijk(k) = 'g/kg'
-      scale_ijk(k) = 1d3
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_R=k
-      name_ijk(k) = 'r' !'RHDPB'  (w.r.t water)
-      lname_ijk(k) = 'RELATIVE HUMIDITY'! x delta p x 4, b-grid'
-      units_ijk(k) = '%'
-      scale_ijk(k) = 100.0
-      off_ijk(k)   = 0.
 c
       k=k+1
       IJK_W=k
@@ -5076,165 +5297,7 @@ c
       units_ijk(k) = 'K**2'
       scale_ijk(k) = 1.
       off_ijk(k)   = 0.
-c
-      k=k+1
-      IJL_CF=k    ! exception - cloud fraction is on model layers
-      name_ijk(k) = 'cf' !'WDPB'
-      lname_ijk(k) = 'CLOUD FRACTION'
-      units_ijk(k) = '%'
-      scale_ijk(k) = 100.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) =  ijkgridc
-c
-CC    Written out 3D latent heating profiles
-      if (lh_diags.eq.1) then
 
-      k=k+1
-      IJL_LLH=k    ! exception - large scale condensation latent heating is on model layers
-      name_ijk(k) = 'LLH'
-      lname_ijk(k) = 'Heating by Large Scale Condensation' !'DTX(SS)*P'
-      units_ijk(k) = 'W/(m^2*mb)'
-      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
-      jgrid_ijk(k) = 1
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJL_MCTLH=k    ! exception - total convective latent heating is on model layers
-      name_ijk(k) = 'CTLH'
-      lname_ijk(k) = 'Heating by Moist Convection' !'DTX(SS)*P'
-      units_ijk(k) = 'W/(m^2*mb)'
-      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
-      jgrid_ijk(k) = 1
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJL_MCDLH=k    ! exception - deep convective latent heating is on model layers
-      name_ijk(k) = 'CDLH'
-      lname_ijk(k) = 'Heating by Deep Convection' !'DTX(SS)*P'
-      units_ijk(k) = 'W/(m^2*mb)'
-      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
-      jgrid_ijk(k) = 1
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJL_MCSLH=k    ! exception - shallow convective latent heating is on model layers
-      name_ijk(k) = 'CSLH'
-      lname_ijk(k) = 'Heating by Shallow Convection' !'DTX(SS)*P'
-      units_ijk(k) = 'W/(m^2*mb)'
-      scale_ijk(k) = 100.*BYGRAV*SHA/DTsrc
-      jgrid_ijk(k) = 1
-      off_ijk(k)   = 0.
-
-      endif
-c
-#ifdef CLD_AER_CDNC
-      k=k+1
-      IJL_REWM=k    ! exception - Reff is on model layers
-      name_ijk(k) = 'rewm'
-      lname_ijk(k) = 'Warm C Reff'
-      units_ijk(k) = 'um'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) =  ijkgridc
-c
-      k=k+1
-      IJL_REWS=k    ! exception - Reff is on model layers
-      name_ijk(k) = 'rews'
-      lname_ijk(k) = 'Warm S Reff'
-      units_ijk(k) = 'um'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) =  ijkgridc
-c
-      k=k+1
-      IJL_CDWM=k    ! exception - CDNC is on model layers
-      name_ijk(k) = 'cdwm'
-      lname_ijk(k) = 'Warm C CDNC'
-      units_ijk(k) = 'cm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) =  ijkgridc
-c
-      k=k+1
-      IJL_CDWS=k    ! exception - CDNC is on model layers
-      name_ijk(k) = 'cdws'
-      lname_ijk(k) = 'Warm S CDNC'
-      units_ijk(k) = 'cm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) =  ijkgridc
-c
-      k=k+1
-      IJL_CWWM=k    ! exception - LWC is on model layers
-      name_ijk(k) = 'cwwm'
-      lname_ijk(k) = 'Warm C LWC'
-      units_ijk(k) = 'gm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-c
-      k=k+1
-      IJL_CWWS=k    ! exception - LWC is on model layers
-      name_ijk(k) = 'cwws'
-      lname_ijk(k) = 'Warm S LWC'
-      units_ijk(k) = 'gm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-c
-      k=k+1
-      IJL_REIM=k    ! exception - Reff is on model layers
-      name_ijk(k) = 'reim'
-      lname_ijk(k) = 'Cold C Reff'
-      units_ijk(k) = 'um'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-c
-      k=k+1
-      IJL_REIS=k    ! exception - Reff is on model layers
-      name_ijk(k) = 'reis'
-      lname_ijk(k) = 'Cold S Reff'
-      units_ijk(k) = 'um'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-c
-      k=k+1
-      IJL_CDIM=k    ! exception - CDNC is on model layers
-      name_ijk(k) = 'cdim'
-      lname_ijk(k) = 'Cold C CDNC'
-      units_ijk(k) = 'cm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-c
-      k=k+1
-      IJL_CDIS=k    ! exception - CDNC is on model layers
-      name_ijk(k) = 'cdis'
-      lname_ijk(k) = 'Cold S CDNC'
-      units_ijk(k) = 'cm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-      k=k+1
-      IJL_CWIM=k    ! exception - LWC is on model layers
-      name_ijk(k) = 'cwim'
-      lname_ijk(k) = 'Cold C LWC'
-      units_ijk(k) = 'gm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-c
-      k=k+1
-      IJL_CWIS=k    ! exception - LWC is on model layers
-      name_ijk(k) = 'cwis'
-      lname_ijk(k) = 'Cold S LWC'
-      units_ijk(k) = 'gm-3'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = ijkgridc
-#endif
       if (AM_I_ROOT()) then
          if (k .gt. kaijk) then
             write (6,*) 'ijk_defs: Increase kaijk=',kaijk,' to ',k

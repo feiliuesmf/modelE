@@ -103,12 +103,12 @@ C**** Some local constants
      &     lon2d_dg,byaxyp
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
-     *     ail=>ail_loc
+     *     aijl=>aijl_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
-     &     ,il_u,il_v,il_w,il_tx,il_rh
+     &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
      *     ,j_gamc,lstr,kgz_max,pmb,ght,ple
      *     ,jl_dtdyn,jl_dpa
@@ -332,6 +332,7 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
             DXYPJ=AXYP(I,J)
             JR=JREG(I,J)
             PIJ=PLIJ(L,I,J)
+            aijl(i,j,l,ijl_dp) = aijl(i,j,l,ijl_dp) + pdsig(l,i,j)
             call inc_ajl(i,j,l,jl_dpa,pdsig(l,i,j))
 c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             call inc_ajl(i,j,l,jl_dtdyn,tx(i,j,l)*pdsig(l,i,j))
@@ -560,28 +561,21 @@ C****
       END DO
 
 c
-c accumulate AIL: U,V,T,RH,W
+c accumulate AIJL: U,V,W on model layers
 c
 
       DO L=1,LM
       DO J=J_0S,J_1S
       DO I=I_0,I_1
-        AIL(I,J,L,IL_U) = AIL(I,J,L,IL_U) + UA(L,I,J)
-        AIL(I,J,L,IL_V) = AIL(I,J,L,IL_V) + VA(L,I,J)
-      ENDDO
-      ENDDO
-      DO J=J_0,J_1
-      DO I=I_0,I_1
-        AIL(I,J,L,IL_TX) = AIL(I,J,L,IL_TX) + TX(I,J,L)-TF
-        AIL(I,J,L,IL_RH) = AIL(I,J,L,IL_RH) + 
-     &       Q(I,J,L)/QSAT(TX(I,J,L),LHE,PMID(L,I,J))
+        AIJL(I,J,L,IJL_U) = AIJL(I,J,L,IJL_U) + UA(L,I,J)
+        AIJL(I,J,L,IJL_V) = AIJL(I,J,L,IJL_V) + VA(L,I,J)
       ENDDO
       ENDDO
       ENDDO ! L
       DO L=1,LM-1
       DO J=J_0,J_1
       DO I=I_0,I_1
-        AIL(I,J,L,IL_W) = AIL(I,J,L,IL_W) + W(I,J,L)
+        AIJL(I,J,L,IJL_W) = AIJL(I,J,L,IJL_W) + W(I,J,L)
       ENDDO
       ENDDO
       ENDDO
@@ -647,6 +641,10 @@ c
           wmdp(lcp(l))  = wmdp(lcp(l))  + dpx(l)*wm(i,j,lmod(l))
         enddo
         do l=1,lm
+          aijl(i,j,l,ijk_dp) = aijl(i,j,l,ijk_dp) + dpwt(l)
+          aijl(i,j,l,ijk_tx) = aijl(i,j,l,ijk_tx) + txdp(l)
+          aijl(i,j,l,ijk_q)  = aijl(i,j,l,ijk_q)  + qdp(l)
+          aijl(i,j,l,ijk_rh) = aijl(i,j,l,ijk_rh) + rhdp(l)
           call inc_ajl(i,j,l,jk_dpwt,  dpwt(l))
           call inc_ajl(i,j,l,jk_tx,    txdp(l))
           call inc_ajl(i,j,l,jk_hght,  phidp(l))
@@ -2235,6 +2233,60 @@ C****
       return
       end subroutine ahourly
 
+      module msu_wts_mod
+      implicit none
+      save
+      integer, parameter :: nmsu=200 , ncols=4
+      real*8 plbmsu(nmsu),wmsu(ncols,nmsu)
+      contains
+      subroutine read_msu_wts
+      use filemanager
+      integer n,l,iu_msu
+c**** read in the MSU weights file
+      call openunit('MSU_wts',iu_msu,.false.,.true.)
+      do n=1,4
+        read(iu_msu,*)
+      end do
+      do l=1,nmsu
+        read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
+      end do
+      call closeunit(iu_msu)
+      end subroutine read_msu_wts
+      end module msu_wts_mod
+
+      subroutine diag_msu(pland,ts,tlm,ple,tmsu2,tmsu3,tmsu4)
+!@sum diag_msu computes MSU channel 2,3,4 temperatures as weighted means
+!@auth Reto A Ruedy (input file created by Makiko Sato)
+      USE MODEL_COM, only : lm
+      use msu_wts_mod
+      implicit none
+      real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
+      real*8, intent(out) :: tmsu2,tmsu3,tmsu4
+
+      real*8 tlmsu(nmsu),tmsu(ncols)
+      real*8 plb(0:lm+2),tlb(0:lm+2)
+      integer l
+
+c**** find edge temperatures (assume continuity and given means)
+      tlb(0)=ts ; plb(0)=plbmsu(1) ; tlb(1)=ts
+      plb(1:lm+1) = ple(1:lm+1)
+      do l=1,lm
+        tlb(l+1)=2*tlm(l)-tlb(l)
+      end do
+      tlb(lm+2)=tlb(lm+1) ; plb(lm+2)=0.
+      call vntrp1 (lm+2,plb,tlb, nmsu-1,plbmsu,tlmsu)
+c**** find MSU channel 2,3,4 temperatures
+      tmsu(:)=0.
+      do l=1,nmsu-1
+        tmsu(:)=tmsu(:)+tlmsu(l)*wmsu(:,l)
+      end do
+      tmsu2 = (1-pland)*tmsu(1)+pland*tmsu(2)
+      tmsu3 = tmsu(3)
+      tmsu4 = tmsu(4)
+
+      return
+      end subroutine diag_msu
+
       SUBROUTINE init_DIAG(istart,num_acc_files)
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
@@ -2269,6 +2321,7 @@ C****
       USE FILEMANAGER
       USE DOMAIN_DECOMP_ATM, only: GRID,GET,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
+      use msu_wts_mod
       IMPLICIT NONE
       integer, intent(in) :: istart,num_acc_files
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
@@ -2697,6 +2750,11 @@ c
       hdiurn_loc = 0
 #endif
 
+c
+c read MSU weighting functions for diagnostics
+c
+      call read_msu_wts
+
       RETURN
       END SUBROUTINE init_DIAG
 
@@ -2726,7 +2784,7 @@ c
       endif
       AJ_loc=0    ; AREG_loc=0; AREG=0
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
-      AIL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
+      AIJL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0   ; AIJK_loc=0
 #ifndef NO_HDIURN
       HDIURN=0; HDIURN_loc=0
@@ -3017,22 +3075,24 @@ C****
       subroutine calc_derived_aij
       USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean
+      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
-     &  ia_ij,ia_src,ia_inst,tf_last,tf_day1,
+     &  aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
      *  ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
      *  ij_RTSE, ij_HWV, ij_PVS,
      &  IJ_TRNFP0,IJ_SRNFP0,IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
      &  IJ_SRREF,IJ_SRVIS,IJ_SRINCP0,IJ_SRINCG,IJ_SRNFG,IJ_PHI1K,
-     &  IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,
+     &  IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,IJ_TATM,IJK_DP,IJK_TX,
+     &  IJ_MSU2,IJ_MSU3,IJ_MSU4,
      &  KGZ_MAX,GHT,PMB
       IMPLICIT NONE
-      INTEGER :: I,J,K,K1,K2
+      INTEGER :: I,J,L,K,K1,K2
       INTEGER :: J_0,J_1,I_0,I_1
       REAL*8 :: SCALEK
+      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu2,tmsu3,tmsu4
 
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
@@ -3106,6 +3166,24 @@ C****
 
         k = ij_pocean
         aij(i,j,k) = idacc(ia_ij(k))*focean(i,j)
+
+        k = ij_tatm
+        aij(i,j,k) = sum(aijl(i,j,:,ijk_tx))
+
+C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
+        pland = fearth0(i,j)+flice(i,j)
+        ts = aij(i,j,ij_ts)/idacc(ia_ij(ij_ts))
+        ple(lm+1) = pmtop
+        do l=lm,1,-1
+          dp = aijl(i,j,l,ijk_dp)
+          ple(l) = ple(l+1)+dp/idacc(ia_dga)
+          tlm(l) = ts
+          if(dp.gt.0.) tlm(l)=aijl(i,j,l,ijk_tx)/dp
+        enddo
+        call diag_msu(pland,ts,tlm,ple,tmsu2,tmsu3,tmsu4)
+        aij(i,j,ij_msu2) = tmsu2*idacc(ia_inst)
+        aij(i,j,ij_msu3) = tmsu3*idacc(ia_inst)
+        aij(i,j,ij_msu4) = tmsu4*idacc(ia_inst)
 
       ENDDO
       ENDDO
@@ -3204,3 +3282,59 @@ c
 
       return
       end subroutine diagjl_prep
+
+      SUBROUTINE VNTRP1 (KM,P,AIN,  LMA,PE,AOUT)
+C**** Vertically interpolates a 1-D array
+C**** Input:       KM = number of input pressure levels
+C****            P(K) = input pressure levels (mb)
+C****          AIN(K) = input quantity at level P(K)
+C****             LMA = number of vertical layers of output grid
+C****           PE(L) = output pressure levels (mb) (edges of layers)
+C**** Output: AOUT(L) = output quantity: mean between PE(L-1) & PE(L)
+C****
+      implicit none
+      integer, intent(in) :: km,lma
+      REAL*8, intent(in)  :: P(0:KM),AIN(0:KM),    PE(0:LMA)
+      REAL*8, intent(out) :: AOUT(LMA)
+
+      integer k,k1,l
+      real*8 pdn,adn,pup,aup,psum,asum
+
+C****
+      PDN = PE(0)
+      ADN = AIN(0)
+      K=1
+C**** Ignore input levels below ground level pe(0)=p(0)
+      IF(P(1).GT.PE(0)) THEN
+         DO K1=2,KM
+         K=K1
+         IF(P(K).LT.PE(0)) THEN  ! interpolate to ground level
+           ADN=AIN(K)+(AIN(K-1)-AIN(K))*(PDN-P(K))/(P(K-1)-P(K))
+           GO TO 300
+         END IF
+         END DO
+         STOP 'VNTRP1 - error - should not get here'
+      END IF
+C**** Integrate - connecting input data by straight lines
+  300 DO 330 L=1,LMA
+      ASUM = 0.
+      PSUM = 0.
+      PUP = PE(L)
+  310 IF(P(K).le.PUP)  GO TO 320
+      PSUM = PSUM + (PDN-P(K))
+      ASUM = ASUM + (PDN-P(K))*(ADN+AIN(K))/2.
+      PDN  = P(K)
+      ADN  = AIN(K)
+      K=K+1
+      IF(K.LE.KM) GO TO 310
+      stop 'VNTRP1 - should not happen'
+C****
+  320 AUP  = AIN(K) + (ADN-AIN(K))*(PUP-P(K))/(PDN-P(K))
+      PSUM = PSUM + (PDN-PUP)
+      ASUM = ASUM + (PDN-PUP)*(ADN+AUP)/2.
+      AOUT(L) = ASUM/PSUM
+      PDN = PUP
+  330 ADN = AUP
+C****
+      RETURN
+      END subroutine vntrp1

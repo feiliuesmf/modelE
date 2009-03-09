@@ -2571,8 +2571,8 @@ C****
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
       USE DIAG_COM, only : ia_dga
      &    ,agc=>agc_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
-     &     nwav_dag,ndiupt,hr_in_day,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp
-     *     ,ijk_dse,klayer,idd_w,ijdd,ijk_r,ijk_w,ijk_pf,
+     &     nwav_dag,ndiupt,hr_in_day,ijk_ub,ijk_vb,ijk_tb,ijk_dpb
+     *     ,ijk_dse,klayer,idd_w,ijdd,ijk_w,ijk_pf,
      *      ijk_uv,ijk_vt,ijk_vq,ijk_vv,ijk_uu,ijk_tt,
      &      JK_DPA,JK_DPB,JK_TEMP,JK_HGHT,JK_THETA,
      &      JK_U,JK_V,JK_ZMFKE,JK_TOTKE,JK_ZMFNTSH,
@@ -3068,14 +3068,11 @@ C**** ACCUMULATE HERE
       DUTI=DUTI+DUTK
       UDUTI=UDUTI+BYDP*PUK*DUTK
 !!    IF(SKIPSE.EQ.1.) GO TO 334
-      AIJK(I,J,K,IJK_U)  =AIJK(I,J,K,IJK_U)  +PUK
-      AIJK(I,J,K,IJK_V)  =AIJK(I,J,K,IJK_V)  +PVK
+      AIJK(I,J,K,IJK_UB) =AIJK(I,J,K,IJK_UB) +PUK
+      AIJK(I,J,K,IJK_VB) =AIJK(I,J,K,IJK_VB) +PVK
       AIJK(I,J,K,IJK_DSE)=AIJK(I,J,K,IJK_DSE)+SHA*PT4K+PZ4K
-      AIJK(I,J,K,IJK_DP) =AIJK(I,J,K,IJK_DP) +DPK
-      AIJK(I,J,K,IJK_T)  =AIJK(I,J,K,IJK_T)  +PT4K
-      AIJK(I,J,K,IJK_Q)  =AIJK(I,J,K,IJK_Q)  +PQ4K
-      AIJK(I,J,K,IJK_R)  =AIJK(I,J,K,IJK_R)  +
-     *     PQ4K/QSAT(PT4K/DPK,LHE,PMO(K))
+      AIJK(I,J,K,IJK_DPB)=AIJK(I,J,K,IJK_DPB)+DPK
+      AIJK(I,J,K,IJK_TB) =AIJK(I,J,K,IJK_TB) +PT4K
       AIJK(I,J,K,IJK_PF)  =AIJK(I,J,K,IJK_PF)+1.
 C     *  *  *  FOR AMIP 2  *  *  *
       AIJK(I,J,K,IJK_UV)=AIJK(I,J,K,IJK_UV)+AMUV

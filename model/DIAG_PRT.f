@@ -87,8 +87,7 @@ C****
 
 !@var SENTDSE stand.eddy northw. transport of dry static energy * 16
 !@var TENTDSE trans.eddy northw. transport of dry static energy * 16
-!@var TMSU2-4 MSU channel 2-4 temperatures (C)
-      REAL*8, DIMENSION(IM,JM) :: SENTDSE,TENTDSE, TMSU2,TMSU3,TMSU4
+      REAL*8, DIMENSION(IM,JM) :: SENTDSE,TENTDSE
 
       contains
 
@@ -1351,14 +1350,14 @@ Cbmp - ADDED
       REAL*8, PARAMETER :: ONE=1.
 
       INTEGER ::
-     &     I,IX,J,J1,JH,K,K1,KDN,KM,KUP,L,LR,M,N
+     &     I,IP1,IX,J,J1,JH,K,K1,KDN,KM,KUP,L,LR,M,N
 
       REAL*8 ::
      &     BDN,BUP,BYDP2,BYDPK,BYFSQ,BYIADA,
      &     BYIMDA,BYN,BYRCOS,DALPHA,DAM4,DE4TI,
      &     DP,DPG,DPH,DPTI,DTHETA,EL4QI,ELOFIM,
      &     GBYRSQ,GSQ,PDN,PIG,PIH,PMK,PUP,
-     &     PUTI,PVTI,SCALES,SCALET,SDDP,SKEI,
+     &     PUTI,PVTI,QDP,SCALES,SCALET,SDDP,SKEI,
      &     SN,SNAMI,SNDEGI,SNELGI,SQM,SQN,SZNDEG,
      &     SZNELG,THETA,TX,UDXN,UDXS,UX,WTKP1
 
@@ -1627,20 +1626,25 @@ C****
       SNDEGI=0.
       SNELGI=0.
       SNAMI=0.
-      DO 160 I=1,IM
-      IF (AIJK(I,J,K,IJK_DP).EQ.0.) GO TO 160
-      DPTI=DPTI+AIJK(I,J,K,IJK_DP)
-      BYDPK=1./(AIJK(I,J,K,IJK_DP)+teeny)
-      PUTI=PUTI+AIJK(I,J,K,IJK_U)
-      PVTI=PVTI+AIJK(I,J,K,IJK_V)
-      DE4TI=DE4TI+AIJK(I,J,K,IJK_DSE)
-      EL4QI=EL4QI+AIJK(I,J,K,IJK_Q)
-      SKEI=SKEI+(AIJK(I,J,K,IJK_U)*AIJK(I,J,K,IJK_U)
-     *            +AIJK(I,J,K,IJK_V)*AIJK(I,J,K,IJK_V))*BYDPK
-      SNDEGI=SNDEGI+(AIJK(I,J,K,IJK_DSE)*AIJK(I,J,K,IJK_V)*BYDPK)
-      SNELGI=SNELGI+(AIJK(I,J,K,IJK_Q)*AIJK(I,J,K,IJK_V)*BYDPK)
-      SNAMI=SNAMI+AIJK(I,J,K,IJK_U)*AIJK(I,J,K,IJK_V)*BYDPK
-  160 CONTINUE
+      I=IM
+      DO IP1=1,IM
+        IF (AIJK(I,J,K,IJK_DPB).GT.0.) THEN
+          DPTI=DPTI+AIJK(I,J,K,IJK_DPB)
+          BYDPK=1./(AIJK(I,J,K,IJK_DPB)+teeny)
+          PUTI=PUTI+AIJK(I,J,K,IJK_UB)
+          PVTI=PVTI+AIJK(I,J,K,IJK_VB)
+          DE4TI=DE4TI+AIJK(I,J,K,IJK_DSE)
+          QDP = .25*(AIJL(I,J-1,K,IJK_Q)+AIJL(IP1,J-1,K,IJK_Q)+
+     &               AIJL(I,J  ,K,IJK_Q)+AIJL(IP1,J  ,K,IJK_Q))
+          EL4QI=EL4QI+QDP
+          SKEI=SKEI+(AIJK(I,J,K,IJK_UB)*AIJK(I,J,K,IJK_UB)
+     *         +AIJK(I,J,K,IJK_VB)*AIJK(I,J,K,IJK_VB))*BYDPK
+          SNDEGI=SNDEGI+(AIJK(I,J,K,IJK_DSE)*AIJK(I,J,K,IJK_VB)*BYDPK)
+          SNELGI=SNELGI+(QDP*AIJK(I,J,K,IJK_VB)*BYDPK)
+          SNAMI=SNAMI+AIJK(I,J,K,IJK_UB)*AIJK(I,J,K,IJK_VB)*BYDPK
+        ENDIF
+        I=IP1
+      ENDDO
       AX(J,K)=SKEI-(PUTI*PUTI+PVTI*PVTI)/(DPTI+teeny)
       SZNDEG=DE4TI*PVTI/(DPTI+teeny)
       SZNELG=EL4QI*PVTI/(DPTI+teeny)
@@ -3247,12 +3251,13 @@ c      deallocate(anum,aden,xjl)
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : im,lm,bydsig,idacc,xlabel,lrunid,dtsrc
-      USE DIAG_COM, only : ail,lm_req,acc_period, qdiag
+      USE DIAG_COM, only : aijl,lm_req,acc_period, qdiag
      &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
      &     ,sname_strlen,units_strlen,lname_strlen
      &     ,j5s,j5n,j5suv,j5nuv,j50n,j70n
-     &     ,IL_U,IL_V,IL_TX,IL_W,IL_RH,IL_RC,IL_MC
-      USE CONSTANT, only : grav,rgas,by3,sha,bygrav
+     &     ,IJL_U,IJL_V,IJK_TX,IJL_W,IJK_RH,IJL_RC,IJL_MC
+     &     ,ia_ijl,denom_ijl
+      USE CONSTANT, only : grav,rgas,by3,sha,bygrav,teeny
       USE GEOM, only : dxyp
       IMPLICIT NONE
       CHARACTER(len=sname_strlen) :: sname
@@ -3267,7 +3272,7 @@ c      deallocate(anum,aden,xjl)
       real*8, dimension(kailx) :: scale_il
       integer, dimension(kailx) :: ia_il,j1_il,j2_il,qty_il
       real*8 :: bydj,bydjuv,daeq
-      integer :: k,j
+      integer :: k,kd,j
 c
       do k=1,kailx
          write(name_il(k),'(a3,i3.3)') 'AIL',k
@@ -3288,7 +3293,7 @@ C****
       k=0
 c
       k = k + 1
-      qty_il(k) = IL_U
+      qty_il(k) = IJL_U
       name_il(k) = 'u_equator'
       lname_il(k) = 'ZONAL WIND (U COMPONENT) AROUND +/- 5 DEG'
       units_il(k) = 'm/s'
@@ -3297,7 +3302,7 @@ c
       j1_il(k) = j5suv
       j2_il(k) = j5nuv
       k = k + 1
-      qty_il(k) = IL_V
+      qty_il(k) = IJL_V
       name_il(k) = 'v_equator'
       lname_il(k) = 'MERIDIONAL WIND (V COMPONENT) AROUND +/- 5 DEG'
       units_il(k) = 'm/s'
@@ -3306,7 +3311,7 @@ c
       j1_il(k) = j5suv
       j2_il(k) = j5nuv
       k = k + 1
-      qty_il(k) = IL_W
+      qty_il(k) = IJL_W
       name_il(k) = 'vvel_equator'
       lname_il(k) = 'VERTICAL VELOCITY AROUND +/- 5 DEG'
       units_il(k) = '10**-4 m/s'
@@ -3315,43 +3320,43 @@ c
       j1_il(k) = j5s
       j2_il(k) = j5n
       k = k + 1
-      qty_il(k) = IL_TX
+      qty_il(k) = IJK_TX
       name_il(k) = 'temp_equator'
-      lname_il(k) = 'TEMPERATURE AROUND +/- 5 DEG'
+      lname_il(k) = 'TEMPERATURE AROUND +/- 5 DEG  (Const. Pres.)'
       units_il(k) = 'C'
-      scale_il(k) = bydj
+      scale_il(k) = 1. !bydj
       ia_il(k)    = ia_dga
       j1_il(k) = j5s
       j2_il(k) = j5n
       k = k + 1
-      qty_il(k) = IL_RH
+      qty_il(k) = IJK_RH
       name_il(k) = 'rh_equator'
-      lname_il(k) = 'RELATIVE HUMIDITY AROUND +/- 5 DEG'
+      lname_il(k) = 'RELATIVE HUMIDITY AROUND +/- 5 DEG (Const. Pres.)'
       units_il(k) = '%'
-      scale_il(k) = 1d2*bydj
+      scale_il(k) = 1d2 !*bydj
       ia_il(k)    = ia_dga
       j1_il(k) = j5s
       j2_il(k) = j5n
       k = k + 1
-      qty_il(k) = IL_MC
+      qty_il(k) = IJL_MC
       name_il(k) = 'mcheat_equator'
       lname_il(k) = 'MOIST CONVECTIVE HEATING AROUND +/- 5 DEG'
-      units_il(k) = '10**13 WATTS/DSIG'
-      scale_il(k) = 100d-13*SHA/(GRAV*DTsrc)
+      units_il(k) =  '.01 W/(m^2*mb)'           !'10**13 WATTS/DSIG'
+      scale_il(k) =  100.*100.*BYGRAV*SHA/DTsrc !100d-13*SHA/(GRAV*DTsrc)
       ia_il(k)    = ia_src
       j1_il(k) = j5s
       j2_il(k) = j5n
       k = k + 1
-      qty_il(k) = IL_RC
+      qty_il(k) = IJL_RC
       name_il(k) = 'rad_cool_equator'
       lname_il(k) = 'TOTAL RADIATIVE COOLING AROUND +/- 5 DEG'
-      units_il(k) = '10**13 WATTS/DSIG'
-      scale_il(k) = -1d-13
+      units_il(k) =  '.01 W/(m^2*mb)' !'10**13 WATTS/DSIG'
+      scale_il(k) = -100.             !-1d-13
       ia_il(k)    = ia_rad
       j1_il(k) = j5s
       j2_il(k) = j5n
       k = k + 1
-      qty_il(k) = IL_W
+      qty_il(k) = IJL_W
       name_il(k) = 'vvel_50N'
       lname_il(k) = 'VERTICAL VELOCITY AT 50 N'
       units_il(k) = '10**-4 m/s'
@@ -3360,25 +3365,25 @@ c
       j1_il(k) = j50n
       j2_il(k) = j50n
       k = k + 1
-      qty_il(k) = IL_TX
+      qty_il(k) = IJK_TX
       name_il(k) = 'temp_50N'
-      lname_il(k) = 'TEMPERATURE AT 50 N'
+      lname_il(k) = 'TEMPERATURE AT 50 N (Const. Pres.)'
       units_il(k) = 'C'
       scale_il(k) = 1.
       ia_il(k)    = ia_dga
       j1_il(k) = j50n
       j2_il(k) = j50n
       k = k + 1
-      qty_il(k) = IL_RC
+      qty_il(k) = IJL_RC
       name_il(k) = 'rad_cool_50N'
       lname_il(k) = 'TOTAL RADIATIVE COOLING AT 50 N'
-      units_il(k) = '10**13 WATTS/UNIT SIGMA'
-      scale_il(k) = 1d-13
+      units_il(k) = '.01 W/(m^2*mb)'  !'10**13 WATTS/UNIT SIGMA'
+      scale_il(k) = -100.             ! 1d-13
       ia_il(k)    = ia_rad
       j1_il(k) = j50n
       j2_il(k) = j50n
       k = k + 1
-      qty_il(k) = IL_U
+      qty_il(k) = IJL_U
       name_il(k) = 'u_50N'
       lname_il(k) = 'ZONAL WIND AT 50 N'
       units_il(k) = 'm/s'
@@ -3387,7 +3392,7 @@ c
       j1_il(k) = j50n
       j2_il(k) = j50n+1
       k = k + 1
-      qty_il(k) = IL_W
+      qty_il(k) = IJL_W
       name_il(k) = 'vvel_70N'
       lname_il(k) = 'VERTICAL VELOCITY AT 70 N'
       units_il(k) = '10**-4 m/s'
@@ -3396,25 +3401,25 @@ c
       j1_il(k) = j70n
       j2_il(k) = j70n
       k = k + 1
-      qty_il(k) = IL_TX
+      qty_il(k) = IJK_TX
       name_il(k) = 'temp_70N'
-      lname_il(k) = 'TEMPERATURE AT 70 N'
+      lname_il(k) = 'TEMPERATURE AT 70 N (Const. Pres.)'
       units_il(k) = 'C'
       scale_il(k) = 1.
       ia_il(k)    = ia_dga
       j1_il(k) = j70n
       j2_il(k) = j70n
       k = k + 1
-      qty_il(k) = IL_RC
+      qty_il(k) = IJL_RC
       name_il(k) = 'rad_cool_70N'
       lname_il(k) = 'TOTAL RADIATIVE COOLING AT 70 N'
-      units_il(k) = '10**13 WATTS/UNIT SIGMA'
-      scale_il(k) = -1d-13
+      units_il(k) = '.01 W/(m^2*mb)' !'10**13 WATTS/UNIT SIGMA'
+      scale_il(k) = -100.            !-1d-13
       ia_il(k)    = ia_rad
       j1_il(k) = j70n
       j2_il(k) = j70n
       k = k + 1
-      qty_il(k) = IL_U
+      qty_il(k) = IJL_U
       name_il(k) = 'u_70N'
       lname_il(k) = 'ZONAL WIND AT 70 N'
       units_il(k) = 'm/s'
@@ -3438,24 +3443,29 @@ C**** INITIALIZE CERTAIN QUANTITIES
         lname=lname_il(k)
         unit=units_il(k)
         if (lname.ne.'unused') then
-        XIL=SUM(AIL(:,j1_il(k):j2_il(k),:,qty_il(k)),dim=2)
+        XIL=SUM(AIJL(:,j1_il(k):j2_il(k),:,qty_il(k)),dim=2)
      &         *SCALE_IL(K)/IDACC(IA_IL(K))
+        kd = denom_ijl(qty_il(k))
+        if(kd.gt.0) then ! weighted by air mass
+          XIL = XIL*IDACC(IA_IJL(KD))/
+     &         (SUM(AIJL(:,j1_il(k):j2_il(k),:,kd),dim=2)+teeny)
+        endif
         SELECT CASE (sname)
-! Centered in L; secondary grid; hor. mean; vert. sum
+! Centered in L; primary grid; hor. mean; vert. sum
         CASE ('u_equator','v_equator','u_70N','u_50N')
-          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,2)
+          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,1)
 ! Vertical edges; primary grid; hor. mean; vert. sum
         CASE ('vvel_equator','vvel_50N','vvel_70N')
           CALL ILMAP(sname,lname,unit,PLE,XIL,ONES,LM-1,2,1)
 ! Centered in L; primary grid; hor. mean; vert. sum
         CASE ('temp_equator','rh_equator','temp_50N','temp_70N')
           CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,1)
-! Centered in L; primary grid; hor. sum; vert. sum
+! Centered in L; primary grid; hor. mean; vert. sum
         CASE ('mcheat_equator')
-          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,1,1)
-! Centered in L; primary grid; hor. sum; vert. mean
+          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,1)
+! Centered in L; primary grid; hor. mean; vert. mean
         CASE ('rad_cool_equator') ! also 'rad_cool_50N','rad_cool_70N'
-          CALL ILMAP(sname,lname,unit,PLM,XIL,BYDSIG,LM,1,1)
+          CALL ILMAP(sname,lname,unit,PLM,XIL,ONES,LM,2,1)
         END SELECT
         end if
       END DO
@@ -3855,7 +3865,7 @@ c**** ratios (the denominators)
 
 c**** remaining special cases for compound quantities
 
-c**** precomputed fields: northward tranports by eddies, Tmsu
+c**** precomputed fields: northward tranports by eddies
       if (k.eq.ij_ntdsese) then                   ! standing eddies
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m95_265
         anum=SENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
@@ -3865,24 +3875,6 @@ c**** precomputed fields: northward tranports by eddies, Tmsu
         byiacc=1./(idacc(ia_ij(ij_dsev))+teeny)   ; irange = ir_m1_3
         anum=TENTDSE*(byiacc*scale_ij(ij_dsev))  ;  igrid = 2; jgrid = 2
         isumz = 1 ; isumg = 2
-
-      else if (k.eq.ij_msu2) then                   ! T_msu_ch2
-        anum=tmsu2  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
-
-      else if (k.eq.ij_msu3) then                   ! T_msu_ch3
-        anum=tmsu3  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
-
-      else if (k.eq.ij_msu4) then                   ! T_msu_ch4
-        anum=tmsu4  ; igrid = 2; jgrid = 2 ; irange = ir_m80_28
-
-c**** column atmospheric temperature
-      else if (k.eq.ij_tatm) then ! special because still on B-grid
-        do j=2,jm
-        do i=1,im
-          anum(i,j) = sum(aijk(i,j,1:lm,ijk_t))/
-     /                sum(aijk(i,j,1:lm,ijk_dp)) - TF
-        end do
-        end do
 
       end if
 
@@ -4120,8 +4112,6 @@ cgsfc        wt_ij(i,j,7) = fearth(i,j)*(1.-(vdata(i,j,1)+vdata(i,j,10)))
         wt_ij(i,j,iw_land) = wt_ij(i,j,iw_soil) + wt_ij(i,j,iw_lice)
       end do
       end do
-C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
-      call diag_msu
 C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
       SENTDSE = 0
       TENTDSE = 0
@@ -4131,13 +4121,13 @@ C**** CACULATE STANDING AND TRANSIENT EDDY NORTHWARD TRANSPORT OF DSE
         PVTI=0.
         DE4TI=0.
         DO I=1,IM
-          IF (AIJK(I,J,K,IJK_DP).GT.0.) THEN
-            DPTI=DPTI+AIJK(I,J,K,IJK_DP)
-            BYDPK=1./(AIJK(I,J,K,IJK_DP)+teeny)
-            PVTI=PVTI+AIJK(I,J,K,IJK_V)
+          IF (AIJK(I,J,K,IJK_DPB).GT.0.) THEN
+            DPTI=DPTI+AIJK(I,J,K,IJK_DPB)
+            BYDPK=1./(AIJK(I,J,K,IJK_DPB)+teeny)
+            PVTI=PVTI+AIJK(I,J,K,IJK_VB)
             DE4TI=DE4TI+AIJK(I,J,K,IJK_DSE)
             SENTDSE(I,J)=SENTDSE(I,J)
-     *        +(AIJK(I,J,K,IJK_DSE)*AIJK(I,J,K,IJK_V)*BYDPK)
+     *        +(AIJK(I,J,K,IJK_DSE)*AIJK(I,J,K,IJK_VB)*BYDPK)
           END IF
         END DO
         SZNDEG=DE4TI*PVTI/(DPTI+teeny)
@@ -4224,6 +4214,7 @@ C**** produce binary files of remaining fields if appropriate
       end do
       call close_ij
       if (kdiag(3).lt.8) CALL IJKMAP (iu_Iij)
+      if (kdiag(3).lt.8) CALL IJLMAP (iu_Iij)
 
       RETURN
 C****
@@ -4598,7 +4589,7 @@ C****
      &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
       USE GEOM, only : DXYV
       USE DIAG_COM, only :
-     &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,ijk_u,klayer
+     &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,ijk_ub,klayer
      &     ,JK_DPB,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
 #ifdef USE_FFTW
@@ -4647,7 +4638,7 @@ C****
       FACTOR=FIM*DXYV(J)/AGC(J,L,JK_DPB)
       DO 769 K=0,1
       DO 720 I=1,IM
-  720 X(I)=AIJK(I,J,L,IJK_U+K)
+  720 X(I)=AIJK(I,J,L,IJK_UB+K)
       CALL FFTE (X,X)
       IF (J.EQ.JEQ) GO TO 750
       DO 730 N=1,NM
@@ -5153,19 +5144,12 @@ c
 C**** Note that since many IJK diags are weighted w.r.t pressure, all
 C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.
-C**** IJL diags are done separately
       USE CONSTANT, only : grav,sha,undef
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
       USE DIAG_COM, only : kdiag,jgrid_ijk,
-     &     aijk,acc_period,ijk_u,ijk_v,ijk_t,ijk_q,ijk_dp,ijk_dse
+     &     aijk,acc_period,ijk_tb,ijk_dpb,ijk_dse
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
-     *     ,ijl_cf,ijk_w,ia_rad,ia_dga
-     *     ,ia_src,lh_diags
-     *     ,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
-#ifdef CLD_AER_CDNC
-     *    ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws
-     *    ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis
-#endif
+     *     ,ia_dga
       use filemanager
       IMPLICIT NONE
 
@@ -5219,8 +5203,7 @@ C****
 
 C**** Select fields
       DO K=1,KAIJKx
-        if (.not.Qk(k).or.k.eq.ijk_dp.or.k.eq.ijl_cf.or.k.eq.ijl_llh
-     *   .or.k.eq.ijl_mctlh.or.k.eq.ijl_mcdlh.or.k.eq.ijl_mcslh) cycle
+        if (.not.Qk(k).or.k.eq.ijk_dpb) cycle
         SMAP(:,:,:) = UNDEF
         SMAPJK(:,:) = UNDEF
         SMAPK(:)    = UNDEF
@@ -5237,10 +5220,10 @@ C**** Select fields
               NI = 0
               FLAT = 0.
               DO I=1,IM
-                DP=AIJK(I,J,L,IJK_DP)
+                DP=AIJK(I,J,L,IJK_DPB)
                 IF(DP.GT.0.) THEN
                   SMAP(I,J,L) = SCALE_IJK(k)*(AIJK(I,J,L,IJK_DSE)-
-     *                 SHA*AIJK(I,J,L,IJK_T))/DP
+     *                 SHA*AIJK(I,J,L,IJK_TB))/DP
                   FLAT = FLAT+SMAP(I,J,L)
                   NI = NI+1
                 END IF
@@ -5271,7 +5254,7 @@ C**** Select fields
               NI = 0
               FLAT = 0.
               DO I=1,IM
-                DP=AIJK(I,J,L,IJK_DP)
+                DP=AIJK(I,J,L,IJK_DPB)
                 IF(DP.GT.0.) THEN
                   SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/DP+OFF_IJK(K)
                   FLAT = FLAT+SMAP(I,J,L)
@@ -5289,416 +5272,94 @@ C**** Select fields
       END DO
 C****
       call close_ijk
+
+      return
+      END SUBROUTINE IJKMAP
+
+      SUBROUTINE IJLMAP (iu_Iij)
 C****
 C**** ijl output
 C****
+      USE CONSTANT, only : undef
+      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
+      USE DIAG_COM, only : aijl,kaijl,acc_period,ijkgridc
+     &     ,ia_ijl,denom_ijl,name_ijl,lname_ijl,units_ijl,scale_ijl,
+     &     lgrid_ijl,
+     &     ctr_ml,edg_ml,ctr_cp
+      use filemanager
+      IMPLICIT NONE
+      INTEGER iu_Iij
+
+      CHARACTER XLB*24,TITLEX*56
+      CHARACTER*80 TITLEL(LM)
+      REAL*8 SMAP(IM,JM,LM),SMAPJL(JM,LM),SMAPL(LM)
+      REAL*8 XDEN(IM,JM,LM),XDENJL(JM,LM)
+      CHARACTER*11 CPRESS(LM)
+      CHARACTER*3 CLEV(LM)
+      INTEGER i,j,l,kxlb,k,kd
+      KXLB = INDEX(XLABEL(1:11),'(')-1
+      IF(KXLB.le.0) KXLB = 10
+      XLB = ' '
+      XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
+      XLB(15:14+KXLB) = XLABEL(1:KXLB)
+      DO L=1,LM
+        WRITE(CPRESS(L),'(F8.3,A3)') pmidl00(l),' mb'
+        WRITE(CLEV(L),'(A1,I2.2)') 'L',l
+      END DO
+
       call open_ijl(trim(acc_period)//'.ijl'//XLABEL(1:LRUNID),im,jm,lm)
 
-      k=ijl_cf
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_rad)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-C*** Begin *** 3-D latent heating diags ***
-      if (lh_diags.eq.1) then
-       k=ijl_llh
-       TITLEX = lname_ijk(k)(1:35)//" at (        "//
-     *     trim(units_ijk(k))//")"
-       SMAP(:,:,:) = UNDEF
-       SMAPJK(:,:) = UNDEF
-       SMAPK(:)    = UNDEF
-       DO L=1,LM
-         DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-         END DO
-         WRITE(TITLEX(41:48),'(A)') CPRESS(L)
-         TITLEL(L) = TITLEX//XLB
-       END DO
-       CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-       k=ijl_mctlh
-       TITLEX = lname_ijk(k)(1:30)//" at (        "//
-     *     trim(units_ijk(k))//")"
-       SMAP(:,:,:) = UNDEF
-       SMAPJK(:,:) = UNDEF
-       SMAPK(:)    = UNDEF
-       DO L=1,LM
-         DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-         END DO
-         WRITE(TITLEX(36:43),'(A)') CPRESS(L)
-         TITLEL(L) = TITLEX//XLB
-       END DO
-       CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-       k=ijl_mcdlh
-       TITLEX = lname_ijk(k)(1:30)//" at (        "//
-     *     trim(units_ijk(k))//")"
-       SMAP(:,:,:) = UNDEF
-       SMAPJK(:,:) = UNDEF
-       SMAPK(:)    = UNDEF
-       DO L=1,LM
-         DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-         END DO
-         WRITE(TITLEX(36:43),'(A)') CPRESS(L)
-         TITLEL(L) = TITLEX//XLB
-       END DO
-       CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-       k=ijl_mcslh
-       TITLEX = lname_ijk(k)(1:30)//" at (        "//
-     *     trim(units_ijk(k))//")"
-       SMAP(:,:,:) = UNDEF
-       SMAPJK(:,:) = UNDEF
-       SMAPK(:)    = UNDEF
-       DO L=1,LM
-         DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-         END DO
-         WRITE(TITLEX(36:43),'(A)') CPRESS(L)
-         TITLEL(L) = TITLEX//XLB
-       END DO
-       CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-       endif
-C*** End 3-D latent heating ***
-
-#ifdef CLD_AER_CDNC
-C** Cold cloud part
-      k=ijl_reim
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_reis
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cdis
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cdim
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cwim
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cwis
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-C*** Warm cloud part
-      k=ijl_rewm
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-c      if (AIJK(I,J,L,K).gt.5.d0)
-c    * write(6,*)"Reff",AIJK(I,J,L,K),I,J,L
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_rews
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cdws
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cdwm
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cwwm
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-
-      k=ijl_cwws
-      TITLEX = lname_ijk(k)(1:17)//"   at  Level    ("//
-     *     trim(units_ijk(k))//")"
-      SMAP(:,:,:) = UNDEF
-      SMAPJK(:,:) = UNDEF
-      SMAPK(:)    = UNDEF
-      DO L=1,LM
-        DO J=1,JM
-          NI = 0
-          FLAT = 0.
-          DO I=1,IM
-            SMAP(I,J,L)=SCALE_IJK(K)*AIJK(I,J,L,K)/IDACC(ia_src)
-            FLAT = FLAT+SMAP(I,J,L)
-            NI = NI+1
-          END DO
-          IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-        END DO
-        WRITE(TITLEX(31:33),'(I3)') L
-        TITLEL(L) = TITLEX//XLB
-      END DO
-      CALL POUT_IJL(TITLEL,name_ijk(k),lname_ijk(k),units_ijk(k)
-     *     ,SMAP,SMAPJK,SMAPK,jgrid_ijk(k))
-#endif
+c
+c loop over quantities
+c
+      do k=1,kaijl
+        if(trim(lname_ijl(k)).eq.'no output') cycle
+c
+c scale this quantity and compute its zonal means
+c
+        smap = scale_ijl(k)*aijl(:,:,:,k)/idacc(ia_ijl(k))
+        smapjl = sum(smap,dim=1)
+        kd = denom_ijl(k)
+        if(kd.gt.0) then        ! ratio
+          xden = aijl(:,:,:,kd)/idacc(ia_ijl(kd))
+          xdenjl = sum(xden,dim=1)
+          where(xden.ne.0.)
+            smap = smap/xden
+          elsewhere
+            smap = undef
+          end where
+          where(xdenjl.ne.0.)
+            smapjl = smapjl/xdenjl
+          elsewhere
+            smapjl = undef
+          end where
+        else
+          smapjl = smapjl/im
+        endif
 C****
+C**** Complete 3D-field titles
+C****
+        titlex = trim(lname_ijl(k))//' ('//trim(units_ijl(k))//')'
+        if(lgrid_ijl(k).eq.ctr_ml.or.lgrid_ijl(k).eq.edg_ml) then
+          do l=1,lm
+            titlel(l)=trim(titlex)//' '//clev(l)
+            titlel(l)(57:80)=xlb
+          enddo
+        elseif(lgrid_ijl(k).eq.ctr_cp) then
+          do l=1,lm
+            titlel(l)=trim(titlex)//' '//cpress(l)
+            titlel(l)(57:80)=xlb
+          enddo
+        endif
+c write field
+        call pout_ijl(titlel,name_ijl(k),lname_ijl(k),units_ijl(k)
+     &       ,smap,smapjl,smapl,ijkgridc)
+      enddo
+
       call close_ijl
-C****
-      RETURN
-      END SUBROUTINE IJKMAP
+
+      return
+      end subroutine ijlmap
 
       function NINTlimit( x )
       real*8 x
@@ -5786,137 +5447,6 @@ C**** write the binary file
  101  FORMAT (5X,I3,7X,6F5.1)
 
       end subroutine diag_isccp
-
-      subroutine diag_msu
-!@sum diag_msu computes MSU channel 2,3,4 temperatures as weighted means
-!@auth Reto A Ruedy (input file created by Makiko Sato)
-      use filemanager
-      USE CONSTANT
-      USE DIAG_COM
-      USE MODEL_COM
-      USE BDIJ
-
-      implicit none
-
-      integer, parameter :: nmsu=200 , ncols=4
-      real*8 plbmsu(nmsu),wmsu(ncols,nmsu) ;  save plbmsu,wmsu
-      real*8 tlmsu(nmsu),tmsu(ncols,im,jm)
-      real*8 plb(0:lm+2),tlb(0:lm+2),tlm(lm)
-
-      integer i,j,l,n,ip1,iu_msu  ;           integer, save :: ifirst=1
-      real*8  ts,pland,dp
-
-      if(ifirst.eq.1) then
-c**** read in the weights file
-        call openunit('MSU_wts',iu_msu,.false.,.true.)
-        do n=1,4
-          read(iu_msu,*)
-        end do
-
-        do l=1,nmsu
-          read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
-        end do
-
-        call closeunit(iu_msu)
-        ifirst=0
-      end if
-
-c**** Collect temperatures and pressures (on the secondary grid)
-      do i=2,im
-        aij(i,1,ij_ts)=aij(1,1,ij_ts)
-        aij(i,jm,ij_ts)=aij(1,jm,ij_ts)
-      end do
-      do j=2,jm
-      i=IM
-      do ip1=1,im
-        ts=.25*(aij(i,j,ij_ts)+aij(i,j-1,ij_ts)+
-     +      aij(ip1,j,ij_ts)+aij(ip1,j-1,ij_ts))/idacc(ia_src)
-        pland = .25*(wt_ij(i,j,iw_land) + wt_ij(i,j-1,iw_land)
-     &       + wt_ij(ip1,j,iw_land) + wt_ij(ip1,j-1,iw_land))
-        plb(lm+1)=pmtop
-        do l=lm,1,-1
-          dp=aijk(i,j,l,ijk_dp)
-          plb(l)=plb(l+1)+dp/idacc(ia_dga)
-          tlm(l)=ts
-          if(dp.gt.0.) tlm(l)=aijk(i,j,l,ijk_t)/dp - tf
-        end do
-c**** find edge temperatures (assume continuity and given means)
-        tlb(0)=ts ; plb(0)=plbmsu(1) ; tlb(1)=ts
-        do l=1,lm
-           tlb(l+1)=2*tlm(l)-tlb(l)
-        end do
-        tlb(lm+2)=tlb(lm+1) ; plb(lm+2)=0.
-        call vntrp1 (lm+2,plb,tlb, nmsu-1,plbmsu,tlmsu)
-c**** find MSU channel 2,3,4 temperatures
-        tmsu(:,i,j)=0.
-        do l=1,nmsu-1
-          tmsu(:,i,j)=tmsu(:,i,j)+tlmsu(l)*wmsu(:,l)
-        end do
-        tmsu2(i,j)=(1-pland)*tmsu(1,i,j)+pland*tmsu(2,i,j)
-        tmsu3(i,j)=tmsu(3,i,j)
-        tmsu4(i,j)=tmsu(4,i,j)
-        i=ip1
-      end do
-      end do
-
-      return
-      end subroutine diag_msu
-
-      SUBROUTINE VNTRP1 (KM,P,AIN,  LMA,PE,AOUT)
-C**** Vertically interpolates a 1-D array
-C**** Input:       KM = number of input pressure levels
-C****            P(K) = input pressure levels (mb)
-C****          AIN(K) = input quantity at level P(K)
-C****             LMA = number of vertical layers of output grid
-C****           PE(L) = output pressure levels (mb) (edges of layers)
-C**** Output: AOUT(L) = output quantity: mean between PE(L-1) & PE(L)
-C****
-      implicit none
-      integer, intent(in) :: km,lma
-      REAL*8, intent(in)  :: P(0:KM),AIN(0:KM),    PE(0:LMA)
-      REAL*8, intent(out) :: AOUT(LMA)
-
-      integer k,k1,l
-      real*8 pdn,adn,pup,aup,psum,asum
-
-C****
-      PDN = PE(0)
-      ADN = AIN(0)
-      K=1
-C**** Ignore input levels below ground level pe(0)=p(0)
-      IF(P(1).GT.PE(0)) THEN
-         DO K1=2,KM
-         K=K1
-         IF(P(K).LT.PE(0)) THEN  ! interpolate to ground level
-           ADN=AIN(K)+(AIN(K-1)-AIN(K))*(PDN-P(K))/(P(K-1)-P(K))
-           GO TO 300
-         END IF
-         END DO
-         STOP 'VNTRP1 - error - should not get here'
-      END IF
-C**** Integrate - connecting input data by straight lines
-  300 DO 330 L=1,LMA
-      ASUM = 0.
-      PSUM = 0.
-      PUP = PE(L)
-  310 IF(P(K).le.PUP)  GO TO 320
-      PSUM = PSUM + (PDN-P(K))
-      ASUM = ASUM + (PDN-P(K))*(ADN+AIN(K))/2.
-      PDN  = P(K)
-      ADN  = AIN(K)
-      K=K+1
-      IF(K.LE.KM) GO TO 310
-      stop 'VNTRP1 - should not happen'
-C****
-  320 AUP  = AIN(K) + (ADN-AIN(K))*(PUP-P(K))/(PDN-P(K))
-      PSUM = PSUM + (PDN-PUP)
-      ASUM = ASUM + (PDN-PUP)*(ADN+AUP)/2.
-      AOUT(L) = ASUM/PSUM
-      PDN = PUP
-  330 ADN = AUP
-C****
-      RETURN
-      END subroutine vntrp1
 
       SUBROUTINE DIAG_GATHER
       USE MODEL_COM, only : IM, FOCEAN, FLICE, ZATMO

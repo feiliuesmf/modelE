@@ -1176,16 +1176,18 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
 !@sum  OPEN_IJL opens the lat-lon-layer binary output file
 !@auth M. Kelley
 !@ver  1.0
-      USE GEOM, only : lon_dg,lat_dg
-      USE NCOUT, only : im,jm,lm,iu_ijl,set_dim_out,def_dim_out,out_fid
-     *     ,outfile,units,ndims_out,open_out,var_name
+      USE GEOM, only : lon_dg_gcm=>lon_dg,lat_dg_gcm=>lat_dg
+      USE NCOUT
+      USE DIAG_COM, only : kaijl,name_ijl,lname_ijl,units_ijl,lgrid_ijl,
+     &     plm,ple,ctr_ml,edg_ml,ctr_cp,edg_cp
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var IM_GCM,JM_GCM,LM_GCM dimensions for ijl output
       INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
-      INTEGER :: l
+      INTEGER :: k,l
       REAL*8 :: lev(lm_gcm)
+      include 'netcdf.inc'
 !
       character(len=30) :: dim_name
 
@@ -1195,7 +1197,10 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       call open_out
       iu_ijl = out_fid
 
-C**** set dimensions
+c
+c Set dimensions.  All output fields are assumed to be on the
+c primary grid.
+c
       im=im_gcm
       jm=jm_gcm
       lm=lm_gcm
@@ -1203,20 +1208,58 @@ C**** set dimensions
       dim_name='longitude'; call def_dim_out(dim_name,im)
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='level'; call def_dim_out(dim_name,lm)
+      dim_name='p'; call def_dim_out(dim_name,lm)
+      dim_name='ple'; call def_dim_out(dim_name,lm)
 
       ndims_out = 1
       dim_name='longitude'; call set_dim_out(dim_name,1)
       units='degrees_east'
-      var_name='longitude';call wrtdarr(lon_dg(1,1))
+      var_name='longitude';call wrtdarr(lon_dg_gcm(1,1))
       dim_name='latitude'; call set_dim_out(dim_name,1)
       units='degrees_north'
-      var_name='latitude';call wrtdarr(lat_dg(1,1))
+      var_name='latitude';call wrtdarr(lat_dg_gcm(1,1))
       dim_name='level'; call set_dim_out(dim_name,1)
       units=' '
       do l=1,lm
         lev(l)=l
       end do
       var_name='level'; call wrtdarr(lev)
+      dim_name='p'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='p'; call wrtdarr(plm)
+      dim_name='ple'; call set_dim_out(dim_name,1)
+      units='mb'
+      var_name='ple'; call wrtdarr(ple)
+
+c
+c predefine the output fields
+c
+      ndims_out = 3
+      dim_name='longitude'; call set_dim_out(dim_name,1)
+      dim_name='latitude'; call set_dim_out(dim_name,2)
+      disk_dtype = nf_real
+      do k=1,kaijl
+        if(trim(lname_ijl(k)).eq.'no output') cycle
+        if(lgrid_ijl(k).eq.ctr_ml .or. lgrid_ijl(k).eq.edg_ml) then
+          dim_name = 'level'
+          def_missing = .false.
+        elseif(lgrid_ijl(k).eq.ctr_cp) then
+          dim_name = 'p'
+          def_missing = .true.
+        else
+          dim_name = 'ple'
+          def_missing = .true.
+        endif
+        call set_dim_out(dim_name,3)
+
+        var_name=name_ijl(k)
+        long_name=lname_ijl(k)
+        units=units_ijl(k)
+
+        call defarr
+      enddo
+c restore some defaults
+      def_missing = .false.
 
       return
       end subroutine open_ijl
@@ -1258,24 +1301,14 @@ C**** set dimensions
       INTEGER, INTENT(IN) :: IJGRID
 
       character(len=30) :: dim_name
+      include 'netcdf.inc'
+      integer :: status
 
       out_fid = iu_ijl
 
-! (re)set shape of output array
-      ndims_out = 3
-
-      dim_name = 'longitude'
-      call set_dim_out(dim_name,1)
-      dim_name = 'latitude'
-      call set_dim_out(dim_name,2)
-      dim_name = 'level'
-      call set_dim_out(dim_name,3)
-
-      var_name=sname
-      long_name=lname
-      units=units_in
-
-      call wrtdarr(xijl)
+      var_name = sname
+      status = nf_inq_varid(out_fid,trim(var_name),varid_out)
+      status = nf_put_var_double(out_fid,varid_out,xijl)
 
       return
       end

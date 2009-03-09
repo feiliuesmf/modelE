@@ -32,10 +32,9 @@
      *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
       USE DIAG_COM, only : aij=>aij_loc,
-     *     ail=>ail_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
-     &     aijk=>aijk_loc,
+     *     aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld,
      *     ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec,
-     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,il_mc,
+     *     ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,ijl_mc,
      *     ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp,
      &     jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas,
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
@@ -706,19 +705,18 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
           call inc_ajl(i,j,l,jl_mcdtotw,DTOTW(L)*BYDSIG(L))
 CCC       IF(J.GE.J5S.AND.J.LE.J5N) AIL(I,L,IL_MCEQ)=AIL(I,L,IL_MCEQ)+
 CCC  *         (DGDSM(L)+DPHASE(L))*(AXYP(I,J)*BYDSIG(L))
-          AIL(I,J,L,IL_MC) = AIL(I,J,L,IL_MC) +
-     &         (DPHASE(L)+DGDSM(L))*(AXYP(I,J)*BYDSIG(L))
+          AIJL(I,J,L,IJL_MC) = AIJL(I,J,L,IJL_MC) + (DPHASE(L)+DGDSM(L))
           call inc_ajl(i,j,l,jl_mcheat,(DPHASE(L)+DGDSM(L)))
           call inc_ajl(i,j,l,jl_mcdry,(DQCOND(L)-DGDQM(L)))
           call inc_ajl(i,j,l,jl_mcshlw,(DPHASHLW(L)+DGSHLW(L)))
           call inc_ajl(i,j,l,jl_mcdeep,(DPHADEEP(L)+DGDEEP(L)))
 C*** Begin Accumulate 3D convective latent heating
          if(lh_diags.eq.1) then
-          AIJK(I,J,L,IJL_MCTLH)=AIJK(I,J,L,IJL_MCTLH)+
+          AIJL(I,J,L,IJL_MCTLH)=AIJL(I,J,L,IJL_MCTLH)+
      &         (DPHASE(L)+DGDSM(L))
-          AIJK(I,J,L,IJL_MCDLH)=AIJK(I,J,L,IJL_MCDLH)+
+          AIJL(I,J,L,IJL_MCDLH)=AIJL(I,J,L,IJL_MCDLH)+
      &         (DPHADEEP(L)+DGDEEP(L))
-          AIJK(I,J,L,IJL_MCSLH)=AIJK(I,J,L,IJL_MCSLH)+
+          AIJL(I,J,L,IJL_MCSLH)=AIJL(I,J,L,IJL_MCSLH)+
      &         (DPHASHLW(L)+DGSHLW(L))
          endif
 C*** End Accumulate 3D convective latent heating
@@ -753,12 +751,12 @@ C*** End Accumulate 3D convective latent heating
           AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)
           AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)
           AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)
-          AIJK(I,J,L,IJL_REWM)= AIJK(I,J,L,IJL_REWM)+AREWM(L)
-          AIJK(I,J,L,IJL_CDWM)= AIJK(I,J,L,IJL_CDWM)+ACDNWM(L)
-          AIJK(I,J,L,IJL_CWWM)= AIJK(I,J,L,IJL_CWWM)+ALWWM(L)
+          AIJL(I,J,L,IJL_REWM)= AIJL(I,J,L,IJL_REWM)+AREWM(L)
+          AIJL(I,J,L,IJL_CDWM)= AIJL(I,J,L,IJL_CDWM)+ACDNWM(L)
+          AIJL(I,J,L,IJL_CWWM)= AIJL(I,J,L,IJL_CWWM)+ALWWM(L)
           call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
-c         write(6,*)"IJL_REWM",AIJK(I,J,L,IJL_REWM),I,J,L,
-c     *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
+c         write(6,*)"IJL_REWM",AIJL(I,J,L,IJL_REWM),I,J,L,
+c     *   AIJL(I,J,L,IJL_CDWM),AIJL(I,J,L,IJL_CWWM),ALWWM(L)
         ENDIF
 
         IF (NMCI.ge.1) then
@@ -766,11 +764,11 @@ c     *   AIJK(I,J,L,IJL_CDWM),AIJK(I,J,L,IJL_CWWM),ALWWM(L)
           AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)
           AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)
           call inc_ajl(i,j,l,JL_CNUMIM,ACDNIM(L)*AIRM(L))
-          AIJK(I,J,L,IJL_REIM)= AIJK(I,J,L,IJL_REIM)+AREIM(L)
-          AIJK(I,J,L,IJL_CDIM)= AIJK(I,J,L,IJL_CDIM)+ACDNIM(L)
-          AIJK(I,J,L,IJL_CWIM)= AIJK(I,J,L,IJL_CWIM)+ALWIM(L)
-c         write(6,*)"IJL_REIM",AIJK(I,J,L,IJL_REIM),I,J,L,
-c     *   AIJK(I,J,L,IJL_CDIM),AIJK(I,J,L,IJL_CWIM),ALWIM(L)
+          AIJL(I,J,L,IJL_REIM)= AIJL(I,J,L,IJL_REIM)+AREIM(L)
+          AIJL(I,J,L,IJL_CDIM)= AIJL(I,J,L,IJL_CDIM)+ACDNIM(L)
+          AIJL(I,J,L,IJL_CWIM)= AIJL(I,J,L,IJL_CWIM)+ALWIM(L)
+c         write(6,*)"IJL_REIM",AIJL(I,J,L,IJL_REIM),I,J,L,
+c     *   AIJL(I,J,L,IJL_CDIM),AIJL(I,J,L,IJL_CWIM),ALWIM(L)
         ENDIF
 
         ENDDO
@@ -1183,7 +1181,7 @@ C**** update running-average of precipitation (in mm/day):
         call inc_ajl(i,j,l,JL_SSHR,SSHR(L))
 C*** Begin Accumulate 3D heating by large scale condensation --
        if(lh_diags.eq.1) then
-        AIJK(I,J,L,IJL_LLH)=AIJK(I,J,L,IJL_LLH)+SSHR(L)
+        AIJL(I,J,L,IJL_LLH)=AIJL(I,J,L,IJL_LLH)+SSHR(L)
        endif
 C*** End Accumulate 3D heating by large scale condensation --
        call inc_ajl(i,j,l,JL_MCLDHT,DCTEI(L))
@@ -1237,9 +1235,9 @@ cQCON*     ,prcp
           AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)
           AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)
           AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)
-          AIJK(I,J,L,IJL_REWS)= AIJK(I,J,L,IJL_REWS)+AREWS(L)
-          AIJK(I,J,L,IJL_CDWS)= AIJK(I,J,L,IJL_CDWS)+ACDNWS(L)
-          AIJK(I,J,L,IJL_CWWS)= AIJK(I,J,L,IJL_CWWS)+ALWWS(L)
+          AIJL(I,J,L,IJL_REWS)= AIJL(I,J,L,IJL_REWS)+AREWS(L)
+          AIJL(I,J,L,IJL_CDWS)= AIJL(I,J,L,IJL_CDWS)+ACDNWS(L)
+          AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)
           call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
 c     if(AIJ(I,J,IJ_3dNWS).gt.0.)write(6,*)"OUTDRV",AIJ(I,J,IJ_3dNWS)
 c    * ,ACDNWS(L),NLSW,itime,l
@@ -1250,9 +1248,9 @@ c    * ,ACDNWS(L),NLSW,itime,l
          AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)
          AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)
          call inc_ajl(i,j,l,JL_CNUMIS,ACDNIS(L)*AIRM(L))
-         AIJK(I,J,L,IJL_REIS)= AIJK(I,J,L,IJL_REIS)+AREIS(L)
-         AIJK(I,J,L,IJL_CDIS)= AIJK(I,J,L,IJL_CDIS)+ACDNIS(L)
-         AIJK(I,J,L,IJL_CWIS)= AIJK(I,J,L,IJL_CWIS)+ALWIS(L)
+         AIJL(I,J,L,IJL_REIS)= AIJL(I,J,L,IJL_REIS)+AREIS(L)
+         AIJL(I,J,L,IJL_CDIS)= AIJL(I,J,L,IJL_CDIS)+ACDNIS(L)
+         AIJL(I,J,L,IJL_CWIS)= AIJL(I,J,L,IJL_CWIS)+ALWIS(L)
         ENDIF
 
         ENDDO

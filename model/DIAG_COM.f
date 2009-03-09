@@ -68,12 +68,23 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
-!@param KAIL number of AIL accumulations
-      INTEGER, PARAMETER, public :: KAIL=7
-      INTEGER, PARAMETER, public ::
-     &     IL_U=1,IL_V=2,IL_TX=3,IL_W=4,IL_RH=5,IL_RC=6,IL_MC=7
-!@var AIL 3D accumulations for IL longitude/height diagnostics
-      REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIL,AIL_loc
+!@param KAIJL number of AIJL accumulations
+      INTEGER, PARAMETER, public :: KAIJL=15
+#ifdef CLD_AER_CDNC
+     &     +12
+#endif
+!@var IJL_xxx,IJK_xxx AIJL diagnostic indices
+!@+   IJL/IJK refer to model versus constant-pressure levels
+      INTEGER, public ::
+     &     IJL_DP,IJK_DP,IJL_U,IJL_V,IJK_TX,IJK_Q,
+     &     IJL_W,IJK_RH,IJL_RC,IJL_MC
+      INTEGER, public :: IJL_CF,
+     &     IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
+     &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
+     &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
+
+!@var AIJL 3D accumulations for longitude/latitude/level diagnostics
+      REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc
 
 C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param NED number of different energy history diagnostics
@@ -183,7 +194,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
 
 !@param KAIJK,KAIJKX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER, public :: KAIJK=28, kaijkx=kaijk+400
+      INTEGER, PARAMETER, public :: KAIJK=13, kaijkx=kaijk+400
 !@var KAIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK,AIJK_loc
 
@@ -624,18 +635,13 @@ c derived/composite diagnostics
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER, public ::
-     &     IJK_U, IJK_V, IJK_DSE, IJK_DP, IJK_T, IJK_Q, IJK_R,
-     *     IJK_W, IJK_PF, IJL_CF ,IJK_UV, IJK_VQ, IJK_VT, IJK_UU,
-     *     IJK_VV, IJK_TT
-     *    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
-     *    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
-     *    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
+     &     IJK_UB, IJK_VB, IJK_DSE, IJK_DPB, IJK_TB, IJK_W, IJK_PF,
+     &     IJK_UV, IJK_VQ, IJK_VT, IJK_UU, IJK_VV, IJK_TT
 
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx), public :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
       REAL*8, DIMENSION(KAIJKx), public :: OFF_IJK
-
 !@var NAME_IJK Names of lon-lat-pressure IJK diagnostics
       character(len=sname_strlen), dimension(kaijkx), public :: name_ijk
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
@@ -645,6 +651,18 @@ c derived/composite diagnostics
      &     units_ijk
 !@var jgrid_ijk 1=primary grid  2=secondary grid
       integer, dimension(KAIJKx), public :: jgrid_ijk
+
+!@var SCALE_IJL scale factor for AIJL diagnostics
+      REAL*8, DIMENSION(KAIJL), public :: SCALE_IJL
+!@var IA_IJL,DENOM_IJL  idacc-numbers,weights for AIJL diagnostics
+      INTEGER, DIMENSION(KAIJL), public :: IA_IJL,DENOM_IJL,LGRID_IJL
+!@var NAME_IJL Names of lon-lat-level IJL diagnostics
+      character(len=sname_strlen), dimension(kaijl), public :: name_ijl
+!@var LNAME_IJL,UNITS_IJL Descriptions/Units of IJL diagnostics
+      character(len=lname_strlen), dimension(kaijl), public ::
+     &     lname_ijl
+      character(len=units_strlen), dimension(kaijl), public ::
+     &     units_ijl
 
       character(len=sname_strlen), dimension(kwp), public :: name_wave
       character(len=units_strlen), dimension(kwp), public :: units_wave
@@ -749,7 +767,7 @@ c declarations that facilitate summation of acc-files when using
 c the new i/o system
       target :: aj,aj_out,areg,areg_out,ajl,asjl,aij_loc,agc,
      &     speca,adiurn,aisccp,tsfrez_loc,energy,atpe,consrv,
-     &     wave,aijk_loc,ail_loc,tdiurn,oa
+     &     wave,aijk_loc,aijl_loc,tdiurn,oa
 #ifndef NO_HDIURN
       target ::  HDIURN
 #endif
@@ -776,9 +794,9 @@ c the new i/o system
       REAL*8, dimension(:,:), public, pointer ::
      &     AREG_ioptr,ENERGY_ioptr,CONSRV_ioptr,ATPE_ioptr
       REAL*8, dimension(:,:,:,:), public, target, allocatable ::
-     &     WAVE_fromdisk,AIJK_fromdisk,AIL_fromdisk
+     &     WAVE_fromdisk,AIJK_fromdisk,AIJL_fromdisk
       REAL*8, dimension(:,:,:,:), public, pointer ::
-     &     WAVE_ioptr,AIJK_ioptr,AIL_ioptr
+     &     WAVE_ioptr,AIJK_ioptr,AIJL_ioptr
 #ifndef NO_HDIURN
       REAL*8, public, target, allocatable ::  HDIURN_fromdisk(:,:,:)
       REAL*8, public, pointer ::  HDIURN_ioptr(:,:,:)
@@ -796,9 +814,9 @@ c the new i/o system
       USE RESOLUTION, ONLY : IM,LM
       USE MODEL_COM, ONLY : NTYPE,lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIL,JM_BUDG
-      USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc
-     *     ,ASJL_loc,AIJ_loc,CONSRV_loc,AGC_loc,AIJK_loc,AIL_loc,AFLX_ST
+     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
+      USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
+     *     ,AIJ_loc,CONSRV_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AGC,AJ_OUT,ntype_out
       use diag_zonal, only : get_alloc_bounds
@@ -849,7 +867,7 @@ c the new i/o system
      &         STAT = IER)
 
 
-      ALLOCATE( AIL_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIL))
+      ALLOCATE( AIJL_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIJL))
 
 c allocate master copies of budget- and JK-arrays on root
       if(am_i_root()) then
@@ -871,8 +889,8 @@ c allocate master copies of budget- and JK-arrays on root
 !@ver  1.0
       USE RESOLUTION, ONLY : IM,JM,LM
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIL
-      USE DIAG_COM, ONLY : AIJ,AIJK,AIL,TSFREZ,TDIURN_GLOB,OA_GLOB
+      USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIJL
+      USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
       IMPLICIT NONE
       INTEGER :: IER
 
@@ -881,7 +899,7 @@ c allocate master copies of budget- and JK-arrays on root
       ALLOCATE(AIJ(IM,JM,KAIJ),
      &         TSFREZ(IM,JM,KTSF),
      &         AIJK(IM,JM,LM,KAIJK),
-     &         AIL(IM,JM,LM,KAIL),
+     &         AIJL(IM,JM,LM,KAIJL),
      &         TDIURN_glob(IM, JM, KTD),
      *         OA_glob(IM, JM, KOA))
 
@@ -893,13 +911,13 @@ c allocate master copies of budget- and JK-arrays on root
 !@auth NCCS (Goddard) Development Team
 !@ver  1.0
       USE DOMAIN_DECOMP_ATM, Only : AM_I_ROOT
-      USE DIAG_COM, ONLY : AIJ,AIJK,AIL,TSFREZ,TDIURN_GLOB,OA_GLOB
+      USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
 
       if(.not.AM_I_ROOT()) return
 
-      DEALLOCATE(AIJ,AIJK,AIL,TSFREZ,TDIURN_glob,OA_glob)
+      DEALLOCATE(AIJ,AIJK,AIJL,TSFREZ,TDIURN_glob,OA_glob)
 
       RETURN
       END SUBROUTINE DEALLOC_ijdiag_glob
@@ -921,7 +939,7 @@ c allocate master copies of budget- and JK-arrays on root
 !@param KACC total number of diagnostic elements
       INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
      *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*JM*LM*KAIL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
+     *     IM*JM*LM*KAIJL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
      *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
      *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
@@ -931,7 +949,7 @@ c allocate master copies of budget- and JK-arrays on root
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ)
       ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
-      ! REAL*4 AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS)
+      ! REAL*4 AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS)
       ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
       ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
       ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
@@ -941,7 +959,7 @@ c allocate master copies of budget- and JK-arrays on root
       REAL*4,allocatable, dimension(:,:,:) :: AJ4,AJL4,ASJL4
      *            ,AIJ4,AGC4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
       REAL*4,allocatable, dimension(:,:) :: AREG4,ENERGY4,CONSRV4,ATPE4
-      REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIL4,AFLX4
+      REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIJL4,AFLX4
 #ifndef NO_HDIURN
       ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
       REAL*4,allocatable ::  HDIURN4(:,:,:)
@@ -1048,7 +1066,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) THEN
           WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
      *     idacc, AJ,AREG,AJL,ASJL,AIJ,
-     *     AIL, ENERGY,CONSRV,
+     *     AIJL, ENERGY,CONSRV,
      *     SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *     HDIURN,
@@ -1066,7 +1084,7 @@ C**** The regular model (Kradia le 0)
      *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
      *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),
      *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
-     *     REAL(AIJ,KIND=4),REAL(AIL,KIND=4),
+     *     REAL(AIJ,KIND=4),REAL(AIJL,KIND=4),
      *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
      *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
      *     REAL(WAVE,KIND=4),REAL(AGC,KIND=4),
@@ -1086,7 +1104,7 @@ C**** The regular model (Kradia le 0)
       CASE (ioread)           ! input from restart file
         if (AM_I_ROOT()) Then
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *       idacc, AJ,AREG,AJL,ASJL,AIJ,AIL,
+     *       idacc, AJ,AREG,AJL,ASJL,AIJ,AIJL,
      *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
 #ifndef NO_HDIURN
      *       HDIURN,
@@ -1106,7 +1124,7 @@ C**** The regular model (Kradia le 0)
         If (AM_I_ROOT()) Then
           call alloc_diag_r4
           READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
-     *         idac1, AJ4,AREG4,AJL4,ASJL4,AIJ4,AIL4,ENERGY4
+     *         idac1, AJ4,AREG4,AJL4,ASJL4,AIJ4,AIJL4,ENERGY4
      *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AGC4,AIJK4,AISCCP4,
 #ifndef NO_HDIURN
      *       HDIURN4,
@@ -1136,7 +1154,7 @@ C**** The regular model (Kradia le 0)
           CONSRV= CONSRV + CONSRV4
           AGC   = AGC    + AGC4
           AIJK  = AIJK   + AIJK4
-          AIL   = AIL    + AIL4
+          AIJL  = AIJL   + AIJL4
 
           IDACC = IDACC + IDAC1
           call dealloc_diag_r4
@@ -1179,7 +1197,6 @@ C**** The regular model (Kradia le 0)
         CALL ESMF_BCAST(grid, keyct )
         CALL ESMF_BCAST(grid, KEYNR )
         CALL ESMF_BCAST(grid, idacc )
-c        CALL ESMF_BCAST(grid, AIL   )
         CALL ESMF_BCAST(grid, ENERGY)
         CALL ESMF_BCAST(grid, SPECA )
         CALL ESMF_BCAST(grid, ATPE  )
@@ -1197,7 +1214,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
         CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
         CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
-        CALL UNPACK_DATA(grid,  AIL,   AIL_loc)
+        CALL UNPACK_DATA(grid,  AIJL,   AIJL_loc)
         CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN)
         CALL UNPACK_DATA(grid,  OA_glob,     OA)
       End Subroutine Scatter_Diagnostics
@@ -1206,7 +1223,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         allocate (AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ))
         allocate (AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
-        allocate (AIL4(IM,JM,LM,KAIL),ENERGY4(NEHIST,HIST_DAYS))
+        allocate (AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS))
         allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
         allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
         allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
@@ -1219,7 +1236,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       End Subroutine alloc_diag_r4
 
       Subroutine dealloc_diag_r4
-        deallocate (AJ4,AREG4,  AJL4,ASJL4,AIJ4,AIL4)
+        deallocate (AJ4,AREG4,  AJL4,ASJL4,AIJ4,AIJL4)
         deallocate (ENERGY4,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4)
         deallocate (AGC4,AIJK4, AISCCP4,TSFREZ4)
 #ifndef NO_HDIURN
@@ -1239,7 +1256,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       CALL PACK_DATA(grid,  TSFREZ_loc, TSFREZ)
       CALL PACK_DATA(grid,  AIJ_loc,    AIJ)
       CALL PACK_DATA(grid,  AIJK_loc,   AIJK)
-      CALL PACK_DATA(grid,  AIL_loc,   AIL)
+      CALL PACK_DATA(grid,  AIJL_loc,   AIJL)
       CALL PACK_DATA(grid,  TDIURN, TDIURN_glob)
       CALL PACK_DATA(grid,  OA, OA_glob)
       return
@@ -1605,7 +1622,7 @@ c*
      &     aj=>aj_ioptr,aij=>aij_ioptr,
      &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
      &     consrv=>consrv_ioptr,
-     &     ail=>ail_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
+     &     aijl=>aijl_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
      &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
      &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
      &     energy=>energy_ioptr,wave=>wave_ioptr,
@@ -1627,7 +1644,7 @@ c*
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,aij,'aij(dist_im,dist_jm,kaij)',
      &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,ail,'ail(dist_im,dist_jm,lm,kail)',
+      call defvar(grid,fid,aijl,'aijl(dist_im,dist_jm,lm,kaijl)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,aijk,'aijk(dist_im,dist_jm,lm,kaijk)',
      &     r4_on_disk=r4_on_disk)
@@ -1678,7 +1695,7 @@ c the instances of the arrays used during normal operation.
      &     aj=>aj_ioptr,aij=>aij_ioptr,
      &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
      &     consrv=>consrv_ioptr,
-     &     ail=>ail_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
+     &     aijl=>aijl_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
      &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
      &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
      &     energy=>energy_ioptr,wave=>wave_ioptr,
@@ -1711,7 +1728,7 @@ c the instances of the arrays used during normal operation.
         call write_dist_data(grid,fid,'tdiurn',tdiurn)
         call write_dist_data(grid,fid,'oa',oa)
         call write_dist_data(grid,fid,'aij',aij)
-        call write_dist_data(grid,fid,'ail',ail)
+        call write_dist_data(grid,fid,'aijl',aijl)
         call write_dist_data(grid,fid,'aijk',aijk)
 
         call write_data(grid,fid,'aj',aj)
@@ -1738,7 +1755,7 @@ c for which scalars is bcast_all=.true. necessary?
         call read_dist_data(grid,fid,'tdiurn',tdiurn)
         call read_dist_data(grid,fid,'oa',oa)
         call read_dist_data(grid,fid,'aij',aij)
-        call read_dist_data(grid,fid,'ail',ail)
+        call read_dist_data(grid,fid,'aijl',aijl)
         call read_dist_data(grid,fid,'aijk',aijk)
 
         call read_data(grid,fid,'aj',aj)
@@ -1805,13 +1822,13 @@ c for which scalars is bcast_all=.true. necessary?
 !@auth M. Kelley
 !@ver  beta
       use diag_com, only :
-     &     ia_j,ia_jl,ia_ij,ia_con,
-     &     name_j,sname_jl,name_ij,name_dd,name_consrv,
-     &     lname_j,lname_jl,lname_ij,lname_dd,title_con,
-     &     units_j,units_jl,units_ij,units_dd,units_consrv,
-     &     scale_j,scale_jl,scale_ij,scale_dd,scale_con,
-     &     iden_j,iden_reg,denom_jl,denom_ij,denom_dd,
-     &     pow_jl,lgrid_jl,ir_ij,
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,
+     &     name_j,sname_jl,name_ij,name_ijl,name_dd,name_consrv,
+     &     lname_j,lname_jl,lname_ij,lname_ijl,lname_dd,title_con,
+     &     units_j,units_jl,units_ij,units_ijl,units_dd,units_consrv,
+     &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
+     &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
+     &     pow_jl,lgrid_jl,lgrid_ijl,ir_ij,
      &     stitle_j,fmt_j,fmt_reg,terrain,nreg,
      &     lat_budg,dxyp_budg,lm,ple,plm,namdd,ijdd
       use geom, only : lon2d_dg,lat2d_dg,axyp
@@ -1874,6 +1891,15 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,lname_ij,'lname_ij(lname_strlen,kaij)')
       call defvar(grid,fid,ir_ij,'ir_ij(kaij)')
 
+      call write_attr(grid,fid,'aijl','reduction','sum')
+      call defvar(grid,fid,ia_ijl,'ia_ijl(kaijl)')
+      call defvar(grid,fid,scale_ijl,'scale_ijl(kaijl)')
+      call defvar(grid,fid,denom_ijl,'denom_ijl(kaijl)')
+      call defvar(grid,fid,name_ijl,'sname_ijl(sname_strlen,kaijl)')
+      call defvar(grid,fid,units_ijl,'units_ijl(units_strlen,kaijl)')
+      call defvar(grid,fid,lname_ijl,'lname_ijl(lname_strlen,kaijl)')
+      call defvar(grid,fid,lgrid_ijl,'lgrid_ijl(kaijl)')
+
       call write_attr(grid,fid,'adiurn','reduction','sum')
 #ifndef NO_HDIURN
       call write_attr(grid,fid,'hdiurn','reduction','sum')
@@ -1896,13 +1922,13 @@ c for which scalars is bcast_all=.true. necessary?
 !@auth M. Kelley
       use model_com, only : nday,idacc
       use diag_com, only :
-     &     ia_j,ia_jl,ia_ij,ia_con,
-     &     name_j,sname_jl,name_ij,name_dd,name_consrv,
-     &     lname_j,lname_jl,lname_ij,lname_dd,title_con,
-     &     units_j,units_jl,units_ij,units_dd,units_consrv,
-     &     scale_j,scale_jl,scale_ij,scale_dd,scale_con,
-     &     iden_j,iden_reg,denom_jl,denom_ij,denom_dd,
-     &     pow_jl,lgrid_jl,ir_ij,
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,
+     &     name_j,sname_jl,name_ij,name_ijl,name_dd,name_consrv,
+     &     lname_j,lname_jl,lname_ij,lname_ijl,lname_dd,title_con,
+     &     units_j,units_jl,units_ij,units_ijl,units_dd,units_consrv,
+     &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
+     &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
+     &     pow_jl,lgrid_jl,lgrid_ijl,ir_ij,
      &     stitle_j,fmt_j,fmt_reg,terrain,namreg,nreg,
      &     lat_budg,dxyp_budg,lm,ple,plm,kcmx,kcon,ia_12hr,namdd,ijdd
       use geom, only : lon2d_dg,lat2d_dg,axyp
@@ -1964,6 +1990,14 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'lname_ij',lname_ij)
       call write_data(grid,fid,'ir_ij',ir_ij)
 
+      call write_data(grid,fid,'ia_ijl',ia_ijl)
+      call write_data(grid,fid,'scale_ijl',scale_ijl)
+      call write_data(grid,fid,'denom_ijl',denom_ijl)
+      call write_data(grid,fid,'sname_ijl',name_ijl)
+      call write_data(grid,fid,'units_ijl',units_ijl)
+      call write_data(grid,fid,'lname_ijl',lname_ijl)
+      call write_data(grid,fid,'lgrid_ijl',lgrid_ijl)
+
       call write_data(grid,fid,'denom_dd',denom_dd)
       call write_data(grid,fid,'scale_dd',scale_dd)
       call write_data(grid,fid,'sname_dd',name_dd)
@@ -1995,7 +2029,7 @@ c instances of the arrays used during normal operation.
       tdiurn_ioptr => tdiurn!_loc
       oa_ioptr     => oa!_loc
       aij_ioptr    => aij_loc
-      ail_ioptr    => ail_loc
+      aijl_ioptr   => aijl_loc
       aijk_ioptr   => aijk_loc
       aj_ioptr     => aj!_loc
       ajl_ioptr    => ajl!_loc
@@ -2066,8 +2100,8 @@ c
       allocate(aij_fromdisk(i_0h:i_1h,j_0h:j_1h,kaij))
       aij_ioptr => aij_fromdisk
 
-      allocate(ail_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kail))
-      ail_ioptr => ail_fromdisk
+      allocate(aijl_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kaijl))
+      aijl_ioptr => aijl_fromdisk
 
       allocate(aijk_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kaijk))
       aijk_ioptr => aijk_fromdisk
@@ -2107,7 +2141,7 @@ c read from disk and stored in the _fromdisk arrays.
       oa     = oa     + oa_fromdisk
 
       aij_loc    = aij_loc    + aij_fromdisk
-      ail_loc    = ail_loc    + ail_fromdisk
+      aijl_loc   = aijl_loc   + aijl_fromdisk
       aijk_loc   = aijk_loc   + aijk_fromdisk
 
       if(am_i_root()) then
