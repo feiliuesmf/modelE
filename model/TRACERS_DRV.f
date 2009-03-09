@@ -2508,10 +2508,16 @@ C**** special one unique to HTO
         do kk=1,ntsurfsrc(n)
           k = k + 1
           jls_source(kk,n) = k
-          sname_jls(k) = trname(n)//'_'//trim(ssname(n,kk))
-          lname_jls(k) = trname(n)//' source from '//trim(ssname(n,kk))
+          sname_jls(k) = trim(trname(n))//'_'//trim(ssname(n,kk))
+          lname_jls(k) = trim(trname(n))//' source from '//
+     &                   trim(ssname(n,kk))
           jls_ltop(k) = 1
-          jls_power(k) = -2
+          select case(trname(n))
+          case ('Paraffin','Isoprene')
+            jls_power(k) = 0
+          case default
+            jls_power(k) = -2
+          end select
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end do
         k = k + 1
