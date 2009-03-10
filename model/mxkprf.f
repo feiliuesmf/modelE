@@ -888,8 +888,6 @@ c --- modify t and s; set old value arrays at p points for initial iteration
         endif
       enddo
 c
-      if (iocnmx.eq.0) return			! skip mixing
-c
       k=klist(i,j)
       kn=k+nn
       ka=k+1
@@ -933,6 +931,8 @@ c --- calculate layer thicknesses in m
           hwide(k)=0.
         endif
       enddo
+c
+      if (iocnmx.eq.0) return			! skip mixing
 c
 c --- perform niter iterations to execute the semi-implicit solution of the
 c --- diffusion equation. at least two iterations are recommended
@@ -1087,7 +1087,7 @@ c
         if (vrbos) then
            write (lp,102) (nstep,iter,i,j,k,
      &   hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-     &     k=1,kk+1)
+     &     k=1,kk)
            call flush(lp)
         endif
 c
@@ -1462,7 +1462,7 @@ c
         if (vrbos) then
           write (lp,103) (nstep,iter,i,j,k,
      &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-     &    ghats(i,j,k),k=1,kk+1)
+     &    ghats(i,j,k),k=1,kk)
           call flush(lp)
         endif
 c
