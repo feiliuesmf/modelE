@@ -209,8 +209,6 @@
           elseif(pfpar(cop%pft)%leaftype.eq.NEEDLELEAF) then
             ! Bosveld & Bouten (2003) max stomatal blocking = 1/3
             fdry_pft_eff = 1.d0 - min(pp%cellptr%fwet_canopy, 0.333d0)
-          else  
-            fdry_pft_eff = 1.d0 - pp%cellptr%fwet_canopy
           endif
  
          !* Assign outputs to cohort *!
