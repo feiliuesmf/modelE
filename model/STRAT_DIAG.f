@@ -574,13 +574,9 @@ C****
       USE MODEL_COM, only : im,jm,lm,dsig,dtsrce=>dtsrc,fim
      *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
-      USE DIAG_COM, only : ajl,kagc,kep,agc,jl_dpb
-     &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg
-     &     ,jl_dumcdrgm10,jl_dumcdrgp10
-     &     ,jl_dumcdrgm40,jl_dumcdrgp40
-     &     ,jl_dumcdrgm20,jl_dumcdrgp20
-     &     ,jl_dudtsdif,jl_damdc,jl_dammc,jl_dudtvdif
+      USE DIAG_COM, only : ajl,kagc,kep,agc,jl_damdc,jl_dammc
      &     ,sname_strlen,units_strlen,lname_strlen
+      USE GCDIAG
       USE DIAG_SERIAL, only : JLMAP
       IMPLICIT NONE
 C**** NOTE: AEP was a separate array but is now saved in AGC (pointer?)

@@ -389,9 +389,7 @@ C****
          MODD5D=MOD(Itime-ItimeI,NDA5D)
 
          IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
-#ifndef CUBE_GRID
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
-#endif
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
       PTOLD = P ! save for clouds
@@ -438,8 +436,8 @@ c     enddo
 #endif
         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
           call DIAGA
-#ifndef USE_FVCUBED
           call DIAGB
+#ifndef USE_FVCUBED
           call EPFLUX (U,V,T,P)
 #endif
         endif
@@ -496,11 +494,9 @@ C**** calculate zenith angle for current time step
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (MNOW,MSURF)
-#ifndef CUBE_GRID
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
-#endif
 C****
 C**** INTEGRATE SOURCE TERMS
 C****
@@ -511,9 +507,7 @@ c calculate KE before atmospheric column physics
          IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
-#ifndef CUBE_GRID
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
-#endif
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 
 C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
@@ -525,9 +519,7 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
          CALL TIMER (MNOW,MCNDS)
-#ifndef CUBE_GRID
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
-#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
       end if                                  ! full model,kradia le 0
 C**** RADIATION, SOLAR AND THERMAL
@@ -538,9 +530,7 @@ C**** RADIATION, SOLAR AND THERMAL
       end if
          CALL TIMER (MNOW,MRAD)
       if (kradia.le.0) then                    ! full model,kradia le 0
-#ifndef CUBE_GRID
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
-#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -615,14 +605,12 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
          CALL CHECKT ('DISSIP')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
-#ifndef CUBE_GRID
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
-#endif
 
 C**** SEA LEVEL PRESSURE FILTER
+#ifndef USE_FVCUBED
       IF (MFILTR.GT.0.AND.MOD(Itime-ItimeI,NFILTR).EQ.0) THEN
            IDACC(ia_filt)=IDACC(ia_filt)+1
-#ifndef CUBE_GRID
            IF (MODD5S.NE.0) CALL DIAG5A (1,0)
            CALL DIAGCA (1)
            CALL FILTER
@@ -630,8 +618,8 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL TIMER (MNOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
            CALL DIAGCA (8)
-#endif
       END IF
+#endif
 #ifdef TRACERS_ON
 C**** 3D Tracer sources and sinks
 C**** Tracer gravitational settling for aerosols
@@ -670,9 +658,7 @@ C****
         if(Kradia==10) CALL daily_OCEAN(.true.) ! to test OCLIM
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
       else                                ! full model, kradia le 0
-#ifndef CUBE_GRID
            CALL DIAG5A (1,0)
-#endif
            CALL DIAGCA (1)
         CALL DAILY(.true.)                 ! end_of_day
         CALL daily_RAD(.true.)
@@ -691,9 +677,7 @@ C****
 #endif
            CALL CHECKT ('DAILY ')
            CALL TIMER (MNOW,MSURF)
-#ifndef CUBE_GRID
            CALL DIAG5A (16,NDAY*NIdyn)
-#endif
            CALL DIAGCA (10)
         call sys_flush(6)
       end if   ! kradia: full model (or rad.forcing run)

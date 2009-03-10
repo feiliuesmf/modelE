@@ -1316,6 +1316,7 @@ c Check the count
       use fftw_com
 #endif
       USE DIAG_COM
+      USE GCDIAG
       USE BDjkjl
       USE WORKJK
       IMPLICIT NONE
@@ -3982,6 +3983,7 @@ c**** find hemispheric and global means
       USE GEOM, only : DXV
       !USE VEG_COM, only : vdata
       USE DIAG_COM
+      USE GCDIAG
       USE BDIJ
 
       IMPLICIT NONE
@@ -4590,8 +4592,9 @@ C****
       USE GEOM, only : DXYV
       USE DIAG_COM, only :
      &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,ijk_ub,klayer
-     &     ,JK_DPB,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
+     &     ,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
+      USE GCDIAG
 #ifdef USE_FFTW
       use fftw_com
 #endif

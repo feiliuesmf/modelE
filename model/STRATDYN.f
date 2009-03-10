@@ -209,7 +209,8 @@ C****
      *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE DIAG_COM, only : agc=>agc_loc,jl_dudtvdif,JL_dTdtsdrg
+      USE DIAG_COM, only : agc=>agc_loc
+      USE GCDIAG
       USE STRAT, only : defrm,pk,pmid,ang_gwd
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -562,7 +563,7 @@ C****
       USE DIAG_COM, only : aij=>aij_loc, agc=>agc_loc
      *     ,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
-     *     ,jl_sdifcoef,jl_dtdtsdrg,JL_gwFirst,jl_dudtsdif
+      USE GCDIAG
       USE RANDOM
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection

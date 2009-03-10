@@ -557,6 +557,7 @@ c derived/composite diagnostics
      &     ,jl_rad_cool
      &     ,jl_epacwt,jl_wpacwt
      &     ,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
+     &     ,jl_dudtsdrg,jl_dtdtsdrg
       INTEGER, public ::
      &     JK_hght, JK_dpwt, JK_tx, JK_q, JK_cldh2o ,JK_rh
 
@@ -595,31 +596,6 @@ c derived/composite diagnostics
       REAL*8, dimension(kasjl), public :: scale_sjl
 !@var IA_SJL idacc-numbers for SJL diagnostics
       integer, dimension(kasjl), public :: ia_sjl
-
-!@var JK_xxx, JL_xxx names for AGC indices
-!@+   JL/JK refer to model versus constant-pressure levels
-      INTEGER, public ::
-     &     JK_dpa ,JK_dpb ,JK_temp, JK_theta ,JK_u
-     &    ,JK_v ,JK_zmfke ,JK_totke ,JK_zmfntsh
-     &    ,JK_totntsh ,JK_zmfntgeo ,JK_totntgeo ,JK_zmfntlh
-     &    ,JK_totntlh ,JK_zmfntke ,JK_totntke ,JK_zmfntmom
-     &    ,JK_totntmom ,JK_p2kedpgf ,JK_dpsqr ,JK_nptsavg
-     &    ,JK_vvel ,JK_zmfvtdse ,JK_totvtdse ,JK_zmfvtlh
-     &    ,JK_totvtlh ,JK_vtgeoeddy ,JK_barekegen ,JK_potvort
-     &    ,JK_vtpv ,JK_vtpveddy ,JK_nptsavg1 ,JK_totvtke
-     &    ,JK_vtameddy ,JK_totvtam ,JK_sheth ,JK_dudtmadv
-     &    ,JK_dtdtmadv ,JK_dudttem ,JK_dtdttem ,JK_epflxncp
-     &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
-     &    ,JK_totdtdt ,JK_eddvtpt
-      INTEGER, public ::
-     &     jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape
-     &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
-     &     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
-     &     ,jl_dumcdrgp20,jl_sdifcoef,jl_dudtsdif
-     &     ,jl_gwfirst,jl_dtdtsdrg,jl_epflxv,jl_epflxn
-     &     ,jl_40,jl_47,jl_zmfntmom,jl_totntmom
-     &     ,jl_dudtsdrg,jl_dudtvdif,jl_dpb
-
 
 !@var SNAME_GC Names of lat-pressure GC diagnostics
       character(len=sname_strlen), dimension(kagcx), public :: sname_gc
