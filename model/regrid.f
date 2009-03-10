@@ -514,10 +514,10 @@ c     rescale by local area
 c*
 
 
-      subroutine parallel_regrid_wt(x2grids,tsource,   
-     &     ttarget,atarget,wsource)
+      subroutine parallel_regrid_wt(x2grids,wsource,tsource,   
+     &     ttarget,atarget)
 
-!@sum  same as parallel regrid but here we multiply by weight function wsource
+!@sum  same as parallel regrid but we multiply by weight function wsource
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
@@ -533,7 +533,7 @@ c*
       character*120:: ofi
       integer ::  status, fid, vid
 
-
+      write(*,*) "regr wt isd ied, jsd, jed=",isd,ied,jsd,jed
        
       if ( (x2grids%ntilessource .eq. 6) .and.   !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
@@ -555,7 +555,7 @@ c*
      &           x2grids%xgrid%xarea_key(ikey)
      &           *wsource(icub,jcub)*tsource(icub,jcub) 
          enddo
- 
+
 c     sum all contributions
 c     
          call SUMXPE(ttarget)
@@ -568,7 +568,7 @@ c
           
             do j=1,x2grids%jmtarget
                do i=1,x2grids%imtarget
-                  if (atarget(i,j,1) .le. 1.e-7) then
+                  if (atarget(i,j,1) .le. 1.e-10) then
                      ttarget(i,j,1)=0.0
                   else
                      ttarget(i,j,1) = ttarget(i,j,1)/atarget(i,j,1)
@@ -592,20 +592,25 @@ c
      &        (x2grids%ntilestarget .eq. 6) ) then
          atarget(:,:,:) = 0.d0
          ttarget(:,:,:) = 0.d0
+         write(*,*) "IN regrid wt"
 
+         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
          do ikey=1,x2grids%xgrid%maxkey
             icub=x2grids%xgrid%icub_key(ikey)
             jcub=x2grids%xgrid%jcub_key(ikey)
             ilon=x2grids%xgrid%ilon_key(ikey)
             jlat=x2grids%xgrid%jlat_key(ikey)
             itile=x2grids%xgrid%itile_key(ikey)
-            
+
+c            write(*,*) "icub jcub itile xarea=",icub,jcub,itile,
+c     &           x2grids%xgrid%xarea_key(ikey)
             atarget(icub,jcub,itile) = atarget(icub,jcub,itile) + 
      &           wsource(ilon,jlat)*x2grids%xgrid%xarea_key(ikey)
             ttarget(icub,jcub,itile) = ttarget(icub,jcub,itile) + 
      &           x2grids%xgrid%xarea_key(ikey)
      &           *wsource(ilon,jlat)*tsource(ilon,jlat) 
          enddo
+       
 
 c
 c     sum all contributions
@@ -619,7 +624,7 @@ c
             do k=1,6
                do j=1,x2grids%jmtarget
                   do i=1,x2grids%imtarget
-                     if (atarget(i,j,k) .le. 1.e-7) then
+                     if (atarget(i,j,k) .le. 1.e-10) then
                         ttarget(i,j,k)=0.0
                      else
                         ttarget(i,j,k) = ttarget(i,j,k)/atarget(i,j,k)
@@ -790,15 +795,14 @@ c            write(6,*) "END ROOT REGRID LL2CS"
 c*
 
          
-      subroutine init_regrid(x2grids,dd2d,imsource,jmsource,
+      subroutine init_regrid(x2grids,grid,imsource,jmsource,
      &     ntilessource,imtarget,jmtarget,ntilestarget)
 
 !@sum  Reads regriding file on root proc, broadcasts the 
 !@+    x_grid data to all processes then instanciates locally
 !@+    the x_2grids derived type (x_2grids type=x_grid plus info about
 !@+    source and target grids). It also initializes domain decomposition
-!@+    variables through dist_grid derived type. It uses Max's dd2d 
-!@+    derived type in place of dist_grid.
+!@+    variables through dist_grid derived type. 
 !@auth Denis Gueyffier
       use regrid_com
       implicit none
@@ -807,7 +811,7 @@ c*
 
       type (x_2grids), intent(inout) :: x2grids
       type (x_grid) :: xgrid
-      type (dist_grid), intent(in) :: dd2d
+      type (dist_grid), intent(in) :: grid
 
       real*8,  allocatable, dimension(:) :: xgrid_area  !local variable
       integer, allocatable, dimension(:) :: tile        !local variable
@@ -823,18 +827,28 @@ c*
       character(len=10) :: imch,jmch,icch,jcch
 
 c     set variables ("Constructor")
-      is=dd2d%is
-      ie=dd2d%ie
-      isd=dd2d%isd
-      ied=dd2d%ied
+c      i0=grid%i_start
+c      i0h=grid%i_start_halo
+c      j0=grid%j_start
+c      j0h=grid%j_start_halo
 
-      js=dd2d%js
-      je=dd2d%je
-      jsd=dd2d%jsd
-      jed=dd2d%jed
+c      i1=grid%i_stop
+c      i1h=grid%i_stop_halo
+c      j1=grid%j_stop
+c      j1h=grid%j_stop_halo
 
-      gid=dd2d%gid
-      mytile=dd2d%tile
+      is=grid%is
+      ie=grid%ie
+      isd=grid%isd
+      ied=grid%ied
+
+      js=grid%js
+      je=grid%je
+      jsd=grid%jsd
+      jed=grid%jed
+
+      gid=grid%gid
+      mytile=grid%tile
 
       x2grids%imsource=imsource
       x2grids%jmsource=jmsource
@@ -984,7 +998,10 @@ c     first calculate maxkey
          
          ikey=1
          do n=1,ncells
+            icub=ijcub(1,n)
+            jcub=ijcub(2,n)
             jlat=ijlatlon(2,n)
+c            write(*,*) "jlat=",jlat
             if ( (jlat .le. je) .and. (jlat .ge. js) ) then !js = J_0, je=J_1
                x2grids%xgrid%icub_key(ikey)=icub
                x2grids%xgrid%jcub_key(ikey)=jcub
@@ -995,7 +1012,10 @@ c     first calculate maxkey
                ikey=ikey+1
             endif
          enddo
+
+         x2grids%xgrid%maxkey=maxkey
          
+c         write(*,*)  x2grids%xgrid%icub_key(1:ikey)
       endif    
       
       deallocate(xgrid_area)
