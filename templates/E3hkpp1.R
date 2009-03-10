@@ -45,7 +45,7 @@ stencl|-r8| thermf|-r8| tsadvf|-r8|  zebra|-r8|                  !ocean model
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL                          ! grid-dependent code for lat-circle diags
+DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! diagnostics (resolution dependent)
 CONST FFT72 UTILDBL SYSTEM          ! utilities
 POUT                                ! post-processing output

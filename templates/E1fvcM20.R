@@ -43,7 +43,7 @@ SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONALcs                        ! grid-dependent code for lat-circle diags
+DIAG_ZONALcs GCDIAGcs               ! grid-dependent code for lat-circle diags
 CONST UTILDBL SYSTEM                ! utilities
 POUT                                ! post-processing output
 

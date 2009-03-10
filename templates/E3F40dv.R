@@ -47,7 +47,7 @@ OCEAN OCNML                         ! ocean modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL                          ! grid-dependent code for lat-circle diags
+DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 !CONST FFT144 UTILDBL SYSTEM         ! utilities
 FFT144
