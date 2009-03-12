@@ -568,7 +568,7 @@ cddd      end interface ent_cell_update
 
 
 
-      subroutine ent_run_r8_0(entcell,dt,time)
+      subroutine ent_run_r8_0(entcell,dt,time,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -584,6 +584,7 @@ cddd      end interface ent_cell_update
       type(entcelltype_public),intent(inout) :: entcell 
       real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
+      logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
       !---
       
@@ -594,12 +595,12 @@ cddd      end interface ent_cell_update
 
       
         call ent_integrate(dt, entcell%entcell,
-     &     time,config)
+     &     time,update_day,config)
       
 
       end subroutine ent_run_r8_0
 
-      subroutine ent_run_r8_1(entcell,dt,time)
+      subroutine ent_run_r8_1(entcell,dt,time,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -615,6 +616,7 @@ cddd      end interface ent_cell_update
       type(entcelltype_public),intent(inout) :: entcell (:)
       real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
+      logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
       !---
       integer i1
@@ -626,13 +628,13 @@ cddd      end interface ent_cell_update
       
       do i1=dims(1,1),dims(2,1)
         call ent_integrate(dt, entcell(i1)%entcell,
-     &     time,config)
+     &     time,update_day,config)
       
       enddo
 
       end subroutine ent_run_r8_1
 
-      subroutine ent_run_r8_2(entcell,dt,time)
+      subroutine ent_run_r8_2(entcell,dt,time,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -648,6 +650,7 @@ cddd      end interface ent_cell_update
       type(entcelltype_public),intent(inout) :: entcell (:,:)
       real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
+      logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
       !---
       integer i1,i2
@@ -660,7 +663,7 @@ cddd      end interface ent_cell_update
       do i1=dims(1,1),dims(2,1)
       do i2=dims(1,2),dims(2,2)
         call ent_integrate(dt, entcell(i1,i2)%entcell,
-     &     time,config)
+     &     time,update_day,config)
       
       enddo
       enddo

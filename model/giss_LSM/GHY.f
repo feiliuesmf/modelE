@@ -1873,6 +1873,7 @@ c**** soils28   common block     9/25/90
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8, intent(inout) :: Qf
       real*8, save:: time = 0.d0
+      logical :: update_day
 #else
       use vegetation, only: update_veg_locals,t_vegcell
       ! arguments
@@ -2111,7 +2112,8 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dts, time) 
+          update_day = (mod(time,86400.d0).eq.0.d0).and.(time.ne.0.d0)
+          call ent_run( entcell, dts, time,update_day) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,

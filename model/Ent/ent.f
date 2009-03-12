@@ -118,7 +118,7 @@
 
       !*********************************************************************
 
-      subroutine ent_integrate(dtsec, ecp, time, config)
+      subroutine ent_integrate(dtsec, ecp, time, update_day, config)
 !@sum Ent biophysics/biogeochemistry/patch dynamics
       use reproduction
       use cohorts
@@ -137,6 +137,7 @@
       !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
       real*8 :: time            !temp. for Phenology
+      logical :: update_day
       type(ent_config) :: config 
 
       !-----local--------
@@ -165,7 +166,8 @@
         if (config%do_phenology) then
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
-          if (dailyupdate) then
+!KIM-devel          if (dailyupdate) then
+          if (update_day) then
             call pheno_update(dtsec,pp)
             call veg_update(dtsec,pp)
             !call litter(pp) !Litter is now called within veg_update
