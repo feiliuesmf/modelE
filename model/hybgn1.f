@@ -862,13 +862,18 @@ c
 !ntot3=ntot3+ntot3d(j)
 !end do
         anwrkd(:) = nwrk2d(:)
-        call GLOBALSUM(ogrid,anwrkd,anwrk); nwrk2 = anwrk+0.1;
+        call GLOBALSUM(ogrid,anwrkd,anwrk)
+        if( AM_I_ROOT() ) nwrk2 = anwrk+0.1
         anwrkd(:) = nwrk3d(:)
-        call GLOBALSUM(ogrid,anwrkd,anwrk); nwrk3 = anwrk+0.1;
+        call GLOBALSUM(ogrid,anwrkd,anwrk)
+        if( AM_I_ROOT() ) nwrk3 = anwrk+0.1
         anwrkd(:) = ntot2d(:)
-        call GLOBALSUM(ogrid,anwrkd,anwrk); ntot2 = anwrk+0.1;
+        call GLOBALSUM(ogrid,anwrkd,anwrk)
+        if( AM_I_ROOT() ) ntot2 = anwrk+0.1
         anwrkd(:) = ntot3d(:)
-        call GLOBALSUM(ogrid,anwrkd,anwrk); ntot3 = anwrk+0.1;
+        call GLOBALSUM(ogrid,anwrkd,anwrk)
+        if( AM_I_ROOT() ) ntot3 = anwrk+0.1
+
         if( AM_I_ROOT() ) then
         write (lp,'(a,f6.1,a,i9,a)') 'hybgen - grid restoration at',
      .   100.*float(nwrk3)/float(ntot3),' per cent of',ntot3,' points'
