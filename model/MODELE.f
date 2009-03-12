@@ -1308,11 +1308,11 @@ C****
       write(6,*) '...and Dorothy Koch aerosols'
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-#if (defined TRACERS_AEROSOLS_Koch && defined TRACERS_SPECIAL_Shindell)
+#ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and secondary organic aerosols'
 #else
       call stop_model
-     ('SOA version needs Koch aerosols and tropo chemistry',255)
+     ('SOA version needs tropo chemistry',255)
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_DRYDEP

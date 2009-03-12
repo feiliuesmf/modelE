@@ -9,8 +9,8 @@ module TRACERS_SOA
 use RESOLUTION, only: LM
 use DOMAIN_DECOMP_ATM,only: write_parallel
 use TRACER_COM, only: ntm,ntm_soa,tr_mm,&
-                      n_isoprene,&
-                      n_isopp1a,n_isopp2a
+                      n_Isoprene,&
+                      n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a
 implicit none
 
 !@var n_soa_i the first SOA-related species
@@ -18,13 +18,10 @@ implicit none
 integer                    :: n_soa_i,n_soa_e
 !@param nsoa the total number of aerosol-phase SOA related species (=ntm_soa/2)
 integer, parameter         :: nsoa=ntm_soa/2
-!@var soagas the amount of gas-phase SOA related species just before chemistry (ug/m3)
-!@var soachem the amount of newly (chemically) formed soa mass per timestep (ug/m3)
-real*8, dimension(nsoa,LM) :: soagas,soachem
 !@var mw the molecular weight of all tracers, in units of tracer mass per mole
 !@+      in order to replace the tm_mm which in some exceptional cases is in units of
 !@+      a certain atom (typically C or S) per mole.
-real*8, dimension(ntm)     :: mw!,agas
+real*8, dimension(ntm)     :: mw
 !@var apartmass the mass-based yield of semivolatile species from chemistry
 !@var apartmolar the molar-based yield of semivolatile species from chemistry
 real*8, dimension(nsoa)    :: apartmass,apartmolar
@@ -203,6 +200,12 @@ use CONSTANT, only: avog
 implicit none
 
 integer   :: i,j
+!@param mw_c atomic weight of carbon
+real, parameter :: mw_c=12.01078d0
+!@param mw_c atomic weight of hydrogen
+real, parameter :: mw_h=1.007947d0
+!@param mw_c atomic weight of oxygen
+real, parameter :: mw_o=15.99943d0
 !modelE!real*8    :: apartmolar_tot
 
 !
@@ -222,6 +225,16 @@ do i=1,nsoa
     endif
   enddo
 enddo
+
+! Correct tr_mm in order to use the real MW of species in meanmw and activity coefficient calculations only
+mw=tr_mm
+mw(n_Isoprene)=5.d0*mw_c+8.d0*mw_h ! C5H8
+mw(n_bcii)=170.d0
+mw(n_bcia)=170.d0
+mw(n_bcb)=170.d0
+mw(n_ocii)=170.d0
+mw(n_ocia)=170.d0
+mw(n_ocb)=170.d0
 
 !
 ! mass based stoicheiometric coefficients
@@ -306,8 +319,8 @@ apartmass(whichsoa(n_isopp2a))=0.0288d0!/0.102*apartmass(whichsoa(iapinp2a_nox))
 !
 apartmolar=0.d0
 !modelE!#ifdef SOA_FULL
-apartmolar(whichsoa(n_isopp1a))=apartmass(whichsoa(n_isopp1a))*tr_mm(n_isoprene)/tr_mm(n_isopp1a)
-apartmolar(whichsoa(n_isopp2a))=apartmass(whichsoa(n_isopp2a))*tr_mm(n_isoprene)/tr_mm(n_isopp2a)
+apartmolar(whichsoa(n_isopp1a))=apartmass(whichsoa(n_isopp1a))*mw(n_Isoprene)/tr_mm(n_isopp1a)
+apartmolar(whichsoa(n_isopp2a))=apartmass(whichsoa(n_isopp2a))*mw(n_Isoprene)/tr_mm(n_isopp2a)
 !modelE!apartmolar(whichsoa(iisopp1a_nox))=apartmass(whichsoa(iisopp1a_nox))*tr_mm(iisop)/tr_mm(iisopp1a_nox)
 !modelE!apartmolar(whichsoa(iisopp2a_nox))=apartmass(whichsoa(iisopp2a_nox))*tr_mm(iisop)/tr_mm(iisopp2a_nox)
 !modelE!#endif
@@ -383,71 +396,11 @@ apartmolar(whichsoa(n_isopp2a))=apartmass(whichsoa(n_isopp2a))*tr_mm(n_isoprene)
 !modelE!apartmolar(whichsoa(ixylp2a_hox))=apartmass(whichsoa(ixylp2a_hox))*tr_mm(ixyl)/tr_mm(ixylp2a_hox)
 !modelE!#endif
 
-!modelE!agas=0.d0
-!modelE!agas(iisop)=1.-(&
-!modelE!#ifdef SOA_FULL
-!modelE!                0.5*(apartmolar(whichsoa(iisopp1a_nox))+apartmolar(whichsoa(iisopp2a_nox)))+0.5*&
-!modelE!#endif
-!modelE!#ifdef SOA_LUMPED_NOX_DEP
-!modelE!                0.5*(apartmolar_nox(whichsoa(iisopp1a_hox))+apartmolar_nox(whichsoa(iisopp2a_hox)))+0.5*&
-!modelE!#endif
-!modelE!                (apartmolar(whichsoa(iisopp1a_hox))+apartmolar(whichsoa(iisopp2a_hox)))&
-!modelE!               )
-!modelE!agas(iapin)=1.-(&
-!modelE!#ifdef SOA_FULL
-!modelE!                0.5*(apartmolar(whichsoa(iapinp1a_nox))+apartmolar(whichsoa(iapinp2a_nox)))+0.5*&
-!modelE!#endif
-!modelE!#ifdef SOA_LUMPED_NOX_DEP
-!modelE!                0.5*(apartmolar_nox(whichsoa(iapinp1a_hox))+apartmolar_nox(whichsoa(iapinp2a_hox)))+0.5*&
-!modelE!#endif
-!modelE!                (apartmolar(whichsoa(iapinp1a_hox))+apartmolar(whichsoa(iapinp2a_hox)))&
-!modelE!               )
-!modelE!#ifndef SOA_MINIMUM
-!modelE!agas(ibpin)=1.-(&
-!modelE!#  ifdef SOA_FULL
-!modelE!                0.5*(apartmolar(whichsoa(ibpinp1a_nox))+apartmolar(whichsoa(ibpinp2a_nox)))+0.5*&
-!modelE!#  endif
-!modelE!#  ifdef SOA_LUMPED_NOX_DEP
-!modelE!                0.5*(apartmolar_nox(whichsoa(ibpinp1a_hox))+apartmolar_nox(whichsoa(ibpinp2a_hox)))+0.5*&
-!modelE!#  endif
-!modelE!                (apartmolar(whichsoa(ibpinp1a_hox))+apartmolar(whichsoa(ibpinp2a_hox)))&
-!modelE!               )
-!modelE!#endif
-!modelE!agas(itol)=1.-(&
-!modelE!#ifdef SOA_FULL
-!modelE!               0.5*(apartmolar(whichsoa(itolp1a_nox))+apartmolar(whichsoa(itolp2a_nox)))+0.5*&
-!modelE!#endif
-!modelE!#ifdef SOA_LUMPED_NOX_DEP
-!modelE!               0.5*(apartmolar_nox(whichsoa(itolp1a_hox))+apartmolar_nox(whichsoa(itolp2a_hox)))+0.5*&
-!modelE!#endif
-!modelE!               (apartmolar(whichsoa(itolp1a_hox))+apartmolar(whichsoa(itolp2a_hox)))&
-!modelE!              )
-!modelE!#ifndef SOA_MINIMUM
-!modelE!agas(ixyl)=1.-(&
-!modelE!#  ifdef SOA_FULL
-!modelE!               0.5*(apartmolar(whichsoa(ixylp1a_nox))+apartmolar(whichsoa(ixylp2a_nox)))+0.5*&
-!modelE!#  endif
-!modelE!#  ifdef SOA_LUMPED_NOX_DEP
-!modelE!               0.5*(apartmolar_nox(whichsoa(ixylp1a_hox))+apartmolar_nox(whichsoa(ixylp2a_hox)))+0.5*&
-!modelE!#  endif
-!modelE!               (apartmolar(whichsoa(ixylp1a_hox))+apartmolar(whichsoa(ixylp2a_hox)))&
-!modelE!               )
-!modelE!#endif
-
 do i=1,soacomp
   do j=1,soacomp
     if (Lambda(i,j).eq.-1.0d0) Lambda(i,j)=Lambda(j,i) ! symmetric interactions
   enddo
 enddo
-
-! Correct tr_mm in order to use the real MW of species in meanmw and activity coefficient calculations only
-mw=tr_mm
-mw(n_bcii)=170.d0
-mw(n_bcia)=170.d0
-mw(n_bcb)=170.d0
-mw(n_ocii)=170.d0
-mw(n_ocia)=170.d0
-mw(n_ocb)=170.d0
 
 do i=1,ntm
   molec2ug(i)=mw(i)*1.d12/avog
@@ -486,10 +439,11 @@ logical                                  :: iterbackward
 !
 !@var AEROtot the total aerosol concentration, which includes both the semivolatile aerosol phase and
 !@+           the non-volatile aerosol phase that affects condensation, BEFORE new condensation
+!@var AEROtot_gas same as AEROtot but for the gas phase (used as a replacement when AEROtot=0.d0)
 !@var sigma-ij,sigma_ik,sigma_jk used for the activity coefficient calculations
 !@var zc the activity coefficient BEFORE new condensation and BEFORE the validity check (needed only for diagnistic output)
 !@var meanmw the mean molecular weight of the total condensation affected aerosol phase, BEFORE new condensation
-real*8                      :: AEROtot,sigma_ij,sigma_ik,sigma_kj,zc,meanmw
+real*8                      :: AEROtot,AEROtot_gas,sigma_ij,sigma_ik,sigma_kj,zc,meanmw
 !@var imf,jmf,kmf indices for the activity coefficient calculation
 integer                     :: imf,jmf,kmf
 !@var xmf the mole fraction of species in the aerosol phase BEFORE new condensation
@@ -531,20 +485,13 @@ DO JL=L,L
 
 !
 ! Change concentrations to ug/m3
-! Note that we want the concentrations AFTER the chemistry, 
+! Note that we want the concentrations AFTER chemistry, 
 ! thus we apply changeL artificially (but not hardcoded)
 !
   do i=1,ntm
-!    y0_ug(i)=max(0.d0,(y(i,jl)-changeL(jl,i)*bypfactor*mass2vol(i))*molec2ug(i))
-!    y_ug(i)=y(i,jl)*molec2ug(i)
     y0_ug(i)=trm(III,JJJ,L,i)*bypfactor*mass2vol(i)*molec2ug(i)
     y_ug(i)=(trm(III,JJJ,L,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
   enddo
-!  do i=1,nsoa
-!print*,issoa(i)-1,y(issoa(i)-1,jl),changeL(jl,issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1),y0_ug(issoa(i)-1)
-!print*,issoa(i),y(issoa(i),jl),changeL(jl,issoa(i))*bypfactor*mass2vol(issoa(i)),y0_ug(issoa(i))
-!  enddo
-!call stop_model('kostas',255)
 
 !
 ! Calculate the primary aerosol able to absorb semivolatile compounds
@@ -573,11 +520,19 @@ DO JL=L,L
   do i=1,nsoa
     AEROtot=AEROtot+y_mw(issoa(i))
   enddo
-  if (AEROtot.le.0.d0) goto 60
+  if (AEROtot <= 0.d0) then ! also grabs cases with negative aerosol concentrations, which should never occur
+    AEROtot_gas=0.d0
+    do i=1,nsoa
+      AEROtot_gas=AEROtot_gas+y_mw(issoa(i)-1)
+    enddo
+    if (AEROtot_gas <= 0.d0) goto 60 ! Neither aerosols nor semivolatile gases exist, do nothing.
+  endif
+!ktt  if (AEROtot.le.0.d0) goto 60 ! This part will be important on nucleation in the future versions
 !
 ! Calculate mole fraction of individual species.
 !
   xmf=0.d0
+if (AEROtot > 0.d0) then
   xmf(imfisop)=(&
 !modelE!#ifdef SOA_FULL
                 y_mw(n_isopp1a)+y_mw(n_isopp2a)&
@@ -628,6 +583,14 @@ DO JL=L,L
     xmf(imfinorg)=xmf(imfinorg)+y_mw(n_no3p)/AEROtot
   endif
 #endif
+else
+  xmf(imfisop)=(&
+!modelE!#ifdef SOA_FULL
+                y_mw(n_isopp1g)+y_mw(n_isopp2g)&
+!modelE!#endif
+!modelE!               +y(jl,iisopp1a_hox)/tr_mm(iisopp1a_hox)*mw(iisopp1a_hox)+y(jl,iisopp2a_hox)/tr_mm(iisopp2a_hox)*mw(iisopp2a_hox)&
+               )/AEROtot_gas
+endif ! AEROtot > 0.d0
 !
 ! Calculate activity coefficient zcoef
 !
@@ -656,25 +619,32 @@ DO JL=L,L
 !
 ! Calculate mean molecular weight
 !
-  meanmw=y_mw(n_ocii)*mw(n_ocii)/AEROtot
-  meanmw=meanmw+y_mw(n_ocia)*mw(n_ocia)/AEROtot
-  meanmw=meanmw+y_mw(n_ocb)*mw(n_ocb)/AEROtot
-  meanmw=meanmw+y_mw(n_bcii)*mw(n_bcii)/AEROtot
-  meanmw=meanmw+y_mw(n_bcia)*mw(n_bcia)/AEROtot
-  meanmw=meanmw+y_mw(n_bcb)*mw(n_bcb)/AEROtot
-  if(SO4part) then
-    meanmw=meanmw+y_mw(n_msa)*mw(n_msa)/AEROtot
-    meanmw=meanmw+y_mw(n_so4)*mw(n_so4)/AEROtot
-  endif
+  if (AEROtot > 0.d0) then
+    meanmw=y_mw(n_ocii)*mw(n_ocii)/AEROtot
+    meanmw=meanmw+y_mw(n_ocia)*mw(n_ocia)/AEROtot
+    meanmw=meanmw+y_mw(n_ocb)*mw(n_ocb)/AEROtot
+    meanmw=meanmw+y_mw(n_bcii)*mw(n_bcii)/AEROtot
+    meanmw=meanmw+y_mw(n_bcia)*mw(n_bcia)/AEROtot
+    meanmw=meanmw+y_mw(n_bcb)*mw(n_bcb)/AEROtot
+    if(SO4part) then
+      meanmw=meanmw+y_mw(n_msa)*mw(n_msa)/AEROtot
+      meanmw=meanmw+y_mw(n_so4)*mw(n_so4)/AEROtot
+    endif
 #ifdef TRACERS_NITRATE
-  if(NH4part) then
-    meanmw=meanmw+y_mw(n_nh4)*mw(n_nh4)/AEROtot
-    meanmw=meanmw+y_mw(n_no3p)*mw(n_no3p)/AEROtot
-  endif
+    if(NH4part) then
+      meanmw=meanmw+y_mw(n_nh4)*mw(n_nh4)/AEROtot
+      meanmw=meanmw+y_mw(n_no3p)*mw(n_no3p)/AEROtot
+    endif
 #endif
-  do i=1,nsoa
-    meanmw=meanmw+y_mw(issoa(i))*mw(issoa(i))/AEROtot
-  enddo
+    do i=1,nsoa
+      meanmw=meanmw+y_mw(issoa(i))*mw(issoa(i))/AEROtot
+    enddo
+  else
+    do i=1,nsoa
+! This is based on the gas-phase concentrations but with the aerosol phase mw (due to the mw array size), since AEROtot=0.d0
+      meanmw=meanmw+y_mw(issoa(i)-1)*mw(issoa(i))/AEROtot_gas
+    enddo
+  endif ! AEROtot > 0.d0
 !
 ! Calculate final value of partitioning coefficient
 !
@@ -713,15 +683,14 @@ DO JL=L,L
 !modelE!  kp(ixylp2a_hox)=kpart(jl,whichsoa(ixylp2a_hox))/zcoef(imfaro)*mw(ixylp2a_hox)/meanmw
 !modelE!#endif
 !
-! Add previous gas phase (soagas - after destruction), previous particulate phase and soachem in variable soamass (ug m-3)
-! If no evaporation, add only soagas and soachem
+! Add soa species gas and particulate phase in variable soamass (ug m-3)
+! If no evaporation, add only gas phase
 !
   do i=1,nsoa
-!    soamass(i)=soagas(jl,i)+soachem(jl,i)
     soamass(i)=y_ug(issoa(i)-1)
     if (SOAevap) soamass(i)=soamass(i)+y_ug(issoa(i))
   enddo
-  if (sum(soamass)==0.d0) goto 60
+  if (sum(soamass)==0.d0) goto 60 ! no semivolatiles, nothing to do
   M0a=PCP
   M0b=PCP
   do i=1,nsoa
@@ -732,63 +701,55 @@ DO JL=L,L
     endif
   enddo
   iternum=0
-  M0err_curr=max(tiny(M0b),M0b*M0err)!min(M0err,max(1.d-15,(M0b-M0a)*M0err))
+!  M0err_curr=max(tiny(M0b),M0b*M0err)
 !
 ! Iteration - chord method
 !
-!ktt  M0=M0b
   M0=M0a
-  iterbackward=.false.!ktt
+  iterbackward=.false.
 11  continue ! Try with another M0
   if (iternum==0) then
     x2=M0
-    M0err_curr=max(tiny(x2),x2*M0err)!ktt
+    M0err_curr=max(tiny(x2),x2*M0err)
+    if (x2 <= 0.d0) M0err_curr=max(tiny(x2),(x2+sum(soamass))*M0err)
     x1=x2-M0err_curr
-  else if (iterbackward) then!ktt
-    x2=M0!ktt
-    M0err_curr=max(tiny(x2),x2*M0err)!ktt
-    x1=x2-M0err_curr!ktt
+  else if (iterbackward) then
+    x2=M0
+    M0err_curr=max(tiny(x2),x2*M0err)
+    if (x2 <= 0.d0) M0err_curr=max(tiny(x2),(x2+sum(soamass))*M0err)
+    x1=x2-M0err_curr
   else
     x1=M0
-    M0err_curr=max(tiny(x1),x1*M0err)!ktt
+    M0err_curr=max(tiny(x1),x1*M0err)
     x2=x1+M0err_curr
   endif
   y1=PCP-x1
   y2=PCP-x2
-!ktt  if(.not.SOAevap) then
-!ktt    do i=1,nsoa
-!ktt      y1=y1+y_ug(issoa(i))
-!ktt      y2=y2+y_ug(issoa(i))
-!ktt    enddo
-!ktt  endif
   do i=1,nsoa
-    partfact2(i)=kp(issoa(i))*x2/(1.d0+kp(issoa(i))*x2)!ktt
-    y2=y2+soamass(i)*partfact2(i)!ktt
-    partfact1(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)!ktt
-    y1=y1+soamass(i)*partfact1(i)!ktt
+    partfact2(i)=kp(issoa(i))*x2/(1.d0+kp(issoa(i))*x2)
+    y2=y2+soamass(i)*partfact2(i)
+    partfact1(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)
+    y1=y1+soamass(i)*partfact1(i)
   enddo
-  if(abs(y1).lt.M0err) then!ktt
-    if (abs(y2) < abs(y1)) then!ktt
-      partfact(:)=partfact2(:)!ktt
-      M0=x2!ktt
-    else!ktt
-      partfact(:)=partfact1(:)!ktt
-      M0=x1!ktt
-    endif!ktt
-    goto 20!ktt
-  endif!ktt
-  if(abs(y2).lt.M0err) then!ktt
-    partfact(:)=partfact2(:)!ktt
-    M0=x2!ktt
-    goto 20!ktt
-  endif!ktt
-!ktt  iternum=iternum+1
-!ktt!  if(abs(y1).lt.M0err_curr/2.d0)goto 20
-!ktt  if(abs(y1).lt.M0err)goto 20
+  if(abs(y1).lt.M0err) then
+    if (abs(y2) < abs(y1)) then
+      partfact(:)=partfact2(:)
+      M0=x2
+    else
+      partfact(:)=partfact1(:)
+      M0=x1
+    endif
+    goto 20
+  endif
+  if(abs(y2).lt.M0err) then
+    partfact(:)=partfact2(:)
+    M0=x2
+    goto 20
+  endif
 !
 ! Stop iteration after 100 iterations (no solution found)
 !
-  iternum=iternum+1!ktt
+  iternum=iternum+1
   if(iternum.ge.100) goto 30
 !
 ! If -M0err/2<M0temp<M0err/2, M0 is the solution (goto 20)
@@ -798,32 +759,16 @@ DO JL=L,L
   b=y1-a*x1
   M0=-b/a
   if (((iternum==1).and.(M0==x2)).or.((iternum>1).and.(M0==x1))) goto 20
-!ktt  if (M0.lt.0.d0) then
-!ktt    write(out_line,*)'WARNING: M0 set to zero (was ',M0,' after ',iternum,' iterations)'
-!ktt    call write_parallel(trim(out_line),crit=.true.)
-!ktt    M0=0.d0
-!ktt  endif
-  if (M0<M0a .or. M0>M0b) then!ktt
-    iterbackward=.true.!ktt
-    M0=M0b!ktt
-  endif!ktt
+  if (M0<M0a .or. M0>M0b) then
+    iterbackward=.true.
+    M0=M0b
+  endif
   goto 11
 !
 ! No solution found, aerosol phase set to previous values, chemistry still applies to gas-phase species
 !
 30 continue
   write(*,"('WARNING: Too many iteration steps. SOA forced to the previous values. M0=',e,' PCP=',e)") M0,PCP
-!!ktdebug start
-!  do imf=1,101
-!  x1=M0a+float((imf-1)/100)*(M0b-M0a)
-!  do i=1,nsoa
-!    partfact1(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)!ktt
-!    y1=y1+soamass(i)*partfact1(i)!ktt
-!  enddo
-!  print*,imf,x1,y1,M0a,M0b,M0err_curr
-!  enddo
-!  call stop_model('kostas debugging',255)
-!!ktdebug stop
   goto 60
 !
 ! Found solution for M0
@@ -831,7 +776,6 @@ DO JL=L,L
 20 continue
   if (M0.ne.0.d0) then
     do i=1,nsoa
-!ktt      partfact(i)=max(0.d0,partfact(i))
       if(SOAevap) then
         y_ug(issoa(i))=soamass(i)*partfact(i)             ! Calculate new aerosol-phase concentration
         y_ug(issoa(i)-1)=y_ug(issoa(i))/(kp(issoa(i))*M0) ! Calculate new gas-phase concentration
@@ -847,10 +791,8 @@ DO JL=L,L
 ! Save results to changeL (kg)
 !
   do i=1,nsoa
-!kt    changeL(jl,issoa(i)-1)=changeL(jl,issoa(i)-1)+(y_ug(issoa(i)-1)-y0_ug(issoa(i)-1))/&
     changeL(jl,issoa(i)-1)=(y_ug(issoa(i)-1)-y0_ug(issoa(i)-1))/&
                            (molec2ug(issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1))
-!kt    changeL(jl,issoa(i))=changeL(jl,issoa(i))+(y_ug(issoa(i))-y0_ug(issoa(i)))/&
     changeL(jl,issoa(i))=(y_ug(issoa(i))-y0_ug(issoa(i)))/&
                          (molec2ug(issoa(i))*bypfactor*mass2vol(issoa(i)))
   enddo
