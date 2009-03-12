@@ -4865,9 +4865,6 @@ C****
 
       USE MODEL_COM, only : FOCEAN
       Use GEOM,      only : IMAXJ
-c, DXYPO=>aDXYPO
-
-c      USE OCEAN, only : dxypo 
 
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
      *     , aOGEOZ, aOGEOZ_SV
@@ -5371,7 +5368,7 @@ C**** Check
 
       USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
      *     , IVSPO=>IVSP, IVNPO=>IVNP, oCOSU=>COSU,oSINU=>SINU
-      Use GEOM,  only : aDXYPO, aIMAXJ=>IMAXJ,aDLATM=>DLATM
+      Use GEOM,  only : aIMAXJ=>IMAXJ,aDLATM=>DLATM
      *     , aCOSI=>COSIP,aSINI=>SINIP
 
       IMPLICIT NONE
@@ -5423,29 +5420,6 @@ C**** Check
         call HNTR8P (oFweight, oFtemp, aFtemp)
         aG0_glob(:,:,L) = aFtemp(:,:) 
 
-        SUM_aG0 = 0.
-        DO J=1,JMA
-          DO I=1,aIMAXJ(J)
-            IF (aFOCEAN(I,J).gt.0.) THEN
-              SUM_aG0 = SUM_aG0 
-     *        +(aG0_glob(I,J,L)*aMO_glob(I,J,L)*aDXYPO(J)*aFOCEAN(I,J))
-              diff = oFtemp(i,j) / aFtemp(i,j)-1.d0
-              if (diff .gt. 1.e-20) then
-c                write (555,*) ' INT_OG2AG#1: L,I,J = ',l, i, j
-c                write (555,*) ' INT_OG2AG#1:oFtemp,aFtemp,diff=',
-c     *          oFtemp(i,j), aFtemp(i,j), diff 
-c                write (555,*) ' INT_OG2AG#1:oFOCEAN,aFOCEAN=',
-c     *          oFOCEAN(i,j), aFOCEAN(i,j) 
-c                write (555,*) ' INT_OG2AG#1:oMO_glob,aMO_glob=',
-c     *          MO_glob(i,j,L), aMO_glob(i,j,L) 
-c                write (555,*) ' INT_OG2AG#1:oDXYPO,aDXYPO=',
-c     *          oDXYPO(j), aDXYPO(j) 
-              end if
-            END IF
-          END DO
-        END DO
-!        write (555,*) ' INT_OG2AG#2: L,SUM_oG0M,SUM_oFtemp,SUM_aG0 = ',
-!     *                             L,SUM_oG0M,SUM_oFtemp,SUM_aG0  
       END DO 
 
 !!!  Salinity for the 1st two ocean layers
@@ -5624,7 +5598,7 @@ C**** surface tracer concentration
       USE OCEAN, only : imo=>im,jmo=>jm
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM
-      Use GEOM,  only : aDXYP=>DXYP, aDXYPO,aDLATM=>DLATM
+      Use GEOM,  only : aDXYP, aDLATM=>DLATM
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -5701,7 +5675,7 @@ C**** surface tracer concentration
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
       DO J = 1,JMA
-        aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYPO(J)         ! kg/m^2    
+        aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYP(:,J)        ! kg/m^2    
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFweight, aFtemp, oFtemp)
@@ -5783,7 +5757,7 @@ C**** surface tracer concentration
       USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
      *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC, 
      *     oCOSU=>COSU,oSINU=>SINU
-      Use GEOM,  only : aDXYP=>DXYP, aDXYPO, aIMAXJ=>IMAXJ,
+      Use GEOM,  only : aDXYP, aIMAXJ=>IMAXJ,
      *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP, 
      *     aSINU=>SINU, aCOSU=>COSU
 
@@ -5885,7 +5859,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aFLOWO_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))   !  kg/m^2
+            aFtemp(I,J) = aFLOWO_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
           END IF 
         END DO
       END DO
@@ -5896,7 +5870,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEFLOWO_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  J/m^2
+            aFtemp(I,J) = aEFLOWO_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  J/m^2
           END IF 
         END DO
       END DO
@@ -5907,7 +5881,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aMELTI_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))   !  kg/m^2
+            aFtemp(I,J) = aMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
           END IF 
         END DO
       END DO
@@ -5918,7 +5892,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEMELTI_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  J/m^2
+            aFtemp(I,J) = aEMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  J/m^2
           END IF 
         END DO
       END DO
@@ -5929,7 +5903,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aSMELTI_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
+            aFtemp(I,J) = aSMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
           END IF 
         END DO
       END DO
@@ -6028,7 +6002,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aGMELT_glob(I,J)/(aDXYPO(J)*aFOCEAN(I,J))   !  kg/m^2   
+            aFtemp(I,J) = aGMELT_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2   
           END IF 
         END DO
       END DO
@@ -6039,7 +6013,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEGMELT_glob(I,J)/aDXYPO(J)                 !  J/m^2   
+            aFtemp(I,J) = aEGMELT_glob(I,J)/aDXYP(I,J)                !  J/m^2   
           END IF 
         END DO
       END DO
@@ -6055,7 +6029,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRFLOWO_glob(N,I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
+            aFtemp(I,J) = aTRFLOWO_glob(N,I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
           END IF 
@@ -6070,7 +6044,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRMELTI_glob(N,I,J)/(aDXYPO(J)*aFOCEAN(I,J))  !  kg/m^2
+            aFtemp(I,J) = aTRMELTI_glob(N,I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
           END IF 
@@ -6115,7 +6089,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYPO(J)                 !  kg/m^2
+            aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYP(I,J)                !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
           END IF 
@@ -6168,7 +6142,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = avisdir_glob(I,J)
-     .                  * asrvissurf_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+     .                  * asrvissurf_glob(I,J)   
           END IF
         END DO
       END DO
@@ -6179,7 +6153,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = avisdif_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+            aFtemp(I,J) = avisdif_glob(I,J)   
           END IF
         END DO
       END DO
@@ -6190,7 +6164,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = anirdir_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+            aFtemp(I,J) = anirdir_glob(I,J)   
           END IF
         END DO
       END DO
@@ -6201,7 +6175,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = anirdif_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+            aFtemp(I,J) = anirdif_glob(I,J)   
           END IF
         END DO
       END DO
@@ -6214,7 +6188,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aCOSZ1_glob(I,J)*(aDXYP(J)/aDXYPO(J))   
+            aFtemp(I,J) = aCOSZ1_glob(I,J)   
           END IF
         END DO
       END DO
@@ -6226,7 +6200,7 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = awind_glob(I,J)*(aDXYP(J)/aDXYPO(J))
+            aFtemp(I,J) = awind_glob(I,J)
           END IF
         END DO
       END DO
@@ -6334,7 +6308,7 @@ C**** surface tracer concentration
       USE OCN_TRACER_COM, only: ntm
 #endif
 
-      USE GEOM,  only : aDXYP=>DXYP,aDXYPO, aIMAXJ=>IMAXJ, aDLATM=>DLATM
+      USE GEOM,  only : aIMAXJ=>IMAXJ, aDLATM=>DLATM
 
       IMPLICIT NONE
 

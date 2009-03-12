@@ -38,7 +38,8 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
-      REAL*8, DIMENSION(JM) :: DXYP,BYDXYP, aDXYPO
+      REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
+      REAL*8, DIMENSION(IM,JM) :: aDXYP
       REAL*8, DIMENSION(:,:), ALLOCATABLE ::
      &     AXYP,BYAXYP,LAT2D,LON2D,LAT2D_DG,LON2D_DG,SINLAT2D,COSLAT2D
      &    ,ddx_ci,ddx_cj,ddy_ci,ddy_cj
@@ -105,11 +106,6 @@ C**** some B-grid conservation quantities
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
       INTEGER :: JVPO,JMHALF
       REAL*8  :: RAVPO,LAT1,COSP1,DXP1, SINV,SINVm1
-
-      Real*8 LATS, !  LATitude in radians at South edge of primary cell
-     *       LATN, !  LATitude in radians at North edge of primary cell
-     *       SINS, !  SINe of LATS
-     *       SINN  !  SINe of LATN
 
       integer :: i_0h,i_1h,j_0h,j_1h,i_0,i_1,j_0,j_1,j_0s,j_1s
 
@@ -192,9 +188,13 @@ C****
       DXYP(1) = RADIUS*RADIUS*DLON*(SINV+1)
       BYDXYP(1) = 1./DXYP(1)
 
+      aDXYP(:,1) = DXYP(1) 
+
       SINVm1  = Sin (DLAT*(JM-.5-FJEQ))
       DXYP(JM)= RADIUS*RADIUS*DLON*(1-SINVm1)
       BYDXYP(JM) = 1./DXYP(JM)
+
+      aDXYP(:,JM) = DXYP(JM) 
 
       DXYS(1)  = 0.
       DXYS(JM) = DXYP(JM)
@@ -206,6 +206,8 @@ C****
         SINVm1  = Sin (DLAT*(J-.5-FJEQ))
         SINV    = Sin (DLAT*(J+.5-FJEQ))
         DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
+
+        aDXYP(:,J) = DXYP(J) 
 
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
@@ -378,14 +380,6 @@ C**** set up mapping arrays for budget/conserv diags
       call set_j_budg   !called after lat2d_dg is initialized
       call set_wtbudg() !sets area weights
  
-      DO J=1,JM
-        LATN = DLAT*(J+.5-FJEQ)  ;  If(J==JM) LATN =  TWOPI/4
-        LATS = DLAT*(J-.5-FJEQ)  ;  If(J==1 ) LATS = -TWOPI/4
-        SINN = Sin (LATN)
-        SINS = Sin (LATS)
-        aDXYPO(J)  = RADIUS*RADIUS*DLON*(SINN-SINS)
-      END DO
-
       RETURN
       END SUBROUTINE GEOM_B
 
