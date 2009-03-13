@@ -1,7 +1,8 @@
 E1chaerM23.R GISS Model E                                gas 06/00
 
-modelE1 (3.0) with Drew Shindell tropospheric and stratospheric
-chemistry and interactive aerosols (based upon E001TdsSM23.R (primarily) and E1TaerM20.R)
+modelE1 (3.0) with:
+- Drew Shindell tropospheric and stratospheric chemistry (based on Greg's E001TdsSM23.R)
+- Dorothy Koch and Kostas Tsigaridis aerosols (based on Dorothy's E1TaerM20.R)
 
 ************************************************************
 Please note this rundeck is provided to show how to run with
@@ -23,8 +24,10 @@ Preprocessor Options
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+#define TRACERS_NITRATE          ! Nitrate aerosol
+!  OFF #define TRACERS_DUST             ! Dust aerosol
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
-!  OFF #define BC_ALB                   !optional tracer BC affects snow albedo
+#define BC_ALB                   !optional tracer BC affects snow albedo
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
@@ -59,6 +62,9 @@ TRCHEM_family                       ! tracer family chemistry
 TRCHEM_fastj2                       ! used for trop+strat chem version
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 TRACERS_AEROSOLS_Koch_e4
+TRACER_NITRATE                      ! Nitrate aerosol
+TRAMP_eqsam_v03d                    ! EQSAM module for inorganic aerosol thermodynamic equilibrium
+! TRDUST_COM TRDUST TRACERS_DUST      ! DUST
 TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! COSMO_SOURCES
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
@@ -90,7 +96,7 @@ POUT_netcdf                         ! post-processing output
 
 Data input files:
     ! start up from restart file of earlier run
-AIC=1JAN2000.rsfE1chaerM23        ! initial conditions (atm./ground), no GIC, ISTART=8
+AIC=1JAN2000.rsfE1chaerM23_nitrate        ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
 ! AIC=AIC.RES_M23.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
@@ -256,6 +262,21 @@ SO2_INDh=SO2_EDGAR_Feb09_4x5_h_1890-2000
 !SO2_IND=SO2_ind2000.AEROCOM_DEC03
 !SALT1=SALT_bin1_2000_new.nc
 !SALT2=SALT_bin2_2000_new.nc
+!------AEROSOL INPUT NITRATE------------------
+NH3SOURCE_CON=GISS_EDGAR_HYDE_NH3_CONST_1890_2000.4X5
+NH3SOURCE_CYC=GISS_EDGAR_HYDE_NH3_CYC_1890_2000.4X5
+! O3_FIELD=Ox_3D_field_bell                ! for offline chemistry only
+! OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc      ! for offline chemistry only
+! OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc ! for offline chemistry only
+!------AEROSOL DUST INPUT-----------------------
+! VTRSH=vtr-mod-o0.mean-pb
+! FRCLAY=claygcm-f
+! FRSILT=siltgcm-f
+! DRYHR=text5hr-f
+! GIN=Ginoux_dstsrc
+! LKTAB=table_emission
+! ERS=ERS1_1993_MONTHLY
+! LKTAB1=table_wspdf
 
 
 Label and Namelist:
@@ -487,7 +508,7 @@ PIratio_CFC   = 0.000d0 ! {CFC IC's and L=1 overwriting}
    QCHECK=.false.
    kdiag = 0,0,0,0,0,0,0,0,0,0,0,0,0,
    YEARI=2000,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=2001,MONTHE=1,DATEE=1,HOURE=0,
+   YEARE=2000,MONTHE=2,DATEE=1,HOURE=0,
    ISTART=8,IRANDI=0, YEARE=2000, MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
 
