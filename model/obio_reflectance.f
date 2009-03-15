@@ -326,10 +326,15 @@ c: r2<0 are missing values
      &   -1.0,    -1.0,    -1.0,    -1.0,    -1.0,    -1.0,    -1.0,   
      &   -1.0,    -1.0,    -1.0,    -1.0,    -1.0,    -1.0,    -1.0/)
 
-       real*8, dimension(wl_pf_size) :: wl_pf(1:4) 
-     &                 = (/340.0, 350.0, 360.0, 370.0/) 
+       real*8, dimension(wl_pf_size) :: wl_pf
+
+       wl_pf(1)=340.0
+       wl_pf(2)=350.0
+       wl_pf(3)=360.0
+       wl_pf(4)=370.0
+
   
-        do i = 1, 149
+       do i = 1, 149
           wl_pf(i+4) = (i-1)*2.5 + 380.0  ! 380.-750. with 2.5nm steps
        enddo
  

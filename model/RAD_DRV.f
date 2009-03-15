@@ -732,8 +732,12 @@ C**** CHL always uses quadratic fit
         END DO
       END DO
 C**** REPLICATE VALUES AT POLE
-      IF(HAVE_NORTH_POLE .AND. FOCEAN(1,JM).gt.0) CHL(2:IM,JM)=CHL(1,JM)
-      IF(HAVE_SOUTH_POLE .AND. FOCEAN(1, 1).gt.0) CHL(2:IM, 1)=CHL(1, 1)
+      IF(HAVE_NORTH_POLE) then
+       if (FOCEAN(1,JM).gt.0) CHL(2:IM,JM)=CHL(1,JM)
+      ENDIF
+      IF(HAVE_SOUTH_POLE) then 
+       if (FOCEAN(1, 1).gt.0) CHL(2:IM, 1)=CHL(1, 1)
+      ENDIF
 #endif
 
       RETURN

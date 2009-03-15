@@ -422,13 +422,6 @@ C**** chlorophyl modification of albedo
       vrbos=.false.
 c     if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
 
-c      if (vrbos) then
-c      do L=1,6
-c      write(*,'(a,2i5,2d12.4)')'BEFOR OCALBEDO: ', 
-c     .        ILON,JLAT,BOCVN(L), XOCVN(L)
-c      enddo
-c      endif
-
       !call obio_ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
@@ -448,12 +441,6 @@ c      endif
       end if
   !   call sys_flush(6)
 
-c      if (vrbos) then
-c      do L=1,6
-c      write(*,'(a,2i5,2d12.4)')'AFTER OCALBEDO: ', 
-c     .        ILON, JLAT, BOCVN(L), XOCVN(L)
-c      enddo
-c      endif
 #endif
 
 C**** For lakes increase albedo if lakes are very shallow

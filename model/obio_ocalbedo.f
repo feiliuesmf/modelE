@@ -181,6 +181,10 @@ C**** get chlorophyll term
       if (xocvn(ngiss).ge.1. .or. bocvn(ngiss).ge.1.) then
          print*, 'XOCVN/BOCVN greater than 1 at ngiss,i,j=',
      .                ngiss,i,j
+         do nl=gband(ngiss), gband(ngiss+1)-1
+           write(*,'(i5,4e12.4)')
+     .     nl,rod(nl),ros(nl),refl(nl),weight(gband(ngiss))
+         enddo
          stop
       endif
       enddo
