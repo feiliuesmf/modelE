@@ -218,7 +218,7 @@ C****
         CALL STPGF(DTS/NOCEAN)
         CALL STADV(DTS/NOCEAN)
           CALL CHECKO_serial ('STADV0')
-        IF (NO .EQ. NOCEAN) THEN 
+        IF (NO .EQ. NOCEAN) THEN
           CALL STCONV
           CALL STBDRA
         END IF
@@ -349,12 +349,12 @@ C**** Arrays needed each ocean model run
 C****
       CALL GEOMO
 
-      CALL OFFT0(IM) 
-C**** Calculate ZE 
+      CALL OFFT0(IM)
+C**** Calculate ZE
 
       ZE(0) = 0d0
       DO L = 1,LMO
-        ZE(L) = ZE(L-1) + dZO(L) 
+        ZE(L) = ZE(L-1) + dZO(L)
       END DO
 
 C**** Read in table function for specific volume
@@ -439,7 +439,7 @@ C**** if there is a problem try nearest neighbour
               if(j1.eq.0) jj=j
               if(j1.eq.1) jj=j-1
               if(j1.eq.2) jj=j+1
-              
+
               if(i1.eq.0) ii=i
               if(i1.eq.1) ii=i-1
               if(i1.eq.2) ii=i+1
@@ -459,7 +459,7 @@ C**** if there is a problem try nearest neighbour
                 if(ii.le.im/2) ii=ii+im/2
                 if(ii.gt.im/2) ii=ii-im/2
               endif
-              IF ((MO4(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J))) 
+              IF ((MO4(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J)))
      *             flagij=1
             endif
           enddo
@@ -474,9 +474,13 @@ C**** if there is a problem try nearest neighbour
         END IF
       END IF
   313 CONTINUE
-C**** Initialize velocity field to zero
+C**** Initialize velocity field and slopes of pot. heat and salinity to zero
       UO=0
       VO=0
+      GXMO=0
+      GYMO=0
+      SXMO=0
+      SYMO=0
 C**** Define mean value of mass, potential heat, and salinity at poles
       DO 370 L=1,LMO
       if(HAVE_NORTH_POLE) then ! average polar ocean fields
@@ -502,10 +506,6 @@ C**** Define mean value of mass, potential heat, and salinity at poles
         end do
       end if
 C**** Define East-West horizontal gradients
-      GXMO=0
-      GYMO=0
-      SXMO=0
-      SYMO=0
       IM1=IM-1
       I=IM
       DO 345 J=J_0S,J_1S
@@ -812,7 +812,7 @@ C****
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
-     .             ,TRNMODULE_HEADER 
+     .             ,TRNMODULE_HEADER
               GO TO 10
             END IF
 #else
@@ -868,9 +868,9 @@ C****
       call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
       call unpack_data(ogrid, ihra_glob, ihra)
       call unpack_data(ogrid, gcmax_glob, gcmax)
-      
+
       call ESMF_BCAST(ogrid,nstep0)
-      
+
       if (AM_I_ROOT()) then
         deallocate( avgq_glob,tirrq3d_glob,
      &       ihra_glob, gcmax_glob )
@@ -1370,7 +1370,7 @@ C****
 !@auth  Gavin Schmidt
 !@ver   2008/12/22
 C****
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM
 
       USE OCEAN, only : IMO=>IM,JMO=>JM
      *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, MO
@@ -1390,9 +1390,9 @@ C****
       Do J=Max(J1O,2),Min(JNO,JMO-1)
         oOMASS(J) = 0
         Do I=1,IMO
-          oOMASS(J) = oOMASS(J) + Sum(MO(I,J,:LMM(I,J)))    
+          oOMASS(J) = oOMASS(J) + Sum(MO(I,J,:LMM(I,J)))
         EndDo
-        oOMASS(J) = oOMASS(J)/IMO    
+        oOMASS(J) = oOMASS(J)/IMO
       EndDo
       If (J1O == 1)    oOMASS(1)   = Sum(MO(1,1  ,:LMM(1,1)))
       If (JNO == JMO)  oOMASS(JMO) = Sum(MO(1,JMO,:LMM(1,JMO)))
@@ -1430,9 +1430,9 @@ C****
       Do J=Max(J1O,2),Min(JNO,JMO-1)
         oOSALT(J) = 0
         Do I=1,IMO
-          oOSALT(J) = oOSALT(J) + Sum(S0M(I,J,:LMM(I,J)))    
+          oOSALT(J) = oOSALT(J) + Sum(S0M(I,J,:LMM(I,J)))
         EndDo
-        oOSALT(J) = oOSALT(J) / IMO    
+        oOSALT(J) = oOSALT(J) / IMO
       EndDo
       If (J1O == 1)    oOSALT(1)   = Sum(S0M(1,1  ,:LMM(1,1)))
       If (JNO == JMO)  oOSALT(JMO) = Sum(S0M(1,JMO,:LMM(1,JMO)))
@@ -1440,7 +1440,7 @@ C**** Include ocean salt of straits
       Do N=1,NMST
         J = JST(N,1)
         If (J >= J1O .and. J <= JNO)
-     *    oOSALT(J) = oOSALT(J) + Sum(S0MST(:LMST(N),N))   
+     *    oOSALT(J) = oOSALT(J) + Sum(S0MST(:LMST(N),N))
       EndDo
 C**** Divide salt (kg per cell) by grid cell area
       oOSALT(J1O:JNO) = oOSALT(J1O:JNO) * ozDXYP(J1O:JNO)
@@ -1456,7 +1456,7 @@ C****
 !@ver   2008/12/22
 C****
       USE OCEAN, only : IMO=>IM,JMO=>JM
-     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, G0M 
+     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, G0M
 
       Use STRAITS,       Only: NMST,JST,LMST, G0MST
       USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET
@@ -1472,9 +1472,9 @@ C****
       Do J=Max(J1O,2),Min(JNO,JMO-1)
         oOCEANE(J) = 0
         Do I=1,IMO
-          oOCEANE(J) = oOCEANE(J) + Sum(G0M(I,J,:LMM(I,J)))    
+          oOCEANE(J) = oOCEANE(J) + Sum(G0M(I,J,:LMM(I,J)))
         EndDo
-        oOCEANE(J) = oOCEANE(J) / IMO    
+        oOCEANE(J) = oOCEANE(J) / IMO
       EndDo
       If (J1O == 1)    oOCEANE(1)   = Sum(G0M(1,1  ,:LMM(1,1)))
       If (JNO == JMO)  oOCEANE(JMO) = Sum(G0M(1,JMO,:LMM(1,JMO)))
@@ -1482,7 +1482,7 @@ C**** Include ocean potential enthalpy of straits
       Do N=1,NMST
         J = JST(N,1)
         If (J >= J1O .and. J <= JNO)
-     *    oOCEANE(J) = oOCEANE(J) + Sum(G0MST(:LMST(N),N))    
+     *    oOCEANE(J) = oOCEANE(J) + Sum(G0MST(:LMST(N),N))
       EndDo
 C**** Divide potential enthalpy (J per cell) by grid cell area
       oOCEANE(J1O:JNO) = oOCEANE(J1O:JNO) * ozDXYP(J1O:JNO)
@@ -1516,12 +1516,12 @@ C****
         I=IMO
         Do Ip1=1,IMO
           Do L=1,LMOM(I,J)
-            oOKE(J) = oOKE(J) + ((MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)**2 
-     +              + MO(I,J,L)*(VO(I,J-1,L)**2 + VO(I,J,L)**2))  
+            oOKE(J) = oOKE(J) + ((MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)**2
+     +              + MO(I,J,L)*(VO(I,J-1,L)**2 + VO(I,J,L)**2))
           EndDo
-          I=Ip1    
+          I=Ip1
         EndDo
-        oOKE(J) = oOKE(J) / IMO    
+        oOKE(J) = oOKE(J) / IMO
       EndDo
 C**** oOKE at J = 1: south pole
       If (J1O == 1)  Then
@@ -1530,16 +1530,16 @@ C**** oOKE at J = 1: south pole
           oOKE(1) = oOKE(1) + MO(1,1,L) *
      *              (1.5*IMO*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) +
      +               Sum(VO(:,1,L)**2)/IMO)
-        EndDo    
+        EndDo
       EndIf
 C**** oOKE at J = JMO: north pole
       If (JNO == JMO)  Then
         oOKE(JMO) = 0.0
         Do L=1,LMOM(1,JMO)
-          oOKE(JMO) = oOKE(JMO) + MO(1,JMO,L) 
-     *              * (1.5*IMO*(UO(IMO,JMO,L)**2 + UO(IVNPO,JMO,L)**2) 
-     +              + Sum(VO(:,JMO-1,L)**2)/IMO)    
-        EndDo    
+          oOKE(JMO) = oOKE(JMO) + MO(1,JMO,L)
+     *              * (1.5*IMO*(UO(IMO,JMO,L)**2 + UO(IVNPO,JMO,L)**2)
+     +              + Sum(VO(:,JMO-1,L)**2)/IMO)
+        EndDo
       EndIf
       oOKE(:) = oOKE(:)*.25
 C**** Interpolate data from ocean resolution to atmosphere resolution
@@ -1556,14 +1556,14 @@ C****
       Use CONSTANT,      Only: RADIUS,OMEGA
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
      *     , oDXYP=>DXYPO, LMOM=>LMM,LMOU=>LMU, MO,UO
-     *     , oCOSQ=>COSQ, oCOSM=>COSM  
+     *     , oCOSQ=>COSQ, oCOSM=>COSM
 
       USE DOMAIN_DECOMP_1D, only : GET, aGRID=>GRID
 c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOAM ocean angular momentum per whole latitude band area (kg/s)
-      Real*8    :: oOAM(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), 
+      Real*8    :: oOAM(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
      *             aOAM(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
      *             oOMASS,oUMILx2
       Integer*4 :: J1O,JNO, I,J,L,Ip1
@@ -1579,10 +1579,10 @@ C****
           Do L=1,LMOU(I,J)
             oUMILx2 = oUMILx2 + (MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)
             EndDo
-          I=Ip1    
+          I=Ip1
         EndDo
         oOAM(J) = (.5*oUMILx2*oCOSM(J) + RADIUS*OMEGA*oCOSQ(J)*oOMASS)*
-     *            RADIUS / IMO    
+     *            RADIUS / IMO
       EndDo
       If (J1O == 1) oOAM(1) = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
      *                        Sum(MO(1,1,:LMOM(1,1))) / IMO
@@ -1601,9 +1601,9 @@ C****   QJ is conserved:  sum[oDXYP(:)*oQJ(:)] = sum[aDXYP(:)*aQJ(:)]
 !@auth  Gary L. Russell
 !@ver   2008/12/23
 C****
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM
       Use GEOM,          Only: aDXYP=>DXYP,  aDLATM=>DLATM
-      Use OCEAN,         Only: IMO=>IM,JMO=>JM 
+      Use OCEAN,         Only: IMO=>IM,JMO=>JM
      *     , oDXYP=>DXYPO, oDLATM=>DLATM
       Use DOMAIN_DECOMP_1D, Only: aGRID=>GRID, AM_I_ROOT, GET, PACK_DATA
       Use DOMAIN_DECOMP_1D, Only: UNPACK_DATA
@@ -1624,7 +1624,7 @@ C****
       If (AM_I_ROOT())  Then
         oONES(:) = 1
         Call HNTR80 (1,JMO,0d0,oDLATM, 1,JMA,0d0,aDLATM, 0d0)
-        Call HNTR8  (oONES,oQJGLOB,aQJGLOB)    
+        Call HNTR8  (oONES,oQJGLOB,aQJGLOB)
       EndIf
       Call UNPACK_DATA (aGRID,aQJGLOB,aQJ)
       Return
@@ -1646,18 +1646,18 @@ C**** JMA = 90 and JMO = 180
 C****
   200 Call GET (aGRID, J_STRT=J1A, J_STOP=JNA)
       Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
-      
+
       If ((J1A-1)*2 /= (J1O-1) .or. JNA*2 /= JNO) then
         Write (6,*) 'Atmosphere and ocean latitude bands do not' //
      *              ' line up for a processor.'
         Write (6,*) 'J1O,JNO,J1A,JNA=',J1O,JNO,J1A,JNA
-        Call STOP_MODEL ('JNA*2 >< JNO in OJtoAJ', 255)    
+        Call STOP_MODEL ('JNA*2 >< JNO in OJtoAJ', 255)
       EndIf
       Do J=J1A,JNA
         aQJ(J) = IMO*(oDXYP(J*2-1)*oQJ(J*2-1) +
-     +               oDXYP(J*2)*oQJ(J*2)) / (IMA*aDXYP(J))    
+     +               oDXYP(J*2)*oQJ(J*2)) / (IMA*aDXYP(J))
       EndDo
-      
+
       Return
 C****
 C**** ATMO = 'CUBE-SPHERE'
@@ -3744,7 +3744,7 @@ C****
       DO I=1,IMO
         IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
      *       (oDMVA(I,J  ,1)*DXYNO(J) + oDMVA(I,J+1,1)*DXYSO(J+1)
-     *      + oDMVI(I,J)*DXYVO(J))  !!  2d0*oDMVI(I,J)*DXYVO(J) - error 
+     *      + oDMVI(I,J)*DXYVO(J))  !!  2d0*oDMVI(I,J)*DXYVO(J) - error
      * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
       END DO
       END DO
@@ -3811,7 +3811,7 @@ C**** Surface stress is applied to V component at the North Pole
       real*8 fracls
 #endif
 #endif
- 
+
       integer ::  J_1, J_0
       logical :: have_south_pole, have_north_pole
 
@@ -3838,7 +3838,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J,1)                !  J/m^2
         ERUNI=oEFLOWO(I,J) + oEMELTI(I,J) + oERUNOSI(I,J)             !  J/m^2
         SRUNO=oSMELTI(I,J)                                            !  kg/m^2
-        SRUNI=oSMELTI(I,J) + oSRUNOSI(I,J)                            !  kg/m^2 
+        SRUNI=oSMELTI(I,J) + oSRUNOSI(I,J)                            !  kg/m^2
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
         SROX(1)=oSOLAR(1,I,J) ! open water                            !  J/m^2
@@ -4081,7 +4081,7 @@ C****
 !@sum  PRECIP_OC driver for applying precipitation to ocean fraction
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
-      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE RESOLUTION, only : ima=>im,jma=>jm
 
       USE OCEAN, only : imo=>im,jmo=>jm
      *     , mo,g0m,s0m,bydxypo,focean,imaxj
@@ -4103,11 +4103,11 @@ c      USE GEOM, only : dxyp
       USE OFLUXES, only : oTRPREC, oTRUNPSI
 #endif
 #endif
-      USE SEAICE_COM, only : aRSI=>RSI 
-      USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC 
+      USE SEAICE_COM, only : aRSI=>RSI
+      USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC
      *     , aRUNPSI=>RUNPSI, aSRUNPSI=>SRUNPSI, aERUNPSI=>ERUNPSI
 
-      USE OFLUXES, only : oRSI, oPREC, oEPREC 
+      USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
 
       IMPLICIT NONE
@@ -4125,8 +4125,8 @@ c#endif
      *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
      *      , oRSI_glob
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRPREC_glob, aTRUNPSI_glob      
-      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRPREC_glob, oTRUNPSI_glob      
+      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRPREC_glob, aTRUNPSI_glob
+      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRPREC_glob, oTRUNPSI_glob
 #endif
 
       INTEGER I,J
@@ -4138,8 +4138,8 @@ c#endif
 C**** save surface variables before any fluxes are added
       CALL KVINIT
 
-C***  Gather the precipitation arrays on atmospheric grid 
-C***    into the global arrays 
+C***  Gather the precipitation arrays on atmospheric grid
+C***    into the global arrays
 
       CALL PACK_DATA  (agrid,    aPREC,    aPREC_glob)
       CALL PACK_DATA  (agrid,   aEPREC,   aEPREC_glob)
@@ -4150,10 +4150,10 @@ C***    into the global arrays
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       CALL PACK_COLUMN(agrid,  aTRPREC,  aTRPREC_glob)    !pack_column in dd2d ?
       CALL PACK_COLUMN(agrid, aTRUNPSI, aTRUNPSI_glob)
-#endif      
-C* 
-C***  Do interpolation to the ocean grid 
-C* 
+#endif
+C*
+C***  Do interpolation to the ocean grid
+C*
       if(AM_I_ROOT()) then
 #ifndef CUBE_GRID
         call INT_AG2OG_precip(
@@ -4162,14 +4162,14 @@ C*
      *     , oRSI_glob, oPREC_glob,oEPREC_glob
      *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-     *     , aTRPREC_glob, aTRUNPSI_glob 
-     *     , oTRPREC_glob, oTRUNPSI_glob 
-#endif 
+     *     , aTRPREC_glob, aTRUNPSI_glob
+     *     , oTRPREC_glob, oTRUNPSI_glob
+#endif
      *     )
-#endif     
-      end if 
-      
-C***  Scatter the precipitation arrays to the ocean grid 
+#endif
+      end if
+
+C***  Scatter the precipitation arrays to the ocean grid
 
       CALL UNPACK_DATA  (ogrid,    oPREC_glob,    oPREC)
       CALL UNPACK_DATA  (ogrid,   oEPREC_glob,   oEPREC)
@@ -4180,8 +4180,8 @@ C***  Scatter the precipitation arrays to the ocean grid
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       CALL UNPACK_COLUMN(ogrid,  oTRPREC_glob,  oTRPREC)
       CALL UNPACK_COLUMN(ogrid, oTRUNPSI_glob, oTRUNPSI)
-#endif      
-C* 
+#endif
+C*
 
 
 C**** Convert fluxes on atmospheric grid to oceanic grid
@@ -4860,7 +4860,7 @@ C****
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE OCN_TRACER_COM, only : trw0, ntm
 #endif
-      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEANRES,   only : LMO_MIN
 
       USE MODEL_COM, only : FOCEAN
@@ -4888,11 +4888,11 @@ C****
       integer :: j_0,j_1,n,i_0,i_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      if (LMO_MIN .lt. 2) then 
+      if (LMO_MIN .lt. 2) then
         write (*,*) ' Subroutine TOC2SST (OCNDYN.f): '
         write (*,*) ' Make minimum number of ocean layers equal to 2'
         stop
-      end if 
+      end if
 
       call get (grid, j_strt=j_0, j_stop=j_1,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -4900,7 +4900,7 @@ C****
       I_1 = grid%I_STOP
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
-! 
+!
       call OG2AG
 C****
 C**** Note that currently everything is on same grid
@@ -4945,11 +4945,11 @@ C**** do poles
       IF (FOCEAN(1,JMA).gt.0) THEN
         DO I=2,IMA
           GTEMP(:,1,I,JMA)=GTEMP(:,1,1,JMA)
-          GTEMPR(1,I,JMA) =GTEMPR(1,1,JMA) 
+          GTEMPR(1,I,JMA) =GTEMPR(1,1,JMA)
           SSS(I,JMA)=SSS(1,JMA)
           MLHC(I,JMA)=MLHC(1,JMA)
           UOSURF(I,JMA) = UOSURF(1,JMA)
-          VOSURF(I,JMA) = VOSURF(1,JMA) 
+          VOSURF(I,JMA) = VOSURF(1,JMA)
           OGEOZA(I,JMA)=OGEOZA(1,JMA)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
@@ -4966,7 +4966,7 @@ C**** do poles
           SSS(I,1)=SSS(1,1)
           MLHC(I,1)=MLHC(1,1)
           UOSURF(I,1) = UOSURF(1,1)
-          VOSURF(I,1) = VOSURF(1,1) 
+          VOSURF(I,1) = VOSURF(1,1)
           OGEOZA(I,1)=OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
@@ -5155,12 +5155,12 @@ C****
 #endif
 
       USE OFLUXES, only : oGMELT, oEGMELT
-#ifdef TRACERS_WATER  
+#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
-     *     , oTRGMELT 
+     *     , oTRGMELT
 #endif
-#endif              
- 
+#endif
+
       use domain_decomp_1d, only : get
 
       USE OCEANR_DIM, only : ogrid
@@ -5183,11 +5183,11 @@ C**** divide over depth and scale for time step
               DZ=DT*(ZE(L)-ZE(L-1))/(DTsrc*ZE(MIN(MAXGL,LMM(I,J))))
               MO(I,J,L) =MO(I,J,L)+oGMELT(I,J)*DZ/(DXYPO(J)*FOCEAN(I,J))
               G0M(I,J,L)=G0M(I,J,L)+oEGMELT(I,J)*DZ
-#ifdef TRACERS_WATER  
+#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
               TRMO(I,J,L,:)=TRMO(I,J,L,:)+oTRGMELT(:,I,J)*DZ
 #endif
-#endif               
+#endif
             END IF
           END DO
         END DO
@@ -5313,7 +5313,7 @@ C**** Check
       END SUBROUTINE ADJUST_MEAN_SALT
 
       SUBROUTINE OG2AG
-!@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates 
+!@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates
 !!      them to the atmospheric grid, scatters them on the atmospheric grid
 !@auth Larissa Nazarenko
 !@ver  1.0
@@ -5329,23 +5329,23 @@ C**** Check
 #ifndef CUBE_GRID
       if(AM_I_ROOT()) then
         call INT_OG2AG
-      end if 
+      end if
 #endif
 
       call scatter_ocean1
-      
+
       RETURN
-      END SUBROUTINE OG2AG 
+      END SUBROUTINE OG2AG
 
 #ifndef CUBE_GRID
       SUBROUTINE INT_OG2AG
-!@sum  INT_OG2AG is for interpolation of arrays from ocean grid 
+!@sum  INT_OG2AG is for interpolation of arrays from ocean grid
 !!      to the atmospheric grid
 !@auth Larissa Nazarenko
 !@ver  1.0
-      USE MODEL_COM, only : 
+      USE MODEL_COM, only :
 
-      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM
       USE OCEANRES,   only : IMO, JMO, LMO
 
 #ifdef TRACERS_OCEAN
@@ -5377,8 +5377,8 @@ C**** Check
 
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
-      REAL*8  oVOsp, oVOnp      
-      REAL*8  aUO1sp, aVO1sp, aUO1np, aVO1np 
+      REAL*8  oVOsp, oVOnp
+      REAL*8  aUO1sp, aVO1sp, aUO1np, aVO1np
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
 
 !      write (555,*) ' INT_OG2AG#1: dLATMO,aDLATM= ',oDLATM,aDLATM
@@ -5394,11 +5394,11 @@ C**** Check
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
         call HNTR8P (oFOCEAN, oFtemp, aFtemp)
         aMO_glob(:,:,L) = aFtemp(:,:)
-      END DO 
+      END DO
 
 !!!  Enthalpy for the 1st two ocean layers
 
-      oFweight(:,:) = MO_glob(:,:,1)*oFOCEAN(:,:) 
+      oFweight(:,:) = MO_glob(:,:,1)*oFOCEAN(:,:)
       oFweight(2:IMO,JMO) = oFweight(1,JMO)
       DO L = 1,2
         SUM_oG0M = 0.
@@ -5409,7 +5409,7 @@ C**** Check
               oFtemp(I,J) = G0M_glob(I,J,L)/(MO_glob(I,J,L)*oDXYPO(J))
 
               SUM_oG0M = SUM_oG0M + G0M_glob(I,J,L)
-              SUM_oFtemp = SUM_oFtemp 
+              SUM_oFtemp = SUM_oFtemp
      *          + (oFtemp(I,J)*MO_glob(I,J,L)*oDXYPO(J)*oFOCEAN(I,J))
 
             END IF
@@ -5418,9 +5418,9 @@ C**** Check
 
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
         call HNTR8P (oFweight, oFtemp, aFtemp)
-        aG0_glob(:,:,L) = aFtemp(:,:) 
+        aG0_glob(:,:,L) = aFtemp(:,:)
 
-      END DO 
+      END DO
 
 !!!  Salinity for the 1st two ocean layers
 
@@ -5435,9 +5435,9 @@ C**** Check
 
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
         call HNTR8P (oFweight, oFtemp, aFtemp)
-        aS0_glob(:,:,L) = aFtemp(:,:) 
-      END DO 
- 
+        aS0_glob(:,:,L) = aFtemp(:,:)
+      END DO
+
       OGEOZ_glob(2:IMO,JMO) = OGEOZ_glob(1,JMO)
       call HNTR8P (oFOCEAN, OGEOZ_glob, aOGEOZ_glob)
       OGEOZ_SV_glob(2:IMO,JMO) = OGEOZ_SV_glob(1,JMO)
@@ -5469,12 +5469,12 @@ C**** surface tracer concentration
         END DO
         end if
         oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-        call HNTR8P (oFweight, oFtemp, aFtemp)        
+        call HNTR8P (oFweight, oFtemp, aFtemp)
         aTRAC_glob(:,:,NT)=aFtemp(:,:)
       END DO
 #endif
-      
-!!!  U velocity for the 1st ocean layer. 
+
+!!!  U velocity for the 1st ocean layer.
 
       oVOsp = UO_glob(IVSPO,  1,1)
       oVOnp = UO_glob(IVNPO,JMO,1)
@@ -5502,11 +5502,11 @@ C**** surface tracer concentration
       aVO1_glob(1,JMA) = aVO1np
 
       RETURN
-      END SUBROUTINE INT_OG2AG 
+      END SUBROUTINE INT_OG2AG
 #endif
 
 
-      SUBROUTINE gather_ocean1 
+      SUBROUTINE gather_ocean1
 
 !@sum  gather_ocean1  gathers necessary arrays on the ocean grid
 !@auth Larissa Nazarenko
@@ -5546,7 +5546,7 @@ C**** surface tracer concentration
       RETURN
       END SUBROUTINE gather_ocean1
 
-      SUBROUTINE scatter_ocean1 
+      SUBROUTINE scatter_ocean1
 
 !@sum  scatter_ocean1  scatters necessary arrays on the atmospheric grid
 !@auth Larissa Nazarenko
@@ -5585,16 +5585,16 @@ C**** surface tracer concentration
      *     , oRSI_glob, oPREC_glob,oEPREC_glob
      *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-     *     , aTRPREC_glob, aTRUNPSI_glob 
-     *     , oTRPREC_glob, oTRUNPSI_glob 
-#endif 
-     *     )     
-!@sum  INT_AG2OG is for interpolation of precipitation arrays 
+     *     , aTRPREC_glob, aTRUNPSI_glob
+     *     , oTRPREC_glob, oTRUNPSI_glob
+#endif
+     *     )
+!@sum  INT_AG2OG is for interpolation of precipitation arrays
 !!      from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : ima=>im,jma=>jm 
+      USE RESOLUTION, only : ima=>im,jma=>jm
       USE OCEAN, only : imo=>im,jmo=>jm
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM
@@ -5609,21 +5609,21 @@ C**** surface tracer concentration
 
       INTEGER I,J, N
 
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) ::
      *        aPREC_glob, aEPREC_glob
      *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
      *      , aRSI_glob
 
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) ::
      *        oPREC_glob, oEPREC_glob
      *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
      *      , oRSI_glob
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: 
-     *        aTRPREC_glob, aTRUNPSI_glob      
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: 
-     *        oTRPREC_glob, oTRUNPSI_glob      
+      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) ::
+     *        aTRPREC_glob, aTRUNPSI_glob
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) ::
+     *        oTRPREC_glob, oTRUNPSI_glob
 #endif
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aFweight
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
@@ -5632,20 +5632,20 @@ C**** surface tracer concentration
 !      write (555,*) ' INT_AG2OG_precip#1: oDLATM,aDLATM= ',oDLATM,aDLATM
 
       aONES(:,:) = 1.d0
-      aFweight(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction 
+      aFweight(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction
 
       call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
 
       aFtemp(:,:) = aPREC_glob(:,:)                         ! kg/m^2
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFweight, aFtemp, oFtemp)
-      oPREC_glob(:,:) = oFtemp(:,:)                         ! kg/m^2 
+      oPREC_glob(:,:) = oFtemp(:,:)                         ! kg/m^2
 
       aFtemp(:,:) = aEPREC_glob(:,:)                        ! J/m^2
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFweight, aFtemp, oFtemp)
       DO J = 1,JMO
-        oEPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)            ! J  
+        oEPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)            ! J
       END DO
 
       aFtemp(:,:) = aRUNPSI_glob(:,:)                       ! kg/m^2
@@ -5657,43 +5657,43 @@ C**** surface tracer concentration
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       DO J = 1,JMO
-        oSRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg    
+        oSRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg
       END DO
 
       aFtemp(:,:) = aERUNPSI_glob(:,:)                      ! J/m^2
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       DO J = 1,JMO
-        oERUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! J   
+        oERUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! J
       END DO
 
-      aFtemp(:,:) = aRSI_glob(:,:)    
+      aFtemp(:,:) = aRSI_glob(:,:)
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
-      oRSI_glob(:,:) = oFtemp(:,:)                         
+      oRSI_glob(:,:) = oFtemp(:,:)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
       DO J = 1,JMA
-        aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYP(:,J)        ! kg/m^2    
+        aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYP(:,J)        ! kg/m^2
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFweight, aFtemp, oFtemp)
       DO J = 1,JMO
-        oTRPREC_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)         ! kg                          
+        oTRPREC_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)         ! kg
       END DO
 
       aFtemp(:,:) = aTRUNPSI_glob(N,:,:)                    ! kg/m^2
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aRSI_glob, aFtemp, oFtemp)
       DO J = 1,JMO
-        oTRUNPSI_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)        ! kg    
+        oTRUNPSI_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)        ! kg
       END DO
       END DO
 #endif
-      
+
       RETURN
-      END SUBROUTINE INT_AG2OG_precip 
+      END SUBROUTINE INT_AG2OG_precip
 #endif
 
 #ifndef CUBE_GRID
@@ -5712,19 +5712,19 @@ C**** surface tracer concentration
      *     , oGMELT_glob, oEGMELT_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-     *     , aTRFLOWO_glob, aTRUNOSI_glob 
+     *     , aTRFLOWO_glob, aTRUNOSI_glob
      *     , aTRMELTI_glob, aTREVAPOR_glob
-     *     , oTRFLOWO_glob, oTRUNOSI_glob 
+     *     , oTRFLOWO_glob, oTRUNOSI_glob
      *     , oTRMELTI_glob, oTREVAPOR_glob
      *     , aTRGMELT_glob, oTRGMELT_glob
 #ifdef TRACERS_DRYDEP
      *     , aTRDRYDEP_glob, oTRDRYDEP_glob
 #endif
-#endif      
-#endif 
+#endif
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
      *     , aTRGASEX_glob, oTRGASEX_glob
-#endif      
+#endif
 #ifdef OBIO_RAD_coupling
      *     , avisdir_glob,ovisdir_glob
      *     , asrvissurf_glob
@@ -5736,13 +5736,13 @@ C**** surface tracer concentration
      *     , aCOSZ1_glob, osolz_glob
      *     , awind_glob,  owind_glob
 #endif
-     *     )     
-!@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC 
+     *     )
+!@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC
 !!      from atmospheric grid to the ocean grid
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP, IVNPO=>IVNP
       USE MODEL_COM, only : IVSPA=>IVSP, IVNPA=>IVNP
 
@@ -5755,10 +5755,10 @@ C**** surface tracer concentration
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
-     *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC, 
+     *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC,
      *     oCOSU=>COSU,oSINU=>SINU
       Use GEOM,  only : aDXYP, aIMAXJ=>IMAXJ,
-     *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP, 
+     *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP,
      *     aSINU=>SINU, aCOSU=>COSU
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
@@ -5771,23 +5771,23 @@ C**** surface tracer concentration
 
       INTEGER, PARAMETER :: NSTYPE=4
 
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: 
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) ::
      *        aRSI_glob, aFLOWO_glob,aEFLOWO_glob
      *      , aRUNOSI_glob, aSRUNOSI_glob, aERUNOSI_glob
      *      , aMELTI_glob,aEMELTI_glob,aSMELTI_glob, aAPRESS_glob
      *      , aDMUI_glob, aDMVI_glob, aGMELT_glob, aEGMELT_glob
       REAL*8, INTENT(IN), DIMENSION(3,IMA,JMA) :: aSOLAR_glob
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA,NSTYPE) :: 
-     *        aE0_glob, aEVAPOR_glob 
+      REAL*8, INTENT(IN), DIMENSION(IMA,JMA,NSTYPE) ::
+     *        aE0_glob, aEVAPOR_glob
      *      , aDMUA_glob, aDMVA_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob 
-     *      , aTRUNOSI_glob, aTRMELTI_glob, aTRGMELT_glob      
-      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: 
-     *        aTREVAPOR_glob 
+      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob
+     *      , aTRUNOSI_glob, aTRMELTI_glob, aTRGMELT_glob
+      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) ::
+     *        aTREVAPOR_glob
 #ifdef TRACERS_DRYDEP
-      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: 
+      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) ::
      *        aTRDRYDEP_glob
 #endif
 #endif
@@ -5806,23 +5806,23 @@ C**** surface tracer concentration
 
 !!!   Global arrays on ocean grid
 
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: 
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) ::
      *        oRSI_glob, oFLOWO_glob,oEFLOWO_glob
      *      , oRUNOSI_glob, oSRUNOSI_glob, oERUNOSI_glob
      *      , oMELTI_glob,oEMELTI_glob,oSMELTI_glob, oAPRESS_glob
      *      , oDMUI_glob, oDMVI_glob, oGMELT_glob, oEGMELT_glob
       REAL*8, INTENT(INOUT), DIMENSION(3,IMO,JMO) :: oSOLAR_glob
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO,1) :: 
-     *        oE0_glob, oEVAPOR_glob 
+      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO,1) ::
+     *        oE0_glob, oEVAPOR_glob
      *      , oDMUA_glob, oDMVA_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
       REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob
-     *      , oTRUNOSI_glob, oTRMELTI_glob, oTRGMELT_glob      
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: 
-     *        oTREVAPOR_glob 
+     *      , oTRUNOSI_glob, oTRMELTI_glob, oTRGMELT_glob
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) ::
+     *        oTREVAPOR_glob
 #ifdef TRACERS_DRYDEP
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: 
+      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) ::
      *        oTRDRYDEP_glob
 #endif
 #endif
@@ -5839,10 +5839,10 @@ C**** surface tracer concentration
 #endif
       REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aOOCN
       REAL*8, DIMENSION(IMO,JMO) :: oFtemp
-      REAL*8  aDMUAsp, aDMVAsp, aDMUAnp, aDMVAnp 
-      REAL*8  oDMUAsp, oDMVAsp, oDMUAnp, oDMVAnp 
-      REAL*8  aDMUIsp, aDMVIsp, aDMUInp, aDMVInp 
-      REAL*8  oDMUIsp, oDMVIsp, oDMUInp, oDMVInp 
+      REAL*8  aDMUAsp, aDMVAsp, aDMUAnp, aDMVAnp
+      REAL*8  oDMUAsp, oDMVAsp, oDMUAnp, oDMVAnp
+      REAL*8  aDMUIsp, aDMVIsp, aDMUInp, aDMVInp
+      REAL*8  oDMUIsp, oDMVIsp, oDMUInp, oDMVInp
       REAL*8  diff, SUM_oFtemp, SUM_aFtemp, SUM_aORIG
 
       aONES(:,:) = 1.d0
@@ -5850,17 +5850,17 @@ C**** surface tracer concentration
 
       call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
 
-      aFtemp(:,:) = aRSI_glob(:,:)    
+      aFtemp(:,:) = aRSI_glob(:,:)
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
-      oRSI_glob(:,:) = oFtemp(:,:)                         
+      oRSI_glob(:,:) = oFtemp(:,:)
 
       aFtemp(:,:) = 0.
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aFLOWO_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5871,7 +5871,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aEFLOWO_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  J/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5882,7 +5882,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5893,7 +5893,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aEMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  J/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5904,7 +5904,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aSMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5915,7 +5915,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aRUNOSI_glob(I,J)                           !  kg/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5926,7 +5926,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aERUNOSI_glob(I,J)                          !  J/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5937,7 +5937,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aSRUNOSI_glob(I,J)                          !  kg/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5948,7 +5948,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aE0_glob(I,J,1)                             !  J/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5959,7 +5959,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aEVAPOR_glob(I,J,1)                         !  kg/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5970,7 +5970,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aSOLAR_glob(1,I,J)                          !  J/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5981,7 +5981,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aSOLAR_glob(3,I,J)                          !  J/m^2
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -5992,35 +5992,35 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aAPRESS_glob(I,J)                           !  Pa
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
-      oAPRESS_glob(:,:) = oFtemp(:,:)                                 !  Pa 
+      oAPRESS_glob(:,:) = oFtemp(:,:)                                 !  Pa
 
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aGMELT_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2   
-          END IF 
+            aFtemp(I,J) = aGMELT_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
-      oGMELT_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2  
+      oGMELT_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2
 
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEGMELT_glob(I,J)/aDXYP(I,J)                !  J/m^2   
-          END IF 
+            aFtemp(I,J) = aEGMELT_glob(I,J)/aDXYP(I,J)                !  J/m^2
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
       DO J = 1,JMO
-        oEGMELT_glob(:,J) = oFtemp(:,J)*oDXYPO(J)                     !  J  
+        oEGMELT_glob(:,J) = oFtemp(:,J)*oDXYPO(J)                     !  J
       END DO
 
 #ifdef TRACERS_OCEAN
@@ -6032,7 +6032,7 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTRFLOWO_glob(N,I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -6047,7 +6047,7 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTRMELTI_glob(N,I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -6062,7 +6062,7 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTRUNOSI_glob(N,I,J)                           !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -6077,7 +6077,7 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTREVAPOR_glob(N,1,I,J)                        !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -6092,13 +6092,13 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYP(I,J)                !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
       DO J = 1,JMO
-        oTRGMELT_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)                     !  kg  
+        oTRGMELT_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)                     !  kg
       END DO
       END DO
 
@@ -6110,7 +6110,7 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTRDRYDEP_glob(N,1,I,J)                        !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -6128,7 +6128,7 @@ C**** surface tracer concentration
             aFtemp(I,J) = aTRGASEX_glob(N,1,I,J)                         !  kg/m^2
           ELSE
             aFtemp(I,J) = 0.
-          END IF 
+          END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
@@ -6142,59 +6142,59 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = avisdir_glob(I,J)
-     .                  * asrvissurf_glob(I,J)   
+     .                  * asrvissurf_glob(I,J)
           END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      ovisdir_glob(:,:) = oFtemp(:,:)                               
+      ovisdir_glob(:,:) = oFtemp(:,:)
 
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = avisdif_glob(I,J)   
+            aFtemp(I,J) = avisdif_glob(I,J)
           END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      ovisdif_glob(:,:) = oFtemp(:,:)                               
+      ovisdif_glob(:,:) = oFtemp(:,:)
 
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = anirdir_glob(I,J)   
+            aFtemp(I,J) = anirdir_glob(I,J)
           END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      onirdir_glob(:,:) = oFtemp(:,:)                               
+      onirdir_glob(:,:) = oFtemp(:,:)
 
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = anirdif_glob(I,J)   
+            aFtemp(I,J) = anirdif_glob(I,J)
           END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      onirdif_glob(:,:) = oFtemp(:,:)                               
+      onirdif_glob(:,:) = oFtemp(:,:)
 #endif
 
 #ifdef TRACERS_OceanBiology
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aCOSZ1_glob(I,J)   
+            aFtemp(I,J) = aCOSZ1_glob(I,J)
           END IF
         END DO
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      osolz_glob(:,:) = oFtemp(:,:)                               
+      osolz_glob(:,:) = oFtemp(:,:)
       write(*,*)'OCNDYN, solz=',osolz_glob(16,45)
 
       DO J=1,JMA
@@ -6206,7 +6206,7 @@ C**** surface tracer concentration
       END DO
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      owind_glob(:,:) = oFtemp(:,:)                               
+      owind_glob(:,:) = oFtemp(:,:)
 #endif
 
       aDMUAsp = aDMUA_glob(1,1,1)
@@ -6221,12 +6221,12 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aDMUA_glob(I,J,1)                           !  kg/m s
-          END IF 
+          END IF
         END DO
       END DO
       call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
       call HNTR8  (aONES, aFtemp, oDMUA_glob)          !!  A-grid => A-grid
-      
+
       oDMUAsp =  SUM(oDMUA_glob(:,  1,1)*oCOSI(:))*2/IMO
       oDMVAsp = -SUM(oDMUA_glob(:,  1,1)*oSINI(:))*2/IMO
       oDMUAnp =  SUM(oDMUA_glob(:,JMO,1)*oCOSI(:))*2/IMO
@@ -6242,7 +6242,7 @@ C**** surface tracer concentration
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
             aFtemp(I,J) = aDMVA_glob(I,J,1)                           !  kg/m s
-          END IF 
+          END IF
         END DO
       END DO
       call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
@@ -6257,7 +6257,7 @@ C**** surface tracer concentration
       aDMVInp = 0.0  !!  aDMVI_glob(IVNPA,JMA)
 
       aFtemp(:,:)   = aDMUI_glob(:,:)
-      aFtemp(:,JMA) = 0.0  
+      aFtemp(:,JMA) = 0.0
       call HNTR80 (IMA,JMA,.5d0,aDLATM, IMO,JMO,.5d0,oDLATM, 0.d0)
       call HNTR8  (aONES, aFtemp, oDMUI_glob)          !!  U-grid => U-grid
 
@@ -6276,7 +6276,7 @@ C**** surface tracer concentration
       oDMVI_glob(:,JMO) = 0.0                          !!  should not be used
 
       RETURN
-      END SUBROUTINE INT_AG2OG_oceans 
+      END SUBROUTINE INT_AG2OG_oceans
 #endif
 
 #ifndef CUBE_GRID
@@ -6289,14 +6289,14 @@ C**** surface tracer concentration
 #ifdef TRACERS_ON
      *     , aDTRSI_glob
 #endif
-     *     )     
-!@sum  INT_OG2AG is for interpolation of arrays from subr.GROUND_OC 
+     *     )
+!@sum  INT_OG2AG is for interpolation of arrays from subr.GROUND_OC
 !!      from ocean grid to the atmospheric grid
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM 
-      USE OCEAN, only : IMO=>IM,JMO=>JM, oFOCEAN=>FOCEAN,  
+      USE RESOLUTION, only : IMA=>IM,JMA=>JM
+      USE OCEAN, only : IMO=>IM,JMO=>JM, oFOCEAN=>FOCEAN,
      *     oDXYPO=>DXYPO, oIMAXJ=>IMAXJ, oDLATM=>DLATM
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
@@ -6316,7 +6316,7 @@ C**** surface tracer concentration
 
 !!!   Global arrays on ocean grid
 
-      REAL*8, INTENT(IN), DIMENSION(2,IMO,JMO) :: 
+      REAL*8, INTENT(IN), DIMENSION(2,IMO,JMO) ::
      *     oDMSI_glob, oDHSI_glob, oDSSI_glob
 #ifdef TRACERS_OCEAN
       REAL*8, INTENT(IN), DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
@@ -6324,7 +6324,7 @@ C**** surface tracer concentration
 
 !!!   Global arrays on atmospheric grid
 
-      REAL*8, INTENT(INOUT), DIMENSION(2,IMA,JMA) :: 
+      REAL*8, INTENT(INOUT), DIMENSION(2,IMA,JMA) ::
      *     aDMSI_glob, aDHSI_glob, aDSSI_glob
 #ifdef TRACERS_ON
       REAL*8, INTENT(INOUT), DIMENSION(NTM_ATM,2,IMA,JMA) :: aDTRSI_glob
@@ -6339,8 +6339,8 @@ C**** surface tracer concentration
       DO J=1,JMO
         DO I=1,oIMAXJ(J)
           IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDMSI_glob(N,I,J)                 !  kg/m^2   
-          END IF 
+            oFtemp(I,J) = oDMSI_glob(N,I,J)                 !  kg/m^2
+          END IF
         END DO
       END DO
       oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
@@ -6348,16 +6348,16 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aDMSI_glob(N,I,J) = aFtemp(I,J)                 !  kg/m^2  
-          END IF 
+            aDMSI_glob(N,I,J) = aFtemp(I,J)                 !  kg/m^2
+          END IF
         END DO
       END DO
 
       DO J=1,JMO
         DO I=1,oIMAXJ(J)
           IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDHSI_glob(N,I,J)                 !  J/m^2   
-          END IF 
+            oFtemp(I,J) = oDHSI_glob(N,I,J)                 !  J/m^2
+          END IF
         END DO
       END DO
       oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
@@ -6365,16 +6365,16 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aDHSI_glob(N,I,J) = aFtemp(I,J)                 !  J/m^2  
-          END IF 
+            aDHSI_glob(N,I,J) = aFtemp(I,J)                 !  J/m^2
+          END IF
         END DO
       END DO
 
       DO J=1,JMO
         DO I=1,oIMAXJ(J)
           IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDSSI_glob(N,I,J)                 !  kg/m^2   
-          END IF 
+            oFtemp(I,J) = oDSSI_glob(N,I,J)                 !  kg/m^2
+          END IF
         END DO
       END DO
       oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
@@ -6382,8 +6382,8 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aDSSI_glob(N,I,J) = aFtemp(I,J)                 !  kg/m^2  
-          END IF 
+            aDSSI_glob(N,I,J) = aFtemp(I,J)                 !  kg/m^2
+          END IF
         END DO
       END DO
 
@@ -6394,8 +6394,8 @@ C**** surface tracer concentration
       DO J=1,JMO
         DO I=1,oIMAXJ(J)
           IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDTRSI_glob(NT,N,I,J)             !  kg/m^2   
-          END IF 
+            oFtemp(I,J) = oDTRSI_glob(NT,N,I,J)             !  kg/m^2
+          END IF
         END DO
       END DO
       oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
@@ -6403,8 +6403,8 @@ C**** surface tracer concentration
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
           IF (aFOCEAN(I,J).gt.0.) THEN
-            aDTRSI_glob(NT,N,I,J) = aFtemp(I,J)             !  kg/m^2  
-          END IF 
+            aDTRSI_glob(NT,N,I,J) = aFtemp(I,J)             !  kg/m^2
+          END IF
         END DO
       END DO
       END DO
@@ -6416,17 +6416,17 @@ C**** do something in here
 #endif
       END DO   !N-loop
 
-      END SUBROUTINE INT_OG2AG_oceans 
+      END SUBROUTINE INT_OG2AG_oceans
 #endif
 
       SUBROUTINE AG2OG_oceans
-!@sum  AG2OG_oceans: all atmospheric arrays used in the subr. OCEANS are gathered 
+!@sum  AG2OG_oceans: all atmospheric arrays used in the subr. OCEANS are gathered
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM
 
       USE OCEAN, only : IMO=>IM,JMO=>JM
 
@@ -6443,7 +6443,7 @@ C**** do something in here
      *     , PACK_BLOCK, UNPACK_BLOCK
       USE OCEANR_DIM, only : ogrid
 
-      USE SEAICE_COM, only : aRSI=>RSI 
+      USE SEAICE_COM, only : aRSI=>RSI
 
       USE FLUXES, only : aSOLAR=>SOLAR, aE0=>E0, aEVAPOR=>EVAPOR
      *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
@@ -6455,7 +6455,7 @@ C**** do something in here
 #ifdef TRACERS_WATER
      *     , aTRFLOWO=>TRFLOWO, aTREVAPOR=>TREVAPOR
      *     , aTRUNOSI=>TRUNOSI, aTRMELTI=>TRMELTI
-     *     , aTRGMELT=>TRGMELT 
+     *     , aTRGMELT=>TRGMELT
 #ifdef TRACERS_DRYDEP
      *     , aTRDRYDEP=>TRDRYDEP
 #endif
@@ -6486,7 +6486,7 @@ C**** do something in here
 #ifdef TRACERS_WATER
      *     , oTRFLOWO, oTREVAPOR
      *     , oTRUNOSI, oTRMELTI
-     *     , oTRGMELT 
+     *     , oTRGMELT
 #ifdef TRACERS_DRYDEP
      *     , oTRDRYDEP
 #endif
@@ -6508,18 +6508,18 @@ C**** do something in here
 !!!   Global arrays on atmospheric grid
 
       INTEGER, PARAMETER :: NSTYPE=4
-      REAL*8, DIMENSION(IMA,JMA) :: aRSI_glob, aFLOWO_glob,aEFLOWO_glob 
+      REAL*8, DIMENSION(IMA,JMA) :: aRSI_glob, aFLOWO_glob,aEFLOWO_glob
      *      , aRUNOSI_glob, aSRUNOSI_glob, aERUNOSI_glob, aAPRESS_glob
      *      , aMELTI_glob, aEMELTI_glob, aSMELTI_glob
      *      , aDMUI_glob, aDMVI_glob, aGMELT_glob, aEGMELT_glob
       REAL*8, DIMENSION(3,IMA,JMA) :: aSOLAR_glob
       REAL*8, DIMENSION(IMA,JMA,NSTYPE) :: aE0_glob, aEVAPOR_glob
-     *      , aDMUA_glob, aDMVA_glob 
+     *      , aDMUA_glob, aDMVA_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob 
+      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob
      *      , aTRUNOSI_glob, aTRMELTI_glob, aTRGMELT_glob
-      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTREVAPOR_glob 
+      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTREVAPOR_glob
 #ifdef TRACERS_DRYDEP
       REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRDRYDEP_glob
 #endif
@@ -6539,7 +6539,7 @@ C**** do something in here
 
 !!!   Global arrays on ocean grid
 
-      REAL*8, DIMENSION(IMO,JMO) :: oRSI_glob, oFLOWO_glob,oEFLOWO_glob 
+      REAL*8, DIMENSION(IMO,JMO) :: oRSI_glob, oFLOWO_glob,oEFLOWO_glob
      *      , oRUNOSI_glob, oSRUNOSI_glob, oERUNOSI_glob, oAPRESS_glob
      *      , oMELTI_glob, oEMELTI_glob, oSMELTI_glob
      *      , oDMUI_glob, oDMVI_glob, oGMELT_glob, oEGMELT_glob
@@ -6548,9 +6548,9 @@ C**** do something in here
      *      , oDMUA_glob, oDMVA_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob 
+      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob
      *      , oTRUNOSI_glob, oTRMELTI_glob, oTRGMELT_glob
-      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTREVAPOR_glob 
+      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTREVAPOR_glob
 #ifdef TRACERS_DRYDEP
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRDRYDEP_glob
 #endif
@@ -6568,7 +6568,7 @@ C**** do something in here
 #endif
 
 
-C***  Gather arrays on atmospheric grid into the global arrays 
+C***  Gather arrays on atmospheric grid into the global arrays
 
       CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
       CALL PACK_DATA  (agrid,   aFLOWO,   aFLOWO_glob)
@@ -6600,10 +6600,10 @@ C***  Gather arrays on atmospheric grid into the global arrays
       CALL PACK_BLOCK (agrid, aTRDRYDEP, aTRDRYDEP_glob)
 #endif
 #endif
-#endif      
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
       CALL PACK_BLOCK (agrid,  aTRGASEX,  aTRGASEX_glob)
-#endif      
+#endif
 #ifdef OBIO_RAD_coupling
       CALL PACK_DATA  (agrid, avisdir, avisdir_glob)
       CALL PACK_DATA  (agrid, asrvissurf, asrvissurf_glob)
@@ -6614,10 +6614,10 @@ C***  Gather arrays on atmospheric grid into the global arrays
 #ifdef TRACERS_OceanBiology
       CALL PACK_DATA  (agrid,  aCOSZ1,  aCOSZ1_glob)
       CALL PACK_DATA  (agrid,   awind,   awind_glob)
-#endif      
-C* 
-C***  Do interpolation to the ocean grid 
-C* 
+#endif
+C*
+C***  Do interpolation to the ocean grid
+C*
       if(AM_I_ROOT()) then
 #ifndef CUBE_GRID
         call INT_AG2OG_oceans(
@@ -6635,19 +6635,19 @@ C*
      *     , oGMELT_glob, oEGMELT_glob
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-     *     , aTRFLOWO_glob, aTRUNOSI_glob 
+     *     , aTRFLOWO_glob, aTRUNOSI_glob
      *     , aTRMELTI_glob, aTREVAPOR_glob
-     *     , oTRFLOWO_glob, oTRUNOSI_glob 
+     *     , oTRFLOWO_glob, oTRUNOSI_glob
      *     , oTRMELTI_glob, oTREVAPOR_glob
      *     , aTRGMELT_glob, oTRGMELT_glob
 #ifdef TRACERS_DRYDEP
      *     , aTRDRYDEP_glob, oTRDRYDEP_glob
 #endif
-#endif      
-#endif 
+#endif
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
      *     , aTRGASEX_glob, oTRGASEX_glob
-#endif      
+#endif
 #ifdef OBIO_RAD_coupling
      *     , avisdir_glob,ovisdir_glob
      *     , asrvissurf_glob
@@ -6659,11 +6659,11 @@ C*
      *     , aCOSZ1_glob, osolz_glob
      *     ,  awind_glob, owind_glob
 #endif
-     *     )     
+     *     )
 #endif
-      end if 
+      end if
 
-C***  Scatter the arrays to the ocean grid 
+C***  Scatter the arrays to the ocean grid
 
       CALL UNPACK_DATA  (ogrid,     oRSI_glob,     oRSI)
       CALL UNPACK_DATA  (ogrid,   oFLOWO_glob,   oFLOWO)
@@ -6695,10 +6695,10 @@ C***  Scatter the arrays to the ocean grid
       CALL UNPACK_BLOCK (ogrid, oTRDRYDEP_glob, oTRDRYDEP)
 #endif
 #endif
-#endif      
+#endif
 #ifdef TRACERS_GASEXCH_Natassa
       CALL UNPACK_BLOCK (ogrid,  oTRGASEX_glob,  oTRGASEX)
-#endif      
+#endif
 #ifdef OBIO_RAD_coupling
       CALL UNPACK_DATA  (ogrid,ovisdir_glob,ovisdir)
       CALL UNPACK_DATA  (ogrid,ovisdif_glob,ovisdif)
@@ -6709,18 +6709,18 @@ C***  Scatter the arrays to the ocean grid
       CALL UNPACK_DATA  (ogrid,  osolz_glob,  osolz)
       CALL UNPACK_DATA  (ogrid,  owind_glob,  owind)
 #endif
-      
+
       RETURN
-      END SUBROUTINE AG2OG_oceans 
+      END SUBROUTINE AG2OG_oceans
 
       SUBROUTINE OG2AG_oceans
-!@sum  OG2AG_oceans: ocean arrays for sea ice formation calculated in the  
-!       subr. OCEANS are gathered on the ocean grid, interpolated to the 
+!@sum  OG2AG_oceans: ocean arrays for sea ice formation calculated in the
+!       subr. OCEANS are gathered on the ocean grid, interpolated to the
 !!      atmospheric grid, and scattered on the atmospheric ocean grid
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : IMA=>IM, JMA=>JM 
+      USE RESOLUTION, only : IMA=>IM, JMA=>JM
 
       USE OCEAN, only : IMO=>IM,JMO=>JM, FOCEAN, IMAXJ
 
@@ -6766,7 +6766,7 @@ C***  Scatter the arrays to the ocean grid
       REAL*8, DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
 #endif
 
-C***  Gather the arrays for the sea ice on atm. grid 
+C***  Gather the arrays for the sea ice on atm. grid
 C***    since they were already filled in for LAKES
 
       CALL PACK_DATA  (agrid, aFOCEAN_loc, aFOCEAN)
@@ -6777,8 +6777,8 @@ C***    since they were already filled in for LAKES
 #ifdef TRACERS_ON
       CALL PACK_BLOCK  (agrid, aDTRSI, aDTRSI_glob)
 #endif
-      
-C***  Gather arrays on ocean grid into the global arrays 
+
+C***  Gather arrays on ocean grid into the global arrays
 
       CALL PACK_COLUMN (ogrid, oDMSI, oDMSI_glob)
       CALL PACK_COLUMN (ogrid, oDHSI, oDHSI_glob)
@@ -6786,9 +6786,9 @@ C***  Gather arrays on ocean grid into the global arrays
 #ifdef TRACERS_OCEAN
       CALL PACK_BLOCK  (ogrid, oDTRSI, oDTRSI_glob)
 #endif
-C* 
-C***  Do interpolation to the atmospheric grid 
-C* 
+C*
+C***  Do interpolation to the atmospheric grid
+C*
 #ifndef CUBE_GRID
       if(AM_I_ROOT()) then
         call INT_OG2AG_oceans(
@@ -6800,11 +6800,11 @@ C*
 #ifdef TRACERS_ON
      *     , aDTRSI_glob
 #endif
-     *     )     
-      end if 
+     *     )
+      end if
 #endif
 
-C***  Scatter the arrays to the atmospheric grid 
+C***  Scatter the arrays to the atmospheric grid
 
       CALL UNPACK_COLUMN (agrid, aDMSI_glob, aDMSI)
       CALL UNPACK_COLUMN (agrid, aDHSI_glob, aDHSI)
@@ -6814,7 +6814,7 @@ C***  Scatter the arrays to the atmospheric grid
 #endif
 
       RETURN
-      END SUBROUTINE OG2AG_oceans 
+      END SUBROUTINE OG2AG_oceans
 
       Subroutine HNTR80 (IMA,JMA,OFFIA,DLATA,
      *                   IMB,JMB,OFFIB,DLATB, DATMIS)
