@@ -117,12 +117,13 @@
 
       end type cs2ll_type
 
-      public :: init_cs2ll_type,pack_zonal,sum_zonal
+      public :: init_cs2ll_type,pack_zonal,sum_zonal,sumxpe_zonal
 
       contains
 
       subroutine init_cs2ll_type(grid,imlon,jmlat,cs2ll,lons,lats)
       use dd2d_utils, only : dist_grid
+      use geom, only : ll2csxy
       type(dist_grid), intent(in) :: grid
       type(cs2ll_type), intent(out) :: cs2ll
       integer, intent(in) :: imlon,jmlat
@@ -246,8 +247,8 @@ c
       jlat1 = 1
       do while(jlat1.le.jmlat)
         jlat2 = jlat1
-        do while(jlat2.lt.jmlat .and.
-     &       hash_pelist(jlat2+1).eq.hash_pelist(jlat1))
+        do while(jlat2.lt.jmlat)
+          if(hash_pelist(jlat2+1).ne.hash_pelist(jlat1)) exit
           jlat2 = jlat2 + 1
         enddo
         n = cs2ll%nproc_j(jlat1)
@@ -415,133 +416,55 @@ c sum over the processors at this latitude
       return
       end subroutine sum_zonal
 
+      subroutine sumxpe_zonal(cs2ll,jlat,nl,arr,arrsum)
+      implicit none
+      type(cs2ll_type) :: cs2ll
+      integer :: jlat,nl
+      real*8, intent(inout) ::  arr(nl)
+      real*8, intent(out), optional :: arrsum(nl)
+      real*8 tmparr(nl)
+      integer :: ierr
+      if(cs2ll%nproc_j(jlat).eq.1) then
+c no communications required at this latitude
+        if(present(arrsum)) arrsum(:)=arr(:)
+      else
+        if(present(arrsum)) then
+          call mpi_allreduce(arr,arrsum,nl,MPI_DOUBLE_PRECISION,
+     &         MPI_SUM,cs2ll%comm(jlat),ierr)
+        else
+          tmparr = arr
+          call mpi_allreduce(tmparr,arr,nl,MPI_DOUBLE_PRECISION,
+     &         MPI_SUM,cs2ll%comm(jlat),ierr)
+        endif
+      endif
+      return
+      end subroutine sumxpe_zonal
+
       end module cs2ll_utils
 
-      subroutine csxy2ll(x,y,tile,lon,lat)
-c This routine places the center of tile 1 at the IDL.
-c Gnomonic (great circle) grid generation rules:
-c 1. y is proportional to latitude when lon=pi/4 (x=const)
-c 2. tan(lat) proportional to cos(lon) along a great circle y=const
-      implicit none
-      real*8 :: x,y ! input
-      integer :: tile ! input
-      real*8 :: lon,lat ! output
-      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
-      real*8 :: xx,yy,tmpx,tmpy,cosx,coslon,pi,rotlon,rotlat
-      pi = acos(-1d0)
-      xx = x
-      yy = y
-      if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
-        tmpx = xx
-        tmpy = yy
-        xx = +tmpy
-        yy = -tmpx
-      endif
-      xx = xx*g
-      yy = yy*g
-      cosx = cos(xx)
-      coslon = cosx/sqrt(2d0-cosx*cosx)
-      lat = atan(coslon*sqrt(2d0)*tan(yy))
-      lon = sign(acos(coslon),xx)
-      if(tile.eq.3 .or. tile.eq.6) then ! rotate pole
-        rotlon = lon
-        rotlat = lat
-        lat = asin(coslon*cos(rotlat))
-        xx = sin(rotlon)*cos(rotlat)
-        yy = sin(rotlat)
-        if(tile.eq.3) then
-          lon = atan2(+yy,+xx)
-        else
-          lat = -lat
-c tile 6 = tile 3 flipped around the axis x+y=0
-          lon = atan2(-xx,-yy)
-        endif
-      else ! add longitude offset to tiles 1,2,4,5. integer arithmetic.
-        lon = lon + (mod(tile,3)-1)*pi/2. -pi*(1-(tile/3))
-        if(lon.lt.-pi) lon=lon+2.*pi
-      endif
-      return
-      end subroutine csxy2ll
-
-      subroutine ll2csxy(lon,lat,x,y,tile)
-c This routine places the center of tile 1 at the IDL.
-c Gnomonic (great circle) grid generation rules:
-c 1. y is proportional to latitude when lon=pi/4 (x=const)
-c 2. tan(lat) proportional to cos(lon) along a great circle y=const
-      implicit none
-      real*8, parameter :: byg=1.62474893308877d0 ! byg=2/acos(1/3)
-      real*8 :: lon,lat ! input
-      real*8 :: x,y ! output
-      integer :: tile ! output
-      real*8 :: modlon,coslon,tanlat,pi,rotlon,rotlat,latx,tmpx,tmpy
-      pi = acos(-1d0)
-      modlon = lon
-      do while(modlon.lt.-pi/4d0)
-        modlon = modlon + pi/2d0
-      enddo
-      do while(modlon.gt.+pi/4d0)
-        modlon = modlon - pi/2d0
-      enddo
-      coslon = cos(modlon)
-      tanlat = tan(lat)
-      y = byg*atan(tanlat/(coslon*sqrt(2d0)))
-      if(abs(y).le.1d0) then
-c equatorial face
-        x = sign(acos(coslon*sqrt(2d0/(1d0+coslon*coslon)))*byg,modlon)
-c determine which face (1,2,4,5) we are on.  integer arithmetic
-        tile = 1 + int((lon+1.25*pi)*2./pi)
-        tile = tile +(tile/3) -5*(tile/5)
-        if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
-          tmpx = x
-          tmpy = y
-          x = -tmpy
-          y = +tmpx
-        endif
-      else
-c polar face.  rotate the pole to the equator, recalculate x,y
-c this calculation is for the NH
-c SH x,y = NH x,y flipped around the axis x+y=0
-        latx = abs(lat)
-        rotlat = asin(sin(lon)*cos(latx))
-        rotlon = atan2(cos(lon)*cos(latx),sin(latx))
-        coslon = cos(rotlon)
-        tanlat = tan(rotlat)
-        x = sign(acos(coslon*sqrt(2d0/(1d0+coslon*coslon)))*byg,rotlon)
-        y = byg*atan(tanlat/(coslon*sqrt(2d0)))
-        if(lat.gt.0.) then
-          tile = 3
-        else
-          tile = 6
-          tmpx = x
-          tmpy = y
-          x = -tmpy
-          y = -tmpx
-        endif
-      endif
-      return
-      end subroutine ll2csxy
-
-      subroutine interp_xy_4D(grid,cs2ll,arrcs,arrll,nl,nk)
-c note: need to call halo_update and fill cube corners
+      subroutine interp_to_jlat_4D(grid,cs2ll,arrcs,arrll,nl,nk,jlat)
+c note: halo cells of arrcs are assumed to have been filled!
       use dd2d_utils, only : dist_grid
       use cs2ll_utils, only : cs2ll_type
       implicit none
       type(dist_grid), intent(in) :: grid
       type(cs2ll_type), intent(in) :: cs2ll
-      integer :: nl,nk
+      integer :: nl,nk,jlat
       real*8, dimension(nl,grid%isd:grid%ied,grid%jsd:grid%jed,nk)
      &     :: arrcs
-      real*8, dimension(nl,cs2ll%isd:cs2ll%ied,cs2ll%jsd:cs2ll%jed,nk)
-     &     :: arrll
-      integer :: l,ilon,jlat,k,i,j
+      real*8, dimension(nl,cs2ll%isd:cs2ll%ied,nk) :: arrll
+      integer :: l,ilon,k,i,j
       real*8 :: x,y,wti,wtj
+
+      if(jlat.lt.cs2ll%jsd) return
+      if(jlat.gt.cs2ll%jed) return
+
       do k=1,nk
-      do jlat=cs2ll%jsd,cs2ll%jed
       do ilon=cs2ll%isd,cs2ll%ied
         x = cs2ll%ix(ilon,jlat)
         y = cs2ll%jy(ilon,jlat)
         if(x.eq.1d30 .or. y.eq.1d30) then
-          arrll(:,ilon,jlat,k) = 0d0
+          arrll(:,ilon,k) = 0d0
           cycle
         endif
         i = x
@@ -549,48 +472,167 @@ c note: need to call halo_update and fill cube corners
         wti = x-i
         wtj = y-j
         do l=1,nl
-          arrll(l,ilon,jlat,k) =
+          arrll(l,ilon,k) =
      &         wtj*(wti*arrcs(l,i+1,j+1,k)+(1.-wti)*arrcs(l,i,j+1,k))
      &   +(1.-wtj)*(wti*arrcs(l,i+1,j  ,k)+(1.-wti)*arrcs(l,i,j  ,k))
         enddo
       enddo
       enddo
-      enddo
       return
-      end subroutine interp_xy_4D
+      end subroutine interp_to_jlat_4D
 
-      subroutine interp_xy_3D(grid,cs2ll,arrcs,arrll,nk)
-c note: need to call halo_update and fill cube corners
+      subroutine interp_to_jlat_3D(grid,cs2ll,arrcs,arrll,nk,jlat)
+c note: halo cells of arrcs are assumed to have been filled!
       use dd2d_utils, only : dist_grid
       use cs2ll_utils, only : cs2ll_type
       implicit none
       type(dist_grid), intent(in) :: grid
       type(cs2ll_type), intent(in) :: cs2ll
-      integer :: nk
+      integer :: nk,jlat
       real*8, dimension(grid%isd:grid%ied,grid%jsd:grid%jed,nk)
      &     :: arrcs
-      real*8, dimension(cs2ll%isd:cs2ll%ied,cs2ll%jsd:cs2ll%jed,nk)
-     &     :: arrll
-      integer :: ilon,jlat,k,i,j
+      real*8, dimension(cs2ll%isd:cs2ll%ied,nk) :: arrll
+      integer :: ilon,k,i,j
       real*8 :: x,y,wti,wtj
+
+      if(jlat.lt.cs2ll%jsd) return
+      if(jlat.gt.cs2ll%jed) return
+
       do k=1,nk
-      do jlat=cs2ll%jsd,cs2ll%jed
       do ilon=cs2ll%isd,cs2ll%ied
         x = cs2ll%ix(ilon,jlat)
         y = cs2ll%jy(ilon,jlat)
         if(x.eq.1d30 .or. y.eq.1d30) then
-          arrll(ilon,jlat,k) = 0d0
+          arrll(ilon,k) = 0d0
           cycle
         endif
         i = x
         j = y
         wti = x-i
         wtj = y-j
-        arrll(ilon,jlat,k) =
+        arrll(ilon,k) =
      &         wtj*(wti*arrcs(i+1,j+1,k)+(1.-wti)*arrcs(i,j+1,k))
      &   +(1.-wtj)*(wti*arrcs(i+1,j  ,k)+(1.-wti)*arrcs(i,j  ,k))
       enddo
       enddo
-      enddo
       return
-      end subroutine interp_xy_3D
+      end subroutine interp_to_jlat_3D
+
+      subroutine corner_fill_4D(grid,arr,nl,nk)
+c NOTE: valid halo cells of arr are assumed to have been filled!
+c Fill imaginary halo cells at the corners of the cube with values qf
+c such that bilinear interpolation in cube coordinates x,y produces
+c results at cube corners that are equal to the average of the 3
+c surrounding cells.  An example for the upper right corner of a
+c cube face is drawn here.
+c
+c     ------                Value at cube corner C =
+c    |      |               (q1+q2+q3)/3 = (q1+q2+q3+qf)/4
+c    |  q1  |  qf           -> qf = (q1+q2+q3)/3
+c    |      |
+c     ------C------ 
+c    |      |      |
+c    |  q2  |  q3  |
+c    |      |      |
+c     ------ ------
+c
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid), intent(in) :: grid
+      integer :: nl,nk
+      real*8, dimension(nl,grid%isd:grid%ied,grid%jsd:grid%jed,nk)
+     &     :: arr
+      integer :: i,j,k,l,m,n
+      integer :: ncor
+      integer, dimension(4) :: ifill,jfill
+      integer, dimension(3,4) :: icor,jcor
+
+      call corner_fill_info(grid,ncor,icor,jcor,ifill,jfill)
+      if(ncor.eq.0) return
+
+      do k=1,nk
+        do m=1,ncor
+          i = ifill(m); j = jfill(m)
+          do l=1,nl
+            arr(l,i,j,k) = 0.
+            do n=1,3
+              arr(l,i,j,k) = arr(l,i,j,k) + arr(l,icor(n,m),jcor(n,m),k)
+            enddo
+            arr(l,i,j,k) = arr(l,i,j,k)/3d0
+          enddo
+        enddo
+      enddo
+
+      return
+      end subroutine corner_fill_4D
+
+      subroutine corner_fill_3D(grid,arr,nk)
+c like corner_fill_4D without the "l" dimension.
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid), intent(in) :: grid
+      integer :: nk
+      real*8, dimension(grid%isd:grid%ied,grid%jsd:grid%jed,nk) :: arr
+      integer :: i,j,k,m,n
+      integer :: ncor
+      integer, dimension(4) :: ifill,jfill
+      integer, dimension(3,4) :: icor,jcor
+
+      call corner_fill_info(grid,ncor,icor,jcor,ifill,jfill)
+      if(ncor.eq.0) return
+
+      do k=1,nk
+        do m=1,ncor
+          i = ifill(m); j = jfill(m)
+          arr(i,j,k) = 0.
+          do n=1,3
+            arr(i,j,k) = arr(i,j,k) + arr(icor(n,m),jcor(n,m),k)
+          enddo
+          arr(i,j,k) = arr(i,j,k)/3d0
+        enddo
+      enddo
+
+      return
+      end subroutine corner_fill_3D
+
+      subroutine corner_fill_info(grid,ncor,icor,jcor,ifill,jfill)
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid), intent(in) :: grid
+      integer, intent(out) :: ncor
+      integer, dimension(3,4), intent(out) :: icor,jcor
+      integer, dimension(4), intent(out) :: ifill,jfill
+
+      ncor = 0
+      if(grid%js.eq.1) then
+        if(grid%is.eq.1) then
+          ncor = ncor + 1
+          ifill(ncor) = 0; jfill(ncor) = 0;
+          icor(:,ncor) = (/ 1, 0, 1 /)
+          jcor(:,ncor) = (/ 0, 1, 1 /)
+        endif
+        if(grid%ie.eq.grid%npx) then
+          ncor = ncor + 1
+          ifill(ncor) = grid%ie+1; jfill(ncor) = 0;
+          icor(:,ncor) = (/ grid%ie, grid%ie, grid%ie+1 /)
+          jcor(:,ncor) = (/ 0, 1, 1 /)
+        endif
+      endif
+      if(grid%je.eq.grid%npy) then
+        if(grid%is.eq.1) then
+          ncor = ncor + 1
+          ifill(ncor) = 0; jfill(ncor) = grid%npy+1;
+          icor(:,ncor) = (/ 0, 1, 1 /)
+          jcor(:,ncor) = (/ grid%npy, grid%npy, grid%npy+1 /)
+        endif
+        if(grid%ie.eq.grid%npx) then
+          ncor = ncor + 1
+          ifill(ncor) = grid%npx+1; jfill(ncor) = grid%npy+1;
+          icor(:,ncor) = (/ grid%npx, grid%npx+1, grid%npx /)
+          jcor(:,ncor) = (/ grid%npy, grid%npy, grid%npy+1 /)
+        endif
+      endif
+
+      return
+      end subroutine corner_fill_info
+
