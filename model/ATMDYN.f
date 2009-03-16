@@ -2288,8 +2288,8 @@ c
         enddo
 #ifndef ALT_CLDMIX_UV
 c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
-        du(:,:,:,j) = du(:,:,:,j)*.5
-        dv(:,:,:,j) = dv(:,:,:,j)*.5
+        du(3:4,:,:,j) = du(3:4,:,:,j)*.5
+        dv(3:4,:,:,j) = dv(3:4,:,:,j)*.5
 #endif
       endif
       if(grid%have_north_pole) then
@@ -2311,8 +2311,8 @@ c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
         enddo
 #ifndef ALT_CLDMIX_UV
 c compensate for the factor of 2 in ravj(jm).  change ravj(jm) later.
-        du(:,:,:,j) = du(:,:,:,j)*.5
-        dv(:,:,:,j) = dv(:,:,:,j)*.5
+        du(1:2,:,:,j) = du(1:2,:,:,j)*.5
+        dv(1:2,:,:,j) = dv(1:2,:,:,j)*.5
 #endif
       endif
 c
