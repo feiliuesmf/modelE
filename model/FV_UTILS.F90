@@ -651,6 +651,7 @@ contains
       Write(unit,*)'   npes_x: ',mppnx
       Write(unit,*)'   npes_y: ',mppny
       Write(unit,*)' consv_te: ',0.
+      Write(unit,*)' dgrid_imports: ',.true.
 
       Call Free_File(unit)
 

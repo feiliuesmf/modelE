@@ -263,7 +263,7 @@ module FV_CS_Mod
     USE GEOM
 
     Type (FV_CORE) :: fv
-    real*4, Dimension(:,:,:), Pointer :: T_fv, PLE
+    real*4, Dimension(:,:,:), Pointer :: T_fv, PLE, U_d, V_d
 
     Integer :: unit
 
@@ -275,8 +275,14 @@ module FV_CS_Mod
     ! First compute updated values for modelE.  Then capture the
     ! new state in fv % *_old for computing tendencies.
     ! ----------------------------------------------------------
-    fv % U_old = ReverseLevels(U(I_0:I_1,J_0:J_1,:))
-    fv % V_old = ReverseLevels(V(I_0:I_1,J_0:J_1,:))
+    call ESMFL_StateGetPointerToData ( fv % export,U_d,'U_DGRID',rc=rc)
+      VERIFY_(rc)
+    call ESMFL_StateGetPointerToData ( fv % export,V_d,'V_DGRID',rc=rc)
+      VERIFY_(rc)
+    U(I_0:I_1,J_0:J_1,:) = ReverseLevels(U_d)
+    V(I_0:I_1,J_0:J_1,:) = ReverseLevels(V_d)
+    fv % U_old = U(I_0:I_1,J_0:J_1,:)
+    fv % V_old = V(I_0:I_1,J_0:J_1,:)
 
     ! Potential temperature (save dry Temperature for computing tendencies)
     !----------------------------------------------------------------------
