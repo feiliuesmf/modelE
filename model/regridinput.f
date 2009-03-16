@@ -16,12 +16,18 @@ c      imsource=72
 c      jmsource=46
 c      imsource=288
 c      jmsource=180
+
+c     for RVR F(144x90)->CS32
 c      imsource=144
 c      jmsource=90
-c      imsource=360
-c      jmsource=180
-      imsource=720
-      jmsource=360
+
+c     for RVR 1x1->CS90
+      imsource=360
+      jmsource=180
+
+c     for STN
+c      imsource=720
+c      jmsource=360
       ntilessource=1
 
       imtarget=grid%IM_WORLD
@@ -55,7 +61,8 @@ c     call regridAIC(xll2cs,grid)
 #ifdef CUBE_GRID
       call geom_cs
 c      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
-      call regridRDSCAL(grid,imsource,jmsource,ntilessource)
+c      call regridRDSCAL(grid,imsource,jmsource,ntilessource)
+      call RDij2ll(grid,imtarget,jmtarget)
 #endif
 
       end subroutine regrid_input
@@ -187,7 +194,7 @@ c
                   vll(i,j)=down_lat(i,j) - lat 
                endif
                
-c     Test cases of bilinear interpolation: uncomment lines below
+c*    Test cases of bilinear interpolation: uncomment lines below
 c     For normal use, keep lines commented 
 c     test1: checking if we interpolate exactly linear and constant fields
 c     ull(i,j)=(2*i+3*j) ; vll(i,j) = (i+j)
@@ -195,7 +202,8 @@ c     ull(i,j)=1. ; vll(i,j)=-1.
 c     test2: checking boundary conditions using periodic functions
 c     ull(i,j)=cos(lon*radian) ; vll(i,j)=sin(lon*radian)
 c     write(60,*) lon,lat,vll(i,j)
-               
+c*    end test cases               
+
                write(70,200) lon,lat,ull(i,j),vll(i,j)
  200              format(4(1X,f8.3))
 
@@ -434,8 +442,10 @@ c
       enddo
       enddo
 
- 300           format(A,I3,I3,I3,A,F8.3,F8.3,F8.3)
-      
+ 300  format(A,I3,I3,I3,A,F8.3,F8.3,F8.3)
+
+c     output direction @ i= 53, j=51, tile = 3
+      if (ti .eq. 6) write(*,*) "kdirec(53,51)=",kdirec(53,51)
       
       do j=j0,j1
          do i=i0,i1
@@ -584,12 +594,14 @@ c
                write(*,300) "case J- ->i j tile =",i,j,ti,
      &          "// id jd kd",idown(i,j),jdown(i,j),kdown(i,j)
              endif
-
+c* latlon projection
             write(70+ti,200) lon2d_dg(i,j),lat2d_dg(i,j),
      &           lon_glob(idown(i,j),jdown(i,j),kdown(i,j))
      &           -lon2d_dg(i,j),
      &           lat_glob(idown(i,j),jdown(i,j),kdown(i,j))
      &           -lat2d_dg(i,j)
+
+c*    polar-spherical projection
             write(80+ti,200) 
      &         cos(lat2d_dg(i,j)*radian)*cos(lon2d_dg(i,j)*radian),
      &         cos(lat2d_dg(i,j)*radian)*sin(lon2d_dg(i,j)*radian),
@@ -629,9 +641,103 @@ c*
 #endif
 
 
+      subroutine RDij2ll(grid,imt,jmt)
+      use geom, only : lon2d_dg,lat2d_dg
+      use regrid_com
+      use domain_decomp_atm, only : pack_data 
+      implicit none
+      type (dist_grid), intent(in) :: grid
+      integer, intent(in) :: imt,jmt
+      character*80 :: name,nameout,title,
+     &     title1,title2,title3,title4,title5,title6
+      real*8,parameter :: undef=-1.d30  !missing value
+      real*4, dimension(imt,jmt,6) :: down_lat,down_lon
+      real*4, dimension(imt,jmt,6) :: down_lat_911,down_lon_911
+      real*8, dimension(imt,jmt,6) :: lon_glob,lat_glob
+      integer, dimension(imt,jmt,6) :: idown,jdown,kdown
+      integer :: iu_RD,iu_TOPO,i,j,k
+      LOGICAL, dimension(imt,jmt) :: NODIR
+      real*4 :: FOCEAN(imt,jmt,6)
+
+      iu_TOPO=30
+
+      name="Z_CS32"
+      open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
+      read(iu_TOPO) title,FOCEAN
+      close(iu_TOPO)
+    
+      iu_RD=20
+      name="RDtoO.CS32"
+      write(*,*) name,imt,jmt
+
+      nameout="RDdistocean_CS32.bin"
+
+      if (am_i_root()) then
+         open( iu_RD, FILE=name,FORM='unformatted',
+     &        STATUS='unknown')
+         read(iu_RD) title,idown,jdown,kdown
+         close(iu_RD)
+      write(*,*) "read RDij2ll"
+      endif
+
+      call pack_data(grid,lon2d_dg,lon_glob)
+      call pack_data(grid,lat2d_dg,lat_glob)
+
+      if (am_i_root()) then
+      do k=1,6
+        do j=1,jmt
+          do i=1,imt
+            if (FOCEAN(i,j,k) .lt. 1.e-6) then
+              down_lat(i,j,k)=lat_glob(idown(i,j,k),jdown(i,j,k)
+     &            ,kdown(i,j,k))
+              down_lon(i,j,k)=lon_glob(idown(i,j,k),jdown(i,j,k)
+     &            ,kdown(i,j,k))
+              down_lat_911(i,j,k)=down_lat(i,j,k)
+              down_lon_911(i,j,k)=down_lon(i,j,k)
+            write(130+k,200) lon_glob(i,j,k),lat_glob(i,j,k),
+     &           down_lon(i,j,k)-lon_glob(i,j,k),
+     &           down_lat(i,j,k)-lat_glob(i,j,k)
+            else
+              down_lat(i,j,k)=undef
+              down_lon(i,j,k)=undef
+              down_lat_911(i,j,k)=undef
+              down_lon_911(i,j,k)=undef
+            write(130+k,200) lon_glob(i,j,k),lat_glob(i,j,k),
+     &           0.,0.
+            end if
+
+          enddo
+        enddo
+      enddo
+
+      open(iu_RD,FILE=nameout,FORM='unformatted',
+     &        STATUS='unknown')
+      title1="river directions from dist. to ocean, CS32, 03/10/09"
+      title2="this version doesn't contain river mouths"
+      title3="Latitude of downstream river direction box"
+      title4="Longitude of downstream river direction box"
+      title5="Latitude of emergency downstream river direction box"
+      title6="Longitude of emergency downstream river direction box"
+
+      write(iu_RD) title1
+      write(iu_RD) title2
+      write(iu_RD) title3,down_lat
+      write(iu_RD) title4,down_lon
+      write(iu_RD) title5,down_lat_911
+      write(iu_RD) title6,down_lon_911
+      close(iu_RD)
+
+c      write(*,*) "wrote RD file"
+
+      endif
+
+ 200  format(4(1X,f8.3))
+
+      end subroutine RDij2ll
+c*
+
+
       subroutine regridTOPO(x2grids)
-c
-c
 c
       use regrid_com
       implicit none
