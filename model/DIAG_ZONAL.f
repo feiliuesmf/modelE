@@ -15,11 +15,9 @@
 !@param JM_BUDG grid size for budget page diags
 !@param IMLON,JMLAT latlon grid sizes
       INTEGER, PARAMETER, public :: JM_BUDG=JM,JMLAT=JM
-      INTEGER, PARAMETER :: IMLON=IM,IMH=IM/2
+      INTEGER, PARAMETER, public :: IMLON=IM,IMLONH=IM/2
 !@var XWON scale factor for diag. printout needed for Wonderland model
       REAL*8, public :: XWON = TWOPI/(DLON*FIM)
-
-c      public :: imlon,imh
 
       public :: pack_lc,unpack_lc,get_bounds,get_alloc_bounds
 

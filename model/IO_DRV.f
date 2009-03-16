@@ -250,8 +250,8 @@ c
      &     jyear,amon,jdate,jhour,itime,days
       call write_attr(grid,fid,'global','fromto',fromto)
 
-c this does not work for all idacc
-c      call write_attr(grid,fid,'idacc','reduction','sum')
+c idacc(5) is not additive
+      call write_attr(grid,fid,'idacc','reduction','sum')
 
       call def_meta_atmacc(fid)
 c      call def_meta_ocdiag(fid)

@@ -3203,10 +3203,11 @@ C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
      *     j_prcpmc,j_hz0,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_ervr,
      *     ia_src,ia_rad,
-     &     sarea=>sarea_reg
+     &     sarea=>sarea_reg,
+     &     hemis_j,dxyp_budg
       IMPLICIT NONE
-      REAL*8 :: A1BYA2
-      INTEGER :: J,JR,M,IT
+      REAL*8 :: A1BYA2,hemfac
+      INTEGER :: J,JR,J1,J2,K,M,IT
 
       IF(.NOT.AM_I_ROOT()) RETURN
 
@@ -3252,6 +3253,20 @@ c
       enddo
 
 c
+c compute hemispheric and global means
+c
+      hemfac = 2./sum(dxyp_budg)
+      do m=1,ntype_out
+      do k=1,kaj
+        j1 = 1; j2 = jm_budg/2
+        hemis_j(1,k,m) = hemfac*sum(aj_out(j1:j2,k,m)*dxyp_budg(j1:j2))
+        j1 = jm_budg/2+1; j2 = jm_budg
+        hemis_j(2,k,m) = hemfac*sum(aj_out(j1:j2,k,m)*dxyp_budg(j1:j2))
+        hemis_j(3,k,m) = .5*(hemis_j(1,k,m)+hemis_j(2,k,m))
+      enddo
+      enddo
+
+c
 c scale areg by area
 c
       do jr=1,nreg
@@ -3264,10 +3279,12 @@ c
       subroutine diagjl_prep
       use model_com, only : lm,lm_req
       use domain_decomp_atm, only : am_i_root
-      use diag_com, only : jm_budg,
-     &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool
+      use diag_com, only : kajl,jm_budg,
+     &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool,
+     &     dxyp_budg,hemis_jl,vmean_jl
       implicit none
-      integer :: j,l,lr
+      integer :: j,j1,j2,l,k,lr
+      real*8 :: hemfac
 
       if(.not.am_i_root()) return
 
@@ -3278,6 +3295,22 @@ c
         do l=1,lm
           ajl(j,l,jl_rad_cool)=ajl(j,l,jl_srhr)+ajl(j,l,jl_trcr)
         enddo
+      enddo
+
+c
+c compute hemispheric/global means and vertical sums
+c
+      hemfac = 2./sum(dxyp_budg)
+      do k=1,kajl
+        do l=1,lm
+          j1 = 1; j2 = jm_budg/2
+          hemis_jl(1,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
+          j1 = jm_budg/2+1; j2 = jm_budg
+          hemis_jl(2,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
+          hemis_jl(3,l,k) = .5*(hemis_jl(1,l,k)+hemis_jl(2,l,k))
+        enddo
+        vmean_jl(1:jm_budg,1,k) = sum(ajl(:,:,k),dim=2)
+        vmean_jl(jm_budg+1:jm_budg+3,1,k) = sum(hemis_jl(:,:,k),dim=2)
       enddo
 
       return

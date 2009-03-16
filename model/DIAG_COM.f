@@ -3,13 +3,13 @@
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,imh,fim,ntype,kep,istrat,lm_req
-      use diag_zonal, only : jm_budg,jmlat,xwon
+      USE MODEL_COM, only : im,jm,lm,ntype,kep,istrat,lm_req
+      use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
       IMPLICIT NONE
       SAVE
       private
 
-      public LM_REQ,im,jm,lm,imh,ntype,istrat,kep,jm_budg,jmlat,xwon
+      public LM_REQ,im,jm,lm,imlonh,ntype,istrat,kep,jm_budg,jmlat,xwon
 
 C**** Accumulating_period information
       INTEGER, DIMENSION(12), public :: MONACC  !@var MONACC(1)=#Januaries, etc
@@ -129,7 +129,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER, public :: KSPECA=20
       INTEGER, PARAMETER, public :: NSPHER=4*(2+ISTRAT)
 !@var SPECA spectral diagnostics
-      REAL*8, DIMENSION((IMH+1),KSPECA,NSPHER), public :: SPECA
+      REAL*8, DIMENSION((IMLONH+1),KSPECA,NSPHER), public :: SPECA
 !@var KLAYER index for dividing up atmosphere into layers for spec.anal.
       INTEGER, DIMENSION(LM), public :: KLAYER
 !@param PSPEC pressure levels at which layers are seperated and defined
@@ -199,7 +199,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK,AIJK_loc
 
 !@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER, public :: NWAV_DAG=min(9,imh)
+      INTEGER, PARAMETER, public :: NWAV_DAG=min(9,imlonh)
 !@param Max12HR_sequ,Min12HR_sequ lengths of time series for wave powers
       INTEGER, PARAMETER, public :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
 !@param RE_AND_IM complex components of wave power diagnostics
@@ -384,6 +384,11 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=30), dimension(kaj), public :: fmt_j,fmt_reg
 !@var iden_j denominators for zonal J diagnostics
       integer, dimension(kaj), public :: iden_j,iden_reg
+!@var CDL_J consolidated metadata for AJ output fields in CDL notation
+!@+   CDL_REG                         AREG
+      character(len=100), dimension(kaj*8), public :: cdl_j,cdl_reg
+!@var HEMIS_J hemispheric/global averages of AJ 
+      real*8, dimension(:,:,:), allocatable, public :: hemis_j
 
       character(len=sname_strlen), dimension(kaj), public :: name_reg
 
@@ -527,6 +532,8 @@ c derived/composite diagnostics
       character(len=units_strlen), dimension(kaij), public :: units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=lname_strlen), dimension(kaij), public :: lname_ij
+!@var CDL_IJ consolidated metadata for AIJ output fields in CDL notation
+      character(len=100), dimension(kaij*6), public :: cdl_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter, public :: nwts_ij = 8
 !@var wt_ij various weight-arrays use in ij-diagnostics
@@ -583,6 +590,11 @@ c derived/composite diagnostics
       integer, dimension(kajl), public :: pow_jl
 !@var DENOM_JL index of AJL element to use as weight
       integer, dimension(kajl), public :: denom_jl
+!@var CDL_JL consolidated metadata for AJL output fields in CDL notation
+      character(len=100), dimension(kajl*7), public :: cdl_jl
+!@var HEMIS_JL hemispheric/global averages of AJL
+!@var VMEAN_JL vertical sums of AJL
+      real*8, dimension(:,:,:), allocatable, public :: hemis_jl,vmean_jl
 !@param [CTR,EDG]_[ML,CP] tags for center,edge model-layer,const-pres
 !@+   vertical grids
       integer, parameter, public :: ctr_ml=1,edg_ml=2,ctr_cp=3,edg_cp=4
@@ -604,10 +616,16 @@ c derived/composite diagnostics
       character(len=units_strlen), dimension(kagcx), public :: units_gc
 !@var SCALE_GC printout scaling factors for GC diagnostics
       REAL*8, dimension(kagcx), public :: scale_gc
-!@var IA_GC,JGRID_GC idacc-numbers,gridtypes for GC diagnostics
-      integer, dimension(kagcx), public :: ia_gc,jgrid_gc
+!@var IA_GC,JGRID_GC,LGRID_GC idacc-numbers,gridtypes for GC diagnostics
+      integer, dimension(kagcx), public :: ia_gc,jgrid_gc,lgrid_gc
+!@var DENOM_GC index of AGC element to use as weight
+      integer, dimension(kagcx), public :: denom_gc
 !@var POW_GC printed output scaled by 10**(-pow_gc)
       integer, dimension(kagcx), public :: pow_gc
+!@var CDL_GC consolidated metadata for AGC output fields in CDL notation
+      character(len=100), dimension(kagc*6), public :: cdl_gc
+!@var lat_gc latitudes of the primary grid for GC diagnostics
+      real*8, dimension(jmlat), public :: lat_gc
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER, public ::
@@ -639,17 +657,24 @@ c derived/composite diagnostics
      &     lname_ijl
       character(len=units_strlen), dimension(kaijl), public ::
      &     units_ijl
+!@var CDL_IJL consolidated metadata for AIJL output fields in CDL notation
+      character(len=100), dimension(kaijl*6), public :: cdl_ijl
 
       character(len=sname_strlen), dimension(kwp), public :: name_wave
       character(len=units_strlen), dimension(kwp), public :: units_wave
       character(len=lname_strlen), dimension(kwp), public :: lname_wave
 
       character(len=sname_strlen), dimension(kcon), public ::
-     &     name_consrv
+     &     name_consrv = 'unused'
       character(len=units_strlen), dimension(kcon), public ::
      &     units_consrv
       character(len=lname_strlen), dimension(kcon), public ::
      &     lname_consrv
+!@var CDL_CONSRV consolidated metadata for CONSRV output fields in
+!@+   CDL notation
+      character(len=100), dimension(kcon*4), public :: cdl_consrv
+!@var HEMIS_CONSRV hemispheric/global averages of CONSRV
+      real*8, dimension(:,:), allocatable, public :: hemis_consrv
 
 !@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
       INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
@@ -666,6 +691,8 @@ c derived/composite diagnostics
      &     lname_dd
       real*8, dimension(ndiuvar), public :: scale_dd
       integer, dimension(ndiuvar), public :: denom_dd
+!@var CDL_DD consolidated metadata for ADIURN output fields in CDL notation
+      character(len=100), dimension(ndiuvar*6), public :: cdl_dd
 
 !@var IDD_xxx names for diurnal diagnostics
       INTEGER, public ::
@@ -795,6 +822,7 @@ c the new i/o system
      *     ,AIJ_loc,CONSRV_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AGC,AJ_OUT,ntype_out
+      USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
       use diag_zonal, only : get_alloc_bounds
 
       IMPLICIT NONE
@@ -854,6 +882,10 @@ c allocate master copies of budget- and JK-arrays on root
      &           AGC(JMLAT,LM,KAGC),
      &           STAT = IER)
         allocate(aj_out(jm_budg,kaj,ntype_out))
+        allocate(hemis_j(3,kaj,ntype_out))
+        allocate(hemis_jl(3,lm,kajl))
+        allocate(vmean_jl(jm_budg+3,1,kajl))
+        allocate(hemis_consrv(3,kcon))
       endif
 
       RETURN
@@ -916,8 +948,9 @@ c allocate master copies of budget- and JK-arrays on root
       INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
      *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
      *     IM*JM*LM*KAIJL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
-     *     (IMH+1)*KSPECA*NSPHER + KTPE*NHEMI + HR_IN_DAY*NDIUVAR*NDIUPT
-     *     + RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
+     *     (IMLONH+1)*KSPECA*NSPHER + KTPE*NHEMI +
+     *     HR_IN_DAY*NDIUVAR*NDIUPT +
+     *     RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
      *     IM*JM*LM*KAIJK+ntau*npres*nisccp
 #ifndef NO_HDIURN
      *     + NDIUVAR*NDIUPT*HR_IN_MONTH
@@ -926,7 +959,7 @@ c allocate master copies of budget- and JK-arrays on root
       ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ)
       ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
       ! REAL*4 AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS)
-      ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER)
+      ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMLONH+1,KSPECA,NSPHER)
       ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
       ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
       ! REAL*4 AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK)
@@ -1200,7 +1233,7 @@ c        CALL ESMF_BCAST(grid, HDIURN)
         allocate (AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL))
         allocate (AIJ4(IM,JM,KAIJ))
         allocate (AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS))
-        allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMH+1,KSPECA,NSPHER))
+        allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMLONH+1,KSPECA,NSPHER))
         allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
         allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
         allocate (AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK))
@@ -1641,7 +1674,7 @@ c*
       call defvar(grid,fid,energy,'energy(nehist,hist_days)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,speca,
-     &     'speca(imh_plus_1,kspeca,nspher)',r4_on_disk=r4_on_disk)
+     &     'speca(imlonh_plus_1,kspeca,nspher)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,atpe,'atpe(ktpe,nhemi)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,wave,
@@ -1797,98 +1830,124 @@ c for which scalars is bcast_all=.true. necessary?
 !@sum  def_meta_atmacc defines metadata in atm acc files
 !@auth M. Kelley
 !@ver  beta
-      use diag_com, only :
-     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,
-     &     name_j,sname_jl,name_ij,name_ijl,name_dd,name_consrv,
-     &     lname_j,lname_jl,lname_ij,lname_ijl,lname_dd,title_con,
-     &     units_j,units_jl,units_ij,units_ijl,units_dd,units_consrv,
+      use diag_com, only : kagc,
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
+     &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
+     &     name_consrv,sname_gc,
+     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
+     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
+     &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
-     &     pow_jl,lgrid_jl,lgrid_ijl,ir_ij,
-     &     stitle_j,fmt_j,fmt_reg,terrain,nreg,
-     &     lat_budg,dxyp_budg,lm,ple,plm,namdd,ijdd
+     &     denom_gc,
+     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc
       use geom, only : lon2d_dg,lat2d_dg,axyp
+#ifndef CUBE_GRID
+      use geom, only : lon_dg,lat_dg
+#endif
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
       implicit none
       integer :: fid         !@var fid file id
-      character(len=8) :: namregx(nreg) ! dimension by nreg rather than 23
       integer :: int_dummy
 
-      call defvar(grid,fid,lon2d_dg,'lon2d_dg(dist_im,dist_jm)')
-      call defvar(grid,fid,lat2d_dg,'lat2d_dg(dist_im,dist_jm)')
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call defvar(grid,fid,lon2d_dg,'lon(dist_im,dist_jm)')
+      call defvar(grid,fid,lat2d_dg,'lat(dist_im,dist_jm)')
+#else
+      call defvar(grid,fid,lon_dg(:,1),'lon(lon)')
+      call defvar(grid,fid,lat_dg(:,1),'lat(lat)')
+#endif
+
       call defvar(grid,fid,axyp,'axyp(dist_im,dist_jm)')
       call defvar(grid,fid,lat_budg,'lat_budg(jm_budg)')
       call defvar(grid,fid,dxyp_budg,'area_budg(jm_budg)')
       call defvar(grid,fid,plm(1:lm),'plm(lm)')
       call defvar(grid,fid,ple,'ple(lm)')
+      call defvar(grid,fid,lat_gc,'lat_gc(jmlat)')
 
       call write_attr(grid,fid,'aj','reduction','sum')
+      call write_attr(grid,fid,'aj','split_dim',2)
+      call defvar(grid,fid,hemis_j,'hemis_aj(shnhgm,kaj,ntype)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_aj','reduction','sum')
+      call defvar(grid,fid,ia_j,'ia_aj(kaj)')
+      call defvar(grid,fid,scale_j,'scale_aj(kaj)')
+      call defvar(grid,fid,iden_j,'denom_aj(kaj)')
+      call defvar(grid,fid,name_j,'sname_aj(sname_strlen,kaj)')
+      call defvar(grid,fid,cdl_j,'cdl_aj(cdl_strlen,kcdl_aj)')
+
       call write_attr(grid,fid,'areg','reduction','sum')
-      call defvar(grid,fid,ia_j,'ia_j(kaj)')
-      call defvar(grid,fid,scale_j,'scale_j(kaj)')
-      call defvar(grid,fid,iden_j,'denom_j(kaj)')
-      call defvar(grid,fid,name_j,'sname_j(sname_strlen,kaj)')
-      call defvar(grid,fid,units_j,'units_j(units_strlen,kaj)')
-      call defvar(grid,fid,lname_j,'lname_j(lname_strlen,kaj)')
-      call defvar(grid,fid,stitle_j,'stitle_j(stitle_strlen,kaj)')
-      call defvar(grid,fid,fmt_j,'fmt_j(fmt_strlen,kaj)')
-      call defvar(grid,fid,fmt_reg,'fmt_reg(fmt_strlen,kaj)')
-      call defvar(grid,fid,iden_reg,'denom_reg(kaj)')
-      call defvar(grid,fid,terrain,'terrain(stype_strlen,ntype)')
-      call defvar(grid,fid,namregx,'namreg(reg_strlen,nreg)')
+      call write_attr(grid,fid,'areg','split_dim',2)
+      call defvar(grid,fid,ia_j,'ia_areg(kaj)')
+      call defvar(grid,fid,scale_j,'scale_areg(kaj)')
+      call defvar(grid,fid,iden_reg,'denom_areg(kaj)')
+      call defvar(grid,fid,name_reg,'sname_areg(sname_strlen,kaj)')
+      call defvar(grid,fid,cdl_reg,'cdl_areg(cdl_strlen,kcdl_areg)')
 
       call write_attr(grid,fid,'consrv','reduction','sum')
+      call write_attr(grid,fid,'consrv','split_dim',2)
+      call defvar(grid,fid,hemis_consrv,'hemis_consrv(shnhgm,kcon)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_consrv','reduction','sum')
       call defvar(grid,fid,ia_con,'ia_consrv(kcon)')
       call defvar(grid,fid,scale_con,'scale_consrv(kcon)')
-      call defvar(grid,fid,title_con,
-     &     'title_consrv(title_con_strlen,kcon)')
       call defvar(grid,fid,name_consrv,
      &     'sname_consrv(sname_strlen,kcon)')
-      call defvar(grid,fid,units_consrv,
-     &     'units_consrv(units_strlen,kcon)')
+      call defvar(grid,fid,cdl_consrv,
+     &     'cdl_consrv(cdl_strlen,kcdl_consrv)')
 
       call write_attr(grid,fid,'ajl','reduction','sum')
-      call defvar(grid,fid,ia_jl,'ia_jl(kajl)')
-      call defvar(grid,fid,scale_jl,'scale_jl(kajl)')
-      call defvar(grid,fid,denom_jl,'denom_jl(kajl)')
-      call defvar(grid,fid,sname_jl,'sname_jl(sname_strlen,kajl)')
-      call defvar(grid,fid,units_jl,'units_jl(units_strlen,kajl)')
-      call defvar(grid,fid,lname_jl,'lname_jl(lname_strlen,kajl)')
-      call defvar(grid,fid,pow_jl,'pow_jl(kajl)')
-      call defvar(grid,fid,lgrid_jl,'lgrid_jl(kajl)')
+      call write_attr(grid,fid,'ajl','split_dim',3)
+      call defvar(grid,fid,hemis_jl,'hemis_ajl(shnhgm,lm,kajl)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_ajl','reduction','sum')
+      call defvar(grid,fid,vmean_jl,'vmean_ajl(jm_budg_plus3,one,kajl)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'vmean_ajl','reduction','sum')
+      call defvar(grid,fid,ia_jl,'ia_ajl(kajl)')
+      call defvar(grid,fid,scale_jl,'scale_ajl(kajl)')
+      call defvar(grid,fid,denom_jl,'denom_ajl(kajl)')
+      call defvar(grid,fid,sname_jl,'sname_ajl(sname_strlen,kajl)')
+      call defvar(grid,fid,cdl_jl,'cdl_ajl(cdl_strlen,kcdl_ajl)')
+
+      call write_attr(grid,fid,'agc','reduction','sum')
+      call write_attr(grid,fid,'agc','split_dim',3)
+      call defvar(grid,fid,ia_gc(1:kagc),'ia_agc(kagc)')
+      call defvar(grid,fid,scale_gc(1:kagc),'scale_agc(kagc)')
+      call defvar(grid,fid,denom_gc(1:kagc),'denom_agc(kagc)')
+      call defvar(grid,fid,sname_gc(1:kagc),
+     &     'sname_agc(sname_strlen,kagc)')
+      call defvar(grid,fid,cdl_gc(1:kagc),
+     &     'cdl_agc(cdl_strlen,kcdl_agc)')
 
       call write_attr(grid,fid,'aij','reduction','sum')
-      call defvar(grid,fid,ia_ij,'ia_ij(kaij)')
-      call defvar(grid,fid,scale_ij,'scale_ij(kaij)')
-      call defvar(grid,fid,denom_ij,'denom_ij(kaij)')
-      call defvar(grid,fid,name_ij,'sname_ij(sname_strlen,kaij)')
-      call defvar(grid,fid,units_ij,'units_ij(units_strlen,kaij)')
-      call defvar(grid,fid,lname_ij,'lname_ij(lname_strlen,kaij)')
-      call defvar(grid,fid,ir_ij,'ir_ij(kaij)')
+      call write_attr(grid,fid,'aij','split_dim',3)
+      call defvar(grid,fid,ia_ij,'ia_aij(kaij)')
+      call defvar(grid,fid,scale_ij,'scale_aij(kaij)')
+      call defvar(grid,fid,denom_ij,'denom_aij(kaij)')
+      call defvar(grid,fid,name_ij,'sname_aij(sname_strlen,kaij)')
+      call defvar(grid,fid,cdl_ij,'cdl_aij(cdl_strlen,kcdl_aij)')
 
       call write_attr(grid,fid,'aijl','reduction','sum')
-      call defvar(grid,fid,ia_ijl,'ia_ijl(kaijl)')
-      call defvar(grid,fid,scale_ijl,'scale_ijl(kaijl)')
-      call defvar(grid,fid,denom_ijl,'denom_ijl(kaijl)')
-      call defvar(grid,fid,name_ijl,'sname_ijl(sname_strlen,kaijl)')
-      call defvar(grid,fid,units_ijl,'units_ijl(units_strlen,kaijl)')
-      call defvar(grid,fid,lname_ijl,'lname_ijl(lname_strlen,kaijl)')
-      call defvar(grid,fid,lgrid_ijl,'lgrid_ijl(kaijl)')
+      call write_attr(grid,fid,'aijl','split_dim',4)
+      call defvar(grid,fid,ia_ijl,'ia_aijl(kaijl)')
+      call defvar(grid,fid,scale_ijl,'scale_aijl(kaijl)')
+      call defvar(grid,fid,denom_ijl,'denom_aijl(kaijl)')
+      call defvar(grid,fid,name_ijl,'sname_aijl(sname_strlen,kaijl)')
+      call defvar(grid,fid,cdl_ijl,'cdl_aijl(cdl_strlen,kcdl_aijl)')
 
       call write_attr(grid,fid,'adiurn','reduction','sum')
+      call write_attr(grid,fid,'adiurn','split_dim',1)
 #ifndef NO_HDIURN
       call write_attr(grid,fid,'hdiurn','reduction','sum')
 #endif
-      call defvar(grid,fid,denom_dd,'denom_dd(ndiuvar)')
-      call defvar(grid,fid,scale_dd,'scale_dd(ndiuvar)')
-      call defvar(grid,fid,name_dd,'sname_dd(sname_strlen,ndiuvar)')
-      call defvar(grid,fid,units_dd,'units_dd(units_strlen,ndiuvar)')
-      call defvar(grid,fid,lname_dd,'lname_dd(lname_strlen,ndiuvar)')
-      call defvar(grid,fid,namdd,'namdd(namdd_strlen,ndiupt)')
-      call defvar(grid,fid,ijdd,'ijdd(two,ndiupt)')
-      call defvar(grid,fid,int_dummy,'ntime_dd')
-      call write_attr(grid,fid,'ntime_dd','reduction','sum')
+      call defvar(grid,fid,int_dummy,'ntime_adiurn')
+      call write_attr(grid,fid,'ntime_adiurn','reduction','sum')
+      call defvar(grid,fid,denom_dd,'denom_adiurn(ndiuvar)')
+      call defvar(grid,fid,scale_dd,'scale_adiurn(ndiuvar)')
+      call defvar(grid,fid,name_dd,'sname_adiurn(sname_strlen,ndiuvar)')
+      call defvar(grid,fid,cdl_dd,'cdl_adiurn(cdl_strlen,kcdl_adiurn)')
 
       return
       end subroutine def_meta_atmacc
@@ -1897,92 +1956,93 @@ c for which scalars is bcast_all=.true. necessary?
 !@sum  write_meta_atmacc write atm accumulation metadata to file
 !@auth M. Kelley
       use model_com, only : nday,idacc
-      use diag_com, only :
-     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,
-     &     name_j,sname_jl,name_ij,name_ijl,name_dd,name_consrv,
-     &     lname_j,lname_jl,lname_ij,lname_ijl,lname_dd,title_con,
-     &     units_j,units_jl,units_ij,units_ijl,units_dd,units_consrv,
+      use diag_com, only : kagc,
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
+     &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
+     &     name_consrv,sname_gc,
+     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
+     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
+     &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
-     &     pow_jl,lgrid_jl,lgrid_ijl,ir_ij,
-     &     stitle_j,fmt_j,fmt_reg,terrain,namreg,nreg,
-     &     lat_budg,dxyp_budg,lm,ple,plm,kcmx,kcon,ia_12hr,namdd,ijdd
+     &     denom_gc,
+     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,ia_12hr
       use geom, only : lon2d_dg,lat2d_dg,axyp
+#ifndef CUBE_GRID
+      use geom, only : lon_dg,lat_dg
+#endif
       use domain_decomp_atm, only : grid
       use pario, only : write_data,write_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
-      character(len=8) :: namregx(nreg) ! dimension by nreg rather than 23
       integer :: n,ntime_dd
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call write_dist_data(grid,fid,'lon',lon2d_dg)
+      call write_dist_data(grid,fid,'lat',lat2d_dg)
+#else
+      call write_data(grid,fid,'lon',lon_dg(:,1))
+      call write_data(grid,fid,'lat',lat_dg(:,1))
+#endif
       
-      call write_dist_data(grid,fid,'lon2d_dg',lon2d_dg)
-      call write_dist_data(grid,fid,'lat2d_dg',lat2d_dg)
       call write_dist_data(grid,fid,'axyp',axyp)
       call write_data(grid,fid,'lat_budg',lat_budg)
       call write_data(grid,fid,'area_budg',dxyp_budg)
       call write_data(grid,fid,'plm',plm(1:lm))
       call write_data(grid,fid,'ple',ple)
+      call write_data(grid,fid,'lat_gc',lat_gc)
 
+      call write_data(grid,fid,'hemis_aj',hemis_j)
+      call write_data(grid,fid,'ia_aj',ia_j)
+      call write_data(grid,fid,'scale_aj',scale_j)
+      call write_data(grid,fid,'denom_aj',iden_j)
+      call write_data(grid,fid,'sname_aj',name_j)
+      call write_data(grid,fid,'cdl_aj',cdl_j)
 
-      call write_data(grid,fid,'ia_j',ia_j)
-      call write_data(grid,fid,'scale_j',scale_j)
-      call write_data(grid,fid,'denom_j',iden_j)
-      call write_data(grid,fid,'sname_j',name_j)
-      call write_data(grid,fid,'units_j',units_j)
-      call write_data(grid,fid,'lname_j',lname_j)
-      call write_data(grid,fid,'stitle_j',stitle_j)
-      call write_data(grid,fid,'fmt_j',fmt_j)
-      call write_data(grid,fid,'fmt_reg',fmt_reg)
-      call write_data(grid,fid,'denom_reg',iden_reg)
-      call write_data(grid,fid,'terrain',terrain)
-      do n=1,23
-        namregx(n)=namreg(1,n)//namreg(2,n)
-      enddo
-      call write_data(grid,fid,'namreg',namregx)
+      call write_data(grid,fid,'ia_areg',ia_j)
+      call write_data(grid,fid,'scale_areg',scale_j)
+      call write_data(grid,fid,'denom_areg',iden_reg)
+      call write_data(grid,fid,'sname_areg',name_reg)
+      call write_data(grid,fid,'cdl_areg',cdl_reg)
 
-      do n=kcmx+1,kcon ! hack
-        title_con(n)='unused'
-      enddo
+      call write_data(grid,fid,'hemis_consrv',hemis_consrv)
       call write_data(grid,fid,'ia_consrv',ia_con)
       call write_data(grid,fid,'scale_consrv',scale_con)
-      call write_data(grid,fid,'title_consrv',title_con)
       call write_data(grid,fid,'sname_consrv',name_consrv)
-      call write_data(grid,fid,'units_consrv',units_consrv)
+      call write_data(grid,fid,'cdl_consrv',cdl_consrv)
 
-      call write_data(grid,fid,'ia_jl',ia_jl)
-      call write_data(grid,fid,'scale_jl',scale_jl)
-      call write_data(grid,fid,'denom_jl',denom_jl)
-      call write_data(grid,fid,'sname_jl',sname_jl)
-      call write_data(grid,fid,'units_jl',units_jl)
-      call write_data(grid,fid,'lname_jl',lname_jl)
-      call write_data(grid,fid,'pow_jl',pow_jl)
-      call write_data(grid,fid,'lgrid_jl',lgrid_jl)
+      call write_data(grid,fid,'hemis_ajl',hemis_jl)
+      call write_data(grid,fid,'vmean_ajl',vmean_jl)
+      call write_data(grid,fid,'ia_ajl',ia_jl)
+      call write_data(grid,fid,'scale_ajl',scale_jl)
+      call write_data(grid,fid,'denom_ajl',denom_jl)
+      call write_data(grid,fid,'sname_ajl',sname_jl)
+      call write_data(grid,fid,'cdl_ajl',cdl_jl)
 
-      call write_data(grid,fid,'ia_ij',ia_ij)
-      call write_data(grid,fid,'scale_ij',scale_ij)
-      call write_data(grid,fid,'denom_ij',denom_ij)
-      call write_data(grid,fid,'sname_ij',name_ij)
-      call write_data(grid,fid,'units_ij',units_ij)
-      call write_data(grid,fid,'lname_ij',lname_ij)
-      call write_data(grid,fid,'ir_ij',ir_ij)
+      call write_data(grid,fid,'ia_agc',ia_gc(1:kagc))
+      call write_data(grid,fid,'scale_agc',scale_gc(1:kagc))
+      call write_data(grid,fid,'denom_agc',denom_gc(1:kagc))
+      call write_data(grid,fid,'sname_agc',sname_gc(1:kagc))
+      call write_data(grid,fid,'cdl_agc',cdl_gc(1:kagc))
 
-      call write_data(grid,fid,'ia_ijl',ia_ijl)
-      call write_data(grid,fid,'scale_ijl',scale_ijl)
-      call write_data(grid,fid,'denom_ijl',denom_ijl)
-      call write_data(grid,fid,'sname_ijl',name_ijl)
-      call write_data(grid,fid,'units_ijl',units_ijl)
-      call write_data(grid,fid,'lname_ijl',lname_ijl)
-      call write_data(grid,fid,'lgrid_ijl',lgrid_ijl)
+      call write_data(grid,fid,'ia_aij',ia_ij)
+      call write_data(grid,fid,'scale_aij',scale_ij)
+      call write_data(grid,fid,'denom_aij',denom_ij)
+      call write_data(grid,fid,'sname_aij',name_ij)
+      call write_data(grid,fid,'cdl_aij',cdl_ij)
 
-      call write_data(grid,fid,'denom_dd',denom_dd)
-      call write_data(grid,fid,'scale_dd',scale_dd)
-      call write_data(grid,fid,'sname_dd',name_dd)
-      call write_data(grid,fid,'units_dd',units_dd)
-      call write_data(grid,fid,'lname_dd',lname_dd)
-      call write_data(grid,fid,'namdd',namdd)
-      call write_data(grid,fid,'ijdd',ijdd)
+      call write_data(grid,fid,'ia_aijl',ia_ijl)
+      call write_data(grid,fid,'scale_aijl',scale_ijl)
+      call write_data(grid,fid,'denom_aijl',denom_ijl)
+      call write_data(grid,fid,'sname_aijl',name_ijl)
+      call write_data(grid,fid,'cdl_aijl',cdl_ijl)
+
       ntime_dd = (idacc(ia_12hr)/2)*(nday/24)
-      call write_data(grid,fid,'ntime_dd',ntime_dd)
+      call write_data(grid,fid,'ntime_adiurn',ntime_dd)
+      call write_data(grid,fid,'scale_adiurn',scale_dd)
+      call write_data(grid,fid,'denom_adiurn',denom_dd)
+      call write_data(grid,fid,'sname_adiurn',name_dd)
+      call write_data(grid,fid,'cdl_adiurn',cdl_dd)
 
       return
       end subroutine write_meta_atmacc
@@ -2047,7 +2107,7 @@ c
       allocate (energy_fromdisk(nehist,hist_days))
       energy_ioptr => energy_fromdisk
 
-      allocate (speca_fromdisk(imh+1,kspeca,nspher))
+      allocate (speca_fromdisk(imlonh+1,kspeca,nspher))
       speca_ioptr => speca_fromdisk
 
       allocate (atpe_fromdisk(ktpe,nhemi))

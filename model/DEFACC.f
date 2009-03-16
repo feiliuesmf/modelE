@@ -60,6 +60,8 @@ c#endif
      &    ,fmt910='(A16,1X,23F5.1)'
      &    ,fmtnone='not computed'
       integer :: k,kk
+      character(len=30) :: sname
+      character*1 :: punct
 c
       do k=1,kaj
          write(name_j(k),'(a2,i3.3)') 'AJ',k
@@ -943,6 +945,142 @@ c not ratios
         iden_j(k)  = J_TYPE
       enddo
 
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of AJ output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).  Information needed for
+c printing ASCII tables of the output is stored here as well.
+c
+      cdl_j = ''
+      cdl_j(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_j(3),'(a,i3,a)') '   lat_budg = ',jm_budg,' ;'
+      write(cdl_j(4),'(a,i3,a)') '   ntype = ',ntype_out,' ;'
+      write(cdl_j(5),'(a,i3,a)') '   stype_strlen = 16 ;'
+      write(cdl_j(6),'(a,i3,a)') '   shnhgm = 3 ;'
+      cdl_j(7:10)(:) = (/
+     &     'variables:                           ',
+     &     'float lat_budg(lat_budg) ;           ',
+     &     '   lat_budg:units = "degrees_north" ;',
+     &     'char terrain(ntype,stype_strlen) ;   '
+     &     /)
+      kk = count(len_trim(cdl_j).gt.0)
+      do k=1,kaj
+        if(trim(stitle_j(k)).eq.'no output') cycle
+        sname = 'J_'//trim(name_j(k))
+        kk = kk + 1
+        cdl_j(kk) = 'float '//trim(sname)//'(ntype,lat_budg) ;'
+        kk = kk + 1
+        cdl_j(kk) = '   '//trim(sname)//':long_name = "'//
+     &       trim(lname_j(k))//'" ;'
+        kk = kk + 1
+        cdl_j(kk) = '   '//trim(sname)//':units = "'//
+     &       trim(units_j(k))//'" ;'
+        kk = kk + 1
+        cdl_j(kk) = '   '//trim(sname)//':fmt = "'//
+     &       trim(fmt_j(k))//'" ;'
+        kk = kk + 1
+        cdl_j(kk) = '   '//trim(sname)//':stitle = "'//
+     &       trim(stitle_j(k))//'" ;'
+        kk = kk + 1
+        cdl_j(kk) = 'float '//trim(sname)//'_hemis(ntype,shnhgm) ;'
+      enddo
+      kk = kk + 1
+      cdl_j(kk) = 'data:'
+      kk = kk + 1
+      cdl_j(kk) = 'terrain ='
+      punct=','
+      do k=1,ntype_out
+        if(k.eq.ntype_out) punct=';'
+        kk = kk + 1
+        cdl_j(kk) = '"'//terrain(k)//'"'//punct
+      enddo
+      kk = kk + 1
+      cdl_j(kk) = '}'
+
+c
+c Declare the dimensions and metadata of AREG output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).  Information needed for
+c printing ASCII tables of the output is stored here as well.
+c
+      cdl_reg = ''
+      cdl_reg(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_reg(3),'(a,i3,a)') '   nreg = ',nreg,' ;'
+      write(cdl_reg(4),'(a,i3,a)') '   twenty_three = 23 ;'
+      write(cdl_reg(5),'(a,i3,a)') '   eight = 8 ;'
+      cdl_reg(6:7)(:) = (/
+     &     'variables:                           ',
+     &     'char namreg(twenty_three,eight) ;    '
+     &     /)
+      kk = count(len_trim(cdl_reg).gt.0)
+      do k=1,kaj
+        if(trim(stitle_j(k)).eq.'no output') cycle
+        if(trim(fmt_reg(k)).eq.'not computed') cycle
+        sname = 'reg_'//trim(name_j(k))
+        kk = kk + 1
+        cdl_reg(kk) = 'float '//trim(sname)//'(nreg) ;'
+        kk = kk + 1
+        cdl_reg(kk) = '   '//trim(sname)//':long_name = "'//
+     &       trim(lname_j(k))//'" ;'
+        kk = kk + 1
+        cdl_reg(kk) = '   '//trim(sname)//':units = "'//
+     &       trim(units_j(k))//'" ;'
+        kk = kk + 1
+        cdl_reg(kk) = '   '//trim(sname)//':fmt = "'//
+     &       trim(fmt_reg(k))//'" ;'
+        kk = kk + 1
+        cdl_reg(kk) = '   '//trim(sname)//':stitle = "'//
+     &       trim(stitle_j(k))//'" ;'
+      enddo
+      kk = kk + 1
+      cdl_reg(kk) = 'data:'
+      kk = kk + 1
+      cdl_reg(kk) = 'namreg ='
+      punct=','
+      do k=1,23!nreg
+        if(k.eq.23) punct=';'
+        kk = kk + 1
+        cdl_reg(kk) = '"'//namreg(1,k)//namreg(2,k)//'"'//punct
+      enddo
+      kk = kk + 1
+      cdl_reg(kk) = '}'
+
+c
+c Declare the dimensions and metadata of CONSRV output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).  Information needed for
+c printing ASCII tables of the output is stored here as well.
+c
+      cdl_consrv = ''
+      cdl_consrv(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_consrv(3),'(a,i3,a)') '   lat_budg = ',jm_budg,' ;'
+      write(cdl_consrv(4),'(a,i3,a)') '   shnhgm = 3 ;'
+      cdl_consrv(5:9)(:) = (/
+     &     'variables:                           ',
+     &     'float lat_budg(lat_budg) ;           ',
+     &     '   lat_budg:units = "degrees_north" ;',
+     &     'float area_budg(lat_budg) ;          ',
+     &     '   area_budg:units = "m^2" ;         '
+     &     /)
+      kk = count(len_trim(cdl_consrv).gt.0)
+      do k=1,kcmx
+        sname = trim(name_consrv(k))
+        kk = kk + 1
+        cdl_consrv(kk) = 'float '//trim(sname)//'(lat_budg) ;'
+        kk = kk + 1
+        cdl_consrv(kk) = '   '//trim(sname)//':long_name = "'//
+     &       trim(title_con(k))//'" ;'
+        kk = kk + 1
+        cdl_consrv(kk) = 'float '//trim(sname)//'_hemis(shnhgm) ;'
+      enddo
+      kk = kk + 1
+      cdl_consrv(kk) = '}'
+#endif
+
       return
       end subroutine j_defs
 
@@ -953,6 +1091,7 @@ c not ratios
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk,k1,l
+      character(len=16) :: ijstr
 c
       do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
@@ -3693,11 +3832,65 @@ c      scale_ij(k) = 1.
          end if
 
          write (6,*) 'Number of AIJ diagnostics defined: kaijmax=',k
-         if(.not.qcheck) return
-         do kk=1,k
-            write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
-         end do
+         if(qcheck) then
+           do kk=1,k
+             write (6,'(i4,'':'',a)') kk,trim(lname_ij(kk))
+           end do
+         endif
       end if
+
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of AIJ output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).
+c
+      cdl_ij = ''
+      cdl_ij(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      ijstr='(tile,y,x) ;'
+      write(cdl_ij(3),'(a,i3,a)') '   x = ',im,' ;'
+      write(cdl_ij(4),'(a,i3,a)') '   y = ',im,' ;'
+      write(cdl_ij(5),'(a,i3,a)') '   tile = 6 ;'
+      cdl_ij(6:14)(:) = (/
+     &     'variables:                                          ',
+     &     'float x(x) ;                                        ',
+     &     '   x:long_name = "nondimensional cube coordinate" ; ',
+     &     'float y(y) ;                                        ',
+     &     '   y:long_name = "nondimensional cube coordinate" ; ',
+     &     'float lon(tile,y,x) ;                               ',
+     &     '   lon:units = "degrees_east" ;                     ',
+     &     'float lat(tile,y,x) ;                               ',
+     &     '   lat:units = "degrees_north" ;                    '
+     &     /)
+#else
+      ijstr='(lat,lon) ;'
+      write(cdl_ij(3),'(a,i3,a)') '   lon = ',im,' ;'
+      write(cdl_ij(4),'(a,i3,a)') '   lat = ',jm,' ;'
+      cdl_ij(5:9)(:) = (/
+     &     'variables:                      ',
+     &     'float lon(lon) ;                ',
+     &     '   lon:units = "degrees_east" ; ',
+     &     'float lat(lat) ;                ',
+     &     '   lat:units = "degrees_north" ;'
+     &     /)
+#endif
+      kk = count(len_trim(cdl_ij).gt.0)
+      do k=1,kaij
+        if(trim(units_ij(k)).eq.'unused') cycle
+        kk = kk + 1
+        cdl_ij(kk) = 'float '//trim(name_ij(k))//trim(ijstr)
+        kk = kk + 1
+        cdl_ij(kk) = '   '//trim(name_ij(k))//':long_name = "'//
+     &       trim(lname_ij(k))//'" ;'
+        kk = kk + 1
+        cdl_ij(kk) = '   '//trim(name_ij(k))//':units = "'//
+     &       trim(units_ij(k))//'" ;'
+      enddo
+      kk = kk + 1
+      cdl_ij(kk) = '}'
+#endif
 
       return
       end subroutine ij_defs
@@ -3710,6 +3903,7 @@ c      scale_ij(k) = 1.
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
       integer :: k,kk
+      character(len=10) :: zstr
 c
       do k=1,kajl
          write(sname_jl(k),'(a3,i3.3)') 'AJL',k
@@ -4236,11 +4430,72 @@ c
          end if
 
          write (6,*) 'Number of AJL diagnostics defined: kajlmax=',k
-         if(.not.qcheck) return
-         do kk=1,k
-            write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
-         end do
+         if(qcheck) then
+           do kk=1,k
+             write (6,'(i4,'':'',a)') kk,trim(lname_jl(kk))
+           end do
+         endif
       end if
+
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of AJL output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).  Information needed for
+c printing ASCII tables of the output is stored here as well.
+c
+      cdl_jl = ''
+      cdl_jl(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_jl(3),'(a,i3,a)') '   lat_budg = ',jm_budg,' ;'
+      write(cdl_jl(4),'(a,i3,a)') '   lat_budg_plus3 = ',jm_budg+3,' ;'
+      write(cdl_jl(5),'(a,i3,a)') '   plm = ',lm,' ;'
+      write(cdl_jl(6),'(a,i3,a)') '   ple = ',lm,' ;'
+      write(cdl_jl(7),'(a,i3,a)') '   shnhgm = 3 ;'
+      cdl_jl(8:14)(:) = (/
+     &     'variables:                           ',
+     &     'float lat_budg(lat_budg) ;           ',
+     &     '   lat_budg:units = "degrees_north" ;',
+     &     'float plm(plm) ;                     ',
+     &     '   plm:units = "mb" ;                ',
+     &     'float ple(ple) ;                     ',
+     &     '   ple:units = "mb" ;                '
+     &     /)
+      kk = count(len_trim(cdl_jl).gt.0)
+      do k=1,kajl
+        if(trim(units_jl(k)).eq.'unused') cycle
+        if(lgrid_jl(k).eq.ctr_ml .or. lgrid_jl(k).eq.ctr_cp) then
+          zstr='plm'
+        else
+          zstr='ple'
+        endif
+        kk = kk + 1
+        cdl_jl(kk) = 'float '//trim(sname_jl(k))//'('//
+     &       trim(zstr)//',lat_budg) ;'
+        kk = kk + 1
+        cdl_jl(kk) = '   '//trim(sname_jl(k))//':long_name = "'//
+     &       trim(lname_jl(k))//'" ;'
+        kk = kk + 1
+        cdl_jl(kk) = '   '//trim(sname_jl(k))//':units = "'//
+     &       trim(units_jl(k))//'" ;'
+        if(pow_jl(k).ne.0) then
+          kk = kk + 1
+          write(cdl_jl(kk),'(a,i3,a)')
+     &         '   '//trim(sname_jl(k))//':prtpow = ',pow_jl(k),' ;'
+        endif
+        kk = kk + 1
+        cdl_jl(kk) = 'float '//trim(sname_jl(k))//'_hemis('//
+     &       trim(zstr)//',shnhgm) ;'
+        if(denom_jl(k).gt.0) then
+          kk = kk + 1
+          cdl_jl(kk) = 'float '//trim(sname_jl(k))//
+     &         '_vmean(lat_budg_plus3) ;'
+        endif
+      enddo
+      kk = kk + 1
+      cdl_jl(kk) = '}'
+#endif
+
       return
       end subroutine jl_defs
 
@@ -4311,7 +4566,8 @@ c
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
-      integer :: k
+      integer :: k,kk
+      character(len=16) :: zstr,hstr,tstr
 c
       do k=1,kaijl
          write(name_ijl(k),'(a4,i3.3)') 'AIJL',k
@@ -4529,6 +4785,80 @@ c
       end if
       if(AM_I_ROOT())
      &     write (6,*) 'Number of AIJL diagnostics defined: kaijlmax=',k
+
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of AIJL output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).
+c
+      cdl_ijl = ''
+      cdl_ijl(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_ijl(3),'(a,i3,a)') '   plm = ',lm,' ;'
+      write(cdl_ijl(4),'(a,i3,a)') '   ple = ',lm,' ;'
+      write(cdl_ijl(5),'(a,i3,a)') '   level = ',lm,' ;'
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      tstr='(tile,'
+      hstr=',y,x) ;'
+      write(cdl_ijl(6),'(a,i3,a)') '   x = ',im,' ;'
+      write(cdl_ijl(7),'(a,i3,a)') '   y = ',im,' ;'
+      write(cdl_ijl(8),'(a,i3,a)') '   tile = 6 ;'
+      cdl_ijl(9:17)(:) = (/
+     &     'variables:                                          ',
+     &     'float x(x) ;                                        ',
+     &     '   x:long_name = "nondimensional cube coordinate" ; ',
+     &     'float y(y) ;                                        ',
+     &     '   y:long_name = "nondimensional cube coordinate" ; ',
+     &     'float lon(tile,y,x) ;                               ',
+     &     '   lon:units = "degrees_east" ;                     ',
+     &     'float lat(tile,y,x) ;                               ',
+     &     '   lat:units = "degrees_north" ;                    '
+     &     /)
+#else
+      tstr='('
+      hstr=',lat,lon) ;'
+      write(cdl_ijl(6),'(a,i3,a)') '   lon = ',im,' ;'
+      write(cdl_ijl(7),'(a,i3,a)') '   lat = ',jm,' ;'
+      cdl_ijl(8:12)(:) = (/
+     &     'variables:                      ',
+     &     'float lon(lon) ;                ',
+     &     '   lon:units = "degrees_east" ; ',
+     &     'float lat(lat) ;                ',
+     &     '   lat:units = "degrees_north" ;'
+     &     /)
+#endif
+      kk = 1+count(len_trim(cdl_ijl).gt.0)
+      cdl_ijl(kk:kk+4)(:) = (/
+     &     'float plm(plm) ;                ',
+     &     '   plm:units = "mb" ;           ',
+     &     'float ple(ple) ;                ',
+     &     '   ple:units = "mb" ;           ',
+     &     'float level(level) ;            '
+     &     /)
+      kk = count(len_trim(cdl_ijl).gt.0)
+      do k=1,kaijl
+        if(trim(units_ijl(k)).eq.'unused') cycle
+        if(lgrid_ijl(k).eq.ctr_ml .or. lgrid_ijl(k).eq.edg_ml) then
+          zstr='level'
+        elseif(lgrid_ijl(k).eq.ctr_cp) then
+          zstr='plm'
+        else
+          zstr='ple'
+        endif
+        kk = kk + 1
+        cdl_ijl(kk) = 'float '//trim(name_ijl(k))//
+     &       trim(tstr)//trim(zstr)//trim(hstr)
+        kk = kk + 1
+        cdl_ijl(kk) = '   '//trim(name_ijl(k))//':long_name = "'//
+     &       trim(lname_ijl(k))//'" ;'
+        kk = kk + 1
+        cdl_ijl(kk) = '   '//trim(name_ijl(k))//':units = "'//
+     &       trim(units_ijl(k))//'" ;'
+      enddo
+      kk = kk + 1
+      cdl_ijl(kk) = '}'
+#endif
 
       return
       end subroutine ijl_defs
@@ -4809,6 +5139,7 @@ c
       implicit none
       integer :: k,kk,l, lmax_dd0=5, lmax_dd2=11  ! why?
       character*2 lst(lm)
+      character*1 :: punct
 
 C**** define levels strings
       do l=1,lm
@@ -5481,10 +5812,67 @@ c
          end if
 
          write (6,*) 'Number of Diurn diagnostics defined: kaddmax=',k
-         if(.not.qcheck) return
-         do kk=1,k
-            write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
-         end do
+         if(qcheck) then
+           do kk=1,k
+             write (6,'(i4,'':'',a)') kk,trim(lname_dd(kk))
+           end do
+         endif
       end if
+
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of ADIURN output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).  Information needed for
+c printing ASCII tables of the output is stored here as well.
+c
+      cdl_dd = ''
+      cdl_dd(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_dd(3),'(a,i3,a)') '   hour = ',hr_in_day,' ;'
+      write(cdl_dd(4),'(a,i3,a)') '   ndiupt = ',ndiupt,' ;'
+      write(cdl_dd(5),'(a,i3,a)') '   namdd_strlen = 4 ;'
+      write(cdl_dd(6),'(a,i3,a)') '   two = 2 ;'
+      cdl_dd(7:10)(:) = (/
+     &     'variables:                       ',
+     &     'float hour(hour) ;               ',
+     &     'char namdd(ndiupt,namdd_strlen) ;',
+     &     'int ijdd(ndiupt,two) ;           '
+     &     /)
+      kk = count(len_trim(cdl_dd).gt.0)
+      do k=1,ndiuvar
+        if(trim(lname_dd(k)).eq.'unused') cycle
+        kk = kk + 1
+        cdl_dd(kk) = 'float '//trim(name_dd(k))//'(hour,ndiupt) ;'
+        kk = kk + 1
+        cdl_dd(kk) = '   '//trim(name_dd(k))//':long_name = "'//
+     &       trim(lname_dd(k))//'" ;'
+        kk = kk + 1
+        cdl_dd(kk) = '   '//trim(name_dd(k))//':units = "'//
+     &       trim(units_dd(k))//'" ;'
+      enddo
+      kk = kk + 1
+      cdl_dd(kk) = 'data:'
+      kk = kk + 1
+      cdl_dd(kk) = 'namdd ='
+      punct=','
+      do k=1,ndiupt
+        if(k.eq.ndiupt) punct=';'
+        kk = kk + 1
+        cdl_dd(kk) = '"'//namdd(k)//'"'//punct
+      enddo
+      kk = kk + 1
+      cdl_dd(kk) = 'ijdd ='
+      punct=','
+      do k=1,ndiupt
+        if(k.eq.ndiupt) punct=';'
+        kk = kk + 1
+        write(cdl_dd(kk),'(i3,a1,i3,a1)')
+     &       ijdd(1,k),',',ijdd(2,k),punct
+      enddo
+      kk = kk + 1
+      cdl_dd(kk) = '}'
+#endif
+
       return
       end subroutine diurn_defs
