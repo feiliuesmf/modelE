@@ -286,7 +286,7 @@ m4_loop(`
 ')`'
 
 m4_loop(`
-      subroutine ent_run_`'m4_suffix`'(entcell,dt,time)
+      subroutine ent_run_`'m4_suffix`'(entcell,dt,time,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -302,6 +302,7 @@ m4_loop(`
       type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
       real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
+      logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
       !---
       m4_arr_only(`integer m4_ind')`'
@@ -312,7 +313,7 @@ m4_loop(`
 
       m4_do(dims)
         call ent_integrate(dt, entcell`'m4_brkts(m4_ind)`'%entcell,
-     &     time,config)
+     &     time,update_day,config)
       m4_enddo
 
       end subroutine ent_run_`'m4_suffix`'
