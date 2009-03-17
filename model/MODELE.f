@@ -1064,6 +1064,7 @@ C****
 #ifdef CUBE_GRID 
       use fftw_com
 #endif
+      USE DIAG_ZONAL, only : imlon
       USE RANDOM
       USE RAD_COM, only : rqt,cloud_rad_forc
       USE DYNAMICS, only : pk,pmid,pedn,ualij,valij
@@ -2046,7 +2047,9 @@ C**** Initialize nudging
 
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
-      CALL FFT0 (IM)
+c Note on FFT initialization: IMLON is defined by the diag_zonal module,
+c not by the resolution module.  IMLON==IM for a latlon grid.
+      CALL FFT0 (IMLON)  ! CALL FFT0(IM)
       CALL init_CLD
       CALL init_DIAG(istart,num_acc_files) ! initialize for accumulation
       CALL UPDTYPE
