@@ -70,11 +70,11 @@ OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processin
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
 TOPO=Z_CS32 SOIL=SOIL_CS32 ! soil/topography bdy.conds
-! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
+! VEG=V72X46.1.cor2   ! or:      ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V_CS32 CROPS=CROPS_CS32 
 CDN=CD_CS32                      ! surf.drag coefficient
-REG=REG.txt                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin               ! river direction file
+REG=REG.txt                      ! special regions-diag
+RVR=RDdistocean_CS32.bin         ! river direction file
 TOP_INDEX=top_index_CS32      ! only used if #define do_topmodel_runoff
 GLMELT=GLMELT_CS32   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
