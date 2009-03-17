@@ -2188,6 +2188,19 @@ c
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m45_130
 c
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+      k=k+1
+      IJ_CHL = k
+      lname_ij(k) = 'Total Chlorophyll'
+      units_ij(k) = 'mg/m^3'
+      scale_ij(k) = 1.
+      name_ij(k) = 'chl'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_POCEAN
+c
+#endif
+c
       k=k+1 !
       IJ_TGO  = k               !      3 SF
       lname_ij(k) = 'SEA SURFACE TEMPERATURE'    ! layer 1

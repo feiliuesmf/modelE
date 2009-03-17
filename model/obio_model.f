@@ -235,7 +235,7 @@
 #endif
        print*, 'pco2.'//jstring//string
        call openunit('pco2.'//jstring//string,iu_pco2)
-       call openunit('tend.'//jstring//string,iu_tend)
+!       call openunit('tend.'//jstring//string,iu_tend)
 
       endif  !diagno_bio
 
@@ -258,7 +258,7 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=ifp(j,l),ilp(j,l)
 #endif
 
-cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
+       write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
@@ -364,8 +364,8 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
        p1d(1)=0.
        do k=2,kdm+1
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
-cdiag write(*,'(a,4i5,2e12.4)')'obio_model, depths: ',
-cdiag.  nstep,i,j,k,dp1d(k-1),p1d(k)
+      write(*,'(a,4i5,2e12.4)')'obio_model, depths: ',
+     .  nstep,i,j,k,dp1d(k-1),p1d(k)
 
        enddo
 
@@ -764,19 +764,19 @@ cdiag     endif
        enddo
       endif
 
-      if (diagno_bio) then
-        do k=1,kdm
-#ifdef OBIO_ON_GARYocean
-        write(iu_tend,'(4i5,6e12.4)')
-     .      nstep,i,j,k,p1d(k+1),rhs(k,14,5),rhs(k,14,10)
-     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
-#else
-        write(iu_tend,'(4i5,6e12.4)')
-     .      nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
-     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
-#endif
-        enddo
-      endif
+!      if (diagno_bio) then
+!        do k=1,kdm
+!#ifdef OBIO_ON_GARYocean
+!        write(iu_tend,'(4i5,6e12.4)')
+!     .      nstep,i,j,k,p1d(k+1),rhs(k,14,5),rhs(k,14,10)
+!     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
+!#else
+!        write(iu_tend,'(4i5,6e12.4)')
+!     .      nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
+!     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
+!#endif
+!        enddo
+!      endif
 
        !------------------------------------------------------------
        !update 3d tracer array
@@ -885,7 +885,7 @@ c$OMP END PARALLEL DO
 
       if (diagno_bio) then
         call closeunit(iu_pco2)
-        call closeunit(iu_tend)
+!        call closeunit(iu_tend)
       endif     ! diagno_bio
 
 

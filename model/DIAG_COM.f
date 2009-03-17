@@ -437,6 +437,9 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
      &     ,ij_flam
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+     .     ,ij_chl
+#endif
       INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
      &     ,IJ_HUSL
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)

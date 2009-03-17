@@ -832,6 +832,9 @@ C     OUTPUT DATA
      *     ,ij_clr_sruptoa,ij_clr_truptoa,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+     *     ,ij_chl
+#endif
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -1227,8 +1230,10 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
 
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** Set Chlorophyll concentration
-  !   print*,"rad0",i,j,chl(i,j)
-      if (POCEAN.gt.0) LOC_CHL = chl(I,J)
+      if (POCEAN.gt.0) then
+          LOC_CHL = chl(I,J)
+          AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+CHL(I,J)*FOCEAN(I,J)
+      endif
 #endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
