@@ -95,7 +95,7 @@ C**** Some local constants
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,tf
-     *     ,rvap,gamd,teeny,undef,radius,omega
+     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb
       USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
@@ -104,7 +104,7 @@ C**** Some local constants
       USE RAD_COM, only : rqt
       USE DIAG_COM, only : ia_dga,jreg,
      *     aijl=>aijl_loc
-     *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres
+     *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
      *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_q850,ij_q500
      *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
@@ -244,9 +244,14 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           END DO
           CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF))
           PS=P(I,J)+PTOP
-          AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ PS
           ZS=BYGRAV*ZATMO(I,J)
+          AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ PS
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TSAVG(I,J),ZS)-P1000
+C**** calculate pressure diags including water 
+          PS=PS+SUM((Q(I,J,:)+WM(I,J,:))*AM(:,I,J))*kg2mb
+          AIJ(I,J,IJ_PRESQ)=AIJ(I,J,IJ_PRESQ)+ PS
+          AIJ(I,J,IJ_SLPQ)=AIJ(I,J,IJ_SLPQ)+SLP(PS,TSAVG(I,J),ZS)-P1000
+
           AIJ(I,J,IJ_RH1)=AIJ(I,J,IJ_RH1)+Q(I,J,1)/QSAT(TX(I,J,1),LHE,
      *        PMID(1,I,J))
         END DO

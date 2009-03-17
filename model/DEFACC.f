@@ -1230,6 +1230,15 @@ c
       ir_ij(k) = ir_0_1775
 c
       k=k+1 !
+      IJ_PRESQ = k ! PIJ (100 PA)  (NO PRINTOUT)  4 DA
+      lname_ij(k) = 'SURFACE PRESSURE (INCL. Q)'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'prsurfq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+c
+      k=k+1 !
       IJ_PHI1K = k ! PHI1000 (M**2/S**2) 4 DA
       lname_ij(k) = '1000mb HEIGHT'
       units_ij(k) = 'm'
@@ -1926,6 +1935,15 @@ c
       lname_ij(k) = 'SEA LEVEL PRESSURE'
       units_ij(k) = 'mb-1000'
       name_ij(k) = 'slp'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
+      IJ_SLPQ  = k ! PSL (100 PA-1000)  (USING TS)             4 DA
+      lname_ij(k) = 'SEA LEVEL PRESSURE (INCL. Q)'
+      units_ij(k) = 'mb-1000'
+      name_ij(k) = 'slpq'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m9_26
