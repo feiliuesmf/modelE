@@ -208,7 +208,7 @@ C**** set dimensions
 !@+       (J1:JM,1:KLMAX) is field
 !@+       (JM+1:JM+3,1:KLMAX) are global/NH/SH average over L
 !@+       (J1:JM+3,LM+LM_REQ+1) are averages over J
-      REAL*8, DIMENSION(JM+3,KLMAX), INTENT(IN) :: XJL
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1), INTENT(IN) :: XJL
 !@var PM pressure levels (MB)
       REAL*8, DIMENSION(KLMAX), INTENT(IN) :: PM
 
