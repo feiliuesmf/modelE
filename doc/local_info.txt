@@ -2,7 +2,9 @@ Running on Discover (Reto Ruedy)
 +++++++++++++++++++
 News:
 ====
-modelE may also be compiled using openMPI or intelMPI to run on the new 8 cpu nodes
+The current version of modelE may no longer be compiled with openMP !
+
+modelE may be compiled using openMPI or intelMPI to run on the new 8 cpu nodes
 run(pbs) was enhanced to deal with the new nodes and will allow to use <8 cpus per node:
    run runID slow|fast|new|newN #_of_cpus_per_job time_limit(hours) (here: N=1-8)
    all cpus are used unless N<8 in which case only N cpus/node are used; this may be
@@ -25,8 +27,7 @@ was no need for GISS to use this option.
 
 On the generally accessible queues, the NUMBER of JOBS (not CPUs) a user
 or group can run simultaneously is limited on each queue
-- we must bundle our small jobs to get our share of resources,
-  especially openMP jobs which are restricted to a single node/job.
+- we may bundle our small jobs to get our share of resources
 As a favor to us, group limits for general and general_small were abolished !
 
 Bundling jobs: (no loss in efficiency)
@@ -36,7 +37,7 @@ non-modelE openMP jobs, create in the run directory a copy E4 of "E" which
 sets:   export OMP_NUM_THREADS=4    (before the *.exe line)
     or  setenv OMP_NUM_THREADS 4    (for csh tcsh users)
 Any number of scali mpi jobs that use the same number of nodes can be bundled
-openMPI jobs cannot be bundled, intelMPI could be bundled but it has
+openMPI jobs cannot be bundled, intelMPI may be bundled but it has
 not been implemented yet.
 
 Unresolved bugs:
@@ -54,7 +55,7 @@ Unresolved bugs:
 
 - openmpi: may be used on all nodes
    - compile with: EXTRA_FFLAGS="-DMPITYPE_LOOKUP_HACK" to avoid memory leak
-   - Bundling openmpi jobs does not seem to be possible
+   - Bundling openmpi jobs is currently impossible
 
 Compiler issues:
 ===============
@@ -87,13 +88,10 @@ Consistency between serial and parallelized executables:
 openMP and serial runs give the same results ONLY if using the
    option -mp (machine precision) in both cases, i.e. use
    gmake setup|exe RUN=.... EXTRA_FFLAGS=-mp EXTRA_LFLAGS=-mp
+Warning: The current version of modelE no longer supports openMP
 
 mpi and serial runs (without the -mp options) give identical results
    (but different from serial runs and openMP runs with -mp)
-
-Don't use: "openMP w/o -mp" and "mpi with -mp", since the results
-seem to depend on the number of processors used in those cases !!!
-Also, "openMP runs w/o -mp" tend to create negative humidities (roundoff).
 
 Disks and file names:
 ====================
@@ -176,6 +174,10 @@ maxmin_i    find extremes for subdaily output files
 gm          find global means for ij-files (if last 4 bytes = glob.mean)
 GM          find global means for ij-files (re-computed from data)
 AViewer     plot 72x46 ij-files (color maps)
+nmaps       plot many ij-files (color maps - see nmaps.doc)
+1map        plot ij-file or GISS-4D-file (automatic color bar election)
+aplotX      line plots from text files
+showlpl     combines aplotX and aplotX -a
 
 to_ut       archive directories on dirac
 from_ut     retrieve directories from dirac
@@ -267,7 +269,8 @@ bkup.xxx              to backup all new files to dirac
 scr_rsf.xxx           keep only the 1JAN and the last 12 rsfs       (x0 see PPD)
                       keep 1 1JAN/decade and the last 12 rsfs       (x  see PPD)
 do_ann.xxx            create ann acc/PRT-files and key ann.glob.mean.lists   (a)
-add_ocn_lpl            add some ocean related ann.glob.mean.lists           (oa)
+                             and monthly global mean series                 (ma)
+add_ocn_lpl           add some ocean related ann.glob.mean.lists            (oa)
 save_acc.xxx          collect next N years of acc-files in an appropriately (aN)
                            named directory, move it to "totape" directory
 qrsfu  xxx            shows status of jobs listed in xxx.runs
