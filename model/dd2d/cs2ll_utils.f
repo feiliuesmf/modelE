@@ -132,8 +132,12 @@
       integer :: ilon,jlat,jj,tile,n,nmax,jlat1,jlat2,j_sv,nrecv
       integer :: ierr,group_world,group_jlat,comm_jlat
       real*8 :: cs_xmin,cs_xmax,cs_ymin,cs_ymax,x,y
-      integer :: pelist(grid%nproc),pelist_sv(grid%nproc,jmlat)
-      real*8 :: hash_pelist(jmlat)
+      integer, dimension(:), allocatable :: pelist
+      integer, dimension(:,:), allocatable :: pelist_sv
+      real*8, dimension(:), allocatable :: hash_pelist
+
+      allocate(pelist(grid%nproc),pelist_sv(grid%nproc,jmlat))
+      allocate(hash_pelist(jmlat))
 
 c compute the x,y bounds of this processor
       cs_xmin = -1d0 + 2d0*(grid%is-1)/grid%npx
@@ -310,6 +314,8 @@ c
           cs2ll%nrecvmax=max(cs2ll%nrecvmax,nrecv)
         endif
       enddo
+
+      deallocate(pelist,pelist_sv,hash_pelist)
 
       return
       end subroutine init_cs2ll_type
