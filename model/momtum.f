@@ -10,7 +10,7 @@ c --- hycom version 0.9 -- cyclic and noncyclic b.c. combined
       implicit none
 c
       integer, intent(in) :: m,n,mm,nn
-      integer             :: k1m,k1n      !TNL What is it?
+      integer             :: k1m,k1n
 c
       integer ::  i,j,k,l,ia,ib,ja,jb,jp,km,kn
 c
@@ -54,7 +54,7 @@ c --- use upper interface pressure in converting sigma to sigma-star.
 c --- this is to avoid density variations in layers intersected by sea floor
 c
       thstar(i,j,k)=th3d(i,j,km)
-     .   +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k))
+     .   +kappaf(temp(i,j,km),saln(i,j,km),p(i,j,k),th3d(i,j,km))
 c
  82   p(i,j,k+1)=p(i,j,k)+dp(i,j,km)
 c

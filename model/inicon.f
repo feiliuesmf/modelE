@@ -133,12 +133,13 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
       th3d(i,j,k+kk)=th3d(i,j,k)
       temp(i,j,k+kk)=temp(i,j,k)
       saln(i,j,k+kk)=saln(i,j,k)
-      thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k))
+      thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),
+     .                                 th3d(i,j,k))
 c
       if (i.eq.itest.and.j.eq.jtest)
      . write (lp,'(2i5,i3,a,3f7.2,3x,2f7.3,f8.1)')
      .  i,j,k,'  dens,thstar,kappa=',th3d(i,j,k),thstar(i,j,k)
-     .   ,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),2),
+     .   ,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k)),
      .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
 c
       if (k.gt.1) then
@@ -194,9 +195,6 @@ c     do 21 j=1,jj
 c     do 21 l=1,isp(j)
 c     do 21 i=ifp(j,l),ilp(j,l)
 css   omlhc(i,j)=spcifh*p(i,j,2)/(onem *thref)           ! J/m*m C
-c     thermb(i,j,k)=kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k))
-c    .             *(1000.+th3d(i,j,k))
-c     thermb(i,j,k+kk)=thermb(i,j,k)
 c21   continue
 cc$OMP END PARALLEL DO
       call ssto2a(temp,asst)
@@ -238,7 +236,8 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 21 l=1,isp(j)
       do 21 i=ifp(j,l),ilp(j,l)
       p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
-      thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k))
+      thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),
+     .              th3d(i,j,k))
  21   continue
 c$OMP END PARALLEL DO
 c

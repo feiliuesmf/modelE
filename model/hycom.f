@@ -414,26 +414,26 @@ c
       if (pref.eq.2.e7) then
         chk_rho=36.719718               ! T:[-2:30],S:[18:38]
         chk_rho=36.876506               ! T:[-2:32],S:[16:38]
-c ---   chk_kap: t= 1.0, s=34.5, p=0 bar, kap_t(4.5,34.5,1.e7)= 0.08728276
-        chk_kap=0.08728276
+c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=0.12493658
+        chk_kap=0.12493658
       elseif (pref.eq.0.) then
         chk_rho=27.786223
-c ---   chk_kap: t= 1.0, s=34.5, p=0 pascal, kap_t(4.5,34.5,1.e7)=-0.09080282
-        chk_kap=-0.09080282
+c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=-.12961120
+        chk_kap=-.12961120
       else
         stop 'wrong pref'    ! proper mpi_abort
       endif
 c
-      if (abs(sigocn(4.,35.)-chk_rho).gt..0001) then
+      if (abs(sigocn(4.,35.)-chk_rho).gt.1.e-4) then
       if (AM_I_ROOT())
      & write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
      . chk_rho,', not',sigocn(4.,35.)
 css     stop
       end if
-      if (abs(kappaf(4.5,34.5,1.e7)-chk_kap).gt..00001) then
+      if (abs(kappaf(5.5,35.5,1.e7,35.)-chk_kap).gt.1.e-4) then
       if (AM_I_ROOT())
-     &  write (lp,'(/a,2(a,f12.8))') 'error: kappa(4.5,34.5,10^7)',
-     .  '  should be',chk_kap,', not',kappaf(4.5,34.5,1.e7)
+     &  write (lp,'(/a,2(a,f12.8))') 'error: kappa(5.5,35.5,1.e7,35.)',
+     .  '  should be',chk_kap,', not',kappaf(5.5,35.5,1.e7,35.)
       stop
       end if
 c
@@ -587,8 +587,11 @@ c
       time=time0+(nstep-nstep0)*baclin/86400.
 c
       diagno=.false.
-      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.24.and.nsub.eq.nstepi) 
+      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.23.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
+      if (AM_I_ROOT())
+     .write(*,'(a,6i4,l)') 
+     . 'chk_day=',jmon,JDendOfM(jmon),jday,Jhour,nsub,nstepi,diagno
 c
       if (nstep.eq.1 .or. nstep.eq.24) diagno=.true.
       diag_ape=.false.

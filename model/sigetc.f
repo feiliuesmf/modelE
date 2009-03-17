@@ -102,14 +102,14 @@ c
       return
       end
 c
-      real function kappaf(t,s,prs)
+      real function kappaf(t,s,prs,th)
 c
 c --- compressibility coefficient kappa^(theta) from sun et al. (1999)
 c
       USE HYCOM_SCALARS, only : thref
       USE HYCOM_ARRAYS_GLOB
       implicit none
-      real t,s,prs,tdif,sdif
+      real t,s,prs,tdif,sdif,th
 c
       include 'state_eqn.h'
 c
@@ -118,9 +118,9 @@ ccc      kappaf=0.                              ! no thermobaricity
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       sdif=max(30.,min(38.,s))-refsal
       tdif=max(-2.,min(32.,t))-reftem
-      kappaf=sclkap * (tdif*(qt+tdif*(qtt+tdif*qttt)
+      kappaf=(th+1./thref)*(exp(sclkap * (tdif*(qt+tdif*(qtt+tdif*qttt)
      .       +.5*(prs+pref)*(qpt+sdif*qpst+tdif*qptt))
-     .       +sdif*(qs+tdif*qst))*(prs-pref)/thref
+     .       +sdif*(qs+tdif*qst))*(prs-pref))-1.)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- claes rooth's original formula:
 ccc   kappaf=-.075e-12*t*(3.-.06*t+.0004*t*t)*(prs-pref)/thref
