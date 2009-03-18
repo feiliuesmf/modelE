@@ -305,7 +305,7 @@
       use diag_com, only : keynr,tsfrez=>tsfrez_loc,tdiurn,oa
       use diag_com, only : aj=>aj_loc,areg=>areg_loc &
            ,ajl=>ajl_loc,asjl=>asjl_loc,aij=>aij_loc &
-           ,ail=>ail_loc,energy,consrv=>consrv_loc &
+           ,aijl=>aijl_loc,energy,consrv=>consrv_loc &
            ,speca,atpe,adiurn,wave,agc=>agc_loc,aijk=>aijk_loc,aisccp
 #ifndef NO_HDIURN
       use diag_com, only : hdiurn
@@ -575,7 +575,7 @@
         check("ajl",ajl)
         check("asjl",asjl)
         check("aij",aij)
-        check("ail",ail)
+        check("aijl",aijl)
         check("energy",energy)
         check("consrv",consrv)
         check("speca",speca)
