@@ -21,11 +21,12 @@ Preprocessor Options
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
+!  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define TRACERS_NITRATE          ! Nitrate aerosol
-!  OFF #define TRACERS_DUST             ! Dust aerosol
+#define TRACERS_DUST             ! Dust aerosol
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 #define BC_ALB                   !optional tracer BC affects snow albedo
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
@@ -64,7 +65,7 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 TRACERS_AEROSOLS_Koch_e4
 TRACER_NITRATE                      ! Nitrate aerosol
 TRAMP_eqsam_v03d                    ! EQSAM module for inorganic aerosol thermodynamic equilibrium
-! TRDUST_COM TRDUST TRACERS_DUST      ! DUST
+TRDUST_COM TRDUST TRACERS_DUST      ! DUST
 TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! COSMO_SOURCES
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
@@ -74,6 +75,7 @@ SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
+lightning                           ! Colin Price lightning model
 !! flammability_drv flammability       ! Olga's fire model
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
 ATURB_E1                            ! turbulence in whole atmosphere
@@ -96,7 +98,7 @@ POUT_netcdf                         ! post-processing output
 
 Data input files:
     ! start up from restart file of earlier run
-AIC=1JAN2000.rsfE1chaerM23_nitrate        ! initial conditions (atm./ground), no GIC, ISTART=8
+AIC=1JAN2000.rsfE1chaerM23_nitrate_dust        ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
 ! AIC=AIC.RES_M23.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
@@ -269,14 +271,14 @@ NH3SOURCE_CYC=GISS_EDGAR_HYDE_NH3_CYC_1890_2000.4X5
 ! OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc      ! for offline chemistry only
 ! OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc ! for offline chemistry only
 !------AEROSOL DUST INPUT-----------------------
-! VTRSH=vtr-mod-o0.mean-pb
-! FRCLAY=claygcm-f
-! FRSILT=siltgcm-f
-! DRYHR=text5hr-f
-! GIN=Ginoux_dstsrc
-! LKTAB=table_emission
-! ERS=ERS1_1993_MONTHLY
-! LKTAB1=table_wspdf
+VTRSH=vtr-mod-o0.mean-pb
+FRCLAY=claygcm-f
+FRSILT=siltgcm-f
+DRYHR=text5hr-f
+GIN=Ginoux_dstsrc
+LKTAB=table_emission
+ERS=ERS1_1993_MONTHLY
+LKTAB1=table_wspdf
 
 
 Label and Namelist:
@@ -384,6 +386,10 @@ biomass_Tyr2= 1990 ! set these two equal or omit them.
 ! a sector/region method above...
 base_isopreneX=1.d0
 
+! Colin Price lightning model needs resolution-dependant tuning:
+tune_lt_land=4.774d0 ! =2.2d0*2.17d0 for 4x5 model setting
+tune_lt_sea=8.463d0  ! =3.9d0*2.17d0 for 4x5 model setting
+
 ! ---- for interactive wetlands -----
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
@@ -401,7 +407,7 @@ C_SDRAG=0.     ! no constant sdrag
 P_SDRAG=.01     ! lin. sdrag above p_sdrag mb (top layer for M23) except near poles
 PP_SDRAG=4.6   ! lin. sdrag above  pp_sdrag mb near poles (top 5 layers for M23)
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
-WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used
+WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used. For ISTART=2, use WMAX=300.
 PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000030 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
