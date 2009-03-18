@@ -3581,11 +3581,27 @@ c
 #ifdef CALCULATE_FLAMMABILITY
       k=k+1        ! flammability of vegetation
         ij_flam = k
-        write(lname_ij(k),'(a23)')'VEGETATION FLAMMABILITY'
+        lname_ij(k) = 'VEGETATION FLAMMABILITY'
         units_ij(k) = 'none'
         write(name_ij(k),'(a5)') 'FLAMM'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e0
+#endif
+#if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
+      k=k+1        ! lightning flash rate
+        ij_flash = k
+        lname_ij(k) = 'LIGHTNING FLASH RATE'
+        units_ij(k) = '1.e-10 flashes/m2/s'
+        write(name_ij(k),'(a5)') 'FLASH'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e10/DTsrc
+      k=k+1        ! lightning cloud-to-ground flash rate
+        ij_CtoG = k
+        lname_ij(k) = 'LIGHTNING CLOUD TO GROUND FLASH RATE'
+        units_ij(k) = '1.e-10 flashes/m2/s'
+        write(name_ij(k),'(a5)') 'CtoG'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e10/DTsrc
 #endif
 #ifdef HTAP_LIKE_DIAGS
       do L=1,LM

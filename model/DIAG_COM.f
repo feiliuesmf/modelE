@@ -436,7 +436,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-     &     ,ij_flam
+     &     ,ij_flam,ij_CtoG,ij_flash
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
      .     ,ij_chl
 #endif

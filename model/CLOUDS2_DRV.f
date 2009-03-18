@@ -670,19 +670,19 @@ C**** Error reports
         if (ierr.eq.2) ickerr = ickerr + 1
       end if
 
-#ifdef TRACERS_SPECIAL_Shindell
-C**** Calculate NOx from lightning:
-C**** first, need the local freezing level:
-      IF(LMCMAX.gt.0)THEN
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
+! Execute Colin Price Lightning parameterization:
+!     first, need the local freezing level:
+      if(LMCMAX>0)then
         Lfreeze=1
-        DO L=1,LMCMAX
-          IF(T(I,J,L)*PLK(L).lt.TF) THEN
+        do L=1,LMCMAX
+          if(T(i,j,L)*plk(L)<TF) then
             Lfreeze=L
-            EXIT
-          END IF
-        END DO
-        CALL calc_lightning(I,J,LMCMAX,Lfreeze)
-      END IF
+            exit
+          endif  
+        enddo  
+        calL calc_lightning(i,j,LMCMAX,Lfreeze)
+      endif  
 #endif
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
@@ -1558,7 +1558,9 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
       USE MODEL_COM, only : jm,lm,dtsrc,ls1,plbot,pednl00
       USE DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
       USE GEOM, only : lat2d, kmaxj
-
+#if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
+      USE LIGHTNING, only : tune_lt_land, tune_lt_sea
+#endif
       USE CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice
      *  ,U00a,U00b       ! tuning knobs to replace U00ice and U00wtrX
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
@@ -1615,6 +1617,10 @@ c
       call sync_param( "radius_multiplier",radius_multiplier)
       call sync_param( "entrainment_cont1",entrainment_cont1)
       call sync_param( "entrainment_cont2",entrainment_cont2)
+#if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
+      call sync_param( "tune_lt_land", tune_lt_land)
+      call sync_param( "tune_lt_sea" , tune_lt_sea )
+#endif
 
       IF(LMCM.LT.0) LMCM = LS1-1
       call set_param( "LMCM", LMCM, 'o' )

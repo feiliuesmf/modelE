@@ -1302,6 +1302,9 @@ C****
 #ifdef CALCULATE_FLAMMABILITY
       write(6,*) '...and calculating sfc veg flammability'
 #endif
+#ifdef CALCULATE_LIGHTNING   
+      write(6,*) '...and calculating lightning flash rate'
+#endif
 #ifdef ALTER_BIOMASS_BY_FIRE
       write(6,*) '...and altering biomass burning srcs by flammability'
 #endif
