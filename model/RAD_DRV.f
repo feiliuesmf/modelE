@@ -832,7 +832,7 @@ C     OUTPUT DATA
      *     ,ij_clr_sruptoa,ij_clr_truptoa,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
-#if (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
+#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      *     ,ij_chl
 #endif
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
@@ -849,7 +849,7 @@ C     OUTPUT DATA
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
       USE FLUXES, only : nstype,gtempr
-#if (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
+#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      .                  ,chl
 #endif
       USE DOMAIN_DECOMP_ATM, ONLY: grid,GET, write_parallel
@@ -1228,7 +1228,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
         END IF
       END DO
 
-#if (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
+#if (defined CHL_from_SeaWIFS) || (defined TRACERS_OceanBiology)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
           LOC_CHL = chl(I,J)
