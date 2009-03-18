@@ -258,7 +258,7 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=ifp(j,l),ilp(j,l)
 #endif
 
-       write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
+cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
@@ -364,9 +364,6 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        p1d(1)=0.
        do k=2,kdm+1
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
-      write(*,'(a,4i5,2e12.4)')'obio_model, depths: ',
-     .  nstep,i,j,k,dp1d(k-1),p1d(k)
-
        enddo
 
 #ifdef OBIO_ON_GARYocean
@@ -872,9 +869,9 @@ cdiag  endif
 #endif
      .    ,alk1d(1),pp2tot_day(i,j)
 #ifdef OBIO_ON_GARYocean
-       endif
+       endif   !kpl>0
 #endif
-       endif
+       endif   !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
       endif   !if focean>0
