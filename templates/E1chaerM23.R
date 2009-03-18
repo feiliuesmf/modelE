@@ -234,9 +234,9 @@ ALPHA_NCEP=gsin/alpha_t_ch4_4x5
 ! ------- Dorothy's inputs needed for imAER= 1 or 3 -----------
 SO2_VOLCANO=SO2_volc_conti2000.AEROCOM_FEB12
 !SO2_BIOMASS=SO2_bio2000.AEROCOM_DEC03
-BC_SHIPS=Shipping_dum   !so far these are place-holders
-POM_SHIPS=Shipping_dum
-SO2_SHIPS=Shipping_dum
+BC_SHIPS=Shipping_BC_2000_4x5.bin
+POM_SHIPS=Shipping_POM_2000_4x5.bin
+SO2_SHIPS=Shipping_SO2_2000_4x5.bin
 ! --------Dorothy's inputs needed for imAER = 3 --------------
 DMS_SEA=DMS_Night_4x5
 ! AER_CHEM: inputs for sulfur and H2O2 chemistry, saved from the
