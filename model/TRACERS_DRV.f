@@ -172,10 +172,6 @@ C**** Synchronise tracer related paramters from rundeck
 
 C**** Get itime_tr0 from rundeck if it exists
       call sync_param("itime_tr0",itime_tr0,ntm)
-#ifdef TRACERS_ON
-C**** Get to_volume_MixRat from rundecks if it exists
-      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
-#endif
 #ifdef TRACERS_WATER
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
@@ -2036,9 +2032,26 @@ C**** Any tracers that dry deposits needs the surface concentration:
 C**** Define the conversion from mass to volume units here 
       mass2vol(n) = mair/tr_mm(n)
       vol2mass(n) = tr_mm(n)/mair
+#ifdef TRACERS_SPECIAL_Shindell
+C**** Aerosol tracer output should be mass mixing ratio
+      select case (tr_wd_TYPE(n))
+        case (nGAS)
+          to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
+        case (nPART)
+          to_volume_MixRat(n) = 0    !aerosol output to mass mixing ratio
+        case (nWATER)
+          to_volume_MixRat(n) = 0    !water output to mass mixing ratio
+        case default
+          to_volume_MixRat(n) = 0    !default output to mass mixing ratio
+      end select
+#endif
 #endif
 
       end do
+#ifdef TRACERS_ON
+C**** Get to_volume_MixRat from rundecks if it exists
+      call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+#endif
 
 C**** DIAGNOSTIC DEFINTIONS
 C**** Please note that short names for diags i.e. sname_jls are used

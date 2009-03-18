@@ -22,15 +22,11 @@
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 
+#ifdef TRACERS_ON
 !@dbparam to_volume_MixRat: For printout of tracer concentration
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
-#ifdef TRACERS_ON
-#ifdef TRACERS_SPECIAL_Shindell
-      INTEGER, DIMENSION(NTM) :: to_volume_MixRat=1
-#else
       INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0
-#endif
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil
