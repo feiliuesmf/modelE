@@ -20,6 +20,7 @@ Preprocessor Options
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
+!  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 !  OFF #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
@@ -65,6 +66,7 @@ SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
+lightning                           ! Colin Price lightning model
 !! flammability_drv flammability       ! Olga's fire model
 ! pick exactly one of the next 2 choices: ATURB or DRYCNV
 ATURB_E1                            ! turbulence in whole atmosphere
@@ -278,6 +280,10 @@ biomass_Tyr2= 1990 ! set these two equal or omit them.
 ! only when #defined BIOGENIC_EMISSIONS, otherwise use
 ! a sector/region method above...
 base_isopreneX=1.d0
+
+! Colin Price lightning model needs resolution-dependant tuning:
+tune_lt_land=4.774d0 ! =2.2d0*2.17d0 for 4x5 model setting
+tune_lt_sea=8.463d0  ! =3.9d0*2.17d0 for 4x5 model setting
 
 ! ---- for interactive wetlands -----
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
