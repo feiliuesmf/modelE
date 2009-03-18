@@ -620,8 +620,8 @@ C****
       SUBROUTINE get_ships(iact)
       USE AEROSOL_SOURCES, only: BC_ship,POM_ship,SO2_ship
       USE MODEL_COM, only: im,jm,jmon
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
       integer J_0,J_1,J_0H,J_1H,ii,jj,mm,iuc,iact
       real*8 carbstuff
@@ -632,36 +632,26 @@ C****
       BC_ship(:,:,:)=0.d0
       POM_ship(:,:,:)=0.d0
       SO2_ship(:,:,:)=0.d0
-      call openunit('BC_SHIPS',iuc,.false.,.true.)
-      do 
-      read(iuc,*) ii,jj,mm,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-c     carbstuff=carbstuff*1.E-6
-      BC_ship(ii,jj,mm)=carbstuff
-      end do
+      call openunit('BC_SHIPS',iuc,.true.,.true.)
+       do mm=1,12
+       call readt_parallel(grid,iuc,nameunit(iuc),
+     *                     BC_ship(:,:,mm),0)
+       end do
       call closeunit(iuc)
-      call openunit('POM_SHIPS',iuc,.false.,.true.)
-      do 
-      read(iuc,*) ii,jj,mm,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-c     carbstuff=carbstuff*1.E-6
-      POM_ship(ii,jj,mm)=carbstuff
-      end do
+      call openunit('POM_SHIPS',iuc,.true.,.true.)
+       do mm=1,12
+       call readt_parallel(grid,iuc,nameunit(iuc),
+     *                     POM_ship(:,:,mm),0)
+       end do
       call closeunit(iuc)
-      call openunit('SO2_SHIPS',iuc,.false.,.true.)
-      do 
-      read(iuc,*) ii,jj,mm,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-c     carbstuff=carbstuff*1.E-6
-      SO2_ship(ii,jj,mm)=carbstuff
-      end do
+      call openunit('SO2_SHIPS',iuc,.true.,.true.)
+       do mm=1,12
+       call readt_parallel(grid,iuc,nameunit(iuc),
+     *                     SO2_ship(:,:,mm),0)
+       end do
       call closeunit(iuc)
       endif
       END SUBROUTINE get_ships
-
 
       SUBROUTINE get_hist_BMB(iact)
 c historic biomass: linear increase in tropics from 1/2 present day in 1875
