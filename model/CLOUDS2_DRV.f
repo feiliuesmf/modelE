@@ -191,10 +191,10 @@
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm)
       INTEGER NX
+#endif
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
-#endif
 #endif
 
 !@var TLS,QLS,TMC,QMC temperature and humidity work arrays
