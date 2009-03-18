@@ -191,7 +191,7 @@
 !@var tmsave holds tracer value (for diagnostics)
       REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm)
       INTEGER NX
-#ifdef TRACERS_SPECIAL_Shindell
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
       INTEGER Lfreeze
 #endif
@@ -388,7 +388,7 @@ C****
 !xOMP*  DH1S,DH12,DTDZ,DTDZG,DTDZS,DUDZ,DUDZG,DUDZS,DVDZ,DVDZG,DVDZS,
 !xOMP*  DTAU_S,DTAU_C,DEM_S,DEM_C, FQ_ISCCP, ENRGP,EPRCP,
 !xOMP*  HCNDMC, I,ITYPE,IT,ITAU, IPRES,
-#ifdef TRACERS_SPECIAL_Shindell
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
 !xOMP*  Lfreeze,
 #endif
 #ifndef TRACERS_WATER
