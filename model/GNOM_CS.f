@@ -281,6 +281,21 @@ c if lon,lat do not lie on this tile, i,j are set to -99
       return
       end subroutine lonlat_to_ij
 
+      subroutine lonlat_to_tile(ll,tile)
+c returns id of cube face containing (lon,lat) point where (lon,lat)=(ll(1),ll(2)) 
+      use model_com, only : im,jm
+      use constant, only : radian,pi,twopi
+      use domain_decomp_atm, only : grid
+      implicit none
+      real*8, intent(in) :: ll(2)
+      integer, intent(out) :: tile 
+      real*8 :: x,y,lonshift 
+      lonshift = ll(1)*radian+shiftwest
+      if(lonshift.gt.pi) lonshift=lonshift-twopi
+      call ll2csxy(lonshift,ll(2)*radian,x,y,tile)
+      return
+      end subroutine lonlat_to_tile
+
       subroutine ll2csxy(lon,lat,x,y,tile)
 c converts lon,lat (radians) to x,y,tile.
 c This routine places the center of face 1 at the IDL.

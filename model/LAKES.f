@@ -37,6 +37,8 @@ C**** 1-8 anti-clockwise from top RH corner
       INTEGER :: NRVR
 !@var IRVRMTH,JRVRMTH indexes for specified river mouths
       INTEGER, DIMENSION(NRVRMX) :: IRVRMTH,JRVRMTH
+!@var TILRVRMTH face index for specified river mouths (=1 for latlon grid)
+      INTEGER, DIMENSION(NRVRMX) :: TILRVRMTH
 !@var NAMERVR Names of specified rivers
       CHARACTER*8, DIMENSION(NRVRMX) :: NAMERVR
 
@@ -423,7 +425,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,imaxj,lonlat_to_ij
+      USE GEOM, only : axyp,imaxj,lonlat_to_ij,lonlat_to_tile
 #ifndef CUBE_GRID
      &     ,dyv
 #endif
@@ -465,6 +467,7 @@ c***      Type (ESMF_HaloDirection) :: direction
       REAL*8, dimension(2) :: ll
       REAL*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
       INTEGER get_dir
+      integer :: tile
 #ifdef CUBE_GRID
       real*8 :: dyv(2) ! dummy to allow compilation.  not used.
 #endif
@@ -594,7 +597,7 @@ C**** setting river directions
       KDIREC=0 ; KD911=0
       RATE=0.  ; nrvr=0
 
-#if !defined CUBE_GRID || defined SCM
+ccc#if !defined CUBE_GRID || defined SCM
 
 C**** Read in down stream lat/lon positions
       allocate(down_lat_loc(I_0H:I_1H,J_0H:J_1H),
@@ -665,9 +668,20 @@ C**** define river mouths
         ll(1)=lon_rvr(inm)
         ll(2)=lat_rvr(inm)
         call lonlat_to_ij(ll,ij)
+        call lonlat_to_tile(ll,tilrvrmth(inm))  !obtain face for current rvr mouth, tile =1 for latlon grid
+#ifdef CUBE_GRID
+        tile=grid%tile
+#else
+        tile=1   ! using dd2d's dist_grid for all grids would prevent this
+#endif
         IRVRMTH(INM)=ij(1) ; JRVRMTH(INM)=ij(2)
+c        write(*,*) "rvr->",namervr(inm),ij(1),ij(2)
+c        write(*,*) "tile=",tile,tilrvrmth(inm)
+
+
         if (IRVRMTH(INM).ge.I_0H .and. IRVRMTH(INM).le.I_1H .and.
-     *       JRVRMTH(INM).ge.J_0H .and. JRVRMTH(INM).le.J_1H) THEN
+     *       JRVRMTH(INM).ge.J_0H .and. JRVRMTH(INM).le.J_1H .and.
+     *       tile .eq. tilrvrmth(inm)) THEN
           IF (FOCEAN(IRVRMTH(INM),JRVRMTH(INM)).le.0) WRITE(6,*)
      *         "Warning: Named river outlet must be in ocean"
      *         ,INM,IRVRMTH(INM),JRVRMTH(INM),NAMERVR(INM)
@@ -703,7 +717,7 @@ C****
         END DO
       END DO
 
-#endif
+ccc#endif 
 
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
@@ -1181,10 +1195,10 @@ C****
       USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
-      USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
+      USE LAKES, only : irvrmth,jrvrmth,tilrvrmth,namervr,nrvr
       IMPLICIT NONE
       REAL*8 RVROUT(NRVR), RVROUT_root(NRVR), scalervr, days
-      INTEGER INM,I,N,J
+      INTEGER INM,I,N,J,tile
       LOGICAL increment
 #ifdef TRACERS_WATER
       REAL*8 TRVROUT(NRVR,NTM)
@@ -1211,8 +1225,15 @@ C**** convert kg/(source time step) to km^3/mon
 C**** loop over whole grid
       DO J=J_0,J_1
         DO I=I_0,I_1
+#ifdef CUBE_GRID
+          tile=grid%tile
+#else
+          tile=1
+#endif
+c          write(*,*) "tile diag",tile
           DO INM=1,NRVR
-            if (I.eq.IRVRMTH(INM).and. J.eq.JRVRMTH(INM)) THEN
+            if (I.eq.IRVRMTH(INM).and. J.eq.JRVRMTH(INM)
+     &            .and. tile .eq. TILRVRMTH(INM) ) THEN
               RVROUT(INM) = SCALERVR*AIJ(I,J,IJ_MRVR)/IDACC(1)
 #ifdef TRACERS_WATER
               IF (RVROUT(INM).gt.0)  THEN

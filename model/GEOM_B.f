@@ -391,10 +391,19 @@ c this version is for the latlon grid.  ll are in degrees east.
       integer, intent(out) :: ij(2)
       real*8 :: dlon_dg
       dlon_dg = 360./dble(im)
-      ij(1) = im/2 + 1 + (ll(1)+.01)/dlon_dg
-      ij(2) = jm/2 + 1 + (ll(2)+.01)/dlat_dg
+      ij(1) = im/2 + 1 + int(real((ll(1)+.01)/dlon_dg))
+      ij(2) = jm/2 + 1 + int(real((ll(2)+.01)/dlat_dg))
       return
       end subroutine lonlat_to_ij
+
+      subroutine lonlat_to_tile(ll,tile)
+c returns tile = 1, latlon grid has only one face 
+      real*8, intent(in) :: ll(2)
+      integer, intent(out) :: tile
+      tile=1
+      return
+      end subroutine lonlat_to_tile
+
 
       function lon_to_I(deg)
 c converts longitude into model i
