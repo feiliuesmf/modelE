@@ -36,7 +36,7 @@ C****
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
-     *     ,kradia,lm_req,pednl00
+     *     ,kradia,lm_req,pednl00,jyear
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
 #ifndef CUBE_GRID
       USE GEOM, only : lat_dg 
@@ -64,7 +64,7 @@ C****
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
-     *     ,calc_orb_par_sp,paleo_orb_par
+     *     ,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -168,7 +168,37 @@ C**** sync radiation parameters from input
       if (istart.le.0) return
 
 C**** Set orbital parameters appropriately
-      if (calc_orb_par.eq.1) then ! calculate from paleo-year
+C**** Set orbital parameters appropriately
+      if (calc_orb_par_year.ne.0) then ! calculate from paleo-year
+        ! 0 BP is defined as 1950CE
+        pyear = JYEAR-calc_orb_par_year
+        call orbpar(pyear, eccn, obliq, omegt)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) 'calc_orb_par_year =',calc_orb_par_year
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) " Orbital Parameters Calculated:"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*)
+     *  "   Calculating Orbital Params for year : ",
+     *  JYEAR-calc_orb_par_year,"     (CE);"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
+     *       " (default = ",eccn_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
+     *       obliq,
+     *       " (default = ",obliq_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f7.3,a,f7.3,a)')
+     *       "   Precession (degs from ve): ",
+     *       omegt," (default = ",omegt_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+      elseif (calc_orb_par.eq.1) then ! calculate from paleo-year
         pyear=1950.-paleo_orb_yr ! since 0 BP is defined as 1950CE
         call orbpar(pyear, eccn, obliq, omegt)
         write(out_line,*)
