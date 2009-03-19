@@ -343,37 +343,23 @@ module FV_CS_Mod
     USE GEOM, ONLY: AXYP
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
-    USE MODEL_COM, only: DTsrc,DT,DSIG
+    USE MODEL_COM, only: DTsrc,DT
     USE DOMAIN_DECOMP_ATM, only: get, grid
-!   Use Constant, only: radius,pi,grav
+    Use Constant, only: grav
     implicit none
     type (FV_core) :: fv
     real*4, Dimension(:,:,:), Pointer :: PLE, mfx_X, mfx_Y, mfx_Z
     integer :: I_0, I_1, J_0, J_1
-    integer :: J_0S, J_1S
     integer :: J_0H, J_1H
-    integer :: i,im1,j,l,k
+    integer :: i,j,l,k
     integer :: rc
-    logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
     real*8 :: DTLF, DTfac
-    real*8 :: area,dlon,dlat,acap,rcap
-    real*8 :: rX,rY,rZ
-    real*8 :: sum1, sum2, mySum
-    real*8, allocatable :: sine(:),cosp(:),cose(:)
-
-    REAL*8 PVS,PVN
-    REAL*8 PVSA(LM),PVNA(LM)
-    REAL*8 TMPim1(IM)
-
-    real*8, parameter :: grav=9.80
-    real*8, parameter :: pi=3.14159265358979323846
-    real*8, parameter :: radius= 6376000.00000000
+    real*8 :: area
 
     DTfac = DT
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S, &
-         & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H, &
-         & HAVE_NORTH_POLE = HAVE_NORTH_POLE, HAVE_SOUTH_POLE = HAVE_SOUTH_POLE)
+    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
+         & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H)
 
     ! Horizontal and Vertical mass fluxes
     !---------------
@@ -403,12 +389,12 @@ module FV_CS_Mod
     PV = ReverseLevels(PV)/PRESSURE_UNIT_RATIO
     mfx_Z = ReverseLevels(mfx_Z)/PRESSURE_UNIT_RATIO
 
-! Change Units of vertical mass fluxes
+! Change Units of vertical mass fluxes to mb m^2/s
     do l=0,lm
        do j=j_0,j_1
           do i=I_0,I_1
              area = AXYP(i,j)
-             mfx_Z(i-i_0+1,j-j_0+1,l) = grav*area*mfx_Z(i-i_0+1,j-j_0+1,l) ! convert to (mb m^2/s)
+             mfx_Z(i-i_0+1,j-j_0+1,l) = grav*area*mfx_Z(i-i_0+1,j-j_0+1,l)
           enddo
        enddo
     enddo
