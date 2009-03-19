@@ -62,7 +62,7 @@ c     call regridAIC(xll2cs,grid)
       call geom_cs
 c      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
 c      call regridRDSCAL(grid,imsource,jmsource,ntilessource)
-      call RDij2ll(grid,imtarget,jmtarget)
+      call RDijk2ll_CS(grid,imtarget,jmtarget)
 #endif
 
       end subroutine regrid_input
@@ -641,13 +641,17 @@ c*
 #endif
 
 
-      subroutine RDij2ll(grid,imt,jmt)
+      subroutine RDijk2ll_CS(grid,imt,jmt)
+!@sum On CS grid, convert i,j,k (with k=cube face index from 1..6)
+!@+   to absolute lat-lon coordinates
+!@auth Denis Gueyffier
       use geom, only : lon2d_dg,lat2d_dg
       use regrid_com
       use domain_decomp_atm, only : pack_data 
       implicit none
       type (dist_grid), intent(in) :: grid
       integer, intent(in) :: imt,jmt
+      integer, parameter :: nrvr = 41 ! # of river mouths
       character*80 :: name,nameout,title,
      &     title1,title2,title3,title4,title5,title6
       real*8,parameter :: undef=-1.d30  !missing value
@@ -655,35 +659,76 @@ c*
       real*4, dimension(imt,jmt,6) :: down_lat_911,down_lon_911
       real*8, dimension(imt,jmt,6) :: lon_glob,lat_glob
       integer, dimension(imt,jmt,6) :: idown,jdown,kdown
-      integer :: iu_RD,iu_TOPO,i,j,k
+      integer :: iu_RD,iu_TOPO,iu_MNAME,iu_MIJ,i,j,k
       LOGICAL, dimension(imt,jmt) :: NODIR
       real*4 :: FOCEAN(imt,jmt,6)
-
+      character*8,dimension(nrvr) :: namervr
+      character*2,dimension(nrvr) :: mouthI,mouthJ
+      character*1,dimension(nrvr) :: mouthK
+      integer,dimension(nrvr) :: imouthI,imouthJ,imouthK
+      real*8,dimension(nrvr) :: lat_rvr,lon_rvr
       iu_TOPO=30
 
+      if (am_i_root()) then
+c*    Read ocean fraction
       name="Z_CS32"
       open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
       read(iu_TOPO) title,FOCEAN
       close(iu_TOPO)
+
+c*    Read names of river mouths
+      iu_MNAME=20
+      name="mouthnames_DtoO_CS32"
+      open(iu_MNAME,FILE=name,FORM='formatted', STATUS='old')
+      READ (iu_MNAME,'(A8)') (namervr(I),I=1,nrvr) !Read mouths names
+      write(*,*) namervr
+      close(iu_MNAME)
+
+c*    Read i,j,k coordinates of river mouths (k = index of cube face)
+      name="mouthij_DtoO_CS32"
+      open(iu_MIJ,FILE=name,FORM='formatted', STATUS='old')
+      READ (iu_MIJ,'(A2,1X,A2,1X,A1)') (      
+     &       mouthI(I),mouthJ(I),mouthK(I), I=1,nrvr)
+      close(iu_MIJ)
+
+c*     conversion char to int
+      do i=1,nrvr
+          read(mouthI(i),'(I2)') imouthI(i)
+          read(mouthJ(i),'(I2)') imouthJ(i)
+          read(mouthK(i),'(I1)') imouthK(i)
+          write(*,*) imouthI(i),imouthJ(i),imouthK(i)
+      enddo
+    
+      nameout="RDdistocean_CS32.bin"
     
       iu_RD=20
       name="RDtoO.CS32"
       write(*,*) name,imt,jmt
 
-      nameout="RDdistocean_CS32.bin"
+c*    read i,j,k coordinates of downstream cells
 
-      if (am_i_root()) then
          open( iu_RD, FILE=name,FORM='unformatted',
      &        STATUS='unknown')
          read(iu_RD) title,idown,jdown,kdown
          close(iu_RD)
-      write(*,*) "read RDij2ll"
+      write(*,*) "read RDijk2ll_CS"
       endif
 
+c*    form global arrays for mapping (i,j,k) -> (lon,lat)
       call pack_data(grid,lon2d_dg,lon_glob)
       call pack_data(grid,lat2d_dg,lat_glob)
 
       if (am_i_root()) then
+
+c*    convert i,j,k coordinates of river mouths to absolute lat-lon coordinates    
+      do k=1,nrvr
+            lat_rvr(k)=lat_glob(imouthI(k),imouthJ(k)
+     &            ,imouthK(k))
+            lon_rvr(k)=lon_glob(imouthI(k),imouthJ(k)
+     &            ,imouthK(k))
+      enddo
+
+c*    convert i,j,k coordinates of downstream cells to absolute lat-lon coordinates    
       do k=1,6
         do j=1,jmt
           do i=1,imt
@@ -692,6 +737,8 @@ c*
      &            ,kdown(i,j,k))
               down_lon(i,j,k)=lon_glob(idown(i,j,k),jdown(i,j,k)
      &            ,kdown(i,j,k))
+
+c*    dummy emergency directions
               down_lat_911(i,j,k)=down_lat(i,j,k)
               down_lon_911(i,j,k)=down_lon(i,j,k)
             write(130+k,200) lon_glob(i,j,k),lat_glob(i,j,k),
@@ -710,30 +757,32 @@ c*
         enddo
       enddo
 
+c*    output everything 
       open(iu_RD,FILE=nameout,FORM='unformatted',
      &        STATUS='unknown')
       title1="river directions from dist. to ocean, CS32, 03/10/09"
-      title2="this version doesn't contain river mouths"
+      title2="Named River Mouths:"
       title3="Latitude of downstream river direction box"
       title4="Longitude of downstream river direction box"
       title5="Latitude of emergency downstream river direction box"
       title6="Longitude of emergency downstream river direction box"
 
-      write(iu_RD) title1
-      write(iu_RD) title2
+      write(iu_RD) title1   
+      write(iu_RD) title2,nrvr,namervr(1:nrvr),lat_rvr(1:nrvr)
+     *     ,lon_rvr(1:nrvr)
       write(iu_RD) title3,down_lat
       write(iu_RD) title4,down_lon
       write(iu_RD) title5,down_lat_911
       write(iu_RD) title6,down_lon_911
       close(iu_RD)
 
-c      write(*,*) "wrote RD file"
+      write(*,*) "wrote RD file"
 
       endif
 
  200  format(4(1X,f8.3))
 
-      end subroutine RDij2ll
+      end subroutine RDijk2ll_CS
 c*
 
 
