@@ -311,12 +311,8 @@ module FV_CS_Mod
   End Subroutine Copy_FV_export_to_modelE
 
 
-  !------------------------------------------------------------------------
-  ! This following routine interpolates U, V from the Arakawa B grid
-  ! to the Arakawa A grid.  B-grid velocities correspond to GISS modelE,
-  ! while A-grid velocities are used for import/export of the FV component.
-  !------------------------------------------------------------------------
   subroutine ConvertUV_GISS2FV(U_orig, V_orig, U_d, V_d)
+! Cubed-sphere modelE works with native-grid winds, so this routine is trivial.
     Use Resolution, only : LM
     Use Domain_decomp_atm, only : grid, get
     Real*8, intent(in), Dimension(grid % I_STRT:,grid % J_STRT:,:) :: U_orig, V_orig
