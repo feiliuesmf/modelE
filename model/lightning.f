@@ -75,7 +75,7 @@
      & ,RNOx_lgt
 #endif
       use model_com, only : fland
-      use geom,      only : lat2d_dg
+      use geom,      only : lat2d_dg,byaxyp
       use constant,  only : bygrav
       use dynamics,  only : gz
       use diag_com,  only : ij_CtoG,ij_flash,aij=>aij_loc
@@ -152,9 +152,11 @@
      &    - 36.544d0*th + 63.088d0
       cg=flash/(1.+zlt)
 
-! *If* flash is indeed in flashes/min, accumulate it in flashes:
-      aij(i,j,ij_flash)=aij(i,j,ij_flash) + flash*60.d0
-      aij(i,j,ij_CtoG) =aij(i,j,ij_CtoG)  +    cg*60.d0
+! *If* flash is indeed in flashes/min, accumulate it in flashes/m2:
+! I think you should get rid of these 60's in favor of DTsrc,
+! put since things are already scaled...
+      aij(i,j,ij_flash)=aij(i,j,ij_flash) + flash*60.d0*byaxyp(i,j)
+      aij(i,j,ij_CtoG) =aij(i,j,ij_CtoG)  +    cg*60.d0*byaxyp(i,j)
 
 #ifdef TRACERS_SPECIAL_Shindell
 ! Given the number of cloud-to-ground flashes, we can now calculate
