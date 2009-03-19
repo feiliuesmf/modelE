@@ -25,7 +25,7 @@ C****
 C**** Read in FOCEAN data
 c      Call GetEnv ('IFDIR',IFDIR)
 c      FILEIN = Trim(IFDIR) // '/' // ZFILE
-      FILEIN=ZFILE
+      FILEIN = ZFILE
       Open (11,Status='Old',File=FILEIN,Form='Unformatted',Err=801)
       Read (11) TITLE,FOCEAN
       Close(11)

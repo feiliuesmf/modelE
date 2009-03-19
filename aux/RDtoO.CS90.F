@@ -1,10 +1,11 @@
-C**** RDtoO.CS90.F   Create River Direction from DtoO   2009/03/16
+C**** RDtoO.CS90.F   Create River Direction from DtoO   2009/03/18
 C****
       Integer*4,Parameter :: IM=90
       Real*4,   Parameter :: TWOPI=6.2831853, XMEANDER=1.1
       Integer*4 IRBID(IM,IM,6), ID(IM,IM,6),JD(IM,IM,6),KD(IM,IM,6)
       Real*4    FOCEAN(0:IM+1,0:IM+1,6),ZATMO(0:IM+1,0:IM+1,6),
      *            RBID(0:IM+1,0:IM+1,6), DtoO(0:IM+1,0:IM+1,6)
+      Real*8    DtoOmin, CtoC
       Character*80  IFDIR, ZFILE,STNFILE,RDFILE, TITLE
 C**** From Cube-Sphere (I,J,K) to Geocentric coordinates (A,B,C)
 C**** Geocentric coordinates: (1,0,0) = (0E,0N), (0,0,1) = NorthPole
@@ -68,70 +69,102 @@ C**** Define halo cells at face edges for DtoO
 C****
 C**** Determine downstream river cell from Distance-to-Ocean
 C****
-      Do 10 K=1,6
-      Do 10 J=1,IM
-      Do 10 I=1,IM
+      Do 190 K=1,6
+      Do 190 J=1,IM
+      Do 190 I=1,IM
       ID(I,J,K) = I  ;  JD(I,J,K) = J  ;  KD(I,J,K) = K
-      DtoOmin = 1e10
-      If (FOCEAN(I,J,K) > 0)  GoTo 10
+      DtoOmin = 1d20
+      If (FOCEAN(I,J,K) > 0)  GoTo 190
 C**** Check direction 1
-      If (DtoO(I+1,J+1,K) < DtoOmin .and.
-     *    DtoO(I+1,J+1,K) < DtoO(I,J,K) .and.
-     *   (RBID(I+1,J+1,K) ==RBID(I,J,K) .or. FOCEAN(I+1,J+1,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I+1,J+1,K)
-                 ID(I,J,K) = I+1  ;  JD(I,J,K) = J+1  ;  EndIf
+      If (RBID(I,J,K) == RBID(I+1,J+1,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I+1,J+1,K) .and.
+     *    DtoOmin     >  DtoO(I+1,J+1,K))  Then
+          DtoOmin     =  DtoO(I+1,J+1,K)
+          ID(I,J,K) = I+1  ;  JD(I,J,K) = J+1  ;  GoTo 120  ;  EndIf
+      CtoC = (I+.5 - J-.5)**2 - (I+.5 + J+.5 - IM-1)**2 + 1d10
+      If (DtoOmin > CtoC .and. FOCEAN(I+1,J+1,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I+1  ;  JD(I,J,K) = J+1  ;  EndIf
 C**** Check direction 2
-      If (DtoO(I,J+1,K) < DtoOmin .and.
-     *    DtoO(I,J+1,K) < DtoO(I,J,K) .and.
-     *   (RBID(I,J+1,K) ==RBID(I,J,K) .or. FOCEAN(I,J+1,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I,J+1,K)
-                 ID(I,J,K) = I  ;  JD(I,J,K) = J+1  ;  EndIf
+  120 If (RBID(I,J,K) == RBID(I,J+1,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I,J+1,K) .and.
+     *    DtoOmin     >  DtoO(I,J+1,K))  Then
+          DtoOmin     =  DtoO(I,J+1,K)
+          ID(I,J,K) = I  ;  JD(I,J,K) = J+1  ;  GoTo 130  ;  EndIf
+      CtoC = (2*J+1 - IM-1)**2 - (2*I - IM-1)**2 + 1d5
+      If (DtoOmin > CtoC .and. FOCEAN(I,J+1,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I  ;  JD(I,J,K) = J+1  ;  EndIf
 C**** Check direction 3
-      If (DtoO(I-1,J+1,K) < DtoOmin .and.
-     *    DtoO(I-1,J+1,K) < DtoO(I,J,K) .and.
-     *   (RBID(I-1,J+1,K) ==RBID(I,J,K) .or. FOCEAN(I-1,J+1,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I-1,J+1,K)
-                 ID(I,J,K) = I-1  ;  JD(I,J,K) = J+1  ;  EndIf
+  130 If (RBID(I,J,K) == RBID(I-1,J+1,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I-1,J+1,K) .and.
+     *    DtoOmin     >  DtoO(I-1,J+1,K))  Then
+          DtoOmin     =  DtoO(I-1,J+1,K)
+          ID(I,J,K) = I-1  ;  JD(I,J,K) = J+1  ;  GoTo 140  ;  EndIf
+      CtoC = (I-.5 + J+.5 - IM-1)**2 - (I-.5 - J-.5)**2 + 1d10
+      If (DtoOmin > CtoC .and. FOCEAN(I-1,J+1,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I-1  ;  JD(I,J,K) = J+1  ;  EndIf
 C**** Check direction 4
-      If (DtoO(I-1,J,K) < DtoOmin .and.
-     *    DtoO(I-1,J,K) < DtoO(I,J,K) .and.
-     *   (RBID(I-1,J,K) ==RBID(I,J,K) .or. FOCEAN(I-1,J,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I-1,J,K)
-                 ID(I,J,K) = I-1  ;  JD(I,J,K) = J  ;  EndIf
+  140 If (RBID(I,J,K) == RBID(I-1,J,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I-1,J,K) .and.
+     *    DtoOmin     >  DtoO(I-1,J,K))  Then
+          DtoOmin     =  DtoO(I-1,J,K)
+          ID(I,J,K) = I-1  ;  JD(I,J,K) = J  ;  GoTo 150  ;  EndIf
+      CtoC = (2*I-1 - IM-1)**2 - (2*J - IM-1)**2 + 1d5
+      If (DtoOmin > CtoC .and. FOCEAN(I-1,J,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I-1  ;  JD(I,J,K) = J  ;  EndIf
 C**** Check direction 5
-      If (DtoO(I-1,J-1,K) < DtoOmin .and.
-     *    DtoO(I-1,J-1,K) < DtoO(I,J,K) .and.
-     *   (RBID(I-1,J-1,K) ==RBID(I,J,K) .or. FOCEAN(I-1,J-1,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I-1,J-1,K)
-                 ID(I,J,K) = I-1  ;  JD(I,J,K) = J-1  ;  EndIf
+  150 If (RBID(I,J,K) == RBID(I-1,J-1,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I-1,J-1,K) .and.
+     *    DtoOmin     >  DtoO(I-1,J-1,K))  Then
+          DtoOmin     =  DtoO(I-1,J-1,K)
+          ID(I,J,K) = I-1  ;  JD(I,J,K) = J-1  ;  GoTo 160  ;  EndIf
+      CtoC = (I-.5 - J+.5)**2 - (I-.5 + J-.5 - IM-1)**2 + 1d10
+      If (DtoOmin > CtoC .and. FOCEAN(I-1,J-1,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I-1  ;  JD(I,J,K) = J-1  ;  EndIf
 C**** Check direction 6
-      If (DtoO(I,J-1,K) < DtoOmin .and.
-     *    DtoO(I,J-1,K) < DtoO(I,J,K) .and.
-     *   (RBID(I,J-1,K) ==RBID(I,J,K) .or. FOCEAN(I,J-1,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I,J-1,K)
-                 ID(I,J,K) = I  ;  JD(I,J,K) = J-1  ;  EndIf
+  160 If (RBID(I,J,K) == RBID(I,J-1,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I,J-1,K) .and.
+     *    DtoOmin     >  DtoO(I,J-1,K))  Then
+          DtoOmin     =  DtoO(I,J-1,K)
+          ID(I,J,K) = I  ;  JD(I,J,K) = J-1  ;  GoTo 170  ;  EndIf
+      CtoC = (2*J-1 - IM-1)**2 - (2*I - IM-1)**2 + 1d5
+      If (DtoOmin > CtoC .and. FOCEAN(I,J-1,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I  ;  JD(I,J,K) = J-1  ;  EndIf
 C**** Check direction 7
-      If (DtoO(I+1,J-1,K) < DtoOmin .and.
-     *    DtoO(I+1,J-1,K) < DtoO(I,J,K) .and.
-     *   (RBID(I+1,J-1,K) ==RBID(I,J,K) .or. FOCEAN(I+1,J-1,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I+1,J-1,K)
-                 ID(I,J,K) = I+1  ;  JD(I,J,K) = J-1  ;  EndIf
+  170 If (RBID(I,J,K) == RBID(I+1,J-1,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I+1,J-1,K) .and.
+     *    DtoOmin     >  DtoO(I+1,J-1,K))  Then
+          DtoOmin     =  DtoO(I+1,J-1,K)
+          ID(I,J,K) = I+1  ;  JD(I,J,K) = J-1  ;  GoTo 180  ;  EndIf
+      CtoC = (I+.5 + J-.5 - IM-1)**2 - (I+.5 - J+.5)**2 + 1d10
+      If (DtoOmin > CtoC .and. FOCEAN(I+1,J-1,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I+1  ;  JD(I,J,K) = J-1  ;  EndIf
 C**** Check direction 8
-      If (DtoO(I+1,J,K) < DtoOmin .and.
-     *    DtoO(I+1,J,K) < DtoO(I,J,K) .and.
-     *   (RBID(I+1,J,K) ==RBID(I,J,K) .or. FOCEAN(I+1,J,K) > 0))
-     *  Then  ;  DtoOmin = DtoO(I+1,J,K)
-                 ID(I,J,K) = I+1  ;  JD(I,J,K) = J  ;  EndIf
-   10 Continue
+  180 If (RBID(I,J,K) == RBID(I+1,J,K) .and.
+     *    DtoO(I,J,K) >  DtoO(I+1,J,K) .and.
+     *    DtoOmin     >  DtoO(I+1,J,K))  Then
+          DtoOmin     =  DtoO(I+1,J,K)
+          ID(I,J,K) = I+1  ;  JD(I,J,K) = J  ;  GoTo 190  ;  EndIf
+      CtoC = (2*I+1 - IM-1)**2 - (2*J - IM-1)**2 + 1d5
+      If (DtoOmin > CtoC .and. FOCEAN(I+1,J,K) > 0)  Then
+          DtoOmin = CtoC
+          ID(I,J,K) = I+1  ;  JD(I,J,K) = J  ;  EndIf
+  190 Continue
 C****
 C**** Determine downstream river cell for Antarctica from ZATMO
 C****
       zRT2 = 1 / Sqrt(2.)
       K=6
-      Do 20 J=1,IM*4/5  !  Antarctica only, skip Tasmania
-      Do 20 I=1,IM*4/5  !  Antarctica only, skip tip of South America
+      Do 210 J=1,IM*4/5  !  Antarctica only, skip Tasmania
+      Do 210 I=1,IM*4/5  !  Antarctica only, skip tip of South America
       ID(I,J,K) = I  ;  JD(I,J,K) = J  ;  KD(I,J,K) = K  ;  GRAD = -1
-      If (FOCEAN(I,J,K) > 0)  GoTo 20
+      If (FOCEAN(I,J,K) > 0)  GoTo 210
 C**** Check direction 1
       DIST =  Sqrt ((A(I,J,K) - A(I+1,J+1,K))**2 +
      +              (B(I,J,K) - B(I+1,J+1,K))**2 +
@@ -188,16 +221,16 @@ C**** Check direction 8
       GRADnew = (ZATMO(I,J,K) - ZATMO(I+1,J,K)) / DIST
       If (GRADnew >= GRAD)  Then
         ID(I,J,K) = I+1  ;  JD(I,J,K) = J  ;  GRAD = GRADnew  ;  EndIf
-   20 Continue
+  210 Continue
 C****
 C**** Determine downstream river cell for Greenland from ZATMO
 C****
       zRT2 = 1 / Sqrt(2.)
       K=3
-      Do 30 J=Nint(IM*.30)+1  ,Nint(IM*.5)
-      Do 30 I=Nint(IM*.97)+1-J,Nint(IM*1.15)
+      Do 310 J=Nint(IM*.30)+1  ,Nint(IM*.5)
+      Do 310 I=Nint(IM*.97)+1-J,Nint(IM*1.15)
       ID(I,J,K) = I  ;  JD(I,J,K) = J  ;  KD(I,J,K) = K  ;  GRAD = -1
-      If (FOCEAN(I,J,K) > 0)  GoTo 30
+      If (FOCEAN(I,J,K) > 0)  GoTo 310
 C**** Check direction 1
       DIST =  Sqrt ((A(I,J,K) - A(I+1,J+1,K))**2 +
      +              (B(I,J,K) - B(I+1,J+1,K))**2 +
@@ -254,7 +287,7 @@ C**** Check direction 8
       GRADnew = (ZATMO(I,J,K) - ZATMO(I+1,J,K)) / DIST
       If (GRADnew >= GRAD)  Then
         ID(I,J,K) = I+1  ;  JD(I,J,K) = J  ;  GRAD = GRADnew  ;  EndIf
-   30 Continue
+  310 Continue
 C****
 C**** Determine proper coordinates of river flow that leaves a face
 C****
