@@ -914,7 +914,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
      &     ,do_polefix,pednl00,pmidl00,ij_debug
       USE RAD_COM, only : calc_orb_par,paleo_orb_yr,calc_orb_par_sp,
-     *     paleo_orb_par
+     *     paleo_orb_par, calc_orb_par_year
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE PARAM
       implicit none
@@ -960,6 +960,7 @@ C**** Rundeck parameters:
       call sync_param( "calc_orb_par", calc_orb_par )
       call sync_param( "paleo_orb_yr", paleo_orb_yr )
       call sync_param( "calc_orb_par_sp", calc_orb_par_sp )
+      call sync_param( "calc_orb_par_year", calc_orb_par_year )
       call sync_param( "paleo_orb_par", paleo_orb_par, 3 )
 
 C**** Parameters derived from Rundeck parameters:
@@ -2103,20 +2104,23 @@ C****
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
-     *     omegt,obliq,eccn
+     *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
+     *     calc_orb_par_year
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trm,tr_wd_type,nwater,tr_H2ObyCH4,itime_tr0
      *     ,ntm
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4
-      USE DOMAIN_DECOMP_ATM, only : grid, GET, GLOBALSUM, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, GLOBALSUM, AM_I_ROOT,
+     &         WRITE_PARALLEL
 c      USE ATMDYN, only : CALC_AMPK
       use RAD_COSZ0, only : daily_cosz
       IMPLICIT NONE
-      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,xdH2O,EDPY,VEDAY
+      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,xdH2O,EDPY,VEDAY,pyear
       REAL*8 :: CMASS(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER i,j,l,iy,it
+      character(len=300) :: out_line
       LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_WATER
       INTEGER n
@@ -2148,6 +2152,33 @@ c      EDPY=365.2425d0, VEDAY=79.3125d0  ! YR 2000AD
 c      JDAY => JDAY + 365 * (JYEAR-2000) + appropriate number of leaps
 C**** Default calculation (no leap, VE=Mar 21 hr 0)
       EDPY=365d0 ; VEDAY=79d0           ! Generic year
+C**** Set orbital parameters appropriately
+      if (calc_orb_par_year.ne.0.and.JDAY.eq.1) then ! calculate from paleo-year
+        pyear = JYEAR-calc_orb_par_year 
+        ! 0 BP is defined as 1950CE
+        call orbpar(pyear, eccn, obliq, omegt)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) " Orbital Parameters Calculated:"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) 
+     *  "   Calculating Orbital Params for year : ",
+     *  JYEAR-calc_orb_par_year,"     (CE);",JYEAR,calc_orb_par_year
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
+     *       " (default = ",eccn_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f9.6,a,f9.6,a)') "   Obliquity (degs): ",
+     *       obliq,
+     *       " (default = ",obliq_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,'(a,f7.3,a,f7.3,a)')
+     *       "   Precession (degs from ve): ",
+     *       omegt," (default = ",omegt_def,")"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*)
+        call write_parallel(trim(out_line),unit=6)
+      end if
       CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
      *     ,RSDIST,SIND,COSD,LAM)
       call daily_cosz(sind,cosd)
