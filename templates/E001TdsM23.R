@@ -179,30 +179,61 @@ CO_IC=gsin/CO_init_cond_M23_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
-!----------Default emissions case (giss/geia)------------------------
-CO_01=CO_sources/CO_GEIA_industrial_head
-CO_02=CO_sources/CO_GEIA_biomass_burning_head
-Alkenes_01=gsin/Alkenes_GEIA_industrial_head
-Alkenes_02=gsin/Alkenes_GEIA_biomass_burning_head
-Alkenes_03=gsin/Alkenes_GEIA_vegetation_head
-Paraffin_01=gsin/Paraffin_GEIA_industrial_head
-Paraffin_02=gsin/Paraffin_GEIA_biomass_burning_head
-Paraffin_03=gsin/Paraffin_GEIA_vegetation_head
-NOx_01=NOy_sources/NOx_GEIA_fossil_fuels_head
-NOx_02=NOy_sources/NOx_GEIA_biomass_burning_head
-NOx_03=NOy_sources/NOx_GEIA_soil_head
-NOx_AIRCRAFT=NOy_sources/aircraft_4x5
-CH4_01=methane/gcm_data/CH4_GEIA_Animals_header
-CH4_02=methane/gcm_data/CH4_GEIA_Coal_Mining_header
-CH4_03=methane/gcm_data/CH4_GEIA_Gas_Leak_header
-CH4_04=methane/gcm_data/CH4_GEIA_Gas_Vent_header
-CH4_05=methane/gcm_data/CH4_GEIA_Landfill_header
-CH4_06=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
-CH4_07=methane/gcm_data/CH4_GEIA_Termites_header
-CH4_08=methane/gcm_data/CH4_GEIA_Coal_Burning_header
-CH4_09=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
-CH4_10=methane/gcm_data/CH4_GEIA_Rice_header
-CH4_11=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+!----------Default emissions case (mostly AR5)-----------------------
+CO_01=AR5_emis/M/2000/CO_agr_AR5_2000_4x5_h
+CO_02=AR5_emis/M/2000/CO_awb_AR5_2000_4x5_h
+CO_03=AR5_emis/M/2000/CO_dom_AR5_2000_4x5_h
+CO_04=AR5_emis/M/2000/CO_ene_AR5_2000_4x5_h
+CO_05=AR5_emis/M/2000/CO_ind_AR5_2000_4x5_h
+CO_06=AR5_emis/M/2000/CO_shp_AR5_2000_4x5_h
+CO_07=AR5_emis/M/2000/CO_slv_AR5_2000_4x5_h
+CO_08=AR5_emis/M/2000/CO_tra_AR5_2000_4x5_h
+CO_09=AR5_emis/M/2000/CO_wst_AR5_2000_4x5_h
+CO_10=CO_sources/CO_GEIA_biomass_burning_head
+Alkenes_01=AR5_emis/M/2000/Alkenes_agr_AR5_2000_4x5_h
+Alkenes_02=AR5_emis/M/2000/Alkenes_awb_AR5_2000_4x5_h
+Alkenes_03=AR5_emis/M/2000/Alkenes_dom_AR5_2000_4x5_h
+Alkenes_04=AR5_emis/M/2000/Alkenes_ene_AR5_2000_4x5_h
+Alkenes_05=AR5_emis/M/2000/Alkenes_ind_AR5_2000_4x5_h
+Alkenes_06=AR5_emis/M/2000/Alkenes_shp_AR5_2000_4x5_h
+Alkenes_07=AR5_emis/M/2000/Alkenes_slv_AR5_2000_4x5_h
+Alkenes_08=AR5_emis/M/2000/Alkenes_tra_AR5_2000_4x5_h
+Alkenes_09=AR5_emis/M/2000/Alkenes_wst_AR5_2000_4x5_h 
+Alkenes_10=gsin/Alkenes_GEIA_biomass_burning_head_12
+Alkenes_11=gsin/Alkenes_GEIA_vegetation_head_12
+Paraffin_01=AR5_emis/M/2000/Paraffin_agr_AR5_2000_4x5_h
+Paraffin_02=AR5_emis/M/2000/Paraffin_awb_AR5_2000_4x5_h
+Paraffin_03=AR5_emis/M/2000/Paraffin_dom_AR5_2000_4x5_h
+Paraffin_04=AR5_emis/M/2000/Paraffin_ene_AR5_2000_4x5_h
+Paraffin_05=AR5_emis/M/2000/Paraffin_ind_AR5_2000_4x5_h
+Paraffin_06=AR5_emis/M/2000/Paraffin_shp_AR5_2000_4x5_h
+Paraffin_07=AR5_emis/M/2000/Paraffin_slv_AR5_2000_4x5_h
+Paraffin_08=AR5_emis/M/2000/Paraffin_tra_AR5_2000_4x5_h
+Paraffin_09=AR5_emis/M/2000/Paraffin_wst_AR5_2000_4x5_h
+Paraffin_10=gsin/Paraffin_GEIA_biomass_burning_head_12
+Paraffin_11=gsin/Paraffin_GEIA_vegetation_head_12
+NOx_01=AR5_emis/M/2000/NOx_agr_AR5_2000_4x5_h
+NOx_02=AR5_emis/M/2000/NOx_awb_AR5_2000_4x5_h
+NOx_03=AR5_emis/M/2000/NOx_dom_AR5_2000_4x5_h
+NOx_04=AR5_emis/M/2000/NOx_ene_AR5_2000_4x5_h
+NOx_05=AR5_emis/M/2000/NOx_ind_AR5_2000_4x5_h
+NOx_06=AR5_emis/M/2000/NOx_shp_AR5_2000_4x5_h
+NOx_07=AR5_emis/M/2000/NOx_tra_AR5_2000_4x5_h
+NOx_08=AR5_emis/M/2000/NOx_wst_AR5_2000_4x5_h
+NOx_09=NOy_sources/NOx_GEIA_biomass_burning_head
+NOx_AIRC=AR5_emis/M/2000/NOx_air_AR5_2000_4x5
+CH4_01=AR5_emis/M/2000/CH4_agr_AR5_2000_4x5_h
+CH4_02=AR5_emis/M/2000/CH4_awb_AR5_2000_4x5_h
+CH4_03=AR5_emis/M/2000/CH4_dom_AR5_2000_4x5_h
+CH4_04=AR5_emis/M/2000/CH4_ene_AR5_2000_4x5_h
+CH4_05=AR5_emis/M/2000/CH4_ind_AR5_2000_4x5_h
+CH4_06=AR5_emis/M/2000/CH4_shp_AR5_2000_4x5_h
+CH4_07=AR5_emis/M/2000/CH4_tra_AR5_2000_4x5_h
+CH4_08=AR5_emis/M/2000/CH4_wst_AR5_2000_4x5_h
+CH4_09=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
+CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
+CH4_11=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
+CH4_12=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
 Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
@@ -221,30 +252,9 @@ DTFIX=300
 &&PARAMETERS
 
 !--- define emission sectors above files belong to ---
-CO_01_sect='CO FFUEL'
-CO_02_sect='CO BBURN'
-Alkenes_01_sect='ALK FFUEL'
-Alkenes_02_sect='ALK BBURN'
-Alkenes_03_sect='ALK VEG'
-Paraffin_01_sect='PAR FFUEL'
-Paraffin_02_sect='PAR BBURN'
-Paraffin_03_sect='PAR VEG'
-NOx_01_sect='NOX FFUEL'
-NOx_02_sect='NOX BBURN'
-NOx_03_sect='NOX'
-NOx_AIRCRAFT_sect='NOX FFUEL' ! special 3D source case
-CH4_01_sect='CH4'
-CH4_02_sect='CH4 FFUEL'
-CH4_03_sect='CH4 FFUEL'
-CH4_04_sect='CH4 FFUEL'
-CH4_05_sect='CH4'
-CH4_06_sect='CH4'
-CH4_07_sect='CH4'
-CH4_08_sect='CH4 FFUEL'
-CH4_09_sect='CH4 BBURN'
-CH4_10_sect='CH4'
-CH4_11_sect='CH4 WETL'
-Isoprene_01_sect='ISO VEG'
+NOx_AIRC_sect='AIR' ! special 3D source case
+CH4_12_sect='WETL'
+Isoprene_01_sect='ISO'
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
@@ -257,24 +267,17 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 !-fit-here--|                                                              |---
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
-SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! CO
-SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! ALK
-SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! PAR
-SECT_04= 1.000, 1.000, 1.000, 1.000, 1.000 ! CH4
-SECT_05= 1.000, 1.000, 1.000, 1.000, 1.000 ! NOX
-SECT_06= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
-SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
-SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
-SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-SECT_10= 1.000, 1.000, 1.000, 1.000, 1.000 ! VEG
+SECT_01= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
+SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
 !       ---define-sectors-names/order------
-SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL VEG'
+SECTORS_ARE='ISO WETL AIR'
 !-fit-here--|                                                              |---
 !-----
-aircraft_Tyr1=1990 ! for non-transient emissions,
-aircraft_Tyr2=1990 ! set these two equal or omit them.
-biomass_Tyr1= 1990 ! for non-transient emissions,
-biomass_Tyr2= 1990 ! set these two equal or omit them.
+aircraft_Tyr1=0 ! for non-transient emissions,
+aircraft_Tyr2=0 ! set these two equal or omit them.
+biomass_Tyr1= 0 ! for non-transient emissions,
+biomass_Tyr2= 0 ! set these two equal or omit them.
 
 ! factor to tune the base isoprene emissions globally,
 ! only when #defined BIOGENIC_EMISSIONS, otherwise use
@@ -289,7 +292,7 @@ tune_lt_sea=8.463d0  ! =3.9d0*2.17d0 for 4x5 model setting
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
-ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
+ns_wet=12       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
 topo_lim=205.d0 ! upper limit of topographic variation for new wetlands 
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
@@ -373,7 +376,7 @@ use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted
 use_rad_ch4=0      ! use rad code CH4, shut off sfc sources 
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
 prather_limits=1   ! to avoid some negative tracers in sub-gridscale
-which_trop=0       ! choose tropopause for chemistry purposes:
+which_trop=1       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=-1   ! for setting fixed methane value for chemistry:
 pfix_CH4_S=1.750d-6    ! Southern Hemisphere (fix_CH4_chemistry=1)
