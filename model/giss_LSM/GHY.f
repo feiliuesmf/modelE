@@ -1,6 +1,7 @@
 !@sum  NASA GISS Land Surface Model (LSM) - module sle001
 !@sum  See end of file for development history (1988 - 2009)
 !@auth I. Aleinov, F. Abramopoulos, C. Rosenzweig, M. Puma
+!-----------------------------------------------------------------------
 
 #include "rundeck_opts.h"
 #ifdef TRACERS_ATM_ONLY
@@ -11,9 +12,13 @@
 #ifdef USE_ENT
 #define EVAP_VEG_GROUND
 #endif
+
 !#define CLIM_SOILMOIST
-!#define RAD_VEG_GROUND
+#define RAD_VEG_GROUND
 !#define INTERCEPT_TEMPORAL
+!#define ECOSYSTEM_SCALE
+
+!-----------------------------------------------------------------------
 
       module sle001
 
@@ -46,8 +51,11 @@ ccc   converting constants from 1/kg to 1/m^3
 !@var elh latent heat of evaporation (J/m^3)
       real*8, parameter :: elh= lhe * rhow
 !@var prfr fraction (by area) of precipitation
+#ifdef ECOSYSTEM_SCALE
+      real*8, parameter :: prfr = 1.d0
+#else
       real*8, parameter :: prfr = 0.1d0
-
+#endif
 ccc   data needed for debugging
 
       type, public :: ghy_debug_str
@@ -350,7 +358,11 @@ c**** soils28   common block     9/25/90
 c**** do canopy layer
 c**** here theta is the fraction of canopy covered by water
       if( process_vege .and. ws(0,2).gt.0.d0 )then
+#ifdef ECOSYSTEM_SCALE
+        theta(0,2)=(w(0,2)/ws(0,2))
+#else
         theta(0,2)=(w(0,2)/ws(0,2))**(2.d0/3.d0)
+#endif
       else
         theta(0,2)=0.d0
       endif
@@ -997,9 +1009,9 @@ c****
       subroutine drip_from_canopy
 !@sum computes the flux of drip water (and its heat cont.) from canopy
 !@+   the drip water is split into liquid water dripw() and snow drips()
-!@+   for bare soil fraction the canopy is transparent
+!@+   for bare soil fraction, the canopy is transparent
       use snow_drvm, only : snow_cover_same_as_rad
-      real*8,parameter:: tau_storm=3600 ! assumed mean storm duration
+      real*8,parameter:: tau_storm=3600 ! storm-length timescale 
       real*8 :: f_prev_wet,pr_dry,wc_add,wc_new
       real*8 :: ptmp,ptmps,pfac,pm,pmax
       real*8 :: snowf,snowfs,dr,drs
@@ -1020,18 +1032,28 @@ c     snowfs is the large scale snow fall.
 #ifdef INTERCEPT_TEMPORAL
 !     Fraction of precipiation that falls onto leaves previously wetted
         f_prev_wet = 1.d0-(dts/tau_storm)
-!     Adjust to avoid unrealistic amounts of drip at storm onset
-        if (fw < prfr) then
-           f_prev_wet = f_prev_wet * fw / prfr
+!     Precipitation falling on dry canopy
+        if (fw > prfr) then
+           pr_dry = (1.d0-f_prev_wet)*fd0*pr
+        else
+!       Avoid unrealistic amounts of drip at storm onset
+           pr_dry = (fw/prfr)*(1.d0-f_prev_wet)*fd0*pr
         endif
-        pr_dry = (1.d0-f_prev_wet)*pr*(1.d0 - fw)*dts
-        wc_add =(1.d0-f_prev_wet)* prfr * (ws(0,2)-w(0,2))
-
-        wc_new = w(0,2) + min(pr_dry,wc_add)
+!       Water added to the dry canopy in the fraction covered by 
+!       convective precipitation
+        wc_add =(1.d0-f_prev_wet)*prfr*(ws(0,2)-w(0,2))
+!       Potential new water content of canopy
+        wc_new = w(0,2) + min(pr_dry*dts,wc_add)
+!       Potential drip from the canopy
         dr = pr - (wc_new - w(0,2))/dts
+!       Constrain drip to make sure enough water is available for
+!       canopy evaporation and snow evaporation 
+        dr = min( dr, pr-snowf-evapvw*fw )
+        dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
+        dr = max( dr, 0.d0 )    ! just in case 
         dripw(2) = dr
 #else
-!      Use effects of subgrid scale precipitation to calculate drip
+!      Original GISS drip scheme
         pm=1d-6
         pmax=fd0*pm
         drs=max(ptmps-pmax,zero)
@@ -1232,7 +1254,11 @@ c**** surface runoff
         water_down = -f(1,ibv)
         water_down = max( water_down, zero ) ! to make sure rnf > 0
         ! everything that falls on saturated fraction goes to runoff
+#ifdef ECOSYSTEM_SCALE
+        satfrac = (w(1,ibv)/ws(1,ibv))
+#else
         satfrac = (w(1,ibv)/ws(1,ibv))**rosmp
+#endif
         rnf(ibv) = satfrac * water_down
         water_down = (1.d0 - satfrac) * water_down
         ! if we introduce large scale precipitation it should be
@@ -2184,13 +2210,17 @@ ccc unpack necessary data
  !       drips = 0
  !       dripw = 0
         call drip_from_canopy
+#ifndef CLIM_SOILMOIST
         call check_water(0)
         call check_energy(0)
+#endif
         call snow
         call fl
         call flg
          ! call check_f11
+#ifndef CLIM_SOILMOIST
         call runoff
+#endif
 !debug
 !        rnff(:,:) = 0.d0
  !       rnf(:) = 0.d0
@@ -2224,8 +2254,10 @@ cddd      print '(a,10(e12.4))', 'tr_w_2 '
 cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 !!!
         ! if(wsn_max>0) call restrict_snow (wsn_max)
+#ifndef CLIM_SOILMOIST
         call check_water(1)
         call check_energy(1)
+#endif
 #ifdef USE_ENT
         call accm(entcell)
 #else
