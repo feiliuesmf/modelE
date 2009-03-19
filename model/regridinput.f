@@ -666,7 +666,7 @@ c*
       character*2,dimension(nrvr) :: mouthI,mouthJ
       character*1,dimension(nrvr) :: mouthK
       integer,dimension(nrvr) :: imouthI,imouthJ,imouthK
-      real*8,dimension(nrvr) :: lat_rvr,lon_rvr
+      real*4,dimension(nrvr) :: lat_rvr,lon_rvr
       iu_TOPO=30
 
       if (am_i_root()) then
