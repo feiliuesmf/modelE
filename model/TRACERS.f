@@ -603,7 +603,10 @@ C**** apply tracer source alterations if requested in rundeck:
 #if (defined ALTER_BIOMASS_BY_FIRE) && (defined GFED_3D_BIOMASS)
       call pack_data(grid,base_flam(:,:),bflam_glob(:,:))
       do j=j_0,j_1 ; do i=i_0,imaxj(j)
-        if(flammability(i,j)/=missing) then
+       if(flammability(i,j)/=missing) then
+        if(flammability(i,j)==0.)then
+         do l=1,lm; tr3Dsource(i,j,l,nBiomass,n)=0.d0; enddo
+        else ! non-zer0 current flammability
          if(base_flam(i,j)/=0.)then
           do l=1,lm
            tr3Dsource(i,j,l,nBiomass,n) = tr3Dsource(i,j,l,nBiomass,n)*
@@ -636,7 +639,8 @@ C**** apply tracer source alterations if requested in rundeck:
             enddo ! l
            end if ! found neighboring base flammability?
          endif    ! non-zero base flammability?
-        endif     ! enough flammability info accumulated?
+        endif     ! non-zero current flammability?
+       endif      ! enough flammability info accumulated?
       enddo; enddo! i,j
 #endif
 

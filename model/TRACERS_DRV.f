@@ -731,14 +731,12 @@ C          read the CFC initial conditions:
       case ('Alkenes')
       n_Alkenes = n
           ntm_power(n) = -10
-          tr_mm(n) = 46.11d0 ! i.e. VOC-not-carbon mass, as weighted by the
-                  !subspecies ann glob emissions for AR5 v1 
+          tr_mm(n) = 12.01d0 ! I.e. single carbon. So careful with input files.
 
       case ('Paraffin')
       n_Paraffin = n
           ntm_power(n) = -10
-          tr_mm(n) = 76.41d0 ! i.e. VOC-not-carbon mass, as weighted by the
-                  !subspecies ann glob emissions for AR5 v1 
+          tr_mm(n) = 12.01d0 ! I.e. single carbon. So careful with input files.
 
 #endif  /* TRACERS_SPECIAL_Shindell */
 
@@ -9715,9 +9713,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           if(ntsurfsrc(n)>0) call read_sfc_sources(n,ntsurfsrc(n))
           select case (trname(n))
           case ('NOx')
-            tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n)  = 0.
-            call get_aircraft_NOx
-!           (lightning called from tracer_3Dsource)
+!           (lightning and aircraft called from tracer_3Dsource)
           case ('N2O5')
             tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
             if (COUPLED_CHEM.ne.1)
@@ -10358,6 +10354,7 @@ c!OMSP
       endif
 
 #ifdef ALTER_BIOMASS_BY_FIRE
+      if(am_i_root())write(666,*)'remove base_flam from ns,nsect loop'
       call pack_data(grid,base_flam(:,:),bflam_glob(:,:))
       do ns=1,ntsurfsrc(n)              ! loop over source
         do nsect=1,num_tr_sectors(n,ns) ! and sectors for that source
@@ -10365,10 +10362,15 @@ c!OMSP
            do j=J_0,J_1                   ! and latitudes
             do i=I_0,imaxj(j)             ! and longitudes 
              if(flammability(i,j)/=missing)then ! enough info?
-              if(base_flam(i,j)/=0.)then
+              if(flammability(i,j)==0.)then
+                trsource(i,j,ns,n)=0.d0
+              else ! non-zero current flammability
+               if(base_flam(i,j)/=0.)then
+                if(base_flam(i,j)==missing)call stop_model
+     &          ('base flammability missing TRACERS_DRV',255)
                 trsource(i,j,ns,n)=trsource(i,j,ns,n)*
      &          flammability(i,j)/base_flam(i,j)
-              else ! no base flammability, find nearest neighbor
+               else ! no base flammability, find nearest neighbor
                 zm=0.d0; zmcount=0.d0; ix=0
                 do while(zmcount == 0.)
                   ix=ix+1
@@ -10392,7 +10394,8 @@ c!OMSP
                   trsource(i,j,ns,n)=trsource(i,j,ns,n)*
      &            flammability(i,j)/(zm/zmcount)
                 end if ! found neighbor base flammability ?
-              endif    ! have base flammability
+               endif   ! have base flammability
+              endif    ! zero flammability
              endif     ! enough info built up
             enddo      ! i
            enddo       ! j
@@ -10805,6 +10808,8 @@ c
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
+      call get_aircraft_NOx
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx

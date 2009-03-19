@@ -70,7 +70,7 @@
       public is_set_param, alloc_param, sync_param, print_param
       public query_param
 
-      integer, parameter :: MAX_PARAMS = 256
+      integer, parameter :: MAX_PARAMS = 310
       integer, parameter :: MAX_RPARAMS = 256
       integer, parameter :: MAX_IPARAMS = 310
       integer, parameter :: MAX_CPARAMS = 200

@@ -12,7 +12,7 @@
 !@param Laircr the number of layers of aircraft data read from file
 !@param Lsulf the number of layers of sulfate SA data read from file
       INTEGER, PARAMETER :: 
-     &                      Laircr      =19,
+     &                      Laircr      =25,
      &                      Lsulf       =23 ! not LM
 #ifdef GFED_3D_BIOMASS 
      &                     ,LbbGFED     =6
@@ -198,67 +198,54 @@ C we change that.)
       SUBROUTINE get_aircraft_NOx
 !@sum  get_aircraft_NOx to define the 3D source of NOx from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
-!@ver  1.0 (based on DB396Tds3M23)
-c
-C**** GLOBAL parameters and variables:
-C
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm,ptop,psf,sig
-      USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
-      USE CONSTANT, only: sday,hrday
-      USE FILEMANAGER, only: openunit,closeunit
-      USE FLUXES, only: tr3Dsource
-      USE GEOM, only: axyp
-      USE TRACER_COM, only: itime_tr0,trname,n_NOx,nAircraft, 
+!@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
+      use model_com, only: itime,jday,JDperY,im,jm,lm
+      use domain_decomp_atm, only: GRID, GET, write_parallel
+      use dynamics, only: phi
+      use constant, only: bygrav
+      use filemanager, only: openunit,closeunit
+      use fluxes, only: tr3Dsource
+      use geom, only: axyp
+      use tracer_com, only: itime_tr0,trname,n_NOx,nAircraft, 
      & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
      & num_sectors,n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
      & ,kstep
-      use TRACER_SOURCES, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
+      use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
       use param, only: sync_param
-C
+ 
       IMPLICIT NONE
-c
-!@var nanns,nmons: number of annual and monthly input files
-!@var l,ll dummy loop variable
-!@var pres local pressure variable
+ 
+      character(len=300) :: out_line
       integer, parameter :: nanns=0,nmons=1
       integer, dimension(nmons) :: mon_units, imon
-      integer l,i,j,iu,k,ll,nt,ns,nsect,nn
-      character*80 :: title
-      character*12, dimension(nmons) :: mon_files=(/'NOx_AIRCRAFT'/)
-      character(len=300) :: out_line
+      integer l,i,j,k,ll,nt,ns,nsect,nn
+      character*12, dimension(nmons) :: mon_files=(/'NOx_AIRC'/)
       character*124 :: tr_sectors_are
       character*32 :: pname
-      logical :: LINJECT
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
-      real*8 bySperHr      
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1):: src
-      REAL*8, DIMENSION(LM)                :: pres
-      REAL*4, PARAMETER, DIMENSION(Laircr) :: PAIRL =
-     & (/1013.25,898.74,794.95,701.08,616.40,540.19,471.81,
-     &    410.60,355.99,307.42,264.36,226.32,193.30,165.10,
-     &    141.01,120.44,102.87,87.866,75.048/)
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
-c
-C**** Local parameters and variables and arguments:
+!@var zmod approx. geometric height at model layer(m), phi/grav
+      real*8, dimension(LM)                :: zmod
+!@var zairL heights of AR5 aircraft emissions (km)
+      real*4, parameter, dimension(Laircr) :: zairL = ! alt in km:
+     & (/0.305, 0.915, 1.525, 2.135, 2.745, 3.355, 3.965, 4.575, 5.185,
+     & 5.795, 6.405, 7.015, 7.625, 8.235001, 8.845, 9.455001, 10.065,
+     & 10.675, 11.285, 11.895, 12.505, 13.115, 13.725, 14.335, 14.945/)
+      integer :: J_1, J_0, I_0, I_1
       logical :: trans_emis=.false.
       integer :: yr1=0, yr2=0
  
-C**** Aircraft NOx source input is monthly, on 19 levels. Therefore:
-C     19x12=228 records. Read it in here and interpolated each day.
+! Aircraft NOx source input is monthly, on 25 levels.
+! Read it in here and interpolated each day.
 
       if (itime < itime_tr0(n_NOx)) return
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1) 
-      call GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
 
-C****
-C**** Monthly sources are interpolated to the current day
-C**** The titles of the input files say this is in KG/m2/s, so no
-C**** conversion is necessary:
-C****
+! Monthly sources are interpolated to the current day
+! Units are KG(N)/m2/s, so no conversion is necessary:
+
       call sync_param("aircraft_Tyr1",aircraft_Tyr1)
       call sync_param("aircraft_Tyr2",aircraft_Tyr2)
       k = 1
@@ -271,69 +258,70 @@ C****
       call read_monthly_3Dsources(Laircr,mon_units(k),
      & src(:,:,:,k),trans_emis,yr1,yr2)
       call closeunit(mon_units(k))
-C====
-C====   Place aircraft sources onto model levels:
-C====
+
+! Place aircraft sources onto model levels:
+
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx) = 0.d0
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
-      DO J=J_0,J_1
-       DO I=I_0,I_1
-        tr3Dsource(i,j,1,nAircraft,n_NOx) = SRC(I,J,1,1)*axyp(i,j)
-        DO LL=2,Laircr
-          LINJECT=.TRUE.
-          DO L=1,LM
-           IF(PAIRL(LL) > PRES(L).AND.LINJECT) THEN
-             tr3Dsource(i,j,l,nAircraft,n_NOx) =
-     &            tr3Dsource(i,j,l,nAircraft,n_NOx) + SRC(I,J,LL,1)
-     *            *axyp(i,j)
-             LINJECT=.FALSE.
-           ENDIF
-          ENDDO ! L
-        ENDDO   ! LL
-       END DO   ! I
-      END DO    ! J
-C
+      do j=J_0,J_1
+       do i=I_0,I_1
+        zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
+        do LL=1,Laircr
+         if(src(i,j,LL,1) > 0.)then
+          loop_l: do L=1,LM
+            if(zairL(LL) <= zmod(L)) then
+              tr3Dsource(i,j,l,nAircraft,n_NOx) =
+     &        tr3Dsource(i,j,l,nAircraft,n_NOx) + src(i,j,LL,1)
+     &        *axyp(i,j)
+              exit loop_l
+            endif
+            if(L==LM)call stop_model("aircraft level problem",255)
+          enddo loop_l
+         endif  ! is there a source?
+        enddo   ! LL
+       enddo    ! I
+      enddo     ! J
+ 
 ! Now, check for a sector definition:
 ! -- begin sector  stuff --
-          tr_sectors_are = ' '
-          pname='NOx_AIRCRAFT_sect'
-          call sync_param(pname,tr_sectors_are)
-          num_tr_sectors3D(n_NOX,nAircraft)=0
-          i=1
-          do while(i < len(tr_sectors_are))
-            j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
-            if (j > 1) then
-              num_tr_sectors3D(n_NOX,nAircraft)=
-     &        num_tr_sectors3D(n_NOX,nAircraft) + 1
-              i=i+j
-            else
-              i=i+1
-            end if
-          enddo
-          ns=num_tr_sectors3D(n_NOX,nAircraft)
-          if(ns > n_max_sect) 
-     &    call stop_model("num_tr_sectors3D problem",255)
-          if(ns > 0)then
-            read(tr_sectors_are,*)tr_sect_name3D(n_NOx,nAircraft,1:ns)
-            do nsect=1,ns
-              tr_sect_index3D(n_NOX,nAircraft,nsect)=0
-              loop_nn: do nn=1,num_sectors
-                if(trim(tr_sect_name3D(n_NOx,nAircraft,nsect)) ==
-     &          trim(sect_name(nn))) then
-                  tr_sect_index3D(n_NOx,nAircraft,nsect)=nn
-                  ef_fact3d(nn,1:num_regions)=
-     &            ef_fact(nn,1:num_regions)
-                  exit loop_nn
-                endif
-              enddo loop_nn
-            enddo
-          endif
+      tr_sectors_are = ' '
+      pname='NOx_AIRC_sect'
+      call sync_param(pname,tr_sectors_are)
+      num_tr_sectors3D(n_NOX,nAircraft)=0
+      i=1
+      do while(i < len(tr_sectors_are))
+        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+        if (j > 1) then
+          num_tr_sectors3D(n_NOX,nAircraft)=
+     &    num_tr_sectors3D(n_NOX,nAircraft) + 1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      ns=num_tr_sectors3D(n_NOX,nAircraft)
+      if(ns > n_max_sect) 
+     &call stop_model("num_tr_sectors3D problem",255)
+      if(ns > 0)then
+        read(tr_sectors_are,*)tr_sect_name3D(n_NOx,nAircraft,1:ns)
+        do nsect=1,ns
+          tr_sect_index3D(n_NOX,nAircraft,nsect)=0
+          loop_nn: do nn=1,num_sectors
+            if(trim(tr_sect_name3D(n_NOx,nAircraft,nsect)) ==
+     &      trim(sect_name(nn))) then
+              tr_sect_index3D(n_NOx,nAircraft,nsect)=nn
+              ef_fact3d(nn,1:num_regions)=
+     &        ef_fact(nn,1:num_regions)
+              exit loop_nn
+            endif
+          enddo loop_nn
+        enddo
+      endif
 ! -- end sector stuff --
 
       return
-      END SUBROUTINE get_aircraft_NOx
-C
-C
+      end subroutine get_aircraft_NOx
+ 
+ 
       SUBROUTINE read_aero(field,fn)
 !@sum read_aero, read in monthly mean fields of SO2 concentration or
 !@+ DMS concentration or sulfate surface area for use in chemistry.
