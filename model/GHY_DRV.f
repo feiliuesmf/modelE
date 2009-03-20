@@ -1007,6 +1007,12 @@ c**** loop over ground time steps
       pbl_args%qsol=srheat   ! solar heating
   !    qg_sat=qsat(tg,elhx,ps)  !  replacing with qs from prev step
 
+      if(evap_max_ij(i,j).eq.-1) then ! new soil point
+        evap_max_ij(i,j)=0
+        fr_sat_ij(i,j)=0
+        qg_ij(i,j)=pbl_args%qg_sat ! rather than qsat(tg,lhe,ps) ?? rar
+      end if
+
       qg = qg_ij(i,j)
       ! if ( qg > 999.d0 ) qg = qg_sat
       pbl_args%qg_aver = qg
@@ -2116,15 +2122,15 @@ ccc to something more appropriate
 !      call globalsum(grid, evap_max_ij,evap_max_ij_sum,
 !     &                all=.true.)
 !      if ( evap_max_ij_sum > im-1.d0 ) then ! old default
-      do j=J_0,J_1
-        do i=I_0,I_1
-          if ( fearth(i,j) .le. 0.d0 ) cycle
-          if( evap_max_ij(i,j) < .9d0 ) cycle
-          qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,pedn(1,i,j))
-          fr_sat_ij(i,j) = 0.d0
-          evap_max_ij(i,j) = 0.d0
-        enddo
-      enddo
+!!!   do j=J_0,J_1 !!  moved to subroutine earth
+!!!     do i=I_0,I_1
+!!!       if ( fearth(i,j) .le. 0.d0 ) cycle
+!!!       if( evap_max_ij(i,j) < .9d0 ) cycle
+!!!       qg_ij(i,j) = qsat(tsns_ij(i,j)+tf,lhe,pedn(1,i,j))
+!!!       fr_sat_ij(i,j) = 0.d0
+!!!       evap_max_ij(i,j) = 0.d0
+!!!     enddo
+!!!   enddo
 !        fr_sat_ij(:,:) = 0.d0
 !        evap_max_ij(:,:) = 0.d0
 !      endif

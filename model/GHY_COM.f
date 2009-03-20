@@ -230,7 +230,7 @@ cddd     *         STAT=IER)
 #endif
 
 C**** Initialize evaporation limits
-      evap_max_ij(:,J_0H:J_1H)=1.
+      evap_max_ij(:,J_0H:J_1H)=-1.
       fr_sat_ij(:,J_0H:J_1H)=1.
       qg_ij(:,J_0H:J_1H)=0.
 

@@ -569,7 +569,8 @@ C**** Set GTEMP arrays for lakes
      *             *FLAKE(I,J)*AXYP(I,J))/(SHW*(MWL(I,J)-MLDLK(I,J)
      *             *RHOW*FLAKE(I,J)*AXYP(I,J)))
 C**** If starting from a possibly corrupted rsf file, check Tlk2
-              IF(GTEMP(2,1,I,J)>TLAKE(I,J)+1.and.GTEMP(2,1,I,J)>10) THEN
+              IF(GTEMP(2,1,I,J)>TLAKE(I,J)+1.and.GTEMP(2,1,I,J)>10
+     *           .and. istart<9) THEN
                 WRITE(6,*) "Warning: Unphysical Tlk2 fixed",I,J,GTEMP(:
      *               ,1,I,J)
                 GTEMP(2,1,I,J)=GTEMP(1,1,I,J)  ! set to Tlk1
@@ -656,7 +657,6 @@ C**** do we need get_dir? maybe only need to set KD=0 or >0?
      *         ,JFLOW(I,J),IM,JM)
           IF (IFL911(I,J).gt.0) KD911(I,J)=get_dir(I,J,IFL911(I,J)
      *         ,JFL911(I,J),IM,JM)
-
         END DO
       END DO
 
