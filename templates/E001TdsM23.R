@@ -190,6 +190,10 @@ CO_07=AR5_emis/M/2000/CO_slv_AR5_2000_4x5_h
 CO_08=AR5_emis/M/2000/CO_tra_AR5_2000_4x5_h
 CO_09=AR5_emis/M/2000/CO_wst_AR5_2000_4x5_h
 CO_10=CO_sources/CO_GEIA_biomass_burning_head
+! ========= please remember that Alkenes =================
+! ========= and Paraffin emissions files =================
+! ========= must now be in Kmole units,  =================
+! ========= not Kg units ...             =================
 Alkenes_01=AR5_emis/M/2000/Alkenes_agr_AR5_2000_4x5_h
 Alkenes_02=AR5_emis/M/2000/Alkenes_awb_AR5_2000_4x5_h
 Alkenes_03=AR5_emis/M/2000/Alkenes_dom_AR5_2000_4x5_h
