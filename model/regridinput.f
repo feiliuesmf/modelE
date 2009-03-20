@@ -58,12 +58,20 @@ c         call regridLAI(xll2cs)
 c     call regridGIC(xll2cs,grid)
 c     call regridAIC(xll2cs,grid)
 
-#ifdef CUBE_GRID
+c  Workflow for computation of river directions on cubed sphere
+c  1) call regridRDSCAL(grid,720,360,...) in regridinput.f. It regrids scalar distance to the ocean 
+c     from latlon grid to cube sphere. STN-30p.bin -> STN_CS32 \ STN_CS60 \ STN_CS90
+c  2) run program contained in aux/RDto0.CS32.F (..RDtoO.CS90.F), which converts e.g. STN_CS32 to RDtoO.CS32
+c  3) river directions can be plotted using aux/RDVCS32.F (..RDVCS90.F)
+c  4) RDtoO.CS32 is mapped from (i,j,tile) -> (lat,lon) and the river mouths are added using RDijk2ll_CS 
+c     in regridinput. The ascii files mouthnames_DtoO_CS32 and mouthij_DtoO_CS32 contain the mouth names and 
+c     (i,j,tile) indices.
+c  The resulting file is RDdistocean_CS32.bin
+
       call geom_cs
 c      call interpRD(grid,imsource,jmsource,imtarget,jmtarget)
 c      call regridRDSCAL(grid,imsource,jmsource,ntilessource)
       call RDijk2ll_CS(grid,imtarget,jmtarget)
-#endif
 
       end subroutine regrid_input
 c*
