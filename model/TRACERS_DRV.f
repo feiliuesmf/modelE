@@ -731,12 +731,14 @@ C          read the CFC initial conditions:
       case ('Alkenes')
       n_Alkenes = n
           ntm_power(n) = -10
-          tr_mm(n) = 12.01d0 ! I.e. single carbon. So careful with input files.
+          tr_mm(n) = 1.0d0 ! So, careful: source files now in Kmole/m2/s or  
+                           ! equivalently, kg/m2/s for species with tr_mm=1
 
       case ('Paraffin')
       n_Paraffin = n
           ntm_power(n) = -10
-          tr_mm(n) = 12.01d0 ! I.e. single carbon. So careful with input files.
+          tr_mm(n) = 1.0d0 ! So, careful: source files now in Kmole/m2/s or  
+                           ! equivalently, kg/m2/s for species with tr_mm=1
 
 #endif  /* TRACERS_SPECIAL_Shindell */
 
