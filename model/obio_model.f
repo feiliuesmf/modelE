@@ -473,7 +473,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        !------------------------------------------------------------
        !at the beginning of each day only
 #ifdef OBIO_ON_GARYocean
-       if (hour_of_day.eq.0) then
+       if (hour_of_day.le.1) then    
 #else
        if (hour_of_day.eq.1) then
 #endif
@@ -688,8 +688,13 @@ cdiag     endif
 cdiag  if (vrbos)write(*,*)'bfre obio_ptend: ',
 cdiag.     nstep,(k,tirrq(k),k=1,kmax)
 
+       write(*,'(a,3i5,e12.4)')
+     .     'befrptend',nstep,i,j,obio_P(1,1)
+
        call obio_ptend(vrbos,kmax,i,j)
 
+       write(*,'(a,3i5,2e12.4)')
+     .     'aftrptend',nstep,i,j,obio_P(1,1),P_tend(1,1)
        !------------------------------------------------------------
 cdiag  if (vrbos)then
 cdiag   write(*,108)nstep,' aftrptend dpth      dp     P_tend(1:9)',
@@ -713,6 +718,8 @@ cdiag  endif
        !MUST CALL sinksettl BEFORE update
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
        call obio_update(vrbos,kmax,i,j)
+       write(*,'(a,3i5,e12.4)')
+     .     'aftrupdat',nstep,i,j,obio_P(1,1)
 #else
        !update biology from m to n level
        !also do phyto sinking and detrital settling here
