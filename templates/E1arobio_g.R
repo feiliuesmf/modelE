@@ -257,6 +257,8 @@ nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU t
 ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
+nssw=48         ! obio needs that in order to always restart from hour 0
+                ! then we need to do setups for a whole day
 
 !parameters that affect CO2 gas exchange
 atmCO2=368.6      !uatm for year 2000 
