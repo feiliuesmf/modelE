@@ -48,8 +48,8 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules 
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DUM
-ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
-OCNDYN OSTRAITS OCNGM OCNKPP           ! dynamic ocean routines
+ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
+OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP  ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
