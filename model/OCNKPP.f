@@ -1186,6 +1186,8 @@ C**** KPP variables
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
 
+C**** initialise diagnostics saved over quarter boxes and longitude
+      OLJ = 0.
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
       call halo_update (grid, VO, from=south)
@@ -1216,8 +1218,6 @@ C****
       DO 790 J=j_0s,j_1
 C**** coriolis parameter, defined at tracer point
       Coriol = 2d0*OMEGA*SINPO(J)
-C**** initialise diagnostics saved over quarter boxes and longitude
-      OLJ(1:3,1:LMO,J) = 0.
 
       QPOLE = J.EQ.JM
       IF (QPOLE)  THEN
