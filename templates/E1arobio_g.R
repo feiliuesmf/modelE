@@ -1,6 +1,6 @@
-E1arobio_g.R GISS Model E  coupled version          aromanou  03/15/2009
+test3b.R GISS Model E  coupled version          aromanou  02/14/2009
 
-E1arobio_g: obio in gary's ocean based on Larissa's E1F40o32.R
+test3b: obio in gary's ocean based on Larissa's E1F40o32.R
 	  2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
@@ -16,10 +16,10 @@ STACKSIZE=524288
 
 Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OBIO_ON_GARYocean           ! obio on Russell ocean
 #define TRACERS_OCEAN               ! Gary's Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
 #define TRACERS_OceanBiology
-#define OBIO_ON_GARYocean
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
 !!! #define CHL_from_SeaWIFs
@@ -47,8 +47,8 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM  ! dynamic ocean modules
-OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP   ! dynamic ocean routines
+ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM ! dynamic ocean modules
+OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP  ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
@@ -176,7 +176,7 @@ CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
                                          !to be used with CHL_from_SeaWIFs
 
 Label and Namelist:
-E1arobio_g (32 ocean layers; 1850 atm.,the current modelE version)
+test3b (32 ocean layers; 1850 atm.,the current modelE version)
 
 DTFIX=180
 &&PARAMETERS
@@ -247,7 +247,7 @@ DTO=225.
 NIsurf=2        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=480       ! use =48 except on halem
+Ndisk=192       ! use =48 except on halem
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf
@@ -268,5 +268,5 @@ atmCO2=368.6      !uatm for year 2000
  &INPUTZ
    YEARI=2501,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=2521,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END

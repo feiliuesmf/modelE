@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE OG2AG
 !@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates
 !!      them to the atmospheric grid, scatters them on the atmospheric grid
@@ -50,6 +52,10 @@
      *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
 #ifdef TRACERS_OCEAN
      *     , aTRAC_glob
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      USE MODEL_COM,  only : nstep=>itime
+      USE obio_com, only: pCO2_glob
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
@@ -158,6 +164,25 @@ C**** surface tracer concentration
         call HNTR8P (oFweight, oFtemp, aFtemp)
         aTRAC_glob(:,:,NT)=aFtemp(:,:)
       END DO
+
+#ifdef TRACERS_GASEXCH_ocean_CO2
+!in the CO2 gas exchange experiments we do not use trmo_glob but rather pco2
+!pco2 is in uatm
+      DO NT = 1,NTM
+        DO J=1,JMO
+          DO I=1,oIMAXJ(J)
+            IF (oFOCEAN(I,J).gt.0.) THEN
+              oFtemp(I,J)=pCO2_glob(i,j)/(MO_glob(I,J,1)*oDXYPO(J))
+            ELSE
+              oFtemp(I,J)=0.
+            END IF
+          END DO
+        END DO
+        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+        call HNTR8P (oFweight, oFtemp, aFtemp)
+        aTRAC_glob(:,:,NT)=aFtemp(:,:)
+      END DO
+#endif
 #endif
 
 !!!  U velocity for the 1st ocean layer.
@@ -408,7 +433,7 @@ C**** surface tracer concentration
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      *     , aTRGASEX_glob, oTRGASEX_glob
 #endif
 #ifdef OBIO_RAD_coupling
@@ -478,7 +503,7 @@ C**** surface tracer concentration
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
 #endif
 #ifdef TRACERS_OceanBiology
@@ -513,7 +538,7 @@ C**** surface tracer concentration
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
 #endif
 #ifdef OBIO_RAD_coupling
@@ -806,7 +831,7 @@ C**** surface tracer concentration
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       DO N=1,NTM
       DO J=1,JMA
         DO I=1,aIMAXJ(J)
@@ -1147,7 +1172,7 @@ C**** do something in here
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : aTRGASEX=>TRGASEX
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1178,7 +1203,7 @@ C**** do something in here
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       USE OFLUXES, only : oTRGASEX
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1211,7 +1236,7 @@ C**** do something in here
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1242,7 +1267,7 @@ C**** do something in here
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1287,7 +1312,7 @@ C***  Gather arrays on atmospheric grid into the global arrays
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       CALL PACK_BLOCK (agrid,  aTRGASEX,  aTRGASEX_glob)
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1331,7 +1356,7 @@ C*
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      *     , aTRGASEX_glob, oTRGASEX_glob
 #endif
 #ifdef OBIO_RAD_coupling
@@ -1382,7 +1407,7 @@ C***  Scatter the arrays to the ocean grid
 #endif
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
       CALL UNPACK_BLOCK (ogrid,  oTRGASEX_glob,  oTRGASEX)
 #endif
 #ifdef OBIO_RAD_coupling

@@ -26,7 +26,7 @@
 c ---------------------------------------------------------------------
 c ---------------------------------------------------------------------
 
-      SUBROUTINE TRACERS_GASEXCH_CFC_Natassa_PBL(tg1,ws,
+      SUBROUTINE TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
      . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
      . beta_gas,trsf,trcnst,ilong,jlat)
 
@@ -110,20 +110,33 @@ c ---------------------------------------------------------------------
        trcnst = Kw_gas * trconstflx(itr)*byrho ! convert to (conc * m/s)
 
       RETURN
-      END SUBROUTINE TRACERS_GASEXCH_CFC_Natassa_PBL
+      END SUBROUTINE TRACERS_GASEXCH_ocean_CFC_PBL
 
 c ---------------------------------------------------------------------
 c ---------------------------------------------------------------------
 
-c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
+c used with TRACERS_GASEXCH_ocean_CFC to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c $Revision: 2.4 $
-c $Date: 2008/01/23 15:13:14 $   ;  $State: Exp $
+c $Revision: 2.5 $
+c $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
 c $Author: aromanou $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_CFC.f,v $
+c Revision 2.5  2009/03/22 19:01:07  aromanou
+c CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
+c Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
+c the atmospheric grid.
+c
+c Updated rundecks. Cases with prognostic or seawifs chlorophyl,
+c obio-radiation coupling, gas exchange on the ocean grid (ie non-interactive
+c atmsopheric CO2 concentrations) are working
+c properly (as best as I can tell, anyway).
+c Interactive gas exchange needs a bit more testing.
+c
+c Please remember to add #include "rundeck_opts.h" when you create new routines.
+c
 c Revision 2.4  2008/01/23 15:13:14  aromanou
 c
 c
@@ -237,15 +250,28 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 
-c used with TRACERS_GASEXCH_CFC to compute transfer velocity for CFCs
+c used with TRACERS_GASEXCH_ocean_CFC to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c  $Revision: 2.4 $
-c  $Date: 2008/01/23 15:13:14 $   ;  $State: Exp $
+c  $Revision: 2.5 $
+c  $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
 c  $Author: aromanou $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_CFC.f,v $
+c  Revision 2.5  2009/03/22 19:01:07  aromanou
+c  CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
+c  Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
+c  the atmospheric grid.
+c
+c  Updated rundecks. Cases with prognostic or seawifs chlorophyl,
+c  obio-radiation coupling, gas exchange on the ocean grid (ie non-interactive
+c  atmsopheric CO2 concentrations) are working
+c  properly (as best as I can tell, anyway).
+c  Interactive gas exchange needs a bit more testing.
+c
+c  Please remember to add #include "rundeck_opts.h" when you create new routines.
+c
 c  Revision 2.4  2008/01/23 15:13:14  aromanou
 c
 c

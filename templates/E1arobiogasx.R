@@ -1,33 +1,32 @@
-E1arobiogasx.R GISS Model E  coupled version          aromanou   12/28/2008
+test3d.R GISS Model E  coupled version          aromanou  03/21/2009
 
-E1arobiogasx: 2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
-          form (E1F40o32.R larissa   08/08/2008)
+test3d: obio in gary's ocean based on Larissa's E1F40o32.R
+	  2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
-          new new OIC=OIC.E2HX2.L32.D1201
-
-E1F40o13: modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       
-atmospheric composition from year 1880 ? 1979                               
-ocean: coupled to GISS ocean model (Russell - Schmidt)                      
-uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) 
-time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  
-filters: U,V in E-W direction (after every dynamics time step)              
-         sea level pressure (after every physics time step)                 
+modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
+atmospheric composition from year 1880 ? 1979                               ?
+ocean: coupled to GISS ocean model (Russell - Schmidt)                      ?
+uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) ?
+time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  ?
+filters: U,V in E-W direction (after every dynamics time step)              ?
+         sea level pressure (after every physics time step)                 ?
 
 Run Options
 STACKSIZE=524288
 
 Preprocessor Options
-#define TRACERS_ON                  ! include tracers code
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OBIO_ON_GARYocean           ! obio on Russell ocean
+#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
-#define TRACERS_OceanBiology
-#define OBIO_ON_GARYocean
-#define pCO2_ONLINE
-#define OBIO_RAD_coupling
-#define TRACERS_GASEXCH_ocean
-#define TRACERS_GASEXCH_ocean_CO2
-! #define SKIP_TRACER_SRCS 
+#define TRACERS_OceanBiology        ! ANY ocean: Watson Gregg's ocean bio-geo-chem model
+#define pCO2_ONLINE                 ! ANY ocean: pCO2_seawater computed online
+#define OBIO_RAD_coupling           ! ANY ocean: radiation -- ocean biology coupling
+#define TRACERS_ON
+#define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
+#define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
+!!! #define CHL_from_SeaWIFs        ! RUSSELL ocean: read in SeaWIFs
+!!! #define CHL_from_OBIO           ! ANY ocean: interactive CHL
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -52,9 +51,8 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-SparseCommunicator_mod              ! sparse gather/scatter module
-ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM  ! dynamic ocean modules
-OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP   !  dynamic ocean routines
+ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM ! dynamic ocean modules
+OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP  ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
@@ -62,20 +60,20 @@ SNOW_DRV SNOW                          ! snow model
 RAD_COM RAD_DRV RADIATION              ! radiation modules
 RAD_UTILS ALBEDO                       ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
-DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
+DIAG_ZONAL GCDIAGb                     ! grid dependent code for lat-circle dia
 DIAG_RES_F                             ! diagnostics (resolution dependent)
 CONST FFT144 OFFT144E UTILDBL SYSTEM   ! utilities
 POUT                                   ! post-processing output
+SparseCommunicator_mod                 ! sparse gather/scatter module
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TRACER_COM TRACERS_DRV              ! configurable tracer code
+!!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TRACER_COM  TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-!!!!!!!use part below only for Natassa's gas exchange experiments !!!!!!
-!!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
 TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
-!!!!!!!!!!!!!!!!!!!!!! end  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!   OCEAN TRACERS       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 OCN_TRACER_COM
 OCN_TRACER
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -94,44 +92,43 @@ obio_trint       |-r8|
 obio_daysetrad   |-r8|
 obio_daysetbio   |-r8|
 obio_ocalbedo    |-r8|
-obio_sfcirr      |-r8|
 obio_reflectance |-r8|
+obio_sfcirr      |-r8|
 obio_edeu        |-r8|
 obio_ptend       |-r8|
 obio_carbon      |-r8|
 obio_update      |-r8|
 obio_sinksettl   |-r8|
 
-obio_oasimhr     |-r8|
-obio_limits      |-r8|
-
-
+!!!ar!!!obio_oasimhr     |-r8|
+!!!ar!!!obio_limits      |-r8|
 
 Data input files:
-! AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
-! GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
-!!!OIC=OIC.WOA98.2HX2.L32.D1201
-! OIC=OIC.E2HX2.L32.D1201
-AIC=1JAN2501.rsfE3F40o32
-OFTAB=OFTABLE_NEW                   ! ocean function table
-AVR=OPF.E2HX2.L32                    ! ocean filter
-KBASIN=KB144X90.modelE              ! ocean basin designations
-TOPO_OC=Z144X90N_nocasp.1 ! ocean bdy.cond
-CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS_144X90N_nocasp.ext
-SOIL=S144X900098M.ext TOPO=Z144X90N_nocasp.1 ! bdy.cond
-REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.RVR      ! river direction file
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_Ma_2000             ! rad.tables and history files
+!!! AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
+AIC=1JAN2501.rsfE3F40o32        ! Larissa's restart              ISTART=8
+GIC=GIC.144X90.DEC01.1.ext      ! initial ground conditions      ISTART=2
+OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
+OFTAB=OFTABLE_NEW               ! ocean function table
+AVR=OPF.E2HX2.L32               ! ocean filter
+KBASIN=KB144X90.modelE          ! ocean basin designations
+TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
+CDN=CD144X90.ext                ! neutral drag coefficient 
+VEG=V144X90_no_crops.ext        ! vegatation file 
+CROPS=CROPS_144X90N_nocasp.ext  ! crops  
+SOIL=S144X900098M.ext           ! soil properties
+TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
+REG=REG2X2.5                    ! special regions-diag
+RVR=RD_modelE_F.RVR.bin         ! river direction file
+RADN1=sgpgxg.table8             ! rad.tables and history files
+RADN2=LWTables33k.1a            ! rad.tables and history files
+RADN4=LWTables33k.1b            ! rad.tables and history files
+RADN5=H2Ocont_Ma_2000           ! rad.tables and history files
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-!!!RADN6=dust8.tau9x8x13
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
@@ -178,12 +175,12 @@ water
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral
 components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 in Gary'socean grid
+CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
+                                         !in Gary'socean grid
                                          !to be used with CHL_from_SeaWIFs
 
-
 Label and Namelist:
-E1arobiogasx (32 ocean layers; 1850 atm.,the current modelE version)
+test3d (32 ocean layers; 1850 atm.,the current modelE version)
 
 DTFIX=180
 &&PARAMETERS
@@ -211,6 +208,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
+ 
 U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
@@ -253,7 +251,7 @@ DTO=225.
 NIsurf=2        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=480       ! use =48 except on halem
+Ndisk=192       ! use =48 except on halem
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf
@@ -268,10 +266,11 @@ nssw=48         ! obio needs that in order to always restart from hour 0
 
 !parameters that affect CO2 gas exchange
 atmCO2=368.6      !uatm for year 2000 
+
 &&END_PARAMETERS
 
  &INPUTZ
    YEARI=2501,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=2600,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   YEARE=2521,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
+   ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END

@@ -67,7 +67,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 
 #ifdef TRACERS_OCEAN
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 !@var TRGASEX  tracer gas exchange over each type (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: oTRGASEX
 #endif
@@ -161,7 +161,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 #ifdef TRACERS_OCEAN
 
       !:-:-I-J arrays
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
 
       ALLOCATE( oTRGASEX( NTM , 1 , I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)

@@ -104,13 +104,29 @@ c
         rhs(k,14,15) = term
         C_tend(k,2) = term
 
+!       if(k.eq.1)
+!    .     write(*,'(a,3i5,e12.4)')'dicterm1',
+!    .     nstep,i,j,term
+
         term = docbac * pnoice
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
      
+!       if(k.eq.1)
+!    .     write(*,'(a,3i5,e12.4)')'dicterm2',
+!    .     nstep,i,j,term
+
         term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
+
+!       if(k.eq.1)
+!    .     write(*,'(a,3i5,e12.4)')'dicterm3',
+!    .     nstep,i,j,term
+
+!     if(k.eq.1)write(*,'(a,3i5,11e12.4)')'dic_carbon:',
+!    . nstep,i,j,tzoo,resz,obio_P(k,ntyp),dicresz,pnoice,
+!    . mgchltouMC,docbac,tfac(k),remin(1),det(k,1),uMtomgm3
 
       enddo  !k=1,kmax
 
@@ -154,6 +170,11 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
         rhs(k,14,5) = term
         C_tend(k,2) = C_tend(k,2) + term
 
+!       if(k.eq.1)
+!    .     write(*,'(a,3i5,e12.4)')'dicterm4',
+!    .     nstep,i,j,term
+
+
       enddo !k=1,kmax
 
 cdiag if (vrbos) write(*,'(a,i7,e12.4)')
@@ -167,13 +188,19 @@ c pCO2
      .           obio_P(1,1),obio_P(1,3),atmCO2,
      .           pCO2_ij,pHsfc)
 
-      if(vrbos)write(*,'(/,a,3i5,7e12.4)')
+      !limits on pco2 ---more work needed
+      if (pCO2_ij .lt.  50.) pCO2_ij=50.
+      if (pCO2_ij .gt.1000.) pCO2_ij=1000.
+
+      if(vrbos)then
+        write(*,'(/,a,3i5,7e12.4)')
      . 'before ppco2: ',nstep,i,j,temp1d(1),saln1d(1),
      .                  car(1,2),alk1d(1),
      .                  obio_P(1,1),obio_P(1,3),atmCO2
 
-      if(vrbos)write(*,'(/,a,3i5,2e12.4)')
+        write(*,'(/,a,3i5,2e12.4)')
      .    'carbon: ONLINE',nstep,i,j,pCO2_ij,pHsfc
+      endif
 #else
       call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
       if(vrbos)write(*,'(a,3i5,e12.4)')
@@ -234,10 +261,15 @@ c Update DIC for sea-air flux of CO2
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 
-      if (vrbos)
-     . write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
+!       if(k.eq.1)
+!    .     write(*,'(a,3i5,e12.4)')'dicterm5',
+!    .     nstep,i,j,term
+
+      if (vrbos) then
+       write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
      .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
      .   rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term
+      endif
 
 #endif
 
@@ -385,12 +417,25 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.19 $
-c_ $Date: 2009/01/08 14:33:26 $   ;  $State: Exp $
+c_ $Revision: 2.20 $
+c_ $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.20  2009/03/22 19:01:07  aromanou
+c_ CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
+c_ Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
+c_ the atmospheric grid.
+c_
+c_ Updated rundecks. Cases with prognostic or seawifs chlorophyl,
+c_ obio-radiation coupling, gas exchange on the ocean grid (ie non-interactive
+c_ atmsopheric CO2 concentrations) are working
+c_ properly (as best as I can tell, anyway).
+c_ Interactive gas exchange needs a bit more testing.
+c_
+c_ Please remember to add #include "rundeck_opts.h" when you create new routines.
+c_
 c_ Revision 2.19  2009/01/08 14:33:26  aromanou
 c_ corrected pressure and in situ temp calculation in obio_model.
 c_
@@ -771,12 +816,25 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.19 $
-c_ $Date: 2009/01/08 14:33:26 $   ;  $State: Exp $
+c_ $Revision: 2.20 $
+c_ $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.20  2009/03/22 19:01:07  aromanou
+c_ CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
+c_ Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
+c_ the atmospheric grid.
+c_
+c_ Updated rundecks. Cases with prognostic or seawifs chlorophyl,
+c_ obio-radiation coupling, gas exchange on the ocean grid (ie non-interactive
+c_ atmsopheric CO2 concentrations) are working
+c_ properly (as best as I can tell, anyway).
+c_ Interactive gas exchange needs a bit more testing.
+c_
+c_ Please remember to add #include "rundeck_opts.h" when you create new routines.
+c_
 c_ Revision 2.19  2009/01/08 14:33:26  aromanou
 c_ corrected pressure and in situ temp calculation in obio_model.
 c_
@@ -912,12 +970,25 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.19 $
-c_ $Date: 2009/01/08 14:33:26 $   ;  $State: Exp $
+c_ $Revision: 2.20 $
+c_ $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.20  2009/03/22 19:01:07  aromanou
+c_ CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
+c_ Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
+c_ the atmospheric grid.
+c_
+c_ Updated rundecks. Cases with prognostic or seawifs chlorophyl,
+c_ obio-radiation coupling, gas exchange on the ocean grid (ie non-interactive
+c_ atmsopheric CO2 concentrations) are working
+c_ properly (as best as I can tell, anyway).
+c_ Interactive gas exchange needs a bit more testing.
+c_
+c_ Please remember to add #include "rundeck_opts.h" when you create new routines.
+c_
 c_ Revision 2.19  2009/01/08 14:33:26  aromanou
 c_ corrected pressure and in situ temp calculation in obio_model.
 c_

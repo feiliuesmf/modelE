@@ -47,6 +47,7 @@ Description of CPPs to be used in the rundecks
 
 #define TRACERS_GASEXCH_CFC_Natassa ! ANY ocean: CFC-11 or CFC-12
 
+#ifdef TRACERS_Alkalinity           ! ANY ocean: prognostic alkalinity
 
 =========================================
 
@@ -62,4 +63,14 @@ E1arseawifs.R      ! russell ocean + seawifs
 E1arseawifs_2deg.R ! russell ocean + seawifs
 E1arobiogasx.R     ! russell ocean + obio + gas exchange
 E1arobio_alk.R     ! russell ocean + obio + alkalinity
+
+=========================================
+Important:
+
+when using Russell ocean model need to compile the following
+routines that refer to TRACERS_OCEAN
+
+TRACER_COM  TRACERS_DRV              ! configurable tracer code
+TRACERS                             ! generic tracer code
+
 

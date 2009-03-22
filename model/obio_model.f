@@ -157,10 +157,6 @@
 
 #ifdef OBIO_ON_GARYocean
       time = float(nstep)
-!     i_0h=ogrid%I_STRT_HALO
-!     i_1h=ogrid%I_STOP_HALO
-!     j_0h=ogrid%J_STRT_HALO
-!     j_1h=ogrid%J_STOP_HALO
       i_0=ogrid%I_STRT
       i_1=ogrid%I_STOP
       j_0=ogrid%J_STRT
@@ -222,20 +218,20 @@
        endif
 #endif
 
-       print*,' '
-       print*, 'BIO: saving in pco2 and tend files'
-       print*,' '
-       jstring='xxx'
-#ifdef OBIO_ON_GARYocean
-       if(j_1.lt.100)write(jstring(1:2),'(i2)')j_1
-       if(j_1.ge.100)write(jstring(1:3),'(i3)')j_1
-#else
-       if(j_1h.lt.100)write(jstring(1:2),'(i2)')j_1h
-       if(j_1h.ge.100)write(jstring(1:3),'(i3)')j_1h
-#endif
-       print*, 'pco2.'//jstring//string
-       call openunit('pco2.'//jstring//string,iu_pco2)
-!       call openunit('tend.'//jstring//string,iu_tend)
+!       print*,' '
+!       print*, 'BIO: saving in pco2 and tend files'
+!       print*,' '
+!       jstring='xxx'
+!#ifdef OBIO_ON_GARYocean
+!       if(j_1.lt.100)write(jstring(1:2),'(i2)')j_1
+!       if(j_1.ge.100)write(jstring(1:3),'(i3)')j_1
+!#else
+!       if(j_1h.lt.100)write(jstring(1:2),'(i2)')j_1h
+!       if(j_1h.ge.100)write(jstring(1:3),'(i3)')j_1h
+!#endif
+!      print*, 'pco2.'//jstring//string
+!      call openunit('pco2.'//jstring//string,iu_pco2)
+!      call openunit('tend.'//jstring//string,iu_tend)
 
       endif  !diagno_bio
 
@@ -630,11 +626,11 @@ cdiag   write(*,*)
 cdiag.   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
        endif
 
-         if (vrbos)
-     .     write(*,106)nstep,
-     .    '      channel, dir dwn irr, diff dwn irr,  tot',
-     .                  (ichan,Ed(ichan),Es(ichan),
-     .                  tot,ichan=1,nlt)
+cdiag    if (vrbos)
+cdiag.     write(*,106)nstep,
+cdiag.    '      channel, dir dwn irr, diff dwn irr,  tot',
+cdiag.                  (ichan,Ed(ichan),Es(ichan),
+cdiag.                  tot,ichan=1,nlt)
  106  format(i9,a/(18x,i3,3(1x,es9.2)))
 
 
@@ -688,13 +684,8 @@ cdiag     endif
 cdiag  if (vrbos)write(*,*)'bfre obio_ptend: ',
 cdiag.     nstep,(k,tirrq(k),k=1,kmax)
 
-       write(*,'(a,3i5,e12.4)')
-     .     'befrptend',nstep,i,j,obio_P(1,1)
-
        call obio_ptend(vrbos,kmax,i,j)
 
-       write(*,'(a,3i5,2e12.4)')
-     .     'aftrptend',nstep,i,j,obio_P(1,1),P_tend(1,1)
        !------------------------------------------------------------
 cdiag  if (vrbos)then
 cdiag   write(*,108)nstep,' aftrptend dpth      dp     P_tend(1:9)',
@@ -711,15 +702,12 @@ cdiag  endif
 
        !------------------------------------------------------------
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   CONSTRUCTION site   !!!!!!!!!!!!!!
 #ifdef OBIO_ON_GARYocean
        !update biology to new time level
        !also do phyto sinking and detrital settling here
        !MUST CALL sinksettl BEFORE update
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
        call obio_update(vrbos,kmax,i,j)
-       write(*,'(a,3i5,e12.4)')
-     .     'aftrupdat',nstep,i,j,obio_P(1,1)
 #else
        !update biology from m to n level
        !also do phyto sinking and detrital settling here
@@ -861,25 +849,25 @@ cdiag  endif
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
 
-       if (diagno_bio) then
-#ifdef OBIO_ON_GARYocean
-       if (kpl(i,j).gt.0) then    !??/why kpl(2,90)=0???
-#endif
-         write(iu_pco2,'(3i7,22e12.4)')
-     .     nstep,i,j
-     .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
-     .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
-#ifdef OBIO_ON_GARYocean
-     .    ,p1d(kpl(i,j))
-#else
-     .    ,dpmixl(i,j,mm)/onem
-#endif
-     .    ,alk1d(1),pp2tot_day(i,j)
-#ifdef OBIO_ON_GARYocean
-       endif   !kpl>0
-#endif
-       endif   !diagno_bio
-
+!       if (diagno_bio) then
+!#ifdef OBIO_ON_GARYocean
+!       if (kpl(i,j).gt.0) then    !??/why kpl(2,90)=0???
+!#endif
+!         write(iu_pco2,'(3i7,22e12.4)')
+!     .     nstep,i,j
+!     .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
+!     .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
+!#ifdef OBIO_ON_GARYocean
+!     .    ,p1d(kpl(i,j))
+!#else
+!     .    ,dpmixl(i,j,mm)/onem
+!#endif
+!     .    ,alk1d(1),pp2tot_day(i,j)
+!#ifdef OBIO_ON_GARYocean
+!       endif   !kpl>0
+!#endif
+!       endif   !diagno_bio
+ 
 #ifdef OBIO_ON_GARYocean
       endif   !if focean>0
 #endif
@@ -887,10 +875,10 @@ cdiag  endif
  1000 continue
 c$OMP END PARALLEL DO
 
-      if (diagno_bio) then
-        call closeunit(iu_pco2)
+!      if (diagno_bio) then
+!        call closeunit(iu_pco2)
 !        call closeunit(iu_tend)
-      endif     ! diagno_bio
+!      endif     ! diagno_bio
 
 
       return

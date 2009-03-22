@@ -31,7 +31,6 @@ C?*** For serial GM/straits computations, pack data into global arrays
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
 
-!      USE DOMAIN_DECOMP_1D, only : grid,get, haveLatitude
       USE DOMAIN_DECOMP_1D, only : get, haveLatitude
       USE OCEANR_DIM, only : grid=>ogrid
 
@@ -39,6 +38,9 @@ C?*** For serial ODIF/GM/straits computations:
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
       USE OCEAN, only : scatter_ocean_straits, gather_ocean_straits
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      USE obio_com, only: gather_pCO2
+#endif
 
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
@@ -67,6 +69,9 @@ C**** Apply surface fluxes to ocean
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
       call obio_model
+#ifdef TRACERS_GASEXCH_ocean
+      call gather_pco2
+#endif
 #endif
 
 
@@ -3793,7 +3798,7 @@ C**** Surface stress is applied to V component at the North Pole
 #ifdef TRACERS_DRYDEP
      *     , oTRDRYDEP
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      *     , oTRGASEX
 #endif
 #endif
@@ -3857,7 +3862,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         TRUNO(:)=0. ; TRUNI(:)=0.
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
         !note that TRGASEX is positive down i.e. same sign as
         !TRUNO, while TREVAPOR is positive up.
         TRUNO(:) = oTRGASEX(:,1,I,J)                                  !  kg/m^2
@@ -4876,7 +4881,7 @@ C****
 #ifdef TRACERS_ON
      *     ,gtracer
 #endif
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
      *     ,trgasex
 #endif
 
@@ -4930,8 +4935,9 @@ C****
 #endif
 #endif
 
-#ifdef TRACERS_GASEXCH_Natassa
+#ifdef TRACERS_GASEXCH_ocean
             GTRACER(:,1,I,J)=aTRAC(I,J,:)
+            write(*,*)'TOC2SST:',i,j,gtracer(:,1,i,j)
 #endif
           ELSE
              SSS(I,J)=0.
@@ -4951,7 +4957,7 @@ C**** do poles
           UOSURF(I,JMA) = UOSURF(1,JMA)
           VOSURF(I,JMA) = VOSURF(1,JMA)
           OGEOZA(I,JMA)=OGEOZA(1,JMA)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
 #endif
         END DO
@@ -4968,7 +4974,7 @@ C**** do poles
           UOSURF(I,1) = UOSURF(1,1)
           VOSURF(I,1) = VOSURF(1,1)
           OGEOZA(I,1)=OGEOZA(1,1)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_Natassa)
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO

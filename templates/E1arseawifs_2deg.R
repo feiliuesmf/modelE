@@ -1,4 +1,4 @@
-test3a.R GISS Model E  coupled version          aromanou  03/15/2009
+test3a.R GISS Model E  coupled version          aromanou  02/14/2009
 
 test3a: obio in gary's ocean based on Larissa's E1F40o32.R
 	  2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
@@ -47,8 +47,8 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM  ! dynamic ocean modules
-OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP   ! dynamic ocean routines
+ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM ! dynamic ocean modules
+OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP  ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
@@ -249,6 +249,8 @@ nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU t
 ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
+nssw=48         ! obio needs that in order to always restart from hour 0
+                ! then we need to do setups for a whole day
 
 !parameters that affect CO2 gas exchange
 atmCO2=368.6      !uatm for year 2000 
@@ -258,5 +260,5 @@ atmCO2=368.6      !uatm for year 2000
  &INPUTZ
    YEARI=2501,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=2521,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=8,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=8,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END

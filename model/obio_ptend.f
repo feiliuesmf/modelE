@@ -163,22 +163,27 @@ cdiag      endif
 
          exc = greff*gzoo
 
+         !remineralization 
          term = tfac(k)*remin(1)*det(k,1)/cnratio * pnoice
          rhs(k,1,ntyp+1) = term    !put this in diff column
          P_tend(k,1) = term
 
+         !regeneration from zooplankton
          term = bn(k)*(exc + regen*dzoo2) * pnoice
          rhs(k,2,ntyp) = term
          P_tend(k,2) = term
 
+         !remineralization 
          term = tfac(k)*remin(2)*det(k,2) * pnoice
          rhs(k,3,ntyp+2) = term    !put this in diff column
          P_tend(k,3) = term
 
+         !regeneration from zooplankton
          term = bf*(exc + regen*dzoo2) * pnoice    
          rhs(k,4,ntyp) = term
          P_tend(k,4) = P_tend(k,4) + term
 
+         !remineralization 
          term = tfac(k)*remin(3)*det(k,3) * pnoice
          rhs(k,4,ntyp+3) = term                        !put this in diff column
          P_tend(k,4) = P_tend(k,4) + term

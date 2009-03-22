@@ -125,13 +125,12 @@
 
       USE TRACER_GASEXCH_COM, only : atrac
 
-      USE obio_com, only : pCO2 !=>pCO2_glob
-      !!!USE obio_com, only : pCO2
+      USE obio_com, only : pCO2,pCO2_glob
       USE obio_forc, only : atmCO2
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data
 
       implicit none
-      real*8, allocatable :: pCO2_glob(:,:)
+      !!! real*8, allocatable :: pCO2_glob(:,:)
       integer nt,i,j
 
       call get_param("atmCO2",atmCO2)
@@ -148,6 +147,7 @@
       if (focean(i,j).gt.0.) then
          do nt=1,ntm
             GTRACER(nt,1,i,j)=atrac(i,j,nt)
+            write(*,*)'TRACER_GASEXCH_CO2:',i,j,nt,GTRACER(nt,1,i,j)
          enddo
       endif
       enddo
@@ -165,7 +165,7 @@
 
 c ---------------------------------------------------------------------
 
-      SUBROUTINE TRACERS_GASEXCH_CO2_Natassa_PBL(tg1,ws,
+      SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
      . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
      . beta_gas,trsf,trcnst,ilong,jlat)
   
@@ -252,11 +252,11 @@ cwatson ff is actually alpha_gas
 !    .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho
 
       RETURN
-      END SUBROUTINE TRACERS_GASEXCH_CO2_Natassa_PBL
+      END SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL
 
 c ---------------------------------------------------------------------
 c ---------------------------------------------------------------------
-c used with TRACERS_GASEXCH_CO2 to compute transfer velocity for CO2
+c used with TRACERS_GASEXCH_ocean_CO2 to compute transfer velocity for CO2
 c
 c taken from Watsons' code
 c ---------------------------------------------------------------------

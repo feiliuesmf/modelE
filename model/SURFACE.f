@@ -571,11 +571,12 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
+         write(*,'(a,2i5,3e12.4)') 'in SURFACE:',
+     .    I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
           pbl_args%alati=sss(I,J)
           trgrnd(nx)=gtracer(n,itype,i,j)
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-c          write(522,*)  i,j,gtracer(n,itype,i,j)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
