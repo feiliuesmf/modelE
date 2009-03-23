@@ -94,7 +94,8 @@ c
 c
       USE HYCOM_DIM, only : J_0,J_1,isp,ifp,ilp,jchunk
       USE HYCOM_SCALARS, only : onem, jerlv0
-      USE HYCOM_ARRAYS_GLOB, only : latij, depths
+      USE HYCOM_ARRAYS_GLOB, only : depths
+      USE HYCOM_ARRAYS,      only : latij
       USE KPRF_ARRAYS,   only : jerlov_loc, betard, betabl, redfac
       implicit none
       integer i,j,l

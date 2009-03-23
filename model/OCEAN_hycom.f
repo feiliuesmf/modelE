@@ -50,15 +50,6 @@
 c
       call geopar(iniOCEAN)
 c
-      if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
-     .                                                              then
-        call inikpp
-      elseif (iocnmx.eq.3 .or. iocnmx.eq.7) then
-        call inigis
-      else
-         stop 'wrong: need to choose one ocean mixing scheme'
-      endif
-c
       if (AM_I_ROOT()) then ! work on global grids here
       
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
@@ -120,6 +111,14 @@ c
 
       call scatter_atm
       call scatter_hycom_arrays
+
+      if(iocnmx>=0 .AND. iocnmx<=2 .OR. iocnmx==5 .OR. iocnmx==6) then 
+        call inikpp
+      elseif (iocnmx==3 .OR. iocnmx==7) then
+        call inigis
+      else
+         stop 'wrong: need to choose one ocean mixing scheme'
+      endif
 
 !!! hack needed for serial inicon
       CALL ESMF_BCAST(ogrid, delt1 )
