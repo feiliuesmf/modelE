@@ -47,6 +47,7 @@ qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 # $(BIN_DIR)/rsfE001.addO.exe $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf $(BIN_DIR)/conv_gic !! all obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
 rvr: $(BIN_DIR)/RDconvert
+input: $(BIN_DIR)/inputll2cs
 
 # include file with implicit rules
 include $(CONFIG_DIR)/rules.mk
@@ -64,7 +65,7 @@ endif
 #  targets
 #
 
-aux: all
+aux: input
 
 FORCE:
 
@@ -149,6 +150,10 @@ RDconvert.o: $(GCMLIB)
 $(BIN_DIR)/RDconvert: RDconvert.o $(GCMLIB)
 	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
+inputLL2CS.o: $(GCMLIB)
+
+$(BIN_DIR)/inputll2cs: inputLL2CS.o $(GCMLIB)
+	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
 
 status:
 	echo "AUX build successful"
