@@ -1090,7 +1090,7 @@ c
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
-      integer :: k,kk,k1,l
+      integer :: k,kk,k1,l,n
       character(len=16) :: ijstr
 c
       do k=1,kaij
@@ -1755,6 +1755,28 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
+c
+      IJ_SWAERRF = k+1   ! aerosol rad forcing (W/m**2) 
+      DO N=1,8
+        k=k+1
+        lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA N='//char(N+48)
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swaerrf_toa_'//char(n+48)
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
+      END DO
+c
+      IJ_LWAERRF = k+1   ! aerosol rad forcing (W/m**2) 
+      DO N=1,8
+        k=k+1
+        lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA N='//char(N+48)
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwaerrf_toa_'//char(n+48)
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
+      END DO
 c
       k=k+1 !
       IJ_SRNTP = k   ! SRNTP (W/m**2)                          2 RD

@@ -60,7 +60,7 @@ C****
      *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
-     *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc
+     *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
      *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
@@ -85,9 +85,8 @@ C****
 #endif
       IMPLICIT NONE
 
-      INTEGER J,L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
-      REAL*8 SPHIS,CPHIS,PHIN,SPHIN,CPHIN,PHIM,PHIS,PLBx(LM+1)
-     *     ,pyear
+      INTEGER L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
+      REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
 !@var RUNSTR names of files for radiation routines
@@ -109,15 +108,8 @@ C****
       data b0,b1,b2,b3 /5.026d0, -0.01138d0, 9.552d-6, -2.698d-9/
 #endif
 
-      INTEGER J_0,J_1,J_1S
-      LOGICAL HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       character(len=300) :: out_line
       character*6 :: skip
-
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1
-     *             ,  J_STOP_SKP=J_1S
-     *             , HAVE_NORTH_POLE=HAVE_NORTH_POLE
-     *             , HAVE_SOUTH_POLE=HAVE_SOUTH_POLE )
 
 C**** sync radiation parameters from input
       call sync_param( "S0X", S0X )
@@ -163,6 +155,7 @@ C**** sync radiation parameters from input
       call sync_param( "rad_interact_tr", rad_interact_tr )
       call sync_param( "rad_forc_lev", rad_forc_lev )
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
+      call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
       REFdry = REFdry*ref_mult
       if (istart.le.0) return
@@ -790,9 +783,9 @@ c      USE ATMDYN, only : CALC_AMPK
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
-     &          ,use_tracer_ozone
+     &          ,use_tracer_ozone,FS8OPX,FT8OPX
 #ifdef ALTER_RADF_BY_LAT
-     &          ,FS8OPX,FT8OPX,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
+     &          ,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
 #endif
 C     INPUT DATA  (i,j) dependent
      &             ,JLAT,ILON, L1,LMR=>NL, PLB ,TLB,TLM ,SHL,RHL
@@ -819,7 +812,7 @@ C     OUTPUT DATA
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
-     *     ,FSRDIF,DIRNIR,DIFNIR
+     *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -862,9 +855,7 @@ C     OUTPUT DATA
      *     ,ij_clr_sruptoa,ij_clr_truptoa,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
-     *     ,ij_chl
-#endif
+     *     ,ij_chl, ij_swaerrf, ij_lwaerrf
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -922,6 +913,9 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSCRF,TNFSCRF
+      REAL*8, DIMENSION(8,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     SNFSAERRF,TNFSAERRF
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
@@ -949,7 +943,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
-     *     ,LFRC,JTIME,n1
+     *     ,LFRC,JTIME,n1,tmpS,tmpT
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
@@ -1715,6 +1709,19 @@ C       END AMIP
       end if
       FTAUC=1.     ! default: turn on cloud tau
 
+C**** Optional calculation of the impact of default aerosols
+      if (aer_rad_forc.gt.0) then
+        DO N=1,8
+          tmpS=FS8OPX(N)   ; tmpT=FT8OPX(N)
+          FS8OPX(N)=0.     ; FT8OPX(N)=0.
+          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+          CALL RCOMPX           ! aer_rad_forc>0 : no aerosol N
+          SNFSAERRF(N,I,J)=SRNFLB(LM+LM_REQ+1) ! always TOA
+          TNFSAERRF(N,I,J)=TRNFLB(LM+LM_REQ+1) ! always TOA
+          FS8OPX(N)=tmpS   ; FT8OPX(N)=tmpT
+        END DO
+      end if
+
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 
 C*****************************************************
@@ -2194,6 +2201,16 @@ C**** CRF diags if required
      +          (SNFS(3,I,J)-SNFSCRF(I,J))*CSZ2
            AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
      -          (TNFS(3,I,J)-TNFSCRF(I,J))
+         end if
+
+C**** AERRF diags if required
+         if (aer_rad_forc.gt.0) then
+           do N=1,8
+             AIJ(I,J,IJ_SWAERRF+N-1)=AIJ(I,J,IJ_SWAERRF+N-1)+
+     *            (SNFS(3,I,J)-SNFSAERRF(N,I,J))*CSZ2
+             AIJ(I,J,IJ_LWAERRF+N-1)=AIJ(I,J,IJ_LWAERRF+N-1)-
+     *            (TNFS(3,I,J)-TNFSAERRF(N,I,J))
+           end do
          end if
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\

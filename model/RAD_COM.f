@@ -53,8 +53,8 @@ C**** exactly the same as the default values.
 !@var Tchg Total temperature change in adjusted forcing runs
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: Tchg
 !@var SRHR(0) Solar   raditive net flux into the ground          (W/m^2)
-!@var TRHR(0) Thermal raditive net flux into ground(W/O -StB*T^4)(W/m^2)
-!@*   Note: -StB*T^4 is MISSING, since T may vary a lot betw. rad. calls
+!@var TRHR(0) Thermal raditive downward flux into ground(W/O -StB*T^4)(W/m^2)
+!@*   Note: -StB*T^4 is added in SURFACE, since T varies betw. rad. calls
 !@var SRHR(1->LM) Solar   raditive heating rate (W/m^2)  (short wave)
 !@var TRHR(1->LM) Thermal raditive heating rate (W/m^2)  (long wave)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SRHR,TRHR
@@ -181,8 +181,12 @@ C**** using the rad_forc_lev parameter.
 !@dbparam cloud_rad_forc = 1 for calculation of cloud radiative forcing
       INTEGER :: cloud_rad_forc = 0
 
+!@dbparam aer_rad_forc = 1 for calculation of aerosol radiative forcing
+!@+   note this only works for background aerosols, not tracers
+      INTEGER :: aer_rad_forc = 0
+
 !@var co2ppm Current CO2 level as seen by radiation
-      REAL*8 :: co2ppm = 280.    ! set a resaonable default value
+      REAL*8 :: co2ppm = 280.    ! set a reasonable default value
 
 #ifdef CHL_from_SeaWIFs
 !@var ACHL,ECHL1,ECHL0,BCHL,CCHL arrays for the reading in chlorophyll

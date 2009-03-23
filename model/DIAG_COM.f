@@ -436,10 +436,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-     &     ,ij_flam,ij_CtoG,ij_flash
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
-     .     ,ij_chl
-#endif
+     &     ,ij_flam,ij_CtoG,ij_flash,ij_chl,ij_swaerrf,ij_lwaerrf
       INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
      &     ,IJ_HUSL
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
