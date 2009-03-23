@@ -161,7 +161,6 @@ qnodes      query how many and which types of nodes are free
 
 pdE         post-process acc-files (mix of uncompressed and *.gz files is ok)
               if runID.exe_serial is present, pdE will use it instead of runID.exe
-pdE_mpi     may be used instead of a "qsubI" then "pdE" combination
 
 jE_to_lpl   extract an aplot-file for a selected field from *.jE* (budg.pg)
 qdf         display titles for ij-files, etc
