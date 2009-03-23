@@ -1,8 +1,10 @@
       program regrid_input
 !@sum Input file regridding routines. Uses x_2gridsroot derived type
 !@    to define source and target grids.
-!@    Can be called anywhere from modelE.f after dist_grid has been initialized
-!@    Will soon become a standalone program
+!@    Compile/Run using:
+!@      * gmake -j aux RUN=E2RVR NPES=6 CUBE_GRID=YES FVCUBED=YES
+!@      * copy inputll2cs in your run directory along with the input files you want to regrid
+!@      * run with PBS script containing: mpirun -np 6 -inherit_limits ./inputll2cs > log
 !@auth Denis Gueyffier
       use regrid_com
       USE fms_mod, only : fms_init, fms_end
