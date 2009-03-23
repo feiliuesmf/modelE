@@ -391,8 +391,8 @@ c this version is for the latlon grid.  ll are in degrees east.
       integer, intent(out) :: ij(2)
       real*8 :: dlon_dg
       dlon_dg = 360./dble(im)
-      ij(1) = im/2 + 1 + int(real((ll(1)+.01)/dlon_dg))
-      ij(2) = jm/2 + 1 + int(real((ll(2)+.01)/dlat_dg))
+      ij(1) = im/2 + 1 + (ll(1)+.01)/dlon_dg
+      ij(2) = jm/2 + 1 + (ll(2)+.01)/dlat_dg
       return
       end subroutine lonlat_to_ij
 
