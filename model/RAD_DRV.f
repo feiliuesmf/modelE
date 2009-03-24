@@ -36,7 +36,7 @@ C****
       USE PARAM
       USE CONSTANT, only : grav,bysha,twopi
       USE MODEL_COM, only : jm,lm,dtsrc,nrad
-     *     ,kradia,lm_req,pednl00,jyear
+     *     ,kradia,lm_req,pednl00,jyear,iyear1
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
 #ifndef CUBE_GRID
       USE GEOM, only : lat_dg 
@@ -164,19 +164,22 @@ C**** Set orbital parameters appropriately
 C**** Set orbital parameters appropriately
       if (calc_orb_par_year.ne.0) then ! calculate from paleo-year
         ! 0 BP is defined as 1950CE
-        pyear = JYEAR-calc_orb_par_year
-        call orbpar(pyear, eccn, obliq, omegt)
+        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
+        write(out_line,*)
+     *  "   Calculating Orbital Params for year : ",
+     *  pyear,"     (CE);"
+        call orbpar(pyear,eccn, obliq, omegt)
         write(out_line,*)
         call write_parallel(trim(out_line),unit=6)
         write(out_line,*) 'calc_orb_par_year =',calc_orb_par_year
         call write_parallel(trim(out_line),unit=6)
         write(out_line,*)
         call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) " Orbital Parameters Calculated:"
-        call write_parallel(trim(out_line),unit=6)
         write(out_line,*)
      *  "   Calculating Orbital Params for year : ",
-     *  JYEAR-calc_orb_par_year,"     (CE);"
+     *  pyear,"     (CE);"
+        call write_parallel(trim(out_line),unit=6)
+        write(out_line,*) " Orbital Parameters Calculated:"
         call write_parallel(trim(out_line),unit=6)
         write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
      *       " (default = ",eccn_def,")"
