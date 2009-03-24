@@ -2154,7 +2154,7 @@ C**** Default calculation (no leap, VE=Mar 21 hr 0)
       EDPY=365d0 ; VEDAY=79d0           ! Generic year
 C**** Set orbital parameters appropriately
       if (calc_orb_par_year.ne.0.and.JDAY.eq.1) then ! calculate from paleo-year
-        pyear = JYEAR-calc_orb_par_year 
+        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year 
         ! 0 BP is defined as 1950CE
         call orbpar(pyear, eccn, obliq, omegt)
         write(out_line,*)
@@ -2163,7 +2163,9 @@ C**** Set orbital parameters appropriately
         call write_parallel(trim(out_line),unit=6)
         write(out_line,*) 
      *  "   Calculating Orbital Params for year : ",
-     *  JYEAR-calc_orb_par_year,"     (CE);",JYEAR,calc_orb_par_year
+     *  pyear,"     (CE);", ' JYEAR, IYEAR1,calc_orb_par_year=', 
+     *  JYEAR,IYEAR1,calc_orb_par_year
+        call write_parallel(trim(out_line),unit=6)
         call write_parallel(trim(out_line),unit=6)
         write(out_line,'(a,f8.7,a,f8.7,a)') "   Eccentricity: ",eccn,
      *       " (default = ",eccn_def,")"
