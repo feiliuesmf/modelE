@@ -2296,12 +2296,12 @@ c**** find MSU channel 2,3,4 temperatures
 !@sum  init_DIAG initializes the diagnostics
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE CONSTANT, only : sday,kapa,undef,twopi
+      USE CONSTANT, only : sday,kapa,undef
       USE MODEL_COM, only : lm,Itime,ItimeI,Itime0,pmtop,nfiltr,jhour
      *     ,jdate,jmon,amon,jyear,jhour0,jdate0,jmon0,amon0,jyear0,idacc
      *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc,dt
      *     ,nmonav,ItimeE,lrunid,focean,pednl00,pmidl00,lm_req
-      USE GEOM, only : axyp,imaxj,lon2d,lat2d
+      USE GEOM, only : axyp,imaxj,lon2d_dg,lat2d_dg
       USE GEOM, only : lonlat_to_ij
       USE SEAICE_COM, only : rsi
       USE LAKES_COM, only : flake
@@ -2396,27 +2396,26 @@ c**** Convert to integer
         enddo
       enddo
 
+c**** determine the region to which each cell belongs
       JREG(:,:)=24
-
-c**** determine which cell is inside a rectangular region
       do j=j_0,j_1
         do i=i_0,i_1
-          lon=360.*lon2d(i,j)/twopi-180.
-          lat=360.*lat2d(i,j)/twopi
+          lon=lon2d_dg(i,j)
+          lat=lat2d_dg(i,j)
           do ireg=1,23
             do irect=1,NRECT(ireg)
-              if ( (lat <= dcorlat(ireg,2*irect-1) )
-     &             .and.
-     &             (lat >= dcorlat(ireg,2*irect) )
-     &             .and.
-     &             (lon >= dcorlon(ireg,2*irect-1) )
-     &             .and.
-     &             (lon <= dcorlon(ireg,2*irect) ) ) then
-                JREG(i,j)=ireg
+              if ( lat > dcorlat(ireg,2*irect-1) .or.
+     &             lat < dcorlat(ireg,2*irect  ) )  cycle
+              if(dcorlon(ireg,2*irect-1)<dcorlon(ireg,2*irect)) then
+                if( lon < dcorlon(ireg,2*irect-1) .or.
+     &              lon > dcorlon(ireg,2*irect  ) ) cycle
+              else ! wraparound
+                if( lon < dcorlon(ireg,2*irect-1) .and.
+     &              lon > dcorlon(ireg,2*irect  ) ) cycle
               endif
+              JREG(i,j)=ireg
             enddo
           enddo
-c              write(*,*) "i,j, jreg",i,j,jreg(i,j)
         enddo
       enddo
 #endif
