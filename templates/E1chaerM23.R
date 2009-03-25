@@ -28,7 +28,8 @@ Preprocessor Options
 #define TRACERS_NITRATE          ! Nitrate aerosol
 #define TRACERS_DUST             ! Dust aerosol
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
-#define BC_ALB                   !optional tracer BC affects snow albedo
+#define BC_ALB                   ! Optional tracer BC affects snow albedo
+! #define CLD_AER_CDNC             ! Aerosol-cloud interactions
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
@@ -71,6 +72,7 @@ TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
 ! ----------------------------------
 CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
+! CLD_AEROSOLS_Menon_BLK_MAT          ! Aerosol-cloud interactions
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY                 ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
@@ -98,9 +100,9 @@ POUT_netcdf                         ! post-processing output
 
 Data input files:
     ! start up from restart file of earlier run
-AIC=1JAN2000.rsfE1chaerM23_nitrate_dust        ! initial conditions (atm./ground), no GIC, ISTART=8
+! AIC=1JAN2000.rsfE1chaerM23_nitrate_dust        ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
-! AIC=AIC.RES_M23.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
+AIC=AIC.RES_M23.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
 OSST=OST4X5.B.1876-85avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
@@ -197,30 +199,89 @@ CO_IC=gsin/CO_init_cond_M23_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
-!----------Default emissions case (giss/geia)------------------------
-CO_01=CO_sources/CO_GEIA_industrial_head
-CO_02=CO_sources/CO_GEIA_biomass_burning_head
-Alkenes_01=gsin/Alkenes_GEIA_industrial_head
-Alkenes_02=gsin/Alkenes_GEIA_biomass_burning_head
-Alkenes_03=gsin/Alkenes_GEIA_vegetation_head
-Paraffin_01=gsin/Paraffin_GEIA_industrial_head
-Paraffin_02=gsin/Paraffin_GEIA_biomass_burning_head
-Paraffin_03=gsin/Paraffin_GEIA_vegetation_head
-NOx_01=NOy_sources/NOx_GEIA_fossil_fuels_head
-NOx_02=NOy_sources/NOx_GEIA_biomass_burning_head
-NOx_03=NOy_sources/NOx_GEIA_soil_head
-NOx_AIRCRAFT=NOy_sources/aircraft_4x5
-CH4_01=methane/gcm_data/CH4_GEIA_Animals_header
-CH4_02=methane/gcm_data/CH4_GEIA_Coal_Mining_header
-CH4_03=methane/gcm_data/CH4_GEIA_Gas_Leak_header
-CH4_04=methane/gcm_data/CH4_GEIA_Gas_Vent_header
-CH4_05=methane/gcm_data/CH4_GEIA_Landfill_header
-CH4_06=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
-CH4_07=methane/gcm_data/CH4_GEIA_Termites_header
-CH4_08=methane/gcm_data/CH4_GEIA_Coal_Burning_header
-CH4_09=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
-CH4_10=methane/gcm_data/CH4_GEIA_Rice_header
-CH4_11=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+!!----------Default emissions case (giss/geia)------------------------
+!CO_01=CO_sources/CO_GEIA_industrial_head
+!CO_02=CO_sources/CO_GEIA_biomass_burning_head
+!Alkenes_01=gsin/Alkenes_GEIA_industrial_head
+!Alkenes_02=gsin/Alkenes_GEIA_biomass_burning_head
+!Alkenes_03=gsin/Alkenes_GEIA_vegetation_head
+!Paraffin_01=gsin/Paraffin_GEIA_industrial_head
+!Paraffin_02=gsin/Paraffin_GEIA_biomass_burning_head
+!Paraffin_03=gsin/Paraffin_GEIA_vegetation_head
+!NOx_01=NOy_sources/NOx_GEIA_fossil_fuels_head
+!NOx_02=NOy_sources/NOx_GEIA_biomass_burning_head
+!NOx_03=NOy_sources/NOx_GEIA_soil_head
+!NOx_AIRCRAFT=NOy_sources/aircraft_4x5
+!CH4_01=methane/gcm_data/CH4_GEIA_Animals_header
+!CH4_02=methane/gcm_data/CH4_GEIA_Coal_Mining_header
+!CH4_03=methane/gcm_data/CH4_GEIA_Gas_Leak_header
+!CH4_04=methane/gcm_data/CH4_GEIA_Gas_Vent_header
+!CH4_05=methane/gcm_data/CH4_GEIA_Landfill_header
+!CH4_06=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
+!CH4_07=methane/gcm_data/CH4_GEIA_Termites_header
+!CH4_08=methane/gcm_data/CH4_GEIA_Coal_Burning_header
+!CH4_09=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
+!CH4_10=methane/gcm_data/CH4_GEIA_Rice_header
+!CH4_11=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+!----------Default emissions case (mostly AR5)-----------------------
+CO_01=AR5_emis/M/2000/CO_agr_AR5_2000_4x5_h
+CO_02=AR5_emis/M/2000/CO_awb_AR5_2000_4x5_h
+CO_03=AR5_emis/M/2000/CO_dom_AR5_2000_4x5_h
+CO_04=AR5_emis/M/2000/CO_ene_AR5_2000_4x5_h
+CO_05=AR5_emis/M/2000/CO_ind_AR5_2000_4x5_h
+CO_06=AR5_emis/M/2000/CO_shp_AR5_2000_4x5_h
+CO_07=AR5_emis/M/2000/CO_slv_AR5_2000_4x5_h
+CO_08=AR5_emis/M/2000/CO_tra_AR5_2000_4x5_h
+CO_09=AR5_emis/M/2000/CO_wst_AR5_2000_4x5_h
+CO_10=CO_sources/CO_GEIA_biomass_burning_head
+! ========= please remember that Alkenes =================
+! ========= and Paraffin emissions files =================
+! ========= must now be in Kmole units,  =================
+! ========= not Kg units ...             =================
+Alkenes_01=AR5_emis/M/2000/Alkenes_agr_AR5_2000_4x5_h
+Alkenes_02=AR5_emis/M/2000/Alkenes_awb_AR5_2000_4x5_h
+Alkenes_03=AR5_emis/M/2000/Alkenes_dom_AR5_2000_4x5_h
+Alkenes_04=AR5_emis/M/2000/Alkenes_ene_AR5_2000_4x5_h
+Alkenes_05=AR5_emis/M/2000/Alkenes_ind_AR5_2000_4x5_h
+Alkenes_06=AR5_emis/M/2000/Alkenes_shp_AR5_2000_4x5_h
+Alkenes_07=AR5_emis/M/2000/Alkenes_slv_AR5_2000_4x5_h
+Alkenes_08=AR5_emis/M/2000/Alkenes_tra_AR5_2000_4x5_h
+Alkenes_09=AR5_emis/M/2000/Alkenes_wst_AR5_2000_4x5_h 
+Alkenes_10=gsin/Alkenes_GEIA_biomass_burning_head_1
+Alkenes_11=gsin/Alkenes_GEIA_vegetation_head_1
+Paraffin_01=AR5_emis/M/2000/Paraffin_agr_AR5_2000_4x5_h
+Paraffin_02=AR5_emis/M/2000/Paraffin_awb_AR5_2000_4x5_h
+Paraffin_03=AR5_emis/M/2000/Paraffin_dom_AR5_2000_4x5_h
+Paraffin_04=AR5_emis/M/2000/Paraffin_ene_AR5_2000_4x5_h
+Paraffin_05=AR5_emis/M/2000/Paraffin_ind_AR5_2000_4x5_h
+Paraffin_06=AR5_emis/M/2000/Paraffin_shp_AR5_2000_4x5_h
+Paraffin_07=AR5_emis/M/2000/Paraffin_slv_AR5_2000_4x5_h
+Paraffin_08=AR5_emis/M/2000/Paraffin_tra_AR5_2000_4x5_h
+Paraffin_09=AR5_emis/M/2000/Paraffin_wst_AR5_2000_4x5_h
+Paraffin_10=gsin/Paraffin_GEIA_biomass_burning_head_1
+Paraffin_11=gsin/Paraffin_GEIA_vegetation_head_1
+NOx_01=AR5_emis/M/2000/NOx_agr_AR5_2000_4x5_h
+NOx_02=AR5_emis/M/2000/NOx_awb_AR5_2000_4x5_h
+NOx_03=AR5_emis/M/2000/NOx_dom_AR5_2000_4x5_h
+NOx_04=AR5_emis/M/2000/NOx_ene_AR5_2000_4x5_h
+NOx_05=AR5_emis/M/2000/NOx_ind_AR5_2000_4x5_h
+NOx_06=AR5_emis/M/2000/NOx_shp_AR5_2000_4x5_h
+NOx_07=AR5_emis/M/2000/NOx_tra_AR5_2000_4x5_h
+NOx_08=AR5_emis/M/2000/NOx_wst_AR5_2000_4x5_h
+NOx_09=NOy_sources/NOx_GEIA_biomass_burning_head
+NOx_AIRC=AR5_emis/M/2000/NOx_air_AR5_2000_4x5
+CH4_01=AR5_emis/M/2000/CH4_agr_AR5_2000_4x5_h
+CH4_02=AR5_emis/M/2000/CH4_awb_AR5_2000_4x5_h
+CH4_03=AR5_emis/M/2000/CH4_dom_AR5_2000_4x5_h
+CH4_04=AR5_emis/M/2000/CH4_ene_AR5_2000_4x5_h
+CH4_05=AR5_emis/M/2000/CH4_ind_AR5_2000_4x5_h
+CH4_06=AR5_emis/M/2000/CH4_shp_AR5_2000_4x5_h
+CH4_07=AR5_emis/M/2000/CH4_tra_AR5_2000_4x5_h
+CH4_08=AR5_emis/M/2000/CH4_wst_AR5_2000_4x5_h
+CH4_09=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
+CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
+CH4_11=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
+CH4_12=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
 Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
@@ -326,30 +387,33 @@ KSIALB=0        ! 6-band albedo (Hansen) (=1 no land icea fixup, A.Lacis orig. 6
 KSOLAR=2 ! 9
 
 !--- define emission sectors above files belong to ---
-CO_01_sect='CO FFUEL'
-CO_02_sect='CO BBURN'
-Alkenes_01_sect='ALK FFUEL'
-Alkenes_02_sect='ALK BBURN'
-Alkenes_03_sect='ALK VEG'
-Paraffin_01_sect='PAR FFUEL'
-Paraffin_02_sect='PAR BBURN'
-Paraffin_03_sect='PAR VEG'
-NOx_01_sect='NOX FFUEL'
-NOx_02_sect='NOX BBURN'
-NOx_03_sect='NOX'
-NOx_AIRCRAFT_sect='NOX FFUEL' ! special 3D source case
-CH4_01_sect='CH4'
-CH4_02_sect='CH4 FFUEL'
-CH4_03_sect='CH4 FFUEL'
-CH4_04_sect='CH4 FFUEL'
-CH4_05_sect='CH4'
-CH4_06_sect='CH4'
-CH4_07_sect='CH4'
-CH4_08_sect='CH4 FFUEL'
-CH4_09_sect='CH4 BBURN'
-CH4_10_sect='CH4'
-CH4_11_sect='CH4 WETL'
-Isoprene_01_sect='ISO VEG'
+NOx_AIRC_sect='AIR' ! special 3D source case
+CH4_12_sect='WETL'
+Isoprene_01_sect='ISO'
+!CO_01_sect='CO FFUEL'
+!CO_02_sect='CO BBURN'
+!Alkenes_01_sect='ALK FFUEL'
+!Alkenes_02_sect='ALK BBURN'
+!Alkenes_03_sect='ALK VEG'
+!Paraffin_01_sect='PAR FFUEL'
+!Paraffin_02_sect='PAR BBURN'
+!Paraffin_03_sect='PAR VEG'
+!NOx_01_sect='NOX FFUEL'
+!NOx_02_sect='NOX BBURN'
+!NOx_03_sect='NOX'
+!NOx_AIRCRAFT_sect='NOX FFUEL' ! special 3D source case
+!CH4_01_sect='CH4'
+!CH4_02_sect='CH4 FFUEL'
+!CH4_03_sect='CH4 FFUEL'
+!CH4_04_sect='CH4 FFUEL'
+!CH4_05_sect='CH4'
+!CH4_06_sect='CH4'
+!CH4_07_sect='CH4'
+!CH4_08_sect='CH4 FFUEL'
+!CH4_09_sect='CH4 BBURN'
+!CH4_10_sect='CH4'
+!CH4_11_sect='CH4 WETL'
+!Isoprene_01_sect='ISO VEG'
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
@@ -362,18 +426,22 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 !-fit-here--|                                                              |---
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
-SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! CO
-SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! ALK
-SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! PAR
-SECT_04= 1.000, 1.000, 1.000, 1.000, 1.000 ! CH4
-SECT_05= 1.000, 1.000, 1.000, 1.000, 1.000 ! NOX
-SECT_06= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
-SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
-SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
-SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-SECT_10= 1.000, 1.000, 1.000, 1.000, 1.000 ! VEG
+SECT_01= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
+SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
+!SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! CO
+!SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! ALK
+!SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! PAR
+!SECT_04= 1.000, 1.000, 1.000, 1.000, 1.000 ! CH4
+!SECT_05= 1.000, 1.000, 1.000, 1.000, 1.000 ! NOX
+!SECT_06= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
+!SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
+!SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
+!SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+!SECT_10= 1.000, 1.000, 1.000, 1.000, 1.000 ! VEG
 !       ---define-sectors-names/order------
-SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL VEG'
+SECTORS_ARE='ISO WETL AIR'
+!SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL VEG'
 !-fit-here--|                                                              |---
 !-----
 aircraft_Tyr1=1990 ! for non-transient emissions,
@@ -394,7 +462,8 @@ tune_lt_sea=8.463d0  ! =3.9d0*2.17d0 for 4x5 model setting
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
-ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
+ns_wet=12       ! index of CH4 source that is the wetlands (dumb, I know)
+!ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
 topo_lim=205.d0 ! upper limit of topographic variation for new wetlands 
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
@@ -407,7 +476,7 @@ C_SDRAG=0.     ! no constant sdrag
 P_SDRAG=.01     ! lin. sdrag above p_sdrag mb (top layer for M23) except near poles
 PP_SDRAG=4.6   ! lin. sdrag above  pp_sdrag mb near poles (top 5 layers for M23)
 ANG_SDRAG=1    ! if =1: sdrag conserves ang mom.
-WMAX=1000.     ! maximum wind velocity in sdrag; default=200 when GW drag not used. For ISTART=2, use WMAX=300.
+WMAX=300.     ! maximum wind velocity in sdrag; default=200 when GW drag not used. For ISTART=2, use WMAX=300.
 PBREAK = 200.  ! The level for GW breaking above.
 DEFTHRESH=0.000030 !the default is 15d-6
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
@@ -481,7 +550,8 @@ use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted
 use_rad_ch4=0      ! use rad code CH4, shut off sfc sources 
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
 prather_limits=1   ! to avoid some negative tracers in sub-gridscale
-which_trop=0       ! choose tropopause for chemistry purposes:
+which_trop=1       ! choose tropopause for chemistry purposes:
+!which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=-1   ! for setting fixed methane value for chemistry:
 pfix_CH4_S=1.750d-6    ! Southern Hemisphere (fix_CH4_chemistry=1)
@@ -513,8 +583,8 @@ PIratio_CFC   = 0.000d0 ! {CFC IC's and L=1 overwriting}
  &INPUTZ
    QCHECK=.false.
    kdiag = 0,0,0,0,0,0,0,0,0,0,0,0,0,
-   YEARI=2000,MONTHI=1,DATEI=1,HOURI=0,
-   YEARE=2000,MONTHE=2,DATEE=1,HOURE=0,
-   ISTART=8,IRANDI=0, YEARE=2000, MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   YEARI=1999,MONTHI=12,DATEI=1,HOURI=0,
+   YEARE=2000,MONTHE=1,DATEE=1,HOURE=0,
+   ISTART=2,IRANDI=0, YEARE=1999, MONTHE=12,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
 
