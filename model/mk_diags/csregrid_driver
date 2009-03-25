@@ -1,0 +1,77 @@
+#
+# This script administrates the remapping of cubed-sphere modelE
+# accumulation arrays to a latlon grid.
+#
+
+csfile=$1    # the input cubed-sphere acc-file
+llfile=$2    # the output latlon acc-file
+accn=$3      # name of the acc-array to regrid
+imlon=$4     # number of longitudes of the target grid
+jmlat=$5     # number of latitudes of the target grid
+
+#
+# Check that the command-line argments are appropriate -
+# will be implemented after testing is completed
+#
+
+#
+# Create an instance of the output acc-array having the correct
+# dimension names/sizes
+#
+ncwa -h -O -F -y ttl -v ${accn} -a tile -d tile,1 $csfile $llfile
+ncrename -h -O -d im,lon -d jm,lat $llfile $llfile
+ncdump -h $llfile | sed "s/lon = ../lon = $imlon/; s/lat = ../lat = $jmlat/" > tmpcdl
+ncgen -b tmpcdl; rm -f tmpcdl
+
+#
+# Copy all the acc-array metadata but its CDL to the output file
+#
+meta2cpy=ia_${accn},scale_${accn},denom_${accn},sname_${accn}
+ncks -h -A -v $meta2cpy $csfile $llfile
+
+#
+# Activate the latlon parts of the CDL, remove the
+# cubed-sphere parts, and copy to the output file
+#
+ncks -h -O -v cdl_${accn} $csfile tmpcdl.nc
+ncdump tmpcdl.nc | \
+   egrep -v "global attributes|remove_from_latlon" | \
+   sed "s/lon = xxx/lon = $imlon/; s/lat = xxx/lat = $jmlat/" | \
+   sed "s/.. add_to_latlon //" > tmpcdl
+ncgen -b tmpcdl
+ncks -h -A -v cdl_${accn} tmpcdl.nc $llfile
+
+#
+# If vertical coordinates are needed, copy them to the output file
+#
+vcoords=` egrep "vertical_coords:" tmpcdl | \
+          sed 's/.. vertical_coords://; s/"//g; s/,//' `
+for vcoord in $vcoords
+do
+  ncks -h -A -v $vcoord $csfile $llfile
+done
+
+rm -f tmpcdl tmpcdl.nc
+
+#
+# Create instances of lon/lat coordinate arrays in the output file
+#
+cat > lltmp << EOF
+netcdf lltmp {
+dimensions:
+   lon = $imlon ;
+   lat = $jmlat ;
+variables:
+   float lon(lon) ;
+      lon:units = "degrees_east" ;
+   float lat(lat) ;
+      lat:units = "degrees_north" ;
+}
+EOF
+ncgen -b lltmp
+ncks -h -A -v lon,lat lltmp.nc $llfile
+rm -f lltmp lltmp.nc
+
+#
+# Now run the regridding program
+#
