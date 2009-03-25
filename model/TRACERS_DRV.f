@@ -780,10 +780,54 @@ C          read the CFC initial conditions:
 
       case ('isopp2a')
           n_isopp2a = n
-          n_soa_e = n_isopp2a        !the last from the soa species
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          trpdens(n) = 1.5d3         !kg/m3
+          trradius(n) = 3.d-7        !m
+          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+
+      case ('apinp1g')
+          n_apinp1g = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 170.0d0
+          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 1.d6
+#endif
+
+      case ('apinp1a')
+          n_apinp1a = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 170.0d0
+          trpdens(n) = 1.5d3         !kg/m3
+          trradius(n) = 3.d-7        !m
+          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          tr_wd_TYPE(n) = nPART
+
+      case ('apinp2g')
+          n_apinp2g = n
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 170.0d0
+          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_wd_TYPE(n) = nGAS
+#ifdef TRACERS_DRYDEP
+          HSTAR(n) = 1.d6
+#endif
+
+      case ('apinp2a')
+          n_apinp2a = n
+          n_soa_e = n_apinp2a        !the last from the soa species
+          ntm_power(n) = -11
+          ntsurfsrc(n) = 0
+          tr_mm(n) = 170.0d0
           trpdens(n) = 1.5d3         !kg/m3
           trradius(n) = 3.d-7        !m
           fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
@@ -927,7 +971,11 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('OCII') !Insoluble industrial organic mass
       n_OCII = n
           ntm_power(n) = -11
+#ifdef TRACERS_AEROSOLS_SOA
+          ntsurfsrc(n) = 2 !industrial, ships 
+#else
           ntsurfsrc(n) = 3 !Terpene, industrial, ships 
+#endif  /* TRACERS_AEROSOLS_SOA */
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
@@ -981,7 +1029,11 @@ c         HSTAR(n)=tr_RKD(n)*convert_HSTAR
       case ('OCI3') !Insoluble organic mass, 3rd type: WSOC-LS
       n_OCI3 = n
           ntm_power(n) = -11
+#ifdef TRACERS_AEROSOLS_SOA
+          ntsurfsrc(n) = 0
+#else
           ntsurfsrc(n) = 1 ! terpene emissions
+#endif  /* TRACERS_AEROSOLS_SOA */
           tr_mm(n) = 15.6
           trpdens(n)=1.5d3   !kg/m3
           trradius(n)=3.d-7 !m
@@ -2598,7 +2650,7 @@ C**** special one unique to HTO
 #endif
 
 #ifdef TRACERS_AEROSOLS_SOA
-      case ('isopp1g','isopp2g')
+      case ('isopp1g','isopp2g','apinp1g','apinp2g')
 c put in chemical production
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
@@ -2608,7 +2660,7 @@ c put in chemical production
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-      case ('isopp1a','isopp2a')
+      case ('isopp1a','isopp2a','apinp1a','apinp2a')
 c put in chemical production
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
@@ -3170,18 +3222,20 @@ c gravitational settling of OCII
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(2,n) = k
-        sname_jls(k) = 'terpene_src_'//TRIM(trname(n))
-        lname_jls(k) = 'OCII Terpene source'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        k = k + 1
-        jls_source(3,n) = k
         sname_jls(k) = 'Ship_src_'//TRIM(trname(n))
         lname_jls(k) = 'OCII ship source'
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifndef TRACERS_AEROSOLS_SOA
+        k = k + 1
+        jls_source(3,n) = k ! Terpene source should always be last
+        sname_jls(k) = 'terpene_src_'//TRIM(trname(n))
+        lname_jls(k) = 'OCII Terpene source'
+        jls_ltop(k) = 1
+        jls_power(k) = -1
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif  /* TRACERS_AEROSOLS_SOA */
       case ('OCI3')
         k = k + 1
         jls_grav(n) = k
@@ -3204,13 +3258,15 @@ c gravitational settling of OCII
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#ifndef TRACERS_AEROSOLS_SOA
         k = k + 1
-        jls_source(1,n) = k
+        jls_source(1,n) = k ! Terpene source should always be last
         sname_jls(k) = 'terpene_src_'//TRIM(trname(n))
         lname_jls(k) = 'OCI3 Terpene source'
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+#endif  /* TRACERS_AEROSOLS_SOA */
       case ('OCI1','OCI2')
         k = k + 1
         jls_grav(n) = k
@@ -3948,7 +4004,8 @@ C**** This needs to be 'hand coded' depending on circumstances
 #endif
 
 #ifdef TRACERS_AEROSOLS_SOA
-      case ('isopp1g','isopp1a','isopp2g','isopp2a')
+      case ('isopp1g','isopp1a','isopp2g','isopp2a',
+     &      'apinp1g','apinp1a','apinp2g','apinp2a')
 c chemical production
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
@@ -4675,20 +4732,22 @@ c BCB clear sky longwave radiative forcing
         ijts_source(2,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Terpene source'
-        sname_ijts(k) = 'OC_Terpene_source'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
-        ijts_source(3,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
         lname_ijts(k) = 'ship source'
         sname_ijts(k) = 'OC_Ship_source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#ifndef TRACERS_AEROSOLS_SOA
+        k = k + 1
+        ijts_source(3,n) = k ! Terpene source should always be last
+        ijts_index(k) = n
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Terpene source'
+        sname_ijts(k) = 'OC_Terpene_source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif  /* TRACERS_AEROSOLS_SOA */
         k = k + 1
         ijts_3Dsource(1,n) = k   ! defined but not output
         ijts_index(k) = n
@@ -4700,8 +4759,9 @@ c BCB clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('OCI3')
+#ifndef TRACERS_AEROSOLS_SOA
         k = k + 1
-        ijts_source(1,n) = k
+        ijts_source(1,n) = k ! Terpene source should always be last
         ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
@@ -4709,6 +4769,7 @@ c BCB clear sky longwave radiative forcing
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+#endif  /* TRACERS_AEROSOLS_SOA */
         k = k + 1
         ijts_3Dsource(1,n) = k   ! Emissions
         ijts_index(k) = n
@@ -7660,7 +7721,8 @@ C**** set some defaults
 #endif
 
 #ifdef TRACERS_AEROSOLS_SOA
-          case ('isopp1g','isopp1a','isopp2g','isopp2a')
+          case ('isopp1g','isopp1a','isopp2g','isopp2a',
+     &          'apinp1g','apinp1a','apinp2g','apinp2a')
             g=13; itcon_3Dsrc(nChemistry,N) = g
             qcon(itcon_3Dsrc(nChemistry,N)) = .true.
             conpts(g-12) = 'Chemistry'
@@ -7970,57 +8032,61 @@ C**** set some defaults
 #endif
 
           case ('OCII')
-            itcon_3Dsrc(1,N) = 13
+            g=13; itcon_3Dsrc(1,N) = g
             qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
             qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_surf(1,N) = 14
+            g=g+1; itcon_surf(1,N) = g
             qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
             qsum(itcon_surf(1,N)) = .false.
-            itcon_surf(2,N) = 15
-            qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'Terpene src'
+            g=g+1; itcon_surf(2,N) = g
+            qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
             qsum(itcon_surf(2,N)) = .false.
-            itcon_surf(3,N) = 16
-            qcon(itcon_surf(3,N)) = .true.; conpts(4) = 'ship src'
+#ifndef TRACERS_AEROSOLS_SOA
+            g=g+1; itcon_surf(3,N) = g
+            qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Terpene src'
             qsum(itcon_surf(3,N)) = .false.
-            itcon_mc(n) = 17
+#endif  /* TRACERS_AEROSOLS_SOA */
+            g=g+1; itcon_mc(n) = g
             qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
             qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 18
+            g=g+1; itcon_ss(n) = g
             qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
             qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
             if(dodrydep(n)) then
-              itcon_dd(n,1)=19
+              g=g+1; itcon_dd(n,1)= g
               qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
               qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=20
+              g=g+1; itcon_dd(n,2)= g
               qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
               qsum(itcon_dd(n,2)) = .false.
             end if
 #endif
 
           case ('OCI3')
-            itcon_3Dsrc(1,N) = 13
+            g=13; itcon_3Dsrc(1,N) = g
             qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
             qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
+            g=g+1; itcon_3Dsrc(2,N) = g
             qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
             qsum(itcon_3Dsrc(2,N)) = .true.
-            itcon_surf(1,N) = 15
+#ifndef TRACERS_AEROSOLS_SOA
+            g=g+1; itcon_surf(1,N) = g
             qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Terpene src'
             qsum(itcon_surf(1,N)) = .false.
-            itcon_mc(n) = 16
+#endif  /* TRACERS_AEROSOLS_SOA */
+            g=g+1; itcon_mc(n) = g
             qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
             qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 17
+            g=g+1; itcon_ss(n) = g
             qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
             qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
             if(dodrydep(n)) then
-              itcon_dd(n,1)=18
+              g=g+1; itcon_dd(n,1)= g
               qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
               qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=19
+              g=g+1; itcon_dd(n,2)= g
               qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
               qsum(itcon_dd(n,2)) = .false.
             end if
@@ -8511,9 +8577,12 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
-     * BCB_src,OCB_src,OCT_src
-     * ,DMS_AER,SS1_AER,SS2_AER
-     * ,SO2_src_3D,SO2_biosrc_3D,SO2_src,bci_src_3D,
+     * BCB_src,OCB_src,
+#ifndef TRACERS_AEROSOLS_SOA
+     * OCT_src,
+#endif  /* TRACERS_AEROSOLS_SOA */
+     * DMS_AER,SS1_AER,SS2_AER,
+     * SO2_src_3D,SO2_biosrc_3D,SO2_src,bci_src_3D,
      * lmAER,craft,NH3_src_con,NH3_src_cyc
 #endif
 #ifdef TRACERS_RADON
@@ -9137,7 +9206,8 @@ c**** earth
 #endif
 
 #ifdef TRACERS_AEROSOLS_SOA
-        case('isopp1g','isopp1a','isopp2g','isopp2a')
+        case('isopp1g','isopp1a','isopp2g','isopp2a',
+     &       'apinp1g','apinp1a','apinp2g','apinp2a')
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
@@ -9474,6 +9544,7 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
       endif
 #endif
 ! ---------------------------------------------------
+#ifndef TRACERS_AEROSOLS_SOA
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
 c Terpenes
@@ -9505,6 +9576,7 @@ c 1.3 converts OC to OM
       call closeunit(mon_unit)
       endif
 #endif
+#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_OM_SP
        OCI_src(:,:,1:8)= 0.d0
        call openunit('OC_FOSSIL_FUEL',iuc,.false.,.true.)
@@ -9807,7 +9879,11 @@ C**** at the start of any day
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: so2_src,BCI_src,OCI_src,BCB_src,
-     * OCB_src,OCT_src,NH3_src_con,NH3_src_cyc,
+     * OCB_src,
+#ifndef TRACERS_AEROSOLS_SOA
+     * OCT_src,
+#endif  /* TRACERS_AEROSOLS_SOA */
+     * NH3_src_con,NH3_src_cyc,
      * BC_ship,POM_ship,SO2_ship
 #endif
 #ifdef TRACERS_RADON
@@ -10308,15 +10384,19 @@ c! TRACERS_AMP
       case ('OCII')
          do j=J_0,J_1
             trsource(:,j,1,n) = OCI_src(:,j,1)
-            trsource(:,j,2,n) = OCT_src(:,j,jmon)
-            trsource(:,j,3,n) = POM_ship(:,j,jmon)
+            trsource(:,j,2,n) = POM_ship(:,j,jmon)
+#ifndef TRACERS_AEROSOLS_SOA
+            trsource(:,j,3,n) = OCT_src(:,j,jmon)
+#endif  /* TRACERS_AEROSOLS_SOA */
          end do
 
 #ifdef TRACERS_OM_SP
        case ('OCI3')
+#ifndef TRACERS_AEROSOLS_SOA
          do j=J_0,J_1
             trsource(:,j,1,n) = OCT_src(:,j,jmon)
          end do
+#endif  /* TRACERS_AEROSOLS_SOA */
 #endif
 c!OMSP
 #ifdef TRACERS_AMP
@@ -10327,8 +10407,10 @@ c!OMSP
          end do
        case ('M_OCC_OC')
          do j=J_0,J_1
-          trsource(:,j,1,n) = OCI_src(:,j,1)+OCT_src(:,j,jmon)
-     *     +POM_ship(:,j,jmon)
+          trsource(:,j,1,n) = OCI_src(:,j,1)+POM_ship(:,j,jmon)
+#ifndef TRACERS_AEROSOLS_SOA
+     *     +OCT_src(:,j,jmon)
+#endif  /* TRACERS_AEROSOLS_SOA */
          end do
 #endif
 #endif

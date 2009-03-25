@@ -43,8 +43,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       INTEGER, PARAMETER :: nomsrc = 1
 #endif
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCI_src !(im,jm,nomsrc)
+#ifndef TRACERS_AEROSOLS_SOA
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
+#endif  /* TRACERS_AEROSOLS_SOA */
 !@var OCB_src    OC Biomass source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OCB_src !(im,jm,lmAER,12)
 !@var OCBt_src OC trend Biomass source (kg/s/box)
@@ -113,7 +115,11 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       use domain_decomp_atm, only: dist_grid, get
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
      * nso2src,SO2_src,BCI_src,BCB_src,BCBt_src,lmAER,nomsrc,
-     * OCI_src,OCT_src,OCB_src,OCBt_src,BCI_src_3D,imAER,
+     * OCI_src,
+#ifndef TRACERS_AEROSOLS_SOA
+     * OCT_src,
+#endif  /* TRACERS_AEROSOLS_SOA */
+     * OCB_src,OCBt_src,BCI_src_3D,imAER,
      * hbc,hoc,hso2,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,SO2_biosrc_3D,
      * ohr,dho2r,perjr,
@@ -159,7 +165,9 @@ c     endif
       allocate( BCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
       allocate( OCI_src(I_0H:I_1H,J_0H:J_1H,nomsrc) ,STAT=IER)
       allocate( OCB_src(I_0H:I_1H,J_0H:J_1H,lmAER,12) ,STAT=IER)
+#ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+#endif  /* TRACERS_AEROSOLS_SOA */
       allocate( OCBt_src(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
       allocate( BCI_src_3D(I_0H:I_1H,J_0H:J_1H,lm) ,STAT=IER)
       allocate( ss_src(I_0H:I_1H,J_0H:J_1H,nsssrc) ,STAT=IER)

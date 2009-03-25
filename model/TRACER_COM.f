@@ -106,7 +106,7 @@ C**** Each tracer has a variable name and a unique index
 !@+            the corresponding p and all SOA species should be
 !@+            one after the other. Do not forget to declare them
 !@+            to the chemistry species as well.
-      integer, parameter :: ntm_soa=4
+      integer, parameter :: ntm_soa=8
 #else
       integer, parameter :: ntm_soa=0
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -219,6 +219,7 @@ C**** do igas=1,ntm_chem instances get corrected.
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
 #ifdef TRACERS_AEROSOLS_SOA
      *    'isopp1g ','isopp1a ','isopp2g ','isopp2a ',
+     *    'apinp1g ','apinp1a ','apinp2g ','apinp2a ',
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef SHINDELL_STRAT_CHEM
      *                          'HCl     ','HOCl    ','ClONO2  ',
@@ -697,6 +698,7 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
 #ifdef TRACERS_AEROSOLS_SOA
      *     n_isopp1g=0,n_isopp1a=0,n_isopp2g=0,n_isopp2a=0,
+     *     n_apinp1g=0,n_apinp1a=0,n_apinp2g=0,n_apinp2a=0,
 #endif  /* TRACERS_AEROSOLS_SOA */
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,

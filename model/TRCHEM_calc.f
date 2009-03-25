@@ -24,6 +24,7 @@ C
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
 #ifdef TRACERS_AEROSOLS_SOA
      &                   n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+     &                   n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
@@ -47,7 +48,7 @@ C
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-       USE TRACERS_SOA, only: apartmolar,whichsoa
+       USE TRACERS_SOA, only: apartmolar,whichsoa,voc2nox
 #endif  /* TRACERS_AEROSOLS_SOA */
 c
       IMPLICIT NONE
@@ -169,16 +170,38 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.42d0*chemrate(30,L)
         prod(n_HCHO,L)=prod(n_HCHO,L)-0.10d0*chemrate(31,L)
         prod(n_Alkenes,L)=prod(n_Alkenes,L)-0.45d0*chemrate(31,L)
-#ifdef TRACERS_AEROSOLS_SOA
-        prod(n_isopp1g,L)=prod(n_isopp1g,L)+
-     &                    apartmolar(whichsoa(n_isopp1a))*chemrate(30,L)
-        prod(n_isopp2g,L)=prod(n_isopp2g,L)+
-     &                    apartmolar(whichsoa(n_isopp2a))*chemrate(30,L)
-#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_HETCHEM
         dest(n_HNO3,l)=dest(n_HNO3,l)-krate(i,j,l,1,1)*y(n_HNO3,l)*dt2
 #endif
       enddo
+#ifdef TRACERS_AEROSOLS_SOA
+      do L=1,LM ! SOA chemistry goes always to the model top
+        voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
+     &            (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
+     &             rr(43,L)*y(nHO2,L)+
+     &             1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
+        prod(n_isopp1g,L)=prod(n_isopp1g,L)+
+     &                    apartmolar(L,whichsoa(n_isopp1a))*
+     &                    (chemrate(30,L)+chemrate(31,L))
+        prod(n_isopp2g,L)=prod(n_isopp2g,L)+
+     &                    apartmolar(L,whichsoa(n_isopp2a))*
+     &                    (chemrate(30,L)+chemrate(31,L))
+! The following 4 lines are WRONG ON PURPOSE. The model does not include
+! (yet) monoterpenes, thus the a-pinene SOA is assumed to come from
+! Isoprene which has a similar (but far from same) distribution.
+! When monoterpenes will be included in the model, by only chaning the
+! chemrate(30, L) to the appropriate one for a-pinene ozonolysis, SOA
+! from a-pinene will be calculated correctly. It is divided by 3,
+! assuming that isoprene is 3 times more abundant than monoterpenes,
+! based on their emissions.
+        prod(n_apinp1g,L)=prod(n_apinp1g,L)+
+     &                    apartmolar(L,whichsoa(n_apinp1a))*
+     &                    (chemrate(30,L)+chemrate(31,L))/3.0d0
+        prod(n_apinp2g,L)=prod(n_apinp2g,L)+
+     &                    apartmolar(L,whichsoa(n_apinp2a))*
+     &                    (chemrate(30,L)+chemrate(31,L))/3.0d0
+      enddo
+#endif  /* TRACERS_AEROSOLS_SOA */
 
 c Set CH3O2 values (concentration = production/specific loss):
       do L=1,maxT
@@ -283,6 +306,7 @@ c       Set value for C2O3:
         end do
 
 c       Set value for XO2:
+! remember to update voc2nox if you update any of the following XO2 loss reactions
         iter=1
         XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L)+
      &  y(nC2O3,L)*(rr(39,L)*y(nNO2,L)+rr(40,L)*

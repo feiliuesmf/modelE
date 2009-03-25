@@ -31,6 +31,7 @@ c
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
 #ifdef TRACERS_AEROSOLS_SOA
      &                        n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+     &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                        n_SO4,n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nStratwrite,rsulf1,rsulf2,
@@ -57,7 +58,7 @@ c
 #endif
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: soa_aerosolphase
+      USE TRACERS_SOA, only: soa_apart,soa_aerosolphase
 #endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
@@ -95,7 +96,7 @@ C**** Local parameters and variables and arguments:
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
 !@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
 #ifdef TRACERS_AEROSOLS_SOA
-!@+   changeisopp1g,changeisopp2g,
+!@+   changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
 !@+   calculate nighttime chemistry changes
@@ -118,7 +119,7 @@ C**** Local parameters and variables and arguments:
      &  RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit,
      &  changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5,
 #ifdef TRACERS_AEROSOLS_SOA
-     & changeisopp1g,changeisopp2g,
+     & changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
 #endif  /* TRACERS_AEROSOLS_SOA */
      &  changeOx,fraQ,CH4_569,count_569,thick, changeCO,avgIso
 #ifdef TRACERS_HETCHEM
@@ -888,6 +889,8 @@ C Alkenes, Isoprene, and AlkylNit:
 ! This should be improved in the future.
         changeisopp1g=0.d0
         changeisopp2g=0.d0
+        changeapinp1g=0.d0
+        changeapinp2g=0.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         changeIsoprene=-(rr(32,L)*yNO3(I,J,L)
@@ -972,6 +975,8 @@ C Apply Alkenes, AlkyNit, and Aldehyde changes here:
 #ifdef TRACERS_AEROSOLS_SOA
         y(n_isopp1g,L)  =y(n_isopp1g,L)  +changeisopp1g
         y(n_isopp2g,L)  =y(n_isopp2g,L)  +changeisopp2g
+        y(n_apinp1g,L)  =y(n_apinp1g,L)  +changeapinp1g
+        y(n_apinp2g,L)  =y(n_apinp2g,L)  +changeapinp2g
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 C Note: the lower limit of 1 placed on the resulting tracer mass
@@ -1072,6 +1077,22 @@ C -- isopp2g --  (isopp2g from gas phase rxns)
           changeisopp2g=changeL(L,n_isopp2g)*mass2vol(n_isopp2g)
      &    *bypfactor
         END IF
+C -- apinp1g --  (apinp1g from gas phase rxns)
+        changeL(L,n_apinp1g)=
+     &  changeapinp1g*pfactor*vol2mass(n_apinp1g)
+        IF((trm(i,j,l,n_apinp1g)+changeL(l,n_apinp1g)) < 0.d0)THEN
+          changeL(l,n_apinp1g) = 0.d0 - trm(i,j,l,n_apinp1g)
+          changeapinp1g=changeL(L,n_apinp1g)*mass2vol(n_apinp1g)
+     &    *bypfactor
+        END IF
+C -- apinp2g --  (apinp2g from gas phase rxns)
+        changeL(L,n_apinp2g)=
+     &  changeapinp2g*pfactor*vol2mass(n_apinp2g)
+        IF((trm(i,j,l,n_apinp2g)+changeL(l,n_apinp2g)) < 0.d0)THEN
+          changeL(l,n_apinp2g) = 0.d0 - trm(i,j,l,n_apinp2g)
+          changeapinp2g=changeL(L,n_apinp2g)*mass2vol(n_apinp2g)
+     &    *bypfactor
+        END IF
 #endif  /* TRACERS_AEROSOLS_SOA */
 c -- Isoprene -- (Isoprene from gas phase rxns)
         changeL(L,n_Isoprene)=
@@ -1158,6 +1179,16 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    changeisopp2g,' molecules produced; ',
      &    100.d0*(changeisopp2g)/y(n_isopp2g,L),' percent of'
      &    ,y(n_isopp2g,L),'(',1.d9*y(n_isopp2g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'apinp1g ',': ',
+     &    changeapinp1g,' molecules produced; ',
+     &    100.d0*(changeapinp1g)/y(n_apinp1g,L),' percent of'
+     &    ,y(n_apinp1g,L),'(',1.d9*y(n_apinp1g,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'apinp2g ',': ',
+     &    changeapinp2g,' molecules produced; ',
+     &    100.d0*(changeapinp2g)/y(n_apinp2g,L),' percent of'
+     &    ,y(n_apinp2g,L),'(',1.d9*y(n_apinp2g,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
 #endif  /* TRACERS_AEROSOLS_SOA */
           write(out_line,198) 'Isoprene',': ',
@@ -1643,6 +1674,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         endif ! L > maxl
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
+        call soa_apart
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
@@ -2034,9 +2066,9 @@ C**** GLOBAL parameters and variables:
 #endif
 
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACER_COM, only: n_isopp1a,n_isopp2a
+      USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
       USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
-     &                       whichsoa,dH_isoprene
+     &                       whichsoa,dH_isoprene,dH_apinene
 #endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
@@ -2249,13 +2281,19 @@ c         Reaction 2 on sulfate and PSCs:
 #endif
       end do                  !  >>> END ALTITUDE LOOP <<<
 #ifdef TRACERS_AEROSOLS_SOA
-      do L=1,LM
+      do L=1,LM ! this should be up to LM, no matter if strat chem is on or off
         kpart(L,whichsoa(n_isopp1a))=
      &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp1a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_isopp1a)))
         kpart(L,whichsoa(n_isopp2a))=
      &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp2a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_isopp2a)))
+        kpart(L,whichsoa(n_apinp1a))=
+     &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp1a)),ta(L),
+     &              kpart_temp_ref(whichsoa(n_apinp1a)))
+        kpart(L,whichsoa(n_apinp2a))=
+     &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp2a)),ta(L),
+     &              kpart_temp_ref(whichsoa(n_apinp2a)))
       enddo
 #endif  /* TRACERS_AEROSOLS_SOA */
  
