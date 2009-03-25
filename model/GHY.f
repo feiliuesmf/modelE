@@ -2094,7 +2094,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dt, 0.d0) 
+          call ent_run( entcell, dt, 0.d0, .false.) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
