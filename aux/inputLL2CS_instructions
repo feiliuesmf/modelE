@@ -87,7 +87,12 @@ instructions to perform the regridding to the cubed sphere:
 
      * compile using gmake -j aux RUN=your_deck NPES=6 CUBE_GRID=YES FVCUBED=YES
 
-     * copy inputll2cs in your run directory along with the input files you want to regrid (fox example vegtype.global4X5.bin, lai01.global.bin...)
+     * copy inputll2cs in your run directory 
+
+     * copy the input files you want to regrid (fox example vegtype.global4X5.bin, lai01.global.bin...) from e.g.
+         /discover/nobackup/projects/giss/prod_input_files/ to your run directory
+
+     * copy the remap file containing the coefficients for the regridding (e.g. remap360-180C32-32.nc for regridding from 360x160 resolution on latlon grid to CS32 grid) from /discover/nobackup/projects/giss/prod_input_files/ to your run directory
 
      * run inputll2cs using PBS script 
        Here is an example of such a pbs script:
