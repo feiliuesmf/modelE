@@ -12,10 +12,20 @@
       implicit none
       private
 
-!@param JM_BUDG grid size for budget page diags
 !@param IMLON,JMLAT latlon grid sizes giving approx. equivalent res.
-      INTEGER, PARAMETER, public :: JM_BUDG=46,JMLAT=2*JM
-      INTEGER, PARAMETER, public :: IMLON=4*IM,IMLONH=2*IM
+      INTEGER, PARAMETER, public :: JMLAT=2*JM,IMLON=4*IM,IMLONH=2*IM
+!@param JM_BUDG number of zigzag bands for budget page diagnostics.
+!@+     JM_BUDG is small compared to JMLAT to ensure that the longitudinal
+!@+     variation of the latitude of the boundary between any two adjacent
+!@+     bands is small compared to the latitudinal extent of those bands.
+!@+     Since some lat-lon ocean conservation diagnostics are currently
+!@+     dimensioned by JM_BUDG, the allowed values of JM_BUDG are
+!@+     determined by the resolutions of the ocean model at this time.
+! quantize JM_BUDG at 24, 46, or 90 using integer arithmetic:
+      INTEGER, PARAMETER, public :: JM_BUDG = 24
+     &     +(46-24)*(min(jm, 72)/ 72) ! 46 bands at C72  cube res.
+     &     +(90-46)*(min(jm,144)/144) ! 90          C144
+
 !@var XWON scale factor for diag. printout needed for Wonderland model
       REAL*8, public :: XWON = 1d0
 

@@ -3922,8 +3922,13 @@ c
       write(cdl_ij(3),'(a,i3,a)') '   x = ',im,' ;'
       write(cdl_ij(4),'(a,i3,a)') '   y = ',im,' ;'
       write(cdl_ij(5),'(a,i3,a)') '   tile = 6 ;'
-      cdl_ij(6:14)(:) = (/
-     &     'variables:                                          ',
+      do k=3,5
+        cdl_ij(k)=trim(cdl_ij(k))//' // remove_from_latlon'
+      enddo
+      cdl_ij(6) = '// add_to_latlon    lon = xxx ;'
+      cdl_ij(7) = '// add_to_latlon    lat = xxx ;'
+      cdl_ij(8) = 'variables:'
+      cdl_ij(9:16)(:) = (/
      &     'float x(x) ;                                        ',
      &     '   x:long_name = "nondimensional cube coordinate" ; ',
      &     'float y(y) ;                                        ',
@@ -3932,6 +3937,15 @@ c
      &     '   lon:units = "degrees_east" ;                     ',
      &     'float lat(tile,y,x) ;                               ',
      &     '   lat:units = "degrees_north" ;                    '
+     &     /)
+      do k=9,16
+        cdl_ij(k)=trim(cdl_ij(k))//' // remove_from_latlon'
+      enddo
+      cdl_ij(17:20)(:) = (/
+     &     '// add_to_latlon float lon(lon) ;               ',
+     &     '// add_to_latlon   lon:units = "degrees_east" ; ',
+     &     '// add_to_latlon float lat(lat) ;               ',
+     &     '// add_to_latlon   lat:units = "degrees_north" ;'
      &     /)
 #else
       ijstr='(lat,lon) ;'
@@ -3950,6 +3964,12 @@ c
         if(trim(units_ij(k)).eq.'unused') cycle
         kk = kk + 1
         cdl_ij(kk) = 'float '//trim(name_ij(k))//trim(ijstr)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+        cdl_ij(kk)=trim(cdl_ij(kk))//' // remove_from_latlon'
+        kk = kk + 1
+        cdl_ij(kk) = '// add_to_latlon float '//
+     &       trim(name_ij(k))//'(lat,lon);'
+#endif
         kk = kk + 1
         cdl_ij(kk) = '   '//trim(name_ij(k))//':long_name = "'//
      &       trim(lname_ij(k))//'" ;'
@@ -4873,8 +4893,13 @@ c
       write(cdl_ijl(6),'(a,i3,a)') '   x = ',im,' ;'
       write(cdl_ijl(7),'(a,i3,a)') '   y = ',im,' ;'
       write(cdl_ijl(8),'(a,i3,a)') '   tile = 6 ;'
-      cdl_ijl(9:17)(:) = (/
-     &     'variables:                                          ',
+      do k=6,8
+        cdl_ijl(k)=trim(cdl_ijl(k))//' // remove_from_latlon'
+      enddo
+      cdl_ijl(9)  = '// add_to_latlon    lon = xxx ;'
+      cdl_ijl(10) = '// add_to_latlon    lat = xxx ;'
+      cdl_ijl(11) = 'variables:'
+      cdl_ijl(12:19)(:) = (/
      &     'float x(x) ;                                        ',
      &     '   x:long_name = "nondimensional cube coordinate" ; ',
      &     'float y(y) ;                                        ',
@@ -4883,6 +4908,15 @@ c
      &     '   lon:units = "degrees_east" ;                     ',
      &     'float lat(tile,y,x) ;                               ',
      &     '   lat:units = "degrees_north" ;                    '
+     &     /)
+      do k=12,19
+        cdl_ijl(k)=trim(cdl_ijl(k))//' // remove_from_latlon'
+      enddo
+      cdl_ijl(20:23)(:) = (/
+     &     '// add_to_latlon float lon(lon) ;               ',
+     &     '// add_to_latlon   lon:units = "degrees_east" ; ',
+     &     '// add_to_latlon float lat(lat) ;               ',
+     &     '// add_to_latlon   lat:units = "degrees_north" ;'
      &     /)
 #else
       tstr='('
@@ -4898,6 +4932,8 @@ c
      &     /)
 #endif
       kk = 1+count(len_trim(cdl_ijl).gt.0)
+      cdl_ijl(kk) = '// vertical_coords: plm ple level'
+      kk = kk + 1
       cdl_ijl(kk:kk+4)(:) = (/
      &     'float plm(plm) ;                ',
      &     '   plm:units = "mb" ;           ',
@@ -4918,6 +4954,12 @@ c
         kk = kk + 1
         cdl_ijl(kk) = 'float '//trim(name_ijl(k))//
      &       trim(tstr)//trim(zstr)//trim(hstr)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+        cdl_ijl(kk)=trim(cdl_ijl(kk))//' // remove_from_latlon'
+        kk = kk + 1
+        cdl_ijl(kk) = '// add_to_latlon float '//
+     &       trim(name_ijl(k))//'('//trim(zstr)//',lat,lon);'
+#endif
         kk = kk + 1
         cdl_ijl(kk) = '   '//trim(name_ijl(k))//':long_name = "'//
      &       trim(lname_ijl(k))//'" ;'

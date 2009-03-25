@@ -3375,3 +3375,13 @@ C****
 C****
       RETURN
       END subroutine vntrp1
+
+      subroutine calc_derived_acc_atm
+      implicit none
+      call gather_zonal_diags
+      call collect_scalars
+      call calc_derived_aij
+      call diagj_prep
+      call diagjl_prep
+      return
+      end subroutine calc_derived_acc_atm

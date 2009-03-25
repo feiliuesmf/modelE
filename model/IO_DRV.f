@@ -28,7 +28,11 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       else                              ! normal conditions
         call set_ioptrs_acc_default
       endif
-      if(iaction.eq.iowrite_single) call set_ioptrs_acc_extended
+
+      if(iaction.eq.iowrite_single) then
+        call calc_derived_acc
+        call set_ioptrs_acc_extended
+      endif
 
       do_io_prog = .true.
       if(iaction.eq.iowrite_single) do_io_prog = .false.
@@ -645,3 +649,13 @@ C**** keep track of min/max time over the combined diagnostic period
 
       return
       end subroutine sumfiles_finish
+
+      subroutine calc_derived_acc
+      implicit none
+      call calc_derived_acc_atm
+c      call calc_derived_acc_ocn
+c#ifdef TRACERS_ON
+c      call calc_derived_acc_trac
+c#endif
+      return
+      end subroutine calc_derived_acc

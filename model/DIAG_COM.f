@@ -1429,6 +1429,9 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       INTEGER :: IER
+#ifdef CUBE_GRID   /* temporary */
+      real*8 :: dlat_budg,fjeq_budg
+#endif
       
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
@@ -1443,6 +1446,16 @@ c**** Compute area weights of zig-zag grid cells
          do I=I_0,I_1
             wtbudg(I,J)=axyp(I,J)/axypband(J_BUDG(I,J))
          enddo
+      enddo
+      dxyp_budg(:) = axypband(:)
+c get the nominal latitudes of the budget grid
+      dlat_budg = 180./REAL(JM_budg)  ! for full polar box
+      if(jm_budg.eq.46) dlat_budg=4. ! 1/2 box at pole for 4 deg res.
+      if(jm_budg.eq.24) dlat_budg=8. ! 1/4 box at pole for 8 deg res.
+      lat_budg(1) = -90.; lat_budg(jm_budg) = +90.;
+      fjeq_budg = .5*(1+jm_budg)
+      do j=2,jm_budg-1
+        lat_budg(j) = dlat_budg*(j-fjeq_budg)
       enddo
 #else
       lat_budg(:) = lat_dg(:,1)
@@ -1830,6 +1843,7 @@ c for which scalars is bcast_all=.true. necessary?
 !@sum  def_meta_atmacc defines metadata in atm acc files
 !@auth M. Kelley
 !@ver  beta
+      use model_com, only : im
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
@@ -1850,8 +1864,13 @@ c for which scalars is bcast_all=.true. necessary?
       implicit none
       integer :: fid         !@var fid file id
       integer :: int_dummy
+#ifdef CUBE_GRID
+      real*8 :: x_dummy(im)
+#endif
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call defvar(grid,fid,x_dummy,'x(im)')
+      call defvar(grid,fid,x_dummy,'y(jm)')
       call defvar(grid,fid,lon2d_dg,'lon(dist_im,dist_jm)')
       call defvar(grid,fid,lat2d_dg,'lat(dist_im,dist_jm)')
 #else
@@ -1955,7 +1974,7 @@ c for which scalars is bcast_all=.true. necessary?
       subroutine write_meta_atmacc(fid)
 !@sum  write_meta_atmacc write atm accumulation metadata to file
 !@auth M. Kelley
-      use model_com, only : nday,idacc
+      use model_com, only : im,nday,idacc
       use diag_com, only : kagc,
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
@@ -1975,11 +1994,19 @@ c for which scalars is bcast_all=.true. necessary?
       use pario, only : write_data,write_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
-      integer :: n,ntime_dd
+      integer :: i,n,ntime_dd
+#ifdef CUBE_GRID
+      real*8 :: x_dummy(im)
+#endif
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call write_dist_data(grid,fid,'lon',lon2d_dg)
       call write_dist_data(grid,fid,'lat',lat2d_dg)
+      do i=1,im
+        x_dummy(i) = -1d0 + 2d0*(dble(i)-.5d0)/im
+      enddo
+      call write_data(grid,fid,'x',x_dummy)
+      call write_data(grid,fid,'y',x_dummy)
 #else
       call write_data(grid,fid,'lon',lon_dg(:,1))
       call write_data(grid,fid,'lat',lat_dg(:,1))

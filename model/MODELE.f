@@ -719,6 +719,10 @@ c*****call scm diagnostics every time step
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
         acc_period='PARTIAL      '
+#ifdef NEW_IO
+        filenm='PARTIAL.acc'//XLABEL(1:LRUNID)
+        call io_rsf (filenm,Itime,iowrite_single,ioerr)
+#endif
         call print_diags(1)
         NIPRNT=NIPRNT-1
         call set_param( "NIPRNT", NIPRNT, 'o' )
