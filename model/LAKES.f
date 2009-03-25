@@ -632,16 +632,26 @@ C****
             call lonlat_to_ij(ll,ij) 
             IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
             DHORZ(I,J) = 
+#ifdef CUBED_GRID
      *           horzdist_2pts(lon2d(i,j),lat2d(i,j),
      *           down_lon_loc(i,j),down_lat_loc(i,j))
+#else
+     *           horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
+#endif
           else  ! if land but no ocean, print warning
             IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *           FOCEAN(I,J).le.0 ) THEN
               WRITE(6,*) "Land box has no river direction I,J: ",I,J
      *             ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
             END IF
-            DHORZ(I,J) = horzdist_2pts(lon2d(i,j),lat2d(i,j),
-     *       lon2d(i,j),lat2d(i,j))
+            DHORZ(I,J) =
+#ifdef CUBED_GRID
+     *           horzdist_2pts(lon2d(i,j),lat2d(i,j),
+     *           lon2d(i,j),lat2d(i,j))
+#else 
+     *           horzdist_2pts(i,j,i,j)       
+#endif
+
           end if
 
           if (down_lon_911_loc(i,j).gt.-1000.) then
@@ -727,24 +737,26 @@ C****
 
       END SUBROUTINE init_LAKES
 
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       function horzdist_2pts(lon1,lat1,lon2,lat2)
       use constant, only : radius
       use geom, only : lonlat_to_ij
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      real*8, intent(in) :: lon1,lat1,lon2,lat2
       use geom, only : axyp
       implicit none
       real*8 :: x1,y1,z1, x2,y2,z2
+      real*8 :: ll(2)
+      integer :: ij(2)
 #else
+      function horzdist_2pts(i1,j1,i2,j2)
+      use constant, only : radius
       use geom, only : dxp,dyv,dyp,dxv
       implicit none
       integer :: jmax
 #endif
-      real*8, intent(in) :: lon1,lat1,lon2,lat2
       real*8 :: horzdist_2pts
       integer :: i1,j1,i2,j2
-      real*8 :: ll(2)
-      integer :: ij(2)
-
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       ll(1)=lon1
       ll(2)=lat1
       call lonlat_to_ij(ll,ij)
@@ -755,7 +767,6 @@ C****
       call lonlat_to_ij(ll,ij)
       i2=ij(1)
       j2=ij(2)
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = SQRT(AXYP(I1,J1))
       else                      ! use great circle distance
