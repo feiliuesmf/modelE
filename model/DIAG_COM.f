@@ -1937,7 +1937,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,denom_gc(1:kagc),'denom_agc(kagc)')
       call defvar(grid,fid,sname_gc(1:kagc),
      &     'sname_agc(sname_strlen,kagc)')
-      call defvar(grid,fid,cdl_gc(1:kagc),
+      call defvar(grid,fid,cdl_gc,
      &     'cdl_agc(cdl_strlen,kcdl_agc)')
 
       call write_attr(grid,fid,'aij','reduction','sum')
@@ -2050,7 +2050,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'scale_agc',scale_gc(1:kagc))
       call write_data(grid,fid,'denom_agc',denom_gc(1:kagc))
       call write_data(grid,fid,'sname_agc',sname_gc(1:kagc))
-      call write_data(grid,fid,'cdl_agc',cdl_gc(1:kagc))
+      call write_data(grid,fid,'cdl_agc',cdl_gc)
 
       call write_data(grid,fid,'ia_aij',ia_ij)
       call write_data(grid,fid,'scale_aij',scale_ij)
