@@ -423,7 +423,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,imaxj,lonlat_to_ij
+      USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d,lat2d
 #ifndef CUBE_GRID
      &     ,dyv
 #endif
@@ -595,8 +595,6 @@ C**** setting river directions
       KDIREC=0 ; KD911=0
       RATE=0.  ; nrvr=0
 
-ccc#if !defined CUBE_GRID || defined SCM
-
 C**** Read in down stream lat/lon positions
       allocate(down_lat_loc(I_0H:I_1H,J_0H:J_1H),
      *     down_lon_loc(I_0H:I_1H,J_0H:J_1H),
@@ -633,16 +631,17 @@ C****
             ll(2)=down_lat_loc(i,j)
             call lonlat_to_ij(ll,ij) 
             IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
-
-            DHORZ(I,J) = horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
-
+            DHORZ(I,J) = 
+     *           horzdist_2pts(lon2d(i,j),lat2d(i,j),
+     *           down_lon_loc(i,j),down_lat_loc(i,j))
           else  ! if land but no ocean, print warning
             IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *           FOCEAN(I,J).le.0 ) THEN
               WRITE(6,*) "Land box has no river direction I,J: ",I,J
      *             ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
             END IF
-            DHORZ(I,J) = horzdist_2pts(i,j,i,j)
+            DHORZ(I,J) = horzdist_2pts(lon2d(i,j),lat2d(i,j),
+     *       lon2d(i,j),lat2d(i,j))
           end if
 
           if (down_lon_911_loc(i,j).gt.-1000.) then
@@ -651,7 +650,6 @@ C****
             call lonlat_to_ij(ll,ij)
             IFL911(I,J)=ij(1) ; JFL911(I,J)=ij(2)
          endif
-
 C**** do we need get_dir? maybe only need to set KD=0 or >0?
           IF (IFLOW(I,J).gt.0) KDIREC(I,J)=get_dir(I,J,IFLOW(I,J)
      *         ,JFLOW(I,J),IM,JM)
@@ -659,7 +657,6 @@ C**** do we need get_dir? maybe only need to set KD=0 or >0?
      *         ,JFL911(I,J),IM,JM)
         END DO
       END DO
-
 C**** define river mouths
       do inm=1,nrvr
         ll(1)=lon_rvr(inm)
@@ -698,6 +695,7 @@ C****
               DZDH  = (ZATMO(IU,JU)-ZATMO(ID,JD)) / (GRAV*DHORZ(IU,JU))
             ELSE
               DZDH  = ZATMO(IU,JU) / (GRAV*DHORZ(IU,JU))
+               
             END IF
             SPEED = SPEED0*DZDH/DZDH1
             IF(SPEED.lt.SPMIN)  SPEED = SPMIN
@@ -707,7 +705,6 @@ C****
         END DO
       END DO
 
-ccc#endif 
 
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
@@ -727,34 +724,51 @@ C**** Set conservation diagnostics for Lake mass and energy
 C****
  910  FORMAT (A72)
  911  FORMAT (72A1)
+
       END SUBROUTINE init_LAKES
 
-      function horzdist_2pts(i1,j1,i2,j2)
+      function horzdist_2pts(lon1,lat1,lon2,lat2)
       use constant, only : radius
+      use geom, only : lonlat_to_ij
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      use geom, only : lon2d,sinlat2d,coslat2d,axyp
+      use geom, only : axyp
+      implicit none
+      real*8 :: x1,y1,z1, x2,y2,z2
 #else
       use geom, only : dxp,dyv,dyp,dxv
-#endif
       implicit none
+      integer :: jmax
+#endif
+      real*8, intent(in) :: lon1,lat1,lon2,lat2
       real*8 :: horzdist_2pts
       integer :: i1,j1,i2,j2
+      real*8 :: ll(2)
+      integer :: ij(2)
+
+      ll(1)=lon1
+      ll(2)=lat1
+      call lonlat_to_ij(ll,ij)
+      i1=ij(1)
+      j1=ij(2)
+      ll(1)=lon2
+      ll(2)=lat2
+      call lonlat_to_ij(ll,ij)
+      i2=ij(1)
+      j2=ij(2)
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      real*8 :: x1,y1,z1, x2,y2,z2
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = SQRT(AXYP(I1,J1))
       else                      ! use great circle distance
-        x1 = coslat2d(i1,j1)*cos(lon2d(i1,j1))
-        y1 = coslat2d(i1,j1)*sin(lon2d(i1,j1))
-        z1 = sinlat2d(i1,j1)
-        x2 = coslat2d(i2,j2)*cos(lon2d(i2,j2))
-        y2 = coslat2d(i2,j2)*sin(lon2d(i2,j2))
-        z2 = sinlat2d(i2,j2)
+        x1 = cos(lat1)*cos(lon1)
+        y1 = cos(lat1)*sin(lon1)
+        z1=sin(lat1)
+        x2 = cos(lat2)*cos(lon2)
+        y2 = cos(lat2)*sin(lon2)
+        z2 = sin(lat2)
         horzdist_2pts = radius*acos(x1*x2+y1*y2+z1*z2)
       endif
 #else
 c perhaps replace these calculations with great circle distances later
-      integer :: jmax
       jmax = max(j1,j2)
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = 0.5*SQRT(DXP(J1)*DXP(J1)+DYP(J1)*DYP(J1))
@@ -965,6 +979,7 @@ C**** MWLSILL/D mass associated with full lake (and downstream)
             KD=KDIREC(IU,JU)
             JD=JFLOW(IU,JU)
             ID=IFLOW(IU,JU)
+
 C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*HLAKE(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
           END IF
