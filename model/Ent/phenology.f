@@ -3,19 +3,20 @@
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
 
-!#define PHENOLOGY_DIAG
+#define PHENOLOGY_DIAG
 
       use ent_types
       use ent_const
       use ent_pfts
  
       implicit none
-      public veg_init
+!      public veg_init
       public clim_stats
       public pheno_update
 !      public frost_hardiness  !DEPENDENCY ISSUES WITH BIOPHYSICS
       public veg_update !may change the name into veg_update 
       public litter_cohort, litter_patch   !Now called from veg_update
+      public update_plant_cpools
       private growth_cpools_active
       private growth_cpools_structural
 !      private senesce_cpools
@@ -81,64 +82,7 @@
 
       contains
 
-      !*********************************************************************
-      subroutine veg_init(pp)
 
-      use ent_pfts
-      use entcells
-
-      implicit none
-      save
-
-      type(patch) :: pp
-      type(cohort), pointer :: cop 
-      integer :: pft
-      real*8 :: dbh
-      real*8 :: h
-      real*8 :: qsw
-      real*8 :: ialloc
-
-   
-      pp%cellptr%soiltemp_10d = 0.0d0
-      pp%cellptr%airtemp_10d = 0.0d0
-      pp%cellptr%paw_10d = 0.50d0
-      pp%cellptr%par_10d = 100.d0
-      pp%cellptr%light_prev = pp%cellptr%CosZen
-      !call entcell_print( 6, pp%cellptr )
-
-      cop => pp%tallest   
-
-      do while(ASSOCIATED(cop))
-         pft=cop%pft
-         h=cop%h
-         if (.not.pfpar(pft)%woody) then !grasses/crops/non-woody
-            dbh = 0.0d0  
-            cop%n=cop%LAI/pfpar(pft)%sla/(height2Cfol(pft,h)/1000.0d0) 
-            !write(992,*) "In phenology veg_init herb,cop%n=",cop%n
-            qsw = 0.d0
-            cop%C_hw = 0.0d0
-            cop%C_croot =  0.0d0
-         else
-            dbh=height2dbh(pft,h)
-            cop%n=cop%LAI/pfpar(pft)%sla/(dbh2Cfol(pft,dbh)/1000.0d0)
-            !write(992,*) "In phenology veg_init woody,cop%n=",cop%n
-            qsw = pfpar(pft)%sla*iqsw
-            cop%C_hw = dbh2Cdead(pft,dbh) * hw_fract
-            cop%C_croot = dbh2Cdead(pft,dbh) * (1.0d0 - hw_fract)
-         end if
-         cop%dbh=dbh
-         cop%C_fol = 1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
-         cop%C_froot =  q*1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
-         ialloc = (1.0d0+q+h*qsw)
-         cop%C_sw = cop%C_fol * h * qsw  
-         cop%llspan = 36.d0  !late successional tropical
-         cop%phenostatus = 1
-         cop%C_lab = 0.5 * cop%C_fol
-
-         cop => cop%shorter  
-
-      end do
-      end subroutine veg_init
       !*********************************************************************
       subroutine clim_stats(dtsec, pp, config,dailyupdate)
 !@sum Calculate climate statistics such as 10 day running average   
@@ -245,7 +189,6 @@
          !*********************************************     
          par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
      &               (pfpar(cop%pft)%leaftype.eq.BROADLEAF)) 
-
          if (par_limit) then
             par_crit = - par_turnover_int/par_turnover_slope 
             turnover0 = min(100.d0, max(0.01d0, 
@@ -800,6 +743,29 @@ c$$$      Cactive = Cactive + dC_remainder
       Cactive = Cactive + dCactive
 
       end subroutine growth_cpools_structural
+!*************************************************************************
+
+      subroutine update_plant_cpools(pft, lai, h, dbh, popdens, cpool )
+      integer,intent(in) :: pft !plant functional type
+      real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
+      real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
+
+      !* Initialize
+      cpool(:) = 0.d0 
+      
+      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
+      cpool(FR) = q * cpool(FOL)   !Br
+      cpool(SW) = h * (pfpar(pft)%sla*iqsw) * cpool(FOL)
+      if (pfpar(pft)%woody) then !Woody
+        cpool(HW) = dbh2Cdead(pft,dbh) * hw_fract
+        cpool(CR) = cpool(HW) * (1-hw_fract)/hw_fract !=dbh2Cdead*(1-hw_fract)
+      else
+        cpool(HW) = 0.d0
+        cpool(CR) = 0.d0
+      endif
+
+
+      end subroutine update_plant_cpools
       !*********************************************************************
 c$$$      subroutine senesce_cpools(is_annual, C_fol_old,C_fol,Cactive,
 c$$$     &                          senescefrac, dC_lab)
@@ -1278,6 +1244,7 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
 !     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
 
       end subroutine photosyn_acclim
+
 !*************************************************************************
       real*8 function sla(pft,llspan)
       integer, intent(in) :: pft
@@ -1290,8 +1257,6 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
       endif
       end function sla
 !*************************************************************************
-
-!*********************************************************************
       real*8 function dbh2Cfol(pft,dbh)
       integer,intent(in) :: pft
       real*8, intent(in) :: dbh
@@ -1408,6 +1373,22 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
       dHdDBH = - pfpar(pft)%b1Ht*pfpar(pft)%b2Ht
      &         * exp(pfpar(pft)%b2Ht * dbh)
       end function dHdDBH
+
+!*************************************************************************
+      real*8 function nplant(pft,dbh,h,lai)
+      integer,intent(in) :: pft
+      real*8, intent(in) :: dbh
+      real*8, intent(in) :: h
+      real*8, intent(in) :: lai
+
+      if (.not.pfpar(pft)%woody) then !grasses/crops/non-woody
+         nplant = lai/pfpar(pft)%sla/(height2Cfol(pft,h)/1000.0d0) 
+      else
+         nplant = lai/pfpar(pft)%sla/(dbh2Cfol(pft,dbh)/1000.0d0)
+      end if
+
+      end function nplant
+
 !*************************************************************************
       real*8 function frost_hardiness(Sacclim) Result(facclim)
 !@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
@@ -1469,4 +1450,62 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
 
       end subroutine phenology_diag
 !*************************************************************************
+      !*********************************************************************
+c$$$      subroutine veg_init(pp)
+c$$$
+c$$$      use ent_pfts
+c$$$      use entcells
+c$$$
+c$$$      implicit none
+c$$$      save
+c$$$
+c$$$      type(patch) :: pp
+c$$$      type(cohort), pointer :: cop 
+c$$$      integer :: pft
+c$$$      real*8 :: dbh
+c$$$      real*8 :: h
+c$$$      real*8 :: qsw
+c$$$      real*8 :: ialloc
+c$$$
+c$$$   
+c$$$      pp%cellptr%soiltemp_10d = 0.0d0
+c$$$      pp%cellptr%airtemp_10d = 0.0d0
+c$$$      pp%cellptr%paw_10d = 0.50d0
+c$$$      pp%cellptr%par_10d = 100.d0
+c$$$      pp%cellptr%light_prev = pp%cellptr%CosZen
+c$$$      !call entcell_print( 6, pp%cellptr )
+c$$$
+c$$$      cop => pp%tallest   
+c$$$
+c$$$      do while(ASSOCIATED(cop))
+c$$$         pft=cop%pft
+c$$$         h=cop%h
+c$$$         if (.not.pfpar(pft)%woody) then !grasses/crops/non-woody
+c$$$            dbh = 0.0d0  
+c$$$            cop%n=cop%LAI/pfpar(pft)%sla/(height2Cfol(pft,h)/1000.0d0) 
+c$$$            !write(992,*) "In phenology veg_init herb,cop%n=",cop%n
+c$$$            qsw = 0.d0
+c$$$            cop%C_hw = 0.0d0
+c$$$            cop%C_croot =  0.0d0
+c$$$         else
+c$$$            dbh=height2dbh(pft,h)
+c$$$            cop%n=cop%LAI/pfpar(pft)%sla/(dbh2Cfol(pft,dbh)/1000.0d0)
+c$$$            !write(992,*) "In phenology veg_init woody,cop%n=",cop%n
+c$$$            qsw = pfpar(pft)%sla*iqsw
+c$$$            cop%C_hw = dbh2Cdead(pft,dbh) * hw_fract
+c$$$            cop%C_croot = dbh2Cdead(pft,dbh) * (1.0d0 - hw_fract)
+c$$$         end if
+c$$$         cop%dbh=dbh
+c$$$         cop%C_fol = 1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
+c$$$         cop%C_froot =  q*1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
+c$$$         ialloc = (1.0d0+q+h*qsw)
+c$$$         cop%C_sw = cop%C_fol * h * qsw  
+c$$$         cop%llspan = 36.d0  !late successional tropical
+c$$$         cop%phenostatus = 1
+c$$$         cop%C_lab = 0.5 * cop%C_fol
+c$$$
+c$$$         cop => cop%shorter  
+c$$$
+c$$$      end do
+c$$$      end subroutine veg_init
       end module phenology

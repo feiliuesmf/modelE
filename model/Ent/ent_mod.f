@@ -42,7 +42,7 @@
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
-      public ent_cell_set !, ent_cell_update
+      public ent_cell_set, ent_cell_set_3d !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
       public ent_initialize
@@ -100,6 +100,17 @@
         module procedure ent_cell_set_r8_1
       
         module procedure ent_cell_set_r8_2
+      
+      end interface
+
+      !--- passing initial data to ent cells ---
+      interface ent_cell_set_3d
+      
+        module procedure ent_cell_set_3d_r8_0
+      
+        module procedure ent_cell_set_3d_r8_1
+      
+        module procedure ent_cell_set_3d_r8_2
       
       end interface
 
@@ -199,24 +210,29 @@ cddd      end interface ent_cell_update
 
 !*************************************************************************
       subroutine ent_initialize(
-     &     do_soilresp, do_phenology, do_frost_hardiness, 
-     &     do_patchdynamics)
+     &     do_soilresp, do_phenology_activegrowth, do_structuralgrowth, 
+     &     do_frost_hardiness, do_patchdynamics)
 !@sum initializes Ent module. This subroutine should set all the flags
 !@+   and all the variables that are constant during the run.
       logical, optional :: do_soilresp
-      logical, optional :: do_phenology
+      logical, optional :: do_phenology_activegrowth
+      logical, optional :: do_structuralgrowth
       logical, optional :: do_frost_hardiness
       logical, optional :: do_patchdynamics
 
       ! first set some defaults:
       config%do_soilresp = .false.
-      config%do_phenology = .false.
+      config%do_phenology_activegrowth = .false.
+      config%do_structuralgrowth = .false.
       config%do_frost_hardiness = .true.
       config%do_patchdynamics = .false.
 
       ! now overwrite defaults with explicitly passed values
       if ( present(do_soilresp) ) config%do_soilresp = do_soilresp
-      if ( present(do_phenology) ) config%do_phenology = do_phenology
+      if ( present(do_phenology_activegrowth) ) 
+     &     config%do_phenology_activegrowth = do_phenology_activegrowth
+      if ( present(do_structuralgrowth) ) config%do_structuralgrowth = 
+     &     do_structuralgrowth
       if ( present(do_frost_hardiness) ) config%do_frost_hardiness = 
      &     do_frost_hardiness
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
@@ -568,7 +584,7 @@ cddd      end interface ent_cell_update
 
 
 
-      subroutine ent_run_r8_0(entcell,dt,time,update_day)
+      subroutine ent_run_r8_0(entcell,dt,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -582,7 +598,6 @@ cddd      end interface ent_cell_update
 !@+   Is it OK from ESMF point of view?
       !use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public),intent(inout) :: entcell 
-      real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
       logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
@@ -595,12 +610,12 @@ cddd      end interface ent_cell_update
 
       
         call ent_integrate(dt, entcell%entcell,
-     &     time,update_day,config)
+     &     update_day,config)
       
 
       end subroutine ent_run_r8_0
 
-      subroutine ent_run_r8_1(entcell,dt,time,update_day)
+      subroutine ent_run_r8_1(entcell,dt,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -614,7 +629,6 @@ cddd      end interface ent_cell_update
 !@+   Is it OK from ESMF point of view?
       !use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public),intent(inout) :: entcell (:)
-      real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
       logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
@@ -628,13 +642,13 @@ cddd      end interface ent_cell_update
       
       do i1=dims(1,1),dims(2,1)
         call ent_integrate(dt, entcell(i1)%entcell,
-     &     time,update_day,config)
+     &     update_day,config)
       
       enddo
 
       end subroutine ent_run_r8_1
 
-      subroutine ent_run_r8_2(entcell,dt,time,update_day)
+      subroutine ent_run_r8_2(entcell,dt,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -648,7 +662,6 @@ cddd      end interface ent_cell_update
 !@+   Is it OK from ESMF point of view?
       !use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public),intent(inout) :: entcell (:,:)
-      real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
       logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
@@ -663,7 +676,7 @@ cddd      end interface ent_cell_update
       do i1=dims(1,1),dims(2,1)
       do i2=dims(1,2),dims(2,2)
         call ent_integrate(dt, entcell(i1,i2)%entcell,
-     &     time,update_day,config)
+     &     update_day,config)
       
       enddo
       enddo
@@ -1083,6 +1096,216 @@ cddd      end interface ent_cell_update
       enddo
 
       end subroutine ent_cell_set_r8_2
+
+!*************************************************************************
+
+
+      subroutine ent_cell_set_3d_r8_0(entcell,
+     &     veg_fraction,
+     &     pft_population_density,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
+     &     pft_nmdata,
+     &     pft_froots,
+     &     pft_soil_type,
+     &     vegalbedo,
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+      type(entcelltype_public),intent(inout)::
+     &                            entcell
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES, n
+     &     veg_fraction,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_population_density
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_nmdata
+      real*8, dimension(:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8, dimension(:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
+      real*8  ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      !---
+      
+      
+
+      
+      
+
+      
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+          !call entcell_print(6,entcell%entcell)
+
+          call init_simple_entcell( entcell%entcell,
+     &         veg_fraction(:),
+     &         pft_population_density(:),
+     &         leaf_area_index(:),
+     &         pft_heights(:),
+     &         pft_dbh(:),
+     &         pft_crad(:),
+     &         pft_cpool(:,:),
+     &         pft_nmdata,
+     &         pft_froots,
+     &         pft_soil_type,vegalbedo(:,:),
+     &         soil_texture(:),
+     &         Ci_ini, CNC_ini,
+     &         Tcan_ini, Qf_ini,
+     &         Tpool_ini(:,:,:,:))
+        endif
+      
+
+      end subroutine ent_cell_set_3d_r8_0
+
+      subroutine ent_cell_set_3d_r8_1(entcell,
+     &     veg_fraction,
+     &     pft_population_density,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
+     &     pft_nmdata,
+     &     pft_froots,
+     &     pft_soil_type,
+     &     vegalbedo,
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:)
+      real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
+     &     veg_fraction,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_population_density
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_nmdata
+      real*8, dimension(:,:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8, dimension(:,:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
+      real*8 ,dimension(:) ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+          !call entcell_print(6,entcell(i1)%entcell)
+
+          call init_simple_entcell( entcell(i1)%entcell,
+     &         veg_fraction(:,i1),
+     &         pft_population_density(:,i1),
+     &         leaf_area_index(:,i1),
+     &         pft_heights(:,i1),
+     &         pft_dbh(:,i1),
+     &         pft_crad(:,i1),
+     &         pft_cpool(:,:,i1),
+     &         pft_nmdata,
+     &         pft_froots,
+     &         pft_soil_type,vegalbedo(:,:,i1),
+     &         soil_texture(:,i1),
+     &         Ci_ini(i1), CNC_ini(i1),
+     &         Tcan_ini(i1), Qf_ini(i1),
+     &         Tpool_ini(:,:,:,:,i1))
+        endif
+      
+      enddo
+
+      end subroutine ent_cell_set_3d_r8_1
+
+      subroutine ent_cell_set_3d_r8_2(entcell,
+     &     veg_fraction,
+     &     pft_population_density,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
+     &     pft_nmdata,
+     &     pft_froots,
+     &     pft_soil_type,
+     &     vegalbedo,
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:,:)
+      real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
+     &     veg_fraction,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_population_density
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_nmdata
+      real*8, dimension(:,:,:,:) :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:,:,:)  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8, dimension(:,:,:)  ::  soil_texture ! dim=N_SOIL_TEXTURES
+      real*8 ,dimension(:,:) ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1,i2)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+          !call entcell_print(6,entcell(i1,i2)%entcell)
+
+          call init_simple_entcell( entcell(i1,i2)%entcell,
+     &         veg_fraction(:,i1,i2),
+     &         pft_population_density(:,i1,i2),
+     &         leaf_area_index(:,i1,i2),
+     &         pft_heights(:,i1,i2),
+     &         pft_dbh(:,i1,i2),
+     &         pft_crad(:,i1,i2),
+     &         pft_cpool(:,:,i1,i2),
+     &         pft_nmdata,
+     &         pft_froots,
+     &         pft_soil_type,vegalbedo(:,:,i1,i2),
+     &         soil_texture(:,i1,i2),
+     &         Ci_ini(i1,i2), CNC_ini(i1,i2),
+     &         Tcan_ini(i1,i2), Qf_ini(i1,i2),
+     &         Tpool_ini(:,:,:,:,i1,i2))
+        endif
+      
+      enddo
+      enddo
+
+      end subroutine ent_cell_set_3d_r8_2
 
 
 !*************************************************************************

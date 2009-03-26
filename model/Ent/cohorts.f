@@ -143,7 +143,7 @@
 !     &     stressH2O, stressH2Ol)
 
       !Given cohort's characteristics, assign to cohort data variable.
-
+      use ent_pfts
       type(cohort) :: cop
       integer :: pft
       real*8,optional :: n, h, nm, LAI,
@@ -198,6 +198,10 @@
       cop%CB_d = CB_d
       cop%turnover_amp = turnover_amp
       cop%llspan = llspan
+      if (cop%llspan.eq.-999.d0 .and.
+     &   (pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+     &   (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
+     &   cop%llspan=pfpar(cop%pft)%lrage*12.d0
 !      cop%stressH2O = stressH2O      !Calculated in biophysics
 !      cop%stressH2Ol = stressH2Ol    !Calculated in biophysics
       !* diags and hacks
@@ -227,6 +231,7 @@ cddd      end subroutine init_cohort_defaults
       subroutine zero_cohort(cop)
 !@sum Zero all real variables in cohort record.      
       use growthallometry,only : init_rootdistr
+      use ent_pfts
       type(cohort),pointer :: cop
 
       cop%nm = 0.0
@@ -279,7 +284,9 @@ cddd      end subroutine init_cohort_defaults
       cop%CB_d = 0.d0
       cop%turnover_amp = 1.d0
       cop%llspan = -999.d0
-
+      if ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+     &   (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
+     &   cop%llspan=pfpar(cop%pft)%lrage*12.d0
       cop%Sacclim = 25.d0 !NK - force mild average temperatures default.
 
       !* PHYSIOLOGICAL STATUS *!

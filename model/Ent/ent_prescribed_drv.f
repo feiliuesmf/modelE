@@ -14,6 +14,7 @@
      &     prescr_vegdata,
      &     prescr_get_vdata, prescr_get_laidata, 
      &     prescr_update_vegcrops, prescr_veg_albedodata,
+     &     prescr_get_height, !YKIM
      &     prescr_soilpools  !for prescribing soil C, N pools -PK 12/07
 
       contains
@@ -208,7 +209,8 @@ c$$$      end do
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
-     &     Tpooldata,do_soilinit)
+     &     Tpooldata, hdata3d,dbhdata3d,popdata3d,craddata3d,
+     &     do_soilinit,do_phenology_activegrowth)
       implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
@@ -227,28 +229,63 @@ c$$$      end do
       real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
      &     I0:I1,J0:J1):: Tpooldata !in g/m2 -PK
       logical,intent(in) :: do_soilinit
+      logical,intent(in) :: do_phenology_activegrowth
+      real*8,intent(out) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: popdata3d(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: craddata3d(N_COVERTYPES,I0:I1,J0:J1)
       !-----Local------
       integer :: i
 
-      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
-      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
-      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
-      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
+!YKIM
+c$$$      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+c$$$      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+c$$$      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
+c$$$      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
+c$$$      call prescr_get_hdata(hdata) !height
+c$$$      !print *,'hdata',hdata
+c$$$      call prescr_get_initnm(nmdata) !nm
+c$$$      call prescr_get_rootprof(rootprofdata)
+c$$$      call prescr_get_woodydiameter(hdata,dbhdata)
+c$$$      !print *,"dbhdata",dbhdata
+c$$$      call prescr_get_pop(dbhdata,popdata)
+c$$$      !print *,"popdata",popdata
+c$$$      call prescr_get_crownrad(popdata,craddata)
+c$$$      call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
+c$$$     &     laidata,hdata,dbhdata,popdata,cpooldata)
+c$$$      !do i=1,N_COVERTYPES
+c$$$      !  print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
+c$$$      !end do
+c$$$      call prescr_get_soilcolor(soil_color)
+c$$$      call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
+c$$$     &     soil_texture)
+c$$$      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
-      call prescr_get_hdata(hdata) !height
-      print *,'hdata',hdata
-      call prescr_get_initnm(nmdata) !nm
+!YKIM
+!change sequences of calls
+!to have options according to do_phenology_activegrowth
+
+      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
+      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+      if (.not.do_phenology_activegrowth) then
+         call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
+         call prescr_get_hdata(hdata) !height
+         call prescr_get_woodydiameter(hdata,dbhdata)
+         call prescr_get_pop(dbhdata,popdata)
+         call prescr_get_crownrad(popdata,craddata)
+         call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
+     &        laidata,hdata,dbhdata,popdata,cpooldata)
+      else !if do_phenology_activegrowth=true
+         call prescr_get_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
+         call prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d) !height
+         !update diameter, population density, carbon plant &  crown rad
+         !can be more modular like the above - Should I???  -YKIM
+         call prescr_get_ent_plant(IM,JM,I0,I1,J0,J1, 
+     &        laidata,hdata3d,dbhdata3d,popdata3d,craddata3d,cpooldata)
+      endif
+      call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
       call prescr_get_rootprof(rootprofdata)
-      call prescr_get_woodydiameter(hdata,dbhdata)
-      print *,"dbhdata",dbhdata
-      call prescr_get_pop(dbhdata,popdata)
-      print *,"popdata",popdata
-      call prescr_get_crownrad(popdata,craddata)
-      call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
-     &     laidata,hdata,dbhdata,popdata,cpooldata)
-      !do i=1,N_COVERTYPES
-      !  print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
-      !end do
       call prescr_get_soilcolor(soil_color)
       call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
@@ -398,6 +435,7 @@ c$$$      end do
 
       subroutine prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
 !@sum Returns prescr GCM leaf area index for entire grid and given jday.
+      use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
       use ent_const,only : N_COVERTYPES
       integer,intent(in) :: jday
       integer, intent(in) :: JM,I0,I1,J0,J1
@@ -421,6 +459,35 @@ c$$$      end do
 
       !* Return lai for each vegetation type.
       end subroutine prescr_get_laidata
+
+!**************************************************************************
+
+      subroutine prescr_get_ent_laidata(IM,JM,I0,I1,J0,J1,laidata)
+!@sum YKIM - read the initial LAI for the prognostic vegetation 
+!@sum (i.e., prognostic phenology/growth with Ent PFTs)
+
+      use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
+      use ent_const,only : N_COVERTYPES
+      integer, intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8 :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
+      !----------
+      character*80 :: title
+      real*4 :: buf(IM,JM)
+      integer :: iu_LAI
+      integer :: k !@var cover type
+
+      call openunit("LAIent",iu_LAI,.true.,.true.)
+
+      do k=1,N_COVERTYPES
+        read(iu_LAI) title , buf
+        laidata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
+      end do
+      !print *,"laidata", laidata(:,I0:I1,J0:J1) !#DEBUG
+
+      call closeunit(iu_LAI)
+
+      !* Return lai for each vegetation type.
+      end subroutine prescr_get_ent_laidata
 
 
 !**************************************************************************
@@ -446,6 +513,46 @@ c$$$      end do
       enddo
 
       end subroutine prescr_veg_albedodata
+
+!**************************************************************************
+
+      subroutine prescr_get_height(hdata)
+!@sum Returns prescr GCM leaf area index for entire grid and given jday.
+      use ent_const,only : N_COVERTYPES
+      real*8 :: hdata(N_COVERTYPES) 
+      !----------
+      
+      call prescr_get_hdata(hdata)
+
+
+      end subroutine prescr_get_height
+
+!**************************************************************************
+
+      subroutine prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d)
+!@sum YKIM - read the initial height for the prognostic vegetation 
+!@sum (i.e., prognostic phenology/growth with Ent PFTs)
+      use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
+      use ent_const,only : N_COVERTYPES
+      integer, intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8 :: hdata3d(N_COVERTYPES,I0:I1,J0:J1) 
+      !----------
+      character*80 :: title
+      real*4 :: buf(IM,JM)
+      integer :: iu_HITE
+      integer :: k !@var cover type
+     
+      call openunit("HITEent",iu_HITE,.true.,.true.)
+
+      do k=1,N_COVERTYPES
+        read(iu_HITE) title , buf
+        hdata3d(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
+      end do
+      !print *,"hdata", hdata(:,I0:I1,J0:J1) !#DEBUG
+
+      call closeunit(iu_HITE)
+
+      end subroutine prescr_get_ent_hdata
 
 !**************************************************************************
       subroutine prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
@@ -483,6 +590,52 @@ c$$$      end do
       enddo
       
       end subroutine prescr_get_carbonplant
+!**************************************************************************
+      subroutine prescr_get_ent_plant(IM,JM,I0,I1,J0,J1,
+     &     laidata, hdata3d, dbhdata3d, popdata3d, craddata3d,cpooldata)
+!@sum YKIM- calculate woody diameter, population denisty, crown radiation
+!@sum & carbon pools for the Ent prognostic vegetation
+      use phenology, only: update_plant_cpools, height2dbh,nplant
+      implicit none
+      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
+      real*8,intent(in) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: popdata3d(N_COVERTYPES,I0:I1,J0:J1) 
+      real*8,intent(out) :: craddata3d(N_COVERTYPES,I0:I1,J0:J1) 
+      real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
+      !Array: 1-foliage, 2-sapwood, 3-hardwood, 4-labile,5-fine root, 6-coarse root
+      !----Local----
+      integer :: pft !@var pft vegetation type
+      integer :: i,j, n
+
+!Zero initialize.
+      dbhdata3d(:,:,:) = 0.0 
+      popdata3d(:,:,:) = 0.0 
+      craddata3d(:,:,:) = 0.0
+      cpooldata(:,:,:,:) = 0.d0 
+      do j=J0,J1
+        do i=I0,I1
+          do pft = 1,N_PFT
+            n = pft + COVEROFFSET
+            !update woody diameter
+            if (pfpar(pft)%woody)  dbhdata3d(n,i,j) 
+     &                             =height2dbh(pft,hdata3d(n,i,j))  
+            !update population denisty
+            popdata3d(n,i,j) = nplant(pft,dbhdata3d(n,i,j), 
+     &                       hdata3d(n,i,j), laidata(n,i,j))
+            !update crown rad
+            craddata3d(n,i,j) = 0.5*sqrt(1/popdata3d(n,i,j))
+            !update cabon pools
+            call update_plant_cpools(pft,laidata(n,i,j),hdata3d(n,i,j),
+     &           dbhdata3d(n,i,j), popdata3d(n,i,j),cpooldata(n,:,i,j))
+            call prescr_init_Clab(pft,popdata3d(n,i,j),
+     &           cpooldata(n,:,i,j))
+          enddo
+        enddo
+      enddo
+      
+      end subroutine prescr_get_ent_plant
 
 !*************************************************************************
       subroutine prescr_get_soiltexture(im,jm,I0,I1,J0,J1,

@@ -7,7 +7,7 @@
 
 !@auth N. Kiang
 
-!#define ENT_STANDALONE_DIAG TRUE
+#define ENT_STANDALONE_DIAG TRUE
 
       !Ent MODULES TO USE
       use ent_const
@@ -118,7 +118,7 @@
 
       !*********************************************************************
 
-      subroutine ent_integrate(dtsec, ecp, time, update_day, config)
+      subroutine ent_integrate(dtsec, ecp, update_day, config)
 !@sum Ent biophysics/biogeochemistry/patch dynamics
       use reproduction
       use cohorts
@@ -128,7 +128,6 @@
       use soilbgc, only : soil_bgc
 !      use phenology, only : litter
       use phenology, only : clim_stats, pheno_update, veg_update
-      use phenology, only : veg_init !KIM-temp.
       use canopyrad, only : recalc_radpar
       use entcells, only : summarize_entcell, entcell_print
 
@@ -136,19 +135,12 @@
       real*8 :: dtsec  !dt in seconds
       !type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
       type(entcelltype) :: ecp
-      real*8 :: time            !temp. for Phenology
       logical :: update_day
       type(ent_config) :: config 
 
       !-----local--------
       integer :: patchnum
       type(patch),pointer :: pp
-      !TIMESTRUCT should be used once it is ready!
-      logical :: initial, dailyupdate    !temp. for Phenology
-      
-      !* Timing - temporarily
-      initial = (time .eq. 0.d0)
-      dailyupdate = (mod(time,86400.d0) .eq. 0.d0) .and. .not.initial
 
       !* Loop through patches
       patchnum = 0
@@ -157,16 +149,11 @@
         patchnum = patchnum + 1
         call photosynth_cond(dtsec, pp)
 
-!YK-beg of temp hack##################################################
-        if (config%do_phenology .and. initial) call veg_init(pp)
-!YK-end of temp hack##################################################
+        call clim_stats(dtsec,pp,config,update_day)
 
-        call clim_stats(dtsec,pp,config,dailyupdate)
-
-        if (config%do_phenology) then
+        if (config%do_phenology_activegrowth) then
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
-!KIM-devel          if (dailyupdate) then
           if (update_day) then
             call pheno_update(dtsec,pp)
             call veg_update(dtsec,pp)

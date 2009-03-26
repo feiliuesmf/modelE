@@ -2139,7 +2139,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
           update_day = (mod(time,86400.d0).eq.0.d0).and.(time.ne.0.d0)
-          call ent_run( entcell, dts, time,update_day) 
+          call ent_run( entcell, dts,update_day) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,

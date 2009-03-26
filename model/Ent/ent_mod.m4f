@@ -32,7 +32,7 @@ define(`m4_type_list',`real*8')
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
-      public ent_cell_set !, ent_cell_update
+      public ent_cell_set, ent_cell_set_3d !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
       public ent_initialize
@@ -74,6 +74,13 @@ define(`m4_type_list',`real*8')
       interface ent_cell_set
       m4_loop(`
         module procedure ent_cell_set_`'m4_suffix`'
+      ')`'
+      end interface
+
+      !--- passing initial data to ent cells ---
+      interface ent_cell_set_3d
+      m4_loop(`
+        module procedure ent_cell_set_3d_`'m4_suffix`'
       ')`'
       end interface
 
@@ -145,24 +152,29 @@ cddd      end interface ent_cell_update
 
 !*************************************************************************
       subroutine ent_initialize(
-     &     do_soilresp, do_phenology, do_frost_hardiness, 
-     &     do_patchdynamics)
+     &     do_soilresp, do_phenology_activegrowth, do_structuralgrowth, 
+     &     do_frost_hardiness, do_patchdynamics)
 !@sum initializes Ent module. This subroutine should set all the flags
 !@+   and all the variables that are constant during the run.
       logical, optional :: do_soilresp
-      logical, optional :: do_phenology
+      logical, optional :: do_phenology_activegrowth
+      logical, optional :: do_structuralgrowth
       logical, optional :: do_frost_hardiness
       logical, optional :: do_patchdynamics
 
       ! first set some defaults:
       config%do_soilresp = .false.
-      config%do_phenology = .false.
+      config%do_phenology_activegrowth = .false.
+      config%do_structuralgrowth = .false.
       config%do_frost_hardiness = .true.
       config%do_patchdynamics = .false.
 
       ! now overwrite defaults with explicitly passed values
       if ( present(do_soilresp) ) config%do_soilresp = do_soilresp
-      if ( present(do_phenology) ) config%do_phenology = do_phenology
+      if ( present(do_phenology_activegrowth) ) 
+     &     config%do_phenology_activegrowth = do_phenology_activegrowth
+      if ( present(do_structuralgrowth) ) config%do_structuralgrowth = 
+     &     do_structuralgrowth
       if ( present(do_frost_hardiness) ) config%do_frost_hardiness = 
      &     do_frost_hardiness
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
@@ -286,7 +298,7 @@ m4_loop(`
 ')`'
 
 m4_loop(`
-      subroutine ent_run_`'m4_suffix`'(entcell,dt,time,update_day)
+      subroutine ent_run_`'m4_suffix`'(entcell,dt,update_day)
       use ent, only : ent_integrate !ent_integrate_GISS
 !!! it is not clear yet for me how this call will be implemented ...
 !@sum this call updates variable that change on a long time scale.
@@ -300,7 +312,6 @@ m4_loop(`
 !@+   Is it OK from ESMF point of view?
       !use ent_driver, only : ent_update_veg_structure
       type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
-      real*8, intent(in) :: time 
       real*8, intent(in) :: dt !Time step (s)
       logical, intent(in) :: update_day
 !      integer, intent(in) :: jday
@@ -313,7 +324,7 @@ m4_loop(`
 
       m4_do(dims)
         call ent_integrate(dt, entcell`'m4_brkts(m4_ind)`'%entcell,
-     &     time,update_day,config)
+     &     update_day,config)
       m4_enddo
 
       end subroutine ent_run_`'m4_suffix`'
@@ -457,6 +468,76 @@ m4_loop(`
       m4_enddo
 
       end subroutine ent_cell_set_`'m4_suffix`'
+')`'
+!*************************************************************************
+
+m4_loop(`
+      subroutine ent_cell_set_3d_`'m4_suffix`'(entcell,
+     &     veg_fraction,
+     &     pft_population_density,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_cpool,
+     &     pft_nmdata,
+     &     pft_froots,
+     &     pft_soil_type,
+     &     vegalbedo,
+     &     soil_texture,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+      type(entcelltype_public),intent(inout)::
+     &                            entcell`'m4_brkts(m4_ext)`'
+      real*8, dimension(:m4_comma`'m4_ext`')  ::   ! dim=N_COVERTYPES, n
+     &     veg_fraction,
+     &     leaf_area_index,
+     &     pft_heights,
+     &     pft_dbh,
+     &     pft_crad,
+     &     pft_population_density
+      real*8, dimension(:)  ::   ! dim=N_COVERTYPES
+     &     pft_nmdata
+      real*8, dimension(:,:m4_comma`'m4_ext`') :: pft_cpool !Carbon pools in individuals
+      real*8, dimension(:,:)  :: pft_froots
+      integer, dimension(:)  :: pft_soil_type
+      real*8, dimension(:,:m4_comma`'m4_ext`')  ::  vegalbedo ! dim=N_COVERTYPES, n
+      real*8, dimension(:m4_comma`'m4_ext`')  ::  soil_texture ! dim=N_SOIL_TEXTURES
+      real*8 m4_arr_only(`, dimension(m4_ext)')`' ::
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,dimension(:,:,:,:m4_comma`'m4_ext`') :: Tpool_ini  !soil pools, in g/m2 -PK
+      !---
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+      m4_do(dims)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("init_simple_entcell 1",255)
+          !call entcell_print(6,entcell`'m4_brkts(m4_ind)`'%entcell)
+
+          call init_simple_entcell( entcell`'m4_brkts(m4_ind)`'%entcell,
+     &         veg_fraction(:`'m4_comma`'m4_ind),
+     &         pft_population_density(:`'m4_comma`'m4_ind),
+     &         leaf_area_index(:`'m4_comma`'m4_ind),
+     &         pft_heights(:`'m4_comma`'m4_ind),
+     &         pft_dbh(:`'m4_comma`'m4_ind),
+     &         pft_crad(:`'m4_comma`'m4_ind),
+     &         pft_cpool(:,:`'m4_comma`'m4_ind),
+     &         pft_nmdata,
+     &         pft_froots,
+     &         pft_soil_type,vegalbedo(:,:`'m4_comma`'m4_ind),
+     &         soil_texture(:`'m4_comma`'m4_ind),
+     &         Ci_ini`'m4_brkts(m4_ind)`', CNC_ini`'m4_brkts(m4_ind)`',
+     &         Tcan_ini`'m4_brkts(m4_ind)`', Qf_ini`'m4_brkts(m4_ind)`',
+     &         Tpool_ini(:,:,:,:`'m4_comma`'m4_ind))
+        endif
+      m4_enddo
+
+      end subroutine ent_cell_set_3d_`'m4_suffix`'
 ')`'
 
 !*************************************************************************
