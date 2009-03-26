@@ -269,6 +269,7 @@ NOx_06=AR5_emis/M/2000/NOx_shp_AR5_2000_4x5_h
 NOx_07=AR5_emis/M/2000/NOx_tra_AR5_2000_4x5_h
 NOx_08=AR5_emis/M/2000/NOx_wst_AR5_2000_4x5_h
 NOx_09=NOy_sources/NOx_GEIA_biomass_burning_head
+NOx_10=NOy_sources/NOx_GEIA_soil_head
 NOx_AIRC=AR5_emis/M/2000/NOx_air_AR5_2000_4x5
 CH4_01=AR5_emis/M/2000/CH4_agr_AR5_2000_4x5_h
 CH4_02=AR5_emis/M/2000/CH4_awb_AR5_2000_4x5_h
