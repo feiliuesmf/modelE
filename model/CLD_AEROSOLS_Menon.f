@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 !     MODULE CLOUD_DROP_PRED
 !     USE CLOUDS_COM
 !     END MODULE CLOUD_DROP_PRED
@@ -11,7 +12,7 @@
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3
-      integer, PARAMETER :: nt=17
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSS,DSU
       integer L,n
 
@@ -33,7 +34,7 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
       do n = 1,nt 
         DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions
-        if (n.gt.9) then
+        if (n.gt.9 .and. n.lt.18) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
       enddo
@@ -46,7 +47,10 @@ c assumed lognormal distribution for carbonaceous aerosols.
  
       SSM1 = 1.69d11*(132.14d0/32.06d0)*DSU(1)         !all sulfate 
       SSM2=(DSU(2)/2169.d0)/(0.004189d0*(.44d0**3)   ) !seasalt 0.1-1 um range
-      SSM4 = 1.21d11*((DSU(4))+ DSU(6))                !OCI,BCI: aged (1 day efolding time)
+      SSM4 = 1.21d11*((DSU(4))+ DSU(6))                !OCIA,BCIA: aged (1 day efolding time)
+#ifdef TRACERS_AEROSOLS_SOA
+     .      +1.21d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21)) !SOA
+#endif  /* TRACERS_AEROSOLS_SOA */
       SSM5 = 1.21d11*((0.8*DSU(5))+(0.6*DSU(7)))       !OCB,BCB: 80% and 60% as hydrophillic) 
 !     SSMD1=(DSU(10)/2.5d3)/(0.004189d0*(0.75d0**3.))  !dust(clay) coated w/ sulf
 !     SSMD2=(DSU(11)/2.65d3)/(0.004189d0*(2.2d0**3.))  !dust(silt1) coated w/ sulfate
@@ -91,7 +95,7 @@ c    *DSU(6),DSU(7),L,SSMAL,SSMAO,SSM1,SSM2,SSM4,SSM5
       real*8 CAREA,CLDSAVL,AIRM,WMX,SMFPML,OLDCDO,OLDCDL,VVEL
      *,SME,rho,PL,TL
 
-      integer, PARAMETER :: nt=17
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNO,WCDNL,CDNO0,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,amass,tams,smalphaf
@@ -118,7 +122,7 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
       do n = 1,nt
          DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions
-        if (n.gt.9) then
+        if (n.gt.9 .and. n.lt.18) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
       enddo
@@ -133,7 +137,10 @@ c assumed lognormal distribution for carbonaceous aerosols.
 
       SSM1 = 1.69d11*(132.14d0/32.06d0)*DSU(1)            !all sulfate
       SSM2=(DSU(2)/2169.d0)/(0.004189d0*(.44d0**3)   )    !seasalt 0.1-1 um range
-      SSM4 = 1.21d11*((DSU(4))+ DSU(6))               !OCI,BCI: aged (1 day efolding time)
+      SSM4 = 1.21d11*((DSU(4))+ DSU(6))               !OCIA,BCIA: aged (1 day efolding time)
+#ifdef TRACERS_AEROSOLS_SOA
+     .      +1.21d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21)) !SOA
+#endif  /* TRACERS_AEROSOLS_SOA */
       SSM5 = 1.21d11*((0.8*DSU(5))+(0.6*DSU(7)))      !OCB,BCB: 80% and 60% as hydrophillic)
 c     SSMD1=(DSU(10)/2.5d3)/(0.004189d0*(0.75d0**3.))  !dust(clay) coated w/ sulf
 c     SSMD2=(DSU(11)/2.65d3)/(0.004189d0*(2.2d0**3.))  !dust(silt1) coated w/ sulfate
@@ -266,7 +273,7 @@ c     write(6,*)"QAUT",r6c,r6,RCLD,cwc,WMX,FCLD,SCDNCW,QCRIT,QAUT
       real*8 EXPL,EXPO,WCDNO,WCDNL,CDNO0,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,CDNO1,smalfaf,FCLD
      *,LHX,WMUI,WCONST
-      integer, PARAMETER :: nt=17
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSU
 
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSMAL,SSMAO,SSML,SSMO
@@ -285,7 +292,10 @@ c assumed lognormal distribution for carbonaceous aerosols.
 
       SSM1 = 1.69d11*(132.14d0/32.06d0)*DSU(1)            !all sulfate
       SSM2=(DSU(2)/2169.d0)/(0.004189d0*(.44d0**3)   )    !seasalt 0.1-1 um range
-      SSM4 = 1.21d11*((DSU(4))+ DSU(6))               !OCI,BCI: aged (1 day efolding time)
+      SSM4 = 1.21d11*((DSU(4))+ DSU(6))               !OCIA,BCIA: aged (1 day efolding time)
+#ifdef TRACERS_AEROSOLS_SOA
+     .      +1.21d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21)) !SOA
+#endif  /* TRACERS_AEROSOLS_SOA */
       SSM5 = 1.21d11*((0.8*DSU(5))+(0.6*DSU(7)))      !OCB,BCB: 80% and 60% as hydrophillic)
 c     SSMD1=(DSU(10)/2.5d3)/(0.004189d0*(0.75d0**3.))  !dust(clay) coated w/ sulf
 c     SSMD2=(DSU(11)/2.65d3)/(0.004189d0*(2.2d0**3.))  !dust(silt1) coated w/ sulfate

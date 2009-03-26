@@ -9,8 +9,9 @@
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSMAL,SSMAO,SSML,SSMO
-      integer, PARAMETER :: nt=17
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
+     *       SSMAL,SSMAO,SSML,SSMO
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSS,DSU,ncaero
       integer L,n,nmodes,nm 
 
@@ -31,6 +32,7 @@ c     SSM1 = 1.69d11*(132.14d0/32.06d0)*DSU(1)         !all sulfate
 c     SSM2=(DSU(2)/2169.d0)/(0.004189d0*(.44d0**3)   ) !seasalt 0.1-1 um range
 c     SSM4 = 1.21d11*((DSU(4))+ DSU(6))                !OCI,BCI: aged (1 day efolding time)
 c     SSM5 = 1.21d11*((0.8*DSU(5))+(0.6*DSU(7)))       !OCB,BCB: 80% and 60% as hydrophillic) 
+c     SSM8 = 1.21d11*((DSU(18))+(DSU(19))+(DSU(20))+(DSU(21))) !SOA: 100% hydrophillic) 
 !     SSMD1=(DSU(10)/2.5d3)/(0.004189d0*(0.75d0**3.))  !dust(clay) coated w/ sulf
 !     SSMD2=(DSU(11)/2.65d3)/(0.004189d0*(2.2d0**3.))  !dust(silt1) coated w/ sulfate
 !     SSMD3=(DSU(12)/2.65d3)/(0.004189d0*(4.4d0**3.))  !dust(silt2) coated w/ sulfate
@@ -45,6 +47,7 @@ c     SSM5=(DSU(6)/1000.d0)/(0.004189*(0.09**3.))      !BCIA
 c     SSM6=(0.60*DSU(7)/1000.d0)/(0.004189*(0.09**3.)) !BCB                    
 c     SSM4=((1.0d0*DSU(4))+(1.0d0*DSU(6)))/1000.d0     !BCIA and BCI aged use 100% & 100% 
 c     SSM5=((0.8d0*DSU(5))+(0.6d0*DSU(7)))/1000.d0   !OCB and BCB      use 80%  & 60%
+c     SSM3=((DSU(18)+DSU(19)+DSU(20)+DSU(21))/1000.d0)/(0.004189*(0.20**3.))!SOA                   
 c     SSML=SSMAL/(0.004189d0*(.050d0**3.d0))
 c     SSMO=SSMAO/(0.004189d0*(.085d0**3.d0)) + SSM2
 *************************************************************************************************
@@ -74,11 +77,12 @@ c     SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
 c     SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
 c     SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
 c     SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
+c     SSM8 = 1.70d12*((DSU(18))+(DSU(19))+(DSU(20))+(DSU(21))) !SOA: 100% hydrophillic) 
 c
 C** Land Na (cm-3) is from sulfate+OC+BC and is SSMAL
 C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
 c
-c     SSMAL=SSM1+SSM4+SSM5+SSM6+SSM7          !SO4,OCIA,BCIA,BCB,OCB
+c     SSMAL=SSM1+SSM4+SSM5+SSM6+SSM7+SSM8     !SO4,OCIA,BCIA,BCB,OCB,SOA
 c     SSMAO=SSMAL+SSM2                        ! Land aerosols (SSMAL) + Sea-salt
 C*************Use matrix activated fraction for aerosol conc. 
       do nm=1,nmodes
@@ -121,9 +125,10 @@ c
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSMAL,SSMAO,SSML,SSMO
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
+     *       SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3, SSM1a
-      integer, PARAMETER :: nt=17
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSS,DSU
       integer L,n
 
@@ -145,28 +150,30 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
         DSU(n) =DSS(n)*tams
 C** Special case if not including dust-sulfate hetchem reactions
 C** but including nitrates
-		if (n.gt.9.and.n.le.13) then
+          if (n.gt.9.and.n.le.13) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
-        if (n.gt.14) then
-          if (DSS(n).eq.1.d-10) DSU(n)=0.d0          if (DSS(n).eq.1.d-10) DSU(n)=0.d0
+        if (n.gt.14.and.n.le.17) then
+          if (DSS(n).eq.1.d-10) DSU(n)=0.d0
+          if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif
       enddo
       SSM1 = 9.55d11*DSU(1)         ! all sulfate
 C**nitrate,  vol radius = 0.3 um and effe rad = 0.15 um
 C** Choose value that works as for sulfates
-	  SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   
+      SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   
       SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility
+      SSM8 = 1.70d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c
 C** Land Na (cm-3) is from sulfate+OC+BC + NO3 and is SSMAL
 C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
 c
-      SSMAL=SSM1+SSM4+SSM5+SSM6+SSM7+SSM1a       !SO4,OCIA,BCIA,BCB,OCB,NO3
+      SSMAL=SSM1+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a       !SO4,OCIA,BCIA,BCB,OCB,SOA,NO3
       SSMAO=SSMAL+SSM2                           ! Land aerosols (SSMAL) + Sea-salt
 c
       IF(SSMAL.le.100.d0) SSMAL=100.d0
@@ -198,12 +205,12 @@ C*******************************************************************************
       IMPLICIT NONE
       real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL
      *,SME,rho,PL,TL,WTURB
-      integer, PARAMETER :: nt=17
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,amass,tams
      *,FCLD,WCONST,LHX,WMUI,DXYPJ
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSMAL,SSML
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
       real*8 term1,term2,vterm,alf
       integer L,n
@@ -226,7 +233,7 @@ C** Special case if not including dust-sulfate hetchem reactions but with NO3
         if (n.gt.9.and.n.le.13) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
-        if (n.gt.14) then
+        if (n.gt.14.and.n.le.17) then
           if (DSS(n).eq.1.d-10) DSU(n)=0.d0
         endif 
       enddo
@@ -239,18 +246,20 @@ c     SSM4 = 2.98d10*DSU(4)         ! OCIA aged industrial OC
 c     SSM5 = 2.98d10*DSU(5)         ! OCB with 80% solubility                   
 c     SSM6 = 3.27d11*DSU(6)         ! BCIA aged industrial BC
 c     SSM7 = 3.27d11*DSU(7)         ! BCB with 80% solubility 
+c     SSM8 = 2.98d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility 
 
       SSM1 = 9.55d11*DSU(1)         ! all sulfate 
-	  SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3)) !nitrate
+      SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3)) !nitrate
       SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
+      SSM8 = 1.70d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility 
 c
 C** Na (cm-3) is from sulfate+OC+BC+sea-salt 
-      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM1a          !SO4,OCIA,BCIA,BCB,OCB+SS1+NO3
+      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
 c     write(6,*)"SSMAL",SSMAL,SSM1,SSM4,DSU(1),DSU(4),l
       IF(SSMAL.le.100.d0) SSMAL=100.d0
 
@@ -277,7 +286,7 @@ c     vterm = 1.d2*( VVEL + (WTURB*1.63) )
        term2=(alf*SSMAL) + vterm
        WCDNL= ((term1/term2)**1.27)*1.d-1
 c      if(WTURB.gt.0.)write(6,*)"Lohmann",vterm,WCDNL,term2,term1,SSMAL
-c    *,VVEL,WTURB,"Aerosol no",SSM1,SSM2,SSM4,SSM5,SSM6,SSM7,
+c    *,VVEL,WTURB,"Aerosol no",SSM1,SSM2,SSM4,SSM5,SSM6,SSM7,SSM8
       else
        WCDNL=10.d0   
       endif
@@ -387,10 +396,10 @@ C**************************************************************************
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,FCLD
      *,LHX,WMUI,WCONST
       real*8 term1,term2,vterm,alf
-      integer, PARAMETER :: nt=17
+      integer, PARAMETER :: nt=17+ntm_soa/2
       real*8,dimension(nt)::DSU
 
-      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSMAL,SSML
+      real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
 
       integer L
@@ -404,18 +413,20 @@ c     SSM4 = 2.98d10*DSU(4)         ! OCIA aged industrial OC
 c     SSM5 = 2.98d10*DSU(5)         ! OCB with 80% solubility                   
 c     SSM6 = 3.27d11*DSU(6)         ! BCIA aged industrial BC
 c     SSM7 = 3.27d11*DSU(7)         ! BCB with 80% solubility 
+c     SSM8 = 2.98d10*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility                   
 
       SSM1 = 9.55d11*DSU(1)         ! all sulfate 
-	  SSM1a=(DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   !nitrate
+      SSM1a=(DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   !nitrate
       SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
+      SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
+      SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility
+      SSM8 = 1.70d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c
 C** Land Na (cm-3) is from sulfate+OC+BC+seasalt 
-      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM1a          !SO4,OCIA,BCIA,BCB,OCB,SS1,NO3
+      SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
       IF(SSMAL.le.50.d0) SSMAL=50.d0
 
 C**** use Lohmann et al. 2007, ACPD,7,371-3761 formualtion

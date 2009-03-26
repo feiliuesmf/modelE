@@ -19,7 +19,7 @@
 #endif
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,trname,t_qlimit
+      USE TRACER_COM, only: ntm,trname,t_qlimit,ntm_soa
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
      *     tr_evap_fact
@@ -440,7 +440,7 @@ c for sulfur chemistry
       INTEGER :: IERRT,LERRT
       INTEGER, INTENT(IN) :: i_debug,j_debug
 #ifdef CLD_AER_CDNC
-      INTEGER, PARAMETER :: SNTM=17  !for tracers for CDNC
+      INTEGER, PARAMETER :: SNTM=17+ntm_soa/2  !for tracers for CDNC
 #endif
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL,MINLVL,ITER,IC,LFRZ,NSUB
      *     ,LDMIN,LLMIN
@@ -1116,6 +1116,20 @@ C**** Here are dust particles coated with sulfate
         case('SO4_d3')
           DSGL(L,17)=tm(l,n)    !n=22
           DSS(17) = DSGL(L,17)
+#ifdef TRACERS_AEROSOLS_SOA
+        case('isopp1a')
+          DSGL(L,18)=tm(l,n)
+          DSS(18) = DSGL(L,18)
+        case('isopp2a')
+          DSGL(L,19)=tm(l,n)
+          DSS(19) = DSGL(L,19)
+        case('apinp1a')
+          DSGL(L,20)=tm(l,n)
+          DSS(20) = DSGL(L,20)
+        case('apinp2a')
+          DSGL(L,21)=tm(l,n)
+          DSS(21) = DSGL(L,21)
+#endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
 c     if(DSS(5).lt.0.d0)write(6,*)"SO4c1",DSS(1),DSS(4),DSS(5),DSS(6),l
@@ -2574,7 +2588,7 @@ c for sulfur chemistry
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-       integer, PARAMETER :: SNTM=17
+       integer, PARAMETER :: SNTM=17+ntm_soa/2
        real*8 Repsis,Repsi,Rbeta,CDNL1,CDNO1,QAUT,DSU(SNTM),QCRIT
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
        real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
@@ -2940,6 +2954,20 @@ C**** Here are dust particles coated with sulfate
         case('SO4_d3')
           DSGL(L,17)=tm(l,n)    !n=22
           DSS(17) = DSGL(L,17)
+#ifdef TRACERS_AEROSOLS_SOA
+        case('isopp1a')
+          DSGL(L,18)=tm(l,n)
+          DSS(18) = DSGL(L,18)
+        case('isopp2a')
+          DSGL(L,19)=tm(l,n)
+          DSS(19) = DSGL(L,19)
+        case('apinp1a')
+          DSGL(L,20)=tm(l,n)
+          DSS(20) = DSGL(L,20)
+        case('apinp2a')
+          DSGL(L,21)=tm(l,n)
+          DSS(21) = DSGL(L,21)
+#endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
 #endif

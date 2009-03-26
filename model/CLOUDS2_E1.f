@@ -19,7 +19,7 @@
 #endif
       USE QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm,trname,t_qlimit
+      USE TRACER_COM, only: ntm,trname,t_qlimit,ntm_soa
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE,
      *     tr_evap_fact
@@ -454,7 +454,7 @@ c for sulfur chemistry
       INTEGER :: IERRT,LERRT
       INTEGER, INTENT(IN) :: i_debug,j_debug
 #ifdef CLD_AER_CDNC
-      INTEGER, PARAMETER :: SNTM=17  !for tracers for CDNC
+      INTEGER, PARAMETER :: SNTM=17+ntm_soa/2  !for tracers for CDNC
 #endif
       INTEGER LDRAFT,LMAX,LMIN,MCCONT,MAXLVL
      *     ,MINLVL,ITER,IC,LFRZ,NSUB,LDMIN
@@ -1148,16 +1148,16 @@ C** Here we change convective precip due to aerosols
 #ifdef TRACERS_DUST
          case('Clay')
          DSGL(L,10)=tm(l,n)  !n=23
-         DSS(10) = DSGL(L,10)
+         DSS(10) = max(1.d-10,DSGL(L,10))
          case('Silt1')
          DSGL(L,11)=tm(l,n)  !n=23
-         DSS(11) = DSGL(L,11)
+         DSS(11) = max(1.d-10,DSGL(L,11))
          case('Silt2')
          DSGL(L,12)=tm(l,n)  !n=23
-         DSS(12) = DSGL(L,12)
+         DSS(12) = max(1.d-10,DSGL(L,12))
          case('Silt3')
          DSGL(L,13)=tm(l,n)  !n=23
-         DSS(13) = DSGL(L,13)
+         DSS(13) = max(1.d-10,DSGL(L,13))
 #endif
 #ifdef TRACERS_NITRATE
          case('NO3p')
@@ -1168,14 +1168,28 @@ C** Here we change convective precip due to aerosols
 c!*** Here are dust particles coated with sulfate
          case('SO4_d1')
          DSGL(L,15)=tm(l,n)  !n=20
-         DSS(15) = DSGL(L,15)
+         DSS(15) = max(1.d-10,DSGL(L,15))
          case('SO4_d2')
          DSGL(L,16)=tm(l,n)  !n=21
-         DSS(16) = DSGL(L,16)
+         DSS(16) = max(1.d-10,DSGL(L,16))
          case('SO4_d3')
          DSGL(L,17)=tm(l,n)  !n=22
          DSS(17) = DSGL(L,17)
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+         case('isopp1a')
+         DSGL(L,18)=tm(l,n)
+         DSS(18) = DSGL(L,18)
+         case('isopp2a')
+         DSGL(L,19)=tm(l,n)
+         DSS(19) = DSGL(L,19)
+         case('apinp1a')
+         DSGL(L,20)=tm(l,n)
+         DSS(20) = DSGL(L,20)
+         case('apinp2a')
+         DSGL(L,21)=tm(l,n)
+         DSS(21) = DSGL(L,21)
+#endif  /* TRACERS_AEROSOLS_SOA */
        end select
        END DO      !end of n loop for tracers
 #endif
@@ -2111,7 +2125,7 @@ c for sulfur chemistry
        real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-       integer, PARAMETER :: SNTM=17
+       integer, PARAMETER :: SNTM=17+ntm_soa/2
        real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT
      * ,CDNL0,NEWCDN,OLDCDN,SNd
        real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
@@ -2459,16 +2473,16 @@ C**** is ice and temperatures after ice melt would still be below TFrez
 #ifdef TRACERS_DUST
         case('Clay')
         DSGL(L,10)=tm(l,n)  !n=23
-        DSS(10) = DSGL(L,10)
+        DSS(10) = max(1.d-10,DSGL(L,10))
         case('Silt1')
         DSGL(L,11)=tm(l,n)  !n=23
-        DSS(11) = DSGL(L,11)
+        DSS(11) = max(1.d-10,DSGL(L,11))
         case('Silt2')
         DSGL(L,12)=tm(l,n)  !n=23
-        DSS(12) = DSGL(L,12)
+        DSS(12) = max(1.d-10,DSGL(L,12))
         case('Silt3')
         DSGL(L,13)=tm(l,n)  !n=23
-        DSS(13) = DSGL(L,13)
+        DSS(13) = max(1.d-10,DSGL(L,13))
 #endif
 #ifdef TRACERS_NITRATE
         case('NO3p')
@@ -2487,6 +2501,20 @@ C*** Here are dust particles coated with sulfate
        DSGL(L,17)=tm(l,n)  !n=22
        DSS(17) = DSGL(L,17)
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+       case('isopp1a')
+       DSGL(L,18)=tm(l,n)
+       DSS(18) = DSGL(L,18)
+       case('isopp2a')
+       DSGL(L,19)=tm(l,n)
+       DSS(19) = DSGL(L,19)
+       case('apinp1a')
+       DSGL(L,20)=tm(l,n)
+       DSS(20) = DSGL(L,20)
+       case('apinp2a')
+       DSGL(L,21)=tm(l,n)
+       DSS(21) = DSGL(L,21)
+#endif  /* TRACERS_AEROSOLS_SOA */
         end select
 
       END DO      !end of n loop for tracers
@@ -3968,7 +3996,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.28 2008/12/02 14:33:49 cdmsy Exp $
+!$Id: CLOUDS2_E1.f,v 1.29 2009/03/26 20:10:07 kostas Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
