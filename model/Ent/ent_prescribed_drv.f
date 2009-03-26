@@ -209,7 +209,7 @@ c$$$      end do
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
-     &     Tpooldata, hdata3d,dbhdata3d,popdata3d,craddata3d,
+     &     Tpooldata, ! hdata3d,dbhdata3d,popdata3d,craddata3d,
      &     do_soilinit,do_phenology_activegrowth)
       implicit none
       integer,intent(in) :: jday, year
@@ -217,12 +217,12 @@ c$$$      end do
       real*8,intent(out) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: albedodata(N_BANDS,N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(out) :: hdata(N_COVERTYPES)
+      real*8,intent(out) :: hdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
       real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH)
-      real*8,intent(out) :: popdata(N_COVERTYPES)
-      real*8,intent(out) :: dbhdata(N_COVERTYPES)
-      real*8,intent(out) :: craddata(N_COVERTYPES)
+      real*8,intent(out) :: popdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: dbhdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: craddata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
       integer,intent(out) :: soil_color(N_COVERTYPES)
       real*8,intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
@@ -230,36 +230,36 @@ c$$$      end do
      &     I0:I1,J0:J1):: Tpooldata !in g/m2 -PK
       logical,intent(in) :: do_soilinit
       logical,intent(in) :: do_phenology_activegrowth
-      real*8,intent(out) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(out) :: popdata3d(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(out) :: craddata3d(N_COVERTYPES,I0:I1,J0:J1)
+cddd      real*8,intent(out) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
+cddd      real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)
+cddd      real*8,intent(out) :: popdata3d(N_COVERTYPES,I0:I1,J0:J1)
+cddd      real*8,intent(out) :: craddata3d(N_COVERTYPES,I0:I1,J0:J1)
       !-----Local------
-      integer :: i
+      integer :: i,j
 
 !YKIM
-c$$$      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
-c$$$      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
-c$$$      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
-c$$$      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
-c$$$      call prescr_get_hdata(hdata) !height
-c$$$      !print *,'hdata',hdata
-c$$$      call prescr_get_initnm(nmdata) !nm
-c$$$      call prescr_get_rootprof(rootprofdata)
-c$$$      call prescr_get_woodydiameter(hdata,dbhdata)
-c$$$      !print *,"dbhdata",dbhdata
-c$$$      call prescr_get_pop(dbhdata,popdata)
-c$$$      !print *,"popdata",popdata
-c$$$      call prescr_get_crownrad(popdata,craddata)
-c$$$      call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
-c$$$     &     laidata,hdata,dbhdata,popdata,cpooldata)
-c$$$      !do i=1,N_COVERTYPES
-c$$$      !  print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
-c$$$      !end do
-c$$$      call prescr_get_soilcolor(soil_color)
-c$$$      call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
-c$$$     &     soil_texture)
-c$$$      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
+cddd      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+cddd      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+cddd      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
+cddd      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
+cddd      call prescr_get_hdata(hdata) !height
+cddd      !print *,'hdata',hdata
+cddd      call prescr_get_initnm(nmdata) !nm
+cddd      call prescr_get_rootprof(rootprofdata)
+cddd      call prescr_get_woodydiameter(hdata,dbhdata)
+cddd      !print *,"dbhdata",dbhdata
+cddd      call prescr_get_pop(dbhdata,popdata)
+cddd      !print *,"popdata",popdata
+cddd      call prescr_get_crownrad(popdata,craddata)
+cddd      call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
+cddd     &     laidata,hdata,dbhdata,popdata,cpooldata)
+cddd      !do i=1,N_COVERTYPES
+cddd      !  print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
+cddd      !end do
+cddd      call prescr_get_soilcolor(soil_color)
+cddd      call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
+cddd     &     soil_texture)
+cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 !YKIM
 !change sequences of calls
@@ -270,19 +270,23 @@ c$$$      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
       if (.not.do_phenology_activegrowth) then
          call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
-         call prescr_get_hdata(hdata) !height
-         call prescr_get_woodydiameter(hdata,dbhdata)
-         call prescr_get_pop(dbhdata,popdata)
-         call prescr_get_crownrad(popdata,craddata)
+         do j=J0,J1
+           do i=I0,I1
+             call prescr_get_hdata(hdata(:,i,j)) !height
+             call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
+             call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
+             call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+           enddo
+         enddo
          call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
      &        laidata,hdata,dbhdata,popdata,cpooldata)
       else !if do_phenology_activegrowth=true
          call prescr_get_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
-         call prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d) !height
+         call prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
          !update diameter, population density, carbon plant &  crown rad
          !can be more modular like the above - Should I???  -YKIM
          call prescr_get_ent_plant(IM,JM,I0,I1,J0,J1, 
-     &        laidata,hdata3d,dbhdata3d,popdata3d,craddata3d,cpooldata)
+     &        laidata,hdata,dbhdata,popdata,craddata,cpooldata)
       endif
       call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
       call prescr_get_rootprof(rootprofdata)
