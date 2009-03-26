@@ -168,7 +168,7 @@ c     SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
 c     SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
 c     SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
 c     SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
-      SSM8 = 1.7d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
+c     SSM8 = 1.7d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c
 
       SSM1 = 6.96d11*DSU(1)         ! all sulfate
