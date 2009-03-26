@@ -303,9 +303,8 @@ C****
 !@sum  SW2OCEAN variables for putting solar radiation into ocean
 !@auth Gavin Schmidt/Gary Russell
 !@ver  1.0
-      Use OCEAN, Only : ze
+      Use OCEAN, Only : ze,lsrpd
       Implicit None
-      INTEGER, PARAMETER :: LSRPD = 3
       REAL*8, DIMENSION(LSRPD) :: FSR,FSRZ,dFSRdZ,dFSRdZB
       REAL*8, PARAMETER :: RFRAC=.62d0, ZETA1=1.5d0, ZETA2=2d1
 
