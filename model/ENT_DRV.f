@@ -60,7 +60,7 @@
       ! ask Max if OK
       call ent_initialize(
      &     do_soilresp=.true.
-     &     ,do_phenology=.false.
+     &     ,do_phenology_activegrowth=.false.
      &     ,do_frost_hardiness=.false.
      &     ,do_patchdynamics=.false.
      &     )
@@ -149,12 +149,12 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: vegdata !cohort
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
-      real*8, dimension(N_COVERTYPES) :: hdata    !cohort
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: hdata    !cohort
       real*8, dimension(N_COVERTYPES) :: nmdata    !cohort
       real*8, dimension(N_COVERTYPES,N_DEPTH) :: rootprofdata !Root fraction of veg type.
-      real*8, dimension(N_COVERTYPES) :: popdata !Dummy population density:  0-bare soil, 1-vegetated
-      real*8, dimension(N_COVERTYPES) :: dbhdata !Diameter at breast height for woody veg.(cm)
-      real*8, dimension(N_COVERTYPES) :: craddata !Crown radius (m)
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: popdata !Dummy population density:  0-bare soil, 1-vegetated
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: dbhdata !Diameter at breast height for woody veg.(cm)
+      real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: craddata !Crown radius (m)
       real*8, dimension(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1) :: cpooldata !Carbon pools in individuals
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
@@ -194,7 +194,7 @@ cddd      enddo
       call prescr_vegdata(jday, year, 
      &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
      &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
-     &     soildata,soil_texture,Tpool_ini,.true.)
+     &     soildata,soil_texture,Tpool_ini,.true.,.false.)
       !print *,"popdata in ent_GISS_init: ",popdata
       !vegdata(1:2,:,:) = 0.0
       !vegdata(3,:,:) = 1.0
