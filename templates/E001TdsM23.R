@@ -239,6 +239,7 @@ CH4_09=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
 CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
 CH4_11=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
 CH4_12=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+CH4_13=methane/gcm_data/CH4_GEIA_Animals_header
 Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
