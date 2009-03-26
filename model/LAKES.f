@@ -423,7 +423,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
-      USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d,lat2d
+      USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
 #ifndef CUBE_GRID
      &     ,dyv
 #endif
@@ -620,7 +620,6 @@ C**** Read in down stream lat/lon positions
       CALL HALO_UPDATE(GRID, down_lat_911_loc)
       CALL HALO_UPDATE(GRID, down_lon_911_loc)
       CALL HALO_UPDATE(GRID, FLICE)
-
 C****
 C**** From each box calculate the downstream river box
 C****
@@ -632,28 +631,17 @@ C****
             call lonlat_to_ij(ll,ij) 
             IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
             DHORZ(I,J) = 
-#ifdef CUBED_GRID
-     *           horzdist_2pts(lon2d(i,j),lat2d(i,j),
-     *           down_lon_loc(i,j),down_lat_loc(i,j))
-#else
-     *           horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
-#endif
+     *           horzdist_2pts(lon2d_dg(i,j),lat2d_dg(i,j),
+     *           axyp(i,j), down_lon_loc(i,j),down_lat_loc(i,j)) !axyp is passed as an argument to prevent axyp(-99,-99) inside
           else  ! if land but no ocean, print warning
             IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *           FOCEAN(I,J).le.0 ) THEN
               WRITE(6,*) "Land box has no river direction I,J: ",I,J
      *             ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
             END IF
-            DHORZ(I,J) =
-#ifdef CUBED_GRID
-     *           horzdist_2pts(lon2d(i,j),lat2d(i,j),
-     *           lon2d(i,j),lat2d(i,j))
-#else 
-     *           horzdist_2pts(i,j,i,j)       
-#endif
-
+            DHORZ(I,J) = horzdist_2pts(lon2d_dg(i,j),lat2d_dg(i,j),
+     *           axyp(i,j),lon2d_dg(i,j),lat2d_dg(i,j) )
           end if
-
           if (down_lon_911_loc(i,j).gt.-1000.) then
             ll(1)=down_lon_911_loc(i,j)
             ll(2)=down_lat_911_loc(i,j)
@@ -737,26 +725,40 @@ C****
 
       END SUBROUTINE init_LAKES
 
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      function horzdist_2pts(lon1,lat1,lon2,lat2)
+      function horzdist_2pts(lon1,lat1,aarea,lon2,lat2)
       use constant, only : radius
       use geom, only : lonlat_to_ij
-      real*8, intent(in) :: lon1,lat1,lon2,lat2
-      use geom, only : axyp
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      use constant, only : radian
       implicit none
       real*8 :: x1,y1,z1, x2,y2,z2
-      real*8 :: ll(2)
-      integer :: ij(2)
 #else
-      function horzdist_2pts(i1,j1,i2,j2)
-      use constant, only : radius
       use geom, only : dxp,dyv,dyp,dxv
       implicit none
       integer :: jmax
-#endif
-      real*8 :: horzdist_2pts
       integer :: i1,j1,i2,j2
+      real*8 :: ll(2)
+      integer :: ij(2)
+#endif
+      real*8, intent(in) :: lon1,lat1,lon2,lat2
+      real*8, intent(in) :: aarea !passed as an argument to avoid infamous axyp(-99,-99)
+      real*8 :: horzdist_2pts
+
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      if(abs(lon1-lon2) .le. 1.e-8 
+     &     .and. abs(lat1-lat2) .le. 1.e-8) then ! within same box
+        horzdist_2pts = SQRT(aarea)
+      else                      ! use great circle distance
+        x1 = cos(lat1*radian)*cos(lon1*radian)
+        y1 = cos(lat1*radian)*sin(lon1*radian)
+        z1=sin(lat1*radian)
+        x2 = cos(lat2*radian)*cos(lon2*radian)
+        y2 = cos(lat2*radian)*sin(lon2*radian)
+        z2 = sin(lat2*radian)
+        horzdist_2pts = radius*acos(x1*x2+y1*y2+z1*z2)
+      endif
+#else
+c perhaps replace these calculations with great circle distances later
       ll(1)=lon1
       ll(2)=lat1
       call lonlat_to_ij(ll,ij)
@@ -767,19 +769,6 @@ C****
       call lonlat_to_ij(ll,ij)
       i2=ij(1)
       j2=ij(2)
-      if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
-        horzdist_2pts = SQRT(AXYP(I1,J1))
-      else                      ! use great circle distance
-        x1 = cos(lat1)*cos(lon1)
-        y1 = cos(lat1)*sin(lon1)
-        z1=sin(lat1)
-        x2 = cos(lat2)*cos(lon2)
-        y2 = cos(lat2)*sin(lon2)
-        z2 = sin(lat2)
-        horzdist_2pts = radius*acos(x1*x2+y1*y2+z1*z2)
-      endif
-#else
-c perhaps replace these calculations with great circle distances later
       jmax = max(j1,j2)
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = 0.5*SQRT(DXP(J1)*DXP(J1)+DYP(J1)*DYP(J1))
