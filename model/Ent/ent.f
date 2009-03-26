@@ -7,7 +7,7 @@
 
 !@auth N. Kiang
 
-#define ENT_STANDALONE_DIAG TRUE
+!#define ENT_STANDALONE_DIAG TRUE
 
       !Ent MODULES TO USE
       use ent_const
