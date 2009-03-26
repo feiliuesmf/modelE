@@ -492,10 +492,13 @@ c for sulfur chemistry
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
       real*8                    :: ncaero (nmodes)
-C** To get the model to work with right dependencies uncomment the following declaration and remove
-CC* comment the stmt in MODULE CLOUDS beginning part  USE AMP_AEROSOL, only: NACTC,NAERC
+C** To get the model to work with right dependencies uncomment the following declaration
+C** and for nactc dimension declaration
+CC* Comment the stmt in MODULE CLOUDS beginning part  USE AMP_AEROSOL, only: NACTC,NAERC
 C** Once you save the right dependency (cp amp_aerosol.mod amp_aerosol.modsave)
-C** recomment the declaration below and use the full USE AMP_AEROSOL stmt and after gmake clean vclean
+C** (this needs to be done only once)
+C** recomment the declaration below and for nactc and uncomment the USE AMP_AEROSOL stmt
+C** and after gmake clean vclean
 C** you will need to cp amp_aerosol.modsave as amp_aerosol.mod
 C** This fix is till MATRIX dependencies solved
 c     real*8,dimension(lm,nmodes)   :: naerc
@@ -1174,7 +1177,7 @@ c!*** Here are dust particles coated with sulfate
          DSS(16) = max(1.d-10,DSGL(L,16))
          case('SO4_d3')
          DSGL(L,17)=tm(l,n)  !n=22
-         DSS(17) = DSGL(L,17)
+         DSS(17) = max(1.d-10,DSGL(L,17))
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
          case('isopp1a')
@@ -1194,7 +1197,6 @@ c!*** Here are dust particles coated with sulfate
        END DO      !end of n loop for tracers
 #endif
 C** Use MATRIX AMP_actv to decide what the aerosol number conc. is
-#ifdef BLK_2MOM
 #ifdef TRACERS_AMP
         do nm=1,nmodes
          ncaero(nm)=naerc(l,nm)*1.d-6
@@ -1206,10 +1208,9 @@ C** This is for the old mass to number calculations nc. is
        CALL GET_CC_CDNC(L,AIRM(L),DXYPIJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
 
 #endif
-#endif
        MNdO=MCDNO1
        MNdL=MCDNL1
-c      if(MNdL.gt.1000.) write(6,*)"Here is CDNC in E1",MCDNO1,MCDNL1
+c      if(MNdL.gt.10.) write(6,*)"Here is CDNC in E1",MCDNO1,MCDNL1,L
 c    *,ncaero(1),ncaero(2),ncaero(3)
       MNdI = 0.06417127d0
       MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
@@ -2493,13 +2494,13 @@ C**** is ice and temperatures after ice melt would still be below TFrez
 C*** Here are dust particles coated with sulfate
        case('SO4_d1')
        DSGL(L,15)=tm(l,n)  !n=20
-       DSS(15) = DSGL(L,15)
+       DSS(15) = max(1.d-10,DSGL(L,15))
        case('SO4_d2')
        DSGL(L,16)=tm(l,n)  !n=21
-       DSS(16) = DSGL(L,16)
+       DSS(16) = max(1.d-10,DSGL(L,16))
        case('SO4_d3')
        DSGL(L,17)=tm(l,n)  !n=22
-       DSS(17) = DSGL(L,17)
+       DSS(17) = max(1.d-10,DSGL(L,17))
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
        case('isopp1a')
@@ -2529,7 +2530,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CAREA(L),CLDSAVL(L),DSS,PL(L),TL(L),
-     *OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
+     *OLDCDL(L),PEARTH,VVEL,SME(L),DSU,CDNL0,CDNL1)
       SNd=CDNL1
 cC** Pass old and new cloud droplet number
       NEWCDN=SNd
@@ -3004,7 +3005,13 @@ c
 c
         if( (ndrop_res(mkx) .lt. 0) .or. (mdrop_res(mkx) .lt. 0)  .or.
      *      (ncrys_res(mkx) .lt. 0) .or. (mcrys_res(mkx) .lt. 0)) then
-         call stop_model("BLK2MOM: Negative conc/cont...", 255)
+c        call stop_model("BLK2MOM: Negative conc/cont...", 255)
+         write(6,*)"We reached -ve con.",ndrop_res(mkx),mdrop_res(mkx),
+     * ncrys_res(mkx), mcrys_res(mkx),l
+         ndrop_res(mkx)=20.*1.d06
+         mdrop_res(mkx)=1*1.d-06
+         ncrys_res(mkx)=1*1.d-06
+         mcrys_res(mkx)=1*1.d02
         else
          ndrop=ndrop_res;mdrop=mdrop_res;ncrys=ncrys_res;mcrys=mcrys_res
         endif
@@ -3753,7 +3760,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 #ifdef CLD_AER_CDNC
 !@auth Menon for CDNC prediction
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
-     *CLDSAVL(L),VVEL,SME(L),DSU,OLDCDL(L),
+     *CLDSAVL(L),PEARTH,VVEL,SME(L),DSU,OLDCDL(L),
      *CDNL0,CDNL1)
       OLDCDL(L) = CDNL1
       SNd=CDNL1
@@ -3996,7 +4003,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.29 2009/03/26 20:10:07 kostas Exp $
+!$Id: CLOUDS2_E1.f,v 1.30 2009/03/26 22:46:00 smenon Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
