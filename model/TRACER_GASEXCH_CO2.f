@@ -130,10 +130,7 @@
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data
 
       implicit none
-      !!! real*8, allocatable :: pCO2_glob(:,:)
       integer nt,i,j
-
-      call get_param("atmCO2",atmCO2)
 
       if (AM_I_ROOT()) then
         allocate( pCO2_glob(idm,jdm))
@@ -247,7 +244,7 @@ cwatson ff is actually alpha_gas
 
        trcnst = Kw_gas * alpha_gas * 1.024e-3 * trconstflx * byrho   ! convert to (conc * m/s)
 
-!       write(*,'(a,3i7,10e12.4)')'PBL, Kw ',
+!       write(*,'(a,3i7,10e12.4)')'TRACER_GASEXCH_CO2, Kw ',
 !    .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
 !    .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho
 

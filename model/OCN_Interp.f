@@ -172,7 +172,10 @@ C**** surface tracer concentration
         DO J=1,JMO
           DO I=1,oIMAXJ(J)
             IF (oFOCEAN(I,J).gt.0.) THEN
-              oFtemp(I,J)=pCO2_glob(i,j)/(MO_glob(I,J,1)*oDXYPO(J))
+              !!oFtemp(I,J)=pCO2_glob(i,j)/(MO_glob(I,J,1)*oDXYPO(J))
+              !atrac is defined here in uatm (ppmv) 
+              !for consistensy with the units of trs=tr=atmco2 in PBL.f
+              oFtemp(I,J)=pCO2_glob(i,j)
             ELSE
               oFtemp(I,J)=0.
             END IF
@@ -463,6 +466,10 @@ C**** surface tracer concentration
 #else
       USE TRACER_COM, only: ntm
 #endif
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      USE MODEL_COM, only: nstep=>itime
+      USE TRACER_GASEXCH_COM, only: tracflx_glob
 #endif
 
       USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
@@ -842,10 +849,13 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
+
       aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
       call HNTR8P (aONES, aFtemp, oFtemp)
       oTRGASEX_glob(N,1,:,:) = oFtemp(:,:)                               !  kg/m^2
+      tracflx_glob(:,:,N)=oTRGASEX_glob(N,1,:,:)
       END DO
+  
 #endif
 
 #ifdef OBIO_RAD_coupling

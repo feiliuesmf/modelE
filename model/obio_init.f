@@ -60,9 +60,7 @@ c  Computes constants over entire run of model, reads in required
 c  data files, and otherwise obtains one-time-only information
 c  necessary for the run.
 
-#ifndef TRACERS_GASEXCH_ocean_CO2
       call get_param("atmCO2",atmCO2)
-#endif
  
 c  Degrees to radians conversion
       pi = dacos(-1.0D0)

@@ -846,11 +846,11 @@ ccc dust emission from earth
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
 
-      write(*,'(a,2i5,4e12.4,i5,7e12.4)')'PBL:', 
-     .  ilong,jlat,tg1,ws,pbl_args%alati,psurf,itr,
-     .             pbl_args%trconstflx(itr),
-     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
-     .          pbl_args%beta_gas,trsf,trcnst
+!     write(*,'(a,2i5,4e12.4,i5,7e12.4)')'PBL:', 
+!    .  ilong,jlat,tg1,ws,pbl_args%alati,psurf,itr,
+!    .             pbl_args%trconstflx(itr),
+!    .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
+!    .          pbl_args%beta_gas,trsf,trcnst
        ENDIF
 #endif   /* hack */
 #endif   /* TRACERS_GASEXCH_ocean_CO2 */
@@ -956,7 +956,6 @@ c**** copy output to pbl_args
 C**** tracer code output
 #ifdef TRACERS_ON
       pbl_args%trs(1:ntm) = tr(1,1:ntm)
-      write(*,*)'PBL, too:',pbl_args%trs(1)
       if (ddml_eq_1)
      &     pbl_args%trprime(1:ntm) = pbl_args%trdn1(1:ntm)-tr(1,1:ntm)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

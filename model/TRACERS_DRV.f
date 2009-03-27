@@ -8595,11 +8595,9 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL
 #endif
-!#ifdef TRACERS_GASEXCH_ocean_CO2
-!#ifndef TRACERS_GASEXCH_CO2_Igor /* should use more general way to set atmCO2*/
-!      USE obio_forc, only: atmCO2
-!#endif
-!#endif
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
+      USE obio_forc, only : atmCO2
+#endif
 
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
@@ -8664,9 +8662,6 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       INTEGER iuc2,lmax
       real*8 carbstuff,ccnv,carb(8)
 #endif
-!#ifdef TRACERS_GASEXCH_CO2_Igor
-      real*8 atmCO2
-!#endif
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -9220,9 +9215,6 @@ c**** earth
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
         case ('CO2n')
-!#ifdef TRACERS_GASEXCH_CO2_Igor /* actually should use get_param by default*/
-          call get_param("atmCO2", atmCO2)
-!#endif
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              !units: [am]=kg_air/m2, [axyp]=m2, [tr_mm]=kg_CO2,
              !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air

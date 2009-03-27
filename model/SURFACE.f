@@ -571,10 +571,10 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
-         write(*,'(a,2i5,3e12.4)') 'in SURFACE:',
-     .    I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
+!        write(*,'(a,2i5,3e12.4)') 'in SURFACE:',
+!    .    I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
           pbl_args%alati=sss(I,J)
-          trgrnd(nx)=gtracer(n,itype,i,j)
+          trgrnd(nx)=gtracer(n,itype,i,j)    !this needs to be in uatm for co2 case
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
        END IF
@@ -879,9 +879,11 @@ C****
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * axyp(i,j)*ptype*dtsurf
 
-       write(*,'(a,3i5,6e12.4)')'SURFACE: ',
-     .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
-     .              pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J)
+!      write(*,'(a,3i5,8e12.4)')'SURFACE: ',
+!    .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
+!    .              pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J),
+!    .    pbl_args%Kw_gas *pbl_args%beta_gas*trs(nx),
+!    .    pbl_args%Kw_gas *pbl_args%alpha_gas*1.024e-3*trgrnd(nx)
 
 #endif
        END IF

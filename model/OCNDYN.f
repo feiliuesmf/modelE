@@ -38,6 +38,9 @@ C?*** For serial ODIF/GM/straits computations:
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
       USE OCEAN, only : scatter_ocean, gather_ocean
       USE OCEAN, only : scatter_ocean_straits, gather_ocean_straits
+#ifdef TRACERS_GASEXCH_ocean
+      USE TRACER_GASEXCH_COM, only: scatter_tracer_gasexch_com_arrays
+#endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_com, only: gather_pCO2
 #endif
@@ -68,6 +71,9 @@ C**** Apply surface fluxes to ocean
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
+#ifdef TRACERS_GASEXCH_ocean
+      call scatter_tracer_gasexch_com_arrays
+#endif
       call obio_model
 #ifdef TRACERS_GASEXCH_ocean
       call gather_pco2
@@ -4937,7 +4943,6 @@ C****
 
 #ifdef TRACERS_GASEXCH_ocean
             GTRACER(:,1,I,J)=aTRAC(I,J,:)
-            write(*,*)'TOC2SST:',i,j,gtracer(:,1,i,j)
 #endif
           ELSE
              SSS(I,J)=0.

@@ -221,10 +221,11 @@ c Update DIC for sea-air flux of CO2
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 
-         if (vrbos)
-     .   write(*,'(a,3i7,i3,4e12.4)')
+         if (vrbos) then
+         write(*,'(a,3i7,i3,4e12.4)')
      .     'obio_carbon (coupled):',
      .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
+         endif
 
       enddo
 
@@ -417,12 +418,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.20 $
-c_ $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
+c_ $Revision: 2.21 $
+c_ $Date: 2009/03/27 09:40:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.21  2009/03/27 09:40:16  aromanou
+c_
+c_ CO2 gas exchange in Russell ocean. case of constant atmosph CO2.
+c_
 c_ Revision 2.20  2009/03/22 19:01:07  aromanou
 c_ CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
 c_ Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
@@ -816,12 +821,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.20 $
-c_ $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
+c_ $Revision: 2.21 $
+c_ $Date: 2009/03/27 09:40:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.21  2009/03/27 09:40:16  aromanou
+c_
+c_ CO2 gas exchange in Russell ocean. case of constant atmosph CO2.
+c_
 c_ Revision 2.20  2009/03/22 19:01:07  aromanou
 c_ CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
 c_ Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
@@ -970,12 +979,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.20 $
-c_ $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
+c_ $Revision: 2.21 $
+c_ $Date: 2009/03/27 09:40:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.21  2009/03/27 09:40:16  aromanou
+c_
+c_ CO2 gas exchange in Russell ocean. case of constant atmosph CO2.
+c_
 c_ Revision 2.20  2009/03/22 19:01:07  aromanou
 c_ CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
 c_ Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
