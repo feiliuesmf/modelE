@@ -16,15 +16,20 @@ C**************  Latitude-Dependant (allocatable) *******************
       ! 1 Dim arrays for Radiation
       REAL*8, DIMENSION(LM,nmodes)       :: Reff_LEV, NUMB_LEV
       COMPLEX*8, DIMENSION(LM,nmodes,6)  :: RindexAMP
-      REAL*8, DIMENSION(LM,nmodes,7)      :: dry_Vf_LEV
+      REAL*8, DIMENSION(LM,nmodes,7)     :: dry_Vf_LEV
+      ! FALSE : one Radiation call
+      ! TRUE  : nmodes Radiation calls
+      LOGICAL, PARAMETER                 :: AMP_DIAG_FC = .TRUE.
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: MASSH2O    ![ug/m^3](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_dens   !density(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: DTR_AMPe   !(jm,ntmAMP) ! Emission diagnostic - hardcoded to 10 in TRDIAG
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMP    !(7,jm,ntmAMP)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: DTR_AMPm   !(2,jm,ntmAMP)	  
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NUMB_SS  ! Sea salt number concentration [#/gb]
 #ifdef BLK_2MOM
       REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: NACTC      ! = 1.0D-30  ![#/m3](l,nmodes)
@@ -66,7 +71,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE TRACER_COM
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPp,ijts_AMPe
      $             ,ijts_AMPm,ijts_AMPext,ijts_AMPpdf,
-     $             itcon_AMP,itcon_AMPe,itcon_AMPm
+     $             tajln=>tajln_loc,itcon_AMP,itcon_AMPe,itcon_AMPm
      $             ,itcon_surf
       USE AMP_AEROSOL
       USE AEROSOL_SOURCES, only: off_HNO3
@@ -75,7 +80,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      $                     ,t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
      $                     ,dtsrc
-      USE GEOM, only: axyp,imaxj,BYAXYP
+      USE GEOM, only: dxyp,imaxj,BYDXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trsrfflx,trflux1
       USE DYNAMICS,   only: pmid,pk,byam,gz, am   ! midpoint pressure in hPa (mb)
@@ -86,7 +91,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
       USE AERO_SETUP
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
-      USE DOMAIN_DECOMP_ATM,only: GRID, GET
+      USE DOMAIN_DECOMP,only: GRID, GET
 
       IMPLICIT NONE
 
@@ -99,19 +104,18 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL 
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1, m
+      INTEGER:: j,l,i,n,J_0, J_1
 C**** functions
       REAL(8):: QSAT
 c***  daily output
       character*30 diam_1
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
+      DTR_AMP(:,J_0:J_1,:)      = 0.d0
+      DTR_AMPm(:,J_0:J_1,:)     = 0.d0
       NACTV(:,J_0:J_1,:,:)      = 0.d0 
       VDDEP_AERO(:,J_0:J_1,:,:) = 0.d0 
       DIAM(:,J_0:J_1,:,:)       = 0.d0
@@ -128,7 +132,7 @@ c***  daily output
 
       DO L=1,LM                            
       DO J=J_0,J_1                          
-      DO I=I_0,I_1                     
+      DO I=1,IM                     
 
       IXXX = I
       IYYY = J
@@ -145,7 +149,7 @@ c***  daily output
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
 c avol [m3/gb] mass of air pro m3      
-      AVOL = am(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/pres 
+      AVOL = am(l,i,j)*dxyp(j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 c conversion trm [kg/gb] -> [ug /m^3]
@@ -201,7 +205,7 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
        CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO) 
-       CALL SIZE_PDFS(AERO,PDF1,PDF2)
+c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
  
        DO n=1, ntmAMP
           if(AMP_NUMB_MAP(n).eq. 0) then
@@ -232,38 +236,35 @@ c Update physical properties per mode
        do n=1,ntmAMP
 c Diagnostic of Processes - Sources and Sincs - timestep included
           if(AMP_NUMB_MAP(n).eq. 0) then  !taijs [kg/s] -> in acc [kg/m2*s]
-            do m=1,7
-              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n))
-     *             +(DT_AERO(m+8,AMP_AERO_MAP(n))* AVOL * 1.d-9)
-              if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,
-     *             (DT_AERO(m+8,AMP_AERO_MAP(n))* AVOL * 1.d-9),
-     *             itcon_amp(m,n),n)
-            end do
-             
+        taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(9,AMP_AERO_MAP(n))* AVOL / 1.d9)
+      DTR_AMP(1,j,n)=DTR_AMP(1,j,n)+(DT_AERO(9,AMP_AERO_MAP(n))* AVOL /1.d9)
+        taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(10,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+      DTR_AMP(2,j,n)=DTR_AMP(2,j,n)+(DT_AERO(10,AMP_AERO_MAP(n))* AVOL /1.d9)
+        taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(11,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+      DTR_AMP(3,j,n)=DTR_AMP(3,j,n)+(DT_AERO(11,AMP_AERO_MAP(n))* AVOL /1.d9)
+        taijs(i,j,ijts_AMPp(4,n)) =taijs(i,j,ijts_AMPp(4,n))+(DT_AERO(12,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+      DTR_AMP(4,j,n)=DTR_AMP(4,j,n)+(DT_AERO(12,AMP_AERO_MAP(n))* AVOL /1.d9)
+        taijs(i,j,ijts_AMPp(5,n)) =taijs(i,j,ijts_AMPp(5,n))+(DT_AERO(13,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+      DTR_AMP(5,j,n)=DTR_AMP(5,j,n)+(DT_AERO(13,AMP_AERO_MAP(n))* AVOL /1.d9)
+        taijs(i,j,ijts_AMPp(6,n)) =taijs(i,j,ijts_AMPp(6,n))+(DT_AERO(14,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+      DTR_AMP(6,j,n)=DTR_AMP(6,j,n)+(DT_AERO(14,AMP_AERO_MAP(n))* AVOL /1.d9)
+        taijs(i,j,ijts_AMPp(7,n)) =taijs(i,j,ijts_AMPp(7,n))+(DT_AERO(15,AMP_AERO_MAP(n))* AVOL/ 1.d9)
+      DTR_AMP(7,j,n)=DTR_AMP(7,j,n)+(DT_AERO(15,AMP_AERO_MAP(n))* AVOL /1.d9)
           else
-            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))
-     *           +(DT_AERO(2,AMP_AERO_MAP(n))* AVOL)
-              if (itcon_amp(1,n).gt.0) call inc_diagtcb(i,j,
-     *             (DT_AERO(2,AMP_AERO_MAP(n))* AVOL),
-     *             itcon_amp(1,n),n)
-            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))
-     *           +(DT_AERO(3,AMP_AERO_MAP(n))* AVOL)
-              if (itcon_amp(2,n).gt.0) call inc_diagtcb(i,j,
-     *             (DT_AERO(3,AMP_AERO_MAP(n))* AVOL),
-     *             itcon_amp(2,n),n)
-            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))
-     *           +(DT_AERO(1,AMP_AERO_MAP(n))* AVOL)
-              if (itcon_amp(3,n).gt.0) call inc_diagtcb(i,j,
-     *             (DT_AERO(1,AMP_AERO_MAP(n))* AVOL),
-     *             itcon_amp(3,n),n)
-            do m=4,7
-              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n))
-     *             +(DT_AERO(m,AMP_AERO_MAP(n))* AVOL)
-              if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,
-     *             (DT_AERO(m,AMP_AERO_MAP(n))* AVOL),
-     *             itcon_amp(m,n),n)
-            end do
-
+        taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(2,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(1,j,n)=DTR_AMP(1,j,n)+(DT_AERO(2,AMP_AERO_MAP(n)) * AVOL)
+        taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(3,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(2,j,n)=DTR_AMP(2,j,n)+(DT_AERO(3,AMP_AERO_MAP(n)) * AVOL)
+       taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(1,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(3,j,n)=DTR_AMP(3,j,n)+(DT_AERO(1,AMP_AERO_MAP(n)) * AVOL)
+        taijs(i,j,ijts_AMPp(4,n)) =taijs(i,j,ijts_AMPp(4,n))+(DT_AERO(4,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(4,j,n)=DTR_AMP(4,j,n)+(DT_AERO(4,AMP_AERO_MAP(n)) * AVOL)
+        taijs(i,j,ijts_AMPp(5,n)) =taijs(i,j,ijts_AMPp(5,n))+(DT_AERO(5,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(5,j,n)=DTR_AMP(5,j,n)+(DT_AERO(5,AMP_AERO_MAP(n)) * AVOL)
+        taijs(i,j,ijts_AMPp(6,n)) =taijs(i,j,ijts_AMPp(6,n))+(DT_AERO(6,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(6,j,n)=DTR_AMP(6,j,n)+(DT_AERO(6,AMP_AERO_MAP(n)) * AVOL)
+        taijs(i,j,ijts_AMPp(7,n)) =taijs(i,j,ijts_AMPp(7,n))+(DT_AERO(7,AMP_AERO_MAP(n))* AVOL)
+      DTR_AMP(7,j,n)=DTR_AMP(7,j,n)+(DT_AERO(7,AMP_AERO_MAP(n)) * AVOL)
           endif
        select case (trname(n)) !taijs [kg * m2/kg air] -> in acc [kg/kg air]
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ','N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
@@ -275,18 +276,17 @@ C** Surabi's addition to save as /cm-3 or just mult. std o/p by 1.2*1.e-16 to ge
 c       taijs(i,j,ijts_AMPm(l,2,n))=taijs(i,j,ijts_AMPm(l,2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*1.e-6)
 c       if(NACTV(i,j,l,AMP_MODES_MAP(n)) .gt. 10.)
 c    *  write(6,*)"Aerosolconv",AVOL*byam(l,i,j),NACTV(i,j,l,AMP_MODES_MAP(n)),
-c    *l,i,j,n,axyp(i,j),mair,gasc,tk,pres,am(l,i,j)
+c    *l,i,j,n,dxyp(j),mair,gasc,tk,pres,am(l,i,j)
 
 c - 2d PRT Diagnostic
-        if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,
-     *       (DIAM(i,j,l,AMP_MODES_MAP(n))*1d6*1d18),itcon_AMPm(1,n),n) 
-        if (itcon_AMPm(2,n) .gt.0) call inc_diagtcb(i,j,
-     *       NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL ,itcon_AMPm(2,n),n) 
+         DTR_AMPm(1,j,n)=DTR_AMPm(1,j,n)+(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6*1d18)
+         DTR_AMPm(2,j,n)=DTR_AMPm(2,j,n)+NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL
        end select
 
       enddo !n
 c - special diag: Size distribution pdfs
-       if (l.eq.1) taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byam(l,i,j))
+c       if (l.eq.1) 
+c        taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byam(l,i,j))
 c - N_SSA, N_SSC, M_SSA_SU
         taijs(i,j,ijts_AMPext(l,1))=taijs(i,j,ijts_AMPext(l,1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j))
         taijs(i,j,ijts_AMPext(l,2))=taijs(i,j,ijts_AMPext(l,2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j))
@@ -307,6 +307,27 @@ c     enddo
       ENDDO !i
       ENDDO !j
       ENDDO !l
+
+      do n=1,ntmAMP 
+
+      CALL DIAGTCB(DTR_AMP(1,:,n),itcon_amp(1,n),n)
+      CALL DIAGTCB(DTR_AMP(2,:,n),itcon_amp(2,n),n)
+      CALL DIAGTCB(DTR_AMP(3,:,n),itcon_amp(3,n),n)
+      CALL DIAGTCB(DTR_AMP(4,:,n),itcon_amp(4,n),n)
+      CALL DIAGTCB(DTR_AMP(5,:,n),itcon_amp(5,n),n)
+      CALL DIAGTCB(DTR_AMP(6,:,n),itcon_amp(6,n),n)
+      CALL DIAGTCB(DTR_AMP(7,:,n),itcon_amp(7,n),n)
+
+       select case (trname(n))       
+      CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
+     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
+     *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
+      CALL DIAGTCB(DTR_AMPm(1,:,n),itcon_AMPm(1,n),n)
+      CALL DIAGTCB(DTR_AMPm(2,:,n),itcon_AMPm(2,n),n)
+      CASE('M_DD1_DU ','M_DD2_DU ','M_DDD_DU','M_SSA_SS ','M_SSC_SS ','M_SSS_SS')
+      CALL DIAGTCB(DTR_AMPe(:,n),itcon_surf(1,n),n)
+       end select
+      enddo
 
 c      diam_1='diam_1'
 c      call INST_ncoutd(diam_1,DIAM(:,:,:,1))
@@ -470,7 +491,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 !@+    at run-time
 !@auth Susanne Bauer
 !@ver  1.0
-      use domain_decomp_atm, only : dist_grid, get
+      use domain_decomp, only : dist_grid, get
       use model_com, only     : im,lm
       use tracer_com, only    : ntmAMP
       use amp_aerosol
@@ -479,30 +500,30 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H, I_1H, I_0H
+      integer :: ier, J_1H, J_0H
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
       call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H=GRID%I_STRT_HALO
-      I_1H=GRID%I_STOP_HALO 
+ 
 
 ! I,J,L
-      allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
+      allocate(  AQsulfRATE(IM,J_0H:J_1H,LM)   )
 ! other dimensions
-      allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  MASSH2O(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  AMP_dens(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
-      allocate(  VDDEP_AERO(I_0H:I_1H,J_0H:J_1H,nmodes,2))
-      allocate(  NUMB_SS(I_0H:I_1H,J_0H:J_1H,LM,2))
+      allocate(  DTR_AMPe(J_0H:J_1H,ntmAMP)    )
+      allocate(  DTR_AMPm(2,J_0H:J_1H,ntmAMP)  )
+      allocate(  DTR_AMP(7,J_0H:J_1H,ntmAMP)   )
+      allocate(  DIAM(IM,J_0H:J_1H,LM,nmodes)  )
+      allocate(  AMP_TR_MM(IM,J_0H:J_1H,LM,nmodes)  )
+      allocate(  AMP_dens(IM,J_0H:J_1H,LM,nmodes)  )
+      allocate(  NACTV(IM,J_0H:J_1H,LM,nmodes) )
+      allocate(  VDDEP_AERO(IM,J_0H:J_1H,nmodes,2))
+      allocate(  NUMB_SS(IM,J_0H:J_1H,LM,2))
 
       NACTV   = 1.0D-30
       DIAM    = 1.0D-30
-      MASSH2O = 1.0D-30
              
 #ifdef BLK_2MOM
       NACTV      = 1.0D-30
