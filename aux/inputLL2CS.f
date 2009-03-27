@@ -13,9 +13,11 @@
       use DOMAIN_DECOMP_1D, ONLY : init_app
       use DOMAIN_DECOMP_ATM, only : grid,init_grid
       implicit none
-      type (x_2gridsroot) :: x4x5cs32,xll2cs_TOPO,xll2cs_GIC
+      type (x_2gridsroot) :: x4x5cs32,xll2cs_TOPO,xll2cs_OSST,
+     &     xll2cs_GIC
       integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,ims4x5,jms4x5,
-     &     ims_GIC,jms_GIC,ims_STN,jms_STN,ntilessource,ntilestarget,
+     &     ims_GIC,jms_GIC,ims_STN,jms_STN,ims_OSST,jms_OSST,
+     &     ntilessource,ntilestarget,
      &     imt,jmt
 
       call fms_init( )
@@ -32,11 +34,15 @@ c     for RVR 1x1->CS90
 c      ims_RVR=360
 c      jms_RVR=180
 
-c     for OSST, SICE, CDN, VEG, CROPS, TOPINDEX, SOIL, GLMELT 
+c     for SICE, CDN, VEG, CROPS, TOPINDEX, SOIL, GLMELT 
 c     VEGFRAC, LAI : 4x5->CS32
       ims4x5=72
       jms4x5=46
-
+c     for OSST
+      ims_OSST=144
+      jms_OSST=90
+c      ims_OSST=360
+c      jms_OSST=180
 
 c     for GIC 1x1->CS32
       ims_GIC=360
@@ -65,18 +71,25 @@ c     for STN
       call init_regrid_root(xll2cs_GIC,ims_GIC,jms_GIC,
      &     ntilessource,imt,jmt,ntilestarget)
 
+      call init_regrid_root(xll2cs_OSST,ims_OSST,jms_OSST,
+     &     ntilessource,imt,jmt,ntilestarget)
 
+c***   We use 3 different types of interpolation depending on the
+c***   nature of the input file. The first 6 letters indicate the 
+c***   type of interpolation 
 c***   regrid* = conservative regridding
 c***   interp* = bilinear interpolation
+c***   sample* = simple sampling
+c***   The last letters indicate the name of the input file using 
+c***   its alias (TOPO, VEG, AIC...) 
       write(*,*) "IN REGRID INPUT"
 
       if (AM_I_ROOT()) then
          call regridTOPO(xll2cs_TOPO)
-         call regridOSST(x4x5cs32)
+         call regridOSST(xll2cs_OSST)
          call regridSICE(x4x5cs32)
          call regridCDN(x4x5cs32)
          call regridVEG(x4x5cs32)
-         write(*,*) "aft veg"
          call regridCROPS(x4x5cs32)
          call regridTOPINDEX(x4x5cs32)
          call regridSOIL(x4x5cs32)
@@ -98,7 +111,7 @@ c     (i,j,tile) indices.
 c  The resulting file is RDdistocean_CS32.bin
 
       call interpRD(grid,ims_RVR,jms_RVR,imt,jmt)
-      call regridRDSCAL(grid,ims_STN,jms_STN,ntilessource)
+      call sampleRDSCAL(grid,ims_STN,jms_STN,ntilessource)
       call RDijk2ll_CS(grid,imt,jmt)
 
       end program regrid_input
@@ -962,7 +975,7 @@ c*
 
 
 
-      subroutine regridRDSCAL(grid,ims,jms,nts)
+      subroutine sampleRDSCAL(grid,ims,jms,nts)
 c     
 c     regridding scalar quantities used to derive river directions 
 c     using simple sampling scheme (non conservative) 
@@ -1088,8 +1101,9 @@ c      name="STN_C90"
       deallocate(ttargglob,tsource,ttargupst4,ttargdist4,bassId,
      &             tbassId,lon_glob,lat_glob)
 
-      end subroutine regridRDSCAL
+      end subroutine sampleRDSCAL
 c*
+
 
 
 
@@ -1102,16 +1116,28 @@ c     has been interpolated from lower resolution
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
       character*80 :: TITLE,name
+      real*4 :: FOCEAN(x2grids%imsource,x2grids%jmsource)
       real*4 OSTmean(x2grids%imsource,x2grids%jmsource),
      &     OSTend(x2grids%imsource,x2grids%jmsource)
-      integer iu_OSST,i,j,k
+      integer iu_OSST,iu_TOPO,i,j,k
+      real*8 :: missing
+
+c*    Read ocean fraction on input grid
+      iu_TOPO=19
+      name="Z144X90N_nocasp.1"
+      open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
+      read(iu_TOPO) title,FOCEAN
+      close(iu_TOPO)
 
       iu_OSST=20
-      name="OST4X5.B.1876-85avg.Hadl1.1"
+c      name="OST4X5.B.1876-85avg.Hadl1.1"
+      name="OST_144x90.1876-1885avg.HadISST1.1"
+c      name="SST_1x1_HadISST_v1.1_Edges_Avg1979-90_fix2"
       write(*,*) name
       open(iu_OSST, FILE=name,FORM='unformatted', STATUS='old')
+      missing=-9.999999171244748e33
 
-      call read_regrid_write_4D_2R(x2grids,name,iu_OSST)
+      call regrid_mask_OSST(x2grids,name,iu_OSST,FOCEAN,missing)
 
       close(iu_OSST)
 
@@ -2617,8 +2643,9 @@ c*
       real*8, allocatable :: tsource1(:,:,:,:),tsource2(:,:,:,:)
       real*8, allocatable :: ttargglob1(:,:,:),ttargglob2(:,:,:)
       real*4, allocatable :: tout1(:,:,:),tout2(:,:,:),tbig(:,:,:,:)
+      real*4, allocatable :: data1(:,:,:,:),data2(:,:,:,:)
       character*80 :: TITLE(nrecmax),outunformat
-      integer :: maxrec
+      integer :: maxrec,irec
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -2631,6 +2658,8 @@ c*
      &     ims,jms,nts,imt,jmt,ntt
       allocate (tsource1(ims,jms,nts,nrecmax),
      &     tsource2(ims,jms,nts,nrecmax),
+     &     data1(ims,jms,nts,nrecmax),
+     &     data2(ims,jms,nts,nrecmax),
      &     ttargglob1(imt,jmt,ntt),
      &     ttargglob2(imt,jmt,ntt),
      &     tout1(imt,jmt,ntt),
@@ -2639,21 +2668,33 @@ c*
 
       tsource1(:,:,:,:)=0.0
       tsource2(:,:,:,:)=0.0
-      
-      call read_recs_2R(tsource1,tsource2,iuin,TITLE,
-     &     maxrec,ims,jms,nts)
-      
-c      write(*,*) "TITLE RECS",TITLE(:)
-      write(*,*) "maxrec",maxrec
 
-      if (am_i_root()) then      
+      irec=1
+      do
+         read(unit=iuin,END=30) TITLE(irec), data1(:,:,:,irec),
+     &        data2(:,:,:,irec)
+         write(*,*) "tile",TITLE(irec)
+         tsource1(:,:,:,irec)= data1(:,:,:,irec)
+         tsource2(:,:,:,irec)= data2(:,:,:,irec)
+         irec=irec+1
+      enddo
+
+ 30   continue
+
+      maxrec=irec-1
+      close(iuin)
+
+      write(*,*) "maxrec",maxrec
+      write(*,*) "TITLE RECS",TITLE(:)
+
       outunformat=trim(name)//".CS"
       
       write(*,*) outunformat
-      iuout=20
+      iuout=21
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
-      endif
+      open( 33, FILE="ost1",
+     &     FORM='unformatted', STATUS="UNKNOWN")
 
       do ir=1,maxrec
          call root_regrid(x2grids,tsource1(:,:,:,ir),ttargglob1)
@@ -2664,13 +2705,186 @@ c      write(*,*) "TITLE RECS",TITLE(:)
          tbig(:,:,2,:)=tout2
          if (am_i_root()) then
          write(unit=iuout) TITLE(ir),tbig
+         write(unit=33) TITLE(ir),tout1
          write(*,*) "TITLE",TITLE(ir)
          endif
       enddo
       
-      if (am_i_root()) close(iuout) 
-
+      close(iuout) 
+      close(33)
       deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tout1,tout2,
-     &     tbig)
+     &     tbig,data1,data2)
 
       end subroutine read_regrid_write_4D_2R
+c*
+
+
+      subroutine regrid_mask_OSST(x2grids,name,iuin,
+     &    FOCEAN_LL,missing)
+c
+c     regrid OSST using FOCEAN mask
+c
+      use regrid_com
+      type(x_2gridsroot), intent(in) :: x2grids
+      integer, intent(in) :: iuin
+      character*80, intent(in) :: name
+      integer :: iuout
+      real*4,intent(in) :: FOCEAN_LL(x2grids%imsource,
+     &     x2grids%jmsource,x2grids%ntilessource)
+      real*8, allocatable :: foc8(:,:,:)
+      real*4, allocatable :: FOCEAN_CS(:,:,:)
+      real*8, allocatable :: tsource1(:,:,:,:),tsource2(:,:,:,:)
+      real*4, allocatable :: data1(:,:,:,:),data2(:,:,:,:)
+      real*8, allocatable :: ttargglob1(:,:,:),ttargglob2(:,:,:)
+      real*4, allocatable :: tout1(:,:,:),tout2(:,:,:),tbig(:,:,:,:)
+      real*8, intent(in) :: missing
+      character*80 :: TITLE(nrecmax),outunformat,T2,filefcs
+      integer :: maxrec,i,j,k
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      nts=x2grids%ntilessource
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      ntt=x2grids%ntilestarget
+
+      write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
+     &     ims,jms,nts,imt,jmt,ntt
+
+      allocate (tsource1(ims,jms,nts,nrecmax),
+     &     tsource2(ims,jms,nts,nrecmax),
+     &     data1(ims,jms,nts,nrecmax),
+     &     data2(ims,jms,nts,nrecmax),
+     &     ttargglob1(imt,jmt,ntt),
+     &     ttargglob2(imt,jmt,ntt),
+     &     tout1(imt,jmt,ntt),
+     &     tout2(imt,jmt,ntt),
+     &     tbig(imt,jmt,2,ntt),
+     &     FOCEAN_CS(imt,jmt,ntt),
+     &     foc8(ims,jms,nts)
+     &     )
+
+      irec=1    
+      do
+         read(unit=iuin,END=30) TITLE(irec), data1(:,:,:,irec),
+     &        data2(:,:,:,irec)
+
+         tsource1(:,:,:,irec)= data1(:,:,:,irec)
+         tsource2(:,:,:,irec)= data2(:,:,:,irec)
+         irec=irec+1
+      enddo
+
+ 30   continue
+
+      maxrec=irec-1
+
+      close(iuin)
+
+      write(*,*) "maxrec",maxrec
+      write(*,*) "TITLE RECS",TITLE(:)
+
+
+      foc8=FOCEAN_LL
+
+      outunformat=trim(name)//".CS"
+      write(*,*) outunformat
+
+      filefcs="Z_CS32"
+
+      open(50, FILE=filefcs,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+      read(50) T2,FOCEAN_CS
+      write(*,*) T2
+      close(50)
+
+
+      write(*,*) outunformat
+      iuout=21
+      open( iuout, FILE=outunformat,
+     &     FORM='unformatted', STATUS="UNKNOWN")
+      open( 33, FILE="ost1",
+     &     FORM='unformatted', STATUS="UNKNOWN")
+      
+      do ir=1,maxrec
+         call root_regrid_wt(x2grids,foc8,missing,
+     &        tsource1(:,:,:,ir),ttargglob1)
+         call root_regrid_wt(x2grids,foc8,missing,
+     &        tsource2(:,:,:,ir),ttargglob2)
+
+c*       fix inconsistencies between input and target FOCEAN masks
+         do k=1,6
+           do j=2,jmt-1
+             do i=2,imt-1
+             if ( ttargglob1(i,j,k) .eq. missing) 
+     &       write(*,*) "miss",i,j,k,missing
+                if (FOCEAN_CS(i,j,k) .gt. 0) then
+                   if ( ttargglob1(i,j,k) .eq. missing) then
+                      write(*,*) "detected inconsistency1",i,j,k
+                      if (ttargglob1(i+1,j,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i+1,j,k)
+                      elseif (ttargglob1(i+1,j+1,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i+1,j+1,k)
+                      elseif (ttargglob1(i,j+1,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i,j+1,k)
+                      elseif (ttargglob1(i-1,j+1,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i-1,j+1,k) 
+                      elseif (ttargglob1(i-1,j,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i-1,j,k)
+                      elseif (ttargglob1(i-1,j-1,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i-1,j-1,k)
+                      elseif (ttargglob1(i,j-1,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i,j-1,k)
+                      elseif (ttargglob1(i+1,j-1,k) .gt. missing) then
+                         ttargglob1(i,j,k)= ttargglob1(i+1,j-1,k)
+                      else
+                         write(*,*) "PROBLEM WITH INCONSISTENT FOCEAN"
+                      endif
+                  endif
+                  if ( ttargglob2(i,j,k) .eq. missing) then
+                      write(*,*) "detected inconsistency2",i,j,k
+                      if (ttargglob2(i+1,j,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i+1,j,k)
+                      elseif (ttargglob2(i+1,j+1,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i+1,j+1,k)
+                      elseif (ttargglob2(i,j+1,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i,j+1,k)
+                      elseif (ttargglob2(i-1,j+1,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i-1,j+1,k) 
+                      elseif (ttargglob2(i-1,j,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i-1,j,k)
+                      elseif (ttargglob2(i-1,j-1,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i-1,j-1,k)
+                      elseif (ttargglob2(i,j-1,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i,j-1,k)
+                      elseif (ttargglob2(i+1,j-1,k) .gt. missing) then
+                         ttargglob2(i,j,k)= ttargglob2(i+1,j-1,k)
+                      else
+                         write(*,*) "PROBLEM WITH INCONSISTENT FOCEAN"
+                      endif
+
+                   endif
+                else                   
+                   ttargglob2(i,j,k)=missing
+                   ttargglob2(i,j,k)=missing
+                   write(*,*) "fixed pure land cell",i,j,k
+                endif
+             enddo
+          enddo
+       enddo
+       write(*,*) "aft loop incons"
+       tout1(:,:,:)=ttargglob1(:,:,:)
+       tout2(:,:,:)=ttargglob2(:,:,:)
+       tbig(:,:,1,:)=tout1
+       tbig(:,:,2,:)=tout2
+       write(unit=iuout) TITLE(ir),tbig
+       write(unit=33) TITLE(ir),tout1
+       write(*,*) "TITLE",TITLE(ir)
+      enddo
+      
+      close(iuout)
+      close(33)
+      deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tout1,tout2,
+     &     tbig,data1,data2,FOCEAN_CS,foc8)
+
+      end subroutine regrid_mask_OSST
+

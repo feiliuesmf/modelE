@@ -65,7 +65,7 @@ c
       do j=grid%j_strt,grid%j_stop
          do i=grid%i_strt,grid%i_stop
 
-c     find (ilon,jlon) indices of latlon cell which contains the center of the (i,j) CS cell  
+c     find (ilon,jlat) indices of latlon cell which contains the center of the (i,j) CS cell  
             I_lon = ims/2 + 1  + (lon2d_dg(i,j)+.01)/dlon_dg
             J_lat = jms/2 + 1  + (lat2d_dg(i,j)+.01)/dlat_dg
 
@@ -514,7 +514,7 @@ c     rescale by local area
 c*
 
 
-      subroutine parallel_regrid_wt(x2grids,wsource,tsource,   
+      subroutine parallel_regrid_wt(x2grids,wsource,missing,tsource,   
      &     ttarget,atarget)
 
 !@sum  same as parallel regrid but we multiply by weight function wsource
@@ -529,6 +529,7 @@ c*
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
+      real*8 :: missing
       integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey
       character*120:: ofi
       integer ::  status, fid, vid
@@ -604,14 +605,16 @@ c
 
 c            write(*,*) "icub jcub itile xarea=",icub,jcub,itile,
 c     &           x2grids%xgrid%xarea_key(ikey)
-            atarget(icub,jcub,itile) = atarget(icub,jcub,itile) + 
-     &           wsource(ilon,jlat)*x2grids%xgrid%xarea_key(ikey)
-            ttarget(icub,jcub,itile) = ttarget(icub,jcub,itile) + 
-     &           x2grids%xgrid%xarea_key(ikey)
-     &           *wsource(ilon,jlat)*tsource(ilon,jlat) 
+            if ( tsource(ilon,jlat) .gt. missing ) then
+               atarget(icub,jcub,itile) = atarget(icub,jcub,itile)+
+     &              wsource(ilon,jlat)*x2grids%xgrid%xarea_key(ikey)
+               
+               ttarget(icub,jcub,itile) = ttarget(icub,jcub,itile)+
+     &              x2grids%xgrid%xarea_key(ikey)
+     &              *wsource(ilon,jlat)*tsource(ilon,jlat) 
+            endif
          enddo
-       
-
+     
 c
 c     sum all contributions
 c     
@@ -624,10 +627,11 @@ c
             do k=1,6
                do j=1,x2grids%jmtarget
                   do i=1,x2grids%imtarget
-                     if (atarget(i,j,k) .le. 1.e-10) then
-                        ttarget(i,j,k)=0.0
+                     if (atarget(i,j,k) .le. 1.e-10 ) then
+                        ttarget(i,j,k)=missing
                      else
-                        ttarget(i,j,k) = ttarget(i,j,k)/atarget(i,j,k)
+                        ttarget(i,j,k) = ttarget(i,j,k)
+     &                       /atarget(i,j,k)
                      endif
                   enddo
                enddo
@@ -792,6 +796,77 @@ c            write(6,*) "END ROOT REGRID LL2CS"
       endif
       
       end subroutine root_regrid
+c*
+
+      subroutine root_regrid_wt(x2gridsroot,wsource,missing,
+     &     tsource,ttarget)
+
+!@sum  Root processor regrids data from source grid to target grid
+!@auth Denis Gueyffier
+      use regrid_com
+      implicit none
+      type (x_2gridsroot), intent(in) :: x2gridsroot
+      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,
+     &     x2gridsroot%ntilessource)
+      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,
+     &     x2gridsroot%ntilestarget)
+     &     ,atarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,
+     &     x2gridsroot%ntilestarget)
+      real*8 :: wsource(x2gridsroot%imsource,x2gridsroot%jmsource,
+     &     x2gridsroot%ntilessource)
+      real *8 :: missing   ! missing value 
+      integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl
+
+
+      if ((x2gridsroot%ntilessource .eq. 1) .and. 
+     &     (x2gridsroot%ntilestarget .eq. 6)) then
+         
+c     ll2cs
+         
+         if (AM_I_ROOT()) then   
+c            write(*,*) "ROOT REGRID LL2CS"
+ 
+            atarget(:,:,:) = 0.d0
+            ttarget(:,:,:) = 0.d0
+            
+
+            do n=1,x2gridsroot%xgridroot%ncells
+               itile=x2gridsroot%xgridroot%tile(n)
+               icc=x2gridsroot%xgridroot%ijcub(1,n)
+               jcc=x2gridsroot%xgridroot%ijcub(2,n)
+               il=x2gridsroot%xgridroot%ijlatlon(1,n)
+               jl=x2gridsroot%xgridroot%ijlatlon(2,n)
+
+               if ( tsource(il,jl,1) .gt. missing ) then
+               atarget(icc,jcc,itile) = atarget(icc,jcc,itile) 
+     &              + wsource(il,jl,1)
+     &              *x2gridsroot%xgridroot%xgrid_area(n)
+
+               ttarget(icc,jcc,itile) = ttarget(icc,jcc,itile) 
+     &              + x2gridsroot%xgridroot%xgrid_area(n)
+     &              *wsource(il,jl,1)
+     &              *tsource(il,jl,1)
+               endif
+            enddo
+            
+            do itile=1,x2gridsroot%ntilestarget
+               do j=1,x2gridsroot%jmtarget
+                  do i=1,x2gridsroot%imtarget
+                     if (atarget(i,j,itile) .le. 0.) then
+                        ttarget(i,j,itile) = missing
+                     else
+                        ttarget(i,j,itile) = ttarget(i,j,itile)
+     &                    /atarget(i,j,itile)
+                     endif
+                  enddo
+               enddo
+            enddo
+c            write(6,*) "END ROOT REGRID LL2CS"
+         endif
+         
+      endif
+      
+      end subroutine root_regrid_wt
 c*
 
          
@@ -1145,94 +1220,6 @@ c
 
       end subroutine init_regrid_root
 c*
-
-
-
-c      subroutine readt_regrid_parallel(x2gridsroot,iunit,name,nskip,
-c     &     ttargloc,ipos)
-c
-c!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
-c!@+    then scatter to all subdomains
-c!@auth Denis Gueyffier
-c
-c      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
-c      use gatscat_mod
-c      implicit none
-c      type (x_2gridsroot), intent(in) :: x2gridsroot
-c      integer, intent(in) :: iunit
-c      character*16, intent(in) :: name
-c      integer, intent(in) :: nskip
-c
-c      real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
-c      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
-c     &     x2gridsroot%ntilessource) 
-c      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
-c     &     x2gridsroot%ntilessource) 
-c      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
-c     &     x2gridsroot%ntilestarget)
-c      real*4 :: X              
-c      integer, intent(in) :: ipos
-c      integer :: n,ierr
-c      character*80 :: TITLE     
-c
-c
-c      if (AM_I_ROOT()) then   
-c         do n=1,ipos-1
-c            read(UNIT=iunit,IOSTAT=ierr)
-c         enddo
-c         read(UNIt=iunit,IOSTAT=ierr) TITLE, (X,n=1,nskip), tsource4
-cc     convert from real*4 to real*8
-c         tsource=tsource4
-cc     Regrid, form global array
-c         call root_regrid(x2gridsroot,tsource,ttarget)
-c       endif
-c
-cc     Scatter data to every processor
-c      call unpack_data(ttarget,ttargloc)
-c      write(6,*) "TTARGLOC>>>",ttargloc,"<<<<"
-c      end subroutine readt_regrid_parallel
-c*
-
-
-c      subroutine dread_regrid_parallel(x2gridsroot,iunit,name,ttargloc)
-c     
-c!@sum  Read input data on lat-lon grid, regrid to global cubbed sphere grid
-c!@+    then scatter to all subdomains
-c!@auth Denis Gueyffier
-c
-c      use regrid_com, only :gid,AM_I_ROOT,x_2gridsroot
-c      use gatscat_mod
-c      implicit none
-c      type (x_2gridsroot), intent(in) :: x2gridsroot
-c      integer, intent(in) :: iunit
-c      character*16, intent(in) :: name
-c
-c      real*8, intent(inout) :: ttargloc(is:ie,js:je) ! remapped & scattered data 
-c      real*4 :: tsource4(x2gridsroot%imsource,x2gridsroot%jmsource,   ! real*4 data read from input file
-c     &     x2gridsroot%ntilessource) 
-c      real*8 :: tsource(x2gridsroot%imsource,x2gridsroot%jmsource,  
-c     &     x2gridsroot%ntilessource) 
-c      real*8 :: ttarget(x2gridsroot%imtarget,x2gridsroot%jmtarget,  
-c     &     x2gridsroot%ntilestarget)
-c      real*4 :: X              
-c      integer :: n,ierr
-c
-c  
-c      if (AM_I_ROOT()) then   
-c         read(UNIt=iunit,IOSTAT=ierr) tsource4
-cc     convert from real*4 to real*8
-c         tsource=tsource4
-cc     Regrid, form global array
-c         call root_regrid(x2gridsroot,tsource,ttarget)
-c       endif
-c
-cc     Scatter data to every processor
-c      call unpack_data(ttarget,ttargloc)
-c      write(6,*) "TTARGLOC>>>",ttargloc,"<<<<"
-c
-c      end subroutine dread_regrid_parallel
-c*
-
 
 
 

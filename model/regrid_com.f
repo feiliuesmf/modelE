@@ -18,7 +18,6 @@
 
       integer ::  is,ie,js,je,isd,ied,jsd,jed,gid,mytile
 
-      integer,parameter:: dom_per_tile=4   ! #domains per cube face
       integer, parameter :: nrecmax=200 ! max #records in input files
 
       private :: xgrid
