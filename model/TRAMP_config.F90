@@ -56,6 +56,7 @@
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NAEROBOX=NAEROVARS+NEXTRA 
       INTEGER, PARAMETER :: NWEIGHTS=NMODES*NPOINTS   
+      INTEGER, PARAMETER :: NBINS = 30
 !-------------------------------------------------------------------------------------------------------------------------------------
 !     4. Optionally edit the table of coagulation interactions.
 !        The donor modes may not be modified. Each receptor mode must contain all species present in either donor mode.
