@@ -533,7 +533,12 @@
           ENDDO
         ENDIF
         AVG_DP_OF_AVG_MASS_METERS = SUM( DP(:)*NI(:) ) / SUM( NI(:) )  ! [m] used in AERO_NPF, KK02 gamma expression 
+      ELSE
+         DO I=1,NWEIGHTS
+          DIAM(IXXX,IYYY,ILAY,I) = DP(I)   ! [m] - Store for use outside this routine.
+         ENDDO
       ENDIF
+      
       !----------------------------------------------------------------------------------------------------------------
       ! Update the ambient and dry geometric mean diameters. 
       !----------------------------------------------------------------------------------------------------------------
