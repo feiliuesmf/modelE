@@ -4100,45 +4100,20 @@ C****
      *     , trmo,dxypo
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : get, pack_data,unpack_data
-     *     , AM_I_ROOT, agrid=>grid
-     *     , PACK_COLUMN, UNPACK_COLUMN
-      USE OCEANR_DIM, only : ogrid
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, get,pack_data, AM_I_ROOT  
+      USE OCEANR_DIM, only : oGRID
 
-c      USE GEOM, only : dxyp
-
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
 #ifdef TRACERS_WATER
-      USE FLUXES,  only : aTRPREC=>TRPREC, aTRUNPSI=>TRUNPSI
       USE OFLUXES, only : oTRPREC, oTRUNPSI
 #endif
-#endif
       USE SEAICE_COM, only : aRSI=>RSI
-      USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC
-     *     , aRUNPSI=>RUNPSI, aSRUNPSI=>SRUNPSI, aERUNPSI=>ERUNPSI
 
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
 
       IMPLICIT NONE
-c      REAL*8, DIMENSION(IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
-c     *   PREC,EPREC,RUNPSI,RSI,SRUNPSI,ERUNPSI
-c#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-c      REAL*8, DIMENSION(NTM,IMO,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO) ::
-c     *   trprec,trunpsi
-c#endif
 
-      REAL*8, DIMENSION(IMA,JMA) :: aPREC_glob, aEPREC_glob
-     *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
-     *      , aRSI_glob
-      REAL*8, DIMENSION(IMO,JMO) :: oPREC_glob, oEPREC_glob
-     *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
-     *      , oRSI_glob
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRPREC_glob, aTRUNPSI_glob
-      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRPREC_glob, oTRUNPSI_glob
-#endif
+      REAL*8, DIMENSION(IMA,JMA) :: aRSI_glob
 
       INTEGER I,J
 
@@ -4152,49 +4127,13 @@ C**** save surface variables before any fluxes are added
 C***  Gather the precipitation arrays on atmospheric grid
 C***    into the global arrays
 
-      CALL PACK_DATA  (agrid,    aPREC,    aPREC_glob)
-      CALL PACK_DATA  (agrid,   aEPREC,   aEPREC_glob)
-      CALL PACK_DATA  (agrid,  aRUNPSI,  aRUNPSI_glob)
-      CALL PACK_DATA  (agrid, aSRUNPSI, aSRUNPSI_glob)
-      CALL PACK_DATA  (agrid, aERUNPSI, aERUNPSI_glob)
-      CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      CALL PACK_COLUMN(agrid,  aTRPREC,  aTRPREC_glob)    !pack_column in dd2d ?
-      CALL PACK_COLUMN(agrid, aTRUNPSI, aTRUNPSI_glob)
-#endif
+      CALL PACK_DATA  (agrid, aRSI, aRSI_glob)
 C*
-C***  Do interpolation to the ocean grid
-C*
-      if(AM_I_ROOT()) then
 #ifndef CUBE_GRID
-        call INT_AG2OG_precip(
-     *       aRSI_glob, aPREC_glob,aEPREC_glob
-     *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
-     *     , oRSI_glob, oPREC_glob,oEPREC_glob
-     *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-     *     , aTRPREC_glob, aTRUNPSI_glob
-     *     , oTRPREC_glob, oTRUNPSI_glob
+
+      CALL INT_AG2OG_precip(aRSI_glob)
+
 #endif
-     *     )
-#endif
-      end if
-
-C***  Scatter the precipitation arrays to the ocean grid
-
-      CALL UNPACK_DATA  (ogrid,    oPREC_glob,    oPREC)
-      CALL UNPACK_DATA  (ogrid,   oEPREC_glob,   oEPREC)
-      CALL UNPACK_DATA  (ogrid,  oRUNPSI_glob,  oRUNPSI)
-      CALL UNPACK_DATA  (ogrid, oSRUNPSI_glob, oSRUNPSI)
-      CALL UNPACK_DATA  (ogrid, oERUNPSI_glob, oERUNPSI)
-      CALL UNPACK_DATA  (ogrid,     oRSI_glob,     oRSI)
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      CALL UNPACK_COLUMN(ogrid,  oTRPREC_glob,  oTRPREC)
-      CALL UNPACK_COLUMN(ogrid, oTRUNPSI_glob, oTRUNPSI)
-#endif
-C*
-
-
 C**** Convert fluxes on atmospheric grid to oceanic grid
 C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing

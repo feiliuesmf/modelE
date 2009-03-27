@@ -1,5 +1,236 @@
 #include "rundeck_opts.h"
 
+      MODULE INT_AG2OG_MOD
+
+!@sum INT_AG2OG_MOD contains subroutines for conversion 2D, 3D, etc. 
+!!    arrays from atm. to the ocean grid 
+!@auth Larissa Nazarenko
+!@ver  1.0
+      PRIVATE
+      PUBLIC INT_AG2OG
+
+      Interface INT_AG2OG
+      Module Procedure INT_AG2OG_2D
+      End Interface
+
+      contains
+
+      SUBROUTINE INT_AG2OG_2D(aA,oA,aWEIGHT,aFACTOR,oFACTOR)
+
+!@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_DATA, UNPACK_DATA
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER
+
+      REAL*8, INTENT(IN)  :: aA(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) :: oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:), oA_glob(:,:)
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA_glob(aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 2D array on atmospheric grid into the global array
+
+      CALL PACK_DATA (aGRID, aA, aA_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        aFtemp(:,:) = aA_glob(:,:)*aFactor(:,:)
+        aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+        call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+        oA_glob(:,:) = oFtemp(:,:)*oFactor(:,:)
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_DATA (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob)
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_2D
+
+      SUBROUTINE INT_AG2OG_3D(aA,oA,aWEIGHT,aFACTOR,oFACTOR,NT)
+
+!@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_COLUMN, UNPACK_COLUMN
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, NT,N
+
+      REAL*8, INTENT(IN)  :: 
+     *  aA(NT,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) :: 
+     *  oA(NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA_glob(NT,aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(NT,oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 2D array on atmospheric grid into the global array
+
+      CALL PACK_COLUMN (aGRID, aA, aA_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        DO N=1,NT
+          aFtemp(:,:) = aA_glob(N,:,:)*aFactor(:,:)
+          aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+          call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+          oA_glob(N,:,:) = oFtemp(:,:)*oFactor(:,:)
+        END DO
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_COLUMN (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob)
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_3D
+
+      END MODULE INT_AG2OG_MOD
+
+#ifndef CUBE_GRID
+      SUBROUTINE INT_AG2OG_precip(aRSI_glob)
+
+!@sum  INT_AG2OG_precip is for interpolation of precipitation
+!!       arrays from atmospheric grid to the ocean grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im, aJM=>jm
+      USE OCEAN,      only : oIM=>im, oJM=>jm
+
+      USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM
+      Use GEOM,  only : aDXYP, aDLATM=>DLATM
+
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
+
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : NTM
+#ifdef TRACERS_WATER
+      USE FLUXES,  only : aTRPREC=>TRPREC, aTRUNPSI=>TRUNPSI
+      USE OFLUXES, only : oTRPREC, oTRUNPSI
+#endif
+#endif
+      USE SEAICE_COM, only : aRSI=>RSI
+      USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC
+     *     , aRUNPSI=>RUNPSI, aSRUNPSI=>SRUNPSI, aERUNPSI=>ERUNPSI
+
+      USE OFLUXES, only : oRSI, oPREC, oEPREC
+     *     , oRUNPSI, oSRUNPSI, oERUNPSI
+
+      USE INT_AG2OG_MOD, only : INT_AG2OG
+
+      IMPLICIT NONE
+
+      INTEGER J
+
+      REAL*8, INTENT(IN), DIMENSION(aIM,aJM) :: aRSI_glob
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFactor, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFactor
+
+      aWEIGHT(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction
+      aFactor(:,:) = 1.d0
+      oFactor(:,:) = 1.d0
+      CALL INT_AG2OG(aPREC,oPREC, aWEIGHT, aFactor,oFactor)
+
+      DO J = 1,oJM
+        oFactor(:,J) = oDXYPO(J)           
+      END DO
+      CALL INT_AG2OG(aEPREC,oEPREC, aWEIGHT, aFactor,oFactor)
+      
+      aWEIGHT(:,:) = aRSI_glob(:,:)  
+      aFactor(:,:) = 1.d0
+      oFactor(:,:) = 1.d0
+      CALL INT_AG2OG(aRUNPSI,oRUNPSI, aWEIGHT, aFactor,oFactor)
+
+      DO J = 1,oJM
+        oFactor(:,J) = oDXYPO(J)           
+      END DO
+      CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT, aFactor,oFactor)
+
+      CALL INT_AG2OG(aERUNPSI,oERUNPSI, aWEIGHT, aFactor,oFactor)
+
+      aWEIGHT(:,:) = 1.d0
+      aFactor(:,:) = 1.d0
+      oFactor(:,:) = 1.d0
+      CALL INT_AG2OG(aRSI,oRSI, aWEIGHT, aFactor,oFactor)
+
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+
+      aWEIGHT(:,:) = 1.- aRSI_glob(:,:) 
+      DO J = 1,aJM
+        aFactor(:,J) = 1./aDXYP(J)           
+      END DO
+      DO J = 1,oJM
+        oFactor(:,J) = oDXYPO(J)           
+      END DO
+      CALL INT_AG2OG(aTRPREC,oTRPREC, aWEIGHT, aFactor,oFactor,NTM)
+      
+      aWEIGHT(:,:) = aRSI_glob(:,:)  
+      aFactor(:,:) = 1.d0
+      CALL INT_AG2OG(aTRUNPSI,oTRUNPSI, aWEIGHT, aFactor,oFactor,NTM)
+#endif
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_precip
+#endif  !!  CUBE_GRID
+
       SUBROUTINE OG2AG
 !@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates
 !!      them to the atmospheric grid, scatters them on the atmospheric grid
@@ -291,124 +522,6 @@ C**** surface tracer concentration
 
       RETURN
       END SUBROUTINE scatter_ocean1
-
-#ifndef CUBE_GRID
-      SUBROUTINE INT_AG2OG_precip(
-     *       aRSI_glob, aPREC_glob,aEPREC_glob
-     *     , aRUNPSI_glob,aSRUNPSI_glob,aERUNPSI_glob
-     *     , oRSI_glob, oPREC_glob,oEPREC_glob
-     *     , oRUNPSI_glob,oSRUNPSI_glob,oERUNPSI_glob
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-     *     , aTRPREC_glob, aTRUNPSI_glob
-     *     , oTRPREC_glob, oTRUNPSI_glob
-#endif
-     *     )
-!@sum  INT_AG2OG is for interpolation of precipitation arrays
-!!      from atmospheric grid to the ocean grid
-!@auth Larissa Nazarenko
-!@ver  1.0
-
-      USE RESOLUTION, only : ima=>im,jma=>jm
-      USE OCEAN, only : imo=>im,jmo=>jm
-
-      USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM
-      Use GEOM,  only : aDXYP, aDLATM=>DLATM
-
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
-
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
-#endif
-      IMPLICIT NONE
-
-      INTEGER I,J, N
-
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) ::
-     *        aPREC_glob, aEPREC_glob
-     *      , aRUNPSI_glob, aSRUNPSI_glob, aERUNPSI_glob
-     *      , aRSI_glob
-
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) ::
-     *        oPREC_glob, oEPREC_glob
-     *      , oRUNPSI_glob, oSRUNPSI_glob, oERUNPSI_glob
-     *      , oRSI_glob
-
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) ::
-     *        aTRPREC_glob, aTRUNPSI_glob
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) ::
-     *        oTRPREC_glob, oTRUNPSI_glob
-#endif
-      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aFweight
-      REAL*8, DIMENSION(IMO,JMO) :: oFtemp
-      REAL*8  diff
-
-!      write (555,*) ' INT_AG2OG_precip#1: oDLATM,aDLATM= ',oDLATM,aDLATM
-
-      aONES(:,:) = 1.d0
-      aFweight(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction
-
-      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
-
-      aFtemp(:,:) = aPREC_glob(:,:)                         ! kg/m^2
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFweight, aFtemp, oFtemp)
-      oPREC_glob(:,:) = oFtemp(:,:)                         ! kg/m^2
-
-      aFtemp(:,:) = aEPREC_glob(:,:)                        ! J/m^2
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFweight, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oEPREC_glob(:,J) = oFtemp(:,J)*oDXYPO(J)            ! J
-      END DO
-
-      aFtemp(:,:) = aRUNPSI_glob(:,:)                       ! kg/m^2
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oRUNPSI_glob(:,:) = oFtemp(:,:)                       ! kg/m^2
-
-      aFtemp(:,:) = aSRUNPSI_glob(:,:)                      ! kg/m^2
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oSRUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! kg
-      END DO
-
-      aFtemp(:,:) = aERUNPSI_glob(:,:)                      ! J/m^2
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oERUNPSI_glob(:,J) = oFtemp(:,J)*oDXYPO(J)          ! J
-      END DO
-
-      aFtemp(:,:) = aRSI_glob(:,:)
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oRSI_glob(:,:) = oFtemp(:,:)
-
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      DO N=1,NTM
-      DO J = 1,JMA
-        aFtemp(:,J) = aTRPREC_glob(N,:,J)/aDXYP(:,J)        ! kg/m^2
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFweight, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oTRPREC_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)         ! kg
-      END DO
-
-      aFtemp(:,:) = aTRUNPSI_glob(N,:,:)                    ! kg/m^2
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oTRUNPSI_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)        ! kg
-      END DO
-      END DO
-#endif
-
-      RETURN
-      END SUBROUTINE INT_AG2OG_precip
-#endif
 
 #ifndef CUBE_GRID
       SUBROUTINE INT_AG2OG_oceans(
