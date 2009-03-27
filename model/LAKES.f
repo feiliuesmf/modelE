@@ -424,9 +424,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE GEOM, only : axyp,imaxj,lonlat_to_ij,lon2d_dg,lat2d_dg
-#ifndef CUBE_GRID
-     &     ,dyv
-#endif
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0
       USE FLUXES, only : gtracer
@@ -466,9 +463,6 @@ c***      Type (ESMF_HaloDirection) :: direction
       REAL*8, dimension(2) :: ll
       REAL*4, dimension(nrvrmx) :: lat_rvr,lon_rvr
       INTEGER get_dir
-#ifdef CUBE_GRID
-      real*8 :: dyv(2) ! dummy to allow compilation.  not used.
-#endif
 
       CALL GET(GRID, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
@@ -744,15 +738,10 @@ C****
 
       function horzdist_2pts(i1,j1,i2,j2)
       use constant, only : radius
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       use geom, only : lon2d,sinlat2d,coslat2d,axyp
-#else
-      use geom, only : dxp,dyv,dyp,dxv
-#endif
       implicit none
       real*8 :: horzdist_2pts
       integer :: i1,j1,i2,j2
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       real*8 :: x1,y1,z1, x2,y2,z2
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = SQRT(AXYP(I1,J1))
@@ -765,20 +754,6 @@ C****
         z2 = sinlat2d(i2,j2)
         horzdist_2pts = radius*acos(x1*x2+y1*y2+z1*z2)
       endif
-#else
-c perhaps replace these calculations with great circle distances later
-      integer :: jmax
-      jmax = max(j1,j2)
-      if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
-        horzdist_2pts = 0.5*SQRT(DXP(J1)*DXP(J1)+DYP(J1)*DYP(J1))
-      elseif(i1.eq.i2) then ! north-south
-        horzdist_2pts = dyv(jmax)
-      elseif(j1.eq.j2) then ! east-west
-        horzdist_2pts = dxp(j1)
-      else  ! diagonal
-        horzdist_2pts = sqrt(dxv(jmax)*dxv(jmax) + dyv(jmax)*dyv(jmax))
-      endif
-#endif
       end function horzdist_2pts
 
       integer function get_dir(I,J,ID,JD,IM,JM)
