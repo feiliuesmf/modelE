@@ -15,7 +15,7 @@ c -----------------------------------------------------------------
 
       USE MODEL_COM,   only: lm,itime,itimeI
       USE TRACER_COM,  only: TRM
-      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb !Diagnostics
+      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
 
       IMPLICIT NONE
 
@@ -66,12 +66,6 @@ c Shortwave: -------------------------------------------------------------------
           MB = min(15,MB)
           MD = min(23,MD)
           TTAUSV(l,n) = NUMB_LEV(l,n) * AMP_Q55(MA,MB,MD) 
-c          if (itime.gt.14533.and.n.eq.3.and.l.eq.1) print*,'DU',TTAUSV(l,n),AMP_Q55(MA,MB,MD),
-c     +    MA,MB,MD, Reff_LEV(l,n)
-c          if (itime.gt.14533.and.n.eq.7.and.l.eq.1) print*,'SS',TTAUSV(l,n),AMP_Q55(MA,MB,MD),
-c     +    MA,MB,MD, Reff_LEV(l,n)
-c          if (itime.gt.14533.and.n.eq.2.and.l.eq.1) print*,'SU',TTAUSV(l,n),AMP_Q55(MA,MB,MD),
-c     +    MA,MB,MD, Reff_LEV(l,n)
 
       DO w = 1,6  !wavelength
          do MA = 1,17
@@ -90,10 +84,11 @@ c     +    MA,MB,MD, Reff_LEV(l,n)
           MB = min(15,MB)
           MD = min(23,MD)
 
-          EXT(l,w) = EXT(l,w) + ( AMP_EXT(MA,MB,w,MD) * TTAUSV(l,n))
+          EXT(l,w) = EXT(l,w) + ( AMP_EXT(MA,MB,w,MD) * TTAUSV(l,n)) * FSTOPX(n)
           HELP     = ((GCB(l,w) *  SCT(l,w) ) + (AMP_ASY(MA,MB,w,MD) * AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n)) ) 
-          SCT(l,w) = SCT(l,w) +  (AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n))
+          SCT(l,w) = SCT(l,w) +  (AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n)) * FSTOPX(n)
           GCB(l,w) = HELP / (SCT(l,w)+ 1.D-10)
+          GCB(l,w) = GCB(l,w) * FSTOPX(n)
 
           aesqex(l,w,n)= AMP_EXT(MA,MB,w,MD) * TTAUSV(l,n) 
           aesqsc(l,w,n)= AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n) 
@@ -105,7 +100,7 @@ C Longwave: --------------------------------------------------------------------
       NS = SHELL_CLASS(n)
       Vf(:)=dry_Vf_LEV(l,n,1:6)
       CALL GET_LW(NA,NS,Reff_LEV(l,n),AMP_TAB,Vf)
-         TAB(l,:) = TAB(l,:) + AMP_TAB(:) *  TTAUSV(l,n)
+         TAB(l,:) = TAB(l,:) + AMP_TAB(:) *  TTAUSV(l,n) * FTTOPX(n)
       ENDDO   ! modes
       ENDDO   ! level
 
@@ -132,10 +127,10 @@ c -----------------------------------------------------------------
 !@sum Puts AMP Aerosols in 1 dimension CALLED in RADIA
 !@auth Susanne Bauer
 
-      USE AMP_AEROSOL, only: DIAM, Reff_LEV, NUMB_LEV, RindexAMP, MASSH2O,NUMB_SS,dry_Vf_LEV
+      USE AMP_AEROSOL, only: DIAM, Reff_LEV, NUMB_LEV, RindexAMP,NUMB_SS,dry_Vf_LEV
       USE TRACER_COM,  only: TRM, ntmAMP, AMP_AERO_MAP,AMP_NUMB_MAP,AMP_MODES_MAP,trname
       USE AERO_CONFIG, only: NMODES
-      USE AERO_SETUP,  only: SIG0   !(nmodes * npoints) lognormal parameters for each mode
+      USE AERO_SETUP,  only: SIG0, CONV_DPAM_TO_DGN   !(nmodes * npoints) lognormal parameters for each mode
       USE GEOM,        only: BYAXYP ! inverse area of gridbox [m-2]
       IMPLICIT NONE
 
@@ -179,7 +174,7 @@ c Andies data incl Solar weighting - integral over 6 radiation band
 
     ! + Effective Radius [um] per Mode
       DO n=1,nmodes
-      Reff_LEV(l,n) = DIAM(i,j,l,n) * 0.5e6 * exp(2.5 * log(SIG0(n))**2)
+      Reff_LEV(l,n) = DIAM(i,j,l,n) * CONV_DPAM_TO_DGN(n)* 0.5e6
       ENDDO
 
       ! + Mass and Number Concentration
@@ -207,7 +202,7 @@ c Andies data incl Solar weighting - integral over 6 radiation band
        ! NO3   
       Mass(n,6) = Mass(n,1) / Sum(Mass(:,1)) * NO3
       ! H2O
-      Mass(n,7) = MASSH2O(i,j,l,n) /(Sum(MASSH2O(i,j,l,:)) + TINYNUMER)  * H2O
+      Mass(n,7) = Mass(n,1) /(Sum(Mass(:,1)) + TINYNUMER)  * H2O
       ENDDO
       DO s=1,7  ! loop over species 
       DO n=1,nmodes  ! loop over modes
