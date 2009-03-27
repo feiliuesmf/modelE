@@ -3,7 +3,7 @@
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
 
-#define PHENOLOGY_DIAG
+!#define PHENOLOGY_DIAG
 
       use ent_types
       use ent_const

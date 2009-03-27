@@ -209,7 +209,7 @@ c$$$      end do
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
-     &     Tpooldata, ! hdata3d,dbhdata3d,popdata3d,craddata3d,
+     &     Tpooldata, 
      &     do_soilinit,do_phenology_activegrowth)
       implicit none
       integer,intent(in) :: jday, year
@@ -230,10 +230,7 @@ c$$$      end do
      &     I0:I1,J0:J1):: Tpooldata !in g/m2 -PK
       logical,intent(in) :: do_soilinit
       logical,intent(in) :: do_phenology_activegrowth
-cddd      real*8,intent(out) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
-cddd      real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)
-cddd      real*8,intent(out) :: popdata3d(N_COVERTYPES,I0:I1,J0:J1)
-cddd      real*8,intent(out) :: craddata3d(N_COVERTYPES,I0:I1,J0:J1)
+
       !-----Local------
       integer :: i,j
 
