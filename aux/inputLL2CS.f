@@ -87,6 +87,7 @@ c***   its alias (TOPO, VEG, AIC...)
       if (AM_I_ROOT()) then
          call regridTOPO(xll2cs_TOPO)
          call regridOSST(xll2cs_OSST)
+         call testOSST()
          call regridSICE(x4x5cs32)
          call regridCDN(x4x5cs32)
          call regridVEG(x4x5cs32)
@@ -2736,6 +2737,7 @@ c
       real*8, allocatable :: tsource1(:,:,:,:),tsource2(:,:,:,:)
       real*4, allocatable :: data1(:,:,:,:),data2(:,:,:,:)
       real*8, allocatable :: ttargglob1(:,:,:),ttargglob2(:,:,:)
+      real*8, allocatable :: tt1(:,:,:),tt2(:,:,:)
       real*4, allocatable :: tout1(:,:,:),tout2(:,:,:),tbig(:,:,:,:)
       real*8, intent(in) :: missing
       character*80 :: TITLE(nrecmax),outunformat,T2,filefcs
@@ -2757,6 +2759,8 @@ c
      &     data2(ims,jms,nts,nrecmax),
      &     ttargglob1(imt,jmt,ntt),
      &     ttargglob2(imt,jmt,ntt),
+     &     tt1(0:imt+1,0:jmt+1,ntt),
+     &     tt2(0:imt+1,0:jmt+1,ntt),
      &     tout1(imt,jmt,ntt),
      &     tout2(imt,jmt,ntt),
      &     tbig(imt,jmt,2,ntt),
@@ -2811,80 +2815,142 @@ c
          call root_regrid_wt(x2grids,foc8,missing,
      &        tsource2(:,:,:,ir),ttargglob2)
 
+         tt1(1:imt,1:jmt,:)=ttargglob1(:,:,:)
+         tt2(1:imt,1:jmt,:)=ttargglob2(:,:,:)
+
+         tt1(0,1:jmt,:)=ttargglob1(1,:,:)
+         tt1(imt+1,1:jmt,:)=ttargglob1(imt,:,:)
+         tt1(1:imt,0,:)=ttargglob1(:,1,:)
+         tt1(1:imt,jmt+1,:)=ttargglob1(:,jmt,:)
+
+         tt2(0,1:jmt,:)=ttargglob2(1,:,:)
+         tt2(imt+1,1:jmt,:)=ttargglob2(imt,:,:)
+         tt2(1:imt,0,:)=ttargglob2(:,1,:)
+         tt2(1:imt,jmt+1,:)=ttargglob2(:,jmt,:)
+
 c*       fix inconsistencies between input and target FOCEAN masks
          do k=1,6
-           do j=2,jmt-1
-             do i=2,imt-1
-             if ( ttargglob1(i,j,k) .eq. missing) 
-     &       write(*,*) "miss",i,j,k,missing
+           do j=1,jmt
+             do i=1,imt
                 if (FOCEAN_CS(i,j,k) .gt. 0) then
-                   if ( ttargglob1(i,j,k) .eq. missing) then
-                      write(*,*) "detected inconsistency1",i,j,k
-                      if (ttargglob1(i+1,j,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i+1,j,k)
-                      elseif (ttargglob1(i+1,j+1,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i+1,j+1,k)
-                      elseif (ttargglob1(i,j+1,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i,j+1,k)
-                      elseif (ttargglob1(i-1,j+1,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i-1,j+1,k) 
-                      elseif (ttargglob1(i-1,j,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i-1,j,k)
-                      elseif (ttargglob1(i-1,j-1,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i-1,j-1,k)
-                      elseif (ttargglob1(i,j-1,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i,j-1,k)
-                      elseif (ttargglob1(i+1,j-1,k) .gt. missing) then
-                         ttargglob1(i,j,k)= ttargglob1(i+1,j-1,k)
+                   if ( tt1(i,j,k) .eq. missing) then
+                      if (tt1(i+1,j,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i+1,j,k)
+                      elseif (tt1(i+1,j+1,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i+1,j+1,k)
+                      elseif (tt1(i,j+1,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i,j+1,k)
+                      elseif (tt1(i-1,j+1,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i-1,j+1,k) 
+                      elseif (tt1(i-1,j,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i-1,j,k)
+                      elseif (tt1(i-1,j-1,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i-1,j-1,k)
+                      elseif (tt1(i,j-1,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i,j-1,k)
+                      elseif (tt1(i+1,j-1,k) .gt. missing) then
+                         tt1(i,j,k)= tt1(i+1,j-1,k)
                       else
                          write(*,*) "PROBLEM WITH INCONSISTENT FOCEAN"
                       endif
+                      write(*,*) "fixed->",focean_cs(i,j,k),i,j,k,
+     &                     tt1(i,j,k)
                   endif
-                  if ( ttargglob2(i,j,k) .eq. missing) then
-                      write(*,*) "detected inconsistency2",i,j,k
-                      if (ttargglob2(i+1,j,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i+1,j,k)
-                      elseif (ttargglob2(i+1,j+1,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i+1,j+1,k)
-                      elseif (ttargglob2(i,j+1,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i,j+1,k)
-                      elseif (ttargglob2(i-1,j+1,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i-1,j+1,k) 
-                      elseif (ttargglob2(i-1,j,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i-1,j,k)
-                      elseif (ttargglob2(i-1,j-1,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i-1,j-1,k)
-                      elseif (ttargglob2(i,j-1,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i,j-1,k)
-                      elseif (ttargglob2(i+1,j-1,k) .gt. missing) then
-                         ttargglob2(i,j,k)= ttargglob2(i+1,j-1,k)
+                  if ( tt2(i,j,k) .eq. missing) then
+                      if (tt2(i+1,j,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i+1,j,k)
+                      elseif (tt2(i+1,j+1,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i+1,j+1,k)
+                      elseif (tt2(i,j+1,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i,j+1,k)
+                      elseif (tt2(i-1,j+1,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i-1,j+1,k) 
+                      elseif (tt2(i-1,j,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i-1,j,k)
+                      elseif (tt2(i-1,j-1,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i-1,j-1,k)
+                      elseif (tt2(i,j-1,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i,j-1,k)
+                      elseif (tt2(i+1,j-1,k) .gt. missing) then
+                         tt2(i,j,k)= tt2(i+1,j-1,k)
                       else
                          write(*,*) "PROBLEM WITH INCONSISTENT FOCEAN"
                       endif
-
+                      write(*,*) "fixed->",focean_cs(i,j,k),i,j,k,
+     &                     tt2(i,j,k)
                    endif
                 else                   
-                   ttargglob2(i,j,k)=missing
-                   ttargglob2(i,j,k)=missing
-                   write(*,*) "fixed pure land cell",i,j,k
+                   tt1(i,j,k)=missing
+                   tt2(i,j,k)=missing
+                   write(*,*) "fixed pure land cell",i,j,k,
+     &                  focean_CS(i,j,k)
                 endif
              enddo
           enddo
        enddo
+                      
+
        write(*,*) "aft loop incons"
-       tout1(:,:,:)=ttargglob1(:,:,:)
-       tout2(:,:,:)=ttargglob2(:,:,:)
-       tbig(:,:,1,:)=tout1
-       tbig(:,:,2,:)=tout2
+       tbig(:,:,1,:)=tt1(1:imt,1:jmt,:)
+       tbig(:,:,2,:)=tt2(1:imt,1:jmt,:)
        write(unit=iuout) TITLE(ir),tbig
-       write(unit=33) TITLE(ir),tout1
+       write(unit=33) TITLE(ir),tbig(:,:,1,:)
        write(*,*) "TITLE",TITLE(ir)
       enddo
       
       close(iuout)
       close(33)
-      deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tout1,tout2,
+      deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tt1,tt2,
      &     tbig,data1,data2,FOCEAN_CS,foc8)
 
       end subroutine regrid_mask_OSST
 
+
+      subroutine testOSST
+      character*80 :: name,T2,TITLE(12)
+      real*4 :: FOCEAN(32,32,6)
+      real*4 :: tbig(32,32,2,6)
+      real*4, parameter :: missing = -9.999999171244748e33
+      integer iu_OSST,ir,failed
+      
+      iu_OSST=20
+      name="OSST_CS32"
+      write(*,*) name
+      open(iu_OSST, FILE=name,FORM='unformatted', STATUS='old')
+      
+      open(21,FILE="Z_CS32",FORM='unformatted', STATUS='old')
+      read(21) T2,FOCEAN
+      close(21)
+      
+      do ir=1,12
+         failed=0
+         read(unit=iu_OSST) TITLE(ir),tbig
+         write(*,*) TITLE(ir)
+         do k=1,6
+            do j=1,32
+               do i=1,32
+                  if (tbig(i,j,1,k) .eq. missing) then
+c     write(*,*) "mask cell",i,j,k
+                     if (FOCEAN(i,j,k) .gt. 0) then
+                        failed=1
+                     endif
+                  endif
+                  if (tbig(i,j,2,k) .eq. missing) then
+c     write(*,*) "mask cell",i,j,k
+                     if (FOCEAN(i,j,k) .gt. 0) then
+                        failed=1
+                     endif
+                  endif
+               enddo
+            enddo
+         enddo
+         if (failed) then
+            write(*,*) "record ",ir," failed test"
+         else
+            write(*,*) "record ",ir," succeeded test"
+         endif
+      enddo
+      
+      close(iu_OSST)
+
+      end subroutine testOSST
