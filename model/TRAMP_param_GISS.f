@@ -133,11 +133,11 @@
       ! smaller (accumulation) size class and a standard deviation of 2.0 for the larger (coarse) size class. 
        !-------------------------------------------------------------------------------------------------------------------
       REAL(8), PARAMETER :: DG_DD1 = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
-      REAL(8), PARAMETER :: DG_DD2 = 5.400D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
+      REAL(8), PARAMETER :: DG_DD2 = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1 = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
-      REAL(8), PARAMETER :: DG_DS2 = 5.400D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
+      REAL(8), PARAMETER :: DG_DS2 = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_SSA = 0.370D+00 *2.     ! set to match GISS sea salt emissions         
-      REAL(8), PARAMETER :: DG_SSC = 3.930D+00 *2.     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSC = 1.D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
       !-------------------------------------------------------------------------------------------------------------------
       ! DLW: 021507: End of emissions sizes used at GISS. 
@@ -192,11 +192,11 @@
       ! smaller (accumulation) size class and a standard deviation of 2.0 for the larger (coarse) size class. 
       !-------------------------------------------------------------------------------------------------------------------
       REAL(8), PARAMETER :: DG_DD1_EMIS = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
-      REAL(8), PARAMETER :: DG_DD2_EMIS = 5.400D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
+      REAL(8), PARAMETER :: DG_DD2_EMIS = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1_EMIS = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
-      REAL(8), PARAMETER :: DG_DS2_EMIS = 5.400D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
-      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.370D+00 *2.     ! set to match GISS sea salt emissions         
-      REAL(8), PARAMETER :: DG_SSC_EMIS = 3.930D+00 *2.     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_DS2_EMIS = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
+      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.370D+00 *2     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSC_EMIS = 1.000D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS_EMIS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
       !-------------------------------------------------------------------------------------------------------------------
       ! DLW: 021507: End of emissions sizes used at GISS. 
