@@ -682,7 +682,6 @@ C**** define river mouths
         IRVRMTH(INM)=ij(1) ; JRVRMTH(INM)=ij(2)
 c        write(*,*) "rvr->",namervr(inm),ij(1),ij(2)
 
-c note that irvrmth,jrvrmth are -99 if the mouth is not on the local tile
         if (IRVRMTH(INM).ge.I_0H .and. IRVRMTH(INM).le.I_1H .and.
      *       JRVRMTH(INM).ge.J_0H .and. JRVRMTH(INM).le.J_1H) THEN
           IF (FOCEAN(IRVRMTH(INM),JRVRMTH(INM)).le.0) WRITE(6,*)
