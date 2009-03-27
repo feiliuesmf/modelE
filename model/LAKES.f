@@ -458,6 +458,7 @@ c***      Type (ESMF_HaloDirection) :: direction
       character(len=300) :: out_line
 !@var iwrap true if I direction is periodic and has no halo
       logical :: iwrap
+      integer :: iloop_min,iloop_max,jloop_min,jloop_max
       real*8 :: horzdist_2pts ! external function for now
       REAL*8, allocatable, dimension(:,:) :: down_lat_loc
      *     ,down_lon_loc,down_lat_911_loc,down_lon_911_loc
@@ -623,24 +624,41 @@ C**** Read in down stream lat/lon positions
 C****
 C**** From each box calculate the downstream river box
 C****
-      DO J=MAX(1,J_0H),MIN(J_1H,JM)
-        DO I=I_0H,I_1H
+      if(have_south_pole) then
+        jloop_min=1
+      else
+        jloop_min=j_0h
+      endif
+      if(have_north_pole) then
+        jloop_max=jm
+      else
+        jloop_max=j_1h
+      endif
+      do j=jloop_min,jloop_max
+        iloop_min=i_0h
+        iloop_max=i_1h
+        if(j.lt.1 .or. j.gt.jm) then
+c avoid nonexistent halo corners of a cube face.
+          iloop_min=max(iloop_min,1)
+          iloop_max=min(iloop_max,im)
+        endif
+        do i=iloop_min,iloop_max
           if (down_lon_loc(i,j).gt.-1000.) then
             ll(1)=down_lon_loc(i,j)
             ll(2)=down_lat_loc(i,j)
             call lonlat_to_ij(ll,ij) 
             IFLOW(I,J)=ij(1) ; JFLOW(I,J)=ij(2)
-            DHORZ(I,J) = 
-     *           horzdist_2pts(lon2d_dg(i,j),lat2d_dg(i,j),
-     *           axyp(i,j), down_lon_loc(i,j),down_lat_loc(i,j)) !axyp is passed as an argument to prevent axyp(-99,-99) inside
+            if(iflow(i,j).ge.i_0h .and. iflow(i,j).le.i_1h .and.
+     &         jflow(i,j).ge.j_0h .and. jflow(i,j).le.j_1h) then
+              DHORZ(I,J) = horzdist_2pts(i,j,iflow(i,j),jflow(i,j))
+            endif
           else  ! if land but no ocean, print warning
             IF ((FEARTH0(I,J)+FLICE(I,J)+FLAKE0(I,J).gt.0) .and.
      *           FOCEAN(I,J).le.0 ) THEN
               WRITE(6,*) "Land box has no river direction I,J: ",I,J
      *             ,FOCEAN(I,J),FLICE(I,J),FLAKE0(I,J),FEARTH0(I,J)
             END IF
-            DHORZ(I,J) = horzdist_2pts(lon2d_dg(i,j),lat2d_dg(i,j),
-     *           axyp(i,j),lon2d_dg(i,j),lat2d_dg(i,j) )
+            DHORZ(I,J) = horzdist_2pts(i,j,i,j)
           end if
           if (down_lon_911_loc(i,j).gt.-1000.) then
             ll(1)=down_lon_911_loc(i,j)
@@ -725,50 +743,32 @@ C****
 
       END SUBROUTINE init_LAKES
 
-      function horzdist_2pts(lon1,lat1,aarea,lon2,lat2)
+      function horzdist_2pts(i1,j1,i2,j2)
       use constant, only : radius
-      use geom, only : lonlat_to_ij
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      use constant, only : radian
-      implicit none
-      real*8 :: x1,y1,z1, x2,y2,z2
+      use geom, only : lon2d,sinlat2d,coslat2d,axyp
 #else
       use geom, only : dxp,dyv,dyp,dxv
-      implicit none
-      integer :: jmax
-      integer :: i1,j1,i2,j2
-      real*8 :: ll(2)
-      integer :: ij(2)
 #endif
-      real*8, intent(in) :: lon1,lat1,lon2,lat2
-      real*8, intent(in) :: aarea !passed as an argument to avoid infamous axyp(-99,-99)
+      implicit none
       real*8 :: horzdist_2pts
-
+      integer :: i1,j1,i2,j2
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      if(abs(lon1-lon2) .le. 1.e-8 
-     &     .and. abs(lat1-lat2) .le. 1.e-8) then ! within same box
-        horzdist_2pts = SQRT(aarea)
+      real*8 :: x1,y1,z1, x2,y2,z2
+      if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
+        horzdist_2pts = SQRT(AXYP(I1,J1))
       else                      ! use great circle distance
-        x1 = cos(lat1*radian)*cos(lon1*radian)
-        y1 = cos(lat1*radian)*sin(lon1*radian)
-        z1=sin(lat1*radian)
-        x2 = cos(lat2*radian)*cos(lon2*radian)
-        y2 = cos(lat2*radian)*sin(lon2*radian)
-        z2 = sin(lat2*radian)
+        x1 = coslat2d(i1,j1)*cos(lon2d(i1,j1))
+        y1 = coslat2d(i1,j1)*sin(lon2d(i1,j1))
+        z1 = sinlat2d(i1,j1)
+        x2 = coslat2d(i2,j2)*cos(lon2d(i2,j2))
+        y2 = coslat2d(i2,j2)*sin(lon2d(i2,j2))
+        z2 = sinlat2d(i2,j2)
         horzdist_2pts = radius*acos(x1*x2+y1*y2+z1*z2)
       endif
 #else
 c perhaps replace these calculations with great circle distances later
-      ll(1)=lon1
-      ll(2)=lat1
-      call lonlat_to_ij(ll,ij)
-      i1=ij(1)
-      j1=ij(2)
-      ll(1)=lon2
-      ll(2)=lat2
-      call lonlat_to_ij(ll,ij)
-      i2=ij(1)
-      j2=ij(2)
+      integer :: jmax
       jmax = max(j1,j2)
       if(i1.eq.i2 .and. j1.eq.j2) then ! within same box
         horzdist_2pts = 0.5*SQRT(DXP(J1)*DXP(J1)+DYP(J1)*DYP(J1))
@@ -783,6 +783,7 @@ c perhaps replace these calculations with great circle distances later
       end function horzdist_2pts
 
       integer function get_dir(I,J,ID,JD,IM,JM)
+      use domain_decomp_atm, only : grid
 !@sum get_dir derives the locally orientated river direction
       integer I,J,ID,JD,IM,JM
       integer DI,DJ
@@ -811,21 +812,21 @@ c perhaps replace these calculations with great circle distances later
       elseif (DI.eq.1 .and. DJ.eq.1) then
         get_dir=5
       end if
-      if (J.eq.JM) then         ! north pole
+      if (grid%have_north_pole .and. J.eq.JM) then         ! north pole
         if (DI.eq.0) then
           get_dir=6
         else
           get_dir=8
         end if
-      elseif (J.eq.1) then      ! south pole
+      elseif (grid%have_south_pole .and. J.eq.1) then      ! south pole
         if (DI.eq.0) then
           get_dir=2
         else
           get_dir=8
         end if
-      elseif (J.eq.JM-1) then
+      elseif (grid%have_north_pole .and. J.eq.JM-1) then
         if (JD.eq.JM) get_dir=2
-      elseif (J.eq.2) then
+      elseif (grid%have_south_pole .and. J.eq.2) then
         if (JD.eq.1) get_dir=6
       end if
       if (get_dir.eq.-99) then

@@ -258,9 +258,11 @@ c to the point x,y.
       end function aint
 
       subroutine lonlat_to_ij(ll,ij)
-c converts lon,lat=ll(1:2) into model i,j=ij(1:2)
-c this version is for the gnomonic grid.  ll are in degrees east.
-c if lon,lat do not lie on this tile, i,j are set to -99
+c Converts lon,lat=ll(1:2) into model i,j=ij(1:2).
+c This version is for the gnomonic grid.  ll are in degrees.
+c If lon,lat lie on an adjacent tile, i,j correspond to the
+c continuation of the local i,j index space to that tile.  If
+c lon,lat lie on the opposite side of the cube, ij is set to -99
       use model_com, only : im,jm
       use constant, only : radian,pi,twopi
       use domain_decomp_atm, only : grid
@@ -268,15 +270,27 @@ c if lon,lat do not lie on this tile, i,j are set to -99
       real*8, intent(in) :: ll(2)
       integer, intent(out) :: ij(2)
       real*8 :: x,y,lonshift
-      integer :: tile
+      integer :: tile,n,absn,iorj
       lonshift = ll(1)*radian+shiftwest
       if(lonshift.gt.pi) lonshift=lonshift-twopi
       call ll2csxy(lonshift,ll(2)*radian,x,y,tile)
-      if(tile.eq.grid%tile) then
-        ij(1) = min(1+int(.5*(x+1d0)*im),im)
-        ij(2) = min(1+int(.5*(y+1d0)*jm),jm)
-      else
+      ij(1) = min(1+int(.5*(x+1d0)*im),im)
+      ij(2) = min(1+int(.5*(y+1d0)*jm),jm)
+      absn = abs(tile-grid%tile)
+      if(absn.eq.3) then  ! opposite side of the cube
         ij = -99
+      elseif(absn.gt.0) then ! rotate/shift to ij space of the local tile
+        n = (tile-grid%tile)*(1-2*mod(grid%tile,2))
+        iorj = 1                         ! tiles 1-2/3-4/5-6: shift i
+        if    ((n-2)*(n+4).eq.0) then    ! rotate clockwise, then shift i
+          ij = (/ ij(2), 1+im-ij(1) /)
+        elseif((n+2)*(n-4).eq.0) then    ! rotate counterclockwise,
+          ij = (/ 1+im-ij(2), ij(1) /)   ! then shift j
+          iorj = 2
+        elseif((n-1)*(absn-5).eq.0) then ! tiles 1-6/2-3/4-5: shift j
+          iorj = 2
+        endif
+        ij(iorj) = ij(iorj) + im*(1-2*(absn/4))*(tile-grid%tile)/absn
       endif
       return
       end subroutine lonlat_to_ij
