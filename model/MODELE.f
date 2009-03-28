@@ -504,6 +504,12 @@ C****
 c calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
 
+#ifdef USE_FVCUBED
+c SDRAG considered as column physics so that its KE
+c dissipation gets included in the KE->PE adjustment
+      CALL SDRAG (DTsrc)
+#endif
+
          IDACC(ia_src)=IDACC(ia_src)+1
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1

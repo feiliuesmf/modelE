@@ -321,3 +321,101 @@ c u is associated with odd n, v with even n
       i = grid%i_strt + nv - njm1*ni - 1
       return
       end subroutine get_ij_of_n
+
+      SUBROUTINE SDRAG(DT1)
+!@sum  SDRAG puts a drag on the winds in the top layers of the atmosphere
+!@auth Coefficients from the Original Development Team
+!@ver  1.0
+      USE CONSTANT, only : grav,rgas,sha
+      USE MODEL_COM, only : lm,ls1,u,v,p,t,x_sdrag,csdragl,lsdrag
+     &     ,ang_sdrag,Wc_Jdrag,wmax,vsdragl,psfmpt,dsig
+      USE DYNAMICS, only : pk,pdsig,pedn,ualij,valij
+      USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
+      IMPLICIT NONE
+!@var DT1 time step (s)
+      REAL*8, INTENT(IN) :: DT1
+!@var LSDRAG lowest level at which SDRAG_lin is applied
+C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
+C**** regime (but not above P_CSDRAG)
+      real*8 wl,tl,rho,cdn
+      integer i,j,l
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &     dpdu,dpdv,du,dv
+      real*8, dimension(ls1:lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                         grid%j_strt_halo:grid%j_stop_halo) :: x
+      real*8 xjud,xmid
+
+      integer :: i_0, i_1, j_0, j_1
+      call get(grid, i_strt = i_0, i_stop = i_1,
+     &               j_strt = j_0, j_stop = j_1)
+
+c
+c calculate the slowdown factor X on the A grid
+c
+c      call recalc_agrid_uv ! not needed
+
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+        DO L=LS1,LM
+          TL=T(I,J,L)*PK(L,I,J)
+          RHO=PEDN(L+1,I,J)/(RGAS*TL)
+          WL=SQRT(UALIJ(L,I,J)**2 +VALIJ(L,I,J)**2)
+          xjud=1.
+          if(Wc_JDRAG.gt.0.) xjud=(Wc_JDRAG/(Wc_JDRAG+min(WL,wmax)))**2
+C**** WL is restricted to Wmax by adjusting X, if necessary;
+C**** the following is equivalent to first reducing (U,V), if necessary,
+C**** then finding the drag and applying it to the reduced winds
+          IF(L.ge.LSDRAG) then
+            CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmax))*xjud
+          else
+            CDN=CSDRAGl(l)*xjud
+          endif
+          X(L,I,J)=DT1*RHO*CDN*min(WL,wmax)*GRAV*VSDRAGL(L)/PDSIG(L,I,J)
+          if (wl.gt.wmax) X(L,I,J) = 1. - (1.-X(L,I,J))*wmax/wl
+        END DO
+      END DO
+      END DO
+
+c
+c Apply the slowdown factor on the D grid
+c
+      call halo_update(grid,x,jdim=3)
+      dpdu(:,:)=0.
+      dpdv(:,:)=0.
+      do l=ls1,lm
+      do j=j_0,j_1
+      do i=i_0,i_1
+        xmid = min(.5*(x(l,i,j-1)+x(l,i,j)),1d0)
+        dpdu(i,j) = dpdu(i,j) + u(i,j,l)*xmid*dsig(l)
+        u(i,j,l) = u(i,j,l)*(1.-xmid)
+        xmid = min(.5*(x(l,i-1,j)+x(l,i,j)),1d0)
+        dpdv(i,j) = dpdv(i,j) + v(i,j,l)*xmid*dsig(l)
+        v(i,j,l) = v(i,j,l)*(1.-xmid)
+      enddo
+      enddo
+      enddo
+
+c
+c Conserve the column integrals of U and V by uniformly adding
+c the lost stratospheric momentum to the tropospheric layers
+c
+      if(ang_sdrag.eq.1) then
+        do j=j_0,j_1
+        do i=i_0,i_1
+          du(i,j) = dpdu(i,j)*psfmpt*2./(p(i,j)+p(i,j-1))
+          dv(i,j) = dpdv(i,j)*psfmpt*2./(p(i-1,j)+p(i,j))
+        enddo
+        enddo
+        do l=1,ls1-1
+        do j=j_0,j_1
+        do i=i_0,i_1
+          u(i,j,l) = u(i,j,l) + du(i,j)
+          v(i,j,l) = v(i,j,l) + dv(i,j)
+        enddo
+        enddo
+        enddo
+      endif
+
+      return
+      end subroutine sdrag
