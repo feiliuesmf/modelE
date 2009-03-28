@@ -965,7 +965,7 @@ C**** i.e. no outlet, max extent, more than 100m above original height
      *      *AXYP(IU,JU) .and. KD911(IU,JU).gt.0) THEN ! use emerg dirs 
             KD=KD911(IU,JU)
             JD=JFL911(IU,JU)
-            ID=JFL911(IU,JU)
+            ID=IFL911(IU,JU)
 C**** MWLSILL/D mass associated with full lake (and downstream)
             MWLSILL = RHOW*(HLAKE(IU,JU)+lake_rise_max)*
      *        FLAKE(IU,JU)*AXYP(IU,JU)
