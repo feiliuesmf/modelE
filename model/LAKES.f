@@ -585,8 +585,19 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
       END IF
 
 C**** setting river directions
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
+        iflow(i,j)  = i
+        jflow(i,j)  = j
+        ifl911(i,j) = i
+        jfl911(i,j) = j
+      enddo
+      enddo
+#else
       IFLOW=0  ; JFLOW=0
       IFL911=0 ; JFL911=0
+#endif
       KDIREC=0 ; KD911=0
       RATE=0.  ; nrvr=0
 
@@ -661,10 +672,18 @@ c avoid nonexistent halo corners of a cube face.
             IFL911(I,J)=ij(1) ; JFL911(I,J)=ij(2)
          endif
 C**** do we need get_dir? maybe only need to set KD=0 or >0?
-          IF (IFLOW(I,J).gt.0) KDIREC(I,J)=get_dir(I,J,IFLOW(I,J)
-     *         ,JFLOW(I,J),IM,JM)
-          IF (IFL911(I,J).gt.0) KD911(I,J)=get_dir(I,J,IFL911(I,J)
-     *         ,JFL911(I,J),IM,JM)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+          IF(IFLOW(I,J).ne.I .or. JFLOW(I,J).ne.J)
+#else
+          IF (IFLOW(I,J).gt.0)
+#endif
+     &        KDIREC(I,J)=get_dir(I,J,IFLOW(I,J),JFLOW(I,J),IM,JM)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+          IF(IFL911(I,J).ne.I .or. JFL911(I,J).ne.J)
+#else
+          IF (IFL911(I,J).gt.0)
+#endif
+     &         KD911(I,J)=get_dir(I,J,IFL911(I,J),JFL911(I,J),IM,JM)
         END DO
       END DO
 C**** define river mouths
