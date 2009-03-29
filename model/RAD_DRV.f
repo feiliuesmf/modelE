@@ -1262,11 +1262,7 @@ CCC         STOP 'In Radia: Grnd Temp out of range'
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
           LOC_CHL = chl(I,J)
-          write(*,'(a,3i5,e12.4)')'RAD_DRV, chlorophyll',
-     .              itime,i,j,chl(i,j)
           AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+CHL(I,J)*FOCEAN(I,J)
-!         write(*,'(a,3i5,e12.4,i5)')'RAD_DRV, chlor diag',
-!    .              itime,i,j,chl(i,j),ij_chl
       endif
 #endif
 
