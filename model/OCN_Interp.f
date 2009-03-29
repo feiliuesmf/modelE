@@ -284,6 +284,12 @@ C***  Scatter global array oA_glob to the ocean grid
 #ifdef TRACERS_OCEAN
      *     , aTRAC_glob
 #endif
+#ifdef TRACERS_OceanBiology
+!only for TRACERS_OceanBiology and not for seawifs
+!/bc we interpolate an internal field
+      USE obio_com, only: tot_chlo_glob
+      USE FLUXES, only : CHL, CHL_glob
+#endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM,  only : nstep=>itime
       USE obio_com, only: pCO2_glob
@@ -396,6 +402,23 @@ C**** surface tracer concentration
         aTRAC_glob(:,:,NT)=aFtemp(:,:)
       END DO
 
+#ifdef TRACERS_OceanBiology   
+!only for TRACERS_OceanBiology and not for seawifs
+!/bc we interpolate an internal field 
+      DO J=1,JMO
+        DO I=1,oIMAXJ(J)
+          IF (oFOCEAN(I,J).gt.0.) THEN
+            oFtemp(I,J) = tot_chlo_glob(i,j)
+            ELSE
+              oFtemp(I,J)=0.
+          END IF
+        END DO
+      END DO
+      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
+      call HNTR8P (oFweight, oFtemp, aFtemp)
+      CHL_glob(:,:) = aFtemp(:,:)
+#endif
+
 #ifdef TRACERS_GASEXCH_ocean_CO2
 !in the CO2 gas exchange experiments we do not use trmo_glob but rather pco2
 !pco2 is in uatm
@@ -506,6 +529,10 @@ C**** surface tracer concentration
 #ifdef TRACERS_ON
      *     , aTRAC, aTRAC_glob
 #endif
+#ifdef TRACERS_OceanBiology   
+!do not do this in seawifs case
+      USE FLUXES, only : CHL, CHL_glob
+#endif
 
       CALL UNPACK_DATA(agrid,       aMO_glob, aMO  )
       CALL UNPACK_DATA(agrid,      aUO1_glob, aUO1 )
@@ -518,6 +545,10 @@ C**** surface tracer concentration
       CALL UNPACK_DATA(agrid,       aS0_glob, aS0 )
 #ifdef TRACERS_ON
       CALL UNPACK_DATA(agrid,     aTRAC_glob, aTRAC )
+#endif
+#ifdef TRACERS_OceanBiology   
+!do not do this in seawifs case
+      CALL UNPACK_DATA(agrid,     CHL_glob, CHL )
 #endif
 
       RETURN

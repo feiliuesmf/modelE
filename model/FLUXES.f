@@ -125,6 +125,7 @@ C**** fluxes associated with variable lake fractions
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CHL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CHL_glob
 #endif
 
 #ifdef TRACERS_ON

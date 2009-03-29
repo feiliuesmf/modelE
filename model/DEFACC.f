@@ -2228,7 +2228,7 @@ c
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m45_130
 c
-#if (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
+#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
       k=k+1
       IJ_CHL = k
       lname_ij(k) = 'Total Chlorophyll'

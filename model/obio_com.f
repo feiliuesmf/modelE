@@ -31,6 +31,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2_glob
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
+      real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
 #ifdef OBIO_ON_GARYocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer        !only for gary ocean
@@ -236,6 +237,7 @@ c**** Extract domain decomposition info
       ALLOCATE(pCO2_glob(idm,jdm))           
       ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(tot_chlo_glob(idm,jdm))
 
       end subroutine alloc_obio_com
 
@@ -252,5 +254,20 @@ c**** Extract domain decomposition info
       call pack_data( ogrid, pCO2, pCO2_glob )
 
       end subroutine gather_pCO2
+
+!------------------------------------------------------------------------------
+      subroutine gather_chl
+
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+#else
+      USE HYCOM_DIM, only : ogrid
+#endif
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+
+      call pack_data( ogrid, tot_chlo, tot_chlo_glob )
+
+      end subroutine gather_chl
+
 
       END MODULE obio_com

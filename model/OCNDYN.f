@@ -41,6 +41,9 @@ C?*** For serial ODIF/GM/straits computations:
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only: scatter_tracer_gasexch_com_arrays
 #endif
+#ifdef TRACERS_OceanBiology
+      USE obio_com, only: gather_chl
+#endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_com, only: gather_pCO2
 #endif
@@ -75,6 +78,7 @@ C**** Add ocean biology
       call scatter_tracer_gasexch_com_arrays
 #endif
       call obio_model
+      call gather_chl
 #ifdef TRACERS_GASEXCH_ocean
       call gather_pco2
 #endif
