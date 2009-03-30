@@ -1420,7 +1420,7 @@
 !   The reference document does not use the terms pressure and temperature
 !   above 86 km.
 !----------------------------------------------------------------------------
-      USE CONSTANT, only : radius, 
+      USE CONSTANT, only : radius 
       IMPLICIT NONE
 !============================================================================
 !     A R G U M E N T S                                                     |
