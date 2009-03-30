@@ -28,6 +28,9 @@
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(IMA,JMA,NTM) :: aTRAC_glob
 #endif
+#ifdef TRACERS_OceanBiology
+      REAL*8, DIMENSION(IMA,JMA) :: CHL_glob
+#endif
 
       END MODULE AFLUXES
 

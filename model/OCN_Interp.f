@@ -263,6 +263,9 @@ C***  Scatter global array oA_glob to the ocean grid
 !@auth Larissa Nazarenko
 !@ver  1.0
       USE MODEL_COM, only :
+#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+      USE MODEL_COM, only: nstep=>itime
+#endif
 
       USE RESOLUTION, only : IMA=>IM, JMA=>JM
       USE OCEANRES,   only : IMO, JMO, LMO
@@ -287,8 +290,9 @@ C***  Scatter global array oA_glob to the ocean grid
 #ifdef TRACERS_OceanBiology
 !only for TRACERS_OceanBiology and not for seawifs
 !/bc we interpolate an internal field
+     *     , CHL_glob
       USE obio_com, only: tot_chlo_glob
-      USE FLUXES, only : CHL, CHL_glob
+      USE FLUXES, only : CHL
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM,  only : nstep=>itime
@@ -408,7 +412,9 @@ C**** surface tracer concentration
       DO J=1,JMO
         DO I=1,oIMAXJ(J)
           IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = tot_chlo_glob(i,j)
+            oFtemp(I,J) = tot_chlo_glob(I,J)
+!           write(*,'(a,3i5,e12.4)')'OCN_Interp:',
+!    .       nstep,i,j,tot_chlo_glob(i,j)
             ELSE
               oFtemp(I,J)=0.
           END IF
@@ -531,7 +537,8 @@ C**** surface tracer concentration
 #endif
 #ifdef TRACERS_OceanBiology   
 !do not do this in seawifs case
-      USE FLUXES, only : CHL, CHL_glob
+     *     , CHL_glob
+      USE FLUXES, only : CHL 
 #endif
 
       CALL UNPACK_DATA(agrid,       aMO_glob, aMO  )
@@ -548,6 +555,8 @@ C**** surface tracer concentration
 #endif
 #ifdef TRACERS_OceanBiology   
 !do not do this in seawifs case
+!when chl is computed in the ocean biology module
+!it needs to be passed back into the atmosphere
       CALL UNPACK_DATA(agrid,     CHL_glob, CHL )
 #endif
 

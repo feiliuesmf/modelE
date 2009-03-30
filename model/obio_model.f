@@ -822,8 +822,10 @@ cdiag     endif
        do nt=1,nchl
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
-       if (vrbos) write(*,'(/,a,e12.4)')
-     .       'obio_model, tot_chlo= ',tot_chlo(i,j)
+       if (vrbos) then
+          write(*,'(/,a,3i5,e12.4)')
+     .       'obio_model, tot_chlo= ',nstep,i,j,tot_chlo(i,j)
+       endif
 
        !compute total primary production per day
         if (hour_of_day.eq.1) then
