@@ -192,7 +192,9 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_chem=ntm_shindell_trop+
      *                               ntm_shindell_strat+
      *                               ntm_soa
-#ifdef TRACERS_AMP ! This is kept seperate, as ntm_dust needs to be set (in order to calculate dust emissions), but not added to ntm.
+#ifdef TRACERS_AMP 
+! This is kept seperate, as ntm_dust needs to be set 
+c          (in order to calculate dust emissions), but not added to ntm.
       integer, parameter :: ntm=ntm_amp
 #else
 !@param ntm number of tracers

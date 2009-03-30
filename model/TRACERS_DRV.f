@@ -10461,12 +10461,12 @@ c!OMSP
 #ifdef TRACERS_AMP
        case ('M_BC1_BC')
          do j=J_0,J_1
-          trsource(:,j,1,n) = BCI_src(:,j)
-            trsource(:,j,2,n) = BC_ship(:,j,jmon)
+         trsource(:,j,1,n) = BCI_src(:,j)+ BC_ship(:,j,jmon)
+  
          end do
        case ('M_OCC_OC')
          do j=J_0,J_1
-          trsource(:,j,1,n) = OCI_src(:,j,1)+POM_ship(:,j,jmon)
+         trsource(:,j,1,n) = OCI_src(:,j,1) +POM_ship(:,j,jmon)
 #ifndef TRACERS_AEROSOLS_SOA
      *     +OCT_src(:,j,jmon)
 #endif  /* TRACERS_AEROSOLS_SOA */

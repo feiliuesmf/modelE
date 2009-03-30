@@ -122,7 +122,7 @@ C****
      *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
-     *      , itcon_dd
+     *      , itcon_dd,itcon_surf
 #endif
 #ifdef BIOGENIC_EMISSIONS
      *     ,  ijs_isoprene
@@ -911,8 +911,11 @@ C****
      &       trc_flux*axyp(i,j)*ptype*dtsurf
 
 #ifdef TRACERS_AMP
+            select case (trname(n))
+              case ('DMS','M_SSA_SS','M_SSC_SS','M_SSS_SS')
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+            end select
 #else
         call inc_tajls(i,j,1,jls_isrc(1,n),trc_flux*axyp(i,j)*
      *       ptype*dtsurf)   ! why not for all aerosols?
