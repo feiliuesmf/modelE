@@ -83,6 +83,7 @@
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST, 
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
+      USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
@@ -2855,7 +2856,6 @@ c put in chemical sink of SO2
         jls_ltop(k) = LM
         jls_power(k) =  1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-cSUSA BAUSTELLE
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c convective chem cloud phase sink of SO2
         k = k + 1
@@ -3098,7 +3098,6 @@ c gas phase source and sink of H2O2
         jls_ltop(k) = LM
         jls_power(k) = 2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
-c SUSA BAUSTELLE
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c convective chem cloud phase sink of H2O2
         k = k + 1
@@ -7181,6 +7180,69 @@ c- 3D diagnostic per mode
          units_ijts(k) = unit_string(ijts_power(k),'Numb.')
          scale_ijts(k) = 10.**(-ijts_power(k))
       end do
+       IF (AMP_DIAG_FC) THEN
+cc shortwave radiative forcing
+        k = k + 1
+        ijts_fc(1,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
+        sname_ijts(k) = 'swf_'//TRIM(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c longwave radiative forcing
+        k = k + 1
+        ijts_fc(2,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
+        sname_ijts(k) = 'lwf_'//TRIM(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c shortwave surface radiative forcing
+        k = k + 1
+        ijts_fc(3,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = TRIM(trname(n))//' SW surf forc'
+        sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c longwave surface radiative forcing
+        k = k + 1
+        ijts_fc(4,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = TRIM(trname(n))//' LW surf forc'
+        sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky shortwave radiative forcing
+        k = k + 1
+        ijts_fc(5,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = TRIM(trname(n))//' SW cs forc'
+        sname_ijts(k) = 'swf_CS_'//TRIM(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky longwave radiative forcing
+        k = k + 1
+        ijts_fc(6,n) = k
+        ijts_index(k) = n
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = TRIM(trname(n))//' LW CS forc'
+        sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
+        ijts_power(k) = -2.
+        units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c end special radiation diagnostic
+        ENDIF   
 
 c Special Radiation Diagnostic
           IF (diag_rad /= 1) THEN
@@ -7304,6 +7366,9 @@ c clear sky scattering asymmetry factor in six solar bands
       end select
       end do
 
+c - Tracer independent Diagnostic
+       IF (AMP_DIAG_FC) THEN
+       ELSE 
         n=1
 cc shortwave radiative forcing
         k = k + 1
@@ -7365,23 +7430,25 @@ c clear sky longwave radiative forcing
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
-        
+        ENDIF
+
+
 c end special radiation diagnostic
 
 c - Tracer independent Diagnostic
-      do L=1,1    !LTOP
-      do m=1,NBINS
-        k = k + 1
-         ijts_AMPpdf(l,m)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a15,i2.2,i2.2)') 'NUMB_PDF BIN L=',L,M
-         write(sname_ijts(k),'(a9,i2.2,i2.2)') 'N_PDF_BIN',L,M
-         ijts_power(k) = -2
-         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      end do
+c      do L=1,1    !LTOP
+c      do m=1,NBINS
+c        k = k + 1
+c         ijts_AMPpdf(l,m)=k
+c         ijts_index(k) = n
+c         ia_ijts(k) = ia_src
+c         write(lname_ijts(k),'(a15,i2.2,i2.2)') 'NUMB_PDF BIN L=',L,M
+c         write(sname_ijts(k),'(a9,i2.2,i2.2)') 'N_PDF_BIN',L,M
+c         ijts_power(k) = -2
+c         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
+c         scale_ijts(k) = 10.**(-ijts_power(k))
+c      end do
+c      end do
       do L=1,LTOP
         k = k + 1
          ijts_AMPext(l,1)=k
