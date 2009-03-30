@@ -20,7 +20,7 @@
 !@var gclon,gclat,dxyp lons,lats,areas of the latlon grid used to
 !@+   compute AGC diagnostics
       real*8, dimension(imlon) :: gclon
-      real*8, dimension(jmlat) :: gclat,dxyp
+      real*8, dimension(jmlat) :: gclat,dxyp,dxp
 
 !@var gc_xxx indices for AGC accumulations
       integer ::
@@ -35,7 +35,8 @@
      &     gc_totvtlh,gc_eddvtlh,
      &     gc_totvtdse,gc_eddvtdse,
      &     gc_totvtmom,gc_eddvtmom,
-     &     gc_eddvtgeo
+     &     gc_eddvtgeo,
+     &     gc_psi
 
 !@var jlat_eq,jlat_45n,jlat_50n special latitudes for spectral analyses
       integer :: jlat_eq,jlat_50n,jlat_45n
@@ -69,6 +70,7 @@
         lat_gc(jlat) = gclat(jlat)*180./pi
         sinn = sin(-pi/2. + dlat*real(jlat,kind=8))
         dxyp(jlat) = radius*radius*dlon*(sinn-sins)
+        dxp(jlat) = radius*dlon*cos(gclat(jlat))
         sins = sinn
       enddo
       jlat_eq = jmlat/2 ! slightly off the equator
@@ -291,6 +293,14 @@ c
       lname_gc(k) = 'TOTAL VERTICAL ZONAL MOM. FLUX'
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = -BYGRAV*BYIM
+      lgrid_gc(k) = edg_cp
+c
+      k=k+1
+      gc_psi = k  ! derived
+      sname_gc(k) = 'psi'
+      lname_gc(k) = 'STREAMFUNCTION'
+      units_gc(k) = 'kg/s'
+      scale_gc(k) = 100.*BYGRAV
       lgrid_gc(k) = edg_cp
 c
       if(k.gt.kagc) then
@@ -1283,4 +1293,40 @@ c
       return
       end subroutine diag7a
 
+      subroutine diaggc_prep
+      use model_com, only : lm
+      use domain_decomp_atm, only : am_i_root
+      use diag_com, only : kagc,agc,hemis_gc,vmean_gc
+      use gcdiag
+      implicit none
+      integer :: j,j1,j2,k,l
+      real*8 :: hemfac
 
+      if(.not.am_i_root()) return
+
+c stream function
+      do j=1,jmlat
+        agc(j,lm,gc_psi) = 0d0
+        do l=lm-1,1,-1
+          agc(j,l,gc_psi)=agc(j,l+1,gc_psi)-agc(j,l+1,gc_v)*dxp(j)
+        enddo
+      enddo
+
+c
+c compute hemispheric/global means and vertical sums
+c
+      hemfac = 2./sum(dxyp)
+      do k=1,kagc
+        do l=1,lm
+          j1 = 1; j2 = jmlat/2
+          hemis_gc(1,l,k) = hemfac*sum(agc(j1:j2,l,k)*dxyp(j1:j2))
+          j1 = jmlat/2+1; j2 = jmlat
+          hemis_gc(2,l,k) = hemfac*sum(agc(j1:j2,l,k)*dxyp(j1:j2))
+          hemis_gc(3,l,k) = .5*(hemis_gc(1,l,k)+hemis_gc(2,l,k))
+        enddo
+        vmean_gc(1:jmlat,1,k) = sum(agc(:,:,k),dim=2)
+        vmean_gc(jmlat+1:jmlat+3,1,k) = sum(hemis_gc(:,:,k),dim=2)
+      enddo
+
+      return
+      end subroutine diaggc_prep

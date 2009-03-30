@@ -3383,5 +3383,6 @@ C****
       call calc_derived_aij
       call diagj_prep
       call diagjl_prep
+      call diaggc_prep
       return
       end subroutine calc_derived_acc_atm

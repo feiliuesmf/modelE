@@ -624,6 +624,9 @@ c derived/composite diagnostics
       integer, dimension(kagcx), public :: pow_gc
 !@var CDL_GC consolidated metadata for AGC output fields in CDL notation
       character(len=100), dimension(kagc*6), public :: cdl_gc
+!@var HEMIS_GC hemispheric/global averages of AGC
+!@var VMEAN_GC vertical sums of AGC
+      real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
 !@var lat_gc latitudes of the primary grid for GC diagnostics
       real*8, dimension(jmlat), public :: lat_gc
 
@@ -823,6 +826,7 @@ c the new i/o system
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AGC,AJ_OUT,ntype_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
+     &     ,hemis_gc,vmean_gc
       use diag_zonal, only : get_alloc_bounds
 
       IMPLICIT NONE
@@ -886,6 +890,8 @@ c allocate master copies of budget- and JK-arrays on root
         allocate(hemis_jl(3,lm,kajl))
         allocate(vmean_jl(jm_budg+3,1,kajl))
         allocate(hemis_consrv(3,kcon))
+        allocate(hemis_gc(3,lm,kagc))
+        allocate(vmean_gc(jmlat+3,1,kagc))
       endif
 
       RETURN
@@ -1849,7 +1855,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
      &     name_consrv,sname_gc,
      &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
-     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,
+     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
@@ -1932,6 +1938,12 @@ c for which scalars is bcast_all=.true. necessary?
 
       call write_attr(grid,fid,'agc','reduction','sum')
       call write_attr(grid,fid,'agc','split_dim',3)
+      call defvar(grid,fid,hemis_gc,'hemis_agc(shnhgm,lm,kagc)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_agc','reduction','sum')
+      call defvar(grid,fid,vmean_gc,'vmean_agc(jmlat_plus3,one,kagc)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'vmean_agc','reduction','sum')
       call defvar(grid,fid,ia_gc(1:kagc),'ia_agc(kagc)')
       call defvar(grid,fid,scale_gc(1:kagc),'scale_agc(kagc)')
       call defvar(grid,fid,denom_gc(1:kagc),'denom_agc(kagc)')
@@ -1980,7 +1992,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
      &     name_consrv,sname_gc,
      &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
-     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,
+     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
@@ -2046,6 +2058,8 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'sname_ajl',sname_jl)
       call write_data(grid,fid,'cdl_ajl',cdl_jl)
 
+      call write_data(grid,fid,'hemis_agc',hemis_gc)
+      call write_data(grid,fid,'vmean_agc',vmean_gc)
       call write_data(grid,fid,'ia_agc',ia_gc(1:kagc))
       call write_data(grid,fid,'scale_agc',scale_gc(1:kagc))
       call write_data(grid,fid,'denom_agc',denom_gc(1:kagc))

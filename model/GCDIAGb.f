@@ -2196,3 +2196,10 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       CALL TIMER (MNOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG7A
+
+      subroutine diaggc_prep
+c For the latlon model, derived GC outputs are still calculated at
+c print time.
+      implicit none
+      return
+      end subroutine diaggc_prep
