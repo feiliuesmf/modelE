@@ -17,7 +17,6 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define TRACERS_WATER               ! tracers can interact with water
 #define TRACERS_DRYDEP              ! include tracer dry deposition
-#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define TRACERS_AMP
 #define TRACERS_AMP_M1
        
