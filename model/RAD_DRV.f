@@ -899,6 +899,7 @@ c    *     ,SNFST0,TNFST0
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
+      USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
       IMPLICIT NONE
 C
@@ -1692,16 +1693,32 @@ c set for BC-albedo effect
       dALBsn=dALBsn1
 #endif
 #ifdef TRACERS_AMP
-       FSTOPX(:) = 1-onoff !turns off online tracer
-       FTTOPX(:) = 1-onoff !
+       IF (AMP_DIAG_FC) THEN
+       Do n = 1,nmodes
+       FSTOPX(n) = 1-onoff !turns off online tracer
+       FTTOPX(n) = 1-onoff !
+       if (n.eq.1) FSTOPX(:) = 1-onoff
+       if (n.eq.1) FSTOPX(:) = 1-onoff
        CALL RCOMPX
-       n = 1
        SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
        TNFST(1,n,I,J)=TRNFLB(1)
        SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
        TNFST(2,n,I,J)=TRNFLB(LFRC)
        FSTOPX(:) = onoff !turns on online tracer
        FTTOPX(:) = onoff !
+       ENDDO
+       ELSE
+       n = 1
+       FSTOPX(:) = 1-onoff !turns off online tracer
+       FTTOPX(:) = 1-onoff !
+       CALL RCOMPX
+       SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+       TNFST(1,n,I,J)=TRNFLB(1)
+       SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
+       TNFST(2,n,I,J)=TRNFLB(LFRC)
+       FSTOPX(:) = onoff !turns on online tracer
+       FTTOPX(:) = onoff ! 
+       ENDIF   
 #endif
 C**** Optional calculation of CRF using a clear sky calc.
       if (cloud_rad_forc.gt.0) then
@@ -1799,11 +1816,8 @@ C**** Save optical depth diags
               END DO
             END IF
           CASE DEFAULT
-c#ifdef TRACERS_AMP
-c            IF (diag_rad == 1) THEN !susa just for now to have tau and TauEXT testing
-c#else
+
             IF (diag_rad /= 1) THEN
-c#endif
               if (ijts_tau(1,NTRIX(n)).gt.0)
      &             taijs(i,j,ijts_tau(1,NTRIX(n)))
      &             =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
@@ -2238,9 +2252,13 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
 #ifdef  TRACERS_AMP
-            ntrace = 1
-            ntrix(1) = 1
-#endif  
+         IF (AMP_DIAG_FC) THEN
+            NTRACE = nmodes 
+         ELSE
+            NTRACE = 1
+            NTRIX(1) = 1
+         ENDIF
+#endif
          if (ntrace.gt.0) then
 #ifdef BC_ALB
       if (ijts_alb(1,n_BCIA).gt.0)
@@ -2354,6 +2372,12 @@ c longwave forcing at surface (if required)
      &                =taijs(i,j,ijts_fc(4,ntrix(n)))
      &                -rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
                END SELECT
+#ifdef  TRACERS_AMP
+         IF (AMP_DIAG_FC) THEN
+         ELSE
+         NTRIX(1)=  n_N_AKK_1
+         ENDIF
+#endif 
 #ifdef TRACERS_AEROSOLS_Koch
 c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
 c    &              +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2

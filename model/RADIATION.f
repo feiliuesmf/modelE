@@ -3342,11 +3342,11 @@ C-----------------
       CALL SETAMP(EXT,SCT,GCB,TAB)
        do L = L1,LM  !radiation has 3 extra levels on the top - aerosol are zero
 c SW
-         SRBEXT(l,:) = EXT(l,:) * FSTOPX(1)
-         SRBSCT(l,:) = SCT(l,:) * FSTOPX(1)
-         SRBGCB(l,:) = GCB(l,:) * FSTOPX(1)
+         SRBEXT(l,:) = EXT(l,:) 
+         SRBSCT(l,:) = SCT(l,:) 
+         SRBGCB(l,:) = GCB(l,:) 
 c LW
-         TRBALK(l,:) = TAB(l,:) * FTTOPX(1)
+         TRBALK(l,:) = TAB(l,:) 
        enddo
 #endif
 
