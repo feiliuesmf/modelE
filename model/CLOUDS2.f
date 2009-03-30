@@ -2477,7 +2477,7 @@ C**   Set CDNC for moist conv. clds (const at present)
           MNdL=MCDNL1
 #endif
           MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
-          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
+c          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
           MCDNCI=MNdI
           IF(SVLATL(L).EQ.LHE)  THEN
 !            RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
