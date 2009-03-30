@@ -192,7 +192,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_chem=ntm_shindell_trop+
      *                               ntm_shindell_strat+
      *                               ntm_soa
-#ifdef TRACERS_AMP
+#ifdef TRACERS_AMP ! This is kept seperate, as ntm_dust needs to be set (in order to calculate dust emissions), but not added to ntm.
       integer, parameter :: ntm=ntm_amp
 #else
 !@param ntm number of tracers
@@ -200,7 +200,7 @@ C**** Each tracer has a variable name and a unique index
      *                          ntm_water+ntm_koch+ntm_dust+ntm_het+
      *                          ntm_nitrate+ntm_cosmo+ntm_om_sp+
      *                          ntm_minerals+ntm_quarzhem+
-     *                          ntm_ocean+ntm_air+ntm_chem+ntm_amp+
+     *                          ntm_ocean+ntm_air+ntm_chem+
      *                          ntm_shindell_extra
 #endif
 C**** Each tracer has a variable name and a unique index
@@ -232,9 +232,11 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
 #endif  /* SHINDELL_STRAT_EXTRA */
 #endif  /* SHINDELL_STRAT_CHEM */
 #endif  /* TRACERS_SPECIAL_Shindell */
+#ifndef TRACERS_AMP
 #ifdef TRACERS_WATER
      *    'Water   ',
 #endif  /* TRACERS_WATER */
+#endif
 #ifdef TRACERS_SPECIAL_O18
      *     'H2O18   ','HDO     ',   !'H2O17   ',
 #endif  /* TRACERS_SPECIAL_O18 */
