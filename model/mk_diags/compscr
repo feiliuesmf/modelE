@@ -11,7 +11,7 @@ ncinc="-I${nchome}/include"
 # and passes any extra command-line arguments to the print routine
 #
 
-for diag in aj areg ajl adiurn consrv
+for diag in aj areg ajl adiurn consrv rvr isccp
 do
 
 progname=prt${diag}
