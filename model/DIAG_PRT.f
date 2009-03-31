@@ -5380,7 +5380,7 @@ c write field
 !@auth Gavin Schmidt
       USE MODEL_COM, only : xlabel,lrunid,jm,fim,idacc,im
       USE GEOM, only : dxyp,lat_dg
-      USE DIAG_COM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
+      USE DIAG_COM, only : aisccp,ntau,npres,nisccp,acc_period
      *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
      &     ,isccp_late,wisccp,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
