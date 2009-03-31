@@ -65,7 +65,7 @@ endif
 #  targets
 #
 
-aux: input
+aux: all 
 
 FORCE:
 
