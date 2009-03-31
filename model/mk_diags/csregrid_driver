@@ -26,18 +26,20 @@ ncgen -b tmpcdl; rm -f tmpcdl
 #
 # Copy all the acc-array metadata but its CDL to the output file
 #
-meta2cpy=ia_${accn},scale_${accn},denom_${accn},sname_${accn}
+meta2cpy=ia_${accn},scale_${accn},denom_${accn},sname_${accn},idacc
 ncks -h -A -v $meta2cpy $csfile $llfile
 
 #
 # Activate the latlon parts of the CDL, remove the
 # cubed-sphere parts, and copy to the output file
 #
+if [[ $imlon -lt 100 ]]; then imlonx=" "$imlon; else imlonx=$imlon; fi
+if [[ $jmlat -lt 100 ]]; then jmlatx=" "$jmlat; else jmlatx=$jmlat; fi
 ncks -h -O -v cdl_${accn} $csfile tmpcdl.nc
 ncdump tmpcdl.nc | \
    egrep -v "global attributes|remove_from_latlon" | \
-   sed "s/lon = xxx/lon = $imlon/; s/lat = xxx/lat = $jmlat/" | \
-   sed "s/.. add_to_latlon //" > tmpcdl
+   sed "s/lon = xxx/lon = $imlonx/; s/lat = xxx/lat = $jmlatx/" | \
+   sed "s/.. add_to_latlon /                 /" > tmpcdl
 ncgen -b tmpcdl
 ncks -h -A -v cdl_${accn} tmpcdl.nc $llfile
 
