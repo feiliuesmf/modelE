@@ -233,10 +233,10 @@ C**** parameters and variables for ISCCP diags
       REAL*8, PARAMETER, public ::
      &  isccp_late(nisccp+1)=(/-60,-30,-15,15,30,60/)
      & ,isccp_lat(nisccp)=(/-45.,-22.5,0.,22.5,45./)
-!@var isccp_reg latitudinal index for ISCCP histogram regions
-      integer, public :: isccp_reg(JM)
 !@var AISCCP accumlated array of ISCCP histogram
       real*8, public, dimension(ntau,npres,nisccp) :: AISCCP,AISCCP_loc
+!@var WISCCP denominator array for ISCCP histograms
+      real*8, public, dimension(nisccp) :: WISCCP
 
 !@param KGZ number of pressure levels for some diags
       INTEGER, PARAMETER, public :: KGZ = 13
@@ -1860,7 +1860,8 @@ c for which scalars is bcast_all=.true. necessary?
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
      &     denom_gc,
-     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc
+     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,
+     &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
 #ifndef CUBE_GRID
       use geom, only : lon_dg,lat_dg
@@ -1980,6 +1981,13 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,name_dd,'sname_adiurn(sname_strlen,ndiuvar)')
       call defvar(grid,fid,cdl_dd,'cdl_adiurn(cdl_strlen,kcdl_adiurn)')
 
+      call write_attr(grid,fid,'aisccp','reduction','sum')
+      call defvar(grid,fid,wisccp,'wisccp(nisccp)')
+      call write_attr(grid,fid,'wisccp','reduction','sum')
+      call defvar(grid,fid,isccp_press,'isccp_press(npres)')
+      call defvar(grid,fid,isccp_tau,'isccp_tau(ntau)')
+      call defvar(grid,fid,isccp_late,'isccp_late(nisccp_plus_1)')
+
       return
       end subroutine def_meta_atmacc
 
@@ -1997,7 +2005,8 @@ c for which scalars is bcast_all=.true. necessary?
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
      &     denom_gc,
-     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,ia_12hr
+     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,ia_12hr,
+     &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
 #ifndef CUBE_GRID
       use geom, only : lon_dg,lat_dg
@@ -2084,6 +2093,11 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'denom_adiurn',denom_dd)
       call write_data(grid,fid,'sname_adiurn',name_dd)
       call write_data(grid,fid,'cdl_adiurn',cdl_dd)
+
+      call write_data(grid,fid,'isccp_press',isccp_press)
+      call write_data(grid,fid,'isccp_tau',isccp_tau)
+      call write_data(grid,fid,'isccp_late',isccp_late)
+      call write_data(grid,fid,'wisccp',wisccp)
 
       return
       end subroutine write_meta_atmacc

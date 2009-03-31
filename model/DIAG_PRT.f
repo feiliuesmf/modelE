@@ -666,6 +666,7 @@ c     write(0,*) 'SCM no diags   print_diags'
 #endif
 
       call calc_derived_aij
+      if(isccp_diags.eq.1) call diag_isccp_prep
 
       CALL DIAG_GATHER
 
@@ -5381,7 +5382,7 @@ c write field
       USE GEOM, only : dxyp,lat_dg
       USE DIAG_COM, only : aisccp,isccp_reg,ntau,npres,nisccp,acc_period
      *     ,qdiag,ia_src,isccp_press,isccp_taum,aij,ij_tcldi,ij_scldi
-     &     ,isccp_late,sname_strlen,units_strlen,lname_strlen
+     &     ,isccp_late,wisccp,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
 
       CHARACTER*80 :: TITLE(nisccp) = (/
@@ -5390,36 +5391,12 @@ c write field
      *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15S-15N",
      *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 15N-30N",
      *     "ISCCP CLOUD FREQUENCY (NTAU,NPRES) % 30N-60N" /)
-      REAL*8 AX(ntau-1,npres,nisccp),wisccp(nisccp)
+      REAL*8 AX(ntau-1,npres,nisccp)
       INTEGER N,ITAU,IPRESS,J,I
 
       character(len=sname_strlen) :: sname
       character(len=units_strlen) :: units
       character(len=lname_strlen) :: lname
-
-c latlon-specific code moved from init_CLD
-      do j=1,JM
-        isccp_reg(j)=0
-        do n=1,nisccp
-           if(lat_dg(j,1).ge.isccp_late(n) .and.
-     &        lat_dg(j,1).lt.isccp_late(n+1)) then
-              isccp_reg(j)=n
-              exit
-           endif
-        enddo
-      end do
-
-C**** calculate area weightings (including fraction of time that clouds
-C**** could be observed).
-      wisccp(:)=0.
-      do j=1,jm
-        n=isccp_reg(j)
-        if (n.gt.0) then
-          do i=1,im
-            wisccp(n)=wisccp(n)+aij(i,j,ij_scldi)*dxyp(j)
-          end do
-        end if
-      end do
 
 C**** write out scaled results
       do n=nisccp,1,-1   ! north to south

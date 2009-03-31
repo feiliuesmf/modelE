@@ -258,6 +258,7 @@ c idacc(5) is not additive
       call write_attr(grid,fid,'idacc','reduction','sum')
 
       call def_meta_atmacc(fid)
+      call def_meta_rvracc(fid)
 c      call def_meta_ocdiag(fid)
 c      call def_meta_icdiag(fid)
 c#ifdef TRACERS_ON
@@ -276,6 +277,7 @@ c#endif
       implicit none
       integer :: fid         !@var fid file id
       call write_meta_atmacc(fid)
+      call write_meta_rvracc(fid)
 c      call write_meta_ocdiag(fid)
 c      call write_meta_icdiag(fid)
 c#ifdef TRACERS_ON

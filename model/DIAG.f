@@ -3320,6 +3320,31 @@ c
       return
       end subroutine diagjl_prep
 
+      subroutine diag_isccp_prep
+c calculates the denominator array for ISCCP histograms
+      use diag_com, only : aij=>aij_loc,ij_scldi,nisccp,wisccp
+      use clouds_com, only : isccp_reg2d
+      use domain_decomp_atm, only : grid,sumxpe
+      use geom, only : axyp
+      implicit none
+      real*8 wisccp_loc(nisccp)
+      integer :: i,j,n,j_0,j_1,i_0,i_1
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+      wisccp_loc(:) = 0.
+      do j=j_0,j_1
+      do i=i_0,i_1
+        n=isccp_reg2d(i,j)
+        if(n.gt.0)
+     &       wisccp_loc(n)=wisccp_loc(n)+aij(i,j,ij_scldi)*axyp(i,j)
+      enddo
+      enddo
+      call sumxpe(wisccp_loc,wisccp)
+      return
+      end subroutine diag_isccp_prep
+
       SUBROUTINE VNTRP1 (KM,P,AIN,  LMA,PE,AOUT)
 C**** Vertically interpolates a 1-D array
 C**** Input:       KM = number of input pressure levels
@@ -3377,6 +3402,7 @@ C****
       END subroutine vntrp1
 
       subroutine calc_derived_acc_atm
+      use diag_com, only : isccp_diags
       implicit none
       call gather_zonal_diags
       call collect_scalars
@@ -3384,5 +3410,7 @@ C****
       call diagj_prep
       call diagjl_prep
       call diaggc_prep
+      call diag_river_prep
+      if(isccp_diags.eq.1) call diag_isccp_prep
       return
       end subroutine calc_derived_acc_atm

@@ -1569,7 +1569,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
      &  ,RA,UM,VM,UM1,VM1,U_0,V_0
       USE CLOUDS_COM, only : llow,lmid,lhi
      &     ,isccp_reg2d,UKM,VKM
-      USE DIAG_COM, only : nisccp,isccp_reg,isccp_late
+      USE DIAG_COM, only : nisccp,isccp_late
      &     ,isccp_diags,ntau,npres
       USE PARAM
       USE FILEMANAGER, only : openunit, closeunit

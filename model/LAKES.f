@@ -31,14 +31,6 @@ C**** 1-8 anti-clockwise from top RH corner
       INTEGER, ALLOCATABLE, DIMENSION (:,:) :: IFLOW,JFLOW
 !@var IFL911,JFL911 grid box indexes for emergency downstream direction
       INTEGER, ALLOCATABLE, DIMENSION (:,:) :: IFL911,JFL911
-!@param NRVRMX Max No. of specified rivers
-      INTEGER, PARAMETER :: NRVRMX = 42
-!@var NRVR actual No. of specified rivers
-      INTEGER :: NRVR
-!@var IRVRMTH,JRVRMTH indexes for specified river mouths
-      INTEGER, DIMENSION(NRVRMX) :: IRVRMTH,JRVRMTH
-!@var NAMERVR Names of specified rivers
-      CHARACTER*8, DIMENSION(NRVRMX) :: NAMERVR
 
 !@param MINMLD minimum mixed layer depth in lake (m)
       REAL*8, PARAMETER :: MINMLD = 1.
@@ -1194,7 +1186,7 @@ C****
       USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
-      USE LAKES, only : irvrmth,jrvrmth,namervr,nrvr
+      USE LAKES_COM, only : irvrmth,jrvrmth,namervr,nrvr
       IMPLICIT NONE
       REAL*8 RVROUT(NRVR), RVROUT_root(NRVR), scalervr, days
       INTEGER INM,I,N,J
@@ -2168,3 +2160,34 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       IF (HAVE_NORTH_POLE) LKE(2:im,JM)=LKE(1,JM)
       RETURN
       END SUBROUTINE conserv_LKE
+
+      subroutine diag_river_prep
+      use constant, only : rhow,sday
+      use model_com, only : dtsrc,jdpery,jmpery
+      use domain_decomp_atm, only : grid,get,sumxpe
+      use diag_com, only : aij=>aij_loc,ij_mrvr
+      use lakes_com, only : irvrmth,jrvrmth,nrvrmx,nrvr,rvrout
+      implicit none
+      real*8 rvrout_loc(nrvrmx), scalervr
+      integer inm,i,j
+      integer :: i_0, i_1, j_0, j_1
+      call get(grid, j_strt=j_0, j_stop=j_1)
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+c**** convert kg/(source time step) to km^3/mon
+      scalervr = 1d-9*sday*jdpery/(jmpery*rhow*dtsrc)
+c**** fill in the river discharges in the local domain
+      rvrout_loc(:)=0
+      do j=j_0,j_1
+      do i=i_0,i_1
+        do inm=1,nrvr
+          if (i.eq.irvrmth(inm).and. j.eq.jrvrmth(inm)) then
+            rvrout_loc(inm) = scalervr*aij(i,j,ij_mrvr)
+          end if
+        end do
+      end do
+      end do
+c**** sum over processors to compose the global table
+      call sumxpe(rvrout_loc, rvrout)
+      return
+      end subroutine diag_river_prep

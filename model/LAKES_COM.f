@@ -35,6 +35,17 @@ Crgr      REAL*8,  ALLOCATABLE, DIMENSION(NTM,2,:,:) :: TRLAKE
       REAL*8,  ALLOCATABLE, DIMENSION(:,:,:,:) :: TRLAKE
 #endif
 
+!@param NRVRMX Max No. of named rivers
+      INTEGER, PARAMETER :: NRVRMX = 42
+!@var NRVR actual No. of named rivers
+      INTEGER :: NRVR
+!@var IRVRMTH,JRVRMTH indexes for named river mouths
+      INTEGER, DIMENSION(NRVRMX) :: IRVRMTH,JRVRMTH
+!@var NAMERVR Named rivers
+      CHARACTER*8, DIMENSION(NRVRMX) :: NAMERVR
+!@var RVROUT Discharges from named rivers
+      REAL*8, DIMENSION(NRVRMX) :: RVROUT
+
       END MODULE LAKES_COM
 
 
@@ -222,4 +233,33 @@ c            GO TO 10
       end select
       return
       end subroutine new_io_lakes
+
+      subroutine def_meta_rvracc(fid)
+!@sum  def_meta_rvracc defines river metadata in acc files
+!@auth M. Kelley
+!@ver  beta
+      use lakes_com, only : nrvr,rvrout,namervr
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar,write_attr
+      implicit none
+      integer :: fid         !@var fid file id
+      call defvar(grid,fid,rvrout(1:nrvr),'rvr(nrvr)')
+      call write_attr(grid,fid,'rvr','reduction','sum')
+      call defvar(grid,fid,namervr(1:nrvr),'namervr(rvr_strlen,nrvr)')
+      return
+      end subroutine def_meta_rvracc
+
+      subroutine write_meta_rvracc(fid)
+!@sum  write_meta_rvracc write river accumulation metadata to file
+!@auth M. Kelley
+      use lakes_com, only : nrvr,rvrout,namervr
+      use domain_decomp_atm, only : grid
+      use pario, only : write_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      call write_data(grid,fid,'rvr',rvrout(1:nrvr))
+      call write_data(grid,fid,'namervr',namervr(1:nrvr))
+      return
+      end subroutine write_meta_rvracc
+
 #endif /* NEW_IO */
