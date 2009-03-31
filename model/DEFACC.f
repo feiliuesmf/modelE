@@ -2235,7 +2235,7 @@ c
       units_ij(k) = 'mg/m^3'
       scale_ij(k) = 1.
       name_ij(k) = 'chl'
-      ia_ij(k) = ia_srf
+      ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       denom_ij(k) = IJ_POCEAN
 c
