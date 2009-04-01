@@ -1861,7 +1861,8 @@ c****
      &     fb_in,fv_in,               ! constatns
      &     pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in, ! forcing fluxes
      &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
-     &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in ! forcing parameters
+     &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in, ! forcing parameters
+     &     end_of_day_flag
      &     )
 c**** advances quantities by one time step.
 c**** input:
@@ -1898,8 +1899,6 @@ c**** soils28   common block     9/25/90
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8, intent(inout) :: Qf
-      real*8, save:: time = 0.d0
-      logical :: update_day
 #else
       use vegetation, only: update_veg_locals,t_vegcell
       ! arguments
@@ -1915,6 +1914,7 @@ c**** soils28   common block     9/25/90
       real*8 :: pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in
       real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
       real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
+      logical :: end_of_day_flag
       ! end of arguments
 
       real*8 dtm,tb0,tc0,dtr,tot_w1
@@ -2138,8 +2138,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          update_day = (mod(time,86400.d0).eq.0.d0).and.(time.ne.0.d0)
-          call ent_run( entcell, dts,update_day) 
+          call ent_run( entcell, dts, end_of_day_flag ) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
@@ -2348,8 +2347,6 @@ C**** finalise surface tracer concentration here
        write(933,*) "tprime        ", tprime        
        write(933,*) "qprime        ", qprime        
 #endif
-
-       time = time + dt
 
       return
   900 continue
