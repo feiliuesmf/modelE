@@ -143,6 +143,11 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8 :: a1,f1,e1
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
 
+      integer, save :: counter = 0
+      counter = counter + 1
+
+      !write(888,*) "counter=", counter
+
       Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
 
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
@@ -156,6 +161,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
       call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae)
+      !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae
 
 !      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
       ! Photosynthetic rate limited by RuBP saturation
@@ -168,12 +174,14 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       f1 = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa  !umol/mol
 
       call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac)
+      !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac
 
 !      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
       !Photosynthetic rate limited by "utilization of photosynthetic products"
       ! (umol m-2 s-1)
       !Js_sucrose = pspar%Vcmax/2.d0
       As = pspar%Vcmax/2.d0 - Rd
+      !write(888,*) "As", As
 
       Anet = min(Ae, Ac, As)
       Atot = Anet + Rd
@@ -202,6 +210,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 #else
        isp=0.0d0
 #endif
+      !write(888,*) "gs,ci,cs", gs,ci,cs
 
       end subroutine Photosynth_analyticsoln
 
@@ -800,10 +809,19 @@ cddd      !!print *,'QQQQ ',A,ci
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
       real*8 :: fparlimit !light(i.e.,PAR) control
+      integer, save :: counter = 0
+      counter = counter + 1
 
       facclim = frost_hardiness(Sacclim)
      
       fparlimit = par_phenology(pft,llspan)
+
+!!! this var is not reproducible on restart, please figure out why
+!      fparlimit = 1.d0 ! seems to be ok now
+
+      !write(877,*) "counter", counter
+      !write(877,*) "facclim", facclim
+      !write(877,*) "fparlimit", fparlimit
 
       p = pft
       pspar%pft = pft
