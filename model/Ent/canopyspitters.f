@@ -203,6 +203,9 @@
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
 !     &       ,if_ci)  
 
+          !!! HACK to avoid undefined var
+          fdry_pft_eff = 1.d0
+
           if (pfpar(cop%pft)%leaftype.eq.BROADLEAF) then
             ! stomata on underside of leaves so max stomatal blocking = 0
             fdry_pft_eff = 1.d0
