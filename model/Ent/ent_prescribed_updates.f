@@ -288,7 +288,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_growth_root !g-C/individ/s
-      real*8 :: resp_growth_patch, resp_growth_root_patch !kg-C/m/s
+      real*8 :: resp_growth_patch ! , resp_growth_root_patch !kg-C/m/s
       integer :: i
 
       if (ASSOCIATED(pp)) then
@@ -298,6 +298,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         Clossacc(:,:,:) = 0.d0
         resp_growth_patch = 0.d0
         resp_growth_root = 0.d0
+        
         cop => pp%tallest
         do while (ASSOCIATED(cop))
           if ( do_giss_lai ) then  !This if statement is now redundant
@@ -308,7 +309,8 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
          endif
          !* Summarize for patch level. - NOTE:This is total flux, not just the growth increment.
          resp_growth_patch = resp_growth_patch + cop%R_auto
-         resp_growth_root_patch = resp_growth_root_patch + cop%R_root
+         ! the following is not used anywhere
+         !resp_growth_root_patch = resp_growth_root_patch + cop%R_root
 
           cop => cop%shorter
         end do
@@ -348,6 +350,10 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       integer :: i
       real*8 :: Csum
 !#endif
+
+!!! HACK to deal with undefined variables
+      resp_growth = 0.d0
+      resp_growth_root = 0.d0
 
       lai_old = cop%LAI
       C_fol_old = cop%C_fol
