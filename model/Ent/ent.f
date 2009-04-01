@@ -318,6 +318,7 @@
       integer :: tmp_pft
       real*8 :: tmp_n,tmp_senescefrac,tmp_Sacclim
       type(cohort),pointer :: cop
+#ifdef DEBUG
 
       tmp_pft = -1
       tmp_n = -1
@@ -356,6 +357,7 @@
 !      write(999,*) pp%cellptr%Soilmp, pp%Soilmoist
 !     &     ,pp%cellptr%betad, pp%cellptr%betadl
 !      write(994,*) pp%cellptr%GCANOPY
+#endif
       end subroutine ent_diagnostics
           !*********************************************************!
 
