@@ -1841,7 +1841,8 @@ c****
      &     fb_in,fv_in,               ! constatns
      &     pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in, ! forcing fluxes
      &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
-     &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in ! forcing parameters
+     &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in, ! forcing parameters
+     &     end_of_day_flag
      &     )
 c**** advances quantities by one time step.
 c**** input:
@@ -1893,6 +1894,7 @@ c**** soils28   common block     9/25/90
       real*8 :: pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in
       real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
       real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
+      logical :: end_of_day_flag
       ! end of arguments
 
       real*8 dtm,tb0,tc0,dtr,tot_w1
@@ -2094,7 +2096,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dt, .false.) 
+          call ent_run( entcell, dts, end_of_day_flag ) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
