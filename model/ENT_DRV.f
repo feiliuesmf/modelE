@@ -94,6 +94,11 @@
         Qfol(:,:)=3.D-6         ! surface mixing ratio
         cnc_ij(:,:) = 0.d0
 
+      else ! i.e. *not* iniENT
+
+        ! just in case, do nothing, just set heat capacities
+        call ent_prescribe_vegupdate(entcells)        
+
       endif
 
       ! the following parts of the code should be implemented
