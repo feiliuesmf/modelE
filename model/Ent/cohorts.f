@@ -284,9 +284,10 @@ cddd      end subroutine init_cohort_defaults
       cop%CB_d = 0.d0
       cop%turnover_amp = 1.d0
       cop%llspan = -999.d0
-      if ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
-     &   (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
-     &   cop%llspan=pfpar(cop%pft)%lrage*12.d0
+!!!   cop%pft is not known here !!!
+!!      if ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+!!     &   (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
+!!     &   cop%llspan=pfpar(cop%pft)%lrage*12.d0
       cop%Sacclim = 25.d0 !NK - force mild average temperatures default.
 
       !* PHYSIOLOGICAL STATUS *!
@@ -390,6 +391,32 @@ cddd      end subroutine init_cohort_defaults
       enddo
       write(iu, '(a,a," = ",f10.7)') prefix,"Gcan",cop%gcanopy
       write(iu, '(a,a," = ",f10.7)') prefix,"GPP ",cop%GPP
+
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_fol",  cop%C_fol
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_froot",cop%C_froot
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_hw",   cop%C_hw
+
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%Ci",  cop%Ci
+
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_fol",   cop%C_fol   
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%N_fol",   cop%N_fol   
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_sw",    cop%C_sw    
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%N_sw",    cop%N_sw    
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_hw",    cop%C_hw    
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%N_hw",    cop%N_hw    
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_lab",   cop%C_lab   
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%N_lab",   cop%N_lab   
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_froot", cop%C_froot 
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%N_froot", cop%N_froot 
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_croot", cop%C_croot 
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%N_croot", cop%N_croot 
+                                                             
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_growth",cop%C_growth
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_total", cop%C_total 
+
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%llspan",  cop%llspan
+      write(iu, '(a,a," = ",f10.7)') prefix,"turnover_amp",
+     &     cop%turnover_amp
 
 
       end subroutine cohort_print
