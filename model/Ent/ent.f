@@ -142,14 +142,15 @@
       integer :: patchnum
       type(patch),pointer :: pp
 
+
+      call clim_stats(dtsec,ecp,config,update_day)
+
       !* Loop through patches
       patchnum = 0
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         patchnum = patchnum + 1
         call photosynth_cond(dtsec, pp)
-
-        call clim_stats(dtsec,pp,config,update_day)
 
         if (config%do_phenology_activegrowth) then
           !call uptake_N(dtsec, pp) !?

@@ -1,4 +1,4 @@
-      module phenology
+       module phenology
 !@sum Routines to calculate phenological change in an entcell:
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
@@ -84,64 +84,57 @@
 
 
       !*********************************************************************
-      subroutine clim_stats(dtsec, pp, config,dailyupdate)
+      subroutine clim_stats(dtsec, ecp, config,dailyupdate)
 !@sum Calculate climate statistics such as 10 day running average   
       real*8,intent(in) :: dtsec           !dt in seconds
-      type(patch) :: pp
+      type(entcelltype) :: ecp      
       type(ent_config) :: config
       logical, intent(in) :: dailyupdate
-
-      !--Local-----
-      type(cohort), pointer :: cop
- 
+      !-----local--------
+      type(patch), pointer :: pp
+      type(cohort), pointer :: cop 
       !temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
       !airtemp_par: base temperature to estimate growing degree day (gdd) (degree C)
-
 !      real*8 :: gdd_threshold
-
       real*8 :: sand, clay
       real*8 :: smpsat, bch
       real*8 :: watsat, watdry 
       real*8 :: paw
       real*8 :: par
-
       real*8 :: airtemp
       real*8 :: wat   
       real*8 :: soiltemp     
       real*8 :: coszen
-
       real*8 :: soiltemp_10d      
       real*8 :: airtemp_10d
       real*8 :: paw_10d
       real*8 :: par_10d
-
       real*8 :: gdd
       real*8 :: ncd
       real*8 :: ld
-
       real*8 :: par_crit
       logical :: par_limit
       real*8 :: turnover0, llspan0
       real*8 :: zweight, zweight30, zweight90
       
-      sand = pp%cellptr%soil_texture(1)*100.d0
-      clay = pp%cellptr%soil_texture(3)*100.d0
+      sand = ecp%soil_texture(1)*100.d0
+      clay = ecp%soil_texture(3)*100.d0
       smpsat = -10.d0 * ( 10.d0**(1.88d0-0.0131d0*sand) )
       bch = 2.91d0 + 0.159d0*clay
       watsat = 0.489d0 - 0.00126d0*sand 
       watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch) 
   
-      airtemp =  pp%cellptr%TairC
-      wat = pp%cellptr%Soilmoist(1)  !assign these only to top 30 cm for now -PK 3/16/07
-      soiltemp = pp%cellptr%Soiltemp(1)
-      coszen = pp%cellptr%CosZen
-      soiltemp_10d = pp%cellptr%soiltemp_10d
-      airtemp_10d = pp%cellptr%airtemp_10d
-      paw_10d = pp%cellptr%paw_10d
-      par_10d = pp%cellptr%par_10d  
-      gdd = pp%cellptr%gdd
-      ncd = pp%cellptr%ncd
-      ld =  pp%cellptr%ld
+      airtemp = ecp%TairC
+      wat = ecp%Soilmoist(1)  !assign these only to top 30 cm for now -PK 3/16/07
+      soiltemp = ecp%Soiltemp(1)
+      coszen = ecp%CosZen
+      soiltemp_10d = ecp%soiltemp_10d
+      airtemp_10d = ecp%airtemp_10d
+      paw_10d = ecp%paw_10d
+      par_10d = ecp%par_10d  
+      gdd = ecp%gdd
+      ncd = ecp%ncd
+      ld =  ecp%ld
 
       zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
       zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
@@ -159,7 +152,7 @@
       paw_10d=zweight*paw_10d+(1.0d0-zweight)*paw
 
       !10-day running average of PAR
-      par = pp%cellptr%IPARdif + pp%cellptr%IPARdir
+      par = ecp%IPARdif + ecp%IPARdir
       par_10d=zweight*par_10d+(1.0d0-zweight)*par
 
       !GDD & NCD - Once a day
@@ -179,62 +172,66 @@
          ld = ld + dtsec/60.d0
       end if
 
-      cop => pp%tallest
-      do while(ASSOCIATED(cop))
+      pp => ecp%oldest 
+      do while (ASSOCIATED(pp)) 
+
+        cop => pp%tallest
+        do while(ASSOCIATED(cop))
          
-         cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n*1000.d0
+          cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n*1000.d0
 
-         !*********************************************
-         !* evergreen broadleaf - PAR limited    
-         !*********************************************     
-         par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
-     &               (pfpar(cop%pft)%leaftype.eq.BROADLEAF)) 
-         if (par_limit) then
-            par_crit = - par_turnover_int/par_turnover_slope 
-            turnover0 = min(100.d0, max(0.01d0, 
-     &         par_turnover_slope*par_10d + par_turnover_int))
-            if (par_10d .lt. par_crit) turnover0 = 0.01d0
-            cop%turnover_amp=zweight*cop%turnover_amp 
-     &         +(1.d0-zweight)*turnover0
+          !*********************************************
+          !* evergreen broadleaf - PAR limited    
+          !*********************************************     
+          par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+     &                (pfpar(cop%pft)%leaftype.eq.BROADLEAF)) 
+          if (par_limit) then
+             par_crit = - par_turnover_int/par_turnover_slope 
+             turnover0 = min(100.d0, max(0.01d0, 
+     &          par_turnover_slope*par_10d + par_turnover_int))
+             if (par_10d .lt. par_crit) turnover0 = 0.01d0
+             cop%turnover_amp=zweight*cop%turnover_amp 
+     &          +(1.d0-zweight)*turnover0
      
-            llspan0 = pfpar(cop%pft)%lrage*12.d0/cop%turnover_amp
-            cop%llspan=zweight90*cop%llspan
-     &         +(1.d0-zweight90)*llspan0     
-         else
-            cop%turnover_amp = 1.d0
-            cop%llspan = -999.d0
-         endif
+             llspan0 = pfpar(cop%pft)%lrage*12.d0/cop%turnover_amp
+             cop%llspan=zweight90*cop%llspan
+     &          +(1.d0-zweight90)*llspan0     
+          else
+             cop%turnover_amp = 1.d0
+             cop%llspan = -999.d0
+          endif
 
 
-         !**************************************************************
-         !* Update photosynthetic acclimation factor for evergreen veg
-         !**************************************************************
+          !**************************************************************
+          !* Update photosynthetic acclimation factor for evergreen veg
+          !**************************************************************
 
-         if (config%do_frost_hardiness) then
-            if (((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
-     &          (pfpar(cop%pft)%leaftype.eq.NEEDLELEAF)).or.
-     &          (pfpar(cop%pft)%phenotype.eq.COLDDECID).or.
-     &          (pfpar(cop%pft)%phenotype.eq.COLDDROUGHTDECID)) then
-               call photosyn_acclim(dtsec,airtemp_10d,cop%Sacclim) 
-            else
-               cop%Sacclim = 25.d0 !Force no cold hardening, mild temperature.
-            endif
-	 else
-             cop%Sacclim = 25.d0 !Force no cold hardening, mild temperature.
-         endif
-         !write(993,*) cop%Sacclim
+          if (config%do_frost_hardiness) then
+             if (((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
+     &           (pfpar(cop%pft)%leaftype.eq.NEEDLELEAF)).or.
+     &           (pfpar(cop%pft)%phenotype.eq.COLDDECID).or.
+     &           (pfpar(cop%pft)%phenotype.eq.COLDDROUGHTDECID)) then
+                call photosyn_acclim(dtsec,airtemp_10d,cop%Sacclim) 
+             else
+                cop%Sacclim = 25.d0 !Force no cold hardening, mild temperature.
+             endif
+	  else
+              cop%Sacclim = 25.d0 !Force no cold hardening, mild temperature.
+          endif
+          !write(993,*) cop%Sacclim
 
-         cop => cop%shorter 
- 
-      end do        
+          cop => cop%shorter  
+        end do        
+        pp => pp%younger 
+      end do 
 
-      pp%cellptr%soiltemp_10d = soiltemp_10d
-      pp%cellptr%airtemp_10d = airtemp_10d
-      pp%cellptr%paw_10d = paw_10d
-      pp%cellptr%par_10d = par_10d
-      pp%cellptr%gdd = gdd
-      pp%cellptr%ncd = ncd
-      pp%cellptr%ld =  ld
+      ecp%soiltemp_10d = soiltemp_10d
+      ecp%airtemp_10d = airtemp_10d
+      ecp%paw_10d = paw_10d
+      ecp%par_10d = par_10d
+      ecp%gdd = gdd
+      ecp%ncd = ncd
+      ecp%ld =  ld
 
       end subroutine clim_stats
       !*********************************************************************   
