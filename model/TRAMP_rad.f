@@ -84,11 +84,10 @@ c Shortwave: -------------------------------------------------------------------
           MB = min(15,MB)
           MD = min(23,MD)
 
-          EXT(l,w) = EXT(l,w) + ( AMP_EXT(MA,MB,w,MD) * TTAUSV(l,n)) * FSTOPX(n)
-          HELP     = ((GCB(l,w) *  SCT(l,w) ) + (AMP_ASY(MA,MB,w,MD) * AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n)) ) 
-          SCT(l,w) = SCT(l,w) +  (AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n)) * FSTOPX(n)
+          EXT(l,w) = EXT(l,w) + ( AMP_EXT(MA,MB,w,MD) * TTAUSV(l,n) * FSTOPX(n))
+          HELP     = ((GCB(l,w) * SCT(l,w) ) + (AMP_ASY(MA,MB,w,MD) * AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n)* FSTOPX(n))) 
+          SCT(l,w) = SCT(l,w) +  (AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n) * FSTOPX(n))
           GCB(l,w) = HELP / (SCT(l,w)+ 1.D-10)
-          GCB(l,w) = GCB(l,w) * FSTOPX(n)
 
           aesqex(l,w,n)= AMP_EXT(MA,MB,w,MD) * TTAUSV(l,n) 
           aesqsc(l,w,n)= AMP_SCA(MA,MB,w,MD) * TTAUSV(l,n) 
@@ -100,7 +99,7 @@ C Longwave: --------------------------------------------------------------------
       NS = SHELL_CLASS(n)
       Vf(:)=dry_Vf_LEV(l,n,1:6)
       CALL GET_LW(NA,NS,Reff_LEV(l,n),AMP_TAB,Vf)
-         TAB(l,:) = TAB(l,:) + AMP_TAB(:) *  TTAUSV(l,n) * FTTOPX(n)
+         TAB(l,:) = TAB(l,:) + (AMP_TAB(:) *  TTAUSV(l,n) * FTTOPX(n))
       ENDDO   ! modes
       ENDDO   ! level
 

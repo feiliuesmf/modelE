@@ -1698,7 +1698,7 @@ c set for BC-albedo effect
        FSTOPX(n) = 1-onoff !turns off online tracer
        FTTOPX(n) = 1-onoff !
        if (n.eq.1) FSTOPX(:) = 1-onoff
-       if (n.eq.1) FSTOPX(:) = 1-onoff
+       if (n.eq.1) FTTOPX(:) = 1-onoff
        CALL RCOMPX
        SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
        TNFST(1,n,I,J)=TRNFLB(1)
