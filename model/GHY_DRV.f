@@ -779,6 +779,7 @@ c****
       use ent_com, only : entcells
       !use ent_mod, only : ent_prescribe_vegupdate
       use ent_drv, only : update_vegetation_data
+      !use ent_mod, only : ent_cell_print
 #endif
 
 
@@ -866,6 +867,13 @@ c**** input/output for PBL
 C****   define local grid
       integer J_0, J_1, J_0H, J_1H, I_0, I_1
 
+!@var end_of_day_flag - hack to pass "end of day" flag to Ent
+      logical :: end_of_day_flag
+
+      integer, save :: counter=0
+
+      counter = counter + 1
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -877,6 +885,12 @@ C****
 
       spring=-1.
       if((jday.ge.32).and.(jday.le.212)) spring=1.
+
+      IF (MOD(Itime,NDAY).eq.0) THEN
+        end_of_day_flag = .true.
+      else
+        end_of_day_flag = .false.
+      endif
 
 c****
 c**** outside loop over time steps, executed nisurf times every hour
@@ -937,6 +951,12 @@ c****
 !$OMP*   )
 !$OMP*   SHARED(ns,moddsf,moddd)
 !$OMP*   SCHEDULE(DYNAMIC,2)
+
+      !call ent_cell_print(900+counter, entcells)
+
+!!      call update_vegetation_data( entcells,
+!!     &     im, jm, 1, im, J_0, J_1, jday, jyear )
+
 
       loop_j: do j=J_0,J_1
   !    hemi=1.
@@ -1174,7 +1194,8 @@ ccc switch to Ca from tracers
      &     pbl_args%ws,
      &     pbl_args%ws0,
      &     pbl_args%tprime,
-     &     pbl_args%qprime )
+     &     pbl_args%qprime,
+     &     end_of_day_flag )
 
 
 
@@ -1227,6 +1248,14 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
 c**** snowe used in RADIATION
       snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+cddd      if (i==23 .and. j==10) then
+cddd        write(755,*) "counter", counter
+cddd        write(755,*) "snowe(i,j)", snowe(i,j)
+cddd        write(755,*) "snowd(1)",snowd(1)
+cddd        write(755,*) "snowd(2)",snowd(2)
+cddd        write(755,*) "fb",fb
+cddd        write(755,*) "fv",fv
+cddd      endif
       !if ( j>23 ) write(995,*) i,j, snowe(i,j)
 c**** tearth used only internaly in GHY_DRV
       tearth(i,j) = tbcs
@@ -3396,7 +3425,8 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
  !       call ent_prescribe_vegupdate(entcells,hemi,jday,jyear, .true.)
  !     endif
 
-      call update_vegetation_data( entcells,
+      if (end_of_day )
+     &     call update_vegetation_data( entcells,
      &     im, jm, 1, im, J_0, J_1, jday, jyear )
 
       !if(cond_scheme.eq.2) call updsur (0,jday)
@@ -4682,7 +4712,8 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 #ifdef USE_ENT
       call ent_get_exports( entcells(i,j),
      &     fraction_of_vegetated_soil=fv )
-      fb = 1. - fv
+      if ( fv > 1.d0 - 1d-6 ) fv = 1.d0  ! get rid of round-off errors
+      fb = 1.d0 - fv
 #else
       fb = afb(i,j)
       fv=1.d0 - fb
