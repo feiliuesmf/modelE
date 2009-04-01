@@ -1476,7 +1476,25 @@ cddd      end interface ent_cell_update
       ! include all cell variables that need i/o
       ! actually soil_texture is BC, but store it to checkpoint for now ...
       call copy_vars( buf(dc:), nn, entcell%soil_texture, flag)
-           dc = dc + nn
+      dc = dc + nn
+
+      ! the following vars are from clim_stats 
+      ! do we really need them ??
+      call copy_vars( buf(dc:), nn, entcell%soiltemp_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%airtemp_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%paw_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%par_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%gdd, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%ncd, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%ld, flag)
+      dc = dc + nn
+
       n = dc
 
       end subroutine copy_cell_vars
@@ -1565,6 +1583,9 @@ cddd      end interface ent_cell_update
       ! diags and hacks (added dec 9 2008)
       call copy_vars( buf(dc:), nn,  c%C_growth,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%C_total ,  flag ); dc = dc + nn
+      ! added on Mar 30 2009. Do we really need this?
+      call copy_vars( buf(dc:), nn,  c%llspan  ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%turnover_amp,  flag ); dc=dc + nn
       n = dc
 
       end subroutine copy_cohort_vars
