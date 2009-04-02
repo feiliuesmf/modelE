@@ -260,6 +260,7 @@ DTFIX=300
 !--- define emission sectors above files belong to ---
 NOx_AIRC_sect='AIR' ! special 3D source case
 CH4_12_sect='WETL'
+NOx_10_sect='SOIL'
 Isoprene_01_sect='ISO'
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
@@ -276,8 +277,9 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 SECT_01= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
 SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
 SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
+SECT_04= 0.500, 1.000, 1.000, 1.000, 1.000 ! SOIL
 !       ---define-sectors-names/order------
-SECTORS_ARE='ISO WETL AIR'
+SECTORS_ARE='ISO WETL AIR SOIL'
 !-fit-here--|                                                              |---
 !-----
 aircraft_Tyr1=0 ! for non-transient emissions,
