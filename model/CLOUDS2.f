@@ -2959,8 +2959,11 @@ C**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
     ! this formulation is used for consistency with current practice
       RH00(L)=U00a
       IF(PL(L).LT.850.d0) THEN
-        RH00(L)=RH00(L)*35.*BYAM(L)           ! vert. dependence of U00
-        IF(RH00(L).GT.0.9d0) RH00(L)=0.9d0
+c        RH00(L)=RH00(L)*35.*BYAM(L)           ! vert. dependence of U00
+c        IF(RH00(L).GT.0.9d0) RH00(L)=0.9d0
+
+        RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*AIRM(L)/35.)
+
         IF(VDEF.GT..1d0.AND.LMCMAX.LE.1) RH00(L)=
      *    RH00(L)*MIN(SQRT(.1d0/VDEF),.5d0) ! dependece on vertical velocity
       END IF
