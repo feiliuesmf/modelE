@@ -189,7 +189,8 @@ CO_06=AR5_emis/M/2000/CO_shp_AR5_2000_4x5_h
 CO_07=AR5_emis/M/2000/CO_slv_AR5_2000_4x5_h
 CO_08=AR5_emis/M/2000/CO_tra_AR5_2000_4x5_h
 CO_09=AR5_emis/M/2000/CO_wst_AR5_2000_4x5_h
-CO_10=CO_sources/CO_GEIA_biomass_burning_head
+CO_10=AR5_emis/M/2000/CO_forestfire_AR5_2000_4x5_h
+CO_11=AR5_emis/M/2000/CO_grassfire_AR5_2000_4x5_h
 ! ========= please remember that Alkenes =================
 ! ========= and Paraffin emissions files =================
 ! ========= must now be in Kmole units,  =================
@@ -203,8 +204,9 @@ Alkenes_06=AR5_emis/M/2000/Alkenes_shp_AR5_2000_4x5_h
 Alkenes_07=AR5_emis/M/2000/Alkenes_slv_AR5_2000_4x5_h
 Alkenes_08=AR5_emis/M/2000/Alkenes_tra_AR5_2000_4x5_h
 Alkenes_09=AR5_emis/M/2000/Alkenes_wst_AR5_2000_4x5_h 
-Alkenes_10=gsin/Alkenes_GEIA_biomass_burning_head_1
-Alkenes_11=gsin/Alkenes_GEIA_vegetation_head_1
+Alkenes_10=gsin/Alkenes_GEIA_vegetation_head_1
+Alkenes_11=AR5_emis/M/2000/Alkenes_forestfire_AR5_2000_4x5_h
+Alkenes_12=AR5_emis/M/2000/Alkenes_grassfire_AR5_2000_4x5_h
 Paraffin_01=AR5_emis/M/2000/Paraffin_agr_AR5_2000_4x5_h
 Paraffin_02=AR5_emis/M/2000/Paraffin_awb_AR5_2000_4x5_h
 Paraffin_03=AR5_emis/M/2000/Paraffin_dom_AR5_2000_4x5_h
@@ -214,8 +216,9 @@ Paraffin_06=AR5_emis/M/2000/Paraffin_shp_AR5_2000_4x5_h
 Paraffin_07=AR5_emis/M/2000/Paraffin_slv_AR5_2000_4x5_h
 Paraffin_08=AR5_emis/M/2000/Paraffin_tra_AR5_2000_4x5_h
 Paraffin_09=AR5_emis/M/2000/Paraffin_wst_AR5_2000_4x5_h
-Paraffin_10=gsin/Paraffin_GEIA_biomass_burning_head_1
-Paraffin_11=gsin/Paraffin_GEIA_vegetation_head_1
+Paraffin_10=gsin/Paraffin_GEIA_vegetation_head_1
+Paraffin_11=AR5_emis/M/2000/Paraffin_forestfire_AR5_2000_4x5_h
+Paraffin_12=AR5_emis/M/2000/Paraffin_grassfire_AR5_2000_4x5_h
 NOx_01=AR5_emis/M/2000/NOx_agr_AR5_2000_4x5_h
 NOx_02=AR5_emis/M/2000/NOx_awb_AR5_2000_4x5_h
 NOx_03=AR5_emis/M/2000/NOx_dom_AR5_2000_4x5_h
@@ -224,8 +227,9 @@ NOx_05=AR5_emis/M/2000/NOx_ind_AR5_2000_4x5_h
 NOx_06=AR5_emis/M/2000/NOx_shp_AR5_2000_4x5_h
 NOx_07=AR5_emis/M/2000/NOx_tra_AR5_2000_4x5_h
 NOx_08=AR5_emis/M/2000/NOx_wst_AR5_2000_4x5_h
-NOx_09=NOy_sources/NOx_GEIA_biomass_burning_head
-NOx_10=NOy_sources/NOx_GEIA_soil_head
+NOx_09=NOy_sources/NOx_GEIA_soil_half_head
+NOx_10=AR5_emis/M/2000/NOx_forestfire_AR5_2000_4x5_h
+NOx_11=AR5_emis/M/2000/NOx_grassfire_AR5_2000_4x5_h
 NOx_AIRC=AR5_emis/M/2000/NOx_air_AR5_2000_4x5
 CH4_01=AR5_emis/M/2000/CH4_agr_AR5_2000_4x5_h
 CH4_02=AR5_emis/M/2000/CH4_awb_AR5_2000_4x5_h
@@ -237,9 +241,10 @@ CH4_07=AR5_emis/M/2000/CH4_tra_AR5_2000_4x5_h
 CH4_08=AR5_emis/M/2000/CH4_wst_AR5_2000_4x5_h
 CH4_09=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
 CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
-CH4_11=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
-CH4_12=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
-Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
+CH4_11=AR5_emis/M/2000/CH4_forestfire_AR5_2000_4x5_h
+CH4_12=AR5_emis/M/2000/CH4_grassfire_AR5_2000_4x5_h
+CH4_13=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+Isoprene_01=gsin/Isoprene_GEIA_vegetation_double_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
 SO2_FIELD=so2_conc
@@ -258,9 +263,7 @@ DTFIX=300
 
 !--- define emission sectors above files belong to ---
 NOx_AIRC_sect='AIR' ! special 3D source case
-CH4_12_sect='WETL'
-NOx_10_sect='SOIL'
-Isoprene_01_sect='ISO'
+CH4_13_sect='WETL'
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
@@ -273,12 +276,10 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 !-fit-here--|                                                              |---
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
-SECT_01= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
-SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
-SECT_04= 0.500, 1.000, 1.000, 1.000, 1.000 ! SOIL
+SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
 !       ---define-sectors-names/order------
-SECTORS_ARE='ISO WETL AIR SOIL'
+SECTORS_ARE='WETL AIR'
 !-fit-here--|                                                              |---
 !-----
 aircraft_Tyr1=0 ! for non-transient emissions,
@@ -299,7 +300,7 @@ tune_lt_sea=8.463d0  ! =3.9d0*2.17d0 for 4x5 model setting
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
-ns_wet=12       ! index of CH4 source that is the wetlands (dumb, I know)
+ns_wet=13       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
 topo_lim=205.d0 ! upper limit of topographic variation for new wetlands 
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
