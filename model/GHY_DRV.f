@@ -2035,7 +2035,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use param, only : sync_param, get_param
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
-      use model_com, only : focean
+      use model_com, only : focean, itime
       use dynamics, only : pedn
       use fluxes, only : gtemp,gtempr
 #ifdef USE_ENT
@@ -2069,7 +2069,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       integer init_flake
       logical present_land
 #ifdef TRACERS_WATER
-      real*8 trsoil_tot,wsoil_tot,fm
+      real*8 trsoil_tot,wsoil_tot,fm,height_can
       integer n
 #endif
 
@@ -3182,7 +3182,7 @@ cddd      end subroutine retp2
       character*6, intent(in) :: subr
 
       real*8 x,tgl,wtrl,acel
-      integer i,j,imax,jmax,nsb,nsv
+      integer i,j,imax,jmax,nsb,nsv,n
       real*8, parameter :: EPS=1.d-12
       logical QCHECKL
       real*8 relerr, errmax, fb, fv
