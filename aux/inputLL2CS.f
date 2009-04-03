@@ -13,15 +13,26 @@
       use DOMAIN_DECOMP_1D, ONLY : init_app
       use DOMAIN_DECOMP_ATM, only : grid,init_grid
       implicit none
-      type (x_2gridsroot) :: x4x5cs32,xll2cs_TOPO,xll2cs_OSST,
-     &     xll2cs_GIC
-      integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,ims4x5,jms4x5,
-     &     ims_GIC,jms_GIC,ims_STN,jms_STN,ims_OSST,jms_OSST,
-     &     ntilessource,ntilestarget,
-     &     imt,jmt
+      type (x_2gridsroot) :: xll2cs_COMMON,xll2cs_TOPO,xll2cs_OSST,
+     &     xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_VEG,
+     &     xll2cs_CROPS,xll2cs_TOPINDEX,xll2cs_SOIL,xll2cs_GLMELT,
+     &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC
+
+      integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,
+     &     ims_COMMON,jms_COMMON,ims_GIC,jms_GIC,ims_STN,
+     &     jms_STN,ims_OSST,jms_OSST,imt,jmt
+      integer, parameter :: ntilessource=1,ntilestarget=6
 
       call fms_init( )
 
+      imt=IM;jmt=JM 
+
+      write(*,*) "imt jmt=",imt,jmt
+      call init_app()
+      call init_grid(grid, imt, jmt, 20, CREATE_CAP=.true.)
+      call geom_cs
+
+      if (imt .eq. 32) then   !target grid = CS32
 c     for TOPO 288x180 ->CS32
       ims_TOPO=288
       jms_TOPO=180
@@ -36,13 +47,13 @@ c      jms_RVR=180
 
 c     for SICE, CDN, VEG, CROPS, TOPINDEX, SOIL, GLMELT 
 c     VEGFRAC, LAI : 4x5->CS32
-      ims4x5=72
-      jms4x5=46
+      ims_COMMON=72
+      jms_COMMON=46
+
 c     for OSST
       ims_OSST=144
       jms_OSST=90
-c      ims_OSST=360
-c      jms_OSST=180
+
 
 c     for GIC 1x1->CS32
       ims_GIC=360
@@ -52,27 +63,62 @@ c     for STN
       ims_STN=720
       jms_STN=360
 
-      ntilessource=1
-
-      imt=IM;jmt=JM  !=32
-      ntilestarget=6
-
-      write(*,*) "imt jmt=",imt,jmt
-      call init_app()
-      call init_grid(grid, imt, jmt, 20, CREATE_CAP=.true.)
-      call geom_cs
-
       call init_regrid_root(xll2cs_TOPO,ims_TOPO,jms_TOPO,
      &     ntilessource,imt,jmt,ntilestarget)
 
-      call init_regrid_root(x4x5cs32,ims4x5,jms4x5,
+      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
      &     ntilessource,imt,jmt,ntilestarget)
+
+      xll2cs_SICE=xll2cs_COMMON
+      xll2cs_CDN=xll2cs_COMMON
+      xll2cs_VEG=xll2cs_COMMON
+      xll2cs_CROPS=xll2cs_COMMON
+      xll2cs_TOPINDEX=xll2cs_COMMON
+      xll2cs_SOIL=xll2cs_COMMON
+      xll2cs_GLMELT=xll2cs_COMMON
+      xll2cs_VEGFRAC=xll2cs_COMMON
+      xll2cs_LAI=xll2cs_COMMON
+      xll2cs_AIC=xll2cs_COMMON
 
       call init_regrid_root(xll2cs_GIC,ims_GIC,jms_GIC,
      &     ntilessource,imt,jmt,ntilestarget)
 
       call init_regrid_root(xll2cs_OSST,ims_OSST,jms_OSST,
      &     ntilessource,imt,jmt,ntilestarget)
+
+      elseif (imt .eq. 90) then ! target grid = CS90
+
+
+c     for SICE, OSST, TOPO 288x180->CS90
+      ims_COMMON=288
+      jms_COMMON=180
+
+      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
+     &     ntilessource,imt,jmt,ntilestarget)
+
+      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
+      xll2cs_OSST=xll2cs_COMMON
+c ? VEGFRAC, LAI
+      xll2cs_SICE=xll2cs_COMMON
+      xll2cs_GLMELT=xll2cs_COMMON 
+      xll2cs_CROPS=xll2cs_COMMON
+
+c     360x180 for TOPINDEX, VEG, SOIL, GIC, AIC
+      ims_COMMON=360
+      jms_COMMON=180
+
+      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
+     &     ntilessource,imt,jmt,ntilestarget)
+
+      xll2cs_CDN=xll2cs_COMMON
+      xll2cs_TOPINDEX=xll2cs_COMMON
+      xll2cs_VEG=xll2cs_COMMON
+      xll2cs_SOIL=xll2cs_COMMON
+      xll2cs_GIC=xll2cs_COMMON
+      xll2cs_AIC=xll2cs_COMMON
+
+      endif
+
 
 c***   We use 3 different types of interpolation depending on the
 c***   nature of the input file. The first 6 letters indicate the 
@@ -88,18 +134,18 @@ c***   its alias (TOPO, VEG, AIC...)
          call regridTOPO(xll2cs_TOPO)
          call regridOSST(xll2cs_OSST)
          call testOSST()
-         call regridSICE(x4x5cs32)
-         call regridCDN(x4x5cs32)
-         call regridVEG(x4x5cs32)
-         call regridCROPS(x4x5cs32)
-         call regridTOPINDEX(x4x5cs32)
-         call regridSOIL(x4x5cs32)
-         call regridGLMELT(x4x5cs32)
-         call regridVEGFRAC(x4x5cs32)
-         call regridLAI(x4x5cs32)
+         call regridSICE(xll2cs_SICE)
+         call regridCDN(xll2cs_CDN)
+         call regridVEG(xll2cs_VEG)
+         call regridCROPS(xll2cs_CROPS)
+         call regridTOPINDEX(xll2cs_TOPINDEX)
+         call regridSOIL(xll2cs_SOIL)
+         call regridGLMELT(xll2cs_GLMELT)
+c         call regridVEGFRAC(xll2cs_VEGFRAC)
+c         call regridLAI(xll2cs_LAI)
       endif
       call regridGIC(xll2cs_GIC,grid)
-      call regridAIC(x4x5cs32,grid)
+      call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
 c  1) call regridRDSCAL(grid,720,360,...) in regridinput.f. It regrids scalar distance to the ocean 
@@ -866,8 +912,6 @@ c
       
       iu_TOPO=20
       name="Z288X180N"
-c      name="Z72X46N.cor4_nocasp"
-c      name="Z144X90N_nocasp"
 
       write(*,*) name
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
@@ -1109,10 +1153,8 @@ c*
 
 
       subroutine regridOSST(x2grids)
-c     for 1x1 resolution :  Gary on Athena clima1/OBS/AMIP/1x1
-c     Also SST1x1_HadISST from Hadley (Jeff Jonas) - check if this  
-c     has been interpolated from lower resolution 
-
+c     Reto has extracted a 288x180 data set from Hadley data
+c     this is compatible with focean mask in Gary's Z288x180 topo file
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -1123,6 +1165,10 @@ c     has been interpolated from lower resolution
       integer iu_OSST,iu_TOPO,i,j,k
       real*8 :: missing
 
+      if (x2grids%imtarget .eq. 32) then
+
+         if (x2grids%imsource .eq. 144 .and. 
+     &        x2grids%jmsource .eq. 90) then
 c*    Read ocean fraction on input grid
       iu_TOPO=19
       name="Z144X90N_nocasp.1"
@@ -1131,12 +1177,34 @@ c*    Read ocean fraction on input grid
       close(iu_TOPO)
 
       iu_OSST=20
-c      name="OST4X5.B.1876-85avg.Hadl1.1"
       name="OST_144x90.1876-1885avg.HadISST1.1"
-c      name="SST_1x1_HadISST_v1.1_Edges_Avg1979-90_fix2"
+c
       write(*,*) name
-      open(iu_OSST, FILE=name,FORM='unformatted', STATUS='old')
       missing=-9.999999171244748e33
+
+      endif 
+      endif
+
+      if (x2grids%imtarget .eq. 90) then
+         if (x2grids%imsource .eq. 288 .and. 
+     &        x2grids%jmsource .eq. 180) then
+c*    Read ocean fraction on input grid
+      iu_TOPO=19
+      name="Z288X180N"
+      open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
+      read(iu_TOPO) title,FOCEAN
+      close(iu_TOPO)
+
+      iu_OSST=20
+      name="OST_288x180.1975-1984avg.HadISST1.1"
+
+      write(*,*) name
+      missing=-9.999999171244748e33
+
+      endif 
+      endif
+
+      open(iu_OSST, FILE=name,FORM='unformatted', STATUS='old')
 
       call regrid_mask_OSST(x2grids,name,iu_OSST,FOCEAN,missing)
 
@@ -1166,7 +1234,10 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
      &    maxrec,ir
 
       iu_SICE=19
+
+ 
       name="SICE4X5.B.1876-85avg.Hadl1.1"
+      name="SICE_288x180.1975-1984avg.HadISST1.1"    
       write(*,*) name
 
       ims=x2grids%imsource
@@ -1180,8 +1251,16 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
      &     ttargglob(imt,jmt,ntt),
      &     tin(ims,jms,nts),
      &     tout(imt,jmt,ntt))
+
       tsource(:,:,:)=0.0
- 
+      
+      if (ims .eq. 72 .and. jms .eq. 46) then
+      name="SICE4X5.B.1876-85avg.Hadl1.1"
+      else if (ims .eq. 288 .and. jms .eq. 180) then
+      name="SICE_288x180.1975-1984avg.HadISST1.1"
+      endif
+      write(*,*) name
+
       if (am_i_root()) then
       open (iu_SICE, FILE=name,FORM='unformatted', STATUS='old')
       read(unit=iu_SICE) TITLE, tin
@@ -1202,6 +1281,9 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       write(unit=iuout) TITLE,tout(:,:,:)
       write(*,*) TITLE
       endif
+
+      open( 33, FILE="sice1",
+     &     FORM='unformatted', STATUS="UNKNOWN")
 
       allocate (tsource1(ims,jms,nts,nrecmax),
      &     tsource2(ims,jms,nts,nrecmax),
@@ -1227,7 +1309,7 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
          tbig(:,:,2,:)=tout2(:,:,:)
          if (am_i_root()) then
          write(unit=iuout) TITLE2(ir),tbig
-c         write(unit=iuout) TITLE2(ir),tout1(:,:,:),tout2(:,:,:)
+         write(33) TITLE2(ir),tout1(:,:,:)
          write(*,*) "TITLE",TITLE2(ir)
          endif
       enddo
@@ -1250,10 +1332,17 @@ c     for 1x1 resolution: Jeff Jonas uses CDN=AL30RL360X180N.rep
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
       character*80 TITLE,name
-      integer iu_CDN
+      integer iu_CDN,ims,jms
 
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+ 
       iu_CDN=20
-      name="CD4X500S.ext"
+      if (ims .eq. 72 .and. jms .eq. 46) then 
+         name="CD4X500S.ext"
+      elseif (ims .eq. 360 .and. jms .eq. 180) then 
+         name="AL30RL360X180N.rep"
+      endif
       if (am_i_root()) then
       open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
       endif
@@ -1514,6 +1603,7 @@ c*
       
 
       subroutine regridGLMELT(x2grids)
+c*    Jean Lerner has a 1x1 file
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
@@ -1678,8 +1768,6 @@ c***
 c*
 
 
-
-
       subroutine regridLAI(x2grids)
 c
 c     regriding LAI used by tracers code
@@ -1783,9 +1871,7 @@ c*    write
 
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
 
-c      name="GIC.E046D3M20A.1DEC1955.ext"
       name="GIC.360X180.DEC01.1.rep"
-c      name="GIC.144X90.DEC01.1.ext"
 
       iu_GIC=20
 
@@ -2145,8 +2231,14 @@ c
 
       iu_AIC=20
 
+      if (ims .eq. 72 .and. jms .eq. 46) then
+         name="AIC.RES_M20A.D771201"
+      elseif (ims .eq. 360 .and. jms .eq. 180) then
+         name="AIC.RES_X40.D771201N.rep"
+      endif
+
       if (am_i_root()) then
-      name="AIC.RES_M20A.D771201"
+      
       open(iu_AIC,FILE=name,FORM='unformatted', STATUS='old')
 
       outunformat=trim(name)//".CS"
@@ -2164,10 +2256,10 @@ c
          write(*,*) "TITLE, irec",TITLE,irec
          call root_regrid(x2grids,tsource,ttargglob)
 
-         if (irec .eq. 1) tcopy=ttargglob
-         if (irec .eq. 82) tcopy2=ttargglob
-         if (irec .eq. 2) tcopy3=ttargglob
-         if (irec .eq. 22) tcopy4=ttargglob
+c         if (irec .eq. 1) tcopy=ttargglob
+c         if (irec .eq. 82) tcopy2=ttargglob
+c         if (irec .eq. 2) tcopy3=ttargglob
+c         if (irec .eq. 22) tcopy4=ttargglob
 
          write(unit=iuout) TITLE,real(ttargglob,KIND=4)
 c          write(unit=iuout) TITLE,ttargglob
@@ -2185,33 +2277,33 @@ c          write(unit=iuout) TITLE,ttargglob
 
       endif
 
-      write(*,*) "here w r4"
-
-      outnc=trim(name)//"-CS.nc"
-      write(*,*) outnc
-
-      if (am_i_root()) then
-         write(*,*) "TCOPY=",tcopy
-         status = nf_create(outnc,nf_clobber,fid)
-         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
-      endif
-
-      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
-      call defvar(dd2d,fid,tcopy2,'surf_temp(im,jm,tile)')
-      call defvar(dd2d,fid,tcopy3,'u974(im,jm,tile)')
-      call defvar(dd2d,fid,tcopy4,'v974(im,jm,tile)')
-
-      if (am_i_root()) then
-         status = nf_enddef(fid)
-         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
-      endif
-
-      call write_data(dd2d,fid,'press',tcopy)
-      call write_data(dd2d,fid,'surf_temp',tcopy2)
-      call write_data(dd2d,fid,'u974',tcopy3)
-      call write_data(dd2d,fid,'v974',tcopy4)
-
-      if(am_i_root()) status = nf_close(fid)
+c      write(*,*) "here w r4"
+c
+c      outnc=trim(name)//"-CS.nc"
+c      write(*,*) outnc
+c
+c      if (am_i_root()) then
+c         write(*,*) "TCOPY=",tcopy
+c         status = nf_create(outnc,nf_clobber,fid)
+c         if (status .ne. NF_NOERR) write(*,*) "UNABLE TO CREATE FILE"
+c      endif
+c
+c      call defvar(dd2d,fid,tcopy,'press(im,jm,tile)')
+c      call defvar(dd2d,fid,tcopy2,'surf_temp(im,jm,tile)')
+c      call defvar(dd2d,fid,tcopy3,'u974(im,jm,tile)')
+c      call defvar(dd2d,fid,tcopy4,'v974(im,jm,tile)')
+c
+c      if (am_i_root()) then
+c         status = nf_enddef(fid)
+c         if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
+c      endif
+c
+c      call write_data(dd2d,fid,'press',tcopy)
+c      call write_data(dd2d,fid,'surf_temp',tcopy2)
+c      call write_data(dd2d,fid,'u974',tcopy3)
+c      call write_data(dd2d,fid,'v974',tcopy4)
+c
+c      if(am_i_root()) status = nf_close(fid)
 
       deallocate(tsource,ts4,ttargglob,tcopy,tcopy2,
      &     tcopy3,tcopy4)
@@ -2792,9 +2884,11 @@ c
 
       outunformat=trim(name)//".CS"
       write(*,*) outunformat
-
+      if (imt .eq. 32) then
       filefcs="Z_CS32"
-
+      else if (imt .eq. 90) then
+      filefcs="Z_CS90"
+      endif
       open(50, FILE=filefcs,
      &     FORM='unformatted', STATUS="UNKNOWN")
       read(50) T2,FOCEAN_CS
