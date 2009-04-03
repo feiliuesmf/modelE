@@ -13,7 +13,7 @@ c --- hycom version 2.1
       USE HYCOM_DIM
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS
-      USE KPRF_ARRAYS_LOC_RENAMER, only: dpbl, zgrid, vcty
+      USE KPRF_ARRAYS_LOC_RENAMER, only: dpbl, zgrid, vcty, jerlov
       USE KPRF_ARRAYS_LOC_RENAMER, only: tmix, smix, thmix, umix, vmix
 
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,NORTH
@@ -53,6 +53,7 @@ c
  108  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
  109  format (i9,2i5,a/(33x,i3,f8.3,f8.1,3x,f8.3,f8.1))
  110  format (i9,2i5,a/(33x,i3,f8.3,1es11.3))
+c
 !$OMP   PARALLEL DO PRIVATE(vrbos)
 !$OMP&         SCHEDULE(STATIC,jchunk)
       do j=J_0,J_1
@@ -169,7 +170,7 @@ c
  13   continue
 c$OMP END PARALLEL DO
 c
-      end if				! use KT depth
+      end if		! if (iocnmx.gt.4) use KT depth
 c
 c --- except for KPP, surface boundary layer is the mixed layer
       if (mod(iocnmx,4).eq.3) then		! GISS scheme
@@ -388,7 +389,10 @@ c
      &                         (1.0-(sigmlj  +epsil-thtop)/
      &                              (thjmp(k)+epsil-thtop) )
                   endif !part of layer
-*
+c
+c --- enforce minimum thickness constraint
+                  dpmixl(i,j,n) = max(dpmixl(i,j,n),bldmin*onem)
+c
                   if (vrbos) then
                     write (lp,'(i9,2i5,i3,a,f7.3,f7.4,f9.2)')
      &                nstep,i,j,k,
@@ -519,6 +523,7 @@ c
        end do
       end do
 !$OMP   END PARALLEL DO
+c
 c
       return
       end subroutine mxkprf
@@ -709,6 +714,7 @@ c
       integer nbl              ! layer containing boundary layer base
       integer nbbl             ! layer containing bottom boundary layer base
       integer kup2,kdn2,kup,kdn! bulk richardson number indices
+      integer niter            ! iterations for semi-implicit soln. (2 recomended for KPP)
 c
 c --- local 1-d arrays for matrix solution
       real u1do(kdm+1),u1dn(kdm+1),v1do(kdm+1),v1dn(kdm+1),t1do(kdm+1),
@@ -737,7 +743,7 @@ c
       real     sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
       external sigocn,dsigdt,dsigds,dsiglocdt,dsiglocds
 c
-      integer jb,k,k1,ka,kb,kn,kan,kbn,nlayer,ksave,iter,jrlv
+      integer jb,k,k1,ka,kb,kn,kan,kbn,nlayer,ksave,iter,jrlv,nblmin
 c
       real,parameter :: qrinfy=1./0.7  ! (max.gradient richardson number)^-1
 
@@ -811,9 +817,9 @@ c --- evenly re-distribute the flux below the bottom
       swfbqp = swfbqp/pij(k+1)
 c
       if (vrbos) then
-        write (lp,'(a,4f10.4)')
+        write (lp,'(a,4f10.4,i2)')
      &   'frac[rb],beta[rb] =',
-     &   frac_r,frac_b,onem*beta_r,onem*beta_b
+     &   frac_r,frac_b,onem*beta_r,onem*beta_b,jrlv
         call flush(lp)
       endif
 c
@@ -888,6 +894,8 @@ c --- modify t and s; set old value arrays at p points for initial iteration
         endif
       enddo
 c
+      if (iocnmx.eq.0) return			! skip mixing
+c
       k=klist(i,j)
       kn=k+nn
       ka=k+1
@@ -932,11 +940,11 @@ c --- calculate layer thicknesses in m
         endif
       enddo
 c
-      if (iocnmx.eq.0) return			! skip mixing
-c
 c --- perform niter iterations to execute the semi-implicit solution of the
 c --- diffusion equation. at least two iterations are recommended
 c
+      niter=2
+      if (iocnmx.gt.4) niter=1
       do iter=1,niter
 c
 c --- calculate layer variables required to estimate bulk richardson number
@@ -1087,7 +1095,7 @@ c
         if (vrbos) then
            write (lp,102) (nstep,iter,i,j,k,
      &   hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-     &     k=1,kk)
+     &     k=1,kk+1)
            call flush(lp)
         endif
 c
@@ -1141,6 +1149,12 @@ c --- initialize hbl and nbl to bottomed out values
           rib(kup) =0.0
           nbl=klist(i,j)
           hbl=hblmax
+c
+c --- find nbl (=nblmin) associated with minimum mixed layer depth
+          do k=2,nbl
+            nblmin=k
+            if (zgrid(i,j,k).lt.-hblmin) exit
+          end do
 c
 c --- diagnose hbl and nbl
           do k=2,nbl
@@ -1236,7 +1250,7 @@ c ---             find root of Y(X)-RICR nearest to X2
               nbl=k
               if (hbl.lt.hblmin) then
                 hbl=hblmin
-                nbl=2
+                nbl=nblmin
               endif
               if (hbl.gt.hblmax) then
                 hbl=hblmax
@@ -1462,7 +1476,7 @@ c
         if (vrbos) then
           write (lp,103) (nstep,iter,i,j,k,
      &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
-     &    ghats(i,j,k),k=1,kk)
+     &    ghats(i,j,k),k=1,kk+1)
           call flush(lp)
         endif
 c
@@ -2883,6 +2897,13 @@ c --- stop if DIFFUSIVITY IS NEGATIVE.
       endif
       enddo
 c
+c --- set min of 10 cm^2/s on top two layers
+      akm(1)=max(akm(1),10.)
+      akh(1)=max(akh(1),10.)
+      aks(1)=max(aks(1),10.)
+      akm(2)=max(akm(2),10.)
+      akh(2)=max(akh(2),10.)
+      aks(2)=max(aks(2),10.)
 c --- store new k values in the 3-d arrays
       do k=1,kk
         kb=k+1
@@ -2896,6 +2917,7 @@ c --- store new k values in the 3-d arrays
           difs(i,j,kb)=difs(i,j,klist(i,j))
         endif
       enddo
+c
       if (vrbos) then
         write(6,'(a,a9,a3,5a13)') 
      &    'giss1dout','    nstep','  k',

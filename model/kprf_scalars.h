@@ -4,7 +4,7 @@
      . vonk,zmin,zmax,umin,umax,epsilon,deltaz,deltau,vtc,cg,dp0enh,
      . qdif0,qdifiw
 
-      integer hblflg,niter
+      integer hblflg
 
       logical locsig,bblkpp,shinst,dbdiff,nonloc,latdiw,botdiw,difsmo
      .       ,mxlkpp,mxlgis
@@ -15,7 +15,7 @@
      . vonk,zmin,zmax,umin,umax,epsilon,deltaz,deltau,vtc,cg,dp0enh,
      . qdif0,qdifiw
 
-      common /kprf_integ/hblflg,niter
+      common /kprf_integ/hblflg
 c
       common /kprf_char/
      .  locsig,bblkpp,shinst,dbdiff,nonloc,latdiw,botdiw,difsmo

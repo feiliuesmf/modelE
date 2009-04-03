@@ -10,7 +10,7 @@ c
       data ribc  /   0.65 / ! PWP:     critical bulk     richardson number
       data rinfty/   0.7  / ! KPP:     maximum  gradient richardson number (shear inst.)  
       data ricr  /   0.45 / ! KPP:     critical bulk     richardson number
-      data bldmin/   0.0  / ! KPP:     minimum surface boundary layer thickness
+      data bldmin/  20.0  / ! KPP:     minimum surface boundary layer thickness
       data bldmax/1200.0  / ! KPP:     maximum surface boundary layer thickness
       data cekman/   0.7  / ! KPP/KT:  scale factor for Ekman depth 
       data cmonob/   1.0  / ! KPP:     scale factor for Monin-Obukov depth
@@ -32,5 +32,4 @@ c
       data cv    /   0.0  / ! KPP:     buoyancy frequency ratio (0.0 to use a fn. of N)   
       data c11   /   5.0  / ! KPP:     value for turb velocity scale                      
       data hblflg/   1    / ! KPP:     b. layer interpolation flag (1=lin.,2=quad.)       
-      data niter /   1    / ! KPP:     iterations for semi-implicit soln. (2 recomended)  
       end
