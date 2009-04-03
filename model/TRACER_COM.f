@@ -844,7 +844,7 @@ C note, tr_evap_fact is not dimensioned as NTM:
 C**** Diagnostic indices and meta-data
 
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
-      integer, parameter :: ntsurfsrcmax=15
+      integer, parameter :: ntsurfsrcmax=16
 !@var ntsurfsrc no. of non-interactive surface sources for each tracer
       integer, dimension(ntm) :: ntsurfsrc
 !@var ntisurfsrc no. of interactive surface sources for each tracer
