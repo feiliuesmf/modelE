@@ -41,6 +41,8 @@ c-----------------------------------------------------------------------------
 #endif
 #ifdef TRACERS_HYCOM_Ventilation
       integer, parameter :: ntrcr = 1
+#else
+      integer, parameter :: ntrcr = 1
 #endif
 c
 c --- ms-1  = max. number of interruptions of any grid row or column by land

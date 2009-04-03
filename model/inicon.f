@@ -210,7 +210,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
         gtempr(1,ia,ja)=atempr(ia,ja)
-        if (sss(ia,ja).le.10.) then
+        if (sss(ia,ja).le.5.) then
           write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
      . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)
           stop 'wrong sss in agcm'

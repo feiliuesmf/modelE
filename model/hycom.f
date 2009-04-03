@@ -777,8 +777,8 @@ ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-      if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
-     .      call convec(m,n,mm,nn,k1m,k1n)
+c     if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
+      call convec(m,n,mm,nn,k1m,k1n)
 c
       call system_clock(after)
       convec_time = real(after-before)/real(rate)
