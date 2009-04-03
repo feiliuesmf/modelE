@@ -1,4 +1,4 @@
-E1M20.R GISS Model E  2004 modelE             your_name  1/13/07
+E1M20.R GISS Model E  2004 modelE                     larissa     04/03/2009
 
 E1M20: description/motivation    (any number of lines) ?
    (delete)  Lines you may want to inspect in any case contain a "?"
@@ -60,12 +60,14 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093.ext ! soil/topography bdy.conds
+TOPO=Z72X46N.cor4_nocasp          ! topography
+SOIL=S4X50093.ext                 ! soil bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4.ext  ! veg. fractions, crops history
+VEG=V72X46.1.cor2_no_crops.ext    ! veg. fractions
+CROPS=CROPS_72X46N.cor4.ext       ! crops history
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
-RVR=RD_modelE_M.RVR.bin               ! river direction file
+RVR=RD_modelE_M.RVR.bin           ! river direction file
 TOP_INDEX=top_index_72x46.ij.ext  ! only used if #define do_topmodel_runoff
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -109,8 +111,8 @@ MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
 
 Label and Namelist:
-E1M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn; use up to 72 (or 80) columns and ??
-up to 60 (or 52) columns here to describe your run)?<- col 53  to  72 ->   80 ->
+E1M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn) 
+
 DTFIX=300
 
 &&PARAMETERS
@@ -138,8 +140,8 @@ cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 ! tuning param.: this setting works for 1850; use U00wtrX=1.28 for 1979
  
-U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+U00a=.75    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.2    ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.62      ! U00ice+.01 =>dBal=1.5,dPl.alb=-.9%   goals:Bal=0,plan.alb=30%
 U00wtrX=1.29    ! U00wtrX+.01=>dBal=0.7,dPl.alb=-.25%  Bal=glb.ann NetHt at z0
@@ -197,7 +199,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, IYEAR1=1949 ! or earlier
-   YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=13*0,
+   YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  /
 
