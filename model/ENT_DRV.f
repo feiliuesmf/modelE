@@ -72,7 +72,7 @@
         do j=J_0,J_1
           do i=I_0,I_1
             !!if (focean(i,j) <= 0) then
-            if ( focean(i,j) + FLICE(I,J) < 1.d0 ) then
+            if ( focean(i,j) < 1.d0 ) then
               !print *,"EARTH",i,j,focean(i,j)
               call ent_cell_construct( entcells(i,j) )
             else

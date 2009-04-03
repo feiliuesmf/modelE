@@ -673,7 +673,7 @@ c***********************************************************************
 
       public daily_earth
       public ground_e
-      public init_gh
+      public init_LSM
       public earth
       !public conserv_wtg
       !public conserv_htg
@@ -686,7 +686,6 @@ c***********************************************************************
 #ifndef USE_ENT
       real*8 adlmass          ! accumulator for dleafmass in daily_earth
 #endif
-      real*8 spgsn !@var spgsn specific gravity of snow
 !@dbparam snow_cover_coef coefficient for topography variance in
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
@@ -1374,9 +1373,9 @@ c another surface type
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
-#ifndef USE_ENT
+!#ifndef USE_ENT
       call compute_water_deficit
-#endif
+!#endif
 
       return
       end subroutine earth
@@ -1822,60 +1821,44 @@ ccc                               currently using only topography part
       end subroutine snow_cover
 
 
-      subroutine init_gh(dtsurf,redogh,inisnow,istart,nl_soil)
+      subroutine init_LSM(dtsurf,redogh,inisnow,istart)
+      real*8, intent(in) :: dtsurf
+      integer, intent(in) :: istart
+      logical, intent(in) :: redogh, inisnow
+
+      call init_gh(dtsurf,istart)
+
+      ! no need to continue for diags ?
+      if (istart.le.0) return
+
+      call init_veg( istart, redogh )
+      call init_land_surface(redogh,inisnow,istart)
+
+      end subroutine init_LSM
+
+
+      subroutine init_gh(dtsurf,istart)
 c**** modifications needed for split of bare soils into 2 types
-      use filemanager
-      use param
-      use constant, only : twopi,rhow,edpery,sha,lhe,tf,shw_kg=>shw
+      use filemanager, only : openunit, closeunit, nameunit
+      use param, only : sync_param, get_param
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
-      use model_com, only : fearth0,itime,nday,jyear,fland,flice
-     &     ,focean
-      use lakes_com, only : flake
+      use model_com, only : focean
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
-!      use sle001, only : w,ht,snowd, nsn,dzsn,wsn,hsn,fr_snow, dt,
-!     &     hl0, set_snow
       use sle001, only : hl0, dt
-#ifdef TRACERS_WATER
-      use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
-      use fluxes, only : gtracer
-#ifndef USE_ENT
-      use veg_com, only:  avh !,afb
-#endif
-#endif
-      use fluxes, only : gtemp,gtempr
       use ghy_com
-      use dynamics, only : pedn
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
-#ifndef USE_ENT
-      use veg_drv, only : init_vegetation, veg_set_cell
-      use veg_com, only : vdata
-      use veg_com, only : ala
-      use vegetation, only : t_vegcell
-#else
-      use ent_drv, only : init_module_ent
-      use ent_mod
-      use ent_com, only : entcells
-#endif
 
       implicit none
 
       real*8, intent(in) :: dtsurf
       integer, intent(in) :: istart
-      logical, intent(in) :: redogh, inisnow
-      integer, intent(out) :: nl_soil
       integer iu_soil,iu_top_index
-      integer jday
-      real*8 snowdp,wtr1,wtr2,ace1,ace2,tg1,tg2
       logical :: qcon(npts)
-      integer i, j, ibv
+      integer i, j
       logical ghy_data_missing
       character conpt(npts)*10
-#ifdef TRACERS_WATER
-      real*8 trsoil_tot,wsoil_tot,fm
-      integer n
-#endif
 c****
 cgsfc      REAL*8::TEMP_LOCAL(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,11*NGM+1)
       REAL*8, Allocatable, DIMENSION(:,:,:) :: TEMP_LOCAL
@@ -1884,25 +1867,14 @@ c****       1 -   ngm   dz(ngm)
 c****   ngm+1 - 6*ngm   q(is,ngm)
 c**** 6*ngm+1 - 11*ngm   qk(is,ngm)
 c**** 11*ngm+1           sl
-      real*8, external :: qsat
 !@dbparam ghy_default_data if == 1 reset all GHY data to defaults
 !@+ (do not read it from files)
       integer :: ghy_default_data = 0
 
-      real*8 :: evap_max_ij_sum
 C**** define local grid
       integer I_0, I_1, J_0, J_1
       integer I_0H, I_1H, J_0H, J_1H
       logical present_land
-      integer init_flake
-      integer kk
-      integer :: reset_canopy_ic=0, reset_snow_ic=0
-      real*8 :: aa, ht_cap_can, fice_can, fb, fv
-      real*8 :: ws_can, shc_can
-#ifndef USE_ENT
-      type (t_vegcell) vegcell
-#endif
-      real*8 height_can
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1934,16 +1906,11 @@ c**** read rundeck parameters
       call sync_param( "snoage_def", snoage_def )
       call sync_param( "wsn_max", wsn_max )
       call sync_param( "ghy_default_data", ghy_default_data )
-      call  get_param( "variable_lk", variable_lk )
-      call  get_param( "init_flake", init_flake )
+      !call  get_param( "variable_lk", variable_lk )
+      !call  get_param( "init_flake", init_flake )
 #ifdef USE_ENT
       call sync_param( "vegCO2X_off", vegCO2X_off)
 #endif
-      call sync_param( "reset_canopy_ic", reset_canopy_ic )
-      call sync_param( "reset_snow_ic", reset_snow_ic )
-
-c**** set number of layers for vegetation module
-      nl_soil = ngm
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
@@ -1980,25 +1947,8 @@ c**** read topmodel parameters
         !!!if (istart.le.0) return
       endif
 
-c****
-c**** initialize constants
-c****
 c**** time step for ground hydrology
       dt=dtsurf
-c spgsn is the specific gravity of snow
-      spgsn=.1d0
-
-c**** cosday, sinday should be defined (reset once a day in daily_earth)
-      jday=1+mod(itime/nday,365)
-#ifndef USE_ENT
-      cosday=cos(twopi/edpery*jday)
-      sinday=sin(twopi/edpery*jday)
-#endif
-
-ccc read and initialize vegetation here
-#ifndef USE_ENT
-      call init_vegetation(redogh,istart)
-#endif
 
       ! no need to continue computations for postprocessing
       if (istart.le.0) return
@@ -2038,8 +1988,102 @@ c**** check whether ground hydrology data exist at this point.
      &       'Ground Hydrology data is missing at some cells',255)
       endif
 
-
       call hl0
+
+      return
+      end subroutine init_gh
+
+
+!******************************************************************
+
+
+      subroutine init_veg( istart, redogh )
+      use constant, only : twopi,edpery
+      use model_com, only : itime,nday,jyear,focean
+#ifdef USE_ENT
+      use ent_drv, only : init_module_ent
+#else
+      use veg_drv, only : init_vegetation
+      use vegetation, only : t_vegcell
+#endif
+      integer, intent(in) :: istart
+      logical, intent(in) :: redogh
+      !--- local
+#ifndef USE_ENT
+      type (t_vegcell) vegcell
+#endif
+      integer jday
+
+c**** cosday, sinday should be defined (reset once a day in daily_earth)
+      jday=1+mod(itime/nday,365)
+
+#ifdef USE_ENT
+      CALL init_module_ent(istart.le.2, Jday, Jyear, FOCEAN)
+#else
+      cosday=cos(twopi/edpery*jday)
+      sinday=sin(twopi/edpery*jday)
+      call init_vegetation(redogh,istart)
+#endif
+
+      end subroutine init_veg
+
+!******************************************************************
+
+      subroutine init_land_surface(redogh,inisnow,istart)
+      !use veg_drv, only : spgsn
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use param, only : sync_param, get_param
+      use constant, only : tf, lhe, rhow, shw_kg=>shw
+      use ghy_com
+      use model_com, only : focean
+      use dynamics, only : pedn
+      use fluxes, only : gtemp,gtempr
+#ifdef USE_ENT
+      use ent_com, only : entcells
+      use ent_mod
+#else
+      use veg_drv, only : veg_set_cell
+      use vegetation, only : t_vegcell
+      use veg_com, only : ala
+#endif
+#ifdef TRACERS_WATER
+      use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
+      use fluxes, only : gtracer
+#ifndef USE_ENT
+      use veg_com, only:  avh !,afb
+#endif
+#endif
+      implicit none
+      integer, intent(in) :: istart
+      logical, intent(in) :: redogh, inisnow
+
+      !--- local
+#ifndef USE_ENT
+      type (t_vegcell) vegcell
+#endif
+      real*8, external :: qsat
+      real*8, parameter :: spgsn=.1d0 !@var spgsn specific gravity of snow
+      real*8 :: ws_can, shc_can, ht_cap_can, fice_can, aa
+      real*8 :: fb, fv
+      integer :: reset_canopy_ic=0, reset_snow_ic=0
+      integer init_flake
+      logical present_land
+#ifdef TRACERS_WATER
+      real*8 trsoil_tot,wsoil_tot,fm
+      integer n
+#endif
+
+      integer I_0, I_1, J_0, J_1, i, j, ibv
+
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *               I_STRT=I_0, I_STOP=I_1 )
+
+      call sync_param( "reset_canopy_ic", reset_canopy_ic )
+      call sync_param( "reset_snow_ic", reset_snow_ic )
+      call  get_param( "variable_lk", variable_lk )
+      call  get_param( "init_flake", init_flake )
+
 
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
@@ -2051,17 +2095,10 @@ c**** recompute ground hydrology data if necessary (new soils data)
             snowbv(:,i,j)=0.d0
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
-
-cddd            call old_gic_2_modele(
-cddd     &           w_ij(:,:,i,j), ht_ij(:,:,i,j),snowbv(:,i,j),
-cddd     &           wearth(i,j), aiearth(i,j), tearth(i,j), snowe(i,j) )
-
 #ifdef USE_ENT
-            !!! probably will not work
-         call stop_model("reset_canopy_ic not implemented for Ent",255)
-!            call ent_get_exports( entcells(i,j),
-!     &           canopy_heat_capacity=shc_can )
-!     &           canopy_saturated_capacity=ws_can )
+            call ent_get_exports( entcells(i,j),
+     &           canopy_heat_capacity=shc_can,
+     &           canopy_max_H2O=ws_can )
 #else
             call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
             ws_can = vegcell%ws_can
@@ -2088,15 +2125,6 @@ cddd     &           wearth(i,j), aiearth(i,j), tearth(i,j), snowe(i,j) )
         write (*,*) 'ground hydrology data was made from ground data'
       end if
 
-c**** set gtemp array
-      do j=J_0,J_1
-        do i=I_0,I_1
-          if (fearth(i,j).gt.0) then
-            gtemp(1,4,i,j)=tsns_ij(i,j)
-            gtempr(4,i,j) =tearth(i,j)+tf
-          end if
-        end do
-      end do
 
 c**** set vegetation temperature to tearth(i,j) if requested
 c**** in this case also set canopy water and water tracers to 0
@@ -2117,9 +2145,9 @@ c**** in this case also set canopy water and water tracers to 0
 
 #ifdef USE_ENT
             !!! probably will not work
-         call stop_model("reset_canopy_ic not implemented for Ent",255)
-!            call ent_get_exports( entcells(i,j),
-!     &           canopy_heat_capacity=ht_cap_can )
+         !!!call stop_model("reset_canopy_ic not implemented for Ent",255)
+            call ent_get_exports( entcells(i,j),
+     &           canopy_heat_capacity=ht_cap_can )
 #else
             aa=ala(1,i,j)
             ht_cap_can=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
@@ -2136,12 +2164,10 @@ c**** in this case also set canopy water and water tracers to 0
         enddo
       endif
 
-C GISS-ESMF EXCEPTIONAL CASE
-C-BMP Global sum on evap_max_ij
 
-ccc if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
-ccc to something more appropriate
 
+c**** if not initialized yet, set evap_max_ij, fr_sat_ij, qg_ij
+c**** to something more appropriate
       do j=J_0,J_1
         do i=I_0,I_1
           !if ( fearth(i,j) .le. 0.d0 ) cycle
@@ -2153,12 +2179,9 @@ ccc to something more appropriate
         enddo
       enddo
 
-ccc   init snow here
-ccc hope this is the right place to split first layer into soil
-ccc and snow  and to set snow arrays
-ccc!!! this should be done only when restarting from an old
-ccc!!! restart file (without snow model data)
 
+c**** the following is needed for very old restart files only
+c**** (i.e. the files which contained snow as part of 1st soil layer)
       if (inisnow) then
         do j=J_0,J_1
           do i=I_0,I_1
@@ -2170,25 +2193,7 @@ ccc!!! restart file (without snow model data)
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 
-cddd            w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i,j)
-cddd            ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i,j)
-cddd            snowd(1:2) =  snowbv(1:2,i,j)
-cddd
-cddd            call ghinij (i,j)
-cddd            call set_snow
-cddd
-cddd            nsn_ij    (1:2, i, j)         = nsn(1:2)
-cddd            !isn_ij    (1:2, i, j)         = isn(1:2)
-cddd            dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
-cddd            wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
-cddd            hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
-cddd            fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
-cddd
-cddd            w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
-cddd            ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
-cddd            snowbv(1:2,i,j)   = snowd(1:2)
-
-            call set_snow1( w_ij (1:ngm,1:LS_NFRAC,i,j) ,
+           call set_snow1( w_ij (1:ngm,1:LS_NFRAC,i,j) ,
      &           ht_ij(1:ngm,1:LS_NFRAC,i,j) ,
      &           snowbv(1:2,i,j), q_ij(i,j,:,:), dz_ij(i,j,:),
      &           nsn_ij    (1:2, i, j),
@@ -2214,7 +2219,6 @@ c**** fix initial conditions for soil water if necessry
         enddo
       endif
 
-
 c**** fix initial conditions for soil heat if necessry
       if ( istart < 9 ) then
         do j=J_0,J_1
@@ -2223,7 +2227,10 @@ c**** fix initial conditions for soil heat if necessry
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 #ifdef USE_ENT
             !call stop_model("fix*_ic not implemented for Ent",255)
-            shc_can = 1.d30 ! i.e. don't check canopy heat
+            !shc_can = 1.d30 ! i.e. don't check canopy heat
+            call ent_get_exports( entcells(i,j),
+     &           canopy_heat_capacity=shc_can )
+
 #else
             call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
             shc_can = vegcell%shc_can
@@ -2234,7 +2241,6 @@ c**** fix initial conditions for soil heat if necessry
           enddo
         enddo
       endif
-
 
 c**** remove all land snow from initial conditions
 c**** (useful when changing land/vegetation mask)
@@ -2286,15 +2292,22 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       if ( init_flake > 0 .and. variable_lk > 0 .and. istart < 9 )
      &     call init_underwater_soil
 
+
       ! land water deficit for changing lake fractions
       !!! not working with Ent
-#ifndef USE_ENT
+!#ifndef USE_ENT
       call compute_water_deficit
-#endif
+!#endif
 
-#ifdef USE_ENT
-      CALL init_module_ent(ISTART.LE.2, Jday, Jyear, FOCEAN)
-#endif
+c**** set gtemp array
+      do j=J_0,J_1
+        do i=I_0,I_1
+          if (fearth(i,j).gt.0) then
+            gtemp(1,4,i,j)=tsns_ij(i,j)
+            gtempr(4,i,j) =tearth(i,j)+tf
+          end if
+        end do
+      end do
 
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
@@ -2336,9 +2349,9 @@ ccc still not quite correct (assumes fw=1)
       end do
 #endif
 
-      return
-      end subroutine init_gh
+      end subroutine init_land_surface
 
+!********************************************************************
 
       subroutine old_gic_2_modele(
      &           w, ht,snowbv,
@@ -3169,7 +3182,7 @@ cddd      end subroutine retp2
       character*6, intent(in) :: subr
 
       real*8 x,tgl,wtrl,acel
-      integer i,j,imax,jmax,n,nsb,nsv
+      integer i,j,imax,jmax,nsb,nsv
       real*8, parameter :: EPS=1.d-12
       logical QCHECKL
       real*8 relerr, errmax, fb, fv
@@ -3350,7 +3363,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
      &     ,aalbveg
 #else
       use veg_com, only : almass,aalbveg       !nyk
-      use vegetation, only: crops_yr,cond_scheme,vegCO2X_off !nyk
+      use vegetation, only: crops_yr,cond_scheme !nyk
 #endif
       use surf_albedo, only: albvnh, updsur  !nyk
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET

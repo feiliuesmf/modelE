@@ -1106,7 +1106,7 @@ C****
      &  ,egcm,w2gcm,tgvavg,qgavg
       USE LAKES_COM, only : flake
       USE GHY_COM, only : fearth
-      USE SOIL_DRV, only: init_gh
+      USE SOIL_DRV, only: init_LSM
       USE DOMAIN_DECOMP_1D, only : HERE
       USE DOMAIN_DECOMP_ATM, only : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE,READT_PARALLEL
@@ -1118,9 +1118,9 @@ C****
 #ifndef CUBE_GRID
       USE ATMDYN, only : init_ATMDYN
 #endif
-#ifdef USE_ENT
-      USE ENT_DRV, only : init_module_ent
-#endif
+cddd#ifdef USE_ENT
+cddd      USE ENT_DRV, only : init_module_ent
+cddd#endif
       IMPLICIT NONE
       CHARACTER(*) :: ifile
 !@var iu_AIC,iu_TOPO unit numbers for input files
@@ -1144,9 +1144,9 @@ C****
       LOGICAL :: redoGH = .FALSE.,iniPBL = .FALSE., inilake = .FALSE.,
      &           iniSNOW = .FALSE.  ! true = restart from "no snow" rsf
      &           ,iniOCEAN = .FALSE.
-#ifdef USE_ENT
-     &     ,iniENT = .FALSE.
-#endif
+cddd#ifdef USE_ENT
+cddd     &     ,iniENT = .FALSE.
+cddd#endif
 #ifdef USE_FVCORE
       type (ESMF_Clock) :: clock
       integer :: minti,minte
@@ -1158,7 +1158,7 @@ C****
      *     ,IHOURE, TIMEE,HOURE,DATEE,MONTHE,YEARE,IYEAR1
 C****    List of parameters that are disregarded at restarts
      *     ,        HOURI,DATEI,MONTHI,YEARI
-      integer ISTART_kradia, nl_soil
+      integer ISTART_kradia
       character*132 :: bufs
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
@@ -1446,9 +1446,9 @@ C**** Set flag to initialise pbl and snow variables
         iniPBL=.TRUE.
         iniSNOW = .TRUE.  ! extract snow data from first soil layer
         iniOCEAN = .TRUE. ! read in ocean ic
-#ifdef USE_ENT
-        iniENT = .TRUE.
-#endif
+cddd#ifdef USE_ENT
+cddd        iniENT = .TRUE.
+cddd#endif
         if (istart.eq.1) redogh=.true.
 
 #if !defined(NO_LAND_SURFACE) || defined(CUBE_GRID)
@@ -2005,10 +2005,10 @@ C****
 !!! do we need it ? I.A.
       ISTART_kradia = ISTART
       if ( Kradia.gt.0 ) ISTART_kradia = 0
-      CALL init_GH(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia, nl_soil)
-#ifdef USE_ENT
-      CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
-#endif
+      CALL init_LSM(DTsrc/NIsurf,redoGH,iniSNOW,ISTART_kradia)
+cddd#ifdef USE_ENT
+cddd      CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
+cddd#endif
 
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_RAD(istart)
