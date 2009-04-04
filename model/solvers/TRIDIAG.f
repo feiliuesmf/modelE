@@ -7,7 +7,9 @@
       Interface Tridiag_new
       Module Procedure tridiag
       Module procedure tridiag_2d_glob
+#ifndef OFFLINE_RUN
       Module procedure tridiag_2d_dist
+#endif
       End Interface
 
       contains
@@ -86,7 +88,7 @@ c     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
       RETURN
       END SUBROUTINE TRIDIAG_2D_GLOB
 
-
+#ifndef OFFLINE_RUN
       SUBROUTINE TRIDIAG_2D_DIST(A_dist, B_dist, C_dist, R_dist,
      &                           U_dist,grid, j_lower, j_upper )
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
@@ -166,6 +168,7 @@ c     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
 
       RETURN
       END SUBROUTINE TRIDIAG_2D_DIST
+#endif
 
 
 
