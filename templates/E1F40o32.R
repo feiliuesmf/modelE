@@ -1,4 +1,4 @@
-E1F40o32.R GISS Model E  coupled version          larissa   01/22/2009
+E1F40o32.R GISS Model E  coupled version          larissa   04/06/2009
 
 E1F40o32: 2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
@@ -76,7 +76,7 @@ VEG=V144X90_no_crops.ext        ! vegatation file
 CROPS=CROPS_144X90N_nocasp.ext  ! crops  
 SOIL=S144X900098M.ext           ! soil properties
 REG=REG2X2.5                    ! special regions-diag
-RVR=RD_modelE_F.RVR.bin             ! river direction file
+RVR=RD_modelE_F.RVR.bin         ! river direction file
 RADN1=sgpgxg.table8             ! rad.tables and history files
 RADN2=LWTables33k.1a            ! rad.tables and history files
 RADN4=LWTables33k.1b            ! rad.tables and history files
@@ -144,8 +144,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
  
-U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+U00a=0.72   ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.40   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.60       ! tune this first to get: glob. ann. mean plan.alb=30%   (U00ice up=>albedo down)
 U00wtrX=1.47     ! this to get: glob. ann. mean net heat at surf. = 0   (U00wtrX+.01=>NetHtSrf+.7)
@@ -201,6 +201,6 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 
  &INPUTZ
    YEARI=1900,MONTHI=12,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=1900,MONTHE=12,DATEE=2,HOURE=0, KDIAG=13*0,
+   YEARE=1951,MONTHE=12,DATEE=1,HOURE=0, KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1900,MONTHE=12,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
