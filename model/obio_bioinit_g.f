@@ -42,6 +42,9 @@ c  Carbon type 2    = DIC
       USE obio_incom
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax,tracer_loc,tracer
+#ifdef TRACERS_Alkalinity
+      USE obio_forc, only: alk
+#endif
 
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
@@ -94,11 +97,11 @@ c  Initialize
 
       filename='nitrates_inicond'
       call bio_inicond_g(filename,fldo2,fldoz)
-      tracer(:,:,:,1)=fldo2
+      tracer(:,:,:,1)=fldo2         !because 3 is nintrate
 
       filename='silicate_inicond'
       call bio_inicond_g(filename,fldo2,fldoz)
-      tracer(:,:,:,3)=fldo2
+      tracer(:,:,:,3)=fldo2         !because 3 is silicate
 
       filename='dic_inicond'
       call bio_inicond_g(filename,fldo2,fldoz)
@@ -106,8 +109,9 @@ c  Initialize
 
 #ifdef TRACERS_Alkalinity
       filename='alk_inicond'
-      call bio_inicond(filename,fldo2,fldoz)
+      call bio_inicond_g(filename,fldo2,fldoz)
       alk(:,:,:)=fldo2
+      tracer(:,:,:,ntrac)=alk       !because ntrac is alkalinity
 #endif
 
 !!these rno3 and so2_init fields are not correct. There are void points due to

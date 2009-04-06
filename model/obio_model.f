@@ -40,6 +40,8 @@
 #ifdef OBIO_ON_GARYocean
      .                    ,itest,jtest,obio_deltat
      .                    ,tracer_loc,tracer,nstep0
+      USE ODIAG, only : ij_pCO2
+      USE ODIAG, only : oij=>oij_loc
 #endif
 
       USE MODEL_COM, only: JMON,jhour,nday,jdate,jday
@@ -850,6 +852,9 @@ cdiag  endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
+#ifdef OBIO_ON_GARYocean
+       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j) ! turb fric speed
+#endif
 
 !       if (diagno_bio) then
 !#ifdef OBIO_ON_GARYocean

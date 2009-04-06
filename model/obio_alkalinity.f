@@ -22,7 +22,11 @@
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,zc,alk1d,bn
 
-      USE hycom_scalars, only:nstep
+#ifdef OBIO_ON_GARYocean
+      USE MODEL_COM, only: nstep=> itime
+#else
+      USE hycom_scalars, only: nstep
+#endif
 
       implicit none
 

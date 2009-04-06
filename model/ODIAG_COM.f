@@ -13,7 +13,7 @@
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=6,KOIJL=22,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=7,KOIJL=22,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -39,6 +39,10 @@
       REAL*8, DIMENSION(KOIJ) :: SCALE_OIJ
 !@var ijgrid_oij Grid descriptor for OIJ diagnostics
        INTEGER, DIMENSION(KOIJ) :: IJGRID_OIJ
+#ifdef TRACERS_OceanBiology
+!@var ij_pCO2 surface ocean partial CO2 pressure
+       INTEGER :: IJ_pCO2
+#endif
 
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
@@ -518,6 +522,17 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=0.25
       ijgrid_oij(k)=1
+
+#ifdef TRACERS_OceanBiology
+      k=k+1
+      IJ_pCO2=k
+      lname_oij(k)="Surface ocean partial CO2 pressure"
+      sname_oij(k)="oij_pCO2"
+      units_oij(k)="uatm"
+      ia_oij(k)=ia_src
+      scale_oij(k)=0.25
+      ijgrid_oij(k)=1
+#endif
 
       k=k+1
       IJ_SSH=k

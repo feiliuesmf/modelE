@@ -2136,25 +2136,6 @@ C****
       do n=1,ntm
       select case (trname(n))
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      case ('CO2n')
-        k = k + 1
-        jls_isrc(1,n) = k
-        sname_jls(k) = 'Ocean_gas_exch_'//trname(n)
-        lname_jls(k) = 'CO2n Ocean gas exchange'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-        ijts_isrc(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CO2n Ocean source'
-        sname_ijts(k) = 'CO2n_Ocean_source'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
-
 
 #ifdef TRACERS_GASEXCH_ocean_CFC
       case ('CFCn')
@@ -3720,12 +3701,29 @@ C**** This needs to be 'hand coded' depending on circumstances
       select case (trname(n))
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
+!     case ('CO2n')
+!       k = k + 1
+!       jls_isrc(1,n) = k
+!       sname_jls(k) = 'Ocean_gas_exch_'//trname(n)
+!       lname_jls(k) = 'CO2n Ocean gas exchange'
+!       jls_ltop(k) = 1
+!       jls_power(k) = 3
+!       units_jls(k) = unit_string(jls_power(k),'kg/s')
+!       ijts_isrc(1,n) = k
+!       ijts_index(k) = n
+!       ia_ijts(k) = ia_src
+!       lname_ijts(k) = 'CO2n Ocean source'
+!       sname_ijts(k) = 'CO2n_Ocean_source'
+!       ijts_power(k) = -12
+!       units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+!       scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       case ('CO2n')
       k = k + 1
         ijts_isrc(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'ocean_gas_exc_'//trname(n)
+        sname_ijts(k) = 'CO2 O_GASX'//trname(n)
         lname_ijts(k) = 'Ocean gas exchange CO2'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')

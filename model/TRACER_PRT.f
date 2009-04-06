@@ -1278,6 +1278,9 @@ c     if (itime.lt.itime_tr0(n)) cycle
         ijtype(k) = 3
         end if
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+        aij2(:,:,k)=taijs(:,:,k)     !denom to remove land vals
+#endif
         if (index(lname_ijt(l,n),'unused').gt.0) Qk(k) = .false.
       end do
 C**** Fill in maplet indices for tracer sums/means and ground conc
