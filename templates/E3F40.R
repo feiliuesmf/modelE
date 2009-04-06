@@ -1,4 +1,4 @@
-E3F40.R GISS Model E  1979 ocn/atm                   rar 03/04
+E3F40.R GISS Model E  1979 ocn/atm                 larissa  06/04/2009
 
 E3F40: replace this section by a description of what distinguishes this run ?
        Use as many lines as you need. Look carefully at all the possible    ?
@@ -51,12 +51,17 @@ POUT                                ! post-processing output
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
-OSST=OST_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological ocean (1 yr data)
+OSST=OST_144x90.B.1975-1984avg.Hadl1  ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
-CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS_144X90N_nocasp.ext
-SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
-REG=REG2X2.5          ! special regions-diag
-RVR=RD_modelE_F.RVR.bin      ! river direction file
+! OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
+! SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
+CDN=CD144X90                    ! surf.drag coefficient
+VEG=V144X90_no_crops            ! veg. fractions
+CROPS=CROPS_144X90N_nocasp.ext  ! crops history 
+SOIL=S144X900098M               ! soil bdy.conds
+TOPO=Z144X90N_nocasp            ! topography
+REG=REG2X2.5                    ! special regions-diag
+RVR=RD_modelE_F.RVR.bin         ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -99,8 +104,8 @@ MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
 
 Label and Namelist:
-E3F40 (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn; use up to 72 (or 80) columns and ??
-up to 60 (or 52) columns here to describe your run)?<--col 53  to  72-->to 80-->
+E3F40 (ModelE 2x2.5, 40 lyrs, 1979 atm/ocn)
+
 DTFIX=180.
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
@@ -125,9 +130,12 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
-U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
+! 1979 atm/ocn tuning param. (U00a up=>less high clouds, U00b up=>more low clouds):  
+U00a=0.71   ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.60   ! below 850mb and MC regions; then tune this to get rad.balance
+! 1850 atm/ocn tuning param. (change OSST/SICE and the year in the atm.forcings):  
+! U00a=0.72   ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+! U00b=1.40   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.57      ! tune this first to get: glob. ann. mean plan.alb=30%   (U00ice up=>albedo down)
 U00wtrX=1.46    ! this to get: glob. ann. mean net heat at surf. = 0   (U00wtrX+.01=>NetHtSrf+.7)
