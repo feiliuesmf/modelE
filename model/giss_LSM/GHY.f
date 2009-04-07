@@ -13,10 +13,11 @@
 #define EVAP_VEG_GROUND
 #endif
 
-!#define CLIM_SOILMOIST
-#define RAD_VEG_GROUND
-!#define INTERCEPT_TEMPORAL
+!#define RAD_VEG_GROUND
 !#define ECOSYSTEM_SCALE
+!#define INTERCEPT_TEMPORAL
+!#define do_topmodel_runoff
+!#define CLIM_SOILMOIST
 
 !-----------------------------------------------------------------------
 
@@ -689,7 +690,19 @@ ccc   local variables
 #endif
       real*8 v_qprime    ! local variable
 #ifdef EVAP_VEG_GROUND
-      real*8 evap_max_vegsoil, ch_vg, eta
+!     Evaporation from vegetated soil limited by diffusion, precip, 
+!     and the amount of water in the soil column 
+      real*8 :: evap_max_vegsoil
+!     Fraction weight for bare soil and thick canopy
+      real*8 :: eta
+!     Atmos. transfer coefficient btw soil and canopy air
+      real*8 :: ch_vg
+!     Atmos. transfer coef. for dense canopy
+      real*8,parameter :: ch_dense_veg = 0.0001d0 
+!     Clumping factor
+      real*8,parameter :: f_clump = 0.7d0 
+!     Stem area index (currently set to zero)
+      real*8,parameter :: sai = 0.d0 
 #endif
 c     cna is the conductance of the atmosphere
       cna=ch*vs
@@ -878,10 +891,12 @@ c     epvs = rho3*cna*(qvs-qs)
       epvs = rho3*ch*( vs*(qvs-qs)-v_qprime )
 
 #ifdef EVAP_VEG_GROUND
-c     epvg  = rho3*cna*(qvg-qs) ! actually not correct !
-      ! use alpha=1 , sai=.2  (no reason, just need to set it to something)
-      eta = exp( -2.d0*(lai + .2d0) )
-      ch_vg = ch*eta + .0025d0*(1.d0-eta)
+!     Transfer coefficient  is simply interpolated btw the
+!     values for bare soil and for a thick canopy 
+!     see Zeng et al (2005) and Lawrence et al (2007) 
+!     in the CLM
+      eta = exp( -f_clump*(lai + sai) )
+      ch_vg = ch*eta + ch_dense_veg*(1.d0-eta)
       epvg  = rho3*ch_vg*( vs*(qvg-qs)-v_qprime )
 #endif
 
@@ -1011,8 +1026,10 @@ c****
 !@+   the drip water is split into liquid water dripw() and snow drips()
 !@+   for bare soil fraction, the canopy is transparent
       use snow_drvm, only : snow_cover_same_as_rad
-      real*8,parameter:: tau_storm=3600 ! storm-length timescale 
+#ifdef INTERCEPT_TEMPORAL
+      real*8 :: tau_storm
       real*8 :: f_prev_wet,pr_dry,wc_add,wc_new
+#endif
       real*8 :: ptmp,ptmps,pfac,pm,pmax
       real*8 :: snowf,snowfs,dr,drs
       real*8 :: melt_w, melt_h
@@ -1025,27 +1042,39 @@ c     snowfs is the large scale snow fall.
       snowfs=0.d0
       if(htprs.lt.0.d0)snowfs=min(-htprs/fsn,prs)
       if ( process_vege ) then
-        ptmps=prs-snowfs
-        ptmps=ptmps-evapvw*fw
+!       ptmps is large-scale rain minus canopy evaporation
+        ptmps=prs-snowfs-evapvw*fw
+!       ptmp is the convective rainfall rate
         ptmp=pr-prs-(snowf-snowfs)
 
 #ifdef INTERCEPT_TEMPORAL
-!     Fraction of precipiation that falls onto leaves previously wetted
-        f_prev_wet = 1.d0-(dts/tau_storm)
-!     Precipitation falling on dry canopy
-        if (fw > prfr) then
-           pr_dry = (1.d0-f_prev_wet)*fd0*pr
+        if (prfr <1.d0) then
+!          Timescale for duration of storm over grid fraction
+!          Not applicable for large-scale precip (i.e. not convective)
+!          or at the ecosystem scale
+           tau_storm = 3600.d0
+!          Fraction of precipiation that falls onto leaves previously wetted
+           f_prev_wet = 1.d0-(dts/tau_storm)
+!          Precipitation falling on dry canopy
+           if (fw > prfr) then
+              pr_dry = (1.d0-f_prev_wet)*fd0*ptmp
+           else
+!          Avoid unrealistic amounts of drip at storm onset
+              pr_dry = (fw/prfr)*(1.d0-f_prev_wet)*fd0*ptmp
+           endif
+!          Max water added to the dry canopy in the fraction covered by 
+!          convective precipitation
+           wc_add =(1.d0-f_prev_wet)*prfr*(ws(0,2)-w(0,2))
         else
-!       Avoid unrealistic amounts of drip at storm onset
-           pr_dry = (fw/prfr)*(1.d0-f_prev_wet)*fd0*pr
+!          Precipitation falling on dry canopy
+           pr_dry = fd0*ptmp
+!          Max. water added to dry canopy in the fraction covered by precip.
+           wc_add = prfr*(ws(0,2)-w(0,2))
         endif
-!       Water added to the dry canopy in the fraction covered by 
-!       convective precipitation
-        wc_add =(1.d0-f_prev_wet)*prfr*(ws(0,2)-w(0,2))
 !       Potential new water content of canopy
         wc_new = w(0,2) + min(pr_dry*dts,wc_add)
 !       Potential drip from the canopy
-        dr = pr - (wc_new - w(0,2))/dts
+        dr = ptmp - (wc_new - w(0,2))/dts
 !       Constrain drip to make sure enough water is available for
 !       canopy evaporation and snow evaporation 
         dr = min( dr, pr-snowf-evapvw*fw )
@@ -1255,7 +1284,7 @@ c**** surface runoff
         water_down = max( water_down, zero ) ! to make sure rnf > 0
         ! everything that falls on saturated fraction goes to runoff
 #ifdef ECOSYSTEM_SCALE
-        satfrac = (w(1,ibv)/ws(1,ibv))
+        satfrac = 0.d0!!!(w(1,ibv)/ws(1,ibv))
 #else
         satfrac = (w(1,ibv)/ws(1,ibv))**rosmp
 #endif
