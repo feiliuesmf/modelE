@@ -28,7 +28,7 @@ TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 dd2d_utils pario_nc pario_fbsa
-regrid regrid_com regridinput
+regrid regrid_com
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM !MOMEN2ND          ! atmospheric dynamics
