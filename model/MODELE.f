@@ -145,24 +145,6 @@ c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
 
-c      call glmeltt2b()
-
-#ifdef CUBE_GRID
-c***  Initialize regriding routines, ( DEBUG only )
-c      call regrid_input(grid%dd2d)
-c      call init_regrid(xcs2ll,grid%dd2d,48,48,6,288,180,1)
-c      allocate(tsource(grid%dd2d%isd:grid%dd2d%ied,
-c     &     grid%dd2d%jsd:grid%dd2d%jed))
-c      tsource(:,:)=grid%dd2d%gid
-c      write(*,*) "imtarget, jmtarget=",xcs2ll%imtarget,xcs2ll%jmtarget
-c      allocate(atarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-c     &     xcs2ll%ntilestarget),
-c     &     ttarget(xcs2ll%imtarget,xcs2ll%jmtarget,
-c     &     xcs2ll%ntilestarget) )
-c      call regrid_exact(xcs2ll,tsource,ttarget,atarget)
-c      call parallel_regrid(xcs2ll,tsource,ttarget,atarget)
-#endif
-
 #endif
 
       I_0 = GRID%I_STRT; I_1 = GRID%I_STOP

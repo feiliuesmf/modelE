@@ -1,6 +1,6 @@
-E2RVR.R GISS Model E  2004 modelE             your_name  1/13/07
+E1CS90L40.R GISS Model E  2004 modelE             your_name  1/13/07
 
-E2RVR: description/motivation    (any number of lines) ?
+E1CS90L40: description/motivation    (any number of lines) ?
    (delete)  Lines you may want to inspect in any case contain a "?"
    (delete)  At the end you'll find instructions on how to modify this rundeck
    (delete)  for other simple ocean models and change in vert/hor resolution
@@ -115,7 +115,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-E2RVR (ModelE1 Cubed Sphere C32, 20 lyrs, 1880 atm/ocn;
+E1CS90L40 (ModelE1 Cubed Sphere C32, 20 lyrs, 1880 atm/ocn;
 up to 60 (or 52) columns here to describe your run)?<- col 53  to  72 ->   80 ->
 DTFIX=300
 
