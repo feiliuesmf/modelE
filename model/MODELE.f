@@ -11,9 +11,6 @@
       USE DOMAIN_DECOMP_1D, ONLY : init_app,AM_I_ROOT,ESMF_BCAST
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid,sumxpe
       use domain_decomp_atm, only : writei8_parallel
-#ifdef CUBE_GRID
-      USE regrid_com, only : x_2grids
-#endif
       USE DYNAMICS
       USE RAD_COM, only : dimrad_sv
       USE RANDOM
@@ -98,11 +95,6 @@ C**** Command line options
       INTEGER      :: il0,jl0,kl0,nm0
       CHARACTER*20 :: bname='kuku.txt'
       CHARACTER*15 :: sname='MODELE_mainV3: '
-#endif
-#ifdef CUBE_GRID
-      type (x_2grids) :: xcs2ll
-      real*8, dimension(:,:), allocatable :: tsource
-      real*8, dimension(:,:,:), allocatable :: ttarget,atarget
 #endif
       integer :: I,J,L,I_0,I_1,J_0,J_1
       real*8 :: initialTotalEnergy, finalTotalEnergy
