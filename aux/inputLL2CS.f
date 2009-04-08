@@ -13,21 +13,20 @@
       use DOMAIN_DECOMP_1D, ONLY : init_app
       use DOMAIN_DECOMP_ATM, only : grid,init_grid
       implicit none
-      type (x_2gridsroot) :: xll2cs_COMMON,xll2cs_TOPO,xll2cs_OSST,
-     &     xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_VEG,
+      type (x_2gridsroot) :: xll2cs_COMMON,xll2cs_COMMON2,xll2cs_TOPO,
+     &     xll2cs_OSST,xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_VEG,
      &     xll2cs_CROPS,xll2cs_TOPINDEX,xll2cs_SOIL,xll2cs_GLMELT,
      &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC
 
       integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,
      &     ims_COMMON,jms_COMMON,ims_GIC,jms_GIC,ims_STN,
-     &     jms_STN,ims_OSST,jms_OSST,imt,jmt
+     &     jms_STN,ims_OSST,jms_OSST,ims_VEG,jms_VEG,imt,jmt
       integer, parameter :: ntilessource=1,ntilestarget=6
 
       call fms_init( )
 
       imt=IM;jmt=JM 
 
-      write(*,*) "imt jmt=",imt,jmt
       call init_app()
       call init_grid(grid, imt, jmt, 20, CREATE_CAP=.true.)
       call geom_cs
@@ -100,23 +99,32 @@ c     for SICE, OSST, TOPO 288x180->CS90
       xll2cs_OSST=xll2cs_COMMON
 c ? VEGFRAC, LAI
       xll2cs_SICE=xll2cs_COMMON
-      xll2cs_GLMELT=xll2cs_COMMON 
       xll2cs_CROPS=xll2cs_COMMON
 
 c     360x180 for TOPINDEX, VEG, SOIL, GIC, AIC
       ims_COMMON=360
       jms_COMMON=180
 
-      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
+      write(*,*) "bef init xgrid 360 180"
+      call init_regrid_root(xll2cs_COMMON2,ims_COMMON,jms_COMMON,
      &     ntilessource,imt,jmt,ntilestarget)
 
-      xll2cs_CDN=xll2cs_COMMON
-      xll2cs_TOPINDEX=xll2cs_COMMON
-      xll2cs_VEG=xll2cs_COMMON
-      xll2cs_SOIL=xll2cs_COMMON
-      xll2cs_GIC=xll2cs_COMMON
-      xll2cs_AIC=xll2cs_COMMON
+      write(*,*) "after init xgrid 360 180"
 
+      xll2cs_CDN=xll2cs_COMMON2
+      xll2cs_TOPINDEX=xll2cs_COMMON2
+      xll2cs_SOIL=xll2cs_COMMON2
+      xll2cs_GIC=xll2cs_COMMON2
+      xll2cs_AIC=xll2cs_COMMON2
+      xll2cs_GLMELT=xll2cs_COMMON2 
+
+c VEG 144x90 -> C90  ! also ask Nancy
+      ims_VEG=144
+      jms_VEG=90
+
+      write(*,*) "befor init xgrid 144 90"
+      call init_regrid_root(xll2cs_VEG,ims_VEG,jms_VEG,
+     &     ntilessource,imt,jmt,ntilestarget)
       endif
 
 
@@ -133,7 +141,7 @@ c***   its alias (TOPO, VEG, AIC...)
       if (AM_I_ROOT()) then
          call regridTOPO(xll2cs_TOPO)
          call regridOSST(xll2cs_OSST)
-         call testOSST()
+c         call testOSST()
          call regridSICE(xll2cs_SICE)
          call regridCDN(xll2cs_CDN)
          call regridVEG(xll2cs_VEG)
@@ -148,7 +156,7 @@ c         call regridLAI(xll2cs_LAI)
       call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
-c  1) call regridRDSCAL(grid,720,360,...) in regridinput.f. It regrids scalar distance to the ocean 
+c  1) call sampleRDSCAL(grid,720,360,...) in regridinput.f. It regrids scalar distance to the ocean 
 c     from latlon grid to cube sphere. STN-30p.bin -> STN_CS32 \ STN_CS60 \ STN_CS90
 c  2) run program contained in aux/RDto0.CS32.F (..RDtoO.CS90.F), which converts e.g. STN_CS32 to RDtoO.CS32
 c  3) river directions can be plotted using aux/RDVCS32.F (..RDVCS90.F)
@@ -157,8 +165,8 @@ c     in regridinput. The ascii files mouthnames_DtoO_CS32 and mouthij_DtoO_CS32
 c     (i,j,tile) indices.
 c  The resulting file is RDdistocean_CS32.bin
 
-      call interpRD(grid,ims_RVR,jms_RVR,imt,jmt)
-      call sampleRDSCAL(grid,ims_STN,jms_STN,ntilessource)
+c      call interpRD(grid,ims_RVR,jms_RVR,imt,jmt)
+c      call sampleRDSCAL(grid,ims_STN,jms_STN,ntilessource)
       call RDijk2ll_CS(grid,imt,jmt)
 
       end program regrid_input
@@ -765,21 +773,30 @@ c*
 
       if (am_i_root()) then
 c*    Read ocean fraction
-      name="Z_CS32"
+      name="Z_CS90"
       open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
       read(iu_TOPO) title,FOCEAN
       close(iu_TOPO)
 
 c*    Read names of river mouths
       iu_MNAME=20
-      name="mouthnames_DtoO_CS32"
+      if (imt .eq. 32) then
+         name="mouthnames_DtoO_CS32"
+      elseif (imt .eq. 90) then
+         name="mouthnames_DtoO_CS90"
+      endif
       open(iu_MNAME,FILE=name,FORM='formatted', STATUS='old')
       READ (iu_MNAME,'(A8)') (namervr(I),I=1,nrvr) !Read mouths names
       write(*,*) namervr
       close(iu_MNAME)
 
 c*    Read i,j,k coordinates of river mouths (k = index of cube face)
-      name="mouthij_DtoO_CS32"
+      if (imt .eq. 32) then
+         name="mouthij_DtoO_CS32"   
+      elseif (imt .eq. 90) then
+         name="mouthij_DtoO_CS90"
+      endif
+      
       open(iu_MIJ,FILE=name,FORM='formatted', STATUS='old')
       READ (iu_MIJ,'(A2,1X,A2,1X,A1)') (      
      &       mouthI(I),mouthJ(I),mouthK(I), I=1,nrvr)
@@ -793,16 +810,24 @@ c*     conversion char to int
           write(*,*) imouthI(i),imouthJ(i),imouthK(i)
       enddo
     
-      nameout="RDdistocean_CS32.bin"
     
       iu_RD=20
-      name="RDtoO.CS32"
+      if (imt .eq. 32) then
+         name="RDtoO.CS32"
+         nameout="RDdistocean_CS32.bin"
+      elseif (imt .eq. 90) then
+         name="RDtoO.CS90"
+         nameout="RDdistocean_CS90.bin"
+      endif
+
+
       write(*,*) name,imt,jmt
 
 c*    read i,j,k coordinates of downstream cells
 
          open( iu_RD, FILE=name,FORM='unformatted',
      &        STATUS='unknown')
+
          read(iu_RD) title,idown,jdown,kdown
          close(iu_RD)
       write(*,*) "read RDijk2ll_CS"
@@ -854,7 +879,13 @@ c*    dummy emergency directions
 c*    output everything 
       open(iu_RD,FILE=nameout,FORM='unformatted',
      &        STATUS='unknown')
-      title1="river directions from dist. to ocean, CS32, 03/10/09"
+
+      if (imt .eq. 32) then
+         title1="river directions from dist. to ocean, CS32, April 09"
+      elseif (imt .eq. 90) then
+         title1="river directions from dist. to ocean, CS90, April 09"
+      endif
+
       title2="Named River Mouths:"
       title3="Latitude of downstream river direction box"
       title4="Longitude of downstream river direction box"
@@ -916,7 +947,7 @@ c
       write(*,*) name
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
 
-c      write(*,*) "iu_TOPO",iu_TOPO
+      write(*,*) "iu_TOPO",iu_TOPO
 c      call read_regrid_4D_1R(x2grids,iu_TOPO,TITLE,ttargglob,maxrec)
 
       tsource(:,:,:,:)=0.
@@ -974,8 +1005,11 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
 
       close(iu_TOPO)
 
-      name="Z_CS32"
-c      name="Z_CS90"
+      if (imt .eq. 32) then
+         name="Z_CS32"
+      elseif (imt .eq. 90) then
+         name="Z_CS90"
+      endif
 
       write(*,*) name
 
@@ -1129,8 +1163,11 @@ c*
       write(*,*) TITLE5
       close (iu_RDSCAL)
 
-c      name="STN_C90"
-      name="STN_CS32"
+      if (imt .eq. 32) then
+         name="STN_CS32"
+      elseif (imt .eq. 90) then
+         name="STN_C90"
+      endif
 
       write(*,*) name
       open( iu_RDSCAL, FILE=name,FORM='unformatted', STATUS='unknown')
@@ -1166,7 +1203,6 @@ c     this is compatible with focean mask in Gary's Z288x180 topo file
       real*8 :: missing
 
       if (x2grids%imtarget .eq. 32) then
-
          if (x2grids%imsource .eq. 144 .and. 
      &        x2grids%jmsource .eq. 90) then
 c*    Read ocean fraction on input grid
@@ -1192,6 +1228,7 @@ c*    Read ocean fraction on input grid
       iu_TOPO=19
       name="Z288X180N"
       open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
+
       read(iu_TOPO) title,FOCEAN
       close(iu_TOPO)
 
@@ -1215,10 +1252,8 @@ c
 
 
       subroutine regridSICE(x2grids)
-c     for 1x1 resolution: Gary on Athena clima1/OBS/AMIP/1x1
-c     Also ICE_1x1_HadISST from Hadley (Jeff Jonas) - check if this  
-c     has been interpolated from lower resolution 
-c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
+c     Reto has extracted a 288x180 data set from Hadley data
+c     this is compatible with focean mask in Gary's Z288x180 topo file
 
       use regrid_com
       implicit none
@@ -1235,9 +1270,18 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
 
       iu_SICE=19
 
- 
-      name="SICE4X5.B.1876-85avg.Hadl1.1"
-      name="SICE_288x180.1975-1984avg.HadISST1.1"    
+      if (x2grids%imtarget .eq. 32) then
+         if (x2grids%imsource .eq. 144 .and. 
+     &        x2grids%jmsource .eq. 90) then
+            name="SICE4X5.B.1876-85avg.Hadl1.1"
+         endif
+      endif   
+      if (x2grids%imtarget .eq. 90) then
+         if (x2grids%imsource .eq. 288 .and. 
+     &        x2grids%jmsource .eq. 180) then
+            name="SICE_288x180.1975-1984avg.HadISST1.1"    
+         endif
+      endif
       write(*,*) name
 
       ims=x2grids%imsource
@@ -1261,11 +1305,11 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       endif
       write(*,*) name
 
-      if (am_i_root()) then
       open (iu_SICE, FILE=name,FORM='unformatted', STATUS='old')
+
       read(unit=iu_SICE) TITLE, tin
       tsource=tin
-      endif
+
 
       call root_regrid(x2grids,tsource(:,:,:),ttargglob)
       tout(:,:,:)=ttargglob(:,:,:)
@@ -1274,14 +1318,12 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       
       write(*,*) outunformat
       iuout=20
-
-      if (am_i_root()) then
+      
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
       write(unit=iuout) TITLE,tout(:,:,:)
       write(*,*) TITLE
-      endif
-
+      
       open( 33, FILE="sice1",
      &     FORM='unformatted', STATUS="UNKNOWN")
 
@@ -1319,14 +1361,14 @@ c     /u/cmrun/SICE4X5.B.1993-2002avg.Hadl1.1
       deallocate(tsource1,tsource2,ttargglob1,ttargglob2,tout1,tout2,
      &     tin,tout,tbig)
 
-      if (am_i_root()) close(iu_SICE)
+      close(iu_SICE)
       
       end subroutine regridSICE
 
 
 
       subroutine regridCDN(x2grids)
-c     for 1x1 resolution: Jeff Jonas uses CDN=AL30RL360X180N.rep
+c     for CS90, use extended CDN=AL30RL360X180N.ext
 
       use regrid_com
       implicit none
@@ -1341,11 +1383,11 @@ c     for 1x1 resolution: Jeff Jonas uses CDN=AL30RL360X180N.rep
       if (ims .eq. 72 .and. jms .eq. 46) then 
          name="CD4X500S.ext"
       elseif (ims .eq. 360 .and. jms .eq. 180) then 
-         name="AL30RL360X180N.rep"
+         name="AL30RL360X180.ext"
       endif
-      if (am_i_root()) then
+
+      write(*,*) name
       open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
-      endif
 
       call read_regrid_write_4D_1R(x2grids,name,iu_CDN)
       if (am_i_root()) close(iu_CDN)
@@ -1367,10 +1409,13 @@ c     was just transfered to 360X180 grid without any change)
       integer iu_VEG
 	
       iu_VEG=20
-      name="V72X46.1.cor2_no_crops.ext"
-      
+      if (x2grids%imtarget .eq. 32) then
+         name="V72X46.1.cor2_no_crops.ext"
+      elseif (x2grids%imtarget .eq. 90) then
+         name=" V144X90_no_crops.ext"
+      endif
+
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
-c     &     convert='big_endian')
       
       call read_regrid_write_veg(x2grids,name,iu_VEG)
            
@@ -1437,15 +1482,36 @@ c*
 
 
       subroutine regridCROPS(x2grids)
+c     CROPS also uses a land mask: I have created 
+c     CROPS_288X180N.ext using Reto's data & programs in
+c     dirac:/archive/u/rruedy/GISS/crops.tar
+c     original data defined on a  1/2 x 1/2 degree grid.
+c     from Ramankutti and Foley and covers the period 1700-1992
+c     http://www.earthsystematlas.org/explanations/crop_data/crop_data_technical.html
+
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(inout) :: x2grids
       character*80 name
       integer iu_CROPS
 
-      iu_CROPS=20
-      name="CROPS_72X46N.cor4.ext"
 
+      iu_CROPS=20
+
+      if (x2grids%imtarget .eq. 32) then
+         if (x2grids%imsource .eq. 144 .and. 
+     &        x2grids%jmsource .eq. 90) then
+            name="CROPS_72X46N.cor4.ext"
+         endif 
+      endif
+      
+      if (x2grids%imtarget .eq. 90) then
+         if (x2grids%imsource .eq. 288 .and. 
+     &        x2grids%jmsource .eq. 180) then
+            name="CROPS_288X180N.ext"      
+         endif 
+      endif
+      
       write(*,*) name
 
       open(iu_CROPS,FILE=name,FORM='unformatted', STATUS='old')
@@ -1461,10 +1527,10 @@ c*
 
       subroutine regridTOPINDEX(x2grids)
 c     top_index_360x180.ij is not "extended". It has "-1" in ocean 
-c     cells (meaning missing data), so you should be careful not to 
-c     include those cells in the regridding computations. 
-c     Alternatively you can use top_index_360x180.ij.rep which is 
-c     direct transfer from top_index_144x90.ij.ext 
+c     cells (meaning missing data)
+c     planning to extend top_index_360x180.ij to the ocean
+c     because top_index_360x180.ij.rep is the extended version of lower resolution
+c     top_index_144x90.ij.ext 
 
       use regrid_com
       implicit none
@@ -1472,8 +1538,22 @@ c     direct transfer from top_index_144x90.ij.ext
       character*80 TITLE,name
       integer iu_TOP_INDEX
 
+
       iu_TOP_INDEX=20
-      name="top_index_72x46.ij.ext"
+
+      if (x2grids%imtarget .eq. 32) then
+         if (x2grids%imsource .eq. 144 .and. 
+     &        x2grids%jmsource .eq. 90) then
+            name="top_index_72x46.ij.ext"           
+         endif 
+      endif
+      
+      if (x2grids%imtarget .eq. 90) then
+         if (x2grids%imsource .eq. 360 .and. 
+     &        x2grids%jmsource .eq. 180) then
+            name="top_index_360x180.ij.ext"  !
+         endif 
+      endif
       
       open(iu_TOP_INDEX,FILE=name,FORM='unformatted', STATUS='old')
       
@@ -1512,7 +1592,11 @@ c
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
 
       iu_SOIL=20
-      name="S4X50093.ext"
+      if (ims .eq. 72 .and. jms .eq. 46) then
+         name="S4X50093.ext"
+      elseif (ims .eq. 360 .and. jms .eq. 180) then
+         name="S360X180_0098M.rep"
+      endif
       
       open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
       
@@ -1603,21 +1687,29 @@ c*
       
 
       subroutine regridGLMELT(x2grids)
-c*    Jean Lerner has a 1x1 file
+c     Gavin has made a 1x1 file ascii file GLMELT_360X180.OCN
+c     convert it to binary using GLMELTt2b.f
       use regrid_com
       implicit none
       type (x_2gridsroot), intent(in) :: x2grids
       character*80 TITLE,name
-      integer iu_GLMELT
+      integer iu_GLMELT,imt,jmt
 
-      name="GLMELT_4X5.OCN.bin"
+      imt=x2grids%imtarget
+      jmt=x2grids%jmtarget
+      
+ 
+      if (imt .eq. 32) then
+         name="GLMELT_4X5.OCN.bin"
+      elseif (imt .eq. 90) then
+         name="GLMELT_360X180.OCN.bin"
+      endif
       write(*,*) name
 
       iu_GLMELT=20
       
       open (iu_GLMELT,FILE=name,FORM='unformatted', STATUS='old')
-      
-   
+
       call read_regrid_write_GLMELT(x2grids,name,iu_GLMELT)
 
       close(iu_GLMELT)
@@ -1721,9 +1813,7 @@ c
      &     ones(imt,jmt,ntt) )
 
       ttargglob(:,:,:,:) = 0.0
-
-
-      
+     
       iu_VEGFRAC=20
       name="vegtype.global4X5.bin"
       write(*,*) name
@@ -1877,6 +1967,7 @@ c*    write
 
       if (am_i_root()) then
       open(iu_GIC,FILE=name,FORM='unformatted', STATUS='old')
+
       endif
 
       allocate (Tocn(3,ims,jms),MixLD(ims,jms),
@@ -2179,10 +2270,9 @@ c***  Write GLAIC variables
      &     fsat_out,gq_out,W_out,
      &     HT_out,SNWbv_out,
      &     SNOW_out,T_out,MDWN_out,EDWN_out )
-
       
       if(am_i_root()) status = nf_close(fid)
-      
+     
       write(*,*) "end regrid GIC"
 
       end subroutine regridGIC
@@ -2210,7 +2300,6 @@ c
       integer :: maxrec,irec,ir,ims,jms,nts,imt,jmt,ntt,
      &     status,fid,vid
       integer iu_AIC
-     
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -2221,7 +2310,8 @@ c
 
       write(*,*) "ims,jms,nts,imt,jmt,ntt r8",
      &     ims,jms,nts,imt,jmt,ntt
-      allocate (tsource(ims,jms,nts),ts4(ims,jms,nts),
+      allocate (tsource(ims,jms,nts),
+     &     ts4(ims,jms,nts),
      &     ttargglob(imt,jmt,ntt),tcopy(imt,jmt,ntt),
      &     tcopy2(imt,jmt,ntt), 
      &     tcopy3(imt,jmt,ntt), 
@@ -2244,12 +2334,13 @@ c
       outunformat=trim(name)//".CS"
       write(*,*) outunformat
 
-      iuout=20
+      iuout=21
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
 
       irec=1
 
+      write(*,*) "irec=",irec
       do
          read(unit=iu_AIC,END=30) TITLE, ts4
          tsource=ts4
@@ -2262,7 +2353,6 @@ c         if (irec .eq. 2) tcopy3=ttargglob
 c         if (irec .eq. 22) tcopy4=ttargglob
 
          write(unit=iuout) TITLE,real(ttargglob,KIND=4)
-c          write(unit=iuout) TITLE,ttargglob
          irec=irec+1
       enddo
    
