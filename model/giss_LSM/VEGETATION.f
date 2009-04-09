@@ -3,7 +3,7 @@
       module vegetation
 
       use constant, only : zero,tfrz=>tf,gasc
-      use ghy_com, only : ngm, imt
+      use ghy_h, only : ngm, imt
 
       implicit none
       save

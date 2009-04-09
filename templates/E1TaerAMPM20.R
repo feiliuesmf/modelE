@@ -70,7 +70,7 @@ TRAMP_thermo_eqsam |-extend_source  |
 TRAMP_eqsam_v03d
 ! ---------------------------------
 SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV GHY                 ! land surface and soils
+GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL_E1                ! atmospheric pbl
 ATURB_E1                               ! turbulence in whole atmosphere

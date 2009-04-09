@@ -29,7 +29,7 @@ QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds mods newest from Yao-withSCMandDRY
 SURFACE  FLUXES                     ! surface calculation and fluxes
-GHY_COM GHY_DRV GHY                 ! land surface and soils and use ARM surface forcings     
+GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils and use ARM surface forcings     
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! ATURB - turbulence in whole atmosphere

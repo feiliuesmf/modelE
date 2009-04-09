@@ -5,6 +5,10 @@ SUPPORTED_OPTIONS = ESMF USE_ENT OFFLINE_RUN
 
 FSRCS = GHY.f GHY_H.f SNOW_DRV.f SNOW.f
 
+ifneq ($(USE_ENT),YES)
+FSRCS += VEGETATION.f
+endif
+
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
@@ -19,8 +23,6 @@ include $(CONFIG_DIR)/rules.mk
 
 ifeq ($(USE_ENT),YES)
 CPPFLAGS += -DUSE_ENT
-else
-FSRCS += VEGETATION.f
 endif
 
 ifeq ($(OFFLINE_RUN),YES)

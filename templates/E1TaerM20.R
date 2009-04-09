@@ -42,7 +42,7 @@ CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
 ! ---------------------------------
 SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV GHY                 ! land surface and soils
+GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL_E1                ! atmospheric pbl
 ATURB_E1                               ! turbulence in whole atmosphere

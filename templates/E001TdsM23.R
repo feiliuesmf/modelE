@@ -63,7 +63,7 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 ! ----------------------------------
 CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV GHY                 ! land surface and soils
+GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
 lightning                           ! Colin Price lightning model
