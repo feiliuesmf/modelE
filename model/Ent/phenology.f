@@ -930,10 +930,19 @@ c$$$      end subroutine senesce_cpools
       endif
 
       !* Adjust turnover losses to accommodate low C_lab. *!
-      loss_leaf = adj*loss_leaf
-      loss_froot = adj*loss_froot
-      loss_hw = adj*loss_hw
-      loss_croot = adj*loss_croot
+      if (adj < 1.d0) then
+        loss_leaf = adj*loss_leaf
+        loss_froot = adj*loss_froot
+        loss_hw = adj*loss_hw
+        loss_croot = adj*loss_croot
+        
+        !* Recalculate dClab_dbiomass *!
+        dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot) !Growth of new tissue
+     &       + max(0.d0,dC_sw)  !For constant structural tissue, dC_sw=0, but still need to account for sapwood growth.
+     &       + max(0.d0,loss_hw)+max(0.d0,loss_croot) !### This is sapwood growth to replace that converted to heartwood.
+     &       - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
+     &       + max(0.d0,-dC_sw))
+      endif
 
       !* Recalculate respiration.  Distinguish below- vs. above-ground autotrophic respiration.
 !      resp_growth_root =  Resp_can_growth(cop%pft,
@@ -946,14 +955,14 @@ c$$$      end subroutine senesce_cpools
 !     &     +max(0.d0,dC_fol)+max(0.d0,dC_sw), !New biomass growth
 !     &     0.d0)
 !     &     + resp_growth_root !Belowground
-      resp_growth_root = 0.16d0 * (  !Coefficient from Amthor (2000) Table 3
-     &     loss_froot           !Turnover growth
-     &     + max(0.d0,dC_froot)) !New biomass growth
-     &     + 0.16d0*loss_croot   !### Hack for regrowth of sapwood converted to replace senesced coarse root.
-      resp_growth = resp_growth_root + 0.14d0 * !Coefficient from Amthor (2000) Table 3
-     &     ( loss_leaf !Turnover growth    
-     &     +max(0.d0,dC_fol)+max(0.d0,dC_sw)) !New biomass growth
-     &     + 0.16d0*loss_hw     !### Hack for regrowth of sapwood converted to replace senesced coarse root.
+        resp_growth_root = 0.16d0 * ( !Coefficient from Amthor (2000) Table 3
+     &       loss_froot         !Turnover growth
+     &       + max(0.d0,dC_froot)) !New biomass growth
+     &       + 0.16d0*loss_croot !### Hack for regrowth of sapwood converted to replace senesced coarse root.
+        resp_growth = resp_growth_root + 0.14d0 * !Coefficient from Amthor (2000) Table 3
+     &       ( loss_leaf        !Turnover growth    
+     &       +max(0.d0,dC_fol)+max(0.d0,dC_sw)) !New biomass growth
+     &       + 0.16d0*loss_hw   !### Hack for regrowth of sapwood converted to replace senesced coarse root.
 
 !      write(991,*)  facclim,loss_froot,loss_croot,max(0.d0,dC_froot),
 !     &     max(0.d0,dC_croot), loss_leaf,loss_hw,
