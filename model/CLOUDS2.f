@@ -171,7 +171,7 @@ C**** new arrays must be set to model arrays in driver (before MSTCNV)
 !@var SDL vertical velocity in sigma coordinate
 !@var WML cloud water mixing ratio (kg/kg)
 C**** new arrays must be set to model arrays in driver (after MSTCNV)
-      REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL
+      REAL*8, DIMENSION(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL,SVLAT1
 !@var TAUMCL convective cloud optical thickness
 !@var SVLATL saved LHX for convective cloud
 !@var CLDMCL convective cloud cover
@@ -334,7 +334,7 @@ CCOMP*  ,LMCMIN,KMAX,DEBUG)
 CCOMP* RA,UM,VM,UM1,VM1,U_0,V_0 are no longer part of this COMMON block!
       COMMON/CLDPRV/PLE,PL,PLK,AIRM,BYAM,ETAL
      *  ,TL,QL,TH,RH,WMX,VSUBL,MCFLX,SSHR,DGDSM,DPHASE,LHP
-     *  ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
+     *  ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP,SVLAT1
      *  ,DTOTW,DQCOND,DCTEI,DGDQM,DXYPIJ,DDMFLX,PLAND
      *  ,AQ,DPDT,PRECNVL,SDL,WML,SVLATL,SVLHXL,SVWMXL,CSIZEL,RH1
      *  ,TTOLDL,CLDSAVL,TAUMCL,CLDMCL,TAUSSL,CLDSSL,RNDSSL
@@ -630,6 +630,7 @@ C**** initiallise arrays of computed output
       TAUMCL=0
       SVWMXL=0
       SVLATL=0
+      SVLAT1=0
       VSUBL=0
       PRECNVL=0
       CLDMCL=0
@@ -1199,7 +1200,7 @@ C** This is for the old mass to number calculations nc. is
       MNdI = 0.06417127d0
       MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
       MCDNCI=MNdI
-      if(MCDNCW.gt.0.)write(6,*)"Mst CDNC,a",MCDNCW,MNdO,MNdL,L 
+      if(MCDNCW.gt.0.)write(6,*)"Mst CDNC,a",MCDNCW,MNdO,MNdL,L
       if (MCDNCW.le.20.d0) MCDNCW=20.d0     !set min CDNC, sensitivity test
       if (MCDNCW.ge.2000.d0) MCDNCW=2000.d0     !set max CDNC, sensitivity test
 C** Using the Liu and Daum paramet, Nature, 2002, Oct 10, Vol 419
@@ -2454,6 +2455,7 @@ C**** CALCULATE OPTICAL THICKNESS
           IF(L.LE.LMCMIN .AND. PLE(LMCMIN)-PLE(LMCMAX+1).GE.450.)
      *         TAUMCL(L)=AIRM(L)*.02d0
         END IF
+        SVLAT1(L) = SVLATL(L)   ! used in large-scale clouds
         IF(SVLATL(L).EQ.0.) THEN
           SVLATL(L)=LHE
           IF ( (TPSAV(L).gt.0. .and. TPSAV(L).LT.TF) .or.
@@ -2885,7 +2887,7 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
         IF (OLDLHX.EQ.LHE) LHX=LHE                   ! keep old phase
 C**** special case 1) if ice previously then stay as ice (if T<Tf)
 C       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
-        IF(OLDLAT.EQ.LHS.AND.TL(L).LT.TF) THEN
+        IF(OLDLAT.EQ.LHS.AND.TL(L).LT.TF.and.SVLAT1(L).gt.0.) THEN
           IF(LHX.EQ.LHE) BANDF=.TRUE.
           LHX=LHS
         END IF
@@ -3237,16 +3239,16 @@ c       npccn              ! change n droplets activation
      * +execute_bulk2m_driver('get','npccn')
 c       nprc               ! change n autoconversion of droplets:
      * -execute_bulk2m_driver('get','nprc')
-c       nnuccc             ! change n due to con droplets freez 
+c       nnuccc             ! change n due to con droplets freez
      * -execute_bulk2m_driver('get','nnuccc')
 c       nnucci             ! change n due to imm droplets freez
      * -execute_bulk2m_driver('get','nnucci')
-c 
-     *              )*dtB2M 
+c
+     *              )*dtB2M
 c
 c Droplet content
         mdrop=mdrop+(
-c       mpccn              ! change q droplets activation 
+c       mpccn              ! change q droplets activation
      * +execute_bulk2m_driver('get','mpccn')
 c       mprc               ! change q autoconversion of droplets:
      * -execute_bulk2m_driver('get','mprc')
@@ -3254,10 +3256,10 @@ c       mnuccc             ! change q due to con droplets freez
      * -execute_bulk2m_driver('get','mnuccc')
 c       mnucci             ! change q due to imm droplets freez
      * -execute_bulk2m_driver('get','mnucci')
-c 
+c
      *              )*dtB2M
 c
-c Crystal concentration 
+c Crystal concentration
         ncrys=ncrys+(
 c       nnuccc             ! change n due to contact droplets freez
      * +execute_bulk2m_driver('get','nnuccc')
@@ -3270,7 +3272,7 @@ c      nnucmd              ! change n cond freezing Meyer's (prim ice nuc)
      * +execute_bulk2m_driver('get','nnucmd')
 c      nnucmt              ! change n cont freezing Meyer's (prim ice nuc)
      * +execute_bulk2m_driver('get','nnucmt')
-c 
+c
 c Crystal content
         mcrys=mcrys+(
 c       mnuccc             ! change q due to con droplets freez
@@ -3340,13 +3342,13 @@ c
          write(6,*)"stop BLK: mpccn,mprc,mnuccc,mnucci"
      *,l,mpccn*1.e+3,mprc*1.e+3,mnuccc*1.e+3,mnucci*1.e+3
          endif
-c      
+c
 c No/m^3
-c      
+c
          nnuccc  =             ! change n due to contact droplets freez
      *   +execute_bulk2m_driver('get','nnuccc')*dtB2M
          nnucci  =             ! change n due to immersion droplets freez
-     *   +execute_bulk2m_driver('get','nnucci')*dtB2M 
+     *   +execute_bulk2m_driver('get','nnucci')*dtB2M
          nnuccd  =             ! change n freezing aerosol (prim ice nuc)
      *   +execute_bulk2m_driver('get','nnuccd') ! *dtB2M
          nnucmd =              ! change n cond freezing Meyer's (prim ice nuc)
@@ -3357,7 +3359,7 @@ c
          ni_tot = nnuccc + nnucci + nnuccd + nnucmd + nnucmt
 c
 c No/l
-c 
+c
         if(lSCM) then
          write(6,*)"stop BLK: ncrys_old,ni_tot,ncrys"
      *,l,ncrys_old*1.e-3,ni_tot*1.e-3,ncrys*1.e-3
@@ -3455,7 +3457,7 @@ c
 c
          ndrop_res = ndrop_blk + nc_tnd
          mdrop_res = mdrop_blk + qc_tnd
-         ncrys_res = ncrys_blk + ni_tnd 
+         ncrys_res = ncrys_blk + ni_tnd
          mcrys_res = mcrys_blk + qi_tnd
 c
         if(wSCM) then
@@ -3464,7 +3466,7 @@ c
      *  ,l,ndrop_old*1.e-6,nc_tnd*1.e-6,ndrop_new*1.e-6
 c
          write(6,*)
-     *   "stop BLK: mdrop_old,qc_tnd,mdrop_new" 
+     *   "stop BLK: mdrop_old,qc_tnd,mdrop_new"
      *  ,l,mdrop_old*1.e+3,qc_tnd*1.e3,mdrop_new*1.e+3
 c
          write(6,*)
@@ -3625,7 +3627,7 @@ C* If using an alternate definition for QAUT
       SCDNCI=SNdI
 c     if (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0 !set min ice crystal, do we need this, please check
       if (SCDNCW.le.20.d0) SCDNCW=20.d0         !set min CDNC, sensitivity test
-      if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L 
+      if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
 c     write(6,*)"CDNC LSS",SCDNCW,SNd,L
 #endif
@@ -4096,7 +4098,7 @@ C**** adjust gradients down if Q decreases
 #ifdef TRACERS_WATER
 C**** CONDENSING MORE TRACERS
       WMXTR = WMX(L)
-        IF(RH(L).LE.1.) THEN                                           
+        IF(RH(L).LE.1.) THEN
           IF (RH00(L).lt.1.) then
             CLDSAVT=1.-DSQRT((1.-RH(L))/((1.-RH00(L))+teeny))
           ELSE
@@ -4518,7 +4520,7 @@ c      nnucmt              ! change n cont freezing Meyer's (prim ice nuc)
 
        SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
        if(SNDI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
-      OLDCDL(L) = SNd   
+      OLDCDL(L) = SNd
       OLDCDI(L) = SNdI
 #ifdef TRACERS_AMP
        nactc(l,1:nmodes) =  naero(mkx,1:nmodes)
@@ -4530,7 +4532,7 @@ c       enddo
 c      if(L.eq.1) write(6,*)"6_LO check BLK_2M",SNd,SNdI
 c To get effective radii in micron
       rablk=execute_bulk2m_driver('get','value','ec')  ! [micron]
-#endif 
+#endif
 #ifdef CLD_AER_CDNC
       SCDNCW=SNd
       SCDNCI=SNdI
