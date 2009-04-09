@@ -2026,7 +2026,7 @@ C**** first set: no 'if' tests
                 DO l=1,LmaxSUBDD
                   data(:,j)=data(:,j)+trm(:,j,l,n1)
                 END DO
-                data(:,j)=data(:,j)*byaxyp(i,j)
+                data(:,j)=data(:,j)*byaxyp(:,j)
               END DO
 
             end select
@@ -2071,11 +2071,11 @@ C**** other dust special cases
 #ifdef TRACERS_WATER
             IF (dowetdep(n1)) THEN
               DO j=J_0,J_1
-                data(:,j)=trprec(n1,:,j)*byaxyp(i,j)/Dtsrc
+                data(:,j)=trprec(n1,:,j)*byaxyp(:,j)/Dtsrc
               END DO
 #else
               DO j=J_0,J_1
-                data(:,j)=trprec_dust(n,:,j)*byaxyp(i,j)/Dtsrc
+                data(:,j)=trprec_dust(n,:,j)*byaxyp(:,j)/Dtsrc
               END DO
 #endif
               polefix=.true.
