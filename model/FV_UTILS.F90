@@ -485,7 +485,7 @@ contains
 
   end subroutine AllocateFvExport3D
 
-  subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix)
+  subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
 #ifdef USE_FVCUBED
     use MAPL_mod, only: GEOS_RecordPhase=>MAPL_RecordPhase
 #else
@@ -496,10 +496,17 @@ contains
     Type (FV_CORE),    intent(inout) :: fv
     type (esmf_clock), intent(in) :: clock
     character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
+    logical, intent(in) :: isFinalize
 
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
-    call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, GEOS_RecordPhase, rc=rc)
+    if(isFinalize) then
+       call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, &
+            &                      clock, rc=rc)
+    else
+       call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, &
+            &                      clock, GEOS_RecordPhase, rc=rc)
+    endif
 
     ! Now move the file into a more useful name
     if (AM_I_ROOT()) then

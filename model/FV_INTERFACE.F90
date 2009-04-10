@@ -238,6 +238,7 @@ contains
     character(len=len(SUFFIX_TEMPLATE)) :: suffix
     Type (ESMF_Time)  :: currentTime
     integer :: year, month, day, hour, minute, second
+    logical :: isFinalize
 
     ! dyncore_internal_restart.YYYYMMDD_HHMMz.bin
     call ESMF_ClockGet(clock, currTime=currentTime, rc=rc)
@@ -247,7 +248,8 @@ contains
     write(suffix,'(".",i4.4,i2.2,i2.2,"_",i2.2,i2.2,"z.bin")'), &
          & year, month, day, hour, minute
 
-    call DumpState(fv_wrapper % fv, clock, fv_fname, fv_dfname, suffix)
+    isFinalize = .false.
+    call DumpState(fv_wrapper % fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
 
   end subroutine Checkpoint
 
@@ -259,8 +261,10 @@ contains
     character(len=*), intent(in) :: fv_fname, fv_dfname
 
     character(len=0) :: suffix = ''
+    logical :: isFinalize
 
-    call DumpState(fv_wrapper % fv, clock, fv_fname, fv_dfname, suffix)
+    isFinalize = .true.
+    call DumpState(fv_wrapper % fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
 
     Deallocate(fv_wrapper % fv % U_old, fv_wrapper % fv % V_old, &
           &    fv_wrapper % fv % dPT_old, fv_wrapper % fv % dT_old, &
