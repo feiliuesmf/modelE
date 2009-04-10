@@ -28,7 +28,7 @@
       use ghy_h, only : ngm, imt, nlsn, LS_NFRAC
      
 #ifdef TRACERS_WATER
-     *     ,ntixw
+      USE ghy_com, ONLY : ntixw
       use tracer_com, only : ntm,tr_wd_TYPE,nWater
 #endif
 
