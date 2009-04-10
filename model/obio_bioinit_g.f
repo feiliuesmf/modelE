@@ -111,6 +111,25 @@ c  Initialize
       filename='alk_inicond'
       call bio_inicond_g(filename,fldo2,fldoz)
       alk(:,:,:)=fldo2
+     
+      !remove negative values
+      !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
+      !for under ice missing values, use climatological minimums for sets of layers based
+      !on GLODAP, rather than setting to the same global min.
+      do j=1,jdm
+      do i=1,idm
+      do k=1,kdm
+       if (alk(i,j,k).lt.0. .and. focean(i,j).gt.0) then
+          if (zoe(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
+          if (zoe(k).gt.150. .and. zoe(k).lt.1200.) alk(i,j,k)=2200. 
+          if (zoe(k).ge.1200.) alk(i,j,k)=2300.      
+       endif
+       if (focean(i,j).le.0) then
+         alk(i,j,k)=0.
+       endif
+      enddo
+      enddo
+      enddo
       tracer(:,:,:,ntrac)=alk       !because ntrac is alkalinity
 #endif
 

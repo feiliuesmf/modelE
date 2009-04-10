@@ -193,12 +193,12 @@ c pCO2
       if (pCO2_ij .gt.1000.) pCO2_ij=1000.
 
       if(vrbos)then
-        write(*,'(/,a,3i5,7e12.4)')
-     . 'before ppco2: ',nstep,i,j,temp1d(1),saln1d(1),
-     .                  car(1,2),alk1d(1),
-     .                  obio_P(1,1),obio_P(1,3),atmCO2
+!       write(*,'(/,a,3i5,7e12.4)')
+!    . 'before ppco2: ',nstep,i,j,temp1d(1),saln1d(1),
+!    .                  car(1,2),alk1d(1),
+!    .                  obio_P(1,1),obio_P(1,3),atmCO2
 
-        write(*,'(/,a,3i5,2e12.4)')
+        write(*,'(a,3i5,2e12.4)')
      .    'carbon: ONLINE',nstep,i,j,pCO2_ij,pHsfc
       endif
 #else
@@ -418,12 +418,19 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.21 $
-c_ $Date: 2009/03/27 09:40:16 $   ;  $State: Exp $
+c_ $Revision: 2.22 $
+c_ $Date: 2009/04/10 17:01:39 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.22  2009/04/10 17:01:39  aromanou
+c_ testing chl=0 in albedo.f and obio_ocalbedo. Rick, you do not need to restart your runs.
+c_
+c_ correcting bug in pco2 diagnostic
+c_
+c_ rearranging terms in alkalinity formulation
+c_
 c_ Revision 2.21  2009/03/27 09:40:16  aromanou
 c_
 c_ CO2 gas exchange in Russell ocean. case of constant atmosph CO2.
@@ -821,12 +828,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.21 $
-c_ $Date: 2009/03/27 09:40:16 $   ;  $State: Exp $
+c_ $Revision: 2.22 $
+c_ $Date: 2009/04/10 17:01:39 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.22  2009/04/10 17:01:39  aromanou
+c_ testing chl=0 in albedo.f and obio_ocalbedo. Rick, you do not need to restart your runs.
+c_
+c_ correcting bug in pco2 diagnostic
+c_
+c_ rearranging terms in alkalinity formulation
+c_
 c_ Revision 2.21  2009/03/27 09:40:16  aromanou
 c_
 c_ CO2 gas exchange in Russell ocean. case of constant atmosph CO2.
@@ -979,12 +993,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.21 $
-c_ $Date: 2009/03/27 09:40:16 $   ;  $State: Exp $
+c_ $Revision: 2.22 $
+c_ $Date: 2009/04/10 17:01:39 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.22  2009/04/10 17:01:39  aromanou
+c_ testing chl=0 in albedo.f and obio_ocalbedo. Rick, you do not need to restart your runs.
+c_
+c_ correcting bug in pco2 diagnostic
+c_
+c_ rearranging terms in alkalinity formulation
+c_
 c_ Revision 2.21  2009/03/27 09:40:16  aromanou
 c_
 c_ CO2 gas exchange in Russell ocean. case of constant atmosph CO2.

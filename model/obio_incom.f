@@ -65,7 +65,7 @@ C if CARBON == 1
                                                !based on Conkright et al. 1994
       real, parameter :: rkdoc2=15.0           !DOC-dep half-sat uM(C)
       real, parameter :: rlampoc=0.05/24.0     !detrital breakdown/hr
-      real, parameter :: uMtomgm3=12.0         !conversion uM to mg/m3
+      real, parameter :: uMtomgm3=12.0         !conversion uM to mg/m3 C
       real, parameter :: Pzo=1.0*uMtomgm3/50.0 !zoopl half-sat for
                                                !DOC excretion mg/m3(chl,assuming
                                                !C:chl ratio of 50))

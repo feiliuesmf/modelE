@@ -15,12 +15,14 @@
 ! Fc     instantaneous downward flux of particulate organic phosphorus at 
 !        compensation depth
 ! alkalinity units should be umol/kg
+! alk tendency is also computed under ice.  this is because 
+! alk changes due to sal and temp changes.
 
       USE obio_dim
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
      .      npratio,uMtomgm3,cnratio
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,zc,alk1d,bn
+     .      rhs,zc,alk1d,bn,pnoice
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
@@ -42,10 +44,11 @@
 !compute sources/sinks of phosphate
 !J_PO4 units uM/hr
       do k=1,kmax
-      term = 0.1 * P_tend(k,1)    !approximate by nitrate conc
+      J_PO4(k) = 0.1 * P_tend(k,1)    !approximate by nitrate conc
                                   !NO3/PO4 ratio from Conkright et al, 1994
+      term = -1.*npratio * J_PO4(k) 
       rhs(k,15,1) = term
-      J_PO4(k) = term
+      A_tend(k)= term
       enddo
 
 !distinguish two cases: OCMIP uses total pp for Jprod, whereas here we also
@@ -66,6 +69,13 @@
          if (p1d(kmax+1).gt.zc)     !total depth must be greater than 200m
      .        pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.e-3)/bn(k)/cnratio   
               
+              !negative values are not accepted
+!             if (pp.lt.0.) then
+!                 pp=0.
+                  write(*,'(a,5i5,4e12.4)')'obio_alkalinity, pp:',
+     .          nstep,i,j,k,nt,pp2_1d(k,nt),max(p1d(k+1),1.e-3),
+     .          bn(k),cnratio
+!             endif
       enddo
       enddo
       Jprod = pp/uMtomgm3    !convert to uM C
@@ -95,9 +105,9 @@
          else
              J_Ca(k) = -1* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)
          endif
-       term = -1.*npratio * J_PO4(k) + 2.* J_Ca(k)
+       term = 2.* J_Ca(k) 
        rhs(k,15,4) = term
-       A_tend(k) = term
+       A_tend(k) = A_tend(k) + term      !A_term = -rN:P JPO4 + 2* JCa
       enddo
 
 ! surface boundary condition 
@@ -109,11 +119,11 @@
 
 !     if (vrbos) then
       do k=1,kmax
-      write(*,'(a,4i5,11e12.4)')'obio_alkalinity; ',
+      write(*,'(a,4i5,10e12.4)')'obio_alkalinity; ',
      .    nstep,i,j,k
-     .   ,p1d(k),zc,J_PO4(k),pp,Jprod_sum,Fc,uMtomgm3
+     .   ,p1d(k),zc,J_PO4(k),pp,Jprod_sum,Fc
      .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k)
       enddo
-!endif
+!     endif
 
       end subroutine obio_alkalinity

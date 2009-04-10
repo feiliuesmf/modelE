@@ -530,7 +530,7 @@ c
       sname_oij(k)="oij_pCO2"
       units_oij(k)="uatm"
       ia_oij(k)=ia_src
-      scale_oij(k)=0.25
+      scale_oij(k)=1
       ijgrid_oij(k)=1
 #endif
 

@@ -28,7 +28,11 @@ C**** this defines tracer parameters that are local to ocean code
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
 #else
 #ifdef TRACERS_OceanBiology
+#ifdef TRACERS_Alkalinity
+      INTEGER, PARAMETER :: ntm=16
+#else
       INTEGER, PARAMETER :: ntm=15
+#endif
       CHARACTER*10 :: trname(ntm) = (/ '      Nitr'
      .                                ,'      Ammo'
      .                                ,'      Sili'
@@ -43,7 +47,11 @@ C**** this defines tracer parameters that are local to ocean code
      .                                ,'     S_det'
      .                                ,'     I_det'
      .                                ,'       DOC'
-     .                                ,'       DIC'/)
+     .                                ,'       DIC'
+#ifdef TRACERS_Alkalinity
+     .                                ,'       Alk'
+#endif
+     .                                  /)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
       REAL*8  :: obio_tr_mm(ntm)= (/ 14.
      .                             , 14.
@@ -59,7 +67,11 @@ C**** this defines tracer parameters that are local to ocean code
      .                             , 28.055
      .                             , 55.845
      .                             , 12.
-     .                             , 12. /)
+     .                             , 12.
+#ifdef TRACERS_Alkalinity
+     .                             , 1.
+#endif
+     .                                  /)
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 !@param conc_from_fw definition for defining surface ocean conc

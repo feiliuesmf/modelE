@@ -303,12 +303,13 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
 
          do nt=1,ntrac
-           trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! milimoles/m3=> kg/m3
-     .                            * MO(I,J,k)*DXYPO(J)/rho_water  ! kg/m3 => kg
+           trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)        ! milimoles/m3=> kg/m3
+     .                            *  MO(I,J,k)*DXYPO(J)/rho_water   ! kg/m3 => kg
            if (nt.eq.4.or.nt.eq.13)
      .         trmo_unit_factor(k,nt) = 1d-3*trmo_unit_factor(k,nt) !nanomoles/m3 => kg
            if (nt.ge.5.and.nt.le.9)
-     .         trmo_unit_factor(k,nt) = obio_tr_mm(nt)/1d-3     ! mg/m3 => kg
+     .         trmo_unit_factor(k,nt) =  1d-3*1d-3 
+     .                                *  MO(I,J,k)*DXYPO(J)/rho_water ! mg/m3 => kg
 
            if (nstep0 .gt. itimei) then
               tracer(i,j,k,nt) = trmo(i,j,k,nt) / trmo_unit_factor(k,nt)

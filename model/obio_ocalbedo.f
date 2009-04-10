@@ -170,7 +170,11 @@ C**** get chlorophyll term
         sum2 = 0.0
         do nl=gband(ngiss), gband(ngiss+1)-1 
           if (refl(nl).lt.0) refl(nl) = 0.0
+#ifdef CHL0
+          ros(nl) = ros(nl) 
+#else
           ros(nl) = ros(nl) + refl(nl)
+#endif
           sum1 = sum1+weight(nl)*rod(nl)
           sum2 = sum2+weight(nl)*ros(nl)
         enddo
