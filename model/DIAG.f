@@ -2476,8 +2476,10 @@ c defaults for diurnal diagnostics
       enddo
 
       call sync_param( "NAMDD", NAMDD, NDIUPT )
+#ifndef CUBE_GRID
 c if people still want to specify dd points as ij, let them
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
+#endif
 
       call sync_param( "isccp_diags",isccp_diags)
       call sync_param( "adiurn_dust",adiurn_dust)
