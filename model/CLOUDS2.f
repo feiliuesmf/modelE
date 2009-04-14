@@ -3093,7 +3093,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
       WMUI=.001                    ! .0001
-      IF(SVWMXL(L).GT.0d0) WMUI=.1
+      IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L),
