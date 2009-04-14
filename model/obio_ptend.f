@@ -2,7 +2,7 @@
 
       subroutine obio_ptend(vrbos,kmax,i,j)
 
-c  Computes tendencies of biological particles (units/hr)
+c  Computes tendencies of biological particles (units/hr) 
 c  tracer
 c  P(1) = nitrate (uM)
 c  P(2) = ammonium (uM)
