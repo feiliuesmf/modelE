@@ -8,10 +8,10 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_ON
       module ghy_tracers
 
-      use sle001, only :
 #ifdef TRACERS_WATER
-     &    tr_w,tr_wsn,trpr,trdd,tr_surf,ntg,ntgm,atr_evap,atr_rnff,atr_g
+      use ghy_h, only : ghy_tr_str
 #endif
+      use sle001, only :
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       use sle001,ONLY : aevap
@@ -76,7 +76,7 @@ c******************   TRACERS             ******************************
 #endif
 
 #ifdef TRACERS_WATER
-      use ghy_com, only : tr_w_ij,tr_wsn_ij, ntixw
+      use ghy_com, only : tr_w_ij,tr_wsn_ij !, ntixw
 #endif
 
 ccc extra stuff which was present in "earth" by default
@@ -91,6 +91,7 @@ ccc extra stuff which was present in "earth" by default
       private
 
       public ghy_tracers_set_step
+      public ghy_tracers_finish_step
       public ghy_tracers_set_cell
       public ghy_tracers_save_cell
 
@@ -104,12 +105,19 @@ ccc extra stuff which was present in "earth" by default
       contains
 
 
-      subroutine ghy_tracers_set_step
+      subroutine ghy_tracers_set_step(
+#ifdef TRACERS_WATER
+     &     ghy_tr
+#endif
+     &     )
 !@sum tracers stuff to be called at the beginning of ghy time step
 !@+   i.e. before the i,j loop
-ccc set i,j - independent stuff for tracers
       use model_com, only : itime
       implicit none
+#ifdef TRACERS_WATER
+      type (ghy_tr_str) :: ghy_tr
+      integer :: ntg, ntixw(ntm), is_water(ntm)
+#endif
       integer n
 
       ntx=0
@@ -123,21 +131,56 @@ ccc set i,j - independent stuff for tracers
 #ifdef TRACERS_WATER
           if ( tr_wd_TYPE(n)==nWATER .or. tr_wd_TYPE(n)==nPART ) then
             ntg = ntg + 1
-            if ( ntg > ntgm ) then
-               print *,"ntgm too small. maybe set it to ntm=",ntm
-               call stop_model("ghy_drv: ntg > ntgm",255)
-            endif
             ntixw(ntg) = n
+            if ( tr_wd_TYPE(n)==nWATER ) then
+              is_water(ntg) = .true.
+            else
+              is_water(ntg) = .false.
+            endif
           endif
 #endif
         end if
       end do
 
+#ifdef TRACERS_WATER
+      ghy_tr%ntg = ntg
+      allocate( ghy_tr%trpr(ntg), ghy_tr%trdd(ntg), ghy_tr%tr_surf(ntg),
+     &     ghy_tr%tr_w(ntg,0:ngm,2), ghy_tr%tr_wsn(ntg,nlsn,2) )
+      allocate( ghy_tr%atr_evap(ntg),ghy_tr%atr_rnff(ntg),
+     &     ghy_tr%atr_g(ntg), ghy_tr%ntixw(ntg), ghy_tr%is_water(ntg) )
+      ghy_tr%ntixw(1:ntg) = ntixw(1:ntg)
+      ghy_tr%is_water(1:ntg) = is_water(1:ntg)
+#endif
+
       end subroutine ghy_tracers_set_step
 
 
+      subroutine ghy_tracers_finish_step(
+#ifdef TRACERS_WATER
+     &     ghy_tr
+#endif
+     &     )
+!@sum tracers stuff to be called at the end of ghy time step
+!@+   i.e. after the i,j loop
+      implicit none
+#ifdef TRACERS_WATER
+      type (ghy_tr_str) :: ghy_tr
+
+      deallocate( ghy_tr%trpr, ghy_tr%trdd, ghy_tr%tr_surf,
+     &     ghy_tr%tr_w, ghy_tr%tr_wsn )
+      deallocate( ghy_tr%atr_evap,ghy_tr%atr_rnff,
+     &     ghy_tr%atr_g, ghy_tr%ntixw, ghy_tr%is_water )
+      ghy_tr%ntg = 0
+#endif
+
+      end subroutine ghy_tracers_finish_step
+
       subroutine ghy_tracers_set_cell(i,j,ptype,qg,evap_max,pbl_args
-     &  ,qm1)
+     &  ,qm1
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
+     &     )
 !@sum tracers code to be called before the i,j cell is processed
       use model_com, only : dtsrc
       use pbl_drv, only : t_pbl_args
@@ -163,6 +206,9 @@ ccc set i,j - independent stuff for tracers
       type (t_pbl_args), intent(inout) :: pbl_args
       real*8, intent(in) :: qm1
       integer n,nx,nsrc
+#ifdef TRACERS_WATER
+      type (ghy_tr_str) :: ghy_tr
+#endif
 
 c**** pass indices of tracer arrays to PBL
       pbl_args%ntix(1:ntm) = ntix(1:ntm)
@@ -176,25 +222,25 @@ C**** Calculate first layer tracer concentration
 
 ccc tracers variables
 #ifdef TRACERS_WATER
-      do nx=1,ntg
-        n = ntixw(nx)
+      do nx=1,ghy_tr%ntg
+        n = ghy_tr%ntixw(nx)
         ! prognostic vars
-        tr_w(nx,0,1) = 0.d0
-        tr_w(nx,1:ngm,1) = tr_w_ij(n,1:ngm,1,i,j)
-        tr_w(nx,0:ngm,2) = tr_w_ij(n,0:ngm,2,i,j)
-        tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
+        ghy_tr%tr_w(nx,0,1) = 0.d0
+        ghy_tr%tr_w(nx,1:ngm,1) = tr_w_ij(n,1:ngm,1,i,j)
+        ghy_tr%tr_w(nx,0:ngm,2) = tr_w_ij(n,0:ngm,2,i,j)
+        ghy_tr%tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
-        trpr(nx) = (trprec(n,i,j)*byaxyp(i,j))/dtsrc ! kg/m^2 s (in precip)
+        ghy_tr%trpr(nx) = (trprec(n,i,j)*byaxyp(i,j))/dtsrc ! kg/m^2 s (in precip)
 #ifdef TRACERS_DRYDEP
-        trdd(nx) = trdrydep(n,itype,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
+        ghy_tr%trdd(nx) = trdrydep(n,itype,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
 #else
-        trdd(nx) = 0
+        ghy_tr%trdd(nx) = 0
 #endif
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
-          tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
+          ghy_tr%tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3
         else
-          tr_surf(nx) = 0.
+          ghy_tr%tr_surf(nx) = 0.
         end if
       enddo
 #endif
@@ -281,6 +327,9 @@ c**** prescribed dust emission
 #ifdef INTERACTIVE_WETLANDS_CH4
      &     ,ra_temp,ra_sat,ra_gwet
 #endif
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
      &     )
 !@sum tracers code to be called after the i,j cell is processed
       use model_com, only : itime,qcheck,nisurf
@@ -336,6 +385,9 @@ c**** prescribed dust emission
 #ifdef INTERACTIVE_WETLANDS_CH4
       real*8, intent(IN) :: ra_temp,ra_sat,ra_gwet
 #endif
+#ifdef TRACERS_WATER
+      type (ghy_tr_str) :: ghy_tr
+#endif
 
 ccc tracers
 
@@ -351,11 +403,11 @@ ccc tracers
 #endif
 
 #ifdef TRACERS_WATER
-      do nx=1,ntg
-        n = ntixw(nx)
-        tr_w_ij(n,1:ngm,1,i,j) = tr_w(nx,1:ngm,1)
-        tr_w_ij(n,0:ngm,2,i,j) = tr_w(nx,0:ngm,2)
-        tr_wsn_ij(n,1:nlsn, 1:2, i, j) = tr_wsn(nx,1:nlsn,1:2)
+      do nx=1,ghy_tr%ntg
+        n = ghy_tr%ntixw(nx)
+        tr_w_ij(n,1:ngm,1,i,j) = ghy_tr%tr_w(nx,1:ngm,1)
+        tr_w_ij(n,0:ngm,2,i,j) = ghy_tr%tr_w(nx,0:ngm,2)
+        tr_wsn_ij(n,1:nlsn, 1:2, i, j) = ghy_tr%tr_wsn(nx,1:nlsn,1:2)
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -369,15 +421,16 @@ c     saves evaporation for dust emission calculation at next time step
 #endif
 #ifdef TRACERS_WATER
 ccc accumulate tracer evaporation and runoff
-      do nx=1,ntg
-        n=ntixw(nx)
-        trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + atr_evap(nx)
+      do nx=1,ghy_tr%ntg
+        n=ghy_tr%ntixw(nx)
+        trevapor(n,itype,i,j) = trevapor(n,itype,i,j)
+     &       + ghy_tr%atr_evap(nx)
         !trevapor(n,itype,i,j) = trevapor(n,itype,i,j) + aevap  !*rhow
-        trunoe(n,i,j) = trunoe(n,i,j) + atr_rnff(nx)
+        trunoe(n,i,j) = trunoe(n,i,j) + ghy_tr%atr_rnff(nx)
         !trunoe(n,i,j) = trunoe(n,i,j) + (aruns+arunu)  !*rhow
-        gtracer(n,itype,i,j) = atr_g(nx)   ! /dtsurf
+        gtracer(n,itype,i,j) = ghy_tr%atr_g(nx)   ! /dtsurf
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
-     &       atr_evap(nx)/dtsurf *axyp(i,j)*ptype
+     &       ghy_tr%atr_evap(nx)/dtsurf *axyp(i,j)*ptype
       enddo
 #endif
       DO nx=1,ntx
@@ -557,19 +610,19 @@ C**** Save surface tracer concentration whether calculated or not
 
 ccc not sure about the code below. hopefully that''s what is meant above
 #ifdef TRACERS_WATER
-      do nx=1,ntg
-        n=ntixw(nx)
+      do nx=1,ghy_tr%ntg
+        n=ghy_tr%ntixw(nx)
         taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *       trevapor(n,itype,i,j)*ptype
         taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype
         taijn(i,j,tij_soil,n)=taijn(i,j,tij_soil,n) + (
-     &       fb*(sum( tr_w(nx,1:ngm,1) ))+
-     &       fv*(sum( tr_w(nx,0:ngm,2) ))
+     &       fb*(sum( ghy_tr%tr_w(nx,1:ngm,1) ))+
+     &       fv*(sum( ghy_tr%tr_w(nx,0:ngm,2) ))
      *       )
         taijn(i,j,tij_snow,n)=taijn(i,j,tij_snow,n) + (
-     &       fb*(sum( tr_wsn(nx,1:nsn(1),1) ))+
-     &       fv*(sum( tr_wsn(nx,1:nsn(2),2) ))
+     &       fb*(sum( ghy_tr%tr_wsn(nx,1:nsn(1),1) ))+
+     &       fv*(sum( ghy_tr%tr_wsn(nx,1:nsn(2),2) ))
      *       )
         if (tr_wd_TYPE(n).eq.nWATER) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trevapor(n,itype,i,j)*ptype)
@@ -765,7 +818,7 @@ c****
      &     ,NDIUPT,adiurn_dust,ijdd
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
-     &     ghy_tracers_save_cell
+     &     ghy_tracers_save_cell, ghy_tracers_finish_step
 #endif
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : ntm,trm
@@ -796,6 +849,9 @@ c****
 !!! need for Ca hack
       use geom, only : byaxyp
       use tracer_com, only : trm
+#endif
+#ifdef TRACERS_WATER
+      use GHY_h, only : ghy_tr_str
 #endif
       implicit none
 
@@ -862,6 +918,9 @@ c**** input/output for PBL
       integer :: lpbl,itr
       real*8 :: trconcflx
 #endif
+#ifdef TRACERS_WATER
+      type (ghy_tr_str) :: ghy_tr
+#endif
 
 C****   define local grid
       integer J_0, J_1, J_0H, J_1H, I_0, I_1
@@ -896,7 +955,11 @@ c**** outside loop over time steps, executed nisurf times every hour
 c****
 ccc set i,j - independent stuff for tracers
 #ifdef TRACERS_ON
-      call ghy_tracers_set_step
+      call ghy_tracers_set_step(
+#ifdef TRACERS_WATER
+     &     ghy_tr
+#endif
+     &     )
 #endif
 
 c****
@@ -1059,7 +1122,11 @@ ccc actually PBL needs evap (kg/m^2*s) / rho_air
 c**** call tracers stuff
 #ifdef TRACERS_ON
       call ghy_tracers_set_cell(i,j,ptype,pbl_args%qg_sat
-     &     ,pbl_args%evap_max,pbl_args, q1*ma1)
+     &     ,pbl_args%evap_max,pbl_args, q1*ma1
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
+     &     )
 #endif
 #ifdef WATER_PROPORTIONAL
 #ifdef TRACERS_ON
@@ -1188,7 +1255,11 @@ ccc switch to Ca from tracers
      &     pbl_args%ws0,
      &     pbl_args%tprime,
      &     pbl_args%qprime,
-     &     end_of_day_flag )
+     &     end_of_day_flag
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
+     &     )
 
 
 
@@ -1341,6 +1412,9 @@ c**** update tracers
 #ifdef INTERACTIVE_WETLANDS_CH4
      & ,tg1,ts-tf,1.d2*abetad/real(nisurf)
 #endif
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
      & )
 #endif
 
@@ -1376,6 +1450,14 @@ c another surface type
 !#ifndef USE_ENT
       call compute_water_deficit
 !#endif
+
+#ifdef TRACERS_ON
+      call ghy_tracers_finish_step(
+#ifdef TRACERS_WATER
+     &     ghy_tr
+#endif
+     &     )
+#endif
 
       return
       end subroutine earth
