@@ -1957,6 +1957,14 @@ C**** cases using all levels up to LmaxSUBDD
             case ("Silt3")
               data=trm(:,:,l,n_Silt3)
 #endif
+            case ("CLDSS")
+              data=100.d0*cldss(l,:,:) ! Cld cover LS(%)
+            case ("CLDMC")
+              data=100.d0*cldmc(l,:,:) ! Cld cover MC(%)
+            case ("TAUSS")
+              data=tauss(l,:,:) ! LS cld tau
+            case ("TAUMC")
+              data=taumc(l,:,:) ! MC cld tau
 #ifdef CLD_AER_CDNC
             case ("CTEM")
               data=ctem(l,:,:) ! cld temp (K) at cld top
@@ -1966,18 +1974,10 @@ C**** cases using all levels up to LmaxSUBDD
               data=ci3d(l,:,:) ! cld IWC (kg m-3)
             case ("CD3D")
               data=cd3d(l,:,:) ! cld thickness (m)
-            case ("CLDSS")
-              data=100.d0*cldss(l,:,:) ! Cld cover LS(%)
-            case ("CLDMC")
-              data=100.d0*cldmc(l,:,:) ! Cld cover MC(%)
             case ("CDN3D")
               data=cdn3d(l,:,:) ! cld CDNC (cm^-3)
             case ("CRE3D")
               data=1.d-6*cre3d(l,:,:) ! cld Reff (m)
-            case ("TAUSS")
-              data=tauss(l,:,:) ! LS cld tau
-            case ("TAUMC")
-              data=taumc(l,:,:) ! MC cld tau
 #endif
             end select
             polefix=.true.
