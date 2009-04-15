@@ -2058,6 +2058,9 @@ ccc get necessary data from ent
      &     )
       fb = 1.d0 - fv
       snowm = height_can*.1d0 ! snow masking depth
+      ws(0,2) = ws_can
+      shc(0,2) = shc_can
+      ! snowm = 0.d0 !!!! wrong !!! but leave it for testing
 #endif
 
 #ifdef OFFLINE_RUN
@@ -2083,20 +2086,6 @@ ccc normal case (both present)
         process_vege = .false.
       endif
 
-#ifdef USE_ENT
-      ! copy input parameters to local arrays
-      ws(0,2) = ws_can
-      shc(0,2) = shc_can
-      snowm = 0.d0 !!!! wrong !!! but leave it for testing
-#endif
-
-!debug debug!
-!      pr = 0.d0
-!      htpr = 0.d0
-!      trpr = 0.d0
-!      srht = 0.d0
-!      trht = 0.d0
-!!!
       call reth
       call retp
       tb0=tp(1,1)
