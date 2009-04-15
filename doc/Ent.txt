@@ -8,27 +8,19 @@ coupled to Ent DGTEM.
 Getting the code
 ================
 
-Ent is being developed as a universal DGTEM which can be used 
-either as a stand-alone model or as a module of any GCM. Currently
-it is coupled to GISS ModelE and to GMAO GCM. The universal 
-nature of Ent and the fact that some of participating developers 
-are working outside of GISS and are not related to ModelE project
-makes it inconvenient to keep Ent code inside ModelE. So for this
-project a separate repository was created "GISSClim" which keeps Ent
-code along with GISS LSM (Land Surface Model) code and corresponding
-stand-alone drivers. Those who work with stand-alone version of Ent
-have to checkout GISSClim repository. For those who want to run ModelE
-coupled to Ent a special cvs "module" was created "modelE_Ent". If one
-checks out this module, i.e. 
+Ent is now part of modelE repository. All Ent code is located 
+in modelE/model/Ent subdirectory. So standard 
 
-  cvs checkout modelE_Ent
+  cvs checkout modelE
 
-cvs will combine code from modelE and from GISSClim and put it inside
-modelE_ent directory. The directory structure will remain similar to
-modelE but new subdirectories inside model/ directory will be
-created. These subdirectories will contain Ent code and will duplicate
-some of modelE code which is needed for Ent.
+works for getting modelE with Ent. One should be aware though
+that for compatibility with Ent some modelE/model code
+was moved to subdirectories. If updating from some older version
+of modelE make sure to use 
 
+  cvs update -d
+
+to force cvs to create these new subdirectories.
 
 Compiling the code
 ==================
