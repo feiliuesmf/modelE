@@ -210,7 +210,11 @@ C--------------------------------------------------------
 !sl  K      ,TRSLTS,TRSLTG,TRSLBS
       REAL*8 TTAUSV(LX,ITRMAX),aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),
      &     aesqcb(lx,6,itrmax)
-
+cdmk trying to save these to use in CLOUDS indirect effect
+      real*4 SULDD(72,46,20,12,12),NITDD(72,46,20,12,12)
+      REAL*4  OCADD(72,46,20,12,12),BCADD(72,46,20,12,12)
+      REAL*4  BCBDD(72,46,20,12,12),SSADD(72,46,20,12)
+cdmk
       INTEGER :: LBOTCL,LTOPCL
 
       COMMON/RADPAR_OUTPUT_IJDATA/
@@ -228,6 +232,8 @@ C--------------------------------------------------------
 !sl  K             ,TRSLTS,TRSLTG,TRSLBS
      K             ,TTAUSV,chem_out,aesqex,aesqsc,aesqcb
      L             ,LBOTCL,LTOPCL   ! integers last for alignment
+     M             ,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD
+cdmk last line saved for IE
 !$OMP THREADPRIVATE(/RADPAR_OUTPUT_IJDATA/)
 !nu   EQUIVALENCE (SRXATM(1),SRXVIS),(SRXATM(2),SRXNIR)
 !nu   EQUIVALENCE (SRXATM(3),XXAVIS),(SRXATM(4),XXANIR)  !nu = not used
