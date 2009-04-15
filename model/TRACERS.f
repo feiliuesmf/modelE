@@ -242,14 +242,6 @@ C**** Gas Exchange Coefficient (piston velocity)
         ijtc_power(n) = -4
         units_tij(k,n) = unit_string(ijtc_power(n),'m/s')
         scale_tij(k,n) = 10.**(-ijtc_power(n))
-C**** Gas Exchange flux at ocean surface
-      k = k+1
-      tij_gasx = k
-        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Gas_Exch_Flux'
-        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Gas Exch Flux'
-        ijtc_power(n) = -6
-        units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^2')
-        scale_tij(k,n) = 10.**(-ijtc_power(n))
 
       print*,'TRACERS.f Natassa: ktaij=',ktaij,', k=',k
 #endif
