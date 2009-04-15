@@ -11,6 +11,7 @@
 
 #ifdef USE_ENT
 #define EVAP_VEG_GROUND
+!#define GHY_FD_1_HACK
 #endif
 
 !#define RAD_VEG_GROUND
@@ -383,6 +384,9 @@ c**** correct fraction of wet canopy by snow fraction
       fd=1.d0-fw
       fw0=fw
       fd0=fd
+#ifdef GHY_FD_1_HACK
+      fd = 1.d0
+#endif
       return
       end subroutine reth
 
@@ -698,6 +702,8 @@ ccc   local variables
 !     Stem area index (currently set to zero)
       real*8,parameter :: sai = 0.d0 
 #endif
+      real*8 epv1
+
 c     cna is the conductance of the atmosphere
       cna=ch*vs
       rho3=rho/rhow ! i.e divide by rho_water to get flux in m/s
@@ -884,6 +890,11 @@ c     epvs = rho3*cna*(qvs-qs)
       epv  = rho3*ch*( vs*(qv-qs) -v_qprime )
       epvs = rho3*ch*( vs*(qvs-qs)-v_qprime )
 
+      epv1 = epv
+#ifdef GHY_FD_1_HACK
+      epv1 = epv/(fw+fd)
+#endif
+
 #ifdef EVAP_VEG_GROUND
 !     Transfer coefficient  is simply interpolated btw the
 !     values for bare soil and for a thick canopy 
@@ -910,9 +921,9 @@ c     vegetated soil evaporation
 c     evapvd is dry evaporation (transpiration) from canopy
 c     evapvw is wet evaporation from canopy (from interception)
         evapvg = 0.d0 ! in case EVAP_VEG_GROUND not defined
-        evapvw = min( epv, evap_max_wet(2) )
+        evapvw = min( epv1, evap_max_wet(2) )
         evapvw = max( evapvw,-qm1dt )
-        evapvd = min(epv,evap_max_dry(2)) !evap_max_dry(2) depends on qs
+        evapvd = min(epv1,evap_max_dry(2)) !evap_max_dry(2) depends on qs
         evapvd = max( evapvd, 0.d0 )
         evapvs = min( epvs, evap_max_snow(2) )
         evapvs = max( evapvs, -qm1dt )
@@ -2056,6 +2067,9 @@ ccc get necessary data from ent
      &     canopy_height=height_can,
      &     albedo=albedo_6b
      &     )
+ccc make sure there are no round-off errors in fractions
+      if ( fv < .0001d0 ) fv = 0.d0
+      if ( fv > 1.d0 - .0001d0 ) fv = 1.d0
       fb = 1.d0 - fv
       snowm = height_can*.1d0 ! snow masking depth
       ws(0,2) = ws_can
@@ -2068,11 +2082,6 @@ ccc get necessary data from ent
       albedo_cell = ghy_albedo( albedo_6b )
       srht = srht*(1.d0 - albedo_cell)!converts srht to NET (ABSORBED) SW
 #endif
-
-ccc make sure there are no round-off errors in fraction
-      if ( fv < .0001d0 ) fv = 0.d0
-      if ( fv > 1.d0 - .0001d0 ) fv = 1.d0
-      fb = 1.d0 - fv
 
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
