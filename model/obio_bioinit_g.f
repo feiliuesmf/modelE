@@ -231,7 +231,10 @@ c          endif
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
-          if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,2) = Pdeep(2)
+          if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,4) = Pdeep(4)
+
+          write(*,'(a,3i5,e12.4,i5,e12.4)')'obio_bioinit, iron:',
+     .       i,j,k,Fer(i,j,k),ir(i,j),tracer(i,j,k,4)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo

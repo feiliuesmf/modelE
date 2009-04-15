@@ -300,9 +300,10 @@ cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
 cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 cdiag   endif
 cdiag   if (vrbos)
-cdiag.    write(*,*)'ptend7 :', nstep,i,j,k,dp1d(k),tirrq(k),
-cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
-cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
+          write(*,'(a,4i5,9e12.4)')'ptend7 :', 
+     .              nstep,i,j,k,dp1d(k),tirrq(k),
+     .                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
+     .                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
@@ -342,9 +343,11 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt)
-     .               / phygross*max(p1d(k+1),1.e-3)*cchlratio
+        pp2_1d(k,nt) = gro(k,nt) / phygross 
+     .               * p1d(k+1) * cchlratio
 
+        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 
 !!#endif
@@ -402,6 +405,13 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         term = gro(k,nt)
         rhs(k,nt+nnut,13) = term  
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
+
+        !Net primary production
+        pp2_1d(k,nt) = gro(k,nt) / phygross 
+     .               * p1d(k+1) * cchlratio
+
+        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
@@ -464,6 +474,12 @@ cdiag.  'obio_ptend10: ',nt,i,j,k,tirrq(k),rikd(k,nt),rmml,obio_P(k,4),
 cdiag.   rkf(nt),rmmf,rkn(nt),rnut1,rnut2,tmp,tnit,rmmn,obio_P(k,1),
 cdiag.   obio_P(k,2)
 
+        !Net primary production
+        pp2_1d(k,nt) = gro(k,nt) / phygross 
+     .               * p1d(k+1) * cchlratio * pnoice
+
+        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
@@ -504,9 +520,11 @@ cdiag.   obio_P(k,2)
         gcmax1d(k) = max(gcmax1d(k),grate)
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt)
-     .               * phygross*max(p1d(k+1),1.e-3)*cchlratio*pnoice
+        pp2_1d(k,nt) = gro(k,nt) / phygross 
+     .               * p1d(k+1) * cchlratio * pnoice
 
+        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
@@ -546,9 +564,11 @@ cdiag.   obio_P(k,2)
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt)
-     .               / phygross*max(p1d(k+1),1.e-3)*cchlratio*pnoice
+        pp2_1d(k,nt) = gro(k,nt) / phygross 
+     .               * p1d(k+1) * cchlratio * pnoice
 
+        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 

@@ -62,6 +62,12 @@
       nchl2=4   
 #endif
 
+      if (nchl1.le.0 .or. nchl2.le.0) then
+          print*, nchl1, nchl2, 
+     .   'MUST SET Jprod_based_on_pp or Jprod_based_on_cocc in rundeck'
+          stop  
+      endif
+
 !compute total primary production
       pp=0.
       do nt=nchl1,nchl2
@@ -72,9 +78,9 @@
               !negative values are not accepted
 !             if (pp.lt.0.) then
 !                 pp=0.
-                  write(*,'(a,5i5,4e12.4)')'obio_alkalinity, pp:',
-     .          nstep,i,j,k,nt,pp2_1d(k,nt),max(p1d(k+1),1.e-3),
-     .          bn(k),cnratio
+!                 write(*,'(a,5i5,4e12.4)')'obio_alkalinity, pp neg:',
+!    .          nstep,i,j,k,nt,pp2_1d(k,nt),max(p1d(k+1),1.e-3),
+!    .          bn(k),cnratio
 !             endif
       enddo
       enddo
@@ -117,13 +123,13 @@
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 
-!     if (vrbos) then
+      if (vrbos) then
       do k=1,kmax
       write(*,'(a,4i5,10e12.4)')'obio_alkalinity; ',
      .    nstep,i,j,k
      .   ,p1d(k),zc,J_PO4(k),pp,Jprod_sum,Fc
      .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k)
       enddo
-!     endif
+      endif
 
       end subroutine obio_alkalinity
