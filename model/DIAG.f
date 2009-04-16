@@ -134,10 +134,10 @@ C**** Some local constants
 
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,
-     &     IP1,LM1,LP1,LR,MBEGIN,IT
+     &     IP1,LR,MBEGIN,IT
       REAL*8 THBAR ! external
       REAL*8 ::
-     &     BBYGV,BYSDSG,DLNP,DLNP01,DLNP12,DLNP23,DBYSD,
+     &     BBYGV,BYSDSG,DLNP01,DLNP12,DLNP23,DBYSD,
      &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
      &     PDN,PE,PHI_REQ,PIJ,
@@ -635,7 +635,7 @@ c
           qdp(l) = 0d0
           rhdp(l) = 0d0
           wmdp(l) = 0d0
-          rh(l) = q(i,j,l)/min(1.,QSAT(TX(I,J,L),QLH,pmid(l,i,j)))
+          rh(l) = q(i,j,l)/min(1d0,QSAT(TX(I,J,L),QLH,pmid(l,i,j)))
         enddo
         do l=1,lmx
           dpwt(lcp(l))  = dpwt(lcp(l))  + dpx(l)
