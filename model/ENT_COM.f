@@ -57,14 +57,18 @@
             read(kunit) buffer
             !print *, "ent_read_state: i, j ", i, j
             !print *, buffer
-            call send_to_j(grid,size(buffer),j,itag)
-            call send_to_j(grid,buffer,j,tag)
+            if ( j<J_0 .or. j>J_1 ) then  ! j is not on root
+              call send_to_j(grid,size(buffer),j,itag)
+              call send_to_j(grid,buffer,j,tag)
+            endif
           endif
 
           if ( j>=J_0 .and. j<=J_1 ) then
-            call recv_from_j(grid,bufsize,1,itag)
-            if ( .not.associated(buffer) ) allocate(buffer(bufsize))
-            call recv_from_j(grid,buffer,1,tag)
+            if ( .not.associated(buffer) ) then
+              call recv_from_j(grid,bufsize,1,itag)
+              allocate(buffer(bufsize))
+              call recv_from_j(grid,buffer,1,tag)
+            endif
             ! check length of buffer : if( buffer(1) > MAX_BUFFER ) ??
             if ( buffer(1) > 0.d0 ) then ! the cell is present
               call ent_cell_construct( entcells(i,j) )
