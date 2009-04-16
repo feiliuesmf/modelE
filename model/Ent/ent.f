@@ -157,7 +157,7 @@
           !call growth(...)
           if (update_day) then
             call pheno_update(dtsec,pp)
-            call veg_update(dtsec,pp)
+            call veg_update(dtsec,pp,config)
             !call litter(pp) !Litter is now called within veg_update
 
           end if
