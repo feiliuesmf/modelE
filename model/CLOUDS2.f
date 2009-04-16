@@ -3094,7 +3094,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
       WMUI=.001                    ! .0001
-      IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
+C     IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L),
@@ -4607,6 +4607,7 @@ c    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
         TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
         TEM1=AIRM(L)*WMPR(L)*1.d2*BYGRAV      ! precip contribution
         TAUSSL(L)=TAUSSL(L)+1.5d3*TEM1/(FCLD*RCLDE1+teeny)
+        IF(FCLD.LE.teeny) TAUSSL(L)=0.
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
         IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM      ! pick up water path
 #ifdef CLD_AER_CDNC
