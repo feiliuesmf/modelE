@@ -533,7 +533,7 @@ c*
       real*8, intent(in) :: missing
       integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey
       character*120:: ofi
-      integer ::  status, fid, vid, ierr, arr_size
+      integer ::  status, fid, vid
 
        
       if ( (x2grids%ntilessource .eq. 6) .and.   !cs2ll
@@ -828,7 +828,6 @@ c*
 c     ll2cs
          
          if (AM_I_ROOT()) then   
-c            write(*,*) "ROOT REGRID LL2CS"
  
             atarget(:,:,:) = 0.d0
             ttarget(:,:,:) = 0.d0
