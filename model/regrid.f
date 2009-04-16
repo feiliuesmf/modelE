@@ -522,6 +522,7 @@ c*
       use regrid_com
       implicit none
       include 'netcdf.inc'
+      include 'mpif.h'
       type (x_2grids), intent(in) :: x2grids
       real*8 :: tsource(isd:ied,jsd:jed)
       real*8 :: wsource(isd:ied,jsd:jed)
@@ -529,12 +530,11 @@ c*
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
-      real*8 :: missing
+      real*8, intent(in) :: missing
       integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey
       character*120:: ofi
-      integer ::  status, fid, vid
+      integer ::  status, fid, vid, ierr, arr_size
 
-      write(*,*) "regr wt isd ied, jsd, jed=",isd,ied,jsd,jed
        
       if ( (x2grids%ntilessource .eq. 6) .and.   !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
@@ -559,9 +559,10 @@ c*
 
 c     sum all contributions
 c     
+
          call SUMXPE(ttarget)
          call SUMXPE(atarget)
-         
+
 c     
 c     root proc section
 c     
@@ -615,16 +616,19 @@ c     &           x2grids%xgrid%xarea_key(ikey)
             endif
          enddo
      
+
 c
 c     sum all contributions
-c     
+c    
+   
          call SUMXPE(ttarget)
-         call SUMXPE(atarget)         
+         call SUMXPE(atarget)
+
 c     
 c     root proc section
 c     
          if (AM_I_ROOT()) then
-            do k=1,6
+               do k=1,6
                do j=1,x2grids%jmtarget
                   do i=1,x2grids%imtarget
                      if (atarget(i,j,k) .le. 1.e-10 ) then
@@ -902,16 +906,6 @@ c*
       character(len=10) :: imch,jmch,icch,jcch
 
 c     set variables ("Constructor")
-c      i0=grid%i_start
-c      i0h=grid%i_start_halo
-c      j0=grid%j_start
-c      j0h=grid%j_start_halo
-
-c      i1=grid%i_stop
-c      i1h=grid%i_stop_halo
-c      j1=grid%j_stop
-c      j1h=grid%j_stop_halo
-
       is=grid%is
       ie=grid%ie
       isd=grid%isd
@@ -1379,8 +1373,6 @@ C  global_sum is a complex number, represents final (sum, error).
 
       end subroutine globalsum_exact
 c*
-
-
 
       subroutine sumxpe2d_exact(arr,iarr,jarr,ntile)
 !@sum This code calculates a reproducible non rank reducing sum 
