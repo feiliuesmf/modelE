@@ -94,7 +94,7 @@ C**** Some local constants
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@auth Original Development Team
 !@ver  1.0
-      USE CONSTANT, only : grav,rgas,kapa,lhe,sha,bygrav,tf
+      USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb
       USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
@@ -115,6 +115,7 @@ C**** Some local constants
      *     ,jl_epacwt,jl_uepac,jl_vepac,jl_wepac
      *     ,jl_wpacwt,jl_uwpac,jl_vwpac,jl_wwpac
      *     ,jk_dpwt,jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o
+     *     ,jk_cldwtr,jk_cldice
      *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
      *     ,ij_p600,ij_p500
 #ifdef HTAP_LIKE_DIAGS
@@ -123,6 +124,7 @@ C**** Some local constants
       USE DYNAMICS, only : pk,phi,pmid,pdsig,plij, SD,pedn,am
      &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
+      USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
       USE DOMAIN_DECOMP_ATM, only : GET, HALO_UPDATE, GRID
       USE GETTIME_MOD
@@ -152,6 +154,7 @@ C**** Some local constants
 
       real*8, dimension(lm+1) :: pecp,pedge
       real*8, dimension(lm) :: dpwt,txdp,phidp,qdp,rhdp,wmdp,rh
+      real*8, dimension(lm) :: wmliqdp,wmfrzdp
       integer, parameter :: lmxmax=2*lm
       integer :: lmx
       real*8, dimension(lmxmax) :: dpx
@@ -635,6 +638,8 @@ c
           qdp(l) = 0d0
           rhdp(l) = 0d0
           wmdp(l) = 0d0
+          wmliqdp(l) = 0d0
+          wmfrzdp(l) = 0d0
           rh(l) = q(i,j,l)/min(1d0,QSAT(TX(I,J,L),QLH,pmid(l,i,j)))
         enddo
         do l=1,lmx
@@ -644,6 +649,10 @@ c
           qdp(lcp(l))   = qdp(lcp(l))   + dpx(l)*q(i,j,lmod(l))
           rhdp(lcp(l))  = rhdp(lcp(l))  + dpx(l)*rh(lmod(l))
           wmdp(lcp(l))  = wmdp(lcp(l))  + dpx(l)*wm(i,j,lmod(l))
+          if( svlhx(lmod(l),i,j) == lhe)
+     *      wmliqdp(lcp(l)) = wmliqdp(lcp(l)) + dpx(l)*wm(i,j,lmod(l))
+          if( svlhx(lmod(l),i,j) == lhs)
+     *      wmfrzdp(lcp(l)) = wmfrzdp(lcp(l)) + dpx(l)*wm(i,j,lmod(l))
         enddo
         do l=1,lm
           aijl(i,j,l,ijk_dp) = aijl(i,j,l,ijk_dp) + dpwt(l)
@@ -656,6 +665,8 @@ c
           call inc_ajl(i,j,l,jk_q,     qdp(l))
           call inc_ajl(i,j,l,jk_rh,    rhdp(l))
           call inc_ajl(i,j,l,jk_cldh2o,wmdp(l))
+          call inc_ajl(i,j,l,jk_cldice,wmfrzdp(l))
+          call inc_ajl(i,j,l,jk_cldwtr,wmliqdp(l))
         enddo
       enddo
       enddo
@@ -2691,13 +2702,10 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         KLAYER(L)=4*(KL-1)+1
       END DO
       IF (KL*4 .gt. NSPHER) THEN
-C****        WRITE(6,*) "Inconsistent definitions of stratosphere:"
         CALL WRITE_PARALLEL("Inconsistent definitions of stratosphere:"
      &                       ,UNIT=6)
-C****        WRITE(6,*) "Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
         CALL WRITE_PARALLEL("Adjust PSPEC, ISTRAT so that KL*4 = NSPHER"
      &                       ,UNIT=6)
-C****        WRITE(6,*) "ISTRAT,PSPEC,NSPHER,KL=",ISTRAT,PSPEC,NSPHER,KL
         WRITE(out_line,*) "ISTRAT,PSPEC,NSPHER,KL=",
      &                     ISTRAT,PSPEC,NSPHER,KL
         CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
@@ -2710,10 +2718,8 @@ C**** Calculate the max number of geopotential heights
         if (pmb(k).le.pmtop) exit
         kgz_max = k
       end do
-C****      write(6,'(a)') " Geopotential height diagnostics at (mb): "
       CALL WRITE_PARALLEL(" Geopotential height diagnostics at (mb): ",
      &                      UNIT=6)
-C*****      write(6,'(20F9.3)') PMB(1:kgz_max)
       CALL WRITE_PARALLEL(PMB(1:kgz_max), UNIT=6, format="(20F9.3)")
 
 c**** Initialize acc-array names, units, idacc-indices
@@ -2969,8 +2975,6 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
       NQ=NQ+1
       IF (NQ.gt.NQUANT) THEN
-C****        WRITE(6,*) "Number of conserved quantities larger than NQUANT"
-C****     *       ,NQUANT,NQ
         WRITE(out_line,*)
      *       "Number of conserved quantities larger than NQUANT"
      *       ,NQUANT,NQ

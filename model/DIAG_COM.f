@@ -567,6 +567,7 @@ c derived/composite diagnostics
      &     ,jl_dudtsdrg,jl_dtdtsdrg
       INTEGER, public ::
      &     JK_hght, JK_dpwt, JK_tx, JK_q, JK_cldh2o ,JK_rh
+     &     ,JK_cldwtr, JK_cldice
 
 
 !@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined

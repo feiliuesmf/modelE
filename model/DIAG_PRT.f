@@ -1552,8 +1552,10 @@ C**** TEMPERATURE, HEIGHT, SPECIFIC AND RELATIVE HUMIDITY
       call print_generic_jl(jk_q)
       call print_generic_jl(jk_rh)
 
-C**** LIQUID WATER CONTENT
+C**** CLOUD WATER CONTENT (total/liquid/ice)
       call print_generic_jl(jk_cldh2o)
+      call print_generic_jl(jk_cldwtr)
+      call print_generic_jl(jk_cldice)
 
 C**** U AND V WINDS, STREAM FUNCTION
       n = JK_U

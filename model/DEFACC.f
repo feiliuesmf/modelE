@@ -4488,7 +4488,26 @@ c
       pow_jl(k) = -6
       lgrid_jl(k) = ctr_cp
       ia_jl(k) = ia_dga
-
+c
+      k=k+1
+      jk_cldwtr = k
+      denom_jl(k) = jk_dpwt
+      sname_jl(k) = 'cldwtr'
+      lname_jl(k) = 'CLOUD LIQUID WATER CONTENT'
+      units_jl(k) = 'kg/kg'
+      pow_jl(k) = -6
+      lgrid_jl(k) = ctr_cp
+      ia_jl(k) = ia_dga
+c
+      k=k+1
+      jk_cldice = k
+      denom_jl(k) = jk_dpwt
+      sname_jl(k) = 'cldice'
+      lname_jl(k) = 'CLOUD ICE WATER CONTENT'
+      units_jl(k) = 'kg/kg'
+      pow_jl(k) = -6
+      lgrid_jl(k) = ctr_cp
+      ia_jl(k) = ia_dga
 c
       k=k+1
       jl_mchr = k
