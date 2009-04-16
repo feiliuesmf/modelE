@@ -1368,7 +1368,7 @@ c     this is compatible with focean mask in Gary's Z288x180 topo file
 
 
       subroutine regridCDN(x2grids)
-c     for CS90, use extended CDN=AL30RL360X180N.ext
+c     for CS90, use extended CDN=AL30RL360X180.ext
 
       use regrid_com
       implicit none
@@ -1433,12 +1433,13 @@ c*
       integer, intent(in) :: iuin
       integer :: iuout
       real*8, allocatable :: tsource(:,:,:)
-      real*8, allocatable :: ttargglob(:,:,:)
-      real*4, allocatable :: tout(:,:,:),data(:,:,:)
-c      real*4 :: vadata(11,4,3)
-      character*80 :: TITLE
+      real*8, allocatable :: ttargglob(:,:,:),arrsum(:,:,:),
+     &     tout(:,:,:,:)
+      real*4, allocatable :: t4(:,:,:),data(:,:,:)
+      real*8 :: alpha
+      character*80 :: TITLE(10)
       character*80 :: outunformat
-      integer :: ir,ims,jms,nts,imt,jmt,ntt
+      integer :: ir,ims,jms,nts,imt,jmt,ntt,i,j,k,l
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -1450,10 +1451,13 @@ c      real*4 :: vadata(11,4,3)
       write(*,*) "iuin ims,jms,nts,imt,jmt,ntt 4D",iuin,
      &     ims,jms,nts,imt,jmt,ntt
 
-      allocate (tsource(ims,jms,nts),data(ims,jms,nts),
-     &     ttargglob(imt,jmt,ntt),tout(imt,jmt,ntt))
-c     arrsum(imt,jmt,ntt)
+      allocate (
+     &     tsource(ims,jms,nts),data(ims,jms,nts),
+     &     ttargglob(imt,jmt,ntt),tout(imt,jmt,10,ntt),
+     &     t4(imt,jmt,ntt),arrsum(imt,jmt,ntt) 
+     &     )
      
+      arrsum=0.
       
       outunformat=trim(name)//".CS"
       write(*,*) outunformat
@@ -1464,18 +1468,64 @@ c     arrsum(imt,jmt,ntt)
      &        FORM='unformatted', STATUS="UNKNOWN")
             
       do ir=1,10
-         read(unit=iuin) TITLE,data
-         write(*,*) "TITLE, ir",TITLE,ir
+         read(unit=iuin) TITLE(ir),data
+         write(*,*) "TITLE, ir",TITLE(ir),ir
          tsource= data
          call root_regrid(x2grids,tsource,ttargglob)
-c     arrsum(:,:,:)=arrsum(:,:,:)+ttargglob(:,:,:)
-         tout=ttargglob
-         write(unit=iuout) TITLE,tout
+         tout(:,:,ir,:)=ttargglob(:,:,:)
+      enddo
+
+c     check bare soil fraction if v(1)+v(10) < 0.01 set v(1)=v(10)=0, 
+c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
+      do k=1,ntt
+         do j=1,jmt
+            do i=1,imt
+               if (tout(i,j,1,k)+tout(i,j,10,k) .le. 0.01 .and.
+     &              tout(i,j,1,k)+tout(i,j,10,k) .gt. 0. ) then
+                  write(*,*) " v(1)+v(10) < 0.01 at",i,j,k
+                  alpha=1./(1.- (tout(i,j,1,k)+tout(i,j,10,k)) )
+                  tout(i,j,1,k)  = 0.
+                  tout(i,j,10,k) = 0.
+                  do l=2,9
+                     tout(i,j,l,k)=alpha*tout(i,j,l,k)
+                  enddo
+               endif
+               if (tout(i,j,1,k)+tout(i,j,10,k) .ge. 0.99) then
+                  write(*,*) " v(1)+v(10) > 0.99 at",i,j,k
+                  alpha=1./(1.- (
+     &                 tout(i,j,2,k)+tout(i,j,3,k)+
+     &                 tout(i,j,4,k)+tout(i,j,5,k)+
+     &                 tout(i,j,6,k)+tout(i,j,7,k)+
+     &                 tout(i,j,8,k)+tout(i,j,9,k) ) )
+                  tout(i,j,1,k)  = alpha*tout(i,j,1,k)
+                  tout(i,j,10,k) = alpha*tout(i,j,10,k) 
+                  do l=2,9
+                     tout(i,j,l,k) = 0.
+                  enddo
+               endif
+            enddo
+         enddo
+      enddo
+
+      do ir=1,10
+        arrsum(:,:,:)=arrsum(:,:,:)+tout(:,:,ir,:) 
+        t4(:,:,:)=tout(:,:,ir,:) 
+        write(unit=iuout) TITLE(ir),t4
+      enddo
+
+      do k=1,ntt
+         do j=1,jmt
+            do i=1,imt
+               if (abs( arrsum(i,j,k) - 1.0) .gt. 0.0001) then
+                  write(*,*) "arrsum(",i,",",j,",",k,")=",arrsum(i,j,k)
+               endif
+            enddo
+         enddo
       enddo
 
       close(iuout) 
 
-      deallocate(tsource,ttargglob,tout,data)
+      deallocate(tsource,ttargglob,tout,t4,data,arrsum)
 
       end subroutine read_regrid_write_veg
 c*
