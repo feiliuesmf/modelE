@@ -229,7 +229,8 @@ C***  Scatter global array oA_glob to the ocean grid
 
       RETURN
       END SUBROUTINE INT_AG2OG_precip
-#endif  !!  CUBE_GRID
+#endif  
+!!  CUBE_GRID
 
       SUBROUTINE OG2AG
 !@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates

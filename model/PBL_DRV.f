@@ -379,8 +379,7 @@ c -------------------------------------------------------------
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE MODEL_COM
       USE GEOM, only : imaxj,sinlat2d
-!      USE SOCPBL, only : npbl=>n,zgs,inits,ccoeff0,XCDpbl
-!     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+!      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
       USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
       USE GHY_COM, only : fearth
@@ -521,8 +520,6 @@ C**** fix roughness length for ocean ice that turned to land ice
 #ifdef SCM
             utop = u(i,j,1)
             vtop = v(i,j,1)
-            ug = utop
-            vg = vtop
 #endif
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,

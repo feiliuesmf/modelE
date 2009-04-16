@@ -3021,8 +3021,6 @@ C****
       END DO
       NS=NM+1
       IF (NS.gt.KCON) THEN
-C****        WRITE(6,*) "KCON not large enough for extra conserv diags",
-C****     *       KCON,NI,NM,NQ,NS,NAME_CON
         WRITE(out_line,*)
      *      "KCON not large enough for extra conserv diags",
      *       KCON,NI,NM,NQ,NS,NAME_CON
