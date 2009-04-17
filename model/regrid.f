@@ -647,7 +647,7 @@ c
 c*
 
 
-      subroutine regrid_exact(x2grids,tsource,ttarget,atarget)
+      subroutine repr_regrid(x2grids,tsource,ttarget,atarget)
  
 !@sum  Parallel regriding using double-double arithmetics for reproducible results
 !@+    independent of #procs
@@ -668,14 +668,15 @@ c*
 
       complex*16 :: ttarget_tmp(1),tmp_dd,atarget_tmp(1),xarea_dd(1),
      &     tmp_dd_vec(1)
-      integer :: n,icub,jcub,i,j,itile,ilon,jlat,ikey,imlon,jmlat
+      integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey,imlon,jmlat,
+     &     imcub,jmcub,ntcub
       character*120:: ofi
       integer ::  status, fid, vid
      
 
       if ( (x2grids%ntilessource .eq. 6) .and. !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
-
+         
          imlon=x2grids%imtarget 
          jmlat=x2grids%jmtarget
          
@@ -689,7 +690,7 @@ c*
          write(*,*) "maxkey==",x2grids%xgrid%maxkey
 
          do ikey=1,x2grids%xgrid%maxkey
-
+            
             icub=x2grids%xgrid%icub_key(ikey)
             jcub=x2grids%xgrid%jcub_key(ikey)
             ilon=x2grids%xgrid%ilon_key(ikey)
@@ -700,25 +701,24 @@ c*
             xarea_dd(1)=dcmplx(x2grids%xgrid%xarea_key(ikey)
      &           , 0.d0)
             call add_dd(xarea_dd,atarget_tmp,1) 
-            atarget_dd(ilon,jlat,1)=atarget_tmp(1) !OK
-
+            atarget_dd(ilon,jlat,1)=atarget_tmp(1)
+            
             ttarget_tmp(1)=ttarget_dd(ilon,jlat,1)
             call dxd(x2grids%xgrid%xarea_key(ikey),
      &           tsource(icub,jcub),tmp_dd)
             tmp_dd_vec(1)=tmp_dd
             call add_dd(tmp_dd_vec,ttarget_tmp,1)   
             ttarget_dd(ilon,jlat,1)=ttarget_tmp(1)
-
+            
          enddo
-      
+         
          call sumxpe2d_exact(ttarget_dd,imlon,jmlat,1)
          call sumxpe2d_exact(atarget_dd,imlon,jmlat,1)
          
-         write(*,*) "MYTILE",mytile
 c     
 c     root proc section
 c     
-
+         
          if (AM_I_ROOT()) then   
             do j=1,jmlat
                do i=1,imlon
@@ -738,12 +738,75 @@ c
             write(*,*) "STATUS",NF_STRERROR(status),"<<"
             status = nf_close(fid)
          endif
+
+
+         
+      else if ( (x2grids%ntilessource .eq. 1) .and. !ll2cs
+     &        (x2grids%ntilestarget .eq. 6) ) then
+         
+         imcub=x2grids%imtarget
+         jmcub=x2grids%jmtarget
+         ntcub=x2grids%ntilestarget
+
+         do k=1,ntcub
+            do j=1,jmcub
+               do i=1,imcub
+                  atarget_dd(i,j,k) =  dcmplx(0.d0,0.d0)
+                  ttarget_dd(i,j,k) =  dcmplx(0.d0,0.d0)
+               enddo
+            enddo
+         enddo
+         
+         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
+         
+         do ikey=1,x2grids%xgrid%maxkey
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+            
+            atarget_tmp(1)=atarget_dd(icub,jcub,itile)
+            xarea_dd(1)=dcmplx(x2grids%xgrid%xarea_key(ikey)
+     &           , 0.d0)
+            call add_dd(xarea_dd,atarget_tmp,1) 
+            atarget_dd(icub,jcub,itile)=atarget_tmp(1) 
+            
+            ttarget_tmp(1)=ttarget_dd(icub,jcub,itile)
+            call dxd(x2grids%xgrid%xarea_key(ikey),
+     &           tsource(ilon,jlat),tmp_dd)
+            tmp_dd_vec(1)=tmp_dd
+            call add_dd(tmp_dd_vec,ttarget_tmp,1)   
+            ttarget_dd(icub,jcub,itile)=ttarget_tmp(1)
+            
+         enddo
+         
+         call sumxpe2d_exact(ttarget_dd,imcub,jmcub,ntcub)
+         call sumxpe2d_exact(atarget_dd,imcub,jmcub,ntcub)
+         
+c     
+c     root proc section
+c     
+         
+         if (AM_I_ROOT()) then   
+            do k=1,ntcub
+               do j=1,jmcub
+                  do i=1,imcub
+                     ttarget(i,j,k) = real(ttarget_dd(i,j,k))
+                     atarget(i,j,k) = real(atarget_dd(i,j,k))
+                     ttarget(i,j,k) = ttarget(i,j,k)/atarget(i,j,k)                    
+                  enddo
+               enddo
+            enddo         
+         endif
+         
       endif
-      
-      end subroutine regrid_exact
+
+      end subroutine repr_regrid
 c*
 
-
+      
+      
       subroutine root_regrid(x2gridsroot,tsource,ttarget)
 
 !@sum  Root processor regrids data from source grid to target grid
