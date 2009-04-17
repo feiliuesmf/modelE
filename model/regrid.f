@@ -571,7 +571,7 @@ c
             do j=1,x2grids%jmtarget
                do i=1,x2grids%imtarget
                   if (atarget(i,j,1) .le. 1.e-10) then
-                     ttarget(i,j,1)=0.0
+                     ttarget(i,j,1)=missing
                   else
                      ttarget(i,j,1) = ttarget(i,j,1)/atarget(i,j,1)
                   endif
@@ -803,6 +803,182 @@ c
       endif
 
       end subroutine repr_regrid
+c*
+
+
+      subroutine repr_regrid_wt(x2grids,wsource,missing,tsource,
+     &     ttarget,atarget)
+ 
+!@sum  same as repr_regrid but we multiply by weight function wsource
+!@auth Denis Gueyffier
+      use regrid_com
+      implicit none
+      include 'netcdf.inc'
+      type (x_2grids), intent(in) :: x2grids
+      real*8 :: tsource(isd:ied,jsd:jed)
+      real*8 :: wsource(isd:ied,jsd:jed)
+      real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+     &     ,atarget(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+      real*8, intent(in) :: missing
+      real *8 :: tmp_r8
+      complex*16 :: ttarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget),
+     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+      complex*16 :: ttarget_tmp(1),tmp_dd,atarget_tmp(1),xarea_dd(1),
+     &     tmp_dd_vec(1),xaws_dd(1)
+      integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey,imlon,jmlat,
+     &     imcub,jmcub,ntcub
+      character*120:: ofi
+      integer ::  status, fid, vid
+     
+
+      if ( (x2grids%ntilessource .eq. 6) .and. !cs2ll
+     &     (x2grids%ntilestarget .eq. 1) ) then   
+         
+         imlon=x2grids%imtarget 
+         jmlat=x2grids%jmtarget
+         
+         do j=1,jmlat
+            do i=1,imlon
+               atarget_dd(i,j,1) = dcmplx(0.d0,0.d0)
+               ttarget_dd(i,j,1) = dcmplx(0.d0,0.d0)
+            enddo
+         enddo
+
+         write(*,*) "maxkey==",x2grids%xgrid%maxkey
+
+         do ikey=1,x2grids%xgrid%maxkey
+            
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+          
+            atarget_tmp(1)=atarget_dd(ilon,jlat,1)
+            call dxd(x2grids%xgrid%xarea_key(ikey),
+     &           wsource(icub,jcub),tmp_dd)
+            xaws_dd(1)=tmp_dd
+            call add_dd(xaws_dd,atarget_tmp,1) 
+            atarget_dd(ilon,jlat,1)=atarget_tmp(1)
+            
+            ttarget_tmp(1)=ttarget_dd(ilon,jlat,1)
+            call dxd(x2grids%xgrid%xarea_key(ikey),
+     &           tsource(icub,jcub),tmp_dd)
+            tmp_r8=real(tmp_dd)
+            call dxd(tmp_r8,wsource(icub,jcub),tmp_dd)
+            tmp_dd_vec(1)=tmp_dd
+            call add_dd(tmp_dd_vec,ttarget_tmp,1)   
+            ttarget_dd(ilon,jlat,1)=ttarget_tmp(1)
+            
+         enddo
+         
+         call sumxpe2d_exact(ttarget_dd,imlon,jmlat,1)
+         call sumxpe2d_exact(atarget_dd,imlon,jmlat,1)
+         
+c     
+c     root proc section
+c     
+         
+         if (AM_I_ROOT()) then   
+            do j=1,jmlat
+               do i=1,imlon
+                  ttarget(i,j,1)=real(ttarget_dd(i,j,1))
+                  atarget(i,j,1)=real(atarget_dd(i,j,1))
+                  if (atarget(i,j,1) .le. 1.e-10) then
+                     ttarget(i,j,1)=missing
+                  else
+                     ttarget(i,j,1) = ttarget(i,j,1)/atarget(i,j,1)
+                  endif
+               enddo
+            enddo
+            
+            ofi='tstout.nc'
+            status = nf_open(trim(ofi),nf_write,fid)
+            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+            status = nf_inq_varid(fid,'lwup_sfc',vid)
+            write(*,*) NF_STRERROR(status)
+            status = nf_put_var_double(fid,vid,ttarget)
+            write(*,*) "STATUS",NF_STRERROR(status),"<<"
+            status = nf_close(fid)
+         endif
+
+
+         
+      else if ( (x2grids%ntilessource .eq. 1) .and. !ll2cs
+     &        (x2grids%ntilestarget .eq. 6) ) then
+         
+         imcub=x2grids%imtarget
+         jmcub=x2grids%jmtarget
+         ntcub=x2grids%ntilestarget
+
+         do k=1,ntcub
+            do j=1,jmcub
+               do i=1,imcub
+                  atarget_dd(i,j,k) =  dcmplx(0.d0,0.d0)
+                  ttarget_dd(i,j,k) =  dcmplx(0.d0,0.d0)
+               enddo
+            enddo
+         enddo
+         
+         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
+         
+         do ikey=1,x2grids%xgrid%maxkey
+            icub=x2grids%xgrid%icub_key(ikey)
+            jcub=x2grids%xgrid%jcub_key(ikey)
+            ilon=x2grids%xgrid%ilon_key(ikey)
+            jlat=x2grids%xgrid%jlat_key(ikey)
+            itile=x2grids%xgrid%itile_key(ikey)
+            
+
+            atarget_tmp(1)=atarget_dd(icub,jcub,itile)
+            call dxd(x2grids%xgrid%xarea_key(ikey),
+     &           wsource(ilon,jlat),tmp_dd)
+            xaws_dd(1)=tmp_dd
+            call add_dd(xaws_dd,atarget_tmp,1) 
+            atarget_dd(icub,jcub,itile)=atarget_tmp(1)
+            
+            ttarget_tmp(1)=ttarget_dd(icub,jcub,itile)
+            call dxd(x2grids%xgrid%xarea_key(ikey),
+     &           tsource(ilon,jlat),tmp_dd)
+            tmp_r8=real(tmp_dd)
+            call dxd(tmp_r8,wsource(ilon,jlat),tmp_dd)
+            tmp_dd_vec(1)=tmp_dd
+            call add_dd(tmp_dd_vec,ttarget_tmp,1)   
+            ttarget_dd(icub,jcub,itile)=ttarget_tmp(1)
+            
+         enddo
+         
+         call sumxpe2d_exact(ttarget_dd,imcub,jmcub,ntcub)
+         call sumxpe2d_exact(atarget_dd,imcub,jmcub,ntcub)
+         
+c     
+c     root proc section
+c     
+         
+         if (AM_I_ROOT()) then   
+            do k=1,ntcub
+               do j=1,jmcub
+                  do i=1,imcub
+                     ttarget(i,j,k) = real(ttarget_dd(i,j,k))
+                     atarget(i,j,k) = real(atarget_dd(i,j,k))
+                     if (atarget(i,j,k) .le. 1.e-10 ) then
+                        ttarget(i,j,k)=missing
+                     else
+                        ttarget(i,j,k) = ttarget(i,j,k)
+     &                       /atarget(i,j,k)
+                     endif
+                  enddo
+               enddo
+            enddo         
+         endif
+         
+      endif
+
+      end subroutine repr_regrid_wt
 c*
 
       

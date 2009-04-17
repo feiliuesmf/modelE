@@ -23,14 +23,14 @@
 
       missing=-1.e30
 
-      call parallel_regrid_wt(xO2A,oW,missing,oA,aAglob,aArea)   
+      call repr_regrid_wt(xO2A,oW,missing,oA,aAglob,aArea)   
       
 c      if (am_i_root()) then
-c         name="regridO2A_CS32"
+c         name="regridO2A_repr"
 c         write(*,*) name
 c         open(20, FILE=name,FORM='unformatted', STATUS='unknown')
 c         aAglob4=aAglob
-c         TITLE="OTOA CS32"
+c         TITLE="OTOA reproducible regridding"
 c         write(unit=20) TITLE, aAglob4
 c         close(20)
 c      endif
