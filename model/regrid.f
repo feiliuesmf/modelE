@@ -1342,7 +1342,7 @@ c*
       integer i, imt, jmt
       integer :: myPE, totPEs, stat(MPI_STATUS_SIZE), ierr
       integer :: start, end, len, MPI_SUMDD, itype
-      external add_DD
+      external add_DD 
       real*8, dimension(:), allocatable:: array, local_array
       complex*16 :: global_sum
 
