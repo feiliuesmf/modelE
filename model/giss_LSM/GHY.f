@@ -892,7 +892,7 @@ c     epvs = rho3*cna*(qvs-qs)
 
       epv1 = epv
 #ifdef GHY_FD_1_HACK
-      epv1 = epv/(fw+fd)
+      epv1 = epv*(1.d0-fw)/(fd + 1d-12)
 #endif
 
 #ifdef EVAP_VEG_GROUND
@@ -921,7 +921,7 @@ c     vegetated soil evaporation
 c     evapvd is dry evaporation (transpiration) from canopy
 c     evapvw is wet evaporation from canopy (from interception)
         evapvg = 0.d0 ! in case EVAP_VEG_GROUND not defined
-        evapvw = min( epv1, evap_max_wet(2) )
+        evapvw = min( epv, evap_max_wet(2) )
         evapvw = max( evapvw,-qm1dt )
         evapvd = min(epv1,evap_max_dry(2)) !evap_max_dry(2) depends on qs
         evapvd = max( evapvd, 0.d0 )
