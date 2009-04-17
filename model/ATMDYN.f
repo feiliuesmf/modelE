@@ -1142,13 +1142,19 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
       DO L=1,LS1-1
       DO J=J_0S,J_1S
       DO I=1,IM
-         Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
+#ifdef FILTER_TESTS
+c adjust pot. temp. to maintain unchanged absolute temp.
+         T(I,J,L)= T(I,J,L)*
+     &       ((POLD(I,J)*SIG(L)+PTOP)/(P(I,J)*SIG(L)+PTOP))**KAPA
+#else
          T(I,J,L)= T(I,J,L)*PRAT(I,J)
-        WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
         IF (PRAT(I,J).lt.1.) THEN
           TMOM(:,I,J,L)=TMOM(:,I,J,L)*PRAT(I,J)
         END IF
+#endif
+         Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
+        WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+        QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
       END DO
       END DO
       END DO
