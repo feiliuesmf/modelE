@@ -13,7 +13,7 @@
 !  P(8) = coccolithophores (mg chl m-3)
 !  P(9) = herbivores (mg chl m-3)
 !  P(10)= inert tracer modelled after nitrate
-!  P(11) = alkalinity (units????)
+!  P(11) = alkalinity (uM)
 !  Detrital components
 !  det(1) = N/C detritus (uM)
 !  det(2) = silica detritus (uM)

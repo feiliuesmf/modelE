@@ -614,7 +614,7 @@ C**** surface tracer concentration
       USE MODEL_COM, only : IVSPA=>IVSP, IVNPA=>IVNP
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
+#if defined (TRACERS_OceanBiology) && !defined (TRACERS_GASEXCH_ocean)
       USE OCN_TRACER_COM, only: ntm
 #else
       USE TRACER_COM, only: ntm

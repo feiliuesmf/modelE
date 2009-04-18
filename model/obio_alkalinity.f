@@ -44,9 +44,9 @@
 !compute sources/sinks of phosphate
 !J_PO4 units uM/hr
       do k=1,kmax
-      J_PO4(k) = 0.1 * P_tend(k,1)    !approximate by nitrate conc
+      J_PO4(k) = 0.1d0 * P_tend(k,1)    !approximate by nitrate conc
                                   !NO3/PO4 ratio from Conkright et al, 1994
-      term = -1.*npratio * J_PO4(k) 
+      term = -1.d0*npratio * J_PO4(k) 
       rhs(k,15,1) = term
       A_tend(k)= term
       enddo
@@ -73,7 +73,7 @@
       do nt=nchl1,nchl2
       do k=1,kmax
          if (p1d(kmax+1).gt.zc)     !total depth must be greater than 200m
-     .        pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.e-3)/bn(k)/cnratio   
+     .        pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.d-3)/bn(k)/cnratio   
               
               !negative values are not accepted
 !             if (pp.lt.0.) then
@@ -97,10 +97,10 @@
       enddo
 
 !compute downward flux of CaCO3
-      Fc = (1-sigma_Ca)* Jprod_sum
+      Fc = (1.d0-sigma_Ca)* Jprod_sum
       do k=1,kmax+1
-         if (p1d(k) .le. zc)  then
-           F_Ca(k) = rain_ratio*cpratio*Fc*exp((p1d(k)-zc)/d_Ca)
+         if (p1d(k) .gt. zc)  then
+           F_Ca(k) = rain_ratio*cpratio*Fc*exp(-1.d0*(p1d(k)-zc)/d_Ca)
          endif
       enddo
 
@@ -109,9 +109,9 @@
          if (p1d(k) .le. zc)  then
              J_Ca(k) = rain_ratio*cpratio*(1.-sigma_Ca)*Jprod
          else
-             J_Ca(k) = -1* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)
+             J_Ca(k) = -1.d0* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)
          endif
-       term = 2.* J_Ca(k) 
+       term = 2.d0* J_Ca(k) 
        rhs(k,15,4) = term
        A_tend(k) = A_tend(k) + term      !A_term = -rN:P JPO4 + 2* JCa
       enddo
@@ -124,12 +124,13 @@
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 
       if (vrbos) then
-      do k=1,kmax
+!     do k=1,kmax
+      k=1
       write(*,'(a,4i5,10e12.4)')'obio_alkalinity; ',
      .    nstep,i,j,k
      .   ,p1d(k),zc,J_PO4(k),pp,Jprod_sum,Fc
      .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k)
-      enddo
+!     enddo
       endif
 
       end subroutine obio_alkalinity

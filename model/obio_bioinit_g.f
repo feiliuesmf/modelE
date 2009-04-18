@@ -219,6 +219,7 @@ c  Create arrays
           !read earlier from file
 
           !Iron
+          !initialize iron distribution in the ocean
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
 c          if (ir(nw) .eq. 3)then
 c           P(i,j,k,4) = 0.04*float(k-1) + 0.2
@@ -233,8 +234,8 @@ c          endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
           if (ZOE(k) .gt. 4000.d0) tracer(i,j,k,4) = Pdeep(4)
 
-          write(*,'(a,3i5,e12.4,i5,e12.4)')'obio_bioinit, iron:',
-     .       i,j,k,Fer(i,j,k),ir(i,j),tracer(i,j,k,4)
+cdiag     write(*,'(a,3i5,e12.4,i5,2e12.4)')'obio_bioinit, iron:',
+cdiag.       i,j,k,Fer(i,j,k),ir(i,j),tracer(i,j,k,4),tracer(i,j,k,1)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo
@@ -245,7 +246,7 @@ c          endif
 c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           enddo
 
-          !intert tracer
+          !inert tracer
           do nt = ntyp+1,ntyp+n_inert
            tracer(i,j,k,nt) = tracer(i,j,k,1)
           enddo
@@ -765,9 +766,10 @@ cdiag enddo
       do i=1,imo
 
       !replace missing values over ocean
+      count_min=-9999.d0
       if (lmom(i,j).gt.0.and.fldo(i,j,1).eq.-9999.d0)then
-         do jj=1,10
-         do ii=1,10
+         do jj=1,20
+         do ii=1,20
          if (i+ii.le.imo.and.j+jj.le.jmo) then
          if (lmom(i+ii,j+jj).gt.0.and.
      .       fldo(i+ii,j+jj,1).ne.-9999.d0)then

@@ -23,6 +23,9 @@ c  et al., 1996 (JGR)
       USE CONSTANT, only : radian
       USE FILEMANAGER
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+#ifdef OBIO_ON_GARYocean
+      USE OCEAN, only: focean
+#endif
 #if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
 !wfac does not depend on (i,j) thus indept of grid choice
       USE RAD_COM, only : wfac  
@@ -152,13 +155,15 @@ c  Reflectance totals
       enddo
       endif
 
-c      if (hycgr) return  !we do not compute albedo coefs
-c                         !from within ocean, but from atmos
+      if (hycgr) return  !we do not compute albedo coefs
+                         !from within ocean, but from atmos
       
 !!!!!!!!!! Boris' part !!!!!!!!!!!!!!!!!
 C**** get chlorophyll term
       ! function obio_reflectance calculates reflectance 
       ! as a function of chl and wavelength (lam)
+
+      IF (FOCEAN(I,J).gt.0) THEN
 
       res = obio_reflectance(refl,chl,lam,nlt,i,j)
  
@@ -192,6 +197,8 @@ C**** get chlorophyll term
          stop
       endif
       enddo
+    
+      ENDIF   ! focean>0
 
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       return

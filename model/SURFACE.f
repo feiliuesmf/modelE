@@ -119,7 +119,7 @@ C****
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
-     *      tij_surfbv, tij_gasx, tij_kw, tij_alpha, tij_evap,
+     *      tij_surfbv, tij_kw, tij_alpha, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd,itcon_surf
@@ -1228,8 +1228,6 @@ C**** Save surface tracer concentration whether calculated or not
      *                          + pbl_args%Kw_gas*ptype
             taijn(i,j,tij_alpha,n) = taijn(i,j,tij_alpha,n)
      *                             + pbl_args%alpha_gas*ptype
-            taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
-     *                            + trgrnd(nx)*ptype
           endif
 #endif
 #ifdef TRACERS_WATER

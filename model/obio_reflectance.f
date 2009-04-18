@@ -88,9 +88,13 @@ c: r2<0 are missing values
         !Morel and Maritorena (2001)
 !       bbt(j) = 0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in))*(lam(j)/
 !    .                        550.0)**var_exp
-! correction related to the Huot et al2008 paper
-        bbt(j) = (0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in)))*(lam(j)/
-     .                        550.0)**var_exp
+! correction related to the Huot et al2008 paper (eqn 5)
+        if (chl_in.gt.0.d0) then
+             bbt(j) = (0.002 + 0.01 * (0.5 - 0.25 * dlog10(chl_in)))
+     .              * (lam(j)/550.0d0)**var_exp
+        else
+             bbt(j) = 0.d0
+        endif
         if (bbw_out(j) > 0.) then
            bb(j) = bbw_out(j) + bbt(j) * bp550
         else
@@ -464,7 +468,7 @@ c: r2<0 are missing values
        do k = 1, size_arr
 
 	 if (data_arr(k) < min_wl) then
-	   vil = 1 
+	   vil = 1.d0 
 	 else if (data_arr(k) >= max_wl) then
 	   vil = wl_size 
          else
@@ -472,7 +476,8 @@ c: r2<0 are missing values
 	    do while (wl(il) <= data_arr(k)) 
 	      il = il + 1
 	    enddo 
-	   vil =  (il - 1) + (data_arr(k) - wl(il - 1))/(wl(il) - wl(il - 1))
+	   vil =  float(il - 1) + (data_arr(k) - wl(il - 1))
+     .         /  (wl(il) - wl(il - 1))
 	endif
 	
 	all_vil(k) = vil
@@ -499,7 +504,7 @@ c: r2<0 are missing values
 
       integer, intent(in) :: x_size, y_size
       real*8, dimension(y_size,x_size), intent(in) :: data_arr
-      real*8,  intent(in) :: ind_x,ind_y
+      integer,  intent(in) :: ind_x,ind_y
       integer :: low, high
       integer :: low_i, high_i, low_j, high_j
       real*8 :: R1, R2, f

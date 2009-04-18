@@ -454,7 +454,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
 
        !atmospheric deposition iron * solubility
-       atmFe_ij=atmFe_all(i,j,JMON)*0.02
+       atmFe_ij=atmFe_all(i,j,JMON)*solFe
 
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
@@ -888,6 +888,7 @@ c$OMP END PARALLEL DO
 !        call closeunit(iu_tend)
 !      endif     ! diagno_bio
 
+      call obio_trint
 
       return
 

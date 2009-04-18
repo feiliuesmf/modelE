@@ -300,10 +300,10 @@ cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
 cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 cdiag   endif
 cdiag   if (vrbos)
-          write(*,'(a,4i5,9e12.4)')'ptend7 :', 
-     .              nstep,i,j,k,dp1d(k),tirrq(k),
-     .                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
-     .                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
+cdiag     write(*,'(a,4i5,9e12.4)')'ptend7 :', 
+cdiag.              nstep,i,j,k,dp1d(k),tirrq(k),
+cdiag.                       obio_P(k,1),obio_P(k,2),obio_P(k,3),
+cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
 
         ! Nutrient-regulated growth; Michaelis-Menton uptake kinetics
         rnut2 = obio_P(k,2)/(rkn(nt)+obio_P(k,2))     !ammonium
@@ -346,8 +346,8 @@ cdiag   if (vrbos)
         pp2_1d(k,nt) = gro(k,nt) / phygross 
      .               * p1d(k+1) * cchlratio
 
-        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
-     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
+cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 
 !!#endif
@@ -410,8 +410,8 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         pp2_1d(k,nt) = gro(k,nt) / phygross 
      .               * p1d(k+1) * cchlratio
 
-        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
-     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
+cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
@@ -478,8 +478,8 @@ cdiag.   obio_P(k,2)
         pp2_1d(k,nt) = gro(k,nt) / phygross 
      .               * p1d(k+1) * cchlratio * pnoice
 
-        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
-     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
+cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
@@ -523,8 +523,8 @@ cdiag.   obio_P(k,2)
         pp2_1d(k,nt) = gro(k,nt) / phygross 
      .               * p1d(k+1) * cchlratio * pnoice
 
-        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
-     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
+cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
@@ -567,8 +567,8 @@ cdiag.   obio_P(k,2)
         pp2_1d(k,nt) = gro(k,nt) / phygross 
      .               * p1d(k+1) * cchlratio * pnoice
 
-        write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
-     .  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
+cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
+cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
       endif
 !!#endif
 
