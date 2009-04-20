@@ -2885,7 +2885,7 @@ C**** DETERMINE THE POSSIBILITY OF B-F PROCESS
         IF(RANDNO.LT.FUNI) LHX=LHS
 
         IF (OLDLHX.EQ.LHS.AND.TL(L).LT.TF) LHX=LHS   ! keep old phase
-        IF (OLDLHX.EQ.LHE) LHX=LHE                   ! keep old phase
+        IF (OLDLHX.EQ.LHE.AND.TL(L).GT.269.16d0) LHX=LHE ! keep old phase
 C**** special case 1) if ice previously then stay as ice (if T<Tf)
 C       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
         IF(OLDLAT.EQ.LHS.AND.TL(L).LT.TF.and.SVLAT1(L).gt.0.) THEN
