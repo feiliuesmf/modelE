@@ -73,11 +73,11 @@ TOP_INDEX=top_index_72x46.ij.ext  ! only used if #define do_topmodel_runoff
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! other available H2O continuum tables:
-!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Ma_2000
 !    RADN5=H2Ocont_Roberts
-!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
+!    RADN5=H2Ocont_Ma_2008
 RADN3=miescatpar.abcdv2
 ! updated aerosols need MADAER=3
 TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000

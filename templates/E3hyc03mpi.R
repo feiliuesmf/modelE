@@ -42,7 +42,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 SNOW_DRV SNOW                       ! snow model
-RAD_COM RAD_DRV RADIATION           ! radiation modules
+RAD_COM RAD_DRV_E1 RADIATION_E1     ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags

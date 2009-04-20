@@ -57,13 +57,13 @@ RVR=RD8X10.RVR.bin       ! river direction file
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_Ma_2000             ! H2O continuum table
+RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! other available H2O continuum tables:
-!    RADN5=H2Ocont_Ma_2004
+!    RADN5=H2Ocont_Ma_2000
 !    RADN5=H2Ocont_Roberts
-!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
+!    RADN5=H2Ocont_Ma_2008
 RADN3=miescatpar.abcdv2
-! RADN4,RADN5,RADNA,RADNB are no longer used
+! RADNA,RADNB are no longer used
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
 TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
