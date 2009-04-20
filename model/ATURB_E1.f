@@ -364,7 +364,7 @@ C**** fix first layer for rare tracer problems
 cc          call diff_mom(trmomij)
           end do
 #endif
-          call find_pbl_top(e,ze,dbl,ldbl,lm)
+c         call find_pbl_top(e,ze,dbl,ldbl,lm)
           dclev(i,j)=real(ldbl)
 
 C**** calculate possible energy loss
