@@ -563,12 +563,20 @@
       density = 0.d0
       cop => pp%tallest
       do while( associated(cop) )
-        vdata( cop%pft ) = vdata( cop%pft ) + cop%n
+        vdata( cop%pft + 1 ) = vdata( cop%pft + 1 ) + cop%n
         density = density + cop%n
         cop => cop%shorter
       enddo
 
-      if ( density>0.d0 ) vdata(:) = vdata(:)/density
+      if ( density>0.d0 ) then
+        vdata(:) = vdata(:)/density
+      else
+        if ( pp%soil_type == 1 ) then
+          vdata(1) = 1.d0
+        else
+          vdata(N_PFT+2) = 1.d0
+        endif
+      endif
 
       end subroutine patch_extract_pfts
      
