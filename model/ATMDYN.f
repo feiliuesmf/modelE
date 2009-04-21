@@ -46,12 +46,12 @@ C**** Variables used in DIAG5 calculations
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     PA, PB, PC, FPEU, FPEV
+     &     PA, PB, PC, FPEU, FPEV, AM1, AM2
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     UT,VT,TT,TZ,TZT,MA,
      &     UX,VX,PIJL
 
-      REAL*8 DTFS,DTLF
+      REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
       INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
@@ -222,6 +222,16 @@ C**** Restart after 8 steps due to divergence of solutions
       PUA = PUA * DTLF
       PVA = PVA * DTLF
       SDA(:,:,1:LM-1) = SDA(:,:,1:LM-1) * DTLF
+
+c apply north-south filter to U and V
+c      call conserv_amb_ext(u,am1) ! calculate ang. mom. before filter
+c      call fltry2(u,1d0) ! 2nd arg could be set using DT_YUfilter
+c      call fltry2(v,1d0) ! 2nd arg could be set using DT_YVfilter
+c      call conserv_amb_ext(u,am2) ! calculate ang. mom. after filter
+c      am2(:,j_0stg:j_1stg) = am1(:,j_0stg:j_1stg)-am2(:,j_0stg:j_1stg)
+c      if(have_south_pole) am2(:,1) = 0.
+c      call globalsum(grid,am2,damsum,all=.true.)
+c      call add_am_as_solidbody_rotation(u,damsum) ! maintain global ang. mom.
 
       RETURN
       END SUBROUTINE DYNAM
@@ -1216,6 +1226,81 @@ C
       RETURN
       END SUBROUTINE FILTER
 
+      subroutine fltry2(q3d,strength)
+!@sum  fltry2 noise reduction filter for a velocity-type field
+!@sum  at secondary latitudes
+!@ver  1.0
+      use resolution, only : im,jm,lm
+      use domain_decomp_1d, only : get,grid,halo_update,north,south
+      implicit none
+      integer, parameter :: nshap=8
+      real*8, parameter :: by4ton=1./(4.**nshap)
+      real*8 :: dt
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: q3d
+      real*8 :: strength
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: yn
+      real*8 yvby4ton
+      integer i,j,l,jj,n,j_0stg,j_1stg,j_1f
+      real*8, dimension(im) :: yjm1,yj
+      logical :: have_south_pole,have_north_pole
+c      real*8 :: by4ton
+c      by4ton=1./(4.**nshap)
+
+      call get(grid, j_strt_stgr = j_0stg, j_stop_stgr = j_1stg,
+     &         have_south_pole = have_south_pole,
+     &         have_north_pole = have_north_pole)
+
+
+      yvby4ton = min(strength,1d0)*by4ton*((-1)**(nshap))
+
+      if(have_north_pole) then
+        j_1f=jm-1
+      else
+        j_1f=j_1stg
+      endif
+
+      do l=1,lm
+        do j=j_0stg,j_1stg
+          yn(:,j,l)=q3d(:,j,l)
+        enddo
+      enddo
+      do n=1,nshap
+        call halo_update(grid, yn, from=north+south)
+        do l=1,lm
+          if(have_south_pole) then ! pole-crossing conditions
+            yjm1(1:im/2)    = -yn(im/2+1:im,2,l)
+            yjm1(im/2+1:im) = -yn(1:im/2,2,l)
+          else
+            yjm1(:)   = yn(:,j_0stg-1,l)
+          endif
+          do j=j_0stg,j_1f
+            do i=1,im
+              yj(i)   = yn(i,j,l)
+              yn(i,j,l) = yjm1(i)-yj(i)-yj(i)+yn(i,j+1,l)
+              yjm1(i) = yj(i)
+            enddo
+          enddo
+          if(have_north_pole) then ! pole-crossing conditions
+            j=jm
+            do i=1,im/2
+              yj(i)   = yn(i,j,l)
+              yn(i,j,l) = yjm1(i)-yj(i)-yj(i)-yn(i+im/2,j,l)
+            enddo
+            do i=im/2+1,im
+              yj(i)   = yn(i,j,l)
+              yn(i,j,l) = yjm1(i)-yj(i)-yj(i)-yj(i-im/2)
+            enddo
+          endif
+        enddo                 ! l
+      enddo                   ! nshap
+      do l=1,lm
+        do j=j_0stg,j_1stg
+          q3d(:,j,l) = q3d(:,j,l) -yn(:,j,l)*yvby4ton
+        enddo
+      enddo
+      return
+      end subroutine fltry2
+
       SUBROUTINE FLTRUV(U,V,UT,VT)
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
@@ -1224,7 +1309,7 @@ C
       USE MODEL_COM, only : im,jm,lm,byim,mrch,dt,t,ang_uv
      *  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
      &  ,do_polefix
-      USE GEOM, only : dxyn,dxys,idij,idjj,rapj,imaxj,kmaxj
+      USE GEOM, only : dxyn,dxys
       USE DYNAMICS, only : pdsig,pk, COS_LIMIT
 c      USE DIAG, only : diagcd
 C**********************************************************************
@@ -1235,7 +1320,6 @@ C**********************************************************************
       USE DOMAIN_DECOMP_1D, only : grid, GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(INOUT) :: U,V
@@ -1307,150 +1391,6 @@ C**** Filter V component of velocity
   340 V(I,J,L) = V(I,J,L) - X(I)*XVby4toN
   350 CONTINUE
 !$OMP  END PARALLEL DO
-C****
-C**** Filtering in north-south direction
-C****
-
-      IF (DT_YVfilter.gt.0.) THEN
-      YVby4toN = (DT/DT_YVfilter)*by4toN
-C**** Filter V component of velocity
-      call halo_update(grid, V, from=NORTH)
-      IF (haveLatitude(grid,J=2)) THEN
-        J = 2
-        DO L = 1, LM
-          DO I = 1, IM/2
-            II = I + IM/2
-            D2V = V(I,J+1,L) - V(I,J,L) - V(I,J,L) - V(II,J,L)
-            V(I, J,L) = V(I, J,L) - YVby4toN * D2V
-            V(II,J,L) = V(II,J,L) - YVby4toN * D2V
-          END DO
-        END DO
-      END IF
-      IF (haveLatitude(grid,J=JM)) THEN
-        J = JM
-        DO L = 1, LM
-          DO I = 1, IM/2
-            II = I + IM/2
-            D2V = -V(II,J-1,L) - V(I,J,L) - V(I,J,L) + V(I,J,L)
-            V(I, J,L) = V(I, J,L) - YVby4toN * D2V
-            V(II,J,L) = V(II,J,L) - YVby4toN * D2V
-          END DO
-        END DO
-      END IF
-
-      CALL HALO_UPDATE(grid, V, FROM=SOUTH+NORTH)
-!$OMP  PARALLEL DO PRIVATE (I,J,L,D2V)
-      DO L=1,LM
-        DO J=MAX(3,J_0S),J_1S
-          DO I=1,IM
-            D2V= V(I,J-1,L)-V(I,J,L)-V(I,J,L)+V(I,J+1,L)
-            V(I,J,L)=V(I,J,L) - YVby4toN * D2V
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
-
-C**** Filtering longitudes on opposite sides of the globe simultaneously
-C**** This is designed for resolutions with 1/2 boxes at poles and must
-C****   be re-thought for others.
-!$OMP  PARALLEL DO PRIVATE (I,J,L,N,YV,YV2,YVJ,YVJm1)
-      DO 650 L=1,LM
-      DO 650 I=1,IM/2
-      DO 610 J=J_0STG,J_1STG
-      YV(J) = V(I,J,L)
-      YV(2*JM+1-J) = -V(I+IM/2,J,L)
-  610 CONTINUE
-
-      DO 630 N=1,NSHAP
-      YV2   = YV(2)
-      YVJm1 = YV(2*JM-1)
-      DO 620 J=2,2*JM-2
-      YVJ   = YV(J)
-      YV(J) = YVJm1-YVJ-YVJ+YV(J+1)
-      YVJm1 = YVJ
-  620 CONTINUE
-      J=2*JM-1
-      YV(J)= YVJm1-YV(J)-YV(J)+YV2
-  630 CONTINUE
-
-      DO 640 J=J_0STG,J_1STG
-      V(I,J,L) = V(I,J,L) - YV(J)*YVby4toN
-      V(I+IM/2,J,L) = V(I+IM/2,J,L) + YV(2*JM+1-J)*YVby4toN
-  640 CONTINUE
-  650 CONTINUE
-!$OMP  END PARALLEL DO
-      END IF
-
-      IF (DT_YUfilter.gt.0.) THEN
-      YUby4toN = (DT/DT_YUfilter)*by4toN
-C**** Filter U component of velocity
-
-      CALL HALO_UPDATE(grid, U, FROM=SOUTH+NORTH)
-      IF (haveLatitude(grid, J=2)) THEN
-        J = 2
-        DO L = 1, LM
-          DO I = 1, IM/2
-            II = I + IM/2
-            D2U = U(I,J+1,L) - U(I,J,L) - U(I,J,L) - U(II,J,L)
-            U(I, J,L) = U(I, J,L) - YUby4toN * D2U
-            U(II,J,L) = U(II,J,L) - YUby4toN * D2U
-          END DO
-        END DO
-      END IF
-      IF (haveLatitude(grid,J=JM)) THEN
-        J = JM
-        DO L = 1, LM
-          DO I = 1, IM/2
-            II = I + IM/2
-            D2U = -U(II,J-1,L) - U(I,J,L) - U(I,J,L) + U(I,J,L)
-            U(I, J,L) = U(I, J,L) - YUby4toN * D2U
-            U(II,J,L) = U(II,J,L) - YUby4toN * D2U
-          END DO
-        END DO
-      END IF
-
-      CALL HALO_UPDATE(grid, U, FROM=SOUTH+NORTH)
-!$OMP  PARALLEL DO PRIVATE (I,J,L,D2U)
-      DO L=1,LM
-        DO J=MAX(3,J_0S),J_1S
-          DO I=1,IM
-            D2U= U(I,J-1,L)-U(I,J,L)-U(I,J,L)+U(I,J+1,L)
-            U(I,J,L)=U(I,J,L) - YUby4toN * D2U
-          END DO
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
-
-C**** Filtering longitudes on opposite sides of the globe simultaneously
-C**** This is designed for resolutions with 1/2 boxes at poles and must
-C****   be re-thought for others.
-!$OMP  PARALLEL DO PRIVATE (I,J,L,N,YV,YV2,YVJ,YVJm1)
-      DO 750 L=1,LM
-      DO 750 I=1,IM/2
-      DO 710 J=J_0STG,J_1STG
-      YV(J) = U(I,J,L)
-      YV(2*JM+1-J) = -U(I+IM/2,J,L)
-  710 CONTINUE
-
-      DO 730 N=1,NSHAP
-      YV2   = YV(2)
-      YVJm1 = YV(2*JM-1)
-      DO 720 J=2,2*JM-2
-      YVJ   = YV(J)
-      YV(J) = YVJm1-YVJ-YVJ+YV(J+1)
-      YVJm1 = YVJ
-  720 CONTINUE
-      J=2*JM-1
-      YV(J)= YVJm1-YV(J)-YV(J)+YV2
-  730 CONTINUE
-
-      DO 740 J=J_0STG,J_1STG
-      U(I,J,L) = U(I,J,L) - YV(J)*YUby4toN
-      U(I+IM/2,J,L) = U(I+IM/2,J,L) + YV(2*JM+1-J)*YUby4toN
-  740 CONTINUE
-  750 CONTINUE
-!$OMP  END PARALLEL DO
-      END IF
 
       if(do_polefix.eq.1) then
          call isotropuv(u,v,COS_LIMIT)
@@ -1804,17 +1744,54 @@ C**** (technically we should use U,V from before but this is ok)
 
       end module ATMDYN
 
-      SUBROUTINE conserv_AM(AM)
-!@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
-!@sum  per unit area
-!@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+      subroutine add_am_as_solidbody_rotation(u,dam)
+      use constant, only : radius,mb2kg
+      use model_com, only : im,jm,lm,fim,p,pstrat
+      use geom, only : cosv,dxyn,dxys
+      use domain_decomp_1d, only : get, south, halo_update, grid
+      use domain_decomp_1d, only : globalsum
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: u
+      real*8 :: dam
+      integer :: j,l
+      real*8 :: u0,xintsum
+      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) ::
+     &     psumj,xintj
+      integer :: j_0stg, j_1stg, j_0, j_1
+      logical :: have_south_pole, have_north_pole
+
+      call get(grid, j_strt=j_0, j_stop=j_1,
+     &               j_strt_stgr=j_0stg, j_stop_stgr=j_1stg,
+     &               have_south_pole=have_south_pole,
+     &               have_north_pole=have_north_pole)
+
+c      call halo_update(grid, p, from=south) ! already done
+      do j=j_0stg-1,j_1
+        psumj(j) = sum(p(:,j))+fim*pstrat
+      enddo
+      do j=j_0stg,j_1stg
+        xintj(j) = cosv(j)*cosv(j)*
+     &       (psumj(j-1)*dxyn(j-1)+psumj(j)*dxys(j))
+      enddo
+      if(have_south_pole) xintj(1)=0.
+      call globalsum(grid,xintj,xintsum,all=.true.)
+      u0 = dam/(radius*mb2kg*xintsum)
+      do l=1,lm
+      do j=j_0stg,j_1stg
+        u(:,j,l) = u(:,j,l) + u0*cosv(j)
+      enddo
+      enddo
+      return
+      end subroutine add_am_as_solidbody_rotation
+
+      SUBROUTINE conserv_AMB_ext(U,AM)
       USE CONSTANT, only : omega,radius,mb2kg
-      USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,u,psfmpt,pstrat
+      USE MODEL_COM, only : im,jm,lm,fim,ls1,dsig,p,psfmpt,pstrat
       USE GEOM, only : cosv,dxyn,dxys,dxyv,byaxyp
       USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP_1D, only : CHECKSUM
       IMPLICIT NONE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
       INTEGER :: I,IP1,J,L
       REAL*8 :: PSJ,PSIJ,UE,UEDMS,FACJ
@@ -1828,6 +1805,7 @@ C**** (technically we should use U,V from before but this is ok)
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
 
 C****
 C**** ANGULAR MOMENTUM ON B GRID
@@ -1854,6 +1832,31 @@ C****
         I=IP1
       END DO
       END DO
+
+      RETURN
+C****
+      END SUBROUTINE conserv_AMB_ext
+
+      SUBROUTINE conserv_AM(AM)
+!@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
+!@sum  per unit area
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE MODEL_COM, only : im,u
+      USE GEOM, only : byaxyp
+      USE DOMAIN_DECOMP_1D, only : GET, GRID
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
+      INTEGER :: I,J
+      INTEGER :: J_0, J_1, I_0, I_1
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *               I_STRT=I_0, I_STOP=I_1)
+
+C****
+C**** ANGULAR MOMENTUM ON B GRID
+C****
+      call conserv_AMB_ext(U,AM)
 
 c move to A grid
       call regrid_btoa_ext(am)
