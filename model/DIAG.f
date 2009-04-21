@@ -1305,6 +1305,7 @@ C****
 !@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
 !@+                    DUEMIS2
 !@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
+!@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
 !@auth Gavin Schmidt/Reto Ruedy
@@ -1419,11 +1420,21 @@ C**** simple diags (one record per file)
               end if
             end do
           end do
-        case ("SIT")            ! surface ice temp (C)
+        case ("SIT")       ! surface sea/lake ice temp (C)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
                 data(i,j)=GTEMP(1,2,i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+        case ("LIT")       ! surface land ice temp (C)
+          do j=J_0,J_1
+            do i=I_0,imaxj(j)
+              if (FLICE(I,J).gt.0) then
+                data(i,j)=GTEMP(1,3,i,j)
               else
                 data(i,j)=undef
               end if
@@ -2011,6 +2022,25 @@ C**** for AOD multiple tracers are written to one file
             enddo
             cycle
 #endif
+C**** Write land,lake,ocean,and ice fractions to one file
+C**** Possbily will remove at some point, since kinda
+C**** overkill, but useful now for EPA down-scaling:
+          case ('FRAC') ! land, ocean, lake fractions incl ice+ice-free
+            kunit=kunit+1
+            polefix=.true.
+            data=RSI(:,:)*FOCEAN(:,:)         ! ocean ice
+            call write_data(data,kunit,polefix)
+            data=RSI(:,:)*FLAKE(:,:)          ! lake ice
+            call write_data(data,kunit,polefix)
+            data=(1.-RSI(:,:))*FOCEAN(:,:)    ! ice-free ocean
+            call write_data(data,kunit,polefix)
+            data=(1.-RSI(:,:))*FLAKE(:,:)     ! ice-free lake
+            call write_data(data,kunit,polefix)
+            data=FLICE(:,:)                   ! land ice
+            call write_data(data,kunit,polefix)
+            data=FEARTH(:,:)                  ! ice-free land
+            call write_data(data,kunit,polefix)
+            cycle
 
 C**** cases where multiple records go to one file for dust
 
