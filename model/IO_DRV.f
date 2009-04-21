@@ -138,7 +138,7 @@ c acc arrays
 c
       if(do_io_acc) then
         if(iaction.eq.iowrite_single) call write_acc_meta(fid)
-        call new_io_acc(fid,iorw)
+        call new_io_acc(fid,iaction)
         call new_io_ocdiag(fid,iorw)
         call new_io_icdiag(fid,iorw)
 #ifdef TRACERS_ON

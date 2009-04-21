@@ -9,17 +9,18 @@
 !@+   JL/JK refer to model versus constant-pressure levels
       INTEGER ::
      &     JK_dpa ,JK_dpb ,JK_temp, JK_theta ,JK_u
-     &    ,JK_v ,JK_zmfke ,JK_totke ,JK_zmfntsh
-     &    ,JK_totntsh ,JK_zmfntgeo ,JK_totntgeo ,JK_zmfntlh
-     &    ,JK_totntlh ,JK_zmfntke ,JK_totntke ,JK_zmfntmom
+     &    ,JK_v ,JK_eddke ,JK_totke ,JK_eddntsh
+     &    ,JK_totntdse ,JK_eddntgeo ,JK_eddntlh
+     &    ,JK_totntlh ,JK_totntke ,JK_eddntmom
      &    ,JK_totntmom ,JK_p2kedpgf ,JK_dpsqr ,JK_nptsavg
-     &    ,JK_vvel ,JK_zmfvtdse ,JK_totvtdse ,JK_zmfvtlh
+     &    ,JK_vvel ,JK_eddvtdse ,JK_totvtdse ,JK_eddvtlh
      &    ,JK_totvtlh ,JK_vtgeoeddy ,JK_barekegen ,JK_potvort
      &    ,JK_vtpv ,JK_vtpveddy ,JK_nptsavg1 ,JK_totvtke
      &    ,JK_vtameddy ,JK_totvtam ,JK_sheth ,JK_dudtmadv
      &    ,JK_dtdtmadv ,JK_dudttem ,JK_dtdttem ,JK_epflxncp
      &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
      &    ,JK_totdtdt ,JK_eddvtpt
+     &    ,JK_psi
       INTEGER ::
      &     jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
@@ -32,20 +33,26 @@
       end module gcdiag
 
       subroutine gc_defs
-      use CONSTANT, only : sday,twopi,rgas,lhe,bygrav
+      use CONSTANT, only : sday,twopi,rgas,lhe,bygrav,sha
       use MODEL_COM, only : fim,byim,dt,qcheck,dtsrc,do_gwdrag
       use GCDIAG
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use GEOM, only : lat_dg
       implicit none
       integer :: k,kk
+      character(len=10) :: ystr,zstr
 c
       do k=1,kagcx
          write(sname_gc(k),'(a3,i3.3)') 'AGC',k
          lname_gc(k) = 'unused'
          units_gc(k) = 'unused'
          pow_gc(k) = 0
+         scale_gc(k) = 1.
+         ia_gc(k) = ia_dga
+         denom_gc(k) = 0
          jgrid_gc(k) = 1
+         lgrid_gc(k) = ctr_cp
       enddo
 c
       k=0
@@ -56,7 +63,6 @@ c
       lname_gc(k) =  'PRESSURE DIFFERENCES (CP,PT)' ! DP (PT GRID)
       units_gc(k) = 'mb'
       scale_gc(k) = byim
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -65,140 +71,22 @@ c
       lname_gc(k) = 'PRESSURE DIFFERENCES (CP,UV)' ! DP (UV GRID)
       units_gc(k) = 'mb'
       scale_gc(k) = byim
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 2
 c
       k=k+1
-      jk_temp = k
-      sname_gc(k) = 'temp' !'AJK03'
-      lname_gc(k) = 'TEMPERATURE' !'(TX-273.16)*DP'
-      units_gc(k) = 'C'
-      scale_gc(k) = 1.
+      jk_nptsavg1 = k
+      sname_gc(k) = 'npts_avg1' !'AJK35'
+      lname_gc(k) = 'NUMBER OF GRIDPOINTS IN AVERAGE (PT GRID)'
+      units_gc(k) = '1'
       jgrid_gc(k) = 1
 c
       k=k+1
-      jk_theta = k
-      sname_gc(k) = 'pot_temp' !'AJK06'
-      lname_gc(k) = 'POTENTIAL TEMPERATURE' !'TH*DP'
-      units_gc(k) = 'K'
-      scale_gc(k) = p1000k
-      jgrid_gc(k) = 1
-c
-      k=k+1
-      jk_u = k
-      sname_gc(k) = 'u' !'AJK08'
-      lname_gc(k) = 'ZONAL WIND (U COMPONENT)' !'U*DP4  (UV GRID)'
-      units_gc(k) = 'm/s' !'100 PA*m/s'
-      pow_gc(k) = -1
-      scale_gc(k) = 1.
-      jgrid_gc(k) = jgrid_u
-c
-      k=k+1
-      jk_v = k
-      sname_gc(k) = 'v' !'AJK09'
-      lname_gc(k) = 'MERIDIONAL WIND (V COMPONENT)' !'V*DP4  (UV GRID)'
-      units_gc(k) = 'm/s' !'100 PA*m/s'
-      pow_gc(k) = -2
-      scale_gc(k) = 1.
+      jk_nptsavg = k
+      sname_gc(k) = 'npts_avg' !'AJK24'
+      lname_gc(k) = 'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE (CP)'
+      units_gc(k) = '1'
+      scale_gc(k) = XWON !TWOPI/(DLON*FIM)
       jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_zmfke = k
-      sname_gc(k) = 'zmf_ke' !'AJK10'
-      lname_gc(k) = 'KINETIC ENERGY OF ZONAL MEAN FLOW'
-      units_gc(k) = 'm^2/s^2'
-      jgrid_gc(k) = jgrid_ke
-c
-      k=k+1
-      jk_totke = k
-      sname_gc(k) = 'tot_ke' !'AJK11'
-      lname_gc(k) = 'TOTAL KINETIC ENERGY'
-      units_gc(k) = 'm^2/s^2'
-      scale_gc(k) = .5
-      jgrid_gc(k) = jgrid_ke
-c
-      k=k+1
-      jk_zmfntsh = k
-      sname_gc(k) = 'zmf_nt_sh' !'AJK12'
-      lname_gc(k) = 'NORTH. TRANS. SENS. HT. BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_totntsh = k
-      sname_gc(k) = 'tot_nt_sh' !'AJK13'
-      lname_gc(k) = 'TOT NORTH. TRANS. SENS. HT'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_zmfntgeo = k
-      sname_gc(k) = 'zmf_nt_geo' !'AJK14'
-      lname_gc(k) = 'NORTH. TRANS. GEOPOT. BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_totntgeo = k
-      sname_gc(k) = 'tot_nt_geo' !'AJK15'
-      lname_gc(k) = 'TOT NORTH. TRANS. GEOPOT.'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_zmfntlh = k
-      sname_gc(k) = 'zmf_nt_lh' !'AJK16'
-      lname_gc(k) = 'NORTH TRANS LAT HT BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_totntlh = k
-      sname_gc(k) = 'tot_nt_lh' !'AJK17'
-      lname_gc(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
-      units_gc(k) = 'W/mb'
-      pow_gc(k) = 10
-      scale_gc(k) = LHE*XWON*FIM*100.*BYGRAV
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_zmfntke = k
-      sname_gc(k) = 'zmf_nt_ke' !'AJK18'
-      lname_gc(k) = 'NORTH TRANS KE BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_totntke = k
-      sname_gc(k) = 'tot_nt_ke' !'AJK19'
-      lname_gc(k) = 'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
-      units_gc(k) = 'W/mb'
-      pow_gc(k) = 9
-      scale_gc(k) = .5*XWON*FIM*1d2*BYGRAV
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_zmfntmom = k
-      sname_gc(k) = 'zmf_nt_mom' !'AJK20'
-      lname_gc(k) = 'NORTH TRANS ZON. MOM. BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_totntmom = k
-      sname_gc(k) = 'tot_nt_mom' !'AJK21'
-      lname_gc(k) = 'TOT NORTH. TRANS. ZON. MOM.'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jk_p2kedpgf = k
-      sname_gc(k) = 'p2k_eddy_pgf' !'AJK22'
-      lname_gc(k) = 'P-K BY EDDY PRESSURE GRADIENT FORCE'
-      units_gc(k) = 'W/(m^2*mb)'
-      scale_gc(k) = .5*1d2*BYGRAV/DT
-      jgrid_gc(k) = jgrid_ke
-      pow_gc(k) = -4
 c
       k=k+1
       jk_dpsqr = k
@@ -208,13 +96,157 @@ c
       jgrid_gc(k) = 2
 c
       k=k+1
-      jk_nptsavg = k
-      sname_gc(k) = 'npts_avg' !'AJK24'
-      lname_gc(k) = 'NUMBER OF GRIDPOINTS INCLUDED IN AVERAGE (CP)'
-      units_gc(k) = '1'
-      scale_gc(k) = XWON !TWOPI/(DLON*FIM)
-      ia_gc(k) = ia_dga
+      jk_temp = k
+      sname_gc(k) = 'temp' !'AJK03'
+      lname_gc(k) = 'TEMPERATURE' !'(TX-273.16)*DP'
+      units_gc(k) = 'C'
+      scale_gc(k) = 1.
+      jgrid_gc(k) = 1
+      denom_gc(k) = jk_dpa
+c
+      k=k+1
+      jk_theta = k
+      sname_gc(k) = 'pot_temp' !'AJK06'
+      lname_gc(k) = 'POTENTIAL TEMPERATURE' !'TH*DP'
+      units_gc(k) = 'K'
+      scale_gc(k) = p1000k
+      jgrid_gc(k) = 1
+      denom_gc(k) = jk_dpa
+c
+      k=k+1
+      jk_potvort = k
+      sname_gc(k) = 'pot_vort' !'AJK32'
+      lname_gc(k) = 'POTENTIAL VORTICITY (CP)'
+      units_gc(k) = 'K/(mb*s)'
+      pow_gc(k) = -6
+      scale_gc(k) = byim*p1000k
+      jgrid_gc(k) = 1
+c
+      k=k+1
+      jk_u = k
+      sname_gc(k) = 'u' !'AJK08'
+      lname_gc(k) = 'ZONAL WIND (U COMPONENT)' !'U*DP4  (UV GRID)'
+      units_gc(k) = 'm/s' !'100 PA*m/s'
+      pow_gc(k) = -1
+      scale_gc(k) = 1.
       jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_v = k
+      sname_gc(k) = 'v' !'AJK09'
+      lname_gc(k) = 'MERIDIONAL WIND (V COMPONENT)' !'V*DP4  (UV GRID)'
+      units_gc(k) = 'm/s' !'100 PA*m/s'
+      pow_gc(k) = -2
+      scale_gc(k) = 1.
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_eddke = k
+      sname_gc(k) = 'eddy_ke' !'AJK10'
+      lname_gc(k) = 'EDDY KINETIC ENERGY'
+      units_gc(k) = 'm^2/s^2'
+      scale_gc(k) = .5
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_totke = k
+      sname_gc(k) = 'tot_ke' !'AJK11'
+      lname_gc(k) = 'TOTAL KINETIC ENERGY'
+      units_gc(k) = 'm^2/s^2'
+      scale_gc(k) = .5
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_eddntsh = k
+      sname_gc(k) = 'nt_sheat_eddy'
+      lname_gc(k) = 'NORTH. TRANS. OF SENSIBLE HEAT BY EDDIES'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = SHA*XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 11
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_eddntgeo = k
+      sname_gc(k) = 'edd_nt_geo' !'AJK14'
+      lname_gc(k) = 'NORTH. TRANS. GEOPOT. BY EDDIES'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = SHA*XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 11
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_totntdse = k
+      sname_gc(k) = 'tot_nt_dse'
+      lname_gc(k) = 'TOTAL NORTH. TRANSPORT OF DRY STATIC ENERGY'
+      units_gc(k) = 'W/mb'
+      scale_gc(k) = XWON*FIM*1d2*BYGRAV
+      pow_gc(k) = 12
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_eddntlh = k
+      sname_gc(k) = 'nt_lh_e'
+      lname_gc(k) = 'NORTHWARD TRANSPORT OF LATENT HEAT BY EDDIES'
+      units_gc(k) = 'W/mb'
+      pow_gc(k) = 10
+      scale_gc(k) = lhe*XWON*FIM*1d2*BYGRAV
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_totntlh = k
+      sname_gc(k) = 'tot_nt_lh' !'AJK17'
+      lname_gc(k) = 'TOTAL NORTHWARD TRANSPORT OF LATENT HEAT'
+      units_gc(k) = 'W/mb'
+      pow_gc(k) = 10
+      scale_gc(k) = LHE*XWON*FIM*100.*BYGRAV
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_totntke = k
+      sname_gc(k) = 'tot_nt_ke' !'AJK19'
+      lname_gc(k) = 'TOTAL NORTHWARD TRANSPORT OF KINETIC ENERGY'
+      units_gc(k) = 'W/mb'
+      pow_gc(k) = 9
+      scale_gc(k) = .5*XWON*FIM*1d2*BYGRAV
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_eddntmom = k
+      sname_gc(k) = 'nt_u_eddy' !'AJK20'
+      lname_gc(k) = 'NORTH. TRANS. ZONAL MOM. BY EDDIES'
+      units_gc(k) = 'm^2/s^2'
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_totntmom = k
+      sname_gc(k) = 'tot_nt_u'
+      lname_gc(k) = 'TOTAL NORTH. TRANS. ZONAL MOM.' ! DIAGJK adds uearth term
+      units_gc(k) = 'm^2/s^2'
+      pow_gc(k) = 1
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_dpb
+c
+      k=k+1
+      jk_p2kedpgf = k
+      sname_gc(k) = 'p2k_eddy_pgf' !'AJK22'
+      lname_gc(k) = 'P-K BY EDDY PRESSURE GRADIENT FORCE'
+      units_gc(k) = 'W/(m^2*mb)'
+      scale_gc(k) = .5*1d2*BYGRAV/DT
+      jgrid_gc(k) = 2
+      pow_gc(k) = -4
+
+
 c
       k=k+1
       jk_vvel = k
@@ -223,15 +255,18 @@ c
       units_gc(k) = 'mb/s'
       pow_gc(k) = -5
       scale_gc(k) = -byim
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
-      jk_zmfvtdse = k
-      sname_gc(k) = 'zmf_vt_dse' !'AJK26'
-      lname_gc(k) = 'VERT TRANS DRY STAT. ENER. BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
+      jk_eddvtdse = k
+      sname_gc(k) = 'vt_dse_e'
+      lname_gc(k) = 'VERT. TRANS. OF DRY STATIC ENERGY BY EDDIES (CP)'
+      units_gc(k) = 'W/m^2'
+      scale_gc(k) = -100.*BYGRAV*BYIM
+      pow_gc(k) = -1
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_totvtdse = k
@@ -239,16 +274,18 @@ c
       lname_gc(k) = 'TOTAL LGE SCALE VERT. TRANS. OF DRY STAT ENRG (CP)'
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM
-      ia_gc(k) = ia_dga
       pow_gc(k) = 1
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
-      jk_zmfvtlh = k
-      sname_gc(k) = 'zmf_vt_lh' !'AJK28'
-      lname_gc(k) = 'VERT TRANS LATENT HEAT BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
+      jk_eddvtlh = k
+      sname_gc(k) = 'vt_lh_eddy'
+      lname_gc(k) = 'VERTICAL TRANSPORT OF LATENT HEAT BY EDDIES (CP)'
+      units_gc(k) = 'W/m^2'
+      scale_gc(k) = -100.*BYGRAV*BYIM*LHE
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_totvtlh = k
@@ -256,8 +293,8 @@ c
       lname_gc(k) = 'TOTAL LGE SCALE VERT. TRANS. OF LATENT HEAT (CP)'
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM*LHE
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_vtgeoeddy = k
@@ -265,9 +302,9 @@ c
       lname_gc(k) = 'VERT. TRANS. OF GEOPOT. ENERGY BY EDDIES (CP)'
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM
-      ia_gc(k) = ia_dga
       pow_gc(k) = -2
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_barekegen = k
@@ -277,16 +314,7 @@ c
       scale_gc(k) = .5*RGAS*1d2*BYGRAV
       pow_gc(k) = -4
       jgrid_gc(k) = 1
-c
-      k=k+1
-      jk_potvort = k
-      sname_gc(k) = 'pot_vort' !'AJK32'
-      lname_gc(k) = 'POTENTIAL VORTICITY (CP)'
-      units_gc(k) = 'K/(mb*s)'
-      pow_gc(k) = -6
-      scale_gc(k) = byim*p1000k
-      ia_gc(k) = ia_dga
-      jgrid_gc(k) = 1
+      lgrid_gc(k) = ctr_cp ! according to print routine
 c
       k=k+1
       jk_vtpv = k
@@ -295,8 +323,8 @@ c
       units_gc(k) = 'K/s^2'
       pow_gc(k) = -9
       scale_gc(k) = -P1000K
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_vtpveddy = k
@@ -305,15 +333,8 @@ c
       units_gc(k) = 'K/S^2'
       pow_gc(k) = -9
       scale_gc(k) = -P1000K
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
-c
-      k=k+1
-      jk_nptsavg1 = k
-      sname_gc(k) = 'npts_avg1' !'AJK35'
-      lname_gc(k) = 'NUMBER OF GRIDPOINTS IN AVERAGE (PT GRID)'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_totvtke = k
@@ -322,8 +343,8 @@ c
       units_gc(k) = 'W/m^2'
       pow_gc(k) = -1
       scale_gc(k) = -.5*100.*BYGRAV*BYIM
-      ia_gc(k) = ia_dga
-      jgrid_gc(k) = jgrid_ke
+      jgrid_gc(k) = 2
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_vtameddy = k
@@ -332,8 +353,8 @@ c
       units_gc(k) = 'm^2/s^2'
       pow_gc(k) = -3
       scale_gc(k) = -100.*BYGRAV*BYIM
-      ia_gc(k) = ia_dga
-      jgrid_gc(k) = jgrid_u
+      jgrid_gc(k) = 2
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_totvtam = k
@@ -342,8 +363,8 @@ c
       units_gc(k) = 'm^2/s^2'
       pow_gc(k) = -2
       scale_gc(k) = -100.*BYGRAV*BYIM
-      ia_gc(k) = ia_dga
-      jgrid_gc(k) = jgrid_u
+      jgrid_gc(k) = 2
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_sheth = k
@@ -358,8 +379,7 @@ c
       units_gc(k) = 'm/s^2'
       pow_gc(k) = -6
       scale_gc(k) = 1.
-      ia_gc(k) = ia_dga
-      jgrid_gc(k) = jgrid_u
+      jgrid_gc(k) = 2
 c
       k=k+1
       jk_dtdtmadv = k
@@ -368,7 +388,6 @@ c
       units_gc(k) = 'K/DAY'
       pow_gc(k) = -1
       scale_gc(k) = SDAY
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -378,8 +397,7 @@ c
       units_gc(k) = 'm/s^2'
       pow_gc(k) = -6
       scale_gc(k) = 1.
-      ia_gc(k) = ia_dga
-      jgrid_gc(k) = jgrid_u
+      jgrid_gc(k) = 2
 c
       k=k+1
       jk_dtdttem = k
@@ -388,7 +406,6 @@ c
       units_gc(k) = 'K/DAY'
       pow_gc(k) = -1
       scale_gc(k) = SDAY
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -404,12 +421,13 @@ c
       lname_gc(k) = 'VERTICAL COMP. OF ELIASSEN-PALM FLUX (CP)'
       units_gc(k) = 'unknown'
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_uinst = k
       sname_gc(k) = 'u_inst' !'AJK46'
       lname_gc(k) = 'INSTANTANEOUS ZONAL AVERAGE OF ZONAL WIND'
-      units_gc(k) = 'unknown'
+      units_gc(k) = 'm/s'
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -418,13 +436,13 @@ c
       lname_gc(k) = 'DU/DT   TOTAL CHANGE (CP)'
       units_gc(k) = 'm/s^2'
       pow_gc(k) = -6
-      jgrid_gc(k) = jgrid_u
+      jgrid_gc(k) = 2
 c
       k=k+1
       jk_tinst = k
       sname_gc(k) = 't_inst' !'AJK48'
       lname_gc(k) = 'INSTANTANEOUS ZONAL AVERAGE OF TEMPERATURE'
-      units_gc(k) = 'unknown'
+      units_gc(k) = 'K'
       jgrid_gc(k) = 1
 c
       k=k+1
@@ -441,6 +459,7 @@ c
       lname_gc(k) = 'EDDY VERTICAL TRANSPORT OF POT. TEMP.'
       units_gc(k) = 'unknown'
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jl_ape = k
@@ -458,8 +477,8 @@ c
       units_gc(k) = 'm^2/s^2'
       pow_gc(k) = -3
       scale_gc(k) = .5*100.*BYGRAV*BYIM
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jl_epflxn = k
@@ -467,7 +486,6 @@ c
       lname_gc(k) = 'NORTHWARD ELIASSEN-PALM FLUX'
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = 1.
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 2
 c
       k=k+1
@@ -526,15 +544,7 @@ c
       lname_gc(k) = 'MASS AT SECONDARY LATITUDES' ! in DIAGB
       units_gc(k) = 'mb'
       scale_gc(k) = 1. ! not printed
-      ia_gc(k) = ia_dga
       jgrid_gc(k) = 2
-c
-
-      k=k+1
-      jl_40 = k
-      sname_gc(k) = 'AJL40' !DU(ED)*P*(DTSURF*DSIG*ED/DZ**2)  (UV GRID)
-      lname_gc(k) = 'unknown'
-      units_gc(k) = 'unknown'
 c
       k=k+1
       jl_47 = k
@@ -663,13 +673,106 @@ c
       end if
 
 c
+c derived JKs
+c
+      k=k+1
+      jk_psi = k
+      sname_gc(k) = 'psi_cp'
+      lname_gc(k) = 'STREAM FUNCTION (CP)'
+      units_gc(k) = 'kg/s'
+      scale_gc(k) = 100.*BYGRAV
+      pow_gc(k) = 9
+      jgrid_gc(k) = 2
+      lgrid_gc(k) = edg_cp
+
+
+      if(k.gt.kagc) then
+        if(am_i_root()) then
+          write(6,*) 'gc_defs: Increase kagc=',kagc,' to at least ',k
+        endif
+        call stop_model( 'kagc too small', 255 )
+      end if
+
+c
       if (AM_I_ROOT()) then
          write (6,*) 'Number of AGC diagnostics defined: kagcmax=',k
-         if(.not.qcheck) return
-         do kk=1,k
-            write (6,'(i4,'':'',a)') kk,trim(lname_gc(kk))
-         end do
+         if(qcheck) then
+           do kk=1,k
+             write (6,'(i4,'':'',a)') kk,trim(lname_gc(kk))
+           end do
+         endif
       end if
+
+      lat_gc(:) = lat_dg(:,1)
+      lat_gc2(:) = lat_dg(:,2)
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of AGC output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).  Information needed for
+c printing ASCII tables of the output is stored here as well.
+c
+      cdl_gc = ''
+      cdl_gc(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_gc(3),'(a,i3,a)') '   lat_gc = ',jmlat,' ;'
+      write(cdl_gc(4),'(a,i3,a)') '   lat_gc_plus3 = ',jmlat+3,' ;'
+      write(cdl_gc(5),'(a,i3,a)') '   lat_gc2 = ',jmlat,' ;'
+      write(cdl_gc(6),'(a,i3,a)') '   lat_gc2_plus3 = ',jmlat+3,' ;'
+      write(cdl_gc(7),'(a,i3,a)') '   plm = ',lm,' ;'
+      write(cdl_gc(8),'(a,i3,a)') '   ple = ',lm,' ;'
+      write(cdl_gc(9),'(a,i3,a)') '   shnhgm = 3 ;'
+      cdl_gc(10:18)(:) = (/
+     &     'variables:                           ',
+     &     'float lat_gc(lat_gc) ;               ',
+     &     '   lat_gc:units = "degrees_north" ;  ',
+     &     'float lat_gc2(lat_gc2) ;             ',
+     &     '   lat_gc2:units = "degrees_north" ; ',
+     &     'float plm(plm) ;                     ',
+     &     '   plm:units = "mb" ;                ',
+     &     'float ple(ple) ;                     ',
+     &     '   ple:units = "mb" ;                '
+     &     /)
+      kk = count(len_trim(cdl_gc).gt.0)
+      do k=1,kagc
+        if(trim(units_gc(k)).eq.'unused') cycle
+        if(jgrid_gc(k).eq.1) then
+          ystr='lat_gc'
+        else
+          ystr='lat_gc2'
+        endif
+        if(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
+          zstr='(plm,'
+        else
+          zstr='(ple,'
+        endif
+        kk = kk + 1
+        cdl_gc(kk) = 'float '//trim(sname_gc(k))//
+     &       trim(zstr)//trim(ystr)//') ;'
+        kk = kk + 1
+        cdl_gc(kk) = '   '//trim(sname_gc(k))//':long_name = "'//
+     &       trim(lname_gc(k))//'" ;'
+        kk = kk + 1
+        cdl_gc(kk) = '   '//trim(sname_gc(k))//':units = "'//
+     &       trim(units_gc(k))//'" ;'
+        if(pow_gc(k).ne.0) then
+          kk = kk + 1
+          write(cdl_gc(kk),'(a,i3,a)')
+     &         '   '//trim(sname_gc(k))//':prtpow = ',pow_gc(k),' ;'
+        endif
+        kk = kk + 1
+        cdl_gc(kk) = 'float '//trim(sname_gc(k))//'_hemis'//
+     &       trim(zstr)//'shnhgm) ;'
+        if(denom_gc(k).gt.0) then
+          kk = kk + 1
+          cdl_gc(kk) = 'float '//trim(sname_gc(k))//
+     &         '_vmean('//trim(ystr)//'_plus3) ;'
+        endif
+      enddo
+      kk = kk + 1
+      cdl_gc(kk) = '}'
+#endif
+
       return
       end subroutine gc_defs
 
@@ -908,7 +1011,7 @@ c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF(L.GE.LS1-1) PITIJ=0.
       SDPU=SDPU+(SD(I,J,L)-SDMN+(PITIJ-PITMN)*SIGE(L+1))*UPE
   874 IM1=I
-      AGC(J,L,JL_EPFLXV)=AGC(J,L,JL_EPFLXV)+.25*
+      AGC(J,L,JL_EPFLXV)=AGC(J,L,JL_EPFLXV)+.25*BYDXYP(J)*
      &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + SDPU)
   878 CONTINUE
 
@@ -1207,17 +1310,15 @@ C**** EDDY TRANSPORT OF THETA;  VORTICITY
       IF (DPI.LT.teeny) DPI=teeny
       AGC(J,K,JK_U)=AGC(J,K,JK_U)+PUI
       AGC(J,K,JK_V)=AGC(J,K,JK_V)+PVI
-      AGC(J,K,JK_ZMFKE)=AGC(J,K,JK_ZMFKE)+(PUI*PUI+PVI*PVI)/DPI
+      AGC(J,K,JK_EDDKE)=AGC(J,K,JK_EDDKE)+PWWI-(PUI*PUI+PVI*PVI)/DPI
       AGC(J,K,JK_TOTKE)=AGC(J,K,JK_TOTKE)+PWWI
-      AGC(J,K,JK_ZMFNTSH)=AGC(J,K,JK_ZMFNTSH)+PT4I*PVI/DPI
-      AGC(J,K,JK_TOTNTSH)=AGC(J,K,JK_TOTNTSH)+PTV4I
-      AGC(J,K,JK_ZMFNTGEO)=AGC(J,K,JK_ZMFNTGEO)+PZ4I*PVI/DPI
-      AGC(J,K,JK_TOTNTGEO)=AGC(J,K,JK_TOTNTGEO)+PZV4I
-      AGC(J,K,JK_ZMFNTLH)=AGC(J,K,JK_ZMFNTLH)+PQ4I*PVI/DPI
+      AGC(J,K,JK_EDDNTSH)=AGC(J,K,JK_EDDNTSH)+PTV4I-PT4I*PVI/DPI
+      AGC(J,K,JK_TOTNTDSE)=AGC(J,K,JK_TOTNTDSE)+SHA*PTV4I+PZV4I
+      AGC(J,K,JK_EDDNTGEO)=AGC(J,K,JK_EDDNTGEO)+PZV4I-PZ4I*PVI/DPI
+      AGC(J,K,JK_EDDNTLH)=AGC(J,K,JK_EDDNTLH)+PQV4I-PQ4I*PVI/DPI
       AGC(J,K,JK_TOTNTLH)=AGC(J,K,JK_TOTNTLH)+PQV4I
-      AGC(J,K,JK_ZMFNTKE)=AGC(J,K,JK_ZMFNTKE)+PWWI*PVI/DPI
       AGC(J,K,JK_TOTNTKE)=AGC(J,K,JK_TOTNTKE)+PWWVI
-      AGC(J,K,JK_ZMFNTMOM)=AGC(J,K,JK_ZMFNTMOM)+PUI*PVI/DPI
+      AGC(J,K,JK_EDDNTMOM)=AGC(J,K,JK_EDDNTMOM)+PUVI-PUI*PVI/DPI
       AGC(J,K,JK_TOTNTMOM)=AGC(J,K,JK_TOTNTMOM)+PUVI
       AGC(J,K,JK_P2KEDPGF)=AGC(J,K,JK_P2KEDPGF)+VDVTI+UDUTI-
      *   (PUI*DUTI+PVI*DVTI)/DPI
@@ -1291,8 +1392,8 @@ C**** INTERPOLATE HERE
 C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
             W(I,J,K)=0.
             IF (DPK.gt.0) THEN
-              AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+SDK*BYDXYP(J)/DPK
-              W(I,J,K)=SDK/DPK
+              W(I,J,K)=SDK*BYDXYP(J)/DPK
+              AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+W(I,J,K)
             END IF
           END DO
           I=IP1
@@ -1318,9 +1419,7 @@ C**** ACCUMULATE ALL VERTICAL WINDS
 !!          DO INCH=1,NDAA
 !!            IF(IH.GT.HR_IN_DAY) IH=IH-HR_IN_DAY
 !!            ADIURN(IDD_W,KR,IH)=ADIURN(IDD_W,KR,IH)+1.E5*W(I,J,3)
-!!   *             /DXYP(J)
 !!            HDIURN(IDD_W,KR,IHM)=HDIURN(IDD_W,KR,IHM)+1.E5*W(I,J,3)
-!!   *             /DXYP(J)
 !!            IH=IH+1
 !!            IHM=IHM+1
 !!          END DO
@@ -1390,21 +1489,23 @@ C**** MERIDIONAL AVERAGING
   600 CONTINUE
       BYFIM=teeny
       IF (FIMI.GT.teeny) BYFIM=1./FIMI
-      AGC(J,K-1,JK_ZMFVTDSE)=AGC(J,K-1,JK_ZMFVTDSE)+
-     &     BYFIM*(SHA*TKI+ZKI)*WI
       AGC(J,K-1,JK_TOTVTDSE)=AGC(J,K-1,JK_TOTVTDSE)+SHA*WTI+WZI
-      AGC(J,K-1,JK_ZMFVTLH)=AGC(J,K-1,JK_ZMFVTLH)+BYFIM*QKI*WI
       AGC(J,K-1,JK_TOTVTLH)=AGC(J,K-1,JK_TOTVTLH)+WQI
-      AGC(J,K-1,JK_VTGEOEDDY)=AGC(J,K-1,JK_VTGEOEDDY)+WZI-BYFIM*WI*ZKI
 C     AGC(J,K-1,JK_BAREKEGEN)=AGC(J,K-1,JK_BAREKEGEN)+WTI-BYFIM*WI*TKI
-         WJK(J,K)=BYFIM*WI/DXYP(J)
-         WTJK(J,K)=BYFIM*(WTHI-BYFIM*WI*THKI)/DXYP(J)
-         AGC(J,K-1,JK_EDDVTPT)=AGC(J,K-1,JK_EDDVTPT)+WTJK(J,K)
+      WJK(J,K)=BYFIM*WI
+      WTJK(J,K)=BYFIM*(WTHI-BYFIM*WI*THKI)
+      if(j>1 .and. j<jm) then
+        AGC(J,K-1,JK_EDDVTPT)=AGC(J,K-1,JK_EDDVTPT)+WTJK(J,K)
+        AGC(J,K-1,JK_EDDVTDSE)=AGC(J,K-1,JK_EDDVTDSE)+SHA*WTI+WZI
+     &       -BYFIM*(SHA*TKI+ZKI)*WI
+        AGC(J,K-1,JK_EDDVTLH)=AGC(J,K-1,JK_EDDVTLH)+WQI-BYFIM*QKI*WI
+        AGC(J,K-1,JK_VTGEOEDDY)=AGC(J,K-1,JK_VTGEOEDDY)+WZI-BYFIM*WI*ZKI
+      endif
   610 CONTINUE
 C****
 C**** BAROCLINIC EDDY KINETIC ENERGY GENERATION
 C****
-      DO 630 J=J_0,J_1
+      DO 630 J=J_0S,J_1S
       DO 630 K=1,KM
       FIMI=0.
       W2I=0.
@@ -1454,16 +1555,16 @@ C**** ACCUMULATE HERE
 C****
 C**** ACCUMULATE UV VERTICAL TRANSPORTS
 C****
-C**** DOUBLE POLAR WINDS
+C**** RESCALE POLAR WINDS
       DO 640 K=1,KM
         IF(HAVE_SOUTH_POLE) THEN
-          WSP=2.*W(1,1,K)/FIM
+          WSP=W(1,1,K)/FIM
           DO I=1,IM
             W(I,1,K)=WSP
           ENDDO
         ENDIF
         IF(HAVE_NORTH_POLE) THEN
-          WNP=2.*W(1,JM,K)/FIM
+          WNP=W(1,JM,K)/FIM
           DO I=1,IM
             W(I,JM,K)=WNP
           ENDDO
@@ -1517,7 +1618,7 @@ C**** MERIDIONAL AVERAGING
       FIMI=FIMI+1.
   700 I=IP1
       BYFIM=1./(FIMI+teeny)
-         WUJK(J,K)=(WU4I-W4I*UKI*BYFIM)*BYFIM*BYDXYV(J)
+         WUJK(J,K)=(WU4I-W4I*UKI*BYFIM)*BYFIM
       AGC(J,K-1,JK_TOTVTKE)=AGC(J,K-1,JK_TOTVTKE)+WKE4I
       AGC(J,K-1,JK_VTAMEDDY)=AGC(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
   710 AGC(J,K-1,JK_TOTVTAM)=AGC(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
@@ -1530,7 +1631,7 @@ C****
       DO 730 K=1,KM
       PVI=0.
       DO 720 I=1,IM
-      DUT(I,J,K)=JHEMI*STB(I,J,K)*(ZX(I,J,K)-FCOR(J))
+      DUT(I,J,K)=JHEMI*STB(I,J,K)*(ZX(I,J,K)-FCOR(J))*BYDXYP(J)
   720 PVI=PVI+DUT(I,J,K)
   730 AGC(J,K,JK_POTVORT)=AGC(J,K,JK_POTVORT)+PVI
       DO 760 K=2,KM
@@ -2198,8 +2299,44 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       END SUBROUTINE DIAG7A
 
       subroutine diaggc_prep
-c For the latlon model, derived GC outputs are still calculated at
-c print time.
+c For the latlon model, most derived GC outputs are still
+c calculated at print time.
+      use model_com, only : jm,lm
+      use domain_decomp_atm, only : am_i_root
+      use diag_com, only : kagc,agc,jgrid_gc,hemis_gc,vmean_gc
+      use gcdiag
+      use geom, only : dxyp,dxyv,dxv
       implicit none
+      integer :: j,j1,j2,k,l,jg
+      real*8, dimension(jm,2) :: wtj
+
+      if(.not.am_i_root()) return
+
+c stream function
+      do j=1,jm
+        agc(j,lm,jk_psi) = 0d0
+        do l=lm-1,1,-1
+          agc(j,l,jk_psi)=agc(j,l+1,jk_psi)-agc(j,l+1,jk_v)*dxv(j)
+        enddo
+      enddo
+
+c
+c compute hemispheric/global means and vertical sums
+c
+      wtj(:,1) = 2.*dxyp(:)/sum(dxyp)
+      wtj(2:jm,2) = 2.*dxyv(2:jm)/sum(dxyp)
+      wtj(jm/2+1,2) = wtj(jm/2+1,2)*.5
+      do k=1,kagc
+        jg = jgrid_gc(k)
+        do l=1,lm
+          j1 = jg; j2 = jm/2+jg-1
+          hemis_gc(1,l,k) = sum(agc(j1:j2,l,k)*wtj(j1:j2,jg))
+          j1 = jm/2+1; j2 = jm
+          hemis_gc(2,l,k) = sum(agc(j1:j2,l,k)*wtj(j1:j2,jg))
+          hemis_gc(3,l,k) = .5*(hemis_gc(1,l,k)+hemis_gc(2,l,k))
+        enddo
+        vmean_gc(jg:jm,1,k) = sum(agc(jg:jm,:,k),dim=2)
+        vmean_gc(jm+1:jm+3,1,k) = sum(hemis_gc(:,:,k),dim=2)
+      enddo
       return
       end subroutine diaggc_prep

@@ -629,7 +629,7 @@ c derived/composite diagnostics
 !@var VMEAN_GC vertical sums of AGC
       real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
 !@var lat_gc latitudes of the primary grid for GC diagnostics
-      real*8, dimension(jmlat), public :: lat_gc
+      real*8, dimension(jmlat), public :: lat_gc,lat_gc2
 
 !@var IJK_xxx AIJK diagnostic names
       INTEGER, public ::
@@ -1716,7 +1716,8 @@ c*
 !@sum  new_io_acc read/write accumulation arrays from/to restart/acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite,idacc=>idacc_ioptr
+      use model_com, only : ioread,iowrite,iowrite_single,
+     &     idacc=>idacc_ioptr
 c in the postprocessing case where arrays are read from disk and summed,
 c these i/o pointers point to temporary arrays.  Otherwise, they point to
 c the instances of the arrays used during normal operation. 
@@ -1740,9 +1741,11 @@ c the instances of the arrays used during normal operation.
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
-      case (iowrite)            ! output to restart or acc file
-        call gather_zonal_diags
-        call collect_scalars
+      case (iowrite,iowrite_single) ! output to restart or acc file
+        if(iaction.eq.iowrite) then ! already done for iowrite_single
+          call gather_zonal_diags
+          call collect_scalars
+        endif
         call write_data(grid,fid,'monacc',monacc)
         call write_data(grid,fid,'idacc',idacc)
         call write_data(grid,fid,'energy',energy)
@@ -1861,7 +1864,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
      &     denom_gc,
-     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,
+     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,lat_gc2,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
 #ifndef CUBE_GRID
@@ -1892,6 +1895,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,plm(1:lm),'plm(lm)')
       call defvar(grid,fid,ple,'ple(lm)')
       call defvar(grid,fid,lat_gc,'lat_gc(jmlat)')
+      call defvar(grid,fid,lat_gc2,'lat_gc2(jmlat)')
 
       call write_attr(grid,fid,'aj','reduction','sum')
       call write_attr(grid,fid,'aj','split_dim',2)
@@ -2006,7 +2010,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
      &     denom_gc,
-     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,ia_12hr,
+     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,lat_gc2,ia_12hr,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
 #ifndef CUBE_GRID
@@ -2040,6 +2044,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'plm',plm(1:lm))
       call write_data(grid,fid,'ple',ple)
       call write_data(grid,fid,'lat_gc',lat_gc)
+      call write_data(grid,fid,'lat_gc2',lat_gc2)
 
       call write_data(grid,fid,'hemis_aj',hemis_j)
       call write_data(grid,fid,'ia_aj',ia_j)
