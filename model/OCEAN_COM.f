@@ -58,6 +58,8 @@ C**** ocean geometry (should this be in a separate module?)
      *     DLATM,   !@var DLATM latitudinal spacing in minutes
      *     FJEQ     !@var FJEQ location of equator in grid units 
      *   , oDLAT_DG ! grid spacing in latitude (deg) 
+
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: OXYP
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO
@@ -350,6 +352,7 @@ C****
 
       USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
+      USE OCEAN, only : OXYP
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
       USE OCN_TRACER_COM, only : ntm
@@ -392,6 +395,7 @@ C****
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ_SV (IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( OXYP  (IM,J_0H:J_1H), STAT = IER)
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)

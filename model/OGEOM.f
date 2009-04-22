@@ -15,6 +15,10 @@ C****
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
      *                 J1O, JMPF=>J40S, IMAXJ
      *               , oDLAT_DG, oLAT_DG, oLON_DG
+     *               , OXYP 
+
+      USE OCEANR_DIM, only : oGRID
+
       Implicit None
       Integer*4 I,J
       Real*8 LATS, !@var LATS LATitude in radians at South edge of primary cell
@@ -23,6 +27,13 @@ C****
      *       SINN, !@var SINN SINe of LATN
      *       PCOS, !@var PCOS = s[cos(LAT)^2 dLAT] / S[cos(LAT) dLAT]
      *   PLAT(JM)  !@var PLAT = s[LAT cos(LAT) dLAT] / S[cos(LAT) dLAT]
+
+      integer :: i_0h,i_1h,j_0h,j_1h,i_0,i_1,j_0,j_1
+
+      i_0h = oGRID%i_strt_halo
+      i_1h = oGRID%i_stop_halo
+      j_0h = oGRID%j_strt_halo
+      j_1h = oGRID%j_stop_halo
 
 C**** Define some key values that depend on resolution (and grid)
       DLON   = TWOPI/IM
@@ -90,6 +101,12 @@ C****
       RLAT(JM) =  TWOPI/4
       SINP(JM) =  1
       PLAT(JM) =  TWOPI/4
+
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
+        oxyp(i,j) = dxyp(j)
+      enddo
+      enddo
 C****
       Do 30 J=1,JM-1
    30 DXYVO(J) = DXYN(J) + DXYS(J+1)
