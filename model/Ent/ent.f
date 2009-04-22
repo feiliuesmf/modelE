@@ -8,6 +8,7 @@
 !@auth N. Kiang
 
 !#define ENT_STANDALONE_DIAG TRUE
+!#define DEBUG
 
       !Ent MODULES TO USE
       use ent_const

@@ -442,6 +442,7 @@
       real*8 :: sla
       real*8 :: C_lab_old, Cactive_old
       real*8 :: loss_leaf,resp_growth1, resp_growth2
+      logical :: do_structuralgrowth
       real*8 :: dummy
  
      !Initialize
@@ -514,9 +515,9 @@
          CB_d = cop%CB_d - (C_lab_old-C_lab)
 
          if (woody) then  
-            Cactive_max=dbh2Cfol(pft,dbh)*alloc
+            Cactive_max=dbh2Cfol(pft,dbh)*(alloc+(1.d0-phenofactor))
          else
-            Cactive_max=height2Cfol(pft,5.0d0)*alloc
+            Cactive_max=height2Cfol(pft,5.d0)*(alloc+(1.d0-phenofactor))
            !no allometric constraints in the carbon allocation, 
            !then 5.0d0 is arbitrary number (must be tall enough, then 5m)
          end if
@@ -537,9 +538,22 @@
          !----------------------------------------------------
          !*structural/active/reproductive
          !----------------------------------------------------
-          if (config%do_structuralgrowth)
+!          print*,pft,pfpar(pft)%phenotype, COLDDECID,pfpar(pft)%woody
+!          print*,cop%phenostatus
+     
+          if (pfpar(pft)%phenotype .eq. COLDDECID .and. 
+     &        pfpar(pft)%woody) then
+             do_structuralgrowth = (config%do_structuralgrowth .and.
+     &       (cop%phenostatus .eq. 2))
+!             print*,do_structuralgrowth
+!             if (do_structuralgrowth) stop
+          else
+             do_structuralgrowth = config%do_structuralgrowth
+          endif
+   
+          if (do_structuralgrowth)
      &        call growth_cpools_structural(pft,dbh,h,qsw,qf,
-     &        Cactive_max,C_fol,CB_d,Cactive_old, 
+     &        C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      &        Cactive,C_lab,Cdead,dCrepro) 
           cop%pptr%Reproduction(cop%pft) = 
      &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
@@ -560,7 +574,7 @@
          !phenology + turnover + C_lab change + growth respiration
          !senescefrac returned is fraction of foliage that is litter.
 
-         call litter_growth_cohort(SDAY,
+         call litter_growth_cohort(SDAY,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,resp_growth2)
 
@@ -662,7 +676,7 @@
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (cuurent size)
-            Cactive_pot = Cactive + min(CB_d,C_lab)  
+            Cactive_pot = Cactive + C_lab
             dCactive = min(Cactive_max, Cactive_pot) - Cactive
             if (dCactive .lt. 0.d0)then
               dC_lab = - dCactive * l_fract
@@ -671,8 +685,8 @@
             end if
          end if
       else if (C_lab .lt. 0.d0 ) then
-         dCactive = C_lab
-         dC_lab = - C_lab * l_fract
+         dCactive = C_lab / l_fract
+         dC_lab = - C_lab 
       else  
          dCactive = 0.d0
          dC_lab = 0.d0
@@ -696,7 +710,7 @@ c$$$      Cactive = Cactive + dC_remainder
 
       !*********************************************************************
       subroutine growth_cpools_structural(pft,dbh,h,qsw,qf,
-     &      Cactive_max,C_fol,CB_d,Cactive_old,Cactive,
+     &      C_sw,Cactive_max,C_fol,CB_d,Cactive_old,Cactive,
      &      C_lab, Cdead, dCrepro)
 
       use ent_prescr_veg
@@ -709,6 +723,7 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8, intent(in) :: C_fol
       real*8, intent(in) :: CB_d
       real*8, intent(in) :: Cactive_max
+      real*8, intent(in) :: C_sw
       real*8, intent(inout) :: Cactive,Cactive_old
       real*8, intent(inout) :: C_lab
       real*8, intent(inout) :: Cdead
@@ -722,7 +737,7 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8 :: dCfrootdCdead
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
-      logical, parameter :: growthED1=.true.
+      logical, parameter :: growthED1=.false.
 
       !--------------------------------------------------
       !*calculate the growth fraction for different pools
@@ -762,17 +777,17 @@ c$$$      Cactive = Cactive + dC_remainder
          if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
             qs = 1.d0
             gr_fract = 1.d0 - r_fract 
-!         else
-!            qs = 0.d0
-!            gr_fract = 1.d0 / l_fract
+         else
+            qs = 0.d0
+            gr_fract = 1.d0 - r_fract
          end if
          end if
 
       end if
        
-      dCdead = gr_fract * qs  * C_lab 
-      dCactive = gr_fract *(1.d0 - qs) * C_lab 
-      dCrepro =  ( 1.d0 - gr_fract ) * C_lab 
+      dCdead = gr_fract * qs  * min(C_lab,C_sw) 
+      !dCactive = gr_fract *(1.d0 - qs) * C_lab 
+      dCrepro =  ( 1.d0 - gr_fract ) * qs * min(C_lab,C_sw) 
 
 #ifdef DEBUG
       write(201,'(100(1pe16.8))') C_lab, dCactive, dCdead
@@ -781,9 +796,9 @@ c$$$      Cactive = Cactive + dC_remainder
       !------------------------
       !*update the carbon pools
       !------------------------
-      C_lab = -l_fract*min(dCactive, 0.d0)
+      C_lab = C_lab - (dCdead + dCrepro)
       Cdead = Cdead + dCdead
-      Cactive = Cactive + dCactive
+      !Cactive = Cactive + dCactive
 
       end subroutine growth_cpools_structural
 !*************************************************************************
@@ -1083,7 +1098,7 @@ c$$$      end subroutine senesce_cpools
 
       end subroutine litter_turnover_cohort
       !*********************************************************************
-      subroutine litter_growth_cohort(dt,
+      subroutine litter_growth_cohort(dt,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,resp_growth)
 !@sum litter_cohort. Calculates at daily time step litterfall from cohort 
@@ -1115,6 +1130,7 @@ c$$$      end subroutine senesce_cpools
       use cohorts, only : calc_CASArootfrac 
       use biophysics, only: Resp_can_growth
       real*8,intent(in) :: dt !seconds, time since last call
+      real*8,intent(in) ::dCrepro
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old
       type(cohort),pointer :: cop
@@ -1169,6 +1185,7 @@ c$$$      end subroutine senesce_cpools
       !* C_lab required for biomass growth or senescence (not turnover)
       dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!Growth of new tissue
      &     + max(0.d0,dC_sw)    !For constant structural tissue, dC_sw=0, but still need to account for sapwood growth.
+     &     + max(0.d0,dC_hw) + max(0.d0,dC_croot)
      &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
      &     + max(0.d0,-dC_sw))
 
@@ -1176,7 +1193,7 @@ c$$$      end subroutine senesce_cpools
       !* NOTE: Respiration is distributed over the day by canopy module,
       !*       so does not decrease C_lab here.
       dC_lab = 
-     &     - dClab_dbiomass         !Growth (new growth or senescence)
+     &     - dClab_dbiomass -dCrepro        !Growth (new growth or senescence)
           !- resp_growth             !!! moved -resp_growth to cop%C_growth to distribute over the day
 
 
@@ -1265,8 +1282,13 @@ c$$$      end subroutine senesce_cpools
       !####################################################################
 
       cop%C_lab = cop%C_lab + dC_lab
-
-
+      if (cop%C_lab < EPS) cop%C_lab = 0.d0
+!      if (cop%C_lab < 0.d0) then
+!         print*,dC_fol,cop%C_fol,dC_sw,cop%C_sw
+!         print*,dC_lab,cop%C_lab, dC_froot, cop%C_froot
+!         print*,dC_hw,cop%C_hw,dC_croot,cop%C_croot
+!         stop
+!      endif
 
       !* Return Clossacc *!
       Csum = 0.d0
