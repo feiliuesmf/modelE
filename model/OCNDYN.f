@@ -4104,7 +4104,7 @@ C****
      *     , trmo,dxypo
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, get,pack_data, AM_I_ROOT  
+      USE DOMAIN_DECOMP_1D, only : get  
       USE OCEANR_DIM, only : oGRID
 
 #ifdef TRACERS_WATER
@@ -4117,8 +4117,6 @@ C****
 
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(IMA,JMA) :: aRSI_glob
-
       INTEGER I,J
 
       integer :: J_0, J_1
@@ -4127,15 +4125,10 @@ C****
 
 C**** save surface variables before any fluxes are added
       CALL KVINIT
-
-C***  Gather the precipitation arrays on atmospheric grid
-C***    into the global arrays
-
-      CALL PACK_DATA  (agrid, aRSI, aRSI_glob)
 C*
 #ifndef CUBE_GRID
 
-      CALL INT_AG2OG_precip(aRSI_glob)
+      CALL AG2OG_precip
 
 #endif
 C**** Convert fluxes on atmospheric grid to oceanic grid

@@ -10,12 +10,20 @@
       PUBLIC INT_AG2OG
 
       Interface INT_AG2OG
-      Module Procedure INT_AG2OG_2D
+      Module Procedure INT_AG2OG_2Da
+      Module Procedure INT_AG2OG_2Db
+      Module Procedure INT_AG2OG_3Da
+      Module Procedure INT_AG2OG_3Db
+      Module Procedure INT_AG2OG_3Dc
+      Module Procedure INT_AG2OG_4Da
+      Module Procedure INT_AG2OG_4Db
+      Module Procedure INT_AG2OG_Vector1
+      Module Procedure INT_AG2OG_Vector2
       End Interface
 
       contains
 
-      SUBROUTINE INT_AG2OG_2D(aA,oA,aWEIGHT,aFACTOR,oFACTOR)
+      SUBROUTINE INT_AG2OG_2Da(aA,oA,aWEIGHT)
 
 !@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
 
@@ -39,10 +47,14 @@
       REAL*8, INTENT(IN)  :: aA(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
 
       REAL*8, ALLOCATABLE :: aA_glob(:,:), oA_glob(:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oA(:,:) = aA(:,:)
+      else
 
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(aIM,aJM), STAT = IER)
@@ -59,10 +71,10 @@ C***  Interpolate aA_glob from atmospheric grid to ocean grid
 
         call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
 
-        aFtemp(:,:) = aA_glob(:,:)*aFactor(:,:)
+        aFtemp(:,:) = aA_glob(:,:)
         aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
         call HNTR8P (aWEIGHT, aFtemp, oFtemp)
-        oA_glob(:,:) = oFtemp(:,:)*oFactor(:,:)
+        oA_glob(:,:) = oFtemp(:,:)
       end if
 
 C***  Scatter global array oA_glob to the ocean grid
@@ -73,12 +85,86 @@ C***  Scatter global array oA_glob to the ocean grid
         DEALLOCATE(aA_glob, oA_glob)
       end if
 
-      RETURN
-      END SUBROUTINE INT_AG2OG_2D
+      end if
 
-      SUBROUTINE INT_AG2OG_3D(aA,oA,aWEIGHT,aFACTOR,oFACTOR,NT)
+      RETURN
+      END SUBROUTINE INT_AG2OG_2Da
+
+      SUBROUTINE INT_AG2OG_2Db(aA1,aA2,oA,aWEIGHT) 
 
 !@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      USE GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_DATA, UNPACK_DATA
+      USE OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, I,J
+
+      INTEGER, DIMENSION(aJM) :: aIMAXJ
+
+      REAL*8, INTENT(IN) :: aA1(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(IN) :: aA2(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) :: oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aFOCEAN, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor 
+
+      REAL*8, ALLOCATABLE :: aA1_glob(:,:),aA2_glob(:,:), oA_glob(:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oA(:,:) = aA1(:,:)*aA2(:,:)
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA1_glob(aIM,aJM), STAT = IER)
+        ALLOCATE(aA2_glob(aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 2D array on atmospheric grid into the global array
+
+      CALL PACK_DATA (aGRID, aA1, aA1_glob)
+      CALL PACK_DATA (aGRID, aA2, aA2_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        aFtemp(:,:) = 0.
+        aFtemp(I,J) = aA1_glob(I,J)*aA2_glob(I,J)
+        aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+        call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+        oA_glob(:,:) = oFtemp(:,:)
+      end if
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_DATA (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA1_glob,aA2_glob, oA_glob)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_2Db
+
+      SUBROUTINE INT_AG2OG_3Da(aA,oA,aWEIGHT,NT)
+
+!@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
 !@auth Larissa Nazarenko
 !@ver  1.0
@@ -102,17 +188,21 @@ C***  Scatter global array oA_glob to the ocean grid
       REAL*8, INTENT(OUT) :: 
      *  oA(NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
 
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oA(:,:,:) = aA(:,:,:)
+      else
 
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(NT,aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(NT,oIM,oJM), STAT = IER)
       end if
 
-C***  Gather 2D array on atmospheric grid into the global array
+C***  Gather 3D array on atmospheric grid into the global array
 
       CALL PACK_COLUMN (aGRID, aA, aA_glob)
 
@@ -123,10 +213,10 @@ C***  Interpolate aA_glob from atmospheric grid to ocean grid
         call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
 
         DO N=1,NT
-          aFtemp(:,:) = aA_glob(N,:,:)*aFactor(:,:)
+          aFtemp(:,:) = aA_glob(N,:,:)
           aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
           call HNTR8P (aWEIGHT, aFtemp, oFtemp)
-          oA_glob(N,:,:) = oFtemp(:,:)*oFactor(:,:)
+          oA_glob(N,:,:) = oFtemp(:,:)
         END DO
       end if
 
@@ -138,13 +228,524 @@ C***  Scatter global array oA_glob to the ocean grid
         DEALLOCATE(aA_glob, oA_glob)
       end if
 
+      end if
+
       RETURN
-      END SUBROUTINE INT_AG2OG_3D
+      END SUBROUTINE INT_AG2OG_3Da
+
+      SUBROUTINE INT_AG2OG_3Db(aA,oA,aWEIGHT, aN,oN)
+
+!@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_DATA, UNPACK_DATA
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, aN,oN, I,J
+
+      INTEGER, DIMENSION(aJM) :: aIMAXJ
+
+      REAL*8, INTENT(IN)  :: 
+     *  aA(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
+      REAL*8, INTENT(OUT) :: 
+     *  oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oA(:,:,oN) = aA(:,:,oN)
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA_glob(aIM,aJM,aN), STAT = IER)
+        ALLOCATE(oA_glob(oIM,oJM,oN), STAT = IER)
+      end if
+
+C***  Gather 3D array on atmospheric grid into the global array
+
+      CALL PACK_DATA (aGRID, aA, aA_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        aFtemp(:,:) = 0.
+        aFtemp(:,:) = aA_glob(:,:,oN)
+        aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+        call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+        oA_glob(:,:,oN) = oFtemp(:,:)
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_DATA (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_3Db
+
+      SUBROUTINE INT_AG2OG_3Dc(aA,oA,aWEIGHT, aN,oN,oNin)
+
+!@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_COLUMN, UNPACK_COLUMN
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, aN,oN, I,J, oNin 
+
+      INTEGER, DIMENSION(aJM) :: aIMAXJ
+
+      REAL*8, INTENT(IN)  :: 
+     *  aA(aN,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) :: 
+     *  oA(oN,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oA(oNin,:,:) = aA(oNin,:,:)
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA_glob(aN,aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(oN,oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 3D array on atmospheric grid into the global array
+
+      CALL PACK_COLUMN (aGRID, aA, aA_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        aFtemp(:,:) = 0.
+        aFtemp(:,:) = aA_glob(oNin,:,:)
+        aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+        call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+        oA_glob(oNin,:,:) = oFtemp(:,:)
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_COLUMN (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_3Dc
+
+      SUBROUTINE INT_AG2OG_4Da(aA,oA,aWEIGHT, NT, aN,oN)
+
+!@sum INT_AG2OG_4D is for conversion 4D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_BLOCK, UNPACK_BLOCK
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, NT,N, aN,oN, I,J 
+
+      INTEGER, DIMENSION(aJM) :: aIMAXJ
+
+      REAL*8, INTENT(IN)  :: 
+     *  aA(NT,aN,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) :: 
+     *  oA(NT,oN,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), oA_glob(:,:,:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oA(:,oN,:,:) = aA(:,oN,:,:)
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA_glob(NT,aN,aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(NT,oN,oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 4D array on atmospheric grid into the global array
+
+      CALL PACK_BLOCK (aGRID, aA, aA_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        DO N=1,NT
+          aFtemp(:,:) = 0.
+          aFtemp(:,:) = aA_glob(N,oN,:,:)
+          aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+          call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+          oA_glob(N,oN,:,:) = oFtemp(:,:)
+        END DO
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_BLOCK (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_4Da
+
+      SUBROUTINE INT_AG2OG_4Db(aA,oA,oB,aWEIGHT, NT, aN,oN)
+
+!@sum INT_AG2OG_4D is for conversion 4D arrays from atm. to the ocean grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_BLOCK, UNPACK_BLOCK
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, NT,N, aN,oN, I,J 
+
+      INTEGER, DIMENSION(aJM) :: aIMAXJ
+
+      REAL*8, INTENT(IN)  :: 
+     *  aA(NT,aN,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) :: 
+     *  oA(NT,oN,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aFOCEAN, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor
+      REAL*8, DIMENSION(oIM,oJM,NT) :: oB
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), oA_glob(:,:,:,:)
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aA_glob(NT,aN,aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(NT,oN,oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 4D array on atmospheric grid into the global array
+
+      CALL PACK_BLOCK (aGRID, aA, aA_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+
+        DO N=1,NT
+          aFtemp(:,:) = 0.
+          aFtemp(:,:) = aA_glob(N,oN,:,:)
+          aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
+          call HNTR8P (aWEIGHT, aFtemp, oFtemp)
+          oA_glob(N,oN,:,:) = oFtemp(:,:)
+          oB(:,:,N) = oA_glob(N,oN,:,:) 
+        END DO
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_BLOCK (ogrid, oA_glob, oA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob)
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_4Db
+
+      SUBROUTINE INT_AG2OG_Vector1(aU,aV, oU,oV, aWEIGHT,aFOCEAN,aIMAXJ, 
+     *           aSINI,aCOSI, oSINI,oCOSI, aN,oN) 
+
+!@sum INT_AG2OG_Vector1 is for conversion vector from atm. A grid to ocean A grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      USE GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_DATA, UNPACK_DATA
+      USE OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, I,J, aN,oN
+
+      INTEGER, DIMENSION(aJM) :: aIMAXJ
+
+      REAL*8, INTENT(IN)  ::  
+     *  aU(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
+     * ,aV(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
+      REAL*8, INTENT(OUT) ::
+     *  oU(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
+     * ,oV(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFOCEAN, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp 
+
+      REAL*8, DIMENSION(aIM) :: aSINI,aCOSI
+      REAL*8, DIMENSION(oIM) :: oSINI,oCOSI
+
+      REAL*8  aUsp, aVsp, aUnp, aVnp
+      REAL*8  oUsp, oVsp, oUnp, oVnp
+
+      REAL*8, ALLOCATABLE :: aU_glob(:,:,:),aV_glob(:,:,:)
+     *                      ,oU_glob(:,:,:),oV_glob(:,:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oU(:,:,oN) = aU(:,:,oN)
+        oV(:,:,oN) = aV(:,:,oN)
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aU_glob(aIM,aJM,aN), STAT = IER)
+        ALLOCATE(aV_glob(aIM,aJM,aN), STAT = IER)
+        ALLOCATE(oU_glob(oIM,oJM,oN), STAT = IER)
+        ALLOCATE(oV_glob(oIM,oJM,oN), STAT = IER)
+      end if
+
+C***  Gather 2D array on atmospheric grid into the global array
+
+      CALL PACK_DATA (aGRID, aU, aU_glob)
+      CALL PACK_DATA (aGRID, aV, aV_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        aUsp = aU_glob(1,1,oN)
+        aVsp = aV_glob(1,1,oN)
+        aUnp = aU_glob(1,aJM,oN)
+        aVnp = aV_glob(1,aJM,oN)
+
+        aFtemp(:,1  ) = aUsp*aCOSI(:) - aVsp*aSINI(:)
+        aFtemp(:,aJM) = aUnp*aCOSI(:) + aVnp*aSINI(:)
+
+        DO J=2,aJM-1
+        DO I=1,aIMAXJ(J)
+          IF (aFOCEAN(I,J).gt.0.) THEN
+            aFtemp(I,J) = aU_glob(I,J,oN)                !  kg/m s
+          END IF
+        END DO
+        END DO
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+        call HNTR8  (aWEIGHT, aFtemp, oU_glob)          !!  A-grid => A-grid
+
+        oUsp =  SUM(oU_glob(:,  1,oN)*oCOSI(:))*2/oIM
+        oVsp = -SUM(oU_glob(:,  1,oN)*oSINI(:))*2/oIM
+        oUnp =  SUM(oU_glob(:,oJM,oN)*oCOSI(:))*2/oIM
+        oVnp =  SUM(oU_glob(:,oJM,oN)*oSINI(:))*2/oIM
+
+        oU_glob(1,  1,oN) = oUsp
+        oU_glob(1,oJM,oN) = oUnp
+
+        aFtemp(:,  1) = aVsp*aCOSI(:) + aUsp*aSINI(:)
+        aFtemp(:,aJM) = aVnp*aCOSI(:) - aUnp*aSINI(:)
+
+        DO J=2,aJM-1
+          DO I=1,aIMAXJ(J)
+            IF (aFOCEAN(I,J).gt.0.) THEN
+              aFtemp(I,J) = aV_glob(I,J,oN)              !  kg/m s
+            END IF
+          END DO
+        END DO
+        call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
+        call HNTR8  (aWEIGHT, aFtemp, oV_glob)          !!  A-grid => A-grid
+
+        oV_glob(1,  1,oN) = oVsp
+        oV_glob(1,oJM,oN) = oVnp
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_DATA (ogrid, oU_glob, oU)
+      CALL UNPACK_DATA (ogrid, oV_glob, oV)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aU_glob,aV_glob, oU_glob,oV_glob)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_Vector1
+
+      SUBROUTINE INT_AG2OG_Vector2(aU,aV, oU,oV, aWEIGHT, IVSPO,IVNPO)
+
+!@sum INT_AG2OG_Vector2 is for conversion vector from atm. (U,V) grid to ocean (U,V) grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      USE GEOM,  only : aDLATM=>DLATM
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_DATA, UNPACK_DATA
+      USE OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, I,J, IVSPO,IVNPO
+
+      REAL*8, INTENT(IN)  ::  
+     *  aU(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+     * ,aV(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(OUT) ::
+     *  oU(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+     * ,oV(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
+      REAL*8, DIMENSION(oIM,oJM) :: oFtemp 
+
+      REAL*8, DIMENSION(aIM) :: aSINI,aCOSI
+      REAL*8, DIMENSION(oIM) :: oSINI,oCOSI
+
+      REAL*8  aUsp, aVsp, aUnp, aVnp
+      REAL*8  oUsp, oVsp, oUnp, oVnp
+
+      REAL*8, ALLOCATABLE :: aU_glob(:,:),aV_glob(:,:)
+     *                      ,oU_glob(:,:),oV_glob(:,:)
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+        oU(:,:) = aU(:,:)
+        oV(:,:) = aV(:,:)
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aU_glob(aIM,aJM), STAT = IER)
+        ALLOCATE(aV_glob(aIM,aJM), STAT = IER)
+        ALLOCATE(oU_glob(oIM,oJM), STAT = IER)
+        ALLOCATE(oV_glob(oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 2D array on atmospheric grid into the global array
+
+      CALL PACK_DATA (aGRID, aU, aU_glob)
+      CALL PACK_DATA (aGRID, aV, aV_glob)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        aUsp = 0.0 
+        aVsp = 0.0  
+        aUnp = 0.0  
+        aVnp = 0.0  
+
+        aFtemp(:,:)   = aU_glob(:,:)
+        aFtemp(:,aJM) = 0.0
+        call HNTR80 (aIM,aJM,.5d0,aDLATM, oIM,oJM,.5d0,oDLATM, 0.d0)
+        call HNTR8  (aWEIGHT, aFtemp, oU_glob)     !!  U-grid => U-grid
+
+
+        oUsp = 0.0  
+        oVsp = 0.0  
+        oUnp = 0.0   
+        oVnp = 0.0   
+
+        oU_glob(IVSPO,  1) = oUsp
+        oU_glob(  oIM,oJM) = oUnp
+        oU_glob(IVNPO,  1) = oUnp
+
+        call HNTR80 (aIM,aJM-1,0.d0,aDLATM, oIM,oJM-1,0.d0,oDLATM, 0.d0)
+        call HNTR8  (aWEIGHT, aV_glob, oV_glob)      !!  V-grid => V-grid
+        oV_glob(:,oJM) = 0.0                       !!  should not be used
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_DATA (ogrid, oU_glob, oU)
+      CALL UNPACK_DATA (ogrid, oV_glob, oV)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aU_glob,aV_glob, oU_glob,oV_glob)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_AG2OG_Vector2
 
       END MODULE INT_AG2OG_MOD
 
 #ifndef CUBE_GRID
-      SUBROUTINE INT_AG2OG_precip(aRSI_glob)
+      SUBROUTINE AG2OG_precip
 
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
 !!       arrays from atmospheric grid to the ocean grid
@@ -154,8 +755,10 @@ C***  Scatter global array oA_glob to the ocean grid
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
 
-      USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM
-      Use GEOM,  only : aDXYP, aDLATM=>DLATM
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid, PACK_DATA
+
+      USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
+      Use GEOM,  only : aDXYP, aDLATM=>DLATM, AXYP
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -177,60 +780,53 @@ C***  Scatter global array oA_glob to the ocean grid
 
       IMPLICIT NONE
 
-      INTEGER J
+      INTEGER N
 
-      REAL*8, INTENT(IN), DIMENSION(aIM,aJM) :: aRSI_glob
+      REAL*8, DIMENSION(aIM,aJM) :: aRSI_glob
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFactor, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFactor
+      REAL*8, DIMENSION(aIM,aJM) :: aWEIGHT
 
+      CALL PACK_DATA  (agrid, aRSI, aRSI_glob)
+C*
       aWEIGHT(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction
-      aFactor(:,:) = 1.d0
-      oFactor(:,:) = 1.d0
-      CALL INT_AG2OG(aPREC,oPREC, aWEIGHT, aFactor,oFactor)
+      CALL INT_AG2OG(aPREC,oPREC, aWEIGHT)
 
-      DO J = 1,oJM
-        oFactor(:,J) = oDXYPO(J)           
-      END DO
-      CALL INT_AG2OG(aEPREC,oEPREC, aWEIGHT, aFactor,oFactor)
+      CALL INT_AG2OG(aEPREC,oEPREC, aWEIGHT)
+      oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
       
       aWEIGHT(:,:) = aRSI_glob(:,:)  
-      aFactor(:,:) = 1.d0
-      oFactor(:,:) = 1.d0
-      CALL INT_AG2OG(aRUNPSI,oRUNPSI, aWEIGHT, aFactor,oFactor)
+      CALL INT_AG2OG(aRUNPSI,oRUNPSI, aWEIGHT)
 
-      DO J = 1,oJM
-        oFactor(:,J) = oDXYPO(J)           
-      END DO
-      CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT, aFactor,oFactor)
+      CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT)
+      oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
 
-      CALL INT_AG2OG(aERUNPSI,oERUNPSI, aWEIGHT, aFactor,oFactor)
+      CALL INT_AG2OG(aERUNPSI,oERUNPSI, aWEIGHT)
+      oERUNPSI(:,:) = oERUNPSI(:,:)*OXYP(:,:)
 
       aWEIGHT(:,:) = 1.d0
-      aFactor(:,:) = 1.d0
-      oFactor(:,:) = 1.d0
-      CALL INT_AG2OG(aRSI,oRSI, aWEIGHT, aFactor,oFactor)
+      CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
 
       aWEIGHT(:,:) = 1.- aRSI_glob(:,:) 
-      DO J = 1,aJM
-        aFactor(:,J) = 1./aDXYP(J)           
+      DO N=1,NTM
+        aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
-      DO J = 1,oJM
-        oFactor(:,J) = oDXYPO(J)           
+      CALL INT_AG2OG(aTRPREC,oTRPREC, aWEIGHT, NTM)
+      DO N=1,NTM
+        oTRPREC(N,:,:) = oTRPREC(N,:,:)*OXYP(:,:)
       END DO
-      CALL INT_AG2OG(aTRPREC,oTRPREC, aWEIGHT, aFactor,oFactor,NTM)
       
       aWEIGHT(:,:) = aRSI_glob(:,:)  
-      aFactor(:,:) = 1.d0
-      CALL INT_AG2OG(aTRUNPSI,oTRUNPSI, aWEIGHT, aFactor,oFactor,NTM)
+      CALL INT_AG2OG(aTRUNPSI,oTRUNPSI, aWEIGHT, NTM)
+      DO N=1,NTM
+        oTRUNPSI(N,:,:) = oTRUNPSI(N,:,:)*OXYP(:,:)
+      END DO
 #endif
 
       RETURN
-      END SUBROUTINE INT_AG2OG_precip
-#endif  
-!!  CUBE_GRID
+      END SUBROUTINE AG2OG_precip
+#endif  !!  CUBE_GRID
 
       SUBROUTINE OG2AG
 !@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates
@@ -296,6 +892,7 @@ C***  Scatter global array oA_glob to the ocean grid
       USE FLUXES, only : CHL
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
+      USE MODEL_COM,  only : nstep=>itime
       USE obio_com, only: pCO2_glob
 #endif
 
@@ -564,596 +1161,6 @@ C**** surface tracer concentration
       END SUBROUTINE scatter_ocean1
 
 #ifndef CUBE_GRID
-      SUBROUTINE INT_AG2OG_oceans(
-     *       aRSI_glob, aFLOWO_glob,aEFLOWO_glob
-     *     , aRUNOSI_glob,aSRUNOSI_glob,aERUNOSI_glob
-     *     , aMELTI_glob,aEMELTI_glob,aSMELTI_glob
-     *     , aAPRESS_glob,aSOLAR_glob,aE0_glob,aEVAPOR_glob
-     *     , aDMUA_glob, aDMVA_glob, aDMUI_glob, aDMVI_glob
-     *     , aGMELT_glob, aEGMELT_glob
-     *     , oRSI_glob, oFLOWO_glob,oEFLOWO_glob
-     *     , oRUNOSI_glob,oSRUNOSI_glob,oERUNOSI_glob
-     *     , oMELTI_glob,oEMELTI_glob,oSMELTI_glob
-     *     , oAPRESS_glob,oSOLAR_glob,oE0_glob,oEVAPOR_glob
-     *     , oDMUA_glob, oDMVA_glob, oDMUI_glob, oDMVI_glob
-     *     , oGMELT_glob, oEGMELT_glob
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-     *     , aTRFLOWO_glob, aTRUNOSI_glob
-     *     , aTRMELTI_glob, aTREVAPOR_glob
-     *     , oTRFLOWO_glob, oTRUNOSI_glob
-     *     , oTRMELTI_glob, oTREVAPOR_glob
-     *     , aTRGMELT_glob, oTRGMELT_glob
-#ifdef TRACERS_DRYDEP
-     *     , aTRDRYDEP_glob, oTRDRYDEP_glob
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-     *     , aTRGASEX_glob, oTRGASEX_glob
-#endif
-#ifdef OBIO_RAD_coupling
-     *     , avisdir_glob,ovisdir_glob
-     *     , asrvissurf_glob
-     *     , avisdif_glob,ovisdif_glob
-     *     , anirdir_glob,onirdir_glob
-     *     , anirdif_glob,onirdif_glob
-#endif
-#ifdef TRACERS_OceanBiology
-     *     , aCOSZ1_glob, osolz_glob
-     *     , awind_glob,  owind_glob
-#endif
-     *     )
-!@sum  INT_AG2OG is for interpolation of arrays from subr.GROUND_OC
-!!      from atmospheric grid to the ocean grid
-!@auth Larissa Nazarenko
-!@ver  1.0
-
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM
-      USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP, IVNPO=>IVNP
-      USE MODEL_COM, only : IVSPA=>IVSP, IVNPA=>IVNP
-
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#if defined (TRACERS_OceanBiology) && !defined (TRACERS_GASEXCH_ocean)
-      USE OCN_TRACER_COM, only: ntm
-#else
-      USE TRACER_COM, only: ntm
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      USE MODEL_COM, only: nstep=>itime
-      USE TRACER_GASEXCH_COM, only: tracflx_glob
-#endif
-
-      USE OCEAN, only : oDXYPO=>DXYPO, oFOCEAN=>FOCEAN, oIMAXJ=>IMAXJ,
-     *     oDLATM=>DLATM, oSINI=>SINIC, oCOSI=>COSIC,
-     *     oCOSU=>COSU,oSINU=>SINU
-      Use GEOM,  only : aDXYP, aIMAXJ=>IMAXJ,
-     *     aDLATM=>DLATM, aSINI=>SINIP, aCOSI=>COSIP,
-     *     aSINU=>SINU, aCOSU=>COSU
-
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
-
-      IMPLICIT NONE
-
-      INTEGER I,J, N
-
-!!!   Global arrays on atmospheric grid
-
-      INTEGER, PARAMETER :: NSTYPE=4
-
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) ::
-     *        aRSI_glob, aFLOWO_glob,aEFLOWO_glob
-     *      , aRUNOSI_glob, aSRUNOSI_glob, aERUNOSI_glob
-     *      , aMELTI_glob,aEMELTI_glob,aSMELTI_glob, aAPRESS_glob
-     *      , aDMUI_glob, aDMVI_glob, aGMELT_glob, aEGMELT_glob
-      REAL*8, INTENT(IN), DIMENSION(3,IMA,JMA) :: aSOLAR_glob
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA,NSTYPE) ::
-     *        aE0_glob, aEVAPOR_glob
-     *      , aDMUA_glob, aDMVA_glob
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      REAL*8, INTENT(IN), DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob
-     *      , aTRUNOSI_glob, aTRMELTI_glob, aTRGMELT_glob
-      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) ::
-     *        aTREVAPOR_glob
-#ifdef TRACERS_DRYDEP
-      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) ::
-     *        aTRDRYDEP_glob
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      REAL*8, INTENT(IN), DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
-#endif
-#ifdef TRACERS_OceanBiology
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: avisdir_glob
-     *    ,asrvissurf_glob
-     *    ,avisdif_glob,anirdir_glob,anirdif_glob
-#endif
-#ifdef TRACERS_OceanBiology
-      REAL*8, INTENT(IN), DIMENSION(IMA,JMA) :: aCOSZ1_glob,awind_glob
-#endif
-
-!!!   Global arrays on ocean grid
-
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) ::
-     *        oRSI_glob, oFLOWO_glob,oEFLOWO_glob
-     *      , oRUNOSI_glob, oSRUNOSI_glob, oERUNOSI_glob
-     *      , oMELTI_glob,oEMELTI_glob,oSMELTI_glob, oAPRESS_glob
-     *      , oDMUI_glob, oDMVI_glob, oGMELT_glob, oEGMELT_glob
-      REAL*8, INTENT(INOUT), DIMENSION(3,IMO,JMO) :: oSOLAR_glob
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO,1) ::
-     *        oE0_glob, oEVAPOR_glob
-     *      , oDMUA_glob, oDMVA_glob
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob
-     *      , oTRUNOSI_glob, oTRMELTI_glob, oTRGMELT_glob
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) ::
-     *        oTREVAPOR_glob
-#ifdef TRACERS_DRYDEP
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) ::
-     *        oTRDRYDEP_glob
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      REAL*8, INTENT(INOUT), DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
-#endif
-#ifdef OBIO_RAD_coupling
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: ovisdir_glob,
-     *   ovisdif_glob,onirdir_glob,onirdif_glob
-#endif
-#ifdef TRACERS_OceanBiology
-      REAL*8, INTENT(INOUT), DIMENSION(IMO,JMO) :: osolz_glob,owind_glob
-#endif
-      REAL*8, DIMENSION(IMA,JMA) :: aFtemp, aONES, aOOCN
-      REAL*8, DIMENSION(IMO,JMO) :: oFtemp
-      REAL*8  aDMUAsp, aDMVAsp, aDMUAnp, aDMVAnp
-      REAL*8  oDMUAsp, oDMVAsp, oDMUAnp, oDMVAnp
-      REAL*8  aDMUIsp, aDMVIsp, aDMUInp, aDMVInp
-      REAL*8  oDMUIsp, oDMVIsp, oDMUInp, oDMVInp
-      REAL*8  diff, SUM_oFtemp, SUM_aFtemp, SUM_aORIG
-
-      aONES(:,:) = 1.d0
-      aOOCN(:,:) = 1.d0 - aRSI_glob(:,:)
-
-      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
-
-      aFtemp(:,:) = aRSI_glob(:,:)
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oRSI_glob(:,:) = oFtemp(:,:)
-
-      aFtemp(:,:) = 0.
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aFLOWO_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oFLOWO_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEFLOWO_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oEFLOWO_glob(:,:) = oFtemp(:,:)                                 !  J/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oMELTI_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oEMELTI_glob(:,:) = oFtemp(:,:)                                 !  J/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aSMELTI_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oSMELTI_glob(:,:) = oFtemp(:,:)                                 !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aRUNOSI_glob(I,J)                           !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oRUNOSI_glob(:,:) = oFtemp(:,:)                                 !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aERUNOSI_glob(I,J)                          !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oERUNOSI_glob(:,:) = oFtemp(:,:)                                !  J/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aSRUNOSI_glob(I,J)                          !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oSRUNOSI_glob(:,:) = oFtemp(:,:)                                !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aE0_glob(I,J,1)                             !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aOOCN, aFtemp, oFtemp)
-      oE0_glob(:,:,1) = oFtemp(:,:)                                   !  J/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEVAPOR_glob(I,J,1)                         !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aOOCN, aFtemp, oFtemp)
-      oEVAPOR_glob(:,:,1) = oFtemp(:,:)                               !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aSOLAR_glob(1,I,J)                          !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aOOCN, aFtemp, oFtemp)
-      oSOLAR_glob(1,:,:) = oFtemp(:,:)                                !  J/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aSOLAR_glob(3,I,J)                          !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oSOLAR_glob(3,:,:) = oFtemp(:,:)                                !  J/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aAPRESS_glob(I,J)                           !  Pa
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oAPRESS_glob(:,:) = oFtemp(:,:)                                 !  Pa
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aGMELT_glob(I,J)/(aDXYP(I,J)*aFOCEAN(I,J))  !  kg/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oGMELT_glob(:,:) = oFtemp(:,:)                                  !  kg/m^2
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aEGMELT_glob(I,J)/aDXYP(I,J)                !  J/m^2
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oEGMELT_glob(:,J) = oFtemp(:,J)*oDXYPO(J)                     !  J
-      END DO
-
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRFLOWO_glob(N,I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRFLOWO_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRMELTI_glob(N,I,J)/(aDXYP(I,J)*aFOCEAN(I,J)) !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRMELTI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRUNOSI_glob(N,I,J)                           !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aRSI_glob, aFtemp, oFtemp)
-      oTRUNOSI_glob(N,:,:) = oFtemp(:,:)                                 !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTREVAPOR_glob(N,1,I,J)                        !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aOOCN, aFtemp, oFtemp)
-      oTREVAPOR_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
-      END DO
-
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRGMELT_glob(N,I,J)/aDXYP(I,J)                !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      DO J = 1,JMO
-        oTRGMELT_glob(N,:,J) = oFtemp(:,J)*oDXYPO(J)                     !  kg
-      END DO
-      END DO
-
-#ifdef TRACERS_DRYDEP
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRDRYDEP_glob(N,1,I,J)                        !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRDRYDEP_glob(N,1,:,:) = oFtemp(:,:)                              !  kg/m^2
-      END DO
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      DO N=1,NTM
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aTRGASEX_glob(N,1,I,J)                         !  kg/m^2
-          ELSE
-            aFtemp(I,J) = 0.
-          END IF
-        END DO
-      END DO
-
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aONES, aFtemp, oFtemp)
-      oTRGASEX_glob(N,1,:,:) = oFtemp(:,:)                               !  kg/m^2
-      tracflx_glob(:,:,N)=oTRGASEX_glob(N,1,:,:)
-      END DO
-  
-#endif
-
-#ifdef OBIO_RAD_coupling
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = avisdir_glob(I,J)
-     .                  * asrvissurf_glob(I,J)
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      ovisdir_glob(:,:) = oFtemp(:,:)
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = avisdif_glob(I,J)
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      ovisdif_glob(:,:) = oFtemp(:,:)
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = anirdir_glob(I,J)
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      onirdir_glob(:,:) = oFtemp(:,:)
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = anirdif_glob(I,J)
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      onirdif_glob(:,:) = oFtemp(:,:)
-#endif
-
-#ifdef TRACERS_OceanBiology
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aCOSZ1_glob(I,J)
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      osolz_glob(:,:) = oFtemp(:,:)
-      write(*,*)'OCNDYN, solz=',osolz_glob(16,45)
-
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = awind_glob(I,J)
-          END IF
-        END DO
-      END DO
-      aFtemp(2:IMA,JMA) = aFtemp(1,JMA)
-      call HNTR8P (aFOCEAN, aFtemp, oFtemp)
-      owind_glob(:,:) = oFtemp(:,:)
-#endif
-
-      aDMUAsp = aDMUA_glob(1,1,1)
-      aDMVAsp = aDMVA_glob(1,1,1)
-      aDMUAnp = aDMUA_glob(1,JMA,1)
-      aDMVAnp = aDMVA_glob(1,JMA,1)
-
-      aFtemp(:,1  ) = aDMUAsp*aCOSI(:) - aDMVAsp*aSINI(:)
-      aFtemp(:,JMA) = aDMUAnp*aCOSI(:) + aDMVAnp*aSINI(:)
-
-      DO J=2,JMA-1
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aDMUA_glob(I,J,1)                           !  kg/m s
-          END IF
-        END DO
-      END DO
-      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
-      call HNTR8  (aONES, aFtemp, oDMUA_glob)          !!  A-grid => A-grid
-
-      oDMUAsp =  SUM(oDMUA_glob(:,  1,1)*oCOSI(:))*2/IMO
-      oDMVAsp = -SUM(oDMUA_glob(:,  1,1)*oSINI(:))*2/IMO
-      oDMUAnp =  SUM(oDMUA_glob(:,JMO,1)*oCOSI(:))*2/IMO
-      oDMVAnp =  SUM(oDMUA_glob(:,JMO,1)*oSINI(:))*2/IMO
-
-      oDMUA_glob(1,  1,1) = oDMUAsp
-      oDMUA_glob(1,JMO,1) = oDMUAnp
-
-      aFtemp(:,  1) = aDMVAsp*aCOSI(:) + aDMUAsp*aSINI(:)
-      aFtemp(:,JMA) = aDMVAnp*aCOSI(:) - aDMUAnp*aSINI(:)
-
-      DO J=2,JMA-1
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aFtemp(I,J) = aDMVA_glob(I,J,1)                           !  kg/m s
-          END IF
-        END DO
-      END DO
-      call HNTR80 (IMA,JMA,0.d0,aDLATM, IMO,JMO,0.d0,oDLATM, 0.d0)
-      call HNTR8  (aONES, aFtemp, oDMVA_glob)          !!  A-grid => A-grid
-
-      oDMVA_glob(1,  1,1) = oDMVAsp
-      oDMVA_glob(1,JMO,1) = oDMVAnp
-
-      aDMUIsp = 0.0  !!  aDMUI_glob(  IMA,  1)
-      aDMVIsp = 0.0  !!  aDMVI_glob(IVSPA,  1)
-      aDMUInp = 0.0  !!  aDMUI_glob(  IMA,JMA)
-      aDMVInp = 0.0  !!  aDMVI_glob(IVNPA,JMA)
-
-      aFtemp(:,:)   = aDMUI_glob(:,:)
-      aFtemp(:,JMA) = 0.0
-      call HNTR80 (IMA,JMA,.5d0,aDLATM, IMO,JMO,.5d0,oDLATM, 0.d0)
-      call HNTR8  (aONES, aFtemp, oDMUI_glob)          !!  U-grid => U-grid
-
-      oDMUIsp = 0.0  !!   SUM(oDMUI_glob(:,  1)*oCOSU(:))*2/IMO
-      oDMVIsp = 0.0  !!  -SUM(oDMUI_glob(:,  1)*oSINU(:))*2/IMO
-      oDMUInp = 0.0  !!   SUM(oDMUI_glob(:,JMO)*oCOSU(:))*2/IMO
-      oDMVInp = 0.0  !!   SUM(oDMUI_glob(:,JMO)*oSINU(:))*2/IMO
-
-      oDMUI_glob(  IMO,  1) = oDMUIsp
-      oDMUI_glob(IVSPO,  1) = oDMUIsp
-      oDMUI_glob(  IMO,JMO) = oDMUInp
-      oDMUI_glob(IVNPO,  1) = oDMUInp
-
-      call HNTR80 (IMA,JMA-1,0.d0,aDLATM, IMO,JMO-1,0.d0,oDLATM, 0.d0)
-      call HNTR8  (aONES, aDMVI_glob, oDMVI_glob)      !!  V-grid => V-grid
-      oDMVI_glob(:,JMO) = 0.0                          !!  should not be used
-
-      RETURN
-      END SUBROUTINE INT_AG2OG_oceans
-#endif
-
-#ifndef CUBE_GRID
       SUBROUTINE INT_OG2AG_oceans(
      *       oDMSI_glob, oDHSI_glob, oDSSI_glob
      *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
@@ -1300,21 +1307,22 @@ C**** do something in here
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : IMA=>IM, JMA=>JM
+      USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : IMO=>IM,JMO=>JM
+      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
+     *                , oDXYPO=>DXYPO, OXYP
+     *                , oSINI=>SINIC, oCOSI=>COSIC
+     *                , IVSPO=>IVSP,IVNPO=>IVNP
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 #ifdef TRACERS_OceanBiology
-      USE OCN_TRACER_COM, only: ntm
+      USE OCN_TRACER_COM, only: NTM 
 #else
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: NTM 
 #endif
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid, AM_I_ROOT
-     *     , PACK_DATA,UNPACK_DATA, PACK_COLUMN, UNPACK_COLUMN
-     *     , PACK_BLOCK, UNPACK_BLOCK
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid, PACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
@@ -1337,6 +1345,7 @@ C**** do something in here
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : aTRGASEX=>TRGASEX
+      USE TRACER_GASEXCH_COM, only: tracflx_glob
 #endif
 #ifdef OBIO_RAD_coupling
       USE RAD_COM, only : avisdir    => FSRDIR
@@ -1377,214 +1386,211 @@ C**** do something in here
       USE obio_forc, only : owind
 #endif
 
+      Use GEOM,  only : aDXYP, aIMAXJ=>IMAXJ, aSINI=>SINIP,aCOSI=>COSIP
+     *                , AXYP
+
+      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
+
+      USE INT_AG2OG_MOD, only : INT_AG2OG
+
       IMPLICIT NONE
 
-!!!   Global arrays on atmospheric grid
-
       INTEGER, PARAMETER :: NSTYPE=4
-      REAL*8, DIMENSION(IMA,JMA) :: aRSI_glob, aFLOWO_glob,aEFLOWO_glob
-     *      , aRUNOSI_glob, aSRUNOSI_glob, aERUNOSI_glob, aAPRESS_glob
-     *      , aMELTI_glob, aEMELTI_glob, aSMELTI_glob
-     *      , aDMUI_glob, aDMVI_glob, aGMELT_glob, aEGMELT_glob
-      REAL*8, DIMENSION(3,IMA,JMA) :: aSOLAR_glob
-      REAL*8, DIMENSION(IMA,JMA,NSTYPE) :: aE0_glob, aEVAPOR_glob
-     *      , aDMUA_glob, aDMVA_glob
+      INTEGER I,J, N
+      INTEGER aJ_0,aJ_1, aI_0,aI_1
+      INTEGER oJ_0,oJ_1
+
+      REAL*8, DIMENSION(aIM,aJM) :: aFactor, aWEIGHT, aRSI_glob
+      REAL*8, DIMENSION(oIM,oJM) :: oFactor
+
+      REAL*8, 
+     * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,aGRID%J_STRT:aGRID%J_STOP)::
+     * aFact
+
+      aJ_0 = aGRID%j_STRT
+      aJ_1 = aGRID%j_STOP
+      aI_0 = aGRID%I_STRT
+      aI_1 = aGRID%I_STOP
+
+      oJ_0 = oGRID%j_STRT
+      oJ_1 = oGRID%j_STOP
+
+      CALL PACK_DATA  (aGRID, aRSI, aRSI_glob)
+
+      aWEIGHT(:,:) = 1.d0
+      CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
+            aFLOWO(I,J) = aFLOWO(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aFLOWO,oFLOWO, aWEIGHT) 
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aEFLOWO(I,J) = aEFLOWO(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aEFLOWO,oEFLOWO, aWEIGHT) 
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aMELTI(I,J) = aMELTI(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aMELTI,oMELTI, aWEIGHT) 
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aEMELTI(I,J) = aEMELTI(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aEMELTI,oEMELTI, aWEIGHT) 
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aSMELTI(I,J) = aSMELTI(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aSMELTI,oSMELTI, aWEIGHT) 
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aGMELT(I,J) = aGMELT(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aGMELT,oGMELT, aWEIGHT) 
+
+      DO J=aJ_0,aJ_1
+        DO I=aI_0,aIMAXJ(J)
+          IF (aFOCEAN_loc(I,J).gt.0.) THEN
+            aFact(I,J) = 1.d0/AXYP(I,J)
+            aEGMELT(I,J) = aEGMELT(I,J)*aFact(I,J)
+          END IF
+        END DO
+      END DO
+      CALL INT_AG2OG(aEGMELT,oEGMELT, aWEIGHT) 
+      oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
+
+      aWEIGHT(:,:) = aRSI_glob(:,:)
+      CALL INT_AG2OG(aRUNOSI,oRUNOSI, aWEIGHT) 
+
+      CALL INT_AG2OG(aERUNOSI,oERUNOSI, aWEIGHT) 
+
+      CALL INT_AG2OG(aSRUNOSI,oSRUNOSI, aWEIGHT) 
+
+      aWEIGHT(:,:) = 1.d0
+      CALL INT_AG2OG(aAPRESS,oAPRESS, aWEIGHT) 
+
+      aWEIGHT(:,:) = 1.d0 - aRSI_glob(:,:)
+      CALL INT_AG2OG(aE0,oE0, aWEIGHT, NSTYPE,1) 
+
+      CALL INT_AG2OG(aEVAPOR,oEVAPOR, aWEIGHT, NSTYPE,1) 
+
+      CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,1) 
+
+      aWEIGHT(:,:) = aRSI_glob(:,:)
+      CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,3) 
+
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,IMA,JMA) :: aTRFLOWO_glob
-     *      , aTRUNOSI_glob, aTRMELTI_glob, aTRGMELT_glob
-      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTREVAPOR_glob
+      aWEIGHT(:,:) = 1.d0
+      DO N=1,NTM
+        DO J=aJ_0,aJ_1
+          DO I=aI_0,aIMAXJ(J)
+            IF (aFOCEAN_loc(I,J).gt.0.) THEN
+              aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
+              aTRFLOWO(N,I,J) = aTRFLOWO(N,I,J)*aFact(I,J)
+            END IF
+          END DO
+        END DO
+      END DO
+      CALL INT_AG2OG(aTRFLOWO,oTRFLOWO, aWEIGHT, NTM)
+
+      DO N=1,NTM
+        DO J=aJ_0,aJ_1
+          DO I=aI_0,aIMAXJ(J)
+            IF (aFOCEAN_loc(I,J).gt.0.) THEN
+              aTRMELTI(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
+            END IF
+          END DO
+        END DO
+      END DO
+      CALL INT_AG2OG(aTRMELTI,oTRMELTI, aWEIGHT, NTM) 
+
+      aWEIGHT(:,:) = aRSI_glob(:,:)
+      CALL INT_AG2OG(aTRUNOSI,oTRUNOSI, aWEIGHT, NTM) 
+
+      aWEIGHT(:,:) = 1.d0
+      DO N=1,NTM
+        DO J=aJ_0,aJ_1
+          DO I=aI_0,aIMAXJ(J)
+            IF (aFOCEAN_loc(I,J).gt.0.) THEN
+              aFact(I,J) = 1.d0/AXYP(I,J)
+              aTRGMELT(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
+            END IF
+          END DO
+        END DO
+      END DO
+      CALL INT_AG2OG(aTRGMELT,oTRGMELT, aWEIGHT, NTM)  
+      DO N=1,NTM
+        oTRGMELT(N,:,:) = oTRGMELT(N,:,:)*OXYP(:,:)
+      END DO
+
+      aWEIGHT(:,:) = 1.d0 - aRSI_glob(:,:)
+      CALL INT_AG2OG(aTREVAPOR,oTREVAPOR, aWEIGHT, NTM, NSTYPE,1) 
+
 #ifdef TRACERS_DRYDEP
-      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRDRYDEP_glob
+      aWEIGHT(:,:) = 1.d0
+      CALL INT_AG2OG(aTRDRYDEP,oTRDRYDEP, aWEIGHT, NTM, NSTYPE,1) 
 #endif
 #endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      REAL*8, DIMENSION(NTM,NSTYPE,IMA,JMA) :: aTRGASEX_glob
+      aWEIGHT(:,:) = 1.d0
+      CALL INT_AG2OG(aTRGASEX,oTRGASEX, tracflx_glob, aWEIGHT  
+     *             , NTM, NSTYPE,1) 
 #endif
+
 #ifdef OBIO_RAD_coupling
-      REAL*8, DIMENSION(IMA,JMA) :: avisdir_glob
-     *                             ,asrvissurf_glob,avisdif_glob
-     *                             ,anirdir_glob,anirdif_glob
+      aWEIGHT(:,:) = aFOCEAN(:,:)
+      CALL INT_AG2OG(aVISDIR,aSRVISSURF,oVISDIR, aWEIGHT)  
+
+      CALL INT_AG2OG(aVISDIF,oVISDIF, aWEIGHT)   
+
+      CALL INT_AG2OG(aNIRDIR,oNIRDIR, aWEIGHT)   
+
+      CALL INT_AG2OG(aNIRDIF,oNIRDIF, aWEIGHT)   
 #endif
+
 #ifdef TRACERS_OceanBiology
-      REAL*8, DIMENSION(IMA,JMA) :: aCOSZ1_glob, awind_glob
+      aWEIGHT(:,:) = aFOCEAN(:,:)
+      CALL INT_AG2OG(aCOSZ1,oSOLZ, aWEIGHT)   
+
+      CALL INT_AG2OG(aWIND,oWIND, aWEIGHT)   
 #endif
 
-!!!   Global arrays on ocean grid
+      aWEIGHT(:,:) = 1.d0
+      CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN,aIMAXJ,    
+     *               aSINI,aCOSI, oSINI,oCOSI, NSTYPE,1) 
 
-      REAL*8, DIMENSION(IMO,JMO) :: oRSI_glob, oFLOWO_glob,oEFLOWO_glob
-     *      , oRUNOSI_glob, oSRUNOSI_glob, oERUNOSI_glob, oAPRESS_glob
-     *      , oMELTI_glob, oEMELTI_glob, oSMELTI_glob
-     *      , oDMUI_glob, oDMVI_glob, oGMELT_glob, oEGMELT_glob
-      REAL*8, DIMENSION(3,IMO,JMO) :: oSOLAR_glob
-      REAL*8, DIMENSION(IMO,JMO,1) :: oE0_glob, oEVAPOR_glob
-     *      , oDMUA_glob, oDMVA_glob
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      REAL*8, DIMENSION(NTM,IMO,JMO) :: oTRFLOWO_glob
-     *      , oTRUNOSI_glob, oTRMELTI_glob, oTRGMELT_glob
-      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTREVAPOR_glob
-#ifdef TRACERS_DRYDEP
-      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRDRYDEP_glob
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      REAL*8, DIMENSION(NTM,1,IMO,JMO) :: oTRGASEX_glob
-#endif
-#ifdef OBIO_RAD_coupling
-      REAL*8, DIMENSION(IMO,JMO) :: ovisdir_glob,
-     *  ovisdif_glob,onirdir_glob,onirdif_glob
-#endif
-#ifdef TRACERS_OceanBiology
-      REAL*8, DIMENSION(IMO,JMO) :: osolz_glob, owind_glob
-#endif
+      CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)    
 
-
-C***  Gather arrays on atmospheric grid into the global arrays
-
-      CALL PACK_DATA  (agrid,     aRSI,     aRSI_glob)
-      CALL PACK_DATA  (agrid,   aFLOWO,   aFLOWO_glob)
-      CALL PACK_DATA  (agrid,  aEFLOWO,  aEFLOWO_glob)
-      CALL PACK_DATA  (agrid,  aRUNOSI,  aRUNOSI_glob)
-      CALL PACK_DATA  (agrid, aSRUNOSI, aSRUNOSI_glob)
-      CALL PACK_DATA  (agrid, aERUNOSI, aERUNOSI_glob)
-      CALL PACK_DATA  (agrid,  aAPRESS,  aAPRESS_glob)
-      CALL PACK_DATA  (agrid,   aMELTI,   aMELTI_glob)
-      CALL PACK_DATA  (agrid,  aEMELTI,  aEMELTI_glob)
-      CALL PACK_DATA  (agrid,  aSMELTI,  aSMELTI_glob)
-      CALL PACK_COLUMN(agrid,   aSOLAR,   aSOLAR_glob)
-      CALL PACK_DATA  (agrid,      aE0,      aE0_glob)
-      CALL PACK_DATA  (agrid,  aEVAPOR,  aEVAPOR_glob)
-      CALL PACK_DATA  (agrid,    aDMUA,    aDMUA_glob)
-      CALL PACK_DATA  (agrid,    aDMVA,    aDMVA_glob)
-      CALL PACK_DATA  (agrid,    aDMUI,    aDMUI_glob)
-      CALL PACK_DATA  (agrid,    aDMVI,    aDMVI_glob)
-      CALL PACK_DATA  (agrid,   aGMELT,   aGMELT_glob)
-      CALL PACK_DATA  (agrid,  aEGMELT,  aEGMELT_glob)
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      CALL PACK_COLUMN(agrid,  aTRGMELT,  aTRGMELT_glob)
-      CALL PACK_COLUMN(agrid,  aTRFLOWO,  aTRFLOWO_glob)
-      CALL PACK_COLUMN(agrid,  aTRUNOSI,  aTRUNOSI_glob)
-      CALL PACK_COLUMN(agrid,  aTRMELTI,  aTRMELTI_glob)
-      CALL PACK_BLOCK (agrid, aTREVAPOR, aTREVAPOR_glob)
-#ifdef TRACERS_DRYDEP
-      CALL PACK_BLOCK (agrid, aTRDRYDEP, aTRDRYDEP_glob)
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      CALL PACK_BLOCK (agrid,  aTRGASEX,  aTRGASEX_glob)
-#endif
-#ifdef OBIO_RAD_coupling
-      CALL PACK_DATA  (agrid, avisdir, avisdir_glob)
-      CALL PACK_DATA  (agrid, asrvissurf, asrvissurf_glob)
-      CALL PACK_DATA  (agrid, avisdif, avisdif_glob)
-      CALL PACK_DATA  (agrid, anirdir, anirdir_glob)
-      CALL PACK_DATA  (agrid, anirdif, anirdif_glob)
-#endif
-#ifdef TRACERS_OceanBiology
-      CALL PACK_DATA  (agrid,  aCOSZ1,  aCOSZ1_glob)
-      CALL PACK_DATA  (agrid,   awind,   awind_glob)
-#endif
-C*
-C***  Do interpolation to the ocean grid
-C*
-      if(AM_I_ROOT()) then
-#ifndef CUBE_GRID
-        call INT_AG2OG_oceans(
-     *       aRSI_glob, aFLOWO_glob,aEFLOWO_glob
-     *     , aRUNOSI_glob,aSRUNOSI_glob,aERUNOSI_glob
-     *     , aMELTI_glob,aEMELTI_glob,aSMELTI_glob
-     *     , aAPRESS_glob,aSOLAR_glob,aE0_glob,aEVAPOR_glob
-     *     , aDMUA_glob, aDMVA_glob, aDMUI_glob, aDMVI_glob
-     *     , aGMELT_glob, aEGMELT_glob
-     *     , oRSI_glob, oFLOWO_glob,oEFLOWO_glob
-     *     , oRUNOSI_glob,oSRUNOSI_glob,oERUNOSI_glob
-     *     , oMELTI_glob,oEMELTI_glob,oSMELTI_glob
-     *     , oAPRESS_glob,oSOLAR_glob,oE0_glob,oEVAPOR_glob
-     *     , oDMUA_glob, oDMVA_glob, oDMUI_glob, oDMVI_glob
-     *     , oGMELT_glob, oEGMELT_glob
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-     *     , aTRFLOWO_glob, aTRUNOSI_glob
-     *     , aTRMELTI_glob, aTREVAPOR_glob
-     *     , oTRFLOWO_glob, oTRUNOSI_glob
-     *     , oTRMELTI_glob, oTREVAPOR_glob
-     *     , aTRGMELT_glob, oTRGMELT_glob
-#ifdef TRACERS_DRYDEP
-     *     , aTRDRYDEP_glob, oTRDRYDEP_glob
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-     *     , aTRGASEX_glob, oTRGASEX_glob
-#endif
-#ifdef OBIO_RAD_coupling
-     *     , avisdir_glob,ovisdir_glob
-     *     , asrvissurf_glob
-     *     , avisdif_glob,ovisdif_glob
-     *     , anirdir_glob,onirdir_glob
-     *     , anirdif_glob,onirdif_glob
-#endif
-#ifdef TRACERS_OceanBiology
-     *     , aCOSZ1_glob, osolz_glob
-     *     ,  awind_glob, owind_glob
-#endif
-     *     )
-#endif
-      end if
-
-C***  Scatter the arrays to the ocean grid
-
-      CALL UNPACK_DATA  (ogrid,     oRSI_glob,     oRSI)
-      CALL UNPACK_DATA  (ogrid,   oFLOWO_glob,   oFLOWO)
-      CALL UNPACK_DATA  (ogrid,  oEFLOWO_glob,  oEFLOWO)
-      CALL UNPACK_DATA  (ogrid,  oRUNOSI_glob,  oRUNOSI)
-      CALL UNPACK_DATA  (ogrid, oSRUNOSI_glob, oSRUNOSI)
-      CALL UNPACK_DATA  (ogrid, oERUNOSI_glob, oERUNOSI)
-      CALL UNPACK_DATA  (ogrid,  oAPRESS_glob,  oAPRESS)
-      CALL UNPACK_DATA  (ogrid,   oMELTI_glob,   oMELTI)
-      CALL UNPACK_DATA  (ogrid,  oEMELTI_glob,  oEMELTI)
-      CALL UNPACK_DATA  (ogrid,  oSMELTI_glob,  oSMELTI)
-      CALL UNPACK_COLUMN(ogrid,   oSOLAR_glob,   oSOLAR)
-      CALL UNPACK_DATA  (ogrid,      oE0_glob,      oE0)
-      CALL UNPACK_DATA  (ogrid,  oEVAPOR_glob,  oEVAPOR)
-      CALL UNPACK_DATA  (ogrid,    oDMUA_glob,    oDMUA)
-      CALL UNPACK_DATA  (ogrid,    oDMVA_glob,    oDMVA)
-      CALL UNPACK_DATA  (ogrid,    oDMUI_glob,    oDMUI)
-      CALL UNPACK_DATA  (ogrid,    oDMVI_glob,    oDMVI)
-      CALL UNPACK_DATA  (ogrid,   oGMELT_glob,   oGMELT)
-      CALL UNPACK_DATA  (ogrid,  oEGMELT_glob,  oEGMELT)
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      CALL UNPACK_COLUMN(ogrid,  oTRGMELT_glob,  oTRGMELT)
-      CALL UNPACK_COLUMN(ogrid,  oTRFLOWO_glob,  oTRFLOWO)
-      CALL UNPACK_COLUMN(ogrid,  oTRUNOSI_glob,  oTRUNOSI)
-      CALL UNPACK_COLUMN(ogrid,  oTRMELTI_glob,  oTRMELTI)
-      CALL UNPACK_BLOCK (ogrid, oTREVAPOR_glob, oTREVAPOR)
-#ifdef TRACERS_DRYDEP
-      CALL UNPACK_BLOCK (ogrid, oTRDRYDEP_glob, oTRDRYDEP)
-#endif
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      CALL UNPACK_BLOCK (ogrid,  oTRGASEX_glob,  oTRGASEX)
-#endif
-#ifdef OBIO_RAD_coupling
-      CALL UNPACK_DATA  (ogrid,ovisdir_glob,ovisdir)
-      CALL UNPACK_DATA  (ogrid,ovisdif_glob,ovisdif)
-      CALL UNPACK_DATA  (ogrid,onirdir_glob,onirdir)
-      CALL UNPACK_DATA  (ogrid,onirdif_glob,onirdif)
-#endif
-#ifdef TRACERS_OceanBiology
-      CALL UNPACK_DATA  (ogrid,  osolz_glob,  osolz)
-      CALL UNPACK_DATA  (ogrid,  owind_glob,  owind)
-#endif
-
-      RETURN
       END SUBROUTINE AG2OG_oceans
 
       SUBROUTINE OG2AG_oceans
