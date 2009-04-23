@@ -892,7 +892,6 @@ C*
       USE FLUXES, only : CHL
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE MODEL_COM,  only : nstep=>itime
       USE obio_com, only: pCO2_glob
 #endif
 
