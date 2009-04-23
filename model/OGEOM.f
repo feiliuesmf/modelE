@@ -15,8 +15,8 @@ C****
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
      *                 J1O, JMPF=>J40S, IMAXJ
      *               , oDLAT_DG, oLAT_DG, oLON_DG
-     *               , OXYP 
-
+     *               , OXYP,oLAT2D_DG 
+      USE DOMAIN_DECOMP_1D, only : halo_update
       USE OCEANR_DIM, only : oGRID
 
       Implicit None
@@ -105,8 +105,12 @@ C****
       do j=j_0h,j_1h
       do i=i_0h,i_1h
         oxyp(i,j) = dxyp(j)
+        olat2d_dg(i,j)=olat_dg(j,1)
       enddo
       enddo
+
+      call halo_update(ogrid,oxyp)
+      call halo_update(ogrid,olat2d_dg)
 C****
       Do 30 J=1,JM-1
    30 DXYVO(J) = DXYN(J) + DXYS(J+1)
@@ -148,6 +152,9 @@ C**** Conditions at non-polar points
       DO J=2,JM-1
         IMAXJ(J)=IM
       END DO
+
+      call set_oj_budg
+      call set_owtbudg
 
       Return
       End

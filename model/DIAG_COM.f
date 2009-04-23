@@ -1614,7 +1614,7 @@ c temporary variant of inc_ajl without any weighting
 
       subroutine set_zzarea()
 !@sum  pre-computes area of zig-zag bands accross processors. Several
-!@+    processos can contribute to same zig-zag band  
+!@+    processors can contribute to same zig-zag band  
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : axypband_loc,axypband,JM_BUDG

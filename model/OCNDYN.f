@@ -284,7 +284,7 @@ C***  Get the data from the ocean grid to the atmospheric grid
       END SUBROUTINE OCEANS
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
-!@sum init_OCEAN initiallises ocean variables
+!@sum init_OCEAN initializes ocean variables
 !@auth Original Development Team
 !@ver  1.0
       USE FILEMANAGER, only : openunit,closeunit
@@ -1378,308 +1378,249 @@ C****
 C****
       END SUBROUTINE CHECKO
 
-#ifndef CUBE_GRID
-      Subroutine CONSERV_OMS (aOMASS)
+      Subroutine CONSERV_OMS (OMASS)
 C****
-!@sum   CONSERV_OMS calculates zonal ocean mass (kg/m^2) on atmo-grid
-!@auth  Gavin Schmidt
-!@ver   2008/12/22
+!@sum   CONSERV_OMS calculates zonal ocean mass (kg/m^2) on ocean grid
+!@auth  Gavin Schmidt/G. Russell/D. Gueyffier
+!@ver   2009/04/23
 C****
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM
-
-      USE OCEAN, only : IMO=>IM,JMO=>JM
-     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, MO
-
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET, SOUTH, HALO_UPDATE
-
-      Use STRAITS,       Only: NMST,JST,LMST, MMST
-c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM,MO,imaxj
+      Use STRAITS,       Only: NMST,IST,JST,LMST,MMST
       Use OCEANR_DIM,    Only: oGRID
+      USE DOMAIN_DECOMP_1D, only : GET
       Implicit None
 !@var aOMASS zonal ocean mass per whole latitude band area (kg/m^2)
-      Real*8    :: oOMASS(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     *             aOMASS(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-      Integer*4 :: J1O,JNO, I,J,N
+      Real*8    :: OMASS(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      Integer*4 :: J_0,J_1,I,J,N
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
-      Do J=Max(J1O,2),Min(JNO,JMO-1)
-        oOMASS(J) = 0
-        Do I=1,IMO
-          oOMASS(J) = oOMASS(J) + Sum(MO(I,J,:LMM(I,J)))
-        EndDo
-        oOMASS(J) = oOMASS(J)/IMO
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
+
+      Do J=J_0,J_1
+         Do I=1,IMAXJ(J)
+            OMASS(I,J) = Sum(MO(I,J,:LMM(I,J)))
+
+         EndDo
       EndDo
-      If (J1O == 1)    oOMASS(1)   = Sum(MO(1,1  ,:LMM(1,1)))
-      If (JNO == JMO)  oOMASS(JMO) = Sum(MO(1,JMO,:LMM(1,JMO)))
-C**** Include ocean mass of straits
+      
+      IF(HAVE_SOUTH_POLE) OMASS(2:IMO,1)   = OMASS(1,1)
+      IF(HAVE_NORTH_POLE) OMASS(2:IMO,JMO) = OMASS(1,JMO)
+
+C**** Include ocean mass of straits 
       Do N=1,NMST
-        J = JST(N,1)
-        If (J >= J1O .and. J <= JNO)
-     *    oOMASS(J) = oOMASS(J) + Sum(MMST(:LMST(N),N))*ozDXYP(J)
+         I = IST(N,1)
+         J = JST(N,1)
+        If (J >= J_0 .and. J <= J_1) 
+     &        OMASS(I,J) = OMASS(I,J) + Sum(MMST(:LMST(N),N))
+     &                                     /oXYP(I,J)
       EndDo
-C**** Interpolate data from ocean resolution to atmosphere resolution
-      Call OJtoAJ (oOMASS,aOMASS)
-      Return
+
       End Subroutine CONSERV_OMS
 
-      Subroutine CONSERV_OSL (aOSALT)
+      Subroutine CONSERV_OSL (OSALT)
 C****
-!@sum   CONSERV_OSL calculates zonal ocean salt (kg/m^2) on atmo-grid
-!@auth  Gavin Schmidt
-!@ver   2008/12/22
+!@sum   CONSERV_OSL calculates ocean salt (kg/m^2) on ocean grid
+!@auth  Gavin Schmidt/G. Russell/D. Gueyffier
+!@ver   2009/04/23
 C****
-      USE OCEAN, only : IMO=>IM,JMO=>JM
-     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, S0M
-
-      Use STRAITS,       Only: NMST,JST,LMST, S0MST
-c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
-      USE DOMAIN_DECOMP_1D, only : GET, aGRID=>GRID
-      Use OCEANR_DIM,    Only: oGRID
+      USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, S0M, imaxj
+      Use STRAITS,       Only: NMST,IST,JST,LMST, S0MST
+      USE DOMAIN_DECOMP_1D, only : GET
+      Use OCEANR_DIM,    only: oGRID
       Implicit None
-!@var aOSALT zonal ocean salt per whole latitude band area (kg/m^2)
-      Real*8    :: oOSALT(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     *             aOSALT(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-      Integer*4 :: J1O,JNO, I,J,N
+!@var OSALT zonal ocean salt per whole latitude band area (kg/m^2)
+      Real*8    :: OSALT(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      Integer*4 :: J_0,J_1,I,J,N
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
-      Do J=Max(J1O,2),Min(JNO,JMO-1)
-        oOSALT(J) = 0
-        Do I=1,IMO
-          oOSALT(J) = oOSALT(J) + Sum(S0M(I,J,:LMM(I,J)))
-        EndDo
-        oOSALT(J) = oOSALT(J) / IMO
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
+
+      Do J=J_0,J_1
+         Do I=1,IMAXJ(J)
+            OSALT(I,J) = Sum(S0M(I,J,:LMM(I,J)))/oXYP(I,J)
+         EndDo
       EndDo
-      If (J1O == 1)    oOSALT(1)   = Sum(S0M(1,1  ,:LMM(1,1)))
-      If (JNO == JMO)  oOSALT(JMO) = Sum(S0M(1,JMO,:LMM(1,JMO)))
+      
+      IF(HAVE_SOUTH_POLE) OSALT(2:IMO,1)   = OSALT(1,1)
+      IF(HAVE_NORTH_POLE) OSALT(2:IMO,JMO) = OSALT(1,JMO)
+
 C**** Include ocean salt of straits
       Do N=1,NMST
+        I = IST(N,1)
         J = JST(N,1)
-        If (J >= J1O .and. J <= JNO)
-     *    oOSALT(J) = oOSALT(J) + Sum(S0MST(:LMST(N),N))
+        If (J >= J_0 .and. J <= J_1)
+     &    OSALT(I,J) = OSALT(I,J) + Sum(S0MST(:LMST(N),N))/oXYP(I,J)                
       EndDo
-C**** Divide salt (kg per cell) by grid cell area
-      oOSALT(J1O:JNO) = oOSALT(J1O:JNO) * ozDXYP(J1O:JNO)
-C**** Interpolate data from ocean resolution to atmosphere resolution
-      Call OJtoAJ (oOSALT,aOSALT)
-      Return
+
       End Subroutine CONSERV_OSL
 
-      Subroutine CONSERV_OCE (aOCEANE)
-C****
-!@sum   CONSERV_OCE calculates zonal ocean potential enthalpy (J/m^2)
-!@auth  Gavin Schmidt
-!@ver   2008/12/22
-C****
-      USE OCEAN, only : IMO=>IM,JMO=>JM
-     *     , oDXYP=>DXYPO, ozDXYP=>BYDXYPO,LMM, G0M
 
-      Use STRAITS,       Only: NMST,JST,LMST, G0MST
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET
-c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      Subroutine CONSERV_OCE (OCEANE)
+C****
+!@sum   CONSERV_OCE calculates ocean potential enthalpy (J/m^2)
+!@auth  Gavin Schmidt/G. Russell/D. Gueyffier
+!@ver   2009/04/23
+C****
+      USE OCEAN, only : IMO=>IM,JMO=>JM,LMM, oXYP,G0M, imaxj
+      Use STRAITS,       Only: NMST,IST,JST,LMST, G0MST
+      USE DOMAIN_DECOMP_1D, only :  GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
 !@var aOCEANE zonal ocean potential enthalpy per band area (J/m^2)
-      Real*8    :: oOCEANE(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     *             aOCEANE(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-      Integer*4 :: J1O,JNO, I,J,N
+      Real*8    :: OCEANE(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      Integer*4 :: J_0,J_1,I,J,N
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
-      Do J=Max(J1O,2),Min(JNO,JMO-1)
-        oOCEANE(J) = 0
-        Do I=1,IMO
-          oOCEANE(J) = oOCEANE(J) + Sum(G0M(I,J,:LMM(I,J)))
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
+
+      Do J=J_0,J_1
+         Do I=1,IMAXJ(J)
+          OCEANE(I,J) = Sum(G0M(I,J,:LMM(I,J)))/oXYP(I,J)
         EndDo
-        oOCEANE(J) = oOCEANE(J) / IMO
       EndDo
-      If (J1O == 1)    oOCEANE(1)   = Sum(G0M(1,1  ,:LMM(1,1)))
-      If (JNO == JMO)  oOCEANE(JMO) = Sum(G0M(1,JMO,:LMM(1,JMO)))
+
+      IF(HAVE_SOUTH_POLE) OCEANE(2:IMO,1)   = OCEANE(1,1)
+      IF(HAVE_NORTH_POLE) OCEANE(2:IMO,JMO) = OCEANE(1,JMO)
+
 C**** Include ocean potential enthalpy of straits
       Do N=1,NMST
+        I = IST(N,1)
         J = JST(N,1)
-        If (J >= J1O .and. J <= JNO)
-     *    oOCEANE(J) = oOCEANE(J) + Sum(G0MST(:LMST(N),N))
+        If (J >= J_0 .and. J <= J_1)
+     &       OCEANE(I,J) = OCEANE(I,J) + Sum(G0MST(:LMST(N),N))
+     &                     /oXYP(I,J)
       EndDo
-C**** Divide potential enthalpy (J per cell) by grid cell area
-      oOCEANE(J1O:JNO) = oOCEANE(J1O:JNO) * ozDXYP(J1O:JNO)
-C**** Interpolate data from ocean resolution to atmosphere resolution
-      Call OJtoAJ (oOCEANE,aOCEANE)
-      Return
+
       End Subroutine CONSERV_OCE
 
-      Subroutine CONSERV_OKE (aOKE)
+
+      Subroutine CONSERV_OKE (OKE)
 C****
-!@sum   CONSERV_OKE calculates zonal ocean kinetic energy
-!@auth  Gavin Schmidt
-!@ver   2008/12/23
+!@sum   CONSERV_OKE calculates ocean kinetic energy
+!@auth  Gavin Schmidt/G. Russell/D. Gueyffier
+!@ver   2009/04/23
 C****
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
-     *     , oDXYP=>DXYPO, LMOM=>LMM, MO,UO,VO
-
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, GET, SOUTH, HALO_UPDATE
-c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET, SOUTH, HALO_UPDATE
+     *     , oXYP, MO,UO,VO, LMOM=>LMM
+      USE DOMAIN_DECOMP_1D, only : GET, SOUTH, HALO_UPDATE
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
-!@var aOKE zonal ocean kinetic energy per whole band area (J/m^2)
-      Real*8    :: oOKE(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     *             aOKE(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-      Integer*4 :: J1O,JNO, I,J,L,Ip1
+!@var OKE zonal ocean kinetic energy (J/m^2)
+      Real*8    :: OKE(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      Integer*4 :: J_0,J_1,I,J,L,Ip1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
       Call HALO_UPDATE (oGRID, VO, From=South)
-      Do J=Max(J1O,2),Min(JNO,JMO-1)
-        oOKE(J) = 0
-        I=IMO
-        Do Ip1=1,IMO
-          Do L=1,LMOM(I,J)
-            oOKE(J) = oOKE(J) + ((MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)**2
-     +              + MO(I,J,L)*(VO(I,J-1,L)**2 + VO(I,J,L)**2))
-          EndDo
-          I=Ip1
-        EndDo
-        oOKE(J) = oOKE(J) / IMO
+
+      Do J=max(J_0,2),min(J_1,JMO-1)
+         do I=2,IMO
+            OKE(I,J) = 0.0
+            Do L=1,LMOM(I,J)
+               OKE(I,J) = OKE(I,J) +  
+     &               MO(I,J,L)*(UO(I-1,J,L)**2+UO(I,J,L)**2 
+     &                        + VO(I,J-1,L)**2+VO(I,J,L)**2 )
+            EndDo
+         EndDo
+c*     I=1 here
+         OKE(1,J) = 0.0
+         Do L=1,LMOM(1,J)
+            OKE(1,J) = OKE(1,J) +  
+     &           MO(1,J,L)*(UO(IMO,J,L)**2+UO(1,J,L)**2 
+     &                    + VO(1,J-1,L)**2+VO(1,J,L)**2 )
+         EndDo
       EndDo
-C**** oOKE at J = 1: south pole
-      If (J1O == 1)  Then
-        oOKE(1) = 0.0
-        Do L=1,LMOM(1,1)
-          oOKE(1) = oOKE(1) + MO(1,1,L) *
-     *              (1.5*IMO*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) +
-     +               Sum(VO(:,1,L)**2)/IMO)
-        EndDo
+
+C**** OKE at south pole
+      If (HAVE_SOUTH_POLE)  Then
+         OKE(1,1) = 0.
+         Do L=1,LMOM(1,1)
+            OKE(1,1) = OKE(1,1)+  MO(1,1,L) *
+     &                (1.5*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) 
+     &               + Sum(VO(:,1,L)**2)/IMO)
+         EndDo
+         OKE(2:IMO,1)=OKE(1,1)
       EndIf
-C**** oOKE at J = JMO: north pole
-      If (JNO == JMO)  Then
-        oOKE(JMO) = 0.0
-        Do L=1,LMOM(1,JMO)
-          oOKE(JMO) = oOKE(JMO) + MO(1,JMO,L)
-     *              * (1.5*IMO*(UO(IMO,JMO,L)**2 + UO(IVNPO,JMO,L)**2)
-     +              + Sum(VO(:,JMO-1,L)**2)/IMO)
+
+C**** OKE at north pole
+      If (HAVE_NORTH_POLE)  Then
+         OKE(1,JMO) = 0.
+         Do L=1,LMOM(1,JMO)
+            OKE(1,JMO) = MO(1,JMO,L) *
+     &                   (1.5*(UO(IMO,JMO,L)**2 + UO(IVNPO,JMO,L)**2)
+     &                   + Sum(VO(:,JMO-1,L)**2)/IMO)
         EndDo
+        OKE(2:IMO,JMO)=OKE(1,JMO)
       EndIf
-      oOKE(:) = oOKE(:)*.25
-C**** Interpolate data from ocean resolution to atmosphere resolution
-      Call OJtoAJ (oOKE,aOKE)
-      Return
+      OKE(:,:) = OKE(:,:)*.25
+
       End Subroutine CONSERV_OKE
 
-      Subroutine CONSERV_OAM (aOAM)
+      Subroutine CONSERV_OAM (OAM)
 C****
-!@sum   CONSERV_OAM calculates zonal ocean angular momentum (kg/s)
-!@auth  Gavin Schmidt
-!@ver   2008/12/24
+!@sum   CONSERV_OAM calculates ocean angular momentum (kg/s)
+!@auth  Gavin Schmidt/G. Russell/D. Gueyffier
+!@ver   2009/04/23
 C****
       Use CONSTANT,      Only: RADIUS,OMEGA
       USE OCEAN, only : IMO=>IM,JMO=>JM, IVSPO=>IVSP,IVNPO=>IVNP
      *     , oDXYP=>DXYPO, LMOM=>LMM,LMOU=>LMU, MO,UO
      *     , oCOSQ=>COSQ, oCOSM=>COSM
 
-      USE DOMAIN_DECOMP_1D, only : GET, aGRID=>GRID
-c      Use DOMAIN_DECOMP, Only: aGRID=>GRID, GET
+      USE DOMAIN_DECOMP_1D, only : GET
       Use OCEANR_DIM,    Only: oGRID
       Implicit None
-!@var aOAM ocean angular momentum per whole latitude band area (kg/s)
-      Real*8    :: oOAM(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     *             aOAM(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
-     *             oOMASS,oUMILx2
-      Integer*4 :: J1O,JNO, I,J,L,Ip1
+      Real*8    :: OAM(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     *             OMASS,UMLx2
+      Integer*4 :: J_0,J_1,I,J,L,Ip1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
-      Do J=Max(J1O,2),Min(JNO,JMO-1)
-        oOMASS  = 0
-        oUMILx2 = 0
-        I=IMO
-        Do Ip1=1,IMO
-          oOMASS = oOMASS + Sum(MO(I,J,:LMOM(I,J)))
-          Do L=1,LMOU(I,J)
-            oUMILx2 = oUMILx2 + (MO(I,J,L)+MO(Ip1,J,L))*UO(I,J,L)
-            EndDo
-          I=Ip1
-        EndDo
-        oOAM(J) = (.5*oUMILx2*oCOSM(J) + RADIUS*OMEGA*oCOSQ(J)*oOMASS)*
-     *            RADIUS / IMO
+      Do J=max(J_0,2),min(J_1,JMO-1)
+         Do I=2,IMO
+            OMASS = Sum(MO(I,J,1:LMOM(I,J)))
+            UMLx2 = 0.
+            Do L=1,LMOU(I,J)
+               UMLx2 = MO(I,J,L)*(UO(I-1,J,L)+UO(I,J,L))
+            EndDo          
+         
+            OAM(I,J) = (.5*UMLx2*oCOSM(J)+RADIUS*OMEGA*oCOSQ(J)*OMASS)
+     &                 *RADIUS 
+         EndDo
+c     I=1 here
+         OMASS = Sum(MO(1,J,1:LMOM(1,J)))
+         UMLx2 = 0.
+         Do L=1,LMOU(1,J)
+            UMLx2 = MO(1,J,L)*(UO(IMO,J,L)+UO(1,J,L))
+         EndDo
+         
+         OAM(1,J) = (.5*UMLx2*oCOSM(J) + RADIUS*OMEGA*oCOSQ(J)*OMASS)*
+     *        RADIUS 
       EndDo
-      If (J1O == 1) oOAM(1) = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
-     *                        Sum(MO(1,1,:LMOM(1,1))) / IMO
-      If (JNO == JMO) oOAM(JMO) = RADIUS*RADIUS*OMEGA*oCOSQ(JMO)*
-     *                            Sum(MO(1,JMO,:LMOM(1,JMO))) / IMO
-C**** Interpolate data from ocean resolution to atmosphere resolution
-      Call OJtoAJ (oOAM,aOAM)
-      Return
+      
+      If (HAVE_SOUTH_POLE) then
+         OAM(1,1) = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
+     *              Sum(MO(1,1,:LMOM(1,1)))
+         OAM(2:IMO,1) = OAM(1,1)
+      EndIf
+      If (HAVE_NORTH_POLE) then
+         OAM(1,JMO) = RADIUS*RADIUS*OMEGA*oCOSQ(JMO)*
+     *               Sum(MO(1,JMO,:LMOM(1,JMO)))
+         OAM(2:IMO,JMO) = OAM(1, JMO)
+      EndIf
+
       End Subroutine CONSERV_OAM
-
-      Subroutine OJtoAJ (oQJ,aQJ)
-C****
-!@sum   OJtoAJ interpolates latitudinal average A-grid ocean data that
-C****   is per unit area from ocean resolution to atmosphere resolution.
-C****   QJ is conserved:  sum[oDXYP(:)*oQJ(:)] = sum[aDXYP(:)*aQJ(:)]
-!@auth  Gary L. Russell
-!@ver   2008/12/23
-C****
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM
-      Use GEOM,          Only: aDXYP=>DXYP,  aDLATM=>DLATM
-      Use OCEAN,         Only: IMO=>IM,JMO=>JM
-     *     , oDXYP=>DXYPO, oDLATM=>DLATM
-      Use DOMAIN_DECOMP_1D, Only: aGRID=>GRID, AM_I_ROOT, GET, PACK_DATA
-      Use DOMAIN_DECOMP_1D, Only: UNPACK_DATA
-      Use OCEANR_DIM,    Only: oGRID
-      Implicit None
-      Real*8    :: oQJ(oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     *             aQJ(aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
-     *             oONES(JMO),oQJGLOB(JMO),aQJGLOB(JMA)
-      Integer*4 :: J1O,JNO, J1A,JNA, J
-C****
-      If (JMA==JMO)  GoTo 100
-      If (JMA== 90 .and. JMO==180)  GoTo 200
-C     If (ATMO == 'CUBE-SPHERE')  GoTo 300
-C****
-C**** Non-standard regular latitude-longitude resolution
-C****
-      Call PACK_DATA (oGRID,oQJ,oQJGLOB)
-      If (AM_I_ROOT())  Then
-        oONES(:) = 1
-        Call HNTR80 (1,JMO,0d0,oDLATM, 1,JMA,0d0,aDLATM, 0d0)
-        Call HNTR8  (oONES,oQJGLOB,aQJGLOB)
-      EndIf
-      Call UNPACK_DATA (aGRID,aQJGLOB,aQJ)
-      Return
-C****
-C**** JMA = JMO
-C****
-  100 Call GET (aGRID, J_STRT=J1A, J_STOP=JNA)
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
-      If (J1A /= J1O .or. JNA /= JNO)  Then
-        Write (6,*) 'Atmosphere and ocean latitude bands do not' //
-     *              ' line up for a processor.'
-        Write (6,*) 'J1O,JNO,J1A,JNA=',J1O,JNO,J1A,JNA
-        Call STOP_MODEL ('J1A >< J1O or JNA >< JNO in OJtoAJ', 255)
-      EndIf
-      aQJ(:) = oQJ(:)
-      Return
-C****
-C**** JMA = 90 and JMO = 180
-C****
-  200 Call GET (aGRID, J_STRT=J1A, J_STOP=JNA)
-      Call GET (oGRID, J_STRT=J1O, J_STOP=JNO)
-
-      If ((J1A-1)*2 /= (J1O-1) .or. JNA*2 /= JNO) then
-        Write (6,*) 'Atmosphere and ocean latitude bands do not' //
-     *              ' line up for a processor.'
-        Write (6,*) 'J1O,JNO,J1A,JNA=',J1O,JNO,J1A,JNA
-        Call STOP_MODEL ('JNA*2 >< JNO in OJtoAJ', 255)
-      EndIf
-      Do J=J1A,JNA
-        aQJ(J) = IMO*(oDXYP(J*2-1)*oQJ(J*2-1) +
-     +               oDXYP(J*2)*oQJ(J*2)) / (IMA*aDXYP(J))
-      EndDo
-
-      Return
-C****
-C**** ATMO = 'CUBE-SPHERE'
-C****
-C 300
-      End Subroutine OJtoAJ
-#endif
 
       Subroutine OVtoM (MM,UM,VM)
 C****
@@ -5148,48 +5089,41 @@ C****
 !@sum  ADJUST_MEAN_SALT sets the global mean salinity in the ocean
 !@auth Gavin Schmidt
 !@ver  1.0
-!      USE GEOM, only : dxyp,imaxj
-#ifndef CUBE_GRID
-      USE GEOM, only : dxyp
-#endif
+
       USE CONSTANT, only : grav
-      USE OCEAN, only : im,jm,lmo,focean,lmm,mo,s0m,sxmo
+      USE OCEAN, only : oxyp,im,jm,lmo,focean,lmm,mo,s0m,sxmo
      *     ,symo,szmo,dxypo,oc_salt_mean,g0m, imaxj
       USE STRAITS, only : s0mst,sxmst,szmst,nmst,lmst,g0mst,mmst,dist
      *     ,wist
 
-!      use DOMAIN_DECOMP_1D, only: grid, GLOBALSUM, get, AM_I_ROOT,
-!     *     ESMF_BCAST
       use DOMAIN_DECOMP_1D, only: GLOBALSUM, get, AM_I_ROOT,
      *     ESMF_BCAST
-      USE OCEANR_DIM, only : grid=>ogrid
+      USE OCEANR_DIM, only : ogrid
 
       IMPLICIT NONE
       REAL*8 :: totalSalt,totalMass
 
-      REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) ::OSALTJ
-     *     ,OMASSJ
+      REAL*8, DIMENSION(IM,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO)::OSALT
+     *     ,OMASS
       REAL*8 mean_S,frac_inc,T_ORIG,T_NEW,temgsp,shcgs,pres,g,s
       INTEGER I,J,L,N,J_0,J_1
 
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
+      CALL GET(ogrid, J_STRT = J_0, J_STOP = J_1)
 
-#ifndef CUBE_GRID
-      call conserv_OSL(OSALTJ)
-      call conserv_OMS(OMASSJ)
-      OSALTJ(:)=OSALTJ(:)*DXYP(:)
-      OMASSJ(:)=OMASSJ(:)*DXYP(:)
-#endif
+      call conserv_OSL(OSALT)
+      call conserv_OMS(OMASS)
+      OSALT(:,:)=OSALT(:,:)*oXYP(:,:)
+      OMASS(:,:)=OMASS(:,:)*oXYP(:,:)
 
-      CALL GLOBALSUM(grid, OSALTJ, totalSalt, ALL=.true.)
-      CALL GLOBALSUM(grid, OMASSJ, totalMass, ALL=.true.)
+      CALL GLOBALSUM(ogrid, OSALT, totalSalt, ALL=.true.)
+      CALL GLOBALSUM(ogrid, OMASS, totalMass, ALL=.true.)
 
       if (AM_I_ROOT()) then
         mean_S=1000*totalSalt/totalMass  ! psu
         frac_inc=oc_salt_mean/mean_S
         write(6,*) "Changing ocean salinity: ",mean_S,frac_inc
       end if
-      call ESMF_BCAST(grid,  frac_inc)
+      call ESMF_BCAST(ogrid, frac_inc)
 
 C**** adjust open ocean salinity
       DO J=J_0,J_1
@@ -5241,16 +5175,15 @@ C**** approximately adjust enthalpy to restore temperature
           END DO
         END DO
       end if
-      CALL ESMF_BCAST(grid, S0MST)
-      CALL ESMF_BCAST(grid, SXMST)
-      CALL ESMF_BCAST(grid, SZMST)
+      CALL ESMF_BCAST(ogrid, S0MST)
+      CALL ESMF_BCAST(ogrid, SXMST)
+      CALL ESMF_BCAST(ogrid, SZMST)
 
 C**** Check
-#ifndef CUBE_GRID
-      call conserv_OSL(OSALTJ)
-      OSALTJ(:)=OSALTJ(:)*DXYP(:)
-      CALL GLOBALSUM(grid, OSALTJ, totalSalt, ALL=.true.)
-#endif
+      call conserv_OSL(OSALT)
+      OSALT(:,:)=OSALT(:,:)*oXYP(:,:)
+      CALL GLOBALSUM(ogrid, OSALT, totalSalt, ALL=.true.)
+
       if (AM_I_ROOT()) then
         mean_S=1000*totalSalt/totalMass  ! psu
         write(6,*) "New ocean salinity: ",mean_S,oc_salt_mean

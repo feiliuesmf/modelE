@@ -105,7 +105,6 @@ c the new i/o system
       real*8, dimension(:,:,:,:), pointer :: tlnst_ioptr
 #endif
 #endif
-
       END MODULE ODIAG
 
       SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
@@ -413,14 +412,16 @@ C****
       RETURN
       END SUBROUTINE DIAGCO
 
+
       SUBROUTINE conserv_ODIAG (M,CONSFN,ICON)
 !@sum  conserv_ODIAG generic routine keeps track of conserved properties
-!@+    (cloned version from AGCM for better regridding)
-!@auth Gary Russell/Gavin Schmidt
+!@+    uses OJ_BUDG mapping from ocean sub-domain to budget grid
+!@auth Gary Russell/Gavin Schmidt/Denis Gueyffier
 !@ver  1.0
-      USE MODEL_COM, only : jm
-      USE DOMAIN_DECOMP_1D, only : GET, GRID, CHECKSUMj
-      USE DIAG_COM, only : consrv=>consrv_loc,nofm
+      USE OCEAN, only : oJ_BUDG, oWTBUDG, oJ_0B, oJ_1B,imaxj
+      USE DIAG_COM, only : consrv=>consrv_loc,nofm,jm_budg
+      USE DOMAIN_DECOMP_1D, only : GET
+      USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE
 !@var M index denoting from where routine is called
       INTEGER, INTENT(IN) :: M
@@ -429,11 +430,13 @@ C****
 !@var CONSFN external routine that calculates total conserved quantity
       EXTERNAL CONSFN
 !@var TOTAL amount of conserved quantity at this time
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: TOTAL
+      REAL*8, DIMENSION(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO,
+     &                  oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) :: TOTAL
+      REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
       INTEGER :: I,J,NM,NI
       INTEGER :: J_0,J_1
 
-      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1)
+      CALL GET(ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
@@ -444,21 +447,30 @@ C**** Calculate current value TOTAL
         CALL CONSFN(TOTAL)
         NM=NOFM(M,ICON)
         NI=NOFM(1,ICON)
+C**** Calculate zonal sums
+        TOTALJ(oJ_0B:oJ_1B)=0.
+        DO J=J_0,J_1
+          DO I=1,IMAXJ(J) 
+            TOTALJ(oJ_BUDG(I,J)) = TOTALJ(oJ_BUDG(I,J)) + TOTAL(I,J)
+     &           *oWTBUDG(I,J)
+          END DO
+        END DO
 C**** Accumulate difference from last time in CONSRV(NM)
         IF (M.GT.1) THEN
-          DO J=J_0,J_1
-            CONSRV(J,NM)=CONSRV(J,NM)+(TOTAL(J)-CONSRV(J,NI))
+          DO J=oJ_0B,oJ_1B
+            CONSRV(J,NM)=CONSRV(J,NM)+(TOTALJ(J)-CONSRV(J,NI))
           END DO
         END IF
 C**** Save current value in CONSRV(NI)
-        DO J=J_0,J_1
-          CONSRV(J,NI)=TOTAL(J)
+        DO J=oJ_0B,oJ_1B
+          CONSRV(J,NI)=TOTALJ(J)
         END DO
       END IF
       RETURN
 C****
       END SUBROUTINE conserv_ODIAG
 
+ 
       SUBROUTINE init_ODIAG
 !@sum  init_ODIAG initialises ocean diagnostics
 !@auth Gavin Schmidt
@@ -719,4 +731,51 @@ C****
 #endif
 
       END SUBROUTINE scatter_odiags
+
+
+      subroutine set_owtbudg()
+!@sum Precomputes area weights for zonal means on budget grid
+!auth Denis Gueyffier
+      USE DIAG_COM, only : jm_budg 
+      USE OCEAN, only : owtbudg, imaxj
+      USE DOMAIN_DECOMP_1D, only :GET
+      USE OCEANR_DIM, only : oGRID
+      IMPLICIT NONE
+      INTEGER :: I,J,J_0,J_1
+      
+      CALL GET(ogrid, J_STRT=J_0,J_STOP=J_1)
+
+      do J=J_0,J_1
+        owtbudg(:,j)=1d0/imaxj(j)
+      enddo
+        
+      END SUBROUTINE set_owtbudg
+
+
+      SUBROUTINE SET_OJ_BUDG
+!@sum set mapping from ocean domain to budget grid 
+!@auth Gavin Schmidt/Denis Gueyffier
+      USE OCEAN, only : oJ_BUDG,oJ_0B,oJ_1B,oLAT2D_DG,IMO=>IM
+      USE DIAG_COM, only : jm_budg
+      USE DOMAIN_DECOMP_1D, only :GET
+      USE OCEANR_DIM, only : oGRID
+      IMPLICIT NONE
+!@var I,J are atm grid point values for the accumulation
+      INTEGER :: I,J,J_0,J_1,J_0H,J_1H
+ 
+C**** define atmospheric grid
+      CALL GET(ogrid,
+     &     J_STRT=J_0,J_STOP=J_1,
+     &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+
+      DO J=J_0H,J_1H
+        DO I=1,IMO
+           oJ_BUDG(I,J)=NINT(1+(olat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+        END DO
+      END DO
+
+      oJ_0B=MINVAL( oJ_BUDG(1:IMO,J_0:J_1) )
+      oJ_1B=MAXVAL( oJ_BUDG(1:IMO,J_0:J_1) )
+
+      END SUBROUTINE SET_OJ_BUDG
 

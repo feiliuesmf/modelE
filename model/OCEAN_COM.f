@@ -60,6 +60,7 @@ C**** ocean geometry (should this be in a separate module?)
      *   , oDLAT_DG ! grid spacing in latitude (deg) 
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: OXYP
+
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
       REAL*8, DIMENSION(0:JM) :: COSVO
@@ -84,14 +85,16 @@ C**** ocean geometry (should this be in a separate module?)
       INTEGER, DIMENSION(IM,JM) :: LMM,LMU,LMV
       Integer*4 J40S, !  maximum grid cell below 40S (used in OPFIL)
      *           J1O  !  most southern latitude (J) where ocean exists
-
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oLAT2D_DG !distributed latitute array (in degrees)
       REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
 C**** ocean related parameters
       INTEGER NDYNO,MDYNO,MSGSO
 !@dbparam DTO timestep for ocean dynamics (s)
       REAL*8 :: DTO=450.        ! default. setable parameter
       REAL*8 DTOFS,DTOLF,DTS,BYDTS
-
+!@var budget grid quantities (defined locally on each proc.)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: oJ_BUDG, owtbudg
+      REAL*8 :: oJ_0B,oJ_1B
 !@var OPRESS Anomalous pressure at surface of ocean (under ice) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPRESS ! (IM,JM)
       REAL*8, DIMENSION(IM,JM) :: OPRESS_glob ! needed for straits ?
@@ -352,7 +355,7 @@ C****
 
       USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
-      USE OCEAN, only : OXYP
+      USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
       USE OCN_TRACER_COM, only : ntm
@@ -396,6 +399,9 @@ C****
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ_SV (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OXYP  (IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( OLAT2D_DG  (IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( OJ_BUDG  (IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( OWTBUDG  (IM,J_0H:J_1H), STAT = IER)
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
