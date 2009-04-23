@@ -1282,7 +1282,8 @@ c$$$      end subroutine senesce_cpools
       !####################################################################
 
       cop%C_lab = cop%C_lab + dC_lab
-      if (cop%C_lab < EPS) cop%C_lab = 0.d0
+      !at this point, C_lab<0 comes from the rounding errors...
+      if (cop%C_lab < 0.d0) cop%C_lab = 0.d0
 !      if (cop%C_lab < 0.d0) then
 !         print*,dC_fol,cop%C_fol,dC_sw,cop%C_sw
 !         print*,dC_lab,cop%C_lab, dC_froot, cop%C_froot
