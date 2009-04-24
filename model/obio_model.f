@@ -144,8 +144,17 @@
 
 #ifdef OBIO_ON_GARYocean
       if (nstep0 .gt. itimei .and. nstep.eq.nstep0) then
-      print*, 'WARM INITIALIZATION....'
-          call obio_init
+         call obio_init
+
+         print*,'WARM INITIALIZATION'
+         call obio_trint
+
+       do j=j_0,j_1
+       do i=i_0,i_1
+         write(*,'(a,3i5,2e12.4)')'obio_model, trac,trmo: ',
+     .     nstep,i,j,tracer(i,j,1,1), trmo(i,j,1,1)
+       enddo
+       enddo
       endif !for restart only
 #else
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
@@ -855,6 +864,9 @@ cdiag  endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
+
+
+!diagnostics
 #ifdef OBIO_ON_GARYocean
        OIJ(I,J,IJ_nitr) = OIJ(I,J,IJ_nitr) + tracer(i,j,1,1) ! surf ocean nitrates
        OIJ(I,J,IJ_amm) = OIJ(I,J,IJ_amm) + tracer(i,j,1,2) ! surf ocean nitrates

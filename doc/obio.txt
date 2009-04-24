@@ -67,8 +67,8 @@ E1arobio_alk.R     ! russell ocean + obio + alkalinity
 =========================================
 Important:
 
-when using Russell ocean model need to compile the following
-routines that refer to TRACERS_OCEAN
+when using Russell ocean model **even without interctive gas exchange*
+you need to compile the following routines that refer to TRACERS_OCEAN
 
 TRACER_COM  TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code

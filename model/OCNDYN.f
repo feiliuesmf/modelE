@@ -696,7 +696,9 @@ C****
       USE MODEL_COM, only: nstep=>itime
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEANR_DIM, only : ogrid
+      USE obio_dim, only: ntrac
       USE obio_com, only : itest,jtest,gcmax,nstep0
+     .                    ,tracer=>tracer_loc,tracer_glob=>tracer
       USE obio_forc, only : avgq,tirrq3d,ihra
 #endif
 
@@ -731,15 +733,17 @@ C****
 #ifdef TRACERS_OceanBiology
       if (AM_I_ROOT()) then
         allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
-     &       ihra_glob(idm,jdm), gcmax_glob(idm,jdm,kdm) )
+     &       ihra_glob(idm,jdm), gcmax_glob(idm,jdm,kdm))
       endif
-      call pack_data(ogrid, avgq,    avgq_glob)
+      call pack_data(ogrid, avgq,       avgq_glob)
       call pack_data(ogrid, tirrq3d, tirrq3d_glob)
-      call pack_data(ogrid, ihra,    ihra_glob)
-      call pack_data(ogrid, gcmax,   gcmax_glob)
+      call pack_data(ogrid, ihra,       ihra_glob)
+      call pack_data(ogrid, gcmax,     gcmax_glob)
+      call pack_data(ogrid, tracer,   tracer_glob)
 
       write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-     * 'R8 dim(im,jm,',LMO,',',NTM,'):nstep0,avgq,gcmax,tirrq3d,ihra'
+     * 'R8 dim(im,jm,',LMO,',',NTM,'):
+     * nstep0,avgq,gcmax,tirrq3d,ihra,tracer'
 #endif
 
 
@@ -760,14 +764,14 @@ C****
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
       write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),tracer_glob(i,j,k,1)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
@@ -784,14 +788,14 @@ C****
       !note: we need to writing out nstep here which is the last timestep
       !that the model did
       WRITE (kunit,err=10) TRNMODULE_HEADER
-     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3)') ' tst1a k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     &       ihra_glob(i,j),tracer_glob(i,j,k,1)
       enddo
 #endif
 #endif
@@ -824,7 +828,7 @@ C****
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER
-     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -842,14 +846,14 @@ C****
 #endif
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER
-     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
+     . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
       print*,'nstep0= ',nstep0
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3)') ' tst1b k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
-     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
+     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j),tracer_glob(i,j,k,1)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -879,10 +883,11 @@ C****
       END SELECT
 
 #ifdef TRACERS_OceanBiology
-      call unpack_data(ogrid, avgq_glob, avgq)
+      call unpack_data(ogrid, avgq_glob,       avgq)
       call unpack_data(ogrid, tirrq3d_glob, tirrq3d)
-      call unpack_data(ogrid, ihra_glob, ihra)
-      call unpack_data(ogrid, gcmax_glob, gcmax)
+      call unpack_data(ogrid, ihra_glob,       ihra)
+      call unpack_data(ogrid, gcmax_glob,     gcmax)
+      call unpack_data(ogrid, tracer_glob,   tracer)
 
       call ESMF_BCAST(ogrid,nstep0)
 

@@ -239,7 +239,7 @@ C**** Gas Exchange Coefficient (piston velocity)
       tij_kw = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Piston_Veloc'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Piston Veloc'
-        ijtc_power(n) = -4
+        ijtc_power(n) = 0
         units_tij(k,n) = unit_string(ijtc_power(n),'m/s')
         scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
 
