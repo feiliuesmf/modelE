@@ -13,7 +13,7 @@
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=7,KOIJL=22,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=18,KOIJL=22,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -41,7 +41,8 @@
        INTEGER, DIMENSION(KOIJ) :: IJGRID_OIJ
 #ifdef TRACERS_OceanBiology
 !@var ij_pCO2 surface ocean partial CO2 pressure
-       INTEGER :: IJ_pCO2
+       INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
+     .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan,ij_cocc,ij_doc
 #endif
 
 !@var IJL_xxx Names for OIJL diagnostics
@@ -536,6 +537,105 @@ c
       ijgrid_oij(k)=1
 
 #ifdef TRACERS_OceanBiology
+      k=k+1
+      IJ_nitr=k
+      lname_oij(k)="Surface ocean Nitrates"
+      sname_oij(k)="oij_nitr"
+      units_oij(k)="uM"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_amm=k
+      lname_oij(k)="Surface ocean Ammonium"
+      sname_oij(k)="oij_amm"
+      units_oij(k)="uM"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_sil=k
+      lname_oij(k)="Surface ocean Silicate"
+      sname_oij(k)="oij_sil"
+      units_oij(k)="uM"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_iron=k
+      lname_oij(k)="Surface ocean Iron"
+      sname_oij(k)="oij_iron"
+      units_oij(k)="nM"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_diat=k
+      lname_oij(k)="Surface ocean Diatoms"
+      sname_oij(k)="oij_diat"
+      units_oij(k)="mg/m3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_chlo=k
+      lname_oij(k)="Surface ocean Chlorophytes"
+      sname_oij(k)="oij_chlo"
+      units_oij(k)="mg/m3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_cyan=k
+      lname_oij(k)="Surface ocean Cyanobacteria"
+      sname_oij(k)="oij_cyan"
+      units_oij(k)="mg/m3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_cocc=k
+      lname_oij(k)="Surface ocean Coccolithophores"
+      sname_oij(k)="oij_cocc"
+      units_oij(k)="mg/m3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_herb=k
+      lname_oij(k)="Surface ocean Herbivores"
+      sname_oij(k)="oij_herb"
+      units_oij(k)="mg/m3"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_doc=k
+      lname_oij(k)="Surface ocean DOC"
+      sname_oij(k)="oij_doc"
+      units_oij(k)="uM"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_dic=k
+      lname_oij(k)="Surface ocean DIC"
+      sname_oij(k)="oij_dic"
+      units_oij(k)="uM"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+
       k=k+1
       IJ_pCO2=k
       lname_oij(k)="Surface ocean partial CO2 pressure"

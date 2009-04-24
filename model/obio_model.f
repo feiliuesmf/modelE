@@ -40,7 +40,9 @@
 #ifdef OBIO_ON_GARYocean
      .                    ,itest,jtest,obio_deltat
      .                    ,tracer_loc,tracer,nstep0
-      USE ODIAG, only : ij_pCO2
+      USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
+     .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
+     .                 ,ij_doc,ij_iron
       USE ODIAG, only : oij=>oij_loc
 #endif
 
@@ -234,7 +236,7 @@
 !      print*, 'pco2.'//jstring//string
 !      call openunit('pco2.'//jstring//string,iu_pco2)
 !      call openunit('tend.'//jstring//string,iu_tend)
-
+!
       endif  !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
@@ -854,7 +856,20 @@ cdiag  endif
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
 #ifdef OBIO_ON_GARYocean
-       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j) ! turb fric speed
+       OIJ(I,J,IJ_nitr) = OIJ(I,J,IJ_nitr) + tracer(i,j,1,1) ! surf ocean nitrates
+       OIJ(I,J,IJ_amm) = OIJ(I,J,IJ_amm) + tracer(i,j,1,2) ! surf ocean nitrates
+       OIJ(I,J,IJ_sil) = OIJ(I,J,IJ_sil) + tracer(i,j,1,3) ! surf ocean nitrates
+       OIJ(I,J,IJ_iron) = OIJ(I,J,IJ_iron) + tracer(i,j,1,4) ! surf ocean nitrates
+
+       OIJ(I,J,IJ_diat) = OIJ(I,J,IJ_diat) + tracer(i,j,1,5) ! surf ocean diatoms
+       OIJ(I,J,IJ_chlo) = OIJ(I,J,IJ_chlo) + tracer(i,j,1,6) ! surf ocean diatoms
+       OIJ(I,J,IJ_cyan) = OIJ(I,J,IJ_cyan) + tracer(i,j,1,7) ! surf ocean diatoms
+       OIJ(I,J,IJ_cocc) = OIJ(I,J,IJ_cocc) + tracer(i,j,1,8) ! surf ocean diatoms
+       OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean diatoms
+
+       OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
+       OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
+       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j) ! surf ocean pco2
 #endif
 
 !       if (diagno_bio) then
