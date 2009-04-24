@@ -1314,7 +1314,7 @@ C**** do something in here
      *                , IVSPO=>IVSP,IVNPO=>IVNP
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-#ifdef TRACERS_OceanBiology
+#if defined (TRACERS_OceanBiology) && !defined (TRACERS_GASEXCH_ocean)
       USE OCN_TRACER_COM, only: NTM 
 #else
       USE TRACER_COM, only: NTM 
