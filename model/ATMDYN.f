@@ -2699,7 +2699,7 @@ c      contains
       USE SOMTQ_COM, only : qmom
       USE DIAG_COM, only: agc=>agc_loc
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      USE DYNAMICS, only: ps,mb,ma
+      USE DYNAMICS, only: ps,mb,ma,sda
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
       USE DOMAIN_DECOMP_1D, only : grid, GET, halo_update, south, north
@@ -2752,6 +2752,13 @@ C****
       enddo; enddo; enddo
 !$OMP END PARALLEL DO
 
+#ifndef TRACERS_ON
+c Unscale the vertical mass flux accumulation for use by column physics.
+c      IF(NCYC.GT.1) SDA(:,:,:) = SDA(:,:,:)*NCYC
+#else
+c TRDYNAM will do the unscaling
+#endif
+
       RETURN
       END SUBROUTINE QDYNAM
 c      end module ATMDYN_QDYNAM
@@ -2769,6 +2776,7 @@ c      end module ATMDYN_QDYNAM
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
      *     tij_uflx,tij_vflx
 #endif
+      USE DYNAMICS, only : sda
       IMPLICIT NONE
       REAL*8 DTLF,byncyc
       INTEGER N
@@ -2800,6 +2808,10 @@ C**** vertically integrated atmospheric fluxes
 #endif
 
       ENDDO
+
+c Unscale the vertical mass flux accumulation for use by column physics.
+c      IF(NCYC.GT.1) SDA(:,:,:) = SDA(:,:,:)*NCYC
+
       RETURN
       END SUBROUTINE TrDYNAM
 #endif
