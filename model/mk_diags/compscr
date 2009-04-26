@@ -96,9 +96,11 @@ $cmpcmd  || exit  # terminate the script if any compilation fails
 rm -f driver.f
 
 #
-# Compile the generic summation routine
+# Compile the generic summation and cs->latlon regridding routines
 #
-progname=sumfiles
-cmpcmd="${fccmd} miscnc.f ${progname}.f -o ${progname} ${ncinc} ${nclib}"
-echo $cmpcmd
-$cmpcmd  || exit  # terminate the script if any compilation fails
+for progname in sumfiles csregrid
+do
+  cmpcmd="${fccmd} miscnc.f ${progname}.f -o ${progname} ${ncinc} ${nclib}"
+  echo $cmpcmd
+  $cmpcmd  || exit  # terminate the script if any compilation fails
+done

@@ -3,11 +3,10 @@
 # accumulation arrays to a latlon grid.
 #
 
-csfile=$1    # the input cubed-sphere acc-file
-llfile=$2    # the output latlon acc-file
-accn=$3      # name of the acc-array to regrid
-imlon=$4     # number of longitudes of the target grid
-jmlat=$5     # number of latitudes of the target grid
+remap_file=$1 # file containing regridding information
+csfile=$2     # the input cubed-sphere acc-file
+llfile=$3     # the output latlon acc-file
+accn=$4       # name of the acc-array to regrid
 
 #
 # Check that the command-line argments are appropriate -
@@ -18,6 +17,8 @@ jmlat=$5     # number of latitudes of the target grid
 # Create an instance of the output acc-array having the correct
 # dimension names/sizes
 #
+imlon=`ncdump -h ${remap_file} | egrep "lon =" | awk '{print $3}'`
+jmlat=`ncdump -h ${remap_file} | egrep "lat =" | awk '{print $3}'`
 ncwa -h -O -F -y ttl -v ${accn} -a tile -d tile,1 $csfile $llfile
 ncrename -h -O -d im,lon -d jm,lat $llfile $llfile
 ncdump -h $llfile | sed "s/lon = ../lon = $imlon/; s/lat = ../lat = $jmlat/" > tmpcdl
@@ -56,24 +57,11 @@ done
 rm -f tmpcdl tmpcdl.nc
 
 #
-# Create instances of lon/lat coordinate arrays in the output file
+# Copy horizontal coordinates to the output file
 #
-cat > lltmp << EOF
-netcdf lltmp {
-dimensions:
-   lon = $imlon ;
-   lat = $jmlat ;
-variables:
-   float lon(lon) ;
-      lon:units = "degrees_east" ;
-   float lat(lat) ;
-      lat:units = "degrees_north" ;
-}
-EOF
-ncgen -b lltmp
-ncks -h -A -v lon,lat lltmp.nc $llfile
-rm -f lltmp lltmp.nc
+ncks -h -A -v lon,lat ${remap_file} $llfile
 
 #
 # Now run the regridding program
 #
+csregrid $remap_file $csfile $llfile $accn
