@@ -44,7 +44,8 @@ c
         if(k.ne.3) stop 'bad size for shnhgm dimension'
       endif
       status = nf_inq_varid(fid,'vmean_'//trim(dcat),accid_vmean)
-      do_vmean = index(dcat,'ajl').gt.0 .and. status.eq.nf_noerr
+      do_vmean = status.eq.nf_noerr
+     &     .and. (index(dcat,'ajl').gt.0 .or. index(dcat,'agc').gt.0)
 
 c
 c Find the size of the dimension along which to split the data
