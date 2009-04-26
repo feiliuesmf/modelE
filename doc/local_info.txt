@@ -49,11 +49,11 @@ Unresolved bugs:
 - serial and parallel versions do not always give the same result
      hint: see next section (Consistency ...)
 
-- intel mpi: may be used on all nodes (slower than scali)
+- intelmpi: may be used on all nodes (slower than scali)
 
 - scali mpi: cannot be used on the new 8-cpu nodes
 
-- openmpi: may be used on all nodes
+- openmpi: may be used on all nodes but is not recommended (use intelmpi)
    - compile with: EXTRA_FFLAGS="-DMPITYPE_LOOKUP_HACK" to avoid memory leak
    - Bundling openmpi jobs is currently impossible
 
@@ -146,8 +146,13 @@ run,runpbs  submit 1 or several jobs as a single batch job
   Usage: runpbs runID [fast<N>|slow<N>|new<N>] #_of_cpus #_of_wall_clock_hours
          The optional <N> limits the number of cpus per node used; it has to be 1-4 in the
          first 2 cases and 1-8 in the last one (fast3 may be abbreviated by f3, new6 by n6)
-  Notes: 1) if #_of_wall_clock_hours=4, the job goes into the background queue -
-            that background queue is often closed when the system is busy
+         
+  Notes: 1) #_of_wall_clock_hours - always let it default (to the max. 12 hrs) unless 
+            a) you want the job to go into the background queue - set it to 4 (hours)
+               - the background queue is mostly closed, so 4 hrs is NOT recommended
+            b) you want the job to go into the pproc queue      - set it to 3 (hours)
+               you may chose 3 hrs if systems closed the general queues; remember that
+               you are limited to 32 cpus in order to use this option.
          2) runpbs runID new ... sends the job to the new 8-processor nodes
             if the 2nd arg ends in a digit N (N=1-8), at most N cpus per node are used.
 qsubI       get an interactive batch session (args: fast|slow|new #_of_cpus wc_time)
