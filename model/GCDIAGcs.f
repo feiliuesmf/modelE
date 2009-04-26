@@ -1247,7 +1247,10 @@ c
         call interp_to_jlat_3D(grid,cs2ll,phi,phill,lm,jlat)
         call interp_to_jlat_3D(grid,cs2ll,p  ,psll ,1 ,jlat)
         do i=cs2ll%is(jlat),cs2ll%ie(jlat)
-          if(psll(i).eq.0.) cycle ! valid lons sometimes noncontiguous
+          if(psll(i).eq.0.) then ! valid lons sometimes noncontiguous
+            htrd_tmp(i,:) = 0. ! for pack_zonal
+            cycle
+          endif
           call calc_vert_amp(psll(i),lm,p00,aml,pdsigl,pednl,pmidl)
           l=2
           do k=1,km
