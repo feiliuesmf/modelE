@@ -1675,8 +1675,10 @@ c*
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,aijl,'aijl(dist_im,dist_jm,lm,kaijl)',
      &     r4_on_disk=r4_on_disk)
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       call defvar(grid,fid,aijk,'aijk(dist_im,dist_jm,lm,kaijk)',
      &     r4_on_disk=r4_on_disk)
+#endif
 
       call defvar(grid,fid,aj,'aj(jm_budg,kaj,ntype)',
      &     r4_on_disk=r4_on_disk)
@@ -1761,7 +1763,9 @@ c the instances of the arrays used during normal operation.
         call write_dist_data(grid,fid,'oa',oa)
         call write_dist_data(grid,fid,'aij',aij)
         call write_dist_data(grid,fid,'aijl',aijl)
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
         call write_dist_data(grid,fid,'aijk',aijk)
+#endif
 
         call write_data(grid,fid,'aj',aj)
         call write_data(grid,fid,'ajl',ajl)
@@ -1788,7 +1792,9 @@ c for which scalars is bcast_all=.true. necessary?
         call read_dist_data(grid,fid,'oa',oa)
         call read_dist_data(grid,fid,'aij',aij)
         call read_dist_data(grid,fid,'aijl',aijl)
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
         call read_dist_data(grid,fid,'aijk',aijk)
+#endif
 
         call read_data(grid,fid,'aj',aj)
         call read_data(grid,fid,'ajl',ajl)
