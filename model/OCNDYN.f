@@ -769,9 +769,9 @@ C****
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),tracer_glob(i,j,k,1)
+     &       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
@@ -793,9 +793,9 @@ C****
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),tracer_glob(i,j,k,1)
+     &       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
       enddo
 #endif
 #endif
@@ -851,9 +851,10 @@ C****
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,2e12.4)') ' tst1b k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
-     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j),tracer_glob(i,j,k,1)
+     .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
+     .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER

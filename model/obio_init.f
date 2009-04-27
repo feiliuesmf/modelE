@@ -516,6 +516,8 @@ cdiag   enddo
       write(*,*)'**************************************************'
       write(*,*)'           INITIALIZATION                         '
 
+      write(*,'(a,i5)') 'OBIO - NUMBER OF TRACERS=',ntrac
+
       write(*,*)'ALK_CLIM = ', ALK_CLIM
       if (ALK_CLIM.eq.0) write(*,*) 'ALKALINITY, from SALINITY'
       if (ALK_CLIM.eq.1) write(*,*) 'ALKLNTY, GLODAP annmean'

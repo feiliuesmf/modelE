@@ -83,7 +83,7 @@ c  Carbon type 2    = DIC
 
       call alloc_obio_incom
 
-      !call gather_tracer
+      !gather_tracer
       call pack_data( ogrid,  tracer_loc, tracer )
 
 
@@ -309,7 +309,7 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
 
       endif   !if am_i_root
 
-      !call scatter_tracer
+      !scatter_tracer
       call unpack_data( ogrid,  tracer, tracer_loc )
 
 c  Light saturation data

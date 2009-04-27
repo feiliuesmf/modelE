@@ -38,8 +38,9 @@
      .                    ,acdom,pp2_1d,pp2tot_day
      .                    ,tot_chlo,acdom3d
 #ifdef OBIO_ON_GARYocean
-     .                    ,itest,jtest,obio_deltat
-     .                    ,tracer_loc,tracer,nstep0
+     .                    ,itest,jtest,obio_deltat,nstep0
+     .                    ,tracer =>tracer_loc        
+     .                    ,tracer_glob => tracer
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron
@@ -77,7 +78,8 @@
      .                        ,time,lp,itest,jtest
 #endif
 
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
+
 
       implicit none
 
@@ -149,12 +151,6 @@
          print*,'WARM INITIALIZATION'
          call obio_trint
 
-       do j=j_0,j_1
-       do i=i_0,i_1
-         write(*,'(a,3i5,2e12.4)')'obio_model, trac,trmo: ',
-     .     nstep,i,j,tracer(i,j,1,1), trmo(i,j,1,1)
-       enddo
-       enddo
       endif !for restart only
 #else
        if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
@@ -914,6 +910,13 @@ c$OMP END PARALLEL DO
 !        call closeunit(iu_pco2)
 !        call closeunit(iu_tend)
 !      endif     ! diagno_bio
+
+
+#ifdef OBIO_ON_GARYocean
+      !gather_tracer
+      call pack_data( ogrid,  tracer, tracer_glob )
+#endif
+
 
       call obio_trint
 

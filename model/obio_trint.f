@@ -10,7 +10,7 @@
       Use OCEANRES,  only: idm=>imo,jdm=>jmo,kdm=>lmo,dZO
       USE OCEAN, only : focean
       USE OCEANR_DIM, only : ogrid
-      USE obio_com, only: tracer, tracer_loc
+      USE obio_com, only: tracer       !use global array
       USE OCN_TRACER_COM, only : ntrcr=>ntm
       USE MODEL_COM, only : nstep=>itime
       USE GEOM, only : dxyp
@@ -66,14 +66,6 @@
       print*,'   '
 
       endif   !if am_i_root
-
-!     do ntr=1,ntrcr
-!       write(*,*),'ntr =',ntr
-!       sumtrac=tracer_loc(:,:,:,ntr)
-!       write(*,*),'doing sumtrac'
-!       call GLOBALSUM(ogrid,sum(sumtrac,dim=3),arraySum)
-!       if(AM_I_ROOT()) write(*,*) __FILE__,__LINE__, ntr, arraySum
-!     enddo
 
       return
       end
