@@ -221,6 +221,7 @@ module FV_CS_Mod
 
   subroutine GridSpecificInit(fv, clock)
     use FV_StateMod, only:FV_RESET_CONSTANTS
+    use FV_Control_Mod, only : z_tracer
     use CONSTANT, only: pi, omega, sha, radius, rvap, grav, lhe, rgas, kapa
 
     Type(FV_CORE), intent(inout) :: fv
@@ -229,6 +230,10 @@ module FV_CS_Mod
     call ESMF_GridCompInitialize ( fv % gc, importState=fv % import, exportState=fv % export, clock=clock, &
          & phase=ESMF_SINGLEPHASE, rc=rc )
     VERIFY_(rc)
+
+! z_tracer=.false. is necessary to get correct mass flux exports.
+! Eventually, fix the FV code that is used when z_tracer=.true. 
+    z_tracer = .false.
 
     call  FV_RESET_CONSTANTS( FV_PI=pi, &
                             & FV_OMEGA=omega ,&
@@ -335,27 +340,24 @@ module FV_CS_Mod
 
   subroutine accumulate_mass_fluxes(fv)
     use ESMFL_MOD, Only: ESMFL_StateGetPointerToData
-    Use Resolution, only: IM,JM,LM,LS1
+    Use Resolution, only: LM
     USE GEOM, ONLY: AXYP
     USE DYNAMICS, ONLY: PUA,PVA,SDA
     USE DYNAMICS, ONLY: PU,PV,CONV,SD,PIT
-    USE MODEL_COM, only: DTsrc,DT
+    USE MODEL_COM, only: DT
     USE DOMAIN_DECOMP_ATM, only: get, grid
     Use Constant, only: grav
     implicit none
     type (FV_core) :: fv
-    real*4, Dimension(:,:,:), Pointer :: PLE, mfx_X, mfx_Y, mfx_Z
+    real*4, Dimension(:,:,:), Pointer :: mfx_X, mfx_Y, mfx_Z
     integer :: I_0, I_1, J_0, J_1
-    integer :: J_0H, J_1H
     integer :: i,j,l,k
     integer :: rc
-    real*8 :: DTLF, DTfac
-    real*8 :: area
+    real*8 :: DTfac
 
     DTfac = DT
 
-    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1, &
-         & J_STRT_HALO=J_0H, J_STOP_HALO = J_1H)
+    Call Get(grid, i_strt=I_0, i_stop=I_1, j_strt=j_0, j_stop=j_1)
 
     ! Horizontal and Vertical mass fluxes
     !---------------
@@ -369,32 +371,34 @@ module FV_CS_Mod
     VERIFY_(rc)
     call ESMFL_StateGetPointerToData ( fv % export,mfx_Z,'MFZ',rc=rc)
     VERIFY_(rc)
-    call ESMFL_StateGetPointerToData ( fv % export,PLE,'PLE',rc=rc)
-    VERIFY_(rc)
-
-
-    PU(I_0:I_1,J_0:J_1,1:LM) = mfx_X
-    PV(I_0:I_1,J_0:J_1,1:LM) = mfx_Y
 
 #ifdef NO_MASS_FLUX
     mfx_X = 0
     mfx_Y = 0
     mfx_Z = 0
 #endif
-    PU = ReverseLevels(PU)/PRESSURE_UNIT_RATIO
-    PV = ReverseLevels(PV)/PRESSURE_UNIT_RATIO
-    mfx_Z = ReverseLevels(mfx_Z)/PRESSURE_UNIT_RATIO
+
+    PU(I_0:I_1,J_0:J_1,1:LM) = ReverseLevels(mfx_X)
+    PV(I_0:I_1,J_0:J_1,1:LM) = ReverseLevels(mfx_Y)
+    mfx_Z = ReverseLevels(mfx_Z)
+    SD(I_0:I_1,J_0:J_1,1:LM-1) = mfx_Z(:,:,1:LM-1)
+
+!
+! Add missing factor of grav to FV exports, change units
+!
+    pu = pu*grav/PRESSURE_UNIT_RATIO
+    pv = pv*grav/PRESSURE_UNIT_RATIO
+
 
 ! Change Units of vertical mass fluxes to mb m^2/s
-    do l=0,lm
+    do l=1,lm-1
        do j=j_0,j_1
           do i=I_0,I_1
-             area = AXYP(i,j)
-             mfx_Z(i-i_0+1,j-j_0+1,l) = grav*area*mfx_Z(i-i_0+1,j-j_0+1,l)
+             sd(i,j,l) = grav*grav*AXYP(i,j)*sd(i,j,l)/PRESSURE_UNIT_RATIO
           enddo
        enddo
     enddo
-    SD(I_0:I_1,J_0:J_1,1:LM-1) = (mfx_Z(:,:,1:LM-1)) ! SD only goes up to LM-1
+
     ! Surface Pressure tendency - vert integral of horizontal convergence
     PIT(I_0:I_1,J_0:J_1) = mfx_Z(:,:,0) + sum(SD(I_0:I_1,J_0:J_1,1:LM-1),3)
 
