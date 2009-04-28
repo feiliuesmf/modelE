@@ -112,6 +112,7 @@ c-----------------------------------------------------------------------
      &     lrunid,xlabel)
       status_out=nf_put_att_text(out_fid,nf_global,'acc_period',
      &     len_trim(acc_period),acc_period)
+      ndims_file = 0
       return
       end subroutine open_out
 
@@ -590,16 +591,20 @@ C**** set dimensions
 
       dim_name='latitude'; call def_dim_out(dim_name,jm)
       dim_name='latb'; call def_dim_out(dim_name,jm-1)
-      dim_name='p'; call def_dim_out(dim_name,lm)
-      dim_name='ple'; call def_dim_out(dim_name,lm-1)
-      if(lm_req.gt.0) then
-         dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
+
+      if(index(filename,'.ojl').gt.0) then
+        dim_name='odepth'; call def_dim_out(dim_name,lm)
+        dim_name='odepth1'; call def_dim_out(dim_name,lm+1)
+      else
+        dim_name='p'; call def_dim_out(dim_name,lm)
+        dim_name='ple'; call def_dim_out(dim_name,lm-1)
+        if(lm_req.gt.0) then
+          dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
+        endif
+        dim_name='ple_up'; call def_dim_out(dim_name,lm)
+        dim_name='ple_dn'; call def_dim_out(dim_name,lm)
+        dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
       endif
-      dim_name='ple_up'; call def_dim_out(dim_name,lm)
-      dim_name='ple_dn'; call def_dim_out(dim_name,lm)
-      dim_name='pgz'; call def_dim_out(dim_name,kgz_max)
-      dim_name='odepth'; call def_dim_out(dim_name,lm)
-      dim_name='odepth1'; call def_dim_out(dim_name,lm+1)
 
 ! put lat,ht into output file
       ndims_out = 1
@@ -609,32 +614,36 @@ C**** set dimensions
       dim_name='latb'; call set_dim_out(dim_name,1)
       units='degrees_north'
       var_name='latb'; call wrtdarr(lat_dg(2,2))
-      dim_name='p'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='p'; call wrtdarr(plm)
-      dim_name='ple'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple'; call wrtdarr(ple)
-      if(lm_req.gt.0) then
-         dim_name='prqt'; call set_dim_out(dim_name,1)
-         units='mb'
-         var_name='prqt'; call wrtdarr(plm)
+
+      if(index(filename,'.ojl').gt.0) then
+        dim_name='odepth'; call set_dim_out(dim_name,1)
+        units='m'
+        var_name='odepth'; call wrtdarr(zoc)
+        dim_name='odepth1'; call set_dim_out(dim_name,1)
+        units='m'
+        var_name='odepth1'; call wrtdarr(zoc1)
+      else
+        dim_name='p'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='p'; call wrtdarr(plm)
+        dim_name='ple'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='ple'; call wrtdarr(ple)
+        if(lm_req.gt.0) then
+          dim_name='prqt'; call set_dim_out(dim_name,1)
+          units='mb'
+          var_name='prqt'; call wrtdarr(plm)
+        endif
+        dim_name='ple_up'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='ple_up'; call wrtdarr(ple)
+        dim_name='ple_dn'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='ple_dn'; call wrtdarr(ple_dn)
+        dim_name='pgz'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='pgz'; call wrtdarr(pmb(1:kgz_max))
       endif
-      dim_name='ple_up'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple_up'; call wrtdarr(ple)
-      dim_name='ple_dn'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple_dn'; call wrtdarr(ple_dn)
-      dim_name='pgz'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='pgz'; call wrtdarr(pmb(1:kgz_max))
-      dim_name='odepth'; call set_dim_out(dim_name,1)
-      units='m'
-      var_name='odepth'; call wrtdarr(zoc)
-      dim_name='odepth1'; call set_dim_out(dim_name,1)
-      units='m'
-      var_name='odepth1'; call wrtdarr(zoc1)
 
       return
       end subroutine open_jl
@@ -686,6 +695,9 @@ C**** set dimensions
 
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER J,L
+      logical :: is_ocn
+
+      is_ocn = index(outfile,'.ojl').gt.0
 
       out_fid = iu_jl
 
@@ -701,7 +713,11 @@ C**** set dimensions
       endif
       call set_dim_out(dim_name,1)
 
-      if(lm_req.gt.0 .and. klmax.eq.lm+lm_req) then
+      if(is_ocn .and. all(pm(1:klmax).eq.zoc(1:klmax))) then
+         dim_name='odepth'
+      else if(is_ocn .and. all(pm(1:klmax).eq.zoc1(1:klmax))) then
+         dim_name='odepth1'
+      else if(lm_req.gt.0 .and. klmax.eq.lm+lm_req) then
          dim_name='prqt'
       else if(klmax.eq.lm .and. all(pm(1:lm).eq.plm(1:lm))) then
          dim_name='p'
@@ -719,10 +735,6 @@ C**** set dimensions
       else if(klmax.eq.1) then
  ! sometimes this routine is called to write out 1-dimensional arrays
          ndims_out = 1
-       else if(klmax.eq.lm .and. all(pm(1:lm).eq.zoc(1:lm))) then
-         dim_name='odepth'
-       else if(klmax.eq.lm+1 .and. all(pm(1:lm+1).eq.zoc1(1:lm+1))) then
-         dim_name='odepth1'
       else
          write(6,*) 'klmax =',klmax,title,pm(1:klmax),ple(1:klmax)
          call stop_model('pout_jl: unrecognized vertical grid',255)
@@ -733,8 +745,10 @@ C**** set dimensions
       long_name=lname
       units=units_in
 
-      real_att_name='g-nh-sh_sums-means'
-      real_att(1:3)=XJL(JM+1:JM+3,LM+LM_REQ+1)
+      if(.not. is_ocn) then
+        real_att_name='g-nh-sh_sums-means'
+        real_att(1:3)=XJL(JM+1:JM+3,LM+LM_REQ+1)
+      endif
 
       if(j1.eq.1) then
          xjl0(1:jm,1:lm+lm_req) = xjl(1:jm,1:lm+lm_req)
@@ -752,7 +766,7 @@ C**** set dimensions
 !@auth M. Kelley
 !@ver  1.0
       USE GEOM, only : lon_dg
-      USE DIAG_COM, only : plm,ple,ple_dn
+      USE DIAG_COM, only : plm,ple,ple_dn,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
 !@var FILENAME output file name
@@ -765,18 +779,23 @@ C**** set dimensions
       call open_out
       iu_il = out_fid
 
-C**** set units
       im=im_gcm
       lm=lm_gcm
       lm_req=lm_req_gcm
 
       dim_name='longitude'; call def_dim_out(dim_name,im)
       dim_name='lonb'; call def_dim_out(dim_name,im)
-      dim_name='p'; call def_dim_out(dim_name,lm)
-      dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
-      dim_name='ple_up'; call def_dim_out(dim_name,lm)
-      dim_name='ple_dn'; call def_dim_out(dim_name,lm)
-      dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
+
+      if(index(filename,'.oil').gt.0) then
+        dim_name='odepth'; call def_dim_out(dim_name,lm)
+        dim_name='odepth1'; call def_dim_out(dim_name,lm+1)
+      else
+        dim_name='p'; call def_dim_out(dim_name,lm)
+        dim_name='prqt'; call def_dim_out(dim_name,lm+lm_req)
+        dim_name='ple_up'; call def_dim_out(dim_name,lm)
+        dim_name='ple_dn'; call def_dim_out(dim_name,lm)
+        dim_name='ple_int'; call def_dim_out(dim_name,lm-1)
+      endif
 
 ! put lon,ht into output file
       ndims_out = 1
@@ -786,21 +805,31 @@ C**** set units
       dim_name='lonb'; call set_dim_out(dim_name,1)
       units='degrees_east'
       var_name='lonb'; call wrtdarr(lon_dg(1,2))
-      dim_name='p'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='p'; call wrtdarr(plm)
-      dim_name='prqt'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='prqt'; call wrtdarr(plm)
-      dim_name='ple_up'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple_up'; call wrtdarr(ple)
-      dim_name='ple_dn'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple_dn'; call wrtdarr(ple_dn)
-      dim_name='ple_int'; call set_dim_out(dim_name,1)
-      units='mb'
-      var_name='ple_int'; call wrtdarr(ple)
+
+      if(index(filename,'.oil').gt.0) then
+        dim_name='odepth'; call set_dim_out(dim_name,1)
+        units='m'
+        var_name='odepth'; call wrtdarr(zoc)
+        dim_name='odepth1'; call set_dim_out(dim_name,1)
+        units='m'
+        var_name='odepth1'; call wrtdarr(zoc1)
+      else
+        dim_name='p'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='p'; call wrtdarr(plm)
+        dim_name='prqt'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='prqt'; call wrtdarr(plm)
+        dim_name='ple_up'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='ple_up'; call wrtdarr(ple)
+        dim_name='ple_dn'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='ple_dn'; call wrtdarr(ple_dn)
+        dim_name='ple_int'; call set_dim_out(dim_name,1)
+        units='mb'
+        var_name='ple_int'; call wrtdarr(ple)
+      endif
 
       return
       end subroutine open_il
@@ -824,7 +853,7 @@ C**** set units
 !@auth M. Kelley
 !@ver  1.0
       USE GEOM, only : lon_dg
-      USE DIAG_COM, only : plm,ple,ple_dn
+      USE DIAG_COM, only : plm,ple,ple_dn,zoc,zoc1
       USE NCOUT
       IMPLICIT NONE
 !@var TITLE 80 byte title including description and averaging period
@@ -834,23 +863,26 @@ C**** set units
 !@var I1 coordinate index associated with first long. (for wrap-around)
       INTEGER, INTENT(IN) :: KLMAX,ISHIFT,I1
 !@var XIL output field
-      REAL*8, DIMENSION(IM,LM+LM_REQ+1), INTENT(INOUT) :: XIL
+      REAL*8, DIMENSION(IM,KLMAX+1), INTENT(INOUT) :: XIL
 !@var PM pressure levels (MB)
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: PM
+      REAL*8, DIMENSION(KLMAX), INTENT(IN) :: PM
 !@var ASUM vertical mean/sum
       REAL*8, DIMENSION(IM), INTENT(IN) :: ASUM
 !@var GSUM total sum/mean
       REAL*8, INTENT(IN) :: GSUM
 !@var ZONAL zonal sum/mean
-      REAL*8, DIMENSION(LM+LM_REQ), INTENT(IN) :: ZONAL
+      REAL*8, DIMENSION(KLMAX), INTENT(IN) :: ZONAL
 
       CHARACTER*16, INTENT(IN) :: CX,CY
       INTEGER I,L
-      REAL*8 XTEMP(IM,LM+LM_REQ+1)
+      REAL*8 XTEMP(IM,KLMAX)
       character(len=30) :: dim_name
       character(len=sname_strlen), intent(in) :: sname
       character(len=units_strlen), intent(in) :: unit
       character(len=lname_strlen), intent(in) :: lname
+      logical :: is_ocn
+
+      is_ocn = index(outfile,'.oil').gt.0
 
       out_fid = iu_il
 
@@ -859,11 +891,12 @@ C**** set units
 
 C**** Note that coordinates cannot be wrapped around as a function I1,
 C**** therefore shift array back to standard order.
-      if (i1.gt.0) then
-        xtemp=xil
-        xil(1:i1-1,:) = xtemp(im-i1+2:im,:)
-        xil(i1:im,:) = xtemp(1:im-i1+1,:)
+      if (i1.gt.1) then
+        xtemp(:,1:klmax)=xil(:,1:klmax)
+        xil(1:i1-1,1:klmax) = xtemp(im-i1+2:im,1:klmax)
+        xil(i1:im,1:klmax) = xtemp(1:im-i1+1,1:klmax)
       end if
+
       if(ishift.eq.1) then
          dim_name='longitude'
       else if(ishift.eq.2) then
@@ -873,7 +906,11 @@ C**** therefore shift array back to standard order.
       endif
       call set_dim_out(dim_name,1)
 
-      if(klmax.eq.lm+lm_req) then
+      if(is_ocn .and. all(pm(1:klmax).eq.zoc(1:klmax))) then
+         dim_name='odepth'
+      else if(is_ocn .and. all(pm(1:klmax).eq.zoc1(1:klmax))) then
+         dim_name='odepth1'
+      elseif(klmax.eq.lm+lm_req) then
          dim_name='prqt'
       else if(klmax.eq.lm .and. all(pm(1:lm).eq.plm(1:lm))) then
          dim_name='p'
@@ -893,8 +930,10 @@ C**** therefore shift array back to standard order.
       long_name=lname
       units=unit
 
-      real_att_name='mean'
-      real_att(1)=gsum
+      if(.not. is_ocn) then
+        real_att_name='mean'
+        real_att(1)=gsum
+      endif
 
       call wrtdarr(xil)
 
