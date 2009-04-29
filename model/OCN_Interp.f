@@ -23,7 +23,7 @@
 
       contains
 
-      SUBROUTINE INT_AG2OG_2Da(aA,oA,aWEIGHT)
+      SUBROUTINE INT_AG2OG_2Da(aA,oA,aWEIGHT_loc)
 
 !@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
 
@@ -44,13 +44,13 @@
 
       INTEGER :: IER
 
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  :: aA(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
-
       REAL*8, ALLOCATABLE :: aA_glob(:,:), oA_glob(:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oA(:,:) = aA(:,:)
@@ -59,11 +59,16 @@
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 2D array on atmospheric grid into the global array
 
       CALL PACK_DATA (aGRID, aA, aA_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -82,7 +87,7 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_DATA (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA_glob, oA_glob)
+        DEALLOCATE(aA_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -90,7 +95,7 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_2Da
 
-      SUBROUTINE INT_AG2OG_2Db(aA1,aA2,oA,aWEIGHT) 
+      SUBROUTINE INT_AG2OG_2Db(aA1,aA2,oA,aWEIGHT_loc) 
 
 !@sum INT_AG2OG_2D is for conversion 2D arrays from atm. to the ocean grid 
 
@@ -109,18 +114,16 @@ C***  Scatter global array oA_glob to the ocean grid
 
       IMPLICIT NONE
 
-      INTEGER :: IER, I,J
+      INTEGER :: IER
 
-      INTEGER, DIMENSION(aJM) :: aIMAXJ
-
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN) :: aA1(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN) :: aA2(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aFOCEAN, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor 
-
       REAL*8, ALLOCATABLE :: aA1_glob(:,:),aA2_glob(:,:), oA_glob(:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oA(:,:) = aA1(:,:)*aA2(:,:)
@@ -130,12 +133,17 @@ C***  Scatter global array oA_glob to the ocean grid
         ALLOCATE(aA1_glob(aIM,aJM), STAT = IER)
         ALLOCATE(aA2_glob(aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 2D array on atmospheric grid into the global array
 
       CALL PACK_DATA (aGRID, aA1, aA1_glob)
       CALL PACK_DATA (aGRID, aA2, aA2_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -144,7 +152,7 @@ C***  Interpolate aA_glob from atmospheric grid to ocean grid
         call HNTR80 (aIM,aJM,0.d0,aDLATM, oIM,oJM,0.d0,oDLATM, 0.d0)
 
         aFtemp(:,:) = 0.
-        aFtemp(I,J) = aA1_glob(I,J)*aA2_glob(I,J)
+        aFtemp(:,:) = aA1_glob(:,:)*aA2_glob(:,:)
         aFtemp(2:aIM,aJM) = aFtemp(1,aJM)
         call HNTR8P (aWEIGHT, aFtemp, oFtemp)
         oA_glob(:,:) = oFtemp(:,:)
@@ -154,7 +162,7 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_DATA (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA1_glob,aA2_glob, oA_glob)
+        DEALLOCATE(aA1_glob,aA2_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -162,7 +170,7 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_2Db
 
-      SUBROUTINE INT_AG2OG_3Da(aA,oA,aWEIGHT,NT)
+      SUBROUTINE INT_AG2OG_3Da(aA,oA,aWEIGHT_loc,NT)
 
 !@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
@@ -175,7 +183,7 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
      *                           , PACK_COLUMN, UNPACK_COLUMN
       Use OCEANR_DIM,       only : oGRID
 
@@ -184,14 +192,14 @@ C***  Scatter global array oA_glob to the ocean grid
       INTEGER :: IER, NT,N
 
       REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(IN)  :: 
      *  aA(NT,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: 
      *  oA(NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
-
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oA(:,:,:) = aA(:,:,:)
@@ -200,11 +208,16 @@ C***  Scatter global array oA_glob to the ocean grid
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(NT,aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(NT,oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 3D array on atmospheric grid into the global array
 
       CALL PACK_COLUMN (aGRID, aA, aA_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -225,7 +238,7 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_COLUMN (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA_glob, oA_glob)
+        DEALLOCATE(aA_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -233,7 +246,7 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_3Da
 
-      SUBROUTINE INT_AG2OG_3Db(aA,oA,aWEIGHT, aN,oN)
+      SUBROUTINE INT_AG2OG_3Db(aA,oA,aWEIGHT_loc, aN,oN)
 
 !@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
@@ -252,19 +265,17 @@ C***  Scatter global array oA_glob to the ocean grid
 
       IMPLICIT NONE
 
-      INTEGER :: IER, aN,oN, I,J
+      INTEGER :: IER, aN,oN
 
-      INTEGER, DIMENSION(aJM) :: aIMAXJ
-
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  :: 
      *  aA(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
       REAL*8, INTENT(OUT) :: 
      *  oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
-
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oA(:,:,oN) = aA(:,:,oN)
@@ -273,11 +284,16 @@ C***  Scatter global array oA_glob to the ocean grid
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(aIM,aJM,aN), STAT = IER)
         ALLOCATE(oA_glob(oIM,oJM,oN), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 3D array on atmospheric grid into the global array
 
       CALL PACK_DATA (aGRID, aA, aA_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -297,7 +313,7 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_DATA (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA_glob, oA_glob)
+        DEALLOCATE(aA_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -305,7 +321,7 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_3Db
 
-      SUBROUTINE INT_AG2OG_3Dc(aA,oA,aWEIGHT, aN,oN,oNin)
+      SUBROUTINE INT_AG2OG_3Dc(aA,oA,aWEIGHT_loc, aN,oN,oNin)
 
 !@sum INT_AG2OG_3D is for conversion 3D arrays from atm. to the ocean grid 
 
@@ -318,25 +334,23 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
      *                           , PACK_COLUMN, UNPACK_COLUMN
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
 
-      INTEGER :: IER, aN,oN, I,J, oNin 
+      INTEGER :: IER, aN,oN, oNin 
 
-      INTEGER, DIMENSION(aJM) :: aIMAXJ
-
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  :: 
      *  aA(aN,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: 
      *  oA(oN,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
-
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oA(oNin,:,:) = aA(oNin,:,:)
@@ -345,11 +359,16 @@ C***  Scatter global array oA_glob to the ocean grid
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(aN,aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(oN,oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 3D array on atmospheric grid into the global array
 
       CALL PACK_COLUMN (aGRID, aA, aA_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -369,7 +388,7 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_COLUMN (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA_glob, oA_glob)
+        DEALLOCATE(aA_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -377,7 +396,7 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_3Dc
 
-      SUBROUTINE INT_AG2OG_4Da(aA,oA,aWEIGHT, NT, aN,oN)
+      SUBROUTINE INT_AG2OG_4Da(aA,oA,aWEIGHT_loc, NT, aN,oN)
 
 !@sum INT_AG2OG_4D is for conversion 4D arrays from atm. to the ocean grid 
 
@@ -390,25 +409,23 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
      *                           , PACK_BLOCK, UNPACK_BLOCK
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
 
-      INTEGER :: IER, NT,N, aN,oN, I,J 
+      INTEGER :: IER, NT,N, aN,oN 
 
-      INTEGER, DIMENSION(aJM) :: aIMAXJ
-
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  :: 
      *  aA(NT,aN,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: 
      *  oA(NT,oN,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp
-
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), oA_glob(:,:,:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oA(:,oN,:,:) = aA(:,oN,:,:)
@@ -417,11 +434,16 @@ C***  Scatter global array oA_glob to the ocean grid
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(NT,aN,aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(NT,oN,oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 4D array on atmospheric grid into the global array
 
       CALL PACK_BLOCK (aGRID, aA, aA_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -443,7 +465,7 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_BLOCK (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA_glob, oA_glob)
+        DEALLOCATE(aA_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -451,7 +473,7 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_4Da
 
-      SUBROUTINE INT_AG2OG_4Db(aA,oA,oB,aWEIGHT, NT, aN,oN)
+      SUBROUTINE INT_AG2OG_4Db(aA,oA,oB,aWEIGHT_loc, NT, aN,oN)
 
 !@sum INT_AG2OG_4D is for conversion 4D arrays from atm. to the ocean grid 
 
@@ -464,35 +486,39 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT, PACK_DATA
      *                           , PACK_BLOCK, UNPACK_BLOCK
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
 
-      INTEGER :: IER, NT,N, aN,oN, I,J 
+      INTEGER :: IER, NT,N, aN,oN 
 
-      INTEGER, DIMENSION(aJM) :: aIMAXJ
-
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  :: 
      *  aA(NT,aN,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) :: 
      *  oA(NT,oN,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFactor, aFOCEAN, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp, oFactor
       REAL*8, DIMENSION(oIM,oJM,NT) :: oB
 
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), oA_glob(:,:,:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(NT,aN,aIM,aJM), STAT = IER)
         ALLOCATE(oA_glob(NT,oN,oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 4D array on atmospheric grid into the global array
 
       CALL PACK_BLOCK (aGRID, aA, aA_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -515,14 +541,14 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_BLOCK (ogrid, oA_glob, oA)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aA_glob, oA_glob)
+        DEALLOCATE(aA_glob, oA_glob, aFtemp,oFtemp, aWEIGHT)
       end if
 
       RETURN
       END SUBROUTINE INT_AG2OG_4Db
 
-      SUBROUTINE INT_AG2OG_Vector1(aU,aV, oU,oV, aWEIGHT,aFOCEAN,aIMAXJ, 
-     *           aSINI,aCOSI, oSINI,oCOSI, aN,oN) 
+      SUBROUTINE INT_AG2OG_Vector1(aU,aV, oU,oV, aWEIGHT_loc,aFOCEAN_loc 
+     *           ,aIMAXJ,aSINI,aCOSI, oSINI,oCOSI, aN,oN) 
 
 !@sum INT_AG2OG_Vector1 is for conversion vector from atm. A grid to ocean A grid 
 
@@ -545,15 +571,16 @@ C***  Scatter global array oA_glob to the ocean grid
 
       INTEGER, DIMENSION(aJM) :: aIMAXJ
 
+      REAL*8, INTENT(IN)  :: 
+     *        aFOCEAN_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  ::  
      *  aU(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
      * ,aV(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
       REAL*8, INTENT(OUT) ::
      *  oU(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
      * ,oV(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
-
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aFOCEAN, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp 
 
       REAL*8, DIMENSION(aIM) :: aSINI,aCOSI
       REAL*8, DIMENSION(oIM) :: oSINI,oCOSI
@@ -563,6 +590,8 @@ C***  Scatter global array oA_glob to the ocean grid
 
       REAL*8, ALLOCATABLE :: aU_glob(:,:,:),aV_glob(:,:,:)
      *                      ,oU_glob(:,:,:),oV_glob(:,:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:)
+     *                     , aWEIGHT(:,:), aFOCEAN(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oU(:,:,oN) = aU(:,:,oN)
@@ -574,12 +603,20 @@ C***  Scatter global array oA_glob to the ocean grid
         ALLOCATE(aV_glob(aIM,aJM,aN), STAT = IER)
         ALLOCATE(oU_glob(oIM,oJM,oN), STAT = IER)
         ALLOCATE(oV_glob(oIM,oJM,oN), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
+        ALLOCATE(aFOCEAN(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 2D array on atmospheric grid into the global array
 
       CALL PACK_DATA (aGRID, aU, aU_glob)
       CALL PACK_DATA (aGRID, aV, aV_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
+
+      CALL PACK_DATA (aGRID, aFOCEAN_loc, aFOCEAN)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -634,7 +671,8 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_DATA (ogrid, oV_glob, oV)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aU_glob,aV_glob, oU_glob,oV_glob)
+        DEALLOCATE(aU_glob,aV_glob, oU_glob,oV_glob
+     *           , aFtemp,oFtemp, aWEIGHT, aFOCEAN)
       end if
 
       end if
@@ -642,7 +680,8 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_Vector1
 
-      SUBROUTINE INT_AG2OG_Vector2(aU,aV, oU,oV, aWEIGHT, IVSPO,IVNPO)
+      SUBROUTINE INT_AG2OG_Vector2(aU,aV, oU,oV, aWEIGHT_loc
+     *                           , IVSPO,IVNPO)
 
 !@sum INT_AG2OG_Vector2 is for conversion vector from atm. (U,V) grid to ocean (U,V) grid 
 
@@ -663,15 +702,14 @@ C***  Scatter global array oA_glob to the ocean grid
 
       INTEGER :: IER, I,J, IVSPO,IVNPO
 
+      REAL*8, INTENT(IN)  :: 
+     *        aWEIGHT_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(IN)  ::  
      *  aU(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
      * ,aV(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8, INTENT(OUT) ::
      *  oU(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
      * ,oV(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
-
-      REAL*8, DIMENSION(aIM,aJM) :: aFtemp, aWEIGHT
-      REAL*8, DIMENSION(oIM,oJM) :: oFtemp 
 
       REAL*8, DIMENSION(aIM) :: aSINI,aCOSI
       REAL*8, DIMENSION(oIM) :: oSINI,oCOSI
@@ -681,6 +719,7 @@ C***  Scatter global array oA_glob to the ocean grid
 
       REAL*8, ALLOCATABLE :: aU_glob(:,:),aV_glob(:,:)
      *                      ,oU_glob(:,:),oV_glob(:,:)
+     *                     , aFtemp(:,:),oFtemp(:,:), aWEIGHT(:,:)
 
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
         oU(:,:) = aU(:,:)
@@ -692,12 +731,17 @@ C***  Scatter global array oA_glob to the ocean grid
         ALLOCATE(aV_glob(aIM,aJM), STAT = IER)
         ALLOCATE(oU_glob(oIM,oJM), STAT = IER)
         ALLOCATE(oV_glob(oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(aWEIGHT(aIM,aJM), STAT = IER)
       end if
 
 C***  Gather 2D array on atmospheric grid into the global array
 
       CALL PACK_DATA (aGRID, aU, aU_glob)
       CALL PACK_DATA (aGRID, aV, aV_glob)
+
+      CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
 C***  Interpolate aA_glob from atmospheric grid to ocean grid 
 
@@ -734,7 +778,8 @@ C***  Scatter global array oA_glob to the ocean grid
       CALL UNPACK_DATA (ogrid, oV_glob, oV)
 
       if(AM_I_ROOT()) then
-        DEALLOCATE(aU_glob,aV_glob, oU_glob,oV_glob)
+        DEALLOCATE(aU_glob,aV_glob, oU_glob,oV_glob
+     *           , aFtemp,oFtemp, aWEIGHT)
       end if
 
       end if
@@ -743,6 +788,239 @@ C***  Scatter global array oA_glob to the ocean grid
       END SUBROUTINE INT_AG2OG_Vector2
 
       END MODULE INT_AG2OG_MOD
+
+      MODULE INT_OG2AG_MOD
+
+!@sum INT_OG2AG_MOD contains subroutines for conversion 2D, 3D, etc. 
+!!    arrays from ocean to the atm. grid 
+!@auth Larissa Nazarenko
+!@ver  1.0
+      PRIVATE
+      PUBLIC INT_OG2AG
+
+      Interface INT_OG2AG
+      Module Procedure INT_OG2AG_3Da
+      Module Procedure INT_OG2AG_4Da
+
+      End Interface
+
+      contains
+
+      SUBROUTINE INT_OG2AG_3Da(oA,aA,oWEIGHT_loc,NT)
+
+!@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the atm. grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
+
+      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_COLUMN, UNPACK_COLUMN
+     *                           , PACK_DATA
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, NT, I,J,N
+      INTEGER :: aJ_0,aJ_1, aI_0,aI_1
+
+      REAL*8, INTENT(IN)  :: 
+     *        oWEIGHT_loc(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
+      REAL*8  :: 
+     *  aA(NT,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8 :: 
+     *  oA(NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:), oA_glob(:,:,:)
+     *                     , aFOCEAN(:,:) 
+     *                     , aFtemp(:,:),oFtemp(:,:), oWEIGHT(:,:)
+
+      aJ_0 = aGRID%j_STRT
+      aJ_1 = aGRID%j_STOP
+      aI_0 = aGRID%I_STRT
+      aI_1 = aGRID%I_STOP
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+
+        DO N=1,NT
+          DO J=aJ_0,aJ_1
+            DO I=aI_0,aIMAXJ(J)
+              IF (aFOCEAN_loc(I,J).gt.0.) THEN
+                aA(N,I,J) = oA(N,I,J)
+              END IF
+            END DO
+          END DO
+        END DO
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aFOCEAN(aIM,aJM), STAT = IER)
+        ALLOCATE(aA_glob(NT,aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(NT,oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(oWEIGHT(oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 3D array on atmospheric grid into the global array
+
+      CALL PACK_COLUMN (aGRID, aA, aA_glob)
+      CALL PACK_COLUMN (oGRID, oA, oA_glob)
+
+      CALL PACK_DATA  (aGRID, aFOCEAN_loc, aFOCEAN)
+
+      CALL PACK_DATA (oGRID, oWEIGHT_loc, oWEIGHT)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (oIM,oJM,0.d0,oDLATM, aIM,aJM,0.d0,aDLATM, 0.d0)
+
+        DO N=1,NT
+          oFtemp(:,:) = oA_glob(N,:,:)
+          oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+          call HNTR8P (oWEIGHT, oFtemp, aFtemp)
+          DO J=1,aJM
+            DO I=1,aIMAXJ(J)
+              IF (aFOCEAN(I,J).gt.0.) THEN
+                aA_glob(N,I,J) = aFtemp(I,J)  
+              END IF
+            END DO
+          END DO
+        END DO
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_COLUMN (agrid, aA_glob, aA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob, aFOCEAN, aFtemp,oFtemp, oWEIGHT)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_OG2AG_3Da
+
+      SUBROUTINE INT_OG2AG_4Da(oA,aA,oWEIGHT_loc,NT,NTM)
+
+!@sum INT_OG2AG_4D is for conversion 4D arrays from ocean to the atm. grid 
+
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE OCEAN,      only : oIM=>im,oJM=>jm
+
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM, aIMAXJ=>IMAXJ
+
+      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
+     *                           , PACK_BLOCK, UNPACK_BLOCK
+     *                           , PACK_DATA
+      Use OCEANR_DIM,       only : oGRID
+
+      IMPLICIT NONE
+
+      INTEGER :: IER, NTM,NT,N1,N2, I,J,N
+      INTEGER :: aJ_0,aJ_1, aI_0,aI_1
+
+      REAL*8, INTENT(IN)  :: 
+     *        oWEIGHT_loc(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
+      REAL*8  :: 
+     *  aA(NTM,NT,aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8 :: 
+     *  oA(NTM,NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), oA_glob(:,:,:,:)
+     *                     , aFOCEAN(:,:) 
+     *                     , aFtemp(:,:),oFtemp(:,:), oWEIGHT(:,:)
+
+      aJ_0 = aGRID%j_STRT
+      aJ_1 = aGRID%j_STOP
+      aI_0 = aGRID%I_STRT
+      aI_1 = aGRID%I_STOP
+
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+
+        DO N1=1,NTM
+          DO N2=1,NT
+          DO J=aJ_0,aJ_1
+            DO I=aI_0,aIMAXJ(J)
+              IF (aFOCEAN_loc(I,J).gt.0.) THEN
+                aA(N1,N2,I,J) = oA(N1,N2,I,J)
+              END IF
+            END DO
+          END DO
+          END DO
+        END DO
+      else
+
+      if(AM_I_ROOT()) then
+        ALLOCATE(aFOCEAN(aIM,aJM), STAT = IER)
+        ALLOCATE(aA_glob(NTM,NT,aIM,aJM), STAT = IER)
+        ALLOCATE(oA_glob(NTM,NT,oIM,oJM), STAT = IER)
+        ALLOCATE(aFtemp(aIM,aJM), STAT = IER)
+        ALLOCATE(oFtemp(oIM,oJM), STAT = IER)
+        ALLOCATE(oWEIGHT(oIM,oJM), STAT = IER)
+      end if
+
+C***  Gather 3D array on atmospheric grid into the global array
+
+      CALL PACK_BLOCK (aGRID, aA, aA_glob)
+      CALL PACK_BLOCK (oGRID, oA, oA_glob)
+
+      CALL PACK_DATA  (agrid, aFOCEAN_loc, aFOCEAN)
+
+      CALL PACK_DATA (oGRID, oWEIGHT_loc, oWEIGHT)
+
+C***  Interpolate aA_glob from atmospheric grid to ocean grid 
+
+      if(AM_I_ROOT()) then
+
+        call HNTR80 (oIM,oJM,0.d0,oDLATM, aIM,aJM,0.d0,aDLATM, 0.d0)
+
+        DO N1=1,NTM
+        DO N2=1,NT
+          oFtemp(:,:) = oA_glob(N1,N2,:,:)
+          oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+          call HNTR8P (oWEIGHT, oFtemp, aFtemp)
+          DO J=1,aJM
+            DO I=1,aIMAXJ(J)
+              IF (aFOCEAN(I,J).gt.0.) THEN
+                aA_glob(N1,N2,I,J) = aFtemp(I,J)  
+              END IF
+            END DO
+          END DO
+        END DO
+        END DO
+      end if
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL UNPACK_BLOCK (agrid, aA_glob, aA)
+
+      if(AM_I_ROOT()) then
+        DEALLOCATE(aA_glob, oA_glob, aFOCEAN, aFtemp,oFtemp, oWEIGHT)
+      end if
+
+      end if
+
+      RETURN
+      END SUBROUTINE INT_OG2AG_4Da
+
+      END MODULE INT_OG2AG_MOD
 
 #ifndef CUBE_GRID
       SUBROUTINE AG2OG_precip
@@ -782,19 +1060,17 @@ C***  Scatter global array oA_glob to the ocean grid
 
       INTEGER N
 
-      REAL*8, DIMENSION(aIM,aJM) :: aRSI_glob
+      REAL*8, 
+     * DIMENSION(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
+     * aWEIGHT
 
-      REAL*8, DIMENSION(aIM,aJM) :: aWEIGHT
-
-      CALL PACK_DATA  (agrid, aRSI, aRSI_glob)
-C*
-      aWEIGHT(:,:) = 1.- aRSI_glob(:,:)  !!  open ocean fraction
+      aWEIGHT(:,:) = 1.- aRSI(:,:)  !!  open ocean fraction
       CALL INT_AG2OG(aPREC,oPREC, aWEIGHT)
 
       CALL INT_AG2OG(aEPREC,oEPREC, aWEIGHT)
       oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
       
-      aWEIGHT(:,:) = aRSI_glob(:,:)  
+      aWEIGHT(:,:) = aRSI(:,:)  
       CALL INT_AG2OG(aRUNPSI,oRUNPSI, aWEIGHT)
 
       CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT)
@@ -808,7 +1084,7 @@ C*
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
 
-      aWEIGHT(:,:) = 1.- aRSI_glob(:,:) 
+      aWEIGHT(:,:) = 1.- aRSI(:,:) 
       DO N=1,NTM
         aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
@@ -817,7 +1093,7 @@ C*
         oTRPREC(N,:,:) = oTRPREC(N,:,:)*OXYP(:,:)
       END DO
       
-      aWEIGHT(:,:) = aRSI_glob(:,:)  
+      aWEIGHT(:,:) = aRSI(:,:)  
       CALL INT_AG2OG(aTRUNPSI,oTRUNPSI, aWEIGHT, NTM)
       DO N=1,NTM
         oTRUNPSI(N,:,:) = oTRUNPSI(N,:,:)*OXYP(:,:)
@@ -1159,146 +1435,6 @@ C**** surface tracer concentration
       RETURN
       END SUBROUTINE scatter_ocean1
 
-#ifndef CUBE_GRID
-      SUBROUTINE INT_OG2AG_oceans(
-     *       oDMSI_glob, oDHSI_glob, oDSSI_glob
-     *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
-#ifdef TRACERS_OCEAN
-     *     , oDTRSI_glob
-#endif
-#ifdef TRACERS_ON
-     *     , aDTRSI_glob
-#endif
-     *     )
-!@sum  INT_OG2AG is for interpolation of arrays from subr.GROUND_OC
-!!      from ocean grid to the atmospheric grid
-!@auth Larissa Nazarenko
-!@ver  1.0
-
-      USE RESOLUTION, only : IMA=>IM,JMA=>JM
-      USE OCEAN, only : IMO=>IM,JMO=>JM, oFOCEAN=>FOCEAN,
-     *     oDXYPO=>DXYPO, oIMAXJ=>IMAXJ, oDLATM=>DLATM
-
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
-
-#ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm_atm=>ntm
-#endif
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only: ntm
-#endif
-
-      USE GEOM,  only : aIMAXJ=>IMAXJ, aDLATM=>DLATM
-
-      IMPLICIT NONE
-
-      INTEGER I,J, N, NT
-
-!!!   Global arrays on ocean grid
-
-      REAL*8, INTENT(IN), DIMENSION(2,IMO,JMO) ::
-     *     oDMSI_glob, oDHSI_glob, oDSSI_glob
-#ifdef TRACERS_OCEAN
-      REAL*8, INTENT(IN), DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
-#endif
-
-!!!   Global arrays on atmospheric grid
-
-      REAL*8, INTENT(INOUT), DIMENSION(2,IMA,JMA) ::
-     *     aDMSI_glob, aDHSI_glob, aDSSI_glob
-#ifdef TRACERS_ON
-      REAL*8, INTENT(INOUT), DIMENSION(NTM_ATM,2,IMA,JMA) :: aDTRSI_glob
-#endif
-
-      REAL*8, DIMENSION(IMA,JMA) :: aFtemp
-      REAL*8, DIMENSION(IMO,JMO) :: oFtemp
-
-      call HNTR80 (IMO,JMO,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
-
-      DO N=1,2
-      DO J=1,JMO
-        DO I=1,oIMAXJ(J)
-          IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDMSI_glob(N,I,J)                 !  kg/m^2
-          END IF
-        END DO
-      END DO
-      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aDMSI_glob(N,I,J) = aFtemp(I,J)                 !  kg/m^2
-          END IF
-        END DO
-      END DO
-
-      DO J=1,JMO
-        DO I=1,oIMAXJ(J)
-          IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDHSI_glob(N,I,J)                 !  J/m^2
-          END IF
-        END DO
-      END DO
-      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aDHSI_glob(N,I,J) = aFtemp(I,J)                 !  J/m^2
-          END IF
-        END DO
-      END DO
-
-      DO J=1,JMO
-        DO I=1,oIMAXJ(J)
-          IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDSSI_glob(N,I,J)                 !  kg/m^2
-          END IF
-        END DO
-      END DO
-      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aDSSI_glob(N,I,J) = aFtemp(I,J)                 !  kg/m^2
-          END IF
-        END DO
-      END DO
-
-#if (defined TRACERS_OCEAN) && (defined TRACERS_ON)
-
-      IF (NTM == NTM_ATM) THEN
-      DO NT=1,NTM
-      DO J=1,JMO
-        DO I=1,oIMAXJ(J)
-          IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = oDTRSI_glob(NT,N,I,J)             !  kg/m^2
-          END IF
-        END DO
-      END DO
-      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-      call HNTR8P (oFOCEAN, oFtemp, aFtemp)
-      DO J=1,JMA
-        DO I=1,aIMAXJ(J)
-          IF (aFOCEAN(I,J).gt.0.) THEN
-            aDTRSI_glob(NT,N,I,J) = aFtemp(I,J)             !  kg/m^2
-          END IF
-        END DO
-      END DO
-      END DO
-      ELSE
-C**** if number of ocean and atm. tracers are not the same
-C**** do something in here
-
-      END IF
-#endif
-      END DO   !N-loop
-
-      END SUBROUTINE INT_OG2AG_oceans
-#endif
-
       SUBROUTINE AG2OG_oceans
 !@sum  AG2OG_oceans: all atmospheric arrays used in the subr. OCEANS are gathered
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
@@ -1400,12 +1536,13 @@ C**** do something in here
       INTEGER aJ_0,aJ_1, aI_0,aI_1
       INTEGER oJ_0,oJ_1
 
-      REAL*8, DIMENSION(aIM,aJM) :: aFactor, aWEIGHT, aRSI_glob
-      REAL*8, DIMENSION(oIM,oJM) :: oFactor
-
       REAL*8, 
      * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,aGRID%J_STRT:aGRID%J_STOP)::
      * aFact
+
+      REAL*8, 
+     * DIMENSION(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
+     * aWEIGHT
 
       aJ_0 = aGRID%j_STRT
       aJ_1 = aGRID%j_STOP
@@ -1414,8 +1551,6 @@ C**** do something in here
 
       oJ_0 = oGRID%j_STRT
       oJ_1 = oGRID%j_STOP
-
-      CALL PACK_DATA  (aGRID, aRSI, aRSI_glob)
 
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
@@ -1486,7 +1621,7 @@ C**** do something in here
       CALL INT_AG2OG(aEGMELT,oEGMELT, aWEIGHT) 
       oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
 
-      aWEIGHT(:,:) = aRSI_glob(:,:)
+      aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aRUNOSI,oRUNOSI, aWEIGHT) 
 
       CALL INT_AG2OG(aERUNOSI,oERUNOSI, aWEIGHT) 
@@ -1496,14 +1631,14 @@ C**** do something in here
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(aAPRESS,oAPRESS, aWEIGHT) 
 
-      aWEIGHT(:,:) = 1.d0 - aRSI_glob(:,:)
+      aWEIGHT(:,:) = 1.d0 - aRSI(:,:)
       CALL INT_AG2OG(aE0,oE0, aWEIGHT, NSTYPE,1) 
 
       CALL INT_AG2OG(aEVAPOR,oEVAPOR, aWEIGHT, NSTYPE,1) 
 
       CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,1) 
 
-      aWEIGHT(:,:) = aRSI_glob(:,:)
+      aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,3) 
 
 #ifdef TRACERS_OCEAN
@@ -1532,7 +1667,7 @@ C**** do something in here
       END DO
       CALL INT_AG2OG(aTRMELTI,oTRMELTI, aWEIGHT, NTM) 
 
-      aWEIGHT(:,:) = aRSI_glob(:,:)
+      aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aTRUNOSI,oTRUNOSI, aWEIGHT, NTM) 
 
       aWEIGHT(:,:) = 1.d0
@@ -1551,7 +1686,7 @@ C**** do something in here
         oTRGMELT(N,:,:) = oTRGMELT(N,:,:)*OXYP(:,:)
       END DO
 
-      aWEIGHT(:,:) = 1.d0 - aRSI_glob(:,:)
+      aWEIGHT(:,:) = 1.d0 - aRSI(:,:)
       CALL INT_AG2OG(aTREVAPOR,oTREVAPOR, aWEIGHT, NTM, NSTYPE,1) 
 
 #ifdef TRACERS_DRYDEP
@@ -1567,7 +1702,7 @@ C**** do something in here
 #endif
 
 #ifdef OBIO_RAD_coupling
-      aWEIGHT(:,:) = aFOCEAN(:,:)
+      aWEIGHT(:,:) = aFOCEAN_loc(:,:)
       CALL INT_AG2OG(aVISDIR,aSRVISSURF,oVISDIR, aWEIGHT)  
 
       CALL INT_AG2OG(aVISDIF,oVISDIF, aWEIGHT)   
@@ -1578,15 +1713,15 @@ C**** do something in here
 #endif
 
 #ifdef TRACERS_OceanBiology
-      aWEIGHT(:,:) = aFOCEAN(:,:)
+      aWEIGHT(:,:) = aFOCEAN_loc(:,:)
       CALL INT_AG2OG(aCOSZ1,oSOLZ, aWEIGHT)   
 
       CALL INT_AG2OG(aWIND,oWIND, aWEIGHT)   
 #endif
 
       aWEIGHT(:,:) = 1.d0
-      CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN,aIMAXJ,    
-     *               aSINI,aCOSI, oSINI,oCOSI, NSTYPE,1) 
+      CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN_loc    
+     *              ,aIMAXJ,aSINI,aCOSI, oSINI,oCOSI, NSTYPE,1) 
 
       CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)    
 
@@ -1599,9 +1734,9 @@ C**** do something in here
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE RESOLUTION, only : IMA=>IM, JMA=>JM
+      USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : IMO=>IM,JMO=>JM, FOCEAN, IMAXJ
+      USE OCEAN, only : oIM=>IM,oJM=>JM, oFOCEAN=>FOCEAN
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm_atm=>ntm
@@ -1610,9 +1745,7 @@ C**** do something in here
       USE OCN_TRACER_COM, only: ntm
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid, AM_I_ROOT
-     *     , PACK_COLUMN, UNPACK_COLUMN, PACK_DATA
-     *     , PACK_BLOCK, UNPACK_BLOCK
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid, UNPACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
@@ -1628,70 +1761,36 @@ C**** do something in here
      *     , oDTRSI
 #endif
 
+      USE INT_OG2AG_MOD, only : INT_OG2AG
+
       IMPLICIT NONE
 
-!!!   Global arrays on atmospheric grid
+      REAL*8, 
+     * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
+     * oWEIGHT, oFOCEAN_loc
 
-      INTEGER, PARAMETER :: NSTYPE=4
-      REAL*8, DIMENSION(2,IMA,JMA) :: aDMSI_glob, aDHSI_glob, aDSSI_glob
-#ifdef TRACERS_ON
-      REAL*8, DIMENSION(NTM_ATM,2,IMA,JMA) :: aDTRSI_glob
+      CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
+
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2) 
+
+      CALL INT_OG2AG(oDHSI,aDHSI, oWEIGHT, 2) 
+
+      CALL INT_OG2AG(oDSSI,aDSSI, oWEIGHT, 2) 
+
+#if (defined TRACERS_OCEAN) && (defined TRACERS_ON)
+
+      IF (NTM == NTM_ATM) THEN
+
+        oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+        CALL INT_OG2AG(oDTRSI,aDTRSI, oWEIGHT, 2, NTM) 
+
+      ELSE
+C**** if number of ocean and atm. tracers are not the same
+C**** do something in here
+
+      END IF
 #endif
-
-!!!   Global arrays on ocean grid
-
-      REAL*8, DIMENSION(2,IMO,JMO) :: oDMSI_glob, oDHSI_glob, oDSSI_glob
-#ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM,2,IMO,JMO) :: oDTRSI_glob
-#endif
-
-C***  Gather the arrays for the sea ice on atm. grid
-C***    since they were already filled in for LAKES
-
-      CALL PACK_DATA  (agrid, aFOCEAN_loc, aFOCEAN)
-
-      CALL PACK_COLUMN(agrid,    aDMSI,    aDMSI_glob)
-      CALL PACK_COLUMN(agrid,    aDHSI,    aDHSI_glob)
-      CALL PACK_COLUMN(agrid,    aDSSI,    aDSSI_glob)
-#ifdef TRACERS_ON
-      CALL PACK_BLOCK  (agrid, aDTRSI, aDTRSI_glob)
-#endif
-
-C***  Gather arrays on ocean grid into the global arrays
-
-      CALL PACK_COLUMN (ogrid, oDMSI, oDMSI_glob)
-      CALL PACK_COLUMN (ogrid, oDHSI, oDHSI_glob)
-      CALL PACK_COLUMN (ogrid, oDSSI, oDSSI_glob)
-#ifdef TRACERS_OCEAN
-      CALL PACK_BLOCK  (ogrid, oDTRSI, oDTRSI_glob)
-#endif
-C*
-C***  Do interpolation to the atmospheric grid
-C*
-#ifndef CUBE_GRID
-      if(AM_I_ROOT()) then
-        call INT_OG2AG_oceans(
-     *       oDMSI_glob, oDHSI_glob, oDSSI_glob
-     *     , aDMSI_glob, aDHSI_glob, aDSSI_glob
-#ifdef TRACERS_OCEAN
-     *     , oDTRSI_glob
-#endif
-#ifdef TRACERS_ON
-     *     , aDTRSI_glob
-#endif
-     *     )
-      end if
-#endif
-
-C***  Scatter the arrays to the atmospheric grid
-
-      CALL UNPACK_COLUMN (agrid, aDMSI_glob, aDMSI)
-      CALL UNPACK_COLUMN (agrid, aDHSI_glob, aDHSI)
-      CALL UNPACK_COLUMN (agrid, aDSSI_glob, aDSSI)
-#ifdef TRACERS_ON
-      CALL UNPACK_BLOCK  (agrid, aDTRSI_glob, aDTRSI)
-#endif
-
       RETURN
       END SUBROUTINE OG2AG_oceans
 
