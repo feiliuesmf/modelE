@@ -22,10 +22,10 @@ C**** have to wait.
 
       private
       public ::
-     &     outfile
+     &     outfile,jlfile,ilfile
      &    ,open_out,def_dim_out,set_dim_out,close_out
      &    ,status_out,varid_out,out_fid
-     &    ,ndims_out,dimids_out,file_dimlens,var_name
+     &    ,ndims_out,dimids_out,dimlens_out,var_name
      &    ,units,long_name,missing,missing8,real_att_name,real_att
      &    ,disk_dtype,prog_dtype,lat_dg
      &    ,iu_ij,im,jm,lm,lm_req,im_data,iu_ijl
@@ -45,7 +45,7 @@ C**** have to wait.
 !@var LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
       REAL*8, DIMENSION(JMMAX,2) :: LAT_DG
 
-      character(len=80) :: outfile
+      character(len=80) :: outfile,jlfile,ilfile
 !@var status_out return code from netcdf calls
 !@var out_fid ID-number of output file
       integer :: status_out,out_fid
@@ -54,7 +54,8 @@ C**** have to wait.
 !@var varid_out variable ID-number of current output field
       integer :: varid_out
 !@var dimids_out dimension ID-numbers (1:ndims_out) of output field
-      integer, dimension(7) :: dimids_out
+!@var dimlens_out dimension lengths (1:ndims_out) of output field
+      integer, dimension(7) :: dimids_out,dimlens_out
 !@var srt start indices for output from current output field
 !@var cnt number of elements to output from current output field
       integer, dimension(7) :: srt,cnt
@@ -64,17 +65,6 @@ C**** have to wait.
       character(len=units_strlen) :: units='' ! is reset to '' after each write
 !@var long_name description of current output field
       character(len=lname_strlen) :: long_name='' ! is set to '' after each write
-
-!@param ndfmax maximum number of allowed dimensions in output file
-      integer, parameter :: ndfmax=100
-!@var ndims_file current number of dimensions declared in output file
-      integer :: ndims_file=0
-!@var file_dimids dimension ID-numbers of all dimensions in file
-      integer, dimension(ndfmax) :: file_dimids
-!@var file_dimids dimension sizes of all dimensions in file
-      integer, dimension(ndfmax) :: file_dimlens
-!@var file_dimnames dimension names of all dimensions in file
-      character(len=20), dimension(ndfmax) :: file_dimnames
 
 !@param missing value to substitute for missing data
       real, parameter :: missing=-1.e30
@@ -112,7 +102,6 @@ c-----------------------------------------------------------------------
      &     lrunid,xlabel)
       status_out=nf_put_att_text(out_fid,nf_global,'acc_period',
      &     len_trim(acc_period),acc_period)
-      ndims_file = 0
       return
       end subroutine open_out
 
@@ -120,43 +109,39 @@ c-----------------------------------------------------------------------
       character(len=20) :: dim_name
       integer :: dimlen
       integer :: tmp_id
-      if(ndims_file.eq.ndfmax) call stop_model(
-     &     'def_dim_out: too many dimensions in file',255)
-      ndims_file = ndims_file + 1
-      file_dimlens(ndims_file) = dimlen
-      file_dimnames(ndims_file)=dim_name
       status_out = nf_def_dim(out_fid,trim(dim_name),dimlen,tmp_id)
-      file_dimids(ndims_file) = tmp_id
       return
       end subroutine def_dim_out
 
       subroutine set_dim_out(dim_name,dim_num)
       character(len=20) :: dim_name
       integer :: dim_num
-      integer :: idim
-      if(ndims_file.eq.0) call stop_model(
+      integer :: idim,status,ndims_fid
+      character(len=20) :: dname
+      if(dim_num.lt.1 .or. dim_num.gt.ndims_out)
+     &     call stop_model('set_dim_out: invalid dim #',255)
+      status = nf_inq_ndims(out_fid,ndims_fid)
+      if(ndims_fid.eq.0) call stop_model(
      &     'set_dim_out: no dims defined',255)
-      if(dim_num.gt.ndims_out) call stop_model(
-     &     'set_dim_out: invalid dim #',255)
-      idim=1
-      do while(idim.le.ndims_file)
-         if(dim_name.eq.file_dimnames(idim)) then
-            dimids_out(dim_num)=file_dimids(idim)
-            exit
-         endif
-         idim = idim + 1
+      dimids_out(dim_num) = -1
+      do idim=1,ndims_fid
+        status = nf_inq_dimname(out_fid,idim,dname)
+        if(trim(dname).eq.trim(dim_name)) then
+          dimids_out(dim_num) = idim
+          status = nf_inq_dimlen(out_fid,idim,dimlens_out(dim_num))
+          exit
+        endif
       enddo
-      if(idim.gt.ndims_file) then
-         print*,idim,dim_name,ndims_file,file_dimnames(:)
+      if(dimids_out(dim_num).eq.-1) then
+         print*,dim_name
          call stop_model(
      &        'set_dim_out: invalid dim_name',255)
-      end if
+      endif
       return
       end subroutine set_dim_out
 
       subroutine close_out
       status_out = nf_close(out_fid)
-      ndims_file = 0
       return
       end subroutine close_out
 
@@ -248,13 +233,13 @@ c define missing value attribute if requested
       if(ndims_out.lt.2 .and. .not.write_whole_array)
      &     call stop_model('setup_arrn: invalid ndims_out',255)
       if(outer_pos.le.0 .or.
-     &     outer_pos.gt.file_dimlens(dimids_out(ndims_out))) then
+     &     outer_pos.gt.dimlens_out(ndims_out)) then
          write(6,*) 'setup_arrn: invalid outer_pos'
          call stop_model('stopped in POUT_netcdf.f',255)
       endif
       do n=1,ndims_out
          srt(n) = 1
-         cnt(n) = file_dimlens(dimids_out(n))
+         cnt(n) = dimlens_out(n)
       enddo
       if(.not.write_whole_array) then
          srt(ndims_out) = outer_pos
@@ -301,7 +286,7 @@ c Does not currently have the capability to write any real_atts.
       if(outer_pos.eq.1) then ! check for missing values
          prog_dtype=nf_double
          if(write_whole_array) then
-            n = product(file_dimlens(dimids_out(1:ndims_out)))
+            n = product(dimlens_out(1:ndims_out))
             if(any(var(1:n).eq.missing8)) def_missing=.true.
          else ! we can only check var(:,...,:,1) at this point,
 c so just assume that there will be some missing values
@@ -323,7 +308,7 @@ c like wrtdarrn but for real*4 data
       if(outer_pos.eq.1) then ! check for missing values
          prog_dtype=nf_real
          if(write_whole_array) then
-            n = product(file_dimlens(dimids_out(1:ndims_out)))
+            n = product(dimlens_out(1:ndims_out))
             if(any(var(1:n).eq.missing)) def_missing=.true.
          else ! we can only check var(:,...,:,1) at this point,
 c so just assume that there will be some missing values
@@ -582,6 +567,7 @@ c secondary grid
       outfile = trim(filename)//".nc"
       call open_out
       iu_jl = out_fid
+      jlfile = outfile
 
 C**** set dimensions
       jm=jm_gcm
@@ -697,7 +683,7 @@ C**** set dimensions
       INTEGER J,L
       logical :: is_ocn
 
-      is_ocn = index(outfile,'.ojl').gt.0
+      is_ocn = index(jlfile,'.ojl').gt.0
 
       out_fid = iu_jl
 
@@ -778,6 +764,7 @@ C**** set dimensions
       outfile = trim(filename)//".nc"
       call open_out
       iu_il = out_fid
+      ilfile = outfile
 
       im=im_gcm
       lm=lm_gcm
@@ -882,7 +869,7 @@ C**** set dimensions
       character(len=lname_strlen), intent(in) :: lname
       logical :: is_ocn
 
-      is_ocn = index(outfile,'.oil').gt.0
+      is_ocn = index(ilfile,'.oil').gt.0
 
       out_fid = iu_il
 
