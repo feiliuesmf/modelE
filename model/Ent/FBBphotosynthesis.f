@@ -379,7 +379,7 @@ cddd      end subroutine Photosynth_analyticsoln1
       real*8 :: Rd  !Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
 !      integer :: p
       !Collatz, et al. (1991).  No good.  Doesn't rise with temperature.
-       Rd = 0.015 * pspar%Vcmax 
+!       Rd = 0.015 * pspar%Vcmax !Only leaf maintenance respiration.
 
       !* Friend and Kiang (2005) - total autotrophic respiration.
       !Rd  based on temperature and nitrogen content.
@@ -390,7 +390,7 @@ cddd      end subroutine Photosynth_analyticsoln1
 !     &     *exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
       !N(g m-2) per LAI from Ponca Ntot/LA, get mean 1st 120 days of season 2.47 g/m-2[leaf]
       !The Harley relation is an order of magnitude too small.
-!!!      Rd = Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
+      Rd = Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
 
 !      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
       end function Respveg
