@@ -148,7 +148,8 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
       !write(888,*) "counter=", counter
 
-      Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
+!      Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
+      Rd = 0.015d0*pspar%Vcmax       !From von Caemmerer CSIRO book.
 
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
       ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
@@ -157,7 +158,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
       !!a1 = pspar%PARabsorb*IPAR*alpha
-      a1 = IPAR*alpha
+      a1 = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
       e1 = 1.d0
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
