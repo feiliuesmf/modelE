@@ -16,10 +16,12 @@ C-------------------------------------------------------------------------------
       USE RESOLUTION , only : LM
       USE MODEL_COM , only : P,T,Q,U,V,LS1,SIG,PTOP,PSF,
      &                I_TARG,J_TARG,NSTEPSCM        
+     &                ,FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
+      USE GHY_COM, only : FEARTH
+      USE LAKES_COM, only : FLAKE
       USE CONSTANT , only : KAPA,TF   
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : gtemp
-      USE ATMDYN, only : CALC_AMPK
+      USE FLUXES, only : GTEMP,GTEMPR 
       IMPLICIT NONE
 
       INTEGER L,I,J       
@@ -37,9 +39,17 @@ C-------------------------------------------------------------------------------
       endif
       NARM = 6                        ! for 30 min time steps from 3-hourly input 
       TAUARM = 0                      ! not used for now 
-      NRINIT = 48                     ! when to reinitialize t,q profiles to data
+      NRINIT = 0                     ! when to reinitialize t,q profiles to data
       IKT = 1                         ! index to data
  
+
+      write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
+     &   FOCEAN(I_TARG,J_TARG),FLICE(I_TARG,J_TARG),
+     &   FLAKE0(I_TARG,J_TARG),
+     &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
+ 25   format(1x,'init flags  land ocean lice lake earth0 earth ',
+     &   6(f8.3))
+
       call init_read_surface
       call init_read_layers
 
@@ -81,7 +91,15 @@ c
       QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
       TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)   
       GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
-
+      GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
+      GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
+      GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
+      write(iu_scm_prt,120) GTEMP(1,1,I_TARG,J_TARG),
+     &      GTEMP(2,1,I_TARG,J_TARG),GTEMP(1,4,I_TARG,J_TARG),
+     &      GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
+ 120  format(1x,
+     &    'initial temps  gtemp11 gtemp21 gtemp14 gtempr1 gtempr4 ',
+     &     5(f10.3))
 
       end subroutine init_scmdata
 
@@ -718,10 +736,12 @@ c     enddo
       USE RESOLUTION , only : LM 
       USE MODEL_COM , only  : NSTEPSCM,LS1,SIG,P,T,Q,U,V,I_TARG,J_TARG,
      &                        PTOP,PSF 
+     &                ,FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
+      USE GHY_COM, only : FEARTH
+      USE LAKES_COM, only : FLAKE
       USE PBLCOM , only : TSAVG,WSAVG,QSAVG,USAVG,VSAVG       
-      USE FLUXES, only : GTEMP
+      USE FLUXES, only : GTEMP,GTEMPR
       USE CONSTANT, only : tf,KAPA 
-      USE ATMDYN, only : calc_ampk 
       USE DYNAMICS, only : PK
       USE SCMCOM
 C     
@@ -732,6 +752,13 @@ C
       MODINT = 9999
       if (NRINIT.gt.0) MODINT = MOD(NSTEPSCM,NRINIT)
       
+      write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
+     &   FOCEAN(I_TARG,J_TARG),FLICE(I_TARG,J_TARG),
+     &   FLAKE0(I_TARG,J_TARG),
+     &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
+ 25   format(1x,'pass flags  land ocean lice lake earth0 earth ',
+     &   6(f8.3))
+
       call pass_scm_surface 
       call pass_scm_layers 
 
@@ -767,6 +794,13 @@ c310         format(1x,'NEW ICS  L Q SGT T ',i5,E10.4,f9.2,f8.2)
           QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
           TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
           GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+          GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
+          GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
+          GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
+          write(iu_scm_prt,340) GTEMP(1,4,I_TARG,J_TARG),
+     &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
+     &       GTEMPR(1,I_TARG,J_TARG)
+ 340      format(1x,'SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 ',4(f10.3))
       endif
 
       do L=1,LM
@@ -784,6 +818,16 @@ c
           QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
           TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
           GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
+          GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN   
+          GTEMPR(1,I_TARG,J_TARG) = ATSKIN+TF
+          GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
+          write(iu_scm_prt,360) GTEMP(1,4,I_TARG,J_TARG),
+     &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
+     &       GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
+ 360      format(1x,
+     &      'pass SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 GTEMPR4',
+     &        5(f10.3))
+
       endif
  
       return 
