@@ -98,7 +98,7 @@
       USE TRDIAG_COM,only: jlnt_mc,jlnt_lscond,itcon_mc
      *     ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
-     *     ,jls_prec,tij_prec
+     *     ,jls_prec,tij_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      *     ,jls_incloud,ijts_aq
 #endif
@@ -1304,6 +1304,10 @@ C**** TRACERS: Use only the active ones
         end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
+        TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
+!        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)') 
+!     .    n,ntm, ' TRP1::ACC:',trp_acc(n,i,j)*byaxyp(i,j),
+!     .    trprec(n,i,j),trprss(nx)
 C**** diagnostics
         if (dowetdep(n)) then
 #ifndef SKIP_TRACER_DIAGS

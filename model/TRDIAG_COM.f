@@ -373,6 +373,12 @@ C**** include some extra troposphere only ones
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
 
+#ifdef TRACERS_WATER
+!@var TRP_acc, TRE_acc accumulation arrays for some SUBDD diags
+!!    REAL*8 TRP_acc(ntm,IM,JM), TRE_acc(ntm,IM,JM)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
+#endif
+
 #ifdef NEW_IO
 c declarations that facilitate summation of acc-files when using
 c the new i/o system
@@ -841,6 +847,10 @@ c read from disk and stored in the _fromdisk arrays.
       call get_alloc_bounds(grid,
      &     j_strt_budg=j_0budg,j_stop_budg=j_1budg)
 
+#ifdef TRACERS_WATER
+      ALLOCATE ( TRP_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE ( TRE_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
+#endif
 #ifdef TRACERS_ON 
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )
@@ -848,6 +858,7 @@ c read from disk and stored in the _fromdisk arrays.
       ALLOCATE ( TAJLN_loc(  J_0BUDG:J_1BUDG,LM,ktajlx,ntm),stat=status)
       ALLOCATE ( TAJLS_loc(  J_0BUDG:J_1BUDG,LM,ktajls    ),stat=status)
       ALLOCATE ( TCONSRV_loc(J_0BUDG:J_1BUDG,ktcon,ntmxcon),stat=status)
+
       if(am_i_root()) then
         ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
         ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )

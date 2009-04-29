@@ -1134,6 +1134,9 @@ C****
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
 #endif
 #endif
+#ifdef TRACERS_WATER
+      USE TRDIAG_COM, only : trp_acc, tre_acc
+#endif
       IMPLICIT NONE
       SAVE
 !@var kddmax maximum number of sub-daily diags output files
@@ -1218,7 +1221,10 @@ C**** initialise special subdd accumulation
       BE7W_acc=0.
       BE7D_acc=0.
 #endif
-
+#ifdef TRACERS_WATER
+      TRP_acc=0.
+      TRE_acc=0.
+#endif
       return
       end subroutine init_subdd
 
@@ -1290,6 +1296,7 @@ C****
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
 !@+                    MCP, SNOWC, RS, GT1, GTD, GW0, GWD, GI0, GID,
 !@+                    GTALL, GWALL, GIALL (on soil levels)
+!@+                    TRP*, TRE* (water tracers only)
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
 !@+                    z*, r*, t*, q*  (on any model level, note lowercase)
 !@+                    U*, V*, W*, C*  (on any model level)
@@ -1520,6 +1527,27 @@ c          data=sday*prec/dtsrc
         case ("MCP")       ! moist conv precip (mm/day)
           data=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           PM_acc=0.
+#ifdef TRACERS_WATER
+        case ("TRP1")
+          data=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+!          write(6,*) k,' TRP1::',trp_acc(1,64,7), Nsubdd,dtsrc
+          TRP_acc(1,:,:)=0.
+        case ("TRE1")
+          data=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          TRE_acc(1,:,:)=0.
+        case ("TRP2")
+          data=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          TRP_acc(2,:,:)=0.
+        case ("TRE2")
+          data=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          TRE_acc(2,:,:)=0.
+        case ("TRP3")
+          data=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          TRP_acc(3,:,:)=0.
+        case ("TRE3")
+          data=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          TRE_acc(3,:,:)=0.
+#endif
         case ("SNOWD")     ! snow depth (w.e. mm)
           do j=J_0,J_1
             do i=I_0,imaxj(j)

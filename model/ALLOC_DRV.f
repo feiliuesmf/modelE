@@ -30,7 +30,7 @@ c set-up for MPI implementation
 #ifdef BIOGENIC_EMISSIONS
       call alloc_biogenic_emis(grid)
 #endif
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       call alloc_tracer_com(grid)
 #ifdef TRACERS_DRYDEP
       call alloc_trdrydep(grid)

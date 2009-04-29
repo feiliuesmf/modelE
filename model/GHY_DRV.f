@@ -43,7 +43,7 @@ c******************   TRACERS             ******************************
      *   taijs=>taijs_loc,ijts_isrc,jls_isrc,
      *   itcon_surf
 #ifdef TRACERS_WATER
-     *     ,tij_evap,tij_grnd,tij_soil,tij_snow
+     *     ,tij_evap,tij_grnd,tij_soil,tij_snow,tre_acc
 #endif
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
@@ -626,6 +626,7 @@ ccc not sure about the code below. hopefully that''s what is meant above
      *       )
         if (tr_wd_TYPE(n).eq.nWATER) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trevapor(n,itype,i,j)*ptype)
+      TRE_acc(n,i,j)=TRE_acc(n,i,j)+trevapor(n,itype,i,j)*ptype
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
