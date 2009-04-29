@@ -508,6 +508,10 @@ c****
       return
       end subroutine tropwmo
 
+!If running SCM use dummy routines
+#ifndef SCM
+
+
       function getTotalEnergy() result(totalEnergy)
 !@sum  getTotalEnergy returns the sum of kinetic and potential energy.
 !@auth Tom Clune (SIVO)
@@ -664,6 +668,10 @@ C**** and convert to WSAVE, units of m/s):
 !$OMP END PARALLEL DO
 
       end subroutine COMPUTE_WSAVE
+
+
+!if running SCM end 
+#endif
 
       function nij_before_j0(j0)
 #if defined( CUBED_SPHERE ) || defined( CUBE_GRID)
