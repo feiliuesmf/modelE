@@ -15,10 +15,16 @@
       USE CONSTANT, only : edpery,sday,lhm,tf
       USE FILEMANAGER
       USE MODEL_COM, only : im,jm,flice,focean,dtsrc
+#ifdef SCM
+     *                      ,I_TARG,J_TARG
+#endif
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
      *     ,glmelt_fac_sh,fwarea_sh,fwarea_nh,accpda,accpdg,eaccpda
      *     ,eaccpdg,snmin
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
@@ -67,8 +73,18 @@ C**** set GTEMP array for landice
       DO J=J_0,J_1
         DO I=I_0,I_1
           IF (FLICE(I,J).gt.0) THEN
+#ifdef SCM
+            if (I.eq.I_TARG.and.J.eq.J_TARG) then
+                if (SCM_SURFACE_FLAG.eq.1) then
+                    GTEMP(1,3,I,J) = ATSKIN
+                    GTEMP(2,3,I,J) = ATSKIN
+                    GTEMPR(3,I,J) = ATSKIN + TF
+                endif
+            endif
+#else
             GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
             GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
+#endif
 #ifdef TRACERS_WATER
             if (istart.ge.9) then
             IF (SNOWLI(I,J).gt.SNMIN) THEN
@@ -238,9 +254,15 @@ C****
 !@ver  1.0
 !@calls LANDICE:PRECLI
       USE MODEL_COM, only : im,jm,flice,itlandi
+#ifdef SCM
+     *                      ,I_TARG,J_TARG
+#endif
       USE CONSTANT, only : tf
       USE GEOM, only : imaxj,axyp,byaxyp
       USE FLUXES, only : runoli,prec,eprec,gtemp,gtempr
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
 #ifdef TRACERS_WATER
      *     ,trunoli,trprec,gtracer
 #endif
@@ -310,8 +332,18 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
+#ifdef SCM
+        if (I.eq.I_TARG.and.J.eq.J_TARG) then
+            if (SCM_SURFACE_FLAG.eq.1) then
+                GTEMP(1,3,I,J) = ATSKIN
+                GTEMP(2,3,I,J) = ATSKIN
+                GTEMPR(3,I,J) = ATSKIN + TF
+            endif
+        endif
+#else
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
         GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
+#endif
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPIJ
         EDWNIMP(I,J)=EDWNIMP(I,J)+ERUN2*PLICE*DXYPIJ
@@ -352,10 +384,16 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 !@calls LANDICE:LNDICE
       USE CONSTANT, only : tf
       USE MODEL_COM, only : im,jm,flice,itlandi,itocean,itoice
+#ifdef SCM
+     *                      ,I_TARG,J_TARG
+#endif
       USE GEOM, only : imaxj,axyp,byaxyp
       USE LANDICE, only : lndice,ace1li,ace2li,snmin
       USE SEAICE_COM, only : rsi
       USE SEAICE, only : rhos
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       USE DIAG_COM, only : aij=>aij_loc,jreg,ij_runli,ij_f1li,ij_erun2
      *     ,j_wtr1,j_ace1,j_wtr2,j_ace2,j_snow,j_run
      *     ,j_implh,j_implm,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_f0oc
@@ -434,8 +472,18 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
+#ifdef SCM
+        if (I.eq.I_TARG.and.J.eq.J_TARG) then
+            if (SCM_SURFACE_FLAG.eq.1) then
+                GTEMP(1,3,I,J) = ATSKIN
+                GTEMP(2,3,I,J) = ATSKIN
+                GTEMPR(3,I,J) = ATSKIN + TF
+            endif
+        endif
+#else
         GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
         GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
+#endif
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPIJ
         EDWNIMP(I,J)=EDWNIMP(I,J)+EDIFS*PLICE*DXYPIJ

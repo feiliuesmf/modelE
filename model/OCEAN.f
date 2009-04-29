@@ -140,6 +140,10 @@ C**** MIXED LAYER DEPTH IS AT ITS MAXIMUM OR TEMP PROFILE IS UNIFORM
 !@auth Original Development Team
 !@ver  1.0 (Q-flux ocean or fixed SST)
       USE DOMAIN_DECOMP_ATM, ONLY : GRID,GLOBALSUM,AM_I_ROOT
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE MODEL_COM, only : I_TARG,J_TARG
+#endif 
       USE GEOM, ONLY : lat2d
       IMPLICIT NONE
 
@@ -422,8 +426,17 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               END DO
 #endif
               SNOWI(I,J)=0.
+#ifdef SCM
+              if (I.eq.I_TARG.and.J.eq.J_TARG) then
+                  if (SCM_SURFACE_FLAG.eq.1) then
+                      GTEMP(1:2,2,I,J) = ATSKIN
+                      GTEMPR(2,I,J) = ATSKIN + TF
+                  endif
+              endif
+#else
               GTEMP(1:2,2,I,J)=TFO
               GTEMPR(2,I,J) = TFO+TF
+#endif
             END IF
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
      *           ,I,J)))
@@ -945,6 +958,10 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,itocean,itoice
+#ifdef SCM
+     &           ,I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       USE GEOM, only : imaxj,axyp
       USE DIAG_COM, only : j_implm,j_implh,oa,jreg
       USE FLUXES, only : runpsi,srunpsi,prec,eprec,gtemp,mlhc,melti
@@ -1012,8 +1029,19 @@ C**** Additional mass (precip) is balanced by deep removal
             CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J))
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
+#ifdef SCM
+c         keep ocean temp fixed for SCM case where surface
+c         temp is supplied
+          if (I.eq.I_TARG.and.J.eq.J_TARG) then
+              if (SCM_SURFACE_FLAG.eq.1) then
+                  GTEMP(1,1,I,J) = ATSKIN
+                  GTEMPR(1,I,J) = ATSKIN + TF
+              endif
+          endif
+#else
           GTEMP(1,1,I,J)=TOCEAN(1,I,J)
           GTEMPR(1,I,J) =TOCEAN(1,I,J)+TF
+#endif
         END IF
       END DO
       END DO
@@ -1030,6 +1058,10 @@ C****
       USE CONSTANT, only : rhows,shw,tf
       USE MODEL_COM, only : im,jm,focean,kocean,jday,dtsrc,itocean
      *     ,itoice
+#ifdef SCM
+     *     ,I_TARG,J_TARG
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       USE GEOM, only : imaxj,axyp
       USE DIAG_COM, only : jreg,j_implm,j_implh,j_oht,oa
       USE FLUXES, only : runosi,erunosi,srunosi,e0,e1,evapor,dmsi,dhsi
@@ -1133,8 +1165,17 @@ C**** assume const mean tracer conc over freshwater amount
           DTRSI(:,2,I,J)=TRSI0(:)*ACEFI
 #endif
 C**** store surface temperatures
+#ifdef SCM
+          if (I.eq.I_TARG.and.J.eq.J_TARG) then
+              if (SCM_SURFACE_FLAG.eq.1) then
+                GTEMP(1:2,1,I,J) = ATSKIN
+                GTEMPR(1,I,J) = ATSKIN + TF
+              endif
+          endif
+#else
           GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
           GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
+#endif
         END IF
       END DO
       END DO

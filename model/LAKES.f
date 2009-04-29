@@ -412,6 +412,9 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE CONSTANT, only : rhow,shw,tf,pi,grav
       USE MODEL_COM, only : im,jm,flake0,zatmo,dtsrc,flice,hlake
      *     ,focean,jday,fearth0
+#ifdef SCM
+     *     ,I_TARG,J_TARG
+#endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,readt_parallel
       USE DOMAIN_DECOMP_ATM, only : GET,HALO_UPDATE,am_i_root
 c***      USE ESMF_MOD, Only : ESMF_HaloDirection
@@ -425,6 +428,9 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       USE PBLCOM, only : tsavg
       USE LAKES
       USE LAKES_COM
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       !USE GHY_COM, only : fearth
       USE DIAG_COM, only : npts,icon_LKM,icon_LKE,title_con,conpt0
       USE PARAM
@@ -548,8 +554,17 @@ C**** Set GTEMP arrays for lakes
        DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
+#ifdef SCM
+            if (I.eq.I_TARG.and.J.eq.J_TARG) then
+                if (SCM_SURFACE_FLAG.eq.1) then
+                    GTEMP(1,1,I,J) = ATSKIN
+                    GTEMPR(1,I,J) = ATSKIN + TF
+                endif
+            endif
+#else
             GTEMP(1,1,I,J)=TLAKE(I,J)
             GTEMPR(1,I,J) =TLAKE(I,J)+TF
+#endif
             IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*
      &           AXYP(I,J)) THEN
               GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
@@ -566,6 +581,13 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
             ELSE
               GTEMP(2,1,I,J)=TLAKE(I,J)
             END IF
+#ifdef SCM
+            if (I.eq.I_TARG.and.J.eq.J_TARG) then
+                if (SCM_SURFACE_FLAG.eq.1) then
+                    GTEMP(2,1,I,J) = GTEMP(1,1,I,J)
+                endif
+            endif
+#endif
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *AXYP(I,J))
@@ -812,6 +834,9 @@ C****
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
      *     ,itocean,itoice,fland,dtsrc
+#ifdef SCM
+     *     ,I_TARG,J_TARG
+#endif
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
@@ -825,6 +850,9 @@ C****
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
       USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
@@ -1134,8 +1162,18 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
+#ifdef SCM
+            if (I.eq.I_TARG.and.J.eq.J_TARG) then
+                if (SCM_SURFACE_FLAG.eq.1) then
+                    GTEMP(1,1,I,J) = ATSKIN
+                    GTEMPR(1,I,J) = ATSKIN + TF
+                endif
+            endif
+#else
             GTEMP(1,1,I,J)=TLAKE(I,J)
             GTEMPR(1,I,J) =TLAKE(I,J)+TF
+#endif
+
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *AXYP(I,J))
@@ -1414,8 +1452,14 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE MODEL_COM, only : im,fland,flice,focean,itlake,itlkice,hlake
+#ifdef SCM
+     *                      ,I_TARG,J_TARG
+#endif
       USE LAKES, only : minmld,variable_lk
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml,svflake
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
@@ -1652,7 +1696,14 @@ C****
                   MSI(I,J)=AC2OIM
 
                   TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
+#ifdef SCM
+                  if ((I.eq.I_TARG.and.J.eq.J_TARG).and.
+     &                 SCM_SURFACE_FLAG.eq.1) then
+                        GTEMPR(1,I,J) = ATSKIN + TF
+                  endif
+#else
                   GTEMPR(1,I,J)=TF
+#endif
                   MLDLK(I,J)=MINMLD
                   FLAKE(I,J)=0.
                   FLAND(I,J)=1.
@@ -1685,8 +1736,17 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0,IMAXJ(J)
           IF (FLAKE(I,J).gt.0) THEN
+#ifdef SCM
+            if (I.eq.I_TARG.and.J.eq.J_TARG) then
+                if (SCM_SURFACE_FLAG.eq.1) then
+                    GTEMP(1,1,I,J) = ATSKIN
+                    GTEMPR(1,I,J) = ATSKIN + TF
+                endif
+            endif
+#else
             GTEMP(1,1,I,J)=TLAKE(I,J)
             GTEMPR(1,I,J) =TLAKE(I,J)+TF
+#endif
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *           *AXYP(I,J))
@@ -1705,9 +1765,15 @@ C****
 !@ver  1.0
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,itlake,itlkice
+#ifdef SCM   
+     *                     ,I_TARG,J_TARG
+#endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
       USE GEOM, only : imaxj,axyp,byaxyp
       USE SEAICE_COM, only : rsi
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -1767,6 +1833,14 @@ C**** simelt is given as kg, so divide by area
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
+#ifdef SCM
+          if (I.eq.I_TARG.and.J.eq.J_TARG) then
+              if (SCM_SURFACE_FLAG.eq.1) then
+                  GTEMP(1,1,I,J) = ATSKIN
+                  GTEMPR(1,I,J) = ATSKIN + TF
+              endif
+          endif
+#else
           GTEMP(1,1,I,J)=TLAKE(I,J)
           GTEMPR(1,I,J) =TLAKE(I,J)+TF
           IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*AXYP(I,J))
@@ -1777,6 +1851,7 @@ C**** simelt is given as kg, so divide by area
           ELSE
             GTEMP(2,1,I,J)=TLAKE(I,J)
           END IF
+#endif
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))
@@ -1807,6 +1882,9 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,fland,hlake
      *     ,dtsrc,itlake,itlkice
+#ifdef SCM
+     *     ,I_TARG,J_TARG
+#endif
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
 
       USE GEOM, only : imaxj,axyp
@@ -1826,6 +1904,9 @@ C****
       USE TRDIAG_COM,only: taijn=>taijn_loc , tij_lk1,tij_lk2
 #endif
       USE LAKES, only : lkmix,lksourc,byzeta,minmld
+#ifdef SCM
+      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       USE GHY_COM, only : fearth
       IMPLICIT NONE
 C**** grid box variables
@@ -1973,10 +2054,19 @@ C**** Resave prognostic variables
         TRLAKE(:,:,I,J)=TRLAKEL(:,:)*(FLAKE(I,J)*AXYP(I,J))
         GTRACER(:,1,I,J)=TRLAKEL(:,1)/(MLDLK(I,J)*RHOW)
 #endif
+#ifdef SCM
+        if (I.eq.I_TARG.and.J.eq.J_TARG) then
+            if (SCM_SURFACE_FLAG.eq.1) then
+                GTEMP(1,1,I,J) = ATSKIN
+                GTEMP(2,1,I,J) = ATSKIN
+                GTEMPR(1,I,J) = ATSKIN + TF
+            endif
+        endif
+#else
         GTEMP(1,1,I,J)=TLAKE(I,J)
         GTEMP(2,1,I,J)=TLK2       ! diagnostic only
         GTEMPR(1,I,J) =TLAKE(I,J)+TF
-
+#endif
 C**** Open lake diagnostics
         CALL INC_AJ(I,J, ITLAKE,J_WTR1,MLAKE(1)*POLAKE)
         CALL INC_AJ(I,J, ITLAKE,J_WTR2,MLAKE(2)*POLAKE)

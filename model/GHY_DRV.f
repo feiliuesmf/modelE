@@ -775,7 +775,8 @@ c****
      &     ,I_TARG,J_TARG,NSTEPSCM
 #endif
 #ifdef SCM
-      use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt
+      use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt,
+     &                    ATSKIN
       use SCMDIAG, only : EVPFLX,SHFLX
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
@@ -1329,8 +1330,16 @@ c**** wearth+aiearth are used in radiation only
      &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
       aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
+#ifdef SCM
+      if ((I.eq.I_TARG.and.J.eq.J_TARG)
+     &     .and.SCM_SURFACE_FLAG.eq.1) then
+           gtemp(1,4,i,j) = ATSKIN
+           gtempr(4,i,j) = ATSKIN + tf
+      endif
+#else
       gtemp(1,4,i,j)=tsns_ij(i,j)
       gtempr(4,i,j) =tearth(i,j)+tf
+#endif
 c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
       vflux1(i,j)=vflux1(i,j)+ptype*rcdmws*(pbl_args%vs) !-vocean)
@@ -1353,7 +1362,7 @@ c        values
            SHFLX = SHFLX + ASH*ptype
            write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),EVPFLX,SHFLX
  981       format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',i5,
-     &            f9.4,f9.4,f9.5,f9.5,f9.5)
+     &            f9.4,f9.4,f9.5,f11.5,f11.5)
       else    
            dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
            dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
@@ -1520,7 +1529,7 @@ c***********************************************************************
 #endif
 #ifdef SCM
       use SCMDIAG, only : EVPFLX,SHFLX
-      use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt
+      use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt,ATSKIN
 #endif
       use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
@@ -1926,6 +1935,12 @@ c**** modifications needed for split of bare soils into 2 types
       use DOMAIN_DECOMP_ATM, only : GRID, GET
       use DOMAIN_DECOMP_ATM, only : DREAD_PARALLEL, READT_PARALLEL
       use model_com, only : focean
+#ifdef SCM
+     &                      ,I_TARG,J_TARG
+#endif
+#ifdef SCM
+      use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001, only : hl0, dt
       use ghy_com
@@ -2118,6 +2133,12 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
       use model_com, only : focean, itime
+#ifdef SCM
+     &                     ,I_TARG,J_TARG
+#endif
+#ifdef SCM
+      use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       use dynamics, only : pedn
       use fluxes, only : gtemp,gtempr
 #ifdef USE_ENT
@@ -2385,8 +2406,16 @@ c**** set gtemp array
       do j=J_0,J_1
         do i=I_0,I_1
           if (fearth(i,j).gt.0) then
+#ifdef SCM
+            if ((i.eq.I_TARG.and.j.eq.J_TARG)
+     &                .and.SCM_SURFACE_FLAG.eq.1) then
+                 gtemp(1,4,i,j) = ATSKIN
+                 gtempr(4,i,j) = ATSKIN + tf
+            endif
+#else
             gtemp(1,4,i,j)=tsns_ij(i,j)
             gtempr(4,i,j) =tearth(i,j)+tf
+#endif
           end if
         end do
       end do
@@ -4568,6 +4597,10 @@ c**** Also reset snow fraction for albedo computation
       use TRACER_COM, only : ntm,needtrs,itime_tr0
       use model_com, only : itime
 #endif
+#ifdef SCM
+      use MODEL_COM, only : I_TARG,J_TARG
+      use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+#endif
       use FLUXES, only : gtemp,gtempr
 #ifdef TRACERS_WATER
      &     ,gtracer
@@ -4647,8 +4680,16 @@ c**** wearth+aiearth are used in radiation only
      &         fv*(w_ij(1,2,i,j)*(1.-ficev)) )
           aiearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*ficeb +
      &         fv*w_ij(1,2,i,j)*ficev )
+#ifdef SCM
+          if ((I.eq.I_TARG.and.j.eq.J_TARG)
+     &            .and.SCM_SURFACE_FLAG.eq.1) then
+               gtemp(1,4,i,j) = ATSKIN
+               gtempr(4,i,j) = ATSKIN + tf
+          endif
+#else
           gtemp(1,4,i,j)=tsns_ij(i,j)
           gtempr(4,i,j) =tearth(i,j)+tf
+#endif
 
 #ifdef TRACERS_WATER
       ! I use vegetated ground insted of canopy since canopy has 0 H2O
