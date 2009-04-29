@@ -3,17 +3,6 @@
 
       module ATMDYN
       implicit none
-      private
-
-      public init_ATMDYN, DYNAM,CALC_TROP,PGRAD_PBL
-     &     ,DISSIP,FILTER,CALC_AMPK
-     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS, COMPUTE_WSAVE
-     &     ,getTotalEnergy,SDRAG   
-     &     ,addEnergyAsDiffuseHeat,addEnergyAsLocalHeat     
-#ifdef TRACERS_ON
-     &     ,trdynam
-#endif
- 
 
       contains
 
@@ -25,14 +14,18 @@
       USE MODEL_COM, only : im,lm,t,p,q,ls1,NSTEPSCM     
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_1D, only : grid
-      USE DYNAMICS, only : PMID,PEDN     
-
+      USE DYNAMICS, only : PMID,PEDN,PUA,PVA,SDA     
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     TZ,PIJL
 
       INTEGER L
 
+      do L=1,LM
+         PUA(:,:,L) = 0.
+         PVA(:,:,L) = 0.
+         SDA(:,:,L) = 0.
+      ENDDO
 
       call pass_SCMDATA
 
@@ -109,9 +102,6 @@ c    &               Q(I_TARG,J_TARG,L)*1000.0
          T(I_TARG,J_TARG,L) = T(I_TARG,J_TARG,L)/PK(L,I_TARG,J_TARG)    
       enddo
 
-
-
-
       RETURN
 
       END SUBROUTINE SCM_FORCN 
@@ -176,132 +166,10 @@ c     want to fill SD (IDUM,JDUM)  check out
 
       end SUBROUTINE FCONV  
 
-      SUBROUTINE CALC_PIJL(lmax,p,pijl)
-!@sum  CALC_PIJL Fills in P as 3-D
-!@auth Jean Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,ls1,psfmpt
-C****
-      USE DOMAIN_DECOMP_1D, Only : grid, GET
-      implicit none
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: pijl
-      integer :: l,lmax
-
-      do l=1,ls1-1
-        pijl(:,:,l) = p(:,:)
-      enddo
-      do l=ls1,lmax
-        pijl(:,:,l) = PSFMPT
-      enddo
-      return
-      end subroutine calc_pijl
-
-
-
-      SUBROUTINE CALC_AMPK(LMAX)
-!@sum  CALC_AMPK calculate air mass and pressure arrays
-!@auth Jean Lerner/Gavin Schmidt
-!@ver  1.0
-      USE CONSTANT, only : bygrav,kapa
-      USE MODEL_COM, only : im,jm,lm,ls1,p
-      USE DYNAMICS, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,am,byam
-      USE DOMAIN_DECOMP_1D, Only : grid, GET, HALO_UPDATE, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      IMPLICIT NONE
-
-      INTEGER :: I,J,L  !@var I,J,L  loop variables
-      INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
-      REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
-      REAL*8, DIMENSION(LMAX+1) :: PEDNL
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_HALO= J_0H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-C**** Calculate air mass, layer pressures, P**K, and sqrt(P)
-C**** Note that only layers LS1 and below vary as a function of surface
-C**** pressure. Routine should be called with LMAX=LM at start, and
-C**** subsequentaly with LMAX=LS1-1
-C**** Note Air mass is calculated in (kg/m^2)
-
-C**** Fill in polar boxes
-      IF (haveLatitude(grid, J=1)) P(2:IM,1) = P(1,1)
-      IF (haveLatitude(grid, J=JM)) P(2:IM,JM)= P(1,JM)
-      Call HALO_UPDATE(grid, P, FROM=SOUTH)
-
-!$OMP  PARALLEL DO PRIVATE (I,J,L,PL,AML,PDSIGL,PEDNL,PMIDL)
-      DO J=J_0H,J_1 ! filling halo for P is faster than PDSIG
-
-        DO I=1,IM
-
-          CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
-
-          DO L=1,MIN(LMAX,LM)
-            PLIJ (L,I,J) = PL    (L)
-            PDSIG(L,I,J) = PDSIGL(L)
-            PMID (L,I,J) = PMIDL (L)
-            PEDN (L,I,J) = PEDNL (L)
-            AM   (L,I,J) = AML   (L)
-            PK   (L,I,J) = PMIDL (L)**KAPA
-            PEK  (L,I,J) = PEDNL (L)**KAPA
-            BYAM (L,I,J) = 1./AM(L,I,J)
-          END DO
-
-          IF (LMAX.ge.LM) THEN
-            PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
-            PEK (LM+1:LMAX+1,I,J) = PEDN(LM+1:LMAX+1,I,J)**KAPA
-          END IF
-          SQRTP(I,J) = SQRT(P(I,J))
-        END DO
-      END DO
-!$OMP  END PARALLEL DO
-
-      RETURN
-      END SUBROUTINE CALC_AMPK
-
-
-      SUBROUTINE PGRAD_PBL
-!@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
-!@auth Ye Cheng
-!@ver  1.0
-C**** As this is written, it must be called after the call to CALC_AMPK
-C**** after DYNAM (since it uses pk/pmid). It would be better if it used
-C**** SPA and PU directly from the dynamics. (Future work).
-      USE CONSTANT, only : rgas
-      USE MODEL_COM, only : im,jm,t,p,zatmo,sig,byim
-      USE GEOM, only : bydyp,bydxp,cosip,sinip
-      USE DYNAMICS, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
-     *     ,dpdx_by_rho_0,pmid,pk
-      USE DOMAIN_DECOMP_1D, only : grid, GET
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      IMPLICIT NONE
-      REAL*8 by_rho1,dpx1,dpy1,dpx0,dpy0,hemi
-      INTEGER I,J,K,IP1,IM1,J1
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-
-      RETURN
-
-      END SUBROUTINE PGRAD_PBL
-      
       SUBROUTINE SDRAG(DT1)
       REAL*8, INTENT(IN) :: DT1 
       return
       END SUBROUTINE SDRAG 
-
 
 
       SUBROUTINE PGF_SCM (T,SZ,P)
@@ -437,217 +305,9 @@ c     SUBROUTINE AFLUX (U,V,PIJL)
 c     END SUBROUTINE AFLUX
 
 
-      SUBROUTINE CALC_TROP
-!@sum  CALC_TROP (to calculate tropopause height and layer)
-!@auth J. Lerner
-!@ver  1.0
-      USE MODEL_COM, only : im,jm,lm,t
-      USE GEOM, only : imaxj
-      USE DIAG_COM, only : aij => aij_loc, ij_ptrop, ij_ttrop
-      USE DYNAMICS, only : pk, pmid, PTROPO, LTROPO
-      USE DOMAIN_DECOMP_1D, Only : grid, GET
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      IMPLICIT NONE
-      INTEGER I,J,L,IERR
-      REAL*8, DIMENSION(LM) :: TL
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-
-C**** Find WMO Definition of Tropopause to Nearest L
-!$OMP  PARALLEL DO PRIVATE (I,J,L,TL,IERR)
-      do j=J_0,J_1
-      do i=1,imaxj(j)
-        do l=1,lm
-          TL(L)=T(I,J,L)*PK(L,I,J)
-        end do
-        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J)
-     *       ,IERR)
-        IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
-        AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
-        AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
-      end do
-      end do
-!$OMP  END PARALLEL DO
-c     IF (haveLatitude(grid, J=1)) THEN
-c       PTROPO(2:IM,1) = PTROPO(1,1)
-c       LTROPO(2:IM,1) = LTROPO(1,1)
-c     END IF
-c     IF (haveLatitude(grid,J=JM)) THEN
-c       PTROPO(2:IM,JM)= PTROPO(1,JM)
-c       LTROPO(2:IM,JM)= LTROPO(1,JM)
-c     END IF
-
-      END SUBROUTINE CALC_TROP
-
-
-      SUBROUTINE DISSIP
-      return
-      END SUBROUTINE DISSIP
-
       SUBROUTINE FILTER
       return
       END SUBROUTINE FILTER
-
-
-      subroutine tropwmo(ptm1, papm1, pk, ptropo, ltropp,ierr)
-!@sum  tropwmo calculates tropopause height according to WMO formula
-!@auth D. Nodorp/T. Reichler/C. Land
-!@+    GISS Modifications by Jean Lerner/Gavin Schmidt
-!@ver  1.0
-!@alg  WMO Tropopause Definition
-!@+
-!@+ From A Temperature Lapse Rate Definition of the Tropopause Based on
-!@+ Ozone, J. M. Roe and W. H. Jasperson, 1981
-!@+
-!@+ In the following discussion the lapse rate is defined as -dT/dz.
-!@+
-!@+ The main features of the WMO tropopause definition are as follows:
-!@+ * The first tropopause (i.e., the conventional tropopause) is
-!@+   defined as the lowest level at which the lapse rate decreases to 2
-!@+   K/km or less, and the average lapse rate from this level to any
-!@+   level within the next higher 2 km does not exceed 2 K/km.
-!@+ * If above the first tropopause the average lapse rate between any
-!@+   level and all higher levels within 1 km exceed 3 K/km, then a
-!@+   second tropopause is defined by the same criterion as under the
-!@+   statement above. This tropopause may be either within or above the
-!@+   1 km layer.
-!@+ * A level otherwise satisfying the definition of tropopause, but
-!@+   occuring at an altitude below that of the 500 mb level will not be
-!@+   designated a tropopause unless it is the only level satisfying the
-!@+   definition and the average lapse rate fails to exceed 3 K/km over
-!@+   at least 1 km in any higher layer.
-!@+ * (GISS failsafe) Some cases occur when the lapse rate never falls
-!@+   below 2 K/km. In such cases the failsafe level is that where the
-!@+   lapse rate first falls below 3 K/km. If this still doesn't work
-!@+   (ever?), the level is set to the pressure level below 30mb.
-!@+
-      USE MODEL_COM, only : klev=>lm
-      USE CONSTANT, only : zkappa=>kapa,zzkap=>bykapa,grav,rgas
-      implicit none
-
-      real*8, intent(in), dimension(klev) :: ptm1, papm1, pk
-      real*8, intent(out) :: ptropo
-      integer, intent(out) :: ltropp,ierr
-      real*8, dimension(klev) :: zpmk, zpm, za, zb, ztm, zdtdz
-!@param zgwmo min lapse rate (* -1) needed for trop. defn. (-K/km)
-!@param zgwmo2 GISS failsafe minimum lapse rate (* -1) (-K/km)
-!@param zdeltaz distance to check for lapse rate changes (km)
-!@param zfaktor factor for caluclating height from pressure (-rgas/grav)
-!@param zplimb min pressure at which to define tropopause (mb)
-      real*8, parameter :: zgwmo  = -2d-3, zgwmo2=-3d-3,
-     *     zdeltaz = 2000.0, zfaktor = -GRAV/RGAS, zplimb=500.
-      real*8 zptph, zp2km, zag, zbg, zasum, zaquer, zptf
-      integer iplimb,iplimt, jk, jj, kcount, ltset,l
-      logical ldtdz
-c****
-c****  2. Calculate the height of the tropopause
-c****  -----------------------------------------
-      ltset = -999
-      ierr=0
-      iplimb=1
-c**** set limits based on pressure
-      do jk=2,klev-1
-        if (papm1(jk-1).gt.600d0) then
-          iplimb=jk
-        else
-          if (papm1(jk).lt.30d0) exit
-        end if
-      end do
-      iplimt=jk
-c****
-c****  2.1 compute dt/dz
-c****  -----------------
-c****       ztm  lineare Interpolation in p**kappa
-c****     gamma  dt/dp = a * kappa + papm1(jx,jk)**(kappa-1.)
-
-      do jk=iplimb+1,iplimt       ! -1 ?????
-        zpmk(jk)=0.5*(pk(jk-1)+pk(jk))
-
-        zpm(jk)=zpmk(jk)**zzkap ! p mitte
-
-        za(jk)=(ptm1(jk-1)-ptm1(jk))/(pk(jk-1)-pk(jk))
-        zb(jk) = ptm1(jk)-(za(jk)*pk(jk))
-
-        ztm(jk)=za(jk)*zpmk(jk)+zb(jk) ! T mitte
-        zdtdz(jk)=zfaktor*zkappa*za(jk)*zpmk(jk)/ztm(jk)
-      end do
-c****
-c****  2.2 First test: valid dt/dz ?
-c****  -----------------------------
-c****
-      do 1000 jk=iplimb+1,iplimt-1
-
-c**** GISS failsafe test
-        if (zdtdz(jk).gt.zgwmo2.and.ltset.ne.1) then
-          ltropp=jk
-          ltset =1
-        end if
-c****
-        if (zdtdz(jk).gt.zgwmo .and. ! dt/dz > -2K/km
-     &       zpm(jk).le.zplimb) then ! zpm not too low
-          ltropp = jk
-          ltset = 1
-c****
-c****  2.3 dtdz is valid > something in German
-c****  ----------------------------------------
-c****    1.lineare in p^kappa (= Dieters neue Methode)
-
-          zag = (zdtdz(jk)-zdtdz(jk+1))/
-     &         (zpmk(jk)-zpmk(jk+1)) ! a-gamma
-          zbg = zdtdz(jk+1) - zag*zpmk(jk+1) ! b-gamma
-          if(((zgwmo-zbg)/zag).lt.0.) then
-            zptf=0.
-          else
-            zptf=1.
-          end if
-          zptph = zptf*abs((zgwmo-zbg)/zag)**zzkap
-          ldtdz=zdtdz(jk+1).lt.zgwmo
-          if(.not.ldtdz) zptph=zpm(jk)
-c****
-c****  2.4 2nd test: dt/dz above 2km must not be lower than -2K/km
-c****  -----------------------------------------------------------
-c****
-          zp2km = zptph + zdeltaz*zpm(jk)
-     &         / ztm(jk)*zfaktor ! p at ptph + 2km
-          zasum = 0.0           ! zdtdz above
-          kcount = 0            ! number of levels above
-c****
-c****  2.5 Test until pm < p2km
-c****  --------------------------
-c****
-          do jj=jk,iplimt-1
-            if(zpm(jj).gt.zptph) cycle ! doesn't happen
-            if(zpm(jj).lt.zp2km) goto 2000 ! ptropo valid
-            zasum = zasum+zdtdz(jj)
-            kcount = kcount+1
-            zaquer = zasum/float(kcount) ! dt/dz mean
-            if(zaquer.le.zgwmo) goto 1000 ! dt/dz above < 2K/1000
-                                          ! discard it
-          end do                ! test next level
-          goto 2000
-        endif
- 1000 continue                  ! next level
- 2000 continue
-
-      if (ltset.eq.-999) then
-        ltropp=iplimt-1  ! default = last level below 30mb
-        print*,"In tropwmo ltropp not set, using default: ltropp ="
-     *       ,ltropp
-        write(6,'(12(I4,5F10.5,/))') (l,ptm1(l),papm1(l),pk(l),zdtdz(l)
-     *       ,zpm(l),l=iplimb+1,iplimt-1)
-        ierr=1
-      end if
-      ptropo = papm1(ltropp)
-c****
-      return
-      end subroutine tropwmo
 
 C**** Dummy routines
 
@@ -661,73 +321,601 @@ C**** Dummy routines
 
       return
       END SUBROUTINE COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-     
-
-      SUBROUTINE COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
-!@sum COMPUTE_WSAVE Dummy
-      use DOMAIN_DECOMP_1D, only: grid, GET
-
-      real*8, dimension(:, grid%J_STRT_HALO:, :), intent(out) :: WSAVE
-      real*8, dimension(:, grid%J_STRT_HALO:, :), intent(in)  :: SDA, T
-      real*8, dimension(:, :, grid%J_STRT_HALO:), intent(in)  :: PK,PEDN
-      integer, intent(in) :: NIdyn
-
-      return
-      END SUBROUTINE COMPUTE_WSAVE
-
-      function getTotalEnergy() result(totalEnergy)
-!@sum  getTotalEnergy Dummy
-!@auth Tom Clune (SIVO)
-!@ver  1.0
-      use GEOM, only: DXYP, AREAG
-      use DOMAIN_DECOMP_1D, only: grid, GLOBALSUM, get
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
-      REAL*8 :: totalEnergy
-
-      totalEnergy = 0.
-
-      return
-      end function getTotalEnergy
-
-
-      subroutine addEnergyAsDiffuseHeat(deltaEnergy)
-!@sum  addEnergyAsDiffuseHeat Dummy
-!@auth Tom Clune (SIVO)
-!@ver  1.0
-      real*8, intent(in) :: deltaEnergy
-
-      return
-      end subroutine addEnergyAsDiffuseHeat
-     
-
-C***** Add in dissipiated KE as heat locally
-      subroutine addEnergyAsLocalHeat(deltaKE, T, PK, diagIndex)
-!@sum  addEnergyAsLocalHeat Dummy
-!@auth Tom Clune (SIVO)
-!@ver  1.0
-      use DOMAIN_DECOMP_1D, only: grid, get
-      implicit none
-      real*8 :: deltaKE(:,grid%j_strt_halo:,:)
-      real*8 :: T(:,grid%j_strt_halo:,:)
-      real*8 :: PK(:,:,grid%j_strt_halo:)
-      integer, optional, intent(in) :: diagIndex
-
-      return
-      end subroutine addEnergyAsLocalHeat
 
       end module ATMDYN
 
+      subroutine DIAG5A(M5,NDT)
+c     dummy of subroutine
+      IMPLICIT NONE
+      INTEGER :: M5,NDT
+      return
+      end subroutine DIAG5A
 
-      module ATMDYN_QDYNAM
-      private
+      subroutine DIAG7A
+c     dummy of subroutine
+      return
+      end subroutine DIAG7A
 
-      public QDYNAM
+      subroutine DIAG5D(M5,NDT,DUT,DVT)
+c     dummy of subroutine
+      USE MODEL_COM, only : im,imh,jm,lm
+      USE DOMAIN_DECOMP_1D, only : GRID
+      IMPLICIT NONE
+      INTEGER :: M5,NDT
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        DUT,DVT
+      return
+      end subroutine DIAG5D
 
-      contains
+      SUBROUTINE DIAG5F(UX,VX)
+c     dummy of subroutine
+      USE MODEL_COM, only : im,imh,jm,lm
+      USE DOMAIN_DECOMP_1D, only : GRID
+      IMPLICIT NONE
+
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        UX,VX
+      return
+      end subroutine DIAG5F
+
+      subroutine DIAGCD(grid,M,UX,VX,DUT,DVT,DT1)
+c     dummy of subroutine
+
+      USE MODEL_COM, only : im,jm,lm,fim,mdiag,mdyn
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
+      IMPLICIT NONE
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+!@var M index denoting from where DIAGCD is called
+      INTEGER, INTENT(IN) :: M
+!@var DT1 current time step
+      REAL*8, INTENT(IN) :: DT1
+!@var UX,VX current velocities
+      REAL*8, INTENT(IN),
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        UX,VX
+!@var DUT,DVT current momentum changes
+      REAL*8, INTENT(IN),
+     &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     &        DUT,DVT
+
+      return
+      end subroutine DIAGCD
+
+      SUBROUTINE conserv_KE(RKE)
+!@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
+!@sum  multiplied by cell area
+!@auth Gary Russell/Gavin Schmidt
+!@ver  1.0
+      USE CONSTANT, only : mb2kg
+      USE MODEL_COM, only : im,jm,lm,fim,dsig,ls1,p,u,v,psfmpt
+      USE GEOM, only : dxyn,dxys,dxyv
+      USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_1D, only : SOUTH
+      IMPLICIT NONE
+
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
+      INTEGER :: I,IP1,J,L
+      INTEGER :: J_0STG,J_1STG
+      REAL*8 :: PSJ,PSIJ
+
+      CALL GET(grid, J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+
+C****
+C**** KINETIC ENERGY ON B GRID
+C****
+
+      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      DO J=J_0STG,J_1STG
+      PSJ=(2.*PSFMPT*DXYV(J))
+      I=IM
+      DO IP1=1,IM
+        PSIJ=(P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J))*DXYS(J)
+        RKE(I,J)=0.
+        DO L=1,LS1-1
+          RKE(I,J)=RKE(I,J)+
+     &         (U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*DSIG(L)
+        END DO
+        RKE(I,J)=RKE(I,J)*PSIJ
+        DO L=LS1,LM
+          RKE(I,J)=RKE(I,J)+
+     &         (U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*DSIG(L)*PSJ
+        END DO
+        RKE(I,J)=0.25*RKE(I,J)*mb2kg
+        I=IP1
+      END DO
+      END DO
+
+c
+c move to A grid
+c
+      call regrid_btoa_ext(rke)
+
+      RETURN
+C****
+      END SUBROUTINE conserv_KE
+
+      SUBROUTINE calc_kea_3d(kea)
+!@sum  calc_kea_3d calculates square of wind speed on the A grid
+!@ver  1.0
+      USE MODEL_COM, only : im,jm,lm,byim,u,v
+c      USE GEOM, only : ravps,ravpn
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_1D, only : NORTH
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: KEA
+
+      RETURN
+
+      END SUBROUTINE calc_kea_3d
+
+      subroutine recalc_agrid_uv
+!@sum Computes u_a,v_a from u and v
+!@var u x-component at secondary grids (B_grid)
+!@var v y-component at secondary grids (B_grid)
+!@var u_a x-component at primary grids (A_grid)
+!@var v_a y-component at primary grids (A_grid)
+!@auth Ye Cheng
+!@ver  1.0
+
+      USE MODEL_COM, only : im,jm,lm,u,v
+      USE DYNAMICS, only : ua=>ualij,va=>valij
+      USE DOMAIN_DECOMP_1D, only : grid,get,NORTH, HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, only : halo_update
+      USE GEOM, only : imaxj,idij,idjj,kmaxj,rapj,cosiv,siniv
+      implicit none
+      real*8, dimension(im) :: ra
+      integer, dimension(im) :: idj
+      real*8 :: HEMI,u_t,v_t,rak,ck,sk,uk,vk
+      integer :: i,j,l,k,idik,idjk,kmax
+
+      integer :: J_0S,J_1S
+      logical :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+
+      call get(grid, J_STRT_SKP=J_0S,   J_STOP_SKP=J_1S,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE    )
+!     polar boxes
+
+C**** Update halos of U and V
+      CALL HALO_UPDATE(grid,u, from=NORTH)
+      CALL HALO_UPDATE(grid,v, from=NORTH)
+
+      if (HAVE_SOUTH_POLE) then
+        J=1
+        KMAX=KMAXJ(J)
+        HEMI=-1.
+!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
+        DO I=1,IMAXJ(J)
+          DO L=1,LM
+            u_t=0.d0; v_t=0.d0
+            DO K=1,KMAX
+              IDIK=IDIJ(K,I,J)
+              IDJK=IDJJ(K,J)
+              RAK=RAPJ(K,J)
+              ck=cosiv(k)
+              sk=siniv(k)
+              uk=u(idik,idjk,L)
+              vk=v(idik,idjk,L)
+              u_t=u_t+rak*(uk*ck-hemi*vk*sk)
+              v_t=v_t+rak*(vk*ck+hemi*uk*sk)
+            END DO
+            ua(l,i,j)=u_t
+            va(l,i,j)=v_t
+          END DO
+        END DO
+!$OMP  END PARALLEL DO
+      end if              !south pole
+!
+      if (HAVE_NORTH_POLE) then
+        J=JM
+        KMAX=KMAXJ(J)
+        HEMI=1.
+!$OMP  PARALLEL DO PRIVATE (I,L,u_t,v_t,K,IDIK,IDJK,RAK,ck,sk,uk,vk)
+        DO I=1,IMAXJ(J)
+          DO L=1,LM
+            u_t=0.d0; v_t=0.d0
+            DO K=1,KMAX
+              IDIK=IDIJ(K,I,J)
+              IDJK=IDJJ(K,J)
+              RAK=RAPJ(K,J)
+              ck=cosiv(k)
+              sk=siniv(k)
+              uk=u(idik,idjk,L)
+              vk=v(idik,idjk,L)
+              u_t=u_t+rak*(uk*ck-hemi*vk*sk)
+              v_t=v_t+rak*(vk*ck+hemi*uk*sk)
+            END DO
+            ua(l,i,j)=u_t
+            va(l,i,j)=v_t
+          END DO
+        END DO
+!$OMP  END PARALLEL DO
+      end if                !north pole
+
+!     non polar boxes
+C**** Update halos of u and v. (Needed bcs. IDJJ(3:4,J_1S)=J_1S+1)
+C     ---> done by calling routine...
+
+c      CALL HALO_UPDATE(grid, u, FROM=NORTH)
+c      CALL HALO_UPDATE(grid, v, FROM=NORTH)
+!$OMP  PARALLEL DO PRIVATE (J,I,L,u_t,v_t,K,KMAX,IDJ,RA,IDIK,IDJK,RAK)
+!$OMP*    SCHEDULE(DYNAMIC,2)
+      DO J=J_0S,J_1S
+        KMAX=KMAXJ(J)
+        DO K=1,KMAX
+          IDJ(K)=IDJJ(K,J)
+          RA(K)=RAPJ(K,J)
+        END DO
+        DO I=1,IMAXJ(J)
+          DO L=1,LM
+            u_t=0.d0; v_t=0.d0
+            DO K=1,KMAX
+              IDIK=IDIJ(K,I,J)
+              IDJK=IDJ(K)
+              RAK=RA(K)
+              u_t=u_t+u(IDIK,IDJK,L)*RAK
+              v_t=v_t+v(IDIK,IDJK,L)*RAK
+            END DO
+            ua(l,i,j)=u_t
+            va(l,i,j)=v_t
+          END DO
+        END DO
+      END DO
+!$OMP  END PARALLEL DO
+C****
+      return
+      end subroutine recalc_agrid_uv
+
+      subroutine regrid_atov_1d(u_a,v_a,uv1d)
+      USE MODEL_COM, only : im,jm
+      USE DOMAIN_DECOMP_1D, only : grid,halo_update,SOUTH
+      USE GEOM, only : rapvs,rapvn,cosiv,siniv
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo)  ::
+     &          u_a,v_a
+      real*8, dimension(2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)),
+     &        intent(out) :: uv1d
+      real*8 :: hemi
+      integer :: i,ip1,j,n
+      real*8, dimension(im) :: usouth,vsouth,unorth,vnorth
+      integer :: j_0stg, j_1stg
+      j_0stg = grid%j_strt_stgr
+      j_1stg = grid%j_stop_stgr
+      CALL HALO_UPDATE(grid,U_A,from=SOUTH)
+      CALL HALO_UPDATE(grid,V_A,from=SOUTH)
+      j=j_0stg-1
+      if(j.eq.1) then
+        hemi = -1.
+        usouth(:)=2.*(u_a(1,j)*cosiv(:)+v_a(1,j)*siniv(:)*hemi)
+        vsouth(:)=2.*(v_a(1,j)*cosiv(:)-u_a(1,j)*siniv(:)*hemi)
+      else
+        i=im
+        do ip1=1,im
+          usouth(i)=(u_a(i,j)+u_a(ip1,j))
+          vsouth(i)=(v_a(i,j)+v_a(ip1,j))
+          i=ip1
+        enddo
+      endif
+      n = 0
+      do j=j_0stg,j_1stg
+        if(j.lt.jm) then
+          i=im
+          do ip1=1,im
+            unorth(i)=(u_a(i,j)+u_a(ip1,j))
+            vnorth(i)=(v_a(i,j)+v_a(ip1,j))
+            i=ip1
+          enddo
+        else
+          hemi = +1.
+          unorth(:)=2.*(u_a(1,j)*cosiv(:)+v_a(1,j)*siniv(:)*hemi)
+          vnorth(:)=2.*(v_a(1,j)*cosiv(:)-u_a(1,j)*siniv(:)*hemi)
+        endif
+        do i=1,im
+          n = n + 1
+          uv1d(n) = rapvn(j-1)*usouth(i)+rapvs(j)*unorth(i)
+          n = n + 1
+          uv1d(n) = rapvn(j-1)*vsouth(i)+rapvs(j)*vnorth(i)
+          usouth(i) = unorth(i)
+          vsouth(i) = vnorth(i)
+        enddo
+      enddo
+      return
+      end subroutine regrid_atov_1d
+      subroutine get_nuv(nuv)
+      use model_com, only : im
+      USE DOMAIN_DECOMP_1D, only : GRID
+      implicit none
+      integer :: nuv
+      nuv = 2*im*(1+grid%j_stop_stgr-grid%j_strt_stgr)
+      return
+      end subroutine get_nuv
+      subroutine get_vpkey_of_n(n,vpkey)
+      implicit none
+      integer :: n,vpkey
+      vpkey = 1+(n-1)/2
+      return
+      end subroutine get_vpkey_of_n
+      subroutine get_regrid_info_for_n(n,ilist,jlist,wts,nnbr)
+      use model_com, only : im
+      use geom, only : rapvn,rapvs
+      implicit none
+      integer :: n
+      integer, dimension(4) :: ilist,jlist
+      real*8, dimension(4) :: wts
+      integer :: nnbr
+      integer :: iv,jv,ivp1
+      call get_ivjv_of_n(n,iv,jv)
+      nnbr = 4
+      ivp1 = iv+1 - im*(iv/im)
+      ilist(1:4) = (/ iv, ivp1, iv, ivp1 /)
+      jlist(1:4) = (/ jv-1, jv-1, jv, jv /)
+      wts(1:4) = (/ rapvn(jv-1), rapvn(jv-1), rapvs(jv), rapvs(jv) /)
+      return
+      end subroutine get_regrid_info_for_n
+      subroutine get_uv_of_n(n,uv)
+      use model_com, only : im,lm,u,v
+      use domain_decomp_1d, only : am_i_root
+      implicit none
+      integer :: n
+      real*8, dimension(lm) :: uv
+      integer :: iv,jv
+      call get_ivjv_of_n(n,iv,jv)
+      if(mod(n,2).eq.1) then
+        uv(1:lm) = u(iv,jv,1:lm)
+      else
+        uv(1:lm) = v(iv,jv,1:lm)
+      endif
+      return
+      end subroutine get_uv_of_n
+      subroutine store_uv_of_n(n,uv)
+      use model_com, only : im,lm,u,v
+      implicit none
+      integer :: n
+      real*8, dimension(lm) :: uv
+      integer :: iv,jv
+      call get_ivjv_of_n(n,iv,jv)
+      if(mod(n,2).eq.1) then
+        u(iv,jv,1:lm) = uv(1:lm)
+      else
+        v(iv,jv,1:lm) = uv(1:lm)
+      endif
+      return
+      end subroutine store_uv_of_n
+      subroutine get_ivjv_of_n(n,iv,jv)
+      use model_com, only : im
+      USE DOMAIN_DECOMP_1D, only : GRID
+      implicit none
+      integer :: n
+      integer :: iv,jv
+      integer :: nv,njm1
+      nv = 1+(n-1)/2
+      njm1 = (nv-1)/im
+      jv = grid%j_strt_stgr + njm1
+      iv = nv - njm1*im
+      return
+      end subroutine get_ivjv_of_n
+
+      subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
+      USE MODEL_COM, only : im,jm,lm,u,v
+      USE DOMAIN_DECOMP_1D, only : GRID
+      implicit none
+      integer :: k
+      REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     UR,VR
+      real*8, dimension(im,lm) :: ursp,vrsp,urnp,vrnp
+      integer :: i,j,l
+      integer :: J_0S,J_1S
+      if(k.ne.4)
+     &     call stop_model('incorrect k in replicate_uv_to_agrid',255)
+      J_0S = GRID%J_STRT_SKP
+      J_1S = GRID%J_STOP_SKP
+#ifdef SCM
+      do j=j_0s,j_1s
+      do i=1,im
+      do l=1,lm
+        ur(1,l,i,j) = u(i,j,l)
+        vr(1,l,i,j) = v(i,j,l)
+        ur(2,l,i,j) = u(i,j,l)
+        vr(2,l,i,j) = v(i,j,l)
+        ur(3,l,i,j) = u(i,j,l)
+        vr(3,l,i,j) = v(i,j,l)
+        ur(4,l,i,j) = u(i,j,l)
+        vr(4,l,i,j) = v(i,j,l)
+      enddo ! l
+      enddo ! i
+      enddo ! j
+#else
+      do j=j_0s,j_1s
+      do i=2,im
+      do l=1,lm
+        ur(1,l,i,j) = u(i-1,j  ,l)
+        vr(1,l,i,j) = v(i-1,j  ,l)
+        ur(2,l,i,j) = u(i  ,j  ,l)
+        vr(2,l,i,j) = v(i  ,j  ,l)
+        ur(3,l,i,j) = u(i-1,j+1,l)
+        vr(3,l,i,j) = v(i-1,j+1,l)
+        ur(4,l,i,j) = u(i  ,j+1,l)
+        vr(4,l,i,j) = v(i  ,j+1,l)
+      enddo ! l
+      enddo ! i
+      i = 1
+      do l=1,lm
+        ur(1,l,i,j) = u(im ,j  ,l)
+        vr(1,l,i,j) = v(im ,j  ,l)
+        ur(2,l,i,j) = u(i  ,j  ,l)
+        vr(2,l,i,j) = v(i  ,j  ,l)
+        ur(3,l,i,j) = u(im ,j+1,l)
+        vr(3,l,i,j) = v(im ,j+1,l)
+        ur(4,l,i,j) = u(i  ,j+1,l)
+        vr(4,l,i,j) = v(i  ,j+1,l)
+      enddo ! l
+      enddo ! j
+#endif
+      if(grid%have_south_pole) then
+        ursp(:,:) = u(:,2,:)
+        vrsp(:,:) = v(:,2,:)
+      endif
+      if(grid%have_north_pole) then
+        urnp(:,:) = u(:,jm,:)
+        vrnp(:,:) = v(:,jm,:)
+      endif
+      return
+      end subroutine replicate_uv_to_agrid
+
+      subroutine avg_replicated_duv_to_vgrid(du,dv,k,
+     &     dusp,dvsp,dunp,dvnp)
+      USE MODEL_COM, only : im,jm,lm,u,v
+      USE DOMAIN_DECOMP_1D, only : GRID, HALO_UPDATE_BLOCK,SOUTH
+      implicit none
+      integer :: k
+      REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     DU,DV
+      real*8, dimension(im,lm) :: dusp,dvsp,dunp,dvnp
+      integer :: i,j,l
+      integer :: J_0STG,J_1STG
+      if(k.ne.4) call stop_model(
+     &     'incorrect k in avg_replicated_duv_to_vgrid',255)
+      J_0STG = GRID%J_STRT_STGR
+      J_1STG = GRID%J_STOP_STGR
+      CALL HALO_UPDATE_BLOCK(GRID,DU,FROM=SOUTH)
+      CALL HALO_UPDATE_BLOCK(GRID,DV,FROM=SOUTH)
+c
+c copy circumpolar data into the appropriate spots in du,dv
+c
+      if(grid%have_south_pole) then
+        j=1
+        do i=2,im
+        do l=1,lm
+          du(3,l,i,j) = dusp(i-1,l)
+          du(4,l,i,j) = dusp(i  ,l)
+          dv(3,l,i,j) = dvsp(i-1,l)
+          dv(4,l,i,j) = dvsp(i  ,l)
+        enddo
+        enddo
+        i=1
+        do l=1,lm
+          du(3,l,i,j) = dusp(im ,l)
+          du(4,l,i,j) = dusp(i  ,l)
+          dv(3,l,i,j) = dvsp(im ,l)
+          dv(4,l,i,j) = dvsp(i  ,l)
+        enddo
+c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
+        du(:,:,:,j) = du(:,:,:,j)*.5
+        dv(:,:,:,j) = dv(:,:,:,j)*.5
+      endif
+      if(grid%have_north_pole) then
+        j=jm
+        do i=2,im
+        do l=1,lm
+          du(1,l,i,j) = dunp(i-1,l)
+          du(2,l,i,j) = dunp(i  ,l)
+          dv(1,l,i,j) = dvnp(i-1,l)
+          dv(2,l,i,j) = dvnp(i  ,l)
+        enddo
+        enddo
+        i=1
+        do l=1,lm
+          du(1,l,i,j) = dunp(im ,l)
+          du(2,l,i,j) = dunp(i  ,l)
+          dv(1,l,i,j) = dvnp(im ,l)
+          dv(2,l,i,j) = dvnp(i  ,l)
+        enddo
+c compensate for the factor of 2 in ravj(jm).  change ravj(jm) later.
+        du(:,:,:,j) = du(:,:,:,j)*.5
+        dv(:,:,:,j) = dv(:,:,:,j)*.5
+      endif
+c
+c now do the averaging
+c
+      do j=j_0stg,j_1stg
+      do i=1,im-1
+      do l=1,lm
+        u(i,j,l)=u(i,j,l)+ !.25*
+     &       (du(4,l,i,j-1)+du(3,l,i+1,j-1)+du(2,l,i,j)+du(1,l,i+1,j))
+        v(i,j,l)=v(i,j,l)+ !.25*
+     &       (dv(4,l,i,j-1)+dv(3,l,i+1,j-1)+dv(2,l,i,j)+dv(1,l,i+1,j))
+      enddo ! l
+      enddo ! i
+      i = im
+      do l=1,lm
+        u(i,j,l)=u(i,j,l)+ !.25*
+     &       (du(4,l,i,j-1)+du(3,l,1,j-1)+du(2,l,i,j)+du(1,l,1,j))
+        v(i,j,l)=v(i,j,l)+ !.25*
+     &       (dv(4,l,i,j-1)+dv(3,l,1,j-1)+dv(2,l,i,j)+dv(1,l,1,j))
+      enddo ! l
+      enddo ! j
+      return
+      end subroutine avg_replicated_duv_to_vgrid
+
+      SUBROUTINE regrid_btoa_3d(x)
+      USE MODEL_COM, only : im,jm,lm,byim
+c      USE GEOM, only : ravps,ravpn
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_1D, only : NORTH
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: X
+      INTEGER :: I,IM1,J,L
+      REAL*8 :: XIM1J,XIJ
+      call halo_update(grid,x,from=north)
+      DO L=1,LM
+      if(grid%have_south_pole) then
+        x(:,1,l) = sum(x(:,2,l))*byim
+      endif
+      DO J=GRID%J_STRT_SKP,GRID%J_STOP_SKP
+      IM1=IM
+      XIM1J = x(im1,j,l)
+      DO I=1,IM
+        XIJ = x(i,j,l)
+        X(I,J,L)=.25*(XIM1J+XIJ+
+     &       x(im1,j+1,l)+x(i,j+1,l))
+c        X(I,J,L)=(
+c     &       ravps(j)*(x(im1,j,l)+x(i,j,l))
+c     &      +ravpn(j)*(x(im1,j+1,l)+x(i,j+1,l))
+        XIM1J = XIJ
+        IM1=I
+      ENDDO
+      ENDDO
+      if(grid%have_north_pole) then
+        x(:,jm,l) = sum(x(:,jm,l))*byim
+      endif
+      ENDDO
+      RETURN
+      END SUBROUTINE regrid_btoa_3d
+
+      subroutine regrid_btoa_ext(x)
+c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
+      USE MODEL_COM, only : im,jm,byim
+      USE GEOM, only : rapvs,rapvn,dxyp,dxyv
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, GRID, NORTH
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X
+      INTEGER :: I,IM1,J
+      INTEGER :: J_0S,J_1S
+      REAL*8 :: XIM1J,XIJ
+      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call halo_update(grid,x,from=north)
+      if(grid%have_south_pole) then
+        X(:,1) = SUM(X(:,2))*BYIM*(DXYP(1)/DXYV(2))
+      endif
+      DO J=J_0S,J_1S
+      IM1=IM
+      XIM1J = X(IM1,J)
+      DO I=1,IM
+        XIJ = X(I,J)
+c        X(I,J) = .25*(XIM1J+X(I,J)+X(IM1,J+1)+X(I,J+1))
+        X(I,J) = (
+     &       (XIM1J+X(I,J))*RAPVS(J)
+     &      +(X(IM1,J+1)+X(I,J+1))*RAPVN(J) )
+        XIM1J = XIJ
+        IM1 = I
+      ENDDO
+      ENDDO
+      if(grid%have_north_pole) then
+        X(:,JM) = SUM(X(:,JM))*BYIM*(DXYP(JM)/DXYV(JM))
+      endif
+      return
+      end subroutine regrid_btoa_ext
 
       SUBROUTINE QDYNAM
       return
       END SUBROUTINE QDYNAM
-
-
-      end module ATMDYN_QDYNAM
