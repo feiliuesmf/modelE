@@ -497,6 +497,10 @@ C**** Set names for OLNST diagnostics
 C**** Set names for OL diagnostics
       L_RHO=1   ; L_TEMP=2  ; L_SALT=3
 
+      do k=1,koij
+        sname_oij(k) = 'unused'
+      enddo
+
 C**** set properties for OIJ diagnostics
       k=0
 c
