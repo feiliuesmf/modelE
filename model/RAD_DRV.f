@@ -860,7 +860,8 @@ cdmk last line saved for IE
      *     ,ij_clr_sruptoa,ij_clr_truptoa,ijl_cf
      *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
-     *     ,ij_chl, ij_swaerrf, ij_lwaerrf
+     *     ,ij_chl, ij_swaerrf, ij_lwaerrf,ij_swaersrf,ij_lwaersrf
+     *     ,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -922,7 +923,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSCRF,TNFSCRF
-      REAL*8, DIMENSION(8,grid%I_STRT_HALO:grid%I_STOP_HALO,
+      REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
 #ifdef TRACERS_ON
@@ -952,7 +953,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
-     *     ,LFRC,JTIME,n1,tmpS,tmpT
+     *     ,LFRC,JTIME,n1,tmpS(8),tmpT(8)
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
@@ -1742,15 +1743,28 @@ C       END AMIP
 
 C**** Optional calculation of the impact of default aerosols
       if (aer_rad_forc.gt.0) then
+C**** first, separate aerosols
         DO N=1,8
-          tmpS=FS8OPX(N)   ; tmpT=FT8OPX(N)
+          tmpS(N)=FS8OPX(N)   ; tmpT(N)=FT8OPX(N)
           FS8OPX(N)=0.     ; FT8OPX(N)=0.
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
           CALL RCOMPX           ! aer_rad_forc>0 : no aerosol N
-          SNFSAERRF(N,I,J)=SRNFLB(LM+LM_REQ+1) ! always TOA
-          TNFSAERRF(N,I,J)=TRNFLB(LM+LM_REQ+1) ! always TOA
-          FS8OPX(N)=tmpS   ; FT8OPX(N)=tmpT
+          SNFSAERRF(N,I,J)=SRNFLB(LM+LM_REQ+1) ! TOA
+          TNFSAERRF(N,I,J)=TRNFLB(LM+LM_REQ+1) ! TOA
+          SNFSAERRF(N+8,I,J)=SRNFLB(1) ! SURF
+          TNFSAERRF(N+8,I,J)=TRNFLB(1) ! SURF
+          FS8OPX(N)=tmpS(N)   ; FT8OPX(N)=tmpT(N)
         END DO
+C**** second, net aerosols
+        tmpS(:)=FS8OPX(:)   ; tmpT(:)=FT8OPX(:)
+        FS8OPX(:)=0.     ; FT8OPX(:)=0.
+        kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+        CALL RCOMPX             ! aer_rad_forc>0 : no aerosols
+        SNFSAERRF(17,I,J)=SRNFLB(LM+LM_REQ+1) ! TOA
+        TNFSAERRF(17,I,J)=TRNFLB(LM+LM_REQ+1) ! TOA
+        SNFSAERRF(18,I,J)=SRNFLB(1) ! SURF
+        TNFSAERRF(18,I,J)=TRNFLB(1) ! SURF
+        FS8OPX(:)=tmpS(:)   ; FT8OPX(:)=tmpT(:)
       end if
 
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
@@ -2238,7 +2252,19 @@ C**** AERRF diags if required
      *            (SNFS(3,I,J)-SNFSAERRF(N,I,J))*CSZ2
              AIJ(I,J,IJ_LWAERRF+N-1)=AIJ(I,J,IJ_LWAERRF+N-1)-
      *            (TNFS(3,I,J)-TNFSAERRF(N,I,J))
+             AIJ(I,J,IJ_SWAERSRF+N-1)=AIJ(I,J,IJ_SWAERSRF+N-1)+
+     *            (SNFS(1,I,J)-SNFSAERRF(N+8,I,J))*CSZ2
+             AIJ(I,J,IJ_LWAERSRF+N-1)=AIJ(I,J,IJ_LWAERSRF+N-1)-
+     *            (TNFS(1,I,J)-TNFSAERRF(N+8,I,J))
            end do
+           AIJ(I,J,IJ_SWAERRFNT)=AIJ(I,J,IJ_SWAERRFNT)+
+     *          (SNFS(3,I,J)-SNFSAERRF(17,I,J))*CSZ2
+           AIJ(I,J,IJ_LWAERRFNT)=AIJ(I,J,IJ_LWAERRFNT)-
+     *          (TNFS(3,I,J)-TNFSAERRF(17,I,J))
+           AIJ(I,J,IJ_SWAERSRFNT)=AIJ(I,J,IJ_SWAERSRFNT)+
+     *          (SNFS(1,I,J)-SNFSAERRF(18,I,J))*CSZ2
+           AIJ(I,J,IJ_LWAERSRFNT)=AIJ(I,J,IJ_LWAERSRFNT)-
+     *          (TNFS(1,I,J)-TNFSAERRF(18,I,J))
          end if
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\

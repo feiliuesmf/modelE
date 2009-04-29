@@ -3111,23 +3111,27 @@ C****
       END SUBROUTINE UPDTYPE
 
       subroutine calc_derived_aij
+!@sum Calculate derived lat/lon diagnostics prior to printing
+!@auth Group
       USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop
       USE GEOM, only : imaxj
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
-     &  aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
-     *  ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
-     *  ij_netrdp, ij_albp, ij_albg, ij_albv,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
-     *  ij_RTSE, ij_HWV, ij_PVS,
-     &  IJ_TRNFP0,IJ_SRNFP0,IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
-     &  IJ_SRREF,IJ_SRVIS,IJ_SRINCP0,IJ_SRINCG,IJ_SRNFG,IJ_PHI1K,
-     &  IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,IJ_TATM,IJK_DP,IJK_TX,
-     &  IJ_MSU2,IJ_MSU3,IJ_MSU4,
-     &  KGZ_MAX,GHT,PMB
+     &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
+     *     ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
+     *     ij_netrdp, ij_albp, ij_albg, ij_albv,
+     *     ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
+     *     ij_RTSE, ij_HWV, ij_PVS,
+     &     IJ_TRNFP0,IJ_SRNFP0,IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
+     &     IJ_SRREF,IJ_SRVIS,IJ_SRINCP0,IJ_SRINCG,IJ_SRNFG,IJ_PHI1K,
+     &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,IJ_TATM,IJK_DP,IJK_TX,
+     &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,GHT,PMB,
+     *     ij_swaerrf,ij_lwaerrf,ij_swaersrf,ij_lwaersrf,ij_swaerabs,
+     *     ij_lwaerabs,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,
+     *     ij_lwaersrfnt,ij_swaerabsnt,ij_lwaerabsnt
       IMPLICIT NONE
-      INTEGER :: I,J,L,K,K1,K2
+      INTEGER :: I,J,L,K,K1,K2,N
       INTEGER :: J_0,J_1,I_0,I_1
       REAL*8 :: SCALEK
       real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu2,tmsu3,tmsu4
@@ -3207,6 +3211,22 @@ C****
 
         k = ij_tatm
         aij(i,j,k) = sum(aijl(i,j,:,ijk_tx))
+
+        k = ij_swaerabs
+        do n=1,8
+        aij(i,j,k+n-1)=aij(i,j,ij_swaerrf+n-1)-aij(i,j,ij_swaersrf+n-1)
+        end do
+
+        k = ij_lwaerabs
+        do n=1,8
+        aij(i,j,k+n-1)=aij(i,j,ij_lwaerrf+n-1)-aij(i,j,ij_lwaersrf+n-1)
+        end do
+
+        k = ij_swaerabsnt
+        aij(i,j,k) = aij(i,j,ij_swaerrfnt)-aij(i,j,ij_swaersrfnt)
+
+        k = ij_lwaerabsnt
+        aij(i,j,k) = aij(i,j,ij_lwaerrfnt)-aij(i,j,ij_lwaersrfnt)
 
 C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
         pland = fearth0(i,j)+flice(i,j)
