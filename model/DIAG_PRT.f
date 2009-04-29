@@ -3884,7 +3884,7 @@ c**** find hemispheric and global means
      &     im,jm,lm,byim,
      &     JHOUR,JHOUR0,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,
      &     NDAY,Itime,Itime0,XLABEL,LRUNID,iDO_GWDRAG,idacc
-      USE RAD_COM, only : cloud_rad_forc
+      USE RAD_COM, only : cloud_rad_forc, aer_rad_forc
       USE LAKES_COM, only : flake
       USE GEOM, only : DXV
       !USE VEG_COM, only : vdata
@@ -3970,6 +3970,22 @@ C**** include CRF diags if requested
       else
         lname_ij(ij_swcrf)='unused'
         lname_ij(ij_lwcrf)='unused'
+      end if
+
+C**** include aerosol rad forc diags only if requested
+      if (aer_rad_forc.eq.0) then
+        lname_ij(ij_swaerrf:ij_swaerrf+7)='unused'
+        lname_ij(ij_lwaerrf:ij_lwaerrf+7)='unused'
+        lname_ij(ij_swaersrf:ij_swaersrf+7)='unused'
+        lname_ij(ij_lwaersrf:ij_lwaersrf+7)='unused'
+        lname_ij(ij_swaerabs:ij_swaerabs+7)='unused'
+        lname_ij(ij_lwaerabs:ij_lwaerabs+7)='unused'
+        lname_ij(ij_swaerrfnt)='unused'
+        lname_ij(ij_lwaerrfnt)='unused'
+        lname_ij(ij_swaersrfnt)='unused'
+        lname_ij(ij_lwaersrfnt)='unused'
+        lname_ij(ij_swaerabsnt)='unused'
+        lname_ij(ij_lwaerabsnt)='unused'
       end if
 
 C**** Fill in maplet indices for gravity wave diagnostics
