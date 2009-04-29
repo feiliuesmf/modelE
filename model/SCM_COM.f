@@ -12,6 +12,8 @@ C-------------------------------------------------------------------------------
 C SCM DATA as provided from ARM variational analysis 
 !@var SG_P Pressure at GCM sigma levels (mb)
       REAL*8 SG_P(LM)
+!@var SG_HGT Height of layer at GCM sigma levels (m)
+      REAL*8 SG_HGT(LM)
 !@var SG_T ARM Temperature at GCM sigma levels (K)
       REAL*8 SG_T(LM)
 !@var SG_Q ARM Specific Humidity at GCM sigma levels (g/kg)
