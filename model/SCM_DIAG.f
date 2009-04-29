@@ -325,7 +325,7 @@ c
      +                 WMCOL(L)*1000.0,TAUSSC(L),TAUMCC(L),
      +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
  140     format(1x,i3,f8.2,' T ',2(f7.2),'  Q ',2(f7.3),'  WM ',
-     +          f7.4,'  tauss mc ',2(f7.3),'  camtss mc ',
+     +          f7.4,'  tauss mc ',2(f8.3),'  camtss mc ',
      +          2(f7.3),' arscl ',f6.2)
       enddo 
 c     do L=1,LM
