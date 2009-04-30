@@ -191,9 +191,9 @@
       call entcell_print(6, ecp)
 #endif
 
-!#ifdef ENT_STANDALONE_DIAG
-!      call ent_diagnostics_entcell(ecp)
-!#endif
+#ifdef ENT_STANDALONE_DIAG
+      call ent_diagnostics_entcell(ecp)
+#endif
 
       end subroutine ent_integrate
 
@@ -320,7 +320,7 @@
       integer :: tmp_pft
       real*8 :: tmp_n,tmp_senescefrac,tmp_Sacclim
       type(cohort),pointer :: cop
-#ifdef DEBUG
+!#ifdef DEBUG
 
       tmp_pft = -1
       tmp_n = -1
@@ -351,7 +351,7 @@
      &     tmp_senescefrac,tmp_Sacclim,pp%c_total,
 !### HACK: c_growth is Igor's hack to store daily growth respiration somewhere
 !### HACK: N_up is temporarily litterfall, using unused variable -NK
-     &     pp%c_growth,pp%N_up  
+     &     pp%c_growth,pp%N_up,pp%betad
 
       if (pp%GPP.lt.0.d0) then
         print *,"ent.f: BAD GPP:",pp%lai, pp%GPP
@@ -359,7 +359,7 @@
 !      write(999,*) pp%cellptr%Soilmp, pp%Soilmoist
 !     &     ,pp%cellptr%betad, pp%cellptr%betadl
 !      write(994,*) pp%cellptr%GCANOPY
-#endif
+!#endif
       end subroutine ent_diagnostics
           !*********************************************************!
 

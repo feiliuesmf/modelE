@@ -104,7 +104,9 @@
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.0d0               !Nleaf (gN/m2-leaf). Low Est. from Reich 1997 (big range).
-     &     ,3.1d0),               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+!     &     ,3.1d0               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+     &     ,1.07d0              !Nleaf (gN/m2-leaf), Oak, derived from C:N 27.2 and SLA 34.5 m2/kg-C in Tatarinov & Cienciala (2006) for BIOME-BGC.
+     &     ),                   
 
      &     pspartype(1          !6. COLD DECIDUOUS BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
@@ -112,7 +114,6 @@
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.7d0                !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
-!     &     ,1.3d0),              !Nleaf (gN/m2-leaf). Increment Friend&Kiang (2005), Table 1.
      &     ,1.25d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
      &     pspartype(1          !7. DROUGHT DECIDUOUS BROADLEAF 
@@ -124,7 +125,9 @@
      &     ,.002d0              !b, CLM
 !     &     ,6.7d0              !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
 !     &     ,1.5d0),               !Nleaf (gN/m2-leaf). Increment Friend&Kiang (2005), Table 1.
-     &     ,3.1d0),             !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+!     &     ,3.1d0                  !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+     &     ,1.07d0              !Nleaf (gN/m2-leaf), Oak, derived from C:N 27.2 and SLA 34.5 m2/kg-C in Tatarinov & Cienciala (2006) for BIOME-BGC.
+     &     ), 
 
      &     pspartype(1          !8. DECIDUOUS NEEDLELEAF
      &     ,.93d0               !from leaf VIS 1-albedo,CLM NDT boreal, Table 3.1 (Oleson, et al 2004)

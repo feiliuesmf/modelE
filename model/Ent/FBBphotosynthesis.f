@@ -29,8 +29,8 @@
       integer :: pft            !Plant functional type.  1-C3 grassland
       real*8 :: PARabsorb       !Leaf PAR absorptance (fraction)
       real*8 :: Vcmax           !Maximum photosynthetic capacity (umol m-2 s-1)
-      real*8 :: Kc              !Michaelis-Menten constant for CO2 (Pa)
-      real*8 :: Ko              !Michaelis-Menten constant for O2 (Pa)
+      real*8 :: Kc              !Michaelis-Menten parameter for CO2 (Pa)
+      real*8 :: Ko              !Michaelis-Menten parameter for O2 (Pa)
       real*8 :: Gammastar       !CO2 compensation point (Pa)
       real*8 :: m               !Slope of Ball-Berry equation
       real*8 :: b               !Intercept of Ball-Berry equation (mol m-2 s-1)
@@ -75,7 +75,7 @@
      &     ,sunlitshaded,ISPout)
       implicit none
       integer,intent(in) :: pft
-      real*8,intent(in) :: IPAR !umol m-2 s-1
+      real*8,intent(in) :: IPAR !umol m-2 s-1. Absorbed PAR. Should APAR.
       type(psdrvtype) :: psd
       real*8,intent(in) :: Gb !mol m-2 s-1
       real*8,intent(out) :: gsout, Aout, Rdout !ci in psd
@@ -119,7 +119,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       !@sum of the limiting cases.
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
-      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1) 
+      real*8,intent(in) :: IPAR !Absorbed PAR.  WRONG OLD COMMENT:Incident PAR (umol m-2 s-1) 
       real*8,intent(in) :: ca   !Ambient air CO2 mole fraction (umol mol-1)      
       real*8,intent(in) :: Tl   !Leaf temperature (Celsius)
       real*8,intent(in) :: rh   !Relative humidity
@@ -148,8 +148,8 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
       !write(888,*) "counter=", counter
 
-!      Rd = Respveg(pspar%Nleaf,Tl)  !Should be only leaf respiration!
-      Rd = 0.015d0*pspar%Vcmax       !From von Caemmerer CSIRO book.
+!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respiration.
+      Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
 
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
       ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
@@ -157,8 +157,10 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       !            (Cip+2*pspar%Gammastar)
 
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
-      !!a1 = pspar%PARabsorb*IPAR*alpha
+
+!      a1 = pspar%PARabsorb*IPAR*alpha
       a1 = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
+
       e1 = 1.d0
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
@@ -190,14 +192,14 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       Aiso = Ae + Rd
 
       if (Atot.lt.0.d0) then
-        ! can only happen if ca < Gammastar . Does it make sense?
+        ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
 #ifdef OFFLINE
         write(997,*) "Error, Atot<0.0:",Ae,Ac,As,ca,gb,rh,IPAR,Pa,
      &       pspar,sunlitshaded
 #endif
         Atot = 0.d0
         Anet = - Rd
-        ci = pspar%Gammastar * 1.d06/Pa
+        ci = pspar%Gammastar * 1.d06/Pa  
         return
       endif
 
@@ -395,17 +397,22 @@ cddd      end subroutine Photosynth_analyticsoln1
 !      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
       end function Respveg
 !-----------------------------------------------------------------------------
-      function calc_CO2compp(O2,Tl) Result(Gammastar)
+      function calc_CO2compp(O2,Kc,Ko,Tl) Result(Gammastar)
 !@sum CO2 compensation point in absence of dark respiration (Pa)
 
       implicit none
       real*8,intent(in) :: O2 !O2 partial pressure in leaf (Pa)
+      real*8,intent(in) :: Kc   !Michaelis-Menten parameter for CO2 (Pa)
+      real*8,intent(in) :: Ko   !Michaelis-Menten parameter for O2 (Pa)
       real*8,intent(in) :: Tl !Leaf temperature (Celsius)
       real*8 :: Gammastar  !CO2 compensation point (Pa)
       !----Local-----
       real*8,parameter :: tau=2600.d0  !CO2/O2-specificity ratio
 
-      Gammastar = O2/(2.d0*tau*Q10fn(0.57d0,Tl)) !Collatz (A3) 
+!      Gammastar = O2/(2.d0*tau*Q10fn(0.57d0,Tl)) !Collatz (A3)
+!      Gammastar = O2*Q10fn(1.75,Tl)/(2.d0*tau) !Collatz (A3) Same as above, !KcQ10/KoQ10 = 2.1/1.2 = 1.75 = 1/.57 
+      Gammastar = 0.5d0*(Kc/Ko)*0.21*O2 !CLM Tech Note. Gives smaller Gammastar than Collatz.
+
 
       end function calc_CO2compp
 !-----------------------------------------------------------------------------
@@ -816,7 +823,8 @@ cddd      !!print *,'QQQQ ',A,ci
 
       facclim = frost_hardiness(Sacclim)
      
-      fparlimit = par_phenology(pft,llspan)
+!      fparlimit = par_phenology(pft,llspan)
+      fparlimit = 1.d0
 
 !!! this var is not reproducible on restart, please figure out why
 !      fparlimit = 1.d0 ! seems to be ok now
@@ -834,7 +842,7 @@ cddd      !!print *,'QQQQ ',A,ci
      &            * facclim * fparlimit
       pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
-      pspar%Gammastar = calc_CO2compp(O2pres,Tl) !(Pa) (Collatz)
+      pspar%Gammastar = calc_CO2compp(O2pres,pspar%Kc,pspar%Ko,Tl) !(Pa) (Collatz)
       pspar%m = stressH2O*pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
 !      pspar%m = pftpar(p)%m     !Slope of Ball-Berry equation (Collatz)
       pspar%b = pftpar(p)%b     !Intercept of Ball-Berry equation (mol m-2 s-1) (Collatz)

@@ -55,10 +55,6 @@
 
         newc%Ntot = nm*LAI
 
-        ! >>>>
-        ! Nancy, make sure that you distinguish between = and =>
-        ! in the following code
-        !changed '=' to '=>' to avoid memory faults -PK 9/28/07
         if (ASSOCIATED(pp%shortest)) then !A. There are other cohorts.
           if (pp%shortest%h.ge.newc%h) then !newc is shortest
             pp%shortest%shorter => newc  !changed = to => -PK 9/28/07 

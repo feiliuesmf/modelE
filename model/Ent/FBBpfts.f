@@ -67,9 +67,9 @@
 !     &     ,30d0                !Vcmax, Wullschleger (1993) winter wheat, Triticum aestivum
 !     &     ,100d0                !Vcmax, Sellers II (1996)
 !     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
-     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
+!     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
 !     &     ,56.4d0                !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass. Xu blue oak leaf chamber Vcmax reaches ~100.
-!     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
@@ -104,7 +104,8 @@
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,6.7d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (20 mg-N/g-leaf)/(300 cm2/g-leaf) =6.7 g-N/m2-leaf
 !     &     ,1.25d0                 !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
-     &     ,3.1d0               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+!     &     ,3.1d0               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+     &     ,1.07d0              !Nleaf (gN/m2-leaf), Oak, derived from C:N 27.2 and SLA 34.5 m2/kg-C in Tatarinov & Cienciala (2006) for BIOME-BGC.
      &     ),
      &     pspartype(1          !6. EVERGRNEEDLE
      &     ,0.93d0               !leaf VIS 1-albedo,CLM NET all, Table 3.1 (Oleson, et al 2004)

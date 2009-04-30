@@ -20,7 +20,7 @@
 !      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
 !      real*8,parameter :: EPS=1.d-8   !Small, to prevent div zero.
       real*8,parameter :: IPARMINMOL=50  !umol m-2 s-1
-      real*8,parameter :: O2pres=20900. !Pa, from Collatz? Hanan? Not exactly .209*101325 Pa.
+      real*8,parameter :: O2frac=.20900 !fraction of Pa, partial pressure.
 
       type :: canraddrv
          !Canopy radiative transfer
@@ -31,7 +31,7 @@
          real*8 :: kdf          !=0.71D0
          !@var rhor Canopy reflectivity (?unitless).
          real*8 rhor
-         !@var kbl Canopy extinction coeff. for direct radiation (unitless).
+         !@var kbl Canopy extinction coeff. for black leaves (unitless).
          real*8 kbl
 
          !Vegetation geometry, biology
@@ -142,8 +142,8 @@
 !      write(995,*) "canopyspitters Gb:",Gb,pp%cellptr%Ch,pp%cellptr%U,
 !     &     Pa,pp%cellptr%TairC,gasc
       molconc_to_umol = gasc * (pp%cellptr%TcanopyC + KELVIN)/Pa * 1d6
-      ci_umol = pp%cellptr%Ci * molconc_to_umol
-      ca_umol = pp%cellptr%Ca * molconc_to_umol  !NOT USED
+      ca_umol = pp%cellptr%Ca * molconc_to_umol  
+      ci_umol = 0.7d0*ca_umol !pp%cellptr%Ci * molconc_to_umol  !This is solved for is pscubic in FBBphotosynthesis.f.  Replace with dummy initialization.
       TcanK = pp%cellptr%TcanopyC + KELVIN
       TsurfK = pp%cellptr%TairC + KELVIN
       TsoilK = pp%cellptr%Soiltemp(1) + KELVIN
@@ -181,6 +181,7 @@
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
      o         , cop%stressH2Ol(:))
+!          cop%stressH2O = 1.d0 !### TEMP RUN HACK FOR MMSF ####!
           !* Can't use water_stress2 until have Soilmoist all layers.
 !          cop%stressH2O = water_stress2(cop%pft, N_DEPTH, 
 !     i         pp%cellptr%Soilmoist(:), pp%cellptr%soil_Phi, 
@@ -188,13 +189,14 @@
 !     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 !          betad = cop%stressH2O
 
-          call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc,O2pres
+          call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc
+     i         ,O2frac*psdrvpar%Pa
      i         ,cop%stressH2O,cop%Sacclim,cop%llspan)
 
           call canopyfluxes(dtsec, cop%pft
      &         ,pp%albedo(1)
      &         ,pp%LAI
-     &         ,cop%LAI,IPAR*4.05 !4.05 see canopyfluxes comments.
+     &         ,cop%LAI,IPAR*4.05d0 !4.05 see canopyfluxes comments.
      &         ,CosZen,fdir
      &         ,Gb
      &         ,psdrvpar
@@ -469,8 +471,8 @@
       real*8,intent(out) :: Ilayer ! Isop emis for single leaf
       !------Local---------
       real*8 fsl  !Fraction of sunlit foliage in layer at Lc (unitless).
-      real*8 Isl !PAR penetrating sunlit foliage at Lc (umol/m[foliage]2/s).
-      real*8 Ish !PAR penetrating shaded foliage at Lc (umol/m[foliage]2/s).
+      real*8 Isl !PAR absorbed by sunlit foliage at Lc (umol/m[foliage]2/s).
+      real*8 Ish !PAR absorbed by shaded foliage at Lc (umol/m[foliage]2/s).
       real*8 Asl !Anet from sunlit leaves (umol/m2/s)
       real*8 Ash !Anet from shaded leaves (umol/m2/s)
       real*8 gssl,gssh !Leaf conductance, sunlit,shaded (mol-H2O/m2/s)
@@ -870,9 +872,9 @@ C#endif
 ! Get incident radiation on layer, diffuse/direct, sunlit/shaded.
       real*8,intent(in) :: Lc
       type(canraddrv) :: crp
-!@var Isla PAR penetrating sunlit foliage at Lc (umol/m[foliage]2/s).
+!@var Isla PAR absorbed by sunlit foliage at Lc (umol/m[foliage]2/s).
       real*8,intent(out) :: Isla
-!@var Isha PAR penetrating shaded foliage at Lc (umol/m[foliage]2/s).
+!@var Isha PAR absorbed by shaded foliage at Lc (umol/m[foliage]2/s).
       real*8,intent(out) :: Isha
 !@var fsl Fraction of sunlit foliage in layer at Lc (unitless).
       real*8,intent(out) :: fsl
@@ -887,24 +889,35 @@ C#endif
 !@var Idrdra Direct PAR at Lc that remains direct (umol/m[ground]2/s).
       real*8 Idrdra
       real*8,parameter :: zero = 0.d0
-      
+      real*8 :: Ish, Isl !Incident rather than absorbed PAR (umol/m2/s).
+
       sbeta = crp%CosZen !cos(solarzen) = sin(solarelev)
       I0df = crp%I0df
       I0dr = crp%I0dr
 ! When sun is above the horizon.
       if(sbeta.gt.EPS)then
-! Diffuse PAR in canopy at Lc (umol/m[ground]2/s).
+!? Diffuse PAR in canopy at Lc (umol/m[ground]2/s). ?Old comment.
+! Diffuse PAR that is absorbed at Lc (umol/m2-gnd/s). Eq. 10.
         Idfa=(1.0D0-crp%rhor)*I0df*crp%kdf *exp(-crp%kdf*Lc)
-! Direct PAR in canopy at Lc (umol/m[ground]2/s).
+!? Direct PAR in canopy at Lc (umol/m[ground]2/s). ?Old comments.
+! Direct PAR that is absorbed at Lc (umol/m2-gnd/s). Eq. 11.
         Idra=(1.0D0-crp%rhor)*I0dr* crp%sqrtexpr * crp%kbl *
      $        exp(-crp%sqrtexpr*crp%kbl*Lc)
-! Direct PAR at Lc that remains direct (umol/m[ground]2/s).
+!? Direct PAR at Lc that remains direct (umol/m[ground]2/s).?Old comment
+! Non-scattered part of direct flux that is absorbed (umol/m2-gnd/s). Eq. 12.
         Idrdra=(1.0D0-crp%sigma)*I0dr * crp%kbl *
      $        exp(-crp%sqrtexpr*crp%kbl*Lc)
-! PAR penetrating shaded foliage at Lc (umol/m[foliage]2/s).
+! PAR absorbed by shaded foliage at Lc (umol/m[foliage]2/s). Diffuse + Direct portion that is scattered (becomes diffuse)
         Isha=Idfa+(Idra-Idrdra)
-! PAR penetrating sunlit foliage at Lc (umol/m[foliage]2/s)._
+! PAR aborbed by sunlit foliage at Lc (umol/m[foliage]2/s)._
         Isla=Isha+(1.0D0-crp%sigma)* crp%kbL * I0dr
+
+!######## HACK - above are absorbed radiation, not incident ###########
+!######## Replace with Spitters' equations for incident radiation #####
+!        Isl = (1.0D0-crp%rhor)*I0dr*exp(-crp%kbL*crp%sqrtexpr*Lc)
+!        Ish = (1.0D0-crp%rhor)*I0df*exp(-crp%kdf*Lc)
+!        Isla = I0dr + Ish  !## HACK - this is to pass out Isl, using Isla var.
+!        Isha = Ish !## HACK - this is to pass out Ish, using Isha var.
 ! Fraction of sunlit foliage in layer at Lc (unitless).
         fsl=exp(-crp%kbL*Lc)
         if(Isha.lt.0.1D0)Isha=0.1D0
