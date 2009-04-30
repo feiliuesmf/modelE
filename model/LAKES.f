@@ -554,6 +554,8 @@ C**** Set GTEMP arrays for lakes
        DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
+            GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.eq.1) then
@@ -561,9 +563,6 @@ C**** Set GTEMP arrays for lakes
                     GTEMPR(1,I,J) = ATSKIN + TF
                 endif
             endif
-#else
-            GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #endif
             IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*
      &           AXYP(I,J)) THEN
@@ -1162,6 +1161,8 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE(I,J).gt.0) THEN
+            GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.eq.1) then
@@ -1169,9 +1170,6 @@ C**** Set GTEMP array for lakes
                     GTEMPR(1,I,J) = ATSKIN + TF
                 endif
             endif
-#else
-            GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #endif
 
 #ifdef TRACERS_WATER
@@ -1696,13 +1694,12 @@ C****
                   MSI(I,J)=AC2OIM
 
                   TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
+                  GTEMPR(1,I,J)=TF
 #ifdef SCM
                   if ((I.eq.I_TARG.and.J.eq.J_TARG).and.
      &                 SCM_SURFACE_FLAG.eq.1) then
                         GTEMPR(1,I,J) = ATSKIN + TF
                   endif
-#else
-                  GTEMPR(1,I,J)=TF
 #endif
                   MLDLK(I,J)=MINMLD
                   FLAKE(I,J)=0.
@@ -1736,6 +1733,8 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0,IMAXJ(J)
           IF (FLAKE(I,J).gt.0) THEN
+            GTEMP(1,1,I,J)=TLAKE(I,J)
+            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.eq.1) then
@@ -1743,9 +1742,6 @@ C**** Set GTEMP array for lakes
                     GTEMPR(1,I,J) = ATSKIN + TF
                 endif
             endif
-#else
-            GTEMP(1,1,I,J)=TLAKE(I,J)
-            GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #endif
 #ifdef TRACERS_WATER
             GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
@@ -1833,6 +1829,8 @@ C**** simelt is given as kg, so divide by area
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
+          GTEMP(1,1,I,J)=TLAKE(I,J)
+          GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.eq.1) then
@@ -1840,9 +1838,7 @@ C**** simelt is given as kg, so divide by area
                   GTEMPR(1,I,J) = ATSKIN + TF
               endif
           endif
-#else
-          GTEMP(1,1,I,J)=TLAKE(I,J)
-          GTEMPR(1,I,J) =TLAKE(I,J)+TF
+#endif
           IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*AXYP(I,J))
      *         THEN
             GTEMP(2,1,I,J)=(GML(I,J)-TLAKE(I,J)*SHW*MLDLK(I,J)*RHOW
@@ -1851,6 +1847,12 @@ C**** simelt is given as kg, so divide by area
           ELSE
             GTEMP(2,1,I,J)=TLAKE(I,J)
           END IF
+#ifdef SCM
+          if (I.eq.I_TARG.and.J.eq.J_TARG) then
+              if (SCM_SURFACE_FLAG.eq.1) then
+                  GTEMP(2,1,I,J) = GTEMP(1,1,I,J)
+              endif
+          endif
 #endif
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
@@ -2054,6 +2056,9 @@ C**** Resave prognostic variables
         TRLAKE(:,:,I,J)=TRLAKEL(:,:)*(FLAKE(I,J)*AXYP(I,J))
         GTRACER(:,1,I,J)=TRLAKEL(:,1)/(MLDLK(I,J)*RHOW)
 #endif
+        GTEMP(1,1,I,J)=TLAKE(I,J)
+        GTEMP(2,1,I,J)=TLK2       ! diagnostic only
+        GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.eq.1) then
@@ -2062,10 +2067,6 @@ C**** Resave prognostic variables
                 GTEMPR(1,I,J) = ATSKIN + TF
             endif
         endif
-#else
-        GTEMP(1,1,I,J)=TLAKE(I,J)
-        GTEMP(2,1,I,J)=TLK2       ! diagnostic only
-        GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #endif
 C**** Open lake diagnostics
         CALL INC_AJ(I,J, ITLAKE,J_WTR1,MLAKE(1)*POLAKE)

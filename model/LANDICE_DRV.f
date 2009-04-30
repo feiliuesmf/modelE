@@ -73,6 +73,8 @@ C**** set GTEMP array for landice
       DO J=J_0,J_1
         DO I=I_0,I_1
           IF (FLICE(I,J).gt.0) THEN
+            GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+            GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
                 if (SCM_SURFACE_FLAG.eq.1) then
@@ -81,9 +83,6 @@ C**** set GTEMP array for landice
                     GTEMPR(3,I,J) = ATSKIN + TF
                 endif
             endif
-#else
-            GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-            GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #endif
 #ifdef TRACERS_WATER
             if (istart.ge.9) then
@@ -332,6 +331,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J)  =RUN0
+        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.eq.1) then
@@ -340,9 +341,6 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
                 GTEMPR(3,I,J) = ATSKIN + TF
             endif
         endif
-#else
-        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #endif
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPIJ
@@ -472,6 +470,8 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         TLANDI(1,I,J)=TG1
         TLANDI(2,I,J)=TG2
         RUNOLI(I,J) = RUN0
+        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
+        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.eq.1) then
@@ -480,9 +480,6 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
                 GTEMPR(3,I,J) = ATSKIN + TF
             endif
         endif
-#else
-        GTEMP(1:2,3,I,J)=TLANDI(1:2,I,J)
-        GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #endif
 C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+DIFS *PLICE*DXYPIJ

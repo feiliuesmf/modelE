@@ -426,6 +426,8 @@ C**** SET DEFAULTS IF NO OCEAN ICE
               END DO
 #endif
               SNOWI(I,J)=0.
+              GTEMP(1:2,2,I,J)=TFO
+              GTEMPR(2,I,J) = TFO+TF
 #ifdef SCM
               if (I.eq.I_TARG.and.J.eq.J_TARG) then
                   if (SCM_SURFACE_FLAG.eq.1) then
@@ -433,9 +435,6 @@ C**** SET DEFAULTS IF NO OCEAN ICE
                       GTEMPR(2,I,J) = ATSKIN + TF
                   endif
               endif
-#else
-              GTEMP(1:2,2,I,J)=TFO
-              GTEMPR(2,I,J) = TFO+TF
 #endif
             END IF
             FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI
@@ -1029,6 +1028,8 @@ C**** Additional mass (precip) is balanced by deep removal
             CALL INC_AREG(I,J,JR,J_IMPLH,ERUN4*FOCEAN(I,J))
             MLHC(I,J)=WTRW*SHW  ! needed for underice fluxes
           END IF
+          GTEMP(1,1,I,J)=TOCEAN(1,I,J)
+          GTEMPR(1,I,J) =TOCEAN(1,I,J)+TF
 #ifdef SCM
 c         keep ocean temp fixed for SCM case where surface
 c         temp is supplied
@@ -1038,9 +1039,6 @@ c         temp is supplied
                   GTEMPR(1,I,J) = ATSKIN + TF
               endif
           endif
-#else
-          GTEMP(1,1,I,J)=TOCEAN(1,I,J)
-          GTEMPR(1,I,J) =TOCEAN(1,I,J)+TF
 #endif
         END IF
       END DO
@@ -1165,6 +1163,8 @@ C**** assume const mean tracer conc over freshwater amount
           DTRSI(:,2,I,J)=TRSI0(:)*ACEFI
 #endif
 C**** store surface temperatures
+          GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
+          GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.eq.1) then
@@ -1172,9 +1172,6 @@ C**** store surface temperatures
                 GTEMPR(1,I,J) = ATSKIN + TF
               endif
           endif
-#else
-          GTEMP(1:2,1,I,J)=TOCEAN(1:2,I,J)
-          GTEMPR(1,I,J) = TOCEAN(1,I,J)+TF
 #endif
         END IF
       END DO

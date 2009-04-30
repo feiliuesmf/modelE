@@ -121,6 +121,8 @@ C**** pond_melt accumulation
 
 C**** set gtemp array
         MSI(I,J)=MSI2
+        GTEMP(1:2,2,I,J)=TSIL(1:2)
+        GTEMPR(2,I,J)   =TSIL(1)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
            if (SCM_SURFACE_FLAG.eq.1) then
@@ -129,10 +131,6 @@ C**** set gtemp array
                GTEMPR(2,I,J) = ATSKIN + TF
            endif
         endif
-#else
-        GTEMP(1:2,2,I,J)=TSIL(1:2)
-        GTEMPR(2,I,J)   =TSIL(1)+TF
-
 #endif
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
@@ -441,6 +439,11 @@ C**** Save fluxes (in kg, J etc.), positive into ocean
 #endif
 C**** Reset some defaults if all ice is gone
           IF (RSI(I,J).eq.0) THEN
+            GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*ACE1I),1d3*SSI(1,I,J
+     *           )/(XSI(1)*ACE1I)) 
+            GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*ACE1I),1d3*SSI(2,I,J
+     *           )/(XSI(2)*ACE1I)) 
+            GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
               if (SCM_SURFACE_FLAG.eq.1) then
@@ -449,12 +452,6 @@ C**** Reset some defaults if all ice is gone
                   GTEMPR(2,I,J) = ATSKIN + TF
               endif
             endif
-#else
-            GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*ACE1I),1d3*SSI(1,I,J
-     *           )/(XSI(1)*ACE1I)) 
-            GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*ACE1I),1d3*SSI(2,I,J
-     *           )/(XSI(2)*ACE1I)) 
-            GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
 #endif
 #ifdef TRACERS_WATER
             GTRACER(:,2,I,J) = 0.
@@ -879,6 +876,8 @@ C**** save implicit mass-flux diagnostics
           CALL INC_AJ(I,J,ITOICE,J_IMPLH,       -DHIMP *POICE)
         END IF
 C**** set gtemp array
+        GTEMP(1:2,2,I,J)=TSIL(1:2)
+        GTEMPR(2,I,J)   =TSIL(1)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.eq.1) then
@@ -887,9 +886,6 @@ C**** set gtemp array
                 GTEMPR(2,I,J) = ATSKIN + TF
             endif
         endif
-#else
-        GTEMP(1:2,2,I,J)=TSIL(1:2)
-        GTEMPR(2,I,J)   =TSIL(1)+TF
 #endif     
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J)=TRSIL(:,1)/(XSI(1)*(SNOW+ACE1I)-SSIL(1))
@@ -1110,6 +1106,11 @@ C**** set GTEMP etc. array for ice
       DO J=J_0, J_1
       DO I=I_0, I_1
         MSI1=SNOWI(I,J)+ACE1I
+        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
+     *       )/(XSI(1)*MSI1)) 
+        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
+     *       )/(XSI(2)*MSI1)) 
+        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.eq.1) then
@@ -1118,12 +1119,6 @@ C**** set GTEMP etc. array for ice
                 GTEMPR(2,I,J) = ATSKIN + TF
             endif
         endif
-#else
-        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
-     *       )/(XSI(1)*MSI1)) 
-        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
-     *       )/(XSI(2)*MSI1)) 
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #endif
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))
@@ -1377,6 +1372,11 @@ C****
       DO I=I_0,IMAXJ(J)
 C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         MSI1=SNOWI(I,J)+ACE1I
+        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
+     *       )/(XSI(1)*MSI1)) 
+        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
+     *       )/(XSI(2)*MSI1)) 
+        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
             if (SCM_SURFACE_FLAG.eq.1) then
@@ -1385,12 +1385,6 @@ C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
                 GTEMPR(2,I,J) = ATSKIN + TF
             endif
         endif
-#else
-        GTEMP(1,2,I,J)=Ti(HSI(1,I,J)/(XSI(1)*MSI1),1d3*SSI(1,I,J
-     *       )/(XSI(1)*MSI1)) 
-        GTEMP(2,2,I,J)=Ti(HSI(2,I,J)/(XSI(2)*MSI1),1d3*SSI(2,I,J
-     *       )/(XSI(2)*MSI1)) 
-        GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #endif
 #ifdef TRACERS_WATER
         GTRACER(:,2,I,J) = TRSI(:,1,I,J)/(XSI(1)*MSI1-SSI(1,I,J))

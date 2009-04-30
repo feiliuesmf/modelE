@@ -1331,15 +1331,14 @@ c**** wearth+aiearth are used in radiation only
      &     fv*(w(1,2)*(1.-fice(1,2))+w(0,2)*(1.-fice(0,2))) )
       aiearth(i,j)=1000.*( fb*w(1,1)*fice(1,1) +
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
+      gtemp(1,4,i,j)=tsns_ij(i,j)
+      gtempr(4,i,j) =tearth(i,j)+tf
 #ifdef SCM
       if ((I.eq.I_TARG.and.J.eq.J_TARG)
      &     .and.SCM_SURFACE_FLAG.eq.1) then
            gtemp(1,4,i,j) = ATSKIN
            gtempr(4,i,j) = ATSKIN + tf
       endif
-#else
-      gtemp(1,4,i,j)=tsns_ij(i,j)
-      gtempr(4,i,j) =tearth(i,j)+tf
 #endif
 c**** calculate fluxes using implicit time step for non-ocean points
       uflux1(i,j)=uflux1(i,j)+ptype*rcdmws*(pbl_args%us) !-uocean)
@@ -2407,15 +2406,14 @@ c**** set gtemp array
       do j=J_0,J_1
         do i=I_0,I_1
           if (fearth(i,j).gt.0) then
+            gtemp(1,4,i,j)=tsns_ij(i,j)
+            gtempr(4,i,j) =tearth(i,j)+tf
 #ifdef SCM
             if ((i.eq.I_TARG.and.j.eq.J_TARG)
      &                .and.SCM_SURFACE_FLAG.eq.1) then
                  gtemp(1,4,i,j) = ATSKIN
                  gtempr(4,i,j) = ATSKIN + tf
             endif
-#else
-            gtemp(1,4,i,j)=tsns_ij(i,j)
-            gtempr(4,i,j) =tearth(i,j)+tf
 #endif
           end if
         end do
@@ -4681,15 +4679,14 @@ c**** wearth+aiearth are used in radiation only
      &         fv*(w_ij(1,2,i,j)*(1.-ficev)) )
           aiearth(i,j)=1000.*( fb*w_ij(1,1,i,j)*ficeb +
      &         fv*w_ij(1,2,i,j)*ficev )
+          gtemp(1,4,i,j)=tsns_ij(i,j)
+          gtempr(4,i,j) =tearth(i,j)+tf
 #ifdef SCM
           if ((I.eq.I_TARG.and.j.eq.J_TARG)
      &            .and.SCM_SURFACE_FLAG.eq.1) then
                gtemp(1,4,i,j) = ATSKIN
                gtempr(4,i,j) = ATSKIN + tf
           endif
-#else
-          gtemp(1,4,i,j)=tsns_ij(i,j)
-          gtempr(4,i,j) =tearth(i,j)+tf
 #endif
 
 #ifdef TRACERS_WATER
