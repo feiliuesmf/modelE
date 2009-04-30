@@ -333,8 +333,9 @@ c*
 
 
       SUBROUTINE INT_AG2OG_Vector1(aU,aV, oU,oV, aWEIGHT,aFOCEAN,aIMAXJ, 
-     *           aSINI,aCOSI, oSINI,oCOSI, aN,oN) 
+     *           oSINI,oCOSI, aN,oN) 
 !@sum INT_AG2OG_Vector1 is for conversion vector from atm. CS grid to ocean A grid 
+!@+   note that calling sequence is different from latlon case
 !@auth Larissa Nazarenko, Denis Gueyffier
 
       USE OCEAN, only : oIM=>im,oJM=>jm
@@ -358,7 +359,7 @@ c*
      &     oU(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
      &     ,oV(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
       REAL*8, DIMENSION(aIM,aJM), intent(in) :: aFOCEAN
-      REAL*8, DIMENSION(aIM), intent(in) :: aSINI,aCOSI
+!      REAL*8, DIMENSION(aIM), intent(in) :: aSINI,aCOSI   differs from latlon case
       REAL*8, DIMENSION(oIM), intent(in) :: oSINI,oCOSI
       REAL*8, DIMENSION(oIM,oJM) :: oFtemp 
       REAL*8  oUsp, oVsp, oUnp, oVnp
@@ -479,3 +480,174 @@ c*
 
       END MODULE INT_AG2OG_MOD
 c*
+
+
+      MODULE INT_OG2AG_MOD
+
+!@sum INT_OG2AG_MOD contains subroutines for conversion 2D, 3D, etc. 
+!!    arrays from ocean to the atm. grid 
+!@auth Larissa Nazarenko
+!@ver  1.0
+      PRIVATE
+      PUBLIC INT_OG2AG
+
+      Interface INT_OG2AG
+      Module Procedure INT_OG2AG_3Da
+      Module Procedure INT_OG2AG_4Da
+
+      End Interface
+
+      contains
+
+      SUBROUTINE INT_OG2AG_3Da(oA,aA,oWEIGHT,NT)
+
+!@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the CS atm. grid 
+!@auth Larissa Nazarenko, Denis Gueyffier
+
+      USE OCEAN, only : oIM=>im,oJM=>jm
+      USE RESOLUTION, only : aIM=>im, aJM=>jm
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_PACK=>PACK_DATA,
+     &     ATM_UNPACK=>UNPACK_DATA,get
+      USE DOMAIN_DECOMP_1D, only : OCN_PACK_COL=>PACK_COLUMN
+      Use OCEANR_DIM,       only : oGRID
+      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      use regrid_com, only : xO2A
+
+      IMPLICIT NONE
+      INTEGER :: aJ_0,aJ_1, aI_0,aI_1
+      REAL*8, INTENT(IN)  :: 
+     &        oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
+      integer, intent(in) :: NT 
+      REAL*8  :: 
+     &  aA(NT,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8 :: 
+     *  oA(NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), aFOCEAN(:,:,:),
+     &     aArea(:,:,:),aFtemp(:,:,:),oFtemp(:,:)
+      integer :: i,j,k,N
+      logical :: HAVE_NORTH_POLE
+      real*8 :: missing
+
+      missing=-1.e30
+
+      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      aJ_0 = aGRID%j_STRT
+      aJ_1 = aGRID%j_STOP
+      aI_0 = aGRID%I_STRT
+      aI_1 = aGRID%I_STOP
+      
+      ALLOCATE(aFOCEAN(aIM,aJM,6),aA_glob(NT,aIM,aJM,6),
+     &     aArea(aIM,aJM,6),aFtemp(aIM,aJM,6),
+     &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
+
+      call ATM_PACK (aGRID,aFOCEAN_loc,aFOCEAN)
+
+      do N=1,NT
+          oFtemp(:,:) = oA(N,:,:)
+          if (HAVE_NORTH_POLE) 
+     &         oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+
+         call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,
+     &        aFtemp,aArea)
+         do k=1,6
+            do J=1,aJM
+               do I=1,aIM
+                  IF (aFOCEAN(I,J,K).gt.0.) THEN
+                     aA_glob(N,I,J,K) = aFtemp(I,J,K)  
+                  END IF
+               enddo
+            enddo
+         enddo
+      enddo
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      CALL ATM_UNPACK(agrid, aA_glob, aA)
+
+      DEALLOCATE(aFocean, aA_glob, aArea, aFtemp, oFtemp)
+      
+      END SUBROUTINE INT_OG2AG_3Da
+c*
+
+      SUBROUTINE INT_OG2AG_4Da(oA,aA,oWEIGHT,NT,NTM)
+
+!@sum INT_OG2AG_4D is for conversion 4D arrays from ocean to the CS atm. grid 
+!@auth Larissa Nazarenko, Denis Gueyffier
+
+      USE RESOLUTION, only : aIM=>im, aJM=>jm
+      USE OCEAN, only : oIM=>im,oJM=>jm
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_PACK=>PACK_DATA,
+     &     ATM_UNPACK=>UNPACK_DATA,get
+      USE DOMAIN_DECOMP_1D, only : OCN_PACK_COL=>PACK_COLUMN
+      Use OCEANR_DIM,       only : oGRID
+      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      use regrid_com, only : xO2A
+
+      IMPLICIT NONE
+      INTEGER :: IER, NTM,NT,N1,N2, I,J,K,N
+      INTEGER :: aJ_0,aJ_1,aI_0,aI_1
+      REAL*8, INTENT(IN)  :: 
+     &     oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
+      REAL*8  :: 
+     &  aA(NTM,NT,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
+      REAL*8 :: 
+     &  oA(NTM,NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:,:), aArea(:,:,:),
+     &                       aFOCEAN(:,:,:), aFtemp(:,:,:),
+     &                       oFtemp(:,:)
+      logical :: HAVE_NORTH_POLE
+      real*8 :: missing
+
+      missing=-1.e30
+
+      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+
+      aJ_0 = aGRID%j_STRT
+      aJ_1 = aGRID%j_STOP
+      aI_0 = aGRID%I_STRT
+      aI_1 = aGRID%I_STOP
+
+      ALLOCATE(
+     &     aFOCEAN(aIM,aJM,6),
+     &     aA_glob(NTM,NT,aIM,aJM,6),
+     &     aFtemp(aIM,aJM,6),
+     &     aArea(aIM,aJM,6),
+     &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
+
+C***  Gather 3D array on atmospheric grid into the global array
+
+      CALL ATM_PACK(agrid, aFOCEAN_loc, aFOCEAN)
+      
+      DO N1=1,NTM
+         DO N2=1,NT
+            oFtemp(:,:) = oA(N1,N2,:,:)
+            if (HAVE_NORTH_POLE)
+     &           oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+            
+            call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,
+     &           aFtemp,aArea)
+
+            do K=1,6
+               DO J=1,aJM
+                  DO I=1,aIM
+                     IF (aFOCEAN(I,J,K).gt.0.) THEN
+                        aA_glob(N1,N2,I,J,K) = aFtemp(I,J,K)  
+                     END IF
+                  enddo
+               enddo
+            enddo
+         enddo
+      enddo
+
+C***  Scatter global array oA_glob to the ocean grid
+
+      call ATM_UNPACK (agrid, aA_glob, aA)
+
+      deallocate(aA_glob,aArea,aFOCEAN,aFtemp,oFtemp)
+
+      END SUBROUTINE INT_OG2AG_4Da
+
+      END MODULE INT_OG2AG_MOD
