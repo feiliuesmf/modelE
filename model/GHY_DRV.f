@@ -2537,7 +2537,7 @@ c initialize soil (w, ht) from earth_*
       integer i, j
       !--- local
       real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2), temp, fice
-      real*8 :: t_max=80.d0, t_min=-80.d0
+      real*8 :: t_max=60.d0, t_min=-80.d0
       integer ibv, k
 
 c for canopy:
