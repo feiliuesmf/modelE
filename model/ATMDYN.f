@@ -2754,7 +2754,7 @@ C****
 
 #ifndef TRACERS_ON
 c Unscale the vertical mass flux accumulation for use by column physics.
-c      IF(NCYC.GT.1) SDA(:,:,:) = SDA(:,:,:)*NCYC
+       IF(NCYC.GT.1) SDA(:,:,:) = SDA(:,:,:)*NCYC
 #else
 c TRDYNAM will do the unscaling
 #endif
@@ -2810,7 +2810,7 @@ C**** vertically integrated atmospheric fluxes
       ENDDO
 
 c Unscale the vertical mass flux accumulation for use by column physics.
-c      IF(NCYC.GT.1) SDA(:,:,:) = SDA(:,:,:)*NCYC
+       IF(NCYC.GT.1) SDA(:,:,:) = SDA(:,:,:)*NCYC
 
       RETURN
       END SUBROUTINE TrDYNAM
