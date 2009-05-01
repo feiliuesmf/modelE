@@ -57,7 +57,7 @@ SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
 ! SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
 CDN=CD144X90                    ! surf.drag coefficient
 VEG=V144X90_no_crops            ! veg. fractions
-CROPS=CROPS_144X90N_nocasp.ext  ! crops history 
+CROPS=CROPS_144X90N_nocasp.ext  ! crops history
 SOIL=S144X900098M               ! soil bdy.conds
 TOPO=Z144X90N_nocasp            ! topography
 REG=REG2X2.5                    ! special regions-diag
@@ -122,18 +122,18 @@ P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
-! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83,1.
+! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38  39  40
+vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83, 1.
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-! 1979 atm/ocn tuning param. (U00a up=>less high clouds, U00b up=>more low clouds):  
+! 1979 atm/ocn tuning param. (U00a up=>less high clouds, U00b up=>more low clouds):
 U00a=0.71   ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.60   ! below 850mb and MC regions; then tune this to get rad.balance
-! 1850 atm/ocn tuning param. (change OSST/SICE and the year in the atm.forcings):  
+! 1850 atm/ocn tuning param. (change OSST/SICE and the year in the atm.forcings):
 ! U00a=0.72   ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 ! U00b=1.40   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version

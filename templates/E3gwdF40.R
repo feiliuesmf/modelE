@@ -1,7 +1,7 @@
 E3gwdF40.R GISS Model E  1979 ocn/atm                    jal 11/08
 
 E3gwdF40: Includes stratopsheric dynamics (gravity waves,etc.).  Here only the
-          mountain and deformation waves are turned on. 
+          mountain and deformation waves are turned on.
           Parameter vsdragl turns off sdrag except in top 4 layers.
 E3F40: replace this section by a description of what distinguishes this run ?
        Use as many lines as you need. Look carefully at all the possible    ?
@@ -119,17 +119,17 @@ P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
-! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
+! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38   39 40
+vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83, 1.
 
 ! Gravity wave parameters
-PBREAK = 200.  ! The level for GW breaking above.                               
-DEFTHRESH=0.000045 !the default is 15d-6                                        
-PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
-CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
-CSHEAR=10.     ! Shear drag coefficient                                         
-CMTN=0.25      ! default is 0.5                                                 
-CDEF=1.5       ! deformation drag coefficient                                   
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000045 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
+CSHEAR=10.     ! Shear drag coefficient
+CMTN=0.25      ! default is 0.5
+CDEF=1.5       ! deformation drag coefficient
 XCDNST=400.,10000.   ! strat. gw drag parameters
 QGWMTN=1 ! mountain waves ON
 QGWDEF=1 ! deformation waves ON
@@ -142,7 +142,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
+
 U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version

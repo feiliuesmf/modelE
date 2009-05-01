@@ -1,19 +1,19 @@
 test.R GISS Model E  1979 ocn/atm                   aromanou  03/15/09
 
-E2F40n: 2x2.5x40 latest version; chlorophyll is included (CHL_WG_2x2.5)  
+E2F40n: 2x2.5x40 latest version; chlorophyll is included (CHL_WG_2x2.5)
         based on larissa's 02/05/09
 
 E14AF40: E13AF40 + fixed bug in LAKES.f
-E13AF40: E12AF40 but the latest "slash" version   
+E13AF40: E12AF40 but the latest "slash" version
 E3F40: one of the latest modelE
 
-modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)     
+modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 1979
 ocean data: prescribed, 1975-1984 climatology
-uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) 
-time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs 
-filters: U,V in E-W direction (after every dynamics time step)              
-         sea level pressure (after every physics time step)                 
+uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag)
+time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
+filters: U,V in E-W direction (after every dynamics time step)
+         sea level pressure (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -59,7 +59,7 @@ GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
 CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS_144X90N_nocasp.ext
-SOIL=S144X900098M.ext 
+SOIL=S144X900098M.ext
 TOPO=Z144X90N_nocasp    ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
 !!!RVR=RD_modelE_Fa.RVR      ! river direction file
@@ -121,6 +121,9 @@ P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
 PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
+! vsdragl is a tuning coefficient for SDRAG starting at LS1
+ layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38  39  40
+vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83,1.
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers

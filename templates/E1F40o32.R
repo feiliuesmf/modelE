@@ -27,7 +27,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_F40                             ! horiz/vert resolution, 2x2.5deg, 40 layers -> .1mb
-RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers  
+RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -48,7 +48,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 ODIAG_COM OCEAN_COM OSTRAITS_F_COM OGEOM  ! dynamic ocean modules
-OCNDYN OCN_Interp OCN_Int_LATLON          ! dynamic ocean routines 
+OCNDYN OCN_Interp OCN_Int_LATLON          ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                     ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
@@ -72,9 +72,9 @@ TOPO_OC=Z144X90N_nocasp.1       ! ocean fraction and topography
 OFTAB=OFTABLE_NEW               ! ocean function table
 AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE          ! ocean basin designations
-CDN=CD144X90.ext                ! neutral drag coefficient 
-VEG=V144X90_no_crops.ext        ! vegatation file 
-CROPS=CROPS_144X90N_nocasp.ext  ! crops  
+CDN=CD144X90.ext                ! neutral drag coefficient
+VEG=V144X90_no_crops.ext        ! vegatation file
+CROPS=CROPS_144X90N_nocasp.ext  ! crops
 SOIL=S144X900098M.ext           ! soil properties
 REG=REG2X2.5                    ! special regions-diag
 RVR=RD_modelE_F.RVR.bin         ! river direction file
@@ -128,12 +128,15 @@ init_flake=1
 ! parameters usually not changed when switching to coupled ocean:
 
 ! drag params if grav.wave drag is not used and top is at .01mb
-X_SDRAG=.004,.0004  ! used above P(P)_sdrag mb (and in top layer)
-C_SDRAG=.0004       ! constant SDRAG above PTOP=150mb
+X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)
+C_SDRAG=.0002       ! constant SDRAG above PTOP=150mb
 P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
 PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
+! vsdragl is a tuning coefficient for SDRAG starting at LS1
+! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38  39  40
+vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83, 1.
 ANG_SDRAG=1         ! conserve ang. mom.
 
 OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
@@ -144,7 +147,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
+
 U00a=0.72   ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.40   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version

@@ -28,7 +28,7 @@ TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 PARAM PARSER                        ! parameter database
 dd2d_utils pario_nc pario_fbsa
-regrid regrid_com 
+regrid regrid_com
 DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM                  ! atmospheric dynamics
@@ -71,7 +71,7 @@ OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processin
     ! resolution dependent files
 TOPO=Z_CS32 SOIL=SOIL_CS32 ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V_CS32 CROPS=CROPS_CS32 
+VEG=V_CS32 CROPS=CROPS_CS32
 CDN=CD_CS32                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
 RVR=RDdistocean_CS32.bin           ! river direction file
@@ -135,6 +135,9 @@ P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
 PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
+! vsdragl is a tuning coefficient for SDRAG starting at LS1
+! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38  39  40
+vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83, 1.
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
