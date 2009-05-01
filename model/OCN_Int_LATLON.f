@@ -547,8 +547,8 @@ C***  Scatter global array oA_glob to the ocean grid
       RETURN
       END SUBROUTINE INT_AG2OG_4Db
 
-      SUBROUTINE INT_AG2OG_Vector1(aU,aV, oU,oV, aWEIGHT_loc,aFOCEAN_loc 
-     *           ,aIMAXJ,aSINI,aCOSI, oSINI,oCOSI, aN,oN) 
+      SUBROUTINE INT_AG2OG_Vector1(aU,aV,oU,oV,aWEIGHT_loc,aFOCEAN_loc
+     &     ,aN,oN) 
 
 !@sum INT_AG2OG_Vector1 is for conversion vector from atm. A grid to ocean A grid 
 
@@ -558,8 +558,9 @@ C***  Scatter global array oA_glob to the ocean grid
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
 
-      USE OCEAN, only : oDLATM=>DLATM
-      USE GEOM,  only : aDLATM=>DLATM
+      USE OCEAN, only : oDLATM=>DLATM,oSINI=>SINIC,oCOSI=>COSIC
+      USE GEOM,  only : aDLATM=>DLATM,aIMAXJ=>IMAXJ,aSINI=>SINIP,
+     &                  aCOSI=>COSIP
 
       USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, AM_I_ROOT
      *                           , PACK_DATA, UNPACK_DATA
@@ -568,8 +569,6 @@ C***  Scatter global array oA_glob to the ocean grid
       IMPLICIT NONE
 
       INTEGER :: IER, I,J, aN,oN
-
-      INTEGER, DIMENSION(aJM) :: aIMAXJ
 
       REAL*8, INTENT(IN)  :: 
      *        aFOCEAN_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
@@ -581,9 +580,6 @@ C***  Scatter global array oA_glob to the ocean grid
       REAL*8, INTENT(OUT) ::
      *  oU(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
      * ,oV(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
-
-      REAL*8, DIMENSION(aIM) :: aSINI,aCOSI
-      REAL*8, DIMENSION(oIM) :: oSINI,oCOSI
 
       REAL*8  aUsp, aVsp, aUnp, aVnp
       REAL*8  oUsp, oVsp, oUnp, oVnp

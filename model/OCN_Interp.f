@@ -1,6 +1,5 @@
 #include "rundeck_opts.h"
 
-#ifndef CUBE_GRID
       SUBROUTINE AG2OG_precip
 
 !@sum  INT_AG2OG_precip is for interpolation of precipitation
@@ -11,10 +10,10 @@
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN,      only : oIM=>im, oJM=>jm
 
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
-      Use GEOM,  only : aDXYP, aDLATM=>DLATM, AXYP
+      Use GEOM,  only : AXYP
 
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
@@ -80,7 +79,7 @@
 
       RETURN
       END SUBROUTINE AG2OG_precip
-#endif  !!  CUBE_GRID
+
 
       SUBROUTINE OG2AG
 !@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates
@@ -107,7 +106,6 @@
       RETURN
       END SUBROUTINE OG2AG
 
-#ifndef CUBE_GRID
       SUBROUTINE INT_OG2AG
 !@sum  INT_OG2AG is for interpolation of arrays from ocean grid
 !!      to the atmospheric grid
@@ -151,9 +149,10 @@
 
       USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
      *     , IVSPO=>IVSP, IVNPO=>IVNP, oCOSU=>COSU,oSINU=>SINU
+#ifndef CUBE_GRID
       Use GEOM,  only : aIMAXJ=>IMAXJ,aDLATM=>DLATM
      *     , aCOSI=>COSIP,aSINI=>SINIP
-
+#endif
       IMPLICIT NONE
 
       integer I,J,L, NT ,im1
@@ -164,10 +163,9 @@
       REAL*8  aUO1sp, aVO1sp, aUO1np, aVO1np
       REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
 
-!      write (555,*) ' INT_OG2AG#1: dLATMO,aDLATM= ',oDLATM,aDLATM
 
       oONES(:,:) = 1.d0
-
+#ifndef CUBE_GRID
       call HNTR80 (IMO,JMO,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
 
 !!!  Ocean mass for the 1st two layers
@@ -324,10 +322,10 @@ C**** surface tracer concentration
 
       aVO1_glob(1,  1) = aVO1sp
       aVO1_glob(1,JMA) = aVO1np
-
+#endif
       RETURN
       END SUBROUTINE INT_OG2AG
-#endif
+
 
 
       SUBROUTINE gather_ocean1
@@ -336,7 +334,8 @@ C**** surface tracer concentration
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      use domain_decomp_1d, only: agrid=>grid, pack_data
+      use domain_decomp_atm, only: agrid=>grid, atm_pack=>pack_data
+      use domain_decomp_1d, only: ocn_pack=>pack_data
       use OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
@@ -352,19 +351,19 @@ C**** surface tracer concentration
      *     , TRMO_glob
 #endif
 
-      CALL PACK_DATA(agrid, aFOCEAN_loc, aFOCEAN)
+      CALL ATM_PACK(agrid, aFOCEAN_loc, aFOCEAN)
 
-      CALL PACK_DATA(ogrid,   MO   ,    MO_glob)
-      CALL PACK_DATA(ogrid,   UO   ,    UO_glob)
-      CALL PACK_DATA(ogrid,   VO   ,    VO_glob)
+      CALL OCN_PACK(ogrid,   MO   ,    MO_glob)
+      CALL OCN_PACK(ogrid,   UO   ,    UO_glob)
+      CALL OCN_PACK(ogrid,   VO   ,    VO_glob)
 
-      CALL PACK_DATA(ogrid,OGEOZ   , OGEOZ_glob)
-      CALL PACK_DATA(ogrid,OGEOZ_SV,OGEOZ_SV_glob)
+      CALL OCN_PACK(ogrid,OGEOZ   , OGEOZ_glob)
+      CALL OCN_PACK(ogrid,OGEOZ_SV,OGEOZ_SV_glob)
 
-      CALL PACK_DATA(ogrid,  G0M   ,   G0M_glob)
-      CALL PACK_DATA(ogrid,  S0M   ,   S0M_glob)
+      CALL OCN_PACK(ogrid,  G0M   ,   G0M_glob)
+      CALL OCN_PACK(ogrid,  S0M   ,   S0M_glob)
 #ifdef TRACERS_OCEAN
-      CALL PACK_DATA(ogrid,  TRMO  ,  TRMO_glob)
+      CALL OCN_PACK(ogrid,  TRMO  ,  TRMO_glob)
 #endif
 
       RETURN
@@ -376,7 +375,7 @@ C**** surface tracer concentration
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      use domain_decomp_1d, only: agrid=>grid,unpack_data
+      use domain_decomp_atm, only: agrid=>grid,unpack_data
 
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0
      *     , aS0, aOGEOZ,aOGEOZ_SV
@@ -424,7 +423,6 @@ C**** surface tracer concentration
 
       USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
      *                , oDXYPO=>DXYPO, OXYP
-     *                , oSINI=>SINIC, oCOSI=>COSIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -435,7 +433,7 @@ C**** surface tracer concentration
 #endif
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid, PACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
@@ -499,8 +497,7 @@ C**** surface tracer concentration
       USE obio_forc, only : owind
 #endif
 
-      Use GEOM,  only : aDXYP, aIMAXJ=>IMAXJ, aSINI=>SINIP,aCOSI=>COSIP
-     *                , AXYP
+      Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
 
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
       USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
@@ -519,7 +516,8 @@ C**** surface tracer concentration
      * aFact
 
       REAL*8, 
-     * DIMENSION(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
+     * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,
+     * aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
      * aWEIGHT
 
       aJ_0 = aGRID%j_STRT
@@ -698,8 +696,8 @@ C**** surface tracer concentration
 #endif
 
       aWEIGHT(:,:) = 1.d0
-      CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN_loc    
-     *              ,aIMAXJ,aSINI,aCOSI, oSINI,oCOSI, NSTYPE,1) 
+      CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN_loc
+     *              ,NSTYPE,1) 
 
       CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)    
 
@@ -723,7 +721,8 @@ C**** surface tracer concentration
       USE OCN_TRACER_COM, only: ntm
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
