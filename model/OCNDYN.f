@@ -4795,7 +4795,7 @@ C****
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 !
-      call OG2AG
+      call OG2AG_TOC2SST
 C****
 C**** Note that currently everything is on same grid
 C****

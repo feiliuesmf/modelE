@@ -81,65 +81,43 @@
       END SUBROUTINE AG2OG_precip
 
 
-      SUBROUTINE OG2AG
-!@sum  OG2AG gathers all necessary arrays on the ocean grid, interpolates
-!!      them to the atmospheric grid, scatters them on the atmospheric grid
+      SUBROUTINE OG2AG_TOC2SST
+!@sum  OG2AG_oceans: ocean arrays used in the subr. TOC2SST are gathered
+!       on the ocean grid, interpolated to the atm. grid, and scattered
+!!      on the atm. grid
 !@auth Larissa Nazarenko
 !@ver  1.0
 
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+      USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      IMPLICIT NONE
+      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO, oFOCEAN=>FOCEAN
+     *                , oDXYPO=>DXYPO, OXYP, oIMAXJ=>IMAXJ
+     *                , oCOSU=>COSU,oSINU=>SINU
+     *                , IVSPO=>IVSP,IVNPO=>IVNP
+      Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 
-      call gather_ocean1 ! mo,uo,vo,g0m,s0m,ogz's,tr
-!
-!!!  Do interpolation to the atmospheric grid
-!
-#ifndef CUBE_GRID
-      if(AM_I_ROOT()) then
-        call INT_OG2AG
-      end if
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid, PACK_DATA,UNPACK_DATA
+      USE OCEANR_DIM, only : ogrid
+
+      USE OCEAN, only : MO, UO,VO, G0M
+     *     , S0M, OGEOZ,OGEOZ_SV
+#ifdef TRACERS_OCEAN
+     *     , TRMO
 #endif
-
-      call scatter_ocean1
-
-      RETURN
-      END SUBROUTINE OG2AG
-
-      SUBROUTINE INT_OG2AG
-!@sum  INT_OG2AG is for interpolation of arrays from ocean grid
-!!      to the atmospheric grid
-!@auth Larissa Nazarenko
-!@ver  1.0
-      USE MODEL_COM, only :
-#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
-      USE MODEL_COM, only: nstep=>itime
+      USE AFLUXES, only : aMO, aUO1,aVO1, aG0
+     *     , aS0, aOGEOZ,aOGEOZ_SV
+#ifdef TRACERS_ON
+     *     , aTRAC
 #endif
-
-      USE RESOLUTION, only : IMA=>IM, JMA=>JM
-      USE OCEANRES,   only : IMO, JMO, LMO
 
 #ifdef TRACERS_OCEAN
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: NTM
       USE OCN_TRACER_COM, only: conc_from_fw
-#endif
-
-      USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
-     *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob, oFOCEAN=>FOCEAN
-#ifdef TRACERS_OCEAN
-     *     , TRMO_glob
-#endif
-
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
-      USE AFLUXES, only : aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
-     *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
-#ifdef TRACERS_OCEAN
-     *     , aTRAC_glob
 #endif
 #ifdef TRACERS_OceanBiology
 !only for TRACERS_OceanBiology and not for seawifs
 !/bc we interpolate an internal field
-     *     , CHL_glob
+      USE AFLUXES, only : CHL_glob
       USE obio_com, only: tot_chlo_glob
       USE FLUXES, only : CHL
 #endif
@@ -147,270 +125,155 @@
       USE obio_com, only: pCO2_glob
 #endif
 
-      USE OCEAN, only : oDXYPO=>DXYPO, oIMAXJ=>IMAXJ,oDLATM=>DLATM
-     *     , IVSPO=>IVSP, IVNPO=>IVNP, oCOSU=>COSU,oSINU=>SINU
-#ifndef CUBE_GRID
-      Use GEOM,  only : aIMAXJ=>IMAXJ,aDLATM=>DLATM
-     *     , aCOSI=>COSIP,aSINI=>SINIP
-#endif
+      USE INT_OG2AG_MOD, only : INT_OG2AG
+
       IMPLICIT NONE
 
-      integer I,J,L, NT ,im1
+      INTEGER IER, I,J, L, NT, NTM
+      INTEGER oJ_0,oJ_1, oI_0,oI_1
 
-      REAL*8, DIMENSION(IMA,JMA) :: aFtemp
-      REAL*8, DIMENSION(IMO,JMO) :: oFtemp, oONES, oFweight
-      REAL*8  oVOsp, oVOnp
-      REAL*8  aUO1sp, aVO1sp, aUO1np, aVO1np
-      REAL*8  SUM_oG0M, SUM_oFtemp, SUM_aG0, diff
+      REAL*8, 
+     * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
+     * oWEIGHT, oFOCEAN_loc
 
+      REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
+     *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:) 
+     *                     , oTOT_CHLO_loc(:,:),opCO2_loc(:,:) 
+     *                     , aTOT_CHLO_loc(:,:),apCO2_loc(:,:) 
+      oI_0 = oGRID%I_STRT
+      oI_1 = oGRID%I_STOP
+      oJ_0 = oGRID%j_STRT
+      oJ_1 = oGRID%j_STOP
 
-      oONES(:,:) = 1.d0
-#ifndef CUBE_GRID
-      call HNTR80 (IMO,JMO,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
+      ALLOCATE
+     *  (oG0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
+      ALLOCATE
+     *  (oS0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
+      ALLOCATE
+     *  (oUO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
+      ALLOCATE
+     *  (oVO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
+      ALLOCATE
+     *  (oTRAC(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,NTM), STAT = IER)
+      ALLOCATE
+     *  (oTOT_CHLO_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+     * , STAT = IER)
+      ALLOCATE
+     *  (opCO2_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT = IER)
 
-!!!  Ocean mass for the 1st two layers
+      ALLOCATE
+     *  (apCO2_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) ,STAT = IER)
 
+      CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
+
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+      CALL INT_OG2AG(MO,aMO, oWEIGHT, oLM,2,.FALSE.) 
+
+      oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
       DO L = 1,2
-        oFtemp(:,:) = MO_glob(:,:,L)
-        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-        call HNTR8P (oFOCEAN, oFtemp, aFtemp)
-        aMO_glob(:,:,L) = aFtemp(:,:)
-      END DO
-
-!!!  Enthalpy for the 1st two ocean layers
-
-      oFweight(:,:) = MO_glob(:,:,1)*oFOCEAN(:,:)
-      oFweight(2:IMO,JMO) = oFweight(1,JMO)
-      DO L = 1,2
-        SUM_oG0M = 0.
-        SUM_oFtemp = 0.
-        DO J=1,JMO
-          DO I=1,oIMAXJ(J)
-            IF (oFOCEAN(I,J).gt.0.) THEN
-              oFtemp(I,J) = G0M_glob(I,J,L)/(MO_glob(I,J,L)*oDXYPO(J))
-
-              SUM_oG0M = SUM_oG0M + G0M_glob(I,J,L)
-              SUM_oFtemp = SUM_oFtemp
-     *          + (oFtemp(I,J)*MO_glob(I,J,L)*oDXYPO(J)*oFOCEAN(I,J))
-
+        DO J=oJ_0,oJ_1
+          DO I=oI_0,oIMAXJ(J)
+            IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oG0(I,J,L) = G0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
             END IF
           END DO
         END DO
-
-        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-        call HNTR8P (oFweight, oFtemp, aFtemp)
-        aG0_glob(:,:,L) = aFtemp(:,:)
-
       END DO
-
-!!!  Salinity for the 1st two ocean layers
+      CALL INT_OG2AG(oG0,aG0, oWEIGHT, 2,2,.TRUE.) 
 
       DO L = 1,2
-        DO J=1,JMO
-          DO I=1,oIMAXJ(J)
-            IF (oFOCEAN(I,J).gt.0.) THEN
-              oFtemp(I,J) = S0M_glob(I,J,L)/(MO_glob(I,J,L)*oDXYPO(J))
+        DO J=oJ_0,oJ_1
+          DO I=oI_0,oIMAXJ(J)
+            IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oS0(I,J,L) = S0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
             END IF
           END DO
         END DO
-
-        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-        call HNTR8P (oFweight, oFtemp, aFtemp)
-        aS0_glob(:,:,L) = aFtemp(:,:)
       END DO
+      CALL INT_OG2AG(oS0,aS0, oWEIGHT, 2,2,.TRUE.) 
 
-      OGEOZ_glob(2:IMO,JMO) = OGEOZ_glob(1,JMO)
-      call HNTR8P (oFOCEAN, OGEOZ_glob, aOGEOZ_glob)
-      OGEOZ_SV_glob(2:IMO,JMO) = OGEOZ_SV_glob(1,JMO)
-      call HNTR8P (oFOCEAN, OGEOZ_SV_glob, aOGEOZ_SV_glob)
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+      CALL INT_OG2AG(OGEOZ,aOGEOZ, oWEIGHT, .FALSE.) 
+      CALL INT_OG2AG(OGEOZ_SV,aOGEOZ_SV, oWEIGHT, .FALSE.) 
+
+      oUO1(:,:) = UO(:,:,1)
+      oVO1(:,:) = VO(:,:,1)
+      oWEIGHT(:,:) = 1.d0
+      CALL INT_OG2AG(oUO1,oVO1,aUO1,aVO1, oWEIGHT 
+     *             , IVSPO,IVNPO) 
 
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
+      oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
       DO NT = 1,NTM
         if (conc_from_fw(nt)) then  ! define conc from fresh water
-        DO J=1,JMO
-          DO I=1,oIMAXJ(J)
-            IF (oFOCEAN(I,J).gt.0.) THEN
-              oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J)
+        DO J=oJ_0,oJ_1
+          DO I=oI_0,oIMAXJ(J)
+            IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oTRAC(I,J,NT)=TRMO_glob(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J)
      *             -S0M_glob(I,J,1))
             ELSE
-              oFtemp(I,J)=0.
+              oTRAC(I,J,NT)=0.
             END IF
           END DO
         END DO
         else  ! define conc from total sea water mass
-        DO J=1,JMO
-          DO I=1,oIMAXJ(J)
-            IF (oFOCEAN(I,J).gt.0.) THEN
-              oFtemp(I,J)=TRMO_glob(I,J,1,NT)/(MO_glob(I,J,1)*oDXYPO(J))
+        DO J=oJ_0,oJ_1
+          DO I=oI_0,oIMAXJ(J)
+            IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oTRAC(I,J,NT)=TRMO_glob(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J))
             ELSE
-              oFtemp(I,J)=0.
+              oTRAC(I,J,NT)=0.
             END IF
           END DO
         END DO
         end if
-        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-        call HNTR8P (oFweight, oFtemp, aFtemp)
-        aTRAC_glob(:,:,NT)=aFtemp(:,:)
       END DO
+      CALL INT_OG2AG(oTRAC,aTRAC, oWEIGHT, NTM,NTM,.TRUE.) 
 
 #ifdef TRACERS_OceanBiology   
-!only for TRACERS_OceanBiology and not for seawifs
-!/bc we interpolate an internal field 
-      DO J=1,JMO
-        DO I=1,oIMAXJ(J)
-          IF (oFOCEAN(I,J).gt.0.) THEN
-            oFtemp(I,J) = tot_chlo_glob(I,J)
-!           write(*,'(a,3i5,e12.4)')'OCN_Interp:',
-!    .       nstep,i,j,tot_chlo_glob(i,j)
-            ELSE
-              oFtemp(I,J)=0.
+
+      CALL UNPACK_DATA (oGRID,tot_chlo_glob,oTOT_CHLO_loc)
+
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+      DO J=oJ_0,oJ_1
+        DO I=oI_0,oIMAXJ(J)
+          IF (oFOCEAN_loc(I,J).gt.0.) THEN
+            oTOT_CHLO_loc(I,J) = oTOT_CHLO_loc(I,J)
+          ELSE
+            oTOT_CHLO_loc(I,J)=0.
           END IF
         END DO
       END DO
-      oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-      call HNTR8P (oFweight, oFtemp, aFtemp)
-      CHL_glob(:,:) = aFtemp(:,:)
+      CALL INT_OG2AG(oTOT_CHLO_loc,CHL, oWEIGHT, .FALSE.) 
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-!in the CO2 gas exchange experiments we do not use trmo_glob but rather pco2
-!pco2 is in uatm
-      DO NT = 1,NTM
-        DO J=1,JMO
-          DO I=1,oIMAXJ(J)
-            IF (oFOCEAN(I,J).gt.0.) THEN
-              !!oFtemp(I,J)=pCO2_glob(i,j)/(MO_glob(I,J,1)*oDXYPO(J))
-              !atrac is defined here in uatm (ppmv) 
-              !for consistensy with the units of trs=tr=atmco2 in PBL.f
-              oFtemp(I,J)=pCO2_glob(i,j)
-            ELSE
-              oFtemp(I,J)=0.
-            END IF
-          END DO
+
+      CALL UNPACK_DATA (oGRID,pCO2_glob,opCO2_loc)
+
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+      DO J=oJ_0,oJ_1
+        DO I=oI_0,oIMAXJ(J)
+          IF (oFOCEAN_loc(I,J).gt.0.) THEN
+            opCO2_loc(I,J) = opCO2_loc(I,J)
+          ELSE
+            opCO2_loc(I,J)=0.
+          END IF
         END DO
-        oFtemp(2:IMO,JMO) = oFtemp(1,JMO)
-        call HNTR8P (oFweight, oFtemp, aFtemp)
-        aTRAC_glob(:,:,NT)=aFtemp(:,:)
+      END DO
+      CALL INT_OG2AG(opCO2_loc,apCO2_loc, oWEIGHT, .FALSE.) 
+      DO NT = 1,NTM
+        aTRAC(:,:,NT) = apCO2_loc(:,:)
       END DO
 #endif
 #endif
 
-!!!  U velocity for the 1st ocean layer.
-
-      oVOsp = UO_glob(IVSPO,  1,1)
-      oVOnp = UO_glob(IVNPO,JMO,1)
-
-      UO_glob(:,  1,1) = UO_glob(IMO,  1,1)*oCOSU(:) - oVOsp*oSINU(:)
-      UO_glob(:,JMO,1) = UO_glob(IMO,JMO,1)*oCOSU(:) + oVOnp*oSINU(:)
-
-      call HNTR80 (IMO,JMO,0.5d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
-      call HNTR8  (oONES, UO_glob(1,1,1), aUO1_glob)  !!  U-grid => A-grid
-
-      aUO1sp = SUM(aUO1_glob(:,  1)*aCOSI(:))*2/IMA
-      aVO1sp = SUM(aUO1_glob(:,  1)*aSINI(:))*2/IMA
-      aUO1np = SUM(aUO1_glob(:,JMA)*aCOSI(:))*2/IMA
-      aVO1np = SUM(aUO1_glob(:,JMA)*aSINI(:))*2/IMA
-
-      aUO1_glob(1,  1) = aUO1sp
-      aUO1_glob(1,JMA) = aUO1np
-
-!!!  V velocity for the 1st ocean layer
-
-      call HNTR80 (IMO,JMO-1,0.d0,oDLATM, IMA,JMA,0.d0,aDLATM, 0.d0)
-      call HNTR8  (oONES, VO_glob(1,1,1), aVO1_glob)  !!  V-grid => A-grid
-
-      aVO1_glob(1,  1) = aVO1sp
-      aVO1_glob(1,JMA) = aVO1np
-#endif
-      RETURN
-      END SUBROUTINE INT_OG2AG
-
-
-
-      SUBROUTINE gather_ocean1
-
-!@sum  gather_ocean1  gathers necessary arrays on the ocean grid
-!@auth Larissa Nazarenko
-!@ver  1.0
-
-      use domain_decomp_atm, only: agrid=>grid, atm_pack=>pack_data
-      use domain_decomp_1d, only: ocn_pack=>pack_data
-      use OCEANR_DIM, only : ogrid
-
-      USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
-      USE OCEAN, only : MO, UO,VO, G0M
-     *     , S0M, OGEOZ,OGEOZ_SV
-#ifdef TRACERS_OCEAN
-     *     , TRMO
-#endif
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
-      USE OCEAN, only : MO_glob, UO_glob,VO_glob, G0M_glob
-     *     ,S0M_glob, OGEOZ_glob, OGEOZ_SV_glob
-#ifdef TRACERS_OCEAN
-     *     , TRMO_glob
-#endif
-
-      CALL ATM_PACK(agrid, aFOCEAN_loc, aFOCEAN)
-
-      CALL OCN_PACK(ogrid,   MO   ,    MO_glob)
-      CALL OCN_PACK(ogrid,   UO   ,    UO_glob)
-      CALL OCN_PACK(ogrid,   VO   ,    VO_glob)
-
-      CALL OCN_PACK(ogrid,OGEOZ   , OGEOZ_glob)
-      CALL OCN_PACK(ogrid,OGEOZ_SV,OGEOZ_SV_glob)
-
-      CALL OCN_PACK(ogrid,  G0M   ,   G0M_glob)
-      CALL OCN_PACK(ogrid,  S0M   ,   S0M_glob)
-#ifdef TRACERS_OCEAN
-      CALL OCN_PACK(ogrid,  TRMO  ,  TRMO_glob)
-#endif
+      DEALLOCATE(oG0, oS0, oUO1,oVO1, oTRAC, oTOT_CHLO_loc
+     *         , opCO2_loc,apCO2_loc)
 
       RETURN
-      END SUBROUTINE gather_ocean1
-
-      SUBROUTINE scatter_ocean1
-
-!@sum  scatter_ocean1  scatters necessary arrays on the atmospheric grid
-!@auth Larissa Nazarenko
-!@ver  1.0
-
-      use domain_decomp_atm, only: agrid=>grid,unpack_data
-
-      USE AFLUXES, only : aMO, aUO1,aVO1, aG0
-     *     , aS0, aOGEOZ,aOGEOZ_SV
-     *     , aMO_glob, aUO1_glob,aVO1_glob, aG0_glob
-     *     , aS0_glob, aOGEOZ_glob, aOGEOZ_SV_glob
-#ifdef TRACERS_ON
-     *     , aTRAC, aTRAC_glob
-#endif
-#ifdef TRACERS_OceanBiology   
-!do not do this in seawifs case
-     *     , CHL_glob
-      USE FLUXES, only : CHL 
-#endif
-
-      CALL UNPACK_DATA(agrid,       aMO_glob, aMO  )
-      CALL UNPACK_DATA(agrid,      aUO1_glob, aUO1 )
-      CALL UNPACK_DATA(agrid,      aVO1_glob, aVO1 )
-
-      CALL UNPACK_DATA(agrid,    aOGEOZ_glob, aOGEOZ )
-      CALL UNPACK_DATA(agrid, aOGEOZ_SV_glob, aOGEOZ_SV )
-
-      CALL UNPACK_DATA(agrid,       aG0_glob, aG0 )
-      CALL UNPACK_DATA(agrid,       aS0_glob, aS0 )
-#ifdef TRACERS_ON
-      CALL UNPACK_DATA(agrid,     aTRAC_glob, aTRAC )
-#endif
-#ifdef TRACERS_OceanBiology   
-!do not do this in seawifs case
-!when chl is computed in the ocean biology module
-!it needs to be passed back into the atmosphere
-      CALL UNPACK_DATA(agrid,     CHL_glob, CHL )
-#endif
-
-      RETURN
-      END SUBROUTINE scatter_ocean1
+      END SUBROUTINE OG2AG_TOC2SST
 
       SUBROUTINE AG2OG_oceans
 !@sum  AG2OG_oceans: all atmospheric arrays used in the subr. OCEANS are gathered
