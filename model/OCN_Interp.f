@@ -37,7 +37,7 @@
 
       INTEGER N
 
-      REAL*8, 
+      REAL*8,
      * DIMENSION(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
      * aWEIGHT
 
@@ -46,8 +46,8 @@
 
       CALL INT_AG2OG(aEPREC,oEPREC, aWEIGHT)
       oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
-      
-      aWEIGHT(:,:) = aRSI(:,:)  
+
+      aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aRUNPSI,oRUNPSI, aWEIGHT)
 
       CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT)
@@ -61,7 +61,7 @@
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
 
-      aWEIGHT(:,:) = 1.- aRSI(:,:) 
+      aWEIGHT(:,:) = 1.- aRSI(:,:)
       DO N=1,NTM
         aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
@@ -69,8 +69,8 @@
       DO N=1,NTM
         oTRPREC(N,:,:) = oTRPREC(N,:,:)*OXYP(:,:)
       END DO
-      
-      aWEIGHT(:,:) = aRSI(:,:)  
+
+      aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aTRUNPSI,oTRUNPSI, aWEIGHT, NTM)
       DO N=1,NTM
         oTRUNPSI(N,:,:) = oTRUNPSI(N,:,:)*OXYP(:,:)
@@ -132,13 +132,13 @@
       INTEGER IER, I,J, L, NT
       INTEGER oJ_0,oJ_1, oI_0,oI_1
 
-      REAL*8, 
+      REAL*8,
      * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
      * oWEIGHT, oFOCEAN_loc
 
       REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
-     *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:) 
-     *                     , oTOT_CHLO_loc(:,:),opCO2_loc(:,:) 
+     *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:)
+     *                     , oTOT_CHLO_loc(:,:),opCO2_loc(:,:)
       oI_0 = oGRID%I_STRT
       oI_1 = oGRID%I_STOP
       oJ_0 = oGRID%j_STRT
@@ -152,8 +152,10 @@
      *  (oUO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
       ALLOCATE
      *  (oVO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
+#ifdef TRACERS_OCEAN
       ALLOCATE
      *  (oTRAC(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,NTM), STAT = IER)
+#endif
       ALLOCATE
      *  (oTOT_CHLO_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
      * , STAT = IER)
@@ -163,7 +165,7 @@
       CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      CALL INT_OG2AG(MO,aMO, oWEIGHT, oLM,2,.FALSE.) 
+      CALL INT_OG2AG(MO,aMO, oWEIGHT, oLM,2,.FALSE.)
 
       oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
       DO L = 1,2
@@ -175,7 +177,7 @@
           END DO
         END DO
       END DO
-      CALL INT_OG2AG(oG0,aG0, oWEIGHT, 2,2,.TRUE.) 
+      CALL INT_OG2AG(oG0,aG0, oWEIGHT, 2,2,.TRUE.)
 
       DO L = 1,2
         DO J=oJ_0,oJ_1
@@ -186,17 +188,17 @@
           END DO
         END DO
       END DO
-      CALL INT_OG2AG(oS0,aS0, oWEIGHT, 2,2,.TRUE.) 
+      CALL INT_OG2AG(oS0,aS0, oWEIGHT, 2,2,.TRUE.)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      CALL INT_OG2AG(OGEOZ,aOGEOZ, oWEIGHT, .FALSE.) 
-      CALL INT_OG2AG(OGEOZ_SV,aOGEOZ_SV, oWEIGHT, .FALSE.) 
+      CALL INT_OG2AG(OGEOZ,aOGEOZ, oWEIGHT, .FALSE.)
+      CALL INT_OG2AG(OGEOZ_SV,aOGEOZ_SV, oWEIGHT, .FALSE.)
 
       oUO1(:,:) = UO(:,:,1)
       oVO1(:,:) = VO(:,:,1)
       oWEIGHT(:,:) = 1.d0
-      CALL INT_OG2AG(oUO1,oVO1,aUO1,aVO1, oWEIGHT 
-     *             , IVSPO,IVNPO) 
+      CALL INT_OG2AG(oUO1,oVO1,aUO1,aVO1, oWEIGHT
+     *             , IVSPO,IVNPO)
 
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
@@ -225,9 +227,9 @@ C**** surface tracer concentration
         END DO
         end if
       END DO
-      CALL INT_OG2AG(oTRAC,aTRAC, oWEIGHT, NTM,NTM,.TRUE.) 
+      CALL INT_OG2AG(oTRAC,aTRAC, oWEIGHT, NTM,NTM,.TRUE.)
 
-#ifdef TRACERS_OceanBiology   
+#ifdef TRACERS_OceanBiology
 !total ocean chlorophyll. Units are kg,chlorophyll/m3 of seawater
 !tot_chlo is defined over all ocean points. Here only use open water
 !chorophyll, because that is what is seen by radiation
@@ -241,11 +243,11 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_OG2AG(oTOT_CHLO_loc,CHL, oWEIGHT, .FALSE.) 
+      CALL INT_OG2AG(oTOT_CHLO_loc,CHL, oWEIGHT, .FALSE.)
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-!partial CO2 pressure in seawater. Units are uatm. 
+!partial CO2 pressure in seawater. Units are uatm.
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
@@ -259,13 +261,15 @@ C**** surface tracer concentration
         END DO
       END DO
       DO NT = 1,NTM
-      CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.) 
+      CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)
       END DO
 #endif
 #endif
 
-      DEALLOCATE(oG0, oS0, oUO1,oVO1, oTRAC, oTOT_CHLO_loc
-     *         , opCO2_loc)
+      DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc, opCO2_loc)
+#ifdef TRACERS_OCEAN
+      DEALLOCATE(oTRAC)
+#endif
 
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
@@ -285,9 +289,9 @@ C**** surface tracer concentration
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 #if defined (TRACERS_OceanBiology) && !defined (TRACERS_GASEXCH_ocean)
-      USE OCN_TRACER_COM, only: NTM 
+      USE OCN_TRACER_COM, only: NTM
 #else
-      USE TRACER_COM, only: NTM 
+      USE TRACER_COM, only: NTM
 #endif
 #endif
 
@@ -369,11 +373,11 @@ C**** surface tracer concentration
       INTEGER aJ_0,aJ_1, aI_0,aI_1
       INTEGER oJ_0,oJ_1
 
-      REAL*8, 
+      REAL*8,
      * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,aGRID%J_STRT:aGRID%J_STOP)::
      * aFact
 
-      REAL*8, 
+      REAL*8,
      * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,
      * aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
      * aWEIGHT
@@ -397,7 +401,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aFLOWO,oFLOWO, aWEIGHT) 
+      CALL INT_AG2OG(aFLOWO,oFLOWO, aWEIGHT)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -406,7 +410,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aEFLOWO,oEFLOWO, aWEIGHT) 
+      CALL INT_AG2OG(aEFLOWO,oEFLOWO, aWEIGHT)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -415,7 +419,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aMELTI,oMELTI, aWEIGHT) 
+      CALL INT_AG2OG(aMELTI,oMELTI, aWEIGHT)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -424,7 +428,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aEMELTI,oEMELTI, aWEIGHT) 
+      CALL INT_AG2OG(aEMELTI,oEMELTI, aWEIGHT)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -433,7 +437,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aSMELTI,oSMELTI, aWEIGHT) 
+      CALL INT_AG2OG(aSMELTI,oSMELTI, aWEIGHT)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -442,7 +446,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aGMELT,oGMELT, aWEIGHT) 
+      CALL INT_AG2OG(aGMELT,oGMELT, aWEIGHT)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -452,28 +456,28 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aEGMELT,oEGMELT, aWEIGHT) 
+      CALL INT_AG2OG(aEGMELT,oEGMELT, aWEIGHT)
       oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
 
       aWEIGHT(:,:) = aRSI(:,:)
-      CALL INT_AG2OG(aRUNOSI,oRUNOSI, aWEIGHT) 
+      CALL INT_AG2OG(aRUNOSI,oRUNOSI, aWEIGHT)
 
-      CALL INT_AG2OG(aERUNOSI,oERUNOSI, aWEIGHT) 
+      CALL INT_AG2OG(aERUNOSI,oERUNOSI, aWEIGHT)
 
-      CALL INT_AG2OG(aSRUNOSI,oSRUNOSI, aWEIGHT) 
+      CALL INT_AG2OG(aSRUNOSI,oSRUNOSI, aWEIGHT)
 
       aWEIGHT(:,:) = 1.d0
-      CALL INT_AG2OG(aAPRESS,oAPRESS, aWEIGHT) 
+      CALL INT_AG2OG(aAPRESS,oAPRESS, aWEIGHT)
 
       aWEIGHT(:,:) = 1.d0 - aRSI(:,:)
-      CALL INT_AG2OG(aE0,oE0, aWEIGHT, NSTYPE,1) 
+      CALL INT_AG2OG(aE0,oE0, aWEIGHT, NSTYPE,1)
 
-      CALL INT_AG2OG(aEVAPOR,oEVAPOR, aWEIGHT, NSTYPE,1) 
+      CALL INT_AG2OG(aEVAPOR,oEVAPOR, aWEIGHT, NSTYPE,1)
 
-      CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,1) 
+      CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,1)
 
       aWEIGHT(:,:) = aRSI(:,:)
-      CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,3) 
+      CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,3)
 
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
@@ -499,10 +503,10 @@ C**** surface tracer concentration
           END DO
         END DO
       END DO
-      CALL INT_AG2OG(aTRMELTI,oTRMELTI, aWEIGHT, NTM) 
+      CALL INT_AG2OG(aTRMELTI,oTRMELTI, aWEIGHT, NTM)
 
       aWEIGHT(:,:) = aRSI(:,:)
-      CALL INT_AG2OG(aTRUNOSI,oTRUNOSI, aWEIGHT, NTM) 
+      CALL INT_AG2OG(aTRUNOSI,oTRUNOSI, aWEIGHT, NTM)
 
       aWEIGHT(:,:) = 1.d0
       DO N=1,NTM
@@ -515,49 +519,49 @@ C**** surface tracer concentration
           END DO
         END DO
       END DO
-      CALL INT_AG2OG(aTRGMELT,oTRGMELT, aWEIGHT, NTM)  
+      CALL INT_AG2OG(aTRGMELT,oTRGMELT, aWEIGHT, NTM)
       DO N=1,NTM
         oTRGMELT(N,:,:) = oTRGMELT(N,:,:)*OXYP(:,:)
       END DO
 
       aWEIGHT(:,:) = 1.d0 - aRSI(:,:)
-      CALL INT_AG2OG(aTREVAPOR,oTREVAPOR, aWEIGHT, NTM, NSTYPE,1) 
+      CALL INT_AG2OG(aTREVAPOR,oTREVAPOR, aWEIGHT, NTM, NSTYPE,1)
 
 #ifdef TRACERS_DRYDEP
       aWEIGHT(:,:) = 1.d0
-      CALL INT_AG2OG(aTRDRYDEP,oTRDRYDEP, aWEIGHT, NTM, NSTYPE,1) 
+      CALL INT_AG2OG(aTRDRYDEP,oTRDRYDEP, aWEIGHT, NTM, NSTYPE,1)
 #endif
 #endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       aWEIGHT(:,:) = 1.d0
-      CALL INT_AG2OG(aTRGASEX,oTRGASEX, tracflx_glob, aWEIGHT  
-     *             , NTM, NSTYPE,1) 
+      CALL INT_AG2OG(aTRGASEX,oTRGASEX, tracflx_glob, aWEIGHT
+     *             , NTM, NSTYPE,1)
 #endif
 
 #ifdef OBIO_RAD_coupling
       aWEIGHT(:,:) = aFOCEAN_loc(:,:)
-      CALL INT_AG2OG(aVISDIR,aSRVISSURF,oVISDIR, aWEIGHT)  
+      CALL INT_AG2OG(aVISDIR,aSRVISSURF,oVISDIR, aWEIGHT)
 
-      CALL INT_AG2OG(aVISDIF,oVISDIF, aWEIGHT)   
+      CALL INT_AG2OG(aVISDIF,oVISDIF, aWEIGHT)
 
-      CALL INT_AG2OG(aNIRDIR,oNIRDIR, aWEIGHT)   
+      CALL INT_AG2OG(aNIRDIR,oNIRDIR, aWEIGHT)
 
-      CALL INT_AG2OG(aNIRDIF,oNIRDIF, aWEIGHT)   
+      CALL INT_AG2OG(aNIRDIF,oNIRDIF, aWEIGHT)
 #endif
 
 #ifdef TRACERS_OceanBiology
       aWEIGHT(:,:) = aFOCEAN_loc(:,:)
-      CALL INT_AG2OG(aCOSZ1,oSOLZ, aWEIGHT)   
+      CALL INT_AG2OG(aCOSZ1,oSOLZ, aWEIGHT)
 
-      CALL INT_AG2OG(aWIND,oWIND, aWEIGHT)   
+      CALL INT_AG2OG(aWIND,oWIND, aWEIGHT)
 #endif
 
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN_loc
-     *              ,NSTYPE,1) 
+     *              ,NSTYPE,1)
 
-      CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)    
+      CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)
 
       END SUBROUTINE AG2OG_oceans
 
@@ -600,25 +604,25 @@ C**** surface tracer concentration
 
       IMPLICIT NONE
 
-      REAL*8, 
+      REAL*8,
      * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
      * oWEIGHT, oFOCEAN_loc
 
       CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2) 
+      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2)
 
-      CALL INT_OG2AG(oDHSI,aDHSI, oWEIGHT, 2) 
+      CALL INT_OG2AG(oDHSI,aDHSI, oWEIGHT, 2)
 
-      CALL INT_OG2AG(oDSSI,aDSSI, oWEIGHT, 2) 
+      CALL INT_OG2AG(oDSSI,aDSSI, oWEIGHT, 2)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ON)
 
       IF (NTM == NTM_ATM) THEN
 
         oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-        CALL INT_OG2AG(oDTRSI,aDTRSI, oWEIGHT, 2, NTM) 
+        CALL INT_OG2AG(oDTRSI,aDTRSI, oWEIGHT, 2, NTM)
 
       ELSE
 C**** if number of ocean and atm. tracers are not the same
