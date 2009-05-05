@@ -1202,24 +1202,20 @@ C**** Kinematic viscosity
       nu=visc_air_kin(ts)       ! temperature dependent
 #endif
 
-      num=0.135d0*nu
-
-#ifdef USE_PBL_E1
-      nuh=0.395d0*nu ;  nuq=0.624d0*nu
-#endif
-c**** more accurate nuh, nuq assuming Sc and Pr so that this is
-c**** consistent with formula in getzhq. Note '0.624' is for Sc=0.6.
-c     nuh=0.39522377113362589d0*nu ;  nuq=0.63943320118296587d0*nu
-
       if ((itype.eq.1).or.(itype.eq.2)) then
 c *********************************************************************
         ustar = max(ustar0,1.0125d-5)  ! make sure not too small
 c Compute roughness lengths using smooth/rough surface formulation:
 
 c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
-        z0m=num/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
+        z0m=0.135d0*nu/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
 
 #ifdef USE_PBL_E1
+        nuh=0.395d0*nu ;  nuq=0.624d0*nu
+c**** more accurate nuh, nuq assuming Sc and Pr so that this is
+c**** consistent with formula in getzhq. Note '0.624' is for Sc=0.6.
+c       nuh=0.39522377113362589d0*nu ;  nuq=0.63943320118296587d0*nu
+
         z0h=nuh/ustar + 1.4d-5
         z0q=nuq/ustar + 1.3d-4
 #else
@@ -1270,28 +1266,26 @@ c *********************************************************************
       subroutine getzhq(ustar,z0m,ScPr,nu,z0min,z0hq)
 !@sum calculate z0hq heat/humidity roughness length
 !@+   modified from eqs 5.24, 5.27 and 5.35 in Brutsaert (1982)
-!!*** uncomment and remove z0min for original HR97 code
+!!*** remove z0min for original HR97 code
       implicit none
       real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
       real*8, intent(out) :: z0hq
-!!    real*8, parameter :: z0=0.00023d0 ! rough limit (m)
-      real*8 r0q,beta,fac_smooth_ScPr !,X,fac_smooth    !! ,fac_rough
+      real*8 r0q,beta,fac_smooth_ScPr,fac_rough_ScPr
 
 C**** functional dependence on Sc,Pr for smooth, rough surfaces
-      !fac_smooth(X) = 30.*exp(-13.6d0*kappa*X**twoby3)
       fac_smooth_ScPr = 30.*exp(-13.6d0*kappa*ScPr**twoby3)
 
-!!    fac_rough(X) = -7.3d0*kappa*sqrt(X)
-!!     if (ustar.le.0.20d0) then                ! smooth regime
-         z0hq=nu*fac_smooth_ScPr/ustar + z0min
-!!     else                                     ! rough regime
-!!       r0q=sqrt(sqrt(ustar*z0m/nu))
-!!       z0hq=7.4d0*z0m*exp(fac_rough(ScPr)*r0q)
-!!       if (ustar.lt.0.2d0) then ! intermediate regime (lin. interp.)
-!!         beta=(ustar-0.02d0)/0.18d0
-!!         z0hq=(1.-beta)*(nu*fac_smooth(ScPr)/ustar+z0min)+beta*z0hq
-!!       endif
-!!     endif
+      if (ustar.le.0.20d0) then ! smooth regime
+        z0hq=nu*fac_smooth_ScPr/ustar + z0min
+      else                      ! rough regime
+        fac_rough_ScPr = -7.3d0*kappa*sqrt(ScPr)
+        r0q=sqrt(sqrt(ustar*z0m/nu))
+        z0hq=7.4d0*z0m*exp(fac_rough_ScPr*r0q)
+        if (ustar.lt.0.2d0) then ! intermediate regime (lin. interp.)
+          beta=(ustar-0.02d0)/0.18d0
+          z0hq=(1.-beta)*(nu*fac_smooth_ScPr/ustar+z0min)+beta*z0hq
+        endif
+      endif
 
       return
       end subroutine getzhq
