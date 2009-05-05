@@ -106,9 +106,10 @@
 #endif
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0
      *     , aS0, aOGEOZ,aOGEOZ_SV
-#ifdef TRACERS_ON
+#ifdef TRACERS_OCEAN
      *     , aTRAC
 #endif
+      USE OFLUXES, only : oRSI
 
 #ifdef TRACERS_OCEAN
       USE TRACER_COM, only: NTM
@@ -117,19 +118,18 @@
 #ifdef TRACERS_OceanBiology
 !only for TRACERS_OceanBiology and not for seawifs
 !/bc we interpolate an internal field
-      USE AFLUXES, only : CHL_glob
-      USE obio_com, only: tot_chlo_glob
+      USE obio_com, only: tot_chlo
       USE FLUXES, only : CHL
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE obio_com, only: pCO2_glob
+      USE obio_com, only: pCO2
 #endif
 
       USE INT_OG2AG_MOD, only : INT_OG2AG
 
       IMPLICIT NONE
 
-      INTEGER IER, I,J, L, NT, NTM
+      INTEGER IER, I,J, L, NT
       INTEGER oJ_0,oJ_1, oI_0,oI_1
 
       REAL*8, 
@@ -139,7 +139,6 @@
       REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
      *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:) 
      *                     , oTOT_CHLO_loc(:,:),opCO2_loc(:,:) 
-     *                     , aTOT_CHLO_loc(:,:),apCO2_loc(:,:) 
       oI_0 = oGRID%I_STRT
       oI_1 = oGRID%I_STOP
       oJ_0 = oGRID%j_STRT
@@ -160,9 +159,6 @@
      * , STAT = IER)
       ALLOCATE
      *  (opCO2_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT = IER)
-
-      ALLOCATE
-     *  (apCO2_loc(aIM,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) ,STAT = IER)
 
       CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
 
@@ -210,8 +206,8 @@ C**** surface tracer concentration
         DO J=oJ_0,oJ_1
           DO I=oI_0,oIMAXJ(J)
             IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              oTRAC(I,J,NT)=TRMO_glob(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J)
-     *             -S0M_glob(I,J,1))
+              oTRAC(I,J,NT)=TRMO(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J)
+     *             -S0M(I,J,1))
             ELSE
               oTRAC(I,J,NT)=0.
             END IF
@@ -221,7 +217,7 @@ C**** surface tracer concentration
         DO J=oJ_0,oJ_1
           DO I=oI_0,oIMAXJ(J)
             IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              oTRAC(I,J,NT)=TRMO_glob(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J))
+              oTRAC(I,J,NT)=TRMO(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J))
             ELSE
               oTRAC(I,J,NT)=0.
             END IF
@@ -232,14 +228,14 @@ C**** surface tracer concentration
       CALL INT_OG2AG(oTRAC,aTRAC, oWEIGHT, NTM,NTM,.TRUE.) 
 
 #ifdef TRACERS_OceanBiology   
-
-      CALL UNPACK_DATA (oGRID,tot_chlo_glob,oTOT_CHLO_loc)
-
-      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+!total ocean chlorophyll. Units are kg,chlorophyll/m3 of seawater
+!tot_chlo is defined over all ocean points. Here only use open water
+!chorophyll, because that is what is seen by radiation
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:) * (1.d0 - oRSI(:,:))
       DO J=oJ_0,oJ_1
         DO I=oI_0,oIMAXJ(J)
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
-            oTOT_CHLO_loc(I,J) = oTOT_CHLO_loc(I,J)
+            oTOT_CHLO_loc(I,J) = tot_chlo(I,J)
           ELSE
             oTOT_CHLO_loc(I,J)=0.
           END IF
@@ -249,28 +245,27 @@ C**** surface tracer concentration
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-
-      CALL UNPACK_DATA (oGRID,pCO2_glob,opCO2_loc)
-
-      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+!partial CO2 pressure in seawater. Units are uatm. 
+!defined only over open ocean cells, because this is what is
+!involved in gas exchage with the atmosphere.
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
       DO J=oJ_0,oJ_1
         DO I=oI_0,oIMAXJ(J)
           IF (oFOCEAN_loc(I,J).gt.0.) THEN
-            opCO2_loc(I,J) = opCO2_loc(I,J)
+            opCO2_loc(I,J) = pCO2(I,J)
           ELSE
             opCO2_loc(I,J)=0.
           END IF
         END DO
       END DO
-      CALL INT_OG2AG(opCO2_loc,apCO2_loc, oWEIGHT, .FALSE.) 
       DO NT = 1,NTM
-        aTRAC(:,:,NT) = apCO2_loc(:,:)
+      CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.) 
       END DO
 #endif
 #endif
 
       DEALLOCATE(oG0, oS0, oUO1,oVO1, oTRAC, oTOT_CHLO_loc
-     *         , opCO2_loc,apCO2_loc)
+     *         , opCO2_loc)
 
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
