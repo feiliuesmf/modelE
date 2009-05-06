@@ -4549,8 +4549,15 @@ cddd            endif
 
             !print *,"FR_SNOW  after" ,i,j,fr_snow_ij(1:2,i,j)
             if ( fr_snow_ij(1,i,j) > 1.d0 .or.
-     &           fr_snow_ij(2,i,j) > 1.d0 ) call stop_model(
-     &           "update_land_fractions: fr_snow_ij > 1",255)
+     &           fr_snow_ij(2,i,j) > 1.d0 ) then 
+              write(0,*) "FR_SNOW_ERROR" ,
+     &        i,j,dfrac,fearth(i,j),fr_snow_ij(1:2,i,j)
+              fr_snow_ij(1,i,j) = min( 1.d0, fr_snow_ij(1,i,j) )
+              fr_snow_ij(2,i,j) = min( 1.d0, fr_snow_ij(2,i,j) )
+            endif
+
+c          call stop_model(
+c     &           "update_land_fractions: fr_snow_ij > 1",255)
 
           endif
 
