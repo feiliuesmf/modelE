@@ -179,7 +179,7 @@ CO_IC=gsin/CO_init_cond_M23_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
-!----------Default emissions case (mostly AR5)-----------------------
+!----------Default emissions case (mostly AR5 late apr 09)------------
 CO_01=AR5_emis/M/2000/CO_agr_AR5_2000_4x5_h
 CO_02=AR5_emis/M/2000/CO_awb_AR5_2000_4x5_h
 CO_03=AR5_emis/M/2000/CO_dom_AR5_2000_4x5_h
