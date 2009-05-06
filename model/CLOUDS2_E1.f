@@ -3087,7 +3087,7 @@ c       if(L.eq.1) write(6,*)"4th check BLK_2M",CM,QAUT_B2M,WMX(L)
 C** Use Qaut definition based on Rotstayn and Liu (2005, GRL)
          WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           IF(LHX.EQ.LHE)  THEN
-            RCLD=RCLD*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
             RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
      *         *(1.+pl(l)*xRICld)
@@ -4003,7 +4003,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.30 2009/03/26 22:46:00 smenon Exp $
+!$Id: CLOUDS2_E1.f,v 1.31 2009/05/06 19:31:01 smenon Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov

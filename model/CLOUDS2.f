@@ -3656,7 +3656,7 @@ c       if(L.eq.1) write(6,*)"4th check BLK_2M",CM,QAUT_B2M,WMX(L)
 C** Use Qaut definition based on Rotstayn and Liu (2005, GRL)
          WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           IF(LHX.EQ.LHE)  THEN
-            RCLD=RCLD*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
             RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
      *         *(1.+pl(l)*xRICld)
