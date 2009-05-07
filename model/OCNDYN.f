@@ -2,42 +2,39 @@
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_WATER
 #endif
+
       SUBROUTINE OCEANS
+C****
 !@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+!@ver  2009/05/07
+C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
+      USE OCEANRES, only : NOCEAN
+      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
+     *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
+     *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP, ! VOSP,IVSP,
+     *    OBottom_drag,OCoastal_drag,focean,
+     *    G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
+     *    S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
+     *    scatter_ocean, gather_ocean,
+     *    scatter_ocean_straits, gather_ocean_straits
+      USE OCEAN_DYN, only : mmi,smu,smv,smw
+      USE DOMAIN_DECOMP_1D, only : get, haveLatitude,
+     *    AM_I_ROOT, pack_data, unpack_data
+      USE OCEANR_DIM, only : grid=>ogrid
+      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
+     *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
+     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit,ntm
       USE OCEAN, only : trmo,txmo,tymo,tzmo
-C?*** For serial GM/straits computations, pack data into global arrays
       USE OCEAN, only : trmo_glob,txmo_glob,tymo_glob,tzmo_glob
+      Use ODIAG, Only: toijl=>toijl_loc,
+     *               toijl_conc,toijl_tflx,toijl_gmfl
 #endif
-      USE OCEANRES, only : NOCEAN
-      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo
-     *     ,s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso
-     *     ,ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP !,VOSP,IVSP
-     *     ,OBottom_drag,OCoastal_drag,focean
-C?*** For serial GM/straits computations, pack data into global arrays
-      USE OCEAN, only : S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
-      USE OCEAN, only : G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
-
-      USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
-     *     ,ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx
-     *     ,ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
-#ifdef TRACERS_OCEAN
-     *     ,toijl=>toijl_loc, toijl_conc,toijl_tflx,toijl_gmfl
-#endif
-      USE OCEAN_DYN, only : mmi,smu,smv,smw
-
-      USE DOMAIN_DECOMP_1D, only : get, haveLatitude
-      USE OCEANR_DIM, only : grid=>ogrid
-
-C?*** For serial ODIF/GM/straits computations:
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, pack_data, unpack_data
-      USE OCEAN, only : scatter_ocean, gather_ocean
-      USE OCEAN, only : scatter_ocean_straits, gather_ocean_straits
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only: scatter_tracer_gasexch_com_arrays
 #endif
@@ -62,9 +59,6 @@ C**** initiallise work arrays
 
 C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans
-C****
-C**** Integrate Ocean Dynamics terms
-C****
       OGEOZ_SV(:,:)=OGEOZ(:,:)
 
 C**** Apply surface fluxes to ocean
@@ -91,22 +85,19 @@ C**** Apply ice/ocean and air/ocean stress to ocean
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S == 0) CALL DIAGCA (11)
 
-
-C**** Calculate vertical diffusion
+C**** Apply ocean vertical mixing
       CALL OCONV
          CALL CHECKO('OCONV ')
 
 C**** Apply bottom and coastal drags
-
       if (OBottom_drag  == 1) CALL OBDRAG
       if (OCoastal_drag == 1) CALL OCOAST
          CALL TIMER (MNOW,MSGSO)
 
-      IDACC(11) = IDACC(11) + 1
-
 C****
 C**** Integrate Ocean Dynamics
 C****
+      IDACC(11) = IDACC(11) + 1
       Do 500 NO=1,NOCEAN
 C**** initialize summed mass fluxes
 !$OMP PARALLEL DO  PRIVATE(L)
@@ -115,54 +106,63 @@ C**** initialize summed mass fluxes
       END DO
 !$OMP END PARALLEL DO
 
-      CALL OVTOM (MMI,UM0,VM0)
-
+      CALL OVtoM (MMI,UM0,VM0)
       CALL OPGF0
 
       NS = NDYNO / NOCEAN
 C**** Initial Forward step,  QMX = QM0 + DT*F(Q0)
-      CALL OFLUX  (NS,MMI,.FALSE.)
-      CALL OADVM (MM1,MMI,DTOFS)
-C     CALL STADVM(MM1,MUST,DTOFS,.False.)
-      CALL OADVV (UM1,VM1,UM0,VM0,DTOFS)
-      CALL OPGF  (UM1,VM1,DTOFS)
-C     CALL STPGF (MUST1,MUST,DTOFS)
-      CALL OMTOV (MM1,UM1,VM1)
+      Call OFLUX  (NS,MMI,.FALSE.)
+      Call OADVM  (MM1,MMI,DTOFS)
+C     Call STADVM (MM1,MUST,DTOFS,.False.)
+      Call OADVV  (UM1,VM1,UM0,VM0,DTOFS)
+C     Call OTIDEW (NS,DTOFS)
+      Call OPGF   (UM1,VM1,DTOFS)
+C     Call STPGF  (MUST1,MUST,DTOFS)
+C     Call OTIDEV (MM1,UM1,VM1,DTOFS)
+      Call OMtoV  (MM1,UM1,VM1)
 C**** Initial Backward step,  QM1 = QM0 + DT*F(Q0)
-      CALL OFLUX  (NS,MMI,.FALSE.)
-      CALL OADVM (MM1,MMI,DTO)
-C     CALL STADVM(MM1,MUST,DTO,.False.)
-      CALL OADVV (UM1,VM1,UM0,VM0,DTO)
-      CALL OPGF  (UM1,VM1,DTO)
-C     CALL STPGF (MUST1,MUST,DTO)
-      CALL OMTOV (MM1,UM1,VM1)
+      Call OFLUX  (NS,MMI,.FALSE.)
+      Call OADVM  (MM1,MMI,DTO)
+C     Call STADVM (MM1,MUST,DTO,.False.)
+      Call OADVV  (UM1,VM1,UM0,VM0,DTO)
+C     Call OTIDEW (NS,DTO)
+      Call OPGF   (UM1,VM1,DTO)
+C     Call STPGF  (MUST1,MUST,DTO)
+C     Call OTIDEV (MM1,UM1,VM1,DTO)
+      Call OMtoV  (MM1,UM1,VM1)
 C**** First even leap frog step,  Q2 = Q0 + 2*DT*F(Q1)
-      CALL OFLUX  (NS,MMI,.TRUE.)
-      CALL OADVM (MM0,MMI,DTOLF)
-C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
-      CALL OADVV (UM0,VM0,UM0,VM0,DTOLF)
-      CALL OPGF  (UM0,VM0,DTOLF)
-C     CALL STPGF (MUST,MUST,DTOLF)
-      CALL OMTOV (MM0,UM0,VM0)
+      Call OFLUX  (NS,MMI,.TRUE.)
+      Call OADVM  (MM0,MMI,DTOLF)
+C     Call STADVM (MM0,MUST1,DTOLF,.True.)
+      Call OADVV  (UM0,VM0,UM0,VM0,DTOLF)
+C     Call OTIDEW (NS,DTOLF)
+      Call OPGF   (UM0,VM0,DTOLF)
+C     Call STPGF  (MUST,MUST,DTOLF)
+C     Call OTIDEV (MM0,UM0,VM0,DTOLF)
+      Call OMtoV  (MM0,UM0,VM0)
       NS=NS-1
 C**** Odd leap frog step,  Q3 = Q1 + 2*DT*F(Q2)
   420 Continue
-      CALL OFLUX  (NS,MM1,.FALSE.)
-      CALL OADVM (MM1,MM1,DTOLF)
-C     CALL STADVM(MM1,MUST,DTOLF,.False.)
-      CALL OADVV (UM1,VM1,UM1,VM1,DTOLF)
-      CALL OPGF  (UM1,VM1,DTOLF)
-C     CALL STPGF (MUST1,MUST1,DTOLF)
-      CALL OMTOV (MM1,UM1,VM1)
+      Call OFLUX  (NS,MM1,.FALSE.)
+      Call OADVM  (MM1,MM1,DTOLF)
+C     Call STADVM (MM1,MUST,DTOLF,.False.)
+      Call OADVV  (UM1,VM1,UM1,VM1,DTOLF)
+C     Call OTIDEW (NS,DTOLF)
+      Call OPGF   (UM1,VM1,DTOLF)
+C     Call STPGF  (MUST1,MUST1,DTOLF)
+C     Call OTIDEV (MM1,UM1,VM1,DTOLF)
+      Call OMtoV  (MM1,UM1,VM1)
       NS=NS-1
 C**** Even leap frog step,  Q4 = Q2 + 2*DT*F(Q3)
-      CALL OFLUX  (NS,MM0,.TRUE.)
-      CALL OADVM (MM0,MM0,DTOLF)
-C     CALL STADVM(MM0,MUST1,DTOLF,.True.)
-      CALL OADVV (UM0,VM0,UM0,VM0,DTOLF)
-      CALL OPGF  (UM0,VM0,DTOLF)
-C     CALL STPGF (MUST,MUST,DTOLF)
-      CALL OMTOV (MM0,UM0,VM0)
+      Call OFLUX  (NS,MM0,.TRUE.)
+      Call OADVM  (MM0,MM0,DTOLF)
+C     Call STADVM (MM0,MUST1,DTOLF,.True.)
+      Call OADVV  (UM0,VM0,UM0,VM0,DTOLF)
+C     Call OTIDEW (NS,DTOLF)
+      Call OPGF   (UM0,VM0,DTOLF)
+C     Call STPGF  (MUST,MUST,DTOLF)
+C     Call OTIDEV (MM0,UM0,VM0,DTOLF)
+      Call OMtoV  (MM0,UM0,VM0)
 C**** Check for end of leap frog time scheme
       NS=NS-1
       IF(NS.GT.1)  GO TO 420
@@ -189,6 +189,7 @@ C**** Advection of Potential Enthalpy and Salt
      *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
       END DO
 #endif
+
         CALL CHECKO ('OADVT ')
 !$OMP PARALLEL DO PRIVATE(L)
         DO L=1,LMO
@@ -217,15 +218,11 @@ C**** Advection of Potential Enthalpy and Salt
 !$OMP END PARALLEL DO
         END DO
 #endif
-        CALL TIMER (MNOW,MDYNO)
 
+        CALL TIMER (MNOW,MDYNO)
         IF (MODD5S == 0) CALL DIAGCA (12)
 
-c????          Non-parallelized parts : straits
-c     straits: mo, G0M,Gx-zMO,S0M,Sx-zMO,TRMO,Tx-zMO,opress (ocean)
-
       call gather_ocean_straits (2)
-
       IF(AM_I_ROOT()) THEN
 C****
 C**** Acceleration and advection of tracers through ocean straits
@@ -238,12 +235,11 @@ C****
           CALL STBDRA
         END IF
       END IF
-
       call scatter_ocean_straits (2)
       call BCAST_straits (0)
-c????      end of serialized part
         CALL CHECKO ('STADV ')
- 500  CONTINUE
+
+  500 Continue  !  End of Do-loop NO=1,NOCEAN
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
@@ -265,22 +261,20 @@ C**** Apply GM + Redi tracer fluxes
 C**** remove STADVI since it is not really consistent with ICEDYN
 c      CALL STADVI
 c        CALL CHECKO ('STADVI')
+
 #ifdef TRACERS_OCEAN
       CALL OC_TDECAY
-
 #ifdef TRACERS_AGE_OCEAN
       CALL OCN_TR_AGE
 #endif
 #endif
+
         CALL TIMER (MNOW,MSGSO)
-      CALL TOC2SST
-
 C***  Get the data from the ocean grid to the atmospheric grid
-
+      CALL TOC2SST
       call OG2AG_oceans
 
       RETURN
-
       END SUBROUTINE OCEANS
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
@@ -297,17 +291,16 @@ C***  Get the data from the ocean grid to the atmospheric grid
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
-#ifdef TRACERS_OCEAN
-     *     ,oc_tracer_mean,ntm
-#endif
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
-
-!      USE DOMAIN_DECOMP_1D, only : grid,get
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
+
+#ifdef TRACERS_OCEAN
+      Use OCEAN, Only: oc_tracer_mean,ntm
+#endif
 
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
@@ -328,7 +321,6 @@ c**** Extract domain decomposition info
 C****
 C**** Check that KOCEAN is set correctly
 C****
-
       IF (KOCEAN == 0) THEN
         call stop_model(
      &       "Must have KOCEAN > 0 for interactive ocean runs",255)
@@ -363,10 +355,8 @@ C****
 C**** Arrays needed each ocean model run
 C****
       CALL GEOMO
-
       CALL OFFT0(IM)
 C**** Calculate ZE
-
       ZE(0) = 0d0
       DO L = 1,LMO
         ZE(L) = ZE(L-1) + dZO(L)
@@ -489,7 +479,8 @@ C**** if there is a problem try nearest neighbour
         END IF
       END IF
   313 CONTINUE
-C**** Initialize velocity field and slopes of pot. heat and salinity to zero
+C**** Initialize velocity field and slopes of pot. heat and salinity to
+C**** zero
       UO=0
       VO=0
       GXMO=0
@@ -785,7 +776,7 @@ C****
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
-      !note: we need to writing out nstep here which is the last timestep
+      !note: we need to writing out nstep here which is last timestep
       !that the model did
       WRITE (kunit,err=10) TRNMODULE_HEADER
      . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
@@ -1060,7 +1051,7 @@ c tracer arrays in straits
 #endif /* NEW_IO */
 
       SUBROUTINE CHECKO_serial(SUBR)
-!@sum  CHECKO Checks whether Ocean variables are reasonable (serial version)
+!@sum  CHECKO Checks whether Ocean variables are reasonable (serial vers
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byrt3,teeny
@@ -1138,7 +1129,8 @@ C**** Check first layer ocean mass
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
  230      SALIM = .045
-!!        IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
+!!        IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persia
+C                                                         n Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
@@ -1211,7 +1203,7 @@ C****
       END SUBROUTINE CHECKO_serial
 
       SUBROUTINE CHECKO(SUBR)
-!@sum  CHECKO Checks whether Ocean variables are reasonable (parallel version)
+!@sum  CHECKO Checks whether Ocean variables are reasonable (parallel ve
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : byrt3,teeny
@@ -1312,7 +1304,8 @@ C**** Check first layer ocean mass
           END IF
 C**** Check ocean salinity in each eighth box for the first layer
  230      SALIM = .045
-!!        IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persian Gulf   !.048
+!!        IF(JM == 46 .and. I == 47 .and. J == 30) GOTO 240 ! not Persia
+!                                                         n Gulf   !.048
           IF(.5*ABS(SXMO(I,J,1))+.5*ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J
      *         ,1)).lt.S0M(I,J,1) .and.(.5*ABS(SXMO(I,J,1))+.5
      *         *ABS(SYMO(I,J,1))+BYRT3*ABS(SZMO(I,J,1))+S0M(I,J,1))
@@ -1390,17 +1383,17 @@ C****
 !@auth  Gavin Schmidt/G. Russell/D. Gueyffier
 !@ver   2009/04/23
 C****
-      USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM,MO,imaxj
-      Use STRAITS,       Only: NMST,IST,JST,LMST,MMST
-      Use OCEANR_DIM,    Only: oGRID
-      USE DOMAIN_DECOMP_1D, only : GET
+      Use OCEAN,            Only: IMO=>IM,JMO=>JM,oXYP,LMM,MO,imaxj
+      Use STRAITS,          Only: NMST,IST,JST,LMST,MMST
+      Use OCEANR_DIM,       Only: oGRID
+      USE DOMAIN_DECOMP_1D, Only: GET
       Implicit None
 !@var aOMASS zonal ocean mass per whole latitude band area (kg/m^2)
       Real*8    :: OMASS(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
       Integer*4 :: J_0,J_1,I,J,N
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -1410,15 +1403,15 @@ C****
 
          EndDo
       EndDo
-      
+
       IF(HAVE_SOUTH_POLE) OMASS(2:IMO,1)   = OMASS(1,1)
       IF(HAVE_NORTH_POLE) OMASS(2:IMO,JMO) = OMASS(1,JMO)
 
-C**** Include ocean mass of straits 
+C**** Include ocean mass of straits
       Do N=1,NMST
          I = IST(N,1)
          J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1) 
+        If (J >= J_0 .and. J <= J_1)
      &        OMASS(I,J) = OMASS(I,J) + Sum(MMST(:LMST(N),N))
      &                                     /oXYP(I,J)
       EndDo
@@ -1441,7 +1434,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,N
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -1450,7 +1443,7 @@ C****
             OSALT(I,J) = Sum(S0M(I,J,:LMM(I,J)))/oXYP(I,J)
          EndDo
       EndDo
-      
+
       IF(HAVE_SOUTH_POLE) OSALT(2:IMO,1)   = OSALT(1,1)
       IF(HAVE_NORTH_POLE) OSALT(2:IMO,JMO) = OSALT(1,JMO)
 
@@ -1459,7 +1452,8 @@ C**** Include ocean salt of straits
         I = IST(N,1)
         J = JST(N,1)
         If (J >= J_0 .and. J <= J_1)
-     &    OSALT(I,J) = OSALT(I,J) + Sum(S0MST(:LMST(N),N))/oXYP(I,J)                
+     &    OSALT(I,J) = OSALT(I,J) + Sum(S0MST(:LMST(N),N))/oXYP(I,J)
+
       EndDo
 
       End Subroutine CONSERV_OSL
@@ -1481,7 +1475,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,N
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -1522,7 +1516,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,L,Ip1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
       Call HALO_UPDATE (oGRID, VO, From=South)
@@ -1531,16 +1525,16 @@ C****
          do I=2,IMO
             OKE(I,J) = 0.0
             Do L=1,LMOM(I,J)
-               OKE(I,J) = OKE(I,J) +  
-     &               MO(I,J,L)*(UO(I-1,J,L)**2+UO(I,J,L)**2 
+               OKE(I,J) = OKE(I,J) +
+     &               MO(I,J,L)*(UO(I-1,J,L)**2+UO(I,J,L)**2
      &                        + VO(I,J-1,L)**2+VO(I,J,L)**2 )
             EndDo
          EndDo
 c*     I=1 here
          OKE(1,J) = 0.0
          Do L=1,LMOM(1,J)
-            OKE(1,J) = OKE(1,J) +  
-     &           MO(1,J,L)*(UO(IMO,J,L)**2+UO(1,J,L)**2 
+            OKE(1,J) = OKE(1,J) +
+     &           MO(1,J,L)*(UO(IMO,J,L)**2+UO(1,J,L)**2
      &                    + VO(1,J-1,L)**2+VO(1,J,L)**2 )
          EndDo
       EndDo
@@ -1550,7 +1544,7 @@ C**** OKE at south pole
          OKE(1,1) = 0.
          Do L=1,LMOM(1,1)
             OKE(1,1) = OKE(1,1)+  MO(1,1,L) *
-     &                (1.5*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2) 
+     &                (1.5*(UO(IMO,1,L)**2 + UO(IVSPO,1,L)**2)
      &               + Sum(VO(:,1,L)**2)/IMO)
          EndDo
          OKE(2:IMO,1)=OKE(1,1)
@@ -1589,7 +1583,7 @@ C****
       Integer*4 :: J_0,J_1,I,J,L,Ip1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 C****
-      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1, 
+      Call GET (oGRID, J_STRT=J_0, J_STOP=J_1,
      &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE  )
 
@@ -1599,10 +1593,10 @@ C****
             UMLx2 = 0.
             Do L=1,LMOU(I,J)
                UMLx2 = MO(I,J,L)*(UO(I-1,J,L)+UO(I,J,L))
-            EndDo          
-         
+            EndDo
+
             OAM(I,J) = (.5*UMLx2*oCOSM(J)+RADIUS*OMEGA*oCOSQ(J)*OMASS)
-     &                 *RADIUS 
+     &                 *RADIUS
          EndDo
 c     I=1 here
          OMASS = Sum(MO(1,J,1:LMOM(1,J)))
@@ -1610,11 +1604,11 @@ c     I=1 here
          Do L=1,LMOU(1,J)
             UMLx2 = MO(1,J,L)*(UO(IMO,J,L)+UO(1,J,L))
          EndDo
-         
+
          OAM(1,J) = (.5*UMLx2*oCOSM(J) + RADIUS*OMEGA*oCOSQ(J)*OMASS)*
-     *        RADIUS 
+     *        RADIUS
       EndDo
-      
+
       If (HAVE_SOUTH_POLE) then
          OAM(1,1) = RADIUS*RADIUS*OMEGA*oCOSQ(1)*
      *              Sum(MO(1,1,:LMOM(1,1)))
@@ -2535,8 +2529,6 @@ C****
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM,
      *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO
       Use OCEAN_DYN, Only: MMI, GUP,GDN, SUP,SDN
-
-!      Use DOMAIN_DECOMP_1D, Only: GRID, HALO_UPDATE, NORTH
       Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
       USE OCEANR_DIM, only : grid=>ogrid
 
@@ -3502,8 +3494,6 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 !@ver  1.0
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
      *                 COSI=>COSIC,SINI=>SINIC
-
-!      use domain_decomp_1d, only : grid, get, halo_update, north, south
       use domain_decomp_1d, only : get, halo_update, north, south
       USE OCEANR_DIM, only : grid=>ogrid
 
@@ -3716,7 +3706,7 @@ C**** Surface stress is applied to V component at the North Pole
         VO(I,JMO-1,1) = VO(I,JMO-1,1) +
      *    (oDMVA(I,JMO-1,1)*DXYNO(JMO-1)+
      *    (oDMVA(1,JMO,1)*COSIC(I) - oDMUA(1,JMO,1)*SINIC(I))*DXYSO(JMO)
-     *   + oDMVI(I,JMO-1)*DXYVO(JMO-1)) /  !!  2d0*oDMVI(I,JMO-1)*DXYVO(JMO-1) - error
+     *   + oDMVI(I,JMO-1)*DXYVO(JMO-1)) /
      *  (MO(I,JMO-1,1)*DXYNO(JMO-1) + MO(I,JMO,1)*DXYSO(JMO))
       END DO
       end if
@@ -3729,26 +3719,23 @@ C**** Surface stress is applied to V component at the North Pole
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : grav
-
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
      *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO, OPRESS
-#ifdef TRACERS_OCEAN
-     *     ,TRMO, NTM
-#endif
-
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : ogrid
-
       USE SEAICE, only : Ei,FSSS
-
       USE OFLUXES, only : oRSI, oSOLAR, oE0, oEVAPOR
      *     , oRUNOSI, oERUNOSI, oSRUNOSI
      *     , oFLOWO, oEFLOWO, oAPRESS
      *     , oMELTI, oEMELTI, oSMELTI
      *     , oDMSI, oDHSI, oDSSI
+
+#ifdef TRACERS_OCEAN
+      Use OCEAN, Only: TRMO, NTM
+#endif
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
-     *     , oTRFLOWO, oTREVAPOR
+      Use OFLUXES, Only: oTRFLOWO, oTREVAPOR
      *     , oTRUNOSI, oTRMELTI
 #endif
      *     , oDTRSI
@@ -3795,37 +3782,37 @@ C****
         BYDXYPJ=BYDXYPJ/FOCEAN(I,J) ! no change to results
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
 
-        RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J,1)             !  kg/m^2
-        RUNI = oFLOWO(I,J) + oMELTI(I,J) + oRUNOSI(I,J)               !  kg/m^2
-        ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J,1)                !  J/m^2
-        ERUNI=oEFLOWO(I,J) + oEMELTI(I,J) + oERUNOSI(I,J)             !  J/m^2
-        SRUNO=oSMELTI(I,J)                                            !  kg/m^2
-        SRUNI=oSMELTI(I,J) + oSRUNOSI(I,J)                            !  kg/m^2
+        RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J,1)  !  kg/m^2
+        RUNI = oFLOWO(I,J) + oMELTI(I,J) + oRUNOSI(I,J)    !  kg/m^2
+        ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J,1)     !  J/m^2
+        ERUNI=oEFLOWO(I,J) + oEMELTI(I,J) + oERUNOSI(I,J)  !  J/m^2
+        SRUNO=oSMELTI(I,J)                                 !  kg/m^2
+        SRUNI=oSMELTI(I,J) + oSRUNOSI(I,J)                 !  kg/m^2
         G0ML(:) =  G0M(I,J,:)
         GZML(:) = GZMO(I,J,:)
-        SROX(1)=oSOLAR(1,I,J) ! open water                            !  J/m^2
-        SROX(2)=oSOLAR(3,I,J) ! through ice                           !  J/m^2
+        SROX(1)=oSOLAR(1,I,J) ! open water    J/m^2
+        SROX(2)=oSOLAR(3,I,J) ! through ice   J/m^2
         MO1 = MO(I,J,1)
         SO1 = S0M(I,J,1)
+
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
-        TRUNO(:)=oTRFLOWO(:,I,J)+oTRMELTI(:,I,J)-oTREVAPOR(:,1,I,J)   !  kg/m^2
+        TRUNO(:)=oTRFLOWO(:,I,J)+oTRMELTI(:,I,J)-oTREVAPOR(:,1,I,J)
 #ifdef TRACERS_DRYDEP
-     *       + otrdrydep(:,1,i,j)                                     !  kg/m^2
+     *       + otrdrydep(:,1,i,j)  !  kg/m^2
 #endif
-        TRUNI(:)=oTRFLOWO(:,I,J)+ oTRMELTI(:,I,J) + oTRUNOSI(:,I,J)   !  kg/m^2
+        TRUNI(:)=oTRFLOWO(:,I,J)+ oTRMELTI(:,I,J) + oTRUNOSI(:,I,J)
 #else
         TRUNO(:)=0. ; TRUNI(:)=0.
 #endif
-
 #ifdef TRACERS_GASEXCH_ocean
         !note that TRGASEX is positive down i.e. same sign as
         !TRUNO, while TREVAPOR is positive up.
-        TRUNO(:) = oTRGASEX(:,1,I,J)                                  !  kg/m^2
+        TRUNO(:) = oTRGASEX(:,1,I,J)  !  kg/m^2
+#endif
 #endif
 
-#endif
         CALL OSOURC(ROICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
      *         ,RUNI,ERUNO,ERUNI,SRUNO,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
@@ -3882,16 +3869,14 @@ C**** Add evenly over open ocean and ice covered areas
         END DO
 
 C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
-
-        oDMSI(1,I,J)=DMOO+SUM(DM0)                                    !  kg/m^2
-        oDMSI(2,I,J)=DMOI+SUM(DM0)                                    !  kg/m^2
-        oDHSI(1,I,J)=DEOO+SUM(DE0)                                    !  J/m^2
-        oDHSI(2,I,J)=DEOI+SUM(DE0)                                    !  J/m^2
-        oDSSI(1,I,J)=DSOO+SUM(DS0)                                    !  kg/m^2
-        oDSSI(2,I,J)=DSOI+SUM(DS0)                                    !  kg/m^2
+        oDMSI(1,I,J)=DMOO+SUM(DM0)  !  kg/m^2
+        oDMSI(2,I,J)=DMOI+SUM(DM0)  !  kg/m^2
+        oDHSI(1,I,J)=DEOO+SUM(DE0)  !  J/m^2
+        oDHSI(2,I,J)=DEOI+SUM(DE0)  !  J/m^2
+        oDSSI(1,I,J)=DSOO+SUM(DS0)  !  kg/m^2
+        oDSSI(2,I,J)=DSOI+SUM(DS0)  !  kg/m^2
 
 #ifdef TRACERS_OCEAN
-
         oDTRSI(:,1,I,J)=DTROO(:)+SUM(DTR0(:,:),DIM=2)
         oDTRSI(:,2,I,J)=DTROI(:)+SUM(DTR0(:,:),DIM=2)
 #endif
@@ -3921,17 +3906,25 @@ C**** is consistent for OGEOZ calculation).
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
+
+      USE SW2OCEAN, only : lsrpd,fsr,fsrz
+      USE SEAICE, only : fsss, Ei
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm,trname
 #endif
-      USE SW2OCEAN, only : lsrpd,fsr,fsrz
-      USE SEAICE, only : fsss, Ei
+
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: ROICE,DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI
      *     ,SROX(2),SRUNO,SRUNI
       INTEGER, INTENT(IN) :: LMIJ
       REAL*8, INTENT(INOUT) :: MO,G0ML(LSRPD),GZML(LSRPD),S0M
       REAL*8, INTENT(OUT) :: DMOO,DMOI,DEOO,DEOI,DSOO,DSOI
+      REAL*8 MOO,GOO,GMOO,GMOI,MOI,GOI,SMOO,SMOI,SOO,SOI,GFOO,GFOI,TFOO
+     *     ,TFOI,SIOO,SIOI
+      REAL*8 GFREZS,TFREZS,TSOL
+      INTEGER L,LSR,N
+
 #ifdef TRACERS_OCEAN
       REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM
       REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI
@@ -3941,12 +3934,9 @@ C**** is consistent for OGEOZ calculation).
       REAL*8 fracls
 #endif
 #endif
-      REAL*8 MOO,GOO,GMOO,GMOI,MOI,GOI,SMOO,SMOI,SOO,SOI,GFOO,GFOI,TFOO
-     *     ,TFOI,SIOO,SIOI
-      REAL*8 GFREZS,TFREZS,TSOL
-      INTEGER L,LSR,N
 
       DMOO=0. ; DEOO=0. ; DMOI=0. ; DEOI=0. ; DSOO=0. ; DSOI=0.
+
 #ifdef TRACERS_OCEAN
       DTROI(:) = 0. ; DTROO(:) = 0.
       do n=1,ntm
@@ -3968,10 +3958,10 @@ C****
 #ifdef TRACERS_OCEAN
       TMOO(:) = TROM(:)*BYDXYPJ+TRUNO(:)
 #endif
+
       IF (ROICE.lt.1d0) THEN
 C**** Remove insolation from layer 1 that goes to lower layers
       IF (LSR.gt.1) GMOO = GMOO - SROX(1)*FSR(2)
-
       GOO  = GMOO/MOO
       SOO  = SMOO/MOO
       GFOO = GFREZS(SOO)
@@ -4051,7 +4041,7 @@ C****
      *     , trmo,dxypo
 #endif
 
-      USE DOMAIN_DECOMP_1D, only : get  
+      USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : oGRID
 
 #ifdef TRACERS_WATER
@@ -4141,8 +4131,6 @@ C****
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
-
-!      USE DOMAIN_DECOMP_1D, ONLY : grid, GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
@@ -4751,19 +4739,19 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE CONSTANT, only : tf
+      USE RESOLUTION, only : ima=>im,jma=>jm
+      USE OCEANRES,   only : LMO_MIN
+      USE MODEL_COM, only : FOCEAN
+      Use GEOM,      only : IMAXJ
+      USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
+     *     , aOGEOZ, aOGEOZ_SV
+      Use DOMAIN_DECOMP_1D, Only: grid, get
+
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE OCN_TRACER_COM, only : trw0, ntm
 #endif
-      USE RESOLUTION, only : ima=>im,jma=>jm
-      USE OCEANRES,   only : LMO_MIN
-
-      USE MODEL_COM, only : FOCEAN
-      Use GEOM,      only : IMAXJ
-
-      USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
-     *     , aOGEOZ, aOGEOZ_SV
 #ifdef TRACERS_OCEAN
-     *     , aTRAC
+      Use AFLUXES, Only: aTRAC
 #endif
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
      *      gtempr
@@ -4773,8 +4761,6 @@ C****
 #ifdef TRACERS_GASEXCH_ocean
      *     ,trgasex
 #endif
-
-      use domain_decomp_1d, only : grid, get
 
       IMPLICIT NONE
       INTEGER I,J
