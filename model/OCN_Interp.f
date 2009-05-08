@@ -167,6 +167,7 @@
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       CALL INT_OG2AG(MO,aMO, oWEIGHT, oLM,2,.FALSE.)
 
+      oG0(:,:,:) = 0.d0
       oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
       DO L = 1,2
         DO J=oJ_0,oJ_1
@@ -179,6 +180,7 @@
       END DO
       CALL INT_OG2AG(oG0,aG0, oWEIGHT, 2,2,.TRUE.)
 
+      oS0(:,:,:) = 0.d0
       DO L = 1,2
         DO J=oJ_0,oJ_1
           DO I=oI_0,oIMAXJ(J)
