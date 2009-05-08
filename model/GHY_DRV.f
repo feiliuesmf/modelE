@@ -1454,6 +1454,7 @@ c another surface type
       end do loop_j
 !$OMP  END PARALLEL DO
 
+
       ! land water deficit for changing lake fractions
       !!! not working with Ent
 !#ifndef USE_ENT
@@ -4547,17 +4548,13 @@ cddd            endif
             if( fv <= 0.d0 )
      &           fr_snow_ij(2,i,j) = min( .95d0, fr_snow_ij(2,i,j) )
 
-            !print *,"FR_SNOW  after" ,i,j,fr_snow_ij(1:2,i,j)
             if ( fr_snow_ij(1,i,j) > 1.d0 .or.
      &           fr_snow_ij(2,i,j) > 1.d0 ) then 
-              write(0,*) "FR_SNOW_ERROR" ,
-     &        i,j,dfrac,fearth(i,j),fr_snow_ij(1:2,i,j)
-              fr_snow_ij(1,i,j) = min( 1.d0, fr_snow_ij(1,i,j) )
-              fr_snow_ij(2,i,j) = min( 1.d0, fr_snow_ij(2,i,j) )
+              print *,"FR_SNOW_ERROR" ,
+     &             i,j,dfrac,fearth(i,j),fb,fv,fr_snow_ij(1:2,i,j)
+              call stop_model(
+     &             "update_land_fractions: fr_snow_ij > 1",255)
             endif
-
-c          call stop_model(
-c     &           "update_land_fractions: fr_snow_ij > 1",255)
 
           endif
 
@@ -4583,6 +4580,7 @@ c**** Also reset snow fraction for albedo computation
           DGML(i,j) = 0.d0
         enddo
       enddo
+
 
       !call conserv_wtg_1(w_after_j,fearth,flake)
       !print *,"UPDATE_LF CONS_WTRG ", w_after_j-w_before_j
@@ -4842,7 +4840,8 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 #ifdef USE_ENT
       call ent_get_exports( entcells(i,j),
      &     fraction_of_vegetated_soil=fv )
-      if ( fv > 1.d0 - 1d-6 ) fv = 1.d0  ! get rid of round-off errors
+      if ( fv > 1.d0 - 1.d-6 ) fv = 1.d0  ! get rid of round-off errors
+      if ( fv < 1.d-6 ) fv = 0.d0         ! get rid of round-off errors
       fb = 1.d0 - fv
 #else
       fb = afb(i,j)

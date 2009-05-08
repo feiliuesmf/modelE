@@ -2068,8 +2068,8 @@ ccc get necessary data from ent
      &     albedo=albedo_6b
      &     )
 ccc make sure there are no round-off errors in fractions
-      if ( fv < .0001d0 ) fv = 0.d0
-      if ( fv > 1.d0 - .0001d0 ) fv = 1.d0
+      if ( fv < 1.d-6 ) fv = 0.d0
+      if ( fv > 1.d0 - 1.d-6 ) fv = 1.d0
       fb = 1.d0 - fv
       snowm = height_can*.1d0 ! snow masking depth
       ws(0,2) = ws_can

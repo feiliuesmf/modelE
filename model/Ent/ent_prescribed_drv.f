@@ -320,7 +320,8 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       character*80 :: title
       real*4 :: buf(im,jm)
       integer :: iu_VEG
-      integer :: k
+      integer :: k,i,j
+      real*8 :: s
 
       ! Make sure that unused fractions are set to 0
       vdata(:,:,:) = 0.d0
@@ -334,6 +335,27 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       end do
       !print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
       call closeunit(iu_VEG)
+
+      ! make sure that veg fractions are reasonable
+      do j=J0,J1
+        do i=I0,I1
+          do k=1,N_COVERTYPES
+            ! get rid of unreasonably small fractions
+            if ( vdata(k,i,j) < 1.d-4 ) vdata(k,i,j) = 0.d0
+          enddo
+          s = sum( vdata(:,i,j) )
+          if ( s > .9d0 ) then
+            vdata(:,i,j) = vdata(:,i,j)/s
+          else if ( s < .1d0 ) then
+            print *, "missing veg data at ",i,j,"assume bare soil"
+            vdata(1, i,j) = 1.d0
+            vdata(2:,i,j) = 0.d0
+          else
+            call stop_model("Incorrect data in VEG file",255)
+          endif
+        enddo
+      enddo
+          
       end subroutine prescr_get_vdata
 
 !**************************************************************************
