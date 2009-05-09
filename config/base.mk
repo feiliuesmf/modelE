@@ -32,7 +32,13 @@ endif
 #default target:
 default: $(LIB)
 
-
+#hack to overwrite the list of sources from rundeck
+ifdef OVERWRITE_FSRCS
+FSRCS = $(OVERWRITE_FSRCS)
+endif
+ifdef OVERWRITE_F90SRCS
+F90SRCS = $(OVERWRITE_F90SRCS)
+endif
 
 OBJS = $(FSRCS:.f=.o) $(CSRCS:.c=.o) $(F90SRCS:.F90=.o)
 FSRCS_CPP = $(FSRCS:.f=.f.cpp)
