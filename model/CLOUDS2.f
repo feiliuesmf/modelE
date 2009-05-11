@@ -2488,7 +2488,7 @@ c          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
           ELSE
 !            RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=.5*RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
-     *           *(1.+pl(l)*xRICld)
+C    *           *(1.+pl(l)*xRICld)
             RCLD=MIN(RCLD,RIMAX)
           END IF
           RCLDE=RCLD/BYBR       !  effective droplet radius in anvil
@@ -3659,7 +3659,7 @@ C** Use Qaut definition based on Rotstayn and Liu (2005, GRL)
             RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
             RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
-     *         *(1.+pl(l)*xRICld)
+C    *         *(1.+pl(l)*xRICld)
           END IF
        CALL GET_QAUT(L,PL(L),TL(L),FCLD,WMX(L),SCDNCW,RCLD,RHOW,
      *r6,r6c,QCRIT,QAUT)
@@ -3733,7 +3733,7 @@ C    *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
           ELSE
 !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=.5*RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
-     *         *(1.+pl(l)*xRICld)
+C    *         *(1.+pl(l)*xRICld)
             RCLD=MIN(RCLD,RIMAX)
           END IF
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
@@ -4548,7 +4548,8 @@ c     write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l),l
 !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
           RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           QHEATC=(QHEAT(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
-          IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
+C         IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
+          IF(RCLD.GT.RWMAX.AND.PREP(L).GT.QHEATC) RCLD=RWMAX
           RCLDE=RCLD/BYBR
 #ifdef BLK_2MOM
 c        if(l.eq.1) write(6,*)"7th check BLK_2M",RCLDE,RCLD
@@ -4560,7 +4561,7 @@ c        if(l.eq.1) write(6,*)"8th check BLK_2M",RCLDE
         ELSE
 !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
           RCLD=.5*RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
-     *         *(1.+pl(l)*xRICld)
+C    *         *(1.+pl(l)*xRICld)
           RCLD=MIN(RCLD,RIMAX)
           RCLDE=RCLD/BYBR
 #ifdef BLK_2MOM
