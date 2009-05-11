@@ -3,7 +3,7 @@
 #undef TRACERS_ON
 #endif
 !@sum RAD_DRV contains drivers for the radiation related routines
-!@ver  1.0
+!@ver  2009/05/11
 !@cont init_RAD, RADIA
 C**** semi-random cloud overlap (computed opt.d+diagn)
 C**** to be used with R99E or later radiation  routines.  carbon/2
@@ -39,7 +39,7 @@ C****
      *     ,kradia,lm_req,pednl00,jyear,iyear1
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
 #ifndef CUBE_GRID
-      USE GEOM, only : lat_dg 
+      USE GEOM, only : lat_dg
 #endif
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
      &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
@@ -342,7 +342,7 @@ caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
-      if (rad_interact_tr.gt.0) then  
+      if (rad_interact_tr.gt.0) then
 C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
         FS8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0 , 1d0/)
         FT8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
@@ -350,7 +350,7 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
       NTRACE=0
       NTRIX(1:NMODES)=
      *     (/ n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
+     *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
      *        n_N_BC2_1 ,n_N_BC3_1,
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
 #endif
@@ -761,7 +761,7 @@ C**** REPLICATE VALUES AT POLE
       IF(HAVE_NORTH_POLE) then
        if (FOCEAN(1,JM).gt.0) CHL(2:IM,JM)=CHL(1,JM)
       ENDIF
-      IF(HAVE_SOUTH_POLE) then 
+      IF(HAVE_SOUTH_POLE) then
        if (FOCEAN(1, 1).gt.0) CHL(2:IM, 1)=CHL(1, 1)
       ENDIF
 #endif
@@ -1267,7 +1267,7 @@ C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
           LOC_CHL = chl(I,J)
           AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+CHL(I,J)*FOCEAN(I,J)
-!         write(*,'(a,3i5,e12.4)')'RAD_DRV:', 
+!         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
       endif
 #endif
@@ -1720,8 +1720,8 @@ c set for BC-albedo effect
        SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
        TNFST(2,n,I,J)=TRNFLB(LFRC)
        FSTOPX(:) = onoff !turns on online tracer
-       FTTOPX(:) = onoff ! 
-       ENDIF   
+       FTTOPX(:) = onoff !
+       ENDIF
 #endif
 C**** Optional calculation of CRF using a clear sky calc.
       if (cloud_rad_forc.gt.0) then
@@ -2114,18 +2114,18 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
          end if
       end do
  590  continue
-      
+
       END DO
-C**** 
+C****
 C**** END OF MAIN LOOP FOR I INDEX
-C**** 
+C****
  600  CONTINUE
-C**** 
+C****
 C**** END OF MAIN LOOP FOR J INDEX
-C**** 
+C****
 !$OMP  END DO
 !$OMP  END PARALLEL
-      
+
 
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
@@ -2145,9 +2145,9 @@ C**** save all input data to disk if kradia<0
 C**** output data: really needed only if kradia=2
      &     ,srhra,trhra         ! 2(LM+LM_REQ+1)
      &     ,itime
-C**** 
+C****
 C**** ACCUMULATE THE RADIATION DIAGNOSTICS
-C**** 
+C****
       bydpreq(:) = 1d0/(req_fac_d(:)*pmtop)
       DO 780 J=J_0,J_1
          DO 770 I=I_0,IMAXJ(J)
@@ -2181,7 +2181,7 @@ C****
               ENDDO
             END IF
             END DO
-            
+
       DO IT=1,NTYPE
          call inc_aj(I,J,IT,J_SRINCP0,(S0*CSZ2)*FTYPE(IT,I,J))
          call inc_aj(I,J,IT,J_SRNFP0 ,(SNFS(3,I,J)*CSZ2)*FTYPE(IT,I,J))
@@ -2199,13 +2199,13 @@ C****
       END DO
 C**** Note: confusing because the types for radiation are a subset
          call inc_aj(I,J,ITOCEAN,J_SRNFG,(FSF(1,I,J)*CSZ2)*FOCEAN(I,J)
-     *        *(1.-RSI(I,J))) 
+     *        *(1.-RSI(I,J)))
          call inc_aj(I,J,ITLAKE ,J_SRNFG,(FSF(1,I,J)*CSZ2)* FLAKE(I,J)
-     *        *(1.-RSI(I,J))) 
+     *        *(1.-RSI(I,J)))
          call inc_aj(I,J,ITEARTH,J_SRNFG,(FSF(4,I,J)*CSZ2)*FEARTH(I,J))
          call inc_aj(I,J,ITLANDI,J_SRNFG,(FSF(3,I,J)*CSZ2)* FLICE(I,J))
          call inc_aj(I,J,ITOICE ,J_SRNFG,(FSF(2,I,J)*CSZ2)*FOCEAN(I,J)
-     *        *RSI(I,J)) 
+     *        *RSI(I,J))
          call inc_aj(I,J,ITLKICE,J_SRNFG,(FSF(2,I,J)*CSZ2)* FLAKE(I,J)
      *        *RSI(I,J))
 C****
@@ -2281,7 +2281,7 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
 #ifdef  TRACERS_AMP
          IF (AMP_DIAG_FC) THEN
-            NTRACE = nmodes 
+            NTRACE = nmodes
          ELSE
             NTRACE = 1
             NTRIX(1) = 1
@@ -2405,7 +2405,7 @@ c longwave forcing at surface (if required)
          ELSE
          NTRIX(1)=  n_N_AKK_1
          ENDIF
-#endif 
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
 c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
 c    &              +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
@@ -2828,7 +2828,7 @@ C****
 !@+   Variations of Daily Insolation", published by Institut
 !@+   D'Astronomie de Geophysique, Universite Catholique de Louvain,
 !@+   Louvain-la Neuve, No. 18.
-!@+ 
+!@+
 !@+   Tables and equations refer to the first reference (JAS).  The
 !@+   corresponding table or equation in the second reference is
 !@+   enclosed in parentheses.  The coefficients used in this
@@ -3468,7 +3468,7 @@ C****
       END SUBROUTINE old_ORBPAR
 
       SUBROUTINE ORBIT (DOBLIQ,ECCEN,DOMEGVP,VEDAY,EDPY, DAY,
-     *                  SDIST,SIND,COSD,EQTIME)
+     *                  SDIST,SIND,COSD,SUNLON,SUNLAT,EQTIME)
 C****
 C**** ORBIT receives orbital parameters and time of year, and returns
 C**** distance from Sun, declination angle, and Sun's overhead position.
@@ -3537,11 +3537,11 @@ C****
       USE CONSTANT, only : twopi,pi,radian
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DOBLIQ,ECCEN,DOMEGVP,DAY,VEDAY,EDPY
-      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,EQTIME
+      REAL*8, INTENT(OUT) :: SIND,COSD,SDIST,SUNLON,SUNLAT,EQTIME
 
       REAL*8 MA,OMEGVP,OBLIQ,EA,DEA,BSEMI
      *     ,TAofVE,EAofVE,MAofVE,SUNDIS,TA,SUNX,SUNY,SLNORO
-     *     ,VEQLON,ROTATE,SUNLON,SUNLAT,SLMEAN
+     *     ,VEQLON,ROTATE,SLMEAN
 c      REAL*8, PARAMETER :: EDAYzY=365.2425d0, VE2000=79.3125d0
 c      REAL*8, PARAMETER :: EDAYzY=365d0, VE2000=79d0  ! original parameters
       REAL*8  EDAYzY,VE2000

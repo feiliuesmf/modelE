@@ -2,7 +2,7 @@
       PROGRAM GISS_modelE
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
-!@ver  1.0 (Based originally on B399)
+!@ver  2009/05/11 (Based originally on B399)
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE PARAM
@@ -712,7 +712,7 @@ C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
 
 C**** THINGS TO DO BEFORE ZEROING OUT THE ACCUMULATING ARRAYS
 C**** (after the end of a diagn. accumulation period)
-      IF (MOD(Itime,NDAY).eq.0) then 
+      IF (MOD(Itime,NDAY).eq.0) then
       IF (months.ge.NMONAV .and. JDAY.eq.1+JDendOfM(JMON-1)) then
 
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
@@ -919,7 +919,7 @@ C**** Rundeck parameters:
       call sync_param( "PP_SDRAG", PP_SDRAG )
       call sync_param( "ANG_SDRAG", ANG_SDRAG )
       call sync_param( "Wc_Jdrag", Wc_Jdrag )
-      call sync_param( "VSDRAGL", VSDRAGL, lm-ls1+1 )                           
+      call sync_param( "VSDRAGL", VSDRAGL, lm-ls1+1 )
       call sync_param( "wmax", wmax )
       call sync_param( "do_polefix", do_polefix )
       call sync_param( "NDASF", NDASF )
@@ -1042,11 +1042,11 @@ C****
 #endif
       USE SOMTQ_COM, only : tmom,qmom
 #ifdef CUBE_GRID
-       use GEOM, only : geom_cs,imaxj  
+       use GEOM, only : geom_cs,imaxj
 #else
        USE GEOM, only : geom_b,imaxj
 #endif
-#ifdef CUBE_GRID 
+#ifdef CUBE_GRID
       use fftw_com
 #endif
       USE DIAG_ZONAL, only : imlon
@@ -1287,7 +1287,7 @@ C****
 #ifdef CALCULATE_FLAMMABILITY
       write(6,*) '...and calculating sfc veg flammability'
 #endif
-#ifdef CALCULATE_LIGHTNING   
+#ifdef CALCULATE_LIGHTNING
       write(6,*) '...and calculating lightning flash rate'
 #endif
 #ifdef ALTER_BIOMASS_BY_FIRE
@@ -1488,7 +1488,7 @@ c in these cases, assume input U/V are on the A grid
 c assume input U/V are on the B grid.  Need to calculate A-grid winds.
         call recalc_agrid_uv
 c the latlon version of recalc_agrid_uv does not fill the poles.
-c replicate polar data to avoid compiler traps in INPUT only.  
+c replicate polar data to avoid compiler traps in INPUT only.
         if(have_south_pole) then
           ualij(1,2:im,1) = ualij(1,1,1)
           valij(1,2:im,1) = valij(1,1,1)
@@ -2100,7 +2100,8 @@ C****
 c      USE ATMDYN, only : CALC_AMPK
       use RAD_COSZ0, only : daily_cosz
       IMPLICIT NONE
-      REAL*8 DELTAP,PBAR,SMASS,LAM,xCH4,xdH2O,EDPY,VEDAY,pyear
+      REAL*8 :: DELTAP,PBAR,SMASS,SUNLON,SUNLAT,LAM,xCH4,xdH2O,EDPY,
+     $          VEDAY,PYEAR
       REAL*8 :: CMASS(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                grid%J_STRT_HALO:grid%J_STOP_HALO)
       INTEGER i,j,l,iy,it
@@ -2138,16 +2139,16 @@ C**** Default calculation (no leap, VE=Mar 21 hr 0)
       EDPY=365d0 ; VEDAY=79d0           ! Generic year
 C**** Set orbital parameters appropriately
       if (calc_orb_par_year.ne.0.and.JDAY.eq.1) then ! calculate from paleo-year
-        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year 
+        pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
         ! 0 BP is defined as 1950CE
         call orbpar(pyear, eccn, obliq, omegt)
         write(out_line,*)
         call write_parallel(trim(out_line),unit=6)
         write(out_line,*) " Orbital Parameters Calculated:"
         call write_parallel(trim(out_line),unit=6)
-        write(out_line,*) 
+        write(out_line,*)
      *  "   Calculating Orbital Params for year : ",
-     *  pyear,"     (CE);", ' JYEAR, IYEAR1,calc_orb_par_year=', 
+     *  pyear,"     (CE);", ' JYEAR, IYEAR1,calc_orb_par_year=',
      *  JYEAR,IYEAR1,calc_orb_par_year
         call write_parallel(trim(out_line),unit=6)
         call write_parallel(trim(out_line),unit=6)
@@ -2166,7 +2167,7 @@ C**** Set orbital parameters appropriately
         call write_parallel(trim(out_line),unit=6)
       end if
       CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
-     *     ,RSDIST,SIND,COSD,LAM)
+     *     ,RSDIST,SIND,COSD,SUNLON,SUNLAT,LAM)
       call daily_cosz(sind,cosd)
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
