@@ -1805,7 +1805,7 @@ c
         k=k+1
         lname_ij(k) = 'SW AER ATMOS. ABSORPTION N='//char(N+48)
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swaerrf_toa_'//char(n+48)
+        name_ij(k) = 'swaeraa_toa_'//char(n+48)
         ia_ij(k) = ia_rad
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
@@ -1816,7 +1816,7 @@ c
         k=k+1
         lname_ij(k) = 'LW AER ATMOS. ABSORPTION N='//char(N+48)
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwaerrf_toa_'//char(n+48)
+        name_ij(k) = 'lwaeraa_toa_'//char(n+48)
         ia_ij(k) = ia_rad
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
@@ -1862,7 +1862,7 @@ c
       IJ_SWAERABSNT = k   ! NET Atm. abs. by aerosol (W/m**2) 
       lname_ij(k) = 'SW AER ATMOS. ABSORPTION NET'
       units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swaerrf_toa_net'
+      name_ij(k) = 'swaeraa_toa_net'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
@@ -1871,7 +1871,7 @@ c
       IJ_LWAERABSNT = k         ! NET Atm. abs. by aerosol (W/m**2) 
       lname_ij(k) = 'LW AER ATMOS. ABSORPTION NET'
       units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwaerrf_toa_net'
+      name_ij(k) = 'lwaeraa_toa_net'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
