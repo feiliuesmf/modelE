@@ -58,8 +58,8 @@
       real*8, parameter :: airt_min_w = 5.d0
       !ld_threshold (minute): light length constraint for cold-deciduous woody PFTs (White et al. 1997)
       real*8, parameter :: ld_threshold = 655.d0
-      real*8, parameter :: ld_min =600.d0
-      real*8, parameter :: ld_max =610.d0
+      real*8, parameter :: ld_min =540.d0
+      real*8, parameter :: ld_max =550.d0
       !tsoil_threshold1, tsoil_threshold2 : soil temperature constraint for cold-deciduous woody PFTs (White et al. 1997)
 !      real*8, parameter :: tsoil_threshold1 = 11.15d0
 !      real*8, parameter :: tsoil_threshold2 = 2.d0
@@ -337,7 +337,7 @@
                  ncd =0.d0
                  gdd =0.d0
                else
-                 phenostatus=2
+                 phenostatus=4
                end if
             end if 
          end if
@@ -534,7 +534,7 @@
          cop%C_fol = phenofactor * Cactive *ialloc
          cop%C_froot = Cactive * qf * ialloc
          cop%C_sw = Cactive * h *qsw * ialloc
-
+ 
          !----------------------------------------------------
          !*structural/active/reproductive
          !----------------------------------------------------
@@ -1927,7 +1927,7 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
       type(cohort), pointer ::cop
       integer :: cohortnum
      
-         write(990,'(2(i5),24(1pe16.8))')
+         write(990,'(2(i5),2(1pe16.8),1(i5),21(1pe16.8))')
      &        cohortnum,
      &        cop%pft,  
      &        cop%phenofactor_c,
