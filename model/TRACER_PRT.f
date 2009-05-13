@@ -1059,12 +1059,8 @@ C****
       INTEGER, DIMENSION(JM) :: MLAT
       REAL*8, DIMENSION(JM) :: ASUM
       REAL*8, DIMENSION(2) :: FHEM,HSUM,PJSUM
-      INTEGER :: IWORD,J,JHEMI,K,L
+      INTEGER :: J,JHEMI,L
       REAL*8 :: FGLOB,FLATJ,GSUM,SDSIG
-
-cBMP - added
-      REAL*8, DIMENSION(JM) :: FLAT
-cBMP - added
 
 !?    REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
       REAL*8, DIMENSION(JM+3,LM+1) :: XJL ! for binary output
@@ -1089,41 +1085,43 @@ C****
 C**** CALCULATE TABLE NUMBERS AND WRITE THEM TO THE LINE PRINTER
 C****
       XJL(:,:) = undef
+      MLAT(:) = -1d5
       SDSIG = 1.-SIGE(LMAX+1)
       ASUM(:) = 0.
       HSUM(:) = 0.
       GSUM = 0.
-      DO 240 L=LMAX,1,-1
+      DO L=LMAX,1,-1
       FGLOB = 0.
 
 c GISS-ESMF EXCEPTIONAL CASE
 c   Hemisphere specific Loops and I/O issues, plus
 c   N-Hemi, S-Hemi, and Global Sums
 
-
-      DO 230 JHEMI=1,2
-      FHEM(JHEMI) = 0.
-      PJSUM(JHEMI)= 0.
-      DO 220 J=JRANGE_HEMI(1,JHEMI,JG),JRANGE_HEMI(2,JHEMI,JG)
-      FLATJ = AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
-      IF (JWT.eq.3) FLATJ=FLATJ/PDSIGJL(J,L)
-         XJL(J,L) = FLATJ
-      MLAT(J) = NINT(MAX(-1d5,MIN(FLATJ,1d5))) ! prevent integer overflow
-      IF (JWT.EQ.1) THEN
-        ASUM(J) = ASUM(J)+FLATJ  !!!!most
-        FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
-      ELSEIF (JWT.EQ.2) THEN
-        ASUM(J) = ASUM(J)+FLATJ*DSIG(L)/SDSIG  !!!! concentration
-        FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
-      ELSEIF (JWT.EQ.3) THEN   !! mass and area weighting
-        ASUM(J) = ASUM(J)+FLATJ*PDSIGJL(J,L)
-        FHEM(JHEMI)=FHEM(JHEMI)+FLATJ*WTJ(J,2,JG)*PDSIGJL(J,L)
-        PJSUM(JHEMI)=PJSUM(JHEMI)+WTJ(J,2,JG)*PDSIGJL(J,L)
-      ENDIF
-  220 CONTINUE   ! loop over J
-      FGLOB = FGLOB+FHEM(JHEMI)/REAL(MIN(JWT,2),KIND=8)
-      IF (JWT.eq.3) FHEM(JHEMI) = FHEM(JHEMI) / PJSUM(JHEMI)
- 230  CONTINUE   ! loop over hemisphere
+      DO JHEMI=1,2
+        FHEM(JHEMI) = 0.
+        PJSUM(JHEMI)= 0.
+        DO J=JRANGE_HEMI(1,JHEMI,JG),JRANGE_HEMI(2,JHEMI,JG)
+          if (AX(J,L).ne.undef) then
+            FLATJ = AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
+            IF (JWT.eq.3) FLATJ=FLATJ/PDSIGJL(J,L)
+            XJL(J,L) = FLATJ
+            MLAT(J) = NINT(MAX(-1d5,MIN(FLATJ,1d5))) ! prevent integer overflow
+            IF (JWT.EQ.1) THEN
+              ASUM(J) = ASUM(J)+FLATJ !!!!most
+              FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
+            ELSEIF (JWT.EQ.2) THEN
+              ASUM(J) = ASUM(J)+FLATJ*DSIG(L)/SDSIG !!!! concentration
+              FHEM(JHEMI) = FHEM(JHEMI)+FLATJ*WTJ(J,JWT,JG)
+            ELSEIF (JWT.EQ.3) THEN !! mass and area weighting
+              ASUM(J) = ASUM(J)+FLATJ*PDSIGJL(J,L)
+              FHEM(JHEMI)=FHEM(JHEMI)+FLATJ*WTJ(J,2,JG)*PDSIGJL(J,L)
+              PJSUM(JHEMI)=PJSUM(JHEMI)+WTJ(J,2,JG)*PDSIGJL(J,L)
+            ENDIF
+          end if
+        END DO                  ! loop over J
+        FGLOB = FGLOB+FHEM(JHEMI)/REAL(MIN(JWT,2),KIND=8)
+        IF (JWT.eq.3) FHEM(JHEMI) = FHEM(JHEMI) / PJSUM(JHEMI)
+      END DO                    ! loop over hemisphere
 
       IF (JWT.EQ.1) THEN
         HSUM(1) = HSUM(1)+FHEM(1)
@@ -1144,7 +1142,7 @@ C**** Output for each layer
          XJL(JM+2,L)=FHEM(2)   ! NORTHERN HEM
          XJL(JM+1,L)=FGLOB     ! GLOBAL
       WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),(MLAT(J),J=JM,JG,-INC)
-  240 CONTINUE   ! loop over Layer
+      END DO                    ! loop over Layer
       WRITE (6,905) (DASH,J=JG,JM,INC)
       IF (JWT.eq.3) THEN ! scale integrated sums to look neater
         ASUM(:)= ASUM(:)*1d-3
@@ -1152,8 +1150,9 @@ C**** Output for each layer
         GSUM   = GSUM   *1d-3
       END IF
       ASUM(jmby2+1) = ASUM(jmby2+1)/JG
-         DO 180 J=JG,JM
-  180    XJL(J   ,LM+1)=ASUM(J)
+         DO J=JG,JM
+           XJL(J   ,LM+1)=ASUM(J)
+         END DO
          XJL(JM+3,LM+1)=HSUM(1)   ! SOUTHERN HEM
          XJL(JM+2,LM+1)=HSUM(2)   ! NORTHERN HEM
          XJL(JM+1,LM+1)=GSUM      ! GLOBAL
@@ -1642,7 +1641,7 @@ C****
       character(len=sname_strlen) :: name
       character(len=units_strlen) :: units
       character(len=lname_strlen) :: lname
-      real*8 :: gm,nh,sh, off, byiacc,scale
+      real*8 :: gm,nh,sh, byiacc,scale
 !@var isumz,isumg = 1 or 2 if zon,glob sums or means are appropriate
       integer isumz,isumg,k1
 
