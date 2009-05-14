@@ -55,7 +55,7 @@ ccc   converting constants from 1/kg to 1/m^3
 #ifdef ECOSYSTEM_SCALE
       real*8, parameter :: prfr = 1.d0
 #else
-      real*8, parameter :: prfr = 0.1d0
+      real*8, parameter :: prfr = 0.2d0
 #endif
 ccc   data needed for debugging
 
@@ -1292,6 +1292,7 @@ c**** surface runoff
         satfrac = 0.d0!!!(w(1,ibv)/ws(1,ibv))
 #else
         satfrac = (w(1,ibv)/ws(1,ibv))**rosmp
+        satfrac = min( satfrac, 0.6d0) !Niuetal 2006:max satfrac ~0.5 (set to 0.6 until further checking done)
 #endif
         rnf(ibv) = satfrac * water_down
         water_down = (1.d0 - satfrac) * water_down
