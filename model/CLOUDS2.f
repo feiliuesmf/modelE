@@ -102,7 +102,7 @@ C     REAL*8 :: U00MAX = .99d0      ! maximum U00 for water clouds
       REAL*8 :: HRMAX = 1000.d0     ! default (m)
 !@dbparam RIMAX maximum ice cloud size
 !@dbparam RWMAX maximum water cloud size
-      REAL*8 :: RIMAX = 35.d0, RWMAX = 20.d0      ! microns
+      REAL*8 :: RIMAX = 100.d0, RWMAX = 20.d0      ! microns
 !@dbparam RWCldOX multiplies part.size of water clouds over ocean
       REAL*8 :: RWCldOX=1.d0
 !@dbparam RICldX multiplies part.size of ice clouds at 1000mb
@@ -2487,7 +2487,7 @@ c          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
             RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCW))**BY3
           ELSE
 !            RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-            RCLD=.5*RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
+            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*MCDNCI))**BY3
 C    *           *(1.+pl(l)*xRICld)
             RCLD=MIN(RCLD,RIMAX)
           END IF
@@ -3732,7 +3732,7 @@ C    *         WTEM=1d2*WMUI*PL(L)/(TL(L)*RGAS)
             RCLD=RCLDX*1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           ELSE
 !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-            RCLD=.5*RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+            RCLD=RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
 C    *         *(1.+pl(l)*xRICld)
             RCLD=MIN(RCLD,RIMAX)
           END IF
@@ -4560,7 +4560,7 @@ c        if(l.eq.1) write(6,*)"8th check BLK_2M",RCLDE
 #endif
         ELSE
 !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
-          RCLD=.5*RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+          RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
 C    *         *(1.+pl(l)*xRICld)
           RCLD=MIN(RCLD,RIMAX)
           RCLDE=RCLD/BYBR
