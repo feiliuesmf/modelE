@@ -11,12 +11,15 @@
       real*4, dimension(:), allocatable :: lat_dg,vmean,plm,ple,pm
       real*4, dimension(:,:), allocatable :: xjl,xjl_hemis
       character(len=30) :: units
-      character(len=80) :: lname,title
+      character(len=80) :: lname,title,outfile
       character(len=40) :: vname,vname_hemis,vname_vmean
       character(len=8) :: tpow
       character(len=4) :: dash='----'
       real*4 :: prtfac,fglob,fnh,fsh
-      integer :: j,l,jm,lm,inc,lstr,prtpow,linect
+      integer :: j,l,jm,lm,inc,lstr,prtpow,linect,nargs,k1,k2,lunit
+      logical :: do_giss
+      real*4, parameter :: missing=-1.e30
+
 c
 c Various string formats
 c
@@ -27,6 +30,24 @@ c
      &     plm_dimid,ple_dimid
       character(len=132) :: xlabel
       character(len=100) :: fromto
+
+      nargs = iargc()
+
+c
+c Look at command-line arguments to see whether GISS-convention
+c fortran-format binary output was requested
+c
+      k1 = index(progargs,'gissfmt=')
+      do_giss = k1.gt.0
+      if(do_giss) then
+        do k2=k1+8,len_trim(progargs)
+          if(progargs(k2:k2).eq.' ') exit
+        enddo
+        outfile=progargs(k1+8:k2-1)
+        lunit = 10
+        open(lunit,file=trim(outfile),form='unformatted',
+     &       convert='big_endian')
+      endif
 
 c
 c get run ID, time/date info, number of latitudes and levels
@@ -83,18 +104,15 @@ c
         status = nf_get_var_real(fid,varid_hemis,xjl_hemis)
         status = nf_get_var_real(fid,varid_vmean,vmean)
         status = nf_get_var_real(fid,varid,xjl)
-        where(xjl.eq.-1.e30) xjl=0.
-        where(xjl_hemis.eq.-1.e30) xjl_hemis=0.
-        where(vmean.eq.-1.e30) vmean=0.
 
 c
 c form title string and rescale fields for ASCII output
 c
         if(prtpow.ne.0) then
           prtfac = 10.**(-prtpow)
-          xjl = xjl*prtfac
-          xjl_hemis = xjl_hemis*prtfac
-          vmean = vmean*prtfac
+          where(xjl.ne.missing) xjl = xjl*prtfac
+          where(xjl_hemis.ne.missing) xjl_hemis = xjl_hemis*prtfac
+          where(vmean.ne.missing) vmean = vmean*prtfac
           write (tpow, '(i3)') prtpow
           tpow='10**'//trim(adjustl(tpow))
           units = trim(tpow)//' '//trim(units)
@@ -112,8 +130,26 @@ c
         endif
 
 c
+c write binary output
+c
+        if(do_giss) then
+          write(lunit) title,jm,lm,1,1,
+     &         xjl,
+     &         lat_dg,pm,
+     &         real(1.,kind=4),real(1.,kind=4),
+     &         'LATITUDE        ',
+     &         'PRESSURE (MB)   ',
+     &         '                ','                ','NASAGISS',
+     &         vmean,
+     &         xjl_hemis
+        endif
+
+c
 c print table
 c
+        where(xjl.eq.missing) xjl=0.
+        where(xjl_hemis.eq.missing) xjl_hemis=0.
+        where(vmean.eq.missing) vmean=0.
         linect = linect + lm + 7
         if(linect.gt.60) then
           write(6,'(a)') xlabel
@@ -135,6 +171,7 @@ c
         fnh  =vmean(jm+2)
         fglob=vmean(jm+3)
         write(6,903) '    ',fglob,fnh,fsh,(nint(vmean(j)),j=jm,inc,-inc)
+
       enddo
 
 c
@@ -142,6 +179,11 @@ c deallocate workspace
 c
       deallocate(lat_dg,vmean,xjl,xjl_hemis)
       deallocate(plm,ple,pm)
+
+c
+c close binary output file
+c
+      if(do_giss) close(lunit)
 
       return
   901 FORMAT ('0',30X,A64/2X,32('-'),24A4)
