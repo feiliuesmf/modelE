@@ -287,7 +287,7 @@ c             ! p4(l)=km(l)*as2(l)-kh(l)*an2(l)
 c         end do
 c         x_surf=0.5d0*b123*ustar2
 c         call de_solver_edge(e,e0,ke,p3,p4,
-c    &        rhobydze,bydzrhoe,x_surf,dtime,lm,.true.)
+c    &        rhobydze,bydzrhoe,x_surf,dtime,lm)
 
           do l=1,lm
               qturb(l)=sqrt(2.d0*e(l))
@@ -364,7 +364,7 @@ C**** fix first layer for rare tracer problems
 cc          call diff_mom(trmomij)
           end do
 #endif
-c         call find_pbl_top(e,ze,dbl,ldbl,lm)
+          call find_pbl_top(e,ze,dbl,ldbl,lm)
           dclev(i,j)=real(ldbl)
 
 C**** calculate possible energy loss
@@ -1125,6 +1125,7 @@ C****
       return
       end subroutine e_gcm
 
+
       subroutine find_pbl_top(e,ze,dbl,ldbl,n)
 !@sum find_pbl_top finds the pbl top (at main level)
 !@auth  Ye Cheng
@@ -1145,17 +1146,24 @@ C****
       real*8, intent(out) :: dbl
       integer, intent(out) :: ldbl
 
-      real*8, parameter :: dbl_max=3000.,fraction = 0.1d0
+      real*8, parameter :: dbl_max=5000.,fraction = 0.1d0
       real*8 :: e1p    ! a fraction of e(1)
+      real*8 :: zl
       integer :: l
 
+      ! dbl is at main layer
+
       e1p=fraction*e(1)
+      ldbl=1
+      zl=.5d0*(ze(1)+ze(2))
       do l=2,n
-        if (e(l).lt.e1p) exit
+        zl=.5d0*(ze(l-1)+ze(l))
+        if (e(l).lt.e1p .or. zl.gt.dbl_max) then
+           ldbl=l-1
+           dbl=zl
+           exit
+        endif
       end do
-      ldbl=l-1
-      dbl=.5d0*(ze(l-1)+ze(l))  ! dbl is at main layer (l-1)
-      dbl=min(dbl,dbl_max)
 
       return
       end subroutine find_pbl_top
