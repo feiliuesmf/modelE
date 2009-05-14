@@ -29,10 +29,16 @@ cat > driver.f << EOF
       call getarg(1,ifile)
       progargs=''
       if(nargs.gt.1) then
-         call getarg(2,progargs)
-         do iarg=3,nargs
+         do iarg=2,nargs
            call getarg(iarg,argstr)
-           progargs=trim(progargs)//' '//trim(argstr)
+           if(trim(argstr).eq.'gissfmt') then
+             argstr='gissfmt='//ifile(1:len_trim(ifile)-3) ! no .nc suffix
+           endif
+           if(iarg.eq.2) then
+             progargs=argstr
+           else
+             progargs=trim(progargs)//' '//trim(argstr)
+           endif
          enddo
       endif
       status = nf_open(trim(ifile),nf_nowrite,ifid)
