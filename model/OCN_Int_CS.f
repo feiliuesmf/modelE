@@ -540,7 +540,7 @@ C***  Interpolate aA_glob from ocean grid to atmospheric grid
       call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,aA_glob,aArea)
 
 C***  Scatter global array aA_glob to the atmospheric grid
-      CALL ATM_UNPACK (agrid, xaA_glob, aA)
+      CALL ATM_UNPACK (agrid, aA_glob, aA)
 
       DEALLOCATE(aA_glob,aArea,oFtemp)
       
