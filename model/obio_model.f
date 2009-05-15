@@ -36,7 +36,7 @@
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day
-     .                    ,tot_chlo,acdom3d
+     .                    ,tot_chlo,acdom3d,pnoice
 #ifdef OBIO_ON_GARYocean
      .                    ,itest,jtest,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
@@ -797,12 +797,13 @@ cdiag     endif
          tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)=alk1d(k)
         enddo
 #endif
-
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
+
+!maybe we need to smooth dic here....
 
 #ifdef OBIO_ON_GARYocean
       !update trmo etc arrays
@@ -814,7 +815,7 @@ cdiag     endif
 
         if (dtr.lt.0) then
           ftr = -dtr/trmo(i,j,k,nt)
-          txmo(i,j,k,nt)=trmo(i,j,k,nt)*(1.-ftr)
+          txmo(i,j,k,nt)=txmo(i,j,k,nt)*(1.-ftr)
           tymo(i,j,k,nt)=tymo(i,j,k,nt)*(1.-ftr)
           tzmo(i,j,k,nt)=tzmo(i,j,k,nt)*(1.-ftr)       
         endif
@@ -877,7 +878,7 @@ cdiag  endif
 
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
-       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j) ! surf ocean pco2
+       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
 #endif
 
 !       if (diagno_bio) then

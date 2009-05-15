@@ -188,23 +188,34 @@ c pCO2
      .           obio_P(1,1),obio_P(1,3),atmCO2,
      .           pCO2_ij,pHsfc)
 
-      !limits on pco2 ---more work needed
-      if (pCO2_ij .lt.  50.) pCO2_ij=50.
+!note: pco2 is computed as if it is 100% open ocean cell. This is why
+!in the flux computation below we need to take into account pnoice
+!also in the diagnostics
+
+!     !limits on pco2 ---more work needed
+! ppco2 does not handle well the extreme salinity cases, such as
+! when ice melts/forms, in river outflows.
+      if (saln1d(1).ge.40. .and. pCO2_ij.lt.100.)pCO2_ij=100.
+      if (saln1d(1).le.31. .and. pCO2_ij.gt.800.)pCO2_ij=800.
+      if (pCO2_ij .lt. 100.) pCO2_ij=100.
       if (pCO2_ij .gt.1000.) pCO2_ij=1000.
 
       if(vrbos)then
-!       write(*,'(/,a,3i5,7e12.4)')
-!    . 'before ppco2: ',nstep,i,j,temp1d(1),saln1d(1),
-!    .                  car(1,2),alk1d(1),
-!    .                  obio_P(1,1),obio_P(1,3),atmCO2
-
-        write(*,'(a,3i5,2e12.4)')
-     .    'carbon: ONLINE',nstep,i,j,pCO2_ij,pHsfc
+        write(*,'(a,3i5,9e12.4)')
+     .    'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
+     .               car(1,2),alk1d(1),
+     .               obio_P(1,1),obio_P(1,3),pCO2_ij,
+     .               pHsfc,pnoice
       endif
+
 #else
+
       call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
-      if(vrbos)write(*,'(a,3i5,e12.4)')
-     .    'carbon: OFFLINE',nstep,i,j,pCO2_ij
+      if (vrbos) then
+         write(*,'(a,3i5,6e12.4)')
+     .    'carbon: OFFLINE',nstep,i,j,temp1d(1),saln1d(1),
+     .                      car(1,2),alk1d(1),pCO2_ij,pHsfc
+      endif
 #endif
 
 c Update DIC for sea-air flux of CO2
@@ -359,6 +370,7 @@ c
 c  Computes pCO2 in the surface layer and delta pCO2 with the 
 c  atmosphere using OCMIP protocols.
 c
+
       USE obio_dim, only: ALK_CLIM
       USE obio_incom, only: pHmin,pHmax
 
@@ -368,11 +380,12 @@ c
       real*8, parameter :: stdslp=1013.25D0  !standard sea level pressure in mb
       real*8, parameter :: Sbar=34.836D0     !global mean annual salinity (area-wt)
 
-      real*8 dtco2
-      real*8 T,S,car1D,TA,nitr,silic,atmCO2,pco2
+      real*8 dtco2,atmCO2
+      real*8 T,S,car1D,TA,nitr,silic,pco2
       real*8 phlo,phhi,ph,atmpres,pHsfc
       real*8 Tsfc,sal,DIC,PO4,Si,dic_in,ta_in,pt_in,sit_in,xco2_in
       real*8 co2star,pco2surf,dpco2
+
 c
 c  Constants
       dtco2 = 0.0
@@ -402,12 +415,17 @@ c  Convert to units for co2calc
        xco2_in = atmco2
        !!!atmpres = slp/stdslp  --not done here; do it in PBL
 c
+!      print*,Tsfc,sal,dic_in,ta_in,pt_in,sit_in,
+!    *      phlo,phhi,ph,xco2_in
+
        call co2calc_SWS(Tsfc,sal,dic_in,ta_in,pt_in,sit_in,
      *      phlo,phhi,ph,xco2_in,co2star,pco2surf)
         pco2 = pco2surf
        !!!dtco2 = dco2star
        pHsfc = pH
 c
+!      print*, 'pco2=',pco2
+
       return
       end
 
@@ -418,12 +436,18 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.22 $
-c_ $Date: 2009/04/10 17:01:39 $   ;  $State: Exp $
+c_ $Revision: 2.23 $
+c_ $Date: 2009/05/15 07:51:34 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.23  2009/05/15 07:51:34  aromanou
+c_
+c_ removing bug from obio_carbon tracer moments calculation
+c_ pco2 diagnostics only over open ocean (*(1-oRSI))
+c_ comments in albedo
+c_
 c_ Revision 2.22  2009/04/10 17:01:39  aromanou
 c_ testing chl=0 in albedo.f and obio_ocalbedo. Rick, you do not need to restart your runs.
 c_
@@ -588,8 +612,19 @@ C	ta_iter_SWS
 C
 C--------------------------------------------------------------------------
 C
-        real invtk,is,is2
-        real k0,k1,k2,kw,kb,ks,kf,k1p,k2p,k3p,ksi
+        implicit none
+
+        real*8 t,s,dic_in,ta_in,pt_in,sit_in,phlo,phhi,
+     .         ph,xco2_in,co2star,pCO2surf
+     
+        real*8 st,ft,ff,x1,x2,xacc,hSWS,hSWS2,bt,scl,s15,s2,sqrtis,
+     .         tk,dic,permeg,xco2,tk100,tk1002,sqrts,permil,pt,sit,ta,
+     .         dlogtk
+
+        real*8 drtsafe
+
+        real*8 invtk,is,is2
+        real*8 k0,k1,k2,kw,kb,ks,kf,k1p,k2p,k3p,ksi
         common /const/k0,k1,k2,kw,kb,ks,kf,k1p,k2p,k3p,ksi,ff,hSWS
         common /species/bt,st,ft,sit,pt,dic,ta
         external ta_iter_SWS
@@ -602,12 +637,17 @@ c       where the ocean's mean surface density is 1024.5 kg/m^3
 c       Note: mol/kg are actually what the body of this routine uses 
 c       for calculations.  
 c       ---------------------------------------------------------------------
-        permil = 1.0 / 1024.5
+        permil = 1.d0 / 1024.5d0
 c       To convert input in mol/m^3 -> mol/kg 
+
+!       print*,permil,pt_in,sit_in,ta_in,dic_in
+
         pt=pt_in*permil
         sit=sit_in*permil
         ta=ta_in*permil
         dic=dic_in*permil
+      
+!       print*,pt,sit,ta,dic
 
 c       ---------------------------------------------------------------------
 C       Change units from uatm to atm. That is, atm is what the body of 
@@ -828,12 +868,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.22 $
-c_ $Date: 2009/04/10 17:01:39 $   ;  $State: Exp $
+c_ $Revision: 2.23 $
+c_ $Date: 2009/05/15 07:51:34 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.23  2009/05/15 07:51:34  aromanou
+c_
+c_ removing bug from obio_carbon tracer moments calculation
+c_ pco2 diagnostics only over open ocean (*(1-oRSI))
+c_ comments in albedo
+c_
 c_ Revision 2.22  2009/04/10 17:01:39  aromanou
 c_ testing chl=0 in albedo.f and obio_ocalbedo. Rick, you do not need to restart your runs.
 c_
@@ -920,8 +966,14 @@ c_
 c_ ---------------------------------------------------------------------
 c_ 
         subroutine ta_iter_SWS(x,fn,df)
-        real k12,k12p,k123p
-        real k0,k1,k2,kw,kb,ks,kf,k1p,k2p,k3p,ksi
+
+        implicit none
+
+        real*8 x,fn,df,b2,db,dic,bt,pt,sit,ta,x3,x2,c,a,a2,da,b,
+     .         st,ft,ff,hSWS
+
+        real*8 k12,k12p,k123p
+        real*8 k0,k1,k2,kw,kb,ks,kf,k1p,k2p,k3p,ksi
         common /const/k0,k1,k2,kw,kb,ks,kf,k1p,k2p,k3p,ksi,ff,hSWS
         common /species/bt,st,ft,sit,pt,dic,ta
 C
@@ -993,12 +1045,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.22 $
-c_ $Date: 2009/04/10 17:01:39 $   ;  $State: Exp $
+c_ $Revision: 2.23 $
+c_ $Date: 2009/05/15 07:51:34 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.23  2009/05/15 07:51:34  aromanou
+c_
+c_ removing bug from obio_carbon tracer moments calculation
+c_ pco2 diagnostics only over open ocean (*(1-oRSI))
+c_ comments in albedo
+c_
 c_ Revision 2.22  2009/04/10 17:01:39  aromanou
 c_ testing chl=0 in albedo.f and obio_ocalbedo. Rick, you do not need to restart your runs.
 c_
@@ -1084,10 +1142,15 @@ c_ Initial revision
 c_
 c_ ---------------------------------------------------------------------
 c_ 
-      REAL FUNCTION DRTSAFE(FUNCD,X1,X2,XACC)
+      REAL*8 FUNCTION DRTSAFE(FUNCD,X1,X2,XACC)
 C
 C	File taken from Numerical Recipes. Modified  R.M.Key 4/94
 C
+      implicit none
+
+      integer j,maxit
+      real*8 xacc,dx,temp,f,df,dxold,swap,xh,xl,x1,fl,x2,fh
+
       MAXIT=100
       CALL FUNCD(X1,FL,DF)
       CALL FUNCD(X2,FH,DF)

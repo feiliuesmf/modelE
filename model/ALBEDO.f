@@ -418,6 +418,11 @@ C
 
 #if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
 C**** chlorophyl modification of albedo
+! bocvn is the diffuse albedo (function of wind speed)
+! xocnv is the direct albedo (function of the solar zenith angle)
+! chlorophyll changes only the diffuse albedo
+! however, direct albedo calculation in obio_ocalbedo is 
+! slightly different than in the default model.
 
       vrbos=.false.
 c     if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
