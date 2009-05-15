@@ -37,6 +37,7 @@ C**** Variables used in DIAG5 calculations
       USE SOMTQ_COM, only : tmom,mz
       USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
      &    ,pua,pva,sda,ps,mb,pk,pmid,pedn
+     &    ,cos_limit
       USE DIAG_COM, only : aij => aij_loc,ij_fmv,ij_fgzv
       USE DOMAIN_DECOMP_1D, only : grid, GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
@@ -116,7 +117,8 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL VDIFF (PB,UX,VX,U,V,T,DTFS)       ! strat
       CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
-      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
+c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
+      call isotropuv(ux,vx,COS_LIMIT)
 C**** INITIAL BACKWARD STEP IS ODD, QT = Q + DT*F(QX)
       MRCH=-1
 C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
@@ -131,7 +133,8 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
 
-      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
+c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
+      call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
 C**** ODD LEAP FROG STEP, QT = QT + 2*DT*F(Q)
   340 MRCH=-2
@@ -146,7 +149,8 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
-      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
+c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
+      call isotropuv(ut,vt,COS_LIMIT)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
 C**** EVEN LEAP FROG STEP, Q = Q + 2*DT*F(QT)
   360 NS=NS+2
@@ -201,12 +205,14 @@ CCC   TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
 !$OMP END PARALLEL DO
 
       CALL CALC_PIJL(LS1-1,PC,PIJL)
+c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
       CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
 
       call compute_mass_flux_diags(PHI, PU, PV, dt)
 
       CALL CALC_AMPK(LS1-1)
-      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
+c      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
+      call isotropuv(u,v,COS_LIMIT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
       CALL SDRAG (DTLF)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
@@ -223,15 +229,17 @@ C**** Restart after 8 steps due to divergence of solutions
       PVA = PVA * DTLF
       SDA(:,:,1:LM-1) = SDA(:,:,1:LM-1) * DTLF
 
-c apply north-south filter to U and V
-c      call conserv_amb_ext(u,am1) ! calculate ang. mom. before filter
-c      call fltry2(u,1d0) ! 2nd arg could be set using DT_YUfilter
-c      call fltry2(v,1d0) ! 2nd arg could be set using DT_YVfilter
-c      call conserv_amb_ext(u,am2) ! calculate ang. mom. after filter
-c      am2(:,j_0stg:j_1stg) = am1(:,j_0stg:j_1stg)-am2(:,j_0stg:j_1stg)
-c      if(have_south_pole) am2(:,1) = 0.
-c      call globalsum(grid,am2,damsum,all=.true.)
-c      call add_am_as_solidbody_rotation(u,damsum) ! maintain global ang. mom.
+c apply east-west filter to U and V once per physics timestep
+      CALL FLTRUV(U,V,UT,VT)
+c apply north-south filter to U and V once per physics timestep
+      call conserv_amb_ext(u,am1) ! calculate ang. mom. before filter
+      call fltry2(u,1d0) ! 2nd arg could be set using DT_YUfilter
+      call fltry2(v,1d0) ! 2nd arg could be set using DT_YVfilter
+      call conserv_amb_ext(u,am2) ! calculate ang. mom. after filter
+      am2(:,j_0stg:j_1stg) = am1(:,j_0stg:j_1stg)-am2(:,j_0stg:j_1stg)
+      if(have_south_pole) am2(:,1) = 0.
+      call globalsum(grid,am2,damsum,all=.true.)
+      call add_am_as_solidbody_rotation(u,damsum) ! maintain global ang. mom.
 
       RETURN
       END SUBROUTINE DYNAM
@@ -1152,17 +1160,10 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
       DO L=1,LS1-1
       DO J=J_0S,J_1S
       DO I=1,IM
-#ifdef FILTER_TESTS
 c adjust pot. temp. to maintain unchanged absolute temp.
-         T(I,J,L)= T(I,J,L)*
+        T(I,J,L)= T(I,J,L)*
      &       ((POLD(I,J)*SIG(L)+PTOP)/(P(I,J)*SIG(L)+PTOP))**KAPA
-#else
-         T(I,J,L)= T(I,J,L)*PRAT(I,J)
-        IF (PRAT(I,J).lt.1.) THEN
-          TMOM(:,I,J,L)=TMOM(:,I,J,L)*PRAT(I,J)
-        END IF
-#endif
-         Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
+        Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
         WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
       END DO
@@ -1326,7 +1327,7 @@ C**********************************************************************
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
      *     INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     *     DUT,DVT,USAVE,VSAVE,DKE
+     *     DUT,DVT,USAVE,VSAVE
       REAL*8 X(IM),YV(max(2*JM,IM)),DP(IM)
       REAL*8 XUby4toN,XVby4toN,YVby4toN,YUby4toN
       REAL*8 :: DT1=0.
@@ -1392,11 +1393,10 @@ C**** Filter V component of velocity
   350 CONTINUE
 !$OMP  END PARALLEL DO
 
-      if(do_polefix.eq.1) then
-         call isotropuv(u,v,COS_LIMIT)
-c         if(have_south_pole) call isotropuv(u,v,-1)
-c         if(have_north_pole) call isotropuv(u,v,+1)
-      endif
+c This routine is now called by subroutine DYNAM
+c      if(do_polefix.eq.1) then
+c         call isotropuv(u,v,COS_LIMIT)
+c      endif
 
 C**** Conserve angular momentum along latitudes
 c***  The following halo is not needed because PDSIG halo is up to date
@@ -1416,8 +1416,6 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
           END DO
           DO I=1,IM
             if (ang_uv.eq.1) U(I,J,L)=U(I,J,L)+ANGM/DPT
-            DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L)
-     *           -USAVE(I,J,L)*USAVE(I,J,L)-VSAVE(I,J,L)*VSAVE(I,J,L))
             DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP(I)
             DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP(I)
           END DO
@@ -1425,11 +1423,9 @@ c***      CALL HALO_UPDATE_COLUMN(grid, PDSIG, FROM=SOUTH)
       END DO
 !$OMP  END PARALLEL DO
 
-C**** Call diagnostics and KE dissipation only for even time step
+C**** Call diagnostics only for even time step
       IF (MRCH.eq.2) THEN
         CALL DIAGCD(grid,5,UT,VT,DUT,DVT,DT1)
-        call regrid_btoa_3d(dke)
-        call addEnergyAsLocalHeat(DKE, T, PK)
       END IF
 
       RETURN
@@ -1634,9 +1630,8 @@ C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
 C**** regime (but not above P_CSDRAG)
       REAL*8 WL,TL,RHO,CDN,X,DP,DPL(LM),du,dps
 !@var DUT,DVT change in momentum (mb m^3/s)
-!@var DKE change in kinetic energy (m^2/s^2)
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     *        DUT,DVT,DKE
+     *        DUT,DVT
       INTEGER I,J,L,IP1,K,Lmax
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
@@ -1653,7 +1648,7 @@ c**** Extract domain decomposition info
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-      ang_mom=0. ;  sum_airm=0. ; dke=0. ; dut=0.
+      ang_mom=0. ;  sum_airm=0. ; dut=0.
 C*
       DUT=0. ; DVT=0.
       wmaxp = wmax*3.d0/4.d0
@@ -1695,7 +1690,6 @@ c        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X) ! for a-grid only
         ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
         DUT(I,J,L)=-X*U(I,J,L)*DP
         DVT(I,J,L)=-X*V(I,J,L)*DP
-        DKE(I,J,L)=0.5*(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*(X*X-2.*X)
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
         I=IP1
@@ -1724,16 +1718,12 @@ C*
             DUT(I,J,L) = DUT(I,J,L) + du*dpl(l)
 c            call inc_ajl(i,j,l,JL_DUDTSDRG,du) ! for a-grid only
             ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) +du
-            dke(i,j,l) = dke(i,j,l) + du*(u(i,j,l)+0.5*du)
             U(I,J,L)=U(I,J,L) + du
           end do
           I=IP1
         end do
         end do
       end if
-
-      call regrid_btoa_3d(dke)
-      call addEnergyAsLocalHeat(DKE, T, PK)
 
 C**** conservation diagnostic
 C**** (technically we should use U,V from before but this is ok)
