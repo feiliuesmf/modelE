@@ -442,9 +442,7 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
       END DO
 !$OMP  END PARALLEL DO
-#ifndef CUBE_GRID
       CALL QDYNAM  ! Advection of Q by integrated fluxes
-#endif
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics

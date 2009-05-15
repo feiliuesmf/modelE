@@ -36,8 +36,8 @@ DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm.
 ATMDYN_COM ATM_DUM                  ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_UTILS FV_CS_Mod FV_INTERFACE   
-QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-TQUS_DRV                            ! advection of Q
+QUS_COM QUSDEF                      ! T/Q moments, 1D QUS
+QUScubed                            ! cubed-sphere adaptation of QUS
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
