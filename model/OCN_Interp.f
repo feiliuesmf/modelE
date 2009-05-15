@@ -94,9 +94,9 @@
      *                , oDXYPO=>DXYPO, OXYP, oIMAXJ=>IMAXJ
      *                , oCOSU=>COSU,oSINU=>SINU
      *                , IVSPO=>IVSP,IVNPO=>IVNP
-      Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 
-      USE DOMAIN_DECOMP_1D, only : agrid=>grid, PACK_DATA,UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : MO, UO,VO, G0M
@@ -131,7 +131,6 @@
 
       INTEGER IER, I,J, L, NT
       INTEGER oJ_0,oJ_1, oI_0,oI_1
-
       REAL*8,
      * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
      * oWEIGHT, oFOCEAN_loc
@@ -162,7 +161,7 @@
       ALLOCATE
      *  (opCO2_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT = IER)
 
-      CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
+      CALL OCN_UNPACK (oGRID,oFOCEAN,oFOCEAN_loc)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       CALL INT_OG2AG(MO,aMO, oWEIGHT, oLM,2,.FALSE.)
@@ -297,7 +296,7 @@ C**** surface tracer concentration
 #endif
 #endif
 
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid, PACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
