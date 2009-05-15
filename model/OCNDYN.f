@@ -3734,11 +3734,11 @@ C**** Surface stress is applied to V component at the North Pole
       Use OCEAN, Only: TRMO, NTM
 #endif
 #ifdef TRACERS_OCEAN
+      Use OFLUXES, Only:  oDTRSI
 #ifdef TRACERS_WATER
-      Use OFLUXES, Only: oTRFLOWO, oTREVAPOR
+     *     , oTRFLOWO, oTREVAPOR
      *     , oTRUNOSI, oTRMELTI
 #endif
-     *     , oDTRSI
 #ifdef TRACERS_DRYDEP
      *     , oTRDRYDEP
 #endif
