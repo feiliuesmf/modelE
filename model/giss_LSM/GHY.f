@@ -11,7 +11,7 @@
 
 #ifdef USE_ENT
 #define EVAP_VEG_GROUND
-!#define GHY_FD_1_HACK
+#define GHY_FD_1_HACK
 #endif
 
 !#define RAD_VEG_GROUND
@@ -1274,7 +1274,7 @@ ccc surface runoff was rewritten in a more clear way 7/30/02
 !@var water_down flux of water at the soil surface
 !@var satfrac fraction of saturated soil
 !@var prec_fr soil fraction at which precipitation is falling
-      real*8 water_down, satfrac, prec_fr
+      real*8 water_down, satfrac, prec_fr, water_down_s
       integer ibv,k
 !@var sdstnc interstream distance (m)
       real*8, parameter :: sdstnc = 100.d0
@@ -1287,6 +1287,9 @@ c**** surface runoff
       do ibv=i_bare,i_vege
         water_down = -f(1,ibv)
         water_down = max( water_down, zero ) ! to make sure rnf > 0
+#ifdef GHY_USE_LARGESCALE_PRECIP
+        water_down_s = water_down
+#endif
         ! everything that falls on saturated fraction goes to runoff
 #ifdef ECOSYSTEM_SCALE
         satfrac = 0.d0!!!(w(1,ibv)/ws(1,ibv))
@@ -1298,6 +1301,11 @@ c**** surface runoff
         water_down = (1.d0 - satfrac) * water_down
         ! if we introduce large scale precipitation it should be
         ! applied here
+#ifdef GHY_USE_LARGESCALE_PRECIP
+        ! restrict this algorithm to convective precip
+        water_down_s = water_down
+        if ( pr > 0.d0 ) water_down = water_down * (pr-prs)/pr
+#endif
         !!! the following line is a hack. in a more precise approach
         !!! one should treat snow-free fraction separately
         prec_fr = max( prfr, fr_snow(ibv) )
@@ -1305,6 +1313,11 @@ c**** surface runoff
           rnf(ibv) = rnf(ibv) +
      &         water_down * exp( -xinfc(ibv)*prec_fr/water_down )
         endif
+#ifdef GHY_USE_LARGESCALE_PRECIP
+        water_down_s = water_down_s - rnf(ibv)
+        if ( water_down_s > xinfc(ibv) ) rnf(ibv) = rnf(ibv) +
+     &       (water_down_s-xinfc(ibv))*(1.d0-fr_snow(ibv))
+#endif
       enddo
 
 c**** underground runoff
@@ -2009,6 +2022,13 @@ c**** soils28   common block     9/25/90
       vs0    = vs0_in   
       tprime = tprime_in
       qprime = qprime_in
+
+      !get rid of roundoff (hopefully) errors
+      pr = max( pr, 0.d0 )
+      prs = max( prs, 0.d0 )
+      prs = min( prs, pr )
+
+      !print *,"pr,prs", pr,prs,pr-prs
 
       call init_step
 
