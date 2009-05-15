@@ -17,9 +17,9 @@
 !#define RAD_VEG_GROUND
 !#define ECOSYSTEM_SCALE
 !#define INTERCEPT_TEMPORAL
+!#define LARGE_SCALE_PRECIP_INTERCEPT
 !#define do_topmodel_runoff
 !#define CLIM_SOILMOIST
-
 !-----------------------------------------------------------------------
 
       module sle001
@@ -354,11 +354,7 @@ c**** soils28   common block     9/25/90
 c**** do canopy layer
 c**** here theta is the fraction of canopy covered by water
       if( process_vege .and. ws(0,2).gt.0.d0 )then
-#ifdef ECOSYSTEM_SCALE
-        theta(0,2)=(w(0,2)/ws(0,2))
-#else
         theta(0,2)=(w(0,2)/ws(0,2))**(2.d0/3.d0)
-#endif
       else
         theta(0,2)=0.d0
       endif
@@ -1034,6 +1030,7 @@ c****
 #ifdef INTERCEPT_TEMPORAL
       real*8 :: tau_storm
       real*8 :: f_prev_wet,pr_dry,wc_add,wc_new
+      real*8 :: fw_new,fd_new
 #endif
       real*8 :: ptmp,ptmps,pfac,pm,pmax
       real*8 :: snowf,snowfs,dr,drs
@@ -1053,18 +1050,55 @@ c     snowfs is the large scale snow fall.
         ptmp=pr-prs-(snowf-snowfs)
 
 #ifdef INTERCEPT_TEMPORAL
+
+#ifdef LARGE_SCALE_PRECIP_INTERCEPT !KOSTER-LIKE SCHEME FOR BOTH PRECIP TYPES
+!       Large-scale (e.g stratiform) precipitation falling on dry canopy
+        pr_dry = fd0*ptmps
+!       Max. water added to dry canopy in the fraction covered by precip.
+        wc_add = ws(0,2)-w(0,2)
+!       Potential new water content of canopy
+        wc_new = w(0,2) + min(pr_dry*dts,wc_add)
+!       Update wet and dry canopy fractions
+        fw_new=(wc_new/ws(0,2))**(2.d0/3.d0)
+        fd_new=1.d0-fw_new
+
+!       Convective precipitation falling on dry canopy (using fw_new & fd_new)
         if (prfr <1.d0) then
-!          Timescale for duration of storm over grid fraction
-!          Not applicable for large-scale precip (i.e. not convective)
-!          or at the ecosystem scale
+!          Timescale for duration of convective storm over grid fraction
            tau_storm = 3600.d0
 !          Fraction of precipiation that falls onto leaves previously wetted
            f_prev_wet = 1.d0-(dts/tau_storm)
+!          Convective precipitation falling on dry canopy
+           if (fw_new > prfr) then
+              pr_dry = (1.d0-f_prev_wet)*fd_new*ptmp
+           else
+!             Avoid unrealistic amounts of drip at storm onset
+              pr_dry = (1.d0-f_prev_wet*fw_new/prfr)*fd_new*ptmp
+           endif
+!          Max water added to the dry canopy in the fraction covered by 
+!          convective precipitation
+           wc_add =(1.d0-f_prev_wet)*prfr*(ws(0,2)-wc_new)
+        else
 !          Precipitation falling on dry canopy
+           pr_dry = fd_new*ptmp
+!          Max. water added to dry canopy in the fraction covered by precip.
+           wc_add = ws(0,2)-wc_new
+        endif
+!       Potential new water content of canopy
+        wc_new = wc_new + min(pr_dry*dts,wc_add)
+!       Potential drip from the canopy
+        dr = pr - (wc_new - w(0,2))/dts
+#else   !KOSTER SCHEME ONLY CONSIDERING CONVECTIVE PRECIP
+        if (prfr <1.d0) then
+!          Timescale for duration of convective storm over grid fraction
+           tau_storm = 3600.d0
+!          Fraction of precipiation that falls onto leaves previously wetted
+           f_prev_wet = 1.d0-(dts/tau_storm)
+!          Convective precipitation falling on dry canopy
            if (fw > prfr) then
               pr_dry = (1.d0-f_prev_wet)*fd0*ptmp
            else
-!          Avoid unrealistic amounts of drip at storm onset
+!             Avoid unrealistic amounts of drip at storm onset
               pr_dry = (1.d0-f_prev_wet*fw/prfr)*fd0*ptmp
            endif
 !          Max water added to the dry canopy in the fraction covered by 
@@ -1074,12 +1108,13 @@ c     snowfs is the large scale snow fall.
 !          Precipitation falling on dry canopy
            pr_dry = fd0*ptmp
 !          Max. water added to dry canopy in the fraction covered by precip.
-           wc_add = prfr*(ws(0,2)-w(0,2))
+           wc_add = ws(0,2)-w(0,2)
         endif
 !       Potential new water content of canopy
         wc_new = w(0,2) + min(pr_dry*dts,wc_add)
 !       Potential drip from the canopy
         dr = ptmp - (wc_new - w(0,2))/dts
+#endif
 !       Constrain drip to make sure enough water is available for
 !       canopy evaporation and snow evaporation 
         dr = min( dr, pr-snowf-evapvw*fw )
@@ -1292,7 +1327,7 @@ c**** surface runoff
 #endif
         ! everything that falls on saturated fraction goes to runoff
 #ifdef ECOSYSTEM_SCALE
-        satfrac = 0.d0!!!(w(1,ibv)/ws(1,ibv))
+        satfrac = 0.d0
 #else
         satfrac = (w(1,ibv)/ws(1,ibv))**rosmp
         satfrac = min( satfrac, 0.6d0) !Niuetal 2006:max satfrac ~0.5 (set to 0.6 until further checking done)
