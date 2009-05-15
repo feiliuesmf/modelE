@@ -1065,7 +1065,7 @@ c     snowfs is the large scale snow fall.
               pr_dry = (1.d0-f_prev_wet)*fd0*ptmp
            else
 !          Avoid unrealistic amounts of drip at storm onset
-              pr_dry = (fw/prfr)*(1.d0-f_prev_wet)*fd0*ptmp
+              pr_dry = (1.d0-f_prev_wet*fw/prfr)*fd0*ptmp
            endif
 !          Max water added to the dry canopy in the fraction covered by 
 !          convective precipitation
