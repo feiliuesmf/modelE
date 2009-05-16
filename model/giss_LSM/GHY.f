@@ -16,6 +16,7 @@
 
 !#define RAD_VEG_GROUND
 !#define ECOSYSTEM_SCALE
+!#define GHY_USE_LARGESCALE_PRECIP
 !#define INTERCEPT_TEMPORAL
 !#define LARGE_SCALE_PRECIP_INTERCEPT
 !#define do_topmodel_runoff
@@ -237,7 +238,7 @@ ccc   i.e. they are not multiplied by any fr_...
 !@var htdripw heat of drip water (similar for bare soil) (J/s)
 !@var drips snow flux from canopy (similar for bare soil) (m/s)
 !@var htdrips heat of drip snow (similar for bare soil) (J/s)
-      real*8 dripw(2), htdripw(2), drips(2), htdrips(2)
+      real*8 dripw(2), htdripw(2), drips(2), htdrips(2), dripw_scale(2)
 
 !@var evap_tot total evap. (weighted with fr_snow,fm)(bare/veg)(m/s)
 !@var snsh_tot total sens. heat(weighted with fr_snow,fm)(bare/veg)(W/m^2)
@@ -314,7 +315,7 @@ C***
 !----------------------------------------------------------------------!
      &     ,i_bare,i_vege,process_bare,process_vege
      &     ,betadl,ws_can,shc_can,tg2av,wtr2av,ace2av
-     &     ,tg_L,wtr_L,ace_L
+     &     ,tg_L,wtr_L,ace_L,dripw_scale
 c     not sure if it works with derived type. if not - comment the
 c     next line out (debug_data used only for debug output)
 c    &     ,debug_data           ! needs to go to compile on COMPAQ
@@ -1033,10 +1034,12 @@ c****
       real*8 :: fw_new,fd_new
 #endif
       real*8 :: ptmp,ptmps,pfac,pm,pmax
-      real*8 :: snowf,snowfs,dr,drs
+      real*8 :: snowf,snowfs,dr,drs,dr_scale
       real*8 :: melt_w, melt_h
       integer :: ibv
 
+!     drip due to large scale precip is 0 by default
+      dr_scale = 0.d0
 c     calculate snow fall.  snowf is snow fall, m s-1 of water depth.
       snowf=0.d0
       if(htpr.lt.0.d0)snowf=min(-htpr/fsn,pr)
@@ -1046,6 +1049,7 @@ c     snowfs is the large scale snow fall.
       if ( process_vege ) then
 !       ptmps is large-scale rain minus canopy evaporation
         ptmps=prs-snowfs-evapvw*fw
+        ptmps=max(ptmps, 0.d0)
 !       ptmp is the convective rainfall rate
         ptmp=pr-prs-(snowf-snowfs)
 
@@ -1061,6 +1065,7 @@ c     snowfs is the large scale snow fall.
 !       Update wet and dry canopy fractions
         fw_new=(wc_new/ws(0,2))**(2.d0/3.d0)
         fd_new=1.d0-fw_new
+        dr_scale = ptmps - (wc_new - w(0,2))/dts
 
 !       Convective precipitation falling on dry canopy (using fw_new & fd_new)
         if (prfr <1.d0) then
@@ -1121,6 +1126,7 @@ c     snowfs is the large scale snow fall.
         dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
         dr = max( dr, 0.d0 )    ! just in case 
         dripw(2) = dr
+        dripw_scale(2) = dr_scale
 #else
 !      Original GISS drip scheme
         pm=1d-6
@@ -1140,6 +1146,7 @@ c     snowfs is the large scale snow fall.
         dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
         dr = max( dr, 0.d0 )    ! just in case (probably don''t need it)
         dripw(2) = dr
+        dripw_scale(2) = dr_scale
 #endif
         htdripw(2) = shw*dr*max(tp(0,2),0.d0) !don''t allow it to freeze
 !      Snow falls through the canopy
@@ -1147,6 +1154,7 @@ c     snowfs is the large scale snow fall.
         htdrips(2) = min ( htpr, 0.d0 ) ! liquid H20 is 0 C, so no heat
       else  ! no vegetated fraction
         dripw(2) = 0.d0
+        dripw_scale(2) = 0.d0
         htdripw(2) = 0.d0
         drips(2) = 0.d0
         htdrips(2) = 0.d0
@@ -1155,10 +1163,12 @@ c     snowfs is the large scale snow fall.
       drips(1) = snowf
       htdrips(1) = min( htpr, 0.d0 )
       dripw(1) = pr - drips(1)
+      dripw_scale(1) = prs - snowfs
       htdripw(1) = htpr - htdrips(1)
       if ( snow_cover_same_as_rad .ne. 0 ) then
 #define TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
 #ifdef TRY_TO_MELT_FRESH_SNOW_ON_WARM_GROUND
+        !!! this water may need to be added to dripw_scale...
         do ibv=1,2
           if ( tp(1,ibv) > 0.d0 ) then
             melt_w = (1.d0-fr_snow(ibv)) * drips(ibv)
@@ -1310,6 +1320,8 @@ ccc surface runoff was rewritten in a more clear way 7/30/02
 !@var satfrac fraction of saturated soil
 !@var prec_fr soil fraction at which precipitation is falling
       real*8 water_down, satfrac, prec_fr, water_down_s
+!@var f1_conv part of f(1,ibv) corresponding to convestive precip
+      real*8 f1_conv(2)
       integer ibv,k
 !@var sdstnc interstream distance (m)
       real*8, parameter :: sdstnc = 100.d0
@@ -1318,29 +1330,50 @@ ccc surface runoff was rewritten in a more clear way 7/30/02
       rnff(:,:) = 0.d0
       rnf(:) = pr  ! hack to conserve water (for ibv != 0,1)
                    ! - should be set to 0 after testing
+
+#ifdef GHY_USE_LARGESCALE_PRECIP
+      !========  new surface runoff algorithm ==============
+      if ( process_bare )
+     &     f1_conv(1) = - (dripw(1)-evapb -dripw_scale(1))
+      if ( process_vege )
+     &     f1_conv(2) = - (dripw(2)-evapvg-dripw_scale(2))
+
 c**** surface runoff
       do ibv=i_bare,i_vege
-        water_down = -f(1,ibv)
-        water_down = max( water_down, zero ) ! to make sure rnf > 0
-#ifdef GHY_USE_LARGESCALE_PRECIP
-        water_down_s = water_down
-#endif
-        ! everything that falls on saturated fraction goes to runoff
 #ifdef ECOSYSTEM_SCALE
         satfrac = 0.d0
 #else
         satfrac = (w(1,ibv)/ws(1,ibv))**rosmp
         satfrac = min( satfrac, 0.6d0) !Niuetal 2006:max satfrac ~0.5 (set to 0.6 until further checking done)
 #endif
+        ! for all water (drip, snowmelt etc.)
+        rnf(ibv) = satfrac * max( -f(1,ibv), 0.d0 )
+        ! for convective drip (to snow-free unsaturated fraction)
+        if ( f1_conv(ibv) > 1.d-30 )
+     &       rnf(ibv) = rnf(ibv) + (1.d0-fr_snow(ibv)) * (1.d0-satfrac)
+     &       * f1_conv(ibv) * exp( -xinfc(ibv)*prfr/f1_conv(ibv) )
+        ! the rest of water of water falls on entire unsaturated fraction
+        water_down = -f(1,ibv) - rnf(ibv)
+        water_down = max( water_down, 0.d0 )
+        if ( water_down > 1.d-30 )
+     &       rnf(ibv) = rnf(ibv) + (1.d0-satfrac)
+     &       * water_down * exp( -xinfc(ibv)/water_down )
+      enddo
+#else
+      !======== old surface runoff algorithm ===============
+      do ibv=i_bare,i_vege
+        water_down = -f(1,ibv)
+        water_down = max( water_down, zero ) ! to make sure rnf > 0
+        ! everything that falls on saturated fraction goes to runoff
+#ifdef ECOSYSTEM_SCALE
+        satfrac = 0.d0!!!(w(1,ibv)/ws(1,ibv))
+#else
+        satfrac = (w(1,ibv)/ws(1,ibv))**rosmp
+#endif
         rnf(ibv) = satfrac * water_down
         water_down = (1.d0 - satfrac) * water_down
         ! if we introduce large scale precipitation it should be
         ! applied here
-#ifdef GHY_USE_LARGESCALE_PRECIP
-        ! restrict this algorithm to convective precip
-        water_down_s = water_down
-        if ( pr > 0.d0 ) water_down = water_down * (pr-prs)/pr
-#endif
         !!! the following line is a hack. in a more precise approach
         !!! one should treat snow-free fraction separately
         prec_fr = max( prfr, fr_snow(ibv) )
@@ -1348,12 +1381,8 @@ c**** surface runoff
           rnf(ibv) = rnf(ibv) +
      &         water_down * exp( -xinfc(ibv)*prec_fr/water_down )
         endif
-#ifdef GHY_USE_LARGESCALE_PRECIP
-        water_down_s = water_down_s - rnf(ibv)
-        if ( water_down_s > xinfc(ibv) ) rnf(ibv) = rnf(ibv) +
-     &       (water_down_s-xinfc(ibv))*(1.d0-fr_snow(ibv))
-#endif
       enddo
+#endif
 
 c**** underground runoff
 c     sl is the slope, sdstnc is the interstream distance
@@ -2062,6 +2091,10 @@ c**** soils28   common block     9/25/90
       pr = max( pr, 0.d0 )
       prs = max( prs, 0.d0 )
       prs = min( prs, pr )
+
+#ifndef GHY_USE_LARGESCALE_PRECIP
+      prs = 0.d0
+#endif
 
       !print *,"pr,prs", pr,prs,pr-prs
 

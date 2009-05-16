@@ -1243,11 +1243,7 @@ ccc switch to Ca from tracers
      &     fv,
      &     prec(i,j)/(dtsrc*rhow),
      &     eprec(i,j)/dtsrc,
-#ifdef GHY_USE_LARGESCALE_PRECIP
      &     precss(i,j)/(dtsrc*rhow),    !0.d0,
-#else
-     &     0.d0,
-#endif
      &     0.d0, ! computed inside
      &     srheat,
      &     trheat,
