@@ -1304,7 +1304,8 @@ C**** Reduce EPLUME so that mass flux is less than mass in box
       ETAL1=EPLUME/MPOLD
       FENTR=ETAL1*FPOLD
       ENT(L)=0.001d0*FENTR/(GZL(L)*FPOLD)
-      FPLUME=FPLUME+FENTR
+      FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
+c      FPLUME = MPLUME*BYAM(L) ! and use this instead
       FENTRA = EPLUME*BYAM(L)
       DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
       DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
