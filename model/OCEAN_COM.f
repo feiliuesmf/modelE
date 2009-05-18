@@ -58,6 +58,7 @@ C**** ocean geometry (should this be in a separate module?)
      *     DLATM,   !@var DLATM latitudinal spacing in minutes
      *     FJEQ     !@var FJEQ location of equator in grid units 
      *   , oDLAT_DG ! grid spacing in latitude (deg) 
+     *   , oDLON_DG ! grid spacing in longitude (deg) 
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: OXYP
 

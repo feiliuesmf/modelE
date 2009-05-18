@@ -14,7 +14,7 @@ C****
      *                 COSM,COSQ, SINxY,TANxY, DXPGF,DYPGF,
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
      *                 J1O, JMPF=>J40S, IMAXJ
-     *               , oDLAT_DG, oLAT_DG, oLON_DG
+     *               , oDLAT_DG, oLAT_DG, oDLON_DG, oLON_DG
      *               , OXYP,oLAT2D_DG 
       USE DOMAIN_DECOMP_1D, only : halo_update
       USE OCEANR_DIM, only : oGRID
@@ -37,6 +37,7 @@ C****
 
 C**** Define some key values that depend on resolution (and grid)
       DLON   = TWOPI/IM
+      oDLON_DG = 360./IM
       FJEQ   = .5*(1+JM)
       oDLAT_DG = NINT(180./JM)                 ! even spacing (i.e. 2x2.5, 1Qx1)
       if (jm==46) oDLAT_DG = NINT(180./(JM-1)) ! half polar box

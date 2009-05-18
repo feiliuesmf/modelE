@@ -127,10 +127,8 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJM,SFIJS,ADENOM
       REAL*8, DIMENSION(IM,JM,LMO) :: Q3
-      REAL*8, DIMENSION(LMO,NMST) :: AS
 c for now we are assuming that igrid=jgrid in arguments to pout_ij
-      INTEGER I,J,K,L,NS,N,KB,IJGRID,IP1,k1,KK
-     *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
+      INTEGER I,J,K,L,N,KB,IJGRID,IP1,k1,KK
       INTEGER :: LMINEF=1, LMAXEF=LMO, KVMF(3) = (/ 3, 6, 9/),
      *           LMINMF=1, LMAXMF=1,   KCMF(3) = (/ 3, 6, 9/),
      *           LMINSF=1, LMAXSF=LMO, KVDC(3) = (/ 3, 6, 9/)
@@ -896,8 +894,7 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
-      INTEGER I,J,K,L,NS,N,KB,IP1,LP1
-     *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
+      INTEGER I,J,K,L,NS,N,KB,IP1,LP1,JEQ
       REAL*8 FAC,FACST
       CHARACTER TITLE*80
       CHARACTER(len=lname_strlen) :: lname
@@ -1005,8 +1002,8 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO,NMST) :: AS
       INTEGER I,J,K,L,NS,N,KB,IP1
-     *     ,LMSTMIN(LMO),SUMORMN(LMO),JEQ,JDLAT,KXLB
-      REAL*8 GOS,SOS,FAC,FACST,SCALEO(10),TSUM,TEMGS,MQ
+     *     ,LMSTMIN(LMO),SUMORMN(LMO)
+      REAL*8 SCALEO(10),MQ
       CHARACTER*40, DIMENSION(KOLNST) :: NAME = ""
       CHARACTER :: TITLE*80
 C****
@@ -1305,7 +1302,7 @@ C****
       USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,ndyno,dypo,dts,dxvo
-     *     ,dxypo
+     *     ,dxypo, oDLAT_DG, oDLON_DG
       USE DIAG_COM, only : qdiag,zoc
      &     ,sname_strlen,units_strlen,lname_strlen
       USE ODIAG
@@ -1317,7 +1314,6 @@ C****
 #endif
 #endif
       IMPLICIT NONE
-      INTEGER, PARAMETER :: NSEC=3, NBAS=4
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
       REAL*8 XB0(JM,LMO,0:NBAS),X0(IM,LMO),XS(IM,LMO),
      *     XBG(JM,LMO,0:NBAS),XBS(JM,LMO,0:NBAS),XG(IM,LMO)
@@ -1330,15 +1326,7 @@ C****
       CHARACTER(len=units_strlen) :: units
       CHARACTER LABI*16,LABJ*16
       character*50 :: unit_string
-C**** these parameters control the output (Resolution dependent!)
-C****  latitudinal sections: at ILON from 1 to JM
-C****      Defaults:  3 (Pacific), 30 (Atlantic), 49 (Indian)
-C****  longitudinal sections: at JLAT starting at I1 (with wrap around)
-C****      Defaults:  7 (South. Oc), 23 (Eq), 35 (sub-trop gyre)
-C****      overlaps across the dateline to avoid splitting Pacific
-      INTEGER*4 :: JLAT(NSEC) = (/ 7,23,33/), ILON(NSEC) = (/ 3,30,49/),
-     *     I1=41, KITR(3)
-      INTEGER I,J,L,KB,ISEC,II,ILAT,JLON,N
+      INTEGER I,J,L,KB,ISEC,II,ILON,JLAT,N,I1
       REAL*8 GOS,SOS,TEMGS,ASUM(IM),GSUM,ZONAL(LMO)
 
       IF (QDIAG) then
@@ -1464,8 +1452,8 @@ C****
 #ifdef TRACERS_OCEAN
         XBT = undef
 #endif
-        IF (ILON(ISEC).ne.-1) THEN
-          I=ILON(ISEC)
+        IF (SEC_LON(ISEC).ne.-1) THEN
+          I=nint( .5*im + SEC_LON(ISEC)/odlon_dg)
           IF (I.le.IM/2) THEN
             EW="W"
           ELSE
@@ -1500,10 +1488,10 @@ c     *                   *trw0(n))-1.)
               END IF
             END DO
           END DO
-          ILAT=ABS(NINT(-182.5+ILON(ISEC)*5.))
-          WRITE(LABI,'(I3,A1)') ILAT,EW
+          ILON=SEC_LON(ISEC)-odlon_dg*0.5
+          WRITE(LABI,'(I3,A1)') ILON,EW
           TITLE(1:50)="Temperature Section         (C)"
-          WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
+          WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
           SNAME="Temp_"//adjustl(labi)
           UNITS="C"
@@ -1511,7 +1499,7 @@ c     *                   *trw0(n))-1.)
           CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           TITLE(1:50)="Salinity Section            (ppt)"
-          WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
+          WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
           SNAME="Salt_"//adjustl(labi)
           UNITS="ppt"
@@ -1526,7 +1514,7 @@ c     *                   *trw0(n))-1.)
             UNITS=unit_string(ntrocn(n),'kg/kg')
           end if
           TITLE(1:50)=trname(n)//" Section          ("//TRIM(UNITS)//")"
-          WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
+          WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
           SNAME=trim(trname(n))//"_"//adjustl(labi)
           XJL(1:JM,1:LMO)=XBT(1:JM,1:LMO,1,N)
@@ -1555,10 +1543,10 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
               END IF
             END DO
           END DO
-          ILAT=ABS(NINT(-180.+ILON(ISEC)*5.))
-          WRITE(LABI,'(I3,A1)') ILAT,EW
+          ILON=SEC_LON(ISEC)
+          WRITE(LABI,'(I3,A1)') ILON,EW
           TITLE(1:50)=" EW Mass Flux            (kg/s m^2)"
-          WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
+          WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
           SNAME="EWmflx_"//adjustl(labi)
           UNITS="kg/s m^2"
@@ -1566,7 +1554,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
           CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           TITLE(1:50)=" EW Heat Flux            (10^6 J/s m^2)"
-          WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
+          WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
           SNAME="EWhflx_"//adjustl(labi)
           UNITS="10^6 J/s m^2"
@@ -1574,7 +1562,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
           CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
           TITLE(1:50)=" EW Salt Flux            (10^6 kg/s m^2)"
-          WRITE(TITLE(21:25),'(I3,A1)') ILAT,EW
+          WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
           SNAME="EWsflx_"//adjustl(labi)
           UNITS="10^6 kg/s m^2"
@@ -1586,19 +1574,22 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
 C****
 C**** Latitudinal sections
 C****
+C**** Define starting point for wrap (~20W) (to avoid splitting pacific)
+      I1 = 1+200./odlon_dg
+
       ASUM=0. ; GSUM=0. ; ZONAL=0.
       DO ISEC=1,NSEC
         X0=undef ; XS=undef ; XG=undef
 #ifdef TRACERS_OCEAN
         XT=undef
 #endif
-        IF (JLAT(ISEC).ne.-1) THEN
-          IF (JLAT(ISEC).le.23) THEN
+        IF (SEC_LAT(ISEC).ne.-1) THEN
+          IF (SEC_LAT(ISEC).le.0) THEN
             NS="S"
           ELSE
             NS="N"
           END IF
-          J=JLAT(ISEC)
+          J=nint(.5*jm+SEC_LAT(ISEC)/odlat_dg )
           DO L=1,LMO
             DO II= 1,IM
               I = II+I1-1
@@ -1631,17 +1622,17 @@ c     *                   *trw0(n))-1.)
               END IF
             END DO
           END DO
-          JLON=ABS(NINT(-94.+JLAT(ISEC)*4.))
-          WRITE(LABJ,'(I3,A1)') JLON,NS
+          JLAT=SEC_LAT(ISEC)-0.5*odlat_dg
+          WRITE(LABJ,'(I3,A1)') JLAT,NS
           TITLE(1:50)="Temperature Section              (C)"
-          WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
+          WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="Temp_"//adjustl(labj)
           UNITS="C"
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XG
      *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           TITLE(1:50)="Salinity Section                 (ppt)"
-          WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
+          WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="Salt_"//adjustl(labj)
           UNITS="ppt"
@@ -1655,7 +1646,7 @@ c     *                   *trw0(n))-1.)
             UNITS=unit_string(ntrocn(n),'kg/kg')
           end if
           TITLE(1:50)=trname(n)//" Section          ("//TRIM(UNITS)//")"
-          WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
+          WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME=trim(trname(n))//"_"//adjustl(labj)
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XT(1,1,N)
@@ -1681,24 +1672,24 @@ C**** Fluxes
               END IF
             END DO
           END DO
-          JLON=ABS(NINT(-92.+JLAT(ISEC)*4.))
-          WRITE(LABJ,'(I3,A1)') JLON,NS
+          JLAT=SEC_LAT(ISEC)
+          WRITE(LABJ,'(I3,A1)') JLAT,NS
           TITLE(1:50)=" NS Mass Flux            (kg/s m^2)"
-          WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
+          WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="NSmflx_"//adjustl(labj)
           UNITS="kg/s m^2"
           CALL POUT_IL(TITLE,sname,lname,units,I1,2,LMO,X0
      *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           TITLE(1:50)=" NS Heat Flux            (10^6  J/s m^2)"
-          WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
+          WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="NShflx_"//adjustl(labj)
           UNITS="10^6 W/m^2"
           CALL POUT_IL(TITLE,sname,lname,units,I1,2,LMO,XG
      *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           TITLE(1:50)=" NS Salt Flux            (10^6 kg/s m^2)"
-          WRITE(TITLE(21:25),'(I3,A1)') JLON,NS
+          WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
           SNAME="NSsflx_"//adjustl(labj)
           UNITS="10^6 kg/s m^2"
