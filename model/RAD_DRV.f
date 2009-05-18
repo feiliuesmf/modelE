@@ -848,7 +848,7 @@ cdmk last line saved for IE
      *     j_plavis, j_planir, j_albvis, j_albnir,
      *     j_srrvis, j_srrnir, j_sravis, j_sranir,
      *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
-     *     ,ij_srvis,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
+     *     ,ij_srvis,ij_rnfp1,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
      *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb
      *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
      *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
@@ -2228,15 +2228,17 @@ C****
            END DO
            call inc_areg(I,J,JR,JK,(S0*CSZ2)*ALB(I,J,K))
          END DO
-         AIJ(I,J,IJ_SRNFG)  =AIJ(I,J,IJ_SRNFG)  +(SRHR(0,I,J)*CSZ2)
-         AIJ(I,J,IJ_BTMPW)  =AIJ(I,J,IJ_BTMPW)  +BTMPW(I,J)
-         AIJ(I,J,IJ_SRREF)  =AIJ(I,J,IJ_SRREF)  +S0*CSZ2*ALB(I,J,2)
-         AIJ(I,J,IJ_SRVIS)  =AIJ(I,J,IJ_SRVIS)  +S0*CSZ2*ALB(I,J,4)
-         AIJ(I,J,IJ_TRNFP0) =AIJ(I,J,IJ_TRNFP0) -TNFS(3,I,J)
-         AIJ(I,J,IJ_SRNFP0) =AIJ(I,J,IJ_SRNFP0) +(SNFS(3,I,J)*CSZ2)
-         AIJ(I,J,ij_srvdir) =AIJ(I,J,ij_srvdir)
+         AIJ(I,J,IJ_SRNFG) =AIJ(I,J,IJ_SRNFG) +(SRHR(0,I,J)*CSZ2)
+         AIJ(I,J,IJ_BTMPW) =AIJ(I,J,IJ_BTMPW) +BTMPW(I,J)
+         AIJ(I,J,IJ_SRREF) =AIJ(I,J,IJ_SRREF) +S0*CSZ2*ALB(I,J,2)
+         AIJ(I,J,IJ_SRVIS) =AIJ(I,J,IJ_SRVIS) +S0*CSZ2*ALB(I,J,4)
+         AIJ(I,J,IJ_TRNFP0)=AIJ(I,J,IJ_TRNFP0)-TNFS(3,I,J)
+         AIJ(I,J,IJ_SRNFP0)=AIJ(I,J,IJ_SRNFP0)+(SNFS(3,I,J)*CSZ2)
+         AIJ(I,J,IJ_RNFP1) =AIJ(I,J,IJ_RNFP1) +(SNFS(2,I,J)*CSZ2
+     *                                         -TNFS(2,I,J))
+         AIJ(I,J,ij_srvdir)=AIJ(I,J,ij_srvdir)
      &        + FSRDIR(I,J)*SRVISSURF(I,J)
-         AIJ(I,J,IJ_SRVISSURF) =AIJ(I,J,IJ_SRVISSURF) + SRVISSURF(I,J)
+         AIJ(I,J,IJ_SRVISSURF)=AIJ(I,J,IJ_SRVISSURF)+SRVISSURF(I,J)
 C**** CRF diags if required
          if (cloud_rad_forc.gt.0) then
            AIJ(I,J,IJ_SWCRF)=AIJ(I,J,IJ_SWCRF)+

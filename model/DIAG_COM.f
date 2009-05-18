@@ -430,7 +430,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON, IJ_SRVDIR, IJ_SRVISSURF
-     *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ
+     *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ, IJ_RNFP1
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis

@@ -1649,6 +1649,15 @@ c
       ir_ij(k) = ir_m530_190
 c
       k=k+1 !
+      IJ_RNFP1 = k ! RNFP1 (W/m**2)                        
+      lname_ij(k) = 'NET RADIATION, P1'   ! >0 if down !
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'rnf_p1'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
       IJ_SRTR = k ! SRHDT+TRHDT (J/m**2)                    1 RD/SF
       lname_ij(k) = 'NET RADIATION AT GROUND'
       units_ij(k) = 'W/m^2'
