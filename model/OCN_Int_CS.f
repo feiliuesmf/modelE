@@ -811,12 +811,12 @@ C***  Scatter global array oA_glob to the ocean grid
 
 !!!   U velocity for the 1st ocean layer.
     
-      if (HAVE_NORTH_POLE) then
+      if (HAVE_SOUTH_POLE) then
          oVsp = oUO1(IVSPO,  1)
          oUO1(:,  1) = oUO1(oIM,  1)*oCOSU(:) - oVsp*oSINU(:)
       endif
 
-      if (HAVE_SOUTH_POLE) then
+      if (HAVE_NORTH_POLE) then
          oVnp = oUO1(IVNPO,oJM)
          oUO1(:,oJM) = oUO1(oIM,oJM)*oCOSU(:) + oVnp*oSINU(:)
       endif
