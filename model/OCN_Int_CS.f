@@ -806,13 +806,20 @@ C***  Scatter global array oA_glob to the ocean grid
      &     aArea(oIM,oJM,6)
      &     )
       
+      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE,
+     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE) 
+
 !!!   U velocity for the 1st ocean layer.
-      
-      oVsp = oUO1(IVSPO,  1)
-      oUO1(:,  1) = oUO1(oIM,  1)*oCOSU(:) - oVsp*oSINU(:)
-      
-      oVnp = oUO1(IVNPO,oJM)
-      oUO1(:,oJM) = oUO1(oIM,oJM)*oCOSU(:) + oVnp*oSINU(:)
+    
+      if (HAVE_NORTH_POLE) then
+         oVsp = oUO1(IVSPO,  1)
+         oUO1(:,  1) = oUO1(oIM,  1)*oCOSU(:) - oVsp*oSINU(:)
+      endif
+
+      if (HAVE_SOUTH_POLE) then
+         oVnp = oUO1(IVNPO,oJM)
+         oUO1(:,oJM) = oUO1(oIM,oJM)*oCOSU(:) + oVnp*oSINU(:)
+      endif
 
       call repr_regrid_wt(xO2A,oWEIGHT,missing,oUO1,
      &     aUO1_glob,aArea)  
