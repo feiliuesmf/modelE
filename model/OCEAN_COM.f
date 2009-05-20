@@ -44,7 +44,8 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,
      *     G0M,GXMO,GYMO,GZMO, S0M,SXMO,SYMO,SZMO
 C**** Global arrays needed for i/o, GM,straits,odiff ?
-      REAL*8, DIMENSION(IM,JM,LMO) :: MO_glob, UO_glob, VO_glob,
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
+     *     MO_glob,UO_glob,VO_glob,
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
 
@@ -108,7 +109,7 @@ C**** ocean related parameters
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
 !@var TRMO,TXMO,TYMO,TZMO tracer amount (+moments) in ocean (kg)
 ! for i/o, straits, GM ?
-      REAL*8, DIMENSION(IM,JM,LMO,NTM) :: 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: 
      *       TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRMO,TXMO,TYMO,TZMO
 #endif
@@ -287,7 +288,6 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
 !@var DH height of each ocean layer
 !@var VBAR mean specific volume of each layer
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DH,VBAR !  (IM,JM,LMO)
-      REAL*8, DIMENSION(IM,JM,LMO) :: DH_glob,VBAR_glob ! for serial ocnGM ???
 
 !@var GUP,GDN specific pot enthropy upper,lower part of layer (J/kg)
 !@var SUP,SDN salinity at           upper,lower part of layer (1)
@@ -347,18 +347,22 @@ C****
 !@+    run-time
 !@auth Rodger Abel
 !@ver  1.0
-
       USE DOMAIN_DECOMP_ATM, only : dist_grid,agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : get, am_i_root
       USE OCEANR_DIM, only : ogrid,J_0H,J_1H,init_oceanr_grid  
 
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
 
       USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
+      USE OCEAN, only :
+     *     MO_glob,UO_glob,VO_glob,
+     *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
+     *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
+     *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       USE OCN_TRACER_COM, only : ntm
 #endif
 #ifdef TRACERS_OceanBiology
@@ -395,6 +399,19 @@ C****
       ALLOCATE( SXMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SYMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SZMO(IM,J_0H:J_1H,LMO), STAT = IER)
+      if(am_i_root()) then
+        ALLOCATE(   MO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   UO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   VO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   G0M_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   GXMO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   GYMO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   GZMO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   S0M_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   SXMO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   SYMO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   SZMO_glob(IM,JM,LMO), STAT = IER)
+      endif
       ALLOCATE( OPRESS(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)
@@ -408,6 +425,12 @@ C****
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      if(am_i_root()) then
+        ALLOCATE( TRMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+        ALLOCATE( TXMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+        ALLOCATE( TYMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+        ALLOCATE( TZMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      endif
 #endif
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
 !!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)

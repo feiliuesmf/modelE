@@ -305,7 +305,7 @@ C***  Get the data from the ocean grid to the atmospheric grid
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO,II,JJ,flagij
-      REAL*4, DIMENSION(IM,JM,LMO):: MO4,G0M4,S0M4,GZM4,SZM4
+      REAL*4, DIMENSION(:,:,:), ALLOCATABLE:: MO4,G0M4,S0M4,GZM4,SZM4
       CHARACTER*80 TITLE
       REAL*8 FJEQ,SM,SG0,SGZ,SS0,SSZ
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -421,6 +421,8 @@ C****
       IF(iniOCEAN) THEN
 C**** Initialize a run from ocean initial conditions
 C???? For starters, let all processes read the IC
+      allocate(MO4(IM,JM,LMO),G0M4(IM,JM,LMO),S0M4(IM,JM,LMO),
+     &       GZM4(IM,JM,LMO),SZM4(IM,JM,LMO))
       CALL openunit("OIC",iu_OIC,.TRUE.,.TRUE.)
       READ  (iu_OIC,ERR=820) TITLE,MO4,G0M4,GZM4,S0M4,SZM4
       call closeunit(iu_OIC)
@@ -561,6 +563,8 @@ C**** Multiply specific quantities by mass
 C**** Initiallise geopotential field (needed by KPP)
       OGEOZ = 0.
       OGEOZ_SV = 0.
+
+      deallocate(MO4,G0M4,S0M4,GZM4,SZM4)
 
       END IF
 

@@ -21,8 +21,8 @@
 !ny?  logical :: allocated_odiag_glob = .false.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: OIJ_loc   !ny? ,OIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OIJL_loc !ny? ,OIJL
-      REAL*8, DIMENSION(IM,JM,KOIJ)      :: OIJ
-      REAL*8, DIMENSION(IM,JM,LMO,KOIJL) :: OIJL
+      REAL*8, DIMENSION(:,:,:), allocatable      :: OIJ
+      REAL*8, DIMENSION(:,:,:,:), allocatable :: OIJL
       REAL*8, DIMENSION(LMO,KOL)   :: OL
       REAL*8, DIMENSION(LMO,NMST,KOLNST):: OLNST
 !@var IJ_xxx Names for OIJ diagnostics
@@ -83,7 +83,7 @@ C****
       INTEGER, PARAMETER :: KTOIJL=10
 !@var TOIJL  3-dimensional ocean tracer diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TOIJL_loc !ny? ,TOIJL
-      REAL*8, DIMENSION(IM,JM,LMO,KTOIJL,NTM)    :: TOIJL
+      REAL*8, DIMENSION(:,:,:,:,:), ALLOCATABLE    :: TOIJL
 !@var toijl_xxx indices for TOIJL diags
       INTEGER, PARAMETER :: toijl_conc=1,toijl_tflx=2,toijl_gmfl=6
      *     ,toijl_wtfl=10
@@ -139,13 +139,13 @@ c the new i/o system
       INTEGER, INTENT(INOUT) :: it
 !@var OIJ4,OIJL4,OLNST4,OL4 dummy arrays for reading diag. files
       logical , save :: de_alloc = .true.
-      REAL*4, DIMENSION(IM,JM,KOIJ)  :: OIJ4
-      REAL*4, DIMENSION(IM,JM,LMO,KOIJL) :: OIJL4
+      REAL*4, DIMENSION(:,:,:), ALLOCATABLE  :: OIJ4
+      REAL*4, DIMENSION(:,:,:,:), ALLOCATABLE :: OIJL4
       REAL*4, DIMENSION(LMO,KOL)   :: OL4
       REAL*4, DIMENSION(LMO,NMST,KOLNST):: OLNST4
 #ifdef TRACERS_OCEAN
-!@var TOIJL_glob work array for read/wrote operations
-      REAL*4, DIMENSION(IM,JM,LMO,KTOIJL,NTM) :: TOIJL4
+!@var TOIJL4 work array for read/wrote operations
+      REAL*4, DIMENSION(:,:,:,:,:), ALLOCATABLE :: TOIJL4
       REAL*4, DIMENSION(LMO,NMST,KOLNST,NTM)  :: TLNST4
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TROCDIAG01"
@@ -190,6 +190,7 @@ c the new i/o system
         CASE (IRSFICNO)         ! initial conditions
         CASE (ioread_single)    ! input from acc files (post-processing)
          if  (AM_I_ROOT()) then
+            allocate(OIJ4(IM,JM,KOIJ),OIJL4(IM,JM,LMO,KOIJL))
             READ (kunit,err=10) HEADER,OIJ4,OIJL4,OL4,OLNST4,it
 C**** accumulate diagnostics
             if (de_alloc) then   !  1st time only
@@ -202,16 +203,19 @@ C**** accumulate diagnostics
             OIJL=OIJL+OIJL4
             OL=OL+OL4
             OLNST=OLNST+OLNST4
+            deallocate(OIJ4,OIJL4)
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
      *           ,MODULE_HEADER
               GO TO 10
             END IF
 #ifdef TRACERS_OCEAN
+            allocate(TOIJL4(IM,JM,LMO,KTOIJL,NTM))
             READ (kunit,err=10) TR_HEADER,TOIJL4,TLNST4,it
 C**** accumulate diagnostics
             TOIJL=TOIJL+TOIJL4
             TLNST=TLNST+TLNST4
+            deallocate(TOIJL4)
             IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
@@ -741,7 +745,7 @@ C****
 !@auth Reto Ruedy
 !@ver  1.0
 
-      USE DOMAIN_DECOMP_1D, only : dist_grid,get
+      USE DOMAIN_DECOMP_1D, only : dist_grid,get,am_i_root
 
       USE ODIAG
 
@@ -758,6 +762,14 @@ C****
 #ifdef TRACERS_OCEAN
       ALLOCATE(      TOIJL_loc (IM,J_0H:J_1H,LMO,KTOIJL,NTM), STAT=IER )
 #endif
+
+      if(am_i_root()) then
+        ALLOCATE( OIJ (IM,JM,KOIJ), STAT=IER )
+        ALLOCATE(OIJL (IM,JM,LMO,KOIJL), STAT=IER )
+#ifdef TRACERS_OCEAN
+        ALLOCATE(TOIJL (IM,JM,LMO,KTOIJL,NTM), STAT=IER )
+#endif
+      endif
 
       END SUBROUTINE alloc_odiag
 
