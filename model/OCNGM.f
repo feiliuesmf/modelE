@@ -11,7 +11,7 @@
 !      USE DOMAIN_DECOMP_1D, ONLY : grid, GET, HALO_UPDATE, NORTH, SOUTH,
       USE DOMAIN_DECOMP_1D, ONLY : GET, HALO_UPDATE, NORTH, SOUTH,
      *                          PACK_DATA, AM_I_ROOT,
-     *                          ESMF_BCAST, UNPACK_DATA
+     *                          ESMF_BCAST, UNPACK_DATA, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 
@@ -616,189 +616,321 @@ C****   Gradient fluxes in Z direction affected by diagonal terms
 
       RETURN
       END SUBROUTINE computeFluxes
-C****
-      SUBROUTINE limitedValue(RFXT,TRM1,TRM)
-      USE GM_COM, only : eps
-      IMPLICIT NONE
 
-      REAL*8, INTENT(INOUT) :: RFXT
-      REAL*8, INTENT( IN  ) :: TRM1, TRM
-
-      IF ( RFXT >  0.95d0*TRM1.and.ABS( RFXT ) >   eps ) THEN
-        RFXT = 0.95d0*TRM1
-      ELSEIF ( RFXT < -0.95d0*TRM.and.ABS( RFXT ) > eps) THEN
-        RFXT = -0.95d0*TRM
-      END IF
-
-      RETURN
-      END SUBROUTINE limitedValue
-C****
       SUBROUTINE wrapAdjustFluxes(TRM, flux_x, flux_y, flux_z, GIJL)
-!@wrapper to set up local storage and call adjustAndAddFluxes
-      USE GM_COM, only: grid, IM, JM, LMO, KPL, KPL_GLOB,
-     &                  PACK_DATA, ESMF_BCAST, UNPACK_DATA 
+!@sum Applies limiter to GM flux divergence to prevent tracer quantities
+!@+   from becoming negative.
+!@ver  1.0
+      USE GM_COM
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
      &        INTENT(INOUT) :: TRM, flux_x, flux_y, flux_z
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,3),
      &        INTENT(INOUT) :: GIJL
-!***  local storage for global variables
-      REAL*8, DIMENSION(IM,JM,LMO) ::
-     &            TRM_GLOB, flux_x_GLOB, flux_y_GLOB, flux_z_GLOB
-      REAL*8, DIMENSION(IM,JM,LMO,3) :: GIJL_GLOB
 
-      CALL PACK_DATA(grid, TRM , TRM_GLOB)
-      CALL PACK_DATA(grid, flux_x , flux_x_GLOB)
-      CALL PACK_DATA(grid, flux_y , flux_y_GLOB)
-      CALL PACK_DATA(grid, flux_z , flux_z_GLOB)
-      CALL PACK_DATA(grid, GIJL , GIJL_GLOB)
-      CALL PACK_DATA(grid, KPL , KPL_GLOB)
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO)
+     &        :: conv
+      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) ::
+     &     convadj_j,convpos_j
+      real*8 :: sumadj,sumpos,posadj
+      integer :: i,j,l
 
-      CALL ESMF_BCAST(grid, TRM_GLOB)
-      CALL ESMF_BCAST(grid, flux_x_GLOB)
-      CALL ESMF_BCAST(grid, flux_y_GLOB)
-      CALL ESMF_BCAST(grid, flux_z_GLOB)
-      CALL ESMF_BCAST(grid, GIJL_GLOB)
-      CALL ESMF_BCAST(grid, KPL_GLOB)
+      INTEGER :: J_0S, J_1S, J_0, J_1
+      LOGICAL :: HAVE_NORTH_POLE
 
-      call adjustAndAddFluxes (TRM_GLOB, flux_x_GLOB, flux_y_GLOB,
-     &                         flux_z_GLOB, GIJL_GLOB)
-      call UNPACK_DATA (grid, TRM_GLOB, TRM)
-      call UNPACK_DATA (grid, GIJL_GLOB, GIJL)
+c**** Extract domain decomposition info
+      CALL GET(grid,
+     &     J_STRT=J_0, J_STOP=J_1,
+     &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+
+c
+c If any flux convergences are adjusted, these flux diagnostics
+c will be wrong.  Since the adjustments are typically rare in
+c time and space, the diagnostics error will be small.
+c
+      do l=1,lmo
+      do j=j_0,j_1
+      do i=1,im
+        gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(i,j,l)
+        gijl(i,j,l,2) = gijl(i,j,l,2) + flux_y(i,j,l)
+        gijl(i,j,l,3) = gijl(i,j,l,3) + flux_z(i,j,l)
+      enddo
+      enddo
+      enddo
+
+c
+c Compute flux convergence
+c
+      call halo_update(grid,flux_y,from=north)
+      do l=lmo,1,-1
+        do j=j_0s,j_1s
+          do i=1,im-1
+            conv(i,j,l) = flux_x(i,j,l)-flux_x(i+1,j,l)
+     &                   +flux_y(i,j,l)-flux_y(i,j+1,l)
+          enddo
+          i=im
+            conv(i,j,l) = flux_x(i,j,l)-flux_x(1,j,l)
+     &                   +flux_y(i,j,l)-flux_y(i,j+1,l)
+        enddo
+        if(have_north_pole) conv(1,jm,l) = sum(flux_y(:,jm,l))/im
+        if(l.lt.lmo) then
+          do j=j_0s,j_1s
+          do i=1,im
+            conv(i,j,l  ) = conv(i,j,l  ) + flux_z(i,j,l)
+            conv(i,j,l+1) = conv(i,j,l+1) - flux_z(i,j,l)
+          enddo
+          enddo
+          if(have_north_pole) then
+            conv(1,jm,l  ) = conv(1,jm,l  ) + flux_z(1,jm,l)
+            conv(1,jm,l+1) = conv(1,jm,l+1) - flux_z(1,jm,l)
+          endif
+        endif
+      enddo
+      if(have_north_pole) then
+        do l=1,lmo
+          trm(2:im,jm,l) = trm(1,jm,l)
+          conv(2:im,jm,l) = conv(1,jm,l)
+        enddo
+      endif
+
+c
+c Reduce the magnitude of flux convergences where they cause
+c TRM to become negative.  Keep a tally of the convergence
+c adjustments in convadj_j(:)
+c
+      convadj_j(:) = 0d0
+      convpos_j(:) = 0d0
+      do l=1,lmo
+      do j=j_0,j_1
+      do i=1,im
+        if(lmm(i,j).lt.l) cycle
+        if(conv(i,j,l).gt.0.) then
+          convpos_j(j) = convpos_j(j) +conv(i,j,l)
+        elseif(conv(i,j,l).lt.-trm(i,j,l)) then
+          convadj_j(j) = convadj_j(j) -trm(i,j,l)-conv(i,j,l)
+          conv(i,j,l) = -trm(i,j,l)
+        endif
+      enddo
+      enddo
+      enddo
+
+c
+c To conserve the global sum of TRM, subtract the adjustments to
+c negative convergences from the positive convergences.
+c Use a multiplicative factor rather than straight subtraction.
+c
+      call globalsum(grid,convpos_j,sumpos,all=.true.)
+      call globalsum(grid,convadj_j,sumadj,all=.true.)
+      if(sumpos.gt.0.) then
+        posadj = 1.-sumadj/sumpos
+      else
+        posadj = 1.
+      endif
+
+c      if(am_i_root() .and. posadj.ne.1.)
+c     &     write(6,*) 'posadj ',posadj
+
+c
+c Apply the corrected flux convergence
+c
+      do l=1,lmo
+      do j=j_0,j_1
+      do i=1,im
+        if(lmm(i,j).lt.l) cycle
+        if(conv(i,j,l).gt.0.) conv(i,j,l) = conv(i,j,l)*posadj
+        trm(i,j,l) = max(0d0,trm(i,j,l)+conv(i,j,l))
+      enddo
+      enddo
+      enddo
 
       RETURN
       END SUBROUTINE wrapAdjustFluxes
-C****
-      SUBROUTINE adjustAndAddFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
-!@sum applies limiting process to  GM fluxes for tracer quantities
-!@ver  1.0
-! this routine is serialized to preserve original algorithm for
-! TRM update
-      USE GM_COM, only: IM, JM, LMO, LMM, LMU, LMV, KPL_GLOB
-      IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM,LMO),
-     &        INTENT(INOUT) :: TRM, flux_x, flux_y, flux_z
-      REAL*8, DIMENSION(IM,JM,LMO,3),
-     &        INTENT(INOUT) :: GIJL
 
-      REAL*8  RFXT, RFYT, RFZT, STRNP
-      INTEGER I,J,L,IM1
-
-!updates TRM and GIJL with limit adjusted flux values
-
-      DO L=1,LMO
-C**** Non-Polar boxes
-      DO J=2,JM-1
-      IM1 = IM
-      DO I=1,IM
-      IF(LMM(I,J).le.0) GO TO 611
-
-!adjustments in x direction
-      IF(LMU(IM1,J).ge.L) THEN
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-        RFXT = flux_x(I,J,L)
-        call limitedValue(RFXT,TRM(IM1,J,L),TRM(I,J,L))
-C**** Add and Subtract horizontal X flux
-        TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
-        TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
-C**** Save Diagnostic, GIJL(1) = RFXT
-        GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
-        !update flux limited values
-        flux_x(I,J,L) =  RFXT
-      END IF
-
-!adjustments in y direction
-C**** Loop for Fluxes in Y-direction
-      IF(LMV(I,J-1).ge.L) THEN
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-        RFYT = flux_y(I,J,L)
-        call limitedValue(RFYT,TRM(I,J-1,L),TRM(I,J,L))
-C**** Add and Subtract horizontal Y fluxes
-        TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
-        TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
-C**** Save Diagnostic, GIJL(2) = RFYT
-        GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
-        !update flux limited values
-        flux_y(I, J, L) = RFYT
-      END IF
-
-C**** END of I and J loops
-  611 IM1 = I
-      END DO
-      END DO
-
-C**** North Polar box
-      STRNP=0.
-C**** Fluxes in Y-direction
-      DO I=1,IM
-      IF(LMV(I,JM-1).ge.L) THEN
-        RFYT = flux_y(I,JM,L)
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-        call limitedValue(RFYT,TRM(I,JM-1,L),TRM(1,JM,L))
-C**** Add and Subtract horizontal Y fluxes
-        STRNP= STRNP + RFYT
-        TRM(I,JM-1,L) = TRM(I,JM-1,L) - RFYT
-        flux_y(I,JM,L) = RFYT
-      END IF
-      END DO
-C**** adjust polar box
-      TRM(1,JM,L)=TRM(1,JM,L) + STRNP/IM
-C**** Save Diagnostic, GIJL(2) = RFYT
-      GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
-
-
- 621  END DO    !L loop
-
-C**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
-C**** Extracted from preceding L loop to allow parallelization of that
-C**** loop; this loop can't be
-      DO L=1,LMO
-C**** Non-Polar boxes
-      DO J=2,JM-1
-      DO I=1,IM
-      IF(LMM(I,J).le.0) GO TO 710
-C**** Loop for Fluxes in Z-direction
-      IF(KPL_GLOB(I,J).gt.L) GO TO 710
-      IF(LMM(I,J).lt.L) GO TO 710
-      IF(LMM(I,J).gt.L) THEN
-C****   tracer/salinity/enthalpy
-        RFZT = flux_z(I,J,L)
-C**** If fluxes are more than 95% of tracer amount, limit fluxes
-        call limitedValue(RFZT,TRM(I,J,L+1),TRM(I,J,L))
-C**** Add and Subtract vertical flux. Note +ve upward flux
-        TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
-        TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
-C**** Save Diagnostic, GIJL(3) = RFZT
-        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
-      END IF
-
-C**** END of I and J loops
- 710  CONTINUE
-      END DO
-      END DO
-
-
-C****   North Polar box
-C****   Loop for Fluxes in Z-direction
-        IF(KPL_GLOB(1,JM).gt.L) GO TO 720
-        IF(LMM(1,JM).lt.L) GO TO 720
-        IF(LMM(1,JM).gt.L) THEN
-C****     Calculate new tracer/salinity/enthalpy
-            RFZT = flux_z(1,JM,L)
-C****     If fluxes are more than 95% of tracer amount, limit fluxes
-          call limitedValue(RFZT,TRM(1,JM,L+1),TRM(1,JM,L))
-C****     Add and Subtract vertical flux. Note +ve upward flux
-          TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
-          TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
-C****     Save Diagnostic, GIJL(3) = RFZT
-          GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
-        END IF
- 720    CONTINUE
-
-      END DO
-
-      RETURN
-      END SUBROUTINE adjustAndAddFluxes
+cC****
+c      SUBROUTINE limitedValue(RFXT,TRM1,TRM)
+c      USE GM_COM, only : eps
+c      IMPLICIT NONE
+c
+c      REAL*8, INTENT(INOUT) :: RFXT
+c      REAL*8, INTENT( IN  ) :: TRM1, TRM
+c
+c      IF ( RFXT >  0.95d0*TRM1.and.ABS( RFXT ) >   eps ) THEN
+c        RFXT = 0.95d0*TRM1
+c      ELSEIF ( RFXT < -0.95d0*TRM.and.ABS( RFXT ) > eps) THEN
+c        RFXT = -0.95d0*TRM
+c      END IF
+c
+c      RETURN
+c      END SUBROUTINE limitedValue
+cC****
+c      SUBROUTINE wrapAdjustFluxes(TRM, flux_x, flux_y, flux_z, GIJL)
+c!@wrapper to set up local storage and call adjustAndAddFluxes
+c      USE GM_COM, only: grid, IM, JM, LMO, KPL, KPL_GLOB,
+c     &                  PACK_DATA, ESMF_BCAST, UNPACK_DATA 
+c      IMPLICIT NONE
+c      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
+c     &        INTENT(INOUT) :: TRM, flux_x, flux_y, flux_z
+c      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,3),
+c     &        INTENT(INOUT) :: GIJL
+c!***  local storage for global variables
+c      REAL*8, DIMENSION(IM,JM,LMO) ::
+c     &            TRM_GLOB, flux_x_GLOB, flux_y_GLOB, flux_z_GLOB
+c      REAL*8, DIMENSION(IM,JM,LMO,3) :: GIJL_GLOB
+c
+c      CALL PACK_DATA(grid, TRM , TRM_GLOB)
+c      CALL PACK_DATA(grid, flux_x , flux_x_GLOB)
+c      CALL PACK_DATA(grid, flux_y , flux_y_GLOB)
+c      CALL PACK_DATA(grid, flux_z , flux_z_GLOB)
+c      CALL PACK_DATA(grid, GIJL , GIJL_GLOB)
+c      CALL PACK_DATA(grid, KPL , KPL_GLOB)
+c
+c      CALL ESMF_BCAST(grid, TRM_GLOB)
+c      CALL ESMF_BCAST(grid, flux_x_GLOB)
+c      CALL ESMF_BCAST(grid, flux_y_GLOB)
+c      CALL ESMF_BCAST(grid, flux_z_GLOB)
+c      CALL ESMF_BCAST(grid, GIJL_GLOB)
+c      CALL ESMF_BCAST(grid, KPL_GLOB)
+c
+c      call adjustAndAddFluxes (TRM_GLOB, flux_x_GLOB, flux_y_GLOB,
+c     &                         flux_z_GLOB, GIJL_GLOB)
+c      call UNPACK_DATA (grid, TRM_GLOB, TRM)
+c      call UNPACK_DATA (grid, GIJL_GLOB, GIJL)
+c
+c      RETURN
+c      END SUBROUTINE wrapAdjustFluxes
+cC****
+c      SUBROUTINE adjustAndAddFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
+c!@sum applies limiting process to  GM fluxes for tracer quantities
+c!@ver  1.0
+c! this routine is serialized to preserve original algorithm for
+c! TRM update
+c      USE GM_COM, only: IM, JM, LMO, LMM, LMU, LMV, KPL_GLOB
+c      IMPLICIT NONE
+c      REAL*8, DIMENSION(IM,JM,LMO),
+c     &        INTENT(INOUT) :: TRM, flux_x, flux_y, flux_z
+c      REAL*8, DIMENSION(IM,JM,LMO,3),
+c     &        INTENT(INOUT) :: GIJL
+c
+c      REAL*8  RFXT, RFYT, RFZT, STRNP
+c      INTEGER I,J,L,IM1
+c
+c!updates TRM and GIJL with limit adjusted flux values
+c
+c      DO L=1,LMO
+cC**** Non-Polar boxes
+c      DO J=2,JM-1
+c      IM1 = IM
+c      DO I=1,IM
+c      IF(LMM(I,J).le.0) GO TO 611
+c
+c!adjustments in x direction
+c      IF(LMU(IM1,J).ge.L) THEN
+cC**** If fluxes are more than 95% of tracer amount, limit fluxes
+c        RFXT = flux_x(I,J,L)
+c        call limitedValue(RFXT,TRM(IM1,J,L),TRM(I,J,L))
+cC**** Add and Subtract horizontal X flux
+c        TRM(I  ,J,L) = TRM(I  ,J,L) + RFXT
+c        TRM(IM1,J,L) = TRM(IM1,J,L) - RFXT
+cC**** Save Diagnostic, GIJL(1) = RFXT
+c        GIJL(I,J,L,1) = GIJL(I,J,L,1) + RFXT
+c        !update flux limited values
+c        flux_x(I,J,L) =  RFXT
+c      END IF
+c
+c!adjustments in y direction
+cC**** Loop for Fluxes in Y-direction
+c      IF(LMV(I,J-1).ge.L) THEN
+cC**** If fluxes are more than 95% of tracer amount, limit fluxes
+c        RFYT = flux_y(I,J,L)
+c        call limitedValue(RFYT,TRM(I,J-1,L),TRM(I,J,L))
+cC**** Add and Subtract horizontal Y fluxes
+c        TRM(I,J  ,L) = TRM(I,J  ,L) + RFYT
+c        TRM(I,J-1,L) = TRM(I,J-1,L) - RFYT
+cC**** Save Diagnostic, GIJL(2) = RFYT
+c        GIJL(I,J,L,2) = GIJL(I,J,L,2) + RFYT
+c        !update flux limited values
+c        flux_y(I, J, L) = RFYT
+c      END IF
+c
+cC**** END of I and J loops
+c  611 IM1 = I
+c      END DO
+c      END DO
+c
+cC**** North Polar box
+c      STRNP=0.
+cC**** Fluxes in Y-direction
+c      DO I=1,IM
+c      IF(LMV(I,JM-1).ge.L) THEN
+c        RFYT = flux_y(I,JM,L)
+cC**** If fluxes are more than 95% of tracer amount, limit fluxes
+c        call limitedValue(RFYT,TRM(I,JM-1,L),TRM(1,JM,L))
+cC**** Add and Subtract horizontal Y fluxes
+c        STRNP= STRNP + RFYT
+c        TRM(I,JM-1,L) = TRM(I,JM-1,L) - RFYT
+c        flux_y(I,JM,L) = RFYT
+c      END IF
+c      END DO
+cC**** adjust polar box
+c      TRM(1,JM,L)=TRM(1,JM,L) + STRNP/IM
+cC**** Save Diagnostic, GIJL(2) = RFYT
+c      GIJL(1,JM,L,2) = GIJL(1,JM,L,2) + STRNP
+c
+c
+c 621  END DO    !L loop
+c
+cC**** Summation of explicit fluxes to TR, (R(T)) --- Z-direction
+cC**** Extracted from preceding L loop to allow parallelization of that
+cC**** loop; this loop can't be
+c      DO L=1,LMO
+cC**** Non-Polar boxes
+c      DO J=2,JM-1
+c      DO I=1,IM
+c      IF(LMM(I,J).le.0) GO TO 710
+cC**** Loop for Fluxes in Z-direction
+c      IF(KPL_GLOB(I,J).gt.L) GO TO 710
+c      IF(LMM(I,J).lt.L) GO TO 710
+c      IF(LMM(I,J).gt.L) THEN
+cC****   tracer/salinity/enthalpy
+c        RFZT = flux_z(I,J,L)
+cC**** If fluxes are more than 95% of tracer amount, limit fluxes
+c        call limitedValue(RFZT,TRM(I,J,L+1),TRM(I,J,L))
+cC**** Add and Subtract vertical flux. Note +ve upward flux
+c        TRM(I,J,L  ) = TRM(I,J,L  ) + RFZT
+c        TRM(I,J,L+1) = TRM(I,J,L+1) - RFZT
+cC**** Save Diagnostic, GIJL(3) = RFZT
+c        GIJL(I,J,L,3) = GIJL(I,J,L,3) + RFZT
+c      END IF
+c
+cC**** END of I and J loops
+c 710  CONTINUE
+c      END DO
+c      END DO
+c
+c
+cC****   North Polar box
+cC****   Loop for Fluxes in Z-direction
+c        IF(KPL_GLOB(1,JM).gt.L) GO TO 720
+c        IF(LMM(1,JM).lt.L) GO TO 720
+c        IF(LMM(1,JM).gt.L) THEN
+cC****     Calculate new tracer/salinity/enthalpy
+c            RFZT = flux_z(1,JM,L)
+cC****     If fluxes are more than 95% of tracer amount, limit fluxes
+c          call limitedValue(RFZT,TRM(1,JM,L+1),TRM(1,JM,L))
+cC****     Add and Subtract vertical flux. Note +ve upward flux
+c          TRM(1,JM,L  ) = TRM(1,JM,L  ) + RFZT
+c          TRM(1,JM,L+1) = TRM(1,JM,L+1) - RFZT
+cC****     Save Diagnostic, GIJL(3) = RFZT
+c          GIJL(1,JM,L,3) = GIJL(1,JM,L,3) + RFZT
+c        END IF
+c 720    CONTINUE
+c
+c      END DO
+c
+c      RETURN
+c      END SUBROUTINE adjustAndAddFluxes
 C****
       SUBROUTINE addFluxes (TRM, flux_x, flux_y, flux_z, GIJL)
 !@sum applies GM fluxes to tracer quantities
