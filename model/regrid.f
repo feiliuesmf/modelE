@@ -579,15 +579,15 @@ c
             enddo
           
            
-            ofi='tstout.nc'
-            write(*,*) ofi
-            status = nf_open(trim(ofi),nf_write,fid)
-            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-            status = nf_inq_varid(fid,'lwup_sfc',vid)
-            write(*,*) NF_STRERROR(status)
-            status = nf_put_var_double(fid,vid,ttarget)
-            write(*,*) "STATUS",NF_STRERROR(status),"<<"
-            status = nf_close(fid)
+c            ofi='tstout.nc'
+c            write(*,*) ofi
+c            status = nf_open(trim(ofi),nf_write,fid)
+c            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+c            status = nf_inq_varid(fid,'lwup_sfc',vid)
+c            write(*,*) NF_STRERROR(status)
+c            status = nf_put_var_double(fid,vid,ttarget)
+c            write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c            status = nf_close(fid)
          endif
 
       else if ( (x2grids%ntilessource .eq. 1) .and. !ll2cs
@@ -661,10 +661,7 @@ c*
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
-      complex*16 :: ttarget_dd(x2grids%imtarget,x2grids%jmtarget
-     &     ,x2grids%ntilestarget),
-     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget
-     &     ,x2grids%ntilestarget)
+      complex*16, allocatable :: ttarget_dd(:,:,:),atarget_dd(:,:,:)
 
       complex*16 :: ttarget_tmp(1),tmp_dd,atarget_tmp(1),xarea_dd(1),
      &     tmp_dd_vec(1)
@@ -673,6 +670,13 @@ c*
       character*120:: ofi
       integer ::  status, fid, vid
      
+
+      allocate(
+     &     ttarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget),
+     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+     &     )
 
       if ( (x2grids%ntilessource .eq. 6) .and. !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
@@ -729,14 +733,14 @@ c
             
             ttarget(:,:,1) = ttarget(:,:,1)/atarget(:,:,1)
             
-            ofi='tstout.nc'
-            status = nf_open(trim(ofi),nf_write,fid)
-            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-            status = nf_inq_varid(fid,'lwup_sfc',vid)
-            write(*,*) NF_STRERROR(status)
-            status = nf_put_var_double(fid,vid,ttarget)
-            write(*,*) "STATUS",NF_STRERROR(status),"<<"
-            status = nf_close(fid)
+c            ofi='tstout.nc'
+c            status = nf_open(trim(ofi),nf_write,fid)
+c            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+c            status = nf_inq_varid(fid,'lwup_sfc',vid)
+c            write(*,*) NF_STRERROR(status)
+c            status = nf_put_var_double(fid,vid,ttarget)
+c            write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c            status = nf_close(fid)
          endif
 
 
@@ -802,13 +806,14 @@ c
          
       endif
 
+      deallocate(ttarget_dd,atarget_dd)
+
       end subroutine repr_regrid
 c*
 
 
       subroutine repr_regrid_wt(x2grids,wsource,missing,tsource,
      &     ttarget,atarget)
- 
 !@sum  same as repr_regrid but we multiply by weight function wsource
 !@auth Denis Gueyffier
       use regrid_com
@@ -823,17 +828,20 @@ c*
      &     ,x2grids%ntilestarget)
       real*8, intent(in) :: missing
       real *8 :: tmp_r8
-      complex*16 :: ttarget_dd(x2grids%imtarget,x2grids%jmtarget
-     &     ,x2grids%ntilestarget),
-     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget
-     &     ,x2grids%ntilestarget)
+      complex*16, allocatable :: ttarget_dd(:,:,:),atarget_dd(:,:,:)
       complex*16 :: ttarget_tmp(1),tmp_dd,atarget_tmp(1),xarea_dd(1),
      &     tmp_dd_vec(1),xaws_dd(1)
       integer :: n,icub,jcub,i,j,k,itile,ilon,jlat,ikey,imlon,jmlat,
      &     imcub,jmcub,ntcub
       character*120:: ofi
       integer ::  status, fid, vid
-     
+
+      allocate(
+     &     ttarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget),
+     &     atarget_dd(x2grids%imtarget,x2grids%jmtarget
+     &     ,x2grids%ntilestarget)
+     &     )     
 
       if ( (x2grids%ntilessource .eq. 6) .and. !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
@@ -977,6 +985,8 @@ c
          endif
          
       endif
+
+      deallocate(ttarget_dd,atarget_dd)  
 
       end subroutine repr_regrid_wt
 c*
@@ -1635,15 +1645,13 @@ c     reduction
 
 c      write(*,*) "arr=",arr(:,:)
 
-      allocate(arr_tmp(arr_size))
-      allocate(arr_rsh(arr_size))
+      allocate(arr_tmp(arr_size),arr_rsh(arr_size))
       arr_rsh=reshape(arr,(/arr_size/))
 
       call MPI_REDUCE (arr_rsh, arr_tmp, arr_size, MPI_DOUBLE_COMPLEX, 
      &     MPI_SUMDD, 0, MPI_COMM_WORLD, ierr)
       arr=reshape(arr_tmp,shape(arr))
-      deallocate(arr_tmp)
-      deallocate(arr_rsh) 
+      deallocate(arr_tmp,arr_rsh) 
     
       end subroutine sumxpe2d_exact
 c*

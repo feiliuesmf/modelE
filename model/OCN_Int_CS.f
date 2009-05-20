@@ -490,6 +490,7 @@ c*
       PUBLIC INT_OG2AG
 
       Interface INT_OG2AG
+      Module Procedure INT_OG2AG_test
       Module Procedure INT_OG2AG_2Da
       Module Procedure INT_OG2AG_3Da
       Module Procedure INT_OG2AG_3Db
@@ -499,44 +500,41 @@ c*
 
       contains
 
-      SUBROUTINE INT_OG2AG_2Da(oA,aA,oWEIGHT, CopyPole)
+      SUBROUTINE INT_OG2AG_2Da(oA,aA,oWEIGHT,CopyPole)
 
 !@sum regridding 2D arrays from ocean to the CS atm. grid 
 !@auth Larissa Nazarenko, Denis Gueyffier
 
       USE RESOLUTION, only : aIM=>im,aJM=>jm
       USE OCEAN,      only : oIM=>im,oJM=>jm
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
-     &     ATM_UNPACK=>UNPACK_DATA,get
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : get
       Use OCEANR_DIM,       only : oGRID
       use regrid_com, only : xO2A
 
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: CopyPole
-      REAL*8 :: oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
+      REAL*8 :: oWEIGHT(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
       REAL*8 :: aA(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8 :: oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:),aArea(:,:,:),oFtemp(:,:)
-      logical :: HAVE_NORTH_POLE
       real*8 :: missing
-
+      logical :: HAVE_NORTH_POLE
       missing=-1.e30
-
-      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       ALLOCATE(aA_glob(aIM,aJM,6),aArea(aIM,aJM,6),
      &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
 
 C***  Interpolate aA_glob from ocean grid to atmospheric grid 
+      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
 
       if (CopyPole .and. HAVE_NORTH_POLE) 
      &     oWEIGHT(2:oIM,oJM) = oWEIGHT(1,oJM)
 
       oFtemp(:,:) = oA(:,:)
+      if (HAVE_NORTH_POLE) oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
 
-      if (HAVE_NORTH_POLE)  oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
-      
       call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,aA_glob,aArea)
 
 C***  Scatter global array aA_glob to the atmospheric grid
@@ -556,7 +554,8 @@ c*
       USE OCEAN, only : oIM=>im,oJM=>jm
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_PACK=>PACK_DATA,
-     &     ATM_UNPACK=>UNPACK_DATA,get
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : get
       Use OCEANR_DIM,       only : oGRID
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
       use regrid_com, only : xO2A
@@ -578,7 +577,7 @@ c*
 
       missing=-1.e30
 
-      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
       ALLOCATE(aFOCEAN(aIM,aJM,6),aA_glob(NT,aIM,aJM,6),
      &     aArea(aIM,aJM,6),aFtemp(aIM,aJM,6),
@@ -612,7 +611,31 @@ C***  Scatter global array oA_glob to the ocean grid
       
       END SUBROUTINE INT_OG2AG_3Da
 c*
+      subroutine int_og2ag_test(aA,aN)
+      USE RESOLUTION, only : aIM=>im, aJM=>jm
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,UNPACK_DATA,get
+      IMPLICIT NONE
+      integer, intent(in) :: aN
+      REAL*8, intent(inout):: 
+     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO,aN)
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:), aAtmp(:,:)
+      integer :: N
 
+      ALLOCATE(
+     &     aAtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &           aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     aA_glob(aIM,aJM,6) )
+
+      do N=1,aN
+         aA_glob=1.
+         call UNPACK_DATA(agrid, aA_glob, aAtmp)
+         aA(:,:,N)=aAtmp
+      enddo
+
+      DEALLOCATE(aA_glob,aAtmp)
+
+      end subroutine int_og2ag_test
 
       SUBROUTINE INT_OG2AG_3Db(oA,aA,oWEIGHT,oN,aN,CopyPole)
 
@@ -621,57 +644,55 @@ c*
 
       USE OCEAN, only : oIM=>im,oJM=>jm
       USE RESOLUTION, only : aIM=>im, aJM=>jm
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_PACK=>PACK_DATA,
-     &     ATM_UNPACK=>UNPACK_DATA,get
-      Use OCEANR_DIM,       only : oGRID
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : get
+      Use OCEANR_DIM,       only : ogrid
       use regrid_com, only : xO2A
-
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: CopyPole
-      REAL*8 :: oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
-      integer, intent(in) :: aN,oN
-      REAL*8  :: 
-     &     aA(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
-     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN) 
       REAL*8 :: 
+     &     oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
+      integer, intent(in) :: aN,oN
+      REAL*8, intent(inout):: 
+     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO,aN) 
+      REAL*8, intent(in) :: 
      *     oA(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
-      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), 
-     &     aArea(:,:,:),oFtemp(:,:)
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:),aArea(:,:,:),oFtemp(:,:),
+     &     aAtmp(:,:)
       integer :: N
-      logical :: HAVE_NORTH_POLE
       real*8 :: missing
+      logical :: HAVE_NORTH_POLE
 
       missing=-1.e30
 
-      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      ALLOCATE(aArea(aIM,aJM,6),
+     &     aAtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &           aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     &     aA_glob(aIM,aJM,6)
+     &        )
 
-      ALLOCATE(aA_glob(aIM,aJM,aN,6),
-     &     aArea(aIM,aJM,6),
-     &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
+      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
 
       if (CopyPole .and. HAVE_NORTH_POLE) 
      &     oWEIGHT(2:oIM,oJM) = oWEIGHT(1,oJM)
       
       do N=1,aN
          oFtemp(:,:) = oA(:,:,N)
-         if (HAVE_NORTH_POLE)  oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
- 
-          if (HAVE_NORTH_POLE) 
-     &         oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+         if (HAVE_NORTH_POLE) oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+         aA_glob=1.
+         call UNPACK_DATA(agrid, aA_glob, aAtmp)
+         aA(:,:,N)=aAtmp
 
-         call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,
-     &        aA_glob,aArea)
- 
       enddo
 
-C***  Scatter global array oA_glob to the ocean grid
-
-      CALL ATM_UNPACK(agrid, aA_glob, aA)
-
-      DEALLOCATE(aA_glob, aArea, oFtemp)
+      DEALLOCATE(aArea,oFtemp,aA_glob,aAtmp)
       
       END SUBROUTINE INT_OG2AG_3Db
 c*
+
+
 
       SUBROUTINE INT_OG2AG_4Da(oA,aA,oWEIGHT,NT,NTM)
 
@@ -681,15 +702,14 @@ c*
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE OCEAN, only : oIM=>im,oJM=>jm
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_PACK=>PACK_DATA,
-     &     ATM_UNPACK=>UNPACK_DATA,get
-      USE DOMAIN_DECOMP_1D, only : OCN_PACK_COL=>PACK_COLUMN
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : OCN_PACK_COL=>PACK_COLUMN,get
       Use OCEANR_DIM,       only : oGRID
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
       use regrid_com, only : xO2A
 
       IMPLICIT NONE
       INTEGER :: IER, NTM,NT,N1,N2, I,J,K,N
-      INTEGER :: aJ_0,aJ_1,aI_0,aI_1
       REAL*8, INTENT(IN)  :: 
      &     oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
       REAL*8  :: 
@@ -700,17 +720,13 @@ c*
       REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:,:), aArea(:,:,:),
      &                       aFOCEAN(:,:,:), aFtemp(:,:,:),
      &                       oFtemp(:,:)
-      logical :: HAVE_NORTH_POLE
       real*8 :: missing
 
+      logical :: HAVE_NORTH_POLE
+
+      call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE) 
+
       missing=-1.e30
-
-      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
-      aJ_0 = aGRID%j_STRT
-      aJ_1 = aGRID%j_STOP
-      aI_0 = aGRID%I_STRT
-      aI_1 = aGRID%I_STOP
 
       ALLOCATE(
      &     aFOCEAN(aIM,aJM,6),
@@ -726,8 +742,7 @@ C***  Gather 3D array on atmospheric grid into the global array
       DO N1=1,NTM
          DO N2=1,NT
             oFtemp(:,:) = oA(N1,N2,:,:)
-            if (HAVE_NORTH_POLE)
-     &           oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+            oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
             
             call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,
      &           aFtemp,aArea)
@@ -785,9 +800,6 @@ C***  Scatter global array oA_glob to the ocean grid
 
       missing=-1.e30
       
-      call get(agrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE,
-     &     HAVE_SOUTH_POLE=HAVE_SOUTH_POLE)
-      
       ALLOCATE(
      &     aUO1_glob(aIM,aJM,6), 
      &     aVO1_glob(aIM,aJM,6),
@@ -796,15 +808,11 @@ C***  Scatter global array oA_glob to the ocean grid
       
 !!!   U velocity for the 1st ocean layer.
       
-      if (HAVE_SOUTH_POLE) then
-         oVsp = oUO1(IVSPO,  1)
-         oUO1(:,  1) = oUO1(oIM,  1)*oCOSU(:) - oVsp*oSINU(:)
-      endif
+      oVsp = oUO1(IVSPO,  1)
+      oUO1(:,  1) = oUO1(oIM,  1)*oCOSU(:) - oVsp*oSINU(:)
       
-      if (HAVE_NORTH_POLE) then
-         oVnp = oUO1(IVNPO,oJM)
-         oUO1(:,oJM) = oUO1(oIM,oJM)*oCOSU(:) + oVnp*oSINU(:)
-      endif
+      oVnp = oUO1(IVNPO,oJM)
+      oUO1(:,oJM) = oUO1(oIM,oJM)*oCOSU(:) + oVnp*oSINU(:)
 
       call repr_regrid_wt(xO2A,oWEIGHT,missing,oUO1,
      &     aUO1_glob,aArea)  

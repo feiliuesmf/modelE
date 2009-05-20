@@ -348,9 +348,9 @@ C****
 !@auth Rodger Abel
 !@ver  1.0
 
-      USE DOMAIN_DECOMP_1D, only : dist_grid,get, grid
-
-      USE OCEANR_DIM
+      USE DOMAIN_DECOMP_ATM, only : dist_grid,agrid=>grid
+      USE DOMAIN_DECOMP_1D, only : get
+      USE OCEANR_DIM, only : ogrid,J_0H,J_1H,init_oceanr_grid  
 
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
 
@@ -430,10 +430,10 @@ C****
 C**** Necessary initiallisation?
       MU=0. ; MV=0. ; MW=0. ; CONV=0.
 
-c??   call ALLOC_GM_COM(grid)
+c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
       call alloc_odiag(ogrid)
-      call alloc_afluxes(grid)
+      call alloc_afluxes(agrid)
       call ALLOC_OFLUXES(ogrid)
 
 #ifdef TRACERS_OceanBiology

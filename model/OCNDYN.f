@@ -4063,11 +4063,9 @@ C****
 C**** save surface variables before any fluxes are added
       CALL KVINIT
 C*
-#ifndef CUBE_GRID
 
       CALL AG2OG_precip
 
-#endif
 C**** Convert fluxes on atmospheric grid to oceanic grid
 C**** build in enough code to allow a different ocean grid.
 C**** Since the geometry differs on B and C grids, some processing
@@ -4745,7 +4743,7 @@ C****
       Use GEOM,      only : IMAXJ
       USE AFLUXES, only : aMO, aUO1,aVO1, aG0,aS0
      *     , aOGEOZ, aOGEOZ_SV
-      Use DOMAIN_DECOMP_1D, Only: grid, get
+      Use DOMAIN_DECOMP_ATM, Only: agrid=>grid, get
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE OCN_TRACER_COM, only : trw0, ntm
@@ -4774,10 +4772,10 @@ C****
         stop
       end if
 
-      call get (grid, j_strt=j_0, j_stop=j_1,
+      call get (agrid, j_strt=j_0, j_stop=j_1,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      I_0 = agrid%I_STRT
+      I_1 = agrid%I_STOP
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 !
