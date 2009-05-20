@@ -40,7 +40,8 @@
      *     jl_mcdtotw,jl_mcldht,jl_mcheat,jl_mcdry,ij_ctpi,ij_taui,
      *     ij_lcldi,ij_mcldi,ij_hcldi,ij_tcldi,ij_sstabx,isccp_diags,
      *     ndiupt,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss,ij_scldi,
-     *     jl_mcshlw,jl_mcdeep,
+     *     jl_mcshlw,jl_mcdeep,ij_mccldtp,ij_mccldbs,
+     *     ij_mccvtp,ij_mccvbs,
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
@@ -418,7 +419,7 @@ C
       DO L=1,LM
       DO I=I_0,I_1
         GZIL(I,L) = GZ(I,J,L)
-#ifdef SCM        
+#ifdef SCM
         SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
 #else
         SD_CLDIL(I,L) = SDA(I,J,L)/DTsrc ! averaged SD
@@ -660,7 +661,7 @@ C**** MOIST CONVECTION
 
 cECON E1 = ( sum( ((T(I,J,:)*PLK(:)-TL(:))*AIRM(:)*SHA + (Q(I,J,:)
 cECON*     *AIRM(:)-QM(:))*LHE)*(1.-FSSL(:)))-sum(SVWMXL(:)*(LHE
-cECON*     -SVLATL(:))*AIRM(:)))*100.*BYGRAV 
+cECON*     -SVLATL(:))*AIRM(:)))*100.*BYGRAV
 cQCON q1 = sum( (Q(I,J,:)*AIRM(:)-QM(:))*(1.-FSSL(:))-SVWMXL(:)*AIRM(:))
 cQCON*     *100.*BYGRAV
 
@@ -679,10 +680,10 @@ C**** Error reports
           if(T(i,j,L)*plk(L)<TF) then
             Lfreeze=L
             exit
-          endif  
-        enddo  
+          endif
+        enddo
         calL calc_lightning(i,j,LMCMAX,Lfreeze)
-      endif  
+      endif
 #endif
 
 C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
@@ -692,6 +693,14 @@ C**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         IF(CLDSLWIJ.GT.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
         IF(CLDDEPIJ.GT.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+        AIJ(I,J,IJ_MCCLDTP)=AIJ(I,J,IJ_MCCLDTP)+   ! MC cloud top pressure
+     *    PLE(LMCMAX+1)*CLDMCL(LMCMAX)
+        AIJ(I,J,IJ_MCCLDBS)=AIJ(I,J,IJ_MCCLDBS)+   ! MC cloud base pressure
+     *    PLE(LMCMIN+1)*CLDMCL(LMCMIN+1)
+        AIJ(I,J,IJ_MCCVTP)=AIJ(I,J,IJ_MCCVTP)+     ! MC top cloud cover
+     *    CLDMCL(LMCMAX)
+        AIJ(I,J,IJ_MCCVBS)=AIJ(I,J,IJ_MCCVBS)+     ! MC base cloud cover
+     *    CLDMCL(LMCMIN+1)
 #ifdef CLD_AER_CDNC
         AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
         AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
@@ -882,7 +891,7 @@ C****
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
 #ifdef SCM
       if (I.eq.I_TARG .and. J.eq.J_TARG) AQ(:) = ((SCM_SAVE_Q(:)
-     *     +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc 
+     *     +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
 #endif
       RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
       FSSL(:)=FSS(:,I,J)
@@ -1016,7 +1025,7 @@ cECON   ep1=-PRCPSS*100.*BYGRAV*LHM
 
 cECON if (abs(E1-ep1).gt.0.01) print*,"energy err1",i,j,(E1-ep1)
 cECON*     *GRAV*1d-2,E1-ep1,E1,ep1,prcpss*100.*BYGRAV,lhp(1)
-      
+
 C**** PRECIPITATION DIAGNOSTICS
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_EPRCP,ENRGP*FTYPE(IT,I,J))
@@ -1155,7 +1164,7 @@ C**** WRITE TO GLOBAL ARRAYS
 #endif
       TTOLD(:,I,J)=TH(:)
       QTOLD(:,I,J)=QL(:)
- 
+
       PREC(I,J)=PRCP            ! total precip mass (kg/m^2)
       EPREC(I,J)=ENRGP          ! energy of precipitation (J/m^2)
 C**** The PRECSS array is only used if a distinction is being made
@@ -1305,7 +1314,7 @@ C**** TRACERS: Use only the active ones
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprec(n,i,j)+trprss(nx)
         TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
-!        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)') 
+!        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)')
 !     .    n,ntm, ' TRP1::ACC:',trp_acc(n,i,j)*byaxyp(i,j),
 !     .    trprec(n,i,j),trprss(nx)
 C**** diagnostics

@@ -278,7 +278,7 @@ c
       ia_j(k) = ia_rad
 c
       k=k+1
-      J_LWCORR= k ! LWUP(RAD)-LW(SURF)   (W/m2)                        
+      J_LWCORR= k ! LWUP(RAD)-LW(SURF)   (W/m2)
       name_j(k) = 'LWCORR'
       lname_j(k) = 'LW RAD/SURF CORRECTION'
       units_j(k) = 'W/m^2'
@@ -1504,6 +1504,22 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_MCCVTP = k ! PCLDMC (1)  (PICK UP FROM MSTCNV)
+      lname_ij(k) = 'MC TOP CLOUD COVER'
+      units_ij(k) = ''
+      name_ij(k) = 'mccvtp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
+      IJ_MCCVBS = k ! PCLDMC (1)  (PICK UP FROM MSTCNV)
+      lname_ij(k) = 'MC BASE CLOUD COVER'
+      units_ij(k) = ''
+      name_ij(k) = 'mccvbs'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
       IJ_CLDCV = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
       lname_ij(k) = 'TOTAL CLOUD COVER'
       units_ij(k) = '%'
@@ -1528,6 +1544,26 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_1775
       denom_ij(k) = IJ_CLDCV
+c
+      k=k+1 !
+      IJ_MCCLDTP = k ! P-MC CLOUD TOP   (100 PA)                     
+      lname_ij(k) = 'CONVECTIVE CLOUD TOP PRESSURE'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'mccldtp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_MCCVTP
+c
+      k=k+1 !
+      IJ_MCCLDBS = k ! P-MC CLOUD BASE  (100 PA)                     
+      lname_ij(k) = 'CONVECTIVE CLOUD BASE PRESSURE'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'mccldbs'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_MCCVBS
 c
 #ifdef CLD_AER_CDNC
       k=k+1
@@ -1649,7 +1685,7 @@ c
       ir_ij(k) = ir_m530_190
 c
       k=k+1 !
-      IJ_RNFP1 = k ! RNFP1 (W/m**2)                        
+      IJ_RNFP1 = k ! RNFP1 (W/m**2)
       lname_ij(k) = 'NET RADIATION, P1'   ! >0 if down !
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'rnf_p1'
@@ -1765,7 +1801,7 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
-      IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2) 
+      IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2)
       DO N=1,8
         k=k+1
         lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA N='//char(N+48)
@@ -1776,7 +1812,7 @@ c
         ir_ij(k) = ir_m95_265
       END DO
 c
-      IJ_LWAERRF = k+1   ! TOA LW aerosol rad forcing (W/m**2) 
+      IJ_LWAERRF = k+1   ! TOA LW aerosol rad forcing (W/m**2)
       DO N=1,8
         k=k+1
         lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA N='//char(N+48)
@@ -1787,7 +1823,7 @@ c
         ir_ij(k) = ir_m95_265
       END DO
 c
-      IJ_SWAERSRF = k+1   ! Surf SW aerosol rad forcing (W/m**2) 
+      IJ_SWAERSRF = k+1   ! Surf SW aerosol rad forcing (W/m**2)
       DO N=1,8
         k=k+1
         lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF N='//char(N+48)
@@ -1798,7 +1834,7 @@ c
         ir_ij(k) = ir_m95_265
       END DO
 c
-      IJ_LWAERSRF = k+1   ! Surf LW aerosol rad forcing (W/m**2) 
+      IJ_LWAERSRF = k+1   ! Surf LW aerosol rad forcing (W/m**2)
       DO N=1,8
         k=k+1
         lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF N='//char(N+48)
@@ -1809,7 +1845,7 @@ c
         ir_ij(k) = ir_m95_265
       END DO
 c
-      IJ_SWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2) 
+      IJ_SWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2)
       DO N=1,8
         k=k+1
         lname_ij(k) = 'SW AER ATMOS. ABSORPTION N='//char(N+48)
@@ -1820,7 +1856,7 @@ c
         ir_ij(k) = ir_m95_265
       END DO
 c
-      IJ_LWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2) 
+      IJ_LWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2)
       DO N=1,8
         k=k+1
         lname_ij(k) = 'LW AER ATMOS. ABSORPTION N='//char(N+48)
@@ -1832,7 +1868,7 @@ c
       END DO
 c
       k=k+1
-      IJ_SWAERRFNT = k   ! NET TOA SW aerosol rad forcing (W/m**2) 
+      IJ_SWAERRFNT = k   ! NET TOA SW aerosol rad forcing (W/m**2)
       lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swaerrf_toa_net'
@@ -1841,7 +1877,7 @@ c
       ir_ij(k) = ir_m95_265
 c
       k=k+1
-      IJ_LWAERRFNT = k   ! NET TOA LW aerosol rad forcing (W/m**2) 
+      IJ_LWAERRFNT = k   ! NET TOA LW aerosol rad forcing (W/m**2)
       lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwaerrf_toa_net'
@@ -1850,7 +1886,7 @@ c
       ir_ij(k) = ir_m95_265
 c
       k=k+1
-      IJ_SWAERSRFNT = k   ! NET Surf SW aerosol rad forcing (W/m**2) 
+      IJ_SWAERSRFNT = k   ! NET Surf SW aerosol rad forcing (W/m**2)
       lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swaerrf_surf_net'
@@ -1859,7 +1895,7 @@ c
       ir_ij(k) = ir_m95_265
 c
       k=k+1
-      IJ_LWAERSRFNT = k   ! NET Surf LW aerosol rad forcing (W/m**2) 
+      IJ_LWAERSRFNT = k   ! NET Surf LW aerosol rad forcing (W/m**2)
       lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwaer_surf_net'
@@ -1868,7 +1904,7 @@ c
       ir_ij(k) = ir_m95_265
 c
       k=k+1
-      IJ_SWAERABSNT = k   ! NET Atm. abs. by aerosol (W/m**2) 
+      IJ_SWAERABSNT = k   ! NET Atm. abs. by aerosol (W/m**2)
       lname_ij(k) = 'SW AER ATMOS. ABSORPTION NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swaeraa_toa_net'
@@ -1877,7 +1913,7 @@ c
       ir_ij(k) = ir_m95_265
 c
       k=k+1
-      IJ_LWAERABSNT = k         ! NET Atm. abs. by aerosol (W/m**2) 
+      IJ_LWAERABSNT = k         ! NET Atm. abs. by aerosol (W/m**2)
       lname_ij(k) = 'LW AER ATMOS. ABSORPTION NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwaeraa_toa_net'
@@ -3045,7 +3081,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c     iw  built-in
 C NADINE
-      k=k+1 ! 
+      k=k+1 !
       IJ_IPP = k    !kg[C]/m2/s
       lname_ij(k) = 'ISOPRENE EMISSION FROM VEG'
       !from kg[C]/m2/s, typical range to 30 gC/m2/year
