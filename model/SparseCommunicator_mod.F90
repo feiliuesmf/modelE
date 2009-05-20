@@ -331,7 +331,7 @@ contains
    !local variables
    Integer :: arrRank, numBlks, lstride, gstride
 
-   arrRank=size(shape(ARR_GLOB))
+   arrRank=size(shape(ARR))
    numBlks=1
    lstride=0
    gstride=0
@@ -349,9 +349,9 @@ contains
    !local variables
    Integer :: arrRank, numBlks, lstride, gstride
 
-   arrRank=size(shape(ARR_GLOB))
-   numBlks=size(arr_glob,3)
-   lstride=ubound(ARR_GLOB,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
    gstride=ubound(ARR_GLOB,1)*ubound(ARR_GLOB,2)
 
    call gather(this, ARR, ARR_GLOB, numBlks, lstride, gstride)
@@ -367,9 +367,9 @@ contains
    !local variables
    Integer :: arrRank, numBlks, lstride, gstride
 
-   arrRank=size(shape(ARR_GLOB))
-   numBlks=size(arr_glob,3)*size(arr_glob,4)
-   lstride=ubound(ARR_GLOB,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)*size(arr,4)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
    gstride=ubound(ARR_GLOB,1)*ubound(ARR_GLOB,2)
 
    call gather(this, ARR, ARR_GLOB, numBlks, lstride, gstride)
@@ -385,7 +385,7 @@ contains
    !local variables
    Integer :: arrRank, numBlks, lstride, gstride
 
-   arrRank=size(shape(ARR_GLOB))
+   arrRank=size(shape(ARR))
    numBlks=1
    lstride=0
    gstride=0
@@ -403,9 +403,9 @@ contains
    !local variables
    Integer :: arrRank, numBlks, lstride, gstride
 
-   arrRank=size(shape(ARR_GLOB))
-   numBlks=size(arr_glob,3)
-   lstride=ubound(ARR_GLOB,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
    gstride=ubound(ARR_GLOB,1)*ubound(ARR_GLOB,2)
 
    call scatter(this, ARR, ARR_GLOB, numBlks, lstride, gstride)
@@ -421,9 +421,9 @@ contains
    !local variables
    Integer :: arrRank, numBlks, lstride, gstride
 
-   arrRank=size(shape(ARR_GLOB))
-   numBlks=size(arr_glob,3)*size(arr_glob,4)
-   lstride=ubound(ARR_GLOB,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)*size(arr,4)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
    gstride=ubound(ARR_GLOB,1)*ubound(ARR_GLOB,2)
 
    call scatter(this, ARR, ARR_GLOB, numBlks, lstride, gstride)
