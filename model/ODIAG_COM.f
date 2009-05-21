@@ -25,6 +25,7 @@
       REAL*8, DIMENSION(:,:,:,:), allocatable :: OIJL
       REAL*8, DIMENSION(LMO,KOL)   :: OL
       REAL*8, DIMENSION(LMO,NMST,KOLNST):: OLNST
+
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB
 !@var lname_oij Long names for OIJ diagnostics
@@ -67,15 +68,21 @@
 !@var iu_otj unit number for ascii output of ocean transports
       INTEGER iu_otj
 !@var NBAS number of ocean basins 
-      INTEGER, PARAMETER :: NBAS=4
+!@var KOJLB number of output qtys zonally averaged over basins
+      INTEGER, PARAMETER :: NBAS=4,KOJLB=3
 !@var BASIN names of ocean basins for diag output
       CHARACTER*16, DIMENSION(NBAS) :: BASIN=
      *     (/"Atlantic","Pacific ","Indian  ","Global  "/)
+!@var OJLB zonal sums over basins
+      REAL*8, DIMENSION(JM,LMO,NBAS,KOJLB) :: OJLB
+!@var JLB_xxx indices for qtys in OJLB
+      INTEGER, PARAMETER :: JLB_M=1,JLB_T=2,JLB_S=3
 !@var NSEC number of lat/lon sections for diags
       INTEGER, PARAMETER :: NSEC=3
 !@var SEC_LAT, SEC_LON lat/lon for sectional tracer profiles
       REAL*8, PARAMETER :: SEC_LAT(NSEC) = (/-64.,0.,48./),
      *     SEC_LON(NSEC) = (/-165.0,-30.,65./)
+
 C****
 
 #ifdef TRACERS_OCEAN

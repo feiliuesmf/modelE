@@ -667,6 +667,7 @@ c     write(0,*) 'SCM no diags   print_diags'
 
       call calc_derived_aij
       if(isccp_diags.eq.1) call diag_isccp_prep
+      IF (KDIAG(12).LT.9) CALL diag_OCEAN_prep
 
       CALL DIAG_GATHER
 

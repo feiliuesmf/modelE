@@ -1,5 +1,11 @@
 #include "rundeck_opts.h"
 
+      subroutine diag_ocean_prep
+      implicit none
+      call basin_prep
+      return
+      end subroutine diag_ocean_prep
+
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@auth Gavin Schmidt/Gary Russell
@@ -1315,10 +1321,10 @@ C****
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
-      REAL*8 XB0(JM,LMO,0:NBAS),X0(IM,LMO),XS(IM,LMO),
-     *     XBG(JM,LMO,0:NBAS),XBS(JM,LMO,0:NBAS),XG(IM,LMO)
+      REAL*8 XB0(JM,LMO,NBAS),X0(IM,LMO),XS(IM,LMO),
+     *     XBG(JM,LMO,NBAS),XBS(JM,LMO,NBAS),XG(IM,LMO)
 #ifdef TRACERS_OCEAN
-      REAL*8 XBT(JM,LMO,0:NBAS,NTM),XT(IM,LMO,NTM),XBTW(JM,LMO,0:NBAS)
+      REAL*8 XBT(JM,LMO,NBAS,NTM),XT(IM,LMO,NTM),XBTW(JM,LMO,NBAS)
 #endif
       CHARACTER TITLE*80,EW*1,NS*1
       CHARACTER(len=lname_strlen) :: lname
@@ -1331,47 +1337,33 @@ C****
 
       IF (QDIAG) then
       XJL=0.
-C**** Calculate basin and zonal averages of ocean mass
-      XB0 = 0.
-      DO L=1,LMO
-        DO J= 1,JM
-          DO I=1,IMAXJ(J)
-            KB=KBASIN(I,J)
-            XB0(J,L,KB) = XB0(J,L,KB) + OIJL(I,J,L,IJL_MO)
-          END DO
-        END DO
-      END DO
-      XB0(:,:,4) = XB0(:,:,1) + XB0(:,:,2) + XB0(:,:,3)
+
+      XB0 = OJLB(:,:,:,JLB_M)
+      XBG = OJLB(:,:,:,JLB_T)
+      XBS = OJLB(:,:,:,JLB_S)
+
       TITLE(51:80) = XLB
 C****
 C**** Quantites that are calculated
 C****
 C**** Basin and Zonal averages of tracers
 C****
-      XBG = 0.  ;  XBS = 0.
 #ifdef TRACERS_OCEAN
       XBT = 0.
-#endif
       DO L=1,LMO
         DO J= 1,JM
           DO I=1,IMAXJ(J)
             KB=KBASIN(I,J)
             IF(FOCEAN(I,J).gt..5)  THEN
-              XBG(J,L,KB) = XBG(J,L,KB) + OIJL(I,J,L,IJL_G0M)
-              XBS(J,L,KB) = XBS(J,L,KB) + OIJL(I,J,L,IJL_S0M)
-#ifdef TRACERS_OCEAN
               XBT(J,L,KB,:) = XBT(J,L,KB,:) + TOIJL(I,J,L,TOIJL_CONC,:)
-#endif
             END IF
           END DO
         END DO
       END DO
-      XBG(:,:,4) = XBG(:,:,1) + XBG(:,:,2) + XBG(:,:,3)
-      XBS(:,:,4) = XBS(:,:,1) + XBS(:,:,2) + XBS(:,:,3)
-#ifdef TRACERS_OCEAN
       XBT(:,:,4,:)= XBT(:,:,1,:)+XBT(:,:,2,:)+XBT(:,:,3,:)
       if (n_water.ne.0) XBTW(:,:,:) =  XBT(:,:,:,n_water)
 #endif
+
       DO KB=1,4
         DO J=1,JM
           DO L=1,LMO
@@ -1393,10 +1385,8 @@ c     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
               end if
               end do
 #endif
-              GOS = XBG(J,L,KB)/(XB0(J,L,KB)*DXYPO(J))
-              SOS = XBS(J,L,KB)/(XB0(J,L,KB)*DXYPO(J))
-              XBG(J,L,KB) = TEMGS(GOS,SOS)
-              XBS(J,L,KB) = 1d3*SOS
+              XBG(J,L,KB) = XBG(J,L,KB)/(XB0(J,L,KB)*DXYPO(J))
+              XBS(J,L,KB) = XBS(J,L,KB)/(XB0(J,L,KB)*DXYPO(J))
             ELSE
               XBG(J,L,KB)=undef
               XBS(J,L,KB)=undef
@@ -1701,6 +1691,56 @@ C**** Fluxes
 C****
       RETURN
       END SUBROUTINE OJLOUT
+
+      subroutine basin_prep
+c
+c Calculate zonal sums for ocean basins
+c
+      use ocean, only : im,jm,lmo,imaxj,focean,dxypo
+      use odiag
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : pack_dataj
+      implicit none
+      integer i,j,l,kb,n
+      real*8 gos,sos,temgs
+      integer :: j_0,j_1
+      real*8 :: ojlx(grid%j_strt_halo:grid%j_stop_halo,lmo,nbas,kojlb)
+
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+
+      ojlx = 0.
+      do l=1,lmo
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        if(focean(i,j).lt..5) cycle
+        kb=kbasin(i,j)
+        ojlx(j,l,kb,jlb_m) = ojlx(j,l,kb,jlb_m) +oijl_loc(i,j,l,ijl_mo)
+        ojlx(j,l,kb,jlb_t) = ojlx(j,l,kb,jlb_t) +oijl_loc(i,j,l,ijl_g0m)
+        ojlx(j,l,kb,jlb_s) = ojlx(j,l,kb,jlb_s) +oijl_loc(i,j,l,ijl_s0m)
+      enddo
+      enddo
+      enddo
+
+      ojlx(:,:,4,:) = sum(ojlx(:,:,1:3,:),dim=3)
+
+      do kb=1,4
+      do l=1,lmo
+      do j=j_0,j_1
+        if(ojlx(j,l,kb,jlb_m).eq.0.) cycle
+        gos = ojlx(j,l,kb,jlb_t)/(ojlx(j,l,kb,jlb_m)*dxypo(j))
+        sos = ojlx(j,l,kb,jlb_s)/(ojlx(j,l,kb,jlb_m)*dxypo(j))
+        ojlx(j,l,kb,jlb_t) = temgs(gos,sos)
+     &       *(ojlx(j,l,kb,jlb_m)*dxypo(j))
+        ojlx(j,l,kb,jlb_s) = ojlx(j,l,kb,jlb_s)*1d3
+      enddo
+      enddo
+      enddo
+
+      call pack_dataj(grid,ojlx,ojlb)
+
+      return
+      end subroutine basin_prep
 
       SUBROUTINE OTJOUT
 !@sum OTJOUT calculate vertically integrated basin and zonal
