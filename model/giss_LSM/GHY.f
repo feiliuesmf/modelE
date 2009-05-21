@@ -693,9 +693,9 @@ ccc   local variables
 !     Atmos. transfer coefficient btw soil and canopy air
       real*8 :: ch_vg
 !     Atmos. transfer coef. for dense canopy
-      real*8,parameter :: ch_dense_veg = 0.0001d0 
+      real*8 :: ch_dense_veg
 !     Clumping factor
-      real*8,parameter :: f_clump = 0.7d0 
+      real*8,parameter :: f_clump = 1.d0 
 !     Stem area index (currently set to zero)
       real*8,parameter :: sai = 0.d0 
 #endif
@@ -897,6 +897,7 @@ c     epvs = rho3*cna*(qvs-qs)
 !     values for bare soil and for a thick canopy 
 !     see Zeng et al (2005) and Lawrence et al (2007) 
 !     in the CLM
+      ch_dense_veg = 0.01d0*cna
       eta = exp( -f_clump*(lai + sai) )
       ch_vg = ch*eta + ch_dense_veg*(1.d0-eta)
       epvg  = rho3*ch_vg*( vs*(qvg-qs)-v_qprime )
