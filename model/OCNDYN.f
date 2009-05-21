@@ -1949,9 +1949,12 @@ C****
      *  INDEX   !  index to concatenated matricies
       Real*4,Save,Allocatable,Dimension(:) ::
      *  REDUCO  !  concatenation of reduction matricies
+      Real*4,Allocatable,Dimension(:) ::
+     *  REDUCO_glob  !  concatenation of reduction matricies
 C****
       Character*80 TITLE
-      Integer*4 I,I1,INDX,IWm2, J,JA,JX, K,L, N,NB, IU_AVR
+      Integer*4 I,I1,INDX,IWm2,IWm1, J,JA,JX, K,L, N,NB, IU_AVR
+      integer :: indx_min,indx_max
       Real*8 AN(0:IMz2), !  Fourier cosine coefficients
      *       BN(0:IMz2), !  Fourier sine coefficients
      *          Y(IM*2), !  original copy of X that wraps around IDL
@@ -1975,15 +1978,35 @@ C**** Calculate SMOOTHing factor for longitudes without land cells
    20 If (SMOOTH(N,J) >= 1)  GoTo 30
 C     N = 0
    30 NMIN(J) = N+1
-C**** Read in reduction contribution matrices from disk
+C**** Read in reduction contribution matrices from disk.  Only keep
+C**** the matrices needed for the latitudes on this processor.
       Call OPENUNIT ('AVR',IU_AVR,.True.,.True.)
       Read (IU_AVR) TITLE,NBASM,INDM
       Allocate (IMINm1(NBASM,LMO,J1O:JMEX), NBAS(LMO,J1O:JMEX),
      *          IWIDm1(NBASM,LMO,J1O:JMEX), INDEX(IM,2:JMPF),
-     *          REDUCO(INDM))
-      Read (IU_AVR) TITLE,NBAS,IMINm1,IWIDm1,INDEX,REDUCO
+     *          REDUCO_glob(INDM))
+      Read (IU_AVR) TITLE,NBAS,IMINm1,IWIDm1,INDEX,REDUCO_glob
       Call CLOSEUNIT (IU_AVR)
       Write (6,*) 'Read from unit',IU_AVR,': ',TITLE
+      indx_min = indm+1; indx_max = -1
+      do J=Max(J1O,J1P),JNP
+        JX=J  ;  If(J > JMPF) JX=J+2*JMPF-JM
+        JA=J  ;  If(J > JMPF) JA=JM+1-J
+        If (JA > JMPF)  cycle   !  skip latitudes J=JMPF+1,JM-JMPF
+        do L=1,LMO
+          If (IWIDm1(1,L,JX) >= IM)  cycle
+          do NB=1,NBAS(L,JX)
+            IWm1 = IWIDm1(NB,L,JX)
+            indx_min = min(indx_min,INDEX(IWm1,JA)+1)
+            indx_max = max(indx_max,INDEX(IWm1,JA)+IWm1**2)
+          enddo
+        enddo
+      enddo
+      if(indx_min.le.indx_max) then
+        allocate(reduco(indx_min:indx_max))
+        reduco(indx_min:indx_max) = reduco_glob(indx_min:indx_max)
+      endif
+      deallocate(reduco_glob)
  100  CONTINUE
 C****
 C**** Loop over J and L.  JX = eXclude unfiltered latitudes
