@@ -477,6 +477,10 @@ C**** Check for reasonable values for ocean variables
 
       END SUBROUTINE CHECKO
 
+      SUBROUTINE diag_OCEAN_prep
+      RETURN
+      END SUBROUTINE diag_OCEAN_prep
+
       SUBROUTINE diag_OCEAN
 !@sum  diag_OCEAN prints out diagnostics for ocean
 !@$    ESMF: It should only be called from a serial region.

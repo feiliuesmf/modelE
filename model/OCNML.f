@@ -213,6 +213,7 @@ C****
       ENTRY reset_ODIAG
       ENTRY gather_odiags ()
       ENTRY diag_OCEAN
+      ENTRY diag_OCEAN_prep
 
       ENTRY init_ODEEP
       ENTRY alloc_ODEEP
