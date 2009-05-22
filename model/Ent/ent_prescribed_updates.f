@@ -155,11 +155,189 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
      i    cropsdata)
 !@sum sets prescribed albedo in vegetated patches of the cell (skips bare soil)
 !@+   This subroutine assumes one cohort per patch !!!
+      use entcells, only : entcell_extract_pfts, summarize_entcell
+      use patches, only : patch_has_pft, patch_split, patch_merge,
+     &     delete_patch, patch_set_pft, patch_delete_cohort
       type(entcelltype) :: ecp
       real*8,intent(in) :: cropsdata !@var albedo for all PFTs 
       !-----Local---------
+      integer, parameter :: PFT_CROPS = 8
+      type(patch), pointer :: pp, pp_crops, pp_tmp, pp_end
+      real*8 :: crops_old, dcrops, dfr
+      real*8 :: vdata(12)
 
-      !!! nothing here yet ...
+!#define UNFINISHED_CROPS_CODE
+#ifdef UNFINISHED_CROPS_CODE
+
+
+      ! for debug 
+
+      call entcell_extract_pfts(ecp, vdata)
+      print *,"updating crops, old vdata:", vdata
+
+      ! find fraction of old crops
+      crops_old = 0.d0
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        if ( patch_has_pft(pp, PFT_CROPS ) )
+     &       crops_old = crops_old + pp%area
+        pp => pp%younger
+      enddo
+      dcrops = cropsdata - crops_old
+      if ( abs(dcrops) < 1.d-2 ) return ! ignore very small changes 1d-6
+
+
+      call summarize_entcell(ecp )
+      write(997,*) "before"
+      write(997,*) "ecp%C_fol   ", ecp%C_fol 
+      write(997,*) "ecp%N_fol   ", ecp%N_fol 
+      write(997,*) "ecp%C_w     ", ecp%C_w 
+      write(997,*) "ecp%N_w     ", ecp%N_w 
+      write(997,*) "ecp%C_lab   ", ecp%C_lab 
+      write(997,*) "ecp%N_lab   ", ecp%N_lab 
+      write(997,*) "ecp%C_froot ", ecp%C_froot
+      write(997,*) "ecp%N_froot ", ecp%N_froot
+      write(997,*) "ecp%C_root  ", ecp%C_root 
+      write(997,*) "ecp%N_root  ", ecp%N_root 
+      write(997,*) "ecp%nm ", ecp%nm
+      write(997,*) "ecp%Ntot ", ecp%Ntot
+      write(997,*) "ecp%LMA ", ecp%LMA
+      write(997,*) "ecp%h ", ecp%h
+      write(997,*) "ecp%LAI ", ecp%LAI
+      write(997,*) "ecp%LAIpft ", ecp%LAIpft
+      write(997,*) "ecp%fracroot ", ecp%fracroot
+
+      call summarize_entcell(ecp )
+      write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
+      call entcell_extract_pfts(ecp, vdata)
+      write(6,*) "sum= ", sum(vdata(:))
+
+
+      if ( crops_old > 1.d0 - 1.d-6 .or.
+     &     cropsdata > 1.d0 - 1.d-6) call stop_model(
+     &     "Fractions with 100% of crops are not supported",255)
+      dfr = dcrops/(1.d0 - crops_old)
+      if ( dcrops > 0 ) then
+        ! split each patch to create crops patch of area = pp%area*dfr 
+        print *,"here ",__FILE__,__LINE__
+        pp_end => ecp%youngest
+        pp => ecp%oldest
+        do while ( associated(pp) )
+          if ( .not. patch_has_pft(pp, PFT_CROPS ) ) then
+            call patch_split(pp, pp%area*dfr, pp_tmp)
+      !debug...........
+      call summarize_entcell(ecp )
+      write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
+      call entcell_extract_pfts(ecp, vdata)
+      write(6,*) "sum= ", sum(vdata(:))
+      !............
+            call patch_set_pft(pp_tmp, PFT_CROPS)
+          endif
+          if ( associated(pp, pp_end) ) exit
+          pp => pp%younger
+        enddo
+      !debug...........
+      call summarize_entcell(ecp )
+      write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
+      call entcell_extract_pfts(ecp, vdata)
+      write(6,*) "sum= ", sum(vdata(:))
+      !............
+        ! find first crops patch
+        print *,"here ",__FILE__,__LINE__
+        pp => ecp%oldest      
+        do while ( associated(pp) )
+          if ( patch_has_pft(pp, PFT_CROPS ) ) exit
+          pp => pp%younger
+        enddo
+        pp_crops => pp
+        ! merge all crops patches into one patch
+        print *,"here ",__FILE__,__LINE__
+        pp => ecp%oldest      
+        do while ( associated(pp) )
+          pp_tmp => pp%younger
+          if ( patch_has_pft(pp, PFT_CROPS )
+     &         .and. .not. associated(pp, pp_crops) )
+     &         call patch_merge(pp_crops, pp)
+          pp => pp_tmp
+        enddo
+      !debug...........
+      call summarize_entcell(ecp )
+      write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
+      call entcell_extract_pfts(ecp, vdata)
+      write(6,*) "sum= ", sum(vdata(:))
+      !............
+        print *,"here" ,__FILE__,__LINE__
+      else
+        ! find first crops patch
+        print *,"here ",__FILE__,__LINE__
+        pp => ecp%oldest      
+        do while ( associated(pp) )
+          if ( patch_has_pft(pp, PFT_CROPS ) ) exit
+          pp => pp%younger
+        enddo
+        print *,"here ",__FILE__,__LINE__
+        pp_crops => pp
+        if ( abs(crops_old - pp_crops%area) > 1.d-6 ) call stop_model(
+     &       "More than 1 crops patches per cell not supported",255)
+        ! split crops patch into pieces and merge them with other patches
+        print *,"here ",__FILE__,__LINE__
+      !debug...........
+      call summarize_entcell(ecp )
+      write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
+      call entcell_extract_pfts(ecp, vdata)
+      write(6,*) "sum= ", sum(vdata(:))
+      !............
+        pp => ecp%oldest      
+        do while ( associated(pp) )
+          if ( .not. patch_has_pft(pp, PFT_CROPS ) ) then
+            call patch_split(pp_crops, -pp%area*dfr, pp_tmp)
+            ! hack to deal with bare land (do not conserve C here)
+            if ( .not. associated( pp%tallest ) ) then
+              call patch_delete_cohort(pp_tmp,pp_tmp%tallest)
+            else
+              call patch_set_pft(pp_tmp, pp%tallest%pft)
+            endif
+            call patch_merge(pp, pp_tmp)
+          endif
+          pp => pp%younger
+        enddo
+      !debug...........
+      call summarize_entcell(ecp )
+      write(6,*) __LINE__,"ecp%C_froot ", ecp%C_froot
+      call entcell_extract_pfts(ecp, vdata)
+      write(6,*) "sum= ", sum(vdata(:))
+      !............
+        print *,"here ",__FILE__,__LINE__
+        if ( pp_crops%area < 1.d-6 ) call delete_patch(ecp, pp_crops)
+      endif
+
+        print *,"here ",__FILE__,__LINE__
+      call entcell_extract_pfts(ecp, vdata)
+      print *,"updating crops, new vdata:", vdata
+
+      call summarize_entcell(ecp )
+      write(997,*) "after"
+      write(997,*) "before"
+      write(997,*) "ecp%C_fol   ", ecp%C_fol 
+      write(997,*) "ecp%N_fol   ", ecp%N_fol 
+      write(997,*) "ecp%C_w     ", ecp%C_w 
+      write(997,*) "ecp%N_w     ", ecp%N_w
+      write(997,*) "ecp%C_lab   ", ecp%C_lab 
+      write(997,*) "ecp%N_lab   ", ecp%N_lab 
+      write(997,*) "ecp%C_froot ", ecp%C_froot
+      write(997,*) "ecp%N_froot ", ecp%N_froot
+      write(997,*) "ecp%C_root  ", ecp%C_root 
+      write(997,*) "ecp%N_root  ", ecp%N_root 
+      write(997,*) "ecp%nm ", ecp%nm
+      write(997,*) "ecp%Ntot ", ecp%Ntot
+      write(997,*) "ecp%LMA ", ecp%LMA
+      write(997,*) "ecp%h ", ecp%h
+      write(997,*) "ecp%LAI ", ecp%LAI
+      write(997,*) "ecp%LAIpft ", ecp%LAIpft
+      write(997,*) "ecp%fracroot ", ecp%fracroot
+
+
+#endif
 
       end subroutine entcell_update_crops
 
