@@ -22,16 +22,18 @@
 
       type(patch),pointer :: pp
       integer :: pft
-      real*8 :: n, h, nm, LAI,
+      real*8, intent(in) :: n
+      real*8, optional, intent(in) :: h, nm, LAI,
      &     crown_dx, crown_dy,dbh, clump
-      real*8 :: root_d,fracroot(N_DEPTH)
-      real*8 :: LMA, C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
+      real*8, optional, intent(in) :: root_d,fracroot(N_DEPTH)
+      real*8, optional, intent(in) :: LMA, C_fol, N_fol, C_sw,
+     &     N_sw, C_hw, N_hw,
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
      &     phenofactor_c, phenofactor_d, phenofactor,  CB_d,
      &     turnover_amp, llspan
-      integer :: phenostatus
+      integer, optional, intent(in) :: phenostatus
 !     &     stressH2O, stressH2O(N_DEPTH) !No need to assign biophysical values initialized in cohort_construct.
       !------------------
       type(cohort),pointer :: cop, csp, newc
@@ -44,6 +46,9 @@
         !!ALLOCATE(newc)
         !!newc%pptr = pp
       call cohort_construct(newc, pp, pft)
+      newc%n = n
+
+      if ( present(h) ) then
         call assign_cohort(newc,pft,n, h, nm, LAI,
      &       crown_dx, crown_dy,dbh, clump, LMA, root_d,fracroot,
      &       C_fol, N_fol, C_sw, N_sw, C_hw, N_hw,
@@ -54,6 +59,7 @@
      &       turnover_amp, llspan)
 
         newc%Ntot = nm*LAI
+      endif
 
         if (ASSOCIATED(pp%shortest)) then !A. There are other cohorts.
           if (pp%shortest%h.ge.newc%h) then !newc is shortest
@@ -437,5 +443,80 @@ cddd      end subroutine init_cohort_defaults
       end subroutine calc_CASArootfrac
       !*********************************************************************
 
+
+      subroutine cohort_merge_data( cop1, wp1, cop2, wp2 )
+      type(cohort)  :: cop1, cop2
+      real*8 :: wp1, wp2
+      !---
+      real*8 :: w1, w2, w_tot
+      
+      if ( cop1%pft .ne. cop2%pft ) then
+        print *,"cohort_merge_data: prf1, pft2=", cop1%pft, cop2%pft
+        call stop_model("Can't merge cohorts with different pfts",255)
+      endif
+
+      w_tot = wp1*cop1%n + wp2*cop2%n
+      w1 = wp1*cop1%n/w_tot
+      w2 = wp2*cop2%n/w_tot
+
+      ! values weighted with patch area
+      cop1%n            =wp1*cop1%n           +wp2*cop2%n
+      
+      ! values weighted with (patch area)*n
+      cop1%nm           =w1*cop1%nm           +w2*cop2%nm           
+      cop1%Ntot         =w1*cop1%Ntot         +w2*cop2%Ntot         
+                                                                           
+      cop1%h            =w1*cop1%h            +w2*cop2%h            
+      cop1%crown_dx     =w1*cop1%crown_dx     +w2*cop2%crown_dx     
+      cop1%crown_dy     =w1*cop1%crown_dy     +w2*cop2%crown_dy     
+      cop1%dbh          =w1*cop1%dbh          +w2*cop2%dbh          
+      cop1%root_d       =w1*cop1%root_d       +w2*cop2%root_d       
+      cop1%LAI          =w1*cop1%LAI          +w2*cop2%LAI          
+      cop1%clump        =w1*cop1%clump        +w2*cop2%clump        
+      cop1%fracroot(:)  =w1*cop1%fracroot(:)  +w2*cop2%fracroot(:)  
+                                                                           
+      cop1%LMA          =w1*cop1%LMA          +w2*cop2%LMA          
+      cop1%C_fol        =w1*cop1%C_fol        +w2*cop2%C_fol        
+      cop1%N_fol        =w1*cop1%N_fol        +w2*cop2%N_fol        
+      cop1%C_sw         =w1*cop1%C_sw         +w2*cop2%C_sw         
+      cop1%N_sw         =w1*cop1%N_sw         +w2*cop2%N_sw         
+      cop1%C_hw         =w1*cop1%C_hw         +w2*cop2%C_hw         
+      cop1%N_hw         =w1*cop1%N_hw         +w2*cop2%N_hw         
+      cop1%C_lab        =w1*cop1%C_lab        +w2*cop2%C_lab        
+      cop1%N_lab        =w1*cop1%N_lab        +w2*cop2%N_lab        
+      cop1%C_froot      =w1*cop1%C_froot      +w2*cop2%C_froot      
+      cop1%N_froot      =w1*cop1%N_froot      +w2*cop2%N_froot      
+      cop1%C_croot      =w1*cop1%C_croot      +w2*cop2%C_croot      
+      cop1%N_croot      =w1*cop1%N_croot      +w2*cop2%N_croot      
+                                                         
+      cop1%Ci           =w1*cop1%Ci           +w2*cop2%Ci           
+      cop1%GCANOPY      =w1*cop1%GCANOPY      +w2*cop2%GCANOPY      
+      cop1%GPP          =w1*cop1%GPP          +w2*cop2%GPP          
+      cop1%IPP          =w1*cop1%IPP          +w2*cop2%IPP          
+      cop1%NPP          =w1*cop1%NPP          +w2*cop2%NPP          
+      cop1%R_auto       =w1*cop1%R_auto       +w2*cop2%R_auto       
+      cop1%R_root       =w1*cop1%R_root       +w2*cop2%R_root       
+      cop1%N_up         =w1*cop1%N_up         +w2*cop2%N_up         
+      cop1%C_to_Nfix    =w1*cop1%C_to_Nfix    +w2*cop2%C_to_Nfix    
+                                                                           
+      cop1%phenofactor_c=w1*cop1%phenofactor_c+w2*cop2%phenofactor_c
+      cop1%phenofactor_d=w1*cop1%phenofactor_d+w2*cop2%phenofactor_d
+      cop1%phenofactor  =w1*cop1%phenofactor  +w2*cop2%phenofactor  
+
+      ! phenostatus is int, not sere how to deal with it
+      !cop1%phenostatus  =w1*cop1%phenostatus  +w2*cop2%phenostatus  
+      cop1%CB_d         =w1*cop1%CB_d         +w2*cop2%CB_d         
+      cop1%turnover_amp =w1*cop1%turnover_amp +w2*cop2%turnover_amp 
+      cop1%llspan       =w1*cop1%llspan       +w2*cop2%llspan       
+      cop1%Sacclim      =w1*cop1%Sacclim      +w2*cop2%Sacclim      
+                                                                           
+      cop1%stressH2O    =w1*cop1%stressH2O    +w2*cop2%stressH2O    
+      cop1%stressH2Ol(:)=w1*cop1%stressH2Ol(:)+w2*cop2%stressH2Ol(:)
+      cop1%senescefrac  =w1*cop1%senescefrac  +w2*cop2%senescefrac  
+                                                                           
+      cop1%C_total      =w1*cop1%C_total      +w2*cop2%C_total      
+      cop1%C_growth     =w1*cop1%C_growth     +w2*cop2%C_growth    
+ 
+      end subroutine cohort_merge_data
 
       end module cohorts

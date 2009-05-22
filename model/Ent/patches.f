@@ -86,7 +86,6 @@
       else !pp points somewhere in the middle of patch list
         pp%older%younger => pp%younger
         pp%younger%older => pp%older
-        nullify(pp)
       end if
       call patch_destruct(pp)
 
@@ -600,5 +599,213 @@
       end subroutine print_Tpool
 
 !**************************************************************************
-  
+
+
+      subroutine patch_split(pp, area, pp_new)
+!!!   this subroutine works only with 0 or 1 coherts per patch !
+      use cohorts, only : insert_cohort
+      type(patch), pointer :: pp, pp_new
+      real*8 area
+      !---
+      type(entcelltype), pointer :: gp
+
+      gp => pp%cellptr
+      call insert_patch(gp, area, pp%soil_type)
+      pp_new => gp%youngest
+      if ( associated(pp%tallest) ) then ! have cohort: will insert similar
+        call insert_cohort(pp_new, pp%tallest%pft, pp%tallest%n)
+      endif
+
+      pp%area = pp%area - area
+      if ( pp%area < -1.d-6 )
+     &     call stop_model("patch_split: area > pp%area",255)
+      pp%area = max( 0.d0, pp%area )
+
+      call patch_merge_data( pp_new, 0.d0, pp, 1.d0 )
+
+      end subroutine patch_split
+
+
+      subroutine patch_set_pft(pp, pft)
+!!!   this subroutine works only with 0 or 1 coherts per patch !
+      use cohorts, only : insert_cohort
+      type(patch), pointer :: pp
+      integer :: pft
+      !---
+
+      if ( .not. associated(pp%tallest) ) then
+        ! no cohorts, will insert one
+        call insert_cohort(pp, pft, 0.d0)
+      else if ( associated(pp%tallest, pp%shortest) ) then
+        ! one cohort - just change pft
+        pp%tallest%pft = pft
+      else
+        ! more then one cohort
+        call stop_model("patch_set_pft: called for >1 cohorts",255)
+      endif
+       
+      
+      end subroutine patch_set_pft
+
+
+      subroutine patch_merge(pp1, pp2)
+      type(patch), pointer :: pp1, pp2
+      !---
+      type(entcelltype), pointer :: gp
+      real*8 :: w1, w2, tot_area
+
+      gp => pp1%cellptr
+
+      tot_area = pp1%area + pp2%area
+      w1 = pp1%area/tot_area
+      w2 = pp2%area/tot_area
+      call patch_merge_data( pp1, w1, pp2, w2 )
+
+      pp1%area = tot_area
+      pp1%area = min( 1.d0, pp1%area )
+      call delete_patch( gp, pp2 )
+
+      end subroutine patch_merge
+
+      subroutine patch_merge_data( pp1, w1, pp2, w2 )
+!@sum Initialize patch, zeroing variables.
+      use cohorts, only : cohort_merge_data
+      implicit none
+      type(patch) :: pp1, pp2
+      real*8 :: w1, w2
+      !----Local----
+
+      ! do we need to reste age?
+      !pp%age
+      ! area is set outside
+      !pp%area
+
+      !nullify(pp%crad%heights)
+      !nullify(pp%crad%lai)
+      !pp%crad%gortclump = 0.d0
+
+      !pp%soil_type = -1         ! set to undefined soil type (maybe use -1?)
+
+      pp1%Reproduction(:) =w1*pp1%Reproduction    +w2*pp2%Reproduction
+
+      pp1%nm              =w1*pp1%nm              +w2*pp2%nm              
+      pp1%Ntot            =w1*pp1%Ntot            +w2*pp2%Ntot            
+      pp1%LAI             =w1*pp1%LAI             +w2*pp2%LAI             
+      pp1%LMA             =w1*pp1%LMA             +w2*pp2%LMA             
+      pp1%h               =w1*pp1%h               +w2*pp2%h               
+      pp1%crown_dx        =w1*pp1%crown_dx        +w2*pp2%crown_dx        
+      pp1%crown_dy        =w1*pp1%crown_dy        +w2*pp2%crown_dy        
+      pp1%clump           =w1*pp1%clump           +w2*pp2%clump           
+      pp1%fracroot        =w1*pp1%fracroot        +w2*pp2%fracroot        
+      pp1%C_fol           =w1*pp1%C_fol           +w2*pp2%C_fol           
+      pp1%N_fol           =w1*pp1%N_fol           +w2*pp2%N_fol           
+      pp1%C_w             =w1*pp1%C_w             +w2*pp2%C_w             
+      pp1%N_w             =w1*pp1%N_w             +w2*pp2%N_w             
+      pp1%C_lab           =w1*pp1%C_lab           +w2*pp2%C_lab           
+      pp1%N_lab           =w1*pp1%N_lab           +w2*pp2%N_lab           
+      pp1%C_froot         =w1*pp1%C_froot         +w2*pp2%C_froot         
+      pp1%N_froot         =w1*pp1%N_froot         +w2*pp2%N_froot         
+      pp1%C_root          =w1*pp1%C_root          +w2*pp2%C_root          
+      pp1%N_root          =w1*pp1%N_root          +w2*pp2%N_root          
+      pp1%Ci              =w1*pp1%Ci              +w2*pp2%Ci              
+      pp1%GCANOPY         =w1*pp1%GCANOPY         +w2*pp2%GCANOPY         
+      pp1%GPP             =w1*pp1%GPP             +w2*pp2%GPP             
+      pp1%IPP             =w1*pp1%IPP             +w2*pp2%IPP             
+      pp1%NPP             =w1*pp1%NPP             +w2*pp2%NPP             
+      pp1%R_auto          =w1*pp1%R_auto          +w2*pp2%R_auto          
+      pp1%R_root          =w1*pp1%R_root          +w2*pp2%R_root          
+      pp1%N_up            =w1*pp1%N_up            +w2*pp2%N_up            
+      pp1%betad           =w1*pp1%betad           +w2*pp2%betad           
+      pp1%betadl(:)       =w1*pp1%betadl(:)       +w2*pp2%betadl(:)       
+                                                      
+      pp1%C_total         =w1*pp1%C_total         +w2*pp2%C_total         
+      pp1%C_growth        =w1*pp1%C_growth        +w2*pp2%C_growth        
+                                                        
+      pp1%z0              =w1*pp1%z0              +w2*pp2%z0              
+      pp1%albedo          =w1*pp1%albedo          +w2*pp2%albedo          
+      pp1%TRANS_SW        =w1*pp1%TRANS_SW        +w2*pp2%TRANS_SW        
+      pp1%CO2flux         =w1*pp1%CO2flux         +w2*pp2%CO2flux         
+      pp1%Soil_resp       =w1*pp1%Soil_resp       +w2*pp2%Soil_resp       
+                                                     
+      pp1%Soilmoist(:)    =w1*pp1%Soilmoist(:)    +w2*pp2%Soilmoist(:)    
+                                                         
+      pp1%fuel            =w1*pp1%fuel            +w2*pp2%fuel            
+      pp1%ignition_rate   =w1*pp1%ignition_rate   +w2*pp2%ignition_rate   
+      pp1%lambda1         =w1*pp1%lambda1         +w2*pp2%lambda1         
+      pp1%disturbance_rate=w1*pp1%disturbance_rate
+     &     +w2*pp2%disturbance_rate
+                                                            
+      pp1%LAIpft(:)       =w1*pp1%LAIpft(:)       +w2*pp2%LAIpft(:)       
+      pp1%Tpool(:,:,:)    =w1*pp1%Tpool(:,:,:)    +w2*pp2%Tpool(:,:,:)
+
+      ! process cohorts
+      if ( (.not. associated(pp1%tallest)) .and.
+     &     (.not. associated(pp2%tallest)) ) return ! no cohorts
+
+      if ( (.not. associated(pp1%tallest)) .or.
+     &     (.not. associated(pp2%tallest)) ) call stop_model(
+     &     "Can't merge patches with and without cohorts",255)
+
+      if ( .not. associated(pp1%tallest,pp1%shortest) ) call stop_model(
+     &     "Can't merge patches with more than 1 cohort",255)
+
+      if ( .not. associated(pp2%tallest,pp2%shortest) ) call stop_model(
+     &     "Can't merge patches with more than 1 cohort",255)
+
+      call cohort_merge_data( pp1%tallest, w1, pp2%tallest, w2 )
+
+      end subroutine patch_merge_data
+
+
+      function patch_has_pft( pp, pft )
+      logical patch_has_pft
+      type(patch), intent(in) :: pp
+      integer, intent(in) :: pft
+      !---
+      type(cohort),pointer :: cop
+      
+      patch_has_pft = .false.
+      cop => pp%tallest
+      do while( associated(cop) )
+        if ( cop%pft == pft ) then
+          patch_has_pft = .true.
+          return
+        endif
+        cop => cop%shorter
+      enddo
+
+      end function patch_has_pft
+
+
+      subroutine patch_delete_cohort( pp, cop_del )
+      use cohorts, only : cohort_destruct
+      type(patch), pointer :: pp
+      type(cohort), pointer :: cop_del
+      !---
+      type(cohort),pointer :: cop, cop_next
+      
+      cop => pp%tallest
+      do while( associated(cop) )
+
+        cop_next => cop%shorter
+        if ( associated( cop, cop_del ) ) then
+          if ( associated( cop%taller ) ) then
+            cop%taller%shorter => cop%shorter
+          else
+            pp%tallest => cop%shorter
+          endif
+          if ( associated( cop%shorter ) ) then
+            cop%shorter%taller => cop%taller
+          else
+            pp%shortest => cop
+          endif
+          call cohort_destruct( cop )
+        endif
+
+        cop => cop_next
+      enddo
+
+
+      end subroutine patch_delete_cohort
+
       end module patches
