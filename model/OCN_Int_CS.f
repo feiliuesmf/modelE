@@ -160,14 +160,14 @@ c*
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: aN, oN
-      REAL*8, INTENT(IN)  :: 
+      REAL*8, INTENT(INOUT)  :: 
      &     aA(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,aN),
      &     aweight(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
       REAL*8, INTENT(OUT) :: oA(oIM,
      &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN)
-      REAL*8, ALLOCATABLE :: oA_glob(:,:,:)
+      REAL*8, ALLOCATABLE :: oA_glob(:,:),oAtmp(:,:)
       REAL*8, ALLOCATABLE :: oArea(:,:)
       real*8 missing
 
@@ -177,15 +177,18 @@ c*** make sure that oN <= aN
       if (oN .gt. aN) 
      &     call stop_model("out of bounds",255)     
       
-      allocate(oA_glob(oIM,oJM,oN),oArea(oIM,oJM))
+      allocate(oA_glob(oIM,oJM),oArea(oIM,oJM), oAtmp(oIM,
+     &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
 
 C***  regridding from atmospheric grid to ocean grid 
       call repr_regrid_wt(xA2O,aWEIGHT,missing,aA(:,:,oN),
-     &        oA_glob(:,:,oN),oArea)   
+     &        oA_glob,oArea)   
 
-      CALL OCN_UNPACK(ogrid, oA_glob, oA)
+      CALL OCN_UNPACK(ogrid, oA_glob, oAtmp)
 
-      DEALLOCATE(oA_glob,oArea)
+      aA(:,:,oN)=oAtmp(:,:)
+
+      DEALLOCATE(oA_glob,oArea,oAtmp)
       
       END SUBROUTINE INT_AG2OG_3Db
 c*
@@ -212,9 +215,9 @@ c*
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
      &     aweight(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-      REAL*8, INTENT(OUT) :: oA(oN,oIM,
+      REAL*8, INTENT(INOUT) :: oA(oN,oIM,
      &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
-      REAL*8, ALLOCATABLE :: oA_glob(:,:,:)
+      REAL*8, ALLOCATABLE :: oA_glob(:,:),oAtmp(:,:)
       REAL*8, ALLOCATABLE :: oArea(:,:)
       real*8 missing
 
@@ -224,16 +227,19 @@ c*** make sure that oNin <= aN
       if (oNin .gt. aN .OR. oNin .gt. oN) 
      &     call stop_model("out of bounds",255)
     
-      allocate(oA_glob(oN,oIM,oJM),oArea(oIM,oJM))
+      allocate(oA_glob(oIM,oJM),oArea(oIM,oJM),oAtmp(oIM,
+     &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
 
       call repr_regrid_wt(xA2O,aWEIGHT,missing,aA(oNin,:,:),
-     &        oA_glob(oNin,:,:),oArea)
+     &        oA_glob(:,:),oArea)
 
 C***  Scatter global array oA_glob to the ocean grid
 
-      CALL OCN_UNPACK_COL (ogrid, oA_glob, oA)
+      CALL OCN_UNPACK_COL (ogrid, oA_glob, oAtmp)
 
-      DEALLOCATE(oA_glob,oArea)
+      oA(oNin,:,:)=oAtmp(:,:)
+
+      DEALLOCATE(oA_glob,oArea,oAtmp)
       
       END SUBROUTINE INT_AG2OG_3Dc
 c*
@@ -339,7 +345,7 @@ c*
       USE OCEAN, only : oIM=>im,oJM=>jm
       USE RESOLUTION, only : aIM=>im, aJM=>jm
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA,AM_I_ROOT
       Use OCEANR_DIM,       only : oGRID
       USE OCEAN,            only : oSINI=>SINIC, oCOSI=>COSIC   
       use regrid_com, only : xA2O
@@ -361,23 +367,25 @@ c*
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
       REAL*8, DIMENSION(oIM,oJM) :: oFtemp 
       REAL*8  oUsp, oVsp, oUnp, oVnp
-      REAL*8, ALLOCATABLE :: oU_glob(:,:,:),oV_glob(:,:,:)
+      REAL*8, ALLOCATABLE :: oUtmp(:,:),oVtmp(:,:)
+      REAL*8, ALLOCATABLE :: oUt(:,:),oVt(:,:)
       REAL*8, allocatable :: oArea(:,:),aftemp(:,:)
       integer :: i,j
       real*8 :: missing
+      
 
       missing=-1.e30
 
       ALLOCATE(
-     &     oU_glob(oIM,oJM,oN), 
-     &     oV_glob(oIM,oJM,oN),
      &     aftemp(aGRID%I_STRT:aGRID%I_STOP,
      &     aGRID%J_STRT:aGRID%J_STOP),
-     &     oArea(oIM,oJM)
-     &     )
-      
-      do j=oGRID%J_STRT,oGRID%J_STOP
-         do i=oGRID%I_STRT,oGRID%I_STOP
+     &     oArea(oIM,oJM),
+     &     oUt(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     &     oVt(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+     &     oUtmp(oIM,oJM),oVtmp(oIM,oJM) )
+
+      do j=aGRID%J_STRT,aGRID%J_STOP
+         do i=aGRID%I_STRT,aGRID%I_STOP
             if (aFOCEAN(i,j).gt.0.) then
                aftemp(i,j) = aU(i,j,oN) !  kg/m s
             endif
@@ -385,17 +393,19 @@ c*
       enddo
 
       call repr_regrid_wt(xA2O,aWEIGHT,missing,aftemp,
-     &     oU_glob(:,:,oN),oArea)  
+     &     oUtmp,oArea)  
       
-      oUsp =  SUM(oU_glob(:,  1,oN)*oCOSI(:))*2/oIM
-      oVsp = -SUM(oU_glob(:,  1,oN)*oSINI(:))*2/oIM
-      oUnp =  SUM(oU_glob(:,oJM,oN)*oCOSI(:))*2/oIM
-      oVnp =  SUM(oU_glob(:,oJM,oN)*oSINI(:))*2/oIM
-      oU_glob(1,  1,oN) = oUsp
-      oU_glob(1,oJM,oN) = oUnp
+      oUsp =  SUM(oUtmp(:,  1)*oCOSI(:))*2/oIM
+      oVsp = -SUM(oUtmp(:,  1)*oSINI(:))*2/oIM
+      oUtmp(1,  1) = oUsp
+     
+      oUnp =  SUM(oUtmp(:,oJM)*oCOSI(:))*2/oIM
+      oVnp =  SUM(oUtmp(:,oJM)*oSINI(:))*2/oIM
+      oUtmp(1,oJM) = oUnp
+     
       
-      do j=oGRID%J_STRT,oGRID%J_STOP
-         do i=oGRID%I_STRT,oGRID%I_STOP
+      do j=aGRID%J_STRT,aGRID%J_STOP
+         do i=aGRID%I_STRT,aGRID%I_STOP
             if (aFOCEAN(i,j).gt.0.) then
                aftemp(i,j) = aV(i,j,oN) !  kg/m s
             endif
@@ -403,17 +413,19 @@ c*
       enddo
       
       call repr_regrid_wt(xA2O,aWEIGHT,missing,aftemp,
-     &     oV_glob(:,:,oN),oArea)  
-      
-      oV_glob(1,  1,oN) = oVsp
-      oV_glob(1,oJM,oN) = oVnp
+     &     oVtmp,oArea)  
+
+      oVtmp(1,  1) = oVsp
+      oVtmp(1,oJM) = oVnp
      
-      
 C***  Scatter global array oA_glob to the ocean grid
-      CALL OCN_UNPACK (ogrid, oU_glob, oU)
-      CALL OCN_UNPACK (ogrid, oV_glob, oV)
+      CALL OCN_UNPACK (ogrid, oUtmp, oUt)
+      CALL OCN_UNPACK (ogrid, oVtmp, oVt)
+
+      oU(:,:,oN)=oUt
+      oV(:,:,oN)=oVt
       
-      DEALLOCATE(oU_glob,oV_glob,aftemp,oArea)
+      DEALLOCATE(aftemp,oArea,oUt,oVt,oUtmp,oVtmp)
       
       END SUBROUTINE INT_AG2OG_Vector1
 c*
@@ -424,7 +436,7 @@ c*
 !@auth Larissa Nazarenko, Denis Gueyffier
       USE OCEAN, only : oIM=>im,oJM=>jm
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA,get
       Use OCEANR_DIM,       only : oGRID
       use regrid_com, only : xA2O
 
@@ -444,7 +456,7 @@ c*
       REAL*8  oUsp, oUnp
       REAL*8, ALLOCATABLE :: oU_glob(:,:),oV_glob(:,:),oArea(:,:)
       real*8 :: missing
-
+      
       missing=-1.e30
 
       allocate(oU_glob(oIM,oJM),oV_glob(oIM,oJM),oArea(oIM,oJM))
@@ -454,12 +466,12 @@ C***  Interpolate aU from atmospheric grid to ocean grid
       call repr_regrid_wt(xA2O,aWEIGHT,missing,aU,
      &     oU_glob,oArea)  
 
-        oUsp = 0.0  
-        oUnp = 0.0   
-
-        oU_glob(IVSPO,  1) = oUsp
-        oU_glob(  oIM,oJM) = oUnp
-        oU_glob(IVNPO,  1) = oUnp
+      oUnp = 0.0   
+      oU_glob(  oIM,oJM) = oUnp
+      oU_glob(IVNPO,  1) = oUnp
+      
+      oUsp = 0.0  
+      oU_glob(IVSPO,  1) = oUsp
 
       call repr_regrid_wt(xA2O,aWEIGHT,missing,aV,
      &     oV_glob,oArea)  
