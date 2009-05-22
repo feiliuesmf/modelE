@@ -15,7 +15,8 @@
      &     prescr_get_vdata, prescr_get_laidata, 
      &     prescr_update_vegcrops, prescr_veg_albedodata,
      &     prescr_get_height, !YKIM
-     &     prescr_soilpools  !for prescribing soil C, N pools -PK 12/07
+     &     prescr_soilpools,  !for prescribing soil C, N pools -PK 12/07
+     &     prescr_get_cropdata
 
       contains
 
