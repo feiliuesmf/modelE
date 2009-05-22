@@ -875,7 +875,7 @@ c
       fmt_reg(k) = fmt912
 c
       k=k+1
-      J_FTHERM= k ! ENERGY DIFFUSION INTO THERMOCLINE (W/m**2) .5*9 MN
+      J_FTHERM= k ! ENERGY DIFFUSION INTO THERMOCLINE (W/m**2) dly odeep
       name_j(k) = 'ht_thermocline'
       lname_j(k) = 'ENERGY DIFFUSION INTO THE THERMOCLINE'
       units_j(k) = 'W/m^2'
@@ -1546,7 +1546,7 @@ c
       denom_ij(k) = IJ_CLDCV
 c
       k=k+1 !
-      IJ_MCCLDTP = k ! P-MC CLOUD TOP   (100 PA)                     
+      IJ_MCCLDTP = k ! P-MC CLOUD TOP   (100 PA)
       lname_ij(k) = 'CONVECTIVE CLOUD TOP PRESSURE'
       units_ij(k) = 'mb'
       name_ij(k) = 'mccldtp'
@@ -1556,7 +1556,7 @@ c
       denom_ij(k) = IJ_MCCVTP
 c
       k=k+1 !
-      IJ_MCCLDBS = k ! P-MC CLOUD BASE  (100 PA)                     
+      IJ_MCCLDBS = k ! P-MC CLOUD BASE  (100 PA)
       lname_ij(k) = 'CONVECTIVE CLOUD BASE PRESSURE'
       units_ij(k) = 'mb'
       name_ij(k) = 'mccldbs'
@@ -1993,7 +1993,7 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
-      IJ_TDSL = k ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT) .5*9 MN
+      IJ_TDSL = k ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT)      dly_ea
       lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE OVER SOIL'
       units_ij(k) = 'K'
       name_ij(k) = 'dtdiurn_soil'
@@ -2187,7 +2187,7 @@ c
       ir_ij(k) = ir_0_710
 c
       k=k+1 !
-      IJ_TOC2 = k ! TGO2= TOCEAN(2)  (C)                   .5*9 MN
+      IJ_TOC2 = k ! TGO2= TOCEAN(2)  (C)
       lname_ij(k) = 'OCEAN TEMPERATURE BELOW MIXED LAYER' ! lyr 2
       units_ij(k) = 'C'
       name_ij(k) = 'TOC2'
@@ -2272,7 +2272,7 @@ c
       ir_ij(k) = ir_0_180
 c
       k=k+1 !
-      IJ_STRNGTS = k ! MAX(0,65F-TS_daily_avg in F)          .5*9 MN
+      IJ_STRNGTS = k ! MAX(0,65F-TS_daily_avg in F)              dly_ea
       lname_ij(k) = 'MONTHLY HEATING' ! monthly heating need ?
       units_ij(k) = 'degF days'
       name_ij(k) = 'heat_deg_days'
@@ -2341,7 +2341,7 @@ c
       denom_ij(k) = IJ_VSFR
 c
       k=k+1 !
-      IJ_DTGDTS = k ! 18*(DEL(TG)/DEL(TS)-1),DEL= DIURN MX-MN .5*9 MN
+      IJ_DTGDTS = k ! 18*(DEL(TG)/DEL(TS)-1),DEL=diurn_range     dly_ea
       lname_ij(k) = 'PLANT WATER STRESS'
       units_ij(k) = '1'
       name_ij(k) = 'plant_wstress'
@@ -2435,7 +2435,7 @@ c     jgrid_ij(k) = 2
 c     ir_ij(k) = ir_0_26_150
 c
       k=k+1 !
-      IJ_TGO2 = k ! TGO12= TOCEAN(3) (C)                  .5*9 MN
+      IJ_TGO2 = k ! TGO12= TOCEAN(3) (C)
       lname_ij(k) = 'OCEAN TEMPERATURE AT ANN-MAX MIXED-LAYER' ! layer 3
       units_ij(k) = 'C'
       name_ij(k) = 'TGO2'
@@ -2655,7 +2655,7 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1 !
-      IJ_TMAXE = k ! MAX TS OVER EARTH FOR CURRENT DAY (C).5*9 MN
+      IJ_TMAXE = k ! MAX TS OVER EARTH FOR CURRENT DAY (C)       dly_ea
       lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH/SOIL'
       units_ij(k) = 'C'
       name_ij(k) = 'TMAXE'
@@ -2664,7 +2664,17 @@ c
       ir_ij(k) = ir_m80_28
       denom_ij(k) = IJ_PSOIL
 c
-      k=k+1 !
+      k=k+1
+      IJ_TMAXC = k ! MAX composite TS FOR CURRENT DAY (C)        dly_ea
+      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH' ! composite
+      units_ij(k) = 'C'
+      name_ij(k) = 'TMAXC'
+      ia_ij(k) = ia_12hr   ! really ia_24hr
+      scale_ij(k) = 2.*1.  ! really 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = 0
+c
+      k=k+1
       IJ_WMSUM = k ! LIQUID WATER PATH (kg/m**2)             1 CL
       lname_ij(k) = 'LIQUID WATER PATH'
       units_ij(k) = '.1 kg/m^2'
@@ -4015,6 +4025,16 @@ c      scale_ij(k) = 1.
       denom_ij(k) = IJ_PRES
       ia_ij(k) = ia_dga ! IA_IJL(IJK_TX)
 
+      k=k+1
+      IJ_TMINC = k ! MIN composite TS FOR CURRENT DAY (C)
+      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL LOW' ! composite
+      units_ij(k) = 'C'
+      name_ij(k) = 'TMINC'
+      ia_ij(k) = ia_12hr   ! really ia_24hr
+      scale_ij(k) = 2.*1.  ! really 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = 0
+
       K = K+1
       IJ_RTSE = K
        NAME_IJ(K) = 'RTSE'
@@ -4828,6 +4848,7 @@ c
          denom_ijl(k) = 0
          ia_ijl(k) = ia_src
          lgrid_ijl(k) = ctr_ml
+         jgrid_ijl(k) = 1
       enddo
 
 c
@@ -4845,10 +4866,12 @@ c
       k=k+1
       IJL_U = k   ! no 3D output yet - presently used only in DIAGIL
       ia_ijl(k) = ia_dga
+      jgrid_ijl(k) = 2 
 c
       k=k+1
       IJL_V = k   ! no 3D output yet - presently used only in DIAGIL
       ia_ijl(k) = ia_dga
+      jgrid_ijl(k) = 2 
 c
       k=k+1
       IJK_TX = k
@@ -4899,6 +4922,36 @@ c
       units_ijl(k) = '%'
       scale_ijl(k) = 100.
       ia_ijl(k) = ia_rad
+c
+      k=k+1        ! moist convective air mass flux (model layers)
+      IJL_MCamFX   = k
+      name_ijl(k)  = 'MCamFX'
+      lname_ijl(k) = 'MOIST CONVECTIVE AIR MASS FLUX'
+      units_ijl(k) = '1e-4 kg/m2/s'
+      scale_ijl(k) = 1.e4*100.*BYGRAV/DTsrc
+      denom_ijl(k) = 0
+      ia_ijl(k)    = ia_src
+      lgrid_ijl(k) = edg_ml
+c
+      k=k+1        ! mass fraction of cloud liquid water (model layers)
+      IJL_cldwtr   = k
+      name_ijl(k)  = 'wtrcld'
+      lname_ijl(k) = 'Cloud Liquid Water Content'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_src
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! mass fraction of cloud ice (model layers)
+      IJL_cldice   = k
+      name_ijl(k)  = 'icecld'
+      lname_ijl(k) = 'Cloud Ice Content'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_src
+      lgrid_ijl(k) = ctr_ml
 c
 CC    Written out 3D latent heating profiles
       if (lh_diags.eq.1) then

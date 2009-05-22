@@ -48,6 +48,7 @@
      *     ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi,
      *     ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx
      *     ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh
+     *     ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
 #ifdef CLD_AER_CDNC
      *     ,jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis
      *     ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis
@@ -733,6 +734,7 @@ C*** End Accumulate 3D convective latent heating
          call inc_ajl(i,j,l,jl_cldmc,CLDMCL(L)*AIRM(L))
          call inc_ajl(i,j,l,jl_mcdflx,DDMFLX(L))
          call inc_ajl(i,j,l,jl_csizmc,CSIZEL(L)*CLDMCL(L)*AIRM(L))
+         aijl(i,j,l,ijl_MCamFX) = aijl(i,j,l,ijl_MCamFX) + MCFLX(L)
 #ifdef HTAP_LIKE_DIAGS
           AIJ(I,J,IJ_MCamFX(L))=AIJ(I,J,IJ_MCamFX(L))+MCFLX(L)
 #endif
@@ -1047,6 +1049,10 @@ C**** PRECIPITATION DIAGNOSTICS
 C**** cloud water diagnostics
       WM1=0  ; WMI=0
       DO L=1,LP50
+        if(SVLHXL(L).eq.LHE)
+     *  aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
+        if(SVLHXL(L).eq.LHS)
+     *  aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + WMX(L)*AIRM(L)
         WM1=WM1+WMX(L)*AIRM(L)
         IF (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
       END DO

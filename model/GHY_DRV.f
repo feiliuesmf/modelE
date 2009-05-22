@@ -1363,7 +1363,7 @@ c        values
            write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),EVPFLX,SHFLX
  981       format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',i5,
      &            f9.4,f9.4,f9.5,f11.5,f11.5)
-      else    
+      else
            dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
            dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
 c          write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
@@ -2365,9 +2365,9 @@ c**** (useful when changing land/vegetation mask)
       do j=J_0,J_1
         do i=I_0,I_1
           if ( fearth(i,j) == 0.d0 ) then
-!            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 ) 
+!            if ( maxval(fr_snow_ij(:,i,j)) > 0.d0 )
 !      &           print *,"removing snow from ",i,j,
-!      &           " : cell under lake or land ice" 
+!      &           " : cell under lake or land ice"
             nsn_ij(:, i, j) = 1
             wsn_ij(:, :, i, j) = 0.d0
             hsn_ij(:, :, i, j) = 0.d0
@@ -2501,7 +2501,7 @@ c initialize soil (w, ht) from earth_*
           wmax = dz(k)*thets(k,ibv)
           wmin = dz(k)*thetm(k,ibv)
           if ( w(k,ibv) > wmax ) then
-            if (qcheck) print *,"fix_water_ic: reducing water, cell ", 
+            if (qcheck) print *,"fix_water_ic: reducing water, cell ",
      *            i, j, "layer ", k, ibv, w(k,ibv), " -> ", wmax
             if (qcheck) print *, "q= ", q(:,k)
             w(k,ibv) = wmax
@@ -3466,7 +3466,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 #endif
       use geom, only : imaxj,lat2d
       use diag_com, only : aij=>aij_loc
-     *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe
+     *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe,ij_tmaxc
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghy_com, only : snoage, snoage_def,fearth, wsn_max,
      &     q_ij,dz_ij,ngm
@@ -3676,6 +3676,7 @@ c****
      *         (tdiurn(i,j,6)-tdiurn(i,j,9))
           aij(i,j,ij_tmaxe)=aij(i,j,ij_tmaxe)+
      *         (tdiurn(i,j,4)-tf)*fearth(i,j)
+          aij(i,j,ij_tmaxc)=aij(i,j,ij_tmaxc) + (tdiurn(i,j,6)-tf)
           if (tdiurn(i,j,6)-tf.lt.aij(i,j,ij_tmnmx))
      *         aij(i,j,ij_tmnmx)=tdiurn(i,j,6)-tf
         end do
@@ -4549,7 +4550,7 @@ cddd            endif
      &           fr_snow_ij(2,i,j) = min( .95d0, fr_snow_ij(2,i,j) )
 
             if ( fr_snow_ij(1,i,j) > 1.d0 .or.
-     &           fr_snow_ij(2,i,j) > 1.d0 ) then 
+     &           fr_snow_ij(2,i,j) > 1.d0 ) then
               print *,"FR_SNOW_ERROR" ,
      &             i,j,dfrac,fearth(i,j),fb,fv,fr_snow_ij(1:2,i,j)
               call stop_model(

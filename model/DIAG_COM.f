@@ -69,7 +69,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
 !@param KAIJL number of AIJL accumulations
-      INTEGER, PARAMETER, public :: KAIJL=15
+      INTEGER, PARAMETER, public :: KAIJL=18
 #ifdef CLD_AER_CDNC
      &     +12
 #endif
@@ -78,8 +78,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       INTEGER, public ::
      &     IJL_DP,IJK_DP,IJL_U,IJL_V,IJK_TX,IJK_Q,
      &     IJL_W,IJK_RH,IJL_RC,IJL_MC
-      INTEGER, public :: IJL_CF,
-     &     IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
+      INTEGER, public :: IJL_CF, IJL_MCamFX, IJL_cldwtr,IJL_cldice
+     &    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
 
@@ -387,7 +387,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var CDL_J consolidated metadata for AJ output fields in CDL notation
 !@+   CDL_REG                         AREG
       character(len=100), dimension(kaj*8), public :: cdl_j,cdl_reg
-!@var HEMIS_J hemispheric/global averages of AJ 
+!@var HEMIS_J hemispheric/global averages of AJ
       real*8, dimension(:,:,:), allocatable, public :: hemis_j
 
       character(len=sname_strlen), dimension(kaj), public :: name_reg
@@ -412,14 +412,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_MSI, IJ_TGO2, IJ_EVAPO,
      *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0OI,IJ_F0LI,IJ_F0E,
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_ERUN2, IJ_SHDTLI, IJ_EVHDT,
-     *     IJ_TRHDT, IJ_TMAX, IJ_TMIN, IJ_TMNMX, IJ_PEVAP, IJ_TMAXE,
+     *     IJ_TRHDT, IJ_TMAXE, IJ_TMAXC, IJ_TMINC, IJ_TMNMX, IJ_PEVAP,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP, IJ_TSI,
      *     IJ_SSI1,IJ_SSI2,IJ_SMFX,     ! IJ_MSU2,IJ_MSU2R,
      *     IJ_MLTP,IJ_FRMP, IJ_P850, IJ_CLR_SRINCG,
-     *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, !VEG DIAGNOSTICS  
+     *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, !VEG DIAGNOSTICS
      *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
      *     IJ_HTSOIL, IJ_HTSNOW, IJ_AINTRCP, IJ_MCCLDTP, IJ_MCCLDBS,
@@ -439,7 +439,7 @@ C****      names, indices, units, idacc-numbers, etc.
      &     ,ij_flam,ij_CtoG,ij_flash,ij_chl,ij_swaerrf,ij_lwaerrf
      *     ,ij_swaersrf,ij_lwaersrf,ij_swaerabs,ij_lwaerabs,ij_swaerrfnt
      *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
-     *     ,ij_lwaerabsnt 
+     *     ,ij_lwaerabsnt
       INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
      &     ,IJ_HUSL
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
@@ -657,6 +657,7 @@ c derived/composite diagnostics
       REAL*8, DIMENSION(KAIJL), public :: SCALE_IJL
 !@var IA_IJL,DENOM_IJL  idacc-numbers,weights for AIJL diagnostics
       INTEGER, DIMENSION(KAIJL), public :: IA_IJL,DENOM_IJL,LGRID_IJL
+     &                                                     ,JGRID_IJL
 !@var NAME_IJL Names of lon-lat-level IJL diagnostics
       character(len=sname_strlen), dimension(kaijl), public :: name_ijl
 !@var LNAME_IJL,UNITS_IJL Descriptions/Units of IJL diagnostics
@@ -858,7 +859,7 @@ c the new i/o system
      &         STAT = IER)
 
       ALLOCATE(
-     &         AJ_loc(J_0BUDG:J_1BUDG, KAJ, NTYPE),   
+     &         AJ_loc(J_0BUDG:J_1BUDG, KAJ, NTYPE),
      &         AJL_loc(J_0BUDG:J_1BUDG, LM, KAJL),
      &         ASJL_loc(J_0BUDG:J_1BUDG,LM_REQ,KASJL),
      &         CONSRV_loc(J_0BUDG:J_1BUDG, KCON),
@@ -1442,7 +1443,7 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
 #ifdef CUBE_GRID   /* temporary */
       real*8 :: dlat_budg,fjeq_budg
 #endif
-      
+
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
@@ -1474,7 +1475,7 @@ c get the nominal latitudes of the budget grid
         wtbudg(:,j)=1d0/imaxj(j)
       enddo
 #endif
-        
+
       RETURN
       END SUBROUTINE set_wtbudg
 
@@ -1488,14 +1489,14 @@ c get the nominal latitudes of the budget grid
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
       INTEGER :: IER,KK,LL
- 
+
 C**** define atmospheric grid
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1, J_STRT_HALO=J_0H,
-     *     J_STOP_HALO=J_1H  ) 
+     *     J_STOP_HALO=J_1H  )
       I_0H = grid%I_STRT_HALO ; I_1H = grid%I_STOP_HALO
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
-      ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER) 
+      ALLOCATE( J_BUDG(I_0H:I_1H, J_0H:J_1H), STAT = IER)
 
       DO J=J_0H,J_1H
 C**** this should be valid for all grids (lat/lon, cubed sphere,...)
@@ -1530,9 +1531,9 @@ c      write(*,*) "j_1b - j_1", j_1b - j_1
 
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
-      !   wtbudg area-weight =1 on lat-lon, <1 on cubed sphere 
+      !   wtbudg area-weight =1 on lat-lon, <1 on cubed sphere
       AJ(J_BUDG(I,J),J_DIAG,ITYPE) = AJ(J_BUDG(I,J),J_DIAG,ITYPE)
-     &     +wtbudg(I,J)*ACC    
+     &     +wtbudg(I,J)*ACC
 
       RETURN
       END SUBROUTINE INC_AJ
@@ -1571,7 +1572,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       REAL*8, INTENT(IN) :: ACC
 
       AJL(J_BUDG(I,J),L,JL_INDEX) = AJL(J_BUDG(I,J),L,JL_INDEX)
-     &     +wtbudg(I,J)*ACC 
+     &     +wtbudg(I,J)*ACC
 
       RETURN
       END SUBROUTINE INC_AJL
@@ -1589,7 +1590,7 @@ c temporary variant of inc_ajl without any weighting
       REAL*8, INTENT(IN) :: ACC
 
       AJL(J_BUDG(I,J),L,JL_INDEX) = AJL(J_BUDG(I,J),L,JL_INDEX)
-     &     +ACC 
+     &     +ACC
 
       RETURN
       END SUBROUTINE INC_AJL2
@@ -1617,7 +1618,7 @@ c temporary variant of inc_ajl without any weighting
 
       subroutine set_zzarea()
 !@sum  pre-computes area of zig-zag bands accross processors. Several
-!@+    processors can contribute to same zig-zag band  
+!@+    processors can contribute to same zig-zag band
 !@auth Denis Gueyffier
       use GEOM, only: J_BUDG,axyp
       use DIAG_COM, only : axypband_loc,axypband,JM_BUDG
@@ -1626,15 +1627,15 @@ c temporary variant of inc_ajl without any weighting
       INTEGER :: I,J,J_0,J_1,I_0,I_1
       logical :: increment
 
-      CALL GET(grid, J_STRT=J_0,J_STOP=J_1) 
+      CALL GET(grid, J_STRT=J_0,J_STOP=J_1)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
-      
+
       axypband_loc(:)=0.0
 
       do J=J_0,J_1
          do I=I_0,I_1
             axypband_loc(J_BUDG(I,J))=axypband_loc(J_BUDG(I,J))
-     &       +axyp(I,J)            
+     &       +axyp(I,J)
          enddo
       enddo
 
@@ -1725,7 +1726,7 @@ c*
      &     idacc=>idacc_ioptr
 c in the postprocessing case where arrays are read from disk and summed,
 c these i/o pointers point to temporary arrays.  Otherwise, they point to
-c the instances of the arrays used during normal operation. 
+c the instances of the arrays used during normal operation.
       use diag_com, only :
      &     aj=>aj_ioptr,aij=>aij_ioptr,
      &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
@@ -1836,7 +1837,7 @@ c for which scalars is bcast_all=.true. necessary?
       use model_com, only : ioread,iowrite
 c in the postprocessing case where arrays are read from disk and summed,
 c these i/o pointers point to temporary arrays.  Otherwise, they point to
-c the instances of the arrays used during normal operation. 
+c the instances of the arrays used during normal operation.
       use diag_com, only : tsfrez=>tsfrez_ioptr,keyct,keynr
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
@@ -2046,7 +2047,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'lon',lon_dg(:,1))
       call write_data(grid,fid,'lat',lat_dg(:,1))
 #endif
-      
+
       call write_dist_data(grid,fid,'axyp',axyp)
       call write_data(grid,fid,'lat_budg',lat_budg)
       call write_data(grid,fid,'area_budg',dxyp_budg)
@@ -2119,7 +2120,7 @@ c for which scalars is bcast_all=.true. necessary?
 
       subroutine set_ioptrs_atmacc_default
 c point i/o pointers for diagnostic accumlations to the
-c instances of the arrays used during normal operation. 
+c instances of the arrays used during normal operation.
       use diag_com
       implicit none
       energy_ioptr => energy!_loc

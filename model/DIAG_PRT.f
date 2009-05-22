@@ -1831,7 +1831,7 @@ C**** NOR. TRANSPORT OF QUASI-GEOSTROPHIC POT. VORTICITY BY EDDIES
       DO 490 J=2,JM-1
       AX(J,K)=(
      &    AGC(J,  K,JK_EDDNTMOM)*DXCOSV(J  )/(AGC(J,  K,JK_DPB)+teeny)-
-     &    AGC(J+1,K,JK_EDDNTMOM)*DXCOSV(J+1)/(AGC(J+1,K,JK_DPB)+teeny) 
+     &    AGC(J+1,K,JK_EDDNTMOM)*DXCOSV(J+1)/(AGC(J+1,K,JK_DPB)+teeny)
      &       )/COSP(J)
       DX(J,K)=FCOR(J)*(VX(J,K)+VX(J+1,K))/
      &     (AGC(J,K,JK_DPB)+AGC(J+1,K,JK_DPB)+teeny)
@@ -5212,7 +5212,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
       USE DIAG_COM, only : aijl,kaijl,acc_period,ijkgridc
      &     ,ia_ijl,denom_ijl,name_ijl,lname_ijl,units_ijl,scale_ijl,
-     &     lgrid_ijl,
+     &     lgrid_ijl,jgrid_ijl,
      &     ctr_ml,edg_ml,ctr_cp
       use filemanager
       IMPLICIT NONE
@@ -5240,6 +5240,15 @@ C****
 c
 c loop over quantities
 c
+C     Fill in the undefined pole box duplicates
+      do k=1,kaijl
+        if (jgrid_ijl(k) == 2) CYCLE
+        do L=1,lm
+           aijl(2:im, 1,L,k) = aijl(1, 1,L,k)
+           aijl(2:im,jm,L,k) = aijl(1,jm,L,k)
+        end do
+      end do
+
       do k=1,kaijl
         if(trim(lname_ijl(k)).eq.'no output') cycle
 c

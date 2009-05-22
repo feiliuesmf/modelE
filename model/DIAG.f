@@ -250,7 +250,7 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           ZS=BYGRAV*ZATMO(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ PS
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TSAVG(I,J),ZS)-P1000
-C**** calculate pressure diags including water 
+C**** calculate pressure diags including water
           PS=PS+SUM((Q(I,J,:)+WM(I,J,:))*AM(:,I,J))*kg2mb
           AIJ(I,J,IJ_PRESQ)=AIJ(I,J,IJ_PRESQ)+ PS
           AIJ(I,J,IJ_SLPQ)=AIJ(I,J,IJ_SLPQ)+SLP(PS,TSAVG(I,J),ZS)-P1000
@@ -355,9 +355,9 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
               CALL INC_AJ(I,J,IT,J_TX,(TX(I,J,L)-TF)*FTYPE(IT,I,J)*
      *             DBYSD)
               CALL INC_AJ(I,J,IT,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
-     *             *FTYPE(IT,I,J)) 
+     *             *FTYPE(IT,I,J))
             END DO
-            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)) 
+            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L))
             CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD)
           END DO
         END DO
@@ -1478,7 +1478,7 @@ C**** simple diags (one record per file)
             end do
           end do
         case ("GID")  ! avg levels 2-6 ground ice (m liq. equiv.)
-          do j=J_0,J_1          
+          do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=gdeep(i,j,3)
@@ -1488,7 +1488,7 @@ C**** simple diags (one record per file)
             end do
           end do
         case ("GW0")  ! ground lev 1 + canopy liq water (m)
-          do j=J_0,J_1          
+          do j=J_0,J_1
             do i=I_0,imaxj(j)
               if (fearth(i,j).gt.0) then
                 data(i,j)=wearth(i,j)
@@ -2036,7 +2036,7 @@ C**** cases using all levels up to LmaxSUBDD
           cycle
 
 #ifdef HTAP_LIKE_DIAGS
-C**** for AOD multiple tracers are written to one file 
+C**** for AOD multiple tracers are written to one file
           case ('AOD') ! aerosol optical depths daily average
             kunit=kunit+1
             if(mod(itime+1,Nday).ne.0) cycle ! only at end of day
@@ -2410,10 +2410,10 @@ c**** find MSU channel 2,3,4 temperatures
 !@var iu_REG unit number for regions file
       INTEGER iu_REG
 #ifdef CUBE_GRID
-C***  regions defined as rectangles 
+C***  regions defined as rectangles
       integer, dimension(23) :: NRECT
-      character*4, dimension(23,6) :: CORLON,CORLAT 
-      real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners 
+      character*4, dimension(23,6) :: CORLON,CORLAT
+      real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners
       integer :: ireg,irect,icorlon,icorlat
       real*8::lon,lat
 #else
@@ -2438,23 +2438,23 @@ C****   READ SPECIAL REGIONS
 #else
 c**** Regions are defined in reg.txt input file as union of rectangles
 c**** independant of resolution & grid type
-        
+
       call openunit("REG",iu_REG,.false.,.true.)
       READ(iu_REG,'(A80)') TITREG !read title
       READ (iu_REG,'(I2)') (NRECT(I), I=1,23 ) !#of rectangles per region
       READ (iu_REG,'(A4,1X,A4)') (NAMREG(1,I),NAMREG(2,I),I=1,23) !Read region name
-        
+
 c**** Read cordinates of rectangles
 c**** (NWcorner long, NW corner lat, SE corner long, SE corner lat)(1:23)
 c**** 0555 = no rectangle
-      READ (iu_REG,'(11(A4,1X),A4)') (      
+      READ (iu_REG,'(11(A4,1X),A4)') (
      &       CORLON(I,1),CORLAT(I,1),
      &       CORLON(I,2),CORLAT(I,2),
      &       CORLON(I,3),CORLAT(I,3),
      &       CORLON(I,4),CORLAT(I,4),
      &       CORLON(I,5),CORLAT(I,5),
      &       CORLON(I,6),CORLAT(I,6), I=1,23)
- 
+
 c**** Convert to integer
       do i=1,23
         do j=1,6
@@ -2490,7 +2490,7 @@ c**** determine the region to which each cell belongs
 #endif
       IF (AM_I_ROOT()) then
         WRITE(6,*) ' read REGIONS from unit ',iu_REG,': ',TITREG
-      endif 
+      endif
       call closeunit(iu_REG)
 c
 c calculate the areas of the special regions
@@ -2531,8 +2531,8 @@ C**** Initialse diurnal diagnostic locations (taken from the 4x5 res)
      &    17.5, 30.  /),(/2,NDIUPT/))
 #else
 c defaults for diurnal diagnostics
-      NAMDD = (/ 'AUSD', 'MWST', 'SAHL', 'EPAC' /)      
-      LLDD = RESHAPE( (/  
+      NAMDD = (/ 'AUSD', 'MWST', 'SAHL', 'EPAC' /)
+      LLDD = RESHAPE( (/
      &      132.5, -26.,
      &      -97.5,  42.,
      &        2.5,  14.,
@@ -2985,7 +2985,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
                TSFREZ(I,J,TF_LAST)=365.
             END IF
 #ifdef HTAP_LIKE_DIAGS
-            ttausv_sum(I,J,:)=0.d0 
+            ttausv_sum(I,J,:)=0.d0
 #endif
          END DO
       END DO
@@ -3155,6 +3155,7 @@ C****
      &     IJ_SRREF,IJ_SRVIS,IJ_SRINCP0,IJ_SRINCG,IJ_SRNFG,IJ_PHI1K,
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,IJ_TATM,IJK_DP,IJK_TX,
      &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,GHT,PMB,
+     &     ij_TminC,ij_TmaxC,ij_TDcomp,
      *     ij_swaerrf,ij_lwaerrf,ij_swaersrf,ij_lwaersrf,ij_swaerabs,
      *     ij_lwaerabs,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,
      *     ij_lwaersrfnt,ij_swaerabsnt,ij_lwaerabsnt
@@ -3255,6 +3256,9 @@ C****
 
         k = ij_lwaerabsnt
         aij(i,j,k) = aij(i,j,ij_lwaerrfnt)-aij(i,j,ij_lwaersrfnt)
+
+        k = ij_TminC
+        aij(i,j,k) = aij(i,j,ij_TmaxC) - aij(i,j,ij_TDcomp)
 
 C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
         pland = fearth0(i,j)+flice(i,j)
