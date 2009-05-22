@@ -13,7 +13,7 @@
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg
       IMPLICIT NONE
       INTEGER I,J,K,L,N
-      REAL*8, INTENT(IN) :: DTS  
+      REAL*8, INTENT(IN) :: DTS
       REAL*8 PE,PHIE,GUP,GDN,SUP,SDN,DP,PUP,PDN,VUP,VDN
       REAL*8 VOLGSP
       REAL*8, DIMENSION(LMO,2) :: MEND,PEND,PHI,DH
@@ -64,33 +64,31 @@ C****
       END SUBROUTINE STPGF
 
       SUBROUTINE STADV(DTS)
+C****
 !@sum  STADV advects tracers and water mass through the straits
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+!@ver  2009/05/21
+C****
       USE CONSTANT, only : teeny
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : t_qlimit
-#endif
       USE OCEAN, only : dxypo,bydxypo,mo=>mo_glob
      *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
      *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
-#ifdef TRACERS_OCEAN
-     *  ,ntm, trmo=>trmo_glob,
-     *        txmo=>txmo_glob, tymo=>tymo_glob, tzmo=>tzmo_glob
-#endif /* def TRACERS_OCEAN */ 
       USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg,g0mst,s0mst
      *     ,gxmst,sxmst,gzmst,szmst,mmst
-#ifdef TRACERS_OCEAN
-     *     ,trmst,txmst,tzmst
-#endif
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
-#ifdef TRACERS_OCEAN
-     *     ,tlnst
-#endif
-      IMPLICIT NONE
-      INTEGER I1,J1,I2,J2,N,L,ITR
 
-      REAL*8, INTENT(IN) :: DTS  
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : t_qlimit
+      Use OCEAN, Only: ntm, trmo=>trmo_glob,
+     *        txmo=>txmo_glob, tymo=>tymo_glob, tzmo=>tzmo_glob
+      Use STRAITS, Only: trmst,txmst,tzmst
+      Use ODIAG, Only: tlnst
+#endif
+
+      IMPLICIT NONE
+
+      INTEGER I1,J1,I2,J2,N,L,ITR
+      REAL*8, INTENT(IN) :: DTS
       REAL*8 MM1,MM2,AM
 C****
       DO N=1,NMST
@@ -113,25 +111,25 @@ C****
      *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR),
      *       t_qlimit(ITR))
       END DO
-#endif /* def TRACERS_OCEAN */ 
+#endif /* def TRACERS_OCEAN */
       MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
       MO(I2,J2,L) = MO(I2,J2,L) + AM*BYDXYPO(J2)
         OLNST(L,N,LN_MFLX) = OLNST(L,N,LN_MFLX) + AM
 
-C**** Limit temperature gradients to 10% (to prevent problems in
-C**** Red sea area)
-      if ( ABS(GXMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GXMO(I1,J1,L) =
-     *     GXMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GXMO(I1,J1,L)+teeny))
-      if ( ABS(GYMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GYMO(I1,J1,L) =
-     *     GYMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GYMO(I1,J1,L)+teeny))
-      if ( ABS(GZMO(I1,J1,L)) > 0.1*G0M(I1,J1,L) ) GZMO(I1,J1,L) =
-     *     GZMO(I1,J1,L)*( 0.1d0*G0M(I1,J1,L)/ABS(GZMO(I1,J1,L)+teeny))
-      if ( ABS(GXMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GXMO(I2,J2,L) =
-     *     GXMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GXMO(I2,J2,L)+teeny))
-      if ( ABS(GYMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GYMO(I2,J2,L) =
-     *     GYMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GYMO(I2,J2,L)+teeny))
-      if ( ABS(GZMO(I2,J2,L)) > 0.1*G0M(I2,J2,L) ) GZMO(I2,J2,L) =
-     *     GZMO(I2,J2,L)*( 0.1d0*G0M(I2,J2,L)/ABS(GZMO(I2,J2,L)+teeny))
+C**** Limit heat gradients to 8000 (J/kg) = 2 (C) * SHCW (J/kg*C)
+C**** to prevent problems in Red Sea area
+      If (Abs(GXMO(I1,J1,L)) > 8000*MO(I1,J1,L)*DXYPO(J1))
+     *    GXMO(I1,J1,L) = Sign(8000*MO(I1,J1,L)*DXYPO(J1),GXMO(I1,J1,L))
+      If (Abs(GYMO(I1,J1,L)) > 8000*MO(I1,J1,L)*DXYPO(J1))
+     *    GYMO(I1,J1,L) = Sign(8000*MO(I1,J1,L)*DXYPO(J1),GYMO(I1,J1,L))
+      If (Abs(GZMO(I1,J1,L)) > 8000*MO(I1,J1,L)*DXYPO(J1))
+     *    GZMO(I1,J1,L) = Sign(8000*MO(I1,J1,L)*DXYPO(J1),GZMO(I1,J1,L))
+      If (Abs(GXMO(I2,J2,L)) > 8000*MO(I2,J2,L)*DXYPO(J2))
+     *    GXMO(I2,J2,L) = Sign(8000*MO(I2,J2,L)*DXYPO(J2),GXMO(I2,J2,L))
+      If (Abs(GYMO(I2,J2,L)) > 8000*MO(I2,J2,L)*DXYPO(J2))
+     *    GYMO(I2,J2,L) = Sign(8000*MO(I2,J2,L)*DXYPO(J2),GYMO(I2,J2,L))
+      If (Abs(GZMO(I2,J2,L)) > 8000*MO(I2,J2,L)*DXYPO(J2))
+     *    GZMO(I2,J2,L) = Sign(8000*MO(I2,J2,L)*DXYPO(J2),GZMO(I2,J2,L))
 
       END DO
       END DO
@@ -179,7 +177,7 @@ c      RY(I1,J1,L) = RY(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*Y1*Y1))
 c      RXST        = RXST*(1.-A2)**3 - 3.*FM1 + 3.*A2*RMST
 c      RXold = RX(I2,J2,L)
 c      RX(I2,J2,L) = RX(I2,J2,L) + (RX(I2,J2,L)*AM*(.5 - 1.5*X2*X2) +
-c     *     3.*X2*(FM2*MM2 - (RM(I2,J2,L)+Y2*RY(I2,J2,L))*AM)) / (MM2+AM)
+c     *     3*X2*(FM2*MM2 - (RM(I2,J2,L)+Y2*RY(I2,J2,L))*AM)) / (MM2+AM)
 c      RY(I2,J2,L) = RY(I2,J2,L) + (RY(I2,J2,L)*AM*(.5 - 1.5*Y2*Y2) +
 c     *     3.*Y2*(FM2*MM2 - (RM(I2,J2,L)+X2*RXold)*AM)) / (MM2+AM)
       RX(I1,J1,L) = RX(I1,J1,L)*(1d0-A1)*(1d0-A1*X1*X1)
@@ -203,7 +201,7 @@ c      FM2 = A2*(RM(I2,J2,L) + RX(I2,J2,L)*X2 + RY(I2,J2,L)*Y2)
 C**** Calculate first moments of tracer mass for grid boxes
 c      RXold = RX(I1,J1,L)
 c      RX(I1,J1,L) = RX(I1,J1,L) - (RX(I1,J1,L)*AM*(.5 - 1.5*X1*X1) +
-c     *     3.*X1*(FM1*MM1 - (RM(I1,J1,L)+Y1*RY(I1,J1,L))*AM)) / (MM1-AM)
+c     *     3*X1*(FM1*MM1 - (RM(I1,J1,L)+Y1*RY(I1,J1,L))*AM)) / (MM1-AM)
 c      RY(I1,J1,L) = RY(I1,J1,L) - (RY(I1,J1,L)*AM*(.5 - 1.5*Y1*Y1) +
 c     *     3.*Y1*(FM1*MM1 - (RM(I1,J1,L)+X1*RXold)*AM)) / (MM1-AM)
 c      RXST        = RXST*(1.+A1)**3 - 3.*FM2 + 3.*A1*RMST
@@ -744,7 +742,7 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(TXMST,LMO,NMST,NTM,SUBR,'txmst')
       CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
 c      CALL CHECK3(TRSIST,NTM,LMI,NMST,SUBR,'trist')
-#endif /* def TRACERS_OCEAN */ 
+#endif /* def TRACERS_OCEAN */
 
       DO N=1,NMST
         DO L=1,LMST(N)
@@ -800,7 +798,7 @@ c     *         *xsi(1:2)-ssist(1:2,nmax),msist(2,nmax)*xsi(3:4)
 c     *         -ssist(3:4,nmax)
         end if
       end do
-#endif /* def TRACERS_OCEAN */ 
+#endif /* def TRACERS_OCEAN */
 
       END IF
 C****
@@ -829,27 +827,27 @@ C****
 #if (defined  TRACERS_WATER) || (defined TRACERS_OCEAN )
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCSTR01"
-#endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */ 
+#endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */
 
 #ifdef TRACERS_WATER
 #  ifndef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a10,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
      *     ,',',lmi,',',nmst,')'
-#  else /* ndef TRACERS_OCEAN */ 
+#  else /* ndef TRACERS_OCEAN */
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',ntm
      *     ,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
      *     ,'):TRMST,TXMST,TZMST'
-#  endif /* ndef TRACERS_OCEAN */ 
-#else /* def TRACERS_WATER */ 
+#  endif /* ndef TRACERS_OCEAN */
+#else /* def TRACERS_WATER */
 #  ifdef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a1,i3,a)') 'R8 dim('
      *     ,lmo,',',nmst,',',NTM
      *     ,'):TRMST,TXMST,TZMST'
-#  endif /* def TRACERS_OCEAN */ 
-#endif /* def TRACERS_WATER */ 
+#  endif /* def TRACERS_OCEAN */
+#endif /* def TRACERS_WATER */
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a1,i2,a24,i2,a9,i2,a6,
      *     i2,a1,i2,a)') 'R8 dim(',lmo,',',nmst,'):MU,Go,x,z,So,x,z, '//
@@ -865,11 +863,11 @@ C****
 #  ifdef TRACERS_OCEAN
      *       ,TRMST,TXMST,TZMST
 #  endif
-#else /* def TRACERS_WATER */ 
+#else /* def TRACERS_WATER */
 #  ifdef TRACERS_OCEAN
         WRITE (kunit,err=10) TRMODULE_HEADER,TRMST,TXMST,TZMST
 #  endif
-#endif /* def TRACERS_WATER */ 
+#endif /* def TRACERS_WATER */
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread,irerun,irsfic)    ! restarts
@@ -886,18 +884,18 @@ C****
 #  ifdef TRACERS_OCEAN
      *       ,TRMST,TXMST,TZMST
 #  endif
-#else /* def TRACERS_WATER */ 
+#else /* def TRACERS_WATER */
 #  ifdef TRACERS_OCEAN
           READ (kunit,err=10) TRHEADER,TRMST,TXMST,TZMST
 #  endif
-#endif /* def TRACERS_WATER */ 
+#endif /* def TRACERS_WATER */
 #if (defined  TRACERS_WATER) || (defined TRACERS_OCEAN )
           IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",TRHEADER
      *           ,TRMODULE_HEADER
             GO TO 10
           END IF
-#endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */ 
+#endif /*  (defined  TRACERS_WATER) || (defined TRACERS_OCEAN ) */
          end if
          call BCAST_straits(.false.) ! don't skip tracers
         CASE (irsficnt)    ! restarts (never any tracers)
@@ -950,6 +948,6 @@ C****
       CALL ESMF_BCAST(grid, TRMST)
       CALL ESMF_BCAST(grid, TXMST)
       CALL ESMF_BCAST(grid, TZMST)
-#endif /* def TRACERS_OCEAN */ 
+#endif /* def TRACERS_OCEAN */
       return
       end SUBROUTINE BCAST_straits
