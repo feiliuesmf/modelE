@@ -13,6 +13,7 @@
       public init_module_ent, update_vegetation_data
 
       logical :: initialized = .false.
+      integer :: crops_yr = 0
 
       contains
 
@@ -32,7 +33,7 @@
       integer I_0, I_1, J_0, J_1, i, j
       ! the following are rundeck parameters which need to be
       ! passed to ent (and used there)
-      integer cond_scheme, vegCO2X_off, crops_yr, read_c4_grass
+      integer cond_scheme, vegCO2X_off, read_c4_grass, year
       integer :: force_init_ent=0
       logical iniENT
 
@@ -54,6 +55,11 @@
       call sync_param( "crops_yr", crops_yr)
       call sync_param( "read_c4_grass", read_c4_grass)
 
+      if ( crops_yr .ne. 0 ) then
+        year = crops_yr
+      else
+        year = Jyear
+      endif
 
       ! maybe call "ent_initialize" ? , i.e.
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
@@ -74,6 +80,7 @@
             !!if (focean(i,j) <= 0) then
             if ( focean(i,j) < 1.d0 ) then
               !print *,"EARTH",i,j,focean(i,j)
+              print *,"ent_construct",i,j
               call ent_cell_construct( entcells(i,j) )
             else
               !print *,"OCEAN",i,j,focean(i,j)
@@ -86,7 +93,7 @@
         !print *,'init_module_ent end printing cells 1'
 
         call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
-     &       IM, JM, I_0, I_1, J_0, J_1, jday, jyear )
+     &       IM, JM, I_0, I_1, J_0, J_1, jday, year )
 
         ! probably it is ok to initialize these here since 
         ! if .not. iniENT we should read everything from restart file
@@ -235,21 +242,40 @@ cddd      enddo
 
 
       subroutine update_vegetation_data( entcells,
-     &     im, jm, i0, i1, j0, j1, jday, year )
+     &     im, jm, i0, i1, j0, j1, jday, jyear )
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
       use ent_prescribed_drv, only:
-     &     prescr_get_laidata,prescr_veg_albedodata
+     &     prescr_get_laidata,prescr_veg_albedodata,prescr_get_cropdata
       !use ent_prescr_veg, only: prescr_get_laidata,prescr_veg_albedodata
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
-      integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
+      integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, jyear
       !Local variables
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
+      real*8, dimension(I0:I1,J0:J1) :: cropsdata
       !-----Local---------
       integer hemi(I0:I1,J0:J1)
       integer i,j
+      integer year
+      integer, save :: year_old = -1
+
+! update crops here 
+!          year1 = 1965
+      if ( crops_yr .ne. 0 ) then
+        year = crops_yr
+      else
+        year = Jyear
+      endif
+
+      if( year .ne. year_old ) then
+        call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropsdata)
+        call ent_prescribe_vegupdate(entcells,
+     &       do_giss_lai=.false.,
+     &       cropsdata=cropsdata )
+        year_old = year
+      endif
 
 !!!! HACK : trying to update Ent exactly like in ent_prog
 
@@ -262,6 +288,7 @@ cddd      enddo
      &         do_giss_albedo=.true.,
      &         do_giss_lai=.true.,
      &         update_crops=.false. )
+
 
       return
 
