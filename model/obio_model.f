@@ -314,7 +314,6 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
            if (nt.ge.5.and.nt.le.9)
      .         trmo_unit_factor(k,nt) =  1d-3*1d-3 
      .                                *  MO(I,J,k)*DXYPO(J)/rho_water ! mg/m3 => kg
-     .                                *  MO(I,J,k)*DXYPO(J)/rho_water ! mg/m3 => kg
            if (nt.eq.ntrac)    !factor for alkalinity
      .         trmo_unit_factor(k,nt) = 1d-3*1d-3*1d-3*obio_tr_mm(nt) ! umol/kg=micro-mol/kg=> kg,trac/kg,air
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
