@@ -157,11 +157,10 @@ cdiag.              Ebotq,rmus,tirrq(k)
 !     zc = 75. ! in meters (from OCMIP)
 
 !alternatively, zc is the depth of that light is 1% of top
-      zc=p1d(2)
-      do k=kmax,3,-1
-         if (tirrq(k).ge.tirrq(1)/100.) then
-             zc = p1d(k)
-             exit
+      zc=p1d(1)
+      do k=2,kmax
+         if (tirrq(1).gt.0. .and. tirrq(k).ge.tirrq(1)/100.) then
+             zc = p1d(k)    !this is really the "shallowest" limit for zc
          endif
       enddo
 #endif

@@ -119,13 +119,10 @@ c  Initialize
       do j=1,jdm
       do i=1,idm
       do k=1,kdm
-       if (alk(i,j,k).lt.0. .and. focean(i,j).gt.0) then
+       if (alk(i,j,k).lt.0.) then
           if (zoe(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
           if (zoe(k).gt.150. .and. zoe(k).lt.1200.) alk(i,j,k)=2200. 
           if (zoe(k).ge.1200.) alk(i,j,k)=2300.      
-       endif
-       if (focean(i,j).le.0) then
-         alk(i,j,k)=0.
        endif
       enddo
       enddo

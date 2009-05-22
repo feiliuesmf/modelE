@@ -22,6 +22,7 @@
 !  C(1) = DOC (uM)
 !  C(2) = DIC (uM)
 !  pCO2 (uatm)
+!  alk  (uM/kg)   ????
 
       implicit none
 

@@ -34,7 +34,7 @@
 
       integer nt,k,kmax,nchl1,nchl2,i,j
       real*8 J_PO4(kmax),pp,Jprod,Jprod_sum,Fc,zz,F_Ca(kmax+1),
-     .       J_Ca(kmax),term
+     .       J_Ca(kmax),term,term1,term2
       logical vrbos
 !--------------------------------------------------------------------------
 !pp and therefore Jprod are defined at dp points (mid level)
@@ -50,6 +50,8 @@
       rhs(k,15,1) = term
       A_tend(k)= term
       enddo
+
+      term1=A_tend(1)
 
 !distinguish two cases: OCMIP uses total pp for Jprod, whereas here we also
 !consider the case where Jprod only includes coccolithophores
@@ -116,6 +118,8 @@
        A_tend(k) = A_tend(k) + term      !A_term = -rN:P JPO4 + 2* JCa
       enddo
 
+      term2=A_tend(1)-term1
+
 ! surface boundary condition 
 ! we probably do not need one here since the effects of buoyancy 
 ! changes at the surface i.e. the E-P term are included in the 
@@ -123,14 +127,14 @@
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 
-      if (vrbos) then
+!     if (vrbos) then
 !     do k=1,kmax
       k=1
-      write(*,'(a,4i5,10e12.4)')'obio_alkalinity; ',
+      write(*,'(a,4i5,12e12.4)')'obio_alkalinity; ',
      .    nstep,i,j,k
      .   ,p1d(k),zc,J_PO4(k),pp,Jprod_sum,Fc
-     .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k)
+     .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k),term1,term2
 !     enddo
-      endif
+!     endif
 
       end subroutine obio_alkalinity

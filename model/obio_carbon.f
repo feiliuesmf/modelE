@@ -200,13 +200,13 @@ c pCO2
       if (pCO2_ij .lt. 100.) pCO2_ij=100.
       if (pCO2_ij .gt.1000.) pCO2_ij=1000.
 
-      if(vrbos)then
+!     if(vrbos)then
         write(*,'(a,3i5,9e12.4)')
      .    'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
      .               car(1,2),alk1d(1),
      .               obio_P(1,1),obio_P(1,3),pCO2_ij,
      .               pHsfc,pnoice
-      endif
+!     endif
 
 #else
 
@@ -436,12 +436,19 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.23 $
-c_ $Date: 2009/05/15 07:51:34 $   ;  $State: Exp $
+c_ $Revision: 2.24 $
+c_ $Date: 2009/05/22 09:19:45 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.24  2009/05/22 09:19:45  aromanou
+c_
+c_ alternative definition of the compensation depth (still a little too shallow
+c_ and too uniform).  might improve later
+c_
+c_ new alkalinity diagnostics
+c_
 c_ Revision 2.23  2009/05/15 07:51:34  aromanou
 c_
 c_ removing bug from obio_carbon tracer moments calculation
@@ -868,12 +875,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.23 $
-c_ $Date: 2009/05/15 07:51:34 $   ;  $State: Exp $
+c_ $Revision: 2.24 $
+c_ $Date: 2009/05/22 09:19:45 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.24  2009/05/22 09:19:45  aromanou
+c_
+c_ alternative definition of the compensation depth (still a little too shallow
+c_ and too uniform).  might improve later
+c_
+c_ new alkalinity diagnostics
+c_
 c_ Revision 2.23  2009/05/15 07:51:34  aromanou
 c_
 c_ removing bug from obio_carbon tracer moments calculation
@@ -1045,12 +1059,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.23 $
-c_ $Date: 2009/05/15 07:51:34 $   ;  $State: Exp $
+c_ $Revision: 2.24 $
+c_ $Date: 2009/05/22 09:19:45 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.24  2009/05/22 09:19:45  aromanou
+c_
+c_ alternative definition of the compensation depth (still a little too shallow
+c_ and too uniform).  might improve later
+c_
+c_ new alkalinity diagnostics
+c_
 c_ Revision 2.23  2009/05/15 07:51:34  aromanou
 c_
 c_ removing bug from obio_carbon tracer moments calculation

@@ -13,7 +13,7 @@
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=18,KOIJL=22,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=19,KOIJL=22,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -43,7 +43,8 @@
 #ifdef TRACERS_OceanBiology
 !@var ij_pCO2 surface ocean partial CO2 pressure
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
-     .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan,ij_cocc,ij_doc
+     .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
+     .           ,ij_cocc,ij_doc,IJ_alk
 #endif
 
 !@var IJL_xxx Names for OIJL diagnostics
@@ -666,6 +667,16 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
       ijgrid_oij(k)=1
+
+      k=k+1
+      IJ_alk=k
+      lname_oij(k)="Surface ocean alkalinity"
+      sname_oij(k)="oij_alk"
+      units_oij(k)="umol/kg"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      ijgrid_oij(k)=1
+    
 #endif
 
       k=k+1

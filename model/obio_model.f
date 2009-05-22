@@ -43,7 +43,7 @@
      .                    ,tracer_glob => tracer
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
-     .                 ,ij_doc,ij_iron
+     .                 ,ij_doc,ij_iron,ij_alk
       USE ODIAG, only : oij=>oij_loc
 #endif
 
@@ -94,7 +94,6 @@
       real*8 temgs,g,s,temgsp,pres
       real*8 time,dtr,ftr,rho_water
       real*8 trmo_unit_factor(kdm,ntrac)
-!     integer i_0h,i_1h,j_0h,j_1h
       integer i_0,i_1,j_0,j_1
 #endif
       character string*80
@@ -762,7 +761,7 @@ cdiag     endif
        do k=1,1
         write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=1,7)
          print*, 'OBIO TENDENCIES, 1-16, 8,14'
-        write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,14)
+        write(*,'(16(e9.2,1x))')((rhs(k,nt,ll),ll=1,16),nt=8,ntrac-1)
        enddo
       endif
 
@@ -879,6 +878,12 @@ cdiag  endif
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
        OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
+
+#ifdef TRACERS_Alkalinity
+       OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
+#else
+       OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
+#endif
 #endif
 
 !       if (diagno_bio) then

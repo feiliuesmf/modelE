@@ -1,6 +1,6 @@
-test3b.R GISS Model E  coupled version          aromanou  02/14/2009
+E1arobio_g2.R GISS Model E  coupled version          aromanou  02/14/2009
 
-test3b: obio in gary's ocean based on Larissa's E1F40o32.R
+E1arobio_g2: obio in gary's ocean based on Larissa's E1F40o32.R
    2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
@@ -22,7 +22,8 @@ Preprocessor Options
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
-!!! #define CHL_from_SeaWIFs
+!!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
+!!!!!#define CHL_from_SeaWIFs
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -154,7 +155,7 @@ cfle1=abw25b.dat                         ! seawater spectral absorp. and
 scatt. coefs
 cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp. and
 scatt. coefs
-!!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
+!!!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
 sst,sss,dic,alk
                                             ! if not defined pCO2_ONLINE
 nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
@@ -172,12 +173,13 @@ water
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral
 components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
+CHL_DATA=CHL_WG_2x2.5zavg                !CHL_WG_4x5 or CHL_WG_2x2.5
+!! CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
                                          !in Gary'socean grid
                                          !to be used with CHL_from_SeaWIFs
 
 Label and Namelist:
-test3b (32 ocean layers; 1850 atm.,the current modelE version)
+E1arobio_g2 (32 ocean layers; 1850 atm.,the current modelE version)
 
 DTFIX=180
 &&PARAMETERS
@@ -271,6 +273,6 @@ atmCO2=368.6      !uatm for year 2000
 
  &INPUTZ
    YEARI=2501,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=2521,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
+   YEARE=2510,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
+   ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=1,HOURE=6,IWRITE=1,JWRITE=1,
  &END
