@@ -759,9 +759,10 @@ C***  Interpolate aA_glob from atmospheric grid to ocean grid
         oUnp = 0.0   
         oVnp = 0.0   
 
-        oU_glob(IVSPO,  1) = oUsp
+        oU_glob(  oIM,  1) = oUsp
+        oU_glob(IVSPO,  1) = oVsp
         oU_glob(  oIM,oJM) = oUnp
-        oU_glob(IVNPO,  1) = oUnp
+        oU_glob(IVNPO,oJM) = oVnp
 
         call HNTR80 (aIM,aJM-1,0.d0,aDLATM, oIM,oJM-1,0.d0,oDLATM, 0.d0)
         call HNTR8  (aWEIGHT, aV_glob, oV_glob)      !!  V-grid => V-grid
