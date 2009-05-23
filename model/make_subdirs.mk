@@ -48,7 +48,7 @@ endif
 
 depend_all: $(COMPONENTS:=_dep)
 	$(SCRIPTS_DIR)/comp_mkdep.pl $(COMPONENTS)
-	$(MAKE1) depend
+	+$(MAKE1) depend
 
 
 FSRCS_TMP = $(addsuffix .f,$(strip $(OBJ_LIST)))
@@ -82,8 +82,8 @@ do_main $(RUN).bin:   $(OBJS) #  $(COMPONENTS:=_dir)
 main gcm: $(MOD_DIR)
 	-rm .liblist
 	touch .liblist
-	$(MAKE1) do_components
-	$(MAKE1) do_main
+	+$(MAKE1) do_components
+	+$(MAKE1) do_main
 
 echo_vars:
 	@echo CPP_OPTIONS = $(CPP_OPTIONS)
@@ -92,7 +92,7 @@ echo_vars:
 	@echo INPUT_FILES = $(INPUT_FILES)
 	@echo RUN_PARAMETERS = $(RUN_PARAMETERS)
 	@echo INPUTZ = $(INPUTZ)
-	$(MAKE1) main
+	+$(MAKE1) main
 
 clean_all: clean
 	-rm -f $(RUN_H) $(MOD_DIR)/*.mod
@@ -115,8 +115,8 @@ $(LIB):
 gcmlib: $(MOD_DIR)
 	-rm .liblist
 	touch .liblist
-	$(MAKE1) do_components
-	$(MAKE1) $(LIB)
+	+$(MAKE1) do_components
+	+$(MAKE1) $(LIB)
 #	mv -f .liblist .liblist_tmp
 	echo $(LIB) >> .liblist
 #	cat .liblist_tmp >> .liblist
