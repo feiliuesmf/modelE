@@ -4180,6 +4180,10 @@ C**** Local variables
      *     AU, BU, CU, RU, UU
       REAL*8, ALLOCATABLE, DIMENSION(:,:) ::
      *     AV, BV, CV, RV, UV
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
+     *     AU3D, BU3D, CU3D, RU3D, UU3D
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
+     *     AV3D, BV3D, CV3D, RV3D, UV3D
       REAL*8, SAVE, ALLOCATABLE, DIMENSION(:,:,:) ::
      *      UXA,UXB,UXC,UYA,UYB,UYC,VXA,VXB,VXC,VYA,VYB,VYC
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
@@ -4429,6 +4433,18 @@ C****
       allocate( RV(IM,grid%j_strt_halo:grid%j_stop_halo) )
       allocate( UV(IM,grid%j_strt_halo:grid%j_stop_halo) )
 
+      allocate( AU3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( BU3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( CU3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( RU3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( UU3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+
+      allocate( AV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( BV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( CV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( RV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+      allocate( UV3D(IM,grid%j_strt_halo:grid%j_stop_halo,lmo) )
+
 !$OMP DO
       DO L=1,LMO
 C**** Calculate rotating polar velocities from UONP and VONP
@@ -4582,20 +4598,34 @@ C**** Call tridiagonal solver
         CALL TRIDIAG(AV(:,J), BV(:,J), CV(:,J), RV(:,J), VO(:,J,L), IM)
       END DO
 
+      END DO ! end loop over layers
+
 C****
 C**** Now do semi implicit solution in y
 C**** Recalculate rotating polar velocities from UONP and VONP
 C     UO(:,JM,L) = UONP(L)*COSU(:) + VONP(L)*SINU(:)
 C     VO(:,JM,L) = VONP(L)*COSI(:) - UONP(L)*SINI(:)
 
-      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,UO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
-     *                 FROM=SOUTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
-     *                 FROM=NORTH)
-      CALL HALO_UPDATE(grid,VO (:,grid%j_strt_halo:grid%j_stop_halo,L) ,
-     *                 FROM=SOUTH)
+      CALL HALO_UPDATE(grid,UO)
+      CALL HALO_UPDATE(grid,VO)
+
+      AU3D=0. ; BU3D=0. ; CU3D=0. ; RU3D=0.; UU3D=0
+      AV3D=0. ; BV3D=0. ; CV3D=0. ; RV3D=0.; UV3D=0.
+
+      DO L=1,LMO
+
+C**** Save (0.5*) mass reciprical for velocity points
+      DO J=J_0S,J_1S
+        I=IM
+        DO IP1=1,IM
+          IF (L.LE.LMU(I,J)) BYMU(I,J) = 1./(MO(I,J,L)+MO(IP1,J,L))
+          IF (L.LE.LMV(I,J)) BYMV(I,J) = 1./(MO(I,J,L)+MO(I,J+1,L))
+          I=IP1
+        END DO
+      END DO
+      if( HAVE_NORTH_POLE ) then
+        IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
+      endif
 
 C**** Calc. cross-term fluxes + second metric term (at half time step)
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
@@ -4664,8 +4694,6 @@ C**** Calculate fluxes (including FSLIP condition)
 
 C**** Calculate tridiagonal matrix for second semi-implicit step (in y)
 C**** Minor complication due to singular nature of polar box
-      AU=0. ; BU=0. ; CU=0. ; RU=0.; UU=0
-      AV=0. ; BV=0. ; CV=0. ; RV=0.; UV=0.
 
       DO IP1=1,IM
         DO J=J_0S,J_1S
@@ -4687,34 +4715,36 @@ C**** Minor complication due to singular nature of polar box
             endif
           endif
 
-          BU(I,J) = 1d0
-          BV(I,J) = 1d0
+          BU3D(I,J,L) = 1d0
+          BV3D(I,J,L) = 1d0
           IF (L.LE.LMU(I,J)) THEN
             DTU = DT2*(DH(I,J,L)+DH(IP1,J,L))*BYMU(I,J)
-            AU(I,J) =        - DTU*UYA(I,J,L)
-            BU(I,J) = BU(I,J) - DTU*UYB(I,J,L)
-            IF (J.lt.JM-1) CU(I,J) =     - DTU*UYC(I,J,L)
-            RU(I,J) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
+            AU3D(I,J,L) =        - DTU*UYA(I,J,L)
+            BU3D(I,J,L) = BU3D(I,J,L) - DTU*UYB(I,J,L)
+            IF (J.lt.JM-1) CU3D(I,J,L) =     - DTU*UYC(I,J,L)
+            RU3D(I,J,L) = UO(I,J,L) + DTU*(UXA(I,J,L)*UO(IM1,J,L)
      *           +UXB(I,J,L)*UO(I,J,L) + UXC(I,J,L)*UO(IP1,J,L))
 c**** Make properly tridiagonal by making explicit polar terms
 !mkt  UO(1,JM,L) changed to UO(I,JM,L)
-            IF (J == JM-1) RU(I,J)=RU(I,J) + DTU*UYC(I,J,L)*UO(I,JM,L)
-C**** Add Wasjowicz cross-terms to RU + second metric term
-            RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
+            IF (J == JM-1) RU3D(I,J,L)=
+     &           RU3D(I,J,L)+DTU*UYC(I,J,L)*UO(I,JM,L)
+C**** Add Wasjowicz cross-terms to RU3D + second metric term
+            RU3D(I,J,L)=RU3D(I,J,L)+DTU*((DYPO(J)*(FUX(IM1,J)-FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
-            AV(I,J) =        - DTV*VYA(I,J,L)
-            BV(I,J) = BV(I,J) - DTV*VYB(I,J,L)
-            IF (J.lt.JM-1) CV(I,J) =     - DTV*VYC(I,J,L)
-            RV(I,J) = VO(I,J,L) + DTV*(VXA(I,J,L)*VO(IM1,J,L)
+            AV3D(I,J,L) =        - DTV*VYA(I,J,L)
+            BV3D(I,J,L) = BV3D(I,J,L) - DTV*VYB(I,J,L)
+            IF (J.lt.JM-1) CV3D(I,J,L) =     - DTV*VYC(I,J,L)
+            RV3D(I,J,L) = VO(I,J,L) + DTV*(VXA(I,J,L)*VO(IM1,J,L)
      *           +VXB(I,J,L)*VO(I,J,L) + VXC(I,J,L)*VO(IP1,J,L))
 c**** Make properly tridiagonal by making explicit polar terms
-            IF (J == JM-1) RV(I,J)=RV(I,J) + DTV*VYC(I,J,L)*VO(I,JM,L)
+            IF (J == JM-1) RV3D(I,J,L)=
+     &           RV3D(I,J,L)+DTV*VYC(I,J,L)*VO(I,JM,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
-            RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
+            RV3D(I,J,L)=RV3D(I,J,L)+DTV*((DYVO(J)*(FVX(I,J) -FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
           END IF
@@ -4723,30 +4753,33 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
         END DO
       END DO
 C**** At North Pole (do partly explicitly) no metric terms
-c     BU(IIP) = 1d0
-c     BV(IIP) = 1d0
+c     BU3D(IIP) = 1d0
+c     BV3D(IIP) = 1d0
 c     IF (L.LE.LMU(1,JM)) THEN
 c       DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
-c       BU(IIP) = BU(IIP) - DTU*UYPB(L)
-c       RU(IIP) = UO(1,JM,L)
+c       BU3D(IIP) = BU3D(IIP) - DTU*UYPB(L)
+c       RU3D(IIP) = UO(1,JM,L)
 c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
-c         RU(IIP)= RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
+c         RU3D(IIP)= RU3D(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
 c    *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
 c     END IF
+      END DO ! end loop over layers
+
+
 C**** Call tridiagonal solver
+      CALL TRIDIAG_new(AU3D, BU3D, CU3D, RU3D, UU3D, grid,
+     &       J_LOWER=2,J_UPPER=JM-1)
+      CALL TRIDIAG_new(AV3D, BV3D, CV3D, RV3D, UV3D, grid,
+     &     J_LOWER=2,J_UPPER=JM-1)
+      UO(:,J_0S:J_1S,:)=UU3D(:,J_0S:J_1S,:)
+      VO(:,J_0S:J_1S,:)=UV3D(:,J_0S:J_1S,:)
 
-      CALL TRIDIAG_new(AU, BU, CU, RU, UU, grid,J_LOWER=2,J_UPPER=JM-1)
-      CALL TRIDIAG_new(AV, BV, CV, RV, UV, grid,J_LOWER=2,J_UPPER=JM-1)
-
-      UO(:,J_0S:J_1S,L)=UU(:,J_0S:J_1S)
-      VO(:,J_0S:J_1S,L)=UV(:,J_0S:J_1S)
-
-C****
-      END DO
 !$OMP END DO
       deallocate(AU, BU, CU, RU, UU)
       deallocate(AV, BV, CV, RV, UV)
+      deallocate(AU3D, BU3D, CU3D, RU3D, UU3D)
+      deallocate(AV3D, BV3D, CV3D, RV3D, UV3D)
 !$OMP END PARALLEL
 
 C**** Restore unchanged UONP and VONP into prognostic locations in UO
@@ -4757,7 +4790,6 @@ C**** Restore unchanged UONP and VONP into prognostic locations in UO
 C****
       RETURN
       END SUBROUTINE ODIFF
-
 
       SUBROUTINE TOC2SST
 !@sum  TOC2SST convert ocean surface variables into atmospheric sst
