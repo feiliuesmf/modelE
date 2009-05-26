@@ -32,9 +32,9 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
 C**** Database parameters to control orbital parameter calculation
 C**** Note: setting calc_orb_par with paleo_orb_yr=2000 does not produce
 C**** exactly the same as the default values.
-!@dbparam calc_orb_par_year = PALEO YEAR (BP) to calculate orbital parameters 
+!@dbparam calc_orb_par_year = PALEO YEAR (BP) to calculate orbital parameters
 !@+       on first timestep of each year. PALEO YEAR incremented yearly from
-!@+       the value of JYEAR so set IYEAR appropriately (1950 usually). 
+!@+       the value of JYEAR so set IYEAR appropriately (1950 usually).
       integer :: calc_orb_par_year = 0
 !@dbparam calc_orb_par = 1 to calc orbital parameters
       integer :: calc_orb_par = 0
@@ -134,11 +134,14 @@ C**** exactly the same as the default values.
 !@dbparam GHG_yr,GHG_day obs.date of well-mixed GHgases (if 0: time var)
       INTEGER :: GHG_yr = 1951 , GHG_day = 182
 !@dbparam Volc_yr,Volc_day obs.date of Volc.Aerosols (if 0: time var)
+!@+   special cases: Volc_yr=-1    : 150-yr mean 1850-1999
+!@+                  Volc_yr=-2010 : current year up to 2010 then
+!@+                                  repeat volcanos from 100 yrs ago
+!@+                  Volc_yr=-2000 : older way of creating future volc
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
-!@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: time var)
+!@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: use current yr)
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
-!@dbparam O3_yr obs.year of Ozone (if 0: time var, -yyyy: use decyyyy,
-!@+   janyyyy to find jan1-15,dec16-31,not dec of yyyy-1, jan of yyyy+1)
+!@dbparam O3_yr obs.year of Ozone (if 0: use current year)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
       INTEGER :: crops_yr = -1
@@ -297,7 +300,7 @@ C**** Local variables initialised in init_RAD
      &     ttausv_sum(I_0H:I_1H,J_0H:J_1H,Ntm),
 #endif
 #ifdef CHL_from_SeaWIFs
-     &         ACHL(I_0H:I_1H,J_0H:J_1H),   
+     &         ACHL(I_0H:I_1H,J_0H:J_1H),
      &         ECHL1(I_0H:I_1H,J_0H:J_1H),
      &         ECHL0(I_0H:I_1H,J_0H:J_1H),
      &         BCHL(I_0H:I_1H,J_0H:J_1H),
@@ -342,7 +345,7 @@ C**** Local variables initialised in init_RAD
 !@var HEADER_F Character string label for records (forcing runs)
       CHARACTER*80 :: HEADER_F, MODULE_HEADER_F = "RADF"
 
-      real*8, dimension(:,:,:), allocatable :: 
+      real*8, dimension(:,:,:), allocatable ::
      &     Tchg_glob !(LM+LM_REQ,IM,JM)
      &    ,RQT_glob  !(LM_REQ,IM,JM)
      &    ,RCLD_GLOB !(LM, IM, JM)

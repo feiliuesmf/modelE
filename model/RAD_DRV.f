@@ -285,8 +285,9 @@ C****                                         even if the year is fixed
       KYEARO=O3_yr   ; KJDAYO=0 ;       MADO3M=-1  ! ozone (ann.cycle)
       if(KYEARO.gt.0) KYEARO=-KYEARO              ! use ONLY KYEARO-data
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
+      if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
-      if(KYEARV.eq.-2000) KYEARV=0
+      if(KYEARV.le.-2000) KYEARV=0   ! use current year before 2000
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
@@ -683,10 +684,14 @@ C**** Read in the factors used for alterations:
       JDAYR=JDAY
       JYEARR=JYEAR
 C**** Update time dependent radiative parameters each day
+      if(volc_yr.eq.-2010) then ! 2010-2100 use volcanos from 100yrs ago
+         KYEARV=JYEAR
+         if(JYEAR.GT.2010) KYEARV=JYEAR-100
+      end if
       if(volc_yr.eq.-2000) then ! create some future volcanos
          KYEARV=JYEAR
-         if(JYEAR.GT.2000) KYEARV=JYEAR-50
-         if(JYEAR.GT.2050) KYEARV=JYEAR-150
+         if(JYEAR.GT.2000) KYEARV=JYEAR-50   ! go back 50 years
+         if(JYEAR.GT.2050) KYEARV=JYEAR-150  ! go back 150 years
       end if
       CALL RCOMPT
 C**** FULGAS gets set initially, and updated daily for time-varying GHGs
