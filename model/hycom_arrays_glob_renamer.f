@@ -13,7 +13,6 @@
      .,saln_loc => saln 
      .,th3d_loc => th3d 
      .,thstar_loc => thstar 
-     .,thermb_loc => thermb 
      .,psikk_loc => psikk 
      .,thkk_loc => thkk 
      .,dpmixl_loc => dpmixl 
@@ -44,6 +43,8 @@ c
      .,salflav_loc => salflav,brineav_loc => brineav
      .,eminpav_loc => eminpav 
      .,surflav_loc => surflav 
+     .,tauxav_loc => tauxav 
+     .,tauyav_loc => tauyav 
      .,ufxcum_loc => ufxcum,vfxcum_loc => vfxcum,dpinit_loc => dpinit 
      .,dpmxav_loc => dpmxav,oiceav_loc => oiceav
 c 
@@ -72,6 +73,7 @@ c
      .,via_loc => via,vib_loc => vib 
      .,pbot_loc => pbot 
      .,tracer_loc => tracer 
+     .,diadff_loc => diadff 
      .,tprime_loc => tprime 
      .,sgain_loc => sgain 
      .,surflx_loc => surflx 
@@ -123,7 +125,6 @@ c
       public saln_loc
       public th3d_loc
       public thstar_loc
-      public thermb_loc
       public psikk_loc
       public thkk_loc
       public dpmixl_loc
@@ -171,6 +172,8 @@ c
       public brineav_loc
       public eminpav_loc
       public surflav_loc
+      public tauxav_loc
+      public tauyav_loc
       public ufxcum_loc
       public vfxcum_loc
       public dpinit_loc
@@ -214,6 +217,7 @@ c
       public vib_loc
       public pbot_loc
       public tracer_loc
+      public diadff_loc
       public tprime_loc
       public sgain_loc
       public surflx_loc

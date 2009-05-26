@@ -323,6 +323,8 @@ c
       surflav(i,j)=zero
       salflav(i,j)=zero
       brineav(i,j)=zero
+      tauxav(i,j)=zero
+      tauyav(i,j)=zero
 c
       do 209 k=1,kk
       u  (i,j,k   )=huge
@@ -347,8 +349,6 @@ c
 c
       th3d(i,j,k+kk)=huge
       th3d(i,j,k   )=huge
-      thermb(i,j,k+kk)=huge
-      thermb(i,j,k   )=huge
       thstar(i,j,k)=huge
       do nt=1,ntrcr
         tracer(i,j,k,nt)=zero

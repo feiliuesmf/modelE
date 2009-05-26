@@ -149,7 +149,7 @@ c
       integer :: afogcm=0,nsavea=0,nsaveo
 #include "kprf_scalars.h"
 c
-      real sum_,coord,x,x1,totl,sumice,fusion,saldif,sofsig,tf
+      real sum_,coord,x,x1,totl,sumice,fusion,saldif,tf
      .    ,sigocn,kappaf,chk_rho,chk_kap,apehyc,pechg_hyc_bolus
      .    ,hyc_pechg1,hyc_pechg2,q,sum1,sum2,dpini(kdm)
      .    ,thkchg,flxdiv,den_str
@@ -415,7 +415,7 @@ c
         chk_rho=36.719718               ! T:[-2:30],S:[18:38]
         chk_rho=36.876506               ! T:[-2:32],S:[16:38]
 c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=0.12493658
-        chk_kap=0.12493658
+        chk_kap=0.12493658 
       elseif (pref.eq.0.) then
         chk_rho=27.786223
 c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=-.12961120
@@ -424,7 +424,7 @@ c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=-.12961120
         stop 'wrong pref'    ! proper mpi_abort
       endif
 c
-      if (abs(sigocn(4.,35.)-chk_rho).gt.1.e-4) then
+      if (abs(sigocn(4.,35.)-chk_rho).gt..0001) then
       if (AM_I_ROOT())
      & write (lp,'(/2(a,f11.6))') 'error -- sigocn(t=4,s=35) should be',
      . chk_rho,', not',sigocn(4.,35.)
@@ -432,7 +432,7 @@ css     stop
       end if
       if (abs(kappaf(5.5,35.5,1.e7,35.)-chk_kap).gt.1.e-4) then
       if (AM_I_ROOT())
-     &  write (lp,'(/a,2(a,f12.8))') 'error: kappa(5.5,35.5,1.e7,35.)',
+     &  write (lp,'(/a,2(a,f12.8))') 'error: kappa(5.5,35.5,10^7,35.)',
      .  '  should be',chk_kap,', not',kappaf(5.5,35.5,1.e7,35.)
       stop
       end if
@@ -589,11 +589,15 @@ c
       diagno=.false.
       if (JDendOfM(jmon).eq.jday.and.Jhour.eq.23.and.nsub.eq.nstepi) 
      .                                    diagno=.true. ! end of month
-      if (AM_I_ROOT())
-     .write(*,'(a,6i4,l)') 
-     . 'chk_day=',jmon,JDendOfM(jmon),jday,Jhour,nsub,nstepi,diagno
 c
-      if (nstep.eq.1 .or. nstep.eq.24) diagno=.true.
+      if (nstep.eq.1) then
+c
+        if (AM_I_ROOT()) then
+          call archiv(n,nn)
+        endif
+c
+      endif
+c
       diag_ape=.false.
 c
       trcadv_time = 0.0
@@ -823,11 +827,11 @@ c
       enloan_time = real(after-before)/real(rate)
 c
       before = after
-      if (nstep*baclin.le.12.*3600) then
-        call mxlayr(m,n,mm,nn,k1m,k1n)
-      else
+c     if (nstep*baclin.le.12.*3600) then
+c       call mxlayr(m,n,mm,nn,k1m,k1n)
+c     else
          call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hrs
-      end if
+c     end if
 c     if (AM_I_ROOT())  print *,'passed mxkprf'
 c
       call system_clock(after)
@@ -1305,7 +1309,7 @@ c --- enhance flow through Denmark Strait
       den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
       uosurf(i,j)=uosurf(i,j)-den_str
       vosurf(i,j)=vosurf(i,j)-den_str
-cdiag if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
+      if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
       enddo
       enddo
 #endif  
@@ -1462,6 +1466,8 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  brineav_loc, brineav )
       call pack_data( ogrid,  eminpav_loc, eminpav )
       call pack_data( ogrid,  surflav_loc, surflav )
+      call pack_data( ogrid,  tauxav_loc, tauxav )
+      call pack_data( ogrid,  tauyav_loc, tauyav )
       call pack_data( ogrid,  dpmxav_loc, dpmxav )
       call pack_data( ogrid,  oiceav_loc, oiceav )
       call pack_data( ogrid,  pbot_loc, pbot )
@@ -1493,6 +1499,8 @@ c
       surflav(i,j)=0.
        salflav(i,j)=0.
       brineav(i,j)=0.
+      tauxav(i,j)=0.
+      tauyav(i,j)=0.
 c
       ubavav(i,j)=0.
       vbavav(i,j)=0.
@@ -1609,9 +1617,6 @@ c------------------------------------------------------------------
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(thstar,dim=3), arraySum )   ! sum(thstar(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
-
-      call GLOBALSUM( ogrid, sum(thermb,dim=3), arraySum )   ! sum(thermb(:,:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, psikk, arraySum )   ! sum(psikk(:,:))
@@ -1753,6 +1758,12 @@ c
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, surflav, arraysum )   ! sum(surflav(:,:))
+      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+
+      call GLOBALSUM( ogrid, tauxav, arraysum )   ! sum(tauxav(:,:))
+      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+
+      call GLOBALSUM( ogrid, tauyav, arraysum )   ! sum(tauyav(:,:))
       if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(ufxcum,dim=3), arraySum ) !sum(ufxcum(:,:,:))

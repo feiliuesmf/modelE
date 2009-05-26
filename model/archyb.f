@@ -174,6 +174,10 @@ ccc        write (nop,rec=no) what,k,real4
 ccc      write (lp,100)       what,k,no
 ccc      end do
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- temporary: store diffusivity as tracer 1
+      tracer(:,:,:,1)=diadff*1.e4
+      write (what,'(a12)') 'diapyc.diffu'
+c
 c --- code around compiler glitch:
       do nt=1,ntrcr
         call r8tor4(tracer(1,1,k,nt),real4)
@@ -198,6 +202,8 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       surflav(i,j)=surflav(i,j)*factor
       salflav(i,j)=salflav(i,j)*factor
       brineav(i,j)=brineav(i,j)*factor
+      tauxav(i,j)=tauxav(i,j)*factor
+      tauyav(i,j)=tauyav(i,j)*factor
  55   continue
 cc$OMP END PARALLEL DO
 c
@@ -334,6 +340,16 @@ c --- time-averaged surface fluxes:
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'brn g/m2s'//intvl,0,real4
       write (lp,100)     'brn g/m2s'//intvl,0,no
+      no=no+1
+      call r8tor4(tauxav,real4)
+      if (smooth) call psmoo4(real4)
+      write (nop,rec=no) 'taux N/m2'//intvl,0,real4
+      write (lp,100)     'taux N/m2'//intvl,0,no
+      no=no+1
+      call r8tor4(tauyav,real4)
+      if (smooth) call psmoo4(real4)
+      write (nop,rec=no) 'tauy N/m2'//intvl,0,real4
+      write (lp,100)     'tauy N/m2'//intvl,0,no
 c
       close (unit=nop)
  100  format (9x,a,' (layer',i3,') archived as record',i5)
@@ -347,6 +363,8 @@ c
       surflav(i,j)=0.
        salflav(i,j)=0.
       brineav(i,j)=0.
+      tauxav(i,j)=0.
+      tauyav(i,j)=0.
 c
       ubavav(i,j)=0.
       vbavav(i,j)=0.

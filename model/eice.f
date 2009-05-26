@@ -104,6 +104,8 @@ c --- build up time integrals of surface fluxes
       salflav(i,j)=salflav(i,j)+salflx(i,j)+salflx2(i,j)!g/m2/s
       brineav(i,j)=brineav(i,j)+osalt(i,j)*1.e3		!g/m2/s 
      .                 -odmsi(i,j)*saln(i,j,k1n)*fsss	! ocn salt gain is +
+      tauxav(i,j)=tauxav(i,j)+taux(i,j)	                ! N/m2
+      tauyav(i,j)=tauyav(i,j)+tauy(i,j)	                ! N/m2
       oiceav(i,j)=oiceav(i,j)+oice(i,j)
 c
 c --- deposit brine from brntop to brnbot

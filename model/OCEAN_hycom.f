@@ -50,6 +50,15 @@
 c
       call geopar(iniOCEAN)
 c
+      if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
+     .                                                              then
+        call inikpp
+      elseif (iocnmx.eq.3 .or. iocnmx.eq.7) then
+        call inigis
+      else
+         stop 'wrong: need to choose one ocean mixing scheme'
+      endif
+c
       if (AM_I_ROOT()) then ! work on global grids here
       
 css   if (istart.eq.2 .or. nstep0.eq.0) call geopar
@@ -111,14 +120,6 @@ c
 
       call scatter_atm
       call scatter_hycom_arrays
-
-      if(iocnmx>=0 .AND. iocnmx<=2 .OR. iocnmx==5 .OR. iocnmx==6) then 
-        call inikpp
-      elseif (iocnmx==3 .OR. iocnmx==7) then
-        call inigis
-      else
-         stop 'wrong: need to choose one ocean mixing scheme'
-      endif
 
 !!! hack needed for serial inicon
       CALL ESMF_BCAST(ogrid, delt1 )
@@ -282,10 +283,10 @@ css#ifdef TRACERS_OCEAN
 css       WRITE (kunit,err=10) TRMODULE_HEADER,tracer
 css#endif
         WRITE (kunit,err=10) MODULE_HEADER,nstep,time
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
-     . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
-     . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,salflav,brineav,dpmxav,oiceav
+     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
+     . ,uflxav,vflxav,diaflx,tracer,dpinit,oddev,uav,vav,dpuav,dpvav
+     . ,dpav,temav,salav,th3av,ubavav,vbavav,pbavav,sfhtav,eminpav
+     . ,surflav,salflav,brineav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
@@ -340,10 +341,10 @@ css  *           ,SXMO,SYMO,SZMO,OGEOZ,OGEOZ_SV
 c
             !!call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
-     . ,dpmixl,uflxav,vflxav,diaflx,tracer,dpinit,oddev
-     . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,salflav,brineav,dpmxav,oiceav
+     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
+     . ,uflxav,vflxav,diaflx,tracer,dpinit,oddev,uav,vav,dpuav,dpvav
+     . ,dpav,temav,salav,th3av,ubavav,vbavav,pbavav,sfhtav,eminpav
+     . ,surflav,salflav,brineav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
       nstep0=time0*86400./baclin+.0001
@@ -429,10 +430,10 @@ c
             print*,'restarts (never any tracer data -irsficnt)'
             !!call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
-     . ,u,v,dp,temp,saln,th3d,thermb,ubavg,vbavg,pbavg,pbot,psikk,thkk
-     . ,dpmixl,uflxav,vflxav,diaflx,tracer(:,:,:,1),dpinit,oddev
-     . ,uav,vav,dpuav,dpvav,dpav,temav,salav,th3av,ubavav,vbavav
-     . ,pbavav,sfhtav,eminpav,surflav,salflav,brineav,dpmxav,oiceav
+     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
+     . ,uflxav,vflxav,diaflx,tracer,dpinit,oddev,uav,vav,dpuav,dpvav
+     . ,dpav,temav,salav,th3av,ubavav,vbavav,pbavav,sfhtav,eminpav
+     . ,surflav,salflav,brineav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid
 
       nstep0=time0*86400./baclin+.0001
@@ -717,6 +718,8 @@ c
       oiceav(i,j)=zero
       eminpav(i,j)=zero
       surflav(i,j)=zero
+      tauxav(i,j)=zero
+      tauyav(i,j)=zero
       salflav(i,j)=zero
       brineav(i,j)=zero
 c
@@ -736,7 +739,6 @@ c
       pv(i,j,:)=huge
 c
       th3d(i,j,:)=huge
-      thermb(i,j,:)=huge
       thstar(i,j,:)=huge
 !      do nt=1,ntrcr
         tracer(i,j,:,:)=zero

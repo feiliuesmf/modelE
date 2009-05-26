@@ -20,14 +20,13 @@ c
      .,saln(:,:,:)                    ! salinity
      .,th3d(:,:,:)                    ! potential density
      .,thstar(:,:,:)                  ! virtual potential density
-     .,thermb(:,:,:)                  ! difference thstar - th3d
      .,psikk(:,:)                         ! init.montg.pot. in bottom layer
      .,thkk(:,:)                          ! init.thstar in bottom layer
      .,dpmixl(:,:,:)                      ! Kraus-Turner mixed layer depth
      .,srfhgt(:,:)                        ! sea surface height
 c
 !!      real u,v,dp,dpold,dpu,dpv,p,pu,pv,latij,lonij,corio,potvor,
-!!     .     temp,saln,th3d,thstar,thermb,psikk,thkk,dpmixl,srfhgt
+!!     .     temp,saln,th3d,thstar,psikk,thkk,dpmixl,srfhgt
 c
 !!      c o m m o n
       real, allocatable ::
@@ -58,8 +57,8 @@ c
      .,ubavav(:,:),vbavav(:,:),pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
-     .,salflav(:,:),brineav(:,:),eminpav(:,:)
-     .,surflav(:,:)
+     .,salflav(:,:),brineav(:,:),eminpav(:,:),surflav(:,:)
+     .,tauxav(:,:),tauyav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
 c
@@ -98,10 +97,11 @@ c
 c
 !!      c o m m o n
       real, allocatable ::
-     . uja(:,:),ujb(:,:)              ! velocities at lateral
-     .,via(:,:),vib(:,:)              !          neighbor points
+     . uja(:,:),ujb(:,:)                  ! velocities at lateral
+     .,via(:,:),vib(:,:)                  !          neighbor points
      .,pbot(:,:)                          ! bottom pressure at t=0
-     .,tracer(:,:,:,:)              ! inert tracer (optional)
+     .,tracer(:,:,:,:)                    ! inert tracer (optional)
+     .,diadff(:,:,:)                      ! effective diapycnal diffusivity
      .,tprime(:,:)                        ! temp.change due to surflx
      .,sgain(:,:)                         ! salin.changes from diapyc.mix.
      .,surflx(:,:)                        ! surface thermal energy flux
@@ -174,7 +174,6 @@ c
      .,saln(I_0H:I_1H,J_0H:J_1H,2*kdm) 
      .,th3d(I_0H:I_1H,J_0H:J_1H,2*kdm) 
      .,thstar(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,thermb(I_0H:I_1H,J_0H:J_1H,2*kdm) 
      .,psikk(I_0H:I_1H,J_0H:J_1H) 
      .,thkk(I_0H:I_1H,J_0H:J_1H) 
      .,dpmixl(I_0H:I_1H,J_0H:J_1H,2) 
@@ -207,6 +206,7 @@ c
      .,salflav(I_0H:I_1H,J_0H:J_1H),brineav(I_0H:I_1H,J_0H:J_1H)
      &     ,eminpav(I_0H:I_1H,J_0H:J_1H) 
      .,surflav(I_0H:I_1H,J_0H:J_1H) 
+     .,tauxav(I_0H:I_1H,J_0H:J_1H),tauyav(I_0H:I_1H,J_0H:J_1H) 
      .,ufxcum(I_0H:I_1H,J_0H:J_1H,kdm),vfxcum(I_0H:I_1H,J_0H:J_1H,kdm)
      &     ,dpinit(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,dpmxav(I_0H:I_1H,J_0H:J_1H),oiceav(I_0H:I_1H,J_0H:J_1H) ) 
@@ -238,6 +238,7 @@ c
      .,via(I_0H:I_1H,J_0H:J_1H),vib(I_0H:I_1H,J_0H:J_1H) 
      .,pbot(I_0H:I_1H,J_0H:J_1H) 
      .,tracer(I_0H:I_1H,J_0H:J_1H,kdm,ntrcr) 
+     .,diadff(I_0H:I_1H,J_0H:J_1H,kdm) 
      .,tprime(I_0H:I_1H,J_0H:J_1H) 
      .,sgain(I_0H:I_1H,kdm) 
      .,surflx(I_0H:I_1H,J_0H:J_1H) 
@@ -287,7 +288,6 @@ c
       saln = 0
       th3d = 0
       thstar = 0
-      thermb = 0
       psikk = 0
       thkk = 0
       dpmixl = 1.    ! TNL: avoid NaN for the first step
@@ -335,6 +335,8 @@ c
       brineav = 0
       eminpav = 0
       surflav = 0
+      tauxav = 0
+      tauyav = 0
       ufxcum = 0
       vfxcum = 0
       dpinit = 0
@@ -378,6 +380,7 @@ c
       vib = 0
       pbot = 0
       tracer = 0
+      diadff = 0
       tprime = 0
       sgain = 0
       surflx = 0

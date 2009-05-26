@@ -58,7 +58,6 @@ cddd      public msk
       public saln
       public th3d
       public thstar
-      public thermb
       public psikk
       public thkk
       public dpmixl
@@ -106,6 +105,8 @@ cddd      public msk
       public brineav
       public eminpav
       public surflav
+      public tauxav
+      public tauyav
       public ufxcum
       public vfxcum
       public dpinit
@@ -149,6 +150,7 @@ cddd      public msk
       public vib
       public pbot
       public tracer
+      public diadff
       public tprime
       public sgain
       public surflx
@@ -185,14 +187,13 @@ c
      .,saln(:,:,:)			! salinity
      .,th3d(:,:,:)			! potential density
      .,thstar(:,:,:)			! virtual potential density
-     .,thermb(:,:,:)			! difference thstar - th3d
      .,psikk(:,:)			! init.montg.pot. in bottom layer
      .,thkk(:,:)			! init.thstar in bottom layer
      .,dpmixl(:,:,:)	    ! Kraus-Turner mixed layer depth
      .,srfhgt(:,:)			! sea surface height
 c
 !!      real u,v,dp,dpold,dpu,dpv,p,pu,pv,latij,lonij,corio,potvor,
-!!     .     temp,saln,th3d,thstar,thermb,psikk,thkk,dpmixl,srfhgt
+!!     .     temp,saln,th3d,thstar,psikk,thkk,dpmixl,srfhgt
 c
 !!      c o m m o n
       real, allocatable ::
@@ -223,8 +224,8 @@ c
      .,ubavav(:,:),vbavav(:,:),pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
-     .,salflav(:,:),brineav(:,:),eminpav(:,:)
-     .,surflav(:,:)
+     .,salflav(:,:),brineav(:,:),eminpav(:,:),surflav(:,:)
+     .,tauxav(:,:),tauyav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
 c
@@ -267,6 +268,7 @@ c
      .,via(:,:),vib(:,:)		!          neighbor points
      .,pbot(:,:)			! bottom pressure at t=0
      .,tracer(:,:,:,:)			! tracer
+     .,diadff(:,:,:)			! 
      .,tprime(:,:)			! temp.change due to surflx
      .,sgain(:,:)			! salin.changes from diapyc.mix.
      .,surflx(:,:)			! surface thermal energy flux
@@ -347,7 +349,6 @@ c
       call unpack_data( ogrid,  saln, saln_loc )
       call unpack_data( ogrid,  th3d, th3d_loc )
       call unpack_data( ogrid,  thstar, thstar_loc )
-      call unpack_data( ogrid,  thermb, thermb_loc )
       call unpack_data( ogrid,  psikk, psikk_loc )
       call unpack_data( ogrid,  thkk, thkk_loc )
       call unpack_data( ogrid,  dpmixl, dpmixl_loc )
@@ -396,6 +397,8 @@ c
       call unpack_data( ogrid,  brineav, brineav_loc )
       call unpack_data( ogrid,  eminpav, eminpav_loc )
       call unpack_data( ogrid,  surflav, surflav_loc )
+      call unpack_data( ogrid,  tauxav, tauxav_loc )
+      call unpack_data( ogrid,  tauyav, tauyav_loc )
       call unpack_data( ogrid,  ufxcum, ufxcum_loc )
       call unpack_data( ogrid,  vfxcum, vfxcum_loc )
       call unpack_data( ogrid,  dpinit, dpinit_loc )
@@ -439,6 +442,7 @@ c
       call unpack_data( ogrid,  vib, vib_loc )
       call unpack_data( ogrid,  pbot, pbot_loc )
       call unpack_data( ogrid,  tracer, tracer_loc )
+      call unpack_data( ogrid,  diadff, diadff_loc )
       call unpack_data( ogrid,  tprime, tprime_loc )
       !!!call unpack_data( ogrid,  sgain, sgain_loc )
       call unpack_data( ogrid,  surflx, surflx_loc )
@@ -485,7 +489,6 @@ c
       call pack_data( ogrid,  saln_loc, saln )
       call pack_data( ogrid,  th3d_loc, th3d )
       call pack_data( ogrid,  thstar_loc, thstar )
-      call pack_data( ogrid,  thermb_loc, thermb )
       call pack_data( ogrid,  psikk_loc, psikk )
       call pack_data( ogrid,  thkk_loc, thkk )
       call pack_data( ogrid,  dpmixl_loc, dpmixl )
@@ -533,6 +536,8 @@ c
       call pack_data( ogrid,  brineav_loc, brineav )
       call pack_data( ogrid,  eminpav_loc, eminpav )
       call pack_data( ogrid,  surflav_loc, surflav )
+      call pack_data( ogrid,  tauxav_loc, tauxav )
+      call pack_data( ogrid,  tauyav_loc, tauyav )
       call pack_data( ogrid,  ufxcum_loc, ufxcum )
       call pack_data( ogrid,  vfxcum_loc, vfxcum )
       call pack_data( ogrid,  dpinit_loc, dpinit )
@@ -576,6 +581,7 @@ c
       call pack_data( ogrid,  vib_loc, vib )
       call pack_data( ogrid,  pbot_loc, pbot )
       call pack_data( ogrid,  tracer_loc, tracer )
+      call pack_data( ogrid,  diadff_loc, diadff)
       call pack_data( ogrid,  tprime_loc, tprime )
       !!!call pack_data( ogrid,  sgain_loc, sgain )
       call pack_data( ogrid,  surflx_loc, surflx )
@@ -614,7 +620,6 @@ c
      .,saln(idm,jdm,2*kdm) 
      .,th3d(idm,jdm,2*kdm) 
      .,thstar(idm,jdm,2*kdm) 
-     .,thermb(idm,jdm,2*kdm) 
      .,psikk(idm,jdm) 
      .,thkk(idm,jdm) 
      .,dpmixl(idm,jdm,2) 
@@ -643,8 +648,8 @@ c
      .,ubavav(idm,jdm),vbavav(idm,jdm),pbavav(idm,jdm),sfhtav(idm,jdm) 
      .,uflxav(idm,jdm,kdm),vflxav(idm,jdm,kdm) 
      .,diaflx(idm,jdm,kdm) 
-     .,salflav(idm,jdm),brineav(idm,jdm),eminpav(idm,jdm) 
-     .,surflav(idm,jdm) 
+     .,salflav(idm,jdm),brineav(idm,jdm),eminpav(idm,jdm)
+     .,surflav(idm,jdm),tauxav(idm,jdm),tauyav(idm,jdm)
      .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm) 
      .,dpmxav(idm,jdm),oiceav(idm,jdm) ) 
 c 
@@ -675,6 +680,7 @@ c
      .,via(idm,jdm),vib(idm,jdm) 
      .,pbot(idm,jdm) 
      .,tracer(idm,jdm,kdm,ntrcr) 
+     .,diadff(idm,jdm,kdm) 
      .,tprime(idm,jdm) 
      .,sgain(idm,kdm) 
      .,surflx(idm,jdm) 
@@ -726,7 +732,6 @@ c
       saln = 0
       th3d = 0
       thstar = 0
-      thermb = 0
       psikk = 0
       thkk = 0
       dpmixl = 1.0     ! TNL: avoid NaN on the first step
@@ -774,6 +779,8 @@ c
       brineav = 0
       eminpav = 0
       surflav = 0
+      tauxav = 0
+      tauyav = 0
       ufxcum = 0
       vfxcum = 0
       dpinit = 0
@@ -817,6 +824,7 @@ c
       vib = 0
       pbot = 0
       tracer = 0
+      diadff = 0
       tprime = 0
       sgain = 0
       surflx = 0
@@ -858,7 +866,6 @@ c
       write(801,*) __FILE__,__LINE__,sum(saln(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(th3d(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(thstar(:,:,:))
-      write(801,*) __FILE__,__LINE__,sum(thermb(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(psikk(:,:))
       write(801,*) __FILE__,__LINE__,sum(thkk(:,:))
       write(801,*) __FILE__,__LINE__,sum(dpmixl(:,:,:))
@@ -907,6 +914,8 @@ c
       write(801,*) __FILE__,__LINE__,sum(brineav(:,:))
       write(801,*) __FILE__,__LINE__,sum(eminpav(:,:))
       write(801,*) __FILE__,__LINE__,sum(surflav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(tauxav(:,:))
+      write(801,*) __FILE__,__LINE__,sum(tauyav(:,:))
       write(801,*) __FILE__,__LINE__,sum(ufxcum(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(vfxcum(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(dpinit(:,:,:))
@@ -954,6 +963,7 @@ c
       write(801,*) __FILE__,__LINE__,sum(vib(:,:))
       write(801,*) __FILE__,__LINE__,sum(pbot(:,:))
       write(801,*) __FILE__,__LINE__,sum(tracer(:,:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(diadff(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(tprime(:,:))
       write(801,*) __FILE__,__LINE__,sum(sgain(:,:))
       write(801,*) __FILE__,__LINE__,sum(surflx(:,:))
