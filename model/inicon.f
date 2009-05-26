@@ -23,37 +23,35 @@ c
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
       character text*24,preambl(5)*79
-      real tofsig,kappaf,sigocn,cold,temavg,vol,sst,sofsig,spval
+      real kappaf,cold,temavg,vol,sst,spval,sigocn
       real*4 real4(idm,jdm)
-      external tofsig,kappaf,sigocn,sofsig
+      external kappaf,sigocn
       data spval/-99.99/
       character title*80
 
 !!! not sure why I added this line ... IA
 !!!      asst(:,:) = 0.d0
 c
-c --- set minimum salinity for each isopycnic layer
-      cold=-2.5
-      do 13 k=2,kk
- 13   salmin(k)=sofsig(theta(k),cold)
-      write(*,'(a/(10f6.2))') 'chk salmin(2:kk)=',salmin(2:kk)
-c
       if (nstep0.eq.0) then                ! start from Levitus
         !!call geopar
         delt1=baclin
 c
-c --- read mixed layer temperature
+c --- read 3-d temperature
 c
         write (lp,'(2a)') 'get initial temperature from  ',flnmint
-        open(unit=32,file=flnmint,form='formatted',status='old',
+        open(unit=31,file=flnmint,form='formatted',status='old',
      .     action='read')
 c
-        read (32,'(a79)') (preambl(n),n=1,5)
+        read (31,'(a79)') (preambl(n),n=1,5)
         write(lp,'(a79)') (preambl(n),n=1,5)
-        read (32,'(10f8.4)') ((temp(i,j,1),i=1,idm),j=1,jdm)
-        close (32)
+        do k=1,kk
+        read (31,'(10f8.4)') ((temp(i,j,k),i=1,idm),j=1,jdm)
+        enddo
+        close (31)
+        write (lp,100) 'temp field read, layers, 1 -',kk
+        call zebra(temp(1,1,1),idm,ii1,jj)
 c
-c --- read salinity
+c --- read 3-d salinity
 c
         write (lp,'(2a)') 'get initial salinity from  ',flnmins
         open(unit=32,file=flnmins,form='formatted',status='old',
@@ -62,25 +60,25 @@ c
         read (32,'(a79)') (preambl(n),n=1,5)
         write(lp,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
-          read (32,'(10f8.4)') ((saln(i,j,k),i=1,idm),j=1,jdm)
+        read (32,'(10f8.4)') ((saln(i,j,k),i=1,idm),j=1,jdm)
         enddo
         close (32)
         write (lp,100) 'saln field read, layers, 1 -',kk
- 100    format (a,i4)
         call zebra(saln(1,1,1),idm,ii1,jj)
+ 100    format (a,i4)
 c
 c --- read interface pressure
 c
         write (lp,'(2a)') 'get initial pressure from  ',flnminp
-        open(unit=32,file=flnminp,form='formatted',status='old',
+        open(unit=33,file=flnminp,form='formatted',status='old',
      .     action='read')
 c
-        read (32,'(a79)') (preambl(n),n=1,5)
+        read (33,'(a79)') (preambl(n),n=1,5)
         write (lp,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
-          read (32,'(10f8.4)') ((p(i,j,k+1),i=1,idm),j=1,jdm)
+        read (33,'(10f8.4)') ((p(i,j,k+1),i=1,idm),j=1,jdm)
         enddo
-        close (32)
+        close (33)
         write (lp,100) 'pres field read, levels 2 -',kk+1
         call zebra(p(1,1,kk+1),idm,ii1,jj)
 c
@@ -89,18 +87,13 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 10 l=1,isp(j)
 c
         do 15 i=ifp(j,l),ilp(j,l)
-        th3d(i,j,1)=sigocn(temp(i,j,1),saln(i,j,1))
  15     p(i,j,1)=0.
 c
         do 9 k=1,kk
         do 9 i=ifp(j,l),ilp(j,l)
         p(i,j,k+1)=max(p(i,j,k),min(depths(i,j),p(i,j,k+1))*onem)
         dp(i,j,k)=p(i,j,k+1)-p(i,j,k)
-        if (k.gt.1) then
-          th3d(i,j,k)=theta(k)
-          saln(i,j,k)=max(saln(i,j,k),salmin(k))
-          temp(i,j,k)=tofsig(theta(k),saln(i,j,k))
-        end if
+        th3d(i,j,k)=sigocn(temp(i,j,k),saln(i,j,k))
  9      continue
 c
         do 17 i=ifp(j,l),ilp(j,l)
@@ -136,11 +129,19 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
       thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),
      .                                 th3d(i,j,k))
 c
-      if (i.eq.itest.and.j.eq.jtest)
-     . write (lp,'(2i5,i3,a,3f7.2,3x,2f7.3,f8.1)')
-     .  i,j,k,'  dens,thstar,kappa=',th3d(i,j,k),thstar(i,j,k)
+      if (itest.gt.0.and.jtest.gt.0) then
+        if (i.eq.itest.and.j.eq.jtest)
+     . write (lp,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
+     .  i,j,k,' dens,thstar,kappa,t,s,p=',th3d(i,j,k),thstar(i,j,k)
      .   ,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k)),
      .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
+      else
+        if (i.eq.equatn.and.j.eq.3)
+     . write (lp,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
+     .  i,j,k,' dens,thstar,kappa,t,s,p=',th3d(i,j,k),thstar(i,j,k)
+     .   ,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k)),
+     .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
+      endif
 c
       if (k.gt.1) then
         if (thstar(i,j,k).lt.thstar(i,j,k-1))
@@ -161,12 +162,14 @@ c
      . ,    (depths(i,j),j=jtest-3,jtest+3),i=itest-3,itest+3)
 #endif
 c
-c    .write (*,'(2i4,a,i2/(5(5f7.1,3x,5f7.1/)))')
-c    . itest,jtest,' input data (t,s,p,depth) at k',k,
+c     if (itest.gt.0.and.jtest.gt.0) 
+c    . write (*,'(2i4,a,i2/(5(5f7.1,3x,5f7.1/)))')
+c    . itest,jtest,' initial t,s,p,depth at k',k,
 c    . ((temp(i,j,k),j=jtest-2,jtest+2)
 c    . ,(saln(i,j,k),j=jtest-2,jtest+2),i=itest-2,itest+2)
 c    . ,((p(i,j,k+1)/onem,j=jtest-2,jtest+2)
-c    . , (depth(i,j),j=jtest-2,jtest+2),i=itest-2,itest+2)
+c    . , (depths(i,j),j=jtest-2,jtest+2),i=itest-2,itest+2)
+c
       enddo
 c
       do 18 k=1,kk-1
@@ -210,7 +213,7 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       if (focean(ia,ja).gt.0.) then
         gtemp(1,1,ia,ja)=asst(ia,ja)
         gtempr(1,ia,ja)=atempr(ia,ja)
-        if (sss(ia,ja).le.5.) then
+        if (sss(ia,ja).le.1.) then
           write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
      . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)
           stop 'wrong sss in agcm'
@@ -268,11 +271,21 @@ c
 c     print *,'chk ini. sss at nstep=',nstep0
 c     call zebra(sss,iia,iia,jja)
 c
-      if (itest.gt.0.and.jtest.gt.0) write (lp,103) nstep,itest,jtest,
+      
+      if (itest.gt.0.and.jtest.gt.0) then
+        i=itest
+        j=jtest
+      else
+        i=equatn
+        j=3
+      endif
+      
+      write (lp,'(a,2i4,4f8.2)') ' sig=',i,j,temp(i,j,1),saln(i,j,1),
+     .   sigocn(temp(i,j,1),saln(i,j,1))
+      write (lp,103) nstep,i,j,
      .  '  init.profile  temp    saln  thstar   thkns    dpth   montg',
-     .  (k,temp(itest,jtest,k),saln(itest,jtest,k),
-     .  thstar(itest,jtest,k),dp(itest,jtest,k)/onem,
-     .  p(itest,jtest,k+1)/onem,montg(itest,jtest,k)/g,k=1,kk)
+     .  (k,temp(i,j,k),saln(i,j,k),thstar(i,j,k),dp(i,j,k)/onem,
+     .  p(i,j,k+1)/onem,montg(i,j,k)/g,k=1,kk)
 c
 c --- read-in monthly kpar file
       write(lp,*) 'opening kpar '
@@ -287,7 +300,7 @@ c --- read-in monthly kpar file
       close(21)
 c
 c     call zebra(akpar,idm,idm,jdm)
- 103  format (i9,2i5,a/(28x,i3,2f8.2,f8.2,2f8.1,f8.3))
+ 103  format (i7,2i4,a/(24x,i3,2f8.2,f8.2,2f8.1,f8.3))
 c
       return
       end

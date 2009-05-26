@@ -3,13 +3,53 @@ c
 c --- sigma, dsigma/dt, and dsigma/ds as functions of temp and salinity
 c
       implicit none
-      real t,s
+      real t,s,p,bulk
 c
       include 'state_eqn.h'
 c
 ccc   sig=(c1+c3*s+t*(c2+c5*s+t*(c4+c7*s+c6*t)))*1.e-3                ! cgs
 c7    sigocn=(c1+c3*s+t*(c2+c5*s+t*(c4+c7*s+c6*t)))                !  SI
-      sigocn=(c1+s*(c3+s*(c8+c9*t))+t*(c2+c5*s+t*(c4+c7*s+c6*t)))       !  SI
+c9    sigocn=(c1+s*(c3+s*(c8+c9*t))+t*(c2+c5*s+t*(c4+c7*s+c6*t)))       !  SI
+c
+c  New scheme using Jackett and McDougall's revised equation which
+c  computes rho correctly when the input is potential temperature.
+c  input is whatever in rho0 (example: 1000.), s is salinity in
+c  PSU, t is potential temperature in deg C, and p is pressure in
+c  bars.
+      p=200.                              ! bars
+      bulk = 1.965933e4 + t*(1.444304e2
+     & + t*(-1.706103e0 + t*(9.648704e-3
+     & + t*(-4.190253e-5))))
+     & + s*(5.284855e1 + t*(-3.101089e-1
+     & + t*(6.283263e-3 + t*(-5.084188e-5))))
+     & + sqrt(s**3)*(3.886640e-1
+     & + t*(9.085835e-3 + t*(-4.619924e-4)))
+     & + p*(3.186519e0 + t*(2.212276e-2
+     & + t*(-2.984642e-4 + t*(1.956415e-6))))
+     & + p*s*(6.704388e-3
+     & + t*(-1.847318e-4 + t*(2.059331e-7)))
+     & + p*sqrt(s**3)
+     & *1.480266e-4 + p*p*(2.102898e-4
+     & + t*(-1.202016e-5 + t*(1.394680e-7)))
+     & + p*p*s
+     & *(-2.040237e-6
+     & + t*(6.128773e-8 + t*(6.207323e-10)))
+      sigocn = ( 999.842594e0
+     &           + t*( 6.793952e-2
+     &           + t*(-9.095290e-3
+     &           + t*( 1.001685e-4
+     &           + t*(-1.120083e-6
+     &           + t*( 6.536332e-9)))))
+     &           + s*( 0.824493e0
+     &           + t *(-4.08990e-3
+     &           + t *( 7.64380e-5
+     &           + t *(-8.24670e-7
+     &           + t *( 5.38750e-9)))))
+     &           + sqrt(s**3)*(-5.72466e-3
+     &           + t*( 1.02270e-4
+     &           + t*(-1.65460e-6)))
+     &           + 4.8314e-4*s**2)
+     &           / (1.0 - p/bulk) - 1000.
       return
       end
 c
