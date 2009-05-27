@@ -29,7 +29,7 @@ c  et al., 1996 (JGR)
 #elif (defined  CHL_from_OBIO) ||  (defined TRACERS_OceanBiology)
       USE obio_incom, only : wfac 
 #endif
-#if (defined OBIO_RAD_coupling) || (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
+#if (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
       USE obio_incom, only : lam
 #endif
       USE MODEL_COM,  only : nstep=>itime
@@ -73,14 +73,15 @@ C**** gband is the distribution of the 31 bands for the 6 band GISS code
       integer :: gband(7) = (/ 1, 18, 19, 23, 26, 30, 32 /)
 c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
 c     .                        0.066922,0.0497974/)
-#if (defined CHL_from_SeaWIFs) || (defined CHL_from_OBIO)
-       real*8 :: lam(nlt) = (/ 250, 325, 350, 375, 400
-     .                       , 425, 450, 475, 500, 525
-     .                       , 550, 575, 600, 625, 650
-     .                       , 675, 700, 725, 775, 850
-     .                       , 950,1050,1150,1250,1350
-     .                       ,1450,1550,1650,1750,1900,2200,2900,3700/)
-#endif
+!#if (defined CHL_from_SeaWIFs) || (defined CHL_from_OBIO)
+        real*8 :: lam8(nlt)
+!       real*8 :: lam(nlt) = (/ 250, 325, 350, 375, 400
+!     .                       , 425, 450, 475, 500, 525
+!     .                       , 550, 575, 600, 625, 650
+!     .                       , 675, 700, 725, 775, 850
+!     .                       , 950,1050,1150,1250,1350
+!     .                       ,1450,1550,1650,1750,1900,2200,2900,3700/)
+!#endif
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       logical vrbos,hycgr
 
@@ -139,10 +140,13 @@ c  Reflectance totals
         rod(nl) = rospd + rof*wfac(nl)
       enddo
 
+      !lam is integer, lam8 is real8
+      lam8=float(lam)
+
       if(vrbos.and..not.hycgr)then
       do nl=1,nlt
           write(*,'(a,i5,9d12.4)')'ocalbedo: A', 
-     .    nl,lam(nl),wfac(nl),wind,sunz,rof,rospd,rosps,rod(nl),ros(nl)
+     .    nl,lam8(nl),wfac(nl),wind,sunz,rof,rospd,rosps,rod(nl),ros(nl)
       enddo
       endif
       if(vrbos.and.hycgr)then
@@ -160,7 +164,7 @@ C**** get chlorophyll term
       ! function obio_reflectance calculates reflectance 
       ! as a function of chl and wavelength (lam)
 
-      res = obio_reflectance(refl,chl,lam,nlt,i,j)
+      res = obio_reflectance(refl,chl,lam8,nlt,i,j)
  
 !  transition between band33 and band6 approximation
 
