@@ -8,7 +8,7 @@ C****
 !@sum   STRAITS ocean strait related variables
 !@+     RESOLUTION DEPENDENT: This version is for 288x180 - S
 !@auth  Gary Russell/Gavin Schmidt
-!@ver   1.0
+!@ver   2009/05/26
 C****
       Use OCEAN,  Only: LMO
       Use SEAICE, Only: LMI
@@ -86,9 +86,19 @@ C****
      *  HSIST(LMI,NMST), !  LMI layers of heat content in strait (J)
      *  SSIST(LMI,NMST), !  LMI layers of salt in strait (kg)
      *    USIFAC = .1d0  !  ratio of strait sea ice velocity to current
+      Real*8 :: OPRESE(2,NMST)
+      Real*8,Dimension(2,NMST,LMO) ::
+     *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
+
+!@var QTYE workspace holding the values of QTY at the endpoints of straits
+      Real*8 :: OPRESE(2,NMST)
+      Real*8, Dimension(2,NMST,LMO) ::
+     *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
 
 #ifdef TRACERS_OCEAN
       Real*8 TRMST(LMO,NMST,NTM),TXMST(LMO,NMST,NTM),TZMST(LMO,NMST,NTM)
+!@var TRME,TXME,TYME,TZME tracers at the endpoints of straits
+      Real*8, Dimension(2,NMST,LMO,NTM) :: TRME,TXME,TYME,TZME
 #endif
 #ifdef TRACERS_WATER
       Real*8 TRSIST(NTM,LMI,NMST)

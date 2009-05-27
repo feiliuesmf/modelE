@@ -2,17 +2,21 @@
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_WATER
 #endif
+
       MODULE STRAITS
+C****
 !@sum  STRAITS ocean strait related variables
 !@+    RESOLUTION DEPENDENT: This version is for 144x90 - F
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+!@ver  2009/05/26
+C****
+      USE SEAICE, only : lmi
+      USE OCEAN, only : lmo
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE OCN_TRACER_COM, only : ntm
 #endif
-      USE SEAICE, only : lmi
-      USE OCEAN, only : lmo
       IMPLICIT NONE
+
       SAVE
 C**** These values are highly resolution dependent
 C****
@@ -27,7 +31,7 @@ C****  6  Kattegat       77,74 EN    78,73 WS     2    60000
 C****  7  Bosporous      83,65 EN    84,66 WS     2     6000
 C****  8  White Sea      88,78 EN    89,79 WS     2    40000
 C****  9  Bab al Mandab  89,53 ES    90,52 WN     6    25000
-C**** 10  Hormuz         94,58 ES    96,58 WN     2   100000  ! 50000 
+C**** 10  Hormuz         94,58 ES    96,58 WN     2   100000  ! 50000
 C**** 11  Malacca       112,48 EN   114,46 WS     2    50000
 C**** 12  Soya-kaikyo   128,68 EN   129,69 WS     2    40000
 C****
@@ -38,6 +42,11 @@ C****
 !@var S0MST,SXMST,SYMST salinity of water in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST) :: MMST,MUST,G0MST,GXMST,GZMST,S0MST
      *     ,SXMST,SZMST
+
+!@var QTYE workspace holding the values of QTY at the endpoints of straits
+      Real*8 :: OPRESE(2,NMST)
+      Real*8, Dimension(2,NMST,LMO) ::
+     *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
 
 !@var WIST width of strait (m)
 !@var DIST distance along strait (m)
@@ -95,6 +104,8 @@ C****
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
+!@var TRME,TXME,TYME,TZME tracers at the endpoints of straits
+      Real*8, Dimension(2,NMST,LMO,NTM) :: TRME,TXME,TYME,TZME
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)

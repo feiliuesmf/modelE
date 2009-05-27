@@ -40,6 +40,11 @@ C****
       REAL*8, DIMENSION(LMO,NMST) :: MMST,MUST,G0MST,GXMST,GZMST,S0MST
      *     ,SXMST,SZMST
 
+!@var QTYE workspace holding the values of QTY at the endpoints of straits
+      Real*8 :: OPRESE(2,NMST)
+      Real*8, Dimension(2,NMST,LMO) ::
+     *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
+
 !@var WIST width of strait (m)
 !@var DIST distance along strait (m)
 !@var DISTPG distance between centre points of adjoining ocean boxes (m)
@@ -96,6 +101,8 @@ C****
 #ifdef TRACERS_OCEAN
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
       REAL*8, DIMENSION(LMO,NMST,NTM) :: TRMST, TXMST, TZMST
+!@var TRME,TXME,TYME,TZME tracers at the endpoints of straits
+      Real*8, Dimension(2,NMST,LMO,NTM) :: TRME,TXME,TYME,TZME
 #endif
 #ifdef TRACERS_WATER
 !@var TRSIST tracer amount in with strait (kg)
