@@ -18,6 +18,8 @@ module SparseCommunicator_mod
    public :: countInDomain
    public :: gatherIJ
    public :: scatterIJ
+   public :: gatherPTS
+   public :: scatterPTS
 
    public :: NOT_FOUND
 
@@ -29,20 +31,39 @@ module SparseCommunicator_mod
       integer, pointer :: mpiDispls(:)
       integer, pointer :: localOffsets(:)
       integer, pointer :: globalOffsets(:)
+      integer, pointer :: ptIDs(:)
    end type SparseCommunicator_type
 
    integer, parameter :: NOT_FOUND = -1
 
    interface gatherIJ
+! data received by the root PE is stored in a global array
       module procedure gather_IJ
       module procedure gather_IJx
       module procedure gather_IJxx
    end interface
 
    interface scatterIJ
+! data sent from the root PE is taken from a global array
       module procedure scatter_IJ
       module procedure scatter_IJx
       module procedure scatter_IJxx
+   end interface
+
+   interface gatherPTS
+! data received by the root PE is stored in an array
+! dimensioned by the number of gridpoints being collected
+      module procedure gather_PTS
+      module procedure gather_PTSx
+      module procedure gather_PTSxx
+   end interface
+
+   interface scatterPTS
+! data sent from the root PE is taken from an array
+! dimensioned by the number of gridpoints being sent
+      module procedure scatter_PTS
+      module procedure scatter_PTSx
+      module procedure scatter_PTSxx
    end interface
 
    interface clean
@@ -67,8 +88,9 @@ contains
       integer :: numPointsLocal
       integer :: numPointsGlobal
       integer, allocatable :: localOffsets(:)
-      integer, allocatable :: globalOffsets(:)
-      integer :: p, npes, ier, comm_
+      integer, allocatable :: globalOffsets(:),allglobalOffsets(:)
+      integer, allocatable :: ptIDs(:)
+      integer :: p, pl, pg, npes, ier, comm_
 
 #ifdef USE_ESMF
       numPointsLocal  = countInDomain(points, lBoundLocal, uBoundLocal, .true. )
@@ -104,15 +126,32 @@ contains
 
       allocate(sparseComm % globalOffsets(numPointsGlobal))
       allocate(globalOffsets(size(sparseComm % localOffsets)))
+      allocate(allglobalOffsets(size(localOffsets)))
 
       ! Rather than force a global ordering of the points, we just gather the
       ! global offsets for local points rather than just computing global offsets
       ! on the root processor.
-      globalOffsets = pack(getOffsets(points, lboundGlobal, uboundGlobal, .false.), localOffsets /= NOT_FOUND)
+      allglobalOffsets = getOffsets(points, lboundGlobal, uboundGlobal, .false.)
+      globalOffsets = pack(allglobalOffsets, localOffsets /= NOT_FOUND)
 
       call mpi_gatherV(globalOffsets, size(globalOffsets), MPI_INTEGER, &
            & sparseComm % globalOffsets, sparseComm % mpiCounts, sparseComm % mpiDispls, MPI_INTEGER, &
            & ROOT, comm_, ier)
+
+      ! For gatherPTS/scatterPTS interfaces, note which points come from each PE
+      allocate(sparseComm % ptIDs(numPointsGlobal))
+      allocate(ptIDs(size(sparseComm % localOffsets)))
+
+      do pl = 1, numPointsLocal
+         do pg = 1, numPointsGlobal
+            if(allglobalOffsets(pg) == globaloffsets(pl)) ptIDs(pl) = pg - 1
+         enddo
+      enddo
+
+      call mpi_gatherV(ptIDs, size(ptIDs), MPI_INTEGER, &
+           & sparseComm % ptIDs, sparseComm % mpiCounts, sparseComm % mpiDispls, MPI_INTEGER, &
+           & ROOT, comm_, ier)
+
 #else
       npes=1
       sparseComm % mpiCommmunicator = 0
@@ -137,15 +176,26 @@ contains
 
       allocate(sparseComm % globalOffsets(numPointsGlobal))
       allocate(globalOffsets(size(sparseComm % localOffsets)))
+      allocate(allglobalOffsets(size(localOffsets)))
 
       ! Rather than force a global ordering of the points, we just gather the
       ! global offsets for local points rather than just computing global offsets
       ! on the root processor.
       sparseComm % globalOffsets = &
         & pack(getOffsets(points, lboundGlobal, uboundGlobal, .false.), localOffsets /= NOT_FOUND)
+
+      ! For gatherPTS/scatterPTS interfaces, note which points come from each PE
+      allocate(sparseComm % ptIDs(numPointsGlobal))
+      allocate(ptIDs(size(sparseComm % localOffsets)))
+      do pg = 1, numPointsGlobal
+         sparseComm % ptIDs(pg) = pg - 1
+      enddo
+
 #endif
 
+      deallocate(allglobalOffsets)
       deallocate(globalOffsets)
+      deallocate(ptIDs)
       deallocate(localOffsets)
 
    end function SparseCommunicator
@@ -217,16 +267,19 @@ contains
       amRoot = (this % mpiRank == ROOT)
    end function amRoot
 
-   subroutine gather(this, localArray, globalArray, numBlks, lstride, gstride)
+   subroutine gather(this, localArray, globalArray, numBlks, lstride, gstride, id_as_offset)
       type (SparseCommunicator_type) :: this
       REAL*8, intent(in)    :: localArray(*)
       REAL*8, intent(inOut) :: globalArray(*)
       integer, intent(in)    :: numBlks, lstride, gstride
+      logical, intent(in), optional :: id_as_offset
 
       integer :: ier, i, j, bloc, loc
 
       REAL*8, allocatable :: localBuffer(:)
       REAL*8, allocatable :: globalBuffer(:)
+
+      logical :: id_as_offset_
 
       allocate(localBuffer(size(this % localOffsets)*numBlks))
       allocate(globalBuffer(size(this % globalOffsets)*numBlks))
@@ -254,9 +307,18 @@ contains
 
       !unpack at root
       if (amRoot(this)) then
+         if(present(id_as_offset)) then
+            id_as_offset_ = id_as_offset
+         else
+            id_as_offset_ = .false.
+         endif
          bloc=1
          do i = 1, size(this % globalOffsets)
-            loc = 1 + this % globalOffsets(i)
+            if(id_as_offset_) then
+               loc = 1 + this % ptIDs(i)
+            else
+               loc = 1 + this % globalOffsets(i)
+            endif
             do j = 1, numBlks
                globalArray(loc) = globalBuffer(bloc)
                loc = loc + gstride
@@ -270,25 +332,37 @@ contains
 
    end subroutine gather
 
-   subroutine scatter(this, localArray, globalArray, numBlks, lstride, gstride)
+   subroutine scatter(this, localArray, globalArray, numBlks, lstride, gstride, id_as_offset)
       type (SparseCommunicator_type) :: this
       REAL*8, intent(inOut)    :: localArray(*)
       REAL*8, intent(in) :: globalArray(*)
       integer, intent(in)    :: numBlks, lstride, gstride
+      logical, intent(in), optional :: id_as_offset
 
       integer :: ier, i, j, bloc, loc
 
       REAL*8, allocatable :: localBuffer(:)
       REAL*8, allocatable :: globalBuffer(:)
 
+      logical :: id_as_offset_
+
       allocate(localBuffer(size(this % localOffsets)*numBlks))
       allocate(globalBuffer(size(this % globalOffsets)*numBlks))
 
       !pack at root
       if (amRoot(this)) then
+         if(present(id_as_offset)) then
+            id_as_offset_ = id_as_offset
+         else
+            id_as_offset_ = .false.
+         endif
          bloc=1
          do i = 1, size(this % globalOffsets)
-            loc = 1 + this % globalOffsets(i)
+            if(id_as_offset_) then
+               loc = 1 + this % ptIDs(i)
+            else
+               loc = 1 + this % globalOffsets(i)
+            endif
             do j = 1, numBlks
                globalBuffer(bloc) = globalArray(loc)
                loc = loc + gstride
@@ -377,6 +451,60 @@ contains
    RETURN
    END SUBROUTINE gather_IJxx
 
+   SUBROUTINE  gather_PTS(this,ARR,ARR_PTS)
+   IMPLICIT NONE
+   type (SparseCommunicator_type), intent(in) :: this
+   REAL*8, INTENT(IN)  :: ARR(:,:)
+   REAL*8, INTENT(INOUT) :: ARR_PTS(:)
+   !local variables
+   Integer :: arrRank, numBlks, lstride, gstride
+
+   arrRank=size(shape(ARR))
+   numBlks=1
+   lstride=0
+   gstride=0
+
+   call gather(this, ARR, ARR_PTS, numBlks, lstride, gstride, id_as_offset=.true.)
+
+   RETURN
+   END SUBROUTINE gather_PTS
+
+   SUBROUTINE  gather_PTSx(this,ARR,ARR_PTS)
+   IMPLICIT NONE
+   type (SparseCommunicator_type), intent(in) :: this
+   REAL*8, INTENT(IN)  :: ARR(:,:,:)
+   REAL*8, INTENT(INOUT) :: ARR_PTS(:,:)
+   !local variables
+   Integer :: arrRank, numBlks, lstride, gstride
+
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   gstride=size(ARR_PTS,1)
+
+   call gather(this, ARR, ARR_PTS, numBlks, lstride, gstride, id_as_offset=.true.)
+
+   RETURN
+   END SUBROUTINE gather_PTSx
+
+   SUBROUTINE  gather_PTSxx(this,ARR,ARR_PTS)
+   IMPLICIT NONE
+   type (SparseCommunicator_type), intent(in) :: this
+   REAL*8, INTENT(IN)  :: ARR(:,:,:,:)
+   REAL*8, INTENT(INOUT) :: ARR_PTS(:,:,:)
+   !local variables
+   Integer :: arrRank, numBlks, lstride, gstride
+
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)*size(arr,4)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   gstride=size(ARR_PTS,1)
+
+   call gather(this, ARR, ARR_PTS, numBlks, lstride, gstride, id_as_offset=.true.)
+
+   RETURN
+   END SUBROUTINE gather_PTSxx
+
    SUBROUTINE  scatter_IJ(this,ARR_GLOB,ARR)
    IMPLICIT NONE
    type (SparseCommunicator_type), intent(in) :: this
@@ -430,5 +558,59 @@ contains
 
    RETURN
    END SUBROUTINE scatter_IJxx
+
+   SUBROUTINE  scatter_PTS(this,ARR_PTS,ARR)
+   IMPLICIT NONE
+   type (SparseCommunicator_type), intent(in) :: this
+   REAL*8, INTENT(IN) :: ARR_PTS(:)
+   REAL*8, INTENT(INOUT)  :: ARR(:,:)
+   !local variables
+   Integer :: arrRank, numBlks, lstride, gstride
+
+   arrRank=size(shape(ARR))
+   numBlks=1
+   lstride=0
+   gstride=0
+
+   call scatter(this, ARR, ARR_PTS, numBlks, lstride, gstride, id_as_offset=.true.)
+
+   RETURN
+   END SUBROUTINE scatter_PTS
+
+   SUBROUTINE  scatter_PTSx(this,ARR_PTS,ARR)
+   IMPLICIT NONE
+   type (SparseCommunicator_type), intent(in) :: this
+   REAL*8, INTENT(IN) :: ARR_PTS(:,:)
+   REAL*8, INTENT(INOUT)  :: ARR(:,:,:)
+   !local variables
+   Integer :: arrRank, numBlks, lstride, gstride
+
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   gstride=size(ARR_PTS,1)
+
+   call scatter(this, ARR, ARR_PTS, numBlks, lstride, gstride, id_as_offset=.true.)
+
+   RETURN
+   END SUBROUTINE scatter_PTSx
+
+   SUBROUTINE  scatter_PTSxx(this,ARR_PTS,ARR)
+   IMPLICIT NONE
+   type (SparseCommunicator_type), intent(in) :: this
+   REAL*8, INTENT(IN) :: ARR_PTS(:,:,:)
+   REAL*8, INTENT(INOUT)  :: ARR(:,:,:,:)
+   !local variables
+   Integer :: arrRank, numBlks, lstride, gstride
+
+   arrRank=size(shape(ARR))
+   numBlks=size(arr,3)*size(arr,4)
+   lstride=ubound(ARR,1)*(ubound(ARR,2)-lbound(ARR,2)+1)
+   gstride=size(ARR_PTS,1)
+
+   call scatter(this, ARR, ARR_PTS, numBlks, lstride, gstride, id_as_offset=.true.)
+
+   RETURN
+   END SUBROUTINE scatter_PTSxx
 
 end module SparseCommunicator_mod
