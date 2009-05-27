@@ -86,9 +86,6 @@ C****
      *  HSIST(LMI,NMST), !  LMI layers of heat content in strait (J)
      *  SSIST(LMI,NMST), !  LMI layers of salt in strait (kg)
      *    USIFAC = .1d0  !  ratio of strait sea ice velocity to current
-      Real*8 :: OPRESE(2,NMST)
-      Real*8,Dimension(2,NMST,LMO) ::
-     *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
 
 !@var QTYE workspace holding the values of QTY at the endpoints of straits
       Real*8 :: OPRESE(2,NMST)
