@@ -91,6 +91,7 @@ contains
       integer, allocatable :: globalOffsets(:),allglobalOffsets(:)
       integer, allocatable :: ptIDs(:)
       integer :: p, pl, pg, npes, ier, comm_
+      logical, allocatable :: needsID(:)
 
 #ifdef USE_ESMF
       numPointsLocal  = countInDomain(points, lBoundLocal, uBoundLocal, .true. )
@@ -142,11 +143,18 @@ contains
       allocate(sparseComm % ptIDs(numPointsGlobal))
       allocate(ptIDs(size(sparseComm % localOffsets)))
 
+      allocate(needsID(numPointsGlobal))
+      needsID(:) = .true.
       do pl = 1, numPointsLocal
          do pg = 1, numPointsGlobal
-            if(allglobalOffsets(pg) == globaloffsets(pl)) ptIDs(pl) = pg - 1
+            if(allglobalOffsets(pg) == globaloffsets(pl) .and. needsID(pg)) then
+               ptIDs(pl) = pg - 1
+               needsID(pg) = .false.
+               exit
+            endif
          enddo
       enddo
+      deallocate(needsID)
 
       call mpi_gatherV(ptIDs, size(ptIDs), MPI_INTEGER, &
            & sparseComm % ptIDs, sparseComm % mpiCounts, sparseComm % mpiDispls, MPI_INTEGER, &
