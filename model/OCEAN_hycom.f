@@ -170,6 +170,7 @@ css      ENTRY init_icedyn
 css      ENTRY reset_icdiag
 css      ENTRY diag_ICEDYN
 c
+      entry diag_OCEAN_prep
       RETURN
       END SUBROUTINE DUMMY_OCN
 c
