@@ -16,9 +16,9 @@
 
 !#define RAD_VEG_GROUND
 !#define ECOSYSTEM_SCALE
-!#define GHY_USE_LARGESCALE_PRECIP
-!#define INTERCEPT_TEMPORAL
-!#define LARGE_SCALE_PRECIP_INTERCEPT
+#define GHY_USE_LARGESCALE_PRECIP
+#define INTERCEPT_TEMPORAL
+#define LARGE_SCALE_PRECIP_INTERCEPT
 !#define do_topmodel_runoff
 !#define CLIM_SOILMOIST
 !-----------------------------------------------------------------------
