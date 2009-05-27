@@ -2,21 +2,24 @@
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_WATER
 #endif
+
       SUBROUTINE STPGF(DTS)
+C****
 !@sum  STPGF calculates pressure gradient force through strait
 !@auth Gary Russell
-!@ver  1.0
+!@ver  2009/05/22
+C****
       USE CONSTANT, only : grav,rrt12=>byrt12
-      USE OCEAN, only : lmo,lmm,   dxypo,hocean,
-     *   mo=>mo_glob, opress=>opress_glob,
-     *   g0m=>g0m_glob,gzmo=>gzmo_glob, s0m=>s0m_glob,szmo=>szmo_glob
-      USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg
+      Use OCEAN,   Only: LMO,LMM, DXYPO,HOCEAN
+      Use STRAITS, Only: NMST,LMST,IST,JST,WIST,MUST,DISTPG,
+     *                   OPRESE,MOE, G0ME,GZME, S0ME,SZME
       IMPLICIT NONE
+
       INTEGER I,J,K,L,N
       REAL*8, INTENT(IN) :: DTS
       REAL*8 PE,PHIE,GUP,GDN,SUP,SDN,DP,PUP,PDN,VUP,VDN
       REAL*8 VOLGSP
-      REAL*8, DIMENSION(LMO,2) :: MEND,PEND,PHI,DH
+      Real*8,Dimension(LMO,2) :: PEND,PHI,DH
 C****
       DO N=1,NMST
 C****
@@ -27,38 +30,36 @@ C****
       I=IST(N,K)
       J=JST(N,K)
 C**** Calculate pressure by integrating from the top down
-      PE = OPRESS(I,J)
+      PE = OPRESE(K,N)
       DO L=1,LMM(I,J)
-        MEND(L,K) = MO(I,J,L)
-        PEND(L,K) = PE + GRAV*MO(I,J,L)*5d-1
-        PE        = PE + GRAV*MO(I,J,L)
-      END DO
+         PEND(L,K) = PE + GRAV*MOE(K,N,L)*.5
+         PE        = PE + GRAV*MOE(K,N,L)  ;  EndDo
 C**** Calculate geopotential by integrating from the bottom up,
 C**** also calculate the specific volume
       PHIE = -HOCEAN(I,J)*GRAV
       DO L=LMM(I,J),1,-1
-      GUP = (G0M(I,J,L)-2d0*RRT12*GZMO(I,J,L))/(MO(I,J,L)*DXYPO(J))
-      GDN = (G0M(I,J,L)+2d0*RRT12*GZMO(I,J,L))/(MO(I,J,L)*DXYPO(J))
-      SUP = (S0M(I,J,L)-2d0*RRT12*SZMO(I,J,L))/(MO(I,J,L)*DXYPO(J))
-      SDN = (S0M(I,J,L)+2d0*RRT12*SZMO(I,J,L))/(MO(I,J,L)*DXYPO(J))
-      DP  = GRAV*MEND(L,K)
+      GUP = (G0ME(K,N,L) - 2*RRT12*GZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
+      GDN = (G0ME(K,N,L) + 2*RRT12*GZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
+      SUP = (S0ME(K,N,L) - 2*RRT12*SZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
+      SDN = (S0ME(K,N,L) + 2*RRT12*SZME(K,N,L)) / (MOE(K,N,L)*DXYPO(J))
+      DP  = GRAV*MOE(K,N,L)
       PUP = PEND(L,K) - RRT12*DP
       PDN = PEND(L,K) + RRT12*DP
       VUP = VOLGSP(GUP,SUP,PUP)
       VDN = VOLGSP(GDN,SDN,PDN)
-      PHI(L,K) = PHIE + (VUP*(5d-1-RRT12)+VDN*(5d-1+RRT12))*5d-1*DP
-       DH(L,K) = MEND(L,K)*(VUP+VDN)*5d-1
+      PHI(L,K) = PHIE + (VUP*(.5-RRT12)+VDN*(.5+RRT12))*.5*DP
+       DH(L,K) = MOE(K,N,L)*(VUP+VDN)*.5
 C**** Calculate PHI at top of current layer (or bottom of next layer)
-       PHIE = PHIE + (VDN+VUP)*5d-1*DP
-      END DO
-      END DO
+       PHIE = PHIE + (VDN+VUP)*.5*DP
+      EndDo  !  End of Do L=
+      EndDo  !  End of Do K=1,2
 C**** Subtract Pressure Gradient Force from the mass flux
       DO L=1,LMST(N)
-        MUST(L,N) = MUST(L,N) - 5d-1*DTS*WIST(N)*
-     *       (( DH(L,2)+ DH(L,1))*(PEND(L,2)-PEND(L,1)) +
-     +       (PHI(L,2)-PHI(L,1))*(MEND(L,2)+MEND(L,1)))/DISTPG(N)
-      END DO
-      END DO
+        MUST(L,N) = MUST(L,N) - .5*DTS*WIST(N)*
+     *    (( DH(L,2)+ DH(L,1))*(PEND(L,2)-PEND(L,1)) +
+     +     (PHI(L,2)-PHI(L,1))*(MOE(2,N,L)+MOE(1,N,L))) / DISTPG(N)
+      EndDo  !  End of Do L=1,LMST(N)
+      EndDo  !  End of Do N=1,NMST
 C****
       RETURN
       END SUBROUTINE STPGF
@@ -67,21 +68,19 @@ C****
 C****
 !@sum  STADV advects tracers and water mass through the straits
 !@auth Gary Russell/Gavin Schmidt
-!@ver  2009/05/21
+!@ver  2009/05/26
 C****
       USE CONSTANT, only : teeny
       USE OCEAN, only : dxypo,bydxypo,mo=>mo_glob
-     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
-     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
-      USE STRAITS, only : nmst,lmst,ist,jst,wist,must,distpg,g0mst,s0mst
-     *     ,gxmst,sxmst,gzmst,szmst,mmst
+      Use STRAITS, Only: NMST,LMST,IST,JST,WIST,MUST,DISTPG,MMST,
+     *                   G0MST,GXMST,GZMST, S0MST,SXMST,SZMST,
+     *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit
-      Use OCEAN, Only: ntm, trmo=>trmo_glob,
-     *        txmo=>txmo_glob, tymo=>tymo_glob, tzmo=>tzmo_glob
-      Use STRAITS, Only: trmst,txmst,tzmst
+      Use OCEAN,   Only: NTM
+      Use STRAITS, Only: TRMST,TXMST,TZMST, TRME,TXME,TYME,TZME
       Use ODIAG, Only: tlnst
 #endif
 
@@ -98,55 +97,58 @@ C****
       J2=JST(N,2)
       DO L=1,LMST(N)
       AM = DTS*MUST(L,N)
-      MM1 = MO(I1,J1,L)*DXYPO(J1)
-      MM2 = MO(I2,J2,L)*DXYPO(J2)
+      MM1 = MOE(1,N,L)*DXYPO(J1)
+      MM2 = MOE(2,N,L)*DXYPO(J2)
       CALL STADVT (N,L,AM,MM1,MM2,G0MST(L,N),GXMST(L,N),GZMST(L,N),
-     *     G0M,GXMO,GYMO,GZMO,OLNST(L,N,LN_GFLX),.FALSE.)
+     *             G0ME,GXME,GYME,GZME,OLNST(L,N,LN_GFLX),.False.)
       CALL STADVT (N,L,AM,MM1,MM2,S0MST(L,N),SXMST(L,N),SZMST(L,N),
-     *     S0M,SXMO,SYMO,SZMO,OLNST(L,N,LN_SFLX),.TRUE.)
+     *             S0ME,SXME,SYME,SZME,OLNST(L,N,LN_SFLX),.True.)
 #ifdef TRACERS_OCEAN
       DO ITR = 1,NTM
         CALL STADVT (N,L,AM,MM1,MM2,TRMST(L,N,ITR),TXMST(L,N,ITR),
-     *       TZMST(L,N,ITR),TRMO(1,1,1,ITR),TXMO(1,1,1,ITR),
-     *       TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),TLNST(L,N,1,ITR),
-     *       t_qlimit(ITR))
-      END DO
+     *               TZMST(L,N,ITR),TRME(1,1,1,ITR),TXME(1,1,1,ITR),
+     *               TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),
+     *               TLNST(L,N,1,ITR),T_QLIMIT(ITR))  ;  EndDo
 #endif /* def TRACERS_OCEAN */
-      MO(I1,J1,L) = MO(I1,J1,L) - AM*BYDXYPO(J1)
-      MO(I2,J2,L) = MO(I2,J2,L) + AM*BYDXYPO(J2)
+      MOE(1,N,L) = MOE(1,N,L) - AM*byDXYPO(J1)
+      MOE(2,N,L) = MOE(2,N,L) + AM*byDXYPO(J2)
         OLNST(L,N,LN_MFLX) = OLNST(L,N,LN_MFLX) + AM
 
 C**** Limit heat gradients to 8000 (J/kg) = 2 (C) * SHCW (J/kg*C)
 C**** to prevent problems in Red Sea area
-      If (Abs(GXMO(I1,J1,L)) > 8000*MO(I1,J1,L)*DXYPO(J1))
-     *    GXMO(I1,J1,L) = Sign(8000*MO(I1,J1,L)*DXYPO(J1),GXMO(I1,J1,L))
-      If (Abs(GYMO(I1,J1,L)) > 8000*MO(I1,J1,L)*DXYPO(J1))
-     *    GYMO(I1,J1,L) = Sign(8000*MO(I1,J1,L)*DXYPO(J1),GYMO(I1,J1,L))
-      If (Abs(GZMO(I1,J1,L)) > 8000*MO(I1,J1,L)*DXYPO(J1))
-     *    GZMO(I1,J1,L) = Sign(8000*MO(I1,J1,L)*DXYPO(J1),GZMO(I1,J1,L))
-      If (Abs(GXMO(I2,J2,L)) > 8000*MO(I2,J2,L)*DXYPO(J2))
-     *    GXMO(I2,J2,L) = Sign(8000*MO(I2,J2,L)*DXYPO(J2),GXMO(I2,J2,L))
-      If (Abs(GYMO(I2,J2,L)) > 8000*MO(I2,J2,L)*DXYPO(J2))
-     *    GYMO(I2,J2,L) = Sign(8000*MO(I2,J2,L)*DXYPO(J2),GYMO(I2,J2,L))
-      If (Abs(GZMO(I2,J2,L)) > 8000*MO(I2,J2,L)*DXYPO(J2))
-     *    GZMO(I2,J2,L) = Sign(8000*MO(I2,J2,L)*DXYPO(J2),GZMO(I2,J2,L))
+      If (Abs(GXME(1,N,L)) > 8000*MOE(1,N,L)*DXYPO(J1))
+     *    GXME(1,N,L) = Sign(8000*MOE(1,N,L)*DXYPO(J1),GXME(1,N,L))
+      If (Abs(GYME(1,N,L)) > 8000*MOE(1,N,L)*DXYPO(J1))
+     *    GYME(1,N,L) = Sign(8000*MOE(1,N,L)*DXYPO(J1),GYME(1,N,L))
+      If (Abs(GZME(1,N,L)) > 8000*MOE(1,N,L)*DXYPO(J1))
+     *    GZME(1,N,L) = Sign(8000*MOE(1,N,L)*DXYPO(J1),GZME(1,N,L))
+      If (Abs(GXME(2,N,L)) > 8000*MOE(2,N,L)*DXYPO(J2))
+     *    GXME(2,N,L) = Sign(8000*MOE(2,N,L)*DXYPO(J2),GXME(2,N,L))
+      If (Abs(GYME(2,N,L)) > 8000*MOE(2,N,L)*DXYPO(J2))
+     *    GYME(2,N,L) = Sign(8000*MOE(2,N,L)*DXYPO(J2),GYME(2,N,L))
+      If (Abs(GZME(2,N,L)) > 8000*MOE(2,N,L)*DXYPO(J2))
+     *    GZME(2,N,L) = Sign(8000*MOE(2,N,L)*DXYPO(J2),GZME(2,N,L))
 
-      END DO
-      END DO
+      EndDo  !  End of Do L=1,LMST(N)
+      EndDo  !  End of Do N=1,NMST
       RETURN
       END SUBROUTINE STADV
 
       SUBROUTINE STADVT(N,L,AM,MM1,MM2,RMST,RXST,RZST,RM,RX,RY,RZ,OLN
      *     ,QLIMIT)
+C****
 !@sum  STADVT advects tracers through the straits (improved calculation)
 !@+    GOES BACK TO OLD CODING FOR STABILITY
 !@auth Gary Russell/Gavin Schmidt
+!@ver  2009/05/26
+C****
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst,lmst,ist,jst,xst,yst,mmst
       IMPLICIT NONE
+
       REAL*8, INTENT(IN) :: AM,MM1,MM2
       REAL*8, INTENT(INOUT) :: RMST,RXST,RZST
-      REAL*8, DIMENSION(IM,JM,LMO), INTENT(INOUT) :: RX,RY,RZ,RM
+      Real*8,Intent(InOut),Dimension(2,NMST,LMO) :: RM,RX,RY,RZ
       REAL*8, INTENT(INOUT) :: OLN
       LOGICAL, INTENT(IN) :: QLIMIT
       REAL*8 A1,A2,FM1,FZ1,FM2,FZ2,RXY,X1,Y1,X2,Y2,RXold
@@ -165,82 +167,82 @@ C****
 C**** Water flux is moving from grid box 1 to grid box 2  (AM > 0)
 C****
        A1 = AM/MM1
-c      FM1 = A1*(RM(I1,J1,L) + X1*RX(I1,J1,L) + Y1*RY(I1,J1,L))
-      FM1 = A1*(RM(I1,J1,L)+(1d0-A1)*(X1*RX(I1,J1,L)+Y1*RY(I1,J1,L)))
-      FZ1 = A1*RZ(I1,J1,L)
+c     FM1 = A1*(RM(1,N,L) + X1*RX(1,N,L) + Y1*RY(1,N,L))
+      FM1 = A1*(RM(1,N,L) + (1-A1)*(X1*RX(1,N,L)+Y1*RY(1,N,L)))
+      FZ1 = A1*RZ(1,N,L)
        A2 = AM/MMST(L,N)
-      FM2 = A2*(RMST + (1d0-A2)*RXST)
+      FM2 = A2*(RMST + (1-A2)*RXST)
       FZ2 = A2*RZST
 C**** Calculate first moments of tracer mass for grid boxes
-c      RX(I1,J1,L) = RX(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*X1*X1))
-c      RY(I1,J1,L) = RY(I1,J1,L)*(1d0 - A1*(.5d0+1.5d0*Y1*Y1))
-c      RXST        = RXST*(1.-A2)**3 - 3.*FM1 + 3.*A2*RMST
-c      RXold = RX(I2,J2,L)
-c      RX(I2,J2,L) = RX(I2,J2,L) + (RX(I2,J2,L)*AM*(.5 - 1.5*X2*X2) +
-c     *     3*X2*(FM2*MM2 - (RM(I2,J2,L)+Y2*RY(I2,J2,L))*AM)) / (MM2+AM)
-c      RY(I2,J2,L) = RY(I2,J2,L) + (RY(I2,J2,L)*AM*(.5 - 1.5*Y2*Y2) +
-c     *     3.*Y2*(FM2*MM2 - (RM(I2,J2,L)+X2*RXold)*AM)) / (MM2+AM)
-      RX(I1,J1,L) = RX(I1,J1,L)*(1d0-A1)*(1d0-A1*X1*X1)
-      RY(I1,J1,L) = RY(I1,J1,L)*(1d0-A1)*(1d0-A1*Y1*Y1)
-      RXST        = RXST*(1d0-2d0*A2) - FM1 + FM2
-      RX(I2,J2,L) = RX(I2,J2,L) + X2*(FM2 - (RM(I2,J2,L)-X2*RX(I2,J2,L))
+c      RX(1,N,L) = RX(1,N,L)*(1 - A1*(.5+1.5*X1*X1))
+c      RY(1,N,L) = RY(1,N,L)*(1 - A1*(.5+1.5*Y1*Y1))
+c      RXST      = RXST*(1-A2)**3 - 3*FM1 + 3*A2*RMST
+c      RXold = RX(2,N,L)
+c      RX(2,N,L) = RX(2,N,L) + (RX(2,N,L)*AM*(.5 - 1.5*X2*X2) +
+c     *     3*X2*(FM2*MM2 - (RM(2,N,L)+Y2*RY(2,N,L))*AM)) / (MM2+AM)
+c      RY(2,N,L) = RY(2,N,L) + (RY(2,N,L)*AM*(.5 - 1.5*Y2*Y2) +
+c     *     3*Y2*(FM2*MM2 - (RM(2,N,L)+X2*RXold)*AM)) / (MM2+AM)
+      RX(1,N,L) = RX(1,N,L)*(1-A1)*(1-A1*X1*X1)
+      RY(1,N,L) = RY(1,N,L)*(1-A1)*(1-A1*Y1*Y1)
+      RXST      = RXST*(1-2*A2) - FM1 + FM2
+      RX(2,N,L) = RX(2,N,L) + X2*(FM2 - (RM(2,N,L)-X2*RX(2,N,L))
      $     *AM/MM2)
-      RY(I2,J2,L) = RY(I2,J2,L) + Y2*(FM2 - (RM(I2,J2,L)-Y2*RY(I2,J2,L))
+      RY(2,N,L) = RY(2,N,L) + Y2*(FM2 - (RM(2,N,L)-Y2*RY(2,N,L))
      $     *AM/MM2)
       GO TO 300
 C****
 C**** Water flux is moving from grid box 2 to grid box 1  (AM < 0)
 C****
   200  A1 = AM/MMST(L,N)
-      FM1 = A1*(RMST - (1d0+A1)*RXST)
+      FM1 = A1*(RMST - (1+A1)*RXST)
       FZ1 = A1*RZST
        A2 = AM/MM2
-c      FM2 = A2*(RM(I2,J2,L) + RX(I2,J2,L)*X2 + RY(I2,J2,L)*Y2)
-      FM2 = A2*(RM(I2,J2,L)+(1d0+A2)*(X2*RX(I2,J2,L)+Y2*RY(I2,J2,L)))
-      FZ2 = A2*RZ(I2,J2,L)
+c     FM2 = A2*(RM(2,N,L) + RX(2,N,L)*X2 + RY(2,N,L)*Y2)
+      FM2 = A2*(RM(2,N,L) + (1+A2)*(X2*RX(2,N,L)+Y2*RY(2,N,L)))
+      FZ2 = A2*RZ(2,N,L)
 C**** Calculate first moments of tracer mass for grid boxes
-c      RXold = RX(I1,J1,L)
-c      RX(I1,J1,L) = RX(I1,J1,L) - (RX(I1,J1,L)*AM*(.5 - 1.5*X1*X1) +
-c     *     3*X1*(FM1*MM1 - (RM(I1,J1,L)+Y1*RY(I1,J1,L))*AM)) / (MM1-AM)
-c      RY(I1,J1,L) = RY(I1,J1,L) - (RY(I1,J1,L)*AM*(.5 - 1.5*Y1*Y1) +
-c     *     3.*Y1*(FM1*MM1 - (RM(I1,J1,L)+X1*RXold)*AM)) / (MM1-AM)
-c      RXST        = RXST*(1.+A1)**3 - 3.*FM2 + 3.*A1*RMST
-c      RX(I2,J2,L) = RX(I2,J2,L)*(1. + A2*(.5+1.5*X2*X2))
-c      RY(I2,J2,L) = RY(I2,J2,L)*(1. + A2*(.5+1.5*Y2*Y2))
-      RX(I1,J1,L) = RX(I1,J1,L) -
-     *     X1*(FM1 - (RM(I1,J1,L)-X1*RX(I1,J1,L))*AM/MM1)
-      RY(I1,J1,L) = RY(I1,J1,L) -
-     *     Y1*(FM1 - (RM(I1,J1,L)-Y1*RY(I1,J1,L))*AM/MM1)
-      RXST        = RXST*(1d0+2d0*A1) + FM1 - FM2
-      RX(I2,J2,L) = RX(I2,J2,L)*(1d0+A2)*(1d0+A2*X2*X2)
-      RY(I2,J2,L) = RY(I2,J2,L)*(1d0+A2)*(1d0+A2*Y2*Y2)
+c      RXold = RX(1,N,L)
+c      RX(1,N,L) = RX(1,N,L) - (RX(1,N,L)*AM*(.5 - 1.5*X1*X1) +
+c     *     3*X1*(FM1*MM1 - (RM(1,N,L)+Y1*RY(1,N,L))*AM)) / (MM1-AM)
+c      RY(1,N,L) = RY(1,N,L) - (RY(1,N,L)*AM*(.5 - 1.5*Y1*Y1) +
+c     *     3*Y1*(FM1*MM1 - (RM(1,N,L)+X1*RXold)*AM)) / (MM1-AM)
+c      RXST      = RXST*(1+A1)**3 - 3*FM2 + 3*A1*RMST
+c      RX(2,N,L) = RX(2,N,L)*(1 + A2*(.5+1.5*X2*X2))
+c      RY(2,N,L) = RY(2,N,L)*(1 + A2*(.5+1.5*Y2*Y2))
+      RX(1,N,L) = RX(1,N,L) -
+     *            X1*(FM1 - (RM(1,N,L)-X1*RX(1,N,L))*AM/MM1)
+      RY(1,N,L) = RY(1,N,L) -
+     *            Y1*(FM1 - (RM(1,N,L)-Y1*RY(1,N,L))*AM/MM1)
+      RXST      = RXST*(1+2*A1) + FM1 - FM2
+      RX(2,N,L) = RX(2,N,L)*(1+A2)*(1+A2*X2*X2)
+      RY(2,N,L) = RY(2,N,L)*(1+A2)*(1+A2*Y2*Y2)
 C****
 C**** Calculate new tracer mass, vertical moment of tracer mass,
 C**** and horizontal moment of tracer mass for the straits
 C****
-  300 RM(I1,J1,L) = RM(I1,J1,L) -  FM1
-      RZ(I1,J1,L) = RZ(I1,J1,L) -  FZ1
-      RM(I2,J2,L) = RM(I2,J2,L) +  FM2
-      RZ(I2,J2,L) = RZ(I2,J2,L) +  FZ2
-      RMST        = RMST   + (FM1-FM2)
-      RZST        = RZST   + (FZ1-FZ2)
-       OLN        =  OLN   + (FM1+FM2)
+  300 RM(1,N,L) = RM(1,N,L) - FM1
+      RZ(1,N,L) = RZ(1,N,L) - FZ1
+      RM(2,N,L) = RM(2,N,L) + FM2
+      RZ(2,N,L) = RZ(2,N,L) + FZ2
+      RMST      = RMST + (FM1-FM2)
+      RZST      = RZST + (FZ1-FZ2)
+       OLN      =  OLN + (FM1+FM2)
 C****
       if ( QLIMIT ) then ! limit gradients at ends of strait
-        RXY = abs(RX(I1,J1,L)) + abs(RY(I1,J1,L))
-        if ( RXY > RM(I1,J1,L) ) then
-          RX(I1,J1,L) = RX(I1,J1,L)*( RM(I1,J1,L)/(RXY + tiny(RXY)) )
-          RY(I1,J1,L) = RY(I1,J1,L)*( RM(I1,J1,L)/(RXY + tiny(RXY)) )
+        RXY = abs(RX(1,N,L)) + abs(RY(1,N,L))
+        if ( RXY > RM(1,N,L) ) then
+          RX(1,N,L) = RX(1,N,L)*( RM(1,N,L)/(RXY + tiny(RXY)) )
+          RY(1,N,L) = RY(1,N,L)*( RM(1,N,L)/(RXY + tiny(RXY)) )
         endif
-        if ( abs(RZ(I1,J1,L)) > RM(I1,J1,L) )
-     *       RZ(I1,J1,L) = sign(RM(I1,J1,L), RZ(I1,J1,L)+0d0)
-        RXY = abs(RX(I2,J2,L)) + abs(RY(I2,J2,L))
-        if ( RXY > RM(I2,J2,L) ) then
-          RX(I2,J2,L) = RX(I2,J2,L)*( RM(I2,J2,L)/(RXY + tiny(RXY)) )
-          RY(I2,J2,L) = RY(I2,J2,L)*( RM(I2,J2,L)/(RXY + tiny(RXY)) )
+        if ( abs(RZ(1,N,L)) > RM(1,N,L) )
+     *       RZ(1,N,L) = sign(RM(1,N,L), RZ(1,N,L)+0d0)
+        RXY = abs(RX(2,N,L)) + abs(RY(2,N,L))
+        if ( RXY > RM(2,N,L) ) then
+          RX(2,N,L) = RX(2,N,L)*( RM(2,N,L)/(RXY + tiny(RXY)) )
+          RY(2,N,L) = RY(2,N,L)*( RM(2,N,L)/(RXY + tiny(RXY)) )
         endif
-        if ( abs(RZ(I2,J2,L)) > RM(I2,J2,L) )
-     *       RZ(I2,J2,L) = sign(RM(I2,J2,L), RZ(I2,J2,L)+0d0)
+        if ( abs(RZ(2,N,L)) > RM(2,N,L) )
+     *       RZ(2,N,L) = sign(RM(2,N,L), RZ(2,N,L)+0d0)
         if ( abs(RXST) > RMST ) RXST = sign(RMST, RXST)
         if ( abs(RZST) > RMST ) RZST = sign(RMST, RZST)
       end if
@@ -264,10 +266,10 @@ C****
       USE OCEAN, only : lmo,dts
       USE STRAITS, only : nmst,lmst,must,mmst,wist,dist,sxmst,gxmst
 #ifdef TRACERS_OCEAN
-     *     ,txmst
+      Use STRAITS, Only: TXMST
 #endif
       IMPLICIT NONE
-      REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1, REDUCE=1./(SDAY*20.)
+      REAL*8, PARAMETER :: BDRAGX=1, SDRAGX=1d-1, REDUCE=1./(SDAY*20.)
       INTEGER N,L
 
       DO N=1,NMST
@@ -280,10 +282,10 @@ C**** Apply side drag
         MUST(L,N) = MUST(L,N) * MMST(L,N)*WIST(N) /
      *       (MMST(L,N)*WIST(N) + DTS*SDRAGX*ABS(MUST(L,N))*DIST(N))
 C**** Reduce cross strait tracer gradients (20 day restoring to zero)
-        GXMST(L,N)=GXMST(L,N)*(1.-REDUCE*DTS)
-        SXMST(L,N)=SXMST(L,N)*(1.-REDUCE*DTS)
+        GXMST(L,N)=GXMST(L,N)*(1-REDUCE*DTS)
+        SXMST(L,N)=SXMST(L,N)*(1-REDUCE*DTS)
 #ifdef TRACERS_OCEAN
-        TXMST(L,N,:)=TXMST(L,N,:)*(1.-REDUCE*DTS)
+        TXMST(L,N,:)=TXMST(L,N,:)*(1-REDUCE*DTS)
 #endif
       END DO
       END DO
@@ -292,24 +294,23 @@ C****
       END SUBROUTINE STBDRA
 
       SUBROUTINE init_STRAITS(iniOCEAN)
+C****
 !@sum  init_STRAITS initializes strait variables
 !@auth Gary Russell/Gavin Schmidt
-!@ver  1.0
+!@ver  2009/05/26
+C****
       USE CONSTANT, only: twopi,radius
-      USE OCEAN, only : im,jm,lmo, ze, dxypo, mo=>mo_glob, gather_ocean
-     *  ,g0m=>g0m_glob, gxmo=>gxmo_glob,gymo=>gymo_glob,gzmo=>gzmo_glob
-     *  ,s0m=>s0m_glob, sxmo=>sxmo_glob,symo=>symo_glob,szmo=>szmo_glob
-     *  ,dlat,dlon,fjeq, mySparseComm_type
-      USE STRAITS, only : dist,wist,nmst,distpg,rsist,rsixst,msist,hsist
-     *     ,ssist,mmst,g0mst,s0mst,gxmst,sxmst,gzmst,szmst,must,lmst,ist
-     *     ,jst,xst,yst
-
-!      use domain_decomp_1d, only: am_i_root, grid, get
+      Use OCEAN,   Only: IM,JM,LMO, ZE, FJEQ,DLON,DLAT, DXYPO,
+     *                   GATHER_OCEAN, MySparseComm_Type
+      Use STRAITS, Only: NMST,LMST, IST,JST, XST,YST, WIST,DIST,DISTPG,
+     *                   MMST,MUST, G0MST,GXMST,GZMST,S0MST,SXMST,SZMST,
+     *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
+     *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
       use domain_decomp_1d, only: am_i_root, get
       USE OCEANR_DIM, only : grid=>ogrid
-
       Use SparseCommunicator_mod
       IMPLICIT NONE
+
       INTEGER I,J,L,N,I1,J1,I2,J2, ier
       REAL*8 FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
      *     ,DTLAT,G01,GZ1,S01,SZ1,G02,GZ2,S02,SZ2
@@ -321,8 +322,15 @@ C****
       integer, allocatable :: points(:,:)
 
       allocate(points(2, 2*nmst), stat=ier)
-      points(1,:) = RESHAPE( ist(:,:) , (/2*NMST/) )
-      points(2,:) = RESHAPE( jst(:,:) , (/2*NMST/) )
+c      points(1,:) = RESHAPE( ist(:,:) , (/2*NMST/) )
+c      points(2,:) = RESHAPE( jst(:,:) , (/2*NMST/) )
+c The two ends of each strait must be adjacent in the list of points!
+      do n=1,nmst
+        points(1,2*n-1) = ist(n,1)
+        points(2,2*n-1) = jst(n,1)
+        points(1,2*n  ) = ist(n,2)
+        points(2,2*n  ) = jst(n,2)
+      enddo
 
       CALL GET(grid, J_STRT_HALO = locLB(2), J_STOP_HALO = locUB(2))
 
@@ -344,19 +352,19 @@ C**** and mass of water in the strait
 C****
 cc    DLON = TWOPI/IM
 cc    DLAT = NINT(180d0/(JM-1))*TWOPI/360d0
-cc    FJEQ = (JM+1d0)/2d0
+cc    FJEQ = (JM+1)/2d0
       DO N=1,NMST
-      DSLON = (IST(N,2)+5d-1*XST(N,2)-IST(N,1)-5d-1*XST(N,1))*DLON
-      DSLAT = (JST(N,2)+5d-1*YST(N,2)-JST(N,1)-5d-1*YST(N,1))*DLAT
-       SLAT = (JST(N,2)+5d-1*YST(N,2)+JST(N,1)+5d-1*YST(N,1)-2d0*FJEQ)
-     *     *DLAT/2d0
+      DSLON = (IST(N,2)+.5*XST(N,2)-IST(N,1)-.5*XST(N,1))*DLON
+      DSLAT = (JST(N,2)+.5*YST(N,2)-JST(N,1)-.5*YST(N,1))*DLAT
+       SLAT = (JST(N,2)+.5*YST(N,2)+JST(N,1)+.5*YST(N,1)-2*FJEQ)
+     *     *DLAT/2
       DIST(N) = RADIUS*SQRT((DSLON*COS(SLAT))**2 + DSLAT*DSLAT)
-      DFLON = 5d-1*XST(N,1)*DLON
-      DFLAT = 5d-1*YST(N,1)*DLAT
-       FLAT = (JST(N,1)+2.5d-1*YST(N,1)-FJEQ)*DLAT
-      DTLON = 5d-1*XST(N,2)*DLON
-      DTLAT = 5d-1*YST(N,2)*DLAT
-       TLAT = (JST(N,2)+2.5d-1*YST(N,2)-FJEQ)*DLAT
+      DFLON = .5*XST(N,1)*DLON
+      DFLAT = .5*YST(N,1)*DLAT
+       FLAT = (JST(N,1) + .25*YST(N,1)-FJEQ)*DLAT
+      DTLON = .5*XST(N,2)*DLON
+      DTLAT = .5*YST(N,2)*DLAT
+       TLAT = (JST(N,2) + .25*YST(N,2)-FJEQ)*DLAT
       DISTPG(N) = DIST(N) +
      +   RADIUS*SQRT((DFLON*COS(FLAT))**2 + DFLAT*DFLAT) +
      +   RADIUS*SQRT((DTLON*COS(TLAT))**2 + DTLAT*DTLAT)
@@ -373,7 +381,7 @@ C****
 C**** Initialize the mass flux, potential heat, and salinity in
 C**** each strait
 C****
-      call gather_ocean(1) ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
+      call gather_ocean_straits ! get values at endpoints of straits
 
       if(am_I_root()) then
       DO N=1,NMST
@@ -383,25 +391,25 @@ C****
       J2=JST(N,2)
       DO L=1,LMST(N)
       MUST(L,N) = 0.
-      G01= (G0M(I1,J1,L)+XST(N,1)*GXMO(I1,J1,L)+YST(N,1)*GYMO(I1,J1,L))/
-     /       (MO(I1,J1,L)*DXYPO(J1))
-      GZ1=  GZMO(I1,J1,L)/(MO(I1,J1,L)*DXYPO(J1))
-      G02= (G0M(I2,J2,L)+XST(N,2)*GXMO(I2,J2,L)+YST(N,2)*GYMO(I2,J2,L))/
-     /       (MO(I2,J2,L)*DXYPO(J2))
-      GZ2=  GZMO(I2,J2,L)/(MO(I2,J2,L)*DXYPO(J2))
-      G0MST(L,N) = (G01+G02)*MMST(L,N)*5d-1
-      GXMST(L,N) = (G02-G01)*MMST(L,N)*5d-1
-      GZMST(L,N) = (GZ1+GZ2)*MMST(L,N)*5d-1
-      S01= (S0M(I1,J1,L)+XST(N,1)*SXMO(I1,J1,L)+YST(N,1)*SYMO(I1,J1,L))/
-     /       (MO(I1,J1,L)*DXYPO(J1))
-      SZ1=  SZMO(I1,J1,L)/(MO(I1,J1,L)*DXYPO(J1))
-      S02= (S0M(I2,J2,L)+XST(N,2)*SXMO(I2,J2,L)+YST(N,2)*SYMO(I2,J2,L))/
-     /       (MO(I2,J2,L)*DXYPO(J2))
-      SZ2=  SZMO(I2,J2,L)/(MO(I2,J2,L)*DXYPO(J2))
-      S0MST(L,N) = (S01+S02)*MMST(L,N)*5d-1
-      SXMST(L,N) = (S02-S01)*MMST(L,N)*5d-1
-      SZMST(L,N) = (SZ1+SZ2)*MMST(L,N)*5d-1
-      END DO
+      G01 = (G0ME(1,N,L)+XST(N,1)*GXME(1,N,L)+YST(N,1)*GYME(1,N,L)) /
+     /       (MOE(1,N,L)*DXYPO(J1))
+      GZ1 =  GZME(1,N,L) / (MOE(1,N,L)*DXYPO(J1))
+      G02 = (G0ME(2,N,L)+XST(N,2)*GXME(2,N,L)+YST(N,2)*GYME(2,N,L)) /
+     /       (MOE(2,N,L)*DXYPO(J2))
+      GZ2 =  GZME(2,N,L) / (MOE(2,N,L)*DXYPO(J2))
+      G0MST(L,N) = (G01+G02)*MMST(L,N)*.5
+      GXMST(L,N) = (G02-G01)*MMST(L,N)*.5
+      GZMST(L,N) = (GZ1+GZ2)*MMST(L,N)*.5
+      S01 = (S0ME(1,N,L)+XST(N,1)*SXME(1,N,L)+YST(N,1)*SYME(1,N,L)) /
+     /       (MOE(1,N,L)*DXYPO(J1))
+      SZ1 =  SZME(1,N,L) / (MOE(1,N,L)*DXYPO(J1))
+      S02 = (S0ME(2,N,L)+XST(N,2)*SXME(2,N,L)+YST(N,2)*SYME(2,N,L)) /
+     /       (MOE(2,N,L)*DXYPO(J2))
+      SZ2 =  SZME(2,N,L) / (MOE(2,N,L)*DXYPO(J2))
+      S0MST(L,N) = (S01+S02)*MMST(L,N)*.5
+      SXMST(L,N) = (S02-S01)*MMST(L,N)*.5
+      SZMST(L,N) = (SZ1+SZ2)*MMST(L,N)*.5
+      EndDo  !  End of Do L+1,LMST(N)
       DO L=LMST(N)+1,LMO
        MUST(L,N) = 0.
       G0MST(L,N) = 0.
@@ -434,15 +442,20 @@ c!@ver  1.0
 c      USE OCEAN, only : im,jm,dts,dxypo,bydxypo
 c      USE SEAICE, only : xsi,ace1i
 c      USE SEAICE_COM, only : lmi,rsi,hsi,msi,snowi,ssi
-c#ifdef TRACERS_WATER
-c     *     ,trsi,ntm
-c#endif
 c      USE STRAITS
 c      USE ICEDYN_COM, only : rsix,rsiy
 c      USE ODIAG, only : olnst,ln_icfl
+c#ifdef TRACERS_WATER
+c      Use SEAICE_COM, Only: TRSI,NTM
+c#endif
 c      IMPLICIT NONE
 c
 c      REAL*8, SAVE ::  WDST(NMST),BYWDST(NMST)
+c      REAL*8 MHS(NTRICE,IM,JM),MHSIST(NTRICE,NMST),MHSL(NTRICE)
+c      REAL*8 USTDT,DRSIST,ASI,ASIST,DMHSI,ALPHA,RMEAN
+c      INTEGER I,J,K,L,N
+c      INTEGER, SAVE :: IFIRST=1
+
 c!@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
 c#ifndef TRACERS_WATER
 c      INTEGER, PARAMETER :: NTRICE=2+2*LMI
@@ -450,16 +463,12 @@ c#else
 c      INTEGER, PARAMETER :: NTRICE=2+(2+NTM)*LMI
 c      INTEGER ITR
 c#endif
-c      REAL*8 MHS(NTRICE,IM,JM),MHSIST(NTRICE,NMST),MHSL(NTRICE)
-c      REAL*8 USTDT,DRSIST,ASI,ASIST,DMHSI,ALPHA,RMEAN
-c      INTEGER I,J,K,L,N
-c      INTEGER, SAVE :: IFIRST=1
-cC****
+c
 c      IF(IFIRST.EQ.1) THEN
 c        IFIRST = 0
 c        DO N=1,NMST
 c          WDST(N)    = WIST(N)*DIST(N)
-c          BYWDST(N)  = 1d0 / WDST(N)
+c          BYWDST(N)  = 1 / WDST(N)
 c        END DO
 c      END IF
 cC**** set up local MHS array to contain all advected quantities
@@ -491,20 +500,20 @@ cC**** MUST < 0: sea ice may be leaving western end of strait
 cC****
 c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
 c      IF(RSIXST(N).LE.0.)  GO TO 120
-c      IF(USTDT+2d0*RSIXST(N) .LT. 0.)  GO TO 110
+c      IF(USTDT+2*RSIXST(N) .LT. 0.)  GO TO 110
 cC**** RSIXST > 0 and no sea ice reaches western end of strait
 c      RSIXST(N) = RSIXST(N) + USTDT
 c      GO TO 300
 cC**** RSIXST > 0 but some sea ice flows into western ocean box
-c  110 DRSIST = -RSIST(N)*(USTDT+2d0*RSIXST(N))/(DIST(N)-2d0*RSIXST(N))
+c  110 DRSIST = -RSIST(N)*(USTDT+2*RSIXST(N))/(DIST(N)-2*RSIXST(N))
 c      RSIST(N) =  RSIST(N) - DRSIST
-c      RSIXST(N) = 5d-1*USTDT
+c      RSIXST(N) = .5*USTDT
 c      GO TO 200
-c  120 IF(USTDT+2d0*RSIXST(N)+DIST(N) .LE. 0.)  GO TO 130
+c  120 IF(USTDT+2*RSIXST(N)+DIST(N) .LE. 0.)  GO TO 130
 cC**** RSIXST < 0 and some sea ice flows into western ocean box
-c      DRSIST   = -RSIST(N)*USTDT / (DIST(N)+2d0*RSIXST(N))
+c      DRSIST   = -RSIST(N)*USTDT / (DIST(N)+2*RSIXST(N))
 c      RSIST(N) =  RSIST(N) - DRSIST
-c      RSIXST(N) =  RSIXST(N) + 5d-1*USTDT
+c      RSIXST(N) =  RSIXST(N) + .5*USTDT
 c      GO TO 200
 cC**** RSIXST < 0 and all sea ice in strait flows into western ocean box
 c  130 DRSIST   = RSIST(N)
@@ -524,19 +533,19 @@ c        OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) - ASIST*(MHSL(1)
 c     *     +MHSL(2))
 c      IF(ASI+ASIST.GT.DXYPO(J))  GO TO 210
 c      RSI(I,J)   = RSI(I,J)  + ASIST*BYDXYPO(J)
-c      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2d0*YST(N,1)
+c      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2*YST(N,1)
 c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
 c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
-c      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =  RSI(I,J)-1d0
-c      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =  1d0-RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1) RSIY(I,J) =  RSI(I,J) - 1
+c      IF(RSI(I,J)+RSIY(I,J).GT.1) RSIY(I,J) =  1 - RSI(I,J)
+c      IF(RSI(I,J)-RSIX(I,J).gt.1) RSIX(I,J) =  RSI(I,J)-1
+c      IF(RSI(I,J)+RSIX(I,J).gt.1) RSIX(I,J) =  1-RSI(I,J)
 c      DO K=1,NTRICE
 c        MHS(K,I,J) = MHSL(K) / (ASI+ASIST)
 c      END DO
 c      GO TO 300
 cC**** Sea ice crunches into itself and completely covers grid box
-c  210 RSI(I,J)  = 1d0
+c  210 RSI(I,J)  = 1
 c      RSIY(I,J) = 0.
 c      MHS(1,I,J) = MHSL(1) / (ASI+ASIST)
 c      MHS(2,I,J) = (MHSL(1)+MHSL(2))*BYDXYPO(J) - MHS(1,I,J)
@@ -544,7 +553,7 @@ c      DO K=1,(NTRICE-2)/LMI
 c        MHS(3+LMI*(K-1),I,J) = MHSL(3+LMI*(K-1)) / (ASI+ASIST)
 c        MHS(4+LMI*(K-1),I,J) = MHSL(4+LMI*(K-1)) / (ASI+ASIST)
 c        DMHSI = (MHSL(3+LMI*(K-1))+MHSL(4+LMI*(K-1))+MHSL(5+LMI*(K-1))
-c     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1d0/(ASI+ASIST))
+c     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1/(ASI+ASIST))
 c        MHS(5+LMI*(K-1),I,J) = MHSL(5+LMI*(K-1)) / (ASI+ASIST) + XSI(3)
 c     *       *DMHSI
 c        MHS(6+LMI*(K-1),I,J) = MHSL(6+LMI*(K-1)) / (ASI+ASIST) + XSI(4)
@@ -558,14 +567,14 @@ c      J = JST(N,2)
 c      IF(RSI(I,J).LE.0.)  GO TO 900
 c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
 c      ALPHA = -USTDT*WIST(N)*BYDXYPO(J)
-c      RMEAN = RSI(I,J) + YST(N,2)*RSIY(I,J)*(1d0-ALPHA)
+c      RMEAN = RSI(I,J) + YST(N,2)*RSIY(I,J)*(1-ALPHA)
 c      ASI   = ALPHA*RMEAN*DXYPO(J)
 c      RSI(I,J)  = RSI(I,J) - ALPHA*RMEAN
-c      RSIY(I,J) = RSIY(I,J)*(1d0-ALPHA)*(1d0-ALPHA)
+c      RSIY(I,J) = RSIY(I,J)*(1-ALPHA)*(1-ALPHA)
 c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
 c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1) RSIY(I,J) =  RSI(I,J) - 1
+c      IF(RSI(I,J)+RSIY(I,J).GT.1) RSIY(I,J) =  1 - RSI(I,J)
 c      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
 c      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
 cC****
@@ -573,7 +582,7 @@ cC**** Sea ice is entering strait from eastern ocean box
 cC****
 c  400 DRSIST   = ASI*BYWDST(N)
 c      RSIXST(N) = (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N))*RSIXST(N) +
-c     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*5d-1*(DIST(N)+USTDT))/
+c     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*.5*(DIST(N)+USTDT))/
 c     *           (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N)) +
 c     *             DRSIST*(MHS(1,I,J)+MHS(2,I,J)))
 c      DO K=1,NTRICE
@@ -591,20 +600,20 @@ cC**** MUST > 0: sea ice may be leaving eastern end of strait
 cC****
 c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
 c      IF(RSIXST(N).GE.0.)  GO TO 520
-c      IF(USTDT+2d0*RSIXST(N) .GT. 0.)  GO TO 510
+c      IF(USTDT+2*RSIXST(N) .GT. 0.)  GO TO 510
 cC**** RSIXST < 0 and no sea ice reaches eastern end of strait
 c      RSIXST(N) = RSIXST(N) + USTDT
 c      GO TO 700
 cC**** RSIXST < 0 but some sea ice flows into eastern ocean box
-c  510 DRSIST = RSIST(N)*(USTDT+2d0*RSIXST(N)) / (DIST(N)+2d0*RSIXST(N))
+c  510 DRSIST = RSIST(N)*(USTDT+2*RSIXST(N)) / (DIST(N)+2*RSIXST(N))
 c      RSIST(N) = RSIST(N) - DRSIST
-c      RSIXST(N) = 5d-1*USTDT
+c      RSIXST(N) = .5*USTDT
 c      GO TO 600
-c  520 IF(USTDT+2d0*RSIXST(N)-DIST(N) .GE. 0.)  GO TO 530
+c  520 IF(USTDT+2*RSIXST(N)-DIST(N) .GE. 0.)  GO TO 530
 cC**** RSIXST > 0 and some sea ice flows into eastern ocean box
-c      DRSIST   = RSIST(N)*USTDT / (DIST(N)-2d0*RSIXST(N))
+c      DRSIST   = RSIST(N)*USTDT / (DIST(N)-2*RSIXST(N))
 c      RSIST(N) = RSIST(N) - DRSIST
-c      RSIXST(N) = RSIXST(N) + 5d-1*USTDT
+c      RSIXST(N) = RSIXST(N) + .5*USTDT
 c      GO TO 600
 cC**** RSIXST > 0 and all sea ice in strait flows into eastern ocean box
 c  530 DRSIST   = RSIST(N)
@@ -624,19 +633,19 @@ c         OLNST(2,N,LN_ICFL) = OLNST(2,N,LN_ICFL) +
 c     *     ASIST*(MHSIST(1,N)+MHSIST(2,N))
 c      IF(ASI+ASIST.GT.DXYPO(J))  GO TO 610
 c      RSI(I,J)   = RSI(I,J)  + ASIST*BYDXYPO(J)
-c      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2d0*YST(N,2)
+c      RSIY(I,J)  = RSIY(I,J) + ASIST*BYDXYPO(J)*2*YST(N,2)
 c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
 c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
-c      IF(RSI(I,J)-RSIX(I,J).gt.1d0) RSIX(I,J) =  RSI(I,J) - 1d0
-c      IF(RSI(I,J)+RSIX(I,J).gt.1d0) RSIX(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1) RSIY(I,J) =  RSI(I,J) - 1
+c      IF(RSI(I,J)+RSIY(I,J).GT.1) RSIY(I,J) =  1 - RSI(I,J)
+c      IF(RSI(I,J)-RSIX(I,J).gt.1) RSIX(I,J) =  RSI(I,J) - 1
+c      IF(RSI(I,J)+RSIX(I,J).gt.1) RSIX(I,J) =  1 - RSI(I,J)
 c      DO K=1,NTRICE
 c        MHS(K,I,J) = MHSL(K) / (ASI+ASIST)
 c      END DO
 c      GO TO 700
 cC**** Sea ice crunches into itself and completely covers grid box
-c  610 RSI(I,J)  = 1d0
+c  610 RSI(I,J)  = 1
 c      RSIY(I,J) = 0.
 c      MHS(1,I,J) = MHSL(1) / (ASI+ASIST)
 c      MHS(2,I,J) = (MHSL(1)+MHSL(2))*BYDXYPO(J) - MHS(1,I,J)
@@ -644,7 +653,7 @@ c      DO K=1,(NTRICE-2)/LMI
 c        MHS(3+LMI*(K-1),I,J) = MHSL(3+LMI*(K-1)) / (ASI+ASIST)
 c        MHS(4+LMI*(K-1),I,J) = MHSL(4+LMI*(K-1)) / (ASI+ASIST)
 c        DMHSI = (MHSL(3+LMI*(K-1))+MHSL(4+LMI*(K-1))+MHSL(5+LMI*(K-1))
-c     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1d0/(ASI+ASIST))
+c     *       +MHSL(6+LMI*(K-1)))*(BYDXYPO(J) -1/(ASI+ASIST))
 c        MHS(5+LMI*(K-1),I,J) = MHSL(5+LMI*(K-1)) / (ASI+ASIST) + XSI(3)
 c     *       *DMHSI
 c        MHS(6+LMI*(K-1),I,J) = MHSL(6+LMI*(K-1)) / (ASI+ASIST) + XSI(4)
@@ -658,14 +667,14 @@ c      J = JST(N,1)
 c      IF(RSI(I,J).LE.0.)  GO TO 900
 c      USTDT = USIFAC*DTS*MUST(1,N)*DIST(N)/MMST(1,N)
 c      ALPHA = USTDT*WIST(N)*BYDXYPO(J)
-c      RMEAN = RSI(I,J) + YST(N,1)*RSIY(I,J)*(1d0-ALPHA)
+c      RMEAN = RSI(I,J) + YST(N,1)*RSIY(I,J)*(1-ALPHA)
 c      ASI   = ALPHA*RMEAN*DXYPO(J)
 c      RSI(I,J)  = RSI(I,J) - ALPHA*RMEAN
-c      RSIY(I,J) = RSIY(I,J)*(1d0-ALPHA)*(1d0-ALPHA)
+c      RSIY(I,J) = RSIY(I,J)*(1-ALPHA)*(1-ALPHA)
 c      IF(RSI(I,J)-RSIY(I,J).LT.0.)  RSIY(I,J) =  RSI(I,J)
 c      IF(RSI(I,J)+RSIY(I,J).LT.0.)  RSIY(I,J) = -RSI(I,J)
-c      IF(RSI(I,J)-RSIY(I,J).GT.1d0) RSIY(I,J) =  RSI(I,J) - 1d0
-c      IF(RSI(I,J)+RSIY(I,J).GT.1d0) RSIY(I,J) =  1d0 - RSI(I,J)
+c      IF(RSI(I,J)-RSIY(I,J).GT.1) RSIY(I,J) =  RSI(I,J) - 1
+c      IF(RSI(I,J)+RSIY(I,J).GT.1) RSIY(I,J) =  1 - RSI(I,J)
 c      IF(RSI(I,J)-RSIX(I,J).lt.0.)  RSIX(I,J) =  RSI(I,J)
 c      IF(RSI(I,J)+RSIX(I,J).lt.0.)  RSIX(I,J) = -RSI(I,J)
 cC****
@@ -673,7 +682,7 @@ cC**** Sea ice is entering strait from western ocean box
 cC****
 c  800 DRSIST   = ASI*BYWDST(N)
 c      RSIXST(N) = (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N))*RSIXST(N) +
-c     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*5d-1*(USTDT-DIST(N)))/
+c     *            DRSIST*(MHS(1,I,J)+MHS(2,I,J))*.5*(USTDT-DIST(N)))/
 c     *           (RSIST(N)*(MHSIST(1,N)+MHSIST(2,N)) +
 c     *              DRSIST*(MHS(1,I,J)+MHS(2,I,J)))
 c      DO K=1,NTRICE
@@ -711,17 +720,17 @@ c      END
 !@auth Original Development Team
 !@ver  1.0
       USE MODEL_COM, only : qcheck,dtsrc
+      USE SEAICE, only : xsi,lmi
+      USE STRAITS
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm, trname
 #endif
-      USE SEAICE, only : xsi,lmi
-      USE STRAITS
       IMPLICIT NONE
+
       REAL*8 relerr,errmax
       INTEGER L,n,ns,nmax,lmax
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
-
 
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
@@ -811,11 +820,8 @@ C****
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
       USE STRAITS
-
-!      use domain_decomp_1d, only : grid,am_i_root
       use domain_decomp_1d, only : am_i_root
       USE OCEANR_DIM, only : grid=>ogrid
-
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -919,11 +925,8 @@ C****
 
       SUBROUTINE BCAST_straits (skip_tracers)
       USE STRAITS
-
-!      use domain_decomp_1d, only : grid,ESMF_BCAST
       use domain_decomp_1d, only : ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid
-
       IMPLICIT NONE
       logical, intent(in) :: skip_tracers
 
@@ -951,3 +954,93 @@ C****
 #endif /* def TRACERS_OCEAN */
       return
       end SUBROUTINE BCAST_straits
+
+      subroutine gather_ocean_straits
+      USE STRAITS
+      USE OCEAN
+      implicit none
+
+      call gather_straits_pairs(MO,MOe,lmo)
+
+      call gather_straits_pairs(G0M, G0Me, lmo)
+      call gather_straits_pairs(GXMO,GXMe, lmo)
+      call gather_straits_pairs(GYMO,GYMe, lmo)
+      call gather_straits_pairs(GZMO,GZMe, lmo)
+
+      call gather_straits_pairs(S0M, S0Me, lmo)
+      call gather_straits_pairs(SXMO,SXMe, lmo)
+      call gather_straits_pairs(SYMO,SYMe, lmo)
+      call gather_straits_pairs(SZMO,SZMe, lmo)
+
+      call gather_straits_pairs(OPRESS,OPRESe, 1)
+
+#ifdef TRACERS_OCEAN
+      call gather_straits_pairs(TRMO,TRMe, lmo*ntm)
+      call gather_straits_pairs(TXMO,TXMe, lmo*ntm)
+      call gather_straits_pairs(TYMO,TYMe, lmo*ntm)
+      call gather_straits_pairs(TZMO,TZMe, lmo*ntm)
+#endif
+
+      return
+      end subroutine gather_ocean_straits
+
+      subroutine gather_straits_pairs(X3D,X_pairs,nl)
+c Mini-routine to present straits arrays to sparsecommunicator
+c dimensioned as (2*nmst,:) rather than (2,nmst,:)
+      USE STRAITS, only : nmst
+      USE OCEAN, only : im, mySparseComm_type
+      use SparseCommunicator_mod, only : gatherPTS
+      use OCEANR_DIM, only : grid=>ogrid
+      implicit none
+      integer :: nl
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,nl) :: X3D
+      real*8, dimension(2*nmst,nl) :: X_pairs
+      call gatherPTS(mySparseComm_type, X3D, X_pairs)
+      return
+      end subroutine gather_straits_pairs
+
+      subroutine scatter_ocean_straits
+      USE STRAITS
+      USE OCEAN
+      implicit none
+
+      call scatter_straits_pairs(MOe,MO,lmo)
+
+      call scatter_straits_pairs(G0Me, G0M, lmo)
+      call scatter_straits_pairs(GXMe,GXMO, lmo)
+      call scatter_straits_pairs(GYMe,GYMO, lmo)
+      call scatter_straits_pairs(GZMe,GZMO, lmo)
+
+      call scatter_straits_pairs(S0Me, S0M, lmo)
+      call scatter_straits_pairs(SXMe,SXMO, lmo)
+      call scatter_straits_pairs(SYMe,SYMO, lmo)
+      call scatter_straits_pairs(SZMe,SZMO, lmo)
+
+c is this needed? opress not updated by straits routines
+c      call scatter_straits_pairs(OPRESe,OPRESS, 1)
+
+#ifdef TRACERS_OCEAN
+      call scatter_straits_pairs(TRMe,TRMO, lmo*ntm)
+      call scatter_straits_pairs(TXMe,TXMO, lmo*ntm)
+      call scatter_straits_pairs(TYMe,TYMO, lmo*ntm)
+      call scatter_straits_pairs(TZMe,TZMO, lmo*ntm)
+#endif
+
+      return
+
+      end subroutine scatter_ocean_straits
+
+      subroutine scatter_straits_pairs(X_pairs,X3D,nl)
+c Mini-routine to present straits arrays to sparsecommunicator
+c dimensioned as (2*nmst,:) rather than (2,nmst,:)
+      USE STRAITS, only : nmst
+      USE OCEAN, only : im, mySparseComm_type
+      use SparseCommunicator_mod, only : scatterPTS
+      use OCEANR_DIM, only : grid=>ogrid
+      implicit none
+      integer :: nl
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,nl) :: X3D
+      real*8, dimension(2*nmst,nl) :: X_pairs
+      call scatterPTS(mySparseComm_type, X_pairs, X3D)
+      return
+      end subroutine scatter_straits_pairs

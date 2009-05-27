@@ -18,8 +18,7 @@ C****
      *    OBottom_drag,OCoastal_drag,focean,
      *    G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *    S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
-     *    scatter_ocean, gather_ocean,
-     *    scatter_ocean_straits, gather_ocean_straits
+     *    scatter_ocean, gather_ocean
       USE OCEAN_DYN, only : mmi,smu,smv,smw
       USE DOMAIN_DECOMP_1D, only : get, haveLatitude,
      *    AM_I_ROOT, pack_data, unpack_data
@@ -222,7 +221,7 @@ C**** Advection of Potential Enthalpy and Salt
         CALL TIMER (MNOW,MDYNO)
         IF (MODD5S == 0) CALL DIAGCA (12)
 
-      call gather_ocean_straits (2)
+      call gather_ocean_straits()
       IF(AM_I_ROOT()) THEN
 C****
 C**** Acceleration and advection of tracers through ocean straits
@@ -235,7 +234,7 @@ C****
           CALL STBDRA
         END IF
       END IF
-      call scatter_ocean_straits (2)
+      call scatter_ocean_straits()
       call BCAST_straits (0)
         CALL CHECKO ('STADV ')
 

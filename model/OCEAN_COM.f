@@ -201,7 +201,7 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       RETURN
       end subroutine scatter_ocean
 
-      subroutine gather_ocean_straits (icase)
+      subroutine gather_ocean_straits_to_global (icase)
       use SparseCommunicator_mod, only: gatherIJ
       integer, intent(in) :: icase
 
@@ -239,9 +239,9 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
                ! for ODIFF:    mo,uo,vo
 
       RETURN
-      end subroutine gather_ocean_straits
+      end subroutine gather_ocean_straits_to_global
 
-      subroutine scatter_ocean_straits (icase)
+      subroutine scatter_ocean_straits_from_global (icase)
       use SparseCommunicator_mod, only: scatterIJ
       integer, intent(in) :: icase
 
@@ -276,7 +276,7 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       CALL scatterIJ(mySparseComm_type,   OPRESS_glob,OPRESS)
 
       RETURN
-      end subroutine scatter_ocean_straits
+      end subroutine scatter_ocean_straits_from_global
 
       END Module OCEAN
 
