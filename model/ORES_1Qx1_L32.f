@@ -23,6 +23,7 @@ C***
 C***
       Real*8,Parameter ::
      *   AKHMIN = 1.d5
+     * , fkph   = 0.1d0  ! vertical diffusion coefficient (cm**2/sec)
       Real*8,Parameter ::
 
      *     dZO(LMO) =   !  approximate thicknesses (m) of ocean layers
