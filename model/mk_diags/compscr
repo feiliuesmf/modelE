@@ -103,8 +103,9 @@ rm -f driver.f
 
 #
 # Compile the generic summation and cs->latlon regridding routines
+# Compile format conversion routines
 #
-for progname in sumfiles csregrid write_giss2d
+for progname in sumfiles csregrid write_giss2d write_2d_as_giss4d
 do
   cmpcmd="${fccmd} miscnc.f ${progname}.f -o ${progname} ${ncinc} ${nclib}"
   echo $cmpcmd
