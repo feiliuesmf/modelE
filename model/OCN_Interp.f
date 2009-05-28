@@ -587,67 +587,67 @@ c      call debug_ocoupling(oDMUI)
 
       END SUBROUTINE AG2OG_oceans
 
-      subroutine debug_acoupling(ar8)
-!@auth D. Gueyffier
-      USE RESOLUTION, only : aIM=>IM, aJM=>JM
-      use domain_decomp_atm, only : agrid=>grid,pack_data,am_i_root
-      real*8, intent(in) :: ar8(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
-     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-      real*8, allocatable :: ar8glob(:,:,:)
-      real*4, allocatable :: ar4(:,:,:)
-      character*80 :: title
-
-      if (am_i_root()) allocate(ar8glob(aIM,aJM,6),ar4(aIM,aJM,6))
-
-      call pack_data(agrid,ar8,ar8glob)
-
-      if (am_i_root()) then
-         ar4=ar8glob
-         title="test ag2og"
-         open(20,FILE='testa',FORM='unformatted', STATUS='unknown')
-         write(20) title,ar4
-         write(*,*) "max a=",maxval(ar8glob),"min a=",minval(ar8glob),
-     &        "maxloc a=",maxloc(ar8glob),"minloc a=",minloc(ar8glob)
-         deallocate(ar8glob,ar4)
-         close(20)
-      endif
+c      subroutine debug_acoupling(ar8)
+c!@auth D. Gueyffier
+c      USE RESOLUTION, only : aIM=>IM, aJM=>JM
+c      use domain_decomp_atm, only : agrid=>grid,pack_data,am_i_root
+c      real*8, intent(in) :: ar8(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+c     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
+c      real*8, allocatable :: ar8glob(:,:,:)
+c      real*4, allocatable :: ar4(:,:,:)
+c      character*80 :: title
 c
-      end subroutine debug_acoupling
-
-      subroutine debug_ocoupling(or8)
-!@auth D. Gueyffier
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
-      use domain_decomp_1d, only : pack_data,am_i_root
-      USE OCEANR_DIM, only : ogrid
-      real*8, intent(in) :: or8(oIM,
-     &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
-      real*8, allocatable :: or8glob(:,:)
-      real*4, allocatable :: or4(:,:)
-      character*80 :: title
-
-      if (am_i_root()) allocate(or8glob(oIM,oJM),or4(oIM,oJM))
-
-      write(*,*) "max o dist=",maxval(
-     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
-     &                                ),
-     &           "min odist=",minval(
-     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
-     &                               )
-
-      call pack_data(ogrid,or8,or8glob)
-
-      if (am_i_root()) then
-         or4=or8glob
-         title="test ag2og"
-         open(20,FILE='testo',FORM='unformatted', STATUS='unknown')
-         write(20) title,or4
-         write(*,*) "max o=",maxval(or8glob),"min o=",minval(or8glob),
-     &        "maxloc o=",maxloc(or8glob),"minloc o=",minloc(or8glob)
-         deallocate(or8glob,or4)
-         close(20)
-      endif
+c      if (am_i_root()) allocate(ar8glob(aIM,aJM,6),ar4(aIM,aJM,6))
 c
-      end subroutine debug_ocoupling
+c      call pack_data(agrid,ar8,ar8glob)
+c
+c      if (am_i_root()) then
+c         ar4=ar8glob
+c         title="test ag2og"
+c         open(20,FILE='testa',FORM='unformatted', STATUS='unknown')
+c         write(20) title,ar4
+c         write(*,*) "max a=",maxval(ar8glob),"min a=",minval(ar8glob),
+c     &        "maxloc a=",maxloc(ar8glob),"minloc a=",minloc(ar8glob)
+c         deallocate(ar8glob,ar4)
+c         close(20)
+c      endif
+cc
+c      end subroutine debug_acoupling
+
+c      subroutine debug_ocoupling(or8)
+c!@auth D. Gueyffier
+c      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
+c      use domain_decomp_1d, only : pack_data,am_i_root
+c      USE OCEANR_DIM, only : ogrid
+c      real*8, intent(in) :: or8(oIM,
+c     &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+c      real*8, allocatable :: or8glob(:,:)
+c      real*4, allocatable :: or4(:,:)
+c      character*80 :: title
+c
+c      if (am_i_root()) allocate(or8glob(oIM,oJM),or4(oIM,oJM))
+c
+c      write(*,*) "max o dist=",maxval(
+c     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
+c     &                                ),
+c     &           "min odist=",minval(
+c     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
+c     &                               )
+c
+c      call pack_data(ogrid,or8,or8glob)
+c
+c      if (am_i_root()) then
+c         or4=or8glob
+c         title="test ag2og"
+c         open(20,FILE='testo',FORM='unformatted', STATUS='unknown')
+c         write(20) title,or4
+c         write(*,*) "max o=",maxval(or8glob),"min o=",minval(or8glob),
+c     &        "maxloc o=",maxloc(or8glob),"minloc o=",minloc(or8glob)
+c         deallocate(or8glob,or4)
+c         close(20)
+c      endif
+cc
+c      end subroutine debug_ocoupling
       
       SUBROUTINE OG2AG_oceans
 !@sum  OG2AG_oceans: ocean arrays for sea ice formation calculated in the
