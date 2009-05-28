@@ -876,9 +876,9 @@ C****
 
       subroutine set_owtbudg()
 !@sum Precomputes area weights for zonal means on budget grid
-!auth Denis Gueyffier
-      USE DIAG_COM, only : jm_budg 
-      USE OCEAN, only : owtbudg, imaxj
+!auth M. Kelley
+      USE DIAG_COM, only : jm_budg, area_of_zone=>dxyp_budg
+      USE OCEAN, only : im,jm, owtbudg, imaxj, dxypo, oJ_BUDG
       USE DOMAIN_DECOMP_1D, only :GET
       USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE
@@ -886,9 +886,21 @@ C****
       
       CALL GET(ogrid, J_STRT=J_0,J_STOP=J_1)
 
+c Note that when ocean quantities are to be averaged into "budget"
+c zones whose latitudinal boundaries do not coincide with those of
+c the ocean grid, the calculation here makes the weights at a given
+c budget index k sum up to a number slightly different
+c than unity:  sum(owtbudg, mask=(oj_budg==k)) != 1.
+c This ensures that global means of "zonal averages" calculated using
+c budget grid areas are identical to those calculated using ocean
+c native-grid areas.
       do J=J_0,J_1
-        owtbudg(:,j)=1d0/imaxj(j)
+        owtbudg(:,j)=dxypo(j)/area_of_zone(oj_budg(1,j))
       enddo
+
+c compensate for polar loops in conserv_ODIAG not going from 1 to im
+      if(ogrid%have_south_pole) owtbudg(:,1) = owtbudg(:,1)*im
+      if(ogrid%have_north_pole) owtbudg(:,jm) = owtbudg(:,jm)*im
         
       END SUBROUTINE set_owtbudg
 
