@@ -74,7 +74,8 @@ C****
       USE OCEAN, only : dxypo,bydxypo,mo=>mo_glob
       Use STRAITS, Only: NMST,LMST,IST,JST,WIST,MUST,DISTPG,MMST,
      *                   G0MST,GXMST,GZMST, S0MST,SXMST,SZMST,
-     *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
+     *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
+     *                   KN2
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 
 #ifdef TRACERS_OCEAN
@@ -86,7 +87,7 @@ C****
 
       IMPLICIT NONE
 
-      INTEGER I1,J1,I2,J2,N,L,ITR
+      INTEGER I1,J1,I2,J2,N,L,ITR,K,KK,NN
       REAL*8, INTENT(IN) :: DTS
       REAL*8 MM1,MM2,AM
 C****
@@ -107,7 +108,7 @@ C****
       DO ITR = 1,NTM
         CALL STADVT (N,L,AM,MM1,MM2,TRMST(L,N,ITR),TXMST(L,N,ITR),
      *               TZMST(L,N,ITR),TRME(1,1,1,ITR),TXME(1,1,1,ITR),
-     *               TYMO(1,1,1,ITR),TZMO(1,1,1,ITR),
+     *               TYME(1,1,1,ITR),TZME(1,1,1,ITR),
      *               TLNST(L,N,1,ITR),T_QLIMIT(ITR))  ;  EndDo
 #endif /* def TRACERS_OCEAN */
       MOE(1,N,L) = MOE(1,N,L) - AM*byDXYPO(J1)
@@ -130,6 +131,36 @@ C**** to prevent problems in Red Sea area
      *    GZME(2,N,L) = Sign(8000*MOE(2,N,L)*DXYPO(J2),GZME(2,N,L))
 
       EndDo  !  End of Do L=1,LMST(N)
+
+c Copy updated values to the arrays for a neighboring strait if one exists
+      do k=1,2
+        if(kn2(1,k,n).gt.0) then
+          kk = kn2(1,k,n)
+          nn = kn2(2,k,n)
+          do l=1,lmst(n)
+            moe(kk,nn,l) = moe(k,n,l)
+            g0me(kk,nn,l) = g0me(k,n,l)
+            gxme(kk,nn,l) = gxme(k,n,l)
+            gyme(kk,nn,l) = gyme(k,n,l)
+            gzme(kk,nn,l) = gzme(k,n,l)
+            s0me(kk,nn,l) = s0me(k,n,l)
+            sxme(kk,nn,l) = sxme(k,n,l)
+            syme(kk,nn,l) = syme(k,n,l)
+            szme(kk,nn,l) = szme(k,n,l)
+          enddo
+#ifdef TRACERS_OCEAN
+          do itr = 1,ntm
+          do l=1,lmst(n)
+            trme(kk,nn,l,itr) = trme(k,n,l,itr)
+            txme(kk,nn,l,itr) = txme(k,n,l,itr)
+            tyme(kk,nn,l,itr) = tyme(k,n,l,itr)
+            tzme(kk,nn,l,itr) = tzme(k,n,l,itr)
+          enddo
+          enddo
+#endif
+        endif
+      enddo
+
       EndDo  !  End of Do N=1,NMST
       RETURN
       END SUBROUTINE STADV
@@ -305,13 +336,14 @@ C****
       Use STRAITS, Only: NMST,LMST, IST,JST, XST,YST, WIST,DIST,DISTPG,
      *                   MMST,MUST, G0MST,GXMST,GZMST,S0MST,SXMST,SZMST,
      *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
-     *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
+     *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
+     *                   kn2
       use domain_decomp_1d, only: am_i_root, get
       USE OCEANR_DIM, only : grid=>ogrid
       Use SparseCommunicator_mod
       IMPLICIT NONE
 
-      INTEGER I,J,L,N,I1,J1,I2,J2, ier
+      INTEGER I,J,L,N,I1,J1,I2,J2, ier, k,kk
       REAL*8 FLAT,DFLON,DFLAT,SLAT,DSLON,DSLAT,TLAT,DTLON
      *     ,DTLAT,G01,GZ1,S01,SZ1,G02,GZ2,S02,SZ2
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -344,6 +376,24 @@ c The two ends of each strait must be adjacent in the list of points!
       mySparseComm_type = SparseCommunicator(points,
      &                  locLB  , locUB  , globLB , globUB )
       deallocate(points)
+
+C****
+C**** Check whether any straits share I,J endpoints, assuming that
+C**** straits sharing I,J endpoints are adjacent in the list and
+C**** that only 2 straits can share any I,J endpoint.
+C****
+      if(am_i_root()) then
+        kn2 = 0
+        do n=1,nmst-1
+          do k=1,2; do kk=1,2
+            if(ist(n,k).eq.ist(n+1,kk) .and.
+     &         jst(n,k).eq.jst(n+1,kk)) then
+              kn2(1:2,k ,n  ) = (/ kk, n+1 /)
+              kn2(1:2,kk,n+1) = (/ k , n   /)
+            endif
+          enddo; enddo
+        enddo
+      endif
 
 C****
 C**** Calculate distance of strait, distance between centers of

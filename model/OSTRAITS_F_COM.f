@@ -78,6 +78,11 @@ C****
      *     80, 86, 71, 64, 74, 73, 66, 79, 52, 58, 46, 69/),
      *     (/NMST,2/) )
 
+!@var kn2: Where kn2>0, the index pair k,n [k=1,2;n=1,nmst] corresponds
+!@+        to the same i,j endpoint as index pair kn2(1:2,k,n).
+!@+        Currently, an i,j endpoint can be shared by only 2 straits.
+      integer, dimension(2,2,nmst) :: kn2
+
 !@var LMST no. of levels in strait
       INTEGER, DIMENSION(NMST) :: LMST = (/
      *      2,  5,  4,  5,  3,  2,  2,  2,  6,  2,  2,  2/)

@@ -92,6 +92,11 @@ C****
       Real*8, Dimension(2,NMST,LMO) ::
      *       MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME
 
+!@var kn2: Where kn2>0, the index pair k,n [k=1,2;n=1,nmst] corresponds
+!@+        to the same i,j endpoint as index pair kn2(1:2,k,n).
+!@+        Currently, an i,j endpoint can be shared by only 2 straits.
+      integer, dimension(2,2,nmst) :: kn2
+
 #ifdef TRACERS_OCEAN
       Real*8 TRMST(LMO,NMST,NTM),TXMST(LMO,NMST,NTM),TZMST(LMO,NMST,NTM)
 !@var TRME,TXME,TYME,TZME tracers at the endpoints of straits
