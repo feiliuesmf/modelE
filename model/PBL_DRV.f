@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
 
+#define ROUGHL_HACK
+
       module PBL_DRV
       use SOCPBL, only : t_pbl_args
       implicit none
@@ -140,7 +142,7 @@ C        ocean and ocean ice are treated as rough surfaces
 C        roughness lengths from Brutsaert for rough surfaces
 
       IF (ITYPE.GT.2) THEN
-        Z0M=30./(10.**ROUGHL(I,J))
+        Z0M=ROUGHL(I,J)           ! 30./(10.**ROUGHL(I,J))
       ENDIF
       ztop=zgs+zs1  ! zs1 is calculated before pbl is called
       IF (pbl_args%TKV.EQ.pbl_args%TGV)
@@ -390,6 +392,9 @@ c -------------------------------------------------------------
      &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi,snowi
       USE FLUXES, only : gtemp
+      use ent_mod, only: ent_get_exports
+      use ent_com, only : entcells
+
 
       IMPLICIT NONE
 
@@ -415,9 +420,17 @@ C**** ignore ocean currents for initialisation.
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
       real*8 ug,vg
+      real*8, allocatable :: buf(:,:)
+      real*8 :: canopy_height, fv
 
       integer :: I_1, I_0, J_1, J_0
-      integer :: J_1H, J_0H
+      integer :: I_1H, I_0H, J_1H, J_0H
+
+       character*80 :: titrrr
+       real*4 rrr(im,jm)
+
+        titrrr = "roughness length over land"
+	rrr = 0.
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -427,19 +440,45 @@ C****
 
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
 C things to be done regardless of inipbl
+#ifndef ROUGHL_HACK
+      allocate ( buf(I_0H:I_1H, J_0H:J_1H) )
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
-      CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),roughl,1)
+      CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),buf,1)
       call closeunit(iu_CDN)
+
+      roughl(:,:)=30./(10.**buf(:,:))
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+
+          if ( focean(i,j) > 0.d0 ) cycle
+          call ent_get_exports( entcells(i,j),
+     &         fraction_of_vegetated_soil=fv,
+     &         canopy_height=canopy_height
+     &         )
+            
+!          if ( fv > 0.d0 )
+!     &         roughl(i,j) = max( roughl(i,j), canopy_height/20.d0 )
+
+        enddo
+      enddo
+
+      deallocate ( buf )
+#endif
+
       call sync_param( 'XCDpbl', XCDpbl )
       call sync_param( 'skin_effect', skin_effect )
 
       do j=J_0,J_1
         do i=I_0,I_1
 C**** fix roughness length for ocean ice that turned to land ice
-          if (snowi(i,j).lt.-1.and.flice(i,j).gt.0) roughl(i,j)=1.84d0
-          if (fland(i,j).gt.0.and.roughl(i,j).eq.0) then
+          if (snowi(i,j).lt.-1.and.flice(i,j).gt.0)
+     &         roughl(i,j)=30./(10.**1.84d0)
+          if (fland(i,j).gt.0.and.roughl(i,j) .gt. 29.d0) then
             print*,"Roughness length not defined for i,j",i,j
      *           ,roughl(i,j),fland(i,j),flice(i,j)
             roughl(i,j)=roughl(10,40)
@@ -511,7 +550,9 @@ C**** fix roughness length for ocean ice that turned to land ice
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
 
             zgrnd=.1d0 ! formal initialization
-            if (itype.gt.2) zgrnd=30./(10.**roughl(i,j))
+            if (itype.gt.2) zgrnd=roughl(i,j) !         30./(10.**roughl(i,j))
+
+            if (itype.gt.2) rrr(i,j) = zgrnd
 
             dpdxr  = DPDX_BY_RHO(i,j)
             dpdyr  = DPDY_BY_RHO(i,j)
@@ -547,6 +588,8 @@ C**** fix roughness length for ocean ice that turned to land ice
  200      end do
         end do
       end do
+
+      write(981) titrrr,rrr
 
       return
  1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)

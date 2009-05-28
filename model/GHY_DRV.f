@@ -4,6 +4,8 @@
 #undef TRACERS_WATER
 #endif
 
+#define ROUGHL_HACK
+
 c******************   TRACERS             ******************************
 #ifdef TRACERS_ON
       module ghy_tracers
@@ -2157,6 +2159,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_com, only:  avh !,afb
 #endif
 #endif
+      use PBLCOM, only : roughl
       implicit none
       integer, intent(in) :: istart
       logical, intent(in) :: redogh, inisnow
@@ -2178,6 +2181,18 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 #endif
 
       integer I_0, I_1, J_0, J_1, i, j, ibv
+
+
+      real*8 :: fr_cover(12), z0_veg
+      real*8, parameter :: z0_cover(12) =
+     &     (/0.005d0, 0.01d0, 0.01d0,  0.018d0, 0.32d0, 1.d0, 1.d0,
+     &     2.d0, 0.1d0, 0.005d0, 0.d0, 0.d0 /)
+
+       character*80 :: titrrr
+       real*4 rrr(im,jm)
+
+        titrrr = "roughness length over land"
+	rrr = 0.
 
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
@@ -2419,6 +2434,30 @@ c**** set gtemp array
           end if
         end do
       end do
+
+c**** compute roughnes length
+#ifdef ROUGHL_HACK
+        do j=J_0,J_1
+          do i=I_0,I_1
+            if ( focean(i,j) >= 1.d0 ) cycle
+#ifdef USE_ENT
+            call ent_get_exports( entcells(i,j),
+     &           vegetation_fractions=fr_cover )
+#else
+            call stop_model("GHY_DRV: not supported yet",255)
+            call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
+            shc_can = vegcell%shc_can
+#endif
+            rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
+            z0_veg = sum( fr_cover(:)*z0_cover(:) )
+            rrr(i,j) = max ( rrr(i,j), z0_veg )
+            roughl(i,j) = rrr(i,j)
+          enddo
+        enddo
+#endif
+
+        write(982) titrrr,rrr
+
 
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
