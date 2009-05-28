@@ -1056,7 +1056,8 @@ c     snowfs is the large scale snow fall.
 
 #ifdef INTERCEPT_TEMPORAL
 
-#ifdef LARGE_SCALE_PRECIP_INTERCEPT !KOSTER-LIKE SCHEME FOR BOTH PRECIP TYPES
+#ifdef LARGE_SCALE_PRECIP_INTERCEPT 
+!KOSTER-LIKE SCHEME FOR BOTH PRECIP TYPES
 !       Large-scale (e.g stratiform) precipitation falling on dry canopy
         pr_dry = fd0*ptmps
 !       Max. water added to dry canopy in the fraction covered by precip.
@@ -1094,7 +1095,8 @@ c     snowfs is the large scale snow fall.
         wc_new = wc_new + min(pr_dry*dts,wc_add)
 !       Potential drip from the canopy
         dr = pr - (wc_new - w(0,2))/dts
-#else   !KOSTER SCHEME ONLY CONSIDERING CONVECTIVE PRECIP
+#else   
+!KOSTER SCHEME ONLY CONSIDERING CONVECTIVE PRECIP
         if (prfr <1.d0) then
 !          Timescale for duration of convective storm over grid fraction
            tau_storm = 3600.d0
