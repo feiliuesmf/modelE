@@ -218,10 +218,8 @@ C**** Advection of Potential Enthalpy and Salt
         END DO
 #endif
 
-        CALL TIMER (MNOW,MDYNO)
-        IF (MODD5S == 0) CALL DIAGCA (12)
-
       call gather_ocean_straits()
+
       IF(AM_I_ROOT()) THEN
 C****
 C**** Acceleration and advection of tracers through ocean straits
@@ -239,6 +237,9 @@ C****
         CALL CHECKO ('STADV ')
 
   500 Continue  !  End of Do-loop NO=1,NOCEAN
+
+        CALL TIMER (MNOW,MDYNO)
+        IF (MODD5S == 0) CALL DIAGCA (12)
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
