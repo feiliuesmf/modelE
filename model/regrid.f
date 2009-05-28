@@ -1,8 +1,9 @@
 #ifdef CUBE_GRID
       subroutine bilin_ll2cs_vec(grid,uin_glob,vin_glob,
      &     uout_loc,vout_loc,ims,jms)
-!@sum Bilinearly interpolate vector field from latlon grid to cubed-sphere
-!@+    vector field is defined on sphere (Earth) and takes values on tangent bundle (i.e. plane locally tangent to sphere) 
+!@sum Bilinearly interpolate a vector field from latlon grid to cubed-sphere
+!@+   The vector field is defined on the sphere (Earth) and takes values in the
+!@+   plane locally tangent to sphere at each point 
 !@+   input field on latlon grid is global 
 !@+   interpolation is performed in the local cs domain
 !@+   output field is local to each cs domain 
@@ -332,7 +333,7 @@ c     calculate maxkey = size of azonal
       allocate(x2grids%xgrid%jlat_key(maxkey))
       allocate(x2grids%xgrid%xarea_key(maxkey))
 
-      write(6,*) "AFT ALOC ROLLED, maxkey",maxkey
+c      write(6,*) "AFT ALOC ROLLED, maxkey",maxkey
 
       x2grids%xgrid%index_key(:)=0
       x2grids%xgrid%jlat_key(:)=0
@@ -559,10 +560,10 @@ c*
 
 c     sum all contributions
 c     
-
+         write(*,*) "bef sumxpe"
          call SUMXPE(ttarget)
          call SUMXPE(atarget)
-
+         write(*,*) "aft sumxpe"
 c     
 c     root proc section
 c     
@@ -596,7 +597,7 @@ c            status = nf_close(fid)
          ttarget(:,:,:) = 0.d0
          write(*,*) "IN regrid wt"
 
-         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
+c         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
          do ikey=1,x2grids%xgrid%maxkey
             icub=x2grids%xgrid%icub_key(ikey)
             jcub=x2grids%xgrid%jcub_key(ikey)
@@ -691,7 +692,7 @@ c*
             enddo
          enddo
 
-         write(*,*) "maxkey==",x2grids%xgrid%maxkey
+c         write(*,*) "maxkey==",x2grids%xgrid%maxkey
 
          do ikey=1,x2grids%xgrid%maxkey
             
@@ -761,7 +762,7 @@ c            status = nf_close(fid)
             enddo
          enddo
          
-         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
+c         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
          
          do ikey=1,x2grids%xgrid%maxkey
             icub=x2grids%xgrid%icub_key(ikey)
@@ -843,12 +844,16 @@ c*
      &     ,x2grids%ntilestarget)
      &     )     
 
+c      write(*,*) "bef test direction",x2grids%ntilessource
+
       if ( (x2grids%ntilessource .eq. 6) .and. !cs2ll
      &     (x2grids%ntilestarget .eq. 1) ) then   
          
+c         write(*,*) "inside cs2ll"
+
          imlon=x2grids%imtarget 
          jmlat=x2grids%jmtarget
-         
+c         write(*,*) "imlon, jmlat=",imlon,jmlat
          do j=1,jmlat
             do i=1,imlon
                atarget_dd(i,j,1) = dcmplx(0.d0,0.d0)
@@ -856,7 +861,7 @@ c*
             enddo
          enddo
 
-         write(*,*) "maxkey==",x2grids%xgrid%maxkey
+c         write(*,*) "maxkey==",x2grids%xgrid%maxkey
 
          do ikey=1,x2grids%xgrid%maxkey
             
@@ -898,20 +903,21 @@ c
                   atarget(i,j,1)=real(atarget_dd(i,j,1))
                   if (atarget(i,j,1) .le. 1.e-10) then
                      ttarget(i,j,1)=missing
+c                     write(*,*) "small=",i,j,atarget(i,j,1)
                   else
                      ttarget(i,j,1) = ttarget(i,j,1)/atarget(i,j,1)
                   endif
                enddo
             enddo
             
-            ofi='tstout.nc'
-            status = nf_open(trim(ofi),nf_write,fid)
-            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-            status = nf_inq_varid(fid,'lwup_sfc',vid)
-            write(*,*) NF_STRERROR(status)
-            status = nf_put_var_double(fid,vid,ttarget)
-            write(*,*) "STATUS",NF_STRERROR(status),"<<"
-            status = nf_close(fid)
+c            ofi='tstout.nc'
+c            status = nf_open(trim(ofi),nf_write,fid)
+c            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+c            status = nf_inq_varid(fid,'test',vid)
+c            write(*,*) NF_STRERROR(status)
+c            status = nf_put_var_double(fid,vid,ttarget)
+c            write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c            status = nf_close(fid)
          endif
 
 
@@ -932,7 +938,7 @@ c
             enddo
          enddo
          
-         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
+c         write(*,*) "maxkey regx=",x2grids%xgrid%maxkey
          
          do ikey=1,x2grids%xgrid%maxkey
             icub=x2grids%xgrid%icub_key(ikey)
@@ -1258,7 +1264,7 @@ c     first calculate maxkey
          
          maxkey=ikey-1
          
-         write(*,*) "gid maxkey=",gid,maxkey
+c         write(*,*) "gid maxkey=",gid,maxkey
 
          allocate(x2grids%xgrid%icub_key(maxkey),
      &        x2grids%xgrid%jcub_key(maxkey),
@@ -1303,7 +1309,7 @@ c     first calculate maxkey
          
          maxkey=ikey-1
          
-         write(*,*) "maxkey=",maxkey
+c         write(*,*) "maxkey=",maxkey
          
          allocate(x2grids%xgrid%icub_key(maxkey),
      &        x2grids%xgrid%jcub_key(maxkey),
@@ -1641,8 +1647,7 @@ c     operator MPI_SUMDD is created based on an external function add_dd
       
 c     reduction 
       arr_size = size(arr)
-      write(*,*) "arrsize",arr_size
-
+c      write(*,*) "arrsize",arr_size
 c      write(*,*) "arr=",arr(:,:)
 
       allocate(arr_tmp(arr_size),arr_rsh(arr_size))

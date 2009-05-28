@@ -57,13 +57,14 @@ C**** initiallise work arrays
       MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
 
 C***  Get the data from the atmospheric grid to the ocean grid
+
       call AG2OG_oceans
       OGEOZ_SV(:,:)=OGEOZ(:,:)
+c      write(*,*) "aft ag2og_ocean"
 
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
-
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
@@ -174,7 +175,6 @@ C     if(j_0 ==  1) UO(IVSP,1 ,:) = VOSP(:) ! not needed if Mod(IM,4)=0
         OIJL(:,:,L,IJL_MFW) = OIJL(:,:,L,IJL_MFW) + SMW(:,:,L)
       END DO
 !$OMP END PARALLEL DO
-
 C**** Advection of Potential Enthalpy and Salt
       CALL OADVT (G0M,GXMO,GYMO,GZMO,DTOLF,.FALSE.
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
@@ -290,13 +290,17 @@ C***  Get the data from the ocean grid to the atmospheric grid
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+      USE RESOLUTION, only : aim=>im,ajm=>jm
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
-
+#ifdef CUBE_GRID
+      use regrid_com, only : xO2A,xA2O
+#endif
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean,ntm
 #endif
@@ -353,8 +357,14 @@ C**** Set up timing indexes
 C****
 C**** Arrays needed each ocean model run
 C****
+
       CALL GEOMO
       CALL OFFT0(IM)
+
+#ifdef CUBE_GRID
+      call init_regrid(xO2A,grid,im,jm,1,aim,ajm,6)
+      call init_regrid(xA2O,agrid,aim,ajm,6,im,jm,1)
+#endif
 C**** Calculate ZE
       ZE(0) = 0d0
       DO L = 1,LMO
@@ -3747,6 +3757,7 @@ C**** Surface stress is applied to V component at the North Pole
       USE CONSTANT, only : grav
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMO,LMM
      *     , MO,G0M,S0M, FOCEAN, GZMO, IMAXJ,DXYPO,BYDXYPO, OPRESS
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : ogrid
       USE SEAICE, only : Ei,FSSS
@@ -3796,6 +3807,7 @@ C**** Surface stress is applied to V component at the North Pole
 C****
 C**** Add surface source of fresh water and heat
 C****
+c      write(*,*) "start ground_oc"
       DO J=J_0,J_1
         DXYPJ=DXYPO(J)
         BYDXYPJ=BYDXYPO(J)
@@ -3807,7 +3819,6 @@ C****
         DXYPJ=DXYPJ*FOCEAN(I,J)     ! adjust areas for completeness
         BYDXYPJ=BYDXYPJ/FOCEAN(I,J) ! no change to results
 C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
-
         RUNO = oFLOWO(I,J) + oMELTI(I,J) - oEVAPOR(I,J,1)  !  kg/m^2
         RUNI = oFLOWO(I,J) + oMELTI(I,J) + oRUNOSI(I,J)    !  kg/m^2
         ERUNO=oEFLOWO(I,J) + oEMELTI(I,J) + oE0(I,J,1)     !  J/m^2
@@ -3820,7 +3831,6 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         SROX(2)=oSOLAR(3,I,J) ! through ice   J/m^2
         MO1 = MO(I,J,1)
         SO1 = S0M(I,J,1)
-
 #ifdef TRACERS_OCEAN
         TRO1(:) = TRMO(I,J,1,:)
 #ifdef TRACERS_WATER
@@ -3851,7 +3861,7 @@ C**** update ocean variables
          S0M(I,J,1) = SO1
          G0M(I,J,:) = G0ML(:)
         GZMO(I,J,:) = GZML(:)
-
+c        write(*,*) "GZMO"
 #ifdef TRACERS_OCEAN
         TRMO(I,J,1,:) = TRO1(:)
 #endif
@@ -3874,7 +3884,9 @@ C**** Add evenly over open ocean and ice covered areas
           G0L=G0M(I,J,L)/(MO(I,J,L)*DXYPJ)
           S0L=S0M(I,J,L)/(MO(I,J,L)*DXYPJ)
           P0L=P0L + MO(I,J,L)*GRAV*.5
+c          write(*,*) "before GFREZS",i,j,l,agrid%gid
           GF00=GFREZS(S0L)
+c          write(*,*) "after GFREZS",i,j,l,agrid%gid
           GF0=GF00-SHCGS(GF00,S0L)*8.19d-8*P0L  ! ~GFREZSP(S0L,P0L)
           IF(G0L.lt.GF0) THEN
             TF0=TFREZS(S0L)-7.53d-8*P0L
@@ -3893,8 +3905,8 @@ C**** Add evenly over open ocean and ice covered areas
             G0M(I,J,L)=G0M(I,J,L)-DE0(L)*DXYPJ
           END IF
         END DO
-
 C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
+c        write(*,*) "store fluxes"
         oDMSI(1,I,J)=DMOO+SUM(DM0)  !  kg/m^2
         oDMSI(2,I,J)=DMOI+SUM(DM0)  !  kg/m^2
         oDHSI(1,I,J)=DEOO+SUM(DE0)  !  J/m^2
@@ -3916,7 +3928,6 @@ C**** is consistent for OGEOZ calculation).
         END IF
       END DO
       END DO
-
       if(have_south_pole) OPRESS(2:IMO,1)  = OPRESS(1,1)
       if(have_north_pole) OPRESS(2:IMO,JMO) = OPRESS(1,JMO)
 

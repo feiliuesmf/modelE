@@ -164,7 +164,9 @@
       CALL OCN_UNPACK (oGRID,oFOCEAN,oFOCEAN_loc)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      CALL INT_OG2AG(MO,aMO, oWEIGHT, oLM,2,.FALSE.)
+      CALL INT_OG2AG(MO,aMO,oWEIGHT,oLM,2,.FALSE.)
+c      call debug_acoupling(aMO(:,:,2))
+c      call stop_model("toc2sst MO",255)
 
       oG0(:,:,:) = 0.d0
       oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
@@ -297,6 +299,7 @@ C**** surface tracer concentration
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      use domain_decomp_1d, only : pack_data
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
@@ -382,6 +385,10 @@ C**** surface tracer concentration
      * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,
      * aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)::
      * aWEIGHT
+      real*8, dimension(oIM,oJM) :: otest_glob
+      real*4, dimension(oIM,oJM) :: tr4
+
+      character*80 :: title
 
       aJ_0 = aGRID%j_STRT
       aJ_1 = aGRID%j_STOP
@@ -393,7 +400,9 @@ C**** surface tracer concentration
 
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
-
+c      call debug_ocoupling(oRSI)
+c      call stop_model("rsi",255)
+      
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
@@ -403,6 +412,7 @@ C**** surface tracer concentration
         END DO
       END DO
       CALL INT_AG2OG(aFLOWO,oFLOWO, aWEIGHT)
+c      call debug_ocoupling(oFLOWO)
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -430,6 +440,7 @@ C**** surface tracer concentration
         END DO
       END DO
       CALL INT_AG2OG(aEMELTI,oEMELTI, aWEIGHT)
+
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -473,12 +484,18 @@ C**** surface tracer concentration
       aWEIGHT(:,:) = 1.d0 - aRSI(:,:)
       CALL INT_AG2OG(aE0,oE0, aWEIGHT, NSTYPE,1)
 
+c      call debug_acoupling(aEVAPOR(:,:,1))
       CALL INT_AG2OG(aEVAPOR,oEVAPOR, aWEIGHT, NSTYPE,1)
+c      call debug_ocoupling(oEVAPOR(:,:,1))
 
+c      call debug_acoupling(aSOLAR(1,:,:))
       CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,1)
+c      call debug_ocoupling(oSOLAR(1,:,:))
 
       aWEIGHT(:,:) = aRSI(:,:)
+c      call debug_acoupling(aSOLAR(3,:,:))
       CALL INT_AG2OG(aSOLAR,oSOLAR, aWEIGHT, 3,3,3)
+c      call debug_ocoupling(oSOLAR(3,:,:))
 
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
@@ -557,15 +574,81 @@ C**** surface tracer concentration
 
       CALL INT_AG2OG(aWIND,oWIND, aWEIGHT)
 #endif
-
       aWEIGHT(:,:) = 1.d0
+      
+c      call debug_acoupling(aDMUA(:,:,1))
       CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN_loc
      *              ,NSTYPE,1)
+c      call debug_ocoupling(oDMUA(:,:,1))
 
+c      call debug_acoupling(aDMUI(:,:))
       CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)
+c      call debug_ocoupling(oDMUI)
 
       END SUBROUTINE AG2OG_oceans
 
+      subroutine debug_acoupling(ar8)
+!@auth D. Gueyffier
+      USE RESOLUTION, only : aIM=>IM, aJM=>JM
+      use domain_decomp_atm, only : agrid=>grid,pack_data,am_i_root
+      real*8, intent(in) :: ar8(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
+      real*8, allocatable :: ar8glob(:,:,:)
+      real*4, allocatable :: ar4(:,:,:)
+      character*80 :: title
+
+      if (am_i_root()) allocate(ar8glob(aIM,aJM,6),ar4(aIM,aJM,6))
+
+      call pack_data(agrid,ar8,ar8glob)
+
+      if (am_i_root()) then
+         ar4=ar8glob
+         title="test ag2og"
+         open(20,FILE='testa',FORM='unformatted', STATUS='unknown')
+         write(20) title,ar4
+         write(*,*) "max a=",maxval(ar8glob),"min a=",minval(ar8glob),
+     &        "maxloc a=",maxloc(ar8glob),"minloc a=",minloc(ar8glob)
+         deallocate(ar8glob,ar4)
+         close(20)
+      endif
+c
+      end subroutine debug_acoupling
+
+      subroutine debug_ocoupling(or8)
+!@auth D. Gueyffier
+      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
+      use domain_decomp_1d, only : pack_data,am_i_root
+      USE OCEANR_DIM, only : ogrid
+      real*8, intent(in) :: or8(oIM,
+     &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
+      real*8, allocatable :: or8glob(:,:)
+      real*4, allocatable :: or4(:,:)
+      character*80 :: title
+
+      if (am_i_root()) allocate(or8glob(oIM,oJM),or4(oIM,oJM))
+
+      write(*,*) "max o dist=",maxval(
+     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
+     &                                ),
+     &           "min odist=",minval(
+     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
+     &                               )
+
+      call pack_data(ogrid,or8,or8glob)
+
+      if (am_i_root()) then
+         or4=or8glob
+         title="test ag2og"
+         open(20,FILE='testo',FORM='unformatted', STATUS='unknown')
+         write(20) title,or4
+         write(*,*) "max o=",maxval(or8glob),"min o=",minval(or8glob),
+     &        "maxloc o=",maxloc(or8glob),"minloc o=",minloc(or8glob)
+         deallocate(or8glob,or4)
+         close(20)
+      endif
+c
+      end subroutine debug_ocoupling
+      
       SUBROUTINE OG2AG_oceans
 !@sum  OG2AG_oceans: ocean arrays for sea ice formation calculated in the
 !       subr. OCEANS are gathered on the ocean grid, interpolated to the
