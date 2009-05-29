@@ -4,7 +4,7 @@
 #undef TRACERS_WATER
 #endif
 
-#define ROUGHL_HACK
+!#define ROUGHL_HACK
 
 c******************   TRACERS             ******************************
 #ifdef TRACERS_ON
@@ -2436,26 +2436,35 @@ c**** set gtemp array
       end do
 
 c**** compute roughnes length
-#ifdef ROUGHL_HACK
+#if ( defined ROUGHL_HACK ) && ( defined USE_ENT )
+      roughl(:,:) = 0.d0
         do j=J_0,J_1
           do i=I_0,I_1
             if ( focean(i,j) >= 1.d0 ) cycle
+            rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
+          enddo
+        enddo
+        write(982) titrrr,rrr
+        do j=J_0,J_1
+          do i=I_0,I_1
+            if ( fearth(i,j) <= 0.d0 ) cycle
 #ifdef USE_ENT
             call ent_get_exports( entcells(i,j),
      &           vegetation_fractions=fr_cover )
 #else
             call stop_model("GHY_DRV: not supported yet",255)
-            call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
-            shc_can = vegcell%shc_can
 #endif
-            rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
             z0_veg = sum( fr_cover(:)*z0_cover(:) )
             rrr(i,j) = max ( rrr(i,j), z0_veg )
+          enddo
+        enddo
+        do j=J_0,J_1
+          do i=I_0,I_1
             roughl(i,j) = rrr(i,j)
           enddo
         enddo
 #endif
-
+        titrrr = " rough len + veg"
         write(982) titrrr,rrr
 
 

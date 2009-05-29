@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#define ROUGHL_HACK
+!#define ROUGHL_HACK
 
       module PBL_DRV
       use SOCPBL, only : t_pbl_args
@@ -444,7 +444,7 @@ C****
       I_1H = grid%I_STOP_HALO
 
 C things to be done regardless of inipbl
-#ifndef ROUGHL_HACK
+#if ( ! defined ROUGHL_HACK ) || ( ! defined USE_ENT )
       allocate ( buf(I_0H:I_1H, J_0H:J_1H) )
       call openunit("CDN",iu_CDN,.TRUE.,.true.)
       CALL READT_PARALLEL(grid,iu_CDN,NAMEUNIT(iu_CDN),buf,1)
@@ -452,20 +452,20 @@ C things to be done regardless of inipbl
 
       roughl(:,:)=30./(10.**buf(:,:))
 
-      do j=J_0,J_1
-        do i=I_0,I_1
-
-          if ( focean(i,j) > 0.d0 ) cycle
-          call ent_get_exports( entcells(i,j),
-     &         fraction_of_vegetated_soil=fv,
-     &         canopy_height=canopy_height
-     &         )
-            
-!          if ( fv > 0.d0 )
-!     &         roughl(i,j) = max( roughl(i,j), canopy_height/20.d0 )
-
-        enddo
-      enddo
+cddd      do j=J_0,J_1
+cddd        do i=I_0,I_1
+cddd
+cddd          if ( focean(i,j) > 0.d0 ) cycle
+cddd          call ent_get_exports( entcells(i,j),
+cddd     &         fraction_of_vegetated_soil=fv,
+cddd     &         canopy_height=canopy_height
+cddd     &         )
+cddd            
+cddd!          if ( fv > 0.d0 )
+cddd!     &         roughl(i,j) = max( roughl(i,j), canopy_height/20.d0 )
+cddd
+cddd        enddo
+cddd      enddo
 
       deallocate ( buf )
 #endif
