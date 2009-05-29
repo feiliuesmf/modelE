@@ -1,3 +1,4 @@
+C**** ODIAG_PRT.f    2009/05/29
 #include "rundeck_opts.h"
 
       subroutine diag_ocean_prep
@@ -120,7 +121,7 @@ C****
      &     ,sname_strlen,units_strlen,lname_strlen
       USE STRAITS, only : nmst,wist,dist,lmst,name_st
 
-      USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG 
+      USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG
 
       USE ODIAG
 #ifdef TRACERS_OCEAN
@@ -605,7 +606,7 @@ c          L=KCMFfull(K) ! anl
             SNAME='gm_vt_sflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J)=OIJL(I,J,L,KK+IJL_SGMFL)/(IDACC(1)*DTS) !*DXYPO(J))
+                Q(I,J)=OIJL(I,J,L,KK+IJL_SGMFL)/(IDACC(1)*DTS) !*DXYPO(J
               END DO
             END DO
           END SELECT
@@ -676,7 +677,7 @@ C****
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
-          IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=1d4*.00097d0**2*OIJL(I,J 
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=1d4*.00097d0**2*OIJL(I,J
      *         ,L,IJL_KVM)/(IDACC(1)*dts) ! dts=4
         END DO
         END DO
@@ -696,8 +697,8 @@ C****
         Q=UNDEF
         DO J=1,JM
           DO I=1,IMAXJ(J)
-            IF (OIJL(I,J,L+1,IJL_MO).gt.0)
-     *           Q(I,J)=OIJL(I,J,L,IJL_WGFL)/(IDACC(1)*dts*dxypo(j)) ! dts=4
+            IF (OIJL(I,J,L+1,IJL_MO).gt.0)          !  dts = 4
+     *           Q(I,J)=OIJL(I,J,L,IJL_WGFL)/(IDACC(1)*dts*dxypo(j))
           END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -716,8 +717,8 @@ C****
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
-          IF (OIJL(I,J,L+1,IJL_MO).gt.0)
-     *         Q(I,J)=1d6*OIJL(I,J,L,IJL_WSFL)/(IDACC(1)*dts*dxypo(j)) ! dts=4
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0)              !  dts = 4
+     *         Q(I,J)=1d6*OIJL(I,J,L,IJL_WSFL)/(IDACC(1)*dts*dxypo(j))
         END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -728,7 +729,7 @@ C****
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
-      
+
 #ifdef TRACERS_OCEAN
       do n=1,ntm
       DO L=1,lmo-1
@@ -835,7 +836,7 @@ C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
           if (oLAT_DG(j,2).ge.24 .and. oLAT_DG(j,2).le.38 .and. oLON_DG
      $         (i,2).ge.135 .and. oLON_DG(i,2).le.155) then
             IF (SFIJM(I,J).GT.CKMAX) CKMAX=SFIJM(I,J)
-            IF (SFIJM(I,J).LT.CKMIN) CKMIN=SFIJM(I,J) 
+            IF (SFIJM(I,J).LT.CKMIN) CKMIN=SFIJM(I,J)
           end if
           if (oLAT_DG(j,2).ge.-72 .and. oLAT_DG(j,2).le.-54
      $         .and. oLON_DG(i,2).ge.-65-0.5*oDLAT_DG .and. oLON_DG(i,2)
@@ -894,7 +895,7 @@ C****
       USE DIAG_COM, only : qdiag,acc_period,zoc1
      &     ,sname_strlen,units_strlen,lname_strlen
 
-      USE OCEAN, only : oDLAT_DG, oLAT_DG 
+      USE OCEAN, only : oDLAT_DG, oLAT_DG
 
       USE ODIAG
       IMPLICIT NONE
@@ -945,17 +946,17 @@ C**** Output Key diagnostics
         do J=2,JM-1
 C**** North Atl. + North Pac. overturning
           if (oLAT_DG(j+1,2).gt.48-0.5*oDLAT_DG .and. oLAT_DG(j+1,2)
-     *         .lt. 48+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.900 
-     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.900) then 
-             WRITE(6,'(A46,F6.2)') 
+     *         .lt. 48+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.900
+     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.900) then
+             WRITE(6,'(A46,F6.2)')
      *            " North Atlantic overturning: 900m 48N: ",SFM(j,l,1)
-             WRITE(6,'(A46,F6.2)') 
+             WRITE(6,'(A46,F6.2)')
      *            " North Pacific overturning:  900m 48N: ",SFM(j,l,2)
           end if
 C**** AABW production
           if (oLAT_DG(j+1,2).ge.-52-0.5*oDLAT_DG .and. oLAT_DG(j+1,2)
-     *         .lt. -52+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.3000 
-     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.3000) then 
+     *         .lt. -52+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.3000
+     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.3000) then
              WRITE(6,'(A46,F6.2)') " Antarctic Bottom Water production:"
      *            //" 3000m 52S: ",SFM(j,l,4)
           end if
@@ -1161,8 +1162,8 @@ C****
 C**** Add strait flow from to the Stream Function
 C****
       CALL STRMJL_STRAITS(L,SF,OLNST,FACST)
+      EndDo  !  End of Do L=LMO-1,0,-1
 
-      END DO
 C****
 C**** Calculate global Stream Function by summing it over 3 oceans
 C****
@@ -1282,9 +1283,9 @@ C****
 C**** Add strait flow from to the Stream Function
 C****
       CALL STRMIJ_STRAITS(J,SF,OLNST,FACST)
+      EndDo  !  End of Do J=2,JM-1
 
-      END DO
-C**** 
+C****
 C**** Recalibrate SF to be 0 over middle of North America
 C**** Include UO cells whose centers reside in 110-90 W, 32-40 N
 C****
@@ -1848,7 +1849,7 @@ c        X(J, 4,5) = X(J, 4,5) + SOIJLGM*SCALEM(KQ)
 C****
 C**** Accumulate northward transports by overturning and by
 C**** horizontal gyre
-C**** 
+C****
       DO J=1,JM-1
         DO L=1,LMO
           IS=0 ; MV=0 ; MT=0
@@ -1943,8 +1944,8 @@ C**** print out truncated series to PRT file
           WRITE (iu_otj,*)
         END IF
       END DO
-C**** 
-C**** Write titles and data to disk for northward transports 
+C****
+C**** Write titles and data to disk for northward transports
 C**** by components
 C****
       DO KQ=2,3
@@ -1989,3 +1990,152 @@ C****
   908 FORMAT ('1')
 
       END SUBROUTINE OTJOUT
+
+      Subroutine STRMJL_STRAITS (L,SF,OLNST,FACST)
+C****
+C**** Add strait flow to JxL Strean Function
+C****
+C**** Input:   L = ocean model layer index
+C****      OLNST = ocean strait mass flux (kg/s)
+C****      FACST = global scaling factor for ocean straits
+C**** Output: SF = JxL stream function (kg/s)
+C****
+      Use OCEAN,   Only: JM,LMO
+      Use STRAITS, Only: NMST, IST,JST
+      Use ODIAG,   Only: KBASIN
+      Implicit None
+
+      Integer*4,Intent(In) :: L
+      Real*8,Intent(InOut) :: SF(JM-1,0:LMO,0:4)
+      Real*8,Intent(In)    :: OLNST(LMO,NMST),FACST
+
+C**** Local variables
+      Integer*4 N, I1,J1,K1, I2,J2,K2
+
+      Do 30 N=1,NMST
+      I1 = IST(N,1)       ;  I2 = IST(N,2)
+      J1 = JST(N,1)       ;  J2 = JST(N,2)
+      K1 = KBASIN(I1,J1)  ;  K2 = KBASIN(I1,J1)
+      If (J2 - J1) 10,30,20
+
+C**** JST(N,2) < JST(N,1)
+   10 If (K1 == K2)  Then
+         SF(J2:J1-1,L,K1) = SF(J2:J1-1,L,K1) - OLNST(L+1,N)*FACST
+      Else
+         SF(J2:J1-1,L,K1) = SF(J2:J1-1,L,K1) - OLNST(L+1,N)*FACST*.5
+         SF(J2:J1-1,L,K2) = SF(J2:J1-1,L,K2) - OLNST(L+1,N)*FACST*.5
+      EndIf
+      GoTo 30
+
+C**** JST(N,2) > JST(N,1)
+   20 If (K1 == K2)  Then
+         SF(J1:J2-1,L,K1) = SF(J1:J2-1,L,K1) + OLNST(L+1,N)*FACST
+      Else
+         SF(J1:J2-1,L,K1) = SF(J1:J2-1,L,K1) + OLNST(L+1,N)*FACST*.5
+         SF(J1:J2-1,L,K2) = SF(J1:J2-1,L,K2) + OLNST(L+1,N)*FACST*.5
+      EndIf
+   30 Continue
+      Return
+      EndSubroutine STRMJL_STRAITS
+
+      Subroutine STRMIJ_STRAITS (J,SF,OLNST,FACST)
+C****
+C**** Add strait flow to IxJ Strean Function
+C****
+C**** Input:   J = ocean model latitude index
+C****      OLNST = ocean strait mass flux (kg/s)
+C****      FACST = global scaling factor for ocean straits
+C**** Output: SF = IxJ stream function (kg/s)
+C****
+      Use OCEAN,   Only: IM,JM,LMO
+      Use STRAITS, Only: NMST,LMST, IST,JST
+      Implicit None
+
+      Integer*4,Intent(In) :: J
+      Real*8,Intent(InOut) :: SF(IM,JM)
+      Real*8,Intent(In)    :: OLNST(LMO,NMST),FACST
+
+C**** Local variables
+      Integer*4 N,LM, I1,J1, I2,J2
+
+      Do 40 N=1,NMST
+      I1 = IST(N,1)       ;  I2 = IST(N,2)
+      J1 = JST(N,1)       ;  J2 = JST(N,2)
+      LM = LMST(N)
+      If (J2 - J1) 10,20,30
+
+C**** JST(N,2) < JST(N,1)
+   10 If (J==J1 .or. J==J2)  Then
+         SF(I1:I2-1,J) = SF(I1:I2-1,J) +
+     *                   Sum(OLNST(1:LM,N))*FACST*.5/(J1-J2)
+         GoTo 40  ;  EndIf
+      If (J2 < J .and. J < J1)
+     *   SF(I1:I2-1,J) = SF(I1:I2-1,J) +
+     *                   Sum(OLNST(1:LM,N))*FACST/(J1-J2)
+      GoTo 40
+
+C**** JST(N,2) = JST(N,1)
+   20 If (J==J1)
+     *   SF(I1:I2-1,J) = SF(I1:I2-1,J) + Sum(OLNST(1:LM,N))*FACST
+      GoTo 40
+
+C**** JST(N,2) > JST(N,1)
+   30 If (J==J1 .or. J==J2)  Then
+         SF(I1:I2-1,J) = SF(I1:I2-1,J) +
+     *                   Sum(OLNST(1:LM,N))*FACST*.5/(J2-J1)
+         GoTo 40  ;  EndIf
+      If (J1 < J .and. J < J2)
+     *   SF(I1:I2-1,J) = SF(I1:I2-1,J) +
+     *                   Sum(OLNST(1:LM,N))*FACST/(J2-J1)
+   40 Continue
+      Return
+      EndSubroutine STRMIJ_STRAITS
+
+      Subroutine OTJ_STRAITS (X,SOLNST,SCALE,KQ)
+C****
+C**** Calculate transport through straits from one latitude to another
+C****
+C**** Input: SOLNST = vertically integrated flux through each strait
+C****         SCALE = strait scaling factor
+C****            KQ = 1: mass flux; 2: heat flux; 3: salt flux
+C**** Output:     X = northward flux as a function of J and basin
+C****
+      Use OCEAN,   Only: JM
+      Use STRAITS, Only: NMST, IST,JST
+      Use ODIAG,   Only: KBASIN
+      Implicit None
+
+      Real*8,Intent(InOut) :: X(0:JM,4,3)
+      Real*8,Intent(In)    :: SOLNST(NMST),SCALE
+      Integer*4,Intent(In) :: KQ
+
+C**** Local variables
+      Integer*4 N, I1,J1,K1, I2,J2,K2
+
+      Do 30 N=1,NMST
+      I1 = IST(N,1)       ;  I2 = IST(N,2)
+      J1 = JST(N,1)       ;  J2 = JST(N,2)
+      K1 = KBASIN(I1,J1)  ;  K2 = KBASIN(I2,J2)
+      If (J2 - J1) 10,30,20
+
+C**** JST(N,2) < JST(N,1)
+   10 If (K1 == K2)  Then
+        X(J2:J1-1,K1,KQ) = X(J2:J1-1,K1,KQ) - SOLNST(N)*SCALE
+      Else
+        X(J2:J1-1,K1,KQ) = X(J2:J1-1,K1,KQ) - SOLNST(N)*SCALE*.5
+        X(J2:J1-1,K2,KQ) = X(J2:J1-1,K2,KQ) - SOLNST(N)*SCALE*.5
+      Endif
+        X(J2:J1-1, 4,KQ) = X(J2:J1-1, 4,KQ) - SOLNST(N)*SCALE
+      GoTo 30
+
+C**** JST(N,2) > JST(N,1)
+   20 If (K1 == K2)  Then
+        X(J1:J2-1,K1,KQ) = X(J1:J2-1,K1,KQ) + SOLNST(N)*SCALE
+      Else
+        X(J1:J2-1,K1,KQ) = X(J1:J2-1,K1,KQ) + SOLNST(N)*SCALE*.5
+        X(J1:J2-1,K2,KQ) = X(J1:J2-1,K2,KQ) + SOLNST(N)*SCALE*.5
+      Endif
+        X(J1:J2-1, 4,KQ) = X(J1:J2-1, 4,KQ) + SOLNST(N)*SCALE
+   30 Continue
+      Return
+      EndSubroutine OTJ_STRAITS
