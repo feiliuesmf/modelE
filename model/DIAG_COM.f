@@ -102,7 +102,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
 !@param KCON number of conservation diagnostics
       INTEGER, PARAMETER, public :: KCON=170
 !@var CONSRV conservation diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: CONSRV,CONSRV_loc
+      REAL*8, DIMENSION(JM_BUDG,KCON), public :: CONSRV_loc,CONSRV
 !@var SCALE_CON scales for conservation diagnostics
       REAL*8, DIMENSION(KCON), public :: SCALE_CON
 !@var TITLE_CON titles for conservation diagnostics
@@ -827,9 +827,9 @@ c the new i/o system
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
-     *     ,AIJ_loc,CONSRV_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
+     *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
-      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,CONSRV,AGC,AJ_OUT,ntype_out
+      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
      &     ,hemis_gc,vmean_gc
       use diag_zonal, only : get_alloc_bounds
@@ -862,7 +862,6 @@ c the new i/o system
      &         AJ_loc(J_0BUDG:J_1BUDG, KAJ, NTYPE),
      &         AJL_loc(J_0BUDG:J_1BUDG, LM, KAJL),
      &         ASJL_loc(J_0BUDG:J_1BUDG,LM_REQ,KASJL),
-     &         CONSRV_loc(J_0BUDG:J_1BUDG, KCON),
      &         AGC_loc(J_0JK:J_1JK,LM,KAGC),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
@@ -884,8 +883,7 @@ c the new i/o system
 
 c allocate master copies of budget- and JK-arrays on root
       if(am_i_root()) then
-        ALLOCATE(CONSRV(JM_BUDG, KCON),
-     &           AJ(JM_BUDG, KAJ, NTYPE),
+        ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE),
      &           AJL(JM_BUDG, LM, KAJL),
      &           ASJL(JM_BUDG,LM_REQ,KASJL),
      &           AGC(JMLAT,LM,KAGC),
@@ -1165,13 +1163,13 @@ C**** The regular model (Kradia le 0)
           HDIURN=HDIURN+HDIURN4
 #endif
           AREG  = AREG   + AREG4
+          CONSRV= CONSRV + CONSRV4
           ! Now for the global versions of the distributed arrays
           TSFREZ= TSFREZ4       ! not accumulated
           AJ    = AJ     + AJ4
           AJL   = AJL    + AJL4
           ASJL  = ASJL   + ASJL4
           AIJ   = AIJ    + AIJ4
-          CONSRV= CONSRV + CONSRV4
           AGC   = AGC    + AGC4
           AIJK  = AIJK   + AIJK4
           AIJL  = AIJL   + AIJL4
@@ -1287,6 +1285,8 @@ c        CALL ESMF_BCAST(grid, HDIURN)
       use domain_decomp_atm, only : grid,sumxpe,am_i_root
       use diag_com
       implicit none
+      integer :: k
+      real*8, dimension(:,:), allocatable :: consrv_sv
       CALL SUMXPE(AREG_loc, AREG, increment=.true.)
       AREG_loc(:,:)=0.
       CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)
@@ -1297,11 +1297,33 @@ c        CALL ESMF_BCAST(grid, HDIURN)
 #endif
       CALL SUMXPE(AISCCP_loc, AISCCP, increment=.true.)
       AISCCP_loc=0
+
       if(am_i_root()) then
 c for reproducibility on different numbers of processors
         call reduce_precision(areg,1d-9)
         call reduce_precision(aisccp,1d-9)
       endif
+
+c CONSRV is a mixture of accumulations and instantaneous values, hence the
+c more complicated logic
+      if(am_i_root()) then
+        allocate(consrv_sv(jm_budg,kcon)); consrv_sv = consrv ! pde hack
+        do k=1,kcon
+          if(ia_con(k).eq.ia_inst) consrv(:,k)=0. ! collect instantaneous values
+        enddo
+      endif
+      CALL SUMXPE(CONSRV_loc, CONSRV, increment=.true.)
+      do k=1,kcon
+        if(ia_con(k).ne.ia_inst) consrv_loc(:,k)=0. ! keep instantaneous values
+      enddo
+      if(am_i_root()) then ! pde hack
+        do k=1,kcon
+          if(ia_con(k).eq.ia_inst .and. all(consrv(:,k)==0.))
+     &         consrv(:,k) = consrv_sv(:,k)
+        enddo
+        deallocate(consrv_sv)
+      endif
+
       return
       End Subroutine Collect_Scalars
 
@@ -1313,7 +1335,6 @@ c for reproducibility on different numbers of processors
       call pack_lc(grid, AJ_loc,     AJ)
       call pack_lc(grid, AJL_loc,    AJL)
       call pack_lc(grid, ASJL_loc,   ASJL)
-      call pack_lc(grid, CONSRV_loc, CONSRV)
       call pack_lc(grid, AGC_loc,    AGC)
       return
       End Subroutine Gather_zonal_diags
@@ -1326,7 +1347,6 @@ c for reproducibility on different numbers of processors
       call unpack_lc  (grid, aj,     aj_loc)
       call unpack_lc  (grid, ajl,    ajl_loc)
       call unpack_lc  (grid, asjl,   asjl_loc)
-      call unpack_lc  (grid, consrv, consrv_loc)
       call unpack_lc  (grid, agc,    agc_loc)
       return
       End Subroutine Scatter_zonal_diags
@@ -2267,7 +2287,7 @@ c read from disk and stored in the _fromdisk arrays.
         agc    = agc    + agc_fromdisk
         consrv = consrv + consrv_fromdisk
 
-        areg       = areg       + areg_fromdisk
+        areg   = areg   + areg_fromdisk
 
       endif
 

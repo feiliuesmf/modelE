@@ -2386,6 +2386,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
       USE DIAG_COM, only : nreg,jreg,titreg,namreg,sarea_reg
       USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
+     &     ,consrv_loc
 #ifndef NO_HDIURN
      &     ,hdiurn_loc
 #endif
@@ -2815,6 +2816,7 @@ c zero out certain non-distributed arrays
 c
       areg_loc = 0
       aisccp_loc = 0
+      consrv_loc = 0
       adiurn_loc = 0
 #ifndef NO_HDIURN
       hdiurn_loc = 0
@@ -2850,11 +2852,11 @@ c
       end if
 
       if(am_i_root()) then
-        aj = 0; ajl = 0; asjl = 0; agc = 0; consrv = 0
+        aj = 0; ajl = 0; asjl = 0; agc = 0
       endif
       AJ_loc=0    ; AREG_loc=0; AREG=0
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
-      AIJL_loc=0   ; ENERGY=0 ; CONSRV_loc=0
+      AIJL_loc=0   ; ENERGY=0 ; CONSRV = 0; CONSRV_loc=0
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0   ; AIJK_loc=0
 #ifndef NO_HDIURN
       HDIURN=0; HDIURN_loc=0
@@ -3003,8 +3005,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       USE CONSTANT, only : sday
       USE MODEL_COM, only : dtsrc,nfiltr
       USE DIAG_COM, only : kcon,nquant,npts,title_con,scale_con,nsum_con
-     *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,name_consrv
-     *     ,lname_consrv,units_consrv
+     *     ,nofm,ia_con,kcmx,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_inst
+     *     ,name_consrv,lname_consrv,units_consrv
       USE DOMAIN_DECOMP_ATM, only : WRITE_PARALLEL
       IMPLICIT NONE
 !@var QCON logical variable sets where conservation diags are saved
@@ -3052,7 +3054,7 @@ C****
       name_consrv(NI) ="inst_"//sname
       lname_consrv(NI) = "INSTANT "//TRIM(NAME_CON)
       units_consrv(NI) = INST_UNIT
-      IA_CON(NI) = 12
+      IA_CON(NI) = ia_inst
       NM=NI
       DO N=1,NPTS
         IF (QCON(N)) THEN
@@ -3094,7 +3096,7 @@ C****
       lname_consrv(NS) = " SUM OF CHANGES OF "//TRIM(NAME_CON)
       units_consrv(NS) = SUM_UNIT
       SCALE_CON(NS) = 1.
-      IA_CON(NS) = 12
+      IA_CON(NS) = ia_inst
       NSUM_CON(NI) = -1
       NSUM_CON(NI+1:NS-1) = NS
       NSUM_CON(NS) = 0

@@ -5438,7 +5438,7 @@ cddd      DEALLOCATE(tmp)
       SUBROUTINE DIAG_SCATTER
       USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc,
      *     AGC, AGC_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
-     *     AJL,  AJL_loc, CONSRV, CONSRV_loc, TSFREZ, TSFREZ_loc
+     *     AJL,  AJL_loc, TSFREZ, TSFREZ_loc
       USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA, UNPACK_DATAj
       USE DOMAIN_DECOMP_1D, ONLY : am_i_root
       IMPLICIT NONE
@@ -5447,7 +5447,6 @@ cddd      DEALLOCATE(tmp)
       CALL UNPACK_DATAj(GRID, AJ,  AJ_loc)
       CALL UNPACK_DATAj(GRID, ASJL, ASJL_loc)
       CALL UNPACK_DATAj(GRID, AJL,  AJL_loc)
-      CALL UNPACK_DATAj(GRID, CONSRV,  CONSRV_loc)
 #endif
       CALL UNPACK_DATAj(GRID, AGC, AGC_loc)
       CALL UNPACK_DATA (GRID, AIJ, AIJ_loc)
