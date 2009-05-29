@@ -2184,9 +2184,15 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
 
       real*8 :: fr_cover(12), z0_veg
+!     original Model II (1983) values (except crops)
+!      real*8, parameter :: z0_cover(12) =
+!     &     (/0.005d0, 0.01d0, 0.01d0,  0.018d0, 0.32d0, 1.d0, 1.d0,
+!     &     2.d0, 0.15d0, 0.005d0, 0.d0, 0.d0 /)
+!     these are values which I think are more appropriate (based on
+!     info from Monin & Yaglom (~h/7.5) and other literature) -I.A.
       real*8, parameter :: z0_cover(12) =
-     &     (/0.005d0, 0.01d0, 0.01d0,  0.018d0, 0.32d0, 1.d0, 1.d0,
-     &     2.d0, 0.1d0, 0.005d0, 0.d0, 0.d0 /)
+     &     (/0.005d0, 0.015d0, 0.15d0,  0.5d0, 0.7d0, 1.5d0, 1.5d0,
+     &     2.d0, 0.2d0, 0.005d0, 0.d0, 0.d0 /)
 
        character*80 :: titrrr
        real*4 rrr(im,jm)
@@ -2448,12 +2454,8 @@ c**** compute roughnes length
         do j=J_0,J_1
           do i=I_0,I_1
             if ( fearth(i,j) <= 0.d0 ) cycle
-#ifdef USE_ENT
             call ent_get_exports( entcells(i,j),
      &           vegetation_fractions=fr_cover )
-#else
-            call stop_model("GHY_DRV: not supported yet",255)
-#endif
             z0_veg = sum( fr_cover(:)*z0_cover(:) )
             rrr(i,j) = max ( rrr(i,j), z0_veg )
           enddo
