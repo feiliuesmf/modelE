@@ -157,9 +157,10 @@ $(BIN_DIR)/inputll2cs: inputLL2CS.o $(GCMLIB)
 
 status:
 	echo "AUX build successful"
-clean:
+
+clean: clean_all
 	rm -f *.LST *~ *.ERR *.CHK *.L rundeck_opts.h
 
 clean_all vclean:
-	rm -f *.o *.mod *.vo *.inc .depend* *.sig
+	rm -f *.o *.mod *.smod .depend* .current_options
 

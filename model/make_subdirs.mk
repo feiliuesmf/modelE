@@ -94,7 +94,13 @@ echo_vars:
 	@echo INPUTZ = $(INPUTZ)
 	+$(MAKE1) main
 
-clean_all: clean
+# the following line is for compatibility with old interface only
+clean_all vclean: clean
+
+# "clean" will clean components and then will do "clean" in main directory
+clean: clean_components
+
+clean_components:
 	-rm -f $(RUN_H) $(MOD_DIR)/*.mod
 	for i in $(AVAILABLE_COMPONENTS) ; do \
 	  $(MAKE) -C $$i clean ; done

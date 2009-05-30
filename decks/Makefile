@@ -80,7 +80,7 @@ depend: $(RUN).mk
 	$(MAKE) -C $(MODEL_DIR) $(V) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 
-gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR)
+gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend
 	$(MAKE) -C $(MODEL_DIR) $(V) gcm RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 	-mv $(MODEL_DIR)/$(RUN).bin $(BIN_DIR)/$(RUN).exe
 
