@@ -392,8 +392,10 @@ c -------------------------------------------------------------
      &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi,snowi
       USE FLUXES, only : gtemp
+#ifdef USE_ENT
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
+#endif
 
 
       IMPLICIT NONE
