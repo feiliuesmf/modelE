@@ -287,11 +287,7 @@ endif
 	for i in \
 	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
 	do \
-	  if [ -f $$i\@$*\.smod ] && $(CMP_MOD) $$i.mod $$i\@$*\.smod ; then \
-	    cp -p $$i\@$*\.smod $$i.mod ; \
-	  else \
 	    cp -f $$i.mod $$i\@$*\.smod ; cp $$i\@$*\.smod $$i.mod ; \
-	  fi; \
 	done ; \
 	fi
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
@@ -310,11 +306,7 @@ endif
 	for i in \
 	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
 	do \
-	  if [ -f $$i\@$*\.smod ] && $(CMP_MOD) $$i.mod $$i\@$*\.smod ; then \
-	    cp -p $$i\@$*\.smod $$i.mod ; \
-	  else \
 	    cp -f $$i.mod $$i\@$*\.smod ; touch $$i.mod ; \
-	  fi; \
 	done ; \
 	fi
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
