@@ -188,6 +188,11 @@ C endif
       common /bpp2/ pp2_1d(kdm,nchl)           !net primary production
 !$OMP THREADPRIVATE(/bpp2/)
 
+#ifndef TRACER_GASEXCH_CO2
+#ifdef TRACERS_OceanBiology
+      real*8 :: ao_co2flux
+#endif
+#endif
 
 
       contains

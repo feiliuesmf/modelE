@@ -21,6 +21,12 @@ c
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
 #ifdef OBIO_ON_GARYocean
+#ifndef TRACER_GASEXCH_ocean_CO2
+#ifdef TRACER_OceanBiology
+     .                    ,ao_co2flux
+#endif
+#endif
+
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
 #else
@@ -200,13 +206,13 @@ c pCO2
       if (pCO2_ij .lt. 100.) pCO2_ij=100.
       if (pCO2_ij .gt.1000.) pCO2_ij=1000.
 
-!     if(vrbos)then
+      if(vrbos)then
         write(*,'(a,3i5,9e12.4)')
      .    'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
      .               car(1,2),alk1d(1),
      .               obio_P(1,1),obio_P(1,3),pCO2_ij,
      .               pHsfc,pnoice
-!     endif
+      endif
 
 #else
 
@@ -272,6 +278,12 @@ c Update DIC for sea-air flux of CO2
       term = flxmolm3h*1000.D0*pnoice       !units of uM/hr (=mili-mol/m^3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
+
+#ifndef TRACER_GASEXCH_ocean_CO2
+#ifdef TRACER_OceanBiology
+      ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3  ! air-sea co2 flux
+#endif
+#endif
 
 !       if(k.eq.1)
 !    .     write(*,'(a,3i5,e12.4)')'dicterm5',
@@ -436,12 +448,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.24 $
-c_ $Date: 2009/05/22 09:19:45 $   ;  $State: Exp $
+c_ $Revision: 2.25 $
+c_ $Date: 2009/06/01 14:14:44 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.25  2009/06/01 14:14:44  aromanou
+c_
+c_ new diagnostic for gas exchange flux on the ocean grid (Watson's parameterization)
+c_
 c_ Revision 2.24  2009/05/22 09:19:45  aromanou
 c_
 c_ alternative definition of the compensation depth (still a little too shallow
@@ -875,12 +891,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.24 $
-c_ $Date: 2009/05/22 09:19:45 $   ;  $State: Exp $
+c_ $Revision: 2.25 $
+c_ $Date: 2009/06/01 14:14:44 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.25  2009/06/01 14:14:44  aromanou
+c_
+c_ new diagnostic for gas exchange flux on the ocean grid (Watson's parameterization)
+c_
 c_ Revision 2.24  2009/05/22 09:19:45  aromanou
 c_
 c_ alternative definition of the compensation depth (still a little too shallow
@@ -1059,12 +1079,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.24 $
-c_ $Date: 2009/05/22 09:19:45 $   ;  $State: Exp $
+c_ $Revision: 2.25 $
+c_ $Date: 2009/06/01 14:14:44 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.25  2009/06/01 14:14:44  aromanou
+c_
+c_ new diagnostic for gas exchange flux on the ocean grid (Watson's parameterization)
+c_
 c_ Revision 2.24  2009/05/22 09:19:45  aromanou
 c_
 c_ alternative definition of the compensation depth (still a little too shallow

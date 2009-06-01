@@ -13,7 +13,7 @@
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=20,KOIJL=26,KOL=6,KOLNST=8
+      INTEGER, PARAMETER :: KOIJ=21,KOIJL=26,KOL=6,KOLNST=8
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
 !@var OL    vertical ocean diagnostics
@@ -48,6 +48,7 @@
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
      .           ,ij_cocc,ij_doc,IJ_alk
+     .           ,ij_flux
 #endif
 !@var CDL_OIJ consolidated metadata for OIJ output fields in CDL notation
       character(len=100), dimension(koij*6) :: cdl_oij
@@ -1148,6 +1149,14 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
     
+      k=k+1
+      IJ_flux=k
+      lname_oij(k)="Air_Sea Flux CO2 (watson)"
+      sname_oij(k)="oij_flux"
+      units_oij(k)="mole/m2/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
 #endif
 
       k=k+1

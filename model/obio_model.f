@@ -41,9 +41,19 @@
      .                    ,itest,jtest,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
      .                    ,tracer_glob => tracer
+#ifndef TRACER_GASEXCH_ocean_CO2
+#ifdef TRACERS_OceanBiology
+     .                    ,ao_co2flux
+#endif
+#endif
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk
+#ifndef TRACER_GASEXCH_ocean_CO2
+#ifdef TRACERS_OceanBiology
+     .                 ,ij_flux
+#endif
+#endif
       USE ODIAG, only : oij=>oij_loc
 #endif
 
@@ -879,6 +889,12 @@ cdiag  endif
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
        OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
+
+#ifndef TRACER_GASEXCH_ocean_CO2    ! NOT FOR GASEXCH EXPERIMENTS
+#ifdef TRACERS_OceanBiology
+       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + ao_co2flux      !air-sea CO2 flux(watson)
+#endif
+#endif
 
 #ifdef TRACERS_Alkalinity
        OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
