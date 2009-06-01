@@ -785,6 +785,8 @@ C**** The following general arrays are set in tracer_IC
 !@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.
       real*8, dimension(ntm)  :: HSTAR
 #endif
+!@var do_fire: true if tracer should have emissions via flammability
+      logical, dimension(ntm) :: do_fire
 #endif
 
 !@var trpdens tracer particle density (kg/m^3)

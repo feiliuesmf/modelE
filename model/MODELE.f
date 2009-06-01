@@ -1288,8 +1288,8 @@ C****
 #ifdef CALCULATE_LIGHTNING
       write(6,*) '...and calculating lightning flash rate'
 #endif
-#ifdef ALTER_BIOMASS_BY_FIRE
-      write(6,*) '...and altering biomass burning srcs by flammability'
+#ifdef DYNAMIC_BIOMASS_BURNING
+      write(6,*) '...and dynamic biomass burning srcs by flammability'
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       write(6,*) '...and Dorothy Koch aerosols'

@@ -1,5 +1,4 @@
 #include "rundeck_opts.h"
-
       module flammability_com    
 !@sum for routines to calculate flammability potential of surface 
 !@+   vegetation. Optionally also altering tracer biomass sources.
@@ -15,9 +14,13 @@
 !@+   baseline climate (e.g. GFED 1997-2002 period), monthly averages
 !@var vegetation density read from file for flammability calculation
       real*8, allocatable, dimension(:,:) :: flammability,veg_density
-#ifdef ALTER_BIOMASS_BY_FIRE
-!@var vegetation density read from file for flammability calculation
-     &                                       ,base_flam
+#ifdef DYNAMIC_BIOMASS_BURNING
+!@param mfcc MODIS fire count calibration (goes with the input files)
+!@+ units are fires/day when multiplied by the unitless flammability
+      real*8, parameter :: mfcc=1606.d0
+!@var epfc emission per fire count, defined for ntm tracers for now
+!@+ generally in kg/m2/s/fire
+      real*8, allocatable, dimension(:,:,:) :: epfc 
 #endif
       real*8, parameter :: missing=-1.d30
 
@@ -56,9 +59,10 @@
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
-#ifdef ALTER_BIOMASS_BY_FIRE
-     & ,base_flam
-#endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+     & ,epfc
+      use tracer_com, only: ntm
+#endif 
  
       implicit none
       
@@ -80,8 +84,8 @@
       allocate( PRSfl       (I_0H:I_1H,J_0H:J_1H) )
       allocate( raP_acc     (I_0H:I_1H,J_0H:J_1H) )
       allocate( HRAfl       (I_0H:I_1H,J_0H:J_1H,maxHR_prec) )
-#ifdef ALTER_BIOMASS_BY_FIRE
-      allocate( base_flam   (I_0H:I_1H,J_0H:J_1H) )
+#ifdef DYNAMIC_BIOMASS_BURNING
+      allocate( epfc        (I_0H:I_1H,J_0H:J_1H,ntm) )
 #endif
 
       return
@@ -89,12 +93,16 @@
 
 
       subroutine init_flammability
-!@sum initialize flamability to zero and read the veg density file
+!@sum initialize flamability, veg density, etc. for fire model
 !@auth Greg Faluvegi based on direction from Olga Pechony
 !@ver  1.0 
       use model_com, only: im,jm,Itime,ItimeI
       use flammability_com, only: flammability, veg_density, first_prec
      & ,missing
+#ifdef DYNAMIC_BIOMASS_BURNING
+     & ,epfc
+      use tracer_com, only: ntm,trname,do_fire
+#endif
       use domain_decomp_atm,only: grid, get, am_i_root, write_parallel,
      & unpack_data
       use filemanager, only: openunit, closeunit
@@ -103,29 +111,46 @@
 
       real*8, allocatable,  dimension(:,:) :: temp_glob
       real*4, allocatable,  dimension(:,:) :: temp4_glob
-      character*80 :: title
+      character*80 :: title,fname
       character*150 :: out_line
-      integer :: I_1H, I_0H, J_1H, J_0H, iu_data
+      integer :: I_1H, I_0H, J_1H, J_0H, iu_data, n
 
       call get(grid,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       call get(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
-      flammability(I_0H:I_1H,J_0H:J_1H) = missing
+      if(am_i_root( ))allocate(temp_glob(im,jm),temp4_glob(im,jm))
 
+      flammability(I_0H:I_1H,J_0H:J_1H) = missing
       if(am_i_root( ))then
-        allocate( temp_glob(im,jm) ,temp4_glob(im,jm) )
         call openunit('VEG_DENSE',iu_data,.true.,.true.)
-        read (iu_data) title,temp4_glob
+        read(iu_data) title,temp4_glob
         call closeunit(iu_data)
         temp_glob(:,:)=dble(temp4_glob(:,:))
       endif
       write(out_line,*) trim(title),' read from VEG_DENSE'
       call write_parallel(trim(out_line))
       call unpack_data( grid, temp_glob, veg_density )
-     
-      if(am_i_root()) deallocate( temp_glob, temp4_glob )
-
       if(Itime==ItimeI)first_prec(:,:)=1.d0
+
+#ifdef DYNAMIC_BIOMASS_BURNING
+      epfc(:,:,:)=0.d0 ! by default no fire emissions for tracer
+      do n=1,ntm
+        if(do_fire(n)) then
+          fname=trim(trname(n))//'_EPFC'
+          if(am_i_root( ))then
+            call openunit(trim(fname),iu_data,.true.,.true.)
+            read(iu_data) title,temp4_glob
+            call closeunit(iu_data)
+            temp_glob(:,:)=dble(temp4_glob(:,:))
+          endif
+          write(out_line,*) trim(title),' read from ',trim(fname)
+          call write_parallel(trim(out_line))
+          call unpack_data( grid, temp_glob, epfc(:,:,n) )
+        endif
+      enddo
+#endif
+
+      if(am_i_root()) deallocate( temp_glob, temp4_glob )
 
       return
       end subroutine init_flammability

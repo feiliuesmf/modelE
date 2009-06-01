@@ -115,61 +115,44 @@
       end subroutine prec_running_average
 
 
-#ifdef ALTER_BIOMASS_BY_FIRE
-      subroutine update_base_flammability
-!@sum reads base monthly base flammability and interpolates to
-!@+ current day, linearly. Suffers from same excessive reading
-!@+ as monthly surface sources at the moment.
-!@auth Greg Faluvegi, based on Jean Lerner, etc.
-      use model_com, only: itime,jday,jyear,im,jm,idofm=>JDmidOfM
-      use domain_decomp_atm, only:grid,get,readt_parallel,
-     & write_parallel,rewind_parallel
-      use filemanager, only: openunit,closeunit,nameunit
-      use flammability_com,only: base_flam 
-   
+#if defined DYNAMIC_BIOMASS_BURNING && defined CALCULATE_FLAMMABILITY
+      subroutine dynamic_biomass_burning(n,ns)
+!@sum dynamic_biomass_burning fills in the surface source ns for
+!@+ tracer n with biomass burning based on flammability and offline
+!@+ correlations of emissions with observed fire counts.
+!@auth Greg Faluvegi based on direction from Olga Pechony
+!@ver 1.0
+
+      use domain_decomp_atm,only: grid, get
+      use flammability_com, only: epfc,mfcc,flammability,first_prec,
+     &                            missing
+      use tracer_com, only: sfc_src
+      use model_com, only: nday,DTsrc
+
       implicit none
-      
-      integer :: iu,imonFB
-      character(len=300) :: out_line
-      logical:: ifirstBF=.true.
-      integer :: J_1, J_0, I_0, I_1
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &                  tlca,tlcb
-      real*8 :: frac
-      
-      save ifirstBF,imonFB
+   
+      integer :: J_0S, J_1S, I_0H, I_1H, i, j
+      integer, intent(in) :: n,ns
 
-      call get(grid, J_STRT=J_0, J_STOP=J_1)
-      call get(grid, I_STRT=I_0, I_STOP=I_1)
+      call get(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     &              I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
-      call openunit('BASE_FLAM',iu,.true.)
+      ! units: sfc_src = kg/m2/s
+      ! units: epfc = kg/m2/#fire
+      ! units: flammability*mfcc = #fire/day
+      ! units: DTsrc*nday = s/day
 
-      imonFB=1
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        call readt_parallel(grid,iu,nameunit(iu),tlca,12)
-        call rewind_parallel( iu )
-      else            ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imonFB) .AND. imonFB <= 12)
-          imonFB=imonFB+1
+      do j=J_0S,J_1S
+        do i=I_0H,I_1H
+          if(first_prec(i,j)==0 .and. flammability(i,j)/=missing)then
+            sfc_src(i,j,n,ns)=
+     &      epfc(i,j,n)*flammability(i,j)*mfcc/(nday*DTsrc)
+          else
+            sfc_src(i,j,n,ns)=0.d0
+          endif
         enddo
-        call readt_parallel(grid,iu,nameunit(iu),tlca,imonFB-1)
-        if (imonFB == 13)then
-          call rewind_parallel( iu )
-        endif
-      end if
-      call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
-
-!     Interpolate two months of data to current day
-      frac = float(idofm(imonFB)-jday)/(idofm(imonFB)-idofm(imonFB-1))
-      base_flam(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
-     & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
-      write(out_line,*)'base flammability interpolated to now ',frac
-      call write_parallel(trim(out_line))
-
-      ifirstBF = .false. ! needed for future fix of excessive reading
-      call closeunit(iu)
-
-      return
-      end subroutine update_base_flammability
+      enddo
+    
+      end subroutine dynamic_biomass_burning
 #endif
+

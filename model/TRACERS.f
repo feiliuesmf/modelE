@@ -533,9 +533,6 @@ C****
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel, pack_data
      &     ,am_i_root
-#ifdef ALTER_BIOMASS_BY_FIRE
-      USE flammability_com, only: missing,flammability,base_flam
-#endif
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -546,12 +543,6 @@ C****
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1, I_0, I_1
-#ifdef ALTER_BIOMASS_BY_FIRE
-      real*8, dimension(IM,JM) :: bflam_glob
-      real*8 :: zm,zmcount
-      integer :: ii,jj,ix,i3
-      character(len=300) :: out_line
-#endif
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -591,50 +582,6 @@ C**** apply tracer source alterations if requested in rundeck:
       enddo
       enddo
       endif
-
-#if (defined ALTER_BIOMASS_BY_FIRE) && (defined GFED_3D_BIOMASS)
-      call pack_data(grid,base_flam(:,:),bflam_glob(:,:))
-      do j=j_0,j_1 ; do i=i_0,imaxj(j)
-       if(flammability(i,j)/=missing) then
-        if(flammability(i,j)==0.)then
-         do l=1,lm; tr3Dsource(i,j,l,nBiomass,n)=0.d0; enddo
-        else ! non-zer0 current flammability
-         if(base_flam(i,j)/=0.)then
-          do l=1,lm
-           tr3Dsource(i,j,l,nBiomass,n) = tr3Dsource(i,j,l,nBiomass,n)*
-     &     flammability(i,j)/base_flam(i,j)
-          enddo ! l
-         else ! no base flammability, look for nearest neighbor
-           zm=0.d0; zmcount=0.d0; ix=0
-           do while(zmcount == 0.)
-             ix=ix+1
-             if(ix>im)call stop_model('ix>im GFED/fire',255)
-             do ii=i-ix,i+ix ; i3=ii; do jj=j-ix,j+ix
-               if(jj>0.and.jj<=jm)then
-                 if(ii <= 0)i3=ii+im
-                 if(ii > im)i3=ii-im
-                 if(bflam_glob(i3,jj) > 0.)then
-                   zm=zm+bflam_glob(i3,jj)
-                   zmcount=zmcount+1.d0
-                 endif
-               endif
-             enddo                  ; enddo
-           enddo
-           if(zmcount <= 0.)then
-             write(out_line,*)'zmcount for GFED src <=0 @IJ=',I,J
-             call write_parallel(trim(out_line),unit=6,crit=.true.)
-             call stop_model('problem with base_flam',255)
-           else
-            do l=1,lm
-             tr3Dsource(i,j,l,nBiomass,n)=tr3Dsource(i,j,l,nBiomass,n)*
-     &       flammability(i,j)/(zm/zmcount)
-            enddo ! l
-           end if ! found neighboring base flammability?
-         endif    ! non-zero base flammability?
-        endif     ! non-zero current flammability?
-       endif      ! enough flammability info accumulated?
-      enddo; enddo! i,j
-#endif
 
 !$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm

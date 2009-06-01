@@ -246,10 +246,10 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER,PARAMETER :: ktajls=400
 
 !@var jls_XXX index for non-tracer specific or special diags
-      INTEGER jls_Oxloss, jls_Oxprod, jls_OHconk,jls_HO2con,jls_NO3
+      INTEGER jls_OHconk,jls_HO2con,jls_NO3
      *     ,jls_phot,jls_incloud(2,ntm), jls_OHcon,jls_H2Omr
      *     ,jls_N2O5sulf,jls_day,jls_COd,jls_COp,jls_Oxd,jls_Oxp
-     *     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+     *     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem,jls_OxdT,jls_OxpT
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
