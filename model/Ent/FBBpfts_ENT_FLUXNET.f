@@ -56,8 +56,7 @@
 !* 14.  arctic C3 grass
 !* 15.  crops - C4 herbaceous
 !* 16.  crops - broadleaf woody
-!*********************************************************************
-
+!********************************************************************* 
       type(pspartype),parameter :: pftpar(N_PFT) = !PFT parameters for Ent veg types
      &!     pft PARabsorb Vcmax Kc Ko KcQ10 KoQ10 Gammastar  m b !Rdc RdH
      &     (/
@@ -106,7 +105,8 @@
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.0d0               !Nleaf (gN/m2-leaf). Low Est. from Reich 1997 (big range).
-     &     ,3.1d0),               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
+     &     ,1.07d0),             !Nleaf (gN/m2-leaf), Oak, derived from C:N 27.2 and SLA 34.5 m2/kg-C in Tatarinov & Cienciala (2006) for BIOME-BGC.
+!     &     ,3.1d0),               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
 
      &     pspartype(1          !6. COLD DECIDUOUS BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
