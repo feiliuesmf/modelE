@@ -639,7 +639,7 @@ C****
             DO I=1,IMAXJ(J)
               IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
      *             THEN
-                if (TOIJL(I,J,L,TOIJL_CONC,n_water).gt.0) Q(I,J)=10.**
+                if (TOIJL(I,J,L,TOIJL_CONC,N).gt.0) Q(I,J)=10.**
      *               (-ntrocn(n))*TOIJL(I,J,L,KK+TOIJL_GMFL,N)/(IDACC(1)
      *               *DTS)
               ENDIF
@@ -733,7 +733,7 @@ C****
         DO J=1,JM
         DO I=1,IMAXJ(J)
           IF((OIJL(I,J,L+1,IJL_MO).gt.0).and.(TOIJL(I,J,L,TOIJL_CONC
-     *         ,n_water).gt.0)) Q(I,J)=1d6*10.**(-ntrocn(n))*TOIJL(I,J,L
+     *         ,N).gt.0)) Q(I,J)=1d6*10.**(-ntrocn(n))*TOIJL(I,J,L
      *         ,TOIJL_wtfl,N)/(IDACC(1)*DTS)
         END DO
         END DO
