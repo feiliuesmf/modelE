@@ -633,7 +633,7 @@ C****
             ELSE
               UNITS=unit_string(ntrocn(n),' kg/kg/s')
             END IF
-            SNAME="gm_vt_tflx_L"//LEVSTR(L)
+            SNAME="gm_vt_tflx"//trim(trname(n))//"_L"//LEVSTR(L)
           END SELECT
           DO J=1,JM
             DO I=1,IMAXJ(J)
@@ -728,7 +728,7 @@ C****
       DO L=1,lmo-1
         LNAME="VERT. DIFF. "//trname(n)
         UNITS=unit_string(ntrocn(n),'kg/s')
-        SNAME="wtfltr_L"//LEVSTR(L)
+        SNAME="wtfltr"//trim(trname(n))//"_L"//LEVSTR(L)
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
