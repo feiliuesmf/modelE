@@ -3296,7 +3296,8 @@ C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
      *     j_hz2,j_ervr,
      *     ia_src,ia_rad,
      &     sarea=>sarea_reg,
-     &     hemis_j,dxyp_budg
+     &     hemis_j,dxyp_budg,
+     &     consrv,hemis_consrv,kcon
       IMPLICIT NONE
       REAL*8 :: A1BYA2,hemfac
       INTEGER :: J,JR,J1,J2,K,M,IT
@@ -3356,6 +3357,15 @@ c
         hemis_j(2,k,m) = hemfac*sum(aj_out(j1:j2,k,m)*dxyp_budg(j1:j2))
         hemis_j(3,k,m) = .5*(hemis_j(1,k,m)+hemis_j(2,k,m))
       enddo
+      enddo
+      do k=1,kcon
+        j1 = 1; j2 = jm_budg/2
+        hemis_consrv(1,k) =
+     &       hemfac*sum(consrv(j1:j2,k)*dxyp_budg(j1:j2))
+        j1 = jm_budg/2+1; j2 = jm_budg
+        hemis_consrv(2,k) =
+     &       hemfac*sum(consrv(j1:j2,k)*dxyp_budg(j1:j2))
+        hemis_consrv(3,k) = .5*(hemis_consrv(1,k)+hemis_consrv(2,k))
       enddo
 
 c
