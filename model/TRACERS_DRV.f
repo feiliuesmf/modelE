@@ -279,6 +279,12 @@ C**** get rundeck parameter for cosmogenic source factor
       do n=1,ntm
 ! general case:
         call num_srf_sources(n,ntsurfsrc(n))
+! allow any tracer to have a dynamic biomass burning src:
+        inquire(file=trim(trname(n))//'_EPFC',exist=do_fire(n)) 
+        if(do_fire(n))then
+          ntsurfsrc(n)=ntsurfsrc(n)+1
+          ssname(n,ntsurfsrc(n))='dynam_bioburn'
+        endif
 ! special cases: 
 #ifdef TRACERS_SPECIAL_Shindell
         if(trname(n) == 'CH4')then
@@ -298,6 +304,7 @@ C**** get rundeck parameter for cosmogenic source factor
 
 C**** Define individual tracer characteristics
       do n=1,ntm
+
       select case (trname(n))
 
 #ifdef TRACERS_ON
@@ -3556,33 +3563,49 @@ C**** (not necessary associated with a particular tracer)
         jls_Oxp=k
         sname_jls(k) = 'Ox_chem_prod'
         lname_jls(k) = 'Ox production due to chemistry'
-        jls_ltop(k)  = LTOP
-        jls_power(k) = 1
-        scale_jls(k) = byim/DTsrc
+        jls_ltop(k)  = LM
+        jls_power(k) = 2
+        scale_jls(k) = 1.d0/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_Oxd=k
         sname_jls(k) = 'Ox_chem_dest'
         lname_jls(k) = 'Ox destruction due to chemistry'
-        jls_ltop(k)  = LTOP
-        jls_power(k) = 1
-        scale_jls(k) = byim/DTsrc
+        jls_ltop(k)  = LM
+        jls_power(k) = 2
+        scale_jls(k) = 1.d0/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_OxpT=k
+        sname_jls(k) = 'trop_Ox_chem_prod'
+        lname_jls(k) = 'Troposphere Ox prod by chemistry'
+        jls_ltop(k)  = LM
+        jls_power(k) = 2
+        scale_jls(k) = 1.d0/DTsrc
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_OxdT=k
+        sname_jls(k) = 'trop_Ox_chem_dest'
+        lname_jls(k) = 'Troposphere Ox dest by chemistry'
+        jls_ltop(k)  = LM  
+        jls_power(k) = 2
+        scale_jls(k) = 1.d0/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_COp=k
         sname_jls(k) = 'CO_chem_prod'
         lname_jls(k) = 'CO production due to chemistry'
-        jls_ltop(k)  = LTOP
-        jls_power(k) = 0
-        scale_jls(k) = byim/DTsrc
+        jls_ltop(k)  = LM
+        jls_power(k) = 1
+        scale_jls(k) = 1.d0/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_COd=k
-        sname_jls(k) = 'CO_dest_prod'
+        sname_jls(k) = 'CO_chem_dest'
         lname_jls(k) = 'CO destruction due to chemistry'
-        jls_ltop(k)  = LTOP
-        jls_power(k) = 0
-        scale_jls(k) = byim/DTsrc
+        jls_ltop(k)  = LM  
+        jls_power(k) = 1
+        scale_jls(k) = 1.d0/DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_OHcon=k
@@ -7700,7 +7723,7 @@ C**** set some defaults
      *         ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
      *         ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
      *         ,'Paraffin') ! N2O done above
-          select case (trname(n))
+            select case (trname(n))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
      *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
      *           ,'BrONO2','NOx')
@@ -7709,7 +7732,7 @@ C**** set some defaults
               kt_power_change(n) = -13
             case default
               kt_power_change(n) = -12
-          end select
+            end select
 
           g=13; itcon_3Dsrc(nChemistry,N) = g
           qcon(itcon_3Dsrc(nChemistry,N)) = .true.
@@ -9680,11 +9703,10 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
-
+     & n_CH4,n_Isoprene,sfc_src,ntsurfsrc,ssname,do_fire
 #ifdef TRACERS_SPECIAL_Shindell
-     & ntm_chem,
+     & ,ntm_chem
 #endif
-     & n_CH4,n_Isoprene,sfc_src,ntsurfsrc,ssname
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
      * ,aer_int_yr,imAER
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
@@ -9703,7 +9725,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 
       IMPLICIT NONE
-      INTEGER n,iact,last_month,kk
+      INTEGER n,iact,last_month,kk,nread
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1
 C****
@@ -9800,9 +9822,11 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
       do n=1,ntm_chem
-        if(n==n_CH4)then
+        if(n==n_CH4)then ! ------------------- methane --------------
 #ifdef WATER_MISC_GRND_CH4_SRC
-         call read_sfc_sources(n,ntsurfsrc(n)-3)
+         nread=ntsurfsrc(n)-3
+         if(do_fire(n))nread=nread-1
+         call read_sfc_sources(n,nread)
          sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)  )=
      &   1.698d-12*fearth0(I_0:I_1,J_0:J_1) ! 5.3558e-5 Jean
          sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-1)=
@@ -9810,21 +9834,27 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
          sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-2)=
      &   1.141d-12*focean(I_0:I_1,J_0:J_1)  ! 3.5997e-5 Jean
 #else
-         if(ntsurfsrc(n) > 0) call read_sfc_sources(n,ntsurfsrc(n))
+         nread=ntsurfsrc(n)
+         if(do_fire(n))nread=nread-1
+         if(nread>0) call read_sfc_sources(n,nread)
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-         if(ntsurfsrc(n) > 0) call read_ncep_for_wetlands(iact)
+         if(nread>0) call read_ncep_for_wetlands(iact)
 #endif
 #ifdef GFED_3D_BIOMASS
          call get_GFED_biomass_burning(n)
 #endif
 #ifdef BIOGENIC_EMISSIONS
-        else if (n==n_Isoprene)then
-          if(ntsurfsrc(n)>0 .and. am_i_root( ) )write(6,*)
+        else if (n==n_Isoprene)then ! ------------- isoprene ---------
+         nread=ntsurfsrc(n)
+         if(do_fire(n))nread=nread-1
+         if(nread > 0 .and. am_i_root( ) )write(6,*)
      &    'NOT reading Isoprene source because BIOGENIC_EMISSIONS on.'
 #endif
-        else
-          if(ntsurfsrc(n)>0) call read_sfc_sources(n,ntsurfsrc(n))
+        else !-------------------------------------- general ---------
+          nread=ntsurfsrc(n)
+          if(do_fire(n))nread=nread-1
+          if(nread>0) call read_sfc_sources(n,nread)
           select case (trname(n))
           case ('NOx')
 !           (lightning and aircraft called from tracer_3Dsource)
@@ -9839,12 +9869,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             call get_GFED_biomass_burning(n)
           end select
 #endif
-        endif
+        endif !------------------------------------------------------
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))call dynamic_biomass_burning(n,nread+1)
+#endif
       end do
 #endif /* TRACERS_SPECIAL_Shindell */
-#ifdef ALTER_BIOMASS_BY_FIRE
-      call update_base_flammability
-#endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 #ifdef EDGAR_1995
@@ -9937,9 +9967,6 @@ C**** at the start of any day
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
-#ifdef ALTER_BIOMASS_BY_FIRE
-      USE flammability_com, only: missing,flammability,base_flam
-#endif
       implicit none
       integer :: i,j,ns,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -9948,12 +9975,6 @@ C**** at the start of any day
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER ie,iw,js,jn
 
-#ifdef ALTER_BIOMASS_BY_FIRE
-      real*8, dimension(IM,JM) :: bflam_glob
-      real*8 :: zm,zmcount
-      integer :: ii,jj,ix,i3
-      character(len=300) :: out_line
-#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
       real*8  :: factor
@@ -10476,57 +10497,6 @@ c!OMSP
           enddo
         enddo
       endif
-
-#ifdef ALTER_BIOMASS_BY_FIRE
-      if(am_i_root())write(666,*)'remove base_flam from ns,nsect loop'
-      call pack_data(grid,base_flam(:,:),bflam_glob(:,:))
-      do ns=1,ntsurfsrc(n)              ! loop over source
-        do nsect=1,num_tr_sectors(n,ns) ! and sectors for that source
-          if(tr_sect_name(n,ns,nsect)=='BBURN')then
-           do j=J_0,J_1                   ! and latitudes
-            do i=I_0,imaxj(j)             ! and longitudes 
-             if(flammability(i,j)/=missing)then ! enough info?
-              if(flammability(i,j)==0.)then
-                trsource(i,j,ns,n)=0.d0
-              else ! non-zero current flammability
-               if(base_flam(i,j)/=0.)then
-                if(base_flam(i,j)==missing)call stop_model
-     &          ('base flammability missing TRACERS_DRV',255)
-                trsource(i,j,ns,n)=trsource(i,j,ns,n)*
-     &          flammability(i,j)/base_flam(i,j)
-               else ! no base flammability, find nearest neighbor
-                zm=0.d0; zmcount=0.d0; ix=0
-                do while(zmcount == 0.)
-                  ix=ix+1
-                  if(ix>im)call stop_model('ix>im biomas/fire',255)
-                  do ii=i-ix,i+ix ; i3=ii; do jj=j-ix,j+ix
-                    if(jj>0.and.jj<=jm)then
-                      if(ii <= 0)i3=ii+im
-                      if(ii > im)i3=ii-im
-                      if(bflam_glob(i3,jj) > 0.)then
-                        zm=zm+bflam_glob(i3,jj)
-                        zmcount=zmcount+1.d0
-                      endif
-                    endif
-                  enddo                  ; enddo
-                enddo
-                if(zmcount <= 0.)then
-                  write(out_line,*)'zmcount for bburn src <=0 @IJ=',I,J
-                  call write_parallel(trim(out_line),unit=6,crit=.true.)
-                  call stop_model('problem with base_flam',255)
-                else
-                  trsource(i,j,ns,n)=trsource(i,j,ns,n)*
-     &            flammability(i,j)/(zm/zmcount)
-                end if ! found neighbor base flammability ?
-               endif   ! have base flammability
-              endif    ! zero flammability
-             endif     ! enough info built up
-            enddo      ! i
-           enddo       ! j
-          endif        ! biomass burning
-        enddo          ! sectors
-      enddo            ! sources
-#endif
 
       end do ! n - main tracer loop
 
