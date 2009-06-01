@@ -70,7 +70,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
 !@+     decreased by a factor of (972/1000)mb
-!@param RGAMMASULF unknown
+!@param RGAMMASULF N2O5-->HNO3 conversion on aerosols?
 !@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062D-23/3.14159/1.793D-25
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
@@ -236,7 +236,7 @@ C ----------------------------------------------
      &                      pfix_Aldehyde= 2.d-9,
      &                      MWabyMWw     = mair/mwat,
      &                      O3_1_fact    = 0.972d0,
-     &                      RGAMMASULF   = 0.1d0,
+     &                      RGAMMASULF   = 2.0d-2,
      &                      RKBYPIM      = 1.961d2,
      &                      cboltz       = 1.3806d-19,
      &                      dlogp        = 7.49894209d-1, !=10^(-.125)

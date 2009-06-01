@@ -369,25 +369,25 @@ C**** Local parameters and variables and arguments:
       do j=1,numfam      !families, list only interfamily reactions
         newfam=0
         kdr(j)=k
-        do i=1,nre       ! 1 to # chem or phot reactions
-          do ij=1,ns    !ns # partic (prod & chem dest=2,phot dest=1)
+        i_loop: do i=1,nre    ! 1 to # chem or phot reactions
+          ij_loop: do ij=1,ns !ns # partic (prod & chem dest=2,phot dest=1)
             ! check if molecule # nn() is element of family j:
             if(nn(ij,i) >= nfam(j).and.nn(ij,i) < nfam(j+1))then
               ! check if reaction is intrafamily:
               do i2=1,nns  ! nns # partic on opposite side of reac.
                 if(nnn(i2,i) >= nfam(j).and.nnn(i2,i) < nfam(j+1))
-     &          CYCLE
+     &          cycle i_loop
               enddo
               ! don't write same reaction twice:
               if(k /= 1)then
-                if(ndr(k-1) == i.and.newfam /= 0) CYCLE
+                if(ndr(k-1) == i.and.newfam /= 0) cycle ij_loop
               endif
               ndr(k)=i
               k=k+1
               newfam=1
             endif
-          enddo
-        enddo
+          enddo ij_loop
+        enddo i_loop
       enddo
 
       do j=numfam+1,nfam(1)-1     ! individual non-family molecules

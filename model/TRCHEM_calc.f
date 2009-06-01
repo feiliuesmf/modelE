@@ -12,7 +12,7 @@ C
       USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
       USE DYNAMICS, only        : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
-      USE TRDIAG_COM, only : jls_OHcon,jls_day,
+      USE TRDIAG_COM, only : jls_OHcon,jls_day,jls_OxpT,jls_OxdT,
      & jls_Oxp,jls_Oxd,jls_COp,jls_COd,taijs=>taijs_loc,ijs_OH,ijs_HO2
 #ifdef HTAP_LIKE_DIAGS
      & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp,ijs_CH4d
@@ -161,6 +161,14 @@ c photolytic destruction:
 c photolytic production:
       call chem1(kps,maxl,2,kss,nps,photrate,prod,1)
 
+c Add additional Cl from CFC photolysis + background :
+      do L=1,maxl
+        prod(n_ClOx,L)=prod(n_ClOx,L)+0.33d0*photrate(26,L)+
+     &  7.5d-3*photrate(28,L)
+        prod(n_BrOx,L)=prod(n_BrOx,L)+5.55d-4*photrate(26,L)+
+     &  5.2d-6*photrate(28,L)
+      enddo
+ 
 c Oxidation of Isoprene and Alkenes produces less than one
 c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxl
@@ -516,14 +524,12 @@ c         account for NO that then goes via NO+O3->NO2+O2
 c         or NO+O+M->NO2+M:
           rNOfrac=(rr(5,L)*y(nO3,L)+rr(96,L)*y(nO,L))
           rNOdenom=(rr(5,L)*y(nO3,L)+rr(96,L)*y(nO,L)+
-     &    rr(6,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.d0)
-          if(l <= maxT)then ! Troposphere:
-            rNOdenom=rNOdenom+rr(20,L)*yCH3O2(I,J,L)
-     &      +rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180/ta(L))*y(nXO2,L)
-          else              ! Stratosphere:
-            rNOdenom=rNOdenom+rr(64,L)*y(nClO,L)+
-     &      rr(67,L)*y(nOClO,L)+rr(71,L)*y(nBrO,L)
-          endif
+     &    rr(6,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.d0)+
+     &    rr(20,L)*yCH3O2(I,J,L)+
+     &    rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180/ta(L))*y(nXO2,L)+
+     &    rr(64,L)*y(nClO,L)+
+     &    rr(67,L)*y(nOClO,L)+rr(71,L)*y(nBrO,L)
+
           rNOfrac=rNOfrac/rNOdenom
           Oxcorr(L)=(rNOprod-rNO2prod)*rNOfrac*dt2*y(nNO2,L)/y(n_NOx,L)
           if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
@@ -855,8 +861,12 @@ c Loops to calculate tracer changes:
 #endif
          endif
          if(igas == n_Ox)then
-           CALL INC_TAJLS(I,J,L,jls_Oxp,prod(igas,L)*conc2mass)
-           CALL INC_TAJLS(I,J,L,jls_Oxd,dest(igas,L)*conc2mass)       
+           CALL INC_TAJLS(I,J,L,jls_Oxp, prod(igas,L)*conc2mass)
+           if(L<=maxT)
+     &     CALL INC_TAJLS(I,J,L,jls_OxpT,prod(igas,L)*conc2mass)
+           CALL INC_TAJLS(I,J,L,jls_Oxd, dest(igas,L)*conc2mass)       
+           if(L<=maxT)
+     &     CALL INC_TAJLS(I,J,L,jls_OxdT,dest(igas,L)*conc2mass)       
 #ifdef HTAP_LIKE_DIAGS
            TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+prod(igas,L)*cpd
            TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+dest(igas,L)*cpd
@@ -1166,7 +1176,7 @@ c Next insure balance between dNOx and sum of dOthers:
         endif
         
 #ifdef SHINDELL_STRAT_CHEM
-        if(L >= maxT+1)sumN=sumN+
+        sumN=sumN+
      &  changeL(L,n_ClONO2)*mass2vol(n_ClONO2)+
      &  changeL(L,n_BrONO2)*mass2vol(n_BrONO2)
         dNOx=changeL(L,n_NOx)*mass2vol(n_NOx)+
@@ -1314,37 +1324,39 @@ c          reduce NOx destruction to match N production:
         endif
 
 #ifdef SHINDELL_STRAT_CHEM
-        if(L > maxT)then
-c         Calculate NOx and Ox changes due to atomic nitrogen
-c         produced by SRB photlysis (SF2 is NO + hv rate) :
-          byta=1.d0/ta(L)
-c         rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
-          ! that's N+OH->NO+H, not in JPL (rates from IUPAC 1989)
-          rxnN2=1.5d-11*exp(-3600.d0*byta)*y(nO2,L) ! N+O2->NO+O
+c       Calculate NOx and Ox changes due to atomic nitrogen
+c       produced by SRB photlysis (SF2 is NO + hv rate) :
+        byta=1.d0/ta(L)
+c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
+        ! that's N+OH->NO+H, not in JPL (rates from IUPAC 1989)
+        rxnN2=1.5d-11*exp(-3600.d0*byta)*y(nO2,L) ! N+O2->NO+O
           rxnN3=5.8d-12*exp(220.d0*byta)*y(nNO2,L)  ! N+O2->N2O+O
           rxnN4=2.1d-11*exp(100.d0*byta)*y(nNO,L)   ! N+O2->N2+O
           NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
           NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
-          changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
-     &    *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
-          conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
-          changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
-          if(NprodOx <  0.) then ! necessary?
-            CALL INC_TAJLS(I,J,L,jls_Oxd,NprodOx*conc2mass)
+        changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
+     &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
+        conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
+        changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
+        if(NprodOx <  0.) then ! necessary?
+          CALL INC_TAJLS(I,J,L,jls_Oxd,NprodOx*conc2mass)
+          if(L<=maxT)
+     &    CALL INC_TAJLS(I,J,L,jls_OxdT,NprodOx*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
-            TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+NprodOx*cpd
+          TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+NprodOx*cpd
 #endif
-          else 
-            CALL INC_TAJLS(I,J,L,jls_Oxp,NprodOx*conc2mass)
+        else 
+          CALL INC_TAJLS(I,J,L,jls_Oxp,NprodOx*conc2mass)
+          if(L<=maxT)
+     &    CALL INC_TAJLS(I,J,L,jls_OxpT,NprodOx*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
-            TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+NprodOx*cpd
+          TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+NprodOx*cpd
 #endif
-          endif 
-          if(prnchg.and.J==jprn.and.I==iprn.and.l==lprn) then
-            write(out_line,*) 'NOx loss & Ox gain due to rxns  w/ N '
-     &      ,NlossNOx,NprodOx
-            call write_parallel(trim(out_line),crit=jay)
-          endif
+        endif 
+        if(prnchg.and.J==jprn.and.I==iprn.and.l==lprn) then
+          write(out_line,*) 'NOx loss & Ox gain due to rxns  w/ N '
+     &    ,NlossNOx,NprodOx
+          call write_parallel(trim(out_line),crit=jay)
         endif
 #endif
       end do ! end big L loop -----------------
