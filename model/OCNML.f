@@ -157,9 +157,22 @@ c
       subroutine set_ioptrs_ocnacc_sumfiles
       return
       end subroutine set_ioptrs_ocnacc_sumfiles
+      subroutine set_ioptrs_ocnacc_extended
+      return
+      end subroutine set_ioptrs_ocnacc_extended
       subroutine sumfiles_ocnacc
       return
       end subroutine sumfiles_ocnacc
+      subroutine def_meta_ocdiag(fid)
+      implicit none
+      integer fid
+      return
+      end subroutine def_meta_ocdiag
+      subroutine write_meta_ocdiag(fid)
+      implicit none
+      integer fid
+      return
+      end subroutine write_meta_ocdiag
 #endif /* NEW_IO */
 
       SUBROUTINE conserv_OCE(OCEANE)

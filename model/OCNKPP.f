@@ -1676,10 +1676,18 @@ CCC         OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
          OLJ(3,L,J)= OLJ(3,L,J) + S(L) ! L_SALT
        END DO
 C**** Set diagnostics
+       if(qpole) then ! compensate for lack of quarter-box treatment
+       OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL*4. ! boundary layer depth
+       OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo*4. ! surface buoyancy forcing
+       OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol*4. ! solar buoy frcg
+       OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar*4. ! turb fric speed
+       else
        OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
        OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
        OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
        OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
+       endif
+
        IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL ! save max. mixed layer depth
 C****
 C**** Update current prognostic variables

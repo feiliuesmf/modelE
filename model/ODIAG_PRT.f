@@ -1,9 +1,9 @@
-C**** ODIAG_PRT.f    2009/05/29
 #include "rundeck_opts.h"
 
       subroutine diag_ocean_prep
       implicit none
       call basin_prep
+      call oijl_prep
       return
       end subroutine diag_ocean_prep
 
@@ -132,7 +132,7 @@ C****
 #endif
 #endif
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM) :: Q,SFIJM,SFIJS,ADENOM
+      REAL*8, DIMENSION(IM,JM) :: Q,SFIJ
       REAL*8, DIMENSION(IM,JM,LMO) :: Q3
 c for now we are assuming that igrid=jgrid in arguments to pout_ij
       INTEGER I,J,K,L,N,KB,IJGRID,IP1,k1,KK
@@ -169,8 +169,9 @@ C**** lat/lon diagnostics
 C****
 C**** Ocean Potential Temperature (C)
 C****
-      LNAME="OCEAN POTENTIAL TEMPERATURE"
-      UNITS="C"
+      K=IJL_PTM
+      LNAME=LNAME_OIJL(K)
+      UNITS=UNITS_OIJL(K)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -195,8 +196,9 @@ C**** Loop over layers
 C****
 C**** Ocean Salinity (per mil)
 C****
-      LNAME="OCEAN SALINITY"
-      UNITS="psu"
+      K=IJL_S0M
+      LNAME=LNAME_OIJL(K)
+      UNITS=UNITS_OIJL(K)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -205,8 +207,8 @@ C**** Loop over layers
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
-     *       Q(I,J) = 1d3*OIJL(I,J,L,IJL_S0M) / (OIJL(I,J,L,IJL_MO)
-     *       *DXYPO(J))
+     *       Q(I,J) = OIJL(I,J,L,K)*SCALE_OIJL(K) /
+     &       (OIJL(I,J,L,IJL_MO)*DXYPO(J))
       END DO
       END DO
       Q(2:IM,JM)=Q(1,JM)
@@ -219,8 +221,9 @@ C**** Loop over layers
 C****
 C**** Ocean Potential Density (kg/m^3) (w.r.t. 0m)
 C****
-      LNAME="OCEAN POTENTIAL DENSITY (SIGMA_0)"
-      UNITS="KG/M^3"
+      K=IJL_PDM
+      LNAME=LNAME_OIJL(K)
+      UNITS=UNITS_OIJL(K)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -288,8 +291,8 @@ C**** East-West or North-South Velocities (cm/s)
 C****
       K=IJL_MFU
       DO LMINMF=1,LMO
-      LNAME="EAST-WEST VELOCITY"
-      UNITS="cm/s"
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         LMAXMF=LMINMF
       Q = 0.
       DO J=1,JM
@@ -300,7 +303,7 @@ C****
             MQ = MQ + (OIJL(I,J,L,IJL_MO)+OIJL(IP1,J,L,IJL_MO))
             Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,J) = 1d2 * 4.* Q(I,J) / (MQ*NDYNO*DYPO(J)+teeny)
+          Q(I,J) = SCALE_OIJL(K) * Q(I,J) / (.5*MQ*DYPO(J)+teeny)
           I=IP1
         END DO
       END DO
@@ -321,8 +324,8 @@ C****
 
       K=IJL_MFV
       DO LMINMF=1,LMO
-      LNAME="NORTH-SOUTH VELOCITY"
-      UNITS="cm/s"
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         LMAXMF=LMINMF
       Q = 0.
       DO J=1,JM-1
@@ -332,7 +335,7 @@ C****
             MQ = MQ + (OIJL(I,J,L,IJL_MO)+OIJL(I,J+1,L,IJL_MO))
             Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,J) = 1d2 * 4.* Q(I,J) / (MQ*NDYNO*DXVO(J)+teeny)
+          Q(I,J) =  SCALE_OIJL(K) * Q(I,J) / (.5*MQ*DXVO(J)+teeny)
         END DO
       END DO
       Q(2:IM,1)=Q(1,1)
@@ -351,16 +354,16 @@ C****
 C****
 C**** Vertical Velocity (cm/s)
 C****
+      K=IJL_MFW
       DO L=1,LMO-1
 c     IF(KVMF(K).le.0)  GO TO 370
 c        L =KVMF(K)
-        LNAME="DOWNWARD VERTICAL VELOCITY"
-        UNITS="cm/s"
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         SNAME='vert_vel_L'//LEVSTR(L)
         DO J=1,JM
           DO I=1,IMAXJ(J)
-            Q(I,J) = 2d2*OIJL(I,J,L,IJL_MFW)
-     *         / (RHOWS*IDACC(1)*NDYNO*DXYPO(J))
+            Q(I,J)=OIJL(I,J,L,K)*SCALE_OIJL(K)/(IDACC(1)*DXYPO(J))
           END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -461,13 +464,11 @@ C**** East-West or North-South Heat Flux (10^15 W)
 C****
       DO K=IJL_GFLX,IJL_GFLX+1
 c      IF(.not.QL(K))  GO TO 440
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         IF (K.eq.IJL_GFLX) THEN
-          LNAME="EAST-WEST HEAT FLUX"
-          UNITS="10^15 W"
           SNAME="ew_hflx"
         ELSE
-          LNAME="NORTH-SOUTH HEAT FLUX"
-          UNITS="10^15 W"
           SNAME="ns_hflx"
         END IF
         Q = 0.
@@ -476,7 +477,7 @@ c      IF(.not.QL(K))  GO TO 440
           DO L=LMINEF,LMAXEF
             Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,J) = 1d-15*Q(I,J) / (IDACC(1)*DTS)
+          Q(I,J) = SCALE_OIJL(K)*Q(I,J)/IDACC(1)
         END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -496,13 +497,11 @@ C**** East-West or North-South Salt Flux (10^6 kg/s)
 C****
       DO K=IJL_SFLX,IJL_SFLX+1
 c      IF(.not.QL(K))  GO TO 540
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         IF (K.eq.IJL_SFLX) THEN
-          LNAME="EAST-WEST SALT FLUX"
-          UNITS="10^6 kg/s"
           SNAME="ew_sflx"
         ELSE
-          LNAME="NORTH-SOUTH SALT FLUX"
-          UNITS="10^6 kg/s"
           SNAME="ns_sflx"
         END IF
         Q = 0.
@@ -511,7 +510,7 @@ c      IF(.not.QL(K))  GO TO 540
           DO L=LMINSF,LMAXSF
             Q(I,J) = Q(I,J) + OIJL(I,J,L,K)
           END DO
-          Q(I,J) = 1d-6*Q(I,J) / (IDACC(1)*DTS)
+          Q(I,J) = SCALE_OIJL(K)*Q(I,J)/IDACC(1)
         END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -530,40 +529,35 @@ C****
 C**** Gent-McWilliams fluxes (10^-2 kg/s*m)
 C****
       DO KK=0,2
+        K=KK+IJL_GGMFL
         DO L=1,lmo               !3
 c     L =1,13!KCMF(K)
 !          L=KCMFfull(K) ! anl
-
+          LNAME=LNAME_OIJL(K)
+          UNITS=UNITS_OIJL(K)
           SELECT CASE (KK)
           CASE (0)      ! E-W fluxes
-            LNAME="GM/EDDY E-W HEAT FLUX"
-            UNITS="10^9 W"
             SNAME='gm_ew_hflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J) = 1d-9*OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS)
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/IDACC(1)
               END DO
             END DO
           CASE (1)  ! N-S fluxes
-            LNAME="GM/EDDY N-S HEAT FLUX"
-            UNITS="10^9 W"
             SNAME='gm_ns_hflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J) = 1d-9*OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS)
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/IDACC(1)
               END DO
             END DO
           CASE (2)    !  Vertical fluxes
-            LNAME="GM/EDDY VERT. HEAT FLUX"
-            UNITS="W/m^2"
             SNAME='gm_vt_hflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J)=OIJL(I,J,L,KK+IJL_GGMFL)/(IDACC(1)*DTS*DXYPO(J))
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/(IDACC(1)*DXYPO(J))
               END DO
             END DO
           END SELECT
-
           Q(2:IM,JM)=Q(1,JM)
           Q(2:IM,1)=Q(1,1)
           TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
@@ -577,36 +571,32 @@ C****
 C**** Gent-McWilliams Salt Fluxes
 C****
       DO KK=0,2
+        K=KK+IJL_SGMFL
         DO L=1,lmo               !3
 c      L =KCMF(K)
 c          L=KCMFfull(K) ! anl
-
+          LNAME=LNAME_OIJL(K)
+          UNITS=UNITS_OIJL(K)
           SELECT CASE (KK)
           CASE (0)      ! E-W fluxes
-            LNAME="GM/EDDY E-W SALT FLUX"
-            UNITS="kg/s"
             SNAME='gm_ew_sflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J) = OIJL(I,J,L,KK+IJL_SGMFL)/(IDACC(1)*DTS)
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/IDACC(1)
               END DO
             END DO
           CASE (1)  ! N-S fluxes
-            LNAME="GM/EDDY N-S SALT FLUX"
-            UNITS="kg/s"
             SNAME='gm_ns_sflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J) = OIJL(I,J,L,KK+IJL_SGMFL)/(IDACC(1)*DTS)
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/IDACC(1)
               END DO
             END DO
           CASE (2)    !  Vertical fluxes
-            LNAME="GM/EDDY VERT. SALT FLUX"
-            UNITS="kg/s"
             SNAME='gm_vt_sflx_L'//LEVSTR(L)
             DO J=1,JM
               DO I=1,IMAXJ(J)
-                Q(I,J)=OIJL(I,J,L,KK+IJL_SGMFL)/(IDACC(1)*DTS) !*DXYPO(J
+                Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K)/IDACC(1) !*DXYPO(J))
               END DO
             END DO
           END SELECT
@@ -670,15 +660,16 @@ C****
 C****
 C**** Vertical Diffusion Coefficients (cm/s)
 C****
+      K=IJL_KVM
       DO L=1,lmo-1
-        LNAME="VERT. MOM. DIFF."
-        UNITS="cm^2/s"
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         SNAME="kvm_L"//LEVSTR(L)
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
-          IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=1d4*.00097d0**2*OIJL(I,J
-     *         ,L,IJL_KVM)/(IDACC(1)*dts) ! dts=4
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=OIJL(I,J,L,K)*
+     &         SCALE_OIJL(K)/IDACC(1)
         END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -690,15 +681,16 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
 
+      K=IJL_WGFL
       DO L=1,lmo-1
-        LNAME="VERT. HEAT DIFF."
-        UNITS="W/m^2"
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         SNAME="wgfl_L"//LEVSTR(L)
         Q=UNDEF
         DO J=1,JM
           DO I=1,IMAXJ(J)
-            IF (OIJL(I,J,L+1,IJL_MO).gt.0)          !  dts = 4
-     *           Q(I,J)=OIJL(I,J,L,IJL_WGFL)/(IDACC(1)*dts*dxypo(j))
+            IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=OIJL(I,J,L,K)
+     &           *SCALE_OIJL(K)/(IDACC(1)*dxypo(j))
           END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -710,15 +702,16 @@ C****
         CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,2,2)
       END DO
 
+      K=IJL_WSFL
       DO L=1,lmo-1
-        LNAME="VERT. SALT DIFF."
-        UNITS="10^-6 kg/m^2"
+        LNAME=LNAME_OIJL(K)
+        UNITS=UNITS_OIJL(K)
         SNAME="wsfl_L"//LEVSTR(L)
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
-          IF (OIJL(I,J,L+1,IJL_MO).gt.0)              !  dts = 4
-     *         Q(I,J)=1d6*OIJL(I,J,L,IJL_WSFL)/(IDACC(1)*dts*dxypo(j))
+          IF (OIJL(I,J,L+1,IJL_MO).gt.0) Q(I,J)=OIJL(I,J,L,K)
+     &         *SCALE_OIJL(K)/(IDACC(1)*dxypo(j))
         END DO
         END DO
         Q(2:IM,JM)=Q(1,JM)
@@ -761,49 +754,29 @@ C****
       DO K=1,KOIJ
         if(trim(sname_oij(k)).eq.'unused') cycle
         byiacc=1./(IDACC(IA_OIJ(K))+teeny)
-        adenom=1.
-        lname=lname_oij(k)
-        k1 = index(lname,' x ')
-        if (k1 .gt. 0) then
-          if (index(lname,' x PO4') .gt. 0) then
-            adenom(1,jm)=0.25
-            adenom(1, 1)=0.25
-          end if
-          lname(k1:50) = ' '
-        end if
-
-        Q=UNDEF
-        DO J=1,JM
-          DO I=1,IMAXJ(J)
-            IF (ADENOM(I,J).gt.0 .and. FOCEAN(I,J).gt.0.5)
-     *           Q(I,J)=SCALE_OIJ(K)*OIJ(I,J,K)*byiacc/adenom(i,j)
+        if(igrid_oij(k).eq.1 .and. jgrid_oij(k).eq.1) then
+          Q=UNDEF
+          DO J=1,JM
+            DO I=1,IMAXJ(J)
+              IF (FOCEAN(I,J).gt.0.5)
+     *             Q(I,J)=SCALE_OIJ(K)*OIJ(I,J,K)*byiacc
+            END DO
           END DO
-        END DO
-        Q(2:IM,JM)=Q(1,JM)
-        Q(2:IM,1)=Q(1,1)
+          Q(2:IM,JM)=Q(1,JM)
+          Q(2:IM,1)=Q(1,1)
+        else ! horizontal fluxes
+          Q=SCALE_OIJ(K)*OIJ(:,:,K)*byiacc
+        endif
+        lname=lname_oij(k)
         TITLE=trim(LNAME)//" ("//trim(UNITS_OIJ(K))//") "
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME_OIJ(K),LNAME_OIJ(K),UNITS_OIJ(K),Q,QJ
-     *       ,QSUM,IJGRID_OIJ(K),IJGRID_OIJ(K))
+     *       ,QSUM,IGRID_OIJ(K),JGRID_OIJ(K))
 
       END DO
 
       END IF
-C****
-C**** Calculate Horizontal Mass Stream Function and write it
-C****
-      LNAME= 'HORIZONTAL MASS TRANSPORT STREAMFUNCTION'
-      UNITS= 'Sv'
-      SNAME= 'osfij'
-      FAC   = -2d-9/(IDACC(1)*NDYNO)
-      FACST = -1d-9/(IDACC(1)*NDYNO*DTO)
-      CALL STRMIJ (OIJL(1,1,1,IJL_MFU),FAC,OLNST(1,1,LN_MFLX),FACST
-     *     ,SFIJM)
 
-      TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
-      TITLE(51:80)=XLB
-      IF (QDIAG) CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,SFIJM,QJ,QSUM
-     *     ,IJGRID,IJGRID)
 C****
 C**** Calculate Salt Stream Function and write it
 C****
@@ -821,6 +794,7 @@ c      TITLE = NAME(2)//'  Run '//XLABEL(1:6)
 c      WRITE(TITLE(63:80),'(A6,I4)') JMON0,JYEAR0
 
 C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
+      SFIJ = OIJ(:,:,IJ_SF)/idacc(1)
       WRITE(6,'(A)') " Key horizontal mass stream function diags:"
 
       GSMAX=0 ; GSMIN=100.
@@ -830,19 +804,19 @@ C**** Output Key diagnostics: Gulf Stream, ACC, Kuroshio
         DO I=1,IM
           if (oLAT_DG(j,2).ge.24 .and. oLAT_DG(j,2).le.38 .and. oLON_DG
      $         (i,2).ge.-80 .and. oLON_DG(i,2).le.-60) then
-            IF (SFIJM(I,J).GT.GSMAX) GSMAX=SFIJM(I,J)
-            IF (SFIJM(I,J).LT.GSMIN) GSMIN=SFIJM(I,J)
+            IF (SFIJ(I,J).GT.GSMAX) GSMAX=SFIJ(I,J)
+            IF (SFIJ(I,J).LT.GSMIN) GSMIN=SFIJ(I,J)
           end if
           if (oLAT_DG(j,2).ge.24 .and. oLAT_DG(j,2).le.38 .and. oLON_DG
      $         (i,2).ge.135 .and. oLON_DG(i,2).le.155) then
-            IF (SFIJM(I,J).GT.CKMAX) CKMAX=SFIJM(I,J)
-            IF (SFIJM(I,J).LT.CKMIN) CKMIN=SFIJM(I,J)
+            IF (SFIJ(I,J).GT.CKMAX) CKMAX=SFIJ(I,J)
+            IF (SFIJ(I,J).LT.CKMIN) CKMIN=SFIJ(I,J)
           end if
           if (oLAT_DG(j,2).ge.-72 .and. oLAT_DG(j,2).le.-54
      $         .and. oLON_DG(i,2).ge.-65-0.5*oDLAT_DG .and. oLON_DG(i,2)
      $         .le. -65+0.5*oDLAT_DG) then
-            IF (SFIJM(I,J).GT.ACMAX) ACMAX=SFIJM(I,J)
-            IF (SFIJM(I,J).LT.ACMIN) ACMIN=SFIJM(I,J)
+            IF (SFIJ(I,J).GT.ACMAX) ACMAX=SFIJ(I,J)
+            IF (SFIJ(I,J).LT.ACMIN) ACMIN=SFIJ(I,J)
           end if
         END DO
       END DO
@@ -858,8 +832,9 @@ C****
 C****
 C**** Ocean Heat Content (J/m^2)
 C****
-      LNAME="OCEAN HEAT CONTENT"
-      UNITS="10^6 J/m^2"
+      K=IJL_G0M
+      LNAME=LNAME_OIJL(K)
+      UNITS=UNITS_OIJL(K)
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -868,7 +843,7 @@ C**** Loop over layers
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
-          Q(I,J) = 1d-6*OIJL(I,J,L,IJL_G0M) / (DXYPO(J)*IDACC(1))
+          Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K) / (DXYPO(J)*IDACC(1))
         END IF
       END DO
       END DO
@@ -891,7 +866,7 @@ C****
       USE CONSTANT, only : undef
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-      USE OCEAN, only : im,jm,lmo,dxypo,ndyno,dts,dto,imaxj,ze
+      USE OCEAN, only : im,jm,lmo,dxypo,imaxj,ze
       USE DIAG_COM, only : qdiag,acc_period,zoc1
      &     ,sname_strlen,units_strlen,lname_strlen
 
@@ -899,7 +874,6 @@ C****
 
       USE ODIAG
       IMPLICIT NONE
-      REAL*8, DIMENSION(JM-1,0:LMO,0:4) :: SFM,SFS
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
       INTEGER I,J,K,L,NS,N,KB,IP1,LP1,JEQ
       REAL*8 FAC,FACST
@@ -912,11 +886,8 @@ C****
       LNAME=""
       XJL=undef
 C****
-C**** Calculate Mass Stream Function and write it
+C**** Write the Mass Stream Function
 C****
-      FAC   = -2d-9/(IDACC(1)*NDYNO)
-      FACST = -1d-9/(IDACC(1)*NDYNO*DTO)
-      CALL STRMJL (OIJL(1,1,1,IJL_MFU),FAC,OLNST(1,1,LN_MFLX),FACST,SFM)
       TITLE(9:50)=" Mass Stream Function (Sv)"
       DO KB=1,4
         TITLE(1:8)=TRIM(BASIN(KB))
@@ -924,6 +895,7 @@ C****
         sname='sf_'//trim(BASIN(KB))
         units='Sv'
         XJL(2:JM,1:LMO+1)=SFM(1:JM-1,0:LMO,KB)
+        where(xjl.ne.undef) xjl=xjl/idacc(1)
         LP1=LMO+1
         IF (QDIAG) CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,2,LP1,XJL
      *       ,ZOC1,"Latitude","Depth (m)")
@@ -946,19 +918,21 @@ C**** Output Key diagnostics
         do J=2,JM-1
 C**** North Atl. + North Pac. overturning
           if (oLAT_DG(j+1,2).gt.48-0.5*oDLAT_DG .and. oLAT_DG(j+1,2)
-     *         .lt. 48+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.900
-     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.900) then
-             WRITE(6,'(A46,F6.2)')
-     *            " North Atlantic overturning: 900m 48N: ",SFM(j,l,1)
-             WRITE(6,'(A46,F6.2)')
-     *            " North Pacific overturning:  900m 48N: ",SFM(j,l,2)
+     *         .lt. 48+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.900 
+     *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.900) then 
+             WRITE(6,'(A46,F6.2)') 
+     *            " North Atlantic overturning: 900m 48N: ",
+     &           SFM(j,l,1)/idacc(1)
+             WRITE(6,'(A46,F6.2)') 
+     *            " North Pacific overturning:  900m 48N: ",
+     &            SFM(j,l,2)/idacc(1)
           end if
 C**** AABW production
           if (oLAT_DG(j+1,2).ge.-52-0.5*oDLAT_DG .and. oLAT_DG(j+1,2)
      *         .lt. -52+0.5*oDLAT_DG .and. 0.5*(ZE(L)+ZE(L-1)).le.3000
      *         .and. 0.5*(ZE(L)+ZE(L+1)).gt.3000) then
              WRITE(6,'(A46,F6.2)') " Antarctic Bottom Water production:"
-     *            //" 3000m 52S: ",SFM(j,l,4)
+     *            //" 3000m 52S: ",SFM(j,l,4)/idacc(1)
           end if
         end do
       end do
@@ -1009,9 +983,8 @@ C****
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO,NMST) :: AS
       INTEGER I,J,K,L,NS,N,KB,IP1
-     *     ,LMSTMIN(LMO),SUMORMN(LMO)
-      REAL*8 SCALEO(10),MQ
-      CHARACTER*40, DIMENSION(KOLNST) :: NAME = ""
+     *     ,LMSTMIN(LMO),SUMORMN(KOLNST)
+      REAL*8 MQ
       CHARACTER :: TITLE*80
 C****
 C**** Strait diagnostics
@@ -1019,26 +992,17 @@ C****
       TITLE=""
       TITLE(51:80)=XLB
       SUMORMN(:)=1
-      NAME(LN_MFLX)='Strait Transport of Mass (10^6 kg/s)'
-      SCALEO(LN_MFLX) = 1.D- 6 / DTS
-      NAME(LN_GFLX)='Strait Trans of Potential Enthalpy (10^11 W)'
-      SCALEO(LN_GFLX) = .5D-11 / DTS
-      NAME(LN_SFLX)='Strait Transport of Salt (10^5 kg/s)'
-      SCALEO(LN_SFLX) = .5D- 5 / DTS
-      NAME(LN_KVM)= 'Vertical Diffusion Coefficient (m^2/s)'
-      SCALEO(LN_KVM) = .5
       SUMORMN(LN_KVM)=2
-      NAME(LN_ICFL)='Sea Ice Mass Flux (10^6 kg/s)'
-      SCALEO(LN_ICFL) = .5D-6 / DTS
       SUMORMN(LN_ICFL)=0
       DO N=1,KOLNST
         if (n.eq.LN_MFLX .or. n.eq.LN_GFLX.or. n.eq.LN_SFLX.or. n.eq
      *       .LN_KVM.or. n.eq.LN_ICFL) THEN
           AS = 0.
-          TITLE(1:40) = NAME(N)
+          TITLE(1:40) = TRIM(LNAME_OLNST(N))//' ('//
+     &         TRIM(UNITS_OLNST(N))//')'
           DO NS=1,NMST
             DO L=1,LMST(NS)
-              AS(L,NS) = OLNST(L,NS,N)*SCALEO(N)/IDACC(1)
+              AS(L,NS) = OLNST(L,NS,N)*SCALE_OLNST(N)/IDACC(IA_OLNST(N))
             END DO
           END DO
           IF (N.eq.LN_ICFL) THEN
@@ -1134,35 +1098,49 @@ C****
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE ODIAG, only : kbasin
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : pack_dataj,am_i_root
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: FAC,FACST
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LMO,2) :: OIJL
+      REAL*8, INTENT(IN) ::
+     &     OIJL(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,2)
       REAL*8, INTENT(IN), DIMENSION(LMO,NMST) :: OLNST
-      REAL*8, INTENT(OUT), DIMENSION(JM-1,0:LMO,0:4) :: SF
+      REAL*8, INTENT(OUT), DIMENSION(JM,0:LMO,4) :: SF
       REAL*8, DIMENSION(4) :: SUMB
       INTEGER :: KB,I,J,L,K
+      REAL*8 SFx(grid%j_strt_halo:grid%j_stop_halo,0:LMO,4)
+      REAL*8 :: SF_str(JM,0:LMO,4)
 C****
 C**** Zero out the Stream Function at the ocean bottom
 C****
-      SF(:,:,:) = 0.
+      SFX(:,:,:) = 0.
 C****
 C**** Integrate the Stream Function upwards from the ocean bottom
 C****
       DO L=LMO-1,0,-1
-      DO J=1,JM-1
+      DO J=grid%j_strt,min(grid%j_stop,jm-1)
         DO KB=1,4
-          SF(J,L,KB) = SF(J,L+1,KB)
+          SFX(J,L,KB) = SFX(J,L+1,KB)
         END DO
         DO I=1,IM
           KB = KBASIN(I,J+1)
-          SF(J,L,KB) = SF(J,L,KB) + OIJL(I,J,L+1,2)*FAC
+          IF(KB.gt.0) SFX(J,L,KB) = SFX(J,L,KB) + OIJL(I,J,L+1,2)*FAC
         END DO
       END DO
+      END DO
+
+      call pack_dataj(grid,sfx,sf)
+
+      if(am_i_root()) then
 C****
-C**** Add strait flow from to the Stream Function
+C**** Add strait flow to the Stream Function
 C****
-      CALL STRMJL_STRAITS(L,SF,OLNST,FACST)
-      EndDo  !  End of Do L=LMO-1,0,-1
+      sf_str = 0.
+      DO L=LMO-1,0,-1
+        CALL STRMJL_STRAITS(L,SF_str,OLNST,FACST)
+        sf_str(:,l,:) = sf_str(:,l,:) + sf_str(:,l+1,:)
+      END DO
+      sf = sf + sf_str
 
 C****
 C**** Calculate global Stream Function by summing it over 3 oceans
@@ -1193,6 +1171,7 @@ C****
           END IF
         END DO
       END DO
+      endif ! am_i_root
 C****
       RETURN
       END
@@ -1246,26 +1225,25 @@ C****
   901 FORMAT (72A1)
       END SUBROUTINE OBASIN
 
-      SUBROUTINE STRMIJ (OIJL,FAC,OLNST,FACST,SF)
+      SUBROUTINE STRMIJ (MFU,FAC,OLNST,FACST,SF)
 !@sum STRMIJ calculates the latitude by longitude stream function for a
 !@+   given quantity.
 C****
 C**** Input:
-!@var OIJL  = west-east and south-north tracer fluxes (kg/s)
+!@var MFU  = west-east and south-north tracer fluxes (kg/s)
 !@var   FAC = global scaling factor
 !@var OLNST = strait mass flux (kg/s)
 !@var FACST = global scaling factor for straits
 C**** Output:
 !@var    SF = stream function (kg/s)
 C****
-      Use OCEAN, Only: IM,JM,LMO, LMM, oDLAT_DG,oFJEQ=>FJEQ
+      Use OCEAN, Only: IM,JM,LMO, oDLAT_DG,oFJEQ=>FJEQ
       USE STRAITS, only : nmst,lmst
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: FAC,FACST
-      REAL*8, INTENT(IN), DIMENSION(IM,JM,LMO) :: OIJL
+      REAL*8, INTENT(IN), DIMENSION(IM,JM) :: MFU
       REAL*8, INTENT(IN), DIMENSION(LMO,NMST) :: OLNST
       REAL*8, INTENT(OUT), DIMENSION(IM,JM) :: SF
-      REAL*8, DIMENSION(4) :: SUMB
       Integer*4 :: I,J,L, NSUM
       REAL*8 TSUM
 C****
@@ -1273,16 +1251,13 @@ C**** Integrate up from South Pole
 C****
       SF=0
       DO J=2,JM-1
-      DO I=1,IM
-        SF(I,J) = SF(I,J-1)
-        DO L=1,LMM(I,J)
-          SF(I,J) = SF(I,J) + OIJL(I,J,L)*FAC
+        DO I=1,IM
+          SF(I,J) = SF(I,J-1) + MFU(I,J)*FAC
         END DO
-      END DO
 C****
 C**** Add strait flow from to the Stream Function
 C****
-      CALL STRMIJ_STRAITS(J,SF,OLNST,FACST)
+        CALL STRMIJ_STRAITS(J,SF,OLNST,FACST)
       EndDo  !  End of Do J=2,JM-1
 
 C****
@@ -1322,10 +1297,10 @@ C****
 #endif
       IMPLICIT NONE
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
-      REAL*8 XB0(JM,LMO,NBAS),X0(IM,LMO),XS(IM,LMO),
-     *     XBG(JM,LMO,NBAS),XBS(JM,LMO,NBAS),XG(IM,LMO)
+      REAL*8 XB0(JM,LMO,NBAS),X0(IM,LMO+1),XS(IM,LMO+1),
+     *     XBG(JM,LMO,NBAS),XBS(JM,LMO,NBAS),XG(IM,LMO+1)
 #ifdef TRACERS_OCEAN
-      REAL*8 XBT(JM,LMO,NBAS,NTM),XT(IM,LMO,NTM),XBTW(JM,LMO,NBAS)
+      REAL*8 XBT(JM,LMO,NBAS,NTM),XT(IM,LMO+1,NTM),XBTW(JM,LMO,NBAS)
 #endif
       CHARACTER TITLE*80,EW*1,NS*1
       CHARACTER(len=lname_strlen) :: lname
@@ -1339,9 +1314,9 @@ C****
       IF (QDIAG) then
       XJL=0.
 
-      XB0 = OJLB(:,:,:,JLB_M)
-      XBG = OJLB(:,:,:,JLB_T)
-      XBS = OJLB(:,:,:,JLB_S)
+      XB0 = OJL(:,:,:,JL_M)
+      XBG = OJL(:,:,:,JL_PT)
+      XBS = OJL(:,:,:,JL_S)
 
       TITLE(51:80) = XLB
 C****
@@ -1379,15 +1354,15 @@ C****
                   XBT(j,l,kb,n)=undef
                 end if
 c                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-c     *               ((XB0(J,L,KB)*DXYPO(J)-XBS(J,L,KB))*trw0(n))-1.)
+c     *               ((XB0(J,L,KB)-XBS(J,L,KB))*trw0(n))-1.)
               else
                 XBT(j,l,kb,n)= 10.**(-ntrocn(n))*XBT(j,l,kb,n)/
-     *               (XB0(J,L,KB)*DXYPO(J))
+     *               (XB0(J,L,KB))
               end if
               end do
 #endif
-              XBG(J,L,KB) = XBG(J,L,KB)/(XB0(J,L,KB)*DXYPO(J))
-              XBS(J,L,KB) = XBS(J,L,KB)/(XB0(J,L,KB)*DXYPO(J))
+              XBG(J,L,KB) = XBG(J,L,KB)/XB0(J,L,KB)
+              XBS(J,L,KB) = XBS(J,L,KB)/XB0(J,L,KB)
             ELSE
               XBG(J,L,KB)=undef
               XBS(J,L,KB)=undef
@@ -1693,22 +1668,173 @@ C****
       RETURN
       END SUBROUTINE OJLOUT
 
+      subroutine oijl_prep
+c
+c Convert oijl accumulations into the desired units
+c
+      use ocean, only : im,jm,lmo,lmm,imaxj,focean,dxypo,dxvo,dypo
+     &     ,ndyno,dto
+      use odiag, only : koijl,oijl_out,oijl=>oijl_loc
+     &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
+     &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_ggmfl,ijl_sgmfl
+     &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
+     &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : am_i_root,halo_update,south
+     &     ,pack_data,unpack_data ! for horz stream function
+      implicit none
+      integer i,j,l,k
+      real*8 mass,gos,sos,temgs,volgs,fac,facst
+      integer :: j_0,j_1,j_0s,j_1s
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: mfu
+      real*8, dimension(:,:), allocatable :: mfu_glob,sf_glob
+
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+      j_0s = grid%j_strt_skp
+      j_1s = grid%j_stop_skp
+
+      oijl_out(:,:,:,:) = 0.
+
+c
+c Cell-centered quantities. Some conversions to per square meter
+c
+      do l=1,lmo
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        mass = oijl(i,j,l,ijl_mo)
+        if(focean(i,j).le..5 .or. mass.le.0.) cycle
+        oijl_out(i,j,l,ijl_mo) = mass
+        oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)/dxypo(j)
+        oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)/dxypo(j)
+c
+c compute potential temperature and potential density
+c
+        gos = oijl_out(i,j,l,ijl_g0m) / mass
+        sos = oijl_out(i,j,l,ijl_s0m) / mass
+        oijl_out(i,j,l,ijl_ptm) = mass*temgs(gos,sos)
+        oijl_out(i,j,l,ijl_pdm) = mass/volgs(gos,sos)
+      enddo
+      enddo
+      enddo
+
+c
+c Vertical fluxes.  Some conversions to per square meter
+c
+      do l=1,lmo-1
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)/dxypo(j)
+        oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)/dxypo(j)
+        oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)/dxypo(j)
+        oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)/dxypo(j)
+        oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)/dxypo(j)
+        oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)
+        oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)
+        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)/dxypo(j)
+        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)/dxypo(j)
+      enddo
+      enddo
+      enddo
+
+c
+c Horizontal fluxes.  Some conversions to per meter
+c
+      do k=1,koijl
+        call halo_update(grid,oijl(:,:,:,k),from=south)
+      enddo
+      do l=1,lmo
+        do j=j_0s,j_1s
+        do i=1,im
+          oijl_out(i,j,l,ijl_mfu) = oijl(i,j,l,ijl_mfu)/dypo(j)
+          oijl_out(i,j,l,ijl_gflx) = oijl(i,j,l,ijl_gflx)
+          oijl_out(i,j,l,ijl_sflx) = oijl(i,j,l,ijl_sflx)
+        enddo
+        do i=1,im-1
+          oijl_out(i,j,l,ijl_ggmfl) = oijl(i+1,j,l,ijl_ggmfl)
+          oijl_out(i,j,l,ijl_sgmfl) = oijl(i+1,j,l,ijl_sgmfl)
+        enddo
+        i=im
+          oijl_out(i,j,l,ijl_ggmfl) = oijl(1,j,l,ijl_ggmfl)
+          oijl_out(i,j,l,ijl_sgmfl) = oijl(1,j,l,ijl_sgmfl)
+        do i=1,im-1
+          oijl_out(i,j,l,ijl_mou) =
+     &         .5*(oijl(i,j,l,ijl_mo)+oijl(i+1,j,l,ijl_mo))
+        enddo
+        i=im
+          oijl_out(i,j,l,ijl_mou) =
+     &         .5*(oijl(i,j,l,ijl_mo)+oijl(1,j,l,ijl_mo))
+        enddo ! j
+        do j=max(2,j_0),j_1
+        do i=1,im
+          oijl_out(i,j,l,ijl_mfv) = oijl(i,j-1,l,ijl_mfv)/dxvo(j-1)
+          oijl_out(i,j,l,ijl_mov) =
+     &         .5*(oijl(i,j,l,ijl_mo)+oijl(i,j-1,l,ijl_mo))
+          oijl_out(i,j,l,ijl_gflx+1) = oijl(i,j-1,l,ijl_gflx+1)
+          oijl_out(i,j,l,ijl_sflx+1) = oijl(i,j-1,l,ijl_sflx+1)
+          oijl_out(i,j,l,ijl_ggmfl+1) = oijl(i,j,l,ijl_ggmfl+1)
+          oijl_out(i,j,l,ijl_sgmfl+1) = oijl(i,j,l,ijl_sgmfl+1)
+        enddo
+        enddo ! j
+      enddo
+
+C****
+C**** Calculate Horizontal Mass Stream Function
+C****
+      do j=j_0s,j_1s
+      do i=1,im
+        mfu(i,j) = 0.
+        do l=1,lmm(i,j)
+          mfu(i,j) = mfu(i,j) + oijl(i,j,l,ijl_mfu)
+        enddo
+      enddo
+      enddo
+      if(am_i_root()) allocate(mfu_glob(im,jm),sf_glob(im,jm))
+      call pack_data(grid,mfu,mfu_glob)
+      if(am_i_root()) then
+        FAC   = -2d-9/(NDYNO)
+        FACST = -1d-9/(NDYNO*DTO)
+        CALL STRMIJ(MFU_GLOB,FAC,OLNST(1,1,LN_MFLX),FACST,SF_GLOB)
+      endif
+      call unpack_data(grid,sf_glob,oij(:,:,ij_sf))
+      if(am_i_root()) deallocate(mfu_glob,sf_glob)
+
+      return
+      end subroutine oijl_prep
+
       subroutine basin_prep
 c
 c Calculate zonal sums for ocean basins
 c
       use ocean, only : im,jm,lmo,imaxj,focean,dxypo
-      use odiag
+      USE OCEAN, only : ndyno,dts,dto
+      USE STRAITS, only : nmst
+      use odiag, only : oijl=>oijl_loc,kbasin
+     &     ,ijl_mo,ijl_g0m,ijl_s0m,ijl_mfu,ijl_mfv,ijl_gflx,ijl_sflx
+     &     ,ijl_ggmfl,ijl_sgmfl
+     &     ,ojl,ojl_out,nbas,nqty,jl_m,jl_pt,jl_s,jl_sf
+     &     ,otj,otjcomp,otj_out
+     &     ,olnst,ln_mflx,ln_gflx,ln_sflx
+     &     ,sfm
       use oceanr_dim, only : grid=>ogrid
-      use domain_decomp_1d, only : pack_dataj
+      use domain_decomp_1d, only : pack_dataj,am_i_root
       implicit none
-      integer i,j,l,kb,n
+      integer i,j,l,kb
       real*8 gos,sos,temgs
-      integer :: j_0,j_1
-      real*8 :: ojlx(grid%j_strt_halo:grid%j_stop_halo,lmo,nbas,kojlb)
+      integer :: j_0,j_1, j_0h,j_1h
+      real*8 :: ojlx(grid%j_strt_halo:grid%j_stop_halo,lmo,nbas,nqty)
+      INTEGER K,KQ,NOIJL,NOIJLGM,NOLNST,NS,KK,KC
+      REAL*8 SOIJL,SOIJLGM,FAC,FACST
+      REAL*8 SCALEM(3),SCALES(3),SOLNST(NMST),MV(4),MT(4)
+      INTEGER IS(4)
+      REAL*8 ::
+     &     X(grid%j_strt_halo:grid%j_stop_halo,4,3)
+     &    ,XCOMP(grid%j_strt_halo:grid%j_stop_halo,4,3,3)
 
       j_0 = grid%j_strt
       j_1 = grid%j_stop
+      j_0h = grid%j_strt_halo
+      j_1h = grid%j_stop_halo
 
       ojlx = 0.
       do l=1,lmo
@@ -1716,9 +1842,9 @@ c
       do i=1,imaxj(j)
         if(focean(i,j).lt..5) cycle
         kb=kbasin(i,j)
-        ojlx(j,l,kb,jlb_m) = ojlx(j,l,kb,jlb_m) +oijl_loc(i,j,l,ijl_mo)
-        ojlx(j,l,kb,jlb_t) = ojlx(j,l,kb,jlb_t) +oijl_loc(i,j,l,ijl_g0m)
-        ojlx(j,l,kb,jlb_s) = ojlx(j,l,kb,jlb_s) +oijl_loc(i,j,l,ijl_s0m)
+        ojlx(j,l,kb,jl_m) = ojlx(j,l,kb,jl_m) +oijl(i,j,l,ijl_mo)
+        ojlx(j,l,kb,jl_pt) = ojlx(j,l,kb,jl_pt) +oijl(i,j,l,ijl_g0m)
+        ojlx(j,l,kb,jl_s) = ojlx(j,l,kb,jl_s) +oijl(i,j,l,ijl_s0m)
       enddo
       enddo
       enddo
@@ -1728,63 +1854,38 @@ c
       do kb=1,4
       do l=1,lmo
       do j=j_0,j_1
-        if(ojlx(j,l,kb,jlb_m).eq.0.) cycle
-        gos = ojlx(j,l,kb,jlb_t)/(ojlx(j,l,kb,jlb_m)*dxypo(j))
-        sos = ojlx(j,l,kb,jlb_s)/(ojlx(j,l,kb,jlb_m)*dxypo(j))
-        ojlx(j,l,kb,jlb_t) = temgs(gos,sos)
-     &       *(ojlx(j,l,kb,jlb_m)*dxypo(j))
-        ojlx(j,l,kb,jlb_s) = ojlx(j,l,kb,jlb_s)*1d3
+        ojlx(j,l,kb,jl_m) = ojlx(j,l,kb,jl_m)*dxypo(j)
+        if(ojlx(j,l,kb,jl_m).eq.0.) cycle
+        gos = ojlx(j,l,kb,jl_pt)/ojlx(j,l,kb,jl_m)
+        sos = ojlx(j,l,kb,jl_s )/ojlx(j,l,kb,jl_m)
+        ojlx(j,l,kb,jl_pt) = temgs(gos,sos)*ojlx(j,l,kb,jl_m)
+        ojlx(j,l,kb,jl_s) = ojlx(j,l,kb,jl_s)*1d3
       enddo
       enddo
       enddo
 
-      call pack_dataj(grid,ojlx,ojlb)
+      call pack_dataj(grid,ojlx,ojl)
 
-      return
-      end subroutine basin_prep
-
-      SUBROUTINE OTJOUT
-!@sum OTJOUT calculate vertically integrated basin and zonal
-!@+   northward transports
-!@auth Gavin Schmidt/Gary Russell
-      USE MODEL_COM, only : idacc
-      USE OCEAN, only : im,jm,lmo,ndyno,dts
-      USE STRAITS, only : nmst,wist,dist,lmst,name_st
-      USE DIAG_COM, only : qdiag
-      USE ODIAG
-      IMPLICIT NONE
-      CHARACTER TITLE*80, NAME(11)*50,YAXIS(3)*8
-C**** X is integrated flux array X(LATITUDE,BASIN,KQ)
-C****   KQ 1   Mass (kg)
-C****      2   Heat (J)
-C****      3   Salt (kg)
-C****  XCOMP X(LATITUDE,BASIN,COMP,KQ) (KQ = 2,3)
-C**** COMP 1   advected by overturning
-C****      2   flux from GM
-C****      3   advected by horizontal gyres (residual)
 C****
-      REAL*8 X(0:JM,4,3),XCOMP(0:JM,4,3,3)
-      REAL*8 VLAT(0:JM),SCALEM(3),SCALES(3),SOLNST(NMST),
-     *       MV(4),MT(4), XSPEC(3),YSPEC(3,3)
-      INTEGER, PARAMETER :: INC=1+(JM-1)/24
-      INTEGER IS(4)
-      DATA NAME/
-     *     'Northward Transport of Mass (10^9 kg/sec)',
-     *     'North. Trans. of Potential Enthalpy (10^15 W)',
-     *     'North. Trans. of Salt - .035*Mass (10^6 kg/sec)',
-     *     'North. Trans. of Heat in Atl. Ocean (10^15 W)',
-     *     'North. Trans. of Heat in Pac. Ocean (10^15 W)',
-     *     'North. Trans. of Heat in Indian Ocean (10^15 W)',
-     *     'North. Trans. of Heat in Global Ocean (10^15 W)',
-     *     'North. Trans. of Salt in Atl. Ocean (10^6 kg/s)',
-     *     'North. Trans. of Salt in Pac. Ocean (10^6 kg/s)',
-     *     'North. Trans. of Salt in Indian Ocean (10^6 kg/s)',
-     *     'North. Trans. of Salt in Global Ocean (10^6 kg/s)'/
-      DATA YAXIS /'  Mass  ', 'Enthalpy', '  Salt  '/
-      DATA XSPEC /-90.,90.,30./
-      DATA YSPEC /-4.,4.,1., -5.,6.,1., -50.,50.,10./
-      INTEGER I,J,L,K,KQ,KB,NOIJL,NOIJLGM,NOLNST,NS,IDLAT
-      REAL*8 SOIJL,FJEQ,SOIJLGM
+C**** Calculate Mass Stream Function
+C****
+      FAC   = -2d-9/(NDYNO)
+      FACST = -1d-9/(NDYNO*DTO)
+      CALL STRMJL (OIJL(1,j_0h,1,IJL_MFU),FAC,
+     &     OLNST(1,1,LN_MFLX),FACST,SFM)
+      if(am_i_root()) then
+        ojl(1,:,:,jl_sf) = 0.
+        ojl(2:jm,:,:,jl_sf) = sfm(1:jm-1,1:lmo,:)
+      endif
+
+c copy to j,l,n array
+      if(am_i_root()) ojl_out = reshape(ojl,shape(ojl_out))
+
+
+c
+c Transports
+c
+
 C****
 C****  N          Contents of OIJL(I,J,L,N)       Scaling factor
 C****  -          -------------------------       --------------
@@ -1798,12 +1899,12 @@ C**** LN_MFLX  Strait mass flux (kg/s)            1/IDACC(1)*DTS
 C**** LN_GFLX  Strait heat flux (J/s)            .5/IDACC(1)*DTS
 C**** LN_SFLX  Strait salt flux (kg/s)           .5/IDACC(1)*DTS
 C****
-      SCALEM(1) = 2.D- 9/(IDACC(1)*NDYNO)
-      SCALEM(2) = 1.D-15/(IDACC(1)*DTS)
-      SCALEM(3) = 1.D- 6/(IDACC(1)*DTS)
-      SCALES(1) = 1.D- 9/(IDACC(1)*DTS)
-      SCALES(2) = .5D-15/(IDACC(1)*DTS)
-      SCALES(3) = .5D- 6/(IDACC(1)*DTS)
+      SCALEM(1) = 2.D- 9/(NDYNO)
+      SCALEM(2) = 1.D-15/(DTS)
+      SCALEM(3) = 1.D- 6/(DTS)
+      SCALES(1) = 1.D- 9/(DTS)
+      SCALES(2) = .5D-15/(DTS)
+      SCALES(3) = .5D- 6/(DTS)
 C****
       X = 0. ; XCOMP =0.
 C****
@@ -1826,7 +1927,7 @@ C****
         NOIJLGM=IJL_SGMFL+1
       END SELECT
 
-      DO J=1,JM-1
+      DO J=J_0,min(J_1,jm-1)
         DO I=1,IM
           IF(OIJL(I,J,1,IJL_MFV).eq.0) CYCLE
           KB = KBASIN(I,J+1)
@@ -1849,8 +1950,8 @@ c        X(J, 4,5) = X(J, 4,5) + SOIJLGM*SCALEM(KQ)
 C****
 C**** Accumulate northward transports by overturning and by
 C**** horizontal gyre
-C****
-      DO J=1,JM-1
+C**** 
+      DO J=J_0,min(J_1,jm-1)
         DO L=1,LMO
           IS=0 ; MV=0 ; MT=0
           DO I=1,IM
@@ -1868,18 +1969,27 @@ C****
             IF(IS(KB).eq.0) CYCLE
 c     X(J,KB,4) = X(J,KB,4) + SCALEM(2)*MV(KB)*MT(KB)/IS(KB)
             IF (KQ.eq.1) THEN
-              XCOMP(J,KB,1,KQ) = XCOMP(J,KB,1,KQ) + SCALEM(KQ)*MV(KB)
+              XCOMP(J,KB,1,KQ) = XCOMP(J,KB,1,KQ) +SCALEM(KQ)*MV(KB)
             ELSE
-              XCOMP(J,KB,1,KQ) = XCOMP(J,KB,1,KQ) + SCALEM(KQ)*MV(KB)
+              XCOMP(J,KB,1,KQ) = XCOMP(J,KB,1,KQ) +SCALEM(KQ)*MV(KB)
      *             *MT(KB)/IS(KB)
             END IF
           END DO
         END DO
         DO KB=1,4
 c     X(J,KB,6) = X(J,KB,2) - X(J,KB,4) - X(J,KB,5)
-          XCOMP(J,KB,3,KQ)=X(J,KB,KQ)-XCOMP(J,KB,1,KQ)-XCOMP(J,KB,2,KQ)
+          XCOMP(J,KB,3,KQ)=
+     &         X(J,KB,KQ)-XCOMP(J,KB,1,KQ)-XCOMP(J,KB,2,KQ)
         END DO
       END DO
+
+      END DO ! end loop over kq
+
+      call pack_dataj(grid,x,otj(1:jm,:,:))
+      call pack_dataj(grid,xcomp,otjcomp(1:jm,:,:,:))
+
+      if(am_i_root()) then
+      DO KQ=1,3
 C****
 C**** Calculate transport through straits from latitude to another
 C**** within the same basin
@@ -1900,20 +2010,72 @@ C****
         END DO
       END DO
 
-      CALL OTJ_STRAITS(X,SOLNST,SCALES(KQ),KQ)
+      CALL OTJ_STRAITS(OTJ,SOLNST,SCALES(KQ),KQ)
 
 C**** Fill in south polar value
-      X(0,1:4,KQ)  = X(1,1:4,KQ)
+      OTJ(0,1:4,KQ)  = OTJ(1,1:4,KQ)
 
-      END DO
+      END DO ! end loop over kq
+
 C**** Replace salt by salt - .035 times mass
       DO KB=1,4
         DO J=0,JM
-          X(J,KB,3) = X(J,KB,3) - .035d3*X(J,KB,1)
-          XCOMP(J,KB,:,3) = XCOMP(J,KB,:,3) - .035d3*XCOMP(J,KB,:,1)
+          OTJ(J,KB,3) = OTJ(J,KB,3) - .035d3*OTJ(J,KB,1)
+          OTJCOMP(J,KB,:,3) = OTJCOMP(J,KB,:,3)-.035d3*OTJCOMP(J,KB,:,1)
         END DO
       END DO
-C****
+
+C**** combine OTJ and OTJCOMP into a single output array
+      otj_out(1,:) = 0.
+      kk = 0
+      do kq=1,3
+      do kb=1,4
+        kk = kk + 1
+        otj_out(2:jm,kk) = otj(1:jm-1,kb,kq)
+        do kc=1,3
+          kk = kk + 1
+          otj_out(2:jm,kk) = otjcomp(1:jm-1,kb,kc,kq)
+        enddo
+      enddo
+      enddo
+
+      endif ! am_i_root
+
+      return
+      end subroutine basin_prep
+
+      SUBROUTINE OTJOUT
+!@sum OTJOUT print vertically integrated basin and zonal
+!@+   northward transports
+!@auth Gavin Schmidt/Gary Russell
+      USE MODEL_COM, only : idacc
+      USE OCEAN, only : im,jm,lmo
+      USE DIAG_COM, only : qdiag
+      USE ODIAG
+      IMPLICIT NONE
+      CHARACTER TITLE*80, YAXIS(3)*8
+      REAL*8 VLAT(0:JM)
+      INTEGER, PARAMETER :: INC=1+(JM-1)/24
+      CHARACTER*50, DIMENSION(11) ::  OTJNAME=(/
+     *     'Northward Transport of Mass (10^9 kg/sec)        ',
+     *     'North. Trans. of Potential Enthalpy (10^15 W)    ',
+     *     'North. Trans. of Salt - .035*Mass (10^6 kg/sec)  ',
+     *     'North. Trans. of Heat in Atl. Ocean (10^15 W)    ',
+     *     'North. Trans. of Heat in Pac. Ocean (10^15 W)    ',
+     *     'North. Trans. of Heat in Indian Ocean (10^15 W)  ',
+     *     'North. Trans. of Heat in Global Ocean (10^15 W)  ',
+     *     'North. Trans. of Salt in Atl. Ocean (10^6 kg/s)  ',
+     *     'North. Trans. of Salt in Pac. Ocean (10^6 kg/s)  ',
+     *     'North. Trans. of Salt in Indian Ocean (10^6 kg/s)',
+     *     'North. Trans. of Salt in Global Ocean (10^6 kg/s)'/)
+      DATA YAXIS /'  Mass  ', 'Enthalpy', '  Salt  '/
+      INTEGER J,KQ,KB,IDLAT
+      REAL*8 FJEQ
+      REAL*8 X(0:JM,4,3),XCOMP(0:JM,4,3,3)
+
+      X = OTJ/idacc(1)
+      XCOMP = OTJCOMP/idacc(1)
+
       IDLAT= NINT(180./(JM-1))
       FJEQ = JM/2.
       DO J=1,JM-1
@@ -1926,7 +2088,7 @@ C**** Write titles and data to disk.
 C****
       TITLE(51:80)=XLB
       DO KQ=1,3
-        TITLE(1:50)=NAME(KQ)
+        TITLE(1:50)=OTJNAME(KQ)
         WRITE (6,907) TITLE(1:72)
 C**** print out truncated series to PRT file
         WRITE (6,903) (NINT(VLAT(J)),J=JM,0,-INC)
@@ -1951,18 +2113,18 @@ C****
       DO KQ=2,3
         WRITE(6,908)
         DO KB=1,4
-          TITLE(1:50)=NAME(3+KB+4*(KQ-2))
+          TITLE(1:50)=OTJNAME(3+KB+4*(KQ-2))
           WRITE (6,907) TITLE(1:72)
 C**** print out truncated series to PRT file
           WRITE(6,903) (NINT(VLAT(J)),J=JM,0,-INC)
-          WRITE(6,906)BASIN(KB)(1:3)//" Overtrn",(XCOMP(J,KB,1,KQ),J=JM
-     *         ,0,-INC)
-          WRITE(6,906)BASIN(KB)(1:3)//" GM flx ",(XCOMP(J,KB,2,KQ),J=JM
-     *         ,0,-INC)
-          WRITE(6,906)BASIN(KB)(1:3)//" Hor gyr",(XCOMP(J,KB,3,KQ),J=JM
-     *         ,0,-INC)
-          WRITE(6,906)BASIN(KB)(1:3)//" Total  ",(X(J,KB,KQ),J=JM,0,-INC
-     *         )
+          WRITE(6,906)BASIN(KB)(1:3)//" Overtrn",
+     &         (XCOMP(J,KB,1,KQ),J=JM,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" GM flx ",
+     &         (XCOMP(J,KB,2,KQ),J=JM,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" Hor gyr",
+     &         (XCOMP(J,KB,3,KQ),J=JM,0,-INC)
+          WRITE(6,906)BASIN(KB)(1:3)//" Total  ",
+     &         (X(J,KB,KQ),J=JM,0,-INC)
           WRITE(6,904)
           IF (QDIAG) THEN
             WRITE (iu_otj,*) TITLE
@@ -1970,8 +2132,8 @@ C**** print out truncated series to PRT file
             WRITE (iu_otj,*) YAXIS(2)
             WRITE (iu_otj,*)
      *           ' Lat      Total    Overturn    GM_flux    Hor_Gyre'
-            WRITE (iu_otj,976)(VLAT(J),X(J,KB,KQ),XCOMP(J,KB,1:3,KQ),J=0
-     *           ,JM)
+            WRITE (iu_otj,976)(VLAT(J),X(J,KB,KQ),
+     &           XCOMP(J,KB,1:3,KQ),J=0,JM)
             WRITE (iu_otj,*)
           END IF
         END DO
@@ -2006,7 +2168,7 @@ C****
       Implicit None
 
       Integer*4,Intent(In) :: L
-      Real*8,Intent(InOut) :: SF(JM-1,0:LMO,0:4)
+      Real*8,Intent(InOut) :: SF(JM,0:LMO,4)
       Real*8,Intent(In)    :: OLNST(LMO,NMST),FACST
 
 C**** Local variables

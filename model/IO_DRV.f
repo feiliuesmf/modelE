@@ -259,7 +259,7 @@ c idacc(5) is not additive
 
       call def_meta_atmacc(fid)
       call def_meta_rvracc(fid)
-c      call def_meta_ocdiag(fid)
+      call def_meta_ocdiag(fid)
 c      call def_meta_icdiag(fid)
 c#ifdef TRACERS_ON
 c      call def_meta_trdiag(fid)
@@ -278,7 +278,7 @@ c#endif
       integer :: fid         !@var fid file id
       call write_meta_atmacc(fid)
       call write_meta_rvracc(fid)
-c      call write_meta_ocdiag(fid)
+      call write_meta_ocdiag(fid)
 c      call write_meta_icdiag(fid)
 c#ifdef TRACERS_ON
 c      call write_meta_trdiag(fid)
@@ -575,7 +575,7 @@ c point i/o pointers for accumlated quantities to the
 c instances of the arrays holding derived quantities as well
       implicit none
       call set_ioptrs_atmacc_extended
-c      call set_ioptrs_ocnacc_extended
+      call set_ioptrs_ocnacc_extended
 c      call set_ioptrs_iceacc_extended
 c#ifdef TRACERS_ON
 c      call set_ioptrs_tracacc_extended
@@ -655,7 +655,7 @@ C**** keep track of min/max time over the combined diagnostic period
       subroutine calc_derived_acc
       implicit none
       call calc_derived_acc_atm
-c      call calc_derived_acc_ocn
+      call diag_ocean_prep
 c#ifdef TRACERS_ON
 c      call calc_derived_acc_trac
 c#endif
