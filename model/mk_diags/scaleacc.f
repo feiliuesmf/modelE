@@ -19,7 +19,7 @@ c
       real*4, dimension(:), allocatable :: xout_vmean,xden_vmean
       integer :: idacc(12)
       integer :: k,kd,kacc,kcdl,kgw,kend,arrsize,ndims,sdim,jdim
-      integer, dimension(7) :: srt,cnt,accsizes,dimids
+      integer, dimension(7) :: srt,cnt,accsizes,dimids,hemi_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
       integer :: status,ofid,accid,varid,accid_hemis,jdimid,accid_vmean
       real*4, parameter :: undef=-1.e30
@@ -40,6 +40,7 @@ c
       status = nf_inq_varid(fid,'hemis_'//trim(dcat),accid_hemis)
       do_hemis = status.eq.nf_noerr
       if(do_hemis) then
+        call get_vdimsizes(fid,'hemis_'//trim(dcat),ndims,hemi_sizes)
         call get_dimsize(fid,'shnhgm',k)
         if(k.ne.3) stop 'bad size for shnhgm dimension'
       endif
@@ -68,7 +69,7 @@ c
 c
 c Calculate the size of one output array, allocate workspace
 c
-      arrsize = product(accsizes(1:ndims))/kacc
+      arrsize = product(cnt(1:ndims))
       allocate(xout(arrsize),xden(arrsize))
 
 c
@@ -82,10 +83,10 @@ c
         do jdim=1,ndims
           if(jdimid.eq.dimids(jdim)) exit
         enddo
-        allocate(xout_hemis(arrsize*3/accsizes(jdim)),
-     &           xden_hemis(arrsize*3/accsizes(jdim)))
-        cnt_hemis(:) = cnt(:)
-        cnt_hemis(jdim) = 3
+        cnt_hemis(1:ndims) = hemi_sizes(1:ndims)
+        cnt_hemis(sdim) = 1
+        arrsize = product(cnt_hemis(1:ndims))
+        allocate(xout_hemis(arrsize),xden_hemis(arrsize))
       endif
 
 c
