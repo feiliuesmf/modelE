@@ -1336,7 +1336,7 @@ C****
           END DO
         END DO
       END DO
-      XBT(:,:,4,:)= XBT(:,:,1,:)+XBT(:,:,2,:)+XBT(:,:,3,:)
+      XBT(:,:,4,:)= SUM(XBT(:,:,1:4,:),DIM=3)
       if (n_water.ne.0) XBTW(:,:,:) =  XBT(:,:,:,n_water)
 #endif
 
@@ -1933,14 +1933,14 @@ C****
             IF (NOIJLGM.gt.0) SOIJLGM = SOIJLGM + OIJL(I,J,L,NOIJLGM)
           END DO
           X(J,KB,KQ) = X(J,KB,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
-          X(J, 4,KQ) = X(J, 4,KQ) + (SOIJL+SOIJLGM)*SCALEM(KQ)
           IF (KQ.ne.1) THEN
 c        X(J,KB,5) = X(J,KB,5) + SOIJLGM*SCALEM(KQ)
 c        X(J, 4,5) = X(J, 4,5) + SOIJLGM*SCALEM(KQ)
             XCOMP(J,KB,2,KQ) = XCOMP(J,KB,2,KQ) + SOIJLGM*SCALEM(KQ)
-            XCOMP(J, 4,2,KQ) = XCOMP(J, 4,2,KQ) + SOIJLGM*SCALEM(KQ)
           END IF
         END DO
+        X(J,4,KQ) = SUM(X(J,1:4,KQ))
+        XCOMP(J,4,2,KQ) = SUM(XCOMP(J,1:4,2,KQ))
       END DO
 C****
 C**** Accumulate northward transports by overturning and by
@@ -1957,9 +1957,9 @@ C****
             IF (NOIJL.gt.0) MT(KB) = MT(KB) + OIJL(I,J,L,NOIJL)/OIJL(I,J
      *           ,L,IJL_MFV)
           END DO
-          IS(4) = IS(1) + IS(2) + IS(3)
-          MV(4) = MV(1) + MV(2) + MV(3)
-          IF (NOIJL.gt.0) MT(4) = MT(1) + MT(2) + MT(3)
+          IS(4) = SUM(IS(1:4))
+          MV(4) = SUM(MV(1:4))
+          IF (NOIJL.gt.0) MT(4) = SUM(MT(1:4))
           DO KB=1,4
             IF(IS(KB).eq.0) CYCLE
 c     X(J,KB,4) = X(J,KB,4) + SCALEM(2)*MV(KB)*MT(KB)/IS(KB)
