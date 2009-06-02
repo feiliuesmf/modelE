@@ -1817,7 +1817,7 @@ c
       integer i,j,l,kb
       real*8 gos,sos,temgs
       integer :: j_0,j_1, j_0h,j_1h
-      real*8 :: ojlx(grid%j_strt_halo:grid%j_stop_halo,lmo,nbas,nqty)
+      real*8 :: ojlx(grid%j_strt_halo:grid%j_stop_halo,lmo,nbas,4)
       INTEGER K,KQ,NOIJL,NOIJLGM,NOLNST,NS,KK,KC
       REAL*8 SOIJL,SOIJLGM,FAC,FACST
       REAL*8 SCALEM(3),SCALES(3),SOLNST(NMST),MV(4),MT(4)
