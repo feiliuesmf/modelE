@@ -1844,7 +1844,7 @@ c
       enddo
       enddo
 
-      ojlx(:,:,4,:) = sum(ojlx(:,:,1:3,:),dim=3)
+      ojlx(:,:,4,:) = sum(ojlx(:,:,1:4,:),dim=3)
 
       do kb=1,4
       do l=1,lmo
