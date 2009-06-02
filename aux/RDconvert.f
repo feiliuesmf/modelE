@@ -8,7 +8,8 @@
       USE DOMAIN_DECOMP_1D, ONLY : init_app,init_grid
       USE DOMAIN_DECOMP_ATM, ONLY : grid,readt_parallel
      *     ,WRITE_PARALLEL,get,am_i_root
-      USE LAKES, only : KDIREC,KD911,IFLOW,JFLOW,IFL911,JFL911,NAMERVR
+      USE LAKES, only : KDIREC,KD911,IFLOW,JFLOW,IFL911,JFL911
+      USE LAKES_COM, only : NAMERVR
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE GEOM, only : lon2d_dg,lat2d_dg,dyv,geom_b,imaxj,lonlat_to_ij
      *     ,lat_to_j
