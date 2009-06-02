@@ -583,13 +583,13 @@ c           (~200nm):
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
           colmO3=colmO3+y(nO3,L)*thick*1.d5
-c SF3 is photolysis of water in Schumann-Runge bands based on:
-c Nicolet, Pl. Space Sci., p 871, 1983.
-C SF3_fact is, if x[ ] = bin4_flux[ ]:
-C {(x[present] - x[1988]) / (x[1991] - x[1988])} * 0.1E-6
-C This gets ADDED to the 1.3E-6 factor in the SF3 calculation. Here,
-C bin4_flux is a proxy for the flux from all 175-200nm bins. 
-C (Drew says the ratio would be the same.)
+! SF3 is photolysis of water in Schumann-Runge bands based on:
+! Nicolet, Pl. Space Sci., p 871, 1983.
+! SF3_fact is, if x[ ] = bin4_flux[ ]:
+! {(x[present] - x[1988]) / (x[1991] - x[1988])} * 0.1E-6
+! This gets ADDED to the 1.3E-6 factor in the SF3 calculation. Here,
+! bin4_flux is a proxy for the flux from all 175-200nm bins. 
+! (Drew says the ratio would be the same.)
           if(SF2_fact == 0.)call stop_model('SF2_fact=0 in master',255)
           if(pres2(L) <= 10.)then
             if((SF3_FACT+1.3d-6) < 0.)call stop_model
@@ -600,9 +600,9 @@ C (Drew says the ratio would be the same.)
           else
             SF3(I,J,L)=0.d0
           endif
-C SF2 is photlysis of NO in bands (0-0) and (1-0) based on Nicolet,
-C Pl. Space Sci., p 111, 1980. SF2_fact is a ratio representative of
-C bands (0-0) and (1-0); =  bin5_flux[present] / bin5_flux[1988] :
+! SF2 is photlysis of NO in bands (0-0) and (1-0) based on Nicolet,
+! Pl. Space Sci., p 111, 1980. SF2_fact is a ratio representative of
+! bands (0-0) and (1-0); =  bin5_flux[present] / bin5_flux[1988] :
           if(colmO2 > 2.d19)then
             SF2(I,J,L)=4.5d-6*EXP(-(1.d-8*colmO2**.38+5.d-19*colmO3))
           else

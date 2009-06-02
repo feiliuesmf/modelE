@@ -1362,8 +1362,8 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
       end do ! end big L loop -----------------
 
 #ifdef SHINDELL_STRAT_CHEM
-c Remove some of the HNO3 formed heterogeneously, as it doesn't come
-c back to the gas phase:
+! Remove some of the HNO3 formed heterogeneously, as it doesn't come
+! back to the gas phase:
       do L=1,maxL
         if(pscX(L)) changeL(L,n_HNO3)=changeL(L,n_HNO3)-
      &  2.0d-3*y(n_HNO3,L)*(axyp(i,j)*rMAbyM(L))*vol2mass(n_HNO3)
