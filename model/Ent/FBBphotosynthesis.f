@@ -1066,10 +1066,10 @@ cddd!@sum Leaf internal CO2 conc (umol mol-1) assuming diffusive flux of CO2
 cddd!@sum is at steady-state with biochemical uptake by photosynthesis and
 cddd!@sum that there is zero leaf boundary layer resistance (infinite gb),
 cddd!@sum and that there is no leaf cuticular conductance of CO2.
-cddd!@sum Full equation:  ci = ca - Anet*(1.6/gb + 1.4/gs)
-cddd!@sum 1.6 = ratio of diffusivities of CO2 and water vapor in laminar flow
+cddd!@sum Full equation:  ci = ca - Anet*(1.37/gb + 1.65/gs)
+cddd!@sum 1.37 = ratio of diffusivities of CO2 and water vapor in laminar flow
 cddd!@sum       in the leaf boundary layer
-cddd!@sum 1.4 = ratio of diffusivities of CO2 and water vapor in still air at
+cddd!@sum 1.65 = ratio of diffusivities of CO2 and water vapor in still air at
 cddd!@sum       the leaf surface
 cddd!@sum (Monteith, 1995;  Kiang, 2002)
 cddd      implicit none
@@ -1085,9 +1085,9 @@ cddd      !----Local------
 cddd      real*8,parameter :: MINPARMOL=50.d0  !(umol m-2 s-1)
 cddd
 cddd      if (IPAR.lt.MINPARMOL) then  !Stomates closed
-cddd        ci = ca - Anet*1.6d0/pspar%b
+cddd        ci = ca - Anet*1.37d0/pspar%b
 cddd      else
-cddd        ci = ca - Anet*(1.6d0/gb + 1.4d0/gs)
+cddd        ci = ca - Anet*(1.37d0/gb + 1.65d0/gs)
 cddd      endif
 cddd
 cddd      if (ci.lt.ciMIN) ci = ciMIN  !Keep positive definite.
