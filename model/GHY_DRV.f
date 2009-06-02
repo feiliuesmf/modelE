@@ -2448,6 +2448,8 @@ c**** compute roughnes length
           do i=I_0,I_1
             if ( focean(i,j) >= 1.d0 ) cycle
             rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
+            ! make sure that roughness length is always > 0
+            rrr(i,j) = max( rrr(i,j), 0.005d0 )  ! 0.005 is flat desert
           enddo
         enddo
         write(982) titrrr,rrr
