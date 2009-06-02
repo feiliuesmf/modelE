@@ -1749,14 +1749,9 @@ c
           oijl_out(i,j,l,ijl_mfu) = oijl(i,j,l,ijl_mfu)/dypo(j)
           oijl_out(i,j,l,ijl_gflx) = oijl(i,j,l,ijl_gflx)
           oijl_out(i,j,l,ijl_sflx) = oijl(i,j,l,ijl_sflx)
+          oijl_out(i,j,l,ijl_ggmfl) = oijl(i,j,l,ijl_ggmfl)
+          oijl_out(i,j,l,ijl_sgmfl) = oijl(i,j,l,ijl_sgmfl)
         enddo
-        do i=1,im-1
-          oijl_out(i,j,l,ijl_ggmfl) = oijl(i+1,j,l,ijl_ggmfl)
-          oijl_out(i,j,l,ijl_sgmfl) = oijl(i+1,j,l,ijl_sgmfl)
-        enddo
-        i=im
-          oijl_out(i,j,l,ijl_ggmfl) = oijl(1,j,l,ijl_ggmfl)
-          oijl_out(i,j,l,ijl_sgmfl) = oijl(1,j,l,ijl_sgmfl)
         do i=1,im-1
           oijl_out(i,j,l,ijl_mou) =
      &         .5*(oijl(i,j,l,ijl_mo)+oijl(i+1,j,l,ijl_mo))
@@ -1772,8 +1767,8 @@ c
      &         .5*(oijl(i,j,l,ijl_mo)+oijl(i,j-1,l,ijl_mo))
           oijl_out(i,j,l,ijl_gflx+1) = oijl(i,j-1,l,ijl_gflx+1)
           oijl_out(i,j,l,ijl_sflx+1) = oijl(i,j-1,l,ijl_sflx+1)
-          oijl_out(i,j,l,ijl_ggmfl+1) = oijl(i,j,l,ijl_ggmfl+1)
-          oijl_out(i,j,l,ijl_sgmfl+1) = oijl(i,j,l,ijl_sgmfl+1)
+          oijl_out(i,j,l,ijl_ggmfl+1) = oijl(i,j-1,l,ijl_ggmfl+1)
+          oijl_out(i,j,l,ijl_sgmfl+1) = oijl(i,j-1,l,ijl_sgmfl+1)
         enddo
         enddo ! j
       enddo

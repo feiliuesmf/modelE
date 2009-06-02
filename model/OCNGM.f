@@ -644,26 +644,36 @@ c**** Extract domain decomposition info
      &     J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
+      call halo_update(grid,flux_y,from=north)
 
 c
 c If any flux convergences are adjusted, these flux diagnostics
 c will be wrong.  Since the adjustments are typically rare in
 c time and space, the diagnostics error will be small.
+c Shift x/y indices by 1 for consistency with ocean dynamics
+c conventions.
 c
       do l=1,lmo
-      do j=j_0,j_1
-      do i=1,im
-        gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(i,j,l)
-        gijl(i,j,l,2) = gijl(i,j,l,2) + flux_y(i,j,l)
-        gijl(i,j,l,3) = gijl(i,j,l,3) + flux_z(i,j,l)
-      enddo
-      enddo
+        do j=j_0,j_1
+          do i=1,im-1
+            gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(i+1,j,l)
+          enddo
+          i=im
+            gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(  1,j,l)
+          do i=1,im
+            gijl(i,j,l,3) = gijl(i,j,l,3) + flux_z(i,j,l)
+          enddo
+        enddo
+        do j=j_0,min(j_1,jm-1)
+          do i=1,im
+            gijl(i,j,l,2) = gijl(i,j,l,2) + flux_y(i,j+1,l)
+          enddo
+        enddo
       enddo
 
 c
 c Compute flux convergence
 c
-      call halo_update(grid,flux_y,from=north)
       do l=lmo,1,-1
         do j=j_0s,j_1s
           do i=1,im-1
