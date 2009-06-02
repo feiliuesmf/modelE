@@ -3144,10 +3144,12 @@ C****
 !@sum Calculate derived lat/lon diagnostics prior to printing
 !@auth Group
       USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop
-      USE GEOM, only : imaxj
+      USE DOMAIN_DECOMP_ATM, only : GRID,SUMXPE,AM_I_ROOT
+      USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop,
+     &     im,jm
+      USE GEOM, only : imaxj,axyp,lat2d,areag
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
+     &     kaij,hemis_ij,jgrid_ij,
      &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
      *     ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
      *     ij_netrdp, ij_albp, ij_albg, ij_albv,
@@ -3162,10 +3164,11 @@ C****
      *     ij_lwaerabs,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,
      *     ij_lwaersrfnt,ij_swaerabsnt,ij_lwaerabsnt
       IMPLICIT NONE
-      INTEGER :: I,J,L,K,K1,K2,N
+      INTEGER :: I,J,L,K,K1,K2,N,KHEM
       INTEGER :: J_0,J_1,I_0,I_1
       REAL*8 :: SCALEK
       real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu2,tmsu3,tmsu4
+      real*8, dimension(2,kaij) :: shnh_loc,shnh
 
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
@@ -3279,6 +3282,43 @@ C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
 
       ENDDO
       ENDDO
+
+c
+c fill poles
+c
+      if(grid%have_south_pole) then
+        do k=1,kaij
+          if(jgrid_ij(k).eq.1) aij(2:im,1,k) = aij(1,1,k)
+        enddo
+      endif
+      if(grid%have_north_pole) then
+        do k=1,kaij
+          if(jgrid_ij(k).eq.1) aij(2:im,jm,k) = aij(1,jm,k)
+        enddo
+      endif
+
+c
+c compute hemispheric/global means
+c
+      shnh_loc = 0.
+      do k=1,kaij
+        if(jgrid_ij(k).ne.1) cycle ! only do primary grid for now
+        do j=j_0,j_1
+        do i=i_0,i_1
+          khem = 1
+          if(lat2d(i,j).ge.0.) khem = 2
+          shnh_loc(khem,k) = shnh_loc(khem,k) + axyp(i,j)*aij(i,j,k)
+        enddo
+        enddo
+      enddo
+      call sumxpe(shnh_loc,shnh)
+      if(am_i_root()) then
+        do k=1,kaij
+          shnh(:,k) = 2.*shnh(:,k)/areag
+          hemis_ij(1,1:2,k) = shnh(1:2,k)
+          hemis_ij(1,3,k) = .5*(shnh(1,k)+shnh(2,k))
+        enddo
+      endif
 
       return
       end subroutine calc_derived_aij

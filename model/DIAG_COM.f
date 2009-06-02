@@ -537,6 +537,8 @@ c derived/composite diagnostics
       character(len=lname_strlen), dimension(kaij), public :: lname_ij
 !@var CDL_IJ consolidated metadata for AIJ output fields in CDL notation
       character(len=100), dimension(kaij*6), public :: cdl_ij
+!@var HEMIS_IJ hemispheric/global averages of AIJ
+      real*8, dimension(:,:,:), allocatable, public :: hemis_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
       integer, parameter, public :: nwts_ij = 8
 !@var wt_ij various weight-arrays use in ij-diagnostics
@@ -831,7 +833,7 @@ c the new i/o system
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
-     &     ,hemis_gc,vmean_gc
+     &     ,hemis_gc,vmean_gc,hemis_ij
       use diag_zonal, only : get_alloc_bounds
 
       IMPLICIT NONE
@@ -895,6 +897,7 @@ c allocate master copies of budget- and JK-arrays on root
         allocate(hemis_consrv(3,kcon))
         allocate(hemis_gc(3,lm,kagc))
         allocate(vmean_gc(jmlat+3,1,kagc))
+        allocate(hemis_ij(1,3,kaij))
       endif
 
       RETURN
@@ -1890,6 +1893,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     name_consrv,sname_gc,
      &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
+     &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
@@ -1995,6 +1999,9 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,denom_ij,'denom_aij(kaij)')
       call defvar(grid,fid,name_ij,'sname_aij(sname_strlen,kaij)')
       call defvar(grid,fid,cdl_ij,'cdl_aij(cdl_strlen,kcdl_aij)')
+      call defvar(grid,fid,hemis_ij,'hemis_aij(one,shnhgm,kaij)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_aij','reduction','sum')
 
       call write_attr(grid,fid,'aijl','reduction','sum')
       call write_attr(grid,fid,'aijl','split_dim',4)
@@ -2036,6 +2043,7 @@ c for which scalars is bcast_all=.true. necessary?
      &     name_consrv,sname_gc,
      &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
+     &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
@@ -2111,6 +2119,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'sname_agc',sname_gc(1:kagc))
       call write_data(grid,fid,'cdl_agc',cdl_gc)
 
+      call write_data(grid,fid,'hemis_aij',hemis_ij)
       call write_data(grid,fid,'ia_aij',ia_ij)
       call write_data(grid,fid,'scale_aij',scale_ij)
       call write_data(grid,fid,'denom_aij',denom_ij)

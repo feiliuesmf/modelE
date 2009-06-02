@@ -4080,18 +4080,19 @@ c
       cdl_ij = ''
       cdl_ij(1:2)(:) = (/
      &     'netcdf xxx { ', 'dimensions:  ' /)
+      cdl_ij(3) = '   shnhgm = 3 ;'
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       ijstr='(tile,y,x) ;'
-      write(cdl_ij(3),'(a,i3,a)') '   x = ',im,' ;'
-      write(cdl_ij(4),'(a,i3,a)') '   y = ',im,' ;'
-      write(cdl_ij(5),'(a,i3,a)') '   tile = 6 ;'
-      do k=3,5
+      write(cdl_ij(4),'(a,i3,a)') '   x = ',im,' ;'
+      write(cdl_ij(5),'(a,i3,a)') '   y = ',im,' ;'
+      write(cdl_ij(6),'(a,i3,a)') '   tile = 6 ;'
+      do k=4,6
         cdl_ij(k)=trim(cdl_ij(k))//' // remove_from_latlon'
       enddo
-      cdl_ij(6) = '// add_to_latlon    lon = xxx ;'
-      cdl_ij(7) = '// add_to_latlon    lat = xxx ;'
-      cdl_ij(8) = 'variables:'
-      cdl_ij(9:16)(:) = (/
+      cdl_ij(7) = '// add_to_latlon    lon = xxx ;'
+      cdl_ij(8) = '// add_to_latlon    lat = xxx ;'
+      cdl_ij(9) = 'variables:'
+      cdl_ij(10:17)(:) = (/
      &     'float x(x) ;                                        ',
      &     '   x:long_name = "nondimensional cube coordinate" ; ',
      &     'float y(y) ;                                        ',
@@ -4101,10 +4102,10 @@ c
      &     'float lat(tile,y,x) ;                               ',
      &     '   lat:units = "degrees_north" ;                    '
      &     /)
-      do k=9,16
+      do k=10,17
         cdl_ij(k)=trim(cdl_ij(k))//' // remove_from_latlon'
       enddo
-      cdl_ij(17:20)(:) = (/
+      cdl_ij(18:21)(:) = (/
      &     '// add_to_latlon float lon(lon) ;               ',
      &     '// add_to_latlon   lon:units = "degrees_east" ; ',
      &     '// add_to_latlon float lat(lat) ;               ',
@@ -4112,9 +4113,9 @@ c
      &     /)
 #else
       ijstr='(lat,lon) ;'
-      write(cdl_ij(3),'(a,i3,a)') '   lon = ',im,' ;'
-      write(cdl_ij(4),'(a,i3,a)') '   lat = ',jm,' ;'
-      cdl_ij(5:9)(:) = (/
+      write(cdl_ij(4),'(a,i3,a)') '   lon = ',im,' ;'
+      write(cdl_ij(5),'(a,i3,a)') '   lat = ',jm,' ;'
+      cdl_ij(6:10)(:) = (/
      &     'variables:                      ',
      &     'float lon(lon) ;                ',
      &     '   lon:units = "degrees_east" ; ',
@@ -4139,6 +4140,9 @@ c
         kk = kk + 1
         cdl_ij(kk) = '   '//trim(name_ij(k))//':units = "'//
      &       trim(units_ij(k))//'" ;'
+        kk = kk + 1
+        cdl_ij(kk) = 'float '//trim(name_ij(k))//
+     &       '_hemis(shnhgm) ;'
       enddo
       kk = kk + 1
       cdl_ij(kk) = '}'
