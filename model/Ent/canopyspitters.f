@@ -513,12 +513,12 @@
 !@sum is at steady-state with biochemical uptake by photosynthesis and
 !@sum that there is zero leaf boundary layer resistance (infinite gb),
 !@sum and that there is no leaf cuticular conductance of CO2.
-!@sum Full equation:  ci = ca - Anet*(1.6/gb + 1.4/gs)
-!@sum 1.6 = ratio of diffusivities of CO2 and water vapor in laminar flow
+!@sum Full equation:  ci = ca - Anet*(1.37/gb + 1.65/gs)
+!@sum 1.37 = ratio of diffusivities of CO2 and water vapor in laminar flow
 !@sum       in the leaf boundary layer
-!@sum 1.4 = ratio of diffusivities of CO2 and water vapor in still air at
+!@sum 1.65 = ratio of diffusivities of CO2 and water vapor in still air at
 !@sum       the leaf surface
-!@sum (Monteith, 1995;  Kiang, 2003)
+!@sum (Monteith, 1995;  Kiang, 2003;  Collatz 1991)
 !@sum ##### NOTE: Parameter Ball_b should actually be passed in with pspar.
 !@sum #####       Have to set up for generic pspar for different photosynthesis
 !@sum #####       routines.  (NK)
@@ -537,9 +537,9 @@
       real*8,parameter :: Ball_b = 0.01 !mol m-2 s-1
 
       if (IPAR.lt.MINPARMOL) then  !Stomates closed
-        ci = ca - Anet*1.6/Ball_b
+        ci = ca - Anet*1.37/Ball_b
       else
-        ci = ca - Anet*(1.6/Gb + 1.4/Gs) !LAI cancels in numerator and denominator.
+        ci = ca - Anet*(1.37/Gb + 1.65/Gs) !LAI cancels in numerator and denominator.
       endif
 
 
@@ -593,7 +593,7 @@
       if (IPAR.lt.IPARMINMOL) then  !Stomates closed
         gsout = gs
       else
-        gsout =  1.4/((Ca - Ci)/(Anet) - 1.6/gb )
+        gsout =  1.65/((Ca - Ci)/(Anet) - 1.37/gb )
       endif
 
       end function Gs_from_Ci
