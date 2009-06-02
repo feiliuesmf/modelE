@@ -24,7 +24,7 @@ C**** this defines tracer parameters that are local to ocean code
 
 #ifdef TRACERS_AGE_OCEAN
       INTEGER, PARAMETER :: ntm=1
-      CHARACTER*10 :: trname(ntm) = (/ '       Age'/)
+      CHARACTER*10 :: trname(ntm) = (/ 'Age       '/)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
 #else
 #ifdef TRACERS_OceanBiology
@@ -33,23 +33,23 @@ C**** this defines tracer parameters that are local to ocean code
 #else
       INTEGER, PARAMETER :: ntm=15
 #endif
-      CHARACTER*10 :: trname(ntm) = (/ '      Nitr'
-     .                                ,'      Ammo'
-     .                                ,'      Sili'
-     .                                ,'      Iron'
-     .                                ,'      Diat'
-     .                                ,'      Chlo'
-     .                                ,'      Cyan'
-     .                                ,'      Cocc'
-     .                                ,'      Herb'
-     .                                ,'     Inert'
-     .                                ,'     N_det'
-     .                                ,'     S_det'
-     .                                ,'     I_det'
-     .                                ,'       DOC'
-     .                                ,'       DIC'
+      CHARACTER*10 :: trname(ntm) = (/ 'Nitr      '
+     .                                ,'Ammo      '
+     .                                ,'Sili      '
+     .                                ,'Iron      '
+     .                                ,'Diat      '
+     .                                ,'Chlo      '
+     .                                ,'Cyan      '
+     .                                ,'Cocc      '
+     .                                ,'Herb      '
+     .                                ,'Inert     '
+     .                                ,'N_det     '
+     .                                ,'S_det     '
+     .                                ,'I_det     '
+     .                                ,'DOC       '
+     .                                ,'DIC       '
 #ifdef TRACERS_Alkalinity
-     .                                ,'       Alk'
+     .                                ,'Alk       '
 #endif
      .                                  /)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
@@ -78,7 +78,7 @@ C**** this defines tracer parameters that are local to ocean code
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
 #else
       INTEGER, PARAMETER :: ntm=1
-      CHARACTER*10 :: trname(ntm) = (/ '     Water'/)
+      CHARACTER*10 :: trname(ntm) = (/ 'Water     '/)
       REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
 !@param conc_from_fw definition for defining surface ocean conc
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .true.
