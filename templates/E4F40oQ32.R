@@ -191,7 +191,7 @@ aero_yr=1850
 od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1850
-dalbsnX=.015
+dalbsnX=.024
 o3_yr=-1850
 
 ! parameters that control the Shapiro filter
