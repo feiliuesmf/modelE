@@ -596,7 +596,7 @@ C
       USE TRACER_COM, only : trm, n_CH4, nStratwrite, vol2mass
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
-     *     ch4_init_nh,fix_CH4_chemistry,pfix_CH4_S,pfix_CH4_N
+     *     ch4_init_nh,fix_CH4_chemistry
 c
       IMPLICIT NONE
 c
@@ -623,19 +623,9 @@ C     First, the troposphere:
       DO J=J_0,J_1
 C       Initial latitudinal gradient for CH4:
         IF(J < JEQ)THEN ! Southern Hemisphere
-          select case(fix_CH4_chemistry)
-          case default
-            CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6
-          case(1)
-            CH4INIT=pfix_CH4_S*vol2mass(n_CH4)
-          end select
+          CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6
         ELSE             ! Northern Hemisphere
-          select case(fix_CH4_chemistry)
-          case default
-            CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6
-          case(1)
-            CH4INIT=pfix_CH4_N*vol2mass(n_CH4)
-          end select
+          CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6
         ENDIF
         select case(icall)
         case(0) ! initial conditions
@@ -655,21 +645,9 @@ c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
         IF(J < JEQ)THEN ! Southern Hemisphere
-          select case(fix_CH4_chemistry)
-          case default
-            CH4INIT=
-     &      ch4_init_sh/1.79d0*vol2mass(n_CH4)*1.E-6
-          case(1)
-            CH4INIT=pfix_CH4_S/1.79d0*vol2mass(n_CH4)
-          end select
+          CH4INIT=ch4_init_sh/1.79d0*vol2mass(n_CH4)*1.E-6
         ELSE             ! Northern Hemisphere
-          select case(fix_CH4_chemistry)
-          case default
-            CH4INIT=
-     &      ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6
-          case(1)
-            CH4INIT=pfix_CH4_N/1.79d0*vol2mass(n_CH4)
-          end select
+          CH4INIT=ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6
         ENDIF
         IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics
           CH4INIT=CH4INIT*CH4altX(L)
@@ -1087,9 +1065,6 @@ C
      & ,n_SO2
       use TRACER_SOURCES, only: LbbGFED,GFED_BB
       USE FLUXES, only : tr3Dsource
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: PI_run,PIratio_bburn
-#endif
 C
       IMPLICIT NONE
 c

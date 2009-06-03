@@ -42,9 +42,9 @@
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
-     &     OxICIN,OxIC,OxICINL,OxICL,pfix_CH4_N,pfix_CH4_S,
+     &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
-     &     PIratio_CO_S,PIratio_other,PIratio_indus,PIratio_bburn,
+     &     PIratio_CO_S,PIratio_other,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL
 #ifdef SHINDELL_STRAT_CHEM
@@ -194,8 +194,6 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("PIratio_CO_T",PIratio_CO_T)
       call sync_param("PIratio_CO_S",PIratio_CO_S)
       call sync_param("PIratio_other",PIratio_other)
-      call sync_param("PIratio_indus",PIratio_indus)
-      call sync_param("PIratio_bburn",PIratio_bburn)
       call sync_param("rad_FL",rad_fl)
       call sync_param("checktracer_on",checktracer_on)
       call sync_param("use_rad_ch4",use_rad_ch4)
@@ -403,8 +401,6 @@ C**** determine initial CH4 distribution if set from rundeck
 C**** This is only effective with a complete restart.
           call sync_param("ch4_init_sh",ch4_init_sh)
           call sync_param("ch4_init_nh",ch4_init_nh)
-          call sync_param("pfix_CH4_N",pfix_CH4_N)
-          call sync_param("pfix_CH4_S",pfix_CH4_S)
           call sync_param("fix_CH4_chemistry",fix_CH4_chemistry)
           call sync_param("scale_ch4_IC_file",scale_ch4_IC_file)
           ntm_power(n) = -8
@@ -8597,7 +8593,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE CONSTANT, only: mair,rhow,sday,grav,tf
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear,
-     &     PMIDL00
+     & PMIDL00
 #ifdef TRACERS_WATER
      &     ,focean
 #endif
@@ -8629,7 +8625,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RAD_COM, only : O3_tracer_save,rad_to_file
+      USE RAD_COM, only : O3_tracer_save,rad_to_file,ghg_yr
       USE TRCHEM_Shindell_COM,only:O3MULT,MDOFM,ch4icx,
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
@@ -8807,7 +8803,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
           enddo; enddo
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-         if(use_rad_n2o.le.0)then
+         if(use_rad_n2o <= 0)then
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N2O
           case default; ICfactor=1.d0
@@ -8825,7 +8821,8 @@ C**** ESMF: Each processor reads the global array: N2Oic
             trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
           end do   ; end do   ; end do
 #else
-          write(ghg_name,'(I4)') JYEAR
+          if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
+          else; write(ghg_name,'(I4)') jyear; endif
           ghg_file='GHG_IC_'//ghg_name
           call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,3
@@ -8918,7 +8915,8 @@ C****
             end do   ; end do   ; end do
           end select
 #else
-          write(ghg_name,'(I4)') JYEAR
+          if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
+          else; write(ghg_name,'(I4)') jyear; endif
           ghg_file='GHG_IC_'//ghg_name
           call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,4
@@ -9207,7 +9205,7 @@ c**** earth
         case ('CO')
           do l=1,lm 
             select case(PI_run)
-            case(1) ! pre-industrial
+            case(1) ! ise scaling
               if(L.le.LS1-1) then
                 ICfactor=PIratio_CO_T ! troposphere
               else
@@ -9326,7 +9324,8 @@ c**** earth
             trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
           end do   ; end do   ; end do
 #else
-          write(ghg_name,'(I4)') JYEAR
+          if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
+          else; write(ghg_name,'(I4)') jyear; endif
           ghg_file='GHG_IC_'//ghg_name
           call openunit(ghg_file,iu_data,.true.,.true.)
           do m=1,5
@@ -9718,7 +9717,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4, rad_FL,
-     & dms_offline,so2_offline,sulfate,PIratio_indus
+     & dms_offline,so2_offline,sulfate
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi

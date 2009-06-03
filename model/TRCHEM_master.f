@@ -22,7 +22,7 @@ c
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,O3_tracer_save,H2ObyCH4,
-     &                        SRDN,rad_to_file
+     &                        SRDN,rad_to_file,ghg_yr
       USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D
       USE FLUXES, only      : tr3Dsource
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
@@ -90,7 +90,7 @@ C**** Local parameters and variables and arguments:
 !@var rmv dummy variable for halogne removal in trop vs height
 !@var changeL 2D array holds the local change due to chem or strat 
 !@+   overwrite until adding to tr3Dsource (replaces 4D "change")
-!@var PIfact strat-overwrite adjustment for preindustrial runs
+!@var PIfact strat-overwrite scaling
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
@@ -198,7 +198,8 @@ C-------- special section for ghg runs ---------
      &           axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
           enddo
         enddo 
-        write(ghg_name,'(I4)') JYEAR  
+        if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
+        else; write(ghg_name,'(I4)')jyear; endif
         ghg_file='GHG_IC_'//ghg_name
         call openunit(ghg_file,iu,.true.,.false.)
         do m=1,5
@@ -423,9 +424,9 @@ c If desired, fix the methane concentration used in chemistry:
 C WHY IS THIS NECESSARY ANY MORE, NOW THAT GET_CH4_IC IS CALLED?
        if(fix_CH4_chemistry == 1) THEN
          if(J < JEQ)then ! SH
-           y(n_CH4,L)=y(nM,L)*pfix_CH4_S
+           y(n_CH4,L)=y(nM,L)*ch4_init_sh*1.d-6
          else            ! NH
-           y(n_CH4,L)=y(nM,L)*pfix_CH4_N
+           y(n_CH4,L)=y(nM,L)*ch4_init_nh*1.d-6
          endif
        end if
 #endif
@@ -1688,7 +1689,7 @@ C at this point in the code. Not the case if chemistry was done.
 C To put it another way, the overwritings below are explicitly 
 C functions of tracer mass UNCHANGED by chemistry !
 
-C determine pre-industrial factors, if any:
+C determine scaling factors, if any:
       PIfact(:)=1.d0
       if(PI_run == 1) then
         do N=1,NTM
@@ -1786,9 +1787,9 @@ C to 1.79:
             END DO
           END IF
           select case(PI_run)
-          case(1) ! preindustrial
-            if(lat2d(i,j).lt.0.)then; PIfact(n_CH4)=pfix_CH4_S
-            else                    ; PIfact(n_CH4)=pfix_CH4_N
+          case(1) ! yes, use scalings
+            if(lat2d(i,j).lt.0.)then; PIfact(n_CH4)=ch4_init_sh*1.d-6
+            else                    ; PIfact(n_CH4)=ch4_init_nh*1.d-6
             end if
             changeL(L,n_CH4)=am(l,i,j)*axyp(i,j)*vol2mass(n_CH4)
      &      *PIfact(n_CH4)  - trm(I,J,L,n_CH4)

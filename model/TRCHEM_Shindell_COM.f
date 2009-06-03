@@ -250,7 +250,7 @@ C ----------------------------------------------
      &                      cpd          = 1.d6/avog
 #ifdef SHINDELL_STRAT_CHEM
      &                     ,cfc_pppv     = 1722.d-12
-     &                     ,n2o_pppv     = 290.d-9
+     &                     ,n2o_pppv     = 316.3d-9
      &                     ,cfc_rad95    = 794.d-12 
      &                     ,fact_cfc     = cfc_pppv/cfc_rad95
      &                     ,dtausub      = 1.d0
@@ -299,23 +299,21 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam fix_CH4_chemistry (1=YES 0=NO) whether or not to used a fixed
 !@+       value for methane in the chemistry code. USE -1 for initial
 !@+       conditions from file CH4_IC (but L>LS1-1 only now!)
+!@+       but use_rad_CH4=1 overrides this.
 !@dbparam scale_ch4_IC_file multiplicative factor of CH4 IC if 
 !@+       fix_CH4_chemistry=-1 (but only above LS1-1 !)
-!@dbparam pfix_CH4_N fixed ratio of CH4/M in North. Hemis. (if used)
-!@dbparam pfix_CH4_S fixed ratio of CH4/M in South. Hemis. (if used)
 !@dbparam use_rad_ch4 =1 replaces CH4 surface sources with L=1
 !+        overwriting with radiation code values.
 !@dbparam use_rad_n2o =1 as ch4 case above
 !@dbparam use_rad_cfc =1 as ch4 case above
 !@dbparam which_trop 1=ls1-1 is tropopause, 0=LTROPO(I,J) is tropopause
 !@dbparam PI_run used to turn on (1) and off (0) use of PI_ratio*
-!@dbparam PIratio_N preindustrial ratio for NOx, HNO3, N2O5, HO2NO2
+!@dbparam PIratio_N to scale NOx, HNO3, N2O5, HO2NO2
 !@+       initial conditions and stratospheric overwriting.
-!@dbparam PIratio_CO_T preindustrial ratio for tropospheric CO
-!@dbparam PIratio_CO_S preindustrial ratio for stratospheric CO
-!@dbparam PIratio_other PI ratio: PAN,Isoprene,AlkyNit,Alkenes,Paraffin
-!@dbparam PIratio_indus preindustrial ratio for industrial sources
-!@dbparam PIratio_bburn preindustrial ratio for biomass burning sources
+!@dbparam PIratio_CO_T to scale tropospheric CO IC and overwrite
+!@dbparam PIratio_CO_S to scale stratospheric CO IC and overwrite
+!@dbparam PIratio_other to scale PAN,Isoprene,AlkyNit,Alkenes,Paraffin
+!@+       initial conditions and stratospheric overwriting.
 !@dbparam PIratio_N2O preindustrial ratio for N2O ICs and L=1 overwrite
 !@dbparam PIratio_CFC preindustrial ratio for CFC ICs and L=1 overwrite
 !@dbparam rad_FL whether(>0) or not(=0) to have fastj photon flux vary 
@@ -332,15 +330,11 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                 ,checktracer_on    = 0
       REAL*8 ::             ch4_init_sh   = 1.750d0,
      &                      ch4_init_nh   = 1.855d0,
-     &                      pfix_CH4_S    = 1.75d-6,
-     &                      pfix_CH4_N    = 1.855d-6,
      &                      scale_ch4_IC_file= 1.d0, 
      &                      PIratio_N     = 0.667d0,
      &                      PIratio_CO_T  = 0.667d0,
      &                      PIratio_CO_S  = 0.500d0,
-     &                      PIratio_other = 0.500d0,
-     &                      PIratio_indus = 0.000d0,
-     &                      PIratio_bburn = 0.100d0
+     &                      PIratio_other = 0.500d0
 #ifdef SHINDELL_STRAT_CHEM
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
