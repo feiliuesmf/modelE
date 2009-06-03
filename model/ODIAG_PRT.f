@@ -132,7 +132,7 @@ C****
 #endif
 #endif
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,JM) :: Q,SFIJ
+      REAL*8, DIMENSION(IM,JM) :: Q,SFIJ,QS,QS700
       REAL*8, DIMENSION(IM,JM,LMO) :: Q3
 c for now we are assuming that igrid=jgrid in arguments to pout_ij
       INTEGER I,J,K,L,N,KB,IJGRID,IP1,k1,KK
@@ -838,12 +838,16 @@ C****
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
+      QS=0. ; QS700=0.
       DO L=1,LMO
       DO J=1,JM
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
           Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K) / (DXYPO(J)*IDACC(1))
+          QS(I,J) = QS(I,J)+OIJL(I,J,L,K) / DXYPO(J)
+          IF (ZE(L-1).LE.700) QS700(I,J)=QS700(I,J)+OIJL(I,J,L,K)
+     *         /DXYPO(J)
         END IF
       END DO
       END DO
@@ -854,6 +858,22 @@ C**** Loop over layers
       SNAME="oc_ht_L"//LEVSTR(L)
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
+C**** sum to 700m
+      QS700(2:IM,JM)=QS700(1,JM)
+      QS700(2:IM,1)=QS700(1,1)
+      QS700 = SCALE_OIJL(K)*QS700/REAL(IDACC(1))
+      WRITE (LNAME(40:47),'(A8)') 'SUM 700m'
+      WRITE (TITLE(40:47),'(A8)') 'SUM 700m'
+      SNAME="oc_ht_700m"
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,QS700,QJ,QSUM,IJGRID,IJGRID)
+C**** total sum
+      QS(2:IM,JM)=QS(1,JM)
+      QS(2:IM,1)=QS(1,1)
+      QS = SCALE_OIJL(K)*QS/REAL(IDACC(1))
+      WRITE (LNAME(40:47),'(A8)') '  SUM  '
+      WRITE (TITLE(40:47),'(A8)') '  SUM  '
+      SNAME="oc_ht_total"
+      CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,QS,QJ,QSUM,IJGRID,IJGRID)
       END IF
 C****
       RETURN
