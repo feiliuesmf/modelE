@@ -1454,7 +1454,7 @@ c     *                   *trw0(n))-1.)
               END IF
             END DO
           END DO
-          ILON=SEC_LON(ISEC)-odlon_dg*0.5
+          ILON=ABS(SEC_LON(ISEC)-odlon_dg*0.5)
           WRITE(LABI,'(I3,A1)') ILON,EW
           TITLE(1:50)="Temperature Section         (C)"
           WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
@@ -1509,7 +1509,7 @@ C**** GM fluxes are also saved, so add the GM heat and salt fluxes here
               END IF
             END DO
           END DO
-          ILON=SEC_LON(ISEC)
+          ILON=ABS(SEC_LON(ISEC))
           WRITE(LABI,'(I3,A1)') ILON,EW
           TITLE(1:50)=" EW Mass Flux            (kg/s m^2)"
           WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
@@ -1588,7 +1588,7 @@ c     *                   *trw0(n))-1.)
               END IF
             END DO
           END DO
-          JLAT=SEC_LAT(ISEC)-0.5*odlat_dg
+          JLAT=ABS(SEC_LAT(ISEC)-0.5*odlat_dg)
           WRITE(LABJ,'(I3,A1)') JLAT,NS
           TITLE(1:50)="Temperature Section              (C)"
           WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
@@ -1638,7 +1638,7 @@ C**** Fluxes
               END IF
             END DO
           END DO
-          JLAT=SEC_LAT(ISEC)
+          JLAT=ABS(SEC_LAT(ISEC))
           WRITE(LABJ,'(I3,A1)') JLAT,NS
           TITLE(1:50)=" NS Mass Flux            (kg/s m^2)"
           WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
