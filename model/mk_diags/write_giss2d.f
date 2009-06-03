@@ -16,13 +16,15 @@
       integer :: dsiz1,dsiz2,nargs,lunit,k,n,nslab
 
       include 'netcdf.inc'
-      integer :: fid,status,varid,nvars,ndims,did1,did2,idim,jdim
+      integer :: fid,status,varid,varid2,nvars,ndims,did1,did2,idim,jdim
       integer, dimension(7) :: dids,srt,cnt,dsizes,kmod,p1,p2
       character(len=30), dimension(7) :: dnames
       character(len=30) :: diminfo
       character(len=1) :: str1
       character(len=3) :: str3
       character(len=6) :: ifmt='(ix.x)'
+      real*4, parameter :: undef=-1e30
+      real*4 :: shnhgm(3)
 
       nargs = iargc()
       if(nargs.ne.4) then
@@ -111,11 +113,24 @@ c
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
         if(status.eq.nf_noerr) units = ' ('//trim(units)//') '
+        shnhgm = undef
+        if(ndims.eq.2) then ! look for global means
+          status = nf_inq_varid(fid,trim(vname)//'_hemis',varid2)
+          if(status.eq.nf_noerr) then
+            status = nf_get_var_real(fid,varid2,shnhgm)
+          endif
+        endif
         do k=1,nslab
           status = nf_get_vara_real(fid,varid,srt,cnt,xout)
           title = trim(lname)//units
           if(ndims.gt.2) title=trim(title)//' '//trim(diminfo)
-          write(lunit) title,xout
+          if(shnhgm(3).eq.undef) then ! no global mean available
+            write(lunit) title,xout
+          else                        ! write with global mean
+            write(lunit) title,xout
+     &           ,(undef,n=1,dsiz2)   ! have to write means at each lat
+     &           ,shnhgm(3)           ! before the global mean
+          endif
           if(ndims.gt.2) then
             do n=1,ndims        ! increment the start vector
               if(n.eq.idim .or. n.eq.jdim) cycle
