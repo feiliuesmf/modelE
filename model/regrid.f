@@ -208,7 +208,7 @@ c     we do boundary conditions by hand
       integer, allocatable, dimension(:,:) :: ijlatlon  !local variable
       integer :: ncells                                 !local variable
       integer :: maxkey                                 !local variable
-
+      integer :: mytile
       integer :: status,fid,n,vid,ikey,jlat,nc,nc2,
      *     ierr,icc,jcc,jlatm,ic,jc
       integer :: itile,j,idomain,iic,jjc,index,indexc
@@ -394,8 +394,10 @@ c****
      &     zstore,astore
       integer :: ikey,jlat,current_index,index
 
-      if ( ( (iinput .le. ie) .and. (iinput .ge. is)) .and.
-     &     ( (jinput .le. je) .and. (jinput .ge. js)) ) then
+      if ( ( (iinput .le. x2grids%ie) .and. (iinput .ge. x2grids%is)) 
+     &     .and.
+     &     ( (jinput .le. x2grids%je) .and. (jinput .ge. x2grids%js)) ) 
+     &     then
 
       current_index=x2grids%jmsource*(iinput-1)+jinput
 
@@ -428,7 +430,8 @@ c*
       implicit none
       include 'netcdf.inc'
       type (x_2grids), intent(in) :: x2grids
-      real*8 :: tsource(isd:ied,jsd:jed)
+      real*8 :: tsource(x2grids%isd:x2grids%ied,
+     &     x2grids%jsd:x2grids%jed)
       real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
@@ -469,14 +472,14 @@ c
          if (AM_I_ROOT()) then   
             ttarget(:,:,1) = ttarget(:,:,1)/atarget(:,:,1)
             
-         ofi='tstout.nc'
-         status = nf_open(trim(ofi),nf_write,fid)
-         if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-         status = nf_inq_varid(fid,'lwup_sfc',vid)
-         write(*,*) NF_STRERROR(status)
-         status = nf_put_var_double(fid,vid,ttarget)
-         write(*,*) "STATUS",NF_STRERROR(status),"<<"
-         status = nf_close(fid)
+c         ofi='tstout.nc'
+c         status = nf_open(trim(ofi),nf_write,fid)
+c         if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
+c         status = nf_inq_varid(fid,'lwup_sfc',vid)
+c         write(*,*) NF_STRERROR(status)
+c         status = nf_put_var_double(fid,vid,ttarget)
+c         write(*,*) "STATUS",NF_STRERROR(status),"<<"
+c         status = nf_close(fid)
          endif
 
       else if ( (x2grids%ntilessource .eq. 1) .and. !ll2cs
@@ -525,8 +528,10 @@ c*
       include 'netcdf.inc'
       include 'mpif.h'
       type (x_2grids), intent(in) :: x2grids
-      real*8 :: tsource(isd:ied,jsd:jed)
-      real*8 :: wsource(isd:ied,jsd:jed)
+      real*8 :: tsource(x2grids%isd:x2grids%ied,
+     &     x2grids%jsd:x2grids%jed)
+      real*8 :: wsource(x2grids%isd:x2grids%ied,
+     &     x2grids%jsd:x2grids%jed)
       real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
@@ -657,7 +662,8 @@ c*
       implicit none
       include 'netcdf.inc'
       type (x_2grids), intent(in) :: x2grids
-      real*8 :: tsource(isd:ied,jsd:jed)
+      real*8 :: tsource(x2grids%isd:x2grids%ied,
+     &     x2grids%jsd:x2grids%jed)
       real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
@@ -821,8 +827,10 @@ c*
       implicit none
       include 'netcdf.inc'
       type (x_2grids), intent(in) :: x2grids
-      real*8 :: tsource(isd:ied,jsd:jed)
-      real*8 :: wsource(isd:ied,jsd:jed)
+      real*8 :: tsource(x2grids%isd:x2grids%ied,
+     &     x2grids%jsd:x2grids%jed)
+      real*8 :: wsource(x2grids%isd:x2grids%ied,
+     &     x2grids%jsd:x2grids%jed)
       real*8 :: ttarget(x2grids%imtarget,x2grids%jmtarget
      &     ,x2grids%ntilestarget)
      &     ,atarget(x2grids%imtarget,x2grids%jmtarget
@@ -910,14 +918,6 @@ c                     write(*,*) "small=",i,j,atarget(i,j,1)
                enddo
             enddo
             
-c            ofi='tstout.nc'
-c            status = nf_open(trim(ofi),nf_write,fid)
-c            if (status .ne. NF_NOERR) write(*,*) NF_STRERROR(status)
-c            status = nf_inq_varid(fid,'test',vid)
-c            write(*,*) NF_STRERROR(status)
-c            status = nf_put_var_double(fid,vid,ttarget)
-c            write(*,*) "STATUS",NF_STRERROR(status),"<<"
-c            status = nf_close(fid)
          endif
 
 
@@ -1155,23 +1155,20 @@ c*
       integer, intent(in) :: ntilessource,ntilestarget
       integer :: status,fid,n,vid,ikey,jlat
       integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
-      integer :: ierr,i,icub,jcub,maxkey
+      integer :: ierr,i,icub,jcub,maxkey,gid,mytile
       character*200 :: exchfile
       character(len=10) :: imch,jmch,icch,jcch
 
-c     set variables ("Constructor")
-      is=grid%is
-      ie=grid%ie
-      isd=grid%isd
-      ied=grid%ied
+c     domain decomp. info on source grid is stored inside x2grid object
+      x2grids%is=grid%is
+      x2grids%ie=grid%ie
+      x2grids%isd=grid%isd
+      x2grids%ied=grid%ied
 
-      js=grid%js
-      je=grid%je
-      jsd=grid%jsd
-      jed=grid%jed
-
-      gid=grid%gid
-      mytile=grid%tile
+      x2grids%js=grid%js
+      x2grids%je=grid%je
+      x2grids%jsd=grid%jsd
+      x2grids%jed=grid%jed
 
       x2grids%imsource=imsource
       x2grids%jmsource=jmsource
@@ -1180,7 +1177,11 @@ c     set variables ("Constructor")
       x2grids%jmtarget=jmtarget
       x2grids%ntilestarget=ntilestarget
 
+c     local variables
+      gid=grid%gid
+      mytile=grid%tile
 c
+ 
       if (AM_I_ROOT()) then   
 
          write(imch,'(i10)') imsource
@@ -1255,8 +1256,10 @@ c     first calculate maxkey
             jcub=ijcub(2,n)
             itile=tile(n)
             if (itile .eq. mytile) then
-               if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
-     &              ( (jcub .le. je) .and. (jcub .ge. js)) ) then
+               if ( ( (icub .le. x2grids%ie) .and. 
+     &              (icub .ge. x2grids%is)) .and.
+     &              ( (jcub .le. x2grids%je) .and. 
+     &              (jcub .ge. x2grids%js)) ) then
                   ikey=ikey+1
                endif
             endif
@@ -1282,8 +1285,10 @@ c         write(*,*) "gid maxkey=",gid,maxkey
             itile=tile(n)
             
             if (itile .eq. mytile) then
-               if ( ( (icub .le. ie) .and. (icub .ge. is)) .and.
-     &              ( (jcub .le. je) .and. (jcub .ge. js)) ) then
+               if ( ( (icub .le. x2grids%ie) .and. 
+     &              (icub .ge. x2grids%is)) .and.
+     &              ( (jcub .le. x2grids%je) .and. 
+     &              (jcub .ge. x2grids%js)) ) then
                   x2grids%xgrid%icub_key(ikey)=icub
                   x2grids%xgrid%jcub_key(ikey)=jcub
                   x2grids%xgrid%ilon_key(ikey)=ijlatlon(1,n)
@@ -1302,7 +1307,8 @@ c         write(*,*) "gid maxkey=",gid,maxkey
          ikey=1
          do n=1,ncells
             jlat=ijlatlon(2,n)
-            if ( (jlat .le. je) .and. (jlat .ge. js) ) then !js = J_0, je=J_1
+            if ( (jlat .le. x2grids%je) .and. 
+     &           (jlat .ge. x2grids%js) ) then !js = J_0, je=J_1
                ikey=ikey+1
             endif
          enddo
@@ -1325,7 +1331,8 @@ c         write(*,*) "maxkey=",maxkey
             jcub=ijcub(2,n)
             jlat=ijlatlon(2,n)
 c            write(*,*) "jlat=",jlat
-            if ( (jlat .le. je) .and. (jlat .ge. js) ) then !js = J_0, je=J_1
+            if ( (jlat .le. x2grids%je) .and. 
+     &           (jlat .ge. x2grids%js) ) then !js = J_0, je=J_1
                x2grids%xgrid%icub_key(ikey)=icub
                x2grids%xgrid%jcub_key(ikey)=jcub
                x2grids%xgrid%ilon_key(ikey)=ijlatlon(1,n)
@@ -1647,8 +1654,6 @@ c     operator MPI_SUMDD is created based on an external function add_dd
       
 c     reduction 
       arr_size = size(arr)
-c      write(*,*) "arrsize",arr_size
-c      write(*,*) "arr=",arr(:,:)
 
       allocate(arr_tmp(arr_size),arr_rsh(arr_size))
       arr_rsh=reshape(arr,(/arr_size/))

@@ -16,8 +16,6 @@
       use DOMAIN_DECOMP_1D, only: AM_I_ROOT,SUMXPE
       use dd2d_utils, only : dist_grid
 
-      integer ::  is,ie,js,je,isd,ied,jsd,jed,gid,mytile
-
       integer, parameter :: nrecmax=200 ! max #records in input files
 
       private :: xgrid
@@ -55,6 +53,7 @@ ccc   derived types
       integer :: jmsource      ! jm for source grid
       integer :: imtarget      ! im for target grid
       integer :: jmtarget      ! jm for target grid
+      integer :: is,ie,js,je,isd,ied,jsd,jed ! domain decomp. for source grid
       end type x_2grids
 
       type x_2gridsroot   ! stores x-grid info plus source and target grid info 
