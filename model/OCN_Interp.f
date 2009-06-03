@@ -80,6 +80,8 @@
       END DO
 #endif
 
+      deallocate(aweight)
+
       RETURN
       END SUBROUTINE AG2OG_precip
 
@@ -279,6 +281,8 @@ C**** surface tracer concentration
 #ifdef TRACERS_OCEAN
       DEALLOCATE(oTRAC)
 #endif
+
+      deallocate(oweight,ofocean_loc)
 
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
@@ -576,6 +580,8 @@ C**** surface tracer concentration
      *              ,NSTYPE,1)
 
       CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)
+
+      deallocate(aweight)
 
       END SUBROUTINE AG2OG_oceans
 
