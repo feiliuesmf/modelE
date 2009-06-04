@@ -67,6 +67,7 @@ AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
+OCNML=Z1O.B144x90                          ! mixed layer depth (needed for post processing)
 CDN=CD144X90.ext 
 VEG=V144X90_no_crops.ext 
 CROPS=CROPS_144X90N_nocasp.ext
