@@ -1186,7 +1186,7 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
-     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
+     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc,focean
       USE TRACER_COM
       USE DIAG_COM
 
@@ -1198,6 +1198,9 @@ C****
      *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+     *     ,tij_kw,tij_alpha
 #endif
       USE DIAG_SERIAL, only : MAPTXT
       USE CONSTANT, only : teeny
@@ -1277,9 +1280,6 @@ c     if (itime.lt.itime_tr0(n)) cycle
         ijtype(k) = 3
         end if
 #endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-        aij2(:,:,k)=taijs(:,:,k)     !denom to remove land vals
-#endif
         if (index(lname_ijt(l,n),'unused').gt.0) Qk(k) = .false.
       end do
 C**** Fill in maplet indices for tracer sums/means and ground conc
@@ -1304,6 +1304,14 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         aij2(:,:,k)=taijn(:,:,l,n_water)*trw0(n)
         ijtype(k) = 3
         end if
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+        if (l.eq.tij_kw .or. l.eq.tij_alpha) then
+        print*, 'TRACERS_PRT1a: l=',l
+           aij1(:,:,k)=taijn(:,:,l,n)*focean(:,:)
+           aij2(:,:,k)=focean(:,:)
+           ijtype(k) = 3
+        endif
 #endif
       end do
 
@@ -1365,6 +1373,14 @@ c       if (itime.lt.itime_tr0(n)) cycle
      *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
      *    'J(H2O2)_')ijtype(k)=2
         
+        print*,'TRACERS_PRT2a: k,name=',k,name(k)
+        if (name(k)=='CO2 O_GASXCO2n')then
+        print*, 'TRACERS_PRT2: k=',k
+           aij1(:,:,k)=aij1(:,:,k)*focean(:,:)
+           aij2(:,:,k)=focean(:,:)
+           ijtype(k)=3
+        endif
+
         if (name(k)=='NO2_col_acc_count')then
           ijtype(k)=2
           scale(k)=real(idacc(iacc(k)))+teeny

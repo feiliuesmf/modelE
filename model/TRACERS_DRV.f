@@ -3727,7 +3727,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'CO2 O_GASX'//trname(n)
         lname_ijts(k) = 'Ocean gas exchange CO2'
-        ijts_power(k) = -8
+        !!!ijts_power(k) = -11
+        ijts_power(k) = 0
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif

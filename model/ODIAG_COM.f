@@ -1151,9 +1151,9 @@ c
     
       k=k+1
       IJ_flux=k
-      lname_oij(k)="Air_Sea Flux CO2 (watson)"
+      lname_oij(k)="AO Flux CO2 (ogrid,grC/m2/yr)"
       sname_oij(k)="oij_flux"
-      units_oij(k)="mole/m2/s"
+      units_oij(k)="grC/m2/yr"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 

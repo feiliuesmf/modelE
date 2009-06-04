@@ -22,7 +22,7 @@ c
 
 #ifdef OBIO_ON_GARYocean
 #ifndef TRACER_GASEXCH_ocean_CO2
-#ifdef TRACER_OceanBiology
+#ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
 #endif
@@ -280,8 +280,13 @@ c Update DIC for sea-air flux of CO2
       C_tend(k,2) = C_tend(k,2) + term
 
 #ifndef TRACER_GASEXCH_ocean_CO2
-#ifdef TRACER_OceanBiology
-      ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3  ! air-sea co2 flux
+#ifdef TRACERS_OceanBiology
+      ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
+     .            *3600.D0                                   ! mol/m2/hr
+     .            *44.d0*24.d0*365.d0                        ! grC/m2/yr
+            write(*,'(a,3i5,7e12.4)')'obio_carbon, fluxdiag:',
+     .      nstep,i,j,scco2arg,wssq,rkwco2,
+     .      xco2,pCO2_ij,ff*1.0245D-3,ao_co2flux
 #endif
 #endif
 
@@ -448,12 +453,18 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.25 $
-c_ $Date: 2009/06/01 14:14:44 $   ;  $State: Exp $
+c_ $Revision: 2.26 $
+c_ $Date: 2009/06/04 22:33:55 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.26  2009/06/04 22:33:55  aromanou
+c_
+c_ correcting bug
+c_ adding diagnostics for gas exchange on ocean grid (for when TRASERS_GASEXCH_ocean is not defined)
+c_ atmos-only-over-ocean diagnostics
+c_
 c_ Revision 2.25  2009/06/01 14:14:44  aromanou
 c_
 c_ new diagnostic for gas exchange flux on the ocean grid (Watson's parameterization)
@@ -891,12 +902,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.25 $
-c_ $Date: 2009/06/01 14:14:44 $   ;  $State: Exp $
+c_ $Revision: 2.26 $
+c_ $Date: 2009/06/04 22:33:55 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.26  2009/06/04 22:33:55  aromanou
+c_
+c_ correcting bug
+c_ adding diagnostics for gas exchange on ocean grid (for when TRASERS_GASEXCH_ocean is not defined)
+c_ atmos-only-over-ocean diagnostics
+c_
 c_ Revision 2.25  2009/06/01 14:14:44  aromanou
 c_
 c_ new diagnostic for gas exchange flux on the ocean grid (Watson's parameterization)
@@ -1079,12 +1096,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.25 $
-c_ $Date: 2009/06/01 14:14:44 $   ;  $State: Exp $
+c_ $Revision: 2.26 $
+c_ $Date: 2009/06/04 22:33:55 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.26  2009/06/04 22:33:55  aromanou
+c_
+c_ correcting bug
+c_ adding diagnostics for gas exchange on ocean grid (for when TRASERS_GASEXCH_ocean is not defined)
+c_ atmos-only-over-ocean diagnostics
+c_
 c_ Revision 2.25  2009/06/01 14:14:44  aromanou
 c_
 c_ new diagnostic for gas exchange flux on the ocean grid (Watson's parameterization)

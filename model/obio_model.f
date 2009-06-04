@@ -295,6 +295,7 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 #ifdef OBIO_ON_GARYocean
        pres = oAPRESS(i,j)    !surface atm. pressure
        do k=1,lmm(i,j)
+         g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
          s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
 !!!!     temp1d(k)=TEMGS(g,s)           !potential temperature
          temp1d(k)=TEMGSP(g,s,pres)     !in situ   temperature
@@ -890,7 +891,8 @@ cdiag  endif
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
        OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
 
-#ifndef TRACER_GASEXCH_ocean_CO2    ! NOT FOR GASEXCH EXPERIMENTS
+#ifndef TRACER_GASEXCH_ocean_CO2    
+! NOT FOR GASEXCH EXPERIMENTS
 #ifdef TRACERS_OceanBiology
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + ao_co2flux      !air-sea CO2 flux(watson)
 #endif
