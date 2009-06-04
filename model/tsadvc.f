@@ -5,8 +5,10 @@ c --- hycom version 1.0 -- cyclic in j
       USE HYCOM_SCALARS, only : wts1,onemm,wts2,delt1,lp,nstep,itest
      &     ,jtest,diagno,temdff,theta
       USE HYCOM_ARRAYS
-      USE HYCOM_ARRAYS_GLOB, only : tempGlob => temp,
-     &                              salnGlob => saln
+      USE HYCOM_ARRAYS_GLOB, only: tempGlob => temp, salnGlob => saln 
+
+      USE HYCOM_DIM_GLOB,    only: ispGlob  => isp,  ifpGlob  => ifp
+      USE HYCOM_DIM_GLOB,    only: ilpGlob  => ilp
 
       USE HYCOM_DIM, only : ii, jj, kk, idm, jdm, kdm,
      &     J_0, J_1, I_0H, J_0H, J_1H, ogrid,
@@ -101,8 +103,8 @@ c
         
         if (AM_I_ROOT()) then
         do 490 j=1,jj
-        do 490 l=1,isp(j)
-        do 490 i=ifp(j,l),ilp(j,l)
+        do 490 l=1,ispGlob(j)
+        do 490 i=ifpGlob(j,l),ilpGlob(j,l)
         if ((tmin.lt.0. and. tempGlob(i,j,kn).eq.tmin) .or.
      .      (smin.lt.0. and. salnGlob(i,j,kn).eq.smin)) then
         write (lp,101) nstep,i,j,k,' neg. temp/saln bfore advem call ',
