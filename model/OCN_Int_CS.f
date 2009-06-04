@@ -661,9 +661,9 @@ c*
          enddo
       enddo
 
-C***  Scatter global array oA_glob to the ocean grid
+C***  Scatter global array aA_glob to the atm grid
 
-      CALL ATM_UNPACK(agrid, aA_glob, aA)
+      CALL ATM_UNPACK(agrid, aA_glob, aA, jdim=3)
 
       DEALLOCATE(aFocean, aA_glob, aArea, aFtemp, oFtemp)
       
@@ -818,9 +818,9 @@ C***  Gather 3D array on atmospheric grid into the global array
          enddo
       enddo
 
-C***  Scatter global array oA_glob to the ocean grid
+C***  Scatter global array aA_glob to the atm grid
 
-      call ATM_UNPACK (agrid, aA_glob, aA)
+      call ATM_UNPACK (agrid, aA_glob, aA, jdim=4)
 
       deallocate(aA_glob,aArea,aFOCEAN,aFtemp,oFtemp)
 
