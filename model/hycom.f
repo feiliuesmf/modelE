@@ -412,8 +412,9 @@ c
 c --- compute eqn.of state check values
 c
       if (pref.eq.2.e7) then
-        chk_rho=36.719718               ! T:[-2:30],S:[18:38]
-        chk_rho=36.876506               ! T:[-2:32],S:[16:38]
+        chk_rho=36.719718          ! fit range T:[-2:30],S:[18:38]
+        chk_rho=36.876506          ! fit range T:[-2:32],S:[16:38]
+        chk_rho=36.876732          ! using Jackett and McDougall's formula
 c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=0.12493658
         chk_kap=0.12493658 
       elseif (pref.eq.0.) then
