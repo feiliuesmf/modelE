@@ -1035,10 +1035,12 @@ c****
       real*8 :: fw_new,fd_new
 #endif
       real*8 :: ptmp,ptmps,pfac,pm,pmax
-      real*8 :: snowf,snowfs,dr,drs,dr_scale
+      real*8 :: snowf,snowfs,dr,drs,dr_scale,can_evap
       real*8 :: melt_w, melt_h
       integer :: ibv
 
+!     dew/evap flux to/from canopy
+      can_evap = evapvw*fw*(1.d0-fm*fr_snow(2))
 !     drip due to large scale precip is 0 by default
       dr_scale = 0.d0
 c     calculate snow fall.  snowf is snow fall, m s-1 of water depth.
@@ -1049,7 +1051,7 @@ c     snowfs is the large scale snow fall.
       if(htprs.lt.0.d0)snowfs=min(-htprs/fsn,prs)
       if ( process_vege ) then
 !       ptmps is large-scale rain minus canopy evaporation
-        ptmps=prs-snowfs-evapvw*fw
+        ptmps=prs-snowfs-can_evap
         ptmps=max(ptmps, 0.d0)
 !       ptmp is the convective rainfall rate
         ptmp=pr-prs-(snowf-snowfs)
@@ -1094,7 +1096,7 @@ c     snowfs is the large scale snow fall.
 !       Potential new water content of canopy
         wc_new = wc_new + min(pr_dry*dts,wc_add)
 !       Potential drip from the canopy
-        dr = pr - (wc_new - w(0,2))/dts
+        dr = ptmp - (wc_new - w(0,2))/dts
 #else   
 !KOSTER SCHEME ONLY CONSIDERING CONVECTIVE PRECIP
         if (prfr <1.d0) then
@@ -1125,8 +1127,8 @@ c     snowfs is the large scale snow fall.
 #endif
 !       Constrain drip to make sure enough water is available for
 !       canopy evaporation and snow evaporation 
-        dr = min( dr, pr-snowf-evapvw*fw )
-        dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
+        dr = min( dr, pr-snowf-can_evap )
+        dr = max( dr, pr-snowf-can_evap - (ws(0,2)-w(0,2))/dts )
         dr = max( dr, 0.d0 )    ! just in case 
         dripw(2) = dr
         dripw_scale(2) = dr_scale
@@ -1145,8 +1147,8 @@ c     snowfs is the large scale snow fall.
           endif
         endif
 !      Place limits on canopy drip, dr
-        dr = min( dr, pr-snowf-evapvw*fw )
-        dr = max( dr, pr-snowf-evapvw*fw - (ws(0,2)-w(0,2))/dts )
+        dr = min( dr, pr-snowf-can_evap  )
+        dr = max( dr, pr-snowf-can_evap - (ws(0,2)-w(0,2))/dts )
         dr = max( dr, 0.d0 )    ! just in case (probably don''t need it)
         dripw(2) = dr
         dripw_scale(2) = dr_scale
@@ -1781,7 +1783,9 @@ ccc should be removed when program is rewritten in a more clean way...
 c**** shw - specific heat of water
 c**** tp - temperature of layers, c
       integer ibv, k
+      real*8 w02_old
 ccc   the canopy
+      w02_old = w(0,2) 
       w(0,2) = w(0,2) + ( fc(1) - fc(0) )*dts
       ht(0,2)=ht(0,2) + ( fch(1) - fch(0) )*dts
 ccc   the soil
@@ -1813,7 +1817,11 @@ ccc     rest of the fluxes
       end do
 ccc   do we need this check ?
       if ( w(0,2) < 0.d0 ) then
-        if (w(0,2)<-1.d-12)write(0,*)'GHY:CanopyH2O<0 at',ijdebug,w(0,2)
+        if (w(0,2)<-1.d-12) then !write(0,*)'GHY:CanopyH2O<0 at',ijdebug,w(0,2)
+          write(99,*)'GHY:CanopyH2O<0 at',ijdebug
+          write(99,*)'wold, w', w02_old, w(0,2) 
+          write(99,*)'fc(1),fc(0),dts', fc(1), fc(0), dts
+        endif
         w(0,2) = 0.d0
       endif
 
@@ -2971,7 +2979,7 @@ cc    write(ichn,1021)
       write(ichn,1030)
       write(ichn,1031)
       k=0
-      write(ichn,1049)k,theta(k,2),tp(k,2),fice(k,2),     0.d0,f(k,2),
+      write(ichn,1049)k,theta(k,2),tp(k,2),fice(k,2),     0.d0,fc(0),
      & w(k,2),ws(k,2),shc(k,2),fh(k,2),ht(k,2)
       do 200 k=1,n
       write(ichn,1040)k,theta(k,2),tp(k,2),fice(k,2),rnff(k,2),f(k,2),
