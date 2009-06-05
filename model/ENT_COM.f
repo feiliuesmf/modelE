@@ -25,9 +25,106 @@
 !@var cnc_ij canopy conductance
       real*8, ALLOCATABLE, dimension(:,:) :: cnc_ij
 
+!---  for I/O
+      CHARACTER*80, parameter :: ENT_HEADER = "ENT01"
+      integer, parameter :: ENT_IO_MAXBUF = 500
+
+
       contains
 
-!!! I/O Not MPI - parallelized yet!!
+!#define ENT_IO_PLAIN_ARRAY
+#ifdef ENT_IO_PLAIN_ARRAY
+
+      subroutine ent_read_state( kunit )
+!@sum read ent state from the file
+      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_1d, only : UNPACK_COLUMN
+      !type(entcelltype_public), intent(out) :: entcells(:,:)
+      integer, intent(in) :: kunit
+      !---
+      CHARACTER*80 :: HEADER
+      real*8, allocatable ::  buf(:,:,:), buf_glob(:,:,:)
+      integer i, j, J_0, J_1, I_0, I_1, J_0H, J_1H, I_0H, I_1H 
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+
+      allocate( buf     (ENT_IO_MAXBUF, I_0H:I_1H, J_0H:J_1H) )
+      allocate( buf_glob(ENT_IO_MAXBUF,        im,        jm) )
+
+      if (AM_I_ROOT()) then
+        READ(kunit,err=10) HEADER
+        if (HEADER .ne. ENT_HEADER )
+     &       call stop_model("ent_read_state: incompatimle header",255)
+        BACKSPACE kunit
+        READ (kunit,err=10) HEADER, buf_glob
+      endif
+        CALL UNPACK_COLUMN(grid, buf_glob, buf)
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+          if ( buf(1,i,j) > 0.d0 ) then ! the cell is present
+            call ent_cell_construct( entcells(i,j) )
+            call ent_cell_unpack(buf(:,i,j), entcells(i,j))
+          endif
+        enddo
+      enddo
+ 
+      deallocate( buf_glob )
+      deallocate( buf )
+
+      return
+ 10   continue
+      call stop_model("ent_read_state: error reading",255)
+
+      end subroutine ent_read_state
+
+
+      subroutine ent_write_state( kunit )
+!@sum write ent state to the file
+      use domain_decomp_1d, only : grid, am_i_root, get
+      use domain_decomp_1d, only : PACK_COLUMN
+      !use ent_com, only : entcells
+      integer, intent(in) :: kunit
+      !---
+      real*8, pointer :: cell_buf(:)
+      real*8, allocatable ::  buf(:,:,:), buf_glob(:,:,:)
+      integer i, j, J_0, J_1, I_0, I_1, J_0H, J_1H, I_0H, I_1H 
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+
+      allocate( buf     (ENT_IO_MAXBUF, I_0H:I_1H, J_0H:J_1H) )
+      allocate( buf_glob(ENT_IO_MAXBUF,        im,        jm) )
+      nullify( cell_buf )
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+          buf(:,i,j) = 0.d0
+          call ent_cell_pack(cell_buf, entcells(i,j))
+          if( size(cell_buf) > ENT_IO_MAXBUF) then
+            print *,"ENT_IO_MAXBUF too small, set to",size(cell_buf)
+            call stop_model("ent_write...: ENT_IO_MAXBUF too small",255)
+          endif
+          buf(1:size(cell_buf),i,j) = cell_buf
+          deallocate( cell_buf )
+        enddo
+      enddo
+
+      CALL PACK_COLUMN(grid, buf, buf_glob)
+      if (AM_I_ROOT()) then
+        WRITE (kunit,err=10) ENT_HEADER, buf_glob
+      endif
+
+      return
+ 10   continue
+      call stop_model("ent_read_state: error writing",255)
+
+      end subroutine ent_write_state
+
+#else
 
       subroutine ent_read_state( kunit )
 !@sum read ent state from the file
@@ -135,6 +232,8 @@
       enddo
 
       end subroutine ent_write_state
+
+#endif
 
       end module ent_com
 
