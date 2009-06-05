@@ -28,11 +28,11 @@ RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers
 MODEL_COM GNOM_CS IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
+                                    ! parameter database
 dd2d_utils pario_nc pario_fbsa
 regrid regrid_com
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
-DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+             cs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM                  ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_UTILS FV_CS_Mod FV_INTERFACE   
@@ -59,9 +59,12 @@ RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST OFFT72E UTILDBL SYSTEM        ! utilities
+      OFFT72E                       ! utilities
 POUT                                ! post-processing output
 SparseCommunicator_mod              ! sparse gather/scatter module
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 AIC=AIC_CS32         ! initial conditions (atm.)      needs GIC, ISTART=2

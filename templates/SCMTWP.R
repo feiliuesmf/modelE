@@ -21,8 +21,8 @@ RES_F40  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
 MODEL_COM GEOM_B IORSF       ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_SCM_COM ATMDYN_SCM MOMEN2ND  ! replace atmospheric dynamics with SCM routines
 ATMDYN_SCM_EXT ATM_UTILS
 SCM_COM SCMDATA_TWPICE              ! routines for reading and processing SCM forcings and IC's
@@ -46,8 +46,11 @@ DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics (diag, diag_prt dummies in scm
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
-CONST FFT144 UTILDBL SYSTEM         ! utilities
+      FFT144                        ! utilities
 POUT                                ! post-processing output
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2

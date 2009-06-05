@@ -14,8 +14,8 @@ RES_C12                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -39,8 +39,11 @@ RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_C                          ! diagnostics (resolution dependent)
-CONST FFT36 UTILDBL SYSTEM          ! utilities
+      FFT36                         ! utilities
 POUT                                ! post-processing output
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 ! AIC=DEC1958.rsfB394M12.modelE.16 ! model init cond (atm. and ground) ISTART=7

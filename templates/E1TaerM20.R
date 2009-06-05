@@ -27,8 +27,8 @@ RES_M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -56,8 +56,11 @@ RAD_COM RAD_DRV_E1 RADIATION_E1           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-CONST UTILDBL SYSTEM                ! utilities
+                                    ! utilities
 POUT                                ! post-processing output
+
+Components:
+ESMF_Interface shared
 
 Data input files:
     ! start up from restart file of earlier run

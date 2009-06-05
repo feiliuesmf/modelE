@@ -23,8 +23,8 @@ RES_F20  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 20 layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_INTERFACE       ! interface to ESMF component for finite volume dycore
@@ -47,8 +47,11 @@ RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
-CONST FFT144 UTILDBL SYSTEM         ! utilities
+      FFT144                        ! utilities
 POUT                                ! post-processing output
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 AIC=AIC.RES_F20.D771201  ! observed init cond (atm. only) ISTART=2

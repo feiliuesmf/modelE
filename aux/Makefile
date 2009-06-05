@@ -12,8 +12,8 @@ DECKS_DIR = $(MODEL_E_ROOT)/decks
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 ESMF_Interface=$(MODEL_DIR)/ESMF_Interface
 CONFIG_DIR = $(MODEL_E_ROOT)/config
-MOD_DIR = $(MODEL_DIR)    
-INCLUDE_DIR = $(MODEL_DIR)
+MOD_DIR = $(MODEL_DIR)/mod
+INCLUDE_DIR = $(MODEL_DIR)/include
 
 RUN     =
 RUNDECK = $(DECKS_DIR)/$(RUN).R
@@ -21,11 +21,7 @@ RUNDECK = $(DECKS_DIR)/$(RUN).R
 OBJ_DIR = .
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 
-ifneq ($(NEW_MAKEFILE_FORMAT),YES)
-GCMLIB = $(BIN_DIR)/$(RUN).a
-else
 GCMLIB = $(addprefix $(MODEL_DIR)/,$(shell perl -e 'print reverse <>;' < $(MODEL_DIR)/.liblist))
-endif
 
 #DEPENDFILE = $(OBJ_DIR)/.depend.$(RUN)
 
@@ -69,91 +65,88 @@ aux: all
 
 FORCE:
 
-$(BIN_DIR)/CMPE002: CMPE002.F90 $(GCMLIB)
-	$(F90) $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+#$(BIN_DIR)/CMPE002: CMPE002.F90 $(GCMLIB)
+#	$(F90) $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
 
-$(BIN_DIR)/CMPE002P: CMPE002P.F90 $(GCMLIB)
-	$(F90) $(F90FLAGS) $(EXTRA_FFLAGS) $(CPPFLAGS) $(LFLAGS) -o $@ $^ $(LIBS)
+CMPE002.o: $(GCMLIB)
+
+$(BIN_DIR)/CMPE002: CMPE002.o $(GCMLIB)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
+
+CMPE002P.o: $(GCMLIB)
+
+$(BIN_DIR)/CMPE002P: CMPE002P.o $(GCMLIB)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
     
 CMPE001.o: $(GCMLIB)
 
 $(BIN_DIR)/CMPE001: CMPE001.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 RMS.o: $(GCMLIB)
 
 $(BIN_DIR)/RMS: RMS.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 conv_rsf.o: $(GCMLIB)
 
 $(BIN_DIR)/conv_rsf: conv_rsf.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 conv_strat_rsf.o: $(GCMLIB)
 
 $(BIN_DIR)/conv_strat_rsf: conv_strat_rsf.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 conv_gic.o: $(GCMLIB)
 
 $(BIN_DIR)/conv_gic: conv_gic.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 rsf2gic.o: $(GCMLIB)
 
 $(BIN_DIR)/rsf2gic: rsf2gic.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 ext_gic.o: $(GCMLIB)
 
 $(BIN_DIR)/ext_gic: ext_gic.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 qc.o: $(GCMLIB)
 
 $(BIN_DIR)/qc: qc.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 vertflux.E001.o: $(GCMLIB) MAPS.o
 
 $(BIN_DIR)/vertflux.exe: vertflux.E001.o MAPS.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 ocnIC.E001.o: $(GCMLIB) MAPS.o
 
 $(BIN_DIR)/ocnIC.exe: ocnIC.E001.o MAPS.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 otspec.E001.o: $(GCMLIB) MAPS.o
 
 $(BIN_DIR)/otspec.E001.exe: otspec.E001.o MAPS.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
-
-#$(BIN_DIR)/rsfE001.addO.exe: rsfE001.addO.o $(GCMLIB)
-#	$(F90) $(FFLAGS) $(LFLAGS) -o $@ $^
-#
-#rsfE001.addO.o: $(GCMLIB)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 mkdeep.o: $(GCMLIB)
 
 $(BIN_DIR)/mkdeep.exe: mkdeep.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
-
-#ifneq ($(NEW_MAKEFILE_FORMAT),YES)
-#$(GCMLIB): FORCE
-#	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN)
-#endif
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 RDconvert.o: $(GCMLIB)
 
 $(BIN_DIR)/RDconvert: RDconvert.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 inputLL2CS.o: $(GCMLIB)
 
 $(BIN_DIR)/inputll2cs: inputLL2CS.o $(GCMLIB)
-	$(F90) $(LFLAGS) -o $@ $^ $(LIBS)
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 status:
 	echo "AUX build successful"

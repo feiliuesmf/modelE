@@ -22,11 +22,8 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
-!TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-!PARAM PARSER                        ! parameter database
-!DOMAIN_DECOMP 
-ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+ALLOC_DRV                           ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 ATM_UTILS                           ! utilities for some atmospheric quantities
@@ -36,7 +33,7 @@ CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV !GHY                 ! land surface and soils
 !VEG_DRV VEG_COM VEGETATION          ! vegetation
-ENT_DRV ENT_COM
+ENT_DRV ENT_COM                     ! dynamic vegetation (Ent) drivers
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB_E1                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
@@ -50,8 +47,7 @@ RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
-!CONST FFT144 UTILDBL SYSTEM         ! utilities
-FFT144
+FFT144                              ! utilities
 POUT                                ! post-processing output
 
 Components:
@@ -60,7 +56,6 @@ Ent shared ESMF_Interface solvers giss_LSM
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
-
 
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2

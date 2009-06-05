@@ -1,25 +1,3 @@
-ifneq ($(NEW_MAKEFILE_FORMAT),YES)
-
-.SUFFIXES:
-
-MODEL_E_ROOT = ../..
-CONFIG_DIR = $(MODEL_E_ROOT)/config
-
-all:  ESMF_MOD.o ESMF_CUSTOM_MOD.o assert.o
-
-# dependencies
-ESMF_MOD.o: 		ESMF_MOD.F90
-assert.o:		assert.F90 ESMF_MOD.o  assert.h
-ESMF_CUSTOM_MOD.o: 	ESMF_CUSTOM_MOD.F90 assert.o ESMF_MOD.o assert.h
-
-clean:
-	rm -f *.o *.mod *.sig *.sig1
-
-include $(CONFIG_DIR)/rules.mk
-
-else
-###################################################################
-
 .SUFFIXES:
 
 SUPPORTED_OPTIONS =
@@ -44,5 +22,3 @@ no_default:
 	echo "CONFIG_DIR = $(CONFIG_DIR)"
 	exit 1
 
-#####################################################################
-endif

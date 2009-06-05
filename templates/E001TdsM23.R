@@ -37,8 +37,8 @@ RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
@@ -83,9 +83,12 @@ RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! diagnostics (resolution dependent)
-CONST FFT72 UTILDBL SYSTEM          ! utilities
+      FFT72                         ! utilities
 ! NUDGE                             ! S. Bauer's code to nudge meteorology
 POUT !_netcdf                       ! post-processing output
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 !! AIC=AIC.RES_M23.D771201

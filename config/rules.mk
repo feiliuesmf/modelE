@@ -253,11 +253,8 @@ endif
 #
 # Pattern  rules
 #
-ifneq ($(NEW_MAKEFILE_FORMAT),YES)
-*.mod: .obj_list
-else
+
 *.mod: .current_options
-endif
 
 %.mod:
 	@echo checking $@

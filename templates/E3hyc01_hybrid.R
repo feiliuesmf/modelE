@@ -19,8 +19,8 @@ RES_M20AT                           ! horiz/vert resolution, 4x5deg, 20 layers -
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
@@ -41,7 +41,7 @@ RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! ESMF
-CONST FFT72 UTILDBL SYSTEM          ! utilities
+      FFT72                         ! utilities
 POUT                                ! post-processing output
 hycom |-r8 -O2 -openmp| OCEAN_hycom|-r8 -O2 -openmp| ! ocean driver
 advfct|-r8 -O2 -openmp|                         ! advection
@@ -66,6 +66,9 @@ trcadv|-r8 -O2 -openmp|                         ! tracer advection
 tsadvc|-r8 -O2 -openmp|                         ! T/S advection 
 hybrid_mpi_omp_renamer|-O2 -openmp|            ! ESMF
 hybrid_mpi_omp_coupler|-O2 -openmp|            ! ESMF
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 AIC=AIC.RES_M20A.D771201    !initial conditions (atm.) needs GIC,OIC ISTART=2

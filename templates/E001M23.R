@@ -12,8 +12,8 @@ RES_M23 DIAG_RES_M FFT72            ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-PARAM PARSER                        ! parameter database
-DOMAIN_DECOMP ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+                                    ! parameter database
+              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
@@ -37,8 +37,11 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-CONST UTILDBL SYSTEM                ! utilities
+                                    ! utilities
 POUT                                ! post-processing output
+
+Components:
+ESMF_Interface shared
 
 Data input files:
 ! AIC=AIC.RES_M23.D771201
@@ -182,7 +185,7 @@ o3_yr=-1880
 ! q-flux run based on E001M23 with 65m ocn (sensitivity runs) E001M23 -> E001qsM23
 ! --------------------------------------                                 =========
 !     need last 5-10 yrs of VFLXO-files and final rsf from E001M23
-!     replace section 1 of "Data input files" by the 3 lines:
+!     replace section 1 of " Data input files" by the 3 lines:
 ! AIC=1JAN1961.rsfE001M23.MXL65m      ! made by aux/mkOTSPEC  (65m)
 ! OHT=OTSPEC.E001M23.MXL65m.1956-1960 ! made by aux/mkOTSPEC  (65m)
 ! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
@@ -197,7 +200,7 @@ o3_yr=-1880
 ! q-flux run based on E001M23 with 250m ocean                 E001M23 -> E001qM23
 ! -----------------------------------------                              ========
 !     need last 5-10 yrs of VFLXO-files and final rsf from E001M23
-!     replace section 1 of "Data input files" by the 3 lines:
+!     replace section 1 of " Data input files" by the 3 lines:
 ! AIC=1JAN1961.rsfE001M23.MXL250m      ! made by aux/mkOTSPEC  (250m)
 ! OHT=OTSPEC.E001M23.MXL250m.1956-1960 ! made by aux/mkOTSPEC  (250m)
 ! OCNML=Z1O.B4X5.cor              ! mixed layer depth (now needed)
