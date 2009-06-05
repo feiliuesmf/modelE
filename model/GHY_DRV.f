@@ -1498,7 +1498,7 @@ c***********************************************************************
      &     ,hdiurn=>hdiurn_loc
 #endif
      *     ,tsfrez=>tsfrez_loc,tdiurn,jreg, ij_psoil,ij_vsfr,ij_bsfr
-     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta
+     *     ,ij_rune, ij_arunu, ij_pevap, ij_shdt, ij_beta, ij_rhs 
      *     ,ij_srtr, ij_neth, ij_ws, ij_ts, ij_us, ij_vs, ij_taus
      *     ,ij_tauus, ij_tauvs, ij_qs, ij_tg1, ij_evap, j_trhdt, j_shdt
      *     ,j_evhdt,j_evap,j_erun,j_run,j_tsrf,j_type,j_tg1,j_tg2
@@ -1588,7 +1588,8 @@ c***********************************************************************
       REAL*8 :: tmp(:)
 
 ccc the following values are returned by PBL
-      real*8 us,vs,ws,psi,dbl,khs,ug,vg,wg,gusti
+      real*8 us,vs,ws,psi,dbl,khs,ug,vg,wg,gusti,qsrf,tsv,ps,elhx
+      real*8, external :: qsat
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,wsgcm,wspdf
@@ -1603,6 +1604,8 @@ ccc the following values are returned by PBL
       vg = pbl_args%vg
       wg = pbl_args%wg
       gusti = pbl_args%gusti
+      qsrf = pbl_args%qsrf ; tsv = pbl_args%tsv ; ps = pbl_args%psurf
+      elhx = pbl_args%elhx
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       wsgcm=pbl_args%wsgcm
@@ -1753,6 +1756,7 @@ c**** quantities accumulated for latitude-longitude maps in diagij
         aij(i,j,ij_tauus)=aij(i,j,ij_tauus)+rcdmws*(us)*ptype !-uocean
         aij(i,j,ij_tauvs)=aij(i,j,ij_tauvs)+rcdmws*(vs)*ptype !-vocean
         aij(i,j,ij_qs)=aij(i,j,ij_qs)+qs*ptype
+        aij(i,j,ij_rhs)=aij(i,j,ij_rhs)+qsrf*ptype/qsat(tsv,elhx,ps)
         aij(i,j,ij_tg1)=aij(i,j,ij_tg1)+tg1*ptype
         aij(i,j,ij_pblht)=aij(i,j,ij_pblht)+dbl*ptype
         if(DDMS(I,J).lt.0.)   ! ddms < 0 for down draft
@@ -2198,8 +2202,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
        real*4 rrr(im,jm)
 
         titrrr = "roughness length over land"
-	rrr = 0.
-
+        rrr = 0.
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1 )

@@ -2272,6 +2272,14 @@ c
       ir_ij(k) = ir_0_180
 c
       k=k+1 !
+      IJ_RHs  = k ! RHs                               (NO PRT)  3 SF
+      lname_ij(k) = 'SURFACE AIR RELATIVE HUMIDITY'
+      units_ij(k) = '%'
+      name_ij(k) = 'RHsurf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.d2
+c
+      k=k+1 !
       IJ_STRNGTS = k ! MAX(0,65F-TS_daily_avg in F)              dly_ea
       lname_ij(k) = 'MONTHLY HEATING' ! monthly heating need ?
       units_ij(k) = 'degF days'
