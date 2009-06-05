@@ -41,6 +41,8 @@
       entry set_ioptrs_iceacc_default
       entry set_ioptrs_iceacc_sumfiles
       entry sumfiles_iceacc
+      entry def_meta_icdiag
+      entry write_meta_icdiag
 #endif
       RETURN
       END SUBROUTINE ICEDYN_DUM

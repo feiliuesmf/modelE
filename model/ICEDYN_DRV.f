@@ -52,8 +52,12 @@ C**** Ice advection diagnostics
       INTEGER, DIMENSION(KICIJ) :: IA_ICIJ
 !@var scale_icij scales for ICIJ diagnostics
       REAL*8, DIMENSION(KICIJ) :: SCALE_ICIJ
-!@var ijgrid_icij Grid descriptor for ICIJ diagnostics
-       INTEGER, DIMENSION(KICIJ) :: IJGRID_ICIJ
+!@var [ij]grid_icij Grid descriptors for ICIJ diagnostics
+       INTEGER, DIMENSION(KICIJ) :: IGRID_ICIJ,JGRID_ICIJ
+!@var denom_icij denominators for ICIJ diagnostics
+       INTEGER, DIMENSION(KICIJ) :: DENOM_ICIJ
+!@var cdl_icij consolidated metadata for ICIJ output fields in CDL notation
+       character(len=100), dimension(kicij*6) :: cdl_icij
 #ifdef TRACERS_WATER
 !@var KTICIJ number of lat/lon ice dynamic tracer diagnostics
       INTEGER, PARAMETER :: KTICIJ=2
@@ -415,6 +419,57 @@ C****
       end select
       return      
       end subroutine new_io_icdiag
+
+      subroutine def_meta_icdiag(fid)
+!@sum  def_meta_icdiag defines icedyn metadata in acc files
+!@auth M. Kelley
+!@ver  beta
+      use icedyn_com
+      USE ICEDYN, only : grid=>grid_MIC
+      use pario, only : defvar,write_attr
+      use geom, only : lon_dg,lat_dg ! TEMPORARY
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call defvar(grid,fid,lat_dg(:,1),'latic(jmic)')
+      call defvar(grid,fid,lat_dg(:,2),'latic2(jmic)')
+      call defvar(grid,fid,lon_dg(:,1),'lonic(imic)')
+      call defvar(grid,fid,lon_dg(:,2),'lonic2(imic)')
+
+      call write_attr(grid,fid,'icij','reduction','sum')
+      call write_attr(grid,fid,'icij','split_dim',3)
+      call defvar(grid,fid,ia_icij,'ia_icij(kicij)')
+      call defvar(grid,fid,denom_icij,'denom_icij(kicij)')
+      call defvar(grid,fid,scale_icij,'scale_icij(kicij)')
+      call defvar(grid,fid,sname_icij,'sname_icij(sname_strlen,kicij)')
+      call defvar(grid,fid,cdl_icij,'cdl_icij(cdl_strlen,kcdl_icij)')
+
+      return
+      end subroutine def_meta_icdiag
+
+      subroutine write_meta_icdiag(fid)
+!@sum  write_meta_icdiag write icedyn accumulation metadata to file
+!@auth M. Kelley
+      use icedyn_com
+      USE ICEDYN, only : grid=>grid_MIC
+      use pario, only : write_dist_data,write_data
+      use geom, only : lon_dg,lat_dg ! TEMPORARY
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call write_data(grid,fid,'latic',lat_dg(:,1))
+      call write_data(grid,fid,'latic2',lat_dg(:,2))
+      call write_data(grid,fid,'lonic',lon_dg(:,1))
+      call write_data(grid,fid,'lonic2',lon_dg(:,2))
+
+      call write_data(grid,fid,'ia_icij',ia_icij)
+      call write_data(grid,fid,'denom_icij',denom_icij)
+      call write_data(grid,fid,'scale_icij',scale_icij)
+      call write_data(grid,fid,'sname_icij',sname_icij)
+      call write_data(grid,fid,'cdl_icij',cdl_icij)
+
+      return
+      end subroutine write_meta_icdiag
 
       subroutine set_ioptrs_iceacc_default
 c point i/o pointers for diagnostic accumlations to the
@@ -1498,7 +1553,8 @@ C****
       USE PARAM
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
-      INTEGER k
+      INTEGER k,kk
+      character(len=10) :: xstr,ystr
 
 C**** setup ice dynamics grid
 C**** Currently using ATM grid:
@@ -1524,115 +1580,108 @@ C**** set uisurf,visurf for atmopsherice drag calculations
       call get_uisurf(usi,vsi,uisurf,visurf)
 
 C**** set properties for ICIJ diagnostics
+      do k=1,kicij
+        ia_icij(k)=ia_src
+        denom_icij(k)=0
+        igrid_icij(k)=1
+        jgrid_icij(k)=1
+      enddo
       k=0
-
-      k=k+1
-      IJ_USI=k
-      lname_icij(k)="Sea ice EW velocity x POICEU"
-      sname_icij(k)="icij_usi"
-      units_icij(k)="m/s"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1.
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_VSI=k
-      lname_icij(k)="Sea ice NS velocity x POICEV"
-      sname_icij(k)="icij_vsi"
-      units_icij(k)="m/s"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1.
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_DMUI=k
-      lname_icij(k)="Ice-ocean EW stress"
-      sname_icij(k)="icij_dmui"
-      units_icij(k)="kg/m s^2"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1./dtsrc
-      ijgrid_icij(k)=1
-
-      k=k+1
-      IJ_DMVI=k
-      lname_icij(k)="Ice-ocean NS stress"
-      sname_icij(k)="icij_dmvi"
-      units_icij(k)="kg/m s^2"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1./dtsrc
-      ijgrid_icij(k)=1
-
-      k=k+1
-      IJ_PICE=k
-      lname_icij(k)="Sea ice internal pressure x POICE"
-      sname_icij(k)="icij_psi"
-      units_icij(k)="10^3 kg/m s^2"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-3
-      ijgrid_icij(k)=1
-
-      k=k+1
-      IJ_MUSI=k
-      lname_icij(k)="Sea ice NS mass flux"
-      sname_icij(k)="icij_musi"
-      units_icij(k)="10^7 kg/s"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-7/dtsrc
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_MVSI=k
-      lname_icij(k)="Sea ice EW mass flux"
-      sname_icij(k)="icij_mvsi"
-      units_icij(k)="10^7 kg/s"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-7/dtsrc
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_HUSI=k
-      lname_icij(k)="Sea ice NS heat flux"
-      sname_icij(k)="icij_husi"
-      units_icij(k)="10^12 W"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-12/dtsrc
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_HVSI=k
-      lname_icij(k)="Sea ice EW heat flux"
-      sname_icij(k)="icij_hvsi"
-      units_icij(k)="10^12 W"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-12/dtsrc
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_SUSI=k
-      lname_icij(k)="Sea ice NS salt flux"
-      sname_icij(k)="icij_susi"
-      units_icij(k)="10^3 kg/s"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-3/dtsrc
-      ijgrid_icij(k)=2
-
-      k=k+1
-      IJ_SVSI=k
-      lname_icij(k)="Sea ice EW salt flux"
-      sname_icij(k)="icij_svsi"
-      units_icij(k)="10^3 kg/s"
-      ia_icij(k)=ia_src
-      scale_icij(k)=1d-3/dtsrc
-      ijgrid_icij(k)=2
 
       k=k+1
       IJ_RSI=k
       lname_icij(k)="Ocean ice fraction (ice dynamic grid)"
       sname_icij(k)="icij_rsi"
       units_icij(k)="%"
-      ia_icij(k)=ia_src
       scale_icij(k)=100.
-      ijgrid_icij(k)=1
+
+      k=k+1
+      IJ_USI=k
+c      denom_icij(k)=IJ_RSIU ! need to add IJ_RSIU
+      lname_icij(k)="Sea ice EW velocity x POICEU"
+      sname_icij(k)="icij_usi"
+      units_icij(k)="m/s"
+      scale_icij(k)=1.
+      igrid_icij(k)=2
+
+      k=k+1
+      IJ_VSI=k
+c      denom_icij(k)=IJ_RSIV ! need to add IJ_RSIV
+      lname_icij(k)="Sea ice NS velocity x POICEV"
+      sname_icij(k)="icij_vsi"
+      units_icij(k)="m/s"
+      scale_icij(k)=1.
+      jgrid_icij(k)=2
+
+      k=k+1
+      IJ_DMUI=k
+      lname_icij(k)="Ice-ocean EW stress"
+      sname_icij(k)="icij_dmui"
+      units_icij(k)="kg/m s^2"
+      scale_icij(k)=1./dtsrc
+
+      k=k+1
+      IJ_DMVI=k
+      lname_icij(k)="Ice-ocean NS stress"
+      sname_icij(k)="icij_dmvi"
+      units_icij(k)="kg/m s^2"
+      scale_icij(k)=1./dtsrc
+
+      k=k+1
+      IJ_PICE=k
+      denom_icij(k)=IJ_RSI
+      lname_icij(k)="Sea ice internal pressure"
+      sname_icij(k)="icij_psi"
+      units_icij(k)="10^3 kg/m s^2"
+      scale_icij(k)=1d-3
+
+      k=k+1
+      IJ_MUSI=k
+      lname_icij(k)="Sea ice EW mass flux"
+      sname_icij(k)="icij_musi"
+      units_icij(k)="10^7 kg/s"
+      scale_icij(k)=1d-7/dtsrc
+      igrid_icij(k)=2
+
+      k=k+1
+      IJ_MVSI=k
+      lname_icij(k)="Sea ice NS mass flux"
+      sname_icij(k)="icij_mvsi"
+      units_icij(k)="10^7 kg/s"
+      scale_icij(k)=1d-7/dtsrc
+      jgrid_icij(k)=2
+
+      k=k+1
+      IJ_HUSI=k
+      lname_icij(k)="Sea ice EW heat flux"
+      sname_icij(k)="icij_husi"
+      units_icij(k)="10^12 W"
+      scale_icij(k)=1d-12/dtsrc
+      igrid_icij(k)=2
+
+      k=k+1
+      IJ_HVSI=k
+      lname_icij(k)="Sea ice NS heat flux"
+      sname_icij(k)="icij_hvsi"
+      units_icij(k)="10^12 W"
+      scale_icij(k)=1d-12/dtsrc
+      jgrid_icij(k)=2
+
+      k=k+1
+      IJ_SUSI=k
+      lname_icij(k)="Sea ice EW salt flux"
+      sname_icij(k)="icij_susi"
+      units_icij(k)="10^3 kg/s"
+      scale_icij(k)=1d-3/dtsrc
+      igrid_icij(k)=2
+
+      k=k+1
+      IJ_SVSI=k
+      lname_icij(k)="Sea ice NS salt flux"
+      sname_icij(k)="icij_svsi"
+      units_icij(k)="10^3 kg/s"
+      scale_icij(k)=1d-3/dtsrc
+      jgrid_icij(k)=2
 
       if (k.gt.KICIJ) then
         write(6,*) "Too many ICIJ diags: increase KICIJ to at least"
@@ -1668,6 +1717,52 @@ C**** set properties for TICIJ diagnostics
      *       ,k
         call stop_model("TICIJ diagnostic error",255)
       end if
+#endif
+
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).
+c
+
+      cdl_icij = ''
+      cdl_icij(1:2)(:) = (/
+     &     'netcdf xxx { ', 'dimensions:  ' /)
+      write(cdl_icij(3),'(a,i3,a)') '   lonic = ',imic,' ;'
+      write(cdl_icij(4),'(a,i3,a)') '   latic = ',jmic,' ;'
+      write(cdl_icij(5),'(a,i3,a)') '   lonic2 = ',imic,' ;'
+      write(cdl_icij(6),'(a,i3,a)') '   latic2 = ',jmic,' ;'
+      cdl_icij(7:15)(:) = (/
+     &     'variables:                       ',
+     &     'float lonic(lonic) ;               ',
+     &     '   lonic:units = "degrees_east" ; ',
+     &     'float latic(latic) ;               ',
+     &     '   latic:units = "degrees_north" ;',
+     &     'float lonic2(lonic2) ;             ',
+     &     '   lonic2:units = "degrees_east" ;',
+     &     'float latic2(latic2) ;             ',
+     &     '   latic2:units = "degrees_north" ;'
+     &     /)
+      kk = count(len_trim(cdl_icij).gt.0)
+      do k=1,kicij
+        if(trim(sname_icij(k)).eq.'unused') cycle
+        xstr='lonic) ;'
+        if(igrid_icij(k).eq.2) xstr='lonic2) ;'
+        ystr='(latic,'
+        if(jgrid_icij(k).eq.2) ystr='(latic2,'
+        kk = kk + 1
+        cdl_icij(kk) = 'float '//trim(sname_icij(k))//
+     &       trim(ystr)//trim(xstr)
+        kk = kk + 1
+        cdl_icij(kk) = '   '//trim(sname_icij(k))//':long_name = "'//
+     &       trim(lname_icij(k))//'" ;'
+        kk = kk + 1
+        cdl_icij(kk) = '   '//trim(sname_icij(k))//':units = "'//
+     &       trim(units_icij(k))//'" ;'
+      enddo
+      kk = kk + 1
+      cdl_icij(kk) = '}'
 #endif
 
       RETURN
@@ -1717,17 +1812,15 @@ C**** Simple scaled ICIJ diagnostics
 C****
       DO K=1,KICIJ
         byiacc=1./(IDACC(IA_ICIJ(K))+teeny)
-        adenom=1.
         lname=lname_icij(k)
+        if(denom_icij(k).gt.0) then
+          adenom=icij(1:imic,1:jmic,denom_icij(k)) * byiacc
+        else
+          adenom=1.
+        endif
         k1 = index(lname,' x ')
         if (k1 .gt. 0) then
-          if (index(lname,' x POICE ') .gt. 0) then
-            do j=1,jmic
-            do i=1,imic
-              adenom(i,j)=icij(i,j,ij_rsi) * byiacc
-            end do
-            end do
-          else if (index(lname,' x POICEU') .gt. 0) then
+          if (index(lname,' x POICEU') .gt. 0) then
             do j=1,jmic
             i=imic
             do ip1=1,imic
@@ -1759,7 +1852,7 @@ C****
         TITLE=trim(LNAME)//" ("//trim(UNITS_ICIJ(K))//") "
         TITLE(51:80)=XLB
         CALL POUT_IJ(TITLE,SNAME_ICIJ(K),LNAME_ICIJ(K),UNITS_ICIJ(K),Q
-     *       ,QJ,QSUM,IJGRID_ICIJ(K),IJGRID_ICIJ(K)) ! assume igrid=jgrid
+     *       ,QJ,QSUM,IGRID_ICIJ(K),JGRID_ICIJ(K))
 
       END DO
 

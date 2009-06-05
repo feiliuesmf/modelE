@@ -260,7 +260,7 @@ c idacc(5) is not additive
       call def_meta_atmacc(fid)
       call def_meta_rvracc(fid)
       call def_meta_ocdiag(fid)
-c      call def_meta_icdiag(fid)
+      call def_meta_icdiag(fid)
 c#ifdef TRACERS_ON
 c      call def_meta_trdiag(fid)
 c#endif
@@ -279,7 +279,7 @@ c#endif
       call write_meta_atmacc(fid)
       call write_meta_rvracc(fid)
       call write_meta_ocdiag(fid)
-c      call write_meta_icdiag(fid)
+      call write_meta_icdiag(fid)
 c#ifdef TRACERS_ON
 c      call write_meta_trdiag(fid)
 c#endif
