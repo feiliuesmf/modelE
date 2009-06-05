@@ -74,7 +74,7 @@ rundeck:
 	@echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R
 
-depend: $(RUN).mk
+depend: $(RUN).mk check_sanity
 	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 
@@ -276,3 +276,9 @@ echo:
 
 $(BIN_DIR):
 	mkdir $(BIN_DIR)
+
+check_sanity:
+	@if [ "$(COMPONENTS)"xx = xx ] ; then \
+	  echo "Your rundeck contains no Components" ; \
+	  echo "Old style rundeck ?  ... aborting ..." ; \
+	  exit 1 ; fi
