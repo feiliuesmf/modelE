@@ -1015,7 +1015,7 @@ C**** Save Diagnostic, GIJL(2) = STRNP
 
 
       J = J_1S + 1
-      if (J.lt.(JM-1)) then
+      if (J.lt.JM) then
 
       DO L=1,LMO
 C**** Non-Polar boxes
