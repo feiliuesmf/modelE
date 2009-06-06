@@ -26,11 +26,10 @@ MODEL_COM IO_DRV             ! model variables and geometry
 GNOM_CS                             ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-                                    ! parameter database
-dd2d_utils pario_nc pario_fbsa
+pario_fbsa
 regrid regrid_com
-              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
-             cs                     ! cubed sphere domain decomposition for atm. routines
+ALLOC_DRV                           ! allocate global distributed arrays
+DOMAIN_DECOMPcs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM                  ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 FV_UTILS FV_CS_Mod FV_INTERFACE     ! FV dynamical core wrapper
@@ -53,10 +52,9 @@ RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT       ! diagnostics
 DIAG_ZONALcs GCDIAGcs cs2ll_utils
-                                    ! utilities
 
 Components:
-ESMF_Interface shared
+ESMF_Interface shared dd2d
 
 Data input files:
     ! start up from restart file of earlier run
