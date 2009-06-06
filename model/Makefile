@@ -3,7 +3,7 @@
 .SUFFIXES:
 .PHONY: FORCE
 
-AVAILABLE_COMPONENTS = ESMF_Interface Ent giss_LSM shared solvers # fvcubed_dycore
+AVAILABLE_COMPONENTS = ESMF_Interface Ent giss_LSM shared solvers dd2d
 
 export MOD_DIR := $(shell pwd)/mod
 export INCLUDE_DIR := $(shell pwd)/include

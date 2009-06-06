@@ -3,7 +3,8 @@
 
 SUPPORTED_OPTIONS = ESMF
 
-FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  UTILDBL.f
+FSRCS = checkpoint_demo.f cs2ll_utils.f dd2d_utils.f \
+DOMAIN_DECOMPcs.f pario_fbsa.f pario_nc.f
 
 
 ifndef GISSCLIM_DIR
