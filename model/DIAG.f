@@ -3029,6 +3029,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       INTEGER, INTENT(OUT) :: ICON
 !@var out_line local variable to hold mixed-type output for parallel I/O
       character(len=300) :: out_line
+!@var CONPT_us CONPT with blanks replaced by underscores
+      CHARACTER*10 :: CONPT_us
 
       INTEGER NI,NM,NS,N,k
       INTEGER, SAVE :: NQ = 2   ! first 2 special cases AM + KE
@@ -3062,7 +3064,11 @@ C****
           NOFM(N+1,NQ) = NM
           TITLE_CON(NM) = " CHANGE OF "//TRIM(NAME_CON)//" BY "//
      *         CONPT(N)
-          name_consrv(NM) ="chg_"//trim(sname)//"_"//TRIM(CONPT(N)(1:3))
+          CONPT_us = CONPT(N)
+          do k=1,len_trim(CONPT_us)
+            if (CONPT_us(k:k).eq." ") CONPT_us(k:k)="_"
+          end do
+          name_consrv(NM) ="chg_"//trim(sname)//"_"//TRIM(CONPT_us)
           lname_consrv(NM) = TITLE_CON(NM)
           units_consrv(NM) = SUM_UNIT
           SELECT CASE (N)
