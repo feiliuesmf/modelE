@@ -60,10 +60,6 @@ Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
-
-Components:
-ESMF_Interface shared
-
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
