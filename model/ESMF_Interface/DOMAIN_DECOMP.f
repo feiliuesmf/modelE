@@ -7,6 +7,10 @@
 #define DOMAIN_DECOMP_ATM_IS_1D
 #endif
 
+#ifdef NEW_IO
+#define USE_DD2D_UTILS
+#endif
+
       MODULE DOMAIN_DECOMP_1D
 !@sum  DOMAIN_DECOMP encapsulates lat-lon decomposition information
 !@+    for the message passing (ESMF) implementation.
