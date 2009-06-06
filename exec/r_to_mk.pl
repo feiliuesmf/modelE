@@ -36,13 +36,31 @@ if ( /Preprocessor *Options/i ) {
 if ( /Run *Options/i ) {
     print "RUN_OPTIONS = \n";
     while(<>) {
-	last if ( /Object *modules/i ) ;
+	last if ( /Object *modules/i || /Preprocessor *Options/i ) ;
 	chop;
 	s/\!/\#/g;
 	print "RUN_OPTIONS += $_\n";
     }
     print "\n";
 }
+
+#### hack ! hack !
+#### repeat parsing of CPP options to allow "Run *Options"
+#### to be specified before CPP opts
+if ( /Preprocessor *Options/i ) {
+    print "CPP_OPTIONS = \n";
+    while(<>) {
+        last if ( /End *preprocessor *options/i ) ;
+        chop;
+        s/\#/\\\#/g;
+        s/\!/\#/g;
+        print "CPP_OPTIONS += $_\n";
+    }
+    print "\n";
+    # skip till next section
+    while(<>) { last if(/Run *Options/i || /Object *modules/i); }
+}
+
 
 if ( /Object *modules/i ) {
     print "OBJ_LIST = \n";
