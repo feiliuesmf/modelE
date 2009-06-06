@@ -439,7 +439,7 @@
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_auto_patch, resp_root_patch !kg-C/m/s
       integer :: cohortnum
-      real*8 :: sla
+      !real*8 :: sla
       real*8 :: C_lab_old, Cactive_old
       real*8 :: loss_leaf,resp_growth1, resp_growth2
       logical :: dormant
