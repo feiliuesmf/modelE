@@ -155,6 +155,8 @@ c**** check whether ground hydrology data exist at this point.
 !@+   entcells should be a slice without halo
       use ent_prescribed_drv, only : init_canopy_physical,prescr_vegdata
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
+      use ghy_com, only : q_ij, qk_ij, dz_ij
+      use ghy_com, only : fearth
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       !Local variables
@@ -170,6 +172,7 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1) :: cpooldata !Carbon pools in individuals
       integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
+      !real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture1
       real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
       real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
      &     I0:I1,J0:J1):: Tpool_ini
@@ -206,7 +209,7 @@ cddd      enddo
       call prescr_vegdata(jday, year, 
      &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
      &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
-     &     soildata,soil_texture,Tpool_ini,.true.,.false.)
+     &     soildata,soil_texture,Tpool_ini,.true.,.false.,.false.)
       !print *,"popdata in ent_GISS_init: ",popdata
       !vegdata(1:2,:,:) = 0.0
       !vegdata(3,:,:) = 1.0
@@ -216,6 +219,28 @@ cddd      enddo
 
       !!! hack
       !!!Tpool_ini = 0.d0
+
+      !Compute soil textures for upper 30cm
+      do j=j0,j1
+        do i=i0,i1
+          !if ( fearth(i,j) < .01 ) cycle
+
+          soil_texture(:,i,j) = (
+     &            q_ij(i,j,:,1)*dz_ij(i,j,1)
+     &         +  q_ij(i,j,:,2)*dz_ij(i,j,2)
+     &         +  q_ij(i,j,:,3)*(.3d0 - dz_ij(i,j,1) - dz_ij(i,j,2))
+     &         ) / .3d0
+
+cddd          write(887,'(a1,5f10.5)') '1', q_ij(i,j,:,1)
+cddd          write(887,'(a1,5f10.5)') '2', q_ij(i,j,:,2)
+cddd          write(887,'(a1,5f10.5)') '3', q_ij(i,j,:,3)
+cddd          write(887,'(a1,5f10.5)') 'o', soil_texture(:,i,j)
+cddd          write(887,'(a1,5f10.5)') 'n', soil_texture1(:,i,j)
+cddd          write(887,'(a1,5f10.5)') 'd', soil_texture1(:,i,j)
+cddd     &         -soil_texture(:,i,j)
+cddd          write(887,'(a1,5f10.5)') 's',sum( soil_texture1(:,i,j) )
+        enddo
+      enddo
 
       !Translate gridded data to Entdata structure
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch
