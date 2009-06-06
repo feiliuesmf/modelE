@@ -1,10 +1,9 @@
-# makefile for the component shared
+# makefile for the component dd2d
 .SUFFIXES:
 
 SUPPORTED_OPTIONS = ESMF
 
-FSRCS = checkpoint_demo.f cs2ll_utils.f dd2d_utils.f \
-DOMAIN_DECOMPcs.f pario_fbsa.f pario_nc.f
+FSRCS = dd2d_utils.f pario_nc.f
 
 
 ifndef GISSCLIM_DIR

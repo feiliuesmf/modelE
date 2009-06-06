@@ -702,13 +702,13 @@ c
 #undef _OPER_
 #define _OPER_ pack
 #define MULTITILE
-#include "dd2d/gs_variants.inc"
+#include "gs_variants.inc"
 #undef MULTITILE
 #define TILE
-#include "dd2d/gs_variants.inc"
+#include "gs_variants.inc"
 #undef TILE
 #define ROW
-#include "dd2d/gs_variants.inc"
+#include "gs_variants.inc"
 #undef ROW
 #undef _GATHER_
 
@@ -719,30 +719,30 @@ c
 #undef _OPER_
 #define _OPER_ unpack
 #define MULTITILE
-#include "dd2d/gs_variants.inc"
+#include "gs_variants.inc"
 #undef MULTITILE
 #define TILE
-#include "dd2d/gs_variants.inc"
+#include "gs_variants.inc"
 #undef TILE
 #define ROW
-#include "dd2d/gs_variants.inc"
+#include "gs_variants.inc"
 #undef ROW
 #undef _SCATTER_
 
 
       subroutine halo_update_2D(grid,arr,jdim)
       real*8, dimension(:,:) :: arr
-      include 'dd2d/do_halo.inc'
+      include 'do_halo.inc'
       return
       end subroutine halo_update_2D
       subroutine halo_update_3D(grid,arr,jdim)
       real*8, dimension(:,:,:) :: arr
-      include 'dd2d/do_halo.inc'
+      include 'do_halo.inc'
       return
       end subroutine halo_update_3D
       subroutine halo_update_4D(grid,arr,jdim)
       real*8, dimension(:,:,:,:) :: arr
-      include 'dd2d/do_halo.inc'
+      include 'do_halo.inc'
       return
       end subroutine halo_update_4D
 
