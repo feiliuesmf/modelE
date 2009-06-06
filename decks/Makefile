@@ -74,7 +74,8 @@ rundeck:
 	@echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R
 
-depend: $(RUN).mk check_sanity
+depend: $(RUN).mk
+	$(MAKE) check_sanity RUN=$(RUN)
 	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 
