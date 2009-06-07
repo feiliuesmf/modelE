@@ -21,10 +21,10 @@ c
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja
 c
       real delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
-     .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,scalt,scals,
-     .     tup,sup,tem,sal,thhat,s_hat,t_hat,p_hat,q,q1,q2,slak,tapr,
+     .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,tapr,q1,q2,
+     .     rho_lo,tem_lo,sal_lo,rho_up,tem_up,sal_up,tem,sal,p_hat,q,
      .     torho,totem,tosal,totrc,totuv,tndrho,tndtem,tndsal,tndtrc,
-     .     tdcyuv,scale,rhuppr,displ(kdm+1)
+     .     tdcyuv,scale,displ(kdm+1),sumrho,sumtem,sumsal
       real targt(kdm+1),dens(kdm),ttem(kdm),ssal(kdm),pres(kdm+1),
      .     uold(kdm),vold(kdm),pold(kdm+1),pnew(kdm+1),dplist(kdm),
      .     trac(kdm,ntrcr)
@@ -42,9 +42,10 @@ c
       common/nmpipe/iunit,lpunit
       character info*16
       data uvscl/0.02/			!  2 cm/s
-      data scalt,scals/-30.,10./
-ccc   parameter (slak=1.)	        ! intfc nudging time scale: instantaneous
-      parameter (slak=1./86400.)	! intfc nudging time scale: 1 day
+      real,parameter :: tfreez=-1.8
+      real,parameter :: scalt=-30.,scals=10.	! oceanic t/s range
+ccc   real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
+      real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
 c
 #ifdef HYCOM_RESOLUTION_2deg
       data dplist/
@@ -90,14 +91,12 @@ c$OMP END PARALLEL DO
        delp=0;dp0=0;dp0abv=0;dpsum=0;zinteg=0;tinteg=0;sinteg=0;
        uvintg=0;
        phi=0;plo=0;pa=0;pb=0;dsgdt=0;dsgds=0;
-       tup=0;sup=0;tem=0;sal=0;thhat=0;s_hat=0;t_hat=0;p_hat=0;
-       q=0;q1=0;q2=0;
+       tem_up=0;sal_up=0;rho_up=0.;tem_lo=0;sal_lo=0;rho_lo=0.;
+       tem=0;sal=0;p_hat=0;q=0;q1=0;q2=0;
        torho=0;totem=0;tosal=0;totrc=0;totuv=0;tndrho=0;tndtem=0;
-       tndsal=0;tndtrc=0;
-       tdcyuv=0;scale=0;rhuppr=0;displ=0;
+       tndsal=0;tndtrc=0;tdcyuv=0;scale=0;displ=0;
        targt=0;dens=0;ttem=0;ssal=0;pres=0;
-       uold=0;vold=0;pold=0;pnew=0;
-       trac=0;
+       uold=0;vold=0;pold=0;pnew=0;trac=0;
 !-------------------------------------------------------------------
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
@@ -110,11 +109,14 @@ c$OMP END PARALLEL DO
 c
       abort=.false.
 
-c$OMP PARALLEL DO PRIVATE(torho,totem,tosal,kp,q,q1,q2,tem,sal,dsgdt,
-c$OMP+ dsgds,t_hat,s_hat,thhat,tup,sup,p_hat,tndrho,tndtem,tndsal,kn,
-c$OMP+ dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,k1,tinteg,sinteg,phi,
-c$OMP+ plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,trac,vrbos,pold,pnew,info,
-c$OMP+ displ,totrc,tndtrc,scale,rhuppr) SHARED(abort)
+c$OMP PARALLEL DO PRIVATE(kn,torho,totem,tosal,kp,q,q1,q2,tem,sal,
+c$OMP+dsgdt,dsgds,tem_lo,sal_lo,rho_lo,tem_up,sal_up,rho_up,p_hat,
+c$OMP+tndrho,tndtem,tndsal,dens,ttem,ssal,pres,targt,dp0,dp0abv,dpsum,
+c$OMP+k1,k2,tinteg,sinteg,phi,plo,pa,pb,ntot2,ntot3,nwrk2,nwrk3,
+c$OMP+trac,pold,pnew,try,info,displ,totrc,tndtrc,scale,
+c$OMP+sumrho,sumtem,sumsal,vrbos,event)
+c$OMP+ SHARED(abort) SCHEDULE(STATIC,jchunk)
+
       do 12 j=J_0, J_1
       ntot2=0
       ntot3=0
@@ -201,13 +203,12 @@ c
 c --- is layer touching sea floor to light?
       if (kp.eq.1) go to 10
       k=kp
-      if (dens(k).lt.theta(k)-.001*sigjmp .and. dens(k).gt.dens(k-1))
-     .  then
+      if (dens(k).gt.max(dens(k-1),theta(k-1)) .and.
+     .    dens(k).le.theta(k)) then
 c
-c --- water in layer k is too light. split layer into 2 sublayers, one
-c --- having the desired density and one matching the density of layer k-1.
-c --- t & s in sublayers are obtained by unmixing in direction perpendicular
-c --- to isopycnals in t/s space. combine upper sublayer with layer k-1.
+c --- water in layer k is too light. split layer into 2 sublayers
+c --- matching target densities of layers k-1 and k respectively.
+c --- combine upper sublayer with layer k-1.
 c
         tem=ttem(k)
         sal=ssal(k)
@@ -219,65 +220,62 @@ ccc        if (scalt+scals.eq.0.) go to 10
         q=1./(dsgdt+dsgds)
 c
 c --- set properties in lower sublayer:
-        s_hat=  sal+(theta(k)-dens(k))*q*scals
+        sal_lo=min(sal+(theta(k)-dens(k))*q*scals,max(ssal(k-1),sal))
         if (tscnsv) then
-          t_hat=tem+(theta(k)-dens(k))*q*scalt
-          thhat=sigocn(t_hat,s_hat)
+          tem_lo=max(tem+(theta(k)-dens(k))*q*scalt,tfreez)
+          rho_lo=sigocn(tem_lo,sal_lo)
         else
-          thhat=theta(k)
-          t_hat=tofsig(thhat,s_hat)
+          rho_lo=theta(k)
+          tem_lo=max(tofsig(rho_lo,sal_lo),tfreez)
         end if
 c
 c --- set properties in upper sublayer:
-        rhuppr=max(dens(k-1),min(theta(k-1),dens(k)))
-        sup=  sal+(rhuppr-dens(k))*q*scals
-        if (tscnsv) then
-          tup=tem+(rhuppr-dens(k))*q*scalt
-          if (dsgdt*scalt+dsgds*scals.gt.0.) then
-            q=(s_hat-sal)/(s_hat-sup)
-          else
-            q=(t_hat-tem)/(t_hat-tup)
-          end if
-        else
-          q=(thhat-dens(k))/max(epsil,thhat-rhuppr)
-        end if
+        rho_up=max(dens(k-1),min(theta(k-1),dens(k)))
+        q=(rho_lo-dens(k))/max(epsil,rho_lo-rho_up)
         if (q.ge.0. .and. q.le.1.) then
           p_hat=pres(k)*(1.-q)+pres(k+1)*q
+          q=(pres(k+1)-p_hat)/max(epsil,p_hat-pres(k))
+          sal_up=sal*(1.+q)-sal_lo*q
+          if (tscnsv) then
+            tem_up=tem*(1.+q)-tem_lo*q
+          else
+            tem_up=tofsig(rho_up,sal_up)
+          end if
 c
           if (vrbos) then
-            if (.not.tscnsv) tup=tofsig(rhuppr,sup)
             write (lp,'(i9,2i5,i3,a,3f7.3,f8.2)') nstep,i,j,k,
-     .      '  t,s,th,dp in upper sblyr:',tup,sup,
-     .      sigocn(tup,sup),(p_hat-pres(k))/onem
+     .      '  t,s,th,dp in upper sblyr:',tem_up,sal_up,
+     .      sigocn(tem_up,sal_up),(p_hat-pres(k))/onem
             write (lp,'(22x,a,3f7.3,f8.2)') 
-     .      '  t,s,th,dp in lower sblyr:',t_hat,s_hat,
-     .      thhat,(pres(k+1)-p_hat)/onem
+     .      '  t,s,th,dp in lower sblyr:',tem_lo,sal_lo,
+     .      rho_lo,(pres(k+1)-p_hat)/onem
             write (lp,'(22x,a,1p,2e11.3)') '  scalt,scals =',scalt,scals
           end if
 c
 c --- combine upper sublayer with layer k-1
           q=(p_hat-pres(k))/max(p_hat-pres(k-1),epsil)
           if (q.lt.0. .or. q.gt.1.) then
-            write (lp,*) 'i,j,k,p_hat,pres(k),q=',
+            write (lp,*) 'q out of range - i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
 ccc            abort=.true.
           end if
-          ssal(k-1)=  sup*q+ssal(k-1)*(1.-q)
+          ssal(k-1)=  sal_up*q+ssal(k-1)*(1.-q)
           if (tscnsv) then
-            ttem(k-1)=tup*q+ttem(k-1)*(1.-q)
+            ttem(k-1)=tem_up*q+ttem(k-1)*(1.-q)
           else
-            ttem(k-1)=tofsig(rhuppr,ssal(k-1))
+            ttem(k-1)=tofsig(rho_up,ssal(k-1))
           end if
           if (dotrcr) trac(k-1,:)=trac(k,:)*q+trac(k-1,:)*(1.-q)
 c
           if (vrbos)
-     .    write (lp,'(22x,a,2f7.3,0p,f8.2)') '  old/new th(k-1):',
-     .    dens(k-1),sigocn(ttem(k-1),ssal(k-1)),q
+     .      write (lp,'(22x,a,2f7.3)')
+     .     '  old/new th(k-1):',dens(k-1),sigocn(ttem(k-1),ssal(k-1)),
+     .     '  old/new th(k  ):',dens(k  ),rho_lo
 c
           dens(k-1)=sigocn(ttem(k-1),ssal(k-1))
-          ttem(k)=t_hat
-          ssal(k)=s_hat
-          dens(k)=thhat
+          ttem(k)=tem_lo
+          ssal(k)=sal_lo
+          dens(k)=rho_lo
           pres(k)=p_hat
         end if
         nwrk2=nwrk2+1
