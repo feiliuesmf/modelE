@@ -93,7 +93,7 @@ endif
 	@echo
 
 clean:
-	-rm -f lib.a *.o *.mod *.smod .depend* .current_options
+	-rm -f lib.a *.o *.mod *.smod .depend* .current_options rundeck_opts.h
 
 deplist:
 	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)
