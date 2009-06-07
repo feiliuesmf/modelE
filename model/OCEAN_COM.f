@@ -426,10 +426,10 @@ C****
       ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       if(am_i_root()) then
-        ALLOCATE( TRMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-        ALLOCATE( TXMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-        ALLOCATE( TYMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-        ALLOCATE( TZMO_glob(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+        ALLOCATE( TRMO_glob(IM,JM,LMO,NTM), STAT = IER)
+        ALLOCATE( TXMO_glob(IM,JM,LMO,NTM), STAT = IER)
+        ALLOCATE( TYMO_glob(IM,JM,LMO,NTM), STAT = IER)
+        ALLOCATE( TZMO_glob(IM,JM,LMO,NTM), STAT = IER)
       endif
 #endif
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
