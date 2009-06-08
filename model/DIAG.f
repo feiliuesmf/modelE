@@ -1374,7 +1374,7 @@ C****
       INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,n_fidx
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
-      LOGICAL :: polefix,have_south_pole,have_north_pole
+      LOGICAL :: polefix,have_south_pole,have_north_pole,skip
 
       CALL GET(GRID,J_STRT=J_0, J_STOP=J_1,
      &              J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
@@ -1793,6 +1793,7 @@ C**** diagnostics on model levels
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
             do kp=1,LmaxSUBDD
+              skip = .false.
               select case (namedd(k)(1:1))
               case ("t")        ! temperature (C)
                 if(have_south_pole) data(1:im,1)=
@@ -1823,7 +1824,11 @@ C**** diagnostics on model levels
               case ("V")        ! N-S velocity
                 data=v(:,:,kp)
               case ("W")        ! vertical velocity
-                data=wsave(:,:,kp)
+                if(kp<lm) then
+                  data=wsave(:,:,kp)
+                else
+                  skip = .true.
+                end if
               case ("C")        ! estimate of cloud optical depth
                 data=(1.-fss(kp,:,:))*taumc(kp,:,:)+fss(kp,:,:)
      *               *tauss(kp,:,:)
@@ -1877,7 +1882,7 @@ C**** diagnostics on model levels
 #endif
               end select
               polefix=(namedd(k)(1:1).ne."U".and.namedd(k)(1:1).ne."V")
-              call write_data(data,kunit,polefix)
+              if(.not.skip) call write_data(data,kunit,polefix)
             end do
             cycle
           end if
