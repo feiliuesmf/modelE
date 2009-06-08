@@ -146,7 +146,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
       PUBLIC :: SKIP_PARALLEL
       PUBLIC :: DREAD_PARALLEL,DREAD8_PARALLEL,DWRITE8_PARALLEL
       PUBLIC :: MREAD_PARALLEL
-      PUBLIC :: READT_PARALLEL,WRITET_PARALLEL
+      PUBLIC :: READT_PARALLEL,WRITET_PARALLEL,READT_PARALLEL_COLUMN
       PUBLIC :: READT8_PARALLEL,READT8_COLUMN,WRITET8_COLUMN
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITE_PARALLEL
@@ -288,6 +288,10 @@ c        MODULE PROCEDURE DREAD_PARALLEL_2D
       INTERFACE WRITET_PARALLEL
         MODULE PROCEDURE WRITET_PARALLEL_2D
 c        MODULE PROCEDURE READT_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE READT_PARALLEL_COLUMN
+        MODULE PROCEDURE READT_PARALLEL_COLUMN_3D
       END INTERFACE
 
       INTERFACE READT8_PARALLEL
@@ -2839,6 +2843,50 @@ C****  convert from real*4 to real*8
       end if
 
       END SUBROUTINE READT_PARALLEL_3D
+
+      SUBROUTINE READT_PARALLEL_COLUMN_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
+!@sum READT_PARALLEL_COLUMN read in real*4 (:,im,jm) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
+      CHARACTER*(*), INTENT(IN)  :: NAME         !@var  NAME  name of file being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,:,grd_dum%J_STRT_HALO:)  !@var  AVAR real*8 array
+      INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
+      REAL*4 :: AGLOB4(size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var AGLOB global array
+      REAL*8 :: AGLOB (size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var AGLOB global array
+      INTEGER :: N                        !@var  N loop variable
+      CHARACTER*80 :: TITLE               !@var  TITLE title of file record
+      INTEGER :: rc
+
+      If (AM_I_ROOT()) then
+         DO N=1,IPOS-1
+            READ (IUNIT,IOSTAT=rc)
+         END DO
+         READ (IUNIT, IOSTAT=rc) TITLE, AGLOB4
+C****  convert from real*4 to real*8
+         AGLOB = AGLOB4
+      EndIf
+
+#ifdef USE_MPI
+      Call scatter(grd_dum, AGLOB, AVAR, shape(AVAR), 3)
+#else
+      AVAR(:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
+     &     AGLOB(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+
+      if (am_i_root()) then
+         If (rc==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',rc
+            call stop_model('READT_PARALLEL_COLUMN: READ ERROR',255)
+         EndIf
+      end if
+
+      END SUBROUTINE READT_PARALLEL_COLUMN_3D
 
       SUBROUTINE READT8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
 !@sum READT8_PARALLEL read in real*8 (im,jm,:) arrays
