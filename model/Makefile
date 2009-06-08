@@ -105,7 +105,7 @@ clean_components:
 	for i in $(AVAILABLE_COMPONENTS) ; do \
 	  $(MAKE) -C $$i clean ; done
 
-$(RUN_H): $(DECKS_DIR)/$(RUN).mk
+$(RUN_H): $(DECKS_DIR)/$(RUN).mk FORCE
 	perl -e '$$_="$(CPP_OPTIONS)"; s/ *\#/\n\#/g; print "$$_\n";' \
 	 > rundeck_opts.tmp
 	if ! cmp -s rundeck_opts.tmp $(RUN_H) ; then \
