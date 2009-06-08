@@ -4161,7 +4161,7 @@ C**** FSLIP = 0 implies no slip conditions, = 1 implies free slip
 C**** Mass variation is included
 C****
       USE CONSTANT, only : twopi,rhows,omega,radius
-      USE OCEANRES, only : AKHMIN
+      USE OCEANRES, only : akhmin, akhfac
       USE OCEAN, only : im,jm,lmo,mo,uo,vo,
      *  IVNP,UONP,VONP, COSU,SINU, COSI=>COSIC,SINI=>SINIC,DLAT,
      *  cospo,cosvo,rlat,lmu,lmv,dxpo,dypo,dxvo,dyvo,dxyvo,dxypo,bydxypo
@@ -4252,10 +4252,10 @@ c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
 C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         DSP=MIN(DXPO(J),DYPO(J))*2.*SQRT(3.)/TWOPI  ! tracer lat
         DSV=MIN(DXVO(J),DYVO(J))*2.*SQRT(3.)/TWOPI  ! v vel pts
-        KHP(J)=2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! tracer lat
-        KHV(J)=2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! (v vel pts)
-        KHP(J)=MAX(KHP(J),AKHMIN)
-        KHV(J)=MAX(KHV(J),AKHMIN)
+        KHP(J)=AKHFAC*2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! tracer lat
+        KHV(J)=AKHFAC*2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! (v vel pts)
+        KHP(J)=MAX(KHP(J),AKHFAC*AKHMIN)
+        KHV(J)=MAX(KHV(J),AKHFAC*AKHMIN)
         BYDXYV(J)=1D0/DXYVO(J)
         BYDXV(J)=1D0/DXVO(J)
         BYDXP(J)=1D0/DXPO(J)
