@@ -350,7 +350,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       real*8 vdata(N_COVERTYPES) ! needed for a hack to compute canopy
 
       vdata(:) = 0.d0
-      call entcell_extract_pfts( ecp, vdata(2:) )
+      call entcell_extract_pfts( ecp, vdata )
       ecp%heat_capacity=prescr_calc_shc(vdata)
 
       end subroutine entcell_update_shc
@@ -424,6 +424,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       if ( associated(albedodata) ) then
         call entcell_update_albedo(entcell, albedodata)
       else
+        pp => entcell%oldest
         do while (ASSOCIATED(pp))
           ! update if have vegetation or not prognostic albedo
           if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )

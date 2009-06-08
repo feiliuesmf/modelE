@@ -104,12 +104,16 @@
       !************************************************
       integer,parameter :: N_PFT = 16
       integer,parameter :: N_OTHER = 0
+      integer,parameter :: COVER_SAND = 17
+      integer,parameter :: COVER_DIRT = 18
 #else
       !************************************************
       !*  GISS VEGETATION CONSTANTS                   *
       !************************************************
       integer,parameter :: N_PFT = 8 !8
       integer,parameter :: N_OTHER = 2 !2 algae, c4 grass
+      integer,parameter :: COVER_SAND = 1
+      integer,parameter :: COVER_DIRT = 10
 #endif
       !************************************************
       !* GENERIC VEGETATION CONSTANTS                 *

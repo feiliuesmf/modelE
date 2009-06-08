@@ -551,6 +551,8 @@
 
 
       subroutine patch_extract_pfts(pp, vdata)
+      use ent_pfts
+      use ent_const
       use cohorts, only : cohort_print
       type(patch) :: pp
       real*8 :: vdata(:)
@@ -562,7 +564,8 @@
       density = 0.d0
       cop => pp%tallest
       do while( associated(cop) )
-        vdata( cop%pft + 1 ) = vdata( cop%pft + 1 ) + cop%n
+        vdata( cop%pft + COVEROFFSET ) = 
+     &       vdata( cop%pft + COVEROFFSET ) + cop%n
         density = density + cop%n
         cop => cop%shorter
       enddo
@@ -571,9 +574,9 @@
         vdata(:) = vdata(:)/density
       else
         if ( pp%soil_type == 1 ) then
-          vdata(1) = 1.d0
+          vdata(COVER_SAND) = 1.d0
         else
-          vdata(N_PFT+2) = 1.d0
+          vdata(COVER_DIRT) = 1.d0
         endif
       endif
 

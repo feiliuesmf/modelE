@@ -351,8 +351,8 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
             vdata(:,i,j) = vdata(:,i,j)/s
           else if ( s < .1d0 ) then
             print *, "missing veg data at ",i,j,"assume bare soil"
-            vdata(1, i,j) = 1.d0
-            vdata(2:,i,j) = 0.d0
+            vdata(:,i,j) = 0.d0
+            vdata(COVER_SAND,i,j) = 1.d0
           else
             call stop_model("Incorrect data in VEG file",255)
           endif
