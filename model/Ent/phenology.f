@@ -185,7 +185,8 @@
           !* evergreen broadleaf - PAR limited    
           !*********************************************     
           par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
-     &                (pfpar(cop%pft)%leaftype.eq.BROADLEAF)) 
+     &                (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
+          par_limit = .false. !temp. suppress
           if (par_limit) then
              par_crit = - par_turnover_int/par_turnover_slope 
              turnover0 = min(100.d0, max(0.01d0, 
@@ -201,7 +202,7 @@
              cop%turnover_amp = 1.d0
              cop%llspan = -999.d0
           endif
-
+          
 
           !**************************************************************
           !* Update photosynthetic acclimation factor for evergreen veg
@@ -439,7 +440,6 @@
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_auto_patch, resp_root_patch !kg-C/m/s
       integer :: cohortnum
-      !real*8 :: sla
       real*8 :: C_lab_old, Cactive_old
       real*8 :: loss_leaf,resp_growth1, resp_growth2
       logical :: dormant
@@ -547,6 +547,7 @@
      &      pfpar(pft)%woody .and. 
      &      cop%phenostatus .ne. 2 )
      
+         dCrepro = 0.d0
          if (.not.dormant)           
      &       call growth_cpools_structural(pft,dbh,h,qsw,qf,
      &       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
@@ -971,9 +972,10 @@ c$$$      end subroutine senesce_cpools
       !* Growth and retranslocation.
       !* NOTE: Respiration is distributed over the day by canopy module,
       !*       so does not decrease C_lab here.
-      dC_lab = 
+      dClab_dbiomass =
+     &     max(0.d0,loss_hw) + max(0.d0,loss_croot)
+      dC_lab = - dClab_dbiomass
      &     - (1-l_fract)*(loss_leaf + loss_froot) !Retranslocated carbon from turnover
-     &     - (max(0.d0,loss_hw)+max(0.d0,loss_croot))
 
 
       !* Limit turnover litter if losses and respiration exceed C_lab.*!
@@ -1767,14 +1769,16 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
       real*8, intent(in) :: dbh
       real*8 :: maxdbh
 
-!      if (pft .ge. 11 .and. pft .le. 15) then !grasses/crops  
-      if (.not.pfpar(pft)%woody) then !herbaceous
-         maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
-     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-      else !woody
-         maxdbh=log(1.0-(0.999*pfpar(pft)%b1Ht-1.3)  
-     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-      end if
+      maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
+     &     /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+
+c$$$      if (.not.pfpar(pft)%woody) then !herbaceous
+c$$$         maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
+c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+c$$$      else !woody
+c$$$         maxdbh=log(1.0-(0.999*pfpar(pft)%b1Ht-1.3)  
+c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+c$$$      end if
 
       dbh2Cfol=1000.0d0*(1.0/C2B) *pfpar(pft)%b1Cf 
      &        * min(dbh, maxdbh)**pfpar(pft)%b2Cf
@@ -1784,13 +1788,16 @@ cddd      cop%NPP = cop%GPP - cop%R_auto
       real*8 function maxdbh(pft)
       integer,intent(in) :: pft       
 
-      if (.not.pfpar(pft)%woody) then !grasses/crops 
-         maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
-     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-      else !woody   
-         maxdbh=log(1.0-(0.999*pfpar(pft)%b1Ht-1.3)  
-     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-      end if
+      maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
+     &     /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+
+c$$$      if (.not.pfpar(pft)%woody) then !grasses/crops 
+c$$$         maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
+c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+c$$$      else !woody   
+c$$$         maxdbh=log(1.0-(0.999*pfpar(pft)%b1Ht-1.3)  
+c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+c$$$      end if
  
       end function maxdbh
 !*************************************************************************
