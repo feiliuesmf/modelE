@@ -25,7 +25,7 @@
       use ent_com, only : entcells,Cint,Qfol,cnc_ij
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use model_com, only : focean, FLICE
-      use DOMAIN_DECOMP_1D, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in
       real*8, intent(in) :: focean1(:,:)
@@ -271,6 +271,7 @@ cddd      enddo
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
+      use geom, only : lat2d
       use ent_prescribed_drv, only:
      &     prescr_get_laidata,prescr_veg_albedodata,prescr_get_cropdata
       !use ent_prescr_veg, only: prescr_get_laidata,prescr_veg_albedodata
@@ -305,8 +306,11 @@ cddd      enddo
 !!!! HACK : trying to update Ent exactly like in ent_prog
 
             !* Set hemisphere flags.
-      if ( J0<=JM/2 )   hemi(:,J0:min(JM/2,J1))   = -1    ! S.
-      if ( J1>=JM/2+1 ) hemi(:,max(JM/2+1,J0):J1) =  1    ! N.
+      where(lat2d(I0:I1,J0:J1) <= 0.)
+        hemi(I0:I1,J0:J1) = -1  ! S
+      elsewhere
+        hemi(I0:I1,J0:J1) = +1  ! N
+      end where
  
           call ent_prescribe_vegupdate(entcells,hemi,jday,year,
      &         do_giss_phenology=.true.,
