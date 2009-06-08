@@ -41,7 +41,7 @@
       PUBLIC :: SKIP_PARALLEL
       PUBLIC :: DREAD_PARALLEL
       PUBLIC :: MREAD_PARALLEL
-      PUBLIC :: READT_PARALLEL
+      PUBLIC :: READT_PARALLEL,READT_PARALLEL_COLUMN
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITEI8_PARALLEL
       PUBLIC :: DREAD8_PARALLEL,DWRITE8_PARALLEL
@@ -59,6 +59,10 @@
       INTERFACE READT_PARALLEL
         MODULE PROCEDURE READT_PARALLEL_2D
         MODULE PROCEDURE READT_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE READT_PARALLEL_COLUMN
+        MODULE PROCEDURE READT_PARALLEL_COLUMN_3D
       END INTERFACE
 
       interface READ_PARALLEL
@@ -386,6 +390,52 @@ C****  convert from real*4 to real*8
       end if
       return
       END SUBROUTINE READT_PARALLEL_3D
+
+      SUBROUTINE READT_PARALLEL_COLUMN_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
+!@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (:,im,jm) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME         !@var  NAME  name of record being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,:,:)  !@var  AOUT real*8 array
+      INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
+      REAL*4 :: X                         !@var  X dummy variable
+      real*4, allocatable :: ain(:,:,:,:) !@var  AIN  real*4 array for reading
+      real*8, allocatable :: aout(:,:,:,:)!@var  AOUT real*8 array for scatter
+      INTEGER :: N                        !@var  N loop variable
+      CHARACTER*80 :: TITLE               !@var  TITLE title of file record
+      INTEGER :: IERR
+
+      If (AM_I_ROOT()) then
+         allocate(
+     &       AIN (size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%ntiles),
+     &       AOUT(size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%ntiles)   )
+         DO N=1,IPOS-1
+            READ (IUNIT,IOSTAT=IERR)
+         END DO
+         READ (IUNIT, IOSTAT=IERR) TITLE, AIN
+C****  convert from real*4 to real*8
+         AOUT=AIN
+      EndIf
+
+      call unpack_data(grd_dum,aout,avar,jdim=3)
+
+      if (am_i_root()) then
+         deallocate(ain,aout)
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT_PARALLEL_COLUMN: READ ERROR',255)
+         EndIf
+      end if
+      return
+      END SUBROUTINE READT_PARALLEL_COLUMN_3D
 
       subroutine read_parallel_integer_0 (data_int, unit)
       integer, intent(out) :: data_int
