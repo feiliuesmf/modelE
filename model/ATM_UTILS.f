@@ -626,10 +626,10 @@ c        end if
       end subroutine addEnergyAsLocalHeat
 
 C**** Calculate 3D vertical velocity (take SDA which has units
-C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
+C**** mb*m2, needs division by physics time step)
 C**** and convert to WSAVE, units of m/s):
 
-      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, DTsrc)
       use CONSTANT, only: rgas, bygrav
       !use MODEL_COM, only: NIdyn
       use DOMAIN_DECOMP_ATM, only: grid, GET
@@ -659,9 +659,9 @@ C**** and convert to WSAVE, units of m/s):
       do l=1,lm-1
         do j=J_0,J_1
         do i=I_0,I_1
-         wsave(i,j,l)=2.*sda(i,j,l)*byaxyp(i,j)*
+         wsave(i,j,l)=sda(i,j,l)*byaxyp(i,j)*
      &   rgas*0.5*(T(i,j,l)*pk(l,i,j)+T(i,j,l+1)*
-     &   pk(l+1,i,j))*bygrav/(NIdyn*pedn(l+1,i,j))
+     &   pk(l+1,i,j))*bygrav/(DTsrc*pedn(l+1,i,j))
         end do
         end do
       end do

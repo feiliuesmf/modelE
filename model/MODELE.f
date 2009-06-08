@@ -431,7 +431,7 @@ C**** Currently energy is put in uniformly weighted by mass
        enddo
 #endif
       SD_CLOUDS(:,:,:) = CONV(:,:,:)
-      call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+      call COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, DTsrc)
 C**** Scale WM mixing ratios to conserve liquid water
 !$OMP  PARALLEL DO PRIVATE (L)
       DO L=1,LS1-1
