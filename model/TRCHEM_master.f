@@ -2006,11 +2006,11 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           if(jj == 42)rr(jj,L)=rr(jj,L)/y(nM,L)!ROR+M really ROR
 !         for #6 & 91 (HO2+NO) calculate branching ratio here          
 !         Butkovskaya et al J.Phys.Chem 2007         
-!!!NOTE   if(ta(L)<298.d0)then
-!!!NOTE     beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
-!!!NOTE   else
+          if(ta(L)<298.d0)then
+            beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
+          else
             beta=0.d0
-!!!NOTE   endif
+          endif
 #ifdef SHINDELL_STRAT_CHEM
           if(jj == 91)rr(jj,L)=rr(jj,L)*beta
           if(jj ==  6)rr(jj,L)=rr(jj,L)*(1.d0-beta)
@@ -2105,7 +2105,6 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
 
           IF(PRES(L) < 90. .and. J > JS .and. J <= JN)
      &    rkext(l)=rkext(l)*0.1d0   !<<<<<<<<<<< NOTE <<<<<<<<<<<
-!!        rkext(l)=rkext(l)*2.0d0   !<<<<<<<<<<< NOTE <<<<<<<<<<<
            
           if(rkext(l) /= 0.)aero(l) = 1
 
