@@ -775,8 +775,8 @@ c*
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8 :: 
      &  oA(NTM,NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
-      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:,:), aArea(:,:,:),
-     &                       aFtemp(:,:,:),oFtemp(:,:),aAtemp(:,:,:,:)
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:), aArea(:,:,:),
+     &                       aFtemp(:,:,:),oFtemp(:,:),aAtemp(:,:)
       real*8 :: missing
 
       logical :: HAVE_NORTH_POLE
@@ -786,11 +786,11 @@ c*
       missing=0.
 
       ALLOCATE(
-     &     aA_glob(NTM,NT,aIM,aJM,6),
+     &     aA_glob(aIM,aJM,6),
      &     aFtemp(aIM,aJM,6),
      &     aArea(aIM,aJM,6),
      &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), 
-     &     aAtemp(NTM,NT,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &     aAtemp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
 C***  Gather 3D array on atmospheric grid into the global array
@@ -803,16 +803,16 @@ C***  Gather 3D array on atmospheric grid into the global array
             call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,
      &           aFtemp,aArea)
 
-            aA_glob(N1,N2,:,:,:) = aFtemp(:,:,:)  
+            aA_glob = aFtemp  
 
 C***  Scatter global array aA_glob to the atm grid
 
-            call ATM_UNPACK (agrid, aA_glob, aAtemp, jdim=4)
+            call ATM_UNPACK (agrid, aA_glob, aAtemp)
 
             do j=agrid%j_strt,agrid%j_stop
                do i=agrid%i_strt,agrid%i_stop
                   if(aFOCEAN(i,j) > 0.) 
-     &                 aA(N1,N2,i,j) = aAtemp(N1,N2,i,j)
+     &                 aA(N1,N2,i,j) = aAtemp(i,j)
                enddo
             enddo
          enddo
