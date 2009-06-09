@@ -733,12 +733,15 @@ c**** zero-out vdata(11) until it is properly read in
         year1 = year2
         crop1(:,:) = crop2(:,:)
         if ( AM_I_ROOT() ) then
-          read (iu_CROPS,IOSTAT=rc) title
+          year2 = 32768
+          read (iu_CROPS, END=10, IOSTAT=rc) title
           if ( rc .ne. 0 ) call stop_model("error reading CROPS",255)
           read(title,*) year2
+ 10       continue
           backspace iu_CROPS
         endif
         call ESMF_BCAST(grid, year2)
+        if ( year2 == 32768 ) exit  ! end of record
         CALL READT_PARALLEL
      *    (grid,iu_CROPS,NAMEUNIT(iu_CROPS),crop2(:,:),1)
       enddo
