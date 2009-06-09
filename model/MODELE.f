@@ -1423,10 +1423,8 @@ cddd        iniENT = .TRUE.
 cddd#endif
         if (istart.eq.1) redogh=.true.
 
-#if !defined(NO_LAND_SURFACE) || defined(CUBE_GRID)
 C**** Read in ground initial conditions
         call read_ground_ic() ! code moved to IORSF
-#endif
 
       END IF
 
@@ -1646,7 +1644,6 @@ C**** Check consistency of starting time
         ENDIF
       END IF
 
-#if !defined(NO_LAND_SURFACE)
 C**** Set flag to initialise lake variables if they are not in I.C.
       IF (ISTART.lt.8) inilake=.TRUE.
 
@@ -1677,7 +1674,6 @@ C****        tropospheric temperatures changed by at most 1 degree C
         IF (AM_I_ROOT())
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
-#endif
 
       IF (AM_I_ROOT())
      *     WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
@@ -1860,7 +1856,6 @@ C**** Set julian date information
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
       call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
 
-#if !defined(NO_LAND_SURFACE) || defined(CUBE_GRID)
 C****
 C**** READ IN TIME-INDEPENDENT ARRAYS
 C****
@@ -1995,7 +1990,6 @@ cddd#endif
      &       CALL stop_model ('Terminated normally, istart<0',13)
         return
       end if                  !  Kradia>0; radiative forcing run
-#endif
 
 #if !defined(ADIABATIC) || defined(CUBE_GRID)
 
