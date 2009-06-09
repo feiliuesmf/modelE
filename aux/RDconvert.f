@@ -413,7 +413,7 @@ C**** output to file
         DO I=I_0,I_1
           CDIREC(I,J)=CHAR(KDIREC(I,J)+48)
           IF (KDIREC(I,J).eq.0. .and. KD911(I,J).gt.0) THEN
-            CDIREC(I,J)=CHAR(KD911(I,J)+88)
+            CDIREC(I,J)=CHAR(KD911(I,J)+97)
           END IF
           DO INM=1,NRVR
             IF (I.eq.IRVR(INM) .and. J.eq.JRVR(INM)) THEN
