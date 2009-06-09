@@ -83,6 +83,11 @@ them appropriately during the "setup" step.
 
 Big OpenMP jobs may need a stacksize > default=4m : export KMP_STACKSIZE=64m
 
+Intel mpi requires passwordless login between the nodes (if you want
+to run the model on more than one node). To enable it just append your
+ssh key to "authorized_keys":
+   cat ~/.ssh/id_dsa.pub >> ~/.ssh/authorized_keys
+
 Consistency between serial and parallelized executables:
 -------------------------------------------------------
 openMP and serial runs give the same results ONLY if using the
