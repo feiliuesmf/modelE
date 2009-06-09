@@ -45,8 +45,8 @@ c       for concentration of O(1D):
 #ifdef SHINDELL_STRAT_CHEM
         if(PRES(L) < 50.) then
           bz=bz*2.5d0
-        else if(PRES(L) > 100.) then
-          bz=bz*0.9d0
+!test   else if(PRES(L) > 100.) then
+!test     bz=bz*0.9d0
         endif
 #endif
         P1=1.d0/(1.d0+az+bz)
