@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       module ent_prescribed_drv
 
       use ent_const
@@ -295,7 +297,11 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       if ( do_read_from_files )
      &     call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
+#ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
+      Tpooldata = 0.d0
+#else
       call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
+#endif
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
       !print*,'hdata',hdata
       !print*,'nmdata',nmdata
