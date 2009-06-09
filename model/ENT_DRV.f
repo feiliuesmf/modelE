@@ -153,6 +153,7 @@ c**** check whether ground hydrology data exist at this point.
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
+      use DOMAIN_DECOMP_ATM, only : GRID
       use ent_prescribed_drv, only : init_canopy_physical,prescr_vegdata
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use ghy_com, only : q_ij, qk_ij, dz_ij
@@ -177,8 +178,13 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
      &     I0:I1,J0:J1):: Tpool_ini
       !-----Local---------
-      integer i,j
+      integer i,j,k
       real*8 heat_capacity
+      real*8 :: vdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
+      real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+
 
 
 cddd      do j=j0,j1
@@ -219,6 +225,20 @@ cddd      enddo
 
       !!! hack
       !!!Tpool_ini = 0.d0
+
+
+      !Read vegdata
+      call get_vdata(vdata)
+      call get_cropdata(year, cropdata)
+      do k=1,N_COVERTYPES
+        vegdata(k,I0:I1,J0:J1) = vdata(I0:I1,J0:J1,k)
+     &       *(1.d0-cropdata(I0:I1,J0:J1))
+      enddo
+      vegdata(9,I0:I1,J0:J1) = cropdata(I0:I1,J0:J1)
+
+      ! Carbon pools not ready yet
+      ! Tpool_ini = 0.d0
+      
 
       !Compute soil textures for upper 30cm
       do j=j0,j1
@@ -271,6 +291,7 @@ cddd      enddo
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
+      use DOMAIN_DECOMP_ATM, only : GRID
       use geom, only : lat2d
       use ent_prescribed_drv, only:
      &     prescr_get_laidata,prescr_veg_albedodata,prescr_get_cropdata
@@ -280,12 +301,15 @@ cddd      enddo
       !Local variables
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: laidata  !cohort
-      real*8, dimension(I0:I1,J0:J1) :: cropsdata
+      !real*8, dimension(I0:I1,J0:J1) :: cropsdata
       !-----Local---------
       integer hemi(I0:I1,J0:J1)
       integer i,j
       integer year
       integer, save :: year_old = -1
+      real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+
 
 ! update crops here 
 !          year1 = 1965
@@ -296,10 +320,11 @@ cddd      enddo
       endif
 
       if( year .ne. year_old ) then
-        call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropsdata)
+        !call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropsdata)
+        call get_cropdata(year, cropdata)
         call ent_prescribe_vegupdate(entcells,
      &       do_giss_lai=.false.,
-     &       cropsdata=cropsdata )
+     &       cropsdata=cropdata(I0:I1,J0:J1) )
         year_old = year
       endif
 

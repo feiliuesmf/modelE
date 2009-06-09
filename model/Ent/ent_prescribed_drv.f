@@ -211,7 +211,7 @@ c$$$      end do
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
      &     Tpooldata, 
-     &     do_soilinit,do_phenology_activegrowth,do_read_soil_textures)
+     &     do_soilinit,do_phenology_activegrowth,do_read_from_files)
       implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
@@ -231,7 +231,7 @@ c$$$      end do
      &     I0:I1,J0:J1):: Tpooldata !in g/m2 -PK
       logical,intent(in) :: do_soilinit
       logical,intent(in) :: do_phenology_activegrowth
-      logical,intent(in) :: do_read_soil_textures
+      logical,intent(in) :: do_read_from_files
 
       !-----Local------
       integer :: i,j
@@ -264,8 +264,10 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 !change sequences of calls
 !to have options according to do_phenology_activegrowth
 
-      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
-      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
+      if ( do_read_from_files )
+     &     call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+      if ( do_read_from_files )
+     &     call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
       call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
       if (.not.do_phenology_activegrowth) then
          call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
@@ -290,7 +292,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_soilcolor(soil_color)
-      if ( do_read_soil_textures )
+      if ( do_read_from_files )
      &     call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
       call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)

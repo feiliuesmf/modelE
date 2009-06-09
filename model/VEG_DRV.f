@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
 
+#ifndef USE_ENT
+
       module veg_drv
 !@sum veg_drv contains variables and routines for vegetation driver
 !@auth I. Alienov, N. Kiang
@@ -19,8 +21,14 @@
 
       subroutine init_vegetation(redogh,istart)
 !@sum initializes vegetation
+      use param
+      use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       integer, intent(in) :: istart
       logical, intent(in) :: redogh
+
+      call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
+      call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
+      call sync_param( "crops_yr", crops_yr)
 
       call read_veg_data(redogh,istart)
       call upd_gh
@@ -69,44 +77,12 @@ C****
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
+
+      call get_vdata(vdata)
 c**** read rundeck parameters
-      call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
-      call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
-      call sync_param( "crops_yr", crops_yr)
       call sync_param( "read_c4_grass", read_c4_grass)
       call  get_param( "variable_lk", variable_lk )
 
-c**** read land surface parameters or use defaults
-      call openunit("VEG",iu_VEG,.true.,.true.)
-      do k=1,10                 !  11 ????
-        CALL READT_PARALLEL
-     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),vdata(:,:,K),1)
-      end do
-c**** zero-out vdata(11) until it is properly read in
-      vdata(:,:,11) = 0.
-      vdata(:,:,12) = 0.
-      call closeunit(iu_VEG)
-c**** add data on c4 grass
-      if ( read_c4_grass >= 1 ) then
-        print *,"Adding c4 grass data"
-        call openunit("VEG_C4",iu_VEG,.true.,.true.)
-        allocate( veg_c4(I_0H:I_1H,J_0H:J_1H) )
-        CALL READT_PARALLEL
-     *       (grid,iu_VEG,NAMEUNIT(iu_VEG),veg_c4(:,:),1)
-        do j=J_0,J_1
-          do i=I_0,I_1
-            if (fearth(i,j).gt.0) then
-              ! normalize to earth fraction
-              vc4 = veg_c4(i,j) / fearth(i,j)
-              ! add c4 grass up to max amount of current grass
-              vdata(i,j,12) = min( vdata(i,j,3), vc4 )
-              vdata(i,j,3) = vdata(i,j,3) - vdata(i,j,12)
-            end if
-          enddo
-        enddo
-        deallocate( veg_c4 )
-        call closeunit(iu_VEG)
-      endif
 C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
       if(crops_yr.eq.0) call updveg(jyear,.false.)
       if(crops_yr.gt.0) call updveg(crops_yr,.false.)
@@ -605,89 +581,171 @@ c shc(0,2) is the heat capacity of the canopy
       implicit none
       integer, intent(in) :: year
       logical, intent(in) :: reset_veg
-
+      !---
       real*8 wt,crops
-
-      integer :: year1,year2,year_old=-1, iu, i,j,k
-      real*8, Allocatable :: crop1(:,:), crop2(:,:), vdata0(:,:,:)
-      save   year1,year2,year_old,vdata0,crop1,crop2,iu      ! to limit i/o
-
-      character*80 title
-
+      integer, save :: year_old=-1
+      integer :: i,j,k
+      real*8, allocatable :: cropdata(:,:)
       INTEGER :: I_0, I_1, J_1, J_0, J_0H, J_1H, I_0H, I_1H
-      INTEGER :: J_0S, J_1S
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &               J_STRT_HALO =J_0H,   J_STOP_HALO =J_1H,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+     &               J_STRT_HALO =J_0H,   J_STOP_HALO =J_1H )
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
-C**** check whether update is needed
+c**** check whether update is needed
       if (year.eq.year_old) return
 
-C**** first iteration actions:
-      if (year_old.lt.0) then
-C****     check whether a no-crops vege-file was used
-        do j=J_0S,J_1S
-        do i=I_0,I_1
-           if(vdata(i,j,9).gt.0.)
+      call get_vdata(vdata)
+
+c****     check whether a no-crops vege-file was used
+      if( maxval( vdata(I_0:I_1, J_0:J_1,9) ) > 0.d0)
      *     call stop_model('updveg: use no_crops_VEG_file',255)
-        end do
-        end do
-        Allocate(crop1(I_0H:I_1H,J_0H:J_1H), crop2(I_0H:I_1H,J_0H:J_1H),
-     &           VDATA0(I_0H:I_1H,J_0H:J_1H,12))
 
-C****     open and read first record of input file
-        call openunit('CROPS',iu,.true.,.true.)
-        read(iu) title
-        read(title,*) year1
-        call backspace_parallel(iu)
-        call readt_parallel(grid,iu,nameunit(iu),crop1,1)
-
-        year2 = year1; crop2 = crop1
-        if (year1.ge.year)          year2=year+1
-C****     save orig. (no-crop) vdata to preserve restart-independence
-        vdata0 = vdata
-      end if
-
-      wt=0.
-      do while (year2.lt.year)
-         year1 = year2 ; crop1 = crop2
-         read(iu,end=10) title
-         read(title,*) year2
-         call backspace_parallel(iu)
-         call readt_parallel(grid,iu,nameunit(iu),crop2,1)
-      end do
-      wt = (year-year1)/(real(year2-year1,kind=8))
-   10 continue
+      allocate( cropdata(I_0H:I_1H, J_0H:J_1H) )
+      call get_cropdata(year, cropdata)
 
       if (AM_I_ROOT()) write(6,*)
-     *     'Using crops data from year',year1+wt*(year2-year1)
-C**** Modify the vegetation fractions
+     *     'Using crops data from year',year
+c**** Modify the vegetation fractions
       do j=J_0,J_1
-      do i=I_0,imaxj(j)
-         if (crop1(i,j).ge.0.) then
-            crops = crop1(i,j) + wt*(crop2(i,j)-crop1(i,j))
+      do i=I_0,I_1
+        crops = cropdata(i,j)
+         if ( crops > 0.d0 ) then
             do k=1,12
-              vdata(i,j,k) = vdata0(i,j,k)*(1.-crops)
+              vdata(i,j,k) = vdata(i,j,k)*(1.d0-crops)
             end do
               vdata(i,j,9) = crops
          end if
       end do
       end do
+      deallocate( cropdata )
+
       if(reset_veg) call upd_gh
 
       year_old = year
       return
       end subroutine updveg
 
+#endif
 
+
+      subroutine get_vdata(vdata)
+      use DOMAIN_DECOMP_ATM, only : GRID, GET!, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
+      use filemanager
+      !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
+      !use veg_com
+      !use model_com, only : jyear,focean
+      !use ghy_com, only : fearth
+
+      implicit none
+      integer, parameter :: N_COVERTYPES = 12
+      real*8, intent(out) :: vdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
+      !---
+      INTEGER :: J_1, J_0, J_1H, J_0H, I_1H, I_0H, I_1, I_0
+      integer :: i, j, k, iu_veg
+      real*8 :: s
+
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+
+c**** read land surface parameters or use defaults
+      call openunit("VEG",iu_VEG,.true.,.true.)
+      do k=1,N_COVERTYPES-2                 !  11 ???? 
+        CALL READT_PARALLEL
+     *    (grid,iu_VEG,NAMEUNIT(iu_VEG),vdata(:,:,K),1)
+      end do
+c**** zero-out vdata(11) until it is properly read in
+      vdata(:,:,11) = 0.
+      vdata(:,:,12) = 0.
+      call closeunit(iu_VEG)
+
+      ! make sure that veg fractions are reasonable
+      do j=J_0,J_1
+        do i=I_0,I_1
+          print *, i,j
+          print *, vdata(i,j,:) 
+          do k=1,N_COVERTYPES
+            ! get rid of unreasonably small fractions
+            if ( vdata(i,j,k) < 1.d-4 ) vdata(i,j,k) = 0.d0
+          enddo
+          s = sum( vdata(i,j,:) )
+          if ( s > .9d0 ) then
+            vdata(i,j,:) = vdata(i,j,:)/s
+          else if ( s < .1d0 ) then
+            print *, "missing veg data at ",i,j,"assume bare soil"
+            vdata(i,j,1 ) = 1.d0
+            vdata(i,j,2:) = 0.d0
+          else
+            print *,i,j,s
+            print *, vdata(i,j,:) 
+            call stop_model("Incorrect data in VEG file",255)
+          endif
+        enddo
+      enddo
+
+      end subroutine get_vdata
+
+
+      subroutine get_cropdata(year, cropdata)
+      !* This version reads in crop distribution from prescr data set.
+      !* And calculates crop fraction for given year.
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, ESMF_BCAST
+      use FILEMANAGER, only : openunit,closeunit,nameunit
+      integer, intent(in) :: year
+      real*8, intent(out) :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+      integer i
+      !----------
+      integer :: iu_CROPS, rc
+      integer :: year1, year2
+      real*8 wt
+      real*8, allocatable :: crop1(:,:), crop2(:,:)
+      character*80 title
+      INTEGER :: J_1H, J_0H, I_1H, I_0H
+
+      CALL GET(grid,
+     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+
+      allocate( crop1(I_0H:I_1H, J_0H:J_1H) )
+      allocate( crop2(I_0H:I_1H, J_0H:J_1H) )
+
+      !* Calculate fraction for given gcmtime:  interpolate between years*/
+      year1 = -32768 ; crop1(:,:) = 0.d0
+      year2 = -32767 ; crop2(:,:) = 0.d0
+      wt = 1.d0
+
+      call openunit("CROPS",iu_CROPS,.true.,.true.)
+      do while( year2 < year )
+        year1 = year2
+        crop1(:,:) = crop2(:,:)
+        if ( AM_I_ROOT() ) then
+          read (iu_CROPS,IOSTAT=rc) title
+          if ( rc .ne. 0 ) call stop_model("error reading CROPS",255)
+          read(title,*) year2
+          backspace iu_CROPS
+        endif
+        call ESMF_BCAST(grid, year2)
+        CALL READT_PARALLEL
+     *    (grid,iu_CROPS,NAMEUNIT(iu_CROPS),crop2(:,:),1)
+      enddo
+      call closeunit(iu_CROPS)
+
+      wt = (year-year1)/(real(year2-year1,kind=8))
+      cropdata(:,:) = max(0.d0, crop1(:,:)
+     &     + wt * (crop2(:,:) - crop1(:,:)))  !Set min to zero, since no land mask yet -nyk 1/22/08
+
+      end subroutine get_cropdata
