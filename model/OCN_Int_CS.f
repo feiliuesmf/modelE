@@ -615,7 +615,7 @@ c*
      &     ATM_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : get
       Use OCEANR_DIM,       only : oGRID
-      USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
+      USE MODEL_COM, only : aFOCEAN=>FOCEAN
       use regrid_com, only : xO2A
 
       IMPLICIT NONE
@@ -627,8 +627,8 @@ c*
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 
       REAL*8 :: 
      *  oA(NT,oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
-      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:), aFOCEAN(:,:,:),
-     &     aArea(:,:,:),aFtemp(:,:,:),oFtemp(:,:)
+      REAL*8, ALLOCATABLE :: aA_glob(:,:,:,:),
+     &     aArea(:,:,:),aFtemp(:,:,:),oFtemp(:,:),aAtemp(:,:,:)
       integer :: i,j,k,N
       logical :: HAVE_NORTH_POLE
       real*8 :: missing
@@ -637,11 +637,11 @@ c*
 
       call get(ogrid, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-      ALLOCATE(aFOCEAN(aIM,aJM,6),aA_glob(NT,aIM,aJM,6),
+      ALLOCATE(aA_glob(NT,aIM,aJM,6),
      &     aArea(aIM,aJM,6),aFtemp(aIM,aJM,6),
+     &     aAtemp(NT,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &               aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
      &     oFtemp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
-
-      call ATM_PACK (aGRID,aFOCEAN_loc,aFOCEAN)
 
       do N=1,NT
           oFtemp(:,:) = oA(N,:,:)
@@ -650,22 +650,22 @@ c*
 
          call repr_regrid_wt(xO2A,oWEIGHT,missing,oFtemp,
      &        aFtemp,aArea)
-         do k=1,6
-            do J=1,aJM
-               do I=1,aIM
-                  IF (aFOCEAN(I,J,K).gt.0.) THEN
-                     aA_glob(N,I,J,K) = aFtemp(I,J,K)  
-                  END IF
-               enddo
-            enddo
-         enddo
+
+         aA_glob(N,:,:,:) = aFtemp(:,:,:)  
+
       enddo
 
 C***  Scatter global array aA_glob to the atm grid
 
-      CALL ATM_UNPACK(agrid, aA_glob, aA, jdim=3)
+      CALL ATM_UNPACK(agrid, aA_glob, aAtemp, jdim=3)
 
-      DEALLOCATE(aFocean, aA_glob, aArea, aFtemp, oFtemp)
+      do j=agrid%j_strt,agrid%j_stop
+      do i=agrid%i_strt,agrid%i_stop
+        if(aFOCEAN(i,j) > 0.) aA(:,i,j) = aAtemp(:,i,j)
+      enddo
+      enddo
+
+      DEALLOCATE(aA_glob, aArea, aFtemp, oFtemp, aAtemp)
       
       END SUBROUTINE INT_OG2AG_3Da
 c*
