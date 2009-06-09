@@ -96,7 +96,7 @@
       real*8 :: htcon,htfrz,flash,th,th2,th3,th4,zlt,cg
 #ifdef SHINDELL_STRAT_CHEM      
 !@param tune_NOx multiplier of NOx production rate from lightning
-      real*8, parameter :: tune_NOx=0.750d0
+      real*8, parameter :: tune_NOx=1.000d0
 #else
 !@param tune_NOx multiplier of NOx production rate from lightning
       real*8, parameter :: tune_NOx=0.670d0
