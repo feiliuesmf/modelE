@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 !@sum  STRATDYN stratospheric only routines
 !@auth Bob Suozzo/Jean Lerner/Gavin Schmidt
 !@ver  1.0
@@ -1429,6 +1430,44 @@ C****
  10   IOERR=1
       RETURN
       END SUBROUTINE io_strat
+
+#ifdef NEW_IO_4STRAT
+      subroutine def_rsf_strat(fid)
+!@sum  def_rsf_model defines stratospheric array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      USE CLOUDS_COM, only : airx,lmc
+      use domain_decomp_1d, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,airx,'airx(dist_im,dist_jm)')
+      call defvar(grid,fid,lmc,'lmc(two,dist_im,dist_jm)')
+      return
+      end subroutine def_rsf_strat
+
+      subroutine new_io_strat(fid,iaction)
+!@sum  new_io_model read/write stratospheric arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : iowrite, ioread
+      USE CLOUDS_COM, only : airx,lmc
+      use domain_decomp_1d, only: grid
+      use pario, only : write_dist_data,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'airx', airx)
+        call write_dist_data(grid, fid, 'lmc', lmc, jdim=3)
+      case (ioread)             ! input from restart file
+        call read_dist_data(grid, fid, 'airx', airx)
+        call read_dist_data(grid, fid, 'lmc', lmc, jdim=3)
+      end select
+      return
+      end subroutine new_io_strat
+#endif /* NEW_IO_4STRAT */
 
       SUBROUTINE ALLOC_STRAT_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at

@@ -107,7 +107,9 @@ c prognostic arrays
 c
       if(do_io_prog) then
         call new_io_model  (fid,iorw) 
-c        call new_io_strat  (fid,iorw) ! write/verify later
+#ifdef NEW_IO_4STRAT
+        call new_io_strat  (fid,iorw)
+#endif
         call new_io_ocean  (fid,iorw)
         call new_io_lakes  (fid,iorw)
         call new_io_seaice (fid,iorw)
@@ -215,6 +217,9 @@ c
       implicit none
       integer :: fid
       call def_rsf_model  (fid) 
+#ifdef NEW_IO_4STRAT
+      call def_rsf_strat  (fid) 
+#endif
       call def_rsf_ocean  (fid)
       call def_rsf_lakes  (fid)
       call def_rsf_seaice (fid)
