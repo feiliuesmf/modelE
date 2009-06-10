@@ -488,8 +488,12 @@ C****
       IF (KEYNR(1,K).EQ.1) WRITE (6,905)
   810 WRITE(6,905) AMONTH(KEYNR(1,K)),(KEYNR(I,K),I=2,42)
       WRITE (6,915)
-CB       DO 815 I=1,42
-CB815    FKEYDS(I)=KEYNR(I,KEYCT)
+C**** additional key diag for Nino 3.4
+      WRITE(6,906)
+      DO K=1,KEYCT
+        WRITE(6,907) AMONTH(KEYNR(1,K)),KEYNR(43,K)
+      END DO
+C****
       KEYCT=KEYCT+1
       KEYMAX=49
       IF (KEYNR(1,1).NE.0) KEYMAX=48
@@ -514,6 +518,8 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
      *SH NH SH  NH  NH EQ  ML VL LT VL LT NH MAX SH SE ED TL ED TL LT SE
      * ED TL LT'/)
   905 FORMAT (1X,A3,4I3,I2,I4,5I3,I4,I3,I4,6I3,2I4,I3,I4,5I3,I4,11I3)
+  906 FORMAT (1X,'Nino3.4*100')
+  907 FORMAT (1X,A4,10I5)
   910 FORMAT ('0',15X,'From:',I6,A6,I2,',  Hr',I3,
      *  6X,'To:',I6,A6,I2,', Hr',I3,
      *  '  Model-Time:',I9,5X,'Dif:',F7.2,' Days')
@@ -3792,6 +3798,7 @@ c**** Find final field and zonal, global, and hemispheric means
 
 c**** fill in some key numbers
       if (k .eq. IJ_RSIT) call keyij(gm,nh)
+      if (k .eq. IJ_TGO) call keyij2(anum)
 
       return
 
@@ -4128,20 +4135,21 @@ C**** Print out full-page digital maps
         Qk(k) = .false.
       end do
 
-      if (.not.qdiag) RETURN
 C**** produce binary files of remaining fields if appropriate
       do k=1,kaij
         if (Qk(k)) then
           call ij_mapk (k,smap,smapj,gm,igrid,jgrid,irange,name,lname,
      &          units)
           title=trim(lname)//' ('//trim(units)//')'
-          call pout_ij(title//xlb,name,lname,units,smap,smapj,gm,
-     &         igrid,jgrid)
+          if (qdiag) call pout_ij(title//xlb,name,lname,units,smap,smapj
+     *         ,gm,igrid,jgrid)
         end if
       end do
-      call close_ij
-      if (kdiag(3).lt.8) CALL IJKMAP (iu_Iij)
-      if (kdiag(3).lt.8) CALL IJLMAP (iu_Iij)
+      if (qdiag) then
+        call close_ij
+        if (kdiag(3).lt.8) CALL IJKMAP (iu_Iij)
+        if (kdiag(3).lt.8) CALL IJLMAP (iu_Iij)
+      end if
 
       RETURN
 C****
@@ -5360,6 +5368,32 @@ C**** write the binary file
  101  FORMAT (5X,I3,7X,6F5.1)
 
       end subroutine diag_isccp
+
+      subroutine keyij2(sst)
+!@sum output basic ENSO diagnostics to PRT file
+!@auth Gavin Schmidt
+      USE GEOM, only : axyp,lat_dg,lon_dg
+      USE DIAG_COM, only : keynr,keyct
+      IMPLICIT NONE
+      REAL*8, DIMENSION(IM,JM) :: SST
+      REAL*8 nino34,wt
+      INTEGER i,j
+
+      nino34=0.
+      wt=0.
+      DO J=1,JM
+        DO I=1,IM
+          if (lat_dg(j,1).ge.-6.   .and. lat_dg(j,1).le.6 .and.
+     *        lon_dg(i,1).ge.-170. .and. lon_dg(i,1).le.-120.) then
+            nino34=nino34+axyp(i,j)*sst(i,j)
+            wt=wt+axyp(i,j)
+          end if
+        END DO
+      END DO
+      print*,"nino",nino34/wt,nino34,wt
+      keynr(43,KEYCT)=NINT(100.0*nino34/wt)
+
+      end subroutine keyij2
 
       SUBROUTINE DIAG_GATHER
       USE MODEL_COM, only : IM, FOCEAN, FLICE, ZATMO

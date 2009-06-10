@@ -295,7 +295,7 @@ C****   9  MIN COMPOSITE TS FOR CURRENT DAY (K)
       INTEGER, DIMENSION(13), public :: KDIAG
 
 !@param NKEYNR number of key number diagnostics
-      INTEGER, PARAMETER, public :: NKEYNR=42
+      INTEGER, PARAMETER, public :: NKEYNR=43
 !@param NKEYMO number of months key diagnostics are saved
       INTEGER, PARAMETER, public :: NKEYMO=50
 !@var KEYNR time-series of key numbers
