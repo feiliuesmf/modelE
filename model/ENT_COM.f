@@ -32,6 +32,11 @@
 
       contains
 
+#ifdef NEW_IO
+/* the pario module needs a regular data layout */
+#define ENT_IO_PLAIN_ARRAY
+#endif
+
 !#define ENT_IO_PLAIN_ARRAY
 #ifdef ENT_IO_PLAIN_ARRAY
 
@@ -371,3 +376,57 @@ C****
 
 
       END SUBROUTINE ALLOC_ENT_COM
+
+#ifdef NEW_IO
+      subroutine def_rsf_vegetation(fid)
+!@sum  def_rsf_vegetation defines vegetation array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use ent_com, only : Cint, Qfol, cnc_ij, ent_io_maxbuf
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      real*8, dimension(ENT_IO_MAXBUF,
+     &     grid%i_strt_halo:grid%i_stop_halo,
+     &     grid%j_strt_halo:grid%j_stop_halo) ::  ent_array
+      call defvar(grid,fid,cint,'cint(dist_im,dist_jm)')
+      call defvar(grid,fid,qfol,'qfol(dist_im,dist_jm)')
+      call defvar(grid,fid,cnc_ij,'cnc_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,ent_array,
+     &     'ent_state(ent_io_maxbuf,dist_im,dist_jm)')
+      return
+      end subroutine def_rsf_vegetation
+
+      subroutine new_io_vegetation(fid,iaction)
+!@sum  new_io_vegetation read/write vegetation arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use ent_com, only : Cint, Qfol, cnc_ij, ent_io_maxbuf,
+     &     copy_ent_state_to_array,copy_array_to_ent_state
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      real*8, dimension(ENT_IO_MAXBUF,
+     &     grid%i_strt_halo:grid%i_stop_halo,
+     &     grid%j_strt_halo:grid%j_stop_halo) ::  ent_array
+      select case (iaction)
+      case (iowrite)            ! output to standard restart file
+        call write_dist_data(grid, fid, 'cint', cint)
+        call write_dist_data(grid, fid, 'qfol', qfol)
+        call write_dist_data(grid, fid, 'cnc_ij', cnc_ij)
+        call copy_ent_state_to_array(ent_array)
+        call write_dist_data(grid, fid, 'ent_state', ent_array, jdim=3)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'cint', cint)
+        call read_dist_data(grid, fid, 'qfol', qfol)
+        call read_dist_data(grid, fid, 'cnc_ij', cnc_ij)
+        call read_dist_data(grid, fid, 'ent_state', ent_array, jdim=3)
+        call copy_array_to_ent_state(ent_array)
+      end select
+      return
+      end subroutine new_io_vegetation
+#endif /* NEW_IO */

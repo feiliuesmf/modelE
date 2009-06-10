@@ -915,4 +915,48 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       end subroutine deallocate_me
 
       end subroutine io_veg_related
+
+#ifdef NEW_IO
+      subroutine def_rsf_veg_related(fid)
+!@sum  def_rsf_snow defines veg_related array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      call defvar(grid,fid,ci_ij,'ci_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,qf_ij,'qf_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,cnc_ij,'cnc_ij_veg_related(dist_im,dist_jm)')
+      return
+      end subroutine def_rsf_veg_related
+
+      subroutine new_io_veg_related(fid,iaction)
+!@sum  new_io_snow read/write veg_related arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use ghy_com, only : Ci_ij, Qf_ij, cnc_ij
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)           ! output to restart file
+        call write_dist_data(grid, fid, 'ci_ij', ci_ij)
+        call write_dist_data(grid, fid, 'qf_ij', qf_ij)
+        call write_dist_data(grid, fid,
+     &       'cnc_ij_veg_related', cnc_ij)
+      case (ioread)            ! input from restart file
+        call read_dist_data(grid, fid, 'ci_ij', ci_ij)
+        call read_dist_data(grid, fid, 'qf_ij', qf_ij)
+        call read_dist_data(grid, fid,
+     &       'cnc_ij_veg_related', cnc_ij)
+      end select
+      return      
+      end subroutine new_io_veg_related
+#endif /* NEW_IO */
+
 #endif

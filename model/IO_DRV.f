@@ -117,8 +117,8 @@ c        call new_io_strat  (fid,iorw) ! write/verify later
 #ifdef USE_ENT
         !!! actually not sure if this call is needed
         !!! (seems like it is duplicated in io_vegetation...)
-c        call io_veg_related  (kunit,iaction,ioerr)
-        !call io_ent    (kunit,iaction,ioerr)
+        call new_io_veg_related(fid,iorw)
+        !call io_ent    (kunit,iaction,ioerr) ! io_vegetation handles ent
 #endif
         call new_io_snow   (fid,iorw)
         call new_io_landice(fid,iorw)
@@ -222,6 +222,9 @@ c
       call def_rsf_earth  (fid)
       call def_rsf_soils  (fid)
       call def_rsf_vegetation(fid)
+#ifdef USE_ENT
+      call def_rsf_veg_related(fid)
+#endif
       call def_rsf_snow   (fid)
       call def_rsf_landice(fid)
       call def_rsf_bldat  (fid)
