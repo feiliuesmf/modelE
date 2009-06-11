@@ -16,7 +16,7 @@
       type (x_2gridsroot) :: xll2cs_COMMON,xll2cs_COMMON2,xll2cs_TOPO,
      &     xll2cs_OSST,xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_VEG,
      &     xll2cs_CROPS,xll2cs_TOPINDEX,xll2cs_SOIL,xll2cs_GLMELT,
-     &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC
+     &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC,xll2cs_SOILCARB
 
       integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,
      &     ims_COMMON,jms_COMMON,ims_GIC,jms_GIC,ims_STN,
@@ -32,9 +32,13 @@
       call geom_cs
 
       if (imt .eq. 32) then   !target grid = CS32
-c     for TOPO 288x180 ->CS32
-      ims_TOPO=288
-      jms_TOPO=180
+c     for TOPO 288x180 ->CS32   , atm only CS32
+c      ims_TOPO=288
+c      jms_TOPO=180
+
+c     for TOPO 72x46 ->CS32   , coubled CS32 atm - 5x4 ocean
+      ims_TOPO=72
+      jms_TOPO=46
 
 c     for RVR F(144x90)->CS32
       ims_RVR=144
@@ -69,8 +73,8 @@ c     for STN
      &     ntilessource,imt,jmt,ntilestarget)
 
       xll2cs_SICE=xll2cs_COMMON
-      xll2cs_CDN=xll2cs_COMMON
-      xll2cs_VEG=xll2cs_COMMON
+c      xll2cs_CDN=xll2cs_COMMON
+c      xll2cs_VEG=xll2cs_COMMON
       xll2cs_CROPS=xll2cs_COMMON
       xll2cs_TOPINDEX=xll2cs_COMMON
       xll2cs_SOIL=xll2cs_COMMON
@@ -84,6 +88,9 @@ c     for STN
 
       call init_regrid_root(xll2cs_OSST,ims_OSST,jms_OSST,
      &     ntilessource,imt,jmt,ntilestarget)
+
+      xll2cs_CDN=xll2cs_GIC
+      xll2cs_VEG=xll2cs_OSST
 
       elseif (imt .eq. 90) then ! target grid = CS90
 
@@ -127,6 +134,7 @@ c VEG 144x90 -> C90  ! also ask Nancy
      &     ntilessource,imt,jmt,ntilestarget)
       endif
 
+      xll2cs_SOILCARB=xll2cs_VEG
 
 c***   We use 3 different types of interpolation depending on the
 c***   nature of the input file. The first 6 letters indicate the 
@@ -139,24 +147,25 @@ c***   its alias (TOPO, VEG, AIC...)
       write(*,*) "IN REGRID INPUT"
 
       if (AM_I_ROOT()) then
-         call regridTOPO(xll2cs_TOPO)
-         call regridOSST(xll2cs_OSST)
-c         call testOSST()
-         call regridSICE(xll2cs_SICE)
-         call regridCDN(xll2cs_CDN)
+c         call regridTOPO(xll2cs_TOPO)
+c         call regridOSST(xll2cs_OSST)
+cc         call testOSST()
+c         call regridSICE(xll2cs_SICE)
+c         call regridCDN(xll2cs_CDN)
          call regridVEG(xll2cs_VEG)
-         call regridCROPS(xll2cs_CROPS)
-         call regridTOPINDEX(xll2cs_TOPINDEX)
-         call regridSOIL(xll2cs_SOIL)
-         call regridGLMELT(xll2cs_GLMELT)
-c         call regridVEGFRAC(xll2cs_VEGFRAC)
-c         call regridLAI(xll2cs_LAI)
+c         call regridSOILCARB(xll2cs_SOILCARB)
+c         call regridCROPS(xll2cs_CROPS)
+c         call regridTOPINDEX(xll2cs_TOPINDEX)
+c         call regridSOIL(xll2cs_SOIL)
+c         call regridGLMELT(xll2cs_GLMELT)
+cc         call regridVEGFRAC(xll2cs_VEGFRAC)
+cc         call regridLAI(xll2cs_LAI)
       endif
-      call regridGIC(xll2cs_GIC,grid)
-      call regridAIC(xll2cs_AIC,grid)
+c      call regridGIC(xll2cs_GIC,grid)
+c      call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
-c  1) call sampleRDSCAL(grid,720,360,...) in regridinput.f. It regrids scalar distance to the ocean 
+c  1) call sampleRDSCAL(grid,720,360,...) in inputLL2CS.f. It regrids scalar distance to the ocean 
 c     from latlon grid to cube sphere. STN-30p.bin -> STN_CS32 \ STN_CS60 \ STN_CS90
 c  2) run program contained in aux/RDto0.CS32.F (..RDtoO.CS90.F), which converts e.g. STN_CS32 to RDtoO.CS32
 c  3) river directions can be plotted using aux/RDVCS32.F (..RDVCS90.F)
@@ -167,7 +176,7 @@ c  The resulting file is RDdistocean_CS32.bin
 
 c      call interpRD(grid,ims_RVR,jms_RVR,imt,jmt)
 c      call sampleRDSCAL(grid,ims_STN,jms_STN,ntilessource)
-      call RDijk2ll_CS(grid,imt,jmt)
+c      call RDijk2ll_CS(grid,imt,jmt)
 
       end program regrid_input
 c*
@@ -773,7 +782,11 @@ c*
 
       if (am_i_root()) then
 c*    Read ocean fraction
-      name="Z_CS90"
+         if (imt .eq. 32) then
+            name="Z_CS32_4X5"
+         else if (imt .eq. 90) then
+            name="Z_CS90"
+         endif
       open(iu_TOPO,FILE=name,FORM='unformatted', STATUS='old')
       read(iu_TOPO) title,FOCEAN
       close(iu_TOPO)
@@ -942,7 +955,8 @@ c
      &     tsourc4(ims,jms,nts,nrecmax)  )
       
       iu_TOPO=20
-      name="Z288X180N"
+c      name="Z288X180N"   !atm only
+      name="Z72X46N_gas.1_nocasp"
 
       write(*,*) name
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
@@ -1378,16 +1392,17 @@ c     for CS90, use extended CDN=AL30RL360X180.ext
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
- 
+      write(*,*) "ims,jms=",ims,jms 
       iu_CDN=20
-      if (ims .eq. 72 .and. jms .eq. 46) then 
-         name="CD4X500S.ext"
-      elseif (ims .eq. 360 .and. jms .eq. 180) then 
+c      if (ims .eq. 72 .and. jms .eq. 46) then 
+c         name="CD4X500S.ext"
+c      elseif (ims .eq. 360 .and. jms .eq. 180) then 
          name="AL30RL360X180.ext"
-      endif
+c      endif
 
       write(*,*) name
-      open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
+      if (am_i_root()) 
+     &     open (iu_CDN, FILE=name,FORM='unformatted', STATUS='old')
 
       call read_regrid_write_4D_1R(x2grids,name,iu_CDN)
       if (am_i_root()) close(iu_CDN)
@@ -1395,6 +1410,30 @@ c     for CS90, use extended CDN=AL30RL360X180.ext
       end subroutine regridCDN
 c*
 
+
+      subroutine regridSOILCARB(x2grids)
+
+      use regrid_com
+      implicit none
+      type (x_2gridsroot), intent(in) :: x2grids
+      character*80 TITLE,name
+      integer iu_SOILCARB,ims,jms
+
+      ims=x2grids%imsource
+      jms=x2grids%jmsource
+      write(*,*) "ims,jms=",ims,jms 
+      iu_SOILCARB=20
+
+      name="soilcarb_top30cm_nmaps_2x2.5bin.dat"
+     
+      write(*,*) name
+      if (am_i_root()) 
+     &     open (iu_SOILCARB,FILE=name,FORM='unformatted', STATUS='old')
+
+      call read_regrid_write_4D_1R(x2grids,name,iu_SOILCARB)
+      if (am_i_root()) close(iu_SOILCARB)
+      
+      end subroutine regridSOILCARB
 
 
 
@@ -1409,11 +1448,11 @@ c     was just transfered to 360X180 grid without any change)
       integer iu_VEG
 	
       iu_VEG=20
-      if (x2grids%imtarget .eq. 32) then
-         name="V72X46.1.cor2_no_crops.ext"
-      elseif (x2grids%imtarget .eq. 90) then
+c      if (x2grids%imtarget .eq. 32) then
+c         name="V72X46.1.cor2_no_crops.ext"
+c      elseif (x2grids%imtarget .eq. 90) then
          name=" V144X90_no_crops.ext"
-      endif
+c      endif
 
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
       
@@ -1439,7 +1478,7 @@ c*
       real*8 :: alpha
       character*80 :: TITLE(10)
       character*80 :: outunformat
-      integer :: ir,ims,jms,nts,imt,jmt,ntt,i,j,k,l
+      integer :: ir,ims,jms,nts,imt,jmt,ntt,i,j,k,l,iveg
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -1480,9 +1519,9 @@ c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
       do k=1,ntt
          do j=1,jmt
             do i=1,imt
-               if (tout(i,j,1,k)+tout(i,j,10,k) .le. 0.01 .and.
+               if (tout(i,j,1,k)+tout(i,j,10,k) .le. 0.05 .and.
      &              tout(i,j,1,k)+tout(i,j,10,k) .gt. 0. ) then
-                  write(*,*) " v(1)+v(10) < 0.01 at",i,j,k
+                  write(*,*) " v(1)+v(10) < 0.05 at",i,j,k
                   alpha=1./(1.- (tout(i,j,1,k)+tout(i,j,10,k)) )
                   tout(i,j,1,k)  = 0.
                   tout(i,j,10,k) = 0.
@@ -1490,8 +1529,8 @@ c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
                      tout(i,j,l,k)=alpha*tout(i,j,l,k)
                   enddo
                endif
-               if (tout(i,j,1,k)+tout(i,j,10,k) .ge. 0.99) then
-                  write(*,*) " v(1)+v(10) > 0.99 at",i,j,k
+               if (tout(i,j,1,k)+tout(i,j,10,k) .ge. 0.95) then
+                  write(*,*) " v(1)+v(10) > 0.95 at",i,j,k
                   alpha=1./(1.- (
      &                 tout(i,j,2,k)+tout(i,j,3,k)+
      &                 tout(i,j,4,k)+tout(i,j,5,k)+
@@ -1506,6 +1545,27 @@ c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
             enddo
          enddo
       enddo
+
+c fix all fractions
+      do k=1,ntt
+         do j=1,jmt
+            do i=1,imt
+               do iveg=1,10
+                  if (tout(i,j,iveg,k) .le. 0.05 .and.
+     &                 tout(i,j,iveg,k) .gt. 0. ) then
+                     write(*,*) " >>>v(",iveg,") < 0.05 at",i,j,k
+                     alpha=1./( 1.- tout(i,j,iveg,k) )
+                     do l=1,10
+                        tout(i,j,l,k)=alpha*tout(i,j,l,k)
+                     enddo
+                     tout(i,j,iveg,k)  = 0.
+                  endif
+               enddo
+            enddo
+         enddo
+      enddo
+c
+
 
       do ir=1,10
         arrsum(:,:,:)=arrsum(:,:,:)+tout(:,:,ir,:) 
@@ -1532,7 +1592,7 @@ c*
 
 
       subroutine regridCROPS(x2grids)
-c     CROPS also uses a land mask: I have created 
+c     CROPS also uses a land mask:  
 c     CROPS_288X180N.ext using Reto's data & programs in
 c     dirac:/archive/u/rruedy/GISS/crops.tar
 c     original data defined on a  1/2 x 1/2 degree grid.
@@ -1553,6 +1613,12 @@ c     http://www.earthsystematlas.org/explanations/crop_data/crop_data_technical
      &        x2grids%jmsource .eq. 90) then
             name="CROPS_72X46N.cor4.ext"
          endif 
+      endif
+      if (x2grids%imtarget .eq. 32) then
+         if (x2grids%imsource .eq. 72 .and. 
+     &        x2grids%jmsource .eq. 46) then
+            name="CROPS_72X46N_gas.1_nocasp.ext"
+         endif
       endif
       
       if (x2grids%imtarget .eq. 90) then
@@ -1576,11 +1642,8 @@ c*
 
 
       subroutine regridTOPINDEX(x2grids)
-c     top_index_360x180.ij is not "extended". It has "-1" in ocean 
-c     cells (meaning missing data)
-c     planning to extend top_index_360x180.ij to the ocean
-c     because top_index_360x180.ij.rep is the extended version of lower resolution
-c     top_index_144x90.ij.ext 
+c     top_index_360x180.ij.ext has been extended using tools from
+c     /discover/nobackup/dgueyffi/create_top_index_inputfile
 
       use regrid_com
       implicit none
