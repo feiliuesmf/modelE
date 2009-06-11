@@ -674,8 +674,8 @@ c**** zero-out vdata(11) until it is properly read in
       ! make sure that veg fractions are reasonable
       do j=J_0,J_1
         do i=I_0,I_1
-          print *, i,j
-          print *, vdata(i,j,:) 
+          !print *, i,j
+          !print *, vdata(i,j,:) 
           do k=1,N_COVERTYPES
             ! get rid of unreasonably small fractions
             if ( vdata(i,j,k) < 1.d-4 ) vdata(i,j,k) = 0.d0

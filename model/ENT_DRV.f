@@ -80,7 +80,7 @@
             !!if (focean(i,j) <= 0) then
             if ( focean(i,j) < 1.d0 ) then
               !print *,"EARTH",i,j,focean(i,j)
-              print *,"ent_construct",i,j
+              !print *,"ent_construct",i,j
               call ent_cell_construct( entcells(i,j) )
             else
               !print *,"OCEAN",i,j,focean(i,j)
