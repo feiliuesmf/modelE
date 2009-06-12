@@ -1573,16 +1573,7 @@ C**** Interpolate daily irrigation depth to the current day
          enddo
       enddo
 
-
-!      rewind(iu_irrigate)
-!      do i = 1,im         
-!!        Input irrigation values in mm/yr; convert to m/day below
-!         read(iu_irrigate,*) (irrigate_daily_depth(i,j),j=1,jm)
-!      enddo
-!!     Convert to m/day below
-!      irrigate_daily_depth(:,:)=irrigate_daily_depth(:,:)/1000.d0/365.d0
-
-
+      ! Add irrigated water to the soil layers
       do i=I_0,I_1
          do j=J_0,J_1
             do m=1,(LS_NFRAC-1)
@@ -1592,9 +1583,19 @@ C**** Interpolate daily irrigation depth to the current day
 
                do k=1,ngm
                   w_old(k,m,i,j)= w_ij(k,m,i,j)
-                  w_ij(k,m,i,j)=w_old(k,m,i,j)+irrigate_daily_depth(i,j) 
-                  w_ij(k,m,i,j)=max(w_ij(k,m,i,j),
+                  ! Check if there is irrigation in current cell
+                  if (irrigate_daily_depth(i,j) > 0.d0)then
+                     w_ij(k,m,i,j)= w_old(k,m,i,j)+
+     &                             irrigate_daily_depth(i,j)
+                     w_ij(k,m,i,j)=max(w_ij(k,m,i,j),
      &                              dz_ij(i,j,k)*thetm(k,m))
+                     irrigate_daily_depth(i,j) = 
+                           irrigate_daily_depth(i,j) 
+     &                   - (w_ij(k,m,i,j) - w_old(k,m,i,j))
+                  else
+                     w_ij(k,m,i,j)=w_old(k,m,i,j)
+                  endif 
+                  ! Check to make sure we are not below minimum - unnecessary?
                   w_ij(k,m,i,j)=min(w_ij(k,m,i,j),
      &                              dz_ij(i,j,k)*thets(k,m))
                enddo
@@ -1607,6 +1608,7 @@ C**** Interpolate daily irrigation depth to the current day
 !!!!!!!!NEED TO ADJUST TRACERS
 #endif
 
+      ! Adjust heat content based on the water added to the soil layers
       do i=I_0,I_1
          do j=J_0,J_1
             do k=1,ngm
