@@ -236,7 +236,15 @@ c$$$      end do
       logical,intent(in) :: do_read_from_files
 
       !-----Local------
-      integer :: i,j
+      integer :: i,j, jeq
+      integer hemi(I0:I1,J0:J1)
+
+      jeq = JM/2
+      do j=J0,J1
+        hemi(:,j) = 1
+        if (j <= jeq) hemi(:,j) = -1
+      enddo
+
 
 !YKIM
 cddd      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
@@ -270,9 +278,9 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
      &     call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
       if ( do_read_from_files )
      &     call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
-      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+      call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
       if (.not.do_phenology_activegrowth) then
-         call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
+         call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
          do j=J0,J1
            do i=I0,I1
              call prescr_get_hdata(hdata(:,i,j)) !height
@@ -467,26 +475,26 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 !**************************************************************************
 
-      subroutine prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
+      subroutine prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
 !@sum Returns prescr GCM leaf area index for entire grid and given jday.
       use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
       use ent_const,only : N_COVERTYPES
       integer,intent(in) :: jday
-      integer, intent(in) :: JM,I0,I1,J0,J1
+      integer, intent(in) :: I0,I1,J0,J1
       real*8 :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
+      integer :: hemi(I0:I1,J0:J1) !@var hemi =1 in N. hemisphere, =-1 in South
       !----------
       integer :: n !@var cover type
-      integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
       integer i,j,jeq
 
-      jeq = JM/2
+      !jeq = JM/2
 
       do j=J0,J1
-        hemi = 1
-        if (j <= jeq) hemi = -1
+        !hemi = 1
+        !if (j <= jeq) hemi = -1
         do i=I0,I1
           do n=1,N_COVERTYPES
-            laidata(n,i,j) = prescr_calc_lai(n,jday,hemi)
+            laidata(n,i,j) = prescr_calc_lai(n,jday,hemi(i,j))
           enddo
         enddo
       enddo
@@ -525,22 +533,23 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 
 !**************************************************************************
-      subroutine prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+      subroutine prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
       integer,intent(in) :: jday
-      integer, intent(in) :: JM,I0,I1,J0,J1
+      integer, intent(in) :: I0,I1,J0,J1
       real*8 :: albedodata(N_BANDS,N_COVERTYPES,I0:I1,J0:J1)
+      integer :: hemi(I0:I1,J0:J1)
       !----------
-      integer :: hemi, pft
+      integer :: pft
       integer i,j,jeq
       
-      jeq = JM/2
+      !jeq = JM/2
 
       do j=J0,J1
-        hemi = 1
-        if (j <= jeq) hemi = -1
+        !hemi = 1
+        !if (j <= jeq) hemi = -1
         do i=I0,I1
           do pft = 1, N_COVERTYPES
-            call prescr_veg_albedo(hemi,pft,jday,
+            call prescr_veg_albedo(hemi(i,j),pft,jday,
      &           albedodata(:,pft,i,j))
           end do
         enddo
@@ -603,16 +612,10 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       !Array: 1-foliage, 2-sapwood, 3-hardwood, 4-labile,5-fine root, 6-coarse root
       !----Local----
       integer :: p,pft !@var pft vegetation type
-      integer :: hemi !@var hemi =1 in N. hemisphere, =-1 in South
       integer i,j,jeq
-
-      jeq = JM/2
-!      print *,"Got here in prescr_get_carbonplant"
 
       cpooldata(:,:,:,:) = 0.d0  !Zero initialize
       do j=J0,J1
-        hemi = 1
-        if (j <= jeq) hemi = -1
         do i=I0,I1
           do pft=1,N_PFT
             p = pft + COVEROFFSET

@@ -154,7 +154,13 @@ c**** check whether ground hydrology data exist at this point.
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
       use DOMAIN_DECOMP_ATM, only : GRID
+      use geom, only : lat2d
       use ent_prescribed_drv, only : init_canopy_physical,prescr_vegdata
+
+      use ent_prescribed_drv, only:
+     &     prescr_get_laidata,prescr_veg_albedodata
+
+
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use ghy_com, only : q_ij, qk_ij, dz_ij
       use ghy_com, only : fearth
@@ -184,8 +190,14 @@ c**** check whether ground hydrology data exist at this point.
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
       real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+      integer hemi(I0:I1,J0:J1)
 
-
+            !* Set hemisphere flags.
+      where(lat2d(I0:I1,J0:J1) <= 0.)
+        hemi(I0:I1,J0:J1) = -1  ! S
+      elsewhere
+        hemi(I0:I1,J0:J1) = +1  ! N
+      end where
 
 cddd      do j=j0,j1
 cddd        do i=i0,i1
@@ -235,6 +247,15 @@ cddd      enddo
      &       *(1.d0-cropdata(I0:I1,J0:J1))
       enddo
       vegdata(9,I0:I1,J0:J1) = cropdata(I0:I1,J0:J1)
+
+
+
+      call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
+      call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
+
+
+
+
 
       ! Carbon pools not ready yet
       ! Tpool_ini = 0.d0
@@ -346,8 +367,8 @@ cddd      enddo
 
       return
 
-      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata)
-      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+      call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
+      call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
 
 cddd      do j=j0,j1
 cddd        do i=i0,i1
