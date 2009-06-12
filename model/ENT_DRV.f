@@ -287,7 +287,7 @@ cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
       call prescr_get_soilcolor(soil_color)
 
 #ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
-      Tpooldata = 0.d0
+      Tpool_ini = 0.d0
 #else
       call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini,.true.)
 #endif
