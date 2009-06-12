@@ -245,10 +245,12 @@ C****
 
 
 #ifdef USE_FVCORE
+c these halos are already filled for the GISS dynamics scheme
       CALL HALO_UPDATE(grid, MU, FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid, MV, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(grid, MW, FROM=SOUTH+NORTH)
 #endif
+c note: mw south halo is already filled for GISS dynamics
+      CALL HALO_UPDATE(grid, MW, FROM=SOUTH+NORTH)
 
       DO L=1,LM
         IF (HAVE_SOUTH_POLE) MU(:,1,L) = 0.
@@ -583,7 +585,7 @@ c globalmax of ncycxy. DOMAIN_DECOMP needs a vector version of globalmax
         CALL GLOBALMAX(grid, ncycxy_loc, ncycxy(l))
         if(ncycxy(l).gt.ncmax) then
           if (AM_I_ROOT()) then
-            write(6,*) 'stop: ncycxy>ncmax in AADVQ0'
+            write(6,*) 'stop: ncycxy>ncmax in AADVQ0 l=',l
           endif
           call stop_model('AADVQ0: ncycxy>ncmax',255)
         endif
