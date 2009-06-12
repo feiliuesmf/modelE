@@ -30,8 +30,8 @@ C**** PMIP LGM (21k):    294.42         22.949       0.018994
       real*8 OMEGT,OBLIQ,ECCN
 
 C**** Database parameters to control orbital parameter calculation
-C**** Note: setting calc_orb_par with paleo_orb_yr=2000 does not produce
-C**** exactly the same as the default values.
+C**** Note: setting calc_orb_par with paleo_orb_yr=-50 (i.e. year 2000)
+C**** does not produce exactly the same as the default values.
 !@dbparam calc_orb_par_year = PALEO YEAR (BP) to calculate orbital parameters
 !@+       on first timestep of each year. PALEO YEAR incremented yearly from
 !@+       the value of JYEAR so set IYEAR appropriately (1950 usually).
