@@ -20,6 +20,10 @@
      &     prescr_soilpools,  !for prescribing soil C, N pools -PK 12/07
      &     prescr_get_cropdata
 
+      public prescr_get_hdata,prescr_get_woodydiameter,prescr_get_pop,
+     &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
+     &     prescr_get_rootprof,prescr_get_soilcolor
+
       contains
 
       !*********************************************************************
@@ -289,14 +293,14 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
              call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
            enddo
          enddo
-         call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
+         call prescr_get_carbonplant(I0,I1,J0,J1,
      &        laidata,hdata,dbhdata,popdata,cpooldata)
       else !if do_phenology_activegrowth=true
          call prescr_get_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
          call prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
          !update diameter, population density, carbon plant &  crown rad
          !can be more modular like the above - Should I???  -YKIM
-         call prescr_get_ent_plant(IM,JM,I0,I1,J0,J1, 
+         call prescr_get_ent_plant(I0,I1,J0,J1, 
      &        laidata,hdata,dbhdata,popdata,craddata,cpooldata)
       endif
       call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
@@ -598,12 +602,12 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       end subroutine prescr_get_ent_hdata
 
 !**************************************************************************
-      subroutine prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
+      subroutine prescr_get_carbonplant(I0,I1,J0,J1,
      &     laidata, hdata, dbhdata, popdata, cpooldata)
       !*  Calculate per plant carbon pools (g-C/plant).
       !*  After Moorcroft, et al. (2001).
       implicit none
-      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      integer,intent(in) :: I0,I1,J0,J1
       real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       real*8,intent(in) :: hdata(N_COVERTYPES)
       real*8,intent(in) :: dbhdata(N_COVERTYPES)
@@ -628,13 +632,13 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       
       end subroutine prescr_get_carbonplant
 !**************************************************************************
-      subroutine prescr_get_ent_plant(IM,JM,I0,I1,J0,J1,
+      subroutine prescr_get_ent_plant(I0,I1,J0,J1,
      &     laidata, hdata3d, dbhdata3d, popdata3d, craddata3d,cpooldata)
 !@sum YKIM- calculate woody diameter, population denisty, crown radiation
 !@sum & carbon pools for the Ent prognostic vegetation
       use phenology, only: update_plant_cpools, height2dbh,nplant
       implicit none
-      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      integer,intent(in) :: I0,I1,J0,J1
       real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       real*8,intent(in) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)

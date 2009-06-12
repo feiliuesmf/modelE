@@ -158,7 +158,10 @@ c**** check whether ground hydrology data exist at this point.
       use ent_prescribed_drv, only : init_canopy_physical,prescr_vegdata
 
       use ent_prescribed_drv, only:
-     &     prescr_get_laidata,prescr_veg_albedodata
+     &     prescr_get_laidata,prescr_veg_albedodata,
+     &     prescr_get_hdata,prescr_get_woodydiameter,prescr_get_pop,
+     &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
+     &     prescr_get_rootprof,prescr_get_soilcolor,prescr_soilpools
 
 
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
@@ -177,7 +180,7 @@ c**** check whether ground hydrology data exist at this point.
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: dbhdata !Diameter at breast height for woody veg.(cm)
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: craddata !Crown radius (m)
       real*8, dimension(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1) :: cpooldata !Carbon pools in individuals
-      integer, dimension(N_COVERTYPES) :: soildata ! soil types 1-bright 2-dark
+      integer, dimension(N_COVERTYPES) :: soil_color ! soil types 1-bright 2-dark
       real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
       !real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture1
       real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
@@ -224,10 +227,10 @@ cddd      enddo
 
       !call prescr_calcconst() ! moved above
 
-      call prescr_vegdata(jday, year, 
-     &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
-     &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
-     &     soildata,soil_texture,Tpool_ini,.true.,.false.,.false.)
+cddd      call prescr_vegdata(jday, year, 
+cddd     &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
+cddd     &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
+cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
       !print *,"popdata in ent_GISS_init: ",popdata
       !vegdata(1:2,:,:) = 0.0
       !vegdata(3,:,:) = 1.0
@@ -238,6 +241,21 @@ cddd      enddo
       !!! hack
       !!!Tpool_ini = 0.d0
 
+      vegdata=0
+      albedodata=0
+      laidata=0
+      hdata=0
+      nmdata=0
+
+      popdata=0
+      dbhdata=0
+      craddata=0
+      cpooldata=0
+      rootprofdata=0
+
+      soil_color=0
+      soil_texture=0
+      Tpool_ini=0
 
       !Read vegdata
       call get_vdata(vdata)
@@ -254,7 +272,21 @@ cddd      enddo
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
 
 
+         do j=J0,J1
+           do i=I0,I1
+             call prescr_get_hdata(hdata(:,i,j)) !height
+             call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
+             call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
+             call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+           enddo
+         enddo
+         call prescr_get_carbonplant(I0,I1,J0,J1,
+     &        laidata,hdata,dbhdata,popdata,cpooldata)
+      call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
+      call prescr_get_rootprof(rootprofdata)
+      call prescr_get_soilcolor(soil_color)
 
+      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini,.true.)
 
 
       ! Carbon pools not ready yet
@@ -287,7 +319,7 @@ cddd          write(887,'(a1,5f10.5)') 's',sum( soil_texture1(:,i,j) )
       !GISS data:  a patch per vegetation cover fraction, one cohort per patch
       call ent_cell_set(entcells, vegdata, popdata, laidata,
      &     hdata, dbhdata, craddata, cpooldata, nmdata, rootprofdata, 
-     &     soildata, albedodata, soil_texture,
+     &     soil_color, albedodata, soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)
 
       !!! hack to set constant heat capacity
