@@ -869,7 +869,7 @@ c****
       real*8 shdt,evhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
      *     ,rhosrf,ma1,tfs,th1,thv1,p1k,psk,ps,pij
-     *     ,spring,q1,dlwdt
+     *     ,spring,q1,dlwdt,irrig,htirrig
       real*8 fb,fv
 !@var rhosrf0 estimated surface air density
       real*8 rhosrf0
@@ -1225,6 +1225,10 @@ ccc switch to Ca from tracers
       call get_fb_fv( fb, fv, i, j )
       !write(401,*) "cdh", i,j,cdh
       ijdebug=i*1000+j
+
+      irrig = 0.d0
+      htirrig = 0.d0
+
       call advnc(
 #ifdef USE_ENT
      &     entcells(i,j), Ca,
@@ -1252,6 +1256,8 @@ ccc switch to Ca from tracers
      &     eprec(i,j)/dtsrc,
      &     precss(i,j)/(dtsrc*rhow),    !0.d0,
      &     0.d0, ! computed inside
+     &     irrig,
+     &     htirrig,
      &     srheat,
      &     trheat,
      &     pbl_args%tsv/(1.+qs*deltx),

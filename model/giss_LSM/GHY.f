@@ -102,6 +102,8 @@ ccc   private accumulators:
 
 ccc   input fluxes
       real*8 :: pr,htpr,prs,htprs,srht,trht
+!@var irrig flux of irrigation water (m/s)
+      real*8 :: irrig, htirrig
 ccc   input bc''s
       real*8 :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
       public ts,qs ! needed in ghy_diag
@@ -305,7 +307,7 @@ C***
      &     ,top_index,top_stdev,tp,trht,ts,tsn1,w,ws,wsn,xinfc,xk
      &     ,xkh,xkhm,xku,xkus,xkusa,zb,zc,zw ! xklm
      &     ,ijdebug,n,nsn !nth
-     &     ,flux_snow,wsn_for_tr,trans_sw
+     &     ,flux_snow,wsn_for_tr,trans_sw,irrig,htirrig
      &     ,vs,vs0,tprime,qprime
      &     ,asrht,atrht,aalbedo
      &     ,aClivepool_leaf,aClivepool_froot,aClivepool_wood
@@ -1199,6 +1201,7 @@ c     snowfs is the large scale snow fall.
       if ( process_bare ) then
         f(1,1) = -flmlt(1)*fr_snow(1) - flmlt_scale(1)
      &       - (dripw(1)-evapb)*(1.d0-fr_snow(1))
+     &       - irrig ! adding irrigation water to bare soil
       endif
       if ( process_vege ) then
 !     upward flux from wet canopy
@@ -1213,6 +1216,7 @@ c     snowfs is the large scale snow fall.
 !!! f(1,2) is a flux up from tyhe soil
         f(1,2) = -flmlt(2)*fr_snow(2) - flmlt_scale(2)
      &       - (dripw(2)-evapvg)*(1.d0-fr_snow(2))
+     &       - irrig ! adding irrigation water to veg soil
       endif
 
 !     compute evap_tot for accumulators
@@ -1246,6 +1250,7 @@ c**** bare soil fluxes
      &       + ( -htdripw(1) +
      &       evapb*elh + snsh(1) + thrm_soil(1) - srht - trht)
      &       *(1.d0-fr_snow(1))
+     &       - htirrig ! adding heat of irrigation water
       endif
       ! vegetated soil
       if ( process_vege ) then
@@ -1258,6 +1263,7 @@ c**** bare soil fluxes
 #endif
      &       )
      &       *(1.d0-fr_snow(2))
+     &       - htirrig ! adding heat of irrigation water
         ! canopy
         fch(0) = -htpr +
      &       (evapvw*elh*fw + snsh(2) + thrm_can
@@ -1333,7 +1339,7 @@ ccc surface runoff was rewritten in a more clear way 7/30/02
 !@var rosmp used to compute saturated fraction: (w/ws)**rosmp
       real*8, parameter :: rosmp = 8.
       rnff(:,:) = 0.d0
-      rnf(:) = pr  ! hack to conserve water (for ibv != 0,1)
+      rnf(:) = pr + irrig ! hack to conserve water (for ibv != 0,1)
                    ! - should be set to 0 after testing
 
 #ifdef GHY_USE_LARGESCALE_PRECIP
@@ -1982,7 +1988,8 @@ c****
      &     nsn_in,dzsn_in,wsn_in,hsn_in,fr_snow_in, ! snow model prognostic
      &     top_index_in,top_stdev_in,dz_in,q_in,qk_in,sl_in, ! constatns
      &     fb_in,fv_in,               ! constatns
-     &     pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in, ! forcing fluxes
+     &     pr_in,htpr_in,prs_in,htprs_in,irrig_in,htirrig_in,
+     &     srht_in,trht_in,     ! forcing fluxes
      &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
      &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in, ! forcing parameters
      &     end_of_day_flag
@@ -2037,7 +2044,8 @@ c**** soils28   common block     9/25/90
       real*8 :: top_index_in, top_stdev_in
       real*8 :: dz_in(ngm),q_in(imt,ngm),qk_in(imt,ngm),sl_in
       real*8 :: fb_in,fv_in
-      real*8 :: pr_in,htpr_in,prs_in,htprs_in,srht_in,trht_in
+      real*8 :: pr_in,htpr_in,prs_in,htprs_in,irrig_in,htirrig_in
+      real*8 :: srht_in,trht_in
       real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
       real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
       logical :: end_of_day_flag
@@ -2085,6 +2093,8 @@ c**** soils28   common block     9/25/90
       htpr   = htpr_in  
       prs    = prs_in   
       htprs  = htprs_in 
+      irrig  = irrig_in
+      htirrig= htirrig_in
       srht   = srht_in  
       trht   = trht_in  
       ts     = ts_in    
@@ -3878,7 +3888,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
       ! bare soil
       if ( process_bare ) then
         error_water = (total_water(1) - old_total_water(1)) / dts
-     $       - pr + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
+     $       - pr - irrig + evap_tot(1) + sum(rnff(1:n,1)) + rnf(1)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'bare',ijdebug,error_water
         if ( abs( error_water ) > 1.d-13 ) then
@@ -3890,7 +3900,7 @@ c    &       call stop_model('GHY: water conservation problem',255)
       ! vegetated soil
       if ( process_vege ) then
         error_water = (total_water(2) - old_total_water(2)) / dts
-     &       - pr + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
+     &       - pr - irrig + evap_tot(2) + sum(rnff(1:n,2)) + rnf(2)
         if (abs(error_water)>1.d-15)
      $       write(99,*)'vege',ijdebug,error_water
         if ( abs( error_water ) > 1.d-10 ) then
@@ -3935,7 +3945,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
       ! bare soil
       if ( process_bare ) then
         error_energy = (total_energy(1) - old_total_energy(1)) / dts
-     $       - htpr + elh*evap_tot(1)
+     $       - htpr - htirrig + elh*evap_tot(1)
      &       + shw*( sum( rnff(1:n,1)*max(tp(1:n,1),0.d0) )
      &       + rnf(1)*max(tp(1,1),0.d0) )
      &       - srht - trht + thrm_tot(1) + snsh_tot(1)
@@ -3950,7 +3960,7 @@ c    &       'GHY: water conservation problem in veg. soil',255)
       !!! if ( fr_snow(2) > 0.d0 .or. old_fr_snow(2) > 0.d0 ) return
       if ( process_vege ) then
         error_energy = (total_energy(2) - old_total_energy(2)) / dts
-     $       - htpr + elh*evap_tot(2)
+     $       - htpr - htirrig + elh*evap_tot(2)
      &       + shw*( sum( rnff(1:n,2)*max(tp(1:n,2),0.d0) )
      &       + rnf(2)*max(tp(1,2),0.d0) )
      &       - srht - trht + thrm_tot(2) + snsh_tot(2)
