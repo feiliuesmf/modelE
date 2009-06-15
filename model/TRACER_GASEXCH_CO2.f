@@ -23,9 +23,9 @@
       public
      .  tracflx1d
 
-      public atracflx,atrac
+      public atracflx
 
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx,atrac
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx
 
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx !  tracer flux at air-sea intfc
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: tracflx_glob
@@ -63,7 +63,7 @@
       ALLOCATE(tracflx(i_0:i_1,j_0:j_1,ntm))
       ALLOCATE(tracflx_glob(idm,jdm,ntm))
 
-      ALLOCATE(atracflx(iia,jja,ntm),atrac(iia,jja,ntm))
+      ALLOCATE(atracflx(iia,jja,ntm))
 
       end subroutine alloc_tracer_gasexch_com
 
@@ -123,7 +123,7 @@
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
-      USE TRACER_GASEXCH_COM, only : atrac
+      USE AFLUXES, only : atrac
 
       USE obio_com, only : pCO2,pCO2_glob
       USE obio_forc, only : atmCO2

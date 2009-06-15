@@ -281,12 +281,15 @@ c Update DIC for sea-air flux of CO2
 
 #ifndef TRACER_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
+      !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
       ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
      .            *3600.D0                                   ! mol/m2/hr
      .            *44.d0*24.d0*365.d0                        ! grC/m2/yr
+      if (vrbos) then
             write(*,'(a,3i5,7e12.4)')'obio_carbon, fluxdiag:',
      .      nstep,i,j,scco2arg,wssq,rkwco2,
      .      xco2,pCO2_ij,ff*1.0245D-3,ao_co2flux
+      endif
 #endif
 #endif
 
@@ -453,12 +456,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.26 $
-c_ $Date: 2009/06/04 22:33:55 $   ;  $State: Exp $
+c_ $Revision: 2.27 $
+c_ $Date: 2009/06/15 03:57:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.27  2009/06/15 03:57:16  aromanou
+c_ changes towards saving proper restart files. still a problem with gtracer and
+c_ atrac in toc2sst.
+c_
 c_ Revision 2.26  2009/06/04 22:33:55  aromanou
 c_
 c_ correcting bug
@@ -902,12 +909,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.26 $
-c_ $Date: 2009/06/04 22:33:55 $   ;  $State: Exp $
+c_ $Revision: 2.27 $
+c_ $Date: 2009/06/15 03:57:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.27  2009/06/15 03:57:16  aromanou
+c_ changes towards saving proper restart files. still a problem with gtracer and
+c_ atrac in toc2sst.
+c_
 c_ Revision 2.26  2009/06/04 22:33:55  aromanou
 c_
 c_ correcting bug
@@ -1096,12 +1107,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.26 $
-c_ $Date: 2009/06/04 22:33:55 $   ;  $State: Exp $
+c_ $Revision: 2.27 $
+c_ $Date: 2009/06/15 03:57:16 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.27  2009/06/15 03:57:16  aromanou
+c_ changes towards saving proper restart files. still a problem with gtracer and
+c_ atrac in toc2sst.
+c_
 c_ Revision 2.26  2009/06/04 22:33:55  aromanou
 c_
 c_ correcting bug
