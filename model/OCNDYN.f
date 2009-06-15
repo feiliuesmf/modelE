@@ -271,7 +271,6 @@ c        CALL CHECKO ('STADVI')
 
         CALL TIMER (MNOW,MSGSO)
 C***  Get the data from the ocean grid to the atmospheric grid
-      print*,'calling toc2sst 1'
       CALL TOC2SST
       call OG2AG_oceans
 
@@ -640,7 +639,6 @@ C**** Initialize some info passed to atmsophere
       uosurf=0 ; vosurf=0. ; ogeoza=0.
 
 C**** Set atmospheric surface variables
-      print*,'calling toc2sst 2'
       IF (ISTART.gt.0) CALL TOC2SST
 
       RETURN
@@ -668,7 +666,6 @@ C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT(SDAY)
 
 C**** set gtemp arrays for ocean
-      print*,'calling toc2sst 3'
         CALL TOC2SST
       END IF
 C****
@@ -943,6 +940,7 @@ C****
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       call unpack_data(agrid, atrac_glob,      atrac)
+      !!!!IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) then
       GTRACER(1,1,:,:)=atrac(:,:,1)
       print*,'OCNDYN, test this:',atrac_glob(itest,jtest,1)
      .              ,atrac(itest,jtest,1),GTRACER(1,1,itest,jtest)
@@ -4186,7 +4184,6 @@ C****
       END DO
 
 C**** Convert ocean surface temp to atmospheric SST array
-      print*,'calling toc2sst 4'
       CALL TOC2SST
 
       RETURN
@@ -4867,7 +4864,7 @@ C****
       USE OCN_TRACER_COM, only : trw0, ntm
 #endif
 #ifdef TRACERS_OCEAN
-      Use AFLUXES, Only: aTRAC 
+      Use AFLUXES, Only: aTRAC,atrac_glob
 #endif 
       USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf, 
      *      gtempr
@@ -4916,9 +4913,9 @@ C****
             UOSURF(I,J) = aUO1(I,J)
             VOSURF(I,J) = aVO1(I,J)
 
-#ifdef TRACERS_GASEXCH_ocean
-            GTRACER(:,1,I,J)=aTRAC(I,J,:)
-#endif
+!#ifdef TRACERS_GASEXCH_ocean
+!            GTRACER(:,1,I,J)=aTRAC(I,J,:)
+!#endif
 
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
@@ -4945,7 +4942,7 @@ C**** do poles
           UOSURF(I,JMA) = UOSURF(1,JMA)
           VOSURF(I,JMA) = VOSURF(1,JMA)
           OGEOZA(I,JMA)=OGEOZA(1,JMA)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
+#ifdef TRACERS_WATER
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
 #endif
         END DO
@@ -4962,19 +4959,19 @@ C**** do poles
           UOSURF(I,1) = UOSURF(1,1)
           VOSURF(I,1) = VOSURF(1,1)
           OGEOZA(I,1)=OGEOZA(1,1)
-#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
+#ifdef TRACERS_WATER
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO
       END IF
       end if
 
-      DO J=J_0,J_1
-      DO I=I_0,I_1
-      write(*,'(a,3i5,2e12.4)')'OCNDYN, toc2sst: ',
-     .   nstep,i,j,atrac(i,j,1),gtracer(1,1,i,j)
-      enddo
-      enddo
+!      DO J=J_0,J_1
+!      DO I=I_0,I_1
+!      write(*,'(a,3i5,2e12.4)')'OCNDYN, toc2sst: ',
+!     .   nstep,i,j,atrac(i,j,1),gtracer(1,1,i,j)
+!      enddo
+!      enddo
 
       RETURN
 C****
