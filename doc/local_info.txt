@@ -87,6 +87,7 @@ Intel mpi requires passwordless login between the nodes (if you want
 to run the model on more than one node). To enable it just append your
 ssh key to "authorized_keys":
    cat ~/.ssh/id_dsa.pub >> ~/.ssh/authorized_keys
+   chmod 644 ~/.ssh/authorized_keys
 
 Consistency between serial and parallelized executables:
 -------------------------------------------------------
