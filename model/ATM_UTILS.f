@@ -637,7 +637,7 @@ C**** and convert to WSAVE, units of m/s):
       implicit none
 
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm),
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm-1),
      &     intent(out) :: WSAVE
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm),
