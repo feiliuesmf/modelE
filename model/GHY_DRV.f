@@ -1768,11 +1768,12 @@ C**** Interpolate daily irrigation depth to the current day
 
 ccc the following values are returned by PBL
       real*8 us,vs,ws,psi,dbl,khs,ug,vg,wg,gusti,qsrf,tsv,ps,elhx
-      real*8, external :: qsat
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,wsgcm,wspdf
 #endif
+      real*8, external :: qsat
+
       us = pbl_args%us
       vs = pbl_args%vs
       ws = pbl_args%ws
