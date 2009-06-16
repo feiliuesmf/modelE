@@ -88,7 +88,7 @@ C**** read in named rivers (if any)
       READ (iu_RVR,*,END=10)
       IF (TITLE2.eq."Named River Mouths:") THEN
         DO I=1,NRVRMX,5
-          READ(iu_RVR,'(5(A8,1X))') NAMERVR(I:MIN(NRVRMX,I+4))
+          READ(iu_RVR,'(5(A8,1X))',END=10) NAMERVR(I:MIN(NRVRMX,I+4))
         END DO
       END IF
  10   call closeunit (iu_RVR)
@@ -442,10 +442,97 @@ C**** output to file
 
       end if
 
-
+      if (am_i_root()) then
+        call write_river_dir_to_giss_format
+      end if
       stop
 C****
  910  FORMAT (A72)
  911  FORMAT (72A1)
+
+      contains
+
+      subroutine write_river_dir_to_giss_format
+C
+C This subroutine is intended to make easy to navigate 
+C at the ascii file. The output is binary file that can 
+C be see by ijprt. THIS FILE IS ONLY FOR HUMAN VIEW.
+C You can see the indexes i,j and 
+C geographical coordinates each box and value of river
+C direction:
+C                    2(b)
+C               3(c) ^  1(a)
+C                  \ | /
+C            4(d)<-- .-->8(h)    0 means desert
+C                  / | \
+C               5(c) v  7(g)
+C                    6(f)
+C
+C For ijprt values a-h  converted (-1)-(-8),
+C mouths of the rivers  A-Z ==> 901-926.
+C So if you see number 903 it means "C" (third letter in alphabet),
+C 926 means Z(last 26th letter) ==> mouth Zambezi river. 
+C 999 means that box 100% cover ocean.
+C
+C
+      character(len=1), dimension(44) :: cvalue = (/      
+     1    ' ','0'                          
+     2  , '1','2','3','4','5','6','7','8'  
+     3  , 'a','b','c','d','e','f','g','h'  
+     4  , 'A','B','C','D','E','F','G','H'  
+     5  , 'I','J','K','L','M','N','O','P'  
+     6  , 'Q','R','S','T','U','V','W','X'  
+     7  , 'Y','Z'
+     8  /)
+      real*4,           dimension(44) :: rvalue = (/       
+     1     999. , 0.                           
+     2  ,   1.,   2.,  3.,  4.,  5.,  6.,  7.,  8.  
+     3  ,  -1.,  -2., -3., -4., -5., -6., -7., -8.  
+     4  ,  901.,902.,903.,904.,905.,906.,907.,908.  
+     5  ,  909.,910.,911.,912.,913.,914.,915.,916.  
+     6  ,  917.,918.,919.,920.,921.,922.,923.,924.  
+     7  ,  925.,926.
+     8  /)
+      real*4, dimension(im,jm) ::  PDIREC
+      integer                  :: i,j,k
+      character(len=80)        :: ijprt_file, title
+      character(len= 1)        :: symb
+      logical                  :: found
+
+      PDIREC(:,:) = 999.
+
+      do i = 1, im
+      do j = 1, jm
+         symb = CDIREC(I,J)
+         found = .false.
+         do k = 1, 44
+           if( symb == cvalue(k) ) then
+             PDIREC(I,J) = rvalue(k) 
+             found = .true.
+             exit 
+           end if
+         end do
+         if( .not. found ) then
+             write(6,*) ' File River Direction has wrong symbol=', symb
+             write(6,*) ' Good values are 0-8, a-h, A-Z'
+             STOP
+         end if
+      end do
+      end do
+
+      ijprt_file="ijprt_river_dir.bin"
+      write(6,*)
+      write(6,*) "You might want to look at file:"
+      write(6,'(2x,A)') trim(ijprt_file)
+      write(6,*) "by GISS utility: ijprt"
+
+      call openunit(trim(ijprt_file),iu_RVR,.true.,.false.)
+      title="999->Ocean, 0-8 -> Octan dir, " //
+     a      "(-1)-(-8) -> a-h emergency dir, " //
+     b      " 901-926 -> mouths(A-Z)"
+      write(iu_RVR) title, PDIREC
+      call closeunit(iu_RVR)
+
+      end subroutine write_river_dir_to_giss_format
       end
 
