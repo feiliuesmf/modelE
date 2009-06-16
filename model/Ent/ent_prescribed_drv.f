@@ -17,8 +17,9 @@
      &     prescr_get_vdata, prescr_get_laidata, 
      &     prescr_update_vegcrops, prescr_veg_albedodata,
      &     prescr_get_height, !YKIM
-     &     prescr_soilpools,  !for prescribing soil C, N pools -PK 12/07
-     &     prescr_get_cropdata
+     &     prescr_get_soilpools,  !for prescribing soil C, N pools -PK 12/07
+     &     prescr_get_cropdata,
+     &     prescr_get_soil_C_total
 
       public prescr_get_hdata,prescr_get_woodydiameter,prescr_get_pop,
      &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
@@ -44,35 +45,28 @@
       end subroutine init_canopy_physical
       
 !***************************************************************************
-      subroutine prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini
-     &     ,do_soilinit)
+      subroutine prescr_get_soilpools(I0,I1,J0,J1,
+     &     soil_C_total, Tpool_ini)
       !this routine reads in total soil pool amounts (measured), 
       !and individual soil pool fractions (modeled pft-dependent values from spinup runs),
       !then prescribes individual amounts **all carbon amounts should be in g/m2** -PK 12/07   
       use FILEMANAGER, only : openunit,closeunit
-      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      integer,intent(in) :: I0,I1,J0,J1
+      real*8,intent(in) ::
+     &     soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
       real*8,intent(out) :: 
      &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  !prescribed soil pools, g/m2
      &                I0:I1,J0:J1)
-      logical,intent(in) :: do_soilinit
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
-#ifndef SOILCARB_SITE
-      real*4 :: soilC_data(N_CASA_LAYERS,IM,JM)
-      character*80 :: title
-      integer :: nn
-#endif
       integer :: iu_SOILCARB
-      integer :: n,p, i
+      integer :: n,p,nn
       real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
       real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_tmp !YK
 
       Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero
 
-      if (.not.do_soilinit) then
-        Cpool_fracs(:,:,:) = 0.d0
-      else
 #ifdef PFT_MODEL_ENT
 !YK - temp. values, modified from 8 GISS pfts below
         Cpool_fracs(1,:,1) = (/ !ever_ES_broad
@@ -161,56 +155,55 @@
       call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
       read(iu_SOILCARB,*)  !skip optional header row(s)
       read(iu_SOILCARB,*) total_Cpool(:)
-      do i=1,NPOOLS-NLIVE
-        read(iu_SOILCARB,*) Cpool_tmp(i,:)
+      do nn=1,NPOOLS-NLIVE
+        read(iu_SOILCARB,*) Cpool_tmp(nn,:)
       end do
 
       do p=1,N_PFT      
        do n=1,N_CASA_LAYERS 
-        do i=NLIVE+1,NPOOLS
-         Cpool_fracs(p,i-NLIVE,n) = Cpool_tmp(i-NLIVE,n)
-         Tpool_ini(p,CARBON,i-NLIVE,n,I0:I1,J0:J1) =
-     &          Cpool_fracs(p,i-NLIVE,n)*total_Cpool(n)
+        do nn=NLIVE+1,NPOOLS
+         Cpool_fracs(p,nn-NLIVE,n) = Cpool_tmp(nn-NLIVE,n)
+         Tpool_ini(p,CARBON,nn-NLIVE,n,I0:I1,J0:J1) =
+     &          Cpool_fracs(p,nn-NLIVE,n)*total_Cpool(n)
         end do
        end do
       end do
-c$$$      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
-c$$$      read(iu_SOILCARB,*)  !skip optional header row(s)
-c$$$      read(iu_SOILCARB,*) total_Cpool(:)
-c$$$      do i=1,NPOOLS-NLIVE
-c$$$        read(iu_SOILCARB,*) Cpool_fracs(GRASSC3,i,:)
-c$$$      end do
-c$$$
-c$$$      do p=1,N_PFT      
-c$$$       do n=1,N_CASA_LAYERS 
-c$$$        do i=NLIVE+1,NPOOLS
-c$$$         Tpool_ini(p,CARBON,i-NLIVE,n,I0:I1,J0:J1) =
-c$$$     &          Cpool_fracs(p,i-NLIVE,n)*total_Cpool(n)
-c$$$        end do
-c$$$       end do
-c$$$      end do
-!####
 #else
-!***  
-        !read in ISRIC-WISE 4x5 dataset      
-        call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.) !globally gridded binary dataset
-        read (iu_SOILCARB) title, soilC_data !data in kg/m2 (converted to g/m2 below)
-      
         !assign Tpool_ini values (pft-specific)
         do p=1,N_PFT
           do n=1,N_CASA_LAYERS 
             do nn=NLIVE+1,NPOOLS
               Tpool_ini(p,CARBON,nn-NLIVE,n,I0:I1,J0:J1) =
      &             Cpool_fracs(p,nn-NLIVE,n)
-     &             * soilC_data(n,I0:I1,J0:J1)*1d3  
+     &             * soil_C_total(n,I0:I1,J0:J1)*1d3  
             end do
           end do
         end do
 #endif
-        call closeunit(iu_SOILCARB)
-      endif !Read in initialization
 
-      end subroutine prescr_soilpools
+      end subroutine prescr_get_soilpools
+
+
+      subroutine prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,
+     &     soil_C_total)
+      use FILEMANAGER, only : openunit,closeunit
+      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8,intent(out) ::
+     &     soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
+      !---
+      real*4 :: buf(N_CASA_LAYERS,IM,JM)
+      character*80 :: title
+      integer :: iu_SOILCARB
+
+      call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)
+      read (iu_SOILCARB) title, buf !data in kg/m2 (converted to g/m2 below)
+      call closeunit(iu_SOILCARB)
+
+      soil_C_total(1:N_CASA_LAYERS,I0:I1,J0:J1) =
+     &     buf(1:N_CASA_LAYERS,I0:I1,J0:J1)
+
+      end subroutine prescr_get_soil_C_total
+
       
 !***************************************************************************
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
@@ -242,6 +235,7 @@ c$$$      end do
       !-----Local------
       integer :: i,j, jeq
       integer hemi(I0:I1,J0:J1)
+      REAL*8 :: soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
 
       jeq = JM/2
       do j=J0,J1
@@ -312,7 +306,12 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 #ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
       Tpooldata = 0.d0
 #else
-      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
+      if ( do_soilinit ) then
+        call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
+        call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
+      else
+        Tpooldata = 0.d0
+      endif
 #endif
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
       !print*,'hdata',hdata

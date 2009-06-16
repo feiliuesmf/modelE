@@ -752,3 +752,28 @@ c**** zero-out vdata(11) until it is properly read in
      &     + wt * (crop2(:,:) - crop1(:,:)))  !Set min to zero, since no land mask yet -nyk 1/22/08
 
       end subroutine get_cropdata
+
+
+      subroutine get_soil_C_total(ncasa, soil_C_total)
+      use FILEMANAGER, only : openunit,closeunit,nameunit
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL, ESMF_BCAST
+      integer, intent(in) :: ncasa
+      real*8,intent(out) ::
+     &     soil_C_total(ncasa,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+      !---
+      real*8, allocatable :: buf(:,:)
+      integer :: iu_SOILCARB, k
+
+      
+      call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)
+
+      do k=1,ncasa
+        CALL READT_PARALLEL (grid,
+     &       iu_SOILCARB,NAMEUNIT(iu_SOILCARB),soil_C_total(k,:,:),1)
+      enddo
+
+      call closeunit(iu_SOILCARB)
+
+      end subroutine get_soil_C_total

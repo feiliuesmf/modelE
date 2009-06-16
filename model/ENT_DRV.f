@@ -161,7 +161,8 @@ c**** check whether ground hydrology data exist at this point.
      &     prescr_get_laidata,prescr_veg_albedodata,
      &     prescr_get_hdata,prescr_get_woodydiameter,prescr_get_pop,
      &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
-     &     prescr_get_rootprof,prescr_get_soilcolor,prescr_soilpools
+     &     prescr_get_rootprof,prescr_get_soilcolor,
+     &     prescr_get_soilpools,prescr_get_soil_C_total
 
 
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
@@ -189,9 +190,12 @@ c**** check whether ground hydrology data exist at this point.
       !-----Local---------
       integer i,j,k
       real*8 heat_capacity
-      real*8 :: vdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+      real*8 :: vdata_H(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
-      real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+      real*8 :: cropdata_H(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 :: soil_C_total_H(N_CASA_LAYERS,
+     &     grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
       integer hemi(I0:I1,J0:J1)
 
@@ -258,13 +262,13 @@ cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
       Tpool_ini=0
 
       !Read vegdata
-      call get_vdata(vdata)
-      call get_cropdata(year, cropdata)
+      call get_vdata(vdata_H)
+      call get_cropdata(year, cropdata_H)
       do k=1,N_COVERTYPES
-        vegdata(k,I0:I1,J0:J1) = vdata(I0:I1,J0:J1,k)
-     &       *(1.d0-cropdata(I0:I1,J0:J1))
+        vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)
+     &       *(1.d0-cropdata_H(I0:I1,J0:J1))
       enddo
-      vegdata(9,I0:I1,J0:J1) = cropdata(I0:I1,J0:J1)
+      vegdata(9,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
 
 
 
@@ -289,7 +293,10 @@ cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
 #ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
       Tpool_ini = 0.d0
 #else
-      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpool_ini,.true.)
+      !call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
+      call get_soil_C_total(N_CASA_LAYERS, soil_C_total_H)
+      call prescr_get_soilpools(I0,I1,J0,J1,
+     &      soil_C_total_H(:,I0:I1,J0:J1), Tpool_ini)
 #endif
 
 
@@ -364,7 +371,7 @@ cddd      enddo
       integer i,j
       integer year
       integer, save :: year_old = -1
-      real*8 :: cropdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
+      real*8 :: cropdata_H(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
 
 
@@ -378,10 +385,10 @@ cddd      enddo
 
       if( year .ne. year_old ) then
         !call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropsdata)
-        call get_cropdata(year, cropdata)
+        call get_cropdata(year, cropdata_H)
         call ent_prescribe_vegupdate(entcells,
      &       do_giss_lai=.false.,
-     &       cropsdata=cropdata(I0:I1,J0:J1) )
+     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
         year_old = year
       endif
 
