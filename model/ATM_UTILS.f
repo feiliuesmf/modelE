@@ -629,25 +629,13 @@ C**** Calculate 3D vertical velocity (take SDA which has units
 C**** mb*m2, needs division by physics time step)
 C**** and convert to WSAVE, units of m/s):
 
-      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN)
+      subroutine COMPUTE_WSAVE
       use CONSTANT, only: rgas, bygrav
       use DOMAIN_DECOMP_ATM, only: grid, GET
       use GEOM, only: byaxyp
-      use MODEL_COM, only: IM,JM,LM,DTsrc
+      use MODEL_COM, only: IM,JM,LM,DTsrc,T
+      use DYNAMICS, only: wsave, sda,pk,pedn
       implicit none
-
-      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm-1),
-     &     intent(out) :: WSAVE
-      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO, lm),
-     &     intent(in)  :: SDA, T
-      real*8, dimension(lm, grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO),
-     &     intent(in)  :: PK
-      real*8, dimension(lm+1, grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO),
-     &     intent(in)  :: PEDN
 
       integer :: i, j, l
       integer :: I_0, I_1, J_0, J_1
