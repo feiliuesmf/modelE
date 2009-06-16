@@ -58,7 +58,7 @@ C**** Calculate 3D vertical velocity (take SDA which has units
 C**** mb*m2/s (but needs averaging over no. of leap frog timesteps)
 C**** and convert to WSAVE, units of m/s):
 
-      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN, NIdyn)
+      subroutine COMPUTE_WSAVE(wsave, sda, T, PK, PEDN)
 !@sum COMPUTE_WSAVE Dummy
       use DOMAIN_DECOMP_1D, only: grid, GET
       use MODEL_COM, only: IM,JM,LM

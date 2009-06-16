@@ -280,7 +280,7 @@ C****
       integer :: j,l
 c**** Extract domain decomposition info
       INTEGER :: I_0, I_1, J_0, J_1
-      CALL GET(grid, I_STRT = I_0, I_STOP = I_1, J_STRT = J_0, 
+      CALL GET(grid, I_STRT = I_0, I_STOP = I_1, J_STRT = J_0,
      &               J_STOP = J_1)
 
 C
@@ -644,7 +644,10 @@ C**** and convert to WSAVE, units of m/s):
      &     intent(in)  :: SDA, T
       real*8, dimension(lm, grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO),
-     &     intent(in)  :: PK,PEDN
+     &     intent(in)  :: PK
+      real*8, dimension(lm+1, grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &     intent(in)  :: PEDN
 
       integer :: i, j, l
       integer :: I_0, I_1, J_0, J_1
@@ -668,7 +671,7 @@ C**** and convert to WSAVE, units of m/s):
       end subroutine COMPUTE_WSAVE
 
 
-!if running SCM end 
+!if running SCM end
 #endif
 
       function nij_before_j0(j0)
