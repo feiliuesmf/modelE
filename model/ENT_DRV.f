@@ -108,43 +108,6 @@
 
       endif
 
-      ! the following parts of the code should be implemented
-      ! somewhere in dynamic vegetation
-#ifdef UNFINISHED_CODE
-C**** Update vegetation file if necessary (i.e. crops_yr =0 or >0)
-      if(crops_yr.eq.0) call updveg(jyear,.false.)
-      if(crops_yr.gt.0) call updveg(crops_yr,.false.)
-
-      if (istart.le.2 .or. redogh) then ! initial. foliage arrays (adf)
-        Cint(:,:)=0.0127D0      ! internal CO2
-        Qfol(:,:)=3.D-6         ! surface mixing ratio
-        cnc_ij(:,:) = 0.d0
-      end if
-      if (istart.le.0) return   ! avoid reading unneeded files
-
-     !!! spgsn=.1d0
-
-c**** check whether ground hydrology data exist at this point.
-      veg_data_missing = .false.
-      do j=J_0,J_1
-        do i=I_0,I_1
-          if (fearth(i,j).gt.0) then
-            if ( sum(vdata(i,j,1:12)).eq.0 ) then
-              print *,"No vegetation data: i,j=",i,j,vdata(i,j,1:12)
-              veg_data_missing = .true.
-            end if
-          end if
-        enddo
-      enddo
-      if ( veg_data_missing ) then
-        write(6,*) 'Vegetation data is missing at some pts'
-        write(6,*) 'If you have a non-standard land mask, please'
-        write(6,*) 'consider using extended GH data and rfs file.'
-        call stop_model(
-     &       'Vegetation data is missing at some cells',255)
-      endif
-
-#endif
       end subroutine init_module_ent
 
 
@@ -206,60 +169,8 @@ c**** check whether ground hydrology data exist at this point.
         hemi(I0:I1,J0:J1) = +1  ! N
       end where
 
-cddd      do j=j0,j1
-cddd        do i=i0,i1
-cddd          print *,'set_vegetation_data i,j = ',i,j
-cddd          call ent_cell_print( 6, entcells(i,j) )
-cddd        enddo
-cddd      enddo
-
-!      print *,'set_vegetation_data printing cells 1'
-!      call ent_cell_print(entcells)
-!      print *,'set_vegetation_data end printing cells 1'
-
-
-      !Read land surface parameters or use defaults
-      !GISS data sets:
-!      call GISS_vegdata(jday, year, 
-!     &     im,jm,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
-!     &     frootdata,popdata,soildata,soil_texture)
-
-      !Translate gridded data to Entdata structure
-      !GISS data:  a patch per vegetation cover fraction, one cohort per patch
-!      call ent_cell_set(entcells, vegdata, popdata, laidata,
-!     &     hdata, nmdata, frootdata, soildata, albedodata, soil_texture)
-
-      !call prescr_calcconst() ! moved above
-
-cddd      call prescr_vegdata(jday, year, 
-cddd     &     IM,JM,I0,I1,J0,J1,vegdata,albedodata,laidata,hdata,nmdata,
-cddd     &     popdata,dbhdata,craddata,cpooldata,rootprofdata,
-cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
-      !print *,"popdata in ent_GISS_init: ",popdata
-      !vegdata(1:2,:,:) = 0.0
-      !vegdata(3,:,:) = 1.0
-      !vegdata(4:N_COVERTYPES,:,:) = 0.0
       call init_canopy_physical(I0, I1, J0, J1,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
-
-      !!! hack
-      !!!Tpool_ini = 0.d0
-
-      vegdata=0
-      albedodata=0
-      laidata=0
-      hdata=0
-      nmdata=0
-
-      popdata=0
-      dbhdata=0
-      craddata=0
-      cpooldata=0
-      rootprofdata=0
-
-      soil_color=0
-      soil_texture=0
-      Tpool_ini=0
 
       !Read vegdata
       call get_vdata(vdata_H)
@@ -270,22 +181,19 @@ cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
       enddo
       vegdata(9,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
 
-
-
       call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
 
-
-         do j=J0,J1
-           do i=I0,I1
-             call prescr_get_hdata(hdata(:,i,j)) !height
-             call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
-             call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
-             call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
-           enddo
-         enddo
-         call prescr_get_carbonplant(I0,I1,J0,J1,
-     &        laidata,hdata,dbhdata,popdata,cpooldata)
+      do j=J0,J1
+        do i=I0,I1
+          call prescr_get_hdata(hdata(:,i,j)) !height
+          call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
+          call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
+          call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+        enddo
+      enddo
+      call prescr_get_carbonplant(I0,I1,J0,J1,
+     &     laidata,hdata,dbhdata,popdata,cpooldata)
       call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_soilcolor(soil_color)
@@ -299,30 +207,16 @@ cddd     &     soil_color,soil_texture,Tpool_ini,.true.,.false.,.false.)
      &      soil_C_total_H(:,I0:I1,J0:J1), Tpool_ini)
 #endif
 
-
-      ! Carbon pools not ready yet
-      ! Tpool_ini = 0.d0
-      
-
       !Compute soil textures for upper 30cm
       do j=j0,j1
         do i=i0,i1
           !if ( fearth(i,j) < .01 ) cycle
-
           soil_texture(:,i,j) = (
      &            q_ij(i,j,:,1)*dz_ij(i,j,1)
      &         +  q_ij(i,j,:,2)*dz_ij(i,j,2)
      &         +  q_ij(i,j,:,3)*(.3d0 - dz_ij(i,j,1) - dz_ij(i,j,2))
      &         ) / .3d0
 
-cddd          write(887,'(a1,5f10.5)') '1', q_ij(i,j,:,1)
-cddd          write(887,'(a1,5f10.5)') '2', q_ij(i,j,:,2)
-cddd          write(887,'(a1,5f10.5)') '3', q_ij(i,j,:,3)
-cddd          write(887,'(a1,5f10.5)') 'o', soil_texture(:,i,j)
-cddd          write(887,'(a1,5f10.5)') 'n', soil_texture1(:,i,j)
-cddd          write(887,'(a1,5f10.5)') 'd', soil_texture1(:,i,j)
-cddd     &         -soil_texture(:,i,j)
-cddd          write(887,'(a1,5f10.5)') 's',sum( soil_texture1(:,i,j) )
         enddo
       enddo
 
@@ -333,16 +227,6 @@ cddd          write(887,'(a1,5f10.5)') 's',sum( soil_texture1(:,i,j) )
      &     soil_color, albedodata, soil_texture,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)
 
-      !!! hack to set constant heat capacity
-cddd      do j=j0,j1
-cddd        do i=i0,i1
-cddd          heat_capacity = GISS_calc_shc( vegdata(1:N_COVERTYPES,i,j ) )
-cddd          call ent_cell_update(entcells(i,j),
-cddd     &         heat_capacity=heat_capacity
-cddd     &         )
-cddd        enddo
-cddd      enddo
-      
       ! just in case, do nothing, just set heat capacities
       call ent_prescribe_vegupdate(entcells)
 
@@ -407,20 +291,12 @@ cddd      enddo
      &         do_giss_lai=.true.,
      &         update_crops=.false. )
 
-
+      ! hack to avoid descrepancy with ent_standalone setup
+      ! but really should do update as below
       return
 
       call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
-
-cddd      do j=j0,j1
-cddd        do i=i0,i1
-cddd          call ent_cell_update(entcells(i,j),
-cddd     &         pft_leaf_area_index=laidata(2:2+N_PFT-1,i,j),
-cddd     &         pft_vegalbedo=albedodata(:,2:2+N_PFT-1,i,j)
-cddd     &         )
-cddd        enddo
-cddd      enddo
 
       call ent_prescribe_vegupdate(entcells
      &     ,laidata=laidata(2:2+N_PFT-1,:,:)
