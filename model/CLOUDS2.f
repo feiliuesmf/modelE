@@ -2906,7 +2906,7 @@ C**** Calculate probability of ice precip seeding a water cloud
             PRATIO=MIN(PMI/(PML+1.E-20),10d0)
             CM00=3.d-5           ! reduced by a factor of 3
             CM0=CM00
-            IF(VDEF.GT.0.) CM0=CM00*10.**(-0.5*VDEF)
+            IF(VDEF.GT.0.) CM0=CM00*10.**(-0.2*VDEF)
             CBFC0=.5*CM0*CBF*DTsrc
             PFR=(1.-EXP(-(PRATIO*PRATIO)))*(1.-EXP(-(CBFC0*CBFC0)))
             IF(PFR.GT.RANDNO) THEN
@@ -2926,7 +2926,7 @@ C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       IF(LHX.EQ.LHS.AND.SVWMXL(L).LE.0d0) CM00=1.d-3
       IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
       CM0=CM00
-      IF(VDEF.GT.0.) CM0=CM00*10.**(-0.5*VDEF)
+      IF(VDEF.GT.0.) CM0=CM00*10.**(-0.2*VDEF)
 
 C**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
