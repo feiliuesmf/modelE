@@ -237,17 +237,6 @@ c and set dqi=dqj=0 in cells in which any qcs+dqi*xp+dqj*yp < 0
       return
       end subroutine regrid2
 
-      subroutine handle_err(status,errmsg)
-      implicit none
-      integer :: status
-      character(len=*) :: errmsg
-      include 'netcdf.inc'
-      if(status.ne.nf_noerr) then
-        write(6,*) 'error '//trim(errmsg)
-        stop
-      endif
-      end subroutine handle_err
-
       subroutine get_var_r8(fid,var_name,var)
       implicit none
       include 'netcdf.inc'

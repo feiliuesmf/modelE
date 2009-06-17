@@ -192,3 +192,14 @@ c copy global attributes
       status = nf_enddef(ofid)
       return
       end subroutine copy_file_structure
+
+      subroutine handle_err(status,errmsg)
+      implicit none
+      integer :: status
+      character(len=*) :: errmsg
+      include 'netcdf.inc'
+      if(status.ne.nf_noerr) then
+        write(6,*) 'error '//trim(errmsg)
+        stop
+      endif
+      end subroutine handle_err

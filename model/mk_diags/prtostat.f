@@ -137,17 +137,6 @@ c
 
       end program prtostat
 
-      subroutine handle_err(status,errmsg)
-      implicit none
-      integer :: status
-      character(len=*) :: errmsg
-      include 'netcdf.inc'
-      if(status.ne.nf_noerr) then
-        write(6,*) 'error '//trim(errmsg)
-        stop
-      endif
-      end subroutine handle_err
-
       subroutine get_index(xvals,n,x,j)
       implicit none
       integer :: n,j
