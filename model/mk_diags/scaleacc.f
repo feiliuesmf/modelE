@@ -32,7 +32,9 @@ c
       status = nf_get_att_text(fid,nf_global,'fromto',fromto)
 
       dcat = trim(accname)
-      status = nf_inq_varid(fid,trim(dcat),accid)
+
+      call handle_err(nf_inq_varid(fid,trim(dcat),accid),
+     &     'finding '//trim(dcat)//' in input file')
       call get_vdimsizes(fid,trim(dcat),ndims,accsizes)
       srt(:) = 1
       cnt(1:ndims) = accsizes(1:ndims)
