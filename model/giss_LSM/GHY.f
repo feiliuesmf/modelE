@@ -11,6 +11,7 @@
 
 #ifdef USE_ENT
 #define EVAP_VEG_GROUND
+!#define EVAP_VEG_GROUND_NEW
 #define GHY_FD_1_HACK
 #endif
 
@@ -20,7 +21,6 @@
 #define INTERCEPT_TEMPORAL
 #define LARGE_SCALE_PRECIP_INTERCEPT
 !#define do_topmodel_runoff
-!#define CLIM_SOILMOIST
 !-----------------------------------------------------------------------
 
       module sle001
@@ -686,6 +686,7 @@ ccc   local variables
       real*8 cnc         ! local cnc from veg_conductance, nyk
 #endif
       real*8 v_qprime    ! local variable
+
 #ifdef EVAP_VEG_GROUND
 !     Evaporation from vegetated soil limited by diffusion, precip, 
 !     and the amount of water in the soil column 
@@ -700,7 +701,26 @@ ccc   local variables
       real*8,parameter :: f_clump = 1.d0 
 !     Stem area index (currently set to zero)
       real*8,parameter :: sai = 0.d0 
+
+#ifdef EVAP_VEG_GROUND_NEW
+!     Leaf litter area index
+      real*8,parameter :: llai = 1.d0
+!     Molecular diffusion coefficient of water vapor in air [m^2/s] 
+      real*8,parameter :: D0 = 0.000022
+!     Vapor diffusivity within the soil [m^2/s]
+      real*8 :: D_vapor
+!     Thickness of the dry part of the soil [m]
+      real*8 :: L_dry
+!     Soil resistance due to molecular diffusion [s/m]
+      real*8 :: r_soil
+!     Soil resistance due to litter layer [s/m]
+      real*8 :: r_litter
+!     Effective leaf litter area index
+      real*8 :: llai_eff
 #endif
+
+#endif
+
       real*8 epv1
 
 c     cna is the conductance of the atmosphere
@@ -874,9 +894,11 @@ c     calculate bare soil, canopy and snow mixing ratios
       qbs = qsat(tsn1(1)+tfrz,lhe,pres)
       qv  = qsat(tp(0,2)+tfrz,lhe,pres)
       qvs = qsat(tsn1(2)+tfrz,lhe,pres)
+
 #ifdef EVAP_VEG_GROUND
       qvg  = qsat(tp(1,2)+tfrz,lhe,pres)
 #endif
+
 
 c     potential evaporation for bare and vegetated soil and snow
 c     epb  = rho3*cna*(qb-qs)
@@ -903,6 +925,30 @@ c     epvs = rho3*cna*(qvs-qs)
       eta = exp( -f_clump*(lai + sai) )
       ch_vg = ch*eta + ch_dense_veg*(1.d0-eta)
       epvg  = rho3*ch_vg*( vs*(qvg-qs)-v_qprime )
+
+#ifdef EVAP_VEG_GROUND_NEW
+!     1) Soil resistance computed according to the formulation of
+!        Sakaguchi and Zeng (2009)
+      D_vapor = D0*(thets(1,2)**2.d0)*
+     &               (1.d0-thetm(1,2)/thets(1,2))**(2.d0+3.d0*5.d0)
+      L_dry = dz(1)*(exp((1.d0-theta(1,2)/thets(1,2))**5.d0)-1.d0)
+     &             /(exp(1.d0)                              -1.d0)
+      r_soil = L_dry / D_vapor
+!     2) Under-canopy transfer coefficient is weighted average of
+!        bare soil and thick canopy values
+!        (e.g. Zeng et al 2005 and Lawrence et al 2007)
+      ch_dense_veg = 0.01d0*cna
+      eta = exp( -f_clump*(lai + sai) )
+      ch_vg = ch*eta + ch_dense_veg*(1.d0-eta)
+!     3) Litter layer resistance estimated in a similar manner to
+!        Sakaguchi and Zeng (2009)
+      llai_eff = llai * (1.d0 - min(1.d0,fr_snow(2)))
+      r_litter = 1.d0 - exp(-llai_eff)
+!     Potential evaporation from vegetated soil (additional limits follow)
+      epvg  = rho3*(qvg-qs) / 
+     &        (r_soil + r_litter + 1.d0/(ch_vg*vs) )
+#endif
+
 #endif
 
 c     bare soil evaporation
@@ -1797,12 +1843,6 @@ ccc   the canopy
 ccc   the soil
 
       do ibv=i_bare,i_vege
-#ifdef CLIM_SOILMOIST
-ccc     rest of the fluxes
-        do k=1,n
-          ht(k,ibv) = ht(k,ibv) +
-     &         ( fh(k+1,ibv) - fh(k,ibv) )*dts
-#else
 ccc     surface runoff
         w(1,ibv) = w(1,ibv) - rnf(ibv)*dts
         ht(1,ibv) = ht(1,ibv) - shw*max(tp(1,ibv),0.d0)*rnf(ibv)*dts
@@ -1818,7 +1858,6 @@ ccc     rest of the fluxes
      &         shw*max(tp(k,ibv),0.d0)*( rnff(k,ibv)
 !     &         + fd*(1.-fr_snow(2)*fm)*evapdl(k,ibv)   !!! hack !!!
      &         ) )*dts
-#endif
         end do
       end do
 ccc   do we need this check ?
@@ -1832,7 +1871,6 @@ ccc   do we need this check ?
       endif
 
 ccc check for under/over-saturation
-#ifndef CLIM_SOILMOIST
       do ibv=i_bare,i_vege
         do k=1,n
           if ( w(k,ibv) < dz(k)*thetm(k,ibv) - 1.d-14 ) then
@@ -1845,7 +1883,7 @@ ccc check for under/over-saturation
           w(k,ibv) = min( w(k,ibv), ws(k,ibv) )
         enddo
       enddo
-#endif
+
       return
       end subroutine apply_fluxes
 
@@ -2356,17 +2394,15 @@ ccc unpack necessary data
  !       drips = 0
  !       dripw = 0
         call drip_from_canopy
-#ifndef CLIM_SOILMOIST
         call check_water(0)
         call check_energy(0)
-#endif
+
         call snow
         call fl
         call flg
          ! call check_f11
-#ifndef CLIM_SOILMOIST
         call runoff
-#endif
+
 !debug
 !        rnff(:,:) = 0.d0
  !       rnf(:) = 0.d0
@@ -2410,10 +2446,9 @@ cddd      print '(a,10(e12.4))', 'tr_w_2 '
 cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
 !!!
         ! if(wsn_max>0) call restrict_snow (wsn_max)
-#ifndef CLIM_SOILMOIST
         call check_water(1)
         call check_energy(1)
-#endif
+
 #ifdef USE_ENT
         call accm(
 #ifdef TRACERS_WATER
