@@ -735,9 +735,6 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
      *     ,iyear1,ioreadnt,ioread,jmpery
       USE GEOM, only : imaxj
       USE CONSTANT, only : tf
-#ifdef TRACERS_GASEXCH_ocean
-      USE FLUXES, only : GTRACER,TRGASEX
-#endif
 
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : trw0

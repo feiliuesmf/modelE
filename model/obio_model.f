@@ -126,6 +126,11 @@
 !Cold initialization
 
 #ifdef OBIO_ON_GARYocean
+      !nstep0=0 : cold initialization
+      !nstep0>0 : warm initialization, is the timestep of current restart run
+      !nstep    : current timestep   
+      !itimei   : initial timestep   
+
       print*, 'itimei,nstep,nstep0 =',
      .         itimei,nstep,nstep0
 
@@ -291,7 +296,7 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 #endif
 
        pCO2_ij=pCO2(i,j)
-
+     
 #ifdef OBIO_ON_GARYocean
        pres = oAPRESS(i,j)    !surface atm. pressure
        do k=1,lmm(i,j)
@@ -492,7 +497,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        !------------------------------------------------------------
        !at the beginning of each day only
 #ifdef OBIO_ON_GARYocean
-       if (hour_of_day.le.1) then    
+       if (hour_of_day.le.1 .or. nstep.eq.nstep0) then    
 #else
        if (hour_of_day.eq.1) then
 #endif
@@ -571,6 +576,11 @@ cdiag.  ' channel, surf refl dir, surf refl diff',
 cdiag.                        (k,rod(k),ros(k),k=1,nlt)
  105  format(i9,a/(18x,i3,2(1x,es9.2)))
 
+cdiag    do k=1,nlt
+cdiag    write(*,'(a,4i5,2e12.4)')'obio_model,dir-diff rad:',
+cdiag.    nstep,i,j,k,rod(k),ros(k)
+cdiag    enddo
+
          !only call obio_sfcirr for points in light
          tot = 0.0
          do ichan = 1,nlt
@@ -584,20 +594,14 @@ cdiag.                        (k,rod(k),ros(k),k=1,nlt)
           endif
           tot = tot + Ed(ichan)+Es(ichan)
 
-cdiag if (nstep.eq.12)
-cdiag.write(*,'(/,a,4i5,3e12.4)')'obio_model, tirrq: ',
-cdiag.           nstep,i,j,ichan,
-cdiag.           ovisdir_ij,eda_frac(ichan),Ed(ichan)
+cdiag     write(*,'(a,4i5,5e12.4)')'obio_model, tirrq: ',
+cdiag.         nstep,i,j,ichan,
+cdiag.         ovisdir_ij,eda_frac(ichan),Ed(ichan),Es(ichan),tot
 
 #else
           Ed(ichan) = Eda2(ichan,ihr0)
           Es(ichan) = Esa2(ichan,ihr0)
           tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
-
-cdiag if (nstep.eq.12)
-cdiag.write(*,'(/,a,4i5,3e12.4)')'obio_model, tirrq: ',
-cdiag.           nstep,i,j,ichan,Ed(ichan)
-
 #endif
          enddo  !ichan
          noon=.false.
@@ -674,6 +678,10 @@ cdiag.       '           k   avgq    tirrq',
 cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
+cdiag    do k=1,kdm
+cdiag    write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
+cdiag.       nstep,i,j,k,avgq1d(k),tirrq(k)
+cdiag    enddo
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
 

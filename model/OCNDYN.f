@@ -709,8 +709,8 @@ C****
 #ifdef TRACERS_GASEXCH_ocean
       USE PARAM, only: get_param
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE AFLUXES, only: atrac_glob,atrac
       USE FLUXES, only: gtracer
+      USE obio_com, only: pCO2, pCO2_glob
 #endif
 
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
@@ -758,7 +758,9 @@ C****
       call pack_data(ogrid, tracer,   tracer_glob)
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      call pack_data(agrid, atrac,      atrac_glob)
+      call pack_data(agrid, pCO2,      pCO2_glob)
+      write(*,*)'OCNDYN, pco2 1:',
+     .    nstep,itest,jtest,pCO2(itest,jtest),pCO2_glob(itest,jtest)
 #endif
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
@@ -792,7 +794,7 @@ C****
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER
      . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,atrac_glob
+     . ,pCO2_glob
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
@@ -800,8 +802,10 @@ C****
       write(*,'(a,3i5,3(e12.4,1x),i3,1x,3e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
      .       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .      ,atrac_glob(i,j,1)
+     .      ,pCO2_glob(itest,jtest)
       enddo
+      write(*,*)'OCNDYN, pCO2 2:',
+     .    nstep,itest,jtest,pco2(itest,jtest),pco2_glob(itest,jtest)
 #else
 #ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER
@@ -810,7 +814,7 @@ C****
       j=jtest
       do k=1,kdm
       write(*,'(a,i2,e12.4)') ' tst1a k=',k,
-     &      atrac_glob(10,20,1)
+     &      atrac_glob(62,8,1)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -858,7 +862,7 @@ C****
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,atrac_glob
+     . ,pco2_glob
       call get_param("atmCO2",atmCO2)   !need to do this here also
       print*,'nstep0= ',nstep0
       i=itest
@@ -868,8 +872,11 @@ C****
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
      .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
      .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .   ,atrac_glob(i,j,1)
+     .   ,pco2_glob(itest,jtest)
       enddo
+      write(*,*)'OCNDYN, pco2 3:',
+     .    nstep,itest,jtest,pco2(itest,jtest),pCO2_glob(itest,jtest)
+
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -939,11 +946,11 @@ C****
       endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      call unpack_data(agrid, atrac_glob,      atrac)
-      !!!!IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) then
-      GTRACER(1,1,:,:)=atrac(:,:,1)
-      print*,'OCNDYN, test this:',atrac_glob(itest,jtest,1)
-     .              ,atrac(itest,jtest,1),GTRACER(1,1,itest,jtest)
+      call unpack_data(agrid, pCO2_glob,      pCO2)
+      print*,'OCNDYN, test this:',pCO2_glob(itest,jtest)
+     .              ,pCO2(itest,jtest)
+      write(*,*)'OCNDYN, pCO2 4:',
+     .    nstep,itest,jtest,pCO2(itest,jtest),pCO2_glob(itest,jtest)
 #endif
 
       RETURN
@@ -4878,6 +4885,9 @@ C****
       integer :: j_0,j_1,n,i_0,i_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+      write(*,*)'OCNDYN, atrac5:',
+     .    nstep,62,8,atrac(62,8,1),atrac_glob(62,8,1)
+
       if (LMO_MIN .lt. 2) then
         write (*,*) ' Subroutine TOC2SST (OCNDYN.f): '
         write (*,*) ' Make minimum number of ocean layers equal to 2'
@@ -4891,7 +4901,13 @@ C****
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 !
+      write(*,*)'OCNDYN, atrac5a:',
+     .    nstep,62,8,atrac(62,8,1),atrac_glob(62,8,1)
+
       call OG2AG_TOC2SST
+
+      write(*,*)'OCNDYN, atrac5b:',
+     .    nstep,62,8,atrac(62,8,1)
 
 C****
 C**** Note that currently everything is on same grid
@@ -4913,9 +4929,9 @@ C****
             UOSURF(I,J) = aUO1(I,J)
             VOSURF(I,J) = aVO1(I,J)
 
-!#ifdef TRACERS_GASEXCH_ocean
-!            GTRACER(:,1,I,J)=aTRAC(I,J,:)
-!#endif
+#ifdef TRACERS_GASEXCH_ocean
+            GTRACER(:,1,I,J)=aTRAC(I,J,:)
+#endif
 
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
@@ -4942,7 +4958,7 @@ C**** do poles
           UOSURF(I,JMA) = UOSURF(1,JMA)
           VOSURF(I,JMA) = VOSURF(1,JMA)
           OGEOZA(I,JMA)=OGEOZA(1,JMA)
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
 #endif
         END DO
@@ -4959,19 +4975,15 @@ C**** do poles
           UOSURF(I,1) = UOSURF(1,1)
           VOSURF(I,1) = VOSURF(1,1)
           OGEOZA(I,1)=OGEOZA(1,1)
-#ifdef TRACERS_WATER
+#if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO
       END IF
       end if
 
-!      DO J=J_0,J_1
-!      DO I=I_0,I_1
-!      write(*,'(a,3i5,2e12.4)')'OCNDYN, toc2sst: ',
-!     .   nstep,i,j,atrac(i,j,1),gtracer(1,1,i,j)
-!      enddo
-!      enddo
+      write(*,*)'OCNDYN, atrac6:',
+     .    nstep,62,8,atrac(62,8,1),gtracer(1,1,62,8)
 
       RETURN
 C****
