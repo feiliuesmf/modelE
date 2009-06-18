@@ -14,32 +14,35 @@ C Adapted for GISS coupled model Jiping Liu/Gavin Schmidt 2000
 C - Further modularised May 2001
 C*************************************************************
 
+
       MODULE ICEDYN
 !@sum  ICEDYN holds local variables for dynamic sea ice
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
-      USE CONSTANT, only : radian,radius
+      USE CONSTANT, only : radian,radius,TWOPI
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
       IMPLICIT NONE
       SAVE
 
-C**** Definition for ice advection grid (EDIT FOR ADVSI GRID CHANGE)
-      INTEGER, PARAMETER :: IMIC=IM, JMIC=JM
-
-C**** local grid variables for ice rheology scheme
+C**** Dimensions of ice dynamics grids grid_NXY and grid_ICDYN
 C**** Edit the definition of nx1,ny1 to change the grid for the
 C**** rheology calculations without changing ADVSI grid.
-
 !@var nx1 number of grid points in the longitudinal direction
 !@+  (calculated points from 2 through nx1-1. End points are boundaries)
 !@var ny1 number of grid points in the latitudinal direction
 !@+  (calculated points from 2 through ny1-1. End points are boundaries)
-      integer, parameter :: nx1=imic+2, ny1=jmic
+#ifdef CUBE_GRID
+      INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM !     dimensions of grid_ICDYN
+#else
+      INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM !     dimensions of grid_ICDYN
+#endif
+      INTEGER, parameter :: NX1=IMICDYN+2, NY1=JMICDYN !     dimensions of grid_NXY
       INTEGER, parameter :: NYPOLE=NY1-1,NXLCYC=NX1-1
       integer :: NPOL=1,LCYC=1
-       TYPE(DIST_GRID) :: grid_MIC
-       TYPE(DIST_GRID) :: grid_NXY
+
+      TYPE(DIST_GRID) :: grid_NXY
+      TYPE(DIST_GRID) :: grid_ICDYN
 
 !@var FOCEAN land/ocean mask on ice dynamic grid
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN
@@ -71,12 +74,13 @@ C**** output
      *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
      *     ,VIB,DMU,DMV,HEFF,AREA
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UICE,VICE
+
 C**** Geometry
 !@var SINEN sin(phi)
 !@var BYDXDY
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: SINEN,BYDXDY
 !@var DXT,DXU x-direction distances on tracer and velocity grid
 !@var DYT,DYU y-direction distances on tracer and velocity grid
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: SINEN,BYDXDY
       REAL*8, DIMENSION(NX1) :: DXT,DXU,BYDX2,BYDXR
       REAL*8, DIMENSION(NY1) :: DYT,DYU,BYDY2,BYDYR,CST,
      &                          CSU,TNGT,TNG,BYCSU
@@ -86,6 +90,43 @@ C**** Geometry
       REAL*8, PARAMETER :: ECCEN=2.0, OIPHI=25d0*radian
 !@var SINWAT,COSWAT sin and cos of ice-ocean turning angle
       REAL*8 SINWAT,COSWAT
+
+C**** Geometry inherited from geomb
+!@param  DLON grid spacing in longitude (deg)
+      REAL*8, PARAMETER :: FIM=IMICDYN, BYIM=1./FIM
+      REAL*8, PARAMETER :: DLON = TWOPI*BYIM
+!@var DLAT,DLAT_DG,DLATM grid spacing in latitude (rad,deg,minutes)
+      REAL*8  :: DLAT,DLAT_DG,DLATM
+!@param FJEQ equatorial value of J
+      REAL*8, PARAMETER :: FJEQ=.5*(1+JMICDYN)
+!@var  LAT latitude of mid point of primary grid box (radians)
+      REAL*8, DIMENSION(JMICDYN) :: LAT
+!@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
+      REAL*8, DIMENSION(JMICDYN,2) :: LAT_DG
+!@var  LON longitude of mid points of primary grid box (radians)
+      REAL*8, DIMENSION(IMICDYN) :: LON
+!@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
+      REAL*8, DIMENSION(IMICDYN,2) :: LON_DG
+!@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
+C**** Note that this is not the exact area, but is what is required for
+C**** some B-grid conservation quantities
+      REAL*8, DIMENSION(JMICDYN) :: DXYP,BYDXYP
+      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: aDXYP
+!@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
+      REAL*8, DIMENSION(JMICDYN) :: DXYV,BYDXYV
+!@var  DXP,DYP,BYDXP,BYDYP distance between points on primary grid
+!@+     (+inverse)
+      REAL*8, DIMENSION(JMICDYN) :: DXP,DYP,BYDXP,BYDYP
+!@var  DXV,DYV distance between velocity points (secondary grid)
+      REAL*8, DIMENSION(JMICDYN) :: DXV,DYV
+!@var  DXYN,DXYS half box areas to the North,South of primary grid point
+      REAL*8, DIMENSION(JMICDYN) :: DXYS,DXYN
+!@var  SINP sin of latitude at primary grid points
+      REAL*8, DIMENSION(JMICDYN) :: SINP
+!@var  COSP, COSV cos of latitude at primary, secondary latitudes
+      REAL*8, DIMENSION(JMICDYN) :: COSP,COSV
+!@var  IMAXJ varying number of used longitudes
+      INTEGER, DIMENSION(JMICDYN) :: IMAXJ
 
 !@var PSTAR maximum sea ice pressure (Pa)
       REAL*8, PARAMETER :: PSTAR=2.75d4
@@ -99,9 +140,8 @@ C**** Geometry
 !@sum  FORM calculates ice dynamics input parameters for relaxation
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
-
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 AAA
@@ -110,7 +150,7 @@ C**** Geometry
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
 C****
@@ -184,7 +224,7 @@ c       ZMIN(I,J)=0.0D+00
 
       CALL PLAST
 
-      if (grid%HAVE_NORTH_POLE) then
+      if (grid_ICDYN%HAVE_NORTH_POLE) then
        AAA=0.0
        DO I=2,NX1-1
          AAA=AAA+PRESS(I,NY1-1)
@@ -214,7 +254,7 @@ C NOW SET VISCOSITIES AND PRESSURE EQUAL TO ZERO AT OUTFLOW PTS
 
 C NOW CALCULATE PRESSURE FORCE AND ADD TO EXTERNAL FORCE
 C**** Update halo of PRESS for distributed memory implementation
-      CALL HALO_UPDATE(grid, PRESS, FROM=NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, PRESS, FROM=NORTH)
       DO J=J_0,J_1S
         DO I=1,NX1-1
           FORCEX(I,J)=FORCEX(I,J)-(0.25/(DXU(I)*CSU(J)))
@@ -241,12 +281,12 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
 !@sum  PLAST Calculates strain rates and viscosity for dynamic ice
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,grid%j_strt_halo:grid%j_stop_halo)
-     &        :: E11,E22,E12
-c      REAL*8 :: SS11
+      REAL*8, DIMENSION(NX1,grid_ICDYN%j_strt_halo:
+     &     grid_ICDYN%j_stop_halo) :: E11,E22,E12
+
       REAL*8, PARAMETER :: ECM2 = 1.0/(ECCEN**2),GMIN=1d-20
       REAL*8 DELT,DELT1,AAA
       INTEGER I,J
@@ -256,13 +296,13 @@ c      REAL*8 :: SS11
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
 
 C EVALUATE STRAIN RATES
-      CALL HALO_UPDATE(grid, UICE, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, VICE, FROM=SOUTH)
+      CALL HALO_UPDATE(grid_ICDYN, UICE, FROM=SOUTH)
+      CALL HALO_UPDATE(grid_ICDYN, VICE, FROM=SOUTH)
       DO J=J_0S,J_1S
         DO I=2,NX1-1
           E11(I,J)=0.5/(DXT(I)*CST(J))*(UICE(I,J,1)+UICE(I,J-1,1)
@@ -293,7 +333,7 @@ C NOW PUT MIN AND MAX VISCOSITIES IN
         END DO
       END DO
 
-      if (grid%HAVE_NORTH_POLE) then
+      if (grid_ICDYN%HAVE_NORTH_POLE) then
         AAA=0.0
         DO I=2,NX1-1
           AAA=AAA+ZETA(I,NY1-1)
@@ -304,7 +344,7 @@ C NOW PUT MIN AND MAX VISCOSITIES IN
         END DO
       end if
 
-      if (grid%HAVE_SOUTH_POLE) then
+      if (grid_ICDYN%HAVE_SOUTH_POLE) then
         AAA=0.0
         DO I=2,NX1-1
           AAA=AAA+ZETA(I,2)
@@ -336,17 +376,20 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@sum  RELAX calculates ice dynamics relaxation method
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
-      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
       USE TRIDIAG_MOD, only : TRIDIAG, TRIDIAG_new
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(NX1,grid_ICDYN%J_STRT_HALO:
+     &     grid_ICDYN%J_STOP_HALO) ::
      &         AU,BU,CU,FXY,FXY1
-      REAL*8, DIMENSION(2:NX1-1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(2:NX1-1,grid_ICDYN%J_STRT_HALO:
+     &     grid_ICDYN%J_STOP_HALO) ::
      &         AV,BV,CV,VRT,U_tmp
-      REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      REAL*8, DIMENSION(NX1,grid_ICDYN%J_STRT_HALO:
+     &     grid_ICDYN%J_STOP_HALO) ::
      &         FXYa,FXY1a
       REAL*8, DIMENSION(NX1) :: URT
       REAL*8, PARAMETER :: BYRAD2 = 1./(RADIUS*RADIUS)
@@ -362,7 +405,7 @@ C**** Replaces NYPOLE in loops.
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
+      CALL GET(grid_ICDYN, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
 
@@ -389,7 +432,7 @@ C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
         END DO
       END DO
 
-      if (grid%HAVE_NORTH_POLE) then
+      if (grid_ICDYN%HAVE_NORTH_POLE) then
         DO I=1,NX1/2
          UICE(I,NY1,1)=-UICEC(I+(NX1-2)/2,NY1-1)
          VICE(I,NY1,1)=-VICEC(I+(NX1-2)/2,NY1-1)
@@ -431,10 +474,10 @@ C FIRST DO UICE
 C THE FIRST HALF
 
 C**Update halos for arrays eta,zeta,vicec,bycsu as needed in the next loop
-        CALL HALO_UPDATE(grid, ETA, FROM=NORTH)
-        CALL HALO_UPDATE(grid, ZETA, FROM=NORTH)
-        CALL HALO_UPDATE(grid, VICEC, FROM=NORTH+SOUTH)
-        CALL HALO_UPDATE(grid, BYCSU, FROM=NORTH+SOUTH)
+        CALL HALO_UPDATE(grid_ICDYN, ETA, FROM=NORTH)
+        CALL HALO_UPDATE(grid_ICDYN, ZETA, FROM=NORTH)
+        CALL HALO_UPDATE(grid_ICDYN, VICEC, FROM=NORTH+SOUTH)
+        CALL HALO_UPDATE(grid_ICDYN, BYCSU, FROM=NORTH+SOUTH)
 
       DO J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -503,8 +546,8 @@ c      CU(2,J)=CU(2,J)/BU(2,J)  ! absorbed into TRIDIAG
 
 C**Update halos for UICE and TNG as needed for loop 1200
 C**(ETA and ZETA were updted above)
-      CALL HALO_UPDATE(grid, UICE, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(grid, TNG, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, UICE, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, TNG, FROM=SOUTH+NORTH)
 
       DO 1200 J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -573,14 +616,14 @@ C NOW THE SECOND HALF
       END DO
       END DO
 
-      if (grid%HAVE_SOUTH_POLE) then
+      if (grid_ICDYN%HAVE_SOUTH_POLE) then
         DO I=2,NXLCYC
           AV(I,2)=0.0
 c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
-      if (grid%HAVE_NORTH_POLE) then
+      if (grid_ICDYN%HAVE_NORTH_POLE) then
         DO I=2,NXLCYC
           CV(I,NYPOLE)=0.0
         END DO
@@ -623,7 +666,7 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
       END DO
       END DO
 
-       CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid, 2, NYPOLE)
+      CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid_ICDYN, 2, NYPOLE)
 
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
@@ -634,9 +677,9 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 C NOW DO VICE
 C THE FIRST HALF
 
-      CALL HALO_UPDATE(grid, UICEC, FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(GRID,  ETA,FROM=NORTH)
-      CALL HALO_UPDATE(GRID, ZETA,FROM=NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, UICEC, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(GRID_ICDYN,  ETA,FROM=NORTH)
+      CALL HALO_UPDATE(GRID_ICDYN, ZETA,FROM=NORTH)
 
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
@@ -699,14 +742,14 @@ C THE FIRST HALF
       END DO
       END DO
 
-      if (grid%HAVE_SOUTH_POLE) then
+      if (grid_ICDYN%HAVE_SOUTH_POLE) then
         DO I=2,NXLCYC
           AV(I,2)=0.0
 c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
-      if (grid%HAVE_NORTH_POLE) then
+      if (grid_ICDYN%HAVE_NORTH_POLE) then
         DO I=2,NXLCYC
           CV(I,NYPOLE)=0.0
         END DO
@@ -744,7 +787,7 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
       END DO
       END DO
 
-       CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid, 2, NYPOLE)
+       CALL TRIDIAG_new(AV, BV, CV, VRT, U_tmp, grid_ICDYN, 2, NYPOLE)
 
       DO I=2,NXLCYC
       DO J=J_0S,J_NYP
@@ -787,7 +830,7 @@ C NOW THE SECOND HALF
 c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       END DO
 
-      CALL HALO_UPDATE(grid, VICE, FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, VICE, FROM=SOUTH+NORTH)
 
       DO J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -845,21 +888,26 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       RETURN
       END SUBROUTINE RELAX
 
-      SUBROUTINE setup_icedyn_grid
-      USE MODEL_COM, only : dts=>dtsrc
-      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH
+
+      Subroutine GEOMICDYN
+      use DOMAIN_DECOMP_1D, only : DIST_GRID,GET,NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
+      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
       IMPLICIT NONE
-      REAL*8 :: dlat,dlon,phit,phiu,fjeq,acor,acoru
-      INTEGER I,J,k
-      INTEGER :: J_0,J_1,J_0S,J_1S
+      INTEGER :: I_0H, I_1H, J_1H, J_0H, J_0,J_1,J_0S,J_1S
+      INTEGER :: IER,I,J,K
+      REAL*8 :: DLAT_DG,DLATM,DLAT,LAT1,COSP1,DXP1
+      REAL*8 :: DLON,phit,phiu,fjeq,acor,acoru
+      REAL*8 :: SINV,SINVm1
 
 C****
-C**** Extract useful local domain parameters from "grid"
+C**** Extract useful local domain parameters from ice dynamics grid
 C****
-      CALL GET(grid_NXY, J_STRT     =J_0,    J_STOP     =J_1,
-     &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
-C****
+      CALL GET(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
+     &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
+     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
+     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
+C**** 
 C**** calculate grid and initialise arrays
 C****
       acor=1.  ; acoru=1.
@@ -876,7 +924,7 @@ C****
       end if
 
       dlon=nint(360./(nx1-2))*radian
-      bydts = 1./dts
+ 
 c****
       do j = 1,ny1
         dyt(j) = dlat*radius
@@ -884,11 +932,11 @@ c****
       enddo
 
 C**** polar box corrections
-      IF (grid%HAVE_NORTH_POLE) THEN
+      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
         dyt(ny1)=dyt(ny1)*acor
         dyu(ny1)=dyu(ny1)*acoru
       END IF
-      IF (grid%HAVE_SOUTH_POLE) THEN
+      IF (grid_ICDYN%HAVE_SOUTH_POLE) THEN
         dyt(1)=dyt(1)*acor
         dyu(1)=dyu(1)*acoru
       END IF
@@ -970,7 +1018,7 @@ C**** Set land masks for tracer and velocity points
         heffm(nx1,j)=heffm(2,j)
       enddo
 C**** define velocity points (including exterior corners)
-      CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
 c          sumk=heffm(i,j)+heffm(i+1,j)+heffm(i,j+1)+heffm(i+1,j+1)
@@ -980,8 +1028,7 @@ c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
         end do
       end do
 C**** reset tracer points to surround velocity points (except for single
-      CALL HALO_UPDATE(grid, UVM, FROM=SOUTH)
-c     CALL HALO_UPDATE(grid, UVM, FROM=NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, UVM, FROM=SOUTH)
       do j=j_0s,j_1s
         do i=2,nx1-1
           k = nint(max (uvm(i,j), uvm(i-1,j), uvm(i,j-1), uvm(i-1,j-1)))
@@ -1008,7 +1055,7 @@ c set lateral boundary conditions
       enddo
 
 C**** Update halo of PHI for distributed memory implementation
-      CALL HALO_UPDATE(grid, HEFFM, FROM=NORTH)
+      CALL HALO_UPDATE(grid_ICDYN, HEFFM, FROM=NORTH)
       do j=j_0,j_1s
         do i=1,nx1-1
           uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
@@ -1022,20 +1069,107 @@ c set cyclic conditions on eastern and western boundary
         uvm(nx1,j) = uvm(2,j)
       enddo
 
-      RETURN
-      END SUBROUTINE setup_icedyn_grid
+      
+c**** Geometry inherited from lat-lon B-grid (geomb)
+C**** latitudinal spacing depends on whether you have even spacing or
+C**** a partial box at the pole
+
+      DLAT_DG=180./REAL(JMICDYN)                   ! even spacing (default)
+      IF (JMICDYN.eq.46) DLAT_DG=180./REAL(JMICDYN-1)   ! 1/2 box at pole for 4x5
+      IF (JMICDYN.eq.24) DLAT_DG=180./REAL(JMICDYN-1.5) ! 1/4 box at pole, 'real' 8x10
+      DLATM=60.*DLAT_DG
+      DLAT=DLAT_DG*radian
+      LAT(1)  = -.25*TWOPI
+      LAT(JMICDYN) = -LAT(1)
+      SINP(1)  = -1.
+      SINP(JMICDYN) = 1.
+      COSP(1)  = 0.
+      COSP(JMICDYN) = 0.
+      DXP(1)  = 0.
+      DXP(JMICDYN) = 0.
+      DO J=2,JMICDYN-1
+        LAT(J)  = DLAT*(J-FJEQ)
+        SINP(J) = SIN(LAT(J))
+        COSP(J) = COS(LAT(J))
+        DXP(J)  = RADIUS*DLON*COSP(J)
+      END DO
+      BYDXP(2:JMICDYN-1) = 1.D0/DXP(2:JMICDYN-1)
+      LAT1    = DLAT*(1.-FJEQ)
+      COSP1   = COS(LAT1)
+      DXP1    = RADIUS*DLON*COSP1
+      DO J=2,JMICDYN
+        COSV(J) = .5*(COSP(J-1)+COSP(J))
+        DXV(J)  = .5*(DXP(J-1)+DXP(J))
+        DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
+C**** The following corrections have no effect for half polar boxes
+C**** but are important for full and quarter polar box cases.
+        IF (J.eq.2) THEN
+          DXV(J)  = .5*(DXP1+DXP(J))
+        END IF
+        IF (J.eq.JMICDYN) THEN
+          DXV(J)  = .5*(DXP(J-1)+DXP1)
+        END IF
+C****
+      END DO
+      DYP(1)  = RADIUS*(LAT(2)-LAT(1)-0.5*DLAT)
+      DYP(JMICDYN) = RADIUS*(LAT(JMICDYN)-LAT(JMICDYN-1)-0.5*DLAT)
+
+      SINV    = Sin (DLAT*(1+.5-FJEQ))
+      DXYP(1) = RADIUS*RADIUS*DLON*(SINV+1)
+      BYDXYP(1) = 1./DXYP(1)
+
+      aDXYP(:,1) = DXYP(1) 
+
+      SINVm1  = Sin (DLAT*(JMICDYN-.5-FJEQ))
+      DXYP(JMICDYN)= RADIUS*RADIUS*DLON*(1-SINVm1)
+      BYDXYP(JMICDYN) = 1./DXYP(JMICDYN)
+
+      aDXYP(:,JMICDYN) = DXYP(JMICDYN) 
+
+      DXYS(1)  = 0.
+      DXYS(JMICDYN) = DXYP(JMICDYN)
+      DXYN(1)  = DXYP(1)
+      DXYN(JMICDYN) = 0.
+
+      DO J=2,JMICDYN-1
+        DYP(J)  =  radius*dlat 
+        SINVm1  = Sin (DLAT*(J-.5-FJEQ))
+        SINV    = Sin (DLAT*(J+.5-FJEQ))
+        DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
+
+        aDXYP(:,J) = DXYP(J) 
+
+        BYDXYP(J) = 1./DXYP(J)
+        DXYS(J) = .5*DXYP(J)
+        DXYN(J) = .5*DXYP(J)
+      END DO
+      DO J=2,JMICDYN
+        DXYV(J) = DXYN(J-1)+DXYS(J)
+        BYDXYV(J) = 1./DXYV(J)
+      END DO
+C**** imaxj
+      IMAXJ(1)=1
+      IMAXJ(JMICDYN)=1
+      IMAXJ(2:JMICDYN-1)=IMICDYN
+
+      end subroutine GEOMICDYN
+c*
 
       END MODULE ICEDYN
+
+
 
       SUBROUTINE VPICEDYN
 !@sum  vpicedyn is the entry point into the viscous-plastic ice
 !@+    dynamics code
 !@auth Gavin Schmidt (based on code from J. Zhang)
-      USE DOMAIN_DECOMP_1D, only : grid, GET, NORTH,SOUTH,GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH,GLOBALSUM
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,am_i_root
       USE MODEL_COM, only : itime,qcheck
-      USE ICEDYN, only : nx1,ny1,form,relax,uice,vice,uicec,vicec
+      USE ICEDYN, only : form,relax,uice,vice,uicec,vicec
      *        ,uvm,dxu,dyu,amass
+      USE ICEDYN, only : NX1, NY1
+      USE ICEDYN, only : grid=>grid_ICDYN
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &        USAVE,VSAVE
@@ -1159,8 +1293,7 @@ C**** modified to reflect the differences should be created in DOMAIN_DECOMP
 C**** and used in the calling routine. No modification should be necesary
 C**** to ALLOC_ICEDYN.
 
-      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
-      USE DOMAIN_DECOMP_1D, ONLY : GET
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID,GET
       USE DOMAIN_DECOMP_1D, ONLY : INIT_GRID
       USE ICEDYN, ONLY : FOCEAN
       USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
@@ -1169,8 +1302,8 @@ C**** to ALLOC_ICEDYN.
      &                   VICEC,UIB,VIB,DMU,DMV,HEFF,AREA,UICE,
      &                   VICE,SINEN,BYDXDY,DYT,DYU,BYDY2,BYDYR,
      &                   CST,CSU,TNGT,TNG,BYCSU
-      USE ICEDYN, ONLY : IMIC, JMIC, NX1, NY1
-      USE ICEDYN, ONLY : grid_MIC, grid_NXY
+      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,NY1
+      USE ICEDYN, ONLY :  grid_NXY, grid_ICDYN
       IMPLICIT NONE
       LOGICAL, SAVE :: init = .false.
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -1183,8 +1316,15 @@ C**** to ALLOC_ICEDYN.
       End If
       init = .true.
 
-      CALL INIT_GRID(grid_MIC, IMIC, JMIC, 1)
-      CALL INIT_GRID(grid_NXY, NX1, NY1,1)
+c***   - grid_NXY is the ice dynamics grid (for the resolution of the momentum equation) 
+c***     it is a latlon grid with dimensions IMICDYN+2 and JMICDYN, 
+c***     both defined in the ICEDYN module
+c***   - grid_ICDYN is the same grid as grid_NXY, with dimensions IMICDYN and JMICDYN, 
+c***     the two boundary ghost cells in the longitudinal direction have been removed
+
+      CALL INIT_GRID(grid_NXY,NX1,NY1,1)
+      CALL INIT_GRID(grid_ICDYN,IMICDYN,JMICDYN,1)
+
       CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
 
@@ -1227,6 +1367,5 @@ C**** Geometry
       ALLOCATE( SINEN(NX1,J_0H:J_1H),
      &          BYDXDY(NX1,J_0H:J_1H),
      $   STAT = IER)
-
       RETURN
       END SUBROUTINE ALLOC_ICEDYN

@@ -11,7 +11,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm
-      USE ICEDYN, only : imic,jmic
+      USE DOMAIN_DECOMP_ATM, only : DIST_GRID
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
 #endif
@@ -19,14 +19,20 @@ C****
       IMPLICIT NONE
       SAVE
 
+C**** Dimensions of ice advection grid (EDIT FOR ADVSI GRID CHANGE) are the same as 
+C**** atmospheric grid
+      INTEGER, parameter :: IMIC=IM, JMIC=JM
+
+C**** Ice advection grid, same as atmospheric grid (CS or latlon)
+C**** dimensions IMIC = IM, JMIC = JM
+      TYPE(DIST_GRID) :: grid_MIC
+
 C**** variables used in advection (on ICE grid)
 !@var RSIX,RSIY first order moments for seaice concentration
 !@var USI,VSI east-west, and north-south sea ice velocities (m/s)
-!     REAL*8, DIMENSION(IMIC,JMIC) :: RSIX,RSIY,USI,VSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSIX,RSIY,USI,VSI
 
 !@var USIDT,VSIDT sea ice fluxes, saved for advection (m)
-!     REAL*8, DIMENSION(IMIC,JMIC) :: USIDT,VSIDT
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: USIDT,VSIDT
 
 C**** Needed for ADVSI (on ATM grid)
@@ -40,7 +46,6 @@ C**** Ice advection diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_MUSI,IJ_MVSI
      *     ,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_RSI
 !@var ICIJ lat-lon ice dynamic diagnostics (on atm grid)
-!     REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ
 !@var lname_icij Long names for ICIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KICIJ) :: LNAME_ICIJ
@@ -62,7 +67,6 @@ C**** Ice advection diagnostics
 !@var KTICIJ number of lat/lon ice dynamic tracer diagnostics
       INTEGER, PARAMETER :: KTICIJ=2
 !@var TICIJ  lat/lon ice dynamic tracer diagnostics
-!     REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)  :: TICIJ
 !@var ticij_xxx indices for TICIJ diags
       INTEGER :: tICIJ_tusi,tICIJ_tvsi
@@ -85,12 +89,11 @@ C**** Ice advection diagnostics
       SUBROUTINE ALLOC_ICEDYN_COM(grid)
 !@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
+!     grid = atm grid
 
-      USE DOMAIN_DECOMP_1D, only : GET
-      USE DOMAIN_DECOMP_1D, only : DIST_GRID
+      USE DOMAIN_DECOMP_ATM, only : GET,DIST_GRID
       USE MODEL_COM, only : im
-      USE ICEDYN, only : imic
-      USE ICEDYN, only : grid_MIC
+      USE ICEDYN_COM, only : grid_MIC,imic
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : RSIX,RSIY,USI,VSI,USIDT,VSIDT,
      &                       RSISAVE,ICIJ
@@ -100,7 +103,9 @@ C**** Ice advection diagnostics
       IMPLICIT NONE
 
       LOGICAL, SAVE :: init=.false.
+      INTEGER :: I_1H    , I_0H
       INTEGER :: J_1H    , J_0H
+      INTEGER :: I_1H_MIC, I_0H_MIC
       INTEGER :: J_1H_MIC, J_0H_MIC
       INTEGER :: IER
       TYPE(DIST_GRID) :: grid
@@ -113,32 +118,34 @@ C**** Ice advection diagnostics
 !*** For now set grid_MIC to be the same as grid
 !    This is consistent with the current status of the code for
 !    parallelization along latitude (j)
-      grid_MIC =grid
+      grid_MIC=grid   
 
 C**** Get dimensioning parameters for arrays defined in the grid  and
 C**** grid_MIC stencils.
 
-      CALL GET(grid    , J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
-      CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+      CALL GET(grid    , I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
+     &     J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
+      CALL GET(grid_MIC, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
+     &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 
-      ALLOCATE( RSIX(IMIC, J_0H_MIC:J_1H_MIC),
-     &          RSIY(IMIC, J_0H_MIC:J_1H_MIC),
-     &           USI(IMIC, J_0H_MIC:J_1H_MIC),
-     &           VSI(IMIC, J_0H_MIC:J_1H_MIC),
+      ALLOCATE( RSIX(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &          RSIY(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &           USI(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &           VSI(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
 
-      ALLOCATE( USIDT(IMIC, J_0H_MIC:J_1H_MIC),
-     &          VSIDT(IMIC, J_0H_MIC:J_1H_MIC),
+      ALLOCATE( USIDT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &          VSIDT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
 
-      ALLOCATE( RSISAVE(IM, J_0H:J_1H),
+      ALLOCATE( RSISAVE(I_0H:I_1H, J_0H:J_1H),
      &     STAT = IER)
 
-      ALLOCATE(  ICIJ(IMIC, J_0H_MIC:J_1H_MIC, KICIJ),
+      ALLOCATE(  ICIJ(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC,KICIJ),
      &     STAT = IER)
 
 #ifdef TRACERS_WATER
-      ALLOCATE( TICIJ(IMIC, J_0H_MIC:J_1H_MIC, KTICIJ, NTM),
+      ALLOCATE( TICIJ(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC,KTICIJ, NTM),
      &     STAT = IER)
 #endif
 
@@ -152,8 +159,7 @@ C**** grid_MIC stencils.
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
-      USE ICEDYN, only : grid_MIC
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -210,10 +216,9 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
-      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
-      USE ICEDYN, only : grid_MIC
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -283,10 +288,10 @@ C****
           endif
 C**** accumulate diagnostics
           allocate( ICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KICIJ) )
-          ICIJ4 = 0.d0 ! should do "halo_ipdate" instead?
+          ICIJ4 = 0.d0 ! should do "halo_update" instead?
           ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
           CALL UNPACK_DATA(grid_MIC, ICIJ4_GLOB8, ICIJ4)
-          call ESMF_BCAST(grid_MIC, it)
+          call ESMF_BCAST(grid_MIC, it)   !MPI_BCAST instead
           ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
      &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
           deallocate( ICIJ4 )
@@ -514,11 +519,14 @@ c temporarily empty.
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE CONSTANT, only : rhoi,grav,omega,rhows
-      USE MODEL_COM, only : im,jm,dts=>dtsrc,focean
-      USE DOMAIN_DECOMP_1D, only : grid, DIST_GRID, GET
+      USE MODEL_COM, only : dts=>dtsrc,focean
+      USE ICEDYN, only : im=>imicdyn,jm=>jmicdyn,  !dimensions of icedyn grid
+     &     nx1,ny1
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID, GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH, SOUTH
-      USE GEOM, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
-      USE ICEDYN, only : imic,jmic,nx1,ny1,press,heffm,uvm,dwatn,cor
+      USE ICEDYN, only : dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
+      USE ICEDYN, only : grid=>grid_ICDYN
+      USE ICEDYN, only : press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,uib,vib,dmu,dmv
       USE ICEDYN_COM, only : usi,vsi,usidt,vsidt,rsisave,icij,ij_usi
@@ -538,9 +546,9 @@ C****
       INTEGER I,J,ip1,im1
       REAL*8 USINP,DMUINP,duA,dvA
 
-C**** Declare a new grid data type grid_NXY (to handle do j=1,ny1 type
+C**** Declare a temporary grid data type grid_NXY (to handle do j=1,ny1 type
 C     Loops. Set grid_NXY=grid, consistent with curr. state of the code.
-
+c*    todo: Naming convention should probably be modified here i.e. use grid_ICDYN instead
       TYPE(DIST_GRID) :: grid_NXY
       INTEGER :: J_1NXY, J_0NXY
       INTEGER :: J_1NXYS
@@ -548,7 +556,17 @@ C     Loops. Set grid_NXY=grid, consistent with curr. state of the code.
       INTEGER :: J_1S  , J_0S
       INTEGER :: J_1STG,J_0STG
       grid_NXY=grid
+      
+C**** TODO : interpolate all quantities defined in FLUXES from atm grid to ice dynamics grid
 
+
+c**** end todo
+
+C**** TODO : interpolate all quantities defined in ICEDYN_COM from grid_MIC (atm grid) to ice dynamics grid
+
+
+c**** end todo
+ 
 C**** Get loop indices  corresponding to grid and grid_NXY structures
       CALL GET(grid_NXY, J_STRT=J_0NXY   , J_STOP=J_1NXY
      &                                   , J_STOP_SKP=J_1NXYS)
@@ -776,6 +794,7 @@ c**** read in sea ice velocity
       END DO
       END DO
 
+      write(*,*) dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
 C**** do the looping over pseudo-timesteps
       CALL VPICEDYN
 
@@ -924,17 +943,16 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
       USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
-      USE DOMAIN_DECOMP_1D, only : grid, GET
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, NORTH
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
-      USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj
-c      USE ICEGEOM, only : dxyp,dyp,dxp,dxv,bydxyp ?????
+      USE DOMAIN_DECOMP_ATM, only : grid, GET
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, SOUTH, NORTH
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE_COLUMN
+      USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
 #ifdef TRACERS_WATER
      *     ,ticij,ticij_tusi,ticij_tvsi
 #endif
-      USE ICEDYN, only : grid_MIC
+      USE ICEDYN_COM, only : grid_MIC
       USE SEAICE, only : ace1i,xsi,Ti,Ei
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
@@ -1548,7 +1566,8 @@ C****
       USE MODEL_COM, only : im,jm,dtsrc,foceanA=>focean
       USE DIAG_COM, only : ia_src
       USE ICEDYN_COM
-      USE ICEDYN, only : setup_icedyn_grid,focean,osurf_tilt
+      USE ICEDYN, only : focean,osurf_tilt,bydts
+      USE ICEDYN, only : grid_ICDYN,GEOMICDYN
       USE FLUXES, only : uisurf,visurf
       USE PARAM
       IMPLICIT NONE
@@ -1566,9 +1585,12 @@ C**** -------------------------
 C**** Set land masks for ice dynamics
       focean(:,:)=foceanA(:,:)         ! EDIT FOR GRID CHANGE
 
-      call setup_icedyn_grid
+C**** Set up ice momentum grid geometry
+      call GEOMICDYN()
 
-C**** Initiallise ice dynamics if ocean model needs initialising
+      bydts = 1./dtsrc
+
+C**** Initialise ice dynamics if ocean model needs initialising
       if (iniOCEAN) THEN
         RSIX=0.
         RSIY=0.
@@ -1576,7 +1598,7 @@ C**** Initiallise ice dynamics if ocean model needs initialising
         VSI=0.
       end if
 
-C**** set uisurf,visurf for atmopsherice drag calculations
+C**** set uisurf,visurf for atmospheric drag calculations
       call get_uisurf(usi,vsi,uisurf,visurf)
 
 C**** set properties for ICIJ diagnostics
