@@ -1,6 +1,6 @@
-test3d.R GISS Model E  coupled version          aromanou  03/21/2009
+test6.R GISS Model E  coupled version          aromanou  06/18/2009
 
-test3d: obio in gary's ocean based on Larissa's E1F40o32.R
+test6.R: obio in gary's ocean based on Larissa's E1F40o32.R
    2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
@@ -10,9 +10,6 @@ uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) ?
 time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs  ?
 filters: U,V in E-W direction (after every dynamics time step)              ?
          sea level pressure (after every physics time step)                 ?
-
-Run Options
-STACKSIZE=524288
 
 Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
@@ -29,13 +26,15 @@ Preprocessor Options
 !!! #define CHL_from_OBIO           ! ANY ocean: interactive CHL
 End Preprocessor Options
 
+Run Options
+STACKSIZE=524288
+
 Object modules: (in order of decreasing priority)
 RES_F40                             ! horiz/vert resolution, 2x2.5deg, 40 layers -> .1mb
 RES_2Hx2_L32                        ! ocean horiz res 2x2.5deg, 32 vert layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-                                    ! parameter database
               ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
@@ -161,7 +160,7 @@ cfle1=abw25b.dat                         ! seawater spectral absorp. and
 scatt. coefs
 cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp. and
 scatt. coefs
-!!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
+!!!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
 sst,sss,dic,alk
                                             ! if not defined pCO2_ONLINE
 nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
@@ -179,12 +178,13 @@ water
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral
 components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
+CHL_DATA=CHL_WG_2x2.5zavg                !CHL_WG_4x5 or CHL_WG_2x2.5
+!! CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
                                          !in Gary'socean grid
                                          !to be used with CHL_from_SeaWIFs
 
 Label and Namelist:
-test3d (32 ocean layers; 1850 atm.,the current modelE version)
+test6 (32 ocean layers; 1850 atm.,the current modelE version)
 
 DTFIX=180
 &&PARAMETERS
@@ -272,12 +272,13 @@ nssw=48         ! obio needs that in order to always restart from hour 0
                 ! then we need to do setups for a whole day
 
 !parameters that affect CO2 gas exchange
-atmCO2=368.6      !uatm for year 2000
+!atmCO2=368.6     !uatm for year 2000
+atmCO2=289.9      !uatm for preindustrial runs
 
 &&END_PARAMETERS
 
  &INPUTZ
    YEARI=2501,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
-   YEARE=2521,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
+   YEARE=2501,MONTHE=1,DATEE=3,HOURE=0, KDIAG=13*0,
    ISTART=5,IRANDI=0, YEARE=2501,MONTHE=1,DATEE=2,HOURE=0,IWRITE=1,JWRITE=1,
  &END
