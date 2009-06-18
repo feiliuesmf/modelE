@@ -9844,7 +9844,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef GFED_3D_BIOMASS
          call get_GFED_biomass_burning(n)
 #endif
-#ifdef BIOGENIC_EMISSIONS
+#if (defined BIOGENIC_EMISSIONS) || (defined PS_BVOC)
         else if (n==n_Isoprene)then ! ------------- isoprene ---------
          nread=ntsurfsrc(n)
          if(do_fire(n))nread=nread-1
