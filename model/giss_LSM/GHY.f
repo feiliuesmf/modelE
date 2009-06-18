@@ -2273,7 +2273,7 @@ ccc accm0 was not called here in older version - check
 !!! hack to compute time step before evap_limits ...
 !        evapb = 1.d0 ; epb=1.d0
 !        evapvw = 1.d0 ; evapvd = 1.d0 ; epv = 1.d0
-        call gdtm(dtm)
+        call gdtm(dtm,nit)
         !print *,'dtm ', ijdebug, dtm
         if ( dtm >= dtr ) then
           dts = dtr
@@ -2882,11 +2882,12 @@ ccc   tracers
 
 !-----------------------------------------------------------------------
 
-      subroutine gdtm(dtm)
+      subroutine gdtm(dtm,nit)
 c**** calculates the maximum time step allowed by stability
 c**** considerations.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
+      integer, intent(in) :: nit
       real*8 ak1,ak2(2),betas(2),cna,xk2(2),dldz2,dqdt,rho3,sgmm
       real*8, intent(out) :: dtm
       real*8 dtm1,dtm2,dtm3,dtm4,t450,xk1
@@ -2955,7 +2956,7 @@ c      if(ibv.eq.1)dtm5=dtm
 c      if(ibv.eq.2)dtm6=dtm
 c     endif
       end do
-      if(dtm.lt.5.d0)then
+      if( dtm.lt.5.d0 .and. nit.gt.1 )then
        write(99,*) '*********** gdtm: ijdebug,fb,fv',ijdebug,fb,fv
        write(99,*)'dtm',dtm1,dtm2,dtm3,dtm4
        write(99,*)'xk2',xk2
