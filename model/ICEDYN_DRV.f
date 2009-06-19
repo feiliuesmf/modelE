@@ -794,7 +794,7 @@ c**** read in sea ice velocity
       END DO
       END DO
 
-      write(*,*) dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
+c      write(*,*) dxyn,dxys,dxyv,dxyp,bydxyp,dxp,dyv,imaxj
 C**** do the looping over pseudo-timesteps
       CALL VPICEDYN
 
