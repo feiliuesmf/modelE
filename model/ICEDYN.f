@@ -1281,7 +1281,7 @@ C NOW SET U(1)=U(2) AND SAME FOR V
       RETURN
       END SUBROUTINE VPICEDYN
 
-      SUBROUTINE ALLOC_ICEDYN(grid)
+      SUBROUTINE ALLOC_ICEDYN
 !@sum ALLOC_ICEDYN allocates arrays defined in the ICEDYN module.
 !@auth Rosalinda de Fainchtein
 
@@ -1306,7 +1306,6 @@ C**** to ALLOC_ICEDYN.
       USE ICEDYN, ONLY :  grid_NXY, grid_ICDYN
       IMPLICIT NONE
       LOGICAL, SAVE :: init = .false.
-      TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: I_0H, I_1H, J_1H, J_0H
       INTEGER :: IER

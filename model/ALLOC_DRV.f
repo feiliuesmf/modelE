@@ -13,7 +13,7 @@ c set-up for MPI implementation
       call alloc_clouds_com(grid)
       call alloc_ghy_com(grid)
       call alloc_pbl_com(grid)
-      call alloc_icedyn(grid)
+      call alloc_icedyn()
       call alloc_icedyn_com(grid)
       call alloc_diag_com(grid)
       call alloc_diag_loc(grid)
