@@ -1,17 +1,15 @@
-E4F40.R GISS Model E  1850 ocn/atm                 larissa 06/01/2009
+E4F40.R GISS Model E  1850 ocn/atm                 rar 06/19/2009
 
-E4F40: replace this section by a description of what distinguishes this run ?
-       Use as many lines as you need. Look carefully at all the possible    ?
-       choices, particularly the lines containing '?'.
-       The final rundeck should contain no '?'
-       Check and modify the rest of the description below:                  ?
-modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)     ?
-atmospheric composition from year 1979
-ocean data: prescribed, 1975-1984 climatology
-uses turbulence scheme (no dry conv), simple strat.drag (no grav.wave drag) ?
-time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs ?
-filters: U,V in E-W direction (after every dynamics time step)              ?
-         sea level pressure (after every physics time step)                 ?
+!! E4qsF40 = E4F40 with 65m q-flux ocean (!! indicates changes to get E4qsF40.R)
+E4F40 : modelE as frozen in June 2009
+modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
+atmospheric composition from year 1850
+ocean data: prescribed, 1876-1885 climatology
+uses turbulence scheme (no dry conv), grav.wave drag
+time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
+filters: U,V in E-W and N-S direction (after every physics time step)
+         U,V in E-W direction near poles (after every dynamics time step)
+         sea level pressure (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
@@ -31,9 +29,10 @@ QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
-GHY_COM GHY_DRV !GHY                 ! land surface and soils
-!VEG_DRV VEG_COM VEGETATION          ! vegetation
-ENT_DRV  ENT_COM VEG_DRV            ! dynamic vegetation (Ent) drivers
+GHY_COM GHY_DRV ! + component giss_LSM: land surface and soils
+VEG_DRV                             ! vegetation
+! VEG_COM VEGETATION                ! old vegetation
+ENT_DRV  ENT_COM   ! + component Ent: new vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB_E1                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
@@ -60,13 +59,16 @@ OPTS_giss_LSM = USE_ENT=YES
 Data input files:
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
-OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
+OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean
 SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
-OCNML=Z1O.B144x90                          ! mixed layer depth (needed for post processing)
-CDN=CD144X90.ext 
-VEG=V144X90_no_crops.ext 
+! For q-flux ocean, replace above by the next 2 lines & set KOCEAN=1, ISTART=8
+!! AIC=1JAN1961.rsfE4F40.MXL65m        ! end of preliminary run with KOCEAN=0
+!! OHT=OTSPEC.E4F40.MXL65m.1956-1960   ! ocean horizontal heat transports
+OCNML=Z1O.B144x90                    ! mixed layer depth (not used if KOCEAN=0)
+CDN=CD144X90.ext
+VEG=V144X90_no_crops.ext
 CROPS=CROPS_144X90N_nocasp.ext
-SOIL=S144X900098M.ext 
+SOIL=S144X900098M.ext
 TOPO=Z144X90N_nocasp              ! bdy.cond
 REG=REG2X2.5                      ! special regions-diag
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file
@@ -115,18 +117,18 @@ GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
 soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
 
-
-Label and Namelist:
-E4F40 (ModelE 2x2.5, 40 lyrs, GW drag, dyn.veg., 1850 atm/ocn)
-
-DTFIX=180.
+Label and Namelist:  (next 2 lines)
+E4F40 (modelE as frozen in June 2009, 1850 atmosph. cond., Ent veget.,
+with gravity wave drag, prescribed ocean)
 &&PARAMETERS
-! parameters set for prescribed ocean runs:
-KOCEAN=0        ! ocn is prescribed
-Kvflxo=0        ! use =1 to save VFLXO daily ONLY to prepare for q-flux runs
+! parameters set for choice of ocean model:
+KOCEAN=0        ! ocean is prescribed
+!! KOCEAN=1        ! ocean is computed
+Kvflxo=0        ! usually set to 1 only during a prescr.ocn run by editing "I"
+!! Kvflxo=1     ! saves VFLXO files to prepare for q-flux runs (mkOTSPEC)
 ocn_cycl=1      ! =0 if ocean varies from year to year
 
-variable_lk=1   ! variable lakes 
+variable_lk=1   ! variable lakes
 
 ! drag params if grav.wave drag is not used and top is at .01mb
 X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)
@@ -137,17 +139,17 @@ P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
 ! vsdragl is a tuning coefficient for SDRAG starting at LS1
-! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
-vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1. 
+! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38   39 40
+vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.00,0.3,0.6,0.83,1.
 
 ! Gravity wave parameters
-PBREAK = 200.  ! The level for GW breaking above.                               
-DEFTHRESH=0.000045 !the default is 15d-6                                        
-PCONPEN=400.   ! penetrating convection defn for GWDRAG                         
-CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
-CSHEAR=10.     ! Shear drag coefficient                                         
-CMTN=0.2       ! default is 0.5                                                 
-CDEF=1.5       ! deformation drag coefficient                                   
+PBREAK = 200.  ! The level for GW breaking above.
+DEFTHRESH=0.000045 !the default is 15d-6
+PCONPEN=400.   ! penetrating convection defn for GWDRAG
+CMC = 0.0000002 ! parameter for GW Moist Convective drag
+CSHEAR=10.     ! Shear drag coefficient
+CMTN=0.2       ! default is 0.5
+CDEF=1.5       ! deformation drag coefficient
 XCDNST=400.,10000.   ! strat. gw drag parameters
 QGWMTN=1 ! mountain waves ON
 QGWDEF=1 ! deformation waves ON
@@ -159,9 +161,9 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
-U00a=0.73    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.55    ! below 850mb and MC regions; then tune this to get rad.balance
+! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
+U00a=0.74 ! affects clouds above 850mb w/o MC region;  tune this first to get about 30% high cloud
+U00b=1.65 ! affects clouds below 850mb and MC regions; tune this last  to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.57      ! tune this first to get: glob. ann. mean plan.alb=30%   (U00ice up=>albedo down)
 U00wtrX=1.46    ! this to get: glob. ann. mean net heat at surf. = 0   (U00wtrX+.01=>NetHtSrf+.7)
@@ -188,9 +190,10 @@ cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1850
 dalbsnX=.024
 o3_yr=-1850
+CO2X=1.
 
 calc_orb_par=1
-paleo_orb_yr=100.  !    (which is 1850 AD)
+paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)
@@ -219,7 +222,10 @@ Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
-   YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
-   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+ YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1=YEARI (default) or earlier
+ YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+!! YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
+!! YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
+!! ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,
  &END
