@@ -233,41 +233,26 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
       real*8,intent(out) :: isp ! isoprene emission (umol C m-2 s-1)
       type(photosynthpar) :: pspar
         !---Local----
+      integer, parameter :: numpft = 8
       real*8 :: gammamol,fact
-      real*8 :: IBASER, Y_alpha, Y_eps, kapco2
+      real*8 :: IBASER, Y_alpha, kapco2
       real*8 :: tauiso
+C April 2009 values
+      real*8, parameter, dimension(numpft) :: Y_eps = !
+     & (/0.0d0,2.10d-02,8.24d-02,6.48d-02,1.08d-01,
+     & 4.44d-02,1.38d-01,0.0d0/)
+C New values June 2009
+C      real*8, parameter, dimension(numpft) :: Y_eps = !
+C     & (/0.0d0,1.91d-02,7.19d-02,5.13d-02,8.79d-02,
+C     & 2.18d-02,8.35d-02,0.0d0/)
+
       gammamol =  Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
 C Y_alpha, Y_eps unitless
   
       Y_alpha=(ci-gammamol)/(6.0*(4.67*ci+9.33*gammamol))
 
-         if(pft.eq.1)then 
-         Y_eps = 0.0d0
-         endif
-         if(pft.eq.2)then 
-         Y_eps = 2.10d-02
-         endif
-         if(pft.eq.3)then 
-         Y_eps = 8.24d-02
-         endif
-         if(pft.eq.4)then 
-         Y_eps = 6.48d-02
-         endif
-         if(pft.eq.5)then 
-         Y_eps = 1.08d-01
-         endif
-         if(pft.eq.6)then 
-         Y_eps = 4.44d-02
-         endif
-         if(pft.eq.7)then 
-         Y_eps = 1.38d-01
-         endif
-         if(pft.eq.8)then 
-         Y_eps = 0.0d0
-         endif       
-
-       isp = Y_eps*Aiso*Y_alpha
+      isp = Y_eps(pft)*Aiso*Y_alpha
 
 C Include CO2 effects
 
@@ -411,8 +396,14 @@ cddd      end subroutine Photosynth_analyticsoln1
 
 !      Gammastar = O2/(2.d0*tau*Q10fn(0.57d0,Tl)) !Collatz (A3)
 !      Gammastar = O2*Q10fn(1.75,Tl)/(2.d0*tau) !Collatz (A3) Same as above, !KcQ10/KoQ10 = 2.1/1.2 = 1.75 = 1/.57 
-      Gammastar = 0.5d0*(Kc/Ko)*0.21*O2 !CLM Tech Note. Gives smaller Gammastar than Collatz.
+!      Gammastar = 0.5d0*(Kc/Ko)*0.21*O2 !CLM Tech Note. Gives smaller Gammastar than Collatz.
 
+C Nadine - use previous T-dep version
+#ifdef PS_BVOC
+        Gammastar = O2/(2.d0*tau*Q10fn(0.57d0,Tl)) !Collatz (A3) 
+#else
+       Gammastar = 0.5d0*(Kc/Ko)*0.21*O2 !CLM Tech Note. Gives smaller Gammastar than Collatz.
+#endif
 
       end function calc_CO2compp
 !-----------------------------------------------------------------------------
