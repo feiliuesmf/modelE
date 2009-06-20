@@ -483,7 +483,8 @@ C**** fix roughness length for ocean ice that turned to land ice
           if (fland(i,j).gt.0.and.roughl(i,j) .gt. 29.d0) then
             print*,"Roughness length not defined for i,j",i,j
      *           ,roughl(i,j),fland(i,j),flice(i,j)
-            roughl(i,j)=roughl(10,40)
+            print*,"Setting to .01"
+            roughl(i,j)=1d-2
           end if
         end do
       end do
