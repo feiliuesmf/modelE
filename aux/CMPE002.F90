@@ -298,8 +298,7 @@
 #ifdef TRACERS_DUST
       use rad_com, only : srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
-      use icedyn_com, only : rsix,rsiy,usi,vsi,icij
-      use icedyn, only : imic
+      use icedyn_com, only : imic,rsix,rsiy,usi,vsi,icij
 
 #ifndef SKIP_DIAG
       use diag_com, only : keynr,tsfrez=>tsfrez_loc,tdiurn,oa

@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       MODULE ICEDYN
-      integer :: imic=0
+      integer :: imicdyn=0
       contains
       subroutine alloc_icedyn(grid)
       use DOMAIN_DECOMP_ATM, only : DIST_GRID
@@ -11,7 +11,7 @@
       END MODULE ICEDYN
 
       MODULE ICEDYN_COM
-      integer :: kticij=0
+      integer :: imic=0,kticij=0
       real*8,dimension(2) :: rsix=0,rsiy=0,usi=0,vsi=0
       real*8,dimension(2) :: USIDT=0,VSIDT=0,RSISAVE=0
       real*8,dimension(2) :: icij=0,ticij=0
