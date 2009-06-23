@@ -384,7 +384,7 @@ C**** set up mapping arrays for budget/conserv diags
       END SUBROUTINE GEOM_B
 
       subroutine lonlat_to_ij(ll,ij)
-c converts lon,lat=ll(1:2) into model i,j=ij(1:2)
+c converts lon,lat=ll(1:2) into model i,j=ij(1:2) (primary grid)
 c this version is for the latlon grid.  ll are in degrees east.
       implicit none
       real*8, intent(in) :: ll(2)
@@ -409,7 +409,7 @@ c returns tile = 1, latlon grid has only one face
 
 
       function lon_to_I(deg)
-c converts longitude into model i
+c converts longitude into model i (primary grid)
 c this version is for the latlon grid.  DEG is in degrees east.
       implicit none
       integer lon_to_I
@@ -421,7 +421,7 @@ c this version is for the latlon grid.  DEG is in degrees east.
       end function lon_to_I
 
       function lat_to_J(deg)
-c converts latitude into model j
+c converts latitude into model j (primary grid)
 c this version is for the latlon grid.
       implicit none
       integer lat_to_J

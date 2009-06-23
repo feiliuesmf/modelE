@@ -3,7 +3,6 @@
 #undef TRACERS_ON
 #undef TRACERS_WATER
 #endif
-C23456789012345678901234567890123456789012345678901234567890123456789012
       MODULE LAKES
 !@sum  LAKES subroutines for Lakes and Rivers
 !@auth Gavin Schmidt/Gary Russell
@@ -443,10 +442,10 @@ c***      Type (ESMF_HaloDirection) :: direction
       Integer :: direction ! ESMF_HaloDirection not yet implemented
       LOGICAL, INTENT(IN) :: inilake
       INTEGER, INTENT(IN) :: ISTART
-!@var I,J,I72,IU,JU,ID,JD loop variables
-      INTEGER I,J,I72,IU,JU,ID,JD,INM,KD,KDE
+!@var I,J,IU,JU,ID,JD loop variables
+      INTEGER I,J,IU,JU,ID,JD,INM
       INTEGER iu_RVR  !@var iu_RVR unit number for river direction file
-      CHARACTER TITLEI*80, CDIREC(IM,JM)*1, CONPT(NPTS)*10
+      CHARACTER TITLEI*80, CONPT(NPTS)*10
       REAL*8 SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1
       LOGICAL :: QCON(NPTS), T=.TRUE. , F=.FALSE.
 !@var out_line local variable to hold mixed-type output for parallel I/O
@@ -774,8 +773,8 @@ C****
       integer function get_dir(I,J,ID,JD,IM,JM)
       use domain_decomp_atm, only : grid
 !@sum get_dir derives the locally orientated river direction
-      integer I,J,ID,JD,IM,JM
-      integer DI,DJ
+      integer, intent(in) :: I,J,ID,JD,IM,JM
+      integer ::  DI,DJ
 
       DI=I-ID
       IF (DI.eq.IM-1) DI=-1
@@ -813,6 +812,7 @@ C****
         else
           get_dir=8
         end if
+! these next two cases need two latitudes to be on same processor
       elseif (grid%have_north_pole .and. J.eq.JM-1) then
         if (JD.eq.JM) get_dir=2
       elseif (grid%have_south_pole .and. J.eq.2) then
