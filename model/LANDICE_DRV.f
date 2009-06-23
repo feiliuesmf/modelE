@@ -636,6 +636,8 @@ C****
 #ifdef TRACERS_OCEAN
      *     ,traccpda,traccpdg
 #endif
+      USE TRDIAG_COM, only : to_per_mil
+      USE TRACER_COM, only :  trw0, nWater, trname
 #endif    /* TNL: inserted */
       USE LANDICE_COM, only : tlandi,snowli,mdwnimp,edwnimp,loc_glm
 #ifdef TRACERS_WATER
@@ -647,9 +649,6 @@ C****
      *     ,trgmelt
 #endif
 #endif    /* TNL: inserted */
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only :  trw0, nWater, trname
-#endif
       USE PARAM
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, AM_I_ROOT,
      *     ESMF_BCAST
@@ -735,12 +734,17 @@ C*** prevent iceberg sucking
 
 #ifdef TRACERS_WATER
           DO ITM=1,NTM
-            if (mdwnimp_NH .gt. 0) print*,'Tracers(NH):',itm
-     *           ,(trdwnimp_NH(ITM)/mdwnimp_NH/trw0(itm)-1.)*1000
-     *           ,trdwnimp_NH(ITM),mdwnimp_NH
-            if (mdwnimp_SH .gt. 0)  print*,'Tracers(SH):',itm
-     *           ,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
-     *           ,trdwnimp_SH(ITM),mdwnimp_SH
+            if (to_per_mil(itm).gt.0) then
+              if (mdwnimp_NH .gt. 0) print*,'Tracers(NH) (permil):',itm
+     *             ,(trdwnimp_NH(ITM)/mdwnimp_NH/trw0(itm)-1.)*1000
+     *             ,trdwnimp_NH(ITM),mdwnimp_NH
+              if (mdwnimp_SH .gt. 0)  print*,'Tracers(SH) (permil):',itm
+     *             ,(trdwnimp_SH(ITM)/mdwnimp_SH/trw0(itm)-1.)*1000
+     *             ,trdwnimp_SH(ITM),mdwnimp_SH
+            else
+              print*,'Tracers(NH) (kg):',itm,trdwnimp_NH(ITM),mdwnimp_NH
+              print*,'Tracers(SH) (kg):',itm,trdwnimp_SH(ITM),mdwnimp_SH
+            end if
           END DO
 #endif
 
@@ -753,8 +757,15 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
      *         ,(eaccpdg/accpdg+lhm)/shi
 #ifdef TRACERS_WATER  /* TNL: inserted */
 #ifdef TRACERS_OCEAN
-          write(6,*) "Tracers (before)",1000*(traccpda(:)/accpda/trw0(:)
-     *         -1.)
+          do itm=1,ntm
+            if (to_per_mil(itm).gt.0) then
+              write(6,*) trim(trname(itm))," (before) (permil)",1000
+     *             *(traccpda(itm)/accpda/trw0(itm)-1.)
+            else
+              write(6,*) trim(trname(itm))," (before) (kg)",traccpda(itm
+     *             ),accpda
+            end if
+          end do
 #endif
 #endif   /* TNL: inserted */
            accpda =  accpda + gm_relax*(mdwnimp_SH -  accpda)
@@ -776,8 +787,15 @@ C**** adjust hemispheric mean glacial melt amounts (only on root processor)
           traccpda(:)=traccpda(:)+gm_relax*(trdwnimp_SH(:)-traccpda(:))
           traccpdg(:)=traccpdg(:)+gm_relax*(trdwnimp_NH(:)-traccpdg(:))
 
-          write(6,*) "Tracers (after)",1000*(traccpda(:)/accpda/trw0(:)
-     *         -1.)
+          do itm=1,ntm
+            if (to_per_mil(itm).gt.0) then
+              write(6,*) trim(trname(itm))," (after) (permil)",1000
+     *             *(traccpda(itm)/accpda/trw0(itm)-1.)
+            else
+              write(6,*) trim(trname(itm))," (after) (kg)",traccpda(itm)
+     *             ,accpda
+            end if
+          end do
         ENDIF
         call ESMF_BCAST(grid, TRACCPDA)
         call ESMF_BCAST(grid, TRACCPDG)

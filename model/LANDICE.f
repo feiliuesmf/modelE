@@ -333,7 +333,7 @@ C**** CALCULATE TG2
 !@var TLANDI_GLOB dummy global array used for esmf i/o
       REAL*8, DIMENSION(2,IM,JM) :: TLANDI_GLOB
       REAL*8, DIMENSION(IM,JM) :: MDWNIMP_GLOB, EDWNIMP_GLOB
-      INTEGER :: J_0H,J_1H, IN
+      INTEGER :: J_0H,J_1H
 #ifdef TRACERS_WATER
 !@var TRHEADER Character string label for individual records
       CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRGLAC02"
