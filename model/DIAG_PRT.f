@@ -5262,25 +5262,9 @@ C     Fill in the undefined pole box duplicates
 c
 c scale this quantity and compute its zonal means
 c
-        smap = scale_ijl(k)*aijl(:,:,:,k)/idacc(ia_ijl(k))
-        smapjl = sum(smap,dim=1)
-        kd = denom_ijl(k)
-        if(kd.gt.0) then        ! ratio
-          xden = aijl(:,:,:,kd)/idacc(ia_ijl(kd))
-          xdenjl = sum(xden,dim=1)
-          where(xden.ne.0.)
-            smap = smap/xden
-          elsewhere
-            smap = undef
-          end where
-          where(xdenjl.ne.0.)
-            smapjl = smapjl/xdenjl
-          elsewhere
-            smapjl = undef
-          end where
-        else
-          smapjl = smapjl/im
-        endif
+        kd=denom_ijl(k)
+        call scale_ijlmap(aijl(:,:,:,k),aijl(:,:,:,kd),scale_ijl(k)
+     *       ,kd,idacc(ia_ijl(k)),idacc(ia_ijl(kd)),smap,smapjl)
 C****
 C**** Complete 3D-field titles
 C****
@@ -5305,6 +5289,40 @@ c write field
 
       return
       end subroutine ijlmap
+
+      subroutine scale_ijlmap(aijl1,aijl2,scale,kd,id1,id2,smap,smapjl)
+!@sum scale and calculate zonal means for 3D diag
+      use constant, only : undef
+      use model_com, only : im,jm,lm
+      implicit none
+      real*8, intent(in) :: aijl1(im,jm,lm),aijl2(im,jm,lm)
+      real*8, intent(in) :: scale
+      integer, intent(in) :: id1,id2,kd
+      real*8, intent(out) :: smap(im,jm,lm)
+      real*8, intent(out) :: smapjl(jm,lm)
+      real*8 :: xden(im,jm,lm),xdenjl(jm,lm)
+
+      smap = scale*aijl1(:,:,:)/id1
+      smapjl = sum(smap,dim=1)
+      if(kd.gt.0) then          ! ratio
+        xden = aijl2(:,:,:)/id2
+        xdenjl = sum(xden,dim=1)
+        where(xden.ne.0.)
+          smap = smap/xden
+        elsewhere
+          smap = undef
+        end where
+        where(xdenjl.ne.0.)
+          smapjl = smapjl/xdenjl
+        elsewhere
+          smapjl = undef
+        end where
+      else
+        smapjl = smapjl/im
+      endif
+      
+      return
+      end subroutine scale_ijlmap
 
       function NINTlimit( x )
       real*8 x
