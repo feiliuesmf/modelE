@@ -2397,7 +2397,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
      &     2.d0, 0.2d0, 0.005d0, 0.d0, 0.d0 /)
 
        character*80 :: titrrr
-       real*4 rrr(im,jm)
+       real*8 rrr(im,jm)
 
         titrrr = "roughness length over land"
         rrr = 0.
@@ -2653,7 +2653,7 @@ c**** compute roughnes length
             rrr(i,j) = max( rrr(i,j), 0.005d0 )  ! 0.005 is flat desert
           enddo
         enddo
-        write(982) titrrr,rrr
+        write(982) titrrr,real(rrr,kind=4)
         do j=J_0,J_1
           do i=I_0,I_1
             if ( fearth(i,j) <= 0.d0 ) cycle
@@ -2670,7 +2670,7 @@ c**** compute roughnes length
         enddo
 #endif
         titrrr = " rough len + veg"
-        write(982) titrrr,rrr
+        write(982) titrrr,real(rrr,kind=4)
 
 
 #ifdef TRACERS_WATER
