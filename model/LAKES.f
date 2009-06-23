@@ -498,7 +498,7 @@ C**** initialise FLAKE if requested (i.e. from older restart files)
 C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
       DO J=J_0, J_1
         DO I=I_0, I_1
-          IF (FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
+          IF (FLAKE0(I,J)+FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
             print*,"Warning: Fixing HLAKE",i,j,FLAKE(I,J),FLAKE0(I,J)
      *           ,HLAKE(I,J),"--> 1m"
             HLAKE(I,J)=1.
