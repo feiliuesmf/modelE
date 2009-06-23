@@ -2656,7 +2656,8 @@ c**** compute roughnes length
         write(982) titrrr,real(rrr,kind=4)
         do j=J_0,J_1
           do i=I_0,I_1
-            if ( fearth(i,j) <= 0.d0 ) cycle
+            !if ( fearth(i,j) <= 0.d0 ) cycle
+            if ( focean(i,j) >= 1.d0 ) cycle
             call ent_get_exports( entcells(i,j),
      &           vegetation_fractions=fr_cover )
             z0_veg = sum( fr_cover(:)*z0_cover(:) )
