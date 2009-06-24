@@ -41,20 +41,14 @@ C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:) :: taijln
       real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
-      !real*4, dimension(IM,JM,LM,ntm)         :: taijln4
-      !real*8, allocatable, dimension(:,:,:,:) :: taijln4_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
-      character(len=sname_strlen), dimension(lm,ntm) :: sname_ijt
-      character(len=units_strlen), dimension(lm,ntm) :: units_ijt
+      character(len=sname_strlen), dimension(ntm) :: sname_ijt
+      character(len=units_strlen), dimension(ntm) :: units_ijt
 !@var LNAME_IJT: descriptions of tracer IJ diagnostics
-      character(len=lname_strlen), dimension(lm,ntm) ::
+      character(len=lname_strlen), dimension(ntm) ::
      &     lname_ijt = 'unused'
 !@var SCALE_IJT: printout scaling factor for tracer IJ diagnostics
-      REAL*8, dimension(lm,ntm) :: scale_ijt
-!@var IR_IJT: range index of IJ diagnostics
-      integer, dimension(ntm) :: ir_ijt
-!@var IA_IJT: idacc-number for tracer IJ diags (same for all tracers)
-      integer ia_ijt
+      REAL*8, dimension(ntm) :: scale_ijt
 !@var IJTC_POWER: power of 10 used for tracer IJ concentration diags
       integer, dimension(ntm) :: ijtc_power
 !@var IJTM_POWER: power of 10 used for tracer IJ mass unit diags
@@ -210,11 +204,28 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       REAL*8 :: rts_save(Im,Jm)
 #endif
 
+C**** TAIJLS 3D special tracer diagnostics
+
+!@param ktaijl number of TAIJLS tracer diagnostics;
+      INTEGER, PARAMETER :: ktaijl=10
+!@var TAIJLS  3D tracer diagnostics (tracer dependent)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
+!@var SNAME_IJLT: Names of 3D tracer IJL diagnostics
+      character(len=sname_strlen), dimension(ktaijl) :: sname_ijlt
+!@var LNAME_IJLT,UNITS_IJLT: descriptions/units of 3D tracer diagnostics
+      character(len=lname_strlen), dimension(ktaijl) ::
+     &     lname_ijlt = 'unused'
+      character(len=units_strlen), dimension(ktaijl) :: units_ijlt
+!@var SCALE_IJLT: printout scaling factor for 3D tracer diagnostics
+      REAL*8, dimension(ktaijl) :: scale_ijlt
+!@var IR_IJLT: range index of IJL diagnostics
+      integer, dimension(ntm) :: ir_ijlt
+
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
-      INTEGER, PARAMETER :: ktajl=10
-     &                     ,ktajlx=ktajl+2
+      INTEGER, PARAMETER :: ktajl=10, ktajlx=ktajl+2
 !@var TAJLN  vertical tracer diagnostics (all tracers)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: TAJLN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAJLN_loc
@@ -383,14 +394,14 @@ C**** include some extra troposphere only ones
 c declarations that facilitate summation of acc-files when using
 c the new i/o system
       target :: 
-     &     TAIJLN_loc,TAIJN_loc,TAIJS_loc,
+     &     TAIJLN_loc,TAIJLS_loc,TAIJN_loc,TAIJS_loc,
      &     TAJLN_loc,TAJLS_loc,TCONSRV_loc
       real*8, allocatable, dimension(:,:,:,:), target ::
-     &     taijln_fromdisk,taijn_fromdisk,tajln_fromdisk
+     &     taijln_fromdisk,taijls_fromdisk,taijn_fromdisk,tajln_fromdisk
       real*8, allocatable, dimension(:,:,:), target ::
      &     taijs_fromdisk,tajls_fromdisk,tconsrv_fromdisk
       real*8, dimension(:,:,:,:), pointer ::
-     &     taijln_ioptr,taijn_ioptr,tajln_ioptr
+     &     taijln_ioptr,taijls_ioptr,taijn_ioptr,tajln_ioptr
       real*8, dimension(:,:,:), pointer ::
      &     taijs_ioptr,tajls_ioptr,tconsrv_ioptr
 #endif
@@ -546,22 +557,12 @@ C****
       USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irerun,ioread_single,lhead
       USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
-      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, ESMF_BCAST, grid, GET
       USE TRACER_COM, only: ntm
-
-      USE TRDIAG_COM, only : taijln_loc, taijln
-      USE TRDIAG_COM, only : taijn_loc,  taijn
-      USE TRDIAG_COM, only : taijs_loc,  taijs
-      USE TRDIAG_COM, only : tajln_loc,  tajln
-      USE TRDIAG_COM, only : tajls_loc,  tajls
-      USE TRDIAG_COM, only : tconsrv_loc,tconsrv
-
-      USE TRDIAG_COM, only : pdsigjl
-
-      USE TRDIAG_COM, only : ktaij, ktaijs, ktajlx, ktajls, ktcon
-      USE TRDIAG_COM, only : ntmxcon
+      USE TRDIAG_COM, only: taijln_loc, taijln, taijls_loc, taijls,
+     *     taijn_loc,  taijn, taijs_loc,  taijs, tajln_loc,  tajln,
+     *     tajls_loc,  tajls, tconsrv_loc, tconsrv, pdsigjl, ktaij,
+     *     ktaijs, ktajlx, ktajls, ktcon, ktaijl, ntmxcon
 
       IMPLICIT NONE
 
@@ -576,11 +577,12 @@ C****
       INTEGER it_check ! =it if all diag. TA..4 were kept up-to-date
 !@param KTACC total number of tracer diagnostic words
       INTEGER, PARAMETER ::
-     *  ktacc=IM*JM*LM*NTM + IM*JM*ktaij*NTM + IM*JM*ktaijs +
-     *     JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls + JM_BUDG*ntmxcon
-     *     *ktcon
+     *     ktacc=IM*JM*LM*NTM + IM*JM*LM*ktaijl + IM*JM*ktaij*NTM + IM
+     *     *JM*ktaijs +JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls +
+     *     JM_BUDG*ntmxcon*ktcon
 !@var TA..4(...) dummy arrays for reading diagnostics files
       real*4, allocatable, dimension(:,:,:,:) :: taijln4
+      real*4, allocatable, dimension(:,:,:,:) :: taijls4
       real*4, allocatable, dimension(:,:,:,:) :: taijn4
       REAL*4, allocatable, DIMENSION(:,:,:)   :: TAIJS4
       REAL*4, allocatable, DIMENSION(:,:,:,:) :: TAJLN4
@@ -606,12 +608,13 @@ C***  PACK distributed arrays into global ones in preparation for output
         SELECT CASE (IACTION)
           CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
           IF (AM_I_ROOT())  WRITE (kunit,err=10) MODULE_HEADER,
-     *                         TAIJLN,TAIJN,TAIJS,
+     *                         TAIJLN,TAIJLS,TAIJN,TAIJS,
      *                         TAJLN ,TAJLS,TCONSRV,it
           CASE (IOWRITE_SINGLE)    ! output to acc file
             MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
             IF (AM_I_ROOT()) WRITE (kunit,err=10) MODULE_HEADER,
-     *       REAL(TAIJLN,KIND=4),REAL(TAIJN,KIND=4),
+     *       REAL(TAIJLN,KIND=4),REAL(TAIJLS,KIND=4),
+     *       REAL(TAIJN,KIND=4),
      *       REAL(TAIJS,KIND=4) ,REAL(TAJLN,KIND=4),
      *       REAL(TAJLS,KIND=4) ,REAL(TCONSRV,KIND=4),it
         END SELECT
@@ -620,6 +623,7 @@ C***  PACK distributed arrays into global ones in preparation for output
         CASE (ioread_single)    ! accumulate diagnostic files
           if(am_i_root()) then
             ALLOCATE (taijln4(IM,JM,LM,ntm), stat=status )
+            ALLOCATE (taijls4(IM,JM,LM,ktaijl), stat=status )
             ALLOCATE (taijn4(IM,JM,ktaij,ntm), stat=status )
             ALLOCATE (TAIJS4(IM,JM,ktaijs), stat=status )
             ALLOCATE (TAJLN4(JM_BUDG,LM,ktajlx,ntm), stat=status )
@@ -627,7 +631,8 @@ C***  PACK distributed arrays into global ones in preparation for output
             ALLOCATE (TCONSRV4(JM_BUDG,ktcon,ntmxcon), stat=status )
 
             READ (kunit,err=10) HEADER,
-     *         TAIJLN4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4,it_check
+     *           TAIJLN4,TAIJLS4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4
+     *           ,it_check
             if (it.ne.it_check) then
               PRINT*,"io_trdiag: compare TAIJLN,TAIJLN4, ... dimensions"
               go to 10  ! or should this be just a warning ??
@@ -640,6 +645,7 @@ C***  PACK distributed arrays into global ones in preparation for output
 
 C**** Accumulate diagnostics on global arrays (convert to real*8)
             TAIJLN = TAIJLN + TAIJLN4
+            TAIJLS = TAIJLS + TAIJLS4
             TAIJN  = TAIJN  + TAIJN4
             TAIJS  = TAIJS  + TAIJS4
             TAJLN  = TAJLN  + TAJLN4
@@ -647,6 +653,7 @@ C**** Accumulate diagnostics on global arrays (convert to real*8)
             TCONSRV= TCONSRV+ TCONSRV4
             
             DEALLOCATE ( taijln4 )
+            DEALLOCATE ( taijls4 )
             DEALLOCATE ( taijn4 )
             DEALLOCATE ( TAIJS4 )
             DEALLOCATE ( TAJLN4 )
@@ -667,7 +674,7 @@ C*** Unpack read global data into (real*8) local distributed arrays
         CASE (ioread)  ! restarts
           if ( AM_I_ROOT() ) then
             READ (kunit,err=10) HEADER,
-     *                           TAIJLN,TAIJN,TAIJS,
+     *                           TAIJLN,TAIJLS,TAIJN,TAIJS,
      *                           TAJLN,TAJLS,TCONSRV,it
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER
@@ -697,6 +704,7 @@ C*** Unpack read global data into local distributed arrays
 !@ver  beta
       use trdiag_com, only :
      &     TAIJLN=>TAIJLN_ioptr,
+     &     TAIJLS=>TAIJLS_ioptr,
      &     TAIJN=>TAIJN_ioptr,
      &     TAIJS=>TAIJS_ioptr,
      &     TAJLN=>TAJLN_ioptr,
@@ -709,6 +717,8 @@ C*** Unpack read global data into local distributed arrays
       logical :: r4_on_disk !@var r4_on_disk if true, real*8 stored as real*4
       call defvar(grid,fid,taijln,
      &     'taijln(dist_im,dist_jm,lm,ntm)',r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,taijls,
+     &     'taijls(dist_im,dist_jm,lm,ktaijl)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,taijs,
      &     'taijs(dist_im,dist_jm,ktaijs)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,taijn,
@@ -732,6 +742,7 @@ c these i/o pointers point to temporary arrays.  Otherwise, they point to
 c the instances of the arrays used during normal operation. 
       use trdiag_com, only :
      &     TAIJLN=>TAIJLN_ioptr,
+     &     TAIJLS=>TAIJLS_ioptr,
      &     TAIJN=>TAIJN_ioptr,
      &     TAIJS=>TAIJS_ioptr,
      &     TAJLN=>TAJLN_ioptr,
@@ -746,6 +757,7 @@ c the instances of the arrays used during normal operation.
       case (iowrite)            ! output to restart or acc file
         call gather_zonal_trdiag
         call write_dist_data(grid,fid,'taijln',taijln)
+        call write_dist_data(grid,fid,'taijls',taijls)
         call write_dist_data(grid,fid,'taijs',taijs)
         call write_dist_data(grid,fid,'taijn',taijn)
         call write_data(grid,fid,'tajln',tajln)
@@ -753,6 +765,7 @@ c the instances of the arrays used during normal operation.
         call write_data(grid,fid,'tconsrv',tconsrv)
       case (ioread)            ! input from restart or acc file
         call read_dist_data(grid,fid,'taijln',taijln)
+        call read_dist_data(grid,fid,'taijls',taijls)
         call read_dist_data(grid,fid,'taijs',taijs)
         call read_dist_data(grid,fid,'taijn',taijn)
         call read_data(grid,fid,'tajln',tajln)
@@ -769,6 +782,7 @@ c instances of the arrays used during normal operation.
       use trdiag_com
       implicit none
       taijln_ioptr  => taijln_loc
+      taijls_ioptr  => taijls_loc
       taijs_ioptr   => taijs_loc
       taijn_ioptr   => taijn_loc
       tajls_ioptr   => tajls!_loc
@@ -795,6 +809,8 @@ c
 
       allocate(taijln_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,ntm))
       taijln_ioptr => taijln_fromdisk
+      allocate(taijls_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,ktaijl))
+      taijls_ioptr => taijls_fromdisk
       allocate(taijs_fromdisk(i_0h:i_1h,j_0h:j_1h,ktaijs))
       taijs_ioptr => taijs_fromdisk
       allocate(taijn_fromdisk(i_0h:i_1h,j_0h:j_1h,ktaij,ntm))
@@ -817,6 +833,7 @@ c read from disk and stored in the _fromdisk arrays.
       use domain_decomp_atm, only : am_i_root
       implicit none
       taijln_loc  = taijln_loc  + taijln_fromdisk
+      taijls_loc  = taijls_loc  + taijls_fromdisk
       taijs_loc   = taijs_loc   + taijs_fromdisk
       taijn_loc   = taijn_loc   + taijn_fromdisk
       if(am_i_root()) then
@@ -853,6 +870,7 @@ c read from disk and stored in the _fromdisk arrays.
 #endif
 #ifdef TRACERS_ON 
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
+      ALLOCATE ( TAIJLS_loc(I_0H:I_1H,J_0H:J_1H,LM,ktaijl), stat=status)
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )
       ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
       ALLOCATE ( TAJLN_loc(  J_0BUDG:J_1BUDG,LM,ktajlx,ntm),stat=status)
@@ -861,6 +879,7 @@ c read from disk and stored in the _fromdisk arrays.
 
       if(am_i_root()) then
         ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
+        ALLOCATE ( TAIJLS(IM,JM,LM,ktaijl), stat=status )
         ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
         ALLOCATE ( TAIJS( IM,JM,ktaijs   ), stat=status )
         ALLOCATE ( TAJLN(JM_BUDG,LM,ktajlx,ntm), stat=status )
@@ -873,14 +892,14 @@ c read from disk and stored in the _fromdisk arrays.
 
 #ifdef TRACERS_ON
       subroutine reset_trdiag
-      USE TRDIAG_COM, only: TAIJLN_loc, TAIJN_loc, 
+      USE TRDIAG_COM, only: TAIJLN_loc, TAIJLS_loc, TAIJN_loc, 
      *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc,
      *     TAJLN, TAJLS, TCONSRV
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       implicit none
 
        TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
-      TAIJLN_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
+      TAIJLN_loc=0. ; TAIJLS_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
       if(am_i_root()) then
         TAJLN=0. ; TAJLS=0. ; TCONSRV=0.
       endif
@@ -889,12 +908,13 @@ c read from disk and stored in the _fromdisk arrays.
       end subroutine reset_trdiag
 
       subroutine gather_trdiag
-      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
-     *     TAIJS, TAIJS_loc
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJLS, TAIJLS_loc,
+     *     TAIJN, TAIJN_loc,TAIJS, TAIJS_loc
       USE DOMAIN_DECOMP_1D, ONLY : GRID, PACK_DATA
       implicit none
 
       CALL PACK_DATA (GRID, TAIJLN_loc, TAIJLN)
+      CALL PACK_DATA (GRID, TAIJLS_loc, TAIJLS)
       CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
       CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
       call gather_zonal_trdiag
@@ -915,11 +935,12 @@ c read from disk and stored in the _fromdisk arrays.
       end subroutine gather_zonal_trdiag
 
       subroutine scatter_trdiag
-      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJN, TAIJN_loc,
-     *     TAIJS, TAIJS_loc
+      USE TRDIAG_COM, only : TAIJLN, TAIJLN_loc, TAIJLS, TAIJLS_loc,
+     *     TAIJN, TAIJN_loc,TAIJS, TAIJS_loc
       USE DOMAIN_DECOMP_1D, ONLY : GRID, UNPACK_DATA
       implicit none
       CALL UNPACK_DATA (GRID, TAIJLN, TAIJLN_loc)
+      CALL UNPACK_DATA (GRID, TAIJLS, TAIJLS_loc)
       CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
       CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
       call scatter_zonal_trdiag

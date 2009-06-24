@@ -25,7 +25,7 @@
       USE DYNAMICS, only: am,byam
       implicit none
 
-      integer i,j,l,k,n
+      integer i,j,l,n
       real*8 tsum,asum
 
       INTEGER :: I_0, I_1, J_1, J_0
@@ -364,7 +364,7 @@ c   JM+3 used for Lat, N-Hemi, S-Hemi, and Global Sums Storage
       CHARACTER*4, PARAMETER :: HEMIS(2) = (/' SH ',' NH '/),
      *     DASH = ('----')
       INTEGER :: j,jhemi,jnh,jp1,jpm,jsh,jx,n,k,KTCON_max
-      REAL*8 :: aglob,ahem,feq,fnh,fsh,days
+      REAL*8 :: aglob,ahem,fnh,fsh,days
 C**** Arrays needed for full output and pdE
       CHARACTER*38, DIMENSION(KTCON) :: TITLEO
       CHARACTER(len=lname_strlen), DIMENSION(KTCON) :: LNAMEO
@@ -573,7 +573,7 @@ C****
       REAL*8, DIMENSION(JM,LM) :: A
       REAL*8, DIMENSION(LM) :: PM
       REAL*8 :: scalet
-      INTEGER :: J,L,N,K,jtpow,kw,n1,n2
+      INTEGER :: J,L,N,K,jtpow,n1,n2
       character(len=lname_strlen) :: lname
       character(len=sname_strlen) :: sname
       character(len=units_strlen) :: units
@@ -1190,25 +1190,22 @@ C****
       USE TRACER_COM
       USE DIAG_COM
 
-      USE TRDIAG_COM, only : taijln, taijn, taijs, sname_ijt, lname_ijt,
-     *     units_ijt, ir_ijt, ia_ijt, scale_ijt, sname_tij, lname_tij,
+      USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, ijts_index,
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count
+     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count, tij_kw,
+     *     tij_alpha
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-     *     ,tij_kw,tij_alpha
 #endif
       USE DIAG_SERIAL, only : MAPTXT
       USE CONSTANT, only : teeny
       IMPLICIT NONE
 
-      integer, parameter :: ktmax = (lm+ktaij)*ntm+ktaijs
+      integer, parameter :: ktmax = ktaij*ntm+ktaijs
 #ifdef TRACERS_SPECIAL_O18
-     *     + 2+lm + 2+lm        ! include dexcess + D17O diags
+     *     + 4                  ! include dexcess + D17O diags
 #endif
 #ifdef TRACERS_DRYDEP
      *     + ntm                ! include dry dep % diags
@@ -1220,20 +1217,18 @@ C****
 !@+     only important for fields 1->nmaplets which appear in printout
 !@+     Iord(k)=0 indicates that a blank space replaces a maplet
       INTEGER nmaplets
-      INTEGER, DIMENSION(ktmax) :: nt,ijtype,Iord,irange,iacc
+      INTEGER, DIMENSION(ktmax) :: ijtype,Iord,irange,iacc
       CHARACTER(len=lname_strlen), DIMENSION(ktmax) :: lname
       CHARACTER(len=sname_strlen), DIMENSION(ktmax) :: name
       CHARACTER(len=units_strlen), DIMENSION(ktmax) :: units
       REAL*8, DIMENSION(ktmax) :: scale
-c      REAL*8, DIMENSION(IM,JM,ktmax) :: aij1,aij2
       REAL*8, DIMENSION(:,:,:), allocatable :: aij1,aij2
       REAL*8, DIMENSION(IM,JM) :: SMAP
       REAL*8, DIMENSION(JM) :: SMAPJ
       CHARACTER xlb*32,title*48
 !@var LINE virtual half page (with room for overstrikes)
       CHARACTER*133 LINE(53)
-      character*50 :: unit_string
-      INTEGER ::  I,J,K,kx,L,M,N,kcolmn,nlines,jgrid,n1,n2
+      INTEGER ::  I,J,K,kx,L,N,kcolmn,nlines,jgrid,n1,n2
       REAL*8 :: DAYS,gm
 
       if (kdiag(8).ge.1) return
@@ -1245,70 +1240,42 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 
 c**** always skip unused fields
       Qk = .true.
+      k = 0
+
 C**** Fill in the undefined pole box duplicates
       do i=2,im
-        taijln(i,1,:,:) = taijln(1,1,:,:)
-        taijln(i,jm,:,:) = taijln(1,jm,:,:)
         taijn(i,1,:,:) = taijn(1,1,:,:)
         taijn(i,jm,:,:) = taijn(1,jm,:,:)
         taijs (i,1,:) = taijs(1,1,:)
         taijs (i,jm,:) = taijs(1,jm,:)
       end do
 
-!!! ???      return
-C**** Fill in maplet indices for tracer concentrations
-      k = 0
-      do n=1,ntm
-c     if (itime.lt.itime_tr0(n)) cycle
-      do l=1,lm
-        k = k+1
-        iord(k) = l
-        nt(k) = n
-        ijtype(k) = 1
-        name(k) = sname_ijt(l,n)
-        lname(k) = lname_ijt(l,n)
-        units(k) = units_ijt(l,n)
-        irange(k) = ir_ijt(n)
-        iacc(k) = ia_ijt
-        aij1(:,:,k) = taijln(:,:,l,n)
-        aij2(:,:,k) = 1.
-        scale(k) = scale_ijt(l,n)
-#ifdef TRACERS_WATER
-        if (to_per_mil(n).gt.0) then
-        aij1(:,:,k)=1d3*(taijln(:,:,l,n)-taijln(:,:,l,n_water)*trw0(n))
-        aij2(:,:,k)=taijln(:,:,l,n_water)*trw0(n)
-        ijtype(k) = 3
-        end if
-#endif
-        if (index(lname_ijt(l,n),'unused').gt.0) Qk(k) = .false.
-      end do
 C**** Fill in maplet indices for tracer sums/means and ground conc
-      do l=1,ktaij
-        if (index(lname_tij(l,n),'unused').gt.0) cycle
+      do n=1,ntm
+      do kx=1,ktaij
+        if (index(lname_tij(kx,n),'unused').gt.0) cycle
         k = k+1
-        iord(k) = l
-        nt(k) = n
-        name(k) = sname_tij(l,n)
-        lname(k) = lname_tij(l,n)
-        units(k) = units_tij(l,n)
-        irange(k) = ir_ijt(n)
-        scale(k) = scale_tij(l,n)
-        iacc(k) = ia_ijt
+        iord(k) = kx
+        name(k) = sname_tij(kx,n)
+        lname(k) = lname_tij(kx,n)
+        units(k) = units_tij(kx,n)
+        irange(k) = ir_log2
+        scale(k) = scale_tij(kx,n)
+        iacc(k) = ia_src
         ijtype(k) = 2
-        aij1(:,:,k) = taijn(:,:,l,n)
+        aij1(:,:,k) = taijn(:,:,kx,n)
         aij2(:,:,k) = 1.
 #ifdef TRACERS_WATER
-      if (to_per_mil(n).gt.0 .and. l.ne.tij_mass .and. l.ne.tij_uflx
-     *         .and. l.ne.tij_vflx) then
-        aij1(:,:,k)=1d3*(taijn(:,:,l,n)-taijn(:,:,l,n_water)*trw0(n))
-        aij2(:,:,k)=taijn(:,:,l,n_water)*trw0(n)
+      if (to_per_mil(n).gt.0 .and. kx.ne.tij_mass .and. kx.ne.tij_uflx
+     *         .and. kx.ne.tij_vflx) then
+        aij1(:,:,k)=1d3*(taijn(:,:,kx,n)-taijn(:,:,kx,n_water)*trw0(n))
+        aij2(:,:,k)=taijn(:,:,kx,n_water)*trw0(n)
         ijtype(k) = 3
         end if
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-        if (l.eq.tij_kw .or. l.eq.tij_alpha) then
-        print*, 'TRACERS_PRT1a: l=',l
-           aij1(:,:,k)=taijn(:,:,l,n)*focean(:,:)
+        if (kx.eq.tij_kw .or. kx.eq.tij_alpha) then
+           aij1(:,:,k)=taijn(:,:,kx,n)*focean(:,:)
            aij2(:,:,k)=focean(:,:)
            ijtype(k) = 3
         endif
@@ -1345,7 +1312,6 @@ C**** Fill in maplet indices for sources and sinks
 c       if (itime.lt.itime_tr0(n)) cycle
         k = k+1
         iord(k) = kx
-        nt(k) = kx
         ijtype(k) = 1
         name(k) = sname_ijts(kx)
         lname(k) = lname_ijts(kx)
@@ -1373,9 +1339,7 @@ c       if (itime.lt.itime_tr0(n)) cycle
      *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
      *    'J(H2O2)_')ijtype(k)=2
         
-        print*,'TRACERS_PRT2a: k,name=',k,name(k)
-        if (name(k)=='CO2 O_GASXCO2n')then
-        print*, 'TRACERS_PRT2: k=',k
+        if (name(k)=='CO2_O_GASX')then
            aij1(:,:,k)=aij1(:,:,k)*focean(:,:)
            aij2(:,:,k)=focean(:,:)
            ijtype(k)=3
@@ -1467,23 +1431,6 @@ C**** ground concentration
      *                7.*taijn(:,:,tij_grnd,n_water))
         aij2(:,:,k) = taijn(:,:,tij_grnd,n_water)
         scale(k) = 1.
-C**** water vapour
-        do l=1,lm
-          k=k+1
-          ijtype(k) = 3
-          lname(k) = "Deuterium excess water vapour Level"
-          write(lname(k)(36:38),'(I3)') l
-          name(k) = "wvap_ij_dex"//adjustl(lname(k)(36:38))
-          units(k) = "per mil"
-          irange(k) = ir_m45_130
-          iacc(k) = ia_src
-          iord(k) = l+2
-          aij1(:,:,k) = 1d3*(taijln(:,:,l,n2)/trw0(n2)-
-     *         8.*taijln(:,:,l,n1)/trw0(n1)+
-     *         7.*taijln(:,:,l,n_water))
-          aij2(:,:,k) = taijln(:,:,l,n_water)
-          scale(k) = 1.
-        end do
       end if
 
 C****
@@ -1540,37 +1487,9 @@ C**** ground concentration
           end do
         end do
         scale(k) = 1.
-C**** water vapour
-        do l=1,lm
-          k=k+1
-          ijtype(k) = 3
-          lname(k) = "D17O excess water vapour Level"
-          write(lname(k)(32:34),'(I3)') l
-          name(k) = "wvap_ij_D17O"//adjustl(lname(k)(32:34))
-          units(k) = "per meg"
-          irange(k) = ir_m45_130
-          iacc(k) = ia_src
-          iord(k) = l+2
-          do j=1,jm
-            do i=1,im
-              if (taijln(i,j,l,n_water).gt.0) then
-                aij1(i,j,k) = 1d6*taijln(i,j,l,n_water)*
-     *               (log(taijln(i,j,l,n2)/trw0(n2))-
-     *               0.529d0*log(taijln(i,j,l,n1)/trw0(n1))-
-     *               0.471d0*log(taijln(i,j,l,n_water)))
-                aij2(i,j,k) = taijln(i,j,l,n_water)
-              else
-                aij1(i,j,k)=0.
-                aij2(i,j,k)=0.
-              end if
-            end do
-          end do             
-          scale(k) = 1.
-        end do
       end if
 #endif
 
-!     nmaplets = ktmax   ! (lm+ktaij)*ntm+ktaijs
       nmaplets = k
       Qk(k+1:ktmax)=.false.
 
@@ -1592,9 +1511,9 @@ c**** print header lines
         if (kcolmn .eq. 1) line=' '
 c**** Find, then display the appropriate array
         if (Iord(n) .gt. 0 .and. Qk(n)) then
-          call ijt_mapk (ijtype(n),nt(n),Iord(n),aij1(1,1,n),aij2(1,1,n)
-     *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
-     *         ,lname(n),units(n))
+          call ijt_mapk (ijtype(n),aij1(1,1,n),aij2(1,1,n),smap,smapj,gm
+     *         ,jgrid,scale(n),iacc(n),irange(n),name(n),lname(n)
+     *         ,units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
           call maptxt(smap,smapj,gm,irange(n),title,line,kcolmn,nlines)
 c assuming igrid=jgrid for now
@@ -1619,9 +1538,9 @@ c**** copy virtual half-page to paper if appropriate
 C**** produce binary files of remaining fields if appropriate
       do n=1,ktmax
         if (Qk(n)) then
-          call ijt_mapk (ijtype(n),nt(n),Iord(n),aij1(1,1,n),aij2(1,1,n)
-     *         ,smap,smapj,gm,jgrid,scale(n),iacc(n),irange(n),name(n)
-     *         ,lname(n),units(n))
+          call ijt_mapk (ijtype(n),aij1(1,1,n),aij2(1,1,n),smap,smapj,gm
+     *         ,jgrid,scale(n),iacc(n),irange(n),name(n),lname(n)
+     *         ,units(n))
           title=trim(lname(n))//' ('//trim(units(n))//')'
           call pout_ij(title//xlb,name(n),lname(n),units(n),smap,smapj,
      *         gm,jgrid,jgrid) ! assuming igrid=jgrid for now
@@ -1636,9 +1555,259 @@ C****
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
      *  'Dif:',F7.2,' Days')
       END SUBROUTINE DIAGIJt
+
+
+      SUBROUTINE DIAGIJLt
+!@sum  DIAGIJLt produces 3D lat-lon fields as maplets (6/page) or full-page
+!@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
+!@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
+!@ver   1.0
+!@ESMF This routine should only be called from a serial region.
+!@     It is NOT parallelized.
+      USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
+     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc,focean
+      USE TRACER_COM
+      USE DIAG_COM
+
+      USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
+     *     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
+     *     ir_ijlt, scale_ijlt, ktaijl
+#if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+     &     ,to_per_mil
+#endif
+      USE DIAG_SERIAL, only : MAPTXT, scale_ijlmap
+      USE CONSTANT, only : teeny
+      USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
+      USE DIAG_COM, only : acc_period,ijkgridc
+      use filemanager
+      IMPLICIT NONE
+
+      CHARACTER XLB*24,titlel(lm)*80
+      CHARACTER*11 CPRESS(LM)
+      CHARACTER*3 CLEV(LM)
+      INTEGER i,j,l,kxlb,k
+
+      integer, parameter :: ktmax = ntm+ktaijl
+#ifdef TRACERS_SPECIAL_O18
+     *     + 2        ! include dexcess + D17O diags
 #endif
 
-      subroutine IJt_MAPk(nmap,n,k,aij1,aij2,smap,smapj,gm,jgrid
+!@var Qk: if Qk(k)=.true. field k still has to be processed
+      logical, dimension (ktmax) :: Qk
+!@var Iord: Index array, fields are processed in order Iord(k), k=1,2,..
+!@+     only important for fields 1->nmaplets which appear in printout
+!@+     Iord(k)=0 indicates that a blank space replaces a maplet
+      INTEGER nmaplets
+      INTEGER, DIMENSION(ktmax) :: ijtype,Iord,irange,iacc
+      CHARACTER(len=lname_strlen), DIMENSION(ktmax) :: lname
+      CHARACTER(len=sname_strlen), DIMENSION(ktmax) :: name
+      CHARACTER(len=units_strlen), DIMENSION(ktmax) :: units
+      REAL*8, DIMENSION(ktmax) :: scale
+      REAL*8, DIMENSION(:,:,:,:), allocatable :: aijl1,aijl2
+      REAL*8, DIMENSION(IM,JM) :: SMAP
+      REAL*8, DIMENSION(IM,JM,LM) :: SMAPIJL
+      REAL*8, DIMENSION(JM) :: SMAPJ
+      REAL*8, DIMENSION(JM,LM) :: SMAPJL
+      REAL*8, DIMENSION(LM) :: SMAPL
+!@var LINE virtual half page (with room for overstrikes)
+      CHARACTER*133 LINE(53)
+      INTEGER ::  kx,N,kcolmn,nlines,jgrid,n1,n2,nn
+      REAL*8 :: DAYS,gm
+
+      if (kdiag(8).ge.1) return
+
+      KXLB = INDEX(XLABEL(1:11),'(')-1
+      IF(KXLB.le.0) KXLB = 10
+      XLB = ' '
+      XLB(1:13)=acc_period(1:3)//' '//acc_period(4:12)
+      XLB(15:14+KXLB) = XLABEL(1:KXLB)
+      DAYS=(Itime-Itime0)/FLOAT(nday)
+      DO L=1,LM
+        WRITE(CPRESS(L),'(F8.3,A3)') pmidl00(l),' mb'
+        WRITE(CLEV(L),'(I3)') l
+      END DO
+
+      allocate(aijl1(IM,JM,LM,ktmax),aijl2(IM,JM,LM,ktmax))
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      if (qdiag) call open_ijl(trim(acc_period)//'.ijlt'/
+     *     /XLABEL(1:LRUNID),im,jm,lm)
+
+C**** Initialise
+      Qk = .true.
+      k = 0
+
+C**** Fill in the undefined pole box duplicates
+      do i=2,im
+        taijln(i,1,:,:) = taijln(1,1,:,:)
+        taijln(i,jm,:,:) = taijln(1,jm,:,:)
+        taijls(i,1,:,:) = taijls(1,1,:,:)
+        taijls(i,jm,:,:) = taijls(1,jm,:,:)
+      end do
+
+C**** Fill in maplet indices for tracer concentrations
+      do n=1,ntm
+        k = k+1
+        iord(k) = n
+        ijtype(k) = 1
+#ifdef TRACERS_WATER
+        if (to_per_mil(n).gt.0) ijtype(k) = 3
+#endif
+        name(k) = sname_ijt(n)
+        lname(k) = lname_ijt(n)
+        units(k) = units_ijt(n)
+        irange(k) = ir_log2
+        iacc(k) = ia_src
+        scale(k) = scale_ijt(n)
+        do l=1,lm
+          aijl1(:,:,l,k) = taijln(:,:,l,n)
+          aijl2(:,:,l,k) = 1.
+#ifdef TRACERS_WATER
+          if (to_per_mil(n).gt.0) then
+            aijl1(:,:,l,k)=1d3*(taijln(:,:,l,n)-taijln(:,:,l,n_water)
+     *           *trw0(n))
+            aijl2(:,:,l,k)=taijln(:,:,l,n_water)*trw0(n)
+          end if
+#endif
+        end do
+      end do
+
+C**** Fill in maplet indices for 3D tracer specials 
+      do kx=1,ktaijl
+        if (index(lname_ijlt(kx),'unused').gt.0) cycle
+        k = k+1
+        iord(k) = kx
+        ijtype(k) = 1
+        name(k) = sname_ijlt(kx)
+        lname(k) = lname_ijlt(kx)
+        units(k) = units_ijlt(kx)
+        irange(k) = ir_ijlt(kx)
+        iacc(k) = ia_src
+        scale(k) = scale_ijlt(kx)
+        ijtype(k) = 3
+        do l=1,lm
+          aijl1(:,:,l,k) = taijls(:,:,l,kx)
+          aijl2(:,:,l,k) = 1.
+        end do
+      end do
+
+#ifdef TRACERS_SPECIAL_O18
+C****
+C**** Calculations of deuterium excess (d=dD-d18O)
+C****
+      if (n_H2O18.gt.0 .and. n_HDO.gt.0) then
+        n1=n_H2O18
+        n2=n_HDO
+C**** water vapour
+        k=k+1
+        ijtype(k) = 3
+        lname(k) = "Deuterium excess water vapour"
+        name(k) = "wvap_ij_dex"
+        units(k) = "per mil"
+        irange(k) = ir_m45_130
+        iacc(k) = ia_src
+        iord(k) = 1  !???l+2
+        scale(k) = 1.
+        do l=1,lm
+          aijl1(:,:,l,k) = 1d3*(taijln(:,:,l,n2)/trw0(n2)-
+     *         8.*taijln(:,:,l,n1)/trw0(n1)+
+     *         7.*taijln(:,:,l,n_water))
+          aijl2(:,:,l,k) = taijln(:,:,l,n_water)
+        end do
+      end if
+
+C****
+C**** Calculations of D17O excess (D17O=ln(d17O+1)-0.529*ln(d18O+1))
+C****
+      if (n_H2O18.gt.0 .and. n_H2O17.gt.0) then
+        n1=n_H2O18
+        n2=n_H2O17
+C**** water vapour
+        k=k+1
+        ijtype(k) = 3
+        lname(k) = "D17O excess water vapour"
+        name(k) = "wvap_ij_D17O"
+        units(k) = "per meg"
+        irange(k) = ir_m45_130
+        iacc(k) = ia_src
+        iord(k) = 2   !??? l+2
+        scale(k) = 1.
+        do l=1,lm
+          do j=1,jm
+            do i=1,im
+              if (taijln(i,j,l,n_water).gt.0) then
+                aijl1(i,j,l,k) = 1d6*taijln(i,j,l,n_water)*
+     *               (log(taijln(i,j,l,n2)/trw0(n2))-
+     *               0.529d0*log(taijln(i,j,l,n1)/trw0(n1))-
+     *               0.471d0*log(taijln(i,j,l,n_water)))
+                aijl2(i,j,l,k) = taijln(i,j,l,n_water)
+              else
+                aijl1(i,j,l,k)=0.
+                aijl2(i,j,l,k)=0.
+              end if
+            end do
+          end do             
+        end do
+      end if
+#endif
+
+      if (k.gt.ktmax) print*,"K < KTMAX in diagijlt",k,ktmax
+      nmaplets = k
+      Qk(k+1:ktmax)=.false.
+C**** Collect the appropriate weight-arrays in WT_IJ
+      wt_ij(:,:,:) = 1.
+
+C**** Print out 6-map pages
+      do n=1,nmaplets*lm
+        nn=1+(n-1)/lm
+        if (mod(n-1,6) .eq. 0) then
+c**** print header lines
+          write (6,'("1",a)') xlabel
+          write (6,902) jyear0,amon0,jdate0,jhour0,
+     *      jyear,amon,jdate,jhour,itime,days
+        end if
+        kcolmn = 1 + mod(n-1,3)
+        if (kcolmn .eq. 1) line=' '
+c**** Find, then display the appropriate array
+        if (Iord(nn) .gt. 0 .and. Qk(nn)) then
+          l=1+mod(n-1,lm)
+          call ijt_mapk (ijtype(nn),aijl1(1,1,l,nn),aijl2(1,1,l,nn),smap
+     *         ,smapj,gm,jgrid,scale(nn),iacc(nn),irange(nn),name(nn)
+     *         ,lname(nn),units(nn))
+          titlel(l)=trim(lname(nn))//' Level '//clev(l)//' ('/
+     *         /trim(units(nn))//')' 
+          call maptxt(smap,smapj,gm,irange(nn),titlel(l),line,kcolmn
+     *         ,nlines)
+        end if
+c**** copy virtual half-page to paper if appropriate
+        if (kcolmn.eq.3 .or. n.eq.nmaplets*lm) then
+          do k=1,nlines
+            write (6,'(a133)') line(k)
+          end do
+        end if
+
+C**** for every diag, output all levels at once
+        if (l.eq.lm) then
+          call scale_ijlmap(aijl1(1,1,1,nn),aijl2(1,1,1,nn),scale(nn)
+     *         ,1,idacc(ia_ijl(nn)),idacc(ia_ijl(nn)),smapijl,smapjl)
+          smapl=0               ! tmp
+          if (qdiag) call pout_ijl(titlel,name(nn),lname(nn)
+     *         ,units(nn),smapijl,smapjl,smapl,ijkgridc)
+        end if
+      end do
+
+      if(qdiag) call close_ijl
+      
+      deallocate(aijl1,aijl2)
+      RETURN
+C**** 
+  902 FORMAT ('0',15X,'From:',I6,A6,I2,',  Hr',I3,
+     *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
+     *  'Dif:',F7.2,' Days')
+      END SUBROUTINE DIAGIJLt
+#endif
+
+      subroutine IJt_MAPk(nmap,aij1,aij2,smap,smapj,gm,jgrid
      *     ,scale,iacc,irange,name,lname,units)
 !@sum ijt_MAPk returns the map data and related terms for the k-th field
 !@+   for tracers and tracer sources/sinks
@@ -1653,7 +1822,7 @@ C****
 
       REAL*8, DIMENSION(IM,JM) :: anum,adenom,smap,aij1,aij2
       REAL*8, DIMENSION(JM) :: smapj
-      integer i,j,k,iwt,jgrid,irange,n,nmap,iacc
+      integer i,j,iwt,jgrid,irange,nmap,iacc
       character(len=sname_strlen) :: name
       character(len=units_strlen) :: units
       character(len=lname_strlen) :: lname
@@ -1702,7 +1871,7 @@ c**** ratios (i.e. per mil diags)
         end do
 C**** PROBLEM
       else  ! should not happen
-        write (6,*) 'no field defined for ijt_index',n
+        write (6,*) 'no ij map type defined for ijt_index',name
         call stop_model(
      &       'ijt_mapk: undefined extra ij_field for tracers',255)
       end if

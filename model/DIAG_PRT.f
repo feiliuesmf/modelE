@@ -543,6 +543,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       PUBLIC :: JLMAP
       PUBLIC :: MAPTXT
       PUBLIC :: IJ_avg
+      PUBLIC :: scale_ijlmap
 
 !ESMF: These globalsum routines are private to this module and execute
 !      serially in a single processor.
@@ -711,6 +712,7 @@ c     write(0,*) 'SCM no diags   print_diags'
       IF (KDIAG(8).LT.9) then
         CALL DIAGJLT
         CALL DIAGIJT
+        CALL DIAGIJLT
         CALL DIAGTCP
       end if
 #endif

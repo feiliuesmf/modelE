@@ -3725,7 +3725,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_isrc(1,n) = k
         ijts_index(k) = n
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'CO2 O_GASX'//trname(n)
+        sname_ijts(k) = 'CO2_O_GASX'
         lname_ijts(k) = 'Ocean gas exchange CO2'
         !!!ijts_power(k) = -11
         ijts_power(k) = 0

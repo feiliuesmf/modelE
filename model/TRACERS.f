@@ -169,8 +169,6 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
 C**** CONTENTS OF TAIJLN(I,J,LM,N)  (SUM OVER TIME OF)
 C****        TML (M*M * KG TRACER/KG AIR)
 C**** Set defaults that are true for all tracers and layers
-      ia_ijt    = ia_src
-      ir_ijt(:) = ir_log2   !n
       do n=1,ntm
         ijtm_power(n) = ntm_power(n)+4 !n for integrated mass
         ijtc_power(n) = ntm_power(n)+1 !n for concentration
@@ -180,11 +178,10 @@ C**** Set defaults that are true for all tracers and layers
       end do
 C**** Tracer concentrations (TAIJLN)
       do n=1,ntm
-      do l=1,lm
-        write(sname_ijt(l,n),'(a,i2.2)') trim(TRNAME(n))//'_L_',l
-        write(lname_ijt(l,n),'(a,i2)')   trim(TRNAME(n))//' L ',l
-        units_ijt(l,n) = unit_string(ijtc_power(n),cmr(n))
-        scale_ijt(l,n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+        write(sname_ijt(n),'(a)') trim(TRNAME(n))
+        write(lname_ijt(n),'(a)') trim(TRNAME(n))
+        units_ijt(n) = unit_string(ijtc_power(n),cmr(n))
+        scale_ijt(n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
       end do
       end do
 
@@ -1039,22 +1036,22 @@ C**** check whether air mass is conserved
 !@ver  1.0
 #ifdef TRACERS_ON
       USE MODEL_COM, only: ioread,iowrite,irsfic,irsficno,irerun,lhead
-     &,coupled_chem
+     &     ,coupled_chem
       USE DOMAIN_DECOMP_1D, only : grid,AM_I_ROOT,PACK_DATA,UNPACK_DATA
-     &,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
-     &,UNPACK_COLUMN, esmf_bcast, get
+     &     ,PACK_BLOCK, UNPACK_BLOCK, PACK_COLUMN
+     &     ,UNPACK_COLUMN, esmf_bcast, get
       USE TRACER_COM
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
-     &,acetone
+     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
+     &     ,acetone
 #ifdef SHINDELL_STRAT_CHEM
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
-     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod
-     & ,max_days,nra_ncep,nra_ch4,maxHR_ch4
+     &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
+     *     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
