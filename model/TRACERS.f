@@ -183,7 +183,6 @@ C**** Tracer concentrations (TAIJLN)
         units_ijt(n) = unit_string(ijtc_power(n),cmr(n))
         scale_ijt(n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
       end do
-      end do
 
 C**** AIJN
 C****     1  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER/KG AIR)
