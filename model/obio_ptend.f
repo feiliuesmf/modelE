@@ -61,10 +61,9 @@ c  P(9) = herbivores (mg chl m-3)
       logical vrbos
 
       real term
-      character bio_var*7(12)
-      data (bio_var(nt),nt=1,12) /
+      character*7, dimension(12) ::  bio_var = (/
      .  ' NO3   ',' NH4   ',' SiO2  ',' Iron  ','Diatom ','Chlphy ',
-     .  'Cyanob ','Coccol ','Herbiv ','N/Cdet ','Silica ','Fe_det '/
+     .  'Cyanob ','Coccol ','Herbiv ','N/Cdet ','Silica ','Fe_det '/)
 
 
        rhs=0.0

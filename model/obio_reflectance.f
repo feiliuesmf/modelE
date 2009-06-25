@@ -54,21 +54,19 @@ c: r2<0 are missing values
      &             0.13100,0.11748,0.12086,0.10165,0.08287,
      &             0.06579,0.05072,0.04111,0.03400,0.03400,
      &             0.04000,0.04500,0.05200,0.03000,
-     &             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0/)
+     &             0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0./)
 
        real*8, dimension(33) :: e = (/0.99800,0.83300,0.77800,
      &             0.70000,0.64358,0.66259,0.67692,0.68657,
      &             0.68880,0.67649,0.64927,0.61500,0.62600,
      &             0.64700,0.67200,0.69700,0.60000,0.50000,
-     &             0.30000,0,0,0,0,0,0,0,0,0,0,0,0,0,0/)
+     &             0.30000,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0./)
 
       real*8, dimension(nlt) :: u2, bbt, bb
       real*8 :: chl_in, bp550, var_exp, c, discr
       integer :: count_loops, iterator
    
-      logical :: get_virtual_index, kw, bbw, aw, bilin_mud
-
-
+      logical :: kw, bbw, aw, bilin_mud
 
       key =.false.
    
@@ -111,7 +109,6 @@ c: r2<0 are missing values
            bb(j) = bbw_out(j)
            a(j) = aw_out(j)
         enddo
-	   
       else 
         key =  kw(lam,nlt,kw_out)
         do j = 1, nlt
@@ -189,6 +186,7 @@ c: r2<0 are missing values
       get_virtual_index = .true.
    
       end function get_virtual_index
+
       real*8 function find_min(data_arr, size_arr)
 
       implicit none
@@ -248,7 +246,7 @@ c: r2<0 are missing values
    
       integer :: i, ri_sb81
       real*8 :: vi_sb81
-      logical key
+      logical key, get_virtual_index
       real*8 :: min, max, int_bbw
    
 
