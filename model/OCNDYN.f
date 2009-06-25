@@ -35,7 +35,7 @@ C****
      *               toijl_conc,toijl_tflx,toijl_gmfl
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: scatter_tracer_gasexch_com_arrays
+      USE TRACER_GASEXCH_COM, only: scatter_gasexch_com_arrays
 #endif
 #ifdef TRACERS_OceanBiology
       USE obio_com, only: gather_chl
@@ -69,7 +69,7 @@ C**** Apply surface fluxes to ocean
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
 #ifdef TRACERS_GASEXCH_ocean
-      call scatter_tracer_gasexch_com_arrays
+      call scatter_gasexch_com_arrays
 #endif
       call obio_model
       call gather_chl

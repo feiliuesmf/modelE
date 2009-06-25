@@ -10,9 +10,9 @@
 
       private
 
-      public alloc_tracer_gasexch_com
-      public gather_tracer_gasexch_com_arrays
-      public scatter_tracer_gasexch_com_arrays
+      public alloc_gasexch_com
+      public gather_gasexch_com_arrays
+      public scatter_gasexch_com_arrays
 
       public
      .  tracflx !  tracer flux at air-sea intfc
@@ -38,7 +38,7 @@
       contains
 
 !------------------------------------------------------------------------------
-      subroutine alloc_tracer_gasexch_com
+      subroutine alloc_gasexch_com
 
       USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
 
@@ -57,7 +57,7 @@
       j_0=ogrid%J_STRT
       j_1=ogrid%J_STOP
 
-      print*,'alloc_tracer_gasexch_com:',i_0,i_1,j_0,j_1
+      print*,'alloc_gasexch_com:',i_0,i_1,j_0,j_1
       print*, ntm
 
       ALLOCATE(tracflx(i_0:i_1,j_0:j_1,ntm))
@@ -65,11 +65,11 @@
 
       ALLOCATE(atracflx(iia,jja,ntm))
 
-      end subroutine alloc_tracer_gasexch_com
+      end subroutine alloc_gasexch_com
 
 
 !------------------------------------------------------------------------------
-      subroutine gather_tracer_gasexch_com_arrays
+      subroutine gather_gasexch_com_arrays
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
@@ -80,10 +80,10 @@
 
       call pack_data( ogrid, tracflx,tracflx_glob )
 
-      end subroutine gather_tracer_gasexch_com_arrays
+      end subroutine gather_gasexch_com_arrays
 
 !------------------------------------------------------------------------------
-      subroutine scatter_tracer_gasexch_com_arrays
+      subroutine scatter_gasexch_com_arrays
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
@@ -94,7 +94,7 @@
 
       call unpack_data( ogrid, tracflx_glob,tracflx )
 
-      end subroutine scatter_tracer_gasexch_com_arrays
+      end subroutine scatter_gasexch_com_arrays
 
       END MODULE TRACER_GASEXCH_COM
 

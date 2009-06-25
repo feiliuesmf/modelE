@@ -95,8 +95,9 @@ C**** ocean related parameters
       REAL*8 :: DTO=450.        ! default. setable parameter
       REAL*8 DTOFS,DTOLF,DTS,BYDTS
 !@var budget grid quantities (defined locally on each proc.)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:):: oJ_BUDG, owtbudg
-      REAL*8 :: oJ_0B,oJ_1B
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: owtbudg
+      INTEGER, ALLOCATABLE, DIMENSION(:,:):: oJ_BUDG
+      INTEGER :: oJ_0B,oJ_1B
 !@var OPRESS Anomalous pressure at surface of ocean (under ice) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPRESS ! (IM,JM)
       REAL*8, DIMENSION(IM,JM) :: OPRESS_glob ! needed for straits ?
@@ -201,7 +202,7 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       RETURN
       end subroutine scatter_ocean
 
-      subroutine gather_ocean_straits_to_global (icase)
+      subroutine gather_straits_to_global (icase)
       use SparseCommunicator_mod, only: gatherIJ
       integer, intent(in) :: icase
 
@@ -239,9 +240,9 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
                ! for ODIFF:    mo,uo,vo
 
       RETURN
-      end subroutine gather_ocean_straits_to_global
+      end subroutine gather_straits_to_global
 
-      subroutine scatter_ocean_straits_from_global (icase)
+      subroutine scatter_straits_from_global (icase)
       use SparseCommunicator_mod, only: scatterIJ
       integer, intent(in) :: icase
 
@@ -276,7 +277,7 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
       CALL scatterIJ(mySparseComm_type,   OPRESS_glob,OPRESS)
 
       RETURN
-      end subroutine scatter_ocean_straits_from_global
+      end subroutine scatter_straits_from_global
 
       END Module OCEAN
 
@@ -370,7 +371,7 @@ C****
       USE obio_com,  only: alloc_obio_com
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: alloc_tracer_gasexch_com
+      USE TRACER_GASEXCH_COM, only: alloc_gasexch_com
 #endif
 
       USE OCEAN_DYN, only : DH,VBAR, GUP,GDN, SUP,SDN
@@ -464,7 +465,7 @@ c??   call ALLOC_GM_COM(agrid)
       call alloc_obio_com
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      call alloc_tracer_gasexch_com
+      call alloc_gasexch_com
 #endif
 
       return
