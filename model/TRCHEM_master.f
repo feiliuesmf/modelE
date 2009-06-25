@@ -47,14 +47,14 @@ c
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only: avg_model,n__sw
 #endif
-      USE TRDIAG_COM, only    : jls_N2O5sulf,
-     & taijs=>taijs_loc,ijs_JH2O2,ijs_NO3,jls_COp,jls_COd,jls_Oxp,
-     & jls_Oxd,ijs_NO2_col,ijs_NO2_count,jls_OxpT,jls_OxdT
+      USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
+     *     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
+     *     ,jls_Oxd,ijs_NO2_col,ijs_NO2_count,jls_OxpT,jls_OxdT
 #ifdef SHINDELL_STRAT_CHEM
-     &                           ,jls_ClOcon,jls_H2Ocon
+     &     ,jls_ClOcon,jls_H2Ocon
 #endif
 #ifdef HTAP_LIKE_DIAGS
-     & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp
 #endif
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
@@ -578,7 +578,7 @@ c           (~200nm):
             if(inss == 26)ss(inss,L,I,J)=ss(inss,L,I,J)*1.0d-1 !CFC
 #endif
           enddo
-          taijs(i,j,ijs_JH2O2(l))=taijs(i,j,ijs_JH2O2(l))+ss(4,l,i,j)
+          taijls(i,j,l,ijlt_JH2O2)=taijls(i,j,l,ijlt_JH2O2)+ss(4,l,i,j)
 #ifdef SHINDELL_STRAT_CHEM
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
@@ -1068,12 +1068,12 @@ C -- CO --
         if(changeL(L,n_CO) >= 0.) then  
           CALL INC_TAJLS(I,J,L,jls_COp,changeL(L,n_CO))
 #ifdef HTAP_LIKE_DIAGS
-          TAIJS(I,J,ijs_COp(L))=TAIJS(I,J,ijs_COp(L))+changeCO*cpd
+          taijls(i,j,l,ijlt_COp)=taijls(i,j,l,ijlt_COp)+changeCO*cpd
 #endif
         else
           CALL INC_TAJLS(I,J,L,jls_COd,changeL(L,n_CO))
 #ifdef HTAP_LIKE_DIAGS
-          TAIJS(I,J,ijs_COd(L))=TAIJS(I,J,ijs_COd(L))+changeCO*cpd
+          taijls(i,j,l,ijlt_COd)=taijls(i,j,l,ijlt_COd)+changeCO*cpd
 #endif
         endif       
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
@@ -1197,13 +1197,13 @@ c --  Ox --   ( Ox from gas phase rxns)
             CALL INC_TAJLS(I,J,L,jls_Oxp,changeL(L,n_Ox))
             if(L<=maxl)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
 #ifdef HTAP_LIKE_DIAGS
-            TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+changeOx*cpd
+            taijls(i,j,l,ijlt_Oxp)=taijls(i,j,l,ijlt_Oxp)+changeOx*cpd
 #endif
           else
             CALL INC_TAJLS(I,J,L,jls_Oxd,changeL(L,n_Ox))
             if(L<=maxl)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
 #ifdef HTAP_LIKE_DIAGS
-            TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+changeOx*cpd
+            taijls(i,j,l,ijlt_Oxd)=taijls(i,j,l,ijlt_Oxd)+changeOx*cpd
 #endif
           endif 
         endif
@@ -1392,7 +1392,7 @@ C Make sure nighttime chemistry changes are not too big:
 
 C       ACCUMULATE 3D NO3 diagnostic: 
         if (yNO3(I,J,L) > 0.d0 .and. yNO3(I,J,L) < 1.d20)
-     &  taijs(i,j,ijs_NO3(l))=taijs(i,j,ijs_NO3(l))+yNO3(i,j,l)
+     &  taijls(i,j,l,ijlt_NO3)=taijls(i,j,l,ijlt_NO3)+yNO3(i,j,l)
 
 #ifdef SHINDELL_STRAT_CHEM
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)

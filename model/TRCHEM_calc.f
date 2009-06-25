@@ -12,13 +12,14 @@ C
       USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
       USE DYNAMICS, only        : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
-      USE TRDIAG_COM, only : jls_OHcon,jls_day,jls_OxpT,jls_OxdT,
-     & jls_Oxp,jls_Oxd,jls_COp,jls_COd,taijs=>taijs_loc,ijs_OH,ijs_HO2
+      USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
+     *     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
+     *     ,ijlt_HO2
 #ifdef HTAP_LIKE_DIAGS
-     & ,ijs_COp,ijs_COd,ijs_Oxd,ijs_Oxp,ijs_CH4d
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
 #endif
 #ifdef SHINDELL_STRAT_CHEM
-     &  ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+     &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
 #endif
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
@@ -856,8 +857,10 @@ c Loops to calculate tracer changes:
            CALL INC_TAJLS(I,J,L,jls_COp,prod(igas,L)*conc2mass)
            CALL INC_TAJLS(I,J,L,jls_COd,dest(igas,L)*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
-           TAIJS(I,J,ijs_COp(L))=TAIJS(I,J,ijs_COp(L))+prod(igas,L)*cpd
-           TAIJS(I,J,ijs_COd(L))=TAIJS(I,J,ijs_COd(L))+dest(igas,L)*cpd
+           TAIJLS(I,J,L,ijlt_COp)=TAIJLS(I,J,L,ijlt_COp)+prod(igas,L)
+     *          *cpd
+           TAIJLS(I,J,L,ijlt_COd)=TAIJLS(I,J,L,ijlt_COd)+dest(igas,L)
+     *          *cpd
 #endif
          endif
          if(igas == n_Ox)then
@@ -868,12 +871,14 @@ c Loops to calculate tracer changes:
            if(L<=maxT)
      &     CALL INC_TAJLS(I,J,L,jls_OxdT,dest(igas,L)*conc2mass)       
 #ifdef HTAP_LIKE_DIAGS
-           TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+prod(igas,L)*cpd
-           TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+dest(igas,L)*cpd
+           TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+prod(igas,L)
+     *          *cpd
+           TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+dest(igas,L)
+     *          *cpd
          else if(igas==n_CH4)then
            ! destruction only
-           TAIJS(I,J,ijs_CH4d(L))=
-     &     TAIJS(I,J,ijs_CH4d(L))+dest(igas,L)*cpd
+           TAIJLS(I,J,L,ijlt_CH4d)=
+     &          TAIJLS(I,J,L,ijlt_CH4d)+dest(igas,L)*cpd
 #endif
          endif
          
@@ -1343,14 +1348,14 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
           if(L<=maxT)
      &    CALL INC_TAJLS(I,J,L,jls_OxdT,NprodOx*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
-          TAIJS(I,J,ijs_Oxd(L))=TAIJS(I,J,ijs_Oxd(L))+NprodOx*cpd
+          TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+NprodOx*cpd
 #endif
         else 
           CALL INC_TAJLS(I,J,L,jls_Oxp,NprodOx*conc2mass)
           if(L<=maxT)
      &    CALL INC_TAJLS(I,J,L,jls_OxpT,NprodOx*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
-          TAIJS(I,J,ijs_Oxp(L))=TAIJS(I,J,ijs_Oxp(L))+NprodOx*cpd
+          TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+NprodOx*cpd
 #endif
         endif 
         if(prnchg.and.J==jprn.and.I==iprn.and.l==lprn) then
@@ -1466,13 +1471,13 @@ C**** special diags not associated with a particular tracer
       DO L=1,maxl
         if (y(nOH,L) > 0.d0 .and. y(nOH,L) < 1.d20)then
           CALL INC_TAJLS(I,J,L,jls_OHcon,y(nOH,L))
-          TAIJS(I,J,ijs_OH(L))=TAIJS(I,J,ijs_OH(L))+y(nOH,L)
+          TAIJLS(I,J,L,ijlt_OH)=TAIJLS(I,J,L,ijlt_OH)+y(nOH,L)
 #ifdef HTAP_LIKE_DIAGS
      &                                             /y(nM,L)
 #endif
         end if
         if (y(nHO2,L) > 0.d0 .and. y(nHO2,L) < 1.d20)
-     &  TAIJS(I,J,ijs_HO2(L))=TAIJS(I,J,ijs_HO2(L))+y(nHO2,L)
+     &       TAIJLS(I,J,L,ijlt_HO2)=TAIJLS(I,J,L,ijlt_HO2)+y(nHO2,L)
 #ifdef SHINDELL_STRAT_CHEM
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
      &  CALL INC_TAJLS(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))

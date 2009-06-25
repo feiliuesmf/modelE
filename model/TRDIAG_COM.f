@@ -85,14 +85,10 @@ C**** TAIJN
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
       INTEGER :: ijs_ai,ijs_isoprene,ijs_NO2_col,ijs_NO2_count
-      INTEGER, DIMENSION(LM) :: ijs_OH,ijs_NO3,ijs_HO2,ijs_JH2O2
-#ifdef HTAP_LIKE_DIAGS
-     & ,ijs_COp,ijs_COd,ijs_Oxp,ijs_Oxd,ijs_CH4d
-#endif
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=2223
+      INTEGER,PARAMETER :: ktaijs=1223
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -138,8 +134,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_alb(2,ntm)
 !@var ijts_tau tracer independent array for TAIJS hydrated opt. thick.
       INTEGER ijts_tau(2,ntm)
-!@var ijts_3Dtau 3D tracer independent array for TAIJS hydrated opt. thick.
-      INTEGER ijts_3Dtau(lm,ntm)
 !@var ijts_tausub index for TAIJS opt. thick. for tracer sub classes
       INTEGER ijts_tausub(2,Ntm,MaxSubCl)
 !@var ijts_sqex index for TAIJS total extinction for 6 radiation bands
@@ -168,10 +162,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_AMPpdf special diagnostic for not-transported tracers
       INTEGER ijts_AMPpdf(1,nbins)
 #endif
-!@var ijts_AMPext special diagnostic for not-transported tracers
-      INTEGER ijts_AMPext(lm,6)
-!@var ijts_AMPm tracer independent array for AMP modes
-      INTEGER ijts_AMPm(lm,2,Ntm)
 !@var ijts_AMPe tracer independent array for emissions
       INTEGER ijts_AMPe(Ntm)
 !@var ijts_AMPp tracer independent array for AMP processes
@@ -196,8 +186,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       integer ia_ijts(ktaijs)
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
       INTEGER, DIMENSION(ktaijs) :: ijts_power
-!@var ijts_index: tracer index associated with a TAIJS diagnostic
-      INTEGER, DIMENSION(ktaijs) :: ijts_index
 
 #if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
 !@var rts_save saves rts as global field for tracer diagnostics
@@ -207,7 +195,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=10
+      INTEGER, PARAMETER :: ktaijl=50
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
@@ -221,6 +209,22 @@ C**** TAIJLS 3D special tracer diagnostics
       REAL*8, dimension(ktaijl) :: scale_ijlt
 !@var IR_IJLT: range index of IJL diagnostics
       integer, dimension(ntm) :: ir_ijlt
+!@var IA_IJLT: accumulation index for IJL diagnostics
+      integer, dimension(ntm) :: ia_ijlt
+!@var ijlt_power: power of 10 used for tracer IJL 3D diags
+      INTEGER, DIMENSION(ktaijs) :: ijlt_power
+!@var ijlt_XXX diag names associated with 3D tracer special diags
+      INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_JH2O2
+#ifdef HTAP_LIKE_DIAGS
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxp,ijlt_Oxd,ijlt_CH4d
+#endif
+#ifdef TRACERS_AMP
+!@var ijlt_AMPext special diagnostic for not-transported tracers
+!@var ijlt_AMPm tracer independent array for AMP modes
+      INTEGER :: ijlt_AMPext(6),ijlt_AMPm(2,ntm)
+#endif 
+!@var ijlt_3Dtau 3D tracer independent array for hydrated opt. thick.
+      INTEGER ijlt_3Dtau(ntm)
 
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;

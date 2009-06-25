@@ -898,9 +898,10 @@ cdmk last line saved for IE
 #ifdef TRACERS_AEROSOLS_Koch
 c    *     ,SNFST0,TNFST0
 #endif
-      USE TRDIAG_COM, only: taijs=>taijs_loc,ijts_fc,ijts_tau
-     &     ,ijts_tausub,ijts_fcsub,ijts_3dtau,ijts_sqex,ijts_sqexsub
-     &     ,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub,diag_rad
+      USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
+     *     ,ijts_tau,ijts_tausub,ijts_fcsub,ijlt_3dtau,ijts_sqex
+     *     ,ijts_sqexsub,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub
+     *     ,diag_rad
 #ifdef BC_ALB
      *     ,ijts_alb
 #endif
@@ -1803,9 +1804,9 @@ C**** Save optical depth diags
      &             =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
      &             +SUM(ttausv(1:Lm,n))*OPNSKY
             END IF
-            if (ijts_3Dtau(1,NTRIX(n)).gt.0)
-     *           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))
-     *           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n1)))+TTAUSV(1:lm,n)
+            if (ijlt_3Dtau(NTRIX(n)).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n1)))
+     *           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n1)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
                 IF (ijts_sqexsub(1,kr,ntrix(n),n1) > 0)
@@ -1847,9 +1848,9 @@ C**** Save optical depth diags
      &             =taijs(i,j,ijts_tau(2,NTRIX(n)))
      &             +SUM(TTAUSV(1:lm,n))*OPNSKY
             END IF
-            if (ijts_3Dtau(1,NTRIX(n)).gt.0)
-     &           taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))
-     &           =taijs(i,j,ijts_3Dtau(1:lm,NTRIX(n)))+TTAUSV(1:lm,n)
+            if (ijlt_3Dtau(NTRIX(n)).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))
+     &           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
                 IF (ijts_sqex(1,kr,ntrix(n)) > 0)
@@ -1900,29 +1901,10 @@ C**** Save optical depth diags
           IF (ntrix(n) > 0) THEN
             SELECT CASE (trname(ntrix(n)))
             CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-              ttausv_save(i,j,ntrix(n),1)=ttausv(1,n)
-              ttausv_save(i,j,ntrix(n),2)=ttausv(2,n)
-              ttausv_save(i,j,ntrix(n),3)=ttausv(3,n)
-              ttausv_save(i,j,ntrix(n),4)=ttausv(4,n)
-              ttausv_save(i,j,ntrix(n),5)=ttausv(5,n)
-              ttausv_save(i,j,ntrix(n),6)=ttausv(6,n)
-              ttausv_save(i,j,ntrix(n),7)=ttausv(7,n)
-              ttausv_save(i,j,ntrix(n),8)=ttausv(8,n)
-              ttausv_save(i,j,ntrix(n),9)=ttausv(9,n)
-              ttausv_save(i,j,ntrix(n),10)=ttausv(10,n)
-              ttausv_save(i,j,ntrix(n),11)=ttausv(11,n)
-
-              ttausv_cs_save(i,j,ntrix(n),1)=ttausv(1,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),2)=ttausv(2,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),3)=ttausv(3,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),4)=ttausv(4,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),5)=ttausv(5,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),6)=ttausv(6,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),7)=ttausv(7,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),8)=ttausv(8,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),9)=ttausv(9,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),10)=ttausv(10,n)*OPNSKY
-              ttausv_cs_save(i,j,ntrix(n),11)=ttausv(11,n)*OPNSKY
+              do k=1,11
+                ttausv_save(i,j,ntrix(n),k)=ttausv(k,n)
+                ttausv_cs_save(i,j,ntrix(n),k)=ttausv(k,n)*OPNSKY
+              end do
             END SELECT
           END IF
         END DO

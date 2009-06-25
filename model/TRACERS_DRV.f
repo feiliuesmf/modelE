@@ -19,7 +19,6 @@
       USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
       USE GEOM, only: axyp,byaxyp
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
-      USE DIAG_COM, only: ia_src,ia_12hr,ir_log2,npts,ia_rad
       USE TRACER_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -87,13 +86,7 @@
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
-      integer :: l,k,kk,n,ltop,g,kr,n1,m
-      character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
-      CHARACTER*17 :: cform
-#ifdef TRACERS_ON
-      logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
-#endif
-      character*50 :: unit_string
+      integer :: l,k,n,kr,m
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracls
 #endif
@@ -105,7 +98,7 @@
 !@var PRES local nominal pressure for vertical interpolations
 !@var iu_data unit number
 !@var title header read in from file
-      REAL*8, DIMENSION(LM) :: PRES, tempOx2
+      REAL*8, DIMENSION(LM) :: PRES
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
@@ -250,9 +243,6 @@ C**** decide on AEROCOM or interactive emissions
       CALL sync_param('FreeFe',FreeFe)
       CALL sync_param('FrHeQu',FrHeQu)
 #endif
-
-C**** Define a max layer for some optionally trop/strat tracers
-      LTOP = LM
 
 #if (defined TRACERS_COSMO)
 C**** get rundeck parameter for cosmogenic source factor
@@ -2064,7 +2054,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
 #endif /* TRACERS_ON */
       end select
 
-#if (defined TRACERS_WATER)
+#ifdef TRACERS_WATER
 C**** Tracers that are soluble or are scavenged or are water => wet dep
       if (tr_wd_TYPE(n).eq.nWater.or.tr_wd_TYPE(n) .EQ. nPART .or.
      *  tr_RKD(n).gt.0) then
@@ -2101,24 +2091,1133 @@ C**** Aerosol tracer output should be mass mixing ratio
           to_volume_MixRat(n) = 0    !default output to mass mixing ratio
       end select
 #endif
-#endif
+#endif /* TRACERS_ON */
 
       end do
 #ifdef TRACERS_ON
 C**** Get to_volume_MixRat from rundecks if it exists
       call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
-#endif
+#endif /* TRACERS_ON */
 
 C**** DIAGNOSTIC DEFINTIONS
+
+C**** Set some diags that are the same regardless
+      call set_generic_tracer_diags
+
+C**** Zonal mean/height diags
+      call init_jls_diag
+
+C**** lat/lon tracer sources, sinks and specials
+      call init_ijts_diag
+
+C**** lat/lon/height tracer specials
+      call init_ijlts_diag
+
+C**** Initialize conservation diagnostics
+      call init_tracer_cons_diag
+
+C**** Miscellaneous initialisations
+
+#ifdef TRACERS_DRYDEP
+C Read landuse parameters and coefficients for tracer dry deposition:
+      CALL RDLAND
+      CALL RDDRYCF
+#endif
+#ifdef BIOGENIC_EMISSIONS
+      CALL RDISOPCF
+      CALL RDISOBASE
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call cheminit ! **** Initialize the chemistry ****
+      call special_layers_init
+#endif
+#ifdef TRACERS_COSMO
+      do n=1,ntm
+        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
+          call init_cosmo
+          exit
+        end if
+      end do
+#endif
+
+#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
+      !read in OCMIP based CFC-11 global emissions
+      !=sum(dC/dt) for each hemisphere
+      !these are *annual global averages* and need to be
+      !converted to our timestep value
+      print*, 'opening file=OCMIP_cfc.dat'
+      call openunit('OCMIP_cfc',iu_data,.false.,.true.)
+      do n=1,ntm
+        do i=1,67
+          read(iu_data,'(5x,e12.4)')ocmip_cfc(i,n)
+        enddo
+      enddo
+      call closeunit(iu_data)
+#endif
+
+      return
+      end subroutine init_tracer
+
+      subroutine init_tracer_cons_diag
+!@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
+!@auth Gavin Schmidt
+      USE TRACER_COM
+#ifdef TRACERS_ON
+      USE TRDIAG_COM
+#endif /* TRACERS_ON */
+      implicit none
+      character*20 sum_unit(ntm),inst_unit(ntm)   ! for conservation
+      character*50 :: unit_string
+#ifdef TRACERS_ON
+      logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
+#endif /* TRACERS_ON */
+      integer n,k,g,kk
+
+C**** To add a new conservation diagnostic:
+C****       Set up a QCON, and call SET_TCON to allocate array numbers,
+C****       set up scales, titles, etc.
+C**** QCON denotes when the conservation diags should be accumulated
+C**** QSUM says whether that diag is to be used in summation (if the
+C****      routine DIAGTCB is used, this must be false).
+C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
+C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
+C**** First 12 are standard for all tracers and GCM
+C**** Later indices are configurable - you provide title and itcon
+C**** index (which is used wherever you want to check point)
+C**** For example, separate Moist convection/Large scale condensation
+c      itcon_mc(n)=xx
+c      qcon(itcon_mc(n))=.true.  ; conpts(yy) = 'MOIST CONV'
+c      qsum(itcon_mc(n)) = .false.
+c      itcon_ss(n)=xx
+c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
+c      qsum(itcon_ss(n)) = .false.
+
+      QCON=(/ t,                                           !instant.
+     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
+      QSUM=(/ f,                                           !instant.
+     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
+     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
+      do n=1,ntm
+        kt_power_inst(n)   = ntm_power(n)+2
+        kt_power_change(n) = ntm_power(n)-4
+      end do
+
+C**** set some defaults
+      itcon_mc(:)=0
+      itcon_AMP(:,:)=0
+      itcon_AMPe(:)=0
+      itcon_AMPm(:,:)=0
+      itcon_ss(:)=0
+      itcon_surf(:,:)=0
+      itcon_3Dsrc(:,:)=0
+      itcon_decay(:)=0
+      itcon_wt(:)=0
+#ifdef TRACERS_DRYDEP
+      itcon_dd(:,:)=0
+#endif
+
+      k = 0
+      do n=1,ntm
+        select case (trname(n))
+
+        case ('Air','CO2n','CFCn', 'SF6', 'SF6_c')
+               ! nothing to do: use defaults
+
+        case ('Rn222')
+          itcon_decay(n) = 13
+          qcon(itcon_decay(n)) = .true.; conpts(1) = 'DECAY'
+          qsum(itcon_decay(n)) = .true.
+
+        case ('CO2')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
+          itcon_surf(2,N) = 14
+          qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
+          itcon_surf(3,N) = 15
+          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
+          itcon_surf(4,N) = 16
+          qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
+          itcon_surf(5,N) = 17
+          qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
+          itcon_surf(6,N) = 18
+          qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
+
+        case ('N2O')   ! two versions dependent on configuration
+#ifdef TRACERS_SPECIAL_Lerner
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Reset in L1'
+          itcon_3Dsrc(1,N) = 14
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+          kt_power_change(n) = -14
+
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)=
+     *         'Chemistry'
+          qsum(itcon_3Dsrc(nChemistry,N))=.true.
+          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+          qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)
+     *         ='Overwrite'
+          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,N) = g
+            qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk
+     *           ))
+          enddo
+#endif
+
+        case ('CFC11')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 Source'
+          itcon_3Dsrc(1,N) = 14
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
+
+        case ('14CO2')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Bombs and drift'
+          
+        case ('CH4')            ! two versions
+#ifdef TRACERS_SPECIAL_Shindell
+          kt_power_change(n) = -13
+
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N)) =.true.
+          conpts(g-12)='Chemistry'
+          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+          qcon(itcon_3Dsrc(nStratwrite,N))=.true.
+          conpts(g-12)='Overwrite'
+          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,N) = g
+            qcon(itcon_surf(kk,N))=.true.
+            conpts(g-12)=trim(ssname(N,kk))
+          enddo
+#ifdef TRACERS_DRYDEP
+          if(dodrydep(n)) then
+            g=g+1; itcon_dd(n,1)= g
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
+            qsum(itcon_dd(n,1)) = .false.
+          end if
+#endif
+#ifdef GFED_3D_BIOMASS
+           g=g+1; itcon_3Dsrc(nBiomass,N) = g
+           qcon(itcon_3Dsrc(nBiomass,N)) = .true.
+           conpts(g-12) = 'Biomass_Burning'
+           qsum(itcon_3Dsrc(nBiomass,N)) = .true.
+#endif
+#else  /* not TRACERS_SPECIAL_Shindell */
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
+          itcon_surf(2,N) = 14
+          qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Coal Mine source'
+          itcon_surf(3,N) = 15
+          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Gas Leak source'
+          itcon_surf(4,N) = 16
+          qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Gas Vent source'
+          itcon_surf(5,N) = 17
+          qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'City Dump source'
+          itcon_surf(6,N) = 18
+          qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Soil sink'
+          itcon_surf(7,N) = 19
+          qcon(itcon_surf(7,N)) = .true.; conpts(7) = 'Termite Source'
+          itcon_surf(8,N) = 20
+          qcon(itcon_surf(8,N)) = .true.; conpts(8) = 'Coal Combustion'
+          itcon_surf(9,N) = 21
+          qcon(itcon_surf(9,N)) = .true.; conpts(9) = 'Ocean source'
+          itcon_surf(10,N) = 22
+          qcon(itcon_surf(10,N)) = .true.; conpts(10) = 'Lake source'
+          itcon_surf(11,N) = 23
+          qcon(itcon_surf(11,N)) = .true.; conpts(11)
+     *         ='Misc. Ground source'
+          itcon_surf(12,N) = 24
+          qcon(itcon_surf(12,N)) = .true.; conpts(12) =
+     *         'Biomass Burning'
+          itcon_surf(13,N) = 25
+          qcon(itcon_surf(13,N)) = .true.; conpts(13) = 'Rice source'
+          itcon_surf(14,N) = 26
+          qcon(itcon_surf(14,N)) = .true.; conpts(14) =
+     *         'Wetlands+Tundra'
+          itcon_3Dsrc(1,N) = 27
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(15) = 'Tropos. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
+          itcon_3Dsrc(2,N) = 28
+          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(16) = 'Stratos. Chem'
+          qsum(itcon_3Dsrc(2,N)) = .true.
+#endif /* TRACERS_SPECIAL_Shindell */
+
+        case ('O3')
+          itcon_surf(1,N) = 13
+          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Deposition'
+          itcon_3Dsrc(1,N) = 14
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Stratos. Chem'
+          qsum(itcon_3Dsrc(1,N)) = .true.
+          itcon_3Dsrc(2,N) = 15
+          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Trop.Chem Prod'
+          qsum(itcon_3Dsrc(2,N)) = .true.
+          itcon_3Dsrc(3,N) = 16
+          qcon(itcon_3Dsrc(3,N)) = .true.; conpts(4) = 'Trop.Chem Loss'
+          qsum(itcon_3Dsrc(3,N)) = .true.
+
+          case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN' 
+     *         ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
+     *         ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
+     *         ,'Paraffin') ! N2O done above
+            select case (trname(n))
+            case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
+     *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
+     *           ,'BrONO2','NOx')
+              kt_power_change(n) = -14
+            case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin')
+              kt_power_change(n) = -13
+            case default
+              kt_power_change(n) = -12
+            end select
+
+          g=13; itcon_3Dsrc(nChemistry,N) = g
+          qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+          conpts(g-12) = 'Chemistry'
+          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
+          qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+          conpts(g-12)='Overwrite'
+          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          select case(trname(n))
+            case ('NOx')
+              g=g+1; itcon_3Dsrc(nOther,N) = g
+              qcon(itcon_3Dsrc(nOther,N)) = .true.
+              conpts(g-12) = 'Lightning'
+              qsum(itcon_3Dsrc(nOther,N)) = .true.
+              g=g+1; itcon_3Dsrc(nAircraft,N) = g
+              qcon(itcon_3Dsrc(nAircraft,N)) = .true.
+              conpts(g-12) = 'Aircraft'
+              qsum(itcon_3Dsrc(nAircraft,N)) = .true.
+          end select
+#ifdef GFED_3D_BIOMASS
+          select case(trname(n))
+            case('NOx','CO','Alkenes','Paraffin')
+              g=g+1; itcon_3Dsrc(nBiomass,N) = g
+              qcon(itcon_3Dsrc(nBiomass,N)) = .true.
+              conpts(g-12) = 'Biomass_Burning'
+              qsum(itcon_3Dsrc(nBiomass,N)) = .true.
+          end select
+#endif
+#ifdef TRACERS_NITRATE
+          select case (trname(n))
+            case ('HNO3')
+              g=g+1; itcon_3Dsrc(3,N) = g
+              qcon(itcon_3Dsrc(3,N)) = .true.
+              conpts(g-12)='Nitrate Chemistry'
+              qsum(itcon_3Dsrc(3,N)) = .true.
+          end select
+#endif
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,N) = g
+            qcon(itcon_surf(kk,N))=.true.
+            conpts(g-12)=trim(ssname(N,kk))
+          end do
+#ifdef TRACERS_WATER
+          if(dowetdep(n)) then
+            g=g+1; itcon_mc(n) = g
+            qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
+            g=g+1; itcon_ss(n) = g
+            qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
+          end if
+#endif
+#ifdef TRACERS_DRYDEP
+          if(dodrydep(n)) then
+            g=g+1; itcon_dd(n,1)=g
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
+          end if
+#endif
+
+#ifdef TRACERS_AEROSOLS_SOA
+          case ('isopp1g','isopp1a','isopp2g','isopp2a',
+     &          'apinp1g','apinp1a','apinp2g','apinp2a')
+            g=13; itcon_3Dsrc(nChemistry,N) = g
+            qcon(itcon_3Dsrc(nChemistry,N)) = .true.
+            conpts(g-12) = 'Chemistry'
+            qsum(itcon_3Dsrc(nChemistry,N)) = .true.
+            g=g+1; itcon_mc(n) = g
+            qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            g=g+1; itcon_ss(n) = g
+            qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              g=g+1; itcon_dd(n,1) = g
+              qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              g=g+1; itcon_dd(n,2) = g
+              qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
+
+          case ('GLT')
+            kt_power_change(n) = -17
+
+            g=13 ; itcon_3Dsrc(1,N) = g
+            qcon(itcon_3Dsrc(1,N)) = .true.
+            conpts(g-12) = 'L1 overwriting'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+
+          case ('Water','H2O18', 'HDO', 'H2O17' )
+            itcon_mc(n) = 13
+            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 14
+            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+
+          case ('HTO')
+            itcon_mc(n) = 13
+            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 14
+            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+            itcon_decay(n) = 15
+            qcon(itcon_decay(n)) = .true.; conpts(3) = 'DECAY'
+            qsum(itcon_decay(n)) = .true.
+
+          case ('DMS')
+            itcon_surf(1,N) = 13
+            qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Ocean Src'
+            qsum(itcon_surf(1,N))=.false.
+            itcon_3Dsrc(1,N) = 14
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Chem'
+            qsum(itcon_3Dsrc(1,N))= .true.
+
+          case ('MSA')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('SO2')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Volcanic src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft src'
+            qsum(itcon_3Dsrc(2,N))=.true.
+            itcon_3Dsrc(3,N) = 15
+            qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Biomass src'
+            qsum(itcon_3Dsrc(3,N))=.true.
+            itcon_3Dsrc(4,N) = 16
+            qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Chem src'
+            qsum(itcon_3Dsrc(4,N)) = .true.
+            itcon_3Dsrc(5,N) = 17
+            qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Chem sink'
+            qsum(itcon_3Dsrc(5,N)) = .true.
+#ifdef EDGAR_1995
+            itcon_surf(1,N) = 18
+            qcon(itcon_surf(1,N)) = .true.; conpts(6) =
+     *           'E95 Fossil fuel'
+            itcon_surf(2,N) =19
+            qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'E95 Industrial'
+            itcon_surf(3,N) = 20
+            qcon(itcon_surf(3,N)) = .true.; conpts(8) =
+     *           'E95 Waste hand.'
+            itcon_surf(4,N) = 21
+            qcon(itcon_surf(4,N)) = .true.; conpts(9) = 'E95 Biofuel'
+            itcon_surf(5,N) = 22
+            qcon(itcon_surf(5,N)) = .true.; conpts(10) =
+     *           'E95 Agr. waste.'
+            itcon_surf(6,N) = 23
+            qcon(itcon_surf(6,N)) = .true.; conpts(11) =
+     *           'E95 Biomass Burn'
+            itcon_mc(n) =24
+            qcon(itcon_mc(n)) = .true.  ; conpts(12) = 'MOIST CONV'
+            itcon_ss(n) =25
+            qcon(itcon_ss(n)) = .true.  ; conpts(13) = 'LS COND'
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=26
+              qcon(itcon_dd(n,1)) = .true. ; conpts(14) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+            end if
+#endif
+#else  /* not EDGAR_1995 */
+            itcon_surf(1,N) = 18
+            qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
+            qsum(itcon_surf(1,N))=.false.
+            itcon_surf(2,N) = 19
+            qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'ship src'
+            qsum(itcon_surf(2,N))=.false.
+            itcon_mc(n) =20
+            qcon(itcon_mc(n)) = .true.  ; conpts(8) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =21
+            qcon(itcon_ss(n)) = .true.  ; conpts(9) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=22
+              qcon(itcon_dd(n,1)) = .true. ; conpts(10) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+            end if
+#endif
+#endif  /* EDGAR_1995 */
+
+          case ('SO4')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'volcanic src'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_3Dsrc(3,N) = 15
+            qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'biomass src'
+            qsum(itcon_3Dsrc(3,N)) = .true.
+#ifdef EDGAR_1995
+            itcon_surf(1,N) = 16
+            qcon(itcon_surf(1,N)) = .true.; conpts(4) =
+     *           'E95 Fossil fuel'
+            itcon_surf(2,N) = 17
+            qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'E95 Industrial'
+            itcon_surf(3,N) = 18
+            qcon(itcon_surf(3,N)) = .true.; conpts(6) =
+     *           'E95 Waste hand.'
+            itcon_surf(4,N) =19
+            qcon(itcon_surf(4,N)) = .true.; conpts(7) = 'E95 Biofuel'
+            itcon_surf(5,N) = 20
+            qcon(itcon_surf(5,N)) = .true.; conpts(8) =
+     *           'E95 Agr. waste.'
+            itcon_surf(6,N) = 21
+            qcon(itcon_surf(6,N)) = .true.; conpts(9) =
+     *           'E95 Biomass Burn'
+            itcon_mc(n) =22
+            qcon(itcon_mc(n)) = .true.  ; conpts(10) = 'MOIST CONV'
+            itcon_ss(n) =23
+            qcon(itcon_ss(n)) = .true.  ; conpts(11) = 'LS COND'
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=24
+              qcon(itcon_dd(n,1)) = .true. ; conpts(12) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=25
+              qcon(itcon_dd(n,2)) = .true. ; conpts(13) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+#else  /* not EDGAR_1995 */
+            itcon_surf(1,N) = 16
+            qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
+            qsum(itcon_surf(1,N)) = .false.
+           itcon_surf(2,N) = 17
+           qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'ship src'
+           qsum(itcon_surf(2,N)) = .false.
+            itcon_mc(n) =18
+            qcon(itcon_mc(n)) = .true.  ; conpts(6) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =19
+            qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)= 20
+              qcon(itcon_dd(n,1)) = .true. ; conpts(8) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=21
+              qcon(itcon_dd(n,2)) = .true. ; conpts(9) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+#endif  /* EDGAR_1995 */
+
+          case ('BCII')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
+     *           'Aircraft source'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_surf(1,N) = 15
+            qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
+            qsum(itcon_surf(1,N)) = .false.
+            itcon_surf(2,N) = 16
+            qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
+            qsum(itcon_surf(2,N)) = .false.
+            itcon_mc(n) = 17
+            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 18
+            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=19
+              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=20
+              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('BCIA')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) =
+     *           'Aircraft source'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 15
+            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 16
+            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=17
+              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=18
+              qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+      
+          case ('OCIA')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('BCB', 'OCB')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Biomass src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCII')
+            g=13; itcon_3Dsrc(1,N) = g
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            g=g+1; itcon_surf(1,N) = g
+            qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
+            qsum(itcon_surf(1,N)) = .false.
+            g=g+1; itcon_surf(2,N) = g
+            qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
+            qsum(itcon_surf(2,N)) = .false.
+#ifndef TRACERS_AEROSOLS_SOA
+            g=g+1; itcon_surf(3,N) = g
+            qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Terpene src'
+            qsum(itcon_surf(3,N)) = .false.
+#endif  /* TRACERS_AEROSOLS_SOA */
+            g=g+1; itcon_mc(n) = g
+            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            g=g+1; itcon_ss(n) = g
+            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              g=g+1; itcon_dd(n,1)= g
+              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              g=g+1; itcon_dd(n,2)= g
+              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCI3')
+            g=13; itcon_3Dsrc(1,N) = g
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            g=g+1; itcon_3Dsrc(2,N) = g
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+#ifndef TRACERS_AEROSOLS_SOA
+            g=g+1; itcon_surf(1,N) = g
+            qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Terpene src'
+            qsum(itcon_surf(1,N)) = .false.
+#endif  /* TRACERS_AEROSOLS_SOA */
+            g=g+1; itcon_mc(n) = g
+            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            g=g+1; itcon_ss(n) = g
+            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              g=g+1; itcon_dd(n,1)= g
+              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              g=g+1; itcon_dd(n,2)= g
+              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCI1','OCI2')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_mc(n) = 15
+            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 16
+            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=17
+              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=18
+              qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCA4')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('OCA1','OCA2','OCA3')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Decay src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) = 14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) = 15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('SO4_d1', 'SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('NH3','H2SO4')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('NH4', 'NO3p')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+
+          case ('Be7', 'Be10')
+            itcon_3Dsrc(1,N) =13
+            qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+            if (trname(n).eq."Be7") then
+              itcon_decay(n) = 18
+              qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
+              qsum(itcon_decay(n)) = .true.
+            end if
+            
+          case ('Pb210')
+            itcon_3Dsrc(1,N) =13
+            qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'RADIO SRC'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+            itcon_decay(n) = 18
+            qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
+            qsum(itcon_decay(n)) = .true.
+            
+          case ('H2O2_s')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_3Dsrc(2,N) = 14
+            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
+     *           'Gas phase sink'
+            qsum(itcon_3Dsrc(2,N)) = .true.
+            itcon_mc(n) =15
+            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =16
+            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=17
+              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+            end if
+#endif
+
+          case ('seasalt1','seasalt2', 'Clay','Silt1','Silt2','Silt3'
+     *         ,'Silt4','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
+     *         ,'ClayQuar','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
+     *         ,'Sil1Gyps','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
+     *         ,'Sil2Gyps','Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema'
+     *         ,'Sil3Gyps','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+            itcon_mc(n) =13
+            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =14
+            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=15
+              qcon(itcon_dd(n,1)) = .true. ; conpts(3) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=16
+              qcon(itcon_dd(n,2)) = .true. ; conpts(4) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+#ifndef TRACERS_WATER
+            itcon_wt(n)=17
+            qcon(itcon_wt(n)) = .true. ; conpts(5) = 'WET DEP'
+            qsum(itcon_wt(n)) = .false.
+#endif  /* not TRACERS_WATER */
+
+c- Species including AMP  emissions - 2D sources and 3D sources
+          case('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC',
+     *         'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU','M_DD2_DU',
+     *         'M_BOC_BC','M_BOC_OC',
+     *         'M_NO3   ','M_NH4   ','M_H2O   ','M_DD1_SU',
+     *         'M_DS1_SU','M_DS1_DU','M_DD2_SU',
+     *         'M_DS2_SU','M_DS2_DU','M_SSA_SU',
+     *         'M_OCC_SU','M_BC1_SU',
+     *         'M_BC2_SU','M_BC2_BC','M_BC3_SU',
+     *         'M_BC3_BC','M_DBC_SU','M_DBC_BC','M_DBC_DU',
+     *         'M_BOC_SU',
+     *         'M_BCS_SU','M_BCS_BC','M_MXX_SU','M_MXX_BC',
+     *         'M_MXX_OC','M_MXX_DU','M_MXX_SS','M_OCS_SU',
+     *         'M_OCS_OC','M_SSS_SU')
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.;conpts(1)='Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+            itcon_3Dsrc(1,n) = 18
+            qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
+            qsum(itcon_3Dsrc(1,n)) = .true.
+            select case (trname(n))
+              case ('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC'
+     *             ,'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU'
+     *             ,'M_DD2_DU')
+                itcon_surf(1,n) = 19
+                qcon(itcon_surf(1,n)) = .true.; conpts(7) =
+     *               'Emission 2D AMP'
+                qsum(itcon_surf(1,n)) = .true.
+            end select
+            select case (trname(n))
+              case ('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC'
+     *             ,'M_BOC_BC','M_BOC_OC')
+                itcon_3Dsrc(2,n) = 20
+                qcon(itcon_3Dsrc(2,n)) = .true.; conpts(8) =
+     *               'Emission 3D AMP'
+                qsum(itcon_3Dsrc(2,n)) = .true.
+            end select
+c Processes AMP Budget
+            itcon_AMP(1,n)=21
+            qcon(itcon_AMP(1,n)) = .true.; conpts(9)='P1 Nucleation'
+            qsum(itcon_AMP(1,n)) = .true.
+            itcon_AMP(2,n)=22
+            qcon(itcon_AMP(2,n)) = .true.; conpts(10)='P2 Coagulation'
+            qsum(itcon_AMP(2,n)) = .true.
+            itcon_AMP(3,n)=23
+            qcon(itcon_AMP(3,n)) = .true.;conpts(11)='P3 Condensation'
+            qsum(itcon_AMP(3,n)) = .true.
+            itcon_AMP(4,n)=24
+            qcon(itcon_AMP(4,n)) = .true.;conpts(12)='P4 Incloud'
+            qsum(itcon_AMP(4,n)) = .true.
+            itcon_AMP(5,n)=25
+            qcon(itcon_AMP(5,n)) = .true.;conpts(13)='P5 Intermode Loss'
+            qsum(itcon_AMP(5,n)) = .true.
+            itcon_AMP(6,n)=26
+            qcon(itcon_AMP(6,n)) = .true.;conpts(14)='P6 Mode Transf'
+            qsum(itcon_AMP(6,n)) = .true.
+            itcon_AMP(7,n)=27
+            qcon(itcon_AMP(7,n)) = .true.;conpts(15)='P7 AMP Budget'
+            qsum(itcon_AMP(7,n)) = .true.
+
+          case ('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 '
+     *         ,'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ','N_BC2_1 ','N_BC3_1 '
+     *         ,'N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
+
+            kt_power_change(n) = 5
+            kt_power_inst(n) = 3
+
+            itcon_3Dsrc(1,N) = 13
+            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
+     *           'Gas phase change'
+            qsum(itcon_3Dsrc(1,N)) = .true.
+            itcon_mc(n) =14
+            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
+            qsum(itcon_mc(n)) = .false.
+            itcon_ss(n) =15
+            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
+            qsum(itcon_ss(n)) = .false.
+#ifdef TRACERS_DRYDEP
+            if(dodrydep(n)) then
+              itcon_dd(n,1)=16
+              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
+              qsum(itcon_dd(n,1)) = .false.
+              itcon_dd(n,2)=17
+              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
+              qsum(itcon_dd(n,2)) = .false.
+            end if
+#endif
+            itcon_AMPm(1,n)=18
+            qcon(itcon_AMPm(1,n)) = .true. ; conpts(6) = 'Mode Diameter'
+            qsum(itcon_AMPm(1,n)) = .false.
+            itcon_AMPm(2,n)=19
+            qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) =
+     *           'Mode AktivPart'
+            qsum(itcon_AMPm(2,n)) = .false.
+c     Processes AMP Budget
+            itcon_AMP(1,n)=20
+            qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
+            qsum(itcon_AMP(1,n)) = .true.
+            itcon_AMP(2,n)=21
+            qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
+            qsum(itcon_AMP(2,n)) = .true.
+            itcon_AMP(3,n)=22
+            qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
+            qsum(itcon_AMP(3,n)) = .true.
+            itcon_AMP(4,n)=23
+            qcon(itcon_AMP(4,n)) = .true.;conpts(11)='P4 Intermode Coag'
+            qsum(itcon_AMP(4,n)) = .true.
+            itcon_AMP(5,n)=24
+            qcon(itcon_AMP(5,n)) = .true.;conpts(12)='P5 Intramode Tr'
+            qsum(itcon_AMP(5,n)) = .true.
+            itcon_AMP(6,n)=25
+            qcon(itcon_AMP(6,n)) = .true.;conpts(13)='P6 Mode Transf'
+            qsum(itcon_AMP(6,n)) = .true.
+            itcon_AMP(7,n)=26
+            qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
+            qsum(itcon_AMP(7,n)) = .true.
+
+        end select
+
+        scale_inst(n)   = 10d0**(-kt_power_inst(n))
+        scale_change(n) = 10d0**(-kt_power_change(n))
+        inst_unit(n) = unit_string(kt_power_inst(n),  'kg/m^2)')
+        sum_unit(n)  = unit_string(kt_power_change(n),'kg/m^2 s)')
+
+        CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
+     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+        qcon(13:) = .false.     ! reset to defaults for next tracer
+        qsum(13:) = .false.     ! reset to defaults for next tracer
+
+      end do
+
+      return
+      end subroutine init_tracer_cons_diag
+
+      subroutine init_jls_diag
+!@sum init_jls_diag Initialise zonal mean/height tracer diags 
+!@auth Gavin Schmidt
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE CONSTANT, only: sday
+      USE MODEL_COM, only: dtsrc,byim
+      USE TRACER_COM
+      USE DIAG_COM
+#ifdef TRACERS_ON
+      USE TRDIAG_COM
+#endif /* TRACERS_ON */
+      implicit none
+      integer k,n,kk,ltop
+      character*50 :: unit_string
+
 C**** Please note that short names for diags i.e. sname_jls are used
 C**** in special ways and MUST NOT contain spaces, commas or % signs.
 C**** Underscores and minus signs are allowed.
+
+C**** Define a max layer for some optionally trop/strat tracers
+      LTOP = LM
 
 #ifdef TRACERS_ON
 C**** Tracer sources and sinks
 C**** Defaults for jls (sources, sinks, etc.)
 C**** These need to be 'hand coded' depending on circumstances
-      do k=1,ktajls  ! max number of sources and sinks
+      do k=1,ktajls             ! max number of sources and sinks
         jgrid_jls(k) = 1
         jwt_jls(k) = 1
         ia_jls(k) = ia_src
@@ -2130,37 +3229,11 @@ C**** set defaults for some precip/wet-dep related diags
       jls_prec(:,:)=0
 #endif
 
-C****
-C**** Set some diags that are the same regardless
-      call set_generic_tracer_diags
-C****
-
       k = 0
       do n=1,ntm
       select case (trname(n))
 
-
-#ifdef TRACERS_GASEXCH_ocean_CFC
-      case ('CFCn')
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Layer_1_source_of_'//trname(n)
-        lname_jls(k) = 'CFCn CFC-GRID SOURCE, LAYER 1'
-        jls_ltop(k) = 1
-        jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
-
-        ijts_isrc(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CFCn Ocean source'
-        sname_ijts(k) = 'CFCn_Ocean_source'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
-
-      case ('SF6','SF6_c')
+      case ('SF6','SF6_c','CFCn')
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'Layer_1_source_of_'//trname(n)
@@ -3701,8 +4774,27 @@ c Oxidants
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
         call stop_model('ktajls too small',255)
       end if
+#endif /* TRACERS_ON */
 
-C**** Tracer sources, sinks and specials
+      return
+      end subroutine init_jls_diag
+
+      subroutine init_ijts_diag
+!@sum init_ijts_diag Initialise lat/lon tracer diags 
+!@auth Gavin Schmidt
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE CONSTANT, only: sday
+      USE MODEL_COM, only: dtsrc
+      USE TRACER_COM
+      USE DIAG_COM
+#ifdef TRACERS_ON
+      USE TRDIAG_COM
+#endif
+      implicit none
+      integer k,n,n1,kr
+      character*50 :: unit_string
+      CHARACTER*17 :: cform
+
 C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
       ijts_3Dsource(:,:)=0
@@ -3710,20 +4802,35 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #ifdef TRACERS_AMP
       ijts_AMPe(:)=0
       ijts_AMPp(:,:)=0
-      ijts_AMPext(:,:)=0
       ijts_AMPpdf(:,:)=0
-      ijts_AMPm(:,:,:)=0
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       do n=1,ntm
       select case (trname(n))
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
+      case ('CFCn')
+      k = k + 1
+        ijts_isrc(1,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'CFCn Ocean source'
+        sname_ijts(k) = 'CFCn_Ocean_source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      k = k+1
+        ijts_source(1,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trim(trname(n))//' Layer 1 SOURCE'
+        sname_ijts(k) = trim(trname(n))//'_CFC-GRID_SOURCE_LAYER_1'
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       case ('CO2n')
       k = k + 1
         ijts_isrc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'CO2_O_GASX'
         lname_ijts(k) = 'Ocean gas exchange CO2'
@@ -3731,26 +4838,10 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = 0
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
-
-
-#ifdef TRACERS_GASEXCH_ocean_CFC
-      case ('CFCn')
-      k = k+1
-        ijts_source(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CFCn Layer 1 SOURCE'
-        sname_ijts(k) = 'CFCn_CFC-GRID_SOURCE_LAYER_1'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 
       case ('SF6','SF6_c')
       k = k+1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' Layer 1 SOURCE'
         sname_ijts(k) = trim(trname(n))//'_CFC-GRID_SOURCE_LAYER_1'
@@ -3761,7 +4852,6 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('Rn222')
       k = k+1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Rn222 L 1 SOURCE'
         sname_ijts(k) = 'Rn222_SOURCE_Layer_1'
@@ -3773,7 +4863,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 ! keep AIJ and AJL CO2 sources in same order !!
       k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Fossil_fuel_source_'//trname(n)
         lname_ijts(k) = 'CO2 Fossil fuel src'
@@ -3782,7 +4871,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'fertilization_sink_'//trname(n)
         lname_ijts(k) = 'CO2 fertilization'
@@ -3791,7 +4879,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Northern_forest_regrowth_'//trname(n)
         lname_ijts(k) = 'CO2 North forest regrowth'
@@ -3800,7 +4887,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Land_Use_Modification_'//trname(n)
         lname_ijts(k) = 'CO2 from Land use mods'
@@ -3809,7 +4895,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Ecosystem_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ecosystem exch'
@@ -3818,7 +4903,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'Ocean_exchange_'//trname(n)
         lname_ijts(k) = 'CO2 Ocean exchange'
@@ -3828,20 +4912,18 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('N2O')
 #ifdef TRACERS_SPECIAL_Shindell
-        do kk=1,ntsurfsrc(n)
+        do kr=1,ntsurfsrc(n)
           k = k+1
-          ijts_source(kk,n) = k
-          ijts_index(k) = n
+          ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
-          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kk))
-          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kk))
+          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kr))
+          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
           ijts_power(k) = -14
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end do
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
@@ -3850,7 +4932,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
         sname_ijts(k) = trname(n)//'_overw'
@@ -3861,7 +4942,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 #ifdef TRACERS_SPECIAL_Lerner
       k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'N2O CHANGE IN L 1'
         sname_ijts(k) = 'N2O_CHANGE_IN_L_1'
@@ -3870,7 +4950,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
@@ -3882,7 +4961,6 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('CFC11')
       k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CFC_11 L 1 SOURCE'
         sname_ijts(k) = 'CFC_11_SOURCE_LAYER_1'
@@ -3891,7 +4969,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CFC_11 Stratospheric Chemistry Sink'
         sname_ijts(k) = 'CFC_11_strat_sink'
@@ -3902,7 +4979,6 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('14CO2')
       k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = '14CO2 L 1 Sink'
         sname_ijts(k) = '14CO2_L1_Sink'
@@ -3914,20 +4990,18 @@ C**** This needs to be 'hand coded' depending on circumstances
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
      &'HO2NO2','PAN','AlkylNit')
-        do kk=1,ntsurfsrc(n)
+        do kr=1,ntsurfsrc(n)
           k = k+1
-          ijts_source(kk,n) = k
-          ijts_index(k) = n 
+          ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
-          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kk))
-          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kk))
+          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kr))
+          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
           ijts_power(k) = -14
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end do
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
@@ -3940,7 +5014,6 @@ C**** This needs to be 'hand coded' depending on circumstances
      &  'HO2NO2','PAN','AlkylNit')
           k = k + 1
           ijts_3Dsource(nStratwrite,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Overwrite'
           sname_ijts(k) = trname(n)//'_overw'
@@ -3952,7 +5025,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         case('NOx')
           k = k + 1
           ijts_3Dsource(nOther,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Lightning Source'
           sname_ijts(k) = trname(n)//'_lightning'
@@ -3961,7 +5033,6 @@ C**** This needs to be 'hand coded' depending on circumstances
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
           k = k + 1
           ijts_3Dsource(nAircraft,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Aircraft Source'
           sname_ijts(k) = trname(n)//'_aircraft'
@@ -3971,7 +5042,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         case('Ox')
           k = k + 1
           ijts_fc(1,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))
@@ -3980,7 +5050,6 @@ C**** This needs to be 'hand coded' depending on circumstances
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
           ijts_fc(2,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trname(n)//' LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))
@@ -3993,7 +5062,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         case('NOx','CO','Alkenes','Paraffin')
           k = k + 1
           ijts_3Dsource(nBiomass,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Biomass Burning Source'
           sname_ijts(k) = trname(n)//'_bburn'
@@ -4009,7 +5077,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 c chemical production
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' Chemistry'
         sname_ijts(k) = trim(trname(n))//'_chem'
@@ -4020,20 +5087,18 @@ c chemical production
 
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
-        do kk=1,ntsurfsrc(n)
+        do kr=1,ntsurfsrc(n)
           k = k+1
-          ijts_source(kk,n) = k
-          ijts_index(k) = n
+          ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
-          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kk))
-          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kk))
+          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kr))
+          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
           ijts_power(k) = -14
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end do
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
         sname_ijts(k) = trname(n)//'_chem'
@@ -4042,7 +5107,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(nStratwrite,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
         sname_ijts(k) = trname(n)//'_overw'
@@ -4052,7 +5116,6 @@ c chemical production
 #ifdef GFED_3D_BIOMASS
         k = k + 1
         ijts_3Dsource(nBiomass,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Biomass Burning Source'
         sname_ijts(k) = trname(n)//'_bburn'
@@ -4063,7 +5126,6 @@ c chemical production
 #else 
       k = k + 1
         ijts_source(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 sink due to soil absorp.'
         sname_ijts(k) = 'CH4_soil_sink.'
@@ -4072,7 +5134,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(7,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Termite source'
         sname_ijts(k) = 'CH4_Termite_source'
@@ -4081,7 +5142,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(9,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Ocean source'
         sname_ijts(k) = 'CH4_Ocean_source'
@@ -4090,7 +5150,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(10,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Fresh Water lake source'
         sname_ijts(k) = 'CH4_lake_source'
@@ -4099,7 +5158,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(11,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Misc. Ground source'
         sname_ijts(k) = 'CH4_Misc._Ground_source'
@@ -4108,7 +5166,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(14,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Wetlands+Tundra source'
         sname_ijts(k) = 'CH4_Wetlands+Tundra_source'
@@ -4117,7 +5174,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Animal source'
         sname_ijts(k) = 'CH4_Animal_source'
@@ -4126,7 +5182,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Coal Mine source'
         sname_ijts(k) = 'CH4_Coal_Mine_source'
@@ -4135,7 +5190,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Gas Leak source'
         sname_ijts(k) = 'CH4_Gas_Leak_source'
@@ -4144,7 +5198,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Gas Venting source'
         sname_ijts(k) = 'CH4_Gas_Venting_source'
@@ -4153,7 +5206,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Municipal solid waste src'
         sname_ijts(k) = 'CH4_MSW_src'
@@ -4162,7 +5214,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(8,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Coal combustion source'
         sname_ijts(k) = 'CH4_Coal_source'
@@ -4171,7 +5222,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(12,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Biomass burning source'
         sname_ijts(k) = 'CH4_Biomass_source'
@@ -4180,7 +5230,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(13,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Rice cultivation source'
         sname_ijts(k) = 'CH4_Rice_source'
@@ -4189,7 +5238,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Tropospheric Chemistry'
         sname_ijts(k) = 'CH4_trop_chem'
@@ -4198,7 +5246,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'CH4 Stratospheric Chemistry'
         sname_ijts(k) = 'CH4_strat_chem'
@@ -4210,7 +5257,6 @@ c chemical production
       case ('O3')
       k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 deposition, layer 1'
         sname_ijts(k) = 'O3_deposition_L1'
@@ -4219,7 +5265,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 Stratospheric Chem.'
         sname_ijts(k) = 'O3_strat_chem'
@@ -4228,7 +5273,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 Tropo. Chem. Production'
         sname_ijts(k) = 'O3_trop_chem_prod'
@@ -4237,7 +5281,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'O3 Tropo. Chemistry Loss'
         sname_ijts(k) = 'O3_trop_chem_loss'
@@ -4246,18 +5289,14 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 #ifdef TRACERS_WATER
-        case ('Water')
+      case ('Water', 'H2O18', 'H2O17', 'HDO', 'HTO' )
           ! nothing I can think of....
-        case ('H2O18', 'H2O17' )
-        case ('HDO')
-        case ('HTO')
 #endif
 
 #ifdef SHINDELL_STRAT_EXTRA
       case ('GLT')
       k = k+1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//'L1 overwrite source'
         sname_ijts(k) = trname(n)//'L1_overwrite'
@@ -4269,7 +5308,6 @@ c chemical production
       case ('BCII')
         k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Industrial source'
         sname_ijts(k) = 'BC_Industrial_source'
@@ -4278,7 +5316,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC ship source'
         sname_ijts(k) = 'BC_Ship_source'
@@ -4287,7 +5324,6 @@ c chemical production
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(1,n) = k   ! defined but not output
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'    ! 'BCII Aging sink'
         sname_ijts(k) = 'unused'    ! 'BCII_Aging_sink'
@@ -4298,27 +5334,26 @@ c chemical production
       case ('BCIA')
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Aging source'
         sname_ijts(k) = 'BC_Aging_Source'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
         k = k + 1
         ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BCIA Aircraft source'
         sname_ijts(k) = 'BCIA_Aircraft_src'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
 #ifdef BC_ALB
 c BC impact on grain size
 c         k = k + 1
 c         ijts_alb(2,n) = k
-c         ijts_index(k) = n
 c         ia_ijts(k) = ia_rad
 c         lname_ijts(k) = 'BC impact on grain size'
 c         sname_ijts(k) = 'grain_BC'
@@ -4326,19 +5361,18 @@ c         ijts_power(k) = -9
 c         units_ijts(k) = unit_string(ijts_power(k),' ')
 c         scale_ijts(k) = 10.**(-ijts_power(k))
 c BC impact on albedo 
-          k = k + 1
-          ijts_alb(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'BC impact on albedo (%)'
-          sname_ijts(k) = 'alb_BC'
-          ijts_power(k) = -12
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+        k = k + 1
+        ijts_alb(1,n) = k
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = 'BC impact on albedo (%)'
+        sname_ijts(k) = 'alb_BC'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+
 c SW forcing from albedo change
         k = k + 1
         ijts_alb(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCalb SW radiative forcing'
         sname_ijts(k) = 'swf_BCALB'
@@ -4347,128 +5381,12 @@ c SW forcing from albedo change
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-        IF (diag_rad /= 1) THEN
-c BCI optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'BCI optical thickness'
-          sname_ijts(k) = 'tau_BCI'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c BCI clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'BCI clr sky optical thickness'
-          sname_ijts(k) = 'tau_CS_BCI'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+
+        call set_diag_rad(n,k)
+
 c BCI shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI SW radiative forcing'
         sname_ijts(k) = 'swf_BCI'
@@ -4478,7 +5396,6 @@ c BCI shortwave radiative forcing
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI LW radiative forcing'
         sname_ijts(k) = 'lwf_BCI'
@@ -4488,7 +5405,6 @@ c BCI longwave radiative forcing
 c BCI shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_BCI'
@@ -4498,18 +5414,15 @@ c BCI shortwave surface radiative forcing
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_BCI'
         ijts_power(k) = -2
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
-
 c BCI clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCI'
@@ -4519,7 +5432,6 @@ c BCI clear sky shortwave radiative forcing
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCI clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCI'
@@ -4527,10 +5439,10 @@ c BCI longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif
+
       case ('BCB')
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'BC Biomass source'
         sname_ijts(k) = 'BC_Biomass_source'
@@ -4538,128 +5450,12 @@ c BCI longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-        IF (diag_rad /= 1) THEN
-c BCB optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'BCB optical thickness'
-          sname_ijts(k) = 'tau_BCB'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c BCB clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'BCB clr sky optical thickness'
-          sname_ijts(k) = 'tau_CS_BCB'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_'
-     &           ,TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+      
+        call set_diag_rad(n,k)
+
 c BCB shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB SW radiative forcing'
         sname_ijts(k) = 'swf_BCB'
@@ -4669,7 +5465,6 @@ c BCB shortwave radiative forcing
 c BCB longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW radiative forcing'
         sname_ijts(k) = 'lwf_BCB'
@@ -4679,7 +5474,6 @@ c BCB longwave radiative forcing
 c BCB shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_BCB'
@@ -4689,7 +5483,6 @@ c BCB shortwave surface radiative forcing
 c BCB longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_BCB'
@@ -4699,7 +5492,6 @@ c BCB longwave surface radiative forcing
 c BCB clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCB'
@@ -4709,7 +5501,6 @@ c BCB clear sky shortwave radiative forcing
 c BCB clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'BCB clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCB'
@@ -4721,7 +5512,6 @@ c BCB clear sky longwave radiative forcing
       case ('OCII')
         k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Industrial source'
         sname_ijts(k) = 'OC_Industrial_source'
@@ -4730,7 +5520,6 @@ c BCB clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'ship source'
         sname_ijts(k) = 'OC_Ship_source'
@@ -4740,7 +5529,6 @@ c BCB clear sky longwave radiative forcing
 #ifndef TRACERS_AEROSOLS_SOA
         k = k + 1
         ijts_source(3,n) = k ! Terpene source should always be last
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
@@ -4750,7 +5538,6 @@ c BCB clear sky longwave radiative forcing
 #endif  /* TRACERS_AEROSOLS_SOA */
         k = k + 1
         ijts_3Dsource(1,n) = k   ! defined but not output
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'       ! 'OCII Aging sink'
         sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
@@ -4762,7 +5549,6 @@ c BCB clear sky longwave radiative forcing
 #ifndef TRACERS_AEROSOLS_SOA
         k = k + 1
         ijts_source(1,n) = k ! Terpene source should always be last
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Terpene source'
         sname_ijts(k) = 'OC_Terpene_source'
@@ -4772,7 +5558,6 @@ c BCB clear sky longwave radiative forcing
 #endif  /* TRACERS_AEROSOLS_SOA */
         k = k + 1
         ijts_3Dsource(1,n) = k   ! Emissions
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) =  TRIM(trname(n))//' Emissions'
         sname_ijts(k) = TRIM(trname(n))//'_emissions'
@@ -4781,7 +5566,6 @@ c BCB clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(2,n) = k   ! defined but not output
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'       ! 'OCII Aging sink'
         sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
@@ -4791,7 +5575,6 @@ c BCB clear sky longwave radiative forcing
       case ('OCI1','OCI2')
         k = k + 1
         ijts_3Dsource(1,n) = k   ! Emissions
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) =  TRIM(trname(n))//' Emissions'
         sname_ijts(k) = TRIM(trname(n))//'_emissions'
@@ -4800,7 +5583,6 @@ c BCB clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(2,n) = k   ! defined but not output
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'unused'       ! 'Aging sink'
         sname_ijts(k) = 'unused'       ! 'OCII_Aging_Sink'
@@ -4810,7 +5592,6 @@ c BCB clear sky longwave radiative forcing
       case ('OCA4')
         k = k + 1
         ijts_3Dsource(1,n) = k   ! Emissions
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) =  TRIM(trname(n))//' Emissions'
         sname_ijts(k) = TRIM(trname(n))//'_emissions'
@@ -4818,128 +5599,12 @@ c BCB clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_OM_SP
-        IF (diag_rad /= 1) THEN
-c OC optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = TRIM(trname(n))//' optical thickness'
-          sname_ijts(k) = 'tau_'//TRIM(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c OC clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
-          sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+
+        call set_diag_rad(n,k)
+
 c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
@@ -4949,7 +5614,6 @@ c OC shortwave radiative forcing
 c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
@@ -4959,7 +5623,6 @@ c OC longwave radiative forcing
 c OC shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
@@ -4969,7 +5632,6 @@ c OC shortwave surface radiative forcing
 c OC longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
@@ -4979,7 +5641,6 @@ c OC longwave surface radiative forcing
 c OC clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
@@ -4989,7 +5650,6 @@ c OC clear sky shortwave radiative forcing
 c OC clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
@@ -5000,7 +5660,6 @@ c OC clear sky longwave radiative forcing
       case ('OCIA','OCA1','OCA2','OCA3')
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = TRIM(trname(n))//' Aging source'
         sname_ijts(k) = TRIM(trname(n))//'_Aging_Source'
@@ -5009,128 +5668,12 @@ c OC clear sky longwave radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP)
-        IF (diag_rad /= 1) THEN
-c OC optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = TRIM(trname(n))//' optical thickness'
-          sname_ijts(k) = 'tau_'//TRIM(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c OC clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = TRIM(trname(n))//' clr sky opt thickness'
-          sname_ijts(k) = 'tau_CS_'//TRIM(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+
+        call set_diag_rad(n,k)
+
 c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
@@ -5140,7 +5683,6 @@ c OC shortwave radiative forcing
 c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
@@ -5150,7 +5692,6 @@ c OC longwave radiative forcing
 c OC shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
@@ -5160,7 +5701,6 @@ c OC shortwave surface radiative forcing
 c OC longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
@@ -5170,7 +5710,6 @@ c OC longwave surface radiative forcing
 c OC clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
@@ -5180,7 +5719,6 @@ c OC clear sky shortwave radiative forcing
 c OC clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
@@ -5191,7 +5729,6 @@ c OC clear sky longwave radiative forcing
       case ('OCB')
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC Biomass source'
         sname_ijts(k) = 'OC_Biomass_source'
@@ -5202,7 +5739,6 @@ c OC clear sky longwave radiative forcing
       case ('DMS')
         k = k + 1
         ijts_isrc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'DMS Ocean source'
         sname_ijts(k) = 'DMS_Ocean_source'
@@ -5212,7 +5748,6 @@ c OC clear sky longwave radiative forcing
 
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'DMS Chem sink'
         sname_ijts(k) = 'DMS_Chem_sink'
@@ -5224,7 +5759,6 @@ c OC clear sky longwave radiative forcing
 c put in chemical production of MSA
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'MSA Chemical source'
         sname_ijts(k) = 'MSA_Chemical_source'
@@ -5236,7 +5770,6 @@ c put in chemical production of MSA
 c production of SO2 from volcanic emissions
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from volcanos'
         sname_ijts(k) = 'SO2_source_from_volcanos'
@@ -5246,7 +5779,6 @@ c production of SO2 from volcanic emissions
 c production of SO2 from aircraft
         k = k + 1
         ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from aircraft'
         sname_ijts(k) = 'SO2_source_from_aricraft'
@@ -5256,7 +5788,6 @@ c production of SO2 from aircraft
 c emissions of biomass SO2
         k = k + 1
         ijts_3Dsource(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Biomass SO2 source'
         sname_ijts(k) = 'SO2_source_from_biomass'
@@ -5266,7 +5797,6 @@ c emissions of biomass SO2
 c put in production of SO2 from DMS
         k = k + 1
         ijts_3Dsource(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from DMS'
         sname_ijts(k) = 'SO2_source_from_DMS'
@@ -5276,7 +5806,6 @@ c put in production of SO2 from DMS
 c put in chemical loss of SO2
         k = k + 1
         ijts_3Dsource(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 Chemical sink'
         sname_ijts(k) = 'SO2_chem_sink'
@@ -5286,7 +5815,6 @@ c put in chemical loss of SO2
 #ifdef EDGAR_1995
       k = k+1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 E95 fossil fuel source'
         sname_ijts(k) = 'SO2_E95_ffuel_source'
@@ -5295,7 +5823,6 @@ c put in chemical loss of SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 E95 industrial processes source'
         sname_ijts(k) = 'SO2_E95_indust_source'
@@ -5304,7 +5831,6 @@ c put in chemical loss of SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 E95 waste handling source'
         sname_ijts(k) = 'SO2_E95_waste_source'
@@ -5313,7 +5839,6 @@ c put in chemical loss of SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 E95 Biofuel'
         sname_ijts(k) = 'SO2_E95_biofuel_source'
@@ -5322,7 +5847,6 @@ c put in chemical loss of SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
        k = k+1
         ijts_source(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 E95 agricultural waste burning source'
         sname_ijts(k) = 'SO2_E95_Ag_waste_source'
@@ -5331,7 +5855,6 @@ c put in chemical loss of SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 E95 Biomass burning'
         sname_ijts(k) = 'SO2_E95_biomass_source'
@@ -5342,7 +5865,6 @@ c put in chemical loss of SO2
 c emissions of industrial SO2
         k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO2 source'
         sname_ijts(k) = 'SO2_source_from_industry'
@@ -5351,7 +5873,6 @@ c emissions of industrial SO2
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Ship SO2 source'
         sname_ijts(k) = 'SO2_source_from_ships'
@@ -5363,7 +5884,6 @@ c emissions of industrial SO2
 c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 gas phase source'
         sname_ijts(k) = 'SO4_gas_phase_source'
@@ -5373,7 +5893,6 @@ c put in production of SO4 from gas phase
 #ifdef EDGAR_1995
       k = k+1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 E95 fossil fuel source'
         sname_ijts(k) = 'SO4_E95_ffuel_source'
@@ -5382,7 +5901,6 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 E95 industrial processes source'
         sname_ijts(k) = 'SO4_E95_indust_source'
@@ -5391,7 +5909,6 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 E95 waste handling source'
         sname_ijts(k) = 'SO4_E95_waste_source'
@@ -5400,7 +5917,6 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 E95 Biofuel'
         sname_ijts(k) = 'SO4_E95_biofuel_source'
@@ -5409,7 +5925,6 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 E95 agricultural waste burning source'
         sname_ijts(k) = 'SO4_E95_Ag_waste_source'
@@ -5418,7 +5933,6 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k+1
         ijts_source(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 E95 Biomass burning'
         sname_ijts(k) = 'SO4_E95_biomass_source'
@@ -5429,7 +5943,6 @@ c put in production of SO4 from gas phase
 c SO4 from industrial emissions
         k = k + 1
         ijts_source(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Industrial SO4 source'
         sname_ijts(k) = 'SO4_source_from_industry'
@@ -5438,7 +5951,6 @@ c SO4 from industrial emissions
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_source(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Ship SO4 source'
         sname_ijts(k) = 'SO4_source_from_ships'
@@ -5450,135 +5962,18 @@ c SO4 from industrial emissions
 c put in source of SO4 from aqueous chem
         k = k + 1
         ijts_aq(n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 aqueous chem source'
         sname_ijts(k) = 'SO4_aq_chem_source'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        IF (diag_rad /= 1) THEN
-c SO4 optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'SO4 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c SO4 clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'SO4 clr sky optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+
+        call set_diag_rad(n,k)
+
 c SO4 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 SW radiative forcing'
         sname_ijts(k) = 'swf_'//trim(trname(n))
@@ -5588,7 +5983,6 @@ c SO4 shortwave radiative forcing
 c SO4 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW radiative forcing'
         sname_ijts(k) = 'lwf_'//trim(trname(n))
@@ -5598,7 +5992,6 @@ c SO4 longwave radiative forcing
 c SO4 shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_'//trim(trname(n))
@@ -5608,7 +6001,6 @@ c SO4 shortwave surface radiative forcing
 c SO4 longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
@@ -5618,7 +6010,6 @@ c SO4 longwave surface radiative forcing
 c SO4 clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
@@ -5628,7 +6019,6 @@ c SO4 clear sky shortwave radiative forcing
 c SO4 clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SO4 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
@@ -5642,7 +6032,6 @@ c#ifdef TRACERS_NITRATE
 c production of NH3 from all emissions
         k = k + 1
         ijts_source(1,n) = k  ! 3dsource?
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'NH3 source from emission'
         sname_ijts(k) = 'NH3_source_from_emission'
@@ -5654,7 +6043,6 @@ c production of NH3 from all emissions
 c NO3 optical thickness
         k = k + 1
         ijts_tau(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 optical thickness'
         sname_ijts(k) = 'tau_'//trim(trname(n))
@@ -5664,7 +6052,6 @@ c NO3 optical thickness
 c NO3 clear sky optical thickness
         k = k + 1
         ijts_tau(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 clr sky optical thickness'
         sname_ijts(k) = 'tau_CS_'//trim(trname(n))
@@ -5674,7 +6061,6 @@ c NO3 clear sky optical thickness
 c NO3 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 SW radiative forcing'
         sname_ijts(k) = 'swf_'//trim(trname(n))
@@ -5684,7 +6070,6 @@ c NO3 shortwave radiative forcing
 c NO3 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 LW radiative forcing'
         sname_ijts(k) = 'lwf_'//trim(trname(n))
@@ -5694,7 +6079,6 @@ c NO3 longwave radiative forcing
 c NO3 shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_'//trim(trname(n))
@@ -5704,7 +6088,6 @@ c NO3 shortwave surface radiative forcing
 c NO3 longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
@@ -5714,7 +6097,6 @@ c NO3 longwave surface radiative forcing
 c NO3 clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
@@ -5724,7 +6106,6 @@ c NO3 clear sky shortwave radiative forcing
 c NO3 clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'NO3 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
@@ -5747,7 +6128,6 @@ c#endif
      *    'M_OCS_OC','N_OCS_1 ','M_SSS_SS','M_SSS_SU')
        k = k + 1
          ijts_3Dsource(1,n)=k ! AMP source - 2 is Emission source
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'AMP_src_'//trim(trname(n))
          sname_ijts(k) = 'AMP_src_'//trim(trname(n))
@@ -5756,7 +6136,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
        k = k + 1
          ijts_AMPp(1,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P1_Nucl_'//trim(trname(n))
          sname_ijts(k) = 'P1_Nucl_'//trim(trname(n))
@@ -5765,7 +6144,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
          ijts_AMPp(2,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P2_Coag_'//trim(trname(n))
          sname_ijts(k) = 'P2_Coag_'//trim(trname(n))
@@ -5774,7 +6152,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
          ijts_AMPp(3,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P3_Cond_'//trim(trname(n))
          sname_ijts(k) = 'P3_Cond_'//trim(trname(n))
@@ -5783,7 +6160,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
          ijts_AMPp(4,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P4_Incld_NIMC_'//trim(trname(n))
          sname_ijts(k) = 'P4_Incld_NIMC_'//trim(trname(n))
@@ -5792,7 +6168,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
          ijts_AMPp(5,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P5_IMLoss_NIAC_'//trim(trname(n))
          sname_ijts(k) = 'P5_IMLoss_NIAC_'//trim(trname(n))
@@ -5801,7 +6176,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
          ijts_AMPp(6,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P6_Mode_Trans_'//trim(trname(n))
          sname_ijts(k) = 'P6_Mode_Trans_'//trim(trname(n))
@@ -5810,7 +6184,6 @@ c#endif
          scale_ijts(k) = 10.**(-ijts_power(k))
        k = k + 1
          ijts_AMPp(7,n)=k
-         ijts_index(k) = n
          ia_ijts(k) = ia_src
          lname_ijts(k) = 'P7_Total_Change_'//trim(trname(n))
          sname_ijts(k) = 'P7_Total_Change_'//trim(trname(n))
@@ -5823,7 +6196,6 @@ c#endif
 c chemical production of SO4 from SO2 on dust
         k = k + 1
         ijts_source(1,n) = k  ! 3dsource?
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d1 Chemical source'
         sname_ijts(k) = 'SO4d1_Chemical_source'
@@ -5834,7 +6206,6 @@ c chemical production of SO4 from SO2 on dust
 c chemical production of SO4 from SO2 on dust
         k = k + 1
         ijts_source(1,n) = k  ! 3dsource?
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d2 Chemical source'
         sname_ijts(k) = 'SO4d2_Chemical_source'
@@ -5845,7 +6216,6 @@ c chemical production of SO4 from SO2 on dust
 c chemical production of SO4 from SO2 on dust
         k = k + 1
         ijts_source(1,n) = k  ! 3dsource?
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4d3 Chemical source'
         sname_ijts(k) = 'SO4d3_Chemical_source'
@@ -5857,7 +6227,6 @@ c chemical production of SO4 from SO2 on dust
 c put in production of H2O2 from gas phase
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'H2O2 gas phase source'
         sname_ijts(k) = 'H2O2_gas_phase_source'
@@ -5867,7 +6236,6 @@ c put in production of H2O2 from gas phase
 c put in production of H2O2 from gas phase
         k = k + 1
         ijts_3Dsource(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'H2O2 gas phase sink'
         sname_ijts(k) = 'H2O2_gas_phase_sink'
@@ -5875,35 +6243,21 @@ c put in production of H2O2 from gas phase
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-        case ('Be7')
+      case ('Be7','Be10')
 c cosmogenic source from file
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Cosmogenic source of '//trname(n)
-        sname_ijts(k) = 'Be7_cosmo_src'
+        sname_ijts(k) = trim(trname(n))//'_cosmo_src'
         ijts_power(k) = -25
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-        case ('Be10')
-c cosmogenic source from file
-        k = k + 1
-        ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Cosmogenic source of '//trname(n)
-        sname_ijts(k) = 'Be10_cosmo_src'
-        ijts_power(k) = -25
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-        case ('Pb210')
+      case ('Pb210')
 c source of Pb210 from Rn222 decay
         k = k + 1
         ijts_3Dsource(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Radioactive source of '//trname(n)
         sname_ijts(k) = 'Pb210_radio_src'
@@ -5914,7 +6268,6 @@ c source of Pb210 from Rn222 decay
       case ('seasalt1')
         k = k + 1
         ijts_isrc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'seasalt1 Ocean source'
         sname_ijts(k) = 'seasalt1_Ocean_source'
@@ -5922,128 +6275,11 @@ c source of Pb210 from Rn222 decay
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-        IF (diag_rad /= 1) THEN
-c ss1 optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'ss1 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c ss1 clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'ss1 clr sky optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+        call set_diag_rad(n,k)
+
 c SS shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS SW radiative forcing'
         sname_ijts(k) = 'swf_SS'
@@ -6053,7 +6289,6 @@ c SS shortwave radiative forcing
 c SS longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS LW radiative forcing'
         sname_ijts(k) = 'lwf_SS'
@@ -6063,7 +6298,6 @@ c SS longwave radiative forcing
 c SS shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_SS'
@@ -6073,7 +6307,6 @@ c SS shortwave surface radiative forcing
 c SS longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_SS'
@@ -6083,7 +6316,6 @@ c SS longwave surface radiative forcing
 c SS clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_SS'
@@ -6093,7 +6325,6 @@ c SS clear sky shortwave radiative forcing
 c SS clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'SS clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_SS'
@@ -6104,7 +6335,6 @@ c SS clear sky longwave radiative forcing
        case ('seasalt2')
         k = k + 1
         ijts_isrc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'seasalt2 Ocean source'
         sname_ijts(k) = 'seasalt2_Ocean_source'
@@ -6112,124 +6342,9 @@ c SS clear sky longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_AEROSOLS_Koch
-        IF (diag_rad /= 1) THEN
-c ss2 optical thickness
-          k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'ss2 optical thickness'
-          sname_ijts(k) = 'tau_'//trim(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c ss2 clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'ss2 clr sky optical thickness'
-          sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-        ELSE
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+
+       call set_diag_rad(n,k)
+
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -6243,7 +6358,6 @@ c clear sky scattering asymmetry factor in six solar bands
         ijts_isrc(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_emission'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6254,7 +6368,6 @@ c clear sky scattering asymmetry factor in six solar bands
         ijts_isrc(nDustEm2ij,n)=k
         lname_ijts(k)='Cubic emission of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_emission2'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6266,7 +6379,6 @@ c clear sky scattering asymmetry factor in six solar bands
         ijts_isrc(nDustTurbij,n)=k
         lname_ijts(k)='Turbulent Deposition of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_turb_depo'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6277,7 +6389,6 @@ c clear sky scattering asymmetry factor in six solar bands
         ijts_wet(n)=k
         lname_ijts(k)='Wet deposition of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_wet_depo'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6285,88 +6396,39 @@ c clear sky scattering asymmetry factor in six solar bands
 #endif
         SELECT CASE (trname(n))
         CASE ('Clay')
+
+C???? can this be replaced with calls to set_diag_rad?
           IF (diag_rad /= 1) THEN
 c dust optical thickness of four clay sub size classes
-            k = k + 1
-            ijts_tausub(1,n,1) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'1 optical thickness'
-            sname_ijts(k) = 'tau_'//trim(trname(n))//'1'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            k = k + 1
-            ijts_tausub(1,n,2) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'2 optical thickness'
-            sname_ijts(k) = 'tau_'//trim(trname(n))//'2'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            k = k + 1
-            ijts_tausub(1,n,3) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'3 optical thickness'
-            sname_ijts(k) = 'tau_'//trim(trname(n))//'3'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            k = k + 1
-            ijts_tausub(1,n,4) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'4 optical thickness'
-            sname_ijts(k) = 'tau_'//trim(trname(n))//'4'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
+            do kr=1,4
+              k = k + 1
+              ijts_tausub(1,n,kr) = k
+              ia_ijts(k) = ia_rad
+              lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *             /' optical thickness'
+              sname_ijts(k) = 'tau_'//trim(trname(n))//char(48+kr)
+              ijts_power(k) = -2
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+            end do
 c dust clear sky optical thickness of four clay sub size classes
-            k = k + 1
-            ijts_tausub(2,n,1) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'1 CS optical thickness'
-            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'1'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            k = k + 1
-            ijts_tausub(2,n,2) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'2 CS optical thickness'
-            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'2'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            k = k + 1
-            ijts_tausub(2,n,3) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'3 CS optical thickness'
-            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'3'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            k = k + 1
-            ijts_tausub(2,n,4) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//'4 CS optical thickness'
-            sname_ijts(k) = 'tau_CS_'//trim(trname(n))//'4'
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
+            do kr=1,4
+              k = k + 1
+              ijts_tausub(2,n,kr) = k
+              ia_ijts(k) = ia_rad
+              lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *             /' CS optical thickness'
+              sname_ijts(k) = 'tau_CS_'//trim(trname(n))//char(48+kr)
+              ijts_power(k) = -2
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+            end do
           ELSE
             DO kr=1,6
               DO n1=1,4
 c extinction optical thickness in six solar bands for four clay sub classes
                 k=k+1
                 ijts_sqexsub(1,kr,n,n1)=k
-                ijts_index(k)=n
                 ia_ijts(k)=ia_rad
                 WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
      &               ',I1,A26,I1)'
@@ -6383,7 +6445,6 @@ c clear sky extinction optical thickness in six solar bands for four clay
 c sub classes
                 k=k+1
                 ijts_sqexsub(2,kr,n,n1)=k
-                ijts_index(k)=n
                 ia_ijts(k)=ia_rad
                 WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
      &               ',I1,A29,I1)'
@@ -6399,7 +6460,6 @@ c sub classes
 c scattering optical thickness in six solar bands for four clay sub classes
                 k=k+1
                 ijts_sqscsub(1,kr,n,n1)=k
-                ijts_index(k)=n
                 ia_ijts(k)=ia_rad
                 WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
      &               ',I1,A28,I1)'
@@ -6416,7 +6476,6 @@ c clear sky scattering optical thickness in six solar bands for four clay
 c sub classes
                 k=k+1
                 ijts_sqscsub(2,kr,n,n1)=k
-                ijts_index(k)=n
                 ia_ijts(k)=ia_rad
                 WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
      &               ',I1,A31,I1)'
@@ -6432,7 +6491,6 @@ c sub classes
 c scattering asymmetry factor in six solar bands for four clay sub classes
                 k=k+1
                 ijts_sqcbsub(1,kr,n,n1)=k
-                ijts_index(k)=n
                 ia_ijts(k)=ia_rad
                 WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
      &               ',I1,A26,I1)'
@@ -6449,7 +6507,6 @@ c clear sky scattering asymmetry factor in six solar bands for four clay
 c sub classes
                 k=k+1
                 ijts_sqcbsub(2,kr,n,n1)=k
-                ijts_index(k)=n
                 ia_ijts(k)=ia_rad
                 WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
      &               ',I1,A29,I1)'
@@ -6466,284 +6523,65 @@ c sub classes
             END DO
           END IF
 c dust shortwave radiative forcing of four clay sub size classes
-          k = k + 1
-          ijts_fcsub(1,n,1) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'1 SW radiative forcing'
-          sname_ijts(k) = 'swf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(1,n,2) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'2 SW radiative forcing'
-          sname_ijts(k) = 'swf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(1,n,3) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'3 SW radiative forcing'
-          sname_ijts(k) = 'swf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(1,n,4) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'4 SW radiative forcing'
-          sname_ijts(k) = 'swf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(1,n,kr) = k
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' SW radiative forcing'
+            sname_ijts(k) = 'swf_'//trim(trname(n))//char(48+kr)
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          end do
 c dust longwave radiative forcing of four clay sub size classes
-          k = k + 1
-          ijts_fcsub(2,n,1) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'1 LW radiative forcing'
-          sname_ijts(k) = 'lwf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(2,n,2) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'2 LW radiative forcing'
-          sname_ijts(k) = 'lwf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(2,n,3) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'3 LW radiative forcing'
-          sname_ijts(k) = 'lwf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(2,n,4) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'4 LW radiative forcing'
-          sname_ijts(k) = 'lwf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(2,n,kr) = k
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' LW radiative forcing'
+            sname_ijts(k) = 'lwf_'//trim(trname(n))//char(48+kr)
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          end do
 c dust shortwave radiative forcing at surface of four clay sub size classes
-          k = k + 1
-          ijts_fcsub(3,n,1) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'1 SW Surf radiative forcing'
-          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(3,n,2) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'2 SW Surf radiative forcing'
-          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(3,n,3) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'3 SW Surf radiative forcing'
-          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(3,n,4) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'4 SW Surf radiative forcing'
-          sname_ijts(k) = 'swf_surf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(3,n,kr) = k
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' SW Surf radiative forcing'
+            sname_ijts(k) = 'swf_surf_'//trim(trname(n))//char(48+kr)
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          end do
 c dust longwave radiative forcing at surface of four sub size classes
-          k = k + 1
-          ijts_fcsub(4,n,1) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'1 LW Surf radiative forcing'
-          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'1'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(4,n,2) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'2 LW Surf radiative forcing'
-          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'2'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(4,n,3) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'3 LW Surf radiative forcing'
-          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'3'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          k = k + 1
-          ijts_fcsub(4,n,4) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = trim(trname(n))//'4 LW Surf radiative forcing'
-          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//'4'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+          do kr=1,4
+            k = k + 1
+            ijts_fcsub(4,n,kr) = k
+            ia_ijts(k) = ia_rad
+            lname_ijts(k) = trim(trname(n))//char(48+kr)/
+     *           /' LW Surf radiative forcing'
+            sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//char(48+kr)
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          end do
         CASE('Silt1','Silt2','Silt3','Silt4',
      &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
      &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
      &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
      &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
      &     'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          IF (diag_rad /= 1) THEN
-c dust optical thickness
-            k = k + 1
-            ijts_tau(1,n) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//' optical thickness'
-            sname_ijts(k) = 'tau_'//trim(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c dust clear sky optical thickness
-            k = k + 1
-            ijts_tau(2,n) = k
-            ijts_index(k) = n
-            ia_ijts(k) = ia_rad
-            lname_ijts(k) = trim(trname(n))//' CS optical thickness'
-            sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-            ijts_power(k) = -2
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          ELSE
-            DO kr=1,6
-c extinction optical thickness in six solar bands
-              k=k+1
-              ijts_sqex(1,kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A26,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' SW total extinction band ',kr
-              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -4
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-              k=k+1
-              ijts_sqex(2,kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A29,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' CS SW total extinction band ',kr
-              WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -4
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-              k=k+1
-              ijts_sqsc(1,kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A28,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' SW scatter extinction band ',kr
-              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -4
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-              k=k+1
-              ijts_sqsc(2,kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A31,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' CS SW scatter extinction band ',kr
-              WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -4
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-              k=k+1
-              ijts_sqcb(1,kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A26,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' SW asymmetry factor band ',kr
-              WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-              k=k+1
-              ijts_sqcb(2,kr,n)=k
-              ijts_index(k)=n
-              ia_ijts(k)=ia_rad
-              WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &             ',A29,I1)'
-              WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &             ' CS SW asymmetry factor band ',kr
-              WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &             LEN_TRIM(trname(n)),')'
-              WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &             TRIM(trname(n))
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-            END DO
-          END IF
+
+          call set_diag_rad(n,k)
+
 c dust shortwave radiative forcing
           k = k + 1
           ijts_fc(1,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))
@@ -6753,7 +6591,6 @@ c dust shortwave radiative forcing
 c dust longwave radiative forcing
           k = k + 1
           ijts_fc(2,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))
@@ -6763,7 +6600,6 @@ c dust longwave radiative forcing
 c dust shortwave radiative forcing at surface
           k = k + 1
           ijts_fc(3,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))
@@ -6773,7 +6609,6 @@ c dust shortwave radiative forcing at surface
 c dust longwave radiative forcing at surface
           k = k + 1
           ijts_fc(4,n) = k
-          ijts_index(k) = n
           ia_ijts(k) = ia_rad
           lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
@@ -6792,7 +6627,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpmc(1,n)=k
         lname_ijts(k)='MC Condensation of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_cond_mc'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6802,7 +6636,6 @@ c**** additional wet deposition diagnostics
         lname_ijts(k)='Evaporated '//TRIM(trname(n))
      &       //' in MC Downdrafts'
         sname_ijts(k)=TRIM(trname(n))//'_downeva_mc'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6811,7 +6644,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpmc(3,n)=k
         lname_ijts(k)='Condensed '//TRIM(trname(n))//' in MC CLW'
         sname_ijts(k)=TRIM(trname(n))//'_conclw_mc'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6820,7 +6652,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpmc(4,n)=k
         lname_ijts(k)='Precipitated '//TRIM(trname(n))//' by MC'
         sname_ijts(k)=TRIM(trname(n))//'_precip_mc'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6830,7 +6661,6 @@ c**** additional wet deposition diagnostics
         lname_ijts(k)='Reevaporated '//TRIM(trname(n))
      &       //' from MC Precip'
         sname_ijts(k)=TRIM(trname(n))//'_reevap_mc'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6839,7 +6669,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpmc(6,n)=k
         lname_ijts(k)='MC Washout of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_washout_mc'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6848,7 +6677,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpls(1,n)=k
         lname_ijts(k)='LS Washout of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_washout_ls'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6857,7 +6685,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpls(2,n)=k
         lname_ijts(k)='Precipitated '//TRIM(trname(n))//' by LS'
         sname_ijts(k)=TRIM(trname(n))//'_precip_ls'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6866,7 +6693,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpls(3,n)=k
         lname_ijts(k)='Condensed '//TRIM(trname(n))// ' in LS CLW'
         sname_ijts(k)=TRIM(trname(n))//'_conclw_ls'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6876,7 +6702,7 @@ c**** additional wet deposition diagnostics
         lname_ijts(k)='Reevaporated '//TRIM(trname(n))
      &       //' from LS Precip'
         sname_ijts(k)=TRIM(trname(n))//'_reevap_ls'
-        ijts_index(k)=n
+
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6885,7 +6711,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpls(5,n)=k
         lname_ijts(k)='Evaporated '//TRIM(trname(n))//' from LS CLW'
         sname_ijts(k)=TRIM(trname(n))//'_clwevap_ls'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6894,7 +6719,6 @@ c**** additional wet deposition diagnostics
         ijts_trdpls(6,n)=k
         lname_ijts(k)='LS Condensation of '//TRIM(trname(n))
         sname_ijts(k)=TRIM(trname(n))//'_cond_ls'
-        ijts_index(k)=n
         ia_ijts(k)=ia_src
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -6906,23 +6730,21 @@ c**** additional wet deposition diagnostics
 C**** Additional Special IJ diagnostics
 C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_AEROSOLS_Koch
-        IF (diag_rad.eq.1) THEN
-          k = k + 1
+      IF (diag_rad.eq.1) THEN
+        k = k + 1
           ijs_ai = k
-          ijts_index(k) = ntm
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'Aerosol Index'
           sname_ijts(k) = 'ain_CSN'
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
-         ENDIF
+      ENDIF
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef BIOGENIC_EMISSIONS
       k = k+1
         ijs_isoprene=k
-        ijts_index(k) = ntm
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Interactive isoprene source'
         sname_ijts(k) = 'Int_isop'
@@ -6930,124 +6752,8 @@ C**** (not necessary associated with a particular tracer)
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
-#ifdef HTAP_LIKE_DIAGS
-      do L=1,LTOP
-        k = k + 1
-          ijs_OH(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a19,i2.2)') 'OH mixing ratio  L=',L
-          write(sname_ijts(k),'(a7,i2.2)') 'OH_vmr_',L
-          ijts_power(k) = -10
-          units_ijts(k) = unit_string(ijts_power(k),'V/V air')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-#else
-      do L=1,LTOP
-        k = k + 1
-          ijs_OH(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a19,i2.2)') 'OH concentration L=',L
-          write(sname_ijts(k),'(a7,i2.2)') 'OH_con_',L
-          ijts_power(k) = 5
-          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-#endif
-      do L=1,LTOP
-        k = k + 1
-          ijs_NO3(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a20,i2.2)') 'NO3 concentration L=',L
-          write(sname_ijts(k),'(a8,i2.2)') 'NO3_con_',L
-          ijts_power(k) = 5
-          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-          ijs_HO2(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a20,i2.2)') 'HO2 concentration L=',L
-          write(sname_ijts(k),'(a8,i2.2)') 'HO2_con_',L
-          ijts_power(k) = 7
-          units_ijts(k) = unit_string(ijts_power(k),'molecules/cm3')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-          ijs_JH2O2(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a23,i2.2)') 'H2O2 photolysis rate L=',L
-          write(sname_ijts(k),'(a8,i2.2)') 'J(H2O2)_',L
-          ijts_power(k) = 2
-          units_ijts(k) = unit_string(ijts_power(k),'s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-#ifdef HTAP_LIKE_DIAGS
-      do L=1,LTOP
-        k = k + 1
-          ijs_COp(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a21,i2.2)') 'CO production rate L=',L
-          write(sname_ijts(k),'(a7,i2.2)') 'COprod_',L
-          ijts_power(k) = 0
-          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      end do
-      do L=1,LTOP
-        k = k + 1
-          ijs_COd(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a22,i2.2)') 'CO destruction rate L=',L
-          write(sname_ijts(k),'(a7,i2.2)') 'COdest_',L
-          ijts_power(k) = 0
-          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      end do
-      do L=1,LTOP
-        k = k + 1
-          ijs_Oxp(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a21,i2.2)') 'Ox production rate L=',L
-          write(sname_ijts(k),'(a7,i2.2)') 'Oxprod_',L
-          ijts_power(k) = 0
-          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      end do
-      do L=1,LTOP
-        k = k + 1
-          ijs_Oxd(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a22,i2.2)') 'Ox destruction rate L=',L
-          write(sname_ijts(k),'(a7,i2.2)') 'Oxdest_',L
-          ijts_power(k) = 0
-          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      end do
-      do L=1,LTOP
-        k = k + 1
-          ijs_CH4d(L)=k
-          ijts_index(k) = ntm
-          ia_ijts(k) = ia_src
-          write(lname_ijts(k),'(a23,i2.2)') 'CH4 destruction rate L=',L
-          write(sname_ijts(k),'(a8,i2.2)') 'CH4dest_',L
-          ijts_power(k) = 0
-          units_ijts(k) = unit_string(ijts_power(k),'mole m-3 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      end do
-#endif
       k = k + 1
         ijs_NO2_col=k 
-        ijts_index(k) = ntm
         ia_ijts(k) = ia_src
         write(lname_ijts(k),'(a31)')'NO2 tropospheric column 10:30am'
         write(sname_ijts(k),'(a16)') 'NO2_10:30_column'
@@ -7056,7 +6762,6 @@ C**** (not necessary associated with a particular tracer)
         scale_ijts(k) = 10.**(-ijts_power(k))
       k = k + 1
         ijs_NO2_count=k 
-        ijts_index(k) = ntm
         ia_ijts(k) = ia_src ! overridden in TRACER_PRT...
         write(lname_ijts(k),'(a27)')'NO2 trop column accum count'
         write(sname_ijts(k),'(a17)')'NO2_col_acc_count'
@@ -7070,7 +6775,6 @@ C**** (not necessary associated with a particular tracer)
       ijts_spec(nDustEv1ij)=k
       lname_ijts(k)='No. dust events'
       sname_ijts(k)='no_dust_ev1'
-      ijts_index(k)=Ntm_dust
       ia_ijts(k)=ia_src
       scale_ijts(k)=Sday/Dtsrc
       units_ijts(k)='1/d'
@@ -7078,7 +6782,6 @@ C**** (not necessary associated with a particular tracer)
       ijts_spec(nDustEv2ij)=k
       lname_ijts(k)='No. dust events above threshold wind'
       sname_ijts(k)='no_dust_ev2'
-      ijts_index(k)=Ntm_dust
       ia_ijts(k)=ia_src
       scale_ijts(k)=Sday/Dtsrc
       units_ijts(k)='1/d'
@@ -7086,46 +6789,26 @@ C**** (not necessary associated with a particular tracer)
       ijts_spec(nDustWthij)=k
       lname_ijts(k)='Threshold velocity for dust emission'
       sname_ijts(k)='wtrsh'
-      ijts_index(k)=Ntm_dust
       ia_ijts(k)=ia_src
       scale_ijts(k)=1.
       units_ijts(k)='m/s'
 #endif
-#ifdef TRACERS_DUST
-c       do n=1,ntm
-c       select case(trname(n))
-c     CASE('Clay','Silt1','Silt2','Silt3','Silt4')
-c     do L=1,LTOP
-c       k = k + 1
-c         ijts_3Dtau(l,n)=k
-c         ijts_index(k) = n
-c         ia_ijts(k) = ia_rad
-c         write(lname_ijts(k),'(a12,i2.2)') trname(n)' tau L=    ',L
-c         write(sname_ijts(k),'(a12,i2.2)') 'tau_3D_'//trname(n) ,L
-c         ijts_power(k) = -2
-c         units_ijts(k) = unit_string(ijts_power(k),' ')
-c         scale_ijts(k) = 10.**(-ijts_power(k))
-c     end do
-c     end select
-c     end do
-#endif
+
 #ifdef TRACERS_AMP
-       do n=1,ntm
-       select case(trname(n))
-       CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC')
-       k = k + 1
-         ijts_3Dsource(2,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Emission_'//trim(trname(n))
-         sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -15
-         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      do n=1,ntm
+      select case(trname(n))
+      CASE('M_AKK_SU','M_ACC_SU','M_BC1_BC','M_OCC_OC')
+      k = k + 1
+        ijts_3Dsource(2,n)=k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Emission_'//trim(trname(n))
+        sname_ijts(k) = 'Emission_'//trim(trname(n))
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c Surface industrial emissions
-        k = k + 1
+      k = k + 1
         ijts_source(1,n) = k  
-        ijts_index(k) = n
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Surf_src_'//trim(trname(n))
         sname_ijts(k) = 'Surf_src_'//trim(trname(n))
@@ -7133,59 +6816,34 @@ c Surface industrial emissions
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c- 3D sources diagnostic
-       CASE('M_BOC_BC','M_BOC_OC')
-       k = k + 1
-         ijts_3Dsource(2,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Emission_'//trim(trname(n))
-         sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -15
-         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      CASE('M_BOC_BC','M_BOC_OC')
+      k = k + 1
+        ijts_3Dsource(2,n)=k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Emission_'//trim(trname(n))
+        sname_ijts(k) = 'Emission_'//trim(trname(n))
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c- interactive sources diagnostic
-       CASE('M_DD1_DU','M_SSA_SS','M_SSC_SS','M_DD2_DU','M_SSS_SS')
-       k = k + 1
-         ijts_isrc(1,n) = k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         lname_ijts(k) = 'Emission_'//trim(trname(n))
-         sname_ijts(k) = 'Emission_'//trim(trname(n))
-         ijts_power(k) = -15
-         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c- 3D diagnostic per mode
+      CASE('M_DD1_DU','M_SSA_SS','M_SSC_SS','M_DD2_DU','M_SSS_SS')
+      k = k + 1
+        ijts_isrc(1,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Emission_'//trim(trname(n))
+        sname_ijts(k) = 'Emission_'//trim(trname(n))
+        ijts_power(k) = -15
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
      *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
      *     'N_MXX_1 ','N_OCS_1 ')
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPm(l,1,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a13,i2.2)') TRIM(trname(n))//'DIAM L=',L
-         write(sname_ijts(k),'(a13,i2.2)') 'DIAM___'//TRIM(trname(n)),L
-         ijts_power(k) = -2.
-         units_ijts(k) = unit_string(ijts_power(k),'m')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPm(l,2,n)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a13,i2.2)') TRIM(trname(n))//'ACTI L=',L
-         write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_'//TRIM(trname(n)),L
-         ijts_power(k) = -2.
-         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-       IF (AMP_DIAG_FC) THEN
+      IF (AMP_DIAG_FC) THEN
 cc shortwave radiative forcing
-        k = k + 1
+      k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
@@ -7193,9 +6851,8 @@ cc shortwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c longwave radiative forcing
-        k = k + 1
+      k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
@@ -7203,9 +6860,8 @@ c longwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c shortwave surface radiative forcing
-        k = k + 1
+      k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW surf forc'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
@@ -7213,9 +6869,8 @@ c shortwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c longwave surface radiative forcing
-        k = k + 1
+      k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW surf forc'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
@@ -7223,9 +6878,8 @@ c longwave surface radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky shortwave radiative forcing
-        k = k + 1
+      k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' SW cs forc'
         sname_ijts(k) = 'swf_CS_'//TRIM(trname(n))
@@ -7233,148 +6887,28 @@ c clear sky shortwave radiative forcing
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
 c clear sky longwave radiative forcing
-        k = k + 1
+      k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = TRIM(trname(n))//' LW CS forc'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
-c end special radiation diagnostic
-        ENDIF   
+      ENDIF   
 
 c Special Radiation Diagnostic
-          IF (diag_rad /= 1) THEN
-           k = k + 1
-          ijts_tau(1,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-         write(lname_ijts(k),'(a10)') TRIM(trname(n))// 'AOT'
-         write(sname_ijts(k),'(a11)') 'tau_'//TRIM(trname(n))
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky optical thickness
-          k = k + 1
-          ijts_tau(2,n) = k
-          ijts_index(k) = n
-          ia_ijts(k) = ia_rad
-         write(lname_ijts(k),'(a13)') TRIM(trname(n))// 'CS AOT'
-         write(sname_ijts(k),'(a14)') 'tau_CS_'//TRIM(trname(n))
-          ijts_power(k) = -2.
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ENDIF
-        IF (diag_rad == 1) THEN
-          DO kr=1,6
-c extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW total extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky extinction optical thickness in six solar bands
-            k=k+1
-            ijts_sqex(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW total extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4.
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A28,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW scatter extinction band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -4.
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering optical thickness in six solar bands
-            k=k+1
-            ijts_sqsc(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A31,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW scatter extinction band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &           TRIM(trname(n))
-            ijts_power(k) = -4.
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(1,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A26,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' SW asymmetry factor band ',kr
-            WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
-            ijts_power(k) = -2.
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-c clear sky scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(2,kr,n)=k
-            ijts_index(k)=n
-            ia_ijts(k)=ia_rad
-            WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &           ',A29,I1)'
-            WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &           ' CS SW asymmetry factor band ',kr
-            WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &           LEN_TRIM(trname(n)),')'
-            WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_'
-     &           ,TRIM(trname(n))
-            ijts_power(k) = -2.
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-          END DO
-        END IF
+      call set_diag_rad(n,k)
+
       end select
       end do
 
 c - Tracer independent Diagnostic
-       IF (AMP_DIAG_FC) THEN
-       ELSE 
-        n=1
+      IF (.not. AMP_DIAG_FC) THEN
+        n=1    !  really? why use ijts_fc then?
 cc shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'AMP SW radiative forcing'
         sname_ijts(k) = 'swf_AMP'
@@ -7384,7 +6918,6 @@ cc shortwave radiative forcing
 c longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'AMP LW radiative forcing'
         sname_ijts(k) = 'lwf_AMP'
@@ -7394,7 +6927,6 @@ c longwave radiative forcing
 c shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'AMP SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_AMP'
@@ -7404,7 +6936,6 @@ c shortwave surface radiative forcing
 c longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'AMP LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_AMP'
@@ -7414,7 +6945,6 @@ c longwave surface radiative forcing
 c clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'AMP clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_AMP'
@@ -7424,24 +6954,20 @@ c clear sky shortwave radiative forcing
 c clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ijts_index(k) = n
         ia_ijts(k) = ia_rad
         lname_ijts(k) = 'AMP clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_AMP'
         ijts_power(k) = -2.
         units_ijts(k) = unit_string(ijts_power(k),'W/m2')
         scale_ijts(k) = 10.**(-ijts_power(k))
-        ENDIF
-
-
+      ENDIF
 c end special radiation diagnostic
 
-c - Tracer independent Diagnostic
+c - Tracer independent Diagnostic (stays here if 2D, moves to ijlt if 3D)
 c      do L=1,1    !LTOP
 c      do m=1,NBINS
 c        k = k + 1
 c         ijts_AMPpdf(l,m)=k
-c         ijts_index(k) = n
 c         ia_ijts(k) = ia_src
 c         write(lname_ijts(k),'(a15,i2.2,i2.2)') 'NUMB_PDF BIN L=',L,M
 c         write(sname_ijts(k),'(a9,i2.2,i2.2)') 'N_PDF_BIN',L,M
@@ -7450,1139 +6976,343 @@ c         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
 c         scale_ijts(k) = 10.**(-ijts_power(k))
 c      end do
 c      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPext(l,1)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a13,i2.2)') 'N_SSA ACTI L=',L
-         write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_N_SSA_',L
-         ijts_power(k) = -2
-         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPext(l,2)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a13,i2.2)') 'N_SSC ACTI L=',L
-         write(sname_ijts(k),'(a13,i2.2)') 'ACTI3D_N_SSC_',L
-         ijts_power(k) = -2
-         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPext(l,3)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a13,i2.2)') 'N_SSA DIAM L=',L
-         write(sname_ijts(k),'(a13,i2.2)') 'DIAM___N_SSA_',L
-         ijts_power(k) = -2
-         units_ijts(k) = unit_string(ijts_power(k),'m')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPext(l,4)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a13,i2.2)') 'N_SSC DIAM L=',L
-         write(sname_ijts(k),'(a13,i2.2)') 'DIAM___N_SSC_',L
-         ijts_power(k) = -2
-         units_ijts(k) = unit_string(ijts_power(k),'m')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPext(l,5)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a10,i2.2)') 'N_SSA_1_L=',L
-         write(sname_ijts(k),'(a8,i2.2)')  'N_SSA_1_L_',L
-         ijts_power(k) = -10
-         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
-      do L=1,LTOP
-        k = k + 1
-         ijts_AMPext(l,6)=k
-         ijts_index(k) = n
-         ia_ijts(k) = ia_src
-         write(lname_ijts(k),'(a10,i2.2)') 'N_SSC_1_L=',L
-         write(sname_ijts(k),'(a8,i2.2)')  'N_SSC_1_L_',L
-         ijts_power(k) = -10
-         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
-         scale_ijts(k) = 10.**(-ijts_power(k))
-      end do
 #endif
       if (k .gt. ktaijs) then
-       if (AM_I_ROOT())
-     *  write (6,*)'ijt_defs: Increase ktaijs=',ktaijs,' to at least ',k
+        if (AM_I_ROOT())
+     *       write (6,*)'ijt_defs: Increase ktaijs=',ktaijs
+     *       ,' to at least ',k
         call stop_model('ktaijs too small',255)
       end if
 
-C**** Initialize conservation diagnostics
-C**** To add a new conservation diagnostic:
-C****       Set up a QCON, and call SET_TCON to allocate array numbers,
-C****       set up scales, titles, etc.
-C**** QCON denotes when the conservation diags should be accumulated
-C**** QSUM says whether that diag is to be used in summation (if the
-C****      routine DIAGTCB is used, this must be false).
-C**** 1:NPTS+1 ==> INST,  DYN,   COND,   RAD,   PREC,   LAND,  SURF,
-C****            FILTER,STRDG/OCEAN, DAILY, OCEAN1, OCEAN2,
-C**** First 12 are standard for all tracers and GCM
-C**** Later indices are configurable - you provide title and itcon
-C**** index (which is used wherever you want to check point)
-C**** For example, separate Moist convection/Large scale condensation
-c      itcon_mc(n)=xx
-c      qcon(itcon_mc(n))=.true.  ; conpts(yy) = 'MOIST CONV'
-c      qsum(itcon_mc(n)) = .false.
-c      itcon_ss(n)=xx
-c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
-c      qsum(itcon_ss(n)) = .false.
+      return
+      end subroutine init_ijts_diag
 
-      QCON=(/ t,                                           !instant.
-     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
-      QSUM=(/ f,                                           !instant.
-     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
-     *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
-      do n=1,ntm
-        kt_power_inst(n)   = ntm_power(n)+2
-        kt_power_change(n) = ntm_power(n)-4
-      end do
-
-C**** set some defaults
-      itcon_mc(:)=0
-      itcon_AMP(:,:)=0
-      itcon_AMPe(:)=0
-      itcon_AMPm(:,:)=0
-      itcon_ss(:)=0
-      itcon_surf(:,:)=0
-      itcon_3Dsrc(:,:)=0
-      itcon_decay(:)=0
-      itcon_wt(:)=0
-#ifdef TRACERS_DRYDEP
-      itcon_dd(:,:)=0
+      subroutine set_diag_rad(n,k)
+!@sum set_diag_rad sets special rad diags for aerosols
+!@auth Dorothy Koch
+      USE TRACER_COM
+#ifdef TRACERS_ON
+      USE TRDIAG_COM
 #endif
+      USE DIAG_COM
+      implicit none
+      integer, intent(inout) :: k
+      integer, intent(in) :: n
+      integer kr
+      character*50 :: unit_string
+      character*17 :: cform
 
-      k = 0
-      do n=1,ntm
-        select case (trname(n))
+      IF (diag_rad /= 1) THEN
+c optical thickness
+        k = k + 1
+        ijts_tau(1,n) = k
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = trim(trname(n))//' optical thickness'
+        sname_ijts(k) = 'tau_'//trim(trname(n))
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky optical thickness
+        k = k + 1
+        ijts_tau(2,n) = k
+        ia_ijts(k) = ia_rad
+        lname_ijts(k) = trim(trname(n))//' clr sky optical thickness'
+        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
+        ijts_power(k) = -2
+        units_ijts(k) = unit_string(ijts_power(k),' ')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+      ELSE
+        DO kr=1,6
+c extinction optical thickness in six solar bands
+          k=k+1
+          ijts_sqex(1,kr,n)=k
+          ia_ijts(k)=ia_rad
+          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &         ',A26,I1)'
+          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &         ' SW total extinction band ',kr
+          WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &         LEN_TRIM(trname(n)),')'
+          WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
+          ijts_power(k) = -4
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky extinction optical thickness in six solar bands
+          k=k+1
+          ijts_sqex(2,kr,n)=k
+          ia_ijts(k)=ia_rad
+          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &         ',A29,I1)'
+          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &         ' CS SW total extinction band ',kr
+          WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &         LEN_TRIM(trname(n)),')'
+          WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
+     &         TRIM(trname(n))
+          ijts_power(k) = -4
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering optical thickness in six solar bands
+          k=k+1
+          ijts_sqsc(1,kr,n)=k
+          ia_ijts(k)=ia_rad
+          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &         ',A28,I1)'
+          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &         ' SW scatter extinction band ',kr
+          WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &         LEN_TRIM(trname(n)),')'
+          WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
+          ijts_power(k) = -4
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering optical thickness in six solar bands
+          k=k+1
+          ijts_sqsc(2,kr,n)=k
+          ia_ijts(k)=ia_rad
+          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &         ',A31,I1)'
+          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &         ' CS SW scatter extinction band ',kr
+          WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &         LEN_TRIM(trname(n)),')'
+          WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
+     &         TRIM(trname(n))
+          ijts_power(k) = -4
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c scattering asymmetry factor in six solar bands
+          k=k+1
+          ijts_sqcb(1,kr,n)=k
 
-        case ('Air','CO2n','CFCn', 'SF6', 'SF6_c')
-               ! nothing to do: use defaults
-
-        case ('Rn222')
-          itcon_decay(n) = 13
-          qcon(itcon_decay(n)) = .true.; conpts(1) = 'DECAY'
-          qsum(itcon_decay(n)) = .true.
-
-        case ('CO2')
-          itcon_surf(1,N) = 13
-          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'FossilFuel'
-          itcon_surf(2,N) = 14
-          qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Fertilization'
-          itcon_surf(3,N) = 15
-          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Forest Regrowth'
-          itcon_surf(4,N) = 16
-          qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Land Use'
-          itcon_surf(5,N) = 17
-          qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'Ecosystem Exch'
-          itcon_surf(6,N) = 18
-          qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Ocean Exch'
-
-        case ('N2O')   ! two versions dependent on configuration
-#ifdef TRACERS_SPECIAL_Lerner
-          itcon_surf(1,N) = 13
-          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Reset in L1'
-          itcon_3Dsrc(1,N) = 14
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-          kt_power_change(n) = -14
-
-          g=13; itcon_3Dsrc(nChemistry,N) = g
-          qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)=
-     *         'Chemistry'
-          qsum(itcon_3Dsrc(nChemistry,N))=.true.
-          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-          qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)
-     *         ='Overwrite'
-          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-          do kk=1,ntsurfsrc(n)
-            g=g+1; itcon_surf(kk,N) = g
-            qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk
-     *           ))
-          enddo
-#endif
-
-        case ('CFC11')
-          itcon_surf(1,N) = 13
-          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'L1 Source'
-          itcon_3Dsrc(1,N) = 14
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Strat. Chem'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-
-        case ('14CO2')
-          itcon_surf(1,N) = 13
-          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Bombs and drift'
-          
-        case ('CH4')            ! two versions
-#ifdef TRACERS_SPECIAL_Shindell
-          kt_power_change(n) = -13
-
-          g=13; itcon_3Dsrc(nChemistry,N) = g
-          qcon(itcon_3Dsrc(nChemistry,N)) =.true.
-          conpts(g-12)='Chemistry'
-          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-          qcon(itcon_3Dsrc(nStratwrite,N))=.true.
-          conpts(g-12)='Overwrite'
-          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-          do kk=1,ntsurfsrc(n)
-            g=g+1; itcon_surf(kk,N) = g
-            qcon(itcon_surf(kk,N))=.true.
-            conpts(g-12)=trim(ssname(N,kk))
-          enddo
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            g=g+1; itcon_dd(n,1)= g
-            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
-            qsum(itcon_dd(n,1)) = .false.
-          end if
-#endif
-#ifdef GFED_3D_BIOMASS
-           g=g+1; itcon_3Dsrc(nBiomass,N) = g
-           qcon(itcon_3Dsrc(nBiomass,N)) = .true.
-           conpts(g-12) = 'Biomass_Burning'
-           qsum(itcon_3Dsrc(nBiomass,N)) = .true.
-#endif
-#else  /* not TRACERS_SPECIAL_Shindell */
-          itcon_surf(1,N) = 13
-          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Animal source'
-          itcon_surf(2,N) = 14
-          qcon(itcon_surf(2,N)) = .true.; conpts(2) = 'Coal Mine source'
-          itcon_surf(3,N) = 15
-          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Gas Leak source'
-          itcon_surf(4,N) = 16
-          qcon(itcon_surf(4,N)) = .true.; conpts(4) = 'Gas Vent source'
-          itcon_surf(5,N) = 17
-          qcon(itcon_surf(5,N)) = .true.; conpts(5) = 'City Dump source'
-          itcon_surf(6,N) = 18
-          qcon(itcon_surf(6,N)) = .true.; conpts(6) = 'Soil sink'
-          itcon_surf(7,N) = 19
-          qcon(itcon_surf(7,N)) = .true.; conpts(7) = 'Termite Source'
-          itcon_surf(8,N) = 20
-          qcon(itcon_surf(8,N)) = .true.; conpts(8) = 'Coal Combustion'
-          itcon_surf(9,N) = 21
-          qcon(itcon_surf(9,N)) = .true.; conpts(9) = 'Ocean source'
-          itcon_surf(10,N) = 22
-          qcon(itcon_surf(10,N)) = .true.; conpts(10) = 'Lake source'
-          itcon_surf(11,N) = 23
-          qcon(itcon_surf(11,N)) = .true.; conpts(11)
-     *         ='Misc. Ground source'
-          itcon_surf(12,N) = 24
-          qcon(itcon_surf(12,N)) = .true.; conpts(12) =
-     *         'Biomass Burning'
-          itcon_surf(13,N) = 25
-          qcon(itcon_surf(13,N)) = .true.; conpts(13) = 'Rice source'
-          itcon_surf(14,N) = 26
-          qcon(itcon_surf(14,N)) = .true.; conpts(14) =
-     *         'Wetlands+Tundra'
-          itcon_3Dsrc(1,N) = 27
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(15) = 'Tropos. Chem'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_3Dsrc(2,N) = 28
-          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(16) = 'Stratos. Chem'
-          qsum(itcon_3Dsrc(2,N)) = .true.
-#endif /* TRACERS_SPECIAL_Shindell */
-
-        case ('O3')
-          itcon_surf(1,N) = 13
-          qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Deposition'
-          itcon_3Dsrc(1,N) = 14
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Stratos. Chem'
-          qsum(itcon_3Dsrc(1,N)) = .true.
-          itcon_3Dsrc(2,N) = 15
-          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(3) = 'Trop.Chem Prod'
-          qsum(itcon_3Dsrc(2,N)) = .true.
-          itcon_3Dsrc(3,N) = 16
-          qcon(itcon_3Dsrc(3,N)) = .true.; conpts(4) = 'Trop.Chem Loss'
-          qsum(itcon_3Dsrc(3,N)) = .true.
-
-          case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN' 
-     *         ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
-     *         ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
-     *         ,'Paraffin') ! N2O done above
-            select case (trname(n))
-            case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
-     *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
-     *           ,'BrONO2','NOx')
-              kt_power_change(n) = -14
-            case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin')
-              kt_power_change(n) = -13
-            case default
-              kt_power_change(n) = -12
-            end select
-
-          g=13; itcon_3Dsrc(nChemistry,N) = g
-          qcon(itcon_3Dsrc(nChemistry,N)) = .true.
-          conpts(g-12) = 'Chemistry'
-          qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-          qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
-          conpts(g-12)='Overwrite'
-          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
-          select case(trname(n))
-            case ('NOx')
-              g=g+1; itcon_3Dsrc(nOther,N) = g
-              qcon(itcon_3Dsrc(nOther,N)) = .true.
-              conpts(g-12) = 'Lightning'
-              qsum(itcon_3Dsrc(nOther,N)) = .true.
-              g=g+1; itcon_3Dsrc(nAircraft,N) = g
-              qcon(itcon_3Dsrc(nAircraft,N)) = .true.
-              conpts(g-12) = 'Aircraft'
-              qsum(itcon_3Dsrc(nAircraft,N)) = .true.
-          end select
-#ifdef GFED_3D_BIOMASS
-          select case(trname(n))
-            case('NOx','CO','Alkenes','Paraffin')
-              g=g+1; itcon_3Dsrc(nBiomass,N) = g
-              qcon(itcon_3Dsrc(nBiomass,N)) = .true.
-              conpts(g-12) = 'Biomass_Burning'
-              qsum(itcon_3Dsrc(nBiomass,N)) = .true.
-          end select
-#endif
-#ifdef TRACERS_NITRATE
-          select case (trname(n))
-            case ('HNO3')
-              g=g+1; itcon_3Dsrc(3,N) = g
-              qcon(itcon_3Dsrc(3,N)) = .true.
-              conpts(g-12)='Nitrate Chemistry'
-              qsum(itcon_3Dsrc(3,N)) = .true.
-          end select
-#endif
-          do kk=1,ntsurfsrc(n)
-            g=g+1; itcon_surf(kk,N) = g
-            qcon(itcon_surf(kk,N))=.true.
-            conpts(g-12)=trim(ssname(N,kk))
-          end do
-#ifdef TRACERS_WATER
-          if(dowetdep(n)) then
-            g=g+1; itcon_mc(n) = g
-            qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
-            g=g+1; itcon_ss(n) = g
-            qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
-          end if
-#endif
-#ifdef TRACERS_DRYDEP
-          if(dodrydep(n)) then
-            g=g+1; itcon_dd(n,1)=g
-            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'DRY DEP'
-          end if
-#endif
-
-#ifdef TRACERS_AEROSOLS_SOA
-          case ('isopp1g','isopp1a','isopp2g','isopp2a',
-     &          'apinp1g','apinp1a','apinp2g','apinp2a')
-            g=13; itcon_3Dsrc(nChemistry,N) = g
-            qcon(itcon_3Dsrc(nChemistry,N)) = .true.
-            conpts(g-12) = 'Chemistry'
-            qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-            g=g+1; itcon_mc(n) = g
-            qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            g=g+1; itcon_ss(n) = g
-            qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              g=g+1; itcon_dd(n,1) = g
-              qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              g=g+1; itcon_dd(n,2) = g
-              qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-#endif  /* TRACERS_AEROSOLS_SOA */
-
-          case ('GLT')
-            kt_power_change(n) = -17
-
-            g=13 ; itcon_3Dsrc(1,N) = g
-            qcon(itcon_3Dsrc(1,N)) = .true.
-            conpts(g-12) = 'L1 overwriting'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-
-          case ('Water','H2O18', 'HDO', 'H2O17' )
-            itcon_mc(n) = 13
-            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 14
-            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-
-          case ('HTO')
-            itcon_mc(n) = 13
-            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 14
-            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-            itcon_decay(n) = 15
-            qcon(itcon_decay(n)) = .true.; conpts(3) = 'DECAY'
-            qsum(itcon_decay(n)) = .true.
-
-          case ('DMS')
-            itcon_surf(1,N) = 13
-            qcon(itcon_surf(1,N)) = .true.; conpts(1) = 'Ocean Src'
-            qsum(itcon_surf(1,N))=.false.
-            itcon_3Dsrc(1,N) = 14
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) = 'Chem'
-            qsum(itcon_3Dsrc(1,N))= .true.
-
-          case ('MSA')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Chem'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) = 14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('SO2')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Volcanic src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
-            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aircraft src'
-            qsum(itcon_3Dsrc(2,N))=.true.
-            itcon_3Dsrc(3,N) = 15
-            qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'Biomass src'
-            qsum(itcon_3Dsrc(3,N))=.true.
-            itcon_3Dsrc(4,N) = 16
-            qcon(itcon_3Dsrc(4,N)) = .true.; conpts(4) = 'Chem src'
-            qsum(itcon_3Dsrc(4,N)) = .true.
-            itcon_3Dsrc(5,N) = 17
-            qcon(itcon_3Dsrc(5,N)) = .true.; conpts(5) = 'Chem sink'
-            qsum(itcon_3Dsrc(5,N)) = .true.
-#ifdef EDGAR_1995
-            itcon_surf(1,N) = 18
-            qcon(itcon_surf(1,N)) = .true.; conpts(6) =
-     *           'E95 Fossil fuel'
-            itcon_surf(2,N) =19
-            qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'E95 Industrial'
-            itcon_surf(3,N) = 20
-            qcon(itcon_surf(3,N)) = .true.; conpts(8) =
-     *           'E95 Waste hand.'
-            itcon_surf(4,N) = 21
-            qcon(itcon_surf(4,N)) = .true.; conpts(9) = 'E95 Biofuel'
-            itcon_surf(5,N) = 22
-            qcon(itcon_surf(5,N)) = .true.; conpts(10) =
-     *           'E95 Agr. waste.'
-            itcon_surf(6,N) = 23
-            qcon(itcon_surf(6,N)) = .true.; conpts(11) =
-     *           'E95 Biomass Burn'
-            itcon_mc(n) =24
-            qcon(itcon_mc(n)) = .true.  ; conpts(12) = 'MOIST CONV'
-            itcon_ss(n) =25
-            qcon(itcon_ss(n)) = .true.  ; conpts(13) = 'LS COND'
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=26
-              qcon(itcon_dd(n,1)) = .true. ; conpts(14) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-            end if
-#endif
-#else  /* not EDGAR_1995 */
-            itcon_surf(1,N) = 18
-            qcon(itcon_surf(1,N)) = .true.; conpts(6) = 'Industrial src'
-            qsum(itcon_surf(1,N))=.false.
-            itcon_surf(2,N) = 19
-            qcon(itcon_surf(2,N)) = .true.; conpts(7) = 'ship src'
-            qsum(itcon_surf(2,N))=.false.
-            itcon_mc(n) =20
-            qcon(itcon_mc(n)) = .true.  ; conpts(8) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =21
-            qcon(itcon_ss(n)) = .true.  ; conpts(9) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=22
-              qcon(itcon_dd(n,1)) = .true. ; conpts(10) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-            end if
-#endif
-#endif  /* EDGAR_1995 */
-
-          case ('SO4')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
-            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'volcanic src'
-            qsum(itcon_3Dsrc(2,N)) = .true.
-            itcon_3Dsrc(3,N) = 15
-            qcon(itcon_3Dsrc(3,N)) = .true.; conpts(3) = 'biomass src'
-            qsum(itcon_3Dsrc(3,N)) = .true.
-#ifdef EDGAR_1995
-            itcon_surf(1,N) = 16
-            qcon(itcon_surf(1,N)) = .true.; conpts(4) =
-     *           'E95 Fossil fuel'
-            itcon_surf(2,N) = 17
-            qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'E95 Industrial'
-            itcon_surf(3,N) = 18
-            qcon(itcon_surf(3,N)) = .true.; conpts(6) =
-     *           'E95 Waste hand.'
-            itcon_surf(4,N) =19
-            qcon(itcon_surf(4,N)) = .true.; conpts(7) = 'E95 Biofuel'
-            itcon_surf(5,N) = 20
-            qcon(itcon_surf(5,N)) = .true.; conpts(8) =
-     *           'E95 Agr. waste.'
-            itcon_surf(6,N) = 21
-            qcon(itcon_surf(6,N)) = .true.; conpts(9) =
-     *           'E95 Biomass Burn'
-            itcon_mc(n) =22
-            qcon(itcon_mc(n)) = .true.  ; conpts(10) = 'MOIST CONV'
-            itcon_ss(n) =23
-            qcon(itcon_ss(n)) = .true.  ; conpts(11) = 'LS COND'
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=24
-              qcon(itcon_dd(n,1)) = .true. ; conpts(12) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=25
-              qcon(itcon_dd(n,2)) = .true. ; conpts(13) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-#else  /* not EDGAR_1995 */
-            itcon_surf(1,N) = 16
-            qcon(itcon_surf(1,N)) = .true.; conpts(4) = 'Industrial src'
-            qsum(itcon_surf(1,N)) = .false.
-           itcon_surf(2,N) = 17
-           qcon(itcon_surf(2,N)) = .true.; conpts(5) = 'ship src'
-           qsum(itcon_surf(2,N)) = .false.
-            itcon_mc(n) =18
-            qcon(itcon_mc(n)) = .true.  ; conpts(6) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =19
-            qcon(itcon_ss(n)) = .true.  ; conpts(7) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)= 20
-              qcon(itcon_dd(n,1)) = .true. ; conpts(8) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=21
-              qcon(itcon_dd(n,2)) = .true. ; conpts(9) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-#endif  /* EDGAR_1995 */
-
-          case ('BCII')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
-            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
-     *           'Aircraft source'
-            qsum(itcon_3Dsrc(2,N)) = .true.
-            itcon_surf(1,N) = 15
-            qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Industrial src'
-            qsum(itcon_surf(1,N)) = .false.
-            itcon_surf(2,N) = 16
-            qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
-            qsum(itcon_surf(2,N)) = .false.
-            itcon_mc(n) = 17
-            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 18
-            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=19
-              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=20
-              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('BCIA')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(2) =
-     *           'Aircraft source'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) = 15
-            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 16
-            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=17
-              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=18
-              qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-      
-          case ('OCIA')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging source'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) = 14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('BCB', 'OCB')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Biomass src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) = 14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('OCII')
-            g=13; itcon_3Dsrc(1,N) = g
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            g=g+1; itcon_surf(1,N) = g
-            qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
-            qsum(itcon_surf(1,N)) = .false.
-            g=g+1; itcon_surf(2,N) = g
-            qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
-            qsum(itcon_surf(2,N)) = .false.
-#ifndef TRACERS_AEROSOLS_SOA
-            g=g+1; itcon_surf(3,N) = g
-            qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Terpene src'
-            qsum(itcon_surf(3,N)) = .false.
-#endif  /* TRACERS_AEROSOLS_SOA */
-            g=g+1; itcon_mc(n) = g
-            qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            g=g+1; itcon_ss(n) = g
-            qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              g=g+1; itcon_dd(n,1)= g
-              qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              g=g+1; itcon_dd(n,2)= g
-              qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('OCI3')
-            g=13; itcon_3Dsrc(1,N) = g
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            g=g+1; itcon_3Dsrc(2,N) = g
-            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
-            qsum(itcon_3Dsrc(2,N)) = .true.
-#ifndef TRACERS_AEROSOLS_SOA
-            g=g+1; itcon_surf(1,N) = g
-            qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Terpene src'
-            qsum(itcon_surf(1,N)) = .false.
-#endif  /* TRACERS_AEROSOLS_SOA */
-            g=g+1; itcon_mc(n) = g
-            qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            g=g+1; itcon_ss(n) = g
-            qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              g=g+1; itcon_dd(n,1)= g
-              qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              g=g+1; itcon_dd(n,2)= g
-              qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('OCI1','OCI2')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
-            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
-            qsum(itcon_3Dsrc(2,N)) = .true.
-            itcon_mc(n) = 15
-            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 16
-            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=17
-              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=18
-              qcon(itcon_dd(n,2)) = .true. ; conpts(6) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('OCA4')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) = 14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('OCA1','OCA2','OCA3')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Decay src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) = 14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) = 15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('SO4_d1', 'SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
-     *           'Gas phase change'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('NH3','H2SO4')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
-     *           'Gas phase change'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('NH4', 'NO3p')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
-     *           'Gas phase change'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-
-          case ('Be7', 'Be10')
-            itcon_3Dsrc(1,N) =13
-            qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'COSMO SRC'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-            if (trname(n).eq."Be7") then
-              itcon_decay(n) = 18
-              qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
-              qsum(itcon_decay(n)) = .true.
-            end if
-            
-          case ('Pb210')
-            itcon_3Dsrc(1,N) =13
-            qcon(itcon_3Dsrc(1,N)) = .true.  ; conpts(1) = 'RADIO SRC'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-            itcon_decay(n) = 18
-            qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
-            qsum(itcon_decay(n)) = .true.
-            
-          case ('H2O2_s')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Gas phase src'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_3Dsrc(2,N) = 14
-            qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) =
-     *           'Gas phase sink'
-            qsum(itcon_3Dsrc(2,N)) = .true.
-            itcon_mc(n) =15
-            qcon(itcon_mc(n)) = .true.  ; conpts(3) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =16
-            qcon(itcon_ss(n)) = .true.  ; conpts(4) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=17
-              qcon(itcon_dd(n,1)) = .true. ; conpts(5) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-            end if
-#endif
-
-          case ('seasalt1','seasalt2', 'Clay','Silt1','Silt2','Silt3'
-     *         ,'Silt4','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
-     *         ,'ClayQuar','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
-     *         ,'Sil1Gyps','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
-     *         ,'Sil2Gyps','Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema'
-     *         ,'Sil3Gyps','Sil1QuHe','Sil2QuHe','Sil3QuHe')
-            itcon_mc(n) =13
-            qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =14
-            qcon(itcon_ss(n)) = .true.  ; conpts(2) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=15
-              qcon(itcon_dd(n,1)) = .true. ; conpts(3) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=16
-              qcon(itcon_dd(n,2)) = .true. ; conpts(4) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-#ifndef TRACERS_WATER
-            itcon_wt(n)=17
-            qcon(itcon_wt(n)) = .true. ; conpts(5) = 'WET DEP'
-            qsum(itcon_wt(n)) = .false.
-#endif  /* not TRACERS_WATER */
-
-c- Species including AMP  emissions - 2D sources and 3D sources
-          case('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC',
-     *         'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU','M_DD2_DU',
-     *         'M_BOC_BC','M_BOC_OC',
-     *         'M_NO3   ','M_NH4   ','M_H2O   ','M_DD1_SU',
-     *         'M_DS1_SU','M_DS1_DU','M_DD2_SU',
-     *         'M_DS2_SU','M_DS2_DU','M_SSA_SU',
-     *         'M_OCC_SU','M_BC1_SU',
-     *         'M_BC2_SU','M_BC2_BC','M_BC3_SU',
-     *         'M_BC3_BC','M_DBC_SU','M_DBC_BC','M_DBC_DU',
-     *         'M_BOC_SU',
-     *         'M_BCS_SU','M_BCS_BC','M_MXX_SU','M_MXX_BC',
-     *         'M_MXX_OC','M_MXX_DU','M_MXX_SS','M_OCS_SU',
-     *         'M_OCS_OC','M_SSS_SU')
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.;conpts(1)='Gas phase change'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-            itcon_3Dsrc(1,n) = 18
-            qcon(itcon_3Dsrc(1,n)) = .true.; conpts(6) = 'AMP source'
-            qsum(itcon_3Dsrc(1,n)) = .true.
-            select case (trname(n))
-              case ('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC'
-     *             ,'M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU'
-     *             ,'M_DD2_DU')
-                itcon_surf(1,n) = 19
-                qcon(itcon_surf(1,n)) = .true.; conpts(7) =
-     *               'Emission 2D AMP'
-                qsum(itcon_surf(1,n)) = .true.
-            end select
-            select case (trname(n))
-              case ('M_AKK_SU','M_ACC_SU','M_OCC_OC','M_BC1_BC'
-     *             ,'M_BOC_BC','M_BOC_OC')
-                itcon_3Dsrc(2,n) = 20
-                qcon(itcon_3Dsrc(2,n)) = .true.; conpts(8) =
-     *               'Emission 3D AMP'
-                qsum(itcon_3Dsrc(2,n)) = .true.
-            end select
-c Processes AMP Budget
-            itcon_AMP(1,n)=21
-            qcon(itcon_AMP(1,n)) = .true.; conpts(9)='P1 Nucleation'
-            qsum(itcon_AMP(1,n)) = .true.
-            itcon_AMP(2,n)=22
-            qcon(itcon_AMP(2,n)) = .true.; conpts(10)='P2 Coagulation'
-            qsum(itcon_AMP(2,n)) = .true.
-            itcon_AMP(3,n)=23
-            qcon(itcon_AMP(3,n)) = .true.;conpts(11)='P3 Condensation'
-            qsum(itcon_AMP(3,n)) = .true.
-            itcon_AMP(4,n)=24
-            qcon(itcon_AMP(4,n)) = .true.;conpts(12)='P4 Incloud'
-            qsum(itcon_AMP(4,n)) = .true.
-            itcon_AMP(5,n)=25
-            qcon(itcon_AMP(5,n)) = .true.;conpts(13)='P5 Intermode Loss'
-            qsum(itcon_AMP(5,n)) = .true.
-            itcon_AMP(6,n)=26
-            qcon(itcon_AMP(6,n)) = .true.;conpts(14)='P6 Mode Transf'
-            qsum(itcon_AMP(6,n)) = .true.
-            itcon_AMP(7,n)=27
-            qcon(itcon_AMP(7,n)) = .true.;conpts(15)='P7 AMP Budget'
-            qsum(itcon_AMP(7,n)) = .true.
-
-          case ('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 '
-     *         ,'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ','N_BC2_1 ','N_BC3_1 '
-     *         ,'N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
-
-            kt_power_change(n) = 5
-            kt_power_inst(n) = 3
-
-            itcon_3Dsrc(1,N) = 13
-            qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) =
-     *           'Gas phase change'
-            qsum(itcon_3Dsrc(1,N)) = .true.
-            itcon_mc(n) =14
-            qcon(itcon_mc(n)) = .true.  ; conpts(2) = 'MOIST CONV'
-            qsum(itcon_mc(n)) = .false.
-            itcon_ss(n) =15
-            qcon(itcon_ss(n)) = .true.  ; conpts(3) = 'LS COND'
-            qsum(itcon_ss(n)) = .false.
-#ifdef TRACERS_DRYDEP
-            if(dodrydep(n)) then
-              itcon_dd(n,1)=16
-              qcon(itcon_dd(n,1)) = .true. ; conpts(4) = 'TURB DEP'
-              qsum(itcon_dd(n,1)) = .false.
-              itcon_dd(n,2)=17
-              qcon(itcon_dd(n,2)) = .true. ; conpts(5) = 'GRAV SET'
-              qsum(itcon_dd(n,2)) = .false.
-            end if
-#endif
-            itcon_AMPm(1,n)=18
-            qcon(itcon_AMPm(1,n)) = .true. ; conpts(6) = 'Mode Diameter'
-            qsum(itcon_AMPm(1,n)) = .false.
-            itcon_AMPm(2,n)=19
-            qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) =
-     *           'Mode AktivPart'
-            qsum(itcon_AMPm(2,n)) = .false.
-c     Processes AMP Budget
-            itcon_AMP(1,n)=20
-            qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
-            qsum(itcon_AMP(1,n)) = .true.
-            itcon_AMP(2,n)=21
-            qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
-            qsum(itcon_AMP(2,n)) = .true.
-            itcon_AMP(3,n)=22
-            qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
-            qsum(itcon_AMP(3,n)) = .true.
-            itcon_AMP(4,n)=23
-            qcon(itcon_AMP(4,n)) = .true.;conpts(11)='P4 Intermode Coag'
-            qsum(itcon_AMP(4,n)) = .true.
-            itcon_AMP(5,n)=24
-            qcon(itcon_AMP(5,n)) = .true.;conpts(12)='P5 Intramode Tr'
-            qsum(itcon_AMP(5,n)) = .true.
-            itcon_AMP(6,n)=25
-            qcon(itcon_AMP(6,n)) = .true.;conpts(13)='P6 Mode Transf'
-            qsum(itcon_AMP(6,n)) = .true.
-            itcon_AMP(7,n)=26
-            qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
-            qsum(itcon_AMP(7,n)) = .true.
-
-        end select
-
-        scale_inst(n)   = 10d0**(-kt_power_inst(n))
-        scale_change(n) = 10d0**(-kt_power_change(n))
-        inst_unit(n) = unit_string(kt_power_inst(n),  'kg/m^2)')
-        sum_unit(n)  = unit_string(kt_power_change(n),'kg/m^2 s)')
-
-        CALL SET_TCON(QCON,TRNAME(N),QSUM,inst_unit(n),
-     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
-        qcon(13:) = .false.     ! reset to defaults for next tracer
-        qsum(13:) = .false.     ! reset to defaults for next tracer
-
-      end do
-
-C**** print out total tracer diagnostic array size
-C
-#ifdef TRACERS_DRYDEP
-C Read landuse parameters and coefficients for tracer dry deposition:
-      CALL RDLAND
-      CALL RDDRYCF
-#endif
-#ifdef BIOGENIC_EMISSIONS
-      CALL RDISOPCF
-      CALL RDISOBASE
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      call cheminit ! **** Initialize the chemistry ****
-      call special_layers_init
-#endif
-#endif  /* TRACERS_ON */
-#if (defined TRACERS_COSMO)
-CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
-      do n=1,ntm
-        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
-          call init_cosmo
-          exit
-        end if
-      end do
-#endif
-
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-      !read in OCMIP based CFC-11 global emissions
-      !=sum(dC/dt) for each hemisphere
-      !these are *annual global averages* and need to be
-      !converted to our timestep value
-      print*, 'opening file=OCMIP_cfc.dat'
-      call openunit('OCMIP_cfc',iu_data,.false.,.true.)
-      do n=1,ntm
-        do i=1,67
-          read(iu_data,'(5x,e12.4)')ocmip_cfc(i,n)
-        enddo
-      enddo
-      call closeunit(iu_data)
-#endif
+          ia_ijts(k)=ia_rad
+          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &         ',A26,I1)'
+          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &         ' SW asymmetry factor band ',kr
+          WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
+     &         LEN_TRIM(trname(n)),')'
+          WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+c clear sky scattering asymmetry factor in six solar bands
+          k=k+1
+          ijts_sqcb(2,kr,n)=k
+          ia_ijts(k)=ia_rad
+          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
+     &         ',A29,I1)'
+          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
+     &         ' CS SW asymmetry factor band ',kr
+          WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
+     &         LEN_TRIM(trname(n)),')'
+          WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
+     &         TRIM(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),' ')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+        END DO
+      END IF
 
       return
-      end subroutine init_tracer
+      end subroutine set_diag_rad
 
+      subroutine init_ijlts_diag
+!@sum init_ijlts_diag Initialise lat/lon/height tracer diags 
+!@auth Gavin Schmidt
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE TRACER_COM
+#ifdef TRACERS_ON
+      USE TRDIAG_COM
+#endif
+      USE DIAG_COM
+      implicit none
+      integer k,n
+
+      ir_ijlt = ir_log2  ! default
+      ia_ijlt = ia_src   ! default  
+#ifdef TRACERS_AMP
+      ijlt_AMPext(:)=0
+      ijlt_AMPm(:,:)=0
+#endif
+
+      k=0
+C**** use this routine to set 3D tracer-related diagnostics.
+
+C**** some tracer specific 3D arrays
+      do n=1,ntm
+        select case(trname(n))
+
+#ifdef TRACERS_DUST
+      CASE('Clay','Silt1','Silt2','Silt3','Silt4')
+        k = k + 1
+         ijlt_3Dtau(n)=k
+         ia_ijlt(k) = ia_rad
+         lname_ijlt(k) = trim(trname(n))//' tau'
+         sname_ijlt(k) = 'tau_3D_'//trname(n)
+         ijlt_power(k) = -2
+         units_ijlt(k) = unit_string(ijlt_power(k),' ')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif
+
+#ifdef TRACERS_AMP
+c- 3D diagnostic per mode
+      CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
+     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
+     *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
+     *     'N_MXX_1 ','N_OCS_1 ')
+        k = k + 1
+         ijlt_AMPm(1,n)=k
+         lname_ijlt(k) = TRIM(trname(n))//' DIAM'
+         sname_ijlt(k) = 'DIAM_'//TRIM(trname(n))
+         ijlt_power(k) = -2.
+         units_ijlt(k) = unit_string(ijlt_power(k),'m')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+         ijlt_AMPm(2,n)=k
+         lname_ijlt(k) = TRIM(trname(n))//' ACTI'
+         sname_ijlt(k) = 'ACTI3D_'//TRIM(trname(n))
+         ijlt_power(k) = -2.
+         units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif
+      end select
+      end do
+
+C**** 3D tracer-related arrays but not attached to any one tracer
+
+#ifdef TRACERS_SPECIAL_Shindell
+#ifdef HTAP_LIKE_DIAGS
+      k = k + 1
+        ijlt_OH=k
+        lname_ijlt(k) = 'OH mixing ratio'
+        sname_ijlt(k) = 'OH_vmr'
+        ijlt_power(k) = -10
+        units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+#else
+      k = k + 1
+        ijlt_OH=k
+        lname_ijlt(k) = 'OH concentration'
+        sname_ijlt(k) = 'OH_con'
+        ijlt_power(k) = 5
+        units_ijlt(k) = unit_string(ijlt_power(k),'molecules/cm3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif
+      k = k + 1
+        ijlt_NO3=k
+        lname_ijlt(k) = 'NO3 concentration'
+        sname_ijlt(k) = 'NO3_con'
+        ijlt_power(k) = 5
+        units_ijlt(k) = unit_string(ijlt_power(k),'molecules/cm3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_HO2=k
+        lname_ijlt(k) = 'HO2 concentration'
+        sname_ijlt(k) = 'HO2_con'
+        ijlt_power(k) = 7
+        units_ijlt(k) = unit_string(ijlt_power(k),'molecules/cm3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_JH2O2=k
+        lname_ijlt(k) = 'H2O2 photolysis rate'
+        sname_ijlt(k) = 'J(H2O2)'
+        ijlt_power(k) = 2
+        units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+#ifdef HTAP_LIKE_DIAGS
+      k = k + 1
+        ijlt_COp=k
+        lname_ijlt(k) = 'CO production rate'
+        sname_ijlt(k) = 'COprod'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_COd=k
+        lname_ijlt(k) = 'CO destruction rate'
+        sname_ijlt(k) = 'COdest'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_Oxp=k
+        lname_ijlt(k) = 'Ox production rate'
+        sname_ijlt(k) = 'Oxprod'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_Oxd=k
+        lname_ijlt(k) = 'Ox destruction rate'
+        sname_ijlt(k) = 'Oxdest'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_CH4d=k
+        lname_ijlt(k) = 'CH4 destruction rate'
+        sname_ijlt(k) = 'CH4dest'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+#endif
+#endif
+
+#ifdef TRACERS_AMP
+      k = k + 1
+        ijlt_AMPext(1)=k
+        lname_ijlt(k) = 'N_SSA ACTI'
+        sname_ijlt(k) = 'ACTI3D_N_SSA'
+        ijlt_power(k) = -2
+        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_AMPext(2)=k
+        lname_ijlt(k) = 'N_SSC ACTI'
+        sname_ijlt(k) = 'ACTI3D_N_SSC'
+        ijlt_power(k) = -2
+        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_AMPext(3)=k
+        lname_ijlt(k) = 'N_SSA DIAM'
+        sname_ijlt(k) = 'DIAM___N_SSA'
+        ijlt_power(k) = -2
+        units_ijlt(k) = unit_string(ijlt_power(k),'m')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_AMPext(4)=k
+        lname_ijlt(k) = 'N_SSC DIAM'
+        sname_ijlt(k) = 'DIAM___N_SSC'
+        ijlt_power(k) = -2
+        units_ijlt(k) = unit_string(ijlt_power(k),'m')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_AMPext(5)=k
+        lname_ijlt(k) = 'N_SSA_1'
+        sname_ijlt(k) = 'N_SSA_1'
+        ijlt_power(k) = -10
+        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_AMPext(6)=k
+        lname_ijlt(k)= 'N_SSC_1'
+        sname_ijlt(k)= 'N_SSC_1'
+        ijlt_power(k) = -10
+        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif
+
+      if (k .gt. ktaijl) then
+       if (AM_I_ROOT())
+     *       write (6,*)'ijlt_defs: Increase ktaijl=',ktaijl
+     *       ,' to at least ',k
+        call stop_model('ktaijl too small',255)
+      end if
+
+      return
+      end subroutine init_ijlts_diag
 
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
@@ -10004,7 +8734,7 @@ C****
         trsource(:,:,:,n)=0
 C**** SF6 source increases each year by .3pptv/year
 C**** SF6_c source is constant, same as first year SF6, but always
-C**** CFCnsource increases each year so that the glbavg is from obs
+C**** CFCn source increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
         steppy = 1./(sday*JDperY)

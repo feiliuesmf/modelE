@@ -1192,7 +1192,7 @@ C****
 
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
-     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, ijts_index,
+     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
      *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count, tij_kw,
      *     tij_alpha
@@ -1308,8 +1308,6 @@ C****
 C**** Fill in maplet indices for sources and sinks
       do kx=1,ktaijs
         if (index(lname_ijts(kx),'unused').gt.0) cycle
-        n = ijts_index(kx)
-c       if (itime.lt.itime_tr0(n)) cycle
         k = k+1
         iord(k) = kx
         ijtype(k) = 1
@@ -1571,7 +1569,7 @@ C****
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
      *     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
-     *     ir_ijlt, scale_ijlt, ktaijl
+     *     ir_ijlt, ia_ijlt, scale_ijlt, ktaijl
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1682,7 +1680,7 @@ C**** Fill in maplet indices for 3D tracer specials
         lname(k) = lname_ijlt(kx)
         units(k) = units_ijlt(kx)
         irange(k) = ir_ijlt(kx)
-        iacc(k) = ia_src
+        iacc(k) = ia_ijlt(kx)
         scale(k) = scale_ijlt(kx)
         ijtype(k) = 3
         do l=1,lm

@@ -66,10 +66,9 @@ C**************  Latitude-Dependant (allocatable) *******************
 
       SUBROUTINE MATRIX_DRV
       USE TRACER_COM
-      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPp,ijts_AMPe
-     $             ,ijts_AMPm,ijts_AMPext,ijts_AMPpdf,
-     $             itcon_AMP,itcon_AMPe,itcon_AMPm
-     $             ,itcon_surf
+      USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
+     *     ,ijts_AMPp,ijts_AMPe,ijlt_AMPm,ijlt_AMPext,ijts_AMPpdf
+     *     ,itcon_AMP,itcon_AMPe,itcon_AMPm,itcon_surf
       USE AMP_AEROSOL
       USE AEROSOL_SOURCES, only: off_HNO3
 
@@ -271,10 +270,10 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ','N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
-        taijs(i,j,ijts_AMPm(l,1,n))=taijs(i,j,ijts_AMPm(l,1,n)) + DIAM(i,j,l,AMP_MODES_MAP(n))
-        taijs(i,j,ijts_AMPm(l,2,n))=taijs(i,j,ijts_AMPm(l,2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL*byam(l,i,j))
+        taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(n))
+        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL*byam(l,i,j))
 C** Surabi's addition to save as /cm-3 or just mult. std o/p by 1.2*1.e-16 to get units in cm-3
-c       taijs(i,j,ijts_AMPm(l,2,n))=taijs(i,j,ijts_AMPm(l,2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*1.e-6)
+c       taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*1.e-6)
 c       if(NACTV(i,j,l,AMP_MODES_MAP(n)) .gt. 10.)
 c    *  write(6,*)"Aerosolconv",AVOL*byam(l,i,j),NACTV(i,j,l,AMP_MODES_MAP(n)),
 c    *l,i,j,n,axyp(i,j),mair,gasc,tk,pres,am(l,i,j)
@@ -290,12 +289,12 @@ c - 2d PRT Diagnostic
 c - special diag: Size distribution pdfs
 c       if (l.eq.1) taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byam(l,i,j))
 c - N_SSA, N_SSC, M_SSA_SU
-        taijs(i,j,ijts_AMPext(l,1))=taijs(i,j,ijts_AMPext(l,1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j))
-        taijs(i,j,ijts_AMPext(l,2))=taijs(i,j,ijts_AMPext(l,2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j))
-        taijs(i,j,ijts_AMPext(l,3))=taijs(i,j,ijts_AMPext(l,3)) +  DIAM(i,j,l,SEAS_MODE_MAP(1)) 
-        taijs(i,j,ijts_AMPext(l,4))=taijs(i,j,ijts_AMPext(l,4)) +  DIAM(i,j,l,SEAS_MODE_MAP(2)) 
-        taijs(i,j,ijts_AMPext(l,5))=taijs(i,j,ijts_AMPext(l,5)) + (AERO(22) *AVOL *byam(l,i,j)) 
-        taijs(i,j,ijts_AMPext(l,6))=taijs(i,j,ijts_AMPext(l,6)) + (AERO(25) *AVOL *byam(l,i,j)) 
+        taijls(i,j,l,ijlt_AMPext(1))=taijls(i,j,l,ijlt_AMPext(1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j))
+        taijls(i,j,l,ijlt_AMPext(2))=taijls(i,j,l,ijlt_AMPext(2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j))
+        taijls(i,j,l,ijlt_AMPext(3))=taijls(i,j,l,ijlt_AMPext(3)) +  DIAM(i,j,l,SEAS_MODE_MAP(1)) 
+        taijls(i,j,l,ijlt_AMPext(4))=taijls(i,j,l,ijlt_AMPext(4)) +  DIAM(i,j,l,SEAS_MODE_MAP(2)) 
+        taijls(i,j,l,ijlt_AMPext(5))=taijls(i,j,l,ijlt_AMPext(5)) + (AERO(22) *AVOL *byam(l,i,j)) 
+        taijls(i,j,l,ijlt_AMPext(6))=taijls(i,j,l,ijlt_AMPext(6)) + (AERO(25) *AVOL *byam(l,i,j)) 
 #ifdef BLK_2MOM
       NACTC(l,:) = NACTV(i,j,l,:)
 c     NAERC(l,:) = AERO(AMP_AERO_MAP(n)) !trm(i,j,l,:)/AVOL

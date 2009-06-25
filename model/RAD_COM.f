@@ -376,7 +376,6 @@ C**** Local variables initialised in init_RAD
       REAL*8,DIMENSION(:,:,:), allocatable :: ttausv_sum_glob!(Im,Jm,Ntm)
 #endif
       INTEGER :: J_0,J_1
-      INTEGER :: k
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
