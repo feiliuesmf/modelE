@@ -2097,7 +2097,6 @@ C**** Aerosol tracer output should be mass mixing ratio
 #ifdef TRACERS_ON
 C**** Get to_volume_MixRat from rundecks if it exists
       call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
-#endif /* TRACERS_ON */
 
 C**** DIAGNOSTIC DEFINTIONS
 
@@ -2139,6 +2138,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
         end if
       end do
 #endif
+#endif /* TRACERS_ON */
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       !read in OCMIP based CFC-11 global emissions
@@ -2170,7 +2170,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       character*50 :: unit_string
 #ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
-#endif /* TRACERS_ON */
       integer n,k,g,kk
 
 C**** To add a new conservation diagnostic:
@@ -3187,6 +3186,7 @@ c     Processes AMP Budget
         qsum(13:) = .false.     ! reset to defaults for next tracer
 
       end do
+#endif /* TRACERS_ON */
 
       return
       end subroutine init_tracer_cons_diag
@@ -4795,6 +4795,7 @@ c Oxidants
       character*50 :: unit_string
       CHARACTER*17 :: cform
 
+#ifdef TRACERS_ON
 C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
       ijts_3Dsource(:,:)=0
@@ -6983,6 +6984,7 @@ c      end do
      *       ,' to at least ',k
         call stop_model('ktaijs too small',255)
       end if
+#endif /* TRACERS_ON */
 
       return
       end subroutine init_ijts_diag
@@ -7002,6 +7004,7 @@ c      end do
       character*50 :: unit_string
       character*17 :: cform
 
+#ifdef TRACERS_ON
       IF (diag_rad /= 1) THEN
 c optical thickness
         k = k + 1
@@ -7113,6 +7116,7 @@ c clear sky scattering asymmetry factor in six solar bands
           scale_ijts(k) = 10.**(-ijts_power(k))
         END DO
       END IF
+#endif
 
       return
       end subroutine set_diag_rad
@@ -7129,6 +7133,7 @@ c clear sky scattering asymmetry factor in six solar bands
       implicit none
       integer k,n
 
+#ifdef TRACERS_ON
       ir_ijlt = ir_log2  ! default
       ia_ijlt = ia_src   ! default  
 #ifdef TRACERS_AMP
@@ -7310,6 +7315,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *       ,' to at least ',k
         call stop_model('ktaijl too small',255)
       end if
+#endif
 
       return
       end subroutine init_ijlts_diag
