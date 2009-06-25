@@ -20,13 +20,13 @@ c
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
-#ifdef OBIO_ON_GARYocean
 #ifndef TRACER_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
 #endif
 
+#ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
 #else
@@ -456,12 +456,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.27 $
-c_ $Date: 2009/06/15 03:57:16 $   ;  $State: Exp $
+c_ $Revision: 2.28 $
+c_ $Date: 2009/06/25 13:43:34 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.28  2009/06/25 13:43:34  aromanou
+c_
+c_ resurrecting hycom coupled to ocean biogeochemistry
+c_
 c_ Revision 2.27  2009/06/15 03:57:16  aromanou
 c_ changes towards saving proper restart files. still a problem with gtracer and
 c_ atrac in toc2sst.
@@ -909,12 +913,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.27 $
-c_ $Date: 2009/06/15 03:57:16 $   ;  $State: Exp $
+c_ $Revision: 2.28 $
+c_ $Date: 2009/06/25 13:43:34 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.28  2009/06/25 13:43:34  aromanou
+c_
+c_ resurrecting hycom coupled to ocean biogeochemistry
+c_
 c_ Revision 2.27  2009/06/15 03:57:16  aromanou
 c_ changes towards saving proper restart files. still a problem with gtracer and
 c_ atrac in toc2sst.
@@ -1107,12 +1115,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.27 $
-c_ $Date: 2009/06/15 03:57:16 $   ;  $State: Exp $
+c_ $Revision: 2.28 $
+c_ $Date: 2009/06/25 13:43:34 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.28  2009/06/25 13:43:34  aromanou
+c_
+c_ resurrecting hycom coupled to ocean biogeochemistry
+c_
 c_ Revision 2.27  2009/06/15 03:57:16  aromanou
 c_ changes towards saving proper restart files. still a problem with gtracer and
 c_ atrac in toc2sst.

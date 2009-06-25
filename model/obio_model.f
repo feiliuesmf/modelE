@@ -300,6 +300,7 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 #ifdef OBIO_ON_GARYocean
        pres = oAPRESS(i,j)    !surface atm. pressure
        do k=1,lmm(i,j)
+         pres=pres+MO(I,J,k)*GRAV*.5
          g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
          s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
 !!!!     temp1d(k)=TEMGS(g,s)           !potential temperature
@@ -823,8 +824,6 @@ cdiag     endif
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
-
-!maybe we need to smooth dic here....
 
 #ifdef OBIO_ON_GARYocean
       !update trmo etc arrays

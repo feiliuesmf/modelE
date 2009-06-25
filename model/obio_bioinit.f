@@ -350,25 +350,25 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-cdiag do nt=1,ntrac
-cdiag   ntchar='00'
-cdiag   if(nt.le.9)write(ntchar,'(i1)')nt
-cdiag   if(nt.gt.9)write(ntchar,'(i2)')nt
-cdiag   print*,'BIO: saving initial tracer fields '
-cdiag.        ,'bioinit_tracer'//ntchar
-cdiag   call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-cdiag   do k=1,kdm
-cdiag   do j=j_0,j_1				!  do not parallelize
-cdiag   do l=1,isp_l(j)
-cdiag   do i=ifp_l(j,l),ilp_l(j,l)
-cdiag      write(iu_bioinit,'(3i4,2e12.4)')
-cdiag.           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-cdiag   enddo
-cdiag   enddo
-cdiag   enddo
-cdiag   enddo
-cdiag call closeunit(iu_bioinit)
-cdiag enddo
+      do nt=1,ntrac
+        ntchar='00'
+        if(nt.le.9)write(ntchar,'(i1)')nt
+        if(nt.gt.9)write(ntchar,'(i2)')nt
+        print*,'BIO: saving initial tracer fields '
+     .        ,'bioinit_tracer'//ntchar
+        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+        do k=1,kdm
+        do j=j_0,j_1				!  do not parallelize
+        do l=1,isp_l(j)
+        do i=ifp_l(j,l),ilp_l(j,l)
+           write(iu_bioinit,'(3i4,2e12.4)')
+     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+        enddo
+        enddo
+        enddo
+        enddo
+      call closeunit(iu_bioinit)
+      enddo
 
       if (AM_I_ROOT())
      .print*,'obio_bioinit: '
