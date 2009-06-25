@@ -48,7 +48,6 @@ c  et al., 1996 (JGR)
       real*8, dimension(6), intent(out) :: xocvn
 
       real*8 :: sum1, sum2, part_sum
-      real*8 :: ref
       logical :: obio_reflectance, res
       integer, parameter :: nlt=33
       real*8, dimension(nlt) :: refl

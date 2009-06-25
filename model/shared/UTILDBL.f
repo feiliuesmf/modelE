@@ -708,9 +708,9 @@ C****      '(' is required, so it is inserted
 !@var retcode return code to be passed to the calling script
       integer, intent(in) :: retcode
       integer, parameter :: iu_err = 9
-      integer :: mpi_err
       integer :: rank
 #ifdef USE_MPI
+      integer :: mpi_err
 #  ifdef MPI_DEFS_HACK
 #  include "mpi_defs.h"
 #  endif
