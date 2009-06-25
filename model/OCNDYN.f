@@ -4885,9 +4885,6 @@ C****
       integer :: j_0,j_1,n,i_0,i_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      write(*,*)'OCNDYN, atrac5:',
-     .    nstep,62,8,atrac(62,8,1),atrac_glob(62,8,1)
-
       if (LMO_MIN .lt. 2) then
         write (*,*) ' Subroutine TOC2SST (OCNDYN.f): '
         write (*,*) ' Make minimum number of ocean layers equal to 2'
@@ -4901,13 +4898,7 @@ C****
 
 !  Get ocean arrays MO,UO,VO,G0M,S0M,OGEOZ,OGEOZ_SV on atmospheric grid
 !
-      write(*,*)'OCNDYN, atrac5a:',
-     .    nstep,62,8,atrac(62,8,1),atrac_glob(62,8,1)
-
       call OG2AG_TOC2SST
-
-      write(*,*)'OCNDYN, atrac5b:',
-     .    nstep,62,8,atrac(62,8,1)
 
 C****
 C**** Note that currently everything is on same grid
@@ -4981,9 +4972,6 @@ C**** do poles
         END DO
       END IF
       end if
-
-      write(*,*)'OCNDYN, atrac6:',
-     .    nstep,62,8,atrac(62,8,1),gtracer(1,1,62,8)
 
       RETURN
 C****
