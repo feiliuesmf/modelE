@@ -1558,7 +1558,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       call defvar(grid,fid,pClOx,'pClOx'//ijldims,defby=compstr)
       call defvar(grid,fid,pClx,'pClx'//ijldims,defby=compstr)
       call defvar(grid,fid,pOClOx,'pOClOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,pClOx,'pBrOx'//ijldims,defby=compstr)
+      call defvar(grid,fid,pBrOx,'pBrOx'//ijldims,defby=compstr)
       call defvar(grid,fid,yCl2,'yCl2'//ijldims,defby=compstr)
       call defvar(grid,fid,yCl2O2,'yCl2O2'//ijldims,defby=compstr)
 #endif
@@ -1669,7 +1669,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call write_dist_data(grid,fid,'pClOx',pClOx)
         call write_dist_data(grid,fid,'pClx',pClx)
         call write_dist_data(grid,fid,'pOClOx',pOClOx)
-        call write_dist_data(grid,fid,'pClOx',pBrOx)
+        call write_dist_data(grid,fid,'pBrOx',pBrOx)
         call write_dist_data(grid,fid,'yCl2',yCl2)
         call write_dist_data(grid,fid,'yCl2O2',yCl2O2)
 #endif
@@ -1736,7 +1736,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call read_dist_data(grid,fid,'pClOx',pClOx)
         call read_dist_data(grid,fid,'pClx',pClx)
         call read_dist_data(grid,fid,'pOClOx',pOClOx)
-        call read_dist_data(grid,fid,'pClOx',pBrOx)
+        call read_dist_data(grid,fid,'pBrOx',pBrOx)
         call read_dist_data(grid,fid,'yCl2',yCl2)
         call read_dist_data(grid,fid,'yCl2O2',yCl2O2)
 #endif
