@@ -263,53 +263,40 @@ c
 c
       real field(I_0H:I_1H,J_0H:J_1H)
       real a(1),b(1)
-      integer, save :: count1=1, count2=1
 c
-      !write(0,*) "ok ",__FILE__,__LINE__
 
 c --- exchange p-point values (half grid size away from seam)
       if (beropn) then
-        !a(1) = field(ipacs,jpac)
-        !b(1) = field(iatln,jatl)
-        !write(0,*) "ok ",__FILE__,__LINE__
 
+        if ( jpac>=J_0 .and. jpac<=J_1 .and.
+     &       jatl>=J_0 .and. jatl<=J_1 ) then ! all local
+          field(iatls,jatl)=field(ipacs,jpac)
+          field(ipacn,jpac)=field(iatln,jatl)
+        else                    ! jpac, jatl are on different threads
 
-        if ( jpac>=J_0 .and. jpac<=J_1 ) then
-          !write(0,*) "sending to jatl",count1,J_0,J_1,jatl
-          a(1) = field(ipacs,jpac)
-          call send_to_j(ogrid,a,jatl,1)
-          !write(0,*) "sent to jatl"
-        endif
-        if ( jatl>=J_0 .and. jatl<=J_1 ) then
-          b(1) = field(iatln,jatl)
-          call send_to_j(ogrid,b,jpac,2)
-        endif
-
-        !write(0,*) "ok ",__FILE__,__LINE__
-
-
-        if ( jatl>=J_0 .and. jatl<=J_1 ) then
-          !write(0,*) "receiving from jpac",count1,J_0,J_1,jpac
-          call recv_from_j(ogrid,a,jpac,1)
-          !write(0,*) "received from jpac"
-          field(iatls,jatl)=a(1)
+          if ( jpac>=J_0 .and. jpac<=J_1 ) then
+            a(1) = field(ipacs,jpac)
+            call send_to_j(ogrid,a,jatl,1)
           endif
-        if ( jpac>=J_0 .and. jpac<=J_1 ) then
-          call recv_from_j(ogrid,b,jatl,2)
-          field(ipacn,jpac)=b(1)
+          if ( jatl>=J_0 .and. jatl<=J_1 ) then
+            b(1) = field(iatln,jatl)
+            call send_to_j(ogrid,b,jpac,2)
           endif
 
-        !write(0,*) "ok ",__FILE__,__LINE__
+          if ( jatl>=J_0 .and. jatl<=J_1 ) then
+            call recv_from_j(ogrid,a,jpac,1)
+            field(iatls,jatl)=a(1)
+          endif
+          if ( jpac>=J_0 .and. jpac<=J_1 ) then
+            call recv_from_j(ogrid,b,jatl,2)
+            field(ipacn,jpac)=b(1)
+          endif
 
-
-        !!field(iatls,jatl)=a(1)
-        !!field(ipacn,jpac)=b(1)
-
-        !field(iatls,jatl)=field(ipacs,jpac)
-        !field(ipacn,jpac)=field(iatln,jatl)
-        count1 = count1+1
-        count2 = count2+1
+        endif
+          !field(iatls,jatl)=field(ipacs,jpac)
+          !field(ipacn,jpac)=field(iatln,jatl)
       endif
+
       return
       end
 c
@@ -329,19 +316,21 @@ c
       real a(1),b(1)
 c
 c --- exchange p-point values (half grid size away from seam)
+      if ( jpac>=J_0 .and. jpac<=J_1 .and.
+     &     jatl>=J_0 .and. jatl<=J_1 ) then ! all local
+        field(iatls,jatl) = field(ipacn,jpac)
+      else                      ! jpac, jatl are on different threads
+
         if ( jpac>=J_0 .and. jpac<=J_1 ) then
-          !write(0,*) "sending to jatl",J_0,J_1,jatl
           a(1) = field(ipacn,jpac)
           call send_to_j(ogrid,a,jatl,1)
-          !write(0,*) "sent to jatl"
         endif
-
         if ( jatl>=J_0 .and. jatl<=J_1 ) then
-          !write(0,*) "receiving from jpac",J_0,J_1,jpac
           call recv_from_j(ogrid,a,jpac,1)
-          !write(0,*) "received from jpac" 
           field(iatls,jatl)=a(1)
         endif
+
+      endif
 
       return
       end subroutine cpy_mJpacJatL
