@@ -68,3 +68,6 @@ ifeq ($(PFT_MODEL),ENT)
 CPPFLAGS += -DPFT_MODEL_ENT
 endif
 
+ifeq ($(FLUXNET),YES)
+CPPFLAGS += -DSOILCARB_SITE
+endif

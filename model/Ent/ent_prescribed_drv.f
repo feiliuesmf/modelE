@@ -307,7 +307,9 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       Tpooldata = 0.d0
 #else
       if ( do_soilinit ) then
+#ifndef SOILCARB_SITE
         call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
+#endif
         call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
       else
         Tpooldata = 0.d0
