@@ -1,4 +1,5 @@
 !#include "hycom_mpi_hacks.h"
+#include "rundeck_opts.h"
       subroutine archiv(n,nn)
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
@@ -389,6 +390,9 @@ c
  60   continue
 cc$OMP END PARALLEL DO
 c
+#ifdef TRACERS_OceanBiology
+      call obio_archyb
+#endif
       return
       end
 c
