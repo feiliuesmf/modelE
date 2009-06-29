@@ -138,7 +138,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
-     &                             Jqq,Iqq,maxl,iu,ih0,ih,m,istep
+     &       ierr,ierr_loc,        Jqq,Iqq,maxl,iu,ih0,ih,m,istep
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ss27_file,ghg_file,title
@@ -349,6 +349,8 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         enddo
       enddo
 
+      ierr_loc = 0
+
 CCCC!$OMP  PARALLEL DO PRIVATE (changeL, FASTJ_PFACT,
 CCCC!$OMP* rlossN,rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
 CCCC!$OMP* gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,rveln2o5,
@@ -368,9 +370,9 @@ CCCC!$OMP* SHARED (N_NOX,N_HNO3,N_N2O5,N_HCHO,N_ALKENES,N_ISOPRENE,
 CCCC!$OMP* N_ALKYLNIT)
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      DO J=J_0,J_1                  ! >>>> MAIN J LOOP BEGINS <<<<
+      j_loop: DO J=J_0,J_1          ! >>>> MAIN J LOOP BEGINS <<<<
 
-      DO I=I_0,IMAXJ(J)             ! >>>> MAIN I LOOP BEGINS <<<<
+      i_loop: DO I=I_0,IMAXJ(J)     ! >>>> MAIN I LOOP BEGINS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       if(checktracer_on==1) call checktracer(I,J)
@@ -456,7 +458,7 @@ C**** Add water to relevant tracers as well
             select case (tr_wd_type(n))
             case (nWater)       ! water: initialise tracers
               trm(i,j,l,n) = trm(i,j,l,n)*fraQ
-              if (fraQ < 1.) trmom(:,i,j,l,n) = trmom(:i,j,l,n)*fraQ
+              if (fraQ < 1.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fraQ
             end select
           end do
 #endif
@@ -683,7 +685,8 @@ CCCCCCCCCCCCCCCCC FAMILY PARTITIONING CCCCCCCCCCCCCCCCCCCCCCCCCC
 #endif
 CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 
-      call chemstep(I,J,changeL)
+      call chemstep(I,J,changeL,ierr_loc)
+      if(ierr_loc > 0) cycle i_loop
 
 C Save 3D radical arrays to pass to aerosol code:
       if(coupled_chem == 1) then
@@ -1572,11 +1575,19 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       END DO ! end current altitude loop
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-      END DO ! >>>> MAIN I LOOP ENDS <<<<
+      END DO i_loop ! >>>> MAIN I LOOP ENDS <<<<
 
-      END DO ! >>>> MAIN J LOOP ENDS <<<<
+      END DO j_loop ! >>>> MAIN J LOOP ENDS <<<<
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 CCCCC!$OMP END PARALLEL DO  
+
+      ! check if there was that error in certain section of chemstep
+      ! anywhere in the world; if so, stop the model (all processors):
+      call globalsum(grid,ierr_loc,ierr,all=.true.)
+      if(ierr > 0) then ! all processors call stop_model
+        if(am_i_root()) write(6,*) 'chemstep Oxcorr fault'  
+        call stop_model('chemstep Oxcorr fault',255)
+      endif
 
 #ifdef SHINDELL_STRAT_CHEM
 !p    if(prnchg)then

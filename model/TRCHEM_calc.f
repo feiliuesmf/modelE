@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE chemstep(I,J,changeL)
+      SUBROUTINE chemstep(I,J,changeL,ierr_loc)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on chemcalc0C5.4_M23p.f from model II)
@@ -87,7 +87,8 @@ C**** Local parameters and variables and arguments:
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
       INTEGER, INTENT(IN) :: I,J
-      INTEGER :: L,iter,maxl,igas,maxT,Lz,it
+      INTEGER, INTENT(INOUT) :: ierr_loc
+      INTEGER :: L,iter,maxl,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
 #ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER :: iHO2NO2form=99,iN2O5form=100,
@@ -534,9 +535,12 @@ c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
           if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
             dest(n_Ox,L)=dest(n_Ox,L)-Oxcorr(L)
           else
-            write(out_line,*)'Oxcorr fault NO2:',ratioNs,
-     &      ratioN2,rNO2frac,rNO2prod,rNOprod
+            ierr_loc=ierr_loc+1 ! will stop model in masterchem
+            write(out_line,'(a17,5(1X,E10.4))')
+     &      'Oxcorr fault NO2:',
+     &      ratioNs,ratioN2,rNO2frac,rNO2prod,rNOprod
             call write_parallel(trim(out_line),crit=.true.)      
+            return
           endif
 
         else                      !excess NO prodcution
@@ -556,10 +560,12 @@ c         or NO+O+M->NO2+M:
           if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
             dest(n_Ox,L)=dest(n_Ox,L)-Oxcorr(L)
           else
-            write(out_line,*) 'Oxcorr fault NO:',I,J,L,ratioNs,
-     &      ratioN2,rNOfrac,rNO2prod,rNOprod,y(nNO2,L),y(nNO,L),
-     &      rNOdenom,y(nO,L),y(nO3,L)
+            ierr_loc=ierr_loc+1 ! will stop model in masterchem
+            write(out_line,'(a16,3I4,10(1X,E10.4))')'Oxcorr fault NO:',
+     &      I,J,L,ratioNs,ratioN2,rNOfrac,rNO2prod,rNOprod,y(nNO2,L),
+     &      y(nNO,L),rNOdenom,y(nO,L),y(nO3,L)
             call write_parallel(trim(out_line),crit=.true.)    
+            return
           endif
 c
         endif
