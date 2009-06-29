@@ -7132,6 +7132,7 @@ c clear sky scattering asymmetry factor in six solar bands
       USE DIAG_COM
       implicit none
       integer k,n
+      character*50 :: unit_string
 
 #ifdef TRACERS_ON
       ir_ijlt = ir_log2  ! default
