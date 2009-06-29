@@ -1787,7 +1787,7 @@ c**** copy virtual half-page to paper if appropriate
 C**** for every diag, output all levels at once
         if (l.eq.lm) then
           call scale_ijlmap(aijl1(1,1,1,nn),aijl2(1,1,1,nn),scale(nn)
-     *         ,1,idacc(ia_ijl(nn)),idacc(ia_ijl(nn)),smapijl,smapjl)
+     *         ,1,idacc(iacc(nn)),idacc(iacc(nn)),smapijl,smapjl)
           smapl=0               ! tmp
           if (qdiag) call pout_ijl(titlel,name(nn),lname(nn)
      *         ,units(nn),smapijl,smapjl,smapl,ijkgridc)
