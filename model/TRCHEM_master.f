@@ -29,6 +29,7 @@ c
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
      &                        n_Isoprene,n_AlkylNit,n_Alkenes,
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
+     &                        tr_wd_type,nWater,trm,trmom,
 #ifdef TRACERS_AEROSOLS_SOA
      &                        n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
      &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
@@ -449,6 +450,16 @@ c based on tropical tropopause H2O and CH4:
          fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
          Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
          if(fraQ < 1.)qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ
+#ifdef TRACERS_WATER
+C**** Add water to relevant tracers as well
+          do n=1,ntm
+            select case (tr_wd_type(n))
+            case (nWater)       ! water: initialise tracers
+              trm(i,j,l,n) = trm(i,j,l,n)*fraQ
+              if (fraQ < 1.) trmom(:,i,j,l,n) = trmom(:i,j,l,n)*fraQ
+            end select
+          end do
+#endif
        end if 
 #endif
 

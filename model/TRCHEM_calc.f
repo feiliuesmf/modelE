@@ -8,7 +8,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE SOMTQ_COM, only       : qmom
-      USE MODEL_COM, only       : im,jm,lm,ls1,Q,ptop,psf,sig
+      USE MODEL_COM, only       : im,jm,lm,ls1,Q,ftype,ntype,pmidl00
       USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
       USE DYNAMICS, only        : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
@@ -31,6 +31,9 @@ C
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &                   n_HOBr,n_BrONO2,n_CFC,ntm_chem,mass2vol,
      &                   vol2mass
+#ifdef TRACERS_WATER
+     &                   ,trm,trmom,tr_wd_type,nwater,tr_H2ObyCH4
+#endif
 #ifdef TRACERS_HETCHEM
      &                  ,krate,n_N_d1,n_N_d2,n_N_d3
 #endif
@@ -51,6 +54,7 @@ C
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,voc2nox
 #endif  /* TRACERS_AEROSOLS_SOA */
+      USE DIAG_COM, only : aj,j_h2och4
 c
       IMPLICIT NONE
 c
@@ -83,7 +87,7 @@ C**** Local parameters and variables and arguments:
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
       INTEGER, INTENT(IN) :: I,J
-      INTEGER :: L,iter,maxl,igas,maxT,Lz
+      INTEGER :: L,iter,maxl,igas,maxT,Lz,it
       INTEGER :: J_0, J_1
 #ifdef SHINDELL_STRAT_CHEM
       INTEGER, PARAMETER :: iHO2NO2form=99,iN2O5form=100,
@@ -127,7 +131,7 @@ C TROPOSPHERIC CHEMISTRY ONLY or TROP+STRAT?, pick top:
       maxl=maxT
 #endif
 
-      PRES(1:maxL)=SIG(1:maxL)*(PSF-PTOP)+PTOP
+      PRES(1:maxL)=PMIDL00(1:maxL)   !SIG(1:maxL)*(PSF-PTOP)+PTOP
       
       do L=1,maxT
         y(nCH3O2,L)   =    yCH3O2(I,J,L)
@@ -469,9 +473,25 @@ C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
 C       --- Q --- :
         Q(I,J,L) = Q(I,J,L) + changeH2O(L)/(y(nM,L)*MWabyMWw)
-C       -- diag --:
+C       -- diags --:
         CALL INC_TAJLS(I,J,L,jls_H2Ochem,changeH2O(L)
      &       *AM(L,I,J)*axyp(I,J)/(y(nM,L)*MWabyMWw))
+        do it=1,ntype
+          call inc_aj(i,j,it,j_h2och4,changeH2O(L)*ftype(it,i,j)*am(l,i
+     *         ,j)/(y(nM,L)*MWabyMWw))
+        end do
+#ifdef TRACERS_WATER
+C       -- water tracers --:
+        do n=1,ntm
+          select case (tr_wd_type(n))
+          case (nWater)         ! water: add CH4-sourced water to tracers
+            trm(i,j,l,n) = trm(i,j,l,n) + tr_H2ObyCH4(n)*axyp(i,j)
+     *           *changeH2O(L)*AM(L,I,J)/(y(nM,L)*MWabyMWw)
+            if(changeH2O(L) < 0.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)
+     *           *fraQ2
+          end select
+        end do
+#endif
 C       -- Qmom --:
         if(changeH2O(L) < 0.)then
            qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2
@@ -481,7 +501,7 @@ C       -- Qmom --:
              call write_parallel(trim(out_line),crit=.true.)
              call stop_model('big Q change in calc',255)
            endif
-        endif
+         endif
       enddo
 
 c Calculate ozone change due to within-NOx partitioning:
