@@ -902,103 +902,75 @@ C** Read parameters for each deposition surface type:
 C******************** END MODIN SECTION **************************
       RETURN
       END SUBROUTINE RDLAND
- 
 
            
-      SUBROUTINE RDLAI
+      subroutine rdlai
 !@sum RDLAI Updates the Leaf Area Index (LAI) daily.
 !@auth HARVARD CTM
 !@calls READLAI
 C**** GLOBAL parameters and variables:  
-      use domain_decomp_atm, only : grid, get
-      USE tracers_DRYDEP, only: IJREG,XYLAI,XLAI,XLAI2,IREG
-      USE MODEL_COM, only: IM,JM,JDmidOfM,JMperY,JDAY,JMON
-      IMPLICIT NONE
+      use domain_decomp_atm, only : grid, get, am_i_root
+      use tracers_drydep, only: ijreg,xylai,xlai,xlai2,ireg
+      use model_com, only: im,jm,JDmidOfM,JMperY,jday,jmon
+      implicit none
 
 C**** Local parameters and variables and arguments
-!@var STARTDAY last (Julian) day of 1st half of month
-!@var ISAVE 
-!@var IMUL, ITD variables for getting right day or year
-!@var M,K,I,J dummy loop variables
-!@var JDAY current julian day
-!@var byrITD reciprocol of real(ITD)
-      INTEGER, dimension(JMperY) :: STARTDAY
-      integer :: IMUL,ITD,M,K,I,J
-      REAL*8 :: byrITD
-      INTEGER, SAVE :: ISAVE=0
-      integer :: J_0, J_1, J_1H, J_0H, I_0, I_1
+!@var startday last (Julian) day of 1st half of month
+!@var isave flag for first time through
+!@var itd length of current interpolation period (days)
+!@var k,i,j dummy loop variables
+!@var jday current julian day
+!@var offset to control upon restarts what month to read first
+!@+   =0 means jmon, -1 means start with jmon-1 b/c not middle
+!@+   of month yet.
+!@var alpha interpolation coefficient
+!@var beta interpolation coefficient
+      integer, dimension(0:JMperY+1) :: startday
+      integer :: k,i,j,offset,itd
+      real*8 :: alpha, beta
+      integer, save :: isave=0
+      integer :: J_0, J_1, I_0, I_1
       
-      call get( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &                 J_STRT     =J_0 , J_STOP     =J_1 )
+      J_0 = GRID%J_STRT
+      J_1 = GRID%J_STOP
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
      
-      DO M=1,JMperY
-        STARTDAY(M) = JDmidOfM(M) - 1
-      END DO
+      startday(0:JMperY+1)=jdMIDofM(0:JMperY+1)-1
     
-      IF (ISAVE == 0) THEN
-        ISAVE=1
-        IF (JDAY < STARTDAY(1)) THEN
-          IMUL=365-STARTDAY(JMperY)+JDAY
-          ITD = 31
-        ELSE
-          IMUL=JDAY-STARTDAY(JMON)
-          IF (JMON < JMperY) THEN
-            ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
-          ELSE
-            ITD = 365 + STARTDAY(1) - STARTDAY(JMON)
-          END IF
-        END IF
-        byrITD = 1.E0/REAL(ITD)
-        CALL READLAI
-        DO J=J_0,J_1
-          DO I=I_0,I_1
-            DO K=1,IREG(I,J)
-              XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
-              XLAI(I,J,K) = XLAI(I,J,K) + XLAI2(I,J,K)*REAL(IMUL)
-            END DO
-          END DO
-        END DO
-      ELSE
-        IF (JDAY == STARTDAY(JMON)) THEN
-          IF (JMON < JMperY) THEN
-            ITD = STARTDAY(JMON+1) - STARTDAY(JMON)
-          ELSE
-            ITD = 365 + STARTDAY(1) - STARTDAY(JMON)
-          END IF
-          byrITD = 1.d0/REAL(ITD)
-          CALL READLAI
-          DO J=J_0,J_1
-            DO I=I_0,I_1
-              DO K=1,IREG(I,J)        
-                XLAI2(I,J,K) = (XLAI2(I,J,K)-XLAI(I,J,K))*byrITD
-              END DO
-            END DO
-          END DO
-        ELSE   
-          DO J=J_0,J_1
-            DO I=I_0,I_1
-              DO K=1,IREG(I,J)
-                XLAI(I,J,K)=XLAI(I,J,K)+ XLAI2(I,J,K)
-              END DO
-            END DO
-          END DO
-        END IF
-      END IF
-      DO J=J_0,J_1
-        DO I=I_0,I_1
-          DO K=1,IJREG(I,J)
-            XYLAI(I,J,K)=XLAI(I,J,K)
-          END DO
-        END DO
-      END DO
-      RETURN
-      END SUBROUTINE RDLAI
+! If in the 1st half of month, use jmon-1 and jmon months
+! to interpolate. If in 2nd half of month, use jmon and jmon+1.
+! Determine the number of days between current mid-months:
+
+      if(jday < startday(jmon))then
+        offset=-1
+      else
+        offset=0
+      endif
+      itd = startday(jmon+1+offset) - startday(jmon+offset)
+
+! If about to reach middle of next month, or this is first 
+! timestep upon (re)start, read the files:
+
+      if (jday == startday(jmon) .or. isave==0) then
+        isave=1
+        call readlai(offset)
+      endif
+
+! interpolate to current day:
+
+      beta = real(jday-startday(jmon+offset),kind=8) / real(itd,kind=8)
+      alpha = 1.d0 - beta
+      do j=J_0,J_1 ; do i=I_0,I_1 ; do k=1,ijreg(i,j)
+        xylai(i,j,k)=alpha*xlai(i,j,k)+beta*xlai2(i,j,k)
+      end do       ; end do       ; end do
+      if(am_i_root( ))write(6,*)'Interpolating LAI, beta=',beta
+
+      return
+      end subroutine rdlai
 
 
-
-      SUBROUTINE READLAI
+      subroutine readlai(offset)
 !@sum READDLAI read in leaf area indicies from formatted file
 !@+   (chem_files/lai##.global) for one month.
 !@auth ? HARVARD CTM
@@ -1006,110 +978,102 @@ C**** Local parameters and variables and arguments
 !@calls openunit
 
 C**** GLOBAL parameters and variables:  
-      use domain_decomp_atm, only : grid,get,AM_I_ROOT,UNPACK_DATA,
-     &     PACK_DATA,readt_parallel
-      USE tracers_DRYDEP, only: XLAI,XLAI2,IREG,ntype,nvegtype
+      use domain_decomp_atm, only : grid,get,am_i_root,unpack_data,
+     & pack_data,readt_parallel
+      use tracers_drydep, only: xlai,xlai2,ireg,ntype,nvegtype
 #ifdef BIN_TRACERS
-     &     ,XOLAI_loc,XOLAI2_loc,ILAND
+     &                         ,xolai_loc,xolai2_loc,iland
 #endif
-      USE MODEL_COM, only: IM,JM,JMON,JMperY
-      USE FILEMANAGER, only: openunit,closeunit
+      use model_com, only: im,jm,jmon,JMperY
+      use filemanager, only: openunit,closeunit
 
-      IMPLICIT NONE
+      implicit none
 
 C**** Local parameters and variables and arguments
-!@var CMONTH 2-digit of current month (character)  
+!@var offset to control upon restarts what month to read first
+!@+   =0 means jmon, -1 means start with jmon-1 b/c not middle
+!@+   of month yet.
+!@var cmonth 2-digit of current month (character)  
 !@var i,j,k dummy loop indicies
 !@var IUNIT unuit number of current file being read
-!@var MMM temp to hold JMON or 0
-!@var INDEX ?
-      CHARACTER*2, PARAMETER, DIMENSION(JMperY) :: CMONTH =
-     &(/'01','02','03','04','05','06','07','08','09','10','11','12'/)
-      INTEGER :: I,J,K,IUNIT,MMM,INDEX
-      real*8, dimension(im,jm,ntype) :: XLAI_glob, XLAI2_glob
-      integer, dimension(IM,JM) :: IREG_glob
-      integer :: I_0,I_1,J_0, J_1, J_1H, J_0H
+!@var number of types read from file for each i,j point
+      integer, intent(in) :: offset
+      character*2, parameter, dimension(0:JMperY+1) :: cmonth =
+     &(/'12','01','02','03','04','05','06','07','08','09','10',
+     &  '11','12','01'/)
+      integer :: i,j,k,iunit,index
+      real*8, dimension(im,jm,ntype) :: xlai_glob, xlai2_glob
       character*80 :: fbin
-      
-      call get( grid , J_STRT     =J_0 , J_STOP     =J_1 ,
-     &                 I_STRT     =I_0 , I_STOP     =I_1 ) 
+      integer :: J_0, J_1, I_0, I_1
 
+      J_0 = GRID%J_STRT
+      J_1 = GRID%J_STOP
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
 
 #ifdef BIN_TRACERS
-c***  Read VEGTYPEt2b.f for documentation about the binary format
-c       Read current month's lai:
-        fbin='LAI'//CMONTH(JMON)//"BIN"
-        write(*,*) fbin
-        call openunit(trim(fbin),IUNIT,.true.,.true.)
-        do K=1,nvegtype
-            call readt_parallel(grid,IUNIT,fbin,
-     &           XOLAI_loc(:,:,K),1)
-        enddo
-         do J=J_0,J_1
-          do I=I_0,I_1
-            do K=1,IREG(I,J)
-               XLAI(I,J,K)=XOLAI_loc(I,J,ILAND(I,J,K))
-            enddo
-          enddo
-        enddo
-        call closeunit(IUNIT)
-c       Read following month's lai
-        IF(JMON == 12) THEN
-          MMM=0
-        ELSE
-          MMM=JMON
-        END IF
-        fbin='LAI'//CMONTH(MMM+1)//"BIN"
-        write(*,*) fbin
-        call openunit(trim(fbin),IUNIT,.true.,.true.)
-        do K=1,nvegtype
-            call readt_parallel(grid,IUNIT,fbin,
-     &           XOLAI2_loc(:,:,K),1)
-        enddo
-         do J=J_0,J_1
-          do I=I_0,I_1
-            do K=1,IREG(I,J)
-               XLAI2(I,J,K)=XOLAI2_loc(I,J,ILAND(I,J,K))
-            enddo
-          enddo
-        enddo
-        call closeunit(IUNIT)
+! Binary reading of LAIs (converted by Denis). Read VEGTYPEt2b.f for 
+! documentation about the binary format.
+! (Greg Faluvegi altering to include offset):
+
+! read first month's LAI's:
+      fbin='LAI'//cmonth(jmon+offset)//"BIN"
+      write(6,*) fbin
+      call openunit(trim(fbin),iunit,.true.,.true.)
+      do k=1,nvegtype
+        call readt_parallel(grid,iunit,fbin,xolai_loc(:,:,k),1)
+      enddo
+      do j=J_0,J_1 ; do i=I_0,I_1 ; do k=1,ireg(i,j)
+        xlai(i,j,k)=xolai_loc(i,j,iland(i,j,k))
+      enddo        ; enddo        ; enddo
+      call closeunit(iunit)
+
+! read second month's LAI's:
+      fbin='LAI'//cmonth(jmon+offset+1)//"BIN"
+      write(6,*) fbin
+      call openunit(trim(fbin),iunit,.true.,.true.)
+      do k=1,nvegtype
+        call readt_parallel(grid,iunit,fbin,xolai2_loc(:,:,k),1)
+      enddo
+      do J=J_0,J_1 ; do I=I_0,I_1 ; do K=1,IREG(I,J)
+        xlai2(i,j,k)=xolai2_loc(i,j,iland(i,j,k))
+      enddo        ; enddo        ;  enddo
+      call closeunit(iunit)
+
 #else
-      CALL PACK_DATA(grid, IREG, IREG_glob) 
-      if ( AM_I_ROOT() ) then      
-C       lai's are in reference coordinates.  initialize them:
-        DO J=1,JM;  DO I=1,IM; DO K=1,IREG_glob(I,J)
-          XLAI_glob(I,J,K)= 0.d0
-          XLAI2_glob(I,J,K)=0.d0
-        END DO   ;  END DO   ; END DO
 
-C       Read current month's lai:
-        call openunit('LAI'//CMONTH(JMON),IUNIT,.false.,.true.)
-10      READ(IUNIT,"(3I3,20F5.1)",END=20) I,J,INDEX,
-     &  (XLAI_glob(I,J,K),K=1,INDEX)
-        GOTO 10
-20      call closeunit(iunit)
-
+! Original ascii file reading:
+! read first month's LAI's:      
+      if ( am_i_root() ) then      
+        xlai_glob(:,:,:)= 0.d0 ! just in case, initialize
+        call openunit('LAI'//cmonth(jmon+offset),iunit,.false.,.true.)
+        write(6,*)'Reading LAI'//cmonth(jmon+offset)
+        do 
+          read(iunit,"(3I3,20F5.1)",end=20) i,j,index,
+     &    (xlai_glob(i,j,k),k=1,index)
+        enddo   
+20      continue
+        call closeunit(iunit)
       endif
-      
-      CALL UNPACK_DATA(grid, XLAI_glob, XLAI)
+      call unpack_data(grid, xlai_glob, xlai)
        
-      if ( AM_I_ROOT() ) then 
-C       Read following month's lai:
-        IF(JMON == 12) THEN
-          MMM=0
-        ELSE
-          MMM=JMON
-        END IF
-        call openunit('LAI'//CMONTH(MMM+1),IUNIT,.false.,.true.)
-30      READ(IUNIT,"(3I3,20F5.1)",END=40) I,J,INDEX,
-     &  (XLAI2_glob(I,J,K),K=1,INDEX)
-        GOTO 30
-40      call closeunit(iunit)
+! read second month's LAI's:      
+      if ( am_i_root() ) then 
+        xlai2_glob(:,:,:)=0.d0 ! just in case, initialize
+        call openunit('LAI'//cmonth(jmon+offset+1),iunit,.false.,.true.)
+        write(6,*)'Reading LAI'//cmonth(jmon+offset+1)
+        do
+          read(iunit,"(3I3,20F5.1)",end=40) i,j,index,
+     &    (xlai2_glob(i,j,k),k=1,index)
+        enddo   
+40      continue
+        call closeunit(iunit)
       endif
-      
-      CALL UNPACK_DATA(grid, XLAI2_glob, XLAI2)
+      call unpack_data(grid, xlai2_glob, xlai2)
+
 #endif
-      RETURN
-      END SUBROUTINE READLAI
+
+      return
+      end subroutine readlai
+
 #endif
