@@ -160,9 +160,9 @@
       !layers for soil bgc -- need to make this into variable if
       !affected arrays later allocated dynamically -PK 7/23/07   
 #ifdef NCASA2
-      integer,parameter :: N_CASA_LAYERS = 2  !to add explicit depth structure to soil model -PK 11/06      
+      integer,parameter :: N_CASA_LAYERS = 2  !Option for 2 soil biogeochemistry layers, 0-30 cm, 30-100 cm.
 #else 
-      integer,parameter :: N_CASA_LAYERS = 1  !**keep 1 for now to replicate default run for implicit top 30cm** -PK 7/07 
+      integer,parameter :: N_CASA_LAYERS = 1   !Default option for 1 soil biogeochemistry layer, 0-30 cm.
 #endif
       !* Total pool array indices
       integer,parameter :: PTRACE = 2 !Trace elements in Tpools, C and N
