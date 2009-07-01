@@ -253,7 +253,40 @@ C**** parameters and variables for ISCCP diags
       CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
      *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
      *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
-
+#ifdef TES_LIKE_DIAGS
+!@param kgz_max_more is the actual number of TES pressure levels saved
+      INTEGER, public :: kgz_max_more
+!@param KGZmore more than KGZ number of pressure levels for some diags
+      INTEGER, PARAMETER, public :: KGZmore = 32
+!@param PMBmore like PMB but more preesure levels for some diags
+      REAL*8, DIMENSION(KGZmore), PARAMETER, public ::
+     &     PMBmore=(/
+     & 1000.0000, 825.40198, 681.29102, 562.34198, 464.16000, 383.11700,
+     & 316.22699, 261.01599, 215.44400, 177.82899, 146.77901, 121.15200,
+     & 100.00000, 82.540604, 68.129501, 56.233898, 46.415798, 38.311901,
+     & 31.622900, 26.101700, 21.544300, 17.782801, 14.678000, 12.115300,
+     & 10.000000, 8.2540197, 5.1089802, 3.1622701, 2.1544299, 1.3335201,
+     &  0.681292, 0.2154430/)
+!@param PMNAMEmore strings describing PMBmore pressure levels
+      CHARACTER*4, DIMENSION(KGZmore),PARAMETER,public::PMNAMEmore=(/
+     & "1000", "825 ", "681 ", "562 ", "464 ", "383 ",
+     & "316 ", "261 ", "215 ", "178 ", "147 ", "121 ",
+     & "100 ", "82.5", "68.1", "56.2", "46.4", "38.3",
+     & "31.6", "26.1", "21.5", "17.8", "14.7", "12.1",
+     & "10.0", "8.25", "5.11", "3.16", "2.15", "1.33",
+     & "0.68", "0.22" /)
+!@var Q_more saved instantaneous specific hum (at PMBmore lvls)
+!@var T_more saved instantaneous temperature(at PMBmore lvls)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: Q_more,T_more
+#ifdef TRACERS_SPECIAL_Shindell
+!@var O_more saved instantaneous Ox tracer (at PMBmore lvls)
+!@var X_more saved instantaneous NOx tracer (at PMBmore lvls)
+!@var N_more saved instantaneous NO2 non-tracer (at PMBmore lvls)
+!@var M_more saved instantaneous CO tracer (at PMBmore lvls)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public ::
+     & O_more,N_more,X_more,M_more
+#endif
+#endif
 C**** Instantaneous constant pressure level fields
 !@var Z_inst saved instantaneous height field (at PMB levels)
 !@var RH_inst saved instantaneous relative hum (at PMB levels)
@@ -834,6 +867,12 @@ c the new i/o system
       USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
      &     ,hemis_gc,vmean_gc,hemis_ij
+#ifdef TES_LIKE_DIAGS
+      USE DIAG_COM, ONLY : T_more,Q_more,KGZmore
+#ifdef TRACERS_SPECIAL_Shindell
+     &     ,o_more,n_more,m_more,x_more
+#endif
+#endif
       use diag_zonal, only : get_alloc_bounds
 
       IMPLICIT NONE
@@ -874,6 +913,16 @@ c the new i/o system
      &         PM_acc(I_0H:I_1H,J_0H:J_1H),
      &         TDIURN(I_0H:I_1H,J_0H:J_1H,KTD),
      &         OA(I_0H:I_1H,J_0H:J_1H,KOA),
+#ifdef TES_LIKE_DIAGS
+     &         Q_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
+     &         T_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
+#ifdef TRACERS_SPECIAL_Shindell
+     &         O_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
+     &         N_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
+     &         M_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
+     &         X_more(KGZmore,I_0H:I_1H,J_0H:J_1H),
+#endif
+#endif
      &         STAT = IER)
 
       ALLOCATE( AIJK_loc(I_0H:I_1H,J_0H:J_1H,LM,KAIJK),

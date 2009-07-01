@@ -95,7 +95,7 @@ C**** Some local constants
 !@auth Original Development Team
 !@ver  1.0
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
-     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb
+     *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
       USE MODEL_COM, only : im,jm,lm,ls1,idacc,ptop
      *     ,pmtop,psfmpt,mdyn,mdiag,sig,sige,dsig,zatmo,WM,ntype,ftype
      *     ,u,v,t,p,q,lm_req,req_fac_m,pmidl00
@@ -121,6 +121,16 @@ C**** Some local constants
 #ifdef HTAP_LIKE_DIAGS
      *     ,ij_templ,ij_gridh,ij_husl
 #endif
+#ifdef TES_LIKE_DIAGS
+     *     ,t_more,q_more,kgz_max_more,PMBmore
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,o_more,x_more,n_more,m_more
+#endif
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRACER_COM, only: trm,mass2vol,n_CO,n_Ox,n_NOx
+      USE TRCHEM_Shindell_COM, only : mNO2
+#endif
       USE DYNAMICS, only : pk,phi,pmid,pdsig,plij, SD,pedn,am
      &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
@@ -142,7 +152,7 @@ C**** Some local constants
      &     BBYGV,BYSDSG,DLNP01,DLNP12,DLNP23,DBYSD,
      &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
-     &     PDN,PE,PHI_REQ,PIJ,
+     &     PDN,PE,PHI_REQ,PIJ,pfact,chemL,chemLm1,
      *     PKE,PL,PRT,W2MAX,RICHN,
      *     ROSSN,ROSSL,BYFCOR,BYBETA,BYBETAFAC,NH,SS,THETA,
      *     TZL,X,TIJK,QIJK,DTXDY
@@ -259,6 +269,65 @@ C**** calculate pressure diags including water
      *        PMID(1,I,J))
         END DO
 c        APJ(J,1)=APJ(J,1)+PI(J)
+#ifdef TES_LIKE_DIAGS
+C**** Calculate T and Q at specific millibar levels for TES diags
+C**** Follows logic for geopotential section following this...
+        do I=I_0,IMAXJ(J)
+          K=1
+          L=1
+          q_more(:,i,j) = undef ; t_more(:,i,j) = undef
+#ifdef TRACERS_SPECIAL_Shindell
+          o_more(:,i,j) = undef ; x_more(:,i,j) = undef
+          n_more(:,i,j) = undef ; m_more(:,i,j) = undef
+#endif
+ 1720     L=L+1
+          pdn=pmid(L-1,I,J)
+          pl=pmid(L,I,J)
+          if (PMBmore(K)<pl .AND. L<LM) goto 1720
+ 1740     continue
+          qabove = pmbmore(k).le.pedn(l-1,i,j)
+          pfact=(PMBmore(K)-PL)/(PDN-PL)
+          if(ABS(TX(I,J,L)-TX(I,J,L-1))>=epslon)then
+            if(qabove) TIJK=(TX(I,J,L)-TF
+     *      +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMBmore(K)/PL)/LOG(PDN/PL))
+          else
+            if(qabove) TIJK=TX(I,J,L)-TF
+          endif 
+          if (qabove) then
+            QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*pfact
+            q_more(K,I,J)=QIJK
+            t_more(K,I,J)=TIJK
+#ifdef TRACERS_SPECIAL_Shindell
+              chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/ 
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/ 
+     &        (am(L-1,i,j)*axyp(i,j))
+            o_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              chemL=1.d6*trm(i,j,L,n_NOx)*mass2vol(n_NOx)/ 
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/ 
+     &        (am(L-1,i,j)*axyp(i,j))
+            x_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              chemL=1.d6*mNO2(i,j,L)*mair/46.0055/ 
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*mNO2(i,j,L-1)*mair/46.0055/
+     &        (am(L-1,i,j)*axyp(i,j))
+            n_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
+     &        (am(L,i,j)*axyp(i,j))
+              chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
+     &        (am(L-1,i,j)*axyp(i,j))
+            m_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
+#endif
+          endif
+          if(K < KGZ_max_more) then
+            K=K+1
+            if(PMBmore(K)<pl .and. L<LM) goto 1720
+            goto 1740
+          endif  
+        enddo ! I
+#endif
+
 C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
         DO I=I_0,IMAXJ(J)
           K=1
@@ -1109,6 +1178,9 @@ C****
       USE MODEL_COM, only : im,jm,lm,itime
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
+#ifdef TES_LIKE_DIAGS
+     *                    ,kgz_max_more,pmnamemore
+#endif
       USE PARAM
 #ifdef CALCULATE_FLAMMABILITY
       use flammability_com, only : raP_acc
@@ -1242,17 +1314,30 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
         if (namedd(k)(len_trim(namedd(k))-2:len_trim(namedd(k))).eq.
      *       "ALL") then
           select case (namedd(k)(1:1))
-          case ("U","V","W","C","D","O","B","N","t","q","z","r","n","c")
+          case ("U","V","W","C","D","o","B","n","t","q","z","r","m","x")
             ! velocities/tracers on model layers
             kunit=kunit+1
             write(name,'(A1,A3,A7)') namedd(k)(1:1),'ALL',aDATE(1:7)
             call openunit(name,iu_SUBDD(kunit),.true.,.false.)
-          case ("Z", "T", "R", "Q") ! heights, temps, rel/spec hum PMB levels
+          case ("Z", "R") ! heights, rel hum PMB levels
             do kk=1,kgz_max
               kunit=kunit+1
               call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
      *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
             end do
+          case ("T", "Q", ! temps, spec hum PMB levels
+     &          "O", "X", "M", "N")! Ox, NOx, CO, NO2 
+#ifdef TES_LIKE_DIAGS
+            kunit=kunit+1
+            call openunit(namedd(k)(1:1)//'TES'//
+     *      aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
+#else
+            do kk=1,kgz_max
+              kunit=kunit+1
+              call openunit(namedd(k)(1:1)//trim(PMNAME(kk))//
+     *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
+            end do
+#endif
           end select
           select case (namedd(k)(1:2))
           case ("GT","GW","GI")
@@ -1291,6 +1376,8 @@ C****
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD)
 !@+   Note that TMIN, TMAX, AOD can only be output once a day
+!@+   If there is a choice between outputting pressure levels or
+!@+   model levels, use lower case for the model levels:
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
 !@+                    QLAT, QSEN, SWD, SWU, LWD, LWU, LWT, STX, STY,
 !@+                    ICEF, SNOWD, TCLD, SST, SIT, US, VS, TMIN, TMAX
@@ -1298,9 +1385,10 @@ C****
 !@+                    GTALL, GWALL, GIALL (on soil levels)
 !@+                    TRP*, TRE* (water tracers only)
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
-!@+                    z*, r*, t*, q*  (on any model level, note lowercase)
-!@+                    U*, V*, W*, C*  (on any model level)
-!@+                    O*, N*, c*, n*  (Ox, NOx, CO, NO2 on any model level)
+!@+                    z*, r*, t*, q*  (on any model level) 
+!@+                    U*, V*, W*, C*  (on any model level only)
+!@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
+!@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl) 
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR
@@ -1364,6 +1452,12 @@ C****
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
      *     ,p_acc,pm_acc,pmb
+#ifdef TES_LIKE_DIAGS
+     *     ,kgz_max_more,t_more,q_more,pmnamemore
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,o_more,n_more,m_more,x_more
+#endif
+#endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -1738,7 +1832,8 @@ C**** diags on soil levels
 
 C**** diags on fixed pressure levels or velocity
         select case (namedd(k)(1:1))
-        case ("Z","R","T","Q")  ! heights, rel/spec humidity or temp
+        case ("Z","R","T","Q",  ! heights, rel/spec humidity or temp
+     &        "O","X","M","N")  ! Ox, NOx, CO, NO2
 C**** get pressure level
           do kp=1,kgz_max
             if (namedd(k)(2:5) .eq. PMNAME(kp)) then
@@ -1763,6 +1858,35 @@ C**** get pressure level
               cycle
             end if
           end do
+
+
+#ifdef TES_LIKE_DIAGS
+          if (namedd(k)(2:4) .eq. "ALL") then
+            kunit=kunit+1
+            do kp=1,kgz_max_more
+              select case (namedd(k)(1:1))
+              case ("Q")        ! specific humidity
+                data=q_more(kp,:,:)
+              case ("T")        ! temperature (C)
+                data=t_more(kp,:,:)
+#ifdef TRACERS_SPECIAL_Shindell
+              case ("O")        ! Ox  tracer (ppmv)
+                data=o_more(kp,:,:)
+              case ("X")        ! NOx tracer (ppmv)
+                data=x_more(kp,:,:)
+              case ("M")        ! CO  tracer (ppmv)
+                data=m_more(kp,:,:)
+              case ("N")        ! NO2 non-tracer (ppmv)
+                data=n_more(kp,:,:)
+#endif
+              end select
+              polefix=.true.
+              call write_data(data,kunit,polefix)
+            end do
+            cycle
+          end if
+#endif
+
           if (namedd(k)(2:4) .eq. "ALL") then
             do kp=1,kgz_max
               kunit=kunit+1
@@ -1772,14 +1896,18 @@ C**** get pressure level
               case ("R")        ! relative humidity (wrt water)
                 data=rh_inst(kp,:,:)
               case ("Q")        ! specific humidity
+#ifndef TES_LIKE_DIAGS
                 do j=J_0,J_1
                 do i=I_0,imaxj(j)
                   data(i,j)=rh_inst(kp,i,j)*qsat(t_inst(kp,i,j),lhe
      *                 ,PMB(kp))
                 end do
                 end do
+#endif
               case ("T")        ! temperature (C)
+#ifndef TES_LIKE_DIAGS
                 data=t_inst(kp,:,:)
+#endif
               end select
               polefix=.true.
               call write_data(data,kunit,polefix)
@@ -1788,7 +1916,7 @@ C**** get pressure level
           end if
 
 C**** diagnostics on model levels
-        case ("U","V","W","C","O","B","D","N","t","q","z","r","c","n")
+        case ("U","V","W","C","o","B","D","x","t","q","z","r","m","n")
              ! velocity/clouds/tracers, temp,spec.hum.,geo.ht
           if (namedd(k)(2:4) .eq. "ALL") then
             kunit=kunit+1
@@ -1833,24 +1961,24 @@ C**** diagnostics on model levels
                 data=(1.-fss(kp,:,:))*taumc(kp,:,:)+fss(kp,:,:)
      *               *tauss(kp,:,:)
 #ifdef TRACERS_SPECIAL_Shindell
-              case ("O")                ! Ox ozone tracer (ppmv)
+              case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_Ox)*mass2vol(n_Ox)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
-              case ("N")                ! NOx tracer (ppmv)
+              case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,kp,n_NOx)*mass2vol(n_NOx)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
-              case ("c")                ! CO tracer (ppbv)
+              case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d9*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
+                    data(i,j)=1.d6*trm(i,j,kp,n_CO)*mass2vol(n_CO)/
      *                   (am(kp,i,j)*axyp(i,j))
                   end do
                 end do
@@ -1926,24 +2054,24 @@ C**** get model level
                 data=(1.-fss(l,:,:))*taumc(l,:,:)+fss(l,:,:)
      *               *tauss(l,:,:)
 #ifdef TRACERS_SPECIAL_Shindell
-              case ("O")                ! Ox ozone tracer (ppmv)
+              case ("o")                ! Ox ozone tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_Ox)*mass2vol(n_Ox)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
-              case ("N")                ! NOx tracer (ppmv)
+              case ("x")                ! NOx tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
                     data(i,j)=1.d6*trm(i,j,l,n_NOx)*mass2vol(n_NOx)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
-              case ("c")                ! CO tracer (ppbv)
+              case ("m")                ! CO tracer (ppmv)
                 do j=J_0,J_1
                   do i=I_0,imaxj(j)
-                    data(i,j)=1.d9*trm(i,j,l,n_CO)*mass2vol(n_CO)/
+                    data(i,j)=1.d6*trm(i,j,l,n_CO)*mass2vol(n_CO)/
      *                   (am(l,i,j)*axyp(i,j))
                   end do
                 end do
@@ -2396,6 +2524,9 @@ c**** find MSU channel 2,3,4 temperatures
      &     ,hdiurn_loc
 #endif
       USE diag_com,only : lh_diags
+#ifdef TES_LIKE_DIAGS
+      USE DIAG_COM, only : kgz_max_more,KGZmore,pmbmore
+#endif
       USE DIAG_LOC
       USE PARAM
       USE FILEMANAGER
@@ -2782,6 +2913,12 @@ C**** Calculate the max number of geopotential heights
         if (pmb(k).le.pmtop) exit
         kgz_max = k
       end do
+#ifdef TES_LIKE_DIAGS
+      do k=1,KGZmore
+        if (pmbmore(k).le.pmtop) exit
+        kgz_max_more = k
+      end do
+#endif
       CALL WRITE_PARALLEL(" Geopotential height diagnostics at (mb): ",
      &                      UNIT=6)
       CALL WRITE_PARALLEL(PMB(1:kgz_max), UNIT=6, format="(20F9.3)")
