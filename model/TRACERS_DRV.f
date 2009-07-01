@@ -8455,7 +8455,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4, rad_FL,
-     & dms_offline,so2_offline,sulfate
+     & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
@@ -8579,7 +8579,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
          if(nread>0) call read_ncep_for_wetlands(iact)
 #endif
 #ifdef GFED_3D_BIOMASS
-         call get_GFED_biomass_burning(n)
+         if(fix_CH4_chemistry/=1.or.ntsurfsrc(n)/=0)
+     &   call get_GFED_biomass_burning(n)
 #endif
 #if (defined BIOGENIC_EMISSIONS) || (defined PS_BVOC)
         else if (n==n_Isoprene)then ! ------------- isoprene ---------
@@ -9277,6 +9278,10 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       USE TRDIAG_COM, only : itcon_AMP, itcon_AMPe,itcon_AMPm
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+#endif
+
       implicit none
       INTEGER n,ns,najl,i,j,l,mnow,blay
       INTEGER J_0, J_1, I_0, I_1
@@ -9647,8 +9652,10 @@ c
       call apply_tracer_3Dsource(nOther,n_NOx)
 #ifdef GFED_3D_BIOMASS
       tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_CH4) = 0.d0
-      call dist_GFED_biomass_burning(n_CH4)
-      call apply_tracer_3Dsource(nBiomass,n_CH4)
+      if(fix_CH4_chemistry/=1.or.ntsurfsrc(n_CH4)/=0)then
+        call dist_GFED_biomass_burning(n_CH4)
+        call apply_tracer_3Dsource(nBiomass,n_CH4)
+      endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nBiomass,n_NOx) = 0.d0
       call dist_GFED_biomass_burning(n_NOx)
       call apply_tracer_3Dsource(nBiomass,n_NOx)
