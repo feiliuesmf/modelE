@@ -956,6 +956,9 @@ m4_loop(`
       ! added on Mar 30 2009. Do we really need this?
       call copy_vars( buf(dc:), nn,  c%llspan  ,  flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  c%turnover_amp,  flag ); dc=dc + nn
+      ! needed for frost hardiness ?
+      call copy_vars( buf(dc:), nn,  c%Sacclim ,  flag ); dc=dc + nn
+
       n = dc
 
       end subroutine copy_cohort_vars
