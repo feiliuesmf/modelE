@@ -2679,7 +2679,8 @@ ccc still not quite correct (assumes fw=1)
       do j=J_0,J_1
         do i=I_0,I_1
           gtracer(:,4,i,j)=0.  ! default
-          if (fearth(i,j).le.0.d0) cycle
+          !if (fearth(i,j).le.0.d0) cycle
+          if (focean(i,j) .ge. 1.d0) cycle
           !fb=afb(i,j) ; fv=1.-fb
           call get_fb_fv( fb, fv, i, j )
 #ifdef USE_ENT
@@ -2691,25 +2692,31 @@ ccc still not quite correct (assumes fw=1)
 #endif
           fm=1.d0-exp(-snowbv(2,i,j)/((height_can*spgsn) + 1d-12))
           if ( fm < 1.d-3 ) fm=0.d0
-          wsoil_tot=fb*( w_ij(1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
-     &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
-     &     + fv*( w_ij(0,2,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
-     &     + wsn_ij(1,2,i,j)*fm*fr_snow_ij(2,i,j) )
-          do n=1,ntm
-            if (itime_tr0(n).gt.itime) cycle
-            if ( .not. needtrs(n) ) cycle
-            ! should also restrict to TYPE=nWATER ?
-            if ( wsoil_tot > 1.d-30 ) then
-            gtracer(n,4,i,j) = (
-     &           fb*( tr_w_ij(n,1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
-     &           + tr_wsn_ij(n,1,1,i,j) )         !*fr_snow_ij(1,i,j)
-     &           + fv*( tr_w_ij(n,0,2,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
-     &           + tr_wsn_ij(n,1,2,i,j)*fm ) )    !*fr_snow_ij(2,i,j)
-     &           /(rhow*wsoil_tot)
-            else
-              gtracer(n,4,i,j) = 0.
-            end if
-          enddo
+
+          call compute_gtracer( ntm, fb, fv, fm, w_ij(:,:,i,j),
+     &         fr_snow_ij(:,i,j), wsn_ij(:,:,i,j),
+     &         tr_w_ij(:,:,:,i,j), tr_wsn_ij(:,:,:,i,j),
+     &         gtracer(:,4,i,j) )
+
+cddd          wsoil_tot=fb*( w_ij(1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
+cddd     &     + wsn_ij(1,1,i,j)*fr_snow_ij(1,i,j) )
+cddd     &     + fv*( w_ij(0,2,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))   !*1.d0
+cddd     &     + wsn_ij(1,2,i,j)*fm*fr_snow_ij(2,i,j) )
+cddd          do n=1,ntm
+cddd            if (itime_tr0(n).gt.itime) cycle
+cddd            if ( .not. needtrs(n) ) cycle
+cddd            ! should also restrict to TYPE=nWATER ?
+cddd            if ( wsoil_tot > 1.d-30 ) then
+cddd            gtracer(n,4,i,j) = (
+cddd     &           fb*( tr_w_ij(n,1,1,i,j)*(1.d0-fr_snow_ij(1,i,j))
+cddd     &           + tr_wsn_ij(n,1,1,i,j) )         !*fr_snow_ij(1,i,j)
+cddd     &           + fv*( tr_w_ij(n,0,2,i,j)*(1.d0-fm*fr_snow_ij(2,i,j))
+cddd     &           + tr_wsn_ij(n,1,2,i,j)*fm ) )    !*fr_snow_ij(2,i,j)
+cddd     &           /(rhow*wsoil_tot)
+cddd            else
+cddd              gtracer(n,4,i,j) = 0.
+cddd            end if
+cddd          enddo
         end do
       end do
 #endif

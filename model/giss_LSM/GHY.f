@@ -2489,21 +2489,25 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
 #ifdef TRACERS_WATER
 C**** finalise surface tracer concentration here
-        tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
-     &       + wsn(1,1)*fr_snow(1) )
-     &       + fv*( w(0,2)*(1.d0-fm*fr_snow(2))
-     &       + wsn(1,2)*fm*fr_snow(2) )
-     &       + fv*w(1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
-        if ( tot_w1 > 1.d-30 ) then
-          ghy_tr%atr_g(:ghy_tr%ntg) =         ! instantaneous
-     &         ( fb*( ghy_tr%tr_w(:ghy_tr%ntg,1,1)*(1.d0-fr_snow(1))
-     &         + ghy_tr%tr_wsn(:ghy_tr%ntg,1,1) ) !*fr_snow(1)
-     &         + fv*( ghy_tr%tr_w(:ghy_tr%ntg,0,2)*(1.d0-fm*fr_snow(2))
-     &         + ghy_tr%tr_wsn(:ghy_tr%ntg,1,2)*fm )
-     &         + fv*ghy_tr%tr_w(:ghy_tr%ntg,1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
-     &         ) /              !*fr_snow(2)
-     &         (rhow * tot_w1)  ! * dts
-        endif
+cddd        tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
+cddd     &       + wsn(1,1)*fr_snow(1) )
+cddd     &       + fv*( w(0,2)*(1.d0-fm*fr_snow(2))
+cddd     &       + wsn(1,2)*fm*fr_snow(2) )
+cddd     &       + fv*w(1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
+cddd        if ( tot_w1 > 1.d-30 ) then
+cddd          ghy_tr%atr_g(:ghy_tr%ntg) =         ! instantaneous
+cddd     &         ( fb*( ghy_tr%tr_w(:ghy_tr%ntg,1,1)*(1.d0-fr_snow(1))
+cddd     &         + ghy_tr%tr_wsn(:ghy_tr%ntg,1,1) ) !*fr_snow(1)
+cddd     &         + fv*( ghy_tr%tr_w(:ghy_tr%ntg,0,2)*(1.d0-fm*fr_snow(2))
+cddd     &         + ghy_tr%tr_wsn(:ghy_tr%ntg,1,2)*fm )
+cddd     &         + fv*ghy_tr%tr_w(:ghy_tr%ntg,1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
+cddd     &         ) /              !*fr_snow(2)
+cddd     &         (rhow * tot_w1)  ! * dts
+cddd        endif
+
+        call compute_gtracer( ghy_tr%ntg, fb, fv, fm, w, fr_snow, wsn,
+     &     ghy_tr%tr_w, ghy_tr%tr_wsn, ghy_tr%atr_g )
+
 #endif
 
       enddo
@@ -2681,6 +2685,7 @@ ccc   max in the following expression removes extra drip because of dew
 !      !Instantaneous labile carbon pool [kg/m2] and leaf area index [-]
         aclab = clab
         alai = lai
+        ! if(ijdebug==106070) write(833,*) lai
 
 !      !Accumulated soil respiration [kg C/m2]       
         asoilresp = asoilresp + R_soil*dts
@@ -2741,6 +2746,7 @@ cddd     &     ( evap_tot(1)*fb + evap_tot(2)*fv ),
 cddd     &     ( evap_tot(1)*fb + evap_tot(2)*fv ),
 cddd     &     evapvs, fr_snow, fv, fm
 !     &     atr_evap(1) - aevap*1000.d0, aevap*1000.d0, evapvs, fr_snow
+      !write(788,*) ijdebug, aevap, atr_evap(1)/1000.d0-aevap
 #endif
       return
 !      entry accmf
@@ -3792,6 +3798,23 @@ ccc loops...
         !gg endif
       endif
 
+ccc evap from vegetated soil
+      if ( process_vege .and. evapvg >= 0.d0 ) then
+        evap_tmp(:m) = 0.d0
+        forall(mc=1:m, is_water(mc))
+     &       evap_tmp(mc) = evapvg*(1.d0-fr_snow(2))
+#ifdef TRACERS_SPECIAL_O18
+        if ( evap_tmp(1)*dts < wi(1,2) .and. tp(1,2) > 0.d0 ) then
+          do mc=1,m
+ccc loops...
+            evap_tmp(mc) = evap_tmp(mc) * fracvl(tp(1,2),ntixw(mc))
+          enddo
+        endif
+#endif
+        tr_w(:m,1,2) = tr_w(:m,1,2) - evap_tmp(:m)*tr_wc(:m,1,2)*dts
+        tr_evap(:m,2) = tr_evap(:m,2) + evap_tmp(:m)*tr_wc(:m,1,2)
+        !gg endif
+      endif
 
 ccc runoff
       do ibv=i_bare,i_vege
@@ -4075,6 +4098,40 @@ c    &       'GHY: water conservation problem in veg. soil',255)
 
 
       end module sle001
+
+
+      subroutine compute_gtracer( ntg, fb, fv, fm, w, fr_snow, wsn,
+     &     tr_w, tr_wsn, gtracer )
+      use constant, only : rhow
+      use ghy_h, only : ngm, imt, nlsn, LS_NFRAC
+      implicit none
+      integer, intent(in) :: ntg
+      real*8, intent(in) :: fb, fv, fm, w(0:ngm,LS_NFRAC)
+      real*8, intent(in) :: fr_snow(2),wsn(nlsn,2)
+      real*8, intent(in) :: tr_w(ntg,0:ngm,2), tr_wsn(ntg,nlsn,2)
+      real*8, intent(out) :: gtracer(ntg)
+      !---
+      real*8 tot_w1
+
+      tot_w1 = fb*( w(1,1)*(1.d0-fr_snow(1))
+     &     + wsn(1,1)*fr_snow(1) )
+     &     + fv*( w(0,2)*(1.d0-fm*fr_snow(2))
+     &     + wsn(1,2)*fm*fr_snow(2) )
+     &     + fv*w(1,2)*0.01     ! hack !!! (for 0 H2O in canopy)
+      if ( tot_w1 > 1.d-30 ) then
+        gtracer(:ntg) =  ! instantaneous
+     &       ( fb*( tr_w(:ntg,1,1)*(1.d0-fr_snow(1))
+     &       + tr_wsn(:ntg,1,1) ) !*fr_snow(1)
+     &       + fv*( tr_w(:ntg,0,2)*(1.d0-fm*fr_snow(2))
+     &       + tr_wsn(:ntg,1,2)*fm )
+     &       + fv*tr_w(:ntg,1,2)*0.01 ! hack !!! (for 0 H2O in canopy)
+     &       ) /                !*fr_snow(2)
+     &       (rhow * tot_w1)    ! * dts
+      endif
+
+      end subroutine compute_gtracer
+
+
 
 c****------------------------------------------------------------------
 c**** DEVELOPMENT NOTES FOR  MODULE sle001 in GHY.f
