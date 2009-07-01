@@ -6,8 +6,8 @@
       SUBROUTINE OCEANS
 C****
 !@sum  OCEANS integrates ocean source terms and dynamics
-!@auth Gary Russell/Gavin Schmidt
-!@ver  2009/05/07
+!@auth Gary Russell / Gavin Schmidt
+!@ver  2009/06/30
 C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
@@ -45,22 +45,17 @@ C****
 #endif
 
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
-     *     MM0,MM1,MMX,UM0,VM0,UM1,VM1
-      INTEGER NS,I,J,L,mnow,n,NO
+      Integer*4 I,J,L,N,NS,NO,MNOW
+      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
+     *       MM0,MM1, UM0,UM1, VM0,VM1
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1, J_STRT_HALO = J_0H)
 
-C**** initiallise work arrays
-      MM0=0 ; MM1=0 ; MMX=0 ; UM0=0 ; VM0=0 ; UM1=0 ; VM1=0
-
 C***  Get the data from the atmospheric grid to the ocean grid
-
       call AG2OG_oceans
       OGEOZ_SV(:,:)=OGEOZ(:,:)
-c      write(*,*) "aft ag2og_ocean"
 
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
@@ -99,11 +94,13 @@ C**** Integrate Ocean Dynamics
 C****
       IDACC(11) = IDACC(11) + 1
       Do 500 NO=1,NOCEAN
+
 C**** initialize summed mass fluxes
 !$OMP PARALLEL DO  PRIVATE(L)
       DO L=1,LMO
-        SMU(:,:,L) = 0. ; SMV(:,:,L) = 0. ; SMW(:,:,L) = 0.
-      END DO
+        SMU(:,J_0:J_1,L) = 0
+        SMV(:,J_0:J_1,L) = 0
+        SMW(:,J_0:J_1,L) = 0  ;  EndDo
 !$OMP END PARALLEL DO
 
       CALL OVtoM (MMI,UM0,VM0)
@@ -4302,8 +4299,8 @@ c      KHV(J)=2d0*RHOWS*OMEGA*COSV(J)*(DXV(J)**3)/RADIUS ! (v vel pts)
 C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         DSP=MIN(DXPO(J),DYPO(J))*2.*SQRT(3.)/TWOPI  ! tracer lat
         DSV=MIN(DXVO(J),DYVO(J))*2.*SQRT(3.)/TWOPI  ! v vel pts
-        KHP(J)=AKHFAC*2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! tracer lat
-        KHV(J)=AKHFAC*2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! (v vel pts)
+        KHP(J)=AKHFAC*2d0*RHOWS*OMEGA*COSPO(J)*(DSP**3)/RADIUS ! A-grid
+        KHV(J)=AKHFAC*2d0*RHOWS*OMEGA*COSVO(J)*(DSV**3)/RADIUS ! V-grid
         KHP(J)=MAX(KHP(J),AKHFAC*AKHMIN)
         KHV(J)=MAX(KHV(J),AKHFAC*AKHMIN)
         BYDXYV(J)=1D0/DXYVO(J)
@@ -4872,8 +4869,8 @@ C****
 #endif
 #ifdef TRACERS_OCEAN
       Use AFLUXES, Only: aTRAC,atrac_glob
-#endif 
-      USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf, 
+#endif
+      USE FLUXES, only : gtemp, sss, mlhc, ogeoza, uosurf, vosurf,
      *      gtempr
 #ifdef TRACERS_ON
      *     ,gtracer
