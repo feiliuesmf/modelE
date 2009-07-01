@@ -1,5 +1,14 @@
 #include "rundeck_opts.h"
 
+      MODULE CH4_SOURCES
+      USE TRACER_COM
+!@var CH4_src CH4 surface sources and sinks (kg/s)
+      integer, parameter :: nch4src=14
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
+!@var frqlos chemical loss rate for methane in troposphere
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
+      END MODULE CH4_SOURCES
+
       MODULE PRATHER_CHEM_COM
 !@sum Variables for chemical tracer routines that were provided by
 !@+    Michael Prather.  The chemistry is parameterized as frequencies
@@ -9,12 +18,13 @@ C**** These variables are used by both ozone and strat chem routines
       INTEGER, ALLOCATABLE, DIMENSION(:) :: jlatmd
       real*8 p0l(lm+1)
 !@dbparam NSTRTC # of strat chem layers (counting top down) (=12 for M23)
-      integer :: nstrtc=12
+      integer :: nstrtc=12,lmtc
 
       contains
       subroutine set_prather_constants
       USE MODEL_COM, only: jm,lm,pednl00 ! ,psfmpt,sige,ptop
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
+      USE CH4_SOURCES
       USE PARAM
       implicit none
       real*8 yedge(GRID%J_STRT_HALO:GRID%J_STOP_HALO+1)
@@ -22,14 +32,21 @@ C**** These variables are used by both ozone and strat chem routines
       integer j,jxxx,l,lr
 
       INTEGER :: J_1,  J_0
-      INTEGER :: J_1H, J_0H
+      INTEGER :: J_1H, J_0H, I_1H, I_0H
+      INTEGER :: IER, lmtc
 
-      call sync_param("NSTRTC",NSTRTC)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       CALL GET(grid, J_STRT     =J_0,  J_STOP     =J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      CALL GET(grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+
+      call sync_param("NSTRTC",NSTRTC)
+C**** ESMF: This array is read in only
+      lmtc = lm-nstrtc
+      ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
+     *          STAT=IER)  
 
 C---calculate nearest latitude to std lat's
       yedge1=-90.
@@ -269,16 +286,6 @@ C---- CTM layers LM down
       RETURN
       END SUBROUTINE STRTL
 
-
-      MODULE CH4_SOURCES
-      USE TRACER_COM
-!@var CH4_src CH4 surface sources and sinks (kg/s)
-      integer, parameter :: nch4src=14
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
-!@var frqlos chemical loss rate for methane in troposphere
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
-
-      END MODULE CH4_SOURCES
 
       SUBROUTINE Trop_chem_CH4(ns,n)
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
@@ -1656,7 +1663,7 @@ c     call closeunit(iu)
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: J_1H, J_0H, I_1H, I_0H
-      INTEGER :: IER, lmtc
+      INTEGER :: IER
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -1675,9 +1682,9 @@ C****
      *           STAT=IER )
 
 C**** ESMF: This array is read in only
-      lmtc = lm-nstrtc
-      ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
-     *          STAT=IER)
+!     lmtc = lm-nstrtc
+!     ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
+!    *          STAT=IER)       !! nstrtc has not yet been read from rundeck !!
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 
 
