@@ -244,7 +244,7 @@ c --- 'lp' = logical unit number for printer output
       data lp/6/
 
 c --- grid point where detailed diagnostics are desired:
-      integer, public :: itest=-1, jtest=-1
+      integer, public :: itest=308, jtest=42    !actually this is set in the rundeck
 c
 c --- ocean mixed layer schemes
       integer, public :: iocnmx=0

@@ -1,19 +1,21 @@
 !#include "hycom_mpi_hacks.h"
-      subroutine obio_archyb(n,nn)
+      subroutine obio_archyb
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
       USE MODEL_COM, only :
      *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
      * ,xlabel,lrunid
+
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
      &     ,thref
       USE HYCOM_DIM_GLOB, only : jj,JDM,kk,ntrcr,ii,idm,kdm,iia,jja
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,dp
       USE HYCOM_CPLER, only: ssto2a
+      USE hycom_atm, only: focean
 c
       implicit none
-      integer i,j,k,l,n,nn,kn
+      integer i,j,k,l
 c
       integer no,nop,nt
       character flnm*40,intvl*3,title*80
@@ -47,15 +49,22 @@ c
       do nt=1,ntrcr
       do k=1,kk
 
-      ! convert to atmosgrid
-      call ssto2a(tracer(:,:,k,nt),array8)
-      array4=array8
-      title='test this'
+        !convert to atmosgrid
+        call ssto2a(tracer(:,:,k,nt),array8)
+        array4=array8
 
-      write (nop)title,array4 
+        do j=1,jja
+        do i=1,iia
+         if (focean(i,j).le.0.) array4(i,j)=1.e33
+        enddo
+        enddo
+
+        write(title,'(a,i4,a,i4)')'tracer, nt=',nt,', k=',k
+        write (nop)title,array4 
+
       enddo
       enddo
-!      dp, densities,sst, sss, mld, trac1-16,pco2,alk,gasexchflx
-c
+!      dp, densities,sst, sss, mld, trac1-16,pco2,gasexchflx
+ 
       return
       end subroutine obio_archyb

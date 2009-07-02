@@ -390,9 +390,9 @@ c
  60   continue
 cc$OMP END PARALLEL DO
 c
-#ifdef TRACERS_OceanBiology
-      call obio_archyb
-#endif
+!#ifdef TRACERS_OceanBiology
+!      call obio_archyb
+!#endif
       return
       end
 c

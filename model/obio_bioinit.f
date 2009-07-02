@@ -116,34 +116,29 @@ c  Initialize
 !mismatch of the noaa grid and the hycom grid. To fill in have to do
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
-      do k=1,kdm
-       do j=1,jdm
-        do i=1,idm
-          if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085
-        enddo
-       enddo
-      enddo
+      dicmin = 1.e30
+      dicmax =-1.e30
 
       do k=1,kdm
        do j=1,jdm
         do i=1,idm
-          if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297
+          if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
+          if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
+          if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
+          dic(i,j,k)=dmax1(dic(i,j,k),1837.d0)   !set minimum =1837
+          dicmin =dmin1(dicmin,dic(i,j,k))
+          dicmax =dmax1(dicmax,dic(i,j,k))
+!       if (k.eq.1)
+!    .  write(*,'(a,3i5,15e12.4)')'obio_bioinit4:',
+!    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),
+!    .        tracer(i,j,k,4),tracer(i,j,k,5),tracer(i,j,k,6),
+!    .        tracer(i,j,k,7),tracer(i,j,k,8),tracer(i,j,k,9),
+!    .        tracer(i,j,k,10),tracer(i,j,k,11),tracer(i,j,k,12),
+!    .        tracer(i,j,k,13),tracer(i,j,k,14),tracer(i,j,k,15)
         enddo
        enddo
       enddo
-     
-      dicmin = 1.e30
-      dicmax =-1.e30
-      do k=1,kdm
-       do j=1,jdm
-        do i=1,idm
-          if (dic(i,j,k).le.0.) dic(i,j,k)=1837.
-          dic(i,j,k)=max(dic(i,j,k),1837.)   !set minimum =1837
-          dicmin =min(dicmin,dic(i,j,k))
-          dicmax =max(dicmax,dic(i,j,k))
-        enddo
-       enddo
-      enddo
+
       write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
      .       dicmin,dicmax
 
@@ -195,8 +190,6 @@ c  Create arrays
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-! the following loop has parallelization problems....
-
       do 1000 j=1,jj
       do 1000 l=1,isp(j)
       do 1000 i=ifp(j,l),ilp(j,l)
@@ -210,11 +203,11 @@ c  Create arrays
 
           !Ammonium
           tracer(i,j,k,2) = 0.5
-          if (zz.gt.4000.)tracer(i,j,k,2) = Pdeep(2)
+          if (zz.gt.4000.d0)tracer(i,j,k,2) = Pdeep(2)
 
           !Silica
           !read earlier from file
-!         if (zz.gt. 4000.)tracer(i,j,k,2) = Pdeep(3)
+!         if (zz.gt. 4000.d0)tracer(i,j,k,2) = Pdeep(3)
 
           !Iron
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
@@ -316,7 +309,22 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
       enddo
 
       endif
-      !call scatter_hycom_arrays
+
+!     do j=1,jj
+!      do l=1,isp(j)
+!       do i=ifp(j,l),ilp(j,l)
+!       k=1
+!       write(*,'(a,3i5,15e12.4)')'obio_bioinit5:',
+!    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),
+!    .        tracer(i,j,k,4),tracer(i,j,k,5),tracer(i,j,k,6),
+!    .        tracer(i,j,k,7),tracer(i,j,k,8),tracer(i,j,k,9),
+!    .        tracer(i,j,k,10),tracer(i,j,k,11),tracer(i,j,k,12),
+!    .        tracer(i,j,k,13),tracer(i,j,k,14),tracer(i,j,k,15)
+!     enddo
+!     enddo
+!     enddo
+
+      !scatter tracer
       call scatter_tracer
 
 c  Light saturation data
@@ -350,29 +358,28 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-      do nt=1,ntrac
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-        do k=1,kdm
-        do j=j_0,j_1				!  do not parallelize
-        do l=1,isp_l(j)
-        do i=ifp_l(j,l),ilp_l(j,l)
-           write(iu_bioinit,'(3i4,2e12.4)')
-     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-        enddo
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
-      enddo
+      if (AM_I_ROOT()) then
+!     do nt=1,ntrac
+!       ntchar='00'
+!       if(nt.le.9)write(ntchar,'(i1)')nt
+!       if(nt.gt.9)write(ntchar,'(i2)')nt
+!       print*,'BIO: saving initial tracer fields '
+!    .        ,'bioinit_tracer'//ntchar
+!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+!       do k=1,kdm
+!       do j=1,jdm			!  do not parallelize
+!       do i=1,idm
+!          write(iu_bioinit,'(3i4,2e12.4)')
+!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+!       enddo
+!       enddo
+!       enddo
+!     call closeunit(iu_bioinit)
+!     enddo
 
-      if (AM_I_ROOT())
-     .print*,'obio_bioinit: '
+      print*,'bioinit: COLD INITIALIZATION'
       call obio_trint(nn)
+      endif     ! if am_i_root
 
       return
       end
@@ -706,7 +713,7 @@ c
       real data_mask(igrd,jgrd)
       real data_min(kgrd),data_max(kgrd)
       real sum1
-      real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
+      real dummy1(iia/2,jja,kgrd),dummy2(iia/2,jja,kgrd)
       real fldo(iio,jjo,kgrd)
       real pinit(iio,jjo,kdm+1),fldo2(iio,jjo,kdm)
       real nodc_depths(kgrd),nodc_d(kgrd+1)
@@ -815,22 +822,21 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
       do i=1,iia
       do j=1,jja
         if (data2(i,j,k)<0.)data2(i,j,k)=0.
-        if (k.eq.1)
-     .  write(*,'(a,3i5,e12.4)')'obio_bioinit1:',
-     .      i,j,k,data2(i,j,k)
+!       if (k.eq.1)
+!    .  write(*,'(a,3i5,e12.4)')'obio_bioinit1:',
+!    .      i,j,k,data2(i,j,k)
       enddo
-      !make it 72x46x33
-      data2(i,46,k)=data2(i,45,k)
       enddo
       enddo
 
       !--------------------------------------------------------
       !***************** important! change to dateline
+      !earlier versions of hycom needed to change to dateline
       !move to dateline
-      dummy1=data2(1:36,:,:);
-      dummy2=data2(37:72,:,:);
-      data2(1:36,:,:)=dummy2;
-      data2(37:72,:,:)=dummy1;
+!     dummy1=data2(1:iia/2,:,:);
+!     dummy2=data2(iia/2+1:iia,:,:);
+!     data2(1:iia/2,:,:)=dummy2;
+!     data2(iia/2+1:iia,:,:)=dummy1;
 
       !--------------------------------------------------------
 c$OMP PARALLEL DO
@@ -848,6 +854,15 @@ c
  9    continue
  8    continue
 c$OMP END PARALLEL DO
+
+!     do j=1,jj
+!     do l=1,isp(j)
+!     do i=ifp(j,l),ilp(j,l)
+!       write(*,'(a,3i5,e12.4)')'obio_bioinit2:',
+!    .      i,j,1,fldo(i,j,1)
+!     enddo
+!     enddo
+!     enddo
 
 !     !this is needed for dic
 !     do k=1,kgrd
@@ -908,6 +923,15 @@ cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
        enddo
        enddo
 c$OMP END PARALLEL DO
+
+!     do j=1,jj
+!     do l=1,isp(j)
+!     do i=ifp(j,l),ilp(j,l)
+!       write(*,'(a,3i5,e12.4)')'obio_bioinit3:',
+!    .      i,j,1,fldo2(i,j,1)
+!     enddo
+!     enddo
+!     enddo
 
       !--------------------------------------------------------
 

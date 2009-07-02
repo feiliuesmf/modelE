@@ -151,6 +151,11 @@
       call obio_bioinit_g
 #else
       call obio_bioinit(nn)
+      if (nstep.eq.1) then
+        if (AM_I_ROOT()) then
+          call obio_archyb
+        endif
+      endif 
 #endif
       endif   !if nstep=1 or nstep=itimei
 
@@ -186,6 +191,7 @@
       j_1=ogrid%J_STOP
 #endif
 
+      if (AM_I_ROOT()) then
 #ifdef OBIO_ON_GARYocean
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
      .      LAT_DG(jtest,2),LON_DG(itest,2)
@@ -193,6 +199,7 @@
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
      .      latij(itest,jtest,3),lonij(itest,jtest,3)
 #endif
+       endif
 
 !--------------------------------------------------------
 
@@ -230,15 +237,15 @@
 ! 17    write (string,'(i6.6)') int(time+.001)
 !!      open(16,file=flnmovt(1:lgth)//'pco2_out.'//string(1:6)
 !!    .        ,status='unknown')
-        if (nstep.eq.1) then
-         write(string,'(a3,i4.4,2a)') amon,0,'.',xlabel(1:lrunid)
-       elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
-         write(*,*) 'mismatching archive date in agcm/ogcm=',
-     .      (itime+1.)/nday,time
-         stop 'mismatching archive date'
-       else
-         write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
-       endif
+!       if (nstep.eq.1) then
+!        write(string,'(a3,i4.4,2a)') amon,0,'.',xlabel(1:lrunid)
+!      elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
+!        write(*,*) 'mismatching archive date in agcm/ogcm=',
+!    .      (itime+1.)/nday,time
+!        stop 'mismatching archive date'
+!      else
+!        write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
+!      endif
 #endif
 
 !       print*,' '
@@ -277,7 +284,7 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=ifp(j,l),ilp(j,l)
 #endif
 
-cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
+       write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
@@ -352,6 +359,7 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
              gcmax1d(k)=gcmax(i,j,k)
               tirrq(k)=tirrq3d(i,j,k)
 #ifndef TRACERS_Alkalinity
+              !NOT for INTERACTIVE alk
               alk1d(k)=alk(i,j,k)
 #endif
               !----daysetbio/daysetrad arrays----!
@@ -500,7 +508,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 #ifdef OBIO_ON_GARYocean
        if (hour_of_day.le.1 .or. nstep.eq.nstep0) then    
 #else
-       if (hour_of_day.eq.1) then
+       if (hour_of_day.le.1) then
 #endif
 
          if (day_of_month.eq.1)ihra_ij=1

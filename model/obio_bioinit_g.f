@@ -252,6 +252,12 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           !read earlier from file
           dicmod(i,j,k)=dic(i,j,k)
 
+#ifdef TRACERS_Alkalinity
+          do nt = ntyp+n_inert+ndet+ncar,ntyp+n_inert+ndet+ncar+nalk
+           tracer(i,j,k,nt) = alk_glob(i,j,k)
+          enddo
+#endif
+
  1000 continue
 
 
