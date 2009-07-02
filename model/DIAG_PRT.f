@@ -5392,7 +5392,7 @@ C**** write the binary file
       subroutine keyij2(sst)
 !@sum output basic ENSO diagnostics to PRT file
 !@auth Gavin Schmidt
-      USE GEOM, only : axyp,lat_dg,lon_dg
+      USE GEOM, only : adxyp,lat_dg,lon_dg
       USE DIAG_COM, only : keynr,keyct
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: SST
@@ -5405,8 +5405,8 @@ C**** write the binary file
         DO I=1,IM
           if (lat_dg(j,1).ge.-6.   .and. lat_dg(j,1).le.6 .and.
      *        lon_dg(i,1).ge.-170. .and. lon_dg(i,1).le.-120.) then
-            nino34=nino34+axyp(i,j)*sst(i,j)
-            wt=wt+axyp(i,j)
+            nino34=nino34+adxyp(i,j)*sst(i,j)
+            wt=wt+adxyp(i,j)
           end if
         END DO
       END DO
