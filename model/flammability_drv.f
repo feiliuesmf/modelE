@@ -17,7 +17,7 @@
 #ifdef DYNAMIC_BIOMASS_BURNING
 !@param mfcc MODIS fire count calibration (goes with the input files)
 !@+ units are fires/day when multiplied by the unitless flammability
-      real*8, parameter :: mfcc=1606.d0
+      real*8, parameter :: mfcc=680.d0
 !@var epfc emission per fire count, defined for ntm tracers for now
 !@+ generally in kg/m2/s/fire
       real*8, allocatable, dimension(:,:,:) :: epfc 
