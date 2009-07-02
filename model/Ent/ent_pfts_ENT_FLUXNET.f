@@ -95,7 +95,7 @@
       !pst, woody,leaftype, hwilt, sstar, swilt,nf,sla,r,
       !lrage,woodage,lit_C2N,lignin,croot_ratio,phenotype, 
       !b1Cf, b2Cf, b1Cd, b2Cd, b1Ht, b2Ht
-     &           (/      
+     &     (/      
      ! !* 1 - evergreen broadleaf early successional
      &     pftype(1,.true.,1,-153.d0, .60d0, .29d0, 1.2d0, 8.8d0, 0.5d0, 
      &     1.8d0, 41.0d0, 40.d0, 0.2d0, 0.075d0, 1,

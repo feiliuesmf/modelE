@@ -16,8 +16,9 @@
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
-      public print_ent_pfts
-
+#ifdef ENT_STANDALONE_DIAG
+      public print_ent_pfts, alamin
+#endif
 !*********************************************************************
 !* Ent PFTs
 !* 1.  evergreen broadleaf early successional (BROADEVERGRTREES1)
@@ -656,11 +657,15 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       integer pft
 
       write(*,*) "ent_pfts pfpar:"
-      do pft = 1,N_PFT
+      write(*,*) "pst,woody,leaftype,hwilt,sstar,swilt,nf,sla,
+     &r,lrage,woodage,lit_C2N,lignin,croot_ratio,phenotype 
+     &b1Cf, b2Cf, b1Cd, b2Cd, b1Ht, b2Ht"
+       do pft = 1,N_PFT
          write(*,*) pft, pfpar(pft)
       enddo
 
       write(*,*) "FarquharBBpspar pftpar: "
+      write(*,*) "pst, PARabsorb,Vcmax,m,b,Nleaf"
       do pft = 1,N_PFT
          write(*,*) pft, pftpar(pft)
       enddo
