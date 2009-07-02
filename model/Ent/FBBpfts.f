@@ -67,9 +67,9 @@
 !     &     ,30d0                !Vcmax, Wullschleger (1993) winter wheat, Triticum aestivum
 !     &     ,100d0                !Vcmax, Sellers II (1996)
 !     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
-!     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
+     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
 !     &     ,56.4d0                !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass. Xu blue oak leaf chamber Vcmax reaches ~100.
-     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+!     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
@@ -128,6 +128,7 @@
      &     pspartype(2          !8. CROPS
      &     ,0.89d0               !leaf VIS 1-albedo,CLM Crop1 & Crop2, Table 3.1 (Oleson, et al 2004)
      &     ,50.d0               !Vmax25, CLM Crop1, Table 8.2 (Oleson, et al 2004)
+!     &     ,30d0                !Vcmax, Wullschleger (1993) winter wheat, Triticum aestivum
      &     ,9.d0                !m, CLM Crop1, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,10.d0               !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range): (42 mg-N/g-leaf)/(400 cm2/g-leaf) =10.5 g-N/m2-leaf

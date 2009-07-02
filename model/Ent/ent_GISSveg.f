@@ -16,7 +16,9 @@
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
-
+#ifdef ENT_STANDALONE_DIAG
+      public print_ent_pfts, alamin
+#endif 
 !*********************************************************************
 !--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
       real*8, parameter :: alamax(N_COVERTYPES) =
@@ -25,7 +27,7 @@
 !     &     ,0.d0, 0.d0, 2.d0 /)
 #ifndef FLUXNETINIT
       !* Revised Matthews LAI *!
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,4.5d0
+     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,3.0d0
      &     ,0.d0, 0.d0, 2.d0 /)
 #else
       !* FLUXNET Sites *!
@@ -570,6 +572,31 @@ c**** calculate root fraction afr averaged over vegetation types
       soil_color(:) = soil_color_prescribed(:)
       
       end subroutine prescr_get_soilcolor
+!*************************************************************************
+#ifdef ENT_STANDALONE_DIAG
+      !Assume PS_MODEL=FBB if running Ent_standalone, so can print out FBBpfts.f.
+      subroutine print_ent_pfts()
+      use ent_const
+      use ent_types
+      use ent_pfts
+      use FarquharBBpspar
+      integer pft
+
+      write(*,*) "ent_pfts pfpar:"
+      write(*,*) "pst,woody,leaftype,hwilt,sstar,swilt,nf,sla,
+     &r,lrage,woodage,lit_C2N,lignin,croot_ratio,phenotype 
+     &b1Cf, b2Cf, b1Cd, b2Cd, b1Ht, b2Ht"
+       do pft = 1,N_PFT
+         write(*,*) pft, pfpar(pft)
+      enddo
+
+      write(*,*) "FarquharBBpspar pftpar: "
+      write(*,*) "pst, PARabsorb,Vcmax,m,b,Nleaf"
+      do pft = 1,N_PFT
+         write(*,*) pft, pftpar(pft)
+      enddo
+      end subroutine print_ent_pfts
+#endif
 !*************************************************************************
       end module ent_prescr_veg
 

@@ -156,30 +156,31 @@
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,.89d0               !from leaf VIS 1-albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
 !     &     ,56.4d0              !Vcmax25, Wang et al (2007) GCB Fluxnet inversion avg of grass+tree 50.1 & 56.4 umol m-2 s-1
-     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
-!     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
+!     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
+!     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
-     &     ,3.27d0),              !Nleaf (gN/m2-leaf). Ponca winter wheat.
+     &     ,2.460),              !Nleaf (gN/m2-leaf). Ponca winter wheat, from C:N 18.85, SLA 21.6 m2/kg-C.
 
      &     pspartype(2          !12. GRASSC4 - perennial
      &     ,.9d0               !leaf VIS albedo,CLM C4 grass, Table 3.1 (Oleson, et al 2004)
      &     ,24.d0               !Vmax25, CLM C4 grass, Table 8.2 (Oleson, et al 2004)
      &     ,5d0                !m, CLM C4 grass, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
-     &     ,1.1d0),             !Nleaf (gN/m2-leaf) from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves).
+     &     ,2.1d0),             !Nleaf (gN/m2-leaf), from Shidler, C4 grass.  Nleaf=1.0 from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves).
 
      &     pspartype(1          !13. GRASSC3 - annual
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,.89d0               !leaf VIS albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
-     &     ,43.d0               !Vmax25, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
-!     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
+!     &     ,43.d0               !Vmax25, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
+     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
 !     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
 !     &     ,9d0                !m, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
 !     &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
-     &     ,3.27d0),              !Nleaf (gN/m2-leaf) from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves).
+     &     ,2.46d0),              !Nleaf (gN/m2-leaf) from Ponca. Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C dry wt, or SLA 21.6 m2/kg-C +- 9.6.
 
      &     pspartype(1          !14. GRASSC3 - arctic
      &     ,.89d0               !from leaf VIS 1-albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
@@ -187,7 +188,7 @@
      &     ,9.d0               !m, CLM C3 arctic grass, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0             !b, CLM (Oleson, et al 2004, Section 8, p. 129)
 !     &     ,1.15d0),              !Nleaf (gN/m2-leaf) Increment from Reich (1997) C:N of ~24 for SLA of 41.1 m2/kg-C (leaf longevity 0.5 yr).  Ponca has 3.27d0 g-N/m2-green leaf (seasonal curve), avg C:N of 20 kg/kg, avg SLA 9.4 m2/kg-C (fat leaves).
-     &     ,3.27d0),              !Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
+     &     ,2.46d0),              !Ponca Ntot/LA average (actually seasonal curve); Rd not large deviance from direct daily Ntot 
 
      &     pspartype(2          !15. CROPS - C4
      &     ,.89d0               !from leaf VIS 1-albedo,CLM Crop1 & Crop2, Table 3.1 (Oleson, et al 2004)

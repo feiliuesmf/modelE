@@ -16,6 +16,7 @@
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
+      public print_ent_pfts
 
 !*********************************************************************
 !* Ent PFTs
@@ -644,6 +645,27 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       soil_color(:) = soil_color_prescribed(:)
 
       end subroutine prescr_get_soilcolor
+!*************************************************************************
+#ifdef ENT_STANDALONE_DIAG
+      !Assume PS_MODEL=FBB if running Ent_standalone, so can print out FBBpfts.f.
+      subroutine print_ent_pfts()
+      use ent_const
+      use ent_types
+      use ent_pfts
+      use FarquharBBpspar
+      integer pft
+
+      write(*,*) "ent_pfts pfpar:"
+      do pft = 1,N_PFT
+         write(*,*) pft, pfpar(pft)
+      enddo
+
+      write(*,*) "FarquharBBpspar pftpar: "
+      do pft = 1,N_PFT
+         write(*,*) pft, pftpar(pft)
+      enddo
+      end subroutine print_ent_pfts
+#endif
 !*************************************************************************
       end module ent_prescr_veg
 

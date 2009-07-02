@@ -67,10 +67,10 @@
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,30d0                !Vcmax, Wullschleger (1993) winter wheat, Triticum aestivum
 !     &     ,100d0                !Vcmax, Sellers II (1996)
-!     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
+     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
 !     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
 !     &     ,56.4d0                !Vcmax, Wang et al (2007) GCB, from inversion of flux data for oak-grass. Xu blue oak leaf chamber Vcmax reaches ~100.
-     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+!     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
      &     ,11.d0               !m, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
 !     &     ,18.72d0,46390.d0    !Rdc,RdH, Bernacchi, et al. (2001) Nicotiana tabacum
@@ -99,7 +99,8 @@
      &     pspartype(1          !5. DECIDFOREST
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
 !     &     ,60.d0               !Vmax25, Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
-     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
+!     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
+     &     ,40.d0               !Vmax25, tuned to MMSF
 !     &     ,63.d0               !Vcmax for Walker Branch spp, Wilson et al (2001) PlantCellEnv.  Quercus prinus 63, Quercus alba 60, Acer Rubrum 37, Acer saccharum 42, Nyssa sylvatica 39.  These average to 51.
      &     ,9.d0               !m, CLM BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)

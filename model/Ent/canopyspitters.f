@@ -142,7 +142,7 @@
 !      write(995,*) "canopyspitters Gb:",Gb,pp%cellptr%Ch,pp%cellptr%U,
 !     &     Pa,pp%cellptr%TairC,gasc
       molconc_to_umol = gasc * (pp%cellptr%TcanopyC + KELVIN)/Pa * 1d6
-      ca_umol = pp%cellptr%Ca * molconc_to_umol  
+      ca_umol = pp%cellptr%Ca * molconc_to_umol  !Convert to umol/mol or ppm.
       ci_umol = 0.7d0*ca_umol !pp%cellptr%Ci * molconc_to_umol  !This is solved for is pscubic in FBBphotosynthesis.f.  Replace with dummy initialization.
       TcanK = pp%cellptr%TcanopyC + KELVIN
       TsurfK = pp%cellptr%TairC + KELVIN
@@ -150,9 +150,13 @@
       call biophysdrv_setup(ca_umol,ci_umol,
      &     pp%cellptr%TcanopyC,Pa,
      &     min(1.d0,  !RH
-     &     pp%cellptr%Qf/QSAT(TcanK,
+     &     max(pp%cellptr%Qf,0.d0)/Qsat(TcanK,
      &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)),
-     &     psdrvpar)
+     &     psdrvpar)  !Equation for latent heat of vaporizaiton comes from ..?
+!#DEBUG
+!      write(994,*) ca_umol, ci_umol, pp%cellptr%TcanopyC, Pa, TsurfK,
+!     &     pp%cellptr%Qf, QSAT(TcanK,
+!     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0)
 !----------------------
 ! STOMATAL SUICIDE TEST
 !      call biophysdrv_setup(ca_umol,ci_umol,
@@ -160,15 +164,6 @@
 !     &     1.d0,!RH for stomotal suicide test
 !     &     psdrvpar)
 !----------------------
-
-
-!      psdrvpar%rh = min(1.d0,
-!     &     pp%cellptr%Qf/QSAT(TcanK*(101325.d0/Pa)**(gasc/cp),
-!     &     2500800.d0 - 2360.d0*(TsurfK-KELVIN),Pa/100.d0))
-!      Ch = pp%cellptr%Ch
-!      U = pp%cellptr%U
-
-      !Soil porosity and hygroscopic point for water stress2 calculation. From soilbgc.f.
 
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
@@ -205,23 +200,19 @@
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
 !     &       ,if_ci)  
 
-          !!! HACK to avoid undefined var
-          fdry_pft_eff = 1.d0
-
           if (pfpar(cop%pft)%leaftype.eq.BROADLEAF) then
             ! stomata on underside of leaves so max stomatal blocking = 0
             fdry_pft_eff = 1.d0
           elseif(pfpar(cop%pft)%leaftype.eq.NEEDLELEAF) then
             ! Bosveld & Bouten (2003) max stomatal blocking = 1/3
             fdry_pft_eff = 1.d0 - min(pp%cellptr%fwet_canopy, 0.333d0)
+          else
+             fdry_pft_eff = 1.d0
           endif
- 
+
          !* Assign outputs to cohort *!
-         !* Multiply in cop%stressH2O and account for wet leaves with
-         !   pp%cellptr%fwet_canopy 
-!          cop%GCANOPY = GCANOPY * 18.d-3 / rhow !Convert mol-H2O m-2 s-1 to m/s
-          cop%GCANOPY = GCANOPY*fdry_pft_eff*(gasc*TsurfK)/Pa  !Convert ?mol-H2O m-2 s-1 to m/s
-         ! (mol-H2O m-2 s-1)*(18 g/mol * 1d-3 kg/g) / (rhow kg m-3) = m/s
+         !* Account for wet leaves with pp%cellptr%fwet_canopy.
+          cop%GCANOPY = GCANOPY*fdry_pft_eff*(gasc*TsurfK)/Pa  !Convert mol-H2O m-2 s-1 to m/s
           cop%Ci = psdrvpar%ci * !ci is in mole fraction
      &         psdrvpar%Pa/(gasc * (psdrvpar%Tc+KELVIN)) !mol m-3
           cop%GPP = Atot * fdry_pft_eff * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
@@ -229,9 +220,8 @@
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
           Anet = cop%GPP - Rd !Right now Rd and Respiration_autotrophic are inconsistent-NK
-          !Rd = Rd * fdry_pft_eff  !Assume respiration rate is not affected.
-        else
-          cop%GCANOPY=0.d0 !May want minimum conductance for stems & cuticle.
+        else !Zero LAI
+          cop%GCANOPY=0.d0 !May want minimum conductance for stems.
           cop%Ci = EPS
           cop%GPP = 0.d0
           cop%IPP = 0.d0
@@ -241,7 +231,7 @@
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
         call Respiration_autotrophic(dtsec, TcanK,TsoilK,
      &       pp%cellptr%airtemp_10d+KELVIN,
-     &       pp%cellptr%soiltemp_10d+KELVIN, cop)
+     &       pp%cellptr%soiltemp_10d+KELVIN, Rd, cop)
 
         call Allocate_NPP_to_labile(dtsec, cop)
 
@@ -349,7 +339,11 @@
       !call qsimp(cradpar%LAI,cradpar,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
       call qsimp(cradpar%LAI,cradpar,psdrvpar,Gb,Atot,Gsint,Rdint,Iint) 
-!      write(993,*) cradpar,psdrvpar,ca,Gb,Atot,Gsint,Rdint
+
+!#DEBUG      
+!      write(993,*) cradpar,psdrvpar,Gb,Atot,Gsint,Rdint,Iint
+      !sigma	sqrtexpr	kdf	rhor	kbl	pft	canalbedo	LAI	Coszen	I0df	I0dr	ca	ci	Tc	Pa	rh	Gb	Atot	Gsint	Rdint	Iint
+ 
       !Calculate conductance and ci at the canopy level
 !      call Gs_bound(dt, LAI,Gsint, Gs) !Limit rate of change of Gs.
 !      Ciconc = calc_Ci_canopy(ca,Gb,Gs,Anet,LAI,IPAR)
@@ -629,7 +623,7 @@
 !################# AUTOTROPHIC RESPIRATION ######################################
 
       subroutine Respiration_autotrophic(dtsec,TcanopyK,TsoilK,
-     &     TairK_10d, TsoilK_10d,cop)
+     &     TairK_10d, TsoilK_10d, Rd, cop)
       !@sum Autotrophic respiration - updates cohort respiration,NPP,C_lab
       !@sum Returns kg-C/m^2/s
       use photcondmod, only:  frost_hardiness
@@ -639,6 +633,7 @@
       real*8,intent(in) :: TsoilK
       real*8,intent(in) :: TairK_10d
       real*8,intent(in) :: TsoilK_10d
+      real*8,intent(in) :: Rd !umol m-2 s-1 Calculated at leaf level in photosynthesis module.
       type(cohort),pointer :: cop
       !----Local-----
       real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
@@ -651,8 +646,8 @@
       !* Maintenance respiration - leaf + sapwood + storage
       Resp_fol = facclim*0.012D-6 * !kg-C/m2/s
 !!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
-     &     Resp_can_maint(cop%pft, cop%C_fol,C2N,
-     &     TcanopyK, TairK_10d, cop%n) !Foliage
+     &     (Rd + Resp_can_maint(cop%pft, cop%C_fol,C2N,
+     &     TcanopyK, TairK_10d, cop%n)) !Foliage
 !     &     cop%LAI*1.d0!*exp(308.56d0*(1/71.02d0  - (1/(TcanopyK-227.13d0)))) !Temp factor 1 at TcanopyC=25
       Resp_sw = facclim*0.012D-6 *  !kg-C/m2/s
 !     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
@@ -703,7 +698,6 @@ C#endif
       real*8 :: C               !g-C/individual 
                                 !Can be leaf, stem, or root pools.
       real*8 :: CN              !C:N ratio of the respective pool
-!      real*8 :: R_maint !Canopy maintenance respiration rate (umol/m2/s)
       real*8 :: T_k             !Temperature of canopy (Kelvin)
       real*8 :: T_k_10d         !Temperature of air 10-day average (Kelvin)
                                 !  Ideally this should be canopy temp, but 10-day avg. okay.
@@ -920,12 +914,12 @@ C#endif
 !        Isha = Ish !## HACK - this is to pass out Ish, using Isha var.
 ! Fraction of sunlit foliage in layer at Lc (unitless).
         fsl=exp(-crp%kbL*Lc)
-        if(Isha.lt.0.1D0)Isha=0.1D0
-        if(Isla.lt.0.1D0)Isla=0.1D0
+        if(Isha.le.0.0D0)Isha=0.0D0
+        if(Isla.le.0.0D0)Isla=0.0D0
         if(fsl.lt.zero)fsl=zero
       else
-        Isha=0.1D0
-        Isla=0.1D0
+        Isha=0.0D0
+        Isla=0.0D0
         fsl=zero
       endif
 
@@ -1094,7 +1088,6 @@ C#endif
       real*8 Aleaf2 !Mean net photosynthesis at layer top (umol[CO2]/m2/s).
       real*8 gleaf1, gleaf2 !Mean conductance at L1, L2 (umol[H2O]/m2/s).
       real*8 Rdleaf1,Rdleaf2 !Mean leaf respiration at L1, L2 (umol[CO2]/m2/s)
-C NADINE CHECK UNITS - WE NEED umol C NOT CO2!
       real*8 Ileaf1,Ileaf2 ! mean isop emis at L1,L2 (umol[C]/m2/s)
 
       if(N.eq.1)then
