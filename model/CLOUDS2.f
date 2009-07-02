@@ -724,9 +724,10 @@ C**** specify U00 in PBL
         U00L(L)=0.
         IF(PL(L).GE.850.d0) THEN
           LHX=LHE
-          IF(TL(L).LT.TF) LHX=LHS
+C         IF(TL(L).LT.TF) LHX=LHS ! use 10C to reduce climate sensitivity
           U00L(L)=1.d0-2.*(U00b*.001*.050*(HPBL/500.)*
-     *         (.001*SQRT(DXYPIJ))**.33)/QSAT(TL(L),LHX,PL(L))
+C    *         (.001*SQRT(DXYPIJ))**.33)/QSAT(TL(L),LHX,PL(L))
+     *         (.001*SQRT(DXYPIJ))**.33)/QSAT(283.16d0,LHX,PL(L))
         END IF
       END DO
 C**** CALCULATE DEL WCU TO TRAVEL HALF LAYER THICKNESS
