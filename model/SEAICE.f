@@ -2430,6 +2430,12 @@ c     $           ))
      *             ,J),MSI(I,J),SNOWI(I,J),RSI(I,J)
               QCHECKI = .TRUE.
             END IF
+            IF (L.gt.2 .and. SSI(L,I,J).gt.0.04*XSI(L)*MSI(I,J)) THEN
+              WRITE(6,*) 'After ',SUBR,': I,J,L,SSI/MSI=',I,J,L,1d3
+     *             *SSI(:,I,J)/(XSI(L)*MSI(I,J)),SSI(:,I,J),MSI(I,J)
+     *             ,SNOWI(I,J),RSI(I,J)
+              QCHECKI = .TRUE.
+            END IF
           END DO
           IF (SNOWI(I,J).lt.0) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,SNOWI=',I,J,SNOWI(I,J)
