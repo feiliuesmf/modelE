@@ -5294,7 +5294,8 @@ c write field
       return
       end subroutine ijlmap
 
-      subroutine scale_ijlmap(nmap,aijl1,aijl2,scale,kd,id1,id2,smap,smapjl)
+      subroutine scale_ijlmap(nmap,aijl1,aijl2,scale,kd,id1,id2,smap,
+     *     smapjl)
 !@sum scale and calculate zonal means for 3D diag
       use constant, only : undef
       use model_com, only : im,jm,lm
@@ -5315,7 +5316,7 @@ c write field
       elseif (nmap.eq.2) then  ! area weighting
         do l=1,lm
           do j=1,jm
-            smap = scale*aijl1(:,j,l)/(id1*dxyp(j))
+            smap(:,j,l) = scale*aijl1(:,j,l)/(id1*dxyp(j))
           end do
         end do
         smapjl = sum(smap,dim=1)/im
