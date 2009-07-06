@@ -500,7 +500,7 @@ C**** moments for dew.
         do j=J_0,J_1
           do i=i_0,imaxj(j)
             if (trsrfflx(i,j,n).lt.0 .and. trm(i,j,1,n).gt.0) then
-              ftr1=-trsrfflx(i,j,n)*dtstep/trm(i,j,1,n)
+              ftr1=min(1d0,-trsrfflx(i,j,n)*dtstep/trm(i,j,1,n))
               trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
             end if
           end do
