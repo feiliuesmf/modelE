@@ -259,6 +259,7 @@
       real*8 :: phenofactor_d
       real*8 :: phenofactor
       real*8 :: airt_adj
+      real*8 :: light_old
       integer :: phenostatus
       logical :: temp_limit, water_limit 
       logical :: fall
@@ -270,11 +271,16 @@
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
       ld = pp%cellptr%ld
-      pp%cellptr%light_prev=pp%cellptr%light
-      pp%cellptr%light=pp%cellptr%CosZen
-
+      light_old=pp%cellptr%light
+      fall = pp%cellptr%fall
+      pp%cellptr%light=ld
+     
       gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
-      fall = (pp%cellptr%light .le. pp%cellptr%light_prev )
+      if (fall .and.  pp%cellptr%light .gt. light_old ) then
+         fall = .false.
+      else if (.not.fall .and. pp%cellptr%light .lt. light_old) then
+         fall = .true.
+      end if
       
       cop => pp%tallest
       do while(ASSOCIATED(cop))       
@@ -285,6 +291,7 @@
          phenostatus=cop%phenostatus
          pft=cop%pft
          phenotype=pfpar(pft)%phenotype
+
 
          if (phenotype .eq. COLDDECID) then 
             temp_limit = .true.
@@ -330,7 +337,8 @@
                   phenostatus = 4
                end if 
             end if
-            if ((phenostatus.ge.3).and.(ld.lt.ld_max)) then
+            if (fall .and.
+     &         (phenostatus.ge.3).and.(ld.lt.ld_max)) then
                phenofactor_c = min(phenofactor_c, max(0.d0,
      &          (ld - ld_min)/(ld_max-ld_min)))
                if (phenofactor_c .eq. 0.0d0) then
@@ -389,9 +397,9 @@
       
       end do   
 
-      pp%cellptr%ld =  0.d0     !zero-out every day
-      pp%cellptr%gdd = gdd      !it should be cohort level!
+      pp%cellptr%gdd = gdd
       pp%cellptr%ncd = ncd
+      pp%cellptr%fall = fall
 
       end subroutine pheno_update
       !*********************************************************************   
@@ -444,6 +452,8 @@
       real*8 :: loss_leaf,resp_growth1, resp_growth2
       logical :: dormant
       real*8 :: dC_litter_hw,dC_litter_croot
+      real*8 :: phenofactor_old
+      logical, parameter :: alloc_new=.true.
       real*8 :: dummy
  
      !Initialize
@@ -489,8 +499,9 @@
      &      qf=q*phenofactor !for annual grasses, fine roots are prop. to the foliage
          
          alloc = phenofactor+qf+h*qsw
+         if (alloc_new) alloc=1.d0+qf+h*qsw
          if (alloc .ne. 0.0d0) then
-           ialloc = 1/(phenofactor+qf+h*qsw)
+           ialloc = 1.d0/alloc
          else
            ialloc = 0.d0
          end if
@@ -499,6 +510,11 @@
         !*determine plant carbon pools 
         !---------------------------------------- 
          Cactive = C_froot + C_fol + C_sw
+         if (alloc_new) then
+            phenofactor_old=C_fol/C_froot*qf
+            Cactive=(C_froot+C_sw+C_fol)*
+     &              alloc/(alloc-1.d0+phenofactor_old)
+         end if
          Cdead = C_hw + C_croot  
          C_fol_old = C_fol
          C_froot_old = C_froot
@@ -522,7 +538,13 @@
            !no allometric constraints in the carbon allocation, 
            !then 5.0d0 is arbitrary number (must be tall enough, then 5m)
          end if
-
+         if (alloc_new) then
+            if (woody) then  
+               Cactive_max=dbh2Cfol(pft,dbh)*alloc
+            else
+               Cactive_max=height2Cfol(pft,5.d0)*alloc
+            end if
+         end if
          !----------------------------------------------------
          !*active growth: increment Cactive and decrease C_lab
          !----------------------------------------------------
@@ -549,7 +571,7 @@
      
          dCrepro = 0.d0
          if (.not.dormant)           
-     &       call growth_cpools_structural(pft,dbh,h,qsw,qf,
+     &       call growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      &       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      &       Cactive,C_lab,Cdead,dCrepro) 
 
@@ -716,7 +738,7 @@ c$$$      Cactive = Cactive + dC_remainder
       end subroutine growth_cpools_active
 
       !*********************************************************************
-      subroutine growth_cpools_structural(pft,dbh,h,qsw,qf,
+      subroutine growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      &      C_sw,Cactive_max,C_fol,CB_d,Cactive_old,Cactive,
      &      C_lab, Cdead, dCrepro)
 
@@ -727,6 +749,7 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8, intent(in) :: h
       real*8, intent(in) :: qsw
       real*8, intent(in) :: qf
+      real*8, intent(in) :: phenofactor
       real*8, intent(in) :: C_fol
       real*8, intent(in) :: CB_d
       real*8, intent(in) :: Cactive_max
@@ -739,12 +762,12 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8 :: dCactive
       !gr_fract: fraction of excess c going to structural growth
       real*8 :: gr_fract  
-      real*8 :: qs
+      real*8 :: qsprime,qs
       real*8 :: dCfoldCdead
       real*8 :: dCfrootdCdead
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
-      logical, parameter :: growthED1=.false.
+      integer, parameter :: SGrowthModel=1
 
       !--------------------------------------------------
       !*calculate the growth fraction for different pools
@@ -758,42 +781,54 @@ c$$$      Cactive = Cactive + dC_remainder
             gr_fract = 1.d0 / l_fract
          end if
       else !woody
-         if (growthED1) then
-         if (C_fol .gt. 0.d0 .and. 
-     &       Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
-            if (dbh .le. maxdbh(pft))then
-               dCfoldCdead = dDBHdCdead(pft,Cdead)/dDBHdCfol(pft,C_fol)
-               dCfrootdCdead = qf *dCfoldCdead
-               dHdCdead = dHdDBH(pft, dbh)  * dDBHdCdead(pft,Cdead) 
-               dCswdCdead = qsw*
-     &                      (h*dCfoldCdead + C_fol*dHdCdead)
-               qs = 1.d0 / (dCfoldCdead + dCfrootdCdead + dCswdCdead)
-               gr_fract = 1.d0 - r_fract
-             else
+         if (SGrowthModel.eq.1) then !based on ED1
+            if (C_fol .gt. 0.d0 .and. 
+     &           Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
+               if (dbh .le. maxdbh(pft))then
+                  dCfoldCdead = dDBHdCdead(pft,Cdead)
+     &                          /dDBHdCfol(pft,C_fol)
+                  dCfrootdCdead = qf *dCfoldCdead
+                  dHdCdead = dHdDBH(pft, dbh)  * dDBHdCdead(pft,Cdead) 
+                  dCswdCdead = qsw*
+     &                 (h*dCfoldCdead + C_fol*dHdCdead)
+                  qsprime
+     &               = 1.d0 / (dCfoldCdead + dCfrootdCdead +
+     &                 dCswdCdead)
+                  qs=qsprime/(1.d0+qsprime)
+                  gr_fract = 1.d0 - r_fract
+               else
+                  qs = 1.d0
+                  gr_fract = 1.d0 - r_fract 
+               end if
+            else if (C_lab .le. 0.d0)then
+               qs = 0.d0
+               gr_fract = 1.d0 / l_fract
+            else
+               qs = 0.d0
+               gr_fract = 1.d0
+            end if
+         else if (SGrowthModel.eq.2) then !based on ED2
+            if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
                qs = 1.d0
                gr_fract = 1.d0 - r_fract 
-             end if
-         else if (C_lab .le. 0.d0)then
-            qs = 0.d0
-            gr_fract = 1.d0 / l_fract
-         else
-            qs = 0.d0
-            gr_fract = 1.d0
+            else
+               qs = 0.d0
+               gr_fract = 1.d0 - r_fract
+            end if
+         else if (SGrowthModel.eq.3) then !option, reserving Clab 
+                                          !not yet implemented
+            if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
+               qs = 1.d0
+               gr_fract = 1.d0 - r_fract 
+            else
+               qs = 0.d0
+               gr_fract = 1.d0 - r_fract
+            end if
          end if
-         else !growthED1==false,i.e., based on ED2
-         if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
-            qs = 1.d0
-            gr_fract = 1.d0 - r_fract 
-         else
-            qs = 0.d0
-            gr_fract = 1.d0 - r_fract
-         end if
-         end if
-
       end if
        
       dCdead = gr_fract * qs  * min(C_lab,C_sw) 
-      !dCactive = gr_fract *(1.d0 - qs) * C_lab 
+      dCactive = gr_fract *(1.d0 - qs) * min(C_lab,C_sw) 
       dCrepro =  ( 1.d0 - gr_fract ) * qs * min(C_lab,C_sw) 
 
 #ifdef DEBUG
@@ -803,9 +838,9 @@ c$$$      Cactive = Cactive + dC_remainder
       !------------------------
       !*update the carbon pools
       !------------------------
-      C_lab = C_lab - (dCdead + dCrepro)
+      C_lab = C_lab - (dCdead + dCactive+dCrepro)
       Cdead = Cdead + dCdead
-      !Cactive = Cactive + dCactive
+      Cactive = Cactive + dCactive
 
       end subroutine growth_cpools_structural
 !*************************************************************************
@@ -1932,7 +1967,7 @@ c$$$      end if
       type(cohort), pointer ::cop
       integer :: cohortnum
      
-         write(990,'(2(i5),2(1pe16.8),1(i5),21(1pe16.8))')
+         write(990,'(2(i5),2(1pe16.8),1(i5),22(1pe16.8))')
      &        cohortnum,
      &        cop%pft,  
      &        cop%phenofactor_c,
@@ -1958,7 +1993,8 @@ c$$$      end if
      &        cop%cellptr%par_10d,
      &        cop%cellptr%gdd,
      &        cop%cellptr%ncd,
-     &        cop%cellptr%CosZen
+     &        cop%cellptr%CosZen,
+     &        cop%cellptr%ld
 
       end subroutine phenology_diag
 !*************************************************************************

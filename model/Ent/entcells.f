@@ -141,7 +141,7 @@
       ecp%ncd = 0.0d0 !number of chilling day
       ecp%ld = 0.0d0  !day length (min)
       ecp%light = 0.0d0
-      ecp%light_prev = 0.0d0 
+      ecp%fall = .true. 
 
       ecp%C_total = 0.d0
       ecp%C_growth = 0.d0

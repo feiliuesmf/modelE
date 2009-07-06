@@ -451,7 +451,7 @@
          real*8 :: ncd
          real*8 :: ld
          real*8 :: light
-         real*8 :: light_prev
+         logical :: fall
 
          ! diags and hacks
          real*8 :: C_total
