@@ -5234,7 +5234,7 @@ C****
       REAL*8 XDEN(IM,JM,LM),XDENJL(JM,LM)
       CHARACTER*11 CPRESS(LM)
       CHARACTER*3 CLEV(LM)
-      INTEGER i,j,l,kxlb,k,kd
+      INTEGER i,j,l,kxlb,k,kd,id
       KXLB = INDEX(XLABEL(1:11),'(')-1
       IF(KXLB.le.0) KXLB = 10
       XLB = ' '
@@ -5265,7 +5265,9 @@ c
 c scale this quantity and compute its zonal means
 c
         kd=denom_ijl(k)
-        call scale_ijlmap(aijl(:,:,:,k),aijl(:,:,:,kd),scale_ijl(k)
+        id=1
+        if (kd.gt.0) id=3
+        call scale_ijlmap(id,aijl(:,:,:,k),aijl(:,:,:,kd),scale_ijl(k)
      *       ,kd,idacc(ia_ijl(k)),idacc(ia_ijl(kd)),smap,smapjl)
 C****
 C**** Complete 3D-field titles
@@ -5292,37 +5294,51 @@ c write field
       return
       end subroutine ijlmap
 
-      subroutine scale_ijlmap(aijl1,aijl2,scale,kd,id1,id2,smap,smapjl)
+      subroutine scale_ijlmap(nmap,aijl1,aijl2,scale,kd,id1,id2,smap,smapjl)
 !@sum scale and calculate zonal means for 3D diag
       use constant, only : undef
       use model_com, only : im,jm,lm
+      use geom, only : dxyp
       implicit none
+      integer, intent(in) :: nmap  ! type of diag
       real*8, intent(in) :: aijl1(im,jm,lm),aijl2(im,jm,lm)
       real*8, intent(in) :: scale
       integer, intent(in) :: id1,id2,kd
       real*8, intent(out) :: smap(im,jm,lm)
       real*8, intent(out) :: smapjl(jm,lm)
       real*8 :: xden(im,jm,lm),xdenjl(jm,lm)
+      integer j,l
 
-      smap = scale*aijl1(:,:,:)/id1
-      smapjl = sum(smap,dim=1)
-      if(kd.gt.0) then          ! ratio
-        xden = aijl2(:,:,:)/id2
-        xdenjl = sum(xden,dim=1)
-        where(xden.ne.0.)
-          smap = smap/xden
-        elsewhere
-          smap = undef
-        end where
-        where(xdenjl.ne.0.)
-          smapjl = smapjl/xdenjl
-        elsewhere
-          smapjl = undef
-        end where
+      if (nmap.eq.1) then ! simple cases - no division by area
+         smap = scale*aijl1(:,:,:)/id1
+         smapjl = sum(smap,dim=1)/im
+      elseif (nmap.eq.2) then  ! area weighting
+        do l=1,lm
+          do j=1,jm
+            smap = scale*aijl1(:,j,l)/(id1*dxyp(j))
+          end do
+        end do
+        smapjl = sum(smap,dim=1)/im
+      elseif (nmap.eq.3) then ! ratio
+         smap = scale*aijl1(:,:,:)/id1
+         smapjl = sum(smap,dim=1)
+         xden = aijl2(:,:,:)/id2
+         xdenjl = sum(xden,dim=1)
+         where(xden.ne.0.)
+            smap = smap/xden
+         elsewhere
+            smap = undef
+         end where
+         where(xdenjl.ne.0.)
+            smapjl = smapjl/xdenjl
+         elsewhere
+            smapjl = undef
+         end where
       else
-        smapjl = smapjl/im
-      endif
-      
+        write(6,*) "Incorrect nmap type in scale_ijlmap",nmap
+        call stop_model('scale_ijlmap: undefined nmap type',255)
+      end if
+
       return
       end subroutine scale_ijlmap
 

@@ -1682,7 +1682,6 @@ C**** Fill in maplet indices for 3D tracer specials
         irange(k) = ir_ijlt(kx)
         iacc(k) = ia_ijlt(kx)
         scale(k) = scale_ijlt(kx)
-        ijtype(k) = 3
         do l=1,lm
           aijl1(:,:,l,k) = taijls(:,:,l,kx)
           aijl2(:,:,l,k) = 1.
@@ -1786,7 +1785,7 @@ c**** copy virtual half-page to paper if appropriate
 
 C**** for every diag, output all levels at once
         if (l.eq.lm) then
-          call scale_ijlmap(aijl1(1,1,1,nn),aijl2(1,1,1,nn),scale(nn)
+          call scale_ijlmap(ijtype(nn),aijl1(1,1,1,nn),aijl2(1,1,1,nn),scale(nn)
      *         ,1,idacc(iacc(nn)),idacc(iacc(nn)),smapijl,smapjl)
           smapl=0               ! tmp
           if (qdiag) call pout_ijl(titlel,name(nn),lname(nn)
