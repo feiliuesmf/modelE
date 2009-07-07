@@ -151,7 +151,8 @@ ccc extra stuff which was present in "earth" by default
 
 #ifdef TRACERS_WATER
       ghy_tr%ntg = ntg
-      allocate( ghy_tr%trpr(ntg), ghy_tr%trdd(ntg), ghy_tr%tr_surf(ntg),
+      allocate( ghy_tr%trpr(ntg), ghy_tr%trdd(ntg), ghy_tr%trirrig(ntg),
+     &     ghy_tr%tr_surf(ntg),
      &     ghy_tr%tr_w(ntg,0:ngm,2), ghy_tr%tr_wsn(ntg,nlsn,2) )
       allocate( ghy_tr%atr_evap(ntg),ghy_tr%atr_rnff(ntg),
      &     ghy_tr%atr_g(ntg), ghy_tr%ntixw(ntg), ghy_tr%is_water(ntg) )
@@ -173,7 +174,8 @@ ccc extra stuff which was present in "earth" by default
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
 
-      deallocate( ghy_tr%trpr, ghy_tr%trdd, ghy_tr%tr_surf,
+      deallocate( ghy_tr%trpr, ghy_tr%trdd, ghy_tr%trirrig,
+     &     ghy_tr%tr_surf,
      &     ghy_tr%tr_w, ghy_tr%tr_wsn )
       deallocate( ghy_tr%atr_evap,ghy_tr%atr_rnff,
      &     ghy_tr%atr_g, ghy_tr%ntixw, ghy_tr%is_water )
@@ -243,6 +245,9 @@ ccc tracers variables
 #else
         ghy_tr%trdd(nx) = 0
 #endif
+        ! for non-zero irrigation the following line should be set
+        ! to tracer flux due to irrigation
+        ghy_tr%trirrig(nx) = 0.d0 ! tracers in irrigation kg/m^2 s
         ! concentration of tracers in atm. water at the surface
         if (qm1.gt.0 .and. tr_wd_TYPE(n)==nWATER) then
           ghy_tr%tr_surf(nx) = trm(i,j,1,n)*byaxyp(i,j)*rhow/qm1 ! kg/m^3

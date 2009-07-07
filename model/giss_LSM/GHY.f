@@ -2427,6 +2427,7 @@ c     call fhlmt
      &     ghy_tr%is_water,
      &     ghy_tr%trpr,
      &     ghy_tr%trdd,
+     &     ghy_tr%trirrig,
      &     ghy_tr%tr_surf,
      &     ghy_tr%tr_w,
      &     ghy_tr%tr_wsn,
@@ -3411,6 +3412,7 @@ ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
      &     is_water,
      &     trpr,
      &     trdd,
+     &     trirrig,
      &     tr_surf,
      &     tr_w,
      &     tr_wsn,
@@ -3434,12 +3436,13 @@ ccc input from outside:
 ccc pr - precipitation (m/s) ~ (10^3 kg /m^2 /s)
 ccc trpr(ntgm) - flux of tracers (kg /m^2 /s)
 ccc trdd(ntgm) - flux of tracers as dry deposit (kg /m^2 /s)
+ccc trirrig(ntgm) - flux of tracers in irrigation (kg /m^2 /s)
 ccc tr_surf(ntgm) - surface concentration of tracers (kg/m^3 H2O)
 
 ccc **************************************************
       integer, intent(in) :: ntg, ntixw(:)
       logical, intent(in) :: is_water(:)
-      real*8 :: trpr(:), trdd(:), tr_surf(:),
+      real*8 :: trpr(:), trdd(:), trirrig(:), tr_surf(:),
      &     tr_w(:,0:,:), tr_wsn(:,:,:)
       real*8 :: tr_evap(:,:),tr_rnff(:,:)
 
@@ -3474,12 +3477,13 @@ ccc for debug
       !m = 2 !!! testing
       m = ntg
 
-ccc set error tolerance for each time of tracer (can be increased
+ccc set error tolerance for each type of tracer (can be increased
 ccc if model stops due to round-off error)
       do mc=1,m
          tol(mc) = ( sum(tr_w(mc,:,:))/(size(tr_w,2)*size(tr_w,3))
      &       +   sum(tr_wsn(mc,:,:))/(size(tr_wsn,2)*size(tr_wsn,3))
-     &       + trpr(mc)*dts + trdd(mc)*dts + tr_surf(mc)*1.d-8*dts )
+     &       + trpr(mc)*dts + trdd(mc)*dts + trirrig(mc)*dts
+     &       + tr_surf(mc)*1.d-8*dts )
      &       *1.d-10 + 1.d-32
       enddo
 
@@ -3744,6 +3748,9 @@ ccc soil layers
         flux_dt = dripw(ibv)*(1.d0-fr_snow(ibv))*dts
         tr_w(:m,1,ibv) = tr_w(:m,1,ibv) +  tr_wcc(:m,ibv)*flux_dt
         wi(1,ibv) = wi(1,ibv) + flux_dt
+        ! irrigation
+        tr_w(:m,1,ibv) = tr_w(:m,1,ibv) +  trirrig(:m)*dts
+        wi(1,ibv) = wi(1,ibv) + irrig*dts
         if ( wi(1,ibv) > 0.d0 )
      &       tr_wc(:m,1,ibv) = tr_w(:m,1,ibv)/wi(1,ibv)
         call check_wc(tr_wc(1,1,ibv))
@@ -3874,7 +3881,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
                   tr_wsn(mc,i,ibv) = 0.d0
                endif
             enddo
-            err = trpr(mc)*dts + trdd(mc)*dts
+            err = trpr(mc)*dts + trdd(mc)*dts + trirrig(mc)
      &           + sum( tr_w_o(mc,:,ibv) ) + sum( tr_wsn_o(mc,:,ibv) )
      &           - sum( tr_w(mc,:,ibv) ) - sum( tr_wsn(mc,:,ibv) )
      &           - tr_evap(mc,ibv)*dts - tr_rnff(mc,ibv)*dts
@@ -3893,6 +3900,7 @@ cddd      print *, 'runoff ', tr_rnff(1,:)*dts
      $              ,"tr_wsn",tr_wsn(mc,:,ibv)
      $              ,"trpr(mc)*dts",trpr(mc)*dts
      $              ,"trdd(mc)*dts",trdd(mc)*dts
+     $              ,"trirrig(mc)*dts",trirrig(mc)*dts
      $              ,"tr_evap*tds",tr_evap(mc,ibv)*dts
      $              ,"tr_rnff",tr_rnff(mc,ibv)*dts
 !!!            call stop_model("ghy tracers not conserved",255)
