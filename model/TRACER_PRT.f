@@ -1348,7 +1348,7 @@ C**** Fill in maplet indices for sources and sinks
           scale(k)=real(idacc(iacc(k)))+teeny
         endif
 
-        if (name(k).eq.'NO2_10:30_column') then
+        if (name(k).eq.'NO2_1030_column') then
           ijtype(k)=3
           aij1(:,:,k) = aij1(:,:,k)*scale(k)     ! numerator
           aij2(:,:,k) = taijs(:,:,ijs_NO2_count) ! denominator
