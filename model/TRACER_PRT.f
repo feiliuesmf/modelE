@@ -607,7 +607,7 @@ c        pdsigjl(1:JM,L)=dsig(l)*onespo(1:JM)*APJ(1:JM,1)/
 c     *     (fim*IDACC(ia_dga)+teeny)
         do j=1,jm
           pdsigjl(J,L)=dsig(l)*onespo(J)*SUM(AJL(J,1:LS1-1,JL_DPA))/
-     *         (fim*IDACC(ia_dga)+teeny)
+     *         (IDACC(ia_dga)+teeny)
         end do
       end do
       do L=LS1,LM
@@ -636,7 +636,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       jtpow = 0.
       do l=1,lm
       do j=1,JM
-        if (tajln(j,l,k,n_water).gt.0) then
+        if (tajln(j,l,jlnt_mass,n_water).gt.0) then
           a(j,l)=1d3*(tajln(j,l,jlnt_mass,n)/(trw0(n)*tajln(j,l
      *         ,jlnt_mass,n_water))-1.)
         else
@@ -913,7 +913,7 @@ C****
         jtpow = 0.
 
 C**** Concentration in water vapour
-        k=jlnt_conc
+        k=jlnt_mass
         do l=1,lm
           do j=1,jm
             if (tajln(j,l,k,n_water).gt.0) then
@@ -1181,7 +1181,7 @@ C****
       SUBROUTINE DIAGIJt
 !@sum  DIAGIJt produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
-!@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
+!@auth Jean Lerner (adapted from work of G. Russell,R. Ruedy)
 !@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
@@ -1558,7 +1558,7 @@ C****
       SUBROUTINE DIAGIJLt
 !@sum  DIAGIJLt produces 3D lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
-!@auth Jean Lerner (adapted from work of G. Russell,M. Kelley,R. Ruedy)
+!@auth Jean Lerner (adapted from work of G. Russell,R. Ruedy)
 !@ver   1.0
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
