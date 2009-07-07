@@ -1334,8 +1334,8 @@ C**** Fill in maplet indices for sources and sinks
 
         if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
      *    name(k)(1:7).eq.'OH_con_'.or. name(k)(1:8).eq.'NO3_con_'
-     *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:8).eq.
-     *    'J(H2O2)_')ijtype(k)=2
+     *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:6).eq.
+     *    'J_H2O2')ijtype(k)=2
         
         if (name(k)=='CO2_O_GASX')then
            aij1(:,:,k)=aij1(:,:,k)*focean(:,:)
