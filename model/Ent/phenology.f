@@ -452,8 +452,8 @@
       real*8 :: loss_leaf,resp_growth1, resp_growth2
       logical :: dormant
       real*8 :: dC_litter_hw,dC_litter_croot
-      real*8 :: phenofactor_old
-      logical, parameter :: alloc_new=.true.
+      real*8 :: phenofactor_old, alloc_adj
+      logical, parameter :: alloc_new=.false.
       real*8 :: dummy
  
      !Initialize
@@ -512,8 +512,12 @@
          Cactive = C_froot + C_fol + C_sw
          if (alloc_new) then
             phenofactor_old=C_fol/C_froot*qf
-            Cactive=(C_froot+C_sw+C_fol)*
-     &              alloc/(alloc-1.d0+phenofactor_old)
+            alloc_adj=alloc-1.d0+phenofactor_old
+            if (alloc_adj.ne.0.d0) then
+               Cactive=(C_froot+C_sw+C_fol)*alloc/alloc_adj
+            else
+               Cactive=C_froot+C_sw+C_fol
+            end if
          end if
          Cdead = C_hw + C_croot  
          C_fol_old = C_fol
@@ -1889,7 +1893,11 @@ c$$$      end if
       real*8,parameter :: h2Cf = 1.20d0 !1.500d0
       real*8,parameter :: nplant = 3000.0d0
 
-      Cfol2height=exp(log(Cfol*C2B/h1Cf*nplant)/h2Cf)/100.0d0
+      if (Cfol.ne.0.0d0) then
+         Cfol2height=exp(log(Cfol*C2B/h1Cf*nplant)/h2Cf)/100.0d0
+      else
+         Cfol2height=0.d0
+      end if
 
       end function Cfol2height
 !*************************************************************************
