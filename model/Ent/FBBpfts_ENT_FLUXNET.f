@@ -110,7 +110,8 @@
 
      &     pspartype(1          !6. COLD DECIDUOUS BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
-     &     ,51.d0               !Vmax25, CLM BDT boreal, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51.
+!     &     ,51.d0               !Vmax25, CLM BDT boreal, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51.
+     &     ,40.d0               !Vmax25, tuned to MMSF
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.7d0                !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
@@ -172,8 +173,8 @@
      &    ,.86d0                !PARabsorb, Collatz et al. (1991)
 !     &     ,.89d0               !leaf VIS albedo,CLM C3 grass, Table 3.1 (Oleson, et al 2004)
 !     &     ,43.d0               !Vmax25, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
-!     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
-     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
+     &     ,60.d0               !Vcmax, best fit guess, see plots of 08/10/2007.
+!     &     ,93.d0               !Vcmax for Vaira, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
 !     &     ,9d0                !m, CLM C3 grass, Table 8.2 (Oleson, et al 2004)
 !     &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
      &     ,11.d0               !m, X.Mo, et al. (2001)
