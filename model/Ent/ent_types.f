@@ -184,10 +184,11 @@
 !****************************************************************************
       type canradtype
 !         !Arrays in height levels in the canopy
-         real*8,pointer :: heights !height levels (m) betwn layers (#layers+1)
+         real*8,pointer :: heights(:) !(m) height levels at canopy layer boundaries (#layers+1)
          real*8,pointer :: LAI(:) !LAI within height level
 !         !Whole-canopy foliage clumping factor
          real*8 :: GORTclump
+         real*8,pointer :: crad_heights(:) !(m) height levels for incident light levels
       end type canradtype
 
 !****************************************************************************
@@ -263,7 +264,7 @@
          real*8 :: albedo(N_BANDS)   !Spectral albedo, average over patch
          real*8 :: betad             !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
          real*8,pointer :: betadl(:) !Water stress in layers.
-         real*8 :: TRANS_SW          !Transmittance of shortwave radiation to the ground (fraction)
+         real*8 :: TRANS_SW          !Transmittance of shortwave radiation (400-2500 nm) to the ground (fraction)
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
          real*8 :: Soil_resp         !soil resp flux (kg-C/m2/s) -PK 6/14/06,changed umol to kg-NK 07/28/06

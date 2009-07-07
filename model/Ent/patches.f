@@ -333,9 +333,9 @@
             !pp%crad%##### = !## Get GORT canopy radiation params ##!
             ! initializing it at least to something 
             nullify(pp%crad%heights)
-            
             nullify(pp%crad%lai)
             pp%crad%gortclump = 0.d0
+            nullify(pp%crad%crad_heights)
 
             !* Disturbance values
             pp%fuel = 0.d0      !## Dummy ##!

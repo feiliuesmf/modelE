@@ -344,7 +344,7 @@
       ! first at interval of 1m, then rescale to input height level 
       call get_height_level(gin, height_levels)
       N_height_level = size(height_levels)
-      crad_heights = pptr%crad%heights
+      crad_heights = pptr%crad%heights !TEMPORARY
       N2 = size(crad_heights)
 
       ! get intermediate variables, clump and fp
