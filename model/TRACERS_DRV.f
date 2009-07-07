@@ -3310,7 +3310,7 @@ C**** set defaults for some precip/wet-dep related diags
         do kk=1,ntsurfsrc(n)
           k = k + 1
           jls_source(kk,n) = k
-          sname_jls(k) = trname(n)//'_'//trim(ssname(n,kk))
+          sname_jls(k) = trim(trname(n))//'_'//trim(ssname(n,kk))
           lname_jls(k) = trname(n)//' source from '//trim(ssname(n,kk))
           jls_ltop(k) = 1
           jls_power(k) = -1
@@ -3379,7 +3379,7 @@ C**** set defaults for some precip/wet-dep related diags
         do kk=1,ntsurfsrc(n)
           k = k + 1
           jls_source(kk,n) = k
-          sname_jls(k) = trname(n)//'_'//trim(ssname(n,kk))
+          sname_jls(k) = trim(trname(n))//'_'//trim(ssname(n,kk))
           lname_jls(k) = trname(n)//' source from '//trim(ssname(n,kk))
           jls_ltop(k) = 1
           jls_power(k) = -1
@@ -4917,7 +4917,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           k = k+1
           ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
-          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kr))
+          sname_ijts(k) = trim(trname(n))//'_'//trim(ssname(n,kr))
           lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
           ijts_power(k) = -14
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -4927,7 +4927,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
-        sname_ijts(k) = trname(n)//'_chem'
+        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -4935,7 +4935,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_3Dsource(nStratwrite,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
-        sname_ijts(k) = trname(n)//'_overw'
+        sname_ijts(k) = trim(trname(n))//'_overw'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -4953,7 +4953,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
-        sname_ijts(k) = trname(n)//'_chem'
+        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -4995,7 +4995,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           k = k+1
           ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
-          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kr))
+          sname_ijts(k) = trim(trname(n))//'_'//trim(ssname(n,kr))
           lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
           ijts_power(k) = -14
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -5005,7 +5005,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
-        sname_ijts(k) = trname(n)//'_chem'
+        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5017,7 +5017,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_3Dsource(nStratwrite,n) = k
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Overwrite'
-          sname_ijts(k) = trname(n)//'_overw'
+          sname_ijts(k) = trim(trname(n))//'_overw'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5028,7 +5028,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_3Dsource(nOther,n) = k
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Lightning Source'
-          sname_ijts(k) = trname(n)//'_lightning'
+          sname_ijts(k) = trim(trname(n))//'_lightning'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5036,7 +5036,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_3Dsource(nAircraft,n) = k
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Aircraft Source'
-          sname_ijts(k) = trname(n)//'_aircraft'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5065,7 +5065,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_3Dsource(nBiomass,n) = k
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Biomass Burning Source'
-          sname_ijts(k) = trname(n)//'_bburn'
+          sname_ijts(k) = trim(trname(n))//'_bburn'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5092,7 +5092,7 @@ c chemical production
           k = k+1
           ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
-          sname_ijts(k) = trname(n)//'_'//trim(ssname(n,kr))
+          sname_ijts(k) = trim(trname(n))//'_'//trim(ssname(n,kr))
           lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
           ijts_power(k) = -14
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -5102,7 +5102,7 @@ c chemical production
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Chemistry'
-        sname_ijts(k) = trname(n)//'_chem'
+        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5110,7 +5110,7 @@ c chemical production
         ijts_3Dsource(nStratwrite,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
-        sname_ijts(k) = trname(n)//'_overw'
+        sname_ijts(k) = trim(trname(n))//'_overw'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5119,7 +5119,7 @@ c chemical production
         ijts_3Dsource(nBiomass,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Biomass Burning Source'
-        sname_ijts(k) = trname(n)//'_bburn'
+        sname_ijts(k) = trim(trname(n))//'_bburn'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -5300,7 +5300,7 @@ c chemical production
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//'L1 overwrite source'
-        sname_ijts(k) = trname(n)//'L1_overwrite'
+        sname_ijts(k) = trim(trname(n))//'L1_overwrite'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -6757,7 +6757,7 @@ C**** (not necessary associated with a particular tracer)
         ijs_NO2_col=k 
         ia_ijts(k) = ia_src
         write(lname_ijts(k),'(a31)')'NO2 tropospheric column 10:30am'
-        write(sname_ijts(k),'(a16)') 'NO2_10:30_column'
+        sname_ijts(k) = 'NO2_1030_column'
         ijts_power(k) = 15
         units_ijts(k) = unit_string(ijts_power(k),'molecules/cm2')
         scale_ijts(k) = 10.**(-ijts_power(k))
@@ -7222,7 +7222,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       k = k + 1
         ijlt_JH2O2=k
         lname_ijlt(k) = 'H2O2 photolysis rate'
-        sname_ijlt(k) = 'J(H2O2)'
+        sname_ijlt(k) = 'J_H2O2'
         ijlt_power(k) = 2
         units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
