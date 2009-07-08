@@ -430,14 +430,16 @@ cddd      end subroutine init_cohort_defaults
       !needs to be customized based on thicknesses of CASA layers and GCM layers 
       type(cohort),intent(in) :: cop
       real*8,intent(out) :: fracrootCASA(N_CASA_LAYERS)
-      
+
       if (N_CASA_LAYERS == 1) then
          fracrootCASA = 1.d0  !if there is no explicit depth structure
       else
+#ifdef NCASA2
       !***scheme for N_CASA_LAYERS=2 (layers: 0-30, 30-100 cm)*** 
          fracrootCASA(1) = cop%fracroot(1) + cop%fracroot(2)  !CASA layer 1 --> GISS GCM layers 1,2
          fracrootCASA(2) = cop%fracroot(3) + cop%fracroot(4)  !CASA layer 2 --> GISS layers 3,4
      &                + cop%fracroot(5)                    !need to add 5th GISS layer (mainly for trees) -PK 6/26/07
+#endif
       end if
                                
       end subroutine calc_CASArootfrac

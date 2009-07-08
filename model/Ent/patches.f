@@ -652,6 +652,7 @@
 
 
       subroutine patch_merge(pp1, pp2)
+      implicit none
       type(patch), pointer :: pp1, pp2
       !---
       type(entcelltype), pointer :: gp
@@ -678,7 +679,10 @@
       real*8 :: w1, w2
       !----Local----
 
-      ! do we need to reste age?
+      ! do we need to reset age? - Ideally, the area that is converted would become
+      !      a new patch entirely, rather than being merged with another patch.
+      !      In this case, it's okay to keep the original patch ages.
+      !      If the crop patch is completely new, then age=0.
       !pp%age
       ! area is set outside
       !pp%area
@@ -689,8 +693,11 @@
 
       !pp%soil_type = -1         ! set to undefined soil type (maybe use -1?)
 
+      !* Weighted average for Reproduction okay.
       pp1%Reproduction(:) =w1*pp1%Reproduction    +w2*pp2%Reproduction
 
+      !* Cohort variables below should be updated with summarize_patch AFTER
+      !* calling cohort_merge_data.
       pp1%nm              =w1*pp1%nm              +w2*pp2%nm              
       pp1%Ntot            =w1*pp1%Ntot            +w2*pp2%Ntot            
       pp1%LAI             =w1*pp1%LAI             +w2*pp2%LAI             
@@ -710,7 +717,10 @@
       pp1%N_froot         =w1*pp1%N_froot         +w2*pp2%N_froot         
       pp1%C_root          =w1*pp1%C_root          +w2*pp2%C_root          
       pp1%N_root          =w1*pp1%N_root          +w2*pp2%N_root          
+      !* Value of Ci doesn't matter -- saved only for diagnostic testing.
       pp1%Ci              =w1*pp1%Ci              +w2*pp2%Ci              
+ 
+      !* Okay to do weighted average for fluxes.
       pp1%GCANOPY         =w1*pp1%GCANOPY         +w2*pp2%GCANOPY         
       pp1%GPP             =w1*pp1%GPP             +w2*pp2%GPP             
       pp1%IPP             =w1*pp1%IPP             +w2*pp2%IPP             
@@ -718,15 +728,22 @@
       pp1%R_auto          =w1*pp1%R_auto          +w2*pp2%R_auto          
       pp1%R_root          =w1*pp1%R_root          +w2*pp2%R_root          
       pp1%N_up            =w1*pp1%N_up            +w2*pp2%N_up            
+      
+      !* Best to summarize_patch after calling cohort_merge_data, but this has
+      !* to be done first by biophysics, anyway, so no harm.
       pp1%betad           =w1*pp1%betad           +w2*pp2%betad           
       pp1%betadl(:)       =w1*pp1%betadl(:)       +w2*pp2%betadl(:)       
                                                       
+      !* Weighted average okay.
       pp1%C_total         =w1*pp1%C_total         +w2*pp2%C_total         
       pp1%C_growth        =w1*pp1%C_growth        +w2*pp2%C_growth        
                                                         
-      pp1%z0              =w1*pp1%z0              +w2*pp2%z0              
-      pp1%albedo          =w1*pp1%albedo          +w2*pp2%albedo          
-      pp1%TRANS_SW        =w1*pp1%TRANS_SW        +w2*pp2%TRANS_SW        
+      !* Need to recalculate radiative transfer vars after calling cohort_merge_data.
+      pp1%z0              =w1*pp1%z0              +w2*pp2%z0
+      pp1%albedo          =w1*pp1%albedo          +w2*pp2%albedo
+      pp1%TRANS_SW        =w1*pp1%TRANS_SW        +w2*pp2%TRANS_SW
+
+      !* Weighted average okay.
       pp1%CO2flux         =w1*pp1%CO2flux         +w2*pp2%CO2flux         
       pp1%Soil_resp       =w1*pp1%Soil_resp       +w2*pp2%Soil_resp       
                                                      
@@ -738,6 +755,7 @@
       pp1%disturbance_rate=w1*pp1%disturbance_rate
      &     +w2*pp2%disturbance_rate
                                                             
+      !* Need to summarize_patch after calling cohort_merge_data.
       pp1%LAIpft(:)       =w1*pp1%LAIpft(:)       +w2*pp2%LAIpft(:)       
       pp1%Tpool(:,:,:)    =w1*pp1%Tpool(:,:,:)    +w2*pp2%Tpool(:,:,:)
 
@@ -755,6 +773,8 @@
       if ( .not. associated(pp2%tallest,pp2%shortest) ) call stop_model(
      &     "Can't merge patches with more than 1 cohort",255)
 
+      !* CALL THIS AT BEGINNING OF patch_merge_data ROUTINE then summarize_patch *!
+      !* This should loop through cohorts to merge all cohorts in both patches
       call cohort_merge_data( pp1%tallest, w1, pp2%tallest, w2 )
 
       end subroutine patch_merge_data

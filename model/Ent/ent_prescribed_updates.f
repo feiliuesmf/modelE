@@ -155,6 +155,48 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
      i    cropsdata)
 !@sum sets prescribed albedo in vegetated patches of the cell (skips bare soil)
 !@+   This subroutine assumes one cohort per patch !!!
+!@+  
+!@+   - Calculate vegetation, v, and soil, s, carbon/area, c, for non-crop patches, k.
+!@+       c_v,k + c_s,k  where k ranges over non-crop patches.
+!@+   - Calculate vegetation and soil carbon/area for crop patch, cr.
+!@+       c_v,cr + c_s,cr
+!@+
+!@+   Crops area changes by df_c: 
+!@+     (if df_c>0, the crops area increase; if df_c<0, then crops area decreases)
+!@+   - Decrease non-crop patch fractional areas,f_k, proportionally by crop fraction
+!@+       area increase, df_cr.
+!@+       f_k,new = f_k - (f_k/sum_f_k)*df_cr
+!@+       s.th.  sum_k((f_k/sum_f_k)*df_c) = df_cr
+!@+   - Increase crop area (or if new, insert crop patch).
+!@+       f_c,new = f_c + df_cr
+!@+   - If df_c>0:
+!@+     Update crop soil carbon to be sum of acquired non-crop patch soils:
+!@+       I.e. soil carbon from non-crop patches is merged into the new crop area.
+!@+       (sum each soil carbon pool, p, then divide by new crop area).
+!@+       c_s,c,p,new = { sum_k(c_s,k,p * df_cr*f_k/sum_f_k) + c_s,cr,p*f_c }/f_c,new
+!@+   - If df_c<0:
+!@+     Update non-crop patch soil carbon to merge in crop patch increment soil carbon.
+!@+       (sum each soil carbon pool, p, then divide by new patch area).
+!@+       c_s,k,p,new = { c_s,k,p*f_k + c_s,c,p*f_k/sum_f_k*df_cr }/f_k,new
+!@+   - Net carbon to atmosphere is:
+!@+       C_to_atm = loss from non-crop patch veg - gain from crop patch increment
+!@+                = sum_k( c_v,k * df_cr*f_k/sum_f_k) - c_v,cr*df_cr
+!@+
+!@+   - Where to put a net loss in biomass carbon (all soil carbon stays in the soil):
+!@+       Option 1:  Put it all as litter into the crop patch.
+!@+                  This will require partitioning the lost biomass pools into litter
+!@+                  pools with relevant ligning content and C:N ratios.
+!@+       Option 2:  Put it into a slow-release pool to send it all to the atmosphere
+!@+                  over a few months or the next year.
+!@+       Option 1 is more strictly correct, but involves a little more computation of
+!@+       litter pools, and allows also an option to sequester, e.g. wood harvest.
+!@+
+!@+   - Where to put a net gain in biomass carbon:
+!@+      Option 1:   There's only one option:  to suck it all from the atmosphere at
+!@+                  once.  Given the net sum of gains and losses over the entire
+!@+                  land surface, hopefully this shouldn't cause a dramatic dent in
+!@+                  atmospheric CO2 over one time step.
+
       use entcells, only : entcell_extract_pfts, summarize_entcell
       use patches, only : patch_has_pft, patch_split, patch_merge,
      &     delete_patch, patch_set_pft, patch_delete_cohort
