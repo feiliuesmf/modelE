@@ -673,6 +673,9 @@ C****
       CHARACTER CONPT(NPTS)*10
       INTEGER k,kb,kq,kc,kk,n
       character(len=10) :: xstr,ystr,zstr
+      real*8 :: byrho2
+
+      byrho2 = .00097d0**2 ! reciprocal**2 of mean ocean density
 
 C**** Set names for OLNST diagnostics
 c      LN_KVM=1  ; LN_KVG=2  ; LN_WGFL=3 ; LN_WSFL=4
@@ -845,7 +848,7 @@ c
       sname_oijl(k) = 'kvm'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'VERT. MOM. DIFF.'
-      scale_oijl(k) = 1d4*.00097d0**2/dts
+      scale_oijl(k) = 1d4*byrho2*.25 ! avg over quarter boxes
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -853,6 +856,7 @@ c
       sname_oijl(k) = 'kvg'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'Vertical heat diffusivity'
+      scale_oijl(k) = 1d4*byrho2*.25 ! avg over quarter boxes
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -860,7 +864,7 @@ c
       sname_oijl(k) = 'wgfl'
       units_oijl(k) = 'W/m^2'
       lname_oijl(k) = 'VERT. HEAT DIFF.'
-      scale_oijl(k) = 1./dts
+      scale_oijl(k) = .25/dts        ! avg over quarter boxes
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -868,7 +872,7 @@ c
       sname_oijl(k) = 'wsfl'
       units_oijl(k) = '10^-6 kg/m^2'
       lname_oijl(k) = 'VERT. SALT DIFF.'
-      scale_oijl(k) = 1d6/dts
+      scale_oijl(k) = 1d6*.25/dts    ! avg over quarter boxes
       lgrid_oijl(k) = 2
 c
       k=k+1
