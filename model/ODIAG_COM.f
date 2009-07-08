@@ -392,7 +392,7 @@ c    extended/rescaled instances of arrays when writing acc files
       use odiag, only : ol,olnst,
      &     oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl
+      use odiag, only : tlnst,toijl=>toijl_loc
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
