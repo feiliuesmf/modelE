@@ -143,7 +143,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nM=        53+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   28,
      & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
-     & NLFASTJ=  600,     !600 is arbitrary for now
+     & NLFASTJ=  700,     !600 is arbitrary for now
      & NWFASTJ=   18, 
      & JPNL   =   LM,      ! OK? used to be set to 23
      & NCFASTJ2 = 2*LM+2,  ! fastj2
