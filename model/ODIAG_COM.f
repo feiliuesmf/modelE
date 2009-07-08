@@ -200,26 +200,10 @@ C****
 #endif
 
 #ifdef NEW_IO
-c declarations that facilitate summation of acc-files when using
-c the new i/o system
-      target :: oij_loc,oijl_loc,ol,olnst,oijl_out
-      real*8, dimension(:,:,:), target, allocatable ::
-     &     oij_fromdisk
-      real*8, dimension(:,:,:,:), target, allocatable ::
-     &     oijl_fromdisk
-      real*8, DIMENSION(LMO,KOL), target :: OL_fromdisk
-      real*8, DIMENSION(LMO,NMST,KOLNST), target :: OLNST_fromdisk
-      real*8, dimension(:,:), pointer :: ol_ioptr
-      real*8, dimension(:,:,:), pointer :: oij_ioptr,olnst_ioptr
+c declarations that facilitate switching between restart and acc
+c instances of arrays
+      target :: oijl_loc,oijl_out
       real*8, dimension(:,:,:,:), pointer :: oijl_ioptr
-#ifdef TRACERS_OCEAN
-      target :: toijl_loc,tlnst
-      real*8, dimension(:,:,:,:,:), target, allocatable ::
-     &     toijl_fromdisk
-      real*8, DIMENSION(LMO,NMST,KOLNST,NTM), target:: TLNST_fromdisk
-      real*8, dimension(:,:,:,:,:), pointer :: toijl_ioptr
-      real*8, dimension(:,:,:,:), pointer :: tlnst_ioptr
-#endif
 #endif
       END MODULE ODIAG
 
@@ -369,7 +353,7 @@ C****
 !@sum  def_rsf_ocdiag defines ocean diag array structure in restart+acc files
 !@auth M. Kelley
 !@ver  beta
-      use odiag, only : ol,olnst,oij=>oij_ioptr,oijl=>oijl_ioptr
+      use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
       use odiag, only : tlnst,toijl=>toijl_loc
 #endif
@@ -402,13 +386,13 @@ C****
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
       USE OCEANR_DIM, only : grid=>ogrid
-c in the postprocessing case where arrays are read from disk and summed,
-c these i/o pointers point to temporary arrays.  Otherwise, they point to
-c the instances of the arrays used during normal operation. 
-      use odiag, only : ol=>ol_ioptr,olnst=>olnst_ioptr,
-     &     oij=>oij_ioptr,oijl=>oijl_ioptr
+c i/o pointers point to:
+c    primary instances of arrays when writing restart files
+c    extended/rescaled instances of arrays when writing acc files
+      use odiag, only : ol,olnst,
+     &     oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst=>tlnst_ioptr,toijl=>toijl_ioptr
+      use odiag, only : tlnst,toijl
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
@@ -570,14 +554,7 @@ c point i/o pointers for diagnostic accumlations to the
 c instances of the arrays used during normal operation. 
       use odiag
       implicit none
-      oij_ioptr    => oij_loc
       oijl_ioptr   => oijl_loc
-      ol_ioptr     => ol
-      olnst_ioptr  => olnst
-#ifdef TRACERS_OCEAN
-      toijl_ioptr  => toijl_loc
-      tlnst_ioptr  => tlnst
-#endif
       return
       end subroutine set_ioptrs_ocnacc_default
 
@@ -589,49 +566,6 @@ c instances of the arrays containing derived quantities
       oijl_ioptr   => oijl_out
       return
       end subroutine set_ioptrs_ocnacc_extended
-
-      subroutine set_ioptrs_ocnacc_sumfiles
-c point i/o pointers for diagnostic accumlations to temporary
-c arrays that hold data read from disk
-      use odiag
-      USE OCEANR_DIM, only : grid=>ogrid
-      implicit none
-      integer :: j_0h,j_1h
-c
-c allocate arrays (local size) and set i/o pointers
-c
-      if(allocated(oij_fromdisk)) return
-      J_0H = grid%J_STRT_HALO
-      J_1H = grid%J_STOP_HALO
-      allocate(oij_fromdisk(im,j_0h:j_1h,koij))
-      oij_ioptr => oij_fromdisk
-      allocate(oijl_fromdisk(im,j_0h:j_1h,lmo,koijl))
-      oijl_ioptr => oijl_fromdisk
-      ol_ioptr     => ol_fromdisk
-      olnst_ioptr  => olnst_fromdisk
-#ifdef TRACERS_OCEAN
-      allocate(toijl_fromdisk(im,j_0h:j_1h,lmo,ktoijl,ntm))
-      toijl_ioptr  => toijl_fromdisk
-      tlnst_ioptr  => tlnst_fromdisk
-#endif
-      return
-      end subroutine set_ioptrs_ocnacc_sumfiles
-
-      subroutine sumfiles_ocnacc
-c increment diagnostic accumlations with the data that was
-c read from disk and stored in the _fromdisk arrays.
-      use odiag
-      implicit none
-      oij_loc    = oij_loc    + oij_fromdisk
-      oijl_loc   = oijl_loc   + oijl_fromdisk
-      ol         = ol         + ol_fromdisk
-      olnst      = olnst      + olnst_fromdisk
-#ifdef TRACERS_OCEAN
-      toijl_loc  = toijl_loc  + toijl_fromdisk
-      tlnst      = tlnst      + tlnst_fromdisk
-#endif
-      return
-      end subroutine sumfiles_ocnacc
 
 #endif /* NEW_IO */
 

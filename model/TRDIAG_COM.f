@@ -251,7 +251,6 @@ C**** TAJLN
 !@var JLQ_POWER: power of 10 used for tracer JL diagnostics
 !@+        It is associated with a specific physical process
       integer jlq_power(ktajlx)
-      integer ktajlp !@var helps keeps track of
 !@var scale_jln: Scale for jl maps
       REAL*8, DIMENSION(ntm) :: scale_jln
 
@@ -357,7 +356,7 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(ntm) :: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
       character(len=sname_strlen), dimension(ktcon,ntmxcon) ::
-     &     name_tconsrv
+     &     name_tconsrv='unused'
       character(len=units_strlen), dimension(ktcon,ntmxcon) ::
      &     units_tconsrv
       character(len=lname_strlen), dimension(ktcon,ntmxcon) ::
@@ -392,22 +391,6 @@ C**** include some extra troposphere only ones
 !@var TRP_acc, TRE_acc accumulation arrays for some SUBDD diags
 !!    REAL*8 TRP_acc(ntm,IM,JM), TRE_acc(ntm,IM,JM)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
-#endif
-
-#ifdef NEW_IO
-c declarations that facilitate summation of acc-files when using
-c the new i/o system
-      target :: 
-     &     TAIJLN_loc,TAIJLS_loc,TAIJN_loc,TAIJS_loc,
-     &     TAJLN_loc,TAJLS_loc,TCONSRV_loc
-      real*8, allocatable, dimension(:,:,:,:), target ::
-     &     taijln_fromdisk,taijls_fromdisk,taijn_fromdisk,tajln_fromdisk
-      real*8, allocatable, dimension(:,:,:), target ::
-     &     taijs_fromdisk,tajls_fromdisk,tconsrv_fromdisk
-      real*8, dimension(:,:,:,:), pointer ::
-     &     taijln_ioptr,taijls_ioptr,taijn_ioptr,tajln_ioptr
-      real*8, dimension(:,:,:), pointer ::
-     &     taijs_ioptr,tajls_ioptr,tconsrv_ioptr
 #endif
 
       END MODULE TRDIAG_COM
@@ -707,13 +690,13 @@ C*** Unpack read global data into local distributed arrays
 !@auth M. Kelley
 !@ver  beta
       use trdiag_com, only :
-     &     TAIJLN=>TAIJLN_ioptr,
-     &     TAIJLS=>TAIJLS_ioptr,
-     &     TAIJN=>TAIJN_ioptr,
-     &     TAIJS=>TAIJS_ioptr,
-     &     TAJLN=>TAJLN_ioptr,
-     &     TAJLS=>TAJLS_ioptr,
-     &     TCONSRV=>TCONSRV_ioptr
+     &     TAIJLN=>TAIJLN_loc,
+     &     TAIJLS=>TAIJLS_loc,
+     &     TAIJN=>TAIJN_loc,
+     &     TAIJS=>TAIJS_loc,
+     &     TAJLN,
+     &     TAJLS,
+     &     TCONSRV
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
@@ -732,7 +715,7 @@ C*** Unpack read global data into local distributed arrays
       call defvar(grid,fid,tajls,
      &     'tajls(jm_budg,lm,ktajls)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,tconsrv,
-     &     'tconsrv(jm_budg,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
+     &       'tconsrv(jm_budg,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
       return
       end subroutine def_rsf_trdiag
 
@@ -741,24 +724,22 @@ C*** Unpack read global data into local distributed arrays
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
-c in the postprocessing case where arrays are read from disk and summed,
-c these i/o pointers point to temporary arrays.  Otherwise, they point to
-c the instances of the arrays used during normal operation. 
       use trdiag_com, only :
-     &     TAIJLN=>TAIJLN_ioptr,
-     &     TAIJLS=>TAIJLS_ioptr,
-     &     TAIJN=>TAIJN_ioptr,
-     &     TAIJS=>TAIJS_ioptr,
-     &     TAJLN=>TAJLN_ioptr,
-     &     TAJLS=>TAJLS_ioptr,
-     &     TCONSRV=>TCONSRV_ioptr
+     &     TAIJLN=>TAIJLN_loc,
+     &     TAIJLS=>TAIJLS_loc,
+     &     TAIJN=>TAIJN_loc,
+     &     TAIJS=>TAIJS_loc,
+     &     TAJLN,
+     &     TAJLS,
+     &     TCONSRV
       use domain_decomp_atm, only : grid
-      use pario, only : write_dist_data,read_dist_data
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
-      case (iowrite)            ! output to restart or acc file
+      case (iowrite)            ! output to restart file
         call gather_zonal_trdiag
         call write_dist_data(grid,fid,'taijln',taijln)
         call write_dist_data(grid,fid,'taijls',taijls)
@@ -767,7 +748,7 @@ c the instances of the arrays used during normal operation.
         call write_data(grid,fid,'tajln',tajln)
         call write_data(grid,fid,'tajls',tajls)
         call write_data(grid,fid,'tconsrv',tconsrv)
-      case (ioread)            ! input from restart or acc file
+      case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'taijln',taijln)
         call read_dist_data(grid,fid,'taijls',taijls)
         call read_dist_data(grid,fid,'taijs',taijs)
@@ -780,73 +761,6 @@ c the instances of the arrays used during normal operation.
       return
       end subroutine new_io_trdiag
 
-      subroutine set_ioptrs_tracacc_default
-c point i/o pointers for diagnostic accumlations to the
-c instances of the arrays used during normal operation. 
-      use trdiag_com
-      implicit none
-      taijln_ioptr  => taijln_loc
-      taijls_ioptr  => taijls_loc
-      taijs_ioptr   => taijs_loc
-      taijn_ioptr   => taijn_loc
-      tajls_ioptr   => tajls!_loc
-      tajln_ioptr   => tajln!_loc
-      tconsrv_ioptr => tconsrv!_loc
-      return
-      end subroutine set_ioptrs_tracacc_default
-
-      subroutine set_ioptrs_tracacc_sumfiles
-c point i/o pointers for diagnostic accumlations to temporary
-c arrays that hold data read from disk
-      use trdiag_com
-      use domain_decomp_atm, only : grid,am_i_root
-      implicit none
-      integer :: i_0h,i_1h,j_0h,j_1h
-c
-c allocate temporary arrays (local size)
-c
-      if(allocated(taijln_fromdisk)) return
-      I_0H = grid%I_STRT_HALO
-      I_1H = grid%I_STOP_HALO
-      J_0H = grid%J_STRT_HALO
-      J_1H = grid%J_STOP_HALO
-
-      allocate(taijln_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,ntm))
-      taijln_ioptr => taijln_fromdisk
-      allocate(taijls_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,ktaijl))
-      taijls_ioptr => taijls_fromdisk
-      allocate(taijs_fromdisk(i_0h:i_1h,j_0h:j_1h,ktaijs))
-      taijs_ioptr => taijs_fromdisk
-      allocate(taijn_fromdisk(i_0h:i_1h,j_0h:j_1h,ktaij,ntm))
-      taijn_ioptr => taijn_fromdisk
-      if(am_i_root()) then
-        allocate(tajls_fromdisk(jm_budg,lm,ktajls))
-        tajls_ioptr => tajls_fromdisk
-        allocate(tajln_fromdisk(jm_budg,lm,ktajlx,ntm))
-        tajln_ioptr => tajln_fromdisk
-        allocate(tconsrv_fromdisk(jm_budg,ktcon,ntmxcon))
-        tconsrv_ioptr => tconsrv_fromdisk
-      endif
-      return
-      end subroutine set_ioptrs_tracacc_sumfiles
-
-      subroutine sumfiles_tracacc
-c increment diagnostic accumlations with the data that was
-c read from disk and stored in the _fromdisk arrays.
-      use trdiag_com
-      use domain_decomp_atm, only : am_i_root
-      implicit none
-      taijln_loc  = taijln_loc  + taijln_fromdisk
-      taijls_loc  = taijls_loc  + taijls_fromdisk
-      taijs_loc   = taijs_loc   + taijs_fromdisk
-      taijn_loc   = taijn_loc   + taijn_fromdisk
-      if(am_i_root()) then
-        tajls   = tajls   + tajls_fromdisk
-        tajln   = tajln   + tajln_fromdisk
-        tconsrv = tconsrv + tconsrv_fromdisk
-      endif
-      return
-      end subroutine sumfiles_tracacc
 #endif /* TRACERS_ON */
 #endif /* NEW_IO */
 

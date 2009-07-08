@@ -483,20 +483,6 @@ c temporarily empty.
       return
       end subroutine set_ioptrs_iceacc_default
 
-      subroutine set_ioptrs_iceacc_sumfiles
-c point i/o pointers for diagnostic accumlations to temporary
-c arrays that hold data read from disk.
-c temporarily empty.
-      return
-      end subroutine set_ioptrs_iceacc_sumfiles
-
-      subroutine sumfiles_iceacc
-c increment diagnostic accumlations with the data that was
-c read from disk and stored in the _fromdisk arrays.
-c temporarily empty.
-      return
-      end subroutine sumfiles_iceacc
-
 #endif /* NEW_IO */
 
 

@@ -809,44 +809,13 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       real*8, parameter, public :: l_rossby_number=1d6 ! 1000 km
 
 #ifdef NEW_IO
-c declarations that facilitate summation of acc-files when using
-c the new i/o system
-      target :: aj,aj_out,areg,areg_out,ajl,asjl,aij_loc,agc,
-     &     speca,adiurn,aisccp,tsfrez_loc,energy,atpe,consrv,
-     &     wave,aijk_loc,aijl_loc,tdiurn,oa
-#ifndef NO_HDIURN
-      target ::  HDIURN
-#endif
-      target :: MONACC
-      INTEGER, DIMENSION(:), public, pointer :: MONACC_ioptr
-      INTEGER, DIMENSION(12), public, target :: MONACC_fromdisk
-      INTEGER, public :: ITIME_sv=-1, ITIME0_sv=-1
-      REAL*8, dimension(:,:,:), public, target, allocatable ::
-     &     AJ_fromdisk,
-     &     AJL_fromdisk,ASJL_fromdisk,
-     &     AIJ_fromdisk,AGC_fromdisk,
-     &     SPECA_fromdisk,ADIURN_fromdisk,
-     &     AISCCP_fromdisk,TSFREZ_fromdisk,
-     &     TDIURN_fromdisk,OA_fromdisk
+c declarations that facilitate switching between restart and acc
+c instances of arrays
+      target :: aj,aj_out,areg,areg_out
       REAL*8, dimension(:,:,:), public, pointer ::
-     &     AJ_ioptr,
-     &     AJL_ioptr,ASJL_ioptr,
-     &     AIJ_ioptr,AGC_ioptr,
-     &     SPECA_ioptr,ADIURN_ioptr,
-     &     AISCCP_ioptr,TSFREZ_ioptr,
-     &     TDIURN_ioptr,OA_ioptr
-      REAL*8, dimension(:,:), public, target, allocatable ::
-     &     AREG_fromdisk,ENERGY_fromdisk,CONSRV_fromdisk,ATPE_fromdisk
+     &     AJ_ioptr
       REAL*8, dimension(:,:), public, pointer ::
-     &     AREG_ioptr,ENERGY_ioptr,CONSRV_ioptr,ATPE_ioptr
-      REAL*8, dimension(:,:,:,:), public, target, allocatable ::
-     &     WAVE_fromdisk,AIJK_fromdisk,AIJL_fromdisk
-      REAL*8, dimension(:,:,:,:), public, pointer ::
-     &     WAVE_ioptr,AIJK_ioptr,AIJL_ioptr
-#ifndef NO_HDIURN
-      REAL*8, public, target, allocatable ::  HDIURN_fromdisk(:,:,:)
-      REAL*8, public, pointer ::  HDIURN_ioptr(:,:,:)
-#endif
+     &     AREG_ioptr
 #endif
 
       END MODULE DIAG_COM
@@ -1724,16 +1693,13 @@ c*
 !@ver  beta
       use model_com, only : idacc
       use diag_com, only : monacc,
-     &     aj=>aj_ioptr,aij=>aij_ioptr,
-     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
-     &     consrv=>consrv_ioptr,
-     &     aijl=>aijl_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
-     &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
-     &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
-     &     energy=>energy_ioptr,wave=>wave_ioptr,
-     &     aisccp=>aisccp_ioptr
+     &     aj=>aj_ioptr,areg=>areg_ioptr,
+     &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
+     &     oa,tdiurn,                                  ! dist
+     &     ajl,asjl,agc,consrv,
+     &     speca,atpe,adiurn,energy,wave,aisccp
 #ifndef NO_HDIURN
-      use diag_com, only :  hdiurn=>hdiurn_ioptr
+      use diag_com, only :  hdiurn
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : defvar
@@ -1795,22 +1761,18 @@ c*
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite,iowrite_single,
-     &     idacc=>idacc_ioptr
-c in the postprocessing case where arrays are read from disk and summed,
-c these i/o pointers point to temporary arrays.  Otherwise, they point to
-c the instances of the arrays used during normal operation.
-      use diag_com, only :
-     &     aj=>aj_ioptr,aij=>aij_ioptr,
-     &     ajl=>ajl_ioptr,asjl=>asjl_ioptr,agc=>agc_ioptr,
-     &     consrv=>consrv_ioptr,
-     &     aijl=>aijl_ioptr,aijk=>aijk_ioptr,areg=>areg_ioptr,
-     &     oa=>oa_ioptr,tdiurn=>tdiurn_ioptr,speca=>speca_ioptr,
-     &     atpe=>atpe_ioptr,adiurn=>adiurn_ioptr,
-     &     energy=>energy_ioptr,wave=>wave_ioptr,
-     &     aisccp=>aisccp_ioptr,
-     &     monacc=>monacc_ioptr
+     &     idacc
+c i/o pointers point to:
+c    primary instances of arrays when writing restart files
+c    extended/rescaled instances of arrays when writing acc files
+      use diag_com, only : monacc,
+     &     aj=>aj_ioptr,areg=>areg_ioptr,
+     &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
+     &     oa,tdiurn,                                  ! dist
+     &     ajl,asjl,agc,consrv,
+     &     speca,atpe,adiurn,energy,wave,aisccp
 #ifndef NO_HDIURN
-      use diag_com, only :  hdiurn=>hdiurn_ioptr
+      use diag_com, only :  hdiurn
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
@@ -1889,7 +1851,7 @@ c for which scalars is bcast_all=.true. necessary?
 !@sum  def_rsf_longacc defines accumulation array structure in restart/acc files
 !@auth M. Kelley
 !@ver  beta
-      use diag_com, only : tsfrez=>tsfrez_ioptr,keyct,keynr
+      use diag_com, only : tsfrez=>tsfrez_loc,keyct,keynr
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
@@ -1907,10 +1869,7 @@ c for which scalars is bcast_all=.true. necessary?
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
-c in the postprocessing case where arrays are read from disk and summed,
-c these i/o pointers point to temporary arrays.  Otherwise, they point to
-c the instances of the arrays used during normal operation.
-      use diag_com, only : tsfrez=>tsfrez_ioptr,keyct,keynr
+      use diag_com, only : tsfrez=>tsfrez_loc,keyct,keynr
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
      &     ,write_data,read_data
@@ -2201,27 +2160,8 @@ c point i/o pointers for diagnostic accumlations to the
 c instances of the arrays used during normal operation.
       use diag_com
       implicit none
-      energy_ioptr => energy!_loc
-      speca_ioptr  => speca!_loc
-      atpe_ioptr   => atpe!_loc
-      wave_ioptr   => wave!_loc
-      aisccp_ioptr => aisccp!_loc
-      adiurn_ioptr => adiurn!_loc
-#ifndef NO_HDIURN
-      hdiurn_ioptr => hdiurn!_loc
-#endif
-      areg_ioptr   => areg!_loc
-      tdiurn_ioptr => tdiurn!_loc
-      oa_ioptr     => oa!_loc
-      aij_ioptr    => aij_loc
-      aijl_ioptr   => aijl_loc
-      aijk_ioptr   => aijk_loc
-      aj_ioptr     => aj!_loc
-      ajl_ioptr    => ajl!_loc
-      asjl_ioptr   => asjl!_loc
-      agc_ioptr    => agc!_loc
-      consrv_ioptr => consrv!_loc
-      tsfrez_ioptr => tsfrez_loc
+      aj_ioptr     => aj
+      areg_ioptr   => areg
       return
       end subroutine set_ioptrs_atmacc_default
 
@@ -2235,120 +2175,4 @@ c instances of the arrays containing derived outputs
       return
       end subroutine set_ioptrs_atmacc_extended
 
-      subroutine set_ioptrs_atmacc_sumfiles
-c point i/o pointers for diagnostic accumlations to temporary
-c arrays that hold data read from disk
-      use diag_com
-      use domain_decomp_atm, only : grid
-      implicit none
-      integer :: j_0h,j_1h,i_0h,i_1h
-
-c
-c allocate arrays (local size) and set i/o pointers
-c
-      if(allocated(aj_fromdisk)) return
-
-      I_0H = grid%I_STRT_HALO
-      I_1H = grid%I_STOP_HALO
-      J_0H = grid%J_STRT_HALO
-      J_1H = grid%J_STOP_HALO
-
-      allocate (energy_fromdisk(nehist,hist_days))
-      energy_ioptr => energy_fromdisk
-
-      allocate (speca_fromdisk(imlonh+1,kspeca,nspher))
-      speca_ioptr => speca_fromdisk
-
-      allocate (atpe_fromdisk(ktpe,nhemi))
-      atpe_ioptr => atpe_fromdisk
-
-      allocate (wave_fromdisk(re_and_im,max12hr_sequ,nwav_dag,kwp))
-      wave_ioptr => wave_fromdisk
-
-      allocate (aisccp_fromdisk(ntau,npres,nisccp))
-      aisccp_ioptr => aisccp_fromdisk
-
-      allocate (adiurn_fromdisk(ndiuvar,ndiupt,hr_in_day))
-      adiurn_ioptr => adiurn_fromdisk
-
-#ifndef NO_HDIURN
-      allocate (hdiurn_fromdisk(ndiuvar,ndiupt,hr_in_month))
-      hdiurn_ioptr => hdiurn_fromdisk
-#endif
-
-      allocate(tdiurn_fromdisk(i_0h:i_1h,j_0h:j_1h,ktd))
-      tdiurn_ioptr => tdiurn_fromdisk
-
-      allocate(oa_fromdisk(i_0h:i_1h,j_0h:j_1h,koa))
-      oa_ioptr => oa_fromdisk
-
-      allocate(aij_fromdisk(i_0h:i_1h,j_0h:j_1h,kaij))
-      aij_ioptr => aij_fromdisk
-
-      allocate(aijl_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kaijl))
-      aijl_ioptr => aijl_fromdisk
-
-      allocate(aijk_fromdisk(i_0h:i_1h,j_0h:j_1h,lm,kaijk))
-      aijk_ioptr => aijk_fromdisk
-
-      allocate(aj_fromdisk(jm_budg, kaj, ntype))
-      aj_ioptr => aj_fromdisk
-
-      allocate(ajl_fromdisk(jm_budg, lm, kajl))
-      ajl_ioptr => ajl_fromdisk
-
-      allocate(asjl_fromdisk(jm_budg,lm_req,kasjl))
-      asjl_ioptr => asjl_fromdisk
-
-      allocate(agc_fromdisk(jmlat,lm,kagc))
-      agc_ioptr => agc_fromdisk
-
-      allocate(consrv_fromdisk(jm_budg, kcon))
-      consrv_ioptr => consrv_fromdisk
-
-      allocate(areg_fromdisk(nreg,kaj))
-      areg_ioptr => areg_fromdisk
-
-      allocate(tsfrez_fromdisk(i_0h:i_1h,j_0h:j_1h,ktsf))
-      tsfrez_ioptr => tsfrez_fromdisk
-
-      return
-      end subroutine set_ioptrs_atmacc_sumfiles
-
-      subroutine sumfiles_atmacc
-c increment diagnostic accumlations with the data that was
-c read from disk and stored in the _fromdisk arrays.
-      use diag_com
-      use domain_decomp_atm, only : am_i_root
-      implicit none
-
-      tdiurn = tdiurn + tdiurn_fromdisk
-      oa     = oa     + oa_fromdisk
-
-      aij_loc    = aij_loc    + aij_fromdisk
-      aijl_loc   = aijl_loc   + aijl_fromdisk
-      aijk_loc   = aijk_loc   + aijk_fromdisk
-
-      if(am_i_root()) then
-        energy = energy + energy_fromdisk
-        speca  = speca  + speca_fromdisk
-        atpe   = atpe   + atpe_fromdisk
-        wave   = wave   + wave_fromdisk
-        aisccp = aisccp + aisccp_fromdisk
-        adiurn = adiurn + adiurn_fromdisk
-#ifndef NO_HDIURN
-        hdiurn = hdiurn + hdiurn_fromdisk
-#endif
-        aj     = aj     + aj_fromdisk
-        ajl    = ajl    + ajl_fromdisk
-        asjl   = asjl   + asjl_fromdisk
-        agc    = agc    + agc_fromdisk
-        consrv = consrv + consrv_fromdisk
-
-        areg   = areg   + areg_fromdisk
-
-      endif
-
-      return
-      end subroutine sumfiles_atmacc
 #endif /* NEW_IO */

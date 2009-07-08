@@ -23,11 +23,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       integer :: fid,k,iorw
       logical :: do_io_prog,do_io_acc,do_io_longacc
 
-      if(iaction.eq.ioread_single) then ! summation of acc files
-        call sumfiles_prep
-      else                              ! normal conditions
-        call set_ioptrs_acc_default
-      endif
+      call set_ioptrs_acc_default
 
       if(iaction.eq.iowrite_single) then
         call calc_derived_acc
@@ -144,7 +140,7 @@ c
         call new_io_ocdiag(fid,iorw)
         call new_io_icdiag(fid,iorw)
 #ifdef TRACERS_ON
-        call new_io_trdiag (fid,iorw)
+        call new_io_trdiag (fid,iaction)
 #endif
       endif
 
@@ -152,11 +148,6 @@ c
 c long-period acc arrays
 c
       if(do_io_longacc) call new_io_longacc(fid,iorw)
-
-c
-c summation/reduction of acc arrays when postprocessing
-c
-      if(iaction.eq.ioread_single) call sumfiles_finish
 
 c
 c close input/output file
@@ -269,9 +260,9 @@ c idacc(5) is not additive
       call def_meta_rvracc(fid)
       call def_meta_ocdiag(fid)
       call def_meta_icdiag(fid)
-c#ifdef TRACERS_ON
+#ifdef TRACERS_ON
 c      call def_meta_trdiag(fid)
-c#endif
+#endif
       return
   902 FORMAT ('From:',I6,A6,I2,',  Hr',I3,
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
@@ -288,9 +279,9 @@ c#endif
       call write_meta_rvracc(fid)
       call write_meta_ocdiag(fid)
       call write_meta_icdiag(fid)
-c#ifdef TRACERS_ON
+#ifdef TRACERS_ON
 c      call write_meta_trdiag(fid)
-c#endif
+#endif
       return
       end subroutine write_acc_meta
 
@@ -353,7 +344,7 @@ c parameters that are defined.
      &     iyear1,nday,iowrite,ioread,irsfic,irsficnt,irsficno
       use domain_decomp_atm, only: grid
       use pario, only : write_data,read_data,write_attr,read_attr
-      use timings, only : ntimemax,ntimeacc,timestr,timing=>timing_ioptr
+      use timings, only : ntimemax,ntimeacc,timestr,timing
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -425,7 +416,7 @@ c write a text version of the date to a restart/acc file
       subroutine io_cputime(fid,iaction)
 c manage the reading/writing of timing information. could be done better
       use model_com, only : iowrite,ioread,nday,itime,itime0
-      use timings, only : ntimemax,ntimeacc,timestr,timing=>timing_ioptr
+      use timings, only : ntimemax,ntimeacc,timestr,timing
       use domain_decomp_atm, only: grid
       use pario, only : write_attr,read_attr
       implicit none
@@ -562,19 +553,10 @@ c the character "|" are separated into arrays of strings.
       subroutine set_ioptrs_acc_default
 c point i/o pointers for accumlated quantities to the
 c instances of the arrays used during normal operation. 
-      use model_com, only : idacc,idacc_ioptr
-      use timings, only : timing,timing_ioptr,ntimemax
-      use diag_com, only : monacc,monacc_ioptr
       implicit none
-      timing_ioptr => timing(1:ntimemax)
-      monacc_ioptr => monacc
-      idacc_ioptr  => idacc
       call set_ioptrs_atmacc_default
       call set_ioptrs_ocnacc_default
       call set_ioptrs_iceacc_default
-#ifdef TRACERS_ON
-      call set_ioptrs_tracacc_default
-#endif
       return
       end subroutine set_ioptrs_acc_default
 
@@ -585,87 +567,15 @@ c instances of the arrays holding derived quantities as well
       call set_ioptrs_atmacc_extended
       call set_ioptrs_ocnacc_extended
 c      call set_ioptrs_iceacc_extended
-c#ifdef TRACERS_ON
-c      call set_ioptrs_tracacc_extended
-c#endif
       return
       end subroutine set_ioptrs_acc_extended
-
-      subroutine sumfiles_prep
-c point i/o pointers for diagnostic accumlations to temporary
-c arrays that hold data read from disk.  keep track of min/max
-c date info.
-      use model_com, only : itime,itime0,idacc_ioptr,idacc_fromdisk
-      use timings, only : ntimemax,timing_ioptr,timing_fromdisk
-      use diag_com, only : monacc_ioptr,monacc_fromdisk,
-     &     itime_sv,itime0_sv
-      implicit none
-
-      if(itime_sv.ge.0) itime_sv = itime
-      if(itime0_sv.ge.0) itime0_sv = itime0
-
-      timing_ioptr => timing_fromdisk(1:ntimemax)
-      monacc_ioptr => monacc_fromdisk
-      idacc_ioptr  => idacc_fromdisk
-
-      call set_ioptrs_atmacc_sumfiles
-      call set_ioptrs_ocnacc_sumfiles
-      call set_ioptrs_iceacc_sumfiles
-#ifdef TRACERS_ON
-      call set_ioptrs_tracacc_sumfiles
-#endif
-
-      return
-      end subroutine sumfiles_prep
-
-      subroutine sumfiles_finish
-c increment diagnostic accumlations with the data that was
-c read from disk and stored in the _fromdisk arrays.
-c keep track of min/max date info.
-      use timings, only : timing,timing_fromdisk
-      use model_com, only : idacc,idacc_fromdisk,itime,itime0
-      use diag_com, only : monacc,monacc_fromdisk,itime_sv,itime0_sv
-      implicit none
-
-C**** keep track of min/max time over the combined diagnostic period
-      if(itime_sv.ge.0) then
-        itime = max(itime, itime_sv)
-      else
-        itime_sv = itime
-      endif
-      if(itime0_sv.ge.0) then
-        itime0 = min(itime0, itime0_sv)
-      else
-        itime0_sv = itime0
-      endif
-
-      timing = timing + timing_fromdisk
-      monacc = monacc + monacc_fromdisk
-      idacc  = idacc  + idacc_fromdisk
-
-!@var idacc(5) is the length of a time series (daily energy history).
-!****   If combining acc-files, rather than concatenating these series,
-!****   we average their beginnings (up to the length of the shortest)
-! reverse addition, take min instead
-      if (sum(monacc).gt.1) IDACC(5) =
-     &     MIN(IDACC(5)-IDACC_fromdisk(5),IDACC_fromdisk(5))
-
-      call sumfiles_atmacc
-      call sumfiles_ocnacc
-      call sumfiles_iceacc
-#ifdef TRACERS_ON
-      call sumfiles_tracacc
-#endif
-
-      return
-      end subroutine sumfiles_finish
 
       subroutine calc_derived_acc
       implicit none
       call calc_derived_acc_atm
       call diag_ocean_prep
-c#ifdef TRACERS_ON
-c      call calc_derived_acc_trac
-c#endif
+#ifdef TRACERS_ON
+c      call diag_trac_prep
+#endif
       return
       end subroutine calc_derived_acc

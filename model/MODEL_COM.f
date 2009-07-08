@@ -266,14 +266,6 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@var stop_on TRUE stops the model (set with "kill -15 PID)
       LOGICAL :: stop_on = .FALSE.
 
-#ifdef NEW_IO
-c declarations that facilitate summation of acc-files when using
-c the new i/o system
-      target :: idacc
-      integer, dimension(nsampl), target :: idacc_fromdisk
-      integer, dimension(:), pointer :: idacc_ioptr
-#endif
-
       END MODULE MODEL_COM
 
       SUBROUTINE ALLOC_MODEL_COM(grid)
@@ -358,14 +350,6 @@ c the new i/o system
       INTEGER, DIMENSION(0:NTIMEMAX) :: TIMING
 !@var TIMESTR array that holds timing info description
       CHARACTER*12, DIMENSION(NTIMEMAX) :: TIMESTR
-
-#ifdef NEW_IO
-c declarations that facilitate summation of acc-files when using
-c the new i/o system
-      target :: timing
-      integer, dimension(0:ntimemax), target :: timing_fromdisk
-      integer, dimension(:), pointer :: timing_ioptr
-#endif
 
       END MODULE TIMINGS
 
