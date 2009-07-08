@@ -393,6 +393,83 @@ C**** include some extra troposphere only ones
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
 #endif
 
+#ifdef NEW_IO
+! This section declares arrays used to write tracer
+! diagnostics accumulations in a format suitable for offline
+! postprocessing.  The size of these arrays cannot be known
+! precisely a priori due to the large number of outputs not
+! declared in advance.  Thus, metadata arrays are declared with
+! a larger-than-needed size, and acc arrays are re-allocated
+! to the correct size after the size is determined.
+! The "n" and "s" instances of diagnostics classes are
+! merged as follows:
+!@var taijl_out combines taijln and taijls.  Distributed.
+!@var taij_out  combines taijn  and taijs.   Distributed.
+!@var tajl_out  combines tajln  and tajls.
+!@var tconsrv_out combines the ktcon/ntmxcon dims of tconsrv
+!@+               and omits its unused elements.
+! All contents of txxx_out arrays are PER UNIT AREA.
+! Denominator information is stored in denom_xxx.
+! Metadata for scaled outputs is consolidated in cdl_xxx.
+! 
+      integer, parameter :: ktaij_ = (ktaij*ntm+ktaijs
+#ifdef TRACERS_SPECIAL_O18
+     &     + 4                  ! include dexcess + D17O diags
+#endif
+#ifdef TRACERS_DRYDEP
+     &     + ntm                ! include dry dep % diags
+#endif
+     &     )*3/2  ! make 50% larger for denoms and extra specials
+      integer :: ktaij_out ! actual number of qtys in taij_out
+      real*8, dimension(:,:,:), allocatable :: taij_out
+      integer, dimension(ktaij_) :: ir_taij,ia_taij,denom_taij
+      character(len=lname_strlen), dimension(ktaij_) :: lname_taij
+      character(len=sname_strlen), dimension(ktaij_) :: sname_taij
+      character(len=units_strlen), dimension(ktaij_) :: units_taij
+      real*8, dimension(ktaij_) :: scale_taij
+      character(len=100), dimension(:), allocatable :: cdl_taij
+
+      integer, parameter :: ktaijl_ = (ntm+ktaijl
+#ifdef TRACERS_SPECIAL_O18
+     *     + 2        ! include dexcess + D17O diags
+#endif
+     &     )*3/2  ! make 50% larger for denoms and extra specials
+      integer :: ktaijl_out ! actual number of qtys in taijl_out
+      real*8, dimension(:,:,:,:), allocatable :: taijl_out
+      integer, dimension(ktaijl_) :: ir_taijl,ia_taijl,denom_taijl
+      character(len=lname_strlen), dimension(ktaijl_) :: lname_taijl
+      character(len=sname_strlen), dimension(ktaijl_) :: sname_taijl
+      character(len=units_strlen), dimension(ktaijl_) :: units_taijl
+      real*8, dimension(ktaijl_) :: scale_taijl
+      character(len=100), dimension(:), allocatable :: cdl_taijl
+
+      integer, parameter :: ktajl_ = (ktajlx*ntm+ktajls
+#ifdef TRACERS_SPECIAL_O18
+     &     + 4                  ! include dexcess + D17O diags
+#endif
+#ifdef TRACERS_COSMO
+     &     + 2                  ! beryllium ratios
+#endif
+     &     )*3/2  ! make 50% larger for denoms and extra specials
+      integer :: ktajl_out ! actual number of qtys in tajl_out
+      real*8, dimension(:,:,:), allocatable :: tajl_out
+      integer, dimension(ktajl_) :: pow_tajl,ia_tajl,denom_tajl,
+     &     jgrid_tajl,lgrid_tajl,ltop_tajl
+      character(len=lname_strlen), dimension(ktajl_) :: lname_tajl
+      character(len=sname_strlen), dimension(ktajl_) :: sname_tajl
+      character(len=units_strlen), dimension(ktajl_) :: units_tajl
+      real*8, dimension(ktajl_) :: scale_tajl
+      character(len=100), dimension(:), allocatable :: cdl_tajl
+
+      integer :: ktcon_out ! actual number of qtys in tconsrv_out
+      real*8, dimension(:,:), allocatable :: tconsrv_out,hemis_tconsrv
+      real*8, dimension(:), allocatable :: scale_tcon_out
+      integer, dimension(:), allocatable ::  ia_tcon_out
+      character(len=sname_strlen), dimension(:), allocatable ::
+     &     sname_tconsrv_out
+      character(len=100), dimension(:), allocatable :: cdl_tconsrv
+#endif
+
       END MODULE TRDIAG_COM
 
 #ifdef TRACERS_ON
@@ -696,26 +773,35 @@ C*** Unpack read global data into local distributed arrays
      &     TAIJS=>TAIJS_loc,
      &     TAJLN,
      &     TAJLS,
-     &     TCONSRV
+     &     TCONSRV,
+     &     TAIJL=>TAIJL_out,
+     &     TAIJ=>TAIJ_out,
+     &     TAJL=>TAJL_out,
+     &     TCONSRV_out
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
       integer fid           !@var fid file id
       logical :: r4_on_disk !@var r4_on_disk if true, real*8 stored as real*4
-      call defvar(grid,fid,taijln,
-     &     'taijln(dist_im,dist_jm,lm,ntm)',r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,taijls,
-     &     'taijls(dist_im,dist_jm,lm,ktaijl)',r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,taijs,
-     &     'taijs(dist_im,dist_jm,ktaijs)',r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,taijn,
-     &     'taijn(dist_im,dist_jm,ktaij,ntm)',r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,tajln,
-     &     'tajln(jm_budg,lm,ktajlx,ntm)',r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,tajls,
-     &     'tajls(jm_budg,lm,ktajls)',r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,tconsrv,
+      if(r4_on_disk) then ! acc file
+        call defvar(grid,fid,taijl,
+     &       'taijl(dist_im,dist_jm,lm,ktaijl)',r4_on_disk=.true.)
+        call defvar(grid,fid,taij,
+     &       'taij(dist_im,dist_jm,ktaij)',r4_on_disk=.true.)
+        call defvar(grid,fid,tajl,
+     &       'tajl(jm_budg,lm,ktajl)',r4_on_disk=.true.)
+        call defvar(grid,fid,tconsrv_out,
+     &       'tconsrv(jm_budg,ktcon)',r4_on_disk=.true.)
+      else
+        call defvar(grid,fid,taijln,'taijln(dist_im,dist_jm,lm,ntm)')
+        call defvar(grid,fid,taijls,'taijls(dist_im,dist_jm,lm,ktaijl)')
+        call defvar(grid,fid,taijs,'taijs(dist_im,dist_jm,ktaijs)')
+        call defvar(grid,fid,taijn,'taijn(dist_im,dist_jm,ktaij,ntm)')
+        call defvar(grid,fid,tajln,'tajln(jm_budg,lm,ktajlx,ntm)')
+        call defvar(grid,fid,tajls,'tajls(jm_budg,lm,ktajls)')
+        call defvar(grid,fid,tconsrv,
      &       'tconsrv(jm_budg,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
+      endif
       return
       end subroutine def_rsf_trdiag
 
@@ -723,7 +809,7 @@ C*** Unpack read global data into local distributed arrays
 !@sum  new_io_trdiag read/write tracer acc arrays from/to restart+acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite
+      use model_com, only : ioread,iowrite,iowrite_single
       use trdiag_com, only :
      &     TAIJLN=>TAIJLN_loc,
      &     TAIJLS=>TAIJLS_loc,
@@ -731,7 +817,11 @@ C*** Unpack read global data into local distributed arrays
      &     TAIJS=>TAIJS_loc,
      &     TAJLN,
      &     TAJLS,
-     &     TCONSRV
+     &     TCONSRV,
+     &     TAIJL=>TAIJL_out,
+     &     TAIJ=>TAIJ_out,
+     &     TAJL=>TAJL_out,
+     &     TCONSRV_out
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
@@ -739,6 +829,11 @@ C*** Unpack read global data into local distributed arrays
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
+      case (iowrite_single)     ! output to acc file
+        call write_dist_data(grid,fid,'taijl',taijl)
+        call write_dist_data(grid,fid,'taij',taij)
+        call write_data(grid,fid,'tajl',tajl)
+        call write_data(grid,fid,'tconsrv',tconsrv_out)
       case (iowrite)            ! output to restart file
         call gather_zonal_trdiag
         call write_dist_data(grid,fid,'taijln',taijln)
@@ -760,6 +855,105 @@ C*** Unpack read global data into local distributed arrays
       end select
       return
       end subroutine new_io_trdiag
+
+      subroutine def_meta_trdiag(fid)
+!@sum  def_meta_trdiag defines tracer metadata in acc files
+!@auth M. Kelley
+!@ver  beta
+      use trdiag_com
+      use pario, only : defvar,write_attr
+      use domain_decomp_atm, only : grid
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call write_attr(grid,fid,'taij','reduction','sum')
+      call write_attr(grid,fid,'taij','split_dim',3)
+      call defvar(grid,fid,ia_taij(1:ktaij_out),
+     &     'ia_taij(ktaij)')
+      call defvar(grid,fid,denom_taij(1:ktaij_out),
+     &     'denom_taij(ktaij)')
+      call defvar(grid,fid,scale_taij(1:ktaij_out),
+     &     'scale_taij(ktaij)')
+      call defvar(grid,fid,sname_taij(1:ktaij_out),
+     &     'sname_taij(sname_strlen,ktaij)')
+      call defvar(grid,fid,cdl_taij,'cdl_taij(cdl_strlen,kcdl_taij)')
+
+      call write_attr(grid,fid,'taijl','reduction','sum')
+      call write_attr(grid,fid,'taijl','split_dim',4)
+      call defvar(grid,fid,ia_taijl(1:ktaijl_out),
+     &     'ia_taijl(ktaijl)')
+      call defvar(grid,fid,denom_taijl(1:ktaijl_out),
+     &     'denom_taijl(ktaijl)')
+      call defvar(grid,fid,scale_taijl(1:ktaijl_out),
+     &     'scale_taijl(ktaijl)')
+      call defvar(grid,fid,sname_taijl(1:ktaijl_out),
+     &     'sname_taijl(sname_strlen,ktaijl)')
+      call defvar(grid,fid,cdl_taijl,
+     &     'cdl_taijl(cdl_strlen,kcdl_taijl)')
+
+      call write_attr(grid,fid,'tajl','reduction','sum')
+      call write_attr(grid,fid,'tajl','split_dim',3)
+      call defvar(grid,fid,ia_tajl(1:ktajl_out),
+     &     'ia_tajl(ktajl)')
+      call defvar(grid,fid,denom_tajl(1:ktajl_out),
+     &     'denom_tajl(ktajl)')
+      call defvar(grid,fid,scale_tajl(1:ktajl_out),
+     &     'scale_tajl(ktajl)')
+      call defvar(grid,fid,sname_tajl(1:ktajl_out),
+     &     'sname_tajl(sname_strlen,ktajl)')
+      call defvar(grid,fid,cdl_tajl,
+     &     'cdl_tajl(cdl_strlen,kcdl_tajl)')
+
+      call write_attr(grid,fid,'tconsrv','reduction','sum')
+      call write_attr(grid,fid,'tconsrv','split_dim',2)
+      call defvar(grid,fid,hemis_tconsrv,'hemis_tconsrv(shnhgm,ktcon)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_tconsrv','reduction','sum')
+      call defvar(grid,fid,ia_tcon_out,'ia_tconsrv(ktcon)')
+      call defvar(grid,fid,scale_tcon_out,'scale_tconsrv(ktcon)')
+      call defvar(grid,fid,sname_tconsrv_out,
+     &     'sname_tconsrv(sname_strlen,ktcon)')
+      call defvar(grid,fid,cdl_tconsrv,
+     &     'cdl_tconsrv(cdl_strlen,kcdl_tconsrv)')
+
+      return
+      end subroutine def_meta_trdiag
+
+      subroutine write_meta_trdiag(fid)
+!@sum  write_meta_trdiag write tracer accumulation metadata to file
+!@auth M. Kelley
+      use trdiag_com
+      use pario, only : write_dist_data,write_data
+      use domain_decomp_atm, only : grid
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call write_data(grid,fid,'ia_taij',ia_taij(1:ktaij_out))
+      call write_data(grid,fid,'denom_taij',denom_taij(1:ktaij_out))
+      call write_data(grid,fid,'scale_taij',scale_taij(1:ktaij_out))
+      call write_data(grid,fid,'sname_taij',sname_taij(1:ktaij_out))
+      call write_data(grid,fid,'cdl_taij',cdl_taij)
+
+      call write_data(grid,fid,'ia_taijl',ia_taijl(1:ktaijl_out))
+      call write_data(grid,fid,'denom_taijl',denom_taijl(1:ktaijl_out))
+      call write_data(grid,fid,'scale_taijl',scale_taijl(1:ktaijl_out))
+      call write_data(grid,fid,'sname_taijl',sname_taijl(1:ktaijl_out))
+      call write_data(grid,fid,'cdl_taijl',cdl_taijl)
+
+      call write_data(grid,fid,'ia_tajl',ia_tajl(1:ktajl_out))
+      call write_data(grid,fid,'denom_tajl',denom_tajl(1:ktajl_out))
+      call write_data(grid,fid,'scale_tajl',scale_tajl(1:ktajl_out))
+      call write_data(grid,fid,'sname_tajl',sname_tajl(1:ktajl_out))
+      call write_data(grid,fid,'cdl_tajl',cdl_tajl)
+
+      call write_data(grid,fid,'hemis_tconsrv',hemis_tconsrv)
+      call write_data(grid,fid,'ia_tconsrv',ia_tcon_out)
+      call write_data(grid,fid,'scale_tconsrv',scale_tcon_out)
+      call write_data(grid,fid,'sname_tconsrv',sname_tconsrv_out)
+      call write_data(grid,fid,'cdl_tconsrv',cdl_tconsrv)
+
+      return
+      end subroutine write_meta_trdiag
 
 #endif /* TRACERS_ON */
 #endif /* NEW_IO */
@@ -804,6 +998,17 @@ C*** Unpack read global data into local distributed arrays
         ALLOCATE ( TAJLS(JM_BUDG,LM,ktajls    ), stat=status )
         ALLOCATE ( TCONSRV(JM_BUDG,ktcon,ntmxcon), stat=status )
       endif
+
+#ifdef NEW_IO
+! ktaij_, ktaijl_, ktajl_ are larger than necessary.  These arrays
+! will be reallocated to the proper sizes later.
+      ALLOCATE ( TAIJ_out( I_0H:I_1H,J_0H:J_1H,ktaij_),stat=status )
+      ALLOCATE ( TAIJL_out( I_0H:I_1H,J_0H:J_1H,LM,ktaijl_),stat=status)
+      if(am_i_root()) then
+        ALLOCATE ( TAJL_out(JM_BUDG,LM,ktajl_), stat=status )
+      endif
+#endif
+
 #endif
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM

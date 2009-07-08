@@ -261,7 +261,7 @@ c idacc(5) is not additive
       call def_meta_ocdiag(fid)
       call def_meta_icdiag(fid)
 #ifdef TRACERS_ON
-c      call def_meta_trdiag(fid)
+      call def_meta_trdiag(fid)
 #endif
       return
   902 FORMAT ('From:',I6,A6,I2,',  Hr',I3,
@@ -280,7 +280,7 @@ c      call def_meta_trdiag(fid)
       call write_meta_ocdiag(fid)
       call write_meta_icdiag(fid)
 #ifdef TRACERS_ON
-c      call write_meta_trdiag(fid)
+      call write_meta_trdiag(fid)
 #endif
       return
       end subroutine write_acc_meta
@@ -575,7 +575,7 @@ c      call set_ioptrs_iceacc_extended
       call calc_derived_acc_atm
       call diag_ocean_prep
 #ifdef TRACERS_ON
-c      call diag_trac_prep
+      call diag_trac_prep
 #endif
       return
       end subroutine calc_derived_acc
