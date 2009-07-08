@@ -864,7 +864,7 @@ c
       sname_oijl(k) = 'wgfl'
       units_oijl(k) = 'W/m^2'
       lname_oijl(k) = 'VERT. HEAT DIFF.'
-      scale_oijl(k) = .25/dts        ! avg over quarter boxes
+      scale_oijl(k) = 1d0/dts
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -872,7 +872,7 @@ c
       sname_oijl(k) = 'wsfl'
       units_oijl(k) = '10^-6 kg/m^2'
       lname_oijl(k) = 'VERT. SALT DIFF.'
-      scale_oijl(k) = 1d6*.25/dts    ! avg over quarter boxes
+      scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
 c
       k=k+1
