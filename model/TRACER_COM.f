@@ -1,4 +1,5 @@
 #include "rundeck_opts.h"
+      
 
 !@sum  TRACER_COM: Exists alone to minimize the number of dependencies
 !@+    This version for simple trace gases/chemistry/isotopes
@@ -863,6 +864,9 @@ C**** Diagnostic indices and meta-data
 #ifdef TRAC_ADV_CPU
       integer mtradv
 #endif
+!@dbparam no_emis_over_ice, switch whether (>0) or not (<=0) to
+!@+ set surface tracer emissions to zero over >90% ice boxes
+      integer :: no_emis_over_ice=0
 
 C**** EVERYTHING BELOW HERE IS TRACER SPECIFIC. PLEASE THINK 
 C**** ABOUT MOVING IT ELSEWHERE

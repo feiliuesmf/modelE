@@ -248,6 +248,7 @@ C**** decide on AEROCOM or interactive emissions
 C**** get rundeck parameter for cosmogenic source factor
       call sync_param("be7_src_param", be7_src_param)
 #endif
+      call sync_param("no_emis_over_ice",no_emis_over_ice)
 
 ! call routine to read/set up regions and sectors for emissions:
       call setup_emis_sectors_regions
@@ -8663,7 +8664,7 @@ C**** at the start of any day
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
-     *  ,dtsrc,jmon,nday
+     *  ,dtsrc,jmon,nday,flice,focean
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, write_parallel
      * ,AM_I_ROOT, pack_data
 
@@ -8705,10 +8706,11 @@ C**** at the start of any day
       USE AERO_SETUP, only : RECIP_PART_MASS
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
+      USE LAKES_COM, only : flake
       implicit none
       integer :: i,j,ns,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  tmon,bydt,tnew,scca(im)
+     *  tmon,bydt,tnew,scca(im),fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER ie,iw,js,jn
@@ -9220,10 +9222,10 @@ c!OMSP
         do ns=1,ntsurfsrc(n)              ! loop over source
           do nsect=1,num_tr_sectors(n,ns) ! and sectors for that source
             do j=J_0,J_1                  ! and latitudes
-              do i=I_0,imaxj(j)             ! and longitudes 
+              do i=I_0,imaxj(j)           ! and longitudes 
                 do kreg=1,num_regions     ! and defined regions
-          if(lat2d_dg(i,j) >= reg_S(kreg) .and. lat2d_dg(i,j) ! check if
-     &    <= reg_N(kreg) .and. lon2d_dg(i,j) >= reg_W(kreg) ! in region
+          if(lat2d_dg(i,j) >= reg_S(kreg) .and. lat2d_dg(i,j)! check if
+     &    <= reg_N(kreg) .and. lon2d_dg(i,j) >= reg_W(kreg)  ! in region
      &    .and. lon2d_dg(i,j) < reg_E(kreg) ) then
             if(ef_fact(tr_sect_index(n,ns,nsect),kreg) > -1.e20)
      &      trsource(i,j,ns,n)=trsource(i,j,ns,n)*
@@ -9232,6 +9234,16 @@ c!OMSP
                 enddo
               enddo
             enddo
+          enddo
+        enddo
+      endif
+
+! optionally set sources to zero over (>90%) ice:
+      if(no_emis_over_ice > 0)then
+        do j=J_0,J_1 
+          do i=I_0,imaxj(j)
+            fice=flice(i,j)+rsi(i,j)*(focean(i,j)+flake(i,j))
+            if(fice > 0.9d0) trsource(i,j,:,:)=0.d0
           enddo
         enddo
       endif
