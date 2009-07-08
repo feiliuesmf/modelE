@@ -413,7 +413,8 @@ m4_loop(`
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell`'m4_brkts(m4_ext)`'
       real*8, dimension(:m4_comma`'m4_ext`')  ::   ! dim=N_COVERTYPES, n
@@ -433,6 +434,7 @@ m4_loop(`
       real*8 m4_arr_only(`, dimension(m4_ext)')`' ::
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       real*8,dimension(:,:,:,:m4_comma`'m4_ext`') :: Tpool_ini  !soil pools, in g/m2 -PK
+      logical :: reinitialize
       !---
       m4_arr_only(`integer m4_ind')`'
       m4_arr_only(`integer dims(2,m4_rank)')`'
@@ -461,7 +463,8 @@ m4_loop(`
      &         soil_texture(:`'m4_comma`'m4_ind),
      &         Ci_ini`'m4_brkts(m4_ind)`', CNC_ini`'m4_brkts(m4_ind)`',
      &         Tcan_ini`'m4_brkts(m4_ind)`', Qf_ini`'m4_brkts(m4_ind)`',
-     &         Tpool_ini(:,:,:,:`'m4_comma`'m4_ind))
+     &         Tpool_ini(:,:,:,:`'m4_comma`'m4_ind),
+     &         reinitialize)
         endif
       m4_enddo
 

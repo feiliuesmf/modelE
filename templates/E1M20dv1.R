@@ -136,7 +136,7 @@ KOCEAN=0 ! 0 or 1 , use =0 if ocn is prescribed, use =1 if ocn is predicted
 Kvflxo=0 ! use 1 ONLY to save VFLXO daily to prepare for q-flux run ?
 ocn_cycl=1  ! ? use =0 if prescribed ocean varies from year to year
 
-variable_lk=0 ! let lakes grow or shrink in horizontal extent
+variable_lk=1 ! let lakes grow or shrink in horizontal extent
 wsn_max=2.   ! restrict snow depth to 2 m-h2o (if 0. snow depth is NOT restricted)
 
 ! drag params if grav.wave drag is not used and top is at .01mb

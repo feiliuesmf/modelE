@@ -93,7 +93,7 @@
         !print *,'init_module_ent end printing cells 1'
 
         call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
-     &       IM, JM, I_0, I_1, J_0, J_1, jday, year )
+     &       IM, JM, I_0, I_1, J_0, J_1, jday, year, .true. )
 
         ! probably it is ok to initialize these here since 
         ! if .not. iniENT we should read everything from restart file
@@ -112,7 +112,7 @@
 
 
       subroutine set_vegetation_data( entcells,
-     &     im, jm, i0, i1, j0, j1, jday, year )
+     &     im, jm, i0, i1, j0, j1, jday, year, reinitialize )
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
@@ -133,6 +133,7 @@
       use ghy_com, only : fearth
       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
+      logical :: reinitialize
       !Local variables
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: vegdata !cohort
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
@@ -225,7 +226,8 @@
       call ent_cell_set(entcells, vegdata, popdata, laidata,
      &     hdata, dbhdata, craddata, cpooldata, nmdata, rootprofdata, 
      &     soil_color, albedodata, soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
+     &     reinitialize)
 
       ! just in case, do nothing, just set heat capacities
       call ent_prescribe_vegupdate(entcells)
@@ -269,10 +271,12 @@
 
       if( year .ne. year_old ) then
         !call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropsdata)
-        call get_cropdata(year, cropdata_H)
-        call ent_prescribe_vegupdate(entcells,
-     &       do_giss_lai=.false.,
-     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
+cddd        call get_cropdata(year, cropdata_H)
+cddd        call ent_prescribe_vegupdate(entcells,
+cddd     &       do_giss_lai=.false.,
+cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
+        call set_vegetation_data( entcells,
+     &       im, jm, i0, i1, j0, j1, jday, year, .false. )
         year_old = year
       endif
 

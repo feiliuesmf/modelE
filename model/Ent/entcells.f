@@ -397,8 +397,8 @@ C NADINE - IS THIS CORRECT?
      ivegdata,popdens,laidata,hdata,dbhdata,craddata,
      icpooldata,nmdata,
      ifracrootdata,soildata,albedodata,soil_texture,
-     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribed soil C, N pools -PK
-
+     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribed soil C, N pools -PK
+     ireinitialize)
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
       type(entcelltype) :: ecp
@@ -417,36 +417,47 @@ C NADINE - IS THIS CORRECT?
       real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       real*8,intent(in) ::
      &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  !prescribed soil pools, g/m2 -PK
-      
+      logical,intent(in) :: reinitialize
       !-----Local---------
       integer :: ncov, pft
-      type(patch),pointer :: pp, pp_tmp
+      type(patch),pointer :: pp, pp_tmp, pp_ncov
       real*8 :: sandfrac,clayfrac,smpsat,bch,watsat,watdry
 
-!      if ( .not. associated(ecp) ) 
-!     &      call stop_model("init_simple_entcell 1",255)
-      !call entcell_print(6,ecp)
 
-      ! destroy all existing patches since we are going to 
-      ! re-initialize the cell
-      pp => ecp%oldest      
-      do while ( associated(pp) )
-        pp_tmp => pp
-        pp => pp%younger
-        call patch_destruct(pp_tmp)
-      enddo
-      nullify(ecp%oldest)
-      nullify(ecp%youngest)
+      if ( reinitialize ) then
+        ! destroy all existing patches since we are going to 
+        ! re-initialize the cell
+        pp => ecp%oldest      
+        do while ( associated(pp) )
+          pp_tmp => pp
+          pp => pp%younger
+          call patch_destruct(pp_tmp)
+        enddo
+        nullify(ecp%oldest)
+        nullify(ecp%youngest)
+      else
+        ! just set all areas to 0 since we will reset them
+        pp => ecp%oldest      
+        do while ( associated(pp) )
+          pp%area = 0.d0
+          pp => pp%younger
+        enddo
 
-      !Initialize canopy met variables.
-      ecp%TcanopyC = Tcan_ini
-      ecp%Qf = Qf_ini
+      endif
 
       do ncov=1,N_COVERTYPES           !One patch with one cohort per pft or bare
         pft = ncov - COVEROFFSET
         !### Get from GISS GCM ## vfraction of grid cell and area.
 
         if (vegdata(ncov)>0.0) then
+
+          call get_patch_by_cover(ecp,ncov,pp_ncov)
+          if ( associated(pp_ncov) ) then
+            ! if patch is present - just resize it
+            pp_ncov%area = vegdata(ncov)
+            cycle
+          endif
+          
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
@@ -481,24 +492,38 @@ C NADINE - IS THIS CORRECT?
         end if
       end do
 
-      ! soil textures for CASA
-      ecp%soil_texture(:) = soil_texture(:)
+      ! get rid of patches with 0 area
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+        pp_tmp => pp
+        pp => pp%younger
+        if( pp_tmp%area == 0.d0 ) call patch_destruct(pp_tmp)
+      enddo
+
+
+      if ( reinitialize ) then
+        !Initialize canopy met variables.
+        ecp%TcanopyC = Tcan_ini
+        ecp%Qf = Qf_ini
+
+        ! soil textures for CASA
+        ecp%soil_texture(:) = soil_texture(:)
 
       !Soil porosity and wilting? hygroscopic? point for water stress2 calculation. From soilbgc.f.
 !??      sandfrac = pp%cellptr%soil_texture(1)
 !??      clayfrac = pp%cellptr%soil_texture(3)
 ! is it supposed to be
-      sandfrac = soil_texture(1)
-      clayfrac = soil_texture(3)
+        sandfrac = soil_texture(1)
+        clayfrac = soil_texture(3)
 
-
-      watsat =  0.489d0 - 0.00126d0*sandfrac !porosity, saturated soil fraction
-      smpsat = -10.d0*(10.d0**(1.88d0-0.0131d0*sandfrac))
-      bch = 2.91d0 + 0.159d0*clayfrac
-      watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+        watsat =  0.489d0 - 0.00126d0*sandfrac !porosity, saturated soil fraction
+        smpsat = -10.d0*(10.d0**(1.88d0-0.0131d0*sandfrac))
+        bch = 2.91d0 + 0.159d0*clayfrac
+        watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
 !      watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
-      ecp%soil_Phi = watsat
-      ecp%soil_dry = watdry
+        ecp%soil_Phi = watsat
+        ecp%soil_dry = watdry
+      endif
 
 #ifdef OFFLINE
       write(*,*) "soil_Phi, soil_dry",ecp%soil_Phi, ecp%soil_dry
@@ -616,4 +641,41 @@ C NADINE - IS THIS CORRECT?
       end subroutine entcell_extract_pfts
 
  !*********************************************************************
+
+      subroutine get_patch_by_cover(ecp, ncov, pp_ncov)
+      type(entcelltype) :: ecp
+      integer :: ncov
+      type(patch), pointer :: pp_ncov
+      !---
+      type(patch), pointer :: pp
+
+      !write(0,*) "entered get_patch_by_cover", ncov
+      nullify( pp_ncov )
+      pp => ecp%oldest
+      do while( associated(pp) )
+        !write(0,*) "inside loop"
+        if ( associated(pp%tallest) ) then
+          !write(0,*) pp%tallest%pft+COVEROFFSET
+          if ( pp%tallest%pft == ncov - COVEROFFSET ) then
+            pp_ncov => pp
+            return
+          endif
+        else
+          if ( ncov == COVER_SAND .and. pp%soil_type == 1 ) then
+            !write(0,*) 1
+            pp_ncov => pp
+            return
+          else if ( ncov == COVER_DIRT .and. pp%soil_type == 2 ) then
+            !write(0,*) 10
+            pp_ncov => pp
+            return
+          endif
+        endif
+        pp => pp%younger
+      enddo
+      
+      !write(0,*) "null"
+
+      end subroutine get_patch_by_cover
+
       end module entcells

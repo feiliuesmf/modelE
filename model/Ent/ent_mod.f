@@ -903,7 +903,8 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell
       real*8, dimension(:)  ::   ! dim=N_COVERTYPES, n
@@ -923,6 +924,7 @@ cddd      end interface ent_cell_update
       real*8  ::
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       real*8,dimension(:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      logical :: reinitialize
       !---
       
       
@@ -951,7 +953,8 @@ cddd      end interface ent_cell_update
      &         soil_texture(:),
      &         Ci_ini, CNC_ini,
      &         Tcan_ini, Qf_ini,
-     &         Tpool_ini(:,:,:,:))
+     &         Tpool_ini(:,:,:,:),
+     &         reinitialize)
         endif
       
 
@@ -970,7 +973,8 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell(:)
       real*8, dimension(:,:)  ::   ! dim=N_COVERTYPES, n
@@ -990,6 +994,7 @@ cddd      end interface ent_cell_update
       real*8 ,dimension(:) ::
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       real*8,dimension(:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      logical :: reinitialize
       !---
       integer i1
       integer dims(2,1)
@@ -1019,7 +1024,8 @@ cddd      end interface ent_cell_update
      &         soil_texture(:,i1),
      &         Ci_ini(i1), CNC_ini(i1),
      &         Tcan_ini(i1), Qf_ini(i1),
-     &         Tpool_ini(:,:,:,:,i1))
+     &         Tpool_ini(:,:,:,:,i1),
+     &         reinitialize)
         endif
       
       enddo
@@ -1039,7 +1045,8 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini)  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell(:,:)
       real*8, dimension(:,:,:)  ::   ! dim=N_COVERTYPES, n
@@ -1059,6 +1066,7 @@ cddd      end interface ent_cell_update
       real*8 ,dimension(:,:) ::
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini
       real*8,dimension(:,:,:,:,:,:) :: Tpool_ini  !soil pools, in g/m2 -PK
+      logical :: reinitialize
       !---
       integer i1,i2
       integer dims(2,2)
@@ -1089,7 +1097,8 @@ cddd      end interface ent_cell_update
      &         soil_texture(:,i1,i2),
      &         Ci_ini(i1,i2), CNC_ini(i1,i2),
      &         Tcan_ini(i1,i2), Qf_ini(i1,i2),
-     &         Tpool_ini(:,:,:,:,i1,i2))
+     &         Tpool_ini(:,:,:,:,i1,i2),
+     &         reinitialize)
         endif
       
       enddo
