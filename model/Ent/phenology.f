@@ -1893,7 +1893,7 @@ c$$$      end if
       real*8,parameter :: h2Cf = 1.20d0 !1.500d0
       real*8,parameter :: nplant = 3000.0d0
 
-      if (Cfol.ne.0.0d0) then
+      if (Cfol.gt.0.0d0) then
          Cfol2height=exp(log(Cfol*C2B/h1Cf*nplant)/h2Cf)/100.0d0
       else
          Cfol2height=0.d0
