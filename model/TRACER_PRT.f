@@ -1576,7 +1576,7 @@ C****
       USE DIAG_SERIAL, only : MAPTXT, scale_ijlmap
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
-      USE DIAG_COM, only : acc_period,ijkgridc
+      USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml
       use filemanager
       IMPLICIT NONE
 
@@ -1600,6 +1600,7 @@ C****
       CHARACTER(len=lname_strlen), DIMENSION(ktmax) :: lname
       CHARACTER(len=sname_strlen), DIMENSION(ktmax) :: name
       CHARACTER(len=units_strlen), DIMENSION(ktmax) :: units
+      integer, dimension(ktmax) :: lgrid
       REAL*8, DIMENSION(ktmax) :: scale
       REAL*8, DIMENSION(:,:,:,:), allocatable :: aijl1,aijl2
       REAL*8, DIMENSION(IM,JM) :: SMAP
@@ -1627,11 +1628,11 @@ C****
 
       allocate(aijl1(IM,JM,LM,ktmax),aijl2(IM,JM,LM,ktmax))
 
-C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
-      if (qdiag) call open_ijl(trim(acc_period)//'.ijlt'/
-     *     /XLABEL(1:LRUNID),im,jm,lm)
-
 C**** Initialise
+      do k=1,ktmax
+        lgrid(k) = ctr_ml
+        lname(k) = 'no output'
+      enddo
       Qk = .true.
       k = 0
 
@@ -1753,6 +1754,11 @@ C**** water vapour
       Qk(k+1:ktmax)=.false.
 C**** Collect the appropriate weight-arrays in WT_IJ
       wt_ij(:,:,:) = 1.
+
+C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
+      if (qdiag) call open_ijl(trim(acc_period)//'.ijlt'/
+     *     /XLABEL(1:LRUNID),im,jm,lm,
+     &     nmaplets,name,lname,units,lgrid)
 
 C**** Print out 6-map pages
       do n=1,nmaplets*lm

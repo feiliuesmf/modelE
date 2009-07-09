@@ -470,7 +470,8 @@ C**** set dimensions
       return
       end subroutine POUT_IJK
 
-      subroutine open_ijl(filename,im_gcm,jm_gcm,lm_gcm)
+      subroutine open_ijl(filename,im_gcm,jm_gcm,lm_gcm,
+     &     kaijl,name_ijl,lname_ijl,units_ijl,lgrid_ijl)
 !@sum  OPEN_IJK opens the lat-lon-layer binary output file
 !@auth M. Kelley
 !@ver  1.0
@@ -481,6 +482,12 @@ C**** set dimensions
       CHARACTER*(*), INTENT(IN) :: filename
 !@var IM_GCM,JM_GCM,LM_GCM dimensions for ij output
       INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
+! the following are only for plug compatibility with the netcdf version
+      integer :: kaijl
+      CHARACTER(len=lname_strlen), DIMENSION(kaijl) :: lname_ijl
+      CHARACTER(len=sname_strlen), DIMENSION(kaijl) :: name_ijl
+      CHARACTER(len=units_strlen), DIMENSION(kaijl) :: units_ijl
+      integer, dimension(kaijl) :: lgrid_ijl
 
       call openunit(filename,iu_ijl,.true.,.false.)
 

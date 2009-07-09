@@ -5245,7 +5245,8 @@ C****
         WRITE(CLEV(L),'(A1,I2.2)') 'L',l
       END DO
 
-      call open_ijl(trim(acc_period)//'.ijl'//XLABEL(1:LRUNID),im,jm,lm)
+      call open_ijl(trim(acc_period)//'.ijl'//XLABEL(1:LRUNID),im,jm,lm,
+     &     kaijl,name_ijl,lname_ijl,units_ijl,lgrid_ijl)
 
 c
 c loop over quantities

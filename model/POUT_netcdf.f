@@ -1198,19 +1198,28 @@ c unpack memory-contiguous :,jm-1,lm memory to first-j-empty :,jm,lm array
       return
       end
 
-      subroutine open_ijl(filename,im_gcm,jm_gcm,lm_gcm)
+      subroutine open_ijl(filename,im_gcm,jm_gcm,lm_gcm,
+     &     kaijl,name_ijl,lname_ijl,units_ijl,lgrid_ijl
+     &     )
 !@sum  OPEN_IJL opens the lat-lon-layer binary output file
 !@auth M. Kelley
 !@ver  1.0
       USE GEOM, only : lon_dg_gcm=>lon_dg,lat_dg_gcm=>lat_dg
       USE NCOUT
-      USE DIAG_COM, only : kaijl,name_ijl,lname_ijl,units_ijl,lgrid_ijl,
-     &     plm,ple,ctr_ml,edg_ml,ctr_cp,edg_cp
+      USE DIAG_COM, only :
+     &     plm,ple,ctr_ml,edg_ml,ctr_cp,edg_cp,
+     &     sname_strlen,lname_strlen,units_strlen
       IMPLICIT NONE
 !@var FILENAME output file name
       CHARACTER*(*), INTENT(IN) :: filename
 !@var IM_GCM,JM_GCM,LM_GCM dimensions for ijl output
       INTEGER, INTENT(IN) :: im_gcm,jm_gcm,lm_gcm
+!@var kaijl number of predefined output fields
+      integer, intent(in) :: kaijl
+      CHARACTER(len=lname_strlen), DIMENSION(kaijl) :: lname_ijl
+      CHARACTER(len=sname_strlen), DIMENSION(kaijl) :: name_ijl
+      CHARACTER(len=units_strlen), DIMENSION(kaijl) :: units_ijl
+      integer, dimension(kaijl) :: lgrid_ijl
       INTEGER :: k,l
       REAL*8 :: lev(lm_gcm)
       include 'netcdf.inc'
