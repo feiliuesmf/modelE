@@ -521,4 +521,22 @@ cddd      end subroutine init_cohort_defaults
  
       end subroutine cohort_merge_data
 
+!----------------------------------------------------------------------
+      real*8 function cohort_carbon(cop) 
+!@sum Return kg-C/individual in a cohort.
+      type(cohort),pointer :: cop
+      !---Local------
+      real*8 :: kgC_indiv             !kg-C per individual
+
+      kgC_indiv = 0.d0
+      if (ASSOCIATED(cop)) then
+         kgC_indiv = 0.001d0 * (cop%C_fol + cop%C_sw + cop%C_hw + 
+     &        cop%C_lab + cop%C_froot + cop%C_croot)
+      endif
+
+      cohort_carbon = kgC_indiv
+
+      end function cohort_carbon
+!----------------------------------------------------------------------
+
       end module cohorts

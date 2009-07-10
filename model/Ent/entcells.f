@@ -678,4 +678,61 @@ C NADINE - IS THIS CORRECT?
 
       end subroutine get_patch_by_cover
 
+!----------------------------------------------------------------------
+      real*8 function entcell_carbon(ecp, 
+     &     ecp_Cfol,ecp_Cstem,ecp_Croot, ecp_Csoil)
+!@sum entcell_carbon (kg-C m-2). Return total carbon in entcell per land
+!@+       area (exclude any water area in entcell grid).  
+!@+       Optionally return component carbon pools.
+      type(entcelltype),pointer :: ecp
+      real*8, optional :: ecp_Cfol
+      real*8, optional :: ecp_Cstem
+      real*8, optional :: ecp_Croot
+      real*8, optional :: ecp_Csoil
+      !--Local----
+      type(patch), pointer :: pp
+      real*8 :: ecp_kgCm2
+      real*8 :: pp_Cfol, pp_Cstem, pp_Croot, pp_Csoil
+      real*8 :: sumarea
+
+      if (present(ecp_Cfol)) ecp_Cfol = 0.d0
+      if (present(ecp_Cstem)) ecp_Cstem = 0.d0
+      if (present(ecp_Croot)) ecp_Croot = 0.d0
+      if (present(ecp_Csoil)) ecp_Csoil = 0.d0
+
+      ecp_kgCm2 = 0.d0
+      pp_Cfol = 0.d0
+      pp_Cstem = 0.d0
+      pp_Croot = 0.d0
+      pp_Csoil = 0.d0
+      sumarea = 0.d0
+
+      pp => ecp%oldest
+
+      do while (associated(pp))
+         sumarea = sumarea + pp%area 
+         ecp_kgCm2 = ecp_kgCm2 + pp%area*patch_carbon(pp,
+     &        pp_Cfol, pp_Cstem, pp_Croot, pp_Csoil)
+
+         if (present(ecp_Cfol)) ecp_Cfol = ecp_Cfol + pp%area*pp_Cfol
+         if (present(ecp_Cstem)) ecp_Cstem = ecp_Cstem +pp%area*pp_Cstem
+         if (present(ecp_Croot)) ecp_Croot = ecp_Croot +pp%area*pp_Croot
+         if (present(ecp_Csoil)) ecp_Csoil = ecp_Csoil +pp%area*pp_Csoil
+
+         pp => pp%younger
+      end do
+
+      if (sumarea.eq.0.d0) then
+         entcell_carbon = 0.d0
+      else
+         entcell_carbon = ecp_kgCm2/sumarea
+         if (present(ecp_Cfol)) ecp_Cfol = ecp_Cfol/sumarea
+         if (present(ecp_Cstem)) ecp_Cstem = ecp_Cstem/sumarea
+         if (present(ecp_Croot)) ecp_Croot = ecp_Croot/sumarea
+         if (present(ecp_Csoil)) ecp_Csoil = ecp_Csoil/sumarea
+      endif
+
+      end function entcell_carbon
+!----------------------------------------------------------------------
+
       end module entcells

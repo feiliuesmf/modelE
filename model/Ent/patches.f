@@ -831,4 +831,58 @@
 
       end subroutine patch_delete_cohort
 
+!----------------------------------------------------------------------
+      real*8 function patch_carbon(pp,
+     &     pp_Cfol, pp_Cstem, pp_Croot, pp_Csoil)
+!@sum patch_carbon (kg-C m-2) - Return biomass + soil carbon per land area
+!@+   Also optionally return component carbon pools (kg-C m-2).      
+      use cohorts, only : cohort_carbon
+      type(patch), pointer :: pp
+      real*8,optional :: pp_Cfol
+      real*8,optional :: pp_Cstem
+      real*8,optional :: pp_Croot
+      real*8,optional :: pp_Csoil
+      !--Local-----------------
+      type(cohort), pointer :: cop
+      real*8 :: cohort_kgC, cohort_kgCm2
+
+      integer :: i,k
+      real*8 :: soil_kgCm2
+
+      cohort_kgC = 0.d0
+      cohort_kgCm2 = 0.d0
+      soil_kgCm2 = 0.d0
+
+      if (present(pp_Cfol)) pp_Cfol = 0.d0
+      if (present(pp_Cstem)) pp_Cstem = 0.d0
+      if (present(pp_Croot)) pp_Croot = 0.d0
+
+      !* Biomass.
+      cop => pp%tallest
+      do while (associated(cop))
+         cohort_kgCm2 = cohort_kgCm2 + cohort_carbon(cop)*cop%n
+
+         if (present(pp_Cfol)) pp_Cfol = pp_Cfol + cop%C_fol
+         if (present(pp_Cstem)) pp_Cstem = pp_Cstem + 
+     &        cop%C_sw + cop%C_hw
+         if (present(pp_Croot)) pp_Croot = pp_Croot + 
+     &        cop%C_froot + cop%C_croot
+
+         cop => cop%shorter
+      end do
+
+      !* Soil.
+      do i=1,N_CASA_LAYERS
+         do k=(NLIVE+1),NPOOLS
+            soil_kgCm2 = soil_kgCm2 + pp%Tpool(CARBON,k,i)
+         enddo
+      enddo
+      if (present(pp_Csoil)) pp_Csoil = soil_kgCm2
+
+      !* Total patch carbon per m2-ground.
+      patch_carbon = cohort_kgCm2 + soil_kgCm2
+
+      end function patch_carbon
+!----------------------------------------------------------------------
+
       end module patches
