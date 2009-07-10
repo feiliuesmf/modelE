@@ -347,8 +347,9 @@ C****
 !@sum  def_rsf_icedyn defines ice dynam array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      USE ICEDYN, only : grid=>grid_MIC
-      use icedyn_com
+      use icedyn, only : usi,vsi
+      use icedyn_com, only :  grid=>grid_MIC,
+     &     rsix,rsiy
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -363,8 +364,9 @@ C****
 !@sum  new_io_icedyn read/write ice dynam arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      USE ICEDYN, only : grid=>grid_MIC
-      use icedyn_com
+      use icedyn, only : usi,vsi
+      use icedyn_com, only :  grid=>grid_MIC,
+     &     rsix,rsiy
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data
       implicit none
@@ -389,8 +391,8 @@ C****
 !@sum  def_rsf_icdiag defines ice diag array structure in restart/acc files
 !@auth M. Kelley
 !@ver  beta
-      USE ICEDYN, only : grid=>grid_MIC
-      use icedyn
+      use icedyn_com, only :  grid=>grid_MIC,
+     &     icij
       use icedyn_com
       use pario, only : defvar
       implicit none
@@ -405,8 +407,8 @@ C****
 !@sum  new_io_icdiag read/write ice diag arrays from/to restart+acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      USE ICEDYN, only : grid=>grid_MIC
-      use icedyn_com
+      use icedyn_com, only :  grid=>grid_MIC,
+     &     icij
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data
       implicit none
@@ -425,8 +427,8 @@ C****
 !@sum  def_meta_icdiag defines icedyn metadata in acc files
 !@auth M. Kelley
 !@ver  beta
-      use icedyn_com
-      USE ICEDYN, only : grid=>grid_MIC
+      use icedyn_com, only :  grid=>grid_MIC,
+     &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : defvar,write_attr
       use geom, only : lon_dg,lat_dg ! TEMPORARY
       implicit none
@@ -451,8 +453,9 @@ C****
       subroutine write_meta_icdiag(fid)
 !@sum  write_meta_icdiag write icedyn accumulation metadata to file
 !@auth M. Kelley
-      use icedyn_com
-      USE ICEDYN, only : grid=>grid_MIC
+!@ver  beta
+      use icedyn_com, only :  grid=>grid_MIC,
+     &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : write_dist_data,write_data
       use geom, only : lon_dg,lat_dg ! TEMPORARY
       implicit none
@@ -478,20 +481,6 @@ c instances of the arrays used during normal operation.
 c temporarily empty.
       return
       end subroutine set_ioptrs_iceacc_default
-
-      subroutine set_ioptrs_iceacc_sumfiles
-c point i/o pointers for diagnostic accumlations to temporary
-c arrays that hold data read from disk.
-c temporarily empty.
-      return
-      end subroutine set_ioptrs_iceacc_sumfiles
-
-      subroutine sumfiles_iceacc
-c increment diagnostic accumlations with the data that was
-c read from disk and stored in the _fromdisk arrays.
-c temporarily empty.
-      return
-      end subroutine sumfiles_iceacc
 
 #endif /* NEW_IO */
 
