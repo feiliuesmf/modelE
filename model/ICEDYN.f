@@ -72,8 +72,9 @@ C**** output
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: PRESS,HEFFM,UVM,DWATN,COR
      *     ,ZMAX,ZMIN,ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY
      *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
-     *     ,VIB,DMU,DMV,HEFF,AREA
+     *     ,VIB,DMU,DMV,HEFF,AREA,USI,VSI
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UICE,VICE
+
 
 C**** Geometry
 !@var SINEN sin(phi)
@@ -1301,7 +1302,7 @@ C**** to ALLOC_ICEDYN.
      &                   PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,
      &                   VICEC,UIB,VIB,DMU,DMV,HEFF,AREA,UICE,
      &                   VICE,SINEN,BYDXDY,DYT,DYU,BYDY2,BYDYR,
-     &                   CST,CSU,TNGT,TNG,BYCSU
+     &                   CST,CSU,TNGT,TNG,BYCSU,USI,VSI
       USE ICEDYN, only : IMICDYN,JMICDYN,NX1,NY1
       USE ICEDYN, ONLY :  grid_NXY, grid_ICDYN
       IMPLICIT NONE
@@ -1334,7 +1335,7 @@ c***     the two boundary ghost cells in the longitudinal direction have been re
      &           HEFFM(NX1,J_0H:J_1H),
      &           UVM(NX1,J_0H:J_1H),
      &           DWATN(NX1,J_0H:J_1H),
-     &           COR(NX1,J_0H:J_1H),
+     &           COR(NX1,J_0H:J_1H), 
      *           ZMAX(NX1,J_0H:J_1H),
      &           ZMIN(NX1,J_0H:J_1H),
      &           ETA(NX1,J_0H:J_1H),
@@ -1358,6 +1359,8 @@ c***     the two boundary ghost cells in the longitudinal direction have been re
      &           DMV(NX1,J_0H:J_1H),
      &           HEFF(NX1,J_0H:J_1H),
      &           AREA(NX1,J_0H:J_1H),
+     &           USI(imicdyn,J_0H:J_1H),
+     &           VSI(imicdyn,J_0H:J_1H),
      $   STAT = IER)
       ALLOCATE( UICE(NX1,J_0H:J_1H,3),
      &          VICE(NX1,J_0H:J_1H,3),
