@@ -10,6 +10,8 @@ DECKS_DIR = $(shell pwd)
 BIN_DIR = $(DECKS_DIR)/$(RUN)_bin
 CONFIG_DIR = $(MODEL_E_ROOT)/config
 TEMPLATES_DIR = $(MODEL_E_ROOT)/templates
+HTMLDOC_DIR = $(DECKS_DIR)/$(RUN)_html
+export HTMLDOC_DIR
 
 RUNSRC  = E1M20
 RUN     =
@@ -241,8 +243,9 @@ alias: aux
 unalias:
 	for i in $(ALIAS_LIST); do rm -f $$i; done
 
-htmldoc:
-	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
+htmldoc: depend
+	-rm -rf $(HTMLDOC_DIR)
+	$(MAKE) -C $(MODEL_DIR) htmldoc_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
 config configure:
 	@if [ -f $(MODELERC) -a $(OVERWRITE) != YES ]; then \

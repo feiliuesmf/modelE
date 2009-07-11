@@ -14,6 +14,7 @@ use Shell qw(date cp ls);    #module to use shell commands
 $output_dir = ".";
 $doc_dir = "../doc";
 $run_name = "";
+$component_name = "";
 
 #some useful patterns
 
@@ -38,7 +39,7 @@ $parenth3 = "\\((?:[^()]|$parenth2)*\\)";
 #GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
 #                       || die "problem in GetOptions";
 
-GetOptions("D=s", "O=s", "R=s", "CPP=s") || die "problem in GetOptions";
+GetOptions("D=s", "O=s", "R=s", "CPP=s", "C=s") || die "problem in GetOptions";
 
 if( $opt_O ) {
     $output_dir = $opt_O;
@@ -52,6 +53,10 @@ if( $opt_D ) {
 
 if( $opt_R ) {
     $run_name = $opt_R;
+}
+
+if( $opt_C ) {
+    $component_name = $opt_C;
 }
 
 
@@ -410,7 +415,10 @@ foreach $name ( keys %db_subs ) {
 }
 
 print_index();
-print_main_index();
+
+if ( $component_name =~ /^model$/ ) {
+    print_main_index();
+}
 
 print "done\n";
 print "to view the documentation do: \"netscape $abs_doc_dir/index.html\"\n";
@@ -522,6 +530,15 @@ sub print_index {
     htm_link("Namelist Variables","vars_nl.html"); print HTM "<BR>\n";
     htm_link("Global Variables ( LONG! )","vars_global.html"); print HTM "<BR>\n";
     htm_link("ALL Variables ( LONG! )","vars_all.html"); print HTM "<BR>\n";
+
+    #print HTM '<H3><Center>Components</Center></font></H3>'."\n";
+    print HTM "<BR>\n";
+    while( <$output_dir/COMPONENT___*> ) {
+	s/$output_dir\///;
+	print "found component:  $_ \n";
+	htm_link("$_", "$_/index.html"); print HTM "<BR>\n";
+    }
+
 
     htm_end();
  

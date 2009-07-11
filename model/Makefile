@@ -36,6 +36,9 @@ $(1)_dir: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
 $(1)_dep: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%) $(RUN_H)
 	$(MAKE) -C $(1) depend $(OPTS_$(1))
 
+$(1)_htmldoc:
+	$(MAKE) -C $(1) htmldoc $(OPTS_$(1))
+
 endef
 
 $(foreach prog,$(COMPONENTS),$(eval $(call PROGRAM_template,$(prog))))
@@ -130,4 +133,9 @@ gcmlib: $(MOD_DIR)
 
 $(MOD_DIR):
 	mkdir $(MOD_DIR)
+
+# html documentation
+htmldoc_all: $(COMPONENTS:=_htmldoc)
+	+$(MAKE) htmldoc
+
 

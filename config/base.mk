@@ -19,6 +19,12 @@ sinclude $(MODELERC)
 THIS := $(shell basename `pwd`)
 LIB  = lib.a
 
+# directory for html documents
+ifneq ($(THIS),model)
+HTMLDOC_DIR_THIS = $(HTMLDOC_DIR)/COMPONENT___$(THIS)
+else
+HTMLDOC_DIR_THIS = $(HTMLDOC_DIR)
+endif
 
 #hack
 DEPENDFILE = .depend
@@ -126,3 +132,12 @@ $(foreach v,$(SUPPORTED_OPTIONS) FFSRCS, \
 ifneq ($(MAKECMDGOALS),clean)
 sinclude $(DEPENDFILE)
 endif
+
+
+# html documantation
+htmldoc: $(FSRCS_CPP)
+	[ -d $(HTMLDOC_DIR) ] || mkdir $(HTMLDOC_DIR)
+	-mkdir $(HTMLDOC_DIR_THIS)
+	$(SCRIPTS_DIR)/gcmdoc.pl -O $(HTMLDOC_DIR_THIS) -R $(RUN) -C $(THIS) -CPP f.cpp $(FSRCS)
+	rm -f $(FSRCS_CPP)
+
