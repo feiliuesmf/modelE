@@ -2554,8 +2554,8 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
-            call stop_model('DREAD_PARALLEL: READ ERROR',255)
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ': IOSTAT=',rc
+            call stop_model('DREAD_PARALLEL_2D: READ ERROR',255)
          EndIf
       end if
 
@@ -2608,8 +2608,8 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
-            call stop_model('DREAD_PARALLEL: READ ERROR',255)
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ': IOSTAT=',rc
+            call stop_model('DREAD_PARALLEL_3D: READ ERROR',255)
          EndIf
       end if
 
@@ -2649,8 +2649,8 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
-            call stop_model('DREAD8_PARALLEL: READ ERROR',255)
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ': IOSTAT=',rc
+            call stop_model('DREAD8_PARALLEL_3D: READ ERROR',255)
          EndIf
       end if
 
@@ -2693,8 +2693,8 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
-            call stop_model('MREAD_PARALLEL: READ ERROR',255)
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ': IOSTAT=',rc
+            call stop_model('MREAD_PARALLEL_2D: READ ERROR',255)
          EndIf
       end if
 
@@ -2739,8 +2739,8 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': IOSTAT=',rc
-            call stop_model('MREAD_PARALLEL: READ ERROR',255)
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ': IOSTAT=',rc
+            call stop_model('MREAD_PARALLEL_3D: READ ERROR',255)
          EndIf
       end if
 
@@ -2787,9 +2787,9 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ': ',
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ': ',
      &           TRIM(TITLE),' IOSTAT=',rc
-            call stop_model('READT_PARALLEL: READ ERROR',255)
+            call stop_model('READT_PARALLEL_2D: READ ERROR',255)
          EndIf
       end if
 
@@ -2836,9 +2836,9 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ':
      &           ',TRIM(TITLE),' IOSTAT=',rc
-            call stop_model('READT_PARALLEL: READ ERROR',255)
+            call stop_model('READT_PARALLEL_3D: READ ERROR',255)
          EndIf
       end if
 
@@ -2880,9 +2880,9 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ':
      &           ',TRIM(TITLE),' IOSTAT=',rc
-            call stop_model('READT_PARALLEL_COLUMN: READ ERROR',255)
+            call stop_model('READT_PARALLEL_COLUMN_3D: READ ERROR',255)
          EndIf
       end if
 
@@ -2921,9 +2921,9 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ':
      &           ',TRIM(TITLE),' IOSTAT=',rc
-            call stop_model('READT8_PARALLEL: READ ERROR',255)
+            call stop_model('READT8_PARALLEL_3D: READ ERROR',255)
          EndIf
       end if
 
@@ -2962,9 +2962,9 @@ C****  convert from real*4 to real*8
             WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
             RETURN
          Else
-            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+            WRITE(6,*) 'READ ERROR ON FILE ',TRIM(NAME), ':
      &           ',TRIM(TITLE),' IOSTAT=',rc
-            call stop_model('READT8_COLUMN: READ ERROR',255)
+            call stop_model('READT8_COLUMN_3D: READ ERROR',255)
          EndIf
       end if
 
