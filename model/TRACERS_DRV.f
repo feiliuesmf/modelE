@@ -3202,6 +3202,9 @@ c     Processes AMP Budget
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
+#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
+      USE CLOUDS, ONLY : diag_wetdep
+#endif
 #endif /* TRACERS_ON */
       implicit none
       integer k,n,kk,ltop
@@ -4790,6 +4793,9 @@ c Oxidants
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
+#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
+      USE CLOUDS, ONLY : diag_wetdep
+#endif
 #endif
       implicit none
       integer k,n,n1,kr
