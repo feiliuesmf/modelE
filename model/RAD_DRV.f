@@ -1805,8 +1805,8 @@ C**** Save optical depth diags
      &             +SUM(ttausv(1:Lm,n))*OPNSKY
             END IF
             if (ijlt_3Dtau(NTRIX(n)).gt.0)
-     *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n1)))
-     *           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n1)))+TTAUSV(1:lm,n)
+     *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))
+     *           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
                 IF (ijts_sqexsub(1,kr,ntrix(n),n1) > 0)
