@@ -5266,7 +5266,7 @@ c
 c scale this quantity and compute its zonal means
 c
         kd=denom_ijl(k)
-        id=1
+        id=2
         if (kd.gt.0) id=3
         call scale_ijlmap(id,aijl(:,:,:,k),aijl(:,:,:,kd),scale_ijl(k)
      *       ,kd,idacc(ia_ijl(k)),idacc(ia_ijl(kd)),smap,smapjl)
@@ -5311,31 +5311,31 @@ c write field
       real*8 :: xden(im,jm,lm),xdenjl(jm,lm)
       integer j,l
 
-      if (nmap.eq.1) then ! simple cases - no division by area
-         smap = scale*aijl1(:,:,:)/id1
-         smapjl = sum(smap,dim=1)/im
-      elseif (nmap.eq.2) then  ! area weighting
+      if (nmap.eq.1) then  ! area weighting
         do l=1,lm
           do j=1,jm
             smap(:,j,l) = scale*aijl1(:,j,l)/(id1*dxyp(j))
           end do
         end do
         smapjl = sum(smap,dim=1)/im
+      elseif (nmap.eq.2) then ! simple cases - no division by area
+        smap = scale*aijl1(:,:,:)/id1
+        smapjl = sum(smap,dim=1)/im
       elseif (nmap.eq.3) then ! ratio
-         smap = scale*aijl1(:,:,:)/id1
-         smapjl = sum(smap,dim=1)
-         xden = aijl2(:,:,:)/id2
-         xdenjl = sum(xden,dim=1)
-         where(xden.ne.0.)
-            smap = smap/xden
-         elsewhere
-            smap = undef
-         end where
-         where(xdenjl.ne.0.)
-            smapjl = smapjl/xdenjl
-         elsewhere
-            smapjl = undef
-         end where
+        smap = scale*aijl1(:,:,:)/id1
+        smapjl = sum(smap,dim=1)
+        xden = aijl2(:,:,:)/id2
+        xdenjl = sum(xden,dim=1)
+        where(xden.ne.0.)
+          smap = smap/xden
+        elsewhere
+          smap = undef
+        end where
+        where(xdenjl.ne.0.)
+          smapjl = smapjl/xdenjl
+        elsewhere
+          smapjl = undef
+        end where
       else
         write(6,*) "Incorrect nmap type in scale_ijlmap",nmap
         call stop_model('scale_ijlmap: undefined nmap type',255)
