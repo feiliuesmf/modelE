@@ -228,7 +228,7 @@ C**** Gas Exchange Solubility coefficient
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Solubility'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Solubility'
         ijtc_power(n) = 0
-        units_tij(k,n) = unit_string(ijtc_power(n),'mol/l/atm')
+        units_tij(k,n) = unit_string(ijtc_power(n),'mol/m3/picoatm')
         scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
 C**** Gas Exchange Coefficient (piston velocity)
       k = k+1
@@ -238,8 +238,6 @@ C**** Gas Exchange Coefficient (piston velocity)
         ijtc_power(n) = 0
         units_tij(k,n) = unit_string(ijtc_power(n),'m/s')
         scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
-
-      print*,'TRACERS.f Natassa: ktaij=',ktaij,', k=',k
 #endif
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular

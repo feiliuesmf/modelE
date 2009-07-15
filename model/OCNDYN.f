@@ -728,7 +728,7 @@ C****
 #else
 #ifdef TRACERS_OceanBiology
       integer i,j,k
-      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "OBIOg"
+      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOg"
 #endif
 #endif
 #ifdef TRACERS_OceanBiology
@@ -756,8 +756,6 @@ C****
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       call pack_data(agrid, pCO2,      pCO2_glob)
-      write(*,*)'OCNDYN, pco2 1:',
-     .    nstep,itest,jtest,pCO2(itest,jtest),pCO2_glob(itest,jtest)
 #endif
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
@@ -801,8 +799,6 @@ C****
      .       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
      .      ,pCO2_glob(itest,jtest)
       enddo
-      write(*,*)'OCNDYN, pCO2 2:',
-     .    nstep,itest,jtest,pco2(itest,jtest),pco2_glob(itest,jtest)
 #else
 #ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER
@@ -871,9 +867,6 @@ C****
      .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
      .   ,pco2_glob(itest,jtest)
       enddo
-      write(*,*)'OCNDYN, pco2 3:',
-     .    nstep,itest,jtest,pco2(itest,jtest),pCO2_glob(itest,jtest)
-
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
@@ -944,10 +937,6 @@ C****
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       call unpack_data(agrid, pCO2_glob,      pCO2)
-      print*,'OCNDYN, test this:',pCO2_glob(itest,jtest)
-     .              ,pCO2(itest,jtest)
-      write(*,*)'OCNDYN, pCO2 4:',
-     .    nstep,itest,jtest,pCO2(itest,jtest),pCO2_glob(itest,jtest)
 #endif
 
       RETURN

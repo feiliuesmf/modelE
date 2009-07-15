@@ -74,6 +74,8 @@
       common /blte/ tirrq(kdm)
 !$OMP THREADPRIVATE(/blte/)
 
+      real, parameter ::  tirrq_critical=10.      !in quanta threshold at compensation depth
+
       real rmud                    !downwelling irradiance average cosine
       common /bmud /rmud 
 !$OMP THREADPRIVATE(/bmud/)

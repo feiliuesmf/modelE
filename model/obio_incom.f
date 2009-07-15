@@ -122,6 +122,7 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       common/exifst3/wfac
 #endif
 
+
 #ifdef TRACERS_Alkalinity
       real, parameter ::  rain_ratio=0.07
       real, parameter ::  npratio   =16     ! N:P Redfield ratio
@@ -136,6 +137,7 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       real, parameter ::  sigma_Ca  = 0.67 ! (Yamanaka and Tajika, 1997)
 
       real, parameter ::  d_Ca = 3500.    ! in meters (Yamanaka and Tajika, 1996)
+      real, parameter ::  kappa_Ca = 2.    ! (1/0.5years)^-1   !OCMIP
 #endif
 
       contains

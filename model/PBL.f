@@ -347,6 +347,7 @@ c  internals:
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out in my case - Igor */
+      USE MODEL_COM, only : nstep=>itime
       USE obio_forc, only : atmCO2
 #endif
 #endif

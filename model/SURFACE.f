@@ -571,12 +571,12 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
-!        write(*,'(a,2i5,3e12.4)') 'in SURFACE:',
-!    .    I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
           pbl_args%alati=sss(I,J)
           trgrnd(nx)=gtracer(n,itype,i,j)    !this needs to be in uatm for co2 case
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
+!        write(*,'(a,3i5,3e12.4)') 'in SURFACE:',
+!    .    nstep,I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -858,24 +858,26 @@ C****
           TRGASEX(n,ITYPE,I,J) =
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
+     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
+     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      .               * axyp(i,j)*ptype*dtsurf
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-          !trgasex is modeled in complete accordance to what Watson is doing
-          !trgasex here is computed as mol/m2/sec
+! TRGASEX is the gas exchange flux btw ocean and atmosphere.
+! Its sign is positive for flux entering the ocean (positive down)
+! Units are in mol/m2/sec
           TRGASEX(n,ITYPE,I,J) =
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
+! trsrfflx is positive up and units are mol/m2.
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
+     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     .         +pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
+     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
      .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
      .               * axyp(i,j)*ptype*dtsurf
 

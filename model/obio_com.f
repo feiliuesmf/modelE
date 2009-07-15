@@ -23,7 +23,6 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tzoo2d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tfac3d,bn3d,wshc3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: Fescav3d
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: obio_wsd2d,obio_wsh2d
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rmuplsr3d,rikd3d
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
@@ -232,8 +231,6 @@ c**** Extract domain decomposition info
       ALLOCATE(bn3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(Fescav3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(obio_wsd2d(i_0h:i_1h,j_0h:j_1h,nchl),
-     &         obio_wsh2d(i_0h:i_1h,j_0h:j_1h,nchl))
       ALLOCATE(rmuplsr3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl),
      &            rikd3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl))
       ALLOCATE(acdom3d(i_0h:i_1h,j_0h:j_1h,kdm,nlt))

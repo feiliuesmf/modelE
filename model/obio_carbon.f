@@ -280,17 +280,15 @@ c Update DIC for sea-air flux of CO2
       C_tend(k,2) = C_tend(k,2) + term
 
 #ifndef TRACER_GASEXCH_ocean_CO2
-#ifdef TRACERS_OceanBiology
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
       ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
      .            *3600.D0                                   ! mol/m2/hr
      .            *44.d0*24.d0*365.d0                        ! grC/m2/yr
       if (vrbos) then
-            write(*,'(a,3i5,7e12.4)')'obio_carbon, fluxdiag:',
-     .      nstep,i,j,scco2arg,wssq,rkwco2,
+            write(*,'(a,3i5,10e12.4)')'obio_carbon, fluxdiag:',
+     .      nstep,i,j,dp1d(k),Ts,saln1d(k),scco2arg,wssq,rkwco2,
      .      xco2,pCO2_ij,ff*1.0245D-3,ao_co2flux
       endif
-#endif
 #endif
 
 !       if(k.eq.1)
@@ -456,12 +454,17 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.28 $
-c_ $Date: 2009/06/25 13:43:34 $   ;  $State: Exp $
+c_ $Revision: 2.29 $
+c_ $Date: 2009/07/15 19:38:17 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.29  2009/07/15 19:38:17  aromanou
+c_ update alkalinity calculation
+c_ remove unecessary 2d arrays for settling speeds
+c_ corrected co2 flux sign
+c_
 c_ Revision 2.28  2009/06/25 13:43:34  aromanou
 c_
 c_ resurrecting hycom coupled to ocean biogeochemistry
@@ -913,12 +916,17 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.28 $
-c_ $Date: 2009/06/25 13:43:34 $   ;  $State: Exp $
+c_ $Revision: 2.29 $
+c_ $Date: 2009/07/15 19:38:17 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.29  2009/07/15 19:38:17  aromanou
+c_ update alkalinity calculation
+c_ remove unecessary 2d arrays for settling speeds
+c_ corrected co2 flux sign
+c_
 c_ Revision 2.28  2009/06/25 13:43:34  aromanou
 c_
 c_ resurrecting hycom coupled to ocean biogeochemistry
@@ -1115,12 +1123,17 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.28 $
-c_ $Date: 2009/06/25 13:43:34 $   ;  $State: Exp $
+c_ $Revision: 2.29 $
+c_ $Date: 2009/07/15 19:38:17 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.29  2009/07/15 19:38:17  aromanou
+c_ update alkalinity calculation
+c_ remove unecessary 2d arrays for settling speeds
+c_ corrected co2 flux sign
+c_
 c_ Revision 2.28  2009/06/25 13:43:34  aromanou
 c_
 c_ resurrecting hycom coupled to ocean biogeochemistry

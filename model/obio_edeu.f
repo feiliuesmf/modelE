@@ -16,7 +16,7 @@ c  final is quanta for phytoplankton growth.
       USE obio_dim
       USE obio_incom, only : aw,bw,ac,bc,facirr,lam,Dmax,bbw
      .                      ,rmus,nl450
-      USE obio_forc,  only : Ed,Es,rmud,tirrq
+      USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d
 #ifdef TRACERS_Alkalinity
@@ -145,10 +145,9 @@ cdiag.        facirr(ih,ich,ntr,icd),fac
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
-cdiag     if(k.eq.1)
-cdiag.       write(*,'(a,4i7,5e12.4)')'obio_edeu2: ',
+cdiag        write(*,'(a,4i7,6e12.4)')'obio_edeu2: ',
 cdiag.              nstep,i,j,k,fac,Etopq,
-cdiag.              Ebotq,rmus,tirrq(k)
+cdiag.              Ebotq,rmus,dp1d(k),tirrq(k)
 
        enddo  !k
  
@@ -157,12 +156,22 @@ cdiag.              Ebotq,rmus,tirrq(k)
 !     zc = 75. ! in meters (from OCMIP)
 
 !alternatively, zc is the depth of that light is 1% of top
-      zc=p1d(1)
-      do k=2,kmax
-         if (tirrq(1).gt.0. .and. tirrq(k).ge.tirrq(1)/100.) then
+      zc=0d0
+      do k=1,kmax
+       !!!definition of zc>=Qtop/100 gives constant zc everywhere
+       !!if (tirrq(1).gt.0. .and. tirrq(k).ge.tirrq(1)/100.) then
+         if (tirrq(1).gt.tirrq_critical) then
+            if (tirrq(k).ge.tirrq_critical) then
              zc = p1d(k)    !this is really the "shallowest" limit for zc
+            endif
+         else
+             zc = 0d0
          endif
+cdiag write(*,'(a,4i7,3e12.4)')'obio_edeu2: ',
+cdiag.    nstep,i,j,k,p1d(k),tirrq(k)
       enddo
+cdiag write(*,'(a,4i7,e12.4)')'obio_edeu3: ',
+cdiag.    nstep,i,j,k,zc
 #endif
 
 c  Irradiance summary loops

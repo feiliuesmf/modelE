@@ -34,7 +34,7 @@
      .                    ,rhs,alk1d
      .                    ,tzoo,tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
-     .                    ,bn3d,obio_wsd2d,obio_wsh2d,wshc3d,Fescav3d 
+     .                    ,bn3d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day
      .                    ,tot_chlo,acdom3d,pnoice
 #ifdef OBIO_ON_GARYocean
@@ -368,8 +368,6 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
               do nt=1,nchl
                 rmuplsr(k,nt)=rmuplsr3d(i,j,k,nt)
                 rikd(k,nt)=rikd3d(i,j,k,nt)
-                obio_wsd(nt)=obio_wsd2d(i,j,nt)
-                obio_wsh(nt)=obio_wsh2d(i,j,nt)
               enddo
               bn(k)=bn3d(i,j,k)
               wshc(k)=wshc3d(i,j,k)
@@ -511,7 +509,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        if (hour_of_day.le.1) then
 #endif
 
-         if (day_of_month.eq.1)ihra_ij=1
+          if (day_of_month.eq.1)ihra_ij=1
           call obio_daysetrad(vrbos,i,j)
           ihra_ij = 0
           call obio_daysetbio(vrbos,i,j)
@@ -524,8 +522,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
              do nt=1,nchl
                rmuplsr3d(i,j,k,nt)=rmuplsr(k,nt)
                rikd3d(i,j,k,nt)=rikd(k,nt)
-               obio_wsd2d(i,j,nt)=obio_wsd(nt)
-               obio_wsh2d(i,j,nt)=obio_wsh(nt)
              enddo
                bn3d(i,j,k)=bn(k)
                wshc3d(i,j,k)=wshc(k)
@@ -899,10 +895,10 @@ cdiag  endif
        OIJ(I,J,IJ_iron) = OIJ(I,J,IJ_iron) + tracer(i,j,1,4) ! surf ocean nitrates
 
        OIJ(I,J,IJ_diat) = OIJ(I,J,IJ_diat) + tracer(i,j,1,5) ! surf ocean diatoms
-       OIJ(I,J,IJ_chlo) = OIJ(I,J,IJ_chlo) + tracer(i,j,1,6) ! surf ocean diatoms
-       OIJ(I,J,IJ_cyan) = OIJ(I,J,IJ_cyan) + tracer(i,j,1,7) ! surf ocean diatoms
-       OIJ(I,J,IJ_cocc) = OIJ(I,J,IJ_cocc) + tracer(i,j,1,8) ! surf ocean diatoms
-       OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean diatoms
+       OIJ(I,J,IJ_chlo) = OIJ(I,J,IJ_chlo) + tracer(i,j,1,6) ! surf ocean chlorophytes
+       OIJ(I,J,IJ_cyan) = OIJ(I,J,IJ_cyan) + tracer(i,j,1,7) ! surf ocean cyanobacteria
+       OIJ(I,J,IJ_cocc) = OIJ(I,J,IJ_cocc) + tracer(i,j,1,8) ! surf ocean coccolithophores
+       OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean herbivores
 
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic

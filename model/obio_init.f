@@ -120,8 +120,11 @@ c
 c  Diatoms
       nt = 1
       rmumax(nt) = 1.50       !u max in /day at 20C
+#ifdef OBIO_ON_GARYocean
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
+#else
       obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008
+#endif
       rik(1,nt)  = 90.0       !low light-adapted Ik (<50 uE/m2/s)
       rik(2,nt)  = 93.0       !medium light-adapted Ik (50-200 uE/m2/s)
       rik(3,nt)  = 184.0      !high light adapted Ik (>200 uE/m2/s)
@@ -195,6 +198,7 @@ c  Dinoflagellates
       do nt = 1,nchl
        obio_wsh(nt) = obio_wsd(nt)/24.0  !convert to m/hr
       enddo
+
 c  Detrital sinking rates m/h
       wsdeth(1) = 30.0/24.0     !nitrogen
       wsdeth(2) = 50.0/24.0     !silica

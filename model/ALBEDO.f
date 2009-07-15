@@ -436,6 +436,10 @@ c     if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
      .   nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(L),XOCVN(L)
         enddo
       end if
+
+cdiag write(*,'(a,3i5,5e12.4)')'ALBEDO, diags:',
+cdiag. nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(1),XOCVN(1)
+
 #ifdef CHL0
       call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
      .     0.d0,dummy1,dummy2,.false.,vrbos,ILON,JLAT)
