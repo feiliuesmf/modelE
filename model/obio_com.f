@@ -31,6 +31,10 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
+#ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
+      real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
+      real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_glob
+#endif
 #ifdef OBIO_ON_GARYocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer        !only for gary ocean
@@ -240,6 +244,10 @@ c**** Extract domain decomposition info
       ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tot_chlo_glob(idm,jdm))
+#ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
+      ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(ao_co2flux_glob(idm,jdm))
+#endif
 
       end subroutine alloc_obio_com
 

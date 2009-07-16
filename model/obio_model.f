@@ -37,15 +37,15 @@
      .                    ,bn3d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day
      .                    ,tot_chlo,acdom3d,pnoice
-#ifdef OBIO_ON_GARYocean
-     .                    ,itest,jtest,obio_deltat,nstep0
-     .                    ,tracer =>tracer_loc        
-     .                    ,tracer_glob => tracer
 #ifndef TRACER_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
 #endif
+#ifdef OBIO_ON_GARYocean
+     .                    ,itest,jtest,obio_deltat,nstep0
+     .                    ,tracer =>tracer_loc        
+     .                    ,tracer_glob => tracer
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk
@@ -82,10 +82,13 @@
       USE OCN_TRACER_COM,    only : obio_tr_mm
 #else
       USE hycom_dim
+      USE hycom_dim_glob, only : iio,jjo
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij
+      USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest
+      USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -119,8 +122,10 @@
      .    diagno_bio=.true. ! end of month,mid-day
       endif
 #else
-      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12)
+      if (JDendOfM(jmon).eq.jday.and.Jhour.eq.12) then
+          if (mod(nstep,2).eq.0)     !two timesteps per hour
      .    diagno_bio=.true. ! end of month,mid-day
+      endif
 #endif
 
 !Cold initialization
@@ -153,7 +158,7 @@
       call obio_bioinit(nn)
       if (nstep.eq.1) then
         if (AM_I_ROOT()) then
-          call obio_archyb
+          call obio_archyb(nn)
         endif
       endif 
 #endif
@@ -179,7 +184,7 @@
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint
+         call obio_trint(nn)
        endif !for restart only
 #endif
 
@@ -197,7 +202,7 @@
      .      LAT_DG(jtest,2),LON_DG(itest,2)
 #else
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
-     .      latij(itest,jtest,3),lonij(itest,jtest,3)
+     .      latij_glob(itest,jtest,3),lonij_glob(itest,jtest,3)
 #endif
        endif
 
@@ -229,7 +234,7 @@
       if (diagno_bio) then
 #ifdef OBIO_ON_GARYocean
         write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
-#else
+!#else
 !       do 16 lgth=60,1,-1
 !         if (flnmovt(lgth:lgth).ne.' ') go to 17
 ! 16    continue
@@ -279,12 +284,13 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=i_0,i_1
        IF(FOCEAN(I,J).gt.0.) THEN
 #else
-       do 1000 j=j_0h,j_1h             !1,jj
+       !!!!do 1000 j=j_0h,j_1h             !1,jj
+       do 1000 j=j_0,j_1             !1,jj
        do 1000 l=1,isp(j)
        do 1000 i=ifp(j,l),ilp(j,l)
 #endif
 
-       write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
+cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
@@ -886,6 +892,10 @@ cdiag  endif
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
 
+#ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
+       !get ao_co2flux_glob array to save in archive
+       ao_co2flux_loc(i,j)=ao_co2flux
+#endif
 
 !diagnostics
 #ifdef OBIO_ON_GARYocean
@@ -906,6 +916,7 @@ cdiag  endif
 
 #ifndef TRACER_GASEXCH_ocean_CO2    
 ! NOT FOR GASEXCH EXPERIMENTS
+! NOT FOR HYCOM
 #ifdef TRACERS_OceanBiology
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + ao_co2flux      !air-sea CO2 flux(watson)
 #endif
@@ -955,8 +966,21 @@ c$OMP END PARALLEL DO
       call pack_data( ogrid,  tracer, tracer_glob )
 #endif
 
+        if (diagno_bio) then
+#ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
+      !gather ao_co2flux
+      call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
+        if (AM_I_ROOT()) then
+          call obio_archyb(nn)
+        endif
+#endif
+        endif   !diagno_bio
 
+#ifdef OBIO_ON_GARYocean
       call obio_trint
+#else
+      call obio_trint(nn)
+#endif
 
       return
 

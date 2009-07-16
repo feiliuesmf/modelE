@@ -1062,9 +1062,9 @@ c
       !write(0,*) __FILE__,__LINE__
 
 #ifdef TRACERS_OceanBiology
-      if (AM_I_ROOT()) then
-        if (dobio .or. diagno) call obio_trint(nn)
-      endif
+!     if (AM_I_ROOT()) then
+!       if (dobio .or. diagno) call obio_trint(nn)
+!     endif
 #endif
 
 c
