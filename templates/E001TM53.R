@@ -115,6 +115,7 @@ LO3_Trop_prod=linoz/POx_IJ_M53_trop_L25   !Troposphere ozone chemical production
 LINOZ_Dep_vel=linoz/O3dv_IJ.bin           !Deposition velocity for O3 (Harvard)
 N2O_TABLE=N2Oloss.table                     ! Stratosphere tracer forcing
 CFC11_TABLE=F11loss.table                   ! Stratosphere tracer forcing
+CFCic_Lerner=CFCic_Lerner_72x46             ! 1st layer initial distribution
 CH4_TABLE=CH4chem.table                     ! Stratosphere tracer forcing
 CH4_TROP_FRQ=CLIM.RUN.OHCH4.FRQ      !tropo loss frequency table (9 layers, n-grid)
 N2O_IC=N2O_Shindell_Jan9293_M53y            !initial conditions
