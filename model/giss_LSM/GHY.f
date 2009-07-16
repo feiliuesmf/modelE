@@ -2657,7 +2657,7 @@ ccc   max in the following expression removes extra drip because of dew
       aepc=aepc+( epv*(1.d0-fr_snow(2)*fm) + epvs*fr_snow(2)*fm )*fv*dts
       aevapvg = aevapvg + evapvg*(1.d0-fr_snow(2))*fv*dts
       aevapvs = aevapvs + evapvs*fr_snow(2)*fv*dts
-      aevapbs = aevapbs + evapbs*fr_snow(2)*fb*dts
+      aevapbs = aevapbs + evapbs*fr_snow(1)*fb*dts
 #ifdef EVAP_VEG_GROUND
       ! next line is probably not correct (need to use something more
       ! sophisticated for epvg)

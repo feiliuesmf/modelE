@@ -1697,7 +1697,7 @@ C**** Interpolate daily irrigation depth to the current day
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
-     &     ,ij_gusti,ij_mccon
+     &     ,ij_gusti,ij_mccon,ij_evapsn
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -1728,7 +1728,7 @@ C**** Interpolate daily irrigation depth to the current day
      &    ,abetad,abetav,abetat
      &    ,abetap,abetab,abeta
      &    ,acna,acnc,agpp,aipp,arauto,aclab,asoilresp,asoilCpoolsum
-     &    ,aevap,aevapw,aevapd,aevapb
+     &    ,aevap,aevapw,aevapd,aevapb,aevapbs,aevapvs
      &    ,aruns,arunu,aeruns,aerunu,aflmlt,aintercep
      &    ,aepc,aepb,aepp,zw,tbcs,tsns
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
@@ -1846,6 +1846,7 @@ ccc the following values are returned by PBL
       aij(i,j,ij_g26)=aij(i,j,ij_g26)+(abetav/nisurf)*fv*ptype
       aij(i,j,ij_g27)=aij(i,j,ij_g27)+(abetat/nisurf)*fv*ptype
       aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp*ptype
+      aij(i,j,ij_evapsn)=aij(i,j,ij_evapsn)+(aevapbs+aevapvs)*ptype
       if (moddsf.eq.0) then
         aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)*ptype*fb
         aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)*ptype*fb

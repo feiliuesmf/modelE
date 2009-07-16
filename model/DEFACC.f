@@ -3087,6 +3087,16 @@ c
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_VSFR
 c
+      k=k+1
+      IJ_EVAPSN = k
+      name_ij(k) = 'snow_evap' !
+      lname_ij(k) = 'LAND SNOW EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_PSOIL
+c
       k=k+1 ! nyk 4/25/03
       IJ_GPP = k    !kg[C]/m2/s
       lname_ij(k) = 'GROSS PRIMARY PRODUCTIVITY'

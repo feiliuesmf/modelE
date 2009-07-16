@@ -472,7 +472,7 @@ C****      names, indices, units, idacc-numbers, etc.
      &     ,ij_flam,ij_CtoG,ij_flash,ij_chl,ij_swaerrf,ij_lwaerrf
      *     ,ij_swaersrf,ij_lwaersrf,ij_swaerabs,ij_lwaerabs,ij_swaerrfnt
      *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
-     *     ,ij_lwaerabsnt
+     *     ,ij_lwaerabsnt,ij_evapsn
       INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
      &     ,IJ_HUSL
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
