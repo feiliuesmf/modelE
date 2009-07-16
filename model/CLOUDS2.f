@@ -56,6 +56,7 @@ C**** parameters and constants
       REAL*8, PARAMETER :: WMUL=.5       !@param WMUL WMU over land
 C     REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
       REAL*8 WMUI                          !@param WMUI WMU for ice clouds
+      REAL*8 WMUSI        !@param WMUSI WMU for liquid clouds over sea-ice
       REAL*8, PARAMETER :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
       REAL*8, PARAMETER :: FDDRT=1.d0 !@param FDDRT COND evaporation in downdraft
       REAL*8, PARAMETER :: FDDET=.25d0 !@param FDDET remainder of downdraft
@@ -297,7 +298,7 @@ c for diagnostics
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
-      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ
+      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ,ROICE
 !@var DCL max level of planetary boundary layer
       INTEGER :: DCL
 
@@ -3097,6 +3098,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
       WMUI=.001                    ! .0001
+      WMUSI=0.1
 C     IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
@@ -3640,6 +3642,8 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         RHO=1d5*PL(L)/(RGAS*TL(L))
         TEM=RHO*WMX(L)/(WCONST*FCLD+teeny)
         IF(LHX.EQ.LHS ) TEM=RHO*WMX(L)/(WMUI*FCLD+teeny)
+        IF(LHX.EQ.LHE.AND.ROICE.GT..1d0) TEM=RHO*WMX(L)
+     *    /(WMUSI*FCLD+teeny)
         TEM=TEM*TEM
         IF(TEM.GT.10.) TEM=10.
         CM1=CM0

@@ -139,7 +139,7 @@
      *     ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss
      *     ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm
      *     ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum
-     *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1
+     *     ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1,roice
      *     ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1
      *     ,smommc,smomls,qmommc,qmomls,ddmflx,wturb,ncol
      *     ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l
@@ -444,6 +444,7 @@ C****
       DEBUG = .FALSE.   ! use for individual box diags in clouds
       PEARTH=FEARTH(I,J)
       PLAND=FLAND(I,J)
+      ROICE=RSI(I,J)
       TS=TSAVG(I,J)
       QS=QSAVG(I,J)
       US=USAVG(I,J)
