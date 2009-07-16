@@ -1442,7 +1442,7 @@ C****
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
-      USE GHY_COM, only : snowe,fearth,wearth,aiearth
+      USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
 #ifdef HTAP_LIKE_DIAGS
      & ,ttausv_sum,ttausv_count,ntrix
@@ -1776,6 +1776,17 @@ c          data=sday*prec/dtsrc
         case ("7BES")
           data=1.d6*trcsurf(:,:,n_Be7)   ! 10^-6 kg/kg
 #endif
+        case ("SMST") ! near surface soil moisture (kg/m^3)
+          do j=J_0,J_1
+            do i=I_0,imaxj(j)
+              if (fearth(i,j).gt.0) then
+                data(i,j)=soil_surf_moist(i,j)
+              else
+                data(i,j)=undef
+              end if
+            end do
+          end do
+
         case default
           goto 10
         end select

@@ -141,6 +141,9 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 !@+   better place DO WE NEED THIS ???
       real*8, ALLOCATABLE, dimension(:,:) :: aalbveg
 #endif
+
+!@var soil_surf_moist near surf soil moisture (kg/m^3) for subdd
+      real*8, ALLOCATABLE, dimension(:,:) :: soil_surf_moist
       END MODULE GHY_COM
 
       SUBROUTINE ALLOC_GHY_COM(grid)
@@ -260,6 +263,9 @@ C**** Initialize to zero
       TR_W_IJ(:,:,:,:,J_0H:J_1H)=0.d0
       TR_WSN_IJ(:,:,:,:,J_0H:J_1H)=0.d0
 #endif
+
+      ALLOCATE( soil_surf_moist(I_0H:I_1H,J_0H:J_1H) )
+      soil_surf_moist(:,:) = 0.d0
 
       END SUBROUTINE ALLOC_GHY_COM
 

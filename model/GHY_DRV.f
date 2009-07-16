@@ -819,7 +819,8 @@ c****
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,tsns_ij,wearth,aiearth,
-     &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij
+     &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij,
+     &     soil_surf_moist
 #ifndef USE_ENT
       use vegetation, only :
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm !ia
@@ -1351,6 +1352,7 @@ c**** wearth+aiearth are used in radiation only
      &     fv*(w(1,2)*fice(1,2)+w(0,2)*fice(0,2)) )
       gtemp(1,4,i,j)=tsns_ij(i,j)
       gtempr(4,i,j) =tearth(i,j)+tf
+      soil_surf_moist(i,j) = 1000.*(fb*w(1,1) + fv*w(1,2))/dz_ij(i,j,1)
 #ifdef SCM
       if ((I.eq.I_TARG.and.J.eq.J_TARG)
      &     .and.SCM_SURFACE_FLAG.eq.1) then
