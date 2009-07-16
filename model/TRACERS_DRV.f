@@ -7427,8 +7427,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
 #ifdef TRACERS_SPECIAL_Lerner
-      REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *                                                     icCFC
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: icCFC
       REAL*8 stratm,xlat,pdn,pup
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -7589,35 +7589,31 @@ C**** ESMF: Each processor reads the global array: N2Oic
             trm(:,j,l,n) = am(l,:,j)*axyp(:,j)*CFC11ic
           enddo; enddo
 #ifdef TRACERS_SPECIAL_Lerner
-        stratm = 101.9368
-        DO J=J_0,18          !! resolution dependent (needs to be fixed)
-          icCFC(J) = 220.d-12*136.5/29.029
-        enddo
-        DO J=29,J_1          !! resolution dependent (needs to be fixed)
-          icCFC(J) = 235.d-12*136.5/29.029
-        enddo
-        DO J=19,28          !! resolution dependent (needs to be fixed)
-          XLAT = (J-18.5)/10.          !! resolution dependent (needs to be fixed)
-          icCFC(J) = (220.d-12 + XLAT*15.d-12)*136.5/29.029
-        enddo
 C****
-      trm(:,j_0,:,n) = 0.
-      trm(:,j_1,:,n) = 0.
+C**** Read in first layer distribution; This is used up to about 100 mb
+C****
+      call openunit('CFCic_Lerner',iu_data,.true.,.true.)
+      CALL READT_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),icCFC,0)
+      call closeunit(iu_data)
+C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
+      stratm = 101.9368
       DO J=J_0,J_1
       DO I=I_0,I_1
+        trm(i,j,:,n) = 0.
+        trm(i,j,:,n) = 0.
         PUP = STRATM*GRAV
         DO LS=LM,1,-1
           PDN = PUP + AM(ls,I,J)*GRAV
           IF(PDN.GT.10000.d0)  GO TO 450
           trm(I,J,LS,N) = 
-     *      AM(ls,I,J)*AXYP(I,J)*icCFC(J)*.5*(PUP+PDN)/10000.d0
+     *      AM(ls,I,J)*AXYP(I,J)*icCFC(i,j)*.5*(PUP+PDN)/10000.d0
           PUP = PDN
         enddo
   450   CONTINUE
-        trm(I,J,LS,N) = AM(ls,I,J)*AXYP(I,J)*icCFC(J)*
+        trm(I,J,LS,N) = AM(ls,I,J)*AXYP(I,J)*icCFC(i,j)*
      *    (1.-.5*(10000.-PUP)*(10000.-PUP)/(10000.*(PDN-PUP)))
         DO LT=1,LS-1
-          trm(I,J,LT,N) = AM(lt,I,J)*AXYP(I,J)*icCFC(J)
+          trm(I,J,LT,N) = AM(lt,I,J)*AXYP(I,J)*icCFC(i,j)
         enddo
       enddo; enddo
 #endif
