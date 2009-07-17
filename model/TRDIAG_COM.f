@@ -187,11 +187,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
       INTEGER, DIMENSION(ktaijs) :: ijts_power
 
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-!@var rts_save saves rts as global field for tracer diagnostics
-      REAL*8 :: rts_save(Im,Jm)
-#endif
-
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;

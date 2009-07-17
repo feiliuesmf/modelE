@@ -342,6 +342,9 @@ c**** prescribed dust emission
 #ifdef TRACERS_WATER
      &     ,ghy_tr
 #endif
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+     &     ,moddd,tmp
+#endif
      &     )
 !@sum tracers code to be called after the i,j cell is processed
       use model_com, only : itime,qcheck,nisurf
@@ -358,9 +361,6 @@ c**** prescribed dust emission
 #ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
 #endif
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-      USE trdiag_com,ONLY : rts_save
-#endif
 #ifdef BIOGENIC_EMISSIONS
       use trdiag_com,ONLY : ijs_isoprene
 #endif
@@ -371,6 +371,9 @@ c**** prescribed dust emission
 #ifdef INTERACTIVE_WETLANDS_CH4
       use constant, only : tf
       use tracer_sources, only : n__temp,n__sat,n__gwet
+#endif
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+      USE diag_com,ONLY : adiurn_dust,idd_grav,idd_turb,ijdd,ndiupt
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
@@ -396,6 +399,11 @@ c**** prescribed dust emission
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       real*8, intent(IN) :: ra_temp,ra_sat,ra_gwet
+#endif
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+      INTEGER,INTENT(IN) :: moddd
+      INTEGER :: kr
+      REAL*8 :: tmp(:)
 #endif
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
@@ -550,9 +558,7 @@ ccc accumulate tracer dry deposition
           else
             trsrfflx(i,j,n)=trsrfflx(i,j,n)+tdd/dtsurf
           end if
-#ifdef TRACERS_DUST
-          rts_save(i,j)=rts
-#endif
+
 ! trdrydep downward flux by surface type (kg/m^2)
           trdrydep(n,itype,i,j)=trdrydep(n,itype,i,j) - tdryd
 ! diagnose turbulent and settling fluxes separately
@@ -681,6 +687,27 @@ c     ..........
         END IF
       END DO
 #endif
+#endif
+
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+c**** quantities accumulated hourly for diagDD
+      IF (adiurn_dust == 1) THEN
+        if ( moddd == 0 ) then
+          do kr=1,ndiupt
+            if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
+              DO n=1,Ntm_dust
+                n1=n_clay+n-1
+                IF (dodrydep(n1)) THEN
+                  tmp(idd_turb)=tmp(idd_turb)+ptype*rts
+     &                 *pbl_args%dep_vel(n1)
+                  tmp(idd_grav)=tmp(idd_grav)+ptype*rts
+     &                 *pbl_args%gs_vel(n1)
+                END IF
+              END DO
+            END IF
+          end do
+        end if
+      endif
 #endif
 
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -1444,6 +1471,9 @@ c**** update tracers
 #ifdef TRACERS_WATER
      &     ,ghy_tr
 #endif
+#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
+     &     ,moddd,tmp
+#endif
      & )
 #endif
 
@@ -1748,9 +1778,6 @@ C**** Interpolate daily irrigation depth to the current day
      &     ,dodrydep
 #endif
 #endif
-#if (defined TRACERS_DUST) && (defined TRACERS_DRYDEP)
-      USE trdiag_com,ONLY : rts_save
-#endif
 
       implicit none
       integer, intent(in) :: i,j,ns,moddsf,moddd
@@ -2016,14 +2043,6 @@ c**** quantities accumulated hourly for diagDD
                 tmp(idd_emis)=tmp(idd_emis)+pbl_args%dust_flux(n)*ptype
                 tmp(idd_emis2)=tmp(idd_emis2)
      &               +pbl_args%dust_flux2(n)*ptype
-#ifdef TRACERS_DRYDEP
-                IF (dodrydep(n1)) THEN
-                  tmp(idd_turb)=tmp(idd_turb)+ptype*rts_save(i,j)
-     &                 *pbl_args%dep_vel(n1)
-                  tmp(idd_grav)=tmp(idd_grav)+ptype*rts_save(i,j)
-     &                 *pbl_args%gs_vel(n1)
-                END IF
-#endif
               END DO
               tmp(idd_ws2)=+ws*ws*ptype
               tmp(idd_ustar)=+pbl_args%ustar*ptype
