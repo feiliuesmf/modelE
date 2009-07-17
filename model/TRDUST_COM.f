@@ -72,6 +72,48 @@ c**** default case
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: d_dust
 #endif
 
+c****
+c**** Parameters for dust/mineral tracer specific diagnostics
+c****
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@param nDustEmij index of dust emission in ijts_isrc
+      INTEGER,PARAMETER :: nDustEmij=1
+!@param nDustTurbij index of dust dry turbulent deposition in ijts_isrc
+      INTEGER,PARAMETER :: nDustTurbij=3  ! not used?
+!@param nDustEv1ij index of number of dust events below threshold wind
+!@param nDustEv1ij in ijts_spec
+!@param nDustEv2ij index of number of dust events above threshold wind
+!@param nDustEv2ij in ijts_spec
+!@param nDustWthij index of threshold velocity in ijts_spec
+      INTEGER,PARAMETER :: nDustEv1ij=1,nDustEv2ij=2,nDustWthij=3
+#endif
+#ifdef TRACERS_DUST
+!@param nDustEm2ij index of dust emission according to cubic scheme
+!@param nDustEm2ij in ijts_isrc
+      INTEGER,PARAMETER :: nDustEm2ij=2
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+!@param nDustEmjl index of dust emission in jls_source
+      INTEGER,PARAMETER :: nDustEmjl=1
+!@param nDustTurbjl index of dust dry turbulent deposition in jls_source
+      INTEGER,PARAMETER :: nDustTurbjl=3
+!@param nDustEv1jl index of number of dust events below threshold wind
+!@param nDustEv1jl in jls_spec
+!@param nDustEv2jl index of number of dust events above threshold wind
+!@param nDustEv2jl in jls_spec
+!@param nDustWthjl index of threshold velocity in ijts_spec
+      INTEGER,PARAMETER :: nDustEv1jl=1,nDustEv2jl=2,nDustWthjl=3
+#endif
+#ifdef TRACERS_DUST
+!@param nDustEm2jl index of dust emission according to cubic scheme
+!@param nDustEm2jl in jls_source
+      INTEGER,PARAMETER :: nDustEm2jl=2
+#endif
+
       END MODULE tracers_dust
 
       SUBROUTINE alloc_dust(grid)

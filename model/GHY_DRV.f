@@ -53,9 +53,10 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
-     &     ,nDustEmij,nDustEmjl
-     &     ,ijts_spec,nDustEv1ij,nDustEv2ij,nDustWthij
-     &     ,jls_spec,nDustEv1jl,nDustEv2jl,nDustWthjl
+     &     ,ijts_spec,jls_spec
+      USE tracers_dust,ONLY : nDustEmij,nDustEmjl
+     &     ,nDustEv1ij,nDustEv2ij,nDustWthij
+     &     ,nDustEv1jl,nDustEv2jl,nDustWthjl
 #endif
 #ifdef TRACERS_DUST
      &     ,nDustEm2ij,nDustEm2jl

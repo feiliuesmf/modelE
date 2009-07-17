@@ -3202,6 +3202,13 @@ c     Processes AMP Budget
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      USE tracers_dust,ONLY : nDustEmjl,nDustEv1jl,nDustEv2jl,nDustWthjl
+#endif
+#ifdef TRACERS_DUST
+     &   ,nDustEm2jl
+#endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
@@ -4793,6 +4800,13 @@ c Oxidants
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      USE tracers_dust,ONLY : nDustEmij,nDustEv1ij,nDustEv2ij,nDustWthij
+#endif
+#ifdef TRACERS_DUST
+     &   ,nDustEm2ij
+#endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
