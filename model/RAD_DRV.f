@@ -991,7 +991,7 @@ C
       integer :: aj_alb_inds(8)
       real*8, dimension(lm_req) :: bydpreq
 
-      INTEGER ICKERR,JCKERR,KCKERR
+c     INTEGER ICKERR,JCKERR,KCKERR
       INTEGER :: J_0, J_1, I_0, I_1
       INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1208,9 +1208,9 @@ C**** SS clouds are considered as a block for each continuous cloud
 C****
 C**** MAIN J LOOP
 C****
-      ICKERR=0
-      JCKERR=0
-      KCKERR=0
+c     ICKERR=0
+c     JCKERR=0
+c     KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
 !$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
 !$OMP*   CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,taugcb,
@@ -1223,7 +1223,7 @@ C****
 !$OMP*   COPYIN(/RADPAR_hybrid/)
 !$OMP*   SHARED(ITWRITE)
 !$OMP    DO SCHEDULE(DYNAMIC,2)
-!$OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
+!!OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
       DO 600 J=J_0,J_1
 C****
 C**** MAIN I LOOP
@@ -1263,7 +1263,7 @@ C**** CHECK SURFACE TEMPERATURES
             WRITE(6,*) 'In Radia: Time,I,J,IT,TG1',ITime,I,J,IT
      *         ,GTEMPR(IT,I,J)
 CCC         STOP 'In Radia: Grnd Temp out of range'
-            ICKERR=ICKERR+1
+c           ICKERR=ICKERR+1
           END IF
         END IF
       END DO
@@ -1287,7 +1287,7 @@ C**** kradia>1: adjusted forcing, i.e. T adjusts in L=LS1_loc->LM+3
       if (kradia.gt.0) then     ! rad forcing model
         do l=1,lm
           tlm(l) = T(i,j,l)*pk(l,i,j)
-          shl(l) = QR(l,i,j)
+          shl(l) = QR(l,i,j) ; if(shl(l)<0) shl(l)=0
           tauwc(l) = cldx*CLDinfo(l,1,i,j)
           tauic(l) = cldx*CLDinfo(l,2,i,j)
           SIZEWC(L)= CLDinfo(l,3,i,j)
@@ -1303,6 +1303,10 @@ C****
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
       DO L=1,LM
         PIJ=PLIJ(L,I,J)
+        if(q(i,j,l)<0) then
+           WRITE(0,*)'In Radia: Time,I,J,L,Q<0',ITime,I,J,L,Q,'->0'
+           Q(I,J,L)=0.
+        end if
         QSS=Q(I,J,L)/(RHSAV(L,I,J)+1.D-20)
         shl(L)=QSS
         IF(FSS(L,I,J)*CLDSAV(L,I,J).LT.1.)
@@ -1451,15 +1455,15 @@ C---- TLm(L)=T(I,J,L)*PK(L,I,J)     ! already defined
           WRITE(6,*) 'In Radia: Time,I,J,L,TL',ITime,I,J,L,TLm(L)
           WRITE(6,*) 'GTEMPR:',GTEMPR(:,I,J)
 CCC       STOP 'In Radia: Temperature out of range'
-          ICKERR=ICKERR+1
+c         ICKERR=ICKERR+1
         END IF
 C**** MOISTURE VARIABLES
-C---- shl(L)=Q(I,J,L)        ! already defined
-        if(shl(l).lt.0.) then
-          WRITE(0,*)'In Radia: Time,I,J,L,QL<0',ITime,I,J,L,shl(L),'->0'
-          KCKERR=KCKERR+1
-          shl(l)=0.
-        end if
+C---- shl(L)=Q(I,J,L)        ! already defined and reset to 0 if <0
+c       if(shl(l).lt.0.) then
+c         WRITE(0,*)'In Radia: Time,I,J,L,QL<0',ITime,I,J,L,shl(L),'->0'
+c         KCKERR=KCKERR+1
+c         shl(l)=0.
+c       end if
         RHL(L) = shl(L)/QSAT(TLm(L),LHE,PMID(L,I,J))
         if(RHfix.ge.0.) RHL(L)=RHfix
 C**** Extra aerosol data
@@ -1506,7 +1510,7 @@ C**** Radiative Equilibrium Layer data
         IF(RQT(K,I,J).LT.124..OR.RQT(K,I,J).GT.370.) THEN
         WRITE(6,*) 'In RADIA: Time,I,J,L,TL',ITime,I,J,LM+K,RQT(K,I,J)
 CCC     STOP 'In Radia: RQT out of range'
-        JCKERR=JCKERR+1
+c       JCKERR=JCKERR+1
         END IF
         TLm(LM+K)=RQT(K,I,J)
         PLB(LM+k+1) = PLB0(k)
@@ -2116,11 +2120,11 @@ C****
 
       if(kradia.gt.0) return
 C**** Stop if temperatures were out of range
-C**** Now only warning messages are printed for temp errors
+C**** Now only warning messages are printed for T,Q errors
 c     IF(ICKERR.GT.0)
 c     &     call stop_model('In Radia: Temperature out of range',11)
 c     IF(JCKERR.GT.0)  call stop_model('In Radia: RQT out of range',11)
-      IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
+c     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
      &     ,T,RQT,TsAvg         ! LM+LM_REQ+1+
