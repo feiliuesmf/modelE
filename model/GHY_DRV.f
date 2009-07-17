@@ -4399,8 +4399,8 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
           w_tot(2) = w_tot(2) + w(0,2)
 
           ! total water deficit on kg/m^2
-          DMWLDF(i,j) = fb*(w_stor(1) - w_tot(1))
-     &         + fv*(w_stor(2) - w_tot(2))
+          DMWLDF(i,j) = rhow * ( fb*(w_stor(1) - w_tot(1))
+     &         + fv*(w_stor(2) - w_tot(2)) )
           DMWLDF(i,j) = max( DMWLDF(i,j), 0.d0 )
         enddo
       enddo
