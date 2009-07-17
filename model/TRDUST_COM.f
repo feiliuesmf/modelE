@@ -170,6 +170,7 @@ c**** temporary arrays to read in global data; deallocated after read in
       IF (.NOT. qfirst) RETURN
       qfirst=.FALSE.
 
+      ierr=0
 c**** read in lookup table for calculation of mean surface wind speed from PDF
       IF (am_i_root()) THEN
         CALL openunit('LKTAB1',io_data,.TRUE.,.TRUE.)
