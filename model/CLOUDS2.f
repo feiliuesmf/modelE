@@ -1959,7 +1959,61 @@ C****
       QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)*FITMAX1
       QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOM(:,LDMIN:LMAX)*FITMAX1
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
+#ifdef TRACERS_ON
+C**** Subsidence of tracers by Quadratic Upstream Scheme
+      DO N=1,NTX
+      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)*FITMAX1
+      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)*FITMAX1
+      TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
+     &                      *FITMAX1
+      call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
+     &     ml(ldmin),cmneg(ldmin), nsub,t_qlimit(n),1, zdir,ierrt,lerrt)
+      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)*FITMAX1
+      TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
+     &                      *FITMAX1
+      ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
+      END DO
+#endif
       END DO        ! end of sub-timesteps for subsidence
+C**** Check for v. rare negative humidity error condition
+      DO L=LDMIN,LMAX
+        IF(QM(L).LT.0.d0) then 
+          WRITE(0,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l
+     $          ,qm(l),cmneg(l)
+C**** reduce subsidence post hoc.
+          IF (L.eq.1 .or. QM(L-1)+QM(L).lt.0) then
+            write(0,*) "Q neg cannot be fixed!",L,QM(L-1)
+          ELSE
+            QM(L-1)=QM(L-1)+QM(L)
+            QM(L)=0.           
+#ifdef TRACERS_WATER
+C**** corresponding water tracer adjustment
+            DO N=1,NTX
+              IF (tr_wd_type(n) .eq. nWater) then
+                TM(L-1,N)=TM(L-1,N)+TM(L,N)
+                TM(L,N)=0.
+              END IF
+            END DO
+#endif
+          END IF
+        END IF
+#ifdef TRACERS_ON
+C**** check for independent tracer errors 
+        DO N=1,NTX
+          IF (TM(L,N).lt.0.) then
+            WRITE(0,*) trname(n),' neg: it,i,j,l,q,cm',itime,i_debug
+     $             ,j_debug,l,tm(l,n),cmneg(l)
+C**** reduce subsidence post hoc.
+            IF (L.eq.1 .or. TM(L-1,N)+TM(L,N).lt.0) THEN
+              write(0,*) trname(n)," neg cannot be fixed!",L,TM(L-1:L,N)
+            ELSE
+              TM(L-1,N)=TM(L-1,N)+TM(L,N)
+              TM(L,N)=0.
+            END IF
+          END IF
+        END DO
+#endif
+      END DO
 C**** diagnostics
       DO L=LDMIN,LMAX
         FCDH=0.
@@ -1980,26 +2034,7 @@ C       IF(L.EQ.1) THEN
 C         IF(DDMFLX(1).GT.0.) WRITE(6,*) 'DDM TDN1 QDN1=',
 C    *      DDMFLX(1),TDNL(1),QDNL(1)
 C       END IF
-        IF(QM(L).LT.0.d0) WRITE(0,*) ' Q neg: it,i,j,l,q',
-     *   itime,i_debug,j_debug,l,qm(l)
       END DO
-#ifdef TRACERS_ON
-C**** Subsidence of tracers by Quadratic Upstream Scheme
-      DO ITER=1,ITMAX1 ! subsidence uses sub-timesteps to improve stability
-      DO N=1,NTX
-      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)*FITMAX1
-      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)*FITMAX1
-      TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
-     &                      *FITMAX1
-      call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
-     &     ml(ldmin),cmneg(ldmin), nsub,t_qlimit(n),1, zdir,ierrt,lerrt)
-      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)*FITMAX1
-      TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
-     &                      *FITMAX1
-      ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
-      END DO
-      END DO
-#endif
 C**** save new 'environment' profile for static stability calc.
       DO L=1,LM
         SM1(L)=SM(L)
