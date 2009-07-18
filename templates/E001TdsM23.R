@@ -137,7 +137,7 @@ delta_O3=do3_shindell_72x46x49x12_2037-2107_E009TdsSxHp-SnHpM23
 GHG=GHG_A1B.June2004.txt
 ! e.g. GHGic=E009TdsG1701FM23/GHG_IC_1701
 dH2O=dH2O_by_CH4_monthly
-TOP_INDEX=top_index_72x46.ij.ext
+TOP_INDEX=top_index_72x46_a.ij.ext
 BC_dep=BC.Dry+Wet.depositions.ann
 !-----------------------------------------------
 ! choose these for trop-only chem model

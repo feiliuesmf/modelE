@@ -15,7 +15,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
-#define ROUGHL_HACK
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)

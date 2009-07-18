@@ -15,7 +15,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
-#define ROUGHL_HACK
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -77,7 +76,7 @@ SOILCARB_global=soilcarb_top30cm_nmaps_4x5bin.dat
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin           ! river direction file
-TOP_INDEX=top_index_72x46.ij.ext  ! only used if #define do_topmodel_runoff
+TOP_INDEX=top_index_72x46_a.ij.ext  ! only used if #define do_topmodel_runoff
 GLMELT=GLMELT_4X5.OCN   ! glacial melt distribution
     ! resolution independent files
 RADN1=sgpgxg.table8               ! rad.tables and history files

@@ -16,7 +16,6 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
-#define ROUGHL_HACK
 #define HYCOM_RESOLUTION_1deg
 #define TRACERS_OceanBiology
 #define OBIO_RAD_coupling

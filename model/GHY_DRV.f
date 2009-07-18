@@ -2381,6 +2381,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_drv, only : veg_set_cell
       use vegetation, only : t_vegcell
       use veg_com, only : ala
+      use veg_com, only : vdata
 #endif
 #ifdef TRACERS_WATER
       use tracer_com, only : ntm,tr_wd_TYPE,nwater,itime_tr0,needtrs
@@ -2671,7 +2672,7 @@ c**** set gtemp array
       end do
 
 c**** compute roughnes length
-#if ( defined ROUGHL_HACK ) && ( defined USE_ENT )
+!!!#if ( defined ROUGHL_HACK ) && ( defined USE_ENT )
       roughl(:,:) = 0.d0
         do j=J_0,J_1
           do i=I_0,I_1
@@ -2686,8 +2687,12 @@ c**** compute roughnes length
           do i=I_0,I_1
             !if ( fearth(i,j) <= 0.d0 ) cycle
             if ( focean(i,j) >= 1.d0 ) cycle
+#ifdef USE_ENT
             call ent_get_exports( entcells(i,j),
      &           vegetation_fractions=fr_cover )
+#else
+            fr_cover(:) = vdata(i,j,:)
+#endif
             z0_veg = sum( fr_cover(:)*z0_cover(:) )
             rrr(i,j) = max ( rrr(i,j), z0_veg )
           enddo
@@ -2697,7 +2702,7 @@ c**** compute roughnes length
             roughl(i,j) = rrr(i,j)
           enddo
         enddo
-#endif
+!!!#endif
         titrrr = " rough len + veg"
         write(982) titrrr,real(rrr,kind=4)
 
