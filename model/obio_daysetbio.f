@@ -135,6 +135,7 @@ c  Adjustable sinking rate for cocco's: range = 0.3 to 1.4 m/day
       nt = 4
       do k = 1,kdm
        gcmaxd = gcmax1d(k)*24.0
+
        wstmp = 0.752*gcmaxd + 0.225
        obio_wsd(nt) = max(wstmp,0.3)
        obio_wsd(nt) = min(obio_wsd(nt),1.4)

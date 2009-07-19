@@ -158,13 +158,13 @@
       !tracer array initialization.
       !note: we do not initialize obio_P,det and car
 
+#ifdef OBIO_ON_GARYocean
+      call obio_bioinit_g
+#else
       tracav = 0.
       pCO2av=0.
       ao_co2fluxav  = 0.
 
-#ifdef OBIO_ON_GARYocean
-      call obio_bioinit_g
-#else
       call obio_bioinit(nn)
 #endif
       endif   !if nstep=1 or nstep=itimei
@@ -574,8 +574,8 @@ cdiag.         nstep,i,j,ichan,
 cdiag.         ovisdir_ij,eda_frac(ichan),Ed(ichan),Es(ichan),tot
 
 #ifdef OBIO_ON_GARYocean
-       OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(i,j,ichan) ! dirrect sunlight   
-       OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(i,j,ichan) ! diffuse sunlight   
+       OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
+       OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(ichan) ! diffuse sunlight   
 #endif
 #else
           Ed(ichan) = Eda2(ichan,ihr0)
