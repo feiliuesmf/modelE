@@ -150,7 +150,7 @@ cdiag.                    p1d(k+1),bn(k),cnratio
              J_Ca(k) = -1.d0* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)
          endif
        term = 2.d0* J_Ca(k) 
-       rhs(k,15,4) = term
+       rhs(k,15,5) = term
        A_tend(k) = A_tend(k) + term      
       enddo
 

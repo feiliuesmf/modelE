@@ -32,6 +32,9 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
+      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av
+      real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav
       real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
       real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_glob
 #endif
@@ -56,6 +59,7 @@ c
       !!real, parameter :: obio_deltat = obio_deltath*3600.0 !time step in seconds
       real, parameter :: obio_deltat = obio_deltath    !time step in hrs 
                                                        !because all rates are in hrs
+      real :: diag_counter
 #endif
  
 
@@ -247,6 +251,9 @@ c**** Extract domain decomposition info
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2flux_glob(idm,jdm))
+      ALLOCATE(tracav(idm,jdm,kdm,ntrac))
+      ALLOCATE(pCO2av(idm,jdm))
+      ALLOCATE(ao_co2fluxav(idm,jdm))
 #endif
 
       end subroutine alloc_obio_com

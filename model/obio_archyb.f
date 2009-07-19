@@ -1,5 +1,6 @@
 !#include "hycom_mpi_hacks.h"
-      subroutine obio_archyb(nn)
+      subroutine obio_archyb(nn,dpav,temav,salav,th3av,tracav,
+     .                       dpmxav,oiceav)
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
@@ -8,13 +9,19 @@ c
      * ,xlabel,lrunid
 
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
-     &     ,thref
+     &     ,thref,baclin
       USE HYCOM_DIM_GLOB, only : jj,JDM,kk,ntrcr,ii,idm,kdm,iia,jja
-      USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p
-      USE obio_com, only : pCO2_glob,ao_co2flux_glob
+      USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
+      USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av, 
+     .                     ao_co2fluxav,diag_counter
 c
       implicit none
+      real*8, dimension(idm,jdm) :: dpmxav,oiceav
+      real*8, dimension(idm,jdm,kdm) :: dpav,temav,salav,th3av
+      real*8, dimension(idm,jdm,kdm,ntrcr) :: tracav
+      real factor
       integer i,j,k,l,kn,nn
+     
 c
       integer no,nop,nt
       character flnm*40,intvl*3,title*80
@@ -39,6 +46,10 @@ c
 c
       nop=12
       write (lp,'(a/9x,a)') 'storing history data in',flnm
+
+      factor=baclin/(jdate*86400.)
+      write(*,*)'obio_archyb, factor:',baclin,jdate,factor
+      write(*,*)'obio_archyb, diag_counter:',diag_counter 
 c
       open (unit=nop,file=flnm,status='unknown',
      .      form='unformatted')
@@ -64,6 +75,12 @@ c
       enddo
 
       !mld
+      do k=1,kk
+      kn=k+nn
+        write(title,'(a,i4,a,i4)')'dpmixl, k=',k
+        call write2giss(nop,dpmixl,title)
+      enddo
+
 
       !tracer
       do nt=1,ntrcr
@@ -80,6 +97,67 @@ c
       !ao co2 flux
         write(title,'(a,i4,a,i4)')'AO CO2 flux'
         call write2giss(nop,ao_co2flux_glob,title)
+
+
+! time averaged arrays
+
+      !dpav
+      do k=1,kk
+        write(title,'(a,i4)')'dpav, k=',k
+        call write2giss(nop,dpav(:,:,k)/onem,title)
+      enddo
+   
+      !tempav
+      do k=1,kk
+        write(title,'(a,i4)')'tempav, k=',k
+        call write2giss(nop,temav(:,:,k),title)
+      enddo
+   
+      !salav
+      do k=1,kk
+        write(title,'(a,i4)')'salav, k=',k
+        call write2giss(nop,salav(:,:,k),title)
+      enddo
+   
+      !th3av
+      do k=1,kk
+        write(title,'(a,i4)')'th3av, k=',k
+        call write2giss(nop,th3av(:,:,k),title)
+      enddo
+   
+      !dpmxav
+        write(title,'(a)')'dpmxav'
+        call write2giss(nop,dpmxav(:,:)/onem,title)
+   
+      !oiceav
+        write(title,'(a)')'oiceav'
+        call write2giss(nop,oiceav(:,:),title)
+   
+      !tracav
+      !no need to divide by diag_counter because pressumably
+      !this is already done when divide by dpav
+      do nt=1,ntrcr
+      do k=1,kk
+        write(title,'(a,i4,a,i4)')'tracav, nt=',nt,', k=',k
+        call write2giss(nop,tracav(:,:,k,nt),title)
+      enddo
+      enddo
+   
+      !pco2av
+        pco2av=pco2av/diag_counter
+        write(title,'(a)')'pCO2av'
+        call write2giss(nop,pCO2av,title)
+
+      !pco2av
+        ao_co2fluxav=ao_co2fluxav/diag_counter
+        write(title,'(a)')'ao_co2fluxav'
+        call write2giss(nop,ao_co2fluxav,title)
+
+!zero out for next diagnostic period
+      diag_counter= 0.
+      tracav = 0.
+      pco2av = 0.
+      ao_co2fluxav = 0.
 
       return
       end subroutine obio_archyb

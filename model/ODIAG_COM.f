@@ -48,7 +48,7 @@
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
      .           ,ij_cocc,ij_doc,IJ_alk
-     .           ,ij_flux
+     .           ,ij_flux,ij_Ed,ij_Es
 #endif
 !@var CDL_OIJ consolidated metadata for OIJ output fields in CDL notation
       character(len=100), dimension(koij*6) :: cdl_oij
@@ -981,6 +981,22 @@ c
       scale_oij(k)=0.25
 
 #ifdef TRACERS_OceanBiology
+      k=k+1
+      IJ_Ed=k
+      lname_oij(k)="Surface Ocean Direct Sunlight"
+      sname_oij(k)="oij_Ed"
+      units_oij(k)="quanta"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      IJ_Es=k
+      lname_oij(k)="Surface Ocean Diffuse Sunlight"
+      sname_oij(k)="oij_Es"
+      units_oij(k)="quanta"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
       k=k+1
       IJ_nitr=k
       lname_oij(k)="Surface ocean Nitrates"

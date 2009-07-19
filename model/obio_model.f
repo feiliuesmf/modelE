@@ -48,7 +48,7 @@
      .                    ,tracer_glob => tracer
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
-     .                 ,ij_doc,ij_iron,ij_alk
+     .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es
 #ifndef TRACER_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                 ,ij_flux
@@ -85,10 +85,12 @@
       USE hycom_dim_glob, only : iio,jjo
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij
-      USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
+      USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij,
+     .                        tracer_glob=>tracer, dp_glob=>dp
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
-     .                        ,time,lp,itest,jtest
-      USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob
+     .                        ,time,lp,itest,jtest,baclin
+      USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob,tracav,pCO2av,
+     .                    ao_co2fluxav,pCO2_glob,diag_counter
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -99,7 +101,7 @@
       integer i,j,k,l,km,nn,mm 
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
-      integer iu_pco2,ll,iu_tend
+      integer ll
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GARYocean
@@ -108,6 +110,9 @@
       real*8 time,dtr,ftr,rho_water
       real*8 trmo_unit_factor(kdm,ntrac)
       integer i_0,i_1,j_0,j_1
+#else
+      integer kn
+      real pmid
 #endif
       character string*80
       character jstring*3
@@ -152,15 +157,15 @@
       call obio_init
       !tracer array initialization.
       !note: we do not initialize obio_P,det and car
+
+      tracav = 0.
+      pCO2av=0.
+      ao_co2fluxav  = 0.
+
 #ifdef OBIO_ON_GARYocean
       call obio_bioinit_g
 #else
       call obio_bioinit(nn)
-      if (nstep.eq.1) then
-        if (AM_I_ROOT()) then
-          call obio_archyb(nn)
-        endif
-      endif 
 #endif
       endif   !if nstep=1 or nstep=itimei
 
@@ -234,40 +239,7 @@
       if (diagno_bio) then
 #ifdef OBIO_ON_GARYocean
         write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
-!#else
-!       do 16 lgth=60,1,-1
-!         if (flnmovt(lgth:lgth).ne.' ') go to 17
-! 16    continue
-!       stop '(bioinit:flnmovt)'
-! 17    write (string,'(i6.6)') int(time+.001)
-!!      open(16,file=flnmovt(1:lgth)//'pco2_out.'//string(1:6)
-!!    .        ,status='unknown')
-!       if (nstep.eq.1) then
-!        write(string,'(a3,i4.4,2a)') amon,0,'.',xlabel(1:lrunid)
-!      elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
-!        write(*,*) 'mismatching archive date in agcm/ogcm=',
-!    .      (itime+1.)/nday,time
-!        stop 'mismatching archive date'
-!      else
-!        write(string,'(a3,i4.4,2a)') amon,Jyear,'.',xlabel(1:lrunid)
-!      endif
 #endif
-
-!       print*,' '
-!       print*, 'BIO: saving in pco2 and tend files'
-!       print*,' '
-!       jstring='xxx'
-!#ifdef OBIO_ON_GARYocean
-!       if(j_1.lt.100)write(jstring(1:2),'(i2)')j_1
-!       if(j_1.ge.100)write(jstring(1:3),'(i3)')j_1
-!#else
-!       if(j_1h.lt.100)write(jstring(1:2),'(i2)')j_1h
-!       if(j_1h.ge.100)write(jstring(1:3),'(i3)')j_1h
-!#endif
-!      print*, 'pco2.'//jstring//string
-!      call openunit('pco2.'//jstring//string,iu_pco2)
-!      call openunit('tend.'//jstring//string,iu_tend)
-!
       endif  !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
@@ -284,7 +256,6 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=i_0,i_1
        IF(FOCEAN(I,J).gt.0.) THEN
 #else
-       !!!!do 1000 j=j_0h,j_1h             !1,jj
        do 1000 j=j_0,j_1             !1,jj
        do 1000 l=1,isp(j)
        do 1000 i=ifp(j,l),ilp(j,l)
@@ -411,13 +382,6 @@ cdiag.         nstep,i,j,kmax
 #else
 
 ! --- find number of non-massless layers in column
-!     do kmax=kdm,1,-1
-!       if (dp1d(kmax).gt.0.) exit
-!       if (kmax.eq.1) then
-!         write (*,*) 'error - zero column depth'
-!         return
-!       end if
-!     end do
       do kmax=1,kdm
         if (dp1d(kmax).lt.1.e-2) exit
       end do
@@ -609,6 +573,10 @@ cdiag     write(*,'(a,4i5,5e12.4)')'obio_model, tirrq: ',
 cdiag.         nstep,i,j,ichan,
 cdiag.         ovisdir_ij,eda_frac(ichan),Ed(ichan),Es(ichan),tot
 
+#ifdef OBIO_ON_GARYocean
+       OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(i,j,ichan) ! dirrect sunlight   
+       OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(i,j,ichan) ! diffuse sunlight   
+#endif
 #else
           Ed(ichan) = Eda2(ichan,ihr0)
           Es(ichan) = Esa2(ichan,ihr0)
@@ -662,7 +630,7 @@ cdiag.'       atmFe       wind'
 !       write(*,'(6e12.4)')
 cdiag   write(*,*)
 cdiag.   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
-       endif
+      endif
 
 cdiag    if (vrbos)
 cdiag.     write(*,106)nstep,
@@ -798,20 +766,6 @@ cdiag     endif
        enddo
       endif
 
-!      if (diagno_bio) then
-!        do k=1,kdm
-!#ifdef OBIO_ON_GARYocean
-!        write(iu_tend,'(4i5,6e12.4)')
-!     .      nstep,i,j,k,p1d(k+1),rhs(k,14,5),rhs(k,14,10)
-!     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
-!#else
-!        write(iu_tend,'(4i5,6e12.4)')
-!     .      nstep,i,j,k,p(i,j,k+1)/onem,rhs(k,14,5),rhs(k,14,10)
-!     .                 ,rhs(k,14,14),rhs(k,14,15),rhs(k,14,16)
-!#endif
-!        enddo
-!      endif
-
        !------------------------------------------------------------
        !update 3d tracer array
        do k=1,kmax
@@ -869,7 +823,7 @@ cdiag     endif
        endif
 
        !compute total primary production per day
-        if (hour_of_day.eq.1) then
+       if (hour_of_day.eq.1) then
           pp2tot_day(i,j)=0.
         else
           do nt=1,nchl
@@ -929,25 +883,6 @@ cdiag  endif
 #endif
 #endif
 
-!       if (diagno_bio) then
-!#ifdef OBIO_ON_GARYocean
-!       if (kpl(i,j).gt.0) then    !??/why kpl(2,90)=0???
-!#endif
-!         write(iu_pco2,'(3i7,22e12.4)')
-!     .     nstep,i,j
-!     .    ,temp1d(1),saln1d(1),dp1d(1),car(1,2),pCO2(i,j)
-!     .    ,covice_ij,obio_P(1,1:ntyp),det(1,1:ndet),car(1,1)
-!#ifdef OBIO_ON_GARYocean
-!     .    ,p1d(kpl(i,j))
-!#else
-!     .    ,dpmixl(i,j,mm)/onem
-!#endif
-!     .    ,alk1d(1),pp2tot_day(i,j)
-!#ifdef OBIO_ON_GARYocean
-!       endif   !kpl>0
-!#endif
-!       endif   !diagno_bio
- 
 #ifdef OBIO_ON_GARYocean
       endif   !if focean>0
 #endif
@@ -955,26 +890,46 @@ cdiag  endif
  1000 continue
 c$OMP END PARALLEL DO
 
-!      if (diagno_bio) then
-!        call closeunit(iu_pco2)
-!        call closeunit(iu_tend)
-!      endif     ! diagno_bio
-
-
 #ifdef OBIO_ON_GARYocean
       !gather_tracer
       call pack_data( ogrid,  tracer, tracer_glob )
 #endif
 
-        if (diagno_bio) then
 #ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
+
       !gather ao_co2flux
       call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
-        if (AM_I_ROOT()) then
-          call obio_archyb(nn)
-        endif
+
+!accumulate fields for diagnostic output
+
+      if (AM_I_ROOT()) then
+
+      diag_counter=diag_counter+1
+
+      do j=1,jdm
+      do i=1,idm
+
+      !tracer
+      do nt=1,ntrac
+      do k=1,kk
+        kn=k+nn
+         pmid=max(0.,dp_glob(i,j,kn))
+         tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer_glob(i,j,k,nt)*pmid
+      enddo
+      enddo
+
+      !pco2
+         pCO2av(i,j)=pCO2av(i,j)+pCO2_glob(i,j)
+
+      !ao_co2flux
+         ao_co2fluxav(i,j)=ao_co2fluxav(i,j)+ao_co2flux_glob(i,j)
+     
+      enddo
+      enddo
+
+      endif  !AM_I_ROOT
+
 #endif
-        endif   !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
       call obio_trint
