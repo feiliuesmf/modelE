@@ -184,8 +184,14 @@
 !****************************************************************************
       type canradtype
 !         !Arrays in height levels in the canopy
+         real*8,pointer :: h_lai(:)   !(m) height levels according to cumulative LAI
+         real*8,pointer :: h_coh(:)   !(m) height levels acoording to cohorts 
          real*8,pointer :: heights(:) !(m) height levels at canopy layer boundaries (#layers+1)
-         real*8,pointer :: LAI(:) !LAI within height level
+         real*8,pointer :: LAI(:)     !LAI within height level
+         real*8,pointer :: T_sun(:) !sunlit PAR transmittance profile
+         real*8,pointer :: T_sha(:) !shaded PAR transmittance profile
+         real*8,pointer :: I_sun(:) !sunlit PAR absorbance profile
+         real*8,pointer :: I_sha(:) !shaded PAR absorbance profile
 !         !Whole-canopy foliage clumping factor
          real*8 :: GORTclump
          real*8,pointer :: crad_heights(:) !(m) height levels for incident light levels
