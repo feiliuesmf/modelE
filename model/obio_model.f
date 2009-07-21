@@ -90,7 +90,7 @@
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest,baclin
       USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob,tracav,pCO2av,
-     .                    ao_co2fluxav,pCO2_glob,diag_counter
+     .                    ao_co2fluxav,pCO2_glob,diag_counter,pmidav
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -162,6 +162,7 @@
       call obio_bioinit_g
 #else
       tracav = 0.
+      pmidav=0.
       pCO2av=0.
       ao_co2fluxav  = 0.
 
@@ -915,6 +916,13 @@ c$OMP END PARALLEL DO
         kn=k+nn
          pmid=max(0.,dp_glob(i,j,kn))
          tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer_glob(i,j,k,nt)*pmid
+         pmidav(i,j,k)=pmidav(i,j,k)+pmid
+
+         if (nt.eq.15) then
+         write(*,'(a,5i5,3e12.4)')'obio_model, tracav:',
+     .     nstep,i,j,k,nt,tracer_glob(i,j,k,nt),pmid,tracav(i,j,k,nt)
+         endif
+
       enddo
       enddo
 

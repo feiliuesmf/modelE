@@ -1,5 +1,5 @@
 !#include "hycom_mpi_hacks.h"
-      subroutine obio_archyb(nn,dpav,temav,salav,th3av,tracav,
+      subroutine obio_archyb(nn,dpav,temav,salav,th3av,
      .                       dpmxav,oiceav)
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
@@ -13,12 +13,11 @@ c
       USE HYCOM_DIM_GLOB, only : jj,JDM,kk,ntrcr,ii,idm,kdm,iia,jja
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
       USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av, 
-     .                     ao_co2fluxav,diag_counter
+     .                     ao_co2fluxav,diag_counter,tracav,pmidav
 c
       implicit none
       real*8, dimension(idm,jdm) :: dpmxav,oiceav
       real*8, dimension(idm,jdm,kdm) :: dpav,temav,salav,th3av
-      real*8, dimension(idm,jdm,kdm,ntrcr) :: tracav
       real factor
       integer i,j,k,l,kn,nn
      
@@ -48,39 +47,33 @@ c
       write (lp,'(a/9x,a)') 'storing history data in',flnm
 
       factor=baclin/(jdate*86400.)
-      write(*,*)'obio_archyb, factor:',baclin,jdate,factor
-      write(*,*)'obio_archyb, diag_counter:',diag_counter 
 c
       open (unit=nop,file=flnm,status='unknown',
      .      form='unformatted')
 
       ! ocean layer depth
       do k=1,kk
-        write(title,'(a,i4,a,i4)')'depth, k=',k
+        write(title,'(a,i4)')'depth, k=',k
         call write2giss(nop,p(:,:,k)/onem,title)
       enddo
 
       ! ocean temperature
       do k=1,kk
       kn=k+nn
-        write(title,'(a,i4,a,i4)')'temp, k=',k
+        write(title,'(a,i4)')'temp, k=',k
         call write2giss(nop,temp(:,:,kn),title)
       enddo
 
       ! ocean salinity
       do k=1,kk
       kn=k+nn
-        write(title,'(a,i4,a,i4)')'saln, k=',k
+        write(title,'(a,i4)')'saln, k=',k
         call write2giss(nop,saln(:,:,kn),title)
       enddo
 
       !mld
-      do k=1,kk
-      kn=k+nn
-        write(title,'(a,i4,a,i4)')'dpmixl, k=',k
+        write(title,'(a)')'dpmixl'
         call write2giss(nop,dpmixl,title)
-      enddo
-
 
       !tracer
       do nt=1,ntrcr
@@ -91,11 +84,11 @@ c
       enddo
 
       !pco2
-        write(title,'(a,i4,a,i4)')'pCO2, water'
+        write(title,'(a)')'pCO2, water'
         call write2giss(nop,pCO2_glob,title)
 
       !ao co2 flux
-        write(title,'(a,i4,a,i4)')'AO CO2 flux'
+        write(title,'(a)')'AO CO2 flux'
         call write2giss(nop,ao_co2flux_glob,title)
 
 
@@ -135,8 +128,9 @@ c
    
       !tracav
       !no need to divide by diag_counter because pressumably
-      !this is already done when divide by dpav
+      !this is already done when divide by pmidav
       do nt=1,ntrcr
+      tracav(:,:,:,nt)=tracav(:,:,:,nt)/pmidav(:,:,:)
       do k=1,kk
         write(title,'(a,i4,a,i4)')'tracav, nt=',nt,', k=',k
         call write2giss(nop,tracav(:,:,k,nt),title)

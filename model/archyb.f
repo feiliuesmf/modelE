@@ -12,9 +12,6 @@ c
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
-#ifdef TRACERS_OceanBiology
-      USE obio_com, only :  tracav
-#endif
 c
       implicit none
       integer i,j,k,l,n,nn,kn
@@ -229,11 +226,6 @@ cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         temav(i,j,k)=temav(i,j,k)/dpav(i,j,k)
         salav(i,j,k)=salav(i,j,k)/dpav(i,j,k)
         th3av(i,j,k)=th3av(i,j,k)/dpav(i,j,k)
-#ifdef TRACERS_OceanBiology
-        do nt=1,ntrcr
-           tracav(i,j,k,nt)=tracav(i,j,k,nt)/dpav(i,j,k)
-        enddo
-#endif
       end if
       dpav(i,j,k)=dpav(i,j,k)*factor
 c
@@ -367,7 +359,7 @@ c
 
 
 #ifdef TRACERS_OceanBiology
-      call obio_archyb(nn,dpav,temav,salav,th3av,tracav,dpmxav,oiceav)
+      call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
 #endif
 
 cc$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
