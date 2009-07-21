@@ -126,21 +126,22 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
       th3d(i,j,k+kk)=th3d(i,j,k)
       temp(i,j,k+kk)=temp(i,j,k)
       saln(i,j,k+kk)=saln(i,j,k)
-      thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),
-     .                                 th3d(i,j,k))
+      if (wgtkap(i,j).le.0) print *,' wrong kap ',i,j
+      thstar(i,j,k)=th3d(i,j,k)
+     . +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k),wgtkap(i,j))
 c
       if (itest.gt.0.and.jtest.gt.0) then
         if (i.eq.itest.and.j.eq.jtest)
      . write (lp,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
      .  i,j,k,' dens,thstar,kappa,t,s,p=',th3d(i,j,k),thstar(i,j,k)
-     .   ,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k)),
-     .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
+     .   ,thstar(i,j,k)-th3d(i,j,k)
+     .   ,temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
       else
         if (i.eq.equatn.and.j.eq.3)
      . write (lp,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
      .  i,j,k,' dens,thstar,kappa,t,s,p=',th3d(i,j,k),thstar(i,j,k)
-     .   ,kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k)),
-     .    temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
+     .   ,thstar(i,j,k)-th3d(i,j,k)
+     .   ,temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
       endif
 c
       if (k.gt.1) then
@@ -149,6 +150,8 @@ c
       endif
  11   continue
 c$OMP END PARALLEL DO
+c
+      write(*,'(a,20i12)') 'ijlist ',((ijlist(i,j),i=30,32),j=4,5)
 c
       do k=1,kk
 #ifdef HYCOM_UNFINISHED
@@ -239,8 +242,8 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
       do 21 l=1,isp(j)
       do 21 i=ifp(j,l),ilp(j,l)
       p(i,j,k+1)=p(i,j,k)+dp(i,j,k)
-      thstar(i,j,k)=th3d(i,j,k)+kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),
-     .              th3d(i,j,k))
+      thstar(i,j,k)=th3d(i,j,k)
+     . +kappaf(temp(i,j,k),saln(i,j,k),p(i,j,k),th3d(i,j,k),wgtkap(i,j))
  21   continue
 c$OMP END PARALLEL DO
 c

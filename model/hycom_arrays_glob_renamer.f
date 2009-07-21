@@ -13,6 +13,7 @@
      .,saln_loc => saln 
      .,th3d_loc => th3d 
      .,thstar_loc => thstar 
+     .,wgtkap_loc => wgtkap 
      .,psikk_loc => psikk 
      .,thkk_loc => thkk 
      .,dpmixl_loc => dpmixl 
@@ -87,6 +88,7 @@ c    .,odhsi_loc => odhsi
      .,dmfz_loc => dmfz
 c 
      &,klist_loc => klist
+     &,ijlist_loc => ijlist
 c  
      .,taux_loc => taux
      .,tauy_loc => tauy 
@@ -125,6 +127,7 @@ c
       public saln_loc
       public th3d_loc
       public thstar_loc
+      public wgtkap_loc
       public psikk_loc
       public thkk_loc
       public dpmixl_loc
@@ -236,6 +239,7 @@ c
       public freshw_loc
       public diafor_loc
       public klist_loc
+      public ijlist_loc
 
       end module hycom_arrays_glob_renamer
 

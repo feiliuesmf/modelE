@@ -142,28 +142,42 @@ c
       return
       end
 c
-      real function kappaf(t,s,prs,th)
+      real function kappaf(t,s,prs,th,profil)
 c
 c --- compressibility coefficient kappa^(theta) from sun et al. (1999)
 c
       USE HYCOM_SCALARS, only : thref
       USE HYCOM_ARRAYS_GLOB
       implicit none
-      real t,s,prs,tdif,sdif,th
+      real t,s,prs,tdif,sdif,th,kappa1,kappa2,profil
+      integer loc1,loc2
 c
       include 'state_eqn.h'
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ccc      kappaf=0.                              ! no thermobaricity
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      sdif=max(30.,min(38.,s))-refsal
-      tdif=max(-2.,min(32.,t))-reftem
-      kappaf=(th+1./thref)*(exp(sclkap * (tdif*(qt+tdif*(qtt+tdif*qttt)
-     .       +.5*(prs+pref)*(qpt+sdif*qpst+tdif*qptt))
-     .       +sdif*(qs+tdif*qst))*(prs-pref))-1.)
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- claes rooth's original formula:
-ccc   kappaf=-.075e-12*t*(3.-.06*t+.0004*t*t)*(prs-pref)/thref
+      loc1=profil
+      if (loc1.lt.1 .or. loc1.gt.4) then
+        write (*,'(a,f7.3)') 'illegal profile value in kappaf:',profil
+        stop '(kappaf)'
+      end if
+      sdif=max(30.,min(38.,s))-refsal(loc1)
+      tdif=max(-2.,min(32.,t))-reftem(loc1)
+      kappa1=sclkap * (tdif*(qt(loc1)+tdif*(qtt(loc1)
+     .  +tdif*qttt(loc1))+.5*(prs+pref)*(qpt(loc1)
+     .  +sdif*qpst(loc1)+tdif*qptt(loc1)))
+     .  +sdif*(qs(loc1)+tdif*qst(loc1)))*(prs-pref)/thref
+c
+      loc2=min(4,loc1+1)
+      sdif=max(30.,min(38.,s))-refsal(loc2)
+      tdif=max(-2.,min(32.,t))-reftem(loc2)
+      kappa2=sclkap * (tdif*(qt(loc2)+tdif*(qtt(loc2)
+     .  +tdif*qttt(loc2))+.5*(prs+pref)*(qpt(loc2)
+     .  +sdif*qpst(loc2)+tdif*qptt(loc2)))
+     .  +sdif*(qs(loc2)+tdif*qst(loc2)))*(prs-pref)/thref
+c
+      kappaf=kappa1+(kappa2-kappa1)*(profil-float(loc1))
 c
       return
       end

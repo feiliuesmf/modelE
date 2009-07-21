@@ -58,6 +58,7 @@ cddd      public msk
       public saln
       public th3d
       public thstar
+      public wgtkap
       public psikk
       public thkk
       public dpmixl
@@ -169,6 +170,7 @@ cddd      public msk
       public freshw
       public diafor
       public klist
+      public ijlist
 
 
 !!      include 'bering.h'
@@ -187,6 +189,7 @@ c
      .,saln(:,:,:)			! salinity
      .,th3d(:,:,:)			! potential density
      .,thstar(:,:,:)			! virtual potential density
+     .,wgtkap(:,:)			! scale factor
      .,psikk(:,:)			! init.montg.pot. in bottom layer
      .,thkk(:,:)			! init.thstar in bottom layer
      .,dpmixl(:,:,:)	    ! Kraus-Turner mixed layer depth
@@ -287,6 +290,7 @@ c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
 c
       integer, allocatable, dimension (:,:) ::
      .  klist				! k-index of layer below mixl'r
+     . ,ijlist				! global ij index
 c
 !!    common/int1/klist
 
@@ -349,6 +353,7 @@ c
       call unpack_data( ogrid,  saln, saln_loc )
       call unpack_data( ogrid,  th3d, th3d_loc )
       call unpack_data( ogrid,  thstar, thstar_loc )
+      call unpack_data( ogrid,  wgtkap, wgtkap_loc )
       call unpack_data( ogrid,  psikk, psikk_loc )
       call unpack_data( ogrid,  thkk, thkk_loc )
       call unpack_data( ogrid,  dpmixl, dpmixl_loc )
@@ -461,6 +466,7 @@ c
       call unpack_data( ogrid,  freshw, freshw_loc )
       call unpack_data( ogrid,  diafor, diafor_loc )
       call unpack_data( ogrid,  klist, klist_loc )
+      call unpack_data( ogrid,  ijlist,ijlist_loc )
 
       end subroutine scatter_hycom_arrays
 
@@ -489,6 +495,7 @@ c
       call pack_data( ogrid,  saln_loc, saln )
       call pack_data( ogrid,  th3d_loc, th3d )
       call pack_data( ogrid,  thstar_loc, thstar )
+      call pack_data( ogrid,  wgtkap_loc, wgtkap )
       call pack_data( ogrid,  psikk_loc, psikk )
       call pack_data( ogrid,  thkk_loc, thkk )
       call pack_data( ogrid,  dpmixl_loc, dpmixl )
@@ -600,6 +607,7 @@ c
       call pack_data( ogrid,  freshw_loc, freshw )
       call pack_data( ogrid,  diafor_loc, diafor )
       call pack_data( ogrid,  klist_loc, klist )
+      call pack_data( ogrid,  ijlist_loc, ijlist )
 
       end subroutine gather_hycom_arrays
 
@@ -620,6 +628,7 @@ c
      .,saln(idm,jdm,2*kdm) 
      .,th3d(idm,jdm,2*kdm) 
      .,thstar(idm,jdm,2*kdm) 
+     .,wgtkap(idm,jdm) 
      .,psikk(idm,jdm) 
      .,thkk(idm,jdm) 
      .,dpmixl(idm,jdm,2) 
@@ -693,7 +702,8 @@ c    .,odhsi(idm,jdm)
      .,omlhc(idm,jdm) 
      .,dmfz(idm,jdm) ) 
 c 
-      allocate( klist(idm,jdm) ) 
+      allocate( klist(idm,jdm) 
+     .  ,ijlist(idm,jdm)  )
 c  
       allocate(  
      . taux(idm,jdm) 
@@ -732,6 +742,7 @@ c
       saln = 0
       th3d = 0
       thstar = 0
+      wgtkap = 0
       psikk = 0
       thkk = 0
       dpmixl = 1.0     ! TNL: avoid NaN on the first step
@@ -843,6 +854,7 @@ c
       freshw = 0
       diafor = 0
       klist = 0
+      ijlist = 0
 
       end subroutine alloc_hycom_arrays_glob
 
@@ -866,6 +878,7 @@ c
       write(801,*) __FILE__,__LINE__,sum(saln(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(th3d(:,:,:))
       write(801,*) __FILE__,__LINE__,sum(thstar(:,:,:))
+      write(801,*) __FILE__,__LINE__,sum(wgtkap(:,:))
       write(801,*) __FILE__,__LINE__,sum(psikk(:,:))
       write(801,*) __FILE__,__LINE__,sum(thkk(:,:))
       write(801,*) __FILE__,__LINE__,sum(dpmixl(:,:,:))
@@ -973,6 +986,7 @@ c
       write(801,*) __FILE__,__LINE__,sum(dmfz(:,:))
 c
       write(801,*) __FILE__,__LINE__,sum(klist(:,:))
+      write(801,*) __FILE__,__LINE__,sum(ijlist(:,:))
 c
       write(801,*) __FILE__,__LINE__,sum(taux(:,:))
       write(801,*) __FILE__,__LINE__,sum(tauy(:,:))

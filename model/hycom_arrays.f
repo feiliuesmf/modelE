@@ -20,6 +20,7 @@ c
      .,saln(:,:,:)                    ! salinity
      .,th3d(:,:,:)                    ! potential density
      .,thstar(:,:,:)                  ! virtual potential density
+     .,wgtkap(:,:)                    ! scale factor of ref2
      .,psikk(:,:)                         ! init.montg.pot. in bottom layer
      .,thkk(:,:)                          ! init.thstar in bottom layer
      .,dpmixl(:,:,:)                      ! Kraus-Turner mixed layer depth
@@ -120,6 +121,7 @@ c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
 c
       integer, allocatable, dimension (:,:) ::
      .  klist         !k-index of layer below mixl'r
+     .,ijlist         !global ij index
 c
 !!    common/int1/klist
 
@@ -174,6 +176,7 @@ c
      .,saln(I_0H:I_1H,J_0H:J_1H,2*kdm) 
      .,th3d(I_0H:I_1H,J_0H:J_1H,2*kdm) 
      .,thstar(I_0H:I_1H,J_0H:J_1H,2*kdm) 
+     .,wgtkap(I_0H:I_1H,J_0H:J_1H) 
      .,psikk(I_0H:I_1H,J_0H:J_1H) 
      .,thkk(I_0H:I_1H,J_0H:J_1H) 
      .,dpmixl(I_0H:I_1H,J_0H:J_1H,2) 
@@ -251,7 +254,8 @@ c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
      .,omlhc(I_0H:I_1H,J_0H:J_1H) 
      .,dmfz(I_0H:I_1H,J_0H:J_1H) ) 
 c 
-      allocate( klist(I_0H:I_1H,J_0H:J_1H) ) 
+      allocate( klist(I_0H:I_1H,J_0H:J_1H) 
+     .        ,ijlist(I_0H:I_1H,J_0H:J_1H) )
 c  
       allocate(  
      . taux(I_0H:I_1H,J_0H:J_1H) 
@@ -288,6 +292,7 @@ c
       saln = 0
       th3d = 0
       thstar = 0
+      wgtkap = 0
       psikk = 0
       thkk = 0
       dpmixl = 1.    ! TNL: avoid NaN for the first step
@@ -398,6 +403,7 @@ c
       osalt = 0
       freshw = 0
       diafor = 0
+      ijlist = 0
       klist = 0
 
       end subroutine alloc_hycom_arrays
