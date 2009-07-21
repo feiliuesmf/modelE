@@ -3319,7 +3319,7 @@ C**** Use approximate value for small sig and unresolved delta function
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
-      USE tracer_com,ONLY : kim,kjm,table1,x11,x21
+      USE tracers_dust,ONLY : McFrac,kim,kjm,table1,x11,x21
 
       IMPLICIT NONE
 
@@ -3335,9 +3335,6 @@ c Output:
 !@var wspdf mean surface wind speed from integration over PDF
 
       REAL*8,INTENT(OUT) :: wspdf
-
-!@param Mcfrac fraction of grid box with moist convection
-      REAL*8,PARAMETER :: Mcfrac=0.05
 
 !@var sigma standard deviation of sub grid fluctuations
       REAL*8 :: sigma,ans,dy

@@ -32,7 +32,7 @@ c******************   TRACERS             ******************************
      *     ,nWATER,nGAS,nPART,tr_wd_TYPE
 #endif
 #ifdef TRACERS_DUST
-     &     ,n_clay,imDust
+     &     ,n_clay
 #else
 #ifdef TRACERS_MINERALS
      &     ,n_clayilli
@@ -41,6 +41,10 @@ c******************   TRACERS             ******************************
      &     ,n_sil1quhe
 #endif
 #endif
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      USE tracers_dust,ONLY : imDust
 #endif
       use trdiag_com, only : taijn=>taijn_loc,tij_surf, tij_surfbv,
      *   taijs=>taijs_loc,ijts_isrc,jls_isrc,

@@ -915,35 +915,6 @@ C**** tracer specific switches
 !@+       0=standard, 1=Conen&Robertson, 2=modified Schery&Wasiolek
       integer :: rnsrc = 0
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-C**** Dust specific switches and arrays
-
-!@dbparam imDUST is 1 for AEROCOM-prescribed simulations, 0 interactive
-      INTEGER :: imDUST=0
-!@param kim dimension 1 of lookup table for mean surface wind speed integration
-!@param kjm dimension 2 of lookup table for mean surface wind speed integration
-      INTEGER,PARAMETER :: kim=234,kjm=234
-!@var table1 array for lookup table for calculation of mean surface wind speed
-!@+          local to each grid box
-      REAL*8, DIMENSION(Kim,Kjm) :: table1
-!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
-!@var x21 index of table1 for sub grid scale velocity scale (sigma)
-      REAL*8 :: x11(kim),x21(kjm)
-#endif
-
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-!@param DenQuarz particle density of quartz
-!@param DenHema particle density of hematite
-      REAL*8,PARAMETER :: DenQuarz=2.62D3,DenHema=5.3D3
-#endif
-#ifdef TRACERS_QUARZHEM
-!@dbparam FreeFe free iron to total iron (free+structural) ratio in minerals
-      REAL*8 :: FreeFe=0.5D0
-!@dbparam FrHeQu fraction of hematite in quartz/hematite aggregate
-      REAL*8 :: FrHeQu=0.1D0
-#endif
-
 C**** arrays that could be general, but are only used by chemistry
 
 !@var ssname holds source name, read from file header, e.g. to be

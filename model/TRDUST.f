@@ -7,8 +7,7 @@
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE model_com,ONLY : dtsrc,nisurf
       USE socpbl,ONLY : t_pbl_args
-      USE tracer_com,ONLY : imDust
-      USE tracers_dust,ONLY : lim,ljm,lkm,table,x1,x2,x3
+      USE tracers_dust,ONLY : imDust,McFrac,lim,ljm,lkm,table,x1,x2,x3
 
       IMPLICIT NONE
 
@@ -21,37 +20,30 @@
       REAL*8 :: dsteve1,dsteve2
       REAL*8 :: soilvtrsh
       LOGICAL :: qdust
-#ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: dryhr,hbaij,pprec,pevap,ricntd
       REAL*8 :: hbaijd,hbaijold
       LOGICAL :: pmei
-#else
       REAL*8 :: wearth,aiearth,wfcs,pdfint,wsubtke,wsubwd,wsubwm
-      REAL*8 :: mcfrac=0.05
       REAL*8 :: soilwet,sigma,ans,dy,workij1,workij2,wsgcm1
-#endif
 
 c**** input
       snowe=pbl_args%snow
       vtrsh=pbl_args%vtrsh
-#ifdef TRACERS_DUST_CUB_SAH
       dryhr=pbl_args%dryhr
       pprec=pbl_args%pprec
       pevap=pbl_args%pevap
       hbaij=pbl_args%hbaij
       ricntd=pbl_args%ricntd
-#else
       wearth=pbl_args%wearth
       aiearth=pbl_args%aiearth
       wfcs=pbl_args%wfcs
       wsubtke=pbl_args%wsubtke
       wsubwd=pbl_args%wsubwd
       wsubwm=pbl_args%wsubwm
-#endif
 
-      IF (imDUST == 0) THEN
+      IF (imDUST == 2) THEN
 
-#ifdef TRACERS_DUST_CUB_SAH
+c**** legacy dust emission
 c     Checking if accumulated precipitation - evaporation
 c     less/equal than Zero for a succeeding number of hours greater/equal
 c     than threshold dryhr to permit dust emission
@@ -85,9 +77,9 @@ c     than threshold dryhr to permit dust emission
         qdust=.FALSE.
       END IF
 
-#else
-c**** default case
+      ELSE IF (imDUST == 0) THEN
 
+c**** dust emission using probability density function of wind speed
       IF (itype == 4 .AND. snowe <= 1.D0) THEN
         qdust=.TRUE.
       ELSE
@@ -244,8 +236,6 @@ c     &              sigma,soilvtrsh,ans,dy)
 
       END IF
 
-#endif
-
       ELSE IF (imDUST == 1) THEN
         IF (itype == 4) THEN
           qdust=.TRUE.
@@ -259,13 +249,10 @@ c**** output
       pbl_args%dust_event1=dsteve1
       pbl_args%dust_event2=dsteve2
       pbl_args%qdust=qdust
-#ifdef TRACERS_DUST_CUB_SAH
       pbl_args%hbaij=hbaij
       pbl_args%ricntd=ricntd
-#else
       pbl_args%wtrsh=soilvtrsh
       pbl_args%pdfint=pdfint
-#endif
 
 #endif
 
@@ -280,14 +267,15 @@ c**** output
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE socpbl,ONLY : t_pbl_args
-      USE tracer_com,ONLY : Ntm_dust,trname,imDUST,n_clay,n_clayilli
+      USE tracer_com,ONLY : Ntm_dust,trname,n_clay,n_clayilli
+      USE tracers_dust,ONLY : CWiCub,FClWiCub,FSiWiCub,
+     &     CWiPdf,FClWiPdf,FSiWiPdf,imDust
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+     &     ,Mtrac
+#endif
 #ifdef TRACERS_QUARZHEM
      &     ,FreeFe
 #endif
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : Mtrac
-#endif
-      USE tracers_dust,ONLY : Fracl,Frasi,upclsi
 
       IMPLICIT NONE
 
@@ -302,11 +290,8 @@ c**** output
       REAL*8 :: d_dust(Ntm_dust)
       REAL*8 :: frtrac
       LOGICAL :: qdust
-#ifdef TRACERS_DUST_CUB_SAH
       REAL*8 :: frclay,frsilt
-#else
       REAL*8 :: ers_data,src_fnct,pdfint
-#endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       REAL*8 :: minfr(Mtrac)
 #endif
@@ -315,14 +300,11 @@ c**** input
       qdust=pbl_args%qdust
       vtrsh=pbl_args%vtrsh
       IF (imDust == 1) d_dust(:)=pbl_args%d_dust(:)
-#ifdef TRACERS_DUST_CUB_SAH
       frclay=pbl_args%frclay
       frsilt=pbl_args%frsilt
-#else
       ers_data=pbl_args%ers_data
       src_fnct=pbl_args%src_fnct
       pdfint=pbl_args%pdfint
-#endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       minfr(:)=pbl_args%minfr(:)
 #endif
@@ -332,7 +314,7 @@ c**** initialize
       dsrcflx2=0.D0
       IF (qdust) THEN
 
-      IF (imDUST == 0) THEN
+      IF (imDUST /= 1) THEN
 c**** Interactive dust emission
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -341,19 +323,21 @@ c**** Interactive dust emission
         SELECT CASE(trname(n))
         CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc',
      &        'ClayQuar')
-          frtrac=Fracl
-#ifdef TRACERS_DUST_CUB_SAH
-     &         *frclay
-#endif
+          IF (imDust == 0) THEN
+            frtrac=FClWiPdf
+          ELSE IF (imDust == 2) THEN
+            frtrac=FClWiCub*frclay
+          END IF
         CASE ('Silt1','Silt2','Silt3','Silt4','Sil1Quar','Sil1Feld',
      &        'Sil1Calc','Sil1Hema','Sil1Gyps','Sil2Quar','Sil2Feld',
      &        'Sil2Calc','Sil2Hema','Sil2Gyps','Sil3Quar','Sil3Feld',
      &        'Sil3Calc','Sil3Hema','Sil3Gyps','Sil1QuHe','Sil2QuHe',
      &        'Sil3QuHe')
-          frtrac=Frasi
-#ifdef TRACERS_DUST_CUB_SAH
-     &         *frsilt
-#endif
+          IF (imDust == 0) THEN
+            frtrac=FSiWiPdf
+          ELSE IF (imDust == 2) THEN
+            frtrac=FSiWiCub*frsilt
+          END IF
         END SELECT
 
 #ifdef TRACERS_MINERALS
@@ -391,38 +375,41 @@ c**** Interactive dust emission
 #ifdef TRACERS_AMP
         SELECT CASE (n)
         CASE (1)
-          frtrac=Fracl
-#ifdef TRACERS_DUST_CUB_SAH
-     &         *frclay
-#endif
+          IF (imDust == 0) THEN
+            frtrac=FClWiPdf
+          ELSE IF (imDust == 2) THEN
+            frtrac=FClWiCub*frclay
+          END IF
         CASE (2,3,4)
-          frtrac=Frasi
-#ifdef TRACERS_DUST_CUB_SAH
-     &         *frsilt
-#endif
+          IF (imDust == 0) THEN
+            frtrac=FSiWiPdf
+          ELSE IF (imDust == 2) THEN
+            frtrac=FSiWiCub*frsilt
+          END IF
         END SELECT
 #endif
 
 #endif
 
-#ifdef TRACERS_DUST_CUB_SAH
 c**** legacy dust emission scheme
-        dsrcflx=Upclsi*frtrac*(wsgcm-vtrsh)*wsgcm**2
-#else
+        IF (imDust == 2) THEN
+          dsrcflx=CWiCub*frtrac*(wsgcm-vtrsh)*wsgcm**2
+
 c**** default case
 c ..........
 c dust emission above threshold from sub grid scale wind fluctuations
 c ..........
-        dsrcflx=Upclsi*frtrac*ers_data*src_fnct*pdfint
+        ELSE IF (imDust == 0) THEN
+          dsrcflx=CWiPdf*frtrac*ers_data*src_fnct*pdfint
 c ..........
-c emission according to cubic scheme (diagnostics only)
+c emission according to cubic scheme, but with pdf sheme parameters
+c (only used as diagnostic variable)
 c ..........
-        IF (vtrsh > 0. .AND. wsgcm > vtrsh) THEN
-          dsrcflx2=Upclsi*frtrac*src_fnct*ers_data*(wsgcm-vtrsh)
-     &         *wsgcm**2
+          IF (vtrsh > 0. .AND. wsgcm > vtrsh) THEN
+            dsrcflx2=CWiPdf*frtrac*src_fnct*ers_data*(wsgcm-vtrsh)
+     &           *wsgcm**2
+          END IF
         END IF
-#endif
-
 
       ELSE IF (imDUST == 1) THEN
 c**** prescribed AEROCOM dust emission

@@ -37,6 +37,10 @@
       USE CLOUDS, ONLY : diag_wetdep
 #endif
 #endif /* TRACERS_WATER */
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+      USE tracers_dust,ONLY : imDust
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
@@ -235,7 +239,7 @@ C**** determine year of emissions
       call sync_param("aer_int_yr",aer_int_yr)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 C**** decide on AEROCOM or interactive emissions
       CALL sync_param('imDUST',imDUST)
 #endif
@@ -3205,6 +3209,7 @@ c     Processes AMP Budget
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : nDustEmjl,nDustEv1jl,nDustEv2jl,nDustWthjl
+     &   ,imDust
 #endif
 #ifdef TRACERS_DUST
      &   ,nDustEm2jl
@@ -4803,6 +4808,7 @@ c Oxidants
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : nDustEmij,nDustEv1ij,nDustEv2ij,nDustWthij
+     &   ,imDust
 #endif
 #ifdef TRACERS_DUST
      &   ,nDustEm2ij

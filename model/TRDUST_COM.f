@@ -1,40 +1,40 @@
 #include "rundeck_opts.h"
       MODULE tracers_dust
-!@sum  dust tracer parameters and variables
+!@sum  dust/mineral tracer parameters and variables
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
-!@ver 1.0
+!@ver 2.0
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : By6
       USE resolution,ONLY : Im,Jm,Lm
       USE model_com,ONLY : JMperY,JDperY
-#ifndef TRACERS_AMP
-      USE tracer_com,ONLY : Ntm_dust
-#endif
+
       IMPLICIT NONE
 
-!@param uplfac uplift factor for each size class of soil dust [kg*s**2/m**5]
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8,PARAMETER :: Upclsi=52.D-9
-#else
-c**** default case
-      REAL*8,PARAMETER :: Upclsi=12.068996D-9
-#endif
-#ifdef TRACERS_DUST_CUB_SAH
 !@param By8 0.25d0/2d0
       REAL*8,PARAMETER :: By8=0.25D0/2D0
-#else
-c**** default case
+!@param By4 1D0/4D0
       REAL*8,PARAMETER :: By4=1D0/4D0
-#endif
-!@param fracn fraction of uplifted soil for each size class of dust [1]
-#ifdef TRACERS_DUST_CUB_SAH
-      REAL*8 :: Fracl=By6,Frasi=By8
-#else
-c**** default case
-      REAL*8 :: Fracl=0.092335D0,Frasi=0.226916D0
-#endif
+
+c****
+c**** rundeck parameter to switch between different emission schemes
+c****
+!@dbparam imDust: 0: scheme using PDF of wind speed (default)
+!@+               1: prescribed AEROCOM emissions
+!@+               2: legacy emission scheme using third power of wind speeds
+      INTEGER :: imDust=0
+
+c**** legacy emission code (Tegen, I. and R. Miller, JGR (1998))
+c**** declarations for emission scheme using third power of wind speed
+c****
+!@param CWiCub uplift factor [kg*s**2/m**5] for all size classes
+      REAL*8,PARAMETER :: CWiCub=52.D-9
+!@param FClWiCub fraction [1] of uplifted clay for scheme using cubes of
+!@+     wind speed
+!@param FSiWiCub fractions [1] of uplifted silt for scheme using cubes of
+!@+     wind speed
+      REAL*8 :: FClWiCub=By6,FSiWiCub=By8
 !@var hbaij accumulated precipitation - evaporation balance  [kg/m^2]
 !@var ricntd no. of hours with negative precipitation - evaporation balance [1]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: hbaij,ricntd
@@ -44,18 +44,38 @@ c**** default case
 !@var frsilt fraction of silt
 !@var vtrsh  threshold wind speed above which dust emis. is allowed [m/s]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: dryhr,frclay,frsilt,vtrsh
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-!@param Mtrac number of different fields with tracer fractions in grid box
-!@+           5 clay; 5 silt
-      INTEGER,PARAMETER :: Mtrac=10
-!@var minf distribution of tracer fractions in grid box
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: minfr
-#endif
+
+c**** for legacy wet deposition
+c**** declaration for simple wet deposition scheme
+!@var prelay distributed array with some prec info needed for simple wet
+!@+          deposition scheme
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: prelay
+
+c**** current default emission scheme (Cakmur, R. et al. (2004))
+c**** declarations for emission scheme using probability density function of
+c**** wind speed
+c****
+!@param CWiPdf uplift factor [kg*s**2/m**5] for all size classes of soil dust
+      REAL*8,PARAMETER :: CWiPdf=12.068996D-9
+!@param FClWiCub fraction [1] of uplifted clay
+!@param FSiWiCub fractions [1] of uplifted silt
+      REAL*8 :: FClWiPdf=0.092335D0,FSiWiPdf=0.226916D0
 !@var ers_data field of ERS data
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ers_data
 !@var src_fnct distribution of preferred sources
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: src_fnct
       INTEGER,PARAMETER :: Lim=220,Ljm=220,Lkm=22
+!@param McFrac Fraction of area with downdraft in grid cell
+      REAL*8,PARAMETER :: McFrac=0.05
+!@param kim dimension 1 of lookup table for mean surface wind speed integration
+!@param kjm dimension 2 of lookup table for mean surface wind speed integration
+      INTEGER,PARAMETER :: kim=234,kjm=234
+!@var table1 array for lookup table for calculation of mean surface wind speed
+!@+          local to each grid box
+      REAL*8, DIMENSION(Kim,Kjm) :: table1
+!@var x11 index of table1 for GCM surface wind speed from 0 to 50 m/s
+!@var x21 index of table1 for sub grid scale velocity scale (sigma)
+      REAL*8 :: x11(kim),x21(kjm)
 !@var x1,x2,x3 indices of lock up table for emission
       REAL*8 :: x1(Lim),x2(Ljm),x3(Lkm)
 !@var table array of lock up table for emission local to each grid box
@@ -65,17 +85,32 @@ c**** default case
 !@var wsubwm_com distributed array of subscale moist convective term
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: wsubtke_com,wsubwd_com,
      &     wsubwm_com
-!@var prelay distributed array with some prec info needed for simple wet
-!@+          deposition scheme
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: prelay
+
+c****
+c**** declaration for prescribed daily dust emissions
+c****
 !@var d_dust prescribed daily dust emissions [kg] (e.g. AEROCOM)
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: d_dust
+
+c**** additional declarations for dust tracers with mineralogical composition
+#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+!@param Mtrac number of different fields with tracer fractions in grid box
+!@+           5 clay; 5 silt
+      INTEGER,PARAMETER :: Mtrac=10
+!@param DenQuarz particle density of quartz
+!@param DenHema particle density of hematite
+      REAL*8,PARAMETER :: DenQuarz=2.62D3,DenHema=5.3D3
+#ifdef TRACERS_QUARZHEM
+!@dbparam FreeFe free iron to total iron (free+structural) ratio in minerals
+      REAL*8 :: FreeFe=0.5D0
+!@dbparam FrHeQu fraction of hematite in quartz/hematite aggregate
+      REAL*8 :: FrHeQu=0.1D0
+#endif
+!@var minf distribution of tracer fractions in grid box
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: minfr
 #endif
 
-c****
 c**** Parameters for dust/mineral tracer specific diagnostics
-c****
-
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
 !@param nDustEmij index of dust emission in ijts_isrc
@@ -112,6 +147,8 @@ c****
 !@param nDustEm2jl index of dust emission according to cubic scheme
 !@param nDustEm2jl in jls_source
       INTEGER,PARAMETER :: nDustEm2jl=2
+#endif
+
 #endif
 
       END MODULE tracers_dust
@@ -187,9 +224,10 @@ c****
      &     grid,unpack_data,write_parallel
       USE resolution, ONLY : Im,Jm
       USE model_com,ONLY : JDperY,JMperY
-      USE tracer_com,ONLY : imDUST,kim,kjm,table1,x11,x21,Ntm_dust
-      USE tracers_dust,ONLY : dryhr,frclay,frsilt,vtrsh,ers_data,
-     &   src_fnct,table,x1,x2,x3,lim,ljm,lkm,d_dust
+      USE tracer_com,ONLY : Ntm_dust
+      USE tracers_dust,ONLY : dryhr,frclay,frsilt,vtrsh,ers_data
+     &   ,src_fnct,kim,kjm,table1,x11,x21,table,x1,x2,x3,lim,ljm,lkm
+     &   ,imDust,d_dust
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &   ,Mtrac,minfr
 #endif
@@ -302,7 +340,7 @@ c**** prescribed AEROCOM dust emissions
 
         DEALLOCATE(work,d_dust_glob)
 
-      ELSE IF (imDUST == 0) THEN
+      ELSE IF (imDust == 0 .OR. imDust == 2) THEN
 c**** interactive dust emissions
 
 c**** Read input: threshold speed
@@ -381,7 +419,7 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
         x1(:)=x2(:)
       ELSE
         CALL stop_model
-     &     ('Stopped in tracer_IC: parameter imDUST must be 0 or 1',255)
+     &     ('Stopped in tracer_IC: parameter imDUST must be <= 2',255)
       END IF
 
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
