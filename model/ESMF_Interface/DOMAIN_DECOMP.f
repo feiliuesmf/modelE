@@ -451,6 +451,8 @@ c        MODULE PROCEDURE READT8_PARALLEL_2D
          module procedure UNPACK_J_4D
       end interface
 
+      PUBLIC :: REDIST_PACK
+
       PUBLIC SEND_TO_J
       interface SEND_TO_J
          module procedure SEND_TO_J_1D
@@ -5485,6 +5487,126 @@ C--------------------------------
 
       RETURN
       END SUBROUTINE UNPACK_J_4D
+
+      SUBROUTINE REDIST_PACK(grid_src,grid_dest,ARR,ARR_GLOB)
+c
+c Redistributes the array ARR having a domain decomposition grid_src
+c to the decomposition given by grid_dest.
+c Note: this routine is SPECIFICALLY intended for ocean-atmosphere coupling
+c in Model E. The number of latitudes in grid_src and grid_dest may
+c be multiples of one another, so the "redistributed" data is actually
+c packed into the appropriate J range in a global-size array ARR_GLOB
+c that must be allocated on each processor.  ARR_GLOB should have
+c grid_src%jm_world latitudes. When grid_src and grid_dest have different
+c values of jm_world, ARR_GLOB is filled over the range of J
+c such that the min/max lat of grid_dest are covered by the min/max lat
+c of grid_src.
+c
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grid_src,grid_dest
+      REAL*8, INTENT(IN) ::
+     &        ARR(grid_src%i_strt_halo:,grid_src%j_strt_halo:)
+      REAL*8, INTENT(INOUT) ::
+     &        ARR_glob(grid_src%im_world,grid_src%jm_world)
+#ifdef USE_MPI
+      integer :: im,jm,jm_dest
+      integer, dimension(0:npes-1) :: j0,j1,
+     &     scnts,sdspl,rcnts,rdspl, j0_dest,j1_dest
+      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
+      integer :: p,jmrat,rc,ierr
+      integer :: j0send,j1send,j0recv,j1recv
+
+      jm = grid_src%jm_world
+      jm_dest = grid_dest%jm_world
+
+c
+c Check that grid sizes are divisible by one other
+c
+      if(mod(max(jm,jm_dest),min(jm,jm_dest)).ne.0) then
+        write(6,*)      'redist_pack: incompatible grid sizes'
+        call stop_model('redist_pack: incompatible grid sizes')
+      endif
+
+c
+c Get the global domain decomposition.  Would be less tedious if it
+c were an easily accessible element of the dist_grid type...
+c
+      ALLOCATE(AI(0:npes-1,3))
+      Call ESMF_GridGetAllAxisIndex(grid_src%ESMF_GRID, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,vertRelLoc=ESMF_CELL_CELL,rc=rc)
+      do p=0,npes-1
+        j0(p) = AI(p,2)%min
+        j1(p) = AI(p,2)%max
+      enddo
+      Call ESMF_GridGetAllAxisIndex(grid_dest%ESMF_GRID, globalAI=AI,
+     &     horzRelLoc=ESMF_CELL_CENTER,vertRelLoc=ESMF_CELL_CELL,rc=rc)
+      do p=0,npes-1
+        j0_dest(p) = AI(p,2)%min
+        j1_dest(p) = AI(p,2)%max
+      enddo
+      DEALLOCATE(AI)
+
+c
+c Map the indices of the destination grid to the source grid
+c
+      if(jm < jm_dest) then
+        jmrat = jm_dest/jm
+        do p=0,npes-1
+          j0_dest(p) = 1+(j0_dest(p)-1)/jmrat
+          j1_dest(p) = 1+(j1_dest(p)-1)/jmrat
+        enddo
+      elseif(jm > jm_dest) then
+        jmrat = jm/jm_dest
+        do p=0,npes-1
+          j0_dest(p) = 1+(j0_dest(p)-1)*jmrat
+          j1_dest(p) = j1_dest(p)*jmrat
+        enddo
+      endif
+c
+c Set up the send/receive information, call MPI
+c
+      im  = grid_src%im_world
+      do p=0,npes-1
+        j0send = max(grid_src%j_strt,j0_dest(p))
+        j1send = min(grid_src%j_stop,j1_dest(p))
+        if(j0send <= j1send) then
+          scnts(p) = im*(j1send-j0send+1)
+          sdspl(p) = im*(j0send-grid_src%j_strt_halo)
+c          if(p .ne. my_pet) then
+c            write(6,*) 'pesend, pedst, j0send, j1send ',
+c     &           my_pet,p,j0send,j1send
+c          endif
+        else
+          scnts(p) = 0
+          sdspl(p) = 0
+        endif
+        j0recv = max(j0(p),j0_dest(my_pet))
+        j1recv = min(j1(p),j1_dest(my_pet))
+        if(j0recv <= j1recv) then
+          rcnts(p) = im*(j1recv-j0recv+1)
+          rdspl(p) = im*(j0recv-1)
+c          if(p .ne. my_pet) then
+c            write(6,*) 'perecv, pesrc, j0recv, j1recv ',
+c     &           my_pet,p,j0recv,j1recv
+c          endif
+        else
+          rcnts(p) = 0
+          rdspl(p) = 0
+        endif
+      enddo
+      call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
+     &                   arr_glob, rcnts, rdspl, mpi_double_precision,
+     &                   mpi_comm_world, ierr)
+
+#else
+c
+c no mpi, serial mode
+c
+      arr_glob(:,grid_src%J_STRT:grid_src%J_STOP) =
+     & arr(:,grid_src%J_STRT:grid_src%J_STOP)
+#endif
+      RETURN
+      END SUBROUTINE REDIST_PACK
 
       SUBROUTINE ESMF_BCAST_0D(grd_dum, arr)
       IMPLICIT NONE
