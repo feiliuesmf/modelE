@@ -1480,6 +1480,7 @@ C****
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
      *     ,j_implh 
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
+      use cubic_eq, only : cubicroot
       IMPLICIT NONE
       integer i,j,J_0,J_1,I_0,I_1,jr,itm
       real*8 new_flake,sumh,msinew,snownew,frac,fmsi2,fmsi3
@@ -1489,6 +1490,8 @@ C****
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
 #endif
+      real*8 :: a,b,c,d, x(3), mwtot1, y
+      integer :: n_roots
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -1512,8 +1515,35 @@ C**** Save original fractions
             PLKIC=FLAKE(I,J)*    RSI(I,J)
 C**** calculate new lake size based on total mass
             mwtot=MWL(I,J)+PLKIC*(MSI(I,J)+SNOWI(I,J)+ACE1I)*AXYP(I,J)
-            new_flake=min(0.95d0*(FLAKE(I,J)+FEARTH(I,J)),(9d0*PI
-     *           *(TANLK(I,J)*mwtot/RHOW)**2)**BY3/AXYP(I,J))
+C**** assuming that all water forms a cone
+            new_flake = (9d0*PI*(TANLK(I,J)*mwtot/RHOW)**2)**BY3
+     &           /AXYP(I,J)
+
+            if ( new_flake > FLAKE(I,J) ) then
+C**** have to recompute new_flake to take into account
+C**** water that went to saturation
+
+C**** add saturation water already present under the lake
+              mwtot1 = mwtot + FLAKE(I,J)*AXYP(I,J)*DMWLDF(I,J)
+              
+C**** solve for radius of lake area (normalized so that new_flake = x^2)
+C**** water forms cone (lake water) + cylinder (saturated soil)
+              a = sqrt(AXYP(I,J))**3 / sqrt(PI)
+              b = 3.d0*DMWLDF(I,J)/RHOW*TANLK(I,J)*AXYP(I,J)
+              c = 0.d0
+              d = - 3.d0*TANLK(I,J)*mwtot1/RHOW
+
+              call cubicroot(a,b,c,d,x,n_roots)
+              if (n_roots<1) call stop_model("lakes: no solution",255)
+  
+C**** we need positive root (there is one and only one)
+              y = maxval( x(1:n_roots) ) 
+              new_flake = y**2
+C**** prevent confusion due to round-off errors
+              new_flake = max( new_flake, FLAKE(I,J) )
+            endif
+
+            new_flake=min( new_flake, 0.95d0*(FLAKE(I,J)+FEARTH(I,J)) )
 C**** prevent lakes flooding the snow in GHY
 C**** do not flood more than 4.9% of land per day
             new_flake=min( new_flake, FLAKE(I,J)+.049d0*FEARTH(I,J) )
