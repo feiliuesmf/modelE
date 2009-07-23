@@ -156,7 +156,7 @@ C**** grid_MIC stencils.
      *     ,irerun,lhead
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
       USE ICEDYN_COM
-      USE ICEDYN, only : grid_ICDYN,USI,VSI
+      USE ICEDYN, only : grid_ICDYN,imicdyn,jmicdyn,USI,VSI
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -165,9 +165,8 @@ C**** grid_MIC stencils.
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
-      REAL*8, DIMENSION(IMIC, JMIC) :: RSIX_glob,RSIY_glob,USI_glob
-     &                                ,VSI_glob
-
+      REAL*8, DIMENSION(IMIC, JMIC) :: RSIX_glob,RSIY_glob
+      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: USI_glob,VSI_glob
 
       write(MODULE_HEADER(lhead+1:80),'(a7,i3,a1,i3,a)')
      *     'R8 dim(',imic,',',jmic,'):RSIX,RSIY,USI,VSI'
@@ -516,9 +515,9 @@ c temporarily empty.
      &     adxyp=>dxyp,abydxyp=>bydxyp,imaxj
       USE ICEDYN, only : dxp,dyv
       USE ICEDYN, only : grid_ICDYN
-      USE ICEDYN, only : press,heffm,dwatn,cor
+      USE ICEDYN, only : press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
-     *     ,gwatx,gwaty,pgfub,pgfvb,amass,uib,vib,dmu,dmv
+     *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,uib,vib,dmu,dmv
      *     ,usi,vsi
       USE ICEDYN_COM, only : usidt,vsidt,rsisave,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi
@@ -536,7 +535,8 @@ C**** intermediate calculation for pressure gradient terms
 C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iUOSURF,iVOSURF,iDMUA,iDMVA
+     &     iUOSURF,iVOSURF,iDMUA,iDMVA,
+     &     iDMUI,iDMVI,aDMU,aDMV,aUSI,aVSI,aPSI	
 
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
@@ -545,6 +545,7 @@ C****
       INTEGER :: iJ_1   , iJ_0
       INTEGER :: iJ_1S  , iJ_0S
       INTEGER :: iJ_1H  , iJ_0H
+      INTEGER :: iJ_1STG, iJ_0STG
       INTEGER :: aI_1   , aI_0
       INTEGER :: aJ_1   , aJ_0
       INTEGER :: aI_1H  , aI_0H
@@ -556,6 +557,7 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       CALL iGET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
      &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
      &                   , J_STRT_HALO=iJ_0H  , J_STOP_HALO=iJ_1H )
+      call aGET(grid_ICDYN, J_STRT_STGR=iJ_0STG, J_STOP_STGR=iJ_1STG)
       call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
      &                   , J_STRT=aJ_0        , J_STOP=aJ_1     )
       call aGET(agrid    , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H     
@@ -570,20 +572,27 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     iMSI(1:IMICDYN,iJ_0H:iJ_1H),
      &     aHEFF(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aAREA(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aDMU(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aDMV(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aUSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aVSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aPSI(NX1,aJ_0H:aJ_1H),   !temporary hack
      &     iFOCEAN(1:IMICDYN,iJ_0H:iJ_1H),
      &     iUOSURF(1:IMICDYN,iJ_0H:iJ_1H),
      &     iVOSURF(1:IMICDYN,iJ_0H:iJ_1H),
      &     iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
-     &     iDMVA(1:IMICDYN,iJ_0H:iJ_1H)
+     &     iDMVA(1:IMICDYN,iJ_0H:iJ_1H),
+     &     iDMUI(1:IMICDYN,iJ_0H:iJ_1H),
+     &     iDMVI(1:IMICDYN,iJ_0H:iJ_1H)
      &     )
 
 C**** Start main loop
 C**** Replicate polar boxes
       if (agrid%HAVE_NORTH_POLE) then
-        RSI(aI_0:aI_1,aJM)=RSI(1,aJM)    !change this when we have 2d decomp atm RSI(1,aJM) might not be inside domain
-        MSI(aI_0:aI_1,aJM)=MSI(1,aJM)    !change this when we have 2d decomp atmosphere
-        DMUA(aI_0:aI_1,aJM,2) = DMUA(1,aJM,2)   !change this when we have 2d decomp atmosphere
-        DMVA(aI_0:aI_1,aJM,2) = DMVA(1,aJM,2)   !change this when we have 2d decomp atmosphere
+        RSI(2:aIM,aJM)=RSI(1,aJM)
+        MSI(2:aIM,aJM)=MSI(1,aJM)
+        DMUA(2:aIM,aJM,2) = DMUA(1,aJM,2)
+        DMVA(2:aIM,aJM,2) = DMVA(1,aJM,2)
       end if
 
 C**** save current value of sea ice concentration for ADVSI
@@ -843,142 +852,181 @@ C**** Calculate stress on ice velocity grid (B grid)
 
 C**** interpolate ice velocity and stress from B grid to C grid in atm
 C**** Update halos for UICE and DMU
-      CALL HALO_UPDATE(agrid,  UICE, from=SOUTH     )
-      CALL HALO_UPDATE(agrid,   DMU, from=SOUTH     )
-      do j=aJ_0STG,aJ_1STG
-        i=aim
-        do ip1=1,aim
+      CALL HALO_UPDATE(grid_ICDYN,  UICE, from=SOUTH     )
+      CALL HALO_UPDATE(grid_ICDYN,   DMU, from=SOUTH     )
+ 
+      do j=iJ_0STG,iJ_1STG
+        i=imicdyn
+        do ip1=1,imicdyn
           usi(i,j)=0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))
           IF (abs(USI(I,J)).lt.1d-10) USI(I,J)=0
-          DMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
-C**** Rescale DMUI to be net momentum into ocean
-          DMUI(I,J) = 0.5*DMUI(I,J)*(FOCEAN(I,J)*RSI(I,J)+FOCEAN(IP1,J)
-     *         *RSI(IP1,J))
+          iDMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
           i=ip1
         enddo
       enddo
+
 C**** Update halos for FOCEAN, DXYS, DXYV
       CALL HALO_UPDATE(agrid,  FOCEAN, from=NORTH     )
 
-      do j=aj_0,aj_1s
-        do i=1,aim
+      do j=iJ_0,iJ_1s
+        do i=1,imicdyn
           vsi(i,j)=0.5*(vice(i,j,1)+vice(i+1,j,1))
           IF (abs(VSI(I,J)).lt.1d-10) VSI(I,J)=0
-          DMVI(I,J) = 0.5*(dmv(i,j)+dmv(i+1,j))
+          iDMVI(I,J) = 0.5*(dmv(i,j)+dmv(i+1,j))
+       enddo
+      enddo
+
+      call INT_IG2AG_2D_Vector(iDMUI,iDMVI,DMUI,DMVI)
+
+C**** Update halos for FOCEAN, and RSI
+      CALL HALO_UPDATE(agrid,  FOCEAN)
+      CALL HALO_UPDATE(agrid,  RSI )
+
+      do j=aJ_0STG,aJ_1STG
+        do i=aI_0,aI_1
+           ip1=i+1
+           if (ip1 .eq. aIM+1) ip1=1
+C**** Rescale DMUI to be net momentum into ocean
+          DMUI(I,J) = 0.5*DMUI(I,J)*(FOCEAN(I,J)*RSI(I,J)+FOCEAN(ip1,J)
+     *         *RSI(ip1,J))
+        enddo
+      enddo
+
+      do j=aJ_0,aJ_1s
+        do i=aI_0,aI_1
 C**** Rescale DMVI to be net momentum into ocean
-          IF (J.lt.aJM-1) DMVI(I,J) = 0.5*DMVI(I,J)*(FOCEAN(I,J)
-     *         *RSI(I,J)*aDXYN(J)
-     *         +FOCEAN(I,J+1)*RSI(I,J+1)*aDXYS(J+1))/aDXYV(J+1)
-c          if (j.eq.8) 
-c     *         write(500+mype,*) "rsi(8)=",i,rsi(i,j),rsi(i,j+1),
-c     *         focean(i,j),focean(i,j+1),aDXYS(J+1)/aDXYV(J+1),
-c     *         aDXYN(J)
-          IF (J.eq.aJM-1) DMVI(I,aJM-1) = 0.5*DMVI(I,aJM-1)
-     *         *(FOCEAN(I,aJM-1)
-     *         *RSI(I,aJM-1)*aDXYN(aJM-1)+FOCEAN(1,aJM)
-     *         *RSI(1,aJM)*aDXYS(aJM))
+          IF (J.lt.aJM-1) DMVI(I,J) = 
+     &         0.5*DMVI(I,J)*(FOCEAN(I,J)*RSI(I,J)
+     *         *aDXYN(J)+FOCEAN(I,J+1)*RSI(I,J+1)*aDXYS(J+1))/aDXYV(J+1)
+          IF (J.eq.aJM-1) DMVI(I,aJM-1) = 
+     &         0.5*DMVI(I,aJM-1)*(FOCEAN(I,aJM-1)
+     *         *RSI(I,aJM-1)*aDXYN(aJM-1)
+     &         +FOCEAN(1,aJM)*RSI(1,aJM)*aDXYS(aJM))
      *         /aDXYV(aJM)
         enddo
       enddo
+
+      if (grid_ICDYN%HAVE_SOUTH_POLE) then
+        usi(1:imicdyn,1)=0.
+      endif
+      if (grid_ICDYN%HAVE_NORTH_POLE) then
+        vsi(1:imicdyn,ajm)=0.
+      endif
       IF (agrid%HAVE_SOUTH_POLE) then
-        usi(1:aim,1)=0.
-        dmui(1:aim,1)=0.
+        dmui(aI_0:aI_1,1)=0.
       END IF
       IF (agrid%HAVE_NORTH_POLE) then
-        vsi(1:aim,ajm)=0.
-        dmvi(1:aim,ajm)=0.
+        dmvi(aI_0:aI_1,ajm)=0.
       END IF
 
 C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
 C**** UI2rho = | tau |
 C**** Update halos for DMU, and DMV
-      CALL HALO_UPDATE(agrid,  DMU   , from=SOUTH     )
-      CALL HALO_UPDATE(agrid,  DMV   , from=SOUTH     )
+      CALL HALO_UPDATE(grid_ICDYN,  DMU   , from=SOUTH     )
+      CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
+
+      call INT_IG2AG_2D_Vector(DMU(1:imicdyn,:),DMV(1:imicdyn,:),
+     &     aDMU,aDMV)
 
       do j=aJ_0,aJ_1
         do i=1,imaxj(j)
           UI2rho(i,j)=0
           if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
 C**** calculate 4 point average of B grid values of stresses
-            duA = 0.5*(aDXYN(J)*(dmu(i+1,j)+dmu(i,j))
-     *            +aDXYS(j)*(dmu(i+1
-     *           ,j-1)+dmu(i,j-1)))*aBYDXYP(J)
-            dvA = 0.5*(aDXYN(J)*(dmv(i+1,j)+dmv(i,j))
-     *           +aDXYS(j)*(dmv(i+1
-     *           ,j-1)+dmv(i,j-1)))*aBYDXYP(J)
+            duA = 0.5*(aDXYN(J)*(admu(i+1,j)+admu(i,j))
+     *            +aDXYS(j)*(admu(i+1
+     *           ,j-1)+admu(i,j-1)))*aBYDXYP(J)
+            dvA = 0.5*(aDXYN(J)*(admv(i+1,j)+admv(i,j))
+     *           +aDXYS(j)*(admv(i+1
+     *           ,j-1)+admv(i,j-1)))*aBYDXYP(J)
             UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
           end if
         end do
       end do
 
-C**** set north pole in C grid (atm)
-      IF (agrid%HAVE_NORTH_POLE) THEN
+C**** set north pole 
+      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
         USINP=0.
+        do i=1,imicdyn
+          USINP = USINP + USI(i,jmicdyn)
+        enddo
+        USINP=USINP/IMICDYN  
+        USI(1:imicdyn,jmicdyn)=USINP
+        VSI(1:imicdyn,jmicdyn)=0.
+      END IF
+C**** dmui,dmvi on atm C grid
+      IF (agrid%HAVE_NORTH_POLE) THEN
         DMUINP=0.
         do i=1,aim
-          USINP = USINP + USI(i,ajm)
           DMUINP = DMUINP + DMUI(i,ajm)
         enddo
-        USINP=USINP/aIM
         DMUINP=DMUINP/aIM
-        USI(1:aim,ajm)=USINP
         DMUI(1:aim,ajm)=DMUINP
-        VSI(1:aim,ajm)=0.
         DMVI(1:aim,ajm)=0.
       END IF
+
+      call INT_IG2AG_2D_Vector(USI,VSI,aUSI,aVSI)
+      call INT_IG2AG_2D_NX1(press,apsi)
 
 C**** calculate mass fluxes for the ice advection
 C**** Update halos for FOCEAN, and RSI
       CALL HALO_UPDATE(agrid,  FOCEAN, from=NORTH     )
       CALL HALO_UPDATE(agrid,  RSI   , from=NORTH     )
 
+
       DO J=aJ_0,aJ_1S
-        I=aIM
-        DO IP1=1,aIM
+        DO I=aI_0,aI_1
+         ip1=i+1
+         if (ip1 .eq. aIM+1) ip1=1
           USIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      *         RSI(I,J)+RSI(IP1,J).gt.1d-4) THEN
-            USIDT(I,J)=USI(I,J)*DTS
+            USIDT(I,J)=aUSI(I,J)*DTS
             ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(RSI(I,J)+RSI(IP1,J))
-     *           *USI(i,j)
+     *           *aUSI(i,j)
             ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
           END IF
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      *         RSI(I,J)+RSI(I,J+1).gt.1d-4) THEN
-            VSIDT(I,J)=VSI(I,J)*DTS
+            VSIDT(I,J)=aVSI(I,J)*DTS
             ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(RSI(I,J)+RSI(I,J+1))
-     *           *VSI(i,j)
+     *           *aVSI(i,j)
             ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
           END IF
-          ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ RSI(I,J)*press(i+1,j)
+          ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ RSI(I,J)*apsi(i+1,j)
           ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + RSI(I,J)
-          I=IP1
         END DO
       END DO
       IF (agrid%HAVE_NORTH_POLE) THEN
         VSIDT(1:aIM,aJM)=0.
-        USIDT(1:aIM,aJM)=USI(1,aJM)*DTS
-        ICIJ(1,aJM,IJ_USI) =ICIJ(1,aJM,IJ_USI) +RSI(1,aJM)*USI(1,aJM)
+        USIDT(1:aIM,aJM)=aUSI(1,aJM)*DTS
+        ICIJ(1,aJM,IJ_USI) =ICIJ(1,aJM,IJ_USI) +RSI(1,aJM)*aUSI(1,aJM)
         ICIJ(1,aJM,IJ_DMUI)=ICIJ(1,aJM,IJ_DMUI)+DMUI(1,aJM)
         ICIJ(1,aJM,IJ_RSI) =ICIJ(1,aJM,IJ_RSI) +RSI(1,aJM)
-        ICIJ(1,aJM,IJ_PICE)=ICIJ(1,aJM,IJ_PICE)+RSI(1,aJM)*press(1,aJM)
+        ICIJ(1,aJM,IJ_PICE)=ICIJ(1,aJM,IJ_PICE)+RSI(1,aJM)*apsi(1,aJM)
       END IF
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
-      call get_uisurf(usi,vsi,uisurf,visurf)
+      call get_uisurf(aUSI,aVSI,uisurf,visurf)
 C****
-c      write(340+myPE,*) DMUI
-c      do i=1,imicdyn
+
+c      do i=1,aim
+c         do j=aj_0,aj_1s
+c            write(340+myPE,*) i,j,DMUI(i,j)
+c         enddo
+c      enddo
+c      do i=1,aim
 c         do j=aj_0,aj_1s
 c            write(350+myPE,*) i,j,DMVI(i,j)
 c         enddo
 c      enddo
 c      write(360+myPE,*) DMU
 c      write(370+myPE,*) DMV
+c      write(380+mype,*) usi
 
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iUOSURF,iVOSURF,iDMUA,iDMVA)
-
+     &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,aPSI,
+     &     iDMUI,iDMVI)
 
       RETURN
       END SUBROUTINE DYNSI
@@ -1625,10 +1673,12 @@ C****
 !sumxpe global array on target latlon icedyn grid then scatter
 
 #else 
-c*** atm and icedyn grids are both latlon with equal resolution
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
       iA=aA
 #endif
       end subroutine INT_AG2IG_2D
+
 
       subroutine INT_AG2IG_2D_Vector(aU,aV,iU,iV) 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
@@ -1650,7 +1700,8 @@ c*** atm and icedyn grids are both latlon with equal resolution
       iV=0      ! temporary 
 
 #else 
-c*** atm and icedyn grids are both latlon with equal resolution
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
       iU=aU
       iV=aV
 #endif
@@ -1670,10 +1721,34 @@ c*** atm and icedyn grids are both latlon with equal resolution
 !sumxpe global array on target latlon icedyn grid then scatter
 
 #else 
-c*** atm and icedyn grids are both latlon with equal resolution
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
       aA=iA
 #endif
       end subroutine INT_IG2AG_2D
+
+      subroutine INT_IG2AG_2D_NX1(iA,aA)
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET
+      USE ICEDYN, only : NX1,IMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+     &     aA(NX1,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     iA(NX1,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+
+c*** temporary hack, works only if aA has dimensions aA(NX1,J0h:J_1H)
+
+#ifdef CUBED_GRID
+!sumxpe global array on target latlon icedyn grid then scatter
+
+#else 
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
+      aA=iA
+#endif
+      end subroutine INT_IG2AG_2D_NX1
 
       subroutine INT_IG2AG_2D_Vector(iU,iV,aU,aV) 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
@@ -1695,7 +1770,8 @@ c*** atm and icedyn grids are both latlon with equal resolution
       aV=0      ! temporary 
 
 #else 
-c*** atm and icedyn grids are both latlon with equal resolution
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
       aU=iU
       aV=iV
 #endif
@@ -2073,11 +2149,15 @@ C**** temporary assumption that ice velocities are on atmos B grid
       Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
       Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
 
+      POLE=.FALSE.
+
 C**** go from ice C to atm A
       do j=J_0,J_1
         IM1=IM
         do i=I_0,IMAXJ(J)
+#ifndef CUBE_GRID
           POLE= (J.EQ.1 .or. J.EQ.JM)
+#endif
           HEMI=1.
           IF(J.LE.JM/2) HEMI=-1.
 C**** Note that usi,vsi start with j=1, (not j=2 as in atm winds)
