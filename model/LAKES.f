@@ -1518,8 +1518,10 @@ C**** calculate new lake size based on total mass
 C**** assuming that all water forms a cone
             new_flake = (9d0*PI*(TANLK(I,J)*mwtot/RHOW)**2)**BY3
      &           /AXYP(I,J)
+C**** dont saturate soil under ridiculously small lakes
+            if( new_flake < 1.d-11 ) DMWLDF(I,J) = 0.d0
 
-            if ( new_flake > FLAKE(I,J) ) then
+            if ( new_flake > FLAKE(I,J) .and. DMWLDF(I,J) > 0.d0 ) then
 C**** have to recompute new_flake to take into account
 C**** water that went to saturation
 
@@ -1537,8 +1539,21 @@ C**** water forms cone (lake water) + cylinder (saturated soil)
               if (n_roots<1) call stop_model("lakes: no solution",255)
   
 C**** we need positive root (there is one and only one)
-              y = maxval( x(1:n_roots) ) 
+              y = maxval( x(1:n_roots) )
+cddd              write(678,*) "abcd", a,b,c,d
+cddd              write(678,*) "root", y, a*y**3+b*y**2+c*y+d
+cddd              write(678,*) "new_flake",new_flake,y**2
+              
               new_flake = y**2
+
+cddd              write(678,*) "vol, dvol", mwtot1,
+cddd     &             1.d0/3.d0*sqrt(new_flake*AXYP(I,J)/PI)/TANLK(I,J)
+cddd     &             *new_flake*AXYP(I,J)*RHOW
+cddd     &             + new_flake*AXYP(I,J)*DMWLDF(I,J),           
+cddd     &             1.d0/3.d0*sqrt(new_flake*AXYP(I,J)/PI)/TANLK(I,J)
+cddd     &             *new_flake*AXYP(I,J)*RHOW
+cddd     &             + new_flake*AXYP(I,J)*DMWLDF(I,J) - mwtot1
+
 C**** prevent confusion due to round-off errors
               new_flake = max( new_flake, FLAKE(I,J) )
             endif
@@ -1588,8 +1603,18 @@ C**** this is just here to see whether this ever happens.
      *                   -FLAKE(I,J))*AXYP(I,J))/MWL(I,J),MWL(I,J)
      *                   ,(DMWLDF(I,J)*(new_flake-FLAKE(I,J))*AXYP(I,J))
      *                   ,(new_flake-FLAKE(I,J))
-                    call stop_model('Not enough water for saturation'
-     *                   ,255)
+     &                   ,MWL(I,J)
+     &                   +PLKIC*(MSI(I,J)+SNOWI(I,J)+ACE1I)*AXYP(I,J)
+                    print *,"frac= ",FLAKE(I,J), new_flake,
+     &                   new_flake-FLAKE(I,J)
+                    print *,"DMWLDF(I,J)", DMWLDF(I,J)
+                    !call stop_model('Not enough H2O for saturation',255)
+!!! hack just dont saturate soil if you have no water
+                    DMWLDF(I,J) = 0.d0
+                    DGML(I,J) = 0.d0
+#ifdef TRACERS_WATER
+                    DTRL(:,I,J) = 0.d0
+#endif
                   end if
                 END IF
 C**** conserve lake ice
