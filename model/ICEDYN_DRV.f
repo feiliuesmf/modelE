@@ -572,8 +572,8 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     iMSI(1:IMICDYN,iJ_0H:iJ_1H),
      &     aHEFF(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aAREA(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aDMU(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aDMV(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aDMU(NX1,aJ_0H:aJ_1H),    !temporary hack
+     &     aDMV(NX1,aJ_0H:aJ_1H),    !temporary hack
      &     aUSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aVSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aPSI(NX1,aJ_0H:aJ_1H),   !temporary hack
@@ -925,7 +925,7 @@ C**** Update halos for DMU, and DMV
       CALL HALO_UPDATE(grid_ICDYN,  DMU   , from=SOUTH     )
       CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
 
-      call INT_IG2AG_2D_Vector(DMU(1:imicdyn,:),DMV(1:imicdyn,:),
+      call INT_IG2AG_2D_Vector_NX1(DMU,DMV,
      &     aDMU,aDMV)
 
       do j=aJ_0,aJ_1
@@ -1023,6 +1023,12 @@ c      enddo
 c      write(360+myPE,*) DMU
 c      write(370+myPE,*) DMV
 c      write(380+mype,*) usi
+c      write(390+mype,*) vsi
+c      write(400+mype,*) usidt
+c      write(410+mype,*) vsidt
+c      write(420+mype,*) uisurf
+c      write(430+mype,*) visurf
+c      write(440+mype,*) ui2rho
 
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,aPSI,
@@ -1750,6 +1756,34 @@ c***  both latlon with equal resolution
 #endif
       end subroutine INT_IG2AG_2D_NX1
 
+      subroutine INT_IG2AG_2D_Vector_NX1(iU,iV,aU,aV) 
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET
+      USE ICEDYN, only : NX1,IMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+     &     aU(NX1,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     aV(NX1,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     iU(NX1,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
+     &     iV(NX1,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+c*** temporary hack
+
+#ifdef CUBED_GRID
+      aU=0      ! temporary
+      aV=0      ! temporary 
+
+#else 
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
+      aU=iU
+      aV=iV
+#endif
+      end subroutine INT_IG2AG_2D_Vector_NX1
+
       subroutine INT_IG2AG_2D_Vector(iU,iV,aU,aV) 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE DOMAIN_DECOMP_1D, only : iGET=>GET
@@ -1776,6 +1810,8 @@ c***  both latlon with equal resolution
       aV=iV
 #endif
       end
+
+
 
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
