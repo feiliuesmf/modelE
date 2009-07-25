@@ -437,6 +437,7 @@ c***      USE ESMF_MOD, Only : ESMF_HaloDirection
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       INTEGER :: JMIN_FILL,JMAX_FILL
+      integer, save :: iu_warn=0
 
 c***      Type (ESMF_HaloDirection) :: direction
       Integer :: direction ! ESMF_HaloDirection not yet implemented
@@ -496,11 +497,12 @@ C**** initialise FLAKE if requested (i.e. from older restart files)
       end if
 
 C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
+      if (iu_warn==0) call openunit("warn_lakes",iu_warn)
       DO J=J_0, J_1
         DO I=I_0, I_1
           IF (FLAKE0(I,J)+FLAKE(I,J).gt.0 .and. HLAKE(I,J).lt.1.) THEN
-            print*,"Warning: Fixing HLAKE",i,j,FLAKE(I,J),FLAKE0(I,J)
-     *           ,HLAKE(I,J),"--> 1m"
+            write(iu_warn,*) "Warning: Fixing HLAKE",i,j,FLAKE(I,J),
+     *           FLAKE0(I,J),HLAKE(I,J),"--> 1m"
             HLAKE(I,J)=1.
           END IF
         END DO
