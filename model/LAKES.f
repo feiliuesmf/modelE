@@ -1490,7 +1490,7 @@ C****
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
 #endif
-      real*8 :: a,b,c,d, x(3), mwtot1, y
+      real*8 :: a,b,c,d, x(3), mwtot1, y, mwsat
       integer :: n_roots
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -1521,6 +1521,7 @@ C**** assuming that all water forms a cone
 C**** dont saturate soil under ridiculously small lakes
             if( new_flake < 1.d-11 ) DMWLDF(I,J) = 0.d0
 
+            mwsat = 0.d0
             if ( new_flake > FLAKE(I,J) .and. DMWLDF(I,J) > 0.d0 ) then
 C**** have to recompute new_flake to take into account
 C**** water that went to saturation
@@ -1556,8 +1557,8 @@ cddd     &             + new_flake*AXYP(I,J)*DMWLDF(I,J) - mwtot1
 
 C**** prevent confusion due to round-off errors
               new_flake = max( new_flake, FLAKE(I,J) )
+              mwsat = (new_flake-FLAKE(I,J))*AXYP(I,J)*DMWLDF(I,J)
             endif
-
             new_flake=min( new_flake, 0.95d0*(FLAKE(I,J)+FEARTH(I,J)) )
 C**** prevent lakes flooding the snow in GHY
 C**** do not flood more than 4.9% of land per day
@@ -1565,8 +1566,8 @@ C**** do not flood more than 4.9% of land per day
             hlk=0.
             hlkic=0.
             if (new_flake.gt.0) then
-              hlk=MWL(I,J)/(RHOW*new_flake*AXYP(I,J))  ! potential new water height
-              hlkic=mwtot/(RHOW*new_flake*AXYP(I,J)) ! pot. new height including ice
+              hlk=(MWL(I,J)-mwsat)/(RHOW*new_flake*AXYP(I,J))  ! potential new water height
+              hlkic=(mwtot-mwsat)/(RHOW*new_flake*AXYP(I,J)) ! pot. new height including ice
             end if
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (new_flake.gt.0 .and. (hlk.gt.1. .or. (hlk.gt.0.5 
