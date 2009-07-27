@@ -95,7 +95,7 @@
         real*8, dimension(:), pointer :: rifp          ! clumping factor * foliage profile
         real*8, dimension(:), pointer :: efp           ! effective foliage profile for each profile
         real*8, dimension(:), pointer :: vz            ! trunk volumn
-	end type profile_params
+      end type profile_params
 
       !----------------------------------------------------
       ! pft physical state variables structure
@@ -1237,11 +1237,14 @@
           vz(i) = gin%dbh * gin%dens_tree * tan(gin%zenith) * maxv
         else
           tmpv = gin%dbh * gin%dens_tree * tan(gin%zenith) / hdif
-          do iz = gin%h1 + gin%delta_z/2, gin%h2, gin%delta_z
+          iz =gin%h1 + gin%delta_z/2 
+          do while (iz <= gin%h2) 
+          ! do iz = gin%h1 + gin%delta_z/2, gin%h2, gin%delta_z
              maxv = iz - z
              if (maxv < 0) maxv = 0
              vz(i) = vz(i) + gin%delta_z * maxv
-             ! vz(i) = vz(i) + gin%delta_z * (z2/2-min(z,iz)) 
+             ! vz(i) = vz(i) + gin%delta_z * (z2/2-min(z,iz))
+             iz = iz + gin%delta_z 
           end do
           vz(i) = vz(i) * tmpv
         end if
