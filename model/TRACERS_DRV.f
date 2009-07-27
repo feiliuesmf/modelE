@@ -8263,7 +8263,10 @@ C    Initialize:
 #endif
 C Put aircraft for so2 and BC
       if (imPI.eq.0) then
-      if (imAER.ne.1.and.imAER.ne.3) then
+      so2_src_3d(:,:,:,2)= 0.d0
+      bci_src_3d(:,:,:)=0.d0
+      craft(:,:,:) = 0d0
+      if (imAER.ne.1.and.imAER.ne.3.and.imAER.ne.5) then
 
       if ( AM_I_ROOT() ) then
         write(6,*) 'Reading of the AIRCRAFT file now uses ',
@@ -8273,9 +8276,6 @@ C Put aircraft for so2 and BC
       endif
       call stop_model('AIRCRAFT file',255)
 
-      so2_src_3d(:,:,:,2)= 0.d0
-      bci_src_3d(:,:,:)=0.d0
-      craft(:,:,:) = 0d0
       call openunit('AIRCRAFT',iuc2,.true.,.true.)
       if (lm.eq.23) then
         lmax = ls1+1
@@ -8415,7 +8415,7 @@ c 1.3 converts OC to OM
      * *1.3d0/(sday*365.d0)
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
-      if (imAER.ne.3) then  !else read in daily
+      if (imAER.ne.3.and.imAER.ne.5) then  !else read in daily
 c read in NH3 emissions
 c Industrial
       NH3_src_con(:,:)=0.d0
@@ -8647,13 +8647,13 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       end do
 #endif
 
-        if (imAER.eq.3) then 
+        if (imAER.eq.3.or.imAER.eq.5) then 
         do n=1,ntm
         select case (trname(n))
         case ('SO2')
         call read_hist_SO2(iact)
-        call get_ships(iact)  !reads in SO2, BC and POM sources
-        call get_aircraft_SO2   ! this does SO2 and BCIA
+        if (imAER.eq.3) call get_ships(iact)  !reads in SO2, BC and POM sources
+        if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
         case ('BCII')  !this does BC and OC
         call get_BCOC(iact)
         case ('M_BC1_BC')  !this does BC and OC
@@ -9383,9 +9383,9 @@ c     endif
 c End Laki code
       tr3Dsource(:,J_0:J_1,:,1,n) = so2_src_3d(:,J_0:J_1,:,1)*0.975d0
       call apply_tracer_3Dsource(1,n) ! volcanos
-      if (imAER.ne.3)
+      if (imAER.ne.3.and.imAER.ne.5)
      *tr3Dsource(:,J_0:J_1,:,2,n) = so2_src_3d(:,J_0:J_1,:,2)
-      if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3) 
+      if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5) 
      * call apply_tracer_3Dsource(2,n) ! aircraft
 #ifndef EDGAR_1995
 C**** biomass source for SO2 
@@ -9469,9 +9469,9 @@ c DMK or here:
 
        case ('BCIA')
 C**** aircraft source for fresh industrial BC
-      if (imAER.ne.3) tr3Dsource(:,J_0:J_1,:,2,n) 
+      if (imAER.ne.3.and.imAER.ne.5) tr3Dsource(:,J_0:J_1,:,2,n) 
      *   = BCI_src_3d(:,J_0:J_1,:)
-      if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3) 
+      if (imAER.eq.0.or.imAER.eq.2.or.imAER.eq.3.or.imAER.eq.5) 
      *  call apply_tracer_3Dsource(2,n) ! aircraft
 
        case ('BCB')

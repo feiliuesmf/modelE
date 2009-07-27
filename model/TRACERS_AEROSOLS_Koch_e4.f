@@ -113,13 +113,14 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
       subroutine alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, get
+      USE TRACER_COM, only: imAER
       use AEROSOL_SOURCES, only: DMSinput,DMS_AER,SS1_AER,SS2_AER,
      * nso2src,SO2_src,BCI_src,BCB_src,BCBt_src,lmAER,nomsrc,
      * OCI_src,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     * OCB_src,OCBt_src,BCI_src_3D,imAER,
+     * OCB_src,OCBt_src,BCI_src_3D,
      * hbc,hoc,hso2,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,SO2_biosrc_3D,
      * ohr,dho2r,perjr,
@@ -668,33 +669,145 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE MODEL_COM, only: jyear,im,jm,jmon
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE GEOM, only: axyp
-      USE TRACER_COM, only: aer_int_yr
+      USE TRACER_COM, only: aer_int_yr,imAER,n_bcb,n_ocb,n_so2
+     * ,ty_start,ty_end,trname,freq
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
-      integer ihyr,iuc,mm,iact,j
+      integer ihyr,iuc,mm,iact,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
+     * ,ndec,tye
       integer J_0,J_1,J_0H,J_1H
-      real*8 tfac
+      real*8 tfac,d3,d1,d2,tot
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     * hBC_read
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2) ::
+     * hBC,hOC,hSO2
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) ::
+     * hBC_all,hOC_all,hSO2_all
       character*80 title
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      if (iact.eq.0) then
+c     if (iact.eq.0) then
+      if (aer_int_yr.eq.0) then
+      ihyr=jyear
+      else
+      ihyr=aer_int_yr
+      endif
       so2_biosrc_3D(:,:,:,:)= 0.d0
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
-c 
-      call openunit('BC_BIOMASS',iuc,.true.,.true.)
+      hbc(:,:,:)=0.d0
+      hoc(:,:,:)=0.d0
+      hso2(:,:,:)=0.d0
+      hbc_all(:,:,:)=0.d0
+      hoc_all(:,:,:)=0.d0
+      hso2_all(:,:,:)=0.d0
+      if (imAER.eq.5) then
+      ns=2
+      n=n_BCB 
+      do nc=1,ns
+      hbc_read(:,:)=0.0
+ 111  format(a7,i1)
+      write(title,111) 'BCB_EM_',nc
+      call openunit(title,iuc, .true.,.true.)
+      call read_emis_header(n,ns,iuc)
+      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+      do iy=1,ndec
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+          end select
+      hBC_all(:,:,iy)=hBC_all(:,:,iy)+hbc_read(:,:)
+      end do
+      call closeunit(iuc)
+      end do
+      tot=0
+      n=n_OCB 
+      do nc=1,ns
+      hbc_read(:,:)=0.0
+      write(title,111) 'OCB_EM_',nc
+      call openunit(title,iuc, .true.,.true.)
+      call read_emis_header(n,ns,iuc)
+      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+      do iy=1,ndec
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+          end select
+      hOC_all(:,:,iy)=hOC_all(:,:,iy)+hbc_read(:,:)
+      end do
+      call closeunit(iuc)
+      end do
+      n=n_SO2 
+      do nc=1,ns
+      hbc_read(:,:)=0.0
+ 112  format(a8,i1)
+      write(title,112) 'SO2B_EM_',nc
+      call openunit(title,iuc, .true.,.true.)
+      call read_emis_header(n,ns,iuc)
+      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+      do iy=1,ndec
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+          end select
+      hSO2_all(:,:,iy)=hSO2_all(:,:,iy)+hbc_read(:,:)
+      end do
+      call closeunit(iuc)
+      end do
+      tye=ty_end(n,ns)
+      tys=ty_start(n,ns)
+      if (ihyr.lt.tys) ihyr=tys
+      if (ihyr.ge.tye) ihyr=tye
+c
+      do i=1,ndec
+      jbt=tys+(i-1)*10
+      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+      jb1=jbt
+      jb2=jbt+10
+      irr=i
+      go to 23
+      endif
+      end do
+  23  continue
+      hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
+      hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
+      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+c  the AR5 emissions are kg/m2/s
+      do i=1,im
+      do j=j_0,j_1
+      hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)
+      hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)
+      hso2(i,j,:)=hso2(i,j,:)*axyp(i,j)
+      end do
+      end do
+c kg/year to kg/s
+c OM=1.4 x OC
+      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)*1.4d0
+c interpolate to model year
+c
+      d1=real(ihyr-jb1)
+      d2=real(jb2-ihyr)
+      d3=real(jb2-jb1)
+      BCBt_src(:,j_0:j_1)=(d1*hbc(:,j_0:j_1,2)
+     * +d2*hbc(:,j_0:j_1,1))/d3
+      OCBt_src(:,j_0:j_1)=(d1*hoc(:,j_0:j_1,2)
+     * +d2*hoc(:,j_0:j_1,1))/d3
+      SO2t_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
+     * +d2*hso2(:,j_0:j_1,1))/d3
+      endif
+
+      if (imAER.eq.3) then
+       call openunit('BC_BIOMASS',iuc,.true.,.true.)
        do mm=1,12
        call readt_parallel(grid,iuc,nameunit(iuc),BCB_src(:,:,1,mm),0)
        end do
        call closeunit(iuc)
-c
-      call openunit('OC_BIOMASS',iuc,.true.,.true.)
+       call openunit('OC_BIOMASS',iuc,.true.,.true.)
        do mm=1,12
        call readt_parallel(grid,iuc,nameunit(iuc),OCB_src(:,:,1,mm),0)
        end do
        call closeunit(iuc)
-       endif
 c scale by year
        if (aer_int_yr.eq.0) then
        ihyr=jyear
@@ -719,26 +832,30 @@ c
        SO2t_src(:,j,1)=SO2t_src(:,j,1)*tfac
        end do
        endif
+      endif
       end subroutine get_hist_BMB
 
       SUBROUTINE get_BCOC(iact)
 c Carbonaceous aerosol emissions
       USE CONSTANT, only : syr
-      USE MODEL_COM, only: jyear, jday,im,jm
+      USE GEOM, only: AXYP
+      USE MODEL_COM, only: jyear,jmon,jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_bcii,n_ocii
+     * ty_start,ty_end,n_bcii,n_ocii,imAER
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
       implicit none
+      character*20 title
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
-     * ,n,tys,tye,ns 
-c     intent(in) :: n
+     * ,n,tys,tye,ns,nc 
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     * hOC_read,hBC_read
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
      * hOC_all,hBC_all
-      real*8 d1,d2,d3,xbcff,xbcbm,xombm
+      real*8 d1,d2,d3,xbcff,xbcbm,xombm,tot
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
@@ -759,25 +876,58 @@ c     if (iact.eq.0.or.jday.eq.1) then
       hoc_all(:,:,:)=0.0
       hbc_all(:,:,:)=0.0
 c for now we assume the number of decades BC and OC are the same   
-      call openunit('BC_INDh',iuc, .true.,.true.)
+      if (imAER.eq.5) then
+      ns=7
+      else 
       ns=1
+      endif
       n=n_BCII
+      do nc=1,ns
+      hbc_read(:,:)=0.0
+      write(title,111) 'BC_EM_',nc
+      call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
-       call readt_parallel(grid,iuc,nameunit(iuc),hbc_all(:,:,iy),0)
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+          case('a')        ! annual file, only read first time
+       call readt_parallel(grid,iuc,nameunit(iuc),hbc_read(:,:),0)
+c hardcoding - old sources are kg/year
+           hbc_read(:,:)=hbc_read(:,:)/syr
+          end select
+      hbc_all(:,:,iy)=hbc_all(:,:,iy)+hbc_read(:,:)
       end do
       call closeunit(iuc)
-
-      call openunit('OC_INDh',iuc, .true.,.true.)
+      end do
+c 
+      if (imAER.eq.5) then
+      ns=7
+      else
       ns=1
+      endif
       n=n_OCII
+      do nc=1,ns
+      hoc_read(:,:)=0.0
+      write(title,111) 'OC_EM_',nc
+ 111  format(a6,i1)
+      call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
-       call readt_parallel(grid,iuc,nameunit(iuc),hoc_all(:,:,iy),0)
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+         call read_mon_src_2(n,ns,iuc,hoc_read(:,:))
+          case('a')
+       call readt_parallel(grid,iuc,nameunit(iuc),hoc_read(:,:),0)
+c hardcoding - old sources are kg/year
+           hoc_read(:,:)=hoc_read(:,:)/syr
+          end select
+      hoc_all(:,:,iy)=hoc_all(:,:,iy)+hoc_read(:,:)
       end do
       call closeunit(iuc)
+      end do
       tye=ty_end(n,ns)
       tys=ty_start(n,ns)
       if (ihyr.lt.tys) ihyr=tys
@@ -795,10 +945,25 @@ c for now we assume the number of decades BC and OC are the same
   23  continue
       hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
       hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
+      if (imAER.eq.5) then
+c  the AR5 emissions are kg/m2/s
+      do i=1,im
+      do j=j_0,j_1
+      hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)
+      hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)
+      end do
+      end do
+      endif
+      tot=0
+      do i=1,im
+      do j=1,jm
+      tot=tot+hbc_all(i,j,1)*axyp(i,j)
+      end do
+      end do
 c kg/year to kg/s
-      hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
+c     hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
 c OM=1.4 x OC
-      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)/syr*1.4d0
+      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)*1.4d0
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
@@ -814,20 +979,24 @@ c
       SUBROUTINE read_hist_SO2(iact)
 c historic BC emissions
       USE CONSTANT, only : syr
+      USE GEOM, only: AXYP
       USE MODEL_COM, only: jyear, jday,im,jm
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_so2
+     * ty_start,ty_end,n_so2,imAER
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
-     * ,n,tys,tye,ns
+     * ,n,tys,tye,ns,nc
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     * hso2_read
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
      * hso2_all
-      real*8 d1,d2,d3,xso2ff
+      real*8 d1,d2,d3,xso2ff,ff
+      character*20 title
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
@@ -837,22 +1006,38 @@ c if run just starting or if it is a new year
 c   then open new files
 c     if (iact.eq.0.or.jday.eq.1) then
       SO2_src(:,:,:)=0.d0
+      hso2_all(:,:,:)=0.d0 
+       hso2(:,:,:)=0.0
+      ff=1.d0
       if (aer_int_yr.eq.0) then
         ihyr=jyear
       else
         ihyr=aer_int_yr
       endif
-       hso2_all(:,:,:)=0.0
-       hso2(:,:,:)=0.0
-      call openunit('SO2_INDh',iuc, .true.,.true.)
+      if (imAER.eq.5) then
+      ns=6
+      else
       ns=1
+      endif
       n=n_SO2
+      do nc=1,ns
+      hSO2_read(:,:)=0.d0
+      write(title,111) 'SO2_EM_',nc
+ 111  format(a7,i1)
+      call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
-       call readt_parallel(grid,iuc,nameunit(iuc),hso2_all(:,:,iy),0)
+       select case(freq(n,ns))
+       case('m')
+       call read_mon_src_2(n,ns,iuc,hso2_read(:,:))
+       case('a')
+       call readt_parallel(grid,iuc,nameunit(iuc),hso2_read(:,:),0)
+       end select
+      hso2_all(:,:,iy)=hso2_all(:,:,iy)+hso2_read(:,:)*ff
       end do
       call closeunit(iuc)
+      end do
       tye=ty_end(n,ns)
       tys=ty_start(n,ns)
       if (ihyr.lt.tys) ihyr=tys
@@ -870,9 +1055,18 @@ c     if (iact.eq.0.or.jday.eq.1) then
   23  continue
 c
       hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+      if (imAER.eq.5) then
+c  the AR5 emissions are kg SO2/m2/s
+c no they aren't they are in kgS/m2/s, all except for ship
+      do i=1,im
+      do j=j_0,j_1
+      hso2(i,j,:)=hso2(i,j,:)*axyp(i,j)   !*2.d0
+      end do
+      end do
+      else
 c kg/year to kg/s and x2 to convert from S to SO2
         hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)*2.d0/syr
-c     endif
+      endif
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
@@ -887,17 +1081,25 @@ c
 c historic BC emissions
       USE MODEL_COM, only: jyear, jday,im,jm
       USE CONSTANT, only: sday
-      USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_ATM, only :  GRID, GET 
-      USE TRACER_COM, only: aer_int_yr
+      USE GEOM, only: AXYP
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
+      USE TRACER_COM, only: aer_int_yr,imAER,n_NH3
+     * ,trname,freq,nameT,ty_start,ty_end,ssname
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
-     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
+     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec,ns1,ns2,n,nc
+     * ,tys,tye,ns
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
      * hnh3_con_all,hnh3_cyc_all
-      real*8 d1,d2,d3,xso2ff
+      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     * hnh3_read,hnh3_ocean
+      real*8 d1,d2,d3,xso2ff,tot
+      character*2 :: nu(10)=(/'01','02','03','04','05','06','07',
+     *  '08','09','10'/)
+      character*20 title
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
@@ -917,30 +1119,66 @@ c     if (iact.eq.0.or.jday.eq.1) then
        hnh3_con(:,:,:)=0.0
        hnh3_cyc_all(:,:,:)=0.0
        hnh3_cyc(:,:,:)=0.0
+       hnh3_ocean(:,:)=0.d0
+       n=n_NH3
+       if (imAER.eq.5) then
+       ns1=0
+       ns2=7
+       if (aer_int_yr.eq.2000) ns2=9
+       else
+       ns1=1
+       ns2=1
+       endif
+       do nc=1,ns1
+       hnh3_read(:,:)=0.d0
+       write(title,111) 'NH3_CYC_',nu(nc)
+ 111   format(a8,a2)
+      call openunit(title,iuc, .true.,.true.)
+      call read_emis_header(n,ns1,iuc)
+      ndec=(ty_end(n,ns1)-ty_start(n,ns1))/10+1
+      do iy=1,ndec
+       select case(freq(n,ns1))
+       case('m')
+       call read_mon_src_2(n,ns1,iuc,hnh3_read(:,:))
+       case('a')
+       call readt_parallel(grid,iuc,nameunit(iuc),hnh3_read(:,:),0)
+       end select
+       hnh3_cyc_all(:,:,iy)=hnh3_cyc_all(:,:,iy)+hnh3_read(:,:)
+      end do
+      call closeunit(iuc)
+      end do
+c
+       do nc=1,ns2
+       hnh3_read(:,:)=0.d0
+       write(title,111) 'NH3_CON_',nu(nc)
+      call openunit(title,iuc, .true.,.true.)
+      call read_emis_header(n,ns2,iuc)
+      ndec=(ty_end(n,ns2)-ty_start(n,ns2))/10+1
+      do iy=1,ndec
+       select case(freq(n,ns2))
+       case('m')
+       call read_mon_src_2(n,ns2,iuc,hnh3_read(:,:))
+       case('a')
+       if (imAER.eq.5.and.nc.eq.1) then
+       call readt_parallel(grid,iuc,nameunit(iuc),hnh3_ocean(:,:),0)
+       else
+       call readt_parallel(grid,iuc,nameunit(iuc),hnh3_read(:,:),0)
+       endif
+       end select
+      hnh3_con_all(:,:,iy)=hnh3_con_all(:,:,iy)+hnh3_read(:,:)
+      end do
+      call closeunit(iuc)
+      end do
+c this is sloppy
+      ns=ns1
+      if (ns2.gt.ns1) ns=ns2
+      tye=ty_end(n,ns)
+      tys=ty_start(n,ns)
+      if (ihyr.lt.tys) ihyr=tys
+      if (ihyr.ge.tye) ihyr=tye
 
-      call openunit('NH3SOURCE_CYC',iuc, .false.,.true.)
-      read(iuc,*) ndec,idec1
-      do ip=1,30000
-      read(iuc,*) ii,jj,iy,xso2ff
-      if (iy.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      hnh3_cyc_all(ii,jj,iy)=xso2ff
-      end do
-      call closeunit(iuc)
-      call openunit('NH3SOURCE_CON',iuc, .false.,.true.)
-      read(iuc,*) ndec,idec1
-      do ip=1,60000
-      read(iuc,*) ii,jj,iy,xso2ff
-      if (iy.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      hnh3_con_all(ii,jj,iy)=xso2ff
-      end do
-      call closeunit(iuc)
-      if (ihyr.lt.idec1) ihyr=idec1
-      idecl=idec1+(ndec-1)*10
-      if (ihyr.ge.idecl) ihyr=idecl
       do i=1,ndec
-      jbt=idec1+(i-1)*10
+      jbt=tys+(i-1)*10
       if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
       jb1=jbt
       jb2=jbt+10
@@ -949,23 +1187,30 @@ c     if (iact.eq.0.or.jday.eq.1) then
       endif
       end do
   23  continue
-      hnh3_con(:,j_0:j_1,1:2)=hnh3_con_all(:,j_0:j_1,irr:irr+1)
-      hnh3_cyc(:,j_0:j_1,1:2)=hnh3_cyc_all(:,j_0:j_1,irr:irr+1)
-c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
-      hnh3_con(:,j_0:j_1,1:2)=hnh3_con(:,j_0:j_1,1:2)  
-     *  *1.2142/(sday*30.4*12.)
-      hnh3_cyc(:,j_0:j_1,1:2)=hnh3_cyc(:,j_0:j_1,1:2)  
-     *  *1.2142/(sday*30.4*12.)
-c     endif
 c interpolate to model year
 c    
       d1=real(ihyr-jb1)
       d2=real(jb2-ihyr)
       d3=real(jb2-jb1)
-      NH3_src_con(:,j_0:j_1)=(d1*hnh3_con(:,j_0:j_1,2)
-     * +d2*hnh3_con(:,j_0:j_1,1))/d3
-      NH3_src_cyc(:,j_0:j_1)=(d1*hnh3_cyc(:,j_0:j_1,2)
-     * +d2*hnh3_cyc(:,j_0:j_1,1))/d3
+      NH3_src_con(:,j_0:j_1)=(d1*hnh3_con_all(:,j_0:j_1,irr+1)
+     * +d2*hnh3_con_all(:,j_0:j_1,irr))/d3
+      NH3_src_cyc(:,j_0:j_1)=(d1*hnh3_cyc_all(:,j_0:j_1,irr+1)
+     * +d2*hnh3_cyc_all(:,j_0:j_1,irr))/d3
+
+      if (imAER.eq.5) then
+c already in units of NH3
+      nh3_src_con(:,j_0:j_1)=nh3_src_con(:,j_0:j_1)
+     *  *axyp(:,j_0:j_1)+hnh3_ocean(:,j_0:j_1)/(sday*30.4*12.)
+      nh3_src_cyc(:,j_0:j_1)=nh3_src_cyc(:,j_0:j_1)
+     *  *axyp(:,j_0:j_1)
+      else
+c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
+      nh3_src_con(:,j_0:j_1)=nh3_src_con(:,j_0:j_1)
+     *  *1.2142/(sday*30.4*12.)
+      nh3_src_cyc(:,j_0:j_1)=nh3_src_cyc(:,j_0:j_1)
+     *  *1.2142/(sday*30.4*12.)
+      endif
+      
   
       end subroutine read_hist_NH3      
       
