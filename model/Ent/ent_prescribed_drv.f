@@ -14,7 +14,7 @@
       public 
      &     init_canopy_physical,
      &     prescr_vegdata,
-     &     prescr_get_vdata, prescr_get_laidata, 
+     &     init_vdata, prescr_get_laidata, 
      &     prescr_update_vegcrops, prescr_veg_albedodata,
      &     prescr_get_height, !YKIM
      &     prescr_get_soilpools,  !for prescribing soil C, N pools -PK 12/07
@@ -245,7 +245,7 @@
 
 
 !YKIM
-cddd      call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+cddd      call init_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
 cddd      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
 cddd      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
 cddd      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
@@ -273,7 +273,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 !to have options according to do_phenology_activegrowth
 
       if ( do_read_from_files )
-     &     call prescr_get_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+     &     call init_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
       if ( do_read_from_files )
      &     call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
@@ -290,8 +290,8 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
          call prescr_get_carbonplant(I0,I1,J0,J1,
      &        laidata,hdata,dbhdata,popdata,cpooldata)
       else !if do_phenology_activegrowth=true
-         call prescr_get_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
-         call prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
+         call init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
+         call init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
          !update diameter, population density, carbon plant &  crown rad
          !can be more modular like the above - Should I???  -YKIM
          call prescr_get_ent_plant(I0,I1,J0,J1, 
@@ -333,7 +333,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 
 !***************************************************************************
-      subroutine prescr_get_vdata(im,jm,I0,I1,J0,J1,vdata)
+      subroutine init_vdata(im,jm,I0,I1,J0,J1,vdata)
       !* This version reads in vegetation structure from prescr data set.
       use FILEMANAGER, only : openunit,closeunit,nameunit
       integer, intent(in) :: im,jm,I0,I1,J0,J1
@@ -380,7 +380,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
         enddo
       enddo
           
-      end subroutine prescr_get_vdata
+      end subroutine init_vdata
 
 !**************************************************************************
       subroutine prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
@@ -509,7 +509,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 !**************************************************************************
 
-      subroutine prescr_get_ent_laidata(IM,JM,I0,I1,J0,J1,laidata)
+      subroutine init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata)
 !@sum YKIM - read the initial LAI for the prognostic vegetation 
 !@sum (i.e., prognostic phenology/growth with Ent PFTs)
 
@@ -534,7 +534,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       call closeunit(iu_LAI)
 
       !* Return lai for each vegetation type.
-      end subroutine prescr_get_ent_laidata
+      end subroutine init_ent_laidata
 
 
 !**************************************************************************
@@ -577,7 +577,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 !**************************************************************************
 
-      subroutine prescr_get_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d)
+      subroutine init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d)
 !@sum YKIM - read the initial height for the prognostic vegetation 
 !@sum (i.e., prognostic phenology/growth with Ent PFTs)
       use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
@@ -600,7 +600,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
       call closeunit(iu_HITE)
 
-      end subroutine prescr_get_ent_hdata
+      end subroutine init_ent_hdata
 
 !**************************************************************************
       subroutine prescr_get_carbonplant(I0,I1,J0,J1,
