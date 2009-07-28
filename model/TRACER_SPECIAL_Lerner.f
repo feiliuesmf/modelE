@@ -972,7 +972,7 @@ C****
 
       adj_wet = 0
       do J=J_0,J_1
-         if ( (J>j/3) .AND. (J<=JM-j/3) ) then   !!! low latitudes
+         if ( (J>JM/3) .AND. (J<=JM-JM/3) ) then   !!! low latitudes
             adj_wet(J) = 1.761
          else
             adj_wet(J) = 0.6585                  !!! high latitudes
