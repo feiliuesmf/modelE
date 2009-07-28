@@ -2,8 +2,9 @@
 !@sum Routines to calculate phenological change in an entcell:
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
-
-!#define PHENOLOGY_DIAG
+#ifdef ENT_STANDALONE_DIAG
+#define PHENOLOGY_DIAG
+#endif
 !#define DEBUG
 
       use ent_types
@@ -71,7 +72,7 @@
       real*8, parameter :: paw_min_w = -0.1d0
       real*8, parameter :: paw_res_w = 0.25d0
       real*8, parameter :: paw_max_h = 0.4d0
-      real*8, parameter :: paw_min_h = 0.01d0
+      real*8, parameter :: paw_min_h = 0.1d0
       real*8, parameter :: paw_res_h = 1.0d0
       !light-controll: par_turnover_int & par_turnover_slope
       real*8, parameter :: par_turnover_int = -12.d0 !-10.6d0 
@@ -117,7 +118,8 @@
       logical :: par_limit
       real*8 :: turnover0, llspan0
       real*8 :: zweight, zweight30, zweight90
-      
+      real*8 :: betad
+
       sand = ecp%soil_texture(1)*100.d0
       clay = ecp%soil_texture(3)*100.d0
       smpsat = -10.d0 * ( 10.d0**(1.88d0-0.0131d0*sand) )
@@ -178,7 +180,17 @@
 
         cop => pp%tallest
         do while(ASSOCIATED(cop))
-         
+          
+          !10-day running average of stressH2O (betad)
+!not-yet implemented
+!          betad=water_stress2(cop%pft, N_DEPTH, 
+!     i         pp%cellptr%Soilmoist(:), pp%cellptr%soil_Phi, 
+!     i         pp%cellptr%soil_dry, 
+!     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+
+!          cop%betad_10d=zweight*cop%betad_10d+(1.d0-zweight)*betad
+      
+          !daily carbon balance
           cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n*1000.d0
 
           !*********************************************
@@ -264,6 +276,8 @@
       logical :: temp_limit, water_limit 
       logical :: fall
       logical :: woody
+      integer, parameter :: iwater_limit =0
+      real*8::  betad
 
       soiltemp_10d = pp%cellptr%soiltemp_10d
       airtemp_10d = pp%cellptr%airtemp_10d
@@ -358,12 +372,24 @@
                  
          !water-controoled woody
          if (water_limit .and. woody .and. (phenostatus.ge.2)) then
-            phenofactor_d = min(1.d0,max(0.d0,
-     &         ((paw_10d-paw_min_w)/(paw_max_w-paw_min_w))**paw_res_w))
+            select case (iwater_limit)
+            case(0) !default function with the 10-day paw
+               phenofactor_d = min(1.d0,max(0.d0,
+     &          ((paw_10d-paw_min_w)/(paw_max_w-paw_min_w))**paw_res_w))
+            case(1) !water_stress in canopysplitter with the inst. mp
+               phenofactor_d = water_stress(N_DEPTH  
+     i         ,pp%cellptr%Soilmp(:)
+     i         ,cop%fracroot(:)
+     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
+     o         , cop%stressH2Ol(:)) 
+            case(2) !water_stress in canopysplitter with the 10-day mp
+            end select
          end if
   
          !water-controlled herbaceous
          if (water_limit .and. (.not. woody)) then
+            select case(iwater_limit)
+            case(0)
             if ((phenostatus.le.2).and.(paw_10d.gt.paw_min_h))then
                phenofactor_d = min(1.d0,
      &          ((paw_10d-paw_min_h)/(paw_max_h-paw_min_h))**paw_res_h)
@@ -381,6 +407,21 @@
                   phenostatus = 4
                end if 
             end if
+  
+            case(1) !water_stress in canopysplitter with the inst. mp
+               betad= water_stress(N_DEPTH  
+     i         ,pp%cellptr%Soilmp(:)
+     i         ,cop%fracroot(:)
+     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
+     o         , cop%stressH2Ol(:))
+#ifdef DEBUG
+               write(202,'(100e16.6)') betad,pp%cellptr%Soilmp(:)
+     &         ,cop%fracroot(:),pp%cellptr%Soilmoist(:)
+     &         ,pfpar(pft)%hwilt,paw_10d
+#endif
+               phenofactor_d = betad
+            case(2) !water_stress in canopysplitter with the 10-day mp
+            end select
          end if    
  
          if (.not.temp_limit) phenofactor_c = 1.d0
@@ -643,7 +684,7 @@
 
          if (is_annual) then
             if (phenofactor .gt. 0.d0 .AND. cop%h .lt. 0.025d0) then
-               cop%h = 0.025d0
+               cop%h = 0.05d0
                cop%C_fol = height2Cfol(pft,cop%h)
 !               cop%LAI=cop%n*pfpar(pft)%sla*
                cop%LAI=cop%n*sla(pft,cop%llspan)*
@@ -1969,6 +2010,35 @@ c$$$      end if
       endif
 
       end function frost_hardiness
+!---------------------------------------------------------------------!
+      function water_stress(nlayers, soilmp, fracroot, fice,
+     &     hwilt, betadl) Result(betad)
+      !1. Rosensweig & Abramopoulos water stress fn.
+
+      implicit none
+      integer,intent(in) :: nlayers !Number of soil layers
+      real*8,intent(in) ::  soilmp(:) !Soil matric potential (m)
+      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
+      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
+      real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
+      real*8,intent(out) :: betadl(:) !Water stress in layers
+      real*8 :: betad !Stress value, 0-1, 1=no stress
+      !---Local-----------
+      integer :: k
+      
+      betad = 0.d0
+      do k = 1,nlayers
+        betadl(k) = (1.d0-fice(k))*fracroot(k)
+!     &       *max((hwilt-soilmp(k))/hwilt,0.d0) !R&A original
+     &       *min(1.d0,max((hwilt-soilmp(k))/(hwilt + 25.d0),0.d0))  !With unstressed range to h=-25 m.
+        betad = betad + betadl(k) 
+      end do
+      if (betad < EPS2) betad=0.d0
+
+      end function water_stress
+
+!----------------------------------------------------------------------!
+    
 !*************************************************************************
       subroutine phenology_diag(cohortnum, cop)
       implicit none
