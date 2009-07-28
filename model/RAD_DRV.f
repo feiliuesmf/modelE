@@ -2536,44 +2536,45 @@ C**** Same for upward thermal
 !@ver  1.0
 
       use domain_decomp_atm, only : write_parallel
-      USE RADPAR, only : nghg,nyrsghg,ghgyr1,ghgyr2,ghgam
+      USE RADPAR, only : nghg,ghgyr1,ghgyr2,ghgam
       USE RAD_COM, only : ghg_yr
       IMPLICIT NONE
-      INTEGER iu,n,k
+      INTEGER :: iu,n,k,nhead=4,iyr
       CHARACTER*80 title
       character(len=300) :: out_line
 
-      write(out_line,*)
+      write(out_line,*)  ! print header lines and first data line
       call write_parallel(trim(out_line),unit=6)
-      do n=1,5
-      read(iu,'(a)') title
-      write(out_line,'(1x,a80)') title
-      call write_parallel(trim(out_line),unit=6)
+      do n=1,nhead+1
+        read(iu,'(a)') title
+        write(out_line,'(1x,a80)') title
+        call write_parallel(trim(out_line),unit=6)
       end do
       if(title(1:2).eq.'--') then                 ! older format
         read(iu,'(a)') title
         write(out_line,'(1x,a80)') title
         call write_parallel(trim(out_line),unit=6)
+        nhead=5
       end if
 
-      read(title,*) ghgyr1,(ghgam(k,1),k=1,nghg)
-      ghgyr2=ghgyr1
-      do n=2,nyrsghg
-        read(iu,'(a)',end=20) title
-        read(title,*) ghgyr2,(ghgam(k,n),k=1,nghg)
-        if(ghg_yr.eq.0.or.abs(ghg_yr-ghgyr2).le.1) then
-          write(out_line,'(1x,a80)') title
-          call write_parallel(trim(out_line),unit=6)
-        endif
-        do k=1,nghg
+!**** find range of table: ghgyr1 - ghgyr2
+      read(title,*) ghgyr1
+      do ; read(iu,'(a)',end=20) title ; end do
+   20 read(title,*) ghgyr2
+      rewind iu  !   position to data lines
+      do n=1,nhead ; read(iu,'(a)') ; end do
+
+      allocate (ghgam(nghg,ghgyr2-ghgyr1+1))
+      do n=1,ghgyr2-ghgyr1+1
+        read(iu,*) iyr,(ghgam(k,n),k=1,nghg)
+        do k=1,nghg ! replace -999. by reasonable numbers
           if(ghgam(k,n).lt.0.) ghgam(k,n)=ghgam(k,n-1)
         end do
+        if(ghg_yr>0 .and. abs(ghg_yr-iyr).le.1) then
+          write(out_line,'(i5,6f10.4)') iyr,(ghgam(k,n),k=1,nghg)
+          call write_parallel(trim(out_line),unit=6)
+        endif
       end do
-   20 continue
-      if(ghg_yr.ne.0.and.ghg_yr.ne.ghgyr2) then
-        write(out_line,'(1x,a80)') title
-        call write_parallel(trim(out_line),unit=6)
-      endif
       write(out_line,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
       call write_parallel(trim(out_line),unit=6)
       return

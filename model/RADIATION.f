@@ -302,8 +302,8 @@ C------------------------------------------
      D             ,FPXCO2(LX),FPXOZO(LX) !nu ,PIAERO(10)
 !     E ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8),QDST55(8) !?DST   !ron
      D             ,TRAX(LX,33,5),DBLN(30),TCLMIN
-      
-      real*8, dimension(:,:), allocatable :: QXDUST, QSDUST, QCDUST, !ron 
+
+      real*8, dimension(:,:), allocatable :: QXDUST, QSDUST, QCDUST, !ron
      *     ATDUST                                                    !ron
       real*8, dimension(  :), allocatable :: QDST55                  !ron
 
@@ -439,7 +439,7 @@ C     Layer  1    2    3    4    5    6    7    8    9
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
 !      REAL*4 TDUST(72,46,9,8,12)                                   !ron
 !      REAL*8 DDJDAY(9,8,72,46)                                     !ron
-      REAL*4, dimension(:,:,:,:,:), allocatable :: TDUST            !ron       
+      REAL*4, dimension(:,:,:,:,:), allocatable :: TDUST            !ron
       REAL*8, dimension(:,:,:,:  ), allocatable :: DDJDAY           !ron
       integer :: imd, jmd, lmd, nsized, nmond ! dimensions of TDUST !ron
       character*80 :: dtitle ! dust info                            !ron
@@ -774,8 +774,8 @@ C                         CLAY                  SILT
 #else
 !     *REDUST=(/ 0.1, 0.2, 0.4, 0.8,   1.0, 2.0, 4.0, 8.0/)                       !ron
 #endif
-!nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)                 
-!     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,                  !ron 
+!nu  *  ,VEDUST=(/ 0.2, 0.2, 0.2, 0.2,   0.2, 0.2, 0.2, 0.2/)
+!     *  ,RODUST=(/2.5D0,2.5D0,2.5D0,2.5D0,2.65D0,2.65D0,2.65D0,                  !ron
 !     &                                        2.65D0/)! <- not used; 3 silt only !ron
 !nu  *  ,FSDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
 !nu  *  ,FTDUST=(/ 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0/)
@@ -816,13 +816,13 @@ C     Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
 C     ---------------------------------------------------------------
 !@var nghg nr. of well-mixed GHgases: CO2 N2O CH4 CFC-11 CFC-12 others
 !@var nyrsghg max.number of years of prescr. greenhouse gas history
-      INTEGER, PARAMETER :: nghg=6, nyrsghg=2050-1850+1
+      INTEGER, PARAMETER :: nghg=6
 
 !@var ghgyr1,ghgyr2 first and last year of GHG history
       INTEGER ghgyr1,ghgyr2
 !@var ghgam,xref,xnow     GHG-mixing ratios in ppm,ppm,ppm,ppb,ppb,ppb
-      REAL*8 GHGAM(nghg,nyrsghg),XREF(nghg+1),XNOW(nghg+1)
-      common/ghgcom/ghgyr1,ghgyr2,ghgam,xref,xnow
+      REAL*8 XREF(nghg+1),XNOW(nghg+1)
+      real*8, allocatable :: ghgam(:,:)
 
 C     GTREND:  1980.,  337.9,  .3012,  1.547,  .1666,  .3003,  .0978,
 C     ---------------------------------------------------------------
@@ -1304,13 +1304,13 @@ C                  -----------------------------------------------------
       read(nrfu) dtitle, imd, jmd, lmd, nsized, nmond ! offline dims  !ron
       if(am_i_root()) then
       write(*,*) trim(dtitle)                                         !ron
-      write(*,*) 'Offline Dust Dims: imd, jmd, lmd, nsized, nmond: ', !ron 
+      write(*,*) 'Offline Dust Dims: imd, jmd, lmd, nsized, nmond: ', !ron
      *     imd, jmd, lmd, nsized, nmond                               !ron
       endif
       if (imd.eq.0)
-     *     call stop_model('Please update dust file RADN6', 255) 
+     *     call stop_model('Please update dust file RADN6', 255)
       if (imd.ne.mlon72 .or. jmd.ne.mlat46) call stop_model(
-     *     'RCOMP1 offline DUST file has different'// 
+     *     'RCOMP1 offline DUST file has different'//
      *     ' horizontal resolution that assumed: IMD=/=72 or JMD=/=46',
      *     255)
 
@@ -3348,11 +3348,11 @@ C-----------------
       CALL SETAMP(EXT,SCT,GCB,TAB)
        do L = L1,LM  !radiation has 3 extra levels on the top - aerosol are zero
 c SW
-         SRBEXT(l,:) = EXT(l,:) 
-         SRBSCT(l,:) = SCT(l,:) 
-         SRBGCB(l,:) = GCB(l,:) 
+         SRBEXT(l,:) = EXT(l,:)
+         SRBSCT(l,:) = SCT(l,:)
+         SRBGCB(l,:) = GCB(l,:)
 c LW
-         TRBALK(l,:) = TAB(l,:) 
+         TRBALK(l,:) = TAB(l,:)
        enddo
 #endif
 
