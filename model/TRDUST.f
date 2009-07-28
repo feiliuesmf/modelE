@@ -25,6 +25,10 @@
       LOGICAL :: pmei
       REAL*8 :: wearth,aiearth,wfcs,pdfint,wsubtke,wsubwd,wsubwm
       REAL*8 :: soilwet,sigma,ans,dy,workij1,workij2,wsgcm1
+      CHARACTER(17) :: fname='WARNING_in_TRDUST'
+      CHARACTER(25) :: subr='dust_emission_constraints'
+      CHARACTER(5) :: vname1='wsgcm',vname2='sigma'
+      CHARACTER(9) :: vname3='soilvtrsh'
 
 c**** input
       snowe=pbl_args%snow
@@ -119,6 +123,9 @@ c     This is the case when wsgcm1 is very small and we set it
 c     equal to one of the smallest values in the table index
             ELSE IF (sigma > 0.1D0 .AND. wsgcm1 < 0.0005D0) THEN
               wsgcm1=0.0005d0
+              CALL check_upper_limit(sigma,x2(Ljm),fname,subr,vname2)
+              CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
+     &             ,vname3)
 c     Linear Polynomial fit (Default)
               CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
      &             soilvtrsh,ans,dy)
@@ -127,6 +134,10 @@ c              CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
 c     &             sigma,soilvtrsh,ans,dy)
               pdfint=exp(ans)
             ELSE
+              CALL check_upper_limit(wsgcm1,x1(Lim),fname,subr,vname1)
+              CALL check_upper_limit(sigma,x2(Ljm),fname,subr,vname2)
+              CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
+     &             ,vname3)
 c     Linear Polynomial fit (Default)
               CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
      &             soilvtrsh,ans,dy)
@@ -160,6 +171,9 @@ c     This is the case when wsgcm1 is very small and we set it
 c     equal to one of the smallest values in the table index
             ELSE IF (sigma > 0.1D0 .AND. wsgcm1 < 0.0005D0) THEN
               wsgcm1=0.0005d0
+              CALL check_upper_limit(sigma,x2(Ljm),fname,subr,vname2)
+              CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
+     &             ,vname3)
 c     Linear Polynomial fit (Default)
               CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
      &             soilvtrsh,ans,dy)
@@ -168,6 +182,10 @@ c               call polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
 c     &              sigma,soilvtrsh,ans,dy)
               workij1=mcfrac*exp(ans)
             ELSE
+              CALL check_upper_limit(wsgcm1,x1(Lim),fname,subr,vname1)
+              CALL check_upper_limit(sigma,x2(Ljm),fname,subr,vname2)
+              CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
+     &             ,vname3)
 c     Linear Polynomial fit (Default)
               CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
      &             soilvtrsh,ans,dy)
@@ -194,6 +212,9 @@ c     This is the case when wsgcm1 is very small and we set it
 c     equal to one of the smallest values in the table index
             ELSE IF (sigma > 0.1D0 .AND. wsgcm1 < 0.0005D0) THEN
               wsgcm1=0.0005d0
+              CALL check_upper_limit(sigma,x2(Ljm),fname,subr,vname2)
+              CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
+     &             ,vname3)
 c     Linear Polynomial fit (Default)
               CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
      &             soilvtrsh,ans,dy)
@@ -202,6 +223,10 @@ c               CALL polint3dlicub(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,
 c     &              sigma,soilvtrsh,ans,dy)
               workij2=(1.d0-mcfrac)*exp(ans)
             ELSE
+              CALL check_upper_limit(wsgcm1,x1(Lim),fname,subr,vname1)
+              CALL check_upper_limit(sigma,x2(Ljm),fname,subr,vname2)
+              CALL check_upper_limit(soilvtrsh,x3(Lkm),fname,subr
+     &             ,vname3)
 c     Linear Polynomial fit (Default)
               CALL polint3dlin(x1,x2,x3,table,lim,ljm,lkm,wsgcm1,sigma,
      &             soilvtrsh,ans,dy)
@@ -291,7 +316,7 @@ c**** output
       REAL*8 :: frtrac
       LOGICAL :: qdust
       REAL*8 :: frclay,frsilt
-      REAL*8 :: ers_data,src_fnct,pdfint
+      REAL*8 :: ers_data,src_fnct,soilvtrsh,pdfint
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       REAL*8 :: minfr(Mtrac)
 #endif
@@ -304,6 +329,7 @@ c**** input
       frsilt=pbl_args%frsilt
       ers_data=pbl_args%ers_data
       src_fnct=pbl_args%src_fnct
+      soilvtrsh=pbl_args%wtrsh
       pdfint=pbl_args%pdfint
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       minfr(:)=pbl_args%minfr(:)
@@ -405,8 +431,8 @@ c ..........
 c emission according to cubic scheme, but with pdf sheme parameters
 c (only used as diagnostic variable)
 c ..........
-          IF (vtrsh > 0. .AND. wsgcm > vtrsh) THEN
-            dsrcflx2=CWiPdf*frtrac*src_fnct*ers_data*(wsgcm-vtrsh)
+          IF (soilvtrsh > 0. .AND. wsgcm > soilvtrsh) THEN
+            dsrcflx2=CWiPdf*frtrac*src_fnct*ers_data*(soilvtrsh-vtrsh)
      &           *wsgcm**2
           END IF
         END IF

@@ -3340,6 +3340,9 @@ c Output:
       REAL*8 :: sigma,ans,dy
 
       REAL*8 :: work_wspdf1,work_wspdf2,wsgcm1
+      CHARACTER(14) :: fname='WARNING_in_PBL'
+      CHARACTER(9) :: subr='get_wspdf'
+      CHARACTER(5) :: vname1='wsgcm',vname2='sigma'
 
       wsgcm1=wsgcm
 
@@ -3352,11 +3355,13 @@ c     If sigma <= 0.0005:
 
       wspdf=wsgcm1
 
+      CALL check_upper_limit(wsgcm1,x11(Kim),fname,subr,vname1)
 c     There is no moist convection, sigma is composed of TKE and DRY
 c     convective velocity scale
       IF (wsubwm == 0.) THEN
         sigma=wsubtke+wsubwd
         IF (sigma > 0.0005) THEN
+          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
 c     Linear Polynomial fit (Default)
           CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
 c     Cubic Polynomial fit (Not Used, Optional)
@@ -3373,6 +3378,7 @@ c     only over 5% (mcfrac) of the area.
         work_wspdf1=0.D0
         sigma=wsubtke+wsubwd+wsubwm
         IF (sigma > 0.0005) THEN
+          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
 c     Linear Polynomial fit (Default)
           CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
 c     Cubic Polynomial fit (Not Used, Optional)
@@ -3383,6 +3389,7 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
         work_wspdf2=0.D0
         sigma=wsubtke+wsubwd
         IF (sigma > 0.0005) THEN
+          CALL check_upper_limit(sigma,x21(Kjm),fname,subr,vname2)
 c     Linear Polynomial fit (Default)
           CALL polint2dlin(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
 c     Cubic Polynomial fit (Not Used, Optional)
@@ -3554,6 +3561,48 @@ C  (C) Copr. 1986-92 Numerical Recipes Software 'W3.
 
       return
       END SUBROUTINE locatepbl
+
+      SUBROUTINE check_upper_limit(var,varm,cwarn,subr,vname)
+!@sum checks whether variable var exceeds maximum value varm. If it does
+!@+   set it to maximum value and writes warning message to file cwarn
+!@auth Jan Perlwitz
+!@ver 1.0
+
+      USE filemanager,ONLY : openunit,closeunit
+      USE model_com,ONLY : itime
+
+      IMPLICIT NONE
+
+!@var var Variable to be checked and set to maximum value if larger (inout)
+!@var varm Maximum value of variable to be checked (in)
+!@var cwarn File name for warning message (in)
+!@var subr Name of subroutine (in)
+!@var vname Name of variable (in)
+      REAL(KIND=8),INTENT(IN) :: varm
+      CHARACTER(*),INTENT(IN) :: cwarn,subr,vname
+
+      REAL(KIND=8),INTENT(INOUT) :: var
+
+      INTEGER :: iu
+
+      IF (var > varm) THEN
+        CALL openunit(cwarn,iu)
+        DO
+          READ(iu,*,END=1)
+          CYCLE
+ 1        EXIT
+        END DO
+        WRITE(iu,*) 'Warning in ',subr,':'
+        WRITE(iu,*) ' Variable ',vname,' exceeds allowed maximum value.'
+        WRITE(iu,*) ' ',vname,' set to maximum value.'
+        WRITE(iu,*) ' itime, max of ',vname,', ',vname,':',itime,varm
+     &       ,var
+        CALL closeunit(iu)
+        var=varm        
+      END IF
+
+      RETURN
+      END SUBROUTINE check_upper_limit
 
       real*8 function deltaSST(Qnet,Qsol,ustar_oc)
 !@sum deltaSST calculate skin-bulk SST difference (deg C)
