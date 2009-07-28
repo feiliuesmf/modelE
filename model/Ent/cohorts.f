@@ -16,8 +16,7 @@
      &     C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix, 
-     &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, 
-     &     betad_10d, CB_d,
+     &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, CB_d,
      &     turnover_amp, llspan) !KIM -7 vars for phenology
       !NYK - stressH2O and stressH2Ol depend on soil moisture, are calculated in biophysics.f.
 
@@ -32,8 +31,7 @@
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
-     &     phenofactor_c, phenofactor_d, phenofactor,  
-     &     betad_10d, CB_d,
+     &     phenofactor_c, phenofactor_d, phenofactor,  CB_d,
      &     turnover_amp, llspan
       integer, optional, intent(in) :: phenostatus
 !     &     stressH2O, stressH2O(N_DEPTH) !No need to assign biophysical values initialized in cohort_construct.
@@ -57,8 +55,7 @@
      &       C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &       Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &       N_up, C_to_Nfix,
-     &       phenofactor_c, phenofactor_d, phenofactor,phenostatus,
-     &       betad_10d, CB_d,
+     &       phenofactor_c, phenofactor_d, phenofactor,phenostatus,CB_d,
      &       turnover_amp, llspan)
 
         newc%Ntot = nm*LAI
@@ -143,8 +140,7 @@
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
-     &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, 
-     &     betad_10d, CB_d,
+     &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, CB_d,
      &     turnover_amp, llspan)
 !     &     stressH2O, stressH2Ol)
 
@@ -158,8 +154,7 @@
      &     C_lab, N_lab, C_froot, N_froot, C_croot, N_croot,
      &     Ci, GCANOPY, GPP, NPP, R_auto, R_root,
      &     N_up, C_to_Nfix,
-     &     phenofactor_c, phenofactor_d, phenofactor,
-     &     betad_10d, CB_d,
+     &     phenofactor_c, phenofactor_d, phenofactor,CB_d,
      &     turnover_amp, llspan
       integer, optional :: phenostatus
 !     &     stressH2O, stressH2Ol(:)
@@ -202,7 +197,6 @@
       cop%phenofactor_d = phenofactor_d
       cop%phenofactor = phenofactor
       cop%phenostatus = phenostatus
-      cop%betad_10d = betad_10d
       cop%CB_d = CB_d
       cop%turnover_amp = turnover_amp
       cop%llspan = llspan
@@ -289,7 +283,6 @@ cddd      end subroutine init_cohort_defaults
       cop%phenofactor_d = 1.d0
       cop%phenofactor = 1.d0
       cop%phenostatus = 1
-      cop%betad_10d = 1.d0
       cop%CB_d = 0.d0
       cop%turnover_amp = 1.d0
       cop%llspan = -999.d0
@@ -514,7 +507,6 @@ cddd      end subroutine init_cohort_defaults
 
       ! phenostatus is int, not sere how to deal with it
       !cop1%phenostatus  =w1*cop1%phenostatus  +w2*cop2%phenostatus  
-      cop1%betad_10d    =w1*cop1%betad_10d    +w2*cop2%betad_10d  
       cop1%CB_d         =w1*cop1%CB_d         +w2*cop2%CB_d         
       cop1%turnover_amp =w1*cop1%turnover_amp +w2*cop2%turnover_amp 
       cop1%llspan       =w1*cop1%llspan       +w2*cop2%llspan       
