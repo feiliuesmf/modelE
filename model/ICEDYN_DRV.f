@@ -511,8 +511,10 @@ c temporarily empty.
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE DOMAIN_DECOMP_1D, only : DIST_GRID, iGET=>GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH, SOUTH
-      USE GEOM, only : adxyn=>dxyn,adxys=>dxys,adxyv=>dxyv,
-     &     adxyp=>dxyp,abydxyp=>bydxyp,imaxj
+      USE GEOM, only : abyaxyp=>byaxyp,imaxj
+#ifndef CUBE_GRID
+     &     ,adxyn=>dxyn,adxys=>dxys,adxyv=>dxyv
+#endif
       USE ICEDYN, only : dxp,dyv
       USE ICEDYN, only : grid_ICDYN
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
@@ -572,11 +574,17 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     iMSI(1:IMICDYN,iJ_0H:iJ_1H),
      &     aHEFF(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aAREA(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aDMU(NX1,aJ_0H:aJ_1H),    !temporary hack
-     &     aDMV(NX1,aJ_0H:aJ_1H),    !temporary hack
+#ifndef CUBE_GRID 
+     &     aDMU(NX1,aJ_0H:aJ_1H),    
+     &     aDMV(NX1,aJ_0H:aJ_1H),    
+     &     aPSI(NX1,aJ_0H:aJ_1H),   
+#else
+     &     aDMU(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aDMV(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aPSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
+#endif
      &     aUSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aVSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aPSI(NX1,aJ_0H:aJ_1H),   !temporary hack
      &     iFOCEAN(1:IMICDYN,iJ_0H:iJ_1H),
      &     iUOSURF(1:IMICDYN,iJ_0H:iJ_1H),
      &     iVOSURF(1:IMICDYN,iJ_0H:iJ_1H),
@@ -876,7 +884,7 @@ C**** Update halos for FOCEAN, DXYS, DXYV
        enddo
       enddo
 
-      call INT_IG2AG_2D_Vector(iDMUI,iDMVI,DMUI,DMVI)
+      call INT_IG2AG_2D_Vector_llbasis(iDMUI,iDMVI,DMUI,DMVI)
 
 C**** Update halos for FOCEAN, and RSI
       CALL HALO_UPDATE(agrid,  FOCEAN)
@@ -896,13 +904,25 @@ C**** Rescale DMUI to be net momentum into ocean
         do i=aI_0,aI_1
 C**** Rescale DMVI to be net momentum into ocean
           IF (J.lt.aJM-1) DMVI(I,J) = 
-     &         0.5*DMVI(I,J)*(FOCEAN(I,J)*RSI(I,J)
-     *         *aDXYN(J)+FOCEAN(I,J+1)*RSI(I,J+1)*aDXYS(J+1))/aDXYV(J+1)
+     &         0.5*DMVI(I,J)
+#ifdef CUBE_GRID
+     &          *0.5*(FOCEAN(I,J)*RSI(I,J)
+     &          +FOCEAN(I,J+1)*RSI(I,J+1))
+#else
+     &          *(FOCEAN(I,J)*RSI(I,J)*aDXYN(J)
+     &          +FOCEAN(I,J+1)*RSI(I,J+1)*aDXYS(J+1))
+     &          /aDXYV(J+1)
+#endif
           IF (J.eq.aJM-1) DMVI(I,aJM-1) = 
-     &         0.5*DMVI(I,aJM-1)*(FOCEAN(I,aJM-1)
-     *         *RSI(I,aJM-1)*aDXYN(aJM-1)
+     &         0.5*DMVI(I,aJM-1)
+#ifdef CUBE_GRID
+     &         *0.5*(FOCEAN(I,aJM-1)*RSI(I,aJM-1)
+     &         +FOCEAN(1,aJM)*RSI(1,aJM))
+#else
+     &         *(FOCEAN(I,aJM-1)*RSI(I,aJM-1)*aDXYN(aJM-1)
      &         +FOCEAN(1,aJM)*RSI(1,aJM)*aDXYS(aJM))
-     *         /aDXYV(aJM)
+     &         /aDXYV(aJM)
+#endif
         enddo
       enddo
 
@@ -910,13 +930,13 @@ C**** Rescale DMVI to be net momentum into ocean
         usi(1:imicdyn,1)=0.
       endif
       if (grid_ICDYN%HAVE_NORTH_POLE) then
-        vsi(1:imicdyn,ajm)=0.
+        vsi(1:imicdyn,jmicdyn)=0.
       endif
       IF (agrid%HAVE_SOUTH_POLE) then
-        dmui(aI_0:aI_1,1)=0.
+        dmui(1:aim,1)=0.
       END IF
       IF (agrid%HAVE_NORTH_POLE) then
-        dmvi(aI_0:aI_1,ajm)=0.
+        dmvi(1:aim,ajm)=0.
       END IF
 
 C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
@@ -925,23 +945,35 @@ C**** Update halos for DMU, and DMV
       CALL HALO_UPDATE(grid_ICDYN,  DMU   , from=SOUTH     )
       CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
 
-      call INT_IG2AG_2D_Vector_NX1(DMU,DMV,
-     &     aDMU,aDMV)
+c**** resample on atm grid (CS or latlon) but still expressed in latlon coord. system
+c**** as only norm of the vector matters 
+      call INT_IG2AG_2D_Vector_NX1_llbasis(DMU,DMV,aDMU,aDMV) 
 
+      CALL HALO_UPDATE(agrid,  aDMU  )
+      CALL HALO_UPDATE(agrid,  aDMV  )
+      
       do j=aJ_0,aJ_1
-        do i=1,imaxj(j)
-          UI2rho(i,j)=0
-          if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
+         do i=aI_0,imaxj(j)
+            UI2rho(i,j)=0
+            if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
+#ifdef CUBE_GRID
+C**** 4 points average on cubed sphere
+               duA = 0.25*(admu(i+1,j)+admu(i,j)
+     *              +admu(i+1,j-1)+admu(i,j-1) )
+               dvA = 0.25*(admv(i+1,j)+admv(i,j))
+     *              +admv(i+1,j-1)+admv(i,j-1))
+#else 
 C**** calculate 4 point average of B grid values of stresses
-            duA = 0.5*(aDXYN(J)*(admu(i+1,j)+admu(i,j))
-     *            +aDXYS(j)*(admu(i+1
-     *           ,j-1)+admu(i,j-1)))*aBYDXYP(J)
-            dvA = 0.5*(aDXYN(J)*(admv(i+1,j)+admv(i,j))
-     *           +aDXYS(j)*(admv(i+1
-     *           ,j-1)+admv(i,j-1)))*aBYDXYP(J)
-            UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
-          end if
-        end do
+               duA = 0.5*(aDXYN(J)*(admu(i+1,j)+admu(i,j))
+     *              +aDXYS(j)*(admu(i+1
+     *              ,j-1)+admu(i,j-1)))*aBYAXYP(I,J)
+               dvA = 0.5*(aDXYN(J)*(admv(i+1,j)+admv(i,j))
+     *              +aDXYS(j)*(admv(i+1
+     *              ,j-1)+admv(i,j-1)))*aBYAXYP(I,J)
+#endif
+               UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
+            end if
+         end do
       end do
 
 C**** set north pole 
@@ -1739,12 +1771,15 @@ c***  both latlon with equal resolution
       USE ICEDYN, only : NX1,IMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
-     &     aA(NX1,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(NX1,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-
-c*** temporary hack, works only if aA has dimensions aA(NX1,J0h:J_1H)
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
+#ifdef CUBE_GRID
+     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+#else
+     &     aA(NX1,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO)
+#endif
 
 #ifdef CUBED_GRID
 !sumxpe global array on target latlon icedyn grid then scatter
@@ -1756,33 +1791,6 @@ c***  both latlon with equal resolution
 #endif
       end subroutine INT_IG2AG_2D_NX1
 
-      subroutine INT_IG2AG_2D_Vector_NX1(iU,iV,aU,aV) 
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : NX1,IMICDYN,grid_ICDYN
-      IMPLICIT NONE
-      real *8 ::
-     &     aU(NX1,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aV(NX1,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iU(NX1,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
-     &     iV(NX1,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-c*** temporary hack
-
-#ifdef CUBED_GRID
-      aU=0      ! temporary
-      aV=0      ! temporary 
-
-#else 
-c***  for the moment me assume that the atm and icedyn grids are 
-c***  both latlon with equal resolution
-      aU=iU
-      aV=iV
-#endif
-      end subroutine INT_IG2AG_2D_Vector_NX1
 
       subroutine INT_IG2AG_2D_Vector(iU,iV,aU,aV) 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
@@ -1811,6 +1819,74 @@ c***  both latlon with equal resolution
 #endif
       end
 
+      subroutine INT_IG2AG_2D_Vector_llbasis(iU,iV,aU,aV) 
+!@sum resample input vector at the atm grid (CS or latlon) cell centers.  
+!@+   Resampled vector field is still expressed in the latlon coordinate system
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+     &     aU(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     aV(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     iU(1:IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
+     &     iV(1:IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: iU_glob,iV_glob
+
+
+#ifdef CUBED_GRID
+      call PACK_DATA(grid_ICDYN,  iU,  iU_GLOB)    
+      call PACK_DATA(grid_ICDYN,  iV,  iV_GLOB)    
+      call bilin_ll2cs_vec(agrid,iU_glob,iV_glob,aU,aV,imicdyn,jmicdyn)
+#else 
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
+      aU=iU
+      aV=iV
+#endif
+      end subroutine INT_IG2AG_2D_Vector_llbasis
+
+
+      subroutine INT_IG2AG_2D_Vector_NX1_llbasis(iU,iV,aU,aV) 
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET
+      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+#ifdef CUBE_GRID
+     &     aU(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     aV(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+#else
+     &     aU(NX1,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     aV(NX1,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+#endif
+     &     iU(NX1,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
+     &     iV(NX1,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+      REAL*8, DIMENSION(NX1,JMICDYN) :: iU_glob,iV_glob
+      logical :: periodic
+#ifdef CUBED_GRID
+      periodic = .true.
+      call PACK_DATA(grid_ICDYN,  iU,  iU_glob)    
+      call PACK_DATA(grid_ICDYN,  iV,  iV_glob)    
+      call bilin_ll2cs_vec(agrid,iU_glob,iV_glob,aU,aV,NX1,
+     &     jmicdyn,periodic)
+#else 
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
+      aU=iU
+      aV=iV
+#endif
+      end subroutine INT_IG2AG_2D_Vector_NX1_llbasis
 
 
       SUBROUTINE init_icedyn(iniOCEAN)
