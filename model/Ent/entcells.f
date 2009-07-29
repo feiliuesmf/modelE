@@ -482,7 +482,9 @@ C NADINE - IS THIS CORRECT?
      &           cpooldata(ncov,LABILE),0.d0,
      &           cpooldata(ncov,FR),0.d0,cpooldata(ncov,CR),0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
-     &           0.d0,0.d0,0.d0,0.d0,0.d0,1,0.d0,
+     &           0.d0, 0.d0, 
+     &           1.d0, 1.d0,1.d0,1,
+     &           1.d0, 0.d0,
      &           1.d0, -999.d0) !KIM-added for phenology/growth
           endif
           call summarize_patch(pp)
