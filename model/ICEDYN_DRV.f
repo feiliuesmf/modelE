@@ -559,7 +559,7 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       CALL iGET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
      &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
      &                   , J_STRT_HALO=iJ_0H  , J_STOP_HALO=iJ_1H )
-      call aGET(grid_ICDYN, J_STRT_STGR=iJ_0STG, J_STOP_STGR=iJ_1STG)
+      call iGET(grid_ICDYN, J_STRT_STGR=iJ_0STG, J_STOP_STGR=iJ_1STG)
       call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
      &                   , J_STRT=aJ_0        , J_STOP=aJ_1     )
       call aGET(agrid    , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H     
@@ -636,7 +636,7 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
 
       call INT_AG2IG_2D(aPtmp,iPtmp)   
       call INT_AG2IG_2D(Focean,iFocean)   
-      call INT_AG2IG_2D(RSI,iRSI)   
+      call INT_AG2IG_2D(RSI,iRSI)
 
       CALL HALO_UPDATE(grid_ICDYN, iPtmp , from=NORTH )
       CALL HALO_UPDATE(grid_ICDYN, iFOCEAN, from=NORTH )
@@ -731,7 +731,8 @@ C**** NOTE: UOSURF, VOSURF are expected to be on the A-grid
       CALL HALO_UPDATE(agrid, UOSURF )
       CALL HALO_UPDATE(agrid, VOSURF )
 c**** getting instance of (UOSURF, VOSURF) on the icedyn grid
-      call INT_AG2IG_2D_Vector(UOSURF,VOSURF,iUOSURF,iVOSURF)   !already in latlon basis
+      call INT_AG2IG_2D(UOSURF,iUOSURF)   !already in latlon basis
+      call INT_AG2IG_2D(VOSURF,iVOSURF)   !already in latlon basis
 
 C**** Update halo for USI,UOSURF,VOSURF,PGFU
       CALL HALO_UPDATE(grid_ICDYN, USI   , from=NORTH    )
@@ -999,8 +1000,11 @@ C**** dmui,dmvi on atm C grid
         DMVI(1:aim,ajm)=0.
       END IF
 
-      call INT_IG2AG_2D_Vector(USI,VSI,aUSI,aVSI) ! here there is an actual change of basis
       call INT_IG2AG_2D_NX1(press,apsi)
+
+c*** interpolate ice velocities to the atm C-grid and perform 
+c*** change of basis if necessary
+      call Interp_IG2AGC_Vel(UICE,VICE,USI,VSI,aUSI,aVSI)
 
 C**** calculate mass fluxes for the ice advection
 C**** Update halos for FOCEAN, and RSI
@@ -1040,6 +1044,7 @@ C**** Update halos for FOCEAN, and RSI
         ICIJ(1,aJM,IJ_RSI) =ICIJ(1,aJM,IJ_RSI) +RSI(1,aJM)
         ICIJ(1,aJM,IJ_PICE)=ICIJ(1,aJM,IJ_PICE)+RSI(1,aJM)*apsi(1,aJM)
       END IF
+
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       call get_uisurf(aUSI,aVSI,uisurf,visurf)
 C****
@@ -1064,6 +1069,9 @@ c      write(420+mype,*) uisurf
 c      write(430+mype,*) visurf
 c      write(440+mype,*) ui2rho
 
+c      write(800+mype,*) rsi
+c      write(900+mype,*) focean
+
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,aPSI,
      &     iDMUI,iDMVI)
@@ -1079,11 +1087,11 @@ c      write(440+mype,*) ui2rho
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
-      USE MODEL_COM, only : im,jm,focean,p,ptop,kocean
+      USE MODEL_COM, only :  im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP_ATM, only : grid, GET
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, SOUTH, NORTH
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE_COLUMN
-      USE GEOM, only : axyp,dyp,dxp,ddy_ci,ddy_cj,dxv,byaxyp,imaxj   !atmosphere grid geom
+      USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
 #ifdef TRACERS_WATER
@@ -1131,11 +1139,10 @@ C****         FAW    flux of surface water area (m^2) = USIDT*DYP
 C****         FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
 C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 
-      INTEGER I_0, I_1, J_0, J_1, J_0S, J_1S, J_0H, J_1H
+      INTEGER J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
 C**** Get grid parameters
-      CALL GET(grid, I_STRT     =I_0,    I_STOP     =I_1,
-     &               J_STRT     =J_0,    J_STOP     =J_1,
+      CALL GET(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S ,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO =J_1H ,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1202,15 +1209,13 @@ C**** add tracers to advected arrays
 #endif
 C**** define inverse area array
       DO J=J_0, J_1
-c      DO I=1,IM
-         do i=I_0,I_1
-            IF (FOCEAN(I,J).gt.0) THEN
-               BYFOA(I,J)=BYAXYP(I,J)/FOCEAN(I,J)
-            ELSE
-               BYFOA(I,J)=0.
-            END IF
-c     END DO
-         enddo
+      DO I=1,IM
+        IF (FOCEAN(I,J).gt.0) THEN
+          BYFOA(I,J)=BYDXYP(J)/FOCEAN(I,J)
+        ELSE
+          BYFOA(I,J)=0.
+        END IF
+      END DO
       END DO
 C****
 C**** North-South Advection of Sea Ice
@@ -1227,7 +1232,7 @@ C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
       CALL HALO_UPDATE(grid_MIC, RSIY, FROM=NORTH)
       CALL HALO_UPDATE(grid_MIC, RSIX, FROM=NORTH)
 
-      DO I=I_0,I_1
+      DO I=1,IM
 C****
 C**** Calculate south-north sea ice fluxes at grid box edges
 C****
@@ -1237,18 +1242,18 @@ C****
       IF(VSIDT(I,J).le.0.) THEN
 C**** Sea ice velocity is southward at grid box edge
         FASI(I,J)=FAW(I,J)*(RSI(I,J+1)-
-     *       (1d0+FAW(I,J)*BYAXYP(I,J+1))*RSIY(I,J+1))*FOCEAN(I,J+1)
+     *       (1d0+FAW(I,J)*BYDXYP(J+1))*RSIY(I,J+1))*FOCEAN(I,J+1)
         FXSI(I,J)=FAW(I,J)*RSIX(I,J+1)*FOCEAN(I,J+1)
-        FYSI(I,J)=FAW(I,J)*(FAW(I,J)*BYAXYP(I,J+1)*
+        FYSI(I,J)=FAW(I,J)*(FAW(I,J)*BYDXYP(J+1)*
      *       FAW(I,J)*RSIY(I,J+1)*FOCEAN(I,J+1) - 3d0*FASI(I,J))
         FMSJ(I,1:NTRICE,J) = FASI(I,J)*MHS(1:NTRICE,I,J+1)
       ELSE
 C**** Sea ice velocity is northward at grid box edge
-        FASI(I,J)=FAW(I,J)*(RSI(I,J)+(1d0-FAW(I,J)*BYAXYP(I,J))
-     *        *RSIY(I,J))*FOCEAN(I,J)
+        FASI(I,J)=FAW(I,J)*(RSI(I,J)+(1d0-FAW(I,J)*BYDXYP(J))*RSIY(I,J))
+     *       *FOCEAN(I,J)
         FXSI(I,J)=FAW(I,J)*RSIX(I,J)*FOCEAN(I,J)
         FYSI(I,J)=FAW(I,J)*
-     *       (FAW(I,J)*BYAXYP(I,J)*FAW(I,J)*RSIY(I,J)*FOCEAN(I,J)
+     *       (FAW(I,J)*BYDXYP(J)*FAW(I,J)*RSIY(I,J)*FOCEAN(I,J)
      *       -3d0*FASI(I,J))
         FMSJ(I,1:NTRICE,J) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
@@ -1277,9 +1282,9 @@ C**** Sea ice velocity is southward from North Pole box
         ELSE
 C**** Sea ice velocity is northward into North Pole box
           FASI(I,JM-1) = FAW(I,JM-1)*FOCEAN(I,JM-1)*
-     *       (RSI(I,JM-1)+(1d0-FAW(I,JM-1)*BYAXYP(I,JM-1))*RSIY(I,JM-1))
+     *       (RSI(I,JM-1)+(1d0-FAW(I,JM-1)*BYDXYP(JM-1))*RSIY(I,JM-1))
           FXSI(I,JM-1) = FAW(I,JM-1)*RSIX(I,JM-1)*FOCEAN(I,JM-1)
-          FYSI(I,JM-1) = FAW(I,JM-1)*(FAW(I,JM-1)*BYAXYP(I,JM-1)*
+          FYSI(I,JM-1) = FAW(I,JM-1)*(FAW(I,JM-1)*BYDXYP(JM-1)*
      *       FAW(I,JM-1)*RSIY(I,JM-1)*FOCEAN(I,JM-1)-3d0*FASI(I,JM-1))
           FMSJ(I,1:NTRICE,JM-1) = FASI(I,JM-1)*MHS(1:NTRICE,I,JM-1)
         END IF
@@ -1311,18 +1316,18 @@ C****Update halo of VSIDT, FASI, FAW, FOCEAN, FMSI, and FXSI
       CALL HALO_UPDATE(grid, FYSI, FROM=SOUTH)
       CALL HALO_UPDATE(grid, FAW,  FROM=SOUTH)
 
-      DO I=I_0,I_1
+      DO I=1,IM
       DO 330 J=J_0S, J_1S
       IF(VSIDT(I,J-1)) 240,210,280
 C**** VSIDT(J-1)=0.
   210 IF(VSIDT(I,J))  220,330,230
 C**** VSIDT(J-1)=0, VSIDT(J)<0.
-  220 ASI = RSI(I,J)*AXYP(I,J)*FOCEAN(I,J) -  FASI(I,J)
+  220 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) -  FASI(I,J)
       DO 225 K=1,NTRICE
-  225 AMSI(K) = RSI(I,J)*AXYP(I,J)*MHS(K,I,J)*FOCEAN(I,J) - FMSJ(I,K,J)
-      IF(ASI.gt.AXYP(I,J)*FOCEAN(I,J))  GO TO 320
-      YRSI = (RSIY(I,J)*AXYP(I,J)*AXYP(I,J)*FOCEAN(I,J) - FYSI(I,J)
-     *  + 3d0*(FAW(I,J)*ASI-AXYP(I,J)*FASI(I,J))) / (AXYP(I,J)-FAW(I,J))
+  225 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) - FMSJ(I,K,J)
+      IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 320
+      YRSI = (RSIY(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J) - FYSI(I,J)
+     *  + 3d0*(FAW(I,J)*ASI-DXYP(J)*FASI(I,J))) / (DXYP(J)-FAW(I,J))
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) - FXSI(I,J)*BYFOA(I,J)
@@ -1330,8 +1335,8 @@ C**** VSIDT(J-1)=0, VSIDT(J)<0.
       GO TO 310
 C**** VSIDT(J-1)=0, VSIDT(J)>0.
   230 RSI(I,J)  =  RSI(I,J) -  FASI(I,J)*BYFOA(I,J)
-      RSIX(I,J) = RSIX(I,J)*(1d0-FAW(I,J)*BYAXYP(I,J))
-      RSIY(I,J) = RSIY(I,J)*(1d0-FAW(I,J)*BYAXYP(I,J))**2
+      RSIX(I,J) = RSIX(I,J)*(1d0-FAW(I,J)*BYDXYP(J))
+      RSIY(I,J) = RSIY(I,J)*(1d0-FAW(I,J)*BYDXYP(J))**2
       GO TO 310
 C**** VSIDT(J-1)<0.
   240 IF(VSIDT(I,J))  260,250,270
@@ -1342,15 +1347,15 @@ C**** VSIDT(J-1)<0, VSIDT(J)=0.
       RSIY(I,J) = RSIY(I,J)*TMP**2
       GO TO 310
 C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J) not 0.
-  260 ASI = RSI(I,J)*AXYP(I,J)*FOCEAN(I,J) + ( FASI(I,J-1)- FASI(I,J))
+  260 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + ( FASI(I,J-1)- FASI(I,J))
       DO 265 K=1,NTRICE
-  265 AMSI(K) = RSI(I,J)*AXYP(I,J)*MHS(K,I,J)*FOCEAN(I,J) +
+  265 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) +
      *       (FMSJ(I,K,J-1)-FMSJ(I,K,J))
-      IF(ASI.gt.AXYP(I,J)*FOCEAN(I,J))  GO TO 320
-      YRSI = (RSIY(I,J)*AXYP(I,J)*AXYP(I,J)*FOCEAN(I,J)+
+      IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 320
+      YRSI = (RSIY(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J)+
      *     (FYSI(I,J-1)-FYSI(I,J)) + 3d0*((FAW(I,J-1)+
-     *     FAW(I,J))*ASI-AXYP(I,J)*(FASI(I,J-1)+FASI(I,J))))
-     *    / (AXYP(I,J) + (FAW(I,J-1)-FAW(I,J)))
+     *     FAW(I,J))*ASI-DXYP(J)*(FASI(I,J-1)+FASI(I,J))))
+     *    / (DXYP(J) + (FAW(I,J-1)-FAW(I,J)))
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) + (FXSI(I,J-1)-FXSI(I,J))*BYFOA(I,J)
@@ -1366,14 +1371,13 @@ C**** VSIDT(J-1)<0, VSIDT(J)>0.
 C**** VSIDT(J-1)>0.
   280 IF(VSIDT(I,J).ne.0.)  GO TO 260
 C**** VSIDT(J-1)>0, VSIDT(J)=0.
-      ASI = RSI(I,J)*AXYP(I,J)*FOCEAN(I,J) + FASI(I,J-1)
+      ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + FASI(I,J-1)
       DO 285 K=1,NTRICE
-  285 AMSI(K) = RSI(I,J)*AXYP(I,J)*MHS(K,I,J)*FOCEAN(I,J) 
-     *        + FMSJ(I,K,J-1)
-      IF(ASI.gt.AXYP(I,J)*FOCEAN(I,J))  GO TO 320
-      YRSI = (RSIY(I,J)*AXYP(I,J)*AXYP(I,J)*FOCEAN(I,J) + FYSI(I,J-1)
-     *    + 3d0*(FAW(I,J-1)*ASI-AXYP(I,J)*FASI(I,J-1))) /
-     *     (AXYP(I,J)+FAW(I,J-1))
+  285 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) + FMSJ(I,K,J-1)
+      IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 320
+      YRSI = (RSIY(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J) + FYSI(I,J-1)
+     *    + 3d0*(FAW(I,J-1)*ASI-DXYP(J)*FASI(I,J-1))) /
+     *     (DXYP(J)+FAW(I,J-1))
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) + FXSI(I,J-1)*BYFOA(I,J)
@@ -1413,11 +1417,11 @@ C****
 C**** Advection of Sea Ice leaving and entering North Pole box
 C****
       IF (HAVE_NORTH_POLE) THEN
-        ASI = RSI(1,JM)*AXYP(1,JM)*FOCEAN(1,JM) + SFASI/IM
+        ASI = RSI(1,JM)*DXYP(JM)*FOCEAN(1,JM) + SFASI/IM
         DO 345 K=1,NTRICE
-  345   AMSI(K) = RSI(1,JM)*AXYP(1,JM)*MHS(K,1,JM)*FOCEAN(1,JM)+
+  345   AMSI(K) = RSI(1,JM)*DXYP(JM)*MHS(K,1,JM)*FOCEAN(1,JM)+
      &            SFMSI(K)/IM
-        IF(ASI.gt.AXYP(1,JM)*FOCEAN(1,JM))  GO TO 350
+        IF(ASI.gt.DXYP(JM)*FOCEAN(1,JM))  GO TO 350
         RSI(1,JM)   = ASI*BYFOA(1,JM)
         IF (ASI.gt.0) MHS(1:NTRICE,1,JM) = AMSI(1:NTRICE)/ASI
         GO TO 400
@@ -1444,27 +1448,24 @@ C****
 C****
 C**** Calculate west-east sea ice fluxes at grid box edges
 C****
-c      I=IM
-c      DO IP1=1,IM
-      DO I=I_0,I_1
-      ip1=i+1
-      if (ip1 .eq. IM+1) ip1=1
+      I=IM
+      DO IP1=1,IM
       IF(USIDT(I,J).eq.0.)  GO TO 420
       FAW(I,J) = USIDT(I,J)*DYP(J)
       IF(USIDT(I,J).le.0.) THEN
 C**** Sea ice velocity is westward at grid box edge
         FASI(I,J)=FAW(I,J)*(RSI(IP1,J)-
-     *       (1d0+FAW(I,J)*BYAXYP(I,J))*RSIX(IP1,J))
+     *       (1d0+FAW(I,J)*BYDXYP(J))*RSIX(IP1,J))
      *       *FOCEAN(IP1,J)
-        FXSI(I,J)=FAW(I,J)*(FAW(I,J)*BYAXYP(I,J)*
+        FXSI(I,J)=FAW(I,J)*(FAW(I,J)*BYDXYP(J)*
      *       FAW(I,J)*RSIX(IP1,J)*FOCEAN(IP1,J)-3d0*FASI(I,J))
         FYSI(I,J)=FAW(I,J)*RSIY(IP1,J)*FOCEAN(IP1,J)
         FMSI(1:NTRICE,I) = FASI(I,J)*MHS(1:NTRICE,IP1,J)
       ELSE
 C**** Sea ice velocity is eastward at grid box edge
-        FASI(I,J)=FAW(I,J)*(RSI(I,J)+(1d0-FAW(I,J)*BYAXYP(I,J))
-     *        *RSIX(I,J))*FOCEAN(I,J)
-        FXSI(I,J)=FAW(I,J)*(FAW(I,J)*BYAXYP(I,J)*FAW(I,J)*
+        FASI(I,J)=FAW(I,J)*(RSI(I,J)+(1d0-FAW(I,J)*BYDXYP(J))*RSIX(I,J))
+     *       *FOCEAN(I,J)
+        FXSI(I,J)=FAW(I,J)*(FAW(I,J)*BYDXYP(J)*FAW(I,J)*
      *       RSIX(I,J)*FOCEAN(I,J)-3d0*FASI(I,J))
         FYSI(I,J)=FAW(I,J)*RSIY(I,J)*FOCEAN(I,J)
         FMSI(1:NTRICE,I) = FASI(I,J)*MHS(1:NTRICE,I,J)
@@ -1478,26 +1479,23 @@ C**** Sea ice velocity is eastward at grid box edge
      *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
          END DO
 #endif
-c  420 I=IP1
-  420 CONTINUE 
+  420 I=IP1
       END DO
 C****
 C**** Update sea ice variables due to west-east fluxes
 C****
-
+      IM1=IM
       DO 630 I=1,IM
-      im1=i-1
-      if (im1 .eq. 0) im1=im
       IF(USIDT(IM1,J)) 540,510,580
 C**** USIDT(IM1)=0.
   510 IF(USIDT(I,J))  520,630,530
 C**** USIDT(IM1)=0, USIDT(I)<0.
-  520 ASI = RSI(I,J)*AXYP(I,J)*FOCEAN(I,J) -  FASI(I,J)
+  520 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) -  FASI(I,J)
       DO 525 K=1,NTRICE
-  525 AMSI(K) = RSI(I,J)*AXYP(I,J)*MHS(K,I,J)*FOCEAN(I,J) - FMSI(K,I)
-      IF(ASI.gt.AXYP(I,J)*FOCEAN(I,J))  GO TO 620
-      XRSI = (RSIX(I,J)*AXYP(I,J)*AXYP(I,J)*FOCEAN(I,J) - FXSI(I,J)
-     *    + 3d0*(FAW(I,J)*ASI-AXYP(I,J)*FASI(I,J)))/(AXYP(I,J)-FAW(I,J))
+  525 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) - FMSI(K,I)
+      IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 620
+      XRSI = (RSIX(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J) - FXSI(I,J)
+     *    + 3d0*(FAW(I,J)*ASI-DXYP(J)*FASI(I,J))) / (DXYP(J)-FAW(I,J))
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIX(I,J) = XRSI*BYFOA(I,J)
       RSIY(I,J) = RSIY(I,J) - FYSI(I,J)*BYFOA(I,J)
@@ -1505,8 +1503,8 @@ C**** USIDT(IM1)=0, USIDT(I)<0.
       GO TO 610
 C**** USIDT(IM1)=0, USIDT(I)>0.
   530 RSI(I,J)  =  RSI(I,J) -  FASI(I,J)*BYFOA(I,J)
-      RSIX(I,J) = RSIX(I,J)*(1d0-FAW(I,J)*BYAXYP(I,J))**2
-      RSIY(I,J) = RSIY(I,J)*(1d0-FAW(I,J)*BYAXYP(I,J))
+      RSIX(I,J) = RSIX(I,J)*(1d0-FAW(I,J)*BYDXYP(J))**2
+      RSIY(I,J) = RSIY(I,J)*(1d0-FAW(I,J)*BYDXYP(J))
       GO TO 610
 C**** USIDT(IM1)<0.
   540 IF(USIDT(I,J))  560,550,570
@@ -1516,15 +1514,15 @@ C**** USIDT(IM1)<0, USIDT(I)=0.
       RSIY(I,J) = RSIY(I,J)*(1d0+FAW(IM1,J)*FOCEAN(IM1,J)*BYFOA(I,J))
       GO TO 610
 C**** USIDT(IM1)<0, USIDT(I)<0  or  USIDT(IM1)>0, USIDT(I) not 0.
-  560 ASI = RSI(I,J)*AXYP(I,J)*FOCEAN(I,J) + (FASI(IM1,J)- FASI(I,J))
+  560 ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + (FASI(IM1,J)- FASI(I,J))
       DO 565 K=1,NTRICE
-  565 AMSI(K) = RSI(I,J)*AXYP(I,J)*MHS(K,I,J)*FOCEAN(I,J) +
+  565 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) +
      *       (FMSI(K,IM1)-FMSI(K,I))
-      IF(ASI.gt.AXYP(I,J)*FOCEAN(I,J))  GO TO 620
-      XRSI = (RSIX(I,J)*AXYP(I,J)*AXYP(I,J)*FOCEAN(I,J)+
+      IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 620
+      XRSI = (RSIX(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J)+
      *     (FXSI(IM1,J)-FXSI(I,J)) + 3d0*((FAW(IM1,J)+FAW(I,J))*ASI-
-     *     AXYP(I,J)*(FASI(IM1,J)+FASI(I,J))))
-     *    / (AXYP(I,J) + (FAW(IM1,J)-FAW(I,J)))
+     *     DXYP(J)*(FASI(IM1,J)+FASI(I,J))))
+     *    / (DXYP(J) + (FAW(IM1,J)-FAW(I,J)))
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIX(I,J) = XRSI*BYFOA(I,J)
       RSIY(I,J) = RSIY(I,J) + (FYSI(IM1,J)-FYSI(I,J))*BYFOA(I,J)
@@ -1540,13 +1538,13 @@ C**** USIDT(IM1)<0, USIDT(I)>0.
 C**** USIDT(IM1)>0.
   580 IF(USIDT(I,J).ne.0.)  GO TO 560
 C**** USIDT(IM1)>0, USIDT(I)=0.
-      ASI = RSI(I,J)*AXYP(I,J)*FOCEAN(I,J) + FASI(IM1,J)
+      ASI = RSI(I,J)*DXYP(J)*FOCEAN(I,J) + FASI(IM1,J)
       DO 585 K=1,NTRICE
-  585 AMSI(K) = RSI(I,J)*AXYP(I,J)*MHS(K,I,J)*FOCEAN(I,J) + FMSI(K,IM1)
-      IF(ASI.gt.AXYP(I,J)*FOCEAN(I,J))  GO TO 620
-      XRSI = (RSIX(I,J)*AXYP(I,J)*AXYP(I,J)*FOCEAN(I,J) + FXSI(IM1,J)
-     *    + 3d0*(FAW(IM1,J)*ASI-AXYP(I,J)*FASI(IM1,J))) /
-     *     (AXYP(I,J)+FAW(IM1,J))
+  585 AMSI(K) = RSI(I,J)*DXYP(J)*MHS(K,I,J)*FOCEAN(I,J) + FMSI(K,IM1)
+      IF(ASI.gt.DXYP(J)*FOCEAN(I,J))  GO TO 620
+      XRSI = (RSIX(I,J)*DXYP(J)*DXYP(J)*FOCEAN(I,J) + FXSI(IM1,J)
+     *    + 3d0*(FAW(IM1,J)*ASI-DXYP(J)*FASI(IM1,J))) /
+     *     (DXYP(J)+FAW(IM1,J))
       RSI(I,J)  = ASI*BYFOA(I,J)
       RSIX(I,J) = XRSI*BYFOA(I,J)
       RSIY(I,J) = RSIY(I,J) + FYSI(IM1,J)*BYFOA(I,J)
@@ -1579,7 +1577,7 @@ C**** Sea ice crunches into itself and completely covers grid box
      *       XSI(4)*DMHSI
       END DO
 C**** End of loop over I
-  630 CONTINUE
+  630 IM1=I
 C**** End of loop over J
   640 CONTINUE
 
@@ -1587,7 +1585,7 @@ C**** End of loop over J
 C**** set global variables from local array
 C**** Currently on atmospheric grid, so no interpolation necessary
         DO J=J_0, J_1
-          DO I=I_0,IMAXJ(J)
+          DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Fresh water sea ice mass convergence (needed for qflux model)
             MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)-SUM(MHS(3
@@ -1644,7 +1642,7 @@ C**** reconstruct tracer arrays
         END DO
 C**** Set atmospheric arrays
         DO J=J_0, J_1
-          DO I=I_0,IMAXJ(J)
+          DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
 C**** set total atmopsheric pressure anomaly in case needed by ocean
               APRESS(I,J) = 100.*(P(I,J)+PTOP-1013.25d0)+RSI(I,J)
@@ -1693,7 +1691,7 @@ C****
         END IF
       ELSE          ! fixed SST case, save implied heat convergence
         DO J=J_0, J_1
-          DO I=I_0,IMAXJ(J)
+          DO I=1,IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
               OA(I,J,13)=OA(I,J,13)+(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
      *             -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
@@ -1728,34 +1726,6 @@ c***  both latlon with equal resolution
       iA=aA
 #endif
       end subroutine INT_AG2IG_2D
-
-
-      subroutine INT_AG2IG_2D_Vector(aU,aV,iU,iV) 
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : IMICDYN,grid_ICDYN
-      IMPLICIT NONE
-      real *8 ::
-     &     aU(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aV(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iU(1:IMICDYN,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
-     &     iV(1:IMICDYN,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-
-#ifdef CUBED_GRID
-      iU=0      ! temporary
-      iV=0      ! temporary 
-
-#else 
-c***  for the moment me assume that the atm and icedyn grids are 
-c***  both latlon with equal resolution
-      iU=aU
-      iV=aV
-#endif
-      end
 
       subroutine INT_IG2AG_2D(iA,aA)
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
@@ -1802,37 +1772,90 @@ c***  both latlon with equal resolution
       aA=iA
 #endif
       end subroutine INT_IG2AG_2D_NX1
+c*
 
 
-      subroutine INT_IG2AG_2D_Vector(iU,iV,aU,aV) 
+      subroutine Interp_IG2AGC_Vel(iUb,iVb,iUc,iVc,aUc,aVc)
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
       USE ICEDYN, only : IMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
-     &     aU(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     aUc(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm C grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aV(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     aVc(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm C grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iU(1:IMICDYN,
+     &     iUb(1:IMICDYN,                             ! on ice B grid
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
-     &     iV(1:IMICDYN,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+     &     iVb(1:IMICDYN,                             ! on ice B grid
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),     
+     &     iUc(1:IMICDYN,                             ! on ice C grid
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
+     &     iVc(1:IMICDYN,                             ! on ice C grid
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+      real*8, allocatable :: aUb(:,:),aVb(:,:),       ! on atm B grid, expressed in latlon basis
+     &                       aUb_cs(:,:),aVb_cs(:,:)  ! on atm B grid, expressed in CS basis  
+      INTEGER :: iJ_1   , iJ_0
+      INTEGER :: iJ_1S  , iJ_0S
+      INTEGER :: iJ_1H  , iJ_0H
+      INTEGER :: iJ_1STG, iJ_0STG
+      INTEGER :: aI_1   , aI_0
+      INTEGER :: aJ_1   , aJ_0
+      INTEGER :: aJ_1H  , aJ_0H
+      INTEGER :: aJ_1S  , aJ_0S
+      INTEGER :: aJ_1STG, aJ_0STG
+      INTEGER :: IP1,I,J
+  
+#ifndef CUBE_GRID
+c***  temporarily we assume the icedyn grid and atm grid have same resolution
+      aUc=iUc
+      aVc=iVc
 
-#ifdef CUBED_GRID
-      aU=0      ! temporary
-      aV=0      ! temporary 
-c      call PACK_DATA(grid_ICDYN,  iU,  iU_GLOB)
-c      call PACK_DATA(grid_ICDYN,  iV,  iV_GLOB)
-c      call bilin_ll2cs_vec(agrid,iU_glob,iV_glob,aU,aV,imicdyn,jmicdyn)
-c      do the LL2XYcs_vec thing here
-#else 
-c***  for the moment me assume that the atm and icedyn grids are 
-c***  both latlon with equal resolution
-      aU=iU
-      aV=iV
+#else
+      call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
+     &                   , J_STRT=aJ_0        , J_STOP=aJ_1    
+     &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H 
+     &                   , J_STRT_SKP=aJ_0S   , J_STOP_SKP=aJ_1S
+     &                   , J_STRT_STGR=aJ_0STG, J_STOP_STGR=aJ_1STG)
+
+      allocate(aUb(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     aVb(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
+     &     aUb_cs(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     aVb_cs(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
+ )
+
+c***  icedyn B grid -> atm cell centers 
+      call INT_IG2AG_2D(iUb,aUb)
+      call INT_IG2AG_2D(iVb,aVb)
+
+c***  latlon basis -> CS basis
+c      do the LL2XYcs_vec...(aUb,aVb,aUb_cs,aVb_cs)
+
+
+c***  atm cell centers -> atm cell edges
+      do j=aJ_0STG,aJ_1STG
+         do i=aI_0,aI_1
+            ip1=i+1
+            if (ip1 .eq. aIM+1) ip1=1
+            aUc(i,j)=0.5*(aUb_cs(i+1,j-1,1)+aUb_cs(i+1,j,1))
+          IF (abs(aUc(I,J)).lt.1d-10) aUc(I,J)=0
+        enddo
+      enddo
+
+      do j=aJ_0,aJ_1s
+        do i=aI_0,aI_1
+          aVc(i,j)=0.5*(aVb_cs(i,j,1)+aVb_cs(i+1,j,1))
+          IF (abs(aVc(I,J)).lt.1d-10) aVc(I,J)=0
+       enddo
+      enddo
+
+      deallocate(aUb,aVb,aUb_cs,aVb_cs)
 #endif
-      end
+      end subroutine
+
 
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
