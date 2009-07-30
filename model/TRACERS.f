@@ -481,12 +481,14 @@ C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
 
-C**** modify vertical moments (only from non-interactive sources)
        do j=j_0,j_1
-        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux1(:,j,n)
-     *       *dtstep
-        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux1(:,j,n)
-     *       *dtstep
+C**** modify vertical moments (only from non-interactive sources)
+c this is disabled until vertical moments are also modified
+c during the vertical transport between layer 1 and the others
+c        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux1(:,j,n)
+c     *       *dtstep
+c        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux1(:,j,n)
+c     *       *dtstep
 
 C**** Accumulate interactive sources as well
         trflux1(:,j,n) = trflux1(:,j,n)+trsrfflx(:,j,n)
