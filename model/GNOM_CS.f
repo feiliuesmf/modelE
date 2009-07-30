@@ -51,9 +51,28 @@ c
       REAL*8, ALLOCATABLE :: lat2d_corner(:,:)
 !@var  lon2d_corner longitude of mid point of primary grid box (radians)
       REAL*8, ALLOCATABLE :: lon2d_corner(:,:)
-!@var ddx_ci, ddx_cj,ddy_ci ddy_cj 
+!@var ddx_ci, ddx_cj,ddy_ci ddy_cj coeffs for obtaining N-S and E-W
+!@+   gradients from centered differences in the I and J directions
       REAL*8, ALLOCATABLE :: ddx_ci(:,:),ddx_cj(:,:)
       REAL*8, ALLOCATABLE :: ddy_ci(:,:),ddy_cj(:,:)
+
+!@var dlxsina, dlysina edge lengths multiplied by sin(alpha).
+!@+   alpha is the local angle between gridlines of constant x and y.
+!@+   dlxsina(i,j) is at the boundary between cells i,j-1 and i,j
+!@+   dlysina(i,j) is at the boundary between cells i-1,j and i,j
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: dlxsina,dlysina
+
+!@var ull2ucs,vll2ucs, ull2vcs,vll2vcs coeffs for projecting
+!@+   a latlon-oriented vector with components ull,vll onto local
+!@+   cubed-sphere basis vectors e1,e2 that are parallel to
+!@+   gridlines of constant y,x:
+!@+   ucs = ull*ull2ucs + vll*vll2ucs
+!@+   vcs = ull*ull2vcs + vll*vll2vcs
+!@+   These instances are defined at C-grid locations.
+!@+   ull2ucs,vll2ucs (i,j) lie between cells i-1,j and i,j
+!@+   ull2vcs,vll2vcs (i,j) lie between cells i,j-1 and i,j
+      REAL*8, DIMENSION(:,:), ALLOCATABLE ::
+     &     ull2ucs, vll2ucs, ull2vcs, vll2vcs
 
 c     shift grid 10 degrees West to avoid corner over Japan
       real*8, parameter :: shiftwest = twopi/36.
@@ -83,7 +102,7 @@ c     shift grid 10 degrees West to avoid corner over Japan
       USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
       implicit none
-      real*8 :: x,y
+      real*8 :: x,y,x1,x2,y1,y2,e1(2),e2(2)
       integer :: i0h, i1h, i0, i1
       integer :: j0h, j1h, j0, j1
       integer :: i,j
@@ -122,6 +141,16 @@ c     shift grid 10 degrees West to avoid corner over Japan
 
       allocate(axyp(i0h:i1h, j0h:j1h))
       allocate(byaxyp(i0h:i1h, j0h:j1h))
+
+      allocate(
+     &     dlysina(i0h:i1h+1,j0h:j1h)
+     &    ,ull2ucs(i0h:i1h+1,j0h:j1h)
+     &    ,vll2ucs(i0h:i1h+1,j0h:j1h))
+
+      allocate(
+     &     dlxsina(i0h:i1h,j0h:j1h+1)
+     &    ,ull2vcs(i0h:i1h,j0h:j1h+1)
+     &    ,vll2vcs(i0h:i1h,j0h:j1h+1))
 
       allocate(imaxj(j0:j1))
 
@@ -198,6 +227,43 @@ c account for discontinuity of lon2d at the international date line
       enddo
 
       kmaxj(:)= 2
+
+c
+c Factors for vector transformations and transport calculations.
+c For now, ignore discontinuities and changes of orientation
+c at the edges of cube faces since these factors are currently used
+c only for sea ice transport on polar faces.  Will adapt as needed.
+c
+c at C-grid u locations
+      do j=max(1,j0h),min(jm,j1h)
+        y1 = -1d0 + 2d0*(j-1)/im
+        y2 = -1d0 + 2d0*(j  )/im
+        y = .5*(y1+y2)
+        do i=max(1,i0h),min(im+1,i1h+1)
+          x = -1d0 + 2d0*(i-1)/im
+          call e1e2(x,y,grid%tile,e1,e2)
+          bydet = 1d0/(e1(1)*e2(2)-e1(2)*e2(1))
+          ull2ucs(i,j) = +e2(2)*bydet
+          vll2ucs(i,j) = -e2(1)*bydet
+          dlysina(i,j) = radius*
+     &         gcdist(x,x,y1,y2)*sqrt(1d0-sum(e1*e2)**2)
+        enddo
+      enddo
+c at C-grid v locations
+      do j=max(1,j0h),min(jm+1,j1h+1)
+        y = -1d0 + 2d0*(j-1)/im
+        do i=max(1,i0h),min(im,i1h)
+          x1 = -1d0 + 2d0*(i-1)/im
+          x2 = -1d0 + 2d0*(i  )/im
+          x = .5*(x1+x2)
+          call e1e2(x,y,grid%tile,e1,e2)
+          bydet = 1d0/(e1(1)*e2(2)-e1(2)*e2(1))
+          ull2vcs(i,j) = -e1(2)*bydet
+          vll2vcs(i,j) = +e1(1)*bydet
+          dlxsina(i,j) = radius*
+     &         gcdist(x1,x2,y,y)*sqrt(1d0-sum(e1*e2)**2)
+        enddo
+      enddo
 
       return
       END SUBROUTINE GEOM_CS
@@ -509,5 +575,25 @@ c longitude offsets; rotation on tiles 4/5
       if(tile.ge.4) slt = -slt
       return
       end subroutine trigint
+
+      function gcdist(x1_in,x2_in,y1_in,y2_in)
+c compute the great-circle distance between two x,y points.
+      implicit none
+      real*8 :: gcdist,x1_in,x2_in,y1_in,y2_in
+      real*8 :: X1,X2,Y1,Y2,dot,vsqr1,vsqr2
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      X1 = tan(g*x1_in)
+      Y1 = tan(g*y1_in)
+      X2 = tan(g*x2_in)
+      Y2 = tan(g*y2_in)
+      dot   = 1d0+2d0*(X1*X2+Y1*Y2)
+      vsqr1 = 1d0+2d0*(X1*X1+Y1*Y1)
+      vsqr2 = 1d0+2d0*(X2*X2+Y2*Y2)
+      gcdist = acos(dot/sqrt(vsqr1*vsqr2))
+c note: in "capital" X,Y space,
+c if Y1==Y2 gcdist = |atan(X2/sqrt(1+Y*Y))-atan(X1/sqrt(1+Y*Y))|
+c if X1==X2 gcdist = |atan(Y2/sqrt(1+X*X))-atan(Y1/sqrt(1+X*X))|
+      return
+      end function gcdist
 
       END MODULE GEOM
