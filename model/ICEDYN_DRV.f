@@ -1449,7 +1449,6 @@ c      DO IP1=1,IM
       DO I=I_0,I_1
       ip1=i+1
       if (ip1 .eq. IM+1) ip1=1
-      write(*,*) "dyp",dyp(j),0.5/ddy_cj(i,j)
       IF(USIDT(I,J).eq.0.)  GO TO 420
       FAW(I,J) = USIDT(I,J)*DYP(J)
       IF(USIDT(I,J).le.0.) THEN
