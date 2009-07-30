@@ -23,6 +23,7 @@ c****
 !@dbparam imDust: 0: scheme using PDF of wind speed (default)
 !@+               1: prescribed AEROCOM emissions
 !@+               2: legacy emission scheme using third power of wind speeds
+!@+                  (only works with 72x46 horizontal resolution)
       INTEGER :: imDust=0
 
 c**** legacy emission code (Tegen, I. and R. Miller, JGR (1998))
@@ -57,8 +58,8 @@ c**** wind speed
 c****
 !@param CWiPdf uplift factor [kg*s**2/m**5] for all size classes of soil dust
       REAL*8,PARAMETER :: CWiPdf=12.068996D-9
-!@param FClWiCub fraction [1] of uplifted clay
-!@param FSiWiCub fractions [1] of uplifted silt
+!@param FClWiPdf fraction [1] of uplifted clay
+!@param FSiWiPdf fractions [1] of uplifted silt
       REAL*8 :: FClWiPdf=0.092335D0,FSiWiPdf=0.226916D0
 !@var ers_data field of ERS data
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ers_data
