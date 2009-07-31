@@ -886,8 +886,8 @@ C**** Update halos for FOCEAN, DXYS, DXYV
        enddo
       enddo
 
-      call INT_IG2AG_2D(iDMUI,DMUI) !resampled on atm grid but expressed in ll basis
-      call INT_IG2AG_2D(iDMVI,DMVI) !resampled on atm grid but expressed in ll basis
+      call INT_IG2AG_2D(iDMUI,DMUI) !resampled on atm grid but still expressed in latlon basis
+      call INT_IG2AG_2D(iDMVI,DMVI) !resampled on atm grid but still expressed in latlon basis
 
 C**** Update halos for FOCEAN, and RSI
       CALL HALO_UPDATE(agrid,  FOCEAN)
@@ -948,7 +948,7 @@ C**** Update halos for DMU, and DMV
       CALL HALO_UPDATE(grid_ICDYN,  DMU   , from=SOUTH     )
       CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
 
-c**** resample on atm grid (CS or latlon) but still expressed in latlon coord. system
+c**** resampled on atm grid (CS or latlon) but still expressed in latlon basis
       call INT_IG2AG_2D_NX1(DMU,aDMU) 
       call INT_IG2AG_2D_NX1(DMV,aDMV)
 
@@ -1002,50 +1002,71 @@ C**** dmui,dmvi on atm C grid
 
       call INT_IG2AG_2D_NX1(press,apsi)
 
-c*** interpolate ice velocities to the atm C-grid but 
-c*** keep latlon orientation - note that usi/vsi is seen 
-c*** only by latlon version of ADVSI 
-      call Int_IG2AG_2D(USI,aUSI)
-      call Int_IG2AG_2D(VSI,aVSI)
 
 C**** calculate mass fluxes for the ice advection
 C**** Update halos for FOCEAN, and RSI
       CALL HALO_UPDATE(agrid,  FOCEAN, from=NORTH     )
       CALL HALO_UPDATE(agrid,  RSI   , from=NORTH     )
 
+      CALL HALO_UPDATE(grid_ICDYN,  iFOCEAN, from=NORTH     )
+      CALL HALO_UPDATE(grid_ICDYN,  iRSI   , from=NORTH     )
 
+c*** interpolate ice velocities to the atm C-grid but 
+c*** keep latlon orientation 
+      call Int_IG2AG_2D(USI,aUSI)
+      call Int_IG2AG_2D(VSI,aVSI)
+
+c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
       DO J=aJ_0,aJ_1S
         DO I=aI_0,aI_1
          ip1=i+1
          if (ip1 .eq. aIM+1) ip1=1
           USIDT(I,J)=0.
-          IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
-     *         RSI(I,J)+RSI(IP1,J).gt.1d-4) THEN
-            USIDT(I,J)=aUSI(I,J)*DTS !this is seen only by latlon version of ADVSI
-            ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(RSI(I,J)+RSI(IP1,J))
-     *           *aUSI(i,j)
-            ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
-          END IF
           VSIDT(I,J)=0.
+          IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
+     &         RSI(I,J)+RSI(IP1,J).gt.1d-4) 
+     &       USIDT(I,J)=aUSI(I,J)*DTS !this is seen only by latlon version of ADVSI
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
-     *         RSI(I,J)+RSI(I,J+1).gt.1d-4) THEN
-            VSIDT(I,J)=aVSI(I,J)*DTS !this is seen only by latlon version of ADVSI
-            ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(RSI(I,J)+RSI(I,J+1))
-     *           *aVSI(i,j)
-            ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
-          END IF
-          ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ RSI(I,J)*apsi(i+1,j)
-          ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + RSI(I,J)
+     &         RSI(I,J)+RSI(I,J+1).gt.1d-4) 
+     &       VSIDT(I,J)=aVSI(I,J)*DTS !this is seen only by latlon version of ADVSI
         END DO
       END DO
       IF (agrid%HAVE_NORTH_POLE) THEN
         VSIDT(1:aIM,aJM)=0.
         USIDT(1:aIM,aJM)=aUSI(1,aJM)*DTS
-        ICIJ(1,aJM,IJ_USI) =ICIJ(1,aJM,IJ_USI) +RSI(1,aJM)*aUSI(1,aJM)
-        ICIJ(1,aJM,IJ_DMUI)=ICIJ(1,aJM,IJ_DMUI)+DMUI(1,aJM)
-        ICIJ(1,aJM,IJ_RSI) =ICIJ(1,aJM,IJ_RSI) +RSI(1,aJM)
-        ICIJ(1,aJM,IJ_PICE)=ICIJ(1,aJM,IJ_PICE)+RSI(1,aJM)*apsi(1,aJM)
       END IF
+
+
+c*** diagnostics
+      DO J=iJ_0,iJ_1S
+        DO I=1,imicdyn
+         ip1=i+1
+         if (ip1 .eq. IMICDYN+1) ip1=1
+          IF (iFOCEAN(I,J).gt.0 .and. iFOCEAN(IP1,J).gt.0. .and.
+     *         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) THEN
+            ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(iRSI(I,J)+iRSI(IP1,J))
+     *           *USI(i,j)
+            ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
+          END IF
+          IF (iFOCEAN(I,J+1).gt.0 .and. iFOCEAN(I,J).gt.0. .and.
+     *         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) THEN
+            ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(iRSI(I,J)+iRSI(I,J+1))
+     *           *VSI(i,j)
+            ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
+          END IF
+          ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ iRSI(I,J)*press(i+1,j)
+          ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + iRSI(I,J)
+        END DO
+      END DO
+      IF (agrid%HAVE_NORTH_POLE) THEN
+        ICIJ(1,JMICDYN,IJ_USI) =ICIJ(1,JMICDYN,IJ_USI) 
+     &       +iRSI(1,JMICDYN)*USI(1,JMICDYN)
+        ICIJ(1,JMICDYN,IJ_DMUI)=ICIJ(1,JMICDYN,IJ_DMUI)+DMUI(1,JMICDYN)
+        ICIJ(1,JMICDYN,IJ_RSI) =ICIJ(1,JMICDYN,IJ_RSI) +iRSI(1,JMICDYN)
+        ICIJ(1,JMICDYN,IJ_PICE)=ICIJ(1,JMICDYN,IJ_PICE)
+     &       +iRSI(1,JMICDYN)*press(1,JMICDYN)
+      END IF
+
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       call get_uisurf(aUSI,aVSI,uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
