@@ -29,7 +29,7 @@ Preprocessor Options
 #define TRACERS_DUST             ! Dust aerosol
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 #define BC_ALB                   ! Optional tracer BC affects snow albedo
-! #define CLD_AER_CDNC             ! Aerosol-cloud interactions
+#define CLD_AER_CDNC             ! Aerosol-cloud interactions
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
@@ -72,7 +72,7 @@ TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
 ! ----------------------------------
 CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
-! CLD_AEROSOLS_Menon_BLK_MAT          ! Aerosol-cloud interactions
+CLD_AEROSOLS_Menon_BLK_MAT          ! Aerosol-cloud interactions
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
@@ -317,7 +317,7 @@ OC_BIOMASS=OC_GFED_97-06_4x5
 SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
 OC_INDh=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond  
 BC_INDh=BC_Bond_Feb09_4x5_h_1850-2000
-SO2_INDh=SO2_EDGAR_Feb09_4x5_h_1890-2000 
+SO2_INDh=SO2_EDGAR_Feb09_4x5_h_1890-2000
 ! -------Dorothy's inputs for imAER=1 AeroCom ---------
 !SO2_VOLCANO_EXP=SO2_volc_expl1750.AEROCOM
 !TERPENE=SOA_2000.AEROCOM_DEC03
@@ -537,8 +537,10 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2          ! until diurnal diagn. are fixed, nssw should be even
   
 !--------- Aerosol parameters----------------
-imAER=3         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
-aer_int_yr=0    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
+!old historic aerosol emissions (imAER=3, aer_int_yr=1890 to 2000)
+!AR5 emissions (imAER=5, aer_in_yr = 1850 OR 2000)
+imAER=3            !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
+aer_int_yr=0       !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
 rad_interact_tr=1  ! 1=couples aerosols to radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! 0 for TOA, 1 for tropopause for rad forcing diags.
