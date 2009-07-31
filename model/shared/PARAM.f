@@ -71,8 +71,8 @@
       public query_param
 
       integer, parameter :: MAX_PARAMS = 310
-      integer, parameter :: MAX_RPARAMS = 256
-      integer, parameter :: MAX_IPARAMS = 310
+      integer, parameter :: MAX_RPARAMS = 270
+      integer, parameter :: MAX_IPARAMS = 340
       integer, parameter :: MAX_CPARAMS = 200
       integer, parameter :: MAX_NAME_LEN = 32
       integer, parameter :: MAX_CHAR_LEN = 128
@@ -179,6 +179,7 @@
       if ( num_param >= MAX_PARAMS ) then
         print *, 'PARAM: Maximal number of parameters exceeded'
         print *, 'PARAM: Please recompile param with bigger MAX_PARAMS'
+        print *, 'At least ',num_param+1,' is required'
         call stop_model(
      &       'PARAM: Maximal number of parameters exceeded',255)
       endif
@@ -195,6 +196,7 @@
           if ( num_iparam+dim >= MAX_IPARAMS ) then
             print *, 'PARAM: Maximal number of int parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_IPARAMS'
+            print *, 'At least ',num_iparam+dim+1,' is required'
             call stop_model(
      &           'PARAM: Maximal number of int parameters exceeded',255)
           endif
@@ -205,6 +207,7 @@
             print *, 'PARAM: Need ',num_rparam+dim+1
             print *, 'PARAM: Maximal number of real parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_RPARAMS'
+            print *, 'At least ',num_rparam+dim+1,' is required'
             call stop_model(
      &          'PARAM: Maximal number of real parameters exceeded',255)
           endif
@@ -214,6 +217,7 @@
           if ( num_cparam+dim >= MAX_CPARAMS ) then
             print *, 'PARAM: Maximal number of char parameters exceeded'
             print *, 'PARAM: Recompile param with bigger MAX_CPARAMS'
+            print *, 'At least ',num_cparam+dim+1,' is required'
             call stop_model(
      &          'PARAM: Maximal number of char parameters exceeded',255)
           endif
