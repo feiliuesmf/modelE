@@ -1565,7 +1565,6 @@ C****
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc,focean
       USE TRACER_COM
-      USE DIAG_COM
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
      *     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
@@ -1576,7 +1575,9 @@ C****
       USE DIAG_SERIAL, only : MAPTXT, scale_ijlmap
       USE CONSTANT, only : teeny
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
-      USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml
+      USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml,
+     *                     kdiag,ir_log2,ia_src,wt_ij,
+     *                     qdiag,lname_strlen,sname_strlen,units_strlen
       use filemanager
       IMPLICIT NONE
 
