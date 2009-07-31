@@ -295,7 +295,7 @@ c for diagnostics
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
-      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ
+      REAL*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ,ROICE
 !@var DCL max level of planetary boundary layer
       INTEGER :: DCL
 
@@ -4003,7 +4003,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.31 2009/05/06 19:31:01 smenon Exp $
+!$Id: CLOUDS2_E1.f,v 1.32 2009/07/31 15:05:45 cdmsy Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
