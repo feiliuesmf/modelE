@@ -17,7 +17,7 @@ c dummy module just to test compilation
 c NOTE: CURRENTLY ASSUMING THAT THERE IS NO TRANSPORT OF ICE TO/FROM
 c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       USE CONSTANT, only : byshi,lhm,grav
-      USE MODEL_COM, only : im,focean,p,ptop,kocean
+      USE MODEL_COM, only : im,focean,p,ptop,kocean,dts=>dtsrc
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       USE GEOM, only : axyp,byaxyp,
      &     dlxsina,dlysina, ull2ucs,vll2ucs, ull2vcs,vll2vcs
@@ -72,7 +72,7 @@ C****
 
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     FOA,BYFOA, USIDT_ll,VSIDT_ll, UDYDT,VDXDT
+     &     FOA,BYFOA, USIDT_ll,VSIDT_ll, UDYDT,VDXDT,aUA,aVA
 
       INTEGER I_0,I_1,J_0,J_1, I_0Y,I_1Y
 
@@ -147,10 +147,12 @@ C**** add tracers to advected arrays
 
 C****
 C**** Interpolate to obtain latlon-oriented ice velocities at
-C**** cell centers.  Or get collocated latlon u,v at cell edges
-C**** and skip the A-to-C step.
+C**** cell centers (A grid).  
 C****
-c      call interp_routine(uice,vice,usidt_ll,vsidt_ll)
+      call Int_IceB2AtmA(UICE,aUA)
+      call Int_IceB2AtmA(VICE,aVA)
+      usidt_ll=aUa*dts
+      vsidt_ll=aVa*dts
 
 C****
 C**** A-to-C velocity average and transformation to CS orientation.

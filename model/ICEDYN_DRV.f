@@ -1002,9 +1002,11 @@ C**** dmui,dmvi on atm C grid
 
       call INT_IG2AG_2D_NX1(press,apsi)
 
-c*** interpolate ice velocities to the atm C-grid and perform 
-c*** change of basis if necessary
-      call Interp_IG2AGC_Vel(UICE,VICE,USI,VSI,aUSI,aVSI)
+c*** interpolate ice velocities to the atm C-grid but 
+c*** keep latlon orientation - note that usi/vsi is seen 
+c*** only by latlon version of ADVSI 
+      call Int_IG2AG_2D(USI,aUSI)
+      call Int_IG2AG_2D(VSI,aVSI)
 
 C**** calculate mass fluxes for the ice advection
 C**** Update halos for FOCEAN, and RSI
@@ -1019,7 +1021,7 @@ C**** Update halos for FOCEAN, and RSI
           USIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      *         RSI(I,J)+RSI(IP1,J).gt.1d-4) THEN
-            USIDT(I,J)=aUSI(I,J)*DTS
+            USIDT(I,J)=aUSI(I,J)*DTS !this is seen only by latlon version of ADVSI
             ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(RSI(I,J)+RSI(IP1,J))
      *           *aUSI(i,j)
             ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
@@ -1027,7 +1029,7 @@ C**** Update halos for FOCEAN, and RSI
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      *         RSI(I,J)+RSI(I,J+1).gt.1d-4) THEN
-            VSIDT(I,J)=aVSI(I,J)*DTS
+            VSIDT(I,J)=aVSI(I,J)*DTS !this is seen only by latlon version of ADVSI
             ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(RSI(I,J)+RSI(I,J+1))
      *           *aVSI(i,j)
             ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
@@ -1046,7 +1048,7 @@ C**** Update halos for FOCEAN, and RSI
       END IF
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
-      call get_uisurf(aUSI,aVSI,uisurf,visurf)
+      call get_uisurf(aUSI,aVSI,uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
 C****
 
 c      do i=1,aim
@@ -1705,6 +1707,7 @@ C****
       RETURN
       END SUBROUTINE ADVSI
 
+
       subroutine INT_AG2IG_2D(aA,iA)
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE DOMAIN_DECOMP_1D, only : iGET=>GET
@@ -1726,6 +1729,7 @@ c***  both latlon with equal resolution
       iA=aA
 #endif
       end subroutine INT_AG2IG_2D
+c*
 
       subroutine INT_IG2AG_2D(iA,aA)
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
@@ -1746,6 +1750,7 @@ c***  both latlon with equal resolution
       aA=iA
 #endif
       end subroutine INT_IG2AG_2D
+c*
 
       subroutine INT_IG2AG_2D_NX1(iA,aA)
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
@@ -1774,87 +1779,32 @@ c***  both latlon with equal resolution
       end subroutine INT_IG2AG_2D_NX1
 c*
 
-
-      subroutine Interp_IG2AGC_Vel(iUb,iVb,iUc,iVc,aUc,aVc)
+      subroutine Int_IceB2AtmA(iUb,iVb,aUa,aVa)
+!@sum  interpolation from icedyn B grid to Atm A grid
+      USE RESOLUTION, only : aIM=>IM,aJM=>JM
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE ICEDYN, only : IMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
-     &     aUc(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm C grid
+     &     aUa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aVc(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm C grid
+     &     aVa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iUb(1:IMICDYN,                             ! on ice B grid
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
      &     iVb(1:IMICDYN,                             ! on ice B grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),     
-     &     iUc(1:IMICDYN,                             ! on ice C grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
-     &     iVc(1:IMICDYN,                             ! on ice C grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
-      real*8, allocatable :: aUb(:,:),aVb(:,:),       ! on atm B grid, expressed in latlon basis
-     &                       aUb_cs(:,:),aVb_cs(:,:)  ! on atm B grid, expressed in CS basis  
-      INTEGER :: iJ_1   , iJ_0
-      INTEGER :: iJ_1S  , iJ_0S
-      INTEGER :: iJ_1H  , iJ_0H
-      INTEGER :: iJ_1STG, iJ_0STG
-      INTEGER :: aI_1   , aI_0
-      INTEGER :: aJ_1   , aJ_0
-      INTEGER :: aJ_1H  , aJ_0H
-      INTEGER :: aJ_1S  , aJ_0S
-      INTEGER :: aJ_1STG, aJ_0STG
-      INTEGER :: IP1,I,J
-  
-#ifndef CUBE_GRID
-c***  temporarily we assume the icedyn grid and atm grid have same resolution
-      aUc=iUc
-      aVc=iVc
-
-#else
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+      INTEGER :: aI_1,aI_0,aI_1H,aI_0H
+ 
+#ifdef CUBE_GRID
       call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
+     &                   , I_STRT_HALO=aI_0H  , J_STOP_HALO=aI_1H
      &                   , J_STRT=aJ_0        , J_STOP=aJ_1    
-     &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H 
-     &                   , J_STRT_SKP=aJ_0S   , J_STOP_SKP=aJ_1S
-     &                   , J_STRT_STGR=aJ_0STG, J_STOP_STGR=aJ_1STG)
-
-      allocate(aUb(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aVb(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     aUb_cs(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aVb_cs(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
- )
-
-c***  icedyn B grid -> atm cell centers 
-      call INT_IG2AG_2D(iUb,aUb)
-      call INT_IG2AG_2D(iVb,aVb)
-
-c***  latlon basis -> CS basis
-c      do the LL2XYcs_vec...(aUb,aVb,aUb_cs,aVb_cs)
-
-
-c***  atm cell centers -> atm cell edges
-      do j=aJ_0STG,aJ_1STG
-         do i=aI_0,aI_1
-            ip1=i+1
-            if (ip1 .eq. aIM+1) ip1=1
-            aUc(i,j)=0.5*(aUb_cs(i+1,j-1,1)+aUb_cs(i+1,j,1))
-          IF (abs(aUc(I,J)).lt.1d-10) aUc(I,J)=0
-        enddo
-      enddo
-
-      do j=aJ_0,aJ_1s
-        do i=aI_0,aI_1
-          aVc(i,j)=0.5*(aVb_cs(i,j,1)+aVb_cs(i+1,j,1))
-          IF (abs(aVc(I,J)).lt.1d-10) aVc(I,J)=0
-       enddo
-      enddo
-
-      deallocate(aUb,aVb,aUb_cs,aVb_cs)
+     &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
+      
+c**** TODO
 #endif
-      end subroutine
+      end subroutine Int_IceB2AtmA
 
 
       SUBROUTINE init_icedyn(iniOCEAN)
