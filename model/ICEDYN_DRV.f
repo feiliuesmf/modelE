@@ -538,7 +538,7 @@ C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,
-     &     iDMUI,iDMVI,aDMU,aDMV,aUSI,aVSI,aPSI	
+     &     iDMUI,iDMVI,aDMU,aDMV,aUSI,aVSI
 
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
@@ -577,11 +577,9 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
 #ifndef CUBE_GRID 
      &     aDMU(NX1,aJ_0H:aJ_1H),    
      &     aDMV(NX1,aJ_0H:aJ_1H),    
-     &     aPSI(NX1,aJ_0H:aJ_1H),   
 #else
      &     aDMU(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aDMV(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aPSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
 #endif
      &     aUSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aVSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
@@ -634,9 +632,9 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
       CALL HALO_UPDATE(agrid, RSI   , from=NORTH )
       CALL HALO_UPDATE(agrid, MSI   , from=NORTH )
 
-      call INT_AG2IG_2D(aPtmp,iPtmp)   
-      call INT_AG2IG_2D(Focean,iFocean)   
-      call INT_AG2IG_2D(RSI,iRSI)
+      call INT_AtmA2IceA(aPtmp,iPtmp)   
+      call INT_AtmA2IceA(Focean,iFocean)   
+      call INT_AtmA2IceA(RSI,iRSI)
 
       CALL HALO_UPDATE(grid_ICDYN, iPtmp , from=NORTH )
       CALL HALO_UPDATE(grid_ICDYN, iFOCEAN, from=NORTH )
@@ -682,7 +680,7 @@ C**** Convert to stress over ice fraction only (on atmospheric grid)
         END DO
       END DO
 
-      call INT_AG2IG_2D(MSI,iMSI)   
+      call INT_AtmA2IceA(MSI,iMSI)   
 
 C**** Set up ice grid variables
 C**** HEFF,AREA on primary (tracer) grid for ice
@@ -731,8 +729,8 @@ C**** NOTE: UOSURF, VOSURF are expected to be on the A-grid
       CALL HALO_UPDATE(agrid, UOSURF )
       CALL HALO_UPDATE(agrid, VOSURF )
 c**** getting instance of (UOSURF, VOSURF) on the icedyn grid
-      call INT_AG2IG_2D(UOSURF,iUOSURF)   !already in latlon basis
-      call INT_AG2IG_2D(VOSURF,iVOSURF)   !already in latlon basis
+      call INT_AtmA2IceA(UOSURF,iUOSURF)   !already in latlon basis
+      call INT_AtmA2IceA(VOSURF,iVOSURF)   !already in latlon basis
 
 C**** Update halo for USI,UOSURF,VOSURF,PGFU
       CALL HALO_UPDATE(grid_ICDYN, USI   , from=NORTH    )
@@ -787,8 +785,8 @@ C**** Update halo for USI,UOSURF,PGFU
       CALL HALO_UPDATE(agrid, DMVA  )
 
 c**** getting instance of (DMUA, DVMA) on the icedyn grid
-      call INT_AG2IG_2D(DMUA(:,:,2),iDMUA)   !stays on latlon basis
-      call INT_AG2IG_2D(DMVA(:,:,2),iDMVA)   !stays on latlon basis
+      call INT_AtmA2IceA(DMUA(:,:,2),iDMUA)   !stays on latlon basis
+      call INT_AtmA2IceA(DMVA(:,:,2),iDMVA)   !stays on latlon basis
 
       CALL HALO_UPDATE(grid_ICDYN, iDMUA  , from=NORTH    )  
       CALL HALO_UPDATE(grid_ICDYN, iDMVA  , from=NORTH    )
@@ -886,8 +884,8 @@ C**** Update halos for FOCEAN, DXYS, DXYV
        enddo
       enddo
 
-      call INT_IG2AG_2D(iDMUI,DMUI) !resampled on atm grid but still expressed in latlon basis
-      call INT_IG2AG_2D(iDMVI,DMVI) !resampled on atm grid but still expressed in latlon basis
+      call INT_IceC2AtmC_U(iDMUI,DMUI) !resampled on atm grid but still expressed in latlon basis
+      call INT_IceC2AtmC_V(iDMVI,DMVI) !resampled on atm grid but still expressed in latlon basis
 
 C**** Update halos for FOCEAN, and RSI
       CALL HALO_UPDATE(agrid,  FOCEAN)
@@ -949,8 +947,8 @@ C**** Update halos for DMU, and DMV
       CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
 
 c**** resampled on atm grid (CS or latlon) but still expressed in latlon basis
-      call INT_IG2AG_2D_NX1(DMU,aDMU) 
-      call INT_IG2AG_2D_NX1(DMV,aDMV)
+      call INT_IceB2AtmB_NX1(DMU,aDMU) 
+      call INT_IceB2AtmB_NX1(DMV,aDMV)
 
       CALL HALO_UPDATE(agrid,  aDMU  )
       CALL HALO_UPDATE(agrid,  aDMV  )
@@ -1000,8 +998,6 @@ C**** dmui,dmvi on atm C grid
         DMVI(1:aim,ajm)=0.
       END IF
 
-      call INT_IG2AG_2D_NX1(press,apsi)
-
 
 C**** calculate mass fluxes for the ice advection
 C**** Update halos for FOCEAN, and RSI
@@ -1013,8 +1009,8 @@ C**** Update halos for FOCEAN, and RSI
 
 c*** interpolate ice velocities to the atm C-grid but 
 c*** keep latlon orientation 
-      call Int_IG2AG_2D(USI,aUSI)
-      call Int_IG2AG_2D(VSI,aVSI)
+      call Int_IceC2AtmC_U(USI,aUSI)
+      call Int_IceC2AtmC_V(VSI,aVSI)
 
 c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
       DO J=aJ_0,aJ_1S
@@ -1025,10 +1021,10 @@ c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlo
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      &         RSI(I,J)+RSI(IP1,J).gt.1d-4) 
-     &       USIDT(I,J)=aUSI(I,J)*DTS !this is seen only by latlon version of ADVSI
+     &       USIDT(I,J)=aUSI(I,J)*DTS
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      &         RSI(I,J)+RSI(I,J+1).gt.1d-4) 
-     &       VSIDT(I,J)=aVSI(I,J)*DTS !this is seen only by latlon version of ADVSI
+     &       VSIDT(I,J)=aVSI(I,J)*DTS
         END DO
       END DO
       IF (agrid%HAVE_NORTH_POLE) THEN
@@ -1096,7 +1092,7 @@ c      write(800+mype,*) rsi
 c      write(900+mype,*) focean
 
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,aPSI,
+     &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,
      &     iDMUI,iDMVI)
 
       RETURN
@@ -1729,7 +1725,9 @@ C****
       END SUBROUTINE ADVSI
 
 
-      subroutine INT_AG2IG_2D(aA,iA)
+      subroutine INT_AtmA2IceA(aA,iA)
+!@sum interpolate from Atm A-grid to Ice A-grid for either scalars
+!@+   or U or V component of vector  
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE DOMAIN_DECOMP_1D, only : iGET=>GET
       USE ICEDYN, only : IMICDYN,grid_ICDYN
@@ -1749,10 +1747,11 @@ c***  for the moment me assume that the atm and icedyn grids are
 c***  both latlon with equal resolution
       iA=aA
 #endif
-      end subroutine INT_AG2IG_2D
+      end subroutine INT_AtmA2IceA
 c*
 
-      subroutine INT_IG2AG_2D(iA,aA)
+      subroutine INT_IceC2AtmC_U(iA,aA)
+!@sum interpolate from Ice C-grid to Atm C-grid for U component of vector
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE DOMAIN_DECOMP_1D, only : iGET=>GET
       USE ICEDYN, only : IMICDYN,grid_ICDYN
@@ -1770,10 +1769,33 @@ c***  for the moment me assume that the atm and icedyn grids are
 c***  both latlon with equal resolution
       aA=iA
 #endif
-      end subroutine INT_IG2AG_2D
+      end subroutine INT_IceC2AtmC_U
 c*
 
-      subroutine INT_IG2AG_2D_NX1(iA,aA)
+      subroutine INT_IceC2AtmC_V(iA,aA)
+!@sum interpolate from ICe C-grid to Atm C-grid for V component of vector
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET
+      USE ICEDYN, only : IMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+
+#ifdef CUBED_GRID
+!sumxpe global array on target latlon icedyn grid then scatter
+
+#else 
+c***  for the moment me assume that the atm and icedyn grids are 
+c***  both latlon with equal resolution
+      aA=iA
+#endif
+      end subroutine INT_IceC2AtmC_V
+c*
+
+      subroutine INT_IceB2AtmB_NX1(iA,aA)
+!@sum interpolate from Ice B-grid to Atm B-grid for either U or V component of vector 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE DOMAIN_DECOMP_1D, only : iGET=>GET
       USE ICEDYN, only : NX1,IMICDYN,grid_ICDYN
@@ -1797,24 +1819,20 @@ c***  for the moment me assume that the atm and icedyn grids are
 c***  both latlon with equal resolution
       aA=iA
 #endif
-      end subroutine INT_IG2AG_2D_NX1
+      end subroutine INT_IceB2AtmB_NX1
 c*
 
-      subroutine Int_IceB2AtmA(iUb,iVb,aUa,aVa)
-!@sum  interpolation from icedyn B grid to Atm A grid
+      subroutine INT_IceB2AtmA(iAb,aAa)
+!@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
       USE RESOLUTION, only : aIM=>IM,aJM=>JM
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
       USE ICEDYN, only : IMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
-     &     aUa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
+     &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     aVa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iUb(1:IMICDYN,                             ! on ice B grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO), 
-     &     iVb(1:IMICDYN,                             ! on ice B grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+     &     iAb(1:IMICDYN,                             ! on ice B grid
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
       INTEGER :: aI_1,aI_0,aI_1H,aI_0H
  
 #ifdef CUBE_GRID
@@ -1825,7 +1843,7 @@ c*
       
 c**** TODO
 #endif
-      end subroutine Int_IceB2AtmA
+      end subroutine INT_IceB2AtmA
 
 
       SUBROUTINE init_icedyn(iniOCEAN)
