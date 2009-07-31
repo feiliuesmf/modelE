@@ -54,7 +54,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, DIMENSION(NREG), public :: SAREA_REG
 
 !@param KAJL number of AJL diagnostics
-      INTEGER, PARAMETER, public :: KAJL=60
+      INTEGER, PARAMETER, public :: KAJL=65
 !@var AJL latitude/height diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJL,AJL_loc
 
@@ -64,7 +64,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=340
+      INTEGER, PARAMETER, public :: KAIJ=360
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
