@@ -2,13 +2,14 @@ Running on Discover (Reto Ruedy)
 +++++++++++++++++++
 News:
 ====
-The current version of modelE may no longer be compiled with openMP !
+More and faster (by a factor of about 1.5) nodes may become available next week;
+you may access them using     "runpbs runID nh #cpus"        (new_highspeed)
+These nodes have 8 cpus and do NOT support scali mpi         (use intelMPI)
+We will need our share of those nodes for the long high priority AR5 jobs.
 
-modelE may be compiled using openMPI or intelMPI to run on the new 8 cpu nodes
-run(pbs) was enhanced to deal with the new nodes and will allow to use <8 cpus per node:
-   run runID slow|fast|new|newN #_of_cpus_per_job time_limit(hours) (here: N=1-8)
-   all cpus are used unless N<8 in which case only N cpus/node are used; this may be
-   needed if the job requires a lot of memory.
+Runs compiled with intelMPI may now be bundled (run ... runID1+runID2+...)
+
+The current version of modelE may no longer be compiled with openMP !
 
 Generalities:
 ============
@@ -32,13 +33,12 @@ As a favor to us, group limits for general and general_small were abolished !
 
 Bundling jobs: (no loss in efficiency)
 =============
-runpbs job1+job2+... should work fine for any modelE jobs; for
-non-modelE openMP jobs, create in the run directory a copy E4 of "E" which
-sets:   export OMP_NUM_THREADS=4    (before the *.exe line)
-    or  setenv OMP_NUM_THREADS 4    (for csh tcsh users)
-Any number of scali mpi jobs that use the same number of nodes can be bundled
-openMPI jobs cannot be bundled, intelMPI may be bundled but it has
-not been implemented yet.
+runpbs job1+job2+... should work fine for any modelE jobs
+For non-modelE openMP jobs, create in the run directory a copy E4 of "E"
+   which sets:   export OMP_NUM_THREADS=4    (before the *.exe line)
+             or  setenv OMP_NUM_THREADS 4    (for csh tcsh users)
+Any number of mpi jobs that use the same number of nodes can be bundled
+(works if scaliMPI or intelMPI is used - does NOT work with openMPI)
 
 Unresolved bugs:
 ===============
@@ -76,7 +76,7 @@ or
    module load mpi/impi-3.2.011
 
 This is to be put into your startup script (e.g. .profile if your login shell
-ksh), so these modules also get loaded when running in batch mode.
+is ksh), so these modules also get loaded when running in batch mode.
 "runpbs (=run)" was modified to load the appropriate modules for mpi batch jobs
 even if those commands are missing in the login script. But you still need to set
 them appropriately during the "setup" step.
@@ -152,11 +152,11 @@ sftp_help   get password-free access to dirac, other nodes, CVS repository
 run,runpbs  submit 1 or several jobs as a single batch job
   "run" has a systems default alias that may be bypassed typing "unalias run"
   "run" and "runpbs" are identical
-  Usage: runpbs runID [fast<N>|slow<N>|new<N>] #_of_cpus #_of_wall_clock_hours
+  Usage: runpbs runID [fast<N>|slow<N>|new<N>|nh<N>] #_of_cpus #_of_wall_clock_hours
          The optional <N> limits the number of cpus per node used; it has to be 1-4 in the
-         first 2 cases and 1-8 in the last one (fast3 may be abbreviated by f3, new6 by n6)
-         
-  Notes: 1) #_of_wall_clock_hours - always let it default (to the max. 12 hrs) unless 
+         first 2 cases and 1-8 in the last 2 (fast3 may be abbreviated by f3, new6 by n6)
+
+  Notes: 1) #_of_wall_clock_hours - always let it default (to the max. 12 hrs) unless
             a) you want the job to go into the background queue - set it to 4 (hours)
                - the background queue is mostly closed, so 4 hrs is NOT recommended
             b) you want the job to go into the pproc queue      - set it to 3 (hours)
