@@ -792,7 +792,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 170.0d0
-          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
+          tr_RKD(n) = 1.d5/101.325d0 !Henry; from mole/(L atm) to mole/J
           tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
@@ -814,7 +814,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 170.0d0
-          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
+          tr_RKD(n) = 1.d5/101.325d0 !Henry; from mole/(L atm) to mole/J
           tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
