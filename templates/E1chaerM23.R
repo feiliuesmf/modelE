@@ -4,6 +4,19 @@ modelE1 (3.0) with:
 - Drew Shindell tropospheric and stratospheric chemistry (based on Greg's E001TdsSM23.R)
 - Dorothy Koch and Kostas Tsigaridis aerosols (based on Dorothy's E1TaerM20.R)
 
+ Set imAER=3, aer_int_yr = 1890 to 2000 for historic 
+ Set imAER=5, aer_int_yr = 1850 or 2000 for AR5
+ Set imAER=1 for AEROCOM emissions (but this hasn't been tested lately)
+ Set emission input files to match (see below)
+ Using _E1 'slush' model since it is tested
+modelE 4x5 hor. grid with 23 lyrs, top at .1 mb (+ 3 rad.lyrs)
+atmospheric composition from year 1850 (or 1979)      (look below for "_yr")  ?
+ocean data: prescribed, 1876-1885 (or 1975-1984) climatology  (see OSST/SICE) ?
+uses turbulence scheme, simple strat.drag (not grav.wave drag)
+time steps: dynamics 7.5 min leap frog; physics 30 min.; radiation 2.5 hrs
+filters:    U,V in E-W direction (after every dynamics time step)
+            sea level pressure (after every physics time step)
+
 ************************************************************
 Please note this rundeck is provided to show how to run with
 chemistry and aerosol tracers on. You should check on the GCM tuning and
@@ -29,7 +42,7 @@ Preprocessor Options
 #define TRACERS_DUST             ! Dust aerosol
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 #define BC_ALB                   ! Optional tracer BC affects snow albedo
-#define CLD_AER_CDNC             ! Aerosol-cloud interactions
+! #define CLD_AER_CDNC             ! Aerosol-cloud interactions
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
@@ -43,8 +56,7 @@ RES_M23                             ! horiz/vert resolution
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
-                                    ! parameter database
-              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 STRATDYN STRAT_DIAG                 ! strospheric dynamics (incl. gw drag)
@@ -72,7 +84,7 @@ TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
 ! ----------------------------------
 CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
-CLD_AEROSOLS_Menon_BLK_MAT          ! Aerosol-cloud interactions
+! CLD_AEROSOLS_Menon_BLK_MAT          ! Aerosol-cloud interactions
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
@@ -202,31 +214,7 @@ CO_IC=gsin/CO_init_cond_M23_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
-!!----------Default emissions case (giss/geia)------------------------
-!CO_01=CO_sources/CO_GEIA_industrial_head
-!CO_02=CO_sources/CO_GEIA_biomass_burning_head
-!Alkenes_01=gsin/Alkenes_GEIA_industrial_head
-!Alkenes_02=gsin/Alkenes_GEIA_biomass_burning_head
-!Alkenes_03=gsin/Alkenes_GEIA_vegetation_head
-!Paraffin_01=gsin/Paraffin_GEIA_industrial_head
-!Paraffin_02=gsin/Paraffin_GEIA_biomass_burning_head
-!Paraffin_03=gsin/Paraffin_GEIA_vegetation_head
-!NOx_01=NOy_sources/NOx_GEIA_fossil_fuels_head
-!NOx_02=NOy_sources/NOx_GEIA_biomass_burning_head
-!NOx_03=NOy_sources/NOx_GEIA_soil_head
-!NOx_AIRCRAFT=NOy_sources/aircraft_4x5
-!CH4_01=methane/gcm_data/CH4_GEIA_Animals_header
-!CH4_02=methane/gcm_data/CH4_GEIA_Coal_Mining_header
-!CH4_03=methane/gcm_data/CH4_GEIA_Gas_Leak_header
-!CH4_04=methane/gcm_data/CH4_GEIA_Gas_Vent_header
-!CH4_05=methane/gcm_data/CH4_GEIA_Landfill_header
-!CH4_06=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
-!CH4_07=methane/gcm_data/CH4_GEIA_Termites_header
-!CH4_08=methane/gcm_data/CH4_GEIA_Coal_Burning_header
-!CH4_09=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
-!CH4_10=methane/gcm_data/CH4_GEIA_Rice_header
-!CH4_11=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
-!----------Default emissions case (mostly AR5)-----------------------
+!----------Default emissions case (mostly AR5 late apr 09)------------
 CO_01=AR5_emis/M/2000/CO_agr_AR5_2000_4x5_h
 CO_02=AR5_emis/M/2000/CO_awb_AR5_2000_4x5_h
 CO_03=AR5_emis/M/2000/CO_dom_AR5_2000_4x5_h
@@ -236,7 +224,8 @@ CO_06=AR5_emis/M/2000/CO_shp_AR5_2000_4x5_h
 CO_07=AR5_emis/M/2000/CO_slv_AR5_2000_4x5_h
 CO_08=AR5_emis/M/2000/CO_tra_AR5_2000_4x5_h
 CO_09=AR5_emis/M/2000/CO_wst_AR5_2000_4x5_h
-CO_10=CO_sources/CO_GEIA_biomass_burning_head
+CO_10=AR5_emis/M/2000/CO_forestfire_AR5_2000_4x5_h
+CO_11=AR5_emis/M/2000/CO_grassfire_AR5_2000_4x5_h
 ! ========= please remember that Alkenes =================
 ! ========= and Paraffin emissions files =================
 ! ========= must now be in Kmole units,  =================
@@ -250,8 +239,9 @@ Alkenes_06=AR5_emis/M/2000/Alkenes_shp_AR5_2000_4x5_h
 Alkenes_07=AR5_emis/M/2000/Alkenes_slv_AR5_2000_4x5_h
 Alkenes_08=AR5_emis/M/2000/Alkenes_tra_AR5_2000_4x5_h
 Alkenes_09=AR5_emis/M/2000/Alkenes_wst_AR5_2000_4x5_h 
-Alkenes_10=gsin/Alkenes_GEIA_biomass_burning_head_1
-Alkenes_11=gsin/Alkenes_GEIA_vegetation_head_1
+Alkenes_10=gsin/Alkenes_GEIA_vegetation_head_1
+Alkenes_11=AR5_emis/M/2000/Alkenes_forestfire_AR5_2000_4x5_h
+Alkenes_12=AR5_emis/M/2000/Alkenes_grassfire_AR5_2000_4x5_h
 Paraffin_01=AR5_emis/M/2000/Paraffin_agr_AR5_2000_4x5_h
 Paraffin_02=AR5_emis/M/2000/Paraffin_awb_AR5_2000_4x5_h
 Paraffin_03=AR5_emis/M/2000/Paraffin_dom_AR5_2000_4x5_h
@@ -261,8 +251,9 @@ Paraffin_06=AR5_emis/M/2000/Paraffin_shp_AR5_2000_4x5_h
 Paraffin_07=AR5_emis/M/2000/Paraffin_slv_AR5_2000_4x5_h
 Paraffin_08=AR5_emis/M/2000/Paraffin_tra_AR5_2000_4x5_h
 Paraffin_09=AR5_emis/M/2000/Paraffin_wst_AR5_2000_4x5_h
-Paraffin_10=gsin/Paraffin_GEIA_biomass_burning_head_1
-Paraffin_11=gsin/Paraffin_GEIA_vegetation_head_1
+Paraffin_10=gsin/Paraffin_GEIA_vegetation_head_1
+Paraffin_11=AR5_emis/M/2000/Paraffin_forestfire_AR5_2000_4x5_h
+Paraffin_12=AR5_emis/M/2000/Paraffin_grassfire_AR5_2000_4x5_h
 NOx_01=AR5_emis/M/2000/NOx_agr_AR5_2000_4x5_h
 NOx_02=AR5_emis/M/2000/NOx_awb_AR5_2000_4x5_h
 NOx_03=AR5_emis/M/2000/NOx_dom_AR5_2000_4x5_h
@@ -271,8 +262,9 @@ NOx_05=AR5_emis/M/2000/NOx_ind_AR5_2000_4x5_h
 NOx_06=AR5_emis/M/2000/NOx_shp_AR5_2000_4x5_h
 NOx_07=AR5_emis/M/2000/NOx_tra_AR5_2000_4x5_h
 NOx_08=AR5_emis/M/2000/NOx_wst_AR5_2000_4x5_h
-NOx_09=NOy_sources/NOx_GEIA_biomass_burning_head
-NOx_10=NOy_sources/NOx_GEIA_soil_head
+NOx_09=NOy_sources/NOx_GEIA_soil_half_head
+NOx_10=AR5_emis/M/2000/NOx_forestfire_AR5_2000_4x5_h
+NOx_11=AR5_emis/M/2000/NOx_grassfire_AR5_2000_4x5_h
 NOx_AIRC=AR5_emis/M/2000/NOx_air_AR5_2000_4x5
 CH4_01=AR5_emis/M/2000/CH4_agr_AR5_2000_4x5_h
 CH4_02=AR5_emis/M/2000/CH4_awb_AR5_2000_4x5_h
@@ -284,10 +276,10 @@ CH4_07=AR5_emis/M/2000/CH4_tra_AR5_2000_4x5_h
 CH4_08=AR5_emis/M/2000/CH4_wst_AR5_2000_4x5_h
 CH4_09=methane/gcm_data/CH4_GEIA_Soil_Absorption_header
 CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
-CH4_11=methane/gcm_data/CH4_GEIA_Biomass_Burning_header
-CH4_12=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
-CH4_13=methane/gcm_data/CH4_GEIA_Animals_header
-Isoprene_01=gsin/Isoprene_GEIA_vegetation_head
+CH4_11=AR5_emis/M/2000/CH4_forestfire_AR5_2000_4x5_h
+CH4_12=AR5_emis/M/2000/CH4_grassfire_AR5_2000_4x5_h
+CH4_13=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+Isoprene_01=gsin/Isoprene_GEIA_vegetation_double_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
 SO2_FIELD=so2_conc
@@ -299,11 +291,13 @@ ALPHA_NCEP=gsin/alpha_t_ch4_4x5
 !-----------------------------------------------
 ! ------- Dorothy's inputs needed for imAER= 1 or 3 -----------
 SO2_VOLCANO=SO2_volc_conti2000.AEROCOM_FEB12
+! ------- Dorothy's inputs needed for imAER= 1 or 3 -----------
 !SO2_BIOMASS=SO2_bio2000.AEROCOM_DEC03
-BC_SHIPS=Shipping_BC_2000_4x5.bin
-POM_SHIPS=Shipping_POM_2000_4x5.bin
-SO2_SHIPS=Shipping_SO2_2000_4x5.bin
-! --------Dorothy's inputs needed for imAER = 3 --------------
+! ------- Dorothy's inputs needed for imAER= 3 -----------
+!BC_SHIPS=Shipping_BC_2000_4x5.bin
+!POM_SHIPS=Shipping_POM_2000_4x5.bin
+!SO2_SHIPS=Shipping_SO2_2000_4x5.bin
+! --------Dorothy's inputs needed for imAER = 3 or 5 --------------
 DMS_SEA=DMS_Night_4x5
 ! AER_CHEM: inputs for sulfur and H2O2 chemistry, saved from the
 ! Shindell chemistry runs: OH, HO2, photolysis rate of H2O2 and NO3
@@ -312,13 +306,42 @@ DMS_SEA=DMS_Night_4x5
 AER_CHEM=trace_gas_3D_fields_E   ! 23 layer version
 AER_OH_STRAT=Strat_OH_drewE_20
 TERPENE=terp_Guenther_4x5
-BC_BIOMASS=BC_GFED_97-06_4x5
-OC_BIOMASS=OC_GFED_97-06_4x5
-SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
-OC_INDh=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond  
-BC_INDh=BC_Bond_Feb09_4x5_h_1850-2000
-SO2_INDh=SO2_EDGAR_Feb09_4x5_h_1890-2000
-! -------Dorothy's inputs for imAER=1 AeroCom ---------
+! ------Dorothy's inputs needed for imAER = 3 -old historic emissions------------
+!SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000 
+!OC_EM_1=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond  
+!BC_EM_1=BC_Bond_Feb09_4x5_h_1850-2000
+!BC_BIOMASS=BC_GFED_97-06_4x5
+!OC_BIOMASS=OC_GFED_97-06_4x5
+!SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
+!--------Dorothy's inputs for imAER=5 ---AR5 emissions-----------------
+!   for now all years in this block must be set to either 1850 or 2000
+BC_EM_1=BCII_awb_AR5_2000_4x5_h
+BC_EM_2=BCII_dom_AR5_2000_4x5_h
+BC_EM_3=BCII_ene_AR5_2000_4x5_h
+BC_EM_4=BCII_ind_AR5_2000_4x5_h
+BC_EM_5=BCII_tra_AR5_2000_4x5_h
+BC_EM_6=BCII_wst_AR5_2000_4x5_h
+BC_EM_7=BCII_shp_AR5_2000_4x5_h
+OC_EM_1=OCII_awb_AR5_2000_4x5_h
+OC_EM_2=OCII_dom_AR5_2000_4x5_h
+OC_EM_3=OCII_ene_AR5_2000_4x5_h
+OC_EM_4=OCII_ind_AR5_2000_4x5_h
+OC_EM_5=OCII_tra_AR5_2000_4x5_h
+OC_EM_6=OCII_wst_AR5_2000_4x5_h
+OC_EM_7=OCII_shp_AR5_2000_4x5_h
+SO2_EM_1=SO2_shp_AR5_2000_4x5_h
+SO2_EM_2=SO2_awb_AR5_2000_4x5_h
+SO2_EM_3=SO2_dom_AR5_2000_4x5_h
+SO2_EM_4=SO2_ind_AR5_2000_4x5_h
+SO2_EM_5=SO2_tra_AR5_2000_4x5_h
+SO2_EM_6=SO2_wst_AR5_2000_4x5_h
+BCB_EM_1=BCB_forestfire_AR5_2000_4x5_h
+BCB_EM_2=BCB_grassfire_AR5_2000_4x5_h
+OCB_EM_1=OCB_forestfire_AR5_2000_4x5_h
+OCB_EM_2=OCB_grassfire_AR5_2000_4x5_h
+SO2B_EM_1=SO2_forestfire_AR5_2000_4x5_h
+SO2B_EM_2=SO2_grassfire_AR5_2000_4x5_h
+! -------Dorothy's inputs for imAER=1 AeroCom (not tested lately)---------
 !SO2_VOLCANO_EXP=SO2_volc_expl1750.AEROCOM
 !TERPENE=SOA_2000.AEROCOM_DEC03
 !BC_BIOMASS=BC_fire2000.AEROCOM_DEC03
@@ -330,27 +353,41 @@ SO2_INDh=SO2_EDGAR_Feb09_4x5_h_1890-2000
 !SO2_IND=SO2_ind2000.AEROCOM_DEC03
 !SALT1=SALT_bin1_2000_new.nc
 !SALT2=SALT_bin2_2000_new.nc
-!------AEROSOL INPUT NITRATE------------------
-NH3SOURCE_CON=GISS_EDGAR_HYDE_NH3_     _1890_2000.4X5
-NH3SOURCE_CYC=GISS_EDGAR_HYDE_NH3_CYC_1890_2000.4X5
-! O3_FIELD=Ox_3D_field_bell                ! for offline chemistry only
-! OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc      ! for offline chemistry only
-! OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc ! for offline chemistry only
-!------AEROSOL DUST INPUT-----------------------
-VTRSH=vtr-mod-o0.mean-pb
-FRCLAY=claygcm-f
-FRSILT=siltgcm-f
-DRYHR=text5hr-f
-GIN=Ginoux_dstsrc
-LKTAB=table_emission
-ERS=ERS1_1993_MONTHLY
-LKTAB1=table_wspdf
+!-----------------------------------------------
+!  AEROSOL INPUT NITRATE oxidants, fields use for imAER=3,5
+O3_FIELD=Ox_3D_field_bell
+OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc
+OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc
+!------- for imAER=3 ---------
+!NH3_CON_01=NH3hCON_IIASA_CLE_Apr09_4x5_h_1890-2030
+!NH3_CYC_01=NH3hCYC_IIASA_CLE_Apr09_4x5_h_1890-2030
+!------- for imAER=5 -----set date to 1850 or 2000-----
+NH3_CON_01=NH3hCON_OCEAN_Apr09_4x5_h
+NH3_CON_02=NH3_forestfire_AR5_2000_4x5_h
+NH3_CON_03=NH3_grassfire_AR5_2000_4x5_h
+NH3_CON_04=NH3_agr_AR5_2000_4x5_h
+NH3_CON_05=NH3_awb_AR5_2000_4x5_h
+NH3_CON_06=NH3_dom_AR5_2000_4x5_h
+NH3_CON_07=NH3_ind_AR5_2000_4x5_h
+NH3_CON_08=NH3_ene_AR5_2000_4x5_h
+NH3_CON_09=NH3_tra_AR5_2000_4x5_h
+
+! files for dust tracers
+VTRSH=fake_144x90_dust_wind_speed_thresholds ! modelIIprime varying thresholds (obsolete)
+FRCLAY=fake_144x90_dust_FrClay ! modelIIprime soil clay fractin (obsolete)
+FRSILT=fake_144x90_dust_FrSilt ! modelIIprime model silt fraction (obsolete)
+DRYHR=fake_144x90_dust_DryHrPminusE ! emission only if E exceeds P (obsolete)
+ERS=ERS1_1993_MONTHLY.144x90.threshold-13         ! ERS data
+GIN=Ginoux2001_source.144x90             ! preferred sources
+LKTAB=table_emission          ! look up table for emission calculations
+LKTAB1=table_wspdf            ! look up table for wind speed probabilities
 
 
 Label and Namelist:
 E1chaerM23 (sample rundeck with Shindell chemistry tracers)
 R=00BG/B
 DTFIX=300
+
 &&PARAMETERS
 ! parameters set for prescribed ocean runs:
 KOCEAN=0 ! 0 or 1 , use =0 if ocn is prescribed, use =1 if ocn is predicted
@@ -393,32 +430,7 @@ KSOLAR=2 ! 9
 
 !--- define emission sectors above files belong to ---
 NOx_AIRC_sect='AIR' ! special 3D source case
-CH4_12_sect='WETL'
-Isoprene_01_sect='ISO'
-!CO_01_sect='CO FFUEL'
-!CO_02_sect='CO BBURN'
-!Alkenes_01_sect='ALK FFUEL'
-!Alkenes_02_sect='ALK BBURN'
-!Alkenes_03_sect='ALK VEG'
-!Paraffin_01_sect='PAR FFUEL'
-!Paraffin_02_sect='PAR BBURN'
-!Paraffin_03_sect='PAR VEG'
-!NOx_01_sect='NOX FFUEL'
-!NOx_02_sect='NOX BBURN'
-!NOx_03_sect='NOX'
-!NOx_AIRCRAFT_sect='NOX FFUEL' ! special 3D source case
-!CH4_01_sect='CH4'
-!CH4_02_sect='CH4 FFUEL'
-!CH4_03_sect='CH4 FFUEL'
-!CH4_04_sect='CH4 FFUEL'
-!CH4_05_sect='CH4'
-!CH4_06_sect='CH4'
-!CH4_07_sect='CH4'
-!CH4_08_sect='CH4 FFUEL'
-!CH4_09_sect='CH4 BBURN'
-!CH4_10_sect='CH4'
-!CH4_11_sect='CH4 WETL'
-!Isoprene_01_sect='ISO VEG'
+CH4_13_sect='WETL'
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
@@ -431,28 +443,16 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 !-fit-here--|                                                              |---
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
-SECT_01= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
-SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
-!SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! CO
-!SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! ALK
-!SECT_03= 1.000, 1.000, 1.000, 1.000, 1.000 ! PAR
-!SECT_04= 1.000, 1.000, 1.000, 1.000, 1.000 ! CH4
-!SECT_05= 1.000, 1.000, 1.000, 1.000, 1.000 ! NOX
-!SECT_06= 2.000, 1.000, 1.000, 1.000, 1.000 ! ISO
-!SECT_07= 1.000, 1.000, 1.000, 1.000, 1.000 ! FFUEL
-!SECT_08= 1.000, 1.000, 1.000, 1.000, 1.000 ! BBURN
-!SECT_09= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
-!SECT_10= 1.000, 1.000, 1.000, 1.000, 1.000 ! VEG
+SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! WETL
+SECT_02= 1.000, 1.000, 1.000, 1.000, 1.000 ! AIR 
 !       ---define-sectors-names/order------
-SECTORS_ARE='ISO WETL AIR'
-!SECTORS_ARE='CO ALK PAR CH4 NOX ISO FFUEL BBURN WETL VEG'
-!-fit-here--|                                                              |---
+SECTORS_ARE='WETL AIR'
+!-fit-here--|
 !-----
-aircraft_Tyr1=1990 ! for non-transient emissions,
-aircraft_Tyr2=1990 ! set these two equal or omit them.
-biomass_Tyr1= 1990 ! for non-transient emissions,
-biomass_Tyr2= 1990 ! set these two equal or omit them.
+aircraft_Tyr1=0 ! for non-transient emissions,
+aircraft_Tyr2=0 ! set these two equal or omit them.
+biomass_Tyr1= 0 ! for non-transient emissions,
+biomass_Tyr2= 0 ! set these two equal or omit them.
 
 ! factor to tune the base isoprene emissions globally,
 ! only when #defined BIOGENIC_EMISSIONS, otherwise use
@@ -467,8 +467,7 @@ tune_lt_sea=8.463d0  ! =3.9d0*2.17d0 for 4x5 model setting
 nn_or_zon=1     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
-ns_wet=12       ! index of CH4 source that is the wetlands (dumb, I know)
-!ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
+ns_wet=13       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
 topo_lim=205.d0 ! upper limit of topographic variation for new wetlands 
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
@@ -537,10 +536,8 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2          ! until diurnal diagn. are fixed, nssw should be even
   
 !--------- Aerosol parameters----------------
-!old historic aerosol emissions (imAER=3, aer_int_yr=1890 to 2000)
-!AR5 emissions (imAER=5, aer_in_yr = 1850 OR 2000)
-imAER=3            !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
-aer_int_yr=0       !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
+imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
+aer_int_yr=2000    !used for imAER=3,5 select desired year (1890 to 2000) or 0 to use JYEAR
 rad_interact_tr=1  ! 1=couples aerosols to radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! 0 for TOA, 1 for tropopause for rad forcing diags.
@@ -558,7 +555,6 @@ use_rad_ch4=0      ! use rad code CH4, shut off sfc sources
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
 prather_limits=1   ! to avoid some negative tracers in sub-gridscale
 which_trop=1       ! choose tropopause for chemistry purposes:
-!which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=-1   ! for setting fixed methane value for chemistry:
 pfix_CH4_S=1.750d-6    ! Southern Hemisphere (fix_CH4_chemistry=1)
