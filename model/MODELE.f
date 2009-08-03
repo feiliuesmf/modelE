@@ -1282,6 +1282,13 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif
+#ifdef TRACERS_TERP
+#ifdef TRACERS_SPECIAL_Shindell
+      write(6,*) '...and Terpenes tracer'
+#else
+      call stop_model('Terpenes tracer needs tropo chemistry',255)
+#endif
+#endif  /* TRACERS_TERP */
 #ifdef CALCULATE_FLAMMABILITY
       write(6,*) '...and calculating sfc veg flammability'
 #endif
@@ -1298,8 +1305,7 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and secondary organic aerosols'
 #else
-      call stop_model
-     ('SOA version needs tropo chemistry',255)
+      call stop_model('SOA version needs tropo chemistry',255)
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_DRYDEP

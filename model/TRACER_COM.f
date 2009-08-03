@@ -51,6 +51,12 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_shindell_trop=0
 #endif  /* TRACERS_SPECIAL_Shindell */
+!@var ntm_terp: Number of TRACERS_TERP tracers.
+#ifdef TRACERS_TERP
+      integer, parameter :: ntm_terp=1
+#else
+      integer, parameter :: ntm_terp=0
+#endif  /* TRACERS_TERP */
 !@var ntm_shindell_strat: Number of SHINDELL_STRAT_CHEM tracers.
 #ifdef SHINDELL_STRAT_CHEM
       integer, parameter :: ntm_shindell_strat=10
@@ -191,6 +197,7 @@ C**** Each tracer has a variable name and a unique index
 
 !@param ntm_chem number of drew-only tracers
       integer, parameter :: ntm_chem=ntm_shindell_trop+
+     *                               ntm_terp+
      *                               ntm_shindell_strat+
      *                               ntm_soa
 #ifdef TRACERS_AMP 
@@ -220,6 +227,9 @@ C**** do igas=1,ntm_chem instances get corrected.
      *                          'N2O5    ','HNO3    ','H2O2    ',
      *    'CH3OOH  ','HCHO    ','HO2NO2  ','CO      ','CH4     ',
      *    'PAN     ','Isoprene','AlkylNit','Alkenes ','Paraffin',
+#ifdef TRACERS_TERP
+     *    'Terpenes',
+#endif  /* TRACERS_TERP */
 #ifdef TRACERS_AEROSOLS_SOA
      *    'isopp1g ','isopp1a ','isopp2g ','isopp2a ',
      *    'apinp1g ','apinp1a ','apinp2g ','apinp2a ',
@@ -701,6 +711,9 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
      *     n_N2O5=0,   n_HNO3=0,  n_H2O2=0,  n_CH3OOH=0,   n_HCHO=0,
      *     n_HO2NO2=0, n_CO=0,    n_PAN=0,   n_H2O17=0,
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
+#ifdef TRACERS_TERP
+     *     n_Terpenes=0,
+#endif  /* TRACERS_TERP */
 #ifdef TRACERS_AEROSOLS_SOA
      *     n_isopp1g=0,n_isopp1a=0,n_isopp2g=0,n_isopp2a=0,
      *     n_apinp1g=0,n_apinp1a=0,n_apinp2g=0,n_apinp2a=0,

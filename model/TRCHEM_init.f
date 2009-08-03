@@ -89,15 +89,31 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
  100  format(/3(50x,l1/),3(50x,i8/))
 #ifdef SHINDELL_STRAT_CHEM
 #ifdef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_TERP
+ 110  format(6(///10(a8)),(///2(a8)))
+#else
  110  format(6(///10(a8)),(///1(a8)))
+#endif
+#else
+#ifdef TRACERS_TERP
+ 110  format(5(///10(a8)),(///4(a8)))
 #else
  110  format(5(///10(a8)),(///3(a8)))
+#endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 #else
 #ifdef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_TERP
+ 110  format(4(///10(a8)),(///4(a8)))
+#else
  110  format(4(///10(a8)),(///3(a8)))
+#endif
+#else
+#ifdef TRACERS_TERP
+ 110  format(3(///10(a8)),(///6(a8)))
 #else
  110  format(3(///10(a8)),(///5(a8)))
+#endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 #endif
      

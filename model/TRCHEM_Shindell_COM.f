@@ -12,7 +12,7 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
-      USE TRACER_COM, only : ntm, trm, TR_MM, ntm_soa
+      USE TRACER_COM, only : ntm, trm, TR_MM, ntm_soa, ntm_terp
 
       IMPLICIT NONE
       SAVE
@@ -110,37 +110,37 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi  =    94,
      & n_tri =    11,
      & n_nst =     3,
-     & nc     =   53+ntm_soa,     !formerly in param sub
-     & ny     =   51+ntm_soa,     !formerly in param sub  
+     & nc     =   53+ntm_terp+ntm_soa,     !formerly in param sub
+     & ny     =   51+ntm_terp+ntm_soa,     !formerly in param sub  
      & numfam =    4,     !formerly in param sub  
-     & nC2O3=     26+ntm_soa,
-     & nXO2=      27+ntm_soa,
-     & nXO2N=     28+ntm_soa,
-     & nRXPAR=    29+ntm_soa,
-     & nROR=      30+ntm_soa,
-     & nAldehyde= 31+ntm_soa,
-     & nH2O=      32+ntm_soa,
-     & nCH3O2=    33+ntm_soa,
-     & nH2=       34+ntm_soa,
-     & nOH=       35+ntm_soa,
-     & nHO2=      36+ntm_soa,
-     & nO3=       37+ntm_soa,
-     & nO=        38+ntm_soa,
-     & nO1D=      39+ntm_soa,
-     & nNO=       40+ntm_soa,
-     & nNO2=      41+ntm_soa,
-     & nNO3=      42+ntm_soa,
-     & nHONO=     43+ntm_soa,
-     & nCl2O2=    44+ntm_soa,
-     & nClO=      45+ntm_soa,
-     & nOClO=     46+ntm_soa,
-     & nCl2=      47+ntm_soa,
-     & nCl=       48+ntm_soa,
-     & nBrCl=     49+ntm_soa,
-     & nBrO=      50+ntm_soa,
-     & nBr=       51+ntm_soa,
-     & nO2=       52+ntm_soa,
-     & nM=        53+ntm_soa,     !you must always put nM last (highest number)
+     & nC2O3=     26+ntm_terp+ntm_soa,
+     & nXO2=      27+ntm_terp+ntm_soa,
+     & nXO2N=     28+ntm_terp+ntm_soa,
+     & nRXPAR=    29+ntm_terp+ntm_soa,
+     & nROR=      30+ntm_terp+ntm_soa,
+     & nAldehyde= 31+ntm_terp+ntm_soa,
+     & nH2O=      32+ntm_terp+ntm_soa,
+     & nCH3O2=    33+ntm_terp+ntm_soa,
+     & nH2=       34+ntm_terp+ntm_soa,
+     & nOH=       35+ntm_terp+ntm_soa,
+     & nHO2=      36+ntm_terp+ntm_soa,
+     & nO3=       37+ntm_terp+ntm_soa,
+     & nO=        38+ntm_terp+ntm_soa,
+     & nO1D=      39+ntm_terp+ntm_soa,
+     & nNO=       40+ntm_terp+ntm_soa,
+     & nNO2=      41+ntm_terp+ntm_soa,
+     & nNO3=      42+ntm_terp+ntm_soa,
+     & nHONO=     43+ntm_terp+ntm_soa,
+     & nCl2O2=    44+ntm_terp+ntm_soa,
+     & nClO=      45+ntm_terp+ntm_soa,
+     & nOClO=     46+ntm_terp+ntm_soa,
+     & nCl2=      47+ntm_terp+ntm_soa,
+     & nCl=       48+ntm_terp+ntm_soa,
+     & nBrCl=     49+ntm_terp+ntm_soa,
+     & nBrO=      50+ntm_terp+ntm_soa,
+     & nBr=       51+ntm_terp+ntm_soa,
+     & nO2=       52+ntm_terp+ntm_soa,
+     & nM=        53+ntm_terp+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   28,
      & NJVAL  =   27,     !formerly read in from jv_spec00_15.dat
      & NLFASTJ=  700,     !600 is arbitrary for now
@@ -163,29 +163,29 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi  =    96,
      & n_tri =    14,
      & n_nst =     5,
-     & nc     =   35+ntm_soa,     !formerly in param sub
-     & ny     =   33+ntm_soa,     !formerly in param sub  
+     & nc     =   35+ntm_terp+ntm_soa,     !formerly in param sub
+     & ny     =   33+ntm_terp+ntm_soa,     !formerly in param sub  
      & numfam =    2,     !formerly in param sub  
-     & nC2O3=     16+ntm_soa,
-     & nXO2=      17+ntm_soa,
-     & nXO2N=     18+ntm_soa,
-     & nRXPAR=    19+ntm_soa,
-     & nROR=      20+ntm_soa,
-     & nAldehyde= 21+ntm_soa,
-     & nH2O=      22+ntm_soa,
-     & nCH3O2=    23+ntm_soa,
-     & nH2=       24+ntm_soa,
-     & nOH=       25+ntm_soa,
-     & nHO2=      26+ntm_soa,
-     & nO3=       27+ntm_soa,
-     & nO=        28+ntm_soa,
-     & nO1D=      29+ntm_soa,
-     & nNO=       30+ntm_soa,
-     & nNO2=      31+ntm_soa,
-     & nNO3=      32+ntm_soa,
-     & nHONO=     33+ntm_soa,
-     & nO2=       34+ntm_soa,
-     & nM=        35+ntm_soa,     !you must always put nM last (highest number)
+     & nC2O3=     16+ntm_terp+ntm_soa,
+     & nXO2=      17+ntm_terp+ntm_soa,
+     & nXO2N=     18+ntm_terp+ntm_soa,
+     & nRXPAR=    19+ntm_terp+ntm_soa,
+     & nROR=      20+ntm_terp+ntm_soa,
+     & nAldehyde= 21+ntm_terp+ntm_soa,
+     & nH2O=      22+ntm_terp+ntm_soa,
+     & nCH3O2=    23+ntm_terp+ntm_soa,
+     & nH2=       24+ntm_terp+ntm_soa,
+     & nOH=       25+ntm_terp+ntm_soa,
+     & nHO2=      26+ntm_terp+ntm_soa,
+     & nO3=       27+ntm_terp+ntm_soa,
+     & nO=        28+ntm_terp+ntm_soa,
+     & nO1D=      29+ntm_terp+ntm_soa,
+     & nNO=       30+ntm_terp+ntm_soa,
+     & nNO2=      31+ntm_terp+ntm_soa,
+     & nNO3=      32+ntm_terp+ntm_soa,
+     & nHONO=     33+ntm_terp+ntm_soa,
+     & nO2=       34+ntm_terp+ntm_soa,
+     & nM=        35+ntm_terp+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ   =   16,
      & NJVAL  =   16,     !formerly read in from jv_spec00_15.dat
      & NLFASTJ=  450,     !450 is arbitrary for now
@@ -216,7 +216,8 @@ c     & n_PAN=      11,    !  C
 c     & n_Isoprene= 12,    !  E
 c     & n_AlkylNit= 13,    !  R
 c     & n_Alkenes=  14,    !  S
-c     & n_Paraffin= 15,    ! ---------------
+c     & n_Paraffin= 15,    !
+c     & n_Terpenes= 16,    ! ---------------
 C ----------------------------------------------   
      & N__=     1800,     !jan00, was 450, then 900 in Nov99
      & M__=        4,
@@ -313,6 +314,9 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam PIratio_CO_T to scale tropospheric CO IC and overwrite
 !@dbparam PIratio_CO_S to scale stratospheric CO IC and overwrite
 !@dbparam PIratio_other to scale PAN,Isoprene,AlkyNit,Alkenes,Paraffin
+#ifdef TRACERS_TERP
+!@+       ,Terpenes
+#endif  /* TRACERS_TERP */
 !@+       initial conditions and stratospheric overwriting.
 !@dbparam PIratio_N2O preindustrial ratio for N2O ICs and L=1 overwrite
 !@dbparam PIratio_CFC preindustrial ratio for CFC ICs and L=1 overwrite
@@ -564,10 +568,11 @@ C**************  V  A  R  I  A  B  L  E  S *******************
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
 #ifdef SHINDELL_STRAT_CHEM
       INTEGER, DIMENSION(n_fam)        :: nfam = 
-     &     (/37+ntm_soa,40+ntm_soa,44+ntm_soa,50+ntm_soa,0/)
+     &     (/37+ntm_terp+ntm_soa,40+ntm_terp+ntm_soa,
+     &       44+ntm_terp+ntm_soa,50+ntm_terp+ntm_soa,0/)
 #else
       INTEGER, DIMENSION(n_fam)        :: nfam = 
-     &     (/27+ntm_soa,30+ntm_soa,0,0/)
+     &     (/27+ntm_terp+ntm_soa,30+ntm_terp+ntm_soa,0,0/)
 #endif
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr, kss
       INTEGER, DIMENSION(p_2)          :: ks
