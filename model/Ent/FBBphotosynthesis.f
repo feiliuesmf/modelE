@@ -85,13 +85,13 @@
       real*8 :: ci!, cs
       real*8,parameter :: LOW_LIGHT_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
       
-!      if (IPAR.lt.LOW_LIGHT_LIMIT) then
-!        Rdout = Respveg(pftpar(pft)%Nleaf,psd%Tc)  !Should be only leaf respiration!
-!        Aout = 0.d0
-!        cs = ca - (Aout-Rdout)*1.37d0/Gb
-!        gsout = pftpar(pft)%b
-!        psd%ci = ca             !Dummy assignment, no need to solve for ci 
-!      else
+c      if (IPAR.lt.LOW_LIGHT_LIMIT) then
+c        Rdout = Respveg(pftpar(pft)%Nleaf,psd%Tc)  !Should be only leaf respiration!
+c        Aout = 0.d0
+c        cs = ca - (Aout-Rdout)*1.37d0/Gb
+c        gsout = pftpar(pft)%b
+c        psd%ci = ca             !Dummy assignment, no need to solve for ci 
+c      else
 cddd      print *,"called Photosynth_analyticsoln",
 cddd     &     pft,IPAR,psd%ca,ci,
 cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
@@ -101,7 +101,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
      &  ISPout)
         psd%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 
-!      endif
+c      endif
         
       !Biological limits for gs - cuticular conductance?
       if(gsout.lt.(0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN)))) then
@@ -200,12 +200,13 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
         Atot = 0.d0
         Anet = - Rd
         ci = pspar%Gammastar * 1.d06/Pa  
-        return
-      endif
+       else
 
       cs = ca - Anet*1.37d0/gb
       gs = BallBerry(Anet, rh, cs, pspar)
       ci = cs - Anet/(gs/1.65d0)
+
+        endif
 
 #ifdef PS_BVOC
          call Voccalc(pft,pa,ca,ci,Tl,pspar%Gammastar,
@@ -214,6 +215,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 #else
        isp=0.0d0
 #endif
+
       !write(888,*) "gs,ci,cs", gs,ci,cs
 
       end subroutine Photosynth_analyticsoln
@@ -261,6 +263,7 @@ C Include CO2 effects
 C Include temperature effects
 
        tauiso = exp(0.1*(Tl-30.0))
+
 
 C Include seasonal effects? Add later.
 C Note can switch on and off kapco2
