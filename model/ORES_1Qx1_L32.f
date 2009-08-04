@@ -23,7 +23,7 @@ C***
 C***
       Real*8,Parameter ::
      *   AKHMIN = 1.d5,   ! minimum horizontal diffusion
-     *   AKHFAC = 1d1,    ! factor to multiply built-in scaling for k_diff
+     *   AKHFAC = 1d0,    ! factor to multiply built-in scaling for k_diff
      *   fkph   = 0.1d0   ! vertical diffusion coefficient (cm**2/sec)
       Real*8,Parameter ::
 
