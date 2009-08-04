@@ -33,7 +33,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav
-      real, ALLOCATABLE, DIMENSION(:,:,:) :: pmidav
+      real, ALLOCATABLE, DIMENSION(:,:,:) :: plevav
       real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav
       real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
@@ -253,7 +253,7 @@ c**** Extract domain decomposition info
       ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2flux_glob(idm,jdm))
       ALLOCATE(tracav(idm,jdm,kdm,ntrac))
-      ALLOCATE(pmidav(idm,jdm,kdm))
+      ALLOCATE(plevav(idm,jdm,kdm))
       ALLOCATE(pCO2av(idm,jdm))
       ALLOCATE(ao_co2fluxav(idm,jdm))
 #endif

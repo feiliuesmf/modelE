@@ -118,6 +118,8 @@ c
 
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
 ! need global pCO2
+     .     tracav,pCO2av,ao_co2flux_glob,
+     .     ao_co2fluxav,diag_counter,plevav 
 
       !USE PBLCOM, only : wsavg 
       !USE RAD_COM,   only: COSZ1
@@ -158,12 +160,11 @@ c
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
      .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
       integer ipa_loc(iia,aJ_0H:aJ_1H)
-#ifdef TRACERS_GASEXCH_ocean
-      integer nt
-#endif
 #ifdef TRACERS_OceanBiology
+      integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
+      real plev
 #endif
       external rename
       logical master,slave,diag_ape
@@ -899,6 +900,45 @@ cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
 cdiag.     tracer(itest,jtest,k,9)
 cdiag  enddo
 cdiag  call obio_limits('aftr hybgen')
+
+!accumulate fields for diagnostic output
+      if (AM_I_ROOT()) then
+      if (mod(nstep,trcfrq).eq.0) then
+
+      diag_counter=diag_counter+1
+      print*, 'obio_model: doing tracav at nstep=',nstep,diag_counter
+
+      do j=1,jdm
+      do i=1,idm
+
+      !tracer
+      do nt=1,ntrac
+      do k=1,kk
+        kn=k+nn
+         plev=max(0.,dp(i,j,kn))
+           tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer(i,j,k,nt)*plev
+           plevav(i,j,k)=plevav(i,j,k)+plev
+
+!        if (nt.eq.1) then
+!        write(*,'(i9,5i5,3e12.4)')999999999,
+!    .     nstep,i,j,k,nt,tracer_glob(i,j,k,nt),plev,tracav(i,j,k,nt)
+!        endif
+
+      enddo
+      enddo
+
+      !pco2
+         pCO2av(i,j)=pCO2av(i,j)+pCO2(i,j)
+
+      !ao_co2flux
+         ao_co2fluxav(i,j)=ao_co2fluxav(i,j)+ao_co2flux_glob(i,j)
+
+      enddo
+      enddo
+
+      endif  !trcfrq
+      endif  !AM_I_ROOT
+
 #endif
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

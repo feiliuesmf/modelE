@@ -13,7 +13,7 @@ c
       USE HYCOM_DIM_GLOB, only : jj,JDM,kk,ntrcr,ii,idm,kdm,iia,jja
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
       USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av, 
-     .                     ao_co2fluxav,diag_counter,tracav,pmidav
+     .                     ao_co2fluxav,diag_counter,tracav,plevav
 c
       implicit none
       real*8, dimension(idm,jdm) :: dpmxav,oiceav
@@ -72,8 +72,8 @@ c
       enddo
 
       !mld
-        write(title,'(a)')'dpmixl'
-        call write2giss(nop,dpmixl,title)
+        write(title,'(a)')'MLD (m)'
+        call write2giss(nop,dpmixl/onem,title)
 
       !tracer
       do nt=1,ntrcr
@@ -128,9 +128,9 @@ c
    
       !tracav
       !no need to divide by diag_counter because pressumably
-      !this is already done when divide by pmidav
+      !this is already done when divide by plevav
       do nt=1,ntrcr
-      tracav(:,:,:,nt)=tracav(:,:,:,nt)/pmidav(:,:,:)
+      tracav(:,:,:,nt)=tracav(:,:,:,nt)/plevav(:,:,:)
       do k=1,kk
         write(title,'(a,i4,a,i4)')'tracav, nt=',nt,', k=',k
         call write2giss(nop,tracav(:,:,k,nt),title)
@@ -150,6 +150,7 @@ c
 !zero out for next diagnostic period
       diag_counter= 0.
       tracav = 0.
+      plevav = 0.
       pco2av = 0.
       ao_co2fluxav = 0.
 
