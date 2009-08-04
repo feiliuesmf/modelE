@@ -282,7 +282,8 @@
       !use soil moisture (and temperature) for 2 CASA layers:    -PK 
       !0-30 cm, 30-100 cm (second might change to 30-200 cm)
       !**might change this and soiltemp to dynamically allocated arrays** -PK 7/07 
-         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+!         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (volumetric fraction)   
 
 !         real*8 :: N_deposit    !N deposition (kgN/m2)
 
@@ -432,8 +433,10 @@
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          !next two now explicitly depth-structured (see above) -PK
-         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
-         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
+!         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
+!         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (volumetric fraction)
+         real*8 :: Soiltemp(N_DEPTH)  !Soil temperature (Celsius)
          real*8,pointer :: Soilmp(:) !Soil matric potential (m)
          real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 

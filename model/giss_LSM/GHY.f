@@ -2096,7 +2096,7 @@ c**** soils28   common block     9/25/90
       integer limit,nit
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
-      real*8 :: sbgc_temp(1), sbgc_moist(1)
+      real*8 :: sbgc_temp(ngm), sbgc_moist(ngm)
       real*8 :: height_can
       real*8 :: albedo_6b(6)
 #ifdef TRACERS_WATER
@@ -2292,9 +2292,10 @@ ccc accm0 was not called here in older version - check
 
         if ( process_vege ) then
 
-          sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
-          sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
-
+          !sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
+          !sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
+          sbgc_temp(1:ngm)  = tp(1:ngm,2)
+          sbgc_moist(1:ngm) =  w(1:ngm,2)/ws(1:ngm,2)
 
           !Qf = 0.d0
 cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
