@@ -240,6 +240,8 @@ C****
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
+      CALL OABFILx ! binary filter
+      CALL OABFILy ! binary filter
       CALL CHECKO ('ODIFF0')
 
 C**** Apply GM + Redi tracer fluxes
@@ -5288,3 +5290,168 @@ C**** Check
       RETURN
       END SUBROUTINE ADJUST_MEAN_SALT
 
+      Subroutine OABFILx
+C****
+C**** OABFILx applies an N-th order Alternating Binomial Filter to the
+C**** ocean currents UO and VO in the East-West direction
+C****
+      USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
+      USE OCEANR_DIM, only : grid=>ogrid
+      USE OCEANRES, only : NORDER, OABFUX, OABFVX 
+      Implicit None
+      Real*8, Dimension(IM) :: X,Y
+      Integer :: I,J,L,J_0f,J_1f,N
+C****
+
+      J_0f = max(J1O,grid%j_strt)
+      J_1f = min(grid%j_stop,JM-1)
+
+      Do 500 L=1,LMO
+C****
+C**** Filter U component of ocean current in east-west direction
+C****
+      If (OABFUX <= 0)  GoTo 200
+      Do 150 J=J_0f,J_1f
+      Do 110 I=1,IM
+C     If (L > LMU(I,J))  UO(I,J,L) = 0
+  110 X(I) = UO(I,J,L)
+      Do 140 N=1,NORDER
+      Do 120 I=2,IM
+  120 Y(I) = X(I) - X(I-1)
+      Y(1) = X(1) - X(IM)
+      Do 130 I=1,IM-1
+  130 If (L <= LMU(I ,J))  X(I)  = Y(I+1) - Y(I)
+  140 If (L <= LMU(IM,J))  X(IM) = Y(1)   - Y(IM)
+      Do 150 I=1,IM
+  150 UO(I,J,L) = UO(I,J,L) - X(I)*OABFUX
+C****
+C**** Filter the V component of ocean current in east-west direction
+C****
+  200 If (OABFVX <= 0)  GoTo 500
+      Do 250 J=J_0f,J_1f
+      Do 210 I=1,IM
+C     If (L > LMV(I,J,L))  VO(I,J,L) = 0
+      Y(I) = VO(I,J,L)
+  210 X(I) = 0
+      Do 240 N=1,NORDER
+      Do 220 I=1,IM-1
+  220 If (L <= LMV(I ,J) .and. L <= LMV(I+1,J))  X(I)  = Y(I+1) - Y(I)
+      If (L <= LMV(IM,J) .and. L <= LMV(1  ,J))  X(IM) = Y(1)  - Y(IM)
+      Do 230 I=2,IM
+  230 Y(I) = X(I) - X(I-1)
+  240 Y(1) = X(1) - X(IM)
+      Do 250 I=1,IM
+  250 VO(I,J,L) = VO(I,J,L) - Y(I)*OABFVX
+  500 Continue
+      Return
+      EndSubroutine OABFILx
+
+      subroutine oabfily
+C****
+C**** OABFILy applies an 8-th order Alternating Binomial Filter to the
+C**** ocean currents UO and VO in the North-South direction
+C****
+      USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
+      USE OCEANR_DIM, only : grid=>ogrid
+      USE OCEANRES, only : NORDER, by4tonv, by4tonu 
+      use domain_decomp_1d, only : get,halo_update,north,south
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) :: x,y
+      integer i,j,l,n,j_0,j_1,j_0p,j_1p
+      logical :: have_north_pole
+
+      call get(grid, j_strt = j_0, j_stop = j_1,
+     &         have_north_pole = have_north_pole)
+
+      j_0p = max(j1o,j_0)
+      j_1p = min(j_1,jm-1)
+
+      if (by4tonv <= 0 .and. by4tonu <= 0) return 
+C****
+C**** Filter the V component of ocean current in north-south direction
+C****
+      do l=1,lmo
+      do j=j_0p,j_1p
+        x(:,j,l) = vo(:,j,l)
+      enddo
+      enddo
+      do n=1,norder
+        call halo_update(grid, x, from=south)
+c compute odd n-s derivative at primary latitudes
+        do l=1,lmo
+        do j=j_0p,j_1p
+        do i=1,im
+          y(i,j,l) = x(i,j,l)-x(i,j-1,l)
+        enddo
+        enddo
+        enddo
+        if(have_north_pole) then ! pole-crossing conditions
+          j = jm
+          do l=1,lmo
+          do i=1,im/2
+            y(i,j,l) = -x(i+im/2,j-1,l)-x(i,j-1,l)
+            y(i+im/2,j,l) = y(i,j,l)
+          enddo
+c          do i=im/2+1,im
+c            y(i,j,l) = -x(i-im/2,j-1,l)-x(i,j-1,l)
+c          enddo
+          enddo
+        endif
+c compute even n-s derivative at secondary latitudes
+        call halo_update(grid, y, from=north)
+        do l=1,lmo
+          do j=j_0p,j_1p
+          do i=1,im
+            if(l <= lmv(i,j)) x(i,j,l) = y(i,j+1,l)-y(i,j,l)
+          enddo
+          enddo
+        enddo
+      enddo
+      do l=1,lmo
+      do j=j_0p,j_1p
+        vo(:,j,l) = vo(:,j,l) -x(:,j,l)*by4tonv
+      enddo
+      enddo
+
+C****
+C**** Filter the U component of ocean current in north-south direction
+C****
+      do l=1,lmo
+      do j=j_0p,j_1p
+      do i=1,im
+        y(i,j,l) = uo(i,j,l)
+        x(i,j,l) = 0.
+      enddo
+      enddo
+      enddo
+      do n=1,norder
+        call halo_update(grid, y, from=north)
+c compute n-s odd derivative at secondary latitudes
+        do l=1,lmo
+        do j=j_0p,j_1p
+        do i=1,im
+          if(l <= lmu(i,j) .and. l <= lmu(i,j+1))
+     &         x(i,j,l) = y(i,j+1,l)-y(i,j,l)
+        enddo
+        enddo
+        enddo
+c For the filter, assume that the north pole has no ocean
+        if(have_north_pole) x(:,jm-1,:) = 0.
+c compute even n-s derivative at primary latitudes
+        call halo_update(grid, x, from=south)
+        do l=1,lmo
+          do j=j_0p,j_1p
+          do i=1,im
+            y(i,j,l) = x(i,j,l)-x(i,j-1,l)
+          enddo
+          enddo
+        enddo
+      enddo
+      do l=1,lmo
+      do j=j_0p,j_1p
+        uo(:,j,l) = uo(:,j,l) -y(:,j,l)*by4tonu
+      enddo
+      enddo
+
+      return
+      end subroutine oabfily

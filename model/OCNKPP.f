@@ -34,7 +34,7 @@ C****
 c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
-      USE OCEANRES, only : fkph 
+      USE OCEANRES, only : fkph, fkpm 
       USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
       IMPLICIT NONE
       SAVE
@@ -74,7 +74,7 @@ c
 c inputs: (set through namelist)
 c
 !@var fkph   = vertical diffusion coefficient (cm**2/sec) (taken from OCEANRES)
-!@var fkpm   = vertical viscosity coefficient (cm**2/sec)
+!@var fkpm   = vertical viscosity coefficient (cm**2/sec) (taken from OCEANRES)
 !@var bvdc   = background vertical diffusion constant
 !@var bvvc   = background vertical viscosity constant
 !@var vvclim = vertical viscosity coefficient limit
@@ -90,7 +90,7 @@ c note, that in this scheme temperature diffusvity might be
 c different from the diffusivity of all other tracers due to double
 c diffusion.
 c
-      real*8, parameter :: vvcric=50d0, vdcric=50d0, fkpm=10d0 
+      real*8, parameter :: vvcric=50d0, vdcric=50d0 
      *     ,vvclim = 1000d0, vdclim = 1000d0
 
 c====================== include file "KMIX_CLEAN.COM" =================

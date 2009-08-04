@@ -19,12 +19,18 @@ C****
      *    LSRPD =   4, !  deepest layer for penetrating solar radiation
      *    MAXGL =  12, !  maximum no. layers for depositing glac. melt
      *   NOCEAN =   2  !  NDYNO must be multiple of 2*NOCEAN
+     * , NORDER=4      !  order of Alternating Binomial Filter (must be even)
 C***
 C***
       Real*8,Parameter ::
-     *   AKHMIN = 1.d5,   ! minimum horizontal diffusion
-     *   AKHFAC = 1d0,    ! factor to multiply built-in scaling for k_diff
-     *   fkph   = 0.1d0   ! vertical diffusion coefficient (cm**2/sec)
+     *    AKHMIN = 1.d5     ! minimum horizontal diffusion
+     *  , AKHFAC = 1d0      ! factor to multiply built-in scaling for k_diff
+     *  , fkph   = 0.1d0    ! vertical diffusion coefficient (cm**2/sec)
+     *  , fkpm   = 10.*fkph ! vertical viscosity coefficient (cm**2/sec)
+     *  , OABFUX=.15d0/4**NORDER   ! coef. for divergence filter in X dir. 
+     *  , OABFVX=.15d0/4**NORDER   ! coef. for vorticity filter in X dir.
+     *  , by4tonv=.15/(4.**norder) ! coef. for divergence filter in Y dir.
+     *  , by4tonu=.15/(4.**norder) ! coef. for vorticity filter in Y dir.
       Real*8,Parameter ::
 
      *     dZO(LMO) =   !  approximate thicknesses (m) of ocean layers
