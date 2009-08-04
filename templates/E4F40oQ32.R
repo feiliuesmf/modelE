@@ -147,7 +147,7 @@ PCONPEN=400.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000002 ! parameter for GW Moist Convective drag                        
 CSHEAR=10.     ! Shear drag coefficient                                         
 CMTN=0.2       ! default is 0.5                                                 
-CDEF=1.5       ! deformation drag coefficient                                   
+CDEF=1.95      ! deformation drag coefficient                                   
 XCDNST=400.,10000.   ! strat. gw drag parameters
 QGWMTN=1 ! mountain waves ON
 QGWDEF=1 ! deformation waves ON
@@ -162,8 +162,8 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-U00a=0.73    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.55    ! below 850mb and MC regions; then tune this to get rad.balance
+U00a=0.74    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.65    ! below 850mb and MC regions; then tune this to get rad.balance
 U00ice=.60       ! tune this first to get: glob. ann. mean plan.alb=30%   (U00ice up=>albedo down)
 U00wtrX=1.47     ! this to get: glob. ann. mean net heat at surf. = 0   (U00wtrX+.01=>NetHtSrf+.7)
 
@@ -188,7 +188,7 @@ volc_yr=-1
 volc_day=182
 aero_yr=1850
 od_cdncx=0.        ! don't include 1st indirect effect
-cc_cdncx=0.0036    ! include 2nd indirect effect
+cc_cdncx=0.        ! include 2nd indirect effect
 albsn_yr=1850
 dalbsnX=.024
 o3_yr=-1850
