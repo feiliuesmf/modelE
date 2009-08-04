@@ -413,7 +413,7 @@ C**** Local variables initialised in init_RAD
 #endif
       endif ! am_i_root
 
-      if (kradia.gt.0 .and. kradia.le.10) then
+      if (kradia.gt.0) then
         write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a15,i2,a7)')
      *    'R8 Tchg(',lm+LM_REQ,',ijm), I4 KLIQ(',lm,',4,ijm)'
         SELECT CASE (IACTION)

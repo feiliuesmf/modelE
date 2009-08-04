@@ -51,6 +51,7 @@ C**** Particular values may produce variations in indiv. i/o routines
 C**** Calls to individual i/o routines
       call io_label  (kunit,it,itm,iact,ioerr)
       it1=it
+      if (Kradia>9) go to 10 ! used for testing daily stuff
       if (Kradia.gt.0) then
         if (iaction.ne.ioread_single .and.
      *   iaction.ne.iowrite_single) call io_rad (kunit,iact,ioerr)
