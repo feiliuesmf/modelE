@@ -1577,8 +1577,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
       USE DIAG_COM, only : acc_period,ijkgridc,ctr_ml,ir_m45_130,
      *                     kdiag,ir_log2,ia_src,wt_ij,
-     *                     qdiag,lname_strlen,sname_strlen,units_strlen,
-     *                     ir_m45_130
+     *                     qdiag,lname_strlen,sname_strlen,units_strlen
       use filemanager
       IMPLICIT NONE
 
