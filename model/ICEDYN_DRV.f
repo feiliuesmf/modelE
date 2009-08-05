@@ -623,7 +623,7 @@ C**** PGF is an accelaration
 C****  define scalar pressure on atm grid then regrid it to the icedyn grid  
       DO J=aJ_0,aJ_1            
          DO I=aI_0,aI_1           
-             aPtmp(I,J)=(OGEOZA(I,J)+
+             aPtmp(I,J)=(OGEOZA(I,J)
      *            +(RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))*GRAV/RHOWS) 
         END DO
       END DO
