@@ -1,6 +1,6 @@
-E4arobio_g6a.R GISS Model E  coupled version          aromanou  08/04/2009
+E4arobio_g6b.R GISS Model E  coupled version          aromanou  08/04/2009
 
-E4arobio_g6a: obio in gary's ocean based on Larissa's E4F40o32.R
+E4arobio_g6b: obio in gary's ocean based on Larissa's E4F40o32.R
 E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.; 
 	  ocean: coupled to GISS ocean model (Russell - Schmidt), 
 	  32 vert. layers in the ocean 
@@ -21,6 +21,9 @@ Preprocessor Options
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
 #define constCO2                    ! ANY ocean: atmCO2=const, look below also atmCO2
+#define TRACERS_ON
+#define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
+#define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
 !!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
 !!!!!#define CHL_from_SeaWIFs
 End Preprocessor Options
@@ -65,8 +68,8 @@ SparseCommunicator_mod                 ! sparse gather/scatter module
 !!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TRACER_COM  TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
-!TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
-!TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
+TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
+TRACER_GASEXCH_CO2                  ! tracer functions needed for gas exch expts
 !!!!TRACER_GASEXCH_CFC                 ! tracer functions needed for gas exch expts
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!   OCEAN TRACERS       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -188,7 +191,7 @@ CHL_DATA=CHL_WG_2x2.5zavg                !CHL_WG_4x5 or CHL_WG_2x2.5
 
 
 Label and Namelist:
-E4arobio_g6a (The latest version of modelE)
+E4arobio_g6b (The latest version of modelE)
 
 DTFIX=180
 &&PARAMETERS
