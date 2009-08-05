@@ -128,7 +128,8 @@ ccc extra stuff which was present in "earth" by default
       implicit none
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
-      integer :: ntg, ntixw(ntm), is_water(ntm)
+      integer :: ntg, ntixw(ntm)
+      logical :: is_water(ntm)
 #endif
       integer n
 
