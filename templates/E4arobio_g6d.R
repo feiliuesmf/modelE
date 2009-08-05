@@ -20,12 +20,12 @@ Preprocessor Options
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
-!!!!#define constCO2                    ! ANY ocean: atmCO2=const, look below also atmCO2
+!!!#define constCO2                    ! ANY ocean: atmCO2=const, look below also atmCO2
 #define TRACERS_ON
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
-!!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
-!!!!!#define CHL_from_SeaWIFs
+!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
+!!!!#define CHL_from_SeaWIFs
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
