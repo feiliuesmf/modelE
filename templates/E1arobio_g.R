@@ -22,6 +22,7 @@ Preprocessor Options
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
+!!! #define constCO2                ! ANY ocean: atmCO2=const, look below also atmCO2
 !!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
 !!!!!#define CHL_from_SeaWIFs
 End Preprocessor Options
@@ -270,7 +271,9 @@ nssw=48         ! obio needs that in order to always restart from hour 0
                 ! then we need to do setups for a whole day
 
 !parameters that affect CO2 gas exchange
-atmCO2=368.6      !uatm for year 2000
+!!! atmCO2=368.6      !uatm for year 2000
+!!! atmCO2=289.9      !uatm for preindustrial runs
+atmCO2=0.             !prognostic atmCO2        
 
 &&END_PARAMETERS
 

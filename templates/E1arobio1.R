@@ -22,6 +22,7 @@ Preprocessor Options
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
 #define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
 #define pCO2_ONLINE                 ! pCO2_seawater computed online      
+#define constCO2                ! ANY ocean: atmCO2=const, look below also atmCO2
 !!!!#define CHL_from_OBIO               ! interactive CHL 
 !!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs
 !!!!#define TRACERS_GASEXCH_CFC_Natassa ! special tracers to be passed to ocean
@@ -286,6 +287,9 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=48
 
 !parameters that affect CO2 gas exchange
+!!! atmCO2=368.6      !uatm for year 2000
+!!! atmCO2=289.9      !uatm for preindustrial runs 
+!!! atmCO2=0.             !prognostic atmCO2        
 atmCO2=368.6      !uatm for year 2000 
 &&END_PARAMETERS
 

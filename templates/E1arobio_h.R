@@ -19,6 +19,7 @@ preprocessor Options
 #define TRACERS_OceanBiology        ! Watson Gregg's ocean bio-geo-chem model
 #define OBIO_RAD_coupling           ! radiation -- ocean biology coupling
 #define pCO2_ONLINE                 ! pCO2_seawater computed online
+#define constCO2                ! ANY ocean: atmCO2=const, look below also atmCO2
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -280,8 +281,10 @@ brntop=20.          ! default is 0.
 brnbot=200.         ! default is 300.
 jerlv0=1            ! default is 0
 !parameters that affect CO2 gas exchange
+!!! atmCO2=368.6      !uatm for year 2000
+!!! atmCO2=289.9      !uatm for preindustrial runs 
+!!! atmCO2=0.             !prognostic atmCO2        
 atmCO2=368.6      !uatm for year 2000
-
 &&END_PARAMETERS
 
  &INPUTZ

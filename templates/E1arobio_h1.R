@@ -20,6 +20,7 @@ Preprocessor Options
 #define TRACERS_OceanBiology
 #define OBIO_RAD_coupling
 #define pCO2_ONLINE
+#define constCO2                ! ANY ocean: atmCO2=const, look below also atmCO2
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -305,7 +306,6 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
-! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
 itest=308       ! default is -1
 jtest=42        ! default is -1
@@ -317,9 +317,10 @@ diapyc=.3e-4    ! default is 1.e-4
 jerlv0=1
 
 !parameters that affect CO2 gas exchange
-!atmCO2=368.6     !uatm for year 2000
+!!! atmCO2=368.6      !uatm for year 2000
+!!! atmCO2=289.9      !uatm for preindustrial runs 
+!!! atmCO2=0.             !prognostic atmCO2        
 atmCO2=289.9      !uatm for preindustrial runs
-
 &&END_PARAMETERS
 
  &INPUTZ

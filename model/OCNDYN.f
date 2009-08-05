@@ -756,7 +756,7 @@ C****
       call pack_data(ogrid, gcmax,     gcmax_glob)
       call pack_data(ogrid, tracer,   tracer_glob)
 #endif
-#ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CO2
       call pack_data(agrid, pCO2,      pCO2_glob)
 #endif
 
@@ -858,7 +858,11 @@ C****
       READ (kunit,err=10) TRNHEADER
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
      . ,pco2_glob
+#ifdef constCO2
       call get_param("atmCO2",atmCO2)   !need to do this here also
+#else
+      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
+#endif
       print*,'nstep0= ',nstep0
       i=itest
       j=jtest

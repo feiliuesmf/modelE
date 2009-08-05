@@ -20,7 +20,7 @@ c
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
-#ifndef TRACER_GASEXCH_ocean_CO2
+#ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
@@ -190,6 +190,7 @@ c pCO2
 #ifdef pCO2_ONLINE
       !this ppco2 routine comes from OCMIP. I am not using psurf
       !and thus not compute dtco2 because these are computed in PBL
+      !for the case of gasexch and progn. atmco2, atmco2=dummy
       call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
      .           obio_P(1,1),obio_P(1,3),atmCO2,
      .           pCO2_ij,pHsfc)
@@ -279,7 +280,7 @@ c Update DIC for sea-air flux of CO2
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 
-#ifndef TRACER_GASEXCH_ocean_CO2
+#ifndef TRACERS_GASEXCH_ocean_CO2
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
       ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
      .            *3600.D0                                   ! mol/m2/hr
@@ -454,12 +455,26 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.29 $
-c_ $Date: 2009/07/15 19:38:17 $   ;  $State: Exp $
+c_ $Revision: 2.30 $
+c_ $Date: 2009/08/05 18:15:41 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.30  2009/08/05 18:15:41  aromanou
+c_
+c_ CO2 gas exchange for case of prognostic atmospheric CO2 (both oceans):
+c_ 1) set atmCO2=0 in the rundeck so as to use modelE prognostic CO2.
+c_ You may also want to change ghg_yr etc to reflect temporal coverage.
+c_
+c_ 2) set CPP #define constCO2 and
+c_    set atmCO2=const in the rundeck so as to specify const CO2 in the atmosphere.
+c_
+c_ All previous runs with ocean carbon should use #define constCO2 in the rundeck. Changed
+c_ all relevant rundecks to reflect this.
+c_
+c_ some cleaning up.
+c_
 c_ Revision 2.29  2009/07/15 19:38:17  aromanou
 c_ update alkalinity calculation
 c_ remove unecessary 2d arrays for settling speeds
@@ -916,12 +931,26 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.29 $
-c_ $Date: 2009/07/15 19:38:17 $   ;  $State: Exp $
+c_ $Revision: 2.30 $
+c_ $Date: 2009/08/05 18:15:41 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.30  2009/08/05 18:15:41  aromanou
+c_
+c_ CO2 gas exchange for case of prognostic atmospheric CO2 (both oceans):
+c_ 1) set atmCO2=0 in the rundeck so as to use modelE prognostic CO2.
+c_ You may also want to change ghg_yr etc to reflect temporal coverage.
+c_
+c_ 2) set CPP #define constCO2 and
+c_    set atmCO2=const in the rundeck so as to specify const CO2 in the atmosphere.
+c_
+c_ All previous runs with ocean carbon should use #define constCO2 in the rundeck. Changed
+c_ all relevant rundecks to reflect this.
+c_
+c_ some cleaning up.
+c_
 c_ Revision 2.29  2009/07/15 19:38:17  aromanou
 c_ update alkalinity calculation
 c_ remove unecessary 2d arrays for settling speeds
@@ -1123,12 +1152,26 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.29 $
-c_ $Date: 2009/07/15 19:38:17 $   ;  $State: Exp $
+c_ $Revision: 2.30 $
+c_ $Date: 2009/08/05 18:15:41 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.30  2009/08/05 18:15:41  aromanou
+c_
+c_ CO2 gas exchange for case of prognostic atmospheric CO2 (both oceans):
+c_ 1) set atmCO2=0 in the rundeck so as to use modelE prognostic CO2.
+c_ You may also want to change ghg_yr etc to reflect temporal coverage.
+c_
+c_ 2) set CPP #define constCO2 and
+c_    set atmCO2=const in the rundeck so as to specify const CO2 in the atmosphere.
+c_
+c_ All previous runs with ocean carbon should use #define constCO2 in the rundeck. Changed
+c_ all relevant rundecks to reflect this.
+c_
+c_ some cleaning up.
+c_
 c_ Revision 2.29  2009/07/15 19:38:17  aromanou
 c_ update alkalinity calculation
 c_ remove unecessary 2d arrays for settling speeds

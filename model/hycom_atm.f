@@ -156,8 +156,8 @@
 #endif
 #ifdef TRACERS_OceanBiology
       public asolz_loc
-      public awind_loc
       public asolz
+      public awind_loc
       public awind
       public wsavg, wsavg_loc
       public COSZ1, COSZ1_loc
@@ -236,12 +236,11 @@
 #endif
 #ifdef TRACERS_OceanBiology
       real, ALLOCATABLE, DIMENSION(:,:)    :: asolz
-      real, ALLOCATABLE, DIMENSION(:,:)    :: awind           !wind speed from modelE (see hycom2.f)
       real, ALLOCATABLE, DIMENSION(:,:)    :: asolz_loc
+      real, ALLOCATABLE, DIMENSION(:,:)    :: awind           !wind speed from modelE (see hycom2.f)
       real, ALLOCATABLE, DIMENSION(:,:)    :: awind_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: wsavg
       real, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
-
 #endif
 #ifdef OBIO_RAD_coupling
       real*8, ALLOCATABLE, DIMENSION(:,:)    :: avisdir,avisdif
@@ -314,8 +313,8 @@
 #endif
 #ifdef TRACERS_OceanBiology
       ALLOCATE(asolz(iia,jja))
-      ALLOCATE(awind(iia,jja))
       ALLOCATE(asolz_loc(iia,aJ_0H:aJ_1H))
+      ALLOCATE(awind(iia,jja))
       ALLOCATE(awind_loc(iia,aJ_0H:aJ_1H))
       ALLOCATE( wsavg(im,jm) )
       ALLOCATE( COSZ1(im,jm) )

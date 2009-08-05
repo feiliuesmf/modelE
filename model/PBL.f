@@ -346,8 +346,8 @@ c  internals:
 
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
-#ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out in my case - Igor */
       USE MODEL_COM, only : nstep=>itime
+#ifdef constCO2
       USE obio_forc, only : atmCO2
 #endif
 #endif
@@ -840,7 +840,6 @@ ccc dust emission from earth
 
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
-#ifndef TRACERS_GASEXCH_CO2_Igor /* hack for testing land-only */
        IF (ocean) THEN  ! OCEAN only
           call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
      .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
@@ -853,7 +852,6 @@ ccc dust emission from earth
 !    .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
 !    .          pbl_args%beta_gas,trsf,trcnst
        ENDIF
-#endif   /* hack */
 #endif   /* TRACERS_GASEXCH_ocean_CO2 */
 
 #ifdef TRACERS_GASEXCH_ocean_CFC
@@ -875,9 +873,10 @@ C**** solve tracer transport equation
      *       dtime,n)
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
+#ifdef constCO2
         !case where atmCO2 is constant
-        !!! looks like a hack... why tr() is overwritten? -IA
-#ifndef TRACERS_GASEXCH_CO2_Igor /* comment it out for my case - Igor */
+!       write(*,'(a,4i5,2e12.4)')'PBL, tr:', 
+!    .   nstep,ilong,jlat,itr,atmCO2,tr(1,itr)
         tr(:,itr)=atmCO2            !ppmv(uatm)
 #endif
 #endif

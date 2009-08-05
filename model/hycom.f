@@ -113,8 +113,6 @@ c
       USE obio_forc, only: awind,owind=>owind_glob,
      &     asolz,osolz=>osolz_glob
      &     ,scatter_obio_forc_arrays
-!awind,asolz - local to hycom.f
-!owind, osolz - can be broadcasted
 
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
 ! need global pCO2

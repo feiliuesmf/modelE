@@ -7463,7 +7463,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AMP_AEROSOL
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
+#ifdef constCO2
       USE obio_forc, only : atmCO2
+#endif
 #endif
 
       IMPLICIT NONE
@@ -8095,8 +8097,12 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              !units: [am]=kg_air/m2, [axyp]=m2, [tr_mm]=kg_CO2,
              !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air
+#ifdef constCO2
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
+#else
+             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)    !?? check: units now are kg_co2
+#endif
           end do; end do; end do
 #endif
 

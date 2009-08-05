@@ -126,7 +126,6 @@
       USE AFLUXES, only : atrac
 
       USE obio_com, only : pCO2,pCO2_glob
-      USE obio_forc, only : atmCO2
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data
 
       implicit none

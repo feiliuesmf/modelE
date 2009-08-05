@@ -10,7 +10,10 @@ c
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,atmFe_all,alk,atmCO2
+      USE obio_forc, only : ihra,atmFe_all,alk
+#ifdef constCO2
+     .             ,atmCO2
+#endif
 #ifdef OBIO_RAD_coupling
      .                      ,eda_frac,esa_frac
 #else
@@ -64,7 +67,9 @@ c  Computes constants over entire run of model, reads in required
 c  data files, and otherwise obtains one-time-only information
 c  necessary for the run.
 
+#ifdef constCO2
       call get_param("atmCO2",atmCO2)
+#endif
  
 c  Degrees to radians conversion
       pi = dacos(-1.0D0)
