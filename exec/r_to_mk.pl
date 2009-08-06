@@ -87,6 +87,7 @@ if ( /Components:/i ) {
 	last if ( /Data input files/i || /Component Options:/i ) ;
 	chop;
 	s/\!/\#/g;
+	s/\s+$//;
 	if ( /^\s*$/ ) { print "\n"; next; }
 	if ( /^\s*\#/ ) { print "$_\n"; next; }
 	print "COMPONENTS += $_\n";
