@@ -28,6 +28,9 @@ c
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
      &                        n_Isoprene,n_AlkylNit,n_Alkenes,
+#ifdef TRACERS_TERP
+     &                        n_Terpenes,
+#endif  /* TRACERS_TERP */
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
      &                        tr_wd_type,nWater,trm,trmom,
 #ifdef TRACERS_AEROSOLS_SOA
@@ -96,6 +99,9 @@ C**** Local parameters and variables and arguments:
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
 !@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
+#ifdef TRACERS_TERP
+!@+   changeTerpenes,
+#endif  /* TRACERS_TERP */
 #ifdef TRACERS_AEROSOLS_SOA
 !@+   changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -119,6 +125,9 @@ C**** Local parameters and variables and arguments:
      &  gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,
      &  RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit,
      &  changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5,
+#ifdef TRACERS_TERP
+     &  changeTerpenes,
+#endif  /* TRACERS_TERP */
 #ifdef TRACERS_AEROSOLS_SOA
      & changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -155,6 +164,17 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       real*8, dimension(JM)         :: DU_O3_glob
 #ifdef SHINDELL_STRAT_CHEM
       real*8, dimension(JM,LM)      :: photO2_glob
+#ifdef TRACERS_TERP
+      integer, parameter :: iN2O5plusH2O=109,iNO3plusNO2=103,
+     &                      iN2O5decomp=96,iClOplusNO2=107,
+     &                      iClONO2plusH2O=110,iClONO2plusHCl=111,
+     &                      iHOClplusHCl=112,iN2O5plusHCl=113
+#else
+      integer, parameter :: iN2O5plusH2O=106,iNO3plusNO2=100,
+     &                      iN2O5decomp=93,iClOplusNO2=104,
+     &                      iClONO2plusH2O=107,iClONO2plusHCl=108,
+     &                      iHOClplusHCl=109,iN2O5plusHCl=110
+#endif  /* TRACERS_TERP */
 #endif
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -323,6 +343,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
 #endif
 
 ! Define acetone in terms of Isoprene:
+!kt Terpenes should also be included here in the future
 ! NOTE: this must be changed if switching to 2D decomposition
 ! as there is a zonal mean here:
       do j=J_0,J_1
@@ -815,7 +836,8 @@ c       in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
 #ifdef SHINDELL_STRAT_CHEM
         if(pres2(L)>5.d0)then
 c       if there is reaction on strat particulate (in Crates), use that
-          if(rr(106,L)>1.0d-25)wprod_sulf=DT2*y(n_N2O5,L)*rr(106,L)
+          if(rr(iN2O5plusH2O,L)>1.0d-25)wprod_sulf=
+     &                       DT2*y(n_N2O5,L)*rr(iN2O5plusH2O,L)
         else
           wprod_sulf=0.d0
         endif
@@ -842,12 +864,16 @@ c       define O3 from Ox:
 c       calculate change in NO3:
         dNO3=rr(7,L)*y(nNO2,L)*y(n_Ox,L)-(rr(24,L)*y(nNO2,L)+
      &       2.d0*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L) -(rr(36,L)
-     &       *y(n_Alkenes,L)+rr(32,L)*y(n_Isoprene,L))*yNO3(I,J,L)
+     &       *y(n_Alkenes,L)+rr(32,L)*y(n_Isoprene,L)
+#ifdef TRACERS_TERP
+     &                      +rr(94,L)*y(n_Terpenes,L)
+#endif  /* TRACERS_TERP */
+     &                                               )*yNO3(I,J,L)
 C       including DMS+NO3 :
      &       - ydms(i,j,l)*rsulf3(i,j,l)*yNO3(I,J,L)
 #ifdef SHINDELL_STRAT_CHEM
-        dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(100,L)*y(nNO2,L))
-     &       *yNO3(I,J,L)+rr(93,L)*y(n_N2O5,L)
+        dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(iNO3plusNO2,L)*y(nNO2,L))
+     &       *yNO3(I,J,L)+rr(iN2O5decomp,L)*y(n_N2O5,L)
 #else
         dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(52,L)*y(nNO2,L))
      &       *yNO3(I,J,L)+rr(46,L)*y(n_N2O5,L)
@@ -873,7 +899,7 @@ C       LOWER LIMIT ON N2O5:
         if(y(n_N2O5,L) <= 1.d0) y(n_N2O5,L)=1.d0
 
 C Calculate and limit gaseous changes to HNO3, HCHO, N2O5, Aldehyde,
-C Alkenes, Isoprene, and AlkylNit:
+C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 
         gwprodHNO3=(y(n_HCHO,L)*rr(28,L)+2.5d-15*
      &             yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
@@ -882,8 +908,8 @@ C Alkenes, Isoprene, and AlkylNit:
         gprodHNO3=gwprodHNO3*pfactor
 
 #ifdef SHINDELL_STRAT_CHEM
-        gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(100,L)-y(n_N2O5,L)
-     &             *rr(93,L))*dt2
+        gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(iNO3plusNO2,L)-y(n_N2O5,L)
+     &             *rr(iN2O5decomp,L))*dt2
 #else
         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(52,L)-y(n_N2O5,L)
      &             *rr(46,L))*dt2
@@ -893,21 +919,33 @@ C Alkenes, Isoprene, and AlkylNit:
      &       gwprodN2O5=-0.25d0*y(n_N2O5,L)
 
 #ifdef SHINDELL_STRAT_CHEM
-         changeClONO2=y(nClO,L)*rr(104,L)*y(nNO2,L)*dt2
+         changeClONO2=y(nClO,L)*rr(iClOplusNO2,L)*y(nNO2,L)*dt2
          if(changeClONO2 >= y(nClO,L))changeClONO2=0.8d0*y(nClO,L)
          if(changeClONO2 >= 0.1d0*y(nNO2,L))changeClONO2=0.1d0*y(nNO2,L)
          changeClOx=-changeClONO2
 #endif
 
-        changeAldehyde=(rr(36,L)*y(n_Alkenes,L)+rr(32,L)*
-     &              y(n_Isoprene,L)*0.12d0-2.5d-15*yAldehyde(I,J,L))*
+        changeAldehyde=(rr(36,L)*y(n_Alkenes,L)
+     &                 +rr(32,L)*y(n_Isoprene,L)*0.12d0
+#ifdef TRACERS_TERP
+     &                 +rr(94,L)*y(n_Terpenes,L)*0.12d0
+#endif  /* TRACERS_TERP */
+     &                 -2.5d-15*yAldehyde(I,J,L))*
      &              yNO3(I,J,L)*dt2
         if(-changeAldehyde > 0.75d0*yAldehyde(I,J,L))changeAldehyde=
      &  -0.75d0*yAldehyde(I,J,L)
 
-        changeAlkenes=(rr(32,L)*y(n_Isoprene,L)*0.45d0-rr(36,L)*
-     &               y(n_Alkenes,L))*yNO3(I,J,L)*dt2+(rr(31,L)*
-     &               y(n_Isoprene,L)-rr(35,L)*y(n_Alkenes,L))*
+        changeAlkenes=(rr(32,L)*y(n_Isoprene,L)*0.45d0
+#ifdef TRACERS_TERP
+     &                +rr(94,L)*y(n_Terpenes,L)*0.45d0
+#endif  /* TRACERS_TERP */
+     &                -rr(36,L)*y(n_Alkenes,L))*
+     &               yNO3(I,J,L)*dt2
+     &               +(rr(31,L)*y(n_Isoprene,L)
+#ifdef TRACERS_TERP
+     &                +rr(93,L)*y(n_Terpenes,L)
+#endif  /* TRACERS_TERP */
+     &                -rr(35,L)*y(n_Alkenes,L))*
      &               y(nO3,L)*dt2
         if(-changeAlkenes > 0.75d0*y(n_Alkenes,L))changeAlkenes=
      &  -0.75d0*y(n_Alkenes,L)
@@ -926,20 +964,42 @@ C Alkenes, Isoprene, and AlkylNit:
         if(-changeIsoprene > 0.75d0*y(n_Isoprene,L))changeIsoprene=
      &  -0.75d0*y(n_Isoprene,L)
 
-        changeHCHO=(rr(36,L)*y(n_Alkenes,L)+
-     &             rr(32,L)*y(n_Isoprene,L)*0.03d0)*yNO3(I,J,L)*dt2
+#ifdef TRACERS_TERP
+        changeTerpenes=-(rr(94,L)*yNO3(I,J,L)
+     &                 +rr(93,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
+        if(-changeTerpenes > 0.75d0*y(n_Terpenes,L))changeTerpenes=
+     &  -0.75d0*y(n_Terpenes,L)
+#endif  /* TRACERS_TERP */
+
+        changeHCHO=(rr(36,L)*y(n_Alkenes,L)
+     &             +rr(32,L)*y(n_Isoprene,L)*0.03d0
+#ifdef TRACERS_TERP
+     &             +rr(94,L)*y(n_Terpenes,L)*0.03d0
+#endif  /* TRACERS_TERP */
+     &             )*yNO3(I,J,L)*dt2
      &             -gwprodHNO3+(rr(31,L)*y(n_Isoprene,L)*0.9d0
+#ifdef TRACERS_TERP
+     &                         +rr(93,L)*y(n_Terpenes,L)*0.9d0
+#endif  /* TRACERS_TERP */
      &             +rr(35,L)*y(n_Alkenes,L))*y(nO3,L)*0.64d0*dt2
 
         changeAlkylNit=rr(32,L)*y(n_Isoprene,L)*
      &                yNO3(I,J,L)*dt2*0.9d0
+#ifdef TRACERS_TERP
+     &                +rr(94,L)*y(n_Terpenes,L)*
+     &                yNO3(I,J,L)*dt2*0.9d0
+#endif  /* TRACERS_TERP */
         if(-changeAlkylNit > 0.75d0*y(n_AlkylNit,L))changeAlkylNit=
      &  -0.75d0*y(n_AlkylNit,L)
 
 c Convert some changes to molecules/cm3/s:
         changeHNO3=gwprodHNO3+2*wprod_sulf  !always positive
-        changeNOx=-gwprodHNO3-2*gwprodN2O5-(0.9d0*rr(32,L)*
-     &  y(n_Isoprene,L)+2.5d-15*yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
+        changeNOx=-gwprodHNO3-2*gwprodN2O5-(
+     &             0.9d0*rr(32,L)*y(n_Isoprene,L)
+#ifdef TRACERS_TERP
+     &            +0.9d0*rr(94,L)*y(n_Terpenes,L)
+#endif  /* TRACERS_TERP */
+     &            +2.5d-15*yAldehyde(I,J,L))*yNO3(I,J,L)*dt2
         if(-changeNOx > 0.9d0*y(n_NOx,L))changeNOx=-.9d0*y(n_NOx,L)
         changeN2O5=gwprodN2O5-wprod_sulf
 
@@ -992,8 +1052,8 @@ c Ensure nitrogen conservation (presumably dNOx<0, others >0):
          if(-changeNOx > y(n_NOx,L))changeNOx=-.95d0*y(n_NOx,L)
 
 c Heterogeneous reaction ClONO2+H2O on sulfate (and PSCs if present):
-         if(rr(107,L) > 2.d-35)then
-           changehetClONO2=-(rr(107,L)*y(n_ClONO2,L))*dt2
+         if(rr(iClONO2plusH2O,L) > 2.d-35)then
+           changehetClONO2=-(rr(iClONO2plusH2O,L)*y(n_ClONO2,L))*dt2
            if(changehetClONO2 >= 0.2*y(n_ClONO2,L))changehetClONO2=
      &     -0.2d0*y(n_ClONO2,L)
            changeClONO2=changeClONO2+changehetClONO2
@@ -1012,13 +1072,13 @@ c 108 ClONO2  +HCl     -->Cl      +HNO3  !really makes Cl2
 c 109 HOCl    +HCl     -->Cl      +H2O   !raeally makes Cl2
 c 110 N2O5    +HCl     -->Cl      +HNO3  !really makes ClNO2  2
          if(pscX(L)) then  ! PSCs exist
-           chgHT3=rr(108,L)*y(n_ClONO2,L)*dt2
+           chgHT3=rr(iClONO2plusHCl,L)*y(n_ClONO2,L)*dt2
            if(chgHT3 >= 0.2d0*y(n_ClONO2,L))chgHT3=0.2d0*y(n_ClONO2,L)
            if(chgHT3 >= 0.2d0*y(n_HCl,L))chgHT3=0.2d0*y(n_HCl,L)
-           chgHT4=rr(109,L)*y(n_HOCl,L)*dt2
+           chgHT4=rr(iHOClplusHCl,L)*y(n_HOCl,L)*dt2
            if(chgHT4 >= 0.2d0*y(n_HOCl,L))chgHT4=0.2d0*y(n_HOCl,L)
            if(chgHT4 >= 0.2d0*y(n_HCl,L))chgHT4=0.2d0*y(n_HCl,L)
-           chgHT5=rr(110,L)*y(n_N2O5,L)*dt2
+           chgHT5=rr(iN2O5plusHCl,L)*y(n_N2O5,L)*dt2
            if(chgHT5 >= 0.2d0*y(n_N2O5,L))chgHT5=0.2d0*y(n_N2O5,L)
            if(chgHT5 >= 0.2d0*y(n_HCl,L))chgHT5=0.2d0*y(n_HCl,L)
            changeClONO2=changeClONO2-chgHT3
@@ -1180,6 +1240,17 @@ c -- Isoprene -- (Isoprene from gas phase rxns)
           changeIsoprene=changeL(L,n_Isoprene)*mass2vol(n_Isoprene)
      &    *bypfactor
         END IF
+#ifdef TRACERS_TERP
+c -- Terpenes -- (Terpenes from gas phase rxns)
+        changeL(L,n_Terpenes)=
+     &  changeTerpenes*pfactor*vol2mass(n_Terpenes)
+        IF((trm(i,j,l,n_Terpenes)+changeL(l,n_Terpenes)) < 0.d0)
+     &  THEN
+          changeL(l,n_Terpenes) = 0.d0 - trm(i,j,l,n_Terpenes)
+          changeTerpenes=changeL(L,n_Terpenes)*mass2vol(n_Terpenes)
+     &    *bypfactor
+        END IF
+#endif  /* TRACERS_TERP */
 c -- AlkylNit -- (AlkylNit from gas phase rxns)
         changeL(L,n_AlkylNit)=
      &  changeAlkylNit*pfactor*vol2mass(n_AlkylNit)
@@ -1341,12 +1412,19 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeIsoprene)/y(n_Isoprene,L),' percent of'
      &    ,y(n_Isoprene,L),'(',1.d9*y(n_Isoprene,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_TERP
+          write(out_line,198) 'Terpenes',': ',
+     &    changeTerpenes,' molecules produced; ',
+     &    100.d0*(changeTerpenes)/y(n_Terpenes,L),' percent of'
+     &    ,y(n_Terpenes,L),'(',1.d9*y(n_Terpenes,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_TERP */
           write(out_line,198) 'AlkylNit',': ',
      &    changeAlkylNit,' molecules produced; ',
      &    100.d0*(changeAlkylNit)/y(n_AlkylNit,L),' percent of'
      &    ,y(n_AlkylNit,L),'(',1.d9*y(n_AlkylNit,L)/y(nM,L),' ppbv)'
-#ifdef SHINDELL_STRAT_CHEM
           call write_parallel(trim(out_line),crit=jay)
+#ifdef SHINDELL_STRAT_CHEM
           write(out_line,198) ay(n_ClONO2),': ',
      &    changeClONO2,' molecules produced; ',
      &    100.d0*(changeClONO2)/y(n_ClONO2,L),' percent of'
@@ -1720,7 +1798,11 @@ C determine scaling factors, if any:
             PIfact(n)=PIratio_N
           case('CO')
             PIfact(n)=PIratio_CO_S
-          case('PAN','Isoprene','AlkylNit','Alkenes','Paraffin')
+          case('PAN','Isoprene','AlkylNit','Alkenes','Paraffin'
+#ifdef TRACERS_TERP
+              ,'Terpenes'
+#endif  /* TRACERS_TERP */
+     &        )
             PIfact(n)=PIratio_other
           end select
         end do
@@ -1787,6 +1869,10 @@ C         previous stratospheric value by 70% here: GSF/DTS 9.15.03:
      &                           - trm(I,J,L,n_Alkenes)
           changeL(L,n_Paraffin)= FACT1*1.d-4*PIfact(n_Paraffin)
      &                           - trm(I,J,L,n_Paraffin)
+#ifdef TRACERS_TERP
+          changeL(L,n_Terpenes)= FACT1*1.d-4*PIfact(n_Terpenes)
+     &                           - trm(I,J,L,n_Terpenes)
+#endif  /* TRACERS_TERP */
 
 c Overwrite stratospheric ch4 based on HALOE obs for tropics and
 C extratropics and scale by the ratio of near-569hPa mixing ratios
