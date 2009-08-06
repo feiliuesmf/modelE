@@ -2000,8 +2000,8 @@ C**** corresponding water tracer adjustment
 #ifdef TRACERS_ON
 C**** check for independent tracer errors 
         DO N=1,NTX
-          IF (TM(L,N).lt.0.) then
-            WRITE(0,*) trname(n),' neg: it,i,j,l,q,cm',itime,i_debug
+          IF (t_qlimit(n) .and. TM(L,N).lt.0.) then
+            WRITE(0,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
      $             ,j_debug,l,tm(l,n),cmneg(l)
 C**** reduce subsidence post hoc.
             IF (L.eq.1 .or. TM(L-1,N)+TM(L,N).lt.0) THEN
