@@ -164,8 +164,13 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & p_2   =   111,
      & p_3   =   200,
      & p_4   =    70,
-     & n_rx  =   101,
-     & n_bi  =    96,
+#ifdef TRACERS_TERP
+     & n_rx  =    58,
+     & n_bi  =    50,
+#else
+     & n_rx  =    55,
+     & n_bi  =    47,
+#endif  /* TRACERS_TERP */
      & n_tri =    14,
      & n_nst =     5,
      & nc     =   35+ntm_terp+ntm_soa,     !formerly in param sub
