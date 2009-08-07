@@ -875,8 +875,8 @@ C       including DMS+NO3 :
         dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(iNO3plusNO2,L)*y(nNO2,L))
      &       *yNO3(I,J,L)+rr(iN2O5decomp,L)*y(n_N2O5,L)
 #else
-        dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(52,L)*y(nNO2,L))
-     &       *yNO3(I,J,L)+rr(46,L)*y(n_N2O5,L)
+        dNO3=dNO3-(rr(28,L)*y(n_HCHO,L)+rr(53,L)*y(nNO2,L))
+     &       *yNO3(I,J,L)+rr(47,L)*y(n_N2O5,L)
 #endif
         dNO3=dNO3*dt2
 
