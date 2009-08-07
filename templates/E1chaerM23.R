@@ -31,6 +31,7 @@ Preprocessor Options
 #define TRACERS_WATER               ! tracers can interact with water
 #define TRACERS_DRYDEP              ! include tracer dry deposition
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
+#define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
@@ -42,7 +43,8 @@ Preprocessor Options
 #define TRACERS_DUST             ! Dust aerosol
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 #define BC_ALB                   ! Optional tracer BC affects snow albedo
-! #define CLD_AER_CDNC             ! Aerosol-cloud interactions
+!#define CLD_AER_CDNC             ! Aerosol-cloud interactions
+!#define BLK_2MOM                 ! Aerosol-cloud interactions
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
@@ -72,7 +74,7 @@ TRCHEM_Shindell_COM                 ! Drew Shindell's tracers common
 TRCHEM_calc                         ! chemical reaction calculations
 TRCHEM_init                         ! chemistry initialization, I/O
 TRCHEM_family                       ! tracer family chemistry
-! TRCHEM_fastj ! troposphere-only version of tracer chem photlysis code/rad transf
+!TRCHEM_fastj ! troposphere-only version of tracer chem photlysis code/rad transf
 TRCHEM_fastj2                       ! used for trop+strat chem version
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 TRACERS_AEROSOLS_Koch_e4
@@ -84,10 +86,11 @@ TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 ! BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene emissions
 ! ----------------------------------
 CLOUDS2_E1 CLOUDS2_DRV CLOUDS_COM   ! clouds modules
-! CLD_AEROSOLS_Menon_BLK_MAT          ! Aerosol-cloud interactions
+!CLD_AEROSOLS_Menon_BLK_MAT BLK_DRV  ! Aerosol-cloud interactions
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
-VEG_DRV VEG_COM VEGETATION          ! vegetation
+VEG_DRV                             ! both offline and online vegetation need this
+VEG_COM VEGETATION                  ! offline vegetation
 PBL_COM PBL_DRV PBL_E1              ! atmospheric pbl
 lightning                           ! Colin Price lightning model
 !! flammability_drv flammability       ! Olga's fire model
@@ -173,16 +176,16 @@ BC_dep=BC.Dry+Wet.depositions.ann
 ! choose these for trop-only chem model
 !-----------------------------------------------
 ! Note in the paramters, also set fix_CH4_chemistry=0 please
-!  MOLEC=chem_files/ds3ch4_moleculesE_soa
-!  JPLRX=chem_files/jpl00_T15trop_SEP08
+!  MOLEC=chem_files/ds3ch4_moleculesE_terp_soa
+!  JPLRX=chem_files/jpl00_T15trop_SEP08_terp
 !  JPLPH=chem_files/ds_photlist_trop_15
 !  RATJ=chem_files/ratj.giss_15
 !  SPECFJ=chem_files/jv_spec00_15.dat
 !-----------------------------------------------
 ! choose these for strat+trop chem model
 !-----------------------------------------------
-MOLEC=chem_files/ds4_moleculesE_soa
-JPLRX=chem_files/jpl00_T25_SEP08
+MOLEC=chem_files/ds4_moleculesE_terp_soa
+JPLRX=chem_files/jpl00_T25_SEP08_terp
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
 SPECFJ=chem_files/jv_spec00_25.dat
