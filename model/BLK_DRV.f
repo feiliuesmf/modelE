@@ -452,7 +452,8 @@ C Include file: blk_add01.f
 C========================================================================
       LOGICAL FUNCTION hugh_constants_init() RESULT (la)
       IMPLICIT NONE
-      USE CONSTANT, only: pi,rhow,r->rgas,rv->rvap,cp->sha,g->grav 
+! Need to make sure this works with the CONSTant values set in CONSTANT
+!     USE CONSTANT, only: pi,rhow,r->rgas,rv->rvap,cp->sha,g->grav 
         CHARACTER*21 :: sname='hugh_constants_init: '
         la     = .true.
 C Set constants
@@ -467,12 +468,12 @@ c fallspeed parameters (V=aD^b)
 	   bs = 0.41
 	   br = 0.8
 c constants and parameters
-!	   pi = 4.0d0*datan(1.0d0)
-!	   r = 287.15d0
-!	   rv = 465.5d0
-!	   cp = 1005.0d0
-	   rhosu = 85000./(287.15*273.15)
-!	   rhow = 997.
+ 	   pi = 4.0d0*datan(1.0d0)
+ 	   r = 287.15d0
+ 	   rv = 465.5d0
+ 	   cp = 1005.0d0
+           rhosu = 85000./(287.15*273.15)
+ 	   rhow = 997.
 	   rhoi = 500.
 	   rhosn = 100.
 	   aimm = 0.66
