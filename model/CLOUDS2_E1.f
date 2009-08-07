@@ -1197,6 +1197,7 @@ c!*** Here are dust particles coated with sulfate
        END DO      !end of n loop for tracers
 #endif
 C** Use MATRIX AMP_actv to decide what the aerosol number conc. is
+#ifdef BLK_2MOM
 #ifdef TRACERS_AMP
         do nm=1,nmodes
          ncaero(nm)=naerc(l,nm)*1.d-6
@@ -2530,7 +2531,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 #ifdef CLD_AER_CDNC
       CALL GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),WMX(L),DXYPIJ,
      *FCLD,CAREA(L),CLDSAVL(L),DSS,PL(L),TL(L),
-     *OLDCDL(L),PEARTH,VVEL,SME(L),DSU,CDNL0,CDNL1)
+     *OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
       SNd=CDNL1
 cC** Pass old and new cloud droplet number
       NEWCDN=SNd
@@ -3760,7 +3761,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
 #ifdef CLD_AER_CDNC
 !@auth Menon for CDNC prediction
       CALL GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX(L),FCLD,CLDSSL(L),
-     *CLDSAVL(L),PEARTH,VVEL,SME(L),DSU,OLDCDL(L),
+     *CLDSAVL(L),VVEL,SME(L),DSU,OLDCDL(L),
      *CDNL0,CDNL1)
       OLDCDL(L) = CDNL1
       SNd=CDNL1
@@ -4003,7 +4004,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.32 2009/07/31 15:05:45 cdmsy Exp $
+!$Id: CLOUDS2_E1.f,v 1.33 2009/08/07 15:34:33 smenon Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
