@@ -911,8 +911,8 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(iNO3plusNO2,L)-y(n_N2O5,L)
      &             *rr(iN2O5decomp,L))*dt2
 #else
-        gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(52,L)-y(n_N2O5,L)
-     &             *rr(46,L))*dt2
+        gwprodN2O5=(yNO3(I,J,L)*y(nNO2,L)*rr(53,L)-y(n_N2O5,L)
+     &             *rr(47,L))*dt2
 #endif
         if(gwprodN2O5 > 0.25d0*y(n_NOx,L))gwprodN2O5=0.25d0*y(n_NOx,L)
         if(-gwprodN2O5 > 0.25d0*y(n_N2O5,L))
