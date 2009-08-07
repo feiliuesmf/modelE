@@ -176,8 +176,8 @@ ccc      write (lp,100)       what,k,no
 ccc      end do
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- temporary: store diffusivity as tracer 1
-      tracer(:,:,:,1)=diadff*1.e4
-      write (what,'(a12)') 'diapyc.diffu'
+c     tracer(:,:,:,1)=diadff*1.e4
+c     write (what,'(a12)') 'diapyc.diffu'
 c
 c --- code around compiler glitch:
       do nt=1,ntrcr
