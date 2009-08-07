@@ -110,9 +110,14 @@ C**** Local parameters and variables and arguments:
 !@param JS J around 30 S
       INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
 #else
-      INTEGER, PARAMETER :: iHO2NO2form=52,iN2O5form=53,
-     &iPANform=55,iHO2NO2_OH=18,iHO2NO2decomp=46,iN2O5decomp=47
-     &,iPANdecomp=29
+      INTEGER, PARAMETER :: iHO2NO2_OH=18,iPANdecomp=29
+#ifdef TRACERS_TERP
+     & ,iHO2NO2form=55,iN2O5form=56,iPANform=58,iHO2NO2decomp=49
+     & ,iN2O5decomp=50,iTerpenesOH=46,iTerpenesO3=47
+#else
+     & ,iHO2NO2form=52,iN2O5form=53,iPANform=55,iHO2NO2decomp=46
+     & ,iN2O5decomp=47
+#endif  /* TRACERS_TERP */
 #endif
       character(len=300) :: out_line
       logical            :: jay

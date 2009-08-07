@@ -37,7 +37,11 @@ C**** Local parameters and variables and arguments:
       iO3form=95
 #endif  /* TRACERS_TERP */
 #else
+#ifdef TRACERS_TERP
+      iO3form=51
+#else
       iO3form=48
+#endif  /* TRACERS_TERP */
 #endif
 
       do L=1,lmax
@@ -107,7 +111,11 @@ C**** Local parameters and variables and arguments:
       iNO2form=96
 #endif  /* TRACERS_TERP */
 #else
+#ifdef TRACERS_TERP
+      iNO2form=52
+#else
       iNO2form=49
+#endif  /* TRACERS_TERP */
 #endif
       select case(which_trop)
       case(0); maxl=ltropo(I,J)
@@ -196,11 +204,17 @@ C**** Local parameters and variables and arguments:
 #ifdef SHINDELL_STRAT_CHEM
 #ifdef TRACERS_TERP
       integer, parameter :: iH2O2form=100,iHNO3form=101,iHONOform=104
+     &                     ,iTerpenesOH=92,iTerpenesO3=93
 #else
       integer, parameter :: iH2O2form=97,iHNO3form=98,iHONOform=101
 #endif  /* TRACERS_TERP */
 #else
+#ifdef TRACERS_TERP
+      integer, parameter :: iH2O2form=53,iHNO3form=54,iHONOform=57
+     &                     ,iTerpenesOH=46,iTerpenesO3=47
+#else
       integer, parameter :: iH2O2form=50,iHNO3form=51,iHONOform=54
+#endif  /* TRACERS_TERP */
 #endif
       integer             :: L, maxl 
       integer, intent(IN) :: lmax,I,J
@@ -234,7 +248,7 @@ c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
      & *y(n_Paraffin,L)*0.89d0+rr(34,L)*y(n_Alkenes,L)
      & +rr(30,L)*y(n_Isoprene,L)*0.15d0+rr(33,L)*y(n_AlkylNit,L)
 #ifdef TRACERS_TERP
-     & +rr(92,L)*y(n_Terpenes,L)*0.15d0
+     & +rr(iTerpenesOH,L)*y(n_Terpenes,L)*0.15d0
 #endif  /* TRACERS_TERP */
      & )
      & +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
@@ -258,7 +272,7 @@ c C: prod equations in terms of HO2 (so *pHOx when OH is reactant)
      & +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(n_Alkenes,L)
      & *y(nO3,L)*0.65d0+rr(31,L)*y(n_Isoprene,L)*y(nO3,L)*0.58d0
 #ifdef TRACERS_TERP
-     & +rr(93,L)*y(n_Terpenes,L)*y(nO3,L)*0.58d0
+     & +rr(iTerpenesO3,L)*y(n_Terpenes,L)*y(nO3,L)*0.58d0
 #endif  /* TRACERS_TERP */
 
        sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
@@ -273,7 +287,7 @@ c Now partition HOx into OH and HO2:
      & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)*
      & *0.11d0+rr(30,L)*y(n_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
-     & +rr(92,L)*y(n_Terpenes,L)*0.85d0
+     & +rr(iTerpenesOH,L)*y(n_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
      & +rr(34,L)*y(n_Alkenes,L)
        ! SO2 oxidation: 
