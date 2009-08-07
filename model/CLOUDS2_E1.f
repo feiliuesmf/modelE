@@ -1195,7 +1195,6 @@ c!*** Here are dust particles coated with sulfate
 #endif  /* TRACERS_AEROSOLS_SOA */
        end select
        END DO      !end of n loop for tracers
-#endif
 C** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
@@ -1208,6 +1207,8 @@ c         if(naerc(l,nm).gt.1.d-30) write(6,*)"mat",ncaero(nm),nm
 C** This is for the old mass to number calculations nc. is
        CALL GET_CC_CDNC(L,AIRM(L),DXYPIJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
 
+#endif
+#endif
 #endif
        MNdO=MCDNO1
        MNdL=MCDNL1
@@ -4004,7 +4005,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.33 2009/08/07 15:34:33 smenon Exp $
+!$Id: CLOUDS2_E1.f,v 1.34 2009/08/07 17:18:49 smenon Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
