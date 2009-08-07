@@ -1,6 +1,6 @@
 #ifdef CUBE_GRID
       subroutine bilin_ll2cs_vec(grid,uin_glob,vin_glob,
-     &     uout_loc,vout_loc,ims,jms)
+     &     uout_loc,vout_loc,ims,jms,periodic)
 !@sum Bilinearly interpolate a vector field from latlon grid to cubed-sphere
 !@+   The vector field is defined on the sphere (Earth) and takes values in the
 !@+   plane locally tangent to sphere at each point 
@@ -46,6 +46,7 @@ c     &       uout_loc(:,:),vout_loc(:,:)
       real*8 :: dnm, pi, dlat_dg, dlon_dg
       integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2, jeq,
      &      i0h,i1h,j0h,j1h
+      logical, optional, intent(in) :: periodic
 
       i0h=grid%I_STRT_HALO
       i1h=grid%I_STOP_HALO
@@ -67,7 +68,11 @@ c
          do i=grid%i_strt,grid%i_stop
 
 c     find (ilon,jlat) indices of latlon cell which contains the center of the (i,j) CS cell  
-            I_lon = ims/2 + 1  + (lon2d_dg(i,j)+.01)/dlon_dg
+            if (present(periodic)) then
+               I_lon = ims/2  + (lon2d_dg(i,j)+.01)/dlon_dg
+            else
+               I_lon = ims/2 + 1  + (lon2d_dg(i,j)+.01)/dlon_dg
+            endif
             J_lat = jms/2 + 1  + (lat2d_dg(i,j)+.01)/dlat_dg
 
 c     find the indices of the 4 latlon cells surrounding the current CS cell
@@ -177,18 +182,335 @@ c     we do boundary conditions by hand
      &           + v22*( lon2d_dg(i,j)-lon1 )*( lat2d_dg(i,j)-lat1 ) 
      &           )
 
-            write(90+grid%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
+            write(690+grid%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
      &           uout_loc(i,j),vout_loc(i,j)
  200        format(4(1X,f8.3))
 
-            write(30+grid%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
+            write(630+grid%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
      &           vout_loc(i,j)
 
          enddo
       enddo
       
       end subroutine bilin_ll2cs_vec
+
+
+      subroutine parallel_bilin_CS_A_2_latlon_A(gridin,gridout,
+     &     ain_loc,aout_glob,im_ll,jm_ll)
+!@sum linearly interpolate a scalar field from CS A-grid to the latlon A-grid
+!@+
+!@+               +-----------------+
+!@+  ain12       /       ain22     /
+!@+   x_________/_________x       /
+!@+   |        /          |      /
+!@+   |       /           |     / 
+!@+   |      +-----------------+
+!@+   |   (lon_cs,lat_cs) | 
+!@+   |                   |
+!@+   x___________________x  
+!@+  ain11               ain21
+!@+   
+!@+ 
+!@auth Denis Gueyffier
+      use regrid_com
+      use geom, only : lat2d, lon2d, lat2d_dg, lon2d_dg, lonlat_to_ij
+      use domain_decomp_atm, only : halo_update
+      implicit none
+      type (dist_grid), intent(in) :: gridin,gridout
+      real*8 :: ain_loc(gridin%I_STRT_HALO:gridin%I_STOP_HALO,
+     &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
+     &     aout_glob(IM_LL,JM_LL)
+      real*8 :: a11,a12,a21,a22
+      real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
+      real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
+      real*8 :: ll(2),p1(2),p2(2),p3(2),p4(2)
+      integer :: im_ll,jm_ll
+      integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2, jeq,
+     &      i0_ll,i1_ll,j0_ll,j1_ll,i0_cs,i1_cs,j0_cs,j1_cs
+      integer :: ij(2),ij1(2),ij2(2),ij3(2),ij4(2),i_cs,j_cs
+      logical :: in1,in2,in3,in4
+
+      i0_ll=gridout%I_STRT
+      i1_ll=gridout%I_STOP
+      j0_ll=gridout%J_STRT
+      j1_ll=gridout%J_STOP
+
+      i0_cs=gridin%I_STRT
+      i1_cs=gridin%I_STOP
+      j0_cs=gridin%J_STRT
+      j1_cs=gridin%J_STOP
+
+      aout_glob(:,:) = 0.
+
+      dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
+      IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
+      dlon_dg = 360./dble(IM_LL)
+      jeq=0.5*(1+JM_LL)
+c      
+c***  loop on points in target (latlon) domain
+c
+      do j=j0_ll,j1_ll
+         do i=i0_ll,i1_ll
+            if (j .ne. 1 .and. j .ne. jm_ll) then
+               lat_ll = dlat_dg*(j - fjeq)
+            elseif (j .eq. 1) then
+               lat_ll = -90.
+            elseif (j .eq. jm_ll) then
+               lat_ll = 90.
+            endif
+            lon_ll = -180.+(i-0.5)*dlon_dg
+            if (i .eq. 1) lon_ll = -180.+0.5*dlon_dg
+            
+c     find the indices of the 4 CS cells centers which, when connected, 
+c     contain the current latlon point. The point can lie in any of 4 polygons
+c     -1-   (i_cs, j_cs) -> (i_cs +1,j_cs) -> (i_cs+ 1, j_cs+1) ->  (i_cs, j_cs+1)
+c     -2-   (i_cs, j_cs) -> (i_cs, j_cs+1) -> (i_cs- 1, j_cs+1) ->  (i_cs-1, j_cs)
+c     -3-   (i_cs, j_cs) -> (i_cs-1, j_cs) -> (i_cs- 1, j_cs-1) ->  (i_cs, j_cs-1)
+c     -4-   (i_cs, j_cs) -> (i_cs, j_cs-1) -> (i_cs+ 1, j_cs-1) ->  (i_cs+1, j_cs)
+c     points are ordered counterclockwise
+            ll(1)=lon_ll
+            ll(2)=lat_ll
+            call lonlat_to_ij(ll,ij) ! this is from GNOM_CS
+            i_cs=ij(1) ; j_cs=ij(2) ! this is the CS cell containing the latlon point (not the polygon connecting CS cell centers)
+            lon_curr=lon2d_dg(i_cs,j_cs)
+            lat_curr=lat2d_dg(i_cs,j_cs)
+            
+c     case -1-
+            call setpol1(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            call point_in_quad(ll,p1,p2,p3,p4,in1)
+
+c     case -2-
+            call setpol2(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            call point_in_quad(ll,p1,p2,p3,p4,in2)
+ 
+c     case -3-
+            call setpol3(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            call point_in_quad(ll,p1,p2,p3,p4,in3)
+
+c     case -4-
+            call setpol4(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            call point_in_quad(ll,p1,p2,p3,p4,in4)
+            
+            if (in1) 
+     &           call setpol1(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            if (in2) 
+     &           call setpol2(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            if (in3)
+     &           call setpol3(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            if (in4) 
+     &           call setpol4(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+            
+            call halo_update(gridin,ain_loc)
+            
+c     If current point is inside source CS domain then interpolate, else it is zero
+            if ((ij(1) .le. i1_cs .and. ij(1) .ge. i0_cs) .and.
+     &           (ij(2) .le. j1_cs .and. ij(2) .ge. j0_cs) ) then
+               a11 = ain_loc(ij1(1),ij1(2))
+               a21 = ain_loc(ij2(1),ij2(2))
+               a22 = ain_loc(ij3(1),ij3(2))
+               a12 = ain_loc(ij4(1),ij4(2))
+c     use bilinear interpolation for non rectangular quadrilateral 
+               call bilin_nonrect_quad(p1,p2,p3,p4,ll,
+     &              a11,a21,a22,a12,aout_glob(i,j))
+            endif
+            
+         enddo
+      enddo
+      
+      call sumxpe(aout_glob)
+      
+      end subroutine parallel_bilin_CS_A_2_latlon_A
+c*
+
+      subroutine point_in_quad(p,p1,p2,p3,p4,inside)
+      implicit none
+      real*8 :: p(2),p1(2),p2(2),p3(2),p4(2)
+      logical :: in1,in2,inside
+
+      call point_in_triangle(p,p1,p2,p3,in1)
+      call point_in_triangle(p,p2,p3,p4,in2) 
+
+      if ( in1 .or. in2 ) then 
+         inside = .true.
+      else
+         inside = .false.
+      endif
+      
+      end subroutine point_in_quad
+
+      
+      subroutine point_in_triangle(p,p1,p2,p3,inside)
+      implicit none
+      real*8 :: p(2),p1(2),p2(2),p3(2)
+      logical :: inside,same1,same2,same3
+      
+      call same_side(p,p1,p2,p3,same1) 
+      call same_side(p,p2,p1,p3,same2)
+      call same_side(p,p3,p1,p2,same3)
+     
+      if (same1 .and. same2 .and. same3) then
+         inside = .true.
+      else 
+         inside = .false.
+      endif
+
+      end subroutine point_in_triangle
+
+
+      subroutine same_side(p1,p2,q,r,same)
+      use regrid_com
+      implicit none
+      real*8 :: p1(2),p2(2),q(2),r(2)
+      real*8 :: cross1,cross2
+      logical :: same
+
+      cross1 = cross_product(vminus(r,q), vminus(p1,q))
+      cross2 = cross_product(vminus(r,q), vminus(p2,q))
+
+      call same_sign(cross1,cross2,same)
+
+      end subroutine same_side
+
+      subroutine same_sign(a,b,same)
+      implicit none
+      real*8 :: a,b
+      logical :: same
+
+      if (a*b .gt. 0) then
+         same = .true. 
+      else if (a*b .lt. 0) then
+         same = .false.
+      else if (a*b .eq. 0) then
+         write(*,*) " WARNING : DEGENERATE TIRANGLE"
+      endif
+
+      end subroutine same_sign
+
+
+      function vminus(p,q)
+      implicit none
+      real*8 :: vminus(2),p(2),q(2)
+      
+      vminus(1) = p(1)-q(1)
+      vminus(2) = p(2)-q(2)
+      return
+
+      end function vminus
+
+      function cross_product(p,q)
+      implicit none
+      real*8 :: cross_product,p(2),q(2)
+      
+      cross_product = p(1)*q(2)-p(2)*q(1)
+      return
+
+      end function cross_product 
+
+      subroutine bilin_nonrect_quad(p1,p2,p3,p4,p,
+     &     a11,a21,a22,a12,aout)
+!@sum  Interpolate value inside non-rectangular quadrilateral
+!@+                s
+!@+   (a12) p4  +------*------------+  p3  (a22)
+!@+            /        \ t          \
+!@+           /          + p (aout)   \
+!@+          /            \            \
+!@+(a11) p1 +--------------*------------+  p2 (a12)
+!@+                s
+      use regrid_com
+      implicit none
+      real*8 :: p1(2),p2(2),p3(2),p4(2),p(2)
+      real*8 :: a11,a12,a21,a22,aout
+      real*8 :: s,t
+      real*8 :: a,b,c,t1,t2
+
+      a=cross_product(vminus(p4,p1),vminus(p2,p3))
+      b=cross_product(vminus(p,p4),vminus(p4,p1)+vminus(p2,p3))
+     &     +cross_product(vminus(p4,p1),vminus(p3,p2))
+      c=cross_product(vminus(p,p4),vminus(p3,p4))
+
+      if (a .ne. 0.) then
+         t1=(-b+sqrt(b*b-4*a*c))/(2*a)
+         t2=(-b-sqrt(b*b-4*a*c))/(2*a)
+      endif
+      if ( t1 .ge. 0. .and. t1 .le. 1.) then
+         t=t1
+      else if ( t2 .ge. 0. .and. t2 .le. 1.) then
+         t=t2
+      else
+         write(*,*) "WARNING : t1,t2 not between 0 and 1"
+      endif
+
+      s=(p(1)-p4(1)+t*(p4(1)-p1(1)))
+     &     /( t*(p4(1)-p1(1)+p2(1)-p3(1)) + p3(1)-p4(1)) 
+
+      if ( s .lt. 0. .or. s .gt. 1.) then
+         write(*,*) "WARNING : s not between 0 and 1"
+      endif
+
+      aout=a11*(1-s)*t+a21*s*t+a12*(1-s)*(1-t)+a22*s*(1-t)
+
+      end subroutine bilin_nonrect_quad
+
+      subroutine setpol1(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+      use geom, only : lon2d_dg,lat2d_dg
+      implicit none
+      integer :: i_cs,j_cs,ij1(2),ij2(2),ij3(2),ij4(2)
+      real*8 :: p1(2),p2(2),p3(2),p4(2)
+      
+      ij1(1)=i_cs;ij1(2)=j_cs
+      p1(1)= lon2d_dg(i_cs, j_cs);p1(2)=lat2d_dg(i_cs, j_cs)
+      ij2(1)=i_cs+1;ij2(2)=j_cs
+      p2(1)= lon2d_dg(i_cs+1,j_cs);p2(2)=lat2d_dg(i_cs+1,j_cs)
+      ij3(1)=i_cs+1;ij3(2)=j_cs+1
+      p3(1)= lon2d_dg(i_cs+1,j_cs+1);p3(2)=lat2d_dg(i_cs+1,j_cs+1)
+      ij4(1)=i_cs;ij4(2)=j_cs+1
+      p4(1)= lon2d_dg(i_cs,j_cs+1);p4(2)=lat2d_dg(i_cs,j_cs+1)
+      
+      end subroutine setpol1
+
+      subroutine setpol2(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+      use geom, only : lon2d_dg,lat2d_dg
+      implicit none
+      integer :: i_cs,j_cs,ij1(2),ij2(2),ij3(2),ij4(2)
+      real*8 :: p1(2),p2(2),p3(2),p4(2)
+      
+      ij1(1)=i_cs;ij1(2)=j_cs
+      p1(1)= lon2d_dg(i_cs, j_cs);p1(2)=lat2d_dg(i_cs, j_cs)
+      ij2(1)=i_cs;ij2(2)=j_cs+1
+      p2(1)= lon2d_dg(i_cs,j_cs+1);p2(2)=lat2d_dg(i_cs,j_cs+1)
+      ij3(1)=i_cs-1;ij3(2)=j_cs+1
+      p3(1)= lon2d_dg(i_cs-1,j_cs+1);p3(2)=lat2d_dg(i_cs-1,j_cs+1)
+      ij4(1)=i_cs-1;ij4(2)=j_cs
+      p4(1)= lon2d_dg(i_cs-1,j_cs);p4(2)=lat2d_dg(i_cs-1,j_cs)
+
+      end subroutine setpol2
+
+      subroutine setpol3(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+      use geom, only : lon2d_dg,lat2d_dg
+      implicit none
+      integer :: i_cs,j_cs,ij1(2),ij2(2),ij3(2),ij4(2)
+      real*8 :: p1(2),p2(2),p3(2),p4(2)
+
+      p1(1)= lon2d_dg(i_cs, j_cs);p1(2)=lat2d_dg(i_cs, j_cs)
+      p2(1)= lon2d_dg(i_cs-1,j_cs);p2(2)=lat2d_dg(i_cs-1,j_cs)
+      p3(1)= lon2d_dg(i_cs-1,j_cs-1);p3(2)=lat2d_dg(i_cs-1,j_cs-1)
+      p4(1)= lon2d_dg(i_cs,j_cs-1);p4(2)=lat2d_dg(i_cs,j_cs-1)
+            
+      end subroutine setpol3
+
+      subroutine setpol4(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+      use geom, only : lon2d_dg,lat2d_dg
+      implicit none
+      integer :: i_cs,j_cs,ij1(2),ij2(2),ij3(2),ij4(2)
+      real*8 :: p1(2),p2(2),p3(2),p4(2)
+      p1(1)= lon2d_dg(i_cs, j_cs);p1(2)=lat2d_dg(i_cs, j_cs)
+      p2(1)= lon2d_dg(i_cs,j_cs-1);p2(2)=lat2d_dg(i_cs,j_cs-1)
+      p3(1)= lon2d_dg(i_cs+1,j_cs-1);p3(2)=lat2d_dg(i_cs+1,j_cs-1)
+      p4(1)= lon2d_dg(i_cs+1,j_cs);p4(2)=lat2d_dg(i_cs+1,j_cs)
+      
+      end subroutine setpol4
 #endif
+
 
       subroutine init_xgrid_zonal(x2grids,imsource,jmsource,
      &     ntilessource,imtarget,jmtarget,ntilestarget)

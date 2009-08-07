@@ -430,14 +430,14 @@ C****
       use icedyn_com, only : grid=>grid_MIC,
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : defvar,write_attr
-      use geom, only : lon_dg,lat_dg ! TEMPORARY
+      use geom, only : lon2d_dg,lat2d_dg ! TEMPORARY
       implicit none
       integer :: fid         !@var fid file id
 
-      call defvar(grid,fid,lat_dg(:,1),'latic(jmic)')
-      call defvar(grid,fid,lat_dg(:,2),'latic2(jmic)')
-      call defvar(grid,fid,lon_dg(:,1),'lonic(imic)')
-      call defvar(grid,fid,lon_dg(:,2),'lonic2(imic)')
+      call defvar(grid,fid,lat2d_dg(:,1),'latic(jmic)')
+      call defvar(grid,fid,lat2d_dg(:,2),'latic2(jmic)')
+      call defvar(grid,fid,lon2d_dg(:,1),'lonic(imic)')
+      call defvar(grid,fid,lon2d_dg(:,2),'lonic2(imic)')
 
       call write_attr(grid,fid,'icij','reduction','sum')
       call write_attr(grid,fid,'icij','split_dim',3)
@@ -457,14 +457,14 @@ C****
       use icedyn_com, only : grid=>grid_MIC,
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : write_dist_data,write_data
-      use geom, only : lon_dg,lat_dg ! TEMPORARY
+      use geom, only : lon2d_dg,lat2d_dg ! TEMPORARY
       implicit none
       integer :: fid         !@var fid file id
 
-      call write_data(grid,fid,'latic',lat_dg(:,1))
-      call write_data(grid,fid,'latic2',lat_dg(:,2))
-      call write_data(grid,fid,'lonic',lon_dg(:,1))
-      call write_data(grid,fid,'lonic2',lon_dg(:,2))
+      call write_data(grid,fid,'latic',lat2d_dg(:,1))
+      call write_data(grid,fid,'latic2',lat2d_dg(:,2))
+      call write_data(grid,fid,'lonic',lon2d_dg(:,1))
+      call write_data(grid,fid,'lonic2',lon2d_dg(:,2))
 
       call write_data(grid,fid,'ia_icij',ia_icij)
       call write_data(grid,fid,'denom_icij',denom_icij)
@@ -961,8 +961,8 @@ c**** resampled on atm grid (CS or latlon) but still expressed in latlon basis
 C**** 4 points average on cubed sphere
                duA = 0.25*(admu(i+1,j)+admu(i,j)
      *              +admu(i+1,j-1)+admu(i,j-1) )
-               dvA = 0.25*(admv(i+1,j)+admv(i,j))
-     *              +admv(i+1,j-1)+admv(i,j-1))
+               dvA = 0.25*(admv(i+1,j)+admv(i,j)
+     *              +admv(i+1,j-1)+admv(i,j-1) )
 #else 
 C**** calculate 4 point average of B grid values of stresses
                duA = 0.5*(aDXYN(J)*(admu(i+1,j)+admu(i,j))
@@ -1098,6 +1098,7 @@ c      write(900+mype,*) focean
       RETURN
       END SUBROUTINE DYNSI
 
+#ifndef CUBE_GRID
       SUBROUTINE ADVSI
 !@sum  ADVSI advects sea ice
 !@+    Currently set up to advect ice on AGCM grid (i.e. usidt/vsidt are
@@ -1108,8 +1109,9 @@ c      write(900+mype,*) focean
       USE CONSTANT, only : grav,tf
       USE MODEL_COM, only :  im,jm,focean,p,ptop,kocean
       USE DOMAIN_DECOMP_ATM, only : grid, GET
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, SOUTH, NORTH
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
       USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
      *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
@@ -1723,25 +1725,28 @@ C**** reset sea ice concentration
 C****
       RETURN
       END SUBROUTINE ADVSI
-
+#endif
 
       subroutine INT_AtmA2IceA(aA,iA)
 !@sum interpolate from Atm A-grid to Ice A-grid for either scalars
 !@+   or U or V component of vector  
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : IMICDYN,grid_ICDYN
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET,ICE_UNPACK=>UNPACK_DATA
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
-      real *8 ::
+      real*8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-
-
-#ifdef CUBED_GRID
-!sumxpe global array on target latlon icedyn grid then scatter
-
+#ifdef CUBE_GRID
+      real*8, allocatable :: iA_glob(:,:)
+      allocate (iA_glob(IMICDYN,JMICDYN))
+!interpolate then sumxpe global array on target latlon icedyn grid then scatter
+      call parallel_bilin_CS_A_2_latlon_A(agrid,grid_ICDYN,aA,iA_glob,
+     &     IMICDYN,JMICDYN)
+      call ICE_UNPACK(grid_ICDYN,iA_glob,iA)
+      deallocate (iA_glob)
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
 c***  both latlon with equal resolution
@@ -1761,7 +1766,7 @@ c*
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
 
-#ifdef CUBED_GRID
+#ifdef CUBE_GRID
 !sumxpe global array on target latlon icedyn grid then scatter
 
 #else 
@@ -1783,7 +1788,7 @@ c*
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
 
-#ifdef CUBED_GRID
+#ifdef CUBE_GRID
 !sumxpe global array on target latlon icedyn grid then scatter
 
 #else 
@@ -1805,13 +1810,13 @@ c*
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
 #ifdef CUBE_GRID
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO)  
 #else
      &     aA(NX1,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO)
 #endif
 
-#ifdef CUBED_GRID
+#ifdef CUBE_GRID
 !sumxpe global array on target latlon icedyn grid then scatter
 
 #else 
@@ -1833,11 +1838,11 @@ c*
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iAb(1:IMICDYN,                             ! on ice B grid
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
-      INTEGER :: aI_1,aI_0,aI_1H,aI_0H
+      INTEGER :: aI_1,aI_0,aI_1H,aI_0H,aJ_1,aJ_0,aJ_1H,aJ_0H
  
 #ifdef CUBE_GRID
       call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
-     &                   , I_STRT_HALO=aI_0H  , J_STOP_HALO=aI_1H
+     &                   , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H
      &                   , J_STRT=aJ_0        , J_STOP=aJ_1    
      &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
       
@@ -2195,56 +2200,65 @@ C****
       RETURN
       END SUBROUTINE diag_ICEDYN
 
-      SUBROUTINE GET_UISURF(USI,VSI,UISURF,VISURF)
-!@sum calculate atmos. A grid winds from ice dynam grid
+      SUBROUTINE GET_UISURF(aUSI,aVSI,UISURF,VISURF)
+!@sum calculate atmos. A grid winds from C grid
 !@auth Gavin Schmidt
 C**** temporary assumption that ice velocities are on atmos B grid 
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : get,grid,HALO_UPDATE,SOUTH,NORTH
-      USE GEOM, only : imaxj,idjj,idij,rapj,kmaxj,sinip,cosip
+      USE DOMAIN_DECOMP_ATM, only : get,agrid=>grid,HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : SOUTH,NORTH
+      USE GEOM, only : imaxj
+#ifndef CUBE_GRID
+      use GEOM,only : idjj,idij,rapj,kmaxj,sinip,cosip
+#endif
       IMPLICIT NONE
-      REAL*8, INTENT(IN), DIMENSION(IM,
-     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: USI,VSI
-      REAL*8, INTENT(OUT), DIMENSION(IM,
-     *     grid%J_STRT_HALO:grid%J_STOP_HALO) :: UISURF,VISURF
+      REAL*8,INTENT(IN),
+     &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: aUSI,aVSI
+      REAL*8,INTENT(OUT), 
+     &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: UISURF,VISURF
       INTEGER :: I_0,I_1,J_0,J_1,I,J,K,IM1
       LOGICAL :: pole
       REAL*8 :: hemi
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      CALL GET(agrid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = agrid%I_STRT
+      I_1 = agrid%I_STOP
 
-      Call HALO_UPDATE(GRID, uisurf, FROM=SOUTH+NORTH)
-      Call HALO_UPDATE(GRID, visurf, FROM=SOUTH+NORTH)
+      Call HALO_UPDATE(aGRID, uisurf)
+      Call HALO_UPDATE(aGRID, visurf)
 
       POLE=.FALSE.
 
-C**** go from ice C to atm A
+C**** go from atm C to atm A
       do j=J_0,J_1
-        IM1=IM
         do i=I_0,IMAXJ(J)
+         im1=i-1
 #ifndef CUBE_GRID
-          POLE= (J.EQ.1 .or. J.EQ.JM)
-#endif
+         if (im1 .le. 0) im1=IM
+         POLE= (J.EQ.1 .or. J.EQ.JM)
+
           HEMI=1.
           IF(J.LE.JM/2) HEMI=-1.
 C**** Note that usi,vsi start with j=1, (not j=2 as in atm winds)
           if (pole) then
             uisurf(i,j) = 0. ; visurf(i,j) = 0.
             do k=1,kmaxj(j)
-              uisurf(i,j) = uisurf(i,j) + rapj(k,j)*(usi(idij(k,i,j)
-     *             ,idjj(k,j)-1)*cosip(k)-hemi*vsi(idij(k,i,j),idjj(k
+              uisurf(i,j) = uisurf(i,j) + rapj(k,j)*(ausi(idij(k,i,j)
+     *             ,idjj(k,j)-1)*cosip(k)-hemi*avsi(idij(k,i,j),idjj(k
      *             ,j)-1)*sinip(k))
-              visurf(i,j) = visurf(i,j) + rapj(k,j)*(vsi(idij(k,i,j)
-     *             ,idjj(k,j)-1)*cosip(k)+hemi*usi(idij(k,i,j),idjj(k
+              visurf(i,j) = visurf(i,j) + rapj(k,j)*(avsi(idij(k,i,j)
+     *             ,idjj(k,j)-1)*cosip(k)+hemi*ausi(idij(k,i,j),idjj(k
      *             ,j)-1)*sinip(k))
             end do
           else
-            uisurf(i,j) = 0.5*(usi(i,j)+usi(im1,j))
-            visurf(i,j) = 0.5*(vsi(i,j)+vsi(i,j-1))
+#endif
+            uisurf(i,j) = 0.5*(ausi(i,j)+ausi(im1,j))
+            visurf(i,j) = 0.5*(avsi(i,j)+avsi(i,j-1))
+#ifndef CUBE_GRID
           end if
-          IM1=I
+#endif
         end do
       end do
 
