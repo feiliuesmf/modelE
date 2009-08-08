@@ -83,7 +83,7 @@ ccc   diagnostics accumulatars
      &     ,aCdeadpool_surfmet,aCdeadpool_surfstr,aCdeadpool_soilmet
      &     ,aCdeadpool_soilstr,aCdeadpool_cwd,aCdeadpool_surfmic
      &     ,aCdeadpool_soilmic,aCdeadpool_slow,aCdeadpool_passive
-     &     ,alai
+     &     ,alai,airrig,aeirrig
 ccc   some accumulators that are currently not computed:
      &     ,acna,acnc
 ccc   beta''s
@@ -294,7 +294,7 @@ C***
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum
      &     ,aedifs,aepb,aepc,aepp,aeruns,aerunu,aevap,aevapb
      &     ,aevapd,aevapw,af0dt,af1dt,alhg,aruns,arunu,aflmlt,aintercep
-     &     ,aevapvg,aevapvs,aevapbs,alai
+     &     ,aevapvg,aevapvs,aevapbs,alai,airrig,aeirrig
      &     ,ashg,atrg,betad,betat,ch,gpp,d,devapbs_dt,devapvs_dt
      &     ,drips,dripw,dsnsh_dt,dts,dz,dzsn,epb,epbs,epvs,epvg  ! dt dlm
      &     ,epv,evap_max_nsat,evap_max_sat,evap_tot,evapb
@@ -2647,6 +2647,9 @@ ccc   main fluxes which should conserve water/energy
         aerunu=aerunu+ shw*( max(tp(k,1),0.d0)*rnff(k,1)*fb
      *                     + max(tp(k,2),0.d0)*rnff(k,2)*fv )*dts
       end do
+!     Irrigation accumulators
+      airrig=airrig+(fb*irrig(1)+fv*irrig(2))*dts
+      aeirrig=aeirrig+(fb*htirrig(1)+fv*htirrig(2))*dts
 ccc   end of main fluxes
 ccc   the rest of the fluxes (mostly for diagnostics)
       aflmlt = aflmlt + ( fb*(flmlt(1)*fr_snow(1)+flmlt_scale(1))
@@ -2764,6 +2767,8 @@ c accumulations are collected.
       aruns=rhow*aruns
       arunu=rhow*arunu
       aflmlt=rhow*aflmlt
+      airrig=rhow*airrig
+      aeirrig=rhow*aeirrig
       aevapbs=rhow*aevapbs
       aevapvs=rhow*aevapvs
       aevapvg=rhow*aevapvg
@@ -2838,6 +2843,8 @@ c zero out accumulations
       aeruns=0.d0
       arunu=0.d0
       aerunu=0.d0
+      airrig=0.d0
+      aeirrig=0.d0
       aflmlt=0.d0
       aintercep=0.d0
 
