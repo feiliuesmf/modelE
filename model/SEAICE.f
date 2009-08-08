@@ -655,8 +655,6 @@ C**** Calculate additional runoff output fluxes
 #endif
 
       call tice(hsil,ssil,msi1,msi2,tsil)
-c      if (debug)  write(6,'(A,4F11.6)') "siB",tsil
-
 
 c**** Decide WETSNOW for albedo calculations and save MELT12 for
 c**** possible melt ponds
@@ -1524,6 +1522,8 @@ c            dmdSi = 0.
             dSbdSb= -mu*dmdTb*df3dm
           else              ! it is a function of boundary value
             Sb = rhows*g_S*Sm/(rhows*g_S+m*(1.-fsss))
+c            if (m < 0) print*,"in iceocean",Sb,m,-rhows*g_S/(m*(1.-fsss)
+c     *           ),rhows*g_S
             df3dm= -rhows*g_S*Sm*(1.-fsss)/(rhows*g_S+m*(1.-fsss))**2
             dSbdSb= (fsss*dmdSi-mu*dmdTb)*df3dm
           end if
@@ -1917,6 +1917,130 @@ C**** output flux (positive down)
       END IF
       RETURN
       end subroutine snowice
+
+      subroutine get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
+#ifdef TRACERS_WATER
+     *    TRSIL,TRSNOW,TRICE 
+#endif 
+     *    HSNOW,HICE,SICE,TSIL,MICE)
+!@sum Split thermal layer fields into ice and snow components
+!@+   in each thermal layer: i.e. SNOW in L1/L2, ICE in L1/L2
+      REAL*8, INTENT(IN) :: SNOW,MSI2,HSIL(LMI),SSIL(LMI)
+      REAL*8, INTENT(OUT) :: HSNOW(2),HICE(LMI),SICE(LMI),TSIL(LMI)
+     *     ,MICE(LMI)
+#ifdef TRACERS_WATER
+      REAL*8, INTENT(IN) :: TRSIL(NTM,LMI)
+      REAL*8, INTENT(OUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
+#endif 
+      REAL*8 MSI1
+      INTEGER L
+
+C**** Assume equal temperatures over snow and ice in single thermal layer
+      MSI1=SNOW+ACE1I
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+        MICE(1) = ACE1I-XSI(2)*MSI1
+        MICE(2) = XSI(2)*MSI1
+        HSNOW(1) = SNOW*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)
+     *         /(XSI(1)*MSI1))*shi-lhm)
+        HSNOW(2)= 0.
+        HICE(1) = HSIL(1)-HSNOW(1)
+        HICE(2) = HSIL(2)
+        SICE(1) = SSIL(1)
+        SICE(2) = SSIL(2)
+#ifdef TRACERS_WATER
+        TRSNOW(:,1) = TRSIL(:,1)*SNOW/(XSI(1)*MSI1-SSIL(1))
+        TRSNOW(:,2) = 0.
+        TRICE(:,1) = TRSIL(:,1)-TRSNOW(:,1)
+        TRICE(:,2) = TRSIL(:,2)
+#endif
+      ELSE  ! some snow in second layer
+        MICE(1) = 0.
+        MICE(2) = ACE1I
+        HSNOW(1) = HSIL(1)
+        HSNOW(2) = (XSI(2)*MSI1-ACE1I)*(Ti(HSIL(2)
+     *       /(XSI(2)*MSI1),1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
+        HICE(1) = 0.
+        HICE(2) = HSIL(2)-HSNOW(2)
+        SICE(1) = 0.
+        SICE(2) = SSIL(2)
+#ifdef TRACERS_WATER
+        TRSNOW(:,1) = TRSIL(:,1)
+        TRSNOW(:,2) = TRSIL(:,2)*(XSI(2)*MSI1-ACE1I)/
+     *       (XSI(2)*MSI1-SSIL(2))
+        TRICE(:,1) = 0.
+        TRICE(:,2) = TRSIL(:,2)-TRSNOW(:,2)
+#endif
+      END IF
+
+C**** lower levels
+      do L=3,LMI
+        MICE(L)=XSI(L)*MSI2
+        HICE(L)=HSIL(L)
+        SICE(L)=SSIL(L)
+#ifdef TRACERS_WATER
+        TRICE(:,L)=TRSIL(:,L)
+#endif
+      end do
+
+C**** ice temperatures
+      do L=1,LMI
+        IF (MICE(L).gt.0) THEN
+          TSIL(L) = Ti(HICE(L)/MICE(L),1d3*SICE(L)/MICE(L))
+        ELSE
+          TSIL(L)=0.
+        END IF
+      end do
+
+      return
+      end subroutine get_snow_ice_layer
+
+      subroutine set_snow_ice_layer(HSNOW,HICE,SICE,MICE,
+#ifdef TRACERS_WATER
+     *    TRSNOW,TRICE,TRSIL, 
+#endif 
+     *    SNOW,MSI2,HSIL,SSIL)
+!@sum Collect snow and ice mass layer fields into thermal layers
+!@+   SNOW in L1 and L2, ICE in L1 , ICE in L2
+      REAL*8, INTENT(IN) :: HSNOW(2),HICE(LMI),SICE(LMI),MICE(LMI)
+      REAL*8, INTENT(OUT) :: SNOW,MSI2,HSIL(LMI),SSIL(LMI)
+#ifdef TRACERS_WATER
+      REAL*8, INTENT(IN) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
+      REAL*8, INTENT(OUT) :: TRSIL(NTM,LMI)
+#endif 
+      INTEGER L
+
+      IF (MICE(1).gt.0) THEN    ! some ice in first layer
+        HSIL(1) = HSNOW(1) + HICE(1)
+        SSIL(1) =            SICE(1)
+        HSIL(2) = HICE(2)
+        SSIL(2) = SICE(2)
+#ifdef TRACERS_WATER
+        TRSIL(:,1) = TRSNOW(:,1) + TRICE(:,1)
+        TRSIL(:,2) = TRICE(:,2)
+#endif
+      ELSE  ! some snow in second layer
+        HSIL(1) = HSNOW(1)
+        SSIL(1) = 0.
+        HSIL(2) = HICE(2) + HSNOW(2)
+        SSIL(2) = SICE(2)
+#ifdef TRACERS_WATER
+        TRSIL(:,1) = TRSNOW(:,1)
+        TRSIL(:,2) = TRICE(:,2) + TRSNOW(:,2)
+#endif
+      END IF
+
+C**** lower levels
+      do L=3,LMI
+        HSIL(L)=HICE(L)
+        SSIL(L)=SICE(L)
+#ifdef TRACERS_WATER
+        TRSIL(:,L)=TRICE(:,L)
+#endif
+      end do
+      
+      return
+      end subroutine set_snow_ice_layer
+
 
       SUBROUTINE TICE(HSIL,SSIL,MSI1,MSI2,TSIL)
 !@sum TICE returns array of ice temperatures from model variables
