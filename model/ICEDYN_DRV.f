@@ -529,7 +529,6 @@ c temporarily empty.
       USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
       SAVE
-      include 'mpif.h'
 C**** intermediate calculation for pressure gradient terms
       REAL*8, DIMENSION(IMICDYN, 
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO) ::
