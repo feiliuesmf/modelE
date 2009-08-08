@@ -84,7 +84,7 @@ AIC=AIC.RES_M20A.D771201          ! initial conditions (atm.) needs GIC, ISTART=
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
 CDN=CD4X500S.ext                  ! surf.drag coefficient
 VEG=V72X46.1.cor2_no_crops.ext
-CROPS=CROPS_72X46N.cor4.ext       ! veg. fractions, crops history
+CROPS=CROPS2007_72X46N.cor4_nocasp       ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N.2deghycom ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD4X525.RVR.2deghycom_20w.bin

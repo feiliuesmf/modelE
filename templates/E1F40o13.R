@@ -73,7 +73,7 @@ OFTAB=OFTABLE_NEW                   ! ocean function table
 AVR=AVR144X90N_nocasp.L13.modelE    ! ocean filter
 KBASIN=KB144X90.modelE              ! ocean basin designations
 TOPO_OC=Z144X90N_nocasp.1 ! ocean bdy.cond
-CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS_144X90N_nocasp.ext
+CDN=CD144X90.ext VEG=V144X90_no_crops.ext CROPS=CROPS2007_144X90N_nocasp
 SOIL=S144X900098M.ext TOPO=Z144X90N_nocasp.1 ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
 RVR=RD_modelE_F.RVR.bin      ! river direction file

@@ -115,7 +115,7 @@ AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
 CDN=CD144X90.ext 
 VEG=V144X90_no_crops.ext 
-CROPS=CROPS_144X90N_nocasp.ext
+CROPS=CROPS2007_144X90N_nocasp
 SOIL=S144X900098M.ext 
 TOPO=Z144X90N.1deghycom_1
 REG=REG2X2.5                      ! special regions-diag

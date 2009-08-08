@@ -73,7 +73,7 @@ KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
 TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
 CDN=CD4X500S.ext
   ! VEG=V72X46.1.cor2.ext
-VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
+VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
 SOIL=S4X50093.ext TOPO=Z72X46N_gas.1_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD_modelE_M.RVR.bin      ! river direction file

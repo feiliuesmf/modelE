@@ -82,7 +82,7 @@ SICE=SICE_144x90.1996-2005avg.HadISST1.1   ! prescr. climatological sea ice
 OCNML=Z1O.B144x90                    ! mixed layer depth (not used if KOCEAN=0)
 CDN=CD144X90.ext
 VEG=V144X90_no_crops.ext
-CROPS=CROPS_144X90N_nocasp.ext
+CROPS=CROPS2007_144X90N_nocasp
 SOIL=S144X900098M.ext
 TOPO=Z144X90N_nocasp              ! bdy.cond
 REG=REG2X2.5                      ! special regions-diag

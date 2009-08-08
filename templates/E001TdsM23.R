@@ -99,7 +99,7 @@ OSST=OST4X5.B.1975-84avg.Hadl1.1
 SICE=SICE4X5.B.1975-84avg.Hadl1.1
 CDN=CD4X500S
 VEG=V72X46.1.cor2_no_crops
-CROPS=CROPS_72X46N.cor4
+CROPS=CROPS2007_72X46N.cor4_nocasp
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp ! bdy.cond
 REG=REG4X5           ! special regions-diag
 RVR=RD_modelE_M.RVR.bin    ! river direction file

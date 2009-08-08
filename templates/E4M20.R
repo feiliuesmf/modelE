@@ -70,7 +70,7 @@ TOPO=Z72X46N.cor4_nocasp          ! topography
 SOIL=S4X50093.ext                 ! soil bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
 VEG=V72X46.1.cor2_no_crops.ext    ! veg. fractions
-CROPS=CROPS_72X46N.cor4.ext       ! crops history
+CROPS=CROPS2007_72X46N.cor4_nocasp       ! crops history
 soil_textures=soil_textures_top30cm
 SOILCARB_global=soilcarb_top30cm_nmaps_4x5bin.dat
 CDN=CD4X500S.ext                  ! surf.drag coefficient

@@ -48,7 +48,7 @@ OSST=OST4X5.B.1975-84avg.Hadl1.1  ! prescr. climatological ocean (1 yr of data)
 SICE=SICE4X5.B.1975-84avg.Hadl1.1 ! prescr. climatological sea ice
 CDN=CD4X500S    ! surf.drag coefficient
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V72X46.1.cor2_no_crops CROPS=CROPS_72X46N.cor4  ! veg. fractions, crops history
+VEG=V72X46.1.cor2_no_crops CROPS=CROPS2007_72X46N.cor4_nocasp  ! veg. fractions, crops history
 SOIL=S4X50093 TOPO=Z72X46N.cor4_nocasp   ! soil/topography bdy.conds
 REG=REG4X5                        ! special regions-diag
 RVR=RD_modelE_M.RVR.bin                   ! river direction file

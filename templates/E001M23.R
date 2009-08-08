@@ -52,7 +52,7 @@ SICE=SICE4X5.B.1876-85avg.Hadl1.1 ! ocn
 OCNML=Z1O.B4X5.cor   ! needed only for postprocessing
 !                                             (end of section 1 of data input files)
 TOPO=Z72X46N.cor4_nocasp SOIL=S4X50093.ext                 ! bdy.cond
-VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS_72X46N.cor4.ext
+VEG=V72X46.1.cor2_no_crops.ext CROPS=CROPS2007_72X46N.cor4_nocasp
 CDN=CD4X500S.ext
 REG=REG4X5           ! special regions-diag
 RVR=RD_modelE_M.RVR.bin      ! river direction file

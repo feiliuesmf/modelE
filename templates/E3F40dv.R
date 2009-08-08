@@ -65,7 +65,7 @@ AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
 OSST=OST_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological ocean (1 yr data)
 SICE=SICE_144x90.B.1975-1984avg.Hadl1 ! prescr. climatological sea ice
-CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS_144X90N_nocasp.ext
+CDN=CD144X90 VEG=V144X90_no_crops CROPS=CROPS2007_144X90N_nocasp
 SOIL=S144X900098M TOPO=Z144X90N_nocasp ! bdy.cond
 REG=REG2X2.5          ! special regions-diag
 RVR=RD_modelE_F.RVR.bin      ! river direction file
