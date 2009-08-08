@@ -3097,6 +3097,26 @@ c
       ir_ij(k) = ir_0_3_15
       denom_ij(k) = IJ_PSOIL
 c
+      k=k+1
+      IJ_IRRW = k
+      lname_ij(k) = 'IRRIGATION WATER'
+      units_ij(k) = 'mm/d'
+      name_ij(k) = 'irrig_w' !
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_IRRE = k ! energy of irrigation
+      lname_ij(k) = 'HEAT OF IRRIGATION'
+      units_ij(k) = 'W/m2'
+      name_ij(k) = 'irrig_e' !
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
       k=k+1 ! nyk 4/25/03
       IJ_GPP = k    !kg[C]/m2/s
       lname_ij(k) = 'GROSS PRIMARY PRODUCTIVITY'

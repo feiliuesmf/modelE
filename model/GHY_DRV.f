@@ -5,7 +5,6 @@
 #endif
 
 !#define ROUGHL_HACK
-!#define IRRIGATION ! Irrigation option
 
 c******************   TRACERS             ******************************
 #ifdef TRACERS_ON
@@ -106,10 +105,6 @@ ccc extra stuff which was present in "earth" by default
       real*8 totflux(ntm)
       integer ntx,ntix(ntm)
       integer, parameter :: itype=4
-#ifdef IRRIGATION
-!@var iu_irrigate is unit number for irrigation climatologies
-      integer,save :: iu_irrigate
-#endif
 
       common /ghy_tracers_tp/ totflux
 !$OMP  THREADPRIVATE (/ghy_tracers_tp/)
@@ -881,7 +876,10 @@ c****
       use ent_drv, only : update_vegetation_data
       !use ent_mod, only : ent_cell_print
 #endif
-
+#ifdef IRRIGATION_ON
+      use fluxes, only : irrig_water, irrig_energy
+      use irrigate_crop, only : irrigate_flux
+#endif
 
       use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
@@ -1066,7 +1064,9 @@ c****
 
 !!      call update_vegetation_data( entcells,
 !!     &     im, jm, 1, im, J_0, J_1, jday, jyear )
-
+#ifdef IRRIGATION_ON
+      call irrigate_flux(end_of_day_flag)
+#endif
 
       loop_j: do j=J_0,J_1
   !    hemi=1.
@@ -1267,6 +1267,12 @@ ccc switch to Ca from tracers
 
       irrig = 0.d0
       htirrig = 0.d0
+#ifdef IRRIGATION_ON
+      if (fv>0.d0)then
+         irrig = irrig_water(i,j)
+         htirrig = irrig_energy(i,j)
+      endif
+#endif
 
       call advnc(
 #ifdef USE_ENT
@@ -1535,174 +1541,6 @@ c***********************************************************************
 c***********************************************************************
 c***********************************************************************
 
-#ifdef IRRIGATION
-      subroutine irrigate_water_heat(end_of_day)
-!@sum  Calculates daily irrigation from irrigation climatologies
-!@auth MJ Puma
-      use model_com, only : jday,Itime,jmon,JDmidOfM,itimei
-      USE GEOM, only : imaxj
-      use ghy_com, only : imt,ngm,imt,LS_NFRAC, 
-     &                    q_ij, dz_ij, w_ij, ht_ij,shc_soil_texture
-      use sle001, only : w,thm, get_soil_properties
-      use constant, only : rhow, lhm, shw_kg=>shw, shi_kg=>shi
-      USE DOMAIN_DECOMP_ATM, ONLY : grid, get, am_i_root, READT_PARALLEL,
-     &                              REWIND_PARALLEL 
-
-      real*8 ::shwv,shiv,shc_layer
-      real*8,dimension(ngm) :: ht_cap,w_stor
-      real*8,dimension(ngm,LS_NFRAC-1,im,jm) :: w_ij_temp, ht_ij_temp
-      real*8,dimension(ngm,LS_NFRAC-1,im,jm) ::w_old
-      real*8 :: thetm(ngm,2), thets(ngm,2), shc(ngm,2)
-      real*8 :: tp,fice
-      integer :: i,j,k,m,mm,jj
-      integer :: I_0,I_1,J_0,J_1
-      logical, intent(in) :: end_of_day
-
-!@var JDLAST julian day that OCLIM was last called
-      INTEGER, SAVE :: JDLAST=0
-!@var IMON0 current month for SST climatology reading
-      INTEGER, SAVE :: IMON0 = 0
-!@var IMON current month for ocean mixed layer climatology reading
-      INTEGER, SAVE :: IMON = 0
-
-      
-!     Volumetric quantities
-      shwv=shw_kg*rhow
-      shiv=shi_kg*rhow
-
-      call GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
-
-     !     Compute irrigation only at the end of day or at itimei
-      if (.not.(end_of_day.or.itime == itimei)) return
-
-!     Read in climatological irrigation
-      if (JDLAST == 0) then ! need to read in first month climatology
-        IMON=1          ! IMON=January
-        if (JDAY < 16)  then ! JDAY in Jan 1-15, first month is Dec
-          CALL READT_PARALLEL(grid,iu_irrigate,NAMEUNIT(iu_irrigate),
-     &                        irr_month_0,12)
-          CALL REWIND_PARALLEL( iu_irrigate )
-        else            ! JDAY is in Jan 16 to Dec 16, get first month
-  520     IMON=IMON+1
-          IF (JDAY > JDmidOFM(IMON) .and. IMON <= 12) GO TO 520
-          CALL READT_PARALLEL
-     &           (grid,iu_irrigate,NAMEUNIT(iu_irrigate),irr_month_0,IMON-1)
-          IF (IMON == 13)  CALL REWIND_PARALLEL( iu_irrigate )
-        end if
-      ELSE                      ! Do we need to read in second month?
-        IF (JDAY /= JDLAST+1) THEN ! Check that data is read in daily
-          IF (JDAY /= 1 .or. JDLAST /= 365) THEN
-            WRITE (6,*) 'Incorrect values in irrigate,JDAY,JDLAST=',JDAY
-     &           ,JDLAST
-            call stop_model(
-     &           'ERROR READING IN SETTING IRRIGATION CLIMATOLOGY',255)
-          END IF
-          IMON=IMON-12          ! New year
-          GO TO 530
-        END IF
-        IF (JDAY <= JDmidOFM(IMON)) GO TO 530
-        IMON=IMON+1          ! read in new month of climatological data
-        irr_month_0 = irr_month_1
-        IF (IMON == 13) CALL REWIND_PARALLEL( iu_irrigate )
-      END IF
-      CALL READT_PARALLEL(grid,iu_OCNML,NAMEUNIT(iu_irrigate),irr_month_1,1)
- 530  JDLAST=JDAY
-
-
-C**** Interpolate daily irrigation depth to the current day
-      FRAC = REAL(JDmidOFM(IMON)-JDAY,KIND=8)/
-     &           (JDmidOFM(IMON)-JDmidOFM(IMON-1))
-
-      do J=J_0,J_1
-         do I=I_0,IMAXJ(J)
-!           Input irrigation values in m/s, convert to m/d
-            irrigate_daily_depth(I,J)= ( FRAC*irr_month_0(I,J)+
-     &                    (1.-FRAC)*irr_month_1(I,J) ) * 86400.d0
-            irrigate_daily_depth(I,J)=max(0.d0,irrigate_daily_depth)
-         enddo
-      enddo
-
-      ! Add irrigated water to the soil layers
-      do i=I_0,I_1
-         do j=J_0,J_1
-            do m=1,(LS_NFRAC-1)
-
-               call get_soil_properties( q_ij(i,j,:,:), dz_ij(i,j,:),
-     &             thets(1:,m), thetm(1:,m), shc(1:,m) )
-
-               do k=1,ngm
-                  w_old(k,m,i,j)= w_ij(k,m,i,j)
-                  ! Check if there is irrigation in current cell
-                  if (irrigate_daily_depth(i,j) > 0.d0)then
-                     w_ij(k,m,i,j)= w_old(k,m,i,j)+
-     &                             irrigate_daily_depth(i,j)
-                     w_ij(k,m,i,j)=max(w_ij(k,m,i,j),
-     &                              dz_ij(i,j,k)*thetm(k,m))
-                     irrigate_daily_depth(i,j) = 
-                           irrigate_daily_depth(i,j) 
-     &                   - (w_ij(k,m,i,j) - w_old(k,m,i,j))
-                  else
-                     w_ij(k,m,i,j)=w_old(k,m,i,j)
-                  endif 
-                  ! Check to make sure we are not below minimum - unnecessary?
-                  w_ij(k,m,i,j)=min(w_ij(k,m,i,j),
-     &                              dz_ij(i,j,k)*thets(k,m))
-               enddo
-
-            enddo
-         enddo
-      enddo
-
-#ifdef TRACERS_WATER
-!!!!!!!!NEED TO ADJUST TRACERS
-#endif
-
-      ! Adjust heat content based on the water added to the soil layers
-      do i=I_0,I_1
-         do j=J_0,J_1
-            do k=1,ngm
-              ! compute max water storage and heat capacity
-               w_stor(k) = 0.d0
-               do mm=1,imt-1
-                   w_stor(k) = w_stor(k) + 
-     &               q_ij(i,j,mm,k)*thm(0,mm)*dz_ij(i,j,k)
-               enddo
-               shc_layer = 0.d0
-               do mm=1,imt
-                  shc_layer = shc_layer + 
-     &                 q_ij(i,j,mm,k)*shc_soil_texture(mm)
-               enddo
-               ht_cap(k) = (dz_ij(i,j,k)-w_stor(k)) * shc_layer
-
-               do m=1,(LS_NFRAC-1)
-                  call heat_to_temperature( tp, fice,
-     &              ht_ij(k,m,i,j), w_old(k,m,i,j), ht_cap(ngm) )
-
-                  ht_ij(k,m,i,j)= ht_ij(k,m,i,j)
-     &                 + (fice*shiv+(1.d0-fice)*shwv)*
-     &                 (w_ij(k,m,i,j)- w_old(k,m,i,j))*tp
-
-               enddo
-            enddo
-         enddo
-      enddo
-
-
-#ifdef TRACERS_WATER
-!!!!!!!!NEED TO ADJUST TRACERS
-#endif
-
-
-!      if(AM_I_ROOT())then
-!         print *, 'after iu_irrigate=', iu_irrigate
-!         print *, 'after j_day=', jday
-!      endif
-
-
-      end subroutine irrigate_water_heat
-#endif
-!-----------------------------------------------------------------------
-
       subroutine ghy_diag(i,j,jr,kr,tmp,ns,moddsf,moddd
      &     ,rcdmws,cdm,cdh,cdq,qg,dlwdt, pbl_args, dtsurf
      &     ,idx
@@ -1735,7 +1573,7 @@ C**** Interpolate daily irrigation depth to the current day
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
-     &     ,ij_gusti,ij_mccon,ij_evapsn
+     &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -1772,6 +1610,7 @@ C**** Interpolate daily irrigation depth to the current day
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
      &    ,tg2av,wtr2av,ace2av
      &    ,tg_L,wtr_L,ace_L
+     &    ,airrig,aeirrig
 
       use ghy_com, only : gdeep, gsaveL, fearth
       USE CLOUDS_COM, only : DDMS
@@ -1918,7 +1757,13 @@ c           for diagnostic purposes also compute gdeep 1 2 3
       aij(i,j,ij_pevap)=aij(i,j,ij_pevap)+(aepc+aepb)*ptype
       aij(i,j,ij_aflmlt)=aij(i,j,ij_aflmlt)+aflmlt*ptype
       aij(i,j,ij_aintrcp)= aij(i,j,ij_aintrcp)+aintercep*ptype*fv
-
+#ifdef IRRIGATION_ON
+      aij(i,j,ij_irrW)=aij(i,j,ij_irrW)+airrig*ptype
+      aij(i,j,ij_irrE)=aij(i,j,ij_irrE)+aeirrig*ptype
+#else
+      aij(i,j,ij_irrW)=0.d0
+      aij(i,j,ij_irrE)=0.d0
+#endif
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
         tsfrez(i,j,tf_last)=timez
@@ -2192,12 +2037,7 @@ C**** define local grid
       integer I_0, I_1, J_0, J_1
       integer I_0H, I_1H, J_0H, J_1H
       logical present_land
-#ifdef IRRIGATION
-      real*8, allocatable,dimension(:,:) :: irr_month_0,irr_month_1
-      real*8, allocatable,dimension(:,:) :: irrigate_daily_depth
-      character*120 :: irrigate_file=
-     &    "/home/mjpuma/irrigation/irrcrp_V144X90.bi"
-#endif
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -2268,19 +2108,6 @@ c**** read topmodel parameters
         endif
         !!!if (istart.le.0) return
       endif
-
-#ifdef IRRIGATION
-c****   Set up unit number of observed irrigation data
-      call openunit(trim(irrigate_file),iu_irrigate,.true.,.true.)
-!!      call openunit("IRRIG",iu_irrigate,.true.,.true.)
-      call GET(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H,
-     &              J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
-      
-      allocate (irr_month_0(I_STRT:I_STOP,J_STRT:J_STOP),
-     &          irr_month_1(I_STRT:I_STOP,J_STRT:J_STOP),
-     &          irrigate_daily_depth(I_STRT:I_STOP,J_STRT:J_STOP))
-#endif
-
 
 c**** time step for ground hydrology
       dt=dtsurf
@@ -3819,10 +3646,6 @@ C**** Extract useful local domain parameters from "grid"
       if (end_of_day .and. variable_lk > 0) call update_land_fractions
 
       if (end_of_day .and. wsn_max>0) call remove_extra_snow_to_ocean
-
-#ifdef IRRIGATION
-      call irrigate_water_heat(end_of_day)
-#endif
 
 !!! testing
 !!!      aalbveg(:,:) = 0.08D0

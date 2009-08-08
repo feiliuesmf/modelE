@@ -91,6 +91,13 @@ C**** sea ice melt and iceberg/glacial melt.
 !@var PRECSS precipitation from super-saturation (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PRECSS
 
+#ifdef IRRIGATION_ON
+!@var Irrigation rate applied to the land surface each timestep
+!@var and the associated energy [m/s], [W/m2]
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_water
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_energy
+#endif
+
 !@var GTEMP ground temperature (upper two levels) over surface type (C)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTEMP
 !@var GTEMPR radiative ground temperature over surface type (K)
@@ -294,6 +301,10 @@ C**** fluxes associated with variable lake fractions
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
+#ifdef IRRIGATION_ON
+     &          irrig_water   ( I_0H:I_1H , J_0H:J_1H ),
+     &          irrig_energy  ( I_0H:I_1H , J_0H:J_1H ),
+#endif
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      &          CHL     ( I_0H:I_1H , J_0H:J_1H ),
 #endif

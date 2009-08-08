@@ -1092,6 +1092,9 @@ C****
 #ifndef CUBE_GRID
       USE ATMDYN, only : init_ATMDYN
 #endif
+#ifdef IRRIGATION_ON
+      use irrigate_crop, only : init_irrigate
+#endif
 cddd#ifdef USE_ENT
 cddd      USE ENT_DRV, only : init_module_ent
 cddd#endif
@@ -1984,7 +1987,9 @@ C****
 cddd#ifdef USE_ENT
 cddd      CALL init_module_ent(iniENT, Jday, Jyear, FOCEAN) !!! FEARTH)
 cddd#endif
-
+#ifdef IRRIGATION_ON
+      call init_irrigate()
+#endif
       if (Kradia.gt.0) then   !  radiative forcing run
         CALL init_RAD(istart)
         if(istart.lt.0) CALL init_DIAG(0,num_acc_files) !post-processing
