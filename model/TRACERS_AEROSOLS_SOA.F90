@@ -10,6 +10,9 @@ use RESOLUTION, only: LM
 use DOMAIN_DECOMP_ATM,only: write_parallel
 use TRACER_COM, only: ntm,ntm_soa,tr_mm,&
                       n_Isoprene,&
+#ifdef TRACERS_TERP
+                      n_Terpenes,&
+#endif  /* TRACERS_TERP */
                       n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,&
                       n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a
 implicit none
@@ -229,7 +232,7 @@ enddo
 ! Correct tr_mm in order to use the real MW of species in meanmw and activity coefficient calculations only
 mw=tr_mm
 mw(n_Isoprene)=5.d0*mw_c+8.d0*mw_h ! C5H8
-!kt mw(n_apinene)=10.d0*mw_c+16.d0*mw_h ! C10H16 !WRONG ON PURPOSE ! This should be enabled when monoterpenes will be included
+mw(n_Terpenes)=10.d0*mw_c+16.d0*mw_h ! C10H16
 mw(n_bcii)=170.d0
 mw(n_bcia)=170.d0
 mw(n_bcb)=170.d0
@@ -345,9 +348,8 @@ enddo
 !
 apartmolar(:,whichsoa(n_isopp1a))=apartmass(:,whichsoa(n_isopp1a))*mw(n_Isoprene)/tr_mm(n_isopp1a)
 apartmolar(:,whichsoa(n_isopp2a))=apartmass(:,whichsoa(n_isopp2a))*mw(n_Isoprene)/tr_mm(n_isopp2a)
-! The following 2 lines are WRONG ON PURPOSE until monoterpenes appear in the model and replace 136.24d0
-apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*136.24d0/tr_mm(n_apinp1a)
-apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*136.24d0/tr_mm(n_apinp2a)
+apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*mw(n_Terpenes)/tr_mm(n_apinp1a)
+apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*mw(n_Terpenes)/tr_mm(n_apinp2a)
 
 end subroutine soa_apart
 

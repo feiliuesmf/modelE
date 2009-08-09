@@ -218,7 +218,13 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #endif
       enddo
 #ifdef TRACERS_AEROSOLS_SOA
-      do L=1,LM ! SOA chemistry goes always to the model top
+!WRONG ON PURPOSE
+! SOA production from chemistry should be allowed everywhere, but
+! due to convection Isoprene and Terpenes have a local maximum in the
+! upper layers. This is unlikely to be the case in the real atmosphere,
+! thus chemical (but not partitioning) production is disabled above level 7
+!      do L=1,LM ! SOA chemistry goes always to the model top
+      do L=1,7!LM ! SOA chemistry goes always to the model top
         voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
      &            (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
      &             rr(43,L)*y(nHO2,L)+
@@ -229,20 +235,12 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(n_isopp2g,L)=prod(n_isopp2g,L)+
      &                    apartmolar(L,whichsoa(n_isopp2a))*
      &                    (chemrate(30,L)+chemrate(31,L))
-! The following 4 lines are WRONG ON PURPOSE. The model does not include
-! (yet) monoterpenes, thus the a-pinene SOA is assumed to come from
-! Isoprene which has a similar (but far from same) distribution.
-! When monoterpenes will be included in the model, by only chaning the
-! chemrate(30, L) to the appropriate one for a-pinene ozonolysis, SOA
-! from a-pinene will be calculated correctly. It is divided by 3,
-! assuming that isoprene is 3 times more abundant than monoterpenes,
-! based on their emissions.
         prod(n_apinp1g,L)=prod(n_apinp1g,L)+
      &                    apartmolar(L,whichsoa(n_apinp1a))*
-     &                    (chemrate(30,L)+chemrate(31,L))/3.0d0
+     &                    chemrate(iTerpenesO3,L)
         prod(n_apinp2g,L)=prod(n_apinp2g,L)+
      &                    apartmolar(L,whichsoa(n_apinp2a))*
-     &                    (chemrate(30,L)+chemrate(31,L))/3.0d0
+     &                    chemrate(iTerpenesO3,L)
       enddo
 #endif  /* TRACERS_AEROSOLS_SOA */
 

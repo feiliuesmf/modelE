@@ -2008,6 +2008,12 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       call parse_header(n,ns,trim(header),error)
   
+#ifdef TRACERS_TERP
+!WRONG ON PURPOSE
+! skip tracer name mismatch error (applies for Terpenes)
+! When propoer Terpenes emissions become available, delete the following line
+      if (error == 5) error=0
+#endif  /* TRACERS_TERP */
       select case(error)
       case default ! nothing
       case(1) ; message='read_emis_header: missing header'
