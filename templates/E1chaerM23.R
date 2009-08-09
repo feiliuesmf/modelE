@@ -283,6 +283,7 @@ CH4_11=AR5_emis/M/2000/CH4_forestfire_AR5_2000_4x5_h
 CH4_12=AR5_emis/M/2000/CH4_grassfire_AR5_2000_4x5_h
 CH4_13=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
 Isoprene_01=gsin/Isoprene_GEIA_vegetation_double_head
+Terpenes_01=gsin/Isoprene_GEIA_vegetation_double_head
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
 SO2_FIELD=so2_conc
