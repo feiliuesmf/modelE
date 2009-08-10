@@ -235,12 +235,17 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(n_isopp2g,L)=prod(n_isopp2g,L)+
      &                    apartmolar(L,whichsoa(n_isopp2a))*
      &                    (chemrate(30,L)+chemrate(31,L))
+#ifdef TRACERS_TERP
         prod(n_apinp1g,L)=prod(n_apinp1g,L)+
      &                    apartmolar(L,whichsoa(n_apinp1a))*
      &                    chemrate(iTerpenesO3,L)
         prod(n_apinp2g,L)=prod(n_apinp2g,L)+
      &                    apartmolar(L,whichsoa(n_apinp2a))*
      &                    chemrate(iTerpenesO3,L)
+#else
+        prod(n_apinp1g,L)=0.d0
+        prod(n_apinp2g,L)=0.d0
+#endif  /* TRACERS_TERP */
       enddo
 #endif  /* TRACERS_AEROSOLS_SOA */
 
