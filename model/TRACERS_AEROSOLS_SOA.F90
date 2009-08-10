@@ -354,8 +354,8 @@ apartmolar(:,whichsoa(n_isopp2a))=apartmass(:,whichsoa(n_isopp2a))*mw(n_Isoprene
 apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*mw(n_Terpenes)/tr_mm(n_apinp1a)
 apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*mw(n_Terpenes)/tr_mm(n_apinp2a)
 #else
-apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*136.24/tr_mm(n_apinp1a)
-apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*136.24/tr_mm(n_apinp2a)
+apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*136.24d0/tr_mm(n_apinp1a)
+apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*136.24d0/tr_mm(n_apinp2a)
 #endif  /* TRACERS_TERP */
 
 end subroutine soa_apart
