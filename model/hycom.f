@@ -116,8 +116,8 @@ c
 
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
 ! need global pCO2
-     .     tracav,pCO2av,ao_co2flux_glob,
-     .     ao_co2fluxav,diag_counter,plevav 
+     .    ,tracav,pCO2av,ao_co2flux_glob
+     .    ,ao_co2fluxav,diag_counter,plevav 
 
       !USE PBLCOM, only : wsavg 
       !USE RAD_COM,   only: COSZ1
@@ -910,20 +910,23 @@ cdiag  call obio_limits('aftr hybgen')
       do i=1,idm
 
       !tracer
-      do nt=1,ntrac
       do k=1,kk
         kn=k+nn
          plev=max(0.,dp(i,j,kn))
-           tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer(i,j,k,nt)*plev
+         if (plev.lt.1.e30) then
            plevav(i,j,k)=plevav(i,j,k)+plev
 
-!        if (nt.eq.1) then
-!        write(*,'(i9,5i5,3e12.4)')999999999,
-!    .     nstep,i,j,k,nt,tracer_glob(i,j,k,nt),plev,tracav(i,j,k,nt)
-!        endif
+           do nt=1,ntrac
+              tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer(i,j,k,nt)*plev
 
-      enddo
-      enddo
+!             if (nt.eq.1.and.k.eq.1) then
+!             write(*,'(i9,5i5,4e12.4)')999999999,
+!    .          nstep,i,j,k,nt,tracer(i,j,k,nt),plev,
+!    .                    tracav(i,j,k,nt),plevav(i,j,k)
+!             endif
+           enddo   !nt
+         endif
+      enddo  !k
 
       !pco2
          pCO2av(i,j)=pCO2av(i,j)+pCO2(i,j)

@@ -18,7 +18,7 @@
 
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com,  only : gcmax,tracav,pCO2av
+      USE obio_com,  only : gcmax,tracav,plevav,pCO2av
      .                     ,ao_co2fluxav,diag_counter
 #endif
       USE HYCOM_DIM
@@ -195,7 +195,7 @@ c
 
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com,  only : gcmax,tracav,pCO2av
+      USE obio_com,  only : gcmax,tracav,plevav,pCO2av
      .                     ,ao_co2fluxav,diag_counter
 #endif
       USE HYCOM_ARRAYS_GLOB
@@ -295,7 +295,7 @@ css#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,diag_counter
       i=itest
       j=jtest
       do k=1,kdm
@@ -320,7 +320,7 @@ css#endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
       i=itest
       j=jtest
       print*,'test point at:',itest,jtest
@@ -366,7 +366,7 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,diag_counter
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest
       j=jtest
@@ -402,7 +402,7 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
       i=itest
       j=jtest
       print*, 'itest, jtest=',itest,jtest
@@ -456,7 +456,7 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,diag_counter
       write(*,'(a,i9,f9.0)')
      &     'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest
@@ -493,7 +493,7 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
       i=itest
       j=jtest
       do k=1,kdm

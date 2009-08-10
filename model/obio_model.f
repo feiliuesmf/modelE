@@ -376,6 +376,9 @@ cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
        enddo
 
+      if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc:',
+     .    obio_P(1,:),det(1,:),car(1,:)
+
 #ifdef OBIO_ON_GARYocean
       kmax = lmm(i,j)
 cdiag if(vrbos)write(*,'(a,4i5)')'nstep,i,j,kmax= ',

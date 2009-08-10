@@ -33,7 +33,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav
-      real, ALLOCATABLE, DIMENSION(:,:,:) :: plevav
+      real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav
       real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav
       real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****

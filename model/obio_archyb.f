@@ -10,7 +10,7 @@ c
 
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
      &     ,thref,baclin
-      USE HYCOM_DIM_GLOB, only : jj,JDM,kk,ntrcr,ii,idm,kdm,iia,jja
+      USE HYCOM_DIM_GLOB, only : jj,jdm,kk,ntrcr,ii,idm,kdm,iia,jja
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
       USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av, 
      .                     ao_co2fluxav,diag_counter,tracav,plevav
@@ -73,7 +73,7 @@ c
 
       !mld
         write(title,'(a)')'MLD (m)'
-        call write2giss(nop,dpmixl/onem,title)
+        call write2giss(nop,dpmixl(:,:,2)/onem,title)
 
       !tracer
       do nt=1,ntrcr
@@ -166,7 +166,7 @@ c
 
       integer nop
       real*4 array4(iia,jja)
-      real*8 array8(iia,jja),array_o(iio,jjo)
+      real*8 array8(iia,jja),array_o(iio,jjo),focean_glob(iia,jja)
       character title*80
 
         !convert to atmosgrid
