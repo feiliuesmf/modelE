@@ -745,7 +745,7 @@ C          read the CFC initial conditions:
       case ('Terpenes')
       n_Terpenes = n
           ntm_power(n) = -11
-          tr_mm(n) = 136.24d0 ! C10H16
+          tr_mm(n) = 120.10d0 ! i.e. 10 carbons
 #ifdef TRACERS_DRYDEP
           HSTAR(n) = 1.3d-2
 #endif
