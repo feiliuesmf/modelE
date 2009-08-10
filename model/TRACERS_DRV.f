@@ -88,6 +88,9 @@
       USE AERO_CONFIG, only: nbins
       USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      USE obio_forc, only : atmCO2
+#endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
       integer :: l,k,n,kr,m
@@ -2169,6 +2172,10 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       enddo
       call closeunit(iu_data)
 #endif
+
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      call sync_param("atmCO2",atmCO2)
+#endif      
 
       return
       end subroutine init_tracer
