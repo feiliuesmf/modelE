@@ -15,7 +15,8 @@
      *         CUMHET(LM),CUMOST(LM),PRCSS,PRCMC,EVPFLX,SHFLX,
      *         SOILMS,CLDFLG(LM),DWNFLX(LM),RHC(LM)
       real*8   clsav(LM)
-      real*8 SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,SRDFLBBOT,SRNFLBBOT,
+      real*8 SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,SRUFLBBOT,
+     *       TRUFLBTOP,TRDFLBTOP,SRDFLBBOT,SRNFLBBOT,
      *       TRUFLBBOT,TRDFLBBOT
       real*8, DIMENSION(LM) :: SRFHRLCOL,TRFCRLCOL
 c
@@ -37,6 +38,12 @@ c     deep convection
      
 c     condensate for all convection
       real*8 mccond(LM,2,LM)
-
+c
+      real*8 SCM_LWP_MC,SCM_LWP_SS,SCM_IWP_MC,SCM_IWP_SS,
+     &       SCM_WM_MC(LM),SCM_SVWMXL(LM)
+c
+c     dt and dq over time step from different processes
+      real*8 dTtot(LM),dqtot(LM),dTfrc(LM),dqfrc(LM),dTrad(LM)
+      real*8 dTHmc(LM),dqmc(LM),dTHbl(LM),dqbl(LM),dTHss(LM),dqss(LM)
 
       END MODULE SCMDIAG  
