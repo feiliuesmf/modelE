@@ -1767,19 +1767,25 @@ c*
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
       integer :: i,j
+
 #ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:),iAtmp(:,:)
       allocate (aA_glob(IM,JM),iAtmp(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+
 c*   ICE C -> ICE B. change this if less smoothing is needed
+
       call halo_update(grid_ICDYN,iA)
+
       do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
          do i=2,IMICDYN-1
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i-1,j+1))
          enddo
             iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(IMICDYN,j+1))
       enddo
+
       call halo_update(grid_ICDYN,iAtmp)
+
       call parallel_bilin_latlon_B_2_CS_C_U(grid_ICDYN,agrid,
      &     iAtmp,aA_glob,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
@@ -1806,19 +1812,25 @@ c*
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
       integer :: i,j
+
 #ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:),iAtmp(:,:)
       allocate (aA_glob(IM,JM),iAtmp(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+
 c*   ICE C -> ICE B. change this if less smoothing is needed
+
       call halo_update(grid_ICDYN,iA)
+
       do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
          do i=2,IMICDYN-1
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i,j))
          enddo
             iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(1,j))
       enddo
+
       call halo_update(grid_ICDYN,iAtmp)
+
       call parallel_bilin_latlon_B_2_CS_C_U(grid_ICDYN,agrid,
      &     iAtmp,aA_glob,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
@@ -1862,23 +1874,23 @@ c*
       subroutine INT_IceB2AtmA(iAb,aAa)
 !@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
       USE RESOLUTION, only : aIM=>IM,aJM=>JM
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE ICEDYN, only : IMICDYN,grid_ICDYN
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
      &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iAb(1:IMICDYN,                             ! on ice B grid
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
-      INTEGER :: aI_1,aI_0,aI_1H,aI_0H,aJ_1,aJ_0,aJ_1H,aJ_0H
  
 #ifdef CUBE_GRID
-      call aGET(agrid    , I_STRT=aI_0        , I_STOP=aI_1     
-     &                   , I_STRT_HALO=aI_0H  , I_STOP_HALO=aI_1H
-     &                   , J_STRT=aJ_0        , J_STOP=aJ_1    
-     &                   , J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
-      
-c**** TODO
+      real*8, allocatable :: aA_glob(:,:)
+      allocate(aA_glob(aIM,aJM))
+      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
+     &     iAb,aA_glob,IMICDYN,JMICDYN)
+      call ATM_UNPACK(agrid,aA_glob,aAa)
+      deallocate(aA_glob)
 #endif
       end subroutine INT_IceB2AtmA
 
