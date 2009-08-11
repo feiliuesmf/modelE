@@ -209,7 +209,7 @@ c     we do boundary conditions by hand
       type (dist_grid), intent(in) :: gridin,gridout
       real*8 :: uin_loc(gridin%I_STRT_HALO:gridin%I_STOP_HALO,
      &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
-     &     uout_glob(IM_CS,JM_CS)
+     &     uout_glob(IM_CS,JM_CS,6)
       real*8 :: u11,u12,u21,u22
       real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
       real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
@@ -230,7 +230,7 @@ c     we do boundary conditions by hand
       j0_ll=gridin%J_STRT
       j1_ll=gridin%J_STOP
 
-      uout_glob(:,:) = 0.
+      uout_glob(:,:,:) = 0.
 
       dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
       IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
@@ -306,7 +306,7 @@ c     periodic boundary conditions in x direction
 
                dnm=1.d0/(dlon_dg*dlat_dg)
                
-               uout_glob(i,j)=dnm*( 
+               uout_glob(i,j,gridout%tile)=dnm*( 
      &              u11*( lon2-lon_mid )*( lat2-lat_mid ) 
      &              +u21*( lon_mid-lon1 )*( lat2-lat_mid ) 
      &              +u12*( lon2-lon_mid )*( lat_mid-lat1 )
@@ -337,7 +337,7 @@ c*
       type (dist_grid), intent(in) :: gridin,gridout
       real*8 :: vin_loc(gridin%I_STRT_HALO:gridin%I_STOP_HALO,
      &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
-     &     vout_glob(IM_CS,JM_CS)
+     &     vout_glob(IM_CS,JM_CS,6)
       real*8 :: v11,v12,v21,v22
       real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
       real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
@@ -358,7 +358,7 @@ c*
       j0_ll=gridin%J_STRT
       j1_ll=gridin%J_STOP
 
-      vout_glob(:,:) = 0.
+      vout_glob(:,:,:) = 0.
 
       dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
       IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
@@ -434,7 +434,7 @@ c     periodic boundary conditions in x direction
 
                dnm=1.d0/(dlon_dg*dlat_dg)
                
-               vout_glob(i,j)=dnm*( 
+               vout_glob(i,j,gridout%tile)=dnm*( 
      &              v11*( lon2-lon_mid )*( lat2-lat_mid ) 
      &              +v21*( lon_mid-lon1 )*( lat2-lat_mid ) 
      &              +v12*( lon2-lon_mid )*( lat_mid-lat1 )
@@ -464,7 +464,7 @@ c*
       type (dist_grid), intent(in) :: gridin,gridout
       real*8 :: ain_loc(gridin%I_STRT_HALO:gridin%I_STOP_HALO,
      &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
-     &     aout_glob(IM_CS,JM_CS)
+     &     aout_glob(IM_CS,JM_CS,6)
       real*8 :: a11,a12,a21,a22
       real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
       real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
@@ -485,7 +485,7 @@ c*
       j0_ll=gridin%J_STRT
       j1_ll=gridin%J_STOP
 
-      aout_glob(:,:) = 0.
+      aout_glob(:,:,:) = 0.
 
       dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
       IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
@@ -557,13 +557,17 @@ c     periodic boundary conditions in x direction
 
                dnm=1.d0/(dlon_dg*dlat_dg)
                
-               aout_glob(i,j)=dnm*( 
+               aout_glob(i,j,gridout%tile)=dnm*( 
      &              a11*( lon2-lon2d_dg(i,j) )*( lat2-lat2d_dg(i,j) ) 
      &              + a21*( lon2d_dg(i,j)-lon1 )*( lat2-lat2d_dg(i,j) ) 
      &              + a12*( lon2-lon2d_dg(i,j) )*( lat2d_dg(i,j)-lat1 )
      &              + a22*( lon2d_dg(i,j)-lon1 )*( lat2d_dg(i,j)-lat1 ) 
      &              )
             endif
+
+c            write(690+gridout%gid+1,200) lon2d_dg(i,j),lat2d_dg(i,j),
+c     &           aout_loc(i,j)
+c 200        format(3(1X,f8.3))
 
          enddo
       enddo
@@ -588,7 +592,7 @@ c*
       integer :: im_ll,jm_ll,NX
       real*8 :: ain_loc(NX,
      &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
-     &     aout_glob(IM_CS,JM_CS)
+     &     aout_glob(IM_CS,JM_CS,6)
       real*8 :: a11,a12,a21,a22
       real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
       real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
@@ -608,7 +612,7 @@ c*
       j0_ll=gridin%J_STRT
       j1_ll=gridin%J_STOP
 
-      aout_glob(:,:) = 0.
+      aout_glob(:,:,:) = 0.
 
       dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
       IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
@@ -682,7 +686,7 @@ c     periodic boundary conditions in x direction
 
                dnm=1.d0/(dlon_dg*dlat_dg)
                
-               aout_glob(i,j)=dnm*( 
+               aout_glob(i,j,gridout%tile)=dnm*( 
      &              a11*( lon2-lon_corner )*( lat2-lat_corner ) 
      &              + a21*( lon_corner -lon1 )*( lat2-lat_corner ) 
      &              + a12*( lon2-lon_corner )*( lat_corner-lat1 )

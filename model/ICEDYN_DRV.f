@@ -508,7 +508,8 @@ c temporarily empty.
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
       USE ICEDYN, only : imicdyn,jmicdyn,  !dimensions of icedyn grid
      &     nx1,ny1
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+     &     atm_pack=>pack_data
       USE DOMAIN_DECOMP_1D, only : DIST_GRID, iGET=>GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : abyaxyp=>byaxyp,imaxj
@@ -539,6 +540,8 @@ C****
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,
      &     iDMUI,iDMVI,aDMU,aDMV,aUSI,aVSI
 
+      real*8, allocatable, dimension(:,:) :: itest,atest
+            real*8, allocatable, dimension(:,:,:) :: atest_glob
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
       INTEGER I,J,ip1,im1,ierr,mype
@@ -553,7 +556,7 @@ C****
       INTEGER :: aJ_1H  , aJ_0H
       INTEGER :: aJ_1S  , aJ_0S
       INTEGER :: aJ_1STG, aJ_0STG
-
+      character*80 :: title
 C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       CALL iGET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
      &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
@@ -1090,6 +1093,25 @@ c      write(440+mype,*) ui2rho
 c      write(800+mype,*) rsi
 c      write(900+mype,*) focean
 
+
+c*    for debugging purpose only
+#ifdef CUBE_GRID
+      allocate(itest(IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
+     &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
+     &     atest_glob(aIM,aJM,6))
+      itest(:,:)=mype
+      call INT_IceB2AtmA(itest,atest)
+      open(900,FILE="iB2aA",FORM='unformatted',
+     &        STATUS='unknown')
+      call ATM_PACK(agrid,atest,atest_glob)
+      title="test ice b to Atm A"
+      write(900) title,atest_glob
+      close(900)
+      deallocate(itest,atest,atest_glob)
+#endif
+c*
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,
      &     iDMUI,iDMVI)
@@ -1769,8 +1791,8 @@ c*
       integer :: i,j
 
 #ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:),iAtmp(:,:)
-      allocate (aA_glob(IM,JM),iAtmp(1:IMICDYN,
+      real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
+      allocate (aA_glob(IM,JM,6),iAtmp(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
 
 c*   ICE C -> ICE B. change this if less smoothing is needed
@@ -1814,8 +1836,8 @@ c*
       integer :: i,j
 
 #ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:),iAtmp(:,:)
-      allocate (aA_glob(IM,JM),iAtmp(1:IMICDYN,
+      real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
+      allocate (aA_glob(IM,JM,6),iAtmp(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
 
 c*   ICE C -> ICE B. change this if less smoothing is needed
@@ -1863,8 +1885,8 @@ c*
 #endif
 
 #ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:)
-      allocate(aA_glob(aIM,aJM))
+      real*8, allocatable :: aA_glob(:,:,:)
+      allocate(aA_glob(aIM,aJM,6))
       call parallel_bilin_latlon_B_2_CS_B(grid_ICDYN,agrid,
      &     iA,aA_glob,NX1,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
@@ -1891,8 +1913,8 @@ c*
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
  
 #ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:)
-      allocate(aA_glob(aIM,aJM))
+      real*8, allocatable :: aA_glob(:,:,:)
+      allocate(aA_glob(aIM,aJM,6))
       call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
      &     iAb,aA_glob,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aAa)
