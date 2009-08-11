@@ -6,7 +6,7 @@ c     save diagnostics for run of MODELE SCM
 
       USE RESOLUTION, only : LM
       USE MODEL_COM , only :  p,u,v,t,q,wm,NSTEPSCM,sige,sig,
-     &                        I_TARG,J_TARG           
+     &                        I_TARG,J_TARG,dtsrc 
       USE CLOUDS_COM, only : SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
      &                cldss,cldmc,csizmc,csizss
       USE SCMCOM
@@ -18,7 +18,7 @@ C     USE DYNAMICS, only : PK
 C--- Added by J.W. starting ---C
       USE DYNAMICS, only : PK,GZ
 C--- Added by J.W. ending ---C
-      USE CONSTANT, only : SHA, GRAV   
+      USE CONSTANT, only : SHA, GRAV, kapa 
       USE GEOM, only : axyp 
       USE FILEMANAGER, only : openunit,closeunit
       
@@ -93,7 +93,7 @@ C             SVLHXCOL   (LM)     Liquid/Ice Flag (SS) save Latent Heats (j/Kg)
 C             SVLATCOL   (LM)     Liquid/Ice Flag (MC) save Latent Heats (j/Kg)
 C             CSIZE      (LM,2)   Particle Size (10**-06m)     1=mc,2=ss 
 C             EFFRAD     (LM)     Effective Radius (10**-06m)
-C             CUMFLX     (LM)     Cumulus Mass Flux (mb/s) 
+C             CUMFLX     (LM)     Cumulus Mass Flux (kg/m**2 /s) 
 C             CUMHET     (LM)     Cumulus Heating  (10**14 W)
 C             CUMOST     (LM)     Cumulus Moistening (10**14 W)
 C             SRDFLBTOP           INC SW on Top of Atmos (W/m**2) 
@@ -131,7 +131,7 @@ C             SG_HOR_Q_ADV(LM)    ARM Horizontal Q Advection (kg/kg/s)
 C             SG_VER_Q_ADV(LM)    ARM Vertiacl Q Advection (kg/Kg/s)
 C             CLSAV(LM)           SCM cloud fraction SS (by volume)
 C             CLDFLG(LM)          SCM Cloud flag from Radia-outcome of Rand(0,1)
-C             DWNFLX(LM)          SCM downdraft cloud mass flux (mb/s)
+C             DWNFLX(LM)          SCM downdraft cloud mass flux (kg/m**2 /s)
 C             RHC(LM)             SCM Relative Humidity saved after Cloud 
 c                                     routines (Qs(over water))
 c             ALWP                ARM MWR cloud liquid water path (cm)
@@ -160,6 +160,25 @@ c             TPALL(LM,2,LM)      SCM Plume Temperature for Deep Conv
 c             MCCOND(LM,2,LM)     SCM convective condensate for deep and shallow  
 c             PRCCGRP(LM,2,LM)    SCM deep convective condensate graupel
 c             PRCCICE(LM,2,LM)    SCM deep convective condensate ICE
+c             SCM_LWP_MC          SCM MC liquid water path (kg/m2)
+c             SCM_IWP_MC          SCM MC ice water path (kg/m2)
+c             SCM_LWP_SS          SCM SS liquid water path (kg/m2)
+c             SCM_IWP_SS          SCM SS ice water path (kg/m2)
+c             SCM_WM_MC(LM)       SCM Cloud water for moist convective clouds  kg/kg
+c             SRUFLBBOT           Short Wave radiation up at z0 (W/m2)
+c             SRUFLBTOP           Short Wave radiation up at p0 (W/m2)
+c             TRDFLBTOP           Long Wave radiation down at p0 (W/m2)
+c             dTtot(LM)           dT(modelPT)/dt over time step (K/day)
+c             dqtot(LM)           dq/dt over time step (kg/kg /day)
+c             dTfrc(LM)           dT(modelPT)/dt over time step from FORCN (K/day)
+c             dqfrc(LM)           dq/dt over time step from FORCN (kg/kg /day)
+c             dTrad(LM)           dT/dti(modelPT) over time step from radiation (K/day)
+c             dTHmc(LM)           dTH/dt over time step from mstcnv (K/day)
+c             dqmc(LM)            dq/dt over time step from mstcnv (kg/kg/day)
+c             dTHbl(LM)           dTH/dt over time step from boundary layer (srf flxs + aturb) (K/day)
+c             dqbl(LM)            dq/dt over time step from boundary layer (srf flxs + aturb) (kg/kg/day)
+c             dTHss(LM)           dTH/dt over time step from large scale clouds (K/day) 
+c             dqss(LM)            dq/dt over time step from large scale clouds (kg/kg/day) 
 c
 
 c             isccp record layout 
@@ -184,10 +203,13 @@ C--- Added by J.W. ending ---C
       real*8 TPRT(LM), QPRT(LM) ,TSURF, TSKIN, WMCOL(LM)    
       real*8 TDIFF,QDIFF
       real*8 PCOL, SVLHXCOL(LM),SVLATCOL(LM)    
-
-
+      real*8 daysec,pk1000
+      real*8 tt,tf,tr,tmc,tss,tbl
       INTEGER L,LMIN,IC,IU    
       INTEGER IPLUM,IPL,IPLUMSV      
+      INTEGER IDEBUG
+ 
+      DATA  daysec/86400./
 
       if (NSTEPSCM.eq.0) then
           call openunit('scm.save.sige',iu,.true.,.false.)
@@ -201,7 +223,7 @@ C--- Added by J.W. ending ---C
           endif
       endif
 
-
+      pk1000 = 1000.**kapa
       PCOL = P(I_TARG,J_TARG)
       TSURF = TSAVG(I_TARG,J_TARG)
       TSKIN = GTEMP(1,4,I_TARG,J_TARG)
@@ -220,6 +242,23 @@ C--- Added by J.W. ending ---C
          CLSAV(L) = CLDSAV(L,I_TARG,J_TARG)   
          TAUSSC(L) = TAUSS(L,I_TARG,J_TARG)
          TAUMCC(L) = TAUMC(L,I_TARG,J_TARG)
+ccc Now use potential temp  in K/day and q still in kg/kg 
+         dTtot(L) = PK1000*dTtot(L)*daysec/dtsrc
+         dqtot(L) = dqtot(L)*daysec/dtsrc
+         dTfrc(L) = PK1000*dTfrc(L)*daysec/dtsrc
+         dqfrc(L) = dqfrc(L)*daysec/dtsrc
+         dTrad(L) = PK1000*dTrad(L)*daysec/dtsrc
+ccc here change to potential temperature (factor of 1000**kapa)
+         dTHmc(L) = PK1000*dTHmc(L)*daysec/dtsrc
+         dqmc(L) = dqmc(L)*daysec/dtsrc
+         dTHbl(L) = PK1000*dTHbl(L)*daysec/dtsrc
+         dqbl(L) = dqbl(L)*daysec/dtsrc
+         dTHss(L) = PK1000*dTHss(L)*daysec/dtsrc
+         dqss(L) = dqss(L)*daysec/dtsrc
+c        write(iu_scm_prt,18) NSTEPSCM,L,
+c    *      dTtot(L),dTfrc(L),dTrad(L),
+c    *      dTHmc(L),dTHbl(L),dTHss(L) 
+c  18    format(1x,'N L dT tot frc rad mc bl ss ',i5,i5,6(f12.3))
       enddo      
 
       do L=1,LM
@@ -264,14 +303,16 @@ c26         format(1x,'ic l wcudeep ',i5,i5,f10.4)
 c        enddo
 c     enddo
 
-Ccccc before writing out diagnostics convert cumulus diagnostics
+C     before writing out diagnostics convert cumulus diagnostics
 c     do L = 1,LM
-c        write(iu_scm_prt,80) L,CUMFLX(L),DWNFLX(L),CUMHET(L),CUMOST(L)
-c 80     format(1x,'L  flx dwn  het mst ',i5,4(f12.3))    
-c        CUMFLX(L) = CUMFLX(L)/DTSRC
-c        DWNFLX(L) = DWNFLX(L)/DTSRC
+c        write(iu_scm_prt,80) L,CUMHET(L),CUMOST(L)
+c 80     format(1x,'L  het mst ',i5,2(f12.3))    
 c        CUMHET(L) = CUMHET(L)*10.E-13*SHA*AXYP(I_TARG,J_TARG)/(GRAV*DTSRC)
 c        CUMOST(L) = CUMOST(L)*10.E-13*SHA*AXYP(I_TARG,J_TARG)/(GRAV*DTSRC)
+c     enddo
+c     do L=1,LM
+c        write(iu_scm_prt,82) L,CUMFLX(L),DWNFLX(L)
+c82      format(1x,'L CUMFLX DWNFLX ',i5,f10.5,f10.5)
 c     enddo
 
 c     Use the hourly version of the ARM data to save as a diagnostic
@@ -280,8 +321,25 @@ c     Use the hourly version of the ARM data to save as a diagnostic
          ARMQ(L) = QHR(L,NSTEPSCM+IKT)
       enddo
 C
+c     WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
+c    *           CLCVMC,CLTHCK,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
+c    *           CUMFLX,CUMHET, CUMOST,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
+c    *           SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,TRDFLBBOT,PRCSS,PRCMC,
+c    *           EVPFLX,SHFLX,SOILMS,SRFHRLCOL,
+c    *           TRFCRLCOL,TAUSSC,TAUMCC,SG_P,ARMT,ARMQ,
+c    *           SG_OMEGA,APREC,ALH,ASH,AMEANPS,ATSAIR,ATSKIN,
+c    *           ARHSAIR,SG_U,SG_V,SG_HOR_TMP_ADV,
+c    *           SG_VER_S_ADV,SG_HOR_Q_ADV,SG_VER_Q_ADV,CLSAV,
+c    *           CLDFLG,DWNFLX,RHC,ALWP,ADWDT,ADWADV,ATLWUP,
+c    *           ATSWDN,ATSWIN,SG_ARSCL,PRESAV,PREMC,LHPSAV,LHPMC,
+c    *           WCUSCM,WCUDEEP,PRCCDEEP,NPRCCDEEP,TPALL,MCCOND,
+c    *           PRCCGRP,PRCCICE,MPLUMESCM,MPLUMEDEEP
+c    *           ,GZPRT,ENTSCM,ENTDEEP,DETRAINDEEP
+c    *           ,SCM_LWP_MC,SCM_IWP_MC,SCM_LWP_SS,SCM_IWP_SS
+c    *           ,SCM_WM_MC,SRUFLBTOP,SRUFLBBOT,TRDFLBTOP 
+c    *           ,dTtot,dqtot,dTfrc,dqfrc,dTrad
+ccccc for TWP IC case 100 runs save less data
       WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
-cc    WRITE(97) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
      *           CLCVMC,CLTHCK,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
      *           CUMFLX,CUMHET, CUMOST,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
      *           SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,TRDFLBBOT,PRCSS,PRCMC,
@@ -292,14 +350,14 @@ cc    WRITE(97) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
      *           SG_VER_S_ADV,SG_HOR_Q_ADV,SG_VER_Q_ADV,CLSAV,
      *           CLDFLG,DWNFLX,RHC,ALWP,ADWDT,ADWADV,ATLWUP,
      *           ATSWDN,ATSWIN,SG_ARSCL,PRESAV,PREMC,LHPSAV,LHPMC,
-     *           WCUSCM,WCUDEEP,PRCCDEEP,NPRCCDEEP,TPALL,MCCOND,
-     *           PRCCGRP,PRCCICE   
-C--- Added by J.W. starting ---C
-     *           ,MPLUMESCM,MPLUMEDEEP
-     *           ,GZPRT
-     *           ,ENTSCM,ENTDEEP
-     *           ,DETRAINDEEP
-C--- Added by J.W. ending ---C
+ccc  *           WCUSCM,WCUDEEP,PRCCDEEP,NPRCCDEEP,TPALL,MCCOND,
+ccc  *           PRCCGRP,PRCCICE,MPLUMESCM,MPLUMEDEEP,
+ccc  *           GZPRT,ENTSCM,ENTDEEP,DETRAINDEEP
+     *           SCM_LWP_MC,SCM_IWP_MC,SCM_LWP_SS,SCM_IWP_SS,
+     *           SCM_WM_MC,SRUFLBTOP,SRUFLBBOT,TRDFLBTOP, 
+     *           dTtot,dqtot,dTfrc,dqfrc,dTrad,dTHmc,dqmc,
+     *           dTHbl,dqbl,dTHss,dqss
+
 
 c     WRITE(3) TAU,P,fqI,totcldareaI,mnptopI,mntauI,bxtauI,bxptopI,
 c    *         cldbdz,cldtdz
@@ -307,7 +365,7 @@ C
       write(iu_scm_prt,99) NSTEPSCM
  99   format(//1x,'END OF TIME STEP      NSTEPSCM  ',i6)
       write(iu_scm_prt,100) NSTEPSCM,PCOl,TSURF,TSKIN 
-100   format(1x,'NSTEP P tsurf tskin  ',i5,3(f10.4))
+100   format(1x,'NSTEP P tsurfair tskin  ',i5,3(f10.4))
       write(iu_scm_prt,110) PRCSS,PRCMC
 110   format(1x,'PRCSS MC ',2(f10.4))
       write(iu_scm_prt,120) SRNFLBBOT,SRNFLBTOP,SRDFLBBOT,SRDFLBTOP, 
@@ -315,19 +373,30 @@ C
 120   format(1x,'rad  sw nbot top dbot top ',4(f10.2),
      *       '    lw utop bot dbot ',3(f10.2)) 
       write(iu_scm_prt,125) EVPFLX,SHFLX
-125   format(1x,'EVPFLX SHFLX ',2(f10.3))
+125   format(1x,'EVPFLX SHFLX ',2(f12.6))
 
 c
+      IDEBUG = 0
       do L=1,LM
-      
-         write(iu_scm_prt,140) L,SG_P(L),TPRT(L),ARMT(L),
-     +                 QPRT(L)*1000.0,ARMQ(L)*1000.0,    
-     +                 WMCOL(L)*1000.0,TAUSSC(L),TAUMCC(L),
+         write(iu_scm_prt,140) L,SG_P(L),TPRT(L),
+     +         QPRT(L)*1000.0,WMCOL(L)*1000.0,SCM_WM_MC(L)*1000.,
+     +         SCM_SVWMXL(L)*1000.0,TAUSSC(L),TAUMCC(L),
      +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
- 140     format(1x,i3,f8.2,' T ',2(f7.2),'  Q ',2(f7.3),'  WM ',
-     +          f7.4,'  tauss mc ',2(f8.3),'  camtss mc ',
-     +          2(f7.3),' arscl ',f6.2)
+ 140     format(1x,i2,f8.2,' T ',f7.2,' Q',f7.3,' WMss mc det',
+     +          3(f6.3),' tauss mc',2(f7.2),' cfss mc',
+     +          2(f7.3),' cld',f5.1)
       enddo 
+
+c     do L=1,LM
+c        write(iu_scm_prt,140) L,SG_P(L),TPRT(L),ARMT(L),
+c    +                 QPRT(L)*1000.0,ARMQ(L)*1000.0,    
+c    +                 WMCOL(L)*1000.0,TAUSSC(L),TAUMCC(L),
+c    +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
+c140     format(1x,i3,f8.2,' T ',2(f7.2),'  Q ',2(f7.3),'  WM ',
+c    +          f7.4,'  tauss mc ',2(f8.3),'  camtss mc ',
+c    +          2(f7.3),' arscl ',f6.2)
+c     enddo 
+
 c     do L=1,LM
 c        write(iu_scm_prt,150) L,SG_P(L),TPRT(L),QPRT(L)*1000.0,
 c    +           WMCOL(L)*1000.0,SVLHXCOL(L),PRESAV(L)*1000.,LHPSAV(L),
