@@ -1845,9 +1845,11 @@ c*
 
       subroutine INT_IceB2AtmB_NX1(iA,aA)
 !@sum interpolate from Ice B-grid to Atm B-grid for either U or V component of vector 
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
+      USE RESOLUTION, only : aIM=>IM,aJM=>JM
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+     &     ATM_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : NX1,IMICDYN,grid_ICDYN
+      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
      &     iA(NX1,
@@ -1861,8 +1863,12 @@ c*
 #endif
 
 #ifdef CUBE_GRID
-!sumxpe global array on target latlon icedyn grid then scatter
-
+      real*8, allocatable :: aA_glob(:,:)
+      allocate(aA_glob(aIM,aJM))
+      call parallel_bilin_latlon_B_2_CS_B(grid_ICDYN,agrid,
+     &     iA,aA_glob,NX1,IMICDYN,JMICDYN)
+      call ATM_UNPACK(agrid,aA_glob,aA)
+      deallocate(aA_glob)
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
 c***  both latlon with equal resolution
