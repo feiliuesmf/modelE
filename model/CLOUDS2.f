@@ -1977,7 +1977,7 @@ C**** Subsidence of tracers by Quadratic Upstream Scheme
       END DO        ! end of sub-timesteps for subsidence
 C**** Check for v. rare negative humidity error condition
       DO L=LDMIN,LMAX
-        IF(QM(L).LT.0.d0) then 
+        IF(QM(L).LT.0.d0) then
           WRITE(0,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l
      $          ,qm(l),cmneg(l)
 C**** reduce subsidence post hoc.
@@ -1985,7 +1985,7 @@ C**** reduce subsidence post hoc.
             write(0,*) "Q neg cannot be fixed!",L,QM(L-1)
           ELSE
             QM(L-1)=QM(L-1)+QM(L)
-            QM(L)=0.           
+            QM(L)=0.
 #ifdef TRACERS_WATER
 C**** corresponding water tracer adjustment
             DO N=1,NTX
@@ -1998,7 +1998,7 @@ C**** corresponding water tracer adjustment
           END IF
         END IF
 #ifdef TRACERS_ON
-C**** check for independent tracer errors 
+C**** check for independent tracer errors
         DO N=1,NTX
           IF (t_qlimit(n) .and. TM(L,N).lt.0.) then
             WRITE(0,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
@@ -2942,6 +2942,7 @@ C**** Calculate probability of ice precip seeding a water cloud
           IF (LHX.EQ.LHE.AND.PMI.gt.0) THEN
             PRATIO=MIN(PMI/(PML+1.E-20),10d0)
             CM00=3.d-5           ! reduced by a factor of 3
+            IF(ROICE.GT..1d0) CM00=3.d-4
             CM0=CM00
             IF(VDEF.GT.0.) CM0=CM00*10.**(-0.2*VDEF)
             CBFC0=.5*CM0*CBF*DTsrc
@@ -2961,7 +2962,11 @@ C**** If liquid rain falls into an ice cloud, B-F must occur
 C**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
       CM00=1.d-4
       IF(LHX.EQ.LHS.AND.SVWMXL(L).LE.0d0) CM00=1.d-3
-      IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
+C     IF(LHX.EQ.LHE) CM00=3.d-5           ! reduced by a factor of 3
+      IF(LHX.EQ.LHE) THEN                 ! reduced by a factor of 3
+        CM00=3.d-5
+        IF(ROICE.GT..1d0) CM00=3.d-4
+      END IF
       CM0=CM00
       IF(VDEF.GT.0.) CM0=CM00*10.**(-0.2*VDEF)
 
@@ -3677,8 +3682,8 @@ C**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
         RHO=1d5*PL(L)/(RGAS*TL(L))
         TEM=RHO*WMX(L)/(WCONST*FCLD+teeny)
         IF(LHX.EQ.LHS ) TEM=RHO*WMX(L)/(WMUI*FCLD+teeny)
-        IF(LHX.EQ.LHE.AND.ROICE.GT..1d0) TEM=RHO*WMX(L)
-     *    /(WMUSI*FCLD+teeny)
+C       IF(LHX.EQ.LHE.AND.ROICE.GT..1d0) TEM=RHO*WMX(L)
+C    *    /(WMUSI*FCLD+teeny)
         TEM=TEM*TEM
         IF(TEM.GT.10.) TEM=10.
         CM1=CM0
