@@ -195,6 +195,264 @@ c     we do boundary conditions by hand
       end subroutine bilin_ll2cs_vec
 
 
+      subroutine parallel_bilin_latlon_B_2_CS_C_U(gridin,gridout,
+     &     uin_loc,uout_glob,IM_LL,JM_LL)
+!@sum linearly interpolate a U-velocity field from Latlon B-grid to the CS C-grid
+!@auth Denis Gueyffier
+      use regrid_com
+      use constant, only : radian
+      use resolution, only : im_cs=>im,jm_cs=>jm
+      use geom, only : lat2d, lon2d, lat2d_dg, lon2d_dg,lonlat_to_ij,
+     &     lat2d_corner,lon2d_corner
+      use domain_decomp_1d, only : halo_update
+      implicit none
+      type (dist_grid), intent(in) :: gridin,gridout
+      real*8 :: uin_loc(gridin%I_STRT_HALO:gridin%I_STOP_HALO,
+     &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
+     &     uout_glob(IM_CS,JM_CS)
+      real*8 :: u11,u12,u21,u22
+      real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
+      real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
+      real*8 :: ll(2),lon_mid,lat_mid
+      integer :: im_ll,jm_ll
+      integer :: i,j,i_lon,j_lat,im_lon,jm_lat,i1,i2,j1,j2, 
+     &     i0_ll,i1_ll,j0_ll,j1_ll,i0_cs,i1_cs,j0_cs,j1_cs
+      integer :: ij(2),ij1(2),ij2(2),ij3(2),ij4(2),i_cs,j_cs
+      logical :: in1,in2,in3,in4
+
+      i0_cs=gridout%I_STRT
+      i1_cs=gridout%I_STOP
+      j0_cs=gridout%J_STRT
+      j1_cs=gridout%J_STOP
+
+      i0_ll=gridin%I_STRT
+      i1_ll=gridin%I_STOP
+      j0_ll=gridin%J_STRT
+      j1_ll=gridin%J_STOP
+
+      uout_glob(:,:) = 0.
+
+      dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
+      IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
+      dlon_dg = 360./dble(IM_LL)
+      fjeq=0.5*(1+JM_LL)
+
+      call halo_update(gridin,uin_loc)
+
+c      
+c***  loop on points in target (CS) domain
+c
+      do j=j0_cs,j1_cs
+         do i=i0_cs,i1_cs
+
+c     find (ilon,jlat) indices of latlon cell containing the mid-point of the right edge of the (i,j) CS cell
+            lon_mid=0.5*(lon2d_corner(i+1,j+1)+lon2d_corner(i+1,j))
+     &           /radian
+            lat_mid=0.5*(lat2d_corner(i+1,j+1)+lat2d_corner(i+1,j))
+     &           /radian
+
+            i_lon = nint(im_ll/2 + 1  + (lon_mid+.01)/dlon_dg )
+            j_lat = nint(jm_ll/2 + 1  + (lat_mid+.01)/dlat_dg )
+
+c     find the 4 corner velocities on latlon B-grid 
+c     first reconstruct latlon coordinates of current latlon cell
+            if (i_lon .ne. 1) then 
+               lon_curr = -180.+(i_lon-0.5)*dlon_dg
+            else
+               lon_curr = -180.+0.5*dlon_dg
+            endif
+            if (j_lat .ne. 1 .and. j_lat .ne. jm_ll) then
+               lat_curr = dlat_dg*(j_lat - fjeq)
+            elseif (j_lat .eq. 1) then
+               lat_curr = -90.
+            elseif (j_lat .eq. jm_ll) then
+               lat_curr = 90
+            endif
+
+            lon1 = lon_curr - 0.5*dlon_dg
+            I1 = i_lon
+            lon2 = lon1 + dlon_dg
+            I2 = I1+1
+            lat1 = lat_curr - 0.5*dlat_dg
+            J1 = j_lat -1
+            lat2 = lat1 + dlat_dg
+            J2 = J1 + 1
+
+
+c            write(*,100) "lon1 lon lon2",lon1,lon2d_dg(i,j),lon2
+c            write(*,100) "lat1 lat lat2",lat1,lat2d_dg(i,j),lat2
+c 100        format(A,3(1X,F8.2))
+
+            if ( I1 .ne. 0 .and. I2 .ne. im_ll+1) then          
+               u11 = uin_loc(I1,J1)
+               u21 = uin_loc(I2,J1)
+               u12 = uin_loc(I1,J2)
+               u22 = uin_loc(I2,J2)
+c     periodic boundary conditions in x direction
+            else
+               if ( I1 .eq. 0) then
+                  write(*,*) "i1=0",i1
+                  u11 = uin_loc(im_ll,J1)   !periodicity
+                  u12 = uin_loc(im_ll,J2)   !periodicity
+               endif
+               if ( I2 .eq. im_ll+1) then
+                  write(*,*) "i2=im_ll+1",i2
+                  u21 = uin_loc(1,J1)   !periodicity
+                  u22 = uin_loc(1,J2)   !periodicity
+               endif
+            endif
+
+
+            if (j_lat .ge. j0_ll .and. j_lat .le. j1_ll) then
+
+               dnm=1.d0/(dlon_dg*dlat_dg)
+               
+               uout_glob(i,j)=dnm*( 
+     &              u11*( lon2-lon_mid )*( lat2-lat_mid ) 
+     &              +u21*( lon_mid-lon1 )*( lat2-lat_mid ) 
+     &              +u12*( lon2-lon_mid )*( lat_mid-lat1 )
+     &              +u22*( lon_mid-lon1 )*( lat_mid-lat1 ) 
+     &              )
+            endif
+
+         enddo
+      enddo
+      
+      call sumxpe(uout_glob)
+      
+      end subroutine parallel_bilin_latlon_B_2_CS_C_U
+c*
+
+
+      subroutine parallel_bilin_latlon_B_2_CS_C_V(gridin,gridout,
+     &     vin_loc,vout_glob,IM_LL,JM_LL)
+!@sum linearly interpolate a V-velocity field from Latlon B-grid to the CS C-grid
+!@auth Denis Gueyffier
+      use regrid_com
+      use constant, only : radian
+      use resolution, only : im_cs=>im,jm_cs=>jm
+      use geom, only : lat2d, lon2d, lat2d_dg, lon2d_dg,lonlat_to_ij,
+     &     lat2d_corner,lon2d_corner
+      use domain_decomp_1d, only : halo_update
+      implicit none
+      type (dist_grid), intent(in) :: gridin,gridout
+      real*8 :: vin_loc(gridin%I_STRT_HALO:gridin%I_STOP_HALO,
+     &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
+     &     vout_glob(IM_CS,JM_CS)
+      real*8 :: v11,v12,v21,v22
+      real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
+      real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
+      real*8 :: ll(2),lon_mid,lat_mid
+      integer :: im_ll,jm_ll
+      integer :: i,j,i_lon,j_lat,im_lon,jm_lat,i1,i2,j1,j2, 
+     &     i0_ll,i1_ll,j0_ll,j1_ll,i0_cs,i1_cs,j0_cs,j1_cs
+      integer :: ij(2),ij1(2),ij2(2),ij3(2),ij4(2),i_cs,j_cs
+      logical :: in1,in2,in3,in4
+
+      i0_cs=gridout%I_STRT
+      i1_cs=gridout%I_STOP
+      j0_cs=gridout%J_STRT
+      j1_cs=gridout%J_STOP
+
+      i0_ll=gridin%I_STRT
+      i1_ll=gridin%I_STOP
+      j0_ll=gridin%J_STRT
+      j1_ll=gridin%J_STOP
+
+      vout_glob(:,:) = 0.
+
+      dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
+      IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
+      dlon_dg = 360./dble(IM_LL)
+      fjeq=0.5*(1+JM_LL)
+
+      call halo_update(gridin,vin_loc)
+
+c      
+c***  loop on points in target (CS) domain
+c
+      do j=j0_cs,j1_cs
+         do i=i0_cs,i1_cs
+
+c     find (ilon,jlat) indices of latlon cell containing the mid-point of the right edge of the (i,j) CS cell
+            lon_mid=0.5*(lon2d_corner(i+1,j+1)+lon2d_corner(i,j+1))
+     &           /radian
+            lat_mid=0.5*(lat2d_corner(i+1,j+1)+lat2d_corner(i,j+1))
+     &           /radian
+
+            i_lon = nint(im_ll/2 + 1  + (lon_mid+.01)/dlon_dg )
+            j_lat = nint(jm_ll/2 + 1  + (lat_mid+.01)/dlat_dg )
+
+c     find the 4 corner velocities on latlon B-grid 
+c     first reconstruct latlon coordinates of current latlon cell
+            if (i_lon .ne. 1) then 
+               lon_curr = -180.+(i_lon-0.5)*dlon_dg
+            else
+               lon_curr = -180.+0.5*dlon_dg
+            endif
+            if (j_lat .ne. 1 .and. j_lat .ne. jm_ll) then
+               lat_curr = dlat_dg*(j_lat - fjeq)
+            elseif (j_lat .eq. 1) then
+               lat_curr = -90.
+            elseif (j_lat .eq. jm_ll) then
+               lat_curr = 90
+            endif
+
+            lon1 = lon_curr - 0.5*dlon_dg
+            I1 = i_lon
+            lon2 = lon1 + dlon_dg
+            I2 = I1+1
+            lat1 = lat_curr - 0.5*dlat_dg
+            J1 = j_lat -1
+            lat2 = lat1 + dlat_dg
+            J2 = J1 + 1
+
+
+c            write(*,100) "lon1 lon lon2",lon1,lon2d_dg(i,j),lon2
+c            write(*,100) "lat1 lat lat2",lat1,lat2d_dg(i,j),lat2
+c 100        format(A,3(1X,F8.2))
+
+            if ( I1 .ne. 0 .and. I2 .ne. im_ll+1) then          
+               v11 = vin_loc(I1,J1)
+               v21 = vin_loc(I2,J1)
+               v12 = vin_loc(I1,J2)
+               v22 = vin_loc(I2,J2)
+c     periodic boundary conditions in x direction
+            else
+               if ( I1 .eq. 0) then
+                  write(*,*) "i1=0",i1
+                  v11 = vin_loc(im_ll,J1)   !periodicity
+                  v12 = vin_loc(im_ll,J2)   !periodicity
+               endif
+               if ( I2 .eq. im_ll+1) then
+                  write(*,*) "i2=im_ll+1",i2
+                  v21 = vin_loc(1,J1)   !periodicity
+                  v22 = vin_loc(1,J2)   !periodicity
+               endif
+            endif
+
+
+            if (j_lat .ge. j0_ll .and. j_lat .le. j1_ll) then
+
+               dnm=1.d0/(dlon_dg*dlat_dg)
+               
+               vout_glob(i,j)=dnm*( 
+     &              v11*( lon2-lon_mid )*( lat2-lat_mid ) 
+     &              +v21*( lon_mid-lon1 )*( lat2-lat_mid ) 
+     &              +v12*( lon2-lon_mid )*( lat_mid-lat1 )
+     &              +v22*( lon_mid-lon1 )*( lat_mid-lat1 ) 
+     &              )
+            endif
+
+         enddo
+      enddo
+      
+      call sumxpe(vout_glob)
+      
+      end subroutine parallel_bilin_latlon_B_2_CS_C_V
+c*
+
+
       subroutine parallel_bilin_CS_A_2_latlon_A(gridin,gridout,
      &     ain_loc,aout_glob,im_ll,jm_ll)
 !@sum linearly interpolate a scalar field from CS A-grid to the latlon A-grid

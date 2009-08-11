@@ -1756,17 +1756,34 @@ c*
 
       subroutine INT_IceC2AtmC_U(iA,aA)
 !@sum interpolate from Ice C-grid to Atm C-grid for U component of vector
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : IMICDYN,grid_ICDYN
+      USE RESOLUTION, only : IM,JM
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-
+      integer :: i,j
 #ifdef CUBE_GRID
-!sumxpe global array on target latlon icedyn grid then scatter
+      real*8, allocatable :: aA_glob(:,:),iAtmp(:,:)
+      allocate (aA_glob(IM,JM),iAtmp(1:IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+c*   ICE C -> ICE B. change this if less smoothing is needed
+      call halo_update(grid_ICDYN,iA)
+      do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
+         do i=2,IMICDYN-1
+            iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i-1,j+1))
+         enddo
+            iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(IMICDYN,j+1))
+      enddo
+      call halo_update(grid_ICDYN,iAtmp)
+      call parallel_bilin_latlon_B_2_CS_C_U(grid_ICDYN,agrid,
+     &     iAtmp,aA_glob,IMICDYN,JMICDYN)
+      call ATM_UNPACK(agrid,aA_glob,aA)
+      deallocate(aA_glob,iAtmp)
 
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
@@ -1778,18 +1795,34 @@ c*
 
       subroutine INT_IceC2AtmC_V(iA,aA)
 !@sum interpolate from ICe C-grid to Atm C-grid for V component of vector
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : IMICDYN,grid_ICDYN
+      USE RESOLUTION, only : IM,JM
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-
+      integer :: i,j
 #ifdef CUBE_GRID
-!sumxpe global array on target latlon icedyn grid then scatter
-
+      real*8, allocatable :: aA_glob(:,:),iAtmp(:,:)
+      allocate (aA_glob(IM,JM),iAtmp(1:IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+c*   ICE C -> ICE B. change this if less smoothing is needed
+      call halo_update(grid_ICDYN,iA)
+      do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
+         do i=2,IMICDYN-1
+            iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i,j))
+         enddo
+            iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(1,j))
+      enddo
+      call halo_update(grid_ICDYN,iAtmp)
+      call parallel_bilin_latlon_B_2_CS_C_U(grid_ICDYN,agrid,
+     &     iAtmp,aA_glob,IMICDYN,JMICDYN)
+      call ATM_UNPACK(agrid,aA_glob,aA)
+      deallocate(aA_glob,iAtmp)
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
 c***  both latlon with equal resolution
