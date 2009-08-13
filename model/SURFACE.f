@@ -991,9 +991,9 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
 #ifdef SCM
       if (J.eq.J_TARG.and.I.eq.I_TARG) then
-          if (SCM_SURFACE_FLAG.eq.0) then
-              EVPFLX = EVPFLX + EVAP*PTYPE/DTSURF
-              SHFLX = SHFLX + SHDT*PTYPE/DTSURF
+          if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
+              EVPFLX = EVPFLX -(DQ1X*MA1)*(PTYPE/DTSURF)*LHE
+              SHFLX = SHFLX - SHDT*PTYPE/DTSURF
 c             write(iu_scm_prt,*) 'srf  evpflx shflx ptype ',
 c    *                   EVPFLX,SHFLX,ptype
           endif
@@ -1021,6 +1021,11 @@ cccccc for SCM use ARM provided fluxes for designated box
       DTH1(I,J)=DTH1(I,J)-(SHDT+dLWDT)*PTYPE/(SHA*MA1*P1K) ! +ve up
       DQ1(I,J) =DQ1(I,J) -DQ1X*PTYPE
 #ifdef SCM
+      if (i.eq.I_TARG.and.j.eq.J_TARG) then
+          write(iu_scm_prt,988) I,PTYPE,DTH1(I,J),DQ1(I,J),SHDT,dLWDT
+ 988      format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
+     &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
+      endif
       endif
 #endif
       DMUA(I,J,ITYPE)=DMUA(I,J,ITYPE)+PTYPE*DTSURF*RCDMWS*(US-UOCEAN)

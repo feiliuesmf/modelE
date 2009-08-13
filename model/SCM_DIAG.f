@@ -383,8 +383,8 @@ c
      +         SCM_SVWMXL(L)*1000.0,TAUSSC(L),TAUMCC(L),
      +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
  140     format(1x,i2,f8.2,' T ',f7.2,' Q',f7.3,' WMss mc det',
-     +          3(f6.3),' tauss mc',2(f7.2),' cfss mc',
-     +          2(f7.3),' cld',f5.1)
+     +          3(f7.3),' tauss mc',2(f7.2),' cfss mc',
+     +          2(f7.2),' cld',f5.1)
       enddo 
 
 c     do L=1,LM

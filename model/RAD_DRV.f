@@ -837,9 +837,9 @@ cdmk last line saved for IE
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
       USE PBLCOM, only : wsavg,tsavg
 #ifdef SCM
-      USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
-     *                    SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,
-     *                    TRDFLBBOT,SRFHRLCOL,TRFCRLCOL
+      USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,TRUFLBTOP,
+     *                    SRDFLBBOT,SRNFLBBOT,SRUFLBBOT,TRUFLBBOT,
+     *                    TRDFLBBOT,TRDFLBTOP,SRFHRLCOL,TRFCRLCOL
 #endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      *     ,adiurn=>adiurn_loc,ndiuvar,
@@ -2013,7 +2013,10 @@ C**** Save fluxes at four levels surface, P0, P1, LTROPO
           SRNFLBTOP = SRNFLB(LM+LM_REQ+1) * COSZ1(I,J)  ! P0 = TOA
           SRDFLBBOT = SRDFLB(1) * COSZ1(I,J)
           SRDFLBTOP = SRDFLB(LM+LM_REQ+1) * COSZ1(I,J)
+          SRUFLBBOT = SRUFLB(1) * COSZ1(I,J)
+          SRUFLBTOP = SRUFLB(LM+LM_REQ+1) * COSZ1(I,J)
           TRUFLBTOP = TRUFLB(LM+LM_REQ+1)
+          TRDFLBTOP = TRDFLB(LM+LM_REQ+1)
           TRUFLBBOT = TRUFLB(1)
           TRDFLBBOT = TRDFLB(1)
       endif

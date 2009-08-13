@@ -12,6 +12,7 @@ C-------------------------------------------------------------------------------
 C SCM DATA as provided from ARM variational analysis 
 !@var SG_P Pressure at GCM sigma levels (mb)
       REAL*8 SG_P(LM)
+      REAL*8 SGE_P(LM)
 !@var SG_HGT Height of layer at GCM sigma levels (m)
       REAL*8 SG_HGT(LM)
 !@var SG_T ARM Temperature at GCM sigma levels (K)
@@ -83,6 +84,7 @@ C SCM DATA as provided from ARM variational analysis
   
 !@var SCM_SURFACE_FLAG 0-use GCM calculated surface fluxes,
 !                      1-use SCM prescribed surface fluxes  
+!                      2-use SCM surf temps and GCM calculated surface fluxes
       INTEGER SCM_SURFACE_FLAG
 !@var SCM_ATURB_FLAG   0-run with dry convection routine
 !                      1-run with aturb routine
@@ -148,7 +150,7 @@ c
 
 !@var SCM_SURFACE FLAG   0-run with GCM calculated surface fluxes
 !                       1-run with ARM prescribed surface fluxes
-
+!                       2-RUN WITH ARM srf tmps and GCM calc srf fluxes
       SCM_SURFACE_FLAG = 1     
 
 !@var SCM_ATURB_FLAG     0-run with DRYCNV dry convection routine 

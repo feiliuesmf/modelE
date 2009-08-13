@@ -36,6 +36,11 @@ C-------------------------------------------------------------------------------
      &        'SCM set to run with ARM prescribed surface fluxes'
           write(iu_scm_prt,*) 
      &        'SCM set to run with ARM prescribed surface fluxes'
+      else if (SCM_SURFACE_FLAG.eq.2) then
+          write(0,*) 
+     &        'SMC set to run with ARM srf tmps + GCM calc srf fluxes'
+          write(iu_scm_prt,*)
+     &        'SCM set to run with ARM srf tmps + GCM calc srf fluxes'
       endif
       NARM = 6                        ! for 30 min time steps from 3-hourly input 
       TAUARM = 0                      ! not used for now 
@@ -88,12 +93,12 @@ c
       WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)  
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
-      QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
-      TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)   
+
       GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
       GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
       GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
       GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
+
       write(iu_scm_prt,120) GTEMP(1,1,I_TARG,J_TARG),
      &      GTEMP(2,1,I_TARG,J_TARG),GTEMP(1,4,I_TARG,J_TARG),
      &      GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
@@ -758,7 +763,10 @@ C
      &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
  25   format(1x,'pass flags  land ocean lice lake earth0 earth ',
      &   6(f8.3))
-
+c
+c     if you want to change the land/water flags --- this is the place to do it
+c
+c
       call pass_scm_surface 
       call pass_scm_layers 
 
@@ -791,8 +799,6 @@ c            write(iu_scm_prt,310) L,Q(I_TARG,J_TARG,L),SG_T(L),
 c    &                     T(I_TARG,J_TARG,L)
 c310         format(1x,'NEW ICS  L Q SGT T ',i5,E10.4,f9.2,f8.2)
           enddo 
-          QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
-          TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
           GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
           GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN 
           GTEMPR(1,I_TARG,J_TARG) = ATSKIN + TF
@@ -815,8 +821,6 @@ c
       USAVG(I_TARG,J_TARG) = AUS
       VSAVG(I_TARG,J_TARG) = AVS
       if (SCM_SURFACE_FLAG.eq.1) then
-          QSAVG(I_TARG,J_TARG)  = AQS              !BLDATA(3)
-          TSAVG(I_TARG,J_TARG)  = ATSAIR + TF      !BLDATA(2)
           GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
           GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN   
           GTEMPR(1,I_TARG,J_TARG) = ATSKIN+TF
@@ -868,7 +872,6 @@ C     pass three hour data and interpolate to 1 hr data
      &       hta1hr(NPARM,MCT),vsa1hr(NPARM,MCT),
      &       hqa1hr(NPARM,MCT),vqa1hr(NPARM,MCT),acld1hr(NPARM,MCT)
    
-      real*8 SGE_P(LM+1)
       real*8 APE(NPARM+1),AP(NPARM)
       real*8 DELTAP,DELAG,DELAG1,DELAG2 
       real*8 QSC
