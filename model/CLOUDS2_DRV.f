@@ -157,7 +157,8 @@
       USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
      &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
      &                    ENTSCM,ENTALL,ENTDEEP,
-     &                    DETRAINDEEP,TPALL,PRCSS,PRCMC
+     &                    DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,
+     &                    dTHss,dqss,SCM_SVWMXL
 #endif
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
@@ -657,6 +658,14 @@ c**** uncomment lines marked QCON to check water conservation
 cQCON q0 = sum(QM(:)+WML(:)*AIRM(:))*100.*BYGRAV
 cECON  E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
 cECON*     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
+#ifdef SCM
+      if (I.eq.I_TARG.and.J.eq.J_TARG) then
+          do L=1,LM
+             dTHmc(L) = T(I,J,L)
+             dqmc(L) = Q(I,J,L)
+          enddo
+      endif
+#endif
 
 C**** MOIST CONVECTION
       CALL MSTCNV(IERR,LERR,i,j)
@@ -846,6 +855,16 @@ C**** level 1 downfdraft mass flux/rho (m/s)
         DDM1(I,J) = (1.-FSSL(1))*DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)
      *       *DTSrc)
       END IF
+#ifdef SCM
+      if (I.eq.I_TARG.and.J.eq.J_TARG) then
+          do L=1,LM
+             dTHmc(L) = T(I,J,L)-dTHmc(L)
+             dqmc(L) = Q(I,J,L)-dqmc(L)
+             dTHss(L) = T(I,J,L) 
+             dqss(L) = Q(I,J,L)
+          enddo
+      endif
+#endif
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
@@ -890,6 +909,11 @@ C****
         SMOM(:,L)=SMOMLS(:,L)
         QMOM(:,L)=QMOMLS(:,L)
       END DO
+#ifdef SCM
+      if (I.eq.I_TARG.and.J.eq.J_TARG) then
+          SCM_SVWMXL(:) = SVWMXL(:)
+      endif
+#endif
       WMX(:)=WML(:)+SVWMXL(:)
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
 #ifdef SCM
@@ -1239,6 +1263,14 @@ C**** CALCULATE WIND TENDENCIES AND STORE IN UKM,VKM
             END DO
          END IF
       ENDDO
+#ifdef SCM
+      if (I.eq.I_TARG.and.J.eq.J_TARG) then
+          do L=1,LM
+             dTHss(L) = T(I,J,L) - dTHss(L)
+             dqss(L) = Q(I,J,L) - dqss(L)
+          enddo
+      endif
+#endif
 
 C**** Uncomment next two lines for check on water conservation
 cQCON q2=sum((Q(I,J,:)+WMX(:))*AIRM(:))*100*BYGRAV+PRCP

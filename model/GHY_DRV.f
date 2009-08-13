@@ -1394,7 +1394,7 @@ c**** wearth+aiearth are used in radiation only
       soil_surf_moist(i,j) = 1000.*(fb*w(1,1) + fv*w(1,2))/dz_ij(i,j,1)
 #ifdef SCM
       if ((I.eq.I_TARG.and.J.eq.J_TARG)
-     &     .and.SCM_SURFACE_FLAG.eq.1) then
+     &     .and.SCM_SURFACE_FLAG.ge.1) then
            gtemp(1,4,i,j) = ATSKIN
            gtempr(4,i,j) = ATSKIN + tf
       endif
@@ -1412,21 +1412,27 @@ C**** calculate correction for different TG in radiation and surface
 #ifdef SCM
 c     if SCM use sensible and latent heat fluxes provided by ARM
 c        values
-      if ((i.eq.I_TARG.and.j.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
-           dth1(i,j)=dth1(i,j)
+      if (i.eq.I_TARG.and.j.eq.J_TARG) then
+          if (SCM_SURFACE_FLAG.eq.1) then
+             dth1(i,j)=dth1(i,j)
      &             +ash*pbl_args%dtsurf*ptype/(sha*ma1*p1k)
-           dq1(i,j) =dq1(i,j)
+             dq1(i,j) =dq1(i,j)
      &             +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
-           EVPFLX = EVPFLX + ALH*ptype
-           SHFLX = SHFLX + ASH*ptype
-           write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),EVPFLX,SHFLX
- 981       format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',i5,
-     &            f9.4,f9.4,f9.5,f11.5,f11.5)
+             EVPFLX = EVPFLX + ALH*ptype
+             SHFLX = SHFLX + ASH*ptype
+             write(iu_scm_prt,981) i,ptype,dth1(i,j),dq1(i,j),
+     &                  EVPFLX,SHFLX
+ 981         format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',
+     &            i5,f9.4,f9.4,f9.5,f11.5,f11.5)
+          elseif (SCM_SURFACE_FLAG.eq.2) then
+             dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+             dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
+c            write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
+c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
+          endif
       else
-           dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
-           dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
-c          write(iu_scm_prt,982) i,ptype,dth1(i,j),dq1(i,j)
-c982       format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
+          dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
+          dq1(i,j) =dq1(i,j)+aevap*ptype/ma1
       endif
 #else
       dth1(i,j)=dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1*p1k)
@@ -1581,7 +1587,7 @@ c***********************************************************************
 #ifdef TRACERS_DUST
       USE PBLCOM,ONLY : eabl,uabl,vabl,tabl,qabl
 #endif
-      use constant, only : tf
+      use constant, only : tf,lhe
 #ifdef TRACERS_DUST
      &     ,grav
 #endif
@@ -1793,9 +1799,9 @@ c**** quantities accumulated for regions in diagj
 
 #ifdef SCM
       if (J.eq.J_TARG.and.I.eq.I_TARG) then
-          if (SCM_SURFACE_FLAG.eq.0) then
-              EVPFLX = EVPFLX + aevap*PTYPE/DTSURF
-              SHFLX  = SHFLX  + SHDT *PTYPE/DTSURF
+          if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
+              EVPFLX = EVPFLX + aevap*PTYPE*lhe/DTSURF
+              SHFLX  = SHFLX  - SHDT *PTYPE/DTSURF
 c             write(iu_scm_prt,*) 'ghy_drv  evpflx shflx ptype ',
 c    &                  EVPFLX,SHFLX,ptype
           endif
@@ -2494,7 +2500,7 @@ c**** set gtemp array
             gtempr(4,i,j) =tearth(i,j)+tf
 #ifdef SCM
             if ((i.eq.I_TARG.and.j.eq.J_TARG)
-     &                .and.SCM_SURFACE_FLAG.eq.1) then
+     &                .and.SCM_SURFACE_FLAG.ge.1) then
                  gtemp(1,4,i,j) = ATSKIN
                  gtempr(4,i,j) = ATSKIN + tf
             endif
@@ -4815,7 +4821,7 @@ c**** wearth+aiearth are used in radiation only
           gtempr(4,i,j) =tearth(i,j)+tf
 #ifdef SCM
           if ((I.eq.I_TARG.and.j.eq.J_TARG)
-     &            .and.SCM_SURFACE_FLAG.eq.1) then
+     &            .and.SCM_SURFACE_FLAG.ge.1) then
                gtemp(1,4,i,j) = ATSKIN
                gtempr(4,i,j) = ATSKIN + tf
           endif

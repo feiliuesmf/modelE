@@ -21,7 +21,9 @@
      &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
      &                    ENTSCM,ENTALL,ENTDEEP,DETRAINDEEP,
      &                    TPALL,PRCCGRP,PRCCICE,MCCOND,
-     &                    PRESAV,LHPSAV,PREMC,LHPMC
+     &                    PRESAV,LHPSAV,PREMC,LHPMC,
+     &                    CUMFLX,DWNFLX,SCM_LWP_MC,SCM_LWP_SS,
+     &                    SCM_IWP_MC,SCM_IWP_SS,SCM_WM_MC
 #endif
 #ifdef BLK_2MOM
       USE mo_bulk2m_driver_gcm, ONLY: execute_bulk2m_driver
@@ -684,6 +686,12 @@ C**** zero out diagnostics
          DDMFLX=0.
          TDNL=0.
          QDNL=0.
+#ifdef SCM
+         if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
+             CUMFLX=0.
+             DWNFLX=0.
+         endif
+#endif
 C**** save initial values (which will be updated after subsid)
       SM1=SM
       QM1=QM
@@ -2029,6 +2037,14 @@ C**** diagnostics
         DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
         DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
         DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
+#ifdef SCM
+        if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
+            CUMFLX(L) = 100.*MCFLX(L)*bygrav/dtsrc
+            DWNFLX(L) = 100.*DDMFLX(L)*bygrav/dtsrc
+c           write(iu_scm_prt,*) 'L CUMFLX DWNFLX ',
+c    &            L,CUMFLX(L),DWNFLX(L)
+        endif
+#endif
 C       IF(L.GT.LLMIN) DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 C       IF(L.EQ.1) THEN
 C         IF(DDMFLX(1).GT.0.) WRITE(6,*) 'DDM TDN1 QDN1=',
@@ -2475,6 +2491,13 @@ C**** LOAD MASS EXCHANGE ARRAY FOR GWDRAG
 C**** CALCULATE OPTICAL THICKNESS
       WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
       WMSUM=0.
+#ifdef SCM
+      if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
+          SCM_LWP_MC = 0.d0
+          SCM_IWP_MC = 0.d0
+          SCM_WM_MC = 0.d0
+      endif
+#endif
 #ifdef CLD_AER_CDNC
       WMCLWP=0.  ; WMCTWP=0. ; ACDNWM=0. ; ACDNIM=0.
       AREWM=0.   ; AREIM=0.  ; ALWWM=0.  ; ALWIM=0.
@@ -2484,6 +2507,16 @@ C**** CALCULATE OPTICAL THICKNESS
         TL(L)=(SM(L)*BYAM(L))*PLK(L)
         TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
         IF(TL(L).GE.TF) WMSUM=WMSUM+TEMWM ! pick up water path
+#ifdef SCM
+        if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
+            SCM_WM_MC(L) = TAUMCL(L)*BYAM(L)-SVWMXL(L)
+            if (TL(L).GE.TF) SCM_LWP_MC = SCM_LWP_MC + TEMWM
+            if (TL(L).LT.TF) SCM_IWP_MC = SCM_IWP_MC + TEMWM
+        endif   
+#endif
+
+
+
 #ifdef CLD_AER_CDNC
         WMCTWP=WMCTWP+TEMWM
         IF(TL(L).GE.TF) WMCLWP=WMCLWP+TEMWM
@@ -4459,6 +4492,12 @@ c**** energy fix?
 
 C**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
       WMSUM=0.
+#ifdef SCM
+      if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
+          SCM_LWP_SS = 0.d0
+          SCM_IWP_SS = 0.d0
+      endif
+#endif
 #ifdef CLD_AER_CDNC
       ACDNWS=0.
       ACDNIS=0.
@@ -4658,6 +4697,12 @@ c    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
         IF(FCLD.LE.teeny) TAUSSL(L)=0.
         IF(TAUSSL(L).GT.100.) TAUSSL(L)=100.
         IF(LHX.EQ.LHE) WMSUM=WMSUM+TEM      ! pick up water path
+#ifdef SCM
+        if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
+            if (LHX.eq.LHE) SCM_LWP_SS = SCM_LWP_SS + TEM
+            if (LHX.eq.LHS) SCM_IWP_SS = SCM_IWP_SS + TEM
+        endif
+#endif
 #ifdef CLD_AER_CDNC
         SMLWP=WMSUM
 #endif
