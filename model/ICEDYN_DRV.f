@@ -509,7 +509,7 @@ c temporarily empty.
       USE ICEDYN, only : imicdyn,jmicdyn,  !dimensions of icedyn grid
      &     nx1,ny1
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
-     &     atm_pack=>pack_data
+     &     atm_pack=>pack_data,am_i_root
       USE DOMAIN_DECOMP_1D, only : DIST_GRID, iGET=>GET
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH, SOUTH
       USE GEOM, only : abyaxyp=>byaxyp,imaxj
@@ -529,6 +529,9 @@ c temporarily empty.
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
       IMPLICIT NONE
+#ifdef CUBE_GRID
+      include 'mpif.h'
+#endif
       SAVE
 C**** intermediate calculation for pressure gradient terms
       REAL*8, DIMENSION(IMICDYN, 
@@ -594,6 +597,20 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     iDMVI(1:IMICDYN,iJ_0H:iJ_1H)
      &     )
 
+c*    for debugging purpose only
+#ifdef CUBE_GRID
+      call MPI_COMM_RANK( MPI_COMM_WORLD, mype, ierr )
+      allocate(itest(IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
+     &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO))
+      itest(:,:)=mype+1
+      call INT_IceB2AtmA(itest,atest)
+      call stop_model("debugging iceB2AtmA",255)
+#endif
+c*
+
+      
 C**** Start main loop
 C**** Replicate polar boxes
       if (agrid%HAVE_NORTH_POLE) then
@@ -1094,24 +1111,6 @@ c      write(800+mype,*) rsi
 c      write(900+mype,*) focean
 
 
-c*    for debugging purpose only
-#ifdef CUBE_GRID
-      allocate(itest(IMICDYN,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
-     &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     atest_glob(aIM,aJM,6))
-      itest(:,:)=mype
-      call INT_IceB2AtmA(itest,atest)
-      open(900,FILE="iB2aA",FORM='unformatted',
-     &        STATUS='unknown')
-      call ATM_PACK(agrid,atest,atest_glob)
-      title="test ice b to Atm A"
-      write(900) title,atest_glob
-      close(900)
-      deallocate(itest,atest,atest_glob)
-#endif
-c*
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,
      &     iDMUI,iDMVI)
@@ -1902,10 +1901,12 @@ c*
       subroutine INT_IceB2AtmA(iAb,aAa)
 !@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
       USE RESOLUTION, only : aIM=>IM,aJM=>JM
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
-     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
+     &     ATM_UNPACK=>UNPACK_DATA,am_i_root
       USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
+      integer :: mype,ierr
+      character*80 :: title
       real *8 ::
      &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
@@ -1914,11 +1915,22 @@ c*
  
 #ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:,:)
-      allocate(aA_glob(aIM,aJM,6))
+      real*4, allocatable :: a4_glob(:,:,:)
+      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
       call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
      &     iAb,aA_glob,IMICDYN,JMICDYN)
+
+      if (am_i_root()) then
+      open(900,FILE="iB2aA",FORM='unformatted',
+     &        STATUS='unknown')
+      title="test"
+      a4_glob=aA_glob
+      write(900) title,a4_glob
+      close(900)
+      endif
+
       call ATM_UNPACK(agrid,aA_glob,aAa)
-      deallocate(aA_glob)
+      deallocate(aA_glob,a4_glob)
 #endif
       end subroutine INT_IceB2AtmA
 
