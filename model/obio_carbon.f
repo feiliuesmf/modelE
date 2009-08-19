@@ -210,6 +210,7 @@ c pCO2
       if(vrbos)then
         write(*,'(a,3i5,9e12.4)')
      .    'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
+!    .    '66666666666666',nstep,i,j,temp1d(1),saln1d(1),
      .               car(1,2),alk1d(1),
      .               obio_P(1,1),obio_P(1,3),pCO2_ij,
      .               pHsfc,pnoice
@@ -234,7 +235,6 @@ c Update DIC for sea-air flux of CO2
       term = tracflx1d(nt)           ! mol/m2/s
      .     * 3600.D0                 ! mol/m2/hr
      .     /dp1d(k)                  ! mol/m3/hr
-!    .     / tr_mm(nt)/1.D-3         ! mol/m3/hr
      .     * 1000.D0*pnoice          !units of uM/hr (=mili-mol/m3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
@@ -242,6 +242,7 @@ c Update DIC for sea-air flux of CO2
          if (vrbos) then
          write(*,'(a,3i7,i3,4e12.4)')
      .     'obio_carbon (coupled):',
+!    .     '5555555555555555555555',
      .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
          endif
 
@@ -267,7 +268,7 @@ c Update DIC for sea-air flux of CO2
       tk = 273.15+Ts
       tk100 = tk*0.01
       tk1002 = tk100*tk100
-      ff = exp(-162.8301 + 218.2968/tk100  +    !solubility
+      ff = exp(-162.8301 + 218.2968/tk100  +    
      .         90.9241*log(tk100) - 1.47696*tk1002 +
      .         saln1d(k) * (.025695 - .025225*tk100 +
      .         0.0049867*tk1002))
@@ -455,12 +456,18 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.30 $
-c_ $Date: 2009/08/05 18:15:41 $   ;  $State: Exp $
+c_ $Revision: 2.31 $
+c_ $Date: 2009/08/19 13:03:12 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.31  2009/08/19 13:03:12  aromanou
+c_
+c_ Changes to allow for interactive gas exchange and prognostic CO2 in the
+c_ atmosphere. Still some work (and cleaning up) needed. Mostly over ice, odd
+c_ atmospheric tracer behavior.
+c_
 c_ Revision 2.30  2009/08/05 18:15:41  aromanou
 c_
 c_ CO2 gas exchange for case of prognostic atmospheric CO2 (both oceans):
@@ -931,12 +938,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.30 $
-c_ $Date: 2009/08/05 18:15:41 $   ;  $State: Exp $
+c_ $Revision: 2.31 $
+c_ $Date: 2009/08/19 13:03:12 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.31  2009/08/19 13:03:12  aromanou
+c_
+c_ Changes to allow for interactive gas exchange and prognostic CO2 in the
+c_ atmosphere. Still some work (and cleaning up) needed. Mostly over ice, odd
+c_ atmospheric tracer behavior.
+c_
 c_ Revision 2.30  2009/08/05 18:15:41  aromanou
 c_
 c_ CO2 gas exchange for case of prognostic atmospheric CO2 (both oceans):
@@ -1152,12 +1165,18 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.30 $
-c_ $Date: 2009/08/05 18:15:41 $   ;  $State: Exp $
+c_ $Revision: 2.31 $
+c_ $Date: 2009/08/19 13:03:12 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.31  2009/08/19 13:03:12  aromanou
+c_
+c_ Changes to allow for interactive gas exchange and prognostic CO2 in the
+c_ atmosphere. Still some work (and cleaning up) needed. Mostly over ice, odd
+c_ atmospheric tracer behavior.
+c_
 c_ Revision 2.30  2009/08/05 18:15:41  aromanou
 c_
 c_ CO2 gas exchange for case of prognostic atmospheric CO2 (both oceans):

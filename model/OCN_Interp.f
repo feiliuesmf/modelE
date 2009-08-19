@@ -129,6 +129,7 @@
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM, only: nstep=>itime
       USE obio_com, only: pCO2
+      USE TRACER_COM, only : vol2mass
 #endif
 
       USE INT_OG2AG_MOD, only : INT_OG2AG
@@ -274,6 +275,7 @@ C**** surface tracer concentration
       END DO
       DO NT = 1,NTM
       CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)
+      aTRAC(:,:,NT) = aTRAC(:,:,NT) * 1.d-6 ! ppmv (uatm) -> atm (this is what PBL trcnst needs)
       END DO
 #endif
 #endif

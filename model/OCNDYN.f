@@ -11,7 +11,7 @@ C****
 C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
-      USE OCEANRES, only : NOCEAN
+      USE OCEANRES, only : NOCEAN,dZO
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VONP,IVNP, ! VOSP,IVSP,
@@ -38,6 +38,7 @@ C****
       USE TRACER_GASEXCH_COM, only: scatter_gasexch_com_arrays
 #endif
 #ifdef TRACERS_OceanBiology
+      USE MODEL_COM, only: nstep=>itime
       USE obio_com, only: gather_chl
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
@@ -201,6 +202,10 @@ C**** Advection of Potential Enthalpy and Salt
               OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
      +             (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)
             END IF
+c     do L=1,LMO
+c     write(*,'(a,5i5,3e12.4)')'for samar, ocndyn, ze',
+c    .  nstep,i,j,l,lmm(i,j),ze(l),dzo(l),ZE(LMM(I,J))
+c     enddo
           END DO
         END DO
 
@@ -4213,6 +4218,7 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
       USE DOMAIN_DECOMP_1D, ONLY : haveLatitude
+      USE MODEL_COM, only: nstep=>itime
 
       IMPLICIT NONE
       REAL*8, PARAMETER :: FSLIP=0.
@@ -4311,6 +4317,8 @@ C**** Discretisation errors need TANP/V to be defined like this
         TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
         TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:', 
+c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
       END DO
       !make halo_update if 2 is not present
       !barrier synchoronization is required before sending the message,
@@ -4320,11 +4328,15 @@ C**** Discretisation errors need TANP/V to be defined like this
         BYDXV(1)=1D0/DXVO(1)
         BYDYV(1)=1D0/DYVO(1)
         BYDYP(1)=1D0/DYPO(1)
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:', 
+c    .       nstep,1,dxpo(1),dypo(1),dxypo(1)
       endif
       if( HAVE_NORTH_POLE ) then
         BYDXP(JM)=1D0/DXPO(JM)
         BYDXYPJM=1D0/(DXYPO(JM)*IM)
         TANP(JM) = 0
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:', 
+c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
       endif
 
       CALL HALO_UPDATE(grid,TANP (grid%j_strt_halo:grid%j_stop_halo) ,
@@ -4944,6 +4956,9 @@ C**** do poles
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+          GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
+#endif
         END DO
       END IF
       end if
@@ -4959,6 +4974,9 @@ C**** do poles
           VOSURF(I,1) = VOSURF(1,1)
           OGEOZA(I,1)=OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
+          GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
+#endif
+#ifdef TRACERS_GASEXCH_ocean
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO

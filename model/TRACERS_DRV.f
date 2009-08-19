@@ -2109,6 +2109,9 @@ C**** Aerosol tracer output should be mass mixing ratio
           to_volume_MixRat(n) = 0    !default output to mass mixing ratio
       end select
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+          to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
+#endif
 #endif /* TRACERS_ON */
 
       end do
@@ -7471,6 +7474,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
 #ifdef constCO2
       USE obio_forc, only : atmCO2
+#else
+      USE RADPAR, only : xnow
 #endif
 #endif
 
@@ -8103,11 +8108,22 @@ c**** earth
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              !units: [am]=kg_air/m2, [axyp]=m2, [tr_mm]=kg_CO2,
              !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air
+             !       [vol2mass]=(gr,CO2/moleCO2)/(gr,air/mole air)
 #ifdef constCO2
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
+           write(*,'(a,4i5,2e12.5)')'11111111111111111',
+     .          i,j,l,n,atmCO2,trm(i,j,l,n)
+             gtracer(n,1,i,j) = vol2mass(n)
+     .                    * atmCO2 * 1.d-6
 #else
-             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)    !?? check: units now are kg_co2
+             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)    
+     .                    * xnow(1) * 1.d-6
+             gtracer(n,1,i,j) = vol2mass(n)
+     .                    * xnow(1) * 1.d-6
+
+!          write(*,'(a,4i5,2e12.5)')'11111111111111111',
+!    .          i,j,l,n,xnow(1),trm(i,j,l,n)
 #endif
           end do; end do; end do
 #endif
@@ -8743,6 +8759,14 @@ C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
 
       call tracer_IC
+
+!for the constCO2 case reset trm here
+#ifdef TRACERS_GASEXCH_ocean_CO2
+#ifdef constCO2
+             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
+     .                    * atmCO2*1.d-6
+#endif
+#endif
 
       return
       end subroutine daily_tracer

@@ -44,19 +44,29 @@ C**** Define some key values that depend on resolution (and grid)
 C**** LONGITUDES (degrees)
       oLON_DG(1,1) = -180.+360./(2.*FLOAT(IM))
       oLON_DG(1,2) = -180.+360./    FLOAT(IM)
+      write(*,'(a,i5,e12.4)')'for samar, ogeom lon',
+     .    1,olon_dg(1,1)
       DO I=2,IM
         oLON_DG(I,1) = oLON_DG(I-1,1)+360./FLOAT(IM)
         oLON_DG(I,2) = oLON_DG(I-1,2)+360./FLOAT(IM)
+c     write(*,'(a,i5,e12.4)')'for samar, ogeom lon',
+c    .    i,olon_dg(i,1)
       END DO
 C**** LATITUDES (degrees)
       oLAT_DG(1,1:2)=-90.
       oLAT_DG(JM,1)=90.
+c     write(*,'(a,i5,e12.4)')'for samar, ogeom lat',
+c    .    1,olat_dg(1,1)
       DO J=2,JM-1
         oLAT_DG(J,1)=oDLAT_DG*(J-FJEQ)    ! primary (tracer) latitudes
+c     write(*,'(a,i5,e12.4)')'for samar, ogeom lat',
+c    .    j,olat_dg(j,1)
       END DO
       DO J=2,JM
         oLAT_DG(J,2)=oDLAT_DG*(J-JM/2-1)  ! secondary (velocity) latitudes
       END DO
+c     write(*,'(a,i5,e12.4)')'for samar, ogeom lat',
+c    .    jm,olat_dg(jm,1)
 
 C****
 C**** Calculate geometric parameters defined at V latitudes

@@ -82,6 +82,8 @@
 
       real atmCO2
 
+      real rhosrf       !surface air density which comes from PBL.f
+
       contains
 
 !------------------------------------------------------------------------------

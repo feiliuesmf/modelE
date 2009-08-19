@@ -875,9 +875,12 @@ C**** solve tracer transport equation
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifdef constCO2
         !case where atmCO2 is constant
-!       write(*,'(a,4i5,2e12.4)')'PBL, tr:', 
-!    .   nstep,ilong,jlat,itr,atmCO2,tr(1,itr)
         tr(:,itr)=atmCO2            !ppmv(uatm)
+!       write(*,'(a,4i5,e12.4)')'22222222', 
+!    .   nstep,ilong,jlat,itr,tr(1,itr)
+#else
+!       write(*,'(a,4i5,3e12.4)')'22222222', 
+!    .   nstep,ilong,jlat,itr,tr(1,itr),trsf,trcnst
 #endif
 #endif
 

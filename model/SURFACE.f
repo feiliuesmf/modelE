@@ -134,6 +134,7 @@ C****
 #endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
+      USE TRACER_COM, only: vol2mass,tr_mm
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=>itime
 #else
@@ -572,7 +573,7 @@ C**** set defaults
 #ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
           pbl_args%alati=sss(I,J)
-          trgrnd(nx)=gtracer(n,itype,i,j)    !this needs to be in uatm for co2 case
+          trgrnd(nx)=gtracer(n,itype,i,j)    
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
 !        write(*,'(a,3i5,3e12.4)') 'in SURFACE:',
@@ -867,25 +868,45 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
-! Units are in mol/m2/sec
-          TRGASEX(n,ITYPE,I,J) =
-     .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
-     .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-! trsrfflx is positive up and units are mol/m2.
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
-     .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-     .               * axyp(i,j)*ptype
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-
-     .                           pbl_args%alpha_gas*1.024e-3*trgrnd(nx))
-     .               * axyp(i,j)*ptype*dtsurf
+! Units are in mol/m2/sec  for the case of constCO2
+! Units are (m/s)(kg,CO2/kg,air) for prognostic CO2 case
 
-!      write(*,'(a,3i5,8e12.4)')'SURFACE: ',
-!    .    nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
-!    .              pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J),
-!    .    pbl_args%Kw_gas *pbl_args%beta_gas*trs(nx),
-!    .    pbl_args%Kw_gas *pbl_args%alpha_gas*1.024e-3*trgrnd(nx)
+! [trgasex] = (m/s)*(kg,CO2/kg,air)
+          TRGASEX(n,ITYPE,I,J) =
+     .    (   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
+     .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
+     .                        * ptype
+
+!convert (m/s)(kg,CO2/kg,air) -> mol,CO2/m2/s
+!because obio_carbon needs molCO2/m2/s:
+         TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) 
+     .                        * rhosrf/(tr_mm(nx)*1.d-3)    
+
+! trsrfflx is positive up 
+          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
+     .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
+     .                   * ptype
+     .                   * axyp(i,j)
+
+          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
+     .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
+     .                   * ptype
+     .                   * axyp(i,j) * dtsurf
+
+   
+      if(i.eq.1 .and. j.eq.45) then
+!      write(*,'(a,3i5,10e12.4)')'333333333333',
+       write(*,'(a,3i5,10e12.4)')'SURFACE, trgasex:',
+     . nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
+     . pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J),
+     . pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx) 
+     .                 *ptype * rhosrf/(tr_mm(nx)*1.d-3),
+     . pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. 
+     .                 *ptype * rhosrf/(tr_mm(nx)*1.d-3),
+     . trsrfflx(i,j,n),rhosrf
+      endif
 
 #endif
        END IF

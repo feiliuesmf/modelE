@@ -864,6 +864,9 @@ C**** Set fluxed arrays for oceans
 #ifdef TRACERS_WATER    
           gtracer(:,1,i,j)=trw0(:)
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+          gtracer(1,1,:,:)=400.*1e-6   ! approximately 400(ppmv)*vol2mass(CO2)*1e-6, kg,CO2/kg,air
+#endif
         ELSE
           SSS(I,J) = 0.
         END IF
