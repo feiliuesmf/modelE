@@ -175,12 +175,18 @@
 
       !Read vegdata
       call get_vdata(vdata_H)
-      call get_cropdata(year, cropdata_H)
-      do k=1,N_COVERTYPES
-        vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)
-     &       *(1.d0-cropdata_H(I0:I1,J0:J1))
-      enddo
-      vegdata(9,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
+      if ( year == -1 ) then
+        do k=1,N_COVERTYPES
+          vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)
+        enddo        
+      else
+        call get_cropdata(year, cropdata_H)
+        do k=1,N_COVERTYPES
+          vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)
+     &         *(1.d0-cropdata_H(I0:I1,J0:J1))
+        enddo
+        vegdata(9,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
+      endif
 
       call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)

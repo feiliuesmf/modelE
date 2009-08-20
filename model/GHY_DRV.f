@@ -2526,6 +2526,7 @@ c**** compute roughnes length
             !if ( fearth(i,j) <= 0.d0 ) cycle
             if ( focean(i,j) >= 1.d0 ) cycle
 #ifdef USE_ENT
+            !print *,i,j,focean(i,j),fearth(i,j)
             call ent_get_exports( entcells(i,j),
      &           vegetation_fractions=fr_cover )
 #else
