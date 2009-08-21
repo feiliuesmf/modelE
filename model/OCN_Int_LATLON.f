@@ -367,6 +367,7 @@ C***  Scatter global array oA_glob to the ocean grid
 C***  Gather 3D array on atmospheric grid into the global array
 
       CALL PACK_COLUMN (aGRID, aA, aA_glob)
+      CALL PACK_COLUMN (oGRID, oA, oA_glob)
 
       CALL PACK_DATA (aGRID, aWEIGHT_loc, aWEIGHT)
 
