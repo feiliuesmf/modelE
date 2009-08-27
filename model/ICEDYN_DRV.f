@@ -430,14 +430,14 @@ C****
       use icedyn_com, only : grid=>grid_MIC,
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : defvar,write_attr
-      use geom, only : lon2d_dg,lat2d_dg ! TEMPORARY
+      use icedyn, only : lon_dg,lat_dg
       implicit none
       integer :: fid         !@var fid file id
 
-      call defvar(grid,fid,lat2d_dg(:,1),'latic(jmic)')
-      call defvar(grid,fid,lat2d_dg(:,2),'latic2(jmic)')
-      call defvar(grid,fid,lon2d_dg(:,1),'lonic(imic)')
-      call defvar(grid,fid,lon2d_dg(:,2),'lonic2(imic)')
+      call defvar(grid,fid,lat_dg(:,1),'latic(jmic)')
+      call defvar(grid,fid,lat_dg(:,2),'latic2(jmic)')
+      call defvar(grid,fid,lon_dg(:,1),'lonic(imic)')
+      call defvar(grid,fid,lon_dg(:,2),'lonic2(imic)')
 
       call write_attr(grid,fid,'icij','reduction','sum')
       call write_attr(grid,fid,'icij','split_dim',3)
@@ -457,14 +457,14 @@ C****
       use icedyn_com, only : grid=>grid_MIC,
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : write_dist_data,write_data
-      use geom, only : lon2d_dg,lat2d_dg ! TEMPORARY
+      use icedyn, only : lon_dg,lat_dg
       implicit none
       integer :: fid         !@var fid file id
 
-      call write_data(grid,fid,'latic',lat2d_dg(:,1))
-      call write_data(grid,fid,'latic2',lat2d_dg(:,2))
-      call write_data(grid,fid,'lonic',lon2d_dg(:,1))
-      call write_data(grid,fid,'lonic2',lon2d_dg(:,2))
+      call write_data(grid,fid,'latic',lat_dg(:,1))
+      call write_data(grid,fid,'latic2',lat_dg(:,2))
+      call write_data(grid,fid,'lonic',lon_dg(:,1))
+      call write_data(grid,fid,'lonic2',lon_dg(:,2))
 
       call write_data(grid,fid,'ia_icij',ia_icij)
       call write_data(grid,fid,'denom_icij',denom_icij)

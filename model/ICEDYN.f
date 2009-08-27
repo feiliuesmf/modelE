@@ -103,11 +103,11 @@ C**** Geometry inherited from geomb
 !@var  LAT latitude of mid point of primary grid box (radians)
       REAL*8, DIMENSION(JMICDYN) :: LAT
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
-      REAL*8, DIMENSION(JMICDYN,2) :: LAT_DG
+      REAL*8, DIMENSION(JMICDYN,2) :: LAT_DG  ! for diags
 !@var  LON longitude of mid points of primary grid box (radians)
       REAL*8, DIMENSION(IMICDYN) :: LON
 !@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
-      REAL*8, DIMENSION(IMICDYN,2) :: LON_DG
+      REAL*8, DIMENSION(IMICDYN,2) :: LON_DG  ! for diags
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
@@ -897,7 +897,7 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       IMPLICIT NONE
       INTEGER :: I_0H, I_1H, J_1H, J_0H, J_0,J_1,J_0S,J_1S
       INTEGER :: IER,I,J,K
-      REAL*8 :: DLAT_DG,DLATM,DLAT,LAT1,COSP1,DXP1
+      REAL*8 :: DLON_DG,DLAT_DG,DLATM,DLAT,LAT1,COSP1,DXP1
       REAL*8 :: DLON,phit,phiu,fjeq,acor,acoru
       REAL*8 :: SINV,SINVm1
 
@@ -1074,7 +1074,7 @@ c set cyclic conditions on eastern and western boundary
 c**** Geometry inherited from lat-lon B-grid (geomb)
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
-
+      DLON_DG=360./REAL(IMICDYN)
       DLAT_DG=180./REAL(JMICDYN)                   ! even spacing (default)
       IF (JMICDYN.eq.46) DLAT_DG=180./REAL(JMICDYN-1)   ! 1/2 box at pole for 4x5
       IF (JMICDYN.eq.24) DLAT_DG=180./REAL(JMICDYN-1.5) ! 1/4 box at pole, 'real' 8x10
@@ -1082,6 +1082,8 @@ C**** a partial box at the pole
       DLAT=DLAT_DG*radian
       LAT(1)  = -.25*TWOPI
       LAT(JMICDYN) = -LAT(1)
+      LAT_DG(1,1:2)  = -90
+      LAT_DG(JMICDYN,1) = +90
       SINP(1)  = -1.
       SINP(JMICDYN) = 1.
       COSP(1)  = 0.
@@ -1090,6 +1092,7 @@ C**** a partial box at the pole
       DXP(JMICDYN) = 0.
       DO J=2,JMICDYN-1
         LAT(J)  = DLAT*(J-FJEQ)
+        LAT_DG(J,1)  = DLAT_DG*(J-FJEQ)
         SINP(J) = SIN(LAT(J))
         COSP(J) = COS(LAT(J))
         DXP(J)  = RADIUS*DLON*COSP(J)
@@ -1099,6 +1102,7 @@ C**** a partial box at the pole
       COSP1   = COS(LAT1)
       DXP1    = RADIUS*DLON*COSP1
       DO J=2,JMICDYN
+        LAT_DG(J,2)  = DLAT_DG*(J-FJEQ-.5)
         COSV(J) = .5*(COSP(J-1)+COSP(J))
         DXV(J)  = .5*(DXP(J-1)+DXP(J))
         DYV(J)  = RADIUS*(LAT(J)-LAT(J-1))
@@ -1152,6 +1156,14 @@ C**** imaxj
       IMAXJ(1)=1
       IMAXJ(JMICDYN)=1
       IMAXJ(2:JMICDYN-1)=IMICDYN
+
+C**** LONGITUDES (degrees) for diagnostics
+      LON_DG(1,1) = -180.+0.5*dlon_dg
+      LON_DG(1,2) = -180.+dlon_dg
+      DO I=2,IMICDYN
+        LON_DG(I,1) = LON_DG(I-1,1)+dlon_dg
+        LON_DG(I,2) = LON_DG(I-1,2)+dlon_dg
+      END DO
 
       end subroutine GEOMICDYN
 c*
