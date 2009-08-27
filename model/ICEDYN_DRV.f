@@ -594,15 +594,23 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     )
 
 c*    for debugging purpose only
+
 #ifdef CUBE_GRID
       call MPI_COMM_RANK( MPI_COMM_WORLD, mype, ierr )
-      allocate(itest(IMICDYN,
+      allocate(itest(NX1,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
      &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO))
-      itest(:,:)=mype+1
-      call INT_IceB2AtmA(itest,atest)
-      call stop_model("debugging iceB2AtmA",255)
+      do i=1,NX1
+      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
+         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
+      enddo
+      enddo
+c      itest(:,:)=mype
+c      itest(:,:)=5
+c      call INT_IceB2AtmA(itest,atest)
+      call INT_IceB2AtmA_NX1(itest,atest)
+      call stop_model("debugging Ice to Atm interpolation",255)
 #endif
 c*
 
@@ -961,31 +969,31 @@ C**** Update halos for DMU, and DMV
       CALL HALO_UPDATE(grid_ICDYN,  DMU   , from=SOUTH     )
       CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
 
-c**** resampled on atm grid (CS or latlon) but still expressed in latlon basis
-      call INT_IceB2AtmB_NX1(DMU,aDMU) 
-      call INT_IceB2AtmB_NX1(DMV,aDMV)
+#ifdef CUBE_GRID
+c**** resampled on atm CS A-grid but still expressed in latlon basis
+      call INT_IceB2AtmA_NX1(DMU,aDMU)  
+      call INT_IceB2AtmA_NX1(DMV,aDMV)  
 
       CALL HALO_UPDATE(agrid,  aDMU  )
       CALL HALO_UPDATE(agrid,  aDMV  )
+#endif
       
       do j=aJ_0,aJ_1
          do i=aI_0,imaxj(j)
             UI2rho(i,j)=0
             if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
 #ifdef CUBE_GRID
-C**** 4 points average on cubed sphere
-               duA = 0.25*(admu(i+1,j)+admu(i,j)
-     *              +admu(i+1,j-1)+admu(i,j-1) )
-               dvA = 0.25*(admv(i+1,j)+admv(i,j)
-     *              +admv(i+1,j-1)+admv(i,j-1) )
+               duA = admu(i,j)
+               dvA = admv(i,j)
 #else 
+!replace admu by dmu
 C**** calculate 4 point average of B grid values of stresses
-               duA = 0.5*(aDXYN(J)*(admu(i+1,j)+admu(i,j))
-     *              +aDXYS(j)*(admu(i+1
-     *              ,j-1)+admu(i,j-1)))*aBYAXYP(I,J)
-               dvA = 0.5*(aDXYN(J)*(admv(i+1,j)+admv(i,j))
-     *              +aDXYS(j)*(admv(i+1
-     *              ,j-1)+admv(i,j-1)))*aBYAXYP(I,J)
+               duA = 0.5*(aDXYN(J)*(dmu(i+1,j)+dmu(i,j))
+     *              +aDXYS(j)*(dmu(i+1
+     *              ,j-1)+dmu(i,j-1)))*aBYAXYP(I,J)
+               dvA = 0.5*(aDXYN(J)*(dmv(i+1,j)+dmv(i,j))
+     *              +aDXYS(j)*(dmv(i+1
+     *              ,j-1)+dmv(i,j-1)))*aBYAXYP(I,J)
 #endif
                UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
             end if
@@ -1027,6 +1035,7 @@ c*** keep latlon orientation
       call Int_IceC2AtmC_U(USI,aUSI)
       call Int_IceC2AtmC_V(VSI,aVSI)
 
+#ifndef CUBE_GRID
 c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
       DO J=aJ_0,aJ_1S
         DO I=aI_0,aI_1
@@ -1036,17 +1045,17 @@ c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlo
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      &         RSI(I,J)+RSI(IP1,J).gt.1d-4) 
-     &       USIDT(I,J)=aUSI(I,J)*DTS
+     &       USIDT(I,J)=USI(I,J)*DTS
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      &         RSI(I,J)+RSI(I,J+1).gt.1d-4) 
-     &       VSIDT(I,J)=aVSI(I,J)*DTS
+     &       VSIDT(I,J)=VSI(I,J)*DTS
         END DO
       END DO
       IF (agrid%HAVE_NORTH_POLE) THEN
         VSIDT(1:aIM,aJM)=0.
-        USIDT(1:aIM,aJM)=aUSI(1,aJM)*DTS
+        USIDT(1:aIM,aJM)=USI(1,aJM)*DTS
       END IF
-
+#endif
 
 c*** diagnostics
       DO J=iJ_0,iJ_1S
@@ -1848,7 +1857,7 @@ c*   ICE C -> ICE B. change this if less smoothing is needed
 
       call halo_update(grid_ICDYN,iAtmp)
 
-      call parallel_bilin_latlon_B_2_CS_C_U(grid_ICDYN,agrid,
+      call parallel_bilin_latlon_B_2_CS_C_V(grid_ICDYN,agrid,
      &     iAtmp,aA_glob,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
       deallocate(aA_glob,iAtmp)
@@ -1858,40 +1867,6 @@ c***  both latlon with equal resolution
       aA=iA
 #endif
       end subroutine INT_IceC2AtmC_V
-c*
-
-      subroutine INT_IceB2AtmB_NX1(iA,aA)
-!@sum interpolate from Ice B-grid to Atm B-grid for either U or V component of vector 
-      USE RESOLUTION, only : aIM=>IM,aJM=>JM
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
-     &     ATM_UNPACK=>UNPACK_DATA
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET
-      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
-      IMPLICIT NONE
-      real *8 ::
-     &     iA(NX1,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
-#ifdef CUBE_GRID
-     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO)  
-#else
-     &     aA(NX1,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO)
-#endif
-
-#ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:,:)
-      allocate(aA_glob(aIM,aJM,6))
-      call parallel_bilin_latlon_B_2_CS_B(grid_ICDYN,agrid,
-     &     iA,aA_glob,NX1,IMICDYN,JMICDYN)
-      call ATM_UNPACK(agrid,aA_glob,aA)
-      deallocate(aA_glob)
-#else 
-c***  for the moment me assume that the atm and icedyn grids are 
-c***  both latlon with equal resolution
-      aA=iA
-#endif
-      end subroutine INT_IceB2AtmB_NX1
 c*
 
       subroutine INT_IceB2AtmA(iAb,aAa)
@@ -1930,6 +1905,42 @@ c*
 #endif
       end subroutine INT_IceB2AtmA
 
+
+      subroutine INT_IceB2AtmA_NX1(iAb,aAa)
+!@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
+      USE RESOLUTION, only : aIM=>IM,aJM=>JM
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
+     &     ATM_UNPACK=>UNPACK_DATA,am_i_root
+      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,grid_ICDYN
+      IMPLICIT NONE
+      integer :: mype,ierr
+      character*80 :: title
+      real *8 ::
+     &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     iAb(NX1,                             ! on ice B grid
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+ 
+#ifdef CUBE_GRID
+      real*8, allocatable :: aA_glob(:,:,:)
+      real*4, allocatable :: a4_glob(:,:,:)
+      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
+      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_ICDYN,agrid,
+     &     iAb,aA_glob,NX1,IMICDYN,JMICDYN)
+
+      if (am_i_root()) then
+      open(900,FILE="iB2aA",FORM='unformatted',
+     &        STATUS='unknown')
+      title="test"
+      a4_glob=aA_glob
+      write(900) title,a4_glob
+      close(900)
+      endif
+
+      call ATM_UNPACK(agrid,aA_glob,aAa)
+      deallocate(aA_glob,a4_glob)
+#endif
+      end subroutine INT_IceB2AtmA_NX1
 
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables

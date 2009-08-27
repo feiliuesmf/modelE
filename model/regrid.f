@@ -53,8 +53,6 @@ c     &       uout_loc(:,:),vout_loc(:,:)
       j0h=grid%J_STRT_HALO
       j1h=grid%J_STOP_HALO
 
-      write(*,*) "i0h,i1h,j0h,j1h=",i0h,i1h,j0h,j1h,ims,jms
-
       pi = 4.0d0*atan(1.d0)
 
       dlat_dg=180./REAL(JMS)                   ! even spacing (default)
@@ -650,7 +648,7 @@ c***  we would loop on the subset
 c     find (ilon,jlat) indices of latlon cell containing the current CS cell center
             i_lon = nint(.5*(im_ll + 1)  + lon_glob(i,j,k)/dlon_dg )
             j_lat = nint(.5*(jm_ll + 1)  + lat_glob(i,j,k)/dlat_dg )
-            write(*,*) "ilon jlat=",i_lon,j_lat,k
+
 c     find the 4 corner velocities on latlon B-grid 
 c     first reconstruct latlon coordinates of current latlon cell center
             if (i_lon .ne. 1) then 
@@ -691,7 +689,6 @@ c 100        format(A,3(1X,F8.2))
 c     periodic boundary conditions in x direction
                else
                   if ( I1 .le. 0) then
-                     write(*,*) "i1<=0",i1
                      a11 = ain_loc(im_ll,J1) !periodicity
                      a12 = ain_loc(im_ll,J2) !periodicity
                   endif
@@ -726,17 +723,17 @@ c     periodic boundary conditions in x direction
       call sumxpe(aout_glob)
 
 
-c      if (am_i_root()) then
-c         do k=1,6
-c            do j=1,JM_CS
-c               do i=1,IM_CS
-c                  write(1100,*) 
-c     &                 lon_glob(i,j,k),lat_glob(i,j,k),
-c     &                 aout_glob(i,j,k)
-c               enddo
-c            enddo
-c         enddo
-c      endif
+      if (am_i_root()) then
+         do k=1,6
+            do j=1,JM_CS
+               do i=1,IM_CS
+                  write(1100,*) 
+     &                 lon_glob(i,j,k),lat_glob(i,j,k),
+     &                 aout_glob(i,j,k)
+               enddo
+            enddo
+         enddo
+      endif
 
       deallocate(lat_glob,lon_glob)
 
@@ -821,9 +818,9 @@ c***  we would loop on the subset
          do i=1,IM_CS
 
 c     find (ilon,jlat) indices of latlon cell containing the current CS cell center
-            i_lon = nint(.5*(im_ll + 1)  + lon_glob(i,j,k)/dlon_dg )
+            i_lon = nint(.5*(NX + 1)  + lon_glob(i,j,k)/dlon_dg )
             j_lat = nint(.5*(jm_ll + 1)  + lat_glob(i,j,k)/dlat_dg )
-            write(*,*) "ilon jlat=",i_lon,j_lat,k
+
 c     find the 4 corner velocities on latlon B-grid 
 c     first reconstruct latlon coordinates of current latlon cell center
             if (i_lon .ne. 1) then 
@@ -854,7 +851,7 @@ c 100        format(A,3(1X,F8.2))
 
             if (J1 .ge. j0h_ll .and. J2 .le. j1h_ll) then
 
-               if ( I1 .gt. 1 .and. I2 .lt. NX) then          
+               if (I1 .gt. 0 .and. I2 .lt. NX)  then
                   a11 = ain_loc(I1,J1)
                   a21 = ain_loc(I2,J1)
                   a12 = ain_loc(I1,J2)
@@ -866,9 +863,8 @@ c     periodic boundary conditions in x direction
                      a12 = ain_loc(NX-1,J2) !periodicity
                   endif
                   if ( I2 .eq. NX) then
-                     write(*,*) "i2=NX",i2
-                     a21 = ain_loc(1,J1) !periodicity
-                     a22 = ain_loc(1,J2) !periodicity
+                     a21 = ain_loc(2,J1) !periodicity
+                     a22 = ain_loc(2,J2) !periodicity
                      a11 = a21
                      a12 = a22
                   endif
@@ -911,158 +907,6 @@ c     periodic boundary conditions in x direction
       deallocate(lat_glob,lon_glob)
 
       end subroutine parallel_bilin_latlon_B_2_CS_A_NX1
-c*
-
-
-      subroutine parallel_bilin_latlon_B_2_CS_B(gridin,gridout,
-     &     ain_loc,aout_glob,NX,IM_LL,JM_LL)
-!@sum linearly interpolate from Latlon B-grid to CS B-grid
-!@auth Denis Gueyffier
-      use regrid_com
-      use constant, only : radian
-      use resolution, only : im_cs=>im,jm_cs=>jm
-      use geom, only : lat2d, lon2d, lat2d_dg, lon2d_dg,lonlat_to_ij,
-     &     lon2d_corner,lat2d_corner
-      use domain_decomp_atm, only : atm_pack=>pack_data
-      use domain_decomp_1d, only : halo_update,pack_data
-      implicit none
-      include 'mpif.h'
-      type (dist_grid), intent(in) :: gridin,gridout
-      real*8 :: ain_loc(IM_LL,
-     &     gridin%J_STRT_HALO:gridin%J_STOP_HALO),
-     &     aout_glob(IM_CS,JM_CS,6)
-      real*8, allocatable :: lat_glob(:,:,:),lon_glob(:,:,:)
-      real*8, allocatable :: ain_glob(:,:)
-      real*4, allocatable :: a4glob(:,:)
-      real*8 :: a11,a12,a21,a22
-      real*8 :: lon1,lon2,lat1,lat2,lon_cs,lat_cs,lat_ll,lon_ll,fjeq
-      real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr,
-     &     lon_corner,lat_corner
-      real*8 :: ll(2)
-      integer :: NX
-      integer :: im_ll,jm_ll,ierr,nij
-      integer :: i,j,k,i_lon,j_lat,im_lon,jm_lat,i1,i2,j1,j2, 
-     &     i0_ll,i1_ll,j0_ll,j1_ll,i0_cs,i1_cs,j0_cs,j1_cs,
-     &     j0h_ll,j1h_ll
-      integer :: ij(2),ij1(2),ij2(2),ij3(2),ij4(2),i_cs,j_cs
-      logical :: in1,in2,in3,in4
-      character*80 :: title,name
-      character*1 :: ci
-
-      i0_cs=gridout%I_STRT
-      i1_cs=gridout%I_STOP
-      j0_cs=gridout%J_STRT
-      j1_cs=gridout%J_STOP
-
-      i0_ll=gridin%I_STRT
-      i1_ll=gridin%I_STOP
-      j0_ll=gridin%J_STRT
-      j1_ll=gridin%J_STOP
-
-      aout_glob(:,:,:) = 0.
-
-      dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
-      IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
-      dlon_dg = 360./dble(IM_LL)
-      fjeq=0.5*(1+JM_LL)
-
-      call halo_update(gridin,ain_loc)
-
-      allocate(lat_glob(IM_CS,JM_CS,6),
-     &     lon_glob(IM_CS,JM_CS,6))
-
-
-      call atm_pack(gridout,lon2d_corner,lon_glob)
-      call atm_pack(gridout,lat2d_corner,lat_glob)
-
-      nij=im_cs*jm_cs*6
-
-      call MPI_BCAST( lat_glob, nij, MPI_DOUBLE_PRECISION,
-     *     0, MPI_COMM_WORLD, ierr )
-      call MPI_BCAST( lon_glob, nij, MPI_DOUBLE_PRECISION,
-     *     0, MPI_COMM_WORLD, ierr )
-
-c***  loop on points in global target (CS) domain
-c
-      do k=1,6
-      do j=1,JM_CS
-         do i=1,IM_CS
-
-c     find (ilon,jlat) indices of latlon cell containing the upper left corner of current CS cell center
-            if (j .le. JM_CS-1) then 
-               lon_corner=lon2d_corner(i,j+1)/radian
-               lat_corner=lat2d_corner(i,j+1)/radian
-            else
-c TODO - 
-               lon_corner=0.   
-               lat_corner=0.      
-            endif
-
-            i_lon = nint(.5*(im_ll + 1)  + lon_corner/dlon_dg )
-            j_lat = nint(.5*(jm_ll + 1)  + lat_corner/dlat_dg )
-
-c     find the 4 corner velocities on latlon B-grid 
-c     first reconstruct latlon coordinates of current latlon cell center
-            if (i_lon .ne. 1) then 
-               lon_curr = -180.+(i_lon-0.5)*dlon_dg
-            else
-               lon_curr = -180.+0.5*dlon_dg
-            endif
-            if (j_lat .ne. 1 .and. j_lat .ne. jm_ll) then
-               lat_curr = dlat_dg*(j_lat - fjeq)
-            elseif (j_lat .eq. 1) then
-               lat_curr = -90.
-            elseif (j_lat .eq. jm_ll) then
-               lat_curr = 90.
-            endif
-
-            lon1 = lon_curr - 0.5*dlon_dg
-            I1 = i_lon
-            lon2 = lon1 + dlon_dg
-            I2 = I1+1
-            lat1 = lat_curr - 0.5*dlat_dg
-            J1 = j_lat -1
-            lat2 = lat1 + dlat_dg
-            J2 = J1 + 1
-            
-            if ( I1 .gt. 1 .and. I2 .lt. NX) then          
-               a11 = ain_loc(I1,J1)
-               a21 = ain_loc(I2,J1)
-               a12 = ain_loc(I1,J2)
-               a22 = ain_loc(I2,J2)
-c     periodic boundary conditions in x direction
-            else
-               if ( I1 .eq. 1) then
-                  write(*,*) "i1=1",i1
-                  a11 = ain_loc(NX-1,J1)   !periodicity
-                  a12 = ain_loc(NX-1,J2)   !periodicity
-               endif
-               if ( I2 .eq. NX) then
-                  write(*,*) "i2=NX",i2
-                  a21 = ain_loc(2,J1)   !periodicity
-                  a22 = ain_loc(2,J2)   !periodicity
-               endif
-
-               dnm=1.d0/(dlon_dg*dlat_dg)
-            
-               aout_glob(i,j,gridout%tile)=dnm*( 
-     &           a11*( lon2-lon_corner )*( lat2-lat_corner ) 
-     &           + a21*( lon_corner -lon1 )*( lat2-lat_corner ) 
-     &           + a12*( lon2-lon_corner )*( lat_corner-lat1 )
-     &           + a22*( lon_corner-lon1 )*( lat_corner-lat1 ) 
-     &           )
-            endif
-         
-         enddo
-      enddo
-      enddo
-
-
-      call sumxpe(aout_glob)
-
-      deallocate(lat_glob,lon_glob)
-      
-      end subroutine parallel_bilin_latlon_B_2_CS_B
 c*
 
       subroutine parallel_bilin_CS_A_2_latlon_A(gridin,gridout,
@@ -2764,8 +2608,6 @@ C  scatter array
       call MPI_SCATTER(array, len, MPI_REAL8,
      &     local_array, len, MPI_REAL8, 0,
      &     MPI_COMM_WORLD, ierr)
-
-      write(*,*) "HERE, myPE=",myPE
 
       if (myPE .eq. 0) deallocate (array) 
 
