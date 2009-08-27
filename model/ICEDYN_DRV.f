@@ -43,7 +43,7 @@ C**** Ice advection diagnostics
 !@var IJ_xxx Names for ICIJ diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_MUSI,IJ_MVSI
      *     ,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_RSI
-!@var ICIJ lat-lon ice dynamic diagnostics (on atm grid)
+!@var ICIJ lat-lon ice dynamic diagnostics (on ice dyn. grid)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ
 !@var lname_icij Long names for ICIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KICIJ) :: LNAME_ICIJ
@@ -84,10 +84,9 @@ C**** Ice advection diagnostics
 
       END MODULE ICEDYN_COM
 
-      SUBROUTINE ALLOC_ICEDYN_COM(grid)
+      SUBROUTINE ALLOC_ICEDYN_COM(grid_atm)
 !@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
-!     grid = atm grid
 
       USE DOMAIN_DECOMP_ATM, only : GET,DIST_GRID
       USE MODEL_COM, only : im
@@ -97,6 +96,7 @@ C**** Ice advection diagnostics
 #ifdef TRACERS_WATER
       USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM
 #endif
+      USE ICEDYN, only : grid_icdyn
       IMPLICIT NONE
 
       LOGICAL, SAVE :: init=.false.
@@ -105,45 +105,42 @@ C**** Ice advection diagnostics
       INTEGER :: I_1H_MIC, I_0H_MIC
       INTEGER :: J_1H_MIC, J_0H_MIC
       INTEGER :: IER
-      TYPE(DIST_GRID) :: grid
+      TYPE(DIST_GRID) :: grid_atm
 
       If (init) Then
          Return ! Only invoke once
       End If
       init = .true.
 
-!*** For now set grid_MIC to be the same as grid
-!    This is consistent with the current status of the code for
-!    parallelization along latitude (j)
-      grid_MIC=grid   
+C**** Allocate diag arrays defined on the ice rheology grid
 
-C**** Get dimensioning parameters for arrays defined in the grid  and
-C**** grid_MIC stencils.
-
-      CALL GET(grid    , I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
+      CALL GET(grid_icdyn, I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
      &     J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
+
+      ALLOCATE(  ICIJ(I_0H:I_1H, J_0H:J_1H,KICIJ),
+     &     STAT = IER)
+
+#ifdef TRACERS_WATER
+      ALLOCATE( TICIJ(I_0H:I_1H, J_0H:J_1H,KTICIJ, NTM),
+     &     STAT = IER)
+#endif
+
+C**** Allocate ice advection arrays defined on the atmospheric grid
+      grid_MIC=grid_atm
+
       CALL GET(grid_MIC, I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
      &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
-
-      ALLOCATE( RSIX(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &          RSIY(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &     STAT = IER)
 
       ALLOCATE( USIDT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &          VSIDT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
 
-      ALLOCATE( RSISAVE(I_0H:I_1H, J_0H:J_1H),
+      ALLOCATE( RSIX(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &          RSIY(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
 
-      ALLOCATE(  ICIJ(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC,KICIJ),
+      ALLOCATE( RSISAVE(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
-
-#ifdef TRACERS_WATER
-      ALLOCATE( TICIJ(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC,KTICIJ, NTM),
-     &     STAT = IER)
-#endif
-
       return
       END SUBROUTINE ALLOC_ICEDYN_COM
 
@@ -347,16 +344,15 @@ C****
 !@sum  def_rsf_icedyn defines ice dynam array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      use icedyn, only : usi,vsi
-      use icedyn_com, only : grid=>grid_MIC,
-     &     rsix,rsiy
+      use icedyn, only : grid_icdyn,usi,vsi
+      use icedyn_com, only : grid_mic,rsix,rsiy
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
-      call defvar(grid,fid,rsix,'rsix(dist_imic,dist_jmic)')
-      call defvar(grid,fid,rsiy,'rsiy(dist_imic,dist_jmic)')
-      call defvar(grid,fid,usi,'usi(dist_imic,dist_jmic)')
-      call defvar(grid,fid,vsi,'vsi(dist_imic,dist_jmic)')
+      call defvar(grid_mic,fid,rsix,'rsix(dist_imic,dist_jmic)')
+      call defvar(grid_mic,fid,rsiy,'rsiy(dist_imic,dist_jmic)')
+      call defvar(grid_icdyn,fid,usi,'usi(dist_imic,dist_jmic)')
+      call defvar(grid_icdyn,fid,vsi,'vsi(dist_imic,dist_jmic)')
       return
       end subroutine def_rsf_icedyn
 
@@ -364,9 +360,8 @@ C****
 !@sum  new_io_icedyn read/write ice dynam arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use icedyn, only : usi,vsi
-      use icedyn_com, only : grid=>grid_MIC,
-     &     rsix,rsiy
+      use icedyn, only : grid_icdyn,usi,vsi
+      use icedyn_com, only : grid_mic,rsix,rsiy
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data
       implicit none
@@ -374,15 +369,15 @@ C****
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)           ! output to restart file
-        call write_dist_data(grid, fid, 'rsix', rsix)
-        call write_dist_data(grid, fid, 'rsiy', rsiy)
-        call write_dist_data(grid, fid, 'usi', usi)
-        call write_dist_data(grid, fid, 'vsi', vsi)
+        call write_dist_data(grid_mic, fid, 'rsix', rsix)
+        call write_dist_data(grid_mic, fid, 'rsiy', rsiy)
+        call write_dist_data(grid_icdyn, fid, 'usi', usi)
+        call write_dist_data(grid_icdyn, fid, 'vsi', vsi)
       case (ioread)            ! input from restart file
-        call read_dist_data(grid, fid, 'rsix', rsix)
-        call read_dist_data(grid, fid, 'rsiy', rsiy)
-        call read_dist_data(grid, fid, 'usi', usi)
-        call read_dist_data(grid, fid, 'vsi', vsi)
+        call read_dist_data(grid_mic, fid, 'rsix', rsix)
+        call read_dist_data(grid_mic, fid, 'rsiy', rsiy)
+        call read_dist_data(grid_icdyn, fid, 'usi', usi)
+        call read_dist_data(grid_icdyn, fid, 'vsi', vsi)
       end select
       return      
       end subroutine new_io_icedyn
@@ -391,9 +386,8 @@ C****
 !@sum  def_rsf_icdiag defines ice diag array structure in restart/acc files
 !@auth M. Kelley
 !@ver  beta
-      use icedyn_com, only : grid=>grid_MIC,
-     &     icij
-      use icedyn_com
+      use icedyn, only : grid=>grid_icdyn
+      use icedyn_com, only : icij
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -407,8 +401,8 @@ C****
 !@sum  new_io_icdiag read/write ice diag arrays from/to restart+acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use icedyn_com, only : grid=>grid_MIC,
-     &     icij
+      use icedyn, only : grid=>grid_icdyn
+      use icedyn_com, only : icij
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data
       implicit none
@@ -427,7 +421,8 @@ C****
 !@sum  def_meta_icdiag defines icedyn metadata in acc files
 !@auth M. Kelley
 !@ver  beta
-      use icedyn_com, only : grid=>grid_MIC,
+      use icedyn, only : grid=>grid_icdyn
+      use icedyn_com, only :
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : defvar,write_attr
       use icedyn, only : lon_dg,lat_dg
@@ -454,7 +449,8 @@ C****
 !@sum  write_meta_icdiag write icedyn accumulation metadata to file
 !@auth M. Kelley
 !@ver  beta
-      use icedyn_com, only : grid=>grid_MIC,
+      use icedyn, only : grid=>grid_icdyn
+      use icedyn_com, only :
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : write_dist_data,write_data
       use icedyn, only : lon_dg,lat_dg
