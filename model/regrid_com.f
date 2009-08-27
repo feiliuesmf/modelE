@@ -72,4 +72,17 @@ c***  create specializations of above types, may be moved to a different layer l
       type (x_2grids) :: xI2A    ! ice grid to atmosphere
       type (x_2grids) :: xA2I    ! atmosphere to ice grid
 
+c*** interface for functions
+      interface
+          function vminus(p,q)
+          real*8 :: vminus(2),p(2),q(2)
+          end function vminus
+      end interface
+
+      interface 
+          function cross_product(p,q)
+          real*8 :: cross_product,p(2),q(2)
+          end function cross_product
+      end interface
+
       end module REGRID_COM
