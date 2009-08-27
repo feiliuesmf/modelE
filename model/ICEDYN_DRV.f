@@ -349,8 +349,8 @@ C****
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
-      call defvar(grid_mic,fid,rsix,'rsix(dist_imic,dist_jmic)')
-      call defvar(grid_mic,fid,rsiy,'rsiy(dist_imic,dist_jmic)')
+      call defvar(grid_mic,fid,rsix,'rsix(dist_im,dist_jm)')
+      call defvar(grid_mic,fid,rsiy,'rsiy(dist_im,dist_jm)')
       call defvar(grid_icdyn,fid,usi,'usi(dist_imic,dist_jmic)')
       call defvar(grid_icdyn,fid,vsi,'vsi(dist_imic,dist_jmic)')
       return
