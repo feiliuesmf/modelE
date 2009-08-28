@@ -100,9 +100,9 @@
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
      *                , sinpo, sinvo
-
+#ifndef CUBE_GRID
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
-
+#endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
       USE OCEANR_DIM, only : ogrid
@@ -248,12 +248,14 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       oWEIGHT(:,:) = 1.d0
       CALL INT_OG2AG(oUO1, aUO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
       CALL INT_OG2AG(oVO1, aVO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
+#ifndef CUBE_GRID
       if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
         aUO1(1,aJM) = UNP
         aVO1(1,aJM) = VNP
       endif
+#endif
 
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
