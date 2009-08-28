@@ -98,7 +98,6 @@
       USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO, oFOCEAN=>FOCEAN
      *                , oDXYPO=>DXYPO, OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
-c     *                , oCOSI=>COSU,oSINI=>SINU ! testing avg effects
      *                , IVSPO=>IVSP,IVNPO=>IVNP
      *                , sinpo, sinvo
 
