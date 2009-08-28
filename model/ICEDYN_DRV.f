@@ -2303,7 +2303,7 @@ C**** temporary assumption that ice velocities are on atmos B grid
       use GEOM,only : idjj,idij,rapj,kmaxj,sinip,cosip
 #endif
       IMPLICIT NONE
-      REAL*8,INTENT(IN),
+      REAL*8, !INTENT(IN),
      &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: aUSI,aVSI
       REAL*8,INTENT(OUT), 
@@ -2317,8 +2317,8 @@ C**** temporary assumption that ice velocities are on atmos B grid
       I_0 = agrid%I_STRT
       I_1 = agrid%I_STOP
 
-      Call HALO_UPDATE(aGRID, uisurf)
-      Call HALO_UPDATE(aGRID, visurf)
+c      Call HALO_UPDATE(aGRID, ausi)
+      Call HALO_UPDATE(aGRID, avsi)
 
       POLE=.FALSE.
 
