@@ -9,7 +9,8 @@ C****
       Use OCEAN, Only: IM,JM,DLON,DLAT,DLATM,FJEQ,
      *                 DXYP=>DXYPO, DXYVO, DXYS=>DXYSO, DXYN=>DXYNO,
      *                 DXP=>DXPO, DYP=>DYPO, DXV=>DXVO, DYV=>DYVO,
-     *                 RLAT, COSV=>COSVO, SINP=>SINPO, COSP=>COSPO,
+     *                 RLAT, COSV=>COSVO, SINV=>SINVO,
+     *                 SINP=>SINPO, COSP=>COSPO,
      *                 RAMVS,RAMVN, zDXYP=>BYDXYPO,
      *                 COSM,COSQ, SINxY,TANxY, DXPGF,DYPGF,
      *                 SINI=>SINIC, COSI=>COSIC, SINU,COSU,
@@ -72,6 +73,7 @@ C****
 C**** Calculate geometric parameters defined at V latitudes
 C****
       Do 10 J=1,JM-1
+      SINV(J)  = Sin (DLAT*(J+.5-FJEQ))
       COSV(J)  = Cos (DLAT*(J+.5-FJEQ))
       DXV(J)   = RADIUS*DLON*COSV(J)
    10 DYV(J)   = RADIUS*DLAT
@@ -79,6 +81,8 @@ C****
       DYV(JM)  = 0
       COSV(0)  = 0
       COSV(JM) = 0
+      SINV(0)  = -1
+      SINV(JM) = +1
 C****
 C**** Calculate geometric parameters defined at primary latitudes
 C****

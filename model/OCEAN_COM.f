@@ -65,7 +65,7 @@ C**** ocean geometry (should this be in a separate module?)
 
       REAL*8, DIMENSION(JM) :: DXYPO,DXPO,DYPO,DXVO,DYVO
      *     ,COSPO,SINPO,DXYVO,DXYSO,DXYNO,RAMVS,RAMVN,RLAT,BYDXYPO
-      REAL*8, DIMENSION(0:JM) :: COSVO
+      REAL*8, DIMENSION(0:JM) :: SINVO,COSVO
       REAL*8, DIMENSION(0:LMO) :: ZE
       Real*8
      *  DXPGF(0:JM),! DXYV/dYPGF is north-south distance used in PGF
