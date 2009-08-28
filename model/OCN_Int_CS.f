@@ -556,7 +556,7 @@ c*
 
       contains
 
-      SUBROUTINE INT_OG2AG_2Da(oA,aA,oWEIGHT,CopyPole)
+      SUBROUTINE INT_OG2AG_2Da(oA,aA,oWEIGHT,CopyPole,AvgPole)
 
 !@sum regridding 2D arrays from ocean to the CS atm. grid 
 !@auth Larissa Nazarenko, Denis Gueyffier
@@ -570,6 +570,8 @@ c*
 
       IMPLICIT NONE
       LOGICAL :: CopyPole
+! AvgPole is required by the lat-lon version of this procedure
+      LOGICAL, INTENT(IN), OPTIONAL :: AvgPole
       REAL*8 :: oWEIGHT(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) 
       REAL*8 :: aA(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) 

@@ -807,7 +807,7 @@ C***  Scatter global array oA_glob to the ocean grid
 
       contains
 
-      SUBROUTINE INT_OG2AG_2Da(oA,aA,oWEIGHT_loc, CopyPole)
+      SUBROUTINE INT_OG2AG_2Da(oA,aA,oWEIGHT_loc, CopyPole, AvgPole)
 
 !@sum INT_OG2AG_3D is for conversion 3D arrays from ocean to the atm. grid 
 
@@ -827,6 +827,7 @@ C***  Scatter global array oA_glob to the ocean grid
       IMPLICIT NONE
 
       LOGICAL, INTENT(IN) :: CopyPole
+      LOGICAL, INTENT(IN), OPTIONAL :: AvgPole
 
       INTEGER :: IER
 
@@ -840,10 +841,15 @@ C***  Scatter global array oA_glob to the ocean grid
       REAL*8, ALLOCATABLE :: aA_glob(:,:), oA_glob(:,:)
      *                     , aFtemp(:,:),oFtemp(:,:), oWEIGHT(:,:)
 
+      LOGICAL :: AvgPole_
+
       if (oIM .eq. aIM .and. oJM .eq. aJM) then   
 
         aA(:,:) = oA(:,:)
       else
+
+      AvgPole_ = .true.
+      if(present(AvgPole)) AvgPole_ = AvgPole
 
       if(AM_I_ROOT()) then
         ALLOCATE(aA_glob(aIM,aJM), STAT = IER)
@@ -867,8 +873,12 @@ C***  Interpolate aA_glob from ocean grid to atmospheric grid
 
         IF (CopyPole) oWEIGHT(2:oIM,oJM) = oWEIGHT(1,oJM)
         oFtemp(:,:) = oA_glob(:,:)
-        oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
-        call HNTR8P (oWEIGHT, oFtemp, aFtemp)
+        if(AvgPole_) then
+          oFtemp(2:oIM,oJM) = oFtemp(1,oJM)
+          call HNTR8P (oWEIGHT, oFtemp, aFtemp)
+        else
+          call HNTR8 (oWEIGHT, oFtemp, aFtemp)
+        endif
         aA_glob(:,:) = aFtemp(:,:)  
       end if
 
