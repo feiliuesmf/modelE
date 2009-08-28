@@ -1519,7 +1519,7 @@ C****
       VALUE  = 0
       Do 10 IB=1,IMB
       IJB  = IB + IMB*(JB-1)
-      If (B(IJB) == DATMIS)  GoTo 20
+      If (B(IJB) == DATMIS)  GoTo 10
       WEIGHT = WEIGHT + 1
       VALUE  = VALUE  + B(IJB)
    10 Continue
