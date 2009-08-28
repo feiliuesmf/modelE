@@ -97,8 +97,12 @@
 
       USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO, oFOCEAN=>FOCEAN
      *                , oDXYPO=>DXYPO, OXYP, oIMAXJ=>IMAXJ
-     *                , oCOSU=>COSU,oSINU=>SINU
+     *                , oCOSI=>COSIC,oSINI=>SINIC
+c     *                , oCOSI=>COSU,oSINI=>SINU ! testing avg effects
      *                , IVSPO=>IVSP,IVNPO=>IVNP
+     *                , sinpo, sinvo
+
+      Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
@@ -137,10 +141,10 @@
       IMPLICIT NONE
 
       INTEGER IER, I,J, L, NT
-      INTEGER oJ_0,oJ_1, oI_0,oI_1
+      INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S
       REAL*8, allocatable ::
      * oWEIGHT(:,:), oFOCEAN_loc(:,:)
-
+      REAL*8 :: UNP,VNP,AWT1,AWT2
       REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
      *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:)
      *                     , oTOT_CHLO_loc(:,:),opCO2_loc(:,:)
@@ -150,6 +154,8 @@
       oI_1 = oGRID%I_STOP
       oJ_0 = oGRID%j_STRT
       oJ_1 = oGRID%j_STOP
+      oJ_0S = oGRID%j_STRT_SKP
+      oJ_1S = oGRID%j_STOP_SKP
 
       ALLOCATE
      *  (oG0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
@@ -207,11 +213,48 @@
 
       CALL INT_OG2AG(OGEOZ_SV,aOGEOZ_SV, oWEIGHT, .FALSE.)
 
-      oUO1(:,:) = UO(:,:,1)
-      oVO1(:,:) = VO(:,:,1)
+c Discontinued method for ocean C-grid -> atm A-grid:
+c use a variant of INT_OG2AG aware of C-grid staggering.
+c May be reinstated later when cubed-sphere INT_OG2AG
+c has this capability.
+c      oUO1(:,:) = UO(:,:,1)
+c      oVO1(:,:) = VO(:,:,1)
+c      oWEIGHT(:,:) = 1.d0
+c      CALL INT_OG2AG(oUO1,oVO1,aUO1,aVO1, oWEIGHT
+c     *             , IVSPO,IVNPO)
+c
+c ocean C-grid -> atm A-grid method requiring fewer INT_OG2AG variants:
+c ocean C -> ocean A followed by ocean A -> atm A via INT_OG2AG
+c
+      do j=oJ_0S,oJ_1S
+c area weights that would have been used by HNTRP for ocean C -> ocean A
+        awt1 = (sinpo(j)-sinvo(j-1))/(sinvo(j)-sinvo(j-1))
+        awt2 = 1.-awt1
+        i=1
+          oUO1(i,j) = .5*(UO(i,j,1)+UO(oIM,j,1))
+          oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
+        do i=2,oIM
+          oUO1(i,j) = .5*(UO(i,j,1)+UO(i-1,j,1))
+          oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
+        enddo
+      enddo
+      if(oGRID%have_south_pole) then
+        oUO1(:,1) = 0.; oVO1(:,1) = 0.
+      endif
+      if(oGRID%have_north_pole) then ! NP U,V from prognostic polar U,V
+        oUO1(:,oJM) = UO(oIM,oJM,1)*oCOSI(:) + UO(IVNPO,oJM,1)*oSINI(:)
+! oVO1 currently has no effect when atm is lat-lon
+        oVO1(:,oJM) = UO(IVNPO,oJM,1)*oCOSI(:) - UO(oIM,oJM,1)*oSINI(:)
+      endif
       oWEIGHT(:,:) = 1.d0
-      CALL INT_OG2AG(oUO1,oVO1,aUO1,aVO1, oWEIGHT
-     *             , IVSPO,IVNPO)
+      CALL INT_OG2AG(oUO1, aUO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
+      CALL INT_OG2AG(oVO1, aVO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
+      if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
+        UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
+        VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
+        aUO1(1,aJM) = UNP
+        aVO1(1,aJM) = VNP
+      endif
 
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
