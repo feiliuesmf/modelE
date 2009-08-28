@@ -451,7 +451,29 @@ c        MODULE PROCEDURE READT8_PARALLEL_2D
          module procedure UNPACK_J_4D
       end interface
 
-      PUBLIC :: REDIST_PACK
+!@var BAND_PACK Procedure in which each PE receives data from other PEs
+!@+             to fill a contiguous pre-requested range of J indices
+      public :: band_pack,band_pack_column
+      interface band_pack
+        module procedure band_pack_ij
+        module procedure band_pack_ijl
+      end interface
+!@var BAND_PACK_TYPE a data structure needed by BAND_PACK, initialized
+!@var via INIT_BAND_PACK_TYPE
+      type band_pack_type
+        integer :: im_world
+        integer :: j_strt,j_stop
+        integer :: j_strt_halo,j_stop_halo
+        integer :: jband_strt,jband_stop
+        integer, dimension(:), allocatable :: scnts,sdspl,sdspl_inplace
+        integer, dimension(:), allocatable :: rcnts,rdspl,rdspl_inplace
+        integer, dimension(:), allocatable :: j0_send,j1_send
+        integer, dimension(:), allocatable :: j0_recv,j1_recv
+      end type band_pack_type
+!@var INIT_BAND_PACK_TYPE initialization routine during which each PE
+!@+   requests a range of J indices and sets up the necessary send/receive
+!@+   information for the BAND_PACK procedure
+      public :: band_pack_type,init_band_pack_type
 
       PUBLIC SEND_TO_J
       interface SEND_TO_J
@@ -5488,125 +5510,188 @@ C--------------------------------
       RETURN
       END SUBROUTINE UNPACK_J_4D
 
-      SUBROUTINE REDIST_PACK(grid_src,grid_dest,ARR,ARR_GLOB)
-c
-c Redistributes the array ARR having a domain decomposition grid_src
-c to the decomposition given by grid_dest.
-c Note: this routine is SPECIFICALLY intended for ocean-atmosphere coupling
-c in Model E. The number of latitudes in grid_src and grid_dest may
-c be multiples of one another, so the "redistributed" data is actually
-c packed into the appropriate J range in a global-size array ARR_GLOB
-c that must be allocated on each processor.  ARR_GLOB should have
-c grid_src%jm_world latitudes. When grid_src and grid_dest have different
-c values of jm_world, ARR_GLOB is filled over the range of J
-c such that the min/max lat of grid_dest are covered by the min/max lat
-c of grid_src.
-c
+      SUBROUTINE INIT_BAND_PACK_TYPE(grd_dum, band_j0,band_j1, bandpack)
+c initialize the bandpack derived type with the information needed
+c for the band_pack procedure to fill output arrays with data from
+c J indices band_j0 to band_j1
       IMPLICIT NONE
-      TYPE (DIST_GRID),  INTENT(IN) :: grid_src,grid_dest
-      REAL*8, INTENT(IN) ::
-     &        ARR(grid_src%i_strt_halo:,grid_src%j_strt_halo:)
-      REAL*8, INTENT(INOUT) ::
-     &        ARR_glob(grid_src%im_world,grid_src%jm_world)
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER, INTENT(IN) :: band_j0,band_j1
+      TYPE (BAND_PACK_TYPE), intent(OUT) :: bandpack
 #ifdef USE_MPI
-      integer :: im,jm,jm_dest
-      integer, dimension(0:npes-1) :: j0,j1,
-     &     scnts,sdspl,rcnts,rdspl, j0_dest,j1_dest
-      TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
-      integer :: p,jmrat,rc,ierr
-      integer :: j0send,j1send,j0recv,j1recv
+      integer, dimension(0:npes-1) ::
+     &     j0_have,j1_have,j0_requested,j1_requested
+      integer :: p, ierr, im,jm, j0send,j1send,j0recv,j1recv
 
-      jm = grid_src%jm_world
-      jm_dest = grid_dest%jm_world
-
+      allocate(bandpack%j0_send(0:npes-1), bandpack%j1_send(0:npes-1))
+      allocate(bandpack%j0_recv(0:npes-1), bandpack%j1_recv(0:npes-1))
+      allocate(bandpack%scnts(0:npes-1), bandpack%sdspl(0:npes-1))
+      allocate(bandpack%rcnts(0:npes-1), bandpack%rdspl(0:npes-1))
+      allocate(bandpack%sdspl_inplace(0:npes-1))
+      allocate(bandpack%rdspl_inplace(0:npes-1))
+#endif
+      bandpack%im_world = grd_dum%im_world
+      bandpack%j_strt = grd_dum%j_strt
+      bandpack%j_stop = grd_dum%j_stop
+      bandpack%j_strt_halo = grd_dum%j_strt_halo
+      bandpack%j_stop_halo = grd_dum%j_stop_halo
+      bandpack%jband_strt = band_j0
+      bandpack%jband_stop = band_j1
+#ifdef USE_MPI
+      im = grd_dum%im_world
+      jm = grd_dum%jm_world
 c
-c Check that grid sizes are divisible by one other
+c Set up the MPI send/receive information
 c
-      if(mod(max(jm,jm_dest),min(jm,jm_dest)).ne.0) then
-        write(6,*)      'redist_pack: incompatible grid sizes'
-        call stop_model('redist_pack: incompatible grid sizes')
-      endif
-
-c
-c Get the global domain decomposition.  Would be less tedious if it
-c were an easily accessible element of the dist_grid type...
-c
-      ALLOCATE(AI(0:npes-1,3))
-      Call ESMF_GridGetAllAxisIndex(grid_src%ESMF_GRID, globalAI=AI,
-     &     horzRelLoc=ESMF_CELL_CENTER,vertRelLoc=ESMF_CELL_CELL,rc=rc)
+      call mpi_allgather(grd_dum%j_strt,1,MPI_INTEGER,j0_have,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(grd_dum%j_stop,1,MPI_INTEGER,j1_have,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(band_j0,1,MPI_INTEGER,j0_requested,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(band_j1,1,MPI_INTEGER,j1_requested,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
       do p=0,npes-1
-        j0(p) = AI(p,2)%min
-        j1(p) = AI(p,2)%max
-      enddo
-      Call ESMF_GridGetAllAxisIndex(grid_dest%ESMF_GRID, globalAI=AI,
-     &     horzRelLoc=ESMF_CELL_CENTER,vertRelLoc=ESMF_CELL_CELL,rc=rc)
-      do p=0,npes-1
-        j0_dest(p) = AI(p,2)%min
-        j1_dest(p) = AI(p,2)%max
-      enddo
-      DEALLOCATE(AI)
-
-c
-c Map the indices of the destination grid to the source grid
-c
-      if(jm < jm_dest) then
-        jmrat = jm_dest/jm
-        do p=0,npes-1
-          j0_dest(p) = 1+(j0_dest(p)-1)/jmrat
-          j1_dest(p) = 1+(j1_dest(p)-1)/jmrat
-        enddo
-      elseif(jm > jm_dest) then
-        jmrat = jm/jm_dest
-        do p=0,npes-1
-          j0_dest(p) = 1+(j0_dest(p)-1)*jmrat
-          j1_dest(p) = j1_dest(p)*jmrat
-        enddo
-      endif
-c
-c Set up the send/receive information, call MPI
-c
-      im  = grid_src%im_world
-      do p=0,npes-1
-        j0send = max(grid_src%j_strt,j0_dest(p))
-        j1send = min(grid_src%j_stop,j1_dest(p))
+        j0send = max(grd_dum%j_strt,j0_requested(p))
+        j1send = min(grd_dum%j_stop,j1_requested(p))
+        bandpack%j0_send(p) = j0send
+        bandpack%j1_send(p) = j1send
         if(j0send <= j1send) then
-          scnts(p) = im*(j1send-j0send+1)
-          sdspl(p) = im*(j0send-grid_src%j_strt_halo)
-c          if(p .ne. my_pet) then
-c            write(6,*) 'pesend, pedst, j0send, j1send ',
-c     &           my_pet,p,j0send,j1send
-c          endif
+          bandpack%scnts(p) = im*(j1send-j0send+1)
+          bandpack%sdspl_inplace(p) = im*(j0send-grd_dum%j_strt_halo)
         else
-          scnts(p) = 0
-          sdspl(p) = 0
+          bandpack%scnts(p) = 0
+          bandpack%sdspl_inplace(p) = 0
         endif
-        j0recv = max(j0(p),j0_dest(my_pet))
-        j1recv = min(j1(p),j1_dest(my_pet))
+        j0recv = max(j0_have(p),band_j0)
+        j1recv = min(j1_have(p),band_j1)
+        bandpack%j0_recv(p) = j0recv
+        bandpack%j1_recv(p) = j1recv
         if(j0recv <= j1recv) then
-          rcnts(p) = im*(j1recv-j0recv+1)
-          rdspl(p) = im*(j0recv-1)
-c          if(p .ne. my_pet) then
-c            write(6,*) 'perecv, pesrc, j0recv, j1recv ',
-c     &           my_pet,p,j0recv,j1recv
-c          endif
+          bandpack%rcnts(p) = im*(j1recv-j0recv+1)
+          bandpack%rdspl_inplace(p) = im*(j0recv-band_j0)
         else
-          rcnts(p) = 0
-          rdspl(p) = 0
+          bandpack%rcnts(p) = 0
+          bandpack%rdspl_inplace(p) = 0
         endif
       enddo
-      call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
-     &                   arr_glob, rcnts, rdspl, mpi_double_precision,
-     &                   mpi_comm_world, ierr)
-
-#else
-c
-c no mpi, serial mode
-c
-      arr_glob(:,grid_src%J_STRT:grid_src%J_STOP) =
-     & arr(:,grid_src%J_STRT:grid_src%J_STOP)
+      bandpack%rdspl(0) = 0
+      bandpack%sdspl(0) = 0
+      do p=1,npes-1
+        bandpack%sdspl(p) = bandpack%sdspl(p-1)+bandpack%scnts(p-1)
+        bandpack%rdspl(p) = bandpack%rdspl(p-1)+bandpack%rcnts(p-1)
+      enddo
 #endif
       RETURN
-      END SUBROUTINE REDIST_PACK
+      END SUBROUTINE INIT_BAND_PACK_TYPE
+
+      SUBROUTINE BAND_PACK_ij(bandpack,ARR,ARR_band)
+!@var bandpack (input) instance of the band_pack_type structure
+!@var ARR      (input) local domain-decomposed array on this PE
+!@var ARR_band (output) array dimensioned and filled over the
+!@+   J range requested during the call to
+!@+   init_band_pack_type that initialized bandpack
+      IMPLICIT NONE
+      TYPE (BAND_PACK_TYPE),  INTENT(IN) :: bandpack
+      REAL*8, INTENT(IN) :: ARR(:,bandpack%j_strt_halo:)
+      REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:)
+#ifdef USE_MPI
+      integer, dimension(0:npes-1) :: scnts,sdspl, rcnts,rdspl
+      integer :: ierr
+      scnts = bandpack%scnts
+      sdspl = bandpack%sdspl_inplace
+      rcnts = bandpack%rcnts
+      rdspl = bandpack%rdspl_inplace
+      call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
+     &                   arr_band, rcnts, rdspl, mpi_double_precision,
+     &                   mpi_comm_world, ierr)
+#else
+      arr_band(:,bandpack%J_STRT:bandpack%J_STOP) =
+     &     arr(:,bandpack%J_STRT:bandpack%J_STOP)
+#endif
+      RETURN
+      END SUBROUTINE BAND_PACK_ij
+
+      SUBROUTINE BAND_PACK_ijl(bandpack,ARR,ARR_band)
+!@var bandpack (input) instance of the band_pack_type structure
+!@var ARR      (input) local domain-decomposed array on this PE
+!@var ARR_band (output) array dimensioned and filled over the
+!@+   J range requested during the call to
+!@+   init_band_pack_type that initialized bandpack
+      IMPLICIT NONE
+      TYPE (BAND_PACK_TYPE),  INTENT(IN) :: bandpack
+      REAL*8, INTENT(IN) :: ARR(:,bandpack%j_strt_halo:,:)
+      REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:,:)
+#ifdef USE_MPI
+      integer, dimension(0:npes-1) :: scnts,sdspl, rcnts,rdspl
+      integer :: ierr,lm,i,j,l,n,p
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      lm = size(arr,3)
+      scnts = lm*bandpack%scnts
+      sdspl = lm*bandpack%sdspl
+      rcnts = lm*bandpack%rcnts
+      rdspl = lm*bandpack%rdspl
+      allocate(bufsend(sum(scnts)),bufrecv(sum(rcnts)))
+      n = 0
+      do p=0,npes-1
+        do l=1,lm
+          do j=bandpack%j0_send(p),bandpack%j1_send(p)
+            do i=1,bandpack%im_world
+              n = n + 1
+              bufsend(n) = arr(i,j,l)
+            enddo
+          enddo
+        enddo
+      enddo
+      call mpi_alltoallv(bufsend, scnts, sdspl, mpi_double_precision,
+     &                   bufrecv, rcnts, rdspl, mpi_double_precision,
+     &                   mpi_comm_world, ierr)
+      n = 0
+      do p=0,npes-1
+        do l=1,lm
+          do j=bandpack%j0_recv(p),bandpack%j1_recv(p)
+            do i=1,bandpack%im_world
+              n = n + 1
+              arr_band(i,j,l) = bufrecv(n)
+            enddo
+          enddo
+        enddo
+      enddo
+      deallocate(bufsend,bufrecv)
+#else
+      arr_band(:,bandpack%J_STRT:bandpack%J_STOP,:) =
+     &     arr(:,bandpack%J_STRT:bandpack%J_STOP,:)
+#endif
+      RETURN
+      END SUBROUTINE BAND_PACK_ijl
+
+      SUBROUTINE BAND_PACK_COLUMN(bandpack,ARR,ARR_band)
+!@var bandpack (input) instance of the band_pack_type structure
+!@var ARR      (input) local domain-decomposed array on this PE
+!@var ARR_band (output) array dimensioned and filled over the
+!@+   J range requested during the call to
+!@+   init_band_pack_type that initialized bandpack
+      IMPLICIT NONE
+      TYPE (BAND_PACK_TYPE),  INTENT(IN) :: bandpack
+      REAL*8, INTENT(IN) :: ARR(:,:,bandpack%j_strt_halo:)
+      REAL*8, INTENT(INOUT) :: ARR_band(:,:,bandpack%jband_strt:)
+#ifdef USE_MPI
+      integer, dimension(0:npes-1) :: scnts,sdspl, rcnts,rdspl
+      integer :: ierr,lm
+      lm = size(arr,1)
+      scnts = lm*bandpack%scnts
+      sdspl = lm*bandpack%sdspl_inplace
+      rcnts = lm*bandpack%rcnts
+      rdspl = lm*bandpack%rdspl_inplace
+      call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
+     &                   arr_band, rcnts, rdspl, mpi_double_precision,
+     &                   mpi_comm_world, ierr)
+#else
+      arr_band(:,:,bandpack%J_STRT:bandpack%J_STOP) =
+     &     arr(:,:,bandpack%J_STRT:bandpack%J_STOP)
+#endif
+      RETURN
+      END SUBROUTINE BAND_PACK_COLUMN
 
       SUBROUTINE ESMF_BCAST_0D(grd_dum, arr)
       IMPLICIT NONE
