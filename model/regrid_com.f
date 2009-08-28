@@ -74,15 +74,21 @@ c***  create specializations of above types, may be moved to a different layer l
 
 c*** interface for functions
       interface
-          function vminus(p,q)
-          real*8 :: vminus(2),p(2),q(2)
-          end function vminus
+         function vminus(p,q)
+         real*8 :: vminus(2),p(2),q(2)
+         end function vminus
       end interface
-
+      
+      interface
+         function vplus(p,q)
+         real*8 :: vplus(2),p(2),q(2)
+         end function vplus
+      end interface
+      
       interface 
-          function cross_product(p,q)
-          real*8 :: cross_product,p(2),q(2)
-          end function cross_product
+         function cross_product(p,q)
+         real*8 :: cross_product,p(2),q(2)
+         end function cross_product
       end interface
 
       end module REGRID_COM

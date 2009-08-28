@@ -927,7 +927,7 @@ c*
 !@+ 
 !@auth Denis Gueyffier
       use regrid_com
-      use geom, only : lat2d, lon2d, lat2d_dg, lon2d_dg, lonlat_to_ij
+      use geom, only : lonlat_to_ij, lat2d_dg, lon2d_dg
       use domain_decomp_atm, only : halo_update
       implicit none
       type (dist_grid), intent(in) :: gridin,gridout
@@ -939,15 +939,10 @@ c*
       real*8 :: dnm, pi, dlat_dg, dlon_dg,lat_curr,lon_curr
       real*8 :: ll(2),p1(2),p2(2),p3(2),p4(2)
       integer :: im_ll,jm_ll
-      integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2, jeq,
-     &      i0_ll,i1_ll,j0_ll,j1_ll,i0_cs,i1_cs,j0_cs,j1_cs
+      integer :: i,j, i_lon,j_lat, im_lon, jm_lat, i1,i2, j1,j2,
+     &     i0_cs,i1_cs,j0_cs,j1_cs
       integer :: ij(2),ij1(2),ij2(2),ij3(2),ij4(2),i_cs,j_cs
       logical :: in1,in2,in3,in4
-
-      i0_ll=gridout%I_STRT
-      i1_ll=gridout%I_STOP
-      j0_ll=gridout%J_STRT
-      j1_ll=gridout%J_STOP
 
       i0_cs=gridin%I_STRT
       i1_cs=gridin%I_STOP
@@ -956,10 +951,13 @@ c*
 
       aout_glob(:,:) = 0.
 
-      dlat_dg=180./REAL(JM_LL)                   ! even spacing (default)
+      dlat_dg=180./real(JM_LL)                   ! even spacing (default)
       IF (JM_LL.eq.46) dlat_dg=180./REAL(JM_LL-1)   ! 1/2 box at pole for 4x5
-      dlon_dg = 360./dble(IM_LL)
-      jeq=0.5*(1+JM_LL)
+      dlon_dg = 360./real(IM_LL)
+      fjeq=0.5*real(1+JM_LL)
+
+      call halo_update(gridin,ain_loc)
+
 c      
 c***  loop on points in target (latlon) domain
 c
@@ -972,7 +970,7 @@ c
             elseif (j .eq. jm_ll) then
                lat_ll = 90.
             endif
-            lon_ll = -180.+(i-0.5)*dlon_dg
+            lon_ll = -180.+real(i-0.5)*dlon_dg
             if (i .eq. 1) lon_ll = -180.+0.5*dlon_dg
             
 c     find the indices of the 4 CS cells centers which, when connected, 
@@ -985,26 +983,56 @@ c     points are ordered counterclockwise
             ll(1)=lon_ll
             ll(2)=lat_ll
             call lonlat_to_ij(ll,ij) ! this is from GNOM_CS
-            i_cs=ij(1) ; j_cs=ij(2) ! this is the CS cell containing the latlon point (not the polygon connecting CS cell centers)
-            lon_curr=lon2d_dg(i_cs,j_cs)
-            lat_curr=lat2d_dg(i_cs,j_cs)
+
+            i_cs=ij(1); j_cs=ij(2) ! this is the CS cell containing the latlon point 
+
+c     If current point is inside source CS domain then interpolate, else zero
+            if ((i_cs .le. i1_cs .and. i_cs .ge. i0_cs) .and.
+     &           (j_cs .le. j1_cs .and. j_cs .ge. j0_cs) ) then
+
+c               write(*,100) "ll1 lon",ll(1),lon2d_dg(i_cs,j_cs)
+c               write(*,100) "ll2 lat",ll(2),lat2d_dg(i_cs,j_cs)
+c 100           format(A,2(1X,F8.2))
+
+c            write(*,*) "ics, jcs=",i_cs,j_cs
             
 c     case -1-
             call setpol1(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
+c            write(*,*) "ll 1=",ll
+c            write(*,*) "p1 1=",p1
+c            write(*,*) "p2 1=",p2
+c            write(*,*) "p3 1=",p3
+c            write(*,*) "p4 1=",p4
             call point_in_quad(ll,p1,p2,p3,p4,in1)
+
 
 c     case -2-
             call setpol2(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
             call point_in_quad(ll,p1,p2,p3,p4,in2)
- 
+c            write(*,*) "ll 2=",ll
+c            write(*,*) "p1 2=",p1
+c            write(*,*) "p2 2=",p2
+c            write(*,*) "p3 2=",p3
+c            write(*,*) "p4 2=",p4
 c     case -3-
             call setpol3(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
             call point_in_quad(ll,p1,p2,p3,p4,in3)
+c            write(*,*) "ll=",ll
+c            write(*,*) "p1 3=",p1
+c            write(*,*) "p2 3=",p2
+c            write(*,*) "p3 3=",p3
+c            write(*,*) "p4 3=",p4
 
 c     case -4-
             call setpol4(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
             call point_in_quad(ll,p1,p2,p3,p4,in4)
-            
+c            write(*,*) "ll=",ll
+c            write(*,*) "p1 4=",p1
+c            write(*,*) "p2 4=",p2
+c            write(*,*) "p3 4=",p3
+c            write(*,*) "p4 p4=",4           
+c            write(*,*) "in1234=",in1,in2,in3,in4
+
             if (in1) 
      &           call setpol1(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
             if (in2) 
@@ -1013,16 +1041,13 @@ c     case -4-
      &           call setpol3(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
             if (in4) 
      &           call setpol4(p1,p2,p3,p4,i_cs,j_cs,ij1,ij2,ij3,ij4)
-            
-            call halo_update(gridin,ain_loc)
-            
-c     If current point is inside source CS domain then interpolate, else it is zero
-            if ((ij(1) .le. i1_cs .and. ij(1) .ge. i0_cs) .and.
-     &           (ij(2) .le. j1_cs .and. ij(2) .ge. j0_cs) ) then
-               a11 = ain_loc(ij1(1),ij1(2))
-               a21 = ain_loc(ij2(1),ij2(2))
-               a22 = ain_loc(ij3(1),ij3(2))
-               a12 = ain_loc(ij4(1),ij4(2))
+           
+                        
+            a11 = ain_loc(ij1(1),ij1(2))
+            a21 = ain_loc(ij2(1),ij2(2))
+            a22 = ain_loc(ij3(1),ij3(2))
+            a12 = ain_loc(ij4(1),ij4(2))
+
 c     use bilinear interpolation for non rectangular quadrilateral 
                call bilin_nonrect_quad(p1,p2,p3,p4,ll,
      &              a11,a21,a22,a12,aout_glob(i,j))
@@ -1095,7 +1120,7 @@ c*
       else if (a*b .lt. 0) then
          same = .false.
       else if (a*b .eq. 0) then
-         write(*,*) " WARNING : DEGENERATE TIRANGLE"
+         write(*,*) " WARNING : DEGENERATE TRIANGLE"
       endif
 
       end subroutine same_sign
@@ -1110,6 +1135,16 @@ c*
       return
 
       end function vminus
+
+      function vplus(p,q)
+      implicit none
+      real*8 :: vplus(2),p(2),q(2)
+      
+      vplus(1) = p(1)+q(1)
+      vplus(2) = p(2)+q(2)
+      return
+
+      end function vplus
 
       function cross_product(p,q)
       implicit none
@@ -1138,27 +1173,30 @@ c*
       real*8 :: a,b,c,t1,t2
 
       a=cross_product(vminus(p4,p1),vminus(p2,p3))
-      b=cross_product(vminus(p,p4),vminus(p4,p1)+vminus(p2,p3))
-     &     +cross_product(vminus(p4,p1),vminus(p3,p2))
+      b=cross_product(vminus(p,p4),vplus(vminus(p4,p1),vminus(p2,p3)))
+     &     +cross_product(vminus(p4,p1),vminus(p3,p4))
       c=cross_product(vminus(p,p4),vminus(p3,p4))
 
       if (a .ne. 0.) then
          t1=(-b+sqrt(b*b-4*a*c))/(2*a)
          t2=(-b-sqrt(b*b-4*a*c))/(2*a)
       endif
-      if ( t1 .ge. 0. .and. t1 .le. 1.) then
+      if ( t1 .gt. 0. .and. t1 .le. 1.) then
          t=t1
-      else if ( t2 .ge. 0. .and. t2 .le. 1.) then
+      else if ( t2 .gt. 0. .and. t2 .le. 1.) then
          t=t2
       else
-         write(*,*) "WARNING : t1,t2 not between 0 and 1"
+         write(*,*) "WARNING : t1,t2 not between 0 and 1",t1,t2
       endif
+      write(*,*) "t=",t,t*(p4(1)-p1(1)+p2(1)-p3(1))+p3(1)-p4(1)
+c      write(*,*) "p1234(1)=",p4(1)-p1(1)+p2(1)-p3(1)
+c      write(*,*) "p1234(.)=",p3(1)-p4(1)
 
       s=(p(1)-p4(1)+t*(p4(1)-p1(1)))
      &     /( t*(p4(1)-p1(1)+p2(1)-p3(1)) + p3(1)-p4(1)) 
 
       if ( s .lt. 0. .or. s .gt. 1.) then
-         write(*,*) "WARNING : s not between 0 and 1"
+         write(*,*) "WARNING : s not between 0 and 1",s
       endif
 
       aout=a11*(1-s)*t+a21*s*t+a12*(1-s)*(1-t)+a22*s*(1-t)
@@ -1205,9 +1243,13 @@ c*
       integer :: i_cs,j_cs,ij1(2),ij2(2),ij3(2),ij4(2)
       real*8 :: p1(2),p2(2),p3(2),p4(2)
 
+      ij1(1)=i_cs;ij1(2)=j_cs
       p1(1)= lon2d_dg(i_cs, j_cs);p1(2)=lat2d_dg(i_cs, j_cs)
+      ij2(1)=i_cs-1;ij2(2)=j_cs
       p2(1)= lon2d_dg(i_cs-1,j_cs);p2(2)=lat2d_dg(i_cs-1,j_cs)
+      ij3(1)=i_cs-1;ij3(2)=j_cs-1
       p3(1)= lon2d_dg(i_cs-1,j_cs-1);p3(2)=lat2d_dg(i_cs-1,j_cs-1)
+      ij4(1)=i_cs;ij4(2)=j_cs-1
       p4(1)= lon2d_dg(i_cs,j_cs-1);p4(2)=lat2d_dg(i_cs,j_cs-1)
             
       end subroutine setpol3
@@ -1217,9 +1259,14 @@ c*
       implicit none
       integer :: i_cs,j_cs,ij1(2),ij2(2),ij3(2),ij4(2)
       real*8 :: p1(2),p2(2),p3(2),p4(2)
+
+      ij1(1)=i_cs;ij1(2)=j_cs
       p1(1)= lon2d_dg(i_cs, j_cs);p1(2)=lat2d_dg(i_cs, j_cs)
+      ij2(1)=i_cs;ij2(2)=j_cs-1
       p2(1)= lon2d_dg(i_cs,j_cs-1);p2(2)=lat2d_dg(i_cs,j_cs-1)
+      ij3(1)=i_cs+1;ij3(2)=j_cs-1
       p3(1)= lon2d_dg(i_cs+1,j_cs-1);p3(2)=lat2d_dg(i_cs+1,j_cs-1)
+      ij4(1)=i_cs+1;ij4(2)=j_cs
       p4(1)= lon2d_dg(i_cs+1,j_cs);p4(2)=lat2d_dg(i_cs+1,j_cs)
       
       end subroutine setpol4
