@@ -430,7 +430,7 @@ C**** SET UP TRIDIAGONAL MATRIX ENTRIES AND RIGHT HAND SIDE
 !@sum  CHECKO Checks whether deep ocean values are reasonable
 !@auth Original Development Team
 !@ver  1.0
-      USE MODEL_COM, only : im,jm
+      USE MODEL_COM, only : im,jm,focean
       USE ODEEP_COM, only : lmom,stg3,dtg3,tg3m,rtgo
       USE STATIC_OCEAN, only : tocean
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
@@ -466,7 +466,8 @@ C**** Check for NaN/INF in ocean data
 C**** Check for reasonable values for ocean variables
       DO J=J_0, J_1
         DO I=I_0,I_1
-          IF (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.) THEN
+          IF (focean(i,j)>0 .and.
+     &        (TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1,I,J).gt.50.)) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J)
             QCHECKO = .TRUE.
           END IF

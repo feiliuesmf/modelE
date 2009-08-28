@@ -37,8 +37,8 @@ C**** Check for NaN/INF in ocean data
 C**** Check for reasonable values for ocean variables
       DO J=J_0, J_1
         DO I=I_0, I_1
-          IF (FOCEAN(I,J).gt.0 .and. TOCEAN(1,I,J).lt.-2. .or. TOCEAN(1
-     *         ,I,J).gt.50.) THEN
+          IF (FOCEAN(I,J).gt.0 .and. (TOCEAN(1,I,J).lt.-2. .or. 
+     *         TOCEAN(1,I,J).gt.50.)) THEN
             WRITE(6,*) 'After ',SUBR,': I,J,TOCEAN=',I,J,TOCEAN(1:3,I,J)
             QCHECKO = .TRUE.
           END IF
