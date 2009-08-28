@@ -533,16 +533,15 @@ C**** limit it to the annual maxmimal mixed layer depth z12o
         Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
         IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-          IF (AM_I_ROOT())
-     *    WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
  602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
           Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
           IF (Z1OMIN.GT.Z12O(I,J)) THEN
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
 C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
-            MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
-     *           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
+            MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))*RSI(I,J)/
+     *       (FWSIM(I,J)-RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
 C**** save diagnostics
             AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
      *           -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
@@ -1224,16 +1223,15 @@ C**** Ensure that we don't run out of ocean if ice gets too thick
             Z1OMIN=1.+FWSIM(I,J)/(RHOWS*RSI(I,J))
             IF (Z1OMIN.GT.Z1O(I,J)) THEN
 C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-              IF (AM_I_ROOT())
-     *        WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
+              WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
  602          FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
               Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
               IF (Z1OMIN.GT.Z12O(I,J)) THEN
 C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
 C****       lose the excess mass to the deep ocean
 C**** Calculate freshwater mass to be removed, and then any energy/salt
-                MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))/(FWSIM(I,J)
-     *               -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
+                MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))*RSI(I,J)/
+     *       (FWSIM(I,J)-RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J))))) 
 C**** save diagnostics
                 AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
      *               -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
