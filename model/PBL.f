@@ -851,6 +851,9 @@ ccc dust emission from earth
 !    .             pbl_args%trconstflx(itr),
 !    .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
 !    .          pbl_args%beta_gas,trsf,trcnst
+       ELSE
+        trsf = 0.d0
+        trcnst = 0.d0
        ENDIF
 #endif   /* TRACERS_GASEXCH_ocean_CO2 */
 
@@ -871,18 +874,6 @@ C**** solve tracer transport equation
      *       pbl_args%tr_evap_max(itr),fr_sat,
 #endif
      *       dtime,n)
-
-#ifdef TRACERS_GASEXCH_ocean_CO2
-#ifdef constCO2
-        !case where atmCO2 is constant
-        tr(:,itr)=atmCO2            !ppmv(uatm)
-!       write(*,'(a,4i5,e12.4)')'22222222', 
-!    .   nstep,ilong,jlat,itr,tr(1,itr)
-#else
-!       write(*,'(a,4i5,3e12.4)')'22222222', 
-!    .   nstep,ilong,jlat,itr,tr(1,itr),trsf,trcnst
-#endif
-#endif
 
 #ifdef TRACERS_DRYDEP
 C**** put in a check to prevent unphysical solutions. If too much
@@ -959,6 +950,7 @@ c**** copy output to pbl_args
 C**** tracer code output
 #ifdef TRACERS_ON
       pbl_args%trs(1:ntm) = tr(1,1:ntm)
+
       if (ddml_eq_1)
      &     pbl_args%trprime(1:ntm) = pbl_args%trdn1(1:ntm)-tr(1,1:ntm)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -2208,9 +2200,7 @@ c****             - ( 1 - fr_sat ) * flux_max
 #ifdef WATER_PROPORTIONAL
       if( .not. force_limit ) then
 #endif
-
       call TRIDIAG(sub,dia,sup,rhs,tr,n)
-
 #ifdef WATER_PROPORTIONAL
       endif
 #endif

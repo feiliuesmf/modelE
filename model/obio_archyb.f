@@ -166,7 +166,7 @@ c
 
       integer nop
       real*4 array4(iia,jja)
-      real*8 array8(iia,jja),array_o(iio,jjo),focean_glob(iia,jja)
+      real*8 array8(iia,jja),array_o(iio,jjo)
       character title*80
 
         !convert to atmosgrid

@@ -238,6 +238,14 @@ C**** Gas Exchange Coefficient (piston velocity)
         ijtc_power(n) = 0
         units_tij(k,n) = unit_string(ijtc_power(n),'m/s')
         scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
+
+      k = k+1
+      tij_gasx = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Gas_Exchange'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Gas Exchange'
+        ijtc_power(n) = 0
+        units_tij(k,n) = unit_string(ijtc_power(n),'mol,CO2/m2/s')
+        scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
 #endif
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular

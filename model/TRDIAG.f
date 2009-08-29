@@ -681,19 +681,6 @@ c
         endif
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean
-        if (kx.eq.tij_kw .or. kx.eq.tij_alpha) then
-          do j=j_0,j_1
-          do i=i_0,i_1
-            taij(i,j,k+1) = focean(i,j)*idacc(ia_taij(k))
-            taij(i,j,k) = taij(i,j,k)*focean(i,j)
-          enddo
-          enddo
-          ia_taij(k+1) = ia_taij(k)
-          denom_taij(k) = k+1
-          k=k+1
-        endif
-#endif
       enddo ! end loop over k
 
 #if (defined TRACERS_WATER) && (defined TRACERS_DRYDEP)

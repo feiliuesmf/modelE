@@ -544,6 +544,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       PUBLIC :: MAPTXT
       PUBLIC :: IJ_avg
       PUBLIC :: scale_ijlmap
+      PUBLIC :: focean_glob
 
 !ESMF: These globalsum routines are private to this module and execute
 !      serially in a single processor.
@@ -666,7 +667,7 @@ C**** ROLL UP KEY NUMBERS 1 YEAR AT A TIME
       IMPLICIT NONE
 !@var partial : accum period is complete (if =0) or partial (if =1)
       INTEGER, INTENT(IN) :: partial
-
+ 
 #ifdef SCM
 c     write(0,*) 'SCM no diags   print_diags'
       return

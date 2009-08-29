@@ -762,7 +762,7 @@ C****
       call pack_data(ogrid, tracer,   tracer_glob)
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      call pack_data(agrid, pCO2,      pCO2_glob)
+      call pack_data(ogrid, pCO2,      pCO2_glob)
 #endif
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
@@ -804,7 +804,7 @@ C****
       write(*,'(a,3i5,3(e12.4,1x),i3,1x,3e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
      .       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .      ,pCO2_glob(itest,jtest)
+     .      ,pCO2_glob(i,j)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
@@ -876,7 +876,7 @@ C****
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
      .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
      .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .   ,pco2_glob(itest,jtest)
+     .   ,pco2_glob(i,j)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -947,7 +947,7 @@ C****
       endif
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      call unpack_data(agrid, pCO2_glob,      pCO2)
+      call unpack_data(ogrid, pCO2_glob,      pCO2)
 #endif
 
       RETURN
@@ -4956,9 +4956,6 @@ C**** do poles
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
           GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-          GTRACER(:,1,I,JMA)=GTRACER(:,1,1,JMA)
-#endif
         END DO
       END IF
       end if
@@ -4974,9 +4971,6 @@ C**** do poles
           VOSURF(I,1) = VOSURF(1,1)
           OGEOZA(I,1)=OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_GASEXCH_ocean)
-          GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
-#endif
-#ifdef TRACERS_GASEXCH_ocean
           GTRACER(:,1,I,1)=GTRACER(:,1,1,1)
 #endif
         END DO

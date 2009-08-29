@@ -4900,9 +4900,9 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_isrc(1,n) = k
         ia_ijts(k) = ia_src
         sname_ijts(k) = 'CO2_O_GASX'
-        lname_ijts(k) = 'Ocean gas exchange CO2'
+        lname_ijts(k) = 'AO GASEX CO2'
         ijts_power(k) = -11
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        units_ijts(k) = unit_string(ijts_power(k),'mol,CO2/m2/s')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SF6','SF6_c')
@@ -7472,6 +7472,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AMP_AEROSOL
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
+      USE FLUXES, only : gtracer
+      Use AFLUXES, Only: aTRAC
+      USE MODEL_COM, only : nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else
@@ -8112,18 +8115,15 @@ c**** earth
 #ifdef constCO2
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
-           write(*,'(a,4i5,2e12.5)')'11111111111111111',
-     .          i,j,l,n,atmCO2,trm(i,j,l,n)
              gtracer(n,1,i,j) = vol2mass(n)
-     .                    * atmCO2 * 1.d-6
+     .                    * atmCO2 * 1.d-6      !initialize gtracer
+             atrac(i,j,n) = gtracer(n,1,i,j)
 #else
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)    
      .                    * xnow(1) * 1.d-6
              gtracer(n,1,i,j) = vol2mass(n)
-     .                    * xnow(1) * 1.d-6
-
-!          write(*,'(a,4i5,2e12.5)')'11111111111111111',
-!    .          i,j,l,n,xnow(1),trm(i,j,l,n)
+     .                    * xnow(1) * 1.d-6      !initialize gtracer
+             atrac(i,j,n) = gtracer(n,1,i,j)
 #endif
           end do; end do; end do
 #endif
@@ -8247,6 +8247,8 @@ C**** Initialise pbl profile if necessary
           ELSE
 #endif
             trabl(ipbl,n,it,:,j) = trm(:,j,1,n)*byam(1,:,j)*byaxyp(:,j)
+
+            
 #ifdef TRACERS_WATER
           END IF
 #endif
@@ -8546,6 +8548,15 @@ C**** Note this routine must always exist (but can be a dummy routine)
      * ,aer_int_yr,imAER
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
 #endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+#ifdef constCO2
+     * ,trm,vol2mass
+      USE resolution,ONLY : lm
+      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE GEOM, only: axyp
+      USE obio_forc, only : atmCO2
+#endif
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
       USE TRACERS_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
@@ -8561,6 +8572,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
 
       IMPLICIT NONE
       INTEGER n,iact,last_month,kk,nread
+#ifdef TRACERS_GASEXCH_ocean_CO2
+#ifdef constCO2
+      integer i,j,l
+#endif
+#endif
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1
 C****
@@ -8763,8 +8779,13 @@ C**** at the start of any day
 !for the constCO2 case reset trm here
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifdef constCO2
+      do n=1,ntm
+      if am_i_root() print*,'TRACERS_DRV, reseting daily trm'
+      do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
+      end do; end do; end do
+      enddo
 #endif
 #endif
 

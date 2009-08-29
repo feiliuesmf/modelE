@@ -1186,16 +1186,20 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
-     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc,focean
+     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
+#ifdef TRACERS_GASEXCH_ocean
+      USE MODEL_COM, only: nstep=>itime
+      USE DIAG_SERIAL, only : FOCEAN_glob
+#endif
 
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
      *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count, tij_kw,
-     *     tij_alpha
+     *     tij_alpha,tij_gasx
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1275,8 +1279,15 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
 #endif
 #ifdef TRACERS_GASEXCH_ocean
         if (kx.eq.tij_kw .or. kx.eq.tij_alpha) then
-           aij1(:,:,k)=taijn(:,:,kx,n)*focean(:,:)
-           aij2(:,:,k)=focean(:,:)
+           write(*,'(a,3i5,e12.4)')'TRACER_PRT, focean_glob',
+     .               nstep,45,1,focean_glob(45,1)
+           aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
+           aij2(:,:,k)=focean_glob(:,:)
+           ijtype(k) = 3
+        endif
+        if (kx.eq.tij_gasx) then 
+           aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
+           aij2(:,:,k)=focean_glob(:,:)
            ijtype(k) = 3
         endif
 #endif
@@ -1338,8 +1349,8 @@ C**** Fill in maplet indices for sources and sinks
      *    'J_H2O2')ijtype(k)=2
         
         if (name(k)=='CO2_O_GASX')then
-           aij1(:,:,k)=aij1(:,:,k)*focean(:,:)
-           aij2(:,:,k)=focean(:,:)
+           aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
+           aij2(:,:,k)=focean_glob(:,:)
            ijtype(k)=3
         endif
 
@@ -1563,7 +1574,7 @@ C****
 !@ESMF This routine should only be called from a serial region.
 !@     It is NOT parallelized.
       USE MODEL_COM, only: im,jm,lm,jhour,jhour0,jdate,jdate0,amon,amon0
-     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc,focean
+     *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,

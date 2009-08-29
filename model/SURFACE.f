@@ -119,7 +119,7 @@ C****
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
-     *      tij_surfbv, tij_kw, tij_alpha, tij_evap,
+     *      tij_surfbv, tij_kw, tij_alpha, tij_evap, tij_gasx,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd,itcon_surf
@@ -290,6 +290,9 @@ C**** Zero out fluxes summed over type and surface time step
 #ifdef SCM
       EVPFLX= 0.0d0
       SHFLX = 0.0d0
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      TRGASEX = 0.0d0
 #endif
 
 C****
@@ -576,8 +579,9 @@ C**** set defaults
           trgrnd(nx)=gtracer(n,itype,i,j)    
           trsfac(nx)=1.
           trconstflx(nx)=trgrnd(nx)
-!        write(*,'(a,3i5,3e12.4)') 'in SURFACE:',
-!    .    nstep,I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
+          if (i.eq.1.and.j.eq.45)
+     .   write(*,'(a,3i5,3e12.4)') 'in SURFACE, gtracer:',
+     .    nstep,I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -868,21 +872,20 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
-! Units are in mol/m2/sec  for the case of constCO2
-! Units are (m/s)(kg,CO2/kg,air) for prognostic CO2 case
-
+! Units are (m/s)(kg,CO2/kg,air) converted to mol,CO2/m2/s
 ! [trgasex] = (m/s)*(kg,CO2/kg,air)
-          TRGASEX(n,ITYPE,I,J) =
+! convert (m/s)(kg,CO2/kg,air) -> mol,CO2/m2/s
+! because obio_carbon needs molCO2/m2/s:
+
+          TRGASEX(n,ITYPE,I,J) =      !accumulate
+     .                         TRGASEX(n,ITYPE,I,J) +
      .    (   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
      .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
      .                        * ptype
-
-!convert (m/s)(kg,CO2/kg,air) -> mol,CO2/m2/s
-!because obio_carbon needs molCO2/m2/s:
-         TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) 
      .                        * rhosrf/(tr_mm(nx)*1.d-3)    
 
 ! trsrfflx is positive up 
+! Units are (m/s)(kg,CO2/kg,air) 
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .   -(   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
      .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
@@ -894,18 +897,17 @@ C****
      .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
      .                   * ptype
      .                   * axyp(i,j) * dtsurf
+     .                   * rhosrf/(tr_mm(nx)*1.d-3)         !(m/s) (kg,co2/kg,air) -> molCO2/m2/s  
 
-   
       if(i.eq.1 .and. j.eq.45) then
-!      write(*,'(a,3i5,10e12.4)')'333333333333',
-       write(*,'(a,3i5,10e12.4)')'SURFACE, trgasex:',
+       write(*,'(a,3i5,11e12.4)')'SURFACE, trgasex:',
      . nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
      . pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J),
      . pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx) 
      .                 *ptype * rhosrf/(tr_mm(nx)*1.d-3),
      . pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. 
      .                 *ptype * rhosrf/(tr_mm(nx)*1.d-3),
-     . trsrfflx(i,j,n),rhosrf
+     . trsrfflx(i,j,n),rhosrf,taijs(i,j,ijts_isrc(1,n))
       endif
 
 #endif
@@ -1254,9 +1256,13 @@ C**** Save surface tracer concentration whether calculated or not
 #ifdef TRACERS_GASEXCH_ocean
           if (focean(i,j).gt.0.) then
             taijn(i,j,tij_kw,n) = taijn(i,j,tij_kw,n)
-     *                          + pbl_args%Kw_gas*ptype
+     *                          + pbl_args%Kw_gas*ptype        !m/s
             taijn(i,j,tij_alpha,n) = taijn(i,j,tij_alpha,n)
      *                             + pbl_args%alpha_gas*ptype
+     *                             * 1.d-12 /(tr_mm(n)*1.d-3)  !kg,CO2/m3/atm -> mol,CO2/m3/picoatm
+            taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
+     *                            + TRGASEX(n,ITYPE,I,J)       !mol,CO2/m2/s
+     *                             * ptype
           endif
 #endif
 #ifdef TRACERS_WATER

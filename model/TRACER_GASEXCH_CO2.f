@@ -142,8 +142,13 @@
       do i=1,iia
       if (focean(i,j).gt.0.) then
          do nt=1,ntm
+          if (i.eq.1.and.j.eq.45)
+     .    write(*,'(a,3i5,e12.4)')'TRACER_GASEXCH_CO2, gtracer1:',
+     .        nstep,i,j,gtracer(1,1,i,j)
             GTRACER(nt,1,i,j)=atrac(i,j,nt)
-            write(*,*)'TRACER_GASEXCH_CO2:',i,j,nt,GTRACER(nt,1,i,j)
+          if (i.eq.1.and.j.eq.45)
+     .    write(*,'(a,3i5,e12.4)')'TRACER_GASEXCH_CO2, gtracer2:',
+     .        nstep,i,j,gtracer(1,1,i,j)
          enddo
       endif
       enddo

@@ -133,6 +133,7 @@
       USE MODEL_COM, only: nstep=>itime
       USE obio_com, only: pCO2
       USE TRACER_COM, only : vol2mass
+      USE FLUXES, only : gtracer
 #endif
 
       USE INT_OG2AG_MOD, only : INT_OG2AG
@@ -318,8 +319,19 @@ C**** surface tracer concentration
         END DO
       END DO
       DO NT = 1,NTM
-      CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)
-      aTRAC(:,:,NT) = aTRAC(:,:,NT) * 1.d-6 ! ppmv (uatm) -> atm (this is what PBL trcnst needs)
+         CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)
+
+         !opco2 is in uatm, convert to kg,CO2/kg,air
+         aTRAC(:,:,NT) = aTRAC(:,:,NT) * vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
+
+         !gtracer is first set in TRACER_DRV, then atrac is interpolated
+         !here from pco2 in the ocean and later OCNDYN sets gtracer=atrac
+         !Therefore in timesetep 0 (cold start) pco2 has not yet been defined
+         !and atrac has to be hard coded in here, so that we do not have
+         !urealistic tracer flux at the air-sea interface during step0.
+
+         if (nstep.eq.0) aTRAC(:,:,NT) = gtracer(NT,1,:,:)
+
       END DO
 #endif
 #endif
