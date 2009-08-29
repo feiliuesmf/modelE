@@ -8,8 +8,8 @@
       Module Procedure tridiag
       Module procedure tridiag_2d_glob
 #ifndef OFFLINE_RUN
-      Module procedure tridiag_2d_dist
-      Module procedure tridiag_3d_dist
+      Module procedure tridiag_2d_dist_new
+      Module procedure tridiag_3d_dist_new
 #endif
       End Interface
 
@@ -251,6 +251,201 @@ c     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
 
       RETURN
       END SUBROUTINE TRIDIAG_3D_DIST
+
+      SUBROUTINE TRIDIAG_2D_DIST_new(A_dist, B_dist, C_dist, R_dist,
+     &                           U_dist,grid, j_lower, j_upper )
+!@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
+!@auth Numerical Recipes
+!@ver  1.0
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : TRANSP,TRANSPOSE_COLUMN
+      IMPLICIT NONE
+
+      Type (DIST_GRID), Intent(IN) :: grid
+      REAL*8, INTENT(INOUT) :: A_dist(:,grid%j_strt_halo:)
+      REAL*8, INTENT(INOUT) :: B_dist(:,grid%j_strt_halo:)
+      REAL*8, INTENT(INOUT) :: C_dist(:,grid%j_strt_halo:)
+      REAL*8, INTENT(INOUT) :: R_dist(:,grid%j_strt_halo:)
+      REAL*8, INTENT(OUT)   :: U_dist(:,grid%j_strt_halo:)
+      INTEGER, INTENT(IN)   :: J_LOWER, J_UPPER
+
+      REAL*8, ALLOCATABLE :: ABCR(:,:,:,:),ABCR_tr(:,:,:,:),
+     &                       U_tr(:,:)
+
+      REAL*8 :: BET
+      REAL*8, allocatable :: BYBET(:),GAM(:,:) !@var BET,GAM  work arrays
+
+      Integer :: i, j
+      Integer :: N, N_i, IM
+
+
+! Determine the size of the global arrays
+      N = grid%jm_world
+      n_i = grid%ni_loc
+      allocate( bybet(n_i), gam(n_i,n) )
+
+! Matrix size consistent with array size?
+      if ( J_upper > N ) then
+        print*, 'TRIDIAG: upper bound of matrix arrays is too large'
+        print*, 'j_upper = ', j_upper, 'jm =', n, ' ( need j_upper<=jm)'
+        call stop_model('TRIDIAG: j_upper argument too large', 255)
+      end if
+
+! Copy j-distributed A,B,C,R into single array to do all tranposes together
+      IM = grid%im_world
+      allocate(abcr(4,IM,grid%j_strt_halo:grid%j_stop_halo,1))
+      do j=grid%j_strt,grid%j_stop
+        do i=1,IM
+          abcr(1,i,j,1) = a_dist(i,j)
+          abcr(2,i,j,1) = b_dist(i,j)
+          abcr(3,i,j,1) = c_dist(i,j)
+          abcr(4,i,j,1) = r_dist(i,j)
+        enddo
+      enddo
+
+! Allocate the transposed arrays
+      allocate( abcr_tr(4,n_i,n,1) )
+      allocate( u_tr(n_i,n) )
+
+! Do the transpose of A,B,C,R
+      call transpose_column(grid, abcr, abcr_tr)
+
+! Solve
+      do i=1,n_i
+        BET=ABCR_tr(2,i,j_lower,1)
+        IF (BET.eq.0) then
+          print*, "TRIDIAG_2D_DIST: DENOM. = ZERO  i,j= ", i,' 1'
+          stop
+        end if
+        BYBET(I) = 1D0/BET
+        U_tr(i,j_lower)=ABCR_tr(4,i,j_lower,1)*BYBET(I)
+      enddo
+      do J=j_lower+1, j_upper
+        do i=1,n_i
+          GAM(I,J)=ABCR_tr(3,i,J-1,1)*BYBET(I)
+          BET=ABCR_tr(2,i,J,1)-ABCR_tr(1,i,J,1)*GAM(I,J)
+          IF (BET.eq.0) then
+            print*, "TRIDIAG_2D_DIST: DENOM. = ZERO i,j= ", i, j
+            stop
+          end if
+          BYBET(I) = 1D0/BET
+          U_tr(i,J)=( ABCR_tr(4,i,J,1)-ABCR_tr(1,i,J,1)*U_tr(i,J-1) )
+     &         *BYBET(I)
+        enddo
+      enddo
+      do J=j_upper-1,j_lower,-1
+        do i=1,n_i
+          U_tr(i,J)=U_tr(i,J)-GAM(I,J+1)*U_tr(i,J+1)
+        enddo
+      enddo
+
+! Transfer the solution to the j-distributed array
+      call transp( grid, u_dist, u_tr, reverse=.true.)
+
+      deallocate( abcr, abcr_tr, u_tr, bybet, gam )
+
+      RETURN
+      END SUBROUTINE TRIDIAG_2D_DIST_new
+
+      SUBROUTINE TRIDIAG_3D_DIST_new(A_dist, B_dist, C_dist, R_dist,
+     &                           U_dist,grid, j_lower, j_upper )
+!@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
+!@auth Numerical Recipes
+!@ver  1.0
+      USE DOMAIN_DECOMP_1D, ONLY : DIST_GRID
+      USE DOMAIN_DECOMP_1D, ONLY : TRANSP,TRANSPOSE_COLUMN
+      IMPLICIT NONE
+
+      Type (DIST_GRID), Intent(IN) :: grid
+      REAL*8, INTENT(INOUT) :: A_dist(:,grid%j_strt_halo:,:)
+      REAL*8, INTENT(INOUT) :: B_dist(:,grid%j_strt_halo:,:)
+      REAL*8, INTENT(INOUT) :: C_dist(:,grid%j_strt_halo:,:)
+      REAL*8, INTENT(INOUT) :: R_dist(:,grid%j_strt_halo:,:)
+      REAL*8, INTENT(OUT)   :: U_dist(:,grid%j_strt_halo:,:)
+      INTEGER, INTENT(IN)   :: J_LOWER, J_UPPER
+
+      REAL*8, ALLOCATABLE :: ABCR(:,:,:,:),ABCR_tr(:,:,:,:),
+     &                       U_tr(:,:,:)
+
+      REAL*8 :: BET
+      REAL*8, allocatable :: BYBET(:),GAM(:,:) !@var BET,GAM  work arrays
+
+      Integer :: i, j, l
+      Integer :: N, N_i, N_l, IM
+
+
+! Determine the size of the global arrays
+      N = grid%jm_world
+      n_i = grid%ni_loc
+      n_l = size(A_dist,3)
+      allocate( bybet(n_i), gam(n_i,n) )
+
+! Matrix size consistent with array size?
+      if ( J_upper > N ) then
+        print*, 'TRIDIAG: upper bound of matrix arrays is too large'
+        print*, 'j_upper = ', j_upper, 'jm =', n, ' ( need j_upper<=jm)'
+        call stop_model('TRIDIAG: j_upper argument too large', 255)
+      end if
+
+! Copy j-distributed A,B,C,R into single array to do all tranposes together
+      IM = grid%im_world
+      allocate(abcr(4,IM,grid%j_strt_halo:grid%j_stop_halo,n_l))
+      do l=1,n_l
+        do j=grid%j_strt,grid%j_stop
+          do i=1,IM
+            abcr(1,i,j,l) = a_dist(i,j,l)
+            abcr(2,i,j,l) = b_dist(i,j,l)
+            abcr(3,i,j,l) = c_dist(i,j,l)
+            abcr(4,i,j,l) = r_dist(i,j,l)
+          enddo
+        enddo
+      enddo
+
+! Allocate the transposed arrays
+      allocate( abcr_tr(4,n_i,n,n_l) )
+      allocate( u_tr(n_i,n,n_l) )
+
+! Do the transpose of A,B,C,R
+      call transpose_column(grid, abcr, abcr_tr)
+
+! Solve
+      do l=1,n_l
+      do i=1,n_i
+        BET=ABCR_tr(2,i,j_lower,l)
+        IF (BET.eq.0) then
+          print*, "TRIDIAG_3D_DIST: DENOM. = ZERO  i,j= ", i,' 1'
+          stop
+        end if
+        BYBET(I) = 1D0/BET
+        U_tr(i,j_lower,l)=ABCR_tr(4,i,j_lower,l)*BYBET(I)
+      enddo
+      do J=j_lower+1, j_upper
+        do i=1,n_i
+          GAM(I,J)=ABCR_tr(3,i,J-1,l)*BYBET(I)
+          BET=ABCR_tr(2,i,J,l)-ABCR_tr(1,i,J,l)*GAM(I,J)
+          IF (BET.eq.0) then
+            print*, "TRIDIAG_3D_DIST: DENOM. = ZERO i,j= ", i, j
+            stop
+          end if
+          BYBET(I) = 1D0/BET
+          U_tr(i,J,l)=(ABCR_tr(4,i,J,l)-ABCR_tr(1,i,J,l)*U_tr(i,J-1,l))
+     &         *BYBET(I)
+        enddo
+      enddo
+      do J=j_upper-1,j_lower,-1
+        do i=1,n_i
+          U_tr(i,J,l)=U_tr(i,J,l)-GAM(I,J+1)*U_tr(i,J+1,l)
+        enddo
+      enddo
+      enddo
+
+! Transfer the solution to the j-distributed array
+      call transp( grid, u_dist, u_tr, reverse=.true.)
+
+      deallocate( abcr, abcr_tr, u_tr, bybet, gam )
+
+      RETURN
+      END SUBROUTINE TRIDIAG_3D_DIST_new
 #endif
 
 
