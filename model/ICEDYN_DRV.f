@@ -594,23 +594,27 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     )
 
 c*    for debugging purpose only
-
 #ifdef CUBE_GRID
       call MPI_COMM_RANK( MPI_COMM_WORLD, mype, ierr )
       allocate(itest(NX1,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
      &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO))
-      do i=1,NX1
-      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
-         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
-      enddo
-      enddo
+c      do i=1,NX1
+c      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
+c         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
+c      enddo
+c      enddo
 c      itest(:,:)=mype
 c      itest(:,:)=5
 c      call INT_IceB2AtmA(itest,atest)
-      call INT_IceB2AtmA_NX1(itest,atest)
-      call stop_model("debugging Ice to Atm interpolation",255)
+c      call INT_IceB2AtmA_NX1(itest,atest)
+c      call stop_model("debugging Ice to Atm interpolation",255)
+
+      atest(:,:)=mype
+      call INT_AtmA2IceA(atest,itest)
+c      call stop_model("debugging Atm to Ice interpolation",255)
+      deallocate(itest,atest)
 #endif
 c*
 
@@ -1756,7 +1760,8 @@ C****
 !@sum interpolate from Atm A-grid to Ice A-grid for either scalars
 !@+   or U or V component of vector  
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET,ICE_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET,ICE_UNPACK=>UNPACK_DATA,
+     &     am_i_root
       USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real*8 ::
@@ -1764,14 +1769,26 @@ C****
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+      character*80 :: title
 #ifdef CUBE_GRID
       real*8, allocatable :: iA_glob(:,:)
-      allocate (iA_glob(IMICDYN,JMICDYN))
+      real*4, allocatable :: iA4_glob(:,:)
+
+      allocate (iA_glob(IMICDYN,JMICDYN),iA4_glob(IMICDYN,JMICDYN))
 !interpolate then sumxpe global array on target latlon icedyn grid then scatter
       call parallel_bilin_CS_A_2_latlon_A(agrid,grid_ICDYN,aA,iA_glob,
      &     IMICDYN,JMICDYN)
       call ICE_UNPACK(grid_ICDYN,iA_glob,iA)
-      deallocate (iA_glob)
+      if (am_i_root()) then
+      open(900,FILE="aA2iA",FORM='unformatted',
+     &        STATUS='unknown')
+      title="test"
+      iA4_glob=iA_glob
+      write(900) title,iA4_glob
+      close(900)
+      endif
+
+      deallocate (iA_glob,iA4_glob)
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
 c***  both latlon with equal resolution
@@ -1804,7 +1821,7 @@ c*   ICE C -> ICE B. change this if less smoothing is needed
       call halo_update(grid_ICDYN,iA)
 
       do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
-         do i=2,IMICDYN-1
+         do i=2,IMICDYN
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i-1,j+1))
          enddo
             iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(IMICDYN,j+1))
@@ -1849,7 +1866,7 @@ c*   ICE C -> ICE B. change this if less smoothing is needed
       call halo_update(grid_ICDYN,iA)
 
       do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
-         do i=2,IMICDYN-1
+         do i=2,IMICDYN
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i,j))
          enddo
             iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(1,j))
@@ -1868,6 +1885,101 @@ c***  both latlon with equal resolution
 #endif
       end subroutine INT_IceC2AtmC_V
 c*
+
+      subroutine INT_IceC2AtmA_U(iA,aA)
+!@sum interpolate from Ice C-grid to Atm A-grid for U-component of a vector
+!@+ this function is only temporary and will soon disappear as the definitive
+!@+ instance of ice velocities is soon going to be on the ice B-grid
+      USE RESOLUTION, only : IM,JM
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
+     &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+      integer :: i,j
+
+#ifdef CUBE_GRID
+      real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
+      allocate (aA_glob(IM,JM,6),iAtmp(1:IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+
+c*   ICE C -> ICE B. We did not implement parallel_bilin_latlon_C_2_CS_A for the
+c*   reason explained above
+
+
+      call halo_update(grid_ICDYN,iA)
+
+      do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
+         do i=2,IMICDYN
+            iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i-1,j+1))
+         enddo
+            iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(IMICDYN,j+1))
+      enddo
+
+      call halo_update(grid_ICDYN,iAtmp)
+
+      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
+     &     iAtmp,aA_glob,IMICDYN,JMICDYN)
+      call ATM_UNPACK(agrid,aA_glob,aA)
+      deallocate(aA_glob,iAtmp)
+#else
+c***  for the moment me assume that the atm and icedyn grids are
+c***  both latlon with equal resolution
+      aA=iA
+#endif
+      end subroutine INT_IceC2AtmA_U
+
+      subroutine INT_IceC2AtmA_V(iA,aA)
+!@sum interpolate from Ice C-grid to Atm A-grid for V-component of a vector
+
+!@+ this function is only temporary and will soon disappear as the definitive
+!@+ instance of ice velocities is soon going to be on the ice B-grid
+      USE RESOLUTION, only : IM,JM
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
+     &     ATM_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
+      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
+      IMPLICIT NONE
+      real *8 ::
+     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
+     &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+      integer :: i,j
+
+#ifdef CUBE_GRID
+      real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
+      allocate (aA_glob(IM,JM,6),iAtmp(1:IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+
+c*   ICE C -> ICE B. We did not implement parallel_bilin_latlon_C_2_CS_A for the
+c*   reason explained above
+
+      call halo_update(grid_ICDYN,iA)
+
+      do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
+         do i=2,IMICDYN
+            iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i,j))
+         enddo
+            iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(1,j))
+      enddo
+
+      call halo_update(grid_ICDYN,iAtmp)
+
+      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
+     &     iAtmp,aA_glob,IMICDYN,JMICDYN)
+      call ATM_UNPACK(agrid,aA_glob,aA)
+      deallocate(aA_glob,iAtmp)
+#else
+c***  for the moment me assume that the atm and icedyn grids are
+c***  both latlon with equal resolution
+      aA=iA
+#endif
+      end subroutine INT_IceC2AtmA_V
 
       subroutine INT_IceB2AtmA(iAb,aAa)
 !@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
@@ -2303,7 +2415,7 @@ C**** temporary assumption that ice velocities are on atmos B grid
       use GEOM,only : idjj,idij,rapj,kmaxj,sinip,cosip
 #endif
       IMPLICIT NONE
-      REAL*8, !INTENT(IN),
+      REAL*8,
      &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: aUSI,aVSI
       REAL*8,INTENT(OUT), 
