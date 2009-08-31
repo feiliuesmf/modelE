@@ -382,10 +382,21 @@ c This routine places the center of face 1 at the IDL.
       USE CONSTANT, only : PI
       implicit none
       real*8, parameter :: byg=1.62474893308877d0 ! byg=2/acos(1/3)
+      real*8, parameter :: latpol=pi/2d0-1d-10
       real*8 :: lon,lat ! input
       real*8 :: x,y ! output
       integer :: tile ! output
       real*8 :: modlon,coslon,tanlat,tmpx,tmpy,bytanfac
+      if(abs(lat).gt.latpol) then ! avoid calculating tan(pi/2)
+        x = 0.
+        y = 0.
+        if(lat.gt.0.) then
+          tile = 3
+        else
+          tile = 6
+        endif
+        return
+      endif
       modlon = lon
       do while(modlon.lt.-pi/4d0)
         modlon = modlon + pi/2d0
