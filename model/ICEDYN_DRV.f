@@ -598,20 +598,20 @@ c*    for debugging purpose only
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
      &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO))
-c      do i=1,NX1
-c      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
-c         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
-c      enddo
-c      enddo
+      do i=1,NX1
+      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
+         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
+      enddo
+      enddo
 c      itest(:,:)=mype
 c      itest(:,:)=5
 c      call INT_IceB2AtmA(itest,atest)
-c      call INT_IceB2AtmA_NX1(itest,atest)
+      call INT_IceB2AtmA_NX1(itest,atest)
 c      call stop_model("debugging Ice to Atm interpolation",255)
 
-      atest(:,:)=mype
-      call INT_AtmA2IceA(atest,itest)
-c      call stop_model("debugging Atm to Ice interpolation",255)
+c      atest(:,:)=mype
+c      call INT_AtmA2IceA(atest,itest)
+      call stop_model("debugging Atm to Ice interpolation",255)
       deallocate(itest,atest)
 #endif
 c*
@@ -863,6 +863,7 @@ c      write(300+myPE,*) uib
 c      write(310+myPE,*) vib
 c      write(320+myPE,*) HEFF
 c      write(330+myPE,*) amass
+
 
 C**** do the looping over pseudo-timesteps
       CALL VPICEDYN
@@ -1885,35 +1886,35 @@ c*
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
      &     ATM_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
-      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
+      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_NXY
       IMPLICIT NONE
       real *8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     iA(NX1,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+     &     iA(NX1,grid_NXY%J_STRT_HALO:grid_NXY%J_STOP_HALO)
       integer :: i,j
 
 #ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
 
       allocate (aA_glob(IM,JM,6),iAtmp(NX1,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+     &     grid_NXY%J_STRT_HALO:grid_NXY%J_STOP_HALO))
 
 c*   ICE C -> ICE B. We did not implement parallel_bilin_latlon_C_2_CS_A for the
 c*   reason explained above
 
-      call halo_update(grid_ICDYN,iA)
+      call halo_update(grid_NXY,iA)
 
-      do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
+      do j=grid_NXY%J_STRT,grid_NXY%J_STOP
          do i=2,NX1
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i-1,j+1))
          enddo
             iAtmp(1,j)=0.5*(iA(NX1-2,j)+iA(NX1-2,j+1))
       enddo
 
-      call halo_update(grid_ICDYN,iAtmp)
+      call halo_update(grid_NXY,iAtmp)
 
-      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_ICDYN,agrid,
+      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_NXY,agrid,
      &     iAtmp,aA_glob,NX1,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
 
@@ -1930,24 +1931,24 @@ c*
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
      &     ATM_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
-      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
+      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_NXY
       IMPLICIT NONE
       real *8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     iA(NX1,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+     &     iA(NX1,grid_NXY%J_STRT_HALO:grid_NXY%J_STOP_HALO)
       integer :: i,j
       real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
       allocate (aA_glob(IM,JM,6),iAtmp(NX1,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
+     &     grid_NXY%J_STRT_HALO:grid_NXY%J_STOP_HALO))
 
 #ifdef CUBE_GRID
 c*   ICE C -> ICE B. We did not implement parallel_bilin_latlon_C_2_CS_A for the
 c*   reason explained above 
 
-      call halo_update(grid_ICDYN,iA)
+      call halo_update(grid_NXY,iA)
 
-      do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
+      do j=grid_NXY%J_STRT,grid_NXY%J_STOP
          do i=2,NX1-1
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i,j))
          enddo
@@ -1955,9 +1956,9 @@ c*   reason explained above
          iAtmp(1,j)=0.5*(iA(NX1-2,j)+iA(NX1-1,j))
       enddo
 
-      call halo_update(grid_ICDYN,iAtmp)
+      call halo_update(grid_NXY,iAtmp)
 
-      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
+      call parallel_bilin_latlon_B_2_CS_A(grid_NXY,agrid,
      &     iAtmp,aA_glob,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
       deallocate(aA_glob,iAtmp)
@@ -2007,7 +2008,7 @@ c*   reason explained above
       USE RESOLUTION, only : aIM=>IM,aJM=>JM
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
      &     ATM_UNPACK=>UNPACK_DATA,am_i_root
-      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,grid_ICDYN
+      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,grid_NXY
       IMPLICIT NONE
       integer :: mype,ierr
       character*80 :: title
@@ -2015,13 +2016,13 @@ c*   reason explained above
      &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iAb(NX1,                             ! on ice B grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+     &     grid_NXY%J_STRT_HALO:grid_NXY%J_STOP_HALO)
  
 #ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:,:)
       real*4, allocatable :: a4_glob(:,:,:)
       allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
-      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_ICDYN,agrid,
+      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_NXY,agrid,
      &     iAb,aA_glob,NX1,IMICDYN,JMICDYN)
 
       if (am_i_root()) then
@@ -2462,8 +2463,8 @@ C****
       enddo
 
 #ifdef CUBE_GRID
-      call INT_IceB2AtmA_NX1(uicetmp,uisurf)
-      call INT_IceB2AtmA_NX1(vicetmp,visurf)
+c      call INT_IceB2AtmA_NX1(uicetmp,uisurf)
+c      call INT_IceB2AtmA_NX1(vicetmp,visurf)
 #else
 c**** We assume that ice grid and latlon atm grid have same resolution 
       do j=J_0S,J_1S
