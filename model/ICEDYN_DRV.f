@@ -537,7 +537,7 @@ C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
      &     iUOSURF,iVOSURF,iDMUA,iDMVA,
-     &     iDMUI,iDMVI,aDMU,aDMV,aUSI,aVSI
+     &     iDMUI,iDMVI,aDMU,aDMV
 
       real*8, allocatable, dimension(:,:) :: itest,atest
             real*8, allocatable, dimension(:,:,:) :: atest_glob
@@ -582,8 +582,6 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     aDMU(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aDMV(aI_0H:aI_1H,aJ_0H:aJ_1H),
 #endif
-     &     aUSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aVSI(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     iFOCEAN(1:IMICDYN,iJ_0H:iJ_1H),
      &     iUOSURF(1:IMICDYN,iJ_0H:iJ_1H),
      &     iVOSURF(1:IMICDYN,iJ_0H:iJ_1H),
@@ -990,7 +988,6 @@ c**** resampled on atm CS A-grid but still expressed in latlon basis
                duA = admu(i,j)
                dvA = admv(i,j)
 #else 
-!replace admu by dmu
 C**** calculate 4 point average of B grid values of stresses
                duA = 0.5*(aDXYN(J)*(dmu(i+1,j)+dmu(i,j))
      *              +aDXYS(j)*(dmu(i+1
@@ -1033,11 +1030,6 @@ C**** Update halos for FOCEAN, and RSI
 
       CALL HALO_UPDATE(grid_ICDYN,  iFOCEAN, from=NORTH     )
       CALL HALO_UPDATE(grid_ICDYN,  iRSI   , from=NORTH     )
-
-c*** interpolate ice velocities to the atm C-grid but 
-c*** keep latlon orientation 
-      call Int_IceC2AtmC_U(USI,aUSI)
-      call Int_IceC2AtmC_V(VSI,aVSI)
 
 #ifndef CUBE_GRID
 c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
@@ -1093,7 +1085,7 @@ c*** diagnostics
 
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
-      call get_uisurf(aUSI,aVSI,uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
+      call get_uisurf(uice(:,:,1),vice(:,:,1),uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
 C****
 
 c      do i=1,aim
@@ -1121,8 +1113,7 @@ c      write(900+mype,*) focean
 
 
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,aUSI,aVSI,
-     &     iDMUI,iDMVI)
+     &     iUOSURF,iVOSURF,iDMUA,iDMVA,aDMU,aDMV,iDMUI,iDMVI)
 
       RETURN
       END SUBROUTINE DYNSI
@@ -1888,84 +1879,80 @@ c*
 
       subroutine INT_IceC2AtmA_U(iA,aA)
 !@sum interpolate from Ice C-grid to Atm A-grid for U-component of a vector
-!@+ this function is only temporary and will soon disappear as the definitive
+!@+ this function is only temporary and will soon disappear as the definitive 
 !@+ instance of ice velocities is soon going to be on the ice B-grid
       USE RESOLUTION, only : IM,JM
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
-
      &     ATM_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
-      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
+      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+     &     iA(NX1,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
       integer :: i,j
 
 #ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
-      allocate (aA_glob(IM,JM,6),iAtmp(1:IMICDYN,
+
+      allocate (aA_glob(IM,JM,6),iAtmp(NX1,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
 
 c*   ICE C -> ICE B. We did not implement parallel_bilin_latlon_C_2_CS_A for the
 c*   reason explained above
 
-
       call halo_update(grid_ICDYN,iA)
 
       do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
-         do i=2,IMICDYN
+         do i=2,NX1
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i-1,j+1))
          enddo
-            iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(IMICDYN,j+1))
+            iAtmp(1,j)=0.5*(iA(NX1-2,j)+iA(NX1-2,j+1))
       enddo
 
       call halo_update(grid_ICDYN,iAtmp)
 
-      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
-     &     iAtmp,aA_glob,IMICDYN,JMICDYN)
+      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_ICDYN,agrid,
+     &     iAtmp,aA_glob,NX1,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
+
       deallocate(aA_glob,iAtmp)
-#else
-c***  for the moment me assume that the atm and icedyn grids are
-c***  both latlon with equal resolution
-      aA=iA
 #endif
       end subroutine INT_IceC2AtmA_U
+c*
 
       subroutine INT_IceC2AtmA_V(iA,aA)
 !@sum interpolate from Ice C-grid to Atm A-grid for V-component of a vector
-
 !@+ this function is only temporary and will soon disappear as the definitive
 !@+ instance of ice velocities is soon going to be on the ice B-grid
       USE RESOLUTION, only : IM,JM
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
      &     ATM_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : iGET=>GET,halo_update
-      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
+      USE ICEDYN, only : NX1,IMICDYN,JMICDYN,grid_ICDYN
       IMPLICIT NONE
       real *8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     iA(1:IMICDYN,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+     &     iA(NX1,grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
       integer :: i,j
-
-#ifdef CUBE_GRID
       real*8, allocatable :: aA_glob(:,:,:),iAtmp(:,:)
-      allocate (aA_glob(IM,JM,6),iAtmp(1:IMICDYN,
+      allocate (aA_glob(IM,JM,6),iAtmp(NX1,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO))
 
+#ifdef CUBE_GRID
 c*   ICE C -> ICE B. We did not implement parallel_bilin_latlon_C_2_CS_A for the
-c*   reason explained above
+c*   reason explained above 
 
       call halo_update(grid_ICDYN,iA)
 
       do j=grid_ICDYN%J_STRT,grid_ICDYN%J_STOP
-         do i=2,IMICDYN
+         do i=2,NX1-1
             iAtmp(i,j)=0.5*(iA(i-1,j)+iA(i,j))
          enddo
-            iAtmp(1,j)=0.5*(iA(IMICDYN,j)+iA(1,j))
+         iAtmp(NX1,j)=0.5*(iA(NX1-1,j)+iA(2,j)) 
+         iAtmp(1,j)=0.5*(iA(NX1-2,j)+iA(NX1-1,j))
       enddo
 
       call halo_update(grid_ICDYN,iAtmp)
@@ -1974,12 +1961,9 @@ c*   reason explained above
      &     iAtmp,aA_glob,IMICDYN,JMICDYN)
       call ATM_UNPACK(agrid,aA_glob,aA)
       deallocate(aA_glob,iAtmp)
-#else
-c***  for the moment me assume that the atm and icedyn grids are
-c***  both latlon with equal resolution
-      aA=iA
 #endif
       end subroutine INT_IceC2AtmA_V
+
 
       subroutine INT_IceB2AtmA(iAb,aAa)
 !@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
@@ -2059,15 +2043,18 @@ c***  both latlon with equal resolution
 !@auth Gavin Schmidt
       USE MODEL_COM, only : im,jm,dtsrc,foceanA=>focean
       USE DIAG_COM, only : ia_src
+      USE DOMAIN_DECOMP_1D, only : GET
       USE ICEDYN_COM
-      USE ICEDYN, only : focean,osurf_tilt,bydts,usi,vsi
-      USE ICEDYN, only : grid_ICDYN,GEOMICDYN
+      USE ICEDYN, only : focean,osurf_tilt,bydts,usi,vsi,uice,vice
+      USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,GEOMICDYN,IMICDYN,
+     &     JMICDYN
       USE FLUXES, only : uisurf,visurf
       USE PARAM
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
-      INTEGER k,kk
+      INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
+      real*8, allocatable :: uictmp(:,:),victmp(:,:)
 
 C**** setup ice dynamics grid
 C**** Currently using ATM grid:
@@ -2084,16 +2071,46 @@ C**** Set up ice momentum grid geometry
 
       bydts = 1./dtsrc
 
+      CALL GET( grid_NXY,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &                   J_STRT     =J_0,  J_STOP =J_1S,
+     &                   J_STOP_SKP =J_1S                   )
+
+      ALLOCATE( UICTMP(NX1,J_0H:J_1H),
+     &          VICTMP(NX1,J_0H:J_1H))
 C**** Initialise ice dynamics if ocean model needs initialising
       if (iniOCEAN) THEN
-        RSIX=0.
-        RSIY=0.
-        USI=0.
-        VSI=0.
+         RSIX=0.
+         RSIY=0.
+         USI=0.
+         VSI=0.
+         UICTMP=0.
+         VICTMP=0.
+      else
+         do j=J_0,J_1S
+            im1=imicdyn
+            do i=1,imicdyn
+               UICTMP  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1)) ! iceC--> iceB
+               VICTMP  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))      
+               im1=i
+            enddo
+         enddo
+c**** set north pole
+         if (grid_ICDYN%HAVE_NORTH_POLE) then
+            do i=1,imicdyn
+               UICTMP(i,jmicdyn)=USI(1,jmicdyn)
+               VICTMP(i,jmicdyn)=0.
+            enddo
+         end if    
+         do J=J_0,J_1
+            UICTMP(nx1-1,J)=UICTMP(1,J)
+            VICTMP(nx1-1,J)=VICTMP(1,J)
+            UICTMP(nx1,J)=UICTMP(2,J)
+            VICTMP(nx1,J)=VICTMP(2,J)
+         enddo
       end if
-
+      
 C**** set uisurf,visurf for atmospheric drag calculations
-      call get_uisurf(usi,vsi,uisurf,visurf)
+      call get_uisurf(uictmp,victmp,uisurf,visurf)
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij
@@ -2281,6 +2298,8 @@ c
       cdl_icij(kk) = '}'
 #endif
 
+      deallocate(uictmp,victmp)
+
       RETURN
       END SUBROUTINE init_icedyn
 
@@ -2403,67 +2422,84 @@ C****
       RETURN
       END SUBROUTINE diag_ICEDYN
 
-      SUBROUTINE GET_UISURF(aUSI,aVSI,UISURF,VISURF)
-!@sum calculate atmos. A grid winds from C grid
-!@auth Gavin Schmidt
-C**** temporary assumption that ice velocities are on atmos B grid 
+      SUBROUTINE GET_UISURF(UICE,VICE,UISURF,VISURF)
+!@sum calculate atmos. A grid winds from B grid
+!@auth Gavin Schmidt, Denis Gueyffier
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_ATM, only : get,agrid=>grid,HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : SOUTH,NORTH
-      USE GEOM, only : imaxj
+      USE DOMAIN_DECOMP_1D, only : get, halo_update
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      USE ICEDYN, only : NX1,grid=>grid_NXY,IMICDYN
 #ifndef CUBE_GRID
-      use GEOM,only : idjj,idij,rapj,kmaxj,sinip,cosip
+      use GEOM,only : cosu,sinu
 #endif
       IMPLICIT NONE
-      REAL*8,
-     &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: aUSI,aVSI
-      REAL*8,INTENT(OUT), 
+      REAL*8, DIMENSION(NX1,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: UICE,VICE
+      REAL*8, INTENT(OUT), 
      &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: UISURF,VISURF
-      INTEGER :: I_0,I_1,J_0,J_1,I,J,K,IM1
+      INTEGER :: J_0S,J_1S,I,J
       LOGICAL :: pole
       REAL*8 :: hemi
+      real*8, allocatable :: uicetmp(:,:),vicetmp(:,:)
 
-      CALL GET(agrid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = agrid%I_STRT
-      I_1 = agrid%I_STOP
+      CALL GET(grid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
 
-c      Call HALO_UPDATE(aGRID, ausi)
-      Call HALO_UPDATE(aGRID, avsi)
+      allocate(uicetmp(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO),
+     &     vicetmp(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO))
 
-      POLE=.FALSE.
+      Call HALO_UPDATE(GRID, uice)
+      Call HALO_UPDATE(GRID, vice)
 
-C**** go from atm C to atm A
-      do j=J_0,J_1
-        do i=I_0,IMAXJ(J)
-         im1=i-1
-#ifndef CUBE_GRID
-         if (im1 .le. 0) im1=IM
-         POLE= (J.EQ.1 .or. J.EQ.JM)
+      uicetmp=uice
+      vicetmp=vice
 
-          HEMI=1.
-          IF(J.LE.JM/2) HEMI=-1.
-C**** Note that usi,vsi start with j=1, (not j=2 as in atm winds)
-          if (pole) then
-            uisurf(i,j) = 0. ; visurf(i,j) = 0.
-            do k=1,kmaxj(j)
-              uisurf(i,j) = uisurf(i,j) + rapj(k,j)*(ausi(idij(k,i,j)
-     *             ,idjj(k,j)-1)*cosip(k)-hemi*avsi(idij(k,i,j),idjj(k
-     *             ,j)-1)*sinip(k))
-              visurf(i,j) = visurf(i,j) + rapj(k,j)*(avsi(idij(k,i,j)
-     *             ,idjj(k,j)-1)*cosip(k)+hemi*ausi(idij(k,i,j),idjj(k
-     *             ,j)-1)*sinip(k))
-            end do
-          else
+      do j=grid%J_STRT_HALO,grid%J_STOP_HALO
+         do i=1,NX1
+            IF (abs(uicetmp(I,J)).lt.1d-10) uicetmp(I,J)=0.
+            IF (abs(vicetmp(I,J)).lt.1d-10) vicetmp(I,J)=0.
+         enddo
+      enddo
+
+#ifdef CUBE_GRID
+      call INT_IceB2AtmA_NX1(uicetmp,uisurf)
+      call INT_IceB2AtmA_NX1(vicetmp,visurf)
+#else
+c**** We assume that ice grid and latlon atm grid have same resolution 
+      do j=J_0S,J_1S
+         do i=1,IMICDYN
+c*** B->A : 4 points averaging
+            uisurf(i,j) = 0.25*(uicetmp(i,j)+uicetmp(i,j-1)+
+     &           uicetmp(i+1,j)+uicetmp(i+1,j-1))
+            visurf(i,j) = 0.25*(vicetmp(i,j)+vicetmp(i,j-1)+
+     &           vicetmp(i+1,j)+vicetmp(i+1,j-1))
+         enddo
+      enddo
+c*** Poles
+      if (aGRID%have_south_pole) then
+         uisurf(1,1) = 0. ; visurf(1,1) = 0.
+         do i=1,IMICDYN
+            uisurf(1,1) = uisurf(1,1)+(vicetmp(i+1,1)*sinu(i))*2./IM
+            visurf(1,1) = visurf(1,1)+(vicetmp(i+1,1)*cosu(i))*2./IM
+         end do
+         uisurf(:,1)=uisurf(1,1)
+         visurf(:,1)=visurf(1,1)
+      endif
+      
+      if (aGRID%have_north_pole) then
+         uisurf(1,JM) = 0. ; visurf(1,JM) = 0.
+         do i=1,IM
+            uisurf(1,JM) = uisurf(1,JM)-(vicetmp(i+1,JM-1)*sinu(i))
+     &           *2./IM
+            visurf(1,JM) = visurf(1,JM)+(vicetmp(i+1,JM-1)*cosu(i))
+     &           *2./IM
+         end do
+         uisurf(:,JM)=uisurf(1,JM)
+         visurf(:,JM)=visurf(1,JM)
+      endif
 #endif
-            uisurf(i,j) = 0.5*(ausi(i,j)+ausi(im1,j))
-            visurf(i,j) = 0.5*(avsi(i,j)+avsi(i,j-1))
-#ifndef CUBE_GRID
-          end if
-#endif
-        end do
-      end do
+
+      deallocate(uicetmp,vicetmp)
 
       RETURN
       END SUBROUTINE GET_UISURF
