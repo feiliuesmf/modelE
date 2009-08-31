@@ -10,6 +10,8 @@
 !@+    The communication procedures in this module are applicable
 !@+    to grids other than the cubed sphere.
 !@+    This module depends upon the dd2d_utils module.
+!@+    This module is also the TEMPORARY home of the
+!@+    geometry-independent xgridremap procedure.
 !@+    
 !@usage Access is through the following types/routines.
 !@+     Below, [ij][se]d refer to the minimum/maximum ilon/jlat
@@ -38,15 +40,15 @@
 !@+        on every processor at jlat. Partial sums are only between the
 !@+        first and last valid longitudes at jlat.
 !@+
-!@+     interp_xy_4D(grid,cs2ll,arrcs,arrll,nl,nk)
-!@+     interp_xy_3D(grid,cs2ll,arrcs,arrll,nk)
+!@+     interp_to_jlat_4D(grid,cs2ll,arrcs,arrll,nl,nk,jlat)
+!@+     interp_to_jlat_3D(grid,cs2ll,arrcs,arrll,nk,jlat)
 !@+        Interpolate a cubed-sphere array arrcs(nl,isd:ied,jsd:jed,nk)
-!@+             to a       lat-lon    array arrll(nl,isd:ied,jsd:jed,nk).
+!@+             to a      longitude   array arrll(nl,isd:ied,nk) for
+!@+             lat index jlat.
 !@+        The 3D version omits the nl dimension.
 !@+        For arrcs, [ij][se]d are the grid%  instances.
-!@+        For arrll, [ij][se]d are the cs2ll% instances.
+!@+        For arrll, [i][se]d  are the cs2ll% instances.
 !@+        Interpolation is bilinear in nondimensional cube coords x,y.
-!@+        These routines have been coded but not yet tested.
 !@+
 !@+     Parallelization efficiency is greatly improved by employing
 !@+      the following information in cs2ll_type:
@@ -108,7 +110,7 @@
         integer :: nsendmax ! = 1+ied-isd
         integer :: nrecvmax ! maximum number of lons root will receive
 
-! ix,jy(ilon,jlat) = i,j position of lon(ilon),lat(jlat) on my grid
+! ix,jy(ilon,jlat) = i,j position of lon(ilon),lat(jlat) on CS grid
 ! these are real*8 numbers used for interpolations
 ! ix = i.x means a fraction x of the distance between i and i+1
 ! jy = j.y means a fraction y of the distance between j and j+1
@@ -118,6 +120,46 @@
       end type cs2ll_type
 
       public :: init_cs2ll_type,pack_zonal,sum_zonal,sumxpe_zonal
+
+      type redist_type
+        integer :: npsrc,npdst,nproc,nproc_tile
+        integer :: isd,ied,jsd,jed,npx,npy,ntiles
+        integer, dimension(:), allocatable :: js_pack,je_pack
+        integer, dimension(:,:), allocatable :: nb_pack
+        integer, dimension(:,:,:), allocatable :: is_pack,ie_pack
+        integer, dimension(:), allocatable :: js_unpack,je_unpack
+        integer, dimension(:,:), allocatable :: nb_unpack
+        integer, dimension(:,:,:), allocatable :: is_unpack,ie_unpack
+        integer, dimension(:), allocatable :: send_cnts,send_displs
+        integer, dimension(:), allocatable :: recv_cnts,recv_displs
+      end type redist_type
+
+c documentation on these to be added when interfaces are finalized
+      public :: xgridremap_type
+      public :: init_xgridremap_type,xgridremap_ij
+      type xgridremap_type
+        type(redist_type) :: redist
+        integer :: is,ie,js,je
+        integer :: isd,ied,jsd,jed
+        integer :: mpoly
+        integer, dimension(:,:), allocatable :: kpoly
+        integer, dimension(:), allocatable :: recv_index
+        real*8, dimension(:), allocatable :: wts
+      end type xgridremap_type
+
+c documentation on these to be added when interfaces are finalized
+      public :: cs2llint_type
+      public :: init_cs2llint_type,cs2llint_ij
+      type cs2llint_type
+        integer :: isdcs,iedcs,jsdcs,jedcs
+        integer ::       imlon,jsdll,jedll
+        integer :: nproc
+        integer :: npts_interp,npts_unpack
+        real*8, dimension(:), allocatable :: ix,jy
+        integer, dimension(:), allocatable :: i_unpack,j_unpack
+        integer, dimension(:), allocatable :: send_cnts,send_displs
+        integer, dimension(:), allocatable :: recv_cnts,recv_displs
+      end type cs2llint_type
 
       contains
 
@@ -445,6 +487,986 @@ c no communications required at this latitude
       endif
       return
       end subroutine sumxpe_zonal
+
+      subroutine init_redist_type(grid_src,grid_dst,
+     &     ndepend, isrc,jsrc,tsrc, idst,jdst,tdst,
+     &     redist)
+      use dd2d_utils, only : dist_grid
+      type(dist_grid), intent(in) :: grid_src,grid_dst
+      integer, intent(in) :: ndepend
+      integer, intent(in), dimension(ndepend) ::
+     &     isrc,jsrc,tsrc, idst,jdst,tdst
+      type(redist_type), intent(out) :: redist
+c local vars
+      integer :: is,ie,js,je,npsrc,npdst,nproc,npx,npy,nbmax
+      integer, dimension(:), allocatable ::
+     &     isdst,iedst,jsdst,jedst,tiledst
+      integer, dimension(:,:,:), allocatable :: itmp
+      integer :: b,i,j,m,n,p,ierr
+      logical, dimension(:,:,:), allocatable :: qmask
+
+c for now, assume src pe set same as dst pe set
+      redist%nproc  = grid_src%nproc
+      redist%npsrc  = grid_src%nproc
+      redist%npdst  = grid_dst%nproc
+      redist%nproc_tile  = grid_src%nproc_tile
+      redist%ntiles = grid_src%ntiles
+      redist%npx    = grid_src%npx
+      redist%npy    = grid_src%npy
+      redist%isd    = grid_src%isd
+      redist%ied    = grid_src%ied
+      redist%jsd    = grid_src%jsd
+      redist%jed    = grid_src%jed
+
+      is = grid_src%is
+      ie = grid_src%ie
+      js = grid_src%js
+      je = grid_src%je
+      npsrc = redist%npsrc
+      npdst = redist%npdst
+      nproc = redist%nproc
+      npx = redist%npx
+      npy = redist%npy
+
+c collect info about the domain decomp of grid_dst
+c for now, assume src pe set same as dst pe set
+      allocate(isdst(npdst),iedst(npdst),jsdst(npdst),jedst(npdst),
+     &     tiledst(npdst))
+
+      call mpi_allgather(grid_dst%is,1,MPI_INTEGER,isdst,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(grid_dst%ie,1,MPI_INTEGER,iedst,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(grid_dst%js,1,MPI_INTEGER,jsdst,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(grid_dst%je,1,MPI_INTEGER,jedst,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(grid_dst%tile,1,MPI_INTEGER,tiledst,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+
+c
+c tabulate which local gridcells to send to each destination pe,
+c and the 2D-array counts/displacements for the send buffer
+c
+      allocate(redist%js_pack(npdst), redist%je_pack(npdst))
+      allocate(redist%nb_pack(js:je,npdst))
+      if(nproc == 6) then
+        nbmax = 4 ! some LL PEs need 4 if npes=6 for ll2cs dir
+      else
+        nbmax = 2  
+      endif
+      allocate(redist%is_pack(nbmax,js:je,npdst),
+     &         redist%ie_pack(nbmax,js:je,npdst))
+      allocate(redist%send_cnts(nproc), redist%send_displs(nproc))
+      redist%js_pack(:)   = redist%npy+1
+      redist%je_pack(:)   = -1
+      allocate(qmask(is:ie,js:je,npdst))
+      qmask(:,:,:) = .false.
+      do n=1,ndepend
+        if(tsrc(n) .ne. grid_src%tile) cycle
+        i = isrc(n)
+        j = jsrc(n)
+        if(i .lt. is .or. i .gt. ie) cycle
+        if(j .lt. js .or. j .gt. je) cycle
+        do p=1,npdst
+          if(tdst(n) .ne. tiledst(p)) cycle
+          if(idst(n) .lt. isdst(p) .or. idst(n) .gt. iedst(p)) cycle
+          if(jdst(n) .lt. jsdst(p) .or. jdst(n) .gt. jedst(p)) cycle
+          redist%js_pack(p) = min(redist%js_pack(p),j)
+          redist%je_pack(p) = max(redist%je_pack(p),j)
+          qmask(i,j,p) = .true.
+          exit
+        enddo
+      enddo
+      do p=1,npdst
+        do j=redist%js_pack(p),redist%je_pack(p)
+          call get_i1i2(qmask(is,j,p),1+ie-is,
+     &         n,
+     &         redist%is_pack(1,j,p),
+     &         redist%ie_pack(1,j,p),nbmax)
+          redist%nb_pack(j,p) = n
+          redist%is_pack(1:n,j,p) = redist%is_pack(1:n,j,p) + is-1
+          redist%ie_pack(1:n,j,p) = redist%ie_pack(1:n,j,p) + is-1
+        enddo
+      enddo
+      deallocate(qmask,isdst,iedst,jsdst,jedst,tiledst)
+      m = 0
+      do p=1,npdst
+        redist%send_displs(p) = m ! assuming src pe set same as dst pe set
+        do j=redist%js_pack(p),redist%je_pack(p)
+          do b=1,redist%nb_pack(j,p)
+            do i=redist%is_pack(b,j,p),redist%ie_pack(b,j,p)
+              m = m + 1
+            enddo
+          enddo
+        enddo
+      enddo
+      do p=1,nproc-1
+        redist%send_cnts(p) =
+     &       redist%send_displs(p+1)-redist%send_displs(p)
+      enddo
+      redist%send_cnts(nproc) = m-redist%send_displs(nproc)
+
+c
+c set up the counts/displacements and unpack info for the recv buffer
+c for now, assume src pe set same as dst pe set
+c
+      allocate(redist%js_unpack(npsrc), redist%je_unpack(npsrc))
+      allocate(redist%nb_unpack(npy,npsrc))
+      allocate(redist%is_unpack(nbmax,npy,npsrc),
+     &         redist%ie_unpack(nbmax,npy,npsrc))
+      allocate(redist%recv_cnts(nproc), redist%recv_displs(nproc))
+
+      call mpi_alltoall(redist%send_cnts,1,MPI_INTEGER,
+     &                  redist%recv_cnts,1,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      redist%recv_displs(1) = 0
+      do p=2,npsrc
+        redist%recv_displs(p) =
+     &       redist%recv_displs(p-1)+redist%recv_cnts(p-1)
+      enddo
+      call mpi_alltoall(redist%js_pack,  1,MPI_INTEGER,
+     &                  redist%js_unpack,1,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      call mpi_alltoall(redist%je_pack,  1,MPI_INTEGER,
+     &                  redist%je_unpack,1,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+
+      n = nbmax*npy
+      allocate(itmp(nbmax,npy,npdst))
+      do p=1,npdst
+        itmp(:,:,p) = npx+1
+        itmp(:,js:je,p) = redist%is_pack(:,js:je,p)
+      enddo
+      call mpi_alltoall(itmp,            n,MPI_INTEGER,
+     &                  redist%is_unpack,n,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      do p=1,npdst
+        itmp(:,:,p) = -1
+        itmp(:,js:je,p) = redist%ie_pack(:,js:je,p)
+      enddo
+      call mpi_alltoall(itmp,            n,MPI_INTEGER,
+     &                  redist%ie_unpack,n,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      deallocate(itmp)
+
+      allocate(itmp(1,npy,npdst))
+      do p=1,npdst
+        itmp(:,:,p) = 0
+        itmp(1,js:je,p) = redist%nb_pack(js:je,p)
+      enddo
+      call mpi_alltoall(itmp,            npy,MPI_INTEGER,
+     &                  redist%nb_unpack,npy,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      deallocate(itmp)
+
+      return
+      end subroutine init_redist_type
+
+      subroutine get_i1i2(q,im,n,i1,i2,nmax)
+c Finds the number of intervals over which q==true, and the
+c beginning/ending indices of each interval.
+c Wraparound is disabled.
+c Originally written for ocean basins.  Move to generic utilities file.
+      implicit none
+      integer, intent(in) :: im  ! number of points
+      logical, dimension(im), intent(in) :: q ! logical mask
+      integer, intent(in) :: nmax ! max number of contiguous intervals
+      integer, intent(out) :: n ! number of contiguous intervals
+      integer, dimension(nmax) :: i1,i2 ! start,end of each interval
+      integer :: i,nn
+c first find the number of intervals
+      n = 0
+      do i=1,im-1
+        if(q(i) .and. .not.q(i+1)) n = n + 1
+      enddo
+      if(q(im)) n = n + 1
+      if(n.gt.nmax) then
+        write(6,*) 'for get_i1i2, increase nmax to ',n
+        call stop_model('get_i1i2: n>nmax',255)
+      endif
+c find the start/end of each interval
+      i = 1
+      do nn=1,n
+        do while(.not.q(i))
+          i = i + 1
+        enddo
+        i1(nn) = i
+        do while(q(i))
+          i = i + 1
+          if(i.gt.im) exit
+        enddo
+        i2(nn) = i-1
+      enddo
+      return
+      end subroutine get_i1i2
+
+      subroutine redist_data_ij(redist,arr,arr_glob)
+      type(redist_type), intent(in) :: redist
+      real*8, dimension(redist%isd:redist%ied,redist%jsd:redist%jed),
+     &     intent(in) :: arr
+      real*8, dimension(redist%npx,redist%npy,redist%ntiles),
+     &     intent(out) :: arr_glob
+c local vars
+      integer :: b,i,j,m,n,p,tile,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+
+c
+c allocate send/recv buffers
+c
+      nproc = redist%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = redist%send_cnts
+      sdspl(:) = redist%send_displs
+      rcnts(:) = redist%recv_cnts
+      rdspl(:) = redist%recv_displs
+
+      allocate(bufsend(sum(scnts)),bufrecv(sum(rcnts)))
+
+c
+c pack data into 1D send buffer
+c
+      m = 0
+      do p=1,redist%npdst
+        do j=redist%js_pack(p),redist%je_pack(p)
+          do b=1,redist%nb_pack(j,p)
+            do i=redist%is_pack(b,j,p),redist%ie_pack(b,j,p)
+              m = m + 1
+              bufsend(m) = arr(i,j)
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c exchange data
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack 1D recv buffer into global array
+c
+      m = 0
+      p = 0
+      do tile=1,redist%ntiles
+        do n=1,redist%nproc_tile
+          p = p + 1
+          do j=redist%js_unpack(p),redist%je_unpack(p)
+            do b=1,redist%nb_unpack(j,p)
+              do i=redist%is_unpack(b,j,p),redist%ie_unpack(b,j,p)
+                m = m + 1
+                arr_glob(i,j,tile) = bufrecv(m)
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine redist_data_ij
+
+      subroutine init_xgridremap_type(grid_src,grid_dst,
+     &     npoly, isrc,jsrc,tsrc, idst,jdst,tdst, area,
+     &     remap)
+c
+c Note: this routine needs i,j,t,area lists to be GLOBAL
+c
+      use dd2d_utils, only : dist_grid
+      type(dist_grid), intent(in) :: grid_src,grid_dst
+      integer, intent(in) :: npoly
+      integer, intent(in), dimension(npoly) ::
+     &     isrc,jsrc,tsrc, idst,jdst,tdst
+      real*8, intent(in), dimension(npoly) :: area
+      type(xgridremap_type), intent(out) :: remap
+c local vars
+      integer :: isd,ied,jsd,jed ! dst grid
+      integer :: is,ie,js,je ! dst grid
+      integer :: i,j,k,m,mm,n,p,npoly_loc, bb,ii,jj,kk,tt
+      integer, dimension(:), allocatable ::
+     &     isrc_loc,jsrc_loc,tsrc_loc, idst_loc,jdst_loc,
+     &     isrc_srt,jsrc_srt,tsrc_srt
+      real*8, dimension(:), allocatable :: area_loc,area_srt
+      integer, parameter :: maxovlap=10000
+      integer, dimension(maxovlap) :: isrc_ij,jsrc_ij,tsrc_ij
+      real*8,  dimension(maxovlap) :: area_ij
+      real*8 :: area_sum
+
+c
+c initialize the redist object for mpi send/recv info
+c
+      call init_redist_type(grid_src,grid_dst,
+     &     npoly, isrc,jsrc,tsrc, idst,jdst,tdst,
+     &     remap%redist)
+
+      is = grid_dst%is
+      ie = grid_dst%ie
+      js = grid_dst%js
+      je = grid_dst%je
+      isd = grid_dst%isd
+      ied = grid_dst%ied
+      jsd = grid_dst%jsd
+      jed = grid_dst%jed
+
+      remap%is = grid_dst%is
+      remap%ie = grid_dst%ie
+      remap%js = grid_dst%js
+      remap%je = grid_dst%je
+      remap%isd = grid_dst%isd
+      remap%ied = grid_dst%ied
+      remap%jsd = grid_dst%jsd
+      remap%jed = grid_dst%jed
+
+c
+c count the number of xgrid polygons in the domain of this destination
+c PE and allocate the remap arrays having this size
+c
+      allocate(isrc_loc(npoly),jsrc_loc(npoly),tsrc_loc(npoly))
+      allocate(idst_loc(npoly),jdst_loc(npoly),area_loc(npoly))
+      m = 0
+      do n=1,npoly
+        if(tdst(n) .ne. grid_dst%tile) cycle
+        i = idst(n)
+        j = jdst(n)
+        if(i .lt. is .or. i .gt. ie) cycle
+        if(j .lt. js .or. j .gt. je) cycle
+        m = m + 1
+        isrc_loc(m) = isrc(n)
+        jsrc_loc(m) = jsrc(n)
+        tsrc_loc(m) = tsrc(n)
+        idst_loc(m) = idst(n)
+        jdst_loc(m) = jdst(n)
+        area_loc(m) = area(n)
+      enddo
+      npoly_loc = m
+      remap%mpoly = npoly_loc
+      allocate(isrc_srt(npoly_loc),jsrc_srt(npoly_loc))
+      allocate(tsrc_srt(npoly_loc),area_srt(npoly_loc))
+
+c
+c For reproducibility on different numbers of PEs:
+c Sort the xgrid polygons into dst i,j order.
+c At each dst i,j sort the polygons into src i,j,t order.
+c Lazy sort OK during initialization.
+c
+      allocate(remap%kpoly(is:ie,js:je))
+      m = 0
+      do j=js,je
+        do i=is,ie
+          k = 0
+          do n=1,npoly_loc
+            if(j .ne. jdst_loc(n)) cycle
+            if(i .ne. idst_loc(n)) cycle
+            k = k + 1
+            isrc_ij(k) = isrc_loc(n)
+            jsrc_ij(k) = jsrc_loc(n)
+            tsrc_ij(k) = tsrc_loc(n)
+            area_ij(k) = area_loc(n)
+          enddo
+          remap%kpoly(i,j) = k
+          do tt=minval(tsrc_ij(1:k)),maxval(tsrc_ij(1:k))
+            do jj=1,grid_src%npy
+              do ii=1,grid_src%npx
+                do kk=1,k
+                  if(tt .ne. tsrc_ij(kk)) cycle
+                  if(jj .ne. jsrc_ij(kk)) cycle
+                  if(ii .ne. isrc_ij(kk)) cycle
+                  m = m + 1
+                  isrc_srt(m) = isrc_ij(kk)
+                  jsrc_srt(m) = jsrc_ij(kk)
+                  tsrc_srt(m) = tsrc_ij(kk)
+                  area_srt(m) = area_ij(kk)
+                enddo
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c Compute area weights.
+c Find where each src i,j,t will be in the 1D recv buffer after
+c mpi_alltoallv(). Lazy search mimics an unpack operation.
+c
+      allocate(remap%recv_index(npoly_loc))
+      remap%recv_index(:) = -1
+      allocate(remap%wts(npoly_loc))
+      m = 0
+      do j=js,je
+      do i=is,ie
+      area_sum = sum(area_srt(m+1:m+remap%kpoly(i,j)))
+      do k=1,remap%kpoly(i,j)
+        m = m + 1
+        remap%wts(m) = area_srt(m)/area_sum
+        mm = 0
+        p = 0
+        search_loop: do tt=1,remap%redist%ntiles
+        do n=1,remap%redist%nproc_tile
+        p = p + 1
+        do jj=remap%redist%js_unpack(p),remap%redist%je_unpack(p)
+        do bb=1,remap%redist%nb_unpack(jj,p)
+        do ii=remap%redist%is_unpack(bb,jj,p),
+     &        remap%redist%ie_unpack(bb,jj,p)
+          mm = mm + 1
+          if(tt .eq. tsrc_srt(m) .and.
+     &       jj .eq. jsrc_srt(m) .and.
+     &       ii .eq. isrc_srt(m)) then
+            remap%recv_index(m) = mm
+            exit search_loop
+          endif
+        enddo ! ii
+        enddo ! bb
+        enddo ! jj
+        enddo ! n
+        enddo search_loop ! tt
+      enddo
+      enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(isrc_loc,jsrc_loc,tsrc_loc)
+      deallocate(idst_loc,jdst_loc,area_loc)
+      deallocate(isrc_srt,jsrc_srt,tsrc_srt,area_srt)
+
+      return
+      end subroutine init_xgridremap_type
+
+      subroutine xgridremap_ij(remap,arr,arr_out)
+      type(xgridremap_type), intent(in) :: remap
+      real*8, dimension(remap%redist%isd:remap%redist%ied,
+     &                  remap%redist%jsd:remap%redist%jed),
+     &     intent(in) :: arr
+      real*8, dimension(remap%isd:remap%ied,remap%jsd:remap%jed),
+     &     intent(out) :: arr_out
+c local vars
+      integer :: b,i,j,k,m,n,p,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+
+c
+c allocate send/recv buffers
+c
+      nproc = remap%redist%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = remap%redist%send_cnts
+      sdspl(:) = remap%redist%send_displs
+      rcnts(:) = remap%redist%recv_cnts
+      rdspl(:) = remap%redist%recv_displs
+
+      allocate(bufsend(sum(scnts)),bufrecv(sum(rcnts)))
+
+c
+c pack data into 1D send buffer
+c
+      m = 0
+      do p=1,remap%redist%npdst
+        do j=remap%redist%js_pack(p),remap%redist%je_pack(p)
+          do b=1,remap%redist%nb_pack(j,p)
+            do i=remap%redist%is_pack(b,j,p),remap%redist%ie_pack(b,j,p)
+              m = m + 1
+              bufsend(m) = arr(i,j)
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c exchange data
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c remap using the contents of the 1D receive buffer
+c
+      m = 0
+      do j=remap%js,remap%je
+        do i=remap%is,remap%ie
+          arr_out(i,j) = 0.
+          do k=1,remap%kpoly(i,j)
+            m = m + 1
+            n = remap%recv_index(m)
+            arr_out(i,j) = arr_out(i,j) + bufrecv(n)*remap%wts(m)
+          enddo
+        enddo
+      enddo
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine xgridremap_ij
+
+      subroutine xgridremap_lij(remap,arr,arr_out)
+      type(xgridremap_type), intent(in) :: remap
+      real*8, dimension(:,remap%redist%isd:,remap%redist%jsd:),
+     &     intent(in) :: arr
+      real*8, dimension(:,remap%isd:,remap%jsd:),
+     &     intent(out) :: arr_out
+c local vars
+      integer :: b,i,j,k,l,lm,m,n,p,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+
+      lm = size(arr,1)
+c
+c allocate send/recv buffers
+c
+      nproc = remap%redist%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = lm*(remap%redist%send_cnts)
+      sdspl(:) = lm*(remap%redist%send_displs)
+      rcnts(:) = lm*(remap%redist%recv_cnts)
+      rdspl(:) = lm*(remap%redist%recv_displs)
+
+      allocate(bufsend(sum(scnts)),bufrecv(sum(rcnts)))
+
+c
+c pack data into 1D send buffer
+c
+      m = 0
+      do p=1,remap%redist%npdst
+        do j=remap%redist%js_pack(p),remap%redist%je_pack(p)
+          do b=1,remap%redist%nb_pack(j,p)
+            do i=remap%redist%is_pack(b,j,p),remap%redist%ie_pack(b,j,p)
+              do l=1,lm
+                m = m + 1
+                bufsend(m) = arr(l,i,j)
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c exchange data
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c remap using the contents of the 1D receive buffer
+c
+      m = 0
+      do j=remap%js,remap%je
+        do i=remap%is,remap%ie
+          arr_out(:,i,j) = 0.
+          do k=1,remap%kpoly(i,j)
+            m = m + 1
+            n = lm*(remap%recv_index(m)-1)
+            do l=1,lm
+              n = n + 1
+              arr_out(l,i,j) = arr_out(l,i,j) + bufrecv(n)*remap%wts(m)
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine xgridremap_lij
+
+      subroutine xgridremap_ijl(remap,arr,arr_out)
+      type(xgridremap_type), intent(in) :: remap
+      real*8, dimension(remap%redist%isd:,remap%redist%jsd:,:),
+     &     intent(in) :: arr
+      real*8, dimension(remap%isd:,remap%jsd:,:),
+     &     intent(out) :: arr_out
+c local vars
+      integer :: b,i,j,k,l,lm,m,n,p,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv,arrl
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+
+      lm = size(arr,3)
+      allocate(arrl(lm))
+c
+c allocate send/recv buffers
+c
+      nproc = remap%redist%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = lm*(remap%redist%send_cnts)
+      sdspl(:) = lm*(remap%redist%send_displs)
+      rcnts(:) = lm*(remap%redist%recv_cnts)
+      rdspl(:) = lm*(remap%redist%recv_displs)
+
+      allocate(bufsend(sum(scnts)),bufrecv(sum(rcnts)))
+
+c
+c pack data into 1D send buffer
+c
+      m = 0
+      do p=1,remap%redist%npdst
+        do j=remap%redist%js_pack(p),remap%redist%je_pack(p)
+          do b=1,remap%redist%nb_pack(j,p)
+            do i=remap%redist%is_pack(b,j,p),remap%redist%ie_pack(b,j,p)
+              do l=1,lm
+                m = m + 1
+! against the grain for simplicity later
+                bufsend(m) = arr(i,j,l)
+              enddo
+            enddo
+          enddo
+        enddo
+      enddo
+
+c
+c exchange data
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c remap using the contents of the 1D receive buffer
+c
+      m = 0
+      do j=remap%js,remap%je
+        do i=remap%is,remap%ie
+          arrl(:) = 0.
+          do k=1,remap%kpoly(i,j)
+            m = m + 1
+            n = lm*(remap%recv_index(m)-1)
+            do l=1,lm
+              n = n + 1
+              arrl(l) = arrl(l) + bufrecv(n)*remap%wts(m)
+            enddo
+          enddo
+          arr_out(i,j,:) = arrl(:)
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv,arrl)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine xgridremap_ijl
+
+      subroutine init_cs2llint_type(grid_cs,grid_ll, lons,lats,
+     &     cs2llint)
+      use dd2d_utils, only : dist_grid
+      use geom, only : ll2csxy,csxy2ll,shiftwest
+      use constant, only : pi,twopi
+      type(dist_grid), intent(in) :: grid_cs,grid_ll
+      real*8, dimension(grid_ll%npx) :: lons
+      real*8, dimension(grid_ll%npy) :: lats
+      type(cs2llint_type), intent(out) :: cs2llint
+c local vars
+      integer :: imlon,jmlat,ilon,jlat,i,j
+      integer :: npts,tile
+      integer :: nproc,llproc,csproc
+      integer :: ierr
+      integer, dimension(:), allocatable :: jell
+      integer, dimension(:), allocatable :: ilist,jlist
+      real*8 :: dxh,xn,x,y,cs_xmin,cs_xmax,cs_ymin,cs_ymax,lonpass,
+     &     londum,angdum,corang
+      real*8, dimension(:), allocatable :: ix,jy,edgang
+      imlon = grid_ll%npx
+      jmlat = grid_ll%npy
+
+      cs2llint%isdcs = grid_cs%isd
+      cs2llint%iedcs = grid_cs%ied
+      cs2llint%jsdcs = grid_cs%jsd
+      cs2llint%jedcs = grid_cs%jed
+
+      cs2llint%imlon = grid_ll%npx
+      cs2llint%jsdll = grid_ll%jsd
+      cs2llint%jedll = grid_ll%jed
+
+      nproc = grid_cs%nproc
+      cs2llint%nproc = nproc
+
+      allocate(cs2llint%send_cnts(nproc),cs2llint%send_displs(nproc))
+      allocate(cs2llint%recv_cnts(nproc),cs2llint%recv_displs(nproc))
+
+c collect info about the domain decomp of grid_ll
+c for now, assume cs pe set same as ll pe set and
+c that grid_ll has a j-only decomp
+      allocate(jell(nproc))
+
+      call mpi_allgather(grid_ll%je,1,MPI_INTEGER,jell,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+
+c
+c Set up the list of ll points that will be handled by this CS PE.
+c
+      allocate(ix(imlon*jmlat/2), jy(imlon*jmlat/2))
+      allocate(ilist(imlon*jmlat/2), jlist(imlon*jmlat/2))
+      cs_xmin = -1d0 + 2d0*(grid_cs%is-1)/grid_cs%npx
+      cs_xmax = -1d0 + 2d0*(grid_cs%ie  )/grid_cs%npx
+      cs_ymin = -1d0 + 2d0*(grid_cs%js-1)/grid_cs%npx
+      cs_ymax = -1d0 + 2d0*(grid_cs%je  )/grid_cs%npx
+      dxh = 1d0/grid_cs%npx
+      xn = 1d0 - dxh
+      allocate(edgang(grid_cs%npx))
+      do j=1,grid_cs%npx ! compute pseudolatitudes
+        y = -1d0 + 2d0*(dble(j)-.5d0)/grid_cs%npx
+        call csxy2ll(xn,y,1,londum,edgang(j)) ! use tile 1 as reference
+      enddo
+      corang = edgang(grid_cs%npx)
+      npts = 0
+      cs2llint%send_cnts(:) = 0
+      llproc = 1
+      do jlat=1,jmlat
+        if(jlat .gt. jell(llproc)) llproc=llproc+1
+        do ilon=1,imlon
+          lonpass = lons(ilon) + shiftwest
+          if(lonpass.gt.pi) lonpass=lonpass-twopi
+          call ll2csxy(lonpass,lats(jlat),x,y,tile)
+          if(tile.ne.grid_cs%tile) cycle
+          if(x.le.cs_xmin .or. x.gt.cs_xmax) cycle
+          if(y.le.cs_ymin .or. y.gt.cs_ymax) cycle
+          npts = npts + 1
+          cs2llint%send_cnts(llproc) = cs2llint%send_cnts(llproc) + 1
+          ix(npts) = .5d0*(1d0+x)*grid_cs%npx+.5d0
+          jy(npts) = .5d0*(1d0+y)*grid_cs%npx+.5d0
+          ilist(npts) = ilon
+          jlist(npts) = jlat
+c adjust for grid discontinuity near cube edges using angle coordinate
+          if(abs(x) .gt. xn) then ! x-edge.  adjust jy
+            call csxy2ll(abs(x),y,1,londum,angdum)
+            if(abs(angdum).le.corang) then ! avoid corner triangles
+              j = jy(npts)
+              if(y.gt.0.) then
+                if(angdum.lt.edgang(j  )) j = j-1
+              else
+                if(angdum.gt.edgang(j+1)) j = j+1
+              endif
+              jy(npts) = j +
+     &           (angdum-edgang(j))/(edgang(j+1)-edgang(j))
+            endif
+          endif
+          if(abs(y) .gt. xn) then ! y-edge. adjust ix
+            call csxy2ll(abs(y),x,1,londum,angdum)
+            if(abs(angdum).le.corang) then ! avoid corner triangles
+              i = ix(npts)
+              if(x.gt.0.) then
+                if(angdum.lt.edgang(i  )) i = i-1
+              else
+                if(angdum.gt.edgang(i+1)) i = i+1
+              endif
+              ix(npts) = i +
+     &             (angdum-edgang(i))/(edgang(i+1)-edgang(i))
+            endif
+          endif
+        enddo
+      enddo
+      deallocate(edgang)
+      cs2llint%npts_interp = npts
+      allocate(cs2llint%ix(npts),cs2llint%jy(npts))
+      cs2llint%ix(1:npts) = ix(1:npts)
+      cs2llint%jy(1:npts) = jy(1:npts)
+      cs2llint%send_displs(1) = 0
+      do llproc=2,nproc
+        cs2llint%send_displs(llproc) =
+     &       cs2llint%send_displs(llproc-1)+cs2llint%send_cnts(llproc-1)
+      enddo
+
+c
+c CS PEs inform LL PEs about the interpolation pts they will be sending
+c
+      npts = imlon*(1+grid_ll%je-grid_ll%js)
+      cs2llint%npts_unpack = npts
+      call mpi_alltoall(cs2llint%send_cnts,1,MPI_INTEGER,
+     &                  cs2llint%recv_cnts,1,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      if(sum(cs2llint%recv_cnts) .ne. npts) then
+        write(6,*)
+     &       'bad counts in init_cs2llint_type for LL PE ',grid_ll%gid
+        call stop_model('bad counts in init_cs2llint_type',255)
+      endif
+      cs2llint%recv_displs(1) = 0
+      do csproc=2,nproc
+        cs2llint%recv_displs(csproc) =
+     &       cs2llint%recv_displs(csproc-1)+cs2llint%recv_cnts(csproc-1)
+      enddo
+      allocate(cs2llint%i_unpack(npts),cs2llint%j_unpack(npts))
+      call mpi_alltoallv(
+     &     ilist,             cs2llint%send_cnts,cs2llint%send_displs,
+     &          MPI_INTEGER,
+     &     cs2llint%i_unpack, cs2llint%recv_cnts,cs2llint%recv_displs,
+     &          MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+      call mpi_alltoallv(
+     &     jlist,             cs2llint%send_cnts,cs2llint%send_displs,
+     &          MPI_INTEGER,
+     &     cs2llint%j_unpack, cs2llint%recv_cnts,cs2llint%recv_displs,
+     &          MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+
+c
+c deallocate workspace
+c
+      deallocate(ix,jy,ilist,jlist,jell)
+
+      return
+      end subroutine init_cs2llint_type
+
+      subroutine cs2llint_ij(grid_cs,cs2llint,arrcs,arrll)
+      use dd2d_utils, only : dist_grid,halo_update
+      type(dist_grid), intent(in) :: grid_cs
+      type(cs2llint_type), intent(in) :: cs2llint
+      real*8, dimension(cs2llint%isdcs:cs2llint%iedcs,
+     &                  cs2llint%jsdcs:cs2llint%jedcs) :: arrcs
+c      intent(in) :: arrcs
+      real*8, dimension(cs2llint%imlon,cs2llint%jsdll:cs2llint%jedll),
+     &     intent(out) :: arrll
+c local vars
+      integer :: i,j,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8 :: wti,wtj
+
+c
+c allocate send/recv buffers
+c
+      nproc = cs2llint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = cs2llint%send_cnts
+      sdspl(:) = cs2llint%send_displs
+      rcnts(:) = cs2llint%recv_cnts
+      rdspl(:) = cs2llint%recv_displs
+
+      allocate(bufsend(cs2llint%npts_interp),
+     &         bufrecv(cs2llint%npts_unpack))
+
+c
+c Interpolate and store in 1D send buffer
+c
+      call halo_update(grid_cs,arrcs)
+      call corner_fill_3D(grid_cs,arrcs,1)
+      do n=1,cs2llint%npts_interp
+        wti = cs2llint%ix(n)
+        wtj = cs2llint%jy(n)
+        i = wti
+        j = wtj
+        wti = wti-i
+        wtj = wtj-j
+        bufsend(n) = 
+     &         wtj*(wti*arrcs(i+1,j+1)+(1.-wti)*arrcs(i,j+1))
+     &   +(1.-wtj)*(wti*arrcs(i+1,j  )+(1.-wti)*arrcs(i,j  ))
+      enddo
+
+c
+c send interpolants to LL PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into latlon array
+c
+      do n=1,cs2llint%npts_unpack
+        arrll(cs2llint%i_unpack(n),cs2llint%j_unpack(n)) = bufrecv(n)
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine cs2llint_ij
+
+      subroutine cs2llint_lij(grid_cs,cs2llint,arrcs,arrll)
+      use dd2d_utils, only : dist_grid,halo_update
+      type(dist_grid), intent(in) :: grid_cs
+      type(cs2llint_type), intent(in) :: cs2llint
+      real*8, dimension(:,cs2llint%isdcs:,cs2llint%jsdcs:) :: arrcs
+c      intent(in) :: arrcs
+      real*8, dimension(:,:,cs2llint%jsdll:), intent(out) :: arrll
+c local vars
+      integer :: i,j,l,lm,m,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8 :: wti,wtj
+
+      lm = size(arrcs,1)
+c
+c allocate send/recv buffers
+c
+      nproc = cs2llint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = lm*(cs2llint%send_cnts)
+      sdspl(:) = lm*(cs2llint%send_displs)
+      rcnts(:) = lm*(cs2llint%recv_cnts)
+      rdspl(:) = lm*(cs2llint%recv_displs)
+
+      allocate(bufsend(lm*cs2llint%npts_interp),
+     &         bufrecv(lm*cs2llint%npts_unpack))
+
+c
+c Interpolate and store in 1D send buffer
+c
+      call halo_update(grid_cs,arrcs,jdim=3)
+      call corner_fill_4D(grid_cs,arrcs,lm,1)
+      m = 0
+      do n=1,cs2llint%npts_interp
+        wti = cs2llint%ix(n)
+        wtj = cs2llint%jy(n)
+        i = wti
+        j = wtj
+        wti = wti-i
+        wtj = wtj-j
+        do l=1,lm
+          m = m + 1
+          bufsend(m) = 
+     &           wtj*(wti*arrcs(l,i+1,j+1)+(1.-wti)*arrcs(l,i,j+1))
+     &     +(1.-wtj)*(wti*arrcs(l,i+1,j  )+(1.-wti)*arrcs(l,i,j  ))
+        enddo
+      enddo
+
+c
+c send interpolants to LL PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into latlon array
+c
+      m = 0
+      do n=1,cs2llint%npts_unpack
+        i = cs2llint%i_unpack(n)
+        j = cs2llint%j_unpack(n)
+        do l=1,lm
+          m = m + 1
+          arrll(l,i,j) = bufrecv(m)
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine cs2llint_lij
 
       end module cs2ll_utils
 
