@@ -3,7 +3,7 @@
 
 if [[ $1 != RES* ]] 
 then echo "usage: ${0##*/} RES*.f [ B|C dlat_dg (to be executed in ../init_cond)"
-     echo "no action" exit ; fi
+     echo "no action" ; exit ; fi
 
 RES=${1%.f} ; shift
 gmake mkAIC.bin RES_FILE=${RES} 
