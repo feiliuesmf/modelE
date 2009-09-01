@@ -22,6 +22,9 @@ C*************************************************************
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
+#ifdef CUBE_GRID
+      USE cs2ll_utils, only : cs2llint_type
+#endif
       IMPLICIT NONE
       SAVE
 
@@ -34,6 +37,7 @@ C**** rheology calculations without changing ADVSI grid.
 !@+  (calculated points from 2 through ny1-1. End points are boundaries)
 #ifdef CUBE_GRID
       INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM !     dimensions of grid_ICDYN
+      type(cs2llint_type) :: CS2ICEint
 #else
       INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM !     dimensions of grid_ICDYN
 #endif

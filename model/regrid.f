@@ -280,7 +280,6 @@ c***  we would loop on the subset
          do i=1,IM_CS
 
 c     find (ilon,jlat) indices of latlon cell containing the mid-point of the right edge of the (i,j) CS cell
-
             i_lon = nint(.5*(im_ll + 1) + lon_mid_glob(i,j,k)/dlon_dg )
             j_lat = nint(.5*(jm_ll + 1) + lat_mid_glob(i,j,k)/dlat_dg )
 
@@ -361,17 +360,17 @@ c     periodic boundary conditions in x direction
       
       call sumxpe(uout_glob)
 
-c      if (am_i_root()) then
-c         do k=1,6
-c            do j=1,JM_CS
-c               do i=1,IM_CS
-c                  write(1100,*) 
-c     &                 lon_mid_glob(i,j,k),lat_mid_glob(i,j,k),
-c     &                 uout_glob(i,j,k)
-c               enddo
-c            enddo
-c         enddo
-c      endif
+      if (am_i_root()) then
+         do k=1,6
+            do j=1,JM_CS
+               do i=1,IM_CS
+                  write(1100,*) 
+     &                 lon_mid_glob(i,j,k),lat_mid_glob(i,j,k),
+     &                 uout_glob(i,j,k)
+               enddo
+            enddo
+         enddo
+      endif
 
       deallocate(lat_mid_glob,lon_mid_glob,lat_mid,lon_mid)
 
@@ -552,17 +551,17 @@ c     periodic boundary conditions in x direction
       
       call sumxpe(vout_glob)
 
-      if (am_i_root()) then
-         do k=1,6
-            do j=1,JM_CS
-               do i=1,IM_CS
-                  write(1100,*) 
-     &                 lon_mid_glob(i,j,k),lat_mid_glob(i,j,k),
-     &                 vout_glob(i,j,k)
-               enddo
-            enddo
-         enddo
-      endif
+c      if (am_i_root()) then
+c         do k=1,6
+c            do j=1,JM_CS
+c               do i=1,IM_CS
+c                  write(1100,*) 
+c     &                 lon_mid_glob(i,j,k),lat_mid_glob(i,j,k),
+c     &                 vout_glob(i,j,k)
+c               enddo
+c            enddo
+c         enddo
+c      endif
       
       deallocate(lat_mid_glob,lon_mid_glob,lat_mid,lon_mid)
 
@@ -723,17 +722,17 @@ c     periodic boundary conditions in x direction
       call sumxpe(aout_glob)
 
 
-      if (am_i_root()) then
-         do k=1,6
-            do j=1,JM_CS
-               do i=1,IM_CS
-                  write(1100,*) 
-     &                 lon_glob(i,j,k),lat_glob(i,j,k),
-     &                 aout_glob(i,j,k)
-               enddo
-            enddo
-         enddo
-      endif
+c      if (am_i_root()) then
+c         do k=1,6
+c            do j=1,JM_CS
+c               do i=1,IM_CS
+c                  write(1100,*) 
+c     &                 lon_glob(i,j,k),lat_glob(i,j,k),
+c     &                 aout_glob(i,j,k)
+c               enddo
+c            enddo
+c         enddo
+c      endif
 
       deallocate(lat_glob,lon_glob)
 
@@ -892,17 +891,17 @@ c     periodic boundary conditions in x direction
       
       call sumxpe(aout_glob)
 
-      if (am_i_root()) then
-         do k=1,6
-            do j=1,JM_CS
-               do i=1,IM_CS
-                  write(1100,*) 
-     &                 lon_glob(i,j,k),lat_glob(i,j,k),
-     &                 aout_glob(i,j,k)
-               enddo
-            enddo
-         enddo
-      endif
+c      if (am_i_root()) then
+c         do k=1,6
+c            do j=1,JM_CS
+c               do i=1,IM_CS
+c                  write(1100,*) 
+c     &                 lon_glob(i,j,k),lat_glob(i,j,k),
+c     &                 aout_glob(i,j,k)
+c               enddo
+c            enddo
+c         enddo
+c      endif
 
       deallocate(lat_glob,lon_glob)
 
