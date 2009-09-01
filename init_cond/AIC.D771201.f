@@ -27,7 +27,8 @@ C**** DLAT_DG=width of a non-polar latitude zone in degrees
       REAL*4 A(144,73,57),AH(IM,JM,57),AHV(IM,JM,4*lm+3),
      *     WTA(144,73), SIGE(0:LTM),PE(0:lm),
      *     RHJ(JM,7:19),UJ(JM,13:19),TJ(JM,13:19)
-      INTEGER*4 JDOFM(12)/0,31,59,90,120,151,181,212,243,273,304,334/
+      INTEGER :: JDOFM(12) =
+     *      (/0,31,59,90,120,151,181,212,243,273,304,334/)
       EQUIVALENCE (A,AHV)
       COMMON /FIXDCB/ FOCEAN(IM,JM), ZATMO(IM,JM)
 C**** Observed input data : vertical grid
