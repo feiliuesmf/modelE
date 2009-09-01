@@ -1164,6 +1164,7 @@ C**** LONGITUDES (degrees) for diagnostics
         LON_DG(I,1) = LON_DG(I-1,1)+dlon_dg
         LON_DG(I,2) = LON_DG(I-1,2)+dlon_dg
       END DO
+      lon(:) = lon_dg(:,1)*radian
 
       end subroutine GEOMICDYN
 c*
