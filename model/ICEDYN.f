@@ -902,7 +902,7 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       INTEGER :: I_0H, I_1H, J_1H, J_0H, J_0,J_1,J_0S,J_1S
       INTEGER :: IER,I,J,K
       REAL*8 :: DLON_DG,DLAT_DG,DLATM,DLAT,LAT1,COSP1,DXP1
-      REAL*8 :: DLON,phit,phiu,fjeq,acor,acoru
+      REAL*8 :: phit,phiu,fjeq,acor,acoru
       REAL*8 :: SINV,SINVm1
 
 C****
@@ -928,8 +928,6 @@ C****
         dlat=nint(180./(ny1-1.5))*radian
       end if
 
-      dlon=nint(360./(nx1-2))*radian
- 
 c****
       do j = 1,ny1
         dyt(j) = dlat*radius
