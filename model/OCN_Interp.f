@@ -105,6 +105,7 @@
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : MO, UO,VO, G0M
@@ -226,6 +227,7 @@ c
 c ocean C-grid -> atm A-grid method requiring fewer INT_OG2AG variants:
 c ocean C -> ocean A followed by ocean A -> atm A via INT_OG2AG
 c
+      call halo_update(ogrid,vo(:,:,1),from=south)
       do j=oJ_0S,oJ_1S
 c area weights that would have been used by HNTRP for ocean C -> ocean A
         awt1 = (sinpo(j)-sinvo(j-1))/(sinvo(j)-sinvo(j-1))
