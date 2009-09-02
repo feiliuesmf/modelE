@@ -25,9 +25,9 @@
       USE FLUXES, only : SRUNPSI_loc => SRUNPSI
       USE FLUXES, only : SMELTI_loc => SMELTI
       USE FLUXES, only : DMUA_loc => DMUA
-      USE FLUXES, only : DMUI_loc => DMUI
       USE FLUXES, only : DMVA_loc => DMVA
-      USE FLUXES, only : DMVI_loc => DMVI
+      USE ICEDYN_COM, only : DMUI_loc => DMUI
+      USE ICEDYN_COM, only : DMVI_loc => DMVI
       USE FLUXES, only : SOLAR_loc => SOLAR
       USE FLUXES, only : SSS_loc => SSS
       USE FLUXES, only : UOSURF_loc => UOSURF
