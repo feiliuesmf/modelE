@@ -1883,7 +1883,7 @@ C**** Set up ice momentum grid geometry
       bydts = 1./dtsrc
 
       CALL GET( grid_NXY,J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
-     &                   J_STRT     =J_0,  J_STOP =J_1S,
+     &                   J_STRT     =J_0,  J_STOP =J_1,
      &                   J_STOP_SKP =J_1S                   )
 
       ALLOCATE( UICTMP(NX1,J_0H:J_1H),
