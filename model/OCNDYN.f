@@ -58,6 +58,10 @@ C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans
       OGEOZ_SV(:,:)=OGEOZ(:,:)
 
+C***  Interpolate DYNSI outputs to the ocean grid
+C***  (at present, only the ice-ocean stress is used)
+      call IG2OG_oceans
+
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
@@ -277,6 +281,10 @@ c        CALL CHECKO ('STADVI')
 C***  Get the data from the ocean grid to the atmospheric grid
       CALL TOC2SST
       call OG2AG_oceans
+
+C***  Interpolate ocean outputs to the DYNSI grid
+C***  (at present, only the ocean surface velocity is needed)
+      call OG2IG_oceans
 
       RETURN
       END SUBROUTINE OCEANS

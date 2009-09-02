@@ -372,12 +372,11 @@ C**** surface tracer concentration
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
-
       USE FLUXES, only : aSOLAR=>SOLAR, aE0=>E0, aEVAPOR=>EVAPOR
      *     , aRUNOSI=>RUNOSI,aERUNOSI=>ERUNOSI,aSRUNOSI=>SRUNOSI
      *     , aFLOWO=>FLOWO,aEFLOWO=>EFLOWO, aAPRESS=>APRESS
      *     , aMELTI=>MELTI,aEMELTI=>EMELTI,aSMELTI=>SMELTI
-     *     , aDMUA=>DMUA, aDMVA=>DMVA, aDMUI=>DMUI, aDMVI=>DMVI
+     *     , aDMUA=>DMUA, aDMVA=>DMVA
      *     , aGMELT=>GMELT, aEGMELT=>EGMELT
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
@@ -409,7 +408,7 @@ C**** surface tracer concentration
      *     , oRUNOSI, oERUNOSI, oSRUNOSI
      *     , oFLOWO, oEFLOWO, oAPRESS
      *     , oMELTI, oEMELTI, oSMELTI
-     *     , oDMUA,oDMVA, oDMUI,oDMVI
+     *     , oDMUA,oDMVA
      *     , oGMELT, oEGMELT
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
@@ -639,8 +638,6 @@ C**** surface tracer concentration
       CALL INT_AG2OG(aDMUA,aDMVA,oDMUA,oDMVA, aWEIGHT,aFOCEAN_loc
      *              ,NSTYPE,1)
 
-      CALL INT_AG2OG(aDMUI,aDMVI,oDMUI,oDMVI, aWEIGHT, IVSPO,IVNPO)
-
       deallocate(aweight)
 
       END SUBROUTINE AG2OG_oceans
@@ -789,3 +786,98 @@ C**** do something in here
       END SUBROUTINE OG2AG_oceans
 
 
+      MODULE IGOG_regrid_info
+!@sum IGOG_info saves instances of hntrp_type for use in
+!@+   ice <-> ocean regrids
+      use hntrp_mod, only : hntrp_type
+      implicit none
+      save
+
+      type(hntrp_type) :: hntrp_i2o_u ! ice u C -> ocn u C
+      type(hntrp_type) :: hntrp_i2o_v ! ice v C -> ocn v C
+      logical :: hntrp_i2o_uv_need_init = .true.
+
+      type(hntrp_type) :: hntrp_o2i   ! ocn A -> ice A
+      logical :: hntrp_o2i_needs_init = .true.
+
+      END MODULE IGOG_regrid_info
+
+      SUBROUTINE IG2OG_oceans
+!@sum IG2OG_oceans interpolates relevant DYNSI outputs to the
+!@+   ocean grid
+!@auth M. Kelley
+      use hntrp_mod
+      use IGOG_regrid_info
+      use icedyn_com, only : iDMUI=>DMUI, iDMVI=>DMVI
+      use ofluxes,    only : oDMUI,oDMVI
+      USE ICEDYN, only : iIM=>imicdyn,iJM=>jmicdyn
+      USE OCEAN,  only : oIM=>im,oJM=>jm
+      USE ICEDYN, only : iDLATM=>DLATM
+      USE OCEAN,  only : oDLATM=>DLATM
+      USE ICEDYN,     only : iGRID=>grid_icdyn
+      USE OCEANR_DIM, only : oGRID
+      USE DOMAIN_DECOMP_1D, only : BAND_PACK
+      implicit none
+      real*8, dimension(:,:), allocatable ::
+     &     ones_band,idmui_band,idmvi_band
+      integer :: jmin,jmax
+
+      if(iIM.eq.oIM .and. iJM.eq.oJM) then
+        oDMUI(:,:) = iDMUI(:,:)
+        oDMVI(:,:) = iDMVI(:,:)
+        return
+      endif
+
+      if(hntrp_i2o_uv_need_init) then
+        call Init_Hntrp_Type(hntrp_i2o_u,
+     &     iGRID, .5d0,iDLATM,
+     &     oGRID, .5d0,oDLATM,
+     &     0.d0)
+        call Init_Hntrp_Type(hntrp_i2o_v,
+     &     iGRID, 0.d0,iDLATM,
+     &     oGRID, 0.d0,oDLATM,
+     &     0.d0,
+     &     JMA_4interp=iJM-1,JMB_4interp=oJM-1) ! for secondary lats
+        hntrp_i2o_uv_need_init = .false.
+      endif
+
+c regrid DMUI from ice C to ocn C
+      jmin = hntrp_i2o_u%bpack%jband_strt
+      jmax = hntrp_i2o_u%bpack%jband_stop
+      ALLOCATE(iDMUI_band(iIM,jmin:jmax),ones_band(iIM,jmin:jmax))
+      ones_band(:,:) = 1d0
+      call BAND_PACK (hntrp_i2o_u%bpack, iDMUI, iDMUI_band)
+      if(iGRID%have_north_pole) then
+        iDMUI_band(:,iJM) = 0.
+      endif
+      call HNTR8_band (ones_band, iDMUI_band, hntrp_i2o_u, oDMUI)
+      deallocate(iDMUI_band,ones_band)
+
+c regrid DMVI from ice C to ocn C
+      jmin = hntrp_i2o_v%bpack%jband_strt
+      jmax = hntrp_i2o_v%bpack%jband_stop
+      ALLOCATE(iDMVI_band(iIM,jmin:jmax),ones_band(iIM,jmin:jmax))
+      ones_band(:,:) = 1d0
+      call BAND_PACK (hntrp_i2o_v%bpack, iDMVI, iDMVI_band)
+      if(iGRID%have_north_pole) then
+        iDMVI_band(:,iJM) = 0.
+      endif
+      call HNTR8_band (ones_band, iDMVI_band, hntrp_i2o_v, oDMVI)
+      deallocate(iDMVI_band,ones_band)
+
+      if(oGRID%have_north_pole) then ! INT_AG2OG_Vector2 set them to zero
+        oDMUI(:,oJM) = 0.0
+        oDMVI(:,oJM) = 0.0
+      endif
+
+      return
+      END SUBROUTINE IG2OG_oceans
+
+      SUBROUTINE OG2IG_oceans
+!@sum OG2IG_oceans interpolates relevant ocean arrays to the
+!@+   DYNSI grid
+!@auth M. Kelley
+      implicit none
+c replicate HNTRP calls to obtain ocean surf velocity on DYNSI grid
+      return
+      END SUBROUTINE OG2IG_oceans

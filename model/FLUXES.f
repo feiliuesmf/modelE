@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       MODULE FLUXES
-!@sum  FLUXES contains the fluxes between various components
+!@sum  FLUXES contains the fluxes between various atm-grid components
 !@auth Gavin Schmidt
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm
@@ -54,9 +54,6 @@ C**** Momemtum stresses are calculated as if they were over whole box
 !@var DMUA,DMVA momentum flux from atmosphere for each type (kg/m s) 
 !@+   On atmospheric A grid (tracer point)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMUA,DMVA
-!@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
-!@+   On atmospheric C grid 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMUI,DMVI
 !@var UI2rho Ustar*2*rho ice-ocean friction velocity on atmospheric grid
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UI2rho
 !@var OGEOZA ocean surface height geopotential (m^2/s^2) (on ATM grid)
@@ -269,8 +266,6 @@ C**** fluxes associated with variable lake fractions
      &          fhsi_io ( I_0H:I_1H , J_0H:J_1H ),
      &          fssi_io ( I_0H:I_1H , J_0H:J_1H ),
      &          RUNOLI  ( I_0H:I_1H , J_0H:J_1H ),
-     &          DMUI    ( I_0H:I_1H , J_0H:J_1H ),
-     &          DMVI    ( I_0H:I_1H , J_0H:J_1H ),
      &          UI2rho  ( I_0H:I_1H , J_0H:J_1H ),
      &          OGEOZA  ( I_0H:I_1H , J_0H:J_1H ),
      &          DTH1    ( I_0H:I_1H , J_0H:J_1H ),
