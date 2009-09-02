@@ -465,10 +465,10 @@ c        MODULE PROCEDURE READT8_PARALLEL_2D
         integer :: j_strt,j_stop
         integer :: j_strt_halo,j_stop_halo
         integer :: jband_strt,jband_stop
-        integer, dimension(:), allocatable :: scnts,sdspl,sdspl_inplace
-        integer, dimension(:), allocatable :: rcnts,rdspl,rdspl_inplace
-        integer, dimension(:), allocatable :: j0_send,j1_send
-        integer, dimension(:), allocatable :: j0_recv,j1_recv
+        integer, dimension(:), pointer :: scnts,sdspl,sdspl_inplace
+        integer, dimension(:), pointer :: rcnts,rdspl,rdspl_inplace
+        integer, dimension(:), pointer :: j0_send,j1_send
+        integer, dimension(:), pointer :: j0_recv,j1_recv
       end type band_pack_type
 !@var INIT_BAND_PACK_TYPE initialization routine during which each PE
 !@+   requests a range of J indices and sets up the necessary send/receive
