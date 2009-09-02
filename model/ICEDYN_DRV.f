@@ -514,9 +514,9 @@ c temporarily empty.
       USE ICEDYN, only : imicdyn,jmicdyn,  !dimensions of icedyn grid
      &     nx1,ny1
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET,
-     &     atm_pack=>pack_data,am_i_root
-      USE DOMAIN_DECOMP_1D, only : DIST_GRID, iGET=>GET
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH, SOUTH
+     &     ATM_HALO=>HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : iGET=>GET, ICE_HALO=>HALO_UPDATE,
+     &     NORTH, SOUTH
       USE ICEDYN, only : dxyn,dxys,bydxyp,dxyv,dxp,dyv
       USE ICEDYN, only : grid_ICDYN
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
@@ -649,17 +649,13 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
         END DO
       END DO
 
-      CALL HALO_UPDATE(agrid, FOCEAN, from=NORTH )
-      CALL HALO_UPDATE(agrid, RSI   , from=NORTH )
-      CALL HALO_UPDATE(agrid, MSI   , from=NORTH )
-
       call INT_AtmA2IceA_XY(aPtmp,iPtmp)   
       call INT_AtmA2IceA_XY(Focean,iFocean)   
       call INT_AtmA2IceA_XY(RSI,iRSI)
 
-      CALL HALO_UPDATE(grid_ICDYN, iPtmp , from=NORTH )
-      CALL HALO_UPDATE(grid_ICDYN, iFOCEAN, from=NORTH )
-      CALL HALO_UPDATE(grid_ICDYN, iRSI   , from=NORTH )
+      CALL ICE_HALO(grid_ICDYN, iPtmp , from=NORTH )
+      CALL ICE_HALO(grid_ICDYN, iFOCEAN, from=NORTH )
+      CALL ICE_HALO(grid_ICDYN, iRSI   , from=NORTH )
 
 c*** Calculate gradient on ice dyn. grid
       DO J=iJ_0S,iJ_1S
@@ -725,7 +721,7 @@ C****
 C**** Set up mass per unit area and coriolis term (on ice grid B)
 C****
 C**** Update halo for HEFF
-      CALL HALO_UPDATE(grid_ICDYN, HEFF, from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, HEFF, from=NORTH    )
 
       DO J=iJ_0,iJ_1S
       DO I=1,NX1-1
@@ -747,17 +743,15 @@ c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
 C**** NOTE: UOSURF, VOSURF are expected to be on the A-grid
 
-      CALL HALO_UPDATE(agrid, UOSURF )
-      CALL HALO_UPDATE(agrid, VOSURF )
 c**** getting instance of (UOSURF, VOSURF) on the icedyn grid
       call INT_AtmA2IceA_XY(UOSURF,iUOSURF)   !already in latlon basis
       call INT_AtmA2IceA_XY(VOSURF,iVOSURF)   !already in latlon basis
 
 C**** Update halo for USI,UOSURF,VOSURF,PGFU
-      CALL HALO_UPDATE(grid_ICDYN, USI   , from=NORTH    )
-      CALL HALO_UPDATE(grid_ICDYN, iUOSURF , from=NORTH    )
-      CALL HALO_UPDATE(grid_ICDYN, iVOSURF , from=NORTH    )
-      CALL HALO_UPDATE(grid_ICDYN, PGFU  , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, USI   , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, iUOSURF , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, iVOSURF , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, PGFU  , from=NORTH    )
 
       do j=iJ_0,iJ_1S
         im1=imicdyn
@@ -801,16 +795,13 @@ c**** set north pole
 
 c**** interpolate air stress from A grid in atmos, to B grid in ice
 C**** change of unit from change of momentum, to flux
-C**** Update halo for USI,UOSURF,PGFU
-      CALL HALO_UPDATE(agrid, DMUA  )	 
-      CALL HALO_UPDATE(agrid, DMVA  )
 
 c**** getting instance of (DMUA, DVMA) on the icedyn grid
       call INT_AtmA2IceA_XY(DMUA(:,:,2),iDMUA)   !stays on latlon basis
       call INT_AtmA2IceA_XY(DMVA(:,:,2),iDMVA)   !stays on latlon basis
 
-      CALL HALO_UPDATE(grid_ICDYN, iDMUA  , from=NORTH    )  
-      CALL HALO_UPDATE(grid_ICDYN, iDMVA  , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, iDMUA  , from=NORTH    )  
+      CALL ICE_HALO(grid_ICDYN, iDMVA  , from=NORTH    )
 
       do j=iJ_0,iJ_1S
         im1=imicdyn
@@ -882,8 +873,8 @@ C**** Calculate stress on ice velocity grid (B grid)
 
 C**** interpolate ice velocity and stress from its B grid to C grid
 C**** Update halos for UICE and DMU
-      CALL HALO_UPDATE(grid_ICDYN,  UICE, from=SOUTH     )
-      CALL HALO_UPDATE(grid_ICDYN,   DMU, from=SOUTH     )
+      CALL ICE_HALO(grid_ICDYN,  UICE, from=SOUTH     )
+      CALL ICE_HALO(grid_ICDYN,   DMU, from=SOUTH     )
  
       do j=iJ_0S,iJ_1STG
         i=imicdyn
@@ -898,9 +889,6 @@ C**** Rescale DMUI to be net momentum into ocean
         enddo
       enddo
 
-C**** Update halos for FOCEAN
-      CALL HALO_UPDATE(agrid,  FOCEAN, from=NORTH     )
-
       do j=iJ_0,iJ_1s
         do i=1,imicdyn
           vsi(i,j)=0.5*(vice(i,j,1)+vice(i+1,j,1))
@@ -913,10 +901,6 @@ C**** Rescale DMVI to be net momentum into ocean
      &          /DXYV(J+1)
         enddo
       enddo
-
-C**** Update halos for FOCEAN, and RSI
-      CALL HALO_UPDATE(agrid,  FOCEAN)
-      CALL HALO_UPDATE(agrid,  RSI )
 
 C**** set south pole 
       if (grid_ICDYN%HAVE_SOUTH_POLE) then
@@ -964,8 +948,8 @@ C**** UI2rho = | tau |
 #else /* calculate stress magnitude after regrid */
 C**** calculate 4 point average of B grid values of stresses
 C**** Update halos for DMU, and DMV
-      CALL HALO_UPDATE(grid_ICDYN,  DMU   , from=SOUTH     )
-      CALL HALO_UPDATE(grid_ICDYN,  DMV   , from=SOUTH     )
+      CALL ICE_HALO(grid_ICDYN,  DMU   , from=SOUTH     )
+      CALL ICE_HALO(grid_ICDYN,  DMV   , from=SOUTH     )
       do j=iJ_0,iJ_1
         do i=1,imicdyn
           UI2rho(i,j)=0
@@ -981,12 +965,6 @@ C**** Update halos for DMU, and DMV
 #endif
 
 C**** calculate mass fluxes for the ice advection
-C**** Update halos for FOCEAN, and RSI
-      CALL HALO_UPDATE(agrid,  FOCEAN, from=NORTH     )
-      CALL HALO_UPDATE(agrid,  RSI   , from=NORTH     )
-
-      CALL HALO_UPDATE(grid_ICDYN,  iFOCEAN, from=NORTH     )
-      CALL HALO_UPDATE(grid_ICDYN,  iRSI   , from=NORTH     )
 
 #ifndef CUBE_GRID
 c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
@@ -997,10 +975,10 @@ c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlo
           USIDT(I,J)=0.
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
-     &         RSI(I,J)+RSI(IP1,J).gt.1d-4) 
+     &         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) 
      &       USIDT(I,J)=USI(I,J)*DTS
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
-     &         RSI(I,J)+RSI(I,J+1).gt.1d-4) 
+     &         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) 
      &       VSIDT(I,J)=VSI(I,J)*DTS
         END DO
       END DO
