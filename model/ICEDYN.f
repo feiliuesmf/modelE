@@ -101,7 +101,7 @@ C**** Geometry inherited from geomb
       REAL*8, PARAMETER :: FIM=IMICDYN, BYIM=1./FIM
       REAL*8, PARAMETER :: DLON = TWOPI*BYIM
 !@var DLAT,DLAT_DG,DLATM grid spacing in latitude (rad,deg,minutes)
-      REAL*8  :: DLAT,DLAT_DG,DLATM
+      REAL*8  :: DLAT,DLON_DG,DLAT_DG,DLATM
 !@param FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JMICDYN)
 !@var  LAT latitude of mid point of primary grid box (radians)
@@ -901,7 +901,7 @@ c       CU(2,J)=CU(2,J)/BU(2,J)   ! absorbed into TRIDIAG
       IMPLICIT NONE
       INTEGER :: I_0H, I_1H, J_1H, J_0H, J_0,J_1,J_0S,J_1S
       INTEGER :: IER,I,J,K
-      REAL*8 :: DLON_DG,DLAT_DG,DLATM,DLAT,LAT1,COSP1,DXP1
+      REAL*8 :: LAT1,COSP1,DXP1
       REAL*8 :: phit,phiu,fjeq,acor,acoru
       REAL*8 :: SINV,SINVm1
 
