@@ -1267,7 +1267,7 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_alpha,n) = taijn(i,j,tij_alpha,n)
      *                             + pbl_args%alpha_gas
      *                               *ptype
-     *                               * 1.0d6 / 1024.5   !mol,CO2/m3/picoatm
+     *                               / 1024.5   !mol,CO2/m3/uatm
             taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
      *                            + TRGASEX(n,ITYPE,I,J)       !mol,CO2/m2/s
      *                               * ptype
