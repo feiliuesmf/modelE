@@ -587,12 +587,12 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
 c*    for debugging purpose only
 #ifdef CUBE_GRID
 c      call MPI_COMM_RANK( MPI_COMM_WORLD, mype, ierr )
-c      allocate(itest(NX1,
+c
 c      allocate(itest(IMICDYN,
 c     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
 c     &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
 c     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO))
-c      do i=1,NX1
+c
 c      do i=1,IMICDYN
 c      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
 c         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
@@ -601,8 +601,6 @@ c      enddo
 c      itest(:,:)=mype
 c      itest(:,:)=5
 c      call INT_IceB2AtmA(itest,atest)
-c     call INT_IceC2AtmC_U(itest,atest)
-c      call INT_IceB2AtmA_NX1(itest,atest)
 c      call stop_model("debugging Ice to Atm interpolation",255)
 
 c      atest(:,:)=mype
@@ -851,7 +849,6 @@ c      write(310+myPE,*) vib
 c      write(320+myPE,*) HEFF
 c      write(330+myPE,*) amass
 
-
 C**** do the looping over pseudo-timesteps
       CALL VPICEDYN
 
@@ -1021,6 +1018,7 @@ c*** diagnostics
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       call get_uisurf(uice(:,:,1),vice(:,:,1),uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
+c      call stop_model("get uisurf",255)      
 C****
 
 c      do i=1,aim
@@ -1688,7 +1686,8 @@ C****
 !@auth Denis Gueyffier
 !@auth M. Kelley (cs2llint_ij)
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : ICE_PACK=>PACK_DATA,am_i_root
+      USE DOMAIN_DECOMP_1D, only : ICE_PACK=>PACK_DATA,am_i_root,
+     &     HALO_UPDATE
       USE ICEDYN, only : grid_ICDYN,IMICDYN,JMICDYN
 #ifdef CUBE_GRID
       USE ICEDYN, only : CS2ICEint
@@ -1706,15 +1705,16 @@ C****
       real*4, allocatable :: iA4_glob(:,:)
       allocate(iA_glob(IMICDYN,JMICDYN),iA4_glob(IMICDYN,JMICDYN))
       call cs2llint_ij(agrid,CS2ICEint,aA,iA)
+      call HALO_UPDATE(grid_ICDYN,iA)
       call ICE_PACK(grid_ICDYN,iA,iA_glob)
-      if (am_i_root()) then
-      open(900,FILE="aA2iA",FORM='unformatted',
-     &        STATUS='unknown')
-      title="test"
-      iA4_glob=iA_glob
-      write(900) title,iA4_glob
-      close(900)
-      endif
+c      if (am_i_root()) then
+c      open(900,FILE="aA2iA",FORM='unformatted',
+c     &        STATUS='unknown')
+c      title="test"
+c      iA4_glob=iA_glob
+c      write(900) title,iA4_glob
+c      close(900)
+c      endif
       deallocate(iA_glob,iA4_glob)
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
@@ -1722,50 +1722,6 @@ c***  both latlon with equal resolution
       iA=aA
 #endif
       end subroutine INT_AtmA2IceA_XY
-c*
-
-
-      subroutine INT_AtmA2IceA_geom(aA,iA)
-!@sum interpolate from Atm A-grid to Ice A-grid for either scalars
-!@+   or U or V component of vector
-!@+   version using interpolation over non rectangular quadrilaterals  
-!@auth Denis Gueyffier
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,aGET=>GET
-      USE DOMAIN_DECOMP_1D, only : iGET=>GET,ICE_UNPACK=>UNPACK_DATA,
-     &     am_i_root
-      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
-      IMPLICIT NONE
-      real*8 ::
-     &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iA(1:IMICDYN,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-      character*80 :: title
-#ifdef CUBE_GRID
-      real*8, allocatable :: iA_glob(:,:)
-      real*4, allocatable :: iA4_glob(:,:)
-
-      allocate (iA_glob(IMICDYN,JMICDYN),iA4_glob(IMICDYN,JMICDYN))
-!interpolate then sumxpe global array on target latlon icedyn grid then scatter
-      call parallel_bilin_CS_A_2_latlon_A(agrid,grid_ICDYN,aA,iA_glob,
-     &     IMICDYN,JMICDYN)
-      call ICE_UNPACK(grid_ICDYN,iA_glob,iA)
-      if (am_i_root()) then
-      open(900,FILE="aA2iA",FORM='unformatted',
-     &        STATUS='unknown')
-      title="test"
-      iA4_glob=iA_glob
-      write(900) title,iA4_glob
-      close(900)
-      endif
-
-      deallocate (iA_glob,iA4_glob)
-#else 
-c***  for the moment me assume that the atm and icedyn grids are 
-c***  both latlon with equal resolution
-      iA=aA
-#endif
-      end subroutine INT_AtmA2IceA_geom
 c*
 
       subroutine INT_IceB2AtmA(iAb,aAa)
@@ -1804,43 +1760,6 @@ c*
       deallocate(aA_glob,a4_glob)
 #endif
       end subroutine INT_IceB2AtmA
-
-
-      subroutine INT_IceB2AtmA_NX1(iAb,aAa)
-!@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
-      USE RESOLUTION, only : aIM=>IM,aJM=>JM
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
-     &     ATM_UNPACK=>UNPACK_DATA,am_i_root
-      USE ICEDYN, only : IMICDYN,JMICDYN,NX1,grid_NXY
-      IMPLICIT NONE
-      integer :: mype,ierr
-      character*80 :: title
-      real *8 ::
-     &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iAb(NX1,                             ! on ice B grid
-     &     grid_NXY%J_STRT_HALO:grid_NXY%J_STOP_HALO)
- 
-#ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:,:)
-      real*4, allocatable :: a4_glob(:,:,:)
-      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
-      call parallel_bilin_latlon_B_2_CS_A_NX1(grid_NXY,agrid,
-     &     iAb,aA_glob,NX1,IMICDYN,JMICDYN)
-
-      if (am_i_root()) then
-      open(900,FILE="iB2aA",FORM='unformatted',
-     &        STATUS='unknown')
-      title="test"
-      a4_glob=aA_glob
-      write(900) title,a4_glob
-      close(900)
-      endif
-
-      call ATM_UNPACK(agrid,aA_glob,aAa)
-      deallocate(aA_glob,a4_glob)
-#endif
-      end subroutine INT_IceB2AtmA_NX1
 
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
@@ -1912,6 +1831,7 @@ c**** set north pole
                VICTMP(i,jmicdyn)=0.
             enddo
          end if    
+c**** set periodicity
          do J=J_0,J_1
             UICTMP(nx1-1,J)=UICTMP(1,J)
             VICTMP(nx1-1,J)=VICTMP(1,J)
@@ -1919,13 +1839,14 @@ c**** set north pole
             VICTMP(nx1,J)=VICTMP(2,J)
          enddo
       end if
+
+C**** set uisurf,visurf for atmospheric drag calculations
+      call get_uisurf(uictmp,victmp,uisurf,visurf)
+
 #ifdef CUBE_GRID
 c**** set up CS2ICEint, a data structure for CS to latlon interpolation
       call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,CS2ICEint)
 #endif
-
-C**** set uisurf,visurf for atmospheric drag calculations
-      call get_uisurf(uictmp,victmp,uisurf,visurf)
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij
@@ -2277,8 +2198,8 @@ C****
       enddo
 
 #ifdef CUBE_GRID
-      call INT_IceB2AtmA_NX1(uicetmp,uisurf)
-      call INT_IceB2AtmA_NX1(vicetmp,visurf)
+      call INT_IceB2AtmA(uicetmp(1:IMICDYN,:),uisurf)
+      call INT_IceB2AtmA(vicetmp(1:IMICDYN,:),visurf)
 #else
 c**** We assume that ice grid and latlon atm grid have same resolution 
       do j=J_0S,J_1S
