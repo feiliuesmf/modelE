@@ -799,8 +799,9 @@ C**** do something in here
       type(hntrp_type) :: hntrp_i2o_v ! ice v C -> ocn v C
       logical :: hntrp_i2o_uv_need_init = .true.
 
-      type(hntrp_type) :: hntrp_o2i   ! ocn A -> ice A
-      logical :: hntrp_o2i_needs_init = .true.
+      type(hntrp_type) :: hntrp_o2i_u ! ocn u C -> ice u A
+      type(hntrp_type) :: hntrp_o2i_v ! ocn v C -> ice v A
+      logical :: hntrp_o2i_uv_need_init = .true.
 
       END MODULE IGOG_regrid_info
 
@@ -875,11 +876,66 @@ c regrid DMVI from ice C to ocn C
       return
       END SUBROUTINE IG2OG_oceans
 
-      SUBROUTINE OG2IG_oceans
-!@sum OG2IG_oceans interpolates relevant ocean arrays to the
-!@+   DYNSI grid
+      SUBROUTINE OG2IG_uvsurf
+!@sum OG2IG_uvsurf interpolates ocean surface velocity to the
+!@+   DYNSI A-grid
 !@auth M. Kelley
+      use hntrp_mod
+      use IGOG_regrid_info
+      USE RESOLUTION, only : aIM=>im,aJM=>jm
+      USE ICEDYN, only     : iIM=>imicdyn,iJM=>jmicdyn
+      USE OCEAN,  only     : oIM=>im,oJM=>jm
+      USE FLUXES, only : atm_uosurf=>uosurf,atm_vosurf=>vosurf
+      USE ICEDYN_COM, only : uosurf,vosurf
+      USE ICEDYN, only : iDLATM=>DLATM
+      USE OCEAN,  only : oDLATM=>DLATM
+      USE ICEDYN,     only : iGRID=>grid_icdyn
+      USE OCEANR_DIM, only : oGRID
+      USE DOMAIN_DECOMP_1D, only : BAND_PACK
+      USE OCEAN, only : UO,VO
       implicit none
-c replicate HNTRP calls to obtain ocean surf velocity on DYNSI grid
+      real*8, dimension(:,:), allocatable ::
+     &     ones_band,ocnu_band,ocnv_band
+      integer :: jmin,jmax
+
+c If DYNSI grid == ATM grid, simply replicate ATM copy
+c (Note this requires that TOC2SST has been called first)
+      if(aIM.ne.aJM .and. ! extra check if the atm is lat-lon
+     &     aIM.eq.iIM .and. aJM.eq.iJM) then
+        uosurf(:,:) = atm_uosurf(:,:)
+        vosurf(:,:) = atm_vosurf(:,:)
+        return
+      endif
+
+c call HNTRP.  this section has not been tested yet.
+c      if(hntrp_o2i_uv_need_init) then
+c        call Init_Hntrp_Type(hntrp_o2i_u,
+c     &       oGRID, .5d0,oDLATM,
+c     &       iGRID, 0.d0,iDLATM,
+c     &       0.d0)
+c        call Init_Hntrp_Type(hntrp_o2i_v,
+c     &       oGRID, 0.d0,oDLATM,
+c     &       iGRID, 0.d0,iDLATM,
+c     &       0.d0,
+c     &       JMA_4interp=oJM-1) ! secondary ocean lats
+c        hntrp_o2i_uv_need_init = .false.
+c      endif
+cc regrid uosurf
+c      jmin = hntrp_o2i_u%bpack%jband_strt
+c      jmax = hntrp_o2i_u%bpack%jband_stop
+c      ALLOCATE(ocnu_band(oIM,jmin:jmax),ones_band(oIM,jmin:jmax))
+c      ones_band(:,:) = 1d0
+c      call BAND_PACK (hntrp_o2i_u%bpack, uo(:,:,1), ocnu_band)
+c      call HNTR8_band (ones_band, ocnu_band, hntrp_o2i_u, uosurf)
+c      deallocate(ocnu_band,ones_band)
+cc regrid vosurf
+c      jmin = hntrp_o2i_v%bpack%jband_strt
+c      jmax = hntrp_o2i_v%bpack%jband_stop
+c      ALLOCATE(ocnv_band(oIM,jmin:jmax),ones_band(oIM,jmin:jmax))
+c      ones_band(:,:) = 1d0
+c      call BAND_PACK (hntrp_o2i_v%bpack, vo(:,:,1), ocnv_band)
+c      call HNTR8_band (ones_band, ocnv_band, hntrp_o2i_v, vosurf)
+c      deallocate(ocnv_band,ones_band)
+cc fix up the north pole
       return
-      END SUBROUTINE OG2IG_oceans
+      END SUBROUTINE OG2IG_uvsurf

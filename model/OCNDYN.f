@@ -282,9 +282,8 @@ C***  Get the data from the ocean grid to the atmospheric grid
       CALL TOC2SST
       call OG2AG_oceans
 
-C***  Interpolate ocean outputs to the DYNSI grid
-C***  (at present, only the ocean surface velocity is needed)
-      call OG2IG_oceans
+C***  Interpolate ocean surface velocity to the DYNSI grid
+      call OG2IG_uvsurf
 
       RETURN
       END SUBROUTINE OCEANS
@@ -652,6 +651,9 @@ C**** Initialize some info passed to atmsophere
 
 C**** Set atmospheric surface variables
       IF (ISTART.gt.0) CALL TOC2SST
+
+C***  Interpolate ocean surface velocity to the DYNSI grid
+      IF (ISTART.gt.0) CALL OG2IG_uvsurf
 
       RETURN
 C**** Terminate because of improper start up

@@ -32,6 +32,8 @@
       USE FLUXES, only : SSS_loc => SSS
       USE FLUXES, only : UOSURF_loc => UOSURF
       USE FLUXES, only : VOSURF_loc => VOSURF
+      USE ICEDYN_COM, only : UOSURF_4DYNSI_loc => UOSURF
+      USE ICEDYN_COM, only : VOSURF_4DYNSI_loc => VOSURF
       USE FLUXES, only : OGEOZA_loc => OGEOZA
       USE FLUXES, only : GTEMP_loc => GTEMP
       USE FLUXES, only : GTEMPR_loc => GTEMPR
@@ -90,6 +92,8 @@
       public SSS_loc
       public UOSURF_loc
       public VOSURF_loc
+      public UOSURF_4DYNSI_loc
+      public VOSURF_4DYNSI_loc
       public OGEOZA_loc
       public GTEMP_loc
       public GTEMPR_loc

@@ -42,6 +42,10 @@ C**** Needed for ADVSI (on ATM grid)
 !@+   On ice C grid for now
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMUI,DMVI
 
+!@var UOSURF,VOSURF ocean surface velocity (m/s)
+!@+   On ice A grid for now
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
+
 C**** Ice advection diagnostics
       INTEGER, PARAMETER :: KICIJ=12
 !@var IJ_xxx Names for ICIJ diagnostics
@@ -97,7 +101,7 @@ C**** Ice advection diagnostics
       USE ICEDYN_COM, only : grid_MIC,imic
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ
-     &     ,DMUI,DMVI
+     &     ,DMUI,DMVI,UOSURF,VOSURF
 #ifdef TRACERS_WATER
       USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM
 #endif
@@ -124,6 +128,11 @@ C**** Allocate arrays defined on the ice rheology grid
 
       ALLOCATE(DMUI( I_0H:I_1H , J_0H:J_1H ),
      &         DMVI( I_0H:I_1H , J_0H:J_1H ))
+
+      ALLOCATE(UOSURF( I_0H:I_1H , J_0H:J_1H ),
+     &         VOSURF( I_0H:I_1H , J_0H:J_1H ))
+      UOSURF = 0. ! in case there is no dynamic ocean
+      VOSURF = 0. ! ""
 
       ALLOCATE(  ICIJ(I_0H:I_1H, J_0H:J_1H,KICIJ),
      &     STAT = IER)
@@ -524,8 +533,8 @@ c temporarily empty.
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,uib,vib,dmu,dmv
      *     ,usi,vsi
       USE ICEDYN_COM, only : usidt,vsidt,rsisave,dmui,dmvi,icij,ij_usi
-     *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi
-      USE FLUXES, only : dmua,dmva,UI2rho,ogeoza,uosurf,vosurf
+     *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
+      USE FLUXES, only : dmua,dmva,UI2rho,ogeoza
      *     ,apress,uisurf,visurf
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
@@ -541,7 +550,7 @@ C**** intermediate calculation for pressure gradient terms
 C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iUOSURF,iVOSURF,iDMUA,iDMVA,iUI2rho
+     &     iDMUA,iDMVA,iUI2rho
 
       real*8, allocatable, dimension(:,:) :: itest,atest
             real*8, allocatable, dimension(:,:,:) :: atest_glob
@@ -578,8 +587,6 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     aHEFF(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aAREA(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     iFOCEAN(1:IMICDYN,iJ_0H:iJ_1H),
-     &     iUOSURF(1:IMICDYN,iJ_0H:iJ_1H),
-     &     iVOSURF(1:IMICDYN,iJ_0H:iJ_1H),
      &     iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
      &     iDMVA(1:IMICDYN,iJ_0H:iJ_1H)
      &     )
@@ -741,26 +748,22 @@ c**** interpolate air, current and ice velocity from C grid to B grid
 C**** This should be more generally from ocean grid to ice grid
 C**** NOTE: UOSURF, VOSURF are expected to be on the A-grid
 
-c**** getting instance of (UOSURF, VOSURF) on the icedyn grid
-      call INT_AtmA2IceA_XY(UOSURF,iUOSURF)   !already in latlon basis
-      call INT_AtmA2IceA_XY(VOSURF,iVOSURF)   !already in latlon basis
-
 C**** Update halo for USI,UOSURF,VOSURF,PGFU
       CALL ICE_HALO(grid_ICDYN, USI   , from=NORTH    )
-      CALL ICE_HALO(grid_ICDYN, iUOSURF , from=NORTH    )
-      CALL ICE_HALO(grid_ICDYN, iVOSURF , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, UOSURF , from=NORTH    )
+      CALL ICE_HALO(grid_ICDYN, VOSURF , from=NORTH    )
       CALL ICE_HALO(grid_ICDYN, PGFU  , from=NORTH    )
 
       do j=iJ_0,iJ_1S
         im1=imicdyn
         do i=1,imicdyn
           UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))   ! iceC--> iceB
-          GWATX(i,j)=0.25*(iUOSURF(im1,j)  +iUOSURF(im1,j+1)
-     &         +iUOSURF(i,j)+iUOSURF(i,j+1))                     ! ocean -> iceB  
+          GWATX(i,j)=0.25*(UOSURF(im1,j)  +UOSURF(im1,j+1)
+     &         +UOSURF(i,j)+UOSURF(i,j+1))                     ! ocean -> iceB  
           PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! iceC--> iceB 
           VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))       ! y component
-          GWATY(i,j)=0.25*(iVOSURF(im1,j)  +iVOSURF(im1,j+1)
-     &         +iVOSURF(i,j)+iVOSURF(i,j+1))                     ! y component
+          GWATY(i,j)=0.25*(VOSURF(im1,j)  +VOSURF(im1,j+1)
+     &         +VOSURF(i,j)+VOSURF(i,j+1))                     ! y component
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))       ! y component
           im1=i
         enddo
@@ -1018,7 +1021,7 @@ c*** diagnostics
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       call get_uisurf(uice(:,:,1),vice(:,:,1),uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
-c      call stop_model("get uisurf",255)      
+c      call stop_model("get uisurf",255)     
 C****
 
 c      do i=1,aim
@@ -1046,7 +1049,7 @@ c      write(900+mype,*) focean
 
 
       deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iUOSURF,iVOSURF,iDMUA,iDMVA)
+     &     iDMUA,iDMVA)
 
       RETURN
       END SUBROUTINE DYNSI
@@ -1722,7 +1725,6 @@ c***  both latlon with equal resolution
       iA=aA
 #endif
       end subroutine INT_AtmA2IceA_XY
-c*
 
       subroutine INT_IceB2AtmA(iAb,aAa)
 !@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
