@@ -625,7 +625,7 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
 #ifdef TRACERS_GASEXCH_ocean_CO2
         !need to redo this here because the previous line has changed trconstflx to zero.
         !because we have no sources. is there a better way to do this?
-        trconstflx(nx)=trgrnd(nx)
+        trconstflx(nx)=trgrnd(nx) * byaxyp(i,j)   !kg,co2/kg,air/m2
 #endif
       end do 
 #endif
@@ -860,9 +860,9 @@ C**** Calculate Tracer Gas Exchange
 C****
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
 #ifdef TRACERS_GASEXCH_ocean_CFC
-          TRGASEX(n,ITYPE,I,J) =
+          TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) +
      .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
-          trsrfflx(i,j,n)=trsrfflx(i,j,n)
+          trsrfflx(i,j,n) = trsrfflx(i,j,n)
      .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs(nx)-trgrnd(nx))
      .               * axyp(i,j)*ptype
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
@@ -872,41 +872,48 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
-! Units are (m/s)(kg,CO2/kg,air) converted to mol,CO2/m2/s
-! [trgasex] = (m/s)*(kg,CO2/kg,air)
-! convert (m/s)(kg,CO2/kg,air) -> mol,CO2/m2/s
 ! because obio_carbon needs molCO2/m2/s:
 
           TRGASEX(n,ITYPE,I,J) =      !accumulate
      .                         TRGASEX(n,ITYPE,I,J) +
-     .    (   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
-     .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
-     .                        * ptype
-     .                        * rhosrf/(tr_mm(nx)*1.d-3)    
+     .    (   pbl_args%Kw_gas * pbl_args%beta_gas 
+     .            * trs(nx) * 1.d6/ vol2mass(nx)
+     .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
+     .            * trgrnd(nx)
+     .            * 1.0d6/vol2mass(nx) )
+     .   * ptype       !units mol,co2/m2/s
 
 ! trsrfflx is positive up 
 ! Units are (m/s)(kg,CO2/kg,air) 
+! units are kg,CO2/s
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
-     .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
-     .                   * ptype
-     .                   * axyp(i,j)
+     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas 
+     .          * trs(nx) * 1.d6 / vol2mass(nx)
+     .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
+     .          * trgrnd(nx) 
+     .          * 1.0d6/vol2mass(nx) )
+     .   * tr_mm(nx)*1.0d-3       
+     .   * ptype
+     .   * axyp(i,j)           !units kg,co2/s
 
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)
-     .      - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. )
-     .                   * ptype
-     .                   * axyp(i,j) * dtsurf
-     .                   * rhosrf/(tr_mm(nx)*1.d-3)         !(m/s) (kg,co2/kg,air) -> molCO2/m2/s  
+     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas 
+     .          * trs(nx) * 1.d6 / vol2mass(nx)
+     .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
+     .          * trgrnd(nx)
+     .          * 1.0d6/vol2mass(nx) )
+     .   * ptype
+     .   * axyp(i,j) * dtsurf   !units kg,co2 ???
 
       if(i.eq.1 .and. j.eq.45) then
        write(*,'(a,3i5,11e12.4)')'SURFACE, trgasex:',
+!      write(*,'(a,3i5,11e12.4)')'22222222222222222',
      . nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs(nx),
      . pbl_args%alpha_gas,trgrnd(nx),TRGASEX(n,ITYPE,I,J),
-     . pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx) 
-     .                 *ptype * rhosrf/(tr_mm(nx)*1.d-3),
-     . pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) /12. 
-     .                 *ptype * rhosrf/(tr_mm(nx)*1.d-3),
+     . pbl_args%Kw_gas * pbl_args%beta_gas*trs(nx)*1.d6/vol2mass(nx)
+     .                 *ptype,
+     . pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) 
+     .           * 1.0d6/vol2mass(n) * ptype,
      . trsrfflx(i,j,n),rhosrf,taijs(i,j,ijts_isrc(1,n))
       endif
 
@@ -1258,11 +1265,13 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_kw,n) = taijn(i,j,tij_kw,n)
      *                          + pbl_args%Kw_gas*ptype        !m/s
             taijn(i,j,tij_alpha,n) = taijn(i,j,tij_alpha,n)
-     *                             + pbl_args%alpha_gas*ptype
-     *                             * 1.d-12 /(tr_mm(n)*1.d-3)  !kg,CO2/m3/atm -> mol,CO2/m3/picoatm
+     *                             + pbl_args%alpha_gas
+     *                               *ptype
+     *                               * 1.0d6 / 1024.5   !mol,CO2/m3/picoatm
             taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
      *                            + TRGASEX(n,ITYPE,I,J)       !mol,CO2/m2/s
-     *                             * ptype
+     *                               * ptype
+     *                               * 3600.*24.*365.            !mol,CO2/m2/yr
           endif
 #endif
 #ifdef TRACERS_WATER

@@ -244,7 +244,7 @@ C**** Gas Exchange Coefficient (piston velocity)
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Gas_Exchange'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Gas Exchange'
         ijtc_power(n) = 0
-        units_tij(k,n) = unit_string(ijtc_power(n),'mol,CO2/m2/s')
+        units_tij(k,n) = unit_string(ijtc_power(n),'mol,CO2/m2/yr')
         scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
 #endif
 #ifdef TRACERS_WATER

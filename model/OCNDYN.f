@@ -316,6 +316,9 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean,ntm
 #endif
+#ifdef TRACERS_OceanBiology
+      USE obio_forc, only : atmCO2
+#endif
 
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
@@ -351,6 +354,16 @@ C**** define initial condition options for global mean
 #ifdef TRACERS_OCEAN
       call sync_param("oc_tracer_mean",oc_tracer_mean,ntm)
 #endif
+
+#ifdef TRACERS_OceanBiology
+#ifdef constCO2
+      call get_param("atmCO2",atmCO2)   !need to do this here also
+      print*, 'OCNDYN, atmco2=',atmCO2
+#else
+      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
+#endif
+#endif
+
 
 C****
 C**** set up time steps from atmospheric model
@@ -712,16 +725,16 @@ C****
      *     ,irsficnt,irerun,lhead
       USE OCEAN
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+      USE PARAM, only: get_param
       USE MODEL_COM, only: nstep=>itime
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEANR_DIM, only : ogrid
       USE obio_dim, only: ntrac
       USE obio_com, only : itest,jtest,gcmax,nstep0
      .                    ,tracer=>tracer_loc,tracer_glob=>tracer
-      USE obio_forc, only : avgq,tirrq3d,ihra,atmCO2
+      USE obio_forc, only : avgq,tirrq3d,ihra
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      USE PARAM, only: get_param
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE FLUXES, only: gtracer
       USE obio_com, only: pCO2, pCO2_glob
@@ -873,11 +886,7 @@ C****
       READ (kunit,err=10) TRNHEADER
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
      . ,pco2_glob
-#ifdef constCO2
-      call get_param("atmCO2",atmCO2)   !need to do this here also
-#else
-      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
-#endif
+
       print*,'nstep0= ',nstep0
       i=itest
       j=jtest

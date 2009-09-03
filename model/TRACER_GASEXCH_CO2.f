@@ -142,13 +142,7 @@
       do i=1,iia
       if (focean(i,j).gt.0.) then
          do nt=1,ntm
-          if (i.eq.1.and.j.eq.45)
-     .    write(*,'(a,3i5,e12.4)')'TRACER_GASEXCH_CO2, gtracer1:',
-     .        nstep,i,j,gtracer(1,1,i,j)
             GTRACER(nt,1,i,j)=atrac(i,j,nt)
-          if (i.eq.1.and.j.eq.45)
-     .    write(*,'(a,3i5,e12.4)')'TRACER_GASEXCH_CO2, gtracer2:',
-     .        nstep,i,j,gtracer(1,1,i,j)
          enddo
       endif
       enddo
@@ -219,47 +213,26 @@ c ---------------------------------------------------------------------
       !gas SOLUBILITY
       !---------------------------------------------------------------
       !alpha --solubility of CO2 in seawater
-      !in mol/m^3/picoatm
-       alpha_gas=sol_co2(tg1,alati)
-
-           !convert to mol/m^3/atm
-           ![alpha_gas]=mole,CO2/m3/atm
-           !alpha_gas=alpha_gas*1.e+12   !mol/m3/pptv --> mol/m3/atm
-      ![alpha_gas]: mol/m^3/picoatm
-      alpha_gas = alpha_gas * 1.d12 * tr_mm(itr) * 1.d-3   !kg,CO2/m3/atm
+      alpha_gas=sol_co2(tg1,alati)    !mol/m^3/picoatm
+      alpha_gas = alpha_gas * 1.d-6   !mol,CO2/m3/uatm
+      alpha_gas = alpha_gas * 1024.5  !
       !---------------------------------------------------------------
-      !psurf is in mb. multiply with 10.197e-4 to get atm
-      !include molecular weights for air and CO2
-c       beta_gas=alpha_gas*(psurf*10.197e-4)*mair*1.e-3
-c     &                   /(tr_mm(itr)*1.e-3)
-c       !!atmCO2=368.6D0  !defined in obio_forc
-c!!!    beta_gas = beta_gas * tr_mm(itr)*1.e-3/rhows * atmCO2
-
-cwatson        xco2 = atmCO2*1013.0/stdslp
-cwatson       deltco2 = (xco2-pCO2_ij)*ff*1.0245E-3
-cwatson       deltco2=atmCO2*1013.0/stdslp*ff*1.0245E-3  !beta_gas
-cwatson               - pCO2_ij *ff*1.0245E-3       !trconstflx
-cwatson ff is actually alpha_gas
+      !psurf is in mb. 
+      beta_gas = alpha_gas * psurf/1013.25      !stdslp and psurf in mb, no need to change units
 
       !trsf is really sfac = Kw_gas * beta_gas
-      !units are such that flux comes out to (m/s)(kg/kg) 
-      !trsf = Kw_gas * beta_gas
+      !the term 1.0d6 / vol2mass(ntm) is needed to convert uatm -> kg,co2/kg,air 
+      !in the denominator of alpha
+      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(ntm)
 
-       !---need to write code to "pass dzo(level=1), which is const for Russell ocean but variable for HYCOM"
-       !beta_gas =  alpha_gas*atmpress/H = alpha_gas*atmpress/12m   !change H according to model
-       !units: kg,CO2/m3/m  which is the same as kg,CO2/kg,air/m as rho_air=1 kg,air/m3
-       beta_gas = alpha_gas * psurf/1013.25/12.      !stdslp and psurf in mb, no need to change units
-
-       ![trsf]=  kg,CO2/m3/s
-       trsf = Kw_gas * beta_gas
-
-       ![trcnst]= (m/s)*(kg,CO2/kg,air)
-       !give pco2 in atm
-       trcnst = Kw_gas * alpha_gas * trconstflx/12.          ! convert to (conc * m/s)
+      !trconstflx comes in from SURFACE.f and has units kg,co2/kg,air/m2
+      !therefore trcnst needs to be myltiplied by byrho before it is sent to  PBL.f
+      trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
+     .                * 1.0d6 / vol2mass(ntm)     !ntm=1 here
 
         if (ilong.eq.1. .and. jlat.eq.45) then
-!       write(*,'(a,3i7,11e12.4)')'44444444444444444444444',
         write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2:',
+!       write(*,'(a,3i7,11e12.4)')'44444444444444444444444',
      .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
      .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
         endif

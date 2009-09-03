@@ -4902,7 +4902,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         sname_ijts(k) = 'CO2_O_GASX'
         lname_ijts(k) = 'AO GASEX CO2'
         ijts_power(k) = -11
-        units_ijts(k) = unit_string(ijts_power(k),'mol,CO2/m2/s')
+        units_ijts(k) = unit_string(ijts_power(k),'kg,CO2/m2/s')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('SF6','SF6_c')
@@ -8780,7 +8780,8 @@ C**** at the start of any day
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifdef constCO2
       do n=1,ntm
-      if am_i_root() print*,'TRACERS_DRV, reseting daily trm'
+      if (am_i_root()) 
+     .    print*,'TRACERS_DRV, reseting daily trm'
       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6

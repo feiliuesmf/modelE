@@ -242,8 +242,8 @@ c Update DIC for sea-air flux of CO2
          if (vrbos) then
          write(*,'(a,3i7,i3,4e12.4)')
      .     'obio_carbon (coupled):',
-!    .     '5555555555555555555555',
-     .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term
+!    .     '9999999999999999999999',
+     .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term     !this flux should be mol,co2/m2/s
          endif
 
       enddo
@@ -281,26 +281,21 @@ c Update DIC for sea-air flux of CO2
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
 
-#ifndef TRACERS_GASEXCH_ocean_CO2
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
       ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
      .            *3600.D0                                   ! mol/m2/hr
      .            *44.d0*24.d0*365.d0                        ! grC/m2/yr
       if (vrbos) then
-            write(*,'(a,3i5,10e12.4)')'obio_carbon, fluxdiag:',
+            write(*,'(a,3i5,11e12.4)')'obio_carbon, fluxdiag:',
      .      nstep,i,j,dp1d(k),Ts,saln1d(k),scco2arg,wssq,rkwco2,
-     .      xco2,pCO2_ij,ff*1.0245D-3,ao_co2flux
+     .      xco2,pCO2_ij,ff,flxmolm3,ao_co2flux
       endif
-#endif
-
-!       if(k.eq.1)
-!    .     write(*,'(a,3i5,e12.4)')'dicterm5',
-!    .     nstep,i,j,term
 
       if (vrbos) then
        write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
+!      write(6,'(a,3i7,9e12.4)')'99999999999999999999',
      .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
-     .   rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term
+     .   rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
       endif
 
 #endif
@@ -456,12 +451,24 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.31 $
-c_ $Date: 2009/08/19 13:03:12 $   ;  $State: Exp $
+c_ $Revision: 2.32 $
+c_ $Date: 2009/09/03 21:50:04 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.32  2009/09/03 21:50:04  aromanou
+c_
+c_ more comments and tidying for the gas exchange tracers.
+c_ constCO2 case gives the same flux as the flux on the ocean grid
+c_ with prescribed atmos. concentrations.
+c_ TRGasEX is the flux (mol,co2/m2/s, positive down)  that is used to
+c_ force the ocean dic.
+c_ trsrfflx (kg,CO2/s, positive up) is the flux that is seen by
+c_ the atmosphere in accordance with modelE atmos tracer units.
+c_
+c_ changed units in some diags for easier comparison to Takahashi atlas.
+c_
 c_ Revision 2.31  2009/08/19 13:03:12  aromanou
 c_
 c_ Changes to allow for interactive gas exchange and prognostic CO2 in the
@@ -938,12 +945,24 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.31 $
-c_ $Date: 2009/08/19 13:03:12 $   ;  $State: Exp $
+c_ $Revision: 2.32 $
+c_ $Date: 2009/09/03 21:50:04 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.32  2009/09/03 21:50:04  aromanou
+c_
+c_ more comments and tidying for the gas exchange tracers.
+c_ constCO2 case gives the same flux as the flux on the ocean grid
+c_ with prescribed atmos. concentrations.
+c_ TRGasEX is the flux (mol,co2/m2/s, positive down)  that is used to
+c_ force the ocean dic.
+c_ trsrfflx (kg,CO2/s, positive up) is the flux that is seen by
+c_ the atmosphere in accordance with modelE atmos tracer units.
+c_
+c_ changed units in some diags for easier comparison to Takahashi atlas.
+c_
 c_ Revision 2.31  2009/08/19 13:03:12  aromanou
 c_
 c_ Changes to allow for interactive gas exchange and prognostic CO2 in the
@@ -1165,12 +1184,24 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.31 $
-c_ $Date: 2009/08/19 13:03:12 $   ;  $State: Exp $
+c_ $Revision: 2.32 $
+c_ $Date: 2009/09/03 21:50:04 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.32  2009/09/03 21:50:04  aromanou
+c_
+c_ more comments and tidying for the gas exchange tracers.
+c_ constCO2 case gives the same flux as the flux on the ocean grid
+c_ with prescribed atmos. concentrations.
+c_ TRGasEX is the flux (mol,co2/m2/s, positive down)  that is used to
+c_ force the ocean dic.
+c_ trsrfflx (kg,CO2/s, positive up) is the flux that is seen by
+c_ the atmosphere in accordance with modelE atmos tracer units.
+c_
+c_ changed units in some diags for easier comparison to Takahashi atlas.
+c_
 c_ Revision 2.31  2009/08/19 13:03:12  aromanou
 c_
 c_ Changes to allow for interactive gas exchange and prognostic CO2 in the

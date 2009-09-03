@@ -347,9 +347,6 @@ c  internals:
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE MODEL_COM, only : nstep=>itime
-#ifdef constCO2
-      USE obio_forc, only : atmCO2
-#endif
 #endif
 #endif
 
@@ -841,6 +838,8 @@ ccc dust emission from earth
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
        IF (ocean) THEN  ! OCEAN only
+          !note trcnst is already multiplied by byrho in TRACERS_GASEXCH_ocean_CO2_PBL
+
           call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
      .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
