@@ -1198,8 +1198,10 @@ C****
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count, tij_kw,
-     *     tij_alpha,tij_gasx
+     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_coun
+#ifdef TRACERS_GASEXCH_ocean
+     *    ,tij_kw,tij_alpha,tij_gasx
+#endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1348,11 +1350,13 @@ C**** Fill in maplet indices for sources and sinks
      *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:6).eq.
      *    'J_H2O2')ijtype(k)=2
         
+#ifdef TRACERS_GASEXCH_ocean
         if (name(k)=='CO2_O_GASX')then
            aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
            aij2(:,:,k)=focean_glob(:,:)
            ijtype(k)=3
         endif
+#endif
 
         if (name(k)=='NO2_col_acc_count')then
           ijtype(k)=2
