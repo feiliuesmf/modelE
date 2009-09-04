@@ -5398,7 +5398,7 @@ C****
       call get(grid, j_strt = j_0, j_stop = j_1,
      &         have_north_pole = have_north_pole)
 
-      j_0p = max(j1o,j_0)
+      j_0p = max(2,j_0)
       j_1p = min(j_1,jm-1)
 
       if (by4tonv <= 0 .and. by4tonu <= 0) return 
