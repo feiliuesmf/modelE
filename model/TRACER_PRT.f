@@ -1198,7 +1198,7 @@ C****
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_coun
+     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count
 #ifdef TRACERS_GASEXCH_ocean
      *    ,tij_kw,tij_alpha,tij_gasx
 #endif
