@@ -11,7 +11,7 @@ E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.;
 	  sea level pressure (after every physics time step)                 
 
 Preprocessor Options
-!#define TRACERS_ON                  ! include tracers code
+#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OBIO_ON_GARYocean           ! obio on Russell ocean
@@ -20,12 +20,10 @@ Preprocessor Options
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
-#define constCO2                    ! ANY ocean: atmCO2=const, look below also atmCO2
-#define TRACERS_ON
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
-!!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
-!!!!!#define CHL_from_SeaWIFs
+!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
+!!!!#define CHL_from_SeaWIFs
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -121,7 +119,7 @@ AVR=OPF.E2HX2.L32               ! ocean filter
 KBASIN=KB144X90.modelE          ! ocean basin designations
 CDN=CD144X90.ext                ! neutral drag coefficient
 VEG=V144X90_no_crops.ext        ! vegatation file
-CROPS=CROPS2007_144X90N_nocasp  ! crops
+CROPS=CROPS_144X90N_nocasp.ext  ! crops
 SOIL=S144X900098M.ext           ! soil properties
 REG=REG2X2.5                    ! special regions-diag
 RVR=RD_modelE_F.RVR.bin         ! river direction file
@@ -297,9 +295,9 @@ nssw=48         ! obio needs that in order to always restart from hour 0
 
 !parameters that affect CO2 gas exchange
 !!! atmCO2=368.6      !uatm for year 2000
-!!! atmCO2=0.             !prognostic atmCO2
 !!! atmCO2=289.9      !uatm for preindustrial runs
-atmCO2=360.0      !uatm for 1995 conditions (almost)
+atmCO2=0.             !prognostic atmCO2
+to_volume_MixRat=1    ! for tracer printout
 
 &&END_PARAMETERS
 
