@@ -918,13 +918,8 @@ cdiag  call obio_limits('aftr hybgen')
 
            do nt=1,ntrac
               tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer(i,j,k,nt)*plev
-
-!             if (nt.eq.1.and.k.eq.1) then
-!             write(*,'(i9,5i5,4e12.4)')999999999,
-!    .          nstep,i,j,k,nt,tracer(i,j,k,nt),plev,
-!    .                    tracav(i,j,k,nt),plevav(i,j,k)
-!             endif
            enddo   !nt
+
          endif
       enddo  !k
 

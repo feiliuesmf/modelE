@@ -10,9 +10,7 @@
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_ocean
       USE FLUXES, only : TRGASEX !,GTRACER
-
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
-
       USE TRACER_GASEXCH_COM, only : atrac
 #endif
 

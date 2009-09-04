@@ -148,7 +148,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean
-!@var TRGASEX  tracer gas exchange over each type (kg/m^2)
+!@var TRGASEX  tracer gas exchange over each type (mol,CO2/m^2/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
 #endif
 
