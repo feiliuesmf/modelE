@@ -2,6 +2,7 @@
 !@sum TRIDIAG_MOD contains subroutine TRIDIAG
       PRIVATE
       PUBLIC TRIDIAG
+      PUBLIC TRIDIAG_CYCLIC
       PUBLIC TRIDIAG_NEW
 
       Interface Tridiag_new
@@ -47,6 +48,66 @@ c     &     call stop_model("TRIDIAG: N > NMAX, increase NMAX",255)
       END DO
       RETURN
       END SUBROUTINE TRIDIAG
+
+      SUBROUTINE TRIDIAG_cyclic(A,B,C,R,U,N)
+!@sum TRIDIAG_cyclic solves a cyclic tridiagonal matrix equation (A,B,C)U=R
+!@+   having nonzero A(1) and C(N), using the Thomas algorithm and
+!@+   Sherman-Morrison formula.
+      IMPLICIT NONE
+      INTEGER :: N         !@var N    dimension of arrays
+      REAL*8  :: A(N)   !@var A    coefficients of u_i-1
+      REAL*8  :: B(N)   !@var B    coefficients of u_i
+      REAL*8  :: C(N)   !@var C    coefficients of u_i+1
+      REAL*8  :: R(N)   !@var R    RHS vector
+      INTENT(IN) :: N,A,B,C,R
+      REAL*8, INTENT(OUT):: U(N)   !@var U    solution vector
+      REAL*8 :: BET                !@var BET  work variable
+      REAL*8 :: GAM(Size(A))       !@var GAM  work array
+      REAL*8 :: Q(Size(A))         !@var Q    work array
+      INTEGER :: J                 !@var J    loop variable
+      REAL*8 :: QCOEFF,A1,B1,C1,R1
+
+      A1 = A(1)
+      B1 = B(1)
+      C1 = C(1)
+      R1 = R(1)
+      IF(B1.EQ.1D0) THEN
+        A1 = A1*2D0
+        B1 = B1*2D0
+        C1 = C1*2D0
+        R1 = R1*2D0
+      ENDIF
+      BET=B1-1d0
+      U(1)=R1/BET
+      Q(1)=1d0/BET
+      GAM(2)=C1/BET
+      DO J=2,N-1
+        BET=B(J)-A(J)*GAM(J)
+        IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
+c        IF (BET.eq.0) stop 'BET==0'
+        U(J)=(R(J)-A(J)*U(J-1))/BET
+        Q(J)=     -A(J)*Q(J-1) /BET
+        GAM(J+1) = C(J)/BET
+      END DO
+      J=N
+        BET=B(J)-A(J)*GAM(J)-A1*C(N)
+        IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
+c        IF (BET.eq.0) stop 'BET==0'
+        U(J)=(R(J)-A(J)*U(J-1))/BET
+        Q(J)=(C(N)-A(J)*Q(J-1))/BET
+      DO J=N-1,1,-1
+        U(J)=U(J)-GAM(J+1)*U(J+1)
+        Q(J)=Q(J)-GAM(J+1)*Q(J+1)
+      END DO
+      BET=1d0+Q(1)+A1*Q(N)
+        IF (BET.eq.0) call stop_model("TRIDIAG: DENOMINATOR = ZERO",255)
+c        IF (BET.eq.0) stop 'BET==0'
+      QCOEFF = (U(1)+A1*U(N))/BET
+      DO J=1,N
+        U(J) = U(J) - QCOEFF*Q(J)
+      ENDDO
+      RETURN
+      END SUBROUTINE TRIDIAG_cyclic
 
       SUBROUTINE TRIDIAG_2D_GLOB(A, B, C, R, U)
 !@sum  TRIDIAG  solves an array of tridiagonal matrix equations (A,B,C)U=R
