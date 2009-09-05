@@ -530,7 +530,7 @@ c temporarily empty.
       USE ICEDYN, only : grid_ICDYN
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
-     *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,uib,vib,dmu,dmv
+     *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,dmu,dmv
      *     ,usi,vsi
       USE ICEDYN_COM, only : usidt,vsidt,rsisave,dmui,dmvi,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
@@ -757,11 +757,9 @@ C**** Update halo for USI,UOSURF,VOSURF,PGFU
       do j=iJ_0,iJ_1S
         im1=imicdyn
         do i=1,imicdyn
-          UIB  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1))   ! iceC--> iceB
           GWATX(i,j)=0.25*(UOSURF(im1,j)  +UOSURF(im1,j+1)
      &         +UOSURF(i,j)+UOSURF(i,j+1))                     ! ocean -> iceB  
           PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! iceC--> iceB 
-          VIB  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))       ! y component
           GWATY(i,j)=0.25*(VOSURF(im1,j)  +VOSURF(im1,j+1)
      &         +VOSURF(i,j)+VOSURF(i,j+1))                     ! y component
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))       ! y component
@@ -771,23 +769,17 @@ C**** Update halo for USI,UOSURF,VOSURF,PGFU
 c**** set north pole
       if (grid_ICDYN%HAVE_NORTH_POLE) then
         do i=1,imicdyn
-          UIB  (i,jmicdyn)=USI(1,jmicdyn)
           GWATX(i,jmicdyn)=0.
           PGFUB(i,jmicdyn)=0.
-          VIB  (i,jmicdyn)=0.
           GWATY(i,jmicdyn)=0.
           PGFVB(i,jmicdyn)=0.
         enddo
       end if                    !end NORTH_POLE block if
       DO J=iJ_0,iJ_1
-        UIB(nx1-1,J)=UIB(1,J)
-        VIB(nx1-1,J)=VIB(1,J)
         GWATX(nx1-1,J)=GWATX(1,J)
         GWATY(nx1-1,J)=GWATY(1,J)
         PGFUB(nx1-1,J)=PGFUB(1,J)
         PGFVB(nx1-1,J)=PGFVB(1,J)
-        UIB(nx1,J)=UIB(2,J)
-        VIB(nx1,J)=VIB(2,J)
         GWATX(nx1,J)=GWATX(2,J)
         GWATY(nx1,J)=GWATY(2,J)
         PGFUB(nx1,J)=PGFUB(2,J)
@@ -827,14 +819,20 @@ c**** getting instance of (DMUA, DVMA) on the icedyn grid
 
 c**** read in sea ice velocity
       DO J=iJ_0,iJ_1
-      DO I=1,NX1
-       UICE(I,J,1)=UIB(I,J)
-       VICE(I,J,1)=VIB(I,J)
-       UICE(I,J,2)=0.
-       VICE(I,J,2)=0.
-       UICE(I,J,3)=0.
-       VICE(I,J,3)=0.
-      END DO
+        DO I=1,IMICDYN
+          UICE(I+1,J,1)=USI(I,J)
+          VICE(I+1,J,1)=VSI(I,J)
+        END DO
+        UICE(1  ,J,1)=USI(IMICDYN,J)
+        UICE(NX1,J,1)=USI(1,      J)
+        VICE(1  ,J,1)=VSI(IMICDYN,J)
+        VICE(NX1,J,1)=VSI(1,      J)
+        DO I=1,NX1
+          UICE(I,J,2)=0.
+          VICE(I,J,2)=0.
+          UICE(I,J,3)=0.
+          VICE(I,J,3)=0.
+        END DO
       END DO
 
 
@@ -871,16 +869,19 @@ C**** Calculate stress on ice velocity grid (B grid)
         DMU(NX1,J)=DMU(2,J)
       END DO
 
-C**** interpolate ice velocity and stress from its B grid to C grid
+C**** Save ice velocities in USI,VSI arrays
+C**** Interpolate ice stress from its B grid to C grid
 C**** Update halos for UICE and DMU
       CALL ICE_HALO(grid_ICDYN,  UICE, from=SOUTH     )
       CALL ICE_HALO(grid_ICDYN,   DMU, from=SOUTH     )
  
       do j=iJ_0S,iJ_1STG
+        do i=1,imicdyn
+          usi(i,j)=uice(i+1,j,1)
+          if(abs(usi(i,j)).lt.1d-10) usi(i,j)=0
+        enddo
         i=imicdyn
         do ip1=1,imicdyn
-          usi(i,j)=0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))
-          IF (abs(USI(I,J)).lt.1d-10) USI(I,J)=0
           DMUI(I,J) = 0.5*(dmu(i+1,j-1)+dmu(i+1,j))
 C**** Rescale DMUI to be net momentum into ocean
           DMUI(I,J) = 0.5*DMUI(I,J)*
@@ -891,8 +892,10 @@ C**** Rescale DMUI to be net momentum into ocean
 
       do j=iJ_0,iJ_1s
         do i=1,imicdyn
-          vsi(i,j)=0.5*(vice(i,j,1)+vice(i+1,j,1))
-          IF (abs(VSI(I,J)).lt.1d-10) VSI(I,J)=0
+          vsi(i,j)=vice(i+1,j,1)
+          if(abs(vsi(i,j)).lt.1d-10) vsi(i,j)=0
+        enddo
+        do i=1,imicdyn
           DMVI(I,J) = 0.5*(dmv(i,j)+dmv(i+1,j))
 C**** Rescale DMVI to be net momentum into ocean
           DMVI(I,J) = 0.5*DMVI(I,J)*
@@ -904,21 +907,13 @@ C**** Rescale DMVI to be net momentum into ocean
 
 C**** set south pole 
       if (grid_ICDYN%HAVE_SOUTH_POLE) then
-        usi(1:imicdyn,1)=0.
-        dmui(1:aim,1)=0.
+        dmui(:,1)=0.
       endif
 
 C**** set north pole 
       IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
-        vsi(1:imicdyn,jmicdyn)=0.
-        dmvi(:,jmicdyn)=0.
-        USINP=0.
-        do i=1,imicdyn
-          USINP = USINP + USI(i,jmicdyn)
-        enddo
-        USINP=USINP/IMICDYN  
-        USI(1:imicdyn,jmicdyn)=USINP
-        VSI(1:imicdyn,jmicdyn)=0.
+        USI(:,jmicdyn)=0.
+        VSI(:,jmicdyn)=0.
         DMUINP=0.
         do i=1,imicdyn
           DMUINP = DMUINP + DMUI(i,jmicdyn)
@@ -969,17 +964,17 @@ C**** calculate mass fluxes for the ice advection
 #ifndef CUBE_GRID
 c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
       DO J=aJ_0,aJ_1S
-        DO I=aI_0,aI_1
+        DO I=1,IMICDYN
          ip1=i+1
          if (ip1 .eq. aIM+1) ip1=1
           USIDT(I,J)=0.
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
      &         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) 
-     &       USIDT(I,J)=USI(I,J)*DTS
+     &       USIDT(I,J)=0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))*dts
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
      &         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) 
-     &       VSIDT(I,J)=VSI(I,J)*DTS
+     &       VSIDT(I,J)=0.5*(vice(i,j,1)+vice(i+1,j,1))*dts
         END DO
       END DO
       IF (agrid%HAVE_NORTH_POLE) THEN
@@ -996,13 +991,13 @@ c*** diagnostics
           IF (iFOCEAN(I,J).gt.0 .and. iFOCEAN(IP1,J).gt.0. .and.
      *         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) THEN
             ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(iRSI(I,J)+iRSI(IP1,J))
-     *           *USI(i,j)
+     *           *USIDT(i,j)/DTS
             ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
           END IF
           IF (iFOCEAN(I,J+1).gt.0 .and. iFOCEAN(I,J).gt.0. .and.
      *         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) THEN
             ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(iRSI(I,J)+iRSI(I,J+1))
-     *           *VSI(i,j)
+     *           *VSIDT(i,j)/DTS
             ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
           END IF
           ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ iRSI(I,J)*press(i+1,j)
@@ -1011,7 +1006,7 @@ c*** diagnostics
       END DO
       IF (agrid%HAVE_NORTH_POLE) THEN
         ICIJ(1,JMICDYN,IJ_USI) =ICIJ(1,JMICDYN,IJ_USI) 
-     &       +iRSI(1,JMICDYN)*USI(1,JMICDYN)
+     &       +iRSI(1,JMICDYN)*USIDT(1,JMICDYN)/DTS
         ICIJ(1,JMICDYN,IJ_DMUI)=ICIJ(1,JMICDYN,IJ_DMUI)+DMUI(1,JMICDYN)
         ICIJ(1,JMICDYN,IJ_RSI) =ICIJ(1,JMICDYN,IJ_RSI) +iRSI(1,JMICDYN)
         ICIJ(1,JMICDYN,IJ_PICE)=ICIJ(1,JMICDYN,IJ_PICE)
@@ -1818,27 +1813,15 @@ C**** Initialise ice dynamics if ocean model needs initialising
          UICTMP=0.
          VICTMP=0.
       else
-         do j=J_0,J_1S
-            im1=imicdyn
-            do i=1,imicdyn
-               UICTMP  (i,j)=0.5*(USI (im1,j)  +USI (im1,j+1)) ! iceC--> iceB
-               VICTMP  (i,j)=0.5*(VSI (im1,j)  +VSI (i,j))      
-               im1=i
-            enddo
-         enddo
-c**** set north pole
-         if (grid_ICDYN%HAVE_NORTH_POLE) then
-            do i=1,imicdyn
-               UICTMP(i,jmicdyn)=USI(1,jmicdyn)
-               VICTMP(i,jmicdyn)=0.
-            enddo
-         end if    
-c**** set periodicity
-         do J=J_0,J_1
-            UICTMP(nx1-1,J)=UICTMP(1,J)
-            VICTMP(nx1-1,J)=VICTMP(1,J)
-            UICTMP(nx1,J)=UICTMP(2,J)
-            VICTMP(nx1,J)=VICTMP(2,J)
+         do J=J_0,J_1S
+           DO I=1,IMICDYN
+             UICTMP(I+1,J)=USI(I,J)
+             VICTMP(I+1,J)=VSI(I,J)
+           END DO
+           UICTMP(1  ,J)=USI(IMICDYN,J)
+           UICTMP(NX1,J)=USI(1,      J)
+           VICTMP(1  ,J)=VSI(IMICDYN,J)
+           VICTMP(NX1,J)=VSI(1,      J)
          enddo
       end if
 

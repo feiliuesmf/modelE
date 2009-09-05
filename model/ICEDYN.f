@@ -66,7 +66,6 @@ C**** input
 !@var UICE,VICE velocity arrays  (m/s)
 !@var HEFF ice thickness (mean over box) (m)
 !@var AREA ice area (frac)
-!@var UIB,VIB velocity arrays (m/s)  (????)
 C**** internal variables
 !@var PRESS ice internal pressure (Pa)
 !@var FORCEX,FORCEY external force
@@ -78,8 +77,8 @@ C**** output
 !@var DMU,DMV ice-ocean stress
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: PRESS,HEFFM,UVM,DWATN,COR
      *     ,ZMAX,ZMIN,ETA,ZETA,DRAGS,DRAGA,GAIRX,GAIRY
-     *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC,UIB
-     *     ,VIB,DMU,DMV,HEFF,AREA,USI,VSI
+     *     ,GWATX,GWATY,PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,VICEC
+     *     ,DMU,DMV,HEFF,AREA,USI,VSI
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UICE,VICE
 
 
@@ -1334,7 +1333,7 @@ C**** to ALLOC_ICEDYN.
       USE ICEDYN, ONLY : PRESS,HEFFM,UVM,DWATN,COR,ZMAX,ZMIN,ETA,
      &                   ZETA,DRAGS,DRAGA,GAIRX,GAIRY,GWATX,GWATY,
      &                   PGFUB,PGFVB,FORCEX,FORCEY,AMASS,UICEC,
-     &                   VICEC,UIB,VIB,DMU,DMV,HEFF,AREA,UICE,
+     &                   VICEC,DMU,DMV,HEFF,AREA,UICE,
      &                   VICE,SINEN,BYDXDY,DYT,DYU,BYDY2,BYDYR,
      &                   CST,CSU,TNGT,TNG,BYCSU,USI,VSI
       USE ICEDYN, only : IMICDYN,JMICDYN,NX1,NY1
@@ -1387,8 +1386,6 @@ c***     the two boundary ghost cells in the longitudinal direction have been re
      &           AMASS(NX1,J_0H:J_1H),
      &           UICEC(NX1,J_0H:J_1H),
      &           VICEC(NX1,J_0H:J_1H),
-     &           UIB(NX1,J_0H:J_1H),
-     *           VIB(NX1,J_0H:J_1H),
      &           DMU(NX1,J_0H:J_1H),
      &           DMV(NX1,J_0H:J_1H),
      &           HEFF(NX1,J_0H:J_1H),
