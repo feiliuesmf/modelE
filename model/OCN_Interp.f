@@ -15,8 +15,6 @@
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
       Use GEOM,  only : AXYP
 
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
-
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : NTM
 #ifdef TRACERS_WATER
@@ -437,7 +435,6 @@ C**** surface tracer concentration
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
 
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
@@ -742,7 +739,6 @@ c
       USE OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
       USE FLUXES, only : aDMSI=>DMSI,aDHSI=>DHSI,aDSSI=>DSSI
 #ifdef TRACERS_ON
