@@ -531,7 +531,7 @@ c temporarily empty.
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,dmu,dmv
-     *     ,usi,vsi
+     *     ,usi,vsi,iFOCEAN=>FOCEAN
       USE ICEDYN_COM, only : usidt,vsidt,rsisave,dmui,dmvi,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
       USE FLUXES, only : dmua,dmva,UI2rho,ogeoza
@@ -549,8 +549,7 @@ C**** intermediate calculation for pressure gradient terms
      &                            PGFU,PGFV
 C****
       real*8, allocatable, dimension(:,:) ::
-     &     aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iDMUA,iDMVA,iUI2rho
+     &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho
 
       real*8, allocatable, dimension(:,:) :: itest,atest
             real*8, allocatable, dimension(:,:,:) :: atest_glob
@@ -584,9 +583,6 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     iPtmp(1:IMICDYN,iJ_0H:iJ_1H),
      &     iRSI(1:IMICDYN,iJ_0H:iJ_1H),
      &     iMSI(1:IMICDYN,iJ_0H:iJ_1H),
-     &     aHEFF(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     aAREA(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &     iFOCEAN(1:IMICDYN,iJ_0H:iJ_1H),
      &     iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
      &     iDMVA(1:IMICDYN,iJ_0H:iJ_1H)
      &     )
@@ -654,12 +650,10 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
         END DO
       END DO
 
-      call INT_AtmA2IceA_XY(aPtmp,iPtmp)   
-      call INT_AtmA2IceA_XY(Focean,iFocean)   
+      call INT_AtmA2IceA_XY(aPtmp,iPtmp)
       call INT_AtmA2IceA_XY(RSI,iRSI)
 
       CALL ICE_HALO(grid_ICDYN, iPtmp , from=NORTH )
-      CALL ICE_HALO(grid_ICDYN, iFOCEAN, from=NORTH )
       CALL ICE_HALO(grid_ICDYN, iRSI   , from=NORTH )
 
 c*** Calculate gradient on ice dyn. grid
@@ -1043,8 +1037,7 @@ c      write(800+mype,*) rsi
 c      write(900+mype,*) focean
 
 
-      deallocate(aPtmp,aheff,aarea,iPtmp,iRSI,iMSI,iFOCEAN,
-     &     iDMUA,iDMVA)
+      deallocate(aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA)
 
       RETURN
       END SUBROUTINE DYNSI
@@ -1761,14 +1754,15 @@ c***  both latlon with equal resolution
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
 !@auth Gavin Schmidt
-      USE MODEL_COM, only : im,jm,dtsrc,foceanA=>focean
+      USE MODEL_COM, only : im,jm,dtsrc,afocean=>focean
       USE DIAG_COM, only : ia_src
-      USE DOMAIN_DECOMP_1D, only : GET
+      USE DOMAIN_DECOMP_1D, only : GET,ICE_HALO=>HALO_UPDATE
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE ICEDYN_COM
-      USE ICEDYN, only : focean,osurf_tilt,bydts,usi,vsi,uice,vice
-      USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,GEOMICDYN,IMICDYN,
-     &     JMICDYN
+      USE ICEDYN, only : ifocean=>focean,
+     &     osurf_tilt,bydts,usi,vsi,uice,vice
+      USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
+     &     GEOMICDYN,ICDYN_MASKS
 #ifdef CUBE_GRID
       USE ICEDYN, only : CS2ICEint,lon,lat
       USE cs2ll_utils, only : init_cs2llint_type
@@ -1781,20 +1775,22 @@ c***  both latlon with equal resolution
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
       real*8, allocatable :: uictmp(:,:),victmp(:,:)
-      real*8, allocatable :: lon_ll(:),lat_ll(:)
-      real*8 :: dlat_dg,dlon_dg,fjeq
-C**** setup ice dynamics grid
-C**** Currently using ATM grid:
-C**** -------------------------
-C**** If a different grid (but still lat/lon) is required, edit
-C**** definition of focean here and the definition of imic,jmic in
-C**** ICEDYN.f, and obviously the code in DYNSI.
-C**** -------------------------
-C**** Set land masks for ice dynamics
-      focean(:,:)=foceanA(:,:)         ! EDIT FOR GRID CHANGE
 
-C**** Set up ice momentum grid geometry
+C**** First, set up the ice dynamics lat-lon grid.
+C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
+
+C**** Calculate spherical geometry
       call GEOMICDYN()
+
+#ifdef CUBE_GRID
+c**** set up CS2ICEint, a data structure for CS to latlon interpolation
+      call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,CS2ICEint)
+#endif
+
+C**** Derive the ice dynamics land mask from that seen by the atmosphere
+      call INT_AtmA2IceA_XY(aFocean,iFocean)
+      call ICE_HALO(grid_ICDYN, iFOCEAN)
+      call ICDYN_MASKS()
 
       bydts = 1./dtsrc
 
@@ -1827,11 +1823,6 @@ C**** Initialise ice dynamics if ocean model needs initialising
 
 C**** set uisurf,visurf for atmospheric drag calculations
       call get_uisurf(uictmp,victmp,uisurf,visurf)
-
-#ifdef CUBE_GRID
-c**** set up CS2ICEint, a data structure for CS to latlon interpolation
-      call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,CS2ICEint)
-#endif
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij

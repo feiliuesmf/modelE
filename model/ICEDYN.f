@@ -913,12 +913,11 @@ C NOW THE SECOND HALF
 
 
       Subroutine GEOMICDYN
-      use DOMAIN_DECOMP_1D, only : DIST_GRID,GET,NORTH,SOUTH
-      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
+      use DOMAIN_DECOMP_1D, only : GET
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
       IMPLICIT NONE
-      INTEGER :: I_0H, I_1H, J_1H, J_0H, J_0,J_1,J_0S,J_1S
-      INTEGER :: IER,I,J,K
+      INTEGER :: J_0,J_1,J_0S,J_1S
+      INTEGER :: I,J!,K
       REAL*8 :: LAT1,COSP1,DXP1
       REAL*8 :: phit,phiu,fjeq,acor,acoru
       REAL*8 :: SINV,SINVm1
@@ -927,9 +926,8 @@ C****
 C**** Extract useful local domain parameters from ice dynamics grid
 C****
       CALL GET(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
-     &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,
-     &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
-     &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
+     &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S)
+
 C**** 
 C**** calculate grid and initialise arrays
 C****
@@ -1026,71 +1024,6 @@ C**** (can't use 'have_north_pole', needs adjacent boxes too!)
       csu(1) =csu(2)
       bycsu(1) = 1./csu(1)
 
-C**** sin/cos ice-ocean turning angle
-      SINWAT=SIN(OIPHI)
-      COSWAT=COS(OIPHI)
-
-C**** Set land masks for tracer and velocity points
-       do j=j_0,j_1
-        do i=2,nx1-1
-          heffm(i,j)=nint(focean(i-1,j))
-        enddo
-        heffm(1,j)=heffm(nx1-1,j)
-        heffm(nx1,j)=heffm(2,j)
-      enddo
-C**** define velocity points (including exterior corners)
-      CALL HALO_UPDATE(grid_ICDYN, HEFFM, FROM=NORTH)
-      do j=j_0,j_1s
-        do i=1,nx1-1
-c          sumk=heffm(i,j)+heffm(i+1,j)+heffm(i,j+1)+heffm(i+1,j+1)
-c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
-          uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
-     *         heffm(i+1,j+1)))
-        end do
-      end do
-C**** reset tracer points to surround velocity points (except for single
-      CALL HALO_UPDATE(grid_ICDYN, UVM, FROM=SOUTH)
-      do j=j_0s,j_1s
-        do i=2,nx1-1
-          k = nint(max (uvm(i,j), uvm(i-1,j), uvm(i,j-1), uvm(i-1,j-1)))
-c         sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
-c set to k except if an island
-c         if (.not. (sumk.eq.4.and.focean(i-1,j).eq.0) ) then
-            heffm(i,j) = k
-c         end if
-        enddo
-      enddo
-C**** final sweep to reinstate islands
-c      do j=j_0s,j_1s
-c        do i=2,nx1-1
-c          sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
-c          if (sumk.eq.4.and.heffm(i,j).eq.0.) then
-c            uvm(i,j)=0 ; uvm(i+1,j)=0 ; uvm(i,j+1)=0 ; uvm(i+1,j+1)=0
-c          end if
-c        enddo
-c      enddo
-c set lateral boundary conditions
-       do j=j_0,j_1
-        heffm(1,j)   = heffm(nx1-1,j)
-        heffm(nx1,j) = heffm(2,j)
-      enddo
-
-C**** Update halo of PHI for distributed memory implementation
-      CALL HALO_UPDATE(grid_ICDYN, HEFFM, FROM=NORTH)
-      do j=j_0,j_1s
-        do i=1,nx1-1
-          uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
-     *         heffm(i+1,j+1)))
-        end do
-      end do
-
-c set cyclic conditions on eastern and western boundary
-       do j=j_0,j_1S
-        uvm(1,j) = uvm(nx1-1,j)
-        uvm(nx1,j) = uvm(2,j)
-      enddo
-
-      
 c**** Geometry inherited from lat-lon B-grid (geomb)
 C**** latitudinal spacing depends on whether you have even spacing or
 C**** a partial box at the pole
@@ -1187,7 +1120,84 @@ C**** LONGITUDES (degrees) for diagnostics
       lon(:) = lon_dg(:,1)*radian
 
       end subroutine GEOMICDYN
-c*
+
+      Subroutine ICDYN_MASKS
+      use DOMAIN_DECOMP_1D, only : GET,NORTH,SOUTH,HALO_UPDATE
+      IMPLICIT NONE
+      INTEGER :: J_0,J_1,J_0S,J_1S
+      INTEGER :: I,J,K
+
+C****
+C**** Extract useful local domain parameters from ice dynamics grid
+C****
+      CALL GET(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
+     &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+
+C**** sin/cos ice-ocean turning angle
+      SINWAT=SIN(OIPHI)
+      COSWAT=COS(OIPHI)
+
+C**** Set land masks for tracer and velocity points
+       do j=j_0,j_1
+        do i=2,nx1-1
+          heffm(i,j)=nint(focean(i-1,j))
+        enddo
+        heffm(1,j)=heffm(nx1-1,j)
+        heffm(nx1,j)=heffm(2,j)
+      enddo
+C**** define velocity points (including exterior corners)
+      CALL HALO_UPDATE(grid_ICDYN, HEFFM, FROM=NORTH)
+      do j=j_0,j_1s
+        do i=1,nx1-1
+c          sumk=heffm(i,j)+heffm(i+1,j)+heffm(i,j+1)+heffm(i+1,j+1)
+c          if (sumk.ge.3) uvm(i,j)=1  ! includes exterior corners
+          uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
+     *         heffm(i+1,j+1)))
+        end do
+      end do
+C**** reset tracer points to surround velocity points (except for single
+      CALL HALO_UPDATE(grid_ICDYN, UVM, FROM=SOUTH)
+      do j=j_0s,j_1s
+        do i=2,nx1-1
+          k = nint(max (uvm(i,j), uvm(i-1,j), uvm(i,j-1), uvm(i-1,j-1)))
+c         sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
+c set to k except if an island
+c         if (.not. (sumk.eq.4.and.focean(i-1,j).eq.0) ) then
+            heffm(i,j) = k
+c         end if
+        enddo
+      enddo
+C**** final sweep to reinstate islands
+c      do j=j_0s,j_1s
+c        do i=2,nx1-1
+c          sumk = nint(uvm(i,j)+uvm(i+1,j)+uvm(i,j+1)+uvm(i+1,j+1))
+c          if (sumk.eq.4.and.heffm(i,j).eq.0.) then
+c            uvm(i,j)=0 ; uvm(i+1,j)=0 ; uvm(i,j+1)=0 ; uvm(i+1,j+1)=0
+c          end if
+c        enddo
+c      enddo
+c set lateral boundary conditions
+       do j=j_0,j_1
+        heffm(1,j)   = heffm(nx1-1,j)
+        heffm(nx1,j) = heffm(2,j)
+      enddo
+
+C**** Update halo of PHI for distributed memory implementation
+      CALL HALO_UPDATE(grid_ICDYN, HEFFM, FROM=NORTH)
+      do j=j_0,j_1s
+        do i=1,nx1-1
+          uvm(i,j) = nint(min(heffm(i,j), heffm(i+1,j), heffm(i,j+1),
+     *         heffm(i+1,j+1)))
+        end do
+      end do
+
+c set cyclic conditions on eastern and western boundary
+       do j=j_0,j_1S
+        uvm(1,j) = uvm(nx1-1,j)
+        uvm(nx1,j) = uvm(2,j)
+      enddo
+
+      end subroutine ICDYN_MASKS
 
       END MODULE ICEDYN
 
