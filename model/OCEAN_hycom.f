@@ -9,7 +9,7 @@
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_ocean
-      USE FLUXES, only : TRGASEX !,GTRACER
+      USE FLUXES, only : TRGASEX 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : atrac
 #endif
@@ -211,7 +211,7 @@ c
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
       integer i,j,k
 !@var TRNHEADER Character string label for individual records
-      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIO"
+      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOh"
 #endif
 #ifdef TRACERS_OceanBiology
       real, allocatable :: avgq_glob(:,:,:),tirrq3d_glob(:,:,:),
@@ -322,6 +322,7 @@ css#endif
       i=itest
       j=jtest
       print*,'test point at:',itest,jtest
+
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -618,7 +619,7 @@ C     nothing to gather - ocean prescribed
       USE HYCOM_ATM, only : alloc_hycom_atm
 
 #ifdef TRACERS_GASEXCH_ocean
-      USE TRACER_GASEXCH_COM, only: alloc_tracer_gasexch_com
+      USE TRACER_GASEXCH_COM, only: alloc_gasexch_com
 #endif
 
 #ifdef TRACERS_OceanBiology
@@ -647,7 +648,7 @@ C     nothing to gather - ocean prescribed
       call alloc_kprf_arrays_local
 
 #ifdef TRACERS_GASEXCH_ocean
-      call alloc_tracer_gasexch_com
+      call alloc_gasexch_com
 #endif
 #ifdef TRACERS_OceanBiology
       call alloc_obio_forc

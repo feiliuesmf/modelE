@@ -7473,7 +7473,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
       USE FLUXES, only : gtracer
+#ifdef OBIO_ON_GARYocean
       Use AFLUXES, Only: aTRAC
+#else
+      USE TRACER_GASEXCH_COM, only : atrac
+#endif
       USE MODEL_COM, only : nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2

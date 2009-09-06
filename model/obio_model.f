@@ -852,8 +852,10 @@ cdiag  endif
        pCO2(i,j)=pCO2_ij
 
 #ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
+#ifndef TRACERS_GASEXCH_ocean_CO2    
        !get ao_co2flux_glob array to save in archive
        ao_co2flux_loc(i,j)=ao_co2flux
+#endif
 #endif
 
 !diagnostics

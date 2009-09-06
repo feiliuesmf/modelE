@@ -903,7 +903,7 @@ C****
      .          * trgrnd(nx)
      .          * 1.0d6/vol2mass(nx) )
      .   * ptype
-     .   * axyp(i,j) * dtsurf   !units kg,co2 ???
+     .   * axyp(i,j) * dtsurf   
 
       if(i.eq.1 .and. j.eq.45) then
        write(*,'(a,3i5,11e12.4)')'SURFACE, trgasex:',

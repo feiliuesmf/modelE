@@ -92,14 +92,12 @@ c
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
 !     . ,gmelt,egmelt,solar,gtempr,erunpsi
 #ifdef TRACERS_GASEXCH_ocean
-      !USE FLUXES, only : TRGASEX !,GTRACER
-
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
-
       USE TRACER_GASEXCH_COM, only : atracflx,atrac,
-     &     tracflx=>tracflx_glob, scatter_tracer_gasexch_com_arrays
+     &     tracflx=>tracflx_glob, scatter_gasexch_com_arrays
 ! tracflx needs local , 
 ! scatter after call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) 
+      USE TRACER_COM, only : vol2mass
 #endif
 
       !USE SEAICE_COM, only : rsi,msi
@@ -115,12 +113,8 @@ c
      &     ,scatter_obio_forc_arrays
 
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
-! need global pCO2
      .    ,tracav,pCO2av,ao_co2flux_glob
      .    ,ao_co2fluxav,diag_counter,plevav 
-
-      !USE PBLCOM, only : wsavg 
-      !USE RAD_COM,   only: COSZ1
 #endif 
 #ifdef OBIO_RAD_coupling
       !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
@@ -188,7 +182,6 @@ c
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_ocean
      . ,otrac(idm,jdm,ntm)
-!     . ,otrac_loc(idm,J_0H:J_1H,ntm)
 #endif
 
 #include "state_eqn.h"
@@ -289,14 +282,13 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
               atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
      .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
      .             * dtsrc/(real(nhr)*3600.)
-            write(*,'(a,3i5,2e12.4)')'hycom, atracflx: ',
-     .      nstep,ia,ja,TRGASEX_loc(nt,1,ia,ja),atracflx_loc(ia,ja,nt)
+                 write(*,'(a,3i5,2e12.4)')'hycom, atracflx: ',
+     .           nstep,ia,ja,TRGASEX_loc(nt,1,ia,ja),
+     .                       atracflx_loc(ia,ja,nt)
 
-!       if (ia.eq.iatest.and.ja.eq.jatest) 
-!       if (nstep.eq.25)
-            write(521,'(a,3i5,e12.4)')'hycom, gtrac: ',
-     .      nstep,ia,ja, GTRACER(nt,1,ia,ja)
-
+            if (ia.eq.iatest.and.ja.eq.jatest) 
+     .           write(*,'(a,3i5,e12.4)')'hycom, gtrac: ',
+     .           nstep,ia,ja, GTRACER(nt,1,ia,ja)
             enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -308,7 +300,7 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
 #ifdef OBIO_RAD_coupling
             avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
      .           +FSRDIR_loc(ia,ja)*SRVISSURF_loc(ia,ja)
-     &           *dtsrc/(3600.*real(nhr)) !
+     .           *dtsrc/(3600.*real(nhr)) !
             avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
      .           +FSRDIF_loc(ia,ja)*dtsrc/(3600.*real(nhr)) !
             anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
@@ -346,12 +338,6 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
       call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
-      enddo
-      do j=1,jdm
-      do i=1,idm
-      write(*,'(a,3i5,2e12.4)')'hycom, tracflx: ',
-     .      nstep,i,j,tracflx(i,j,nt)
-      enddo
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -462,6 +448,7 @@ c
       write (lp,'(a,i4,a,i4,a)') "ogcm exchange w. agcm every",nstepi,
      .   " steps, i.e.",nhr," hr"
       write (lp,*) "itest,jtest=",itest,jtest
+      write (lp,*) "lat,lon=",latij(itest,jtest,3),lonij(itest,jtest,3)
       endif ! AM_I_ROOT
 c
 c --- set up parameters defining the geographic environment
@@ -555,11 +542,6 @@ c
       hekman_loc(i,j)=ustar_loc(i,j)*(cekman*4.0)/                ! kpp
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
-#ifdef TRACERS_GASEXCH_ocean
-cddd      do nt=1,ntm
-cddd      otrac(i,j,nt)=0.
-cddd      enddo
-#endif
  202  continue
 c$OMP END PARALLEL DO
 #ifdef TRACERS_GASEXCH_ocean
@@ -652,7 +634,7 @@ cdiag  enddo
 cdiag  call obio_limits('bfre obio_model')
 c
 #ifdef TRACERS_GASEXCH_ocean
-        call scatter_tracer_gasexch_com_arrays
+        call scatter_gasexch_com_arrays
 #endif
         call scatter_obio_forc_arrays
         call obio_model(nn,mm)
@@ -1213,8 +1195,7 @@ c$OMP PARALLEL DO
         do l=1,isp(j)
           do i=ifp(j,l),ilp(j,l)
 
-      !here we define the tracer that participates in the
-      !gas exchange flux.
+      !define the tracer that participates in the gas exchange flux.
 #ifdef TRACERS_GASEXCH_ocean_CFC
             do nt=1,ntm
               otrac(i,j,nt)=otrac(i,j,nt)  !???? do we need to accumulate here?
@@ -1281,7 +1262,9 @@ css   call iceo2a(omlhc,mlhc)
       call veco2a(usf,vsf,uosurf,vosurf)
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
-      call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
+         call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
+            !change units ppmv (uatm) -> kg,CO2/kg,air
+            atrac(:,:,nt) =  aTRAC(:,:,NT) * vol2mass(nt)* 1.d-6
       enddo
 #endif
 #ifdef CHL_from_OBIO

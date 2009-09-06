@@ -3911,8 +3911,10 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
 #endif
 #ifdef TRACERS_GASEXCH_ocean
         !note that TRGASEX is positive down i.e. same sign as
+        !TRGASEX has units mol,co2/m2/s, so we need to convert to kg/m2
         !TRUNO, while TREVAPOR is positive up.
-        TRUNO(:) = oTRGASEX(:,1,I,J)  !  kg/m^2
+        TRUNO(:) = oTRGASEX(:,1,I,J)  !  mol,co2/m2/s
+!    .           * tr_mm(:) * dtsrc      !  kg/m^2
 #endif
 #endif
 
