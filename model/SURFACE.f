@@ -869,7 +869,7 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
-! because obio_carbon needs molCO2/m2/s:
+! because obio_carbon needs mol,CO2/m2/s:
 
           TRGASEX(n,ITYPE,I,J) =      !accumulate over itype
      .                         TRGASEX(n,ITYPE,I,J) +
@@ -1268,8 +1268,9 @@ C**** Save surface tracer concentration whether calculated or not
      *                               / 1024.5   !mol,CO2/m3/uatm
             taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
      *                            + TRGASEX(n,ITYPE,I,J)       !mol,CO2/m2/s
+     *                               / 1024.5 
      *                               * ptype
-     *                               * 3600.*24.*365.            !mol,CO2/m2/yr
+     *                               * 3600.*24.*365.          !mol,CO2/m2/yr
           endif
 #endif
 #ifdef TRACERS_WATER

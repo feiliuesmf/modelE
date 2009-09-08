@@ -228,7 +228,7 @@ C**** Gas Exchange Solubility coefficient
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Solubility'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Solubility'
         ijtc_power(n) = 0
-        units_tij(k,n) = unit_string(ijtc_power(n),'mol/m3/picoatm')
+        units_tij(k,n) = unit_string(ijtc_power(n),'mol/m3/uatm')
         scale_tij(k,n) = 10.**(-ijtc_power(n))/dtsrc
 C**** Gas Exchange Coefficient (piston velocity)
       k = k+1
