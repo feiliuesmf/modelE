@@ -46,6 +46,11 @@ C**** Needed for ADVSI (on ATM grid)
 !@+   On ice A grid for now
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
 
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+!@var FOA,BYFOA arrays for sea ice advection
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA
+#endif
+
 C**** Ice advection diagnostics
       INTEGER, PARAMETER :: KICIJ=12
 !@var IJ_xxx Names for ICIJ diagnostics
@@ -105,6 +110,9 @@ C**** Ice advection diagnostics
 #ifdef TRACERS_WATER
       USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM
 #endif
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      USE ICEDYN_COM, only : FOA,BYFOA
+#endif
       USE ICEDYN, only : grid_icdyn
       IMPLICIT NONE
 
@@ -158,6 +166,12 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 
       ALLOCATE( RSISAVE(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &     STAT = IER)
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
+#endif
+
       return
       END SUBROUTINE ALLOC_ICEDYN_COM
 
@@ -922,11 +936,12 @@ C**** UI2rho = | tau |
 
 #ifdef CUBE_GRID /* calculate stress magnitude before regrid */
       allocate(iUI2rho(1:IMICDYN,iJ_0H:iJ_1H))
-      do j=iJ_0S,iJ_1STG
+      do j=iJ_0S,iJ_1S
         do i=1,imicdyn
-          iUI2rho(i,j)= sqrt(dmu(i,j)**2 + dmv(i,j)**2) * bydts
+          iUI2rho(i,j)= sqrt(dmu(i+1,j)**2 + dmv(i+1,j)**2) * bydts
         enddo
       enddo
+      IF(grid_ICDYN%HAVE_NORTH_POLE) iUI2rho(:,jmicdyn)=0.
       call INT_IceB2AtmA(iUI2rho,UI2rho)
       deallocate(iUI2rho)
       do j=aJ_0,aJ_1
@@ -985,13 +1000,13 @@ c*** diagnostics
           IF (iFOCEAN(I,J).gt.0 .and. iFOCEAN(IP1,J).gt.0. .and.
      *         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) THEN
             ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(iRSI(I,J)+iRSI(IP1,J))
-     *           *USIDT(i,j)/DTS
+     *           *0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))
             ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
           END IF
           IF (iFOCEAN(I,J+1).gt.0 .and. iFOCEAN(I,J).gt.0. .and.
      *         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) THEN
             ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(iRSI(I,J)+iRSI(I,J+1))
-     *           *VSIDT(i,j)/DTS
+     *           *0.5*(vice(i,j,1)+vice(i+1,j,1))
             ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
           END IF
           ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ iRSI(I,J)*press(i+1,j)
@@ -1737,14 +1752,14 @@ c***  both latlon with equal resolution
       call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
      &     iAb,aA_glob,IMICDYN,JMICDYN)
 
-      if (am_i_root()) then
-      open(900,FILE="iB2aA",FORM='unformatted',
-     &        STATUS='unknown')
-      title="test"
-      a4_glob=aA_glob
-      write(900) title,a4_glob
-      close(900)
-      endif
+c      if (am_i_root()) then
+c      open(900,FILE="iB2aA",FORM='unformatted',
+c     &        STATUS='unknown')
+c      title="test"
+c      a4_glob=aA_glob
+c      write(900) title,a4_glob
+c      close(900)
+c      endif
 
       call ATM_UNPACK(agrid,aA_glob,aAa)
       deallocate(aA_glob,a4_glob)
@@ -1757,7 +1772,7 @@ c***  both latlon with equal resolution
       USE MODEL_COM, only : im,jm,dtsrc,afocean=>focean
       USE DIAG_COM, only : ia_src
       USE DOMAIN_DECOMP_1D, only : GET,ICE_HALO=>HALO_UPDATE
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_HALO=>HALO_UPDATE
       USE ICEDYN_COM
       USE ICEDYN, only : ifocean=>focean,
      &     osurf_tilt,bydts,usi,vsi,uice,vice
@@ -1769,7 +1784,7 @@ c***  both latlon with equal resolution
 #endif
       USE FLUXES, only : uisurf,visurf
       USE PARAM
-
+      USE GEOM, only : AXYP,BYAXYP
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
@@ -1823,6 +1838,23 @@ C**** Initialise ice dynamics if ocean model needs initialising
 
 C**** set uisurf,visurf for atmospheric drag calculations
       call get_uisurf(uictmp,victmp,uisurf,visurf)
+
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+C**** precompute some arrays for ice advection on the atm grid
+      do j=agrid%j_strt,agrid%j_stop
+        do i=agrid%i_strt,agrid%i_stop
+          FOA(I,J)=AXYP(I,J)*aFOCEAN(I,J)
+          IF(aFOCEAN(I,J).gt.0) THEN
+            BYFOA(I,J)=BYAXYP(I,J)/aFOCEAN(I,J)
+          ELSE
+            BYFOA(I,J)=0.
+          END IF
+        enddo
+      enddo
+      call ATM_HALO(agrid, FOA)
+      call ATM_HALO(agrid, BYFOA)
+#endif
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij

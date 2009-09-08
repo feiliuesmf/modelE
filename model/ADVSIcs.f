@@ -1,12 +1,6 @@
 #include "rundeck_opts.h"
 
-      module icedyn_com_dummy
-c dummy module just to test compilation
-      implicit none
-      real*8, dimension(:,:), allocatable :: rsix,rsiy,rsisave
-      end module icedyn_com_dummy
-
-      SUBROUTINE ADVSIcs ! change name to test compilation
+      SUBROUTINE ADVSI
 !@sum  ADVSI advects sea ice
 !@+    Currently set up to advect ice on AGCM grid (i.e. usidt/vsidt are
 !@+    on the AGCM grid, and RSI/MSI/HSI etc. are unchanged)
@@ -21,7 +15,7 @@ c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       USE DOMAIN_DECOMP_ATM, only : grid, GET, HALO_UPDATE
       USE GEOM, only : axyp,byaxyp,
      &     dlxsina,dlysina, ull2ucs,vll2ucs, ull2vcs,vll2vcs
-      USE ICEDYN_COM_dummy, only : rsix,rsiy,rsisave
+      USE ICEDYN_COM, only : rsix,rsiy,rsisave,foa,byfoa
 c     &     ,icij,ij_musi,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
 c#ifdef TRACERS_WATER
 c     *     ,ticij,ticij_tusi,ticij_tvsi
@@ -32,7 +26,7 @@ c      USE ICEDYN, only : grid_MIC ! needed for latlon usi,vsi?
 #ifdef TRACERS_WATER
      *     ,trsi,ntm
 #endif
-      USE FLUXES, only : gtemp,apress,msicnv,fwsim
+      USE FLUXES, only : gtemp,apress,msicnv,fwsim,uisurf,visurf
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
@@ -72,11 +66,9 @@ C****
 
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     FOA,BYFOA, USIDT_ll,VSIDT_ll, UDYDT,VDXDT,aUA,aVA
+     &     USIDT_ll,VSIDT_ll, UDYDT,VDXDT
 
       INTEGER I_0,I_1,J_0,J_1, I_0Y,I_1Y
-
-      call stop_model('testing',255)
 
 C**** Get grid parameters
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1, J_STRT=J_0, J_STOP=J_1)
@@ -106,13 +98,6 @@ C**** Reduce ice concentration gradients if ice amounts decreased
         END IF
 C**** update RSISAVE for diagnostics
         RSISAVE(I,J)=RSI(I,J)
-C**** define area arrays
-        FOA(I,J)=AXYP(I,J)*FOCEAN(I,J)
-        IF(FOCEAN(I,J).gt.0) THEN
-          BYFOA(I,J)=BYAXYP(I,J)/FOCEAN(I,J)
-        ELSE
-          BYFOA(I,J)=0.
-        END IF
 C**** set up local MHS array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:2+LMI) = HEAT, MHS(3+LMI:2+2*LMI)=SALT
 C**** Currently this is on atmospheric grid
@@ -149,10 +134,10 @@ C****
 C**** Interpolate to obtain latlon-oriented ice velocities at
 C**** cell centers (A grid).  
 C****
-      call Int_IceB2AtmA(UICE,aUA)
-      call Int_IceB2AtmA(VICE,aVA)
-      usidt_ll=aUa*dts
-      vsidt_ll=aVa*dts
+c      call Int_IceB2AtmA(UICE,aUA)
+c      call Int_IceB2AtmA(VICE,aVA)
+      usidt_ll=uisurf*dts
+      vsidt_ll=visurf*dts
 
 C****
 C**** A-to-C velocity average and transformation to CS orientation.
@@ -177,15 +162,19 @@ C****
       enddo
       enddo
 
+c for now, no transport across cube edges
+      if(i_0 .eq.  1) udydt(0 ,:) = 0.
+      if(i_1 .eq. im) udydt(im,:) = 0.
+      if(j_0 .eq.  1) vdxdt(:, 0) = 0.
+      if(j_1 .eq. im) vdxdt(:,im) = 0.
+
 C****
 C**** Update halos of transported quantities
 C****
-      CALL HALO_UPDATE(grid, FOCEAN) ! not needed every time.
       CALL HALO_UPDATE(grid, RSI)
       CALL HALO_UPDATE(grid, RSIX)
       CALL HALO_UPDATE(grid, RSIY)
       CALL HALO_UPDATE(grid, MHS, jdim=3)
-
 
 C****
 C**** Transport in the Y direction
@@ -304,6 +293,17 @@ c**** sea ice crunches into itself and completely covers grid box
         fysi_jm1(i) = fysi(i)
         fmsi_jm1(1:ntrice,i) = fmsi(1:ntrice,i)
 
+C**** Limit RSIX and RSIY so that sea ice is positive at the edges.
+        rsi(i,j) = max(0d0,rsi(i,j))
+        if(rsi(i,j)-rsix(i,j).lt.0.)  rsix(i,j) =    rsi(i,j)
+        if(rsi(i,j)+rsix(i,j).lt.0.)  rsix(i,j) =   -rsi(i,j)
+        if(rsi(i,j)-rsix(i,j).gt.1d0) rsix(i,j) =    rsi(i,j)-1d0
+        if(rsi(i,j)+rsix(i,j).gt.1d0) rsix(i,j) =1d0-rsi(i,j)
+        if(rsi(i,j)-rsiy(i,j).lt.0.)  rsiy(i,j) =    rsi(i,j)
+        if(rsi(i,j)+rsiy(i,j).lt.0.)  rsiy(i,j) =   -rsi(i,j)
+        if(rsi(i,j)-rsiy(i,j).gt.1d0) rsiy(i,j) =    rsi(i,j)-1d0
+        if(rsi(i,j)+rsiy(i,j).gt.1d0) rsiy(i,j) =1d0-rsi(i,j)
+
       enddo ! i
       enddo ! j
 
@@ -317,7 +317,6 @@ C****
       faw(i) = udydt(i,j)  ! should compute udydt here
       if(faw(i).le.0.) then
 c**** sea ice velocity is westward at grid box edge
-c put limit on rsix here.
         cour = faw(i)*byaxyp(i+1,j)
         fao = faw(i)*focean(i+1,j)
         fasi(i)=fao*(rsi(i+1,j)-(1d0+cour)*rsix(i+1,j))
@@ -326,7 +325,6 @@ c put limit on rsix here.
         fmsi(1:ntrice,i) = fasi(i)*mhs(1:ntrice,i+1,j)
       else
 c**** sea ice velocity is eastward at grid box edge
-c put limit on rsix here.
         cour = faw(i)*byaxyp(i,j)
         fao = faw(i)*focean(i,j)
         fasi(i)=fao*(rsi(i,j)+(1d0-cour)*rsix(i,j))
@@ -348,7 +346,6 @@ c _im1 qtys are already zero. no need to re-zero.
         faw(i) = udydt(i,j) ! should compute udydt here
         if(faw(i).le.0.) then
 c**** sea ice velocity is westward at grid box edge
-c put limit on rsix here.
           cour = faw(i)*byaxyp(i+1,j)
           fao = faw(i)*focean(i+1,j)
           fasi(i)=fao*(rsi(i+1,j)-(1d0+cour)*rsix(i+1,j))
@@ -357,7 +354,6 @@ c put limit on rsix here.
           fmsi(1:ntrice,i) = fasi(i)*mhs(1:ntrice,i+1,j)
         else
 c**** sea ice velocity is eastward at grid box edge
-c put limit on rsix here.
           cour = faw(i)*byaxyp(i,j)
           fao = faw(i)*focean(i,j)
           fasi(i)=fao*(rsi(i,j)+(1d0-cour)*rsix(i,j))
@@ -523,4 +519,4 @@ C**** reset sea ice concentration
       END IF
 C****
       RETURN
-      END SUBROUTINE ADVSIcs
+      END SUBROUTINE ADVSI

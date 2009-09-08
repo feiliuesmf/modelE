@@ -931,17 +931,26 @@ C****
 C**** 
 C**** calculate grid and initialise arrays
 C****
+
+c**** Geometry inherited from lat-lon B-grid (geomb)
+C**** latitudinal spacing depends on whether you have even spacing or
+C**** a partial box at the pole
+      DLON_DG=360./REAL(IMICDYN)
+      DLAT_DG=180./REAL(JMICDYN-1)   ! 1/2 box at pole (default)
+      IF (JMICDYN.eq.90) DLAT_DG=2.  ! full box at pole for 2 deg res
+      IF (JMICDYN.eq.180) DLAT_DG=1. ! full box at pole for 1 deg res
+      IF (JMICDYN.eq.24) DLAT_DG=180./REAL(JMICDYN-1.5) ! 1/4 box at pole, 'real' 8x10
+      DLATM=60.*DLAT_DG
+      DLAT=DLAT_DG*radian
+
       acor=1.  ; acoru=1.
-      dlat=nint(180./(ny1-1))*radian ! 1/2 box at pole (default)
-! full box at pole for 2x2.5
-      if (ny1.eq.90) then   ! HARD-CODED DIMENSION
+! full box at pole for 2 and 1 deg res
+      if (ny1.eq.90 .or. ny1.eq.180) then   ! HARD-CODED DIMENSION
         acor=1.5d0 ; acoru=2.
-        dlat=nint(180./ny1)*radian
       end if
 ! 1/4 box at pole, 'real' 8x10
       if (ny1.eq.24) then   ! HARD-CODED DIMENSION
         acor=0.75d0 ; acoru=0.5d0
-        dlat=nint(180./(ny1-1.5))*radian
       end if
 
 c****
@@ -1024,15 +1033,6 @@ C**** (can't use 'have_north_pole', needs adjacent boxes too!)
       csu(1) =csu(2)
       bycsu(1) = 1./csu(1)
 
-c**** Geometry inherited from lat-lon B-grid (geomb)
-C**** latitudinal spacing depends on whether you have even spacing or
-C**** a partial box at the pole
-      DLON_DG=360./REAL(IMICDYN)
-      DLAT_DG=180./REAL(JMICDYN)                   ! even spacing (default)
-      IF (JMICDYN.eq.46) DLAT_DG=180./REAL(JMICDYN-1)   ! 1/2 box at pole for 4x5
-      IF (JMICDYN.eq.24) DLAT_DG=180./REAL(JMICDYN-1.5) ! 1/4 box at pole, 'real' 8x10
-      DLATM=60.*DLAT_DG
-      DLAT=DLAT_DG*radian
       LAT(1)  = -.25*TWOPI
       LAT(JMICDYN) = -LAT(1)
       LAT_DG(1,1:2)  = -90
