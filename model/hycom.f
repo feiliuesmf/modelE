@@ -401,14 +401,9 @@ c
         chk_rho=36.876506          ! fit range T:[-2:32],S:[16:38]
         chk_rho=36.876732          ! using Jackett and McDougall (1995)
 css     chk_rho=36.878687          ! using Wright (1997)
-c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=-.12961120/0.12493658
-c       chk_kap=0.12493658 
-c --- reference: t= 4.0, s=35.5, p=0, kap_t(5.5,35.5,1.e7,35)=-.03755066/0.03604936
-        chk_kap=0.03604936
+        chk_kap=0.03461997
       elseif (pref.eq.0.) then
         chk_rho=27.786223
-c --- reference: t= 1.0, s=34.5, p=0, kap_t(5.5,35.5,1.e7,35)=-.12961120
-        chk_kap=-.12961120
       else
         stop 'wrong pref'    ! proper mpi_abort
       endif
@@ -419,11 +414,11 @@ c
      . chk_rho,', not',sigocn(4.,35.)
         stop
       end if
-      if (abs(kappaf(5.5,35.5,1.e7,35.,2.)-chk_kap).gt.1.e-4) then
+      if (abs(kappaf(3.,35.,1.e7,35.,2.5)-chk_kap).gt.1.e-4) then
       if (AM_I_ROOT())
-     &  write (lp,'(/a,2(a,f14.8))')'error: kappa(5.5,35.5,10^7,35.,2)',
-     .  '  should be',chk_kap,', not',kappaf(5.5,35.5,1.e7,35.,2.)
-c     stop
+     &  write (lp,'(/a,2(a,f14.8))')'error: kappa(3,35,10^7,35,2.5)',
+     .  '  should be',chk_kap,', not',kappaf(3.,35.,1.e7,35.,2.5)
+      stop
       end if
 c
       if (AM_I_ROOT())

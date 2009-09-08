@@ -167,7 +167,8 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       kappa1=sclkap * (tdif*(qt(loc1)+tdif*(qtt(loc1)
      .  +tdif*qttt(loc1))+.5*(prs+pref)*(qpt(loc1)
      .  +sdif*qpst(loc1)+tdif*qptt(loc1)))
-     .  +sdif*(qs(loc1)+tdif*qst(loc1)))*(prs-pref)/thref
+     .  +sdif*(qs(loc1)+tdif*qst(loc1)))*(prs-pref)
+      kappa1=(1./thref+th)*(exp(kappa1)-1.)
 c
       loc2=min(4,loc1+1)
       sdif=max(30.,min(38.,s))-refsal(loc2)
@@ -175,7 +176,8 @@ c
       kappa2=sclkap * (tdif*(qt(loc2)+tdif*(qtt(loc2)
      .  +tdif*qttt(loc2))+.5*(prs+pref)*(qpt(loc2)
      .  +sdif*qpst(loc2)+tdif*qptt(loc2)))
-     .  +sdif*(qs(loc2)+tdif*qst(loc2)))*(prs-pref)/thref
+     .  +sdif*(qs(loc2)+tdif*qst(loc2)))*(prs-pref)
+      kappa2=(1./thref+th)*(exp(kappa2)-1.)
 c
       kappaf=kappa1+(kappa2-kappa1)*(profil-float(loc1))
 c
