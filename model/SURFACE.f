@@ -306,9 +306,6 @@ C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
          trsrfflx = 0. ; trcsurf = 0.
-#ifdef TRACERS_GASEXCH_ocean
-         trgasex(:,:,:,:) = 0.
-#endif
 #endif
 
       call loadbl
