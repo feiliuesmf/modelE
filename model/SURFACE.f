@@ -874,17 +874,17 @@ C****
 ! Its sign is positive for flux entering the ocean (positive down)
 ! because obio_carbon needs molCO2/m2/s:
 
-          TRGASEX(n,ITYPE,I,J) =      !accumulate
+          TRGASEX(n,ITYPE,I,J) =      !accumulate over itype
      .                         TRGASEX(n,ITYPE,I,J) +
      .    (   pbl_args%Kw_gas * pbl_args%beta_gas 
      .            * trs(nx) * 1.d6/ vol2mass(nx)
      .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
      .            * trgrnd(nx)
      .            * 1.0d6/vol2mass(nx) )
-     .   * ptype       !units mol,co2/m2/s
+     .   * dtsurf/dtsrc      !in order to accumulate properly over time
+     .   * ptype             !units mol,co2/m2/s
 
 ! trsrfflx is positive up 
-! Units are (m/s)(kg,CO2/kg,air) 
 ! units are kg,CO2/s
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
      .   -(   pbl_args%Kw_gas * pbl_args%beta_gas 
@@ -896,6 +896,7 @@ C****
      .   * ptype
      .   * axyp(i,j)           !units kg,co2/s
 
+!units are kg,co2
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .   -(   pbl_args%Kw_gas * pbl_args%beta_gas 
      .          * trs(nx) * 1.d6 / vol2mass(nx)

@@ -106,31 +106,21 @@
 !------------------------------------------------------------------------------
       subroutine init_gasexch_co2
 
+!ONLY FOR HYCOM
 !this routine is called from inside OCEAN_hycom.f and only from ROOT 
 !therefore arrays here have to be global
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only   : idm=>imo,jdm=>jmo
-      USE OCEANR_DIM, only : ogrid
-      USE MODEL_COM,  only : nstep=>itime,focean, iia=>im,jja=>jm
-      USE FLUXES, only: GTRACER
-#else
       USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
       USE HYCOM_DIM, only : ogrid
-      USE hycom_atm, only : GTRACER, focean
+      USE hycom_atm, only : gtracer => gtracer_glob,focean
       USE HYCOM_SCALARS, only : nstep
-#endif
 
       USE PARAM, only: get_param
 
 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
 
-#ifdef OBIO_ON_GARYocean
-      USE AFLUXES, only : atrac
-#else
       USE TRACER_GASEXCH_COM, only : atrac
-#endif
 
       USE obio_com, only : pCO2,pCO2_glob
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data
@@ -138,9 +128,6 @@
       implicit none
       integer nt,i,j
 
-      if (AM_I_ROOT()) then
-        allocate( pCO2_glob(idm,jdm))
-      endif
       call pack_data(ogrid, pCO2, pCO2_glob)
 
       if (AM_I_ROOT()) then
@@ -158,9 +145,6 @@
       endif ! i am root
 
       call unpack_data(ogrid, pCO2_glob, pCO2)
-      if (AM_I_ROOT()) then
-        deallocate(pCO2_glob)
-      endif
 
 
       end subroutine init_gasexch_co2

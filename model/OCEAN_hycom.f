@@ -3,13 +3,9 @@
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
       USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
      &     asst,atempr,im,jm
-#ifdef TRACERS_GASEXCH_ocean
-     .    ,GTRACER
-#endif
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_ocean
-      USE FLUXES, only : TRGASEX 
       USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
       USE TRACER_GASEXCH_COM, only : atrac
 #endif

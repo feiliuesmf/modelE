@@ -263,7 +263,8 @@ c$OMP. SHARED(hour_of_day,day_of_month,JMON)
        do 1000 i=ifp(j,l),ilp(j,l)
 #endif
 
-cdiag  write(*,'(/,a,i5,2i4)')'obio_model, step,i,j=',nstep,i,j
+cdiag  write(*,'(a,3i5,2e12.4)')'obio_model, step,i,j=',nstep,i,j,
+cdiag.          lon_dg(i,1),lat_dg(j,1)
 
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.

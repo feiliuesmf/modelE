@@ -86,7 +86,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
      &                         haveLatitude, GLOBALSUM, ESMF_BCAST
-      USE HYCOM_ATM !, only : gather_atm, scatter_atm
+      USE HYCOM_ATM 
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
 !     . ,gtemp,sss,mlhc,ogeoza,uosurf,vosurf,MELTI,EMELTI,SMELTI
@@ -282,13 +282,10 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
               atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
      .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
      .             * dtsrc/(real(nhr)*3600.)
-                 write(*,'(a,3i5,2e12.4)')'hycom, atracflx: ',
-     .           nstep,ia,ja,TRGASEX_loc(nt,1,ia,ja),
-     .                       atracflx_loc(ia,ja,nt)
 
-            if (ia.eq.iatest.and.ja.eq.jatest) 
-     .           write(*,'(a,3i5,e12.4)')'hycom, gtrac: ',
-     .           nstep,ia,ja, GTRACER(nt,1,ia,ja)
+                 write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
+     .          itime,jhour,ia,ja,TRGASEX_loc(nt,1,ia,ja),
+     .                       atracflx_loc(ia,ja,nt)
             enddo
 #endif
 #ifdef TRACERS_OceanBiology
@@ -356,6 +353,9 @@ c
       endif ! AM_I_ROOT
 
       call scatter1_hycom_arrays
+#ifdef TRACERS_GASEXCH_ocean
+        call scatter_gasexch_com_arrays
+#endif
 c
       call system_clock(before)
       call system_clock(count_rate=rate)
@@ -449,7 +449,9 @@ c
      .   " steps, i.e.",nhr," hr"
       write (lp,*) "itest,jtest=",itest,jtest
       write (lp,*) "lat,lon=",latij(itest,jtest,3),lonij(itest,jtest,3)
+
       endif ! AM_I_ROOT
+
 c
 c --- set up parameters defining the geographic environment
 c
@@ -1292,11 +1294,7 @@ c$OMP PARALLEL DO PRIVATE(tf)
         gtempr(1,ia,ja)=atempr(ia,ja)
 #ifdef TRACERS_GASEXCH_ocean
         do nt=1,ntm
-        GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
-!       if (ia.eq.iatest.and.ja.eq.jatest)
-!       if (nstep.eq.25)
-            write(521,'(a,3i5,e12.4)')'hycom, atrac: ',
-     .      nstep,ia,ja,atrac(ia,ja,nt)
+           GTRACER_glob(nt,1,ia,ja)=atrac(ia,ja,nt)
         enddo
 #endif
         tf=tfrez(sss(ia,ja),0.)
@@ -1312,16 +1310,6 @@ c --- with respect to the ice/openwater flux ratio?
           dmsi(2,ia,ja)=dmsi(1,ia,ja)
           dssi(2,ia,ja)=dssi(1,ia,ja)
         endif
-#ifdef TRACERS_GASEXCH_ocean
-        do nt=1,ntm
-        GTRACER(nt,1,ia,ja)=atrac(ia,ja,nt)
-cddd        if (ia.eq.iatest.and.ja.eq.jatest)
-cddd!    .  write(6,'(a,3i5,e12.4)')
-cddd     .  write(6,*)
-cddd     .      'hycom, atrac at nstep,i,j=',
-cddd     .      nstep,iatest,jatest,atrac(iatest,jatest,nt)
-        enddo
-#endif
       endif
  204  continue
 c$OMP END PARALLEL DO
@@ -1406,7 +1394,7 @@ c------------------------------------------------------------------
 
       call pack_data( grid,  FOCEAN_loc, FOCEAN )
 #ifdef TRACERS_GASEXCH_ocean
-      call pack_block( grid,GTRACER_loc,GTRACER)
+      call pack_block( grid,GTRACER_loc,GTRACER_glob)
 #endif
 
 
@@ -1452,7 +1440,7 @@ c copy of UOSURF,VOSURF can be used.
        call unpack_column( grid,  DHSI, DHSI_loc )
        call unpack_column( grid,  DSSI, DSSI_loc )
 #ifdef TRACERS_GASEXCH_ocean
-      call unpack_block( grid,GTRACER,GTRACER_loc)
+      call unpack_block( grid,GTRACER_glob,GTRACER_loc)
 #endif
 
       end subroutine scatter2_atm

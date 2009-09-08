@@ -155,8 +155,8 @@
 
 #ifdef TRACERS_GASEXCH_ocean
       public atracflx_loc
-      public GTRACER, GTRACER_loc
-      public TRGASEX, TRGASEX_loc
+      public GTRACER_glob, GTRACER_loc
+      public TRGASEX_loc
 #endif
 #ifdef TRACERS_OceanBiology
       public asolz_loc
@@ -235,8 +235,7 @@
 
 #ifdef TRACERS_GASEXCH_ocean
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
-      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTRACER
-      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: TRGASEX
+      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: GTRACER_glob
 #endif
 #ifdef TRACERS_OceanBiology
       real, ALLOCATABLE, DIMENSION(:,:)    :: asolz
@@ -311,9 +310,8 @@
 
 #ifdef TRACERS_GASEXCH_ocean
       ALLOCATE( atracflx_loc(iia,aJ_0H:aJ_1H,ntm) )
-      ALLOCATE( GTRACER ( NTM , NSTYPE , im , jm ) )
-      GTRACER = 0
-      ALLOCATE( TRGASEX(NTM , NSTYPE , im , jm ) )
+      ALLOCATE( GTRACER_glob ( NTM , NSTYPE , im , jm ) )
+      GTRACER_glob = 0
 #endif
 #ifdef TRACERS_OceanBiology
       ALLOCATE(asolz(iia,jja))
@@ -414,8 +412,7 @@ cddd      end subroutine alloc_locals
        call pack_column( grid,  DSSI_loc, DSSI )
 
 #ifdef TRACERS_GASEXCH_ocean
-      call pack_block( grid,GTRACER_loc,GTRACER)
-      call pack_block( grid,TRGASEX_loc,TRGASEX)
+      call pack_block( grid,GTRACER_loc,GTRACER_glob)
 #endif
 #ifdef TRACERS_OceanBiology
       call pack_data(  grid,wsavg_loc,wsavg)
@@ -474,7 +471,7 @@ cddd      end subroutine alloc_locals
        call unpack_column( grid,  DSSI, DSSI_loc )
 
 #ifdef TRACERS_GASEXCH_ocean
-      call unpack_block( grid,GTRACER,GTRACER_loc)
+      call unpack_block( grid,GTRACER_glob,GTRACER_loc)
 #endif
 
       end subroutine scatter_atm
