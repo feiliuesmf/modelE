@@ -104,11 +104,12 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
+#ifndef OBIO_ON_GARYocean         !ONLY FOR HYCOM
       subroutine init_gasexch_co2
 
-!ONLY FOR HYCOM
 !this routine is called from inside OCEAN_hycom.f and only from ROOT 
 !therefore arrays here have to be global
+
 
       USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
       USE HYCOM_DIM, only : ogrid
@@ -148,6 +149,7 @@
 
 
       end subroutine init_gasexch_co2
+#endif
 
 c ---------------------------------------------------------------------
 
