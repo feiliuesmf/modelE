@@ -136,7 +136,7 @@
 
 c documentation on these to be added when interfaces are finalized
       public :: xgridremap_type
-      public :: init_xgridremap_type,xgridremap_ij
+      public :: init_xgridremap_type,xgridremap_ij,xgridremap_lij
       type xgridremap_type
         type(redist_type) :: redist
         integer :: is,ie,js,je
