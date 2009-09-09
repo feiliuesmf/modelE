@@ -935,3 +935,316 @@ c      deallocate(ocnv_band,ones_band)
 cc fix up the north pole
       return
       END SUBROUTINE OG2IG_uvsurf
+
+
+
+!------------------------------------------------------------
+!!!! Unfinished code ! Unfinished code ! Unfinished code !
+
+!#define TEST_ARRAY_BUNDLE
+#ifdef TEST_ARRAY_BUNDLE
+
+      module bundle_arrays
+      implicit none
+      private
+
+      public lookup_str
+      public ba_init, ba_add, ba_bundle, ba_unbundle
+
+      interface ba_add
+         module procedure ba_add_2
+         module procedure ba_add_3
+      end interface
+
+      integer, parameter :: N_LOOKUP_MAX=256
+
+      type lookup_record
+        integer :: rank,km
+        real*8, pointer :: src2(:,:), dest2(:,:)
+        real*8, pointer :: src_w2(:,:), dest_w2(:,:)
+        real*8, pointer :: src3(:,:,:), dest3(:,:,:)
+        real*8, pointer :: src_w3(:,:,:), dest_w3(:,:,:)
+      end type lookup_record
+
+      type lookup_str
+        integer :: si_0, si_1, sj_0, sj_1  ! source bounds
+        integer :: di_0, di_1, dj_0, dj_1  ! destination bounds
+        integer  :: n_lookup=0
+        type (lookup_record) :: lr(N_LOOKUP_MAX)
+      end type lookup_str
+
+
+      contains
+
+      subroutine ba_init( lstr, si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 )
+      type (lookup_str) :: lstr
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      
+      lstr%si_0 = si_0
+      lstr%si_1 = si_1
+      lstr%sj_0 = sj_0
+      lstr%sj_1 = sj_1
+      lstr%di_0 = di_0
+      lstr%di_1 = di_1
+      lstr%dj_0 = dj_0
+      lstr%dj_1 = dj_1
+
+      lstr%n_lookup = 0
+      end subroutine ba_init
+
+
+      subroutine ba_add_2( lstr, src, dest, src_w, dest_w )
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:), target :: src, dest
+      real*8, dimension(:,:), target, optional :: src_w, dest_w
+
+      lstr%n_lookup = lstr%n_lookup + 1
+      if ( lstr%n_lookup > N_LOOKUP_MAX )
+     &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
+
+      lstr%lr(lstr%n_lookup)%src2 => src(:,:)
+      lstr%lr(lstr%n_lookup)%dest2 => dest(:,:)
+      lstr%lr(lstr%n_lookup)%rank = 2
+      lstr%lr(lstr%n_lookup)%km = 1
+
+      if ( present(src_w) .and. present(dest_w) ) then
+        lstr%lr(lstr%n_lookup)%src_w2 => src_w(:,:)
+        lstr%lr(lstr%n_lookup)%dest_w2 => dest_w(:,:)
+      else
+        nullify( lstr%lr(lstr%n_lookup)%src_w2 )
+        nullify( lstr%lr(lstr%n_lookup)%dest_w2 )
+      endif
+
+      end subroutine ba_add_2
+
+
+      subroutine ba_add_3( lstr, src, dest, src_w, dest_w )
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:,:), target :: src, dest
+      real*8, dimension(:,:,:), target, optional :: src_w, dest_w
+
+      lstr%n_lookup = lstr%n_lookup + 1
+      if ( lstr%n_lookup > N_LOOKUP_MAX )
+     &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
+
+      lstr%lr(lstr%n_lookup)%src3 => src(:,:,:)
+      lstr%lr(lstr%n_lookup)%dest3 => dest(:,:,:)
+      lstr%lr(lstr%n_lookup)%rank = 3
+      lstr%lr(lstr%n_lookup)%km = size(src,1)
+
+      if ( present(src_w) .and. present(dest_w) ) then
+        lstr%lr(lstr%n_lookup)%src_w3 => src_w(:,:,:)
+        lstr%lr(lstr%n_lookup)%dest_w3 => dest_w(:,:,:)
+      else
+        nullify( lstr%lr(lstr%n_lookup)%src_w3 )
+        nullify( lstr%lr(lstr%n_lookup)%dest_w3 )
+      endif
+
+      end subroutine ba_add_3
+
+
+      subroutine ba_bundle( lstr, buf_s, buf_d )
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
+
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      integer k, n
+
+      si_0 = lstr%si_0
+      si_1 = lstr%si_1
+      sj_0 = lstr%sj_0
+      sj_1 = lstr%sj_1
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      n = 1
+      do k=1,lstr%n_lookup
+        n = n+lstr%lr(k)%km
+      enddo
+
+      allocate( buf_s(n, si_0:si_1, sj_0:sj_1) )
+      allocate( buf_d(n, di_0:di_1, dj_0:dj_1) )
+
+      n = 1
+      do k=1,lstr%n_lookup
+        select case(lstr%lr(k)%rank)
+        case(2)
+          buf_s(n,:,:) = lstr%lr(k)%src2(:,:)
+          if ( associated(lstr%lr(k)%src_w2 ) )
+     &         buf_s(n,:,:) = buf_s(n,:,:) * lstr%lr(k)%src_w2(:,:)
+        case(3)
+          buf_s(n:n+lstr%lr(k)%km-1,:,:) = lstr%lr(k)%src3(:,:,:)
+          if ( associated(lstr%lr(k)%src_w3 ) )
+     &         buf_s(n:n+lstr%lr(k)%km-1,:,:) =
+     &         buf_s(n:n+lstr%lr(k)%km-1,:,:) * lstr%lr(k)%src_w3(:,:,:)
+        end select
+        n = n+lstr%lr(k)%km
+      enddo
+
+      end subroutine ba_bundle
+
+
+      subroutine ba_unbundle( lstr, buf_s, buf_d )
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
+
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      integer k, n
+
+      si_0 = lstr%si_0
+      si_1 = lstr%si_1
+      sj_0 = lstr%sj_0
+      sj_1 = lstr%sj_1
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      n = 1
+      do k=1,lstr%n_lookup
+        select case(lstr%lr(k)%rank)
+        case(2)
+          lstr%lr(k)%dest2(:,:) = buf_d(n,:,:)
+          if ( associated(lstr%lr(k)%dest_w2 ) )
+     &         lstr%lr(k)%dest2(:,:) =
+     &         lstr%lr(k)%dest2(:,:) / lstr%lr(k)%dest_w2(:,:)
+        case(3)
+          lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
+          if ( associated(lstr%lr(k)%dest_w3 ) )
+     &         lstr%lr(k)%dest3(:,:,:) =
+     &         lstr%lr(k)%dest3(:,:,:) * lstr%lr(k)%dest_w3(:,:,:)
+        end select
+        n = n+lstr%lr(k)%km
+      enddo
+
+      deallocate( buf_s )
+      deallocate( buf_d )     
+
+      end subroutine ba_unbundle
+
+
+
+      end module bundle_arrays
+
+
+      subroutine do_interpalation(lstr)
+      USE bundle_arrays
+
+      implicit none
+      type (lookup_str) :: lstr
+      real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:)
+
+      call ba_bundle( lstr, buf_s, buf_d )
+
+      !! do interpotation here from bundle buf_s(:,:,:)
+      !! to bundle buf_d(:,:,:)
+
+      call ba_unbundle( lstr, buf_s, buf_d )
+
+      end subroutine do_interpalation
+
+
+      SUBROUTINE AG2OG_precip_example
+
+!@sum  INT_AG2OG_precip is for interpolation of precipitation
+!!       arrays from atmospheric grid to the ocean grid
+!@auth Larissa Nazarenko
+!@ver  1.0
+
+      USE RESOLUTION, only : aIM=>im, aJM=>jm
+      USE OCEAN,      only : oIM=>im, oJM=>jm
+
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+
+      USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
+      Use GEOM,  only : AXYP
+
+      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
+
+      USE SEAICE_COM, only : aRSI=>RSI
+      USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC
+     *     , aRUNPSI=>RUNPSI, aSRUNPSI=>SRUNPSI, aERUNPSI=>ERUNPSI
+
+      USE OFLUXES, only : oRSI, oPREC, oEPREC
+     *     , oRUNPSI, oSRUNPSI, oERUNPSI
+
+      USE INT_AG2OG_MOD, only : INT_AG2OG
+      USE OCEANR_DIM, only : ogrid
+      USE bundle_arrays
+
+      IMPLICIT NONE
+
+      INTEGER N
+
+      REAL*8, allocatable :: aWEIGHT(:,:), oWEIGHT(:,:)
+      REAL*8, allocatable :: aWEIGHT1(:,:), oWEIGHT1(:,:)
+
+      character*80 :: name
+
+      type (lookup_str) :: lstr
+
+      allocate(aweight(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
+      allocate(oweight(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
+     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
+
+      !-- need to allocate separate array for different weights
+      allocate(aweight1(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
+      allocate(oweight1(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
+     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
+
+
+      !-- initializing "lstr"
+      call ba_init( lstr, aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
+     &     aGRID%J_STRT_HALO, aGRID%J_STOP_HALO,
+     &     oGRID%I_STRT_HALO, oGRID%I_STOP_HALO,
+     &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO )
+
+      aWEIGHT(:,:) = 1.- aRSI(:,:)  !!  open ocean fraction
+
+      !!CALL INT_AG2OG(aEPREC,oEPREC, aWEIGHT)
+      !-- example of edding an array with weights
+      call ba_add( lstr, aEPREC, oEPREC, aWEIGHT, oWEIGHT )
+      !-- example of edding an array without weights
+      call ba_add( lstr, aWEIGHT, oWEIGHT )
+
+      oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
+
+      !-- use aWEIGHT1 sine aWEIGHT is already busy
+      aWEIGHT1(:,:) = aRSI(:,:)
+      !!CALL INT_AG2OG(aRUNPSI,oRUNPSI, aWEIGHT)
+      CALL ba_add( lstr,aRUNPSI,oRUNPSI, aWEIGHT1, oWEIGHT1)
+      CALL ba_add( lstr,aWEIGHT1, oWEIGHT1)
+
+      !CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT)
+      CALL ba_add( lstr,aSRUNPSI,oSRUNPSI, aWEIGHT1, oWEIGHT1)
+      oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
+
+      !CALL INT_AG2OG(aERUNPSI,oERUNPSI, aWEIGHT)
+      CALL ba_add( lstr,aERUNPSI,oERUNPSI, aWEIGHT1, oWEIGHT1)
+      oERUNPSI(:,:) = oERUNPSI(:,:)*OXYP(:,:)
+
+      aWEIGHT(:,:) = 1.d0
+      !CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
+      !-- since weights==1 no need to register them
+      CALL ba_add( lstr, aRSI, oRSI)
+
+      call do_interpalation(lstr)
+
+      !-- deallocate only after interpolation is done
+      deallocate(aweight, oweight)
+      deallocate(aweight1, oweight1)
+
+      RETURN
+      END SUBROUTINE AG2OG_precip_example
+
+
+#endif
+
