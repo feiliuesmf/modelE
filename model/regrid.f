@@ -299,7 +299,7 @@ c 100        format(A,3(1X,F8.2))
 
             if (J1 .ge. j0h_ll .and. J2 .le. j1h_ll) then
 
-               if (I1 .gt. 0 .and. I2 .lt. im_ll)  then
+               if (I1 .gt. 0 .and. I2 .le. im_ll)  then
                   a11 = ain_loc(I1,J1)
                   a21 = ain_loc(I2,J1)
                   a12 = ain_loc(I1,J2)
@@ -311,14 +311,14 @@ c     periodic boundary conditions in x direction
                   if ( I1 .le. 0) then
                      a11 = ain_loc(im_ll,J1) !periodicity
                      a12 = ain_loc(im_ll,J2) !periodicity
-                     a21 = a11
-                     a22 = a12
-                  endif
-                  if ( I2 .ge. im_ll) then
                      a21 = ain_loc(1,J1) !periodicity
                      a22 = ain_loc(1,J2) !periodicity
-                     a11 = a21
-                     a12 = a22
+                  endif
+                  if ( I2 .gt. im_ll) then
+                     a21 = ain_loc(1,J1) !periodicity
+                     a22 = ain_loc(1,J2) !periodicity
+                     a11 = ain_loc(I1,J1)
+                     a12 = ain_loc(I1,J2)
                   endif
                endif
                            
