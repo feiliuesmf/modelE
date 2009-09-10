@@ -173,6 +173,15 @@
         select case(lstr%lr(k)%rank)
         case(2)
           lstr%lr(k)%dest2(:,:) = buf_d(n,:,:)
+        case(3)
+         lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
+        end select
+      n = n+lstr%lr(k)%km
+      enddo
+
+      do k=1,lstr%n_lookup
+        select case(lstr%lr(k)%rank)
+        case(2)
           if ( associated(lstr%lr(k)%dest_w ) ) then
             where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
               lstr%lr(k)%dest2(:,:) =
@@ -182,7 +191,6 @@
             endwhere
           endif
         case(3)
-         lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
          if ( associated(lstr%lr(k)%dest_w ) ) then
            do l=1,size(lstr%lr(k)%dest3,1)
             where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
@@ -193,8 +201,7 @@
             endwhere
            enddo
          endif
-      end select
-      n = n+lstr%lr(k)%km
+        end select
       enddo
 
       deallocate( buf_s )
