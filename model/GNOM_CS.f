@@ -61,6 +61,7 @@ c
 !@+   dlxsina(i,j) is at the boundary between cells i,j-1 and i,j
 !@+   dlysina(i,j) is at the boundary between cells i-1,j and i,j
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: dlxsina,dlysina
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: lonuc,latuc,lonvc,latvc
 
 !@var ull2ucs,vll2ucs, ull2vcs,vll2vcs coeffs for projecting
 !@+   a latlon-oriented vector with components ull,vll onto local
@@ -105,7 +106,7 @@ c     shift grid 10 degrees West to avoid corner over Japan
       real*8 :: x,y,x1,x2,y1,y2,e1(2),e2(2)
       integer :: i0h, i1h, i0, i1
       integer :: j0h, j1h, j0, j1
-      integer :: i,j
+      integer :: i,j,imin,imax,jmin,jmax
       real*8 :: dloni,dlonj,dlati,dlatj,bydet
 
       real*8, dimension(grid%i_strt:grid%i_stop+1,
@@ -141,16 +142,6 @@ c     shift grid 10 degrees West to avoid corner over Japan
 
       allocate(axyp(i0h:i1h, j0h:j1h))
       allocate(byaxyp(i0h:i1h, j0h:j1h))
-
-      allocate(
-     &     dlysina(i0h:i1h+1,j0h:j1h)
-     &    ,ull2ucs(i0h:i1h+1,j0h:j1h)
-     &    ,vll2ucs(i0h:i1h+1,j0h:j1h))
-
-      allocate(
-     &     dlxsina(i0h:i1h,j0h:j1h+1)
-     &    ,ull2vcs(i0h:i1h,j0h:j1h+1)
-     &    ,vll2vcs(i0h:i1h,j0h:j1h+1))
 
       allocate(imaxj(j0:j1))
 
@@ -235,11 +226,21 @@ c at the edges of cube faces since these factors are currently used
 c only for sea ice transport on polar faces.  Will adapt as needed.
 c
 c at C-grid u locations
-      do j=max(1,j0h),min(jm,j1h)
+      jmin = max(1,j0h)
+      jmax = min(jm,j1h)
+      imin = max(1,i0h)
+      imax = min(im+1,i1h+1)
+      allocate(
+     &     dlysina(imin:imax,jmin:jmax)
+     &    ,lonuc(imin:imax,jmin:jmax)
+     &    ,latuc(imin:imax,jmin:jmax)
+     &    ,ull2ucs(imin:imax,jmin:jmax)
+     &    ,vll2ucs(imin:imax,jmin:jmax))
+      do j=jmin,jmax
         y1 = -1d0 + 2d0*(j-1)/im
         y2 = -1d0 + 2d0*(j  )/im
         y = .5*(y1+y2)
-        do i=max(1,i0h),min(im+1,i1h+1)
+        do i=imin,imax
           x = -1d0 + 2d0*(i-1)/im
           call e1e2(x,y,grid%tile,e1,e2)
           bydet = 1d0/(e1(1)*e2(2)-e1(2)*e2(1))
@@ -247,12 +248,26 @@ c at C-grid u locations
           vll2ucs(i,j) = -e2(1)*bydet
           dlysina(i,j) = radius*
      &         gcdist(x,x,y1,y2)*sqrt(1d0-sum(e1*e2)**2)
+          call csxy2ll(x,y,grid%tile,lonuc(i,j),latuc(i,j))
+          lonuc(i,j) = lonuc(i,j)-shiftwest
+          lonuc(i,j) = lonuc(i,j) + pi ! IDL has a value of zero
+          if(lonuc(i,j) .lt. 0.) lonuc(i,j)= lonuc(i,j) + twopi
         enddo
       enddo
 c at C-grid v locations
-      do j=max(1,j0h),min(jm+1,j1h+1)
+      jmin = max(1,j0h)
+      jmax = min(jm+1,j1h+1)
+      imin = max(1,i0h)
+      imax = min(im,i1h)
+      allocate(
+     &     dlxsina(imin:imax,jmin:jmax)
+     &    ,lonvc(imin:imax,jmin:jmax)
+     &    ,latvc(imin:imax,jmin:jmax)
+     &    ,ull2vcs(imin:imax,jmin:jmax)
+     &    ,vll2vcs(imin:imax,jmin:jmax))
+      do j=jmin,jmax
         y = -1d0 + 2d0*(j-1)/im
-        do i=max(1,i0h),min(im,i1h)
+        do i=imin,imax
           x1 = -1d0 + 2d0*(i-1)/im
           x2 = -1d0 + 2d0*(i  )/im
           x = .5*(x1+x2)
@@ -262,6 +277,10 @@ c at C-grid v locations
           vll2vcs(i,j) = +e1(1)*bydet
           dlxsina(i,j) = radius*
      &         gcdist(x1,x2,y,y)*sqrt(1d0-sum(e1*e2)**2)
+          call csxy2ll(x,y,grid%tile,lonvc(i,j),latvc(i,j))
+          lonvc(i,j) = lonvc(i,j)-shiftwest
+          lonvc(i,j) = lonvc(i,j) + pi ! IDL has a value of zero
+          if(lonvc(i,j) .lt. 0.) lonvc(i,j)= lonvc(i,j) + twopi
         enddo
       enddo
 
