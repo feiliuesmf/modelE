@@ -2206,8 +2206,8 @@ C****
       enddo
 
 #ifdef CUBE_GRID
-      call INT_IceB2AtmA(uicetmp(1:IMICDYN,:),uisurf)
-      call INT_IceB2AtmA(vicetmp(1:IMICDYN,:),visurf)
+      call INT_IceB2AtmA(uicetmp(2:IMICDYN+1,:),uisurf)
+      call INT_IceB2AtmA(vicetmp(2:IMICDYN+1,:),visurf)
 #else
 c**** We assume that ice grid and latlon atm grid have same resolution 
       do j=J_0S,J_1S
