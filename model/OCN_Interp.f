@@ -1287,35 +1287,41 @@ c (Note this requires that TOC2SST has been called first)
         return
       endif
 
-c call HNTRP.  this section has not been tested yet.
-c      if(hntrp_o2i_uv_need_init) then
-c        call Init_Hntrp_Type(hntrp_o2i_u,
-c     &       oGRID, .5d0,oDLATM,
-c     &       iGRID, 0.d0,iDLATM,
-c     &       0.d0)
-c        call Init_Hntrp_Type(hntrp_o2i_v,
-c     &       oGRID, 0.d0,oDLATM,
-c     &       iGRID, 0.d0,iDLATM,
-c     &       0.d0,
-c     &       JMA_4interp=oJM-1) ! secondary ocean lats
-c        hntrp_o2i_uv_need_init = .false.
-c      endif
-cc regrid uosurf
-c      jmin = hntrp_o2i_u%bpack%jband_strt
-c      jmax = hntrp_o2i_u%bpack%jband_stop
-c      ALLOCATE(ocnu_band(oIM,jmin:jmax),ones_band(oIM,jmin:jmax))
-c      ones_band(:,:) = 1d0
-c      call BAND_PACK (hntrp_o2i_u%bpack, uo(:,:,1), ocnu_band)
-c      call HNTR8_band (ones_band, ocnu_band, hntrp_o2i_u, uosurf)
-c      deallocate(ocnu_band,ones_band)
-cc regrid vosurf
-c      jmin = hntrp_o2i_v%bpack%jband_strt
-c      jmax = hntrp_o2i_v%bpack%jband_stop
-c      ALLOCATE(ocnv_band(oIM,jmin:jmax),ones_band(oIM,jmin:jmax))
-c      ones_band(:,:) = 1d0
-c      call BAND_PACK (hntrp_o2i_v%bpack, vo(:,:,1), ocnv_band)
-c      call HNTR8_band (ones_band, ocnv_band, hntrp_o2i_v, vosurf)
-c      deallocate(ocnv_band,ones_band)
-cc fix up the north pole
+c call HNTRP
+      if(hntrp_o2i_uv_need_init) then
+        call Init_Hntrp_Type(hntrp_o2i_u,
+     &       oGRID, .5d0,oDLATM,
+     &       iGRID, 0.d0,iDLATM,
+     &       0.d0)
+        call Init_Hntrp_Type(hntrp_o2i_v,
+     &       oGRID, 0.d0,oDLATM,
+     &       iGRID, 0.d0,iDLATM,
+     &       0.d0,
+     &       JMA_4interp=oJM-1) ! secondary ocean lats
+        hntrp_o2i_uv_need_init = .false.
+      endif
+c regrid uosurf
+      jmin = hntrp_o2i_u%bpack%jband_strt
+      jmax = hntrp_o2i_u%bpack%jband_stop
+      ALLOCATE(ocnu_band(oIM,jmin:jmax),ones_band(oIM,jmin:jmax))
+      ones_band(:,:) = 1d0
+      call BAND_PACK (hntrp_o2i_u%bpack, uo(:,:,1), ocnu_band)
+      call HNTR8_band (ones_band, ocnu_band, hntrp_o2i_u, uosurf)
+      deallocate(ocnu_band,ones_band)
+c regrid vosurf
+      jmin = hntrp_o2i_v%bpack%jband_strt
+      jmax = hntrp_o2i_v%bpack%jband_stop
+      ALLOCATE(ocnv_band(oIM,jmin:jmax),ones_band(oIM,jmin:jmax))
+      ones_band(:,:) = 1d0
+      call BAND_PACK (hntrp_o2i_v%bpack, vo(:,:,1), ocnv_band)
+      call HNTR8_band (ones_band, ocnv_band, hntrp_o2i_v, vosurf)
+      deallocate(ocnv_band,ones_band)
+      if(igrid%have_north_pole) then
+c Eventually, uosurf/vosurf will be interpolated directly to
+c the ice B grid, which has no polar point.  For now, setting
+c A-grid values at the polar point to zero
+        uosurf(:,iJM) = 0.
+        vosurf(:,iJM) = 0.
+      endif
       return
       END SUBROUTINE OG2IG_uvsurf
