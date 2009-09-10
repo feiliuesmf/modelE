@@ -2216,7 +2216,7 @@ C****
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : get, halo_update
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE ICEDYN, only : NX1,grid=>grid_NXY,IMICDYN
+      USE ICEDYN, only : NX1,grid=>grid_NXY,IMICDYN,JMICDYN
 #ifndef CUBE_GRID
       use GEOM,only : cosu,sinu
 #endif
@@ -2242,7 +2242,7 @@ C****
       uicetmp=uice
       vicetmp=vice
 
-      do j=grid%J_STRT_HALO,grid%J_STOP_HALO
+      do j=max(1,grid%J_STRT_HALO),min(grid%J_STOP_HALO,JMICDYN-1)
          do i=1,NX1
             IF (abs(uicetmp(I,J)).lt.1d-10) uicetmp(I,J)=0.
             IF (abs(vicetmp(I,J)).lt.1d-10) vicetmp(I,J)=0.
