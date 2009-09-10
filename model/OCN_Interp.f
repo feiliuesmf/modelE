@@ -1013,6 +1013,8 @@ cc fix up the north pole
         lstr%lr(lstr%n_lookup)%src_w2 => src_w(:,:)
         lstr%lr(lstr%n_lookup)%dest_w2 => dest_w(:,:)
       else
+        if ( present(src_w) ) call stop_model(
+     &       "ba_add: use both weights or none", 255)
         nullify( lstr%lr(lstr%n_lookup)%src_w2 )
         nullify( lstr%lr(lstr%n_lookup)%dest_w2 )
       endif
@@ -1038,6 +1040,8 @@ cc fix up the north pole
         lstr%lr(lstr%n_lookup)%src_w3 => src_w(:,:,:)
         lstr%lr(lstr%n_lookup)%dest_w3 => dest_w(:,:,:)
       else
+        if ( present(src_w) ) call stop_model(
+     &       "ba_add: use both weights or none", 255)
         nullify( lstr%lr(lstr%n_lookup)%src_w3 )
         nullify( lstr%lr(lstr%n_lookup)%dest_w3 )
       endif
@@ -1111,14 +1115,24 @@ cc fix up the north pole
         select case(lstr%lr(k)%rank)
         case(2)
           lstr%lr(k)%dest2(:,:) = buf_d(n,:,:)
-          if ( associated(lstr%lr(k)%dest_w2 ) )
-     &         lstr%lr(k)%dest2(:,:) =
-     &         lstr%lr(k)%dest2(:,:) / lstr%lr(k)%dest_w2(:,:)
+          if ( associated(lstr%lr(k)%dest_w2 ) ) then
+            where ( lstr%lr(k)%dest_w2(:,:) .ne. 0.d0 )
+              lstr%lr(k)%dest2(:,:) =
+     &             lstr%lr(k)%dest2(:,:) / lstr%lr(k)%dest_w2(:,:)
+            elsewhere
+              lstr%lr(k)%dest2(:,:) = 0.d0
+            endwhere
+          endif
         case(3)
           lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
-          if ( associated(lstr%lr(k)%dest_w3 ) )
-     &         lstr%lr(k)%dest3(:,:,:) =
-     &         lstr%lr(k)%dest3(:,:,:) * lstr%lr(k)%dest_w3(:,:,:)
+          if ( associated(lstr%lr(k)%dest_w3 ) ) then
+            where ( lstr%lr(k)%dest_w3(:,:,:) .ne. 0.d0 )
+              lstr%lr(k)%dest3(:,:,:) =
+     &             lstr%lr(k)%dest3(:,:,:) / lstr%lr(k)%dest_w3(:,:,:)
+            elsewhere
+              lstr%lr(k)%dest3(:,:,:) = 0.d0
+            endwhere
+          endif
         end select
         n = n+lstr%lr(k)%km
       enddo
@@ -1165,7 +1179,7 @@ cc fix up the north pole
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
       Use GEOM,  only : AXYP
 
-      USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
+      !USE AFLUXES, only : aFOCEAN=>aFOCEAN_glob
 
       USE SEAICE_COM, only : aRSI=>RSI
       USE FLUXES, only : aPREC=>PREC, aEPREC=>EPREC
@@ -1215,7 +1229,7 @@ cc fix up the north pole
       !-- example of edding an array without weights
       call ba_add( lstr, aWEIGHT, oWEIGHT )
 
-      oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
+      ! oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:) !-- moved to the bottom
 
       !-- use aWEIGHT1 sine aWEIGHT is already busy
       aWEIGHT1(:,:) = aRSI(:,:)
@@ -1225,11 +1239,11 @@ cc fix up the north pole
 
       !CALL INT_AG2OG(aSRUNPSI,oSRUNPSI, aWEIGHT)
       CALL ba_add( lstr,aSRUNPSI,oSRUNPSI, aWEIGHT1, oWEIGHT1)
-      oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
+      ! oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
 
       !CALL INT_AG2OG(aERUNPSI,oERUNPSI, aWEIGHT)
       CALL ba_add( lstr,aERUNPSI,oERUNPSI, aWEIGHT1, oWEIGHT1)
-      oERUNPSI(:,:) = oERUNPSI(:,:)*OXYP(:,:)
+      ! oERUNPSI(:,:) = oERUNPSI(:,:)*OXYP(:,:)
 
       aWEIGHT(:,:) = 1.d0
       !CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
@@ -1237,6 +1251,10 @@ cc fix up the north pole
       CALL ba_add( lstr, aRSI, oRSI)
 
       call do_interpalation(lstr)
+
+      oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:) 
+      oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
+      oERUNPSI(:,:) = oERUNPSI(:,:)*OXYP(:,:)
 
       !-- deallocate only after interpolation is done
       deallocate(aweight, oweight)
