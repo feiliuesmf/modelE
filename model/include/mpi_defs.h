@@ -15,6 +15,7 @@
 #define MPI_COMM_RANK mpi_comm_rank_
 #define mpi_comm_rank mpi_comm_rank_
 #define MPI_ALLTOALLV mpi_alltoallv_
+#define mpi_alltoallv mpi_alltoallv_
 #define MPI_ScatterV mpi_scatterv_
 #define MPI_BARRIER mpi_barrier_
 
@@ -41,6 +42,7 @@
 #define MPI_Recv mpi_recv_
 
 #define MPI_Allgather mpi_allgather_
+#define mpi_allgather mpi_allgather_
 #define MPI_ABORT mpi_abort_
 
 #define mpi_comm_size mpi_comm_size_
