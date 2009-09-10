@@ -442,8 +442,6 @@ c
       write (lp,*) "time0/nstep0=",time0,nstep0
       write (lp,'(a,i4,a,i4,a)') "ogcm exchange w. agcm every",nstepi,
      .   " steps, i.e.",nhr," hr"
-      write (lp,*) "itest,jtest=",itest,jtest
-      write (lp,*) "lat,lon=",latij(itest,jtest,3),lonij(itest,jtest,3)
 
       endif ! AM_I_ROOT
 
