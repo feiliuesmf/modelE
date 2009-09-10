@@ -172,25 +172,25 @@
       do k=1,lstr%n_lookup
         select case(lstr%lr(k)%rank)
         case(2)
-          lstr%lr(k)%dest2(:,:) = buf_d(n,:,:)
+           lstr%lr(k)%dest2(:,:) = buf_d(n,:,:)
         case(3)
-         lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
+           lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
         end select
       n = n+lstr%lr(k)%km
       enddo
-
+ 	 
       do k=1,lstr%n_lookup
-        select case(lstr%lr(k)%rank)
-        case(2)
-          if ( associated(lstr%lr(k)%dest_w ) ) then
-            where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
-              lstr%lr(k)%dest2(:,:) =
-     &             lstr%lr(k)%dest2(:,:) / lstr%lr(k)%dest_w(:,:)
-            elsewhere
-              lstr%lr(k)%dest2(:,:) = 0.d0
-            endwhere
-          endif
-        case(3)
+         select case(lstr%lr(k)%rank)
+         case(2)
+            if ( associated(lstr%lr(k)%dest_w ) ) then
+               where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
+                  lstr%lr(k)%dest2(:,:) =
+     &                 lstr%lr(k)%dest2(:,:) / lstr%lr(k)%dest_w(:,:)
+               elsewhere
+                  lstr%lr(k)%dest2(:,:) = 0.d0
+               endwhere
+            endif
+         case(3)
          if ( associated(lstr%lr(k)%dest_w ) ) then
            do l=1,size(lstr%lr(k)%dest3,1)
             where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
@@ -201,7 +201,7 @@
             endwhere
            enddo
          endif
-        end select
+      end select
       enddo
 
       deallocate( buf_s )
@@ -264,12 +264,10 @@
       INTEGER N
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
       REAL*8, allocatable :: aWEIGHT1(:,:),oWEIGHT1(:,:)
-      REAL*8, allocatable :: aones(:,:),oones(:,:),oones_glob(:,:)
-      REAL*8, allocatable :: atwos(:,:),otwos(:,:),otwos_glob(:,:)
-      REAL*8, allocatable :: athrees(:,:),othrees(:,:),
-     &    othrees_glob(:,:)
+      REAL*8, allocatable :: o8_glob(:,:)
+      REAL*4, allocatable :: o4_glob(:,:)
 
-      character*80 :: name
+      character*80 :: name,title
       type (lookup_str) :: lstr
       integer :: i,j,l
 
@@ -277,25 +275,11 @@
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
      &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-      
 
       !-- need to allocate separate array for different weights
       allocate(aweight1(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight1(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
-     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-
-      allocate(aones(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(oones(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
-     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-      allocate(atwos(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(otwos(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
-     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-      allocate(athrees(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(othrees(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
      &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       !-- initializing "lstr"
@@ -304,19 +288,9 @@
      &     oGRID%I_STRT_HALO, oGRID%I_STOP_HALO,
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO )
 
-      aones=1.
-      atwos=2.
-      athrees=3.
-      aweight=1.
-      aweight1=5.
-      call ba_add(lstr,aWEIGHT,oWEIGHT)
-      call ba_add(lstr,aones,oones,aWEIGHT,oWEIGHT )
-      call ba_add(lstr,atwos,otwos,aWEIGHT,oWEIGHT )
-      call ba_add(lstr,aWEIGHT1,oWEIGHT1)
-      call ba_add(lstr,athrees,othrees,aWEIGHT1,oWEIGHT1 )
-#ifdef REMOVE     
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
       call ba_add(lstr, aWEIGHT,oWEIGHT )  ! must be called before calling ba_add(aQuantity,oQuantity,aWeight,oWeight)
+      call ba_add(lstr,aPREC,oPREC,aWEIGHT,oWEIGHT )
       call ba_add(lstr,aEPREC,oEPREC,aWEIGHT,oWEIGHT )
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
@@ -324,10 +298,10 @@
       END DO
       call ba_add(lstr, aTRPREC, oTRPREC, aWEIGHT, oWEIGHT )
 #endif
-c*
 
-      aWEIGHT1(:,:) = aRSI(:,:)
-      call ba_add(lstr,aWEIGHT1,oWEIGHT1)  ! must be called before calling ba_add(aQuantity,oQuantity,aWeight,oWeight)
+      aWEIGHT1(:,:) = aRSI(:,:)   
+!     oWEIGHT1(:,:) = 1.-oWEIGHT(:,:)            ! using the property REGRID(1-RSI)=1-REGRID(RSI)  
+      call ba_add(lstr,aWEIGHT1,oWEIGHT1)        ! this line should be removed when previous line is uncommented 
       call ba_add(lstr,aRUNPSI,oRUNPSI,aWEIGHT1,oWEIGHT1)
       call ba_add(lstr,aSRUNPSI,oSRUNPSI,aWEIGHT1,oWEIGHT1)
       call ba_add(lstr,aERUNPSI,oERUNPSI,aWEIGHT1,oWEIGHT1)
@@ -336,19 +310,14 @@ c*
       call ba_add( lstr,aTRUNPSI,oTRUNPSI,aWEIGHT1,oWEIGHT1)
 #endif
 
-      aWEIGHT(:,:) = 1.d0
-      !-- since weights==1 no need to register them
       call ba_add( lstr, aRSI, oRSI)
-#endif /*REMOVE*/
+
 
 c*   actual interpolation here
       call bundle_interpolation(remap_A2O,lstr)
 
-#ifdef REMOVE
       oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
-
       oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
-
       oERUNPSI(:,:) = oERUNPSI(:,:)*OXYP(:,:)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
@@ -360,24 +329,23 @@ c*   actual interpolation here
       END DO
 #endif
 
-#endif /* REMOVE */
-      allocate(oones_glob(oIM,oJM))
-      allocate(otwos_glob(oIM,oJM))
-      allocate(othrees_glob(oIM,oJM))
-      call ocn_pack(ogrid,oones,oones_glob)
-      call ocn_pack(ogrid,otwos,otwos_glob)
-      call ocn_pack(ogrid,othrees,othrees_glob)
-      if (am_i_root()) then
-        write(2101,*) oones_glob
-        write(2102,*) otwos_glob
-        write(2103,*) othrees_glob
-      endif
-      deallocate(aones,oones,atwos,otwos,athrees,othrees)
-      deallocate(oones_glob,otwos_glob,othrees_glob)
-c*
       deallocate(aweight,oweight)
       deallocate(aweight1,oweight1)
-      call stop_model("debug bundle",255)
+
+      allocate(o8_glob(oIM,oJM))
+      allocate(o4_glob(oIM,oJM))
+
+      call ocn_pack(ogrid,oERUNPSI,o8_glob)
+      if (am_i_root()) then
+        open(2300,FILE="A2O",FORM='unformatted',
+     &       STATUS='unknown')
+        title="test"
+        o4_glob=o8_glob
+        write(2300) title,o4_glob
+        close(2300)
+      endif
+      deallocate(o4_glob)
+      deallocate(o8_glob)
 
       RETURN
       END SUBROUTINE AG2OG_precip
