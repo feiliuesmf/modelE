@@ -301,16 +301,16 @@
       atwos=2.
       athrees=3.
       aweight=1.
+      aweight1=5.
+      call ba_add(lstr,aWEIGHT,oWEIGHT)
       call ba_add(lstr,aones,oones,aWEIGHT,oWEIGHT )
       call ba_add(lstr,atwos,otwos,aWEIGHT,oWEIGHT )
-      call ba_add(lstr,athrees,othrees,aWEIGHT,oWEIGHT )
+      call ba_add(lstr,aWEIGHT1,oWEIGHT1)
+      call ba_add(lstr,athrees,othrees,aWEIGHT1,oWEIGHT1 )
 #ifdef REMOVE     
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
-
+      call ba_add(lstr, aWEIGHT,oWEIGHT )  ! must be called before calling ba_add(aQuantity,oQuantity,aWeight,oWeight)
       call ba_add(lstr,aEPREC,oEPREC,aWEIGHT,oWEIGHT )
-
-      call ba_add(lstr, aWEIGHT,oWEIGHT )
-
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
         aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
@@ -320,13 +320,9 @@
 c*
 
       aWEIGHT1(:,:) = aRSI(:,:)
-
+      call ba_add(lstr,aWEIGHT1,oWEIGHT1)  ! must be called before calling ba_add(aQuantity,oQuantity,aWeight,oWeight)
       call ba_add(lstr,aRUNPSI,oRUNPSI,aWEIGHT1,oWEIGHT1)
-
-      call ba_add(lstr,aWEIGHT1,oWEIGHT1)
-
       call ba_add(lstr,aSRUNPSI,oSRUNPSI,aWEIGHT1,oWEIGHT1)
-
       call ba_add(lstr,aERUNPSI,oERUNPSI,aWEIGHT1,oWEIGHT1)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
