@@ -149,7 +149,7 @@ c documentation on these to be added when interfaces are finalized
 
 c documentation on these to be added when interfaces are finalized
       public :: cs2llint_type
-      public :: init_cs2llint_type,cs2llint_ij
+      public :: init_cs2llint_type,cs2llint_ij,cs2llint_lij
       type cs2llint_type
         integer :: isdcs,iedcs,jsdcs,jedcs
         integer ::       imlon,jsdll,jedll
@@ -160,6 +160,19 @@ c documentation on these to be added when interfaces are finalized
         integer, dimension(:), allocatable :: send_cnts,send_displs
         integer, dimension(:), allocatable :: recv_cnts,recv_displs
       end type cs2llint_type
+
+      public :: ll2csint_type
+      public :: init_ll2csint_type,ll2csint_ij,ll2csint_lij
+      type ll2csint_type
+        integer :: iscs,iecs,jscs,jecs
+        integer :: imlon,jsdll,jedll,jlat_min,jlat_max
+        integer :: nproc
+        integer :: npts_interp,npts_unpack
+        real*8, dimension(:), allocatable :: ix,jy
+        integer, dimension(:), allocatable :: i_unpack,j_unpack
+        integer, dimension(:), allocatable :: send_cnts,send_displs
+        integer, dimension(:), allocatable :: recv_cnts,recv_displs
+      end type ll2csint_type
 
       contains
 
@@ -1467,6 +1480,401 @@ c
 
       return
       end subroutine cs2llint_lij
+
+      subroutine init_ll2csint_type(grid_ll,grid_cs,
+     &     lons,lats, jlat_min,jlat_max,
+     &     iscs,iecs,jscs,jecs,loncs,latcs,
+     &     ll2csint)
+      use constant, only : pi,twopi
+      use dd2d_utils, only : dist_grid
+      type(dist_grid), intent(in) :: grid_ll,grid_cs
+!@var lons,lats global coordinates of LL grid
+      real*8, dimension(grid_ll%npx) :: lons
+      real*8, dimension(grid_ll%npy) :: lats
+!@var jlat_min,jlat_max min/max valid lats of global grid
+      integer, intent(in) :: jlat_min,jlat_max
+!@var loncs,latcs coordinate pairs requested by this CS PE
+      integer, intent(in) :: iscs,iecs,jscs,jecs
+      real*8, dimension(iscs:iecs,jscs:jecs), intent(in) :: loncs,latcs
+      type(ll2csint_type), intent(out) :: ll2csint
+c local vars
+      integer :: i,j,k,imlon,jmlat,n,npts_glob,npts,nllreq_cs,
+     &     jmin_search,jmax_search
+      integer :: nproc,llproc,csproc
+      integer :: ierr
+      integer, dimension(:), allocatable :: req_cnts,displs,ilist,jlist,
+     &     ilist_loc,jlist_loc,req_i,req_j
+      real*8, dimension(:), allocatable :: ix,jy,req_lons,req_lats
+      real*8 :: latmin,latmax
+
+      ll2csint%iscs = iscs
+      ll2csint%iecs = iecs
+      ll2csint%jscs = jscs
+      ll2csint%jecs = jecs
+
+      imlon = grid_ll%npx
+      jmlat = grid_ll%npy
+      ll2csint%imlon = imlon
+      ll2csint%jsdll = grid_ll%jsd
+      ll2csint%jedll = grid_ll%jed
+      ll2csint%jlat_min = jlat_min
+      ll2csint%jlat_max = jlat_max
+
+      nproc = grid_cs%nproc
+      ll2csint%nproc = nproc
+
+      allocate(ll2csint%send_cnts(nproc),ll2csint%send_displs(nproc))
+      allocate(ll2csint%recv_cnts(nproc),ll2csint%recv_displs(nproc))
+
+c
+c CS PEs inform LL PEs about the interpolation pts they want
+c
+      allocate(req_cnts(nproc),displs(nproc))
+      nllreq_cs = (1+iecs-iscs)*(1+jecs-jscs)
+      ll2csint%npts_unpack = nllreq_cs
+      allocate(ilist_loc(nllreq_cs),jlist_loc(nllreq_cs))
+      n = 0
+      do j=jscs,jecs
+        do i=iscs,iecs
+          n = n + 1
+          ilist_loc(n) = i
+          jlist_loc(n) = j
+        enddo
+      enddo
+
+      call mpi_allgather(nllreq_cs,1,MPI_INTEGER,req_cnts,1,
+     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      npts_glob = sum(req_cnts)
+      displs(1) = 0
+      do csproc=2,nproc
+        displs(csproc) = displs(csproc-1)+req_cnts(csproc-1)
+      enddo
+      allocate(req_lons(npts_glob),req_lats(npts_glob))
+      allocate(req_i(npts_glob),req_j(npts_glob))
+      allocate(ilist(npts_glob),jlist(npts_glob))
+      call mpi_allgatherv(loncs,nllreq_cs,MPI_DOUBLE_PRECISION,
+     &          req_lons,req_cnts,displs,MPI_DOUBLE_PRECISION,
+     &          MPI_COMM_WORLD,ierr)
+      call mpi_allgatherv(latcs,nllreq_cs,MPI_DOUBLE_PRECISION,
+     &          req_lats,req_cnts,displs,MPI_DOUBLE_PRECISION,
+     &          MPI_COMM_WORLD,ierr)
+      call mpi_allgatherv(ilist_loc,nllreq_cs,MPI_INTEGER,
+     &          req_i,req_cnts,displs,MPI_INTEGER,
+     &          MPI_COMM_WORLD,ierr)
+      call mpi_allgatherv(jlist_loc,nllreq_cs,MPI_INTEGER,
+     &          req_j,req_cnts,displs,MPI_INTEGER,
+     &          MPI_COMM_WORLD,ierr)
+
+c
+c LL PE checks which requested points lie in its interp domain,
+c which ranges from lats(js) (included) to lats(je+1) (not included)
+c
+      allocate(ix(npts_glob), jy(npts_glob))
+      if(grid_ll%have_south_pole) then
+        latmin=-pi/2.
+      else
+        latmin = lats(grid_ll%js)
+      endif
+      if(grid_ll%have_north_pole) then
+        latmax=+pi/2.
+      else
+        latmax = lats(grid_ll%je+1)
+      endif
+      jmax_search = min(grid_ll%je,jlat_max)
+      jmin_search = max(grid_ll%js,jlat_min)
+      n = 0
+      npts = 0
+      do csproc=1,nproc
+        ll2csint%send_cnts(csproc) = 0
+        do k=1,req_cnts(csproc)
+          n = n + 1
+          if(req_lats(n) .lt. latmin) cycle
+          if(req_lats(n) .ge. latmax) cycle
+          ll2csint%send_cnts(csproc) = ll2csint%send_cnts(csproc) + 1
+          npts = npts + 1
+          do j=jmax_search,jmin_search,-1
+            if(req_lats(n) .ge. lats(j)) exit
+          enddo
+          if(j.eq.jlat_max) then
+            jy(npts) = j + (req_lats(n)-lats(j))/(pi/2.-lats(j))
+          elseif(j.lt.jlat_min) then
+            jy(npts) = j + (req_lats(n)+pi/2.)/(lats(j+1)+pi/2.)
+          else
+            jy(npts) = j + (req_lats(n)-lats(j))/(lats(j+1)-lats(j))
+          endif
+          do i=imlon,1,-1
+            if(req_lons(n) .ge. lons(i)) exit
+          enddo
+          if(i.eq.imlon) then
+            ix(npts) = i + (req_lons(n)-lons(i))/(twopi+lons(1)-lons(i))
+          elseif(i.eq.0) then
+            ix(npts) = i + (twopi+req_lons(n)-lons(imlon))/
+     &                  (twopi+lons(1)-lons(imlon))
+          else
+            ix(npts) = i + (req_lons(n)-lons(i))/(lons(i+1)-lons(i))
+          endif
+          ilist(npts) = req_i(n)
+          jlist(npts) = req_j(n)
+        enddo
+      enddo
+      ll2csint%npts_interp = npts
+      allocate(ll2csint%ix(npts),ll2csint%jy(npts))
+      ll2csint%ix(1:npts) = ix(1:npts)
+      ll2csint%jy(1:npts) = jy(1:npts)
+      ll2csint%send_displs(1) = 0
+      do csproc=2,nproc
+        ll2csint%send_displs(csproc) =
+     &       ll2csint%send_displs(csproc-1)+ll2csint%send_cnts(csproc-1)
+      enddo
+
+c
+c LL PEs inform CS PEs about the interpolation pts they will be sending
+c
+
+      call mpi_alltoall(ll2csint%send_cnts,1,MPI_INTEGER,
+     &                  ll2csint%recv_cnts,1,MPI_INTEGER,
+     &                  MPI_COMM_WORLD,ierr)
+      if(sum(ll2csint%recv_cnts) .ne. nllreq_cs) then
+        write(6,*)
+     &       'bad counts in init_ll2csint_type for CS PE ',grid_cs%gid
+        call stop_model('bad counts in init_ll2csint_type',255)
+      endif
+
+      ll2csint%recv_displs(1) = 0
+      do llproc=2,nproc
+        ll2csint%recv_displs(llproc) =
+     &       ll2csint%recv_displs(llproc-1)+ll2csint%recv_cnts(llproc-1)
+      enddo
+
+      allocate(ll2csint%i_unpack(nllreq_cs),
+     &         ll2csint%j_unpack(nllreq_cs))
+      call mpi_alltoallv(
+     &     ilist,             ll2csint%send_cnts,ll2csint%send_displs,
+     &          MPI_INTEGER,
+     &     ll2csint%i_unpack, ll2csint%recv_cnts,ll2csint%recv_displs,
+     &          MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+      call mpi_alltoallv(
+     &     jlist,             ll2csint%send_cnts,ll2csint%send_displs,
+     &          MPI_INTEGER,
+     &     ll2csint%j_unpack, ll2csint%recv_cnts,ll2csint%recv_displs,
+     &          MPI_INTEGER,
+     &     MPI_COMM_WORLD, ierr)
+
+
+c
+c deallocate workspace
+c
+      deallocate(req_cnts,displs)
+      deallocate(ilist,jlist,ilist_loc,jlist_loc,req_i,req_j)
+      deallocate(ix,jy,req_lons,req_lats)
+
+      return
+      end subroutine init_ll2csint_type
+
+      subroutine ll2csint_ij(grid_ll,ll2csint,arrll,arrcs)
+      use dd2d_utils, only : dist_grid
+      use domain_decomp_1d, only : halo_update,north
+      type(dist_grid), intent(in) :: grid_ll
+      type(ll2csint_type), intent(in) :: ll2csint
+      real*8, dimension(grid_ll%npx,grid_ll%jsd:grid_ll%jed)
+     &     :: arrll
+c      intent(in) :: arrll
+      real*8, dimension(ll2csint%iscs:ll2csint%iecs,
+     &                  ll2csint%jscs:ll2csint%jecs), 
+     &     intent(out) :: arrcs
+c local vars
+      integer :: i,j,im,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8, dimension(:,:), allocatable :: arr_pad
+      real*8 :: wti,wtj
+
+c
+c allocate send/recv buffers
+c
+      nproc = ll2csint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = ll2csint%send_cnts
+      sdspl(:) = ll2csint%send_displs
+      rcnts(:) = ll2csint%recv_cnts
+      rdspl(:) = ll2csint%recv_displs
+
+      allocate(bufsend(ll2csint%npts_interp),
+     &         bufrecv(ll2csint%npts_unpack))
+      im = grid_ll%npx
+      allocate(arr_pad(0:im+1,grid_ll%jsd:grid_ll%jed))
+
+c
+c Interpolate and store in 1D send buffer
+c
+      call halo_update(grid_ll,arrll,from=north)
+      do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
+        do i=1,im
+          arr_pad(i,j) = arrll(i,j)
+        enddo
+        arr_pad(0,j) = arr_pad(im,j)
+        arr_pad(im+1,j) = arr_pad(1,j)
+      enddo
+      if(grid_ll%have_south_pole) then ! define a single value at the SP
+        j = ll2csint%jlat_min
+        arr_pad(:,j-1) = sum(arrll(:,j))/im
+      endif
+      if(grid_ll%have_north_pole) then ! define a single value at the NP
+        j = ll2csint%jlat_max
+        arr_pad(:,j+1) = sum(arrll(:,j))/im
+      endif
+      do n=1,ll2csint%npts_interp
+        wti = ll2csint%ix(n)
+        wtj = ll2csint%jy(n)
+        i = wti
+        j = wtj
+        wti = wti-i
+        wtj = wtj-j
+        bufsend(n) = 
+     &         wtj*(wti*arr_pad(i+1,j+1)+(1.-wti)*arr_pad(i,j+1))
+     &   +(1.-wtj)*(wti*arr_pad(i+1,j  )+(1.-wti)*arr_pad(i,j  ))
+      enddo
+
+c
+c send interpolants to CS PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into CS array
+c
+      do n=1,ll2csint%npts_unpack
+        arrcs(ll2csint%i_unpack(n),ll2csint%j_unpack(n)) = bufrecv(n)
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv,arr_pad)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine ll2csint_ij
+
+      subroutine ll2csint_lij(grid_ll,ll2csint,arrll,arrcs,
+     &     is_ll_vector)
+      use dd2d_utils, only : dist_grid
+      use domain_decomp_1d, only : halo_update_column,north
+      type(dist_grid), intent(in) :: grid_ll
+      type(ll2csint_type), intent(in) :: ll2csint
+      real*8, dimension(:,:,grid_ll%jsd:) :: arrll
+c      intent(in) :: arrll
+      real*8, dimension(:,ll2csint%iscs:,ll2csint%jscs:), 
+     &     intent(out) :: arrcs
+      logical, intent(in), optional :: is_ll_vector
+c local vars
+      integer :: i,j,l,lm,im,m,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8, dimension(:,:,:), allocatable :: arr_pad
+      real*8 :: wti,wtj
+      logical :: is_ll_vector_
+
+      lm = size(arrll,1)
+
+      is_ll_vector_ = .false.
+      if(present(is_ll_vector)) is_ll_vector_=is_ll_vector
+      if(is_ll_vector_ .and. lm.ne.2) call stop_model(
+     &     'll2csint_lij: is_ll_vector needs size==2',255)
+
+c
+c allocate send/recv buffers
+c
+      nproc = ll2csint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+
+      scnts(:) = lm*(ll2csint%send_cnts)
+      sdspl(:) = lm*(ll2csint%send_displs)
+      rcnts(:) = lm*(ll2csint%recv_cnts)
+      rdspl(:) = lm*(ll2csint%recv_displs)
+
+      allocate(bufsend(lm*ll2csint%npts_interp),
+     &         bufrecv(lm*ll2csint%npts_unpack))
+
+      im = grid_ll%npx
+      allocate(arr_pad(lm,0:im+1,grid_ll%jsd:grid_ll%jed))
+
+c
+c Interpolate and store in 1D send buffer
+c
+      call halo_update_column(grid_ll,arrll,from=north)
+      do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
+        do i=1,im
+          arr_pad(:,i,j) = arrll(:,i,j)
+        enddo
+        arr_pad(:,0,j) = arr_pad(:,im,j)
+        arr_pad(:,im+1,j) = arr_pad(:,1,j)
+      enddo
+      if(grid_ll%have_south_pole) then ! define a single value at the SP
+        j = ll2csint%jlat_min
+c        if(is_ll_vector_) then ! todo: need sin(lon),cos(lon)
+c        else
+        do l=1,lm
+          arr_pad(l,:,j-1) = sum(arrll(l,:,j))/im
+        enddo
+c        endif
+      endif
+      if(grid_ll%have_north_pole) then ! define a single value at the NP
+        j = ll2csint%jlat_max
+c        if(is_ll_vector_) then ! todo: need sin(lon),cos(lon)
+c        else
+        do l=1,lm
+          arr_pad(l,:,j+1) = sum(arrll(l,:,j))/im
+        enddo
+c        endif
+      endif
+      m = 0
+      do n=1,ll2csint%npts_interp
+        wti = ll2csint%ix(n)
+        wtj = ll2csint%jy(n)
+        i = wti
+        j = wtj
+        wti = wti-i
+        wtj = wtj-j
+        do l=1,lm
+          m = m + 1
+          bufsend(m) = 
+     &         wtj*(wti*arr_pad(l,i+1,j+1)+(1.-wti)*arr_pad(l,i,j+1))
+     &   +(1.-wtj)*(wti*arr_pad(l,i+1,j  )+(1.-wti)*arr_pad(l,i,j  ))
+        enddo
+      enddo
+
+c
+c send interpolants to CS PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into CS array
+c
+      m = 0
+      do n=1,ll2csint%npts_unpack
+        i = ll2csint%i_unpack(n)
+        j = ll2csint%j_unpack(n)
+        do l=1,lm
+          m = m + 1
+          arrcs(l,i,j) = bufrecv(m)
+        enddo
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv,arr_pad)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine ll2csint_lij
 
       end module cs2ll_utils
 
