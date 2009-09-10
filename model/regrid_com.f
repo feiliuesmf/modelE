@@ -15,11 +15,12 @@
 
       use DOMAIN_DECOMP_1D, only: AM_I_ROOT,SUMXPE
       use dd2d_utils, only : dist_grid
+      use cs2ll_utils, only : xgridremap_type
 
       integer, parameter :: nrecmax=200 ! max #records in input files
 
       private :: xgrid
-      public :: x_2grids
+      public :: x_2grids,x_2gridsroot
 
 ccc   derived types
       type x_grid   ! stores x-grid information common to source and target grids
@@ -69,26 +70,9 @@ ccc   derived types
 c***  create specializations of above types, may be moved to a different layer later
       type (x_2grids) :: xO2A    ! ocean to atmosphere
       type (x_2grids) :: xA2O    ! atmosphere to ocean
-      type (x_2grids) :: xI2A    ! ice grid to atmosphere
-      type (x_2grids) :: xA2I    ! atmosphere to ice grid
+      type (x_2gridsroot) :: xA2O_root    ! atmosphere to ocean
 
-c*** interface for functions
-      interface
-         function vminus(p,q)
-         real*8 :: vminus(2),p(2),q(2)
-         end function vminus
-      end interface
-      
-      interface
-         function vplus(p,q)
-         real*8 :: vplus(2),p(2),q(2)
-         end function vplus
-      end interface
-      
-      interface 
-         function cross_product(p,q)
-         real*8 :: cross_product,p(2),q(2)
-         end function cross_product
-      end interface
+c***  xgridremap derived type - May be moved somewhere else later on
+      type(xgridremap_type) :: remap_A2O
 
       end module REGRID_COM

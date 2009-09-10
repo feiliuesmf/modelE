@@ -311,7 +311,8 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef CUBE_GRID
-      use regrid_com, only : xO2A,xA2O
+      use regrid_com, only : xO2A,xA2O,xA2O_root,remap_A2O
+      use cs2ll_utils, only : init_xgridremap_type
 #endif
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean,ntm
@@ -329,6 +330,9 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER, INTENT(IN) :: istart
       LOGICAL :: iniStraits
+#ifdef CUBE_GRID
+      integer, allocatable :: ones(:)
+#endif
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S
       LOGICAL :: HAVE_NORTH_POLE
@@ -389,6 +393,21 @@ C****
 #ifdef CUBE_GRID
       call init_regrid(xO2A,grid,im,jm,1,aim,ajm,6)
       call init_regrid(xA2O,agrid,aim,ajm,6,im,jm,1)
+      call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
+c*** fill in vector full of ones
+      allocate(ones(xA2O_root%xgridroot%ncells))
+      ones=1
+c*** initialize remapping derived type
+      call init_xgridremap_type(agrid,grid,
+     &     xA2O_root%xgridroot%ncells,
+     &     xA2O_root%xgridroot%ijcub(1,:),
+     &     xA2O_root%xgridroot%ijcub(2,:),
+     &     xA2O_root%xgridroot%tile,
+     &     xA2O_root%xgridroot%ijlatlon(1,:),
+     &     xA2O_root%xgridroot%ijlatlon(2,:),
+     &     ones,
+     &     xA2O_root%xgridroot%xgrid_area,remap_a2o)
+      deallocate(ones)
 #endif
 C**** Calculate ZE
       ZE(0) = 0d0
