@@ -16,6 +16,9 @@ C****
       USE TRACER_COM, only : ntm
 #endif
       USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
+#ifdef CUBE_GRID
+      USE cs2ll_utils, only : cs2llint_type,ll2csint_type
+#endif
       IMPLICIT NONE
       SAVE
 
@@ -47,8 +50,11 @@ C**** Needed for ADVSI (on ATM grid)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-!@var FOA,BYFOA arrays for sea ice advection
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA
+      type(cs2llint_type) :: CS2ICEint
+      type(ll2csint_type) :: i2a_uc,i2a_vc !,ICE2CSint
+c arrays for sea ice advection
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA,CONNECT
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UVLLATUC,UVLLATVC
 #endif
 
 C**** Ice advection diagnostics
@@ -111,7 +117,7 @@ C**** Ice advection diagnostics
       USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM
 #endif
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      USE ICEDYN_COM, only : FOA,BYFOA
+      USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
 #endif
       USE ICEDYN, only : grid_icdyn
       IMPLICIT NONE
@@ -169,7 +175,8 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
-     &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
+     &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
+     &        CONNECT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
 #endif
 
       return
@@ -1696,7 +1703,7 @@ C****
      &     HALO_UPDATE
       USE ICEDYN, only : grid_ICDYN,IMICDYN,JMICDYN
 #ifdef CUBE_GRID
-      USE ICEDYN, only : CS2ICEint
+      USE ICEDYN_COM, only : CS2ICEint
       USE cs2ll_utils, only : cs2llint_ij
 #endif
       IMPLICIT NONE
@@ -1779,17 +1786,20 @@ c      endif
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
      &     GEOMICDYN,ICDYN_MASKS
 #ifdef CUBE_GRID
-      USE ICEDYN, only : CS2ICEint,lon,lat
-      USE cs2ll_utils, only : init_cs2llint_type
+      USE ICEDYN, only : lon,lat,lonb,latb
+      USE ICEDYN_COM, only : CS2ICEint,i2a_uc,i2a_vc !,ICE2CSint
+     &     ,UVLLATUC,UVLLATVC,CONNECT
+      USE cs2ll_utils, only : init_cs2llint_type,init_ll2csint_type
+      USE GEOM, only : AXYP,BYAXYP,lon2d,lat2d,lonuc,latuc,lonvc,latvc
 #endif
       USE FLUXES, only : uisurf,visurf
       USE PARAM
-      USE GEOM, only : AXYP,BYAXYP
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
       real*8, allocatable :: uictmp(:,:),victmp(:,:)
+      integer :: imin,imax,jmin,jmax
 
 C**** First, set up the ice dynamics lat-lon grid.
 C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
@@ -1850,10 +1860,44 @@ C**** precompute some arrays for ice advection on the atm grid
           ELSE
             BYFOA(I,J)=0.
           END IF
+c encode the "ocean-connectedness" of gridpoint i,j using:
+c ["west:" 1] + ["east:" 2] + ["south:" 4] + ["north:" 8]
+          connect(i,j) = 0
+          if(afocean(i,j).gt.0.) then
+            if(afocean(i-1,j).gt.0.) connect(i,j) = connect(i,j) + 1
+            if(afocean(i+1,j).gt.0.) connect(i,j) = connect(i,j) + 2
+            if(afocean(i,j-1).gt.0.) connect(i,j) = connect(i,j) + 4
+            if(afocean(i,j+1).gt.0.) connect(i,j) = connect(i,j) + 8
+          endif
         enddo
       enddo
       call ATM_HALO(agrid, FOA)
       call ATM_HALO(agrid, BYFOA)
+      call atm_halo(agrid, connect)
+C**** precompute some interpolation info for ice advection
+c ice b-grid -> atm "west" edges
+      imin=lbound(lonuc,1); imax=ubound(lonuc,1)
+      jmin=lbound(lonuc,2); jmax=ubound(lonuc,2)
+      call init_ll2csint_type(grid_icdyn,agrid,
+     &     lonb,latb, 1,JMICDYN-1,
+     &     imin,imax,jmin,jmax,lonuc,latuc,
+     &     i2a_uc)
+      allocate(uvllatuc(2,imin:imax,jmin:jmax))
+c ice b-grid -> atm "south" edges
+      imin=lbound(lonvc,1); imax=ubound(lonvc,1)
+      jmin=lbound(lonvc,2); jmax=ubound(lonvc,2)
+      call init_ll2csint_type(grid_icdyn,agrid,
+     &     lonb,latb, 1,JMICDYN-1,
+     &     imin,imax,jmin,jmax,lonvc,latvc,
+     &     i2a_vc)
+      allocate(uvllatvc(2,imin:imax,jmin:jmax))
+c ice b-grid -> atm a-grid
+c      call init_ll2csint_type(grid_icdyn,agrid,
+c     &     lonb,latb, 1,JMICDYN-1,
+c     &     agrid%isd,agrid%ied,agrid%jsd,agrid%jed,
+c     &     lon2d,lat2d,
+c     &     ICE2CSint)
+
 #endif
 
 C**** set properties for ICIJ diagnostics

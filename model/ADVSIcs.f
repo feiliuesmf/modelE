@@ -20,7 +20,6 @@ c     &     ,icij,ij_musi,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
 c#ifdef TRACERS_WATER
 c     *     ,ticij,ticij_tusi,ticij_tvsi
 c#endif
-c      USE ICEDYN, only : grid_MIC ! needed for latlon usi,vsi?
       USE SEAICE, only : ace1i,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
@@ -31,6 +30,9 @@ c      USE ICEDYN, only : grid_MIC ! needed for latlon usi,vsi?
      *     ,gtracer
 #endif
       USE DIAG_COM, only : oa
+      USE ICEDYN, only : grid_icdyn,usi,vsi
+      USE ICEDYN_COM, only : i2a_uc,i2a_vc,UVLLATUC,UVLLATVC,CONNECT
+      use cs2ll_utils, only : ll2csint_lij
       IMPLICIT NONE
 !@var NTRICE max. number of tracers to be advected (mass/heat/salt+)
 #ifndef TRACERS_WATER
@@ -42,10 +44,10 @@ c      USE ICEDYN, only : grid_MIC ! needed for latlon usi,vsi?
 #endif
       INTEGER I,J,L,K
       REAL*8 DMHSI,ASI,YRSI,XRSI,FRSI,SICE,COUR,FAO,CNEW,
-     &     ullavg,vllavg
+     &     ull,vll
 C****
-C**** USIDT_ll, VSIDT_ll  latlon-oriented U,V components of
-C****                     time integrated sea ice velocity (m)
+C**** USI, VSI  latlon-oriented U,V components of
+C****           sea ice velocity (m/s)
 C****
 C**** FAW    flux of surface water area (m^2) = USIDT*DYP
 C**** FASI   flux of sea ice area (m^2) = USIDT*DYP*RSIedge
@@ -66,7 +68,11 @@ C****
 
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     USIDT_ll,VSIDT_ll, UDYDT,VDXDT
+     &     UDYDT,VDXDT
+
+      REAL*8, DIMENSION(2,grid_icdyn%im_world,
+     &         grid_icdyn%J_STRT_HALO:grid_icdyn%J_STOP_HALO) ::
+     &     uvll
 
       INTEGER I_0,I_1,J_0,J_1, I_0Y,I_1Y
 
@@ -132,33 +138,52 @@ C**** add tracers to advected arrays
 
 C****
 C**** Interpolate to obtain latlon-oriented ice velocities at
-C**** cell centers (A grid).  
+C**** cell edges, ans transform to CS orientation.  ll2csint_lij
+C**** fills any halo cells in its outputs.
 C****
-c      call Int_IceB2AtmA(UICE,aUA)
-c      call Int_IceB2AtmA(VICE,aVA)
-      usidt_ll=uisurf*dts
-      vsidt_ll=visurf*dts
+      do j=grid_icdyn%j_strt,grid_icdyn%j_stop
+        do i=1,grid_icdyn%im_world
+          uvll(1,i,j) = usi(i,j)*dts
+          uvll(2,i,j) = vsi(i,j)*dts
+        enddo
+      enddo
+      call ll2csint_lij(grid_icdyn,i2a_uc,uvll,uvllatuc)
+      call ll2csint_lij(grid_icdyn,i2a_vc,uvll,uvllatvc)
 
-C****
-C**** A-to-C velocity average and transformation to CS orientation.
-C**** Move later into the transport loops.
-C****
-      CALL HALO_UPDATE(grid, USIDT_ll) ! not necessary if interp does it
-      CALL HALO_UPDATE(grid, VSIDT_ll) ! not necessary if interp does it
       do j=j_0-1,j_1
       do i=i_0y,i_1y
-        ullavg = .5*(usidt_ll(i,j)+usidt_ll(i,j+1))
-        vllavg = .5*(vsidt_ll(i,j)+vsidt_ll(i,j+1))
+        ull = uvllatvc(1,i,j+1)
+        vll = uvllatvc(2,i,j+1)
         vdxdt(i,j) = dlxsina(i,j+1)* ! note offset
-     &       (ullavg*ull2vcs(i,j+1)+vllavg*vll2vcs(i,j+1))
+     &       (ull*ull2vcs(i,j+1)+vll*vll2vcs(i,j+1))
+c apply various constraints to advective velocity to prevent
+c excessive ice pile-up along coastlines
+        if(focean(i,j)+focean(i,j+1).eq.0.) vdxdt(i,j)=0.
+        if(vdxdt(i,j).ne.0.) then
+          if(connect(i,j).eq.8 .or. connect(i,j+1).eq.4) then
+            vdxdt(i,j) = 0. ! single-gridcell inlet
+          endif
+c uncomment the following line to zero out all near-coastal velocities
+c          if(connect(i,j)+connect(i,j+1).lt.30) vdxdt(i,j) = 0.
+        endif
       enddo
       enddo
       do j=j_0,j_1
       do i=i_0-1,i_1
-        ullavg = .5*(usidt_ll(i,j)+usidt_ll(i+1,j))
-        vllavg = .5*(vsidt_ll(i,j)+vsidt_ll(i+1,j))
+        ull = uvllatuc(1,i+1,j)
+        vll = uvllatuc(2,i+1,j)
         udydt(i,j) = dlysina(i+1,j)* ! note offset
-     &       (ullavg*ull2ucs(i+1,j)+vllavg*vll2ucs(i+1,j))
+     &       (ull*ull2ucs(i+1,j)+vll*vll2ucs(i+1,j))
+c apply various constraints to advective velocity to prevent
+c excessive ice pile-up along coastlines
+        if(focean(i,j)+focean(i+1,j).eq.0.) udydt(i,j)=0.
+        if(udydt(i,j).ne.0.) then
+          if(connect(i,j).eq.2 .or. connect(i+1,j).eq.1) then
+            udydt(i,j) = 0. ! single-gridcell inlet
+          endif
+c uncomment the following line to zero out all near-coastal velocities
+c          if(connect(i,j)+connect(i+1,j).lt.30) udydt(i,j) = 0.
+        endif
       enddo
       enddo
 

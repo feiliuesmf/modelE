@@ -25,9 +25,6 @@ C*************************************************************
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
-#ifdef CUBE_GRID
-      USE cs2ll_utils, only : cs2llint_type
-#endif
       IMPLICIT NONE
       SAVE
 
@@ -40,7 +37,6 @@ C**** rheology calculations without changing ADVSI grid.
 !@+  (calculated points from 2 through ny1-1. End points are boundaries)
 #ifdef CUBE_GRID
       INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM !     dimensions of grid_ICDYN
-      type(cs2llint_type) :: CS2ICEint
 #else
       INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM !     dimensions of grid_ICDYN
 #endif
@@ -107,11 +103,11 @@ C**** Geometry inherited from geomb
 !@param FJEQ equatorial value of J
       REAL*8, PARAMETER :: FJEQ=.5*(1+JMICDYN)
 !@var  LAT latitude of mid point of primary grid box (radians)
-      REAL*8, DIMENSION(JMICDYN) :: LAT
+      REAL*8, DIMENSION(JMICDYN) :: LAT,LATB
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
       REAL*8, DIMENSION(JMICDYN,2) :: LAT_DG  ! for diags
 !@var  LON longitude of mid points of primary grid box (radians)
-      REAL*8, DIMENSION(IMICDYN) :: LON
+      REAL*8, DIMENSION(IMICDYN) :: LON,LONB
 !@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
       REAL*8, DIMENSION(IMICDYN,2) :: LON_DG  ! for diags
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
@@ -914,7 +910,7 @@ C NOW THE SECOND HALF
 
       Subroutine GEOMICDYN
       use DOMAIN_DECOMP_1D, only : GET
-      USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
+      USE CONSTANT, only : OMEGA,RADIUS,PI,TWOPI,SDAY,radian
       IMPLICIT NONE
       INTEGER :: J_0,J_1,J_0S,J_1S
       INTEGER :: I,J!,K
@@ -1118,6 +1114,11 @@ C**** LONGITUDES (degrees) for diagnostics
         LON_DG(I,2) = LON_DG(I-1,2)+dlon_dg
       END DO
       lon(:) = lon_dg(:,1)*radian
+
+c store b-grid lons/lats for interpolations
+      lonb(:) = lon_dg(:,2)*radian + pi
+      latb(1:jmicdyn-1) = lat_dg(2:jmicdyn,2)*radian
+      latb(jmicdyn) = pi/2. ! not used
 
       end subroutine GEOMICDYN
 
