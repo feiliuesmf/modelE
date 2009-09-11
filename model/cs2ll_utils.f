@@ -169,6 +169,8 @@ c documentation on these to be added when interfaces are finalized
         integer :: nproc
         integer :: npts_interp,npts_unpack
         real*8, dimension(:), allocatable :: ix,jy
+        logical :: need_sp,need_np
+        real*8, dimension(:), allocatable :: sinlon,coslon
         integer, dimension(:), allocatable :: i_unpack,j_unpack
         integer, dimension(:), allocatable :: send_cnts,send_displs
         integer, dimension(:), allocatable :: recv_cnts,recv_displs
@@ -1519,6 +1521,9 @@ c local vars
       ll2csint%jedll = grid_ll%jed
       ll2csint%jlat_min = jlat_min
       ll2csint%jlat_max = jlat_max
+      allocate(ll2csint%sinlon(imlon),ll2csint%coslon(imlon))
+      ll2csint%sinlon(:) = sin(lons(:))
+      ll2csint%coslon(:) = cos(lons(:))
 
       nproc = grid_cs%nproc
       ll2csint%nproc = nproc
@@ -1621,6 +1626,8 @@ c
       allocate(ll2csint%ix(npts),ll2csint%jy(npts))
       ll2csint%ix(1:npts) = ix(1:npts)
       ll2csint%jy(1:npts) = jy(1:npts)
+      ll2csint%need_sp = any(jy(1:npts).lt.jlat_min)
+      ll2csint%need_np = any(jy(1:npts).ge.jlat_max)
       ll2csint%send_displs(1) = 0
       do csproc=2,nproc
         ll2csint%send_displs(csproc) =
@@ -1706,7 +1713,7 @@ c
       allocate(arr_pad(0:im+1,grid_ll%jsd:grid_ll%jed))
 
 c
-c Interpolate and store in 1D send buffer
+c Set up wraparound and polar values
 c
       call halo_update(grid_ll,arrll,from=north)
       do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
@@ -1716,14 +1723,17 @@ c
         arr_pad(0,j) = arr_pad(im,j)
         arr_pad(im+1,j) = arr_pad(1,j)
       enddo
-      if(grid_ll%have_south_pole) then ! define a single value at the SP
+      if(ll2csint%need_sp) then ! define a single value at the SP
         j = ll2csint%jlat_min
         arr_pad(:,j-1) = sum(arrll(:,j))/im
       endif
-      if(grid_ll%have_north_pole) then ! define a single value at the NP
+      if(ll2csint%need_np) then ! define a single value at the NP
         j = ll2csint%jlat_max
         arr_pad(:,j+1) = sum(arrll(:,j))/im
       endif
+c
+c Interpolate and store in 1D send buffer
+c
       do n=1,ll2csint%npts_interp
         wti = ll2csint%ix(n)
         wtj = ll2csint%jy(n)
@@ -1775,7 +1785,7 @@ c local vars
       real*8, dimension(:), allocatable :: bufsend,bufrecv
       integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
       real*8, dimension(:,:,:), allocatable :: arr_pad
-      real*8 :: wti,wtj
+      real*8 :: wti,wtj,upol,vpol
       logical :: is_ll_vector_
 
       lm = size(arrll,1)
@@ -1803,7 +1813,7 @@ c
       allocate(arr_pad(lm,0:im+1,grid_ll%jsd:grid_ll%jed))
 
 c
-c Interpolate and store in 1D send buffer
+c Set up wraparound and polar values
 c
       call halo_update_column(grid_ll,arrll,from=north)
       do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
@@ -1813,24 +1823,55 @@ c
         arr_pad(:,0,j) = arr_pad(:,im,j)
         arr_pad(:,im+1,j) = arr_pad(:,1,j)
       enddo
-      if(grid_ll%have_south_pole) then ! define a single value at the SP
+      if(ll2csint%need_sp) then ! define a single value at the SP
         j = ll2csint%jlat_min
-c        if(is_ll_vector_) then ! todo: need sin(lon),cos(lon)
-c        else
-        do l=1,lm
-          arr_pad(l,:,j-1) = sum(arrll(l,:,j))/im
-        enddo
-c        endif
+        if(is_ll_vector_) then
+          upol = 0.; vpol = 0.
+          do i=1,im
+            upol = upol +arrll(1,i,j)*ll2csint%coslon(i)
+     &                  +arrll(2,i,j)*ll2csint%sinlon(i)
+            vpol = vpol +arrll(2,i,j)*ll2csint%coslon(i)
+     &                  -arrll(1,i,j)*ll2csint%sinlon(i)
+          enddo
+          upol = upol/im; vpol = vpol/im
+          do i=1,im
+            arr_pad(1,i,j-1) = upol*ll2csint%coslon(i)
+     &                        -vpol*ll2csint%sinlon(i)
+            arr_pad(2,i,j-1) = vpol*ll2csint%coslon(i)
+     &                        +upol*ll2csint%sinlon(i)
+          enddo
+        else
+          do l=1,lm
+            arr_pad(l,:,j-1) = sum(arrll(l,:,j))/im
+          enddo
+        endif
       endif
-      if(grid_ll%have_north_pole) then ! define a single value at the NP
+      if(ll2csint%need_np) then ! define a single value at the NP
         j = ll2csint%jlat_max
-c        if(is_ll_vector_) then ! todo: need sin(lon),cos(lon)
-c        else
-        do l=1,lm
-          arr_pad(l,:,j+1) = sum(arrll(l,:,j))/im
-        enddo
-c        endif
+        if(is_ll_vector_) then
+          upol = 0.; vpol = 0.
+          do i=1,im
+            upol = upol +arrll(1,i,j)*ll2csint%coslon(i)
+     &                  -arrll(2,i,j)*ll2csint%sinlon(i)
+            vpol = vpol +arrll(2,i,j)*ll2csint%coslon(i)
+     &                  +arrll(1,i,j)*ll2csint%sinlon(i)
+          enddo
+          upol = upol/im; vpol = vpol/im
+          do i=1,im
+            arr_pad(1,i,j+1) = upol*ll2csint%coslon(i)
+     &                        +vpol*ll2csint%sinlon(i)
+            arr_pad(2,i,j+1) = vpol*ll2csint%coslon(i)
+     &                        -upol*ll2csint%sinlon(i)
+          enddo
+        else
+          do l=1,lm
+            arr_pad(l,:,j+1) = sum(arrll(l,:,j))/im
+          enddo
+        endif
       endif
+c
+c Interpolate and store in 1D send buffer
+c
       m = 0
       do n=1,ll2csint%npts_interp
         wti = ll2csint%ix(n)

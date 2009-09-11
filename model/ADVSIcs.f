@@ -147,8 +147,10 @@ C****
           uvll(2,i,j) = vsi(i,j)*dts
         enddo
       enddo
-      call ll2csint_lij(grid_icdyn,i2a_uc,uvll,uvllatuc)
-      call ll2csint_lij(grid_icdyn,i2a_vc,uvll,uvllatvc)
+      call ll2csint_lij(grid_icdyn,i2a_uc,uvll,uvllatuc,
+     &     is_ll_vector=.true.)
+      call ll2csint_lij(grid_icdyn,i2a_vc,uvll,uvllatvc,
+     &     is_ll_vector=.true.)
 
       do j=j_0-1,j_1
       do i=i_0y,i_1y
