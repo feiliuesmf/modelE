@@ -1922,12 +1922,12 @@ C**** output flux (positive down)
 #ifdef TRACERS_WATER
      *    TRSIL,TRSNOW,TRICE, 
 #endif 
-     *    HSNOW,HICE,SICE,TSIL,MICE)
+     *    SNOWL,HSNOW,HICE,SICE,TSIL,MICE)
 !@sum Split thermal layer fields into ice and snow components
 !@+   in each thermal layer: i.e. SNOW in L1/L2, ICE in L1/L2
       REAL*8, INTENT(IN) :: SNOW,MSI2,HSIL(LMI),SSIL(LMI)
       REAL*8, INTENT(OUT) :: HSNOW(2),HICE(LMI),SICE(LMI),TSIL(LMI)
-     *     ,MICE(LMI)
+     *     ,MICE(LMI),SNOWL(2)
 #ifdef TRACERS_WATER
       REAL*8, INTENT(IN) :: TRSIL(NTM,LMI)
       REAL*8, INTENT(OUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
@@ -1940,7 +1940,9 @@ C**** Assume equal temperatures over snow and ice in single thermal layer
       IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
         MICE(1) = ACE1I-XSI(2)*MSI1
         MICE(2) = XSI(2)*MSI1
-        HSNOW(1) = SNOW*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)
+        SNOWL(1)= SNOW
+        SNOWL(2)= 0.
+        HSNOW(1) = SNOWL(1)*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)
      *         /(XSI(1)*MSI1))*shi-lhm)
         HSNOW(2)= 0.
         HICE(1) = HSIL(1)-HSNOW(1)
@@ -1948,7 +1950,7 @@ C**** Assume equal temperatures over snow and ice in single thermal layer
         SICE(1) = SSIL(1)
         SICE(2) = SSIL(2)
 #ifdef TRACERS_WATER
-        TRSNOW(:,1) = TRSIL(:,1)*SNOW/(XSI(1)*MSI1-SSIL(1))
+        TRSNOW(:,1) = TRSIL(:,1)*SNOWL(1)/(XSI(1)*MSI1-SSIL(1))
         TRSNOW(:,2) = 0.
         TRICE(:,1) = TRSIL(:,1)-TRSNOW(:,1)
         TRICE(:,2) = TRSIL(:,2)
@@ -1956,17 +1958,18 @@ C**** Assume equal temperatures over snow and ice in single thermal layer
       ELSE  ! some snow in second layer
         MICE(1) = 0.
         MICE(2) = ACE1I
+        SNOWL(1)= XSI(1)*MSI1
+        SNOWL(2)= XSI(2)*MSI1-ACE1I
         HSNOW(1) = HSIL(1)
-        HSNOW(2) = (XSI(2)*MSI1-ACE1I)*(Ti(HSIL(2)
-     *       /(XSI(2)*MSI1),1d3*SSIL(2)/(XSI(2)*MSI1))*shi-lhm)
+        HSNOW(2) = SNOWL(2)*(Ti(HSIL(2)/(XSI(2)*MSI1),1d3*SSIL(2)/(XSI(2
+     $       )*MSI1))*shi-lhm) 
         HICE(1) = 0.
         HICE(2) = HSIL(2)-HSNOW(2)
         SICE(1) = 0.
         SICE(2) = SSIL(2)
 #ifdef TRACERS_WATER
         TRSNOW(:,1) = TRSIL(:,1)
-        TRSNOW(:,2) = TRSIL(:,2)*(XSI(2)*MSI1-ACE1I)/
-     *       (XSI(2)*MSI1-SSIL(2))
+        TRSNOW(:,2) = TRSIL(:,2)*SNOWL(2)/(XSI(2)*MSI1-SSIL(2))
         TRICE(:,1) = 0.
         TRICE(:,2) = TRSIL(:,2)-TRSNOW(:,2)
 #endif
@@ -1994,7 +1997,7 @@ C**** ice temperatures
       return
       end subroutine get_snow_ice_layer
 
-      subroutine set_snow_ice_layer(HSNOW,HICE,SICE,MICE,
+      subroutine set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *    TRSNOW,TRICE,TRSIL, 
 #endif 
@@ -2002,6 +2005,7 @@ C**** ice temperatures
 !@sum Collect snow and ice mass layer fields into thermal layers
 !@+   SNOW in L1 and L2, ICE in L1 , ICE in L2
       REAL*8, INTENT(IN) :: HSNOW(2),HICE(LMI),SICE(LMI),MICE(LMI)
+     $     ,SNOWL(2)
       REAL*8, INTENT(OUT) :: SNOW,MSI2,HSIL(LMI),SSIL(LMI)
 #ifdef TRACERS_WATER
       REAL*8, INTENT(IN) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
@@ -2028,6 +2032,7 @@ C**** ice temperatures
         TRSIL(:,2) = TRICE(:,2) + TRSNOW(:,2)
 #endif
       END IF
+      SNOW = SNOWL(1)+SNOWL(2)
 
 C**** lower levels
       do L=3,LMI
@@ -2037,10 +2042,70 @@ C**** lower levels
         TRSIL(:,L)=TRICE(:,L)
 #endif
       end do
+
+      MSI2=SUM(MICE(3:LMI))
       
       return
       end subroutine set_snow_ice_layer
 
+      subroutine relayer(FMSI2,MICE,HICE,SICE
+#ifdef TRACERS_WATER
+     *     ,TRICE
+#endif
+     *     )
+!@sum relayer lower level ice because of mass flux btw layer 2 and 3
+      REAL*8, INTENT(IN) :: FMSI2
+      REAL*8, INTENT(INOUT) :: MICE(LMI),HICE(LMI),SICE(LMI)
+#ifdef TRACERS_WATER
+      REAL*8, INTENT(INOUT) :: TRICE(NTM,LMI)
+      REAL*8 :: FTRSI(NTM,L)
+#endif
+      REAL*8 :: FMSI(LMI),FHSI(LMI),FSSI(LMI)
+      INTEGER L
+
+C***** Calculate consequential heat/salt flux between layers
+
+      DO L=2,LMI-1
+C**** Calculate mass/heat flux between layers L and L+1
+        FMSI(L) = SUM(XSI(L+1:LMI))*FMSI2
+        IF (FMSI(L).gt.0) THEN  ! downward flux to layer L+1
+          FHSI(L) = HICE(L)*FMSI(L)/MICE(L)
+          FSSI(L) = SICE(L)*FMSI(L)/MICE(L)
+#ifdef TRACERS_WATER
+          FTRSI(:,L) = TRICE(:,L)*FMSI(L)/MICE(L)
+#endif
+        ELSE                    ! upward flux
+          FHSI(L) = HICE(L+1)*FMSI(L)/MICE(L+1)
+          FSSI(L) = SICE(L+1)*FMSI(L)/MICE(L+1)
+#ifdef TRACERS_WATER
+          FTRSI(:,L) = TRICE(:,L+1)*FMSI(L)/MICE(L+1)
+#endif
+        END IF
+      END DO
+
+C**** Adjust amounts resulting from fluxes.
+
+      DO L=2,LMI
+        IF (L.gt.2) THEN
+          MICE(L)=MICE(L)+FMSI(L-1)
+          HICE(L)=HICE(L)+FHSI(L-1)
+          SICE(L)=SICE(L)+FSSI(L-1)
+#ifdef TRACERS_WATER
+          TRICE(:,L)=TRICE(:,L)+FTRSI(:,L-1)
+#endif
+        END IF
+        IF (L.lt.LMI) THEN
+          MICE(L)=MICE(L)-FMSI(L)
+          HICE(L)=HICE(L)-FHSI(L)
+          SICE(L)=SICE(L)-FSSI(L)
+#ifdef TRACERS_WATER
+          TRICE(:,L)=TRICE(:,L)-FTRSI(:,L)
+#endif
+        END IF
+      END DO
+
+      return
+      end subroutine relayer
 
       SUBROUTINE TICE(HSIL,SSIL,MSI1,MSI2,TSIL)
 !@sum TICE returns array of ice temperatures from model variables
