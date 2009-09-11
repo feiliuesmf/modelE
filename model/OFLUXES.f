@@ -222,7 +222,7 @@ c and communication info.
         Real*8 :: SINA(0:361),SINB(0:361),
      *     FMIN(720),FMAX(720),GMIN(361),GMAX(361), DATMIS
         Integer :: IMIN(720),IMAX(720),JMIN(361),JMAX(361),
-     *       IMA,JMA,J1A,JNA, IMB,JMB,J1B,JNB
+     *       IMA,JMA, IMB,JMB,J1B,JNB
         Integer :: J1B_halo,JNB_halo
         type(band_pack_type) :: bpack ! communication info
       end type hntrp_type
@@ -293,8 +293,6 @@ C****
       JNB = grid_B%J_STOP
       htype%IMA = IMA
       htype%JMA = JMA
-      htype%J1A = J1A
-      htype%JNA = JNA
       htype%IMB = IMB
       htype%JMB = JMB
       htype%J1B = J1B
@@ -345,14 +343,14 @@ C****
 c init JMIN/JMAX if JMA_4interp or JMB_4interp not the full global JM
       htype%JMIN(:) = 2*JMA; htype%JMAX(:) = -1
       FJEQA = .5*(1+JMA)
-      Do 210 JA=J1A-1,JNA
+      Do 210 JA=1,JMA-1 !J1A-1,JNA
       RJA = (JA+.5-FJEQA)*DLATA  !  latitude in minutes of northern edge
   210 htype%SINA(JA) = Sin (RJA*TWOPI/(360*60))
       htype%SINA(0)  = -1
       htype%SINA(JMA) = 1
 C****
       FJEQB = .5*(1+JMB)
-      Do 220 JB=J1B-1,JNB
+      Do 220 JB=1,JMB-1 !J1B-1,JNB
       RJB = (JB+.5-FJEQB)*DLATB  !  latitude in minutes of northern edge
   220 htype%SINB(JB) = Sin (RJB*TWOPI/(360*60))
       htype%SINB(0)  = -1
@@ -509,7 +507,8 @@ C**** The 3 Real input values are expected to be Real*8.
 C****
       Implicit None
       type(hntrp_type) :: htype
-      Real*8, dimension(htype%IMA,htype%J1A:htype%JNA) :: WTA,A
+      Real*8, dimension(htype%IMA,
+     &     htype%bpack%jband_strt:htype%bpack%jband_stop) :: WTA,A
       Real*8, dimension(htype%IMB,htype%J1B_halo:htype%JNB_halo) :: B
 C**** Local vars
       Integer :: I, IMB,JMB,J1B,JNB
