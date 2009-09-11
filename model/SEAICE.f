@@ -2058,7 +2058,7 @@ C**** lower levels
       REAL*8, INTENT(INOUT) :: MICE(LMI),HICE(LMI),SICE(LMI)
 #ifdef TRACERS_WATER
       REAL*8, INTENT(INOUT) :: TRICE(NTM,LMI)
-      REAL*8 :: FTRSI(NTM,L)
+      REAL*8 :: FTRSI(NTM,LMI)
 #endif
       REAL*8 :: FMSI(LMI),FHSI(LMI),FSSI(LMI)
       INTEGER L
