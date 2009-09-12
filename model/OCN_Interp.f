@@ -1,5 +1,265 @@
 #include "rundeck_opts.h"
+!#define BUNDLE_INTERP
 #ifdef BUNDLE_INTERP
+
+!#define BUNDLE_INTERP_NEW
+#ifdef BUNDLE_INTERP_NEW
+      module bundle_arrays
+      implicit none
+      private
+
+      public lookup_str
+      public ba_init, ba_add, ba_bundle, ba_unbundle
+
+      integer, parameter :: N_LOOKUP_MAX=256
+
+      type lookup_record
+        integer :: lm,km
+        real*8, pointer :: src(:), dest(:)
+        real*8, pointer :: src_w(:,:), dest_w(:,:)
+      end type lookup_record
+
+      type lookup_str
+        integer :: si_0, si_1, sj_0, sj_1  ! source bounds
+        integer :: di_0, di_1, dj_0, dj_1  ! destination bounds
+        integer  :: n_lookup=0
+        type (lookup_record) :: lr(N_LOOKUP_MAX)
+      end type lookup_str
+
+      interface ba_add
+         module procedure ba_add_2
+         module procedure ba_add_3
+      end interface
+
+
+      contains
+
+      subroutine ba_init( lstr, si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 )
+      implicit none
+      type (lookup_str) :: lstr
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      
+      lstr%si_0 = si_0
+      lstr%si_1 = si_1
+      lstr%sj_0 = sj_0
+      lstr%sj_1 = sj_1
+      lstr%di_0 = di_0
+      lstr%di_1 = di_1
+      lstr%dj_0 = dj_0
+      lstr%dj_1 = dj_1
+
+      lstr%n_lookup = 0
+      end subroutine ba_init
+
+
+      subroutine ba_add_2( lstr, src, dest, src_w, dest_w )
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
+      implicit none
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:), target :: src, dest
+      real*8, dimension(:,:), target, optional :: src_w, dest_w
+
+      call ba_add_new( lstr, src, dest, shape(src), 'ij', src_w, dest_w)
+
+      end subroutine ba_add_2
+
+
+      subroutine ba_add_3( lstr, src, dest, src_w, dest_w )
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
+      implicit none
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:,:), target :: src, dest
+      real*8, dimension(:,:), target, optional :: src_w, dest_w
+
+      call ba_add_new( lstr, src, dest, shape(src), 'lij', src_w,dest_w)
+
+      end subroutine ba_add_3
+
+
+      subroutine ba_add_new( lstr, src, dest, shp, flag, src_w, dest_w )
+      implicit none
+      type (lookup_str) :: lstr
+      real*8, dimension(*), target :: src, dest
+      integer :: shp(:)
+      character*(*) :: flag
+      real*8, dimension(:,:), target, optional :: src_w, dest_w
+
+      lstr%n_lookup = lstr%n_lookup + 1
+      if ( lstr%n_lookup > N_LOOKUP_MAX )
+     &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
+
+      print *,"shp=" ,shp
+
+      select case( flag )
+      case('ij')
+        lstr%lr(lstr%n_lookup)%lm = 1
+        lstr%lr(lstr%n_lookup)%km = 1
+      case('lij')
+        lstr%lr(lstr%n_lookup)%lm = shp(1)
+        lstr%lr(lstr%n_lookup)%km = 1
+      case('ijk')
+        lstr%lr(lstr%n_lookup)%lm = 1
+        lstr%lr(lstr%n_lookup)%km = shp(3)
+      case('lijk')
+        lstr%lr(lstr%n_lookup)%lm = shp(1)
+        lstr%lr(lstr%n_lookup)%km = shp(4)
+      case default
+        call stop_model("ba_add: unexpected flag", 255)
+      end select
+
+      lstr%lr(lstr%n_lookup)%src => src(1:product(shp))
+      lstr%lr(lstr%n_lookup)%dest => dest(1:product(shp))
+
+      if ( present(src_w) .and. present(dest_w) ) then
+        lstr%lr(lstr%n_lookup)%src_w => src_w(:,:)
+        lstr%lr(lstr%n_lookup)%dest_w => dest_w(:,:)
+      else
+        if ( present(src_w) ) call stop_model(
+     &       "ba_add: use both weights or none", 255)
+        nullify( lstr%lr(lstr%n_lookup)%src_w )
+        nullify( lstr%lr(lstr%n_lookup)%dest_w )
+      endif
+
+      end subroutine ba_add_new
+
+
+      subroutine ba_bundle( lstr, buf_s, buf_d )
+      !USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
+      implicit none
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
+
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      integer im,jm,km,lm
+      integer i,j,k,l,m,n,ind
+      
+
+      si_0 = lstr%si_0
+      si_1 = lstr%si_1
+      sj_0 = lstr%sj_0
+      sj_1 = lstr%sj_1
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      im = si_1 - si_0 + 1
+      jm = sj_1 - sj_0 + 1
+
+      n = 0
+      do k=1,lstr%n_lookup
+        n = n+lstr%lr(k)%km*lstr%lr(k)%lm
+      enddo
+
+      allocate( buf_s(n, si_0:si_1, sj_0:sj_1) )
+      allocate( buf_d(n, di_0:di_1, dj_0:dj_1) )
+
+      n = 0
+      do m = 1,lstr%n_lookup
+        km = lstr%lr(m)%km
+        lm = lstr%lr(m)%lm
+        do k=0,km-1
+          do l=0,lm-1
+            n = n+1
+
+            do j=0,jm-1
+              do i=0,im-1
+                ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
+                buf_s(n,i+si_0,j+sj_0) = lstr%lr(m)%src(ind)
+              enddo
+            enddo
+
+            if ( associated(lstr%lr(m)%src_w) ) then
+              do j=0,jm-1
+                do i=0,im-1
+                  ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
+                  buf_s(n,i+si_0,j+sj_0) = buf_s(n,i+si_0,j+sj_0)
+     &                 * lstr%lr(m)%src_w(i+1,j+1)
+                enddo
+              enddo
+            endif
+
+          enddo
+        enddo
+      enddo
+
+      end subroutine ba_bundle
+
+
+      subroutine ba_unbundle( lstr, buf_s, buf_d )
+      implicit none
+      type (lookup_str) :: lstr
+      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
+
+      integer :: di_0, di_1, dj_0, dj_1
+      integer im,jm,km,lm
+      integer i,j,k,l,m,n,ind
+
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      im = di_1 - di_0 + 1
+      jm = dj_1 - dj_0 + 1
+
+      n = 0
+      do m = 1,lstr%n_lookup
+        km = lstr%lr(m)%km
+        lm = lstr%lr(m)%lm
+        do k=0,km-1
+          do l=0,lm-1
+            n = n+1
+
+            do j=0,jm-1
+              do i=0,im-1
+                ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
+                lstr%lr(m)%dest(ind) = buf_d(n,i+di_0,j+dj_0)
+              enddo
+            enddo
+
+          enddo
+        enddo
+      enddo
+
+      n = 0
+      do m = 1,lstr%n_lookup
+        km = lstr%lr(m)%km
+        lm = lstr%lr(m)%lm
+        do k=0,km-1
+          do l=0,lm-1
+            n = n+1
+            
+            if ( associated(lstr%lr(m)%dest_w ) ) then
+              do j=0,jm-1
+                do i=0,im-1
+                  ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
+                  if ( lstr%lr(m)%dest_w(i+1,j+1) .ne. 0.d0 ) then
+                    lstr%lr(m)%dest(ind) = lstr%lr(m)%dest(ind)
+     &                   / lstr%lr(m)%dest_w(i+1,j+1)
+                  else
+                    lstr%lr(m)%dest(ind) = 0.d0
+                  endif
+                enddo
+              enddo
+            endif
+
+          enddo
+        enddo
+      enddo
+
+      deallocate( buf_s )
+      deallocate( buf_d )     
+
+      end subroutine ba_unbundle
+
+      end module bundle_arrays
+
+#else /* BUNDLE_INTERP_NEW */
+
       module bundle_arrays
       implicit none
       private
@@ -210,6 +470,7 @@
       end subroutine ba_unbundle
 
       end module bundle_arrays
+#endif /* BUNDLE_INTERP_NEW */
 
       subroutine bundle_interpolation(remap,lstr)
       USE bundle_arrays
