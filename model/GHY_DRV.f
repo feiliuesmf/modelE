@@ -2203,7 +2203,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use param, only : sync_param, get_param
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
-      use model_com, only : focean, itime
+      use model_com, only : focean, flice, itime
 #ifdef SCM
      &                     ,I_TARG,J_TARG
 #endif
@@ -2265,6 +2265,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
        character*80 :: titrrr
        real*8 rrr(im,jm)
+       real*8 :: roughl_lice = -1.d30
 
         titrrr = "roughness length over land"
         rrr = 0.
@@ -2276,7 +2277,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       call sync_param( "reset_snow_ic", reset_snow_ic )
       call  get_param( "variable_lk", variable_lk )
       call  get_param( "init_flake", init_flake )
-
+      call sync_param( "roughl_lice", roughl_lice )
 
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
@@ -2536,6 +2537,17 @@ c**** compute roughnes length
             rrr(i,j) = max ( rrr(i,j), z0_veg )
           enddo
         enddo
+c**** hack to reset roughl for non-standard land ice fractions
+        if ( roughl_lice > 0.d0 ) then
+          do j=J_0,J_1
+            do i=I_0,I_1
+              if ( flice(i,j) > 0.d0 ) rrr(i,j) =
+     &             ( rrr(i,j)*fearth(i,j) + roughl_lice*flice(i,j) )
+     &             / ( fearth(i,j) + flice(i,j) )
+            enddo
+          enddo
+        endif
+
         do j=J_0,J_1
           do i=I_0,I_1
             roughl(i,j) = rrr(i,j)
