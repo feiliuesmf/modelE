@@ -150,12 +150,15 @@ c documentation on these to be added when interfaces are finalized
 c documentation on these to be added when interfaces are finalized
       public :: cs2llint_type
       public :: init_cs2llint_type,cs2llint_ij,cs2llint_lij
+      public :: cs2llint_lluv
       type cs2llint_type
         integer :: isdcs,iedcs,jsdcs,jedcs
         integer ::       imlon,jsdll,jedll
         integer :: nproc
         integer :: npts_interp,npts_unpack
         real*8, dimension(:), allocatable :: ix,jy
+        real*8, dimension(:,:), allocatable :: sinij,cosij
+        real*8, dimension(:), allocatable :: sinn,cosn
         integer, dimension(:), allocatable :: i_unpack,j_unpack
         integer, dimension(:), allocatable :: send_cnts,send_displs
         integer, dimension(:), allocatable :: recv_cnts,recv_displs
@@ -1179,24 +1182,26 @@ c
       end subroutine xgridremap_ijl
 
       subroutine init_cs2llint_type(grid_cs,grid_ll, lons,lats,
-     &     cs2llint)
+     &     jlat_min,jlat_max, cs2llint, setup_rot_pol)
       use dd2d_utils, only : dist_grid
-      use geom, only : ll2csxy,csxy2ll,shiftwest
+      use geom, only : ll2csxy,csxy2ll,shiftwest,e1e2
       use constant, only : pi,twopi
       type(dist_grid), intent(in) :: grid_cs,grid_ll
       real*8, dimension(grid_ll%npx) :: lons
       real*8, dimension(grid_ll%npy) :: lats
+      integer :: jlat_min,jlat_max
       type(cs2llint_type), intent(out) :: cs2llint
+      logical, intent(in), optional :: setup_rot_pol
 c local vars
-      integer :: imlon,jmlat,ilon,jlat,i,j
+      integer :: imlon,jmlat,ilon,jlat,i,j,n,i1,i2,j1,j2,hemi
       integer :: npts,tile
       integer :: nproc,llproc,csproc
       integer :: ierr
       integer, dimension(:), allocatable :: jell
       integer, dimension(:), allocatable :: ilist,jlist
       real*8 :: dxh,xn,x,y,cs_xmin,cs_xmax,cs_ymin,cs_ymax,lonpass,
-     &     londum,angdum,corang
-      real*8, dimension(:), allocatable :: ix,jy,edgang
+     &     londum,angdum,corang,e1(2),e2(2)
+      real*8, dimension(:), allocatable :: ix,jy,edgang,xlist,ylist
       imlon = grid_ll%npx
       jmlat = grid_ll%npy
 
@@ -1228,6 +1233,7 @@ c Set up the list of ll points that will be handled by this CS PE.
 c
       allocate(ix(imlon*jmlat/2), jy(imlon*jmlat/2))
       allocate(ilist(imlon*jmlat/2), jlist(imlon*jmlat/2))
+      allocate(xlist(imlon*jmlat/2), ylist(imlon*jmlat/2))
       cs_xmin = -1d0 + 2d0*(grid_cs%is-1)/grid_cs%npx
       cs_xmax = -1d0 + 2d0*(grid_cs%ie  )/grid_cs%npx
       cs_ymin = -1d0 + 2d0*(grid_cs%js-1)/grid_cs%npx
@@ -1243,8 +1249,10 @@ c
       npts = 0
       cs2llint%send_cnts(:) = 0
       llproc = 1
-      do jlat=1,jmlat
-        if(jlat .gt. jell(llproc)) llproc=llproc+1
+      do jlat=jlat_min,jlat_max !1,jmlat
+        do while(jlat .gt. jell(llproc))
+          llproc = llproc+1
+        enddo
         do ilon=1,imlon
           lonpass = lons(ilon) + shiftwest
           if(lonpass.gt.pi) lonpass=lonpass-twopi
@@ -1258,6 +1266,8 @@ c
           jy(npts) = .5d0*(1d0+y)*grid_cs%npx+.5d0
           ilist(npts) = ilon
           jlist(npts) = jlat
+          xlist(npts) = x
+          ylist(npts) = y
 c adjust for grid discontinuity near cube edges using angle coordinate
           if(abs(x) .gt. xn) then ! x-edge.  adjust jy
             call csxy2ll(abs(x),y,1,londum,angdum)
@@ -1301,7 +1311,8 @@ c adjust for grid discontinuity near cube edges using angle coordinate
 c
 c CS PEs inform LL PEs about the interpolation pts they will be sending
 c
-      npts = imlon*(1+grid_ll%je-grid_ll%js)
+      npts = imlon*(1+min(grid_ll%je,jlat_max)
+     &               -max(grid_ll%js,jlat_min))
       cs2llint%npts_unpack = npts
       call mpi_alltoall(cs2llint%send_cnts,1,MPI_INTEGER,
      &                  cs2llint%recv_cnts,1,MPI_INTEGER,
@@ -1331,9 +1342,48 @@ c
      &     MPI_COMM_WORLD, ierr)
 
 c
+c For better accuracy near the poles, interpolation of latlon-oriented
+c vector components on polar tiles is performed using
+c components defined with respect to a latlon coordinate system
+c having a rotated pole (RP) lying on Earth's equator.
+c Tabulate sin/cos of the local angles between geographic north
+c and RP-north.  Gnomonic grid shortcut: constant-x gridlines are
+c longitude lines in the RP system, so basis vector e2 contains the
+c rotation info.
+c In the NH, rotation from geographic north toward RP north is counted
+c as positive counterclockwise (positive clockwise in the SH).
+c
+      if(present(setup_rot_pol)) then
+      if(setup_rot_pol) then
+      if(grid_cs%tile.eq.3 .or. grid_cs%tile.eq.6) then
+        allocate(cs2llint%sinij(grid_cs%isd:grid_cs%ied,
+     &                          grid_cs%jsd:grid_cs%jed),
+     &           cs2llint%cosij(grid_cs%isd:grid_cs%ied,
+     &                          grid_cs%jsd:grid_cs%jed),
+     &           cs2llint%sinn(cs2llint%npts_interp),
+     &           cs2llint%cosn(cs2llint%npts_interp))
+        hemi = 1-2*(grid_cs%tile/6) ! -1 for SH, +1 for NH
+        do j=grid_cs%jsd,grid_cs%jed
+          y = -1d0 + 2d0*(dble(j)-.5d0)/grid_cs%npx
+          do i=grid_cs%isd,grid_cs%ied
+            x = -1d0 + 2d0*(dble(i)-.5d0)/grid_cs%npx
+            call e1e2(x,y,grid_cs%tile,e1,e2)
+            cs2llint%sinij(i,j) = -e2(1)*hemi
+            cs2llint%cosij(i,j) = +e2(2)
+          enddo
+        enddo
+        do n=1,cs2llint%npts_interp
+          call e1e2(xlist(n),ylist(n),grid_cs%tile,e1,e2)
+          cs2llint%sinn(n) = -e2(1)*hemi
+          cs2llint%cosn(n) = +e2(2)
+        enddo
+      endif
+      endif
+      endif
+c
 c deallocate workspace
 c
-      deallocate(ix,jy,ilist,jlist,jell)
+      deallocate(ix,jy,ilist,jlist,xlist,ylist,jell)
 
       return
       end subroutine init_cs2llint_type
@@ -1482,6 +1532,128 @@ c
 
       return
       end subroutine cs2llint_lij
+
+      subroutine cs2llint_lluv(grid_cs,cs2llint,ui,vi,uo,vo)
+c special-purpose variant of cs2llint_ij for latlon-oriented vectors
+      use dd2d_utils, only : dist_grid,halo_update
+      type(dist_grid), intent(in) :: grid_cs
+      type(cs2llint_type), intent(in) :: cs2llint
+      real*8, dimension(cs2llint%isdcs:,cs2llint%jsdcs:) :: ui,vi
+c      intent(in) :: ui,vi
+      real*8, dimension(:,cs2llint%jsdll:), intent(out) :: uo,vo
+c local vars
+      integer :: i,j,m,n,nproc,ierr
+      real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer, dimension(:), allocatable :: scnts,sdspl,rcnts,rdspl
+      real*8, dimension(:,:), allocatable :: urot,vrot
+      real*8 :: wti,wtj,urotn,vrotn
+
+c
+c allocate send/recv buffers
+c
+      nproc = cs2llint%nproc
+      allocate(scnts(nproc),sdspl(nproc),rcnts(nproc),rdspl(nproc))
+      scnts(:) = 2*(cs2llint%send_cnts)
+      sdspl(:) = 2*(cs2llint%send_displs)
+      rcnts(:) = 2*(cs2llint%recv_cnts)
+      rdspl(:) = 2*(cs2llint%recv_displs)
+
+      allocate(bufsend(2*cs2llint%npts_interp),
+     &         bufrecv(2*cs2llint%npts_unpack))
+
+c
+c Interpolate and store in 1D send buffer
+c
+
+      call halo_update(grid_cs,ui)
+      call corner_fill_3D(grid_cs,ui,1)
+      call halo_update(grid_cs,vi)
+      call corner_fill_3D(grid_cs,vi,1)
+
+      if(grid_cs%tile.eq.3 .or. grid_cs%tile.eq.6) then
+c convert input u,v to rotated-pole orientation
+        allocate(urot(grid_cs%isd:grid_cs%ied,
+     &                grid_cs%jsd:grid_cs%jed),
+     &           vrot(grid_cs%isd:grid_cs%ied,
+     &                grid_cs%jsd:grid_cs%jed))
+        do j=grid_cs%jsd,grid_cs%jed
+          do i=grid_cs%isd,grid_cs%ied
+            urot(i,j) = ui(i,j)*cs2llint%cosij(i,j)
+     &                 +vi(i,j)*cs2llint%sinij(i,j)
+            vrot(i,j) = vi(i,j)*cs2llint%cosij(i,j)
+     &                 -ui(i,j)*cs2llint%sinij(i,j)
+          enddo
+        enddo
+        m = 0
+        do n=1,cs2llint%npts_interp
+          wti = cs2llint%ix(n)
+          wtj = cs2llint%jy(n)
+          i = wti
+          j = wtj
+          wti = wti-i
+          wtj = wtj-j
+          urotn = wtj*(wti*urot(i+1,j+1)+(1.-wti)*urot(i,j+1))
+     &      +(1.-wtj)*(wti*urot(i+1,j  )+(1.-wti)*urot(i,j  ))
+          vrotn = wtj*(wti*vrot(i+1,j+1)+(1.-wti)*vrot(i,j+1))
+     &      +(1.-wtj)*(wti*vrot(i+1,j  )+(1.-wti)*vrot(i,j  ))
+c rotate output u,v to original orientation
+          m = m + 1
+          bufsend(m) = urotn*cs2llint%cosn(n)
+     &                -vrotn*cs2llint%sinn(n)
+          m = m + 1
+          bufsend(m) = vrotn*cs2llint%cosn(n)
+     &                +urotn*cs2llint%sinn(n)
+        enddo
+        deallocate(urot,vrot)
+      else
+c no pole rotation for u,v interpolation on equatorial tiles
+        m = 0
+        do n=1,cs2llint%npts_interp
+          wti = cs2llint%ix(n)
+          wtj = cs2llint%jy(n)
+          i = wti
+          j = wtj
+          wti = wti-i
+          wtj = wtj-j
+          m = m + 1
+          bufsend(m) =
+     &            wtj*(wti*ui(i+1,j+1)+(1.-wti)*ui(i,j+1))
+     &      +(1.-wtj)*(wti*ui(i+1,j  )+(1.-wti)*ui(i,j  ))
+          m = m + 1
+          bufsend(m) =
+     &            wtj*(wti*vi(i+1,j+1)+(1.-wti)*vi(i,j+1))
+     &      +(1.-wtj)*(wti*vi(i+1,j  )+(1.-wti)*vi(i,j  ))
+        enddo
+      endif
+
+c
+c send interpolants to LL PEs
+c
+      call mpi_alltoallv(bufsend, scnts, sdspl, MPI_DOUBLE_PRECISION,
+     &                   bufrecv, rcnts, rdspl, MPI_DOUBLE_PRECISION,
+     &                   MPI_COMM_WORLD, ierr)
+
+c
+c unpack into latlon array
+c
+      m = 0
+      do n=1,cs2llint%npts_unpack
+        i = cs2llint%i_unpack(n)
+        j = cs2llint%j_unpack(n)
+        m = m + 1
+        uo(i,j) = bufrecv(m)
+        m = m + 1
+        vo(i,j) = bufrecv(m)
+      enddo
+
+c
+c deallocate workspace
+c
+      deallocate(bufsend,bufrecv)
+      deallocate(scnts,sdspl,rcnts,rdspl)
+
+      return
+      end subroutine cs2llint_lluv
 
       subroutine init_ll2csint_type(grid_ll,grid_cs,
      &     lons,lats, jlat_min,jlat_max,
