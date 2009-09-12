@@ -463,6 +463,12 @@ cddd      end subroutine alloc_locals
       call unpack_data( grid,  SSS, SSS_loc )
       call unpack_data( grid,  UOSURF, UOSURF_loc )
       call unpack_data( grid,  VOSURF, VOSURF_loc )
+c UOSURF and VOSURF are also needed on the ice dynamics A-grid.
+c For the moment, HYCOM only runs with modelE configurations having
+c identical atmosphere and ice dynamics grids, so the atmospheric
+c copy of UOSURF,VOSURF can be used.
+      UOSURF_4DYNSI_loc(:,:) = UOSURF_loc(:,:)
+      VOSURF_4DYNSI_loc(:,:) = VOSURF_loc(:,:)
       call unpack_data( grid,  OGEOZA, OGEOZA_loc )
        call unpack_block( grid,  GTEMP, GTEMP_loc )
        call unpack_column( grid,  GTEMPR, GTEMPR_loc )
