@@ -1885,6 +1885,29 @@ C**** Actual array is set from restart file.
       CALL READT_PARALLEL(grid,iu_TOPO,NAMEUNIT(iu_TOPO),HLAKE ,2) ! Lake Depths
       ZATMO(:,J_0:J_1) = ZATMO(:,J_0:J_1)*GRAV                  ! Geopotential
 
+C**** Deal with single -> double precision problems and potential
+C**** ocean/lake inconsistency. Adjust FLAKE0 and FLICE if necessary.
+      DO J=J_0,J_1
+      DO I=I_0,IMAXJ(J)
+        IF (FOCEAN(I,J).gt.0) THEN
+          FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction if focean>0
+          IF (FLAKE0(I,J).gt.0) THEN
+           IF (AM_I_ROOT()) WRITE(6,*)
+     *            "Ocean and lake cannot co-exist in same grid box"
+     *       ,i,j,FOCEAN(I,J),FLAKE0(I,J)
+            FLAKE0(I,J)=0
+          END IF
+        ELSEIF (FLAKE0(I,J).gt.0) THEN
+          FLAND(I,J)=1.-FLAKE0(I,J)  ! for initialization only
+        ELSE
+          FLAND(I,J)=1.              ! for initialization only
+        END IF
+C**** Ensure that no round off error effects land with ice and earth
+        IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN
+          FLICE(I,J)=FLAND(I,J)
+        END IF
+      END DO
+      END DO
       call closeunit(iu_TOPO)
 
       CALL HALO_UPDATE(GRID, FOCEAN)
@@ -1936,29 +1959,15 @@ C****  KOCEAN = 0 => RSI/MSI factor
 C**** Initialize land ice (must come after oceans)
       CALL init_LI(istart)
 C**** Make sure that constraints are satisfied by defining FLAND/FEARTH
-C**** as residual terms. (deals with SP=>DP problem)
+C**** as residual terms.
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        IF (FOCEAN(I,J).gt.0) THEN
-          FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction
-          IF (FLAKE(I,J).gt.0) THEN
-           IF (AM_I_ROOT()) WRITE(6,*)
-     *            "Ocean and lake cannot co-exist in same grid box"
-     *       ,i,j,FOCEAN(I,J),FLAKE(I,J)
-            FLAKE(I,J)=0
-          END IF
-        ELSEIF (FLAKE(I,J).gt.0) THEN
-          FLAND(I,J)=1.-FLAKE(I,J)
-        ELSE
-          FLAND(I,J)=1.
+!!      FLAND(I,J)=1.-FOCEAN(I,J)  !! already set if FOCEAN>0
+        IF (FOCEAN(I,J).le.0) THEN
+          FLAND(I,J)=1
+          IF (FLAKE(I,J).gt.0) FLAND(I,J)=1.-FLAKE(I,J)
         END IF
-C**** Ensure that no round off error effects land with ice and earth
-        IF (FLICE(I,J)-FLAND(I,J).gt.-1d-4 .and. FLICE(I,J).gt.0) THEN
-          FLICE(I,J)=FLAND(I,J)
-          FEARTH(I,J)=0.
-        ELSE
-          FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
-        END IF
+        FEARTH(I,J)=FLAND(I,J)-FLICE(I,J) ! Earth fraction
       END DO
       END DO
 
