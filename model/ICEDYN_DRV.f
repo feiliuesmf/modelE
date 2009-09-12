@@ -50,7 +50,7 @@ C**** Needed for ADVSI (on ATM grid)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      type(cs2llint_type) :: CS2ICEint
+      type(cs2llint_type) :: CS2ICEint_a,CS2ICEint_b
       type(ll2csint_type) :: i2a_uc,i2a_vc !,ICE2CSint
 c arrays for sea ice advection
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA,CONNECT
@@ -559,10 +559,11 @@ c temporarily empty.
      *     ,apress,uisurf,visurf
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
-      IMPLICIT NONE
 #ifdef CUBE_GRID
-      include 'mpif.h'
+      use icedyn_com, only : CS2ICEint_b
+      use cs2ll_utils, only : cs2llint_lluv
 #endif
+      IMPLICIT NONE
       SAVE
 C**** intermediate calculation for pressure gradient terms
       REAL*8, DIMENSION(IMICDYN, 
@@ -572,11 +573,9 @@ C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho
 
-      real*8, allocatable, dimension(:,:) :: itest,atest
-            real*8, allocatable, dimension(:,:,:) :: atest_glob
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
-      INTEGER I,J,ip1,im1,ierr,mype
+      INTEGER I,J,ip1,im1
       REAL*8 USINP,DMUINP,duA,dvA
       INTEGER :: iJ_1   , iJ_0
       INTEGER :: iJ_1S  , iJ_0S
@@ -587,7 +586,7 @@ C****
       INTEGER :: aI_1H  , aI_0H
       INTEGER :: aJ_1H  , aJ_0H
       INTEGER :: aJ_1S  , aJ_0S
-      character*80 :: title
+
 C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       CALL iGET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
      &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
@@ -603,38 +602,9 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
      &     aPtmp(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     iPtmp(1:IMICDYN,iJ_0H:iJ_1H),
      &     iRSI(1:IMICDYN,iJ_0H:iJ_1H),
-     &     iMSI(1:IMICDYN,iJ_0H:iJ_1H),
-     &     iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
-     &     iDMVA(1:IMICDYN,iJ_0H:iJ_1H)
+     &     iMSI(1:IMICDYN,iJ_0H:iJ_1H)
      &     )
 
-c*    for debugging purpose only
-#ifdef CUBE_GRID
-c      call MPI_COMM_RANK( MPI_COMM_WORLD, mype, ierr )
-c
-c      allocate(itest(IMICDYN,
-c     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
-c     &     atest(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-c     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO))
-c
-c      do i=1,IMICDYN
-c      do j=grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO
-c         itest(i,j)=j*cos(2*3.14592653589*real(i-1)/real(IMICDYN-1))
-c      enddo
-c      enddo
-c      itest(:,:)=mype
-c      itest(:,:)=5
-c      call INT_IceB2AtmA(itest,atest)
-c      call stop_model("debugging Ice to Atm interpolation",255)
-
-c      atest(:,:)=mype
-c      call INT_AtmA2IceA_XY(atest,itest)
-c      call stop_model("debugging Atm 2 Ice interpolation",255)
-c      deallocate(itest,atest)
-#endif
-c*
-
-      
 C**** Start main loop
 C**** Replicate polar boxes
       if (agrid%HAVE_NORTH_POLE) then
@@ -673,6 +643,7 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
 
       call INT_AtmA2IceA_XY(aPtmp,iPtmp)
       call INT_AtmA2IceA_XY(RSI,iRSI)
+      call INT_AtmA2IceA_XY(MSI,iMSI)
 
       CALL ICE_HALO(grid_ICDYN, iPtmp , from=NORTH )
       CALL ICE_HALO(grid_ICDYN, iRSI   , from=NORTH )
@@ -702,22 +673,6 @@ c*** Calculate gradient on ice dyn. grid
         END DO
       END DO
 c*
-
-C**** DMUA is defined over the whole box (not just over ptype)
-C**** Convert to stress over ice fraction only (on atmospheric grid)
-      DO J=aJ_0,aJ_1
-        do i=aI_0,aI_1 
-          IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
-            DMUA(I,J,2) = DMUA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
-            DMVA(I,J,2) = DMVA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
-          ELSE
-            DMUA(I,J,2) = 0.
-            DMVA(I,J,2) = 0.
-          END IF
-        END DO
-      END DO
-
-      call INT_AtmA2IceA_XY(MSI,iMSI)   
 
 C**** Set up ice grid variables
 C**** HEFF,AREA on primary (tracer) grid for ice
@@ -804,26 +759,51 @@ c**** set north pole
 c**** interpolate air stress from A grid in atmos, to B grid in ice
 C**** change of unit from change of momentum, to flux
 
+C**** DMUA is defined over the whole box (not just over ptype)
+C**** Convert to stress over ice fraction only (on atmospheric grid)
+      DO J=aJ_0,aJ_1
+        do i=aI_0,aI_1 
+          IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
+            DMUA(I,J,2) = DMUA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
+            DMVA(I,J,2) = DMVA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
+          ELSE
+            DMUA(I,J,2) = 0.
+            DMVA(I,J,2) = 0.
+          END IF
+        END DO
+      END DO
+
 c**** getting instance of (DMUA, DVMA) on the icedyn grid
-      call INT_AtmA2IceA_XY(DMUA(:,:,2),iDMUA)   !stays on latlon basis
-      call INT_AtmA2IceA_XY(DMVA(:,:,2),iDMVA)   !stays on latlon basis
-
-      CALL ICE_HALO(grid_ICDYN, iDMUA  , from=NORTH    )  
-      CALL ICE_HALO(grid_ICDYN, iDMVA  , from=NORTH    )
-
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      allocate(iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
+     &         iDMVA(1:IMICDYN,iJ_0H:iJ_1H))
+      call cs2llint_lluv(agrid,CS2ICEint_b,dmua(:,:,2),dmva(:,:,2),
+     &     idmua,idmva)
+      do j=iJ_0,iJ_1S
+        do i=1,imicdyn
+          gairx(i+1,j) = idmua(i,j)*bydts
+          gairy(i+1,j) = idmva(i,j)*bydts
+        enddo
+        gairx((/1,nx1/),j) = gairx((/nx1-1,2/),j)
+        gairy((/1,nx1/),j) = gairy((/nx1-1,2/),j)
+      enddo
+      deallocate(iDMUA,iDMVA)
+#else
+      CALL ICE_HALO(grid_ICDYN, DMUA(:,:,2), from=NORTH)
+      CALL ICE_HALO(grid_ICDYN, DMVA(:,:,2), from=NORTH)
       do j=iJ_0,iJ_1S
         im1=imicdyn
         do i=1,imicdyn
-          GAIRX(i,j)=0.25*(idmua(i,j)+idmua(im1,j)+idmua(im1,j+1)
-     &         +idmua(i,j+1))*bydts  
-          GAIRY(i,j)=0.25*(idmva(i,j)+idmva(im1,j)+idmva(im1,j+1)
-     &         +idmva(i,j+1))*bydts  
+          GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)
+     &                    +dmua(im1,j+1,2)+dmua(i,j+1,2))*bydts  
+          GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)
+     &                    +dmva(im1,j+1,2)+dmva(i,j+1,2))*bydts  
           im1=i
         enddo
       enddo
       IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
-        GAIRX(1:nx1,jmicdyn)=idmua(1,jmicdyn)*bydts
-        GAIRY(1:nx1,jmicdyn)=idmva(1,jmicdyn)*bydts
+        GAIRX(1:nx1,jmicdyn)=dmua(1,jmicdyn,2)*bydts
+        GAIRY(1:nx1,jmicdyn)=dmva(1,jmicdyn,2)*bydts
       END IF
       do j=iJ_0,iJ_1S
        GAIRX(nx1-1,j)=GAIRX(1,j)
@@ -831,6 +811,7 @@ c**** getting instance of (DMUA, DVMA) on the icedyn grid
        GAIRX(nx1,j)=GAIRX(2,j)
        GAIRY(nx1,j)=GAIRY(2,j)
       enddo
+#endif
 
 c**** read in sea ice velocity
       DO J=iJ_0,iJ_1
@@ -849,21 +830,6 @@ c**** read in sea ice velocity
           VICE(I,J,3)=0.
         END DO
       END DO
-
-
-c      call MPI_COMM_RANK( MPI_COMM_WORLD, myPE, ierr )
-c      write(220+myPE,*) HEFFM
-c      write(230+myPE,*) COR
-c      write(240+myPE,*) pgfub
-c      write(250+myPE,*) pgfvb
-c      write(260+myPE,*) gairx 
-c      write(270+myPE,*) gairy 
-c      write(280+myPE,*) gwatx 
-c      write(290+myPE,*) gwaty 
-c      write(300+myPE,*) uib 
-c      write(310+myPE,*) vib
-c      write(320+myPE,*) HEFF
-c      write(330+myPE,*) amass
 
 C**** do the looping over pseudo-timesteps
       CALL VPICEDYN
@@ -1032,34 +998,8 @@ c*** diagnostics
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       call get_uisurf(uice(:,:,1),vice(:,:,1),uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
-c      call stop_model("get uisurf",255)     
-C****
 
-c      do i=1,aim
-c         do j=aj_0,aj_1s
-c            write(340+myPE,*) i,j,DMUI(i,j)
-c         enddo
-c      enddo
-c      do i=1,aim
-c         do j=aj_0,aj_1s
-c            write(350+myPE,*) i,j,DMVI(i,j)
-c         enddo
-c      enddo
-c      write(360+myPE,*) DMU
-c      write(370+myPE,*) DMV
-c      write(380+mype,*) usi
-c      write(390+mype,*) vsi
-c      write(400+mype,*) usidt
-c      write(410+mype,*) vsidt
-c      write(420+mype,*) uisurf
-c      write(430+mype,*) visurf
-c      write(440+mype,*) ui2rho
-
-c      write(800+mype,*) rsi
-c      write(900+mype,*) focean
-
-
-      deallocate(aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA)
+      deallocate(aPtmp,iPtmp,iRSI,iMSI)
 
       RETURN
       END SUBROUTINE DYNSI
@@ -1703,7 +1643,7 @@ C****
      &     HALO_UPDATE
       USE ICEDYN, only : grid_ICDYN,IMICDYN,JMICDYN
 #ifdef CUBE_GRID
-      USE ICEDYN_COM, only : CS2ICEint
+      USE ICEDYN_COM, only : CS2ICEint_a
       USE cs2ll_utils, only : cs2llint_ij
 #endif
       IMPLICIT NONE
@@ -1717,7 +1657,7 @@ C****
       real*8, allocatable :: iA_glob(:,:)
       real*4, allocatable :: iA4_glob(:,:)
       allocate(iA_glob(IMICDYN,JMICDYN),iA4_glob(IMICDYN,JMICDYN))
-      call cs2llint_ij(agrid,CS2ICEint,aA,iA)
+      call cs2llint_ij(agrid,CS2ICEint_a,aA,iA)
       call HALO_UPDATE(grid_ICDYN,iA)
       call ICE_PACK(grid_ICDYN,iA,iA_glob)
 c      if (am_i_root()) then
@@ -1787,10 +1727,11 @@ c      endif
      &     GEOMICDYN,ICDYN_MASKS
 #ifdef CUBE_GRID
       USE ICEDYN, only : lon,lat,lonb,latb
-      USE ICEDYN_COM, only : CS2ICEint,i2a_uc,i2a_vc !,ICE2CSint
+      USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc !,ICE2CSint
      &     ,UVLLATUC,UVLLATVC,CONNECT
       USE cs2ll_utils, only : init_cs2llint_type,init_ll2csint_type
       USE GEOM, only : AXYP,BYAXYP,lon2d,lat2d,lonuc,latuc,lonvc,latvc
+      use constant, only : pi
 #endif
       USE FLUXES, only : uisurf,visurf
       USE PARAM
@@ -1800,6 +1741,7 @@ c      endif
       character(len=10) :: xstr,ystr
       real*8, allocatable :: uictmp(:,:),victmp(:,:)
       integer :: imin,imax,jmin,jmax
+      real*8 :: lonb_tmp(imicdyn)
 
 C**** First, set up the ice dynamics lat-lon grid.
 C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
@@ -1809,7 +1751,12 @@ C**** Calculate spherical geometry
 
 #ifdef CUBE_GRID
 c**** set up CS2ICEint, a data structure for CS to latlon interpolation
-      call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,CS2ICEint)
+      call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,1,JMICDYN,
+     &     CS2ICEint_a)
+      lonb_tmp = lonb-pi
+      call init_cs2llint_type(agrid,grid_ICDYN,lonb_tmp,latb,
+     &     1,JMICDYN-1,
+     &     CS2ICEint_b,setup_rot_pol=.true.)
 #endif
 
 C**** Derive the ice dynamics land mask from that seen by the atmosphere
