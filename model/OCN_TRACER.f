@@ -16,6 +16,10 @@
       USE GEOM, only : dxyp
       USE MODEL_COM, only: itime
       USE OCN_TRACER_COM, only : itime_tr0, ntm, trname, trw0, n_age
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only : water_tracer_ic
+#endif
+
       USE OCEAN, only : im,jm,lmo,focean,dxypo,mo,lmm,imaxj
 #ifdef TRACERS_OCEAN
      *     ,trmo,txmo,tymo,tzmo,s0m,sxmo,symo,szmo,oc_tracer_mean
@@ -73,7 +77,8 @@ C**** only TRACERS_WATER is true.
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
 #if (defined TRACERS_OCEAN) && (defined TRACERS_SPECIAL_O18)
 C**** Open ic file for isotope tracers
-          call openunit("H2O18ic",iu_O18ic,.true.,.true.)
+          if(water_tracer_ic.eq.1)
+     *         call openunit("H2O18ic",iu_O18ic,.true.,.true.)
 #endif
 
 #ifdef TRACERS_OCEAN
@@ -94,11 +99,17 @@ C**** read in initial conditions for isotopes
 C**** search through for correct tracer (since there is no guarantee
 C**** that they will be in same order as tracer indices).
 C**** data are now in 'per mil'
-          rewind (iu_O18ic)
- 10       read  (iu_O18ic,err=800,end=810) title,t0m4,tzm4
-          if (index(title,trim(trname(n))).eq.0) goto 10
-          write (6,*) 'Read from H2O18ic: ',title
-          call closeunit(iu_O18ic)
+          if(water_tracer_ic.eq.1) then
+            rewind (iu_O18ic)
+ 10         read  (iu_O18ic,err=800,end=810) title,t0m4,tzm4
+            if (index(title,trim(trname(n))).eq.0) goto 10
+            write (6,*) 'Read from H2O18ic: ',title
+            call closeunit(iu_O18ic)
+          else
+            t0m4(:,:,:)=0.
+            tzm4(:,:,:)=0.
+c            if(n.eq.n_Water) t0m4(:,:,:)=1.
+          endif
 
 C**** Turn per mil data into mass ratios (using current standard)
           t0m4(:,:,:)=(t0m4(:,:,:)*1d-3+1.)*trw0(n)

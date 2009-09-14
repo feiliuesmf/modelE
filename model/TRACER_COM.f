@@ -891,6 +891,10 @@ C**** ABOUT MOVING IT ELSEWHERE
 #ifdef TRACERS_SPECIAL_O18
 C**** Water isotope specific parameters
 
+#ifdef TRACERS_OCEAN
+      integer :: water_tracer_ic=1 ! Read water tracers ic from H2O18ic (=1) or set all to SMOW (=0)
+#endif
+
 !@dbparam supsatfac factor controlling super saturation for isotopes
       real*8 :: supsatfac = 2d-3
 !@var iso_index indexing taking actual tracer number to isotope

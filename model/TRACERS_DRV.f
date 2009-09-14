@@ -180,6 +180,10 @@ C**** Decide on water tracer conc. units from rundeck if it exists
 #ifdef TRACERS_SPECIAL_O18
 C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
+#if (defined TRACERS_OCEAN)
+      call sync_param ( "water_tracer_ic",water_tracer_ic  )
+#endif
+
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
