@@ -64,7 +64,11 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=600
+#ifdef HTAP_LIKE_DIAGS
+      INTEGER, PARAMETER, public :: KAIJ=500
+#else
+      INTEGER, PARAMETER, public :: KAIJ=362
+#endif
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
