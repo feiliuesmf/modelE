@@ -86,31 +86,52 @@
       character*(*) :: flag
       real*8, dimension(:,:), target, optional :: src_w, dest_w
 
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      integer :: sim, sjm, dim, djm, lm, km
+
       lstr%n_lookup = lstr%n_lookup + 1
       if ( lstr%n_lookup > N_LOOKUP_MAX )
      &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
 
       print *,"shp=" ,shp
 
+      si_0 = lstr%si_0
+      si_1 = lstr%si_1
+      sj_0 = lstr%sj_0
+      sj_1 = lstr%sj_1
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      sim = si_1 - si_0 + 1
+      sjm = sj_1 - sj_0 + 1
+      dim = di_1 - di_0 + 1
+      djm = dj_1 - dj_0 + 1
+
       select case( flag )
       case('ij')
-        lstr%lr(lstr%n_lookup)%lm = 1
-        lstr%lr(lstr%n_lookup)%km = 1
+        lm = 1
+        km = 1
       case('lij')
-        lstr%lr(lstr%n_lookup)%lm = shp(1)
-        lstr%lr(lstr%n_lookup)%km = 1
+        lm = shp(1)
+        km = 1
       case('ijk')
-        lstr%lr(lstr%n_lookup)%lm = 1
-        lstr%lr(lstr%n_lookup)%km = shp(3)
+        lm = 1
+        km = shp(3)
       case('lijk')
-        lstr%lr(lstr%n_lookup)%lm = shp(1)
-        lstr%lr(lstr%n_lookup)%km = shp(4)
+        lm = shp(1)
+        km = shp(4)
       case default
         call stop_model("ba_add: unexpected flag", 255)
       end select
 
-      lstr%lr(lstr%n_lookup)%src => src(1:product(shp))
-      lstr%lr(lstr%n_lookup)%dest => dest(1:product(shp))
+      lstr%lr(lstr%n_lookup)%lm = lm
+      lstr%lr(lstr%n_lookup)%km = km
+
+      lstr%lr(lstr%n_lookup)%src => src(1:lm*sim*sjm*km)
+      lstr%lr(lstr%n_lookup)%dest => dest(1:lm*dim*djm*km)
 
       if ( present(src_w) .and. present(dest_w) ) then
         lstr%lr(lstr%n_lookup)%src_w => src_w(:,:)
