@@ -678,8 +678,6 @@
 #    ifdef TRACERS_WATER
        check("trsist",trsist)
 #      ifdef TRACERS_OCEAN
-         trmo,txmo,tymo,tzmo
-         trmst,txmst,tzmst
          check("trmo",trmo)
          check("txmo",txmo)
          check("tymo",tymo)
