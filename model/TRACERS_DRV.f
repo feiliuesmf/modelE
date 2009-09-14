@@ -7200,6 +7200,9 @@ c clear sky scattering asymmetry factor in six solar bands
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif
+#ifdef HTAP_LIKE_DIAGS
+      USE MODEL_COM, only: dtsrc
+#endif
       USE DIAG_COM
       implicit none
       integer k,n
