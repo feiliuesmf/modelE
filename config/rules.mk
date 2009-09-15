@@ -7,6 +7,10 @@ ifdef MOD_DIR
 VPATH = $(MOD_DIR)
 endif
 
+ifdef SYSTEM_MOD_DIRS
+VPATH += $(SYSTEM_MOD_DIRS)
+endif
+
 #VPATH = $(MODULES_CMPLR_OPT)
 #VPATH = /usr/local/unsupported/esmf/1.0.3-551/include
 ######  Some user customizable settings:   ########

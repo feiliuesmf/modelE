@@ -20,6 +20,8 @@ ESMFINCLUDEDIR ?= ${ESMF_DIR}/mod/mod${ESMF_BOPT}/$(MACHINE).$(ESMF_COMPILER).64
 ESMFLIBDIR ?= ${ESMF_DIR}/lib/lib${ESMF_BOPT}/$(MACHINE).$(ESMF_COMPILER).64.default
 endif
 
+# the following tells make where to look for system mod files
+VPATH += ${ESMFINCLUDEDIR}
 
 FFLAGS += -I${ESMFINCLUDEDIR}
 F90FLAGS += -I${ESMFINCLUDEDIR}
