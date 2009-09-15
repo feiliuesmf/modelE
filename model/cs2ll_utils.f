@@ -1658,7 +1658,7 @@ c
       subroutine init_ll2csint_type(grid_ll,grid_cs,
      &     lons,lats, jlat_min,jlat_max,
      &     iscs,iecs,jscs,jecs,loncs,latcs,
-     &     ll2csint)
+     &     ll2csint,skip_halos)
       use constant, only : pi,twopi
       use dd2d_utils, only : dist_grid
       type(dist_grid), intent(in) :: grid_ll,grid_cs
@@ -1671,14 +1671,16 @@ c
       integer, intent(in) :: iscs,iecs,jscs,jecs
       real*8, dimension(iscs:iecs,jscs:jecs), intent(in) :: loncs,latcs
       type(ll2csint_type), intent(out) :: ll2csint
+      logical, intent(in), optional :: skip_halos
 c local vars
       integer :: i,j,k,imlon,jmlat,n,npts_glob,npts,nllreq_cs,
-     &     jmin_search,jmax_search
+     &     jmin_search,jmax_search,imin,imax,jmin,jmax
       integer :: nproc,llproc,csproc
       integer :: ierr
       integer, dimension(:), allocatable :: req_cnts,displs,ilist,jlist,
      &     ilist_loc,jlist_loc,req_i,req_j
-      real*8, dimension(:), allocatable :: ix,jy,req_lons,req_lats
+      real*8, dimension(:), allocatable :: ix,jy,req_lons,req_lats,
+     &     loncs_loc,latcs_loc
       real*8 :: latmin,latmax
 
       ll2csint%iscs = iscs
@@ -1707,15 +1709,30 @@ c
 c CS PEs inform LL PEs about the interpolation pts they want
 c
       allocate(req_cnts(nproc),displs(nproc))
-      nllreq_cs = (1+iecs-iscs)*(1+jecs-jscs)
+      imin=iscs
+      imax=iecs
+      jmin=jscs
+      jmax=jecs
+      if(present(skip_halos)) then
+        if(skip_halos) then
+          imin = grid_cs%is
+          imax = grid_cs%ie
+          jmin = grid_cs%js
+          jmax = grid_cs%je
+        endif
+      endif
+      nllreq_cs = (1+imax-imin)*(1+jmax-jmin)
       ll2csint%npts_unpack = nllreq_cs
       allocate(ilist_loc(nllreq_cs),jlist_loc(nllreq_cs))
+      allocate(loncs_loc(nllreq_cs),latcs_loc(nllreq_cs))
       n = 0
-      do j=jscs,jecs
-        do i=iscs,iecs
+      do j=jmin,jmax
+        do i=imin,imax
           n = n + 1
           ilist_loc(n) = i
           jlist_loc(n) = j
+          loncs_loc(n) = loncs(i,j)
+          latcs_loc(n) = latcs(i,j)
         enddo
       enddo
 
@@ -1729,10 +1746,10 @@ c
       allocate(req_lons(npts_glob),req_lats(npts_glob))
       allocate(req_i(npts_glob),req_j(npts_glob))
       allocate(ilist(npts_glob),jlist(npts_glob))
-      call mpi_allgatherv(loncs,nllreq_cs,MPI_DOUBLE_PRECISION,
+      call mpi_allgatherv(loncs_loc,nllreq_cs,MPI_DOUBLE_PRECISION,
      &          req_lons,req_cnts,displs,MPI_DOUBLE_PRECISION,
      &          MPI_COMM_WORLD,ierr)
-      call mpi_allgatherv(latcs,nllreq_cs,MPI_DOUBLE_PRECISION,
+      call mpi_allgatherv(latcs_loc,nllreq_cs,MPI_DOUBLE_PRECISION,
      &          req_lats,req_cnts,displs,MPI_DOUBLE_PRECISION,
      &          MPI_COMM_WORLD,ierr)
       call mpi_allgatherv(ilist_loc,nllreq_cs,MPI_INTEGER,
@@ -1846,7 +1863,7 @@ c deallocate workspace
 c
       deallocate(req_cnts,displs)
       deallocate(ilist,jlist,ilist_loc,jlist_loc,req_i,req_j)
-      deallocate(ix,jy,req_lons,req_lats)
+      deallocate(ix,jy,req_lons,req_lats,loncs_loc,latcs_loc)
 
       return
       end subroutine init_ll2csint_type
