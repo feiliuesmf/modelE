@@ -51,7 +51,7 @@ C**** Needed for ADVSI (on ATM grid)
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       type(cs2llint_type) :: CS2ICEint_a,CS2ICEint_b
-      type(ll2csint_type) :: i2a_uc,i2a_vc !,ICE2CSint
+      type(ll2csint_type) :: i2a_uc,i2a_vc ,ICE2CSint
 c arrays for sea ice advection
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA,CONNECT
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UVLLATUC,UVLLATVC
@@ -560,8 +560,9 @@ c temporarily empty.
       USE SEAICE, only : ace1i
       USE SEAICE_COM, only : rsi,msi,snowi
 #ifdef CUBE_GRID
-      use icedyn_com, only : CS2ICEint_b
-      use cs2ll_utils, only : cs2llint_lluv
+      use icedyn_com, only : CS2ICEint_a,CS2ICEint_b,ICE2CSint
+      use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
+      use cs2ll_utils, only : ll2csint_ij
 #endif
       IMPLICIT NONE
       SAVE
@@ -572,6 +573,7 @@ C**** intermediate calculation for pressure gradient terms
 C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho
+      real*8, allocatable, dimension(:,:,:) :: alij_tmp,ilij_tmp
 
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
@@ -641,10 +643,31 @@ C****  define scalar pressure on atm grid then regrid it to the icedyn grid
         END DO
       END DO
 
-      call INT_AtmA2IceA_XY(aPtmp,iPtmp)
-      call INT_AtmA2IceA_XY(RSI,iRSI)
-      call INT_AtmA2IceA_XY(MSI,iMSI)
-
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c bundle the qtys to be interpolated
+      allocate(alij_tmp(3,aI_0H:aI_1H,aJ_0H:aJ_1H))
+      allocate(ilij_tmp(3,1:IMICDYN,iJ_0H:iJ_1H))
+      do j=aJ_0,aJ_1
+        do i=aI_0,aI_1
+          alij_tmp(1,i,j) = aPtmp(i,j)
+          alij_tmp(2,i,j) = RSI(i,j)
+          alij_tmp(3,i,j) = MSI(i,j)
+        enddo
+      enddo
+      call cs2llint_lij(agrid,CS2ICEint_a,alij_tmp,ilij_tmp)
+      do j=iJ_0,iJ_1
+        do i=1,IMICDYN
+          iPtmp(i,j) = ilij_tmp(1,i,j)
+          iRSI(i,j)  = ilij_tmp(2,i,j)
+          iMSI(i,j)  = ilij_tmp(3,i,j)
+        enddo
+      enddo
+      deallocate(alij_tmp,ilij_tmp)
+#else
+      iPtmp = aPtmp
+      iRSI = RSI
+      iMSI = MSI
+#endif
       CALL ICE_HALO(grid_ICDYN, iPtmp , from=NORTH )
       CALL ICE_HALO(grid_ICDYN, iRSI   , from=NORTH )
 
@@ -915,7 +938,7 @@ C**** UI2rho = | tau |
         enddo
       enddo
       IF(grid_ICDYN%HAVE_NORTH_POLE) iUI2rho(:,jmicdyn)=0.
-      call INT_IceB2AtmA(iUI2rho,UI2rho)
+      call ll2csint_ij(grid_icdyn,ICE2CSint,iUI2rho,UI2rho)
       deallocate(iUI2rho)
       do j=aJ_0,aJ_1
         do i=aI_0,aI_1
@@ -997,7 +1020,7 @@ c*** diagnostics
 
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
-      call get_uisurf(uice(:,:,1),vice(:,:,1),uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
+      call get_uisurf(usi,vsi,uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
 
       deallocate(aPtmp,iPtmp,iRSI,iMSI)
 
@@ -1652,14 +1675,14 @@ C****
      &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
      &     iA(1:IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
-      character*80 :: title
 #ifdef CUBE_GRID
-      real*8, allocatable :: iA_glob(:,:)
-      real*4, allocatable :: iA4_glob(:,:)
-      allocate(iA_glob(IMICDYN,JMICDYN),iA4_glob(IMICDYN,JMICDYN))
+c      character*80 :: title
+c      real*8, allocatable :: iA_glob(:,:)
+c      real*4, allocatable :: iA4_glob(:,:)
+c      allocate(iA_glob(IMICDYN,JMICDYN),iA4_glob(IMICDYN,JMICDYN))
       call cs2llint_ij(agrid,CS2ICEint_a,aA,iA)
-      call HALO_UPDATE(grid_ICDYN,iA)
-      call ICE_PACK(grid_ICDYN,iA,iA_glob)
+c      call HALO_UPDATE(grid_ICDYN,iA)
+c      call ICE_PACK(grid_ICDYN,iA,iA_glob)
 c      if (am_i_root()) then
 c      open(900,FILE="aA2iA",FORM='unformatted',
 c     &        STATUS='unknown')
@@ -1668,7 +1691,7 @@ c      iA4_glob=iA_glob
 c      write(900) title,iA4_glob
 c      close(900)
 c      endif
-      deallocate(iA_glob,iA4_glob)
+c      deallocate(iA_glob,iA4_glob)
 #else 
 c***  for the moment me assume that the atm and icedyn grids are 
 c***  both latlon with equal resolution
@@ -1727,8 +1750,8 @@ c      endif
      &     GEOMICDYN,ICDYN_MASKS
 #ifdef CUBE_GRID
       USE ICEDYN, only : lon,lat,lonb,latb
-      USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc !,ICE2CSint
-     &     ,UVLLATUC,UVLLATVC,CONNECT
+      USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc
+     &     ,ICE2CSint ,UVLLATUC,UVLLATVC,CONNECT
       USE cs2ll_utils, only : init_cs2llint_type,init_ll2csint_type
       USE GEOM, only : AXYP,BYAXYP,lon2d,lat2d,lonuc,latuc,lonvc,latvc
       use constant, only : pi
@@ -1739,7 +1762,6 @@ c      endif
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
-      real*8, allocatable :: uictmp(:,:),victmp(:,:)
       integer :: imin,imax,jmin,jmax
       real*8 :: lonb_tmp(imicdyn)
 
@@ -1770,32 +1792,13 @@ C**** Derive the ice dynamics land mask from that seen by the atmosphere
      &                   J_STRT     =J_0,  J_STOP =J_1,
      &                   J_STOP_SKP =J_1S                   )
 
-      ALLOCATE( UICTMP(NX1,J_0H:J_1H),
-     &          VICTMP(NX1,J_0H:J_1H))
 C**** Initialise ice dynamics if ocean model needs initialising
       if (iniOCEAN) THEN
          RSIX=0.
          RSIY=0.
          USI=0.
          VSI=0.
-         UICTMP=0.
-         VICTMP=0.
-      else
-         do J=J_0,J_1S
-           DO I=1,IMICDYN
-             UICTMP(I+1,J)=USI(I,J)
-             VICTMP(I+1,J)=VSI(I,J)
-           END DO
-           UICTMP(1  ,J)=USI(IMICDYN,J)
-           UICTMP(NX1,J)=USI(1,      J)
-           VICTMP(1  ,J)=VSI(IMICDYN,J)
-           VICTMP(NX1,J)=VSI(1,      J)
-         enddo
-      end if
-
-C**** set uisurf,visurf for atmospheric drag calculations
-      call get_uisurf(uictmp,victmp,uisurf,visurf)
-
+      endif
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
 C**** precompute some arrays for ice advection on the atm grid
@@ -1839,13 +1842,15 @@ c ice b-grid -> atm "south" edges
      &     i2a_vc)
       allocate(uvllatvc(2,imin:imax,jmin:jmax))
 c ice b-grid -> atm a-grid
-c      call init_ll2csint_type(grid_icdyn,agrid,
-c     &     lonb,latb, 1,JMICDYN-1,
-c     &     agrid%isd,agrid%ied,agrid%jsd,agrid%jed,
-c     &     lon2d,lat2d,
-c     &     ICE2CSint)
-
+      call init_ll2csint_type(grid_icdyn,agrid,
+     &     lonb,latb, 1,JMICDYN-1,
+     &     agrid%isd,agrid%ied,agrid%jsd,agrid%jed,
+     &     lon2d,lat2d,
+     &     ICE2CSint,skip_halos=.true.)
 #endif
+
+C**** set uisurf,visurf for atmospheric drag calculations
+      call get_uisurf(usi,vsi,uisurf,visurf)
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij
@@ -2033,8 +2038,6 @@ c
       cdl_icij(kk) = '}'
 #endif
 
-      deallocate(uictmp,victmp)
-
       RETURN
       END SUBROUTINE init_icedyn
 
@@ -2161,61 +2164,71 @@ C****
 !@sum calculate atmos. A grid winds from B grid
 !@auth Gavin Schmidt, Denis Gueyffier
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : get, halo_update
+      USE DOMAIN_DECOMP_1D, only : get, halo_update_column, south
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE ICEDYN, only : NX1,grid=>grid_NXY,IMICDYN,JMICDYN
-#ifndef CUBE_GRID
+      USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN
+#ifdef CUBE_GRID
+      use cs2ll_utils, only : ll2csint_lij
+      use icedyn_com, only : ICE2CSint
+#else
       use GEOM,only : cosu,sinu
 #endif
       IMPLICIT NONE
-      REAL*8, DIMENSION(NX1,
+      REAL*8, DIMENSION(IMICDYN,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: UICE,VICE
-      REAL*8, INTENT(OUT), 
-     &     DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO) :: UISURF,VISURF
-      INTEGER :: J_0S,J_1S,I,J
+      REAL*8, DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &                  agrid%J_STRT_HALO:agrid%J_STOP_HALO),
+     &     INTENT(OUT) :: UISURF,VISURF
+      INTEGER :: J_0S,J_1S,I,J,IM1
       LOGICAL :: pole
       REAL*8 :: hemi
-      real*8, allocatable :: uicetmp(:,:),vicetmp(:,:)
+      real*8, allocatable :: uvice(:,:,:),uvice_cs(:,:,:)
 
       CALL GET(grid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
 
-      allocate(uicetmp(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO),
-     &     vicetmp(NX1,grid%J_STRT_HALO:grid%J_STOP_HALO))
+      allocate(uvice(2,IMICDYN,grid%J_STRT_HALO:grid%J_STOP_HALO))
 
-      Call HALO_UPDATE(GRID, uice)
-      Call HALO_UPDATE(GRID, vice)
-
-      uicetmp=uice
-      vicetmp=vice
-
-      do j=max(1,grid%J_STRT_HALO),min(grid%J_STOP_HALO,JMICDYN-1)
-         do i=1,NX1
-            IF (abs(uicetmp(I,J)).lt.1d-10) uicetmp(I,J)=0.
-            IF (abs(vicetmp(I,J)).lt.1d-10) vicetmp(I,J)=0.
-         enddo
+      do j=max(1,grid%J_STRT),min(grid%J_STOP,JMICDYN-1)
+        do i=1,IMICDYN
+          uvice(1,i,j) = uice(i,j)
+          uvice(2,i,j) = vice(i,j)
+          IF (abs(uvice(1,i,j)).lt.1d-10) uvice(1,i,j)=0.
+          IF (abs(uvice(2,i,j)).lt.1d-10) uvice(2,i,j)=0.
+        enddo
       enddo
 
 #ifdef CUBE_GRID
-      call INT_IceB2AtmA(uicetmp(2:IMICDYN+1,:),uisurf)
-      call INT_IceB2AtmA(vicetmp(2:IMICDYN+1,:),visurf)
+      allocate(uvice_cs(2,agrid%I_STRT_HALO:agrid%I_STOP_HALO,
+     &                    agrid%J_STRT_HALO:agrid%J_STOP_HALO))
+      call ll2csint_lij(grid,ICE2CSint,uvice,uvice_cs,
+     &     is_ll_vector=.true.)
+      do j=agrid%J_STRT,agrid%J_STOP
+        do i=agrid%I_STRT,agrid%I_STOP
+          uisurf(i,j) = uvice_cs(1,i,j)
+          visurf(i,j) = uvice_cs(2,i,j)
+        enddo
+      enddo
+      deallocate(uvice_cs)
 #else
 c**** We assume that ice grid and latlon atm grid have same resolution 
+      Call HALO_UPDATE_COLUMN(GRID, uvice, from=south)
       do j=J_0S,J_1S
+         im1 = IMICDYN
          do i=1,IMICDYN
 c*** B->A : 4 points averaging
-            uisurf(i,j) = 0.25*(uicetmp(i,j)+uicetmp(i,j-1)+
-     &           uicetmp(i+1,j)+uicetmp(i+1,j-1))
-            visurf(i,j) = 0.25*(vicetmp(i,j)+vicetmp(i,j-1)+
-     &           vicetmp(i+1,j)+vicetmp(i+1,j-1))
+            uisurf(i,j) = 0.25*(uvice(1,i,j)+uvice(1,i,j-1)+
+     &           uvice(1,im1,j)+uvice(1,im1,j-1))
+            visurf(i,j) = 0.25*(uvice(2,i,j)+uvice(2,i,j-1)+
+     &           uvice(2,im1,j)+uvice(2,im1,j-1))
+            im1 = i
          enddo
       enddo
 c*** Poles
       if (aGRID%have_south_pole) then
          uisurf(1,1) = 0. ; visurf(1,1) = 0.
          do i=1,IMICDYN
-            uisurf(1,1) = uisurf(1,1)+(vicetmp(i+1,1)*sinu(i))*2./IM
-            visurf(1,1) = visurf(1,1)+(vicetmp(i+1,1)*cosu(i))*2./IM
+            uisurf(1,1) = uisurf(1,1)+(uvice(2,i,1)*sinu(i))*2./IM
+            visurf(1,1) = visurf(1,1)+(uvice(2,i,1)*cosu(i))*2./IM
          end do
          uisurf(:,1)=uisurf(1,1)
          visurf(:,1)=visurf(1,1)
@@ -2224,9 +2237,9 @@ c*** Poles
       if (aGRID%have_north_pole) then
          uisurf(1,JM) = 0. ; visurf(1,JM) = 0.
          do i=1,IM
-            uisurf(1,JM) = uisurf(1,JM)-(vicetmp(i+1,JM-1)*sinu(i))
+            uisurf(1,JM) = uisurf(1,JM)-(uvice(2,i,JM-1)*sinu(i))
      &           *2./IM
-            visurf(1,JM) = visurf(1,JM)+(vicetmp(i+1,JM-1)*cosu(i))
+            visurf(1,JM) = visurf(1,JM)+(uvice(2,i,JM-1)*cosu(i))
      &           *2./IM
          end do
          uisurf(:,JM)=uisurf(1,JM)
@@ -2234,7 +2247,7 @@ c*** Poles
       endif
 #endif
 
-      deallocate(uicetmp,vicetmp)
+      deallocate(uvice)
 
       RETURN
       END SUBROUTINE GET_UISURF
