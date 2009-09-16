@@ -541,7 +541,8 @@ c*   actual interpolation here
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO, oFOCEAN=>FOCEAN
+      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
+     *                , oFOCEAN_loc=>FOCEAN_loc
      *                , oDXYPO=>DXYPO, OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
@@ -550,7 +551,6 @@ c*   actual interpolation here
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid, am_i_root
-      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       USE OCEANR_DIM, only : ogrid
 
@@ -590,7 +590,6 @@ c*   actual interpolation here
       INTEGER N
       INTEGER IER, I,J,K,L, NT
       INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S
-      REAL*8, allocatable :: oFOCEAN_loc(:,:)
       REAL*8 :: UNP,VNP,AWT1,AWT2
       REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
      *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:)
@@ -649,13 +648,10 @@ c*   actual interpolation here
       ALLOCATE
      *  (opCO2_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT = IER)
 
-      allocate(oFOCEAN_loc(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       allocate(oMOtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2),
      &     OGEOZtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
      &     OGEOZ_SVtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-
-      CALL OCN_UNPACK (oGRID,oFOCEAN,oFOCEAN_loc)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       call ba_add( lstr, oWEIGHT, aWEIGHT)
@@ -858,8 +854,7 @@ c*    actual interpolation here
 
       deallocate(oweight,aweight,
      &     oweight1,aweight1,
-     &     oMOtmp,OGEOZtmp,OGEOZ_SVtmp,
-     &     ofocean_loc)
+     &     oMOtmp,OGEOZtmp,OGEOZ_SVtmp)
 
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
@@ -874,7 +869,8 @@ c*    actual interpolation here
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO, oFOCEAN=>FOCEAN
+      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
+     *                , oFOCEAN_loc=>FOCEAN_loc
      *                , oDXYPO=>DXYPO, OXYP, oIMAXJ=>IMAXJ
      *                , oCOSI=>COSIC,oSINI=>SINIC
      *                , IVSPO=>IVSP,IVNPO=>IVNP
@@ -883,7 +879,6 @@ c*    actual interpolation here
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       USE OCEANR_DIM, only : ogrid
 
@@ -922,8 +917,7 @@ c*    actual interpolation here
 
       INTEGER IER, I,J, L, NT
       INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S
-      REAL*8, allocatable ::
-     * oWEIGHT(:,:), oFOCEAN_loc(:,:)
+      REAL*8, allocatable :: oWEIGHT(:,:)
       REAL*8 :: UNP,VNP,AWT1,AWT2
       REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
      *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:)
@@ -955,10 +949,7 @@ c*    actual interpolation here
       ALLOCATE
      *  (opCO2_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT = IER)
 
-      allocate(oFOCEAN_loc(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     &         oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
-
-      CALL OCN_UNPACK (oGRID,oFOCEAN,oFOCEAN_loc)
+      allocate(oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       CALL INT_OG2AG(MO,aMO,oWEIGHT,oLM,2,.FALSE.)
@@ -1122,7 +1113,7 @@ C**** surface tracer concentration
       DEALLOCATE(oTRAC)
 #endif
 
-      deallocate(oweight,ofocean_loc)
+      deallocate(oweight)
 
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
@@ -1140,7 +1131,7 @@ C**** surface tracer concentration
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
+      USE OCEAN, only : oIM=>IM, oJM=>JM
      &                , oDXYPO=>DXYPO, OXYP
      &                , IVSPO=>IVSP,IVNPO=>IVNP
      &                , oSINI=>SINIC, oCOSI=>COSIC 
@@ -1557,7 +1548,7 @@ c*
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
+      USE OCEAN, only : oIM=>IM, oJM=>JM
      *                , oDXYPO=>DXYPO, OXYP
      *                , IVSPO=>IVSP,IVNPO=>IVNP
 
@@ -1854,7 +1845,8 @@ c*
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : oIM=>IM,oJM=>JM, oFOCEAN=>FOCEAN
+      USE OCEAN, only : oIM=>IM,oJM=>JM
+     *                , oFOCEAN_loc=>FOCEAN_loc
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm_atm=>ntm
@@ -1864,7 +1856,6 @@ c*
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
@@ -1882,10 +1873,6 @@ c*
       USE regrid_com, only : remap_O2A
       USE bundle_arrays
       IMPLICIT NONE
-
-      REAL*8,
-     * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
-     *     oFOCEAN_loc
 
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
       REAL*8, allocatable :: oDMSItmp(:,:,:),aDMSItmp(:,:,:)
@@ -1917,8 +1904,6 @@ c*
      &     aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO, aGRID%J_STOP_HALO)
 
-
-      CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       call ba_add(lstr, oWEIGHT, aWEIGHT)
@@ -1997,7 +1982,8 @@ c*
 
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
 
-      USE OCEAN, only : oIM=>IM,oJM=>JM, oFOCEAN=>FOCEAN
+      USE OCEAN, only : oIM=>IM,oJM=>JM
+     *                , oFOCEAN_loc=>FOCEAN_loc
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: ntm_atm=>ntm
@@ -2007,7 +1993,6 @@ c*
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA
       USE OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
@@ -2028,9 +2013,7 @@ c*
 
       REAL*8,
      * DIMENSION(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)::
-     * oWEIGHT, oFOCEAN_loc
-
-      CALL UNPACK_DATA (oGRID,oFOCEAN,oFOCEAN_loc)
+     * oWEIGHT
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2)

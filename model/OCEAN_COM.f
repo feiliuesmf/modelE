@@ -89,6 +89,7 @@ C**** ocean geometry (should this be in a separate module?)
      *           J1O  !  most southern latitude (J) where ocean exists
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: oLAT2D_DG !distributed latitute array (in degrees)
       REAL*8, DIMENSION(IM,JM) :: HATMO,HOCEAN,FOCEAN
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: FOCEAN_loc
 C**** ocean related parameters
       INTEGER NDYNO,MDYNO,MSGSO
 !@dbparam DTO timestep for ocean dynamics (s)
@@ -360,7 +361,7 @@ C****
      *     MO_glob,UO_glob,VO_glob,
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
-      USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG
+      USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG,FOCEAN_loc
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       USE OCEAN, only : TRMO,TXMO,TYMO,TZMO
      *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
@@ -413,6 +414,7 @@ C****
         ALLOCATE(   SYMO_glob(IM,JM,LMO), STAT = IER)
         ALLOCATE(   SZMO_glob(IM,JM,LMO), STAT = IER)
       endif
+      ALLOCATE( FOCEAN_loc(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPRESS(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)

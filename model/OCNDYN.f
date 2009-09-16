@@ -297,7 +297,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE PARAM
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
-      USE OCEAN, only : im,jm,lmo,focean,lmm
+      USE OCEAN, only : im,jm,lmo,focean,focean_loc,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
@@ -308,7 +308,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE SW2OCEAN, only : init_solar
       USE FLUXES, only : ogeoza, uosurf, vosurf
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : get,halo_update
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef CUBE_GRID
       use regrid_com, only : xO2A,xA2O,xA2O_root,xO2A_root,
@@ -452,6 +452,9 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
       CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
       CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
       call closeunit(iu_TOPO)
+
+      FOCEAN_loc(:,j_0:j_1) = FOCEAN(:,j_0:j_1)
+      call halo_update(grid,focean_loc)
 
 C**** Calculate J1O = least J with some ocean
       Do 130 J=1,JM
