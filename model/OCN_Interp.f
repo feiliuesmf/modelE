@@ -1,17 +1,14 @@
 #include "rundeck_opts.h"
 
-!#define AG2OG_PRECIP_BUNDLE
-!#define OG2AG_TOC2SST_BUNDLE
-!#define AG2OG_OCEANS_BUNDLE
-!#define OG2AG_OCEANS_BUNDLE      
+#define AG2OG_PRECIP_BUNDLE
+#define OG2AG_TOC2SST_BUNDLE
+#define AG2OG_OCEANS_BUNDLE
+#define OG2AG_OCEANS_BUNDLE      
 
-!#define DEBUG_OG2AG
-
-!#define BUNDLE_INTERP
-!#define BUNDLE_INTERP_NEW
+#define BUNDLE_INTERP
 
 #ifdef BUNDLE_INTERP
-#ifdef BUNDLE_INTERP_NEW
+
       module bundle_arrays
       implicit none
       private
@@ -86,6 +83,7 @@
 
       end subroutine ba_add_3
 
+
       subroutine ba_add_new( lstr, src, dest, shp, flag, src_w, dest_w )
       implicit none
       type (lookup_str) :: lstr
@@ -101,8 +99,6 @@
       lstr%n_lookup = lstr%n_lookup + 1
       if ( lstr%n_lookup > N_LOOKUP_MAX )
      &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
-
-      print *,"shp=" ,shp
 
       si_0 = lstr%si_0
       si_1 = lstr%si_1
@@ -152,6 +148,7 @@
       endif
 
       end subroutine ba_add_new
+
 
       subroutine ba_bundle( lstr, buf_s, buf_d )
       !USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
@@ -284,6 +281,7 @@
 
       end subroutine ba_unbundle
 
+
       subroutine ba_copy( lstr )
       implicit none
       type (lookup_str) :: lstr
@@ -320,219 +318,6 @@
 
       end module bundle_arrays
 
-#else /* BUNDLE_INTERP_NEW */
-
-      module bundle_arrays
-      implicit none
-      private
-
-      public lookup_str
-      public ba_init, ba_add, ba_bundle, ba_unbundle
-
-      interface ba_add
-         module procedure ba_add_2
-         module procedure ba_add_3
-      end interface
-
-      integer, parameter :: N_LOOKUP_MAX=256
-
-      type lookup_record
-        integer :: rank,km
-        real*8, pointer :: src2(:,:), dest2(:,:)
-        real*8, pointer :: src_w(:,:), dest_w(:,:)
-        real*8, pointer :: src3(:,:,:), dest3(:,:,:)
-      end type lookup_record
-
-      type lookup_str
-        integer :: si_0, si_1, sj_0, sj_1  ! source bounds
-        integer :: di_0, di_1, dj_0, dj_1  ! destination bounds
-        integer  :: n_lookup=0
-        type (lookup_record) :: lr(N_LOOKUP_MAX)
-      end type lookup_str
-
-
-      contains
-
-      subroutine ba_init( lstr, si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 )
-      implicit none
-      type (lookup_str) :: lstr
-      integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 
-      
-      lstr%si_0 = si_0
-      lstr%si_1 = si_1
-      lstr%sj_0 = sj_0
-      lstr%sj_1 = sj_1
-      lstr%di_0 = di_0
-      lstr%di_1 = di_1
-      lstr%dj_0 = dj_0
-      lstr%dj_1 = dj_1
-
-      lstr%n_lookup = 0
-      end subroutine ba_init
-
-
-      subroutine ba_add_2( lstr, src, dest, src_w, dest_w )
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(:,:), target :: src, dest
-      real*8, dimension(:,:), target, optional :: src_w, dest_w
-
-      lstr%n_lookup = lstr%n_lookup + 1
-      if ( lstr%n_lookup > N_LOOKUP_MAX )
-     &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
-
-      lstr%lr(lstr%n_lookup)%src2 => src(:,:)
-      lstr%lr(lstr%n_lookup)%dest2 => dest(:,:)
-      lstr%lr(lstr%n_lookup)%rank = 2
-      lstr%lr(lstr%n_lookup)%km = 1
-
-      if ( present(src_w) .and. present(dest_w) ) then
-        lstr%lr(lstr%n_lookup)%src_w => src_w(:,:)
-        lstr%lr(lstr%n_lookup)%dest_w => dest_w(:,:)
-      else
-        if ( present(src_w) ) call stop_model(
-     &       "ba_add: use both weights or none", 255)
-        nullify( lstr%lr(lstr%n_lookup)%src_w )
-        nullify( lstr%lr(lstr%n_lookup)%dest_w )
-      endif
-
-      if (agrid%gid .eq. 0) write(*,*) "nlookup, KM=",
-     & lstr%n_lookup,lstr%lr(lstr%n_lookup)%km
-
-      end subroutine ba_add_2
-
-
-      subroutine ba_add_3( lstr, src, dest, src_w, dest_w )
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(:,:,:), target :: src, dest
-      real*8, dimension(:,:), target, optional :: src_w, dest_w
-
-      lstr%n_lookup = lstr%n_lookup + 1
-      if ( lstr%n_lookup > N_LOOKUP_MAX )
-     &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
-
-      lstr%lr(lstr%n_lookup)%src3 => src(:,:,:)
-      lstr%lr(lstr%n_lookup)%dest3 => dest(:,:,:)
-      lstr%lr(lstr%n_lookup)%rank = 3
-      lstr%lr(lstr%n_lookup)%km = size(src,1)
-
-      if ( present(src_w) .and. present(dest_w) ) then
-        lstr%lr(lstr%n_lookup)%src_w => src_w(:,:)
-        lstr%lr(lstr%n_lookup)%dest_w => dest_w(:,:)
-      else
-        if ( present(src_w) ) call stop_model(
-     &       "ba_add: use both weights or none", 255)
-        nullify( lstr%lr(lstr%n_lookup)%src_w )
-        nullify( lstr%lr(lstr%n_lookup)%dest_w )
-      endif
-
-      end subroutine ba_add_3
-
-
-      subroutine ba_bundle( lstr, buf_s, buf_d )
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
-
-      integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 
-      integer k, l, n
-
-      si_0 = lstr%si_0
-      si_1 = lstr%si_1
-      sj_0 = lstr%sj_0
-      sj_1 = lstr%sj_1
-      di_0 = lstr%di_0
-      di_1 = lstr%di_1
-      dj_0 = lstr%dj_0
-      dj_1 = lstr%dj_1
-
-      n = 1
-      do k=1,lstr%n_lookup
-        n = n+lstr%lr(k)%km
-      enddo
-
-      allocate( buf_s(n, si_0:si_1, sj_0:sj_1) )
-      allocate( buf_d(n, di_0:di_1, dj_0:dj_1) )
-
-      n = 1
-      do k=1,lstr%n_lookup
-        select case(lstr%lr(k)%rank)
-        case(2)
-          buf_s(n,:,:) = lstr%lr(k)%src2(:,:)
-          if ( associated(lstr%lr(k)%src_w ) )
-     &         buf_s(n,:,:) = buf_s(n,:,:) * lstr%lr(k)%src_w(:,:)
-        case(3)
-          buf_s(n:n+lstr%lr(k)%km-1,:,:) = lstr%lr(k)%src3(:,:,:)
-          if ( associated(lstr%lr(k)%src_w ) ) then
-             do l=n,n+lstr%lr(k)%km-1
-                buf_s(l,:,:) =
-     &               buf_s(l,:,:) * lstr%lr(k)%src_w(:,:)
-             enddo
-          endif
-        end select
-        n = n+lstr%lr(k)%km
-        if (agrid%gid .eq. 0) write(*,*),"index n=",n
-      enddo
-
-      end subroutine ba_bundle
-
-
-      subroutine ba_unbundle( lstr, buf_s, buf_d )
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
-
-      integer i,j,k,l,n
-
-      n = 1
-      do k=1,lstr%n_lookup
-        select case(lstr%lr(k)%rank)
-        case(2)
-           lstr%lr(k)%dest2(:,:) = buf_d(n,:,:)
-        case(3)
-           lstr%lr(k)%dest3(:,:,:) = buf_d(n:n+lstr%lr(k)%km-1,:,:)
-        end select
-      n = n+lstr%lr(k)%km
-      enddo
- 	 
-      do k=1,lstr%n_lookup
-         select case(lstr%lr(k)%rank)
-         case(2)
-            if ( associated(lstr%lr(k)%dest_w ) ) then
-               where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
-                  lstr%lr(k)%dest2(:,:) =
-     &                 lstr%lr(k)%dest2(:,:) / lstr%lr(k)%dest_w(:,:)
-               elsewhere
-                  lstr%lr(k)%dest2(:,:) = 0.d0
-               endwhere
-            endif
-         case(3)
-         if ( associated(lstr%lr(k)%dest_w ) ) then
-           do l=1,size(lstr%lr(k)%dest3,1)
-            where ( lstr%lr(k)%dest_w(:,:) .ne. 0.d0 )
-              lstr%lr(k)%dest3(l,:,:) =
-     &             lstr%lr(k)%dest3(l,:,:) / lstr%lr(k)%dest_w(:,:)
-            elsewhere
-              lstr%lr(k)%dest3(l,:,:) = 0.d0
-            endwhere
-           enddo
-         endif
-      end select
-      enddo
-
-      deallocate( buf_s )
-      deallocate( buf_d )     
-
-      end subroutine ba_unbundle
-
-      end module bundle_arrays
-#endif /* BUNDLE_INTERP_NEW */
 
       subroutine bundle_interpolation(remap,lstr)
       USE bundle_arrays
@@ -564,7 +349,7 @@
       USE OCEAN,      only : oIM=>im, oJM=>jm
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : am_i_root,ocn_pack=>pack_data
+      USE DOMAIN_DECOMP_1D, only : am_i_root
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
@@ -765,7 +550,6 @@ c*   actual interpolation here
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid, am_i_root
-      use dd2d_utils, only : atm_pack=>pack_data
       USE DOMAIN_DECOMP_1D, only : OCN_UNPACK=>UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       USE OCEANR_DIM, only : ogrid
@@ -834,8 +618,6 @@ c*   actual interpolation here
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
-      write(*,*) "OG2AG_TOC2SST_BUNDLE"
-
       !-- initializing "lstr"
       call ba_init( lstr, 1, oIM,
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO,
@@ -873,44 +655,7 @@ c*   actual interpolation here
      &     OGEOZtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
      &     OGEOZ_SVtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
-
       CALL OCN_UNPACK (oGRID,oFOCEAN,oFOCEAN_loc)
-
-
-#ifdef DEBUG_OG2AG
-      allocate(aones(4,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(oones(4,oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
-     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-      allocate(atwos(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,5))
-      allocate(otwos(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
-     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,5))
-      allocate(athrees(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(othrees(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO
-     &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-
-
-      do l=1,4
-      oones(l,:,:)=5.*l
-      enddo
-      do k=1,5
-      otwos(:,:,k)=4.*k+agrid%gid
-      enddo
-      othrees=3.+agrid%gid
-
-      oweight= oFOCEAN_loc(:,:)
-      oweight1= oFOCEAN_loc(:,:)
-c      CALL INT_OG2AG(otwos,atwos,oWEIGHT,5,5,.FALSE.)
-      call ba_add(lstr,oWEIGHT,aWEIGHT)
-      call ba_add_new(lstr,oones,aones,shape(oones),'lij',
-     &   oWEIGHT,aWEIGHT )
-      call ba_add_new(lstr,otwos,atwos,shape(otwos),'ijk',
-     &   oWEIGHT,aWEIGHT )
-      call ba_add(lstr,oWEIGHT1,aWEIGHT1)
-      call ba_add(lstr,othrees,athrees,oWEIGHT1,aWEIGHT1 )
-#else /* not DEBUG_OG2AG */
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       call ba_add( lstr, oWEIGHT, aWEIGHT)
@@ -1103,61 +848,23 @@ C**** surface tracer concentration
 #endif
 #endif
 
-#endif /* DEBUG_OG2AG */
-
 c*    actual interpolation here
       call bundle_interpolation(remap_O2A,lstr)
-
 
       DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc, opCO2_loc)
 #ifdef TRACERS_OCEAN
       DEALLOCATE(oTRAC)
 #endif
 
-#ifdef DEBUG_OG2AG 
-c      allocate(aones_glob(aIM,aJM,5,6))
-      allocate(atwos_glob(aIM,aJM,6))
-c      allocate(athrees_glob(aIM,aJM,6))
-      allocate(a4_glob(aIM,aJM,6))
-c      call atm_pack(agrid,aones,aones_glob)
-      call atm_pack(agrid,atwos(:,:,5),atwos_glob)
-c      call atm_pack(agrid,athrees,athrees_glob)
-
-      if (am_i_root()) then
-        write(2500,200) atwos_glob
-        open(2300,FILE="O2A",FORM='unformatted',
-     &       STATUS='unknown')
-        title="test"
-        a4_glob=atwos_glob
-        write(2300) title,a4_glob
-        close(2300)
-        open(2600,FILE="O2Aa8",FORM='unformatted',
-     &       STATUS='unknown')
-        title="testa8"
-        write(2600) title,atwos_glob
-        close(2600)
-
-      endif
- 200        format(f25.22)
-      deallocate(aones,oones,atwos,otwos,athrees,othrees)
-      deallocate(atwos_glob,a4_glob)
-
-      call stop_model("debug bundle",255)
-
-#endif /* DEBUG_OG2AG */
-
-
       deallocate(oweight,aweight,
      &     oweight1,aweight1,
      &     oMOtmp,OGEOZtmp,OGEOZ_SVtmp,
      &     ofocean_loc)
 
-
-
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
-#else
 
+#else
       SUBROUTINE OG2AG_TOC2SST
 !@sum  OG2AG_oceans: ocean arrays used in the subr. TOC2SST are gathered
 !       on the ocean grid, interpolated to the atm. grid, and scattered
@@ -1229,9 +936,6 @@ c      call atm_pack(agrid,athrees,athrees_glob)
       oJ_1 = oGRID%j_STOP
       oJ_0S = oGRID%j_STRT_SKP
       oJ_1S = oGRID%j_STOP_SKP
-
-
-c      write(*,*) "OG2AG_TOC2SST old version"
 
       ALLOCATE
      *  (oG0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
@@ -1449,7 +1153,6 @@ C**** surface tracer concentration
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      use domain_decomp_1d, only : pack_data
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
@@ -1867,7 +1570,6 @@ c*
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      use domain_decomp_1d, only : pack_data
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
@@ -2142,77 +1844,6 @@ c*
 #endif /*ag2og_oceans_bundle */
 
 
-c      subroutine debug_acoupling(name,ar8)
-c!@auth D. Gueyffier
-c      USE RESOLUTION, only : aIM=>IM, aJM=>JM
-c      use domain_decomp_atm, only : agrid=>grid,pack_data,am_i_root
-c      real*8, intent(in) :: ar8(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
-c     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)
-c      real*8, allocatable :: ar8glob(:,:,:)
-c      real*4, allocatable :: ar4(:,:,:)
-c      character*80 :: name,title,fname
-c
-c      allocate(ar8glob(aIM,aJM,6),ar4(aIM,aJM,6))
-c
-c      call pack_data(agrid,ar8,ar8glob)
-c
-c      if (am_i_root()) then
-c         ar4=ar8glob
-c         title="testa-"//trim(name)
-c         fname=title
-c         open(2000,FILE=fname,FORM='unformatted', STATUS='unknown')
-c         write(2000) title,ar4
-c         close(2000)
-c         name=""
-c      endif
-c
-c      deallocate(ar8glob,ar4)
-c
-c      end subroutine debug_acoupling
-
-
-c      subroutine debug_ocoupling(name,or8)
-c!@auth D. Gueyffier
-c      USE OCEAN, only : oIM=>IM, oJM=>JM, oFOCEAN=>FOCEAN
-c      use domain_decomp_1d, only : pack_data,am_i_root
-c      USE OCEANR_DIM, only : ogrid
-c      real*8, intent(in) :: or8(oIM,
-c     &     oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
-c      real*8, allocatable :: or8glob(:,:)
-c      real*4, allocatable :: or4(:,:)
-c      character*80 :: title,name,fname
-c
-c      allocate(or8glob(oIM,oJM),or4(oIM,oJM))
-c
-cc      write(*,*) "max o dist=",maxval(
-cc     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
-cc     &                                ),
-cc     &           "min odist=",minval(
-cc     &     or8(:,oGRID%J_STRT:oGRID%J_STOP)
-cc     &                               )
-c
-c      call pack_data(ogrid,or8,or8glob)
-c
-c      if (am_i_root()) then
-c         or4=or8glob
-c         title="testo-"//trim(name)
-c         fname=title
-c         open(30,FILE=fname,FORM='unformatted', STATUS='unknown')
-c         write(30) title,or4
-c         write(*,*) "max "//trim(name),"=",maxval(or8glob),
-c     &        "min "//trim(name),"=",minval(or8glob),
-c     &        "maxloc "//trim(name),"=",maxloc(or8glob),
-c     &        "minloc "//trim(name),"=",minloc(or8glob)
-c 
-c         close(30)
-c         name=""
-c      endif
-c
-c      deallocate(or8glob,or4)
-c
-c      end subroutine debug_ocoupling
-c
-
 #ifdef OG2AG_OCEANS_BUNDLE      
       SUBROUTINE OG2AG_oceans
 !@sum  OG2AG_oceans: ocean arrays for sea ice formation calculated in the
@@ -2279,8 +1910,6 @@ c
       allocate(aDSSItmp(2,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
 
-
-      write(*,*) "OG2AG_OCEANS_BUNDLE"
 
       !-- initializing "lstr"
       call ba_init( lstr, 1, oIM,
