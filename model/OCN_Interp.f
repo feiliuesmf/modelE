@@ -10,6 +10,7 @@
 
       public lookup_str
       public ba_init, ba_add, ba_bundle, ba_unbundle
+      public ba_add_new, ba_copy
 
       integer, parameter :: N_LOOKUP_MAX=256
 
@@ -276,6 +277,40 @@
       deallocate( buf_d )     
 
       end subroutine ba_unbundle
+
+      subroutine ba_copy( lstr )
+      implicit none
+      type (lookup_str) :: lstr
+
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1 
+      integer im,jm,km,lm,nm
+      integer m
+      
+      si_0 = lstr%si_0
+      si_1 = lstr%si_1
+      sj_0 = lstr%sj_0
+      sj_1 = lstr%sj_1
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      im = si_1 - si_0 + 1
+      jm = sj_1 - sj_0 + 1
+
+      ! make sure we copy arrays of the same size
+      if ( im .ne. di_1 - di_0 + 1 .or. jm .ne. dj_1 - dj_0 + 1 )
+     &     call stop_model("ba_copy: dims of arrays differ", 255)
+
+      do m = 1,lstr%n_lookup
+        km = lstr%lr(m)%km
+        lm = lstr%lr(m)%lm
+        nm = lm*im*jm*km
+        lstr%lr(m)%dest(1:nm) = lstr%lr(m)%src(1:nm)
+      enddo
+
+      end subroutine ba_copy
 
       end module bundle_arrays
 
