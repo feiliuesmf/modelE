@@ -311,7 +311,8 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef CUBE_GRID
-      use regrid_com, only : xO2A,xA2O,xA2O_root,remap_A2O
+      use regrid_com, only : xO2A,xA2O,xA2O_root,xO2A_root,
+     &    remap_A2O,remap_O2A
       use cs2ll_utils, only : init_xgridremap_type
 #endif
 #ifdef TRACERS_OCEAN
@@ -394,10 +395,11 @@ C****
       call init_regrid(xO2A,grid,im,jm,1,aim,ajm,6)
       call init_regrid(xA2O,agrid,aim,ajm,6,im,jm,1)
       call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
+      call init_regrid_root(xO2A_root,im,jm,1,aim,ajm,6)
 c*** fill in vector full of ones
       allocate(ones(xA2O_root%xgridroot%ncells))
       ones=1
-c*** initialize remapping derived type
+c*** initialize remapping derived types
       call init_xgridremap_type(agrid,grid,
      &     xA2O_root%xgridroot%ncells,
      &     xA2O_root%xgridroot%ijcub(1,:),
@@ -407,6 +409,19 @@ c*** initialize remapping derived type
      &     xA2O_root%xgridroot%ijlatlon(2,:),
      &     ones,
      &     xA2O_root%xgridroot%xgrid_area,remap_a2o)
+
+      write(*,*) "bef init xgridremap O2A"
+      call init_xgridremap_type(grid,agrid,
+     &     xO2A_root%xgridroot%ncells,
+     &     xO2A_root%xgridroot%ijlatlon(1,:),
+     &     xO2A_root%xgridroot%ijlatlon(2,:),
+     &     ones,
+     &     xO2A_root%xgridroot%ijcub(1,:),
+     &     xO2A_root%xgridroot%ijcub(2,:),
+     &     xO2A_root%xgridroot%tile,
+     &     xO2A_root%xgridroot%xgrid_area,remap_o2a)
+      write(*,*) "aft init xgridremap O2A"
+
       deallocate(ones)
 #endif
 C**** Calculate ZE
