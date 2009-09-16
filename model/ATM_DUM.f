@@ -67,23 +67,25 @@ c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
       USE DOMAIN_DECOMP_ATM, only : grid,get
       use FV_StateMod, only : INTERP_DGRID_TO_AGRID
       implicit none
-      real*8, dimension(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
-     &     :: ua_tmp,va_tmp,ud_tmp,vd_tmp
+      real*8, dimension(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,
+     &     lm) :: ua_tmp,va_tmp,ud_tmp,vd_tmp
       integer :: i,j,l,I_0,I_1,J_0,J_1
       call get(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
       do l=1,lm
         do j=j_0,j_1
         do i=i_0,i_1
-          ud_tmp(i,j) = u(i,j,l) ! strip halo cells from u
-          vd_tmp(i,j) = v(i,j,l) ! strip halo cells from v
+          ud_tmp(i,j,l) = u(i,j,l) ! strip halo cells from u
+          vd_tmp(i,j,l) = v(i,j,l) ! strip halo cells from v
         enddo
         enddo
-        call interp_dgrid_to_agrid(ud_tmp, vd_tmp, ua_tmp, va_tmp,
+      enddo
+      call interp_dgrid_to_agrid(ud_tmp, vd_tmp, ua_tmp, va_tmp,
      &       rotate=.true.)
+      do l=1,lm
         do j=j_0,j_1
         do i=i_0,i_1
-          ua(l,i,j) = ua_tmp(i,j)
-          va(l,i,j) = va_tmp(i,j)
+          ua(l,i,j) = ua_tmp(i,j,l)
+          va(l,i,j) = va_tmp(i,j,l)
         enddo
         enddo
       enddo
