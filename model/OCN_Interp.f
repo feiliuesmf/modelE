@@ -1,11 +1,11 @@
 #include "rundeck_opts.h"
 
-#define AG2OG_PRECIP_BUNDLE
-#define OG2AG_TOC2SST_BUNDLE
-#define AG2OG_OCEANS_BUNDLE
-#define OG2AG_OCEANS_BUNDLE      
+!#define AG2OG_PRECIP_BUNDLE
+!#define OG2AG_TOC2SST_BUNDLE
+!#define AG2OG_OCEANS_BUNDLE
+!#define OG2AG_OCEANS_BUNDLE      
 
-#define BUNDLE_INTERP
+!#define BUNDLE_INTERP
 
 #ifdef BUNDLE_INTERP
 
