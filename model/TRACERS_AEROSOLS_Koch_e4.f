@@ -1038,6 +1038,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
       endif
       if (imAER.eq.5) then
       ns=7
+      if (ihyr.eq.1850) ns=6
       else
       ns=1
       endif
