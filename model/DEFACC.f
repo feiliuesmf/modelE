@@ -3816,50 +3816,6 @@ c
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e10/DTsrc
 #endif
-#ifdef HTAP_LIKE_DIAGS
-      do L=1,LM
-        k=k+1        ! moist convective air mass flux
-        IJ_MCamFX(L) = k
-        write(lname_ij(k),'(a33,i2.2)')
-     & 'MOIST CONVECTIVE AIR MASS FLUX L=',L
-        units_ij(k) = '1e-4 kg/m2/s'
-        write(name_ij(k),'(a6,i2.2)') 'MCamFX',L
-        ia_ij(k) = ia_src
-        scale_ij(k) = 1.e4*100.*BYGRAV/DTsrc
-      enddo
-      do L=1,LM
-        k=k+1        ! layer temperature
-        IJ_TEMPL(L) = k
-        write(lname_ij(k),'(a20,i2.2)')
-     & 'LAYER TEMPERATURE L=',L
-        units_ij(k) = 'K'
-        write(name_ij(k),'(a5,i2.2)') 'TEMPL',L
-        ia_ij(k) = ia_dga
-        scale_ij(k) = 1.e0
-      enddo
-      do L=1,LM
-        k=k+1        ! grid box geometric height
-        IJ_GRIDH(L) = k
-        write(lname_ij(k),'(a18,i2.2)')
-     & 'GRID BOX HEIGHT L=',L
-        units_ij(k) = 'm'
-        write(name_ij(k),'(a5,i2.2)') 'GRIDH',L
-        ia_ij(k) = ia_dga
-        scale_ij(k) = 1.e0
-      enddo
-      do L=1,LM
-        k=k+1        ! layer specific humidity
-        IJ_HUSL(L) = k
-        write(lname_ij(k),'(a26,i2.2)')
-     & 'LAYER SPECIFIC HUMIDITY L=',L
-        units_ij(k) = 'kg/kg'
-        write(name_ij(k),'(a4,i2.2)') 'HUSL',L
-        ia_ij(k) = ia_dga
-        scale_ij(k) = 1.e0
-      enddo
-#endif
-c
-
 
 c
 c the following are not accumulated
@@ -5122,6 +5078,37 @@ c
       units_ijl(k) = 'gm-3'
       ia_ijl(k) = ia_src
 
+#endif
+#ifdef HTAP_LIKE_DIAGS
+      k=k+1        ! temperature (model layers)
+      ijl_tempL    = k
+      name_ijl(k)  = 'TempL'
+      lname_ijl(k) = 'Layer Temperature'
+      units_ijl(k) = 'K'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_dga
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! grid box geometric height (model layers)
+      ijl_gridh    = k
+      name_ijl(k)  = 'GridH'
+      lname_ijl(k) = 'Grid Box Geom Height'
+      units_ijl(k) = 'm'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_dga
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! specific humidity (model layers)
+      ijl_husl     = k
+      name_ijl(k)  = 'SpHuL'
+      lname_ijl(k) = 'Specific Humidity'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_dga
+      lgrid_ijl(k) = ctr_ml
 #endif
 
       if (k .gt. kaijl) then

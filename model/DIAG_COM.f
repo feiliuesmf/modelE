@@ -64,11 +64,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-#ifdef HTAP_LIKE_DIAGS
-      INTEGER, PARAMETER, public :: KAIJ=500
-#else
       INTEGER, PARAMETER, public :: KAIJ=362
-#endif
+
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
 
@@ -76,6 +73,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       INTEGER, PARAMETER, public :: KAIJL=18
 #ifdef CLD_AER_CDNC
      &     +12
+#endif
+#ifdef HTAP_LIKE_DIAGS
+     &     +3
 #endif
 !@var IJL_xxx,IJK_xxx AIJL diagnostic indices
 !@+   IJL/IJK refer to model versus constant-pressure levels
@@ -86,6 +86,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
+     &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL
 
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
       REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc
@@ -477,8 +478,6 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_swaersrf,ij_lwaersrf,ij_swaerabs,ij_lwaerabs,ij_swaerrfnt
      *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE
-      INTEGER, public, dimension(LM) :: IJ_MCamFX,IJ_TEMPL,IJ_GRIDH
-     &     ,IJ_HUSL
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER, public ::
      &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
