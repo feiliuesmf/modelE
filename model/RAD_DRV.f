@@ -832,6 +832,9 @@ cdmk last line saved for IE
 #ifdef HTAP_LIKE_DIAGS
      &     ,ttausv_sum,ttausv_count
 #endif
+#ifdef SHINDELL_STRAT_EXTRA
+     &     ,stratO3_tracer_save
+#endif
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
@@ -890,7 +893,7 @@ cdmk last line saved for IE
 
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,n_Ox,trm,trname,n_OCB,n_BCII,n_BCIA
-     *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4
+     *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
      *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4,n_N_AKK_1
 #ifdef TRACERS_AEROSOLS_SOA
      *     ,n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
@@ -939,10 +942,14 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      &                          grid%J_STRT_HALO:grid%J_STOP_HALO)::
      *     SNFST,TNFST
 !@var snfst_ozone,tnfst_ozone like snfst,tnfst for special case ozone for
-!@+   which ntrace fields are not defined
+!@+   which ntrace fields are not defined. Warning, index 1=LTROPO,
+!@+   2=TOA; not saving surface forcing for ozone.
       REAL*8,DIMENSION(2,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     snfst_ozone,tnfst_ozone
+#ifdef SHINDELL_STRAT_EXTRA
+     &    ,snfst_stratOx,tnfst_stratOx
+#endif
 #ifdef BC_ALB
       REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                 grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1621,6 +1628,9 @@ C**** Ozone:
       if (rad_interact_tr.gt.0) then
         O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
         use_tracer_ozone=LM
+#ifdef SHINDELL_STRAT_EXTRA
+        call stop_model("stratOx RADF illegal if rad_interact_tr>0",255)
+#endif
       endif
 #endif
 C**** Aerosols incl. Dust:
@@ -1690,11 +1700,21 @@ C**** Ozone:
       use_tracer_ozone=(1-onoff)*LM
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX        ! tr_Shindell
-      SNFST_ozone(1,I,J)=SRNFLB(1)  ! surface
-      TNFST_ozone(1,I,J)=TRNFLB(1)
-      SNFST_ozone(2,I,J)=SRNFLB(LFRC)
-      TNFST_ozone(2,I,J)=TRNFLB(LFRC)
+      SNFST_ozone(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
+      TNFST_ozone(1,I,J)=TRNFLB(LTROPO(I,J))
+      SNFST_ozone(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
+      TNFST_ozone(2,I,J)=TRNFLB(LM+LM_REQ+1)
       use_tracer_ozone=onoff*LM
+#ifdef SHINDELL_STRAT_EXTRA
+      O3_IN(1:LM)=stratO3_tracer_save(1:LM,I,J)
+      kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+      CALL RCOMPX        ! stratOx diag tracer
+      SNFST_stratOx(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
+      TNFST_stratOx(1,I,J)=TRNFLB(LTROPO(I,J))
+      SNFST_stratOx(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
+      TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
+      O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
+#endif
 #endif
 #ifdef BC_ALB
       dalbsn=0.d0
@@ -2416,39 +2436,51 @@ c    &              -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
            end do
          end if
 
-c     ..........
-c     accumulation of forcings for special case ozone (ntrace fields
-c     not defined)
-c     ..........
-         IF (n_Ox > 0) THEN
-c shortwave forcing (TOA or TROPO)
+c ..........
+c accumulation of forcings for special case ozone (ntrace fields
+c not defined) Warning: indicies used differently, since we don't 
+c need CS or Surface, but are doing both TOA and Ltropo:
+c ..........
+         if(n_Ox > 0) then ! ------ main Ox tracer -------
+c shortwave forcing at tropopause
            if (ijts_fc(1,n_Ox).gt.0)
-     &          taijs(i,j,ijts_fc(1,n_Ox))=taijs(i,j,ijts_fc(1,n_Ox))
-     &          +rsign*(SNFST_ozone(2,I,J)-SNFS(LFRC,I,J))*CSZ2
-c longwave forcing  (TOA or TROPO)
+     &     taijs(i,j,ijts_fc(1,n_Ox))=taijs(i,j,ijts_fc(1,n_Ox))
+     &     +rsign*(SNFST_ozone(1,I,J)-SNFS(4,I,J))*CSZ2
+c longwave forcing at tropopause
            if (ijts_fc(2,n_Ox).gt.0)
-     &          taijs(i,j,ijts_fc(2,n_Ox))=taijs(i,j,ijts_fc(2,n_Ox))
-     &          -rsign*(TNFST_ozone(2,I,J)-TNFS(LFRC,I,J))
-c shortwave forcing (TOA or TROPO) clear sky
-           if (ijts_fc(5,n_Ox).gt.0)
-     &          taijs(i,j,ijts_fc(5,n_Ox))=taijs(i,j,ijts_fc(5,n_Ox))
-     &          +rsign*(SNFST_ozone(2,I,J)-SNFS(LFRC,I,J))*CSZ2
-     &          *(1.d0-CFRAC(I,J))
-c longwave forcing  (TOA or TROPO) clear sky
-           if (ijts_fc(6,n_Ox).gt.0)
-     &          taijs(i,j,ijts_fc(6,n_Ox))=taijs(i,j,ijts_fc(6,n_Ox))
-     &          -rsign*(TNFST_ozone(2,I,J)-TNFS(LFRC,I,J))
-     &          *(1.d0-CFRAC(I,J))
-c shortwave forcing at surface (if required)
+     &     taijs(i,j,ijts_fc(2,n_Ox))=taijs(i,j,ijts_fc(2,n_Ox))
+     &     -rsign*(TNFST_ozone(1,I,J)-TNFS(4,I,J))
+c shortwave forcing at TOA
            if (ijts_fc(3,n_Ox).gt.0)
-     &          taijs(i,j,ijts_fc(3,n_Ox))=taijs(i,j,ijts_fc(3,n_Ox))
-     &          +rsign*(SNFST_ozone(1,I,J)-SNFS(1,I,J))*CSZ2
-c longwave forcing at surface (if required)
+     &     taijs(i,j,ijts_fc(3,n_Ox))=taijs(i,j,ijts_fc(3,n_Ox))
+     &     +rsign*(SNFST_ozone(2,I,J)-SNFS(3,I,J))*CSZ2
+c longwave forcing at TOA
            if (ijts_fc(4,n_Ox).gt.0)
-     &          taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
-     &          -rsign*(TNFST_ozone(1,I,J)-TNFS(1,I,J))
-         END IF
-#endif
+     &     taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
+     &     -rsign*(TNFST_ozone(2,I,J)-TNFS(3,I,J))
+         endif 
+#ifdef SHINDELL_STRAT_EXTRA
+                      ! ------ diag stratOx tracer -------
+! note for now for this diag, there is a failsafe that stops model
+! if rad_interact_tr>0 when the below would be wrong:
+c shortwave forcing at tropopause
+         if (ijts_fc(1,n_stratOx).gt.0)
+     &   taijs(i,j,ijts_fc(1,n_stratOx))=taijs(i,j,ijts_fc(1,n_stratOx))
+     &   +rsign*(SNFST_ozone(1,I,J)-SNFST_stratOx(1,I,J))*CSZ2
+c longwave forcing at tropopause
+         if (ijts_fc(2,n_stratOx).gt.0)
+     &   taijs(i,j,ijts_fc(2,n_stratOx))=taijs(i,j,ijts_fc(2,n_stratOx))
+     &   -rsign*(TNFST_ozone(1,I,J)-TNFST_stratOx(1,I,J))
+c shortwave forcing at TOA
+         if (ijts_fc(3,n_stratOx).gt.0)
+     &   taijs(i,j,ijts_fc(3,n_stratOx))=taijs(i,j,ijts_fc(3,n_stratOx))
+     &   +rsign*(SNFST_ozone(2,I,J)-SNFST_stratOx(2,I,J))*CSZ2
+c longwave forcing at TOA
+         if (ijts_fc(4,n_stratOx).gt.0)
+     &   taijs(i,j,ijts_fc(4,n_stratOx))=taijs(i,j,ijts_fc(4,n_stratOx))
+     &   -rsign*(TNFST_ozone(2,I,J)-TNFST_stratOx(2,I,J))
+#endif /* SHINDELL_STRAT_EXTRA */
+#endif /* any of various tracer groups defined */
 
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      /        (ALB(I,J,1)+1.D-20))

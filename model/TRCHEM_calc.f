@@ -14,14 +14,12 @@ C
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      *     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
-     *     ,ijlt_HO2
-#ifdef HTAP_LIKE_DIAGS
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
-#endif
+     *     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
 #endif
       USE TRACER_COM, only: n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,
+     &                   n_stratOx,
 #ifdef TRACERS_TERP
      &                   n_Terpenes,
 #endif  /* TRACERS_TERP */
@@ -939,6 +937,11 @@ c Loops to calculate tracer changes:
 #endif
          endif
          if(igas == n_Ox)then
+#ifdef SHINDELL_STRAT_EXTRA
+           changeL(L,n_stratOx)=dest(igas,L)*conc2mass
+           if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+ 
+     &     prod(igas,L)*conc2mass
+#endif
            CALL INC_TAJLS(I,J,L,jls_Oxp, prod(igas,L)*conc2mass)
            if(L<=maxT)
      &     CALL INC_TAJLS(I,J,L,jls_OxpT,prod(igas,L)*conc2mass)
@@ -1418,6 +1421,10 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
      &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
         conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
         changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
+#ifdef SHINDELL_STRAT_EXTRA
+        if(L>maxT .or. NprodOx<0.)changeL(L,n_stratOx)=
+     &  changeL(L,n_stratOx)+NprodOx*conc2mass
+#endif
         if(NprodOx <  0.) then ! necessary?
           CALL INC_TAJLS(I,J,L,jls_Oxd,NprodOx*conc2mass)
           if(L<=maxT)

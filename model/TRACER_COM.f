@@ -65,7 +65,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* SHINDELL_STRAT_CHEM */
 !@var ntm_shindell_extra: Number of SHINDELL_STRAT_EXTRA tracers.
 #ifdef SHINDELL_STRAT_EXTRA
-      integer, parameter :: ntm_shindell_extra=1
+      integer, parameter :: ntm_shindell_extra=2
 #else
       integer, parameter :: ntm_shindell_extra=0
 #endif  /* SHINDELL_STRAT_EXTRA */
@@ -238,8 +238,7 @@ C**** do igas=1,ntm_chem instances get corrected.
      *                          'HCl     ','HOCl    ','ClONO2  ',
      *    'HBr     ','HOBr    ','BrONO2  ','N2O     ','CFC     ',
 #ifdef SHINDELL_STRAT_EXTRA
-     *                          'GLT     ',
-CCC  *    'Be7     ','Be10    ','GLT     ',
+     *    'stratOx ','GLT     ', ! used to also do Be7, Be10
 #else
 !kt     *    'Water   ',
 #endif  /* SHINDELL_STRAT_EXTRA */
@@ -711,9 +710,7 @@ CCC  *    'Be7     ','Be10    ','GLT     ',
      *     n_N2O5=0,   n_HNO3=0,  n_H2O2=0,  n_CH3OOH=0,   n_HCHO=0,
      *     n_HO2NO2=0, n_CO=0,    n_PAN=0,   n_H2O17=0,
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
-#ifdef TRACERS_TERP
-     *     n_Terpenes=0,
-#endif  /* TRACERS_TERP */
+     *     n_stratOx=0, n_Terpenes=0,
 #ifdef TRACERS_AEROSOLS_SOA
      *     n_isopp1g=0,n_isopp1a=0,n_isopp2g=0,n_isopp2a=0,
      *     n_apinp1g=0,n_apinp1a=0,n_apinp2g=0,n_apinp2a=0,

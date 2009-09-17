@@ -191,9 +191,7 @@ C**** TAIJLS 3D special tracer diagnostics
       INTEGER, DIMENSION(ktaijs) :: ijlt_power
 !@var ijlt_XXX diag names associated with 3D tracer special diags
       INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_JH2O2
-#ifdef HTAP_LIKE_DIAGS
      &     ,ijlt_COp,ijlt_COd,ijlt_Oxp,ijlt_Oxd,ijlt_CH4d
-#endif
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers
 !@var ijlt_AMPm tracer independent array for AMP modes

@@ -675,6 +675,16 @@ C          read the CFC initial conditions:
       n_GLT = n
           ntm_power(n) = -11
           tr_mm(n) = mair
+
+      case ('stratOx')
+      n_stratOx = n
+          ! assumes initial Ox conditions read in for Ox tracer
+          ntm_power(n) = -8
+          tr_mm(n) = 48.d0
+#ifdef TRACERS_DRYDEP
+          F0(n) = 1.0d0
+          HSTAR(n) = 1.d-2
+#endif
 #endif
 
       case ('CH3OOH')
@@ -2396,21 +2406,14 @@ C**** set some defaults
         case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN' 
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
-     *       ,'Paraffin'
-#ifdef TRACERS_TERP
-     *       ,'Terpenes'
-#endif  /* TRACERS_TERP */
-     *       ) ! N2O done above
+     *       ,'Paraffin','stratOx','Terpenes') ! N2O done above
           select case (trname(n))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
      *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
      *           ,'BrONO2','NOx')
               kt_power_change(n) = -14
             case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin'
-#ifdef TRACERS_TERP
-     *           ,'Terpenes'
-#endif  /* TRACERS_TERP */
-     *           )
+     *           ,'Terpenes')
               kt_power_change(n) = -13
             case default
               kt_power_change(n) = -12
@@ -3675,11 +3678,7 @@ C**** special one unique to HTO
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
-     &      'AlkylNit','Ox','NOx'
-#ifdef TRACERS_TERP
-     &     ,'Terpenes'
-#endif  /* TRACERS_TERP */
-     &     )
+     &      'AlkylNit','Ox','NOx','stratOx','Terpenes')
         do kk=1,ntsurfsrc(n)
           k = k + 1
           jls_source(kk,n) = k
@@ -3688,11 +3687,7 @@ C**** special one unique to HTO
      &                   trim(ssname(n,kk))
           jls_ltop(k) = 1
           select case(trname(n))
-          case ('Paraffin','Isoprene'
-#ifdef TRACERS_TERP
-     &         ,'Terpenes'
-#endif  /* TRACERS_TERP */
-     &         )
+          case ('Paraffin','Isoprene','Terpenes')
             jls_power(k) = 0
           case default
             jls_power(k) = -2
@@ -3705,7 +3700,7 @@ C**** special one unique to HTO
         lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
         jls_ltop(k) = LM
         select case(trname(n))
-        case ('Ox')
+        case ('Ox','stratOx')
           jls_power(k) = 1
         case default
           jls_power(k) = -1
@@ -3714,10 +3709,7 @@ C**** special one unique to HTO
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
-#ifdef TRACERS_TERP
-     &  'Terpenes',
-#endif  /* TRACERS_TERP */
-     &  'NOx')
+     &  'Terpenes','NOx','stratOx')
           k = k + 1
           jls_3Dsource(nStratwrite,n) = k
           sname_jls(k) = 'overwrite_source_of'//trname(n)
@@ -5058,11 +5050,8 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
-     &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
-#ifdef TRACERS_TERP
-     &'Terpenes',
-#endif  /* TRACERS_TERP */
-     &'HO2NO2','PAN','AlkylNit')
+     &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
+     &'HO2NO2','PAN','AlkylNit','stratOx')
         do kr=1,ntsurfsrc(n)
           k = k+1
           ijts_source(kr,n) = k
@@ -5084,10 +5073,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         select case(trname(n))
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
-#ifdef TRACERS_TERP
-     &  'Terpenes',
-#endif  /* TRACERS_TERP */
-     &  'HO2NO2','PAN','AlkylNit')
+     &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx')
           k = k + 1
           ijts_3Dsource(nStratwrite,n) = k
           ia_ijts(k) = ia_src
@@ -5115,20 +5101,36 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        case('Ox')
+        case('Ox','stratOx')
           k = k + 1
           ijts_fc(1,n) = k
           ia_ijts(k) = ia_rad
-          lname_ijts(k) = trname(n)//' SW radiative forcing'
-          sname_ijts(k) = 'swf_'//trim(trname(n))
+          lname_ijts(k) = trname(n)//' tropopause SW rad forc'
+          sname_ijts(k) = 'swf_tp_'//trim(trname(n))
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
           ijts_fc(2,n) = k
           ia_ijts(k) = ia_rad
-          lname_ijts(k) = trname(n)//' LW radiative forcing'
-          sname_ijts(k) = 'lwf_'//trim(trname(n))
+          lname_ijts(k) = trname(n)//' tropopause LW rad forc'
+          sname_ijts(k) = 'lwf_tp_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(3,n) = k
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trname(n)//' TOA SW rad forc'
+          sname_ijts(k) = 'swf_toa_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          k = k + 1
+          ijts_fc(4,n) = k
+          ia_ijts(k) = ia_rad
+          lname_ijts(k) = trname(n)//' TOA LW rad forc'
+          sname_ijts(k) = 'lwf_toa_'//trim(trname(n))
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
@@ -7442,6 +7444,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FILEMANAGER, only: openunit,closeunit,nameunit
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : O3_tracer_save,rad_to_file,ghg_yr
+#ifdef SHINDELL_STRAT_EXTRA
+     &  ,stratO3_tracer_save
+#endif
       USE TRCHEM_Shindell_COM,only:O3MULT,MDOFM,ch4icx,
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
@@ -7928,6 +7933,13 @@ c**** earth
             trm(I,J,L,n) = OxIC(I,J,L)
             O3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
+#ifdef SHINDELL_STRAT_EXTRA
+        case ('stratOx')
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+            trm(I,J,L,n) = OxIC(I,J,L)
+            stratO3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
+          end do   ; end do   ; end do
+#endif
 #endif
 
         case ('NOx')
@@ -9230,12 +9242,9 @@ C****
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
-     &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit',
-#ifdef TRACERS_TERP
-     &      'Terpenes',
-#endif  /* TRACERS_TERP */
+     &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit','Terpenes',
      &      'Alkenes','Paraffin','HCl','HOCl','ClONO2','HBr','HOBr',
-     &      'BrONO2','N2O','CFC')
+     &      'BrONO2','N2O','CFC','stratOx')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
@@ -9833,6 +9842,10 @@ c
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
       tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.d0
+#ifdef SHINDELL_STRAT_EXTRA
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_stratOx)  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,n_stratOx) = 0.d0
+#endif
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
@@ -9851,6 +9864,10 @@ C**** Apply chemistry and overwrite changes:
         call apply_tracer_3Dsource(nChemistry,n)
         call apply_tracer_3Dsource(nStratwrite,n)
       end do
+#ifdef SHINDELL_STRAT_EXTRA
+      call apply_tracer_3Dsource(nChemistry,n_stratOx)
+      call apply_tracer_3Dsource(nStratwrite,n_stratOx)
+#endif
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
        call apply_tracer_3Dsource(nChemistry,n_N_d1) ! NO3 chem prod on dust
        call apply_tracer_3Dsource(nChemistry,n_N_d2) ! NO3 chem prod on dust

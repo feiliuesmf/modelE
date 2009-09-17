@@ -23,14 +23,15 @@ c
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,O3_tracer_save,H2ObyCH4,
      &                        SRDN,rad_to_file,ghg_yr
+#ifdef SHINDELL_STRAT_EXTRA
+     &                        ,stratO3_tracer_save
+#endif
       USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D
       USE FLUXES, only      : tr3Dsource
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
      &                        n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
-     &                        n_Isoprene,n_AlkylNit,n_Alkenes,
-#ifdef TRACERS_TERP
+     &                        n_Isoprene,n_AlkylNit,n_Alkenes,n_stratOx,
      &                        n_Terpenes,
-#endif  /* TRACERS_TERP */
      &                        n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
      &                        tr_wd_type,nWater,trm,trmom,
 #ifdef TRACERS_AEROSOLS_SOA
@@ -54,11 +55,9 @@ c
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
      *     ,jls_Oxd,ijs_NO2_col,ijs_NO2_count,jls_OxpT,jls_OxdT
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
-#endif
-#ifdef HTAP_LIKE_DIAGS
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp
 #endif
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
@@ -1276,6 +1275,12 @@ c --  Ox --   ( Ox from gas phase rxns)
             changeL(l,n_Ox) = 1.d0 - trm(i,j,l,n_Ox)
             changeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*bypfactor
           END IF
+#ifdef SHINDELL_STRAT_EXTRA
+          if(changeL(L,n_Ox)>0.)changeL(L,n_stratOx)=changeL(L,n_Ox)
+          if((trm(i,j,l,n_stratOx)+changeL(l,n_stratOx)) < 1.d0)
+     &    changeL(l,n_stratOx) = 1.d0 - trm(i,j,l,n_stratOx)
+#endif
+          ! then come diags:
           if(changeL(L,n_Ox) >= 0.) then  
             CALL INC_TAJLS(I,J,L,jls_Oxp,changeL(L,n_Ox))
             if(L<=maxl)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
@@ -1638,6 +1643,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
+#ifdef SHINDELL_STRAT_EXTRA
+        tr3Dsource(i,j,l,nChemistry,n_stratOX)=
+     &  changeL(l,n_stratOx)*bydtsrc
+#endif
 
         ! save NO2 mass for sub-daily diagnosic:
         mNO2(i,j,L)=y(nNO2,L)*46.0055*AXYP(I,J)*AM(L,i,j)*bymair/y(nM,L)
@@ -1753,7 +1762,14 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             ! -- Ox --
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &      axyp(i,j)*O3MULT                -trm(i,j,L,n_Ox))*bydtsrc
+     &      axyp(i,j)*O3MULT - trm(i,j,L,n_Ox))*bydtsrc
+#ifdef SHINDELL_STRAT_EXTRA
+            ! -- stratOx --
+            tr3Dsource(i,j,L,nChemistry,n_stratOx)=0.d0
+            tr3Dsource(i,j,L,nStratwrite,n_stratOx)=
+     &      (rad_to_chem(1,L,i,j)*axyp(i,j)*O3MULT 
+     &      -trm(i,j,L,n_stratOx))*bydtsrc
+#endif
             ! -- ClOx --
             tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_ClOx)=(1.d-11*ClOxalt(l)
@@ -1786,6 +1802,9 @@ C changes below assume that the changeL variable is zero for L>maxl
 C at this point in the code. Not the case if chemistry was done.
 C To put it another way, the overwritings below are explicitly 
 C functions of tracer mass UNCHANGED by chemistry !
+#ifdef SHINDELL_STRAT_EXTRA
+      call stop_model("SHINDELL_STRAT_EXTRA w/o strat chem",255)
+#endif
 
 C determine scaling factors, if any:
       PIfact(:)=1.d0
@@ -1916,6 +1935,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           DO N=1,NTM_CHEM
             tr3Dsource(i,j,l,nStratwrite,n) = changeL(l,n)*bydtsrc
           END DO
+#ifdef SHINDELL_STRAT_EXTRA
+          tr3Dsource(i,j,l,nStratwrite,n_stratOX)=
+     &    changeL(l,n_stratOx)*bydtsrc
+#endif
+
 
         end do ! >> END LOOP OVER STRATOSPHERE <<
        end do  ! i
@@ -1950,6 +1974,16 @@ c Save new tracer Ox field for use in radiation or elsewhere:
              DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
            end do
          end if
+
+#ifdef SHINDELL_STRAT_EXTRA
+         strato3_tracer_save(1:maxl,i,j)=(trm(i,j,1:maxl,n_stratOx) +
+     &   (tr3Dsource(i,j,1:maxl,nChemistry,n_stratOx) +
+     &   tr3Dsource(i,j,1:maxl,nStratwrite,n_stratOx))*dtsrc)
+     &   *byaxyp(i,j)*byO3MULT
+         if(maxl < LM)strato3_tracer_save(maxl+1:LM,i,j)=
+     &   rad_to_chem(1,maxl+1:LM,i,j)
+#endif /* SHINDELL_STRAT_EXTRA */
+
         end do ! i
         DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
       end do   ! j
