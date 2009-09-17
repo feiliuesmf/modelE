@@ -406,6 +406,7 @@ c This routine places the center of face 1 at the IDL.
       real*8 :: x,y ! output
       integer :: tile ! output
       real*8 :: modlon,coslon,tanlat,tmpx,tmpy,bytanfac
+      real*8, parameter :: ctrlon(5)=(/-1.,-.5,0.,.5,1./)*pi
       if(abs(lat).gt.latpol) then ! avoid calculating tan(pi/2)
         x = 0.
         y = 0.
@@ -431,6 +432,11 @@ c equatorial face
         x = byg*atan(tan(modlon)/sqrt(2d0))
 c determine which face (1,2,4,5) we are on.  integer arithmetic
         tile = 1 + int((lon+1.25*pi)*2./pi)
+c adjust x for roundoff errors
+        if(abs(1d0-abs(x)).lt.1d-6) then
+          if( (x.gt.0 .and. lon.lt.ctrlon(tile)) .or.
+     &        (x.lt.0 .and. lon.gt.ctrlon(tile)) ) x = -x
+        endif
         tile = tile +(tile/3) -5*(tile/5)
         if(tile.eq.4 .or. tile.eq.5) then ! 90 deg rotation
           tmpx = x
