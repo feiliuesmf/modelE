@@ -61,9 +61,6 @@
 #ifdef TRACERS_DUST
      &     ,idd_wet
 #endif
-#ifdef HTAP_LIKE_DIAGS
-     &     ,IJ_MCamFX
-#endif
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
       USE AERO_CONFIG, only: NMODES
@@ -745,9 +742,6 @@ C*** End Accumulate 3D convective latent heating
          call inc_ajl(i,j,l,jl_mcdflx,DDMFLX(L))
          call inc_ajl(i,j,l,jl_csizmc,CSIZEL(L)*CLDMCL(L)*AIRM(L))
          aijl(i,j,l,ijl_MCamFX) = aijl(i,j,l,ijl_MCamFX) + MCFLX(L)
-#ifdef HTAP_LIKE_DIAGS
-          AIJ(I,J,IJ_MCamFX(L))=AIJ(I,J,IJ_MCamFX(L))+MCFLX(L)
-#endif
         END DO
         DO IT=1,NTYPE
           CALL INC_AJ(I,J,IT,J_PRCPMC,PRCPMC*FTYPE(IT,I,J))
