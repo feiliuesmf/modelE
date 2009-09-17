@@ -568,10 +568,10 @@ c and the 2D-array counts/displacements for the send buffer
 c
       allocate(redist%js_pack(npdst), redist%je_pack(npdst))
       allocate(redist%nb_pack(js:je,npdst))
-      if(nproc == 6) then
-        nbmax = 4 ! some LL PEs need 4 if npes=6 for ll2cs dir
-      else
-        nbmax = 2  
+      nbmax = 2
+      if(grid_dst%ntiles.eq.6 .and. grid_src%ntiles.eq.1 .and.
+     &     mod(grid_dst%nprocx,2).eq.1) then
+          nbmax = 4 ! 4 corners of the CS PEs centered on the NP/SP
       endif
       allocate(redist%is_pack(nbmax,js:je,npdst),
      &         redist%ie_pack(nbmax,js:je,npdst))
