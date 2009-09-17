@@ -2,6 +2,28 @@
       MODULE AEROSOL_SOURCES
 !@sum repository for Koch aerosol sources, features, etc.
 !@auth Dorothy Koch
+!@ subroutines in this file include:
+!@ alloc_aerosol_sources
+!@ get_O3_offline
+!@ read_mon3Dsources
+!@ READ_OFFHNO3
+!@ READ_OFFSS
+!@ read_E95_SO2_source
+!@ get_ships
+!@ get_hist_BMB
+!@ get_BCOC
+!@ read_hist_SO2
+!@ read_hist_NH3
+!@ read_SO2_source
+!@ read_DMS_sources
+!@ read_seasalt_sources
+!@ aerosol_gas_chem
+!@ SCALERAD
+!@ GET_SULFATE
+!@ GET_BC_DALBEDO
+!@ GRAINS
+!@ get_aircraft_SO2
+!@ read_mon_3D
       USE TRACER_COM
       IMPLICIT NONE
       SAVE
@@ -110,7 +132,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * 13.53,18.79,10.85,8.91,13.20,7.78,5.91,4.37,3.32/)
       END MODULE LAKI_SOURCE
       
-      subroutine alloc_aerosol_sources(grid)
+      SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, get
       USE TRACER_COM, only: imAER
@@ -200,8 +222,8 @@ c off line
       allocate(  off_SS(I_0H:I_1H,J_0H:J_1H,LM)     )
 
       return
-      end subroutine alloc_aerosol_sources      
-      subroutine get_O3_offline
+      end SUBROUTINE alloc_aerosol_sources      
+      SUBROUTINE get_O3_offline
 !@sum read in ozone fields for aqueous oxidation
 c
 C**** GLOBAL parameters and variables:
@@ -355,7 +377,7 @@ c**** Interpolate two months of data to current day
       data1(:,J_0:J_1,:) =
      & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
       return
-      end subroutine read_mon3Dsources
+      end SUBROUTINE read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
       USE MODEL_COM, only : im,jm,lm,jdate,JDendOFM,jmon
@@ -833,7 +855,7 @@ c
        end do
        endif
       endif
-      end subroutine get_hist_BMB
+      end SUBROUTINE get_hist_BMB
 
       SUBROUTINE get_BCOC(iact)
 c Carbonaceous aerosol emissions
@@ -974,7 +996,7 @@ c
       OCI_src(:,j_0:j_1,1)=(d1*hoc(:,j_0:j_1,2)
      * +d2*hoc(:,j_0:j_1,1))/d3
   
-      end subroutine get_BCOC
+      end SUBROUTINE get_BCOC
       
       SUBROUTINE read_hist_SO2(iact)
 c historic BC emissions
@@ -1015,7 +1037,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
         ihyr=aer_int_yr
       endif
       if (imAER.eq.5) then
-      ns=6
+      ns=7
       else
       ns=1
       endif
@@ -1075,7 +1097,7 @@ c
       SO2_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
      *     +d2*hso2(:,j_0:j_1,1))/d3
   
-      end subroutine read_hist_SO2    
+      end SUBROUTINE read_hist_SO2    
       
       SUBROUTINE read_hist_NH3(iact)
 c historic BC emissions
@@ -1212,10 +1234,10 @@ c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
       endif
       
   
-      end subroutine read_hist_NH3      
+      end SUBROUTINE read_hist_NH3      
       
 
-      subroutine read_SO2_source(nt)
+      SUBROUTINE read_SO2_source(nt)
 !@sum reads in  biomass SO2 source
 !@auth Koch
 c want kg SO2/m2/s
@@ -1296,9 +1318,9 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
        end do
       call closeunit(iuc2)
 
-      end subroutine read_SO2_source
+      end SUBROUTINE read_SO2_source
 
-      subroutine read_DMS_sources(swind,itype,i,j,DMS_flux)
+      SUBROUTINE read_DMS_sources(T,swind,itype,i,j,DMS_flux)
 !@sum generates DMS ocean source
 !@auth Koch
 c Monthly DMS ocean concentration sources are read in and combined
@@ -1308,40 +1330,64 @@ c want kg DMS/m2/s
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,imAER
-      USE MODEL_COM, only: jmon,jday
+      USE MODEL_COM, only: jmon,jday,lm
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
       integer jread
-      REAL*8 akw,erate
+      REAL*8 akw,erate,SCH,T,Tc,SCHR
+      real*8, PARAMETER :: E1=0.17d0
+      real*8, PARAMETER :: E2=2.85d0
+      real*8, PARAMETER :: E3=0.612d0
+      real*8, PARAMETER :: E4=5.9d0
+      real*8, PARAMETER :: E5=26.79d0
+      real*8, PARAMETER :: E6=0.612d0
+      real*8, PARAMETER :: SCHT=600.d0
       real*8, INTENT(OUT) :: DMS_flux
       real*8, INTENT(IN) :: swind
       integer, INTENT(IN) :: itype,i,j
 
       DMS_flux=0.d0
         erate=0.d0
+        Tc=T-273.d0
         if (imAER.ne.1) then
         if (itype.eq.1) then
+c       if (lm.lt.40) then 
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
         erate=akw*DMSinput(i,j,jmon)*1.d-9*62.d0 !*tr_mm(nt)
      *       /sday
-        endif
+c       if (lm.ge.40) erate=erate/5.d0   !I think there was an error in input files
+c       else
+c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
+c       SCH=2674.d0-147.12d0*Tc+3.726d0*Tc*Tc-0.038d0*Tc*Tc*Tc
+c       SCHR=SCHT/SCH
+c       if (swind.lt.3.6) then
+c       akw=E1*(SCHR)**(2.d0/3.d0)*swind
+c       else if (swind.lt.13.) then
+c       akw=E2*DSQRT(SCHR)*(swind-3.6d0)
+c    *     +E3*(SCHR)**(2.d0/3.d0)
+c       else
+c       akw=E4*(swind-13.d0)*DSQRT(SCHR)+E5*(swind-3.6d0)*
+c    *      DSQRT(SCHR)+E6*(SCHR)**(2.d0/3.d0)
+c       endif  !swind
+c       erate=akw*DMSinput(i,j,jmon)*1.d-9/sday !not sure of units
+c       endif ! lm
+        endif !itype
         else !AEROCOM run, prescribed flux
-
 c if after Feb 28 skip the leapyear day
          jread=jday
          if (jday.gt.59) jread=jday+1
 c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
 c     *      =DMS_AER(i,j,jread)*72.d0
          erate=DMS_AER(i,j,jread)/sday/axyp(i,j)*tr_mm(n_DMS)/32.d0
-        endif
+        endif  !imAER
         DMS_flux=erate          ! units are kg/m2/s
 c
       return
-      end subroutine read_DMS_sources
+      end SUBROUTINE read_DMS_sources
 
-      subroutine read_seasalt_sources(swind,itype,ibin,i,j,ss)
+      SUBROUTINE read_seasalt_sources(swind,itype,ibin,i,j,ss)
 !@sum determines wind-speed dependent oceanic seasalt source
 !@auth Koch
 c want kg seasalt/m2/s, for now in 2 size bins
@@ -1384,10 +1430,10 @@ c if after Feb 28 skip the leapyear day
          endif
        endif
       return
-      end subroutine read_seasalt_sources
+      end SUBROUTINE read_seasalt_sources
 
 
-      subroutine aerosol_gas_chem
+      SUBROUTINE aerosol_gas_chem
 !@sum aerosol gas phase chemistry
 !@auth Dorothy Koch
       USE TRACER_COM
@@ -1583,14 +1629,14 @@ c DMM is number density of air in molecules/cm3
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-        bciage=4.3D-6*trm(i,j,l,n) !used this first        
+        bciage=4.3D-6*trm(i,j,l,n) !efold time of 1 day        
 c       bciage=1.0D-6*trm(i,j,l,n)  !2nd
 c       bciage=1.0D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-bciage        
         tr3Dsource(i,j,l,1,n_BCIA)=bciage        
 
         case ('OCII')
-        ociage=7.3D-6*trm(i,j,l,n)       !used this first 
+        ociage=7.3D-6*trm(i,j,l,n)  !used this first 
 c       ociage=3.6D-6*trm(i,j,l,n)     !2nd
 c       ociage=3.D-7*trm(i,j,l,n)
         tr3Dsource(i,j,l,1,n)=-ociage        
@@ -1812,7 +1858,7 @@ c     endif
  30   CONTINUE
 
       RETURN
-      END subroutine aerosol_gas_chem
+      END SUBROUTINE aerosol_gas_chem
 
       SUBROUTINE SCALERAD
       use MODEL_COM, only: im,jm,lm
@@ -1866,7 +1912,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       end do
 
       RETURN
-      END subroutine SCALERAD
+      END SUBROUTINE SCALERAD
 
 
 
@@ -2543,6 +2589,6 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       endif ! transient or not
 
       return
-      end subroutine read_mon_3D
+      end SUBROUTINE read_mon_3D
       
 
