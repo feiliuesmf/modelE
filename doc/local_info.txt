@@ -152,9 +152,12 @@ sftp_help   get password-free access to dirac, other nodes, CVS repository
 run,runpbs  submit 1 or several jobs as a single batch job
   "run" has a systems default alias that may be bypassed typing "unalias run"
   "run" and "runpbs" are identical
-  Usage: runpbs runID [fast<N>|slow<N>|new<N>|nh<N>] #_of_cpus #_of_wall_clock_hours
+  Usage: runpbs runID [fast<N>|slow<N>|new<N>|nh<N>|scali<N>] #_of_cpus #_of_wall_clock_hours
          The optional <N> limits the number of cpus per node used; it has to be 1-4 in the
          first 2 cases and 1-8 in the last 2 (fast3 may be abbreviated by f3, new6 by n6)
+         new defaults: if no particular type of nodes is specified, then
+            scali_mpi jobs may run on any 4-cpu node (slow or fast; i.e. same as "scali")
+            other jobs may run on any 8-cpu node (new or nehalem)
 
   Notes: 1) #_of_wall_clock_hours - always let it default (to the max. 12 hrs) unless
             a) you want the job to go into the background queue - set it to 4 (hours)
