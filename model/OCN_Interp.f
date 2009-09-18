@@ -4,12 +4,12 @@
 !#define OG2AG_TOC2SST_BUNDLE
 !#define AG2OG_OCEANS_BUNDLE
 !#define OG2AG_OCEANS_BUNDLE      
-
 !#define BUNDLE_INTERP
+
 
 #ifdef BUNDLE_INTERP
 
-      subroutine bundle_interpolation(remap,lstr)
+      subroutine bundle_interpolation( remap, lstr)
       USE cs2ll_utils, only : xgridremap_type,xgridremap_lij
       USE array_bundle, only : lookup_str, ab_bundle, ab_unbundle
       implicit none
@@ -17,14 +17,30 @@
       type (lookup_str) :: lstr
       real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:)
 
+#ifdef CUBE_GRID
       call ab_bundle( lstr, buf_s, buf_d )
 
       call xgridremap_lij( remap, buf_s, buf_d)
 
       call ab_unbundle( lstr, buf_s, buf_d )
-
+#else
+      if (lstr%di_0 .eq. lstr%si_0 .and. 
+     &     lstr%dj_0 .eq. lstr%dj_1) then   
+         call ba_copy(lstr)
+      endif
+#endif
       end subroutine bundle_interpolation
 
+      subroutine lon_avg(arr,IM)
+!@sum longitudinal average
+      implicit none
+      real*8 :: arr(1:IM),asum
+      integer :: IM
+
+      asum=sum(arr)
+      arr(:)=asum/IM
+
+      end subroutine lon_avg
 #endif /* BUNDLE_INTERP */
 
 #ifdef AG2OG_PRECIP_BUNDLE
@@ -90,39 +106,56 @@
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO )
 
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
-      call ab_add(lstr, aWEIGHT,oWEIGHT,shape(aWEIGHT),'ij' )
-      call ab_add(lstr,aPREC,oPREC,shape(aPREC),'ij',
-     &     aWEIGHT,oWEIGHT )
-      call ab_add(lstr,aEPREC,oEPREC,shape(aEPREC),'ij',
-     &     aWEIGHT,oWEIGHT)
+      call ab_add(lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij' )
+      call ab_add(lstr, aPREC, oPREC, shape(aPREC), 'ij',
+     &     aWEIGHT, oWEIGHT )
+      call ab_add(lstr, aEPREC, oEPREC, shape(aEPREC), 'ij',
+     &     aWEIGHT, oWEIGHT)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
         aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
-      call ab_add(lstr, aTRPREC, oTRPREC, shape(aTRPREC),'lij', 
+      call ab_add(lstr, aTRPREC, oTRPREC, shape(aTRPREC), 'lij', 
      &     aWEIGHT, oWEIGHT )
 #endif
 
       aWEIGHT1(:,:) = aRSI(:,:)   
 !     oWEIGHT1(:,:) = 1.-oWEIGHT(:,:)            ! using the property REGRID(1-RSI)=1-REGRID(RSI)  
-      call ab_add(lstr,aWEIGHT1,oWEIGHT1,shape(aWEIGHT1),'ij')        ! this line should be removed when previous line is uncommented 
-      call ab_add(lstr,aRUNPSI,oRUNPSI,shape(aRUNPSI),'ij',
-     &     aWEIGHT1,oWEIGHT1)
-      call ab_add(lstr,aSRUNPSI,oSRUNPSI,shape(aSRUNPSI),'ij',
-     &     aWEIGHT1,oWEIGHT1)
-      call ab_add(lstr,aERUNPSI,oERUNPSI,shape(aERUNPSI),'ij',
-     &     aWEIGHT1,oWEIGHT1)
+      call ab_add(lstr, aWEIGHT1, oWEIGHT1, shape(aWEIGHT1), 'ij')        ! this line should be removed when previous line is uncommented 
+      call ab_add(lstr, aRUNPSI, oRUNPSI, shape(aRUNPSI), 'ij',
+     &     aWEIGHT1, oWEIGHT1)
+      call ab_add(lstr, aSRUNPSI, oSRUNPSI, shape(aSRUNPSI), 'ij',
+     &     aWEIGHT1, oWEIGHT1)
+      call ab_add(lstr, aERUNPSI, oERUNPSI, shape(aERUNPSI), 'ij',
+     &     aWEIGHT1, oWEIGHT1)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      call ab_add( lstr,aTRUNPSI,oTRUNPSI,shape(aTRUNPSI),'lij',
-     &     aWEIGHT1,oWEIGHT1)
+      call ab_add( lstr, aTRUNPSI, oTRUNPSI, shape(aTRUNPSI), 'lij',
+     &     aWEIGHT1, oWEIGHT1)
 #endif
 
-      call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
-
+      call ab_add( lstr, aRSI, oRSI, shape(aRSI), 'ij')
 
 c*   actual interpolation here
-      call bundle_interpolation(remap_A2O,lstr)
+      call bundle_interpolation(remap_A2O,lstr,.true.)
+
+c*   polar values are replaced by their longitudinal mean
+      if (ogrid%HAVE_NORTH_POLE) then
+         call lon_avg(oPREC(:,oJM), oIM)
+         call lon_avg(oEPREC(:,oJM), oIM)
+         call lon_avg(oRUNPSI(:,oJM), oIM)
+         call lon_avg(oSRUNPSI(:,oJM), oIM)
+         call lon_avg(oERUNPSI(:,oJM), oIM)
+         call lon_avg(oRSI(:,oJM), oIM)
+      endif
+      if (ogrid%HAVE_SOUTH_POLE) then
+         call lon_avg(oPREC(:,1), oIM)
+         call lon_avg(oEPREC(:,1), oIM)
+         call lon_avg(oRUNPSI(:,1), oIM)
+         call lon_avg(oSRUNPSI(:,1), oIM)
+         call lon_avg(oERUNPSI(:,1), oIM)
+         call lon_avg(oRSI(:,1), oIM)
+      endif
 
       oEPREC(:,:) = oEPREC(:,:)*OXYP(:,:)
       oSRUNPSI(:,:) = oSRUNPSI(:,:)*OXYP(:,:)
@@ -446,20 +479,8 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
         oVO1(:,oJM) = UO(IVNPO,oJM,1)*oCOSI(:) - UO(oIM,oJM,1)*oSINI(:)
       endif
 
-      if (ogrid%HAVE_NORTH_POLE) oUO1(2:oIM,oJM) = oUO1(1,oJM)
-      if (ogrid%HAVE_NORTH_POLE) oVO1(2:oIM,oJM) = oVO1(1,oJM)
-
       call ab_add(lstr, oUO1, aUO1, shape(oUO1),'ij')
       call ab_add(lstr, oVO1, aVO1, shape(oVO1),'ij')
-
-#ifndef CUBE_GRID   /* this portion will disappear if bundling is used for CS only */
-      if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
-        UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
-        VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
-        aUO1(1,aJM) = UNP
-        aVO1(1,aJM) = VNP
-      endif
-#endif
 
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
@@ -541,6 +562,15 @@ C**** surface tracer concentration
 
 c*    actual interpolation here
       call bundle_interpolation(remap_O2A,lstr)
+
+#ifndef CUBE_GRID
+      if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
+        UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
+        VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
+        aUO1(1,aJM) = UNP
+        aVO1(1,aJM) = VNP
+      endif
+#endif
 
       DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc, opCO2_loc)
 #ifdef TRACERS_OCEAN
@@ -962,7 +992,7 @@ C**** surface tracer concentration
 
 
       call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
-      
+
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
@@ -972,6 +1002,7 @@ C**** surface tracer concentration
         END DO
       END DO
       call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
+
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1201,6 +1232,50 @@ c*   actual interpolation here
       call bundle_interpolation(remap_A2O,lstr)
 c*
 
+
+c*   polar values are replaced by their longitudinal mean
+c*   may soon be performed on the bundled array structure between
+c*   interpolation and unbundling - vector quantities have to be 
+c*   treated separately
+      if (ogrid%HAVE_NORTH_POLE ) then
+         call lon_avg( oRSI(:,oJM), oIM)
+         call lon_avg( oFLOWO(:,oJM), oIM)
+         call lon_avg( oEFLOWO(:,oJM), oIM)
+         call lon_avg( oMELTI(:,oJM), oIM)
+         call lon_avg( oEMELTI(:,oJM), oIM)
+         call lon_avg( oSMELTI(:,oJM), oIM)
+         call lon_avg( oGMELT(:,oJM), oIM)
+         call lon_avg( oEGMELT(:,oJM), oIM)
+         call lon_avg( oAPRESS(:,oJM), oIM)
+         call lon_avg( oRUNOSI(:,oJM), oIM)
+         call lon_avg( oERUNOSI(:,oJM), oIM)
+         call lon_avg( oSRUNOSI(:,oJM), oIM)
+         call lon_avg( oE0tmp(:,oJM), oIM)
+         call lon_avg( oEVAPORtmp(:,oJM), oIM)
+         call lon_avg( oSOLAR1tmp(:,oJM), oIM)
+         call lon_avg( oSOLAR3tmp(:,oJM), oIM)
+      endif
+
+      if (ogrid%HAVE_SOUTH_POLE ) then
+         call lon_avg( oRSI(:,1), oIM)
+         call lon_avg( oFLOWO(:,1), oIM)
+         call lon_avg( oEFLOWO(:,1), oIM)
+         call lon_avg( oMELTI(:,1), oIM)
+         call lon_avg( oEMELTI(:,1), oIM)
+         call lon_avg( oSMELTI(:,1), oIM)
+         call lon_avg( oGMELT(:,1), oIM)
+         call lon_avg( oEGMELT(:,1), oIM)
+         call lon_avg( oAPRESS(:,1), oIM)
+         call lon_avg( oRUNOSI(:,1), oIM)
+         call lon_avg( oERUNOSI(:,1), oIM)
+         call lon_avg( oSRUNOSI(:,1), oIM)
+         call lon_avg( oE0tmp(:,1), oIM)
+         call lon_avg( oEVAPORtmp(:,1), oIM)
+         call lon_avg( oSOLAR1tmp(:,1), oIM)
+         call lon_avg( oSOLAR3tmp(:,1), oIM)
+      endif
+c*
+
       oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
 
       oE0(:,:,1)=oE0tmp(:,:)  
@@ -1230,6 +1305,7 @@ c*
       deallocate(aweight,oweight,
      &     aweight1,oweight1,
      &     aweight2,oweight2)
+
       deallocate(aE0tmp,oE0tmp,
      &     aEVAPORtmp,oEVAPORtmp,
      &     aSOLAR1tmp,oSOLAR1tmp,
@@ -1617,7 +1693,6 @@ c*
       enddo
       call ab_add(lstr, oDMSItmp, aDMSItmp, shape(oDMSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
-c      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2)
 
       oDHSItmp=oDHSI
       do L=1,2
@@ -1626,7 +1701,6 @@ c      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2)
       enddo
       call ab_add(lstr, oDHSItmp, aDHSItmp, shape(oDHSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
-c      CALL INT_OG2AG(oDHSI,aDHSI, oWEIGHT, 2)
 
       oDSSItmp=oDSSI
       do L=1,2
