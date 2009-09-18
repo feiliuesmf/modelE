@@ -70,7 +70,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param O3_1_fact factor to alter surface O3 that is passed to FASTJ
 !@+     this is fastj level 1, not model level 1.  Currently, it is 
 !@+     decreased by a factor of (972/1000)mb
-!@param RGAMMASULF N2O5-->HNO3 conversion on aerosols?
 !@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062D-23/3.14159/1.793D-25
 !@param cboltz Boltzman's Constant = 1.3806d-19
 !@param dlogp 10.d0**(-2./16.)
@@ -247,7 +246,6 @@ C ----------------------------------------------
      &                      pfix_Aldehyde= 2.d-9,
      &                      MWabyMWw     = mair/mwat,
      &                      O3_1_fact    = 0.972d0,
-     &                      RGAMMASULF   = 2.0d-2,
      &                      RKBYPIM      = 1.961d2,
      &                      cboltz       = 1.3806d-19,
      &                      dlogp        = 7.49894209d-1, !=10^(-.125)
@@ -574,6 +572,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var Jacet photolysis rate for acetone (not done through fastj)
 !@var acetone 3D acetone mixing ratio (static for now)
 !@var pscX column logical for the existance of polar strat clouds(PSCs)
+!@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
 #ifdef SHINDELL_STRAT_CHEM
@@ -618,7 +617,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 
 C**************  Not Latitude-Dependant ****************************      
       REAL*8 :: ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,BYFJM,
-     & FASTJLAT,FASTJLON,SZA,DT2,F75P,F75M,F569P,F569M
+     & FASTJLAT,FASTJLON,SZA,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
 #ifdef SHINDELL_STRAT_CHEM
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
      & ,bin4_1991,bin4_1988,bin5_1988

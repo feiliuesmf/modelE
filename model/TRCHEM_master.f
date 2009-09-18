@@ -17,7 +17,8 @@ c
      &                        writet_parallel
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
      &                        COUPLED_CHEM,JHOUR
-      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,bygrav
+      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
+     &                        bygrav,lhe
       USE DYNAMICS, only    : pedn,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
@@ -117,7 +118,7 @@ C**** Local parameters and variables and arguments:
 !@var bysumOx reciprocal of sum of regional Ox tracers
       REAL*8, DIMENSION(LM,NTM) :: changeL
       REAL*8, DIMENSION(NTM)    :: PIfact
-      REAL*8, DIMENSION(LM)     :: PRES2
+      REAL*8, DIMENSION(LM)     :: PRES2,rh
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byam75,byavog,CH4FACT,r179,rlossN,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
@@ -152,9 +153,6 @@ C**** Local parameters and variables and arguments:
       CHARACTER*80              :: ss27_file,ghg_file,title
       character(len=300)        :: out_line
 
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C Some variables defined especially for MPI compliance :         C 
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       real*8 :: ghg_out(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
@@ -190,7 +188,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
-
+      real*8 :: qsat ! this is a function in UTILDBL.f
 
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
@@ -413,9 +411,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       DO L=1,LM
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0  ! (LM,NTM)
-c Save presure and temperature in local arrays:
+c Save presure, temperature, and rel. hum. in local arrays:
        pres(L)=PMID(L,I,J)
-       ta(L)  =TX(I,J,L)
+       ta(L)=TX(I,J,L)
+       rh(L)=Q(i,j,l)/min(1.d0,QSAT(ta(L),lhe,pres(L)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*cboltz)
        y(nO2,L)=y(nM,L)*pfix_O2
@@ -802,7 +801,7 @@ C               ABOUT: N2O5 sink on sulfate aerosol
 C                REACTION PROBABLITY FORMULATION:
 C
 C To evaluate 'k' for N2O5 + H2O -> 2HNO3, assume k = GAMMA*SA*v/4
-C (Dentener and Crutzen, 1993). GAMMA = RGAMMASULF in TRCHEM_Shindell_COM, 
+C (Dentener and Crutzen, 1993). GAMMA = RGAMMASULF defined below,
 c SA = given, v = molecular velocity (cm/s) where v = SQRT (8.Kb.T / PI*M);
 C Kb = 1.38062E-23; T = Temp (K); M = mass N2O5 (Kg)
 C
@@ -825,6 +824,22 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 #endif
       DO L=1,LL  
 
+! ----------------- RGAMMASULF ---------------------------------------
+! Until more sophisticated method arrives, or when aerosol tracers are
+! off, use method recommended by Faye, based on Kane et al., JPC, 2001
+! and Hallquist et al., PCCP, 2003:
+! For RH>50%, gamma=0.015. For RH <=50%:
+! T<=290K, gamma=0.052 - 2.79d-4*RH [RH in percent]
+! T>290K, gamma=above - log10(T-290)*0.05 [minimum gamma=0.001]
+!
+        if(rh(l)>0.5)then
+          rgammasulf = 1.5d-2
+        else
+          rgammasulf = 5.2d-2 - 2.79d-4*100.d0*rh(l)
+          if(ta(l)>290.) rgammasulf=
+     &    max(1.d-3,rgammasulf-log10(ta(l)-290.d0)*5.d-2)
+        endif
+! --------------------------------------------------------------------
         if (coupled_chem == 1) then
           ! Convert SO4 from mass (kg) to aerosol surface per grid box:
           fact_so4 = BYAXYP(I,J)*BYAM(L,I,J)*28.0D0*y(nM,L) ! *96/96
