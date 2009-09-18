@@ -3,7 +3,8 @@
 
 SUPPORTED_OPTIONS = ESMF
 
-FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  UTILDBL.f cubic_eq.f
+FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  UTILDBL.f cubic_eq.f \
+        array_bundle.f
 
 
 ifndef GISSCLIM_DIR

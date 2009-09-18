@@ -9,299 +9,21 @@
 
 #ifdef BUNDLE_INTERP
 
-      module bundle_arrays
-      implicit none
-      private
-
-      public lookup_str
-      public bundle_interpolation, ba_init, ba_add, 
-     &     ba_bundle, ba_unbundle, ba_copy
-
-      integer, parameter :: N_LOOKUP_MAX=256
-
-      type lookup_record
-        integer :: lm,km
-        real*8, pointer :: src(:), dest(:)
-        real*8, pointer :: src_w(:,:), dest_w(:,:)
-      end type lookup_record
-
-      type lookup_str
-        integer :: si_0, si_1, sj_0, sj_1  ! source bounds
-        integer :: di_0, di_1, dj_0, dj_1  ! destination bounds
-        integer  :: n_lookup=0
-        type (lookup_record) :: lr(N_LOOKUP_MAX)
-      end type lookup_str
-
-      contains
-
-      subroutine ba_init( lstr, si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 )
-      implicit none
-      type (lookup_str) :: lstr
-      integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 
-      
-      lstr%si_0 = si_0
-      lstr%si_1 = si_1
-      lstr%sj_0 = sj_0
-      lstr%sj_1 = sj_1
-      lstr%di_0 = di_0
-      lstr%di_1 = di_1
-      lstr%dj_0 = dj_0
-      lstr%dj_1 = dj_1
-
-      lstr%n_lookup = 0
-      end subroutine ba_init
-
-
-      subroutine ba_add( lstr, src, dest, shp, flag, src_w, dest_w )
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(*), target :: src, dest
-      integer :: shp(:)
-      character*(*) :: flag
-      real*8, dimension(:,:), target, optional :: src_w, dest_w
-
-      integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 
-      integer :: sim, sjm, dim, djm, lm, km
-
-      lstr%n_lookup = lstr%n_lookup + 1
-      if ( lstr%n_lookup > N_LOOKUP_MAX )
-     &     call stop_model("ba_add: increase N_LOOKUP_MAX", 255)
-
-      si_0 = lstr%si_0
-      si_1 = lstr%si_1
-      sj_0 = lstr%sj_0
-      sj_1 = lstr%sj_1
-      di_0 = lstr%di_0
-      di_1 = lstr%di_1
-      dj_0 = lstr%dj_0
-      dj_1 = lstr%dj_1
-
-      sim = si_1 - si_0 + 1
-      sjm = sj_1 - sj_0 + 1
-      dim = di_1 - di_0 + 1
-      djm = dj_1 - dj_0 + 1
-
-      select case( flag )
-      case('ij')
-        lm = 1
-        km = 1
-      case('lij')
-        lm = shp(1)
-        km = 1
-      case('ijk')
-        lm = 1
-        km = shp(3)
-      case('lijk')
-        lm = shp(1)
-        km = shp(4)
-      case default
-        call stop_model("ba_add: unexpected flag", 255)
-      end select
-
-      lstr%lr(lstr%n_lookup)%lm = lm
-      lstr%lr(lstr%n_lookup)%km = km
-
-      lstr%lr(lstr%n_lookup)%src => src(1:lm*sim*sjm*km)
-      lstr%lr(lstr%n_lookup)%dest => dest(1:lm*dim*djm*km)
-
-      if ( present(src_w) .and. present(dest_w) ) then
-        lstr%lr(lstr%n_lookup)%src_w => src_w(:,:)
-        lstr%lr(lstr%n_lookup)%dest_w => dest_w(:,:)
-      else
-        if ( present(src_w) ) call stop_model(
-     &       "ba_add: use both weights or none", 255)
-        nullify( lstr%lr(lstr%n_lookup)%src_w )
-        nullify( lstr%lr(lstr%n_lookup)%dest_w )
-      endif
-
-      end subroutine ba_add
-
-
-      subroutine ba_bundle( lstr, buf_s, buf_d )
-      !USE DOMAIN_DECOMP_ATM, only : agrid=>grid  !remove : for debugging only
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
-
-      integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1 
-      integer im,jm,km,lm
-      integer i,j,k,l,m,n,ind
-      
-
-      si_0 = lstr%si_0
-      si_1 = lstr%si_1
-      sj_0 = lstr%sj_0
-      sj_1 = lstr%sj_1
-      di_0 = lstr%di_0
-      di_1 = lstr%di_1
-      dj_0 = lstr%dj_0
-      dj_1 = lstr%dj_1
-
-      im = si_1 - si_0 + 1
-      jm = sj_1 - sj_0 + 1
-
-      n = 0
-      do k=1,lstr%n_lookup
-        n = n+lstr%lr(k)%km*lstr%lr(k)%lm
-      enddo
-
-      allocate( buf_s(n, si_0:si_1, sj_0:sj_1) )
-      allocate( buf_d(n, di_0:di_1, dj_0:dj_1) )
-
-      n = 0
-      do m = 1,lstr%n_lookup
-        km = lstr%lr(m)%km
-        lm = lstr%lr(m)%lm
-        do k=0,km-1
-          do l=0,lm-1
-            n = n+1
-
-            do j=0,jm-1
-              do i=0,im-1
-                ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
-                buf_s(n,i+si_0,j+sj_0) = lstr%lr(m)%src(ind)
-              enddo
-            enddo
-
-            if ( associated(lstr%lr(m)%src_w) ) then
-              do j=0,jm-1
-                do i=0,im-1
-                  ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
-                  buf_s(n,i+si_0,j+sj_0) = buf_s(n,i+si_0,j+sj_0)
-     &                 * lstr%lr(m)%src_w(i+1,j+1)
-                enddo
-              enddo
-            endif
-
-          enddo
-        enddo
-      enddo
-
-      end subroutine ba_bundle
-
-
-      subroutine ba_unbundle( lstr, buf_s, buf_d )
-      implicit none
-      type (lookup_str) :: lstr
-      real*8, dimension(:,:,:), pointer :: buf_s, buf_d
-
-      integer :: di_0, di_1, dj_0, dj_1
-      integer im,jm,km,lm
-      integer i,j,k,l,m,n,ind
-
-      di_0 = lstr%di_0
-      di_1 = lstr%di_1
-      dj_0 = lstr%dj_0
-      dj_1 = lstr%dj_1
-
-      im = di_1 - di_0 + 1
-      jm = dj_1 - dj_0 + 1
-
-      n = 0
-      do m = 1,lstr%n_lookup
-        km = lstr%lr(m)%km
-        lm = lstr%lr(m)%lm
-        do k=0,km-1
-          do l=0,lm-1
-            n = n+1
-
-            do j=0,jm-1
-              do i=0,im-1
-                ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
-                lstr%lr(m)%dest(ind) = buf_d(n,i+di_0,j+dj_0)
-              enddo
-            enddo
-
-          enddo
-        enddo
-      enddo
-
-      n = 0
-      do m = 1,lstr%n_lookup
-        km = lstr%lr(m)%km
-        lm = lstr%lr(m)%lm
-        do k=0,km-1
-          do l=0,lm-1
-            n = n+1
-            
-            if ( associated(lstr%lr(m)%dest_w ) ) then
-              do j=0,jm-1
-                do i=0,im-1
-                  ind = l + i*lm + j*im*lm + k*jm*im*lm + 1
-                  if ( lstr%lr(m)%dest_w(i+1,j+1) .ne. 0.d0 ) then
-                    lstr%lr(m)%dest(ind) = lstr%lr(m)%dest(ind)
-     &                   / lstr%lr(m)%dest_w(i+1,j+1)
-                  else
-                    lstr%lr(m)%dest(ind) = 0.d0
-                  endif
-                enddo
-              enddo
-            endif
-
-          enddo
-        enddo
-      enddo
-
-      deallocate( buf_s )
-      deallocate( buf_d )     
-
-      end subroutine ba_unbundle
-
-
-      subroutine ba_copy( lstr )
-      implicit none
-      type (lookup_str) :: lstr
-
-      integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1
-      integer im,jm,km,lm,nm
-      integer m
-
-      si_0 = lstr%si_0
-      si_1 = lstr%si_1
-      sj_0 = lstr%sj_0
-      sj_1 = lstr%sj_1
-      di_0 = lstr%di_0
-      di_1 = lstr%di_1
-      dj_0 = lstr%dj_0
-      dj_1 = lstr%dj_1
-
-      im = si_1 - si_0 + 1
-      jm = sj_1 - sj_0 + 1
-
-      ! make sure we copy arrays of the same size
-      if ( im .ne. di_1 - di_0 + 1 .or. jm .ne. dj_1 - dj_0 + 1 )
-     &     call stop_model("ba_copy: dims of arrays differ", 255)
-
-      do m = 1,lstr%n_lookup
-        km = lstr%lr(m)%km
-        lm = lstr%lr(m)%lm
-        nm = lm*im*jm*km
-        lstr%lr(m)%dest(1:nm) = lstr%lr(m)%src(1:nm)
-      enddo
-
-      end subroutine ba_copy
-
       subroutine bundle_interpolation(remap,lstr)
       USE cs2ll_utils, only : xgridremap_type,xgridremap_lij
+      USE array_bundle, only : lookup_str, ab_bundle, ab_unbundle
       implicit none
       type (xgridremap_type) :: remap
       type (lookup_str) :: lstr
       real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:)
 
-      call ba_bundle( lstr, buf_s, buf_d )
+      call ab_bundle( lstr, buf_s, buf_d )
 
       call xgridremap_lij( remap, buf_s, buf_d)
 
-      call ba_unbundle( lstr, buf_s, buf_d )
+      call ab_unbundle( lstr, buf_s, buf_d )
 
       end subroutine bundle_interpolation
-
-      end module bundle_arrays
 
 #endif /* BUNDLE_INTERP */
 
@@ -337,7 +59,7 @@
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
       USE regrid_com, only : remap_A2O
-      USE bundle_arrays
+      USE array_bundle
 
       IMPLICIT NONE
       INTEGER N
@@ -362,41 +84,41 @@
      &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       !-- initializing "lstr"
-      call ba_init( lstr, aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
+      call ab_init( lstr, aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO, aGRID%J_STOP_HALO,
      &     oGRID%I_STRT_HALO, oGRID%I_STOP_HALO,
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO )
 
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
-      call ba_add(lstr, aWEIGHT,oWEIGHT,shape(aWEIGHT),'ij' )
-      call ba_add(lstr,aPREC,oPREC,shape(aPREC),'ij',
+      call ab_add(lstr, aWEIGHT,oWEIGHT,shape(aWEIGHT),'ij' )
+      call ab_add(lstr,aPREC,oPREC,shape(aPREC),'ij',
      &     aWEIGHT,oWEIGHT )
-      call ba_add(lstr,aEPREC,oEPREC,shape(aEPREC),'ij',
+      call ab_add(lstr,aEPREC,oEPREC,shape(aEPREC),'ij',
      &     aWEIGHT,oWEIGHT)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
         aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
-      call ba_add(lstr, aTRPREC, oTRPREC, shape(aTRPREC),'lij', 
+      call ab_add(lstr, aTRPREC, oTRPREC, shape(aTRPREC),'lij', 
      &     aWEIGHT, oWEIGHT )
 #endif
 
       aWEIGHT1(:,:) = aRSI(:,:)   
 !     oWEIGHT1(:,:) = 1.-oWEIGHT(:,:)            ! using the property REGRID(1-RSI)=1-REGRID(RSI)  
-      call ba_add(lstr,aWEIGHT1,oWEIGHT1,shape(aWEIGHT1),'ij')        ! this line should be removed when previous line is uncommented 
-      call ba_add(lstr,aRUNPSI,oRUNPSI,shape(aRUNPSI),'ij',
+      call ab_add(lstr,aWEIGHT1,oWEIGHT1,shape(aWEIGHT1),'ij')        ! this line should be removed when previous line is uncommented 
+      call ab_add(lstr,aRUNPSI,oRUNPSI,shape(aRUNPSI),'ij',
      &     aWEIGHT1,oWEIGHT1)
-      call ba_add(lstr,aSRUNPSI,oSRUNPSI,shape(aSRUNPSI),'ij',
+      call ab_add(lstr,aSRUNPSI,oSRUNPSI,shape(aSRUNPSI),'ij',
      &     aWEIGHT1,oWEIGHT1)
-      call ba_add(lstr,aERUNPSI,oERUNPSI,shape(aERUNPSI),'ij',
+      call ab_add(lstr,aERUNPSI,oERUNPSI,shape(aERUNPSI),'ij',
      &     aWEIGHT1,oWEIGHT1)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-      call ba_add( lstr,aTRUNPSI,oTRUNPSI,shape(aTRUNPSI),'lij',
+      call ab_add( lstr,aTRUNPSI,oTRUNPSI,shape(aTRUNPSI),'lij',
      &     aWEIGHT1,oWEIGHT1)
 #endif
 
-      call ba_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
+      call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
 
 
 c*   actual interpolation here
@@ -558,7 +280,7 @@ c*   actual interpolation here
       USE FLUXES, only : gtracer
 #endif
       USE regrid_com, only : remap_O2A
-      USE bundle_arrays
+      USE array_bundle
       USE INT_OG2AG_MOD, only : INT_OG2AG
 
       IMPLICIT NONE
@@ -593,7 +315,7 @@ c*   actual interpolation here
       allocate(oweight1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       !-- initializing "lstr"
-      call ba_init( lstr, 1, oIM,
+      call ab_init( lstr, 1, oIM,
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO,
      &     aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO, aGRID%J_STOP_HALO)
@@ -629,32 +351,32 @@ c*   actual interpolation here
      &     OGEOZ_SVtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      call ba_add( lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT),'ij')
+      call ab_add( lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT),'ij')
 
       do L=1,2
       oMOtmp(:,:,L) = MO(:,:,L)
       if (ogrid%HAVE_NORTH_POLE) 
      &     oMOtmp(2:oIM,oJM,L) = oMOtmp(1,oJM,L)
       enddo
-      call ba_add( lstr, oMOtmp, aMO, shape(oMOtmp), 
+      call ab_add( lstr, oMOtmp, aMO, shape(oMOtmp), 
      &     'ijk', oWEIGHT, aWEIGHT) 
 
       OGEOZtmp=OGEOZ
       if (ogrid%HAVE_NORTH_POLE) 
      &     OGEOZtmp(2:oIM,oJM) = OGEOZtmp(1,oJM)
-      call ba_add( lstr, OGEOZtmp, aOGEOZ, shape(OGEOZtmp),'ij',
+      call ab_add( lstr, OGEOZtmp, aOGEOZ, shape(OGEOZtmp),'ij',
      &     oWEIGHT, aWEIGHT)
 
       OGEOZ_SVtmp=OGEOZ_SV
       if (ogrid%HAVE_NORTH_POLE) 
      &     OGEOZ_SVtmp(2:oIM,oJM) = OGEOZ_SVtmp(1,oJM)
-      call ba_add( lstr, OGEOZ_SVtmp, aOGEOZ_SV, shape(OGEOZ_SVtmp),
+      call ab_add( lstr, OGEOZ_SVtmp, aOGEOZ_SV, shape(OGEOZ_SVtmp),
      &     'ij',oWEIGHT, aWEIGHT)
 
       oWEIGHT1(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
       if (ogrid%HAVE_NORTH_POLE) 
      &     oWEIGHT1(2:oIM,oJM) = oWEIGHT1(1,oJM)
-      call ba_add( lstr, oWEIGHT1, aWEIGHT1, shape(oWEIGHT1),'ij')
+      call ab_add( lstr, oWEIGHT1, aWEIGHT1, shape(oWEIGHT1),'ij')
 
       oG0(:,:,:) = 0.d0
       DO L = 1,2
@@ -669,7 +391,7 @@ c*   actual interpolation here
       do L=1,2
       if (ogrid%HAVE_NORTH_POLE) oG0(2:oIM,oJM,L) = oG0(1,oJM,L)
       enddo
-      call ba_add( lstr, oG0, aG0, shape(oG0), 'ijk', 
+      call ab_add( lstr, oG0, aG0, shape(oG0), 'ijk', 
      &     oWEIGHT1, aWEIGHT1) 
 c      CALL INT_OG2AG(oG0,aG0, oWEIGHT1, 2,2,.TRUE.)
 
@@ -686,7 +408,7 @@ c      CALL INT_OG2AG(oG0,aG0, oWEIGHT1, 2,2,.TRUE.)
       do L=1,2
       if (ogrid%HAVE_NORTH_POLE) oS0(2:oIM,oJM,L) = oS0(1,oJM,L)
       enddo
-      call ba_add( lstr, oS0, aS0, shape(oS0), 'ijk',
+      call ab_add( lstr, oS0, aS0, shape(oS0), 'ijk',
      &     oWEIGHT1, aWEIGHT1) 
 
 c Discontinued method for ocean C-grid -> atm A-grid:
@@ -727,8 +449,8 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       if (ogrid%HAVE_NORTH_POLE) oUO1(2:oIM,oJM) = oUO1(1,oJM)
       if (ogrid%HAVE_NORTH_POLE) oVO1(2:oIM,oJM) = oVO1(1,oJM)
 
-      call ba_add(lstr, oUO1, aUO1, shape(oUO1),'ij')
-      call ba_add(lstr, oVO1, aVO1, shape(oVO1),'ij')
+      call ab_add(lstr, oUO1, aUO1, shape(oUO1),'ij')
+      call ab_add(lstr, oVO1, aVO1, shape(oVO1),'ij')
 
 #ifndef CUBE_GRID   /* this portion will disappear if bundling is used for CS only */
       if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
@@ -1185,7 +907,7 @@ C**** surface tracer concentration
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
       USE regrid_com, only : remap_A2O
-      USE bundle_arrays
+      USE array_bundle
 
       IMPLICIT NONE
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
@@ -1226,7 +948,7 @@ C**** surface tracer concentration
      &           ,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       !-- initializing "lstr"
-      call ba_init( lstr, aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
+      call ab_init( lstr, aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO, aGRID%J_STOP_HALO,
      &     oGRID%I_STRT_HALO, oGRID%I_STOP_HALO,
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO )
@@ -1239,7 +961,7 @@ C**** surface tracer concentration
       oJ_1 = oGRID%j_STOP
 
 
-      call ba_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
+      call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
       
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1249,7 +971,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
+      call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1258,7 +980,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
+      call ab_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1267,7 +989,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
+      call ab_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1276,7 +998,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
+      call ab_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1285,7 +1007,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
+      call ab_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1294,7 +1016,7 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add(lstr, aGMELT, oGMELT, shape(aGMELT), 'ij')
+      call ab_add(lstr, aGMELT, oGMELT, shape(aGMELT), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1304,21 +1026,21 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      call ba_add( lstr, aEGMELT, oEGMELT, shape(aEGMELT), 'ij')
+      call ab_add( lstr, aEGMELT, oEGMELT, shape(aEGMELT), 'ij')
 
-      call ba_add( lstr, aAPRESS, oAPRESS, shape(aAPRESS), 'ij')
+      call ab_add( lstr, aAPRESS, oAPRESS, shape(aAPRESS), 'ij')
 
       aWEIGHT(:,:) = aRSI(:,:)
-      call ba_add( lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij')
-      call ba_add( lstr, aRUNOSI, oRUNOSI, shape(aRUNOSI), 'ij',
+      call ab_add( lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij')
+      call ab_add( lstr, aRUNOSI, oRUNOSI, shape(aRUNOSI), 'ij',
      &     aWEIGHT, oWEIGHT)
-      call ba_add( lstr, aERUNOSI, oERUNOSI, shape(aERUNOSI), 'ij',
+      call ab_add( lstr, aERUNOSI, oERUNOSI, shape(aERUNOSI), 'ij',
      &     aWEIGHT, oWEIGHT)
-      call ba_add( lstr, aSRUNOSI, oSRUNOSI, shape(aSRUNOSI), 'ij',
+      call ab_add( lstr, aSRUNOSI, oSRUNOSI, shape(aSRUNOSI), 'ij',
      &     aWEIGHT, oWEIGHT)
 
       aWEIGHT1(:,:) = 1.d0 - aRSI(:,:)
-      call ba_add( lstr, aWEIGHT1, oWEIGHT1, shape(aWEIGHT1), 'ij')
+      call ab_add( lstr, aWEIGHT1, oWEIGHT1, shape(aWEIGHT1), 'ij')
 
 !     allocate temporary arrays 
       allocate(aE0tmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
@@ -1349,28 +1071,28 @@ C**** surface tracer concentration
 !     copy E0(:,:,1) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aE0tmp(:,:)=aE0(:,:,1)
-      call ba_add(lstr, aE0tmp, oE0tmp, shape(aE0tmp), 'ij',
+      call ab_add(lstr, aE0tmp, oE0tmp, shape(aE0tmp), 'ij',
      &     aWEIGHT1, oWEIGHT1)
 
 !     copy EVAPOR(:,:,1) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aEVAPORtmp(:,:)=aEVAPOR(:,:,1)
-      call ba_add(lstr, aEVAPORtmp, oEVAPORtmp, shape(aEVAPORtmp),
+      call ab_add(lstr, aEVAPORtmp, oEVAPORtmp, shape(aEVAPORtmp),
      &     'ij', aWEIGHT1, oWEIGHT1)
 
 !     copy SOLAR(1,:,:) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aSOLAR1tmp(:,:)=aSOLAR(1,:,:)
-      call ba_add(lstr, aSOLAR1tmp, oSOLAR1tmp, shape(aSOLAR1tmp),
+      call ab_add(lstr, aSOLAR1tmp, oSOLAR1tmp, shape(aSOLAR1tmp),
      &     'ij', aWEIGHT1, oWEIGHT1)
 
       aWEIGHT2(:,:) = aRSI(:,:)
-      call ba_add( lstr, aWEIGHT2, oWEIGHT2, shape(aWEIGHT2), 'ij')
+      call ab_add( lstr, aWEIGHT2, oWEIGHT2, shape(aWEIGHT2), 'ij')
 
 !     copy SOLAR(1,:,:) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aSOLAR3tmp(:,:)=aSOLAR(3,:,:)
-      call ba_add( lstr, aSOLAR3tmp, oSOLAR3tmp, shape(aSOLAR3tmp), 
+      call ab_add( lstr, aSOLAR3tmp, oSOLAR3tmp, shape(aSOLAR3tmp), 
      &     'ij', aWEIGHT2, oWEIGHT2)
 
 #ifdef TRACERS_OCEAN
@@ -1462,7 +1184,7 @@ C**** surface tracer concentration
          enddo
       enddo
 
-      call ba_add(lstr, aDMUA1tmp, oDMUA1tmp, shape(aDMUA1tmp), 'ij')
+      call ab_add(lstr, aDMUA1tmp, oDMUA1tmp, shape(aDMUA1tmp), 'ij')
 
       do j=aGRID%J_STRT_HALO,aGRID%J_STOP_HALO
          do i=aGRID%I_STRT_HALO,aGRID%I_STOP_HALO
@@ -1473,7 +1195,7 @@ C**** surface tracer concentration
          enddo
       enddo
 
-      call ba_add(lstr, aDMVA1tmp, oDMVA1tmp, shape(aDMVA1tmp), 'ij')
+      call ab_add(lstr, aDMVA1tmp, oDMVA1tmp, shape(aDMVA1tmp), 'ij')
 
 c*   actual interpolation here
       call bundle_interpolation(remap_A2O,lstr)
@@ -1851,7 +1573,7 @@ c*
 #endif
 
       USE regrid_com, only : remap_O2A
-      USE bundle_arrays
+      USE array_bundle
       IMPLICIT NONE
 
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
@@ -1879,21 +1601,21 @@ c*
 
 
       !-- initializing "lstr"
-      call ba_init( lstr, 1, oIM,
+      call ab_init( lstr, 1, oIM,
      &     oGRID%J_STRT_HALO, oGRID%J_STOP_HALO,
      &     aGRID%I_STRT_HALO, aGRID%I_STOP_HALO,
      &     aGRID%J_STRT_HALO, aGRID%J_STOP_HALO)
 
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      call ba_add(lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT), 'ij')
+      call ab_add(lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT), 'ij')
 
       oDMSItmp=oDMSI
       do L=1,2
          if (ogrid%HAVE_NORTH_POLE) 
      &        oDMSItmp(L,2:oIM,oJM) = oDMSItmp(L,1,oJM)
       enddo
-      call ba_add(lstr, oDMSItmp, aDMSItmp, shape(oDMSItmp),
+      call ab_add(lstr, oDMSItmp, aDMSItmp, shape(oDMSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
 c      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2)
 
@@ -1902,7 +1624,7 @@ c      CALL INT_OG2AG(oDMSI,aDMSI, oWEIGHT, 2)
          if (ogrid%HAVE_NORTH_POLE) 
      &        oDHSItmp(L,2:oIM,oJM) = oDHSItmp(L,1,oJM)
       enddo
-      call ba_add(lstr, oDHSItmp, aDHSItmp, shape(oDHSItmp),
+      call ab_add(lstr, oDHSItmp, aDHSItmp, shape(oDHSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
 c      CALL INT_OG2AG(oDHSI,aDHSI, oWEIGHT, 2)
 
@@ -1911,7 +1633,7 @@ c      CALL INT_OG2AG(oDHSI,aDHSI, oWEIGHT, 2)
          if (ogrid%HAVE_NORTH_POLE) 
      &        oDSSItmp(L,2:oIM,oJM) = oDSSItmp(L,1,oJM)
       enddo
-      call ba_add(lstr, oDSSItmp, aDSSItmp, shape(oDSSItmp),
+      call ab_add(lstr, oDSSItmp, aDSSItmp, shape(oDSSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
 c      CALL INT_OG2AG(oDSSI,aDSSI, oWEIGHT, 2)
 
