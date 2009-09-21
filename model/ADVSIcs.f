@@ -160,11 +160,10 @@ C****
      &       (ull*ull2vcs(i,j+1)+vll*vll2vcs(i,j+1))
 c apply various constraints to advective velocity to prevent
 c excessive ice pile-up along coastlines
-        if(focean(i,j)+focean(i,j+1).eq.0.) vdxdt(i,j)=0.
-        if(vdxdt(i,j).ne.0.) then
-          if(connect(i,j).eq.8 .or. connect(i,j+1).eq.4) then
-            vdxdt(i,j) = 0. ! single-gridcell inlet
-          endif
+        if(connect(i,j)*connect(i,j+1).eq.0) vdxdt(i,j)=0.
+        if(vdxdt(i,j).ne.0.) then ! no flow into single-gridcell inlets
+          if(connect(i,j  ).eq.8 .and. vdxdt(i,j).lt.0.) vdxdt(i,j) = 0.
+          if(connect(i,j+1).eq.4 .and. vdxdt(i,j).gt.0.) vdxdt(i,j) = 0.
 c uncomment the following line to zero out all near-coastal velocities
 c          if(connect(i,j)+connect(i,j+1).lt.30) vdxdt(i,j) = 0.
         endif
@@ -178,11 +177,10 @@ c          if(connect(i,j)+connect(i,j+1).lt.30) vdxdt(i,j) = 0.
      &       (ull*ull2ucs(i+1,j)+vll*vll2ucs(i+1,j))
 c apply various constraints to advective velocity to prevent
 c excessive ice pile-up along coastlines
-        if(focean(i,j)+focean(i+1,j).eq.0.) udydt(i,j)=0.
-        if(udydt(i,j).ne.0.) then
-          if(connect(i,j).eq.2 .or. connect(i+1,j).eq.1) then
-            udydt(i,j) = 0. ! single-gridcell inlet
-          endif
+        if(connect(i,j)*connect(i+1,j).eq.0) udydt(i,j)=0.
+        if(udydt(i,j).ne.0.) then ! no flow into single-gridcell inlets
+          if(connect(i  ,j).eq.2 .and. udydt(i,j).lt.0.) udydt(i,j) = 0.
+          if(connect(i+1,j).eq.1 .and. udydt(i,j).gt.0.) udydt(i,j) = 0.
 c uncomment the following line to zero out all near-coastal velocities
 c          if(connect(i,j)+connect(i+1,j).lt.30) udydt(i,j) = 0.
         endif

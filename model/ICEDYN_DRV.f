@@ -55,6 +55,7 @@ C**** Needed for ADVSI (on ATM grid)
 c arrays for sea ice advection
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA,CONNECT
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UVLLATUC,UVLLATVC
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: UVMATUC,UVMATVC
 #endif
 
 C**** Ice advection diagnostics
@@ -189,7 +190,7 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
      *     ,irerun,lhead
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
       USE ICEDYN_COM
       USE ICEDYN, only : grid_ICDYN,imicdyn,jmicdyn,USI,VSI
       IMPLICIT NONE
@@ -247,8 +248,8 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irsficnt,irerun,ioread_single,lhead
-      USE DOMAIN_DECOMP_ATM, only : GET, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : PACK_DATA, UNPACK_DATA
+      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
       USE ICEDYN_COM
       IMPLICIT NONE
@@ -1699,42 +1700,42 @@ c***  both latlon with equal resolution
 #endif
       end subroutine INT_AtmA2IceA_XY
 
-      subroutine INT_IceB2AtmA(iAb,aAa)
-!@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
-!@auth Denis Gueyffier
-      USE RESOLUTION, only : aIM=>IM,aJM=>JM
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
-     &     ATM_UNPACK=>UNPACK_DATA,am_i_root
-      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
-      IMPLICIT NONE
-      integer :: mype,ierr
-      character*80 :: title
-      real *8 ::
-     &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
-     &     iAb(1:IMICDYN,                             ! on ice B grid
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
- 
-#ifdef CUBE_GRID
-      real*8, allocatable :: aA_glob(:,:,:)
-      real*4, allocatable :: a4_glob(:,:,:)
-      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
-      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
-     &     iAb,aA_glob,IMICDYN,JMICDYN)
-
-c      if (am_i_root()) then
-c      open(900,FILE="iB2aA",FORM='unformatted',
-c     &        STATUS='unknown')
-c      title="test"
-c      a4_glob=aA_glob
-c      write(900) title,a4_glob
-c      close(900)
-c      endif
-
-      call ATM_UNPACK(agrid,aA_glob,aAa)
-      deallocate(aA_glob,a4_glob)
-#endif
-      end subroutine INT_IceB2AtmA
+c      subroutine INT_IceB2AtmA(iAb,aAa)
+c!@sum  interpolation from Ice B-grid to Atm A-grid for either U or V component of vector 
+c!@auth Denis Gueyffier
+c      USE RESOLUTION, only : aIM=>IM,aJM=>JM
+c      USE DOMAIN_DECOMP_ATM, only : agrid=>grid,
+c     &     ATM_UNPACK=>UNPACK_DATA,am_i_root
+c      USE ICEDYN, only : IMICDYN,JMICDYN,grid_ICDYN
+c      IMPLICIT NONE
+c      integer :: mype,ierr
+c      character*80 :: title
+c      real *8 ::
+c     &     aAa(agrid%I_STRT_HALO:agrid%I_STOP_HALO,   ! on atm A grid
+c     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+c     &     iAb(1:IMICDYN,                             ! on ice B grid
+c     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+c 
+c#ifdef CUBE_GRID
+c      real*8, allocatable :: aA_glob(:,:,:)
+c      real*4, allocatable :: a4_glob(:,:,:)
+c      allocate(aA_glob(aIM,aJM,6),a4_glob(aIM,aJM,6))
+c      call parallel_bilin_latlon_B_2_CS_A(grid_ICDYN,agrid,
+c     &     iAb,aA_glob,IMICDYN,JMICDYN)
+c
+cc      if (am_i_root()) then
+cc      open(900,FILE="iB2aA",FORM='unformatted',
+cc     &        STATUS='unknown')
+cc      title="test"
+cc      a4_glob=aA_glob
+cc      write(900) title,a4_glob
+cc      close(900)
+cc      endif
+c
+c      call ATM_UNPACK(agrid,aA_glob,aAa)
+c      deallocate(aA_glob,a4_glob)
+c#endif
+c      end subroutine INT_IceB2AtmA
 
       SUBROUTINE init_icedyn(iniOCEAN)
 !@sum  init_icedyn initializes ice dynamics variables
@@ -1748,13 +1749,16 @@ c      endif
      &     osurf_tilt,bydts,usi,vsi,uice,vice
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
      &     GEOMICDYN,ICDYN_MASKS
-#ifdef CUBE_GRID
-      USE ICEDYN, only : lon,lat,lonb,latb
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      USE ICEDYN, only : lon,lat,lonb,latb,uvm
       USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc
-     &     ,ICE2CSint ,UVLLATUC,UVLLATVC,CONNECT
-      USE cs2ll_utils, only : init_cs2llint_type,init_ll2csint_type
+     &     ,ICE2CSint ,UVLLATUC,UVLLATVC,UVMATUC,UVMATVC,CONNECT
+      USE cs2ll_utils, only : init_cs2llint_type,init_ll2csint_type,
+     &     ll2csint_ij
       USE GEOM, only : AXYP,BYAXYP,lon2d,lat2d,lonuc,latuc,lonvc,latvc
       use constant, only : pi
+c      USE DOMAIN_DECOMP_1D, only : READT_PARALLEL
+c      USE FILEMANAGER, only : openunit,closeunit,nameunit
 #endif
       USE FLUXES, only : uisurf,visurf
       USE PARAM
@@ -1762,8 +1766,11 @@ c      endif
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
-      integer :: imin,imax,jmin,jmax
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      integer :: imin,imax,jmin,jmax,iu_mask
       real*8 :: lonb_tmp(imicdyn)
+      real*8, dimension(:,:), allocatable :: uvm_tmp
+#endif
 
 C**** First, set up the ice dynamics lat-lon grid.
 C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
@@ -1771,7 +1778,12 @@ C**** The resolutions IMICDYN, JMICDYN are defined in ICEDYN.f.
 C**** Calculate spherical geometry
       call GEOMICDYN()
 
-#ifdef CUBE_GRID
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c Get the ice dynamics land mask from the ocean topo file
+c      call openunit("TOPO_OC",iu_mask,.true.,.true.)
+c      CALL READT_PARALLEL(grid_icdyn,iu_mask,NAMEUNIT(iu_mask),
+c     &     iFOCEAN,1)
+c      call closeunit(iu_mask)
 c**** set up CS2ICEint, a data structure for CS to latlon interpolation
       call init_cs2llint_type(agrid,grid_ICDYN,lon,lat,1,JMICDYN,
      &     CS2ICEint_a)
@@ -1779,10 +1791,13 @@ c**** set up CS2ICEint, a data structure for CS to latlon interpolation
       call init_cs2llint_type(agrid,grid_ICDYN,lonb_tmp,latb,
      &     1,JMICDYN-1,
      &     CS2ICEint_b,setup_rot_pol=.true.)
+C**** Derive the ice dynamics land mask from the atmosphere mask
+      call INT_AtmA2IceA_XY(aFocean,iFocean)
+#else
+C**** The ice dynamics land mask is that of the atmosphere      
+      ifocean(:,:) = afocean(:,:)
 #endif
 
-C**** Derive the ice dynamics land mask from that seen by the atmosphere
-      call INT_AtmA2IceA_XY(aFocean,iFocean)
       call ICE_HALO(grid_ICDYN, iFOCEAN)
       call ICDYN_MASKS()
 
@@ -1810,20 +1825,10 @@ C**** precompute some arrays for ice advection on the atm grid
           ELSE
             BYFOA(I,J)=0.
           END IF
-c encode the "ocean-connectedness" of gridpoint i,j using:
-c ["west:" 1] + ["east:" 2] + ["south:" 4] + ["north:" 8]
-          connect(i,j) = 0
-          if(afocean(i,j).gt.0.) then
-            if(afocean(i-1,j).gt.0.) connect(i,j) = connect(i,j) + 1
-            if(afocean(i+1,j).gt.0.) connect(i,j) = connect(i,j) + 2
-            if(afocean(i,j-1).gt.0.) connect(i,j) = connect(i,j) + 4
-            if(afocean(i,j+1).gt.0.) connect(i,j) = connect(i,j) + 8
-          endif
         enddo
       enddo
       call ATM_HALO(agrid, FOA)
       call ATM_HALO(agrid, BYFOA)
-      call atm_halo(agrid, connect)
 C**** precompute some interpolation info for ice advection
 c ice b-grid -> atm "west" edges
       imin=lbound(lonuc,1); imax=ubound(lonuc,1)
@@ -1833,6 +1838,7 @@ c ice b-grid -> atm "west" edges
      &     imin,imax,jmin,jmax,lonuc,latuc,
      &     i2a_uc)
       allocate(uvllatuc(2,imin:imax,jmin:jmax))
+      allocate(uvmatuc(imin:imax,jmin:jmax))
 c ice b-grid -> atm "south" edges
       imin=lbound(lonvc,1); imax=ubound(lonvc,1)
       jmin=lbound(lonvc,2); jmax=ubound(lonvc,2)
@@ -1841,12 +1847,39 @@ c ice b-grid -> atm "south" edges
      &     imin,imax,jmin,jmax,lonvc,latvc,
      &     i2a_vc)
       allocate(uvllatvc(2,imin:imax,jmin:jmax))
+      allocate(uvmatvc(imin:imax,jmin:jmax))
 c ice b-grid -> atm a-grid
       call init_ll2csint_type(grid_icdyn,agrid,
      &     lonb,latb, 1,JMICDYN-1,
      &     agrid%isd,agrid%ied,agrid%jsd,agrid%jed,
      &     lon2d,lat2d,
      &     ICE2CSint,skip_halos=.true.)
+
+c Interpolate the ice dynamics velocity mask to atm cell edges, and
+c encode the "ocean-connectedness" of gridpoint i,j using:
+c ["west:" 1] + ["east:" 2] + ["south:" 4] + ["north:" 8].
+c Gridcells whose ocean fraction is <10% are not ocean-connected.
+      allocate(uvm_tmp(imicdyn,j_0h:j_1h))
+      uvm_tmp(1:imicdyn,j_0:j_1) = uvm(2:imicdyn+1,j_0:j_1)
+      call ll2csint_ij(grid_icdyn,i2a_uc,uvm_tmp,uvmatuc)
+      call ll2csint_ij(grid_icdyn,i2a_vc,uvm_tmp,uvmatvc)
+      deallocate(uvm_tmp)
+      do j=agrid%j_strt,agrid%j_stop
+        do i=agrid%i_strt,agrid%i_stop
+          connect(i,j) = 0
+          if(afocean(i,j).gt.0.1d0) then
+            if(afocean(i-1,j).gt.0.1d0 .and. uvmatuc(i  ,j).gt.0.)
+     &           connect(i,j) = connect(i,j) + 1
+            if(afocean(i+1,j).gt.0.1d0 .and. uvmatuc(i+1,j).gt.0.)
+     &           connect(i,j) = connect(i,j) + 2
+            if(afocean(i,j-1).gt.0.1d0 .and. uvmatvc(i,j  ).gt.0.)
+     &           connect(i,j) = connect(i,j) + 4
+            if(afocean(i,j+1).gt.0.1d0 .and. uvmatvc(i,j+1).gt.0.)
+     &           connect(i,j) = connect(i,j) + 8
+          endif
+        enddo
+      enddo
+      call atm_halo(agrid, connect)
 #endif
 
 C**** set uisurf,visurf for atmospheric drag calculations

@@ -25,6 +25,9 @@ C*************************************************************
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
       USE SEAICE, only : osurf_tilt
+c#ifdef CUBE_GRID
+c      USE OCEANRES, only : imo,jmo
+c#endif
       IMPLICIT NONE
       SAVE
 
@@ -36,11 +39,13 @@ C**** rheology calculations without changing ADVSI grid.
 !@var ny1 number of grid points in the latitudinal direction
 !@+  (calculated points from 2 through ny1-1. End points are boundaries)
 #ifdef CUBE_GRID
-      INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM !     dimensions of grid_ICDYN
+      INTEGER, parameter :: IMICDYN = 2*IM, JMICDYN = 2*JM
+c      integer, parameter :: imicdyn=imo, jmicdyn=jmo
 #else
-      INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM !     dimensions of grid_ICDYN
+      INTEGER, parameter :: IMICDYN = IM, JMICDYN = JM
 #endif
-      INTEGER, parameter :: NX1=IMICDYN+2, NY1=JMICDYN !     dimensions of grid_NXY
+!     dimensions of grid_NXY:
+      INTEGER, parameter :: NX1=IMICDYN+2, NY1=JMICDYN
       INTEGER, parameter :: NYPOLE=NY1-1,NXLCYC=NX1-1
       integer :: NPOL=1,LCYC=1
 
