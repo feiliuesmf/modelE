@@ -72,6 +72,7 @@ c zonal strips if they are available
      &       tag,MPI_COMM_WORLD,ierr)
       endif
       if(grid%am_i_rowroot) deallocate(arr1d)
+      call mpi_barrier(MPI_COMM_WORLD, ierr)
 #else
 c call write_data when in serial mode
       call write_data(grid,fid,varname,arr)
