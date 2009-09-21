@@ -18,6 +18,7 @@
       end type lookup_record
 
       type lookup_str
+        private
         integer :: si_0, si_1, sj_0, sj_1  ! source bounds
         integer :: di_0, di_1, dj_0, dj_1  ! destination bounds
         integer  :: n_lookup=0
