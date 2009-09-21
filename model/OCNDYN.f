@@ -302,6 +302,9 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
      *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+      USE OCEAN, only : nbyzmax,
+     &     nbyzm,nbyzu,nbyzv,nbyzc,
+     &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
       USE RESOLUTION, only : aim=>im,ajm=>jm
       USE OCEANRES, only : dZO
       USE OCFUNC, only : vgsp,tgsp,hgsp,agsp,bgsp,cgs
@@ -331,14 +334,16 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER, INTENT(IN) :: istart
       LOGICAL :: iniStraits
+      logical :: qexist(im)
 #ifdef CUBE_GRID
       integer, allocatable :: ones(:)
 #endif
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
+     *      ,J_STRT_HALO  = J_0H, J_STOP_HALO  = J_1H
      *      ,HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
 C****
@@ -488,7 +493,49 @@ C**** Calculate LMV
       DO 190 J=1,JM-1  ! global arrays (fixed from now on)
       DO 190 I=1,IM
  190  LMV(I,J) = MIN(LMM(I,J),LMM(I,J+1))
+
 C****
+C**** Tabulate basin start/end indices
+C****
+      do l=1,lmo
+        do j=max(2,j_0h),min(jm-1,j_1h)
+          qexist(:) = (l <= lmm(:,j))
+          call get_i1i2(qexist,im,nbyzm(j,l),
+     &         i1yzm(1,j,l),i2yzm(1,j,l),nbyzmax)
+          qexist(:) = (l <= lmu(:,j))
+          call get_i1i2(qexist,im,nbyzu(j,l),
+     &         i1yzu(1,j,l),i2yzu(1,j,l),nbyzmax)
+          qexist(:) = (l <= lmv(:,j))
+          call get_i1i2(qexist,im,nbyzv(j,l),
+     &         i1yzv(1,j,l),i2yzv(1,j,l),nbyzmax)
+          do i=1,im-1
+            qexist(i) =
+     &           (l <= lmv(i,j)) .or. (l <= lmv(i+1,j)) .or.
+     &           (l <= lmu(i,j)) .or. (l <= lmu(i,j+1))
+          enddo
+          i=im
+          qexist(i) =
+     &           (l <= lmv(i,j)) .or. (l <= lmv(  1,j)) .or.
+     &           (l <= lmu(i,j)) .or. (l <= lmu(i,j+1))
+          call get_i1i2(qexist,im,nbyzc(j,l),
+     &         i1yzc(1,j,l),i2yzc(1,j,l),nbyzmax)
+        enddo
+        if(grid%have_south_pole) then
+          nbyzm(1,l) = 0
+          nbyzu(1,l) = 0
+          nbyzv(1,l) = 0
+          nbyzc(1,l) = 0
+        endif
+        if(have_north_pole) then
+          nbyzm(jm,l) = 0
+          nbyzu(jm,l) = 0
+          nbyzv(jm,l) = 0
+          if(l <= lmm(1,jm)) nbyzm(jm,l) = 1
+          i1yzm(1,jm,l) = 1
+          i2yzm(1,jm,l) = 1
+        endif
+      enddo
+
       IF(iniOCEAN) THEN
 C**** Initialize a run from ocean initial conditions
 C???? For starters, let all processes read the IC
@@ -714,6 +761,43 @@ C****
       RETURN
 C****
       END SUBROUTINE init_OCEAN
+
+      subroutine get_i1i2(q,im,n,i1,i2,nmax)
+c Finds the number of intervals over which q==true, and the
+c beginning/ending indices of each interval.
+c Wraparound is disabled.
+      implicit none
+      integer, intent(in) :: im  ! number of points
+      logical, dimension(im), intent(in) :: q ! logical mask
+      integer, intent(in) :: nmax ! max number of contiguous intervals
+      integer, intent(out) :: n ! number of contiguous intervals
+      integer, dimension(nmax) :: i1,i2 ! start,end of each interval
+      integer :: i,nn
+c first find the number of intervals
+      n = 0
+      do i=1,im-1
+        if(q(i) .and. .not.q(i+1)) n = n + 1
+      enddo
+      if(q(im)) n = n + 1
+      if(n.gt.nmax) then
+        write(6,*) 'for get_i1i2, increase nmax to ',n
+        call stop_model('get_i1i2: n>nmax',255)
+      endif
+c find the start/end of each interval
+      i = 1
+      do nn=1,n
+        do while(.not.q(i))
+          i = i + 1
+        enddo
+        i1(nn) = i
+        do while(q(i))
+          i = i + 1
+          if(i.gt.im) exit
+        enddo
+        i2(nn) = i-1
+      enddo
+      return
+      end subroutine get_i1i2
 
       SUBROUTINE daily_OCEAN(end_of_day)
 !@sum  daily_OCEAN performs the daily tasks for the ocean module

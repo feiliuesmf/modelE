@@ -118,6 +118,14 @@ C**** ocean related parameters
      
       type (SparseCommunicator_type), save :: mySparseComm_type
 
+!@var nbyz[muvc]: # of basins at each lat/depth
+!@var i[12]yz[muvc]: start/end i-indices for each basin
+! m: cell center ! u: east edge ! v: north edge ! c: northeast corner
+      integer, parameter :: nbyzmax=20 ! suffices up to 1x1.25 deg res
+      integer, dimension(:,:), allocatable :: nbyzm,nbyzu,nbyzv,nbyzc
+      integer, dimension(:,:,:), allocatable ::
+     &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
+
       contains
 
       subroutine gather_ocean (icase)
@@ -290,6 +298,7 @@ c**** icase=2: still serialized non-i/o parts of ocn dynamics
 !@var DH height of each ocean layer
 !@var VBAR mean specific volume of each layer
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DH,VBAR !  (IM,JM,LMO)
+     &     ,dZGdP
 
 !@var GUP,GDN specific pot enthropy upper,lower part of layer (J/kg)
 !@var SUP,SDN salinity at           upper,lower part of layer (1)
@@ -367,6 +376,10 @@ C****
      *       ,TRMO_glob,TXMO_glob,TYMO_glob,TZMO_glob
       USE OCN_TRACER_COM, only : ntm
 #endif
+      USE OCEAN, only : nbyzmax,
+     &     nbyzm,nbyzu,nbyzv,nbyzc,
+     &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
+
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only: alloc_obio_forc
       USE obio_com,  only: alloc_obio_com
@@ -375,7 +388,7 @@ C****
       USE TRACER_GASEXCH_COM, only: alloc_gasexch_com
 #endif
 
-      USE OCEAN_DYN, only : DH,VBAR, GUP,GDN, SUP,SDN
+      USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
 
       IMPLICIT NONE
@@ -438,8 +451,8 @@ C****
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
 !!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   DH(IM,J_0H:J_1H,LMO), STAT = IER)
-!!!   ALLOCATE(DZGDP(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( VBAR(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(dZGdP(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  GUP(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  GDN(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  SUP(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -454,7 +467,22 @@ C****
       ALLOCATE(   MW(IM,J_0H:J_1H,LMO), STAT = IER)
 
 C**** Necessary initiallisation?
-      MU=0. ; MV=0. ; MW=0. ; CONV=0.
+      MU=0. ; MV=0. ; MW=0. ; CONV=0. ; MMI=0.
+      UO=0. ; VO=0.
+      SMU=0.; SMV=0.; SMW=0.
+
+      ALLOCATE(NBYZM(J_0H:J_1H,LMO))
+      ALLOCATE(NBYZU(J_0H:J_1H,LMO))
+      ALLOCATE(NBYZV(J_0H:J_1H,LMO))
+      ALLOCATE(NBYZC(J_0H:J_1H,LMO))
+      ALLOCATE(I1YZM(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I2YZM(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I1YZU(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I2YZU(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I1YZV(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I2YZV(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I1YZC(NBYZMAX,J_0H:J_1H,LMO))
+      ALLOCATE(I2YZC(NBYZMAX,J_0H:J_1H,LMO))
 
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
