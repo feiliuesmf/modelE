@@ -133,7 +133,7 @@ C**** input variables
      *     ,SAVWL,SAVWL1,SAVE1L,SAVE2L,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP
      *     ,QDNL,TDNL
 #ifdef BLK_2MOM
-     *     ,WMXICE
+     *     ,WMICE
 #endif
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
@@ -146,7 +146,7 @@ C**** input variables
 !@var RH1 relative humidity to compare with the threshold humidity
 !@var WMX cloud water mixing ratio (kg/kg)
 #ifdef BLK_2MOM
-!@var WMXICE ice water mixing ratio (kg/kg)
+!@var WMICE ice water mixing ratio (kg/kg)
 #endif
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
@@ -1195,6 +1195,7 @@ c!*** Here are dust particles coated with sulfate
 #endif  /* TRACERS_AEROSOLS_SOA */
        end select
        END DO      !end of n loop for tracers
+#endif
 C** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
@@ -1207,7 +1208,6 @@ c         if(naerc(l,nm).gt.1.d-30) write(6,*)"mat",ncaero(nm),nm
 C** This is for the old mass to number calculations nc. is
        CALL GET_CC_CDNC(L,AIRM(L),DXYPIJ,PL(L),TL(L),DSS,MCDNL1,MCDNO1)
 
-#endif
 #endif
 #endif
        MNdO=MCDNO1
@@ -2277,8 +2277,8 @@ C**** initialise vertical arrays
        DSGL(:,1:SNTM)=0.
 #endif
 #ifdef BLK_2MOM
-       WMXICE(:)=0.
-c      print *,sname,'WMX, WMXICE = ', WMX, WMXICE
+       WMICE(:)=0.
+c      print *,sname,'WMX, WMICE = ', WMX, WMICE
 #endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       IF (diag_wetdep == 1) THEN
@@ -2561,8 +2561,8 @@ c Set microphysics
           if (WMX(L).eq.0.) ndrop=0.d0
           ncrys=0.d0;mcrys=0.0d0
         ELSE
-          WMXICE(L) = WMX(L)
-          mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
+          WMICE(L) = WMX(L)
+          mcrys=WMICE(L)         ! crys content, [kg water/kg air]
          ncrys=OLDCDI(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
           if (WMX(L).eq.0.) ncrys=0.d0
           ndrop=0.0d0;mdrop=0.0d0
@@ -2938,9 +2938,9 @@ c
          write(iuo,*) l
          write(iuo,*) dtB2M
 
-         write(iuo,*) 'wmx wmxice tl ql pl svlhxl lhx '
+         write(iuo,*) 'wmx wmice tl ql pl svlhxl lhx '
          write(iuo,*) wmx
-         write(iuo,*) wmxice
+         write(iuo,*) wmice
          write(iuo,*) tl
          write(iuo,*) ql
          write(iuo,*) pl
@@ -3784,7 +3784,7 @@ c Update thermo if environment was changed
 c Update micro if contents were changed
 c        mdrop=WMX(L)            ! drop content, [kg water/kg air]
 c        ndrop=mdrop/mw0         ! drop concent, [No/m3]
-c        mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
+c        mcrys=WMICE(L)         ! crys content, [kg water/kg air]
 c        ncrys=mcrys/mi0         ! crys concent, [No/m3]
       IF(LHX.EQ.LHE)  THEN
          mdrop =WMX(L)
@@ -3792,7 +3792,7 @@ c        ncrys=mcrys/mi0         ! crys concent, [No/m3]
          if(WMX(L).eq.0.) ndrop=0.0
        ELSE
          mcrys =WMX(L)
-         WMXICE(L) = WMX(L)
+         WMICE(L) = WMX(L)
          ncrys= OLDCDI(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
          if(WMX(L).eq.0.) ncrys=0.0
        ENDIF
@@ -4005,7 +4005,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.34 2009/08/07 17:18:49 smenon Exp $
+!$Id: CLOUDS2_E1.f,v 1.35 2009/09/21 22:02:41 smenon Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
