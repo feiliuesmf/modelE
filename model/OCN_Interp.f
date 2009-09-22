@@ -1,9 +1,9 @@
 #include "rundeck_opts.h"
 
-!#define AG2OG_PRECIP_BUNDLE   ! ll atm ok
-!#define OG2AG_TOC2SST_BUNDLE   ! ll atm ok
-!#define AG2OG_OCEANS_BUNDLE    ! ll atm results change
-!#define OG2AG_OCEANS_BUNDLE     ! ll atm ok 
+!#define AG2OG_PRECIP_BUNDLE
+!#define OG2AG_TOC2SST_BUNDLE
+!#define AG2OG_OCEANS_BUNDLE
+!#define OG2AG_OCEANS_BUNDLE
 !#define BUNDLE_INTERP
 
 
@@ -1377,6 +1377,14 @@ C**** surface tracer concentration
             endif
          enddo
       enddo
+      
+      do j=max(2,aGRID%J_STRT_HALO),min(aJM-1,aGRID%J_STOP_HALO)     ! exclude poles
+         do i=1,aIMAXJ(J)
+            if (aFOCEAN_loc(i,j).gt.0.) then
+               aDMVA1tmp(i,j) = aDMVA(i,j,1) 
+            endif
+         enddo
+      enddo
 #else
       do j=aGRID%J_STRT_HALO,aGRID%J_STOP_HALO
          do i=aGRID%I_STRT_HALO,aGRID%I_STOP_HALO
@@ -1386,9 +1394,6 @@ C**** surface tracer concentration
          enddo
       enddo 
 
-#endif /* not CUBE_GRID */
-      call ab_add(lstr, aDMUA1tmp, oDMUA1tmp, shape(aDMUA1tmp), 'ij')
-
       do j=aGRID%J_STRT_HALO,aGRID%J_STOP_HALO
          do i=aGRID%I_STRT_HALO,aGRID%I_STOP_HALO
             if (aFOCEAN_loc(i,j).gt.0.) then
@@ -1396,7 +1401,8 @@ C**** surface tracer concentration
             endif
          enddo
       enddo
-
+#endif /* not CUBE_GRID */
+      call ab_add(lstr, aDMUA1tmp, oDMUA1tmp, shape(aDMUA1tmp), 'ij')
       call ab_add(lstr, aDMVA1tmp, oDMVA1tmp, shape(aDMVA1tmp), 'ij')
 
 c*   actual interpolation here
