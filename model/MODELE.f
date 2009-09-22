@@ -1241,95 +1241,11 @@ C****
       XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
       if (AM_I_ROOT()) WRITE (6,'(A,A/)') '0',XLABEL
       RLABEL = XLABEL !@var RLABEL rundeck-label
-      IF(AM_I_ROOT()) THEN
+
 C****
 C**** Print preprocessing options (if any are defined)
 C****
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      write(6,*) 'This program includes tracer code'
-#endif
-#ifdef TRACERS_WATER
-      write(6,*) '...and water tracer code'
-#ifndef TRACERS_ON
-      call stop_model(
-     &' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
-#endif
-#endif
-#ifdef TRACERS_OCEAN
-      write(6,*) '...and ocean tracer code'
-#endif
-#ifdef TRACERS_SPECIAL_O18
-      write(6,*) '...and water isotope code'
-#ifndef TRACERS_WATER
-      call stop_model('Water isotope tracers need TRACERS_WATER '//
-     *'as well as TRACERS_SPECIAL_O18',255)
-#endif
-#endif
-#ifdef TRACERS_SPECIAL_Lerner
-      write(6,*) '...and Jean/David tracers and chemistry'
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      write(6,*) '          '
-      write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
-#ifdef TRACERS_OceanBiology
-      write(6,*) '          '
-      write(6,*) '...and Natassa Romanou/Watson Gregg ocean biology '
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CFC
-      write(6,*) '****CFC flux across air/sea interface****'
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      write(6,*) '****CO2 flux across air/sea interface****'
-#endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      write(6,*) '...and Drew Shindell tracers and chemistry'
-#endif
-#ifdef TRACERS_TERP
-#ifdef TRACERS_SPECIAL_Shindell
-      write(6,*) '...and Terpenes tracer'
-#else
-      call stop_model('Terpenes tracer needs tropo chemistry',255)
-#endif
-#endif  /* TRACERS_TERP */
-#ifdef CALCULATE_FLAMMABILITY
-      write(6,*) '...and calculating sfc veg flammability'
-#endif
-#ifdef CALCULATE_LIGHTNING
-      write(6,*) '...and calculating lightning flash rate'
-#endif
-#ifdef DYNAMIC_BIOMASS_BURNING
-      write(6,*) '...and dynamic biomass burning srcs by flammability'
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      write(6,*) '...and Dorothy Koch aerosols'
-#endif
-#ifdef TRACERS_AEROSOLS_SOA
-#ifdef TRACERS_SPECIAL_Shindell
-      write(6,*) '...and secondary organic aerosols'
-#else
-      call stop_model('SOA version needs tropo chemistry',255)
-#endif
-#endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_DRYDEP
-      write(6,*) '...and tracer dry deposition'
-#endif
-#ifdef EDGAR_HYDE_SOURCES
-      write(6,*) '...and EDGAR HYDE sources instead of GISS'
-#endif
-#ifdef SHINDELL_STRAT_CHEM
-      write(6,*) '...and Drew Shindell stratospheric chemistry'
-#endif
-#ifdef SHINDELL_STRAT_EXTRA
-      write(6,*) '...and Drew Shindell extra strat tracers'
-#endif
-#ifdef INTERACTIVE_WETLANDS_CH4
-      write(6,*) '...and interactive CH4 wetlands emissions'
-#endif
-#ifdef NUDGE_ON
-      write(6,*) '...and nudging of meteorology'
-#endif
-      ENDIF ! AM_I_ROOT()
+      IF(AM_I_ROOT()) call print_and_check_PPopts
 
 C****
 C**** Read parameters from the rundeck to database and namelist
@@ -2432,3 +2348,111 @@ C**** check tracers
       return
       end subroutine print_restart_info
 
+
+      subroutine print_and_check_PPopts
+!@sum prints preprocessor options in english and checks some
+!@+  interdependencies. (moved from subroutine INPUT).
+!@+  Called by root thread only.
+!@ver 1.0
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      write(6,*) 'This program includes tracer code'
+#endif
+#ifdef TRACERS_WATER
+      write(6,*) '...and water tracer code'
+#ifndef TRACERS_ON
+      call stop_model(
+     &' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
+#endif
+#endif 
+#ifdef TRACERS_OCEAN
+      write(6,*) '...and ocean tracer code'
+#endif 
+#ifdef TRACERS_SPECIAL_O18
+      write(6,*) '...and water isotope code'
+#ifndef TRACERS_WATER
+      call stop_model('Water isotope tracers need TRACERS_WATER '//
+     *'as well as TRACERS_SPECIAL_O18',255)
+#endif 
+#endif 
+#ifdef TRACERS_SPECIAL_Lerner
+      write(6,*) '...and Jean/David tracers and chemistry'
+#endif
+#ifdef TRACERS_GASEXCH_ocean
+      write(6,*) '          '
+      write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
+#ifdef TRACERS_OceanBiology
+      write(6,*) '          '
+      write(6,*) '...and Natassa Romanou/Watson Gregg ocean biology '
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CFC
+      write(6,*) '****CFC flux across air/sea interface****'
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      write(6,*) '****CO2 flux across air/sea interface****'
+#endif
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      write(6,*) '...and Drew Shindell tracers and chemistry'
+#endif
+#ifdef TRACERS_TERP
+#ifdef TRACERS_SPECIAL_Shindell
+      write(6,*) '...and Terpenes tracer'
+#else
+      call stop_model('Terpenes tracer needs tropo chemistry',255)
+#endif
+#endif  /* TRACERS_TERP */
+#ifdef CALCULATE_FLAMMABILITY
+      write(6,*) '...and calculating sfc veg flammability'
+#endif
+#ifdef CALCULATE_LIGHTNING
+      write(6,*) '...and calculating lightning flash rate'
+#endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+      write(6,*) '...and dynamic biomass burning srcs by flammability'
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      write(6,*) '...and Dorothy Koch aerosols'
+#endif
+#ifdef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_SPECIAL_Shindell
+      write(6,*) '...and secondary organic aerosols'
+#else
+      call stop_model('SOA version needs tropo chemistry',255)
+#endif
+#endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_DRYDEP
+      write(6,*) '...and tracer dry deposition'
+#endif
+#ifdef EDGAR_HYDE_SOURCES
+      write(6,*) '...and EDGAR HYDE sources instead of GISS'
+#endif
+#ifdef SHINDELL_STRAT_CHEM
+      write(6,*) '...and Drew Shindell stratospheric chemistry'
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+      write(6,*) '...and Drew Shindell extra strat tracers'
+#endif
+#ifdef INTERACTIVE_WETLANDS_CH4
+      write(6,*) '...and interactive CH4 wetlands emissions'
+#endif
+#ifdef NUDGE_ON
+      write(6,*) '...and nudging of meteorology'
+#endif
+#ifdef HTAP_LIKE_DIAGS
+      write(6,*) '...and HTAP set of diagnostics'
+#endif
+#ifdef ACCMIP_LIKE_DIAGS
+      write(6,*) '...and ACCMIP set of diagnostics'
+#ifndef SHINDELL_STRAT_EXTRA
+      call stop_model
+     & ('SHINDELL_STRAT_EXTRA should be on for ACCMIP_LIKE_DIAGS',255)
+#endif
+#ifndef HTAP_LIKE_DIAGS
+      call stop_model
+     & ('HTAP_LIKE_DIAGS should be on for ACCMIP_LIKE_DIAGS',255)
+#endif
+#endif /* ACCMIP_LIKE_DIAGS */
+
+      return
+      end subroutine print_and_check_PPopts
