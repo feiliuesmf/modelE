@@ -219,13 +219,14 @@ C****
       return
       end function delta
 
-      subroutine get_frac(itype,ws,tg1,q1,qg,itr,fac_cq_tr,trc1,trs1)
-!@sum get_frac calculated fractionation factors during evaporation
+      subroutine get_frac(itype,ws,tg1,trcnst,trsf,evap,tgr,q1,itr
+     $     ,fac_cq_tr,trc1,trs1,fk)
+!@sum get_frac calculate fractionation factors during evaporation
 !@auth Gavin Schmidt
       use constant, only : tf
       implicit none
 !@var fac_cq_tr kinetic frac. explicit Schmidt no. dependence
-      real*8, intent(in) :: ws,tg1,q1,qg,fac_cq_tr
+      real*8, intent(in) :: ws,tg1,tgr,trcnst,trsf,fac_cq_tr,evap,q1
       integer, intent(in) :: itype
       integer, intent(in) :: itr ! actual tracer number
 !@var trc1 factor multiplying trcnst in PBL
@@ -242,22 +243,23 @@ C**** type and direction of flux
 #else
         fk = fraclk(ws,itr)
 #endif
-        trc1 = fk * fracvl(tg1,itr)
-        trs1 = fk
+        trc1 = trcnst * fk * fracvl(tg1,itr)
+        trs1 = trsf * fk
       case (2:4)              ! other types
 C**** tracers are now passive, so use 'upstream' concentration
-        if (q1-qg.gt.0.) then ! dew
+        if (evap.lt.0) then ! dew
           trc1 = 0.
           if (tg1.gt.0) then
             frac=fracvl(tg1,itr)
           else
             frac=fracvs(tg1,itr)
           end if
-          trs1=(q1-qg)/(q1*frac)
+          trs1=-evap/(q1*frac)
         else
-          trc1 = (1.-q1/qg)
+          trc1 = evap*tgr
           trs1 = 0.
         end if
+        fk=1.0  ! diagnostic only
       end select
       return
       end subroutine get_frac
