@@ -65,6 +65,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 
 !@param KAIJ number of AIJ diagnostics
       INTEGER, PARAMETER, public :: KAIJ=362
+#ifdef ACCMIP_LIKE_DIAGS
+     &                                   + 8
+#endif
 
 !@var AIJ latitude/longitude diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AIJ,AIJ_loc
@@ -72,10 +75,10 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@param KAIJL number of AIJL accumulations
       INTEGER, PARAMETER, public :: KAIJL=18
 #ifdef CLD_AER_CDNC
-     &     +12
+     &                                  + 12
 #endif
 #ifdef HTAP_LIKE_DIAGS
-     &     +3
+     &                                  +  3
 #endif
 !@var IJL_xxx,IJK_xxx AIJL diagnostic indices
 !@+   IJL/IJK refer to model versus constant-pressure levels
@@ -491,6 +494,10 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
+#ifdef ACCMIP_LIKE_DIAGS
+!@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
+      INTEGER, public, dimension(2,4) :: IJ_fcghg
+#endif
 c weighting fractions
       INTEGER, public ::
      &     IJ_PSOIL,IJ_CLRSKY,IJ_POCEAN,IJ_POPOCN,IJ_VSFR,IJ_BSFR

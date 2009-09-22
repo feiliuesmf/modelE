@@ -3816,6 +3816,64 @@ c
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e10/DTsrc
 #endif
+#ifdef ACCMIP_LIKE_DIAGS
+      k=k+1     
+        ij_fcghg(1,1) = k 
+        lname_ij(k) = 'SW TOA CH4 RADIATIVE FOCRING' 
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swch4_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1    
+        ij_fcghg(2,1) = k 
+        lname_ij(k) = 'LW TOA CH4 RADIATIVE FOCRING' 
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwch4_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1   
+        ij_fcghg(1,2) = k 
+        lname_ij(k) = 'SW TOA N2O RADIATIVE FOCRING' 
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swn2o_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1  
+        ij_fcghg(2,2) = k 
+        lname_ij(k) = 'LW TOA N2O RADIATIVE FOCRING' 
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwn2o_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1        
+        ij_fcghg(1,3) = k
+        lname_ij(k) = 'SW TOA CFC11 RADIATIVE FOCRING'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swc11_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1        
+        ij_fcghg(2,3) = k
+        lname_ij(k) = 'LW TOA CFC11 RADIATIVE FOCRING'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwc11_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1        
+        ij_fcghg(1,4) = k
+        lname_ij(k) = 'SW TOA CFC12 RADIATIVE FOCRING'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swc12_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+      k=k+1        
+        ij_fcghg(2,4) = k
+        lname_ij(k) = 'LW TOA CFC12 RADIATIVE FOCRING'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwc12_toa'
+        ia_ij(k) = ia_rad
+        scale_ij(k) = 1.
+#endif /* ACCMIP_LIKE_DIAGS */
 
 c
 c the following are not accumulated

@@ -815,7 +815,7 @@ C     OUTPUT DATA
      &          ,SRXNIR,SRDNIR
      &          ,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD
 cdmk last line saved for IE
-      USE RADPAR, only : writer,rcompx
+      USE RADPAR, only : writer,rcompx,updghg
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix,CLDx
@@ -870,6 +870,9 @@ cdmk last line saved for IE
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
      *     ,ij_chl, ij_swaerrf, ij_lwaerrf,ij_swaersrf,ij_lwaersrf
      *     ,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt
+#ifdef ACCMIP_LIKE_DIAGS
+     *     ,ij_fcghg ! array
+#endif
       USE DYNAMICS, only : pk,pedn,plij,pmid,pdsig,ltropo,am,byam
       USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : rsi,snowi,pond_melt,msi,flag_dsws
@@ -935,6 +938,18 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
+#ifdef ACCMIP_LIKE_DIAGS
+!@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
+!@+   radiative forcing calculations. TOA only.
+!@+   index 1=CH4, 2=N2O, 3=CFC11, 4=CFC12.
+      real*8,dimension(4,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &                   snfs_ghg,tnfs_ghg
+      real*8 :: sv_fulgas_ref,sv_fulgas_now
+      integer :: nf,GFrefY,GFrefD
+!@var nfghg fulgas( ) index of radf diag ghgs:
+      integer, dimension(4) :: nfghg=(/7,6,8,9/)
+#endif
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
@@ -1210,6 +1225,15 @@ C**** SS clouds are considered as a block for each continuous cloud
 
 #ifdef HTAP_LIKE_DIAGS
       ttausv_count=ttausv_count+1.d0
+#endif
+#ifdef ACCMIP_LIKE_DIAGS
+! because of additional updghg calls, these factors won't apply:
+      if(CO2X.ne.1.)  call stop_model('CO2x.ne.1 accmip diags',255)
+      if(N2OX.ne.1.)  call stop_model('N2Ox.ne.1 accmip diags',255)
+      if(CH4X.ne.1.)  call stop_model('CH4x.ne.1 accmip diags',255)
+      if(CFC11X.ne.1.)call stop_model('CFC11x.ne.1 accmip diags',255)
+      if(CFC12X.ne.1.)call stop_model('CFC12x.ne.1 accmip diags',255)
+      if(XGHGX.ne.1.) call stop_model('XGHGx.ne.1 accmip diags',255)
 #endif
 
 C****
@@ -1699,7 +1723,7 @@ C**** Ozone:
       O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
       use_tracer_ozone=(1-onoff)*LM
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-      CALL RCOMPX        ! tr_Shindell
+      CALL RCOMPX        ! tr_Shindell Ox tracer
       SNFST_ozone(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
       TNFST_ozone(1,I,J)=TRNFLB(LTROPO(I,J))
       SNFST_ozone(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
@@ -1714,8 +1738,23 @@ C**** Ozone:
       SNFST_stratOx(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
       TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
       O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
-#endif
-#endif
+#endif /* SHINDELL_STRAT_EXTRA */
+#endif /* TRACERS_SPECIAL_Shindell */
+#ifdef ACCMIP_LIKE_DIAGS
+! TOA GHG rad forcing (these *could* also be tracers):
+! nf=1,4 are CH4, N2O, CFC11, and CFC12:
+      GFrefY=1850; GFrefD=182 ! ghg forcing reference year, day
+      do nf=1,4
+        call updghg(GFrefY,GFrefD) ; sv_fulgas_ref=fulgas(nfghg(nf))
+        call updghg(JyearR,JdayR)  ; sv_fulgas_now=fulgas(nfghg(nf))
+        fulgas(nfghg(nf))=sv_fulgas_ref
+        kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+        CALL RCOMPX        
+        SNFS_ghg(nf,I,J)=SRNFLB(LM+LM_REQ+1)
+        TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
+        fulgas(nfghg(nf))=sv_fulgas_now
+      enddo
+#endif /* ACCMIP_LIKE_DIAGS */
 #ifdef BC_ALB
       dalbsn=0.d0
       CALL RCOMPX
@@ -2481,6 +2520,18 @@ c longwave forcing at TOA
      &   -rsign*(TNFST_ozone(2,I,J)-TNFST_stratOx(2,I,J))
 #endif /* SHINDELL_STRAT_EXTRA */
 #endif /* any of various tracer groups defined */
+
+#ifdef ACCMIP_LIKE_DIAGS
+         do nf=1,4 ! CH4, N2O, CFC11, and CFC12:
+c shortwave GHG forcing at TOA
+           if(ij_fcghg(1,nf).gt.0)aij(i,j,ij_fcghg(1,nf))=
+     &     aij(i,j,ij_fcghg(1,nf))+(SNFS(3,I,J)-SNFS_ghg(nf,I,J))
+     &     *CSZ2
+c longwave GHG forcing at TOA
+           if(ij_fcghg(2,nf).gt.0)aij(i,j,ij_fcghg(2,nf))=
+     &     aij(i,j,ij_fcghg(2,nf))+(TNFS_ghg(nf,I,J)-TNFS(3,I,J))
+         enddo
+#endif /* ACCMIP_LIKE_DIAGS */
 
          AIJ(I,J,IJ_SRINCG) =AIJ(I,J,IJ_SRINCG) +(SRHR(0,I,J)*CSZ2/
      /        (ALB(I,J,1)+1.D-20))
