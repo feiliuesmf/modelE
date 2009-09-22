@@ -407,8 +407,9 @@ C****
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
+      real*8 :: trc2         ! could be passed out....
 #ifdef TRACERS_SPECIAL_O18
-      real*8 :: trc1,trs1,trc2   ! could be passed out....
+      real*8 :: trc1,trs1    ! could be passed out....
       real*8 :: fac_cq_tr(ntm),fk
 #endif
 #endif
