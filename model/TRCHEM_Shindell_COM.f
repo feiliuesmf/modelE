@@ -60,7 +60,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
 !@+     molecules/cm3 at 1 atm pressure, 48. is molecular wt of O3,
 !@+     and 6.02E26 is Avogadro's number in molecules/Kmol.
-!@param cpd conversion from molecules/cm3 to mole/m
+!@param cpd conversion from molecules/cm3 to mole/m3
 !@param BYO3MULT = 1/O3MULT
 !@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
