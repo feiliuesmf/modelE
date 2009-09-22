@@ -7342,8 +7342,73 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-#endif
-#endif
+#endif /* HTAP_LIKE_DIAGS */
+#ifdef ACCMIP_LIKE_DIAGS
+      k = k + 1
+        ijlt_OxpHO2=k
+        lname_ijlt(k) = 'Ox prod rate via HO2+NO'
+        sname_ijlt(k) = 'OxpHO2'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_OxpCH3O2=k
+        lname_ijlt(k) = 'Ox prod rate via CH3O2+NO'
+        sname_ijlt(k) = 'OxpCH3O2'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_OxpRO2=k
+        lname_ijlt(k) = 'Ox prod rate via RO2+NO'
+        sname_ijlt(k) = 'OxpRO2'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_OxlOH=k
+        lname_ijlt(k) = 'Ox loss rate via OH'
+        sname_ijlt(k) = 'OxlOH'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_OxlHO2=k
+        lname_ijlt(k) = 'Ox loss rate via HO2'
+        sname_ijlt(k) = 'OxlHO2'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_OxlALK=k
+        lname_ijlt(k) = 'Ox loss rate via Alkenes'
+        sname_ijlt(k) = 'OxlALK'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_phO1D=k
+        lname_ijlt(k) = 'Ox to O1D photolysis rate'
+        sname_ijlt(k) = 'phO1d'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_pO1D=k
+        lname_ijlt(k) = 'O1D production from ozone'
+        sname_ijlt(k) = 'pO1d'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_pOH=k
+        lname_ijlt(k) = 'OH production from O1D+H2O'
+        sname_ijlt(k) = 'pOH'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_AMP
       k = k + 1

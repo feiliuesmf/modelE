@@ -56,7 +56,7 @@ c
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
      *     ,jls_Oxd,ijs_NO2_col,ijs_NO2_count,jls_OxpT,jls_OxdT
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_phO1D
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
 #endif
@@ -619,6 +619,7 @@ c           (~200nm):
 #endif
           enddo
           taijls(i,j,l,ijlt_JH2O2)=taijls(i,j,l,ijlt_JH2O2)+ss(4,l,i,j)
+          taijls(i,j,l,ijlt_phO1D)=taijls(i,j,l,ijlt_phO1D)+ss(2,l,i,j)
 #ifdef SHINDELL_STRAT_CHEM
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
@@ -1659,7 +1660,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
 #ifdef SHINDELL_STRAT_EXTRA
-        tr3Dsource(i,j,l,nChemistry,n_stratOX)=
+        tr3Dsource(i,j,l,nChemistry,n_stratOx)=
      &  changeL(l,n_stratOx)*bydtsrc
 #endif
 
@@ -1950,11 +1951,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           DO N=1,NTM_CHEM
             tr3Dsource(i,j,l,nStratwrite,n) = changeL(l,n)*bydtsrc
           END DO
-#ifdef SHINDELL_STRAT_EXTRA
-          tr3Dsource(i,j,l,nStratwrite,n_stratOX)=
-     &    changeL(l,n_stratOx)*bydtsrc
-#endif
-
 
         end do ! >> END LOOP OVER STRATOSPHERE <<
        end do  ! i

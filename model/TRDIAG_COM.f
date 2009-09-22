@@ -172,6 +172,9 @@ C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
       INTEGER, PARAMETER :: ktaijl=50
+#ifdef ACCMIP_LIKE_DIAGS 
+     &                            + 9
+#endif
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
@@ -190,8 +193,9 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_power: power of 10 used for tracer IJL 3D diags
       INTEGER, DIMENSION(ktaijs) :: ijlt_power
 !@var ijlt_XXX diag names associated with 3D tracer special diags
-      INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_JH2O2
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxp,ijlt_Oxd,ijlt_CH4d
+      INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_JH2O2,ijlt_COp,ijlt_COd,
+     & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2
+     & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers
 !@var ijlt_AMPm tracer independent array for AMP modes
