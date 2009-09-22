@@ -409,7 +409,7 @@ C****
 #ifdef TRACERS_WATER
 #ifdef TRACERS_SPECIAL_O18
       real*8 :: trc1,trs1,trc2   ! could be passed out....
-      real*8 :: fac_cq_tr(ntm)
+      real*8 :: fac_cq_tr(ntm),fk
 #endif
 #endif
 #ifdef TRACERS_DRYDEP
@@ -651,7 +651,7 @@ C**** First, define some useful quantities
       byrho=1d0/rhosrf
       tg1 = tgskin-tf ! re-calculate ground T (C)
       rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
-      evap=-cq*rhosrf*(ws*(q(1)-qgrnd)+(ws-ws0)*qprime)  ! net evap
+      evap=cqsave*rhosrf*(ws*(qgrnd-q(1))-(ws-ws0)*qprime)  ! net evap
 
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
@@ -683,13 +683,14 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
         if (tr_wd_TYPE(pbl_args%ntix(itr)).eq.nWATER) then
           trcnst=cqsave*(pbl_args%trconstflx(itr)*ws*qgrnd_sat-
      *         (ws-ws0)*pbl_args%trdn1(itr))
+          trc2=pbl_args%trconstflx(itr)
           if (ddml_eq_1) then   ! hmmm... gusti>0 even if ddml_eq_1=F
             trsf=pbl_args%trsfac(itr)*cqsave*ws0
           else
             trsf=pbl_args%trsfac(itr)*cqsave*ws
           end if
 #ifdef TRACERS_SPECIAL_O18
-          if (itype.eq.3) then  ! posible correction for large E over LI
+          if (itype.eq.3) then  ! possible correction for large E over LI
             if (evap.gt.pbl_args%snow .and. pbl_args%snow.gt.snmin) then
               trc2 = (pbl_args%snow*pbl_args%trconstflx(itr)+(evap ! weighted mean tracer conc
      *             -pbl_args%snow)*pbl_args%trgrnd2(itr))/evap 
@@ -698,11 +699,12 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
             end if
           end if
 C**** get fractionation for isotopes
-          call get_frac(itype,ws,tg1,q(1),qgrnd_sat
-     &         ,pbl_args%ntix(itr),fac_cq_tr(itr),trc1,trs1)
-          trcnst=trc1*trcnst
-          trsf  =trs1*trsf
-          pbl_args%frack(itr)=trs1  ! save for output
+          call get_frac(itype,ws,tg1,trcnst,trsf,evap*byrho
+     $         ,trc2,q(1),pbl_args%ntix(itr)
+     $         ,fac_cq_tr(itr),trc1,trs1,fk)
+          pbl_args%frack(itr)=fk  ! save for output
+          trcnst=trc1
+          trsf  =trs1
 #endif
         end if
 #endif
@@ -2750,7 +2752,6 @@ c Initialization for iteration:
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
-
         call level2(e,u,v,t,lscale,dzh,n)
 
         do i=1,n-1
@@ -2766,8 +2767,8 @@ c Initialization for iteration:
           esave(i)=e(i)
         end do
         ustar0=ustar
-
       end do
+
 c     iter_count=iter_count+min(iter,itmax)
 c     write(96,*) "iter_count in inits =",iter_count, iter,dbl
 
