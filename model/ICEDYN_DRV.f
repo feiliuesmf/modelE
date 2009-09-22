@@ -2114,6 +2114,7 @@ c
       RETURN
       END SUBROUTINE init_icedyn
 
+#ifndef CUBE_GRID
       SUBROUTINE diag_ICEDYN
 !@sum  diag_ICEDYN prints out diagnostics for ice dynamics
 !@&    ESMF: It should only be called from a serial region.
@@ -2232,6 +2233,7 @@ C**** Name and scale are tracer dependent
 C****
       RETURN
       END SUBROUTINE diag_ICEDYN
+#endif /* not CUBE_GRID */
 
       SUBROUTINE GET_UISURF(UICE,VICE,UISURF,VISURF)
 !@sum calculate atmos. A grid winds from B grid
