@@ -1,35 +1,46 @@
 #include "rundeck_opts.h"
 
-!#define AG2OG_PRECIP_BUNDLE
-!#define OG2AG_TOC2SST_BUNDLE
-!#define AG2OG_OCEANS_BUNDLE
-!#define OG2AG_OCEANS_BUNDLE      
+!#define AG2OG_PRECIP_BUNDLE   ! ll atm ok
+!#define OG2AG_TOC2SST_BUNDLE   ! ll atm ok
+!#define AG2OG_OCEANS_BUNDLE    ! ll atm results change
+!#define OG2AG_OCEANS_BUNDLE     ! ll atm ok 
 !#define BUNDLE_INTERP
 
 
 #ifdef BUNDLE_INTERP
 
-      subroutine bundle_interpolation( remap, lstr)
+#ifdef CUBE_GRID
+      subroutine bundle_interpolation( lstr, remap)
       USE cs2ll_utils, only : xgridremap_type,xgridremap_lij
       USE array_bundle, only : lookup_str, ab_bundle, ab_unbundle
       implicit none
       type (xgridremap_type) :: remap
-      type (lookup_str) :: lstr
       real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:)
+      type (lookup_str) :: lstr
 
-#ifdef CUBE_GRID
       call ab_bundle( lstr, buf_s, buf_d )
 
       call xgridremap_lij( remap, buf_s, buf_d)
 
       call ab_unbundle( lstr, buf_s, buf_d )
-#else
-      if (lstr%di_0 .eq. lstr%si_0 .and. 
-     &     lstr%dj_0 .eq. lstr%dj_1) then   
-         call ba_copy(lstr)
-      endif
-#endif
+
       end subroutine bundle_interpolation
+#else
+      subroutine bundle_interpolation( lstr)
+      USE array_bundle, only : lookup_str,get_bounds,ab_copy
+      implicit none
+      type (lookup_str) :: lstr
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1
+
+      call get_bounds(lstr, si_0, si_1, sj_0, sj_1,
+     &    di_0, di_1, dj_0, dj_1)
+
+      if (di_1 .eq. si_1 .and. dj_1 .eq. sj_1) then   
+         call ab_copy(lstr)
+      endif
+      end subroutine bundle_interpolation
+#endif
 
       subroutine lon_avg(arr,IM)
 !@sum longitudinal average
@@ -67,7 +78,6 @@
       USE OCEAN,      only : oIM=>im, oJM=>jm
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : am_i_root
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : oDXYPO=>DXYPO,oDLATM=>DLATM, OXYP
@@ -86,7 +96,9 @@
 
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
+#ifdef CUBE_GRID
       USE regrid_com, only : remap_A2O
+#endif
       USE array_bundle
 
       IMPLICIT NONE
@@ -140,12 +152,12 @@
       aRSItmp=aRSI
 
       if (agrid%HAVE_NORTH_POLE) then
-         call copy_pole(aPRECtmp(:,aJM))
-         call copy_pole(aEPRECtmp(:,aJM))
-         call copy_pole(aRUNPSItmp(:,aJM))
-         call copy_pole(aSRUNPSItmp(:,aJM))
-         call copy_pole(aERUNPSItmp(:,aJM))
-         call copy_pole(aRSItmp(:,aJM))
+         call copy_pole(aPRECtmp(:,aJM),aIM)
+         call copy_pole(aEPRECtmp(:,aJM),aIM)
+         call copy_pole(aRUNPSItmp(:,aJM),aIM)
+         call copy_pole(aSRUNPSItmp(:,aJM),aIM)
+         call copy_pole(aERUNPSItmp(:,aJM),aIM)
+         call copy_pole(aRSItmp(:,aJM),aIM)
       endif
 
       call ab_add(lstr, aPRECtmp, oPREC, shape(aPRECtmp), 'ij',
@@ -182,7 +194,11 @@
       call ab_add( lstr, aRSItmp, oRSI, shape(aRSItmp), 'ij')
 
 c*   actual interpolation here
-      call bundle_interpolation(remap_A2O,lstr,.true.)
+#ifdef CUBE_GRID
+      call bundle_interpolation(lstr,remap_A2O)
+#else
+      call bundle_interpolation(lstr)
+#endif
 
 c*   polar values are replaced by their longitudinal mean
       if (ogrid%HAVE_NORTH_POLE) then
@@ -327,7 +343,7 @@ c*   polar values are replaced by their longitudinal mean
 #ifndef CUBE_GRID
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
-      USE DOMAIN_DECOMP_ATM, only : agrid=>grid, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
       USE OCEANR_DIM, only : ogrid
 
@@ -359,9 +375,10 @@ c*   polar values are replaced by their longitudinal mean
       USE TRACER_COM, only : vol2mass
       USE FLUXES, only : gtracer
 #endif
+#ifdef CUBE_GRID
       USE regrid_com, only : remap_O2A
+#endif
       USE array_bundle
-      USE INT_OG2AG_MOD, only : INT_OG2AG
 
       IMPLICIT NONE
       INTEGER N
@@ -605,9 +622,11 @@ C**** surface tracer concentration
 #endif
 
 c*    actual interpolation here
-      call bundle_interpolation(remap_O2A,lstr)
+#ifdef CUBE_GRID
+      call bundle_interpolation(lstr,remap_O2A)
+#else
+      call bundle_interpolation(lstr)
 
-#ifndef CUBE_GRID
       if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
@@ -978,11 +997,13 @@ C**** surface tracer concentration
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
 #ifndef CUBE_GRID
-     &     ,aCOSI=>COSI,aSINI=>SINI
+       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
+#ifdef CUBE_GRID
       USE regrid_com, only : remap_A2O
+#endif
       USE array_bundle
 
       IMPLICIT NONE
@@ -1074,7 +1095,7 @@ C**** surface tracer concentration
 
       aRSItmp=aRSI
       if (agrid%HAVE_NORTH_POLE) 
-     &     call copy_pole(aRSItmp(:,aJM))
+     &     call copy_pole(aRSItmp(:,aJM),aIM)
       call ab_add( lstr, aRSItmp, oRSI, shape(aRSItmp),'ij')
 
       DO J=aJ_0,aJ_1
@@ -1087,7 +1108,7 @@ C**** surface tracer concentration
       END DO
       aFLOWOtmp=aFLOWO
       if (agrid%HAVE_NORTH_POLE) 
-     &       call copy_pole(aFLOWOtmp(:,aJM))
+     &       call copy_pole(aFLOWOtmp(:,aJM),aIM)
       call ab_add( lstr, aFLOWOtmp, oFLOWO, shape(aFLOWOtmp), 'ij')
 
 
@@ -1100,7 +1121,7 @@ C**** surface tracer concentration
       END DO
       aEFLOWOtmp=aEFLOWO
       if (agrid%HAVE_NORTH_POLE) 
-     &       call copy_pole(aEFLOWOtmp(:,aJM))
+     &       call copy_pole(aEFLOWOtmp(:,aJM),aIM)
       call ab_add( lstr, aEFLOWOtmp, oEFLOWO, shape(aEFLOWOtmp), 'ij')
 
       DO J=aJ_0,aJ_1
@@ -1112,7 +1133,7 @@ C**** surface tracer concentration
       END DO
       aMELTItmp=aMELTI
       if (agrid%HAVE_NORTH_POLE) 
-     &    call copy_pole(aMELTItmp(:,aJM))
+     &    call copy_pole(aMELTItmp(:,aJM),aIM)
       call ab_add( lstr, aMELTItmp, oMELTI, shape(aMELTItmp), 'ij')
 
       DO J=aJ_0,aJ_1
@@ -1124,7 +1145,7 @@ C**** surface tracer concentration
       END DO
       aEMELTItmp=aEMELTI
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aEMELTItmp(:,aJM))
+     &     call copy_pole(aEMELTItmp(:,aJM),aIM)
       call ab_add( lstr, aEMELTItmp, oEMELTI, shape(aEMELTItmp), 'ij')
 
       DO J=aJ_0,aJ_1
@@ -1136,7 +1157,7 @@ C**** surface tracer concentration
       END DO
       aSMELTItmp=aSMELTI
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aSMELTItmp(:,aJM))
+     &     call copy_pole(aSMELTItmp(:,aJM),aIM)
       call ab_add( lstr, aSMELTItmp, oSMELTI, shape(aSMELTItmp), 'ij')
 
       DO J=aJ_0,aJ_1
@@ -1148,7 +1169,7 @@ C**** surface tracer concentration
       END DO
       aGMELTtmp=aGMELT
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aGMELTtmp(:,aJM))
+     &     call copy_pole(aGMELTtmp(:,aJM),aIM)
       call ab_add(lstr, aGMELTtmp, oGMELT, shape(aGMELTtmp), 'ij')
 
       DO J=aJ_0,aJ_1
@@ -1161,12 +1182,12 @@ C**** surface tracer concentration
       END DO
       aEGMELTtmp=aEGMELT
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aEGMELTtmp(:,aJM))
+     &     call copy_pole(aEGMELTtmp(:,aJM),aIM)
       call ab_add( lstr, aEGMELTtmp, oEGMELT, shape(aEGMELTtmp), 'ij')
 
       aAPRESStmp=aAPRESS
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aAPRESStmp(:,aJM))
+     &     call copy_pole(aAPRESStmp(:,aJM),aIM)
       call ab_add( lstr, aAPRESStmp, oAPRESS, shape(aAPRESStmp), 'ij')
 
       aWEIGHT(:,:) = aRSI(:,:)
@@ -1174,17 +1195,19 @@ C**** surface tracer concentration
 
       aRUNOSItmp=aRUNOSI
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aRUNOSItmp(:,aJM))
+     &     call copy_pole(aRUNOSItmp(:,aJM),aIM)
       call ab_add( lstr, aRUNOSItmp, oRUNOSI, shape(aRUNOSItmp), 'ij',
      &     aWEIGHT, oWEIGHT)
+
       aERUNOSItmp=aERUNOSI
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aERUNOSItmp(:,aJM))
+     &     call copy_pole(aERUNOSItmp(:,aJM),aIM)
       call ab_add( lstr, aERUNOSItmp, oERUNOSI, shape(aERUNOSItmp), 
      &     'ij', aWEIGHT, oWEIGHT)
+
       aSRUNOSItmp=aSRUNOSI
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aSRUNOSItmp(:,aJM))
+     &     call copy_pole(aSRUNOSItmp(:,aJM),aIM)
       call ab_add( lstr, aSRUNOSItmp, oSRUNOSI, shape(aSRUNOSItmp), 
      &     'ij', aWEIGHT, oWEIGHT)
 
@@ -1221,7 +1244,7 @@ C**** surface tracer concentration
 !     and return temporary 2d array on ocean grid
       aE0tmp(:,:)=aE0(:,:,1)
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aE0tmp(:,aJM))
+     &     call copy_pole(aE0tmp(:,aJM),aIM)
       call ab_add(lstr, aE0tmp, oE0tmp, shape(aE0tmp), 'ij',
      &     aWEIGHT1, oWEIGHT1)
 
@@ -1229,7 +1252,7 @@ C**** surface tracer concentration
 !     and return temporary 2d array on ocean grid
       aEVAPORtmp(:,:)=aEVAPOR(:,:,1)
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aEVAPORtmp(:,aJM))
+     &     call copy_pole(aEVAPORtmp(:,aJM),aIM)
       call ab_add(lstr, aEVAPORtmp, oEVAPORtmp, shape(aEVAPORtmp),
      &     'ij', aWEIGHT1, oWEIGHT1)
 
@@ -1237,7 +1260,7 @@ C**** surface tracer concentration
 !     and return temporary 2d array on ocean grid
       aSOLAR1tmp(:,:)=aSOLAR(1,:,:)
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aSOLAR1tmp(:,aJM))
+     &     call copy_pole(aSOLAR1tmp(:,aJM),aIM)
       call ab_add(lstr, aSOLAR1tmp, oSOLAR1tmp, shape(aSOLAR1tmp),
      &     'ij', aWEIGHT1, oWEIGHT1)
 
@@ -1248,7 +1271,7 @@ C**** surface tracer concentration
 !     and return temporary 2d array on ocean grid
       aSOLAR3tmp(:,:)=aSOLAR(3,:,:)
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aSOLAR3tmp(:,aJM))
+     &     call copy_pole(aSOLAR3tmp(:,aJM),aIM)
       call ab_add( lstr, aSOLAR3tmp, oSOLAR3tmp, shape(aSOLAR3tmp), 
      &     'ij', aWEIGHT2, oWEIGHT2)
 
@@ -1346,16 +1369,24 @@ C**** surface tracer concentration
          aDMUA1tmp(:,1) = aDMUAsp*aCOSI(:) - aDMVAsp*aSINI(:)
          aDMVA1tmp(:,1) = aDMVAsp*aCOSI(:) + aDMUAsp*aSINI(:)
       endif
-#endif /* CUBE_GRID */
-            
+
+      do j=max(2,aGRID%J_STRT_HALO),min(aJM-1,aGRID%J_STOP_HALO)     ! exclude poles
+         do i=1,aIMAXJ(J)
+            if (aFOCEAN_loc(i,j).gt.0.) then
+               aDMUA1tmp(i,j) = aDMUA(i,j,1) 
+            endif
+         enddo
+      enddo
+#else
       do j=aGRID%J_STRT_HALO,aGRID%J_STOP_HALO
          do i=aGRID%I_STRT_HALO,aGRID%I_STOP_HALO
             if (aFOCEAN_loc(i,j).gt.0.) then
                aDMUA1tmp(i,j) = aDMUA(i,j,1) 
             endif
          enddo
-      enddo
+      enddo 
 
+#endif /* not CUBE_GRID */
       call ab_add(lstr, aDMUA1tmp, oDMUA1tmp, shape(aDMUA1tmp), 'ij')
 
       do j=aGRID%J_STRT_HALO,aGRID%J_STOP_HALO
@@ -1369,7 +1400,11 @@ C**** surface tracer concentration
       call ab_add(lstr, aDMVA1tmp, oDMVA1tmp, shape(aDMVA1tmp), 'ij')
 
 c*   actual interpolation here
-      call bundle_interpolation(remap_A2O,lstr)
+#ifdef CUBE_GRID
+      call bundle_interpolation(lstr,remap_A2O)
+#else
+      call bundle_interpolation(lstr)
+#endif
 c*
 
 
@@ -1796,7 +1831,9 @@ c*
      *     , oDTRSI
 #endif
 
+#ifdef CUBE_GRID
       USE regrid_com, only : remap_O2A
+#endif
       USE array_bundle
       IMPLICIT NONE
 
@@ -1874,7 +1911,11 @@ C**** do something in here
 #endif
 
 c*   actual interpolation here
-      call bundle_interpolation(remap_O2A,lstr)
+#ifdef CUBE_GRID
+      call bundle_interpolation(lstr,remap_O2A)
+#else
+      call bundle_interpolation(lstr)
+#endif
 c*
 
 
