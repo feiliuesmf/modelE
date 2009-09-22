@@ -5504,7 +5504,7 @@ cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
 cddd#endif
 cddd      DEALLOCATE(tmp)
 
-      call gather_odiags ()
+      call gather_odiags () ; call gather_icdiags ()
 
       END SUBROUTINE DIAG_GATHER
 

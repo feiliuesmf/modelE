@@ -64,7 +64,7 @@ C**** Ice advection diagnostics
       INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_MUSI,IJ_MVSI
      *     ,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_RSI
 !@var ICIJ lat-lon ice dynamic diagnostics (on ice dyn. grid)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ,ICIJg
 !@var lname_icij Long names for ICIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KICIJ) :: LNAME_ICIJ
 !@var sname_icij Short names for ICIJ diagnostics
@@ -85,7 +85,7 @@ C**** Ice advection diagnostics
 !@var KTICIJ number of lat/lon ice dynamic tracer diagnostics
       INTEGER, PARAMETER :: KTICIJ=2
 !@var TICIJ  lat/lon ice dynamic tracer diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)  :: TICIJ
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)  :: TICIJ,TICIJg
 !@var ticij_xxx indices for TICIJ diags
       INTEGER :: tICIJ_tusi,tICIJ_tvsi
 !@var lname_ticij Long names for TICIJ diagnostics
@@ -108,14 +108,14 @@ C**** Ice advection diagnostics
 !@sum ALLOC_ICEDYN_COM allocates arrays defined in the ICEDYN_COM module
 !@auth Rosalinda de Fainchtein
 
-      USE DOMAIN_DECOMP_ATM, only : GET,DIST_GRID
+      USE DOMAIN_DECOMP_ATM, only : GET,DIST_GRID,am_I_root
       USE MODEL_COM, only : im
-      USE ICEDYN_COM, only : grid_MIC,imic
+      USE ICEDYN_COM, only : grid_MIC,imic,jmic
       USE ICEDYN_COM, only : KICIJ
-      USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ
+      USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ,ICIJg
      &     ,DMUI,DMVI,UOSURF,VOSURF
 #ifdef TRACERS_WATER
-      USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM
+      USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM,TICIJg
 #endif
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
@@ -151,10 +151,13 @@ C**** Allocate arrays defined on the ice rheology grid
 
       ALLOCATE(  ICIJ(I_0H:I_1H, J_0H:J_1H,KICIJ),
      &     STAT = IER)
+      
+      if(am_I_root()) allocate(ICIJg(imic,jmic,KICIJ))
 
 #ifdef TRACERS_WATER
       ALLOCATE( TICIJ(I_0H:I_1H, J_0H:J_1H,KTICIJ, NTM),
      &     STAT = IER)
+      if(am_I_root()) allocate(TICIJg(imic,jmic,KICIJ,NTM))
 #endif
 
 C**** Allocate ice advection arrays defined on the atmospheric grid
@@ -182,6 +185,26 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 
       return
       END SUBROUTINE ALLOC_ICEDYN_COM
+
+      SUBROUTINE gather_icdiags ()
+!@sum  collect the local acc-arrays into global arrays
+!@+    run-time
+!@auth Reto Ruedy
+!@ver  1.0
+
+       USE ICEDYN_COM
+
+       use domain_decomp_1d, only : pack_data
+
+       IMPLICIT NONE
+
+       call pack_data (grid_mic, ICIJ  , ICIJg)
+
+#ifdef TRACERS_WATER
+       call pack_data (grid_mic, TICIJ, TICIJg)
+#endif
+
+       END SUBROUTINE gather_icdiags
 
 
       SUBROUTINE io_icedyn(kunit,iaction,ioerr)
@@ -264,16 +287,16 @@ C****
       INTEGER, INTENT(INOUT) :: it
 !@var ICIJ4 dummy arrays for reading diag. files
       REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4
-      REAL*4, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4_GLOB
-      REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ4_GLOB8
-      REAL*8, DIMENSION(IMIC,JMIC,KICIJ)  :: ICIJ_GLOB
+      REAL*4, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB
+      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB8
+      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ_GLOB
       INTEGER :: J_0H_MIC, J_1H_MIC
 
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ4
-      REAL*4, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4_GLOB
-      REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ4_GLOB8
-      REAL*8, DIMENSION(IMIC,JMIC,KTICIJ,NTM)  :: TICIJ_GLOB
+      REAL*4, DIMENSION(:,:,:,:), allocatable  :: TICIJ4_GLOB
+      REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ4_GLOB8
+      REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ_GLOB
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
 
@@ -284,6 +307,16 @@ C****
      *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
 
       CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+
+      if(am_I_root()) then
+        allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
+     &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
+#ifdef TRACERS_WATER
+        allocate(TCIJ4_GLOB(IMIC,JMIC,KICIJ,NTM),
+     &         TICIJ4_GLOB8(IMIC,JMIC,KICIJ,NTM),
+     &           TICIJ_GLOB(IMIC,JMIC,KICIJ,NTM))
+#endif
+      end if
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)  ! output to standard restart file
@@ -371,6 +404,13 @@ C**** accumulate diagnostics
 #endif
         END SELECT
       END SELECT
+
+      if(am_I_root()) then 
+        deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
+#ifdef TRACERS_WATER
+        deallocate (TICIJ4_GLOB,TICIJ4_GLOB8,TICIJ_GLOB)
+#endif
+      end if
 
       RETURN
  10   IOERR=1
@@ -2088,7 +2128,7 @@ c
       USE DIAG_COM, only : qdiag,acc_period,
      &     lname_strlen,sname_strlen,units_strlen
       USE ICEDYN_COM
-      USE ICEDYN, only : focean
+      USE DIAG_SERIAL, only : focean=>FOCEAN_glob
       USE FILEMANAGER, only : openunit
       IMPLICIT NONE
       REAL*8, DIMENSION(IMIC,JMIC) :: Q,ADENOM
@@ -2120,7 +2160,7 @@ C****
         byiacc=1./(IDACC(IA_ICIJ(K))+teeny)
         lname=lname_icij(k)
         if(denom_icij(k).gt.0) then
-          adenom=icij(1:imic,1:jmic,denom_icij(k)) * byiacc
+          adenom=icijg(1:imic,1:jmic,denom_icij(k)) * byiacc
         else
           adenom=1.
         endif
@@ -2130,7 +2170,7 @@ C****
             do j=1,jmic
             i=imic
             do ip1=1,imic
-              adenom(i,j)=0.5*(icij(i,j,ij_rsi)+icij(ip1,j,ij_rsi))
+              adenom(i,j)=0.5*(icijg(i,j,ij_rsi)+icijg(ip1,j,ij_rsi))
      *             * byiacc
               i=ip1
             end do
@@ -2138,7 +2178,7 @@ C****
           else if (index(lname,' x POICEV') .gt. 0) then
             do j=1,jmic-1
             do i=1,imic
-              adenom(i,j)=0.5*(icij(i,j,ij_rsi)+icij(i,j+1,ij_rsi))
+              adenom(i,j)=0.5*(icijg(i,j,ij_rsi)+icijg(i,j+1,ij_rsi))
      *             * byiacc
             end do
             end do
@@ -2150,7 +2190,7 @@ C****
         DO J=1,JMIC
           DO I=1,IMIC
             IF (ADENOM(I,J).gt.0 .and. FOCEAN(I,J).gt.0.5)
-     *           Q(I,J)=SCALE_ICIJ(K)*ICIJ(I,J,K)*byiacc/adenom(i,j)
+     *           Q(I,J)=SCALE_ICIJ(K)*ICIJg(I,J,K)*byiacc/adenom(i,j)
           END DO
         END DO
         Q(2:IMIC,JMIC)=Q(1,JMIC)
@@ -2175,7 +2215,7 @@ C**** Name and scale are tracer dependent
         DO J=1,JMIC
           DO I=1,IMIC
             IF (FOCEAN(I,J).gt.0.5) Q(I,J)=10**(-ntrocn(n))*
-     *           SCALE_TICIJ(K)*TICIJ(I,J,K,N)*byiacc
+     *           SCALE_TICIJ(K)*TICIJg(I,J,K,N)*byiacc
           END DO
         END DO
         Q(2:IMIC,JMIC)=Q(1,JMIC)

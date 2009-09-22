@@ -81,6 +81,7 @@
 !@sum ICEDYN_DUM dummy routines to replace ice dynamics
 c      ENTRY alloc_icedyn
 c      ENTRY alloc_icedyn_com
+      ENTRY gather_icdiags
       ENTRY io_icedyn
       ENTRY io_icdiag
       ENTRY reset_icdiag
