@@ -54,7 +54,6 @@
       end subroutine lon_avg
 
       subroutine copy_pole(arr,IM)
-!@sum longitudinal average
       implicit none
       real*8 :: arr(1:IM)
       integer :: IM
