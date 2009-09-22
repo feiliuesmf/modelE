@@ -22,7 +22,7 @@ c
       USE DYNAMICS, only    : pedn,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
-     &                        rad_to_chem,O3_tracer_save,H2ObyCH4,
+     &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
      &                        SRDN,rad_to_file,ghg_yr
 #ifdef SHINDELL_STRAT_EXTRA
      &                        ,stratO3_tracer_save
@@ -1959,7 +1959,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
-c Save new tracer Ox field for use in radiation or elsewhere:
+c Save new tracer Ox and CH4 fields for use in radiation or elsewhere:
+c (radiation code wants atm*cm units):
       do j=J_0,J_1
         DU_O3(J)=0.d0 ! Drew's diagnostic...
         do i=I_0,imaxj(j) 
@@ -1973,16 +1974,21 @@ c Save new tracer Ox field for use in radiation or elsewhere:
          end select
 #endif
          do l=1,maxl
-           o3_tracer_save(l,i,j)=(trm(i,j,l,n_Ox) +
+           chem_tracer_save(1,l,i,j)=(trm(i,j,l,n_Ox) +
      &     (tr3Dsource(i,j,l,nChemistry,n_Ox) + 
      &     tr3Dsource(i,j,l,nStratwrite,n_Ox))*dtsrc)
      &     *byaxyp(i,j)*byO3MULT
-           DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
+           chem_tracer_save(2,l,i,j)=(trm(i,j,l,n_CH4) +
+     &     (tr3Dsource(i,j,l,nChemistry,n_CH4) + 
+     &     tr3Dsource(i,j,l,nStratwrite,n_CH4))*dtsrc)
+     &     *byaxyp(i,j)*avog/(tr_mm(n_CH4)*2.69e20)
+           DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
          end do
          if(maxl < LM) then
            do l=maxl+1,LM
-             o3_tracer_save(l,i,j)=rad_to_chem(1,l,i,j)
-             DU_O3(J)=DU_O3(J)+o3_tracer_save(l,i,j)
+             chem_tracer_save(1,l,i,j)=rad_to_chem(1,l,i,j)
+             chem_tracer_save(2,l,i,j)=rad_to_chem(4,l,i,j)
+             DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
            end do
          end if
 

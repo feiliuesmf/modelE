@@ -315,6 +315,8 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !+        overwriting with radiation code values.
 !@dbparam use_rad_n2o =1 as ch4 case above
 !@dbparam use_rad_cfc =1 as ch4 case above
+!@dbparam Lmax_rad_O3 model levels to use tracer Ox in rad code (if on)
+!@dbparam Lmax_rad_CH4 model levels to use tracer CH4 in rad code(if on)
 !@dbparam which_trop 1=ls1-1 is tropopause, 0=LTROPO(I,J) is tropopause
 !@dbparam PI_run used to turn on (1) and off (0) use of PI_ratio*
 !@dbparam PIratio_N to scale NOx, HNO3, N2O5, HO2NO2
@@ -339,6 +341,8 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                 ,use_rad_ch4       = 0
      &                 ,use_rad_n2o       = 0
      &                 ,use_rad_cfc       = 0
+     &                 ,Lmax_rad_O3       = LM
+     &                 ,Lmax_rad_CH4      = LM
      &                 ,checktracer_on    = 0
       REAL*8 ::             ch4_init_sh   = 1.750d0,
      &                      ch4_init_nh   = 1.855d0,

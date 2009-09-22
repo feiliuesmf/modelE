@@ -49,7 +49,7 @@
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
-     &     COICIN,COIC,COICINL,COICL
+     &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
 #ifdef SHINDELL_STRAT_CHEM
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
@@ -201,6 +201,8 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("rad_FL",rad_fl)
       call sync_param("checktracer_on",checktracer_on)
       call sync_param("use_rad_ch4",use_rad_ch4)
+      call sync_param("Lmax_rad_O3",Lmax_rad_O3)
+      call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
 #ifdef SHINDELL_STRAT_CHEM
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)
@@ -7473,7 +7475,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     readt8_column
       USE PARAM, only : get_param
 #ifdef TRACERS_ON
-      USE CONSTANT, only: mair,rhow,sday,grav,tf
+      USE CONSTANT, only: mair,rhow,sday,grav,tf,avog
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear,
      & PMIDL00
@@ -7508,7 +7510,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RAD_COM, only : O3_tracer_save,rad_to_file,ghg_yr
+      USE RAD_COM, only : chem_tracer_save,rad_to_file,ghg_yr
 #ifdef SHINDELL_STRAT_EXTRA
      &  ,stratO3_tracer_save
 #endif
@@ -7822,6 +7824,10 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
           end do   ; end do   ; end do
 #endif
          endif
+         do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+           chem_tracer_save(2,L,I,J)=trm(I,J,L,n) 
+     &     *byaxyp(i,j)*avog/(tr_mm(n)*2.69e20) ! to atm*cm
+         end do   ; end do   ; end do
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
           call get_wofsy_gas_IC(trname(n),CH4ic)
@@ -7996,7 +8002,7 @@ c**** earth
         case ('Ox')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = OxIC(I,J,L)
-            O3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
+            chem_tracer_save(1,L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
 #ifdef SHINDELL_STRAT_EXTRA
         case ('stratOx')

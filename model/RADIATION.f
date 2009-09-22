@@ -142,10 +142,11 @@ C----------------
       REAL*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
-!@var O3_IN column variable for importing ozone field from rest of model
-!@var use_tracer_ozone: set U0GAS(L,3)=O3_IN(L), L=L1,use_tracer_ozone
-      REAL*8  O3_IN(LX)
-      INTEGER use_tracer_ozone
+!@var chem_IN column variable for importing ozone(1) and methane(2) 
+!@+   fields from rest of model
+!@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
+      REAL*8 :: chem_IN(2,LX)
+      INTEGER :: use_tracer_chem(2)
       LOGICAL*4 :: flags
 !@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional)
       REAL*8    :: LOC_CHL
@@ -156,10 +157,10 @@ C----------------
      C             ,TRACER,SRBALB,SRXALB,dalbsn
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
-     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,O3_IN
+     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,chem_IN
      X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake,FTAUC
 C      integer variables start here, followed by logicals
-     Y             ,JLAT,ILON, L1,NL, LS1_loc, use_tracer_ozone, flags
+     Y             ,JLAT,ILON, L1,NL, LS1_loc, use_tracer_chem, flags
      Z             ,KDELIQ                ! is updated by rad. after use
 !$OMP  THREADPRIVATE(/RADPAR_INPUT_IJDATA/)
 
@@ -1760,11 +1761,15 @@ C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
      *                      U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-      if(use_tracer_ozone > 0) then
-        U0GAS(1:use_tracer_ozone,3)=O3_IN(1:use_tracer_ozone)
+      if(use_tracer_chem(1) > 0) then
+        U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
         FULGAS(3)=1.d0
       endif
                       CALL GETGAS
+      if(use_tracer_chem(2) > 0) then 
+        U0GAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
+        FULGAS(7)=1.d0 ! CH4
+      endif
 C--------------------------------
 
 

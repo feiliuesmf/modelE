@@ -791,7 +791,7 @@ c      USE ATMDYN, only : CALC_AMPK
      &          ,tauwc0,tauic0 ! set in radpar block data
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
-     &          ,use_tracer_ozone,FS8OPX,FT8OPX
+     &          ,use_tracer_chem,FS8OPX,FT8OPX
 #ifdef ALTER_RADF_BY_LAT
      &          ,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
 #endif
@@ -802,7 +802,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,O3_IN,FTAUC,LOC_CHL
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,FTAUC,LOC_CHL
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
@@ -818,7 +818,7 @@ cdmk last line saved for IE
       USE RADPAR, only : writer,rcompx,updghg
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,O3_tracer_save,rad_interact_tr,kliq,RHfix,CLDx
+     *     ,chem_tracer_save,rad_interact_tr,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
@@ -911,7 +911,10 @@ c    *     ,SNFST0,TNFST0
 #ifdef BC_ALB
      *     ,ijts_alb
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif
+#endif /* TRACERS_ON */
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
       USE AMP_AEROSOL, only: AMP_DIAG_FC
@@ -1631,7 +1634,7 @@ C**** Currently this works for aerosols and ozone but should be extended
 C**** to cope with all trace gases.
 C****
       FSTOPX(:)=1. ; FTTOPX(:)=1. ; FTAUC=1. ! deflts (aeros/clouds on)
-      use_tracer_ozone = 0 ! by default use climatological ozone
+      use_tracer_chem(:) = 0 ! by default use climatological ozone/ch4
 C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
 C**** This is set from the rundeck.
       LFRC=LM+LM_REQ+1          ! TOA
@@ -1648,10 +1651,11 @@ C**** or not.
 c if ozone also interacts with radiation it needs to be set
 c to default here:
 #ifdef TRACERS_SPECIAL_Shindell
-C**** Ozone:
+C**** Ozone and Methane:
       if (rad_interact_tr.gt.0) then
-        O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
-        use_tracer_ozone=LM
+        CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
+        use_tracer_chem(1)=Lmax_rad_O3  ! O3
+        use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
 #ifdef SHINDELL_STRAT_EXTRA
         call stop_model("stratOx RADF illegal if rad_interact_tr>0",255)
 #endif
@@ -1720,29 +1724,32 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone:
-      O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
-      use_tracer_ozone=(1-onoff)*LM
+      chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
+      use_tracer_chem(1)=(1-onoff)*Lmax_rad_O3
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX        ! tr_Shindell Ox tracer
       SNFST_ozone(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
       TNFST_ozone(1,I,J)=TRNFLB(LTROPO(I,J))
       SNFST_ozone(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
       TNFST_ozone(2,I,J)=TRNFLB(LM+LM_REQ+1)
-      use_tracer_ozone=onoff*LM
+      use_tracer_chem(1)=onoff*Lmax_rad_O3
 #ifdef SHINDELL_STRAT_EXTRA
-      O3_IN(1:LM)=stratO3_tracer_save(1:LM,I,J)
+      chem_IN(1,1:LM)=stratO3_tracer_save(1:LM,I,J)
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX        ! stratOx diag tracer
       SNFST_stratOx(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
       TNFST_stratOx(1,I,J)=TRNFLB(LTROPO(I,J))
       SNFST_stratOx(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
       TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
-      O3_IN(1:LM)=O3_tracer_save(1:LM,I,J)
+      chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
 #endif /* SHINDELL_STRAT_EXTRA */
+C**** Methane: (if there are initial RCOMPX calls, they 
+! are non-tracer (unlike ozone above, which could be either)):
+      chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)
+      use_tracer_chem(2)=0
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef ACCMIP_LIKE_DIAGS
-! TOA GHG rad forcing (these *could* also be tracers):
-! nf=1,4 are CH4, N2O, CFC11, and CFC12:
+! TOA GHG rad forcing: nf=1,4 are CH4, N2O, CFC11, and CFC12:
       GFrefY=1850; GFrefD=182 ! ghg forcing reference year, day
       do nf=1,4
         call updghg(GFrefY,GFrefD) ; sv_fulgas_ref=fulgas(nfghg(nf))
@@ -1755,6 +1762,11 @@ C**** Ozone:
         fulgas(nfghg(nf))=sv_fulgas_now
       enddo
 #endif /* ACCMIP_LIKE_DIAGS */
+#ifdef TRACERS_SPECIAL_Shindell
+! final (main) RCOMPX call can use tracer methane (or not):
+      use_tracer_chem(2)=onoff*Lmax_rad_CH4
+#endif /* TRACERS_SPECIAL_Shindell */
+
 #ifdef BC_ALB
       dalbsn=0.d0
       CALL RCOMPX
