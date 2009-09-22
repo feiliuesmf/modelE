@@ -7,7 +7,8 @@
       private
 
       public lookup_str
-      public ab_init, ab_add, ab_bundle, ab_unbundle, ab_copy
+      public ab_init, ab_add, ab_bundle, ab_unbundle, ab_copy, 
+     &     get_bounds
 
       integer, parameter :: N_LOOKUP_MAX=256
 
@@ -26,6 +27,25 @@
       end type lookup_str
 
       contains
+
+      subroutine get_bounds(lstr, si_0, si_1, sj_0, sj_1,
+     &    di_0, di_1, dj_0, dj_1)
+!@sum accessor, returns domain bouds for both source and dest. grids
+      implicit none
+      type (lookup_str) :: lstr
+      integer :: si_0, si_1, sj_0, sj_1,
+     &     di_0, di_1, dj_0, dj_1
+
+      si_0 = lstr%si_0
+      si_1 = lstr%si_1
+      sj_0 = lstr%sj_0
+      sj_1 = lstr%sj_1
+      di_0 = lstr%di_0
+      di_1 = lstr%di_1
+      dj_0 = lstr%dj_0
+      dj_1 = lstr%dj_1
+
+      end subroutine get_bounds
 
       subroutine ab_init( lstr, si_0, si_1, sj_0, sj_1,
      &     di_0, di_1, dj_0, dj_1 )
