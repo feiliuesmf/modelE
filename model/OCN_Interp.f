@@ -104,9 +104,6 @@
       INTEGER N
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
       REAL*8, allocatable :: aWEIGHT1(:,:),oWEIGHT1(:,:)
-      REAL*8, allocatable :: aPRECtmp(:,:),aEPRECtmp(:,:),
-     &     aRUNPSItmp(:,:),aSRUNPSItmp(:,:),aERUNPSItmp(:,:),
-     &     aRSItmp(:,:)
       type (lookup_str) :: lstr
       integer :: i,j,l
 
@@ -130,39 +127,19 @@
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
       call ab_add(lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij' )
 
-      allocate(aPRECtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(aEPRECtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(aRUNPSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(aSRUNPSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(aERUNPSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(aRSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-
-      aPRECtmp=aPREC
-      aEPRECtmp=aEPREC
-      aRUNPSItmp=aRUNPSI
-      aSRUNPSItmp=aSRUNPSI
-      aERUNPSItmp=aERUNPSI
-      aRSItmp=aRSI
-
       if (agrid%HAVE_NORTH_POLE) then
-         call copy_pole(aPRECtmp(:,aJM),aIM)
-         call copy_pole(aEPRECtmp(:,aJM),aIM)
-         call copy_pole(aRUNPSItmp(:,aJM),aIM)
-         call copy_pole(aSRUNPSItmp(:,aJM),aIM)
-         call copy_pole(aERUNPSItmp(:,aJM),aIM)
-         call copy_pole(aRSItmp(:,aJM),aIM)
+         call copy_pole(aPREC(:,aJM),aIM)
+         call copy_pole(aEPREC(:,aJM),aIM)
+         call copy_pole(aRUNPSI(:,aJM),aIM)
+         call copy_pole(aSRUNPSI(:,aJM),aIM)
+         call copy_pole(aERUNPSI(:,aJM),aIM)
+         call copy_pole(aRSI(:,aJM),aIM)
       endif
 
-      call ab_add(lstr, aPRECtmp, oPREC, shape(aPRECtmp), 'ij',
+      call ab_add(lstr, aPREC, oPREC, shape(aPREC), 'ij',
      &     aWEIGHT, oWEIGHT )
 
-      call ab_add(lstr, aEPRECtmp, oEPREC, shape(aEPRECtmp), 'ij',
+      call ab_add(lstr, aEPREC, oEPREC, shape(aEPREC), 'ij',
      &     aWEIGHT, oWEIGHT)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
@@ -176,13 +153,13 @@
 !     oWEIGHT1(:,:) = 1.-oWEIGHT(:,:)            ! using the property REGRID(1-RSI)=1-REGRID(RSI)  
       call ab_add(lstr, aWEIGHT1, oWEIGHT1, shape(aWEIGHT1), 'ij')        ! this line should be removed when previous line is uncommented 
 
-      call ab_add(lstr, aRUNPSItmp, oRUNPSI, shape(aRUNPSItmp), 'ij',
+      call ab_add(lstr, aRUNPSI, oRUNPSI, shape(aRUNPSI), 'ij',
      &     aWEIGHT1, oWEIGHT1)
 
-      call ab_add(lstr, aSRUNPSItmp, oSRUNPSI, shape(aSRUNPSItmp), 
+      call ab_add(lstr, aSRUNPSI, oSRUNPSI, shape(aSRUNPSI), 
      &     'ij', aWEIGHT1, oWEIGHT1)
 
-      call ab_add(lstr, aERUNPSItmp, oERUNPSI, shape(aERUNPSItmp), 
+      call ab_add(lstr, aERUNPSI, oERUNPSI, shape(aERUNPSI), 
      &     'ij', aWEIGHT1, oWEIGHT1)
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
@@ -190,7 +167,7 @@
      &     aWEIGHT1, oWEIGHT1)
 #endif
 
-      call ab_add( lstr, aRSItmp, oRSI, shape(aRSItmp), 'ij')
+      call ab_add( lstr, aRSI, oRSI, shape(aRSI), 'ij')
 
 c*   actual interpolation here
 #ifdef CUBE_GRID
@@ -232,9 +209,6 @@ c*   polar values are replaced by their longitudinal mean
 
       deallocate(aweight,oweight)
       deallocate(aweight1,oweight1)
-
-      deallocate(aPRECtmp,aEPRECtmp,aRUNPSItmp,aSRUNPSItmp,
-     &     aERUNPSItmp,aRSItmp)
 
       RETURN
       END SUBROUTINE AG2OG_precip
@@ -1014,19 +988,7 @@ C**** surface tracer concentration
      &     aSOLAR1tmp(:,:),oSOLAR1tmp(:,:),
      &     aSOLAR3tmp(:,:),oSOLAR3tmp(:,:),
      &     aDMUA1tmp(:,:),oDMUA1tmp(:,:),
-     &     aDMVA1tmp(:,:),oDMVA1tmp(:,:),
-     &     aRSItmp(:,:),
-     &     aFLOWOtmp(:,:),
-     &     aEFLOWOtmp(:,:),
-     &     aMELTItmp(:,:),
-     &     aEMELTItmp(:,:),
-     &     aSMELTItmp(:,:),
-     &     aGMELTtmp(:,:),
-     &     aEGMELTtmp(:,:),
-     &     aAPRESStmp(:,:),
-     &     aRUNOSItmp(:,:),
-     &     aERUNOSItmp(:,:),
-     &     aSRUNOSItmp(:,:)
+     &     aDMVA1tmp(:,:),oDMVA1tmp(:,:)
       REAL*8 :: aDMUAnp,aDMVAnp,aDMUAsp,aDMVAsp
       INTEGER, PARAMETER :: NSTYPE=4
       INTEGER I,J,N
@@ -1066,36 +1028,10 @@ C**** surface tracer concentration
       oJ_0 = oGRID%j_STRT
       oJ_1 = oGRID%j_STOP
 
-         allocate(aRSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aFLOWOtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aEFLOWOtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aMELTItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aEMELTItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aSMELTItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aGMELTtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aEGMELTtmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aAPRESStmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aRUNOSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aERUNOSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-         allocate(aSRUNOSItmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
 
-
-      aRSItmp=aRSI
       if (agrid%HAVE_NORTH_POLE) 
-     &     call copy_pole(aRSItmp(:,aJM),aIM)
-      call ab_add( lstr, aRSItmp, oRSI, shape(aRSItmp),'ij')
+     &     call copy_pole(aRSI(:,aJM),aIM)
+      call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1105,10 +1041,10 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aFLOWOtmp=aFLOWO
+
       if (agrid%HAVE_NORTH_POLE) 
-     &       call copy_pole(aFLOWOtmp(:,aJM),aIM)
-      call ab_add( lstr, aFLOWOtmp, oFLOWO, shape(aFLOWOtmp), 'ij')
+     &       call copy_pole(aFLOWO(:,aJM),aIM)
+      call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
 
 
       DO J=aJ_0,aJ_1
@@ -1118,10 +1054,10 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aEFLOWOtmp=aEFLOWO
+
       if (agrid%HAVE_NORTH_POLE) 
-     &       call copy_pole(aEFLOWOtmp(:,aJM),aIM)
-      call ab_add( lstr, aEFLOWOtmp, oEFLOWO, shape(aEFLOWOtmp), 'ij')
+     &       call copy_pole(aEFLOWO(:,aJM),aIM)
+      call ab_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1130,10 +1066,10 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aMELTItmp=aMELTI
+
       if (agrid%HAVE_NORTH_POLE) 
-     &    call copy_pole(aMELTItmp(:,aJM),aIM)
-      call ab_add( lstr, aMELTItmp, oMELTI, shape(aMELTItmp), 'ij')
+     &    call copy_pole(aMELTI(:,aJM),aIM)
+      call ab_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1142,10 +1078,10 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aEMELTItmp=aEMELTI
+
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aEMELTItmp(:,aJM),aIM)
-      call ab_add( lstr, aEMELTItmp, oEMELTI, shape(aEMELTItmp), 'ij')
+     &     call copy_pole(aEMELTI(:,aJM),aIM)
+      call ab_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1154,10 +1090,10 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aSMELTItmp=aSMELTI
+
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aSMELTItmp(:,aJM),aIM)
-      call ab_add( lstr, aSMELTItmp, oSMELTI, shape(aSMELTItmp), 'ij')
+     &     call copy_pole(aSMELTI(:,aJM),aIM)
+      call ab_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1166,10 +1102,10 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aGMELTtmp=aGMELT
+
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aGMELTtmp(:,aJM),aIM)
-      call ab_add(lstr, aGMELTtmp, oGMELT, shape(aGMELTtmp), 'ij')
+     &     call copy_pole(aGMELT(:,aJM),aIM)
+      call ab_add(lstr, aGMELT, oGMELT, shape(aGMELT), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1179,35 +1115,35 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      aEGMELTtmp=aEGMELT
-      if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aEGMELTtmp(:,aJM),aIM)
-      call ab_add( lstr, aEGMELTtmp, oEGMELT, shape(aEGMELTtmp), 'ij')
 
-      aAPRESStmp=aAPRESS
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aAPRESStmp(:,aJM),aIM)
-      call ab_add( lstr, aAPRESStmp, oAPRESS, shape(aAPRESStmp), 'ij')
+     &     call copy_pole(aEGMELT(:,aJM),aIM)
+      call ab_add( lstr, aEGMELT, oEGMELT, shape(aEGMELT), 'ij')
+
+
+      if (agrid%HAVE_NORTH_POLE)
+     &     call copy_pole(aAPRESS(:,aJM),aIM)
+      call ab_add( lstr, aAPRESS, oAPRESS, shape(aAPRESS), 'ij')
 
       aWEIGHT(:,:) = aRSI(:,:)
       call ab_add( lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij')
 
-      aRUNOSItmp=aRUNOSI
+
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aRUNOSItmp(:,aJM),aIM)
-      call ab_add( lstr, aRUNOSItmp, oRUNOSI, shape(aRUNOSItmp), 'ij',
+     &     call copy_pole(aRUNOSI(:,aJM),aIM)
+      call ab_add( lstr, aRUNOSI, oRUNOSI, shape(aRUNOSI), 'ij',
      &     aWEIGHT, oWEIGHT)
 
-      aERUNOSItmp=aERUNOSI
+
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aERUNOSItmp(:,aJM),aIM)
-      call ab_add( lstr, aERUNOSItmp, oERUNOSI, shape(aERUNOSItmp), 
+     &     call copy_pole(aERUNOSI(:,aJM),aIM)
+      call ab_add( lstr, aERUNOSI, oERUNOSI, shape(aERUNOSI), 
      &     'ij', aWEIGHT, oWEIGHT)
 
-      aSRUNOSItmp=aSRUNOSI
+
       if (agrid%HAVE_NORTH_POLE)
-     &     call copy_pole(aSRUNOSItmp(:,aJM),aIM)
-      call ab_add( lstr, aSRUNOSItmp, oSRUNOSI, shape(aSRUNOSItmp), 
+     &     call copy_pole(aSRUNOSI(:,aJM),aIM)
+      call ab_add( lstr, aSRUNOSI, oSRUNOSI, shape(aSRUNOSI), 
      &     'ij', aWEIGHT, oWEIGHT)
 
       aWEIGHT1(:,:) = 1.d0 - aRSI(:,:)
@@ -1483,18 +1419,6 @@ c*
      &     aweight1,oweight1,
      &     aweight2,oweight2)
 
-      deallocate(aRSItmp,
-     &     aFLOWOtmp,
-     &     aEFLOWOtmp,
-     &     aMELTItmp,
-     &     aEMELTItmp,
-     &     aSMELTItmp,
-     &     aGMELTtmp,
-     &     aEGMELTtmp,
-     &     aAPRESStmp,
-     &     aRUNOSItmp,
-     &     aERUNOSItmp,
-     &     aSRUNOSItmp)
 
       deallocate(aE0tmp, oE0tmp,
      &     aEVAPORtmp,oEVAPORtmp,
