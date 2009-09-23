@@ -442,7 +442,10 @@ c
       write (lp,*) "time0/nstep0=",time0,nstep0
       write (lp,'(a,i4,a,i4,a)') "ogcm exchange w. agcm every",nstepi,
      .   " steps, i.e.",nhr," hr"
-      if(itest.ne.-1.and.jtest.ne.-1) then
+      if( itest >= lbound(latij,dim=1) .AND. 
+     .    itest <= ubound(latij,dim=1) .AND.  
+     .    jtest >= lbound(latij,dim=2) .AND.
+     .    jtest <= ubound(latij,dim=2) ) then
       write (lp,*) "itest,jtest=",itest,jtest
       write (lp,*) "lat,lon=",latij(itest,jtest,3),lonij(itest,jtest,3)
       endif

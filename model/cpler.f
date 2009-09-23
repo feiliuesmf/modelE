@@ -4,22 +4,27 @@
       implicit none
       private
 
-      public ssto2a,veca2o,flxa2o,veco2a,tempro2a
+      public ssta2o,ssto2a,veca2o,flxa2o,flxo2a,veco2a,tempro2a
 
       public nwgta2o,nwgto2a
 
-      public wlista2o,wtaua2o
-     .    ,wlisto2a
+      public wlista2o,  wtaua2o
+     .    ,wlista2o_s
+     .    ,wlisto2a, wlisto2a_f
      .    ,wlisto2a_e
      .    ,wlisto2a_n
      .    ,ofrac,agcmgdsz
      .    ,ocellsz,coso,sino
+     .    ,ilista2o_s,jlista2o_s
+     .                                 ,nlista2o_s
      .     ,ilista2o,jlista2o
      .                                 ,nlista2o
-     .       ,itaua2o, jtaua2o
+     .     ,itaua2o, jtaua2o
      .                                 , ntaua2o
      .     ,ilisto2a,jlisto2a
      .                                 ,nlisto2a
+     .     ,ilisto2a_f,jlisto2a_f
+     .                                 ,nlisto2a_f
      .     ,ilisto2a_e,jlisto2a_e
      .                                 ,nlisto2a_e
      .     ,ilisto2a_n,jlisto2a_n
@@ -35,23 +40,52 @@
 #endif
 c
       real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o)
-     .    ,wlisto2a(iia,jja,nwgto2a)
+     .    ,wlista2o_s(iio,jjo,nwgta2o)
+     .    ,wlisto2a(iia,jja,nwgto2a), wlisto2a_f(iia,jja,nwgto2a)
      .    ,wlisto2a_e(iia,jja,nwgto2a)
      .    ,wlisto2a_n(iia,jja,nwgto2a)
      .    ,ofrac(iia,jja),agcmgdsz(jja)
      .    ,ocellsz(iio,jjo),coso(iio,jjo),sino(iio,jjo)
-      integer ilista2o(iio,jjo,nwgta2o),jlista2o(iio,jjo,nwgta2o)
+      integer ilista2o_s(iio,jjo,nwgta2o),jlista2o_s(iio,jjo,nwgta2o)
+     .                                 ,nlista2o_s(iio,jjo)
+     .       ,ilista2o(iio,jjo,nwgta2o),jlista2o(iio,jjo,nwgta2o)
      .                                 ,nlista2o(iio,jjo)
      .       ,itaua2o(iio,jjo,nwgta2o), jtaua2o(iio,jjo,nwgta2o)
      .                                 , ntaua2o(iio,jjo)
-      integer ilisto2a(iia,jja,nwgto2a),jlisto2a(iia,jja,nwgto2a)
-     .                                 ,nlisto2a(iia,jja)
-     .     ,ilisto2a_e(iia,jja,nwgto2a),jlisto2a_e(iia,jja,nwgto2a)
+      integer ilisto2a(iia,jja,nwgto2a),jlisto2a  (iia,jja,nwgto2a)
+     .                                 ,nlisto2a    (iia,jja)
+     .       ,ilisto2a_f(iia,jja,nwgto2a),jlisto2a_f(iia,jja,nwgto2a)
+     .                                 ,nlisto2a_f  (iia,jja)
+     .       ,ilisto2a_e(iia,jja,nwgto2a),jlisto2a_e(iia,jja,nwgto2a)
      .                                 ,nlisto2a_e(iia,jja)
-     .     ,ilisto2a_n(iia,jja,nwgto2a),jlisto2a_n(iia,jja,nwgto2a)
+     .       ,ilisto2a_n(iia,jja,nwgto2a),jlisto2a_n(iia,jja,nwgto2a)
      .                                 ,nlisto2a_n(iia,jja)
 
       contains
+      subroutine ssta2o(flda,fldo)
+c --- mapping scalar-like field from agcm to ogcm
+c     input: flda, output: fldo 
+c
+      implicit none
+      integer i,j,l,n
+      real*8, intent(in)  :: flda(iia,jja)
+      real*8, intent(out) :: fldo(iio,jjo)
+c
+c$OMP PARALLEL DO
+      do 8 j=1,jj
+      do 8 l=1,isp(j)
+      do 8 i=ifp(j,l),ilp(j,l)
+      fldo(i,j)=0.
+c
+      do 9 n=1,nlista2o_s(i,j)
+      fldo(i,j)=fldo(i,j)+flda(ilista2o_s(i,j,n),jlista2o_s(i,j,n))
+     .                        *wlista2o_s(i,j,n)
+ 9    continue
+ 8    continue
+c$OMP END PARALLEL DO
+c
+      return
+      end subroutine ssta2o
 
       subroutine ssto2a(fldo,flda)
 c --- mapping sst from 'o' grid to 'a' grd
@@ -62,7 +96,7 @@ c
       !USE HYCOM_DIM_GLOB
       implicit none
       integer n,ia,ja
-      real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
+      real*8 flda(iia,jja),fldo(iio,jjo)
 c
 c$OMP PARALLEL DO
       do 16 ja=1,jja
@@ -141,6 +175,30 @@ c$OMP END PARALLEL DO
 c
       return
       end subroutine flxa2o
+c
+      subroutine flxo2a(fldo,flda)
+c --- mapping flux-like field from ogcm to agcm 
+c     input: fldo (W/m*m), output: flda (W/m*m)
+c
+      implicit none
+      real*8, intent(in)  :: fldo(iio,jjo)
+      real*8, intent(out) :: flda(iia,jja)
+      integer n,ia,ja
+c
+c$OMP PARALLEL DO
+      do 8 ja=1,jja
+      do 8 ia=1,iia
+      flda(ia,ja)=0.
+c
+      do 9 n=1,nlisto2a_f(ia,ja)
+      flda(ia,ja)=flda(ia,ja)+ 
+     . fldo(ilisto2a_f(ia,ja,n),jlisto2a_f(ia,ja,n))*wlisto2a_f(ia,ja,n)
+ 9    continue
+ 8    continue
+c$OMP END PARALLEL DO
+c
+      return
+      end subroutine flxo2a
 c
       subroutine veco2a(tauxo,tauyo,tauxa,tauya)
 c --- tauxo/tauyo: input taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)

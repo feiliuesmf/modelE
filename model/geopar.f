@@ -13,8 +13,9 @@ cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
-     &     ,flnma2o,flnmo2a,flnmo2a_e,flnmo2a_n,flnmcoso,flnmbas
-     &     ,flnma2o_tau,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+     &   ,flnma2o,flnma2o_s,flnmo2a,flnmo2a_f 
+     &   ,flnmo2a_e,flnmo2a_n,flnmcoso
+     &   ,flnmbas,flnma2o_tau,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
@@ -564,6 +565,11 @@ c
         stop ' wrong size in cpler'
       endif
 c
+      open(14,file=flnma2o_s,form='unformatted',status='old',   ! TNL
+     .  access='direct',recl=nsize1)
+      read(14,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
+      close(14)
+c
       open(14,file=flnma2o,form='unformatted',status='old',
      .  access='direct',recl=nsize1)
       read(14,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
@@ -577,6 +583,11 @@ c
       open(16,file=flnmo2a,form='unformatted',status='old',
      .  access='direct',recl=nsize2)
       read(16,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
+      close(16)
+c
+      open(16,file=flnmo2a_f,form='unformatted',status='old',     ! TNL
+     .  access='direct',recl=nsize2)
+      read(16,rec=1) ilisto2a_f,jlisto2a_f,wlisto2a_f,nlisto2a_f
       close(16)
 c
       open(17,file=flnmo2a_e,form='unformatted',status='old',
