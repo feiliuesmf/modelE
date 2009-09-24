@@ -312,9 +312,9 @@ C****
         allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
      &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
 #ifdef TRACERS_WATER
-        allocate(TCIJ4_GLOB(IMIC,JMIC,KICIJ,NTM),
-     &         TICIJ4_GLOB8(IMIC,JMIC,KICIJ,NTM),
-     &           TICIJ_GLOB(IMIC,JMIC,KICIJ,NTM))
+        allocate(TICIJ4_GLOB(IMIC,JMIC,KICIJ,NTM),
+     &          TICIJ4_GLOB8(IMIC,JMIC,KICIJ,NTM),
+     &            TICIJ_GLOB(IMIC,JMIC,KICIJ,NTM))
 #endif
       end if
 
