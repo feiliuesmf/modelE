@@ -1,32 +1,86 @@
 #include "rundeck_opts.h"
 
       MODULE ICEDYN
-      integer :: imicdyn=0
-      contains
-      subroutine alloc_icedyn(grid)
-      use DOMAIN_DECOMP_ATM, only : DIST_GRID
-      TYPE (DIST_GRID), INTENT(IN) :: grid
-      return
-      end subroutine alloc_icedyn
+      USE OCEAN,  only     : oIM=>im,oJM=>jm
+      use DOMAIN_DECOMP_1D, only : DIST_GRID
+      IMPLICIT NONE 
+      SAVE
+      INTEGER, parameter :: IMICDYN = oIM, JMICDYN = oJM !     resolution of icedyn grid set to ocean resolution
+      TYPE(DIST_GRID) :: grid_ICDYN
+      REAL*8  :: DLATM
       END MODULE ICEDYN
 
       MODULE ICEDYN_COM
+      IMPLICIT NONE
+      SAVE
+
       integer :: imic=0,kticij=0
       real*8,dimension(2) :: rsix=0,rsiy=0,usi=0,vsi=0
       real*8,dimension(2) :: USIDT=0,VSIDT=0,RSISAVE=0
       real*8,dimension(2) :: icij=0,ticij=0
-      contains
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF,VOSURF,DMUI,DMVI
+      END MODULE ICEDYN_COM
+
+      subroutine alloc_icedyn
+      USE DOMAIN_DECOMP_1D, ONLY : INIT_GRID
+      USE ICEDYN, only : grid_ICDYN,IMICDYN,JMICDYN
+      LOGICAL, SAVE :: init = .false.
+
+      If (init) Then
+         Return ! Only invoke once
+      End If
+      init = .true.
+
+      CALL INIT_GRID(grid_ICDYN,IMICDYN,JMICDYN,1)
+
+      return
+      end subroutine alloc_icedyn
+
+      subroutine GEOMICDYN
+      USE ICEDYN, only : DLATM,IMICDYN,JMICDYN
+      IMPLICIT NONE
+      real*8 :: DLAT_DG
+
+      DLAT_DG=180./REAL(JMICDYN)                   ! even spacing (default)
+      IF (JMICDYN.eq.46) DLAT_DG=180./REAL(JMICDYN-1)   ! 1/2 box at pole for 4x5
+      IF (JMICDYN.eq.24) DLAT_DG=180./REAL(JMICDYN-1.5) ! 1/4 box at pole, 'real' 8x10
+      DLATM=60.*DLAT_DG
+      end subroutine GEOMICDYN
+
       subroutine alloc_icedyn_com(grid)
       use DOMAIN_DECOMP_ATM, only : DIST_GRID
+      use DOMAIN_DECOMP_1D, only : GET
+      USE ICEDYN, only : grid_icdyn
+      USE ICEDYN_COM, only : UOSURF,VOSURF,DMUI,DMVI
+      IMPLICIT NONE
+      LOGICAL, SAVE :: init=.false.
+      INTEGER :: I_1H    , I_0H
+      INTEGER :: J_1H    , J_0H
       TYPE (DIST_GRID), INTENT(IN) :: grid
+
+      If (init) Then
+         Return ! Only invoke once
+      End If
+      init = .true.
+
+      CALL GET(grid_icdyn, I_STRT_HALO=I_0H    , I_STOP_HALO=I_1H    ,
+     &     J_STRT_HALO=J_0H    , J_STOP_HALO=J_1H    )
+
+      ALLOCATE(DMUI( I_0H:I_1H , J_0H:J_1H ),
+     &         DMVI( I_0H:I_1H , J_0H:J_1H ))
+
+      ALLOCATE(UOSURF( I_0H:I_1H , J_0H:J_1H ),
+     &         VOSURF( I_0H:I_1H , J_0H:J_1H ))
+      UOSURF = 0. ! in case there is no dynamic ocean
+      VOSURF = 0. ! ""
+
       return
       end subroutine alloc_icedyn_com
-      END MODULE ICEDYN_COM
 
       SUBROUTINE ICEDYN_DUM
 !@sum ICEDYN_DUM dummy routines to replace ice dynamics
-      ENTRY alloc_icedyn
-      ENTRY alloc_icedyn_com
+c      ENTRY alloc_icedyn
+c      ENTRY alloc_icedyn_com
       ENTRY gather_icdiags
       ENTRY io_icedyn
       ENTRY io_icdiag
@@ -84,3 +138,4 @@ C**** with wind stress dependence
 
       RETURN
       END SUBROUTINE DYNSI
+
