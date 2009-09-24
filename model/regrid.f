@@ -1329,8 +1329,7 @@ c*
       integer :: status,fid,n,vid,ikey,jlat
       integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
       integer :: ierr,i,icub,jcub,maxkey,gid,mytile
-      character*200 :: exchfile
-      character(len=10) :: imch,jmch,icch,jcch
+      character(len=30) :: fname
 
 c     domain decomp. info on source grid is stored inside x2grid object
       x2grids%is=grid%is
@@ -1357,21 +1356,11 @@ c
  
       if (AM_I_ROOT()) then   
 
-         write(imch,'(i10)') imsource
-         write(jmch,'(i10)') jmsource
-         write(icch,'(i10)') imtarget
-         write(jcch,'(i10)') jmtarget
-         imch=trim(adjustl(imch))
-         jmch=trim(adjustl(jmch))
-         icch=trim(adjustl(icch))
-         jcch=trim(adjustl(jcch))
-         exchfile="remap"//trim(imch)//"-"//trim(jmch)
-     *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
-         write(*,*) "filename=",exchfile
 c     
 c     Read weights
 c     
-         status = nf_open(trim(exchfile),nf_nowrite,fid)
+         fname='REMAP'
+         status = nf_open(trim(fname),nf_nowrite,fid)
          if (status .ne. NF_NOERR) write(*,*) 
      *        "UNABLE TO OPEN REMAP FILE"
          
@@ -1555,9 +1544,8 @@ c*
       integer :: status,fid,n,vid,ikey,jlat
       integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
       integer :: ierr,i
-      character*200 :: exchfile
-      character(len=10) :: imch,jmch,icch,jcch
 
+      character(len=30) :: fname
 
       x2gridsroot%imsource=imsource
       x2gridsroot%jmsource=jmsource
@@ -1570,23 +1558,14 @@ c*
 c
       if (AM_I_ROOT()) then   
 
-         write(imch,'(i10)') imsource
-         write(jmch,'(i10)') jmsource
-         write(icch,'(i10)') imtarget
-         write(jcch,'(i10)') jmtarget
-         imch=trim(adjustl(imch))
-         jmch=trim(adjustl(jmch))
-         icch=trim(adjustl(icch))
-         jcch=trim(adjustl(jcch))
-         exchfile="remap"//trim(imch)//"-"//trim(jmch)
-     *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
-         write(*,*) "filename=",exchfile
 c     
 c     Read weights
 c     
-         status = nf_open(trim(exchfile),nf_nowrite,fid)
+         fname='REMAP'
+         status = nf_open(trim(fname),nf_nowrite,fid)
+
          if (status .ne. NF_NOERR) write(*,*) 
-     *        "UNABLE TO OPEN REMAP FILE"
+     *        "UNABLE TO OPEN REMAP FILE",trim(fname)
          
          status = nf_inq_dimid(fid,'ncells',vid)
          status = nf_inq_dimlen(fid,vid,ncells)

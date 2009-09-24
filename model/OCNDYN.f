@@ -397,8 +397,7 @@ C****
       CALL OFFT0(IM)
 
 #ifdef CUBE_GRID
-      call init_regrid(xO2A,grid,im,jm,1,aim,ajm,6)
-      call init_regrid(xA2O,agrid,aim,ajm,6,im,jm,1)
+
       call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
 c*** fill in vector full of ones
       allocate(ones(xA2O_root%xgridroot%ncells))
