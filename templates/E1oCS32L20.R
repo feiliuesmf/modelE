@@ -24,7 +24,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 RES_CS32L20 DIAG_RES_M FFTW_COM     ! CS32 grid
-RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers  
+RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 vert layers
 MODEL_COM GNOM_CS IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -35,7 +35,7 @@ regrid regrid_com
              cs                     ! cubed sphere domain decomposition for atm. routines
 ATMDYN_COM ATM_DUM                  ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
-FV_UTILS FV_CS_Mod FV_INTERFACE   
+FV_UTILS FV_CS_Mod FV_INTERFACE
 QUS_COM QUSDEF                      ! T/Q moments, 1D QUS
 QUScubed                            ! cubed-sphere adaptation of QUS
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM        ! clouds modules
@@ -45,9 +45,9 @@ VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
-SEAICE SEAICE_DRV                   ! seaice modules 
+SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
-ICEDYN_DUM
+ICEDYNo_DUM
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
 OCNDYN OCN_Interp OSTRAITS OCNGM OCNKPP  ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
@@ -74,7 +74,7 @@ AVR=AVR72X46.L13.gas1.modelE         ! ocean filter
 KBASIN=KB4X513.OCN.gas1              ! ocean basin designations
 TOPO_OC=Z72X46N_gas.1_nocasp ! ocean bdy.cond
 CDN=CD_CS32                      ! surf.drag coefficient
-VEG=V_CS32 CROPS=CROPS_CS32 
+VEG=V_CS32 CROPS=CROPS_CS32
 TOPO=Z_CS32 SOIL=SOIL_CS32 ! soil/topography bdy.conds
 REG=REG.txt           ! special regions-diag
 RVR=RD_modelE_M.RVR.bin      ! river direction file
@@ -140,7 +140,7 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
- 
+
 U00a=.55    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
