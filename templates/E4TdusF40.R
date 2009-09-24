@@ -250,7 +250,7 @@ paleo_orb_yr=-50.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 !--------- general aerosol parameters-------------
 aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
 rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
-rad_interact_tr=0  ! 1: couples aerosols to radiation, 0: use climatology
+rad_interact_aer=0 ! 1: couples aerosols to radiation, 0: use climatology
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics

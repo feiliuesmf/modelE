@@ -326,7 +326,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 !--------- Aerosol parameters----------------
 imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
 aer_int_yr=2000    !used for imAER=3,5 select desired year (1890 to 2000) or 0 to use JYEAR
-rad_interact_tr=1  ! 1=couples aerosols to radiation, 0=use climatology
+rad_interact_aer=1 ! 1=couples aerosols to radiation, 0=use climatology
 rad_forc_lev=1     ! 0 for TOA, 1 for tropopause for rad forcing diags.
 prather_limits=1   ! to avoid some negative tracers in sub-gridscale
 

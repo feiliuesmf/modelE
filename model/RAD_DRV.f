@@ -63,8 +63,8 @@ C****
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990
-     *     ,rad_interact_tr,rad_forc_lev,ntrix,wttr,nrad_clay
-     *     ,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
+     *     ,rad_interact_aer,rad_interact_chem,rad_forc_lev,ntrix,wttr
+     *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -152,7 +152,8 @@ C**** sync radiation parameters from input
         call write_parallel(trim(out_line),unit=6)
         call stop_model('init_RAD: snoage_fac_max out of range',255)
       end if
-      call sync_param( "rad_interact_tr", rad_interact_tr )
+      call sync_param( "rad_interact_aer", rad_interact_aer )
+      call sync_param( "rad_interact_chem", rad_interact_chem )
       call sync_param( "rad_forc_lev", rad_forc_lev )
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
@@ -343,7 +344,7 @@ caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
-      if (rad_interact_tr.gt.0) then
+      if (rad_interact_aer > 0) then
 C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
         FS8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0 , 1d0/)
         FT8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
@@ -356,7 +357,7 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
      *        n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
 #endif
 #ifdef TRACERS_OM_SP
-      if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
+      if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
         FS8OPX = (/1d0, 1d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
         FT8OPX = (/1d0, 1d0, 1d0, 0d0, 1d0, 1d0, 1.3d0, 1d0/)
       end if
@@ -367,7 +368,7 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
       WTTR(1:NTRACE) = 1d0
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      if (rad_interact_tr.gt.0) then  ! if BC's sol.effect are doubled:
+      if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
 #ifdef SULF_ONLY_AEROSOLS
         NTRACE=1
         FS8OPX(1:NTRACE) = (/0d0/)
@@ -403,7 +404,7 @@ C**** define weighting (only used for clays so far)
       call stop_model('SULF_ONLY_AEROSOLS and TRACERS_NITRATE on',255)
 #else
       NTRACE=7
-      if (rad_interact_tr.gt.0) then ! turn off default nitrate
+      if (rad_interact_aer > 0) then ! turn off default nitrate
         FS8OPX(3) = 0. ; FT8OPX(3) = 0.
       end if
       TRRDRY(1:NTRACE)=(/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
@@ -424,7 +425,7 @@ C**** define weighting (only used for clays so far)
 #ifdef TRACERS_DUST
 C**** add dust optionally to radiatively active aerosol tracers
 C**** should also work if other aerosols are not used
-      if (rad_interact_tr.gt.0) then ! turn off default dust
+      if (rad_interact_aer > 0) then ! turn off default dust
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
@@ -463,7 +464,7 @@ C**** define weighting for different clays
 C**** add minerals optionally to radiatively active aerosol tracers
 C**** so far all minerals have the properties of far traveled Saharan
 C**** dust - to be changed soon
-      if (rad_interact_tr.gt.0) then ! turn off default dust
+      if (rad_interact_aer > 0) then ! turn off default dust
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
@@ -505,7 +506,7 @@ C**** define weighting for different clays
 C**** add quartz/hematite to radiatively active aerosol tracers
 C**** so far all minerals have the properties of far traveled Saharan
 C**** dust - to be changed soon
-      if (rad_interact_tr.gt.0) then ! turn off default dust
+      if (rad_interact_aer > 0) then ! turn off default dust
         FS8OPX(7) = 0. ; FT8OPX(7) = 0.
       end if
       n1=NTRACE+1
@@ -818,11 +819,11 @@ cdmk last line saved for IE
       USE RADPAR, only : writer,rcompx,updghg
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
-     *     ,chem_tracer_save,rad_interact_tr,kliq,RHfix,CLDx
+     *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
-     *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc
+     *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,rad_interact_chem
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -983,12 +984,12 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER, SAVE :: JDLAST = -9
-      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff
-     *     ,LFRC,JTIME,n1,tmpS(8),tmpT(8)
+      INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
+     *     ,onoff_chem,LFRC,JTIME,n1,tmpS(8),tmpT(8)
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
-     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign
-     *     ,tauex5,tauex6,tausct,taugcb,dcdnc
+     *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
+     *     ,rsign_chem,tauex5,tauex6,tausct,taugcb,dcdnc
      *     ,QR(LM,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &            grid%J_STRT_HALO:grid%J_STOP_HALO)
      *     ,CLDinfo(LM,3,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -1246,9 +1247,9 @@ c     ICKERR=0
 c     JCKERR=0
 c     KCKERR=0
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff,OPNSKY,
-!$OMP*   CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,taugcb,
-!$OMP*   set_clayilli,set_claykaol,set_claysmec,set_claycalc,
+!$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff_aer,
+!$OMP*   onoff_chem, OPNSKY, CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,
+!$OMP*   taugcb,set_clayilli,set_claykaol,set_claysmec,set_claycalc,
 !$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
 #ifdef ALTER_RADF_BY_LAT
 !$OMP*   fulgas,fulgas_orig,FS8OPX,FS8OPX_orig,FT8OPX,FT8OPX_orig,
@@ -1642,28 +1643,31 @@ C**** This is set from the rundeck.
 C**** The calculation of the forcing is slightly different.
 C**** depending on whether full radiative interaction is turned on
 C**** or not.
-      onoff=0
-      if (rad_interact_tr.gt.0) onoff=1
+      onoff_aer=0; onoff_chem=0
+      if (rad_interact_aer > 0) onoff_aer=1
+      if (rad_interact_chem > 0) onoff_chem=1
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_OM_SP)
+
+#ifdef TRACERS_SPECIAL_Shindell
 c if ozone also interacts with radiation it needs to be set
 c to default here:
-#ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane:
-      if (rad_interact_tr.gt.0) then
+      if (rad_interact_chem > 0) then
         CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
         use_tracer_chem(1)=Lmax_rad_O3  ! O3
         use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
 #ifdef SHINDELL_STRAT_EXTRA
-        call stop_model("stratOx RADF illegal if rad_interact_tr>0",255)
+      else
+        call stop_model("stratOx RADF on, rad_interact_chem<=0",255)
 #endif
       endif
 #endif
 C**** Aerosols incl. Dust:
       if (NTRACE.gt.0) then
-        FSTOPX(:)=onoff ; FTTOPX(:)=onoff
+        FSTOPX(:)=onoff_aer ; FTTOPX(:)=onoff_aer
         set_clayilli=.FALSE.
         set_claykaol=.FALSE.
         set_claysmec=.FALSE.
@@ -1677,29 +1681,29 @@ C**** Aerosols incl. Dust:
             IF (trname(ntrix(n)) == 'ClaySmec' .AND. set_claysmec) cycle
             IF (trname(ntrix(n)) == 'ClayCalc' .AND. set_claycalc) cycle
             IF (trname(ntrix(n)) == 'ClayQuar' .AND. set_clayquar) cycle
-            FSTOPX(n)=1-onoff ; FTTOPX(n)=1-onoff ! turn on/off tracer
+            FSTOPX(n)=1-onoff_aer ; FTTOPX(n)=1-onoff_aer ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt2 immediately
 C****          succeeds seasalt1 in NTRACE array
-            IF (trname(NTRIX(n)).eq."seasalt1") THEN      ! add seasalt2
-              FSTOPX(n+1)=1-onoff ; FTTOPX(n+1)=1-onoff   !  to seasalt1
+            IF (trname(NTRIX(n)).eq."seasalt1") THEN          !add seasalt2
+              FSTOPX(n+1)=1-onoff_aer;FTTOPX(n+1)=1-onoff_aer !to seasalt1
             END IF
 C**** Do radiation calculations for all clay classes at once
 C**** Assumes that 4 clay tracers are adjacent in NTRACE array
             SELECT CASE (trname(ntrix(n)))
             CASE ('ClayIlli')
-              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              fstopx(n+1:n+3)=1-onoff_aer; fttopx(n+1:n+3)=1-onoff_aer
               set_clayilli=.true.
             CASE ('ClayKaol')
-              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              fstopx(n+1:n+3)=1-onoff_aer; fttopx(n+1:n+3)=1-onoff_aer
               set_claykaol=.true.
             CASE ('ClaySmec')
-              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              fstopx(n+1:n+3)=1-onoff_aer; fttopx(n+1:n+3)=1-onoff_aer
               set_claysmec=.true.
             CASE ('ClayCalc')
-              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              fstopx(n+1:n+3)=1-onoff_aer; fttopx(n+1:n+3)=1-onoff_aer
               set_claycalc=.true.
             CASE ('ClayQuar')
-              fstopx(n+1:n+3)=1-onoff; fttopx(n+1:n+3)=1-onoff
+              fstopx(n+1:n+3)=1-onoff_aer; fttopx(n+1:n+3)=1-onoff_aer
               set_clayquar=.true.
             END SELECT
             kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
@@ -1708,14 +1712,14 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
             TNFST(1,n,I,J)=TRNFLB(1)
             SNFST(2,n,I,J)=SRNFLB(LFRC)
             TNFST(2,n,I,J)=TRNFLB(LFRC)
-            FSTOPX(n)=onoff ; FTTOPX(n)=onoff        ! back to default
-            IF (trname(NTRIX(n)).eq."seasalt1") THEN ! also for seasalt2
-              FSTOPX(n+1)=onoff ; FTTOPX(n+1)=onoff
+            FSTOPX(n)=onoff_aer ; FTTOPX(n)=onoff_aer   ! back to default
+            IF (trname(NTRIX(n)).eq."seasalt1") THEN    ! also for seasalt2
+              FSTOPX(n+1)=onoff_aer ; FTTOPX(n+1)=onoff_aer
             END IF
             SELECT CASE (trname(ntrix(n)))           ! also for clays
             CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc',
      &           'ClayQuar')
-              fstopx(n+1:n+3)=onoff ; fttopx(n+1:n+3)=onoff
+              fstopx(n+1:n+3)=onoff_aer ; fttopx(n+1:n+3)=onoff_aer
             END SELECT
           END IF
         end do
@@ -1725,14 +1729,14 @@ C**** Assumes that 4 clay tracers are adjacent in NTRACE array
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone:
       chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
-      use_tracer_chem(1)=(1-onoff)*Lmax_rad_O3
+      use_tracer_chem(1)=(1-onoff_chem)*Lmax_rad_O3
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX        ! tr_Shindell Ox tracer
       SNFST_ozone(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
       TNFST_ozone(1,I,J)=TRNFLB(LTROPO(I,J))
       SNFST_ozone(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
       TNFST_ozone(2,I,J)=TRNFLB(LM+LM_REQ+1)
-      use_tracer_chem(1)=onoff*Lmax_rad_O3
+      use_tracer_chem(1)=onoff_chem*Lmax_rad_O3
 #ifdef SHINDELL_STRAT_EXTRA
       chem_IN(1,1:LM)=stratO3_tracer_save(1:LM,I,J)
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
@@ -1764,7 +1768,7 @@ C**** Methane: (if there are initial RCOMPX calls, they
 #endif /* ACCMIP_LIKE_DIAGS */
 #ifdef TRACERS_SPECIAL_Shindell
 ! final (main) RCOMPX call can use tracer methane (or not):
-      use_tracer_chem(2)=onoff*Lmax_rad_CH4
+      use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef BC_ALB
@@ -1779,29 +1783,29 @@ c set for BC-albedo effect
 #ifdef TRACERS_AMP
        IF (AMP_DIAG_FC) THEN
        Do n = 1,nmodes
-       FSTOPX(n) = 1-onoff !turns off online tracer
-       FTTOPX(n) = 1-onoff !
-       if (n.eq.1) FSTOPX(:) = 1-onoff
-       if (n.eq.1) FTTOPX(:) = 1-onoff
+       FSTOPX(n) = 1-onoff_aer !turns off online tracer
+       FTTOPX(n) = 1-onoff_aer !
+       if (n.eq.1) FSTOPX(:) = 1-onoff_aer
+       if (n.eq.1) FTTOPX(:) = 1-onoff_aer
        CALL RCOMPX
        SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
        TNFST(1,n,I,J)=TRNFLB(1)
        SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
        TNFST(2,n,I,J)=TRNFLB(LFRC)
-       FSTOPX(:) = onoff !turns on online tracer
-       FTTOPX(:) = onoff !
+       FSTOPX(:) = onoff_aer !turns on online tracer
+       FTTOPX(:) = onoff_aer !
        ENDDO
        ELSE
        n = 1
-       FSTOPX(:) = 1-onoff !turns off online tracer
-       FTTOPX(:) = 1-onoff !
+       FSTOPX(:) = 1-onoff_aer !turns off online tracer
+       FTTOPX(:) = 1-onoff_aer !
        CALL RCOMPX
        SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
        TNFST(1,n,I,J)=TRNFLB(1)
        SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
        TNFST(2,n,I,J)=TRNFLB(LFRC)
-       FSTOPX(:) = onoff !turns on online tracer
-       FTTOPX(:) = onoff !
+       FSTOPX(:) = onoff_aer !turns on online tracer
+       FTTOPX(:) = onoff_aer !
        ENDIF
 #endif
 C**** Optional calculation of CRF using a clear sky calc.
@@ -2341,8 +2345,9 @@ C**** AERRF diags if required
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes
-         rsign=1.
-         if (rad_interact_tr.gt.0) rsign=-1.
+         rsign_aer=1. ; rsign_chem=1.
+         if (rad_interact_aer > 0) rsign_aer=-1.
+         if (rad_interact_chem > 0) rsign_chem=-1.
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
@@ -2386,34 +2391,34 @@ c shortwave forcing (TOA or TROPO) of Clay sub size classes
                  if (ijts_fcsub(1,ntrix(n),n1) > 0)
      &                taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(1,ntrix(n),n1))
-     &                +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
+     &                +rsign_aer*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
 c longwave forcing  (TOA or TROPO) of Clay size sub classes
                  if (ijts_fcsub(2,ntrix(n),n1) > 0)
      &                taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(2,ntrix(n),n1))
-     &                -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
+     &                -rsign_aer*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
 c shortwave forcing (TOA or TROPO) clear sky of Clay sub size classes
                  if (ijts_fcsub(5,ntrix(n),n1) > 0)
      &                taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(5,ntrix(n),n1))
-     &                +rsign*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
+     &                +rsign_aer*(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
      &                *(1.D0-cfrac(i,j))
 c longwave forcing  (TOA or TROPO) clear sky of Clay sub size classes
                  if (ijts_fcsub(6,ntrix(n),n1) > 0)
      &                taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(6,ntrix(n),n1))
-     &                -rsign*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
+     &                -rsign_aer*(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
      &                *(1.D0-cfrac(i,j))
 c shortwave forcing at surface (if required) of Clay sub size classes
                  if (ijts_fcsub(3,ntrix(n),n1) > 0)
      &                taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(3,ntrix(n),n1))
-     &                +rsign*(snfst(1,n,i,j)-snfs(1,i,j))*csz2
+     &                +rsign_aer*(snfst(1,n,i,j)-snfs(1,i,j))*csz2
 c longwave forcing at surface (if required) of Clay sub size classes
                  if (ijts_fcsub(4,ntrix(n),n1) > 0)
      &                taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
      &                =taijs(i,j,ijts_fcsub(4,ntrix(n),n1))
-     &                -rsign*(tnfst(1,n,i,j)-tnfs(1,i,j))
+     &                -rsign_aer*(tnfst(1,n,i,j)-tnfs(1,i,j))
                CASE DEFAULT
                  SELECT CASE (trname(ntrix(n)))
                  CASE ('seasalt2')
@@ -2438,34 +2443,34 @@ c shortwave forcing (TOA or TROPO)
                  if (ijts_fc(1,ntrix(n)).gt.0)
      &                taijs(i,j,ijts_fc(1,ntrix(n)))
      &                =taijs(i,j,ijts_fc(1,ntrix(n)))
-     &                +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+     &                +rsign_aer*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
 c longwave forcing  (TOA or TROPO)
                  if (ijts_fc(2,ntrix(n)).gt.0)
      &                taijs(i,j,ijts_fc(2,ntrix(n)))
      &                =taijs(i,j,ijts_fc(2,ntrix(n)))
-     &                -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+     &                -rsign_aer*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
 c shortwave forcing (TOA or TROPO) clear sky
                  if (ijts_fc(5,ntrix(n)).gt.0)
      &                taijs(i,j,ijts_fc(5,ntrix(n)))
      &                =taijs(i,j,ijts_fc(5,ntrix(n)))
-     &                +rsign*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
+     &                +rsign_aer*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
      &                *(1.d0-CFRAC(I,J))
 c longwave forcing  (TOA or TROPO) clear sky
                  if (ijts_fc(6,ntrix(n)).gt.0)
      &                taijs(i,j,ijts_fc(6,ntrix(n)))
      &                =taijs(i,j,ijts_fc(6,ntrix(n)))
-     &                -rsign*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
+     &                -rsign_aer*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
      &                *(1.d0-CFRAC(I,J))
 c shortwave forcing at surface (if required)
                  if (ijts_fc(3,ntrix(n)).gt.0)
      &                taijs(i,j,ijts_fc(3,ntrix(n)))
      &                =taijs(i,j,ijts_fc(3,ntrix(n)))
-     &                +rsign*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
+     &                +rsign_aer*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
 c longwave forcing at surface (if required)
                  if (ijts_fc(4,ntrix(n)).gt.0)
      &                taijs(i,j,ijts_fc(4,ntrix(n)))
      &                =taijs(i,j,ijts_fc(4,ntrix(n)))
-     &                -rsign*(TNFST(1,N,I,J)-TNFS(1,I,J))
+     &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
                END SELECT
 #ifdef  TRACERS_AMP
          IF (AMP_DIAG_FC) THEN
@@ -2475,13 +2480,13 @@ c longwave forcing at surface (if required)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
 c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
-c    &              +rsign*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
+c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
 c              SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
-c    &              +rsign*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
+c    &              +rsign_aer*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
 c              TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
-c    &              -rsign*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
+c    &              -rsign_aer*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
 c              TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
-c    &              -rsign*(TNFST(1,n,I,J)-TNFS(1,I,J))
+c    &              -rsign_aer*(TNFST(1,n,I,J)-TNFS(1,I,J))
 #endif
              END IF
            end do
@@ -2496,40 +2501,40 @@ c ..........
 c shortwave forcing at tropopause
            if (ijts_fc(1,n_Ox).gt.0)
      &     taijs(i,j,ijts_fc(1,n_Ox))=taijs(i,j,ijts_fc(1,n_Ox))
-     &     +rsign*(SNFST_ozone(1,I,J)-SNFS(4,I,J))*CSZ2
+     &     +rsign_chem*(SNFST_ozone(1,I,J)-SNFS(4,I,J))*CSZ2
 c longwave forcing at tropopause
            if (ijts_fc(2,n_Ox).gt.0)
      &     taijs(i,j,ijts_fc(2,n_Ox))=taijs(i,j,ijts_fc(2,n_Ox))
-     &     -rsign*(TNFST_ozone(1,I,J)-TNFS(4,I,J))
+     &     -rsign_chem*(TNFST_ozone(1,I,J)-TNFS(4,I,J))
 c shortwave forcing at TOA
            if (ijts_fc(3,n_Ox).gt.0)
      &     taijs(i,j,ijts_fc(3,n_Ox))=taijs(i,j,ijts_fc(3,n_Ox))
-     &     +rsign*(SNFST_ozone(2,I,J)-SNFS(3,I,J))*CSZ2
+     &     +rsign_chem*(SNFST_ozone(2,I,J)-SNFS(3,I,J))*CSZ2
 c longwave forcing at TOA
            if (ijts_fc(4,n_Ox).gt.0)
      &     taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
-     &     -rsign*(TNFST_ozone(2,I,J)-TNFS(3,I,J))
+     &     -rsign_chem*(TNFST_ozone(2,I,J)-TNFS(3,I,J))
          endif 
 #ifdef SHINDELL_STRAT_EXTRA
                       ! ------ diag stratOx tracer -------
 ! note for now for this diag, there is a failsafe that stops model
-! if rad_interact_tr>0 when the below would be wrong:
+! if rad_interact_chem>0 when the below would be wrong:
 c shortwave forcing at tropopause
          if (ijts_fc(1,n_stratOx).gt.0)
      &   taijs(i,j,ijts_fc(1,n_stratOx))=taijs(i,j,ijts_fc(1,n_stratOx))
-     &   +rsign*(SNFST_ozone(1,I,J)-SNFST_stratOx(1,I,J))*CSZ2
+     &   +rsign_chem*(SNFST_ozone(1,I,J)-SNFST_stratOx(1,I,J))*CSZ2
 c longwave forcing at tropopause
          if (ijts_fc(2,n_stratOx).gt.0)
      &   taijs(i,j,ijts_fc(2,n_stratOx))=taijs(i,j,ijts_fc(2,n_stratOx))
-     &   -rsign*(TNFST_ozone(1,I,J)-TNFST_stratOx(1,I,J))
+     &   -rsign_chem*(TNFST_ozone(1,I,J)-TNFST_stratOx(1,I,J))
 c shortwave forcing at TOA
          if (ijts_fc(3,n_stratOx).gt.0)
      &   taijs(i,j,ijts_fc(3,n_stratOx))=taijs(i,j,ijts_fc(3,n_stratOx))
-     &   +rsign*(SNFST_ozone(2,I,J)-SNFST_stratOx(2,I,J))*CSZ2
+     &   +rsign_chem*(SNFST_ozone(2,I,J)-SNFST_stratOx(2,I,J))*CSZ2
 c longwave forcing at TOA
          if (ijts_fc(4,n_stratOx).gt.0)
      &   taijs(i,j,ijts_fc(4,n_stratOx))=taijs(i,j,ijts_fc(4,n_stratOx))
-     &   -rsign*(TNFST_ozone(2,I,J)-TNFST_stratOx(2,I,J))
+     &   -rsign_chem*(TNFST_ozone(2,I,J)-TNFST_stratOx(2,I,J))
 #endif /* SHINDELL_STRAT_EXTRA */
 #endif /* any of various tracer groups defined */
 

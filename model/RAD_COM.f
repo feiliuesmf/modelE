@@ -178,8 +178,10 @@ C**** does not produce exactly the same as the default values.
       real*8, dimension(8,46):: FS8OPX_lat,FT8OPX_lat !rad not model grid
                                                 !8 groups of aerosols
 #endif
-!@dbparam rad_interact_tr =1 for radiatively active tracers (default=0)
-      INTEGER :: rad_interact_tr = 0
+!@dbparam rad_interact_aer =1 for radiatively active non-chem tracers
+      INTEGER :: rad_interact_aer = 0  ! defaults to 0
+!@dbparam rad_interact_chem=1 for radiatively active chem tracers
+      INTEGER :: rad_interact_chem= 0  ! defaults to 0
 C**** the radiative forcing level for instantaneous forcing calcs is set
 C**** using the rad_forc_lev parameter.
 !@dbparam rad_forc_lev = 0 for TOA, 1 for LTROPO (default=0)

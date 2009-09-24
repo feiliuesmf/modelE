@@ -403,7 +403,6 @@ paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 !--------- general aerosol parameters-------------
 aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
 rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
-rad_interact_tr=0  ! 1: couples aerosols to radiation, 0: use climatology
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
@@ -482,7 +481,7 @@ Tpsc_offset_S=0.d0 ! pol.strat.cloud temperature offset SH
 
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
-rad_interact_tr=1  ! 1=use calculated Ox in radiation, 0=use climatology
+rad_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
 use_rad_n2o=1      ! use the radiation code's N2O
@@ -509,7 +508,7 @@ PIratio_CFC   = 1.000d0 ! {CFC ICs, L=1 overwrit}, set to 1 for use_rad_cfc=1
 !--------- Aerosol parameters----------------
 imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
 aer_int_yr=1850    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
-rad_interact_tr=1  ! 1=couples aerosols to radiation, 0=use climatology
+rad_interact_aer=1 ! 1=couples aerosols to radiation, 0=use climatology
 COUPLED_CHEM=1
 !----------------------------------------------------------------------
 !  End tracer code parameters.
