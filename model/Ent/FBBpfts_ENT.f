@@ -64,8 +64,7 @@
      &     pspartype(1          !1. EVERGREEN BROADLEAF EARLY SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BET temperate & tropical, Table 3.1 (Oleson, et al 2004)
      &     ,75.d0               !Vmax25, CLM BET tropical, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0,.002d0         !m,b, CLM
 !     &     ,6.0d0               !Nleaf (gN/m2-leaf). Low Est. from Reich 1997 (big range).
      &     ,2.7d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
@@ -74,16 +73,14 @@
 !     &     ,69.d0               !Vmax25, CLM BET temperate, Table 8.2 (Oleson, et al 2004)
 !     &     ,54.d0               !Tapajo KM67
      &     ,50.d0               !
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0,.002d0          !m,b, CLM
 !     &     ,8.0d0               !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ,2.5d0),               !Nleaf (gN/m2-leaf). fort.995=read.table("../Code/GISSClim/GISSClim/WorkSpace/r_ent_fbb_tnfg/fort.995", header=TRUE)
 
      &     pspartype(1          !3. EVERGREEN NEEDLELEAF EARLY SUCCESSIONAL
      &     ,.93d0               !from leaf VIS 1-albedo,CLM NET & NDT temperate & boreal, Table 3.1 (Oleson, et al 2004)
      &     ,51.d0               !Vmax25, CLM NET temperate, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0,.002d0         !m,b, CLM
 !     &     ,2.8d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
 !     &     ,2.9d0               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 !     &     ,0.66d0),                 !Nleaf (gN/m2-leaf). Reich (1997) for SLA of 18 m2/kg. This give C:N of 84!  Biome-BGC is 42, CLM 29.
@@ -92,8 +89,7 @@
      &     pspartype(1          !4. EVERGREEN NEEDLELEAF LATE SUCCESSIONAL
      &     ,.93d0               !from leaf VIS 1-albedo,CLM NET & NDT temperate & boreal, Table 3.1 (Oleson, et al 2004)
      &     ,43.d0               !Vmax25, CLM NET boreal, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0,.002d0              !m,b, CLM
 !     &     ,3.0d0               !Nleaf (gN/m2-leaf). High Est. from Reich 1997 (big range).
 !     &     ,0.66d0),            !Nleaf (gN/m2-leaf). Reich (1997) for SLA of 18 m2/kg. This give C:N of 84!  Biome-BGC is 42, CLM 29.
      &     ,1.8d0),             !Nleaf (gN/m2-leaf). Pinus sylvestris, Pensa and Sellin (2002).
@@ -101,8 +97,7 @@
      &     pspartype(1          !5. COLD DECIDUOUS BROADLEAF EARLY SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
      &     ,60.d0               !Vmax25, CLM BDT temperate, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0  ,.002d0              !m,b, CLM
 !     &     ,6.0d0               !Nleaf (gN/m2-leaf). Low Est. from Reich 1997 (big range).
 !     &     ,3.1d0               !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
      &     ,1.07d0              !Nleaf (gN/m2-leaf), Oak, derived from C:N 27.2 and SLA 34.5 m2/kg-C in Tatarinov & Cienciala (2006) for BIOME-BGC.
@@ -111,8 +106,7 @@
      &     pspartype(1          !6. COLD DECIDUOUS BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
      &     ,51.d0               !Vmax25, CLM BDT boreal, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51.
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0 ,.002d0              !m,b, CLM
 !     &     ,6.7d0                !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ,1.25d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
@@ -121,8 +115,7 @@
      &     ,56.4d0              !Vcmax25, Wang et al (2007) GCB Fluxnet inversion avg of grass+tree 50.1 & 56.4 umol m-2 s-1
 !     &     ,100.d0              !Vcmax, Liukang Xu's Tonzi Ranch blue oak leaf measurements go as high as 100 umol m-2 s-1, highly seasonal. See Kiang dissertation (2002) Fig. 2.34.
 !     &     ,17.d0               !Vmax25, CLM BES & BDS temperate, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0 ,.002d0              !m,b, CLM
 !     &     ,6.7d0              !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
 !     &     ,1.5d0),               !Nleaf (gN/m2-leaf). Increment Friend&Kiang (2005), Table 1.
 !     &     ,3.1d0                  !Nleaf (gN/m2-leaf), Q. ilex, Mediavilla & Escudero(2003)
@@ -132,23 +125,20 @@
      &     pspartype(1          !8. DECIDUOUS NEEDLELEAF
      &     ,.93d0               !from leaf VIS 1-albedo,CLM NDT boreal, Table 3.1 (Oleson, et al 2004)
      &     ,43.d0               !Vmax25, CLM NDT boreal, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0  ,.002d0              !m,b, CLM
      &     ,1.2d0),               !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range). Avg 2.8 (evergr) and 6.7 (decid).
 
      &     pspartype(1          !9. COLD ADAPTED SHRUB (TUNDRA)
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDS boreal, Table 3.1 (Oleson, et al 2004)
      &     ,33.d0               !Vmax25, CLM BDS boreal, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0 ,.002d0              !m,b, CLM
 !     &     ,7d0                 !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).
      &     ,1.6d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
      &     pspartype(1          !10. ARID ADAPTED SHRUB
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDS temperate, Table 3.1 (Oleson, et al 2004)
      &     ,17.d0               !Vmax25, CLM BES & BDS temperate, Table 8.2 (Oleson, et al 2004)
-     &     ,9.d0                !m, CLM
-     &     ,.002d0              !b, CLM
+     &     ,9.d0  ,.002d0              !m,b, CLM
 !     &     ,7d0                 !Nleaf (gN/m2-leaf). =tundra. Est. from Reich 1997 (big range).
      &     ,2.38d0),               !Nleaf (gN/m2-leaf). Friend&Kiang (2005), Table 1.
 
@@ -158,8 +148,7 @@
 !     &     ,56.4d0              !Vcmax25, Wang et al (2007) GCB Fluxnet inversion avg of grass+tree 50.1 & 56.4 umol m-2 s-1
 !     &     ,60d0                !Vcmax, von Caemmerer, CSIRO 2000, VARIOUS VALUES
 !     &     ,93.d0               !Vcmax, S. Verma and J. Berry,http://nigec.ucdavis.edu/publications/annual97/greatplains/project86.html
-     &     ,43.d0                !Vmax25, CLM , Table 8.2 (Oleson, et al 2004)
-     &     ,11.d0               !m, X.Mo, et al. (2001)
+     &     ,43.d0   ,11.d0               !m, b, X.Mo, et al. (2001)
      &     ,.008d0              !b, X.Mo, et al. (2001)
      &     ,2.460),              !Nleaf (gN/m2-leaf). Ponca winter wheat, from C:N 18.85, SLA 21.6 m2/kg-C.
 
