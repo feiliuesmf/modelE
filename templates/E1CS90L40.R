@@ -4,7 +4,7 @@ E1CS90L40: description/motivation    (any number of lines) ?
    (delete)  Lines you may want to inspect in any case contain a "?"
    (delete)  At the end you'll find instructions on how to modify this rundeck
    (delete)  for other simple ocean models and change in vert/hor resolution
-modelE C32 cubed-sphere grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)
+modelE C90 cubed-sphere grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 1880 (or 1979)      (look below for "_yr")  ?
 ocean data: prescribed, 1876-1885 (or 1975-1984) climatology  (see OSST/SICE) ?
 uses turbulence scheme, simple strat.drag (not grav.wave drag)
@@ -21,7 +21,7 @@ Run Options
 STACKSIZE=524288
 
 Object modules: (in order of decreasing priority)
-RES_CS90L40 DIAG_RES_M FFTW_COM          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
+RES_CS90L40 DIAG_RES_M FFTW_COM     ! horiz/vert resolution, CS90, 40 layers -> .1mb
 MODEL_COM IO_DRV             ! model variables and geometry
 GNOM_CS                             ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver
@@ -40,7 +40,7 @@ SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV GHY GHY_H           ! land surface and soils
 VEG_DRV VEG_COM VEGETATION          ! vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB                               ! turbulence in whole atmosphere
+ATURB_E1                            ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
@@ -62,31 +62,32 @@ Data input files:
 ! AICfv=1DECxxxx.fvEyyyy          ! initial conditions (fv internal) only for ISTART=9
 ! AICdfv=1DECxxxx.dfvEyyyy        ! tendencies                       only for ISTART=9
     ! or start up from observed conditions
-AIC=AIC_CS32         ! initial conditions (atm.)      needs GIC, ISTART=2
-GIC=GIC_CS32.nc      ! initial conditions (ground)
+AIC=AIC_CS90         ! initial conditions (atm.)      needs GIC, ISTART=2
+GIC=GIC_CS90.nc      ! initial conditions (ground)
     ! ocean data for "prescribed ocean" runs : climatological ocean
-OSST=OST_CS32  ! prescr. climatological ocean (1 yr of data)
-SICE=SICE_CS32 ! prescr. climatological sea ice
+OSST=OST_CS90  ! prescr. climatological ocean (1 yr of data)
+SICE=SICE_CS90 ! prescr. climatological sea ice
 OCNML=Z1O.B4X5.cor                ! mixed layer depth (needed for post processing)
 !                                             (end of section 1 of data input files)
     ! resolution dependent files
-TOPO=Z_CS32 SOIL=SOIL_CS32 ! soil/topography bdy.conds
+TOPO=Z_CS90 SOIL=SOIL_CS90 ! soil/topography bdy.conds
 ! VEG=V72X46.1.cor2   ! or:       ! vegetation fractions  (sum=1), need crops_yr=-1
-VEG=V_CS32 CROPS=CROPS_CS32
-CDN=CD_CS32                      ! surf.drag coefficient
+VEG=V_CS90 CROPS=CROPS_CS90 
+CDN=CD_CS90                      ! surf.drag coefficient
 REG=REG.txt                        ! special regions-diag
-RVR=RDdistocean_CS32.bin           ! river direction file
-TOP_INDEX=top_index_CS32      ! only used if #define do_topmodel_runoff
-GLMELT=GLMELT_CS32   ! glacial melt distribution
+RVR=RDdistocean_CS90.bin           ! river direction file
+TOP_INDEX=top_index_CS90      ! only used if #define do_topmodel_runoff
+GLMELT=GLMELT_CS90   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
+!RADN2=radfil33k
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
-RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
+RADN5=H2Ocont_Ma_2000             ! H2O continuum table
 ! other available H2O continuum tables:
-!    RADN5=H2Ocont_Ma_2000
+!    RADN5=H2Ocont_Ma_2004
 !    RADN5=H2Ocont_Roberts
-!    RADN5=H2Ocont_Ma_2008
+!    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
 TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
 TAero_SUI=sep2003_SUI_Koch_kg_m2_72x46x9_1875-1990 ! industrial sulfates
@@ -136,10 +137,10 @@ P_sdrag=1.          ! linear SDRAG only above 1mb (except near poles)
 PP_sdrag=1.         ! linear SDRAG above PP_sdrag mb near poles
 P_CSDRAG=1.         ! increase CSDRAG above P_CSDRAG to approach lin. drag
 Wc_JDRAG=30.        ! crit.wind speed for J-drag (Judith/Jim)
-! vsdragl is a tuning coefficient for SDRAG starting at LS1
-! layer:   24    25    26    27   28    29    30    31   32   33     34   35   36  37  38  39  40
-vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83, 1.
 ANG_sdrag=1     ! if 1: SDRAG conserves ang.momentum by adding loss below PTOP
+! vsdragl is a tuning coefficient for SDRAG starting at LS1
+! layer:24 25 26 27 28 29 30 31 32 33   34 35 36 37 38 39 40
+vsdragl=0.021,0.041,0.077,0.125,0.22,0.275,0.276,0.447,0.96,0.92,  0.91,1.22,1.53,0.3,0.6,0.83,1.
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 
@@ -147,9 +148,12 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 ! tuning param.: this setting works for both 1880 and 1979
-U00ice=.63      ! U00ice+.01 =>dBal=1.5,dPl.alb=-.9%   goals:Bal=0,plan.alb=30%
-U00wtrX=1.34    ! U00wtrX+.01=>dBal=0.7,dPl.alb=-.25%  Bal=glb.ann NetHt at z0
+U00ice=.6      ! U00ice+.01 =>dBal=1.5,dPl.alb=-.9%   goals:Bal=0,plan.alb=30%
+U00wtrX=1.39    ! U00wtrX+.01=>dBal=0.7,dPl.alb=-.25%  Bal=glb.ann NetHt at z0
 ! HRMAX=500.    ! not needed unless do_blU00=1, HRMAX up => nethtz0 down (alb up)
+
+U00a=.72     ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.40     ! below 850mb and MC regions; then tune this to get rad.balance
 
 CO2X=1.
 H2OstratX=1.
@@ -175,23 +179,25 @@ dalbsnX=.024
 o3_yr=-1880                                        ! =1979 , also change OSST,SICE
 
 ! parameters that control the Shapiro filter
-DT_XUfilter=0. ! Shapiro filter on U in E-W direction; (not used)
-DT_XVfilter=0. ! Shapiro filter on V in E-W direction; (not used)
-DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
-DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
+!DT_XUfilter=0. ! Shapiro filter on U in E-W direction; (not used)
+!DT_XVfilter=0. ! Shapiro filter on V in E-W direction; (not used)
+!DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
+!DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
-MFILTR=0 ! no slp-filter needed for fv dynamics
+!MFILTR=0 ! no slp-filter needed for fv dynamics
 
 DTsrc=1800.     ! cannot be changed after a run has been started
 ! parameters that may have to be changed in emergencies:
 DT=1800.
 NIsurf=1        ! increase as layer 1 gets thinner
 
+NRAD=1
+
 ! parameters that affect at most diagn. output:
 Ndisk=480
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
-KCOPY=2         ! saving acc + rsf  ? =3 to also save "oda"-files
+KCOPY=1         ! saving acc + rsf  ? =3 to also save "oda"-files
 isccp_diags=1   ! use =0 to save cpu time, but you lose some key diagnostics
 cloud_rad_forc=0 ! use =1 to activate this diagnostic (doubles radiation calls !)
 nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
@@ -204,6 +210,6 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, IYEAR1=1949 ! or earlier
-   YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+   YEARE=1950,MONTHE=3,DATEE=1,HOURE=0,     KDIAG=13*0,
+   ISTART=2,IRANDI=0, YEARE=1956,MONTHE=1,DATEE=1,HOURE=0,
  /
