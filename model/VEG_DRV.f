@@ -4,7 +4,7 @@
 
       module veg_drv
 !@sum veg_drv contains variables and routines for vegetation driver
-!@auth I. Alienov, N. Kiang, Y. Kim
+!@auth I. Alienov, N. Kiang
 
       implicit none
       private
@@ -643,15 +643,9 @@ c**** Modify the vegetation fractions
       !use veg_com
       !use model_com, only : jyear,focean
       !use ghy_com, only : fearth
-#ifdef USE_ENT
-      use ent_mod, only: N_COVERTYPES, N_OTHER,COVER_SAND !ykim - use ent_const to accomodate GISS and Ent PFTs.
-#endif
+
       implicit none
-#ifndef USE_ENT
       integer, parameter :: N_COVERTYPES = 12
-      integer, parameter :: N_OTHER = 2
-      integer, parameter :: COVER_SAND = 1
-#endif
       real*8, intent(out) :: vdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
       !---
@@ -668,14 +662,13 @@ c**** Modify the vegetation fractions
 
 c**** read land surface parameters or use defaults
       call openunit("VEG",iu_VEG,.true.,.true.)
-      do k=1,N_COVERTYPES-N_OTHER
+      do k=1,N_COVERTYPES-2                 !  11 ???? 
         CALL READT_PARALLEL
      *    (grid,iu_VEG,NAMEUNIT(iu_VEG),vdata(:,:,K),1)
       end do
 c**** zero-out vdata(11) until it is properly read in
-      do k=N_COVERTYPES+1, N_COVERTYPES+N_OTHER
-        vdata(:,:,k) = 0.
-      end do
+      vdata(:,:,11) = 0.
+      vdata(:,:,12) = 0.
       call closeunit(iu_VEG)
 
       ! make sure that veg fractions are reasonable
@@ -692,8 +685,8 @@ c**** zero-out vdata(11) until it is properly read in
             vdata(i,j,:) = vdata(i,j,:)/s
           else if ( s < .1d0 ) then
             print *, "missing veg data at ",i,j,"assume bare soil"
-            vdata(i,j,: ) = 0.d0
-            vdata(i,j,COVER_SAND) = 1.d0
+            vdata(i,j,1 ) = 1.d0
+            vdata(i,j,2:) = 0.d0
           else
             print *,i,j,s
             print *, vdata(i,j,:) 
