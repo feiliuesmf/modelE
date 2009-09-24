@@ -27,7 +27,7 @@ Preprocessor Options
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
-!#define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
+! DID THIS #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define TRACERS_NITRATE
 #define TRACERS_HETCHEM
@@ -52,6 +52,7 @@ ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
+!! QUS3D !<<<<<<<<<TQUS_DRV         ! advection of Q
 TQUS_DRV                            ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code 
 TRACERS                             ! generic tracer code 
@@ -109,8 +110,8 @@ Data input files:
     ! ... or from observed conditions AIC and model ground data GIC
 AIC=AIC.RES_F40.D771201  ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1   ! initial ground conditions      ISTART=2
-OSST=OST_144x90.1996-2005avg.HadISST1.1    ! prescr. climatological ocean
-SICE=SICE_144x90.1996-2005avg.HadISST1.1   ! prescr. climatological sea ice
+OSST=OST_144x90.1876-1885avg.HadISST1.1    ! prescr. climatological ocean (1 yr data)
+SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
 ! For q-flux ocean, replace all the above by the next 2 lines, set KOCEAN=1, ISTART=8
 !! AIC=1JAN1961.rsfE4F40.MXL65m        ! end of preliminary run with KOCEAN=0
 !! OHT=OTSPEC.E4F40.MXL65m.1956-1960   ! ocean horizontal heat transports
@@ -129,23 +130,6 @@ GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
 soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
 VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculation
-!-----------------------------------------------
-!  Start tracer code files:
-!-----------------------------------------------
-!  full-atmosphere chemistry model files:
-!-----------------------------------------------
-MOLEC=chem_files/ds4_moleculesE
-JPLRX=chem_files/jpl00_T25_SEP08
-JPLPH=chem_files/ds4_photlist_T25
-RATJ=chem_files/ratj.giss_25
-SPECFJ=chem_files/jv_spec00_25.dat
-ATMFJ=chem_files/jv_atms.dat
-N2O_IC=gsin/N2O_IC_M23_4x5_6.17_conc_2x2.5_conc
-CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc
-CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc
-Ox_IC=gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc
-CO_IC=gsin/CO_init_cond_M23_conc_2x2.5_conc
-!-----------------------------------------------
 
     ! resolution independent files
 RADN1=sgpgxg.table8               ! rad.tables and history files
@@ -157,7 +141,6 @@ RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 !    RADN5=H2Ocont_Roberts
 !    RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies
 RADN3=miescatpar.abcdv2
-
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
@@ -166,7 +149,6 @@ RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
 GHG=GHG.Mar2004.txt
-GHGic=GHG_IC_1850
 dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
@@ -181,23 +163,6 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-
-!------- Needed for dry deposition ---------
-VEGTYPE=chem_files/vegtype.global_2x2.5gf
-OLSON=chem_files/drydep.table
-DRYCOEFF=chem_files/drydep.coef
-LAI01=chem_files/lai01.global_2x2.5gf
-LAI02=chem_files/lai02.global_2x2.5gf
-LAI03=chem_files/lai03.global_2x2.5gf
-LAI04=chem_files/lai04.global_2x2.5gf
-LAI05=chem_files/lai05.global_2x2.5gf
-LAI06=chem_files/lai06.global_2x2.5gf
-LAI07=chem_files/lai07.global_2x2.5gf
-LAI08=chem_files/lai08.global_2x2.5gf
-LAI09=chem_files/lai09.global_2x2.5gf
-LAI10=chem_files/lai10.global_2x2.5gf
-LAI11=chem_files/lai11.global_2x2.5gf
-LAI12=chem_files/lai12.global_2x2.5gf
 
 ! sulfate+black carbon files:
 !  MADAER=1 (default) needs:
@@ -214,6 +179,30 @@ TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000
 TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000
 BC_dep=BC.Dry+Wet.depositions.ann
 
+!-----------------------------------------------
+!  Start tracer code files:
+!-----------------------------------------------
+!  full-atmosphere chemistry model files:
+!-----------------------------------------------
+MOLEC=chem_files/ds4_moleculesE
+JPLRX=chem_files/jpl00_T25_SEP08
+JPLPH=chem_files/ds4_photlist_T25
+RATJ=chem_files/ratj.giss_25
+SPECFJ=chem_files/jv_spec00_25.dat
+ATMFJ=chem_files/jv_atms.dat
+N2O_IC=gsin/N2O_IC_M23_4x5_6.17_conc_2x2.5_conc
+CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc
+CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc
+Ox_IC=gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc
+CO_IC=gsin/CO_init_cond_M23_conc_2x2.5_conc
+! fltran file used if rad_FL.ne.0:
+! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
+! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
+!-----------------------------------------------
+SULFATE_SA=temp_2x2.5/sulfate_pi_fakeM23_M_SA_2x2.5gf ! really 4x5 and 9-layer
+DMS_FIELD=temp_2x2.5/dms_conc_2x2.5gf ! really 4x5
+SO2_FIELD=temp_2x2.5/so2_conc_2x2.5gf ! really 4x5
+
 ! files for dust tracers
 VTRSH=fake_144x90_dust_wind_speed_thresholds ! modelIIprime varying thresholds (
 obsolete)
@@ -224,12 +213,24 @@ ERS=ERS1_1993_MONTHLY.144x90.threshold-13         ! ERS data
 GIN=Ginoux2001_source.144x90             ! preferred sources
 LKTAB=table_emission          ! look up table for emission calculations
 LKTAB1=table_wspdf            ! look up table for wind speed probabilities
-! fltran file used if rad_FL.ne.0:
-! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
-! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
-SULFATE_SA=temp_2x2.5/sulfate_pi_fakeM23_M_SA_2x2.5gf
-DMS_FIELD=temp_2x2.5/dms_conc_2x2.5gf
-SO2_FIELD=temp_2x2.5/so2_conc_2x2.5gf
+
+!------- Needed for dry deposition ---------
+VEGTYPE=chem_files/vegtype.global_2x2.5gf ! really 4x5
+OLSON=chem_files/drydep.table
+DRYCOEFF=chem_files/drydep.coef
+LAI01=chem_files/lai01.global_2x2.5gf ! really 4x5
+LAI02=chem_files/lai02.global_2x2.5gf ! really 4x5
+LAI03=chem_files/lai03.global_2x2.5gf ! really 4x5
+LAI04=chem_files/lai04.global_2x2.5gf ! really 4x5
+LAI05=chem_files/lai05.global_2x2.5gf ! really 4x5
+LAI06=chem_files/lai06.global_2x2.5gf ! really 4x5
+LAI07=chem_files/lai07.global_2x2.5gf ! really 4x5
+LAI08=chem_files/lai08.global_2x2.5gf ! really 4x5
+LAI09=chem_files/lai09.global_2x2.5gf ! really 4x5
+LAI10=chem_files/lai10.global_2x2.5gf ! really 4x5
+LAI11=chem_files/lai11.global_2x2.5gf ! really 4x5
+LAI12=chem_files/lai12.global_2x2.5gf ! really 4x5
+
 !---------- 1850 (mostly AR5) tracer emissions ------------------
 CO_01=AR5_emis/F/1850/CO_ind_AR5_1850_2x2.5_h
 CO_02=AR5_emis/F/1850/CO_tra_AR5_1850_2x2.5_h
@@ -240,7 +241,7 @@ CO_06=AR5_emis/F/1850/CO_forestfire_AR5_1850_2x2.5_h
 CO_07=AR5_emis/F/1850/CO_grassfire_AR5_1850_2x2.5_h
 CO_08=AR5_emis/F/1850/CO_shp_AR5_1850_2x2.5_h
 NOx_AIRC=AR5_emis/F/1850/NOx_air_AR5_1850_2x2.5
-NOx_01=temp_2x2.5/soil_nox_4x5_2x2.5gf3_h
+NOx_01=AR5_emis/F/NAT/NOx_Soil_GEIA_2x2.5_HALF_h ! half because we have ag source
 NOx_02=AR5_emis/F/1850/NOx_awb_AR5_1850_2x2.5_h
 NOx_03=AR5_emis/F/1850/NOx_dom_AR5_1850_2x2.5_h
 NOx_04=AR5_emis/F/1850/NOx_ene_AR5_1850_2x2.5_h
@@ -250,19 +251,31 @@ NOx_07=AR5_emis/F/1850/NOx_ind_AR5_1850_2x2.5_h
 NOx_08=AR5_emis/F/1850/NOx_shp_AR5_1850_2x2.5_h
 NOx_09=AR5_emis/F/1850/NOx_tra_AR5_1850_2x2.5_h
 NOx_10=AR5_emis/F/1850/NOx_wst_AR5_1850_2x2.5_h
-Isoprene_01=temp_2x2.5/isoprene_vegetation_4x5_2x2.5gf3u_h
+CH4_01=AR5_emis/F/1850/CH4_agr_AR5_1850_2x2.5_h
+CH4_02=AR5_emis/F/1850/CH4_awb_AR5_1850_2x2.5_h
+CH4_03=AR5_emis/F/1850/CH4_dom_AR5_1850_2x2.5_h
+CH4_04=AR5_emis/F/1850/CH4_ene_AR5_1850_2x2.5_h
+CH4_05=AR5_emis/F/1850/CH4_ind_AR5_1850_2x2.5_h
+CH4_06=AR5_emis/F/1850/CH4_wst_AR5_1850_2x2.5_h
+CH4_07=AR5_emis/F/1850/CH4_forestfire_AR5_1850_2x2.5_h
+CH4_08=AR5_emis/F/1850/CH4_grassfire_AR5_1850_2x2.5_h
+CH4_09=AR5_emis/F/1850/CH4_shp_AR5_1850_2x2.5_h
+CH4_10=AR5_emis/F/NAT/CH4SOILABS_2x2.5_h
+CH4_11=AR5_emis/F/NAT/CH4TRMITE_2x2.5_h
+CH4_12=AR5_emis/F/NAT/CH4WETL+TUNDRA_2x2.5_h
+Isoprene_01=AR5_emis/F/NAT/Isoprene_vegetation_GEIA_2x2.5_scaled367_h
 ! ========= please remember that Alkenes =================
 ! ========= and Paraffin emissions files =================
 ! ========= must now be in Kmole units,  =================
 ! ========= not Kg units ...             =================
-Alkenes_01=temp_2x2.5/alkenes_vegetation_4x5_2x2.5gf2u_h_1
+Alkenes_01=AR5_emis/F/NAT/Alkenes_vegetation_GEIA_2x2.5_h_1
 Alkenes_02=AR5_emis/F/1850/Alkenes_shp_AR5_1850_2x2.5_h
 Alkenes_03=AR5_emis/F/1850/Alkenes_wst_AR5_1850_2x2.5_h
 Alkenes_04=AR5_emis/F/1850/Alkenes_dom_AR5_1850_2x2.5_h
 Alkenes_05=AR5_emis/F/1850/Alkenes_forestfire_AR5_1850_2x2.5_h
 Alkenes_06=AR5_emis/F/1850/Alkenes_grassfire_AR5_1850_2x2.5_h
 Alkenes_07=AR5_emis/F/1850/Alkenes_ind_AR5_1850_2x2.5_h
-Paraffin_01=temp_2x2.5/paraffin_vegetation_4x5_2x2.5gf2u_h_1
+Paraffin_01=AR5_emis/F/NAT/Paraffin_vegetation_GEIA_2x2.5_h_1
 Paraffin_02=AR5_emis/F/1850/Paraffin_shp_AR5_1850_2x2.5_h
 Paraffin_03=AR5_emis/F/1850/Paraffin_wst_AR5_1850_2x2.5_h
 Paraffin_04=AR5_emis/F/1850/Paraffin_dom_AR5_1850_2x2.5_h
@@ -270,6 +283,7 @@ Paraffin_05=AR5_emis/F/1850/Paraffin_forestfire_AR5_1850_2x2.5_h
 Paraffin_06=AR5_emis/F/1850/Paraffin_grassfire_AR5_1850_2x2.5_h
 Paraffin_07=AR5_emis/F/1850/Paraffin_ind_AR5_1850_2x2.5_h
 !------------ end of chem emissions files ---------------
+
 !-------Aerosol inputs, for imAER=5 --------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
@@ -326,6 +340,7 @@ SO2B_EM_2=SO2_grassfire_AR5_1850_2x2.5_h
 
 Label and Namelist:  (next 2 lines)
 E4TcadF40 (modelE4 2x2.5 hor., 40 lyrs, 1850 atm., 1996-2005 clim ocn, aer,chem,dust tracers)
+
 &&PARAMETERS
 ! parameters set for choice of ocean model:
 KOCEAN=0        ! 0: ocean is prescribed 1: ocean is computed
@@ -386,7 +401,7 @@ s0_yr=1850
 s0_day=182
 ghg_yr=1850
 ghg_day=182
-volc_yr=-1
+volc_yr=-1 ! -1 means 150-yr mean 1850-1999
 volc_day=182
 aero_yr=1850
 od_cdncx=0.        ! don't include 1st indirect effect
@@ -400,21 +415,6 @@ CO2X=1.
 calc_orb_par=1
 paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 
-!--------- general aerosol parameters-------------
-aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
-rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
-prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
-diag_rad=1         ! 1: additional radiation diagnostics
-diag_wetdep=1      ! 1: additional wet deposition diagnostics
-
-!--------- sulfate and carbon aerosol parameters -----
-madaer=3           ! 1: default sulfate and carbon aerosol 3: updated aerosols
-
-!--------- dust aerosol parameters----------------
-imDust=0           ! 0: PDF emission scheme, 1: AEROCOM
-adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
-!-------------------------------------------------
-
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)
 DT_XVfilter=225. ! Shapiro filter on V in E-W direction; usually same as DT (below)
@@ -427,7 +427,7 @@ DT=225.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=480
+Ndisk=960
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
 KCOPY=2         ! saving acc + rsf
@@ -438,6 +438,7 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
+
 !-----------------------------------------------
 !  Start tracer code parameters:
 !-----------------------------------------------
@@ -483,18 +484,19 @@ COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
 rad_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
-rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
+! Lmax_rad_O3=0    ! Ox levels used in rad code default is LM
+! Lmax_rad_CH4=0   ! CH4 levels used in rad code default is LM
 use_rad_n2o=1      ! use the radiation code's N2O
 use_rad_cfc=1      ! use rad code cfc11+cfc12, adjusted
-use_rad_ch4=1      ! use rad code CH4, shut off sfc sources
+use_rad_ch4=0      ! use rad code CH4, shut off sfc sources
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
-prather_limits=1   ! to avoid some negative tracers in sub-gridscale
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=0    ! for setting fixed methane value for chemistry:
 ch4_init_sh=1.750      ! init cond/fixed conditions SH CH4 ppmv
 ch4_init_nh=1.855      ! init cond/fixed conditions NH CH4 ppmv
 scale_ch4_IC_file=1.d0 ! multiplicative factor on CH4 IC file (fix_CH4_chemistry=-1)
+
 ! For altering tracer initial conditions and overwriting by a factor:
 ! set PI_run=1 and change the corresponding factors below. [For altering
 ! emissions, use the sectors above in the rundeck.
@@ -508,12 +510,25 @@ PIratio_CFC   = 1.000d0 ! {CFC ICs, L=1 overwrit}, set to 1 for use_rad_cfc=1
 !--------- Aerosol parameters----------------
 imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
 aer_int_yr=1850    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
-rad_interact_aer=1 ! 1=couples aerosols to radiation, 0=use climatology
-COUPLED_CHEM=1
+rad_interact_aer=1  ! 1=couples aerosols to radiation, 0=use climatology
+
+!--------- general aerosol parameters-------------
+aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
+rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
+prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
+diag_rad=1         ! 1: additional radiation diagnostics
+diag_wetdep=1      ! 1: additional wet deposition diagnostics
+
+!--------- sulfate and carbon aerosol parameters -----
+madaer=3           ! 1: default sulfate and carbon aerosol 3: updated aerosols
+
+!--------- dust aerosol parameters----------------
+imDust=0           ! 0: PDF emission scheme, 1: AEROCOM
+adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
+!-------------------------------------------------
 !----------------------------------------------------------------------
 !  End tracer code parameters.
 !----------------------------------------------------------------------
-
 
 &&END_PARAMETERS
 
@@ -522,3 +537,4 @@ COUPLED_CHEM=1
  YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
  ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END
+
