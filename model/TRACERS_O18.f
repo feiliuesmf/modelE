@@ -245,7 +245,7 @@ C**** type and direction of flux
 #endif
         trc1 = trcnst * fk * fracvl(tg1,itr)
         trs1 = trsf * fk
-      case (2:4)              ! other types
+      case (2:3)              ! other types
 C**** tracers are now passive, so use 'upstream' concentration
         if (evap.lt.0) then ! dew
           trc1 = 0.
@@ -260,6 +260,10 @@ C**** tracers are now passive, so use 'upstream' concentration
           trs1 = 0.
         end if
         fk=1.0  ! diagnostic only
+      case (4)
+C**** land surface tracers have correct values already
+        trc1=trcnst
+        trs1=trsf
       end select
       return
       end subroutine get_frac
