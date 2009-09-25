@@ -2,7 +2,7 @@
 
 !#define AG2OG_PRECIP_BUNDLE
 !#define OG2AG_TOC2SST_BUNDLE
-!#define AG2OG_OCEANS_BUNDLE
+!#define AG2OG_OCEANS_BUNDLE 
 !#define OG2AG_OCEANS_BUNDLE
 !#define BUNDLE_INTERP
 
@@ -127,7 +127,8 @@
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
       call ab_add(lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij' )
 
-      if (agrid%HAVE_NORTH_POLE) then
+      if (agrid%HAVE_NORTH_POLE
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call copy_pole(aPREC(:,aJM),aIM)
          call copy_pole(aEPREC(:,aJM),aIM)
          call copy_pole(aRUNPSI(:,aJM),aIM)
@@ -177,7 +178,8 @@ c*   actual interpolation here
 #endif
 
 c*   polar values are replaced by their longitudinal mean
-      if (ogrid%HAVE_NORTH_POLE) then
+      if (ogrid%HAVE_NORTH_POLE
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg(oPREC(:,oJM), oIM)
          call lon_avg(oEPREC(:,oJM), oIM)
          call lon_avg(oRUNPSI(:,oJM), oIM)
@@ -185,7 +187,8 @@ c*   polar values are replaced by their longitudinal mean
          call lon_avg(oERUNPSI(:,oJM), oIM)
          call lon_avg(oRSI(:,oJM), oIM)
       endif
-      if (ogrid%HAVE_SOUTH_POLE) then
+      if (ogrid%HAVE_SOUTH_POLE
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM)) then
          call lon_avg(oPREC(:,1), oIM)
          call lon_avg(oEPREC(:,1), oIM)
          call lon_avg(oRUNPSI(:,1), oIM)
@@ -1028,8 +1031,8 @@ C**** surface tracer concentration
       oJ_0 = oGRID%j_STRT
       oJ_1 = oGRID%j_STOP
 
-
-      if (agrid%HAVE_NORTH_POLE) 
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aRSI(:,aJM),aIM)
       call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
 
@@ -1041,8 +1044,8 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE) 
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &       call copy_pole(aFLOWO(:,aJM),aIM)
       call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
 
@@ -1054,8 +1057,8 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE) 
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &       call copy_pole(aEFLOWO(:,aJM),aIM)
       call ab_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
 
@@ -1066,8 +1069,8 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE) 
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &    call copy_pole(aMELTI(:,aJM),aIM)
       call ab_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
 
@@ -1078,8 +1081,8 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aEMELTI(:,aJM),aIM)
       call ab_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
 
@@ -1090,8 +1093,8 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aSMELTI(:,aJM),aIM)
       call ab_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
 
@@ -1102,8 +1105,8 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aGMELT(:,aJM),aIM)
       call ab_add(lstr, aGMELT, oGMELT, shape(aGMELT), 'ij')
 
@@ -1115,33 +1118,33 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aEGMELT(:,aJM),aIM)
       call ab_add( lstr, aEGMELT, oEGMELT, shape(aEGMELT), 'ij')
 
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aAPRESS(:,aJM),aIM)
       call ab_add( lstr, aAPRESS, oAPRESS, shape(aAPRESS), 'ij')
 
       aWEIGHT(:,:) = aRSI(:,:)
       call ab_add( lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij')
 
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aRUNOSI(:,aJM),aIM)
       call ab_add( lstr, aRUNOSI, oRUNOSI, shape(aRUNOSI), 'ij',
      &     aWEIGHT, oWEIGHT)
 
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aERUNOSI(:,aJM),aIM)
       call ab_add( lstr, aERUNOSI, oERUNOSI, shape(aERUNOSI), 
      &     'ij', aWEIGHT, oWEIGHT)
 
-
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aSRUNOSI(:,aJM),aIM)
       call ab_add( lstr, aSRUNOSI, oSRUNOSI, shape(aSRUNOSI), 
      &     'ij', aWEIGHT, oWEIGHT)
@@ -1178,7 +1181,8 @@ C**** surface tracer concentration
 !     copy E0(:,:,1) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aE0tmp(:,:)=aE0(:,:,1)
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aE0tmp(:,aJM),aIM)
       call ab_add(lstr, aE0tmp, oE0tmp, shape(aE0tmp), 'ij',
      &     aWEIGHT1, oWEIGHT1)
@@ -1186,7 +1190,8 @@ C**** surface tracer concentration
 !     copy EVAPOR(:,:,1) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aEVAPORtmp(:,:)=aEVAPOR(:,:,1)
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aEVAPORtmp(:,aJM),aIM)
       call ab_add(lstr, aEVAPORtmp, oEVAPORtmp, shape(aEVAPORtmp),
      &     'ij', aWEIGHT1, oWEIGHT1)
@@ -1194,7 +1199,8 @@ C**** surface tracer concentration
 !     copy SOLAR(1,:,:) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aSOLAR1tmp(:,:)=aSOLAR(1,:,:)
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aSOLAR1tmp(:,aJM),aIM)
       call ab_add(lstr, aSOLAR1tmp, oSOLAR1tmp, shape(aSOLAR1tmp),
      &     'ij', aWEIGHT1, oWEIGHT1)
@@ -1205,7 +1211,8 @@ C**** surface tracer concentration
 !     copy SOLAR(1,:,:) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aSOLAR3tmp(:,:)=aSOLAR(3,:,:)
-      if (agrid%HAVE_NORTH_POLE)
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aSOLAR3tmp(:,aJM),aIM)
       call ab_add( lstr, aSOLAR3tmp, oSOLAR3tmp, shape(aSOLAR3tmp), 
      &     'ij', aWEIGHT2, oWEIGHT2)
@@ -1288,10 +1295,12 @@ C**** surface tracer concentration
       CALL INT_AG2OG(aWIND,oWIND, aWEIGHT)
 #endif
 
-      aDMUA1tmp(:,:) = 0.
-      aDMVA1tmp(:,:) = 0.
-
 #ifndef CUBE_GRID
+      if (oIM .eq. aIM .and. oJM .eq. aJM) then
+       aDMUA1tmp(:,:) = aDMUA(:,:,1)
+       aDMVA1tmp(:,:) = aDMVA(:,:,1)
+      else
+
       if (agrid%HAVE_NORTH_POLE) then
          aDMUAnp = aDMUA(1,aJM,1)
          aDMVAnp = aDMVA(1,aJM,1)
@@ -1320,6 +1329,8 @@ C**** surface tracer concentration
             endif
          enddo
       enddo
+
+      endif
 #else
       do j=aGRID%J_STRT_HALO,aGRID%J_STOP_HALO
          do i=aGRID%I_STRT_HALO,aGRID%I_STOP_HALO
@@ -1350,7 +1361,8 @@ c*
 
 
 c*   polar values are replaced by their longitudinal mean
-      if (ogrid%HAVE_NORTH_POLE ) then
+      if ( (agrid%HAVE_NORTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oRSI(:,oJM), oIM)
          call lon_avg( oFLOWO(:,oJM), oIM)
          call lon_avg( oEFLOWO(:,oJM), oIM)
@@ -1369,7 +1381,8 @@ c*   polar values are replaced by their longitudinal mean
          call lon_avg( oSOLAR3tmp(:,oJM), oIM)
       endif
 
-      if (ogrid%HAVE_SOUTH_POLE ) then
+      if ( (agrid%HAVE_SOUTH_POLE)
+     &   .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oRSI(:,1), oIM)
          call lon_avg( oFLOWO(:,1), oIM)
          call lon_avg( oEFLOWO(:,1), oIM)
@@ -1399,6 +1412,22 @@ c*
 
       oSOLAR(3,:,:)=oSOLAR3tmp(:,:) 
 
+#ifdef CUBE_GRID
+      if (ogrid%HAVE_SOUTH_POLE) then
+         oDMUA1sp =  SUM(oDMUA1tmp(:,  1)*oCOSI(:))*2/oIM
+         oDMVA1sp = -SUM(oDMUA1tmp(:,  1)*oSINI(:))*2/oIM
+         oDMUA1tmp(1,  1) = oDMUA1sp
+         oDMVA1tmp(1,  1) = oDMVA1sp
+      endif
+      if (ogrid%HAVE_NORTH_POLE) then
+         oDMUA1np =  SUM(oDMUA1tmp(:,oJM)*oCOSI(:))*2/oIM
+         oDMVA1np =  SUM(oDMUA1tmp(:,oJM)*oSINI(:))*2/oIM
+         oDMUA1tmp(1,oJM) = oDMUA1np
+         oDMVA1tmp(1,oJM) = oDMVA1np
+      endif
+#else
+      if (oIM .ne. aIM .or. oJM .ne. aJM) then
+
       if (ogrid%HAVE_SOUTH_POLE) then
          oDMUA1sp =  SUM(oDMUA1tmp(:,  1)*oCOSI(:))*2/oIM
          oDMVA1sp = -SUM(oDMUA1tmp(:,  1)*oSINI(:))*2/oIM
@@ -1412,9 +1441,11 @@ c*
          oDMVA1tmp(1,oJM) = oDMVA1np
       endif
 
+      endif
+#endif
       oDMUA(:,:,1)=oDMUA1tmp(:,:)
       oDMVA(:,:,1)=oDMVA1tmp(:,:)
- 
+
       deallocate(aweight,oweight,
      &     aweight1,oweight1,
      &     aweight2,oweight2)
