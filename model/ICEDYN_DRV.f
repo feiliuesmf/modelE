@@ -157,7 +157,7 @@ C**** Allocate arrays defined on the ice rheology grid
 #ifdef TRACERS_WATER
       ALLOCATE( TICIJ(I_0H:I_1H, J_0H:J_1H,KTICIJ, NTM),
      &     STAT = IER)
-      if(am_I_root()) allocate(TICIJg(imic,jmic,KICIJ,NTM))
+      if(am_I_root()) allocate(TICIJg(imic,jmic,KTICIJ,NTM))
 #endif
 
 C**** Allocate ice advection arrays defined on the atmospheric grid
@@ -312,9 +312,9 @@ C****
         allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
      &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
 #ifdef TRACERS_WATER
-        allocate(TICIJ4_GLOB(IMIC,JMIC,KICIJ,NTM),
-     &          TICIJ4_GLOB8(IMIC,JMIC,KICIJ,NTM),
-     &            TICIJ_GLOB(IMIC,JMIC,KICIJ,NTM))
+        allocate(TICIJ4_GLOB(IMIC,JMIC,KTICIJ,NTM),
+     &          TICIJ4_GLOB8(IMIC,JMIC,KTICIJ,NTM),
+     &            TICIJ_GLOB(IMIC,JMIC,KTICIJ,NTM))
 #endif
       end if
 
