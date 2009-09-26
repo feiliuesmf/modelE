@@ -4864,6 +4864,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_fc(:,:)=0
       ijts_3Dsource(:,:)=0
       ijts_aq(:)=0
+      ijts_isrc(:,:)=0
 #ifdef TRACERS_AMP
       ijts_AMPe(:)=0
       ijts_AMPp(:,:)=0

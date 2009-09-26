@@ -937,8 +937,10 @@ C****
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       trc_flux*axyp(i,j)*ptype
-        taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+        if (ijts_isrc(1,n)>0) then
+           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &       trc_flux*axyp(i,j)*ptype*dtsurf
+        end if
 
 #ifdef TRACERS_AMP
             select case (trname(n))

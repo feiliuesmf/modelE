@@ -484,8 +484,10 @@ C**** fixed datasets are used, it can happen over land as well.
 
         trsrfflx(i,j,n)=trsrfflx(i,j,n)+
      &       trc_flux*axyp(i,j)*ptype
-        taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
+        if (ijts_isrc(1,n)>0) then
+           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &       trc_flux*axyp(i,j)*ptype*dtsurf
+        end if
 
 #ifdef TRACERS_AMP
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,

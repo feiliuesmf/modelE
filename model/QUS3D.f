@@ -1105,6 +1105,7 @@ c        rmom((/mx,mxx,myy,mxy,mzx/),:,jm) = 0.
       if(have_south_pole) then
         mvs(:) = 0.
         fs(:) = 0.
+        fs0(:) = 0.
         fmoms(:,:) = 0.
       else
         j=j_0-1
