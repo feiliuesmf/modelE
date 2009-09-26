@@ -1321,7 +1321,7 @@ Cewg Allow burning south of 32N on the 90 driest days of the year
 
       end SUBROUTINE read_SO2_source
 
-      SUBROUTINE read_DMS_sources(T,swind,itype,i,j,DMS_flux)
+      SUBROUTINE read_DMS_sources(swind,itype,i,j,DMS_flux) !!! T
 !@sum generates DMS ocean source
 !@auth Koch
 c Monthly DMS ocean concentration sources are read in and combined
@@ -1335,7 +1335,7 @@ c want kg DMS/m2/s
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
       integer jread
-      REAL*8 akw,erate,SCH,T,Tc,SCHR
+      REAL*8 akw,erate,SCH,SCHR !!! T,Tc
       real*8, PARAMETER :: E1=0.17d0
       real*8, PARAMETER :: E2=2.85d0
       real*8, PARAMETER :: E3=0.612d0
@@ -1349,7 +1349,7 @@ c want kg DMS/m2/s
 
       DMS_flux=0.d0
         erate=0.d0
-        Tc=T-273.d0
+        !!!Tc=T-273.d0
         if (imAER.ne.1) then
         if (itype.eq.1) then
 c       if (lm.lt.40) then 
