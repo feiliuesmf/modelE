@@ -164,12 +164,12 @@ ifeq ($(SKIP_FV),YES)
 endif
 ifeq ($(CUBE_GRID),YES)
 CPPFLAGS += -DCUBE_GRID
-FFLAGS +=-I/home/dgueyffi/fftw/include
+FFLAGS +=-I$(FFTW_ROOT)/include
 FFLAGS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
 LIBS += -L${BASELIBDIR}/lib -lesmf -lrt -lstdc++
 #-lstdc++ -lrt
 LIBS += -stack_temps -safe_cray_ptr -i_dynamic -convert big_endian -assume byterecl -i4 -r8 -O2 -w -vec-report0 -ftz -align all -fno-alias -fp-model strict 
-LIBS += -L/home/dgueyffi/fftw/lib -lfftw3 -lm
+LIBS += -L$(FFTW_ROOT)/lib -lfftw3 -lm
 
 endif
 ifeq ($(MPP),YES)  
