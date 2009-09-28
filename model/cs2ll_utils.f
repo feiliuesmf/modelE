@@ -179,6 +179,18 @@ c documentation on these to be added when interfaces are finalized
         integer, dimension(:), allocatable :: recv_cnts,recv_displs
       end type ll2csint_type
 
+      type uv_derivs_type
+        real*8, dimension(:,:), allocatable :: cosrp,sinrp
+        real*8, dimension(:), allocatable :: ix_edge
+        real*8, dimension(:,:), allocatable :: jyl,jyr
+        real*8, dimension(:,:), allocatable :: gccosl,gcsinl
+        real*8, dimension(:,:), allocatable :: gccosr,gcsinr
+        real*8, dimension(:,:), allocatable :: by2dx,by2dy
+      end type uv_derivs_type
+
+      public :: uv_derivs_type,init_uv_derivs_type,
+     &     uv_derivs_cs_agrid
+
       contains
 
       subroutine init_cs2ll_type(grid,imlon,jmlat,cs2ll,lons,lats)
@@ -1362,6 +1374,7 @@ c
      &                          grid_cs%jsd:grid_cs%jed),
      &           cs2llint%sinn(cs2llint%npts_interp),
      &           cs2llint%cosn(cs2llint%npts_interp))
+c      call sincos_rp_north(grid,cs2llint%sinij,cs2llint%cosij) ! cube corners?
         hemi = 1-2*(grid_cs%tile/6) ! -1 for SH, +1 for NH
         do j=grid_cs%jsd,grid_cs%jed
           y = -1d0 + 2d0*(dble(j)-.5d0)/grid_cs%npx
@@ -2105,6 +2118,427 @@ c
 
       return
       end subroutine ll2csint_lij
+
+      subroutine init_uv_derivs_type(grid,dtype)
+c
+c This routine calculates the interpolation and rotation info
+c needed to calculate the invariant spatial derivatives of a
+c latlon-oriented vector field defined at cell centers of a
+c gnomonic cubed-sphere grid.  At each cell, derivatives are
+c taken along the y-direction and along the local y-orthogonal
+c great circle (the latter operation requiring y-interpolations).
+c In lieu of vector-related metric terms, rotations are applied
+c which place each gridcell on the equator of its own
+c rotated-pole lat-lon coordinate system.
+c
+      use constant, only : pi
+      use dd2d_utils, only : dist_grid
+      use geom, only : csxy2ll,ll2csxy_vec,ll2csxy,gcdist
+      implicit none
+      type(dist_grid), intent(in) :: grid
+      type(uv_derivs_type), intent(out) :: dtype
+c local vars
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      integer :: i,j,hemi,tile
+      integer :: is,ie,js,je,isd,ied,jsd,jed
+      real*8 :: yl,yr,tangy,uxy,vxy,rlonl,rlonr,
+     &     londum,latdum,dlonh,clfac,xx,yy,dx,y_extend,dist_extend,jy,
+     &     latsv,gcsinr,gccosr
+      real*8, dimension(:), allocatable :: x,tangx,y
+      real*8, dimension(:,:), allocatable :: twodx,twody
+
+      is = grid%is; ie = grid%ie
+      js = grid%js; je = grid%je
+      isd = grid%isd; ied = grid%ied
+      jsd = grid%jsd; jed = grid%jed
+c
+c allocate the derived type
+c
+      allocate(dtype%cosrp(isd:ied,jsd:jed),
+     &         dtype%sinrp(isd:ied,jsd:jed),
+     &         dtype%ix_edge(isd:ied),
+     &         dtype%jyl(isd:ied,jsd:jed),
+     &         dtype%jyr(isd:ied,jsd:jed),
+     &         dtype%gccosl(isd:ied,jsd:jed),
+     &         dtype%gcsinl(isd:ied,jsd:jed),
+     &         dtype%gccosr(isd:ied,jsd:jed),
+     &         dtype%gcsinr(isd:ied,jsd:jed),
+     &         dtype%by2dx(isd:ied,jsd:jed),
+     &         dtype%by2dy(isd:ied,jsd:jed)
+     &     )
+
+      allocate(x(isd:ied),tangx(isd:ied),y(jsd:jed))
+      allocate(twodx(isd:ied,jsd:jed))
+      allocate(twody(isd:ied,jsd:jed))
+
+c do not extend x,y past cube edges.  adjustments below.
+      dx = 2d0/grid%npx
+      do i=isd,ied
+        x(i) = -1d0 + dx*(dble(i)-.5d0)
+        if(i.eq.0         ) x(i) = -1d0
+        if(i.eq.grid%npx+1) x(i) = +1d0
+        tangx(i) = tan(g*x(i))
+      enddo
+      do j=jsd,jed
+        y(j) = -1d0 + dx*(dble(j)-.5d0)
+        if(j.eq.0         ) y(j) = -1d0
+        if(j.eq.grid%npx+1) y(j) = +1d0
+      enddo
+
+c
+c tabulate rotation angles with RP-north
+c
+      call sincos_rp_north(grid,dtype%sinrp,dtype%cosrp)
+
+c
+c y-interpolation points and rotation angles for y-orthogonal derivatives
+c
+      do j=js,je
+        tangy = tan(g*y(j))
+        do i=is,ie
+          call ll2csxy_vec(x(i),y(j),1,1d0,0d0,uxy,vxy)
+          yl = atan( tangy + (vxy/uxy)*(tangx(i-1)-tangx(i)) )/g
+          dtype%jyl(i,j)=.5d0*(1d0+yl)*grid%npx+.5d0
+          yr = atan( tangy + (vxy/uxy)*(tangx(i+1)-tangx(i)) )/g
+          dtype%jyr(i,j)=.5d0*(1d0+yr)*grid%npx+.5d0
+          call csxy2ll(x(i),y(j),1,londum,latdum) ! tile 1 reference
+          rlonl = -gcdist(x(i),x(i-1),y(j),yl)
+          call gcrotang(latdum,rlonl,
+     &         dtype%gcsinl(i,j),dtype%gccosl(i,j))
+          rlonr = +gcdist(x(i),x(i+1),y(j),yr)
+          call gcrotang(latdum,rlonr,
+     &         dtype%gcsinr(i,j),dtype%gccosr(i,j))
+          twodx(i,j) = rlonr-rlonl
+          twody(i,j) = gcdist(x(i),x(i),y(j+1),y(j-1))
+        enddo
+      enddo
+c
+c adjustments for grid discontinuities at |y|==1
+c
+      xx = 1d0-dx/2d0
+      yy = 0d0
+      call csxy2ll(xx,yy,1,londum,latdum) ! go from i==npx on tile 1
+      dlonh = -.75d0*pi-londum
+      londum = londum + 2.*dlonh          ! to i==1 on tile 2
+      clfac = sqrt(2d0)*cos(dlonh+pi/4d0)
+
+      if(js.eq.1 .or. je.eq.grid%npx) then
+        do i=max(1,isd),min(ied,grid%npx)
+          yy = x(i) ! really looping over j at i==npx on tile 1
+          latdum = atan(clfac*tan(g*yy))
+          call ll2csxy(londum,latdum,xx,y_extend,tile)
+          dtype%ix_edge(i) = .5d0*(1d0+y_extend)*grid%npx+.5d0
+          dist_extend = gcdist(-1d0,xx,yy,y_extend)
+          if(js.eq.1       ) twody(i,js) = twody(i,js) + dist_extend
+          if(je.eq.grid%npx) twody(i,je) = twody(i,je) + dist_extend
+        enddo
+      endif
+c
+c adjustments for grid discontinuities at |x|==1
+c
+      if(is.eq.1 .or. ie.eq.grid%npx) then
+        clfac = cos(2.*dlonh)
+        do j=js,je
+          tangy = tan(g*y(j))
+          xx = 1d0-dx/2d0
+          yy = y(j)
+          call ll2csxy_vec(xx,yy,1,1d0,0d0,uxy,vxy)
+          yr = atan( tangy + (vxy/uxy)*(tan(g)-tan(g*xx)) )/g
+          rlonr = gcdist(xx,1d0,yy,yr)
+          call csxy2ll(xx,yy,1,londum,latsv) ! go from i==npx on tile 1
+          londum = londum + 2.*dlonh         ! to i==1 on tile 2
+          latdum = atan(tan(latsv)*clfac)    ! following a great circle
+          call ll2csxy(londum,latdum,xx,y_extend,tile)
+          jy = .5d0*(1d0+y_extend)*grid%npx+.5d0
+          dist_extend = gcdist(-1d0,xx,yr,y_extend)
+          rlonr = rlonr + dist_extend
+          call gcrotang(latsv,rlonr,gcsinr,gccosr)
+          if(is.eq.1) then
+            dtype%jyl(is,j) = jy
+            twodx(is,j) = twodx(is,j) + dist_extend
+            dtype%gcsinl(is,j) = -gcsinr
+            dtype%gccosl(is,j) = +gccosr
+          endif
+          if(ie.eq.grid%npx) then
+            dtype%jyr(ie,j) = jy
+            twodx(ie,j) = twodx(ie,j) + dist_extend
+            dtype%gcsinr(ie,j) = +gcsinr
+            dtype%gccosr(ie,j) = +gccosr
+          endif
+        enddo
+      endif
+
+c distance reciprocals
+      do j=js,je
+        do i=is,ie
+          dtype%by2dx(i,j) = 1d0/twodx(i,j)
+          dtype%by2dy(i,j) = 1d0/twody(i,j)
+        enddo
+      enddo
+
+c deallocate workspace
+      deallocate(x,tangx,y,twodx,twody)
+
+      return
+      end subroutine init_uv_derivs_type
+
+      subroutine uv_derivs_cs_agrid(grid,dtype,u_a,v_a,
+     &     div,vort,deform)
+c Calculates divergence, vorticity, and/or deformation using the
+c method described in init_uv_derivs_type.
+      use dd2d_utils, only : dist_grid,halo_update
+      implicit none
+      type(dist_grid), intent(in) :: grid
+      type(uv_derivs_type), intent(in) :: dtype
+      real*8, dimension(grid%isd:grid%ied,grid%jsd:grid%jed),
+     &     intent(inout) :: u_a,v_a ! inout b/c halo update
+      real*8, dimension(grid%isd:grid%ied,grid%jsd:grid%jed),
+     &     optional, intent(out) :: div,vort,deform
+c local vars
+      real*8, dimension(:,:), allocatable ::
+     &     uarp,varp,dudx,dudy,dvdx,dvdy
+      real*8, dimension(:), allocatable :: ua1d,va1d
+      integer :: i,j,ii,jj
+      integer :: is,ie,js,je,isd,ied,jsd,jed
+      real*8 :: wti,wtj,ul,ur,vl,vr ,ulgc,urgc,vlgc,vrgc
+      is = grid%is; ie = grid%ie
+      js = grid%js; je = grid%je
+      isd = grid%isd; ied = grid%ied
+      jsd = grid%jsd; jed = grid%jed
+c
+c allocate workspace
+c
+      allocate(uarp(isd:ied,jsd:jed),varp(isd:ied,jsd:jed),
+     &         dudx(isd:ied,jsd:jed),dudy(isd:ied,jsd:jed),
+     &         dvdx(isd:ied,jsd:jed),dvdy(isd:ied,jsd:jed),
+     &         ua1d(isd:ied),va1d(isd:ied))
+      call halo_update(grid,u_a)
+      call halo_update(grid,v_a)
+c
+c convert input u,v to rotated-pole orientation
+c
+      do j=jsd,jed
+        do i=isd,ied
+          uarp(i,j) = u_a(i,j)*dtype%cosrp(i,j)
+     &               +v_a(i,j)*dtype%sinrp(i,j)
+          varp(i,j) = v_a(i,j)*dtype%cosrp(i,j)
+     &               -u_a(i,j)*dtype%sinrp(i,j)
+        enddo
+      enddo
+c
+c adjustments for grid discontinuities at |y|==1
+c
+      do j=0,grid%npy+1,grid%npy+1
+        if(j.eq.jsd .or. j.eq.jed) then
+          do i=isd,ied
+            ua1d(i) = uarp(i,j)
+            va1d(i) = varp(i,j)
+          enddo
+          do i=max(1,isd),min(ied,grid%npx)
+            wti = dtype%ix_edge(i)
+            ii = wti
+            wti = wti-ii
+            uarp(i,j) = wti*ua1d(ii+1)+(1.-wti)*ua1d(ii)
+            varp(i,j) = wti*va1d(ii+1)+(1.-wti)*va1d(ii)
+          enddo
+        endif
+      enddo
+
+c
+c calculate y- and y-orthogonal derivatives in each gridcell
+c
+      do j=js,je
+        do i=is,ie
+          dudy(i,j) = (uarp(i,j+1)-uarp(i,j-1))*dtype%by2dy(i,j)
+          dvdy(i,j) = (varp(i,j+1)-varp(i,j-1))*dtype%by2dy(i,j)
+          wtj = dtype%jyl(i,j)
+          jj = wtj
+          wtj = wtj-jj
+          ul = wtj*uarp(i-1,jj+1)+(1.-wtj)*uarp(i-1,jj)
+          vl = wtj*varp(i-1,jj+1)+(1.-wtj)*varp(i-1,jj)
+          ulgc = ul*dtype%gccosl(i,j)-vl*dtype%gcsinl(i,j)
+          vlgc = vl*dtype%gccosl(i,j)+ul*dtype%gcsinl(i,j)
+          wtj = dtype%jyr(i,j)
+          jj = wtj
+          wtj = wtj-jj
+          ur = wtj*uarp(i+1,jj+1)+(1.-wtj)*uarp(i+1,jj)
+          vr = wtj*varp(i+1,jj+1)+(1.-wtj)*varp(i+1,jj)
+          urgc = ur*dtype%gccosr(i,j)-vr*dtype%gcsinr(i,j)
+          vrgc = vr*dtype%gccosr(i,j)+ur*dtype%gcsinr(i,j)
+          dudx(i,j) = (urgc-ulgc)*dtype%by2dx(i,j)
+          dvdx(i,j) = (vrgc-vlgc)*dtype%by2dx(i,j)
+        enddo
+      enddo
+c
+c calculate requested outputs: divergence, vorticity, and/or deformation
+c
+      if(present(div)) then
+        do j=js,je
+          do i=is,ie
+            div(i,j) = dudx(i,j)+dvdy(i,j)
+          enddo
+        enddo
+      endif
+      if(present(vort)) then
+        do j=js,je
+          do i=is,ie
+            vort(i,j) = dvdx(i,j)-dudy(i,j)
+          enddo
+        enddo
+      endif
+      if(present(deform)) then
+        do j=js,je
+          do i=is,ie
+            deform(i,j) = sqrt(
+     &           (dudx(i,j)-dvdy(i,j))**2
+     &          +(dvdx(i,j)+dudy(i,j))**2 )
+          enddo
+        enddo
+      endif
+
+c deallocate workspace
+      deallocate(uarp,varp,dudx,dudy,dvdx,dvdy,ua1d,va1d)
+      return
+      end subroutine uv_derivs_cs_agrid
+
+      subroutine gcrotang(lat0,rlon,sinang,cosang)
+c Define a great circle perpendicular to a meridian at a latitude
+c lat0 (let local longitude == 0).  Its lon,lat trajectory as
+c a function of its rotated longitude rlon is:
+c tan(lon) = tan(rlon)/cos(lat0)
+c sin(lat) = cos(rlon)*sin(lat0)
+c This routine calculates sin,cos of the angle between the g-c
+c trajectory and local east, as a function of rlon.
+c Positive clockwise.
+      implicit none
+      real*8 :: lat0,rlon,sinang,cosang
+      real*8 :: ss,c,byvmag
+      ss = sin(lat0)*sin(rlon)
+      c  = cos(lat0)
+      byvmag = 1./sqrt(c*c+ss*ss)
+      sinang = ss*byvmag
+      cosang =  c*byvmag
+      return
+      end subroutine gcrotang
+
+      subroutine sincos_rp_north(grid,sinrp,cosrp)
+c Calculates sin/cos of the local angles between geographic north
+c and RP-north.  Gnomonic grid shortcut: constant-x gridlines are
+c longitude lines in the RP system, so basis vector e2 contains the
+c rotation info.
+c Rotation from geographic north toward RP north is counted
+c as positive counterclockwise.
+      use dd2d_utils, only : dist_grid
+      use geom, only : e1e2
+      implicit none
+      type(dist_grid), intent(in) :: grid
+      real*8, dimension(grid%isd:grid%ied,grid%jsd:grid%jed),
+     &     intent(out) :: sinrp,cosrp
+c local vars
+      integer :: i,j!,hemi
+      integer :: is,ie,js,je,isd,ied,jsd,jed
+      real*8 :: e1(2),e2(2),xx,yy,dx
+      real*8, dimension(:), allocatable :: x,y
+
+      is = grid%is; ie = grid%ie
+      js = grid%js; je = grid%je
+      isd = grid%isd; ied = grid%ied
+      jsd = grid%jsd; jed = grid%jed
+
+      allocate(x(isd:ied),y(jsd:jed))
+
+      dx = 2d0/grid%npx
+      do i=isd,ied
+        x(i) = -1d0 + dx*(dble(i)-.5d0)
+      enddo
+      do j=jsd,jed
+        y(j) = -1d0 + dx*(dble(j)-.5d0)
+      enddo
+
+      if(grid%tile.eq.1 .or. grid%tile.eq.2) then ! no rotation
+        cosrp(:,:) = 1.
+        sinrp(:,:) = 0.
+      else
+c        hemi = 1-2*(grid%tile/6) ! -1 for tile 6, +1 for 3,4,5
+        do j=max(1,jsd),min(jed,grid%npx)
+          do i=max(1,isd),min(ied,grid%npx)
+            call e1e2(x(i),y(j),grid%tile,e1,e2)
+            sinrp(i,j) = -e2(1)!*hemi
+            cosrp(i,j) = +e2(2)
+          enddo
+        enddo
+c adjustments for grid discontinuities at cube edges
+        if(js.eq.1) then
+          j = js-1
+          do i=max(1,isd),min(ied,grid%npx)
+            call y_continue(x(i),-y(js),xx,yy)
+            call e1e2(xx,yy,grid%tile,e1,e2)
+            sinrp(i,j) = -e2(1)!*hemi
+            cosrp(i,j) = +e2(2)
+          enddo
+        endif
+        if(je.eq.grid%npx) then
+          j = je+1
+          do i=max(1,isd),min(ied,grid%npx)
+            call y_continue(x(i),-y(je),xx,yy)
+            call e1e2(xx,yy,grid%tile,e1,e2)
+            sinrp(i,j) = -e2(1)!*hemi
+            cosrp(i,j) = +e2(2)
+          enddo
+        endif
+        if(is.eq.1) then
+          i = is-1
+          do j=max(1,jsd),min(jed,grid%npx)
+            call x_continue(-x(is),y(j),xx,yy)
+            call e1e2(xx,yy,grid%tile,e1,e2)
+            sinrp(i,j) = -e2(1)!*hemi
+            cosrp(i,j) = +e2(2)
+          enddo
+        endif
+        if(ie.eq.grid%npx) then
+          i = ie+1
+          do j=max(1,jsd),min(jed,grid%npx)
+            call x_continue(-x(ie),y(j),xx,yy)
+            call e1e2(xx,yy,grid%tile,e1,e2)
+            sinrp(i,j) = -e2(1)!*hemi
+            cosrp(i,j) = +e2(2)
+          enddo
+        endif
+      endif
+
+      deallocate(x,y)
+      return
+      end subroutine sincos_rp_north
+
+      subroutine x_continue(x_nbr,y_nbr,x,y)
+c Applies the transformations X -> -1/X, Y -> Y/|X| to convert X,Y of
+c an X-neighboring tile into the X,Y space of the local tile.
+c Negative X values on the neighboring tile indicate a continuation
+c of the local X,Y in the positive X-direction and vice versa.
+c X==0 on the neighboring tile is undefined.
+      implicit none
+      real*8 :: x_nbr,y_nbr,x,y
+      real*8, parameter :: g=0.615479708670387d0 ! g=.5*acos(1/3)
+      X = sqrt(2d0)*tan(g*x_nbr)
+      Y = sqrt(2d0)*tan(g*y_nbr)
+      X = -1d0/X
+      Y = Y*abs(X)
+      x = atan(X/sqrt(2d0))/g
+      y = atan(Y/sqrt(2d0))/g
+      return
+      end subroutine x_continue
+
+      subroutine y_continue(x_nbr,y_nbr,x,y)
+c Converts the X,Y of a Y-neighboring tile into the X,Y space of the
+c local tile.
+c Negative Y values on the neighboring tile indicate a continuation
+c of the local X,Y in the positive Y-direction and vice versa.
+c Y==0 on the neighboring tile is undefined.
+      implicit none
+      real*8 :: x_nbr,y_nbr,x,y
+      call x_continue(y_nbr,x_nbr,y,x)
+      return
+      end subroutine y_continue
 
       end module cs2ll_utils
 
