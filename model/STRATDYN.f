@@ -172,8 +172,8 @@ C**** box and a model grid box weighted by 1/EK; wave_length=root(area)
       DO J=2,JM ! _NOT_ J_0STG,J_1STG
         EK1=TWOPI/SQRT(DXYV(J))                ! 2pi/grid_box_size
         EK2=EK1*SQRT((360./IM)*DLAT_DG)        ! 2pi/1x1deg_box_size
-        EKX=0.
-        if(EK2.gt.EK1) EKX=(EK2-EK1)/LOG(EK2/EK1) ! weighted mean
+        EKX=EK1
+        if(EK2.ne.EK1) EKX=(EK2-EK1)/LOG(EK2/EK1) ! weighted mean
         EKS=EKS+EKX*DXYV(J)
         If ((J >= J_0) .and. (J <= J_1)) THEN
           EK(1,J)=EKX
