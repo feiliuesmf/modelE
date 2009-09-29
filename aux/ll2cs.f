@@ -23,7 +23,6 @@
 
       contains 
 
-
       subroutine init_regrid(fname,x2grids,imsource,jmsource,
      &     ntilessource,imtarget,jmtarget,ntilestarget)
 

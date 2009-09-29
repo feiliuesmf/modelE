@@ -69,8 +69,6 @@ if ( $exist) {
   `cp $rfile1 .`;
 
   `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget > output`;
-  `rm $filesource`;
-  `rm $regridfile`;
 
   open( FILE, "< output" ) or die "Can't open output file : $!";
   while( <FILE> ) {
