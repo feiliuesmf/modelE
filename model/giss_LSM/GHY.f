@@ -2006,7 +2006,7 @@ c****
       real*8 albedo_6b(:), alb
       real*8 fr_sn, alb_sn
 
-      fr_sn = fr_snow(1)*fb + fr_snow(2)*fv
+      fr_sn = fr_snow(1)*fb + fr_snow(2)*fm*fv
       alb_sn = .7d0  ! hack, should use something more accurate
 
       alb = fr_sn*alb_sn + (1.d0-fr_sn)*(albedo_6b(1)+albedo_6b(2))*.5d0
@@ -2231,11 +2231,6 @@ ccc make sure there are no round-off errors in fractions
       ! snowm = 0.d0 !!!! wrong !!! but leave it for testing
 #endif
 
-#ifdef OFFLINE_RUN
-!!! hack for offline runs (should be disabled in GCM)
-      albedo_cell = ghy_albedo( albedo_6b )
-      srht = srht*(1.d0 - albedo_cell)!converts srht to NET (ABSORBED) SW
-#endif
 
 ccc normal case (both present)
       i_bare = 1; i_vege = 2
@@ -2251,6 +2246,12 @@ ccc normal case (both present)
 
       call reth
       call retp
+#ifdef OFFLINE_RUN
+!!! hack for offline runs (should be disabled in GCM)
+      albedo_cell = ghy_albedo( albedo_6b )
+      srht = srht*(1.d0 - albedo_cell)!converts srht to NET (ABSORBED) SW
+#endif
+
       tb0=tp(1,1)
       tc0=tp(0,2)
 !!! hack to compute time step before evap_limits ...
