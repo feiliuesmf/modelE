@@ -711,11 +711,20 @@ C**** Create new ice in partially ice-covered ocean
 C**** CALCULATE ADVECTIVE HEAT FLUX FROM LAYER 3 TO LAYER 4 OF ICE
 CC      FMSI3 = -XSI(3)*ACEFI ! < 0.
 CC      FMSI4 = -ACEFI
-        FHSI3 = -HSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
-        FSSI3 = -SSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+        IF (XSI(3)*ACEFI.gt.XSI(4)*MSI2) THEN ! exceptional case
+          FHSI3 = -HSIL(4)-(XSI(3)*ACEFI-XSI(4)*MSI2)*ENRGFI/ACEFI
+          FSSI3 = -SSIL(4)-(XSI(3)*ACEFI-XSI(4)*MSI2)*SALTI/ACEFI
 #ifdef TRACERS_WATER
-        FTRSI3(:) = -TRSIL(:,4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+          FTRSI3(:) = -TRSIL(:,4)-(XSI(3)*ACEFI-XSI(4)*MSI2)*TRI(:)
+     $         /ACEFI
 #endif
+        ELSE
+          FHSI3 = -HSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+          FSSI3 = -SSIL(4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+#ifdef TRACERS_WATER
+          FTRSI3(:) = -TRSIL(:,4)*ACEFI*(XSI(3)/XSI(4))/MSI2
+#endif
+        END IF
       ELSE
         FHSI3 = 0. ; FSSI3 = 0.
 #ifdef TRACERS_WATER
@@ -1398,9 +1407,7 @@ c
       end do
 C**** define fluxes (positive down)
 C**** Cap mass flux at at 90% of bottom layer
-      if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
-        m=0.9d0*2.*dh*rhoi/dtsrc
-      end if
+      m=max(min(0.9d0*2.*dh*rhoi/dtsrc,m),-0.9d0*2.*dh*rhoi/dtsrc)
 
       mflux = m                       ! (kg/m^2 s)
       sflux = 1d-3*m*Sib              ! (kg/m^2 s)
@@ -1466,9 +1473,8 @@ C**** calculate left hand side of equation 2
 C**** define fluxes (positive down)
       m = -left2/lh
 C**** Cap mass flux at 90% of bottom layer
-      if (m.gt.0.9d0*2.*dh*rhoi/dtsrc) then
-        m=0.9d0*2.*dh*rhoi/dtsrc
-      end if
+      m=max(min(0.9d0*2.*dh*rhoi/dtsrc,m),-0.9d0*2.*dh*rhoi/dtsrc)
+
       mflux = m                 ! (kg/m^2 s)
       hflux = alamdh*Ti - m*lh  ! (J/m^2 s)
 #ifdef TRACERS_WATER
@@ -1615,8 +1621,8 @@ C**** Be careful to avoid taking too much tracer from ocean box
       REAL*8 :: Tri(NTM)   
       REAL*8 :: TRICE(NTM,LMI), TRSNOW(NTM,2)
 #endif
-      REAL*8 DSNOW,Z0,MAXM,MAXME1,MAXME2,Eoc,Esnow1,Esnow2,Eic,Erat1
-     $     ,Erat2,Si,MSI1,Tf
+      REAL*8 DSNOW,Z0,MAXM,MAXME,Eoc,Esnow1,Esnow2,Eic,Erat1
+     $     ,Erat2,Si,MSI1,Tf,Eratd
       REAL*8 SICE(LMI),HICE(LMI),HSNOW(2),MICE(LMI),SNOWL(2),FMSI2,
      $     TSNW(2),TSIL(LMI)
 
@@ -1659,11 +1665,11 @@ C**** (Esnow-Ei(Tm, 0))/(Ei(Tm,Si)-Eoc)
           Esnow2=0.
           ERAT2=0.
         end if
-
-        MAXME1=Z0*RHOI*ERAT1/(1.+ERAT1*(RHOWS-RHOI)/RHOWS)
-        MAXME2=Z0*RHOI*ERAT2/(1.+ERAT2*(RHOWS-RHOI)/RHOWS)
-        MAXM=MAX(0d0,MIN(MAXME1+MAXME2,MAXM))   ! mass of sea water to be added
-
+        ERATD=(Esnow1-Esnow2)/(Eic-Eoc)
+         
+        MAXME=(Z0*RHOI*ERAT1-SNOWL(2)*ERATD)/(1.+ERAT1*(RHOWS-RHOI)
+     $       /RHOWS)
+        MAXM=MAX(0d0,MIN(MAXME,MAXM))   ! mass of sea water to be added
         DSNOW=Z0*RHOI-MAXM*(RHOWS-RHOI)/RHOWS  ! total loss of snow
 
 C**** distribute changes over ice and snow
