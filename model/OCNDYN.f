@@ -4092,6 +4092,7 @@ c          write(*,*) "after GFREZS",i,j,l,agrid%gid
             S0M(I,J,L)=S0M(I,J,L)-DS0(L)*DXYPJ
             G0M(I,J,L)=G0M(I,J,L)-DE0(L)*DXYPJ
           END IF
+          P0L=P0L + MO(I,J,L)*GRAV*.5
         END DO
 C**** Store mass/energy/salt/tracer fluxes for formation of sea ice
 c        write(*,*) "store fluxes"
