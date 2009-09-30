@@ -16,7 +16,7 @@
       USE GEOM, only : dxyp
       USE MODEL_COM, only: itime
       USE OCN_TRACER_COM, only : itime_tr0, ntm, trname, trw0, n_age
-#ifdef TRACERS_WATER
+#ifdef TRACERS_SPECIAL_O18
       USE TRACER_COM, only : water_tracer_ic
 #endif
 
