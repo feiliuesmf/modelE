@@ -1,4 +1,4 @@
-filedir=/discover/nobackup/projects/giss/prod_input_files/
+filedir=./
 regridfile=remap360-180C90-90.nc
 imsource=360
 jmsource=180
@@ -6,6 +6,7 @@ ntilessource=1
 imtarget=90
 jmtarget=90
 ntilestarget=6
-format=ij
+format=ijl
 nfields=1
+levels=3
 title=yes

@@ -14,6 +14,7 @@ open(PARFILE, "$rfile") or die "can't open $rfile";
 
 $exist=1;
 $lexist=0;
+$mtexist=0;
 
 while (<PARFILE>) {
     if ( /End/ ) { last; }
@@ -23,7 +24,7 @@ while (<PARFILE>) {
 
 foreach $_ ( @parameter ) {
   ($name, $dest) = split /\s*=\s*/;
-  if ( $name !~ /^(filedir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|nfields|title|levels)$/ ) {
+  if ( $name !~ /^(filedir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|nfields|title|levels|maintitle)$/ ) {
     print "parameter $name doesn't exist\n";
     $exist=0
     #exit 1;
@@ -65,6 +66,10 @@ foreach $_ ( @parameter ) {
       $levels=$dest;
       $lexist=1;
     }
+    elsif ($name =~ "maintitle"){
+      $maintitle=$dest;
+      $mtexist=1;
+    }
 
   }
 
@@ -82,7 +87,11 @@ if ( $exist) {
     $levels=1;
   }
 
-  `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget $format $nfields $title $levels > output`;
+  if ($mtexist =~ 0){
+    $maintitle='no';
+  }
+
+  `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget $format $nfields $title $levels $maintitle > output`;
 
   open( FILE, "< output" ) or die "Can't open output file : $!";
   while( <FILE> ) {
