@@ -509,6 +509,7 @@ PIratio_N2O   = 1.000d0 ! {N2O ICs, L=1 overwrit}, set to 1 for use_rad_n2o=1
 PIratio_CFC   = 1.000d0 ! {CFC ICs, L=1 overwrit}, set to 1 for use_rad_cfc=1
 !--------- Aerosol parameters----------------
 imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
+imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, imAER=5, aer_int_yr=1850
 aer_int_yr=1850    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
 rad_interact_aer=1  ! 1=couples aerosols to radiation, 0=use climatology
 
