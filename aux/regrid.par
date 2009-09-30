@@ -1,6 +1,4 @@
 filedir=/discover/nobackup/projects/giss/prod_input_files/
-filetarget=topC90.ext
-filesource=top_index_360x180.ij.ext
 regridfile=remap360-180C90-90.nc
 imsource=360
 jmsource=180
@@ -8,3 +6,6 @@ ntilessource=1
 imtarget=90
 jmtarget=90
 ntilestarget=6
+format=ij
+nfields=1
+title=yes

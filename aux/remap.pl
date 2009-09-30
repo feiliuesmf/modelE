@@ -4,6 +4,8 @@ while ($_ = $ARGV[0], /^-/) {
   shift;
   last if /^--$/;
   if (/^-par\b/) { $rfile = shift; next;}
+  if (/^-in\b/) { $filesource = shift; next;}
+  if (/^-out\b/) { $filetarget = shift; next;}
 }
 
 print "parfile=$rfile\n";
@@ -11,6 +13,7 @@ print "parfile=$rfile\n";
 open(PARFILE, "$rfile") or die "can't open $rfile";
 
 $exist=1;
+$lexist=0;
 
 while (<PARFILE>) {
     if ( /End/ ) { last; }
@@ -20,18 +23,12 @@ while (<PARFILE>) {
 
 foreach $_ ( @parameter ) {
   ($name, $dest) = split /\s*=\s*/;
-  if ( $name !~ /^(filedir|filesource|filetarget|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget)$/ ) {
+  if ( $name !~ /^(filedir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|nfields|title|levels)$/ ) {
     print "parameter $name doesn't exist\n";
     $exist=0
     #exit 1;
   } else {
-    if ($name =~ "filesource") {
-      $filesource=$dest;
-    }
-    elsif ($name =~ "filetarget") {
-      $filetarget=$dest;
-    }
-    elsif ($name =~ "filedir") {
+    if ($name =~ "filedir") {
       $filedir=$dest;
     }
     elsif  ($name =~ "regridfile") {
@@ -55,6 +52,19 @@ foreach $_ ( @parameter ) {
     elsif  ($name =~ "ntilestarget") {
       $ntilestarget=$dest;
     }
+    elsif ($name =~ "format"){
+      $format=$dest
+    }
+    elsif ($name =~ "nfields"){
+      $nfields=$dest;
+    }
+    elsif ($name =~ "title"){
+      $title=$dest;
+    }
+    elsif ($name =~ "levels"){
+      $levels=$dest;
+      $lexist=1;
+    }
 
   }
 
@@ -68,7 +78,11 @@ if ( $exist) {
   print "$rfile1\n";
   `cp $rfile1 .`;
 
-  `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget > output`;
+  if ($lexist =~ 0){
+    $levels=1;
+  }
+
+  `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget $format $nfields $title $levels > output`;
 
   open( FILE, "< output" ) or die "Can't open output file : $!";
   while( <FILE> ) {

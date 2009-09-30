@@ -163,15 +163,18 @@ c     ll2cs
       use regrid, only : init_regrid, x_2grids, do_regrid
       implicit none
       character*150 :: filesource,filetarget,regridfile,cims,cjms,cnts,
-     &     cimt,cjmt,cntt,fsource,ftarget
+     &     cimt,cjmt,cntt,cformat,cfields,fsource,ftarget,ctitle,clevels
       character*80 :: title
-      real*4, allocatable :: tsource4(:,:,:), ttarget4(:,:,:)
-      real*8, allocatable :: tsource(:,:,:),ttarget(:,:,:)
-      integer :: ims,jms,nts,imt,jmt,ntt,nargs,maxrec,iuin,iuout
+      real*4, allocatable :: sij4(:,:,:,:) , tij4(:,:,:,:)
+      real*8, allocatable :: sij(:,:,:,:)  , tij(:,:,:,:)
+      real*4, allocatable :: sijl4(:,:,:,:) , tijl4(:,:,:,:)
+      real*8, allocatable :: sijl(:,:,:,:)  , tijl(:,:,:,:)
+      integer :: ims,jms,nts,imt,jmt,ntt,nfields,nlevels,n,
+     &     nargs,maxrec,iuin,iuout
       type (x_2grids) :: x2grids
 
-      NARGS = IARGC()
-      IF(NARGS.lt.9) write(*,*) "function needs 9 arguments";
+      nargs = IARGC()
+      IF(nargs.lt.12) write(*,*) "ll2cs needs at least 12 arguments";
 
       call getarg(1,filesource)
       call getarg(2,filetarget)
@@ -182,13 +185,21 @@ c     ll2cs
       call getarg(7,cimt)
       call getarg(8,cjmt)
       call getarg(9,cntt)
+      call getarg(10,cformat)
+      call getarg(11,cfields)
+      call getarg(12,ctitle)
+      if (nargs .eq. 13) call getarg(13,clevels)
       read(cims,'(I4)') ims
       read(cjms,'(I4)') jms
       read(cnts,'(I4)') nts
       read(cimt,'(I4)') imt
       read(cjmt,'(I4)') jmt
       read(cntt,'(I4)') ntt
+      read(cfields,'(I4)') nfields
+      if (nargs .eq. 13) read(clevels,'(I4)') nlevels
 
+
+      write(*,*) "nlevels=",nlevels
 
 c***  Initialize exchange grid
       call init_regrid(regridfile,x2grids,ims,jms,nts,imt,jmt,ntt)
@@ -205,23 +216,95 @@ c***  Read data (must be in GISS format)
       open(iuin,FILE=fsource,FORM='unformatted', STATUS='old')
       open(iuout,FILE=ftarget,FORM='unformatted', STATUS='unknown')
 
-      allocate( tsource(ims,jms,nts), tsource4(ims,jms,nts))
-      allocate( ttarget(imt,jmt,ntt), ttarget4(imt,jmt,ntt))
+      cformat = trim(cformat)
+      ctitle = trim(ctitle)
 
-      do 
-         read(unit=iuin,end=30) title,tsource4
-         tsource=tsource4
-         call do_regrid(x2grids,tsource,ttarget)
-         ttarget4=ttarget
-         write(unit=iuout) title,ttarget4
-         maxrec=maxrec+1
-      enddo
- 30   continue
+      if (cformat .eq. 'ij' .or. cformat .eq. 'IJ' 
+     &     .or. cformat .eq. 'giss' .or. cformat .eq. 'GISS') then
 
-      write(6,*) "We have remapped ",maxrec," records"
+         allocate(sij(ims,jms,nts,nfields),sij4(ims,jms,nts,nfields))
+         allocate(tij(imt,jmt,ntt,nfields),tij4(imt,jmt,ntt,nfields))         
+         
+         if (ctitle .eq. 'yes' .or. ctitle .eq. 'YES'
+     &        .or. ctitle .eq. 'y' .or. ctitle .eq. 'Y') then
+            do 
+               read(unit=iuin,end=30) title,sij4
+               sij=sij4
+               do n=1,nfields
+                  call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
+               enddo
+               tij4=tij
+               write(unit=iuout) title,tij4
+               maxrec=maxrec+1
+            enddo
+ 30      continue
 
-      deallocate(tsource4, tsource) 
-      deallocate(ttarget4, ttarget)
+         else if (ctitle .eq. 'no' .or. ctitle .eq. 'NO'
+     &        .or. ctitle .eq. 'n' .or. ctitle .eq. 'N') then
+            do 
+               read(unit=iuin,end=40) sij4
+               sij=sij4
+               do n=1,nfields
+                  call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
+               enddo
+               tij4=tij
+               write(unit=iuout) tij4
+               maxrec=maxrec+1
+            enddo
+ 40      continue
+         endif
+
+         deallocate(sij4, sij) 
+         deallocate(tij4, tij)
+
+         
+      else if (cformat .eq. 'ijl' .or. cformat .eq. 'IJL') then
+         write(*,*) "IJL"            
+         allocate(sijl(ims,jms,nlevels,nts),sijl4(ims,jms,nlevels,nts))
+         allocate(tijl(imt,jmt,nlevels,ntt),tijl4(imt,jmt,nlevels,ntt))         
+         
+         if (ctitle .eq. 'yes' .or. ctitle .eq. 'YES'
+     &        .or. ctitle .eq. 'y' .or. ctitle .eq. 'Y') then
+            do 
+               read(unit=iuin,end=50) title,sijl4
+               sijl=sijl4
+               do n=1,nlevels
+                  call do_regrid(x2grids,sijl(:,:,n,:),tijl(:,:,n,:))
+               enddo
+               tijl4=tijl
+               write(unit=iuout) title,tijl4
+               maxrec=maxrec+1
+            enddo
+ 50      continue
+
+         else if (ctitle .eq. 'no' .or. ctitle .eq. 'NO'
+     &        .or. ctitle .eq. 'n' .or. ctitle .eq. 'N') then
+            do 
+               read(unit=iuin,end=60) sijl4
+               sijl=sijl4
+               do n=1,nlevels
+                  call do_regrid(x2grids,sijl(:,:,n,:),tijl(:,:,n,:))
+               enddo
+               tijl4=tijl
+               write(unit=iuout) tijl4
+               maxrec=maxrec+1
+            enddo
+ 60      continue
+         endif
+
+         deallocate(sijl4, sijl) 
+         deallocate(tijl4, tijl)
+
+      endif
+ 
+      write(6,*) "remapped file contains:"
+      write(6,100) maxrec," records"
+      write(6,200) "record format ",trim(cformat)
+      write(6,200) trim(cfields)," fields per record"
+      write(6,200) "records contains title? ", ctitle
+
+ 100  format(3X, I2, A)
+ 200  format(4X, A, A)
 
       close(iuin)
       close(iuout)
