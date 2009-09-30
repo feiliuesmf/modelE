@@ -2797,11 +2797,11 @@ C**** set some defaults
           qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
           qsum(itcon_surf(1,N)) = .false.
           g=g+1; itcon_surf(2,N) = g
-          qcon(itcon_surf(2,N)) = .true.; conpts(4) = 'ship src'
+          qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'ship src'
           qsum(itcon_surf(2,N)) = .false.
 #ifndef TRACERS_AEROSOLS_SOA
           g=g+1; itcon_surf(3,N) = g
-          qcon(itcon_surf(3,N)) = .true.; conpts(3) = 'Terpene src'
+          qcon(itcon_surf(3,N)) = .true.; conpts(4) = 'Terpene src'
           qsum(itcon_surf(3,N)) = .false.
 #endif  /* TRACERS_AEROSOLS_SOA */
           g=g+1; itcon_mc(n) = g
@@ -8640,7 +8640,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & ,ntm_chem
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-     * ,aer_int_yr,imAER
+     * ,aer_int_yr,imAER,imPI
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
@@ -8844,13 +8844,15 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         do n=1,ntm
         select case (trname(n))
         case ('SO2')
+        if (imPI.ne.1) then    ! these are all pollution
         call read_hist_SO2(iact)
-        if (imAER.eq.3) call get_ships(iact)  !reads in SO2, BC and POM sources
-        if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
+c       if (imAER.eq.3) call get_ships(iact)  !reads in SO2, BC and POM sources
+c       if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
+        endif
         case ('BCII')  !this does BC and OC
-        call get_BCOC(iact)
+        if (imPI.ne.1) call get_BCOC(iact)
         case ('M_BC1_BC')  !this does BC and OC
-        call get_BCOC(iact)
+        if (imPI.ne.1) call get_BCOC(iact)
         case ('BCB')  ! this does BCB and OCB and SO2
         call get_hist_BMB(iact)
         case ('M_BOC_BC')  ! this does BCB and OCB and SO2

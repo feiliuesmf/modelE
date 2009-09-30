@@ -651,6 +651,7 @@ C****
       SUBROUTINE get_ships(iact)
       USE AEROSOL_SOURCES, only: BC_ship,POM_ship,SO2_ship
       USE MODEL_COM, only: im,jm,jmon
+      USE TRACER_COM, only: imPI
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
@@ -663,6 +664,7 @@ C****
       BC_ship(:,:,:)=0.d0
       POM_ship(:,:,:)=0.d0
       SO2_ship(:,:,:)=0.d0
+      if (imPI.eq.1) return
       call openunit('BC_SHIPS',iuc,.true.,.true.)
        do mm=1,12
        call readt_parallel(grid,iuc,nameunit(iuc),
@@ -1107,7 +1109,7 @@ c historic BC emissions
       USE GEOM, only: AXYP
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
-      USE TRACER_COM, only: aer_int_yr,imAER,n_NH3
+      USE TRACER_COM, only: aer_int_yr,imAER,n_NH3,imPI
      * ,trname,freq,nameT,ty_start,ty_end,ssname
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
@@ -1148,6 +1150,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
        ns1=0
        ns2=7
        if (aer_int_yr.eq.2000) ns2=9
+       if (imPI.eq.1) ns2=3  !biomass, ocean only
        else
        ns1=1
        ns2=1
