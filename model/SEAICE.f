@@ -1670,7 +1670,9 @@ C**** (Esnow-Ei(Tm, 0))/(Ei(Tm,Si)-Eoc)
         MAXME=(Z0*RHOI*ERAT1-SNOWL(2)*ERATD)/(1.+ERAT1*(RHOWS-RHOI)
      $       /RHOWS)
         MAXM=MAX(0d0,MIN(MAXME,MAXM))   ! mass of sea water to be added
+        MAXM=MAX(0d0,MIN(0.9*RHOWS*(MICE(2)/RHOI-Z0),MAXM)) ! limit for advection
         DSNOW=Z0*RHOI-MAXM*(RHOWS-RHOI)/RHOWS  ! total loss of snow
+        IF (MAXM.eq.0.) DSNOW=MIN(0.9*MICE(2),DSNOW) ! limit for advection 
 
 C**** distribute changes over ice and snow
         if (DSNOW.gt.SNOWL(2)) THEN ! all of snow layer 2 and some snow layer 1 go to ice
