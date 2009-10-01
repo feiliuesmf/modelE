@@ -943,12 +943,11 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
 #ifdef ACCMIP_LIKE_DIAGS
-!@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
+!@var tnfs_ghg like TNFS but with reference GHG for
 !@+   radiative forcing calculations. TOA only.
 !@+   index 1=CH4, 2=N2O, 3=CFC11, 4=CFC12.
       real*8,dimension(4,grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &                   snfs_ghg,tnfs_ghg
+     & grid%J_STRT_HALO:grid%J_STOP_HALO) :: tnfs_ghg
       real*8 :: sv_fulgas_ref,sv_fulgas_now
       integer :: nf,GFrefY,GFrefD
 !@var nfghg fulgas( ) index of radf diag ghgs:
@@ -1761,7 +1760,6 @@ C**** Methane: (if there are initial RCOMPX calls, they
         fulgas(nfghg(nf))=sv_fulgas_ref
         kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
         CALL RCOMPX        
-        SNFS_ghg(nf,I,J)=SRNFLB(LM+LM_REQ+1)
         TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
         fulgas(nfghg(nf))=sv_fulgas_now
       enddo
@@ -2539,14 +2537,10 @@ c longwave forcing at TOA
 #endif /* any of various tracer groups defined */
 
 #ifdef ACCMIP_LIKE_DIAGS
-         do nf=1,4 ! CH4, N2O, CFC11, and CFC12:
-c shortwave GHG forcing at TOA
-           if(ij_fcghg(1,nf).gt.0)aij(i,j,ij_fcghg(1,nf))=
-     &     aij(i,j,ij_fcghg(1,nf))+(SNFS(3,I,J)-SNFS_ghg(nf,I,J))
-     &     *CSZ2
 c longwave GHG forcing at TOA
-           if(ij_fcghg(2,nf).gt.0)aij(i,j,ij_fcghg(2,nf))=
-     &     aij(i,j,ij_fcghg(2,nf))+(TNFS_ghg(nf,I,J)-TNFS(3,I,J))
+         do nf=1,4 ! CH4, N2O, CFC11, and CFC12:
+           if(ij_fcghg(nf).gt.0)aij(i,j,ij_fcghg(nf))=
+     &     aij(i,j,ij_fcghg(nf))+(TNFS_ghg(nf,I,J)-TNFS(3,I,J))
          enddo
 #endif /* ACCMIP_LIKE_DIAGS */
 
