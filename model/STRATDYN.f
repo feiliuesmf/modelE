@@ -203,15 +203,14 @@ C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       USE CONSTANT, only : rgas,grav,twopi,kapa,sha
-      USE MODEL_COM, only : im,jm,lm,ptop,ls1,mrch
+      USE MODEL_COM, only : im,jm,lm,ptop,ls1,mrch,byim
       USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
       USE GEOM, only : sini=>siniv,cosi=>cosiv,imaxj,rapvn,rapvs,dxyv
      *     ,kmaxj,idij,idjj,rapj
       USE PBLCOM, only : tsurf=>tsavg,qsurf=>qsavg,usurf=>usavg,
      *     vsurf=>vsavg
-      USE DIAG_COM, only : agc=>agc_loc
-      USE GCDIAG
+      USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtvdif
       USE STRAT, only : defrm,pk,pmid,ang_gwd
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -359,7 +358,7 @@ C**** dq/dt by diffusion as tridiagonal matrix
 C**** Update model winds
         IF (MRCH.GT.0) THEN
           DO L=1,LM
-            AGC(J,L,JL_DUDTVDIF) = AGC(J,L,JL_DUDTVDIF) + DU(L)
+            AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DU(L)*BYIM
             DUT(I,J,L) = DUT(I,J,L) + DU(L)*AIRM(L)*DXYV(J)
             DVT(I,J,L) = DVT(I,J,L) + DV(L)*AIRM(L)*DXYV(J)
             DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
@@ -386,7 +385,7 @@ C**** Save AM change and update U,V
             DO L=1,LMAX
               DKE(I,J,L) = DKE(I,J,L) + DUANG*(U(I,J,L)+0.5*DUANG)
               DUT(I,J,L) = DUT(I,J,L) + DUANG*AIRM(L)*DXYV(J)
-              AGC(J,L,JL_DUDTVDIF) = AGC(J,L,JL_DUDTVDIF) + DUANG
+              AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DUANG*BYIM
             END DO
           END IF
           DO L=1,LMAX
@@ -561,10 +560,10 @@ C****
      *     ,Cshear,cmtn,cdef,cmc,pbreaktop,defthresh,pconpen,ang_gwd
       USE GEOM, only : dxyv,bydxyv,fcor,imaxj,rapvn,rapvs
      *     ,kmaxj,rapj,idij,idjj
-      USE DIAG_COM, only : aij=>aij_loc, agc=>agc_loc
+      USE DIAG_COM, only : aij=>aij_loc, ajl=>ajl_loc
+     *     ,jl_dudtsdif,jl_sdifcoef,jl_gwfirst
      *     ,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
      *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
-      USE GCDIAG
       USE RANDOM
       IMPLICIT NONE
 !@var BVF(LMC1) is Brunt-Vaissala frequency at top of convection
@@ -1060,8 +1059,8 @@ C     IF (N.NE.1.OR.MRCH.NE.2) GO TO 375
 C     DO 370 L=LD1,LTOP
 C     IF (DFM(L).EQ.0.) GO TO 370
 C        AGC(J,L,JL_30)=AGC(J,L,JL_30)+ZWT(I,J)
-C        AGC(J,L,JL_DUDFMDRG)=
-C    *     AGC(J,L,JL_DUDFMDRG)+MUB(L+1,1)*UR(1)*ZWT(I,J)
+C        AJL(J,L,JL_DUDFMDRG)=
+C    *     AJL(J,L,JL_DUDFMDRG)+MUB(L+1,1)*UR(1)*ZWT(I,J)*BYIM
 C 370 CONTINUE
 C**** CALCULATE DIFFUSION COEFFICIENT AND ADD DRAG TO THE WINDS
 C**** (DEFORMATION DIFFUSION IS * XDIFF)
@@ -1076,8 +1075,8 @@ C**** SHEAR AND MOUNTAIN ORIENTATION
         DUT_ANGM(L,N) = DUT_ANGM(L,N)+DUTN
         DUT(L)=DUT(L)+DUTN
         DVT(L)=DVT(L)+DWT*VR(N)
-        IF (MRCH.EQ.2) AGC(J,L,N+JL_gwFirst-1)=AGC(J,L,N+JL_gwFirst-1)
-     *       +DUTN
+        IF (MRCH.EQ.2) AJL(J,L,N+JL_gwFirst-1)=AJL(J,L,N+JL_gwFirst-1)
+     *       +DUTN*BYIM
       END DO
   400 CONTINUE
 C****
@@ -1104,8 +1103,8 @@ C9430 FORMAT (' 7267 DIFFX > LIMIT:',4I3,1P,3E10.2,0P,2F7.1)
       FLUXV=DX/(1.+DX*(MUP+MDN)/(MUP*MDN))*(VL(L)-VL(L-1))
       DUT(L-1)=DUT(L-1)-(FLUXUD-FLUXU)/MDN
       DVT(L-1)=DVT(L-1)-(FLUXVD-FLUXV)/MDN
-         IF (MRCH.EQ.2) AGC(J,L-1,JL_DUDTSDIF)=
-     *      AGC(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)/MDN
+         IF (MRCH.EQ.2) AJL(J,L-1,JL_DUDTSDIF)=
+     *      AJL(J,L-1,JL_DUDTSDIF)-(FLUXUD-FLUXU)*BYIM/MDN
       FLUXUD=FLUXU
       FLUXVD=FLUXV
       YDN=YUP
@@ -1118,10 +1117,10 @@ C**** DIFFUSION IN THE TOP LAYER COMES ONLY FROM BELOW.
 
 C**** ACCUMULATE DIAGNOSTICS  (DU, DIFFUSION COEFFICIENT)
       IF (MRCH.EQ.2) THEN
-         AGC(J,LM,JL_DUDTSDIF)=AGC(J,LM,JL_DUDTSDIF)-FLUXUD/MDN
+         AJL(J,LM,JL_DUDTSDIF)=AJL(J,LM,JL_DUDTSDIF)-FLUXUD*BYIM/MDN
         DO L=LDRAG,LM
-cc          AGC(J,L,JL_SDIFCOEF)=AGC(J,L,JL_SDIFCOEF)+
-cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR
+cc          AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+
+cc     &         DL(L)/(BVF(L)*BVF(L))*DTHR*BYIM
           DUJL(J,L)=DL(L)/(BVF(L)*BVF(L))*DTHR
         END DO
 C****
@@ -1190,7 +1189,7 @@ c routine goes back into a module
 !$OMP  PARALLEL DO PRIVATE(I,J,L)
         DO L=1,LM
           DO J=J_0,J_1
-            AGC(J,L,JL_SDIFCOEF)=AGC(J,L,JL_SDIFCOEF)+ DUJL(J,L)
+            AJL(J,L,JL_SDIFCOEF)=AJL(J,L,JL_SDIFCOEF)+ DUJL(J,L)*BYIM
           END DO
         END DO
 !$OMP  END PARALLEL DO

@@ -32,8 +32,13 @@ c      call il_defs
 !@auth M. Kelley
       use DIAG_COM
 c      use GEOM, only : jg_u, jg_ke
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      jgrid_u = 1
+      jgrid_ke = 1
+#else
       jgrid_u = 2 !jg_u
       jgrid_ke = 2 !jg_ke
+#endif
 c#ifdef AGRID_DIAG
 c      jgrid_u = 1
 c      jgrid_ke = 1
@@ -4178,7 +4183,7 @@ c
       subroutine jl_defs
       use CONSTANT, only : sday,grav,twopi,sha,rgas,bygrav,radius,lhe
      &     ,bymrat
-      use MODEL_COM, only : fim,dtsrc,nidyn,qcheck,psfmpt
+      use MODEL_COM, only : fim,dtsrc,nidyn,qcheck,psfmpt,do_gwdrag
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
@@ -4722,6 +4727,158 @@ c      denom_jl(k) = jl_xxx
       units_jl(k) = '100 PA*K'
 
 c
+      if (DO_GWDRAG) then
+
+      k=k+1
+      jl_gwFirst = k   ! The next consecutive 9 are Gravity Wave Diags
+      jl_dumtndrg = k
+      sname_jl(k) = 'dudt_mtndrg' !
+      lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dushrdrg = k
+      sname_jl(k) = 'dudt_shrdrg'
+      lname_jl(k) = 'DU/DT BY STRAT SHR DRAG'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dumcdrgm10 = k
+      sname_jl(k) = 'dudt_mcdrgm10' !
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-10'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dumcdrgp10 = k
+      sname_jl(k) = 'dudt_mcdrgp10' !
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+10'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dumcdrgm40 = k
+      sname_jl(k) = 'dudt_mcdrgm40' !
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-40'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dumcdrgp40 = k
+      sname_jl(k) = 'dudt_mcdrgp40' !
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+40'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dumcdrgm20 = k
+      sname_jl(k) = 'dudt_mcdrgm20' !
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=-20'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dumcdrgp20 = k
+      sname_jl(k) = 'dudt_mcdrgp20' !
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+20'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+c Last of the Gravity Wave JL's
+      k=k+1
+      jl_dudfmdrg = k
+      sname_jl(k) = 'dudt_dfmdrg' !
+      lname_jl(k) = 'DU/DT BY STRAT DEFORM DRAG'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
+      ia_jl(k) = ia_src
+      jgrid_jl(k) = jgrid_u
+
+C**** Some extra GWDRAG related diags
+c
+      k=k+1
+      jl_sdifcoef = k
+      sname_jl(k) = 'strat_diff_coeff' !
+      lname_jl(k) = 'STRAT. DIFFUSION COEFF'
+      units_jl(k) = 'm^2/s'
+c
+      k=k+1
+      jl_dudtsdif = k
+      sname_jl(k) = 'dudt_sdiff' !     ! gwdrag
+      lname_jl(k) = 'DU/DT BY GRAVITY WAVE MOMENTUM DIFFUSION'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = jgrid_u
+c
+      k=k+1
+      jl_dudtvdif = k
+      sname_jl(k) = 'dudt_vdiff' !     ! vdiff
+      lname_jl(k) = 'DU/DT BY VERTICAL DIFFUSION'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = jgrid_u
+
+c combination GWDRAG diags
+      k = k + 1
+      jl_mcdrgpm10 = k
+      sname_jl(k) = 'dudt_mcdrgpm10'
+      lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = jgrid_u
+c
+      k = k + 1
+      jl_mcdrgpm40 = k
+      sname_jl(k) = 'dudt_mcdrgpm40' !AJL24+25
+      lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = jgrid_u
+c
+      k = k + 1
+      jl_mcdrgpm20 = k
+      sname_jl(k) = 'dudt_mcdrgpm20' !AJL26+27
+      lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = jgrid_u
+c
+      k = k + 1
+      jl_sumdrg = k
+      sname_jl(k) = 'dudt_sumdrg' !AJL(18+20-27)
+      lname_jl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
+      units_jl(k) = 'm/s^2'
+      pow_jl(k) = -6
+      jgrid_jl(k) = jgrid_u
+
+      end if
+
       if (AM_I_ROOT()) then
          if (k .gt. kajl) then
             write (6,*) 'jl_defs: Increase kajl=',kajl,' to at least ',k

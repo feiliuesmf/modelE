@@ -71,8 +71,7 @@ C****
      *  jk_nt_see,jk_tot_nt_se,
      *  jk_nt_am_stand_eddy,
      *  jk_we_flx_nor,jk_we_flx_div,jk_refr_ind_wave1,
-     *  jk_del_qgpv,jk_nt_lh_se,jk_wstar,jk_vstar,
-     *  jl_mcdrgpm10,jl_mcdrgpm40,jl_mcdrgpm20,jl_sumdrg
+     *  jk_del_qgpv,jk_nt_lh_se,jk_wstar,jk_vstar
 
       END MODULE BDjkjl
 
@@ -999,30 +998,6 @@ c
       lname_gc(k) = 'DIVERGENCE OF THE ELIASSEN-PALM FLUX'
       units_gc(k) = 'm/s^2'
       scale_gc(k) = 1.
-      pow_gc(k) = -6
-      k = k + 1
-      jl_mcdrgpm10 = k                        ; jgrid_gc(k) = 2
-      sname_gc(k) = 'dudt_mcdrgpm10'
-      lname_gc(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      k = k + 1
-      jl_mcdrgpm40 = k                        ; jgrid_gc(k) = 2
-      sname_gc(k) = 'dudt_mcdrgpm40' !AJL24+25
-      lname_gc(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      k = k + 1
-      jl_mcdrgpm20 = k                        ; jgrid_gc(k) = 2
-      sname_gc(k) = 'dudt_mcdrgpm20' !AJL26+27
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      k = k + 1
-      jl_sumdrg = k                           ; jgrid_gc(k) = 2
-      sname_gc(k) = 'dudt_sumdrg' !AJL(18+20-27)
-      lname_gc(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
-      units_gc(k) = 'm/s^2'
       pow_gc(k) = -6
 c
       k = k + 1
@@ -2046,48 +2021,48 @@ C**** WIND: TRANSFORMED ADVECTION, LAGRANGIAN CONVERGENCE (DEL.F)
 
 C**** WIND: DU/DT BY STRAT. DRAG -  MTN, DEFORM., SHEAR ...
       if (DO_GWDRAG) then
-      SCALET = scale_gc(jl_dudfmdrg)/idacc(ia_gc(jl_dudfmdrg))
+      SCALET = scale_jl(jl_dudfmdrg)/idacc(ia_jl(jl_dudfmdrg))
       n = jl_dumtndrg
-      CALL JLMAP(LNAME_GC(n),SNAME_GC(n),UNITS_GC(n),POW_GC(n),
-     *     PLM,AGC(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_GC(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = jl_dudfmdrg
-      CALL JLMAP(LNAME_GC(n),SNAME_GC(n),UNITS_GC(n),POW_GC(n),
-     *     PLM,AGC(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_GC(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       n = jl_dushrdrg
-      CALL JLMAP(LNAME_GC(n),SNAME_GC(n),UNITS_GC(n),POW_GC(n),
-     *     PLM,AGC(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_GC(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       DX=0.
       DO 740 L=1,LM
       DO 740 J=1,JM
-      AX(J,L)=AGC(J,L,jl_dumcdrgm10)+AGC(J,L,jl_dumcdrgp10)
-      BX(J,L)=AGC(J,L,jl_dumcdrgm40)+AGC(J,L,jl_dumcdrgp40)
-  740 DX(J,L)=AGC(J,L,jl_dumcdrgm20)+AGC(J,L,jl_dumcdrgp20)
+      AX(J,L)=AJL(J,L,jl_dumcdrgm10)+AJL(J,L,jl_dumcdrgp10)
+      BX(J,L)=AJL(J,L,jl_dumcdrgm40)+AJL(J,L,jl_dumcdrgp40)
+  740 DX(J,L)=AJL(J,L,jl_dumcdrgm20)+AJL(J,L,jl_dumcdrgp20)
       n = jl_mcdrgpm10
-      CALL JLMAP(LNAME_gc(n),SNAME_gc(n),UNITS_GC(n),POW_GC(n),
-     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_gc(n))
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_jl(n))
       n = jl_mcdrgpm40
-      CALL JLMAP(LNAME_gc(n),SNAME_gc(n),UNITS_GC(n),POW_GC(n),
-     &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_gc(n))
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,BX,SCALET,ONES,ONES,LM,2,JGRID_jl(n))
       n = jl_mcdrgpm20
-      CALL JLMAP(LNAME_gc(n),SNAME_gc(n),UNITS_GC(n),POW_GC(n),
-     &     PLM,DX,SCALET,ONES,ONES,LM,2,JGRID_gc(n))
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     &     PLM,DX,SCALET,ONES,ONES,LM,2,JGRID_jl(n))
 C**** DU/DT BY STRAT. DRAG - TOTAL
       DO 745 L=1,LM
       DO 745 J=1,JM
-  745 AX(J,L)=AGC(J,L,jl_dumtndrg)+AGC(J,L,jl_dushrdrg)+
-     *   (AX(J,L)+BX(J,L)+DX(J,L)) + AGC(J,L,jl_dudfmdrg)
-     *                             + AGC(J,L,jl_dudtsdif)
+  745 AX(J,L)=AJL(J,L,jl_dumtndrg)+AJL(J,L,jl_dushrdrg)+
+     *   (AX(J,L)+BX(J,L)+DX(J,L)) + AJL(J,L,jl_dudfmdrg)
+     *                             + AJL(J,L,jl_dudtsdif)
       n = jl_sumdrg
-      CALL JLMAP(LNAME_GC(n),SNAME_GC(n),UNITS_GC(n),POW_GC(n),
-     *     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_GC(n))
+      CALL JLMAP(LNAME_JL(n),SNAME_JL(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AX,SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** CHANGE IN EAST WIND BY STRATOSPHERIC DIFFUSION
       n = jl_dudtsdif
-      CALL JLMAP(LNAME_gc(n),SNAME_gc(n),UNITS_GC(n),POW_GC(n),
-     *     PLM,AGC(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_GC(n))
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
 C**** CHANGE IN EAST WIND BY VERTICAL DIFFUSION
       n = jl_dudtvdif
-      CALL JLMAP(LNAME_gc(n),SNAME_gc(n),UNITS_GC(n),POW_GC(n),
-     *     PLM,AGC(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_GC(n))
+      CALL JLMAP(LNAME_jl(n),SNAME_jl(n),UNITS_JL(n),POW_JL(n),
+     *     PLM,AJL(1,1,n),SCALET,ONES,ONES,LM,2,JGRID_JL(n))
       end if  ! do_GWDRAG
 
 C**** DU/DT BY SDRAG

@@ -22,13 +22,9 @@
      &    ,JK_totdtdt ,JK_eddvtpt
      &    ,JK_psi
       INTEGER ::
-     &     jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape
-     &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
-     &     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
-     &     ,jl_dumcdrgp20,jl_sdifcoef,jl_dudtsdif
-     &     ,jl_gwfirst,jl_epflxv,jl_epflxn
-     &     ,jl_40,jl_47,jl_zmfntmom,jl_totntmom
-     &     ,jl_dudtvdif,jl_dpb
+     &     jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh,jl_ape,
+     &     jl_epflxv,jl_epflxn,jl_40,jl_47,jl_zmfntmom,jl_totntmom,
+     &     jl_dpb
 
       end module gcdiag
 
@@ -551,126 +547,6 @@ c
       sname_gc(k) = 'AJL47' !V-V*  =D((V-VI)*(T-TI)/DTHDP)/DP
       lname_gc(k) = 'unknown'
       units_gc(k) = 'unknown'
-
-c
-      if (DO_GWDRAG) then
-
-      k=k+1
-      jl_gwFirst = k   ! The next consecutive 9 are Gravity Wave Diags
-      jl_dumtndrg = k
-      sname_gc(k) = 'dudt_mtndrg' !
-      lname_gc(k) = 'DU/DT BY STRAT MTN DRAG'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dushrdrg = k
-      sname_gc(k) = 'dudt_shrdrg'
-      lname_gc(k) = 'DU/DT BY STRAT SHR DRAG'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dumcdrgm10 = k
-      sname_gc(k) = 'dudt_mcdrgm10' !
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=-10'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dumcdrgp10 = k
-      sname_gc(k) = 'dudt_mcdrgp10' !
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=+10'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dumcdrgm40 = k
-      sname_gc(k) = 'dudt_mcdrgm40' !
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=-40'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dumcdrgp40 = k
-      sname_gc(k) = 'dudt_mcdrgp40' !
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=+40'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dumcdrgm20 = k
-      sname_gc(k) = 'dudt_mcdrgm20' !
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=-20'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dumcdrgp20 = k
-      sname_gc(k) = 'dudt_mcdrgp20' !
-      lname_gc(k) = 'DU/DT BY STRAT MC DRAG C=+20'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-c Last of the Gravity Wave JL's
-      k=k+1
-      jl_dudfmdrg = k
-      sname_gc(k) = 'dudt_dfmdrg' !
-      lname_gc(k) = 'DU/DT BY STRAT DEFORM DRAG'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      scale_gc(k) = 1./(FIM*DTsrc)
-      ia_gc(k) = ia_src
-      jgrid_gc(k) = 2
-
-C**** Some extra GWDRAG related diags
-c
-      k=k+1
-      jl_sdifcoef = k
-      sname_gc(k) = 'strat_diff_coeff' !
-      lname_gc(k) = 'STRAT. DIFFUSION COEFF'
-      units_gc(k) = 'm^2/s'
-c
-      k=k+1
-      jl_dudtsdif = k
-      sname_gc(k) = 'dudt_sdiff' !     ! gwdrag
-      lname_gc(k) = 'DU/DT BY GRAVITY WAVE MOMENTUM DIFFUSION'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      jgrid_gc(k) = 2
-c
-      k=k+1
-      jl_dudtvdif = k
-      sname_gc(k) = 'dudt_vdiff' !     ! vdiff
-      lname_gc(k) = 'DU/DT BY VERTICAL DIFFUSION'
-      units_gc(k) = 'm/s^2'
-      pow_gc(k) = -6
-      jgrid_gc(k) = 2
-
-      end if
 
 c
 c derived JKs

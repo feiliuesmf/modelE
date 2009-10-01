@@ -54,7 +54,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, DIMENSION(NREG), public :: SAREA_REG
 
 !@param KAJL number of AJL diagnostics
-      INTEGER, PARAMETER, public :: KAJL=65
+      INTEGER, PARAMETER, public :: KAJL=77
 !@var AJL latitude/height diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJL,AJL_loc
 
@@ -197,7 +197,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 #endif
 !@param KAGC number of latitude-height General Circulation diags
 !@param KAGCX number of accumulated+derived GC diagnostics
-      INTEGER, PARAMETER, public :: KAGC=71+KEP, KAGCX=KAGC+100
+      INTEGER, PARAMETER, public :: KAGC=59+KEP, KAGCX=KAGC+100
 !@var AGC latitude-height General Circulation diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
 
@@ -613,6 +613,12 @@ c derived/composite diagnostics
      &     ,jl_epacwt,jl_wpacwt
      &     ,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
      &     ,jl_dudtsdrg,jl_dtdtsdrg
+      INTEGER, public ::
+     &      jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dumcdrgm10
+     &     ,jl_dumcdrgp10,jl_dumcdrgm40,jl_dumcdrgp40,jl_dumcdrgm20
+     &     ,jl_dumcdrgp20,jl_sdifcoef,jl_dudtsdif,jl_dudtvdif
+     &     ,jl_gwfirst,jl_mcdrgpm10,jl_mcdrgpm40,jl_mcdrgpm20,jl_sumdrg
+
       INTEGER, public ::
      &     JK_hght, JK_dpwt, JK_tx, JK_q, JK_cldh2o ,JK_rh
      &     ,JK_cldwtr, JK_cldice

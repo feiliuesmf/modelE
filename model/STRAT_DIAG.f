@@ -575,6 +575,9 @@ C****
      *     ,idacc,ndaa,ls1,pmidl00,pdsigl00
       USE GEOM, only : dxyv,bydxyv,cosv,cosp,dxv,dyv
       USE DIAG_COM, only : ajl,kagc,kep,agc,jl_damdc,jl_dammc
+     &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dudtsdif,jl_dudtvdif
+     &     ,jl_dumcdrgm10,jl_dumcdrgp10,jl_dumcdrgm20,jl_dumcdrgp20
+     &     ,jl_dumcdrgm40,jl_dumcdrgp40
      &     ,sname_strlen,units_strlen,lname_strlen
       USE GCDIAG
       USE DIAG_SERIAL, only : JLMAP
@@ -758,12 +761,12 @@ C****          prints maps of  (Array * SCALEP * ScaleJ * ScaleL)
 C****
       DO L=1,LM
       DO J=2,JM
-        DUDS(J,L)=((AGC(J,L,JL_DUDFMDRG)+AGC(J,L,JL_DUMTNDRG))+
-     &             (AGC(J,L,JL_DUSHRDRG)+AGC(J,L,JL_DUMCDRGM10))+
-     *       ((AGC(J,L,JL_DUMCDRGP10)+AGC(J,L,JL_DUMCDRGM40))+
-     &        (AGC(J,L,JL_DUMCDRGP40)+AGC(J,L,JL_DUMCDRGM20)))+
-     *        (AGC(J,L,JL_DUMCDRGP20)+
-     &         AGC(J,L,JL_DUDTSDIF)+AGC(J,L,JL_DUDTVDIF)))
+        DUDS(J,L)=((AJL(J,L,JL_DUDFMDRG)+AJL(J,L,JL_DUMTNDRG))+
+     &             (AJL(J,L,JL_DUSHRDRG)+AJL(J,L,JL_DUMCDRGM10))+
+     *       ((AJL(J,L,JL_DUMCDRGP10)+AJL(J,L,JL_DUMCDRGM40))+
+     &        (AJL(J,L,JL_DUMCDRGP40)+AJL(J,L,JL_DUMCDRGM20)))+
+     *        (AJL(J,L,JL_DUMCDRGP20)+
+     &         AJL(J,L,JL_DUDTSDIF)+AJL(J,L,JL_DUDTVDIF)))*FIM
       END DO
       END DO
       SCALE1=1./(FIM*DTSRCE*IDACC(1)+1.D-20)
