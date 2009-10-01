@@ -431,7 +431,7 @@ Ndisk=960
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
 KCOPY=2         ! saving acc + rsf
-isccp_diags=1   ! use =0 to save cpu time, but you lose some key diagnostics
+isccp_diags=0   ! use =0 to save cpu time, but you lose some key diagnostics
 nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
 ndaa=13
