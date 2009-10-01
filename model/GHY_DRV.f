@@ -2535,7 +2535,8 @@ c**** compute roughnes length
 #else
             fr_cover(:) = vdata(i,j,:)
 #endif
-            z0_veg = sum( fr_cover(:)*z0_cover(:) )
+            z0_veg = fearth(i,j)*sum( fr_cover(:)*z0_cover(:) )
+     &           + flice(i,j)*0.005d0
             rrr(i,j) = max ( rrr(i,j), z0_veg )
           enddo
         enddo
