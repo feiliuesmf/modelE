@@ -103,6 +103,7 @@
       INTEGER N
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
       REAL*8, allocatable :: aWEIGHT1(:,:),oWEIGHT1(:,:)
+      REAL*8, allocatable :: atmp(:,:)
       type (lookup_str) :: lstr
       integer :: i,j,l
 
@@ -142,11 +143,16 @@
       call ab_add(lstr, aEPREC, oEPREC, shape(aEPREC), 'ij',
      &     aWEIGHT, oWEIGHT)
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+      !-- allocate tmp array for trprec
+      allocate(atmp(ntm,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
+
       DO N=1,NTM
-        aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
+        atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
-      call ab_add(lstr, aTRPREC, oTRPREC, shape(aTRPREC), 'lij', 
+      call ab_add(lstr, atmp, oTRPREC, shape(atmp), 'lij', 
      &     aWEIGHT, oWEIGHT )
+      deallocate(atmp)
 #endif
 
       aWEIGHT1(:,:) = aRSI(:,:)   
@@ -251,7 +257,7 @@ c*   polar values are replaced by their longitudinal mean
 
       INTEGER N
 
-      REAL*8, allocatable :: aWEIGHT(:,:)
+      REAL*8, allocatable :: aWEIGHT(:,:),atmp(:,:,:)
 
 
       allocate(aweight(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
@@ -278,10 +284,14 @@ c*   polar values are replaced by their longitudinal mean
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
 
       aWEIGHT(:,:) = 1.- aRSI(:,:)
+      !-- allocate tmp array for trprec
+      allocate(atmp(ntm,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
+
       DO N=1,NTM
-        aTRPREC(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
+        atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
       END DO
-      CALL INT_AG2OG(aTRPREC,oTRPREC, aWEIGHT, NTM)
+      CALL INT_AG2OG(atmp,oTRPREC, aWEIGHT, NTM)
       DO N=1,NTM
         oTRPREC(N,:,:) = oTRPREC(N,:,:)*OXYP(:,:)
       END DO
@@ -291,6 +301,8 @@ c*   polar values are replaced by their longitudinal mean
       DO N=1,NTM
         oTRUNPSI(N,:,:) = oTRUNPSI(N,:,:)*OXYP(:,:)
       END DO
+ 
+      deallocate(atmp)
 #endif
 
       deallocate(aweight)
@@ -1848,7 +1860,7 @@ c*
      &        oDMSItmp(L,2:oIM,oJM) = oDMSItmp(L,1,oJM)
       enddo
       call ab_add(lstr, oDMSItmp, aDMSItmp, shape(oDMSItmp),
-     &     'lij', oWEIGHT, aWEIGHT) 
+     &     'lij', oWEIGHT, aWEIGHT)
 
       oDHSItmp=oDHSI
       do L=1,2
