@@ -4834,6 +4834,7 @@ c
       lname_jl(k) = 'DU/DT BY GRAVITY WAVE MOMENTUM DIFFUSION'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
 c
       k=k+1
@@ -4842,6 +4843,7 @@ c
       lname_jl(k) = 'DU/DT BY VERTICAL DIFFUSION'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
 
 c combination GWDRAG diags
@@ -4851,6 +4853,7 @@ c combination GWDRAG diags
       lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-10R'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
 c
       k = k + 1
@@ -4859,6 +4862,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT. MC DRAG  C=+/-40R'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
 c
       k = k + 1
@@ -4867,6 +4871,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MC DRAG C=+/-20R'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
 c
       k = k + 1
@@ -4875,6 +4880,7 @@ c
       lname_jl(k) = 'ZONAL WIND CHANGE BY MTN+DEFORM+SHR+MC DRAG'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
 
       end if
