@@ -2007,11 +2007,20 @@ C**** Calculate consequential heat/salt flux between layers
 C**** Calculate mass/heat flux between layers L and L+1
         FMSI(L) = SUM(XSI(L+1:LMI))*(MSI2+FMSI2)-SUM(MICE(L+1:LMI))
         IF (FMSI(L).gt.0) THEN  ! downward flux to layer L+1
-          FHSI(L) = HICE(L)*FMSI(L)/MICE(L)
-          FSSI(L) = SICE(L)*FMSI(L)/MICE(L)
+          IF (FMSI(L).gt.MICE(L)) THEN ! exceptional case
+            FHSI(L) = HICE(L)+(FMSI(L)-MICE(L))*HICE(L-1)/MICE(L-1)
+            FSSI(L) = SICE(L)+(FMSI(L)-MICE(L))*SICE(L-1)/MICE(L-1)
 #ifdef TRACERS_WATER
-          FTRSI(:,L) = TRICE(:,L)*FMSI(L)/MICE(L)
+            FTRSI(:,L) = TRICE(:,L)+(FMSI(L)-MICE(L))*TRICE(:,L-2)
+     $           /MICE(L-1)
 #endif
+          ELSE
+            FHSI(L) = HICE(L)*FMSI(L)/MICE(L)
+            FSSI(L) = SICE(L)*FMSI(L)/MICE(L)
+#ifdef TRACERS_WATER
+            FTRSI(:,L) = TRICE(:,L)*FMSI(L)/MICE(L)
+#endif
+          END IF
         ELSE                    ! upward flux
           FHSI(L) = HICE(L+1)*FMSI(L)/MICE(L+1)
           FSSI(L) = SICE(L+1)*FMSI(L)/MICE(L+1)
