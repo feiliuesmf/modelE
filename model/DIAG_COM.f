@@ -66,7 +66,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@param KAIJ number of AIJ diagnostics
       INTEGER, PARAMETER, public :: KAIJ=362
 #ifdef ACCMIP_LIKE_DIAGS
-     &                                   + 4
+     &                                   + 8
 #endif
 
 !@var AIJ latitude/longitude diagnostics
@@ -495,8 +495,8 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
 #ifdef ACCMIP_LIKE_DIAGS
-!@var IJ_fcghg GHG forcing diagnostics (dim 4=CH4,N2O,CFC11,CFC12)
-      INTEGER, public, dimension(4) :: IJ_fcghg
+!@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
+      INTEGER, public, dimension(2,4) :: IJ_fcghg
 #endif
 c weighting fractions
       INTEGER, public ::
