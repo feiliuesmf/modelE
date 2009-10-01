@@ -240,8 +240,8 @@ C-------- special section for ghg runs ---------
           write(6,*)'INITIAL_GHG_SETUP directive from your rundeck'
           write(6,*)' & linking the GHGic file to: ',trim(ghg_file)
           write(6,*)'Address questions to Greg Faluvegi. Thanks.'
-          call stop_model('Normal INITIAL_GHG_SETUP stop.',255)
         endif
+        call stop_model('Normal INITIAL_GHG_SETUP stop.',255)
       endif 
 #endif
 
