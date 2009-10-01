@@ -235,7 +235,7 @@ C**** ASY1(I,JM-1,L), ASY0(I,JM-1,LM1) and ASY3(I,2,L), ASY2(I,2,LM1)??
       END IF
 C**** Diagonal terms of Horizontal fluxes are decoupled
 C**** from downgradients (-ve gradT)  !!!Sign!!!
-      BXX(I,J  ,L) = (AIX2(I,J,L) + AIX0(IM1,J  ,L) +
+      BXX(IM1,J,L) = (AIX2(I,J,L) + AIX0(IM1,J  ,L) +
      *                AIX3(I,J,L) + AIX1(IM1,J  ,L))
       BYY(I,J-1,L) = (AIY2(I,J,L) + AIY0(I  ,J-1,L) +
      *                AIY3(I,J,L) + AIY1(I  ,J-1,L))
@@ -379,7 +379,7 @@ C**** Loop for Fluxes in X-direction
       IF(LMU(IM1,J).lt.L) GO TO 510
 C**** Calculate fluxes
 C**** Diagonal (Includes 1/DXP for gradTX, Not divFX)
-      FXX(IM1,J,L) = (DT4DX * BXX(I,J,L)) * (TR(IM1,J,L) - TR(I,J,L))
+      FXX(IM1,J,L) = (DT4DX * BXX(IM1,J,L)) * (TR(IM1,J,L) - TR(I,J,L))
 C**** Off-diagonal
       IF (QCROSS) THEN
         IF(L.gt.1) FXZ(IM1,J,L) = FXZ(IM1,J,L) +
