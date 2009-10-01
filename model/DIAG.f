@@ -3022,7 +3022,9 @@ c
 
       AIJ_loc(:,:,IJ_TMNMX)=1000. ; IDACC(12)=1
 
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       CALL EPFLXI (U)  ! strat
+#endif
 
   100 Itime0=Itime
       call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jd0,
