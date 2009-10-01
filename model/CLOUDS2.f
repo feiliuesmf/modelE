@@ -4111,6 +4111,7 @@ c ---------------------- apply fluxes ------------------------
         END IF
 #endif
         TM(L,N)    = TM(L,N)  + DTERT - DTWRT - DTQWT - THLAW - THWASH
+        if (TM(L,N).lt.0) TM(L,N)=0.
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT) + DTPRT+DTWRT+THWASH
         IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
         IF (WMX(L).eq.0) TRWML(N,L)=0.       ! remove round off error
