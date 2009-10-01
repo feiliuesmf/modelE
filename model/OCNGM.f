@@ -4,7 +4,7 @@
 !@ver  2009/02/13
       USE CONSTANT, only : radius,omega,grav
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
-     *     ,mo,dypo,dyvo,dxpo             
+     *     ,mo,dypo,dyvo,dxpo,dzo
       USE KPP_COM, only : kpl,kpl_glob   
       USE OCEAN_DYN, only  : dh, vbar   
 
@@ -1237,9 +1237,9 @@ C****
       !REAL*8, DIMENSION(IM,JM,LMO) :: RHO
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: RHO
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
-     *     ,BYTEADY,DH0
+     *     ,BYTEADY,DH0,DZSUMX,DZSUMY
       REAL*8, SAVE :: HUP
-      INTEGER I,J,L,IM1,LAVX,LAVY,LAV,iu_ODIFF
+      INTEGER I,J,L,IM1,LAV,iu_ODIFF
       INTEGER, SAVE :: IFIRST = 1, LUP
       CHARACTER TITLE*80
 
@@ -1361,8 +1361,8 @@ C**** Calculate horizontal gradients
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
       AINV = 0.
       ARIV = 0.
-!$OMP PARALLEL DO  PRIVATE(J,CORI,BETA,IM1,I,ARHO,ARHOX,ARHOY,LAVX,LAVY,
-!$OMP&  LAV,L,ARHOZ,AN,RD,BYTEADY)
+!$OMP PARALLEL DO  PRIVATE(J,CORI,BETA,IM1,I,ARHO,ARHOX,ARHOY,
+!$OMP&  DZSUMX,DZSUMY,LAV,L,ARHOZ,AN,RD,BYTEADY)
       !DO J=2,JM-1
       DO J=J_0S,J_1S
         CORI = ABS(2d0*OMEGA*SINPO(J))
@@ -1374,31 +1374,31 @@ C**** Calculate average density + gradients over [1,LUP]
             ARHO  = 0.
             ARHOX = 0.
             ARHOY = 0.
-            LAVX = 0
-            LAVY = 0
+            DZSUMX = 0.
+            DZSUMY = 0.
             LAV = MIN(LUP,LMM(I,J))
             DO L=1,LAV
               ARHO  = ARHO  + RHO(I,J,L)
               IF(LMU(IM1,J).ge.L) THEN
-                ARHOX = ARHOX + RHOX(IM1,J,L)
-                LAVX = LAVX + 1
+                ARHOX = ARHOX + RHOX(IM1,J,L)*DZO(L)
+                DZSUMX = DZSUMX + DZO(L)
               END IF
               IF(LMU(I  ,J).ge.L) THEN
-                ARHOX = ARHOX + RHOX(I  ,J,L)
-                LAVX = LAVX + 1
+                ARHOX = ARHOX + RHOX(I  ,J,L)*DZO(L)
+                DZSUMX = DZSUMX + DZO(L)
               END IF
               IF(LMV(I,J-1).ge.L) THEN
-                ARHOY = ARHOY + RHOY(I,J-1,L)
-                LAVY = LAVY + 1
+                ARHOY = ARHOY + RHOY(I,J-1,L)*DZO(L)
+                DZSUMY = DZSUMY + DZO(L)
               END IF
               IF(LMV(I,J  ).ge.L) THEN
-                ARHOY = ARHOY + RHOY(I,J  ,L)
-                LAVY = LAVY + 1
+                ARHOY = ARHOY + RHOY(I,J  ,L)*DZO(L)
+                DZSUMY = DZSUMY + DZO(L)
               END IF
             END DO
             ARHO  = ARHO / REAL(LAV,KIND=8)
-            IF (LAVX.gt.0) ARHOX = ARHOX / REAL(LAVX,KIND=8)
-            IF (LAVY.gt.0) ARHOY = ARHOY / REAL(LAVY,KIND=8)
+            IF (DZSUMX.gt.0.) ARHOX = ARHOX / DZSUMX
+            IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
             IF (LAV.gt.1) THEN
               ARHOZ = 2.*(RHO(I,J,LAV)-RHO(I,J,1))/
      *             (ZE(LAV)+ZE(LAV-1)-ZE(1))
@@ -1425,20 +1425,20 @@ C**** North pole
       if ( HAVE_NORTH_POLE ) then
         IF (LMM(1,JM).gt.0) THEN
 C**** Calculate average density + gradients over [1,LUP]
-          ARHO  = 0. ; ARHOY = 0. ;  LAVY = 0
+          ARHO  = 0. ; ARHOY = 0. ;  DZSUMY = 0.
           LAV = MIN(LUP,LMM(1,JM))
           DO L=1,LAV
             ARHO  = ARHO  + RHO(1,JM,L)
             DO I=1,IM
               IF(LMV(I,JM-1).ge.L) THEN
 ! take abs to get a non-directional scale
-                ARHOY = ARHOY + ABS(RHOY(I,JM-1,L))
-                LAVY = LAVY + 1
+                ARHOY = ARHOY + ABS(RHOY(I,JM-1,L))*DZO(L)
+                DZSUMY = DZSUMY + DZO(L)
               END IF
             END DO
           END DO
           ARHO  = ARHO / REAL(LAV,KIND=8)
-          IF (LAVY.gt.0) ARHOY = ARHOY / REAL(LAVY,KIND=8)
+          IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
           IF (LAV.gt.1) THEN
             ARHOZ = 2.*(RHO(1,JM,LAV)-RHO(1,JM,1))/
      *           (ZE(LAV)+ZE(LAV-1)-ZE(1))
