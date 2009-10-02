@@ -118,6 +118,9 @@
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer i, iu_data
 #endif
+#if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
+      real*8 :: atmCO2 = 280.d0
+#endif
 
       INTEGER J_0, J_1, I_0, I_1
 C****
@@ -315,7 +318,7 @@ C**** Define individual tracer characteristics
           ntm_power(n) = -2
           tr_mm(n) = mair
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
       case ('CO2n')
       n_CO2n = n
           ntm_power(n) = -6
@@ -2125,7 +2128,7 @@ C**** Aerosol tracer output should be mass mixing ratio
           to_volume_MixRat(n) = 0    !default output to mass mixing ratio
       end select
 #endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
           to_volume_MixRat(n) = 1    !gas output to volume mixing ratio
 #endif
 #endif /* TRACERS_ON */
@@ -2192,7 +2195,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call closeunit(iu_data)
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
       call sync_param("atmCO2",atmCO2)
 #endif      
 
@@ -7565,7 +7568,10 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE RADPAR, only : xnow
 #endif
 #endif
-
+#if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
+      USE FLUXES, only : gtracer
+      USE RADPAR, only : xnow
+#endif
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
@@ -8201,7 +8207,7 @@ c**** earth
           end do; end do; end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
         case ('CO2n')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              !units: [am]=kg_air/m2, [axyp]=m2, [tr_mm]=kg_CO2,
@@ -8212,12 +8218,13 @@ c**** earth
      .                    * atmCO2*1.d-6
              gtracer(n,1,i,j) = vol2mass(n)
      .                    * atmCO2 * 1.d-6      !initialize gtracer
-             atrac(i,j,n) = gtracer(n,1,i,j)
 #else
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)    
      .                    * xnow(1) * 1.d-6
              gtracer(n,1,i,j) = vol2mass(n)
      .                    * xnow(1) * 1.d-6      !initialize gtracer
+#endif
+#if defined(TRACERS_GASEXCH_ocean_CO2)
              atrac(i,j,n) = gtracer(n,1,i,j)
 #endif
           end do; end do; end do

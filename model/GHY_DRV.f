@@ -380,9 +380,9 @@ c**** prescribed dust emission
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
-#ifdef TRACERS_GASEXCH_land_CO2
-      USE FLUXES, only : TRGASEX
-#endif
+cddd#ifdef TRACERS_GASEXCH_land_CO2
+cddd      USE FLUXES, only : TRGASEX
+cddd#endif
       implicit none
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
@@ -415,8 +415,8 @@ ccc tracers
 #ifdef TRACERS_GASEXCH_land_CO2
       !!! hack - assume 1 tracer
       n = 1
-      TRGASEX(n,4,I,J) =
-     &     (arauto+asoilresp-agpp)/dtsurf
+cddd      TRGASEX(n,4,I,J) =
+cddd     &     (arauto+asoilresp-agpp)/dtsurf
       trsrfflx(i,j,n)=trsrfflx(i,j,n) +
      &     (arauto+asoilresp-agpp)/dtsurf *axyp(i,j)*ptype
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))

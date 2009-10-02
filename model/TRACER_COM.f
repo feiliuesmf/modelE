@@ -28,7 +28,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */
 !@var ntm_gasexch: Number of TRACERS_GASEXCH_ocean tracers.
-#ifdef TRACERS_GASEXCH_ocean
+#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_GASEXCH_land)
       integer, parameter :: ntm_gasexch=1
 #else
       integer, parameter :: ntm_gasexch=0
@@ -255,7 +255,7 @@ C**** do igas=1,ntm_chem instances get corrected.
 #ifdef TRACERS_GASEXCH_ocean_CFC
      *     'CFCn    ',
 #endif  /* TRACERS_GASEXCH_ocean_CFC */
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
      *     'CO2n    ',
 #endif  /* TRACERS_GASEXCH_ocean_CO2 */
 #ifdef TRACERS_SPECIAL_Lerner
