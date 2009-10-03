@@ -293,11 +293,18 @@
       use rad_com, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
            fsrdir,srvissurf,srdn,cfrac,rcld,salb,trsurf
 #ifdef TRACERS_SPECIAL_Shindell
-      use rad_com, only : O3_trac=>O3_tracer_save, rad_to_chem
+      use rad_com, only : chem_trac=>chem_tracer_save, rad_to_chem
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+      use rad_com, only : stratO3_trac=>stratO3_tracer_save
 #endif
 #ifdef TRACERS_DUST
       use rad_com, only : srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
+#ifdef TRACERS_ON
+      use rad_com, only : ttausv_sum,ttausv_sum_cs,ttausv_count
+#endif
+
       use icedyn_com, only : imic,rsix,rsiy,icij
       use icedyn, only : usi,vsi
 
@@ -336,7 +343,7 @@
 
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3 &
-       ,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,corrOx,JPPJ
+       ,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ
 #ifdef SHINDELL_STRAT_CHEM
       use TRCHEM_Shindell_COM, only: &
        SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
@@ -552,13 +559,21 @@
         check("trsurf",trsurf)
 #ifdef TRACERS_SPECIAL_Shindell
         check("rad_to_chem",rad_to_chem)
-        check("O3_trac",O3_trac)
+        check("chem_trac",chem_trac)
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+        check("stratO3_trac",stratO3_trac)
 #endif
 #ifdef TRACERS_DUST
         check("srnflb_save",srnflb_save)
         check("trnflb_save",trnflb_save)
         check("ttausv_save",ttausv_save)
         check("ttausv_cs_save",ttausv_cs_save)
+#endif
+#ifdef TRACERS_ON
+        check("ttausv_sum",ttausv_sum)
+        check("ttausv_sum_cs",ttausv_sum_cs)
+        checks("ttausv_count",ttausv_count)
 #endif
         ! icedyn
         if(imic.gt.0) then
@@ -646,7 +661,6 @@
         check("yAldehyde",yAldehyde)
         check("yXO2N",yXO2N)
         check("yRXPAR",yRXPAR)
-        check("corrOx",corrOx)
         check("ss",ss)
 #  ifdef SHINDELL_STRAT_CHEM
         check("SF3",SF3)
