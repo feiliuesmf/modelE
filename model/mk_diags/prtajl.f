@@ -101,7 +101,9 @@ c
         status = nf_get_att_text(fid,varid,'long_name',lname)
         prtpow = 0
         status = nf_get_att_int(fid,varid,'prtpow',prtpow)
+        xjl_hemis = missing
         status = nf_get_var_real(fid,varid_hemis,xjl_hemis)
+        vmean = missing
         status = nf_get_var_real(fid,varid_vmean,vmean)
         status = nf_get_var_real(fid,varid,xjl)
 
