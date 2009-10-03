@@ -51,10 +51,10 @@ C****
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN,REFDRY
+     *     ,rcomp1, writer, writet
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
-      USE RADPAR, only : rcomp1, writer, writet
       USE RAD_COM, only : s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,sinj,cosj,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult
@@ -790,6 +790,7 @@ c      USE ATMDYN, only : CALC_AMPK
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
+     &          ,writer,rcompx,updghg
 C     INPUT DATA         ! not (i,j) dependent
      X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
      &          ,use_tracer_chem,FS8OPX,FT8OPX
@@ -816,7 +817,6 @@ C     OUTPUT DATA
      &          ,SRXNIR,SRDNIR
      &          ,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD
 cdmk last line saved for IE
-      USE RADPAR, only : writer,rcompx,updghg
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx

@@ -853,7 +853,8 @@ c****
      &     soil_surf_moist
 #ifndef USE_ENT
       use vegetation, only :
-     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm !ia
+     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
+     &    t_vegcell
 #endif
       use pbl_drv, only : pbl, t_pbl_args
 
@@ -889,9 +890,6 @@ c****
      &     ,hsn_ij,fr_snow_ij,shc_soil_texture
 #ifdef USE_ENT
      &     ,Qf_ij
-#endif
-#ifndef USE_ENT
-      use vegetation, only : t_vegcell
 #endif
 #ifdef TRACERS_ON
 !!! need for Ca hack
