@@ -576,6 +576,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var Jacet photolysis rate for acetone (not done through fastj)
 !@var acetone 3D acetone mixing ratio (static for now)
 !@var pscX column logical for the existance of polar strat clouds(PSCs)
+!@var L1Ox_acc accumulated Level 1 ozone (Ox) (special for SUBDD)
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,NW1,NW2,MIEDX,NAA,npdep,nss,NWWW,NK,nlbatm,NCFASTJ
@@ -618,6 +619,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 #ifdef SHINDELL_STRAT_CHEM
      &                                       ,N2OICIN,CFCICIN
 #endif
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: L1Ox_acc 
 
 C**************  Not Latitude-Dependant ****************************      
       REAL*8 :: ZFLUX,ZREFL,ZU0,U0,RFLECT,odsum,XLTAU,TANHT,BYFJM,
@@ -735,7 +737,7 @@ C**************  Not Latitude-Dependant ****************************
 !@ver  1.0
       use domain_decomp_atm, only : dist_grid, get
       use model_com, only     : im,lm
-      use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
+      use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,L1Ox_acc,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
      & COICIN,OxICIN,CH4ICIN,JPPJ,LCOalt,acetone,mNO2
@@ -783,7 +785,8 @@ C**************  Not Latitude-Dependant ****************************
       allocate(      OxICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(      COICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(     CH4ICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(       DU_O3(J_0H:J_1H)            )
+      allocate(    L1Ox_acc(I_0H:I_1H,J_0H:J_1H)         )
+      allocate(       DU_O3(J_0H:J_1H)                   )
 #ifdef SHINDELL_STRAT_CHEM
       allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        pClx(I_0H:I_1H,J_0H:J_1H,LM)      )

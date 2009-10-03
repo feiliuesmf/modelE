@@ -1199,6 +1199,9 @@ C****
      &     ,dowetdep, trw0
 #endif
 #endif /* SKIP_TRACER_DIAGS */
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only : L1Ox_acc
+#endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
 #endif
@@ -1294,6 +1297,9 @@ C**** initialise special subdd accumulation
       TRP_acc=0.
       TRE_acc=0.
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      L1Ox_acc=0.
+#endif
       return
       end subroutine init_subdd
 
@@ -1372,7 +1378,7 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD)
-!@+   Note that TMIN, TMAX, AOD can only be output once a day
+!@+   Note that TMIN,TMAX,{ ,c,t,ct}AOD can only be output once a day
 !@+   If there is a choice between outputting pressure levels or
 !@+   model levels, use lower case for the model levels:
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
@@ -1386,6 +1392,7 @@ C****
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
 !@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl) 
+!@+                    oAVG (L=1 Ox time-average)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR
@@ -1397,6 +1404,8 @@ C****
 !@+                    DUEMIS,DUDEPTURB,DUDEPGRAV,DUDEPWET,DUTRS,DULOAD
 !@+                    DUEMIS2
 !@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
+!@+                    tAOD aer opt dep (sum 1,NTRACE) daily avg
+!@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
 !@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
@@ -1434,17 +1443,15 @@ C****
      &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : mNO2
+      USE TRCHEM_Shindell_COM, only : mNO2,L1Ox_acc
 #endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
       USE LAKES_COM, only : flake
       USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srdn,salb,cfrac,cosz1
-#ifdef HTAP_LIKE_DIAGS
-     & ,ttausv_sum,ttausv_count,ntrix
-#endif
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON
+     & ,ttausv_sum,ttausv_sum_cs,ttausv_count,ntrix
       USE RADPAR, only : NTRACE
 #endif
       USE DIAG_COM, only : z_inst,rh_inst,t_inst,kgz_max,pmname,tdiurn
@@ -1614,6 +1621,11 @@ c          data=sday*prec/dtsrc
         case ("RAPR")   !running avg precip (mm/day)
           data=sday*raP_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
           raP_acc=0.
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+        case ("oAVG")   ! Nsubdd-step average L=1 Ox tracer (ppmv)
+          data=L1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+          L1Ox_acc=0.
 #endif
         case ("MCP")       ! moist conv precip (mm/day)
           data=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
@@ -2176,21 +2188,43 @@ C**** cases using all levels up to LmaxSUBDD
           end do
           cycle
 
-#ifdef HTAP_LIKE_DIAGS
-C**** for AOD multiple tracers are written to one file
-          case ('AOD') ! aerosol optical depths daily average
+#ifdef TRACERS_ON
+C**** for (c)AOD multiple tracers are written to one file:
+          case ('AOD','cAOD')!aerosol opt dep daily avg (all/clear sky)
             kunit=kunit+1
             if(mod(itime+1,Nday).ne.0) cycle ! only at end of day
             if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
             do n=1,NTRACE
               if(ntrix(n) > 0)then
-                data=ttausv_sum(:,:,n)/ttausv_count
+                select case(namedd(k))
+                  case('AOD') ; data=ttausv_sum(:,:,n)/ttausv_count
+                  case('cAOD'); data=ttausv_sum_cs(:,:,n)/ttausv_count
+                end select
                 polefix=.true.
                 call write_data(data,kunit,polefix)
               endif
             enddo
             cycle
+C**** for (c)tAOD sum over tracers is used:
+          case ('tAOD','ctAOD')!tot aero(+dust,etc) opt dep, daily avg
+            kunit=kunit+1
+            if(mod(itime+1,Nday).ne.0) cycle ! only at end of day
+            if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
+            data=0.
+            do n=1,NTRACE
+              if(ntrix(n)>0)then
+                select case(namedd(k))
+                  case('tAOD') ; data=data+ttausv_sum(:,:,n)
+                  case('ctAOD'); data=data+ttausv_sum_cs(:,:,n)
+                end select
+              endif
+            enddo
+            data=data/ttausv_count
+            polefix=.true.
+            call write_data(data,kunit,polefix)
+            cycle
 #endif
+
 C**** Write land,lake,ocean,and ice fractions to one file
 C**** Possbily will remove at some point, since kinda
 C**** overkill, but useful now for EPA down-scaling:
@@ -3048,7 +3082,7 @@ c
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON
       USE RAD_COM, only:  ttausv_sum,ttausv_count
 #endif
       IMPLICIT NONE
@@ -3138,12 +3172,12 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
                TSFREZ(I,J,TF_DAY1)=365.
                TSFREZ(I,J,TF_LAST)=365.
             END IF
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON
             ttausv_sum(I,J,:)=0.d0
 #endif
          END DO
       END DO
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON
       ttausv_count=0.d0
 #endif
       END SUBROUTINE daily_DIAG
