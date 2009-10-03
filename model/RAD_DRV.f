@@ -830,8 +830,8 @@ cdmk last line saved for IE
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
-#ifdef HTAP_LIKE_DIAGS
-     &     ,ttausv_sum,ttausv_count
+#ifdef TRACERS_ON     
+     &     ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
      &     ,stratO3_tracer_save
@@ -955,6 +955,8 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       integer, dimension(4) :: nfghg=(/7,6,8,9/)
 #endif
 #ifdef TRACERS_ON
+!@var StauL sum of ttausv over L
+      real*8 :: StauL
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
       REAL*8,DIMENSION(2,NTRACE,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -1227,7 +1229,7 @@ C**** SS clouds are considered as a block for each continuous cloud
 
       end if                    ! kradia le 0
 
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON     
       ttausv_count=ttausv_count+1.d0
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
@@ -1965,12 +1967,15 @@ C**** Save optical depth diags
       end do
 #endif
 
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON     
 ! this to accumulate daily SUM of optical thickness for
 ! each active tracer. Will become average in DIAG.f.
       do n=1,NTRACE
-        if(ntrix(n) > 0) ttausv_sum(i,j,n)=
-     &  ttausv_sum(i,j,n) + sum(ttausv(1:LM,n))
+        if(ntrix(n) > 0) then
+          StauL=sum(ttausv(1:LM,n))
+          ttausv_sum(i,j,n)=ttausv_sum(i,j,n)+StauL
+          ttausv_sum_cs(i,j,n)=ttausv_sum_cs(i,j,n)+StauL*OPNSKY
+        endif
       enddo
 #endif
 

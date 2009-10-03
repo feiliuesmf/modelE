@@ -81,9 +81,9 @@ C**** does not produce exactly the same as the default values.
 !@var ttausv_cs_save  Tracer optical thickness clear sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_save,
      &     ttausv_cs_save
-#ifdef HTAP_LIKE_DIAGS
-!@var ttausv_sum daily sum opt depth by tracer
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum
+#ifdef TRACERS_ON     
+!@var ttausv_sum(_cs) daily sum opt depth by tracer, all (clear) sky
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum,ttausv_sum_cs
       real*8 :: ttausv_count = 0.d0
 #endif
 !@var CFRAC Total cloud fraction as seen be radiation
@@ -253,8 +253,8 @@ C**** Local variables initialised in init_RAD
 #if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
      *     ,wfac
 #endif
-#ifdef HTAP_LIKE_DIAGS
-     *     ,ttausv_sum,ttausv_count
+#ifdef TRACERS_ON     
+     *     ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
      &     ,JM_DH2O
@@ -307,9 +307,8 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      &     ttausv_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
      &     ttausv_cs_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
-#endif
-#ifdef HTAP_LIKE_DIAGS
      &     ttausv_sum(I_0H:I_1H,J_0H:J_1H,Ntm),
+     &     ttausv_sum_cs(I_0H:I_1H,J_0H:J_1H,Ntm),
 #endif
 #ifdef CHL_from_SeaWIFs
      &         ACHL(I_0H:I_1H,J_0H:J_1H),
@@ -384,9 +383,8 @@ C**** Local variables initialised in init_RAD
 #endif
       REAL*8,DIMENSION(:,:,:,:), allocatable :: ! (Im,Jm,Ntm,Lm)
      &     ttausv_save_glob,ttausv_cs_save_glob
-#endif
-#ifdef HTAP_LIKE_DIAGS
-      REAL*8,DIMENSION(:,:,:), allocatable :: ttausv_sum_glob!(Im,Jm,Ntm)
+      REAL*8,DIMENSION(:,:,:), allocatable ::   !(Im,Jm,Ntm)
+     &     ttausv_sum_glob,ttausv_sum_cs_glob
 #endif
       INTEGER :: J_0,J_1
 
@@ -423,10 +421,10 @@ C**** Local variables initialised in init_RAD
 #endif
         allocate(ttausv_save_glob(Im,Jm,Ntm,Lm))
         allocate(ttausv_cs_save_glob(Im,Jm,Ntm,Lm))
-#endif
-#ifdef HTAP_LIKE_DIAGS
         allocate(ttausv_sum_glob(Im,Jm,Ntm))
+        allocate(ttausv_sum_cs_glob(Im,Jm,Ntm))
 #endif
+
       endif ! am_i_root
 
       if (kradia.gt.0) then
@@ -496,9 +494,8 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
         CALL PACK_DATA(grid,ttausv_save,ttausv_save_glob)
         CALL PACK_DATA(grid,ttausv_cs_save,ttausv_cs_save_glob)
-#endif
-#ifdef HTAP_LIKE_DIAGS
         CALL PACK_DATA(grid,ttausv_sum,ttausv_sum_glob)
+        CALL PACK_DATA(grid,ttausv_sum_cs,ttausv_sum_cs_glob)
 #endif
 
         IF (AM_I_ROOT())
@@ -518,8 +515,8 @@ C**** Local variables initialised in init_RAD
      &      ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
      &      ,ttausv_cs_save_glob
 #endif
-#ifdef HTAP_LIKE_DIAGS
-     &      ,ttausv_sum_glob,ttausv_count
+#ifdef TRACERS_ON      
+     &      ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
 #endif
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
@@ -542,8 +539,8 @@ C**** Local variables initialised in init_RAD
      &       ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
      &       ,ttausv_cs_save_glob
 #endif
-#ifdef HTAP_LIKE_DIAGS
-     &       ,ttausv_sum_glob,ttausv_count
+#ifdef TRACERS_ON      
+     &       ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
 #endif
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,
@@ -552,7 +549,7 @@ C**** Local variables initialised in init_RAD
             END IF
           end if
 
-#ifdef HTAP_LIKE_DIAGS
+#ifdef TRACERS_ON      
           CALL ESMF_BCAST(grid, ttausv_count)
 #endif
           CALL ESMF_BCAST(grid, S0)
@@ -589,9 +586,8 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
           CALL UNPACK_DATA(grid,ttausv_save_glob,ttausv_save)
           CALL UNPACK_DATA(grid,ttausv_cs_save_glob,ttausv_cs_save)
-#endif
-#ifdef HTAP_LIKE_DIAGS
           CALL UNPACK_DATA(grid,ttausv_sum_glob,ttausv_sum)
+          CALL UNPACK_DATA(grid,ttausv_sum_cs_glob,ttausv_sum_cs)
 #endif
 
 
@@ -644,9 +640,8 @@ C**** Local variables initialised in init_RAD
 #endif
         deallocate(ttausv_save_glob)
         deallocate(ttausv_cs_save_glob)
-#endif
-#ifdef HTAP_LIKE_DIAGS
         deallocate(ttausv_sum_glob)
+        deallocate(ttausv_sum_cs_glob)
 #endif
       endif
       end subroutine freemem
@@ -700,10 +695,10 @@ C**** Local variables initialised in init_RAD
      &     'ttausv_save(dist_im,dist_jm,ntm,lm)')
       call defvar(grid,fid,ttausv_cs_save,
      &     'ttausv_cs_save(dist_im,dist_jm,ntm,lm)')
-#endif
-#ifdef HTAP_LIKE_DIAGS
       call defvar(grid,fid,ttausv_sum,
      &     'ttausv_sum(dist_im,dist_jm,ntm)')
+      call defvar(grid,fid,ttausv_sum_cs,
+     &     'ttausv_sum_cs(dist_im,dist_jm,ntm)')
       call defvar(grid,fid,ttausv_count,'ttausv_count')
 #endif
       return
@@ -760,10 +755,9 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'ttausv_save',ttausv_save)
         call write_dist_data(grid,fid,'ttausv_cs_save',
      &       ttausv_cs_save)
-#endif
-#ifdef HTAP_LIKE_DIAGS
         call write_data(grid, fid,'ttausv_count',ttausv_count)
         call write_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
+        call write_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
 #endif
       case (ioread)
         call read_data(grid, fid,'s0', s0, bcast_all=.true.)
@@ -800,11 +794,10 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'ttausv_save',ttausv_save)
         call read_dist_data(grid,fid,'ttausv_cs_save',
      &       ttausv_cs_save)
-#endif
-#ifdef HTAP_LIKE_DIAGS
         call read_data(grid, fid,'ttausv_count',ttausv_count,
      &       bcast_all=.true.)
         call read_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
+        call read_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
 #endif
       end select
       return
