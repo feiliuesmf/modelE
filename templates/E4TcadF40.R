@@ -430,6 +430,7 @@ NIsurf=1        ! increase as layer 1 gets thinner
 Ndisk=960
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
+Nssw=2   ! 'til diurnal diags fixed,has to be even ; best to set=NSUBDD if not 0
 KCOPY=2         ! saving acc + rsf
 isccp_diags=0   ! use =0 to save cpu time, but you lose some key diagnostics
 nda5d=13        ! use =1 to get more accurate energy cons. diag (increases CPU time)
@@ -437,7 +438,6 @@ nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU t
 ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
-Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
 
 !-----------------------------------------------
 !  Start tracer code parameters:
