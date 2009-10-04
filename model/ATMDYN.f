@@ -110,7 +110,7 @@ C     CALL DYNAM (UX,VX,TX,PX,Q,U,V,T,P,Q,DTFS)
       CALL CALC_PIJL(LM,P,PIJL)
       CALL AFLUX (U,V,PIJL)
       CALL ADVECM (P,PB,DTFS)
-      CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS)   ! strat
+      CALL GWDRAG (PB,UX,VX,U,V,T,TZ,DTFS,.true.)   ! strat
 #ifdef NUDGE_ON
       CALL NUDGE (UX,VX,DTFS)
 #endif
@@ -128,7 +128,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,UX,VX,TX,PX,Q,DT)
 #ifdef NUDGE_ON
       CALL NUDGE  (UT,VT,DT)
 #endif
-      CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT)   ! strat
+      CALL GWDRAG (PA,UT,VT,UX,VX,T,TZ,DT,.false.)   ! strat
       CALL VDIFF (PA,UT,VT,UX,VX,T,DT)       ! strat
       CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
@@ -145,7 +145,7 @@ C     CALL DYNAM (UT,VT,TT,PT,QT,U,V,T,P,Q,DTLF)
 #ifdef NUDGE_ON
       CALL NUDGE  (UT,VT,DTLF)
 #endif
-      CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF)   ! strat
+      CALL GWDRAG (PB,UT,VT,U,V,T,TZ,DTLF,.false.)   ! strat
       CALL VDIFF (PB,UT,VT,U,V,T,DTLF)       ! strat
       CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
@@ -163,7 +163,7 @@ C     CALL DYNAM (U,V,T,P,Q,UT,VT,TT,PT,QT,DTLF)
 #ifdef NUDGE_ON
       CALL NUDGE  (U,V,DTLF)
 #endif
-      CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF)   ! strat
+      CALL GWDRAG (P,U,V,UT,VT,T,TZ,DTLF,.false.)   ! strat
       CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
          MODDA=MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
