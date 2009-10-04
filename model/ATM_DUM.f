@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       SUBROUTINE conserv_AM(AM)
       USE DOMAIN_DECOMP_ATM, only : GRID
       IMPLICIT NONE
@@ -421,3 +423,259 @@ c
 
       return
       end subroutine sdrag
+
+#ifdef CALC_GWDRAG
+
+      SUBROUTINE GWDRAG
+      USE CONSTANT, only : omega,grav,sha,kapa,rgas,radius
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
+      USE MODEL_COM, only : lm,zatmo,dtsrc,p,t,u,v
+      USE DYNAMICS, only : ualij,valij,pk
+      USE SOMTQ_COM, only : tmom,mz
+      USE CLOUDS_COM,       ONLY : AIRX,LMC   
+      USE STRAT,            ONLY : GWDCOL, NM, ZVARX,ZVARY,ZWT,DEFRM   
+     *     ,QGWCNV,EK_globavg,dfm_type,ldef
+     *     ,pbreaktop,defthresh,pconpen,ang_gwd
+      USE STRAT, only : PL,PLE,TL,THL,RHO,BVF,DL,DUT,DVT,UL,VL,
+     &     DP, DTIME, BYDTIME, CORIOL, AIRXS,
+     &     UR, WT, CN, USRC, DUSDIF, MU_TOP, DUGWD, FLXUDM,    
+     &     LDRAG, LMC0, LMC1,
+     &     MU_INC, EK,
+     &     RANMTN_CELL=>RANMTN,
+     &     DEFRM_CELL,ZVARX_CELL,ZVARY_CELL,ZWT_CELL,ZATMO_CELL,
+     &     XLIMIT
+      USE GEOM, only : axyp,sinlat2d
+      USE DIAG_COM, only : aij=>aij_loc
+     *     ,jl_gwfirst,jl_dudtsdif,jl_sdifcoef
+     *     ,ij_gw1,ij_gw2,ij_gw3,ij_gw4,ij_gw5
+     *     ,ij_gw6,ij_gw7,ij_gw8,ij_gw9
+      USE RANDOM
+      use cs2ll_utils, only : uv_derivs_cs_agrid
+      use FV_StateMod, only : INTERP_AGRID_TO_DGRID
+      IMPLICIT NONE
+      REAL*8, DIMENSION(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,LM) :: DUA,DVA ! no halo!
+      REAL*8, DIMENSION(GRID%I_STRT:GRID%I_STOP,   ! extra j for interp
+     &                  GRID%J_STRT:GRID%J_STOP+1,LM) :: DUD
+      REAL*8, DIMENSION(GRID%I_STRT:GRID%I_STOP+1, ! extra i for interp
+     &                  GRID%J_STRT:GRID%J_STOP,LM) :: DVD
+      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     RANMTN,ULDEF,VLDEF
+      REAL*8, DIMENSION(LM) :: P00,AML
+      INTEGER I,J,L,N,LTOP
+      REAL*8 BVFSQ,ANGM,DPT,DUANG,XY
+      integer lmax_angm(nm),lp10,lp2040,lpshr
+C
+      INTEGER :: I_0,I_1, J_0,J_1
+      integer :: nij_before_j0,nij_after_j1,nij_after_i1 ! funcs
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
+
+      BYDTIME = 1./DTsrc
+      DTIME = DTsrc
+      EK(:) = EK_globavg ! for now, no horizontal variation
+      xlimit = .1d0
+
+c
+c recalculate A-grid winds
+c
+      call recalc_agrid_uv
+
+C****
+C**** DEFORMATION
+C****
+      do j=j_0,j_1
+        do i=i_0,i_1
+          uldef(i,j) = ualij(ldef,i,j)
+          vldef(i,j) = valij(ldef,i,j)
+        enddo
+      enddo
+      call uv_derivs_cs_agrid(grid,dfm_type,uldef,vldef,deform=defrm)
+      defrm = defrm/radius ! move division by radius to cs2ll_utils
+
+c
+c Set Random numbers for Mountain Drag intermittency
+c
+      CALL BURN_RANDOM(nij_before_j0(J_0))
+      DO J=J_0,J_1
+        CALL BURN_RANDOM((I_0-1))
+        DO I=I_0,I_1
+          RANMTN(I,J) = RANDU(XY)
+        ENDDO
+        CALL BURN_RANDOM(nij_after_i1(I_1))
+      ENDDO
+      CALL BURN_RANDOM((nij_after_j1(J_1)))
+
+      DO L=1,LM
+        DUA(:,:,L)=0.
+        DVA(:,:,L)=0.
+      ENDDO
+
+C****
+C**** LOOP OVER I,J
+C****
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+
+      CN(:)=0.
+      CORIOL=2.*omega*abs(sinlat2d(i,j))
+
+C****
+C**** CALCULATE 1D ARRAYS
+C****
+      CALL CALC_VERT_AMP(P(I,J),LM,P00,AML,DP,PLE,PL)
+      DO L=1,LM
+        TL(L)=PK(L,I,J)*T(I,J,L)
+        THL(L)=T(I,J,L)
+        RHO(L)=PL(L)/(RGAS*TL(L))
+        BVFSQ=2.*TMOM(MZ,I,J,L)/(DP(L)*THL(L))*GRAV*GRAV*RHO(L)
+        IF (PL(L).GE..4d0) THEN
+          BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
+        ELSE
+          BVF(L)=SQRT(MAX(BVFSQ,1.d-4))
+        ENDIF
+        DL(L)=0.
+        DUT(L)=0.
+        DVT(L)=0.
+        UL(L)=UALIJ(L,I,J)
+        VL(L)=VALIJ(L,I,J)
+      ENDDO
+C**** Levels for angular momentum restoration
+      do l=lm,1,-1
+        if (pl(l).lt.500.) lp10 = l
+        if (pl(l).lt.400.) lp2040 = l
+        if (pl(l).lt.200.) lpshr = l
+      enddo
+      if (pl(lpshr)-ple(lpshr-1).lt.pl(lpshr)-200.) lpshr=lpshr-1
+      if (pl(lp2040)-ple(lp2040-1).lt.pl(lp2040)-400.) lp2040=lp2040-1
+      if (pl(lp10)-ple(lp10-1).lt.pl(lp10)-500.) lp10=lp10-1
+      lmax_angm(1) = lpshr  !Mountain
+      lmax_angm(9) = lpshr  !Deformation
+      lmax_angm(2) = lpshr  !Shear
+      lmax_angm(3) = lp10
+      lmax_angm(4) = lp10
+      lmax_angm(5) = lp2040
+      lmax_angm(6) = lp2040
+      lmax_angm(7) = lp2040
+      lmax_angm(8) = lp2040
+C 
+      RANMTN_CELL = RANMTN(I,J) 
+      ZVARX_CELL  = ZVARX(I,J) 
+      ZVARY_CELL  = ZVARY(I,J) 
+      ZWT_CELL    = ZWT(I,J) 
+      ZATMO_CELL  = ZATMO(I,J) 
+      DEFRM_CELL  = DEFRM(I,J) 
+C 
+      AIRXS = 0.0 
+      LMC0  = 0 
+      LMC1  = 0 
+      IF(QGWCNV.EQ.1) THEN
+        AIRXS=AIRX(I,J)/AXYP(I,J)
+        IF (AIRXS.GT.0.)  THEN
+          LMC0=LMC(1,I,J)
+          LMC1=LMC(2,I,J)
+        ENDIF 
+      ENDIF 
+
+c
+c     Call the column GWD routine
+c 
+      CALL GWDCOL
+
+      IF (LDRAG.LE.LM) THEN
+
+C**** AM conservation
+      if (ang_gwd.gt.0) then    ! add in ang mom
+        DO N=1,NM
+          ANGM = 0.
+          DO L=LDRAG-1,LM
+            ANGM = ANGM - DUGWD(L,N)*DP(L)
+          ENDDO
+          DPT=0
+          DO L=1,LMAX_ANGM(N)
+            DPT=DPT+DP(L)
+          ENDDO
+          DUANG = ANGM/DPT
+          DO L=1,LMAX_ANGM(N)
+             DUT(L) = DUT(L) + DUANG
+          ENDDO
+        ENDDO
+      endif
+
+C****
+C**** Store the U and V increments
+C****
+      DO L=1,LM ! LDRAG-1,LM?
+        DUA(I,J,L)=DUT(L)
+        DVA(I,J,L)=DVT(L)
+      ENDDO
+
+c
+c     UPDATE DIAGNOSTICS
+c
+      AIJ(I,J,IJ_GW1)=AIJ(I,J,IJ_GW1)+MU_INC(9)*UR(9)
+      AIJ(I,J,IJ_GW2)=AIJ(I,J,IJ_GW2)+MU_INC(1)*UR(1)  *WT(1)
+      AIJ(I,J,IJ_GW3)=AIJ(I,J,IJ_GW3)+MU_INC(2)*UR(2)
+      AIJ(I,J,IJ_GW4)=AIJ(I,J,IJ_GW4)+MU_INC(3)*UR(3)  *WT(3)
+      AIJ(I,J,IJ_GW5)=AIJ(I,J,IJ_GW5)+MU_INC(7)*UR(7)  *WT(7)
+      AIJ(I,J,IJ_GW6)=AIJ(I,J,IJ_GW6)+MU_INC(5)*UR(5)  *WT(5)
+      AIJ(I,J,IJ_GW7)=AIJ(I,J,IJ_GW7)+CN(2)*UR(2)
+      AIJ(I,J,IJ_GW8)=AIJ(I,J,IJ_GW8)+USRC
+      DO N=1,NM 
+        AIJ(I,J,IJ_GW9)=AIJ(I,J,IJ_GW9)+MU_TOP(N) 
+      ENDDO 
+
+      DO N=1,NM 
+        DO L=1,LM 
+          call inc_ajl(i,j,l,N+JL_gwFirst-1,DUGWD(L,N))
+        ENDDO 
+      ENDDO 
+
+      DO L=LDRAG-1,LM
+        call inc_ajl(i,j,l-1,JL_DUDTSDIF,DUSDIF(L))
+        call inc_ajl(i,j,l-1,JL_SDIFCOEF,DL(L)/(BVF(L)*BVF(L)))
+      ENDDO
+
+      ENDIF ! LDRAG.LE.LM
+      ENDDO ! END OF LOOP OVER I
+      ENDDO ! END OF LOOP OVER J
+
+c
+c Interpolate wind increments to the D grid
+c
+      call interp_agrid_to_dgrid(dua,dva, dud,dvd)
+
+c
+c Update D-grid winds
+c
+      do l=1,lm
+        do j=j_0,j_1
+          do i=i_0,i_1
+            u(i,j,l) = u(i,j,l) + dud(i,j,l)
+            v(i,j,l) = v(i,j,l) + dvd(i,j,l)
+          enddo
+        enddo
+      enddo
+
+C**** conservation diagnostic
+c      CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
+
+      RETURN
+      END SUBROUTINE GWDRAG
+
+#else
+
+c      SUBROUTINE DUMMY_STRAT
+c!@sum DUMMY dummy routines for non-stratospheric models
+cC**** Dummy routines in place of STRATDYN
+c      ENTRY init_GWDRAG
+c      ENTRY GWDRAG
+c      ENTRY VDIFF
+c      ENTRY alloc_strat_com
+c      RETURN
+c      END SUBROUTINE DUMMY_STRAT
+
+#endif
