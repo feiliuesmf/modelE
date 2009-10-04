@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
 !@sum  STRATDYN stratospheric only routines
-!@auth Bob Suozzo/Jean Lerner/Gavin Schmidt/Maxwell Kelley
+!@auth Bob Suozzo/Jean Lerner/Gavin Schmidt/Jeff Jonas/Maxwell Kelley
 !@ver  1.0
 
 C**** TO DO:
