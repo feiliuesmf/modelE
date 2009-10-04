@@ -438,7 +438,7 @@ c
      *     ,pbreaktop,defthresh,pconpen,ang_gwd
       USE STRAT, only : PL,PLE,TL,THL,RHO,BVF,DL,DUT,DVT,UL,VL,
      &     DP, DTIME, BYDTIME, CORIOL, AIRXS,
-     &     UR, WT, CN, USRC, DUSDIF, MU_TOP, DUGWD, FLXUDM,    
+     &     UR, WT, CN, USRC, DUSDIF, MU_TOP, DUGWD,
      &     LDRAG, LMC0, LMC1,
      &     MU_INC, EK,
      &     RANMTN_CELL=>RANMTN,
