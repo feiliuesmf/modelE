@@ -1,7 +1,7 @@
 #makefile for the component Ent
 .SUFFIXES:
 
-SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL
+SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL RAD_MODEL
 
 FSRCS = 
 F90SRCS = 
@@ -33,7 +33,12 @@ else
 endif
 
 ifeq ($(PS_MODEL),FBB)
-  FSRCS += FBBphotosynthesis.f  canopyspitters.f 
+  FSRCS += FBBphotosynthesis.f
+  ifeq ($(RAD_MODEL),GORT)
+    FSRCS += canopygort.f
+  else
+    FSRCS += canopyspitters.f
+  endif
   ifeq ($(PFT_MODEL),ENT)
     ifeq ($(FLUXNET),YES)
       FSRCS += FBBpfts_ENT_FLUXNET.f
