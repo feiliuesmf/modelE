@@ -102,7 +102,7 @@ C SCM DATA as provided from ARM variational analysis
       
       INTEGER MCT
 
-      parameter (MCT=1200)
+      parameter (MCT=1500)
 
       REAL*8 HTA_HR(LM,MCT)    
       REAL*8 VSA_HR(LM,MCT)
