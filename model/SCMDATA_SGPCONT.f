@@ -44,7 +44,7 @@ C-------------------------------------------------------------------------------
       endif
       NARM = 2                        ! for 30 min time steps from hourly input 
       TAUARM = 0                      ! not used for now 
-      NRINIT = 0                      ! when to reinitialize t,q profiles to data
+      NRINIT = 48                     ! when to reinitialize t,q profiles to data
       IKT = 1                         ! index to data
  
       write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
@@ -1470,14 +1470,14 @@ c            write(iu_scm_prt,736) totpg,sumgth
 c            write(iu_scm_prt,737) totpg,sumgsv
 737          format(1x,'totpg sumgsv ',f10.2,f12.5)
 c                         
-             write(iu_scm_prt,1205) ihr
- 1205        format(/1x,'IHR ',i4)
-             do L = 1,LM
-                write(iu_scm_prt,1210) L,SG_P(L),THR(L,ihr),
-     +            QHR(L,ihr)*1000.0,HTA_HR(L,ihr),VSA_HR(L,ihr) 
- 1210           format(1x,'SCM P T Q HTA VSA',
-     &                   i3,f8.2,f8.2,f10.5,F12.7,f12.7)
-             enddo
+c            write(iu_scm_prt,1205) ihr
+c1205        format(/1x,'IHR ',i4)
+c            do L = 1,LM
+c               write(iu_scm_prt,1210) L,SG_P(L),THR(L,ihr),
+c    +            QHR(L,ihr)*1000.0,HTA_HR(L,ihr),VSA_HR(L,ihr) 
+c1210           format(1x,'SCM P T Q HTA VSA',
+c    &                   i3,f8.2,f8.2,f10.5,F12.7,f12.7)
+c            enddo
          endif
       enddo        
 
