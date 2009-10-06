@@ -67,11 +67,18 @@ c
       subroutine lon_avg(arr,IM)
 !@sum longitudinal average
       implicit none
-      real*8 :: arr(1:IM),asum
-      integer :: IM
+      real*8 :: arr(1:IM),asum,number
+      integer :: IM,i
 
-      asum=sum(arr)
-      arr(:)=asum/real(IM)
+      asum=0.
+      number=0.
+
+      do i=1,IM
+         if (arr(i) .eq. 0.) cycle
+         number=number+1.
+         asum=asum+arr(i)
+      enddo
+      if (number .ne. 0.) arr(:)=asum/number
 
       end subroutine lon_avg
 
