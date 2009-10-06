@@ -579,7 +579,7 @@ C**** South pole
         WEIGHT = 0
         VALUE  = 0
         Do I=1,IMB
-          If (DATMIS /= 0. .and. B(I,JMB) == DATMIS) cycle
+          If (DATMIS /= 0. .and. B(I,1) == DATMIS) cycle
           WEIGHT = WEIGHT + 1
           VALUE  = VALUE  + B(I,1)
         End Do
