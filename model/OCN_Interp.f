@@ -1,10 +1,10 @@
 #include "rundeck_opts.h"
 
-!#define AG2OG_PRECIP_BUNDLE
-!#define OG2AG_TOC2SST_BUNDLE
-!#define AG2OG_OCEANS_BUNDLE 
-!#define OG2AG_OCEANS_BUNDLE
-!#define BUNDLE_INTERP
+#define AG2OG_PRECIP_BUNDLE
+#define OG2AG_TOC2SST_BUNDLE
+#define AG2OG_OCEANS_BUNDLE 
+#define OG2AG_OCEANS_BUNDLE
+#define BUNDLE_INTERP
 
 #ifdef BUNDLE_INTERP
 
@@ -625,15 +625,25 @@ c*    actual interpolation here
 
       if(agrid%have_north_pole .and.
      &     (aIM .ne. oIM .or. aJM .ne. oJM)) then
-        aOGEOZ(:,aJM) = sum(aOGEOZ(:,aJM)) / aIM
-        aOGEOZ_sv(:,aJM) = sum(aOGEOZ_sv(:,aJM)) / aIM
+         call lon_avg(aOGEOZ(:,aJM),aIM)
+         call lon_avg(aOGEOZ_sv(:,aJM),aIM)
         do l=1,2
-          aMO(:,aJM,l) = sum(aMO(:,aJM,l)) / aIM
-          aG0(:,aJM,l) = sum(aG0(:,aJM,l)) / aIM
-          aS0(:,aJM,l) = sum(aS0(:,aJM,l)) / aIM
+         call lon_avg(aMO(:,aJM,l),aIM)
+         call lon_avg(aG0(:,aJM,l),aIM)
+         call lon_avg(aS0(:,aJM,l),aIM)
         enddo
       endif
 
+      if(agrid%have_south_pole .and.
+     &     (aIM .ne. oIM .or. aJM .ne. oJM)) then
+         call lon_avg(aOGEOZ(:,1),aIM)
+         call lon_avg(aOGEOZ_sv(:,1),aIM)
+        do l=1,2
+         call lon_avg(aMO(:,1,l),aIM)
+         call lon_avg(aG0(:,1,l),aIM)
+         call lon_avg(aS0(:,1,l),aIM)
+        enddo
+      endif
       DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc, opCO2_loc)
 #ifdef TRACERS_OCEAN
       DEALLOCATE(oTRAC)
@@ -1837,11 +1847,24 @@ c*   actual interpolation here
       call bundle_interpolation(lstr,remap_O2A)
 c*
 
-      if(agrid%have_north_pole) then
-        aDMSItmp(:,1,aJM) = sum(aDMSItmp(:,:,aJM),2) / aIM
-        aDHSItmp(:,1,aJM) = sum(aDHSItmp(:,:,aJM),2) / aIM
-        aDSSItmp(:,1,aJM) = sum(aDSSItmp(:,:,aJM),2) / aIM
+      if(agrid%have_north_pole
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
+         do l=1,2
+            call lon_avg(aDMSItmp(l,:,aJM),aIM)
+            call lon_avg(aDHSItmp(l,:,aJM),aIM)
+            call lon_avg(aDSSItmp(l,:,aJM),aIM)
+         enddo
       endif
+
+      if(agrid%have_south_pole 
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
+         do l=1,2
+            call lon_avg(aDMSItmp(l,:,1),aIM)
+            call lon_avg(aDHSItmp(l,:,1),aIM)
+            call lon_avg(aDSSItmp(l,:,1),aIM)
+         enddo
+      endif
+
 
       do j=agrid%j_strt,agrid%j_stop
       do i=agrid%i_strt,agrid%i_stop
