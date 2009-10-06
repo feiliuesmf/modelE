@@ -313,10 +313,14 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get,halo_update
       USE OCEANR_DIM, only : grid=>ogrid
-#ifdef CUBE_GRID
-      use regrid_com, only : xO2A,xA2O,xA2O_root,xO2A_root,
-     &    remap_A2O,remap_O2A
+      USE OCEAN, only : remap_a2o,remap_o2a
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       use cs2ll_utils, only : init_xgridremap_type
+      use regrid_com, only : xA2O_root
+#else
+      use hntrp_mod, only : init_hntrp_type
+      USE OCEAN, only : oDLATM=>DLATM
+      Use GEOM,  only : aDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean,ntm
@@ -324,7 +328,6 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : atmCO2
 #endif
-
       IMPLICIT NONE
       INTEGER I,J,L,N,iu_OIC,iu_OFTAB,IP1,IM1,LMIJ,I1,J1,I2,J2
      *     ,iu_TOPO,II,JJ,flagij
@@ -396,8 +399,7 @@ C****
       CALL GEOMO
       CALL OFFT0(IM)
 
-#ifdef CUBE_GRID
-
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
 c*** fill in vector full of ones
       allocate(ones(xA2O_root%xgridroot%ncells))
@@ -424,6 +426,15 @@ c*** initialize remapping derived types
      &     xA2O_root%xgridroot%xgrid_area,remap_o2a)
 
       deallocate(ones)
+#else
+      call Init_Hntrp_Type(remap_a2o,
+     &     aGRID, 0.d0,aDLATM,
+     &      GRID, 0.d0,oDLATM,
+     &     0.d0)
+      call Init_Hntrp_Type(remap_o2a,
+     &      GRID, 0.d0,oDLATM,
+     &     aGRID, 0.d0,aDLATM,
+     &     0.d0)
 #endif
 C**** Calculate ZE
       ZE(0) = 0d0

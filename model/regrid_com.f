@@ -72,7 +72,5 @@ c***  create specializations of above types, may be moved to a different layer l
       type (x_2grids) :: xA2O    ! atmosphere to ocean
       type (x_2gridsroot) :: xA2O_root    ! atmosphere to ocean
       type (x_2gridsroot) :: xO2A_root    ! atmosphere to ocean
-c***  xgridremap derived type - May be moved somewhere else later on
-      type(xgridremap_type) :: remap_A2O, remap_O2A
 
       end module REGRID_COM

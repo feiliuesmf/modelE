@@ -14,8 +14,12 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
 #if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
       Use OCN_TRACER_COM, Only : ntm
 #endif
-
       Use SparseCommunicator_mod
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      use cs2ll_utils, only : aoremap_type=>xgridremap_type
+#else
+      use hntrp_mod, only :   aoremap_type=>hntrp_type
+#endif
       Implicit None
       Integer*4,Parameter ::
      *  IVSP = 3*IM/4,      !  V at south pole is stored in U(IVSP,1)
@@ -125,6 +129,11 @@ C**** ocean related parameters
       integer, dimension(:,:), allocatable :: nbyzm,nbyzu,nbyzv,nbyzc
       integer, dimension(:,:,:), allocatable ::
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
+
+!@var remap_a2o,remap_o2a atm->ocn,ocn->atm interpolation info
+      type(aoremap_type) ::
+     &     remap_a2o            ! atm A -> ocn A
+     &    ,remap_o2a            ! ocn A -> atm A
 
       contains
 

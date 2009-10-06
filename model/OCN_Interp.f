@@ -9,14 +9,15 @@
 #ifdef BUNDLE_INTERP
 
 #ifdef CUBE_GRID
-      subroutine bundle_interpolation( lstr, remap)
-!@auth Igor Aleinov, Denis Gueyffier, Max Kelley 
+      subroutine bundle_interpolation(lstr, remap)
+!@auth Igor Aleinov, Denis Gueyffier, Maxwell Kelley 
       USE cs2ll_utils, only : xgridremap_type,xgridremap_lij
       USE array_bundle, only : lookup_str, ab_bundle, ab_unbundle
       implicit none
-      type (xgridremap_type) :: remap
-      real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:)
       type (lookup_str) :: lstr
+      type (xgridremap_type) :: remap
+c
+      real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:)
 
       call ab_bundle( lstr, buf_s, buf_d )
 
@@ -26,20 +27,40 @@
 
       end subroutine bundle_interpolation
 #else
-      subroutine bundle_interpolation( lstr)
-!@auth Igor Aleinov, Denis Gueyffier, Max Kelley 
-      USE array_bundle, only : lookup_str,get_bounds,ab_copy
+      subroutine bundle_interpolation(lstr, htype)
+!@auth Igor Aleinov, Denis Gueyffier, Maxwell Kelley 
+      USE hntrp_mod, only : hntrp_type,band_pack_column,hntr8_band_lij
+      USE array_bundle, only : lookup_str,get_bounds,ab_copy,
+     &     ab_bundle,ab_unbundle
       implicit none
       type (lookup_str) :: lstr
+      type (hntrp_type) :: htype
+c
+      real*8, pointer :: buf_s(:,:,:), buf_d(:,:,:), buf_band(:,:,:)
+
       integer :: si_0, si_1, sj_0, sj_1,
-     &     di_0, di_1, dj_0, dj_1
+     &           di_0, di_1, dj_0, dj_1, lm, jmin,jmax
 
       call get_bounds(lstr, si_0, si_1, sj_0, sj_1,
-     &    di_0, di_1, dj_0, dj_1)
+     &                      di_0, di_1, dj_0, dj_1)
 
-      if (di_1 .eq. si_1 .and. dj_1 .eq. sj_1) then   
+      if (dj_0 .eq. sj_0 .and. dj_1 .eq. sj_1) then   
          call ab_copy(lstr)
+         return
       endif
+
+      call ab_bundle( lstr, buf_s, buf_d )
+
+      lm = size(buf_s,1)
+      jmin = htype%bpack%jband_strt
+      jmax = htype%bpack%jband_stop
+      allocate(buf_band(lm,htype%ima,jmin:jmax))
+      call band_pack_column(htype%bpack, buf_s, buf_band)
+      call hntr8_band_lij(buf_band, htype, buf_d)
+      deallocate(buf_band)
+
+      call ab_unbundle( lstr, buf_s, buf_d )
+
       end subroutine bundle_interpolation
 #endif
 
@@ -94,9 +115,7 @@
 
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
-#ifdef CUBE_GRID
-      USE regrid_com, only : remap_A2O
-#endif
+      use ocean, only : remap_a2o
       USE array_bundle
 
       IMPLICIT NONE
@@ -176,11 +195,7 @@
       call ab_add( lstr, aRSI, oRSI, shape(aRSI), 'ij')
 
 c*   actual interpolation here
-#ifdef CUBE_GRID
       call bundle_interpolation(lstr,remap_A2O)
-#else
-      call bundle_interpolation(lstr)
-#endif
 
 c*   polar values are replaced by their longitudinal mean
       if (ogrid%HAVE_NORTH_POLE
@@ -362,9 +377,7 @@ c*   polar values are replaced by their longitudinal mean
       USE TRACER_COM, only : vol2mass
       USE FLUXES, only : gtracer
 #endif
-#ifdef CUBE_GRID
-      USE regrid_com, only : remap_O2A
-#endif
+      use ocean, only : remap_O2A
       USE array_bundle
 
       IMPLICIT NONE
@@ -379,21 +392,15 @@ c*   polar values are replaced by their longitudinal mean
      *                     , OGEOZ_SVtmp(:,:)
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
       REAL*8, allocatable :: aWEIGHT1(:,:),oWEIGHT1(:,:)
-      REAL*8, allocatable :: aones(:,:,:),oones(:,:,:),
-     &    aones_glob(:,:,:,:)
-      REAL*8, allocatable :: atwos(:,:,:),otwos(:,:,:),
-     &    atwos_glob(:,:,:)
-      REAL*8, allocatable :: athrees(:,:),othrees(:,:),
-     &    athrees_glob(:,:,:) 
       type (lookup_str) :: lstr
 
       allocate(aweight(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
+     &                ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       !-- need to allocate separate array for different weights
       allocate(aweight1(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
+     &                 ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
       !-- initializing "lstr"
@@ -465,38 +472,26 @@ c*   polar values are replaced by their longitudinal mean
       call ab_add( lstr, oWEIGHT1, aWEIGHT1, shape(oWEIGHT1),'ij')
 
       oG0(:,:,:) = 0.d0
-      DO L = 1,2
-        DO J=oJ_0,oJ_1
-          DO I=oI_0,oIMAXJ(J)
-            IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              oG0(I,J,L) = G0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
-            END IF
-          END DO
-        END DO
-      END DO
-      do L=1,2
-         if (ogrid%HAVE_NORTH_POLE
-     &        .and. (aIM .ne. oIM .or. aJM .ne. oJM) )  
-     &        oG0(2:oIM,oJM,L) = oG0(1,oJM,L)
-      enddo
-      call ab_add( lstr, oG0, aG0, shape(oG0), 'ijk', 
-     &     oWEIGHT1, aWEIGHT1) 
-
       oS0(:,:,:) = 0.d0
       DO L = 1,2
         DO J=oJ_0,oJ_1
           DO I=oI_0,oIMAXJ(J)
             IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oG0(I,J,L) = G0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
               oS0(I,J,L) = S0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
             END IF
           END DO
         END DO
       END DO
-      do L=1,2
       if (ogrid%HAVE_NORTH_POLE
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &        oS0(2:oIM,oJM,L) = oS0(1,oJM,L)
-      enddo
+     &        .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
+        do L=1,2
+          oG0(2:oIM,oJM,L) = oG0(1,oJM,L)
+          oS0(2:oIM,oJM,L) = oS0(1,oJM,L)
+        enddo
+      endif
+      call ab_add( lstr, oG0, aG0, shape(oG0), 'ijk', 
+     &     oWEIGHT1, aWEIGHT1) 
       call ab_add( lstr, oS0, aS0, shape(oS0), 'ijk',
      &     oWEIGHT1, aWEIGHT1) 
 
@@ -617,11 +612,9 @@ C**** surface tracer concentration
 #endif
 
 c*    actual interpolation here
-#ifdef CUBE_GRID
       call bundle_interpolation(lstr,remap_O2A)
-#else
-      call bundle_interpolation(lstr)
 
+#ifndef CUBE_GRID
       if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
@@ -630,13 +623,23 @@ c*    actual interpolation here
       endif
 #endif
 
+      if(agrid%have_north_pole .and.
+     &     (aIM .ne. oIM .or. aJM .ne. oJM)) then
+        aOGEOZ(:,aJM) = sum(aOGEOZ(:,aJM)) / aIM
+        aOGEOZ_sv(:,aJM) = sum(aOGEOZ_sv(:,aJM)) / aIM
+        do l=1,2
+          aMO(:,aJM,l) = sum(aMO(:,aJM,l)) / aIM
+          aG0(:,aJM,l) = sum(aG0(:,aJM,l)) / aIM
+          aS0(:,aJM,l) = sum(aS0(:,aJM,l)) / aIM
+        enddo
+      endif
+
       DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc, opCO2_loc)
 #ifdef TRACERS_OCEAN
       DEALLOCATE(oTRAC)
 #endif
 
-      deallocate(oweight,aweight,
-     &     oweight1,aweight1,
+      deallocate(oweight,aweight,oweight1,aweight1,
      &     oMOtmp,OGEOZtmp,OGEOZ_SVtmp)
 
       RETURN
@@ -996,9 +999,7 @@ C**** surface tracer concentration
 #endif
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
-#ifdef CUBE_GRID
-      USE regrid_com, only : remap_A2O
-#endif
+      use ocean, only : remap_A2O
       USE array_bundle
 
       IMPLICIT NONE
@@ -1060,73 +1061,30 @@ C**** surface tracer concentration
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
             aFLOWO(I,J) = aFLOWO(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aFLOWO(:,aJM),aIM)
-      call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
-
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aEFLOWO(I,J) = aEFLOWO(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aEFLOWO(:,aJM),aIM)
-      call ab_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aMELTI(I,J) = aMELTI(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aMELTI(:,aJM),aIM)
-      call ab_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aEMELTI(I,J) = aEMELTI(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aEMELTI(:,aJM),aIM)
-      call ab_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aSMELTI(I,J) = aSMELTI(I,J)*aFact(I,J)
-          END IF
-        END DO
-      END DO
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aSMELTI(:,aJM),aIM)
-      call ab_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
-
-      DO J=aJ_0,aJ_1
-        DO I=aI_0,aIMAXJ(J)
-          IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aGMELT(I,J) = aGMELT(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
+
       if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aGMELT(:,aJM),aIM)
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
+        call copy_pole(aFLOWO(:,aJM),aIM)
+        call copy_pole(aEFLOWO(:,aJM),aIM)
+        call copy_pole(aMELTI(:,aJM),aIM)
+        call copy_pole(aEMELTI(:,aJM),aIM)
+        call copy_pole(aSMELTI(:,aJM),aIM)
+        call copy_pole(aGMELT(:,aJM),aIM)
+      endif
+
+      call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
+      call ab_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
+      call ab_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
+      call ab_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
+      call ab_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
       call ab_add(lstr, aGMELT, oGMELT, shape(aGMELT), 'ij')
 
       DO J=aJ_0,aJ_1
@@ -1151,20 +1109,15 @@ C**** surface tracer concentration
       call ab_add( lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij')
 
       if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aRUNOSI(:,aJM),aIM)
-      call ab_add( lstr, aRUNOSI, oRUNOSI, shape(aRUNOSI), 'ij',
-     &     aWEIGHT, oWEIGHT)
-
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aERUNOSI(:,aJM),aIM)
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
+        call copy_pole(aRUNOSI(:,aJM),aIM)
+        call copy_pole(aERUNOSI(:,aJM),aIM)
+        call copy_pole(aSRUNOSI(:,aJM),aIM)
+      endif
+      call ab_add( lstr, aRUNOSI, oRUNOSI, shape(aRUNOSI),
+     &     'ij', aWEIGHT, oWEIGHT)
       call ab_add( lstr, aERUNOSI, oERUNOSI, shape(aERUNOSI), 
      &     'ij', aWEIGHT, oWEIGHT)
-
-      if ( (agrid%HAVE_NORTH_POLE)
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aSRUNOSI(:,aJM),aIM)
       call ab_add( lstr, aSRUNOSI, oSRUNOSI, shape(aSRUNOSI), 
      &     'ij', aWEIGHT, oWEIGHT)
 
@@ -1373,11 +1326,7 @@ C**** surface tracer concentration
 
 
 c*   actual interpolation here
-#ifdef CUBE_GRID
       call bundle_interpolation(lstr,remap_A2O)
-#else
-      call bundle_interpolation(lstr)
-#endif
 c*
 
 
@@ -1813,10 +1762,9 @@ c*
      *     , oDTRSI
 #endif
 
-#ifdef CUBE_GRID
-      USE regrid_com, only : remap_O2A
-#endif
+      use ocean, only : remap_O2A
       USE array_bundle
+
       IMPLICIT NONE
 
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
@@ -1854,29 +1802,20 @@ c*
       call ab_add(lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT), 'ij')
 
       oDMSItmp=oDMSI
-      do L=1,2
-         if (ogrid%HAVE_NORTH_POLE
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )  
-     &        oDMSItmp(L,2:oIM,oJM) = oDMSItmp(L,1,oJM)
-      enddo
+      oDHSItmp=oDHSI
+      oDSSItmp=oDSSI
+      if (ogrid%HAVE_NORTH_POLE
+     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
+        do L=1,2
+          oDMSItmp(L,2:oIM,oJM) = oDMSItmp(L,1,oJM)
+          oDHSItmp(L,2:oIM,oJM) = oDHSItmp(L,1,oJM)
+          oDSSItmp(L,2:oIM,oJM) = oDSSItmp(L,1,oJM)
+        enddo
+      endif
       call ab_add(lstr, oDMSItmp, aDMSItmp, shape(oDMSItmp),
      &     'lij', oWEIGHT, aWEIGHT)
-
-      oDHSItmp=oDHSI
-      do L=1,2
-         if (ogrid%HAVE_NORTH_POLE
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )  
-     &        oDHSItmp(L,2:oIM,oJM) = oDHSItmp(L,1,oJM)
-      enddo
       call ab_add(lstr, oDHSItmp, aDHSItmp, shape(oDHSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
-
-      oDSSItmp=oDSSI
-      do L=1,2
-         if (ogrid%HAVE_NORTH_POLE
-     &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )  
-     &        oDSSItmp(L,2:oIM,oJM) = oDSSItmp(L,1,oJM)
-      enddo
       call ab_add(lstr, oDSSItmp, aDSSItmp, shape(oDSSItmp),
      &     'lij', oWEIGHT, aWEIGHT) 
 
@@ -1895,13 +1834,14 @@ C**** do something in here
 #endif
 
 c*   actual interpolation here
-#ifdef CUBE_GRID
       call bundle_interpolation(lstr,remap_O2A)
-#else
-      call bundle_interpolation(lstr)
-#endif
 c*
 
+      if(agrid%have_north_pole) then
+        aDMSItmp(:,1,aJM) = sum(aDMSItmp(:,:,aJM),2) / aIM
+        aDHSItmp(:,1,aJM) = sum(aDHSItmp(:,:,aJM),2) / aIM
+        aDSSItmp(:,1,aJM) = sum(aDSSItmp(:,:,aJM),2) / aIM
+      endif
 
       do j=agrid%j_strt,agrid%j_stop
       do i=agrid%i_strt,agrid%i_stop
