@@ -499,6 +499,57 @@ C****
       Return
       End Subroutine HNTR8_band
 
+      Subroutine HNTR8_band_lij (A,htype,B)
+C****
+C**** HNTR8 performs a horizontal interpolation of per unit area or per
+C**** unit mass quantities defined on grid A, calculating the quantity
+C**** on grid B.
+C**** The area weighted integral of the quantity is conserved.
+C****
+C**** Input:   A = per unit area or per unit mass quantity
+C**** Output:  B = horizontally interpolated quantity on B grid
+C****
+C**** The algorithm boils down to:
+C****   dAREA(J) = SIN(J) - SIN(J-1)
+C****   B(I,J) = Sum[dAREA(J)*A(I,J)] / Sum[dAREA(J)]
+C****
+      Implicit None
+      type(hntrp_type) :: htype
+      Real*8, dimension(:,:,htype%bpack%jband_strt:) :: A
+      Real*8, dimension(:,:,htype%J1B_halo:) :: B
+C**** Local vars
+      Integer :: IA,JA,IAREV,IB,JB,IAMIN,IAMAX,JAMIN,JAMAX
+      Real*8 :: WEIGHT,F,G
+C****
+C**** Interpolate from grid A to grid B
+C****
+      Do JB=htype%J1B,htype%JNB
+        JAMIN = htype%JMIN(JB)
+        JAMAX = htype%JMAX(JB)
+        Do IB=1,htype%IMB
+          WEIGHT= 0
+          B(:,IB,JB) = 0
+          IAMIN = htype%IMIN(IB)
+          IAMAX = htype%IMAX(IB)
+          Do JA=JAMIN,JAMAX
+            G = htype%SINA(JA)-htype%SINA(JA-1)
+            If (JA==JAMIN)  G = G - htype%GMIN(JB)
+            If (JA==JAMAX)  G = G - htype%GMAX(JB)
+            Do IAREV=IAMIN,IAMAX
+              IA  = 1 + Mod(IAREV-1,htype%IMA)
+              F   = 1
+              If (IAREV==IAMIN)  F = F - htype%FMIN(IB)
+              If (IAREV==IAMAX)  F = F - htype%FMAX(IB)
+              WEIGHT = WEIGHT + F*G
+              B(:,IB,JB) = B(:,IB,JB) + F*G*A(:,IA,JA)
+            End Do
+          End Do
+          If(WEIGHT /= 0) B(:,IB,JB) = B(:,IB,JB)/WEIGHT
+        End Do
+      End Do
+      Return
+      End Subroutine HNTR8_band_lij
+
       Subroutine HNTR8P_band (WTA,A,htype,B)
 C****
 C**** HNTR8P is similar to HNTR8 but polar values are replaced by
@@ -528,7 +579,7 @@ C**** South pole
         WEIGHT = 0
         VALUE  = 0
         Do I=1,IMB
-          If (B(I,1) == DATMIS) cycle
+          If (DATMIS /= 0. .and. B(I,JMB) == DATMIS) cycle
           WEIGHT = WEIGHT + 1
           VALUE  = VALUE  + B(I,1)
         End Do
@@ -541,7 +592,7 @@ C**** North pole
         WEIGHT = 0
         VALUE  = 0
         Do I=1,IMB
-          If (B(I,JMB) == DATMIS) cycle
+          If (DATMIS /= 0. .and. B(I,JMB) == DATMIS) cycle
           WEIGHT = WEIGHT + 1
           VALUE  = VALUE  + B(I,JMB)
         End Do
