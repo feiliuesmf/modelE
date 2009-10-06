@@ -183,6 +183,9 @@
       use model_com, only  : fland,LM
       use dynamics, only   : ltropo, phi
       use domain_decomp_atm, only : GRID, GET
+#ifdef ACCMIP_LIKE_DIAGS
+      use trdiag_com, only : taijls=>taijls_loc,ijlt_NOxLgt
+#endif
  
       implicit none
  
@@ -250,6 +253,12 @@
      &     tr3Dsource(i,j,levtrop,nOther,n_NOx) + 
      &     srclight(L)*pmin2psec*1.d-3
          enddo  
+#ifdef ACCMIP_LIKE_DIAGS
+         do L=1,LM
+           taijls(i,j,L,ijlt_NOxLgt)=taijls(i,j,L,ijlt_NOxLgt) +
+     &     tr3Dsource(i,j,L,nOther,n_NOx)
+         enddo
+#endif
       enddo  ! I
       enddo  ! J
          

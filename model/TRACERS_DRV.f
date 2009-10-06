@@ -7413,6 +7413,13 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+      k = k + 1
+        ijlt_NOxLgt=k
+        lname_ijlt(k) = 'NOx production from Lightning'
+        sname_ijlt(k) = 'NOx_Lightn'
+        ijlt_power(k) = -15
+        units_ijlt(k) = unit_string(ijlt_power(k),'kg(N) m-2 s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
