@@ -1202,6 +1202,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : L1Ox_acc
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      USE TRDIAG_COM, only : L1PM2p5_acc, L1PM10_acc
+#endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
 #endif
@@ -1300,6 +1303,9 @@ C**** initialise special subdd accumulation
 #ifdef TRACERS_SPECIAL_Shindell
       L1Ox_acc=0.
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      L1PM2p5_acc=0.; L1PM10_acc=0.
+#endif
       return
       end subroutine init_subdd
 
@@ -1378,7 +1384,7 @@ C****
       subroutine get_subdd
 !@sum get_SUBDD saves instantaneous variables at sub-daily frequency
 !@+   every ABS(NSUBDD)
-!@+   Note that TMIN,TMAX,{ ,c,t,ct}AOD can only be output once a day
+!@+   Note that TMIN,TMAX,{ ,c,t,ct}AOD, are only output once/day.
 !@+   If there is a choice between outputting pressure levels or
 !@+   model levels, use lower case for the model levels:
 !@+   Current options: SLP, PS, SAT, PREC, QS, LCLD, MCLD, HCLD, PTRO
@@ -1392,7 +1398,7 @@ C****
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
 !@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl) 
-!@+                    oAVG (L=1 Ox time-average)
+!@+                    oAVG (L=1 Ox time-average vmr)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR
@@ -1406,6 +1412,7 @@ C****
 !@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
 !@+                    tAOD aer opt dep (sum 1,NTRACE) daily avg
 !@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
+!@+                    PM2p5, PM10 (L=1 time-average PM2.5 and PM10 mmr)
 !@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
@@ -1463,6 +1470,9 @@ C****
 #endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      USE TRDIAG_COM, only : L1PM2p5_acc, L1PM10_acc
+#endif
 #ifdef TRACERS_ON
       USE TRACER_COM
 #endif
@@ -1762,6 +1772,33 @@ c          data=sday*prec/dtsrc
             cycle
           end if
           data=tdiurn(:,:,6)
+
+#ifdef TRACERS_ON
+         case ("tAOD","ctAOD")!tot aero(+dust,etc) opt dep, daily avg
+           if(mod(itime+1,Nday).ne.0) then ! only at end of day
+             kunit=kunit+1
+             cycle
+           end if
+           if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
+           data=0.
+           do n=1,NTRACE ! sum over rad code tracers is used
+             if(ntrix(n)>0)then
+               select case(namedd(k))
+                 case('tAOD') ; data=data+ttausv_sum(:,:,n)
+                 case('ctAOD'); data=data+ttausv_sum_cs(:,:,n)
+               end select
+             endif
+           enddo
+           data=data/ttausv_count
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+        case ("PM2p5") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
+           data=L1PM2p5_acc/real(Nsubdd)
+           L1PM2p5_acc=0.
+        case ("PM10") ! Nsubdd-step avg L=1 PM10 (ppmm)
+           data=L1PM10_acc/real(Nsubdd)
+           L1PM10_acc=0.
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
           data=trm(:,:,1,n_SO4)
@@ -2204,24 +2241,6 @@ C**** for (c)AOD multiple tracers are written to one file:
                 call write_data(data,kunit,polefix)
               endif
             enddo
-            cycle
-C**** for (c)tAOD sum over tracers is used:
-          case ('tAOD','ctAOD')!tot aero(+dust,etc) opt dep, daily avg
-            kunit=kunit+1
-            if(mod(itime+1,Nday).ne.0) cycle ! only at end of day
-            if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-            data=0.
-            do n=1,NTRACE
-              if(ntrix(n)>0)then
-                select case(namedd(k))
-                  case('tAOD') ; data=data+ttausv_sum(:,:,n)
-                  case('ctAOD'); data=data+ttausv_sum_cs(:,:,n)
-                end select
-              endif
-            enddo
-            data=data/ttausv_count
-            polefix=.true.
-            call write_data(data,kunit,polefix)
             cycle
 #endif
 
@@ -3083,7 +3102,7 @@ c
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
-      USE RAD_COM, only:  ttausv_sum,ttausv_count
+      USE RAD_COM,only: ttausv_sum,ttausv_count
 #endif
       IMPLICIT NONE
       INTEGER I,J

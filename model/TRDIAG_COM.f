@@ -352,6 +352,11 @@ C**** include some extra troposphere only ones
 !!    REAL*8 TRP_acc(ntm,IM,JM), TRE_acc(ntm,IM,JM)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+!@var L1PM2p5_acc, L1PM10_acc accumulation arrays for some SUBDD diags
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::  ! (IM,JM)
+     &  L1PM2p5_acc,L1PM10_acc
+#endif 
 
 #ifdef NEW_IO
 ! This section declares arrays used to write tracer
@@ -939,6 +944,10 @@ C*** Unpack read global data into local distributed arrays
 #ifdef TRACERS_WATER
       ALLOCATE ( TRP_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE ( TRE_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      ALLOCATE ( L1PM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE ( L1PM10_acc( I_0H:I_1H,J_0H:J_1H),stat=status)
 #endif
 #ifdef TRACERS_ON 
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )

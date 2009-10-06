@@ -9503,6 +9503,7 @@ c!OMSP
       USE MODEL_COM, only: itime,jmon, dtsrc
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
+      USE GEOM, only : byaxyp
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
@@ -9530,6 +9531,9 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+      USE TRDIAG_COM, only : L1PM2p5_acc, L1PM10_acc
 #endif
 
       implicit none
@@ -10003,6 +10007,38 @@ C**** Apply chemistry and overwrite changes:
 #ifdef  TRACERS_SPECIAL_Shindell
        call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
 #endif
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+! This section is to accumulate/aggregate certain tracers' L=1 value
+! into particulate matter PM2.5 and PM10 for use in the sub-daily
+! diags. Saved in ppm by mass. Couldn't find a better place for this!
+      do n=1,ntm
+        select case (trname(n))
+        case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
+     &       'Clay','seasalt1','N_d1','SO4_d1')    !       100% of these
+          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:) +
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+        case('Silt1','N_d2','SO4_d2')              ! conditional/partial   
+          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:) + 0.322d0*
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+        case('Silt2','N_d3','SO4_d3')              ! conditional/partial   
+          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+        case('Silt3')                              ! conditional/partial   
+          L1PM10_acc(:,:)=L1PM10_acc(:,:) + 0.322d0*
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+        case('seasalt2')                           ! conditional/partial   
+          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:) + 0.5d0*
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
+     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+        end select
+      enddo
 #endif
       return
       END SUBROUTINE tracer_3Dsource
