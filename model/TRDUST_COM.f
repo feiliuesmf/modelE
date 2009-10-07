@@ -65,7 +65,7 @@ c****
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ers_data
 !@var src_fnct distribution of preferred sources
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: src_fnct
-      INTEGER,PARAMETER :: Lim=220,Ljm=220,Lkm=22
+      INTEGER,PARAMETER :: Lim=234,Ljm=234,Lkm=22
 !@param McFrac Fraction of area with downdraft in grid cell
       REAL*8,PARAMETER :: McFrac=0.05
 !@param kim dimension 1 of lookup table for mean surface wind speed integration
