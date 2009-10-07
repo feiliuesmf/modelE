@@ -882,6 +882,8 @@ cdmk last line saved for IE
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
+     &                    ,N_COVERTYPES !YKIM-temp hack
+      use ent_drv, only : map_ent2giss  !YKIM-temp hack
 #else
       USE VEG_COM, only : vdata
 #endif
@@ -1026,6 +1028,10 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       character(len=300) :: out_line
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
+
+#ifdef USE_ENT
+      real*8 :: PVT0(N_COVERTYPES)
+#endif
 
 C
 C****
@@ -1620,7 +1626,8 @@ C****
 #ifdef USE_ENT
       if ( fearth(i,j) > 0.d0 ) then
         call ent_get_exports( entcells(i,j),
-     &       vegetation_fractions=PVT )
+     &       vegetation_fractions=PVT0 )
+        call map_ent2giss(PVT0,PVT) !temp hack: ent pfts->giss veg
       else
         PVT(:) = 0.d0  ! actually PVT is not supposed to be used in this case
       endif
@@ -1636,7 +1643,7 @@ C**** If no radiatively active tracers are defined, nothing changes.
 C**** Currently this works for aerosols and ozone but should be extended
 C**** to cope with all trace gases.
 C****
-      FSTOPX(:)=1. ; FTTOPX(:)=1. ; FTAUC=1. ! deflts (aeros/clouds on)
+      FSTOPX(:)=1. ; FTTOPX(:)=1. ; FTAUC=1. ! deflt (aeros/clouds on)
       use_tracer_chem(:) = 0 ! by default use climatological ozone/ch4
 C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
 C**** This is set from the rundeck.

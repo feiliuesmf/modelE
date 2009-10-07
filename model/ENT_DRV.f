@@ -2,7 +2,7 @@
 
       module ent_drv
 !@sum ent_drv contains variables and routines for vegetation driver
-!@auth I. Alienov, N. Kiang
+!@auth I. Alienov, N. Kiang, Y. Kim
 
       use model_com, only : im,jm
       use ent_mod
@@ -11,9 +11,13 @@
       save
 
       public init_module_ent, update_vegetation_data
+      public map_ent2giss !YKIM- temporary hack to use Ent pfts in modelE
 
       logical :: initialized = .false.
       integer :: crops_yr = 0
+      integer :: do_soilresp
+      integer :: do_phenology_activegrowth,do_structuralgrowth
+      integer :: do_frost_hardiness,do_patchdynamics
 
       contains
 
@@ -49,11 +53,25 @@
       call sync_param( "init_ent", force_init_ent)
       if ( force_init_ent == 1 ) iniENT = .true.
 
+      !YKIM - default parameters
+      do_soilresp = 1 !true
+      do_phenology_activegrowth = 0 !false
+      do_structuralgrowth = 0 !false
+      do_frost_hardiness = 1 !true
+      do_patchdynamics = 0 !false
+
       !--- read rundeck parameters
       call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
       call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
       call sync_param( "read_c4_grass", read_c4_grass)
+      !YKIM - add new options for modelE
+      call sync_param( "do_soilresp",do_soilresp)
+      call sync_param( "do_phenology_activegrowth",
+     &                 do_phenology_activegrowth)
+      call sync_param( "do_structuralgrowth",do_structuralgrowth)
+      call sync_param( "do_frost_hardiness",do_frost_hardiness)
+      call sync_param( "do_patchdynamics",do_patchdynamics)
 
       if ( crops_yr .ne. 0 ) then
         year = crops_yr
@@ -64,11 +82,13 @@
       ! maybe call "ent_initialize" ? , i.e.
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
       ! ask Max if OK
+
       call ent_initialize(
-     &     do_soilresp=.true.
-     &     ,do_phenology_activegrowth=.false.
-     &     ,do_frost_hardiness=.true. ! .false.
-     &     ,do_patchdynamics=.false.
+     &     do_soilresp=(do_soilresp==1) !.true.
+     &     ,do_phenology_activegrowth=(do_phenology_activegrowth==1) !.true.
+     &     ,do_structuralgrowth=(do_structuralgrowth==1) 
+     &     ,do_frost_hardiness=(do_frost_hardiness==1) !.true. !.false.
+     &     ,do_patchdynamics=(do_patchdynamics==1) !.false.
      &     )
 
       call prescr_calcconst() ! moved above
@@ -93,7 +113,8 @@
         !print *,'init_module_ent end printing cells 1'
 
         call set_vegetation_data( entcells, ! (I_0:I_1,J_0:J_1),
-     &       IM, JM, I_0, I_1, J_0, J_1, jday, year, .true. )
+     &       IM, JM, I_0, I_1, J_0, J_1, jday, year, .true. ,
+     &       prog_veg = (do_phenology_activegrowth==1))
 
         ! probably it is ok to initialize these here since 
         ! if .not. iniENT we should read everything from restart file
@@ -107,12 +128,12 @@
         call ent_prescribe_vegupdate(entcells)        
 
       endif
-
       end subroutine init_module_ent
 
 
       subroutine set_vegetation_data( entcells,
-     &     im, jm, i0, i1, j0, j1, jday, year, reinitialize )
+     &     im, jm, i0, i1, j0, j1, jday, year, reinitialize, 
+     &     prog_veg)
 !@sum read standard GISS vegetation BC's and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
@@ -125,15 +146,17 @@
      &     prescr_get_hdata,prescr_get_woodydiameter,prescr_get_pop,
      &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
      &     prescr_get_rootprof,prescr_get_soilcolor,
-     &     prescr_get_soilpools,prescr_get_soil_C_total
+     &     prescr_get_soilpools,prescr_get_soil_C_total,
+     &     init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
 
 
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use ghy_com, only : q_ij, qk_ij, dz_ij
       use ghy_com, only : fearth
-      type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
+       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       logical :: reinitialize
+      logical, intent(in), optional :: prog_veg
       !Local variables
       real*8, dimension(N_COVERTYPES,I0:I1,J0:J1) :: vegdata !cohort
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
@@ -185,22 +208,29 @@
           vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)
      &         *(1.d0-cropdata_H(I0:I1,J0:J1))
         enddo
-        vegdata(9,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
+        vegdata(CROPS,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
       endif
-
-      call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
+         
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
 
-      do j=J0,J1
-        do i=I0,I1
-          call prescr_get_hdata(hdata(:,i,j)) !height
-          call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
-          call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
-          call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+      if (.not. present(prog_veg) .or. .not.prog_veg) then
+        call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
+        do j=J0,J1
+          do i=I0,I1
+            call prescr_get_hdata(hdata(:,i,j)) !height
+            call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
+            call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
+            call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+          enddo
         enddo
-      enddo
-      call prescr_get_carbonplant(I0,I1,J0,J1,
-     &     laidata,hdata,dbhdata,popdata,cpooldata)
+        call prescr_get_carbonplant(I0,I1,J0,J1,
+     &       laidata,hdata,dbhdata,popdata,cpooldata)
+      else !if prog_veg=true
+         call init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
+         call init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
+         call prescr_get_ent_plant(I0,I1,J0,J1, 
+     &        laidata,hdata,dbhdata,popdata,craddata,cpooldata)
+      end if
       call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
       call prescr_get_rootprof(rootprofdata)
       call prescr_get_soilcolor(soil_color)
@@ -286,8 +316,6 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
         year_old = year
       endif
 
-!!!! HACK : trying to update Ent exactly like in ent_prog
-
             !* Set hemisphere flags.
       where(lat2d(I0:I1,J0:J1) <= 0.)
         hemi(I0:I1,J0:J1) = -1  ! S
@@ -296,11 +324,11 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       end where
  
           call ent_prescribe_vegupdate(entcells,hemi,jday,year,
-     &         do_giss_phenology=.true.,
-     &         do_giss_albedo=.true.,
-     &         do_giss_lai=.true.,
+     &         do_giss_phenology=(do_phenology_activegrowth==0), !.false.,
+     &         do_giss_albedo= .true.,
+     &         do_giss_lai=(do_phenology_activegrowth==0), !.false.,
      &         update_crops=.false. )
-
+      
       ! hack to avoid descrepancy with ent_standalone setup
       ! but really should do update as below
       return
@@ -315,5 +343,31 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 
       end subroutine update_vegetation_data
 
+      subroutine map_ent2giss(v_ent,v_giss)
+      implicit none
+      real*8, dimension(N_COVERTYPES), intent(in) :: v_ent
+      real*8, dimension(12), intent(out) :: v_giss
+
+      if (N_COVERTYPES == 12) return
+
+      !18->12
+      v_giss(1) = v_ent(17)             !sand
+      v_giss(2) = v_ent(9)              !tundra
+      v_giss(3) = v_ent(11) + v_ent(12) 
+     &          + v_ent(13) + v_ent(14) !grass
+      v_giss(4) = v_ent(10)             !shrub
+      v_giss(5) = 0.d0                  !tress
+      v_giss(6) = v_ent(5) + v_ent(6) 
+     &          + v_ent(7) + v_ent(8)
+     &          + v_ent(16)             !deci
+      v_giss(7) = v_ent(3) + v_ent(4)   !evergr
+      v_giss(8) = v_ent(1) + v_ent(2)   !rainf
+      v_giss(9) = v_ent(15)             !crops
+      v_giss(10)= v_ent(18)             !dirt
+      v_giss(11)= 0.d0
+      v_giss(12)= 0.d0
+
+
+      end subroutine map_ent2giss
 
       end module ent_drv

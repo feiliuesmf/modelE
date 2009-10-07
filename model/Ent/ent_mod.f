@@ -29,6 +29,7 @@
      &     , N_BPOOLS, N_PFT, N_CASA_LAYERS,NPOOLS,NLIVE,CARBON,PTRACE
       !use ent_prescrveg
       use entcells
+      use ent_pfts, only : CROPS
 
       !use prescr_veg ! just for compilation purposes
       implicit none
@@ -41,6 +42,8 @@
       public N_DEPTH, N_SOIL_TEXTURES, N_BPOOLS
       public N_PFT, N_CASA_LAYERS  !added last one -PK
       public PTRACE, NPOOLS, NLIVE, CARBON  
+      public ent_config
+      public CROPS
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings

@@ -25,6 +25,8 @@
      &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
      &     prescr_get_rootprof,prescr_get_soilcolor
 
+      public init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
+
       contains
 
       !*********************************************************************

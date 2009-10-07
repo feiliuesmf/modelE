@@ -368,7 +368,7 @@ C****
       call ent_cell_nullify( entcells )
 
 
-      ALLOCATE(    vdata(I_0H:I_1H,J_0H:J_1H,12),
+      ALLOCATE(    vdata(I_0H:I_1H,J_0H:J_1H,N_COVERTYPES),
      *              Cint(I_0H:I_1H,J_0H:J_1H),
      *              Qfol(I_0H:I_1H,J_0H:J_1H),
      *            cnc_ij(I_0H:I_1H,J_0H:J_1H),

@@ -2218,6 +2218,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod
+      use ent_drv, only : map_ent2giss !YKIM-temp hack
 #else
       use veg_drv, only : veg_set_cell
       use vegetation, only : t_vegcell
@@ -2254,7 +2255,9 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
       integer I_0, I_1, J_0, J_1, i, j, ibv
 
-
+#ifdef USE_ENT
+      real*8,dimension(N_COVERTYPES) :: fr_cover0
+#endif
       real*8 :: fr_cover(12), z0_veg
 !     original Model II (1983) values (except crops)
 !      real*8, parameter :: z0_cover(12) =
@@ -2532,7 +2535,9 @@ c**** compute roughnes length
 #ifdef USE_ENT
             !print *,i,j,focean(i,j),fearth(i,j)
             call ent_get_exports( entcells(i,j),
-     &           vegetation_fractions=fr_cover )
+     &           vegetation_fractions=fr_cover0 )
+            call map_ent2giss(fr_cover0,fr_cover) !temp hack: ent pfts->giss veg
+            
 #else
             fr_cover(:) = vdata(i,j,:)
 #endif
