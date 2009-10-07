@@ -211,8 +211,8 @@ FRSILT=fake_144x90_dust_FrSilt ! modelIIprime model silt fraction (obsolete)
 DRYHR=fake_144x90_dust_DryHrPminusE ! emission only if E exceeds P (obsolete)
 ERS=ERS1_1993_MONTHLY.144x90.threshold-13         ! ERS data
 GIN=Ginoux2001_source.144x90             ! preferred sources
-LKTAB=table_emission          ! look up table for emission calculations
-LKTAB1=table_wspdf            ! look up table for wind speed probabilities
+LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
+LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 
 !------- Needed for dry deposition ---------
 VEGTYPE=chem_files/vegtype.global_2x2.5gf ! really 4x5

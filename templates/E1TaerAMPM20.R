@@ -222,10 +222,10 @@ VTRSH=vtr-mod-o0.mean-pb
 FRCLAY=claygcm-f
 FRSILT=siltgcm-f
 DRYHR=text5hr-f
-GIN=Ginoux_dstsrc
-LKTAB=table_emission
-ERS=ERS1_1993_MONTHLY
-LKTAB1=table_wspdf
+GIN=Ginoux_dstsrc              ! preferred sources
+LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
+ERS=ERS1_1993_MONTHLY          ! ERS data
+LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 
 
 Label and Namelist:
