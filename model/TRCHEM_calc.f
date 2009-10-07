@@ -937,7 +937,7 @@ c Loops to calculate tracer changes:
 #endif
          endif
          if(igas == n_Ox)then
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
            changeL(L,n_stratOx)=dest(igas,L)*conc2mass
            if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+ 
      &     prod(igas,L)*conc2mass
@@ -1421,7 +1421,7 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
      &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
         conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
         changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         if(L>maxT .or. NprodOx<0.)changeL(L,n_stratOx)=
      &  changeL(L,n_stratOx)+NprodOx*conc2mass
 #endif

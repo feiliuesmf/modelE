@@ -1291,7 +1291,7 @@ c --  Ox --   ( Ox from gas phase rxns)
             changeL(l,n_Ox) = 1.d0 - trm(i,j,l,n_Ox)
             changeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*bypfactor
           END IF
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
           if(changeL(L,n_Ox)>0.)changeL(L,n_stratOx)=changeL(L,n_Ox)
           if((trm(i,j,l,n_stratOx)+changeL(l,n_stratOx)) < 1.d0)
      &    changeL(l,n_stratOx) = 1.d0 - trm(i,j,l,n_stratOx)
@@ -1659,7 +1659,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         DO N=1,NTM_CHEM
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         tr3Dsource(i,j,l,nChemistry,n_stratOx)=
      &  changeL(l,n_stratOx)*bydtsrc
 #endif
@@ -1779,7 +1779,7 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
      &      axyp(i,j)*O3MULT - trm(i,j,L,n_Ox))*bydtsrc
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
             ! -- stratOx --
             tr3Dsource(i,j,L,nChemistry,n_stratOx)=0.d0
             tr3Dsource(i,j,L,nStratwrite,n_stratOx)=
@@ -1998,14 +1998,14 @@ c (radiation code wants atm*cm units):
            end do
          end if
 
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
          strato3_tracer_save(1:maxl,i,j)=(trm(i,j,1:maxl,n_stratOx) +
      &   (tr3Dsource(i,j,1:maxl,nChemistry,n_stratOx) +
      &   tr3Dsource(i,j,1:maxl,nStratwrite,n_stratOx))*dtsrc)
      &   *byaxyp(i,j)*byO3MULT
          if(maxl < LM)strato3_tracer_save(maxl+1:LM,i,j)=
      &   rad_to_chem(1,maxl+1:LM,i,j)
-#endif /* SHINDELL_STRAT_EXTRA */
+#endif
 
         end do ! i
         DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)

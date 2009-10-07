@@ -970,7 +970,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8,DIMENSION(2,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     snfst_ozone,tnfst_ozone
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &    ,snfst_stratOx,tnfst_stratOx
 #endif
 #ifdef BC_ALB
@@ -1668,7 +1668,7 @@ C**** Ozone and Methane:
         CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
         use_tracer_chem(1)=Lmax_rad_O3  ! O3
         use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       else
         call stop_model("stratOx RADF on, rad_interact_chem<=0",255)
 #endif
@@ -1746,7 +1746,7 @@ C**** Ozone:
       SNFST_ozone(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
       TNFST_ozone(2,I,J)=TRNFLB(LM+LM_REQ+1)
       use_tracer_chem(1)=onoff_chem*Lmax_rad_O3
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       chem_IN(1,1:LM)=stratO3_tracer_save(1:LM,I,J)
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
       CALL RCOMPX        ! stratOx diag tracer
@@ -1755,7 +1755,7 @@ C**** Ozone:
       SNFST_stratOx(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
       TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
       chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
-#endif /* SHINDELL_STRAT_EXTRA */
+#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
 C**** Methane: (if there are initial RCOMPX calls, they 
 ! are non-tracer (unlike ozone above, which could be either)):
       chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)
@@ -2527,7 +2527,7 @@ c longwave forcing at TOA
      &     taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
      &     -rsign_chem*(TNFST_ozone(2,I,J)-TNFS(3,I,J))
          endif 
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
                       ! ------ diag stratOx tracer -------
 ! note for now for this diag, there is a failsafe that stops model
 ! if rad_interact_chem>0 when the below would be wrong:
@@ -2547,7 +2547,7 @@ c longwave forcing at TOA
          if (ijts_fc(4,n_stratOx).gt.0)
      &   taijs(i,j,ijts_fc(4,n_stratOx))=taijs(i,j,ijts_fc(4,n_stratOx))
      &   -rsign_chem*(TNFST_ozone(2,I,J)-TNFST_stratOx(2,I,J))
-#endif /* SHINDELL_STRAT_EXTRA */
+#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS*/
 #endif /* any of various tracer groups defined */
 
 #ifdef ACCMIP_LIKE_DIAGS

@@ -681,6 +681,7 @@ C          read the CFC initial conditions:
           ntm_power(n) = -11
           tr_mm(n) = mair
 
+#ifdef ACCMIP_LIKE_DIAGS
       case ('stratOx')
       n_stratOx = n
           ! assumes initial Ox conditions read in for Ox tracer
@@ -690,7 +691,15 @@ C          read the CFC initial conditions:
           F0(n) = 1.0d0
           HSTAR(n) = 1.d-2
 #endif
-#endif
+      case('codirect')
+      n_codirect = n
+          ntm_power(n) = -8
+          tr_mm(n) = 28.01d0
+          trdecay(n) = 2.31482d-7 ! 1/(50 days)
+          ! not a radiactive decay, but functionally identical
+
+#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* SHINDELL_STRAT_EXTRA */
 
       case ('CH3OOH')
       n_CH3OOH = n
@@ -2481,6 +2490,18 @@ C**** set some defaults
           end if
 #endif
 
+        case ('codirect')
+          kt_power_change(n) = -13
+          g=13; itcon_decay(n) = g
+          qcon(itcon_decay(n)) = .true.
+          conpts(g-12) = 'DECAY'
+          qsum(itcon_decay(n)) = .true.
+          do kk=1,ntsurfsrc(n)
+            g=g+1; itcon_surf(kk,n) = g
+            qcon(itcon_surf(kk,n))=.true.
+            conpts(g-12)=trim(ssname(n,kk))
+          end do
+
 #ifdef TRACERS_AEROSOLS_SOA
         case ('isopp1g','isopp1a','isopp2g','isopp2a',
      &        'apinp1g','apinp1a','apinp2g','apinp2a')
@@ -3679,6 +3700,24 @@ C**** special one unique to HTO
         jls_power(k) = -5
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
+
+      case ('codirect')
+        do kk=1,ntsurfsrc(n)
+          k = k + 1
+          jls_source(kk,n) = k
+          sname_jls(k) = trim(trname(n))//'_'//trim(ssname(n,kk))
+          lname_jls(k) = trim(trname(n))//' source from '//
+     &                   trim(ssname(n,kk))
+          jls_ltop(k) = 1
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end do
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
@@ -5053,6 +5092,18 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -21
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      case ('codirect')
+        do kr=1,ntsurfsrc(n)
+          k = k+1
+          ijts_source(kr,n) = k
+          ia_ijts(k) = ia_src
+          sname_ijts(k) = trim(trname(n))//'_'//trim(ssname(n,kr))
+          lname_ijts(k) = trname(n)//' source from '//trim(ssname(n,kr))
+          ijts_power(k) = -14
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end do
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
@@ -8018,7 +8069,7 @@ c**** earth
             trm(I,J,L,n) = OxIC(I,J,L)
             chem_tracer_save(1,L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         case ('stratOx')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = OxIC(I,J,L)
@@ -8137,6 +8188,12 @@ c**** earth
               trm(I,J,L,n) = COIC(I,J,L)*ICfactor
             end do   ; end do   
           end do
+
+        case ('codirect')
+          ! supposed to start from zero conc for the HTAP TP anyway...
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+            trm(i,j,l,n) = 0.d0
+          end do; end do; end do
 
         case ('PAN')
           select case(PI_run)
@@ -8649,7 +8706,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
-     & n_CH4,n_Isoprene,sfc_src,ntsurfsrc,ssname,do_fire
+     & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire
 #ifdef TRACERS_SPECIAL_Shindell
      & ,ntm_chem
 #endif
@@ -8842,6 +8899,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         if(do_fire(n))call dynamic_biomass_burning(n,nread+1)
 #endif
       end do
+
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
+      call read_sfc_sources(n_codirect,ntsurfsrc(n_codirect))
+#endif
+
+
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -9332,7 +9395,7 @@ C****
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
      &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit','Terpenes',
      &      'Alkenes','Paraffin','HCl','HOCl','ClONO2','HBr','HOBr',
-     &      'BrONO2','N2O','CFC','stratOx')
+     &      'BrONO2','N2O','CFC','stratOx','codirect')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
@@ -9934,7 +9997,7 @@ c
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
       tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.d0
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_stratOx)  = 0.d0
       tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,n_stratOx) = 0.d0
 #endif
@@ -9956,7 +10019,7 @@ C**** Apply chemistry and overwrite changes:
         call apply_tracer_3Dsource(nChemistry,n)
         call apply_tracer_3Dsource(nStratwrite,n)
       end do
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call apply_tracer_3Dsource(nChemistry,n_stratOx)
       call apply_tracer_3Dsource(nStratwrite,n_stratOx)
 #endif
