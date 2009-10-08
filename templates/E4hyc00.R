@@ -76,7 +76,6 @@ sigetc|-r8|                         ! eqn.of state, etc.
 thermf|-r8|                         ! thermal forcing
 trcadv|-r8|                         ! tracer advection
 tsadvc|-r8| advem|-r8|              ! advecting t/s
-read_12months4acc_mod|-r8|
 
 Components:
 Ent shared ESMF_Interface solvers giss_LSM
