@@ -11,7 +11,7 @@
 #endif
 
 #ifdef TRACERS_OceanBiology
-      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_forc, only : avgq,tirrq3d,ihra,atmco2
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av
      .                     ,ao_co2fluxav,diag_counter
 #endif
@@ -42,6 +42,15 @@
       call sync_param( "diapyn", diapyn)
       call sync_param( "diapyc", diapyc)
       call sync_param( "jerlv0", jerlv0)
+
+#ifdef TRACERS_OceanBiology
+#ifdef constCO2
+      call get_param("atmCO2",atmCO2)   !need to do this here also
+      print*, 'OCEAN_hycom, atmco2=',atmCO2
+#else
+      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
+#endif
+#endif
 c
       call geopar(iniOCEAN)
 c
