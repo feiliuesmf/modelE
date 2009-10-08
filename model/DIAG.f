@@ -2607,8 +2607,11 @@ c**** find MSU channel 2,3,4 temperatures
       character(len=80) :: filenm
 !@var iu_REG unit number for regions file
       INTEGER iu_REG
-#ifdef CUBE_GRID
-C***  regions defined as rectangles
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#define ASCII_REGIONS
+#endif
+#ifdef ASCII_REGIONS
+C***  regions defined as rectangles in an ASCII file
       integer, dimension(23) :: NRECT
       character*4, dimension(23,6) :: CORLON,CORLAT
       real*8, dimension(23,6) :: DCORLON,DCORLAT   !lat-lon coordinates of rect. corners
@@ -2629,7 +2632,7 @@ c a parallelized i/o routine that understands it
 
 
 C****   READ SPECIAL REGIONS
-#ifndef CUBE_GRID
+#ifndef ASCII_REGIONS
       call openunit("REG",iu_REG,.true.,.true.)
       READ(iu_REG) TITREG,JREG_glob,NAMREG
       jreg(i_0:i_1,j_0:j_1) = jreg_glob(i_0:i_1,j_0:j_1)
