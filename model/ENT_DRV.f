@@ -349,7 +349,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       real*8, dimension(12), intent(out) :: v_giss
 
       if (N_COVERTYPES == 12) then
-        v_giss(:) = v_ent(:)
+        v_giss(1:12) = v_ent(1:12)
       else if (N_COVERTYPES == 18) then
         !18->12
         v_giss(1) = v_ent(17)   !sand
