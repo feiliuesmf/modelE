@@ -295,7 +295,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       use rad_com, only : chem_trac=>chem_tracer_save, rad_to_chem
 #endif
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       use rad_com, only : stratO3_trac=>stratO3_tracer_save
 #endif
 #ifdef TRACERS_DUST
@@ -561,7 +561,7 @@
         check("rad_to_chem",rad_to_chem)
         check("chem_trac",chem_trac)
 #endif
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         check("stratO3_trac",stratO3_trac)
 #endif
 #ifdef TRACERS_DUST
