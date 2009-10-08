@@ -7573,7 +7573,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FILEMANAGER, only: openunit,closeunit,nameunit
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : chem_tracer_save,rad_to_file,ghg_yr
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &  ,stratO3_tracer_save
 #endif
       USE TRCHEM_Shindell_COM,only:O3MULT,MDOFM,ch4icx,

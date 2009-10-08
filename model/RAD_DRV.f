@@ -833,7 +833,7 @@ cdmk last line saved for IE
 #ifdef TRACERS_ON     
      &     ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
-#ifdef SHINDELL_STRAT_EXTRA
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
 #endif
       USE RANDOM
