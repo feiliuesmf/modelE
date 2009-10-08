@@ -15,7 +15,7 @@
 
 !---  boundary conditions (read from file)
 !@var vdata(:,:,k)  fraction of gridbox of veg.type k=1-12
-      real*8, ALLOCATABLE, dimension(:,:,:) :: vdata
+!      real*8, ALLOCATABLE, dimension(:,:,:) :: vdata
 
 !---  prognostic variables (saved to restart file)
 !@var Cint Internal foliage CO2 concentration (mol/m3)
@@ -368,7 +368,7 @@ C****
       call ent_cell_nullify( entcells )
 
 
-      ALLOCATE(    vdata(I_0H:I_1H,J_0H:J_1H,N_COVERTYPES),
+      ALLOCATE(   ! vdata(I_0H:I_1H,J_0H:J_1H,12),
      *              Cint(I_0H:I_1H,J_0H:J_1H),
      *              Qfol(I_0H:I_1H,J_0H:J_1H),
      *            cnc_ij(I_0H:I_1H,J_0H:J_1H),

@@ -153,7 +153,7 @@
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use ghy_com, only : q_ij, qk_ij, dz_ij
       use ghy_com, only : fearth
-       type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
+      type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       logical :: reinitialize
       logical, intent(in), optional :: prog_veg
@@ -208,7 +208,7 @@
           vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)
      &         *(1.d0-cropdata_H(I0:I1,J0:J1))
         enddo
-        vegdata(CROPS,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
+        vegdata(CROPS+COVEROFFSET,I0:I1,J0:J1) = cropdata_H(I0:I1,J0:J1)
       endif
          
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
@@ -348,24 +348,28 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       real*8, dimension(N_COVERTYPES), intent(in) :: v_ent
       real*8, dimension(12), intent(out) :: v_giss
 
-      if (N_COVERTYPES == 12) return
-
-      !18->12
-      v_giss(1) = v_ent(17)             !sand
-      v_giss(2) = v_ent(9)              !tundra
-      v_giss(3) = v_ent(11) + v_ent(12) 
+      if (N_COVERTYPES == 12) then
+        v_giss(:) = v_ent(:)
+      else if (N_COVERTYPES == 18) then
+        !18->12
+        v_giss(1) = v_ent(17)   !sand
+        v_giss(2) = v_ent(9)    !tundra
+        v_giss(3) = v_ent(11) + v_ent(12) 
      &          + v_ent(13) + v_ent(14) !grass
-      v_giss(4) = v_ent(10)             !shrub
-      v_giss(5) = 0.d0                  !tress
-      v_giss(6) = v_ent(5) + v_ent(6) 
+        v_giss(4) = v_ent(10)   !shrub
+        v_giss(5) = 0.d0        !tress
+        v_giss(6) = v_ent(5) + v_ent(6) 
      &          + v_ent(7) + v_ent(8)
      &          + v_ent(16)             !deci
-      v_giss(7) = v_ent(3) + v_ent(4)   !evergr
-      v_giss(8) = v_ent(1) + v_ent(2)   !rainf
-      v_giss(9) = v_ent(15)             !crops
-      v_giss(10)= v_ent(18)             !dirt
-      v_giss(11)= 0.d0
-      v_giss(12)= 0.d0
+        v_giss(7) = v_ent(3) + v_ent(4) !evergr
+        v_giss(8) = v_ent(1) + v_ent(2) !rainf
+        v_giss(9) = v_ent(15)   !crops
+        v_giss(10)= v_ent(18)   !dirt
+        v_giss(11)= 0.d0
+        v_giss(12)= 0.d0
+      else
+        call stop_model("map_ent2giss: unsupported N_COVERTYPES",255)
+      endif
 
 
       end subroutine map_ent2giss
