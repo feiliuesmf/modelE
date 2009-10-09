@@ -433,7 +433,7 @@ C**** ignore ocean currents for initialisation.
        real*4 rrr(im,jm)
 
         titrrr = "roughness length over land"
-	rrr = 0.
+        rrr = 0.
 
 C****
 C**** Extract useful local domain parameters from "grid"
