@@ -317,8 +317,7 @@ m4_loop(`
       m4_arr_only(`dims(2,:) = ubound(entcell)')`'
 
       m4_do(dims)
-        call ent_integrate(dt, entcell`'m4_brkts(m4_ind)`'%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell`'m4_brkts(m4_ind)`'%entcell,update_day,config)
       m4_enddo
 
       end subroutine ent_run_`'m4_suffix`'
@@ -865,8 +864,6 @@ m4_loop(`
       dc = dc + nn
       call copy_vars( buf(dc:), nn, entcell%ncd, flag)
       dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%ld, flag)
-      dc = dc + nn
 
       n = dc
 
@@ -989,7 +986,8 @@ m4_loop(`
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
      &     ) ! need to pass Ci, Qf ??
       type(entcelltype_public),intent(out):: entcell`'m4_brkts(m4_ext)`'
       ! forcings probably should not be optional ...
@@ -1012,7 +1010,8 @@ m4_loop(`
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
       !----------
       integer n
       m4_arr_only(`integer m4_ind')`'
@@ -1063,6 +1062,10 @@ m4_loop(`
      &           soil_matric_pot(n`'m4_comma`'m4_ind)
             entcell`'m4_brkts(m4_ind)`'%entcell%fice(n) =
      &           soil_ice_fraction(n`'m4_comma`'m4_ind)
+          enddo
+          do n=1,2
+            entcell`'m4_brkts(m4_ind)`'%entcell%daylength(n) =
+     &           daylength(n`'m4_comma`'m4_ind)
           enddo
       m4_enddo
         !enddo

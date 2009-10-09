@@ -2030,6 +2030,7 @@ c****
      &     srht_in,trht_in,     ! forcing fluxes
      &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
      &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in, ! forcing parameters
+     &     daylength,
      &     end_of_day_flag
 #ifdef TRACERS_WATER
      &     ,ghy_tr
@@ -2086,6 +2087,7 @@ c**** soils28   common block     9/25/90
       real*8 :: srht_in,trht_in
       real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
       real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
+      real*8 :: daylength(2)
       logical :: end_of_day_flag
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
@@ -2301,6 +2303,7 @@ ccc accm0 was not called here in older version - check
 cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
 cddd     &         vis_rad,direct_vis_rad,cosz1,sbgc_temp,sbgc_moist,
 cddd     &         h(1:ngm,2),fice(1:ngm,2) 
+
           call ent_set_forcings( entcell,
      &       air_temperature=ts-tfrz,
      &         canopy_temperature=tp(0,2),
@@ -2318,13 +2321,14 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         soil_temp=sbgc_temp,
      &         soil_moist=sbgc_moist,
      &         soil_matric_pot=h(1:ngm,2),
-     &         soil_ice_fraction=fice(1:ngm,2) 
+     &         soil_ice_fraction=fice(1:ngm,2),
+     &         daylength=daylength(1:2)
      &         )
 
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dts, end_of_day_flag ) 
+          call ent_run( entcell,dts,end_of_day_flag ) 
 
 ccc unpack necessary data
           call ent_get_exports( entcell,
