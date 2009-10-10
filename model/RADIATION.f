@@ -785,7 +785,7 @@ C                         CLAY                  SILT
 !@+   and Patterson 1977 SW properties.
 !@+   DUSTAB=1.0: all particles have Sinyuk 2003 properties
 !@+   DUSTAB=0.0: all particles have Patterson 1977 properties
-      real*8, parameter :: DUSTAB = 1.0
+      real*8, parameter :: DUSTAB = 0.5
 
 C-----------------------------------------------------------------------
 C     GHG 1980 Reference Concentrations and Vertical Profile Definitions
