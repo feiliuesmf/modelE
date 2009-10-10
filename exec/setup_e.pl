@@ -389,6 +389,7 @@ print <<`EOC`;
     echo "$run_command ./"$runID".exe -i I >> ${runID}.PRT" >> setup_command
     chmod 755 setup_command
     $qsub_command ./setup_command
+    touch run_status  # don't trust clocks on batch nodes
     rc=`head -1 run_status`
     rm -f AIC GIC OIC
     ./"$runID"uln
@@ -410,6 +411,7 @@ if ( $rcode != 13 && $rcode != 12 ) {
 } else {
     print "1st hour completed successfully\n";
 }
+
 
 ## Create executable script file RUNID
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
