@@ -3105,7 +3105,7 @@ c
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #ifdef TRACERS_ON
-      USE RAD_COM,only: ttausv_sum,ttausv_count
+      USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
       IMPLICIT NONE
       INTEGER I,J
@@ -3196,6 +3196,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
             END IF
 #ifdef TRACERS_ON
             ttausv_sum(I,J,:)=0.d0
+            ttausv_sum_cs(I,J,:)=0.d0
 #endif
          END DO
       END DO
