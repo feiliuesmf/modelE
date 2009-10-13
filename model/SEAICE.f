@@ -508,13 +508,9 @@ C**** calculate melt in snow and ice layers
           TRMELTI(:,L)=MELTI(L)*TRICE(:,L)/MICE(L)
           TRICE(:,L) = TRICE(:,L) - TRMELTI(:,L)
 #endif
-          if (debug.and.L.eq.3 .and. MELTI(L).gt.0) print*,"sim1",HICE(L
-     $         ),SICE(L),MICE(L),MELTI(L),HMELTI(L)
           HICE(L) = HICE(L)-HMELTI(L)
           MICE(L) = MICE(L)- MELTI(L)
           SICE(L) = SICE(L)-SMELTI(L)
-          if (debug.and.L.eq.3 .and. MELTI(L).gt.0) print*,"sim2",HICE(L
-     $         ),SICE(L),MICE(L),MELTI(L),HMELTI(L)
         END IF
       END DO
 
@@ -681,6 +677,7 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
       REAL*8 FMSI4, FHSI3, FHSI4, FSSI3, FSSI4 ! HSNOW, HICE, SICE
       REAL*8 HSNOW(2),SNOWL(2),TSNW(2),HICE(LMI),SICE(LMI),MICE(LMI)
       REAL*8 ROICEN, OPNOCN, DRSI, MSI1
+      integer l
 
       DMIMP=0. ; DHIMP=0. ; DSIMP=0.
 #ifdef TRACERS_WATER
@@ -847,7 +844,6 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         FSSI4 = SSIL(4)*FMSI4/(XSI(4)*MSI2)
         FHSI3 = HSIL(3)*FMSI4/MSI2 ! downward heat flux into layer 4
         FSSI3 = SSIL(3)*FMSI4/MSI2 ! downward salt flux into layer 4
-c        if (debug) print*,"fi6c",roice,roicen,fmsi4,fssi4,fssi3,drsi
 #ifdef TRACERS_WATER
         FTRSI4(:) = TRSIL(:,4)*FMSI4/(XSI(4)*MSI2)
         FTRSI3(:) = TRSIL(:,3)*FMSI4/MSI2
@@ -1080,7 +1076,6 @@ C**** calculate removal of excess salinity using simple decay
             DSSI(L) = (SICE(L)-MICE(L)*ssi0)*DT*BYDTSSI
             DMSI(L) = DSSI(L)
             DHSI(L) = -DMSI(L)*TSIL(L)*SHI
-c        if (debug) print*,"ssidec2",l,DMSI(l),DSSI(l),DHSI(l)
 #ifdef TRACERS_WATER
 C**** no tracer removed if pure salt is lost
 c           DTRSI(:,L) = (DMSI(L)-DSSI(L))*TRICE(:,L)/(MICE(L)-SICE(L))
@@ -1089,7 +1084,6 @@ c           TRICE(:,L) = TRICE(:,L)-DTRSI(:,L)
             SICE(L)=SICE(L)-DSSI(L)
             HICE(L)=HICE(L)-DHSI(L)
             MICE(L)=MICE(L)-DMSI(L)
-c            if (debug) print*,"ssidec2a",l,MICE(l),HICE(l),SICE(l)
           END IF
         END DO
 
@@ -1100,8 +1094,6 @@ C**** calculate removal of excess salinity using flushing and brine pocket limit
             brine_frac=-mu*1d3*(SICE(L)/TSIL(L))/MICE(L)
 C**** flushing (30% of MELT12 pushes out an equivalent mass of brine)
             rate = min(1d0,0.3d0*MELT12/(MICE(L)*brine_frac)) ! fractional loss
-c        if (debug) print*,"ssidec1",l,brine_frac,rate,TSIL(L),
-c     *           1d3*SICE(L)/MICE(L),hice(l),sice(l),mu,mice(l)
 C**** basic gravity drainage (3 day timescale)
             if (brine_frac.gt.0.01d0) rate =
      *           min(rate + DT*BYDTSSI*100.*(brine_frac-0.01d0),1d0)
@@ -1111,9 +1103,6 @@ C**** remove very small amounts of salt
             DSSI(L) = rate*SICE(L)
 c            DHSI(L) = rate*brine_frac*MICE(L)*shw*TSIL(L)
             DHSI(L) = -rate*mu*1d3*SICE(L)*shw
-c            if (debug) print*,"ssidec2",rate,DMSI(l),DSSI(l),DHSI(l),
-c     $           Ti(HICE(l)/MICE(l),1d3*SICE(l)/MICE(l)),Ti(DHSI(l)
-c     $           /DMSI(l),1d3*DSSI(l)/DMSI(l))
 #ifdef TRACERS_WATER
 C**** tracers may be fractionated in the brine....(assume not for now)
             DTRSI(:,L) = (DMSI(L)-DSSI(L))*TRICE(:,L)/(MICE(L)-SICE(L))
@@ -1122,9 +1111,6 @@ C**** tracers may be fractionated in the brine....(assume not for now)
             SICE(L)=max(0d0,SICE(L)-DSSI(L))
             HICE(L)=HICE(L)-DHSI(L)
             MICE(L)=MICE(L)-DMSI(L)
-c            if (debug) print*,"ssidec3",Ti(HICE(l)/MICE(l),1d3*SICE(l)
-c     $           /MICE(l)),HICE(l),-MICE(l)*(lhm+shi*tsil(l)),-MICE(l)
-c     $           *lhm, -HICE(l)/(lhm+shi*tsil(l)),MICE(l),DMSI(l)
 
 C**** add brine expulsed to melt ponds if snow is gone
             if (SNOW.eq.0. .and. L.le.2) MELT12=MELT12+DMSI(L)
@@ -1152,19 +1138,14 @@ C**** Mass/heat/salt moves from layer 3 to 2
       FTRSI(:,2) = FMSI(2)*TRICE(:,3)/(MICE(3)-SICE(3))
 #endif
 
-c      if (debug) print*,"ssidec5",fmsi(1:2),fssi(1:2),fhsi(1:2),
-c     *     Ti(FHSI(1)/FMSI(1),1d3*FSSI(1)/FMSI(1)),Ti(FHSI(2)/FMSI(2),
-c     *     1d3*FSSI(2)/FMSI(2)),TSIL(1:3), Ti(HICE(1)/MICE(1),1d3*SICE(1
-c     $     )/MICE(1)),SICE(1:2)
-
 C**** add fluxes in upper layers
       IF (DMSI(1)+DMSI(2).gt.0) THEN
         HICE(1) = HICE(1)-FHSI(1)
         SICE(1) = SICE(1)-FSSI(1)
         HICE(2) = HICE(2) + FHSI(1) - FHSI(2)
         SICE(2) = SICE(2) + FSSI(1) - FSSI(2)
-c       MICE(1) = MICE(1) -FMSI1 - DMSI(1)
-c       MICE(2) = MICE(2) +FMSI1 - DMSI(2) - FMSI2
+        MICE(1) = MICE(1) -FMSI(1) 
+        MICE(2) = MICE(2) +FMSI(1) - FMSI(2)
 #ifdef TRACERS_WATER
         TRICE(:,1) = TRICE(:,1)- FTRSI(:,1)
         TRICE(:,2) = TRICE(:,2)+ FTRSI(:,1) - FTRSI(:,2)
@@ -1184,31 +1165,30 @@ C**** Mass/heat moves between layers 3 to 4
         FHSI(3) = FMSI(3)*HSIL(3)/MICE(3)
         FSSI(3) = 0.   ! FMSI(3)*SSIL(3)/MICE(3)
 #ifdef TRACERS_WATER
-        FTRSI(:,3) = FMSI(3)*TRICE(:,3)/(MICE(3)-SICE(3))
+        FTRSI(:,3) = FMSI(3)*TRSIL(:,3)/(MICE(3)-SICE(3)) 
 #endif
       ELSE                      ! upward flux
         FHSI(3) = FMSI(3)*HSIL(4)/MICE(4)
-        FSSI(3) = 0.     ! FMSI(3)*SSIL(4)/(XSI(4)*MSI2-DMSI(4))
+        FSSI(3) = 0.     ! FMSI(3)*SSIL(4)/MICE(4)
 #ifdef TRACERS_WATER
-        FTRSI(:,3) = FMSI(3)*TRICE(:,4)/(MICE(4)-SICE(4))
+        FTRSI(:,3) = FMSI(3)*TRSIL(:,4)/(MICE(4)-SICE(4))
 #endif
       END IF
 
 C**** Apply the second mass layer fluxes
-      HSIL(3)=HICE(3)+ FHSI(2)-FHSI(3)
-      HSIL(4)=HICE(4)+ FHSI(3)
-      SSIL(3)=SICE(3)+ FSSI(2)-FSSI(3)
-      SSIL(4)=SICE(4)+ FSSI(3)
+      HSIL(3)=HSIL(3)+ FHSI(2)-FHSI(3)
+      HSIL(4)=HSIL(4)+ FHSI(3)
+      SSIL(3)=SSIL(3)+ FSSI(2)-FSSI(3)
+      SSIL(4)=SSIL(4)+ FSSI(3)
 c      if (SSIL(3).lt.ssimin*MICE(3)) SSIL(3)=0.
 c      if (SSIL(4).lt.ssimin*MICE(4)) SSIL(4)=0.
 #ifdef TRACERS_WATER
 C**** Apply the tracer fluxes
-      TRSIL(:,3)=TRICE(:,3)+ FTRSI(:,2)-FTRSI(:,3)
-      TRSIL(:,4)=TRICE(:,4)+ FTRSI(:,3)
+      TRSIL(:,3)=TRSIL(:,3)+ FTRSI(:,2)-FTRSI(:,3)
+      TRSIL(:,4)=TRSIL(:,4)+ FTRSI(:,3)
 #endif
 c     MSI1 = MSI1 - (DMSI(1)+DMSI(2)) - FMSI(2) ! stays fixed
-c      if (debug) print*,"ssidec7",msi2,dmsi,fmsi
-      MSI2 = MSI2 - (DMSI(3)+DMSI(4)) + FMSI(2)
+      MSI2 = MSI2 + FMSI(2)
 
 C**** output fluxes and diagnostics
       MFLUX = SUM(DMSI(1:LMI))         ! mass flux to ocean
@@ -1221,7 +1201,6 @@ C**** output fluxes and diagnostics
 #endif
 C****
       call tice(hsil,ssil,msi1,msi2,tsil)
-c      if (debug)  write(6,'(A,8F11.6)') "siD",tsil,ssil
 
       RETURN
       END SUBROUTINE SSIDEC
@@ -1625,6 +1604,7 @@ C**** Be careful to avoid taking too much tracer from ocean box
      $     ,Erat2,Si,MSI1,Tf,Eratd
       REAL*8 SICE(LMI),HICE(LMI),HSNOW(2),MICE(LMI),SNOWL(2),FMSI2,
      $     TSNW(2),TSIL(LMI)
+      integer l
 
 C**** test for snow ice possibility
       IF (RHOI*SNOW.gt.(ACE1I+MSI2)*(RHOWS-RHOI)) THEN
@@ -1637,7 +1617,7 @@ C**** separate out snow and ice components
 #ifdef TRACERS_WATER
      *       TRSIL,TRSNOW,TRICE, 
 #endif 
-     *       SNOWL,HSNOW,HICE,SICE,TSNW,TSIL,MICE,.false.)
+     *       SNOWL,HSNOW,HICE,SICE,TSNW,TSIL,MICE,.true.)
 
 C**** Check energy constraint on mass flux
 C**** Si is the salinity only in the frozen sea water part
@@ -1676,7 +1656,7 @@ C**** (Esnow-Ei(Tm, 0))/(Ei(Tm,Si)-Eoc)
 
 C**** distribute changes over ice and snow
         if (DSNOW.gt.SNOWL(2)) THEN ! all of snow layer 2 and some snow layer 1 go to ice
-           HSNOW(1)=HSNOW(1)*(SNOWL(1)+SNOWL(2)-DSNOW)/SNOWL(1) ! temperature constant
+           HSNOW(1)=HSNOW(1)*(SNOWL(1)+SNOWL(2)-DSNOW)/SNOWL(1) ! temperature constant in remaining snow
            HSNOW(2)=0.
            MICE(1)=MICE(1)+MAXM+DSNOW
            SICE(1)=SICE(1)+MAXM*0.001d0*Si
@@ -2044,12 +2024,22 @@ C**** Adjust amounts resulting from fluxes.
 #endif
         END IF
         IF (L.lt.LMI) THEN
-          MICE(L)=MICE(L)-FMSI(L)
-          HICE(L)=HICE(L)-FHSI(L)
-          SICE(L)=SICE(L)-FSSI(L)
+c          IF (FMSI(L).gt.MICE(L)) THEN ! exceptional case 
+c            MICE(L-1)=MICE(L-1)-FMSI(L)
+c            HICE(L)=HICE(L-1)
+c            HICE(L-1)=HICE(L-1)-FHSI(L)
+c            SICE(L)=SICE(L)-FSSI(L)
+c#ifdef TRACERS_WATER
+c            TRICE(:,L)=TRICE(:,L)-FTRSI(:,L)
+c#endif
+c          ELSE
+            MICE(L)=MICE(L)-FMSI(L)
+            HICE(L)=HICE(L)-FHSI(L)
+            SICE(L)=SICE(L)-FSSI(L)
 #ifdef TRACERS_WATER
-          TRICE(:,L)=TRICE(:,L)-FTRSI(:,L)
+            TRICE(:,L)=TRICE(:,L)-FTRSI(:,L)
 #endif
+c          END IF
         END IF
       END DO
 
@@ -2301,8 +2291,6 @@ C**** albedo calculations
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
-
-      !! write(*,*) "seaice i_0h i_1h=",i_0h,i_1h
 
       ALLOCATE( RSI(I_0H:I_1H, J_0H:J_1H),
      *     SNOWI(I_0H:I_1H, J_0H:J_1H),
@@ -2567,10 +2555,6 @@ C**** Check for reasonable values for ice variables
      *           ,1d3*SSI(L,I,J)/(XSI(L)*(ACE1I+SNOWI(I,J))))
             IF (L.gt.2) TICE = Ti(HSI(L,I,J)/(XSI(L)*MSI(I,J))
      *           ,1d3*SSI(L,I,J)/(XSI(L)*MSI(I,J)))
-c            if (i.eq.113.and.j.eq.13) write(6,'(2A,I4,6F8.4,F10.4,F8.5)'
-c     $           )"si1 after ",SUBR,l,tice,1d3*ssi(1:2,i,j)/(xsi(1:2)
-c     $           *(ace1i+snowi(i,j))),1d3*ssi(3:4,i,j)/(xsi(3:4)*msi(i,j
-c     $           )),snowi(i,j),msi(i,j),rsi(i,j)
             IF (HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN
               WRITE(6,'(3a,3i3,6e12.4/1X,6e12.4)')
      *             'After ',SUBR,': I,J,L,TSI=',I,J,L,TICE,RSI(I,J)
@@ -2612,7 +2596,7 @@ C**** check negative tracer mass
                 if (trsi(n,l,i,j).lt.0.) then
                   print*,"Neg Tracer in sea ice after ",subr,i,j,l,
      *                 trname(n),trsi(n,l,i,j),rsi(i,j),msi(i,j),ssi(l,i
-     *                 ,j)
+     *                 ,j),snowi(i,j)
                   QCHECKI=.true.
                 end if
               end do
