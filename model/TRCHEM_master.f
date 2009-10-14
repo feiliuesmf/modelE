@@ -56,7 +56,9 @@ c
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
      *     ,jls_Oxd,ijs_NO2_col,ijs_NO2_count,jls_OxpT,jls_OxdT
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_phO1D
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_phO1D,ijlt_pO1D
+     &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxpRO2
+     &     ,ijlt_OxlALK,ijlt_OxlOH
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
 #endif
@@ -619,7 +621,9 @@ c           (~200nm):
 #endif
           enddo
           taijls(i,j,l,ijlt_JH2O2)=taijls(i,j,l,ijlt_JH2O2)+ss(4,l,i,j)
+#ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,l,ijlt_phO1D)=taijls(i,j,l,ijlt_phO1D)+ss(2,l,i,j)
+#endif
 #ifdef SHINDELL_STRAT_CHEM
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
@@ -1651,6 +1655,37 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
+
+#ifdef ACCMIP_LIKE_DIAGS
+! accumulate some 3D diagnostics in moles/m3/s units:
+        ! chemical_production_of_O1D_from_ozone:
+        taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
+     &  ss(2,l,i,j)*y(n_Ox,l)*byavog*1.d9
+
+        ! chemical_production_of_OH_from_O1D_plus_H2O:
+        taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
+     &  2.d0*rr(10,l)*y(nH2O,l)*y(nO1D,l)*byavog*1.d9
+
+        ! chemical_production_rate_of_ozone_by_HO2_plus_NO:
+        taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
+     &  rr(10,l)*y(nHO2,l)*y(nNO,l)*byavog*1.d9
+   
+!       ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
+!       taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
+!    &  ????????????????????????????????????????
+    
+        ! chemical_destruction_rate_of_ozone_by_OH:
+        taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
+     &  -1.d0*rr(2,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9
+
+        !chemical_destruction_rate_of_ozone_by_HO2:
+        taijls(i,j,l,ijlt_OxlHO2)=taijls(i,j,l,ijlt_OxlHO2)+
+     &  -1.d0*rr(4,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9
+
+        !chemical_destruction_rate_of_ozone_by_Alkenes:
+        taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+
+     &  -1.d0*rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*byavog*1.d9
+#endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Save chemistry changes for applying in apply_tracer_3Dsource.  C
