@@ -1649,6 +1649,10 @@ C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
 C**** This is set from the rundeck.
       LFRC=LM+LM_REQ+1          ! TOA
       if (rad_forc_lev.gt.0) LFRC=LTROPO(I,J) ! TROPOPAUSE
+#ifdef ACCMIP_LIKE_DIAGS
+      if(rad_forc_lev.gt.0)call stop_model
+     &('ACCMIP_LIKE_DIAGS desires TOA RADF diags',255)
+#endif
 C**** The calculation of the forcing is slightly different.
 C**** depending on whether full radiative interaction is turned on
 C**** or not.
