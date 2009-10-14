@@ -291,12 +291,12 @@ c Update DIC for sea-air flux of CO2
      .      xco2,pCO2_ij,ff,flxmolm3,ao_co2flux
       endif
 
-!     if (vrbos) then
-!      write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
-       write(6,'(a,3i7,9e12.4)')'99999999999999999999',
+      if (vrbos) then
+       write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
+!      write(6,'(a,3i7,9e12.4)')'99999999999999999999',
      .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
      .   rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
-!     endif
+      endif
 
 #endif
 
@@ -451,12 +451,16 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.33 $
-c_ $Date: 2009/10/08 17:56:17 $   ;  $State: Exp $
+c_ $Revision: 2.34 $
+c_ $Date: 2009/10/14 20:56:47 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.34  2009/10/14 20:56:47  aromanou
+c_
+c_ broadcast tracer array before diagnostics.
+c_
 c_ Revision 2.33  2009/10/08 17:56:17  aromanou
 c_
 c_ HYCOM only: ensure atmco2=whatever in the constco2 case.
@@ -951,12 +955,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.33 $
-c_ $Date: 2009/10/08 17:56:17 $   ;  $State: Exp $
+c_ $Revision: 2.34 $
+c_ $Date: 2009/10/14 20:56:47 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.34  2009/10/14 20:56:47  aromanou
+c_
+c_ broadcast tracer array before diagnostics.
+c_
 c_ Revision 2.33  2009/10/08 17:56:17  aromanou
 c_
 c_ HYCOM only: ensure atmco2=whatever in the constco2 case.
@@ -1196,12 +1204,16 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.33 $
-c_ $Date: 2009/10/08 17:56:17 $   ;  $State: Exp $
+c_ $Revision: 2.34 $
+c_ $Date: 2009/10/14 20:56:47 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.34  2009/10/14 20:56:47  aromanou
+c_
+c_ broadcast tracer array before diagnostics.
+c_
 c_ Revision 2.33  2009/10/08 17:56:17  aromanou
 c_
 c_ HYCOM only: ensure atmco2=whatever in the constco2 case.

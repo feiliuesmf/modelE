@@ -148,6 +148,7 @@
       nstep0=0
 #else
       if (nstep.eq.1) then
+        print*, 'COLD INITIALIZATION1...'
         trcout=.true.
 #endif
 
@@ -575,9 +576,11 @@ cdiag    enddo
           endif
           tot = tot + Ed(ichan)+Es(ichan)
 
-cdiag     write(*,'(a,4i5,5e12.4)')'obio_model, tirrq: ',
-cdiag.         nstep,i,j,ichan,
-cdiag.         ovisdir_ij,eda_frac(ichan),Ed(ichan),Es(ichan),tot
+c         if (vrbos) then
+c         write(*,'(a,4i5,5e12.4)')'obio_model, tirrq: ',
+c    .         nstep,i,j,ichan,
+c    .         ovisdir_ij,eda_frac(ichan),Ed(ichan),Es(ichan),tot
+c         endif
 
 #ifdef OBIO_ON_GARYocean
        OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
@@ -657,16 +660,17 @@ cdiag.                  tot,ichan=1,nlt)
 
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
-cdiag    if (vrbos)
-cdiag.     write(*,107)nstep,
+         if (vrbos) then
+cdiag      write(*,107)nstep,
 cdiag.       '           k   avgq    tirrq',
 cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
-cdiag    do k=1,kdm
-cdiag    write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
-cdiag.       nstep,i,j,k,avgq1d(k),tirrq(k)
-cdiag    enddo
+         do k=1,kdm
+         write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
+     .       nstep,i,j,k,avgq1d(k),tirrq(k)
+         enddo
+         endif
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
 
@@ -773,6 +777,9 @@ cdiag     endif
       endif
 
        !------------------------------------------------------------
+      if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
+     .    obio_P(1,:),det(1,:),car(1,:)
+
        !update 3d tracer array
        do k=1,kmax
         do nt=1,ntyp+n_inert
@@ -794,6 +801,7 @@ cdiag     endif
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
+
 
 #ifdef OBIO_ON_GARYocean
       !update trmo etc arrays
@@ -898,16 +906,12 @@ cdiag  endif
  1000 continue
 c$OMP END PARALLEL DO
 
-#ifdef OBIO_ON_GARYocean
       !gather_tracer
       call pack_data( ogrid,  tracer, tracer_glob )
-#endif
 
 #ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
-
       !gather ao_co2flux
       call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
-
 #endif
 
 #ifdef OBIO_ON_GARYocean

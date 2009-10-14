@@ -358,29 +358,30 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-      if (AM_I_ROOT()) then
+!     if (AM_I_ROOT()) then
+!when uncommenting these lines careful with parallelization
 !     do nt=1,ntrac
-        nt=1
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-        do k=1,kdm
-        do j=1,jdm			!  do not parallelize
-        do i=1,idm
-           write(iu_bioinit,'(3i4,2e12.4)')
-     .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
+!       nt=1
+!       ntchar='00'
+!       if(nt.le.9)write(ntchar,'(i1)')nt
+!       if(nt.gt.9)write(ntchar,'(i2)')nt
+!       print*,'BIO: saving initial tracer fields '
+!    .        ,'bioinit_tracer'//ntchar
+!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+!       do k=1,kdm
+!       do j=1,jdm			!  do not parallelize
+!       do i=1,idm
+!          write(iu_bioinit,'(3i4,2e12.4)')
+!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
+!       enddo
+!       enddo
+!       enddo
+!     call closeunit(iu_bioinit)
 !     enddo
 
       print*,'bioinit: COLD INITIALIZATION'
       call obio_trint(nn)
-      endif     ! if am_i_root
+!     endif     ! if am_i_root
 
       return
       end

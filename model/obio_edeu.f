@@ -145,9 +145,11 @@ cdiag.        facirr(ih,ich,ntr,icd),fac
  
           tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
 
+cdiag        if (vrbos) then
 cdiag        write(*,'(a,4i7,6e12.4)')'obio_edeu2: ',
 cdiag.              nstep,i,j,k,fac,Etopq,
 cdiag.              Ebotq,rmus,dp1d(k),tirrq(k)
+cdiag        endif
 
        enddo  !k
  
