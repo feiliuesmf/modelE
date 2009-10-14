@@ -27,6 +27,10 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@+   to_volume_MixRat=1: printout is in Volume Mixing Ratio
 !@+   to_volume_MixRat=0: printout is in Mass Mixing Ratio
       INTEGER, DIMENSION(NTM) :: to_volume_MixRat=0
+!@dbparam to_conc: For printout of 3D tracer concentration in kg/m3
+!@+   to_conc=0: printout is as defined by to_volume_MixRat
+!@+   to_conc=1: printout is in kg/m3
+      INTEGER, DIMENSION(NTM) :: to_conc=0
 #endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil

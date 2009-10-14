@@ -2124,6 +2124,7 @@ C**** Any tracers that dry deposits needs the surface concentration:
 C**** Define the conversion from mass to volume units here 
       mass2vol(n) = mair/tr_mm(n)
       vol2mass(n) = tr_mm(n)/mair
+      to_conc(n)  = 0
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Aerosol tracer output should be mass mixing ratio
       select case (tr_wd_TYPE(n))
@@ -2146,6 +2147,8 @@ C**** Aerosol tracer output should be mass mixing ratio
 #ifdef TRACERS_ON
 C**** Get to_volume_MixRat from rundecks if it exists
       call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
+C**** Get to_conc from rundecks if it exists
+      call sync_param("to_conc",to_conc,ntm)
 
 C**** DIAGNOSTIC DEFINTIONS
 

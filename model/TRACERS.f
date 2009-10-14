@@ -180,8 +180,13 @@ C**** Tracer concentrations (TAIJLN)
       do n=1,ntm
         write(sname_ijt(n),'(a)') trim(TRNAME(n))
         write(lname_ijt(n),'(a)') trim(TRNAME(n))
-        units_ijt(n) = unit_string(ijtc_power(n),cmr(n))
-        scale_ijt(n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+        if (to_conc(n).eq.1) then   ! diag in kg/m3
+          units_ijt(n) = unit_string(ijtc_power(n),'kg/m3')
+          scale_ijt(n) = 10.**(-ijtc_power(n))
+        else ! mixing ratio
+          units_ijt(n) = unit_string(ijtc_power(n),cmr(n))
+          scale_ijt(n) = MMR_to_VMR(n)*10.**(-ijtc_power(n))
+        end if
       end do
 
 C**** AIJN

@@ -11,14 +11,17 @@
 !@sum TRACEA accumulates tracer concentration diagnostics (IJL, JL)
 !@auth J.Lerner
 !@ver  1.0
+      USE CONSTANT, only : rgas
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
-      USE MODEL_COM, only: im,jm,lm,itime,wm
+      USE MODEL_COM, only: im,jm,lm,itime,wm,t
+      USE DYNAMICS, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,bydxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
-     *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc
+     *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc,
+     $     to_conc
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
@@ -61,12 +64,22 @@ C**** save some basic model diags for weighting
       do 600 n=1,ntm
       IF (itime.lt.itime_tr0(n)) cycle
 C**** Latitude-longitude by layer concentration
+      if (to_conc(n).eq.1) then ! kg/m3
 !$OMP PARALLEL DO PRIVATE (L)
-      do l=1,lm
-        taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1,l
-     *       ,n)*byam(l,:,J_0:J_1)
-      end do
+        do l=1,lm
+          taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
+     $          ,l,n)*byam(l,:,J_0:J_1)*1d2*pmid(l,:,J_0:J_1)/(rgas*t(:
+     $          ,J_0:J_1,L)*pk(L,:,J_0:J_1))
+        end do
 !$OMP END PARALLEL DO
+      else ! mixing ratio
+!$OMP PARALLEL DO PRIVATE (L)
+        do l=1,lm
+          taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
+     $          ,l,n)*byam(l,:,J_0:J_1)
+        end do
+!$OMP END PARALLEL DO
+      end if
 C**** Average concentration; surface concentration; total mass
 !$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
       do j=J_0,J_1
