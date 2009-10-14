@@ -16,6 +16,11 @@ LFLAGS += -openmp
 endif
 
 # flags needed for particular releases
+ifeq ($(IFORT_RELEASE),11.1)
+FFLAGS += -assume protect_parens -fp-model strict
+F90FLAGS += -assume protect_parens -fp-model strict
+endif
+
 ifeq ($(IFORT_RELEASE),11.0)
 FFLAGS += -assume protect_parens -fp-model strict
 F90FLAGS += -assume protect_parens -fp-model strict
