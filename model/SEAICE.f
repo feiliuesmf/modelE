@@ -42,6 +42,8 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var FLEADLK lead fraction for lakes (%)
       REAL*8, PARAMETER :: FLEADLK = 0.
+!@var FLEADMX maximum thickness for lead fraction (m)
+      REAL*8, PARAMETER :: FLEADMX = 5.
 !@param BYRLS reciprical of snow density*lambda
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
@@ -803,7 +805,7 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
 
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))
-      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
+      IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0. ! no leads for h>mx
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
       ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
       DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
@@ -834,7 +836,7 @@ C****
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
       OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
-      IF ((ROICE*(ACE1I+MSI2)).gt.5.*RHOI) OPNOCN=0.  ! no leads for h>5
+      IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0.  ! no leads for h>mx
       IF (ROICE.gt.(1.-OPNOCN)-1d-3) THEN
         ROICEN = 1.-OPNOCN
         DRSI = MAX(0d0,ROICEN-ROICE) ! +ve
