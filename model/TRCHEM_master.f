@@ -55,10 +55,10 @@ c
 #endif
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
-     *     ,jls_Oxd,ijs_NO2_col,ijs_NO2_count,jls_OxpT,jls_OxdT
+     *     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
      &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_phO1D,ijlt_pO1D
      &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxpRO2
-     &     ,ijlt_OxlALK,ijlt_OxlOH
+     &     ,ijlt_OxlALK,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
 #endif
@@ -149,7 +149,8 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
-     &       ierr,ierr_loc,        Jqq,Iqq,maxl,iu,ih0,ih,m,istep
+     &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,
+     &                          ih1030,ih1330,m,istep,index1,index2
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ss27_file,ghg_file,title
@@ -201,11 +202,13 @@ C**** Local parameters and variables and arguments:
       
       byavog = 1.d0/avog
 
-! calculate what longitudes to accumulate for 10:30am NO2 diag:
+! calculate what longitudes to accumulate for 10:30am/1:30pm NO2 diags:
       istep = NINT(real(IM)/24.) ! number of boxes per hour
-      ! ih0 is westmost I index that hour (careful: integer arith.):
-      ih0 = istep*(10-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
-      if(ih0 < 0) ih0 = IM+ih0  
+      ! ih1030/1330 are westmost I index that hour (careful: int arith.)
+      ih1030 = istep*(10-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
+      ih1330 = istep*(13-Jhour)+IM/2+NINT(real(istep)/2.)-(istep-1)/2
+      if(ih1030 < 0) ih1030 = IM+ih1030  
+      if(ih1330 < 0) ih1330 = IM+ih1330  
 
 #ifdef INITIAL_GHG_SETUP
 C-------- special section for ghg runs ---------
@@ -732,19 +735,21 @@ C Save 3D radical arrays to pass to aerosol code:
       call ClOxfam(LM,I,J,ClOx_old) ! needed something from chemstep.
 #endif
 
-!      Accumulate NO2 10:30am tropospheric column diag in sunlight:
-       do ih=ih0,ih0+istep-1
-         if(i==ih) then
-           do L=1,min(maxl,LTROPO(I,J))
-             thick=1.d2*rgas*bygrav*TX(I,J,L)*
-     &       LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
-             taijs(i,j,ijs_NO2_col)=taijs(i,j,ijs_NO2_col)+
-     &       y(nNO2,L)*thick
-             if(L==1)taijs(i,j,ijs_NO2_count)=
-     &       taijs(i,j,ijs_NO2_count) + 1.d0
-           enddo
-         endif
+!     Accumulate NO2 10:30am/1:30pm tropo column diags in sunlight:
+      if(i>=ih1030.and.i<=ih1030+istep-1)then 
+        index1=ijs_NO2_1030; index2=ijs_NO2_1030c
+      elseif(i>=ih1330.and.i<=ih1330+istep-1)then  
+        index1=ijs_NO2_1330; index2=ijs_NO2_1330c
+      else  
+         index1=0 ; index2=0 
+      endif
+      if(index1/=0 .and. index2/=0)then
+       do L=1,min(maxl,LTROPO(I,J))
+         thick=1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+         taijs(i,j,index1)=taijs(i,j,index1)+y(nNO2,L)*thick
+         if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
        enddo
+      endif
 
 CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
       if(prnchg .and. J == jprn .and. I == iprn) then
@@ -1516,21 +1521,24 @@ C       ACCUMULATE 3D NO3 diagnostic:
      &  CALL INC_TAJLS(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
 #endif
      
-!      Accumulate NO2 10:30am tropospheric column diag in darkness:
-         do ih=ih0,ih0+istep-1
-           if(i==ih) then
-             if(L <= LTROPO(I,J))then
-               thick=1.d2*rgas*bygrav*TX(I,J,L)*
-     &         LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
-               taijs(i,j,ijs_NO2_col)=taijs(i,j,ijs_NO2_col)+
-     &         y(nNO2,L)*thick
-               if(L==1)taijs(i,j,ijs_NO2_count)=
-     &         taijs(i,j,ijs_NO2_count) + 1.d0
-             endif
-           endif
-         enddo
+!       Accumulate NO2 10:30am/1:30pm tropo column diags in darkness:
+        if(i>=ih1030.and.i<=ih1030+istep-1)then
+          index1=ijs_NO2_1030; index2=ijs_NO2_1030c
+        elseif(i>=ih1330.and.i<=ih1330+istep-1)then
+          index1=ijs_NO2_1330; index2=ijs_NO2_1330c
+        else
+           index1=0 ; index2=0
+        endif
+        if(index1/=0 .and. index2/=0)then
+         if(L<=LTROPO(I,J))then
+           thick=
+     &     1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+           taijs(i,j,index1)=taijs(i,j,index1)+y(nNO2,L)*thick
+           if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
+         endif
+        endif
 
-       enddo  ! troposphere loop
+       enddo  ! L loop
 
 CCCCCCCCCCCCCCCC END NIGHTTIME CCCCCCCCCCCCCCCCCCCC
 

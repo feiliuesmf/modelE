@@ -576,8 +576,8 @@ c
      &     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      &     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      &     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     &     tij_uflx, tij_vflx, ijs_no2_col, ijs_no2_count, tij_kw,
-     &     tij_alpha
+     &     tij_uflx, tij_vflx, tij_kw, ijs_NO2_1330c, ijs_NO2_1030c, 
+     &     ijs_NO2_1330, ijs_NO2_1030, tij_alpha
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -587,7 +587,7 @@ c
       implicit none
       integer ::  i,j,k,kk,kx,n,n1,n2
       integer :: k_water(ktaij),k_Be7,k_Pb210,k_clr,
-     &     k_no2_1030=0,k_no2_count=0
+     & k_no2_1030=0,k_no2_1330=0,k_no2_1030c=0,k_no2_1330c=0
       logical :: div_by_area
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
       real*8, dimension(:,:,:), allocatable :: taij_tmp
@@ -863,8 +863,10 @@ c
         if(sname_taij(k)(1:8).eq.'DMS_con_') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'SO2_con_') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'SO4_con_') div_by_area = .false.
-        if(sname_taij(k).eq.'NO2_col_acc_count') div_by_area = .false.
-        if(sname_taij(k).eq.'NO2_1030_column') div_by_area = .false.
+        if(sname_taij(k).eq.'NO2_1030c') div_by_area = .false.
+        if(sname_taij(k).eq.'NO2_1330c') div_by_area = .false.
+        if(sname_taij(k).eq.'NO2_1030') div_by_area = .false.
+        if(sname_taij(k).eq.'NO2_1330') div_by_area = .false.
 
         if(div_by_area) then
           do j=j_0,j_1
@@ -897,12 +899,10 @@ c ijt_mapk does not apply the scale factor to ratios.  workaround.
           k=k+1
         endif
 
-        if(sname_taij(k)=='NO2_col_acc_count') k_no2_count = k
-        if(sname_taij(k)=='NO2_1030_column') k_no2_1030 = k
-
-c        if (name(k)=='NO2_col_acc_count')then
-c          scale_taij(k)=real(idacc(ia_taij(k)))+teeny
-c        endif
+        if(sname_taij(k)=='NO2_1030c') k_no2_1030c = k
+        if(sname_taij(k)=='NO2_1030') k_no2_1030 = k
+        if(sname_taij(k)=='NO2_1330c') k_no2_1330c = k
+        if(sname_taij(k)=='NO2_1330') k_no2_1330 = k
 
       end do
 
@@ -911,7 +911,19 @@ c        endif
 c set this denominator by introducing denom_ijts to tracer code?
       if(k_no2_1030.gt.0) then
         k = k_no2_1030
-        denom_taij(k) = k_no2_count
+        denom_taij(k) = k_no2_1030c
+        do j=j_0,j_1
+        do i=i_0,i_1
+c ijt_mapk does not apply scale factor to ratios.  workaround.
+          taij(i,j,k) = taij(i,j,k)*scale_taij(k)
+        enddo
+        enddo
+        scale_taij(k) = 1.
+      endif
+
+      if(k_no2_1330.gt.0) then
+        k = k_no2_1330
+        denom_taij(k) = k_no2_1330c
         do j=j_0,j_1
         do i=i_0,i_1
 c ijt_mapk does not apply scale factor to ratios.  workaround.

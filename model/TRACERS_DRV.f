@@ -6891,19 +6891,35 @@ C**** (not necessary associated with a particular tracer)
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
       k = k + 1
-        ijs_NO2_col=k 
+        ijs_NO2_1030=k 
         ia_ijts(k) = ia_src
-        write(lname_ijts(k),'(a31)')'NO2 tropospheric column 10:30am'
-        sname_ijts(k) = 'NO2_1030_column'
+        write(lname_ijts(k),'(a18)')'NO2 10:30 trop col'
+        sname_ijts(k) = 'NO2_1030'
         ijts_power(k) = 15
         units_ijts(k) = unit_string(ijts_power(k),'molecules/cm2')
         scale_ijts(k) = 10.**(-ijts_power(k))
       k = k + 1
-        ijs_NO2_count=k 
+        ijs_NO2_1030c=k 
         ia_ijts(k) = ia_src ! overridden in TRACER_PRT...
-        write(lname_ijts(k),'(a27)')'NO2 trop column accum count'
-        write(sname_ijts(k),'(a17)')'NO2_col_acc_count'
+        write(lname_ijts(k),'(a24)')'count NO2 10:30 trop col'
+        write(sname_ijts(k),'(a9)')'NO2_1030c'
         ijts_power(k) = 0
+        units_ijts(k) = unit_string(ijts_power(k),'number of accum')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+      k = k + 1
+        ijs_NO2_1330=k
+        ia_ijts(k) = ia_src
+        write(lname_ijts(k),'(a18)')'NO2 13:30 trop col'
+        sname_ijts(k) = 'NO2_1330'
+        ijts_power(k) = 15
+        units_ijts(k) = unit_string(ijts_power(k),'molecules/cm2')
+        scale_ijts(k) = 10.**(-ijts_power(k))
+      k = k + 1
+        ijs_NO2_1330c=k 
+        ia_ijts(k) = ia_src ! overridden in TRACER_PRT...
+        write(lname_ijts(k),'(a24)')'count NO2 13:30 trop col'
+        write(sname_ijts(k),'(a9)')'NO2_1330c'
+        ijts_power(k) = 0                          
         units_ijts(k) = unit_string(ijts_power(k),'number of accum')
         scale_ijts(k) = 10.**(-ijts_power(k))
 #endif  /* TRACERS_SPECIAL_Shindell */

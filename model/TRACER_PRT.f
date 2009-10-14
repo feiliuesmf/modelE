@@ -1211,7 +1211,8 @@ C****
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx, ijs_NO2_col, ijs_NO2_count
+     *     tij_uflx, tij_vflx, ijs_NO2_1030, ijs_NO2_1030c,
+     *     ijs_NO2_1330, ijs_NO2_1330c
 #ifdef TRACERS_GASEXCH_ocean
      *    ,tij_kw,tij_alpha,tij_gasx
 #endif
@@ -1371,15 +1372,19 @@ C**** Fill in maplet indices for sources and sinks
         endif
 #endif
 
-        if (name(k)=='NO2_col_acc_count')then
+        if (name(k)=='NO2_1030c' .or. name(k)=='NO2_1330c')then
           ijtype(k)=2
           scale(k)=real(idacc(iacc(k)))+teeny
         endif
-
-        if (name(k).eq.'NO2_1030_column') then
+        if (name(k).eq.'NO2_1030') then
           ijtype(k)=3
           aij1(:,:,k) = aij1(:,:,k)*scale(k)     ! numerator
-          aij2(:,:,k) = taijs(:,:,ijs_NO2_count) ! denominator
+          aij2(:,:,k) = taijs(:,:,ijs_NO2_1030c) ! denominator
+        endif
+        if (name(k).eq.'NO2_1330') then
+          ijtype(k)=3
+          aij1(:,:,k) = aij1(:,:,k)*scale(k)     ! numerator
+          aij2(:,:,k) = taijs(:,:,ijs_NO2_1330c) ! denominator
         endif
 
         if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.

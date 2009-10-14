@@ -88,11 +88,12 @@ C**** TAIJN
 
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
-      INTEGER :: ijs_ai,ijs_isoprene,ijs_NO2_col,ijs_NO2_count
+      INTEGER :: ijs_ai,ijs_isoprene,ijs_NO2_1030,ijs_NO2_1030c,
+     &ijs_NO2_1330,ijs_NO2_1330c
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=1414
+      INTEGER,PARAMETER :: ktaijs=1416
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
