@@ -978,12 +978,12 @@ c  the AR5 emissions are kg/m2/s
       end do
       end do
       endif
-      tot=0
-      do i=1,im
-      do j=1,jm
-      tot=tot+hbc_all(i,j,1)*axyp(i,j)
-      end do
-      end do
+c      tot=0
+c      do i=1,im
+c      do j=1,jm
+c      tot=tot+hbc_all(i,j,1)*axyp(i,j)
+c      end do
+c      end do
 c kg/year to kg/s
 c     hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
 c OM=1.4 x OC
