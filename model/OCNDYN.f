@@ -11,6 +11,9 @@ C****
 C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : idacc,modd5s,msurf
+#ifdef TRACERS_OceanBiology
+     * ,nstep=>itime
+#endif
       USE OCEANRES, only : NOCEAN,dZO
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
@@ -19,6 +22,10 @@ C****
      *    G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *    S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob,
      *    scatter_ocean, gather_ocean
+#ifdef TRACERS_OCEAN
+     *    ,trmo,txmo,tymo,tzmo
+     *    ,trmo_glob,txmo_glob,tymo_glob,tzmo_glob
+#endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
       USE DOMAIN_DECOMP_1D, only : get, haveLatitude,
      *    AM_I_ROOT, pack_data, unpack_data
@@ -26,23 +33,22 @@ C****
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
+#ifdef TRACERS_OCEAN
+     *    ,toijl=>toijl_loc,
+     *     toijl_conc,toijl_tflx,toijl_gmfl
+#endif
 
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : t_qlimit,ntm
-      USE OCEAN, only : trmo,txmo,tymo,tzmo
-      USE OCEAN, only : trmo_glob,txmo_glob,tymo_glob,tzmo_glob
-      Use ODIAG, Only: toijl=>toijl_loc,
-     *               toijl_conc,toijl_tflx,toijl_gmfl
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only: scatter_gasexch_com_arrays
 #endif
 #ifdef TRACERS_OceanBiology
-      USE MODEL_COM, only: nstep=>itime
       USE obio_com, only: gather_chl
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      USE obio_com, only: gather_pCO2
+     *,  gather_pCO2
 #endif
 
       IMPLICIT NONE
@@ -849,23 +855,31 @@ C****
 !@sum  io_ocdyn reads and writes ocean arrays to file
 !@auth Gavin Schmidt
 !@ver  1.0
+      USE OCEAN, only: scatter_ocean,
+     *      LMO, MO_glob, UO_glob, VO_glob,
+     *      G0M_glob, GXMO_glob, GYMO_glob, GZMO_glob,
+     *      SXMO_glob, SYMO_glob, SZMO_glob,
+     *      OGEOZ_glob, OGEOZ_SV_glob,
+     *      S0M_glob, gather_ocean
+#if (defined TRACERS_OCEAN) || (defined TRACERS_OceanBiology)
+     *      ,TRMO_glob, TXMO_glob, TYMO_glob, TZMO_glob, ntm
+#endif
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
-      USE OCEAN
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology)
+     *     ,nstep=>itime
       USE PARAM, only: get_param
-      USE MODEL_COM, only: nstep=>itime
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEANR_DIM, only : ogrid
       USE obio_dim, only: ntrac
-      USE obio_com, only : itest,jtest,gcmax,nstep0
-     .                    ,tracer=>tracer_loc,tracer_glob=>tracer
       USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_com, only : itest,jtest,gcmax,nstep0
+     *                    ,tracer=>tracer_loc,tracer_glob=>tracer
 #endif
 #ifdef TRACERS_GASEXCH_ocean
+     *                    ,pCO2, pCO2_glob
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE FLUXES, only: gtracer
-      USE obio_com, only: pCO2, pCO2_glob
 #endif
 
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,PACK_DATA,UNPACK_DATA
