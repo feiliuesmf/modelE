@@ -163,6 +163,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
       INTERFACE GLOBALMAX
         MODULE PROCEDURE GLOBALMAX_R
         MODULE PROCEDURE GLOBALMAX_I
+        MODULE PROCEDURE GLOBALMAX_I_1D
       END INTERFACE
 
 !@var HALO_UPDATE Generic wrapper for 2D and 3D routines
@@ -735,6 +736,7 @@ c fms_init() has already been called.  Move that call here?
       Type (ESMF_DELayout)::layout
       REAL*8 :: deltaZ
       INTEGER :: L
+      integer, allocatable            :: IMS(:), JMS(:)
 #endif
 #ifdef USE_MPI
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
@@ -744,9 +746,6 @@ c fms_init() has already been called.  Move that call here?
       integer :: npx, npy, ng
       integer :: isd, ied , jsd, jed
       integer :: capnx, capny
-#ifdef USE_ESMF
-      integer, allocatable            :: IMS(:), JMS(:)
-#endif
 #endif
       
       !! write(*,*) "BEGIN INIT_GRID"
@@ -786,8 +785,24 @@ c fms_init() has already been called.  Move that call here?
       Call ESMF_VMGet(vm_, localPET = my_pet, petCount = NPES, rc=rc)
       ! The default layout is not what we want - it splits in the "I" direction.
       layout = ESMF_DELayoutCreate(vm_, deCountList = (/ 1, NPES /))
-      Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
-     &     delayout = layout, rc=rc)
+
+      if(npes > jm-2)
+     &     call stop_model('init_grid: jm too large',255)
+
+      if(npes == jm-2) then ! maximum for decomposition in latitude
+        allocate(ims(0:0), jms(0:npes-1))
+        ims(0) = im
+        jms(:) = 1
+        jms(0)      = 2 ! poles need 2 lats
+        jms(npes-1) = 2
+        Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
+     &       countsPerDEDim1=ims, countsPerDEDim2=jms,
+     &       delayout = layout, rc=rc)
+        deallocate(ims, jms)
+      else ! ask ESMF to make the decomposition
+        Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
+     &       delayout = layout, rc=rc)
+      endif
       call ESMF_GridGet(grd_dum%esmf_grid, delayout=layout, rc=rc)
       RANK_LON=0
       RANK_LAT=my_pet
@@ -4437,6 +4452,24 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
      &     MPI_COMM_WORLD, ierr)
 #else
       val_max = val
+#endif
+
+      END SUBROUTINE
+
+      SUBROUTINE GLOBALMAX_I_1D(grd_dum, val, val_max)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN)  :: grd_dum
+      INTEGER,            INTENT(IN)  :: val(:)
+      INTEGER,            INTENT(OUT) :: val_max(:)
+
+      INTEGER  :: n,ierr
+
+#ifdef USE_MPI
+      n = size(val)
+      CALL MPI_Allreduce(val, val_max, n, MPI_INTEGER, MPI_MAX,
+     &     MPI_COMM_WORLD, ierr)
+#else
+      val_max(:) = val(:)
 #endif
 
       END SUBROUTINE
