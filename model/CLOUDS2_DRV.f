@@ -254,6 +254,15 @@ C        not clear yet whether they still speed things up
      &     GZIL,SD_CLDIL,WMIL
       real*8, dimension(NMOM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) ::
      &     TMOMIL,QMOMIL
+#ifdef TRACERS_ON
+      real*8, dimension(     LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO)
+     &     :: TRM_LNI
+#ifdef TRACERS_WATER
+     &       ,TRWM_LNI
+#endif
+      real*8, dimension(NMOM,LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO)
+     &     :: TRMOM_LNI
+#endif
       INTEGER ICKERR, JCKERR, JERR, seed, NR
       REAL*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
@@ -428,6 +437,19 @@ C
         QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
       END DO
       END DO
+#ifdef TRACERS_ON
+      do n=1,ntm
+      do l=1,lm
+      do i=i_0,imaxj(j)
+        trm_lni(l,n,i) = trm(i,j,l,n)
+#ifdef TRACERS_WATER
+        trwm_lni(l,n,i) = trwm(i,j,l,n)
+#endif
+        trmom_lni(:,l,n,i) = trmom(:,i,j,l,n)
+      enddo
+      enddo
+      enddo
+#endif
 Cred* end Reduced Arrays 2
       kmax = kmaxj(j)
 C****
@@ -576,8 +598,8 @@ C**** others
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
       do l=1,lm
-        tm(l,nx) = trm(i,j,l,ntix(nx))
-        tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx))
+        tm(l,nx) = trm_lni(l,ntix(nx),i)
+        tmom(:,l,nx) = trmom_lni(:,l,ntix(nx),i)
       end do
       end do
 #endif
@@ -866,25 +888,25 @@ C**** TRACERS: Use only the active ones
         do l=1,lm
 #ifndef SKIP_TRACER_DIAGS
            if (itcon_mc(n).gt.0) call inc_diagtcb(i,j,
-     *          (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
+     *          (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
      *          ,itcon_mc(n),n)
           call inc_tajln(i,j,l,jlnt_mc,n,
-     &         (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
+     &         (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
      *         )
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
-          trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
+          trwml(nx,l) = trwm_lni(l,n,i)+trsvwml(nx,l)
 #endif
           tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
           tmomsv(:,l,nx) = tmom(:,l,nx)
-          tm(l,nx) = trm(i,j,l,n)*fssl(l)   ! kg in lsc fraction only
-          tmom(:,l,nx) = trmom(:,i,j,l,n)*fssl(l)
+          tm(l,nx) = trm_lni(l,n,i)*fssl(l)   ! kg in lsc fraction only
+          tmom(:,l,nx) = trmom_lni(:,l,n,i)*fssl(l)
         end do
 #ifdef TRACERS_WATER
         trprec(n,i,j) = trprmc(nx)
@@ -1309,23 +1331,23 @@ C**** TRACERS: Use only the active ones
         do l=1,lp50
 #ifndef SKIP_TRACER_DIAGS
            if (itcon_ss(n).gt.0) call inc_diagtcb(i,j,
-     *          tm(l,nx)-trm(i,j,l,n)*fssl(l)
+     *          tm(l,nx)-trm_lni(l,n,i)*fssl(l)
 #ifdef TRACERS_WATER
-     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
+     &         + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
 #endif
      *          ,itcon_ss(n),n)
           call inc_tajln(i,j,l,jlnt_lscond,n,
-     &         tm(l,nx)-trm(i,j,l,n)*fssl(l)
+     &         tm(l,nx)-trm_lni(l,n,i)*fssl(l)
 #ifdef TRACERS_WATER
-     &         + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
+     &         + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
 #endif
      &         )
 #endif  /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_WATER
-          trwm(i,j,l,n) = trwml(nx,l)
+          trwm_lni(l,n,i) = trwml(nx,l)
 #endif
-          trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
-          trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
+          trm_lni(l,n,i) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
+          trmom_lni(:,l,n,i) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
           if (trname(n).eq."SO2".or.trname(n).eq."SO4".or.trname(n).eq."
      *         H2O2_s") then
@@ -1468,8 +1490,8 @@ c     ..........
       DO n=1,Ntm_dust
         n1=n_fidx+n-1
         DO l=1,Lm
-          tm_dust(l,n)=trm(i,j,l,n1)
-          tmom_dust(:,l,n)=trmom(:,i,j,l,n1)
+          tm_dust(l,n)=trm_lni(l,n1,i)
+          tmom_dust(:,l,n)=trmom_lni(:,l,n1,i)
         END DO
       END DO
 
@@ -1480,9 +1502,9 @@ c     ..........
         trprec_dust(n,i,j)=0.D0
         DO l=1,Lm
           if (itcon_wt(n).gt.0) call inc_diagtcb(i,j,
-     *          tm_dust(l,n)-trm(i,j,l,n1),itcon_wt(n),n)
-          trm(i,j,l,n1)=tm_dust(l,n)
-          trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
+     *          tm_dust(l,n)-trm_lni(l,n1,i),itcon_wt(n),n)
+          trm_lni(l,n1,i)=tm_dust(l,n)
+          trmom_lni(:,l,n1,i)=tmom_dust(:,l,n)
           trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
           call inc_tajls(i,j,l,jls_wet(n1),trprc_dust(l,n))
           taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1))
@@ -1533,6 +1555,19 @@ C****
             Q3MOM(:,I,J,L) = QMOMIL(:,I,L)
          END DO
          END DO
+#ifdef TRACERS_ON
+         do n=1,ntm
+         do l=1,lm
+         do i=i_0,imaxj(j)
+           trm(i,j,l,n) = trm_lni(l,n,i)
+#ifdef TRACERS_WATER
+           trwm(i,j,l,n) = trwm_lni(l,n,i)
+#endif
+           trmom(:,i,j,l,n) = trmom_lni(:,l,n,i)
+         enddo
+         enddo
+         enddo
+#endif
 Cred*       end Reduced Arrays 3
       END DO
 C**** END OF MAIN LOOP FOR INDEX J
