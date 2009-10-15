@@ -221,10 +221,9 @@ c
       IMPLICIT NONE
       real*8, intent(in) :: dt_dummy
       INTEGER :: i,j,l,n,nc,nbad,nbad_loc,ierr_loc,ierr,nc3d,ncxy
-     &     ,nstepj_dum,ncycxy_loc,im1,lmin,lmax,nl,nstepz_dum,ierr_dum
+     &     ,ncycxy_loc(lm),im1,lmin,lmax,nl,nstepx_dum,nstepz_dum
       REAL*8 :: byn,ssp,snp,mvbyn,mwbyn,mpol,byn3d
       real*8, dimension(im) :: mubyn,am,mi
-      integer, dimension(grid%j_strt_halo:grid%j_stop_halo) :: nstep_dum
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     ma2d,mb2d
       real*8, dimension(lm) :: ma1d,mb1d,div1d,mw1d,mamin,wk1d1,wk1d2
@@ -373,9 +372,6 @@ C**** Divide the mass fluxes by the number of 3D cycles
         ENDDO
       endif
 
-      if(AM_I_ROOT()) then
-        if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
-      endif
 c
 c nstepz_extra determination, partitioning of vertical mass flux
 c
@@ -432,11 +428,9 @@ c div1d now includes xy + mwlim contributions
       enddo ! j
 
 c
-c now determine the ncycxy for each level, and nstepx for each lat/level
+c now determine the ncycxy for each level
 c
-      ierr_loc = 0  ! for xstep errors
       do l=1,lm
-        nstepx(j_0:j_1,l) = 1
         ncycxy(l) = 1
         nc3dloop: do nc3d=1,ncyc
           if(nc3d.eq.1) then
@@ -450,8 +444,6 @@ c            CALL HALO_UPDATE(grid, MB2D, FROM=SOUTH+NORTH)
             if(ncycxy(l).gt.ncmax) exit nc3dloop
             byn = 1./ncycxy(l)
             nbad = 0
-            nstep_dum(j_0:j_1) = 1
-            ierr_dum = 0
             do nc=1,ncycxy(l)
 
 c check y direction courant numbers
@@ -483,13 +475,18 @@ c check y direction courant numbers
                   endif
                 enddo
               endif
-c check mass ratios after y direction
+c check mass ratios after y direction, update mass
               do j=J_0S,J_1S
                 do i=1,im
                   ma2d(i,j) = ma2d(i,j) + (mv(i,j-1,l)-mv(i,j,l))*byn
                   if (ma2d(i,j).lt.mrat_limy*mb(i,j,l)) then
                     nbad = nbad + 1
                   endif
+                end do
+                i=1
+                  ma2d(i,j) = ma2d(i,j) + (mu(im ,j,l)-mu(i,j,l))*byn
+                do i=2,im
+                  ma2d(i,j) = ma2d(i,j) + (mu(i-1,j,l)-mu(i,j,l))*byn
                 end do
               end do
               if (HAVE_SOUTH_POLE) then
@@ -515,15 +512,6 @@ c check mass ratios after y direction
                 endif
                 exit            ! nc loop
               endif
-
-C**** determine nstepx
-              do j=J_0S,J_1S
-                mubyn(:) = mu(:,j,l)*byn
-                call XSTEP(j,l,ierr_dum,
-     &               ma2d(1,j),mubyn,nstepj_dum,am,mi)
-                nstep_dum(j) = max(nstep_dum(j),nstepj_dum)
-                if(nc3d.lt.ncyc .or. nc.lt.ncycxy(l)) ma2d(:,j) = mi(:)
-              enddo
 
 c update boundary airmasses to avoid layerwise mpi communication during iteration
               if(nc3d.lt.ncyc .or. nc.lt.ncycxy(l)) then
@@ -575,21 +563,21 @@ c now add the z mass tendency at this level
             endif
           endif
 
-          nstepx(j_0:j_1,l) = max(nstepx(j_0:j_1,l),nstep_dum(j_0:j_1))
-          ierr_loc = max(ierr_loc,ierr_dum)
-
         enddo nc3dloop
 
-c globalmax of ncycxy. DOMAIN_DECOMP needs a vector version of globalmax
-        ncycxy_loc = ncycxy(l)
-        CALL GLOBALMAX(grid, ncycxy_loc, ncycxy(l))
+      enddo ! l
+
+c globalmax of ncycxy, nstepx for each lat/level
+      ncycxy_loc(:) = ncycxy(:)
+      CALL GLOBALMAX(grid, ncycxy_loc, ncycxy)
+      ierr_loc = 0
+      do l=1,lm
         if(ncycxy(l).gt.ncmax) then
           if (AM_I_ROOT()) then
             write(6,*) 'stop: ncycxy>ncmax in AADVQ0 l=',l
           endif
           call stop_model('AADVQ0: ncycxy>ncmax',255)
         endif
-
 C**** Further divide the xy mass fluxes by the number of xy cycles at each level
         if(ncycxy(l).gt.1) then
           byn = 1./ncycxy(l)
@@ -597,18 +585,56 @@ C**** Further divide the xy mass fluxes by the number of xy cycles at each level
           mu(:,:,l)=mu(:,:,l)*byn
           mv(:,:,l)=mv(:,:,l)*byn
         endif
-
-      enddo ! l
-
+        ma2d(:,j_0s:j_1s) = mb(:,j_0s:j_1s,l)
+        nstepx(j_0s:j_1s,l) = 1
+        do nc3d=1,ncyc
+          do nc=1,ncycxy(l)
+            do j=J_0S,J_1S
+c y-direction mass update
+              do i=1,im
+                ma2d(i,j) = ma2d(i,j) + (mv(i,j-1,l)-mv(i,j,l))
+              end do
+              call XSTEP(j,l,ierr_loc,
+     &             ma2d(1,j),mu(1,j,l),nstepx_dum,am,mi)
+              nstepx(j,l) = max(nstepx(j,l),nstepx_dum)
+              ma2d(:,j) = mi(:) ! have xstep do this copy
+            enddo
+          enddo
+c z-direction mass update
+          if(nc3d.lt.ncyc) then
+            if(l.eq.1) then     ! lowest layer
+              do j=J_0S,J_1S
+                ma2d(:,j) = ma2d(:,j)-mw(:,j,l)
+              enddo
+            else if(l.eq.lm) then ! topmost layer
+              do j=J_0S,J_1S
+                ma2d(:,j) = ma2d(:,j)+mw(:,j,l-1)
+              end do
+            else                ! interior layers
+              do j=J_0S,J_1S
+                do i=1,im
+                  ma2d(i,j) = ma2d(i,j)+(mw(i,j,l-1)-mw(i,j,l))
+                enddo
+              enddo
+            endif
+          endif
+        enddo
+      enddo
       CALL GLOBALSUM(grid, ierr_loc, ierr, all=.true.)
       IF(ierr.GT.0)
      &     call stop_model('too many steps in xstep',255)
 
+
       if(AM_I_ROOT()) then
-        do l=1,lm
-          if(ncycxy(l).gt.1)
-     &         write(6,*) 'AADVQ0: ncycxy>1 at l= ',l,ncycxy(l)
-        enddo
+        if(ncyc.gt.2) write(6,*) 'AADVQ0: ncyc>2',ncyc
+        j = maxval(ncycxy)
+        if(j.gt.2 .or. (ncyc.gt.1 .and. j.gt.1)) then
+          if(ncyc.gt.1) write(6,*) 'AADVQ0: ncyc>1',ncyc
+          do l=1,lm
+            if(ncycxy(l).gt.1)
+     &           write(6,*) 'AADVQ0: ncycxy>1 at l= ',l,ncycxy(l)
+          enddo
+        endif
       endif
 
 c
