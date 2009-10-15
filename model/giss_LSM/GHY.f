@@ -2030,7 +2030,6 @@ c****
      &     srht_in,trht_in,     ! forcing fluxes
      &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
      &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in, ! forcing parameters
-     &     daylength,
      &     end_of_day_flag
 #ifdef TRACERS_WATER
      &     ,ghy_tr
@@ -2087,7 +2086,6 @@ c**** soils28   common block     9/25/90
       real*8 :: srht_in,trht_in
       real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
       real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
-      real*8 :: daylength(2)
       logical :: end_of_day_flag
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
@@ -2321,8 +2319,7 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         soil_temp=sbgc_temp,
      &         soil_moist=sbgc_moist,
      &         soil_matric_pot=h(1:ngm,2),
-     &         soil_ice_fraction=fice(1:ngm,2),
-     &         daylength=daylength(1:2)
+     &         soil_ice_fraction=fice(1:ngm,2)
      &         )
 
 !!!! dt is not correct at the moment !!
