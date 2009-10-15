@@ -1678,21 +1678,21 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
      &  rr(10,l)*y(nHO2,l)*y(nNO,l)*byavog*1.d9
    
-!       ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
-!       taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
-!    &  ????????????????????????????????????????
+        ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
+        taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
+     &  rr(20,l)*y(nCH3O2,l)*y(nNO,l)*byavog*1.d9
     
         ! chemical_destruction_rate_of_ozone_by_OH:
         taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
-     &  -1.d0*rr(2,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9
+     &  rr(2,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9 ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_HO2:
         taijls(i,j,l,ijlt_OxlHO2)=taijls(i,j,l,ijlt_OxlHO2)+
-     &  -1.d0*rr(4,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9
+     &  rr(4,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9 ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_Alkenes:
         taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+
-     &  -1.d0*rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*byavog*1.d9
+     &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*byavog*1.d9 ! (positive)
 #endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
