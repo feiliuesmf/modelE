@@ -8,7 +8,7 @@
      &     ,FILTER
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
      &     ,AFLUX, COMPUTE_MASS_FLUX_DIAGS
-     &     ,SDRAG
+     &     ,SDRAG,shap1,shap1d
      &     ,fcuva,fcuvb
 
 C**** Variables used in DIAG5 calculations
