@@ -917,7 +917,6 @@ C****
 #ifdef TRACERS_WATER
       CALL HALO_UPDATE(grid,  GTRACER(:,1,:,:), jdim=3)
       CALL HALO_UPDATE(grid,  TRLAKE(:,1,:,:), jdim=3)
-      CALL HALO_UPDATE(grid,  TAIJN(:,:,TIJ_RVR,:))
 #endif
 
 C**** Calculate fluxes downstream if lake mass is above sill height (HLAKE (m))
