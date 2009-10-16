@@ -1,1 +1,4 @@
-AR5chem.R
+*.R
+*_bin
+*.mk
+
