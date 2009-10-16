@@ -1,7 +1,6 @@
-!     SCMDATA_TWPICE_COM.f
+!     SCM_COM.f
 !@sum set up variables for SCM forcing data 
 !@auth  Audrey Wolf
-!@ver  Version to read TWP ICE  IOP                          
 !
 C--------------------------------------------------------------------------------
       Module SCMCOM
@@ -12,7 +11,7 @@ C-------------------------------------------------------------------------------
 C SCM DATA as provided from ARM variational analysis 
 !@var SG_P Pressure at GCM sigma levels (mb)
       REAL*8 SG_P(LM)
-      REAL*8 SGE_P(LM)
+      REAL*8 SGE_P(LM+1)
 !@var SG_HGT Height of layer at GCM sigma levels (m)
       REAL*8 SG_HGT(LM)
 !@var SG_T ARM Temperature at GCM sigma levels (K)
