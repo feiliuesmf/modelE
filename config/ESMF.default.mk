@@ -5,7 +5,7 @@
 CPPFLAGS += -DUSE_ESMF
 
 # hack to get compatible compiler name for ESMF directory
-ESMF_COMPILER = $(COMPILER)
+ESMF_COMPILER ?= $(COMPILER)
 ifeq ($(COMPILER),IRIX64)
 ESMF_COMPILER = default
 endif
