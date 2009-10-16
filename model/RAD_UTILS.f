@@ -1,6 +1,10 @@
 !@sum This file contains the radiation subroutines which don''t use
 !@+   the module RADPAR. They are used by RADIATION and/or ALBEDO.
 
+      module GTAU_state_mod
+      REAL*8, SAVE :: GTAU(51,11,143)
+      end module GTAU_state_mod
+
       SUBROUTINE RXSNOW(RBSNO,XCOSZ,GGSNO,RXSNO)
 !@sum RXSNOW calculate zenith angle dependence for snow/ice albedo
 !@auth A. Lacis (modified by G. Schmidt)
@@ -441,6 +445,7 @@ CCC   END SUBROUTINE GTSALB
 
 
       SUBROUTINE SGPGXG(XMU,TAU,G,GG)
+      use GTAU_state_mod
       IMPLICIT NONE
 C     ----------------------------------------------------------------
 C     COSBAR ADJUSTMENT TO REPRODUCE THE SOLAR ZENITH ANGLE DEPENDENCE
@@ -448,8 +453,6 @@ C     FOR AEROSOL ALBEDO FOR OPTICAL THICKNESSES [0.0 < TAU < 10000.0]
 C     ----------------------------------------------------------------
       REAL*8, INTENT(IN) :: XMU,TAU,G
       REAL*8, INTENT(OUT) :: GG
-      REAL*8, INTENT(IN) :: GTAU_IN(51,11,143)
-      REAL*8, SAVE :: GTAU(51,11,143)
       REAL*8 XI,WXI,WXJ,GI,WGI,WGJ,TI,WTJ,WTI
       INTEGER IX,JX,IG,JG,IT,IT0,JT
 C                          -------------------------------------------
@@ -532,11 +535,14 @@ C                            -----------------------------------------
 
       RETURN
 
-      ENTRY SET_SGPGXG(GTAU_IN)
-      GTAU = GTAU_IN
-
       RETURN
       END SUBROUTINE SGPGXG
+
+      subroutine SET_SGPGXG(GTAU_IN)
+      use GTAU_state_mod
+      real*8, intent(in) :: GTAU_IN(51,11,143)
+      GTAU = GTAU_IN
+      end
 
 
       SUBROUTINE SPLINE(X,F,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
