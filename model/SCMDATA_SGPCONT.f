@@ -1098,7 +1098,7 @@ c               write(iu_scm_prt,*) ihr,L,SIG(L),PTOP,AMPS(ihr)
                 SG_P(L) = SIG(L)*(PSF-PTOP)+PTOP
                 SGE_P(L) = SIGE(L)*(PSF-PTOP)+PTOP 
              enddo
-             SGE_P(LM+1) = SIGE(L)*(PSF-PTOP) + PTOP
+             SGE_P(LM+1) = SIGE(LM+1)*(PSF-PTOP) + PTOP
        
 c            do L=1,LM
 c               write(iu_scm_prt,*) 'l sge_p sg_p ',l,SGE_P(l),SG_P(l)   
