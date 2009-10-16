@@ -44,7 +44,7 @@ else {
 }
 
 if ( -f $modelerc ) {
-    print "Using settings from ~/.modelErc\n";
+    print "Using settings from $modelrc \n" ;
     open MODELERC, $modelerc or die "can't open $modelerc";
     while(<MODELERC>) {
 	$CMRUNDIR = $1 if /^ *CMRUNDIR *= *(\S+)/;
