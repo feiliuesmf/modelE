@@ -712,7 +712,6 @@ C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****
         call startTimer('Diagnostics')
-      write(*,*)'start diagnostics'
 #ifdef SCM
 c*****call scm diagnostics every time step
       call scm_diag
@@ -798,7 +797,6 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
       call stopTimer('Diagnostics')
-      write(*,*)'stop diagnostics'
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc
