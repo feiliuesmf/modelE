@@ -58,9 +58,18 @@ c$$$      USE MODEL_COM, only: clock
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
      &    SCM_DEL_Q,iu_scm_prt,iu_scm_diag
 #endif
+      use Timer_mod, only: TIMER_SUMMARY_LENGTH
+      use TimerList_mod, only: startTimer => start
+      use TimerList_mod, only: stopTimer => stop
+      use TimerList_mod, only: addTimer
+      use TimerList_mod, only: initializeProfileTimers => initialize
+      use TimerList_mod, only: finalizeProfileTimers => finalize
+      use TimerList_mod, only: printSummary
 
       !use soil_drv, only : conserv_wtg, conserv_htg
       IMPLICIT NONE
+
+      character(len=TIMER_SUMMARY_LENGTH), pointer :: timerReport(:)
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ODA
@@ -129,6 +138,12 @@ C****
 #endif
 
       call init_app()
+      call initializeProfileTimers()
+      call addTimer('Main Loop')
+      call addTimer('Surface')
+      call addTimer('Surface IJ')
+
+
 #ifdef SCM
       call sync_param( "J_TARG", J_TARG )
       call init_grid(grid, im, jm, lm, j_scm=j_targ)
@@ -301,7 +316,7 @@ C**** MAIN LOOP
 C****
       call gettime(tloopbegin)
 
-
+      call startTimer('Main Loop')
       DO WHILE (Itime.lt.ItimeE)
 #ifdef USE_SYSUSAGE
         call sysusage(0,1)
@@ -808,6 +823,15 @@ c$$$      call test_save(__LINE__, itime-1)
       call sysusage(0,2)
 #endif
       END DO
+      call stopTimer('Main Loop')
+      call finalizeProfileTimers()
+      call printSummary(timerReport)
+      if (AM_I_ROOT()) then
+         do i = 1, size(timerReport)
+            write(*,'(a)') trim(timerReport(i))
+         end do
+      end if
+      deallocate(timerReport)
 
       call gettime(tloopend)
       if (AM_I_ROOT())

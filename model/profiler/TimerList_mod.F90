@@ -17,7 +17,9 @@ module TimerList_mod
    public :: start
    public :: stop
    public :: printSummary
+#ifdef USE_MPI
    public :: printParallelSummary
+#endif
 
    public :: reset
 
@@ -152,7 +154,7 @@ contains
 
       allocate(report(4 + numTimers))
       write(report(1),"(T39,a,T77,a)")'Total Time','Trip Time'
-      write(report(2),"(T8,a,T27,a,T34,a,T45,a,T56,a,T73,a,T81,a,T91,a,T101,a)") &
+      write(report(2),"(T8,a,T27,a,T34,a,T45,a,T55,a,T73,a,T83,a,T97,a,T111,a)") &
            & 'Timer', '%', 'seconds', 'Inclusive','(  Exclusive )',  &
            & 'Cycles','Average', 'Maximum', 'Minimum'
       write(report(3),"(120('-'))")
@@ -184,6 +186,7 @@ contains
 
    end subroutine printSummaryList
 
+#ifdef USE_MPI
    subroutine printParallelSummary(comm, report)
       use Timer_mod, only: summary, gather
       integer, intent(in) :: comm
@@ -208,5 +211,6 @@ contains
          report(1) = ' '
       end if
    end subroutine printParallelSummary
+#endif
 
 end module TimerList_mod

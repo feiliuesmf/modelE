@@ -145,6 +145,9 @@ C****
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
+      USE TimerList_mod, only: addTimer
+      USE TimerList_mod, only: startTimer => start
+      USE TimerList_mod, only: stopTimer => stop
 
       IMPLICIT NONE
 
@@ -256,6 +259,8 @@ C**** Initialise constant indices
 
 C****
 
+      call startTimer('Surface')
+
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
       IH=JHOUR+1
@@ -361,6 +366,7 @@ c      POLE= (J.EQ.1 .or. J.EQ.JM)
 
       DO I=I_0,IMAXJ(J)
 
+         call startTimer('Surface IJ')
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
 #ifdef TRACERS_WATER
       tevaplim = 0.
@@ -1328,6 +1334,7 @@ C****
 C****
       END IF
       END DO   ! end of itype loop
+         call stopTimer('Surface IJ')
       END DO   ! end of I loop
 
       END DO   ! end of J loop
@@ -1429,6 +1436,8 @@ C**** For distributed implementation - ensure point is on local process.
       END IF
 C****
       END DO   ! end of surface time step
+
+      call stopTimer('Surface')
 
       RETURN
 C****

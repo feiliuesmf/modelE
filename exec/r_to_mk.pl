@@ -92,6 +92,7 @@ if ( /Components:/i ) {
 	if ( /^\s*\#/ ) { print "$_\n"; next; }
 	print "COMPONENTS += $_\n";
     }
+    print "COMPONENTS += profiler\n";
     print "\n";
 }
 

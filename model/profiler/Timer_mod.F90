@@ -32,8 +32,10 @@ module Timer_mod
    integer, parameter :: r64 = selected_real_kind(14)
 
    public :: summary
+#ifdef USE_MPI
    public :: gather
    public :: parallelSummary
+#endif
 
    type Timer_type
       private
@@ -241,6 +243,24 @@ contains
 
    end function summary_
 
+   function countMinMaxAvg(count, minTime, maxTime, avgTime) result (string)
+      use TimeFormatUtilities_mod, only: formatSeconds
+      integer, intent(in) :: count
+      real (kind=r64), intent(in) :: minTime, maxTime, avgTime
+
+      character(len=100) :: string
+      character(len=20) :: avgStr, maxStr, minStr
+
+      avgStr = formatSeconds(avgTime, decimalsAfterPoint=6)
+      maxStr = formatSeconds(maxTime, decimalsAfterPoint=6)
+      minStr = formatSeconds(minTime, decimalsAfterPoint=6)
+      
+      write(string,'(i4,3(2x,a12))') count, &
+           & avgStr, maxStr, minStr
+
+   end function countMinMaxAvg
+
+#ifdef USE_MPI
    function parallelSummary(this, comm) result(report)
       use TimeFormatUtilities_mod, only: formatHMS, formatSeconds
       type (Timer_type), intent(in) :: this
@@ -288,23 +308,6 @@ contains
 
    end function parallelSummary
 
-   function countMinMaxAvg(count, minTime, maxTime, avgTime) result (string)
-      use TimeFormatUtilities_mod, only: formatSeconds
-      integer, intent(in) :: count
-      real (kind=r64), intent(in) :: minTime, maxTime, avgTime
-
-      character(len=100) :: string
-      character(len=20) :: avgStr, maxStr, minStr
-
-      avgStr = formatSeconds(avgTime, decimalsAfterPoint=6)
-      maxStr = formatSeconds(maxTime, decimalsAfterPoint=6)
-      minStr = formatSeconds(minTime, decimalsAfterPoint=6)
-      
-      write(string,'(i4,3(2x,a12))') count, &
-           & avgStr, maxStr, minStr
-
-   end function countMinMaxAvg
-
    function gather(this, comm) result(globalTimer)
       type (Timer_type), intent(in) :: this
       integer, intent(in) :: comm
@@ -330,5 +333,6 @@ contains
            & MPI_MIN, comm, ier)
 
    end function gather
+#endif
 
 end module Timer_mod
