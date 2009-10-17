@@ -922,6 +922,7 @@ c    *     ,SNFST0,TNFST0
       USE AERO_CONFIG, only: nmodes
       USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
+      USE TimerList_mod, only: startTimer => start, stopTimer => stop
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -1035,6 +1036,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
 
 C
 C****
+      call startTimer('RADIA()')
 
       idx = (/ (IDD_CL7+i-1,i=1,7), IDD_CCV /)
       idxb = (/ IDD_PALB, IDD_GALB, IDD_ABSA /)
@@ -2212,7 +2214,10 @@ C****
 !$OMP  END PARALLEL
 
 
-      if(kradia.gt.0) return
+      if(kradia.gt.0) then
+         call stopTimer('RADIA()')
+         return
+      end if
 C**** Stop if temperatures were out of range
 C**** Now only warning messages are printed for T,Q errors
 c     IF(ICKERR.GT.0)
@@ -2621,6 +2626,7 @@ C**** daily diagnostics
         ENDIF
       ENDDO
 
+      call stopTimer('RADIA()')
       RETURN
       END SUBROUTINE RADIA
 

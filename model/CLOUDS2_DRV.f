@@ -185,6 +185,7 @@
     (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : prelay
 #endif
+      Use TimerList_mod, only: startTimer => start, stopTimer => stop
       IMPLICIT NONE
 
 #ifdef TRACERS_ON
@@ -291,6 +292,7 @@ C        not clear yet whether they still speed things up
 #endif
 #endif
 
+      call startTimer('CONDSE()')
 C**** Initialize
 #ifdef TRACERS_SPECIAL_Shindell
       RNOx_lgt(:,:)=0.d0
@@ -1628,6 +1630,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
   415 FORMAT(1X,'W500 AT I=21 L=5 TIME= ',I10/,1X,10F8.3/,1X,10F8.3)
   420 FORMAT(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
 
+      call stopTimer('CONDSE()')
       RETURN
       END SUBROUTINE CONDSE
 

@@ -140,8 +140,12 @@ C****
       call init_app()
       call initializeProfileTimers()
       call addTimer('Main Loop')
+      call addTimer('Atm. Dynamics')
+      call addTimer('CONDSE()')
+      call addTimer('RADIA()')
       call addTimer('Surface')
-      call addTimer('Surface IJ')
+      call addTimer('SURFCE()')
+      call addTimer('Diagnostics')
 
 
 #ifdef SCM
@@ -411,6 +415,8 @@ c     enddo
 #ifdef USE_SYSUSAGE
       call sysusage(1,1)
 #endif
+      call startTimer('Atm. Dynamics')
+
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
@@ -458,6 +464,7 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
 !$OMP  END PARALLEL DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
+      call stopTimer('Atm. Dynamics')
          CALL TIMER (MNOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
@@ -532,6 +539,7 @@ C**** NOTE THAT FLUXES ARE APPLIED IN TOP-DOWN ORDER SO THAT THE
 C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C****
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
+      call startTimer('Surface')
       CALL PRECIP_SI
       CALL PRECIP_LI
 C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
@@ -546,6 +554,7 @@ C**** Calculate non-interactive tracer surface sources and sinks
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
+      call stopTimer('Surface')
          CALL CHECKT ('SURFCE')
          CALL TIMER (MNOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
@@ -699,10 +708,11 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          END IF
          CALL TIMER (MNOW,MELSE)
       END IF
-
 C****
 C**** CALL DIAGNOSTIC ROUTINES
 C****
+        call startTimer('Diagnostics')
+      write(*,*)'start diagnostics'
 #ifdef SCM
 c*****call scm diagnostics every time step
       call scm_diag
@@ -787,6 +797,8 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
       END IF ! beginning of day
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
+      call stopTimer('Diagnostics')
+      write(*,*)'stop diagnostics'
       CALL TIMER (MNOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc

@@ -261,7 +261,7 @@ C**** Initialise constant indices
 
 C****
 
-      call startTimer('Surface')
+      call startTimer('SURFCE()')
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -1437,7 +1437,7 @@ C**** For distributed implementation - ensure point is on local process.
 C****
       END DO   ! end of surface time step
 
-      call stopTimer('Surface')
+      call stopTimer('SURFCE()')
 
       RETURN
 C****
