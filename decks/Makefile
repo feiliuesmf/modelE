@@ -267,7 +267,7 @@ src_cpp_dir:
 etags:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR)
 
-$(RUN).mk: $(RUN).R
+$(RUN).mk: $(RUN).R $(SCRIPTS_DIR)/r_to_mk.pl
 	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
 
 sinclude $(DECKS_DIR)/$(RUN).mk
