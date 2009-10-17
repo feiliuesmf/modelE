@@ -90,12 +90,10 @@ contains
 #ifdef USE_MPI
       include 'mpif.h'
       time = mpi_Wtime()
-      write(*,*)'MPI: wtime'
 #else      
       integer :: counter, rate
       call system_clock(counter, rate)
       time = real(counter,kind=r64) / rate
-      write(*,*)'SERIAL: wtime'
 #endif
    end function getWTime
 
@@ -293,7 +291,6 @@ contains
       call MPI_Reduce(numTrips(this), globalCount, 1, MPI_INTEGER, &
            & MPI_SUM, root, comm, ier)
 
-      print*,__LINE__,__FILE__
       if (rank == root) then
          seconds = formatSeconds(inclusiveTime)
          hmsInclusive = formatHMS(inclusiveTime)
