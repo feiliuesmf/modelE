@@ -345,8 +345,8 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 
       subroutine map_ent2giss(v_ent,v_giss)
       implicit none
-      real*8, dimension(N_COVERTYPES), intent(in) :: v_ent
-      real*8, dimension(12), intent(out) :: v_giss
+      real*8, dimension(:), intent(in) :: v_ent
+      real*8, dimension(:), intent(out) :: v_giss
 
       if (N_COVERTYPES == 12) then
         v_giss(1:12) = v_ent(1:12)
