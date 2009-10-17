@@ -145,7 +145,7 @@ C****
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
-      USE TimerList_mod, only: addTimer
+      USE Timer_mod, only: Timer_type
       USE TimerList_mod, only: startTimer => start
       USE TimerList_mod, only: stopTimer => stop
 
@@ -220,6 +220,8 @@ C**** some shorthand indices and arrays for diurn diags
 C****
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
       LOGICAL :: debug
+
+      type (Timer_type), pointer :: aTimer
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -366,7 +368,6 @@ c      POLE= (J.EQ.1 .or. J.EQ.JM)
 
       DO I=I_0,IMAXJ(J)
 
-         call startTimer('Surface IJ')
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
 #ifdef TRACERS_WATER
       tevaplim = 0.
@@ -1334,7 +1335,6 @@ C****
 C****
       END IF
       END DO   ! end of itype loop
-         call stopTimer('Surface IJ')
       END DO   ! end of I loop
 
       END DO   ! end of J loop
