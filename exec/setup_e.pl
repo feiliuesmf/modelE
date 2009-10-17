@@ -159,7 +159,7 @@ if ( $CMRUN ne $SAVEDISK ) {
 	    symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link";
 	}
     } else {
-        symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link";
+        symlink "$RunDir", "$CMRUN/$runID" or die "Can't create link from $RunDir to $CMRUN/$runID";
     }
 }
 
