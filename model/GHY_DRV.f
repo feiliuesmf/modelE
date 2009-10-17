@@ -2541,7 +2541,7 @@ c**** compute roughnes length
 #else
             fr_cover(:) = vdata(i,j,:)
 #endif
-            z0_veg = fearth(i,j)*sum( fr_cover(:)*z0_cover(:) )
+            z0_veg = (1.d0-flice(i,j))*sum( fr_cover(:)*z0_cover(:) )
      &           + flice(i,j)*0.005d0
             rrr(i,j) = max ( rrr(i,j), z0_veg )
           enddo
@@ -2551,8 +2551,7 @@ c**** hack to reset roughl for non-standard land ice fractions
           do j=J_0,J_1
             do i=I_0,I_1
               if ( flice(i,j) > 0.d0 ) rrr(i,j) =
-     &             ( rrr(i,j)*fearth(i,j) + roughl_lice*flice(i,j) )
-     &             / ( fearth(i,j) + flice(i,j) )
+     &          ( rrr(i,j)*(1.d0-flice(i,j)) + roughl_lice*flice(i,j) )
             enddo
           enddo
         endif
