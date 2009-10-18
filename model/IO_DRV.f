@@ -46,7 +46,7 @@ c rerun cases.
 
       do_io_longacc = do_io_acc
       if(iaction.eq.iowrite_mon)    do_io_longacc = .true.
-      if(iaction.eq.irerun)         do_io_longacc = .true.      
+      if(iaction.eq.irerun)         do_io_longacc = .true.
 
 c for routines designed to accept only iowrite or ioread:
       if(iaction.le.iowrite) then
@@ -64,12 +64,12 @@ c
         fid = par_open(grid,trim(fname)//'.nc','create')
         if(iaction.eq.iowrite_mon) then
 c end-of-month restart file, no acc arrays
-          call def_rsf_label(fid) 
+          call def_rsf_label(fid)
           call def_rsf_prog(fid)
           call def_rsf_longacc(fid,.false.)
         else
 c end-of-month acc file, no prognostic arrays
-          call def_rsf_label(fid) 
+          call def_rsf_label(fid)
           call def_acc_all(fid,.true.)     ! real*4 disk storage
           call def_rsf_longacc(fid,.true.) ! real*4 disk storage
           call def_acc_meta(fid)
@@ -79,7 +79,7 @@ c end-of-month acc file, no prognostic arrays
 c rsf_file_name(1:2).nc at the beginning of a run
         do k=1,2
           fid=par_open(grid,trim(rsf_file_name(k))//'.nc','create')
-          call def_rsf_label(fid) 
+          call def_rsf_label(fid)
           call def_rsf_prog(fid)
           call def_acc_all(fid,.false.)
           call def_rsf_longacc(fid,.false.)
@@ -102,7 +102,7 @@ c
 c prognostic arrays
 c
       if(do_io_prog) then
-        call new_io_model  (fid,iorw) 
+        call new_io_model  (fid,iorw)
 #ifdef NEW_IO_4STRAT
         call new_io_strat  (fid,iorw)
 #endif
@@ -207,9 +207,9 @@ c
 !@ver  beta
       implicit none
       integer :: fid
-      call def_rsf_model  (fid) 
+      call def_rsf_model  (fid)
 #ifdef NEW_IO_4STRAT
-      call def_rsf_strat  (fid) 
+      call def_rsf_strat  (fid)
 #endif
       call def_rsf_ocean  (fid)
       call def_rsf_lakes  (fid)
@@ -307,7 +307,7 @@ c idacc(5) is not additive
 !@ver  beta
       use model_com, only : xlabel,itime,itimee,itime0,itimei,
      &     iyear1,nday,iowrite
-      use timings, only : ntimemax,ntimeacc,timestr,timing 
+      use timings, only : ntimemax,ntimeacc,timestr,timing
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
       implicit none
@@ -434,7 +434,7 @@ c manage the reading/writing of timing information. could be done better
       select case (iaction)
       case (:iowrite)
         tsum = sum(timing(1:ntimeacc))+1d-20
-        min_per_day = (tsum/(60.*100.))*nday/(dble(itime-itime0)+1d-6)
+        min_per_day = (tsum/60.)*nday/(dble(itime-itime0)+1d-6)
         min_per_day = int(min_per_day*100d0)*.01d0
         call write_attr(grid,fid,'cputime','minutes_per_day',
      &       min_per_day)
@@ -552,7 +552,7 @@ c the character "|" are separated into arrays of strings.
 
       subroutine set_ioptrs_acc_default
 c point i/o pointers for accumlated quantities to the
-c instances of the arrays used during normal operation. 
+c instances of the arrays used during normal operation.
       implicit none
       call set_ioptrs_atmacc_default
       call set_ioptrs_ocnacc_default

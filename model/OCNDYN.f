@@ -52,7 +52,7 @@ C****
 #endif
 
       IMPLICIT NONE
-      Integer*4 I,J,L,N,NS,NO,MNOW
+      Integer*4 I,J,L,N,NS,NO  ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      *       MM0,MM1, UM0,UM1, VM0,VM1
 
@@ -88,7 +88,7 @@ C**** Add ocean biology
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5S == 0) CALL DIAGCA (11)
 
 C**** Apply ocean vertical mixing
@@ -98,7 +98,7 @@ C**** Apply ocean vertical mixing
 C**** Apply bottom and coastal drags
       if (OBottom_drag  == 1) CALL OBDRAG
       if (OCoastal_drag == 1) CALL OCOAST
-         CALL TIMER (MNOW,MSGSO)
+         CALL TIMER (NOW,MSGSO)
 
 C****
 C**** Integrate Ocean Dynamics
@@ -250,7 +250,7 @@ C****
 
   500 Continue  !  End of Do-loop NO=1,NOCEAN
 
-        CALL TIMER (MNOW,MDYNO)
+        CALL TIMER (NOW,MDYNO)
         IF (MODD5S == 0) CALL DIAGCA (12)
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
@@ -270,7 +270,7 @@ C**** Apply GM + Redi tracer fluxes
       END DO
 #endif
       CALL CHECKO ('GMDIFF')
-      CALL TIMER (MNOW,MSGSO)
+      CALL TIMER (NOW,MSGSO)
 
 C**** remove STADVI since it is not really consistent with ICEDYN
 c      CALL STADVI
@@ -283,7 +283,7 @@ c        CALL CHECKO ('STADVI')
 #endif
 #endif
 
-        CALL TIMER (MNOW,MSGSO)
+        CALL TIMER (NOW,MSGSO)
 C***  Get the data from the ocean grid to the atmospheric grid
       CALL TOC2SST
       call OG2AG_oceans
@@ -299,7 +299,6 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
 !@auth Original Development Team
 !@ver  1.0
       USE FILEMANAGER, only : openunit,closeunit
-      USE TIMINGS, only : timing,ntimeacc
       USE PARAM
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
@@ -4483,7 +4482,7 @@ C**** Discretisation errors need TANP/V to be defined like this
         TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
         TANV(J)=TAN(VLAT)*SIN(DLAT)/(DLAT*RADIUS)
-c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:', 
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
 c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
       END DO
       !make halo_update if 2 is not present
@@ -4494,14 +4493,14 @@ c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
         BYDXV(1)=1D0/DXVO(1)
         BYDYV(1)=1D0/DYVO(1)
         BYDYP(1)=1D0/DYPO(1)
-c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:', 
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
 c    .       nstep,1,dxpo(1),dypo(1),dxypo(1)
       endif
       if( HAVE_NORTH_POLE ) then
         BYDXP(JM)=1D0/DXPO(JM)
         BYDXYPJM=1D0/(DXYPO(JM)*IM)
         TANP(JM) = 0
-c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:', 
+c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
 c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
       endif
 
@@ -5479,7 +5478,7 @@ C**** ocean currents UO and VO in the East-West direction
 C****
       USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
       USE OCEANR_DIM, only : grid=>ogrid
-      USE OCEANRES, only : NORDER, OABFUX, OABFVX 
+      USE OCEANRES, only : NORDER, OABFUX, OABFVX
       Implicit None
       Real*8, Dimension(IM) :: X,Y
       Integer :: I,J,L,J_0f,J_1f,N
@@ -5535,7 +5534,7 @@ C**** ocean currents UO and VO in the North-South direction
 C****
       USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
       USE OCEANR_DIM, only : grid=>ogrid
-      USE OCEANRES, only : NORDER, by4tonv, by4tonu 
+      USE OCEANRES, only : NORDER, by4tonv, by4tonu
       use domain_decomp_1d, only : get,halo_update,north,south
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) :: x,y
@@ -5548,7 +5547,7 @@ C****
       j_0p = max(2,j_0)
       j_1p = min(j_1,jm-1)
 
-      if (by4tonv <= 0 .and. by4tonu <= 0) return 
+      if (by4tonv <= 0 .and. by4tonu <= 0) return
 C****
 C**** Filter the V component of ocean current in north-south direction
 C****

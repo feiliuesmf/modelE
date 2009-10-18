@@ -79,7 +79,7 @@
       END SUBROUTINE RFINAL
 
 #if defined( MACHINE_DEC ) \
- || ( defined(MACHINE_Linux) && defined(COMPILER_Intel8) ) 
+ || ( defined(MACHINE_Linux) && defined(COMPILER_Intel8) )
       SUBROUTINE BURN_RANDOM(n)
 !@sum  BURN_RANDOM burns a set number of random numbers. It is used to
 !                  maintain bit-wise correspondence on parallel runs.
@@ -126,21 +126,21 @@
       End Do
 
       End Subroutine burn_random
-#endif 
+#endif
 
       END MODULE RANDOM
 
       ! Use F90 system_clock for portable accuracy
       module GETTIME_MOD
       contains
-      subroutine GETTIME(counter, count_rate_out)
+      subroutine GETTIME(ctime, cmax)
       implicit none
-      integer, intent(out) :: counter
-      integer, intent(out), optional :: count_rate_out
-      integer :: count_rate
-      call system_clock(counter,count_rate)
-      if( present(count_rate_out) ) count_rate_out = count_rate
-      counter=100*(counter/count_rate)  ! force 100ths of seconds
+      real*8, intent(out) :: ctime
+      real*8, intent(out), optional :: cmax
+      integer :: counter, count_rate, count_max
+      call system_clock(counter,count_rate,count_max)
+      if( present(cmax) ) cmax = count_max/real(count_rate,kind=8)
+      ctime=counter/real(count_rate,kind=8)  ! convert to seconds
       end subroutine GETTIME
       end module GETTIME_MOD
 
@@ -175,7 +175,7 @@
       use f90_unix_io
 #endif
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: unit !@var unit 
+      INTEGER, INTENT(IN) :: unit !@var unit
 #if defined(MACHINE_SGI)
       INTEGER status
       call flush(unit,status)
@@ -206,7 +206,7 @@
  || defined(MACHINE_DEC) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_Intel8) ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
-      call signal( sig, prog, -1 ) 
+      call signal( sig, prog, -1 )
 #elif defined( MACHINE_IBM ) \
  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
       call signal( sig, prog )

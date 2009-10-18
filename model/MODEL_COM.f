@@ -73,9 +73,9 @@ c$$$#endif
       REAL*8 :: DT_XVfilter=0. ! V-filter is NOT used in E-W direction
       REAL*8 :: DT_YUfilter=0. ! U-filter is NOT used in N-S direction
       REAL*8 :: DT_YVfilter=0. ! V-filter is NOT used in N-S direction
-!     Target Coordinates for SCM 
-      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list   
-      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM 
+!     Target Coordinates for SCM
+      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
+      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
 !@var QUVfilter: True if any of DT_[XY][UV]filter are not=0
       LOGICAL :: QUVfilter
 !@dbparam ang_uv =1 to conserve ang mom in UVfilter
@@ -347,7 +347,7 @@ C**** Variables specific for stratosphere and/or strat diagnostics
 !@var NTIMEACC actual number of time accumulators
       INTEGER :: NTIMEACC = 0
 !@var TIMING array that holds timing info
-      INTEGER, DIMENSION(0:NTIMEMAX) :: TIMING
+      REAL*8, DIMENSION(0:NTIMEMAX) :: TIMING
 !@var TIMESTR array that holds timing info description
       CHARACTER*12, DIMENSION(NTIMEMAX) :: TIMESTR
 
@@ -382,28 +382,28 @@ C****
       RETURN
       END SUBROUTINE SET_TIMER
 
-      SUBROUTINE TIMER (MNOW,MSUM)
+      SUBROUTINE TIMER (NOW,MSUM)
 !@sum  TIMER keeps track of elapsed CPU time in hundredths of seconds
 !@auth Gary Russell
 !@ver  1.0
       USE TIMINGS
       USE GETTIME_MOD
       IMPLICIT NONE
-      INTEGER, INTENT(OUT) :: MNOW   !@var MNOW current CPU time (.01 s)
+      REAL*8, INTENT(OUT) :: NOW     !@var NOW current CPU time (seconds)
       INTEGER, INTENT(INOUT) :: MSUM !@var MSUM index for running total
-      INTEGER :: MINC                !@var MINC time since last call
-      INTEGER, SAVE :: MLAST = 0     !@var MLAST  last CPU time
-      INTEGER :: CRATE               !@var CRATE count rate
+      REAL*8 :: INC                  !@var INC time since last call
+      REAL*8, SAVE :: LAST = 0       !@var LAST  last CPU time
+      REAL*8 :: CMAX                 !@var CMAX max.count before 0-reset
 
-      CALL GETTIME(MNOW,CRATE)
-      MINC  = MNOW - MLAST
-      if(minc.lt.-200) minc=minc+100*(huge(minc)/crate) ! system_clock reset
-      TIMING(MSUM)  = TIMING(MSUM) + MINC
-      MLAST = MNOW
+      CALL GETTIME(NOW, CMAX)
+      INC  = NOW - LAST
+      if(inc<0) inc=inc+cmax ! offset system_clock reset
+      TIMING(MSUM)  = TIMING(MSUM) + INC
+      LAST = NOW
       RETURN
       END SUBROUTINE TIMER
 
-      SUBROUTINE TIMEOUT (MBEGIN,MIN,MOUT)
+      SUBROUTINE TIMEOUT (BEGIN,MIN,MOUT)
 !@sum  TIMEOUT redistributes timing info between counters
 !@auth Gary Russell
 !@ver  1.0
@@ -411,18 +411,18 @@ C****
       USE GETTIME_MOD
       IMPLICIT NONE
 !@var MBEGIN CPU time start of section (.01 s)
-      INTEGER, INTENT(IN) :: MBEGIN
+      REAL*8, INTENT(IN) :: BEGIN
       INTEGER, INTENT(INOUT) :: MIN  !@var MIN index to be added to
       INTEGER, INTENT(INOUT) :: MOUT !@var MOUT index to be taken from
-      INTEGER :: MINC                !@var MINC time since MBEGIN
-      INTEGER :: MNOW                !@var MNOW current CPU time (.01 s)
-      INTEGER :: CRATE               !@var CRATE count rate
+      REAL*8 :: INC                  !@var INC time since MBEGIN
+      REAL*8 :: NOW                  !@var NOW current CPU time (s)
+      REAL*8 :: CMAX                 !@var CMAX max.count before 0-reset
 
-      CALL GETTIME(MNOW, CRATE)
-      MINC  = MNOW - MBEGIN
-      if(minc.lt.0) minc=minc+100*(huge(minc)/CRATE) ! system_clock reset
-      TIMING(MIN)  = TIMING(MIN)  + MINC
-      TIMING(MOUT) = TIMING(MOUT) - MINC
+      CALL GETTIME(NOW, CMAX)
+      INC  = NOW - BEGIN
+      if(inc<0) inc=inc+cmax ! offset system_clock reset
+      TIMING(MIN)  = TIMING(MIN)  + INC
+      TIMING(MOUT) = TIMING(MOUT) - INC
       RETURN
       END SUBROUTINE TIMEOUT
 
@@ -446,8 +446,9 @@ C****
 !@var LABEL2 content of record 2
       CHARACTER*80 :: LABEL2
 !@var NTIM1,TSTR1,TIM1 timing related dummy arrays
-      INTEGER NTIM1,TIM1(NTIMEMAX)
-      CHARACTER*12 TSTR1(NTIMEMAX)
+      INTEGER NTIM1,ITIM1(NTIMEMAX)
+      REAL*8 ::      TIM1(NTIMEMAX)
+      CHARACTER*12  TSTR1(NTIMEMAX)
 !@var ITmin,ITmax minimal/maximal time in acc periods to be combined
       INTEGER, SAVE :: ITmax=-1, ITmin=-1 ! to protect against long runs
       INTEGER nd1,iy1,iti1,ite1,it01,im0,jm0,lm0,ls10
@@ -459,15 +460,24 @@ C****
      *         itime0,NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
 C**** doc line: basic model parameters
           write(label2,'(a13,4i4,a)') 'IM,JM,LM,LS1=',im,jm,lm,ls1,' '
+          label2(74:80) = 'LABEL01'
           WRITE (kunit,err=10) LABEL2
 C**** write parameters database here
           call write_param(kunit)
         END IF
       CASE (IOREAD:)          ! label always from input file
-        READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
+!****   Determine whether timing numbers were saved as integers or reals
+        read(kunit) ; read(kunit) label2 ; rewind kunit
+        if (label2(80:80)==' ') then         ! integers, convert to seconds
+          READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
+     *        NTIM1,ITIM1(1:NTIM1),TSTR1(1:NTIM1)
+          tim1(1:NTIM1) = 1d-2*itim1(1:NTIM1)
+        else                                 ! real*8
+          READ (kunit,err=10) it,XLABEL,nd1,iy1,iti1,ite1,it01,
      *        NTIM1,TIM1(1:NTIM1),TSTR1(1:NTIM1)
+        end if
 C**** use doc-record to check the basic model parameters
-       READ (kunit,err=10) LABEL2
+        READ (kunit,err=10) LABEL2
         READ (label2,'(13x,4i4)',err=10) im0,jm0,lm0,ls10
         if (im.ne.im0.or.jm.ne.jm0.or.lm.ne.lm0.or.ls10.ne.ls1) then
           ioerr = 0   ! warning

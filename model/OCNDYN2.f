@@ -37,7 +37,7 @@ C****
 #endif
 
       IMPLICIT NONE
-      Integer*4 I,J,L,N,NS,NO,MNOW,NEVEN
+      Integer*4 I,J,L,N,NS,NO,NEVEN ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      &     MO1,MO2, UO1,UO2, VO1,VO2
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -77,7 +77,7 @@ C**** Add ocean biology
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5S == 0) CALL DIAGCA (11)
 
 C**** Apply ocean vertical mixing
@@ -87,7 +87,7 @@ C**** Apply ocean vertical mixing
 C**** Apply bottom and coastal drags
       if (OBottom_drag  == 1) CALL OBDRAG
       if (OCoastal_drag == 1) CALL OCOAST
-         CALL TIMER (MNOW,MSGSO)
+         CALL TIMER (NOW,MSGSO)
 
       DO L=1,LMO
         MO1(:,:,L) = 0
@@ -260,7 +260,7 @@ C****
 
       ENDDO  !  End of Do-loop NO=1,NOCEAN
 
-        CALL TIMER (MNOW,MDYNO)
+        CALL TIMER (NOW,MDYNO)
         IF (MODD5S == 0) CALL DIAGCA (12)
 
 c
@@ -285,7 +285,7 @@ C**** Apply GM + Redi tracer fluxes
       END DO
 #endif
       CALL CHECKO ('GMDIFF')
-      CALL TIMER (MNOW,MSGSO)
+      CALL TIMER (NOW,MSGSO)
 
 #ifdef TRACERS_OCEAN
       CALL OC_TDECAY
@@ -294,7 +294,7 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 #endif
 
-        CALL TIMER (MNOW,MSGSO)
+        CALL TIMER (NOW,MSGSO)
 C***  Get the data from the ocean grid to the atmospheric grid
       CALL TOC2SST
       call OG2AG_oceans
@@ -406,7 +406,7 @@ c
           enddo
         enddo
       endif
-      
+
 c
 c for now, vertical advection of U,V uses the simplest upstream scheme
 c

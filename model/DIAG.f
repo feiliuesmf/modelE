@@ -143,7 +143,7 @@ C**** Some local constants
 
       REAL*8, PARAMETER :: ONE=1.,P1000=1000.
       INTEGER :: I,IM1,J,K,L,JR,
-     &     IP1,LR,MBEGIN,IT
+     &     IP1,LR,IT
       REAL*8 THBAR ! external
       REAL*8 ::
      &     BBYGV,BYSDSG,DLNP01,DLNP12,DLNP23,DBYSD,
@@ -157,7 +157,7 @@ C**** Some local constants
       INTEGER nT,nQ,nRH
       REAL*8, PARAMETER :: EPSLON=1.
 
-      REAL*8 QSAT, SLP, PS, ZS, QLH
+      REAL*8 QSAT, SLP, PS, ZS, QLH, begin
 
       real*8, dimension(lm+1) :: pecp,pedge
       real*8, dimension(lm) :: dpwt,txdp,phidp,qdp,rhdp,wmdp,rh
@@ -171,7 +171,7 @@ C**** Some local constants
      &     ,IM1S,IP1S,IP1E
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
-      CALL GETTIME(MBEGIN)
+      CALL GETTIME(BEGIN)
 
       CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
      &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
@@ -289,23 +289,23 @@ C**** Follows logic for geopotential section following this...
      *      +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMBmore(K)/PL)/LOG(PDN/PL))
           else
             if(qabove) TIJK=TX(I,J,L)-TF
-          endif 
+          endif
           if (qabove) then
             QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*pfact
             q_more(K,I,J)=QIJK
             t_more(K,I,J)=TIJK
 #ifdef TRACERS_SPECIAL_Shindell
-              chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/ 
+              chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
      &        (am(L,i,j)*axyp(i,j))
-              chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/ 
+              chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/
      &        (am(L-1,i,j)*axyp(i,j))
             o_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
-              chemL=1.d6*trm(i,j,L,n_NOx)*mass2vol(n_NOx)/ 
+              chemL=1.d6*trm(i,j,L,n_NOx)*mass2vol(n_NOx)/
      &        (am(L,i,j)*axyp(i,j))
-              chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/ 
+              chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
      &        (am(L-1,i,j)*axyp(i,j))
             x_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
-              chemL=1.d6*mNO2(i,j,L)*mair/46.0055/ 
+              chemL=1.d6*mNO2(i,j,L)*mair/46.0055/
      &        (am(L,i,j)*axyp(i,j))
               chemLm1=1.d6*mNO2(i,j,L-1)*mair/46.0055/
      &        (am(L-1,i,j)*axyp(i,j))
@@ -321,7 +321,7 @@ C**** Follows logic for geopotential section following this...
             K=K+1
             if(PMBmore(K)<pl .and. L<LM) goto 1720
             goto 1740
-          endif  
+          endif
         enddo ! I
 #endif
 
@@ -738,7 +738,7 @@ c
       enddo
 
 C**** ACCUMULATE TIME USED IN DIAGA
-      CALL TIMEOUT(MBEGIN,MDIAG,MDYN)
+      CALL TIMEOUT(BEGIN,MDIAG,MDYN)
       RETURN
 
       ENTRY DIAGA0
@@ -844,7 +844,7 @@ C****
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI,conserv_WTG,conserv_HTG
-      INTEGER MNOW
+      real*8 NOW
       INTEGER NT
 
 #ifdef SCM
@@ -901,7 +901,7 @@ C**** Tracer calls are dealt with separately
       end do
 #endif
 C****
-      CALL TIMER (MNOW,MDIAG)
+      CALL TIMER (NOW,MDIAG)
       RETURN
       END SUBROUTINE DIAGCA
 
@@ -1335,7 +1335,7 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
      *             aDATE(1:7),iu_SUBDD(kunit),.true.,.false.)
             end do
           case ("T", "Q", ! temps, spec hum PMB levels
-     &          "O", "X", "M", "N")! Ox, NOx, CO, NO2 
+     &          "O", "X", "M", "N")! Ox, NOx, CO, NO2
 #ifdef TES_LIKE_DIAGS
             kunit=kunit+1
             call openunit(namedd(k)(1:1)//'TES'//
@@ -1394,10 +1394,10 @@ C****
 !@+                    GTALL, GWALL, GIALL (on soil levels)
 !@+                    TRP*, TRE* (water tracers only)
 !@+                    Z*, R*, T*, Q*  (on any fixed pressure level)
-!@+                    z*, r*, t*, q*  (on any model level) 
+!@+                    z*, r*, t*, q*  (on any model level)
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
-!@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl) 
+!@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl)
 !@+                    oAVG (L=1 Ox time-average vmr)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)

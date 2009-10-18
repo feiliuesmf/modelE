@@ -40,10 +40,7 @@ C**** check for arguments
       !OPEN (10,FILE=FILEIN,FORM='UNFORMATTED',STATUS='OLD',err=850)
       ioerr=0
       call openunit(FILEIN,iu_RSF,.true.,.true.)
-      if(qcall) call io_label(iu_RSF,Itime,itm,ioread,ioerr)
-      if(.not.qcall) READ (iu_RSF,err=10) itime,XLABEL,nday,Iyear1,
-     *   ItimeI,ItimeE,Itime0,
-     *   NTIMEACC,TIMING(1:NTIMEACC),TIMESTR(1:NTIMEACC)
+      call io_label(iu_RSF,Itime,itm,ioread,ioerr)
       call closeunit(iu_RSF)
       if (ioerr.eq.1) go to 860
       !CLOSE (10)
@@ -62,7 +59,7 @@ C**** check for arguments
         TOT = TOT + TIMING(N)
       END DO
       IF (Itime-Itime0.gt.0) THEN
-        FACT = NDAY/(6000.*(Itime-Itime0))
+        FACT = NDAY/(60.*(Itime-Itime0))
       ELSE
         FACT = 0.
       END IF

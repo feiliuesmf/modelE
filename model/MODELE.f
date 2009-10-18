@@ -71,15 +71,15 @@ c$$$      USE MODEL_COM, only: clock
 
       character(len=TIMER_SUMMARY_LENGTH), pointer :: timerReport(:)
 
-      INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
+      INTEGER K,M,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ODA
       INTEGER :: MDUM = 0
 
       character(len=80) :: filenm
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-      INTEGER, DIMENSION(0:NTIMEMAX) ::TIMING_glob
-      REAL*8 DTIME,TOTALT
+      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+      REAL*8 start,now, DTIME,TOTALT
 
       CHARACTER aDATE*14
       CHARACTER*8 :: flg_go='___GO___'      ! green light
@@ -91,7 +91,7 @@ C**** Command line options
       CHARACTER*32 :: ifile
       integer :: iu_IFILE
       real :: lat_min=-90.,lat_max=90.,longt_min=0.,longt_max=360.
-      integer :: tloopbegin, tloopend
+      real*8 :: tloopbegin, tloopend
 #ifdef USE_FVCORE
       Character(Len=*), Parameter :: fv_config = 'fv_config.rc'
       Type (FV_CORE_WRAPPER) :: fv
@@ -178,7 +178,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 C****
 C**** INITIALIZATIONS
 C****
-         CALL TIMER (MNOW,MDUM)
+         CALL TIMER (NOW,MDUM)
 
 #ifdef BLK_2MOM
 C initialize microphysics
@@ -244,9 +244,9 @@ C****
          close (3)
       END IF
       call sys_signal( 15, sig_stop_model )  ! works only on single CPU
-         MSTART=MNOW
+         START=NOW
          DO M=1,NTIMEACC
-           MSTART= MSTART-TIMING(M)
+           START= START-TIMING(M)
          END DO
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
@@ -293,7 +293,7 @@ C****
      *   'Year',JYEAR,aMON,JDATE,', Hr',JHOUR,
      *   'Internal clock: DTsrc-steps since 1/1/',Iyear1,ITIME
 
-         CALL TIMER (MNOW,MELSE)
+         CALL TIMER (NOW,MELSE)
 C****
 C**** Open and position output history files if needed
 C****
@@ -346,7 +346,7 @@ C**** write restart information alternately onto 2 disk files
      *     '0Restart file written on fort.',KDISK,'Year',
      *     JYEAR,aMON,JDATE,', Hr',JHOUR,'  Internal clock time:',ITIME
          KDISK=3-KDISK
-         CALL TIMER (MNOW,MELSE)
+         CALL TIMER (NOW,MELSE)
       END IF
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY DAY
       IF (MOD(Itime,NDAY).eq.0) THEN
@@ -465,13 +465,13 @@ C**** Scale WM mixing ratios to conserve liquid water
 !$OMP  END PARALLEL DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
       call stopTimer('Atm. Dynamics')
-         CALL TIMER (MNOW,MDYN)
+         CALL TIMER (NOW,MDYN)
 #ifdef TRACERS_ON
       CALL TrDYNAM   ! tracer dynamics
 #ifdef TRAC_ADV_CPU
-         CALL TIMER (MNOW,MTRADV)
+         CALL TIMER (NOW,MTRADV)
 #else
-         CALL TIMER (MNOW,MTRACE)
+         CALL TIMER (NOW,MTRACE)
 #endif
 #endif
 #ifdef USE_SYSUSAGE
@@ -487,7 +487,7 @@ C**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
 
          CALL CHECKT ('DYNAM ')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
@@ -514,11 +514,11 @@ C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
 C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       CALL MELT_SI
          CALL UPDTYPE
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
-         CALL TIMER (MNOW,MCNDS)
+         CALL TIMER (NOW,MCNDS)
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
       end if                                  ! full model,kradia le 0
@@ -528,7 +528,7 @@ C**** RADIATION, SOLAR AND THERMAL
          CALL RADIA
          if (kradia.le.0) CALL CHECKT ('RADIA ')
       end if
-         CALL TIMER (MNOW,MRAD)
+         CALL TIMER (NOW,MRAD)
       if (kradia.le.0) then                    ! full model,kradia le 0
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
@@ -545,18 +545,18 @@ C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
 C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
       CALL PRECIP_LK
       CALL PRECIP_OC
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          CALL CHECKT ('PRECIP')
 #ifdef TRACERS_ON
 C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
-         CALL TIMER (MNOW,MTRACE)
+         CALL TIMER (NOW,MTRACE)
 #endif
 C**** CALCULATE SURFACE FLUXES AND EARTH
       CALL SURFCE
       call stopTimer('Surface')
          CALL CHECKT ('SURFCE')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
 #ifdef CALCULATE_FLAMMABILITY
       call flammability_drv
@@ -573,7 +573,7 @@ C**** APPLY SURFACE FLUXES TO LAND ICE
 C**** APPLY FLUXES TO LAKES AND DETERMINE ICE FORMATION
       CALL GROUND_LK
          CALL CHECKT ('GRNDLK')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (6)
 C**** CALCULATE RIVER RUNOFF FROM LAKE MASS
       CALL RIVERF
@@ -594,7 +594,7 @@ C**** IF ATURB is used in rundeck then this is a dummy call
 C**** CALCULATE DRY CONVECTION ABOVE PBL
       CALL ATM_DIFFUS (2,LM-1,dtsrc)
          CALL CHECKT ('DRYCNV')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (9)
 C**** ADVECT ICE
       CALL ADVSI
@@ -605,7 +605,7 @@ C**** UPDATE DIAGNOSTIC TYPES
 C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
       CALL DISSIP ! uses kea calculated before column physics
          CALL CHECKT ('DISSIP')
-         CALL TIMER (MNOW,MSURF)
+         CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
 
@@ -617,7 +617,7 @@ C**** SEA LEVEL PRESSURE FILTER
            CALL DIAGCA (1)
            CALL FILTER
            CALL CHECKT ('FILTER')
-           CALL TIMER (MNOW,MDYN)
+           CALL TIMER (NOW,MDYN)
            CALL DIAG5A (14,NFILTR*NIdyn)
            CALL DIAGCA (8)
       END IF
@@ -633,7 +633,7 @@ C**** Calculate 3D tracers sources and sinks
       call tracer_3Dsource
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
-         CALL TIMER (MNOW,MTRACE)
+         CALL TIMER (NOW,MTRACE)
          CALL CHECKT ('T3DSRC')
 #endif
       end if                                  ! full model,kradia le 0
@@ -665,7 +665,7 @@ C****
         CALL DAILY(.true.)                 ! end_of_day
         CALL daily_RAD(.true.)
         months=(Jyear-Jyear0)*JMperY + JMON-JMON0
-           CALL TIMER (MNOW,MELSE)
+           CALL TIMER (NOW,MELSE)
 
         call daily_LAKE
         call daily_EARTH(.true.)           ! end_of_day
@@ -675,10 +675,10 @@ C****
         call daily_LI
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
         call daily_tracer(1)
-           CALL TIMER (MNOW,MTRACE)
+           CALL TIMER (NOW,MTRACE)
 #endif
            CALL CHECKT ('DAILY ')
-           CALL TIMER (MNOW,MSURF)
+           CALL TIMER (NOW,MSURF)
            CALL DIAG5A (16,NDAY*NIdyn)
            CALL DIAGCA (10)
         call sys_flush(6)
@@ -706,7 +706,7 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          ELSEIF (MOD(Itime,NDAY/2).eq.0) THEN
             call vflx_OCEAN
          END IF
-         CALL TIMER (MNOW,MELSE)
+         CALL TIMER (NOW,MELSE)
       END IF
 C****
 C**** CALL DIAGNOSTIC ROUTINES
@@ -776,7 +776,7 @@ C**** KCOPY > 2 : ALSO SAVE THE OCEAN DATA TO INITIALIZE DEEP OCEAN RUNS
         END IF
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
-        CALL TIMER (MNOW,MDIAG)
+        CALL TIMER (NOW,MDIAG)
         CALL SUMXPE(TIMING, TIMING_glob, increment=.true.)
         if (am_i_root()) then
         TOTALT=SUM(TIMING_glob(1:NTIMEACC))  ! over all processors
@@ -784,20 +784,20 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
           PERCENT(M) = 100d0*TIMING_glob(M)/(TOTALT+.00001)
         END DO
         TOTALT=SUM(TIMING(1:NTIMEACC)) ! on the root processor
-        TOTALT=TOTALT/(60.*100.)       ! in minutes
+        TOTALT=TOTALT/60.       ! seconds -> minutes
         DTIME = NDAY*TOTALT/(Itime-Itime0)        ! minutes/day
         WRITE (6,'(/A,F7.2,A,/(8(A13,F5.1/))//)')
      *   '0TIME',DTIME,'(MINUTES) ',(TIMESTR(M),PERCENT(M),M=1,NTIMEACC)
         end if
         TIMING = 0
-        MSTART= MNOW
+        START= NOW
 
       END IF ! beginning of accumulation period
       END IF ! beginning of day
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
       call stopTimer('Diagnostics')
-      CALL TIMER (MNOW,MDIAG)
+      CALL TIMER (NOW,MDIAG)
 C**** TEST FOR TERMINATION OF RUN
 ccc
       IF (MOD(Itime,Nssw).eq.0) then
@@ -846,7 +846,7 @@ c$$$      call test_save(__LINE__, itime-1)
       call gettime(tloopend)
       if (AM_I_ROOT())
      *     write(*,*) "Time spent in the main loop in seconds:",
-     *     .01*(tloopend-tloopbegin)
+     *     tloopend-tloopbegin
 C****
 C**** END OF MAIN LOOP
 C****
@@ -2398,17 +2398,17 @@ C**** check tracers
       call stop_model(
      &' Water tracers need TRACERS_ON as well as TRACERS_WATER',255)
 #endif
-#endif 
+#endif
 #ifdef TRACERS_OCEAN
       write(6,*) '...and ocean tracer code'
-#endif 
+#endif
 #ifdef TRACERS_SPECIAL_O18
       write(6,*) '...and water isotope code'
 #ifndef TRACERS_WATER
       call stop_model('Water isotope tracers need TRACERS_WATER '//
      *'as well as TRACERS_SPECIAL_O18',255)
-#endif 
-#endif 
+#endif
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
       write(6,*) '...and Jean/David tracers and chemistry'
 #endif

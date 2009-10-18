@@ -395,7 +395,7 @@ c
       real*8, dimension(imlonh+1,nspher) :: ke,ke_part
       real*8, dimension(imlonh+1) :: xu,xv,xke
 
-      integer :: i,j,l,ldn,lup,mnow,kq,nq
+      integer :: i,j,l,ldn,lup,kq,nq
       integer :: jj,jlat,jcalc,khemi,kspher,kspher_eq,kspher_45n
       integer, dimension(lm) :: klayer_eq,klayer_45n
       integer, parameter :: nqmax=31
@@ -415,7 +415,7 @@ c
       real*8, dimension(lm) :: bydpsum
       real*8, dimension(imlon,lm) :: usqrtdp,vsqrtdp
 
-      real*8 :: dpl,wtdn,wtup,bydp,vi,kedp,bysqrtdp
+      real*8 :: dpl,wtdn,wtup,bydp,vi,kedp,bysqrtdp,now
       real*8 :: dpuvi,dptvi,dpqvi,dpphivi
      &     ,dpkei,dpkevi,wui,wti,wzi,wqi
       real*8 :: uzm,vzm,tzm,qzm,phizm,wzm,byrhozm
@@ -808,7 +808,7 @@ c
       call sumxpe(ke_part,ke)
       if(am_i_root()) speca(:,18,:)=speca(:,18,:)+ke(:,:)
 
-      call timer (mnow,mdiag)
+      call timer (now,mdiag)
 
       return
 
@@ -908,9 +908,9 @@ c      use diag_com, only : ajl=>ajl_loc,jl_ape
       real*8, dimension(lm) :: thgm,gmean,thgm_part,gmean_part
       integer, dimension(kspeca), parameter ::
      &     mtpeof=(/0,0,1,0,0,0,0,2,0,3,  4,0,5,0,6,0,7,0,0,8/)
-      integer :: i,j,k,ks,kspher,l,ldn,lup,mape,mke,mnow,mtpe,n
+      integer :: i,j,k,ks,kspher,l,ldn,lup,mape,mke,mtpe,n
       integer :: jj,jlat,jcalc,khemi,kspher_eq,kspher_45n
-      real*8 :: sumt
+      real*8 :: sumt, now
       integer, dimension(lm) :: klayer_eq,klayer_45n
       logical :: do_ke
       real*8, dimension(cs2ll%isd:cs2ll%ied,lm) ::
@@ -1159,7 +1159,7 @@ c**** accumulate mean kinetic energy and mean potential energy
 
       endif ! am_i_root
 
-      call timer (mnow,mdiag)
+      call timer (now,mdiag)
 
       return
       end subroutine diag5a
@@ -1199,8 +1199,8 @@ c****
      &     ght=(/500.,2600.,5100.,8500.,15400.,30000./)
       real*8, dimension(lm) :: p00,aml,pdsigl,pmidl
       real*8, dimension(lm+1) :: pednl
-      real*8 :: slope
-      integer i,jlat,idacc9,k,kq,l,mnow,n
+      real*8 :: slope, now
+      integer i,jlat,idacc9,k,kq,l,n
 
       idacc9=idacc(ia_12hr)+1
       idacc(ia_12hr)=idacc9
@@ -1292,7 +1292,7 @@ c
         end do
       endif
 
-      call timer (mnow,mdiag)
+      call timer (now,mdiag)
       return
       end subroutine diag7a
 
