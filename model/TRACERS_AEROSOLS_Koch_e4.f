@@ -800,8 +800,10 @@ c
 c  the AR5 emissions are kg/m2/s
       do i=1,im
       do j=j_0,j_1
-      hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)
-      hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)
+c boosting the carbonaceous so they are closer to
+c   correct present-day levels
+      hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)*1.4d0
+      hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)*1.4d0
       hso2(i,j,:)=hso2(i,j,:)*axyp(i,j)
       end do
       end do
