@@ -2,6 +2,7 @@ module TimeFormatUtilities_mod
    implicit none
    private
 
+   public :: format
    public :: formatHMS
    public :: formatSeconds
 
@@ -9,8 +10,21 @@ module TimeFormatUtilities_mod
 
 contains
 
+   function format(fmt,time)
+      character(len=20) :: format
+      character(len=*), intent(in) :: fmt
+      real(kind=r64) :: time
+
+      select case(trim(fmt))
+      case ('HMS','hms')
+         format = formatHMS(time)
+      case ('seconds','SECONDS','Seconds')
+         format = formatseconds(time)
+      end select
+   end function format
+
    function formatHMS(time) result(hms)
-      character(len=15) :: hms
+      character(len=20) :: hms
       real (kind=r64), intent(in) :: time
 
       integer, parameter :: PRECISION = 2
@@ -65,6 +79,7 @@ contains
       character(len=20) :: str
       integer :: whole
       integer :: fraction
+      integer, parameter :: LONG = selected_int_kind(19)
 
       integer :: before, after
       character(len=65) :: fmt
@@ -76,9 +91,12 @@ contains
       if (present(decimalsAfterPoint)) after = decimalsAfterPoint
 
       write(fmt,'(a,i1,a,i1,a,i1,a)') "(i", before, ".1,'.',i",after,".",after,")"
- 
       whole = floor(x)
-      fraction = nint(10**after * (x - whole))
+      fraction = nint((x - whole)*10**after)
+      if (fraction == 10**after) then
+         whole = whole + 1
+         fraction = 0
+      end if
 
       write(str,fmt) whole, fraction
       

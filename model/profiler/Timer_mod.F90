@@ -12,6 +12,11 @@ module Timer_mod
 
    public :: Timer_type ! derived type
 
+   public :: start
+   public :: stop
+   public :: reset
+   public :: getAverageTripTime
+
    ! Accessor methods
    public :: numTrips   
    public :: isActive
@@ -19,16 +24,17 @@ module Timer_mod
    public :: getExclusiveTime
    public :: getMaximumTripTime
    public :: getMinimumTripTime
-   public :: getAverageTripTime
 
-   public :: start
-   public :: stop
-   public :: addTime
-   public :: addTrip
-   public :: reset
+   ! public paramteers
    public :: TIMER_SUMMARY_LENGTH
-   integer, parameter :: TIMER_SUMMARY_LENGTH =  200
 
+   ! private
+   public :: addTrip ! still public for testing purposes
+   private :: addTime ! for testing purposes
+   private :: setActive
+   private :: setInactive
+
+   integer, parameter :: TIMER_SUMMARY_LENGTH =  200
    integer, parameter :: r64 = selected_real_kind(14)
 
    public :: summary
@@ -46,16 +52,17 @@ module Timer_mod
       integer         :: numTrips     = 0
       real (kind=r64) :: startTime    = 0.
       real (kind=r64) :: startExclusiveTime = 0
-      real (kind=r64) :: startOtherTime     = 0
       logical         :: isActive     = .false.
    end type Timer_type
 
    interface start
       module procedure start_
+      module procedure startAtTime
    end interface
 
    interface stop
       module procedure stop_
+      module procedure stopAtTime
    end interface
 
    interface reset
@@ -68,7 +75,6 @@ module Timer_mod
 
    ! private shared variable for computing exclusive
    ! time
-   real (kind=r64), save :: globalOtherTime = 0
    real (kind=r64), save :: globalExclusiveTime = 0
 
 contains
@@ -77,14 +83,6 @@ contains
       type (Timer_type), intent(in) :: this
       numTrips = this%numTrips
    end function numTrips
-
-   subroutine start_(this)
-      type (Timer_type), intent(inout) :: this
-      this%isActive = .true.
-      this%startOtherTime     = globalOtherTime
-      this%startExclusiveTime = globalExclusiveTime
-      this%startTime = getWTime()
-   end subroutine start_
 
    real(kind=r64) function getWTime() result(time)
 #ifdef USE_MPI
@@ -97,21 +95,41 @@ contains
 #endif
    end function getWTime
 
+   subroutine start_(this)
+      type (Timer_type), intent(inout) :: this
+      call startAtTime(this, getWTime())
+   end subroutine start_
+
+   subroutine startAtTime(this, time)
+      type (Timer_type), intent(inout) :: this
+      real(kind=r64), intent(in) :: time
+
+      this%isActive = .true.
+      this%startTime = time
+      this%startExclusiveTime = globalExclusiveTime
+      call addTrip(this)
+
+   end subroutine startAtTime
+
    subroutine stop_(this)
       type (Timer_type), intent(inout) :: this
-      real(kind=r64) :: stopTime
+
+      call stopAtTime(this, getWTime())
+
+   end subroutine stop_
+
+   subroutine stopAtTime(this, time)
+      type (Timer_type), intent(inout) :: this
+      real(kind=r64), intent(in) :: time
 
       real(kind=r64) :: dtInclusive, dtExclusive
 
-      stopTime = getWTime()
-      dtInclusive = (stopTime - this%startTime)
-      dtInclusive = dtInclusive + (globalOtherTime - this%startOtherTime)
+      dtInclusive = (time - this%startTime)
       dtExclusive = dtInclusive - (globalExclusiveTime - this%startExclusiveTime)
-
       call addTime_(this, dtInclusive, dtExclusive)
       this%isActive = .false.
 
-   end subroutine stop_
+   end subroutine stopAtTime
 
    function clockTick()
       real (kind=r64) :: clockTick
@@ -127,8 +145,19 @@ contains
 #endif
    end function clockTick
 
+   subroutine setActive(this)
+      type (Timer_type), intent(inout) :: this
+      this%isActive = .true.
+   end subroutine setActive
+
+   subroutine setInactive(this)
+      type (Timer_type), intent(inout) :: this
+      this%isActive = .false.
+   end subroutine setInactive
+
    subroutine reset_(this)
       type (Timer_type), intent(inout) :: this
+      call setInactive(this)
       this%numTrips = 0
       this%inclusiveTime = 0
       this%exclusiveTime = 0
@@ -145,9 +174,7 @@ contains
 
       dtExclusive_ = dtInclusive
       if (present(dtExclusive)) dtExclusive_ = dtExclusive
-
       call addTime_(this, dtInclusive, dtExclusive_)
-      globalOtherTime = globalOtherTime + dtInclusive
       
    end subroutine addTime
 
@@ -163,8 +190,6 @@ contains
       this%minimumTripTime = min(this%minimumTripTime, dtExclusive)
 
       globalExclusiveTime = globalExclusiveTime + dtExclusive
-
-      call addTrip(this)
 
    end subroutine addTime_
 
@@ -203,7 +228,11 @@ contains
       type (Timer_type), intent(in) :: this
       real (kind=r64) :: time
 
-      time = this%minimumTripTime
+      if (this%numTrips > 0) then
+         time = this%minimumTripTime
+      else
+         time = 0
+      end if
 
    end function getMinimumTripTime
 

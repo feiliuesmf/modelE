@@ -34,14 +34,17 @@ module TimerList_mod
 
    interface start
       module procedure startByName
+      module procedure startByNameAtTime
    end interface
 
    interface stop
       module procedure stopByName
+      module procedure stopByNameAtTime
    end interface
 
    interface reset
       module procedure reset_
+      module procedure resetTimer
    end interface
 
    interface printSummary
@@ -56,19 +59,70 @@ module TimerList_mod
 contains
 
    ! test enables
-   subroutine initialize()
+   subroutine initialize(mockTime)
+      real(kind=r64), optional, intent(in) :: mockTime
+      real(kind=r64) :: mockTime_
+
+      if (present(mockTime)) mockTime_ = mockTime
+
       numTimers = 0
       call addTimer('main')
-      call start('main')
+      if (present(mockTime)) then
+         call start('main', time = mockTime_)
+      else
+         call start('main')
+      end if
    end subroutine initialize
    
-   subroutine finalize()
-      call stop('main')
+   subroutine finalize(mockTime)
+      real(kind=r64), optional, intent(in) :: mockTime
+      real(kind=r64) :: mockTime_
+
+      mockTime_ = .false.
+      if (present(mockTime)) mockTime_ = mockTime
+
+      if (present(mockTime)) then
+         call stop('main', time = mockTime_)
+      else
+         call stop('main')
+      end if
+
+      call checkTimerConsistenncy()
+
+   contains
+
+      subroutine checkTimerConsistenncy()
+#ifdef USE_PFUNIT
+         use pFUnit
+#endif
+         use Timer_mod, only: isActive
+         integer :: i
+         character(len=50) :: message
+         do i = 1, getNumTimers()
+            if (isActive(timers(i))) then
+               message = 'Unbalanced start/stop for timer <'//trim(names(i))//'>.'
+#ifdef USE_PFUNIT
+               call throw(Exception(message))
+#else
+               write(*,*) message
+#endif
+            end if
+         end do
+      end subroutine checkTimerConsistenncy
+       
    end subroutine finalize
 
    subroutine reset_()
       numTimers = 0
    end subroutine reset_
+
+   subroutine resetTimer(name)
+      use Timer_mod, only: reset
+      character(len=*), intent(in) :: name
+      type (Timer_type), pointer :: timer
+      timer => getTimer(name)
+      if (associated(timer)) call reset(timer)
+   end subroutine resetTimer
 
    logical function isTimer(name)
       character(len=*), intent(in) :: name
@@ -103,6 +157,15 @@ contains
 
    end subroutine startByName
 
+   subroutine startByNameAtTime(name, time)
+      use Timer_mod, only: start
+      character(len=*), intent(in) :: name
+      real(kind=r64), intent(in) :: time
+
+      call start(timers(getIndex(name)), time)
+
+   end subroutine startByNameAtTime
+
    subroutine stopByName(name)
       use Timer_mod, only: stop
       character(len=*), intent(in) :: name
@@ -110,6 +173,15 @@ contains
       call stop(timers(getIndex(name)))
 
    end subroutine stopByName
+
+   subroutine stopByNameAtTime(name, time)
+      use Timer_mod, only: stop
+      character(len=*), intent(in) :: name
+      real(kind=r64), intent(in) :: time
+
+      call stop(timers(getIndex(name)),time)
+
+   end subroutine stopByNameAtTime
 
    integer function getIndex(name)
       character(len=*), intent(in) :: name
@@ -144,7 +216,7 @@ contains
    end subroutine printSummaryDefault
 
    subroutine printSummaryList(report, timers)
-      use Timer_mod, only: summary
+      use Timer_mod, only: summary, numTrips
       use Timer_mod, only: getInclusiveTime, getExclusiveTime
       character(len=*), pointer :: report(:)
       type (Timer_type), intent(in) :: timers(:)
