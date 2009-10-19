@@ -2,23 +2,34 @@ Running on Discover (Reto Ruedy)
 +++++++++++++++++++
 News:
 ====
-More and faster (by a factor of about 1.5) nodes may become available next week;
-you may access them using     "runpbs runID nh #cpus"        (new_highspeed)
-These nodes have 8 cpus and do NOT support scali mpi         (use intelMPI)
-We will need our share of those nodes for the long high priority AR5 jobs.
+The more efficient (by a factor of 1.5-2) nehalem nodes are available;
+you may access them using     "runpbs runID nh #cpus"  (new_highspeed)
+These nodes have 8 cpus and do NOT support scaliMPI    (use intelMPI)
+
+Currently, programs compiled with intelmpi may be run on the login nodes
+on 1 cpu without using "mpirun -np 1"; this may be a bug and not true
+in the future, but at this point it makes serial compilations unnecessary:
+CMPE002, qc, and the other aux/auxqflux executables may be treated as if
+they were compiled serially.
+
+pdE is by default run as a batch job. However, it still may be run in
+serial mode in an emergency or if you run a small version of modelE as
+follows:  ln -s runID.exe runID.exe_serial
+   then:  pdE ia runID list_of_accfiles
 
 Runs compiled with intelMPI may now be bundled (run ... runID1+runID2+...)
 
-The current version of modelE may no longer be compiled with openMP !
+Currently there are  520 slow cpus and 2064 fast cpus on 4-cpu nodes
+                and 8256 cpus on 8-cpu nodes (4128 are super-efficient)
 
 Generalities:
 ============
 - "discover" is a distributed memory machine
 - the compilers provided that we currently use are intel-compilers
-- mpi-runs on interactive nodes are not possible
+- mpi-runs on interactive nodes are not possible; current EXCEPTION:
+  intelmpi executables treated like a serial exec will run on 1 cpu.
 - dirac's disks are NFS-mounted on discover as /archive/u/userID, but
   they are accessible only from the login nodes, not to batch jobs.
-  i.e., e.g., no mpi-jobs can access files on /archive
 
 Queues:
 ======
@@ -38,7 +49,7 @@ For non-modelE openMP jobs, create in the run directory a copy E4 of "E"
    which sets:   export OMP_NUM_THREADS=4    (before the *.exe line)
              or  setenv OMP_NUM_THREADS 4    (for csh tcsh users)
 Any number of mpi jobs that use the same number of nodes can be bundled
-(works if scaliMPI or intelMPI is used - does NOT work with openMPI)
+(does NOT work with openMPI)
 
 Unresolved bugs:
 ===============
@@ -49,9 +60,9 @@ Unresolved bugs:
 - serial and parallel versions do not always give the same result
      hint: see next section (Consistency ...)
 
-- intelmpi: may be used on all nodes (slower than scali)
+- intelmpi: may be used on all current and future nodes
 
-- scali mpi: cannot be used on the new 8-cpu nodes
+- scali mpi: can only run on the relatively few old 4-cpu nodes
 
 - openmpi: may be used on all nodes but is not recommended (use intelmpi)
    - compile with: EXTRA_FFLAGS="-DMPITYPE_LOOKUP_HACK" to avoid memory leak
@@ -145,6 +156,7 @@ qdel             to kill a batch job
 qstat            to query system               (used in qs, qpbs)
 qhold/qrls       to put a queued job on hold/undo the hold
 xxdiff -a f1 f2  to compare text files f1 f2
+id               to display your userid/account/group(s)
 
 tailored utilities: (on ....../giss/exec)
 ==================
@@ -163,12 +175,11 @@ run,runpbs  submit 1 or several jobs as a single batch job
             a) you want the job to go into the background queue - set it to 4 (hours)
                - the background queue is mostly closed, so 4 hrs is NOT recommended
             b) you want the job to go into the pproc queue      - set it to 3 (hours)
-               you may chose 3 hrs if systems closed the general queues; remember that
+               you may choose 3 hrs if systems closed the general queues; remember that
                you are limited to 32 cpus in order to use this option.
-         2) runpbs runID new ... sends the job to the new 8-processor nodes
+         2) runpbs runID new|nh ... sends the job to the new|newest 8-processor nodes
             if the 2nd arg ends in a digit N (N=1-8), at most N cpus per node are used.
 qsubI       get an interactive batch session (args: fast|slow|new #_of_cpus wc_time)
-  Note: you may need a modified copy of "run" and "qsubI" if your group is not "a940a"
 ssw         stop a modelE run
 qrsf        query how far modelE-run went
 qpbs        query how busy the machine is and get info about your jobs
