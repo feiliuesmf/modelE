@@ -152,8 +152,15 @@ contains
    subroutine startByName(name)
       use Timer_mod, only: start
       character(len=*), intent(in) :: name
+      integer :: index
 
-      call start(timers(getIndex(name)))
+      index = getIndex(name)
+      if (index == NOT_FOUND) then
+         call addTimer(name)
+         index = numTimers
+      end if
+
+      call start(timers(index))
 
    end subroutine startByName
 
@@ -167,10 +174,26 @@ contains
    end subroutine startByNameAtTime
 
    subroutine stopByName(name)
+#ifdef USE_PFUNIT
+      use pFUnit
+#endif
       use Timer_mod, only: stop
       character(len=*), intent(in) :: name
+      character(len=70) :: message
+      integer :: index
 
-      call stop(timers(getIndex(name)))
+      index = getIndex(name)
+      if (index /= NOT_FOUND) then
+         call stop(timers(index))
+      else
+         message = 'Timer <'//trim(name)//'> has not been declared prior to use.'
+#ifdef USE_PFUNIT
+         call throw(Exception(trim(message)))
+#else
+         write(*,*) trim(message)
+#endif
+      end if
+
 
    end subroutine stopByName
 
@@ -216,7 +239,7 @@ contains
    end subroutine printSummaryDefault
 
    subroutine printSummaryList(report, timers)
-      use Timer_mod, only: summary, numTrips
+      use Timer_mod, only: summary
       use Timer_mod, only: getInclusiveTime, getExclusiveTime
       character(len=*), pointer :: report(:)
       type (Timer_type), intent(in) :: timers(:)
@@ -225,11 +248,11 @@ contains
       real (kind=r64) :: fraction
 
       allocate(report(4 + numTimers))
-      write(report(1),"(T39,a,T77,a)")'Total Time','Trip Time'
-      write(report(2),"(T8,a,T27,a,T34,a,T45,a,T55,a,T73,a,T83,a,T97,a,T111,a)") &
+      write(report(1),"(T50,a,T77,a)")'Total Time','Trip Time'
+      write(report(2),"(T8,a,T27,a,T33,a,T47,a,T57,a,T75,a,T85,a,T99,a,T113,a)") &
            & 'Timer', '%', 'seconds', 'Inclusive','(  Exclusive )',  &
            & 'Cycles','Average', 'Maximum', 'Minimum'
-      write(report(3),"(120('-'))")
+      write(report(3),"(122('-'))")
 
       timeMain = getInclusiveTime(timers(1))
       do i = 1, numTimers
@@ -240,7 +263,7 @@ contains
          report(idx)(30:)  = trim(summary(timers(i)))
       end do
 
-      write(report(4+numTimers),"(120('-'))")
+      write(report(4+numTimers),"(122('-'))")
 
    contains
 

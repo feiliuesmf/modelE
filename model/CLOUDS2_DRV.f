@@ -185,7 +185,7 @@
     (defined TRACERS_QUARZHEM)
       USE tracers_dust,ONLY : prelay
 #endif
-      Use TimerList_mod, only: startTimer => start, stopTimer => stop
+      Use TimerPackage_mod, only: startTimer => start, stopTimer => stop
       IMPLICIT NONE
 
 #ifdef TRACERS_ON

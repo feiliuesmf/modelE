@@ -18,7 +18,7 @@ module Timer_mod
    public :: getAverageTripTime
 
    ! Accessor methods
-   public :: numTrips   
+   public :: getNumTrips   
    public :: isActive
    public :: getInclusiveTime
    public :: getExclusiveTime
@@ -79,10 +79,10 @@ module Timer_mod
 
 contains
 
-   integer function numTrips(this)
+   integer function getNumTrips(this)
       type (Timer_type), intent(in) :: this
-      numTrips = this%numTrips
-   end function numTrips
+      getNumTrips = this%numTrips
+   end function getNumTrips
 
    real(kind=r64) function getWTime() result(time)
 #ifdef USE_MPI
@@ -262,10 +262,11 @@ contains
       character(len=15) :: seconds
       character(len=60) :: tripStats
 
-      seconds = formatSeconds(getInclusiveTime(this), decimalsBeforePoint = 6)
+      seconds = formatSeconds(getInclusiveTime(this), &
+           & decimalsBeforePoint = 8)
       hmsInclusive = formatHMS(getInclusiveTime(this))
       hmsExclusive = formatHMS(getExclusiveTime(this))
-      tripStats = countMinMaxAvg(numTrips(this), getMinimumTripTime(this), getMaximumTripTime(this), getAverageTripTime(this))
+      tripStats = countMinMaxAvg(getNumTrips(this), getMinimumTripTime(this), getMaximumTripTime(this), getAverageTripTime(this))
       report = trim(seconds) // ' | ' // trim(hmsInclusive) // ' (' // trim(hmsExclusive) // ')' // '    '  // trim(tripStats)
 
    end function summary_
@@ -317,7 +318,7 @@ contains
            & MPI_MAX, root, comm, ier)
       call MPI_Reduce(getMinimumTripTime(this), minTime, 1, MPI_DOUBLE_PRECISION, &
            & MPI_MIN, root, comm, ier)
-      call MPI_Reduce(numTrips(this), globalCount, 1, MPI_INTEGER, &
+      call MPI_Reduce(getNumTrips(this), globalCount, 1, MPI_INTEGER, &
            & MPI_SUM, root, comm, ier)
 
       if (rank == root) then
@@ -347,7 +348,7 @@ contains
       call MPI_Comm_size(comm, npes, ier)
       call MPI_Comm_rank(comm, rank, ier)
 
-      call MPI_Allreduce(numTrips(this),           globalTimer%numTrips,        1, MPI_INTEGER, &
+      call MPI_Allreduce(getNumTrips(this),        globalTimer%numTrips,        1, MPI_INTEGER, &
            & MPI_SUM, comm, ier)
       call MPI_Allreduce(getInclusiveTime(this),   globalTimer%inclusiveTime,   1, MPI_DOUBLE_PRECISION, &
            & MPI_SUM, comm, ier)

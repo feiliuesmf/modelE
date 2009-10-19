@@ -922,7 +922,7 @@ c    *     ,SNFST0,TNFST0
       USE AERO_CONFIG, only: nmodes
       USE AMP_AEROSOL, only: AMP_DIAG_FC
 #endif
-      USE TimerList_mod, only: startTimer => start, stopTimer => stop
+      USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global

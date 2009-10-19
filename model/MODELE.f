@@ -58,20 +58,14 @@ c$$$      USE MODEL_COM, only: clock
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
      &    SCM_DEL_Q,iu_scm_prt,iu_scm_diag
 #endif
-      use Timer_mod, only: TIMER_SUMMARY_LENGTH
-      use TimerList_mod, only: startTimer => start
-      use TimerList_mod, only: stopTimer => stop
-      use TimerList_mod, only: addTimer
-      use TimerList_mod, only: initializeProfileTimers => initialize
-      use TimerList_mod, only: finalizeProfileTimers => finalize
-      use TimerList_mod, only: printSummary
+      use TimerPackage_mod, only: TIMER_SUMMARY_LENGTH
+      use TimerPackage_mod, only: startTimer => start
+      use TimerPackage_mod, only: stopTimer => stop
 
       !use soil_drv, only : conserv_wtg, conserv_htg
       IMPLICIT NONE
 
-      character(len=TIMER_SUMMARY_LENGTH), pointer :: timerReport(:)
-
-      INTEGER K,M,MODD5D,months,ioerr,Ldate,istart
+      INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER iu_VFLXO,iu_ODA
       INTEGER :: MDUM = 0
 
@@ -138,15 +132,7 @@ C****
 #endif
 
       call init_app()
-      call initializeProfileTimers()
-      call addTimer('Main Loop')
-      call addTimer('Atm. Dynamics')
-      call addTimer('CONDSE()')
-      call addTimer('RADIA()')
-      call addTimer('Surface')
-      call addTimer('SURFCE()')
-      call addTimer('Diagnostics')
-
+      call initializeDefaultTimers()
 
 #ifdef SCM
       call sync_param( "J_TARG", J_TARG )
@@ -834,14 +820,6 @@ c$$$      call test_save(__LINE__, itime-1)
 #endif
       END DO
       call stopTimer('Main Loop')
-      call finalizeProfileTimers()
-      call printSummary(timerReport)
-      if (AM_I_ROOT()) then
-         do i = 1, size(timerReport)
-            write(*,'(a)') trim(timerReport(i))
-         end do
-      end if
-      deallocate(timerReport)
 
       call gettime(tloopend)
       if (AM_I_ROOT())
@@ -889,8 +867,11 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *             ///4(1X,33("****")/))')
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
 
-      IF (Itime.ge.ItimeE) CALL stop_model (
+      IF (Itime.ge.ItimeE) then
+         call reportProfile()
+         CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
+      END IF
 
 #ifndef ADIABATIC
 #ifdef BLK_2MOM
@@ -903,7 +884,44 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call fms_end( )
 #endif
 
-      END
+      contains
+
+      subroutine initializeDefaultTimers()
+      use TimerList_mod, only: addTimer
+      use TimerList_mod, only: initialize
+
+      call initialize()
+      call addTimer('Main Loop')
+      call addTimer('Atm. Dynamics')
+      call addTimer('CONDSE()')
+      call addTimer('RADIA()')
+      call addTimer('Surface')
+      call addTimer('SURFCE()')
+      call addTimer('Diagnostics')
+
+      end subroutine initializeDefaultTimers
+
+      subroutine reportProfile()
+      use TimerPackage_mod, only: finalize
+      use TimerPackage_mod, only: printSummary
+      use TimerPackage_mod, only: TIMER_SUMMARY_LENGTH
+      use DOMAIN_DECOMP_1D, only: AM_I_ROOT
+
+      character(len=TIMER_SUMMARY_LENGTH), pointer :: report(:)
+      integer :: i
+
+      call finalize()
+      call printSummary(report)
+      if (AM_I_ROOT()) then
+         do i = 1, size(report)
+            write(*,'(a)') trim(report(i))
+         end do
+      end if
+      deallocate(report)
+
+      end subroutine reportProfile
+      
+      end program GISS_modelE
 
 
       subroutine sig_stop_model
