@@ -310,6 +310,10 @@
       real*8 :: SUM,SUMg,SUMr,SUMi
 
       ! print *, 'pptr%crad%LAI(1)=', pptr%crad%LAI(1) 
+      if (.NOT.ASSOCIATED(pptr%crad%LAI)) then ! no LAI
+         print *, 'not associated LAI'
+         return
+      endif 
       layers=size(pptr%crad%LAI)
          SUM=0.D0
          SUMg=0.d0
