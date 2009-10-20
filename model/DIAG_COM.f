@@ -30,7 +30,7 @@ c**** area weight for zig-zag diagnostics on budget grid
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg
 
 !@param KAJ number of accumulated zonal budget diagnostics
-      INTEGER, PARAMETER, public :: KAJ=83
+      INTEGER, PARAMETER, public :: KAJ=85
 !@var AJ zonal budget diagnostics for each surface type
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJ,AJ_loc
      &     ,AJ_out
@@ -64,7 +64,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=362
+      INTEGER, PARAMETER, public :: KAIJ=380
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -409,7 +409,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     J_GAM,J_GAMM, J_GAMC,J_TRINCG, J_FTHERM, J_HSURF, J_HATM,
      *     J_PLAVIS,J_PLANIR,J_ALBVIS, J_ALBNIR, J_SRRVIS, J_SRRNIR,
      *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP,
-     *     J_ALBP0,J_ALBG
+     *     J_ALBP0,J_ALBG,J_IRGW,J_IRGWE
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
       character(len=sname_strlen), dimension(kaj), public :: name_j
       character(len=units_strlen), dimension(kaj), public :: units_j
@@ -480,13 +480,17 @@ C****      names, indices, units, idacc-numbers, etc.
      &     ,ij_flam,ij_CtoG,ij_flash,ij_chl,ij_swaerrf,ij_lwaerrf
      *     ,ij_swaersrf,ij_lwaersrf,ij_swaerabs,ij_lwaerabs,ij_swaerrfnt
      *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
-     *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE
+     *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
+     *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER, public ::
      &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,
      *     IJ_G08,IJ_G09,IJ_G10,IJ_G11,IJ_G12,IJ_G13,IJ_G14,IJ_G15,
      *     IJ_G16,IJ_G17,IJ_G18,IJ_G19,IJ_G20,IJ_G21,IJ_G22,IJ_G23,
-     *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29
+     *     IJ_G24,IJ_G25,IJ_G26,IJ_G27,IJ_G28,IJ_G29,
+     &     IJ_G30,IJ_G31,IJ_G32,IJ_G33,IJ_G34,
+     &     IJ_G35,IJ_G36,IJ_G37,IJ_G38,IJ_G39,
+     &     IJ_G40
 !@var IJ_GWx names for gravity wave diagnostics
       INTEGER, public ::
      &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8

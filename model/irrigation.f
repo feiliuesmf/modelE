@@ -11,7 +11,7 @@
 
       public irrigate_flux
       public init_irrigate
-!      public irrigate_extract
+      public irrigate_extract
 
       SAVE
 
@@ -31,11 +31,12 @@
       subroutine init_irrigate()
       use filemanager, only : openunit
       use param, only : sync_param
-      USE DOMAIN_DECOMP_ATM, ONLY : grid
+      USE DOMAIN_DECOMP_ATM, ONLY : grid, get
       implicit none
 
+      integer :: I_0,I_1,J_0,J_1
       INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: IER
+      INTEGER :: IER, i,j
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
@@ -47,14 +48,23 @@
      &          STAT=IER)
 
       call openunit("IRRIG",iu_irrigate,.true.,.true.)
-
       call sync_param("irrig_cycl",irrig_cycl)
+      call GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+
+!**** Compute irrigation rate
+      call irrigate_flux()
+      do i=I_0,I_1
+         do j=J_0,J_1
+!****      Initialize actual water and energy values
+           call irrigate_extract(i,j)
+         enddo
+      enddo
 
       end subroutine init_irrigate
 
 !-----------------------------------------------------------------------
 
-      subroutine irrigate_flux(end_of_day)
+      subroutine irrigate_flux()
 !@sum  Calculates daily irrigation from monthly irrigation data.  Routine
 !@sum  sets imon, irr_month_0, and irr_month_1 depending on jday and
 !@sum  jyear (cyclical case does not need jyear).
@@ -64,7 +74,9 @@
      &                          ,READ_PARALLEL, MREAD_PARALLEL
      &                          ,BACKSPACE_PARALLEL
       USE FILEMANAGER, only : NAMEUNIT
-      USE FLUXES, only : irrig_water,irrig_energy
+      USE FLUXES,only :irrig_water_pot
+      USE CONSTANT, only : rhow,teeny,shw
+
       implicit none
 
 !@var m_yr_mnth: title of the monthly irrigation data (YYYYMM)
@@ -77,13 +89,9 @@
       integer, SAVE :: imon = 0
       integer :: i,j,m,lstmon
       integer :: I_0,I_1,J_0,J_1
-      logical, intent(in) :: end_of_day
       real*8 :: FRAC
 
       call GET(grid,I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
-
-!**** Compute irrigation only at the end of day or at itimei
-      if (.not.(end_of_day.or.jdlast == 0)) return
 
       if (irrig_cycl == 0) then
 !**** Non-cyclical case: data vary from year to year
@@ -100,7 +108,7 @@
             call READ_PARALLEL(m_yr_mnth, iu_irrigate)
 
             do while (m_yr_mnth < lstmon)
-        call READ_PARALLEL(m_yr_mnth, iu_irrigate)
+               call READ_PARALLEL(m_yr_mnth, iu_irrigate)
             enddo
 
             if(m_yr_mnth /= lstmon ) then
@@ -190,14 +198,13 @@
       do i=I_0,I_1
          do j=J_0,J_1
 !****      Input irrigation values in m/s
-           irrig_water(i,j)= ( FRAC*irr_month_0(i,j)
+           irrig_water_pot(i,j)= ( FRAC*irr_month_0(i,j)
      &                          + (1.d0-FRAC)*irr_month_1(i,j) )
 !****      Check to make sure no negative irrigation rates
-           if( irrig_water(i,j) < 0.d0 ) then
-              irrig_water(i,j) = 0.d0
+           if( irrig_water_pot(i,j) < 0.d0 ) then
+              irrig_water_pot(i,j) = 0.d0
            endif
-!****      Temporarily add water at 0 deg C
-           irrig_energy(i,j) = 0.d0
+
          enddo
       enddo
 
@@ -205,32 +212,122 @@
 
 !-----------------------------------------------------------------------
 
-!      subroutine irrigate_extract(i,j)
-!      USE FLUXES, only : irrig_water,irrig_energy
-!      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
-!      USE GEOM, only : imaxj,axyp
-!      USE CONSTANT, only : rhow
-!      USE MODEL_COM, only : dtsrc
-!
-!      implicit none
-!      integer,intent(in):: i,j
-!
-!!     Mass of irrigation water [kg]
-!      real*8 :: m_irr
-!
-!      if (irrig_water(i,j) > 0.d0) then
-!         m_irr = irrig_water(i,j)*rhow*axyp(i,j)*dtsrc
-!         if(mwl(i,j) > m_irr)then 
-!
-!         endif
-!         mwl(I,J) = mwl(i,j) + axyp(i,j)
-!         gml(I,J) = gml(i,j) + axyp(i,j)
-!      endif
-!
-!      end subroutine irrigate_extract
+      subroutine irrigate_extract(i,j)
+      USE FLUXES, only :irrig_water_pot,irrig_water_act,irrig_energy_act
+     &                 ,irrig_gw,irrig_gw_energy
 
+      USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
+      USE GEOM, only : imaxj,axyp
+      USE CONSTANT, only : rhow,teeny,shw
+      USE MODEL_COM, only : dtsrc
+      USE GHY_COM, only : fearth
+      USE sle001, only : tp
+
+      implicit none
+      integer,intent(in):: i,j
+
+!@var Mass of irrigation water withdrawn from rivers/groundwater [kg]
+      real*8 :: m_irr_pot
+!@var Mass of water available for irrigation [kg]
+      real*8 :: m_avail
+!@var Temperature of abstracted irrigation water [deg C]
+      real*8 :: T_irr, T_irr_g
+!@var Vegetated and bare fractions of the grid cell
+      real*8 :: fv, fb
+!@param Minimum depth of lake for abstracting irrigation water [m]
+      real*8,parameter :: hlake_min = 1.d0
+!@param Conversion factor from m^3 water/(m^2 grid cell) to kg water
+      real*8 :: m_to_kg
+!@param Flag for external irrigation source (from deep aquifers - not modeled) 
+      integer,parameter :: flag_irrig_grndwat = 1
+
+      m_to_kg = rhow*axyp(i,j)
+
+      call get_fb_fv( fb, fv, i, j )
+
+!***  Irrigation based on potential values in m/s per area grid cell 
+      if ( (irrig_water_pot(i,j) > teeny)  .and. 
+     &     (fearth(i,j)          > teeny)  .and.
+     &     (fv                   > teeny)) then
+
+         m_irr_pot = irrig_water_pot(i,j)* m_to_kg *dtsrc
+
+         if (flake(i,j) > 0.d0) then
+            m_avail = mwl(i,j) - hlake_min*flake(i,j)*m_to_kg
+            m_avail = max(m_avail, 0.d0)
+            T_irr = tlake(i,j)
+         else
+            m_avail = mwl(i,j)
+            T_irr = gml(i,j)/(mwl(i,j)*shw+teeny)
+         endif
+!        Check these limits !!!!
+         T_irr = max(T_irr, 0.d0)
+         T_irr_g = max(tp(1,2),0.d0)
+
+!***     Set actual irrigation rates and update mwl and gml (if necessary)
+         if (m_avail <= teeny) then
+
+            if(flag_irrig_grndwat == 0) then
+               irrig_water_act(i,j) = 0.d0
+               irrig_energy_act(i,j) = 0.d0
+               irrig_gw(i,j) = 0.d0
+               irrig_gw_energy(i,j) = 0.d0
+            else
+               irrig_water_act(i,j) = irrig_water_pot(i,j)
+               irrig_energy_act(i,j)= irrig_water_act(i,j)*shw*
+     &                                 T_irr_g*rhow
+               irrig_gw(i,j)        = irrig_water_act(i,j)
+               irrig_gw_energy(i,j) = irrig_energy_act(i,j)
+            endif
+
+         elseif (m_avail >= m_irr_pot) then
+
+            mwl(i,j) = mwl(i,j) - irrig_water_pot(i,j)*m_to_kg*dtsrc
+            gml(i,j) = gml(i,j) - irrig_water_pot(i,j)
+     &                               *m_to_kg*dtsrc*shw*T_irr
+            irrig_water_act(i,j) = irrig_water_pot(i,j)
+            irrig_energy_act(i,j)=irrig_water_act(i,j)*shw*T_irr*rhow
+            irrig_gw(i,j) = 0.d0
+            irrig_gw_energy(i,j) = 0.d0
+            
+         else !!! (m_avail < m_irr_pot)
+
+            mwl(i,j) = mwl(i,j) - m_avail
+            gml(i,j) = gml(i,j) - m_avail*shw*T_irr
+
+            if(flag_irrig_grndwat == 0) then
+               irrig_water_act(i,j) = m_avail / m_to_kg / dtsrc
+               irrig_energy_act(i,j) = irrig_water_act(i,j)*shw*T_irr
+     &                                 *rhow
+               irrig_gw(i,j) = 0.d0
+               irrig_gw_energy(i,j) = 0.d0
+            else
+               irrig_water_act(i,j) = irrig_water_pot(i,j)
+               irrig_energy_act(i,j)=irrig_water_act(i,j)*shw*T_irr*rhow
+               irrig_gw(i,j)=irrig_water_pot(i,j)-m_avail/m_to_kg/dtsrc
+               irrig_gw_energy(i,j) = irrig_gw(i,j)*shw*T_irr_g*rhow
+            endif
+
+         endif
+
+      else
+         irrig_water_act(i,j) = 0.d0
+         irrig_energy_act(i,j) = 0.d0
+         irrig_gw(i,j) = 0.d0
+         irrig_gw_energy(i,j) = 0.d0
+      endif
+
+!!!!! HACK HACK test test
+      if( (irrig_water_act(i,j)-irrig_water_pot(i,j)) > 1.d-30 ) then
+         write(6,*) 'error in irrigation: act> pot'
+         write(6,*) 'i,j,irrig_water_act(i,j), irrig_water_pot(i,j):',
+     &              i,j,irrig_water_act(i,j), irrig_water_pot(i,j)
+         write(6,*) 'm_avail, m_irr_pot:', m_avail, m_irr_pot
+         irrig_water_act(i,j)=irrig_water_pot(i,j)
+      endif
+!!!!!
+      end subroutine irrigate_extract
 
 !-----------------------------------------------------------------------
-
 
       end module irrigate_crop

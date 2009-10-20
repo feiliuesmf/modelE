@@ -1478,7 +1478,9 @@ C****
 #ifdef TRACERS_WATER
      *     ,trdwnimp
 #endif
-
+#ifdef IRRIGATION_ON
+      USE IRRIGATE_CROP, only : irrigate_flux
+#endif
       USE DIAG_COM, only : j_run,j_erun,j_imelt,j_hmelt,jreg,j_implm
      *     ,j_implh 
       USE DOMAIN_DECOMP_ATM, only : GET, GRID
@@ -1498,6 +1500,10 @@ C****
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+#ifdef IRRIGATION_ON
+C****   Read potential irrigation daily
+        call irrigate_flux()
+#endif
 
 C**** Update lake fraction as a function of lake mass at end of day
 C**** Assume lake is conical
@@ -1941,7 +1947,7 @@ C****
 !@calls
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE MODEL_COM, only : im,jm,flice,fland,hlake
-     *     ,dtsrc,itlake,itlkice
+     *     ,dtsrc,itlake,itlkice,itearth
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
@@ -1958,6 +1964,8 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
+     *      ,aij=>aij_loc,ij_irrW_tot,ij_mwl,ij_mwlir
+     *      ,ij_gml,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
@@ -1968,6 +1976,12 @@ C****
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE GHY_COM, only : fearth
+#ifdef IRRIGATION_ON
+      USE IRRIGATE_CROP, only : irrigate_extract
+      USE FLUXES,only : irrig_water_act,irrig_energy_act,irrig_water_pot
+     &                 ,MWL_to_irrig,GML_to_irrig
+     &                 ,irrig_gw,irrig_gw_energy
+#endif
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 ROICE, POLAKE, PLKICE, PEARTH, PLICE
@@ -1981,6 +1995,9 @@ C**** output from LKSOURC
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(NTM) :: TRUN0,TRO,TRI,TREVAP,TOTTRL
       REAL*8, DIMENSION(NTM,2) :: TRLAKEL
+#endif
+#ifdef IRRIGATION_ON
+      REAL*8 :: MWL_temp, GML_temp
 #endif
       INTEGER I,J,JR
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
@@ -2010,15 +2027,49 @@ C**** calculate flux over whole box
         ERUN0=             ERUNE*PEARTH
         MWL(I,J) = MWL(I,J) + RUN0*AXYP(I,J)
         GML(I,J) = GML(I,J) +ERUN0*AXYP(I,J)
+#ifdef IRRIGATION_ON
+        MWL_temp = MWL(I,J)
+        GML_temp = GML(I,J)
+
+C****   Compute actual irrigation every timestep & update MWL and GML
+        call irrigate_extract(I,J)
+
+C****   Compute mass/energy withdrawal from lakes/rivers
+        MWL_to_irrig(I,J) = MWL_temp - MWL(I,J)
+        GML_to_irrig(I,J) = GML_temp - GML(I,J)
+
+C****   Compute lake- and irrigation-related diagnostics
+!        AIJ(I,J,IJ_IRRW_TOT)=AIJ(I,J,IJ_IRRW_TOT)+irrig_water_pot(I,J)
+
+        AIJ(I,J,IJ_MWL)=AIJ(I,J,IJ_MWL)+MWL(I,J)
+        AIJ(I,J,IJ_GML)=AIJ(I,J,IJ_GML)+GML(I,J)
+
+        AIJ(I,J,IJ_MWLir)=AIJ(I,J,IJ_MWLir)+MWL_to_irrig(I,J)
+        AIJ(I,J,IJ_GMLir)=AIJ(I,J,IJ_GMLir)+GML_to_irrig(I,J)
+
+        AIJ(I,J,IJ_irrgw)=AIJ(I,J,IJ_irrgw)+irrig_gw(I,J)
+        AIJ(I,J,IJ_irrgwE)=AIJ(I,J,IJ_irrgwE)+irrig_gw_energy(I,J)
+
+        CALL INC_AJ(I,J,itearth ,j_irgw ,irrig_gw(I,J))
+        CALL INC_AJ(I,J,itearth ,j_irgwE ,irrig_gw_energy(I,J))
+
+#endif
 #ifdef TRACERS_WATER
         TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+
      *       (TRUNOLI(:,I,J)*PLICE+TRUNOE(:,I,J)*PEARTH)*AXYP(I,J)
 #endif
         IF (FLAKE(I,J).gt.0) THEN
           HLK1=TLAKE(I,J)*MLDLK(I,J)*RHOW*SHW
+#ifdef IRRIGATION_ON
+          MLDLK(I,J)=MLDLK(I,J) + (RUN0-irrig_water_act(I,J)*rhow*dtsrc)
+     &                /(FLAKE(I,J)*RHOW)
+          TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0-irrig_energy_act(I,J)*dtsrc)
+     &                /(MLDLK(I,J)*FLAKE(I,J)*RHOW*SHW)
+#else
           MLDLK(I,J)=MLDLK(I,J) + RUN0/(FLAKE(I,J)*RHOW)
           TLAKE(I,J)=(HLK1*FLAKE(I,J)+ERUN0)/(MLDLK(I,J)*FLAKE(I,J)
      *         *RHOW*SHW)
+#endif
 #ifdef TRACERS_WATER
           GTRACER(:,1,I,J)=TRLAKE(:,1,I,J)/(MLDLK(I,J)*RHOW*FLAKE(I,J)
      *         *AXYP(I,J))

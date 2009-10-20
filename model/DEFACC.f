@@ -488,6 +488,28 @@ c
       fmt_reg(k) = fmt910
 c
       k=k+1
+      J_IRGW = k               !                                 1 GP
+      name_j(k) = 'irrig_external'
+      lname_j(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
+      units_j(k) = 'mm/day'
+      stitle_j(k)= ' IRR ADD(MM/DAY)'
+      scale_j(k) = 1000.d0 * SDAY
+      ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
+c
+      k=k+1
+      J_IRGWE = k               !                                 1 GP
+      name_j(k) = 'irrig_externalE'
+      lname_j(k) = 'IRRIGATION HEAT FROM EXTERNAL SOURCE (GRNDWATER)'
+      units_j(k) = 'W/m2'
+      stitle_j(k)= ' IRRE AD(W/m2)'
+      scale_j(k) = 1.d0
+      ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
+c
+      k=k+1
       J_EVAP  = k ! EVAP (KG/m**2)                                1 GD
       name_j(k) = 'evap'
       lname_j(k) = 'EVAPORATION'
@@ -2926,6 +2948,26 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
+      IJ_G33 = k
+      name_ij(k) = 'bs_wlay4' !
+      lname_ij(k) = 'LAYER 4 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_G34 = k
+      name_ij(k) = 'bs_wlay5' !
+      lname_ij(k) = 'LAYER 5 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
       IJ_G04 = k
       name_ij(k) = 'bs_wlay6' !
       lname_ij(k) = 'LAYER 6 BARE SOIL WATER'
@@ -2977,6 +3019,36 @@ c
       IJ_G09 = k
       name_ij(k) = 'vs_wlay2' !
       lname_ij(k) = 'LAYER 2 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_G30 = k
+      name_ij(k) = 'vs_wlay3' !
+      lname_ij(k) = 'LAYER 3 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_G31 = k
+      name_ij(k) = 'vs_wlay4' !
+      lname_ij(k) = 'LAYER 4 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_G32 = k
+      name_ij(k) = 'vs_wlay5' !
+      lname_ij(k) = 'LAYER 5 VEGETATED SOIL WATER'
       units_ij(k) = 'mm'
       ia_ij(k) = ia_src
       scale_ij(k) = 1000.
@@ -3053,6 +3125,36 @@ c
       denom_ij(k) = IJ_BSFR
 c
       k=k+1
+      IJ_G38 = k
+      name_ij(k) = 'bs_tlay3' !
+      lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_G39 = k
+      name_ij(k) = 'bs_tlay4' !
+      lname_ij(k) = 'BARE SOIL LAYER 4 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_G40 = k
+      name_ij(k) = 'bs_tlay5' !
+      lname_ij(k) = 'BARE SOIL LAYER 5 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
       IJ_G17 = k
       name_ij(k) = 'bs_tlay6' !
       lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
@@ -3103,24 +3205,94 @@ c
       denom_ij(k) = IJ_PSOIL
 c
       k=k+1
-      IJ_IRRW = k
-      lname_ij(k) = 'IRRIGATION WATER'
-      units_ij(k) = 'mm/d'
-      name_ij(k) = 'irrig_w' !
+      IJ_IRRW_TOT = k
+      lname_ij(k) = 'FRACTION ACTUAL TO POTENTIAL'
+      units_ij(k) = '-'
+      name_ij(k) = 'irrig_w_tot'
       ia_ij(k) = ia_src
-      scale_ij(k) = SDAY/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0 ! per total grid area; =IJ_PSOIL for per earth
 c
       k=k+1
-      IJ_IRRE = k ! energy of irrigation
+      IJ_IRRW = k
+      lname_ij(k) = 'TOTAL (ACTUAL) IRRIGATION WATER'
+      units_ij(k) = 'mm/d'
+      name_ij(k) = 'irrig_w'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SDAY/DTsrc
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_IRRE = k
       lname_ij(k) = 'HEAT OF IRRIGATION'
       units_ij(k) = 'W/m2'
-      name_ij(k) = 'irrig_e' !
+      name_ij(k) = 'irrig_e'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_MWL = k 
+      lname_ij(k) = 'MASS OF LAKE AND RIVER WATER'
+      units_ij(k) = '10^10 kg'
+      name_ij(k) = 'mwl'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0 
+c
+      k=k+1
+      IJ_GML = k 
+      lname_ij(k) = 'ENTHALPY OF LAKE AND RIVER WATER'
+      units_ij(k) = '10^15 J'
+      name_ij(k) = 'gml'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-15
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0 
+c
+      k=k+1
+      IJ_MWLir = k 
+      lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
+      units_ij(k) = 'kg'
+      name_ij(k) = 'mwl_irrigate'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0 
+c
+      k=k+1
+      IJ_GMLir = k 
+      lname_ij(k) = 'ENTHALPY OF LAKE/RIVER LOST TO IRRIGATION'
+      units_ij(k) = 'J'
+      name_ij(k) = 'gml_irrigate'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0 
+c
+      k=k+1
+      IJ_irrgw = k 
+      lname_ij(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
+      units_ij(k) = 'mm/d'
+      name_ij(k) = 'irrig_gw'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.d0*SDAY
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_irrgwE = k 
+      lname_ij(k) = 'HEAT OF EXTERNALLY ADDED IRRIGATION'
+      units_ij(k) = 'W/m2'
+      name_ij(k) = 'irrig_gwE'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
 c
       k=k+1 ! nyk 4/25/03
       IJ_GPP = k    !kg[C]/m2/s
@@ -3221,6 +3393,36 @@ c
       IJ_G23 = k
       name_ij(k) = 'vs_tlay2' !
       lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_G35 = k
+      name_ij(k) = 'vs_tlay3' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_G36 = k
+      name_ij(k) = 'vs_tlay4' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 4 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_G37 = k
+      name_ij(k) = 'vs_tlay5' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 5 TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.

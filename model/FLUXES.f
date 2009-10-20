@@ -89,10 +89,17 @@ C**** sea ice melt and iceberg/glacial melt.
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PRECSS
 
 #ifdef IRRIGATION_ON
-!@var Irrigation rate applied to the land surface each timestep
-!@var and the associated energy [m/s], [W/m2]
-      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_water
-      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_energy
+!@var Irrigation water withdrawl [m/s] (per total grid cell area)
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_water_pot
+!@var Actual irrigation rate (& energy) [m/s] [W/m2]
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_water_act
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_energy_act
+!@var Irrigation rate from source external to system (groundwater) [m/s] [W/m2]
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_gw
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: irrig_gw_energy
+!@var Mass and energy extracted from lakes/rivers for irrigation [kg] [J]
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: MWL_to_irrig
+      REAL*8, ALLOCATABLE, SAVE, DIMENSION(:,:) :: GML_to_irrig
 #endif
 
 !@var GTEMP ground temperature (upper two levels) over surface type (C)
@@ -297,8 +304,13 @@ C**** fluxes associated with variable lake fractions
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
 #ifdef IRRIGATION_ON
-     &          irrig_water   ( I_0H:I_1H , J_0H:J_1H ),
-     &          irrig_energy  ( I_0H:I_1H , J_0H:J_1H ),
+     &          irrig_water_pot ( I_0H:I_1H , J_0H:J_1H ),
+     &          irrig_water_act ( I_0H:I_1H , J_0H:J_1H ),
+     &          irrig_energy_act( I_0H:I_1H , J_0H:J_1H ),
+     &          irrig_gw( I_0H:I_1H , J_0H:J_1H ),
+     &          irrig_gw_energy( I_0H:I_1H , J_0H:J_1H ),
+     &          MWL_to_irrig( I_0H:I_1H , J_0H:J_1H ),
+     &          GML_to_irrig( I_0H:I_1H , J_0H:J_1H ),
 #endif
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      &          CHL     ( I_0H:I_1H , J_0H:J_1H ),

@@ -880,10 +880,8 @@ c****
       !use ent_mod, only : ent_cell_print
 #endif
 #ifdef IRRIGATION_ON
-      use fluxes, only : irrig_water, irrig_energy
-      use irrigate_crop, only : irrigate_flux
+      use fluxes, only : irrig_water_act, irrig_energy_act
 #endif
-
       use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
      *     ,top_index_ij,top_dev_ij
      &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
@@ -1067,9 +1065,6 @@ c****
 
 !!      call update_vegetation_data( entcells,
 !!     &     im, jm, 1, im, J_0, J_1, jday, jyear )
-#ifdef IRRIGATION_ON
-      call irrigate_flux(end_of_day_flag)
-#endif
 
       loop_j: do j=J_0,J_1
   !    hemi=1.
@@ -1271,9 +1266,9 @@ ccc switch to Ca from tracers
       irrig = 0.d0
       htirrig = 0.d0
 #ifdef IRRIGATION_ON
-      if (fv>0.d0)then
-         irrig = irrig_water(i,j)
-         htirrig = irrig_energy(i,j)
+      if (ptype>0.d0)then
+         irrig = irrig_water_act(i,j) / ptype
+         htirrig = irrig_energy_act(i,j) / ptype
       endif
 #endif
 
@@ -1582,7 +1577,8 @@ c***********************************************************************
      *     ,HR_IN_DAY,HR_IN_MONTH,NDIUVAR
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp,ij_trsdn,ij_trsup,adiurn_dust
-     &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE
+     &     ,ij_gusti,ij_mccon,ij_evapsn,ij_irrW, ij_irrE, ij_irrW_tot
+     &     ,ij_g35,ij_g36,ij_g37,ij_g38,ij_g39,ij_g40
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -1606,7 +1602,9 @@ c***********************************************************************
       use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
       use rad_com, only : trhr,fsf, cosz1
-
+#ifdef IRRIGATION_ON
+      use fluxes, only : irrig_water_pot
+#endif
       use sle001, only :
      &     tp
      &    ,fv,fb,atrg,ashg,alhg
@@ -1731,13 +1729,22 @@ ccc the following values are returned by PBL
       aij(i,j,ij_g14)=aij(i,j,ij_g14)+aepp*ptype
       aij(i,j,ij_evapsn)=aij(i,j,ij_evapsn)+(aevapbs+aevapvs)*ptype
       if (moddsf.eq.0) then
+!      Temperatures of bare soil layers
         aij(i,j,ij_g15)=aij(i,j,ij_g15)+tp(1,1)*ptype*fb
         aij(i,j,ij_g16)=aij(i,j,ij_g16)+tp(2,1)*ptype*fb
+        aij(i,j,ij_g38)=aij(i,j,ij_g38)+tp(3,1)*ptype*fb
+        aij(i,j,ij_g39)=aij(i,j,ij_g39)+tp(4,1)*ptype*fb
+        aij(i,j,ij_g40)=aij(i,j,ij_g40)+tp(5,1)*ptype*fb
         aij(i,j,ij_g17)=aij(i,j,ij_g17)+tp(6,1)*ptype*fb
+!      Temperatures of canopy and vegetated soil layers
         aij(i,j,ij_g21)=aij(i,j,ij_g21)+tp(0,2)*ptype*fv
         aij(i,j,ij_g22)=aij(i,j,ij_g22)+tp(1,2)*ptype*fv
         aij(i,j,ij_g23)=aij(i,j,ij_g23)+tp(2,2)*ptype*fv
+        aij(i,j,ij_g35)=aij(i,j,ij_g35)+tp(3,2)*ptype*fv
+        aij(i,j,ij_g36)=aij(i,j,ij_g36)+tp(4,2)*ptype*fv
+        aij(i,j,ij_g37)=aij(i,j,ij_g37)+tp(5,2)*ptype*fv
         aij(i,j,ij_g24)=aij(i,j,ij_g24)+tp(6,2)*ptype*fv
+!      Water table depth
         aij(i,j,ij_g25)=aij(i,j,ij_g25)+(fb*zw(1)+fv*zw(2))*ptype
       end if
 ccc accumulate total heat storage
@@ -1769,9 +1776,12 @@ c           for diagnostic purposes also compute gdeep 1 2 3
 #ifdef IRRIGATION_ON
       aij(i,j,ij_irrW)=aij(i,j,ij_irrW)+airrig*ptype
       aij(i,j,ij_irrE)=aij(i,j,ij_irrE)+aeirrig*ptype
+      aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+
+     &    (airrig*ptype/dtsrc/1000.d0)/irrig_water_pot(i,j)
 #else
       aij(i,j,ij_irrW)=0.d0
       aij(i,j,ij_irrE)=0.d0
+      aij(i,j,ij_irrW_tot)=0.d0
 #endif
       if ( warmer >= 0 ) then
         if(ts.lt.tf) tsfrez(i,j,tf_day1)=timez
@@ -3860,7 +3870,8 @@ c****
      *     ,ij_gwtr,ij_tg1,j_wtr1,j_ace1,j_wtr2,j_ace2
      *     ,j_snow,j_evap,j_type,ij_g01,ij_g07,ij_g04,ij_g10,ij_g28
      *     ,ij_g29,j_rsnow,ij_rsnw,ij_rsit,ij_snow,ij_gice, ij_gwtr1
-     &     ,ij_zsnow
+     &     ,ij_zsnow,ij_g30,ij_g31,ij_g32,ij_g33,ij_g34
+     &     ,ij_g35,ij_g36,ij_g37,ij_g38,ij_g39,ij_g40
       use fluxes, only : e0,e1,evapor,eprec
       implicit none
 
@@ -3931,14 +3942,24 @@ c**** the following computes the snow cover as it is used in RAD_DRV.f
         aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)*pearth
         aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)*pearth
         aij(i,j,ij_evape)=aij(i,j,ij_evape)+evap
+!     Water in vegetated layers 0 (canopy), 1, 2 and 
+!     bare soil layers 1,2,3
         do k=1,3
           aij(i,j,ij_g01+k-1)=aij(i,j,ij_g01+k-1)+w_ij(k,1,i,j)
      &         *pearth*fb
           aij(i,j,ij_g07+k-1)=aij(i,j,ij_g07+k-1)+w_ij(k-1,2,i,j)
      &         *pearth*fv
         end do
-        aij(i,j,ij_g04)=aij(i,j,ij_g04)+w_ij(6,1,i,j)*pearth*fb
+!     Water in vegetated layers 3,4,5, and 6
+        aij(i,j,ij_g30)=aij(i,j,ij_g30)+w_ij(3,2,i,j)*pearth*fv
+        aij(i,j,ij_g31)=aij(i,j,ij_g31)+w_ij(4,2,i,j)*pearth*fv
+        aij(i,j,ij_g32)=aij(i,j,ij_g32)+w_ij(5,2,i,j)*pearth*fv
         aij(i,j,ij_g10)=aij(i,j,ij_g10)+w_ij(6,2,i,j)*pearth*fv
+!     Water in bare layers 4,5,and 6
+        aij(i,j,ij_g33)=aij(i,j,ij_g33)+w_ij(4,1,i,j)*pearth*fb
+        aij(i,j,ij_g34)=aij(i,j,ij_g34)+w_ij(5,1,i,j)*pearth*fb
+        aij(i,j,ij_g04)=aij(i,j,ij_g04)+w_ij(6,1,i,j)*pearth*fb
+
         aij(i,j,ij_g28)=aij(i,j,ij_g28)+snowbv(1,i,j)*pearth*fb
         aij(i,j,ij_g29)=aij(i,j,ij_g29)+snowbv(2,i,j)*pearth*fv
         aij(i,j,ij_zsnow)=aij(i,j,ij_zsnow) + pearth *
