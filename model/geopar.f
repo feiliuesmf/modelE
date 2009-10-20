@@ -13,9 +13,7 @@ cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
-     &   ,flnma2o,flnma2o_s,flnmo2a,flnmo2a_f 
-     &   ,flnmo2a_e,flnmo2a_n,flnmcoso
-     &   ,flnmbas,flnma2o_tau,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+     &   ,flnmbas,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
@@ -28,15 +26,7 @@ c
       character util(idm*jdm+14)*2,preambl(5)*79
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
-      data glufac/3./
-      data zero/0./
-#ifdef HYCOM_RESOLUTION_2deg
-       integer, parameter :: nsize1=10249200, nsize2=2079936
-#endif
-#ifdef HYCOM_RESOLUTION_1deg
-       integer, parameter :: nsize1=83034720, nsize2=10005120
-#endif
-
+      real, parameter :: glufac=3., zero=0.
       !write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- read basin depth array
@@ -92,49 +82,6 @@ c --- determine do-loop limits for u,v,p,q points
 
 !! copy hycom_dim arrays to global grid
       call gather_hycom_dim
-
-cddd      if (AM_I_ROOT()) then
-cddd      write(700,*)  ip
-cddd
-cddd
-cddd      write(802,*) ip(:,:),iu(:,:),iv(:,:),iq(:,:),
-cddd     .ifp(:,:),ilp(:,:),isp(:),jfp(:,:),jlp(:,:),jsp(:),
-cddd     .ifq(:,:),ilq(:,:),isq(:),jfq(:,:),jlq(:,:),jsq(:),
-cddd     .ifu(:,:),ilu(:,:),isu(:),jfu(:,:),jlu(:,:),jsu(:),
-cddd     .ifv(:,:),ilv(:,:),isv(:),jfv(:,:),jlv(:,:),jsv(:),
-cddd     .msk(:,:)
-cddd
-cddd      write(701,*)  ip
-cddd      write(702,*)  iu
-cddd      write(703,*)  iv
-cddd      write(704,*)  iq
-cddd      write(705,*)  ifp
-cddd      write(706,*)  ilp
-cddd      write(707,*)  isp
-cddd      write(708,*)  jfp
-cddd      write(709,*)  jlp
-cddd      write(710,*)  jsp
-cddd      write(711,*)  ifq
-cddd      write(712,*)  ilq
-cddd      write(713,*)  isq
-cddd      write(714,*)  jfq
-cddd      write(715,*)  jlq
-cddd      write(716,*)  jsq
-cddd      write(717,*)  ifu
-cddd      write(718,*)  ilu
-cddd      write(719,*)  isu
-cddd      write(720,*)  jfu
-cddd      write(721,*)  jlu
-cddd      write(722,*)  jsu
-cddd      write(723,*)  ifv
-cddd      write(724,*)  ilv
-cddd      write(725,*)  isv
-cddd      write(726,*)  jfv
-cddd      write(727,*)  jlv
-cddd      write(728,*)  jsv
-cddd      write(729,*)  msk
-cddd
-cddd      endif
 
       if (AM_I_ROOT()) then
 ccc      do 3 i=1,ii1
@@ -539,75 +486,6 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  154  continue
 c$OMP END PARALLEL DO
 c
-c --- read in all weights
-c
-
-!!! ocellsz(ia,ja) is not used anywhere. can be deleted ? - IA
-
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 11 ja=1,jjo
-      do 11 ia=1,iio
-11    ocellsz(ia,ja)=scp2(ia,ja)
-c$OMP END PARALLEL DO
-c
-c     open(301,file='agcmgdsz.8bin',status='unknown',form='unformatted')
-c     write(301)dxyp
-c     close(301)
-c
-!!! it would be cleaner to move the following part to cpler.f -IA
-
-      if (iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8).ne.nsize1 .or.
-     .    iia*jja*((nwgto2a*2+1)*4+nwgto2a*8).ne.nsize2) then
-        write(lp,'(a,2i12,a,2i12)') 'wrong size in cpler '
-     .  ,iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8)
-     .  ,iia*jja*((nwgto2a*2+1)*4+nwgto2a*8)
-     .  ,' should be ',nsize1,nsize2
-        stop ' wrong size in cpler'
-      endif
-c
-      open(14,file=flnma2o_s,form='unformatted',status='old',   ! TNL
-     .  access='direct',recl=nsize1)
-      read(14,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
-      close(14)
-c
-      open(14,file=flnma2o,form='unformatted',status='old',
-     .  access='direct',recl=nsize1)
-      read(14,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
-      close(14)
-c
-      open(15,file=flnma2o_tau,form='unformatted',status='old',
-     .  access='direct',recl=nsize1)
-      read(15,rec=1) itaua2o,jtaua2o,wtaua2o,ntaua2o
-      close(15)
-c
-      open(16,file=flnmo2a,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
-      read(16,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
-      close(16)
-c
-      open(16,file=flnmo2a_f,form='unformatted',status='old',     ! TNL
-     .  access='direct',recl=nsize2)
-      read(16,rec=1) ilisto2a_f,jlisto2a_f,wlisto2a_f,nlisto2a_f
-      close(16)
-c
-      open(17,file=flnmo2a_e,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
-      read(17,rec=1) ilisto2a_e,jlisto2a_e,wlisto2a_e,nlisto2a_e
-      close(17)
-c
-      open(18,file=flnmo2a_n,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
-      read(18,rec=1) ilisto2a_n,jlisto2a_n,wlisto2a_n,nlisto2a_n
-      close(18)
-c
-      open(22,file=flnmcoso,form='unformatted',status='old')
-      read(22) iz,jz,coso,sino
-      close(22)
-      if (iz.ne.idm .or. jz.ne.jdm) then
-        write(lp,*) ' iz,jz=',iz,jz
-        stop '(wrong iz/jz in cososino.8bin)'
-      endif
-c
 c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       open (34,file=flnmbas,form='formatted',status='old')
 #ifdef HYCOM_RESOLUTION_2deg
@@ -656,6 +534,7 @@ c
       call prtmsk(ip,wgtkap,util1,idm,ii1,jj,0.,100.,
      .     'wgtkap')
 c
+      call cpl_wgt                      ! read in weights for coupler
       endif ! AM_I_ROOT
 c
       return
