@@ -573,8 +573,8 @@ c     real*8,dimension(lm,nmodes)   :: naerc
 
       REAL*8,  PARAMETER :: CK1 = 1.       !@param CK1 a tunning const.
 !@param RHOG,RHOIP density of graupel and ice particles
-!@param ITMAX,ITMAX1 max iteration indices
-!@param FITMAX, FITMAX1 set to 1/ITMAX, 1/ITMAX1
+!@param ITMAX max iteration indices
+!@param FITMAX set to 1/ITMAX
 !@param CN0, CN0I, CN0G constants use in computing FLAMW, etc
 !@param PN tuning exponential for computing WV
 !@param AIRM0 air mass used to compute convective cloud cover
@@ -587,8 +587,8 @@ C     REAL*8 RHO   ! air density
 !CN0 is the No parameter in the Marshall-Palmer distribution
 #endif
       REAL*8,  PARAMETER :: RHOG=400.,RHOIP=100.
-      INTEGER,  PARAMETER :: ITMAX=50,ITMAX1=2
-      REAL*8, PARAMETER :: FITMAX=1d0/ITMAX, FITMAX1=1d0/ITMAX1
+      INTEGER,  PARAMETER :: ITMAX=50
+      REAL*8, PARAMETER :: FITMAX=1d0/ITMAX
 !@var FLAMW,FLAMG,FLAMI lamda for water, graupel and ice, respectively
 !@var WMAX specified maximum convective vertical velocity
 !@var WV convective vertical velocity
@@ -612,6 +612,11 @@ C     REAL*8 RHO   ! air density
       REAL*8 THBAR  !@var THBAR virtual temperature at layer edge
 !@var BELOW_CLOUD logical- is the current level below cloud?
       LOGICAL BELOW_CLOUD
+
+!@var KSUB, BYKSUB number, 1/number of subsidence iterations
+      INTEGER :: KSUB
+      REAL*8 :: BYKSUB
+
 C****
 C**** MOIST CONVECTION
 C****
@@ -1943,42 +1948,58 @@ C**** simple upwind scheme for momentum
      *    AIRM(LDMIN:LMAX)/SUMDP
       END DO
 
-C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
-      DO ITER=1,ITMAX1 ! subsidence sub-timesteps to improve stability
-      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)*FITMAX1
-      SM(LDMIN:LMAX) =  SM(LDMIN:LMAX)  +  DSMR(LDMIN:LMAX)*FITMAX1
-      SMOM(:,LDMIN:LMAX)=SMOM(:,LDMIN:LMAX)+DSMOMR(:,LDMIN:LMAX)*FITMAX1
 C****
+
+c Determine the number of subsidence sub-timesteps such that
+c courant numbers in the QUS do not exceed 1
+cksub      ksub = 1
+cksub      do l=ldmin,lmax-1
+cksub        if(    +cm(l) > airm(l+1)+dmr(l+1)) then
+cksub          ksub = max(ksub, 1+int((+cm(l)-dmr(l+1))/airm(l+1)) )
+cksub        elseif(-cm(l) > airm(l  )+dmr(l  )) then
+cksub          ksub = max(ksub, 1+int((-cm(l)-dmr(l  ))/airm(l  )) )
+cksub        endif
+cksub      enddo
+cksub      ksub = min(ksub,2) ! max 2 iterations allowed currently
+      ksub = 2 ! non-interactive default
+
+      byksub = 1d0/ksub
       nsub = lmax-ldmin+1
-      cmneg=0.      ! initialization
-      cmneg(ldmin:lmax)=-cm(ldmin:lmax)*FITMAX1
-      cmneg(lmax)=0. ! avoid roundoff error (esp. for qlimit)
+      cmneg=0.          ! initialization
+      cmneg(ldmin:lmax-1) = -cm(ldmin:lmax-1)*byksub
+      cmneg(lmax) = 0.  ! avoid roundoff error (esp. for qlimit)
+
+C**** Subsidence uses Quadratic Upstream Scheme for QM and SM
+      DO ITER=1,KSUB ! subsidence sub-timesteps to improve stability
+      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)*BYKSUB
+      SM(LDMIN:LMAX) =  SM(LDMIN:LMAX)  +  DSMR(LDMIN:LMAX)*BYKSUB
+      SMOM(:,LDMIN:LMAX)=SMOM(:,LDMIN:LMAX)+DSMOMR(:,LDMIN:LMAX)*BYKSUB
       call adv1d(sm(ldmin),smom(1,ldmin), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.false.,1, zdir,ierrt,lerrt)
-      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)*FITMAX1
-      SMOM(:,LDMIN:LMAX)=SMOM(:,LDMIN:LMAX)+DSMOM(:,LDMIN:LMAX)*FITMAX1
+      SM(LDMIN:LMAX) =   SM(LDMIN:LMAX) +   DSM(LDMIN:LMAX)*BYKSUB
+      SMOM(:,LDMIN:LMAX)=SMOM(:,LDMIN:LMAX)+DSMOM(:,LDMIN:LMAX)*BYKSUB
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
 C****
-      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)*FITMAX1
-      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)*FITMAX1
-      QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOMR(:,LDMIN:LMAX)*FITMAX1
+      ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)*BYKSUB
+      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)*BYKSUB
+      QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOMR(:,LDMIN:LMAX)*BYKSUB
       call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
-      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)*FITMAX1
-      QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOM(:,LDMIN:LMAX)*FITMAX1
+      QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)*BYKSUB
+      QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOM(:,LDMIN:LMAX)*BYKSUB
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
 #ifdef TRACERS_ON
 C**** Subsidence of tracers by Quadratic Upstream Scheme
       DO N=1,NTX
-      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)*FITMAX1
-      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)*FITMAX1
+      ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)*BYKSUB
+      TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)*BYKSUB
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N)
-     &                      *FITMAX1
+     &                      *BYKSUB
       call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin),
      &     ml(ldmin),cmneg(ldmin), nsub,t_qlimit(n),1, zdir,ierrt,lerrt)
-      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)*FITMAX1
+      TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)*BYKSUB
       TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N)
-     &                      *FITMAX1
+     &                      *BYKSUB
       ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
       END DO
 #endif
