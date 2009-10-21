@@ -78,7 +78,8 @@ contains
       real(kind=r64), optional, intent(in) :: mockTime
       real(kind=r64) :: mockTime_
 
-      mockTime_ = .false.
+      !mockTime_ = .false.
+      mockTime_ = -1.d30 ! not used ?
       if (present(mockTime)) mockTime_ = mockTime
 
       if (present(mockTime)) then
