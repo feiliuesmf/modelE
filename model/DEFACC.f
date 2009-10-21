@@ -3369,6 +3369,14 @@ c
       denom_ij(k) = IJ_PSOIL
 c     iw  built-in
 c
+      k=k+1 !YKIM 10/20/09
+      IJ_LAI = k    !m2/m2 in Ent
+      lname_ij(k) = 'LEAF AREA INDEX'
+      units_ij(k) = 'm2/m2'
+      name_ij(k) = 'LAI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
       k=k+1
       IJ_G21 = k
       name_ij(k) = 'can_temp' !
