@@ -28,11 +28,13 @@ c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
      *  (/1,JM/2,  1+JM/2,JM,  J1U,J1U-1+JM/2, J1U-1+JM/2,JM+J1U-2/),
      *  (/2,2,2/))
 !@var  LAT latitude of mid point of primary grid box (radians)
-      REAL*8, DIMENSION(JM) :: LAT
+!@var  LATV latitude of southern edge of primary grid box (radians)
+      REAL*8, DIMENSION(JM) :: LAT,LATV
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
       REAL*8, DIMENSION(JM,2) :: LAT_DG
 !@var  LON longitude of mid points of primary grid box (radians)
-      REAL*8, DIMENSION(IM) :: LON
+!@var  LONV longitude of east edge of primary grid box (radians)
+      REAL*8, DIMENSION(IM) :: LON,LONV
 !@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
       REAL*8, DIMENSION(IM,2) :: LON_DG
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
@@ -59,9 +61,10 @@ C**** some B-grid conservation quantities
 !@var  DXYN,DXYS half box areas to the North,South of primary grid point
       REAL*8, DIMENSION(JM) :: DXYS,DXYN
 !@var  SINP sin of latitude at primary grid points
-      REAL*8, DIMENSION(JM) :: SINP
+!@var  SINLATV,COSLATV sin(latv), cos(latv)
 !@var  COSP, COSV cos of latitude at primary, secondary latitudes
-      REAL*8, DIMENSION(JM) :: COSP,COSV
+      REAL*8, DIMENSION(JM) :: SINP,SINLATV
+      REAL*8, DIMENSION(JM) :: COSP,COSV,COSLATV,DXLATV
 !@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and sec. grid
       REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
@@ -213,6 +216,12 @@ C****
         DXYS(J) = .5*DXYP(J)
         DXYN(J) = .5*DXYP(J)
       END DO
+      do j=2,jm
+        latv(j) = dlat*(j-.5-fjeq)
+        coslatv(j) = cos(latv(j))
+        sinlatv(j) = sin(latv(j))
+        dxlatv(j) = radius*dlon*coslatv(j)
+      enddo
       AREAG = 2*TWOPI*RADIUS*RADIUS
       BYDYP(:) = 1.D0/DYP(:)
       RAVPS(1)  = 0.
@@ -275,6 +284,7 @@ C**** Calculate relative directions of polar box to nearby U,V points
         SINIV(I)=SIN((I-1)*DLON)
         COSIV(I)=COS((I-1)*TWOPI*BYIM) ! DLON)
         LON(I)=DLON*(I-.5)
+        LONV(I)=DLON*I
         SINIP(I)=SIN(LON(I))
         COSIP(I)=COS(LON(I))
         SINU(I) =SIN (I*TWOPI/IM)
