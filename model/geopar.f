@@ -21,7 +21,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       integer i,j,k,l,n,ia,ib,ja,jb,jp
 c
       logical, intent(in) :: iniOCEAN
-      real realat,sphdis,glufac,zero,q
+      real realat,sphdis,q
       integer idim,jdim,length,iz,jz,nt
       character util(idm*jdm+14)*2,preambl(5)*79
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
