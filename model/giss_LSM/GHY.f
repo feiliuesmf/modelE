@@ -2342,7 +2342,9 @@ ccc accm0 was not called here in older version - check
           !sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
           !sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
           sbgc_temp(1:ngm)  = tp(1:ngm,2)
-          sbgc_moist(1:ngm) =  w(1:ngm,2)/ws(1:ngm,2)
+          sbgc_moist(1:ngm) = 0.d0
+          where( ws(1:ngm,2) > 0.d0 )
+     &         sbgc_moist(1:ngm) =  w(1:ngm,2)/ws(1:ngm,2)
 
           !Qf = 0.d0
 cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
