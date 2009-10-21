@@ -37,7 +37,7 @@
       integer I_0, I_1, J_0, J_1, i, j
       ! the following are rundeck parameters which need to be
       ! passed to ent (and used there)
-      integer cond_scheme, vegCO2X_off, read_c4_grass, year
+      integer year
       integer :: force_init_ent=0
       logical iniENT
 
@@ -61,10 +61,7 @@
       do_patchdynamics = 0 !false
 
       !--- read rundeck parameters
-      call sync_param( "cond_scheme", cond_scheme)  !nyk 5/1/03
-      call sync_param( "vegCO2X_off", vegCO2X_off)  !nyk 3/2/04
       call sync_param( "crops_yr", crops_yr)
-      call sync_param( "read_c4_grass", read_c4_grass)
       !YKIM - add new options for modelE
       call sync_param( "do_soilresp",do_soilresp)
       call sync_param( "do_phenology_activegrowth",
