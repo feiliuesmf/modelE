@@ -24,7 +24,6 @@ module ProfileReport_mod
    interface generateReport
       module procedure generateReportAsStringDefault
       module procedure generateReportAsString
-      module procedure writeReportToFile
    end interface
 
    interface getHeader
