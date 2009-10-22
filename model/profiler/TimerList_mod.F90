@@ -39,7 +39,7 @@ module TimerList_mod
       type (NamedTimer_type), pointer :: list(:) => null()
    end type TimerList_type
 
-   type (TimerList_type), target :: defaultList ! singleton
+   type (TimerList_type), target, save :: defaultList ! singleton
 
    integer, parameter :: MAX_TIMERS = 100
    integer, parameter :: NOT_FOUND =-1
