@@ -868,7 +868,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      *  ' PROGRAM TERMINATED NORMALLY - Internal clock time:',ITIME
 
       IF (Itime.ge.ItimeE) then
-         call reportProfile()
+         call reportProfile((itimee-itimei)*dtSRC)
          CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
       END IF
@@ -901,23 +901,65 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       end subroutine initializeDefaultTimers
 
-      subroutine reportProfile()
-      use TimerPackage_mod, only: finalize
-      use TimerPackage_mod, only: printSummary
-      use TimerPackage_mod, only: TIMER_SUMMARY_LENGTH
+      subroutine reportProfile(elapsedTimeInSeconds)
+      use TimerPackage_mod
       use DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
-      character(len=TIMER_SUMMARY_LENGTH), pointer :: report(:)
+      real*8, intent(in) :: elapsedTimeInSeconds
+      character(len=MAX_RECORD_LENGTH), pointer :: lines(:)
       integer :: i
 
+      integer, parameter :: SECONDS_PER_MINUTE = 60
+      integer, parameter :: MINUTES_PER_DAY = 24*60
+      type (ProfileReport_type) :: report
+      type (ReportColumn_type) :: column
+      real*8 :: totalTime
+
       call finalize()
-      call printSummary(report)
+      report = newReport()
+      call addColumn(report, newColumn(NAME_COLUMN, fieldWidth=20))
+
+      column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth=7)
+      totalTime = getInclusiveTime(getTimer('main'))
+      call setPrecision(column, 2)
+      call setScale(column, 100/totalTime, ' %')
+      call addColumn(report, column)
+
+      column = newColumn(INCLUSIVE_TIME_COLUMN, fieldWidth=11)
+      call setPrecision(column, 5)
+      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds, 
+     &     'min/day')
+      call addColumn(report, column)
+
+      column = newColumn(EXCLUSIVE_TIME_COLUMN, fieldWidth=11)
+      call setPrecision(column, 5)
+      call setScale(column, MINUTES_PER_DAY/elapsedTimeInSeconds, 
+     &     'min/day')
+      call addColumn(report, column)
+
+      call addColumn(report, newColumn(TRIP_COUNTS_COLUMN,fieldWidth=6))
+
+      column = newColumn(MAXIMUM_TIME_COLUMN, fieldWidth=10)
+      call setPrecision(column, 6)
+      call addColumn(report, column)
+
+      column = newColumn(MINIMUM_TIME_COLUMN, fieldWidth=10)
+      call setPrecision(column, 6)
+      call addColumn(report, column)
+
+      column = newColumn(AVERAGE_TIME_COLUMN, fieldWidth=10)
+      call setPrecision(column, 6)
+      call addColumn(report, column)
+
+
+      lines => generateReport(report)
       if (AM_I_ROOT()) then
-         do i = 1, size(report)
-            write(*,'(a)') trim(report(i))
+         do i = 1, size(lines)
+            write(*,'(a)') trim(lines(i))
          end do
       end if
-      deallocate(report)
+      deallocate(lines)
+      call delete(report)
 
       end subroutine reportProfile
       

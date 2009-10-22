@@ -6,6 +6,7 @@ module TimerList_mod
    implicit none
    private
 
+   public :: TimerList_type
    public :: initialize
    public :: finalize
 
@@ -13,6 +14,7 @@ module TimerList_mod
    public :: isTimer
    public :: addTimer
    public :: getTimer
+   public :: getName
 
    public :: start
    public :: stop
@@ -22,28 +24,78 @@ module TimerList_mod
 #endif
 
    public :: reset
+   public :: getDefaultList
 
-   integer :: numTimers = 0
+   integer, parameter :: MAX_NAME_LENGTH = 20
+
+   type NamedTimer_type
+      private
+      type (Timer_type) :: timer
+      character(len=MAX_NAME_LENGTH) :: name
+   end type NamedTimer_type
+
+   type TimerList_type
+      private
+      type (NamedTimer_type), allocatable :: list(:)
+   end type TimerList_type
+
+   type (TimerList_type), target :: defaultList ! singleton
 
    integer, parameter :: MAX_TIMERS = 100
-   integer, parameter :: MAX_NAME_LENGTH = 20
    integer, parameter :: NOT_FOUND =-1
 
-   character(len=MAX_NAME_LENGTH), save :: names(MAX_TIMERS)
-   type (Timer_type), target,      save :: timers(MAX_TIMERS)
+   interface initialize
+      module procedure initialize_
+      module procedure initializeDefault
+   end interface
+
+   interface finalize
+      module procedure finalize_
+      module procedure finalizeDefault
+   end interface
 
    interface start
       module procedure startByName
       module procedure startByNameAtTime
+      module procedure startByNameDefault
+      module procedure startByNameAtTimeDefault 
    end interface
 
    interface stop
       module procedure stopByName
       module procedure stopByNameAtTime
+      module procedure stopByNameDefault
+      module procedure stopByNameAtTimeDefault
+   end interface
+
+   interface getName
+      module procedure getNameByIndex
+   end interface
+
+   interface getTimer
+      module procedure getTimer_
+      module procedure getTimerDefault
+      module procedure getTimerByIndex
+   end interface
+
+   interface isTimer
+      module procedure isTimer_
+      module procedure isTimerDefault
+   end interface
+
+   interface getNumTimers
+      module procedure getNumTimers_
+      module procedure getNumTimersDefault
+   end interface
+
+   interface addTimer
+      module procedure addTimer_
+      module procedure addTimerDefault
    end interface
 
    interface reset
       module procedure reset_
+      module procedure resetDefault
       module procedure resetTimer
    end interface
 
@@ -58,34 +110,47 @@ module TimerList_mod
 
 contains
 
-   ! test enables
-   subroutine initialize(mockTime)
+   function getDefaultList()
+      type(TimerList_type), pointer :: getDefaultList
+      getDefaultList => defaultList
+   end function getDefaultList
+
+   subroutine initialize_(this, mockTime)
+      type (TimerList_type), intent(inout) :: this
       real(kind=r64), optional, intent(in) :: mockTime
       real(kind=r64) :: mockTime_
 
       if (present(mockTime)) mockTime_ = mockTime
 
-      numTimers = 0
-      call addTimer('main')
+      if (allocated(this%list)) deallocate(this%list)
+      allocate(this%list(0))
+
+      call addTimer(this, 'main')
       if (present(mockTime)) then
-         call start('main', time = mockTime_)
+         call start(this, 'main', time = mockTime_)
       else
-         call start('main')
+         call start(this, 'main')
       end if
-   end subroutine initialize
-   
-   subroutine finalize(mockTime)
+   end subroutine initialize_
+      
+   ! test enables
+   subroutine initializeDefault(mockTime)
       real(kind=r64), optional, intent(in) :: mockTime
+      call initialize(defaultList, mockTime)
+   end subroutine initializeDefault
+   
+   subroutine finalize_(this, mockTime)
+      type (TimerList_type), target, intent(inout) :: this
+      real(kind=r64), optional, intent(in) :: mockTime
+
       real(kind=r64) :: mockTime_
 
-      !mockTime_ = .false.
-      mockTime_ = -1.d30 ! not used ?
       if (present(mockTime)) mockTime_ = mockTime
 
       if (present(mockTime)) then
-         call stop('main', time = mockTime_)
+         call stop(this, 'main', time = mockTime_)
       else
-         call stop('main')
+         call stop(this, 'main')
       end if
 
       call checkTimerConsistenncy()
@@ -97,25 +162,39 @@ contains
          use pFUnit
 #endif
          use Timer_mod, only: isActive
+         type (NamedTimer_type), pointer :: namedTimer
          integer :: i
          character(len=50) :: message
-         do i = 1, getNumTimers()
-            if (isActive(timers(i))) then
-               message = 'Unbalanced start/stop for timer <'//trim(names(i))//'>.'
+         do i = 1, getNumTimers(this)
+            namedTimer => this%list(i)
+            if (isActive(namedTimer%timer)) then
+               message = 'Unbalanced start/stop for timer <'//trim(namedTimer%name)//'>.'
 #ifdef USE_PFUNIT
                call throw(Exception(message))
 #else
                write(*,*) message
 #endif
+               exit
             end if
          end do
       end subroutine checkTimerConsistenncy
        
-   end subroutine finalize
+   end subroutine finalize_
 
-   subroutine reset_()
-      numTimers = 0
+   subroutine finalizeDefault(mockTime)
+      real(kind=r64), optional, intent(in) :: mockTime
+      call finalize(defaultList, mockTime)
+   end subroutine finalizeDefault
+
+   subroutine reset_(this)
+      type (TimerList_type), intent(inOut) :: this
+      if (allocated(this%list)) deallocate(this%list)
+      allocate(this%list(0))
    end subroutine reset_
+
+   subroutine resetDefault()
+      call reset(defaultList)
+   end subroutine resetDefault
 
    subroutine resetTimer(name)
       use Timer_mod, only: reset
@@ -125,67 +204,108 @@ contains
       if (associated(timer)) call reset(timer)
    end subroutine resetTimer
 
-   logical function isTimer(name)
+   logical function isTimer_(this, name)
+      type (TimerList_type), intent(in) :: this
       character(len=*), intent(in) :: name
 
-      integer :: i
+      isTimer_ = getIndex(this, name) /= NOT_FOUND
 
-      isTimer = getIndex(name) /= NOT_FOUND
-
-   end function isTimer
+   end function isTimer_
    
-   integer function getNumTimers()
-
-      getNumTimers = numTimers
-
-   end function getNumTimers
+   logical function isTimerDefault(name)
+      character(len=*), intent(in) :: name
+      isTimerDefault = isTimer(defaultList, name)
+   end function isTimerDefault
    
-   subroutine addTimer(name)
+   integer function getNumTimers_(this)
+      type (TimerList_type), intent(in) :: this
+      getNumTimers_ = size(this%list)
+   end function getNumTimers_
+
+   integer function getNumTimersDefault()
+      getNumTimersDefault = getNumTimers(defaultList)
+   end function getNumTimersDefault
+   
+   subroutine addTimer_(this, name)
       use Timer_mod, only: reset
+      type (TimerList_type), intent(inOut) :: this
       character(len=*), intent(in) :: name
+      type (NamedTimer_type), allocatable :: tmpList(:)
 
-      numTimers = numTimers + 1
-      names(numTimers) = trim(name)
-      call reset(timers(numTimers))
+      integer :: n
 
-   end subroutine addTimer
+      n = size(this%list)
 
-   subroutine startByName(name)
+      if (n > 0) then
+         allocate(tmpList(n))
+         tmpList = this%list
+      end if
+      if (allocated(this%list)) deallocate(this%list)
+      allocate(this%list(n+1))
+      if (n > 0) then
+         this%list(:n) = tmpList
+         deallocate(tmpList)
+      end if
+      this%list(n+1)%name = name
+      call reset(this%list(n+1)%timer)
+
+   end subroutine addTimer_
+
+   subroutine addTimerDefault(name)
+      character(len=*), intent(in) :: name
+      call addTimer(defaultList, name)
+   end subroutine addTimerDefault
+
+   subroutine startByName(this, name)
       use Timer_mod, only: start
+      type (TimerList_type), intent(inOut) :: this
       character(len=*), intent(in) :: name
       integer :: index
 
-      index = getIndex(name)
+      index = getIndex(this, name)
       if (index == NOT_FOUND) then
-         call addTimer(name)
-         index = numTimers
+         call addTimer(this, name)
+         index = getNumTimers(this)
       end if
 
-      call start(timers(index))
+      call start(this%list(index)%timer)
 
    end subroutine startByName
 
-   subroutine startByNameAtTime(name, time)
+   subroutine startByNameDefault(name)
+      character(len=*), intent(in) :: name
+      call startByName(defaultList, name)
+   end subroutine startByNameDefault
+
+   subroutine startByNameAtTime(this, name, time)
+      use Timer_mod, only: start
+      type (TimerList_type), intent(inOut) :: this
+      character(len=*), intent(in) :: name
+      real(kind=r64), intent(in) :: time
+      call start(this%list(getIndex(this, name))%timer, time)
+   end subroutine startByNameAtTime
+
+   subroutine startByNameAtTimeDefault(name, time)
       use Timer_mod, only: start
       character(len=*), intent(in) :: name
       real(kind=r64), intent(in) :: time
+      call startByNameAtTime(defaultList, name, time)
+   end subroutine startByNameAtTimeDefault
 
-      call start(timers(getIndex(name)), time)
-
-   end subroutine startByNameAtTime
-
-   subroutine stopByName(name)
+   subroutine stopByName(this, name)
 #ifdef USE_PFUNIT
       use pFUnit
 #endif
       use Timer_mod, only: stop
+      type (TimerList_type), intent(inOut) :: this
       character(len=*), intent(in) :: name
+
       character(len=70) :: message
       integer :: index
 
-      index = getIndex(name)
+      index = getIndex(this, name)
       if (index /= NOT_FOUND) then
-         call stop(timers(index))
+         call stop(this%list(index)%timer)
       else
          message = 'Timer <'//trim(name)//'> has not been declared prior to use.'
 #ifdef USE_PFUNIT
@@ -195,24 +315,39 @@ contains
 #endif
       end if
 
-
    end subroutine stopByName
 
-   subroutine stopByNameAtTime(name, time)
+   subroutine stopByNameDefault(name)
+      character(len=*), intent(in) :: name
+      call stopByName(defaultList, name)
+   end subroutine stopByNameDefault
+
+   subroutine stopByNameAtTime(this, name, time)
       use Timer_mod, only: stop
+      type (TimerList_type), intent(inOut) :: this
       character(len=*), intent(in) :: name
       real(kind=r64), intent(in) :: time
 
-      call stop(timers(getIndex(name)),time)
+      integer :: index
+      index = getIndex(this, name)
+      call stop(this%list(index)%timer, time)
 
    end subroutine stopByNameAtTime
 
-   integer function getIndex(name)
+   subroutine stopByNameAtTimeDefault(name, time)
+      use Timer_mod, only: stop
+      character(len=*), intent(in) :: name
+      real(kind=r64), intent(in) :: time
+      call stopByNameAtTime(defaultList, name, time)
+   end subroutine stopByNameAtTimeDefault
+
+   integer function getIndex(this, name)
+      type (TimerList_type), intent(in) :: this
       character(len=*), intent(in) :: name
       integer :: i
 
-      do i = 1, numTimers
-         if (trim(name) == trim(names(i))) then
+      do i = 1, getNumTimers(this)
+         if (trim(name) == trim(this%list(i)%name)) then
             getIndex = i
             return
          end if
@@ -222,46 +357,86 @@ contains
 
    end function getIndex
 
-   function getTimer(name)
+   function getTimer_(this, name) result(timer)
+      type (TimerList_type), target, intent(in) :: this
       character(len=*), intent(in) :: name
-      type (Timer_type), pointer :: getTimer
+      type (Timer_type), pointer :: timer
 
-      getTimer => timers(getIndex(name))
+      timer => this%list(getIndex(this, name))%timer
 
-   end function getTimer
+   end function getTimer_
 
-   subroutine printSummaryDefault(report)
+   function getTimerDefault(name) result(timer)
+      character(len=*), intent(in) :: name
+      type (Timer_type), pointer :: timer
+      timer => getTimer(defaultList, name)
+   end function getTimerDefault
+
+   function getTimerByIndex(this, index) result(timer)
+      type (TimerList_type), target, intent(in) :: this
+      integer, intent(in) :: index
+      type (Timer_type), pointer :: timer
+
+      timer => this%list(index)%timer
+
+   end function getTimerByIndex
+
+   function getNameByIndex(this, index) result(name)
+      type (TimerList_type), target, intent(in) :: this
+      integer, intent(in) :: index
+      character(len=MAX_NAME_LENGTH) :: name
+
+      name = this%list(index)%name
+
+   end function getNameByIndex
+
+   subroutine printSummaryDefault(report, scale, units)
       use Timer_mod, only: summary
       character(len=*), pointer :: report(:)
-      integer :: i,idx
+      real(kind=r64), optional, intent(in) :: scale
+      character(len=*), optional, intent(in) :: units
 
-      call printSummary(report, timers)
+      call printSummary(report, defaultList, scale, units)
 
    end subroutine printSummaryDefault
 
-   subroutine printSummaryList(report, timers)
+   subroutine printSummaryList(report, timerList, scale, units)
       use Timer_mod, only: summary
       use Timer_mod, only: getInclusiveTime, getExclusiveTime
       character(len=*), pointer :: report(:)
-      type (Timer_type), intent(in) :: timers(:)
+      type (TimerList_type), target, intent(in) :: timerList
+      real(kind=r64), optional, intent(in) :: scale
+      character(len=*), optional, intent(in) :: units
+
+      character(len=7) :: units_
       integer :: i,idx
       real (kind=r64) :: timeMain
       real (kind=r64) :: fraction
+      integer :: numTimers
+      type (NamedTimer_type), pointer :: namedTimer
 
+      if (present(units)) then
+         units_ = units(1:min(7,len(units)))
+      else
+         units_ = 'seconds'
+      end if
+
+      numTimers = getNumTimers(timerList)
       allocate(report(4 + numTimers))
-      write(report(1),"(T50,a,T77,a)")'Total Time','Trip Time'
-      write(report(2),"(T8,a,T27,a,T33,a,T47,a,T57,a,T75,a,T85,a,T99,a,T113,a)") &
-           & 'Timer', '%', 'seconds', 'Inclusive','(  Exclusive )',  &
+      write(report(1),"(T46,a,T88,a)")'Total Time (hhh:mm:ss.hh)','Trip Time (seconds)'
+      write(report(2),"(T8,a,T27,a,T34,a,T47,a,T57,a,T75,a,T85,a,T99,a,T113,a)") &
+           & 'Timer', '%', units_, 'Inclusive','(  Exclusive )',  &
            & 'Cycles','Average', 'Maximum', 'Minimum'
       write(report(3),"(122('-'))")
 
-      timeMain = getInclusiveTime(timers(1))
+      timeMain = getInclusiveTime(timerList%list(1)%timer)
       do i = 1, numTimers
+         namedTimer => timerList%list(i)
          idx = 3+i
-         report(idx)(1:22) = trim(names(i))
-         fraction = getExclusiveTime(timers(i)) / timeMain
+         report(idx)(1:22) = namedTimer%name
+         fraction = getExclusiveTime(namedTimer%timer) / timeMain
          call writePercentage(report(idx)(23:29), fraction)
-         report(idx)(30:)  = trim(summary(timers(i)))
+         report(idx)(30:)  = trim(summary(namedTimer%timer, scale))
       end do
 
       write(report(4+numTimers),"(122('-'))")
@@ -293,19 +468,26 @@ contains
       integer, parameter :: root = 0
       integer :: idx
 
-      type (Timer_type) :: globalTimers(numTimers)
+      type (TimerList_type) :: globalTimerList
+      integer :: numTimers
 
+      numTimers = getNumTimers(defaultList)
+
+      allocate(globalTimerList%list(numTimers))
       do i = 1, numTimers
-         globalTimers(i) = gather(timers(i), comm)
+         globalTimerList%list(i)%name = defaultList%list(i)%name
+         globalTimerList%list(i)%timer = gather(defaultList%list(i)%timer, comm)
       end do
 
       call mpi_comm_rank(comm, rank, ier)
       if (rank == root) then
-         call printSummary(report, globalTimers)
+         call printSummary(report, globalTimerList)
       else
          allocate(report(1))
          report(1) = ' '
       end if
+
+      deallocate(globalTimerList%list)
    end subroutine printParallelSummary
 #endif
 

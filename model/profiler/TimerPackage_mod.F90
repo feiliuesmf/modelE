@@ -2,6 +2,7 @@ module TimerPackage_mod
    use Timer_mod, only: Timer_type
    use Timer_mod, only: start, stop, reset
    use Timer_mod, only: summary
+   use Timer_mod, only: getInclusiveTime
    use Timer_mod, only: TIMER_SUMMARY_LENGTH
 #ifdef USE_MPI
    use Timer_mod, only: parallelSummary
@@ -14,5 +15,8 @@ module TimerPackage_mod
 #ifdef USE_MPI
    use TimerList_mod, only: printParallelSummary
 #endif
+   
+   use ReportColumn_mod
+   use ProfileReport_mod
 
 end module TimerPackage_mod

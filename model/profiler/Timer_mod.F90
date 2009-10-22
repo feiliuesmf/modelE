@@ -34,6 +34,8 @@ module Timer_mod
    private :: setActive
    private :: setInactive
 
+   public :: r64
+
    integer, parameter :: TIMER_SUMMARY_LENGTH =  200
    integer, parameter :: r64 = selected_real_kind(14)
 
@@ -253,16 +255,24 @@ contains
       this%numTrips = this%numTrips + 1
    end subroutine addTrip
 
-   function summary_(this) result(report)
+   function summary_(this, scale) result(report)
       use TimeFormatUtilities_mod, only: formatHMS, formatSeconds
       type (Timer_type), intent(in) :: this
+      real(kind=r64), optional, intent(in) :: scale
       character(len=TIMER_SUMMARY_LENGTH) :: report
       character(len=15) :: hmsInclusive
       character(len=15) :: hmsExclusive
       character(len=15) :: seconds
       character(len=60) :: tripStats
 
-      seconds = formatSeconds(getInclusiveTime(this), &
+      real(kind=r64) :: scale_
+      if (present(scale)) then
+         scale_ = scale
+      else
+         scale_ = 1 ! seconds
+      end if
+
+      seconds = formatSeconds(scale_ * getInclusiveTime(this), &
            & decimalsBeforePoint = 8)
       hmsInclusive = formatHMS(getInclusiveTime(this))
       hmsExclusive = formatHMS(getExclusiveTime(this))
