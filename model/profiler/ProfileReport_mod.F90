@@ -18,7 +18,7 @@ module ProfileReport_mod
    type ProfileReport_type
       private
       integer :: recordWidth = 0
-      type (ReportColumn_type), allocatable :: columns(:)
+      type (ReportColumn_type), pointer :: columns(:) => null()
    end type ProfileReport_type
 
    interface generateReport
@@ -65,7 +65,7 @@ contains
    contains
 
       subroutine extend(columns)
-         type (ReportColumn_type), allocatable :: columns(:)
+         type (ReportColumn_type), pointer :: columns(:)
          type (ReportColumn_type), allocatable :: tmp(:)
          integer :: n
 

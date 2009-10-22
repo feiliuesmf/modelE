@@ -36,7 +36,7 @@ module TimerList_mod
 
    type TimerList_type
       private
-      type (NamedTimer_type), allocatable :: list(:)
+      type (NamedTimer_type), pointer :: list(:) => null()
    end type TimerList_type
 
    type (TimerList_type), target :: defaultList ! singleton
@@ -122,7 +122,7 @@ contains
 
       if (present(mockTime)) mockTime_ = mockTime
 
-      if (allocated(this%list)) deallocate(this%list)
+      if (associated(this%list)) deallocate(this%list)
       allocate(this%list(0))
 
       call addTimer(this, 'main')
@@ -188,7 +188,7 @@ contains
 
    subroutine reset_(this)
       type (TimerList_type), intent(inOut) :: this
-      if (allocated(this%list)) deallocate(this%list)
+      if (associated(this%list)) deallocate(this%list)
       allocate(this%list(0))
    end subroutine reset_
 
@@ -240,7 +240,7 @@ contains
          allocate(tmpList(n))
          tmpList = this%list
       end if
-      if (allocated(this%list)) deallocate(this%list)
+      if (associated(this%list)) deallocate(this%list)
       allocate(this%list(n+1))
       if (n > 0) then
          this%list(:n) = tmpList
