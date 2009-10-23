@@ -499,7 +499,7 @@ C NADINE - IS THIS CORRECT?
       do while ( associated(pp) )
         pp_tmp => pp
         pp => pp%younger
-        if( pp_tmp%area == 0.d0 ) call patch_destruct(pp_tmp)
+        if( pp_tmp%area == 0.d0 ) call delete_patch(ecp, pp_tmp)
       enddo
 
 
