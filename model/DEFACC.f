@@ -488,6 +488,17 @@ c
       fmt_reg(k) = fmt910
 c
       k=k+1
+      J_EVAP  = k ! EVAP (KG/m**2)                                1 GD
+      name_j(k) = 'evap'
+      lname_j(k) = 'EVAPORATION'
+      units_j(k) = 'mm/day'
+      stitle_j(k)= ' EVAPOR (MM/DAY)'
+      scale_j(k) = SDAY/DTSRC
+      ia_j(k) = ia_src
+      fmt_j(k) = fmt911
+      fmt_reg(k) = fmt910
+c
+      k=k+1
       J_IRGW = k               !                                 1 GP
       name_j(k) = 'irrig_external'
       lname_j(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
@@ -505,17 +516,6 @@ c
       units_j(k) = 'W/m2'
       stitle_j(k)= ' IRRE AD(W/m2)'
       scale_j(k) = 1.d0
-      ia_j(k) = ia_src
-      fmt_j(k) = fmt911
-      fmt_reg(k) = fmt910
-c
-      k=k+1
-      J_EVAP  = k ! EVAP (KG/m**2)                                1 GD
-      name_j(k) = 'evap'
-      lname_j(k) = 'EVAPORATION'
-      units_j(k) = 'mm/day'
-      stitle_j(k)= ' EVAPOR (MM/DAY)'
-      scale_j(k) = SDAY/DTSRC
       ia_j(k) = ia_src
       fmt_j(k) = fmt911
       fmt_reg(k) = fmt910
