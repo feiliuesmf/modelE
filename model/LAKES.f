@@ -835,7 +835,7 @@ C****
 !@ver  1.0 (based on LB265)
       USE CONSTANT, only : shw,rhow,teeny,bygrav,tf
       USE MODEL_COM, only : im,jm,focean,zatmo,hlake,itlake,itlkice
-     *     ,itocean,itoice,fland,dtsrc
+     *     ,itocean,itoice,fland,dtsrc,itime
 #ifdef SCM
      *     ,I_TARG,J_TARG
 #endif
@@ -866,7 +866,7 @@ C****
       INTEGER :: ILOOP_MIN,ILOOP_MAX,JLOOP_MIN,JLOOP_MAX
 !@var I,J,IU,JU,ID,JD loop variables
       INTEGER I,J,IU,JU,ID,JD,JR,ITYPE,KD
-      REAL*8 MWLSILL,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
+      REAL*8 MWLSILL,MLM,DMM,DGM,HLK1,DPE,MWLSILLD,FLFAC
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      *     FLOW,EFLOW
@@ -912,6 +912,7 @@ C****
       CALL HALO_UPDATE(GRID, HLAKE)
       CALL HALO_UPDATE(grid, FLAKE)
       CALL HALO_UPDATE(grid,   MWL)
+      CALL HALO_UPDATE(grid, MLDLK)
       CALL HALO_UPDATE(grid, TLAKE)
       CALL HALO_UPDATE(grid,  RATE) ! fixed
 #ifdef TRACERS_WATER
@@ -1025,10 +1026,11 @@ C**** Normal downstream flow
               DMM = (MWL(IU,JU)-MWLSILL)*RATE(IU,JU)
               IF (MWL(IU,JU)-DMM.lt.1d-6) DMM=MWL(IU,JU)
               DMM=MIN(DMM,0.5d0*RHOW*AXYP(IU,JU)) ! minimise 'flood' events!
-c              IF (FLAKE(IU,JU).gt.0) THEN
-c                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
-c                DMM=MIN(DMM,MLM)   ! not necessary since MLM>TOTD-HLAKE
-c              END IF
+              IF (FLAKE(IU,JU).gt.0) THEN
+                MLM=RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
+                if(dmm>.95d0*mlm)write(0,*)itime,iu,ju,dmm,'->',.95*mlm
+                DMM=MIN(DMM,.95d0*MLM) 
+              END IF
               DGM=TLAKE(IU,JU)*DMM*SHW  ! TLAKE always defined
 #ifdef TRACERS_WATER
               if (flake(iu,ju).gt.0) then
@@ -1116,7 +1118,7 @@ C**** accumulate river runoff diags (moved from ground)
 C****
 C**** Apply net river flow to continental reservoirs
 C****
-        DO J=J_0, J_1
+      DO J=J_0, J_1
         DO I=I_0,IMAXJ(J)
           IF(FLAND(I,J)+FLAKE(I,J).gt.0.) THEN
             MWL(I,J) = MWL(I,J) +  FLOW(I,J)
@@ -1964,8 +1966,10 @@ C****
 #endif
       USE SEAICE_COM, only : rsi
       USE DIAG_COM, only : jreg,j_wtr1,j_wtr2,j_run,j_erun
+#ifdef IRRIGATION_ON
      *      ,aij=>aij_loc,ij_irrW_tot,ij_mwl,ij_mwlir
      *      ,ij_gml,ij_gmlir,ij_irrgw,ij_irrgwE,j_irgw,j_irgwE
+#endif
       USE LAKES_COM, only : mwl,gml,tlake,mldlk,flake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
