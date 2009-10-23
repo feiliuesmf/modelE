@@ -1,15 +1,5 @@
 #include "rundeck_opts.h"
 
-      MODULE ICEDYN
-      integer :: imicdyn=0
-      contains
-      subroutine alloc_icedyn(grid)
-      use DOMAIN_DECOMP_ATM, only : DIST_GRID
-      TYPE (DIST_GRID), INTENT(IN) :: grid
-      return
-      end subroutine alloc_icedyn
-      END MODULE ICEDYN
-
       MODULE ICEDYN_COM
       integer :: imic=0,kticij=0
       real*8,dimension(2) :: rsix=0,rsiy=0,usi=0,vsi=0
@@ -22,6 +12,17 @@
       return
       end subroutine alloc_icedyn_com
       END MODULE ICEDYN_COM
+
+      MODULE ICEDYN
+      use ICEDYN_COM, only : usi, vsi
+      integer :: imicdyn=0
+      contains
+      subroutine alloc_icedyn(grid)
+      use DOMAIN_DECOMP_ATM, only : DIST_GRID
+      TYPE (DIST_GRID), INTENT(IN) :: grid
+      return
+      end subroutine alloc_icedyn
+      END MODULE ICEDYN
 
       SUBROUTINE ICEDYN_DUM
 !@sum ICEDYN_DUM dummy routines to replace ice dynamics
