@@ -22,9 +22,7 @@ module TimerList_mod
    public :: reset
    public :: getDefaultList
 
-#ifdef USE_MPI
    public :: gather
-#endif
 
    integer, parameter :: MAX_NAME_LENGTH = 20
 
@@ -99,11 +97,9 @@ module TimerList_mod
       module procedure resetTimer
    end interface
 
-#ifdef USE_MPI
    interface gather
       module procedure gather_list
    end interface
-#endif
 
    integer, parameter :: r64 = selected_real_kind(14)
    
@@ -397,7 +393,6 @@ contains
 
    end function getNameByIndex
 
-#ifdef USE_MPI
    function gather_list(this, communicator) result(globalList)
       use Timer_mod, only: gather
       type (TimerList_type), intent(in) :: this
@@ -414,8 +409,6 @@ contains
          globalTimer => getTimer(globalList, i)
          globalTimer = gather(localTimer, communicator)
       end do
-
    end function gather_list
-#endif
 
 end module TimerList_mod

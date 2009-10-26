@@ -13,9 +13,8 @@ module ProfileReport_mod
    public :: generateReport
    public :: delete
 
-#ifdef USE_MPI   
+
    public :: generateParallelReport
-#endif
 
    public :: MAX_RECORD_LENGTH
 
@@ -30,12 +29,10 @@ module ProfileReport_mod
       module procedure generateReportAsString
    end interface
 
-#ifdef USE_MPI
    interface generateParallelReport
       module procedure generateParallelReportDefault
       module procedure generateParallelReportFromList
    end interface
-#endif
 
    interface getHeader
       module procedure getHeader_report

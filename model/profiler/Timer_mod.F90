@@ -35,11 +35,11 @@ module Timer_mod
 
    integer, parameter :: r64 = selected_real_kind(14)
 
-#ifdef USE_MPI
+
    public :: gather
    public :: getMinProcess
    public :: getMaxProcess
-#endif
+
    public :: setSynchronous
 
    type Timer_type
@@ -73,11 +73,9 @@ module Timer_mod
       module procedure reset_
    end interface
 
-#ifdef USE_MPI
    interface gather
       module procedure gather_timer
    end interface
-#endif
 
    ! private shared variable for computing exclusive
    ! time
@@ -290,7 +288,6 @@ contains
 
    end function countMinMaxAvg
 
-#ifdef USE_MPI
    integer function getMinProcess(this)
       type (Timer_type), intent(in) :: this
       getMinProcess = this%minProcess
@@ -301,6 +298,7 @@ contains
       getMaxProcess = this%maxProcess
    end function getMaxProcess
 
+#ifdef USE_MPI
    function gather_timer(this, comm) result(globalTimer)
       type (Timer_type), intent(in) :: this
       integer, intent(in) :: comm
@@ -337,6 +335,24 @@ contains
 
       globalTimer%inclusiveTime = globalTimer%inclusiveTime / npes
       globalTimer%exclusiveTime = globalTimer%exclusiveTime / npes
+
+   end function gather_timer
+
+#else
+   function gather_timer(this, comm) result(globalTimer)
+      type (Timer_type), intent(in) :: this
+      integer, intent(in) :: comm
+      type (Timer_type) :: globalTimer
+
+      integer :: npes, rank, ier
+      integer, parameter :: root = 0
+
+      real (kind=r64) :: localInfo(2)
+      real (kind=r64):: globalInfo(2)
+
+      npes = 1
+      rank = 0
+      globalTimer = this
 
    end function gather_timer
 #endif
