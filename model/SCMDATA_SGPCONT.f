@@ -118,7 +118,7 @@ C
 
       IMPLICIT NONE
       INTEGER NTARM,NVARSRF 
-      parameter(NTARM=696,NVARSRF=43)  !SGP CONT 31
+      parameter(NTARM=744,NVARSRF=43)  !SGP CONT 31
       REAL*4 d(NVARSRF,NTARM), rdat(NTARM,NVARSRF)
       character*50 var_name(NVARSRF)    
 
@@ -474,7 +474,7 @@ c    &       2(i6),f10.2,f10.4,f10.4)
 
       IMPLICIT NONE
       INTEGER NTARM,NVARLAY,NPARM,NPM
-      parameter(NTARM=696,NVARLAY=25, NPARM=37)  !SGP CONT 31
+      parameter(NTARM=744,NVARLAY=25, NPARM=37)  !SGP CONT 31
       parameter(NPM=NPARM-1)
 
       real*4 time(NTARM),      !Calenday day
@@ -770,6 +770,19 @@ C
      &   6(f8.3))
 c
 c     if you want to change the land/water flags --- this is the place to do it
+CCCC   for this case assume land grid point
+      FLAND(I_TARG,J_TARG) = 1.0
+      FOCEAN(I_TARG,J_TARG) = 0.0
+      FEARTH(I_TARG,J_TARG) = 0.0
+      FLAKE0(I_TARG,J_TARG) = 0.0
+      FLAKE(I_TARG,J_TARG) = 0.0
+      FEARTH0(I_TARG,J_TARG) = 1.0
+      FEARTH(I_TARG,J_TARG) = 1.0
+      write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
+     &   FOCEAN(I_TARG,J_TARG),FLICE(I_TARG,J_TARG),
+     &   FLAKE0(I_TARG,J_TARG),
+     &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
+
 c
 c
       call pass_scm_surface 
@@ -858,7 +871,7 @@ C
 C
       IMPLICIT NONE
       INTEGER NTARM,NPARM 
-      parameter(NTARM=696,NPARM=37)  
+      parameter(NTARM=744,NPARM=37)  
       
       COMMON /CTHREE/ t3hr(NPARM,NTARM),q3hr(NPARM,NTARM),
      &     u3hr(NPARM,NTARM),v3hr(NPARM,NTARM),om3hr(NPARM,NTARM),
