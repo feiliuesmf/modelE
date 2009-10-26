@@ -643,7 +643,7 @@ C****
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
       IF (MOD(Itime,NDAY).eq.0) THEN      ! NEW DAY
-         call startTimer('DAILY')
+         call startTimer('Daily')
       if (kradia.gt.0) then               ! radiative forcing run
         CALL DAILY(.false.)
         if(Kradia<10)  CALL daily_RAD(.true.)
