@@ -33,6 +33,9 @@ module ReportColumn_mod
    integer, parameter, public :: MAXIMUM_TIME_COLUMN   = 6
    integer, parameter, public :: MINIMUM_TIME_COLUMN   = 7
    integer, parameter, public :: AVERAGE_TIME_COLUMN   = 8
+   integer, parameter, public :: MIN_PROCESS_COLUMN    = 9
+   integer, parameter, public :: MAX_PROCESS_COLUMN    = 10
+
 
    interface getHeader
       module procedure getHeader_column
@@ -81,6 +84,14 @@ contains
          column%header = 'Average'
          column%units  = 'seconds'
          column%numDigits = 2
+      case (MIN_PROCESS_COLUMN)
+         column%header = 'MIN PROCESS'
+         column%units  = ''
+         column%numDigits = 0
+      case (MAX_PROCESS_COLUMN)
+         column%header = 'MAX PROCESS'
+         column%units  = ''
+         column%numDigits = 0
       case default
          column%header = 'unknown'
       end select
@@ -125,14 +136,23 @@ contains
       character(len=this%fieldWidth) :: field
 
       integer :: numDigitsLHS
+      integer :: iQuantity
       real(kind=r64) :: quantity
       character(len=10) :: fmt
 
       if (this%columnType == NAME_COLUMN) then
          field = name
-      elseif (this%columnType == TRIP_COUNTS_COLUMN) then
+      elseif (any(this%columnType == (/ TRIP_COUNTS_COLUMN, MIN_PROCESS_COLUMN, MAX_PROCESS_COLUMN /))) then
          write(fmt,'("(I",I2.2,")")') this%fieldWidth
-         write(field,fmt) getNumTrips(timer)
+         select case (this%columnType)
+         case (TRIP_COUNTS_COLUMN)
+            iQuantity = getNumTrips(timer)
+         case (MIN_PROCESS_COLUMN)
+            iQuantity = getMinProcess(timer)
+         case (MAX_PROCESS_COLUMN)
+            iQuantity = getMaxProcess(timer)
+         end select
+         write(field,fmt) iQuantity
       else
          select case (this%columnType)
          case (INCLUSIVE_TIME_COLUMN)
@@ -140,9 +160,9 @@ contains
          case (EXCLUSIVE_TIME_COLUMN)
             quantity = getExclusiveTime(timer)
          case (MAXIMUM_TIME_COLUMN)
-            quantity = getMaximumTripTime(timer)
+            quantity = getMaximumTime(timer)
          case (MINIMUM_TIME_COLUMN)
-            quantity = getMinimumTripTime(timer)
+            quantity = getMinimumTime(timer)
          case (AVERAGE_TIME_COLUMN)
             quantity = getAverageTripTime(timer)
          case default

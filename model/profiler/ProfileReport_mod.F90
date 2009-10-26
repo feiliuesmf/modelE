@@ -13,6 +13,10 @@ module ProfileReport_mod
    public :: generateReport
    public :: delete
 
+#ifdef USE_MPI   
+   public :: generateParallelReport
+#endif
+
    public :: MAX_RECORD_LENGTH
 
    type ProfileReport_type
@@ -25,6 +29,13 @@ module ProfileReport_mod
       module procedure generateReportAsStringDefault
       module procedure generateReportAsString
    end interface
+
+#ifdef USE_MPI
+   interface generateParallelReport
+      module procedure generateParallelReportDefault
+      module procedure generateParallelReportFromList
+   end interface
+#endif
 
    interface getHeader
       module procedure getHeader_report
@@ -112,10 +123,6 @@ contains
 
    end function getUnits_report
 
-!!$   function getElement(this, func)
-!!$      interface
-!!$         function func(this,
-      
    function getLine_report(this, list, lineNumber) result(record)
       use Timer_mod
       type (ProfileReport_type) :: this
@@ -145,6 +152,26 @@ contains
       character(len=MAX_RECORD_LENGTH), pointer ::  report(:)
       report => generateReport(this, getDefaultList())
    end function generateReportAsStringDefault
+
+   function generateParallelReportDefault(this, communicator) result(report)
+      type (ProfileReport_type), intent(in) :: this
+      integer, intent(in) :: communicator
+      character(len=MAX_RECORD_LENGTH), pointer ::  report(:)
+      report => generateParallelReport(this, getDefaultList(), communicator)
+   end function generateParallelReportDefault
+
+   function generateParallelReportFromList(this, timerList, communicator) result(report)
+      type (ProfileReport_type), intent(in) :: this
+      type (TimerList_type), intent(in) :: timerList
+      integer, intent(in) :: communicator
+      character(len=MAX_RECORD_LENGTH), pointer ::  report(:)
+
+      type (TimerList_type) :: globalList
+
+      globalList = gather(timerList, communicator)
+      report => generateReport(this, globalList)
+
+   end function generateParallelReportFromList
 
    function generateReportAsString(this, timerList) result(report)
       type (ProfileReport_type), intent(in) :: this

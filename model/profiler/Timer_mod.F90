@@ -22,11 +22,8 @@ module Timer_mod
    public :: isActive
    public :: getInclusiveTime
    public :: getExclusiveTime
-   public :: getMaximumTripTime
-   public :: getMinimumTripTime
-
-   ! public paramteers
-   public :: TIMER_SUMMARY_LENGTH
+   public :: getMaximumTime
+   public :: getMinimumTime
 
    ! private
    public :: addTrip ! still public for testing purposes
@@ -36,25 +33,29 @@ module Timer_mod
 
    public :: r64
 
-   integer, parameter :: TIMER_SUMMARY_LENGTH =  200
    integer, parameter :: r64 = selected_real_kind(14)
 
-   public :: summary
 #ifdef USE_MPI
    public :: gather
-   public :: parallelSummary
+   public :: getMinProcess
+   public :: getMaxProcess
 #endif
 
    type Timer_type
       private
       real (kind=r64) :: inclusiveTime  = 0
       real (kind=r64) :: exclusiveTime  = 0
-      real (kind=r64) :: maximumTripTime  = 0
-      real (kind=r64) :: minimumTripTime  = huge(1._r64)
+      real (kind=r64) :: maximumTime  = 0
+      real (kind=r64) :: minimumTime  = huge(1._r64)
       integer         :: numTrips     = 0
       real (kind=r64) :: startTime    = 0.
       real (kind=r64) :: startExclusiveTime = 0
       logical         :: isActive     = .false.
+
+#ifdef USE_MPI
+      integer :: minProcess = 0
+      integer :: maxProcess = 0
+#endif
    end type Timer_type
 
    interface start
@@ -71,9 +72,11 @@ module Timer_mod
       module procedure reset_
    end interface
 
-   interface summary
-      module procedure summary_
+#ifdef USE_MPI
+   interface gather
+      module procedure gather_timer
    end interface
+#endif
 
    ! private shared variable for computing exclusive
    ! time
@@ -163,8 +166,8 @@ contains
       this%numTrips = 0
       this%inclusiveTime = 0
       this%exclusiveTime = 0
-      this%maximumTripTime = 0
-      this%minimumTripTime = huge(1._r64)
+      this%maximumTime = 0
+      this%minimumTime = huge(1._r64)
    end subroutine reset_
 
    subroutine addTime(this, dtInclusive, dtExclusive)
@@ -188,8 +191,8 @@ contains
       this%inclusiveTime = this%inclusiveTime + dtInclusive
       this%exclusiveTime = this%exclusiveTime + dtExclusive
 
-      this%maximumTripTime = max(this%maximumTripTime, dtExclusive)
-      this%minimumTripTime = min(this%minimumTripTime, dtExclusive)
+      this%maximumTime = max(this%maximumTime, dtExclusive)
+      this%minimumTime = min(this%minimumTime, dtExclusive)
 
       globalExclusiveTime = globalExclusiveTime + dtExclusive
 
@@ -218,25 +221,25 @@ contains
 
    end function isActive
 
-   function getMaximumTripTime(this) result(time)
+   function getMaximumTime(this) result(time)
       type (Timer_type), intent(in) :: this
       real (kind=r64) :: time
 
-      time = this%maximumTripTime
+      time = this%maximumTime
 
-   end function getMaximumTripTime
+   end function getMaximumTime
 
-   function getMinimumTripTime(this) result(time)
+   function getMinimumTime(this) result(time)
       type (Timer_type), intent(in) :: this
       real (kind=r64) :: time
 
       if (this%numTrips > 0) then
-         time = this%minimumTripTime
+         time = this%minimumTime
       else
          time = 0
       end if
 
-   end function getMinimumTripTime
+   end function getMinimumTime
 
    function getAverageTripTime(this) result(time)
       type (Timer_type), intent(in) :: this
@@ -254,32 +257,6 @@ contains
       type (Timer_type), intent(inout) :: this
       this%numTrips = this%numTrips + 1
    end subroutine addTrip
-
-   function summary_(this, scale) result(report)
-      use TimeFormatUtilities_mod, only: formatHMS, formatSeconds
-      type (Timer_type), intent(in) :: this
-      real(kind=r64), optional, intent(in) :: scale
-      character(len=TIMER_SUMMARY_LENGTH) :: report
-      character(len=15) :: hmsInclusive
-      character(len=15) :: hmsExclusive
-      character(len=15) :: seconds
-      character(len=60) :: tripStats
-
-      real(kind=r64) :: scale_
-      if (present(scale)) then
-         scale_ = scale
-      else
-         scale_ = 1 ! seconds
-      end if
-
-      seconds = formatSeconds(scale_ * getInclusiveTime(this), &
-           & decimalsBeforePoint = 8)
-      hmsInclusive = formatHMS(getInclusiveTime(this))
-      hmsExclusive = formatHMS(getExclusiveTime(this))
-      tripStats = countMinMaxAvg(getNumTrips(this), getMinimumTripTime(this), getMaximumTripTime(this), getAverageTripTime(this))
-      report = trim(seconds) // ' | ' // trim(hmsInclusive) // ' (' // trim(hmsExclusive) // ')' // '    '  // trim(tripStats)
-
-   end function summary_
 
    function countMinMaxAvg(count, minTime, maxTime, avgTime) result (string)
       use TimeFormatUtilities_mod, only: formatSeconds
@@ -299,59 +276,26 @@ contains
    end function countMinMaxAvg
 
 #ifdef USE_MPI
-   function parallelSummary(this, comm) result(report)
-      use TimeFormatUtilities_mod, only: formatHMS, formatSeconds
+   integer function getMinProcess(this)
       type (Timer_type), intent(in) :: this
-      integer, intent(in) :: comm
+      getMinProcess = this%minProcess
+   end function getMinProcess
 
-      character(len=TIMER_SUMMARY_LENGTH) :: report
-      character(len=15) :: hmsInclusive, hmsExclusive
-      character(len=60) :: tripStats
-      character(len=150) :: seconds
-      integer, parameter :: root = 0
+   integer function getMaxProcess(this)
+      type (Timer_type), intent(in) :: this
+      getMaxProcess = this%maxProcess
+   end function getMaxProcess
 
-      real (kind=r64) :: inclusiveTime, exclusiveTime, maxTime, minTime, avgTime
-
-      integer :: globalCount
-      integer :: rank, npes, ier
-
-      include 'mpif.h'
-
-      call MPI_Comm_size(comm, npes, ier)
-      call MPI_Comm_rank(comm, rank, ier)
-
-      call MPI_Reduce(getInclusiveTime(this), inclusiveTime, 1, MPI_DOUBLE_PRECISION, &
-           & MPI_SUM, root, comm, ier)
-      call MPI_Reduce(getExclusiveTime(this), exclusiveTime, 1, MPI_DOUBLE_PRECISION, &
-           & MPI_SUM, root, comm, ier)
-      call MPI_Reduce(getMaximumTripTime(this), maxTime, 1, MPI_DOUBLE_PRECISION, &
-           & MPI_MAX, root, comm, ier)
-      call MPI_Reduce(getMinimumTripTime(this), minTime, 1, MPI_DOUBLE_PRECISION, &
-           & MPI_MIN, root, comm, ier)
-      call MPI_Reduce(getNumTrips(this), globalCount, 1, MPI_INTEGER, &
-           & MPI_SUM, root, comm, ier)
-
-      if (rank == root) then
-         seconds = formatSeconds(inclusiveTime)
-         hmsInclusive = formatHMS(inclusiveTime)
-         hmsExclusive = formatHMS(exclusiveTime)
-         avgTime = exclusiveTime/npes
-         tripStats = countMinMaxAvg(globalCount, minTime, maxTime, avgTime)
-
-         report = trim(seconds) // ' | ' // trim(hmsInclusive) // ' (' // trim(hmsExclusive) // ')' // '    '  // trim(tripStats)
-      else
-         report = ' '
-      end if
-
-   end function parallelSummary
-
-   function gather(this, comm) result(globalTimer)
+   function gather_timer(this, comm) result(globalTimer)
       type (Timer_type), intent(in) :: this
       integer, intent(in) :: comm
       type (Timer_type) :: globalTimer
 
       integer :: npes, rank, ier
       integer, parameter :: root = 0
+
+      real (kind=r64) :: localInfo(2)
+      real (kind=r64):: globalInfo(2)
 
       include 'mpif.h'
 
@@ -360,16 +304,26 @@ contains
 
       call MPI_Allreduce(getNumTrips(this),        globalTimer%numTrips,        1, MPI_INTEGER, &
            & MPI_SUM, comm, ier)
+
       call MPI_Allreduce(getInclusiveTime(this),   globalTimer%inclusiveTime,   1, MPI_DOUBLE_PRECISION, &
            & MPI_SUM, comm, ier)
       call MPI_Allreduce(getexclusiveTime(this),   globalTimer%exclusiveTime,   1, MPI_DOUBLE_PRECISION, &
            & MPI_SUM, comm, ier)
-      call MPI_Allreduce(getMaximumTripTime(this), globalTimer%maximumTripTime, 1, MPI_DOUBLE_PRECISION, &
-           & MPI_MAX, comm, ier)
-      call MPI_Allreduce(getMinimumTripTime(this), globalTimer%minimumTripTime, 1, MPI_DOUBLE_PRECISION, &
-           & MPI_MIN, comm, ier)
 
-   end function gather
+      localInfo = (/ getInclusiveTime(this), real(rank,kind=r64) /)
+
+      call MPI_Allreduce(localInfo, globalInfo, 1, MPI_2DOUBLE_PRECISION, MPI_MAXLOC, comm, ier)
+      globalTimer%maximumTime = globalInfo(1)
+      globalTimer%maxProcess  = nint(globalInfo(2))
+
+      call MPI_Allreduce(localInfo, globalInfo, 1, MPI_2DOUBLE_PRECISION, MPI_MINLOC, comm, ier)
+      globalTimer%minimumTime = globalInfo(1)
+      globalTimer%minProcess  = nint(globalInfo(2))
+
+      globalTimer%inclusiveTime = globalTimer%inclusiveTime / npes
+      globalTimer%exclusiveTime = globalTimer%exclusiveTime / npes
+
+   end function gather_timer
 #endif
 
 end module Timer_mod

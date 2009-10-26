@@ -18,13 +18,13 @@ module TimerList_mod
 
    public :: start
    public :: stop
-   public :: printSummary
-#ifdef USE_MPI
-   public :: printParallelSummary
-#endif
 
    public :: reset
    public :: getDefaultList
+
+#ifdef USE_MPI
+   public :: gather
+#endif
 
    integer, parameter :: MAX_NAME_LENGTH = 20
 
@@ -99,10 +99,11 @@ module TimerList_mod
       module procedure resetTimer
    end interface
 
-   interface printSummary
-      module procedure printSummaryDefault
-      module procedure printSummaryList
+#ifdef USE_MPI
+   interface gather
+      module procedure gather_list
    end interface
+#endif
 
    integer, parameter :: r64 = selected_real_kind(14)
    
@@ -390,105 +391,25 @@ contains
 
    end function getNameByIndex
 
-   subroutine printSummaryDefault(report, scale, units)
-      use Timer_mod, only: summary
-      character(len=*), pointer :: report(:)
-      real(kind=r64), optional, intent(in) :: scale
-      character(len=*), optional, intent(in) :: units
-
-      call printSummary(report, defaultList, scale, units)
-
-   end subroutine printSummaryDefault
-
-   subroutine printSummaryList(report, timerList, scale, units)
-      use Timer_mod, only: summary
-      use Timer_mod, only: getInclusiveTime, getExclusiveTime
-      character(len=*), pointer :: report(:)
-      type (TimerList_type), target, intent(in) :: timerList
-      real(kind=r64), optional, intent(in) :: scale
-      character(len=*), optional, intent(in) :: units
-
-      character(len=7) :: units_
-      integer :: i,idx
-      real (kind=r64) :: timeMain
-      real (kind=r64) :: fraction
-      integer :: numTimers
-      type (NamedTimer_type), pointer :: namedTimer
-
-      if (present(units)) then
-         units_ = units(1:min(7,len(units)))
-      else
-         units_ = 'seconds'
-      end if
-
-      numTimers = getNumTimers(timerList)
-      allocate(report(4 + numTimers))
-      write(report(1),"(T46,a,T88,a)")'Total Time (hhh:mm:ss.hh)','Trip Time (seconds)'
-      write(report(2),"(T8,a,T27,a,T34,a,T47,a,T57,a,T75,a,T85,a,T99,a,T113,a)") &
-           & 'Timer', '%', units_, 'Inclusive','(  Exclusive )',  &
-           & 'Cycles','Average', 'Maximum', 'Minimum'
-      write(report(3),"(122('-'))")
-
-      timeMain = getInclusiveTime(timerList%list(1)%timer)
-      do i = 1, numTimers
-         namedTimer => timerList%list(i)
-         idx = 3+i
-         report(idx)(1:22) = namedTimer%name
-         fraction = getExclusiveTime(namedTimer%timer) / timeMain
-         call writePercentage(report(idx)(23:29), fraction)
-         report(idx)(30:)  = trim(summary(namedTimer%timer, scale))
-      end do
-
-      write(report(4+numTimers),"(122('-'))")
-
-   contains
-
-      subroutine writePercentage(string, fraction)
-         character(len=*), intent(inOut) :: string
-         real (kind=r64), intent(in) :: fraction
-         
-         integer :: ticks, percentage
-         
-         ticks = nint(fraction * 100**2)
-         percentage = ticks/100
-         write(string,'(1x,i3.1,".",i2.2)') percentage, ticks - percentage*100
-         
-   end subroutine writePercentage
-
-   end subroutine printSummaryList
-
 #ifdef USE_MPI
-   subroutine printParallelSummary(comm, report)
-      use Timer_mod, only: summary, gather
-      integer, intent(in) :: comm
-      character(len=*), pointer :: report(:)
-      character(len=220) :: line
+   function gather_list(this, communicator) result(globalList)
+      use Timer_mod, only: gather
+      type (TimerList_type), intent(in) :: this
+      integer, intent(in) :: communicator
+
+      type (TimerList_type) :: globalList
+      type (Timer_type), pointer :: globalTimer
+      type (Timer_type), pointer :: localTimer
       integer :: i
-      integer :: rank, ier
-      integer, parameter :: root = 0
-      integer :: idx
 
-      type (TimerList_type) :: globalTimerList
-      integer :: numTimers
-
-      numTimers = getNumTimers(defaultList)
-
-      allocate(globalTimerList%list(numTimers))
-      do i = 1, numTimers
-         globalTimerList%list(i)%name = defaultList%list(i)%name
-         globalTimerList%list(i)%timer = gather(defaultList%list(i)%timer, comm)
+      do i = 1, getNumTimers(this)
+         call addTimer(globalList, trim(getName(this, i)))
+         localTimer => getTimer(this, i)
+         globalTimer => getTimer(globalList, i)
+         globalTimer = gather(localTimer, communicator)
       end do
 
-      call mpi_comm_rank(comm, rank, ier)
-      if (rank == root) then
-         call printSummary(report, globalTimerList)
-      else
-         allocate(report(1))
-         report(1) = ' '
-      end if
-
-      deallocate(globalTimerList%list)
-   end subroutine printParallelSummary
+   end function gather_list
 #endif
 
 end module TimerList_mod

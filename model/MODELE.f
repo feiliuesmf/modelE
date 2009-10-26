@@ -58,7 +58,6 @@ c$$$      USE MODEL_COM, only: clock
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
      &    SCM_DEL_Q,iu_scm_prt,iu_scm_diag
 #endif
-      use TimerPackage_mod, only: TIMER_SUMMARY_LENGTH
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
 
@@ -905,6 +904,9 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       use TimerPackage_mod
       use DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
+#if  defined(USE_ESMF) || defined(USE_MPP)
+      include 'mpif.h'
+#endif
       real*8, intent(in) :: elapsedTimeInSeconds
       character(len=MAX_RECORD_LENGTH), pointer :: lines(:)
       integer :: i
@@ -943,16 +945,23 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call setPrecision(column, 6)
       call addColumn(report, column)
 
+      call addColumn(report, newColumn(MAX_PROCESS_COLUMN,fieldWidth=4))
+
       column = newColumn(MINIMUM_TIME_COLUMN, fieldWidth=10)
       call setPrecision(column, 6)
       call addColumn(report, column)
+      call addColumn(report, newColumn(MIN_PROCESS_COLUMN,fieldWidth=4))
 
       column = newColumn(AVERAGE_TIME_COLUMN, fieldWidth=10)
       call setPrecision(column, 6)
       call addColumn(report, column)
 
-
+#if  defined(USE_ESMF) || defined(USE_MPP)
+      lines => generateParallelReport(report, MPI_COMM_WORLD)
+#else
       lines => generateReport(report)
+#endif
+
       if (AM_I_ROOT()) then
          do i = 1, size(lines)
             write(*,'(a)') trim(lines(i))
