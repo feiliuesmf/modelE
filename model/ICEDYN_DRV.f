@@ -605,6 +605,8 @@ c temporarily empty.
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
       use cs2ll_utils, only : ll2csint_ij
 #endif
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
       SAVE
 C**** intermediate calculation for pressure gradient terms
@@ -630,6 +632,7 @@ C****
       INTEGER :: aJ_1H  , aJ_0H
       INTEGER :: aJ_1S  , aJ_0S
 
+      call startTimer('DYNSI()')
 C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       CALL iGET(grid_ICDYN, J_STRT=iJ_0       , J_STOP=iJ_1
      &                   , J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S
@@ -1065,6 +1068,7 @@ C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
 
       deallocate(aPtmp,iPtmp,iRSI,iMSI)
 
+      call stopTimer('DYNSI()')
       RETURN
       END SUBROUTINE DYNSI
 

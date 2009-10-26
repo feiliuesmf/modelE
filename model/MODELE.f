@@ -525,6 +525,7 @@ C**** FLUXES FROM ONE MODULE CAN BE SUBSEQUENTLY APPLIED TO THAT BELOW
 C****
 C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       call startTimer('Surface')
+      call startTimer('Precip')
       CALL PRECIP_SI
       CALL PRECIP_LI
 C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
@@ -532,6 +533,7 @@ C**** APPLY PRECIPITATION AND RUNOFF TO LAKES/OCEANS
       CALL PRECIP_OC
          CALL TIMER (NOW,MSURF)
          CALL CHECKT ('PRECIP')
+      call stopTimer('Precip')
 #ifdef TRACERS_ON
 C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
@@ -567,7 +569,9 @@ C**** APPLY FLUXES TO OCEAN, DO OCEAN DYNAMICS AND CALC. ICE FORMATION
 #ifdef USE_SYSUSAGE
       call sysusage(2,1)
 #endif
+      call startTimer('OCEANS')
       CALL OCEANS
+      call stopTimer('OCEANS')
 #ifdef USE_SYSUSAGE
       call sysusage(2,2)
 #endif
@@ -639,6 +643,7 @@ C****
       Nstep=Nstep+NIdyn                   ! counts DT(dyn)-steps
 
       IF (MOD(Itime,NDAY).eq.0) THEN      ! NEW DAY
+         call startTimer('DAILY')
       if (kradia.gt.0) then               ! radiative forcing run
         CALL DAILY(.false.)
         if(Kradia<10)  CALL daily_RAD(.true.)
@@ -669,6 +674,7 @@ C****
         call sys_flush(6)
       end if   ! kradia: full model (or rad.forcing run)
       CALL UPDTYPE
+      call stopTimer('Daily')
       END IF   !  NEW DAY
 
 #ifdef USE_FVCORE
@@ -886,16 +892,25 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       contains
 
       subroutine initializeDefaultTimers()
-      use TimerList_mod, only: addTimer
-      use TimerList_mod, only: initialize
+      use TimerPackage_mod
 
       call initialize()
       call addTimer('Main Loop')
       call addTimer(' Atm. Dynamics')
+      call addTimer(' MELT_SI()')
       call addTimer(' CONDSE()')
       call addTimer(' RADIA()')
       call addTimer(' Surface')
+      call addTimer('  Precip')
       call addTimer('  SURFCE()')
+      call addTimer(' DYNSI()')
+      call addTimer(' UNDERICE()')
+      call addTimer(' GROUND_SI()')
+      call addTimer(' GROUND_LI()')
+      call addTimer(' GROUND_LK()')
+      call addTimer(' RIVERF()')
+      call addTimer(' OCEANS')
+      call addTimer(' Daily')
       call addTimer(' Diagnostics')
 
       end subroutine initializeDefaultTimers

@@ -859,6 +859,8 @@ C****
      *     ,trlake,ntm
 #endif
       USE SEAICE_COM, only : rsi
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
 
       INTEGER :: FROM,J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1,I_0H,I_1H
@@ -888,6 +890,7 @@ C****         TLAKE  Lake surface temperature (C)
 C****
 C**** Calculate net mass and energy changes due to river flow
 C****
+      call startTimer('RIVERF()')
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
@@ -1185,6 +1188,7 @@ C**** Set GTEMP array for lakes
         END DO
       END DO
 
+      call stopTimer('RIVERF()')
       RETURN
 C****
       END SUBROUTINE RIVERF
@@ -1986,6 +1990,8 @@ C****
      &                 ,MWL_to_irrig,GML_to_irrig
      &                 ,irrig_gw,irrig_gw_energy
 #endif
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
 C**** grid box variables
       REAL*8 ROICE, POLAKE, PLKICE, PEARTH, PLICE
@@ -2006,6 +2012,7 @@ C**** output from LKSOURC
       INTEGER I,J,JR
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
 
+      call startTimer('GROUND_LK()')
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       I_0 = grid%I_STRT
@@ -2212,6 +2219,7 @@ C**** Store mass and energy fluxes for formation of sea ice
 
       CALL PRINTLK("G2")
 
+      call stopTimer('GROUND_LK()')
       RETURN
 C****
       END SUBROUTINE GROUND_LK

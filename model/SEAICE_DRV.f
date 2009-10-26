@@ -198,6 +198,8 @@ C****
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 coriol,ustar,Tm,Sm,Si,Tic,dh,mflux,hflux,sflux,fluxlim
@@ -210,6 +212,8 @@ C****
 #endif
 #endif
       integer :: J_0, J_1 ,I_0,I_1
+
+      call startTimer('UNDERICE()')
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -303,6 +307,7 @@ C**** Limit lake-to-ice flux if lake is too shallow (< 40cm)
       END DO
 
 C****
+      call stopTimer('UNDERICE()')
       RETURN
       END SUBROUTINE UNDERICE
 
@@ -336,6 +341,8 @@ C****
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
       REAL*8, DIMENSION(LMI) :: HSIL,TSIL,SSIL
       REAL*8 MSI2,ROICE,SNOW,ENRGUSED,RUN0,SALT,POCEAN,TFO
@@ -350,6 +357,7 @@ C****
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
+      call startTimer('MELT_SI()')
       CALL GET(grid, J_STRT = J_0, J_STOP = J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -461,6 +469,7 @@ C****
         END DO
       END DO
 C****
+      call stopTimer('MELT_SI()')
       RETURN
       END SUBROUTINE MELT_SI
 
@@ -494,6 +503,8 @@ C****
      *     ,ij_mltp,ij_zsnow,ij_fwio,ij_htio,ij_stio
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_ATM, only : GET, GLOBALSUM
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
 
       REAL*8, DIMENSION(LMI) :: HSIL,SSIL
@@ -508,12 +519,13 @@ C****
       REAL*8, DIMENSION(NTM) :: trflux,ftroc,trevap,trrun,trsnwic,trm
      *     ,tralpha
 #endif
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
       integer :: J_0, J_1, J_0H, J_1H ,I_0,I_1
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+      call startTimer('GROUND_SI()')
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
       CALL GET(grid, J_STRT = J_0,     J_STOP = J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -712,6 +724,7 @@ C**** set total atmopsheric pressure anomaly in case needed by ocean
       IF (HAVE_SOUTH_POLE) APRESS(2:IM,1)  = APRESS(1,1)
       IF (HAVE_NORTH_POLE) APRESS(2:IM,JM) = APRESS(1,JM)
 C****
+      call stopTimer('GROUND_SI()')
       END SUBROUTINE GROUND_SI
 
       SUBROUTINE FORM_SI

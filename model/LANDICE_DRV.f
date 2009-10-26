@@ -414,6 +414,8 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
 #endif
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET
+      USE TimerPackage_mod, only: startTimer => start
+      USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
 
       REAL*8 SNOW,TG1,TG2,F0DT,F1DT,EVAP,EDIFS,DIFS,RUN0,PLICE,DXYPIJ
@@ -433,6 +435,7 @@ c       CALL INC_AREG(I,J,JR,J_ERUN, ERUN0*PLICE) ! (Tg=0)
       INTEGER I,J,JR
       INTEGER :: J_0,J_1, J_0H, J_1H ,I_0,I_1
 
+      call startTimer('GROUND_LI()')
       CALL GET(GRID,J_STRT=J_0      ,J_STOP=J_1
      &             ,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
@@ -549,6 +552,7 @@ C****
       END DO
       END DO
 
+      call stopTimer('GROUND_LI()')
       END SUBROUTINE GROUND_LI
 
       SUBROUTINE conserv_MLI(ICE)
@@ -581,6 +585,7 @@ C****
       END DO
       IF(HAVE_SOUTH_POLE) ICE(2:im,1) =ICE(1,1)
       IF(HAVE_NORTH_POLE) ICE(2:im,JM)=ICE(1,JM)
+
       RETURN
 C****
       END SUBROUTINE conserv_MLI
