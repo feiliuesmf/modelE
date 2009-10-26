@@ -348,7 +348,7 @@ contains
       integer :: i
 
       do i = 1, getNumTimers(this)
-         if (trim(name) == trim(this%list(i)%name)) then
+         if (trim(adjustl(name)) == trim(adjustl(this%list(i)%name))) then
             getIndex = i
             return
          end if

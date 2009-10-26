@@ -891,12 +891,12 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       call initialize()
       call addTimer('Main Loop')
-      call addTimer('Atm. Dynamics')
-      call addTimer('CONDSE()')
-      call addTimer('RADIA()')
-      call addTimer('Surface')
-      call addTimer('SURFCE()')
-      call addTimer('Diagnostics')
+      call addTimer(' Atm. Dynamics')
+      call addTimer(' CONDSE()')
+      call addTimer(' RADIA()')
+      call addTimer(' Surface')
+      call addTimer('  SURFCE()')
+      call addTimer(' Diagnostics')
 
       end subroutine initializeDefaultTimers
 
