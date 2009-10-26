@@ -40,6 +40,7 @@ module Timer_mod
    public :: getMinProcess
    public :: getMaxProcess
 #endif
+   public :: setSynchronous
 
    type Timer_type
       private
@@ -52,10 +53,10 @@ module Timer_mod
       real (kind=r64) :: startExclusiveTime = 0
       logical         :: isActive     = .false.
 
-#ifdef USE_MPI
-      integer :: minProcess = 0
-      integer :: maxProcess = 0
-#endif
+      logical :: synchronize = .false.
+      integer :: minProcess = 0 ! only used with MPI
+      integer :: maxProcess = 0 ! only used with MPI
+
    end type Timer_type
 
    interface start
@@ -84,6 +85,12 @@ module Timer_mod
 
 contains
 
+   subroutine setSynchronous(this, flag)
+      type (Timer_type), intent(inOut) :: this
+      logical, intent(in) :: flag
+      this%synchronize = flag
+   end subroutine setSynchronous
+
    integer function getNumTrips(this)
       type (Timer_type), intent(in) :: this
       getNumTrips = this%numTrips
@@ -102,6 +109,13 @@ contains
 
    subroutine start_(this)
       type (Timer_type), intent(inout) :: this
+#ifdef USE_MPI
+      integer :: ier
+      include 'mpif.h'
+#endif
+#ifdef USE_MPI
+      if (this%synchronize) call mpi_barrier(MPI_COMM_WORLD, ier)
+#endif
       call startAtTime(this, getWTime())
    end subroutine start_
 
@@ -168,6 +182,7 @@ contains
       this%exclusiveTime = 0
       this%maximumTime = 0
       this%minimumTime = huge(1._r64)
+      this%synchronize = .false.
    end subroutine reset_
 
    subroutine addTime(this, dtInclusive, dtExclusive)
