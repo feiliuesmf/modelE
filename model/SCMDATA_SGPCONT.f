@@ -1401,7 +1401,7 @@ c
                      if (N.eq.NB) then
                          DELAG = SGE_P(L)-APE(N) 
                      else
-                         DELAG = AP(N-1)-AP(N)
+                         DELAG = APE(N-1)-APE(N)
                      endif
                      QHR(L,ihr) = QHR(L,ihr) +DELAG*q1hr(N-1,ihr)
                      THR(L,ihr) = THR(L,ihr) +DELAG*t1hr(N-1,ihr)
