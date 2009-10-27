@@ -50,7 +50,7 @@ C****
      *  JST(NMST,2) = Reshape ( (/
      *    126,104,
      *    126,103/),(/NMST,2/) ),
-     *  LMST(NMST) = (/ 7, 4/)
+     *  LMST(NMST) = (/ 4, 2/)
       Real*8,Parameter ::
      *  XST(NMST,2) = Reshape ( (/
      *      .7d0, .7d0, 
