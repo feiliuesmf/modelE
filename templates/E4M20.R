@@ -148,7 +148,7 @@ cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 ! tuning param.: this setting works for 1850; use U00wtrX=1.28 for 1979
 
 U00a=.60    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=2.0    ! below 850mb and MC regions; then tune this to get rad.balance
+U00b=2.3    ! below 850mb and MC regions; then tune this to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.62      ! U00ice+.01 =>dBal=1.5,dPl.alb=-.9%   goals:Bal=0,plan.alb=30%
 U00wtrX=1.29    ! U00wtrX+.01=>dBal=0.7,dPl.alb=-.25%  Bal=glb.ann NetHt at z0
@@ -209,7 +209,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 
  &INPUTZ
    YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! IYEAR1 may be = IYEARI (default) or earlier
-   YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
+   YEARE=1961,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
 !  suggested settings for E4qsM20
 !! YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
