@@ -134,6 +134,8 @@ c**** input
         REAL*8 :: pprec,pevap
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
         REAL*8 :: d_dust(Ntm_dust)
+!@var pbl_args%mcfrac fractional area with moist convection in grid cell
+        REAL(KIND=8) :: mcfrac
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 !@var pbl_args%minfr distribution of tracer fractions in grid box
         REAL*8 :: minfr(Mtrac)
@@ -633,7 +635,7 @@ C**** and GHY_DRV. This may need to be tracer dependent?
       CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
      &     ,pbl_args%wsubwd,pbl_args%wsubwm)
       CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
-     &     ,wsgcm,wspdf)
+     &     ,pbl_args%mcfrac,wsgcm,wspdf)
 #endif
 csgs      sig0 = sig(e(1),mdf,dbl,delt,ch,ws,t(1))
 csgsC**** possibly tracer specific coding
@@ -3304,7 +3306,7 @@ C**** Use approximate value for small sig and unresolved delta function
       end if
       end function bessi0
 
-      SUBROUTINE get_wspdf(wsubtke,wsubwd,wsubwm,wsgcm,wspdf)
+      SUBROUTINE get_wspdf(wsubtke,wsubwd,wsubwm,mcfrac,wsgcm,wspdf)
 !@sum calculates mean surface wind speed using the integral over the
 !@sum probability density function of the wind speed from lookup table
 !@auth Reha Cakmur/Jan Perlwitz
@@ -3312,7 +3314,7 @@ C**** Use approximate value for small sig and unresolved delta function
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 
-      USE tracers_dust,ONLY : McFrac,kim,kjm,table1,x11,x21
+      USE tracers_dust,ONLY : kim,kjm,table1,x11,x21
 
       IMPLICIT NONE
 
@@ -3322,7 +3324,7 @@ c Input:
 !@var wsubwm velocity scale of sub grid scale moist convection
 !@var wsgcm GCM surface wind
 
-      REAL*8,INTENT(IN) :: wsubtke,wsubwd,wsubwm,wsgcm
+      REAL(KIND=8),INTENT(IN) :: wsubtke,wsubwd,wsubwm,mcfrac,wsgcm
 
 c Output:
 !@var wspdf mean surface wind speed from integration over PDF

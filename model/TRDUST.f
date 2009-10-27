@@ -7,7 +7,7 @@
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE model_com,ONLY : dtsrc,nisurf
       USE socpbl,ONLY : t_pbl_args
-      USE tracers_dust,ONLY : imDust,McFrac,lim,ljm,lkm,table,x1,x2,x3
+      USE tracers_dust,ONLY : imDust,lim,ljm,lkm,table,x1,x2,x3
 
       IMPLICIT NONE
 
@@ -24,7 +24,7 @@
       REAL*8 :: hbaijd,hbaijold
       LOGICAL :: pmei
       REAL*8 :: wearth,aiearth,wfcs,pdfint,wsubtke,wsubwd,wsubwm
-      REAL*8 :: soilwet,sigma,ans,dy,workij1,workij2,wsgcm1
+      REAL(KIND=8) :: soilwet,sigma,ans,dy,workij1,workij2,wsgcm1,mcfrac
       CHARACTER(17) :: fname='WARNING_in_TRDUST'
       CHARACTER(25) :: subr='dust_emission_constraints'
       CHARACTER(5) :: vname1='wsgcm',vname2='sigma'
@@ -44,6 +44,7 @@ c**** input
       wsubtke=pbl_args%wsubtke
       wsubwd=pbl_args%wsubwd
       wsubwm=pbl_args%wsubwm
+      mcfrac=pbl_args%mcfrac
 
       IF (imDUST == 2) THEN
 

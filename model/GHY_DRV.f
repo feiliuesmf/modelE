@@ -199,6 +199,7 @@ ccc extra stuff which was present in "earth" by default
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       USE constant,ONLY : sday
       USE model_com,ONLY : jday,jmon,wfcs
+      USE clouds_com,ONLY : fss
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : d_dust,ers_data,hbaij,ricntd,src_fnct
@@ -332,6 +333,7 @@ c**** prescribed dust emission
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       pbl_args%minfr(:)=minfr(i,j,:)
 #endif
+      pbl_args%mcfrac=1.-fss(1,i,j)
 
       end subroutine ghy_tracers_set_cell
 
