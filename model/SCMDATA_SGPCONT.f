@@ -1137,10 +1137,9 @@ c            enddo
 c            write(iu_scm_prt,*) 'n APE    ',nparm+1,APE(nparm+1)
 
 
-             IASTART=2
+             IASTART=1
+             if (AMPS(ihr).lt.APE(1)) IASTART=2
              if (AMPS(ihr).lt.APE(2)) IASTART=3
-
-
 c
              sumaqh = 0.0
              sumaqv = 0.0
