@@ -254,6 +254,7 @@ rad_interact_aer=0 ! 1: couples aerosols to radiation, 0: use climatology
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
+to_conc=0,1,1,1,1,1 ! 1: taijln diags as concentration; 0: as mixing ratio
 
 !--------- sulfate and carbon aerosol parameters -----
 madaer=3           ! 1: default sulfate and carbon aerosol 3: updated aerosols
