@@ -387,6 +387,7 @@ c -------------------------------------------------------------
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
+     &     ,WRITET_PARALLEL
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
@@ -430,7 +431,7 @@ C**** ignore ocean currents for initialisation.
       integer :: I_1H, I_0H, J_1H, J_0H
 
        character*80 :: titrrr
-       real*4 rrr(im,jm)
+       real*8 rrr(im,grid%J_STRT_HALO:grid%J_STOP_HALO)
 
         titrrr = "roughness length over land"
         rrr = 0.
@@ -580,7 +581,9 @@ C**** fix roughness length for ocean ice that turned to land ice
         end do
       end do
 
-      write(981) titrrr,rrr
+      !write(981) titrrr,rrr
+      call WRITET_PARALLEL(grid,981,"fort.981",rrr,titrrr)
+
 
       return
  1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)

@@ -2219,7 +2219,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
       subroutine init_land_surface(redogh,inisnow,istart)
       !use veg_drv, only : spgsn
-      use DOMAIN_DECOMP_ATM, only : GRID, GET
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, WRITET_PARALLEL
       use param, only : sync_param, get_param
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
@@ -2249,7 +2249,6 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_com, only:  avh !,afb
 #endif
 #endif
-      use PBLCOM, only : roughl
       implicit none
       integer, intent(in) :: istart
       logical, intent(in) :: redogh, inisnow
@@ -2269,29 +2268,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       real*8 trsoil_tot,wsoil_tot,fm,height_can
       integer n
 #endif
-
       integer I_0, I_1, J_0, J_1, i, j, ibv
-
-#ifdef USE_ENT
-      real*8,dimension(N_COVERTYPES) :: fr_cover0
-#endif
-      real*8 :: fr_cover(12), z0_veg
-!     original Model II (1983) values (except crops)
-!      real*8, parameter :: z0_cover(12) =
-!     &     (/0.005d0, 0.01d0, 0.01d0,  0.018d0, 0.32d0, 1.d0, 1.d0,
-!     &     2.d0, 0.15d0, 0.005d0, 0.d0, 0.d0 /)
-!     these are values which I think are more appropriate (based on
-!     info from Monin & Yaglom (~h/7.5) and other literature) -I.A.
-      real*8, parameter :: z0_cover(12) =
-     &     (/0.005d0, 0.015d0, 0.15d0,  0.5d0, 0.7d0, 1.5d0, 1.5d0,
-     &     2.d0, 0.2d0, 0.005d0, 0.d0, 0.d0 /)
-
-       character*80 :: titrrr
-       real*8 rrr(im,jm)
-       real*8 :: roughl_lice = -1.d30
-
-        titrrr = "roughness length over land"
-        rrr = 0.
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
      *               I_STRT=I_0, I_STOP=I_1 )
@@ -2300,7 +2277,6 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       call sync_param( "reset_snow_ic", reset_snow_ic )
       call  get_param( "variable_lk", variable_lk )
       call  get_param( "init_flake", init_flake )
-      call sync_param( "roughl_lice", roughl_lice )
 
 c**** recompute ground hydrology data if necessary (new soils data)
       if (redogh) then
@@ -2533,55 +2509,7 @@ c**** set gtemp array
         end do
       end do
 
-c**** compute roughnes length
-!!!#if ( defined ROUGHL_HACK ) && ( defined USE_ENT )
-      roughl(:,:) = 0.d0
-        do j=J_0,J_1
-          do i=I_0,I_1
-            if ( focean(i,j) >= 1.d0 ) cycle
-            rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
-            ! make sure that roughness length is always > 0
-            rrr(i,j) = max( rrr(i,j), 0.005d0 )  ! 0.005 is flat desert
-          enddo
-        enddo
-        write(982) titrrr,real(rrr,kind=4)
-        do j=J_0,J_1
-          do i=I_0,I_1
-            !if ( fearth(i,j) <= 0.d0 ) cycle
-            if ( focean(i,j) >= 1.d0 ) cycle
-#ifdef USE_ENT
-            !print *,i,j,focean(i,j),fearth(i,j)
-            call ent_get_exports( entcells(i,j),
-     &           vegetation_fractions=fr_cover0 )
-            call map_ent2giss(fr_cover0,fr_cover) !temp hack: ent pfts->giss veg
-            
-#else
-            fr_cover(:) = vdata(i,j,:)
-#endif
-            z0_veg = (1.d0-flice(i,j))*sum( fr_cover(:)*z0_cover(:) )
-     &           + flice(i,j)*0.005d0
-            rrr(i,j) = max ( rrr(i,j), z0_veg )
-          enddo
-        enddo
-c**** hack to reset roughl for non-standard land ice fractions
-        if ( roughl_lice > 0.d0 ) then
-          do j=J_0,J_1
-            do i=I_0,I_1
-              if ( flice(i,j) > 0.d0 ) rrr(i,j) =
-     &          ( rrr(i,j)*(1.d0-flice(i,j)) + roughl_lice*flice(i,j) )
-            enddo
-          enddo
-        endif
-
-        do j=J_0,J_1
-          do i=I_0,I_1
-            roughl(i,j) = rrr(i,j)
-          enddo
-        enddo
-!!!#endif
-        titrrr = " rough len + veg"
-        write(982) titrrr,real(rrr,kind=4)
-
+      call set_roughness_length
 
 #ifdef TRACERS_WATER
 ccc still not quite correct (assumes fw=1)
@@ -3721,6 +3649,8 @@ c****
 c**** find leaf-area index & water field capacity for ground layer 1
       if(cond_scheme.eq.2) call updsur (0,jday) ! Update vegn albedos
 #endif
+      call set_roughness_length
+
             !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
 #ifndef USE_ENT
       cosday=cos(twopi/edpery*jday)
@@ -3981,6 +3911,107 @@ c****
 
       end subroutine ground_e
 
+
+      subroutine set_roughness_length
+      use DOMAIN_DECOMP_ATM, only : GRID, GET, WRITET_PARALLEL
+      use param, only : sync_param, get_param
+      use PBLCOM, only : roughl
+      use model_com, only : focean, flice
+      use ghy_com, only : top_dev_ij
+#ifdef USE_ENT
+      use ent_com, only : entcells
+      use ent_mod
+      use ent_drv, only : map_ent2giss !YKIM-temp hack
+#else
+      use veg_drv, only : veg_set_cell
+      use vegetation, only : t_vegcell
+      use veg_com, only : vdata
+#endif
+#ifdef USE_ENT
+      real*8,dimension(N_COVERTYPES) :: fr_cover0
+#endif
+      real*8 :: fr_cover(12), z0_veg
+!     original Model II (1983) values (except crops)
+!      real*8, parameter :: z0_cover(12) =
+!     &     (/0.005d0, 0.01d0, 0.01d0,  0.018d0, 0.32d0, 1.d0, 1.d0,
+!     &     2.d0, 0.15d0, 0.005d0, 0.d0, 0.d0 /)
+!     these are values which I think are more appropriate (based on
+!     info from Monin & Yaglom (~h/7.5) and other literature) -I.A.
+      real*8, parameter :: z0_cover(12) =
+     &     (/0.005d0, 0.015d0, 0.15d0,  0.5d0, 0.7d0, 1.5d0, 1.5d0,
+     &     2.d0, 0.2d0, 0.005d0, 0.d0, 0.d0 /)
+
+      character*80 :: titrrr, titvvv
+      real*8 rrr(im,grid%J_STRT_HALO:grid%J_STOP_HALO)
+      real*8 vvv(im,grid%J_STRT_HALO:grid%J_STOP_HALO,10)
+      real*8 :: roughl_lice = -1.d30
+      integer I_0, I_1, J_0, J_1, i, j, k
+
+      titrrr = "roughness length over land"
+      rrr = 0.
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1,
+     *               I_STRT=I_0, I_STOP=I_1 )
+
+      call sync_param( "roughl_lice", roughl_lice )
+
+      roughl(:,:) = 0.d0
+      do j=J_0,J_1
+        do i=I_0,I_1
+          if ( focean(i,j) >= 1.d0 ) cycle
+          rrr(i,j) = .6d0 * 0.041d0 * top_dev_ij(i,j)**0.71d0
+            ! make sure that roughness length is always > 0
+          rrr(i,j) = max( rrr(i,j), 0.005d0 ) ! 0.005 is flat desert
+        enddo
+      enddo
+      !write(982) titrrr,real(rrr,kind=4)
+      !call WRITET_PARALLEL(grid,982,"fort.982",rrr,titrrr)
+      vvv = 0
+      do j=J_0,J_1
+        do i=I_0,I_1
+            !if ( fearth(i,j) <= 0.d0 ) cycle
+          if ( focean(i,j) >= 1.d0 ) cycle
+#ifdef USE_ENT
+            !print *,i,j,focean(i,j),fearth(i,j)
+          call ent_get_exports( entcells(i,j),
+     &         vegetation_fractions=fr_cover0 )
+          call map_ent2giss(fr_cover0,fr_cover) !temp hack: ent pfts->giss veg
+          vvv(i,j,:) = fr_cover(1:10)
+#else
+          fr_cover(:) = vdata(i,j,:)
+#endif
+          z0_veg = (1.d0-flice(i,j))*sum( fr_cover(:)*z0_cover(:) )
+     &         + flice(i,j)*0.005d0
+          rrr(i,j) = max ( rrr(i,j), z0_veg )
+        enddo
+      enddo
+c**** hack to reset roughl for non-standard land ice fractions
+      if ( roughl_lice > 0.d0 ) then
+        do j=J_0,J_1
+          do i=I_0,I_1
+            if ( flice(i,j) > 0.d0 ) rrr(i,j) =
+     &           ( rrr(i,j)*(1.d0-flice(i,j)) + roughl_lice*flice(i,j) )
+          enddo
+        enddo
+      endif
+
+      do j=J_0,J_1
+        do i=I_0,I_1
+          roughl(i,j) = rrr(i,j)
+        enddo
+      enddo
+!!!#endif
+      titrrr = " rough len + veg"
+      !write(982) titrrr,real(rrr,kind=4)
+      !call WRITET_PARALLEL(grid,982,"fort.982",rrr,titrrr)
+
+      do k=1,10
+        write(titvvv,*) k
+          !write(772) titvvv, real(vvv(:,:,k),kind=4)
+        !call WRITET_PARALLEL(grid,773,"fort.773",vvv(:,:,k),titvvv)
+      enddo
+
+      end subroutine set_roughness_length
 
       end module soil_drv
 
