@@ -9588,7 +9588,7 @@ c!OMSP
 !@calls DIAGTCA, masterchem, apply_tracer_3Dsource
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel,AM_I_ROOT
       USE TRACER_COM
-      USE FLUXES, only: tr3Dsource
+      USE FLUXES, only: tr3Dsource,trcsurf
       USE MODEL_COM, only: itime,jmon, dtsrc
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
@@ -9619,10 +9619,10 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      USE TRDIAG_COM, only : L1PM2p5_acc, L1PM10_acc
+      USE TRDIAG_COM, only : sPM2p5_acc, sPM10_acc
 #endif
 
       implicit none
@@ -10099,33 +10099,29 @@ C**** Apply chemistry and overwrite changes:
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-! This section is to accumulate/aggregate certain tracers' L=1 value
+! This section is to accumulate/aggregate certain tracers' SURFACE value
 ! into particulate matter PM2.5 and PM10 for use in the sub-daily
-! diags. Saved in ppm by mass. Couldn't find a better place for this!
+! diags. Saved in ppmm. Also save Ox in ppmv:
       do n=1,ntm
         select case (trname(n))
+        ! 100% of these:
         case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
-     &       'Clay','seasalt1','N_d1','SO4_d1')    !       100% of these
-          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:) +
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-        case('Silt1','N_d2','SO4_d2')              ! conditional/partial
-          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:) + 0.322d0*
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-        case('Silt2','N_d3','SO4_d3')              ! conditional/partial
-          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-        case('Silt3')                              ! conditional/partial
-          L1PM10_acc(:,:)=L1PM10_acc(:,:) + 0.322d0*
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-        case('seasalt2')                           ! conditional/partial
-          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:) + 0.5d0*
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
-          L1PM10_acc(:,:)=L1PM10_acc(:,:) +
-     &    trm(:,:,1,n)*byam(1,:,:)*byaxyp(:,:)*1.d6
+     &       'Clay','seasalt1','N_d1','SO4_d1')
+          sPM2p5_acc(:,:)=sPM2p5_acc(:,:) +         1.d6*trcsurf(:,:,n)
+          sPM10_acc(:,:)=sPM10_acc(:,:)   +         1.d6*trcsurf(:,:,n)
+        ! then, conditional or partial of these:
+        case('Silt1','N_d2','SO4_d2')
+          sPM2p5_acc(:,:)=sPM2p5_acc(:,:) + 0.322d0*1.d6*trcsurf(:,:,n)
+          sPM10_acc(:,:)=sPM10_acc(:,:)   +         1.d6*trcsurf(:,:,n)
+        case('Silt2','N_d3','SO4_d3')
+          sPM10_acc(:,:)=sPM10_acc(:,:)   +         1.d6*trcsurf(:,:,n)
+        case('Silt3')               
+          sPM10_acc(:,:)=sPM10_acc(:,:)   + 0.322d0*1.d6*trcsurf(:,:,n)
+        case('seasalt2')           
+          sPM2p5_acc(:,:)=sPM2p5_acc(:,:) + 0.500d0*1.d6*trcsurf(:,:,n)
+          sPM10_acc(:,:)=sPM10_acc(:,:)   +         1.d6*trcsurf(:,:,n)
+        case('Ox')
+          sOx_acc(:,:)=sOx_acc(:,:)+1.d6*trcsurf(:,:,n)*mass2vol(n) 
         end select
       enddo
 #endif

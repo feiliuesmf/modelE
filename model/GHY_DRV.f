@@ -389,6 +389,7 @@ cddd#endif
       integer, intent(in) :: i,j
       real*8, intent(in) :: ptype,dtsurf,rhosrf
       type (t_pbl_args), intent(in) :: pbl_args
+      real*8 :: byNIsurf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       integer :: n1
@@ -413,6 +414,7 @@ cddd#endif
 #endif
 
 ccc tracers
+      byNIsurf=1.d0/real(NIsurf)
 
 #ifdef TRACERS_GASEXCH_land_CO2
       !!! hack - assume 1 tracer
@@ -618,6 +620,7 @@ C**** Save surface tracer concentration whether calculated or not
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)+
      &           pbl_args%trs(nx)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+pbl_args%trs(nx)*ptype
+     &                     *byNIsurf
           else
             taijn(i,j,tij_surf  ,n) = taijn(i,j,tij_surf  ,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
@@ -626,7 +629,7 @@ C**** Save surface tracer concentration whether calculated or not
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *byaxyp(i,j),0d0)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
-     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype
+     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype*byNIsurf
           end if
         end if
       end do

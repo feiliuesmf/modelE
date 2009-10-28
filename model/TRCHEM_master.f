@@ -2016,12 +2016,6 @@ c (radiation code wants atm*cm units):
          case default; call stop_model('maxl error',255)
          end select
 #endif
-         ! save time-average sub-daily diag L=1 Ox in ppmv:
-         L1Ox_acc(i,j)=L1Ox_acc(i,j)+(trm(i,j,1,n_Ox) +
-     &   (tr3Dsource(i,j,1,nChemistry,n_Ox) +
-     &   tr3Dsource(i,j,1,nStratwrite,n_Ox))*dtsrc)
-     &   *1.d6*mass2vol(n_Ox)/(am(1,i,j)*axyp(i,j))
-
          do l=1,maxl
            chem_tracer_save(1,l,i,j)=(trm(i,j,l,n_Ox) +
      &     (tr3Dsource(i,j,l,nChemistry,n_Ox) + 

@@ -1200,10 +1200,10 @@ C****
 #endif
 #endif /* SKIP_TRACER_DIAGS */
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : L1Ox_acc
+      USE TRCHEM_Shindell_COM, only : sOx_acc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      USE TRDIAG_COM, only : L1PM2p5_acc, L1PM10_acc
+      USE TRDIAG_COM, only : sPM2p5_acc, sPM10_acc
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
@@ -1301,10 +1301,10 @@ C**** initialise special subdd accumulation
       TRE_acc=0.
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      L1Ox_acc=0.
+      sOx_acc=0.
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      L1PM2p5_acc=0.; L1PM10_acc=0.
+      sPM2p5_acc=0.; sPM10_acc=0.
 #endif
       return
       end subroutine init_subdd
@@ -1450,7 +1450,7 @@ C****
      &     ,dust_flux2_glob
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : mNO2,L1Ox_acc
+      USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc
 #endif
       USE SEAICE_COM, only : rsi,snowi
       USE LANDICE_COM, only : snowli
@@ -1471,7 +1471,7 @@ C****
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,am_i_root
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      USE TRDIAG_COM, only : L1PM2p5_acc, L1PM10_acc
+      USE TRDIAG_COM, only : sPM2p5_acc, sPM10_acc
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM
@@ -1634,8 +1634,8 @@ c          data=sday*prec/dtsrc
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         case ("oAVG")   ! Nsubdd-step average L=1 Ox tracer (ppmv)
-          data=L1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
-          L1Ox_acc=0.
+          data=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppmv
+          sOx_acc=0.
 #endif
         case ("MCP")       ! moist conv precip (mm/day)
           data=sday*PM_acc/(Nsubdd*dtsrc) ! accum over Nsubdd steps
@@ -1793,11 +1793,11 @@ c          data=sday*prec/dtsrc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
         case ("PM2p5") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
-           data=L1PM2p5_acc/real(Nsubdd)
-           L1PM2p5_acc=0.
+           data=sPM2p5_acc/real(Nsubdd)
+           sPM2p5_acc=0.
         case ("PM10") ! Nsubdd-step avg L=1 PM10 (ppmm)
-           data=L1PM10_acc/real(Nsubdd)
-           L1PM10_acc=0.
+           data=sPM10_acc/real(Nsubdd)
+           sPM10_acc=0.
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1

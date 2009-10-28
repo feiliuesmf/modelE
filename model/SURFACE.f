@@ -161,7 +161,7 @@ C****
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
      *     ,SHEAT,TRHEAT,T2DEN,T2CON,T2MUL,FQEVAP,Z1BY6L,EVAPLIM,F2
-     *     ,FSRI(2),HTLIM,dlwdt
+     *     ,FSRI(2),HTLIM,dlwdt,byNIsurf
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -265,6 +265,7 @@ C****
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
+      byNIsurf=1.d0/real(NIsurf)
       IH=JHOUR+1
       IHM = IH+(JDATE-1)*24
 
@@ -312,7 +313,7 @@ C****
 C**** ZERO OUT FLUXES ACCUMULATED OVER SURFACE TYPES
          DTH1=0. ;  DQ1 =0. ;  uflux1=0. ; vflux1=0.
 #ifdef TRACERS_ON
-         trsrfflx = 0. ; trcsurf = 0.
+         trsrfflx = 0. ; if(NS==1)trcsurf = 0.
 #endif
 
       call loadbl
@@ -1256,7 +1257,7 @@ C**** Save surface tracer concentration whether calculated or not
      *           +trs(nx)*ptype
             taijn(i,j,tij_surfbv,n) = taijn(i,j,tij_surfbv,n)
      *           +trs(nx)*ptype*rhosrf
-            trcsurf(i,j,n)=trcsurf(i,j,n)+trs(nx)*ptype
+            trcsurf(i,j,n)=trcsurf(i,j,n)+trs(nx)*ptype*byNIsurf
           else
             taijn(i,j,tij_surf,n) = taijn(i,j,tij_surf,n)
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
@@ -1265,7 +1266,7 @@ C**** Save surface tracer concentration whether calculated or not
      *           +max((trm(i,j,1,n)-trmom(mz,i,j,1,n))*byam(1,i,j)
      *           *byaxyp(i,j),0d0)*ptype*rhosrf
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
-     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype
+     *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype*byNIsurf
           end if
 #ifdef TRACERS_GASEXCH_ocean
           if (focean(i,j).gt.0.) then
