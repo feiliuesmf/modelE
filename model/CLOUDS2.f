@@ -1952,16 +1952,16 @@ C****
 
 c Determine the number of subsidence sub-timesteps such that
 c courant numbers in the QUS do not exceed 1
-cksub      ksub = 1
-cksub      do l=ldmin,lmax-1
-cksub        if(    +cm(l) > airm(l+1)+dmr(l+1)) then
-cksub          ksub = max(ksub, 1+int((+cm(l)-dmr(l+1))/airm(l+1)) )
-cksub        elseif(-cm(l) > airm(l  )+dmr(l  )) then
-cksub          ksub = max(ksub, 1+int((-cm(l)-dmr(l  ))/airm(l  )) )
-cksub        endif
-cksub      enddo
-cksub      ksub = min(ksub,2) ! max 2 iterations allowed currently
-      ksub = 2 ! non-interactive default
+      ksub = 1
+      do l=ldmin,lmax-1
+        if(    +cm(l) > airm(l+1)+dmr(l+1)) then
+          ksub = max(ksub, 1+int((+cm(l)-dmr(l+1))/airm(l+1)) )
+        elseif(-cm(l) > airm(l  )+dmr(l  )) then
+          ksub = max(ksub, 1+int((-cm(l)-dmr(l  ))/airm(l  )) )
+        endif
+      enddo
+      ksub = min(ksub,2) ! max 2 iterations allowed currently
+c      ksub = 2 ! non-interactive default
 
       byksub = 1d0/ksub
       nsub = lmax-ldmin+1
