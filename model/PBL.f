@@ -2981,7 +2981,7 @@ c  set the wind magnitude to that given by similarity theory:
       integer i  !@var i loop variable
 
       real*8 :: psitop,psi,utotal,utot1,utot2,sign,shear,tgrad,qgrad
-     *     ,egrad,uflux,hflux,qflux,bvfrq2,shear2,rich,dqdz,dtdz,dudz
+     *     ,uflux,hflux,qflux,bvfrq2,shear2,rich,dqdz,dtdz,dudz
      *     ,phim,phih,dudzs,dtdzs,dqdzs,uratio,tratio,qratio,dbydzh
      *     ,tgradl,prod,utest,ttest,qtest
 
@@ -3016,7 +3016,6 @@ c  set the wind magnitude to that given by similarity theory:
      2             +(v(i+1)-v(i))*(v(i+1)-v(i)))/dzh(i)
         tgrad =(t(i+1)-t(i))/dzh(i)
         qgrad =(q(i+1)-q(i))/dzh(i)
-        egrad =(e(i+1)-e(i))/dzh(i)
         uflux=km(i)*shear*sign
         hflux=kh(i)*tgrad
         qflux=kh(i)*qgrad
