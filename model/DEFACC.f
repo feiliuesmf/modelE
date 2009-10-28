@@ -5517,7 +5517,6 @@ c
       lname_ijl(k) = 'Layer Temperature'
       units_ijl(k) = 'K'
       scale_ijl(k) = 1.
-      denom_ijl(k) = IJL_DP
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
 c
@@ -5527,7 +5526,6 @@ c
       lname_ijl(k) = 'Grid Box Geom Height'
       units_ijl(k) = 'm'
       scale_ijl(k) = 1.
-      denom_ijl(k) = IJL_DP
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
 c
@@ -5537,7 +5535,6 @@ c
       lname_ijl(k) = 'Specific Humidity'
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
-      denom_ijl(k) = IJL_DP
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
 #endif
