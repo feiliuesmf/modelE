@@ -592,7 +592,7 @@ c temporarily empty.
       USE ICEDYN, only : grid_ICDYN
       USE ICEDYN, only : press,heffm,uvm,dwatn,cor
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
-     *     ,gwatx,gwaty,pgfub,pgfvb,amass,uicec,vicec,dmu,dmv
+     *     ,gwatx,gwaty,pgfub,pgfvb,amass,dmu,dmv
      *     ,usi,vsi,iFOCEAN=>FOCEAN
       USE ICEDYN_COM, only : usidt,vsidt,rsisave,dmui,dmvi,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
