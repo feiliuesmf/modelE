@@ -6337,6 +6337,11 @@ cddd      End If
       Integer :: n, sz
       Logical :: bc_periodic
 
+      integer :: requests(2)
+      integer :: tagS, tagN
+      integer :: nSendMessages, nRecvMessages
+      integer :: index, i
+
 #ifdef USE_SYSUSAGE
       call sysusage(3,1)
 #endif
@@ -6364,19 +6369,42 @@ cddd      End If
 #ifdef USE_SYSUSAGE
       call sysusage(4,1)
 #endif
+      nSendMessages = 0
+      nRecvMessages = 0
+      tag = max(MOD(tag,128),10) + 1
       IF(FILL(NORTH)) THEN
-        tag = max(MOD(tag,128),10) + 1
-        Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
-     &                    arr(off(4)), 1, new_type, pe_north, tag,
-     &                    MPI_COMM_WORLD, status, ierr)
-      End If
+        if (pe_north /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
+        if (pe_south /= MPI_PROC_NULL) then
+           nSendMessages = nSendMessages + 1
+           call MPI_Isend(arr(off(2)), 1, new_type, pe_south, tag, 
+     &          MPI_COMM_WORLD, requests(nSendMessages), ierr)
+        end if
+      end if
 
       IF(FILL(SOUTH)) THEN
-        tag = max(MOD(tag,128),10) + 1
-        Call MPI_SendRecv(arr(off(3)), 1, new_type, pe_north, tag,
-     &                    arr(off(1)), 1, new_type, pe_south, tag,
-     &                    MPI_COMM_WORLD, status, ierr)
-      End If
+        if (pe_south /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
+        if (pe_north /= MPI_PROC_NULL) then
+           nSendMessages = nSendMessages + 1
+           call MPI_Isend(arr(off(3)), 1, new_type, pe_north, tag, 
+     &          MPI_COMM_WORLD, requests(nSendMessages), ierr)
+        end if
+      end if
+
+      do i = 1, nRecvMessages
+         call MPI_Probe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, 
+     &        status, ierr)
+         if (status(MPI_SOURCE) == pe_north) then
+            call MPI_Recv( arr(off(4)), 1, new_type, pe_north, tag,
+     &           MPI_COMM_WORLD, status, ierr)
+         else
+            call MPI_Recv( arr(off(1)), 1, new_type, pe_south, tag,
+     &           MPI_COMM_WORLD, status, ierr)
+         end If
+      end do
+
+      call MPI_WaitAll(nSendMessages, requests,MPI_STATUSES_IGNORE,ierr)
+
+
 #ifdef USE_SYSUSAGE
       call sysusage(4,2)
 #endif
