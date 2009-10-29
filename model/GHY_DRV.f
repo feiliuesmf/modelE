@@ -333,7 +333,10 @@ c**** prescribed dust emission
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       pbl_args%minfr(:)=minfr(i,j,:)
 #endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
       pbl_args%mcfrac=1.-fss(1,i,j)
+#endif
 
       end subroutine ghy_tracers_set_cell
 
