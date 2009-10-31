@@ -2,11 +2,11 @@
 #LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
 #-lfmpi -lmpi -lstdc++ -threads
 
-ifeq ($(IFORT_RELEASE),11.1)
-LIBS += -limf -lm -lrt -ldl \
+ifeq ($(IFORT_RELEASE),9.1)
+LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
 -lmpiif -lmpi -lstdc++ -threads
 else
-LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
+LIBS += -limf -lm -lrt -ldl \
 -lmpiif -lmpi -lstdc++ -threads
 endif
 
