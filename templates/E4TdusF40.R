@@ -152,12 +152,12 @@ LAI12=chem_files/lai12.global_2x2.5gf
 !TAero_OCI=sep2003_OCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial organic carbons
 !TAero_BCI=sep2003_BCI_Koch_kg_m2_72x46x9_1875-1990 ! industrial black carbons
 ! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000
+TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h
+TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h
+TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h
+TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h
+TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h
+TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 BC_dep=BC.Dry+Wet.depositions.ann
 
 ! files for dust tracers
