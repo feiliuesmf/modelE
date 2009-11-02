@@ -47,7 +47,6 @@
       USE AERO_CONFIG, only: NMODES
 #endif
 #endif
-      USE RADPAR, only: SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD
       IMPLICIT NONE
       SAVE
 C**** parameters and constants

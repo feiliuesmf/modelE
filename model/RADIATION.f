@@ -142,7 +142,7 @@ C----------------
       REAL*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
-!@var chem_IN column variable for importing ozone(1) and methane(2) 
+!@var chem_IN column variable for importing ozone(1) and methane(2)
 !@+   fields from rest of model
 !@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
       REAL*8 :: chem_IN(2,LX)
@@ -211,11 +211,6 @@ C--------------------------------------------------------
 !sl  K      ,TRSLTS,TRSLTG,TRSLBS
       REAL*8 TTAUSV(LX,ITRMAX),aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),
      &     aesqcb(lx,6,itrmax)
-cdmk trying to save these to use in CLOUDS indirect effect
-c     real*4 SULDD(72,46,20,12,12),NITDD(72,46,20,12,12)
-c     REAL*4  OCADD(72,46,20,12,12),BCADD(72,46,20,12,12)
-c     REAL*4  BCBDD(72,46,20,12,12),SSADD(72,46,20,12)
-cdmk
       INTEGER :: LBOTCL,LTOPCL
 
       COMMON/RADPAR_OUTPUT_IJDATA/
@@ -434,16 +429,9 @@ C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
 !@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
       REAL*8, PARAMETER :: PLBA09(10)=(/
      *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
-      REAL*4, dimension(:,:,:,:,:), allocatable :: SULDD,NITDD,
-     *OCADD,BCADD,BCBDD
-      REAL*4, dimension(:,:,:,:), allocatable :: SSADD
       real*8, dimension(:), allocatable ::  plbaer
       real*8, dimension(:,:,:,:), allocatable :: A6JDAY2
-      REAL*4, SAVE, allocatable :: A6YEAR2(:,:,:,:,:)
-      REAL*8, SAVE, allocatable :: md1850(:,:,:,:)
-      REAL*8, SAVE, allocatable :: anfix(:,:,:)
-      integer :: ima, jma, lma, ndeca, fdeca, ldeca ! dimensions needed for aerosols
-      character*80 :: aertitle ! aerosol info
+      integer :: ima, jma, lma ! dimensions needed for aerosols
 C     Layer  1    2    3    4    5    6    7    8    9
       INTEGER, PARAMETER :: La720=3 ! top low cloud level (aerosol-grid)
 
@@ -1776,7 +1764,7 @@ C--------------------------------
         FULGAS(3)=1.d0
       endif
                       CALL GETGAS
-      if(use_tracer_chem(2) > 0) then 
+      if(use_tracer_chem(2) > 0) then
         U0GAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
         FULGAS(7)=1.d0 ! CH4
       endif
@@ -3441,7 +3429,7 @@ C     ------------------------------------------------------------------
       REAL*4 A6YEAR(72,46,9,0:12,6) !  ,mddust(72,46)
       REAL*4  PREDD(72,46,9,12,10),SUIDD(72,46,9,12,8)
       REAL*4  OCIDD(72,46,9,12, 8),BCIDD(72,46,9,12,8)
-c     REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
+      REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
       save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD  !,md1850,anfix ! ,mddust
 
       CHARACTER*80 XTITLE
@@ -3528,8 +3516,6 @@ C                                       --------------------------------
       inquire (file=RDFILE(1),exist=qexist) !     stop if neither exist
       if(.not.qexist) call stop_model('updaer: no TropAero files',255)
 
-      allocate( md1850 (4,72,46,0:12) )
-      allocate( anfix (72,46,0:12) )
 !**** Pre-industrial data
       call openunit (RDFILE(1),ifile,.true.,.true.)    ! unformatted,old
       DO 101 IDD=1,10
@@ -3785,11 +3771,18 @@ C     ------------------------------------------------------------------
       implicit none
 
       INTEGER, intent(in) :: jyeara,jjdaya
+      character*80 :: aertitle ! aerosol info
 c     REAL*4 A6YEAR2(72,46,20,0:12,6) !  ,mddust(72,46)
+      REAL*4, SAVE, allocatable :: A6YEAR2(:,:,:,:,:)
 c     REAL*4  SULDD(72,46,20,12,12),NITDD(72,46,20,12,12)
 c     REAL*4  OCADD(72,46,20,12,12),BCADD(72,46,20,12,12)
 c     REAL*4  BCBDD(72,46,20,12,12),SSADD(72,46,20,12)
 c     REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
+      REAL*4, dimension(:,:,:,:,:), allocatable :: SULDD,NITDD,
+     *        OCADD,BCADD,BCBDD
+      REAL*4, dimension(:,:,:,:), allocatable :: SSADD
+      integer :: ndeca, fdeca, ldeca ! dimensions needed for aerosols
+      REAL*8, SAVE, allocatable :: md1850(:,:,:,:),anfix(:,:,:)
 c     save A6YEAR2,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD,md1850,anfix ! ,mddust
 
       CHARACTER*80 XTITLE
@@ -3953,7 +3946,7 @@ C     ------------------------------------------------------------------
       A6YEAR2(:,:,:,0,2) = A6YEAR2(:,:,:,12,2)
 !****
 
-      IF(JYEARX < fdeca) THEN   !   (use 1890)
+      IF(JYEARX < fdeca) THEN   !   (use first decadal mean)
        DO M=0,12          !    Set time dependent JYEAR SU,NIT,OC,BC
        N=M    ; if(M==0) N=12
        A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,1)*1000*DRYM2G(1) !*AERMIX( 8)
@@ -3963,7 +3956,7 @@ C     ------------------------------------------------------------------
        A6YEAR2(:,:,:,M,6) = BCBDD(:,:,:,N,1)*1000*DRYM2G(6) !*AERMIX(13)
        END DO
 
-      ELSE IF(JYEARX > ldeca) THEN   !   (use 1890)
+      ELSE IF(JYEARX > ldeca) THEN   !   (use last decadal mean)
        DO M=0,12          !    Set time dependent JYEAR SU,NIT,OC,BC
        N=M   ; if(M==0) N=12
        A6YEAR2(:,:,:,M,1) = SULDD(:,:,:,N,12)*1000*DRYM2G(1) !*AERMIX( 8)
@@ -3975,7 +3968,7 @@ C     ------------------------------------------------------------------
 
       ELSE  !  IF(JYEARX.ge.fdeca.and.JYEARX.LE.ldeca) THEN
        iyc=INT((JYEARX-fdeca)/10.d0)+1   ! current year
-       jyc=min(12,iyc+1)                ! have only 12 decades
+       jyc=min(ndeca,iyc+1)                ! have only ndeca decades
        cwtj=(JYEARX-fdeca)/10.d0-INT((JYEARX-fdeca)/10.d0)
        cwti=1.d0-cwtj
        iyp=INT((JYEARX-(fdeca+1))/10.d0)+1   ! previous year
