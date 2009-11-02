@@ -3430,7 +3430,7 @@ C     ------------------------------------------------------------------
       REAL*4  PREDD(72,46,9,12,10),SUIDD(72,46,9,12,8)
       REAL*4  OCIDD(72,46,9,12, 8),BCIDD(72,46,9,12,8)
       REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
-      save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD  !,md1850,anfix ! ,mddust
+      save A6YEAR,PREDD,SUIDD,OCIDD,BCIDD,md1850,anfix ! ,mddust
 
       CHARACTER*80 XTITLE
       CHARACTER*40 :: RDFILE(5) = (/                !  Input file names
