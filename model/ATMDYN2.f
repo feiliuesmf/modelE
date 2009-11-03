@@ -98,9 +98,8 @@ C**** ADVECT TEMPERATURE and accumulate mass fluxes
           enddo
         enddo
         call calc_ma(psave,ma)
+        CALL HALO_UPDATE(grid,PU, FROM=NORTH)
         CALL AADVT3(MA,T,TMOM, TZ, SD,PU,PV, DTLF)
-        call halo_update(grid,t)
-        call halo_update(grid,tz,from=south)
         do l=1,lm
           do j=j_0s-1,j_1
             do i=1,imaxj(j)
@@ -161,6 +160,10 @@ c apply east-west filter to U and V once per physics timestep
 c slp filter
 c      CALL FILTER2
 
+c adjust T/Q moments
+      call tmom_topo_adjustments
+      call qmom_topo_adjustments
+
       RETURN
       END SUBROUTINE DYNAM2
 
@@ -191,7 +194,9 @@ C**** CONSTANT PRESSURE AT L=LS1 AND ABOVE, PU,PV CONTAIN DSIG
       INTEGER I,J,L,jmin_pv,jmax_pv
       REAL*8 DXDSIG,DYDSIG
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo) ::
-     &     PATU,PATV
+     &     PATU,PDUM
+      REAL*8, DIMENSION(IM,grid%j_strt_halo-1:grid%j_stop_halo) ::
+     &     PATV
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
@@ -202,6 +207,9 @@ c**** Extract domain decomposition info
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      pdum(:,j_1) = p(:,j_1-1)
+      call halo_update(grid,pdum,from=south)
 
 C****
 C**** BEGINNING OF LAYER LOOP
@@ -223,7 +231,13 @@ C****
           patv(i,j)=(p(i,j)+p(i,j-1))
         enddo
       enddo
-      PIT(:,J_0:J_1) = 0.
+      if(j_0s.gt.2) then
+        j = j_0s-1
+        do i=1,im
+          patv(i,j)=(p(i,j)+pdum(i,j))
+        enddo
+      endif
+      PIT(:,J_0S-1:J_1) = 0.
       do l=1,lm
         if(l.eq.ls1) then
           patu(:,:) = 2.*psfmpt
@@ -232,7 +246,7 @@ C****
 c
 c compute pv
 c
-        do J=j_0s, j_1s+1
+        do J=max(2,j_0s-1), j_1s+1
           DXDSIG = 0.25D0*DXV(J)*DSIG(L)
           i=1
             PV(I,J,L)=(V(I,J,L)+V(IM ,J,L))*DXDSIG*patv(i,j)
@@ -267,7 +281,7 @@ c
         enddo ! j
 
 c compute horizontal mass convergence
-        do j=j_0s,j_1s
+        do j=max(2,j_0h),j_1s
           i=1
             CONV(I,J,L)=(PU(IM ,J,L)-PU(I,J,L)+PV(I,J,L)-PV(I,J+1,L))
             PIT(I,J) = PIT(I,J) + CONV(I,J,L)
@@ -291,14 +305,14 @@ C****
 C**** END OF HORIZONTAL ADVECTION LAYER LOOP
 C****
 C**** COMPUTE SD, SIGMA DOT
-      DO J=J_0,J_1
+      DO J=J_0S-1,J_1
       DO I=1,IM
         CONV(I,J,1) = PIT(I,J)
         SD(I,J,LM-1) = CONV(I,J,LM)
       ENDDO
       ENDDO
       DO L=LM-2,LS1-1,-1
-      DO J=J_0,J_1
+      DO J=J_0S-1,J_1
       DO I=1,IM
         SD(I,J,L)=SD(I,J,L+1)+CONV(I,J,L+1)
         CONV(I,J,L+1) = SD(I,J,L)
@@ -306,7 +320,7 @@ C**** COMPUTE SD, SIGMA DOT
       ENDDO
       ENDDO
       DO L=LS1-2,1,-1
-      DO J=J_0,J_1
+      DO J=J_0S-1,J_1
       DO I=1,IM
         SD(I,J,L)=SD(I,J,L+1)+CONV(I,J,L+1)-DSIG(L+1)*PIT(I,J)
         CONV(I,J,L+1) = SD(I,J,L)
@@ -314,9 +328,9 @@ C**** COMPUTE SD, SIGMA DOT
       ENDDO
       ENDDO
 
-      CALL HALO_UPDATE(GRID,SD, FROM=SOUTH)
-      CALL HALO_UPDATE(grid,PV, FROM=SOUTH)
-      CALL HALO_UPDATE(grid,PU, FROM=NORTH)
+c      CALL HALO_UPDATE(GRID,SD, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid,PV, FROM=SOUTH)
+c      CALL HALO_UPDATE(grid,PU, FROM=NORTH)
 
       RETURN
       END SUBROUTINE AIR_MASS_FLUX
@@ -1375,6 +1389,7 @@ c      CALL HALO_UPDATE(grid, ma) ! not needed
 c      CALL HALO_UPDATE(grid, rm) ! already done by DYNAM
       CALL HALO_UPDATE_COLUMN(grid, rmom)
 
+
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
@@ -1474,6 +1489,10 @@ c     &             'courz ',i,j,l-1,mflx(i,j)/ma(i,j,l)
         rz(i,j,l)=rmom(mz,i,j,l)
       enddo
       enddo
+
+c fill halos of updated quantities
+      call halo_update(grid,rm)
+      call halo_update(grid,rz,from=south)
 
       RETURN
       END
@@ -2047,3 +2066,83 @@ c**** Extract domain decomposition info
       enddo
       return
       end subroutine calc_ma
+
+      subroutine tmom_topo_adjustments
+c
+c Modifies "horizontal" moments of temperature above steep topographic
+c slopes to prevent excessive subsidence warming in gridcells downwind
+c of high surface altitudes.
+c
+      use model_com, only : im,jm,lm,ls1,zatmo,t
+      use dynamics, only : pua,pva
+      use qusdef, only : mx,mxx,my,myy
+      use somtq_com, only : tmom
+      use domain_decomp_atm, only : grid,get,halo_update
+      implicit none
+      integer :: i,j,l
+      real*8 :: zthresh,te1,te2,te1_sv,te2_sv
+      INTEGER :: J_0S,J_1S
+
+C**** define local grid
+      CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+
+      call halo_update(grid,t)    ! already haloed ?
+      call halo_update(grid,pva)  ! already haloed ?
+
+      do j=j_0s,j_1s
+      do i=2,im-1 ! skipping wraparound for now
+
+        zthresh = zatmo(i,j) - 12000. ! ~1200 m
+
+c
+c north-south
+c
+        if(zatmo(i,j-1).lt.zthresh .or. zatmo(i,j+1).lt.zthresh) then
+          do l=1,ls1-1
+            te1_sv = t(i,j,l)-tmom(my,i,j,l)+tmom(myy,i,j,l)
+            te2_sv = t(i,j,l)+tmom(my,i,j,l)+tmom(myy,i,j,l)
+            te1 = te1_sv
+            te2 = te2_sv
+            if(zatmo(i,j-1).lt.zthresh .and. pva(i,j-1,l).lt.0.) then
+              te1 = min(te1, .5*t(i,j,l)+.5*t(i,j-1,l) )
+c              te1 = min(te1, .25*t(i,j,l)+.75*t(i,j-1,l) )
+            endif
+            if(zatmo(i,j+1).lt.zthresh .and. pva(i,j  ,l).gt.0.) then
+              te2 = min(te2, .5*t(i,j,l)+.5*t(i,j+1,l) )
+c              te2 = min(te2, .25*t(i,j,l)+.75*t(i,j+1,l) )
+            endif
+            if(te1.lt.te1_sv .or. te2.lt.te2_sv) then
+              tmom(my ,i,j,l) = .5*(te2-te1)
+              tmom(myy,i,j,l) = .5*(te2+te1)-t(i,j,l)
+            endif
+          enddo
+        endif
+c
+c east-west
+c
+        if(zatmo(i-1,j).lt.zthresh .or. zatmo(i+1,j).lt.zthresh) then
+          do l=1,ls1-1
+            te1_sv = t(i,j,l)-tmom(mx,i,j,l)+tmom(mxx,i,j,l)
+            te2_sv = t(i,j,l)+tmom(mx,i,j,l)+tmom(mxx,i,j,l)
+            te1 = te1_sv
+            te2 = te2_sv
+            if(zatmo(i-1,j).lt.zthresh .and. pua(i-1,j,l).lt.0.) then
+              te1 = min(te1, .5*t(i,j,l)+.5*t(i-1,j,l) )
+c              te1 = min(te1, .25*t(i,j,l)+.75*t(i-1,j,l) )
+            endif
+            if(zatmo(i+1,j).lt.zthresh .and. pua(i  ,j,l).gt.0.) then
+              te2 = min(te2, .5*t(i,j,l)+.5*t(i+1,j,l) )
+c              te2 = min(te2, .25*t(i,j,l)+.75*t(i+1,j,l) )
+            endif
+            if(te1.lt.te1_sv .or. te2.lt.te2_sv) then
+              tmom(mx ,i,j,l) = .5*(te2-te1)
+              tmom(mxx,i,j,l) = .5*(te2+te1)-t(i,j,l)
+            endif
+          enddo
+        endif
+
+      enddo
+      enddo
+
+      return
+      end subroutine tmom_topo_adjustments
