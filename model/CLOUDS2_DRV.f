@@ -1763,3 +1763,209 @@ C**** Read in tau/invtau tables for ISCCP calculations
       if (AM_I_ROOT())  write(6,*) "Read ISCCP:",trim(title)
       call closeunit(iu_ISCCP)
       END SUBROUTINE init_CLD
+
+      subroutine qmom_topo_adjustments
+c
+c Modifies "horizontal" moments of humidity and temperature above steep
+c topographic slopes to prevent large supersaturations in upslope flow.
+c
+      use constant, only : tf,lhe,bysha
+      use model_com, only : im,jm,lm,ls1,zatmo,t,q
+      use dynamics, only : pua,pva,pk,pmid
+      use qusdef, only : mx,mxx,my,myy
+      use somtq_com, only : tmom,qmom
+      use domain_decomp_atm, only : grid,get,halo_update
+#ifdef TRACERS_WATER
+      use tracer_com, only: trm,trmom,ntm,tr_wd_type,nwater
+#endif
+      implicit none
+      integer :: i,j,l
+      integer :: iloop_min,iloop_max,jloop_min,jloop_max,
+     &     ioff_pua,joff_pva
+      real*8 :: ttmp,qtmp,slh,zthresh,
+     &     qe1,qe2,qe1_sv,qe2_sv,
+     &     te1,te2,te1_sv,te2_sv
+      real*8, dimension(lm) :: tl,pl
+      real*8 :: qsat ! external function
+      real*8, parameter :: qxs=0.1d0
+#ifdef TRACERS_WATER
+      integer :: n
+      real*8 :: ratio
+#endif
+      INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+C**** define local grid
+      CALL GET(grid, J_STRT=J_0,         J_STOP=J_1,
+     &               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
+     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE,
+     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE        )
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      slh=lhe*bysha
+
+      call halo_update(grid,t)
+      call halo_update(grid,pk,jdim=3)   ! already haloed?
+      call halo_update(grid,pmid,jdim=3) ! already haloed?
+      call halo_update(grid,pva)         ! already haloed?
+
+      if(have_south_pole) then
+        jloop_min=2 ! horizontal gradients are zero on polar caps
+      else
+        jloop_min=j_0
+      endif
+      if(have_north_pole) then
+        jloop_max=jm-1 ! horizontal gradients are zero on polar caps
+      else
+        jloop_max=j_1
+      endif
+      if(i_0.eq.grid%i_strt_halo) then ! latlon model
+        iloop_min = 2                  ! skip IDL
+        iloop_max = im-1
+        ioff_pua = 0
+        joff_pva = 0
+      else   ! for now, this case is assumed to be the cubed sphere
+        iloop_min = i_0
+        iloop_max = i_1
+        ioff_pua = 1
+        joff_pva = 1
+      endif
+      do j=jloop_min,jloop_max
+      do i=iloop_min,iloop_max
+        zthresh = zatmo(i,j) + 4000. ! ~400 m
+c
+c north-south
+c
+        if(zatmo(i,j-1).gt.zthresh .or. zatmo(i,j+1).gt.zthresh) then
+          do l=1,ls1-1
+            tl(l) = t(i,j,l)*pk(l,i,j)
+            if(tl(l).lt.tf) exit ! only apply to relatively moist layers
+            if(q(i,j,l).le.0.) cycle
+            pl(l) = pmid(l,i,j)
+            qe1_sv = q(i,j,l)-qmom(my,i,j,l)+qmom(myy,i,j,l)
+            qe2_sv = q(i,j,l)+qmom(my,i,j,l)+qmom(myy,i,j,l)
+            qe1 = qe1_sv
+            qe2 = qe2_sv
+            te1 = t(i,j,l)-tmom(my,i,j,l)+tmom(myy,i,j,l)
+            te2 = t(i,j,l)+tmom(my,i,j,l)+tmom(myy,i,j,l)
+            if(zatmo(i,j-1).gt.zthresh .and.
+     &         pva(i,j-1+joff_pva,l).lt.0.) then
+              ttmp = t(i,j,l)*pk(l,i,j-1); qtmp = q(i,j,l)
+              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i,j-1))
+              ttmp = ttmp-qxs*qtmp*slh
+              qtmp = qtmp*(1.+qxs)
+              if(qtmp.lt.qe1) then
+                qe1 = qtmp
+                te1 = ttmp/pk(l,i,j-1)
+              endif
+            endif
+            if(zatmo(i,j+1).gt.zthresh .and.
+     &         pva(i,j+joff_pva,l).gt.0.) then
+              ttmp = t(i,j,l)*pk(l,i,j+1); qtmp = q(i,j,l)
+              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i,j+1))
+              ttmp = ttmp-qxs*qtmp*slh
+              qtmp = qtmp*(1.+qxs)
+              if(qtmp.lt.qe2) then
+                qe2 = qtmp
+                te2 = ttmp/pk(l,i,j+1)
+              endif
+            endif
+            if(qe1.lt.qe1_sv .or. qe2.lt.qe2_sv) then
+              qmom(my ,i,j,l) = .5*(qe2-qe1)
+              qmom(myy,i,j,l) = .5*(qe2+qe1)-q(i,j,l)
+              tmom(my ,i,j,l) = .5*(te2-te1)
+              tmom(myy,i,j,l) = .5*(te2+te1)-t(i,j,l)
+#ifdef TRACERS_WATER
+              do n=1,ntm
+                if(tr_wd_type(n) .eq. nWater) then
+                  ratio = trm(i,j,l,n)/q(i,j,l)
+                  trmom(my ,i,j,l,n) = ratio*qmom(my ,i,j,l)
+                  trmom(myy,i,j,l,n) = ratio*qmom(myy,i,j,l)
+                endif
+              enddo
+#endif
+            endif
+          enddo
+        endif
+c
+c east-west
+c
+        if(zatmo(i-1,j).gt.zthresh .or. zatmo(i+1,j).gt.zthresh) then
+          do l=1,ls1-1
+            tl(l) = t(i,j,l)*pk(l,i,j)
+            if(tl(l).lt.tf) exit ! only apply to relatively moist layers
+            if(q(i,j,l).le.0.) cycle
+            pl(l) = pmid(l,i,j)
+            qe1_sv = q(i,j,l)-qmom(mx,i,j,l)+qmom(mxx,i,j,l)
+            qe2_sv = q(i,j,l)+qmom(mx,i,j,l)+qmom(mxx,i,j,l)
+            qe1 = qe1_sv
+            qe2 = qe2_sv
+            te1 = t(i,j,l)-tmom(mx,i,j,l)+tmom(mxx,i,j,l)
+            te2 = t(i,j,l)+tmom(mx,i,j,l)+tmom(mxx,i,j,l)
+            if(zatmo(i-1,j).gt.zthresh .and.
+     &         pua(i-1+ioff_pua,j,l).lt.0.) then
+              ttmp = t(i,j,l)*pk(l,i-1,j); qtmp = q(i,j,l)
+              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i-1,j))
+              ttmp = ttmp-qxs*qtmp*slh
+              qtmp = qtmp*(1.+qxs)
+              if(qtmp.lt.qe1) then
+                qe1 = qtmp
+                te1 = ttmp/pk(l,i-1,j)
+              endif
+            endif
+            if(zatmo(i+1,j).gt.zthresh .and.
+     &         pua(i+ioff_pua,j,l).gt.0.) then
+              ttmp = t(i,j,l)*pk(l,i+1,j); qtmp = q(i,j,l)
+              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i+1,j))
+              ttmp = ttmp-qxs*qtmp*slh
+              qtmp = qtmp*(1.+qxs)
+              if(qtmp.lt.qe2) then
+                qe2 = qtmp
+                te2 = ttmp/pk(l,i+1,j)
+              endif
+            endif
+            if(qe1.lt.qe1_sv .or. qe2.lt.qe2_sv) then
+              qmom(mx ,i,j,l) = .5*(qe2-qe1)
+              qmom(mxx,i,j,l) = .5*(qe2+qe1)-q(i,j,l)
+              tmom(mx ,i,j,l) = .5*(te2-te1)
+              tmom(mxx,i,j,l) = .5*(te2+te1)-t(i,j,l)
+#ifdef TRACERS_WATER
+              do n=1,ntm
+                if(tr_wd_type(n) .eq. nWater) then
+                  ratio = trm(i,j,l,n)/q(i,j,l)
+                  trmom(mx ,i,j,l,n) = ratio*qmom(mx ,i,j,l)
+                  trmom(mxx,i,j,l,n) = ratio*qmom(mxx,i,j,l)
+                endif
+              enddo
+#endif
+            endif
+          enddo
+        endif
+      enddo
+      enddo
+
+      return
+      contains
+
+      subroutine moist_adiabat_tq(t,q,lhx,pl)
+      use constant, only : bysha
+      implicit none
+!@var t,q temperature and specific humidity
+      real*8, intent(inout) :: t,q
+!@var lhx latent heat of phase change
+!@var pl pressure
+      real*8, intent(in) :: lhx,pl
+      real*8 qst,qsat,dqsatdt,dq,slh
+      integer n
+      slh=lhx*bysha
+      do n=1,3
+        qst=qsat(t,lhx,pl)
+        dq=(q-qst)/(1.+slh*qst*dqsatdt(t,lhx))
+        t=t+slh*dq
+        q=q-dq
+      end do
+      return
+      end subroutine moist_adiabat_tq
+
+      end subroutine qmom_topo_adjustments
