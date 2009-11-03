@@ -1210,6 +1210,12 @@ c update rxm as if upwind box had zero moments and r = fm/am
       call aadvq0
 
 c
+c topographic adjustments to moments
+c
+      call qmom_topo_adjustments
+
+
+c
 c convert from concentration to mass units
 c
       do l=1,lm
