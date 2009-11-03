@@ -4,10 +4,8 @@ WARNING: This rundeck is being used as a template to exercise normally
 unused bits of code. It should not therefore be used for production
 runs. Please look at the other templates for standard
 configurations. If example tracer code is required, the
-tracer-relevant bits used here (pre-processing options, extra TR*
-object modules, and input files), should be copied to a more
-functional rundeck.
-
+tracer-relevant bits used here (pre-processing options, extra TR object
+modules, and input files), should be copied to a more functional rundeck.
 
 E001tr: ModelE1 (3.0) (based on B402A with sample tracers)
  Air mass, SF6, RN222, CO2, 14CO2, CFC-11, CH4, N2O, linearizedO3, SF6_c, Water
