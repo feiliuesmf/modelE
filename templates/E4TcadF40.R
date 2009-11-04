@@ -27,7 +27,7 @@ Preprocessor Options
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
-! DID THIS #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
+#define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define TRACERS_NITRATE
 #define TRACERS_HETCHEM
@@ -149,7 +149,6 @@ RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
 GHG=GHG.Mar2004.txt
-GHG_IC_1850=GHG_IC_1850
 dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
