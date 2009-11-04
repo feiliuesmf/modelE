@@ -149,6 +149,7 @@ RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
 GHG=GHG.Mar2004.txt
+GHG_IC_1850=GHG_IC_1850
 dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
