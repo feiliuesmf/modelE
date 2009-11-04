@@ -66,9 +66,9 @@ c
       itime0 = itbeg
       call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
      *     ,amon0)
-      call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
+      call getdte(Itime-1,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *     ,amon)
-      call aperiod(monacc,jyear0,acc_period)
+      call aperiod(monacc,jyear0,jyear,acc_period)
 
 c
 c copy the structure of the latest input file to the output file
@@ -82,11 +82,12 @@ c
 
 c
 c copy the contents of the latest input file to the output file
-c and write the appropriate itime0,fromto to the output file
+c and write the appropriate itime0,monacc,fromto to the output file
 c
 c      call copy_selected_vars(fids(nlast),ofid)
       call copy_shared_vars(fids(nlast),ofid)
       call put_var_int(ofid,'itime0',itime0)
+      call put_var_int(ofid,'monacc',monacc)
       days=(itime-itime0)/float(nday)
       write(fromto,902) jyear0,amon0,jdate0,jhour0,
      &     jyear,amon,jdate,jhour,itime,days
@@ -173,89 +174,71 @@ c
       return
       end subroutine getdte
 
-      subroutine aperiod(monacc,yr_start,acc_period)
+      subroutine aperiod(monacc,yr_start,yr_end,acc_period)
       implicit none
-      integer, dimension(12) :: monacc
-      integer :: yr_start,yr1,yr2
+      integer :: monacc(12)
+      integer :: yr_start,yr_end
       character(len=12) :: acc_period
-      character(len=3), dimension(0:13), parameter :: amonth = (/
-     &  'DEC',
-     *  'JAN','FEB','MAR','APR','MAY','JUN',
-     *  'JUL','AUG','SEP','OCT','NOV','DEC',
-     &  'JAN' /)
-      integer :: m1,m2,nmo
-c
-c find first/last months
-c
-      m1=1
-      do while(monacc(m1).eq.0)
-        m1=m1+1
+      character(len=3), dimension(12), parameter :: amonth = (/
+     &  'JAN','FEB','MAR','APR','MAY','JUN',
+     &  'JUL','AUG','SEP','OCT','NOV','DEC' /)
+      character(len=12) :: mostr
+      integer :: mons(12)
+      integer :: m,nmo,yr1,ninc,ndec
+      logical :: incyr1
+     
+      if(minval(monacc,mask=monacc>0).ne.maxval(monacc,mask=monacc>0))
+     &     stop 'unequal numbers of months'
+
+      mostr=''
+      nmo = 0
+      do m=1,12
+        if(monacc(m).eq.0) cycle
+        nmo = nmo + 1
+        mostr(nmo:nmo)=amonth(m)(1:1)
+        mons(nmo) = m
       enddo
-      m2=12
-      do while(monacc(m2).eq.0)
-        m2=m2-1
-      enddo
-      if(m1.eq.1.and.m2.eq.12.and.count(monacc.gt.0).lt.12) then ! wrap
-        m2=1
-        do while(monacc(m2+1).gt.0)
-          m2=m2+1
-        enddo
-        m1=12
-        do while(monacc(m1-1).gt.0)
-          m1=m1-1
-        enddo
+
+      incyr1 = .false.
+      if(nmo.eq.12) then
+        mostr='ANN'
+      elseif(mostr.eq.'JFD' .and. yr_end.gt.yr_start) then
+        incyr1 = .true.
+        mostr = 'DJF'
+      elseif(nmo.eq.2) then
+        mostr(3:3) = mostr(2:2)
+        mostr(2:2) = '+'
+      elseif(nmo.gt.3) then
+        if(monacc(1).eq.0 .or. yr_start.eq.yr_end) then
+          mostr(3:3) = mostr(nmo:nmo)
+          mostr(2:2) = '-'
+        else
+          incyr1 = .true.
+          do m=12,1,-1
+            mostr(1:1) = amonth(m)(1:1)
+            if(monacc(m-1).eq.0) exit
+          enddo
+          do m=1,12
+            mostr(3:3) = amonth(m)(1:1)
+            if(monacc(m+1).eq.0) exit
+          enddo
+          mostr(2:2) = '-'
+        endif
       endif
-c
-c check for non-continuity
-c
-      if(m2.gt.m1 .and. any(monacc(m1:m2).eq.0)) stop 'gap'
-      if(m1.gt.m2 .and. any(monacc(m2+1:m1-1).ne.0)) stop 'gap'
-c
-c check for unequal numbers of months
-c
-      if(m2.gt.m1 .and. any(monacc(m1:m2).ne.monacc(m1)))
-     &     stop 'unequal numbers of months'
-      if(m1.gt.m2 .and. any(monacc(1:m2).ne.monacc(m1)))
-     &     stop 'unequal numbers of months'
-      if(m1.gt.m2 .and. any(monacc(m1:12).ne.monacc(m1)))
-     &     stop 'unequal numbers of months'
-c
-      if(m2.ge.m1) then
-        nmo=m2-m1+1
-      else
-        nmo=m2+12-m1+1
-      endif
-c
-c determine the name of the "season"
-c
-      acc_period=''
-      acc_period(1:1)=amonth(m1)(1:1)
-      acc_period(3:3)=amonth(m2)(1:1)
-      if(nmo.eq.1) then
-        acc_period(1:3)=amonth(m1)(1:3)
-      elseif(nmo.eq.12) then
-        acc_period(1:3)='ANN'
-      elseif(nmo.eq.6.and.m1.eq.5) then
-        acc_period(1:3)='NHW'
-      elseif(nmo.eq.6.and.m1.eq.11) then
-        acc_period(1:3)='NHC'
-      elseif(nmo.eq.2) then 
-        acc_period(2:2)='+'
-      elseif(nmo.eq.3) then
-        acc_period(2:2)=amonth(m1+1)(1:1)
-      else
-        acc_period(2:2)='-'
-      endif
-c
-c determine the starting year
-c
       yr1 = yr_start
-      if(m1.gt.m2 .and.m2.gt.12-m1+1) then
-! if more of the averaging months are next year, use next year
-        yr1 = yr1+1
-      endif
+      if(incyr1) yr1 = yr1+1
+
+      acc_period=''
+      acc_period(1:3) = mostr(1:3)
       write(acc_period(4:7),'(i4.4)') yr1
-      yr2=yr1+monacc(m1)-1
-      if(yr2.gt.yr1) write(acc_period(8:12),'(a1,i4.4)') '-',yr2
+      if(yr_end.gt.yr1) write(acc_period(8:12),'(a1,i4.4)') '-',yr_end
+
+c check for gaps
+      ninc = count(monacc(2:12).gt.monacc(1:11))
+      ndec = count(monacc(2:12).lt.monacc(1:11))
+      if(ninc+ndec.gt.2) then
+        write(6,*) 'gap'
+      endif
+
       return
       end subroutine aperiod
