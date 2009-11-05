@@ -552,13 +552,17 @@ C****
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1, I_0, I_1
+      integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
+      real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
 C**** Ensure that this is a valid tracer and source
-      if (n.eq.0 .or. ns.eq.0) return
+      if (n.eq.0 .or. ns.eq.0) then
+         return
+      end if
 C**** parse options
       domom=.true.
       if( present(momlog) ) then
@@ -571,26 +575,44 @@ C**** Modify tracer amount, moments, and diagnostics
       naij = ijts_3Dsource(ns,n)
 
 C**** apply tracer source alterations if requested in rundeck:
-      if(alter_sources)then
-      do nsect=1,num_tr_sectors3d(n,ns)
-      do l=1,lm ! making non-openMP suspecting bug...
-      do j=j_0,j_1
-      do i=i_0,imaxj(j)
-        do kreg=1,num_regions
-          if(lat2d_dg(i,j) >= REG_S(kreg) .and. lat2d_dg(i,j)
-     &    <= REG_N(kreg) .and. lon2d_dg(i,j) >= REG_W(kreg)
-     &    .and. lon2d_dg(i,j) < REG_E(kreg) )then
-            nn=tr_sect_index3D(n,ns,nsect)
-            if(ef_FACT3d(nn,kreg) > -1.e20)
-     &      tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
-     &      ef_FACT3d(nn,kreg) 
-          endif 
-        enddo
-      enddo
-      enddo 
-      enddo
-      enddo
-      endif
+      if (alter_sources) then
+        do kreg = 1, num_regions
+          do j = j_0, j_1
+            do i = i_0, imaxj(j)
+              if (lat2d_dg(i,j) >= REG_S(kreg) .and. 
+     &            lat2d_dg(i,j) <= REG_N(kreg) .and.
+     &            lon2d_dg(i,j) >= REG_W(kreg) .and.
+     &            lon2d_dg(i,j) < REG_E(kreg) ) then
+                 mask(i,j) = 1
+              else
+                 mask(i,j) = 0
+              end if
+            end do
+          end do
+
+          do nsect = 1, num_tr_sectors3d(n,ns)
+            nn = tr_sect_index3D(n, ns, nsect)
+            if (ef_FACT3d(nn,kreg) > -1.e20) then
+              do j = j_0, j_1
+                 do i = i_0, imaxj(j)
+                    coef(i,j) = 
+     &                   mask(i,j) * ef_Fact3d(nn,kreg) + 
+     &                   (1-mask(i,j))
+                 end do
+              end do
+              do l = 1, lm
+                do j = j_0, j_1
+                  do i = i_0, imaxj(j)
+                    tr3Dsource(:,:,l,ns,n) = tr3Dsource(:,:,l,ns,n) *
+     &                    coef(i,j)
+        
+                  end do
+                end do
+              end do
+            end if
+          end do
+        end do
+      end if
 
 !$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
       do l=1,lm
