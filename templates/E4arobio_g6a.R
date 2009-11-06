@@ -20,6 +20,7 @@ Preprocessor Options
 #define pCO2_ONLINE
 #define OBIO_RAD_coupling
 #define constCO2                    ! ANY ocean: atmCO2=const, look below also atmCO2
+#define RMUMAX_allcocco             ! max growth rate for coccos based on mixed populations
 !!!!!!!!!!!!!!!!!!!!!!!!!!!! CPP's for gasexchange
 !! #define TRACERS_ON
 !! #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
