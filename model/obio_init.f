@@ -166,8 +166,13 @@ c  Cyanobacteria
       if (nchl > 3) then
 c  Coccolithophores
       nt = 4
-c      rmumax(nt) = rmumax(nt-3)*0.663   !all coccos
+#ifdef RMUMAX_allcocco
+       !change 11/5/09
+       rmumax(nt) = rmumax(nt-3)*0.663   !all coccos
+#else
+       !default
        rmumax(nt) = rmumax(nt-3)*0.755   !E. huxleyi only
+#endif
 c      rmumax(nt) = rmumax(nt-3)*0.781   !E. huxleyi only (no Sunda/Hunts)
       obio_wsd(nt)    = 0.82
       obio_wsd(nt)    = 0.648
