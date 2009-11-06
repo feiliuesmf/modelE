@@ -32,8 +32,10 @@ $env{VERBOSE_OUTPUT}="YES";
 $env{SAVEDISK}="$scratchDir/savedisk";
 $env{GCMSEARCHPATH}="/discover/nobackup/projects/giss/prod_input_files";
 $env{COMPILER}="Intel8";
-$env{ESMF_DIR}="/discover/nobackup/projects/giss/esmf_2_2_ifort_9.1.042";
-$env{MPIDISTR}="SCALI";
+$env{BASELIBDIR}="/usr/local/other/baselibs/ESMF222rp3_NetCDF362b6_10.1.017_intelmpi/Linux";
+$env{MPIDISTR}="intel";
+$env{COMPILER}="intel";
+$env{COMPILER_VERSION}="10";
 $env{ESMF_BOPT}="O";
 $env{NETCDFHOME}="";
 

@@ -157,8 +157,17 @@ def compare(runA, runB, duration):
         serial = newConfiguration(runA['runSource'],'serial')
         file1 = rundeck + "/" + checkpointFileName(runA, duration)
         file2 = rundeck + "/" + checkpointFileName(runB, duration)
-        cmp = serial['rundeck']+"_bin/CMPE002 " + file1 + " " + file2
-        systemCommand("numLines=`" + cmp + "| wc -l`; test " + numLinesExpected + " -eq $numLines")
+        try:
+            cmp = serial['rundeck']+"_bin/CMPE002P " + file1 + " " + file2
+            systemCommand("numLines=`" + cmp + "| wc -l`; test " + numLinesExpected + " -eq $numLines")
+        except:
+            print "   Prognostics differ in " + file1 + " and " + file2
+            raise
+        try:
+            cmp = serial['rundeck']+"_bin/CMPE002 " + file1 + " " + file2
+            systemCommand("numLines=`" + cmp + "| wc -l`; test " + numLinesExpected + " -eq $numLines")
+        except:
+            print "   Diagnostics differ in " + file1 + " and " + file2 + " but prognostics agree. Continuing ..."
     except:
         print "   Comparison between " + file1 + " and " + file2 + " failed."
         raise

@@ -90,11 +90,7 @@ function environmentModules {
     source ${MODULESHOME}/init/bash
     module purge
     case `hostname` in
-	palm | explore* )  module load intel-comp.9.1.039 scsl.1.5.1.1 mpt.1.12.0.0 ;;
-	discover* | borg* )  module load comp/intel-9.1.042 mpi/scali-5.3 lib/mkl-9.0.017 ;;
-	halem* ) 
-	   module load fortran/551F esmf/2.2.0rp1-551J
-	   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/ulocal/stow/esmf-2.2.0rp1-551J/lib ;;
+	discover* | borg* )  module load comp/intel-10.1.023 lib/mkl-10.1.2.024 mpi/impi-3.2.1.009'
     esac
     echo "****************"
     echo " module list: "
