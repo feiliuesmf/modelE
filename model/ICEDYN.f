@@ -14,6 +14,9 @@ C Adapted for GISS coupled model Jiping Liu/Gavin Schmidt 2000
 C - Further modularised May 2001
 C*************************************************************
 
+!#define TRIDIAG_CYCLIC
+!#define TEST_THIS
+
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
 #define TRIDIAG_CYCLIC /* for debug, remove cold-start kinks at IDL */
 #endif
@@ -555,6 +558,10 @@ C**(ETA and ZETA were updted above)
       CALL HALO_UPDATE(grid_ICDYN, UICE, FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid_ICDYN, TNG, FROM=SOUTH+NORTH)
 
+#ifdef TEST_THIS
+      CALL HALO_UPDATE(grid_ICDYN, UICEC, FROM=SOUTH+NORTH)
+#endif
+
       DO 1200 J=J_0S,J_NYP
       DO I=2,NXLCYC
 
@@ -572,12 +579,21 @@ C**(ETA and ZETA were updted above)
       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
+#ifdef TEST_THIS
+      URT(I)=FXY(I,J)-AA5*DELYR*UICEC(I,J)
+     1-(AA3+AA4)*DELY2*UICEC(I,J)
+     1+(ETA(I,J+1)+ETA(I+1,J+1))*UICEC(I,J+1)*DELY2
+     2+(ETA(I,J)+ETA(I+1,J))*UICEC(I,J-1)*DELY2
+     3+ETAMEAN*DELYR*(UICEC(I,J+1)*TNG(J+1)-UICEC(I,J-1)*TNG(J-1))
+     4-ETAMEAN*DELYR*2.0*TNG(J)*(UICEC(I,J+1)-UICEC(I,J-1))
+#else
       URT(I)=FXY(I,J)-AA5*DELYR*UICE(I,J,2)
      1-(AA3+AA4)*DELY2*UICE(I,J,2)
      1+(ETA(I,J+1)+ETA(I+1,J+1))*UICE(I,J+1,2)*DELY2
      2+(ETA(I,J)+ETA(I+1,J))*UICE(I,J-1,2)*DELY2
      3+ETAMEAN*DELYR*(UICE(I,J+1,2)*TNG(J+1)-UICE(I,J-1,2)*TNG(J-1))
      4-ETAMEAN*DELYR*2.0*TNG(J)*(UICE(I,J+1,2)-UICE(I,J-1,2))
+#endif
 
 #ifndef TRIDIAG_CYCLIC
       IF(I.EQ.2) THEN
@@ -799,10 +815,17 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
           AA9=0.0
         END IF
 
+#ifdef TEST_THIS
+        VRT(I,J)=AA9+FXYa(I,J)-(AA3+AA4)*DELX2*VICEC(I,J)
+     6 +((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICEC(I+1,J)*DELX2
+     7    +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICEC(I-1,J)*DELX2)
+     *       *BYCSU(J)
+#else
         VRT(I,J)=AA9+FXYa(I,J)-(AA3+AA4)*DELX2*VICE(I,J,2)
      6 +((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
      7    +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
      *       *BYCSU(J)
+#endif
         VRT(I,J)=(VRT(I,J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
       END DO
