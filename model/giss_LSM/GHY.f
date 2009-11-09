@@ -931,7 +931,7 @@ c     epvs = rho3*cna*(qvs-qs)
 #ifdef EVAP_VEG_GROUND_NEW
 !     1) Soil resistance computed according to the formulation of
 !        Sakaguchi and Zeng (2009) 
-      b_param= b_poresize_param( q(3,1),q(3,1), 1.d0-thets(1,2)  )
+      b_param= b_poresize_param( q(3,1),q(1,1), thets(1,2)  )
       D_vapor = D0*(thets(1,2)**2.d0)*
      &               (1.d0-thetm(1,2)/thets(1,2))**(2.d0+3.d0*b_param)
       L_dry = dz(1)*(exp((1.d0-theta(1,2)/thets(1,2))**5.d0)-1.d0)
