@@ -8900,13 +8900,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
             if (COUPLED_CHEM.ne.1)
      &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
-#ifdef TRACERS_TERP
-!WRONG ON PURPOSE
-! Terpenes emissions are assumed 1/3 that of Isoprene, until proper emissions
-! become available. Then, the following 2 lines will not be needed
-          case ('Terpenes')
-            sfc_src(:,:,n,:)=sfc_src(:,:,n,:)/3.d0
-#endif  /* TRACERS_TERP */
           end select
 #ifdef GFED_3D_BIOMASS
           select case (trname(n))
