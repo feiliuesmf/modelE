@@ -232,56 +232,58 @@ LAI11=chem_files/lai11.global_2x2.5gf ! really 4x5
 LAI12=chem_files/lai12.global_2x2.5gf ! really 4x5
 
 !---------- 1850 (mostly AR5) tracer emissions ------------------
-CO_01=AR5_emis/F/1850/CO_ind_AR5_1850_2x2.5_h
-CO_02=AR5_emis/F/1850/CO_tra_AR5_1850_2x2.5_h
-CO_03=AR5_emis/F/1850/CO_wst_AR5_1850_2x2.5_h
-CO_04=AR5_emis/F/1850/CO_awb_AR5_1850_2x2.5_h
-CO_05=AR5_emis/F/1850/CO_dom_AR5_1850_2x2.5_h
-CO_06=AR5_emis/F/1850/CO_forestfire_AR5_1850_2x2.5_h
-CO_07=AR5_emis/F/1850/CO_grassfire_AR5_1850_2x2.5_h
-CO_08=AR5_emis/F/1850/CO_shp_AR5_1850_2x2.5_h
-NOx_AIRC=AR5_emis/F/1850/NOx_air_AR5_1850_2x2.5
+CO_01=AR5_emis/F/NOV09/1850/CO_ind_AR5_1850_2x2.5_h
+CO_02=AR5_emis/F/NOV09/1850/CO_tra_AR5_1850_2x2.5_h
+CO_03=AR5_emis/F/NOV09/1850/CO_wst_AR5_1850_2x2.5_h
+CO_04=AR5_emis/F/NOV09/1850/CO_awb_AR5_1850_2x2.5_h
+CO_05=AR5_emis/F/NOV09/1850/CO_dom_AR5_1850_2x2.5_h
+CO_06=AR5_emis/F/NOV09/1850/CO_forestfire_AR5_1850_2x2.5_h
+CO_07=AR5_emis/F/NOV09/1850/CO_grassfire_AR5_1850_2x2.5_h
+CO_08=AR5_emis/F/NOV09/1850/CO_shp_AR5_1850_2x2.5_h
+NOx_AIRC=AR5_emis/F/NOV09/1850/NOx_air_AR5_1850_2x2.5
 NOx_01=AR5_emis/F/NAT/NOx_Soil_GEIA_2x2.5_HALF_h ! half because we have ag source
-NOx_02=AR5_emis/F/1850/NOx_awb_AR5_1850_2x2.5_h
-NOx_03=AR5_emis/F/1850/NOx_dom_AR5_1850_2x2.5_h
-NOx_04=AR5_emis/F/1850/NOx_ene_AR5_1850_2x2.5_h
-NOx_05=AR5_emis/F/1850/NOx_forestfire_AR5_1850_2x2.5_h
-NOx_06=AR5_emis/F/1850/NOx_grassfire_AR5_1850_2x2.5_h
-NOx_07=AR5_emis/F/1850/NOx_ind_AR5_1850_2x2.5_h
-NOx_08=AR5_emis/F/1850/NOx_shp_AR5_1850_2x2.5_h
-NOx_09=AR5_emis/F/1850/NOx_tra_AR5_1850_2x2.5_h
-NOx_10=AR5_emis/F/1850/NOx_wst_AR5_1850_2x2.5_h
-CH4_01=AR5_emis/F/1850/CH4_agr_AR5_1850_2x2.5_h
-CH4_02=AR5_emis/F/1850/CH4_awb_AR5_1850_2x2.5_h
-CH4_03=AR5_emis/F/1850/CH4_dom_AR5_1850_2x2.5_h
-CH4_04=AR5_emis/F/1850/CH4_ene_AR5_1850_2x2.5_h
-CH4_05=AR5_emis/F/1850/CH4_ind_AR5_1850_2x2.5_h
-CH4_06=AR5_emis/F/1850/CH4_wst_AR5_1850_2x2.5_h
-CH4_07=AR5_emis/F/1850/CH4_forestfire_AR5_1850_2x2.5_h
-CH4_08=AR5_emis/F/1850/CH4_grassfire_AR5_1850_2x2.5_h
-CH4_09=AR5_emis/F/1850/CH4_shp_AR5_1850_2x2.5_h
-CH4_10=AR5_emis/F/NAT/CH4SOILABS_2x2.5_h
-CH4_11=AR5_emis/F/NAT/CH4TRMITE_2x2.5_h
-CH4_12=AR5_emis/F/NAT/CH4WETL+TUNDRA_2x2.5_h
+NOx_02=AR5_emis/F/NOV09/1850/NOx_awb_AR5_1850_2x2.5_h
+NOx_03=AR5_emis/F/NOV09/1850/NOx_dom_AR5_1850_2x2.5_h
+NOx_04=AR5_emis/F/NOV09/1850/NOx_ene_AR5_1850_2x2.5_h
+NOx_05=AR5_emis/F/NOV09/1850/NOx_forestfire_AR5_1850_2x2.5_h
+NOx_06=AR5_emis/F/NOV09/1850/NOx_grassfire_AR5_1850_2x2.5_h
+NOx_07=AR5_emis/F/NOV09/1850/NOx_ind_AR5_1850_2x2.5_h
+NOx_08=AR5_emis/F/NOV09/1850/NOx_shp_AR5_1850_2x2.5_h
+NOx_09=AR5_emis/F/NOV09/1850/NOx_tra_AR5_1850_2x2.5_h
+NOx_10=AR5_emis/F/NOV09/1850/NOx_wst_AR5_1850_2x2.5_h
+NOx_11=AR5_emis/F/NOV09/1850/NOx_agr_AR5_1850_2x2.5_h
+CH4_01=AR5_emis/F/NOV09/1850/CH4_agr_AR5_1850_2x2.5_h
+CH4_02=AR5_emis/F/NOV09/1850/CH4_awb_AR5_1850_2x2.5_h
+CH4_03=AR5_emis/F/NOV09/1850/CH4_dom_AR5_1850_2x2.5_h
+CH4_04=AR5_emis/F/NOV09/1850/CH4_ene_AR5_1850_2x2.5_h
+CH4_05=AR5_emis/F/NOV09/1850/CH4_ind_AR5_1850_2x2.5_h
+CH4_06=AR5_emis/F/NOV09/1850/CH4_wst_AR5_1850_2x2.5_h
+CH4_07=AR5_emis/F/NOV09/1850/CH4_forestfire_AR5_1850_2x2.5_h
+CH4_08=AR5_emis/F/NOV09/1850/CH4_grassfire_AR5_1850_2x2.5_h
+CH4_09=AR5_emis/F/NOV09/1850/CH4_shp_AR5_1850_2x2.5_h
+CH4_10=AR5_emis/F/NOV09/1850/CH4_tra_AR5_1850_2x2.5_h
+CH4_11=AR5_emis/F/NAT/CH4SOILABS_2x2.5_h
+CH4_12=AR5_emis/F/NAT/CH4TRMITE_2x2.5_h
+CH4_13=AR5_emis/F/NAT/CH4WETL+TUNDRA_2x2.5_h
 Isoprene_01=AR5_emis/F/NAT/Isoprene_vegetation_GEIA_2x2.5_scaled367_h
 ! ========= please remember that Alkenes =================
 ! ========= and Paraffin emissions files =================
 ! ========= must now be in Kmole units,  =================
 ! ========= not Kg units ...             =================
 Alkenes_01=AR5_emis/F/NAT/Alkenes_vegetation_GEIA_2x2.5_h_1
-Alkenes_02=AR5_emis/F/1850/Alkenes_shp_AR5_1850_2x2.5_h
-Alkenes_03=AR5_emis/F/1850/Alkenes_wst_AR5_1850_2x2.5_h
-Alkenes_04=AR5_emis/F/1850/Alkenes_dom_AR5_1850_2x2.5_h
-Alkenes_05=AR5_emis/F/1850/Alkenes_forestfire_AR5_1850_2x2.5_h
-Alkenes_06=AR5_emis/F/1850/Alkenes_grassfire_AR5_1850_2x2.5_h
-Alkenes_07=AR5_emis/F/1850/Alkenes_ind_AR5_1850_2x2.5_h
+Alkenes_02=AR5_emis/F/NOV09/1850/Alkenes_shp_AR5_1850_2x2.5_h
+Alkenes_03=AR5_emis/F/NOV09/1850/Alkenes_wst_AR5_1850_2x2.5_h
+Alkenes_04=AR5_emis/F/NOV09/1850/Alkenes_dom_AR5_1850_2x2.5_h
+Alkenes_05=AR5_emis/F/NOV09/1850/Alkenes_forestfire_AR5_1850_2x2.5_h
+Alkenes_06=AR5_emis/F/NOV09/1850/Alkenes_grassfire_AR5_1850_2x2.5_h
+Alkenes_07=AR5_emis/F/NOV09/1850/Alkenes_ind_AR5_1850_2x2.5_h
 Paraffin_01=AR5_emis/F/NAT/Paraffin_vegetation_GEIA_2x2.5_h_1
-Paraffin_02=AR5_emis/F/1850/Paraffin_shp_AR5_1850_2x2.5_h
-Paraffin_03=AR5_emis/F/1850/Paraffin_wst_AR5_1850_2x2.5_h
-Paraffin_04=AR5_emis/F/1850/Paraffin_dom_AR5_1850_2x2.5_h
-Paraffin_05=AR5_emis/F/1850/Paraffin_forestfire_AR5_1850_2x2.5_h
-Paraffin_06=AR5_emis/F/1850/Paraffin_grassfire_AR5_1850_2x2.5_h
-Paraffin_07=AR5_emis/F/1850/Paraffin_ind_AR5_1850_2x2.5_h
+Paraffin_02=AR5_emis/F/NOV09/1850/Paraffin_shp_AR5_1850_2x2.5_h
+Paraffin_03=AR5_emis/F/NOV09/1850/Paraffin_wst_AR5_1850_2x2.5_h
+Paraffin_04=AR5_emis/F/NOV09/1850/Paraffin_dom_AR5_1850_2x2.5_h
+Paraffin_05=AR5_emis/F/NOV09/1850/Paraffin_forestfire_AR5_1850_2x2.5_h
+Paraffin_06=AR5_emis/F/NOV09/1850/Paraffin_grassfire_AR5_1850_2x2.5_h
+Paraffin_07=AR5_emis/F/NOV09/1850/Paraffin_ind_AR5_1850_2x2.5_h
 !------------ end of chem emissions files ---------------
 
 !-------Aerosol inputs, for imAER=5 --------------
@@ -443,7 +445,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 !  Start tracer code parameters:
 !-----------------------------------------------
 !--- define emission sectors above files belong to ---
-! example: CH4_12_sect='WET'
+! example: CH4_13_sect='WET'
 
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
@@ -538,4 +540,5 @@ adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
  YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
  ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
  &END
+
 
