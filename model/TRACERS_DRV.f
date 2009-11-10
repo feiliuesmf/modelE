@@ -2818,61 +2818,61 @@ C**** set some defaults
 
         case ('OCII')
           g=13; itcon_3Dsrc(1,N) = g
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Aging loss'
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Aging loss'
           qsum(itcon_3Dsrc(1,N)) = .true.
           g=g+1; itcon_surf(1,N) = g
-          qcon(itcon_surf(1,N)) = .true.; conpts(2) = 'Industrial src'
+          qcon(itcon_surf(1,N)) = .true.; conpts(g-12)='Industrial src'
           qsum(itcon_surf(1,N)) = .false.
-          g=g+1; itcon_surf(2,N) = g
-          qcon(itcon_surf(2,N)) = .true.; conpts(3) = 'ship src'
-          qsum(itcon_surf(2,N)) = .false.
 #ifndef TRACERS_AEROSOLS_SOA
           g=g+1; itcon_surf(3,N) = g
-          qcon(itcon_surf(3,N)) = .true.; conpts(4) = 'Terpene src'
+          qcon(itcon_surf(3,N)) = .true.; conpts(g-12) = 'Terpene src'
           qsum(itcon_surf(3,N)) = .false.
 #endif  /* TRACERS_AEROSOLS_SOA */
+          g=g+1; itcon_surf(2,N) = g
+          qcon(itcon_surf(2,N)) = .true.; conpts(g-12) = 'ship src'
+          qsum(itcon_surf(2,N)) = .false.
           g=g+1; itcon_mc(n) = g
-          qcon(itcon_mc(n)) = .true.  ; conpts(5) = 'MOIST CONV'
+          qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
           qsum(itcon_mc(n)) = .false.
           g=g+1; itcon_ss(n) = g
-          qcon(itcon_ss(n)) = .true.  ; conpts(6) = 'LS COND'
+          qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
           qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
             g=g+1; itcon_dd(n,1)= g
-            qcon(itcon_dd(n,1)) = .true. ; conpts(7) = 'TURB DEP'
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
             qsum(itcon_dd(n,1)) = .false.
             g=g+1; itcon_dd(n,2)= g
-            qcon(itcon_dd(n,2)) = .true. ; conpts(8) = 'GRAV SET'
+            qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
 
         case ('OCI3')
           g=13; itcon_3Dsrc(1,N) = g
-          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(1) = 'Emission src'
+          qcon(itcon_3Dsrc(1,N)) = .true.; conpts(g-12) = 'Emission src'
           qsum(itcon_3Dsrc(1,N)) = .true.
           g=g+1; itcon_3Dsrc(2,N) = g
-          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(2) = 'Aging loss'
+          qcon(itcon_3Dsrc(2,N)) = .true.; conpts(g-12) = 'Aging loss'
           qsum(itcon_3Dsrc(2,N)) = .true.
 #ifndef TRACERS_AEROSOLS_SOA
           g=g+1; itcon_surf(1,N) = g
-          qcon(itcon_surf(1,N)) = .true.; conpts(3) = 'Terpene src'
+          qcon(itcon_surf(1,N)) = .true.; conpts(g-12) = 'Terpene src'
           qsum(itcon_surf(1,N)) = .false.
 #endif  /* TRACERS_AEROSOLS_SOA */
           g=g+1; itcon_mc(n) = g
-          qcon(itcon_mc(n)) = .true.  ; conpts(4) = 'MOIST CONV'
+          qcon(itcon_mc(n)) = .true.  ; conpts(g-12) = 'MOIST CONV'
           qsum(itcon_mc(n)) = .false.
           g=g+1; itcon_ss(n) = g
-          qcon(itcon_ss(n)) = .true.  ; conpts(5) = 'LS COND'
+          qcon(itcon_ss(n)) = .true.  ; conpts(g-12) = 'LS COND'
           qsum(itcon_ss(n)) = .false.
 #ifdef TRACERS_DRYDEP
           if(dodrydep(n)) then
             g=g+1; itcon_dd(n,1)= g
-            qcon(itcon_dd(n,1)) = .true. ; conpts(6) = 'TURB DEP'
+            qcon(itcon_dd(n,1)) = .true. ; conpts(g-12) = 'TURB DEP'
             qsum(itcon_dd(n,1)) = .false.
             g=g+1; itcon_dd(n,2)= g
-            qcon(itcon_dd(n,2)) = .true. ; conpts(7) = 'GRAV SET'
+            qcon(itcon_dd(n,2)) = .true. ; conpts(g-12) = 'GRAV SET'
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
@@ -4870,6 +4870,7 @@ c Oxidants
       if (k.gt. ktajls) then
         if (AM_I_ROOT()) write (6,*)
      &   'tjl_defs: Increase ktajls=',ktajls,' to at least ',k
+         print *,'k should be ',k
         call stop_model('ktajls too small',255)
       end if
 #endif /* TRACERS_ON */
@@ -9042,6 +9043,10 @@ C**** at the start of any day
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER ie,iw,js,jn
 
+#ifdef TRACERS_TERP
+!@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
+      real*8, parameter :: orvoc_fact=0.32d0
+#endif  /* TRACERS_TERP */
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
       real*8  :: factor
@@ -9412,13 +9417,32 @@ C****
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
-     &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit','Terpenes',
+     &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit',
      &      'Alkenes','Paraffin','HCl','HOCl','ClONO2','HBr','HOBr',
      &      'BrONO2','N2O','CFC','stratOx','codirect')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
         end do ; end do
+#ifdef TRACERS_TERP
+      case ('Terpenes')
+        do ns=1,ntsurfsrc(n)
+          if(ns==1) then ! No orvoc file provided, scale up the terpenes one instead
+            do j=J_0,J_1
+! 0.4371 is the ratio of orvoc/isoprene emissions in the Lathiere et al. (2005) results
+              trsource(I_0:I_1,j,ns,n)=
+     &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)+
+     &        orvoc_fact*0.4371*
+     &        sfc_src(I_0:I_1,j,n_Isoprene,ns)*axyp(I_0:I_1,j)
+            end do
+          else ! use the orvoc file
+            do j=J_0,J_1
+              trsource(I_0:I_1,j,ns,n)=orvoc_fact*
+     &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
+            end do
+          endif
+        end do
+#endif  /* TRACERS_TERP */
       case ('CH4')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
