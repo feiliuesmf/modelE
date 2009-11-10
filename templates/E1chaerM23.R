@@ -118,7 +118,7 @@ ESMF_Interface shared
 
 Data input files:
     ! start up from restart file of earlier run
-! AIC=1JAN2000.rsfE1chaerM23_nitrate_dust        ! initial conditions (atm./ground), no GIC, ISTART=8
+! AIC=1JAN2000.rsfE1chaerM23_terpenes_nitrate_dust        ! initial conditions (atm./ground), no GIC, ISTART=8
     ! or start up from observed conditions
 AIC=AIC.RES_M23.D771201          ! initial conditions (atm.)      needs GIC, ISTART=2
 GIC=GIC.E046D3M20A.1DEC1955.ext   ! initial conditions (ground)
@@ -185,7 +185,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 ! choose these for strat+trop chem model
 !-----------------------------------------------
 MOLEC=chem_files/ds4_moleculesE_terp_soa
-JPLRX=chem_files/jpl00_T25_SEP08_terp
+JPLRX=chem_files/jpl00_T25_SEP08_fastterp
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
 SPECFJ=chem_files/jv_spec00_25.dat
@@ -282,8 +282,9 @@ CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
 CH4_11=AR5_emis/M/2000/CH4_forestfire_AR5_2000_4x5_h
 CH4_12=AR5_emis/M/2000/CH4_grassfire_AR5_2000_4x5_h
 CH4_13=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
-Isoprene_01=gsin/Isoprene_GEIA_vegetation_double_head
-Terpenes_01=gsin/Isoprene_GEIA_vegetation_double_head
+Isoprene_01=ORCHIDEE_Isoprene_1990_4x5_h
+Terpenes_01=ORCHIDEE_Terpenes_1990_4x5_h
+Terpenes_02=ORCHIDEE_ORVOC_1990_4x5_h
 SULFATE_SA=NOy_sinks/sulfate_fakeM23_M_SA
 DMS_FIELD=dms_conc
 SO2_FIELD=so2_conc
@@ -309,7 +310,7 @@ DMS_SEA=DMS_Night_4x5
 !AER_CHEM=Sulf_chem_drewE_20      ! 20 layer version
 AER_CHEM=trace_gas_3D_fields_E   ! 23 layer version
 AER_OH_STRAT=Strat_OH_drewE_20
-TERPENE=terp_Guenther_4x5
+!TERPENE=terp_Guenther_4x5
 ! ------Dorothy's inputs needed for imAER = 3 -old historic emissions------------
 !SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000 
 !OC_EM_1=OC_Bond_Feb09_4x5_h_1850-2000 !BC/OC Bond  
