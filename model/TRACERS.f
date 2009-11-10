@@ -603,7 +603,7 @@ C**** apply tracer source alterations if requested in rundeck:
               do l = 1, lm
                 do j = j_0, j_1
                   do i = i_0, imaxj(j)
-                    tr3Dsource(:,:,l,ns,n) = tr3Dsource(:,:,l,ns,n) *
+                    tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
      &                    coef(i,j)
         
                   end do
