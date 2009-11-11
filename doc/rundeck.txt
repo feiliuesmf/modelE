@@ -13,13 +13,13 @@ Rundeck structure
 ================
 
 Rundeck consists of a number of sections describing different
-aspects of the run. Each section starts with with certain keywords
+aspects of the run. Each section starts with certain keywords
 (like "Object modules:") and terminates either with "End ..." 
 statement or with the start of a new section. The sections 
 are supposed to follow in a pre-defined order and can't be
 interchanged, though some unneeded sections can be skipped. 
 The character ! starts a comment. Everything to the right of ! 
-untill the end of the line is ignored. Here is the list 
+until the end of the line is ignored. Here is the list 
 of rundeck sections in proper order:
 
  * Run name and comment
