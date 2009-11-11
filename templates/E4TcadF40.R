@@ -231,7 +231,7 @@ LAI10=chem_files/lai10.global_2x2.5gf ! really 4x5
 LAI11=chem_files/lai11.global_2x2.5gf ! really 4x5
 LAI12=chem_files/lai12.global_2x2.5gf ! really 4x5
 
-!---------- 1850 (mostly AR5) tracer emissions ------------------
+!--------- 1850 (mostly AR5) tracer emissions ------------------
 CO_01=AR5_emis/F/NOV09/1850/CO_ind_AR5_1850_2x2.5_h
 CO_02=AR5_emis/F/NOV09/1850/CO_tra_AR5_1850_2x2.5_h
 CO_03=AR5_emis/F/NOV09/1850/CO_wst_AR5_1850_2x2.5_h
