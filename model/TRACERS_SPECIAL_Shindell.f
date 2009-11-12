@@ -418,7 +418,7 @@ C
       implicit none
 !@var Ldim how many vertical levels in the read-in file?
 !@var L dummy vertical loop variable
-      integer Ldim,L,imon,iu,ipos,k,nn
+      integer Ldim,L,imon,iu,ipos,k,nn,k2
       character(len=300) :: out_line
       real*8 :: frac, alpha
       real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
@@ -475,10 +475,12 @@ c**** Interpolate two months of data to current day
 ! --------------- transient emissions -------------------------------!
       else
         ipos=1
+        k2=yr1
         alpha=0.d0 ! before start year, use start year value
         if(jyear>yr2.or.(jyear==yr2.and.jday>=183))then
           alpha=1.d0 ! after end year, use end year value
           ipos=(yr2-yr1)/kstep
+          k2=yr2-kstep
         endif
         do k=yr1,yr2-kstep,kstep
           if(jyear>k .or. (jyear==k.and.jday>=183)) then
@@ -486,6 +488,7 @@ c**** Interpolate two months of data to current day
               ipos=1+(k-yr1)/kstep ! (integer artithmatic)
               alpha=(365.d0*(0.5+real(jyear-1-k))+jday) /
      &              (365.d0*real(kstep))
+              k2=k
               exit
             endif
           endif
@@ -571,7 +574,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
      & + sfc_b(I_0:I_1,J_0:J_1,:)*alpha
 
       write(out_line,*) '3D source at',
-     &100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &100.d0*alpha,' % of period ',k2,' to ',k2+kstep,
      &' and monthly fraction= ',frac 
       call write_parallel(trim(out_line))
 

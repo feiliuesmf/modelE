@@ -1999,12 +1999,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !should do! endif
             sfc_src(I_0:I_1,J_0:J_1,n,ns)=sfc_a(I_0:I_1,J_0:J_1)*
      &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
-            if(alpha>0.d0)then 
-              write(out_line,*)
-     &        trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-     &        100.d0*alpha,' % of period ',k,' to ',k+kstep
-              call write_parallel(trim(out_line))
-            endif
+            write(out_line,*)
+     &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+     &      100.d0*alpha,' % of period ',k,' to ',k+kstep
+            call write_parallel(trim(out_line))
             ifirst2(n,ns) = .false.
 
           case('m')        ! monthly file, interpolate to now
@@ -2255,13 +2253,11 @@ c****   Interpolate two months of data to current day
         data(I_0:I_1,J_0:J_1)=sfc_a(I_0:I_1,J_0:J_1)*(1.d0-alpha) + 
      &  sfc_b(I_0:I_1,J_0:J_1)*alpha
 
-        if(alpha>0.d0)then 
-          write(out_line,*)
-     &    trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-     &    100.d0*alpha,' % of period ',k,' to ',k+kstep,
-     &    ' and monthly fraction= ',frac
-          call write_parallel(trim(out_line))
-        endif
+        write(out_line,*)
+     &  trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+     &  100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &  ' and monthly fraction= ',frac
+        call write_parallel(trim(out_line))
  
       endif
 
