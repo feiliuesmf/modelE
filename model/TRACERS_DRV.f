@@ -8985,9 +8985,9 @@ C**** at the start of any day
 !@sum tracer_source calculates non-interactive sources for tracers
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
-     *  ,dtsrc,jmon,nday,flice,focean
+     *  ,dtsrc,jmon,nday,flice,focean,im,jm
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, write_parallel
-     * ,AM_I_ROOT, pack_data
+     * ,AM_I_ROOT, pack_data, unpack_data
 
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,
      &     lon_to_i,lat_to_j,lat2d
@@ -8997,7 +8997,7 @@ C**** at the start of any day
       USE FLUXES, only: trsource
       USE SEAICE_COM, only: rsi
       USE GHY_COM, only : fearth
-      USE CONSTANT, only: tf,sday,hrday,bygrav,mair
+      USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi
       USE PBLCOM, only: tsavg
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
@@ -9030,10 +9030,17 @@ C**** at the start of any day
       USE LAKES_COM, only : flake
       implicit none
       integer :: i,j,ns,l,ky,n,nsect,kreg
+      REAL*8, PARAMETER ::  byjm =1.d0/JM
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im),fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+#ifdef TRACERS_SPECIAL_Shindell
+      real*8, dimension(IM,JM) :: COSZ1_glob
+      real*8, dimension(JM) :: factj_glob
+      real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      real*8 :: nlight, max_COSZ1, fact0
+#endif
       INTEGER ie,iw,js,jn
 
 #ifdef TRACERS_TERP
@@ -9410,9 +9417,9 @@ C****
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
-     &      'HCHO','HO2NO2','CO','PAN','Isoprene','AlkylNit',
-     &      'Alkenes','Paraffin','HCl','HOCl','ClONO2','HBr','HOBr',
-     &      'BrONO2','N2O','CFC','stratOx','codirect')
+     &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
+     &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
+     &      'stratOx','codirect')
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
      &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
@@ -9450,7 +9457,35 @@ C****
           enddo
         endif
 #endif
-
+      case ('Isoprene')
+! Attempt to emit just during sunlight. Probably very wasteful code
+! (and what about cubed-sphere compliance?) factj composed of:
+! 4/pi= ratio of step-function emissions (square of area 1) to
+! area under cosine curve from 0 to pi/2. 1/max_COSZ1 = to account
+! for COSZ1 not necessarily maxing out at 1.0. And im/nlight (the
+! number of lons to daylit lons) to try to get most of the base
+! emissions out during daylight. The 1.274 factor is a secret.
+        fact0=1.274d0*4.d0*real(im)/pi
+        call pack_data( grid, COSZ1, COSZ1_glob )
+        if(am_i_root()) then
+          do j=1,jm 
+            max_COSZ1=0.d0 ; nlight=0.d0
+            do i=1,im
+              max_COSZ1=max(max_COSZ1,COSZ1_glob(i,j))
+              if(COSZ1_glob(i,j)>0.)nlight=nlight+1.d0
+            enddo
+            factj_glob(j)=fact0/(nlight*max_COSZ1)
+          enddo
+        endif
+        call unpack_data( grid, factj_glob, factj)
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
+          if(COSZ1(i,j)>0.)then
+            trsource(i,j,ns,n)=factj(j)*COSZ1(i,j)*
+     &      sfc_src(i,j,n,ns)*axyp(i,j)
+          else
+            trsource(i,j,ns,n)=0.d0
+          endif  
+        end do ; end do; enddo
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
