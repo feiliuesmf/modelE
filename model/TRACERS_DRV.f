@@ -9019,7 +9019,8 @@ C**** at the start of any day
 #ifdef TRACERS_RADON
       USE AEROSOL_SOURCES, only: rn_src
 #endif
-#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP)
+#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) || \
+    (defined TRACERS_SPECIAL_Shindell)
       USE apply3d, only : apply_tracer_3Dsource
       USE RAD_COM,  only : cosz1
 #endif
