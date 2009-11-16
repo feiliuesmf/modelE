@@ -1,4 +1,7 @@
 #include "rundeck_opts.h"
+
+!#define UPWIND_HALOS
+
       MODULE TRACER_ADV
 !@sum MODULE TRACER_ADV arrays needed for tracer advection
 
@@ -25,6 +28,15 @@ c z_extra variables
      &     nstepz_extra
       REAL*8,  ALLOCATABLE, DIMENSION(:,:,:)   :: mw_extra
 
+#ifdef UPWIND_HALOS
+c arrays for upwind halos
+      integer :: n_halo_glob
+      integer, dimension(lm) :: ni_pack_s,ni_pack_n
+      integer, dimension(im,lm) ::
+     &     i_pack_s,i_pack_n, i_unpack_s,i_unpack_n
+      real*8, dimension(:,:), allocatable :: halo_buf
+#endif
+
       contains
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
@@ -48,6 +60,9 @@ c z_extra variables
       real*8, dimension(nmom,lm) :: rmom1d
       INTEGER :: I,J,L,N,nc,ncxy,lmin,lmax,nl,istep
       integer :: jmin_x,jmax_x
+#ifdef UPWIND_HALOS
+      integer :: ks,kn,ii,m
+#endif
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -65,8 +80,44 @@ c**** Extract domain decomposition info
       do nc=1,ncyc
 
         if(nc.gt.1) CALL HALO_UPDATE(grid, ma, FROM=NORTH+SOUTH)
+#ifndef UPWIND_HALOS
         CALL HALO_UPDATE(grid, rm,    FROM=NORTH+SOUTH)
         CALL HALO_UPDATE_COLUMN(grid, rmom, FROM=NORTH+SOUTH)
+#else
+c
+c pack and halo the buffer containing upwind data
+c
+        ks = 0
+        kn = 0
+        do l=1,lm
+          if(.not.have_south_pole) then
+            j = j_0
+            do ii=1,ni_pack_s(l)
+              i = i_pack_s(ii,l)
+              ks = ks + 1
+              halo_buf(ks,j) = rm(i,j,l)
+              do m=1,nmom
+                ks = ks + 1
+                halo_buf(ks,j) = rmom(m,i,j,l)
+              enddo
+            enddo
+          endif
+          if(.not.have_north_pole) then
+            j = j_1
+            do ii=1,ni_pack_n(l)
+              i = i_pack_n(ii,l)
+              kn = kn + 1
+              halo_buf(kn,j) = rm(i,j,l)
+              do m=1,nmom
+                kn = kn + 1
+                halo_buf(kn,j) = rmom(m,i,j,l)
+              enddo
+            enddo
+          endif
+        enddo
+        ks = 0; kn = 0  ! reset for unpacks
+        CALL HALO_UPDATE(grid, halo_buf, FROM=NORTH+SOUTH)
+#endif
 
         do j=j_0,j_1
           do i=1,im
@@ -81,6 +132,36 @@ c**** Extract domain decomposition info
 
           if(l.le.lm) then
 
+#ifdef UPWIND_HALOS
+c
+c unpack the upwind halo buffer for this level
+c
+            if(.not.have_south_pole) then
+              j = j_0-1
+              do ii=1,im-ni_pack_s(l)
+                i = i_unpack_s(ii,l)
+                ks = ks + 1
+                rm(i,j,l) = halo_buf(ks,j)
+                do m=1,nmom
+                  ks = ks + 1
+                  rmom(m,i,j,l) = halo_buf(ks,j)
+                enddo
+              enddo
+            endif
+            if(.not.have_north_pole) then
+              j = j_1+1
+              do ii=1,im-ni_pack_n(l)
+                i = i_unpack_n(ii,l)
+                kn = kn + 1
+                rm(i,j,l) = halo_buf(kn,j)
+                do m=1,nmom
+                  kn = kn + 1
+                  rmom(m,i,j,l) = halo_buf(kn,j)
+                enddo
+              enddo
+            endif
+#endif
+
             do ncxy=1,ncycxy(l) ! loop over horizontal cycles
 
               if(ncxy.gt.1) then ! update boundaries if necessary
@@ -89,27 +170,6 @@ c**** Extract domain decomposition info
                 CALL HALO_UPDATE_COLUMN(
      &                           grid, rmom(:,:,:,l), FROM=NORTH+SOUTH)
               endif
-
-C**** Fill in values at the poles
-C**** SOUTH POLE:
-              if (HAVE_SOUTH_POLE) then
-                DO I=2,IM
-                  RM(I,1 ,L) =   RM(1,1 ,L)
-                  DO N=1,NMOM
-                    RMOM(N,I,1 ,L) =  RMOM(N,1,1 ,L)
-                  enddo
-                enddo
-              endif             !SOUTH POLE
-
-c**** NORTH POLE:
-              if (HAVE_NORTH_POLE) then
-                DO I=2,IM
-                  RM(I,JM,L) =   RM(1,JM,L)
-                  DO N=1,NMOM
-                    RMOM(N,I,JM,L) =  RMOM(N,1,JM,L)
-                  enddo
-                enddo
-              endif             ! NORTH POLE
 
               jmin_x = j_0s; jmax_x = j_1s
               if(qlimit) then
@@ -218,10 +278,14 @@ c
      &     ,halo_updatej, globalmax
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT, here
       USE QUSCOM, ONLY : IM,JM,LM
+      USE QUSDEF, only : nmom
       IMPLICIT NONE
       real*8, intent(in) :: dt_dummy
       INTEGER :: i,j,l,n,nc,nbad,nbad_loc,ierr_loc,ierr,nc3d,ncxy
      &     ,ncycxy_loc(lm),im1,lmin,lmax,nl,nstepx_dum,nstepz_dum
+#ifdef UPWIND_HALOS
+      integer :: ni_pack,ni_unpack,n_loc
+#endif
       REAL*8 :: byn,ssp,snp,mvbyn,mwbyn,mpol,byn3d
       real*8, dimension(im) :: mubyn,am,mi
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
@@ -653,6 +717,49 @@ c
         enddo
         enddo
       endif
+
+#ifdef UPWIND_HALOS
+c
+c tabulate pack/unpack info for upwind halos
+c
+      do l=1,lm
+        ni_pack = 0
+        if(.not.have_south_pole) then
+          j = j_0-1
+          ni_unpack = 0
+          do i=1,im
+            if(mv(i,j,l).le.0.) then
+              ni_pack = ni_pack + 1
+              i_pack_s(ni_pack,l) = i
+            else
+              ni_unpack = ni_unpack + 1
+              i_unpack_s(ni_unpack,l) = i
+            endif
+          enddo
+        endif
+        ni_pack_s(l) = ni_pack
+        ni_pack = 0
+        if(.not.have_north_pole) then
+          j = j_1
+          ni_unpack = 0
+          do i=1,im
+            if(mv(i,j,l).ge.0.) then
+              ni_pack = ni_pack + 1
+              i_pack_n(ni_pack,l) = i
+            else
+              ni_unpack = ni_unpack + 1
+              i_unpack_n(ni_unpack,l) = i
+            endif
+          enddo
+        endif
+        ni_pack_n(l) = ni_pack
+      enddo
+      n_loc = max(sum(ni_pack_s),sum(ni_pack_n))
+      n_loc = max(n_loc, lm*im-n_loc)
+      CALL GLOBALMAX(grid, n_loc, n_halo_glob)
+      if(allocated(halo_buf)) deallocate(halo_buf)
+      allocate(halo_buf(n_halo_glob*(1+nmom),j_0h:j_1h))
+#endif
 
       RETURN
       END subroutine AADVQ0
@@ -1098,31 +1205,29 @@ c      endif
 c**** scale polar boxes to their full extent
 ! set horizontal moments to zero at pole
       if (HAVE_SOUTH_POLE) then
-        mass(:,1)=mass(:,1)*im
-        m_sp = mass(1,1 )
-        rm(:,1)=rm(:,1)*im
-        rm_sp = rm(1,1 )
+        m_sp = mass(1,1 )*im
+        rm_sp = rm(1,1 )*im
+        rzm_sp  = rmom(mz ,1,1 )*im
+        rzzm_sp = rmom(mzz,1,1 )*im
         do i=1,im
-           rmom(:,i,1 )=rmom(:,i,1 )*im
+          mass(i,1) = m_sp
+            rm(i,1) = rm_sp
+          rmom(zomoms,i,1) = (/ rzm_sp, rzzm_sp /)
+          rmom(ihmoms,i,1) = 0.
         enddo
-        rzm_sp  = rmom(mz ,1,1 )
-        rzzm_sp = rmom(mzz,1,1 )
-        rmom(ihmoms,:,1) = 0.
-c        rmom((/mx,mxx,myy,mxy,mzx/),:,1) = 0.
       end if                       !SOUTH POLE
 
       if (HAVE_NORTH_POLE) then
-        mass(:,jm)=mass(:,jm)*im
-        m_np = mass(1,jm)
-        rm(:,jm)=rm(:,jm)*im
-        rm_np = rm(1,jm)
+        m_np = mass(1,jm)*im
+        rm_np = rm(1,jm)*im
+        rzm_np  = rmom(mz ,1,jm)*im
+        rzzm_np = rmom(mzz,1,jm)*im
         do i=1,im
-           rmom(:,i,jm)=rmom(:,i,jm)*im
+          mass(i,jm) = m_np
+            rm(i,jm) = rm_np
+          rmom(zomoms,i,jm) = (/ rzm_np, rzzm_np /)
+          rmom(ihmoms,i,jm) = 0.
         enddo
-        rzm_np  = rmom(mz ,1,jm)
-        rzzm_np = rmom(mzz,1,jm)
-        rmom(ihmoms,:,jm) = 0.
-c        rmom((/mx,mxx,myy,mxy,mzx/),:,jm) = 0.
       end if                       !NORTH POLE
 
       if(have_north_pole) then
@@ -1312,23 +1417,23 @@ c        rmom((/mx,mxx,myy,mxy,mzx/),:,jm) = 0.
 c**** average and unscale polar boxes
 ! horizontal moments are zero at pole
       if (HAVE_SOUTH_POLE) then
-        mass(:,1 ) = (m_sp + sum(mass(:,1 )-m_sp))*byim
-        rm(:,1 ) = (rm_sp + sum(rm(:,1 )-rm_sp))*byim
-        rmom(mz ,:,1 ) = (rzm_sp + 
+        mass(1,1 ) = (m_sp + sum(mass(:,1 )-m_sp))*byim
+        rm(1,1 ) = (rm_sp + sum(rm(:,1 )-rm_sp))*byim
+        rmom(mz ,1,1 ) = (rzm_sp + 
      *       sum(rmom(mz ,:,1 )-rzm_sp ))*byim
-        rmom(mzz,:,1 ) = (rzzm_sp+ 
+        rmom(mzz,1,1 ) = (rzzm_sp+ 
      *       sum(rmom(mzz,:,1 )-rzzm_sp))*byim
-        rmom(ihmoms,:,1) = 0
+        rmom(ihmoms,1,1) = 0
       end if   !SOUTH POLE
 
       if (HAVE_NORTH_POLE) then
-        mass(:,jm) = (m_np + sum(mass(:,jm)-m_np))*byim
-        rm(:,jm) = (rm_np + sum(rm(:,jm)-rm_np))*byim
-        rmom(mz ,:,jm) = (rzm_np + 
+        mass(1,jm) = (m_np + sum(mass(:,jm)-m_np))*byim
+        rm(1,jm) = (rm_np + sum(rm(:,jm)-rm_np))*byim
+        rmom(mz ,1,jm) = (rzm_np + 
      &       sum(rmom(mz ,:,jm)-rzm_np ))*byim
-        rmom(mzz,:,jm) = (rzzm_np+ 
+        rmom(mzz,1,jm) = (rzzm_np+ 
      &       sum(rmom(mzz,:,jm)-rzzm_np))*byim
-        rmom(ihmoms,:,jm) = 0.
+        rmom(ihmoms,1,jm) = 0.
       end if  !NORTH POLE
 
       return
@@ -1340,7 +1445,8 @@ c**** average and unscale polar boxes
 !@auth Maxwell Kelley
       use DOMAIN_DECOMP_1D, only : grid, GET
       use QUSDEF
-      use QUSCOM, only : im
+      use QUSCOM, only : im,jm
+      USE GEOM, only : imaxj
       implicit none
       REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2) 
      &        :: rm,mass
@@ -1362,7 +1468,7 @@ c**** Get useful local parameters for domain decomposition
       CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
 
       do j=j_0,j_1
-      do i=1,im
+      do i=1,imaxj(j)
          if(mw(i,j).lt.0.) then ! air mass flux is negative
             ll=2
             frac1=+1.
@@ -1467,6 +1573,24 @@ c**** Get useful local parameters for domain decomposition
 
       enddo ! i
       enddo ! j
+
+c fill poles.  skip if pole-filling not needed.
+      if(grid%have_south_pole) then
+        j=1
+        do i=2,im
+          mass(i,j,1) = mass(1,j,1)
+          rm(i,j,1) = rm(1,j,1)
+          rmom(:,i,j,1) = rmom(:,1,j,1)
+        enddo
+      endif
+      if(grid%have_north_pole) then
+        j=jm
+        do i=2,im
+          mass(i,j,1) = mass(1,j,1)
+          rm(i,j,1) = rm(1,j,1)
+          rmom(:,i,j,1) = rmom(:,1,j,1)
+        enddo
+      endif
 
       return
 c****
@@ -1853,7 +1977,8 @@ c**** average and unscale polar boxes
 !@auth Maxwell Kelley
       use DOMAIN_DECOMP_1D, only : grid, GET
       use QUSDEF
-      use QUSCOM, only : im
+      use QUSCOM, only : im,jm
+      USE GEOM, only : imaxj
       implicit none
       REAL*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,2) 
      &        :: rm,mass
@@ -1874,7 +1999,7 @@ c**** Get useful local parameters for domain decomposition
       CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
 
       do j=j_0,j_1
-      do i=1,im
+      do i=1,imaxj(j)
          if(mw(i,j).lt.0.) then ! air mass flux is negative
             ll=2
             frac1=+1.
@@ -1939,6 +2064,24 @@ c**** Get useful local parameters for domain decomposition
 
       enddo ! i
       enddo ! j
+
+c fill poles.  skip if pole-filling not needed.
+      if(grid%have_south_pole) then
+        j=1
+        do i=2,im
+          mass(i,j,1) = mass(1,j,1)
+          rm(i,j,1) = rm(1,j,1)
+          rmom(:,i,j,1) = rmom(:,1,j,1)
+        enddo
+      endif
+      if(grid%have_north_pole) then
+        j=jm
+        do i=2,im
+          mass(i,j,1) = mass(1,j,1)
+          rm(i,j,1) = rm(1,j,1)
+          rmom(:,i,j,1) = rmom(:,1,j,1)
+        enddo
+      endif
 
       return
 c****
