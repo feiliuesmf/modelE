@@ -239,33 +239,38 @@ C***ESMF: Unpack global arrays into distributed local arrays.
 
       contains
       subroutine allocate_me
+      integer :: img, jmg, lmg
       if (AM_I_ROOT()) then
-        ALLOCATE( TTOLD_glob(LM,IM,JM),
-     &       QTOLD_glob(LM,IM,JM),
-     &       SVLHX_glob(LM,IM,JM),
-     &       RHSAV_glob(LM,IM,JM),
-     &       CLDSAV_glob(LM,IM,JM)  
+         img = IM
+         jmg = JM
+         lmg = LM
+      else
+         img = 1
+         jmg = 1
+         lmg = 1
+      end if         
+      ALLOCATE( TTOLD_glob(lmg,img,jmg),
+     &     QTOLD_glob(lmg,img,jmg),
+     &     SVLHX_glob(lmg,img,jmg),
+     &     RHSAV_glob(lmg,img,jmg),
+     &     CLDSAV_glob(lmg,img,jmg)  
 #ifdef CLD_AER_CDNC
-     &      ,OLDNL_glob(LM,IM,JM)  
-     &      ,OLDNI_glob(LM,IM,JM)  
+     &     ,OLDNL_glob(lmg,img,jmg)  
+     &     ,OLDNI_glob(lmg,img,jmg)  
 #endif
      & )
-      endif
       end subroutine allocate_me
       subroutine deallocate_me
-      if (AM_I_ROOT()) then
-        DEALLOCATE( TTOLD_glob,
-     &       QTOLD_glob,
-     &       SVLHX_glob,
-     &       RHSAV_glob,
-     &       CLDSAV_glob 
+      DEALLOCATE( TTOLD_glob,
+     &     QTOLD_glob,
+     &     SVLHX_glob,
+     &     RHSAV_glob,
+     &     CLDSAV_glob 
 #ifdef CLD_AER_CDNC
-     &      ,OLDNL_glob 
-     &      ,OLDNI_glob 
+     &     ,OLDNL_glob 
+     &     ,OLDNI_glob 
 #endif
      & )
-
-      endif
       end subroutine deallocate_me
       END SUBROUTINE io_clouds
 

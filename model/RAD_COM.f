@@ -387,46 +387,53 @@ C**** Local variables initialised in init_RAD
      &     ttausv_sum_glob,ttausv_sum_cs_glob
 #endif
       INTEGER :: J_0,J_1
+      integer :: img, jmg, lmg
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       if(am_i_root()) then
-        allocate(Tchg_glob(LM+LM_REQ,IM,JM))
-        allocate(RQT_glob(LM_REQ,IM,JM))
-        allocate(kliq_glob(LM,4,IM,JM))
-        allocate(SRHR_GLOB(0:LM,IM,JM))
-        allocate(TRHR_GLOB(0:LM,IM,JM))
-        allocate(TRSURF_GLOB(1:4,IM,JM))
-        allocate(FSF_GLOB(4,IM,JM))
-        allocate(FSRDIR_GLOB(IM,JM),
-     &           SRVISSURF_GLOB(IM,JM),
-     &           SRDN_GLOB(IM,JM),
-     &           CFRAC_GLOB(IM,JM),
-     &           SALB_GLOB(IM,JM),
-     &           FSRDIF_GLOB(IM,JM),
-     &           DIRNIR_GLOB(IM,JM),
-     &           DIFNIR_GLOB(IM,JM))
-        allocate(RCLD_GLOB(LM,IM,JM))
+         img = IM
+         jmg = JM
+         lmg = LM
+      else ! small unused global array (but must be allocated for MPI)
+         img = 1
+         jmg = 1
+         lmg = 1
+      end if
+      allocate(Tchg_glob(lmg+LM_REQ,img,jmg))
+      allocate(RQT_glob(LM_REQ,img,jmg))
+      allocate(kliq_glob(lmg,4,img,jmg))
+      allocate(SRHR_GLOB(0:lmg,img,jmg))
+      allocate(TRHR_GLOB(0:lmg,img,jmg))
+      allocate(TRSURF_GLOB(1:4,img,jmg))
+      allocate(FSF_GLOB(4,img,jmg))
+      allocate(FSRDIR_GLOB(img,jmg),
+     &     SRVISSURF_GLOB(img,jmg),
+     &     SRDN_GLOB(img,jmg),
+     &     CFRAC_GLOB(img,jmg),
+     &     SALB_GLOB(img,jmg),
+     &     FSRDIF_GLOB(img,jmg),
+     &     DIRNIR_GLOB(img,jmg),
+     &     DIFNIR_GLOB(img,jmg))
+      allocate(RCLD_GLOB(lmg,img,jmg))
 #ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_Shindell
-        allocate(chem_tracer_save_GLOB(2,LM, IM, JM))
-        allocate(rad_to_chem_GLOB(5,LM,IM,JM))
+      allocate(chem_tracer_save_GLOB(2,lmg, img,jmg))
+      allocate(rad_to_chem_GLOB(5,lmg,img,jmg))
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        allocate(stratO3_tracer_save_GLOB(LM, IM, JM))
+      allocate(stratO3_tracer_save_GLOB(lmg, img, jmg))
 #endif
 #endif
 #ifdef TRACERS_DUST
-        allocate(srnflb_save_glob(Im,Jm,Lm))
-        allocate(trnflb_save_glob(Im,Jm,Lm))
+      allocate(srnflb_save_glob(img,jmg,lmg))
+      allocate(trnflb_save_glob(img,jmg,lmg))
 #endif
-        allocate(ttausv_save_glob(Im,Jm,Ntm,Lm))
-        allocate(ttausv_cs_save_glob(Im,Jm,Ntm,Lm))
-        allocate(ttausv_sum_glob(Im,Jm,Ntm))
-        allocate(ttausv_sum_cs_glob(Im,Jm,Ntm))
+      allocate(ttausv_save_glob(img,jmg,Ntm,lmg))
+      allocate(ttausv_cs_save_glob(Im,Jm,Ntm,lmg))
+      allocate(ttausv_sum_glob(img,jmg,Ntm))
+      allocate(ttausv_sum_cs_glob(img,jmg,Ntm))
 #endif
-
-      endif ! am_i_root
-
+      
       if (kradia.gt.0) then
         write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a15,i2,a7)')
      *    'R8 Tchg(',lm+LM_REQ,',ijm), I4 KLIQ(',lm,',4,ijm)'
@@ -609,41 +616,39 @@ C**** Local variables initialised in init_RAD
       RETURN
       contains
       subroutine freemem
-      if(am_i_root()) then
-        deallocate(Tchg_glob)
-        deallocate(RQT_glob)
-        deallocate(kliq_glob)
-        deallocate(SRHR_GLOB)
-        deallocate(TRHR_GLOB)
-        deallocate(TRSURF_GLOB)
-        deallocate(FSF_GLOB)
-        deallocate(FSRDIR_GLOB,
-     &           SRVISSURF_GLOB,
-     &           SRDN_GLOB,
-     &           CFRAC_GLOB,
-     &           SALB_GLOB,
-     &           FSRDIF_GLOB,
-     &           DIRNIR_GLOB,
-     &           DIFNIR_GLOB)
-        deallocate(RCLD_GLOB)
+      deallocate(Tchg_glob)
+      deallocate(RQT_glob)
+      deallocate(kliq_glob)
+      deallocate(SRHR_GLOB)
+      deallocate(TRHR_GLOB)
+      deallocate(TRSURF_GLOB)
+      deallocate(FSF_GLOB)
+      deallocate(FSRDIR_GLOB,
+     &     SRVISSURF_GLOB,
+     &     SRDN_GLOB,
+     &     CFRAC_GLOB,
+     &     SALB_GLOB,
+     &     FSRDIF_GLOB,
+     &     DIRNIR_GLOB,
+     &     DIFNIR_GLOB)
+      deallocate(RCLD_GLOB)
 #ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_Shindell
-        deallocate(chem_tracer_save_GLOB)
-        deallocate(rad_to_chem_GLOB)
+      deallocate(chem_tracer_save_GLOB)
+      deallocate(rad_to_chem_GLOB)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        deallocate(stratO3_tracer_save_GLOB)
+      deallocate(stratO3_tracer_save_GLOB)
 #endif
 #endif
 #ifdef TRACERS_DUST
-        deallocate(srnflb_save_glob)
-        deallocate(trnflb_save_glob)
+      deallocate(srnflb_save_glob)
+      deallocate(trnflb_save_glob)
 #endif
-        deallocate(ttausv_save_glob)
-        deallocate(ttausv_cs_save_glob)
-        deallocate(ttausv_sum_glob)
-        deallocate(ttausv_sum_cs_glob)
+      deallocate(ttausv_save_glob)
+      deallocate(ttausv_cs_save_glob)
+      deallocate(ttausv_sum_glob)
+      deallocate(ttausv_sum_cs_glob)
 #endif
-      endif
       end subroutine freemem
       END SUBROUTINE io_rad
 

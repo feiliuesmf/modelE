@@ -152,12 +152,21 @@ C**** Allocate arrays defined on the ice rheology grid
       ALLOCATE(  ICIJ(I_0H:I_1H, J_0H:J_1H,KICIJ),
      &     STAT = IER)
       
-      if(am_I_root()) allocate(ICIJg(imic,jmic,KICIJ))
+      if(am_I_root()) then
+         allocate(ICIJg(imic,jmic,KICIJ))
+      else
+         allocate(ICIJg(1,1,1))
+      end if
+
 
 #ifdef TRACERS_WATER
       ALLOCATE( TICIJ(I_0H:I_1H, J_0H:J_1H,KTICIJ, NTM),
      &     STAT = IER)
-      if(am_I_root()) allocate(TICIJg(imic,jmic,KTICIJ,NTM))
+      if(am_I_root()) then
+         allocate(TICIJg(imic,jmic,KTICIJ,NTM))
+      else
+         allocate(TICIJg(1,1,1,1))
+      end if
 #endif
 
 C**** Allocate ice advection arrays defined on the atmospheric grid
@@ -316,6 +325,14 @@ C****
      &          TICIJ4_GLOB8(IMIC,JMIC,KTICIJ,NTM),
      &            TICIJ_GLOB(IMIC,JMIC,KTICIJ,NTM))
 #endif
+      else
+        allocate(ICIJ4_GLOB(1,1,1),
+     &    ICIJ4_GLOB8(1,1,1),ICIJ_GLOB(1,1,1))
+#ifdef TRACERS_WATER
+        allocate(TICIJ4_GLOB(1,1,1,1),
+     &          TICIJ4_GLOB8(1,1,1,1),
+     &            TICIJ_GLOB(1,1,1,1))
+#endif
       end if
 
       SELECT CASE (IACTION)
@@ -405,12 +422,10 @@ C**** accumulate diagnostics
         END SELECT
       END SELECT
 
-      if(am_I_root()) then 
-        deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
+      deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
 #ifdef TRACERS_WATER
-        deallocate (TICIJ4_GLOB,TICIJ4_GLOB8,TICIJ_GLOB)
+      deallocate (TICIJ4_GLOB,TICIJ4_GLOB8,TICIJ_GLOB)
 #endif
-      end if
 
       RETURN
  10   IOERR=1

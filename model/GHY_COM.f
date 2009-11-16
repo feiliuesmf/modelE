@@ -357,20 +357,28 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       contains
       subroutine allocate_me
+      integer :: img, jmg
+
       if (AM_I_ROOT()) then
-        ALLOCATE( SNOAGE_glob(3,IM,JM),
-     &       tsns_ij_glob(IM,JM),
-     &       SNOWE_glob(IM,JM),
-     &       TEARTH_glob(IM,JM),
-     &       WEARTH_glob(IM,JM),
-     &       AIEARTH_GLOB(IM,JM),
-     &       evap_max_ij_glob(IM,JM),
-     &       fr_sat_ij_glob(IM,JM),
-     &       qg_ij_glob(IM,JM) )
-      endif
+         img = IM
+         jmg = JM
+      else ! MPI needs allocated arrays even for unused arguments
+         img = 1
+         jmg = 1
+      end if
+      ALLOCATE( SNOAGE_glob(3,img,jmg),
+     &     tsns_ij_glob(img,jmg),
+     &     SNOWE_glob(img,jmg),
+     &     TEARTH_glob(img,jmg),
+     &     WEARTH_glob(img,jmg),
+     &     AIEARTH_GLOB(img,jmg),
+     &     evap_max_ij_glob(img,jmg),
+     &     fr_sat_ij_glob(img,jmg),
+     &     qg_ij_glob(img,jmg) )
       end subroutine allocate_me
+
       subroutine deallocate_me
-      if (AM_I_ROOT()) then
+
         DEALLOCATE( SNOAGE_glob,
      &       tsns_ij_glob,
      &       SNOWE_glob,
@@ -380,7 +388,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       evap_max_ij_glob,
      &       fr_sat_ij_glob,
      &       qg_ij_glob )
-      endif
+
       end subroutine deallocate_me
 
       END SUBROUTINE io_earth
@@ -512,18 +520,24 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       contains
       subroutine allocate_me
+      integer :: img, jmg
+
       if (AM_I_ROOT()) then
-        ALLOCATE( SNOWBV_GLOB(2,IM,JM),
-     &       W_GLOB(0:NGM,LS_NFRAC,IM,JM),
-     &       HT_GLOB(0:NGM,LS_NFRAC,IM,JM) )
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+      ALLOCATE( SNOWBV_GLOB(2,img,jmg),
+     &     W_GLOB(0:NGM,LS_NFRAC,img,jmg),
+     &     HT_GLOB(0:NGM,LS_NFRAC,img,jmg) )
 #ifdef TRACERS_WATER
-        ALLOCATE( TRSNOWBV0_GLOB(NTM,2,IM,JM),
-     &       TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,IM,JM) )
+      ALLOCATE( TRSNOWBV0_GLOB(NTM,2,img,jmg),
+     &     TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,img,jmg) )
 #endif
-      endif
       end subroutine allocate_me
       subroutine deallocate_me
-      if (AM_I_ROOT()) then
         DEALLOCATE(SNOWBV_GLOB,
      &       W_GLOB,
      &       HT_GLOB )
@@ -531,7 +545,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         DEALLOCATE( TRSNOWBV0_GLOB,
      &       TR_W_GLOB )
 #endif
-      endif
       end subroutine deallocate_me
 
       END SUBROUTINE io_soils
@@ -635,28 +648,35 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       contains
       subroutine allocate_me
+      integer :: img, jmg
+
       if (AM_I_ROOT()) then
-        ALLOCATE( NSN_IJ_GLOB(2,IM,JM),
-     &       DZSN_IJ_GLOB(NLSN,2,IM,JM),
-     &       WSN_IJ_GLOB(NLSN,2,IM,JM),
-     &       HSN_IJ_GLOB(NLSN,2,IM,JM),
-     &       FR_SNOW_IJ_GLOB(2,IM,JM) )
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+
+      ALLOCATE( NSN_IJ_GLOB(2,img,jmg),
+     &     DZSN_IJ_GLOB(NLSN,2,img,jmg),
+     &     WSN_IJ_GLOB(NLSN,2,img,jmg),
+     &     HSN_IJ_GLOB(NLSN,2,img,jmg),
+     &     FR_SNOW_IJ_GLOB(2,img,jmg) )
 #ifdef TRACERS_WATER
-        ALLOCATE( TR_WSN_IJ_GLOB(NTM,NLSN,2,IM,JM) )
+        ALLOCATE( TR_WSN_IJ_GLOB(NTM,NLSN,2,img,jmg) )
 #endif
-      endif
+
       end subroutine allocate_me
       subroutine deallocate_me
-      if (AM_I_ROOT()) then
-        DEALLOCATE( NSN_IJ_GLOB,
-     &       DZSN_IJ_GLOB,
-     &       WSN_IJ_GLOB,
-     &       HSN_IJ_GLOB,
-     &       FR_SNOW_IJ_GLOB )
+      DEALLOCATE( NSN_IJ_GLOB,
+     &     DZSN_IJ_GLOB,
+     &     WSN_IJ_GLOB,
+     &     HSN_IJ_GLOB,
+     &     FR_SNOW_IJ_GLOB )
 #ifdef TRACERS_WATER
         DEALLOCATE( TR_WSN_IJ_GLOB )
 #endif
-      endif
       end subroutine deallocate_me
 
       END SUBROUTINE io_snow
@@ -906,18 +926,25 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
 
       contains
       subroutine allocate_me
+      integer :: img, jmg
+
       if (AM_I_ROOT()) then
-        ALLOCATE( Ci_ij_glob(im,jm),
-     &       Qf_ij_glob(im,jm),
-     &       cnc_ij_glob(im,jm) )
-      endif
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+
+      ALLOCATE( Ci_ij_glob(img,jmg),
+     &     Qf_ij_glob(img,jmg),
+     &     cnc_ij_glob(img,jmg) )
+
       end subroutine allocate_me
       subroutine deallocate_me
-      if (AM_I_ROOT()) then
         DEALLOCATE( Ci_ij_glob,
      &       Qf_ij_glob,
      &       cnc_ij_glob )
-      endif
       end subroutine deallocate_me
 
       end subroutine io_veg_related

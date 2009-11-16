@@ -93,6 +93,8 @@
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRPBL01"
       REAL*8, DIMENSION(:,:,:,:), allocatable :: trabl_glob,trabl_loc
 #endif
+      integer :: img, jmg
+
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
      *  ',4,ijm):Ut,Vt,Tt,Qt,Et dim(4,ijm,3):Cmhq, I:Ipb(4,ijm)'
 
@@ -102,19 +104,24 @@
       I_1H = grid%I_STOP_HALO
 
       if(am_i_root()) then
-        allocate(uabl_glob(npbl,4,IM,JM))
-        allocate(vabl_glob(npbl,4,IM,JM))
-        allocate(tabl_glob(npbl,4,IM,JM))
-        allocate(qabl_glob(npbl,4,IM,JM))
-        allocate(eabl_glob(npbl,4,IM,JM))
-        allocate(cmgs_glob(4,IM,JM))
-        allocate(chgs_glob(4,IM,JM))
-        allocate(cqgs_glob(4,IM,JM))
-        allocate(ipbl_glob(4,IM,JM))
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+      allocate(uabl_glob(npbl,4,img,jmg))
+      allocate(vabl_glob(npbl,4,img,jmg))
+      allocate(tabl_glob(npbl,4,img,jmg))
+      allocate(qabl_glob(npbl,4,img,jmg))
+      allocate(eabl_glob(npbl,4,img,jmg))
+      allocate(cmgs_glob(4,img,jmg))
+      allocate(chgs_glob(4,img,jmg))
+      allocate(cqgs_glob(4,img,jmg))
+      allocate(ipbl_glob(4,img,jmg))
 #ifdef TRACERS_ON
-        allocate(trabl_glob(npbl,4,im,jm))
+      allocate(trabl_glob(npbl,4,im,jm))
 #endif
-      endif
 #ifdef TRACERS_ON
       allocate(trabl_loc(npbl,4,i_0h:i_1h,j_0h:j_1h))
 #endif
@@ -195,20 +202,18 @@
       RETURN
       contains
       subroutine freemem
-      if(am_i_root()) then
-        deallocate(uabl_glob)
-        deallocate(vabl_glob)
-        deallocate(tabl_glob)
-        deallocate(qabl_glob)
-        deallocate(eabl_glob)
-        deallocate(cmgs_glob)
-        deallocate(chgs_glob)
-        deallocate(cqgs_glob)
-        deallocate(ipbl_glob)
+      deallocate(uabl_glob)
+      deallocate(vabl_glob)
+      deallocate(tabl_glob)
+      deallocate(qabl_glob)
+      deallocate(eabl_glob)
+      deallocate(cmgs_glob)
+      deallocate(chgs_glob)
+      deallocate(cqgs_glob)
+      deallocate(ipbl_glob)
 #ifdef TRACERS_ON
         deallocate(trabl_glob)
 #endif
-      endif
 #ifdef TRACERS_ON
       deallocate(trabl_loc)
 #endif

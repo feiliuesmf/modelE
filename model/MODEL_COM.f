@@ -549,21 +549,29 @@ C**** keep track of min/max time over the combined diagnostic period
      *,WMICE_glob
 #endif
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: P_glob!(IM,JM)
+      integer :: img, jmg, lmg
 
       MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm,lm):u,v,t, p(im,jm),'//
      *  ' dim(im,jm,lm):q,MliqW'
 
       if(am_i_root()) then
-        allocate(U_glob(IM,JM,LM))
-        allocate(V_glob(IM,JM,LM))
-        allocate(T_glob(IM,JM,LM))
-        allocate(P_glob(IM,JM))
-        allocate(Q_glob(IM,JM,LM))
-        allocate(WM_glob(IM,JM,LM))
+         img = IM
+         jmg = JM
+         lmg = LM
+      else
+         img = 1
+         jmg = 1
+         lmg = 1
+      end if
+      allocate(U_glob(img,jmg,lmg))
+      allocate(V_glob(img,jmg,lmg))
+      allocate(T_glob(img,jmg,lmg))
+      allocate(P_glob(IM,JM))
+      allocate(Q_glob(img,jmg,lmg))
+      allocate(WM_glob(img,jmg,lmg))
 #ifdef BLK_2MOM
-        allocate(WMICE_glob(IM,JM,LM))
+      allocate(WMICE_glob(img,jmg,lmg))
 #endif
-      endif
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
@@ -611,7 +619,6 @@ C**** keep track of min/max time over the combined diagnostic period
       RETURN
       contains
       subroutine freemem
-      if(am_i_root()) then
         deallocate(U_glob)
         deallocate(V_glob)
         deallocate(T_glob)
@@ -621,7 +628,6 @@ C**** keep track of min/max time over the combined diagnostic period
 #ifdef BLK_2MOM
         deallocate(WMICE_glob)
 #endif
-      endif
       end subroutine freemem
       END SUBROUTINE io_model
 

@@ -936,6 +936,21 @@ c allocate master copies of budget- and JK-arrays on root
         allocate(hemis_gc(3,lm,kagc))
         allocate(vmean_gc(jmlat+3,1,kagc))
         allocate(hemis_ij(1,3,kaij))
+      else
+        ALLOCATE(AJ(1,1,1),
+     &           AJL(1,1,1),
+     &           ASJL(1,1,1),
+     &           AGC(1,1,1),
+     &        STAT = IER)
+        allocate(aj_out(1,1,1))
+        allocate(hemis_j(1,1,1))
+        allocate(hemis_jl(1,1,1))
+        allocate(vmean_jl(1,1,1))
+        allocate(hemis_consrv(1,1))
+        allocate(hemis_gc(1,1,1))
+        allocate(vmean_gc(1,1,1))
+        allocate(hemis_ij(1,1,1))
+         
       endif
 
       RETURN
@@ -952,14 +967,22 @@ c allocate master copies of budget- and JK-arrays on root
       IMPLICIT NONE
       INTEGER :: IER
 
-      if(.not.AM_I_ROOT()) return
+      if(AM_I_ROOT()) then
+         ALLOCATE(AIJ(IM,JM,KAIJ),
+     &        TSFREZ(IM,JM,KTSF),
+     &        AIJK(IM,JM,LM,KAIJK),
+     &        AIJL(IM,JM,LM,KAIJL),
+     &        TDIURN_glob(IM, JM, KTD),
+     &        OA_glob(IM, JM, KOA))
+      else
+         ALLOCATE(AIJ(1,1,1),
+     &        TSFREZ(1,1,1),
+     &        AIJK(1,1,1,1),
+     &        AIJL(1,1,1,1),
+     &        TDIURN_glob(1,1,1),
+     &        OA_glob(1,1,1))
+      end if
 
-      ALLOCATE(AIJ(IM,JM,KAIJ),
-     &         TSFREZ(IM,JM,KTSF),
-     &         AIJK(IM,JM,LM,KAIJK),
-     &         AIJL(IM,JM,LM,KAIJL),
-     &         TDIURN_glob(IM, JM, KTD),
-     *         OA_glob(IM, JM, KOA))
 
       RETURN
       END SUBROUTINE ALLOC_ijdiag_glob
@@ -972,9 +995,6 @@ c allocate master copies of budget- and JK-arrays on root
       USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
 
       IMPLICIT NONE
-
-      if(.not.AM_I_ROOT()) return
-
       DEALLOCATE(AIJ,AIJK,AIJL,TSFREZ,TDIURN_glob,OA_glob)
 
       RETURN

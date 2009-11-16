@@ -5434,7 +5434,7 @@ cddd      REAL*8, ALLOCATABLE :: fract_vege(:,:)
 cddd      INTEGER i,j
 cddd#endif
 
-      if(am_i_root()) call alloc_ijdiag_glob
+      call alloc_ijdiag_glob
 
       call Gather_Diagnostics()
 
@@ -5504,7 +5504,7 @@ cddd      DEALLOCATE(tmp)
 #ifdef TRACERS_ON
       call scatter_trdiag
 #endif
-      if(am_i_root()) call dealloc_ijdiag_glob
+      call dealloc_ijdiag_glob
 
       END SUBROUTINE DIAG_SCATTER
 
