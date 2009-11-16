@@ -212,8 +212,8 @@ C****
       if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx') ltop=LS1-1
 #endif
 
-!$OMP PARALLEL DO PRIVATE (J,L,I)
       total(:,:) = 0.
+!$OMP PARALLEL DO PRIVATE (J,L,I)
       do l=1,ltop
         do j=J_0,J_1
           do i=I_0,imaxj(j)
