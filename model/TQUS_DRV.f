@@ -910,9 +910,9 @@ C**** decide how many timesteps to take (all longitudes at this level)
       ICKERR_LOC=0
       CALL HALO_UPDATE(grid, mv, FROM=SOUTH)
       CALL HALO_UPDATE(grid,  m, FROM=NORTH)
-!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
-!$OMP*          COURMAX_LOC,IPROB,JPROB,SBMS,SBMN)
-!$OMP* REDUCTION(+:ICKERR_LOC)
+c$$$!$OMP  PARALLEL DO PRIVATE (I,J,L,NS,NSTEP,COURMAX,BYN,B,BM,MIJ,
+c$$$!$OMP*          COURMAX_LOC,IPROB,JPROB,SBMS,SBMN)
+c$$$!$OMP* REDUCTION(+:ICKERR_LOC)
       DO 440 L=1,LM
 C**** Scale poles
       if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*im !!!!! temporary
@@ -976,7 +976,7 @@ C**** Unscale poles
       if (HAVE_SOUTH_POLE) m(:, 1,l) =   m(:, 1,l)*byim !!! undo temporary
       if (HAVE_NORTH_POLE) m(:,jm,l) =   m(:,jm,l)*byim !!! undo temporary
   440 CONTINUE
-!$OMP  END PARALLEL DO
+c$$$!$OMP  END PARALLEL DO
 C
       CALL GLOBALSUM(grid, ICKERR_LOC, ICKERR, all=.true.)
       IF(ICKERR.GT.0)  call stop_model('Stopped in YSTEP',11)

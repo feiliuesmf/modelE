@@ -456,7 +456,7 @@ C****
 C**** CORIOLIS FORCE
 C****
         CALL HALO_UPDATE(GRID,P ,FROM=SOUTH+NORTH)
-!$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FD,PDT4,ALPH)
+c$$$!$OMP  PARALLEL DO PRIVATE(I,IM1,J,L,FD,PDT4,ALPH)
       DO L=1,LM
         IM1=IM
         DO I=1,IM
@@ -497,7 +497,7 @@ C****     Set the Coriolis term to zero at the Poles:
           END DO
         END DO
       END DO
-!$OMP  END PARALLEL DO
+c$$$!$OMP  END PARALLEL DO
 
       if(do_polefix.eq.1) then
 c apply the full coriolis force at the pole and ignore the metric term
