@@ -269,7 +269,7 @@
       implicit none
       character*(*), intent(in) :: name
       integer, intent(in) :: value
-      character*1, optional, intent(in) :: opt
+      character(len=*), optional, intent(in) :: opt
       integer v(1)
       v(1) = value
       call set_aiparam( name, v, 1, opt )
@@ -282,7 +282,7 @@
       character*(*), intent(in) :: name
       integer, intent(in) :: np
       integer, intent(in) :: value(np)
-      character*1, optional, intent(in) :: opt
+      character(len=*), optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       logical flag
 
@@ -368,7 +368,7 @@
       implicit none
       character*(*), intent(in) :: name
       real*8, intent(in) :: value
-      character*1, optional, intent(in) :: opt
+      character(len=*), optional, intent(in) :: opt
       real*8 v(1)
       v(1) = value
       call set_arparam( name, v, 1, opt )
@@ -381,7 +381,7 @@
       character*(*), intent(in) :: name
       integer, intent(in) :: np
       real*8, intent(in) :: value(np)
-      character*1, optional, intent(in) :: opt
+      character(len=*), optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       logical flag
 
@@ -466,7 +466,7 @@
       implicit none
       character*(*), intent(in) :: name
       character*(*), intent(in) :: value
-      character*1, optional, intent(in) :: opt
+      character(len=*), optional, intent(in) :: opt
       character*(MAX_CHAR_LEN) v(1)
       if ( len(value) > MAX_CHAR_LEN ) then
         print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
@@ -483,7 +483,7 @@
       character*(*), intent(in) :: name
       integer, intent(in) :: np
       character*(*), intent(in) :: value(np)
-      character*1, optional, intent(in) :: opt
+      character(len=*), optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       integer n
       logical flag
