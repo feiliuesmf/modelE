@@ -578,7 +578,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
       USE ESMF_CUSTOM_MOD, Only: modelE_vm
 #endif
       integer :: rc
-
+      character(len=10) :: fileName
       NPES = 1                  ! default NPES = 1 for serial run
 
 #ifdef USE_ESMF
@@ -590,6 +590,8 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 c along with ESMF_GridCompCreate, move this somewhere into init_grid?
 c Separate atm/ocn/seaice components
 c      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
+c$$$      write(fileName,'(a,i4.4)')'trace.',my_pet
+c$$$      open(78,file=fileName,form='formatted')
 #endif
 
 #ifdef USE_MPP
@@ -1678,13 +1680,17 @@ c need to initialize the dd2d version of dist_grid for I/O
 #ifdef USE_ESMF
       arr_size = size(arr)
       if(increment_) then
-        if(am_i_root()) allocate(arr_tmp(arr_size))
+        if(am_i_root()) then
+           allocate(arr_tmp(arr_size))
+        else
+           allocate(arr_tmp(1))
+        end if
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         if(am_i_root()) then
           arr_master = arr_master + arr_tmp
-          deallocate(arr_tmp)
         endif
+        deallocate(arr_tmp)
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
@@ -1792,14 +1798,18 @@ c**** arr is overwritten by itself after reduction
 #ifdef USE_ESMF
          arr_size = size(arr)
          if(increment_) then
-            if(am_i_root()) allocate(arr_tmp(arr_size))
+            if(am_i_root()) then
+               allocate(arr_tmp(arr_size))
+            else
+               allocate(arr_tmp(1))
+            end if
             call mpi_reduce(arr,arr_tmp,arr_size,
      &           MPI_DOUBLE_PRECISION,MPI_SUM,root,
      &           MPI_COMM_WORLD, ierr)
             if(am_i_root()) then
               arr_master = arr_master + reshape(arr_tmp,shape(arr))
-              deallocate(arr_tmp)
             endif
+            deallocate(arr_tmp)
          else
             call mpi_reduce(arr,arr_master,arr_size,
      &           MPI_DOUBLE_PRECISION,MPI_SUM,root,
@@ -1851,13 +1861,17 @@ c**** arr is overwritten by itself after reduction
 #ifdef USE_ESMF
       arr_size = size(arr)
       if(increment_) then
-        if(am_i_root()) allocate(arr_tmp(arr_size))
+        if(am_i_root()) then
+           allocate(arr_tmp(arr_size))
+        else
+           allocate(arr_tmp(1))
+        end if
         call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
         if(am_i_root()) then
           arr_master = arr_master + reshape(arr_tmp,shape(arr))
-          deallocate(arr_tmp)
         endif
+        deallocate(arr_tmp)
       else
         call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
      &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
@@ -3157,8 +3171,12 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, dimension (:,:,:), allocatable :: buf_glob ! global array written to disk
       INTEGER :: rc
 
-      if(am_i_root()) allocate(
+      if(am_i_root()) then
+         allocate(
      &     buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(buf,3)))
+      else
+         allocate(buf_glob(1,1,1))
+      end if
 #ifdef USE_MPI
       Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
 #else
@@ -3176,6 +3194,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
             WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
             call stop_model('DWRITE8_PARALLEL: WRITE ERROR',255)
          EndIf
+      else
+         deallocate(buf_glob)
       end if
 
       END SUBROUTINE DWRITE8_PARALLEL_3D
@@ -4557,6 +4577,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, INTENT(IN) ::
      &        ARR(grd_dum%i_strt_halo:,grd_dum%j_strt_halo:,:)
       REAL*8, INTENT(OUT) :: ARR_GLOB(:,:,:)
+      
       INTEGER :: l
 
 #ifdef USE_MPI
