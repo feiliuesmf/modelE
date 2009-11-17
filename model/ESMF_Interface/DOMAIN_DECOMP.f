@@ -1177,10 +1177,10 @@ c need to initialize the dd2d version of dist_grid for I/O
       SUBROUTINE HALO_UPDATE_mask(grd_dum, sBufS, sBufN, rBufS, rBufN)
       IMPLICIT NONE
       TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
-      REAL*8,            INTENT(IN) :: sBufN(:)
-      REAL*8,            INTENT(IN) :: sBufS(:)
-      REAL*8,            INTENT(OUT) :: rBufN(:)
-      REAL*8,            INTENT(OUT) :: rBufS(:)
+      REAL*8,            INTENT(IN) :: sBufN(:,:)
+      REAL*8,            INTENT(IN) :: sBufS(:,:)
+      REAL*8,            INTENT(OUT) :: rBufN(:,:)
+      REAL*8,            INTENT(OUT) :: rBufS(:,:)
 
 #ifdef USE_MPI
       integer :: numSendSouth, numSendNorth
