@@ -5158,7 +5158,6 @@ C--------------------------------------
       RETURN
       END SUBROUTINE UNPACK_COLUMN_1D
 
-
       SUBROUTINE UNPACK_COLUMN_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
@@ -5166,27 +5165,62 @@ C--------------------------------------
       REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:)
       REAL*8, INTENT(OUT) ::
      &        ARR(:,:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0, J_1, K
-      LOGICAL, OPTIONAL :: local
+      INTEGER :: J_0, J_1
+      LOGICAL, OPTIONAL, intent(in) :: local
 
-      if (present(local)) then
-        if (local) then
+      logical :: local_
+
+
+#ifdef USE_MPI
+      !mkb5
+      local_ = .false.
+      if (present(local)) local_ = local
+#else
+      local_ = .true.
+#endif
+
+      if (local_)then
           J_0=grd_dum%j_strt
           J_1=grd_dum%j_stop
           ARR(:,:,J_0:J_1)=ARR_GLOB(:,:,J_0:J_1)
-        else
-          do k=1,size(arr,1)
-            call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
-          end do
-        end if
+#ifdef USE_MPI
       else
-        do k=1,size(arr,1)
-          call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
-        end do
+         call scatter(grd_dum , arr_glob, arr,
+     &        shape(arr), dist_idx = 3)
+#endif
       end if
 
       RETURN
       END SUBROUTINE UNPACK_COLUMN_2D
+
+c      SUBROUTINE UNPACK_COLUMN_2D(grd_dum,ARR_GLOB,ARR,local)
+c      IMPLICIT NONE
+c      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+c
+c      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:)
+c      REAL*8, INTENT(OUT) ::
+c     &        ARR(:,:,grd_dum%j_strt_halo:)
+c      INTEGER :: J_0, J_1, K
+c      LOGICAL, OPTIONAL :: local
+c
+c      if (present(local)) then
+c        if (local) then
+c          J_0=grd_dum%j_strt
+c          J_1=grd_dum%j_stop
+c          ARR(:,:,J_0:J_1)=ARR_GLOB(:,:,J_0:J_1)
+c        else
+c          do k=1,size(arr,1)
+c            call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
+c          end do
+c        end if
+c      else
+c        do k=1,size(arr,1)
+c          call arrayscatter(grd_dum, arr(k,:,:), arr_glob(k,:,:))
+c        end do
+c      end if
+c
+c      RETURN
+c      END SUBROUTINE UNPACK_COLUMN_2D
 
       SUBROUTINE IUNPACK_COLUMN_2D(grd_dum,ARR_GLOB,ARR,local)
       IMPLICIT NONE
@@ -5314,11 +5348,17 @@ C--------------------------------------
       REAL*8 , INTENT(INOUT) :: ARR_GLOB(:,:,:,:)
       INTEGER :: K,L
 
-      DO K=1,SIZE(ARR,1)
-        DO L=1,SIZE(ARR,2)
-          CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:),ARR_GLOB(K,L,:,:))
-        END DO
-      END DO
+#ifdef USE_MPI
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 4)
+#else
+      arr_glob(:,:,:,grd_dum%J_STRT:grd_dum%J_STOP) =
+     &     arr(:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)
+#endif
+c      DO K=1,SIZE(ARR,1)
+c        DO L=1,SIZE(ARR,2)
+c          CALL ARRAYGATHER(grd_dum,ARR(K,L,:,:),ARR_GLOB(K,L,:,:))
+c        END DO
+c      END DO
 
       RETURN
       END SUBROUTINE PACK_BLOCK_2D
@@ -5380,32 +5420,67 @@ c      END SUBROUTINE PACK_BLOCK_3D
       IMPLICIT NONE
       TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
 
-      REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:)
-      REAL*8 , INTENT(OUT) ::
+      REAL*8, INTENT(IN) :: ARR_GLOB(:,:,:,:)
+      REAL*8, INTENT(OUT) ::
      &        ARR(:,:,:,grd_dum%j_strt_halo:)
-      INTEGER :: J_0, J_1, K, L
-      LOGICAL, OPTIONAL :: local
+      INTEGER :: J_0, J_1
+      LOGICAL, OPTIONAL, intent(in) :: local
 
-      if (present(local)) then
-        if (local) then
+      logical :: local_
+
+
+#ifdef USE_MPI
+      !mkb5
+      local_ = .false.
+      if (present(local)) local_ = local
+#else
+      local_ = .true.
+#endif
+
+      if (local_)then
           J_0=grd_dum%j_strt
           J_1=grd_dum%j_stop
           ARR(:,:,:,J_0:J_1)=ARR_GLOB(:,:,:,J_0:J_1)
-        else
-          do k=1,size(arr,1)
-            do l=1,size(arr,2)
-              call arrayscatter(grd_dum,arr(k,l,:,:),arr_glob(k,l,:,:))
-            end do
-          end do
-        end if
+#ifdef USE_MPI
       else
-        do k=1,size(arr,1)
-          do l=1,size(arr,2)
-            call arrayscatter(grd_dum, arr(k,l,:,:), arr_glob(k,l,:,:))
-          end do
-        end do
+         call scatter(grd_dum , arr_glob, arr,
+     &        shape(arr), dist_idx = 4)
+#endif
       end if
+
+      RETURN
       END SUBROUTINE UNPACK_BLOCK_2D
+
+c      SUBROUTINE UNPACK_BLOCK_2D(grd_dum,ARR_GLOB,ARR,local)
+c      IMPLICIT NONE
+c      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+c
+c      REAL*8 , INTENT(IN) :: ARR_GLOB(:,:,:,:)
+c      REAL*8 , INTENT(OUT) ::
+c     &        ARR(:,:,:,grd_dum%j_strt_halo:)
+c      INTEGER :: J_0, J_1, K, L
+c      LOGICAL, OPTIONAL :: local
+c
+c      if (present(local)) then
+c        if (local) then
+c          J_0=grd_dum%j_strt
+c          J_1=grd_dum%j_stop
+c          ARR(:,:,:,J_0:J_1)=ARR_GLOB(:,:,:,J_0:J_1)
+c        else
+c          do k=1,size(arr,1)
+c            do l=1,size(arr,2)
+c              call arrayscatter(grd_dum,arr(k,l,:,:),arr_glob(k,l,:,:))
+c            end do
+c          end do
+c        end if
+c      else
+c        do k=1,size(arr,1)
+c          do l=1,size(arr,2)
+c            call arrayscatter(grd_dum, arr(k,l,:,:), arr_glob(k,l,:,:))
+c          end do
+c        end do
+c      end if
+c      END SUBROUTINE UNPACK_BLOCK_2D
 
 c      SUBROUTINE UNPACK_BLOCK_3D(grd_dum,ARR_GLOB,ARR,local)   mkbhat5
 c      IMPLICIT NONE
