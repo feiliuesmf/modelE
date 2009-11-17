@@ -132,6 +132,9 @@ C**** fluxes associated with variable lake fractions
 !@var DGML energy associated with DMWLDF (J)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DGML
 
+!@var bare_soil_wetness bare_soil_wetness (1)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: bare_soil_wetness
+
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
@@ -303,6 +306,7 @@ C**** fluxes associated with variable lake fractions
      &          MSICNV  ( I_0H:I_1H , J_0H:J_1H ),
      &          DMWLDF  ( I_0H:I_1H , J_0H:J_1H ),
      &          DGML    ( I_0H:I_1H , J_0H:J_1H ),
+     &          bare_soil_wetness( I_0H:I_1H , J_0H:J_1H ),
 #ifdef IRRIGATION_ON
      &          irrig_water_pot ( I_0H:I_1H , J_0H:J_1H ),
      &          irrig_water_act ( I_0H:I_1H , J_0H:J_1H ),

@@ -887,7 +887,7 @@ C     OUTPUT DATA
 #endif
       USE LANDICE_COM, only : snowli_com=>snowli
       USE LAKES_COM, only : flake,mwl
-      USE FLUXES, only : nstype,gtempr
+      USE FLUXES, only : nstype,gtempr,bare_soil_wetness
 #if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      .                  ,chl
 #endif
@@ -1618,7 +1618,8 @@ C**** set up new lake depth parameter to incr. albedo for shallow lakes
       end if
 C****
       if (kradia .le. 0) then
-        WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
+        !WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
+        WEARTH=bare_soil_wetness(i,j)
         if (wearth.gt.1.) wearth=1.
       else                            ! rad.frc. model
         wearth = wsoil(i,j)

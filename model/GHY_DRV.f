@@ -845,7 +845,8 @@ c****
      &    ashg,alhg, !fv,fb,
      &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
-     &    tbcs,tsns,af0dt,af1dt,ijdebug
+     &    tbcs,tsns,af0dt,af1dt,ijdebug,thets
+!     &     ,ghy_counter=>counter
 !!!     &    qm1,qs,
 !!!     &    pres,rho,ts,ch,srht,trht
 !!!     &   ,vs,vs0,tprime,qprime
@@ -853,7 +854,7 @@ c****
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
       use fluxes, only : dth1,dq1,uflux1,vflux1,e0,e1,evapor,prec,eprec
-     *     ,runoe,erunoe,gtemp,precss,gtempr
+     *     ,runoe,erunoe,gtemp,precss,gtempr,bare_soil_wetness
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     canopy_temp_ij,snowe,tearth,tsns_ij,wearth,aiearth,
@@ -1188,7 +1189,9 @@ c**** call tracers stuff
 #endif
       pbl_args%ntx = 0  ! tracers are activated in PBL, but GHY has none
 #endif
+
       call pbl(i,j,itype,ptype,pbl_args)
+
 c****
       cdm = pbl_args%cm ! cmgs(itype,i,j)
       cdh = pbl_args%ch ! chgs(itype,i,j)
@@ -1270,6 +1273,7 @@ ccc switch to Ca from tracers
       call get_fb_fv( fb, fv, i, j )
       !write(401,*) "cdh", i,j,cdh
       ijdebug=i*1000+j
+      !ghy_counter = counter
 
       irrig = 0.d0
       htirrig = 0.d0
@@ -1398,6 +1402,9 @@ c**** wearth+aiearth are used in radiation only
       gtemp(1,4,i,j)=tsns_ij(i,j)
       gtempr(4,i,j) =tearth(i,j)+tf
       soil_surf_moist(i,j) = 1000.*(fb*w(1,1) + fv*w(1,2))/dz_ij(i,j,1)
+      bare_soil_wetness(i,j) = 
+     &     w(1,1) / ( thets(1,1)*dz_ij(i,j,1) )
+
 #ifdef SCM
       if ((I.eq.I_TARG.and.J.eq.J_TARG)
      &     .and.SCM_SURFACE_FLAG.ge.1) then
@@ -3562,6 +3569,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
 !@calls RDLAI
       use constant, only : rhow,twopi,edpery,tf
       use model_com, only : nday,nisurf,jday,jyear,wfcs,focean
+      use fluxes, only : bare_soil_wetness
 #ifndef USE_ENT
       use veg_com, only : vdata                 !nyk
 #endif
@@ -3570,7 +3578,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe,ij_tmaxc
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghy_com, only : snoage, snoage_def,fearth, wsn_max,
-     &     q_ij,dz_ij,ngm
+     &     q_ij,dz_ij,ngm,w_ij
 #ifdef USE_ENT
      &     ,aalbveg
 #else
@@ -3659,6 +3667,7 @@ c**** find leaf-area index & water field capacity for ground layer 1
       cosday=cos(twopi/edpery*jday)
       sinday=sin(twopi/edpery*jday)
 #endif
+      bare_soil_wetness(:,:) = 0.d0 ! make sure that it is initialized
       do j=J_0,J_1
         do i=I_0,I_1
           if(lat2d(i,j).lt.0.) then !nyk added northsouth
@@ -3718,6 +3727,9 @@ cddd     &           fv*( ws_can + thets(1,2)*dz_ij(i,j,1) )
      &           fv*( ws_can + ws12 )
             wfcs(i,j)=rhow*wfc1 ! canopy part changes
 cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
+
+            bare_soil_wetness(i,j) = 
+     &           w_ij(1,1,i,j) / ( thets(1,1)*dz_ij(i,j,1) )
 
          !!! this diag belongs to Ent - commenting out
 #ifndef USE_ENT
