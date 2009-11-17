@@ -14,13 +14,15 @@
       use DOMAIN_DECOMP_ATM, only : grid,init_grid
       implicit none
       type (x_2gridsroot) :: xll2cs_COMMON,xll2cs_COMMON2,xll2cs_TOPO,
-     &     xll2cs_OSST,xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_VEG,
+     &     xll2cs_OSST,xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_3,
      &     xll2cs_CROPS,xll2cs_TOPINDEX,xll2cs_SOIL,xll2cs_GLMELT,
-     &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC,xll2cs_SOILCARB
+     &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC,xll2cs_SOILCARB,
+     &     xll2cs_VEG
 
       integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,
      &     ims_COMMON,jms_COMMON,ims_GIC,jms_GIC,ims_STN,
-     &     jms_STN,ims_OSST,jms_OSST,ims_VEG,jms_VEG,imt,jmt
+     &     jms_STN,ims_OSST,jms_OSST,ims_3,jms_3,imt,jmt,
+     &     ims_COMMON2,jms_COMMON2
       integer, parameter :: ntilessource=1,ntilestarget=6
 
       call fms_init( )
@@ -94,44 +96,47 @@ c      xll2cs_VEG=xll2cs_COMMON
 
       elseif (imt .eq. 90) then ! target grid = CS90
 
-
 c     for SICE, OSST, TOPO 288x180->CS90
       ims_COMMON=288
       jms_COMMON=180
 
-      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
-     &     ntilessource,imt,jmt,ntilestarget)
+ccc      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
+ccc     &     ntilessource,imt,jmt,ntilestarget)
 
-      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
-      xll2cs_OSST=xll2cs_COMMON
-c ? VEGFRAC, LAI
-      xll2cs_SICE=xll2cs_COMMON
-      xll2cs_CROPS=xll2cs_COMMON
+ccc      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
+ccc      xll2cs_OSST=xll2cs_COMMON
 
-c     360x180 for TOPINDEX, VEG, SOIL, GIC, AIC
-      ims_COMMON=360
-      jms_COMMON=180
+ccc      xll2cs_SICE=xll2cs_COMMON
+ccc      xll2cs_CROPS=xll2cs_COMMON
 
-      write(*,*) "bef init xgrid 360 180"
-      call init_regrid_root(xll2cs_COMMON2,ims_COMMON,jms_COMMON,
-     &     ntilessource,imt,jmt,ntilestarget)
+c now VEG 288x180 -> C90
+      xll2cs_VEG=xll2cs_COMMON
 
-      write(*,*) "after init xgrid 360 180"
+c     360x180 for TOPINDEX, SOIL, GIC, AIC
+      ims_COMMON2=360
+      jms_COMMON2=180
 
-      xll2cs_CDN=xll2cs_COMMON2
-      xll2cs_TOPINDEX=xll2cs_COMMON2
-      xll2cs_SOIL=xll2cs_COMMON2
-      xll2cs_GIC=xll2cs_COMMON2
-      xll2cs_AIC=xll2cs_COMMON2
-      xll2cs_GLMELT=xll2cs_COMMON2 
+c-      write(*,*) "bef init xgrid 360 180"
+      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
+     &     ntilessource,imt,jmt,ntilestarget,.true.)
 
-c VEG 144x90 -> C90  ! also ask Nancy
-      ims_VEG=144
-      jms_VEG=90
+c-      write(*,*) "after init xgrid 360 180"
 
-      write(*,*) "befor init xgrid 144 90"
-      call init_regrid_root(xll2cs_VEG,ims_VEG,jms_VEG,
-     &     ntilessource,imt,jmt,ntilestarget)
+c-      xll2cs_CDN=xll2cs_COMMON2
+c-      xll2cs_TOPINDEX=xll2cs_COMMON2
+c-      xll2cs_SOIL=xll2cs_COMMON2
+       xll2cs_GIC=xll2cs_COMMON2
+c-      xll2cs_AIC=xll2cs_COMMON2
+c-      xll2cs_GLMELT=xll2cs_COMMON2 
+
+c VEG 144x90 -> C90  
+      ims_3=144
+      jms_3=90
+      call init_regrid_root(xll2cs_3,ims_3,jms_3,
+     &     ntilessource,imt,jmt,ntilestarget,.true.)
+ccc      xll2cs_VEG=xll2cs_3
+
+
       endif
 
       xll2cs_SOILCARB=xll2cs_VEG
@@ -146,13 +151,13 @@ c***   The last letters indicate the name of the input file using
 c***   its alias (TOPO, VEG, AIC...) 
       write(*,*) "IN REGRID INPUT"
 
-      if (AM_I_ROOT()) then
+c      if (AM_I_ROOT()) then
 c         call regridTOPO(xll2cs_TOPO)
 c         call regridOSST(xll2cs_OSST)
 cc         call testOSST()
 c         call regridSICE(xll2cs_SICE)
 c         call regridCDN(xll2cs_CDN)
-         call regridVEG(xll2cs_VEG)
+c         call regridVEG(xll2cs_VEG)
 c         call regridSOILCARB(xll2cs_SOILCARB)
 c         call regridCROPS(xll2cs_CROPS)
 c         call regridTOPINDEX(xll2cs_TOPINDEX)
@@ -160,8 +165,8 @@ c         call regridSOIL(xll2cs_SOIL)
 c         call regridGLMELT(xll2cs_GLMELT)
 cc         call regridVEGFRAC(xll2cs_VEGFRAC)
 cc         call regridLAI(xll2cs_LAI)
-      endif
-c      call regridGIC(xll2cs_GIC,grid)
+c      endif
+      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
 c      call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
@@ -1451,7 +1456,8 @@ c     was just transfered to 360X180 grid without any change)
 c      if (x2grids%imtarget .eq. 32) then
 c         name="V72X46.1.cor2_no_crops.ext"
 c      elseif (x2grids%imtarget .eq. 90) then
-         name=" V144X90_no_crops.ext"
+c         name=" V144X90_no_crops.ext"
+         name=" V288X180_no_crops.ext"
 c      endif
 
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
@@ -1466,6 +1472,9 @@ c*
 
       subroutine read_regrid_write_veg(x2grids,name,iuin)
       use regrid_com
+      use geom, only : axyp
+      USE CONSTANT, only : RADIUS,radian,TWOPI
+      use domain_decomp_atm, only : grid, pack_data
       implicit none
       type(x_2gridsroot), intent(in) :: x2grids
       character*80, intent(in) :: name
@@ -1476,9 +1485,16 @@ c*
      &     tout(:,:,:,:)
       real*4, allocatable :: t4(:,:,:),data(:,:,:)
       real*8 :: alpha
-      character*80 :: TITLE(10)
-      character*80 :: outunformat
+      real*8 :: totalfrac(10)
+      real*8, allocatable :: axyp_glob(:,:,:),
+     &     fgroundLL(:,:),fgroundCS(:,:,:)
+      real*4, allocatable :: fgroundLL4(:,:),fgroundCS4(:,:,:)
+      character*80 :: TITLE(10),titleZ
+      character*80 :: outunformat,outfile
       integer :: ir,ims,jms,nts,imt,jmt,ntt,i,j,k,l,iveg
+      real*8 ::   FJEQ,DLAT_DG,DLAT,DLON,SINV,SINVm1
+      real*8, allocatable :: dxyp(:)
+
 
       ims=x2grids%imsource
       jms=x2grids%jmsource
@@ -1493,102 +1509,185 @@ c*
       allocate (
      &     tsource(ims,jms,nts),data(ims,jms,nts),
      &     ttargglob(imt,jmt,ntt),tout(imt,jmt,10,ntt),
-     &     t4(imt,jmt,ntt),arrsum(imt,jmt,ntt) 
+     &     t4(imt,jmt,ntt),arrsum(imt,jmt,ntt),
+     &     dxyp(jms),axyp_glob(imt,jmt,ntt),
+     &     fgroundLL(ims,jms),fgroundCS(imt,jmt,ntt),
+     &     fgroundLL4(ims,jms),fgroundCS4(imt,jmt,ntt)
      &     )
-     
+    
+      call pack_data(grid,axyp,axyp_glob)
+ 
       arrsum=0.
       
-      outunformat=trim(name)//".CS"
-      write(*,*) outunformat
-
-      iuout=iuin+1
-
-      open( iuout, FILE=outunformat,
+      if (am_i_root()) then
+         outunformat=trim(name)//".CS"
+         write(*,*) outunformat
+         
+         iuout=40
+         outfile="Z_CS90"
+         open( iuout, FILE=outfile,
      &        FORM='unformatted', STATUS="UNKNOWN")
-            
-      do ir=1,10
-         read(unit=iuin) TITLE(ir),data
-         write(*,*) "TITLE, ir",TITLE(ir),ir
-         tsource= data
-         call root_regrid(x2grids,tsource,ttargglob)
-         tout(:,:,ir,:)=ttargglob(:,:,:)
-      enddo
+         write(*,*) outfile
+         read(iuout) titleZ,fgroundCS4
+         read(iuout) titleZ,fgroundCS4
+         read(iuout) titleZ,fgroundCS4
+         fgroundCS=fgroundcs4
+         write(*,*) titleZ
+         close(iuout)
 
+         iuout=50
+         outfile="Z288X180N"
+         open( iuout, FILE=outfile,
+     &        FORM='unformatted', STATUS="UNKNOWN")
+         write(*,*) outfile
+         read(iuout) titleZ,fgroundLL4
+         read(iuout) titleZ,fgroundLL4
+         read(iuout) titleZ,fgroundLL4
+         fgroundll=fgroundll4
+         write(*,*) titleZ
+         close(iuout)
+
+c     computing area of latlon cells 
+         FJEQ=.5*(1+jms)
+         DLAT_DG=180./REAL(jms) ! even spacing (default)
+         DLAT=DLAT_DG*radian
+         DLON=TWOPI/REAL(ims)
+         
+         SINV    = Sin (DLAT*(1+.5-FJEQ))
+         DXYP(1) = RADIUS*RADIUS*DLON*(SINV+1)
+         
+         SINVm1  = Sin (DLAT*(jms-.5-FJEQ))
+         DXYP(jms)= RADIUS*RADIUS*DLON*(1-SINVm1)
+         
+         DO J=2,jms-1
+            SINVm1  = Sin (DLAT*(J-.5-FJEQ))
+            SINV    = Sin (DLAT*(J+.5-FJEQ))
+            DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
+            write(*,*) "dxyp=",DXYP(J)
+         END DO
+c     end area
+         
+         do ir=1,10
+            read(unit=iuin) TITLE(ir),data
+            write(*,*) "TITLE, ir",TITLE(ir),ir
+            tsource= data
+            
+            totalfrac(ir)=0.
+            do j=1,jms
+               do i=1,ims
+                  totalfrac(ir)=totalfrac(ir)
+     &                 +tsource(i,j,1)*dxyp(j)
+c     &                 *fgroundll(i,j)
+               enddo
+            enddo
+            WRITE(*,*) "ll tot surface vetype ",ir," =",totalfrac(ir)
+            
+            call root_regrid(x2grids,tsource,ttargglob)
+            tout(:,:,ir,:)=ttargglob(:,:,:)
+         enddo
+         
+         iuout=iuout+1
+         
+         open( iuout, FILE=outunformat,
+     &        FORM='unformatted', STATUS="UNKNOWN")
+         
 c     check bare soil fraction if v(1)+v(10) < 0.01 set v(1)=v(10)=0, 
 c     if v(1)+v(10) > 0.99, set v(1)+v(10)=1, v(2)=...=v(9)=0
-      do k=1,ntt
-         do j=1,jmt
-            do i=1,imt
-               if (tout(i,j,1,k)+tout(i,j,10,k) .le. 0.05 .and.
-     &              tout(i,j,1,k)+tout(i,j,10,k) .gt. 0. ) then
-                  write(*,*) " v(1)+v(10) < 0.05 at",i,j,k
-                  alpha=1./(1.- (tout(i,j,1,k)+tout(i,j,10,k)) )
-                  tout(i,j,1,k)  = 0.
-                  tout(i,j,10,k) = 0.
-                  do l=2,9
-                     tout(i,j,l,k)=alpha*tout(i,j,l,k)
-                  enddo
-               endif
-               if (tout(i,j,1,k)+tout(i,j,10,k) .ge. 0.95) then
-                  write(*,*) " v(1)+v(10) > 0.95 at",i,j,k
-                  alpha=1./(1.- (
-     &                 tout(i,j,2,k)+tout(i,j,3,k)+
-     &                 tout(i,j,4,k)+tout(i,j,5,k)+
-     &                 tout(i,j,6,k)+tout(i,j,7,k)+
-     &                 tout(i,j,8,k)+tout(i,j,9,k) ) )
-                  tout(i,j,1,k)  = alpha*tout(i,j,1,k)
-                  tout(i,j,10,k) = alpha*tout(i,j,10,k) 
-                  do l=2,9
-                     tout(i,j,l,k) = 0.
-                  enddo
-               endif
-            enddo
-         enddo
-      enddo
-
-c fix all fractions
-      do k=1,ntt
-         do j=1,jmt
-            do i=1,imt
-               do iveg=1,10
-                  if (tout(i,j,iveg,k) .le. 0.05 .and.
-     &                 tout(i,j,iveg,k) .gt. 0. ) then
-                     write(*,*) " >>>v(",iveg,") < 0.05 at",i,j,k
-                     alpha=1./( 1.- tout(i,j,iveg,k) )
-                     do l=1,10
+         do k=1,ntt
+            do j=1,jmt
+               do i=1,imt
+                  if (tout(i,j,1,k)+tout(i,j,10,k) .le. 0.01 .and.
+     &                 tout(i,j,1,k)+tout(i,j,10,k) .gt. 0. ) then
+                     write(*,*) " v(1)+v(10) < 0.01 at",i,j,k
+                     alpha=1./(1.-(tout(i,j,1,k)+tout(i,j,10,k)) )
+                     tout(i,j,1,k)  = 0.
+                     tout(i,j,10,k) = 0.
+                     do l=2,9
                         tout(i,j,l,k)=alpha*tout(i,j,l,k)
                      enddo
-                     tout(i,j,iveg,k)  = 0.
+                  endif
+                  if (tout(i,j,1,k)+tout(i,j,10,k) .ge. 0.99) then
+                     write(*,*) " v(1)+v(10) > 0.95 at",i,j,k
+                     alpha=1./(1.- (
+     &                    tout(i,j,2,k)+tout(i,j,3,k)+
+     &                    tout(i,j,4,k)+tout(i,j,5,k)+
+     &                    tout(i,j,6,k)+tout(i,j,7,k)+
+     &                    tout(i,j,8,k)+tout(i,j,9,k) ) )
+                     tout(i,j,1,k)  = alpha*tout(i,j,1,k)
+                     tout(i,j,10,k) = alpha*tout(i,j,10,k) 
+                     do l=2,9
+                        tout(i,j,l,k) = 0.
+                     enddo
                   endif
                enddo
             enddo
          enddo
-      enddo
-c
-
-
-      do ir=1,10
-        arrsum(:,:,:)=arrsum(:,:,:)+tout(:,:,ir,:) 
-        t4(:,:,:)=tout(:,:,ir,:) 
-        write(unit=iuout) TITLE(ir),t4
-      enddo
-
-      do k=1,ntt
-         do j=1,jmt
-            do i=1,imt
-               if (abs( arrsum(i,j,k) - 1.0) .gt. 0.0001) then
-                  write(*,*) "arrsum(",i,",",j,",",k,")=",arrsum(i,j,k)
-               endif
+         
+c     fix all fractions
+         do k=1,ntt
+            do j=1,jmt
+               do i=1,imt
+                  do iveg=1,10
+                     if (tout(i,j,iveg,k) .le. 0.01 .and.
+     &                    tout(i,j,iveg,k) .gt. 0. ) then
+                        write(*,*) " >>>v(",iveg,") < 0.01 at",i,j,k
+                        alpha=1./( 1.- tout(i,j,iveg,k) )
+                        do l=1,10
+                           tout(i,j,l,k)=alpha*tout(i,j,l,k)
+                        enddo
+                        tout(i,j,iveg,k)  = 0.
+                     endif
+                  enddo
+               enddo
             enddo
          enddo
-      enddo
+c     
+         
+         do ir=1,10
+            arrsum(:,:,:)=arrsum(:,:,:)+tout(:,:,ir,:) 
+            t4(:,:,:)=tout(:,:,ir,:) 
+            write(unit=iuout) TITLE(ir),t4
+         enddo
+         
+         do k=1,ntt
+            do j=1,jmt
+               do i=1,imt
+                  if (abs( arrsum(i,j,k) - 1.0) .gt. 0.0001) then
+                     write(*,*) "arrsum(",i,",",j,",",k,")=",
+     &                    arrsum(i,j,k)
+                  endif
+               enddo
+            enddo
+         enddo
+        
+         write(*,*) axyp_glob
+ 
+         do iveg=1,10
+            totalfrac(iveg)=0.
+            do k=1,ntt
+               do j=1,jmt
+                  do i=1,imt
+                     totalfrac(iveg)=totalfrac(iveg)
+     &                    +tout(i,j,iveg,k)*axyp_glob(i,j,k)
+c     &                    *fgroundCS(i,j,k)
+                  enddo
+               enddo
+            enddo
+            WRITE(*,*) "TOTAL surface covered by veg. of type ",
+     &           iveg," =", totalfrac(iveg)
+            
+         enddo
 
-      close(iuout) 
+         close(iuout) 
 
-      deallocate(tsource,ttargglob,tout,t4,data,arrsum)
-
+      endif                     !am_i_root
+         
+      deallocate(tsource,ttargglob,tout,t4,data,arrsum,axyp_glob,
+     &     dxyp,fgroundCS,fgroundLL)
+         
       end subroutine read_regrid_write_veg
 c*
+
 
 
       subroutine regridCROPS(x2grids)
@@ -2018,10 +2117,12 @@ c*
 
 
 
-      subroutine regridGIC(x2grids,dd2d)
+      subroutine regridGIC(x2grids,x2grids2,dd2d)
 c
-c     for 1x1 resolution: Jeff uses GIC=GIC.360X180.DEC01.1.rep
-c
+c     We use Jeff's 1x1 file GIC=GIC.360X180.DEC01.1.rep
+c     and replace the ice initial conditions
+c  SICE02         R8 F(im,jm),H(4,im,jm),snw,msi,ssi(4),pond_melt,L flag_dsws
+c     by Larissa's E42F40oQ32 run in 1DEC1976.iceE42F40oQ32 
       use DOMAIN_DECOMP_1D,only : am_i_root
       use regrid_com
       use dd2d_utils
@@ -2030,11 +2131,14 @@ c
       implicit none
       include 'netcdf.inc'
 
-      type (x_2gridsroot), intent(in) :: x2grids
+      type (x_2gridsroot), intent(in) :: x2grids,x2grids2
       type (dist_grid), intent(in) :: dd2d
 
 c*    read
       real*8, allocatable :: Tocn(:,:,:),MixLD(:,:)        ! OCN01
+      real*8, allocatable :: F0(:,:),H0(:,:,:),snw0(:,:),msi0(:,:),
+     &     ssi0(:,:,:),pond_melt0(:,:)
+      logical, allocatable :: flag_dsws0(:,:)               ! SICE02
       real*8, allocatable :: F(:,:),H(:,:,:),snw(:,:),msi(:,:),
      &     ssi(:,:,:),pond_melt(:,:)
       logical, allocatable :: flag_dsws(:,:)               ! SICE02
@@ -2057,11 +2161,12 @@ c*    write
      &     HT_out(:,:,:,:,:),SNWbv_out(:,:,:,:)                   ! SOILS02
       real*8, allocatable :: SNOW_out(:,:,:),T_out(:,:,:,:),
      &     MDWN_out(:,:,:),EDWN_out(:,:,:)        !GLAI
-      real*8, allocatable :: tsource(:,:,:)
+      real*8, allocatable :: tsource(:,:,:),tsource2(:,:,:)
       real*8, allocatable :: ttargglob(:,:,:)
       character*80 TITLEOCN01,TITLESICE02,TITLEEARTH01,TITLESOILS03,
-     &     TITLEGLAIC01,name,outnc
-      integer :: iu_GIC,iuout,ims,jms,nts,imt,jmt,ntt
+     &     TITLEGLAIC01,name,outnc,name2
+      integer :: iu_GIC,iuout,ims,jms,nts,imt,jmt,ntt,ims2,jms2,nts2,
+     &     iu_ICE
       integer :: i,j,k,l,m,fid,status,ntiles,im,jm,d2,d3
      
 
@@ -2071,27 +2176,29 @@ c*    write
       imt=x2grids%imtarget
       jmt=x2grids%jmtarget
       ntt=x2grids%ntilestarget
-
+      ims2=x2grids2%imsource
+      jms2=x2grids2%jmsource
+      nts2=x2grids2%ntilessource
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
+      write(*,*) "ims2,jms2,nts2",ims2,jms2,nts2
 
       name="GIC.360X180.DEC01.1.rep"
+      name2="1DEC1976.iceE42F40oQ32"
 
       iu_GIC=20
-
-      if (am_i_root()) then
-      open(iu_GIC,FILE=name,FORM='unformatted', STATUS='old')
-
-      endif
+      iu_ICE=30
 
       allocate (Tocn(3,ims,jms),MixLD(ims,jms),
-     &     F(ims,jms),H(4,ims,jms),snw(ims,jms),msi(ims,jms),
-     &     ssi(4,ims,jms),pond_melt(ims,jms),flag_dsws(ims,jms),
-     &     snowe(ims,jms),Te(ims,jms),WTRe(ims,jms),ICEe(ims,jms), 
-     &     SNOage(3,ims,jms),evmax(ims,jms),fsat(ims,jms),gq(ims,jms),
-     &     W(7,3,ims,jms),HT(7,3,ims,jms),
-     &     SNWbv(2,ims,jms),
-     &     SNOW(ims,jms),T(2,ims,jms),
-     &     MDWN(ims,jms),EDWN(ims,jms))
+     &  F0(ims,jms),H0(4,ims,jms),snw0(ims,jms),msi0(ims,jms),
+     &  ssi0(4,ims,jms),pond_melt0(ims,jms),flag_dsws0(ims,jms),
+     &  F(ims2,jms2),H(4,ims2,jms2),snw(ims2,jms2),msi(ims2,jms2),
+     &  ssi(4,ims2,jms2),pond_melt(ims2,jms2),flag_dsws(ims2,jms2),
+     &  snowe(ims,jms),Te(ims,jms),WTRe(ims,jms),ICEe(ims,jms), 
+     &  SNOage(3,ims,jms),evmax(ims,jms),fsat(ims,jms),gq(ims,jms),
+     &  W(7,3,ims,jms),HT(7,3,ims,jms),
+     &  SNWbv(2,ims,jms),
+     &  SNOW(ims,jms),T(2,ims,jms),
+     &  MDWN(ims,jms),EDWN(ims,jms))
 
       allocate (Tocn_out(3,imt,jmt,ntt),MixLD_out(imt,jmt,ntt),
      &     F_out(imt,jmt,ntt),H_out(4,imt,jmt,ntt),
@@ -2109,12 +2216,17 @@ c*    write
      &     MDWN_out(imt,jmt,ntt),EDWN_out(imt,jmt,ntt))
 
       allocate (tsource(ims,jms,nts),
+     &     tsource2(ims2,jms2,nts2),
      &     ttargglob(imt,jmt,ntt) )
 
+
       if (am_i_root()) then
+      open(iu_GIC,FILE=name,FORM='unformatted', STATUS='old')
+
       read(iu_GIC) TITLEOCN01, Tocn,MixLD
       write(*,*) TITLEOCN01
-      read(iu_GIC) TITLESICE02, F,H,snw,msi,ssi,pond_melt,flag_dsws
+      read(iu_GIC) 
+     &  TITLESICE02,F0,H0,snw0,msi0,ssi0,pond_melt0,flag_dsws0
       write(*,*) TITLESICE02
       read(iu_GIC) TITLEEARTH01, snowe,Te,WTRe, ICEe, SNOage,evmax,
      &     fsat,gq
@@ -2126,61 +2238,67 @@ c*    write
       write(*,*) TITLEGLAIC01
 
       close(iu_GIC)
-      endif
 
+      open(iu_ICE,FILE=name2,FORM='unformatted', STATUS='old')
+      read(iu_ICE) TITLESICE02,F,H,snw,msi,ssi,pond_melt,flag_dsws
+      write(*,*) TITLESICE02
+      close(iu_ICE)
+      endif
             
       do k=1,3
          tsource(:,:,1)=Tocn(k,:,:)
          call root_regrid(x2grids,tsource,ttargglob)
          Tocn_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
-
      
       tsource(:,:,1)=MixLD(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       MixLD_out(:,:,:)=ttargglob(:,:,:)
 
-      tsource(:,:,1)=F(:,:)
-      call root_regrid(x2grids,tsource,ttargglob)
+      tsource2(:,:,1)=F(:,:)
+c      tsource2(:,:,1)=dd2d%gid
+c      write(*,*) "gid=",dd2d%gid
+      call root_regrid(x2grids2,tsource2,ttargglob)
       F_out(:,:,:)=ttargglob(:,:,:)
 
       do k=1,4
-         tsource(:,:,1)=H(k,:,:)
-         call root_regrid(x2grids,tsource,ttargglob)
+         tsource2(:,:,1)=H(k,:,:)
+         call root_regrid(x2grids2,tsource2,ttargglob)
          H_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
-      tsource(:,:,1)=snw(:,:)
-      call root_regrid(x2grids,tsource,ttargglob)
+      tsource2(:,:,1)=snw(:,:)
+      call root_regrid(x2grids2,tsource2,ttargglob)
       snw_out(:,:,:)=ttargglob(:,:,:)
 
-      tsource(:,:,1)=msi(:,:)
-      call root_regrid(x2grids,tsource,ttargglob)
+      tsource2(:,:,1)=msi(:,:)
+      call root_regrid(x2grids2,tsource2,ttargglob)
       msi_out(:,:,:)=ttargglob(:,:,:)
 
       do k=1,4
-         tsource(:,:,1)=ssi(k,:,:)
-         call root_regrid(x2grids,tsource,ttargglob)
+         tsource2(:,:,1)=ssi(k,:,:)
+         call root_regrid(x2grids2,tsource2,ttargglob)
          ssi_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
-      tsource(:,:,1)=pond_melt(:,:)
-      call root_regrid(x2grids,tsource,ttargglob)
+      tsource2(:,:,1)=pond_melt(:,:)
+      call root_regrid(x2grids2,tsource2,ttargglob)
       pond_melt_out(:,:,:)=ttargglob(:,:,:)
 
-      tsource(:,:,1) = 0.d0
+      tsource2(:,:,1) = 0.d0
 
       do j=1,jms
          do i=1,ims
             if (flag_dsws(i,j) .eq. .true.) then
-               tsource(i,j,1)=1.d0
+               tsource2(i,j,1)=1.d0
             else
-               tsource(i,j,1)=0.d0
+               tsource2(i,j,1)=0.d0
             endif
          enddo
       enddo
 
-      call root_regrid(x2grids,tsource,ttargglob)
+      call root_regrid(x2grids2,tsource2,ttargglob)
+
 
 c***  Compatibility
       do k=1,ntt
@@ -2194,6 +2312,8 @@ c***  Compatibility
             enddo
          enddo
       enddo
+
+      write(*,*) "HERE"
 
       tsource(:,:,1)=snowe(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
@@ -2216,6 +2336,8 @@ c***  Compatibility
          call root_regrid(x2grids,tsource,ttargglob)
          SNOage_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
+
+      write(*,*) "THERE"
 
       tsource(:,:,1)=evmax(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
@@ -2252,11 +2374,15 @@ c***  Compatibility
          SNWbv_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
+      write(*,*) "THERE2"
+
       SNWbv_out(3,:,:,:) = 0.
 
       tsource(:,:,1)=SNOW(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       SNOW_out(:,:,:)=ttargglob(:,:,:)
+
+      write(*,*) "THERE3"
 
       do k=1,2
          tsource(:,:,1)=T(k,:,:)
@@ -2264,14 +2390,18 @@ c***  Compatibility
          T_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
+      write(*,*) "THERE4"
+
       tsource(:,:,1)=MDWN(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       MDWN_out(:,:,:)=ttargglob(:,:,:)
 
+      write(*,*) "THERE5"
       tsource(:,:,1)=EDWN(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       EDWN_out(:,:,:)=ttargglob(:,:,:)
       
+      write(*,*) "THERE6"
 
 c***  Write Netcdf file
 #ifdef TRACERS_WATER
@@ -2280,14 +2410,6 @@ c***  Write Netcdf file
 #endif      
       
 
-      deallocate (Tocn,MixLD,F,H,snw,msi,
-     &     ssi,pond_melt,flag_dsws,
-     &     snowe,Te,WTRe,ICEe, 
-     &     SNOage,evmax,fsat,gq,
-     &     W,HT,SNWbv,SNOW,T,MDWN,EDWN )
-
-      deallocate (tsource,ttargglob)     
-      
       outnc=trim(name)//"-CS.nc"
       write(*,*) outnc
       
@@ -2376,6 +2498,7 @@ c***  Write GLAIC variables
       call write_data(dd2d,fid,'eaccpdg',EACCPDG)
 
 
+
       deallocate (Tocn_out,MixLD_out,F_out,H_out,
      &     snw_out,msi_out,ssi_out,pond_melt_out,
      &     flag_dsws_out,snowe_out,Te_out,
@@ -2385,6 +2508,20 @@ c***  Write GLAIC variables
      &     SNOW_out,T_out,MDWN_out,EDWN_out )
       
       if(am_i_root()) status = nf_close(fid)
+
+      deallocate (Tocn,MixLD,
+     &     F0,H0,snw0,msi0,
+     &     ssi0,pond_melt0,flag_dsws0,
+     &     F,H,snw,msi,
+     &     ssi,pond_melt,flag_dsws,
+     &     snowe,Te,WTRe,ICEe, 
+     &     SNOage,evmax,fsat,gq,
+     &     W,HT,SNWbv,SNOW,T,MDWN,EDWN )
+      write(*,*) "THERE7"
+
+      deallocate (tsource,tsource2,ttargglob)     
+      
+      write(*,*) "THERE8"
      
       write(*,*) "end regrid GIC"
 
