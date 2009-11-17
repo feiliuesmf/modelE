@@ -387,7 +387,7 @@ c -------------------------------------------------------------
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
-     &     ,WRITET_PARALLEL
+      USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
       USE DYNAMICS, only : pmid,pk,pedn,pek
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij

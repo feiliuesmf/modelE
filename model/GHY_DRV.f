@@ -2229,7 +2229,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
       subroutine init_land_surface(redogh,inisnow,istart)
       !use veg_drv, only : spgsn
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, WRITET_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       use param, only : sync_param, get_param
       use constant, only : tf, lhe, rhow, shw_kg=>shw
       use ghy_com
@@ -3928,7 +3928,7 @@ c****
 
 
       subroutine set_roughness_length
-      use DOMAIN_DECOMP_ATM, only : GRID, GET, WRITET_PARALLEL
+      use DOMAIN_DECOMP_ATM, only : GRID, GET
       use param, only : sync_param, get_param
       use PBLCOM, only : roughl
       use model_com, only : focean, flice
