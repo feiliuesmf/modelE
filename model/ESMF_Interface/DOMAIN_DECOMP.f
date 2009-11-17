@@ -116,6 +116,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
       PUBLIC :: HALO_UPDATEj ! jx
       PUBLIC :: HALO_UPDATE_COLUMN ! K, I, J
       PUBLIC :: HALO_UPDATE_BLOCK ! K, L, I, J
+      PUBLIC :: HALO_UPDATE_MASK ! K, L, I, J
 !@var CHECKSUM output a bit-reproducible checksum for an array
       PUBLIC :: CHECKSUM ! Communicate overlapping portions of subdomains
       PUBLIC :: CHECKSUMj! Communicate overlapping portions of subdomains
@@ -1172,6 +1173,49 @@ c need to initialize the dd2d version of dist_grid for I/O
      &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_3D
+
+      SUBROUTINE HALO_UPDATE_mask(grd_dum, sBufS, sBufN, rBufS, rBufN)
+      IMPLICIT NONE
+      TYPE (DIST_GRID),   INTENT(IN)    :: grd_dum
+      REAL*8,            INTENT(IN) :: sBufN(:)
+      REAL*8,            INTENT(IN) :: sBufS(:)
+      REAL*8,            INTENT(OUT) :: rBufN(:)
+      REAL*8,            INTENT(OUT) :: rBufS(:)
+
+#ifdef USE_MPI
+      integer :: numSendSouth, numSendNorth
+      integer :: numRecvSouth, numRecvNorth
+      integer :: pe_south, pe_north
+      integer, save :: tag = 1
+      integer, parameter :: NUM_TAGS = 100
+      integer :: status(MPI_STATUS_SIZE)
+      integer :: ier
+#endif
+
+#ifdef USE_MPI
+      numSendSouth = size(sBufS)
+      numSendNorth = size(sBufN)
+
+      numRecvSouth = size(rBufS)
+      numRecvNorth = size(rBufN)
+
+      call getNeighbors(my_pet, npes, pe_south, pe_north, .false.)
+
+      tag = 1 + mod(tag - 1, NUM_TAGS)
+      call MPI_sendrecv(sBufS, numSendSouth, MPI_DOUBLE_PRECISION,
+     &     pe_south, tag,
+     &     rBufN, numRecvNorth, MPI_DOUBLE_PRECISION, pe_north, tag,
+     &     MPI_COMM_WORLD, status, ier)
+
+      tag = 1 + mod(tag - 1, NUM_TAGS)
+
+      call MPI_sendrecv(sBufN, numSendNorth, MPI_DOUBLE_PRECISION,
+     &     pe_north, tag,
+     &     rBufS, numRecvSouth, MPI_DOUBLE_PRECISION, pe_south, tag,
+     &     MPI_COMM_WORLD, status, ier)
+
+#endif
+      END SUBROUTINE HALO_UPDATE_mask
 
       SUBROUTINE HALO_UPDATE_COLUMN_2D(grd_dum, arr, from)
       IMPLICIT NONE
