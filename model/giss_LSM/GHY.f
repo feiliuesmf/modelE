@@ -127,7 +127,7 @@ ccc   soil internal variables wchich need to be passed from/to ghinij
       real*8 :: zb(ng),zc(ng),fr(ng),snowm !veg alaie, rs,
      &     ,thets(0:ng,2),thetm(0:ng,2),ws(0:ngm,2),shc(0:ng,2)
      &     ,thm(0:64,imt-1)
-      public thm
+      public thm, thets
 !veg     &     ,nm,nf,vh ! added by adf ! ,alai
 !@var ws_can canopy water holding capacity (m) - input from veg
 !@var shc_can canopy heat capacity (J/C/m^2) - input from veg
