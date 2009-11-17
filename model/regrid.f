@@ -1360,6 +1360,7 @@ c
 c     Read weights
 c     
          fname='REMAP'
+         write(*,*) "REMAP file=",fname
          status = nf_open(trim(fname),nf_nowrite,fid)
          if (status .ne. NF_NOERR) write(*,*) 
      *        "UNABLE TO OPEN REMAP FILE"
@@ -1520,7 +1521,7 @@ c*
 
 
       subroutine init_regrid_root(x2gridsroot,imsource,jmsource,
-     &     ntilessource,imtarget,jmtarget,ntilestarget)
+     &     ntilessource,imtarget,jmtarget,ntilestarget,lremap)
 
 !@sum  Reads regriding file on root proc, broadcasts the 
 !@+    x_grid data to all processes then instanciates locally
@@ -1544,7 +1545,9 @@ c*
       integer :: status,fid,n,vid,ikey,jlat
       integer :: itile,j,idomain,iic,jjc,index,indexc,nc2
       integer :: ierr,i
-
+      logical, optional, intent(in) :: lremap
+      logical :: lrem
+      character(len=10) :: imch,jmch,icch,jcch	
       character(len=30) :: fname
 
       x2gridsroot%imsource=imsource
@@ -1554,14 +1557,31 @@ c*
       x2gridsroot%jmtarget=jmtarget
       x2gridsroot%ntilestarget=ntilestarget
 
-
+      lrem = .false.
+      if (present(lremap)) then
+         if (lremap) lrem= .true.
+      endif
 c
       if (AM_I_ROOT()) then   
 
 c     
 c     Read weights
 c     
-         fname='REMAP'
+         if (lrem) then
+            write(imch,'(i10)') imsource	 
+            write(jmch,'(i10)') jmsource	 
+            write(icch,'(i10)') imtarget	 
+            write(jcch,'(i10)') jmtarget	 
+            imch=trim(adjustl(imch))	 
+            jmch=trim(adjustl(jmch))	 
+            icch=trim(adjustl(icch))	 
+            jcch=trim(adjustl(jcch))	 
+            fname="remap"//trim(imch)//"-"//trim(jmch)	 
+     *           //"C"//trim(icch)//"-"//trim(jcch)//".nc"
+         else
+            fname='REMAP'
+         endif
+         write(*,*) "remap file=",fname,lrem
          status = nf_open(trim(fname),nf_nowrite,fid)
 
          if (status .ne. NF_NOERR) write(*,*) 
