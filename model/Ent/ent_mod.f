@@ -201,7 +201,7 @@ cddd      end interface ent_cell_update
 
 
       !---- global data ----
-      type(ent_config) config
+      type(ent_config), save :: config
 
       contains
 
@@ -1271,7 +1271,7 @@ cddd      end interface ent_cell_update
       use cohorts, only : cohort_construct
       use patches, only : patch_construct
       real*8, intent(inout) :: dbuf(0:)
-      type(entcelltype_public), intent(out) :: entcell ! pointer ?
+      type(entcelltype_public), intent(inout) :: entcell ! pointer ?
       !---
       type(entcelltype), pointer :: ecp
       type(patch), pointer :: p, pprev  !@var p current patch
@@ -1355,24 +1355,24 @@ cddd      end interface ent_cell_update
       subroutine copy_vars_single( buf, n, var, flag )
 !@copy variable to/from buffer
 !@+   !!! may need to write similar for arrays and create an interface
-!@+   !!! in that case "n" will have non-triial value
+!@+   !!! in that case "n" will have non-trivial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(out) :: n
+      integer, intent(inout) :: n
       real*8, intent(inout):: var
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
 !@+      1 copy from buffer to var
-!@+      0 do nothing - just return the number of fields
+!@+      0 do nothing - just return the cumulative number of elements
       integer, intent(in) :: flag
       !---
       
-      n = 1
+      n = n + 1
       if ( flag == 0 ) return
 
       if ( flag == -1 ) then
-        buf(1) = var
+        buf(n) = var
       else if ( flag == 1 ) then
-        var = buf(1)
+        var = buf(n)
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -1384,7 +1384,7 @@ cddd      end interface ent_cell_update
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(out) :: n
+      integer, intent(inout) :: n
       real*8, intent(inout):: var(:)
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
@@ -1392,14 +1392,18 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
+      integer :: n0
       
-      n = size(var)
+      n0 = n + 1
+      n = n + size(var)
+
       if ( flag == 0 ) return
 
+      
       if ( flag == -1 ) then
-        buf(1:n) = var(1:n)
+        buf(n0:n) = var(:)
       else if ( flag == 1 ) then
-        var(1:n) = buf(1:n)
+        var(:) = buf(n0:n)
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -1411,7 +1415,7 @@ cddd      end interface ent_cell_update
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(out) :: n
+      integer, intent(inout) :: n
       integer, intent(inout):: var
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
@@ -1420,13 +1424,13 @@ cddd      end interface ent_cell_update
       integer, intent(in) :: flag
       !---
       
-      n = 1
+      n = n + 1
       if ( flag == 0 ) return
 
       if ( flag == -1 ) then
-        buf(1) = real( var, kind(0d0) )
+        buf(n) = real( var, kind(buf) )
       else if ( flag == 1 ) then
-        var = nint( buf(1) )
+        var = nint( buf(n) )
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -1438,7 +1442,7 @@ cddd      end interface ent_cell_update
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(out) :: n
+      integer, intent(inout) :: n
       integer, intent(inout):: var(:)
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
@@ -1446,14 +1450,16 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
+      integer :: n0
       
-      n = size(var)
+      n0 = n + 1
+      n = n + size(var)
       if ( flag == 0 ) return
 
       if ( flag == -1 ) then
-        buf(1:n) = real( var(1:n), kind(0d0) )
+        buf(n0:n) = real( var(:), kind(buf))
       else if ( flag == 1 ) then
-        var(1:n) = nint( buf(1:n) )
+        var(:) = nint( buf(n0:n) )
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -1491,25 +1497,17 @@ cddd      end interface ent_cell_update
 
       ! include all cell variables that need i/o
       ! actually soil_texture is BC, but store it to checkpoint for now ...
-      call copy_vars( buf(dc:), nn, entcell%soil_texture, flag)
-      dc = dc + nn
+      call copy_vars( buf, dc, entcell%soil_texture, flag)
 
       ! the following vars are from clim_stats 
       ! do we really need them ??
-      call copy_vars( buf(dc:), nn, entcell%soiltemp_10d, flag)
-      dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%airtemp_10d, flag)
-      dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%paw_10d, flag)
-      dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%par_10d, flag)
-      dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%gdd, flag)
-      dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%ncd, flag)
-      dc = dc + nn
-      call copy_vars( buf(dc:), nn, entcell%ld, flag)
-      dc = dc + nn
+      call copy_vars( buf, dc, entcell%soiltemp_10d, flag)
+      call copy_vars( buf, dc, entcell%airtemp_10d, flag)
+      call copy_vars( buf, dc, entcell%paw_10d, flag)
+      call copy_vars( buf, dc, entcell%par_10d, flag)
+      call copy_vars( buf, dc, entcell%gdd, flag)
+      call copy_vars( buf, dc, entcell%ncd, flag)
+      call copy_vars( buf, dc, entcell%ld, flag)
 
       n = dc
 
@@ -1531,18 +1529,18 @@ cddd      end interface ent_cell_update
       dc = 0
 
       ! include all patch variables that need i/o
-      call copy_vars( buf(dc:), nn,  p%age,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%area, flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%Ci,   flag ); dc = dc + nn
+      call copy_vars( buf, dc,  p%age,  flag )
+      call copy_vars( buf, dc,  p%area, flag )
+      call copy_vars( buf, dc,  p%Ci,   flag )
       do i=1,N_CASA_LAYERS      !need b/c Tpool now rank 3  -PK  
-       call copy_vars( buf(dc:), nn,  p%Tpool(1,:,i),flag );dc = dc + nn
-       call copy_vars( buf(dc:), nn,  p%Tpool(2,:,i),flag );dc = dc + nn
+       call copy_vars( buf, dc,  p%Tpool(1,:,i),flag )
+       call copy_vars( buf, dc,  p%Tpool(2,:,i),flag )
       end do
       ! not sure about the following, probably can be restored from 
       ! other data...
-      call copy_vars( buf(dc:), nn,  p%soil_type, flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%GCANOPY, flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  p%albedo, flag ); dc = dc + nn
+      call copy_vars( buf, dc,  p%soil_type, flag )
+      call copy_vars( buf, dc,  p%GCANOPY, flag )
+      call copy_vars( buf, dc,  p%albedo, flag )
 
       n = dc
 
@@ -1564,46 +1562,46 @@ cddd      end interface ent_cell_update
       dc = 0
 
       ! include all cohort variables that need i/o
-      call copy_vars( buf(dc:), nn,  c%pft,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%n,    flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%nm,   flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%lai,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%h,    flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%dbh,  flag ); dc = dc + nn
-!      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
+      call copy_vars( buf, dc,  c%pft,  flag )
+      call copy_vars( buf, dc,  c%n,    flag )
+      call copy_vars( buf, dc,  c%nm,   flag )
+      call copy_vars( buf, dc,  c%lai,  flag )
+      call copy_vars( buf, dc,  c%h,    flag )
+      call copy_vars( buf, dc,  c%dbh,  flag )
+!      call copy_vars( buf, dc,  c%_any_var2_, flag )
       ! data for Tpool, do we need these?
-      call copy_vars( buf(dc:), nn,  c%C_fol,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_froot,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_hw,  flag ); dc = dc + nn
+      call copy_vars( buf, dc,  c%C_fol,  flag )
+      call copy_vars( buf, dc,  c%C_froot,  flag )
+      call copy_vars( buf, dc,  c%C_hw,  flag )
       ! I guess fracroot is also needed ...
-      call copy_vars( buf(dc:), nn,  c%fracroot,  flag ); dc = dc + nn
+      call copy_vars( buf, dc,  c%fracroot,  flag )
 
       ! added new data to restore checkpoint after sumcohort was removed...
-      call copy_vars( buf(dc:), nn,  c%Ci,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%gcanopy,  flag ); dc = dc + nn
+      call copy_vars( buf, dc,  c%Ci,  flag )
+      call copy_vars( buf, dc,  c%gcanopy,  flag )
 
       ! new data jan 10 2008
-      call copy_vars( buf(dc:), nn,  c%C_fol   ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_fol   ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_sw    ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_sw    ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_hw    ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_hw    ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_lab   ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_lab   ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_froot ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_froot ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
+      call copy_vars( buf, dc,  c%C_fol   ,  flag )
+      call copy_vars( buf, dc,  c%N_fol   ,  flag )
+      call copy_vars( buf, dc,  c%C_sw    ,  flag )
+      call copy_vars( buf, dc,  c%N_sw    ,  flag )
+      call copy_vars( buf, dc,  c%C_hw    ,  flag )
+      call copy_vars( buf, dc,  c%N_hw    ,  flag )
+      call copy_vars( buf, dc,  c%C_lab   ,  flag )
+      call copy_vars( buf, dc,  c%N_lab   ,  flag )
+      call copy_vars( buf, dc,  c%C_froot ,  flag )
+      call copy_vars( buf, dc,  c%N_froot ,  flag )
+      call copy_vars( buf, dc,  c%C_croot ,  flag )
+      call copy_vars( buf, dc,  c%N_croot ,  flag )
 
       ! diags and hacks (added dec 9 2008)
-      call copy_vars( buf(dc:), nn,  c%C_growth,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%C_total ,  flag ); dc = dc + nn
+      call copy_vars( buf, dc,  c%C_growth,  flag )
+      call copy_vars( buf, dc,  c%C_total ,  flag )
       ! added on Mar 30 2009. Do we really need this?
-      call copy_vars( buf(dc:), nn,  c%llspan  ,  flag ); dc = dc + nn
-      call copy_vars( buf(dc:), nn,  c%turnover_amp,  flag ); dc=dc + nn
+      call copy_vars( buf, dc,  c%llspan  ,  flag )
+      call copy_vars( buf, dc,  c%turnover_amp,  flag )
       ! needed for frost hardiness ?
-      call copy_vars( buf(dc:), nn,  c%Sacclim ,  flag ); dc=dc + nn
+      call copy_vars( buf, dc,  c%Sacclim ,  flag )
 
       n = dc
 
@@ -1634,7 +1632,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell
+      type(entcelltype_public),intent(inout):: entcell
       ! forcings probably should not be optional ...
       real*8 , intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1732,7 +1730,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell(:)
+      type(entcelltype_public),intent(inout):: entcell(:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1832,7 +1830,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell(:,:)
+      type(entcelltype_public),intent(inout):: entcell(:,:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:,:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
