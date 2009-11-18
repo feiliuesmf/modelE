@@ -10152,15 +10152,19 @@ C**** Apply chemistry and overwrite changes:
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_SPECIAL_Shindell)
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_SOA)
 ! This section is to accumulate/aggregate certain tracers' SURFACE value
 ! into particulate matter PM2.5 and PM10 for use in the sub-daily
 ! diags. Saved in ppmm. Also save Ox in ppmv:
       do n=1,ntm
         select case (trname(n))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_AEROSOLS_SOA)
         ! 100% of these:
         case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
+#ifdef TRACERS_AEROSOLS_SOA
+     &       'isopp1a', 'isopp2a', 'apinp1a', 'apinp2a',
+#endif  /* TRACERS_AEROSOLS_SOA */
      &       'Clay','seasalt1','N_d1','SO4_d1')
           sPM2p5_acc(:,:)=sPM2p5_acc(:,:) +         1.d6*trcsurf(:,:,n)
           sPM10_acc(:,:)=sPM10_acc(:,:)   +         1.d6*trcsurf(:,:,n)
