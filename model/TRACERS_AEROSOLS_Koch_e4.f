@@ -2228,6 +2228,8 @@ c
       bcice=0.
       !fb=afb(i,j)
       !fv=1.-fb
+      sconb=0.d0
+      sconv=0.d0
       call get_fb_fv( fb, fv, i, j )
       if (wsn_ij(1,1,i,j).gt.0.)  then
       bcsnowb=tr_wsn_ij(n_BCII,1,1,i,j)+
