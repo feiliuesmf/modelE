@@ -582,8 +582,9 @@ C**** fix roughness length for ocean ice that turned to land ice
       end do
 
       !write(981) titrrr,rrr
+#ifndef CUBE_GRID
       call WRITET_PARALLEL(grid,981,"fort.981",rrr,titrrr)
-
+#endif
 
       return
  1000 format (1x,//,1x,'completed initialization, itype = ',i2,//)
