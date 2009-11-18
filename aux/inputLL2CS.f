@@ -100,46 +100,46 @@ c     for SICE, OSST, TOPO 288x180->CS90
       ims_COMMON=288
       jms_COMMON=180
 
-ccc      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
-ccc     &     ntilessource,imt,jmt,ntilestarget)
+      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
+     &     ntilessource,imt,jmt,ntilestarget,.true.)
 
-ccc      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
-ccc      xll2cs_OSST=xll2cs_COMMON
+      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
+c-      xll2cs_OSST=xll2cs_COMMON
 
-ccc      xll2cs_SICE=xll2cs_COMMON
-ccc      xll2cs_CROPS=xll2cs_COMMON
+c-      xll2cs_SICE=xll2cs_COMMON
+c-      xll2cs_CROPS=xll2cs_COMMON
 
 c now VEG 288x180 -> C90
-      xll2cs_VEG=xll2cs_COMMON
+c-      xll2cs_VEG=xll2cs_COMMON
 
 c     360x180 for TOPINDEX, SOIL, GIC, AIC
-      ims_COMMON2=360
-      jms_COMMON2=180
+c-      ims_COMMON2=360
+c-      jms_COMMON2=180
 
 c-      write(*,*) "bef init xgrid 360 180"
-      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+c-      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
+c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
 
 c-      write(*,*) "after init xgrid 360 180"
 
 c-      xll2cs_CDN=xll2cs_COMMON2
 c-      xll2cs_TOPINDEX=xll2cs_COMMON2
 c-      xll2cs_SOIL=xll2cs_COMMON2
-       xll2cs_GIC=xll2cs_COMMON2
+c-       xll2cs_GIC=xll2cs_COMMON2
 c-      xll2cs_AIC=xll2cs_COMMON2
 c-      xll2cs_GLMELT=xll2cs_COMMON2 
 
 c VEG 144x90 -> C90  
-      ims_3=144
-      jms_3=90
-      call init_regrid_root(xll2cs_3,ims_3,jms_3,
-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+c-      ims_3=144
+c-      jms_3=90
+c-      call init_regrid_root(xll2cs_3,ims_3,jms_3,
+c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
 ccc      xll2cs_VEG=xll2cs_3
 
 
       endif
 
-      xll2cs_SOILCARB=xll2cs_VEG
+c-      xll2cs_SOILCARB=xll2cs_VEG
 
 c***   We use 3 different types of interpolation depending on the
 c***   nature of the input file. The first 6 letters indicate the 
@@ -151,8 +151,8 @@ c***   The last letters indicate the name of the input file using
 c***   its alias (TOPO, VEG, AIC...) 
       write(*,*) "IN REGRID INPUT"
 
-c      if (AM_I_ROOT()) then
-c         call regridTOPO(xll2cs_TOPO)
+      if (AM_I_ROOT()) then
+         call regridTOPO(xll2cs_TOPO)
 c         call regridOSST(xll2cs_OSST)
 cc         call testOSST()
 c         call regridSICE(xll2cs_SICE)
@@ -165,8 +165,8 @@ c         call regridSOIL(xll2cs_SOIL)
 c         call regridGLMELT(xll2cs_GLMELT)
 cc         call regridVEGFRAC(xll2cs_VEGFRAC)
 cc         call regridLAI(xll2cs_LAI)
-c      endif
-      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
+      endif
+c      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
 c      call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
@@ -960,8 +960,9 @@ c
      &     tsourc4(ims,jms,nts,nrecmax)  )
       
       iu_TOPO=20
+      name="Z1QX1N"
 c      name="Z288X180N"   !atm only
-      name="Z72X46N_gas.1_nocasp"
+c      name="Z72X46N_gas.1_nocasp"
 
       write(*,*) name
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
