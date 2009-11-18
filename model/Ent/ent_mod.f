@@ -1632,7 +1632,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell
+      type(entcelltype_public),intent(out):: entcell
       ! forcings probably should not be optional ...
       real*8 , intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1730,7 +1730,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell(:)
+      type(entcelltype_public),intent(out):: entcell(:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1830,7 +1830,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell(:,:)
+      type(entcelltype_public),intent(out):: entcell(:,:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:,:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
