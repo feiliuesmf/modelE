@@ -90,117 +90,105 @@
 
       end subroutine read_cohort_struct
 !************************************************************************
-      subroutine check_ij_bounds(i,j,I0,I1,J0,J1)
-      use filemanager
-      implicit none
-      integer :: i,j,I0,I1,J0,J1
 
-      if ((i.lt.I0).or.(i.gt.I1)) then
-         call stop_model("ent_make_struct i out of bounds",255)
-      elseif ((j.lt.J0).or.(j.gt.J1)) then
-         call stop_model("ent_make_struct j out of bounds",255)
-      endif
-
-      end subroutine check_ij_bounds
-!************************************************************************
-
-      subroutine ent_struct_readcsv (IM,JM,I0,I1,J0,J1)
-!@sum Read ent vegetation structure from ASCII CSV file
-!@sum Order must be:
-!@sum First line:  N_CASA_LAYERS
-!@sum e, entcells in any order spanning dimension IM,JM
-!@sum p, patches in order from oldest to youngest
-!@sum c, cohorts in order from tallest to shortest
-!@sum
-!@sum This ordering is not critical, because the insert routines will
-!@sum sort the patches and cohorts, given age and height.
-
-      use FILEMANAGER
-      implicit none
-      integer :: IM,JM,I0,I1,J0,J1
-      type(entcelltype) :: cells(I0:I1,J0:J1)
-      type(entcelltype) :: cellsbuf(I0:I1,J0:J1)
-      !----
-      integer :: iu_entstruct
-      character*80, parameter :: ENTSTRUCT="ENTSTRUCT"
-      integer :: N_CASAlayers    !N_CASA_layers
-      integer :: i,j
-      type(entcelltype),pointer :: ecp
-      type(patch),pointer :: pp
-      type(cohort),pointer :: cop
-      real*8 :: fracroot(N_DEPTH)
-      logical :: MORE
-      character :: next
-
-      fracroot(1:N_DEPTH) = 0.d0
-      MORE = .true.  !initialize
-
-!      open(iu_entstruct,file="ent_struct_init.csv",status='unknown')
-      call openunit(trim(ENTSTRUCT),iu_entstruct,.false.,.true.)
-      read(iu_entstruct,*) N_CASAlayers
-      write(*,*) 'N_CASAlayers',N_CASAlayers
-      do while(MORE)
-        read(iu_entstruct,*) next
-        if (next.eq.'$') then !End of data
-          MORE = .false.
-        else if (next.eq.'*') then !skip comment
-        else if (next.eq.'e') then !new entcell
-          write(*,*) 'e'
-          read(iu_entstruct,*) i,j
-          write(*,*) i,j
-          call check_ij_bounds(i,j,I0,I1,J0,J1)
-          call entcell_construct(ecp)
-          call zero_entcell( ecp )
-          call read_entcell_struct( ecp,iu_entstruct )
-          cells(i,j) = ecp
-        else if (next.eq.'p') then !new patch
-          write(*,*) 'p'
-          call insert_patch(ecp,0.d0,0)
-          pp => ecp%youngest
-          call read_patch_struct(pp,iu_entstruct)
-          write(*,*) 'patch area age soil',pp%area,pp%age,pp%soil_type
-        else if (next.eq.'c') then !new cohort
-          write(*,*) 'c'
-          call insert_cohort(pp,0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         fracroot,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
-          cop => pp%shortest
-          call read_cohort_struct(cop,iu_entstruct)
-          write(*,*) 'cohort pft height',cop%pft,cop%h
-        end if
-        cells(i,j) = ecp
-      end do
-
-!      write(*,*) 'Got here 0.'
-!      do i = I0,I1
-!        do j = J0,J1
-!          call entcell_print(6,cells(i,j))
-!        end do
-!      end do
-
-      write(*,*) 'Summarizing entcells...'
-      do i = I0,I1
-        do j = J0,J1
-          call summarize_entcell(cells(i,j))
-          write(*,*) '...after summarize_entcell'
-          call entcell_print(6,cells(i,j))
-          cellsbuf(i,j) = cells(i,j)
-          write(*,*) '...after assign cellsbuf(i,j)'
-        end do
-      end do
-
-      write(*,*) 'Printing cellsbuf...'
-      do i = I0,I1
-         do j = J0,J1
-            call entcell_print(6, cellsbuf(i,j))
-         end do
-      end do 
-      
-      call closeunit(iu_entstruct)
-      write(*,*) 'Done with creating Ent vegetation structure.'
-      end subroutine ent_struct_readcsv
+! left the old program for a reference - should be removed
+cddd      subroutine ent_struct_readcsv (IM,JM,I0,I1,J0,J1)
+cddd!@sum Read ent vegetation structure from ASCII CSV file
+cddd!@sum Order must be:
+cddd!@sum First line:  N_CASA_LAYERS
+cddd!@sum e, entcells in any order spanning dimension IM,JM
+cddd!@sum p, patches in order from oldest to youngest
+cddd!@sum c, cohorts in order from tallest to shortest
+cddd!@sum
+cddd!@sum This ordering is not critical, because the insert routines will
+cddd!@sum sort the patches and cohorts, given age and height.
+cddd
+cddd      use FILEMANAGER
+cddd      implicit none
+cddd      integer :: IM,JM,I0,I1,J0,J1
+cddd      type(entcelltype) :: cells(I0:I1,J0:J1)
+cddd      type(entcelltype) :: cellsbuf(I0:I1,J0:J1)
+cddd      !----
+cddd      integer :: iu_entstruct
+cddd      character*80, parameter :: ENTSTRUCT="ENTSTRUCT"
+cddd      integer :: N_CASAlayers    !N_CASA_layers
+cddd      integer :: i,j
+cddd      type(entcelltype),pointer :: ecp
+cddd      type(patch),pointer :: pp
+cddd      type(cohort),pointer :: cop
+cddd      real*8 :: fracroot(N_DEPTH)
+cddd      logical :: MORE
+cddd      character :: next
+cddd
+cddd      fracroot(1:N_DEPTH) = 0.d0
+cddd      MORE = .true.  !initialize
+cddd
+cddd!      open(iu_entstruct,file="ent_struct_init.csv",status='unknown')
+cddd      call openunit(trim(ENTSTRUCT),iu_entstruct,.false.,.true.)
+cddd      read(iu_entstruct,*) N_CASAlayers
+cddd      write(*,*) 'N_CASAlayers',N_CASAlayers
+cddd      do while(MORE)
+cddd        read(iu_entstruct,*) next
+cddd        if (next.eq.'$') then !End of data
+cddd          MORE = .false.
+cddd        else if (next.eq.'*') then !skip comment
+cddd        else if (next.eq.'e') then !new entcell
+cddd          write(*,*) 'e'
+cddd          read(iu_entstruct,*) i,j
+cddd          write(*,*) i,j
+cddd          call check_ij_bounds(i,j,I0,I1,J0,J1)
+cddd          call entcell_construct(ecp)
+cddd          call zero_entcell( ecp )
+cddd          call read_entcell_struct( ecp,iu_entstruct )
+cddd          cells(i,j) = ecp
+cddd        else if (next.eq.'p') then !new patch
+cddd          write(*,*) 'p'
+cddd          call insert_patch(ecp,0.d0,0)
+cddd          pp => ecp%youngest
+cddd          call read_patch_struct(pp,iu_entstruct)
+cddd          write(*,*) 'patch area age soil',pp%area,pp%age,pp%soil_type
+cddd        else if (next.eq.'c') then !new cohort
+cddd          write(*,*) 'c'
+cddd          call insert_cohort(pp,0,
+cddd     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+cddd     &         fracroot,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+cddd     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+cddd     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
+cddd          cop => pp%shortest
+cddd          call read_cohort_struct(cop,iu_entstruct)
+cddd          write(*,*) 'cohort pft height',cop%pft,cop%h
+cddd        end if
+cddd        cells(i,j) = ecp
+cddd      end do
+cddd
+cddd!      write(*,*) 'Got here 0.'
+cddd!      do i = I0,I1
+cddd!        do j = J0,J1
+cddd!          call entcell_print(6,cells(i,j))
+cddd!        end do
+cddd!      end do
+cddd
+cddd      write(*,*) 'Summarizing entcells...'
+cddd      do i = I0,I1
+cddd        do j = J0,J1
+cddd          call summarize_entcell(cells(i,j))
+cddd          write(*,*) '...after summarize_entcell'
+cddd          call entcell_print(6,cells(i,j))
+cddd          cellsbuf(i,j) = cells(i,j)
+cddd          write(*,*) '...after assign cellsbuf(i,j)'
+cddd        end do
+cddd      end do
+cddd
+cddd      write(*,*) 'Printing cellsbuf...'
+cddd      do i = I0,I1
+cddd         do j = J0,J1
+cddd            call entcell_print(6, cellsbuf(i,j))
+cddd         end do
+cddd      end do 
+cddd      
+cddd      call closeunit(iu_entstruct)
+cddd      write(*,*) 'Done with creating Ent vegetation structure.'
+cddd      end subroutine ent_struct_readcsv
 
 
       subroutine ent_readcsv (ecp, iu_entstruct)
