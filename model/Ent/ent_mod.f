@@ -456,6 +456,7 @@ cddd      end interface ent_cell_update
       integer i1,i2
       integer dims(2,2)
 
+      write(78,*) __LINE__,__FILE__;      call flush(78)
       dims(1,:) = lbound(entcell)
       dims(2,:) = ubound(entcell)
 
@@ -470,6 +471,7 @@ cddd      end interface ent_cell_update
         endif
       endif
 
+      write(78,*) __LINE__,__FILE__;      call flush(78)
       ! set defaults
       nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
       do_giss_phenology_1 = .false.
@@ -479,6 +481,7 @@ cddd      end interface ent_cell_update
       jday_1 = -32768
       init_1 = .false.
 
+      write(78,*) __LINE__,__FILE__;      call flush(78)
       ! now set optional arguments
       if ( present(do_giss_phenology) )
      &     do_giss_phenology_1 = do_giss_phenology
@@ -487,6 +490,7 @@ cddd      end interface ent_cell_update
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
+      write(78,*) __LINE__,__FILE__;      call flush(78)
       
       do i1=dims(1,1),dims(2,1)
       do i2=dims(1,2),dims(2,2)
@@ -504,6 +508,8 @@ cddd      end interface ent_cell_update
 
 !          write(780,*) __FILE__,__LINE__,hemi_1
           
+      write(78,*) __LINE__,__FILE__;      call flush(78)
+
           call entcell_vegupdate(entcell(i1,i2)%entcell,
      &         hemi_1,
      &         jday_1, do_giss_phenology_1, do_giss_lai_1,
@@ -1237,14 +1243,14 @@ cddd      end interface ent_cell_update
       ! save cell vars here (if there are any...), i.e. 
       ! call copy_cell_vars(dbuf, nn, p, -1);
       call copy_cell_vars(dbuf(dc+1:), nn, ecp, -1); dc = dc + nn
-      np = 0
+      dc = 0
       p => entcell%entcell%oldest      
       do while ( associated(p) )
         np = np + 1
         if ( np > MAX_PATCHES )
      &       call stop_model("ent_cell_pack: too many patches",255)
         !save patch
-        call copy_patch_vars(dbuf(dc+1:), nn, p, -1); dc = dc + nn
+        call copy_patch_vars(dbuf, dc, p, -1); dc= dc + nn
         nc(np) = 0
         c => p%tallest
         do while ( associated(c) )
@@ -1252,7 +1258,7 @@ cddd      end interface ent_cell_update
           if ( nc(np) > MAX_COHORTS )
      &         call stop_model("ent_cell_pack: too many cohorts",255)
           !save cohort
-          call copy_cohort_vars(dbuf(dc+1:), nn, c, -1); dc = dc + nn
+          call copy_cohort_vars(dbuf, dc, c, -1); dc = dc + nn
          c => c%shorter
         enddo
         p => p%younger
@@ -1295,7 +1301,7 @@ cddd      end interface ent_cell_update
 
       ecp => entcell%entcell
 
-      call copy_cell_vars(dbuf(dc:), nn, ecp, 1); dc = dc + nn
+      call copy_cell_vars(dbuf, dc, ecp, 1)
       nullify( pprev )
       do i=1,np
         !allocate( p )
@@ -1526,7 +1532,7 @@ cddd      end interface ent_cell_update
       !---
       integer dc, nn, i
 
-      dc = 0
+      dc = n
 
       ! include all patch variables that need i/o
       call copy_vars( buf, dc,  p%age,  flag )
@@ -1559,7 +1565,7 @@ cddd      end interface ent_cell_update
       !---
       integer dc, nn
 
-      dc = 0
+      dc = n
 
       ! include all cohort variables that need i/o
       call copy_vars( buf, dc,  c%pft,  flag )
