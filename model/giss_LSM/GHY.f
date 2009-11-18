@@ -66,6 +66,7 @@ ccc   data needed for debugging
 
       type ( ghy_debug_str ), public :: ghy_debug
       integer, public :: ijdebug
+      integer, public :: counter = 0
 
 ccc   public data
 ccc   main accumulators
@@ -127,7 +128,7 @@ ccc   soil internal variables wchich need to be passed from/to ghinij
       real*8 :: zb(ng),zc(ng),fr(ng),snowm !veg alaie, rs,
      &     ,thets(0:ng,2),thetm(0:ng,2),ws(0:ngm,2),shc(0:ng,2)
      &     ,thm(0:64,imt-1)
-      public thm
+      public thm,thets
 !veg     &     ,nm,nf,vh ! added by adf ! ,alai
 !@var ws_can canopy water holding capacity (m) - input from veg
 !@var shc_can canopy heat capacity (J/C/m^2) - input from veg
@@ -2261,6 +2262,7 @@ ccc get necessary data from ent
      &     canopy_height=height_can,
      &     albedo=albedo_6b
      &     )
+
 ccc make sure there are no round-off errors in fractions
       if ( fv < 1.d-6 ) fv = 0.d0
       if ( fv > 1.d0 - 1.d-6 ) fv = 1.d0
