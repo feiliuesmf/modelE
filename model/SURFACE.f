@@ -957,8 +957,8 @@ C****
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
             end select
 #else
-        call inc_tajls(i,j,1,jls_isrc(1,n),trc_flux*axyp(i,j)*
-     *       ptype*dtsurf)   ! why not for all aerosols?
+        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+     *       trc_flux*axyp(i,j),ptype*dtsurf) ! why not for all aerosols?
 #endif
 #endif
 
@@ -1287,10 +1287,10 @@ C**** Save surface tracer concentration whether calculated or not
           if (tr_wd_type(n).eq.nWater) then
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *           trevapor(n,itype,i,j)*ptype
-            call inc_tajls(i,j,1,jls_isrc(1,n),trevapor(n,itype,i,j)
-     *           *ptype)
-            if (focean(i,j).gt.0) call inc_tajls(i,j,1,jls_isrc(2,n)
-     *           ,trevapor(n,itype,i,j)*ptype)
+            if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+     *           trevapor(n,itype,i,j)*ptype)
+            if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls
+     *           (i,j,1,jls_isrc(2,n),trevapor(n,itype,i,j)*ptype)
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      *         gtracer(n,itype,i,j)*ptype

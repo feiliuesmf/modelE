@@ -500,7 +500,7 @@ C**** fixed datasets are used, it can happen over land as well.
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
 #else
-        call inc_tajls(i,j,1,jls_isrc(1,n),
+        if(jls_isrc(1,n)>0)  call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf)   ! why not for all aerosols?
 #endif
 
@@ -534,8 +534,8 @@ ccc dust emission from earth
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
      &         *axyp(i,j)*ptype*dtsurf
-          call inc_tajls(i,j,1,jls_isrc(nDustEmjl,n),
-     &         pbl_args%dust_flux(n1)*axyp(i,j)*ptype*dtsurf)
+          if (jls_isrc(nDustEmjl,n)>0) call inc_tajls(i,j,1,jls_isrc(
+     &       nDustEmjl,n),pbl_args%dust_flux(n1)*axyp(i,j)*ptype*dtsurf)
 #ifdef TRACERS_DUST
           IF (imDust == 0) THEN
             taijs(i,j,ijts_isrc(nDustEm2ij,n))
@@ -653,8 +653,8 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fb*(sum( ghy_tr%tr_wsn(nx,1:nsn(1),1) ))+
      &       fv*(sum( ghy_tr%tr_wsn(nx,1:nsn(2),2) ))
      *       )
-        if (tr_wd_TYPE(n).eq.nWATER) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trevapor(n,itype,i,j)*ptype)
+        if (tr_wd_TYPE(n).eq.nWATER .and. jls_isrc(1,n)>0) call
+     *       inc_tajls(i,j,1,jls_isrc(1,n),trevapor(n,itype,i,j)*ptype)
       TRE_acc(n,i,j)=TRE_acc(n,i,j)+trevapor(n,itype,i,j)*ptype
       enddo
 #endif
