@@ -1073,6 +1073,8 @@ C**** routines for accumulating zonal mean diags (lat/lon grid)
       INTEGER, INTENT(IN) :: TJL_INDEX
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
+
+      if (TJL_INDEX < 1) return
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
       TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
