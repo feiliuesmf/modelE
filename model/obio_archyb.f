@@ -130,7 +130,9 @@ c
       !no need to divide by diag_counter because pressumably
       !this is already done when divide by plevav
       do nt=1,ntrcr
-      tracav(:,:,:,nt)=tracav(:,:,:,nt)/plevav(:,:,:)
+      where(plevav(:,:,:) .ne. 0.d0)
+       tracav(:,:,:,nt)=tracav(:,:,:,nt)/plevav(:,:,:)
+      endwhere
       do k=1,kk
         write(title,'(a,i4,a,i4)')'tracav, nt=',nt,', k=',k
         call write2giss(nop,tracav(:,:,k,nt),title)
@@ -138,12 +140,16 @@ c
       enddo
    
       !pco2av
+      if (diag_counter .ne. 0.d0) then
         pco2av=pco2av/diag_counter
+      endif
         write(title,'(a)')'pCO2av'
         call write2giss(nop,pCO2av,title)
 
-      !pco2av
+      !ao_co2fluxav
+      if (diag_counter .ne. 0.d0) then
         ao_co2fluxav=ao_co2fluxav/diag_counter
+      endif
         write(title,'(a)')'ao_co2fluxav'
         call write2giss(nop,ao_co2fluxav,title)
 

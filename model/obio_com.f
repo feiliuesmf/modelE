@@ -29,6 +29,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2          !partial pressure of CO2
       real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2_glob
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day_glob !net pp total per day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
@@ -247,6 +248,7 @@ c**** Extract domain decomposition info
       ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
       ALLOCATE(pCO2_glob(idm,jdm))           
       ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(pp2tot_day_glob(idm,jdm))
       ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tot_chlo_glob(idm,jdm))
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */

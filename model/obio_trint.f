@@ -16,7 +16,7 @@
       USE GEOM, only : dxyp
 #else
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,kk,ntrcr,idm,jdm,kdm
-      USE hycom_arrays_glob, only : tracer,dp,scp2
+      USE hycom_arrays_glob, only : tracer,dpinit,scp2
       USE hycom_scalars, only : nstep,huge
 #endif
 
@@ -50,10 +50,14 @@
          endif !focean
 #else
          kn=k+nn
-         if (dp(i,j,kn)<huge) then
-           sumo=sumo+dp(i,j,kn)*scp2(i,j)
+         if (dpinit(i,j,k)<huge) then
+           sumo=sumo+dpinit(i,j,k)*scp2(i,j)
            sum_area=sum_area+scp2(i,j)
-           summ=summ+dp(i,j,kn)*tracer(i,j,k,ntr)*scp2(i,j)
+           summ=summ+dpinit(i,j,k)*tracer(i,j,k,ntr)*scp2(i,j)
+          if (nstep.eq.97.and.ntr.eq.1)
+     .     write(*,*)'obio_trint: ',
+     .         nstep,i,j,k,ntr,
+     .         dpinit(i,j,k),scp2(i,j),tracer(i,j,k,ntr)
          endif
 #endif
           

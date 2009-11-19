@@ -876,7 +876,7 @@ C****
      *                    ,tracer=>tracer_loc,tracer_glob=>tracer
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-     *                    ,pCO2, pCO2_glob
+     *                    ,pCO2, pCO2_glob,pp2tot_day
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE FLUXES, only: gtracer
 #endif
@@ -960,7 +960,7 @@ C****
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER
      . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,pCO2_glob
+     . ,pCO2_glob,pp2tot_day
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
@@ -1026,7 +1026,7 @@ C****
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,pco2_glob
+     . ,pco2_glob,pp2tot_day
 
       print*,'nstep0= ',nstep0
       i=itest

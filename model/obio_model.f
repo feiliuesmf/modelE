@@ -35,7 +35,7 @@
      .                    ,tzoo,tfac,rmuplsr,rikd,bn,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,bn3d,wshc3d,Fescav3d 
-     .                    ,acdom,pp2_1d,pp2tot_day
+     .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
@@ -214,6 +214,8 @@
 #endif
        endif
 
+      !scatter primary productivity
+      call unpack_data( ogrid,pp2tot_day_glob,pp2tot_day)
 !--------------------------------------------------------
 
        day_of_month=jdate
@@ -378,7 +380,8 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
        enddo
 
-      if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc:',
+      !if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc:',
+      if(vrbos) write(*,*)'obio_model, strac conc:',
      .    obio_P(1,:),det(1,:),car(1,:)
 
 #ifdef OBIO_ON_GARYocean
@@ -418,7 +421,8 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        onirdir_ij=onirdir(i,j)
        onirdif_ij=onirdif(i,j)
 
-       if (vrbos)write(*,'(/,a,3i5,4e12.4)')
+       !!if (vrbos)write(*,'(/,a,3i5,4e12.4)')
+       if (vrbos)write(*,*)
      .    'obio_model, radiation: ',
      .    nstep,i,j,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 #else
@@ -466,7 +470,8 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        atmFe_ij=atmFe_all(i,j,JMON)*solFe
 
        if (vrbos) then
-         write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
+         !!write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
+         write(*,*)'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
@@ -667,7 +672,8 @@ cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
          do k=1,kdm
-         write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
+         !!!write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
+         write(*,*)'obio_model,k,avgq,tirrq:',
      .       nstep,i,j,k,avgq1d(k),tirrq(k)
          enddo
          endif
@@ -777,7 +783,8 @@ cdiag     endif
       endif
 
        !------------------------------------------------------------
-      if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
+      !!if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
+      if(vrbos) write(*,*)'obio_model, strac conc2:',
      .    obio_P(1,:),det(1,:),car(1,:)
 
        !update 3d tracer array
@@ -832,7 +839,8 @@ cdiag     endif
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
        if (vrbos) then
-          write(*,'(/,a,3i5,e12.4)')
+          !!!write(*,'(/,a,3i5,e12.4)')
+          write(*,*)
      .       'obio_model, tot_chlo= ',nstep,i,j,tot_chlo(i,j)
        endif
 
@@ -847,15 +855,15 @@ cdiag     endif
           enddo
           enddo
        endif
-cdiag  if (vrbos) then
-cdiag  do nt=1,nchl
-cdiag  do k=1,kdm
-cdiag    write(*,'(a,7i5,3e12.4)')'PRIMARY PRODUCTIVITY ',
-cdiag.       nstep,day_of_month,hour_of_day,i,j,k,nt,
-cdiag.       p1d(kdm+1),pp2_1d(k,nt),pp2tot_day(i,j)
-cdiag  enddo
-cdiag  enddo
-cdiag  endif
+       if (vrbos) then
+       do nt=1,nchl
+       do k=1,kdm
+         write(*,'(a,7i5,3e12.4)')'PRIMARY PRODUCTIVITY ',
+     .       nstep,day_of_month,hour_of_day,i,j,k,nt,
+     .       p1d(kdm+1),pp2_1d(k,nt),pp2tot_day(i,j)
+       enddo
+       enddo
+       endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
@@ -906,12 +914,15 @@ cdiag  endif
  1000 continue
 c$OMP END PARALLEL DO
 
-      !gather_tracer
+      !gather tracer
       call pack_data( ogrid,  tracer, tracer_glob )
+      !gather primary productivity
+      call pack_data( ogrid,  pp2tot_day, pp2tot_day_glob )
 
 #ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
       !gather ao_co2flux
       call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
+      call gather_dpinit
 #endif
 
 #ifdef OBIO_ON_GARYocean

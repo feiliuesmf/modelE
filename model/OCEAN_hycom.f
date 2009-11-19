@@ -13,7 +13,7 @@
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra,atmco2
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av
-     .                     ,ao_co2fluxav,diag_counter
+     .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
@@ -199,7 +199,7 @@ c
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av
-     .                     ,ao_co2fluxav,diag_counter
+     .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
 #endif
       USE HYCOM_ARRAYS_GLOB
       USE param
@@ -248,9 +248,6 @@ c
 
       ! move to global atm grid
       call gather_atm
-!!!!!!call scatter_tracer        ! caution: temporary fix
-                                 ! to allow Romanou to run with
-                                 ! global tracer
       call gather_hycom_arrays   !mkb Jun  6
 
       if (AM_I_ROOT()) then ! work on global grids here
@@ -298,14 +295,14 @@ css#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,diag_counter,pp2tot_day_glob
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,2(e12.4,1x))') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &       ihra_glob(i,j),atrac(10,20,1),pp2tot_day_glob(i,j)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
@@ -323,16 +320,17 @@ css#endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav,pp2tot_day_glob
       i=itest
       j=jtest
       print*,'test point at:',itest,jtest
 
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1a k=',k,
+      write(*,'(a,i2,8(e12.4,1x),i3)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     .    pp2tot_day_glob(i,j),
+     .    ihra_glob(i,j)
       enddo
 #endif
 #endif
@@ -370,15 +368,16 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,diag_counter,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',k,
+      write(*,'(a,i2,7(e12.4,1x),i3,1x,2(e12.4,1x))') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j),atrac(10,20,1)
+     &    ihra_glob(i,j),atrac(10,20,1),
+     .    pp2tot_day_glob(i,j)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -406,15 +405,16 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav,pp2tot_day_glob
       i=itest
       j=jtest
       print*, 'itest, jtest=',itest,jtest
       do k=1,kdm
-      write(*,'(a,i2,7(e12.4,1x),i3)') ' tst1b k=',k,
+      write(*,'(a,i2,8(e12.4,1x),i3)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
      .    tracer(i,j,k,1),tracer(i,j,k,15),tirrq3d_glob(i,j,k),
-     &       ihra_glob(i,j)
+     .    pp2tot_day_glob(i,j),
+     .    ihra_glob(i,j)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -460,7 +460,7 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter
+     . ,tracav,plevav,pCO2av,diag_counter,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')
      &     'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest
@@ -497,7 +497,7 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav,pp2tot_day_glob
       i=itest
       j=jtest
       do k=1,kdm
