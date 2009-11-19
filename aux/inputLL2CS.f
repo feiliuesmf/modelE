@@ -97,13 +97,13 @@ c      xll2cs_VEG=xll2cs_COMMON
       elseif (imt .eq. 90) then ! target grid = CS90
 
 c     for SICE, OSST, TOPO 288x180->CS90
-      ims_COMMON=288
-      jms_COMMON=180
+c-      ims_COMMON=288
+c-      jms_COMMON=180
 
-      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+c-      call init_regrid_root(xll2cs_COMMON,ims_COMMON,jms_COMMON,
+c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
 
-      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
+c-      xll2cs_TOPO=xll2cs_COMMON   ! for the fractions, could get zatmo from somewhere else 
 c-      xll2cs_OSST=xll2cs_COMMON
 
 c-      xll2cs_SICE=xll2cs_COMMON
@@ -113,30 +113,28 @@ c now VEG 288x180 -> C90
 c-      xll2cs_VEG=xll2cs_COMMON
 
 c     360x180 for TOPINDEX, SOIL, GIC, AIC
-c-      ims_COMMON2=360
-c-      jms_COMMON2=180
+      ims_COMMON2=360
+      jms_COMMON2=180
 
 c-      write(*,*) "bef init xgrid 360 180"
-c-      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
-c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
+     &     ntilessource,imt,jmt,ntilestarget,.true.)
 
 c-      write(*,*) "after init xgrid 360 180"
 
 c-      xll2cs_CDN=xll2cs_COMMON2
 c-      xll2cs_TOPINDEX=xll2cs_COMMON2
 c-      xll2cs_SOIL=xll2cs_COMMON2
-c-       xll2cs_GIC=xll2cs_COMMON2
+       xll2cs_GIC=xll2cs_COMMON2
 c-      xll2cs_AIC=xll2cs_COMMON2
 c-      xll2cs_GLMELT=xll2cs_COMMON2 
 
 c VEG 144x90 -> C90  
-c-      ims_3=144
-c-      jms_3=90
-c-      call init_regrid_root(xll2cs_3,ims_3,jms_3,
-c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+      ims_3=144
+      jms_3=90
+      call init_regrid_root(xll2cs_3,ims_3,jms_3,
+     &     ntilessource,imt,jmt,ntilestarget,.true.)
 ccc      xll2cs_VEG=xll2cs_3
-
-
       endif
 
 c-      xll2cs_SOILCARB=xll2cs_VEG
@@ -151,8 +149,8 @@ c***   The last letters indicate the name of the input file using
 c***   its alias (TOPO, VEG, AIC...) 
       write(*,*) "IN REGRID INPUT"
 
-      if (AM_I_ROOT()) then
-         call regridTOPO(xll2cs_TOPO)
+c      if (AM_I_ROOT()) then
+c         call regridTOPO(xll2cs_TOPO)
 c         call regridOSST(xll2cs_OSST)
 cc         call testOSST()
 c         call regridSICE(xll2cs_SICE)
@@ -165,8 +163,8 @@ c         call regridSOIL(xll2cs_SOIL)
 c         call regridGLMELT(xll2cs_GLMELT)
 cc         call regridVEGFRAC(xll2cs_VEGFRAC)
 cc         call regridLAI(xll2cs_LAI)
-      endif
-c      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
+c      endif
+      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
 c      call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
@@ -2123,7 +2121,7 @@ c
 c     We use Jeff's 1x1 file GIC=GIC.360X180.DEC01.1.rep
 c     and replace the ice initial conditions
 c  SICE02         R8 F(im,jm),H(4,im,jm),snw,msi,ssi(4),pond_melt,L flag_dsws
-c     by Larissa's E42F40oQ32 run in 1DEC1976.iceE42F40oQ32 
+c     by Larissa's E42F40oQ32 run in DEC1971.iceE44F40oQ32 
       use DOMAIN_DECOMP_1D,only : am_i_root
       use regrid_com
       use dd2d_utils
@@ -2184,8 +2182,8 @@ c*    write
       write(*,*) "ims2,jms2,nts2",ims2,jms2,nts2
 
       name="GIC.360X180.DEC01.1.rep"
-      name2="1DEC1976.iceE42F40oQ32"
-
+c      name2="1DEC1976.iceE42F40oQ32"
+      name2="1DEC1971.iceE44F40oQ32"
       iu_GIC=20
       iu_ICE=30
 
@@ -2338,8 +2336,6 @@ c***  Compatibility
          SNOage_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
-      write(*,*) "THERE"
-
       tsource(:,:,1)=evmax(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       evmax_out(:,:,:)=ttargglob(:,:,:)
@@ -2375,15 +2371,11 @@ c***  Compatibility
          SNWbv_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
-      write(*,*) "THERE2"
-
       SNWbv_out(3,:,:,:) = 0.
 
       tsource(:,:,1)=SNOW(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       SNOW_out(:,:,:)=ttargglob(:,:,:)
-
-      write(*,*) "THERE3"
 
       do k=1,2
          tsource(:,:,1)=T(k,:,:)
@@ -2391,18 +2383,14 @@ c***  Compatibility
          T_out(k,:,:,:)=ttargglob(:,:,:)
       enddo
 
-      write(*,*) "THERE4"
-
       tsource(:,:,1)=MDWN(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       MDWN_out(:,:,:)=ttargglob(:,:,:)
 
-      write(*,*) "THERE5"
       tsource(:,:,1)=EDWN(:,:)
       call root_regrid(x2grids,tsource,ttargglob)
       EDWN_out(:,:,:)=ttargglob(:,:,:)
       
-      write(*,*) "THERE6"
 
 c***  Write Netcdf file
 #ifdef TRACERS_WATER
@@ -2499,7 +2487,6 @@ c***  Write GLAIC variables
       call write_data(dd2d,fid,'eaccpdg',EACCPDG)
 
 
-
       deallocate (Tocn_out,MixLD_out,F_out,H_out,
      &     snw_out,msi_out,ssi_out,pond_melt_out,
      &     flag_dsws_out,snowe_out,Te_out,
@@ -2518,12 +2505,9 @@ c***  Write GLAIC variables
      &     snowe,Te,WTRe,ICEe, 
      &     SNOage,evmax,fsat,gq,
      &     W,HT,SNWbv,SNOW,T,MDWN,EDWN )
-      write(*,*) "THERE7"
 
       deallocate (tsource,tsource2,ttargglob)     
       
-      write(*,*) "THERE8"
-     
       write(*,*) "end regrid GIC"
 
       end subroutine regridGIC
