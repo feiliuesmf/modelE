@@ -3842,6 +3842,9 @@ c     if(.not.qexist) call stop_model('updaer: no TropAero files',255)
 !**** Sulfate
       call openunit (RDFILE(1),ifile,.true.,.true.)    ! unformatted,old
       read(ifile) aertitle, ima, jma, lma, ndeca, fdeca, ldeca
+!!    check whether the newer input files are being used
+      if(aertitle(1:26)=='                          ') call
+     *     stop_model('updaer2: use newer input files',255)
       allocate( plbaer(lma+1) )
       allocate( suldd (ima,jma,lma,12,ndeca),nitdd(ima,jma,lma,12,ndeca)
      *  ,ocadd(ima,jma,lma,12,ndeca),bcadd(ima,jma,lma,12,ndeca)
