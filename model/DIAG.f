@@ -1398,7 +1398,7 @@ C****
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
 !@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl)
-!@+                    oAVG (L=1 Ox time-average vmr)
+!@+                    oAVG (SFC Ox time-average vmr)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
 !@+                    SO4, RAPR
@@ -1412,7 +1412,7 @@ C****
 !@+                    AOD aer opt dep (1,NTRACE in rad code) daily avg
 !@+                    tAOD aer opt dep (sum 1,NTRACE) daily avg
 !@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
-!@+                    PM2p5, PM10 (L=1 time-average PM2.5 and PM10 mmr)
+!@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 mmr)
 !@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
