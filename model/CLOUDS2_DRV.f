@@ -190,7 +190,7 @@
 
 #ifdef TRACERS_ON
 !@var tmsave holds tracer value (for diagnostics)
-      REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm)
+      REAL*8 tmsave(lm,ntm),tmomsv(nmom,lm,ntm),dtrm(lm)
       INTEGER NX
 #endif
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
@@ -883,25 +883,26 @@ C**** level 1 downfdraft mass flux/rho (m/s)
           enddo
       endif
 #endif
+
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
-        do l=1,lm
+
 #ifndef SKIP_TRACER_DIAGS
-           if (itcon_mc(n).gt.0) call inc_diagtcb(i,j,
-     *          (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
+        do l=1,lm
+          dtrm(l) = (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
-     *          ,itcon_mc(n),n)
-          call inc_tajln(i,j,l,jlnt_mc,n,
-     &         (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
-#ifdef TRACERS_WATER
-     *         + trsvwml(nx,l)
-#endif
-     *         )
-#endif /*SKIP_TRACER_DIAGS*/
+        enddo
+        if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm),
+     &       itcon_mc(n),n)
+        call inc_tajln_column(i,j,1,lm,lm,jlnt_mc,n,dtrm)
+#endif  /*SKIP_TRACER_DIAGS*/
+
+        do l=1,lm
+
 #ifdef TRACERS_WATER
           trwml(nx,l) = trwm_lni(l,n,i)+trsvwml(nx,l)
 #endif
@@ -1325,26 +1326,24 @@ c    * ,ACDNWS(L),NLSW,itime,l
 cQCON q2 = sum((Q(I,J,:)+WMX(:))*AIRM(:))*100.*BYGRAV+PRCP
 cQCON if (abs(q0-q2).gt.1d-13) print*,"pr1",i,j,q0,q1,q2,prcp,prcpss*100
 cQCON*     *bygrav
-
 #ifdef TRACERS_ON
 C**** TRACERS: Use only the active ones
       do nx=1,ntx
         n = ntix(nx)
-        do l=1,lp50
+
 #ifndef SKIP_TRACER_DIAGS
-           if (itcon_ss(n).gt.0) call inc_diagtcb(i,j,
-     *          tm(l,nx)-trm_lni(l,n,i)*fssl(l)
+        do l=1,lp50
+          dtrm(l) = tm(l,nx)-trm_lni(l,n,i)*fssl(l)
 #ifdef TRACERS_WATER
      &         + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
 #endif
-     *          ,itcon_ss(n),n)
-          call inc_tajln(i,j,l,jlnt_lscond,n,
-     &         tm(l,nx)-trm_lni(l,n,i)*fssl(l)
-#ifdef TRACERS_WATER
-     &         + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
-#endif
-     &         )
+        enddo
+        if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lp50)),
+     &       itcon_ss(n),n)
+        call inc_tajln_column(i,j,1,lp50,lm,jlnt_lscond,n,dtrm)
 #endif  /*SKIP_TRACER_DIAGS*/
+
+        do l=1,lp50
 #ifdef TRACERS_WATER
           trwm_lni(l,n,i) = trwml(nx,l)
 #endif
@@ -1393,20 +1392,20 @@ c     ..........
 c     accumulates special wet depo diagnostics
 c     ..........
           IF (diag_wetdep == 1) THEN
-            DO l=1,lmcmax
-              IF (jls_trdpmc(1,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(1
-     *             ,n),trcond_mc(l,nx))
-              IF (jls_trdpmc(2,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(2
-     *             ,n),trdvap_mc(l,nx))
-              IF (jls_trdpmc(3,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(3
-     *             ,n),trflcw_mc(l,nx))
-              IF (jls_trdpmc(4,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(4
-     *             ,n),trprcp_mc(l,nx))
-              IF (jls_trdpmc(5,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(5
-     *             ,n),trnvap_mc(l,nx))
-              IF (jls_trdpmc(6,n) > 0) call inc_tajls(i,j,l,jls_trdpmc(6
-     *             ,n),trwash_mc(l,nx))
-            END DO
+
+            IF(jls_trdpmc(1,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm,
+     &           jls_trdpmc(1,n),trcond_mc(:,nx))
+            IF(jls_trdpmc(2,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm,
+     &           jls_trdpmc(2,n),trdvap_mc(:,nx))
+            IF(jls_trdpmc(3,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm,
+     &           jls_trdpmc(3,n),trflcw_mc(:,nx))
+            IF(jls_trdpmc(4,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm,
+     &           jls_trdpmc(4,n),trprcp_mc(:,nx))
+            IF(jls_trdpmc(5,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm,
+     &           jls_trdpmc(5,n),trnvap_mc(:,nx))
+            IF(jls_trdpmc(6,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm,
+     &           jls_trdpmc(6,n),trwash_mc(:,nx))
+
             IF (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n))
      &          =taijs(i,j,ijts_trdpmc(1,n))+SUM(trcond_mc(1:lmcmax,nx))
             IF (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n))
@@ -1419,20 +1418,20 @@ c     ..........
      &          =taijs(i,j,ijts_trdpmc(5,n))+SUM(trnvap_mc(1:lmcmax,nx))
             IF (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n))
      &          =taijs(i,j,ijts_trdpmc(6,n))+SUM(trwash_mc(1:lmcmax,nx))
-            DO l=1,lp50
-              IF (jls_trdpls(1,n) > 0) call inc_tajls(i,j,l,jls_trdpls(1
-     *             ,n),trwash_ls(l,nx))
-              IF (jls_trdpls(2,n) > 0) call inc_tajls(i,j,l,jls_trdpls(2
-     *             ,n),trprcp_ls(l,nx))
-              IF (jls_trdpls(3,n) > 0) call inc_tajls(i,j,l,jls_trdpls(3
-     *             ,n),trclwc_ls(l,nx))
-              IF (jls_trdpls(4,n) > 0) call inc_tajls(i,j,l,jls_trdpls(4
-     *             ,n),trevap_ls(l,nx))
-              IF (jls_trdpls(5,n) > 0) call inc_tajls(i,j,l,jls_trdpls(5
-     *             ,n),trclwe_ls(l,nx))
-              IF (jls_trdpls(6,n) > 0) call inc_tajls(i,j,l,jls_trdpls(6
-     *             ,n),trcond_ls(l,nx))
-            END DO
+
+            IF(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,lp50,lm,
+     &           jls_trdpls(1,n),trwash_ls(:,nx))
+            IF(jls_trdpls(2,n) > 0) call inc_tajls_column(i,j,1,lp50,lm,
+     &           jls_trdpls(2,n),trprcp_ls(:,nx))
+            IF(jls_trdpls(3,n) > 0) call inc_tajls_column(i,j,1,lp50,lm,
+     &           jls_trdpls(3,n),trclwc_ls(:,nx))
+            IF(jls_trdpls(4,n) > 0) call inc_tajls_column(i,j,1,lp50,lm,
+     &           jls_trdpls(4,n),trevap_ls(:,nx))
+            IF(jls_trdpls(5,n) > 0) call inc_tajls_column(i,j,1,lp50,lm,
+     &           jls_trdpls(5,n),trclwe_ls(:,nx))
+            IF(jls_trdpls(6,n) > 0) call inc_tajls_column(i,j,1,lp50,lm,
+     &           jls_trdpls(6,n),trcond_ls(:,nx))
+
             IF (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n))
      &           =taijs(i,j,ijts_trdpls(1,n))+SUM(trwash_ls(1:lp50,nx))
             IF (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n))
