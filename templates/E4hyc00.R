@@ -14,8 +14,8 @@ filters: U,V in E-W direction (after every dynamics time step)
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
-#define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-! #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
+#define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
+! #define TRACERS_GASEXCH_Natassa    ! special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
 #define HYCOM_RESOLUTION_1deg
 ! #define HYCOM_RESOLUTION_2deg
@@ -44,7 +44,7 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
+DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144
 POUT                                ! post-processing output
@@ -90,7 +90,7 @@ GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
 TOPO=Z144X90N.1deghycom_1
 CDN=CD144X90.ext                 ! neutral drag coefficient
 VEG=V144X90_no_crops.ext         ! vegatation file 
-CROPS=CROPS_144X90N_nocasp.ext   ! crops
+CROPS=CROPS2007_144X90N_nocasp   ! crops
 SOIL=S144X900098M.ext            ! soil properties
 REG=REG2X2.5                     ! special regions-diag
 RVR=RD_modelE_Fa.RVR_1deghycom_1.bin
@@ -262,7 +262,7 @@ jerlv0=1
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, !  from default: IYEAR1=YEARI
-   YEARE=1800,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
+   YEARI=1900,MONTHI=01,DATEI=01,HOURI=00, !  from default: IYEAR1=YEARI
+   YEARE=1900,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
+   ISTART=2,IRANDI=0, YEARE=1900,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END
