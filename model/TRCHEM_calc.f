@@ -511,7 +511,7 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
 
 #ifdef SHINDELL_STRAT_CHEM
 c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
-      do L=maxT+1,maxl
+      do L=1,maxl !! for a long time, this was: maxT+1,maxl
         changeH2O(L)=(2.d0*y(n_CH4,L)*
      *  (rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L)+rr(82,L)*y(nCl,L))
      *  -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
