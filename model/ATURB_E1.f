@@ -78,6 +78,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 !@var trmomij vertical tracer concentration moment profile (kg/kg)
 !@var wc_nl non-local fluxes of tracers
       real*8, dimension(lm,ntm) :: tr0ij,trij,wc_nl
+      real*8, dimension(lm) :: dtrm,amkg,byamkg
 cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !@var trflx surface tracer flux (-w tr) (kg/kg m/s)
       real*8, dimension(ntm) :: trflx
@@ -186,14 +187,6 @@ cc            tmomij(:,l)=tmom(:,i,j,l) ! vert. grad. should virtual ?
             dz(l)=dz_3d(l,i,j)
             bydzerho(l)=1.d0/(dze(l)*rho(l))
             rhobydze(l)=rho(l)/dze(l)
-#ifdef TRACERS_ON
-            do nx=1,nta
-              n=ntix(nx)
-              trij(l,nx)=trm(i,j,l,n)*byam(l,i,j)*byaxyp(i,j)
-cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
-              tr0ij(l,nx)=trij(l,nx)
-            end do
-#endif
           end do
           bydzrhoe(1)=0.
           rhoebydz(1)=0.
@@ -201,6 +194,20 @@ cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
             bydzrhoe(l+1)=1.d0/(dz(l)*rhoe(l+1))
             rhoebydz(l+1)=rhoe(l+1)/dz(l)
           end do
+
+#ifdef TRACERS_ON
+          do l=1,lm
+            byamkg(l) = byam(l,i,j)*byaxyp(i,j)
+          enddo
+          do nx=1,nta
+            n=ntix(nx)
+            do l=1,lm
+              trij(l,nx)=trm(i,j,l,n)*byamkg(l)
+cc                trmomij(:,l,nx)=trmom(:,i,j,l,n)
+              tr0ij(l,nx)=trij(l,nx)
+            enddo
+          enddo
+#endif
 
           ! tvs is surface virtual potential temp. referenced at 1 mb
           tvs=tvsurf(i,j)/pek(1,i,j)
@@ -399,18 +406,26 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             call inc_ajl(i,j,l,JL_TRBDLHT,
      &           (q(l)-q0(l))*PDSIG(L,I,J)*LHE/SHA)
             call inc_ajl(i,j,l,JL_TRBKE,e(l))
-#ifdef TRACERS_ON
-            do nx=1,nta
-              n=ntix(nx)
-#ifndef SKIP_TRACER_DIAGS
-              call inc_tajln(i,j,l,jlnt_turb,n,
-     *           (trij(l,nx)-tr0ij(l,nx))*am(l,i,j)*axyp(i,j))
-#endif
-              trm(i,j,l,n)=trij(l,nx)*am(l,i,j)*axyp(i,j)
-cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
-            end do
-#endif
           end do
+
+#ifdef TRACERS_ON
+          do l=1,lm
+            amkg(l) = am(l,i,j)*axyp(i,j)
+          enddo
+          do nx=1,nta
+            n=ntix(nx)
+            do l=1,lm
+              trm(i,j,l,n)=trij(l,nx)*amkg(l)
+cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
+#ifndef SKIP_TRACER_DIAGS
+              dtrm(l) = (trij(l,nx)-tr0ij(l,nx))*amkg(l)
+#endif
+            enddo
+#ifndef SKIP_TRACER_DIAGS
+            call inc_tajln_column(i,j,1,lm,lm,jlnt_turb,n,dtrm)
+#endif
+          enddo
+#endif
 
           ! Write out diagnostics if at selected grid point:
 
