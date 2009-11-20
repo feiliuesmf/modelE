@@ -31,23 +31,24 @@ TQUS_DRV                            ! advection of Q
 CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 SURFACE FLUXES                      ! surface calculation and fluxes
 GHY_COM GHY_DRV                     ! land surface and soils
-ENT_DRV  ENT_COM VEG_DRV
+ENT_DRV ENT_COM VEG_DRV
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB_E1                            ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
-ODIAG_COM OCEAN_COM OSTRAITS_1QX1_COM OGEOM ! dynamic ocean modules
-OCNDYN OCN_Interp OCN_Int_LATLON 
-OSTRAITS OCNGM OCNKPP               ! dynamic ocean routines
+ODIAG_COM OCEAN_COM OGEOM           ! dynamic ocean modules
+OCNDYN OCN_Interp OCN_Int_LATLON    ! dynamic ocean routines 
+OSTRAITS OSTRAITS_1QX1_COM          ! dynamic ocean routines
+OCNGM OCNKPP                        ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                           ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
-DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
+DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144 OFFT288E 
 POUT                                ! post-processing output
@@ -64,8 +65,8 @@ Data input files:
 AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only) ISTART=2
 GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
 OIC=OIC288X180.D1201         ! Levitus ocean intial conditions
-TOPO=Z2HX2from1QX1      ! surface fractions and topography
-TOPO_OC=Z288X180N            ! ocean fraction and topography
+TOPO=Z2HX2fromZ1QX1N         ! surface fractions and topography
+TOPO_OC=Z1QX1N               ! ocean fraction and topography
 OFTAB=OFTABLE_NEW            ! ocean function table
 AVR=OPF.E1QX1.L32            ! ocean filter
 KBASIN=KB288X180.modelE      ! ocean basin designations
@@ -119,7 +120,7 @@ SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
 Label and Namelist:
 E4F40oQ32 (2x2.5x40, 1850 atm.;  1x1.25x32 ocean)
 
-DTFIX=180
+DTFIX=180.
 &&PARAMETERS
 ! parameters set for coupled ocean runs:
 KOCEAN=1        ! ocn is prognostic
@@ -162,8 +163,8 @@ PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
-U00a=0.74    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.65    ! below 850mb and MC regions; then tune this to get rad.balance
+U00a=0.73    ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00b=1.68    ! below 850mb and MC regions; then tune this to get rad.balance
 U00ice=.60       ! tune this first to get: glob. ann. mean plan.alb=30%   (U00ice up=>albedo down)
 U00wtrX=1.47     ! this to get: glob. ann. mean net heat at surf. = 0   (U00wtrX+.01=>NetHtSrf+.7)
 
@@ -219,7 +220,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1901,MONTHI=1,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
+   YEARI=1900,MONTHI=12,DATEI=1,HOURI=0, !  from default: IYEAR1=YEARI
    YEARE=1921,MONTHE=1,DATEE=1,HOURE=0, KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
+   ISTART=2,IRANDI=0, YEARE=1900,MONTHE=12,DATEE=1,HOURE=1,IWRITE=1,JWRITE=1,
  &END
