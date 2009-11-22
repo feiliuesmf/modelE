@@ -546,8 +546,10 @@ C****
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
       integer, intent(in) :: n,ns
-      real*8 fr3d,taijsum(grid%i_strt_halo:grid%i_stop_halo,
-     &                    grid%j_strt_halo:grid%j_stop_halo,lm)
+      real*8 fred(grid%i_strt:grid%i_stop),
+     &     dtrm(grid%i_strt_halo:grid%i_stop_halo,
+     &          grid%j_strt_halo:grid%j_stop_halo,lm),
+     &     dtrml(lm),eps
 
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
@@ -614,34 +616,42 @@ C**** apply tracer source alterations if requested in rundeck:
         end do
       end if
 
-!$OMP PARALLEL DO PRIVATE (L,I,J,fr3d)
+!$OMP PARALLEL DO PRIVATE (L,I,J,fred)
+      eps = tiny(trm(i_0,j_0,1,n))
       do l=1,lm
       do j=j_0,j_1
-      do i=i_0,imaxj(j)
-C**** calculate fractional loss
-        fr3d=0.
-        if (tr3Dsource(i,j,l,ns,n).lt.0.) then
-          fr3d = -tr3Dsource(i,j,l,ns,n)*dtsrc/(trm(i,j,l,n)+
-     *         tiny(trm(i,j,l,n)))
-          fr3d=min(1d0,fr3d)
-          if (domom) trmom(1:nmom,i,j,l,n) =
-     *         trmom(1:nmom,i,j,l,n)*(1.-fr3d)
-        end if
-C**** update tracer mass and diagnostics
-        trm(i,j,l,n) = trm(i,j,l,n)+tr3Dsource(i,j,l,ns,n)*dtsrc
-        if (1.-fr3d.le.1d-16) trm(i,j,l,n) = 0.
-        IF (jls_3Dsource(ns,n) > 0) call inc_tajls(i,j,l,najl
-     *       ,tr3Dsource(i,j,l,ns,n)*dtsrc) 
-        taijsum(i,j,l)=tr3Dsource(i,j,l,ns,n)*dtsrc
-      end do; end do; end do
-!$OMP END PARALLEL DO
-      if (naij.gt.0) then
-      do j=j_0,j_1
         do i=i_0,imaxj(j)
-          taijs(i,j,naij) = taijs(i,j,naij) + sum(taijsum(i,j,:))
+          dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
+C**** calculate fractional loss and update tracer mass
+          fred(i) = max(0.,1.+min(0.,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
+          trm(i,j,l,n) = trm(i,j,l,n)+dtrm(i,j,l)
+          if(fred(i).le.1d-16) trm(i,j,l,n) = 0.
         end do
+        if(domom .and. any(fred.lt.1.)) then
+          do i=i_0,imaxj(j)
+            trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fred(i)
+          enddo
+        endif
       end do
+      if (naij.gt.0) then
+        do j=j_0,j_1
+          do i=i_0,imaxj(j)
+            taijs(i,j,naij) = taijs(i,j,naij) + dtrm(i,j,l)
+          end do
+        end do
       end if
+      end do ! l
+!$OMP END PARALLEL DO
+
+      if(jls_3Dsource(ns,n) > 0) then
+        do j=j_0,j_1
+          do i=i_0,imaxj(j)
+            dtrml(:) = dtrm(i,j,:)
+            call inc_tajls_column(i,j,1,lm,lm,najl,dtrml)
+          enddo
+        enddo
+      endif
+
       if (itcon_3Dsrc(ns,n).gt.0)
      *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
 
