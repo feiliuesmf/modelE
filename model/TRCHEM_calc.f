@@ -121,7 +121,8 @@ C**** Local parameters and variables and arguments:
       logical            :: jay
       REAL*8, DIMENSION(LM,ntm) :: changeL
       REAL*8, DIMENSION(LM) :: rMAbyM,sv_changeN2O,changeH2O,Oxcorr,
-     & PRES
+     & PRES,dQ,dQM,fraQ2,c2ml,conOH,conClO,conH2O,
+     &     NprodOx_pos,NprodOx_neg
       REAL*8 qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,
      & C2O3prod,C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,
      & RXPARprod,RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,
@@ -129,7 +130,7 @@ C**** Local parameters and variables and arguments:
      & changeA,sumP,tempiter,tempiter2,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
-     & diffCH3O2,fraQ2,tempAcet,prodCH3O2
+     & diffCH3O2,tempAcet,prodCH3O2,dQMsum
 
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1)
       
@@ -515,42 +516,46 @@ c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
         changeH2O(L)=(2.d0*y(n_CH4,L)*
      *  (rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L)+rr(82,L)*y(nCl,L))
      *  -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
-        fraQ2=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)     
+        fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)     
 C       And apply that change here and accumulate a diagnostic:
 C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
 C       --- Q --- :
-        Q(I,J,L) = Q(I,J,L) + changeH2O(L)/(y(nM,L)*MWabyMWw)
-C       -- diags --:
-        CALL INC_TAJLS(I,J,L,jls_H2Ochem,changeH2O(L)
-     &       *AM(L,I,J)*axyp(I,J)/(y(nM,L)*MWabyMWw))
-        do it=1,ntype
-          call inc_aj(i,j,it,j_h2och4,changeH2O(L)*ftype(it,i,j)*am(l,i
-     *         ,j)/(y(nM,L)*MWabyMWw))
-        end do
-#ifdef TRACERS_WATER
-C       -- water tracers --:
-        do n=1,ntm
-          select case (tr_wd_type(n))
-          case (nWater)         ! water: add CH4-sourced water to tracers
-            trm(i,j,l,n) = trm(i,j,l,n) + tr_H2ObyCH4(n)*axyp(i,j)
-     *           *changeH2O(L)*AM(L,I,J)/(y(nM,L)*MWabyMWw)
-            if(changeH2O(L) < 0.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)
-     *           *fraQ2
-          end select
-        end do
-#endif
+        dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
+        dQM(L) = dQ(L)*AM(L,I,J)*axyp(I,J)
+        Q(I,J,L) = Q(I,J,L) + dQ(L)
 C       -- Qmom --:
         if(changeH2O(L) < 0.)then
-           qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2
-           if(fraQ2 <= 0.98)then
+           qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2(l)
+           if(fraQ2(l) <= 0.98)then
              write(out_line,*)'> 2% Q change in calc IJL,change='
-     &       ,I,J,L,fraQ2
+     &       ,I,J,L,fraQ2(l)
              call write_parallel(trim(out_line),crit=.true.)
              call stop_model('big Q change in calc',255)
            endif
          endif
       enddo
+
+C       -- diags --:
+      call inc_tajls_column(i,j,1,maxl,lm,jls_H2Ochem,dQM)
+      dQMsum = sum(dQM(1:maxl))/axyp(i,j)
+      do it=1,ntype
+        call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
+      enddo
+
+#ifdef TRACERS_WATER
+C       -- water tracers --:
+      do n=1,ntm
+        select case (tr_wd_type(n))
+        case (nWater)           ! water: add CH4-sourced water to tracers
+          do l=1,maxl
+            trm(i,j,l,n) = trm(i,j,l,n) + tr_H2ObyCH4(n)*dQM(l)
+            if(changeH2O(L) < 0.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)
+     *           *fraQ2(l)
+          enddo
+        end select
+      end do
+#endif
 
 c Calculate ozone change due to within-NOx partitioning:
       do L=1,LM
@@ -924,11 +929,10 @@ c Loops to calculate tracer changes:
        dxbym2v=axyp(I,J)*vol2mass(igas)
        do L=1,maxl
          conc2mass=rMAbyM(L)*dxbym2v
+         c2ml(l) = conc2mass
          changeL(L,igas)=
      &   (dest(igas,L)+prod(igas,L))*conc2mass
          if(igas == n_CO)then
-           CALL INC_TAJLS(I,J,L,jls_COp,prod(igas,L)*conc2mass)
-           CALL INC_TAJLS(I,J,L,jls_COd,dest(igas,L)*conc2mass)
 #ifdef HTAP_LIKE_DIAGS
            TAIJLS(I,J,L,ijlt_COp)=TAIJLS(I,J,L,ijlt_COp)+prod(igas,L)
      *          *cpd
@@ -942,12 +946,6 @@ c Loops to calculate tracer changes:
            if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+ 
      &     prod(igas,L)*conc2mass
 #endif
-           CALL INC_TAJLS(I,J,L,jls_Oxp, prod(igas,L)*conc2mass)
-           if(L<=maxT)
-     &     CALL INC_TAJLS(I,J,L,jls_OxpT,prod(igas,L)*conc2mass)
-           CALL INC_TAJLS(I,J,L,jls_Oxd, dest(igas,L)*conc2mass)       
-           if(L<=maxT)
-     &     CALL INC_TAJLS(I,J,L,jls_OxdT,dest(igas,L)*conc2mass)       
 #ifdef HTAP_LIKE_DIAGS
            TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+prod(igas,L)
      *          *cpd
@@ -1176,6 +1174,22 @@ c Conserve ClOx with respect to HOCl:
 #endif
 
        end do ! L
+       if(igas == n_CO)then
+         call inc_tajls_column(i,j,1,maxl,maxl,jls_COp,
+     &        prod(igas,1:maxl)*c2ml(1:maxl))
+         call inc_tajls_column(i,j,1,maxl,maxl,jls_COd,
+     &        dest(igas,1:maxl)*c2ml(1:maxl))
+       endif
+       if(igas == n_Ox)then
+         call inc_tajls_column(i,j,1,maxl,maxl,jls_Oxp ,
+     &        prod(igas,1:maxl)*c2ml(1:maxl))
+         call inc_tajls_column(i,j,1,maxT,maxT,jls_OxpT,
+     &        prod(igas,1:maxT)*c2ml(1:maxT))
+         call inc_tajls_column(i,j,1,maxl,maxl,jls_Oxd ,
+     &        dest(igas,1:maxl)*c2ml(1:maxl))
+         call inc_tajls_column(i,j,1,maxT,maxT,jls_OxdT,
+     &        dest(igas,1:maxT)*c2ml(1:maxT))
+       endif
       end do  ! igas ! end of TRACER LOOP -----------------
 
 #ifdef SHINDELL_STRAT_CHEM
@@ -1426,16 +1440,14 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
      &  changeL(L,n_stratOx)+NprodOx*conc2mass
 #endif
         if(NprodOx <  0.) then ! necessary?
-          CALL INC_TAJLS(I,J,L,jls_Oxd,NprodOx*conc2mass)
-          if(L<=maxT)
-     &    CALL INC_TAJLS(I,J,L,jls_OxdT,NprodOx*conc2mass)
+          NprodOx_pos(l) = 0.
+          NprodOx_neg(l) = NprodOx*conc2mass
 #ifdef HTAP_LIKE_DIAGS
           TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+NprodOx*cpd
 #endif
         else 
-          CALL INC_TAJLS(I,J,L,jls_Oxp,NprodOx*conc2mass)
-          if(L<=maxT)
-     &    CALL INC_TAJLS(I,J,L,jls_OxpT,NprodOx*conc2mass)
+          NprodOx_neg(l) = 0.
+          NprodOx_pos(l) = NprodOx*conc2mass
 #ifdef HTAP_LIKE_DIAGS
           TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+NprodOx*cpd
 #endif
@@ -1447,6 +1459,13 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
         endif
 #endif
       end do ! end big L loop -----------------
+
+#ifdef SHINDELL_STRAT_CHEM
+      call inc_tajls_column(i,j,1,maxl,lm,jls_Oxd ,NprodOx_neg)
+      call inc_tajls_column(i,j,1,maxT,lm,jls_OxdT,NprodOx_neg)
+      call inc_tajls_column(i,j,1,maxl,lm,jls_Oxp ,NprodOx_pos)
+      call inc_tajls_column(i,j,1,maxT,lm,jls_OxpT,NprodOx_pos)
+#endif
 
 #ifdef SHINDELL_STRAT_CHEM
 ! Remove some of the HNO3 formed heterogeneously, as it doesn't come
@@ -1550,9 +1569,11 @@ c Limit the change due to chemistry:
       end do     ! igas
 
 C**** special diags not associated with a particular tracer
+      
       DO L=1,maxl
+        conOH(l) = 0.
         if (y(nOH,L) > 0.d0 .and. y(nOH,L) < 1.d20)then
-          CALL INC_TAJLS(I,J,L,jls_OHcon,y(nOH,L))
+          conOH(l) = y(nOH,L)
           TAIJLS(I,J,L,ijlt_OH)=TAIJLS(I,J,L,ijlt_OH)+y(nOH,L)
 #ifdef HTAP_LIKE_DIAGS
      &                                             /y(nM,L)
@@ -1561,12 +1582,19 @@ C**** special diags not associated with a particular tracer
         if (y(nHO2,L) > 0.d0 .and. y(nHO2,L) < 1.d20)
      &       TAIJLS(I,J,L,ijlt_HO2)=TAIJLS(I,J,L,ijlt_HO2)+y(nHO2,L)
 #ifdef SHINDELL_STRAT_CHEM
+        conClO(l) = 0.
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
-     &  CALL INC_TAJLS(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
+     &       conClO(l) = y(nClO,L)/y(nM,L)
+        conH2O(l) = 0.
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
-     &  CALL INC_TAJLS(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
+     &       conH2O(l) = y(nH2O,L)/y(nM,L)
 #endif
       END DO
+      call inc_tajls_column(i,j,1,maxl,lm,jls_OHcon,conOH)
+#ifdef SHINDELL_STRAT_CHEM
+      call inc_tajls_column(i,j,1,maxl,lm,jls_ClOcon,conClO)
+      call inc_tajls_column(i,j,1,maxl,lm,jls_H2Ocon,conH2O)
+#endif
       CALL INC_TAJLS(I,J,1,jls_day,1.d0)
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
