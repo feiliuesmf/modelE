@@ -285,8 +285,7 @@ c Explicit cross-polar advection will be ignored until issues with
 c corner fluxes and spherical geometry can be resolved.
        
         do ipole=1,2
-          if((haveLatitude(grid, J=2) .or. haveLatitude(grid,J=3)) .and. 
-     &          ipole.eq.1) then
+          if(have_south_pole .and. ipole.eq.1) then
             hemi = -1
             jpo = 1
             jns = jpo + 1
@@ -294,9 +293,7 @@ c corner fluxes and spherical geometry can be resolved.
             jvs = 2          ! jvs is the southernmost velocity row
             jvn = jvs + 1       ! jvs is the northernmost velocity row
             wts = polwt
-          else if(
-     &    (haveLatitude(grid, J=JM).or.haveLatitude(grid,J=JM-1)) .and.
-     &      ipole.eq.2) then
+          else if(have_north_pole .and. ipole.eq.2) then
             hemi = +1
             jpo = JM
             jns = jpo - 1
@@ -306,7 +303,7 @@ c corner fluxes and spherical geometry can be resolved.
             wts = 1.-polwt
           else
             cycle
-         endif
+          endif
 c loop over layers
       do l=1,lm
 c
