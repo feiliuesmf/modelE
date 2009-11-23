@@ -64,7 +64,7 @@ c
 #endif
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: soa_apart,soa_aerosolphase
+      USE TRACERS_SOA, only: soa_aerosolphase
 #endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
@@ -1658,7 +1658,6 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         endif ! i.e. y(nH2O,L)/y(nM,L) <= 10.d-6 
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-        call soa_apart
         pfactor=axyp(I,J)*AM(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)

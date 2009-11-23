@@ -54,7 +54,7 @@ C
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-       USE TRACERS_SOA, only: apartmolar,whichsoa,voc2nox
+       USE TRACERS_SOA, only: apartmolar,whichsoa,voc2nox,soa_apart
 #endif  /* TRACERS_AEROSOLS_SOA */
       USE DIAG_COM, only : aj,j_h2och4
 c
@@ -229,6 +229,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &            (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
      &             rr(43,L)*y(nHO2,L)+
      &             1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
+        call soa_apart ! calculate current apartmolar factors
         prod(n_isopp1g,L)=prod(n_isopp1g,L)+
      &                    apartmolar(L,whichsoa(n_isopp1a))*
      &                    (chemrate(30,L)+chemrate(31,L))
