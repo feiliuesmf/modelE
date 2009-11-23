@@ -54,11 +54,11 @@ c
       USE TRACER_SOURCES, only: avg_model,n__sw
 #endif
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
-     *     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
-     *     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
+     &     ,ijlt_JH2O2,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
+     &     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
      &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_phO1D,ijlt_pO1D
-     &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxpRO2
-     &     ,ijlt_OxlALK,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c
+     &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxlALK
+     &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon
 #endif
@@ -1668,31 +1668,39 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
-     &  ss(2,l,i,j)*y(n_Ox,l)*byavog*1.d9
+     &  ss(2,l,i,j)*y(n_Ox,l)*byavog*1.d6
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
-     &  2.d0*rr(10,l)*y(nH2O,l)*y(nO1D,l)*byavog*1.d9
+     &  2.d0*rr(10,l)*y(nH2O,l)*y(nO1D,l)*byavog*1.d6
 
         ! chemical_production_rate_of_ozone_by_HO2_plus_NO:
         taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
-     &  rr(10,l)*y(nHO2,l)*y(nNO,l)*byavog*1.d9
+     &  rr(10,l)*y(nHO2,l)*y(nNO,l)*byavog*1.d6
    
         ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
         taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
-     &  rr(20,l)*y(nCH3O2,l)*y(nNO,l)*byavog*1.d9
+     &  rr(20,l)*y(nCH3O2,l)*y(nNO,l)*byavog*1.d6
     
         ! chemical_destruction_rate_of_ozone_by_OH:
         taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
-     &  rr(2,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9 ! (positive)
+     &  rr(2,l)*y(nOH,l)*y(nO3,l)*byavog*1.d6 ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_HO2:
         taijls(i,j,l,ijlt_OxlHO2)=taijls(i,j,l,ijlt_OxlHO2)+
-     &  rr(4,l)*y(nOH,l)*y(nO3,l)*byavog*1.d9 ! (positive)
+     &  rr(4,l)*y(nOH,l)*y(nO3,l)*byavog*1.d6 ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_Alkenes:
         taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+
-     &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*byavog*1.d9 ! (positive)
+     &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*byavog*1.d6 ! (positive)
+
+        !Save 3D NO separately from NOx (pppv here):
+        taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
+     &  y(nNO,l)/y(nM,L)
+
+        !Save 3D NO2 separately from NOx (pppv here):
+        taijls(i,j,l,ijlt_NO2vmr)=taijls(i,j,l,ijlt_NO2vmr)+
+     &  y(nNO2,l)/y(nM,L)
 #endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

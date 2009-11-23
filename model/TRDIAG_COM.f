@@ -93,7 +93,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=1416
+      INTEGER,PARAMETER :: ktaijs=1446
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
@@ -201,7 +201,7 @@ C**** TAIJLS 3D special tracer diagnostics
       INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_JH2O2,ijlt_COp,ijlt_COd,
      & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
-     & ,ijlt_NOxLgt
+     & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers
 !@var ijlt_AMPm tracer independent array for AMP modes
@@ -241,7 +241,7 @@ C**** TAJLN
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktajls=878
+      INTEGER,PARAMETER :: ktajls=908
 
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3
@@ -360,8 +360,9 @@ C**** include some extra troposphere only ones
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
 !@var sPM2p5_acc, sPM10_acc accumulation arrays for some SUBDD diags
+!@+ s means SFC and l1 means L=1 accumulations.
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public ::  ! (IM,JM)
-     &  sPM2p5_acc,sPM10_acc
+     &  sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
 #endif 
 
 #ifdef NEW_IO
@@ -952,8 +953,10 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TRE_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)
-      ALLOCATE ( sPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
-      ALLOCATE ( sPM10_acc( I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE (  sPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE (   sPM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE ( l1PM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
+      ALLOCATE (  l1PM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
 #endif
 #ifdef TRACERS_ON 
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )

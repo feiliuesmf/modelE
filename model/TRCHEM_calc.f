@@ -13,8 +13,9 @@ C
       USE DYNAMICS, only        : am, byam,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
-     *     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
-     *     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
+     &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
+     &     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
+     &     ,ijlt_OxpRO2
 #ifdef SHINDELL_STRAT_CHEM
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
 #endif
@@ -385,6 +386,10 @@ c       Set value for XO2:
           yXO2(I,J,L)=y(nXO2,L)
           iter=iter+1
         end do
+#ifdef ACCMIP_LIKE_DIAGS
+        TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)+
+     &  y(nXO2,L)*XO2_NO
+#endif
 
 c       Set value for XO2N:
         XO2Nprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.13d0+
