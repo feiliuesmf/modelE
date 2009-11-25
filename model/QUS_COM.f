@@ -56,9 +56,16 @@
 !@var HEADER Character string label for individual records
       CHARACTER*80 :: HEADER, MODULE_HEADER = "QUS01"
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: TMOM_GLOB, QMOM_GLOB
+      integer :: img, jmg
 
-      IF(AM_I_ROOT())
-     &     ALLOCATE(TMOM_GLOB(NMOM,IM,JM,LM),QMOM_GLOB(NMOM,IM,JM,LM))
+      IF(AM_I_ROOT()) then
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+      ALLOCATE(TMOM_GLOB(NMOM,img,jmg,LM),QMOM_GLOB(NMOM,img,jmg,LM))
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)')
      * 'R8 dim(',nmom,',im,jm,lm):Tmom,Qmom'
 
@@ -90,7 +97,7 @@
       contains
 
       subroutine freespace
-      IF(AM_I_ROOT()) DEALLOCATE(TMOM_GLOB,QMOM_GLOB)
+      DEALLOCATE(TMOM_GLOB,QMOM_GLOB)
       end subroutine freespace
 
       END SUBROUTINE io_somtq
