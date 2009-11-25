@@ -288,7 +288,13 @@ C****                                         even if the year is fixed
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day; MADVOL=1   ! Volc. Aerosols
-      if(KYEARV.le.-2000) KYEARV=0   ! use current year before 2000
+!***  KYEARV=0 : use current year
+!***  KYEARV<0 : use long term mean stratospheric aerosols (use -1)
+!     Hack: KYEARV= -2000 and -2010 were used for 2 specific runs that
+!           ended in 2100 and repeated some 20th century volcanos
+!***  KYEARV=-2000: use volcanos from 100 yrs ago after 2000
+!***  KYEARV=-2010: repeat 2nd half, then first half of 20th century
+      if(KYEARV.le.-2000) KYEARV=0   ! use current year (before 2000)
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
       KYEARD=0       ; KJDAYD=0 ;       MADDST=1   ! Desert dust
@@ -657,7 +663,7 @@ C**** Read in the factors used for alterations:
 #endif
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
-     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr
+     *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
       USE FLUXES, only : chl
@@ -682,20 +688,31 @@ C**** Read in the factors used for alterations:
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+C**** Update time dependent radiative parameters each day
+!     Get black carbon deposition data for the appropriate year
+!     (does nothing except at a restart or the beginning of a new year)
+      if (albsn_yr.eq.0) then
+        call updBCd (JYEAR)
+      else
+        call updBCd (albsn_yr)
+      end if
+
+!     Hack: 2 specific volc. eruption scenarios for 2000-2100 period
+      if(volc_yr.eq.-2010) then              ! repeat some old volcanos
+         KYEARV=JYEAR
+         if(JYEAR.GT.2010) KYEARV=JYEAR-100  ! go back 100 years
+      end if
+      if(volc_yr.eq.-2000) then
+         KYEARV=JYEAR
+         if(JYEAR.GT.2000) KYEARV=JYEAR-50   ! go back 50 years til 2050
+         if(JYEAR.GT.2050) KYEARV=JYEAR-150  ! then go back 150 years
+      end if
+
       JDAYR=JDAY
       JYEARR=JYEAR
-C**** Update time dependent radiative parameters each day
-      if(volc_yr.eq.-2010) then ! 2010-2100 use volcanos from 100yrs ago
-         KYEARV=JYEAR
-         if(JYEAR.GT.2010) KYEARV=JYEAR-100
-      end if
-      if(volc_yr.eq.-2000) then ! create some future volcanos
-         KYEARV=JYEAR
-         if(JYEAR.GT.2000) KYEARV=JYEAR-50   ! go back 50 years
-         if(JYEAR.GT.2050) KYEARV=JYEAR-150  ! go back 150 years
-      end if
       CALL RCOMPT
-C**** FULGAS gets set initially, and updated daily for time-varying GHGs
+!     FULGAS(2:) is set only in the first call to RCOMPT unless ghg_yr=0   
+!     Optional scaling of the observed value only in case it was (re)set
       if(ghg_yr.eq.0 .or. .not. end_of_day) then
          FULGAS(2)=FULGAS(2)*CO2X
          FULGAS(6)=FULGAS(6)*N2OX
@@ -706,7 +723,7 @@ C**** FULGAS gets set initially, and updated daily for time-varying GHGs
       end if
       IF(.not. end_of_day .and. H2OstratX.GE.0.)
      *     FULGAS(1)=FULGAS(1)*H2OstratX
-      IF(.not. end_of_day .or. O3_yr==0.) FULGAS(3)=FULGAS(3)*O3x
+      IF(.not. end_of_day .or. O3_yr==0.) FULGAS(3)=FULGAS(3)*O3X
 
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
@@ -820,7 +837,7 @@ C     OUTPUT DATA
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
+     *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,rad_interact_chem
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
@@ -828,7 +845,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
 #endif
-#ifdef TRACERS_ON     
+#ifdef TRACERS_ON
      &     ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -986,7 +1003,6 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
-      INTEGER, SAVE :: JDLAST = -9
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
      *     ,onoff_chem,LFRC,JTIME,n1,tmpS(8),tmpT(8)
       REAL*8 ROT1,ROT2,PLAND,PIJ,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
@@ -1114,22 +1130,12 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
       JDAYR=JDAY
       JYEARR=JYEAR
 
-ccc the following lines should probably be moved somewhere else
-ccc but I have no idea what this code is doing...
-ccc somebody familiar with the code please check I.A.
-C*********************************************************
-C     Update time dependent radiative parameters each day
-      IF(JDAY.NE.JDLAST) THEN
-        if (albsn_yr.eq.0) then
-          call updBCd (JYEAR)
-        else
-          call updBCd (albsn_yr)
-        end if
-      end if
-C*********************************************************
       S0=S0X*S00WM2*RATLS0/RSDIST
 
 c**** find scaling factors for surface albedo reduction
+#ifdef SCM
+      xdalbs = 0.d0
+#else
       IF (HAVE_SOUTH_POLE) THEN
          sumda_psum(:,1)=axyp(1,1)
          tauda_psum(:,1)=axyp(1,1)*depobc_1990(1,1)
@@ -1151,9 +1157,6 @@ c      ILON=INT(.5+(I-.5)*72./IM+.5)
          sumda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)
          tauda_psum(:,JM)=axyp(1,jm)*rsi(1,jm)*depobc_1990(1,46)
       END IF
-#ifdef SCM
-      xdalbs = 0.d0
-#else
       CALL GLOBALSUM(grid, sumda_psum,sumda,all=.true.)
       CALL GLOBALSUM(grid, tauda_psum,tauda,all=.true.)
 
@@ -1235,7 +1238,7 @@ C**** SS clouds are considered as a block for each continuous cloud
 
       end if                    ! kradia le 0
 
-#ifdef TRACERS_ON     
+#ifdef TRACERS_ON
       ttausv_count=ttausv_count+1.d0
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
@@ -1593,7 +1596,7 @@ c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=snowoi/rhos
       dALBsn = xdalbs*depobc(ilon,jlat)
-c to use on-line tracer albedo impact, set Xdalb=0. in rundeck
+c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #if (defined TRACERS_AEROSOLS_Koch) && (defined BC_ALB)
       call GET_BC_DALBEDO(i,j,dALBsn1)
       dALBsn=dALBsn1
@@ -1761,7 +1764,7 @@ C**** Ozone:
       TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
       chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
 #endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
-C**** Methane: (if there are initial RCOMPX calls, they 
+C**** Methane: (if there are initial RCOMPX calls, they
 ! are non-tracer (unlike ozone above, which could be either)):
       chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)
       use_tracer_chem(2)=0
@@ -1774,7 +1777,7 @@ C**** Methane: (if there are initial RCOMPX calls, they
         call updghg(JyearR,JdayR)  ; sv_fulgas_now=fulgas(nfghg(nf))
         fulgas(nfghg(nf))=sv_fulgas_ref
         kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-        CALL RCOMPX        
+        CALL RCOMPX
         SNFS_ghg(nf,I,J)=SRNFLB(LM+LM_REQ+1)
         TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
         fulgas(nfghg(nf))=sv_fulgas_now
@@ -1865,7 +1868,9 @@ C**** second, net aerosols
         TNFSAERRF(18,I,J)=TRNFLB(1) ! SURF
         FS8OPX(:)=tmpS(:)   ; FT8OPX(:)=tmpT(:)
       end if
+C**** End of initial computations for optional forcing diagnostics
 
+C**** Localize fields that are modified by RCOMPX
       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 
 C*****************************************************
@@ -1979,7 +1984,7 @@ C**** Save optical depth diags
       end do
 #endif
 
-#ifdef TRACERS_ON     
+#ifdef TRACERS_ON
 ! this to accumulate daily SUM of optical thickness for
 ! each active tracer. Will become average in DIAG.f.
       do n=1,NTRACE
@@ -2514,7 +2519,7 @@ c    &              -rsign_aer*(TNFST(1,n,I,J)-TNFS(1,I,J))
 
 c ..........
 c accumulation of forcings for special case ozone (ntrace fields
-c not defined) Warning: indicies used differently, since we don't 
+c not defined) Warning: indicies used differently, since we don't
 c need CS or Surface, but are doing both TOA and Ltropo:
 c ..........
          if(n_Ox > 0) then ! ------ main Ox tracer -------
@@ -2534,7 +2539,7 @@ c longwave forcing at TOA
            if (ijts_fc(4,n_Ox).gt.0)
      &     taijs(i,j,ijts_fc(4,n_Ox))=taijs(i,j,ijts_fc(4,n_Ox))
      &     -rsign_chem*(TNFST_ozone(2,I,J)-TNFS(3,I,J))
-         endif 
+         endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
                       ! ------ diag stratOx tracer -------
 ! note for now for this diag, there is a failsafe that stops model
