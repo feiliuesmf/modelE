@@ -595,9 +595,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL PACK_COLUMN(grid, NSN_IJ,  NSN_IJ_GLOB)
         CALL PACK_COLUMN(grid, FR_SNOW_IJ,  FR_SNOW_IJ_GLOB)
 #ifdef TRACERS_WATER
-        if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
+        ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
         CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,1,:,:), ptr4 )
-        if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
+        ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
         CALL PACK_BLOCK(grid, TR_WSN_IJ(     :,:,2,:,:), ptr4 )
 #endif
         IF (AM_I_ROOT()) THEN
@@ -633,9 +633,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             END IF
           end if
 
-          if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
+          ptr4 => TR_WSN_IJ_GLOB(:,:,1,:,:)
           CALL UNPACK_BLOCK(grid, ptr4, TR_WSN_IJ(:,:,1,:,:))
-          if (AM_I_ROOT()) ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
+          ptr4 => TR_WSN_IJ_GLOB(:,:,2,:,:)
           CALL UNPACK_BLOCK(grid, ptr4, TR_WSN_IJ(:,:,2,:,:))
         END SELECT
 #endif
