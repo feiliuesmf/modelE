@@ -1067,7 +1067,11 @@ c allocate master copies of budget- and JK-arrays on root
         write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i3,a7)')
      *   '#acc(=',idacc(2),') R8:SU.SD.TU.TD.dT(',lm+lm_req+1,',ijM,5)'
 
-        IF (AM_I_ROOT()) allocate (AFLX_ST_glob(LM+LM_REQ+1,IM,JM,5))
+        IF (AM_I_ROOT()) then
+           allocate (AFLX_ST_glob(LM+LM_REQ+1,IM,JM,5))
+        else
+           allocate (AFLX_ST_glob(LM+LM_REQ+1,1,1,5))
+        end if
 
         SELECT CASE (IACTION)
         CASE (IOWRITE)            ! output to standard restart file
@@ -1116,7 +1120,7 @@ c allocate master copies of budget- and JK-arrays on root
           monacc = monacc + monac1
         END SELECT
 
-        if (AM_I_ROOT()) deallocate (AFLX_ST_glob)
+        deallocate (AFLX_ST_glob)
 
         return
       end if

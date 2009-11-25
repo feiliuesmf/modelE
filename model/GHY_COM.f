@@ -451,9 +451,9 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       SNOWBV_GLOB)
 #ifdef TRACERS_WATER
         do m=1,LS_NFRAC
-          if (AM_I_ROOT()) ptr4 => TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM)
           CALL PACK_BLOCK(grid,
      &         TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H),ptr4 )
+          if (AM_I_ROOT()) TR_W_GLOB(:,:,m,:,:) = ptr4
         enddo
         CALL PACK_BLOCK(grid, TRSNOWBV0, TRSNOWBV0_GLOB)
 #endif
@@ -502,7 +502,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
             END IF
           end if
           do m=1,LS_NFRAC
-            if (AM_I_ROOT()) ptr4 => TR_W_GLOB(1:NTM,0:NGM,m,1:IM,1:JM)
+            if (AM_I_ROOT())  PTR4 = TR_W_GLOB(:,:,m,:,:)
             CALL UNPACK_BLOCK(grid,ptr4,
      &           TR_W_IJ(1:NTM,0:NGM,m,I_0H:I_1H,J_0H:J_1H) )
           enddo
@@ -534,7 +534,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     HT_GLOB(0:NGM,LS_NFRAC,img,jmg) )
 #ifdef TRACERS_WATER
       ALLOCATE( TRSNOWBV0_GLOB(NTM,2,img,jmg),
-     &     TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,img,jmg) )
+     &     TR_W_GLOB  (NTM,0:NGM,LS_NFRAC,img,jmg),
+     &     ptr4(NTM,0:NGM,img,jmg))
 #endif
       end subroutine allocate_me
       subroutine deallocate_me
@@ -543,7 +544,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       HT_GLOB )
 #ifdef TRACERS_WATER
         DEALLOCATE( TRSNOWBV0_GLOB,
-     &       TR_W_GLOB )
+     &       TR_W_GLOB, ptr4 )
 #endif
       end subroutine deallocate_me
 
