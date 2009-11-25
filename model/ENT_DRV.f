@@ -122,7 +122,7 @@
       else ! i.e. *not* iniENT
 
         ! just in case, do nothing, just set heat capacities
-        call ent_prescribe_vegupdate(entcells)        
+        call ent_prescribe_vegupdateB(entcells)        
 
       endif
       end subroutine init_module_ent
@@ -183,7 +183,7 @@
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
       integer hemi(I0:I1,J0:J1)
 
-            !* Set hemisphere flags.
+      !* Set hemisphere flags.
       where(lat2d(I0:I1,J0:J1) <= 0.)
         hemi(I0:I1,J0:J1) = -1  ! S
       elsewhere
@@ -263,8 +263,7 @@
      &     reinitialize)
 
       ! just in case, do nothing, just set heat capacities
-      call ent_prescribe_vegupdate(entcells)
-
+      call ent_prescribe_vegupdateB(entcells)
 
       end subroutine set_vegetation_data
 
@@ -320,7 +319,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
         hemi(I0:I1,J0:J1) = +1  ! N
       end where
  
-          call ent_prescribe_vegupdate(entcells,hemi,jday,year,
+          call ent_prescribe_vegupdateC(entcells,hemi,jday,year,
      &         do_giss_phenology=(do_phenology_activegrowth==0), !.false.,
      &         do_giss_albedo= .true.,
      &         do_giss_lai=(do_phenology_activegrowth==0), !.false.,
@@ -333,7 +332,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
 
-      call ent_prescribe_vegupdate(entcells
+      call ent_prescribe_vegupdateD(entcells
      &     ,laidata=laidata(2:2+N_PFT-1,:,:)
      &     ,albedodata=albedodata(:,2:2+N_PFT-1,:,:)
      &     )
