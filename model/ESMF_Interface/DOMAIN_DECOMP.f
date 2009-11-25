@@ -2027,7 +2027,7 @@ c**** arr  is overwritten by itself after reduction
 #endif
 
 #ifdef USE_MPI
-      Call gather(grd_dum, arr, garr, shape(arr), 1)
+      Call gather(grd_dum, arr, garr, shape(arr), 1, .false.)
 #else
       garr = 0.d0
       garr(j_0:j_1) = arr(j_0:j_1)
@@ -2119,7 +2119,7 @@ c**** arr  is overwritten by itself after reduction
       End If
 
 #ifdef USE_MPI
-      Call gather(grd_dum, zon, garr, shape(zon), 1)
+      Call gather(grd_dum, zon, garr, shape(zon), 1, .false.)
 #else
       garr = 0.d0
       garr(j_0:j_1) = zon(j_0:j_1)
@@ -2211,7 +2211,7 @@ c**** arr  is overwritten by itself after reduction
       End If
 
 #ifdef USE_MPI
-      Call gather(grd_dum, zon, garr, shape(zon), 1)
+      Call gather(grd_dum, zon, garr, shape(zon), 1, .false.)
 #else
       garr(:,:) = 0.d0
       garr(j_0:j_1,:)  = zon(j_0:j_1,:)
@@ -2274,7 +2274,7 @@ c**** arr  is overwritten by itself after reduction
       jb2 = jband(2)
 
 #ifdef USE_MPI
-      Call gather(grd_dum, arr, garr, shape(arr), 2)
+      Call gather(grd_dum, arr, garr, shape(arr), 2, .false.)
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
@@ -2319,7 +2319,7 @@ c**** arr  is overwritten by itself after reduction
       jb2 = jband(2)
 
 #ifdef USE_MPI
-      Call gather(grd_dum, arr, garr, shape(arr), 2)
+      Call gather(grd_dum, arr, garr, shape(arr), 2, .false.)
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2,:),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
@@ -2474,7 +2474,7 @@ c**** arr  is overwritten by itself after reduction
 
 
 #ifdef USE_MPI
-      Call gather(grd_dum, arr, garr, shape(arr), 1)
+      Call gather(grd_dum, arr, garr, shape(arr), 1, .false.)
 #else
       garr(:,:) = 0.d0
       garr(j_0:j_1,:) = arr(j_0:j_1,:)
@@ -3080,7 +3080,7 @@ C****  convert from real*4 to real*8
       INTEGER :: rc
 
 #ifdef USE_MPI
-      Call gather(grd_dum, buf, buf_glob, shape(buf), 3)
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 3, .false.)
 #else
       buf_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP) =
      &     buf(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3120,7 +3120,7 @@ C****  convert from real*4 to real*8
 c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       !buf_glob = -99999999. ! not implemented
       buf8 = buf
-      Call gather(grd_dum, buf8, buf_glob8, shape(buf), 2)
+      Call gather(grd_dum, buf8, buf_glob8, shape(buf), 2, .false.)
       buf_glob = buf_glob8
 #else
       buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
@@ -3153,7 +3153,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: rc
 
 #ifdef USE_MPI
-      Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 2, .false.)
 #else
       buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
      &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3185,7 +3185,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: rc 
 
 #ifdef USE_MPI
-      Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 2, .false.)
 #else
       buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
      &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -3222,7 +3222,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
          allocate(buf_glob(1,1,1))
       end if
 #ifdef USE_MPI
-      Call gather(grd_dum, buf, buf_glob, shape(buf), 2)
+      Call gather(grd_dum, buf, buf_glob, shape(buf), 2, .false.)
 #else
       buf_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
      &     buf(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -3628,7 +3628,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       Call Gather(grd_dum, local_array, global_array,
-     &     shape(local_array), 1)
+     &     shape(local_array), 1, .false.)
 #else
       global_array(grd_dum%J_STRT:grd_dum%J_STOP) =
      &     local_array(grd_dum%J_STRT:grd_dum%J_STOP)
@@ -3663,7 +3663,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       Call gather(grd_dum, local_array, global_array,
-     &     shape(local_array), 2)
+     &     shape(local_array), 2, .false.)
 
 #else
       global_array(:,grd_dum%J_STRT:grd_dum%J_STOP) =
@@ -4547,7 +4547,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, INTENT(OUT) :: ARR_GLOB(grd_dum%JM_WORLD)
 
 #ifdef USE_MPI
-      Call Gather(grd_dum, arr, arr_glob, shape(arr), 1)
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 1, .false.)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP) =
      &     arr(grd_dum%J_STRT:grd_dum%J_STOP)
@@ -4578,7 +4578,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       REAL*8, INTENT(INOUT) :: ARR_GLOB(:,:)
 
 #ifdef USE_MPI
-      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2, .false.)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -4625,7 +4625,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: l
 
 #ifdef USE_MPI
-      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2, .false.)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -4664,7 +4664,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: l,m
 
 #ifdef USE_MPI
-      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2, .false.)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:)
@@ -4683,7 +4683,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: l,m
 
 #ifdef USE_MPI
-      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2)
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 2, .false.)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:) =
      & arr(:,grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
@@ -4703,7 +4703,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: k
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1, .false.)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -4746,7 +4746,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: k
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1, .false.)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:)
@@ -4766,7 +4766,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       INTEGER :: k
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 1, .false.)
 #else
       arr_glob(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)=
      & arr(grd_dum%J_STRT:grd_dum%J_STOP,:,:,:)
@@ -5041,7 +5041,7 @@ C------------------------------------
       integer :: K
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 2)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 2, .false.)
 #else
       arr_glob(:,grd_dum%J_STRT:grd_dum%J_STOP)=
      &     arr(:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -5061,7 +5061,7 @@ C------------------------------------
       INTEGER :: K
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 3)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 3, .false.)
 #else
       arr_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
      &     arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -5098,7 +5098,7 @@ C------------------------------------
       INTEGER :: l,K
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 3)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 3, .false.)
 #else
       arr_glob(:,:,grd_dum%J_STRT:grd_dum%J_STOP,:)=
      & arr(:,:,grd_dum%J_STRT:grd_dum%J_STOP,:)
@@ -5117,7 +5117,7 @@ C------------------------------------
       INTEGER :: l,K
 
 #ifdef USE_MPI
-      CALL gather(grd_dum, arr, arr_glob, shape(arr), 5)
+      CALL gather(grd_dum, arr, arr_glob, shape(arr), 5, .false.)
       !mkb5
 #else
       arr_glob(:,:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)=
@@ -5349,7 +5349,7 @@ c      END SUBROUTINE UNPACK_COLUMN_2D
       INTEGER :: K,L
 
 #ifdef USE_MPI
-      Call Gather(grd_dum, arr, arr_glob, shape(arr), 4)
+      Call Gather(grd_dum, arr, arr_glob, shape(arr), 4, .false.)
 #else
       arr_glob(:,:,:,grd_dum%J_STRT:grd_dum%J_STOP) =
      &     arr(:,:,:,grd_dum%J_STRT:grd_dum%J_STOP)
@@ -6621,7 +6621,7 @@ cddd      End If
       Real(Kind=8) :: arr_glob(*)
       Integer :: shp(:),shp_glob(size(shp))
       Integer :: dist_idx
-      Logical, Optional :: all
+      Logical, optional :: all
 
       Logical :: all_
       Integer :: new_type, orig_type
