@@ -1777,9 +1777,9 @@ c         najl = jls_OHcon
 c#else
           najl = jls_OHconk
 c#endif
-          call inc_tajls(i,j,l,najl,oh(i,j,l))
+          if (najl > 0) call inc_tajls(i,j,l,najl,oh(i,j,l))
           najl = jls_HO2con
-          call inc_tajls(i,j,l,najl,dho2(i,j,l))
+          if (najl > 0) call inc_tajls(i,j,l,najl,dho2(i,j,l))
 
 #ifdef TRACERS_HETCHEM
        case ('SO4_d1')
@@ -1851,7 +1851,7 @@ c H2O2 losses:5 and 6
      *         /dtsrc
           
           najl = jls_phot
-          call inc_tajls(i,j,l,najl,perj(i,j,l))
+          if (najl > 0) call inc_tajls(i,j,l,najl,perj(i,j,l))
         end select
 
  140    CONTINUE
@@ -2222,6 +2222,8 @@ c fractions??
 c
       bc_dalb=0.
       scon=0.
+      sconb=0.
+      sconv=0.
       icon=0.
       bcsnowb=0.
       bcsnowv=0.
