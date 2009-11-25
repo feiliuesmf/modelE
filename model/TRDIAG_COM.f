@@ -940,6 +940,7 @@ C*** Unpack read global data into local distributed arrays
       INTEGER :: J_0H,J_1H, I_0H,I_1H
       INTEGER :: status
       integer :: j_0budg,j_1budg
+      integer :: img, jmg
       
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H=GRID%I_STRT_HALO
@@ -968,14 +969,20 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TCONSRV_loc(J_0BUDG:J_1BUDG,ktcon,ntmxcon),stat=status)
 
       if(am_i_root()) then
-        ALLOCATE ( TAIJLN(IM,JM,LM,ntm), stat=status )
-        ALLOCATE ( TAIJLS(IM,JM,LM,ktaijl), stat=status )
-        ALLOCATE ( TAIJN( IM,JM,ktaij,ntm), stat=status )
-        ALLOCATE ( TAIJS( IM,JM,ktaijs   ), stat=status )
-        ALLOCATE ( TAJLN(JM_BUDG,LM,ktajlx,ntm), stat=status )
-        ALLOCATE ( TAJLS(JM_BUDG,LM,ktajls    ), stat=status )
-        ALLOCATE ( TCONSRV(JM_BUDG,ktcon,ntmxcon), stat=status )
-      endif
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+      ALLOCATE ( TAIJLN(img,jmg,LM,ntm), stat=status )
+      ALLOCATE ( TAIJLS(img,jmg,LM,ktaijl), stat=status )
+      ALLOCATE ( TAIJN( img,jmg,ktaij,ntm), stat=status )
+      ALLOCATE ( TAIJS( img,jmg,ktaijs   ), stat=status )
+
+      ALLOCATE ( TAJLN(JM_BUDG,LM,ktajlx,ntm), stat=status )
+      ALLOCATE ( TAJLS(JM_BUDG,LM,ktajls    ), stat=status )
+      ALLOCATE ( TCONSRV(JM_BUDG,ktcon,ntmxcon), stat=status )
 
 #ifdef NEW_IO
 ! ktaij_, ktaijl_, ktajl_ are larger than necessary.  These arrays
