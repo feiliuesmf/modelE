@@ -616,8 +616,8 @@ C**** apply tracer source alterations if requested in rundeck:
         end do
       end if
 
-!$OMP PARALLEL DO PRIVATE (L,I,J,fred)
       eps = tiny(trm(i_0,j_0,1,n))
+!$OMP PARALLEL DO PRIVATE (L,I,J,fred)
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
@@ -1157,31 +1157,39 @@ C**** check whether air mass is conserved
 #endif
 
       INTEGER :: J_0, J_1, J_1H, J_0H, I_0, I_1
+      INTEGER :: img, jmg
 
       CALL GET(grid,I_STRT=I_0,I_STOP=I_1, 
      &              J_STRT=J_0,J_STOP=J_1, 
      &         J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
-      if(am_i_root()) allocate(
-     &     TRM_GLOB(IM,JM,LM)
-     &    ,TRMOM_GLOB(NMOM,IM,JM,LM)
+      if(am_i_root()) then
+         img = IM
+         jmg = JM
+      else
+         img = 1
+         jmg = 1
+      end if
+      allocate(
+     &     TRM_GLOB(img,jmg,LM)
+     &     ,TRMOM_GLOB(NMOM,img,jmg,LM)
 #ifdef TRACERS_WATER
-     &    ,TRWM_GLOB(IM,JM,LM)
+     &    ,TRWM_GLOB(img,jmg,LM)
 #endif
      &     )
 
 #ifdef TRACERS_SPECIAL_Shindell
-      if(am_i_root()) allocate(
-     &     Aijl_glob(IM,JM,LM)
-     &    ,ss_glob(JPPJ,LM,IM,JM) )
+      allocate(
+     &     Aijl_glob(img,jmg,LM)
+     &    ,ss_glob(JPPJ,LM,img,jmg) )
 #ifdef INTERACTIVE_WETLANDS_CH4 
-      if(am_i_root()) allocate(
-     &     day_ncep_glob(IM,JM,max_days,nra_ncep)
-     &    ,DRA_ch4_glob(IM,JM,max_days,nra_ch4)
-     &    ,sum_ncep_glob(IM,JM,nra_ncep)
-     &    ,PRS_ch4_glob(IM,JM,nra_ch4)
-     &    ,HRA_ch4_glob(IM,JM,maxHR_ch4,nra_ch4)
-     &    ,Rijch4_glob(IM,JM,nra_ch4) )
+      allocate(
+     &     day_ncep_glob(img,jmg,max_days,nra_ncep)
+     &    ,DRA_ch4_glob(img,jmg,max_days,nra_ch4)
+     &    ,sum_ncep_glob(img,jmg,nra_ncep)
+     &    ,PRS_ch4_glob(img,jmg,nra_ch4)
+     &    ,HRA_ch4_glob(img,jmg,maxHR_ch4,nra_ch4)
+     &    ,Rijch4_glob(img,jmg,nra_ch4) )
       allocate( 
      &     rfirst_mod(IM,J_0H:J_1H,nra_ch4) 
      &    ,rHch4(IM,J_0H:J_1H,nra_ch4)
@@ -1519,16 +1527,16 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       contains
 
       subroutine freemem
-      if(am_i_root()) deallocate(TRM_GLOB,TRMOM_GLOB
+      deallocate(TRM_GLOB,TRMOM_GLOB
 #ifdef TRACERS_WATER
      &     ,TRWM_GLOB
 #endif
      &     )
 
 #ifdef TRACERS_SPECIAL_Shindell
-      if(am_i_root()) deallocate(Aijl_glob,ss_glob)
+      deallocate(Aijl_glob,ss_glob)
 #ifdef INTERACTIVE_WETLANDS_CH4 
-      if(am_i_root()) deallocate(day_ncep_glob,DRA_ch4_glob,
+      deallocate(day_ncep_glob,DRA_ch4_glob,
      & sum_ncep_glob,PRS_ch4_glob,HRA_ch4_glob,Rijch4_glob )
       deallocate( rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
