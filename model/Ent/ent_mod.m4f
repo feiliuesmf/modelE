@@ -41,6 +41,9 @@ define(`m4_type_list',`real*8')
       public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
       public ent_prescribe_vegupdate
+      public ent_prescribe_vegupdateB
+      public ent_prescribe_vegupdateC
+      public ent_prescribe_vegupdateD
       public ent_cell_print
       public ent_initialize
 
@@ -142,6 +145,24 @@ cddd      end interface ent_cell_update
       interface ent_prescribe_vegupdate
       m4_loop(`
         module procedure ent_prescribe_vegupdate_`'m4_suffix`'
+      ')`'
+      end interface
+
+      interface ent_prescribe_vegupdateB
+      m4_loop(`
+        module procedure ent_prescribe_vegupdateB_`'m4_suffix`'
+      ')`'
+      end interface
+
+      interface ent_prescribe_vegupdateC
+      m4_loop(`
+        module procedure ent_prescribe_vegupdateC_`'m4_suffix`'
+      ')`'
+      end interface
+
+      interface ent_prescribe_vegupdateD
+      m4_loop(`
+        module procedure ent_prescribe_vegupdateD_`'m4_suffix`'
       ')`'
       end interface
 
@@ -276,6 +297,177 @@ m4_loop(`
       m4_enddo
 
       end subroutine ent_prescribe_vegupdate_`'m4_suffix`'
+')`'
+     
+m4_loop(`
+      subroutine ent_prescribe_vegupdateB_`'m4_suffix`'(entcell)
+!@sum updates prescribed vegatation parameters. This parameters can
+!@+   be passed directly in form of arrays like laidata or one can
+!@+   set a flag requesting certain action like do_giss_phenology.
+!@+   All arguments except entcell are optional.
+      use ent_prescribed_updates, only:  entcell_vegupdate
+      type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
+      !---
+      !!!real*8, allocatable :: cropsdata_loc(:,:)
+      real*8, pointer :: laidata_1(:), hdata_1(:),
+     &     albedodata_1(:,:), cropsdata_1
+      integer :: hemi_1, jday_1
+      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+      logical :: init_1
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+
+      ! set defaults
+      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
+      do_giss_phenology_1 = .false.
+      do_giss_lai_1 = .true.
+      do_giss_albedo_1 = .false.
+      hemi_1 = -32768
+      jday_1 = -32768
+      init_1 = .false.
+
+      ! now set optional arguments
+         
+      m4_do(dims)
+          ! skip uninitialized cells (no land)
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+
+!          write(780,*) __FILE__,__LINE__,hemi_1
+          
+          call entcell_vegupdate(entcell`'m4_brkts(m4_ind)`'%entcell,
+     &         hemi_1,
+     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
+     &         do_giss_albedo_1,
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
+     &         init_1)
+        endif
+      m4_enddo
+
+      end subroutine ent_prescribe_vegupdateB_`'m4_suffix`'
+')`'
+     
+m4_loop(`
+      subroutine ent_prescribe_vegupdateC_`'m4_suffix`'(entcell
+     &     ,hemi,jday,year,
+     &     do_giss_phenology, do_giss_albedo, do_giss_lai, 
+     &     update_crops)
+!@sum updates prescribed vegatation parameters. This parameters can
+!@+   be passed directly in form of arrays like laidata or one can
+!@+   set a flag requesting certain action like do_giss_phenology.
+!@+   All arguments except entcell are optional.
+      use ent_prescribed_updates, only:  entcell_vegupdate
+      type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
+      integer, intent(in), target :: hemi m4_brkts(m4_ext)
+      integer,intent(in) :: jday,year
+      logical, intent(in) :: update_crops
+      logical, intent(in) :: do_giss_phenology
+      logical, intent(in) :: do_giss_lai
+      logical, intent(in) :: do_giss_albedo
+      !---
+      !!!real*8, allocatable :: cropsdata_loc(:,:)
+      real*8, pointer :: laidata_1(:), hdata_1(:),
+     &     albedodata_1(:,:), cropsdata_1
+      integer :: hemi_1, jday_1
+      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+      logical :: init_1
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+      ! set defaults
+      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
+      do_giss_phenology_1 = .false.
+      do_giss_lai_1 = .true.
+      do_giss_albedo_1 = .false.
+      hemi_1 = -32768
+      jday_1 = -32768
+      init_1 = .false.
+
+      ! now set optional arguments
+          do_giss_phenology_1 = do_giss_phenology
+          do_giss_lai_1 = do_giss_lai
+          jday_1 = jday
+         
+      m4_do(dims)
+          ! skip uninitialized cells (no land)
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+
+           hemi_1 = hemi`'m4_brkts(m4_ind)`'
+!          write(780,*) __FILE__,__LINE__,hemi_1
+          
+          call entcell_vegupdate(entcell`'m4_brkts(m4_ind)`'%entcell,
+     &         hemi_1,
+     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
+     &         do_giss_albedo_1,
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
+     &         init_1)
+        endif
+      m4_enddo
+
+      end subroutine ent_prescribe_vegupdateC_`'m4_suffix`'
+')`'
+     
+m4_loop(`
+      subroutine ent_prescribe_vegupdateD_`'m4_suffix`'(entcell,
+     &     laidata, albedodata)
+!@sum updates prescribed vegatation parameters. This parameters can
+!@+   be passed directly in form of arrays like laidata or one can
+!@+   set a flag requesting certain action like do_giss_phenology.
+!@+   All arguments except entcell are optional.
+      use ent_prescribed_updates, only:  entcell_vegupdate
+      type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
+      real*8, intent(in), optional, target ::
+     &     laidata(:m4_comma`'m4_ext`')
+      real*8, intent(in), optional, target ::
+     &     albedodata(:,:m4_comma`'m4_ext`')
+      !---
+      !!!real*8, allocatable :: cropsdata_loc(:,:)
+      real*8, pointer :: laidata_1(:), hdata_1(:),
+     &     albedodata_1(:,:), cropsdata_1
+      integer :: hemi_1, jday_1
+      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
+      logical :: init_1
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+      ! set defaults
+      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
+      do_giss_phenology_1 = .false.
+      do_giss_lai_1 = .true.
+      do_giss_albedo_1 = .false.
+      hemi_1 = -32768
+      jday_1 = -32768
+      init_1 = .false.
+
+      ! now set optional arguments
+      m4_do(dims)
+          ! skip uninitialized cells (no land)
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+
+          laidata_1 => laidata(:`'m4_comma`'m4_ind)
+          albedodata_1 => albedodata(:,:`'m4_comma`'m4_ind)
+
+!          write(780,*) __FILE__,__LINE__,hemi_1
+          
+          call entcell_vegupdate(entcell`'m4_brkts(m4_ind)`'%entcell,
+     &         hemi_1,
+     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
+     &         do_giss_albedo_1,
+     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
+     &         init_1)
+        endif
+      m4_enddo
+
+      end subroutine ent_prescribe_vegupdateD_`'m4_suffix`'
 ')`'
      
 m4_loop(`
