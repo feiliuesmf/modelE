@@ -42,6 +42,7 @@
           if ( db(i)%name == name ) exit
         enddo
         if (i>num) call stop_model("name not present in db",255)
+        allocate( db(i)%buf2(n) )
         db(i)%buf2(1:n) = a(1:n)
         return
       endif
@@ -63,7 +64,7 @@
       db(num)%lm=1
       db(num)%n=n
       allocate( db(num)%buf1(n) )
-      allocate( db(num)%buf2(n) )
+      !!!allocate( db(num)%buf2(n) )
       db(num)%buf1(1:n) = a(1:n)
 
       return
@@ -82,6 +83,7 @@
           if ( db(i)%name == name ) exit
         enddo
         if (i>num) call stop_model("name not present in db",255)
+        allocate( db(i)%ibuf2(n) )
         db(i)%ibuf2(1:n) = a(1:n)
         return
       endif
@@ -96,7 +98,7 @@
       db(num)%lm=1
       db(num)%n=n
       allocate( db(num)%ibuf1(n) )
-      allocate( db(num)%ibuf2(n) )
+      !!!allocate( db(num)%ibuf2(n) )
       db(num)%ibuf1(1:n) = a(1:n)
 
       return
@@ -251,9 +253,15 @@
       end module ent_data_for_cmp
 #endif
 
+! process regular array
 #define check(y,x) call store(i,y,pack(x,tt),size(x)); \
+                   call guess_dims(i,y,shape(x)); if (i==2) deallocate(x)
+
+! process an array which can''t be deallocated
+#define checkx(y,x) call store(i,y,pack(x,tt),size(x)); \
                    call guess_dims(i,y,shape(x))
 
+! process a scalar
 #define checks(y,x) call store(i,y,(/x/),1); \
                    call guess_dims(i,y,(/1/))
 
@@ -552,7 +560,7 @@
         check("fsf",fsf)
         check("fsrdir",fsrdir)
         check("srvissurf",srvissurf)
-        check("salb",salb)
+        checkx  ("salb",salb)
         check("srdn",srdn)
         check("cfrac",cfrac)
         check("rcld",rcld)
@@ -586,27 +594,27 @@
 #ifndef SKIP_DIAG
         ! diagnostics from diag_com
         check("aj",aj)
-        check("areg",areg)
+        checkx("areg",areg)
         check("ajl",ajl)
         check("asjl",asjl)
         check("aij",aij)
         check("aijl",aijl)
-        check("energy",energy)
-        check("consrv",consrv)
-        check("speca",speca)
-        check("atpe",atpe)
-        check("adiurn",adiurn)
-        check("wave",wave)
+        checkx("energy",energy)
+        checkx("consrv",consrv)
+        checkx("speca",speca)
+        checkx("atpe",atpe)
+        checkx("adiurn",adiurn)
+        checkx("wave",wave)
         check("agc",agc)
         check("aijk",aijk)
-        check("aisccp",aisccp)
+        checkx("aisccp",aisccp)
 #ifndef NO_HDIURN
         check("hdiurn",hdiurn)
 #endif
         ! diags
-        check("KEYNR",KEYNR)
+        checkx("KEYNR",KEYNR)
         check("TSFREZ",TSFREZ)
-        check("idacc",idacc)
+        checkx("idacc",idacc)
         check("TDIURN",TDIURN)
         check("OA",OA)
         !check("it",it)
