@@ -58,7 +58,7 @@
 
       type entcelltype_public
         private
-        type(entcelltype), pointer :: entcell
+        type(entcelltype), pointer :: entcell => null()
       end type entcelltype_public
 
       !---- public interfaces ---
@@ -1294,6 +1294,7 @@ cddd      end interface ent_cell_update
       if ( np <= 0 ) return  ! nothing to restore...
 
       ecp => entcell%entcell
+
       call copy_cell_vars(dbuf(dc:), nn, ecp, 1); dc = dc + nn
       nullify( pprev )
       do i=1,np
@@ -1631,7 +1632,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell
+      type(entcelltype_public),intent(inout):: entcell
       ! forcings probably should not be optional ...
       real*8 , intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1729,7 +1730,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell(:)
+      type(entcelltype_public),intent(inout):: entcell(:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1829,7 +1830,7 @@ cddd      end interface ent_cell_update
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell(:,:)
+      type(entcelltype_public),intent(inout):: entcell(:,:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:,:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
