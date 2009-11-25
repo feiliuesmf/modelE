@@ -48,7 +48,7 @@ define(`m4_type_list',`real*8')
 
       type entcelltype_public
         private
-        type(entcelltype), pointer :: entcell
+        type(entcelltype), pointer :: entcell => null()
       end type entcelltype_public
 
       !---- public interfaces ---
@@ -996,7 +996,7 @@ m4_loop(`
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(out):: entcell`'m4_brkts(m4_ext)`'
+      type(entcelltype_public),intent(inout):: entcell`'m4_brkts(m4_ext)`'
       ! forcings probably should not be optional ...
       real*8 `'m4_arr_only(`, dimension(m4_ext)'), intent(in)  ::
      &     air_temperature, !KIM - for phenology
