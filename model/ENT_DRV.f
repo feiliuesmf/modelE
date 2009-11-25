@@ -150,7 +150,7 @@
       use ent_prescr_veg, only : prescr_calc_shc,prescr_calcconst
       use ghy_com, only : q_ij, qk_ij, dz_ij
       use ghy_com, only : fearth
-      type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
+      type(entcelltype_public), intent(inout) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, year
       logical :: reinitialize
       logical, intent(in), optional :: prog_veg
@@ -279,7 +279,7 @@
       use ent_prescribed_drv, only:
      &     prescr_get_laidata,prescr_veg_albedodata,prescr_get_cropdata
       !use ent_prescr_veg, only: prescr_get_laidata,prescr_veg_albedodata
-      type(entcelltype_public), intent(out) :: entcells(I0:I1,J0:J1)
+      type(entcelltype_public), intent(inout) :: entcells(I0:I1,J0:J1)
       integer, intent(in) :: im, jm, i0, i1, j0, j1, jday, jyear
       !Local variables
       real*8, dimension(N_BANDS,N_COVERTYPES,I0:I1,J0:J1) :: albedodata !patch, NOTE:snow
