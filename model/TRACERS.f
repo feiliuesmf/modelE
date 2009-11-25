@@ -419,7 +419,7 @@ C**** Tracers dry deposition flux.
       if (trradius(n).gt.0) then
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_gs_dep'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
-     *       ' Gravitional Settling'
+     *       ' Gravitational Settling'
         units_tij(k,n)=unit_string(ijtc_power(n)-5,'kg/m^2/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
       end if
@@ -751,7 +751,7 @@ C****
       SUBROUTINE TRGRAV
 !@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : grav,deltx,lhe,rgas
+      USE CONSTANT, only : grav,deltx,lhe,rgas,visc_air
       USE MODEL_COM, only : im,jm,lm,itime,dtsrc,zatmo,t,q
       USE GEOM, only : imaxj,byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
@@ -765,10 +765,12 @@ C****
       USE TRDIAG_COM, only : jls_grav
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       IMPLICIT NONE
-      real*8 :: stokevdt,fgrfluxd,fluxd,fluxu,press,airden,temp,rh,qsat
-     *     ,vgs,tr_radius,tr_dens
+      real*8 :: stokevdt,press,fgrfluxd,qsat,vgs,tr_radius,tr_dens,temp
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told,airden,visc,rh
+     *     ,gbygz
+      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: fluxd, fluxu
       integer n,najl,i,j,l
       integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
@@ -777,6 +779,26 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+C**** Calculate some tracer independent arrays      
+C**** air density + relative humidity (wrt water) + air viscosity
+      do l=1,lm
+        do j=J_0,J_1
+          do i=I_0,imaxj(j)
+            press=pmid(l,i,j)
+            temp=pk(l,i,j)*t(i,j,l)
+            airden(i,j,l)=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx))
+            rh(i,j,l)=q(i,j,l)/qsat(temp,lhe,press)
+            visc(i,j,l)=visc_air(temp)
+            if (l.eq.1) then
+              gbygz(i,j,l)=0.
+            else
+              gbygz(i,j,l)=grav/(gz(i,j,l)-gz(i,j,l-1))
+            end if
+          end do
+        end do
+      end do
+
+C**** Gravitational settling
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** need to hydrate the sea salt before determining settling
@@ -784,53 +806,45 @@ C**** need to hydrate the sea salt before determining settling
      *         .or.trname(n).eq.'M_SSA_SS'.or. trname(n).eq.'M_SSC_SS'
      *         .or.trname(n).eq.'M_SSS_SS')
 
-C**** Gravitational settling
-!$OMP  PARALLEL DO PRIVATE (l,i,j,press,airden,temp,rh,stokevdt,
-!$OMP* fgrfluxd,fluxd,fluxu,tr_dens,tr_radius)
+          fluxd=0.
+!$OMP  PARALLEL DO PRIVATE (l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius)
+          do l=lm,1,-1          ! loop down
           do j=J_0,J_1
           do i=I_0,imaxj(j)
-            fluxd=0.
-            do l=lm,1,-1        ! loop down
 
-               tr_dens = trpdens(n)
-               tr_radius = trradius(n)
+C*** save original tracer mass
+            told(i,j,l)=trm(i,j,l,n)
+C**** set incoming flux from previous level
+            fluxu(i,j)=fluxd(i,j)
+
+C**** set particle properties
+            tr_dens = trpdens(n)
+            tr_radius = trradius(n)
 
 #ifdef TRACERS_AMP
-               if (n.le.ntmAMP) then
-                 if(AMP_MODES_MAP(n).gt.0) then
-                   if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
-     &                  tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
-                   call AMPtrdens(i,j,l,n)
-                   tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
-                 endif   
-               endif 
+            if (n.le.ntmAMP) then
+              if(AMP_MODES_MAP(n).gt.0) then
+                if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
+     &               tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
+                call AMPtrdens(i,j,l,n)
+                tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+              endif   
+            endif 
 #endif  
-              told(i,j,l)=trm(i,j,l,n)
-C**** air density + relative humidity (wrt water)
-              press=pmid(l,i,j)
-              temp=pk(l,i,j)*t(i,j,l)
-              airden=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx))
-              rh=q(i,j,l)/qsat(temp,lhe,press)
 
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
-              stokevdt=dtsrc*vgs(airden,rh,tr_radius,tr_dens,temp
-     *             ,hydrate)
-
-              fluxu=fluxd       ! from previous level
+            stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
+     *           ,tr_dens,visc(i,j,l),hydrate)
 
 C**** Calculate height differences using geopotential
-              if (l.eq.1) then  ! layer 1
-                fgrfluxd=0.     ! calc now done in PBL
-              else              ! above layer 1
-                fgrfluxd=stokevdt*grav/(gz(i,j,l)-gz(i,j,l-1))
-              end if
-              fluxd = trm(i,j,l,n)*fgrfluxd ! total flux down
-              trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu
-              if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu
-              trmom(zmoms,i,j,l,n) = trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
+            fgrfluxd=stokevdt*gbygz(i,j,l) 
+            fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
+            trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu(i,j)
+            if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu(i,j)
+            trmom(zmoms,i,j,l,n) = trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
               
-            end do
+          end do
           end do
           end do
 !$OMP END PARALLEL DO
@@ -850,13 +864,13 @@ C****
       return
       end subroutine trgrav
 
-      REAL*8 FUNCTION vgs(airden,rh1,tr_radius,tr_dens,temp,hydrate)
+      REAL*8 FUNCTION vgs(airden,rh1,tr_radius,tr_dens,visc,hydrate)
 !@sum vgs returns settling velocity for tracers (m/s)
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : visc_air,by3,pi,gasc,avog,rt2,deltx
+      USE CONSTANT, only : by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
       IMPLICIT NONE
-      real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens,temp ! Kelvin
+      real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens,visc
       logical, intent(in) :: hydrate
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
@@ -882,7 +896,7 @@ C**** hydrated density
       end if
 
 C**** calculate stoke's velocity
-      vgs=2.*grav*dens*rad**2/(9.*visc_air(temp))
+      vgs=2.*grav*dens*rad**2/(9.*visc)
 
 C**** slip correction factor
 c wmf is the additional velocity if the particle size is small compared

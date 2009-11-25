@@ -11,7 +11,7 @@
 !@cont inits,tcheck,ucheck,check1,output,rtsafe
 
       USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
-     &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo
+     &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo,visc_air
       USE SEAICE, only : tfrez
       USE LANDICE, only : snmin
 #ifdef TRACERS_ON
@@ -405,7 +405,7 @@ C****
       REAL*8 :: lmonin,snow
 #ifdef TRACERS_ON
       real*8, dimension(n,ntm) :: trsave
-      real*8 trcnst,trsf,cqsave,byrho,rh1,evap
+      real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
       real*8, dimension(n-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
@@ -650,6 +650,7 @@ C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity.
 C**** First, define some useful quantities
       ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
+      visc=visc_air(ts)         ! viscosity
       rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
       byrho=1d0/rhosrf
       tg1 = tgskin-tf ! re-calculate ground T (C)
@@ -692,7 +693,6 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
           else
             trsf=pbl_args%trsfac(itr)*cqsave*ws
           end if
-#ifdef TRACERS_SPECIAL_O18
           if (itype.eq.3) then  ! possible correction for large E over LI
             if (evap.gt.pbl_args%snow .and. pbl_args%snow.gt.snmin) then
               trc2 = (pbl_args%snow*pbl_args%trconstflx(itr)+(evap ! weighted mean tracer conc
@@ -701,6 +701,7 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
      *             (ws-ws0)*pbl_args%trdn1(itr))
             end if
           end if
+#ifdef TRACERS_SPECIAL_O18
 C**** get fractionation for isotopes
           call get_frac(itype,ws,tg1,trcnst,trsf,evap*byrho
      $         ,trc2,q(1),pbl_args%ntix(itr)
@@ -731,7 +732,7 @@ C**** need to hydrate the sea salt before determining settling
 
           if (trnradius(pbl_args%ntix(itr)).gt.0.) then
             pbl_args%gs_vel(pbl_args%ntix(itr))=vgs(rhosrf,rh1
-     &           ,tr_radius,tr_dens,ts,hydrate)
+     &           ,tr_radius,tr_dens,visc,hydrate)
           else
             pbl_args%gs_vel(pbl_args%ntix(itr))=0.
           end if
