@@ -750,6 +750,7 @@ c fms_init() has already been called.  Move that call here?
       integer :: isd, ied , jsd, jed
       integer :: capnx, capny
 #endif
+      integer :: excess
       
       !! write(*,*) "BEGIN INIT_GRID"
 
@@ -792,20 +793,35 @@ c fms_init() has already been called.  Move that call here?
       if(npes > jm-2)
      &     call stop_model('init_grid: jm too large',255)
 
-      if(npes == jm-2) then ! maximum for decomposition in latitude
-        allocate(ims(0:0), jms(0:npes-1))
-        ims(0) = im
-        jms(:) = 1
-        jms(0)      = 2 ! poles need 2 lats
-        jms(npes-1) = 2
-        Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
-     &       countsPerDEDim1=ims, countsPerDEDim2=jms,
-     &       delayout = layout, rc=rc)
-        deallocate(ims, jms)
-      else ! ask ESMF to make the decomposition
-        Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
-     &       delayout = layout, rc=rc)
-      endif
+      allocate(ims(0:0), jms(0:npes-1))
+      ! Set minimum requirements per processor
+      ! Currently this is 1 lat/proc away from poles
+      ! and 2 lat/proc at poles
+      select case (npes)
+      case (1)
+         jms(:) = JM
+      case (2)
+         jms(0) = JM/2
+         jms(1) = JM - (JM/2)
+      case (3:)
+         jms(:) = max(1,JM/npes)        ! round down
+         jms(0) = max(2, 1+(JM-1)/npes) ! round up
+         jms(npes-1) = max(2, 1+(JM-1)/npes)
+
+         ! distribute execess among interior processors
+         excess = JM - sum(jms)
+         do p = 1, npes - 2
+            jms(p) = jms(p) + 
+     &           (p+1)*excess/(npes-2) - (p*excess)/(npes-2)
+         end do
+      end select
+
+      ims(0) = im
+      
+      Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
+     &     countsPerDEDim1=ims, countsPerDEDim2=jms,
+     &     delayout = layout, rc=rc)
+
       call ESMF_GridGet(grd_dum%esmf_grid, delayout=layout, rc=rc)
       RANK_LON=0
       RANK_LAT=my_pet
