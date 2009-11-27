@@ -9051,8 +9051,6 @@ C**** at the start of any day
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 #ifdef TRACERS_SPECIAL_Shindell
-      real*8, dimension(IM,JM) :: COSZ1_glob
-      real*8, dimension(JM) :: factj_glob
       real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8 :: nlight, max_COSZ1, fact0
 #endif
@@ -9481,18 +9479,13 @@ C****
 ! number of lons to daylit lons) to try to get most of the base
 ! emissions out during daylight. The 1.274 factor is a secret.
         fact0=1.274d0*4.d0*real(im)/pi
-        call pack_data( grid, COSZ1, COSZ1_glob )
-        if(am_i_root()) then
-          do j=1,jm 
+          do j=j_0,j_1
             max_COSZ1=0.d0 ; nlight=0.d0
-            do i=1,im
-              max_COSZ1=max(max_COSZ1,COSZ1_glob(i,j))
-              if(COSZ1_glob(i,j)>0.)nlight=nlight+1.d0
-            enddo
-            factj_glob(j)=fact0/(nlight*max_COSZ1)
+            max_COSZ1 = maxval(COSZ1(1:im,j))
+            nlight = count(COSZ1(:,j) > 0.)
+            factj(j)=fact0/(nlight*max_COSZ1)
           enddo
-        endif
-        call unpack_data( grid, factj_glob, factj)
+
         do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
           if(COSZ1(i,j)>0.)then
             trsource(i,j,ns,n)=factj(j)*COSZ1(i,j)*
