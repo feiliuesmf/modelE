@@ -25,7 +25,7 @@ c these routines are only needed when running on multiple CPUs
 c
 c i/o interfaces
 c
-      public :: par_open,par_close
+      public :: par_open,par_close,par_enddef
 
       public :: write_dist_data,read_dist_data
       interface write_dist_data
@@ -162,6 +162,7 @@ c these routines are only needed when running on multiple CPUs
       character(len=*) :: mode
       integer :: par_open
       integer :: rc,rc2,fid,vid,wc,idum
+      integer :: chunksize
       if(grid%am_i_globalroot) then
         if(trim(mode).eq.'create') then
 c          rc = nf_create(trim(fname),nf_clobber,fid)
@@ -169,7 +170,9 @@ c          rc = nf_create(trim(fname),nf_clobber,fid)
           if(rc.ne.nf_noerr) write(6,*)
      &         'error creating ',trim(fname)
         elseif(trim(mode).eq.'write') then
-          rc = nf_open(trim(fname),nf_write,fid)
+c          rc = nf_open(trim(fname),nf_write,fid)
+          chunksize = 1024*1024*128
+          rc = nf__open(trim(fname),nf_write,chunksize,fid)
           if(rc.ne.nf_noerr) write(6,*)
      &         'error opening ',trim(fname)
         elseif(trim(mode).eq.'read') then
@@ -229,6 +232,16 @@ c define/overwrite the success flag for error checking
       endif
       return
       end subroutine par_close
+
+      subroutine par_enddef(grid,fid)
+      type(dist_grid), intent(in) :: grid
+      integer :: fid
+      integer :: rc
+      if(grid%am_i_globalroot) then
+        rc = nf_enddef(fid)
+      endif
+      return
+      end subroutine par_enddef
 
       subroutine par_write_nc_2D(grid,fid,varname,arr,jdim,no_xdim)
       real*8 :: arr(:,:)
@@ -707,7 +720,7 @@ c netcdf file will represent logical as 0/1 int
 #include "setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_text(fid,vid,trim(attname),attlen,attval)
-        if(do_enddef) rc2 = nf_enddef(fid)
+c        if(do_enddef) rc2 = nf_enddef(fid)
       endif
       call stoprc(rc,nf_noerr)
       return
@@ -717,7 +730,7 @@ c netcdf file will represent logical as 0/1 int
 #include "setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_int(fid,vid,trim(attname),nf_int,attlen,attval)
-        if(do_enddef) rc2 = nf_enddef(fid)
+c        if(do_enddef) rc2 = nf_enddef(fid)
       endif
       call stoprc(rc,nf_noerr)
       return
@@ -727,7 +740,7 @@ c netcdf file will represent logical as 0/1 int
 #include "setup_attput.inc"
       if(grid%am_i_globalroot) then
         rc = nf_put_att_int(fid,vid,trim(attname),nf_int,attlen,attval)
-        if(do_enddef) rc2 = nf_enddef(fid)
+c        if(do_enddef) rc2 = nf_enddef(fid)
       endif
       call stoprc(rc,nf_noerr)
       return
@@ -738,7 +751,7 @@ c netcdf file will represent logical as 0/1 int
       if(grid%am_i_globalroot) then
         rc = nf_put_att_double(fid,vid,trim(attname),nf_double,attlen,
      &       attval)
-        if(do_enddef) rc2 = nf_enddef(fid)
+c        if(do_enddef) rc2 = nf_enddef(fid)
       endif
       call stoprc(rc,nf_noerr)
       return
@@ -749,7 +762,7 @@ c netcdf file will represent logical as 0/1 int
       if(grid%am_i_globalroot) then
         rc = nf_put_att_double(fid,vid,trim(attname),nf_double,attlen,
      &       attval)
-        if(do_enddef) rc2 = nf_enddef(fid)
+c        if(do_enddef) rc2 = nf_enddef(fid)
       endif
       call stoprc(rc,nf_noerr)
       return

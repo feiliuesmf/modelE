@@ -332,7 +332,7 @@ c parameters that are defined.
       call defvar(grid,fid,intdum,'rparam')
       call defvar(grid,fid,intdum,'iparam')
       call defvar(grid,fid,intdum,'cparam')
-      call new_io_param(fid,iowrite,.false.)
+      call new_io_param(fid,iowrite,.false.,.false.)
       return
       end subroutine def_rsf_label
 
@@ -365,7 +365,7 @@ c parameters that are defined.
         call write_data(grid, fid, 'ntimeacc', ntimeacc)
         call write_data(grid, fid, 'cputime', timing(1:ntimemax))
         call io_cputime(fid,iowrite)
-        call new_io_param(fid,iowrite,.false.)
+        call new_io_param(fid,iowrite,.false.,.true.)
       case (ioread:) ! input from restart or acc file
         call read_attr(grid,fid,'global','xlabel',idum,xlabel)
         call read_data(grid,fid,'nday',nday_dummy,bcast_all=.true.)
@@ -386,7 +386,7 @@ c parameters that are defined.
           call read_data(grid,fid, 'cputime', timing(1:ntimemax),
      &         bcast_all=.true.)
           call io_cputime(fid,ioread)
-          call new_io_param(fid,ioread,.false.)
+          call new_io_param(fid,ioread,.false.,.false.)
         else
           call read_data(grid,fid,'itime', IhrX, bcast_all=.true.)
           IhrX=IhrX*24/nday_dummy
@@ -454,18 +454,19 @@ c manage the reading/writing of timing information. could be done better
       return
       end subroutine io_cputime
 
-      subroutine new_io_param(fid,iaction,ovrwrt)
+      subroutine new_io_param(fid,iaction,ovrwrt,new_possible)
 !@sum  new_io_param read/write parameter database from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com
       use domain_decomp_atm, only : grid
-      use pario, only : write_attr, read_attr, read_data, write_data
+      use pario, only : write_attr, read_attr, read_data, write_data,
+     &     par_enddef
       use param
       implicit none
       integer fid   !@var fid file id
       integer iaction !@var iaction flag for reading or writing to file
-      logical :: ovrwrt
+      logical :: ovrwrt,new_possible
       integer :: l,m,n,plen,strlen,niparam,nrparam,ncparam
       character*1 :: ptype
       integer :: pvali(1000)
@@ -506,6 +507,7 @@ c strings with the character "|".
             endif
           end select
         enddo
+        if(new_possible) call par_enddef(grid,fid)
         call write_data(grid, fid, 'iparam', niparam)
         call write_data(grid, fid, 'rparam', nrparam)
         call write_data(grid, fid, 'cparam', ncparam)
