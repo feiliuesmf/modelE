@@ -200,6 +200,8 @@ c      endif
         Atot = 0.d0
         Anet = - Rd
         ci = pspar%Gammastar * 1.d06/Pa  
+        gs = 0. ! MK: setting to 0 to avoid erratic results
+
        else
 
       cs = ca - Anet*1.37d0/gb
