@@ -10007,6 +10007,12 @@ C****
 
       end do
 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AMP)
+c Calculation of gas phase reaction rates for sulfur chemistry
+      CALL GET_SULF_GAS_RATES
+#endif
+
 #ifdef TRACERS_AEROSOLS_Koch
        call aerosol_gas_chem
        call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink

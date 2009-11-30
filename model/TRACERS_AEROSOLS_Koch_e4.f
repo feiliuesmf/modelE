@@ -1594,10 +1594,10 @@ c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
        endif   !coupled_chem.eq.0
 
 C Calculation of gas phase reaction rates
-C In coupled chemistry case, routine called from masterchem
-#ifndef  TRACERS_SPECIAL_Shindell  
-        CALL GET_SULF_GAS_RATES
-#endif
+C Now called from tracer_3Dsource
+c#ifndef  TRACERS_SPECIAL_Shindell  
+c        CALL GET_SULF_GAS_RATES
+c#endif
 
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 

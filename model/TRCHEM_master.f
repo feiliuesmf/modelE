@@ -269,7 +269,8 @@ C running-averages for interactive wetlands CH4:
 #endif
 
 C Calculation of gas phase reaction rates for sulfur chemistry:
-      CALL GET_SULF_GAS_RATES
+C Now called from tracer_3Dsource
+c      CALL GET_SULF_GAS_RATES
       
 #ifdef TRACERS_HETCHEM
 c Calculation of removal rates on dust surfaces:
