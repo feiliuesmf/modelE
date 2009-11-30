@@ -2013,7 +2013,7 @@ CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 c Save new tracer Ox and CH4 fields for use in radiation or elsewhere:
 c (radiation code wants atm*cm units):
       do j=J_0,J_1
-        DU_O3(J)=0.d0 ! Drew's diagnostic...
+        if(prnchg)DU_O3(J)=0.d0 ! Drew's diagnostic...
         do i=I_0,imaxj(j) 
 #ifdef SHINDELL_STRAT_CHEM
          maxl = LM
@@ -2033,13 +2033,13 @@ c (radiation code wants atm*cm units):
      &     (tr3Dsource(i,j,l,nChemistry,n_CH4) + 
      &     tr3Dsource(i,j,l,nStratwrite,n_CH4))*dtsrc)
      &     *byaxyp(i,j)*avog/(tr_mm(n_CH4)*2.69e20)
-           DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
+           if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
          end do
          if(maxl < LM) then
            do l=maxl+1,LM
              chem_tracer_save(1,l,i,j)=rad_to_chem(1,l,i,j)
              chem_tracer_save(2,l,i,j)=rad_to_chem(4,l,i,j)
-             DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
+             if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
            end do
          end if
 
@@ -2053,10 +2053,10 @@ c (radiation code wants atm*cm units):
 #endif
 
         end do ! i
-        DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
+        if(prnchg)DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
       end do   ! j
       
-      if(MOD(Itime,24) == 0)then
+      if(prnchg)then
        call PACK_DATA( grid, DU_O3, DU_O3_glob )
        IF(AM_I_ROOT()) THEN
          write(6,*) 'Ozone column fm -90 to +90'
