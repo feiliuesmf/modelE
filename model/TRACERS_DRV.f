@@ -9471,20 +9471,19 @@ C****
         endif
 #endif
       case ('Isoprene')
-! Attempt to emit just during sunlight. Probably very wasteful code
-! (and what about cubed-sphere compliance?) factj composed of:
+! Attempt to emit just during sunlight. factj composed of:
 ! 4/pi= ratio of step-function emissions (square of area 1) to
 ! area under cosine curve from 0 to pi/2. 1/max_COSZ1 = to account
 ! for COSZ1 not necessarily maxing out at 1.0. And im/nlight (the
 ! number of lons to daylit lons) to try to get most of the base
 ! emissions out during daylight. The 1.274 factor is a secret.
         fact0=1.274d0*4.d0*real(im)/pi
-          do j=j_0,j_1
-            max_COSZ1=0.d0 ; nlight=0.d0
-            max_COSZ1 = maxval(COSZ1(1:im,j))
-            nlight = count(COSZ1(:,j) > 0.)
-            factj(j)=fact0/(nlight*max_COSZ1)
-          enddo
+        do j=j_0,j_1
+          max_COSZ1=0.d0 ; nlight=0.d0
+          max_COSZ1 = maxval(COSZ1(1:im,j))
+          nlight = count(COSZ1(:,j) > 0.)
+          factj(j)=fact0/(nlight*max_COSZ1)
+        enddo
 
         do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
           if(COSZ1(i,j)>0.)then
