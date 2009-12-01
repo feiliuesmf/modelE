@@ -136,18 +136,19 @@
       REAL(8), PARAMETER :: DG_DD2 = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1 = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
       REAL(8), PARAMETER :: DG_DS2 = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
-      REAL(8), PARAMETER :: DG_SSA = 0.370D+00 *2.     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSA = 0.06D+00 *2.     ! set to match GISS sea salt emissions         
+!      REAL(8), PARAMETER :: DG_SSA = 0.370D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSC = 1.D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
       !-------------------------------------------------------------------------------------------------------------------
       ! DLW: 021507: End of emissions sizes used at GISS. 
       !-------------------------------------------------------------------------------------------------------------------
-      REAL(8), PARAMETER :: DG_OCC = 0.200D+00      ! geo. avg. of E04, Table 2, Aitken and accumulation modes         
-      REAL(8), PARAMETER :: DG_BC1 = 0.200D+00      ! geo. avg. of E04, Table 2, Aitken and accumulation modes         
-      REAL(8), PARAMETER :: DG_BC2 = 0.200D+00      ! 1.0164 * geo. avg. of E04, Table 2, AKK and ACC modes, w/  5% shell         
-      REAL(8), PARAMETER :: DG_BC3 = 0.200D+00      ! 1.0627 * geo. avg. of E04, Table 2, AKK and ACC modes, w/ 20% shell       
+      REAL(8), PARAMETER :: DG_OCC = 0.050D+00      ! geo. avg. of E04, Table 2, Aitken and accumulation modes         
+      REAL(8), PARAMETER :: DG_BC1 = 0.050D+00      ! geo. avg. of E04, Table 2, Aitken and accumulation modes         
+      REAL(8), PARAMETER :: DG_BC2 = 0.100D+00      ! 1.0164 * geo. avg. of E04, Table 2, AKK and ACC modes, w/  5% shell         
+      REAL(8), PARAMETER :: DG_BC3 = 0.100D+00      ! 1.0627 * geo. avg. of E04, Table 2, AKK and ACC modes, w/ 20% shell       
       REAL(8), PARAMETER :: DG_DBC = 0.330D+00      ! geo. avg. of E04, Table 2, accumulation and coarse dust modes
-      REAL(8), PARAMETER :: DG_BOC = 0.250D+00      ! assuming additive volumes for BC1 and OCC
+      REAL(8), PARAMETER :: DG_BOC = 0.100D+00      ! assuming additive volumes for BC1 and OCC
       REAL(8), PARAMETER :: DG_BCS = 0.070D+00      ! assuming add. vol. for BC1 and AKK (ACC) and greater weight for AKK
       REAL(8), PARAMETER :: DG_OCS = 0.070D+00      ! assuming add. vol. for BC1 and AKK (ACC) and greater weight for AKK
       REAL(8), PARAMETER :: DG_MXX = 0.300D+00      ! value is midrange considering all modes
@@ -195,18 +196,19 @@
       REAL(8), PARAMETER :: DG_DD2_EMIS = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1_EMIS = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
       REAL(8), PARAMETER :: DG_DS2_EMIS = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
-      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.370D+00 *2     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.060D+00 *2     ! set to match GISS sea salt emissions         
+!      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.370D+00 *2     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSC_EMIS = 1.000D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS_EMIS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
       !-------------------------------------------------------------------------------------------------------------------
       ! DLW: 021507: End of emissions sizes used at GISS. 
       !-------------------------------------------------------------------------------------------------------------------
-      REAL(8), PARAMETER :: DG_OCC_EMIS = 0.200D+00      ! geometric average of the AKK and ACC values in E04 
-      REAL(8), PARAMETER :: DG_BC1_EMIS = 0.200D+00      ! geometric average of the AKK and ACC values in E04 
-      REAL(8), PARAMETER :: DG_BC2_EMIS = 0.200D+00      !   currently no emissions into this mode 
-      REAL(8), PARAMETER :: DG_BC3_EMIS = 0.200D+00      !   currently no emissions into this mode
+      REAL(8), PARAMETER :: DG_OCC_EMIS = 0.050D+00      ! geometric average of the AKK and ACC values in E04 
+      REAL(8), PARAMETER :: DG_BC1_EMIS = 0.050D+00      ! geometric average of the AKK and ACC values in E04 
+      REAL(8), PARAMETER :: DG_BC2_EMIS = 0.100D+00      !   currently no emissions into this mode 
+      REAL(8), PARAMETER :: DG_BC3_EMIS = 0.100D+00      !   currently no emissions into this mode
       REAL(8), PARAMETER :: DG_DBC_EMIS = 0.300D+00      !   currently no emissions into this mode
-      REAL(8), PARAMETER :: DG_BOC_EMIS = 0.250D+00      ! assuming additive volumes for BC1 and OCC
+      REAL(8), PARAMETER :: DG_BOC_EMIS = 0.100D+00      ! assuming additive volumes for BC1 and OCC
       REAL(8), PARAMETER :: DG_BCS_EMIS = 0.140D+00      !   currently no emissions into this mode
       REAL(8), PARAMETER :: DG_OCS_EMIS = 0.140D+00      !   currently no emissions into this mode
       REAL(8), PARAMETER :: DG_MXX_EMIS = 0.500D+00      !   currently no emissions into this mode
