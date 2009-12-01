@@ -58,9 +58,6 @@
       USE AERO_DIAM,   ONLY: DIAM, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC 
       USE AMP_AEROSOL, ONLY: NACTV  
-#ifdef BLK_2MOM 
-     *,NACTC
-#endif
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV, VDDEP_AERO  
       IMPLICIT NONE
 
@@ -595,10 +592,9 @@
       DO J=1, NEMIS_SPCS
         P_EMIS_NUMB(EMIS_MODE_MAP(J)) = P_EMIS_NUMB(EMIS_MODE_MAP(J)) 
      &                                + EMIS_MASS(J)*RECIP_PART_MASS(J)
-      ENDDO 
+       ENDDO 
 
       DIAGTMP1(1,NUMB_MAP(:)) = P_EMIS_NUMB(:)  
-      
 ! Mass emissions are already treated before
       EMIS_MASS(:) = 0.0D+00 
 
@@ -909,9 +905,6 @@
           RSUM_ACTIV = 1.0D+00 / SUM ( NACT(:) + TINYDENOM ) 
           PIQTMP(:,PROD_INDEX_SULF) = ( NACT(:)*RSUM_ACTIV ) * AQSO4RATE
           NACTV(IXXX,IYYY,ILAY,:) = NACT(:)       ! [#/m] - Store for use outside this routine.
-#ifdef BLK_2MOM
-          NACTC(ILAY,:) = NACTV(IXXX,IYYY,ILAY,:)
-#endif
           !------------------------------------------------------------------------------------------------------------
           ! WRITE(40,'(/A,F15.6/)')'Total number activated (#/cm^3) = ', 1.0D-06/RSUM_ACTIV 
           ! DO I=1, NMODES
@@ -1319,19 +1312,19 @@
       !----------------------------------------------------------------------------------------------------------------
       ! Rescale each term of the budget for species I to get the correct sum. 
       !----------------------------------------------------------------------------------------------------------------
-      DO I=1, NAEROBOX
-        AEROTMP2(I) = 0.0D+00
-        DO K=1, 6
-          AEROTMP2(I) = AEROTMP2(I) + DIAG(K,I) + DIAG(K+7,I)
-        ENDDO 
-        AEROTMP2(I) = AEROTMP2(I) + DIAG(14,I)
-        DO J=1, 6
-          DIAG(J,I) = DIAG(J,I) * ( DIAGTMP1(7,I) / ( AEROTMP2(I) + TINYDENOM ) )
-        ENDDO 
-        DO J=8, NDIAG_AERO-1
-          DIAG(J,I) = DIAG(J,I) * ( DIAGTMP1(7,I) / ( AEROTMP2(I) + TINYDENOM ) )
-        ENDDO 
-      ENDDO 
+c      DO I=1, NAEROBOX
+c        AEROTMP2(I) = 0.0D+00
+c        DO K=1, 6 
+c         AEROTMP2(I) = AEROTMP2(I) + DIAG(K,I) + DIAG(K+7,I)
+c        ENDDO 
+c        AEROTMP2(I) = AEROTMP2(I) + DIAG(14,I)
+c         DO J=1, 6
+c          DIAG(J,I) = DIAG(J,I) * ( DIAGTMP1(7,I) / ( AEROTMP2(I) + TINYDENOM ) )
+c        ENDDO 
+c        DO J=8, NDIAG_AERO-1
+c          DIAG(J,I) = DIAG(J,I) * ( DIAGTMP1(7,I) / ( AEROTMP2(I) + TINYDENOM ) )
+c        ENDDO 
+c      ENDDO 
 
       IF( CPU_STATS ) CALL CPUTIME( 14 )
 
