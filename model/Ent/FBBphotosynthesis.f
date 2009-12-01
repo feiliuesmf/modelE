@@ -199,8 +199,9 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 #endif
         Atot = 0.d0
         Anet = - Rd
-        ci = pspar%Gammastar * 1.d06/Pa  
-        return
+        !ci = pspar%Gammastar * 1.d06/Pa  
+        !gs = pspar%b
+        !return
       endif
 
       cs = ca - Anet*1.37d0/gb
