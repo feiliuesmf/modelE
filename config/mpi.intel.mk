@@ -7,7 +7,7 @@ LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
 -lmpiif -lmpi -lstdc++ -threads
 else
 LIBS += -limf -lm -lrt -ldl \
--lmpiif -lmpi -lstdc++ -threads
+-lmpiif -lmpi_mt -lstdc++ -threads
 endif
 
 #-lmpigf -lmpi -lstdc++ -threads
