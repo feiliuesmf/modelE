@@ -1,5 +1,11 @@
 
-F90 = ifort
+F90_BASE = ifort
+F90 = $(F90_BASE) # unless
+ifeq ($(ESMF),YES)
+ ifeq ($(MP),YES)
+   F90=mpif90
+ endif
+endif
 IFORT_RELEASE := $(shell ifort --version | perl -e \
   'while(<>){ if(/ifort.* (\d+\.\d+)/) { print "$$1"; } }')
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
@@ -8,7 +14,7 @@ FFLAGS = -fpp -O2 -ftz         -convert big_endian
 F90FLAGS = -fpp -O2 -ftz        -convert big_endian -free 
 LFLAGS = -O2 -ftz
 CPPFLAGS += -DCOMPILER_Intel8 -DCONVERT_BIGENDIAN
-F90_VERSION = $(shell $(F90) -v 2>&1)
+F90_VERSION = $(shell $(F90_BASE) -v 2>&1)
 ifeq ($(MP),YES)
 FFLAGS += -openmp
 F90FLAGS += -openmp
