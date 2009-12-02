@@ -366,7 +366,7 @@ C****
 !$OMP&  SHARED(J_0, J_1, I_0, IMAXJ, FLAND, FLICE, RSI,P, PEDN,
 !$OMP&   PEK,PK,Q,T,JREG, AM, itime,
 #ifdef TRACERS_ON
-!$OMP&    ntx, ntix, trm, itime_tr0, needtrs,trm,
+!$OMP&    ntx, ntix, trm, itime_tr0, needtrs,
 #endif
 !$OMP&   byam,byaxyp,ijdd,idd_pt5,idd_q5,adiurn,
 !$OMP&   idx1,MODDD,IDD_SPR,ih, aij,FOCEAN)
