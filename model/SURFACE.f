@@ -364,11 +364,11 @@ C****
 #endif
 !$OMP*  ) 
 !$OMP&  SHARED(J_0, J_1, I_0, IMAXJ, FLAND, FLICE, RSI,P, PEDN,
-!$OMP&   PEK,PK,Q,T,JREG, AM, itime_tr0, itime,
+!$OMP&   PEK,PK,Q,T,JREG, AM, itime,
 #ifdef TRACERS_ON
-!$OMP&    ntx, ntix, 
+!$OMP&    ntx, ntix, trm, itime_tr0, needtrs,trm,
 #endif
-!$OMP&   needtrs,trm,byam,byaxyp,ijdd,idd_pt5,idd_q5,adiurn,
+!$OMP&   byam,byaxyp,ijdd,idd_pt5,idd_q5,adiurn,
 !$OMP&   idx1,MODDD,IDD_SPR,ih, aij,FOCEAN)
 !$OMP*  SCHEDULE(DYNAMIC,2)
       DO I=I_0,IMAXJ(J)
