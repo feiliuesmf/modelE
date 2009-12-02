@@ -292,6 +292,12 @@ C        not clear yet whether they still speed things up
 #endif
 #endif
 
+      integer :: iThread
+      integer :: numThreads
+      integer :: I_0thread, I_1thread, imaxj_thread
+!$    integer :: omp_get_max_threads
+!$    external omp_get_max_threads
+
       call startTimer('CONDSE()')
 C**** Initialize
 #ifdef TRACERS_SPECIAL_Shindell
@@ -380,6 +386,10 @@ C**** Find the ntx active tracers ntix(1->ntx)
 
 #endif
 
+
+      numThreads = 1 ! no openmp
+!$    numThreads = omp_get_max_threads()
+
 C****
 C**** MAIN J LOOP
 C****
@@ -391,7 +401,16 @@ C****
       if (isccp_diags.eq.1) then
         CALL BURN_RANDOM(nij_before_j0(J_0)*NCOL*(LM+1))
       end if
-!xOMP  PARALLEL DO PRIVATE (
+
+      DO J=J_0,J_1
+
+       ! Burn random numbers for earlier longitudes here.
+       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+      if (isccp_diags.eq.1) then
+        CALL BURN_RANDOM((I_0-1)*NCOL*(LM+1))
+      end if
+
+!xOMP  PARALLEL DO PRIVATE (iThread, I_0thread, I_1thread, imaxj_thread,
 #ifdef TRACERS_ON
 !xOMP*  NX,tmsave,tmomsv,
 #endif
@@ -408,26 +427,24 @@ C****
 !xOMP*  n1,n_fidx,
 #endif
 #endif
-!xOMP*  ITROP,IERR, J,JERR,JR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
+!xOMP*  ITROP,IERR, JERR,JR, K,KR, L,LERR, N,NBOX, PRCP,PFULL,PHALF,
 !xOMP*  GZIL, SD_CLDIL, WMIL, TMOMIL, QMOMIL,        ! reduced arrays
 !xOMP*  QG,QV, SKT,SSTAB, TGV,TPRCP,THSV,THV1,THV2,TAUOPT,TSV, WMERR,
 !xOMP*  LP600,LP850,CSC,DIFT, WM1,WMI,sunlit
 cECON !xOMP*  E,E1,W1,ep,ep1,q0,q1,q2,
-!xOMP*    ) SCHEDULE(DYNAMIC,2)
+c$$$!xOMP*    ) SCHEDULE(DYNAMIC,2)
 !xOMP*    REDUCTION(+:ICKERR,JCKERR)
-C
-      DO J=J_0,J_1
 
-       ! Burn random numbers for earlier longitudes here.
-       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
-      if (isccp_diags.eq.1) then
-        CALL BURN_RANDOM((I_0-1)*NCOL*(LM+1))
-      end if
+      Do ithread = 0, numThreads - 1
+         I_0thread = I_0 + (I_1-I_0+1) * iThread / numThreads
+         I_1thread = I_0 + (I_1-I_0+1) * (iThread+1) / numThreads  - 1
+         Imaxj_thread = min(IMAXJ(J), I_1thread)
+C
 C
 Cred* Reduced Arrays 2
 C
       DO L=1,LM
-      DO I=I_0,I_1
+      DO I=I_0thread,I_1thread
         GZIL(I,L) = GZ(I,J,L)
 #ifdef SCM
         SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
@@ -442,7 +459,7 @@ C
 #ifdef TRACERS_ON
       do n=1,ntm
       do l=1,lm
-      do i=i_0,imaxj(j)
+      do i=i_0thread,imaxj_thread
         trm_lni(l,n,i) = trm(i,j,l,n)
 #ifdef TRACERS_WATER
         trwm_lni(l,n,i) = trwm(i,j,l,n)
@@ -457,7 +474,7 @@ Cred* end Reduced Arrays 2
 C****
 C**** MAIN I LOOP
 C****
-      DO I=I_0,IMAXJ(J)
+      DO I=I_0thread,IMAXJ_thread
         DXYPIJ=AXYP(I,J)
         JR=JREG(I,J)
 C****
@@ -1540,6 +1557,9 @@ c     ..........
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
 
+      END DO ! loop over threads
+!xOMP  END PARALLEL DO
+
        ! Burn random numbers for later longitudes here.
        ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
       if (isccp_diags.eq.1) then
@@ -1570,9 +1590,10 @@ C****
          enddo
 #endif
 Cred*       end Reduced Arrays 3
+
       END DO
 C**** END OF MAIN LOOP FOR INDEX J
-!xOMP  END PARALLEL DO
+
 C****
 C
 C     WAS THERE AN ERROR IN SUBSID ??
