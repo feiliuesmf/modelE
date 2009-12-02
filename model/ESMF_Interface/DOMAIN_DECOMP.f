@@ -578,21 +578,35 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 #ifdef USE_ESMF
       USE ESMF_CUSTOM_MOD, Only: modelE_vm
 #endif
+      use FILEMANAGER, only: openunit
       integer :: rc
       character(len=10) :: fileName
+      character(len=10) :: hostName
+      character(len=80) :: command
+!$    integer :: omp_get_max_threads, omp_get_thread_num
+!$    external omp_get_max_threads
+!$    external omp_get_thread_num
+!$    integer :: numThreads
+      integer :: myUnit
       NPES = 1                  ! default NPES = 1 for serial run
 
 #ifdef USE_ESMF
       Call ESMF_Initialize(vm=modelE_vm, rc=rc)
       Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES, rc=rc)
+!$    call omp_set_dynamic(.false.)
+!$    numThreads = omp_get_max_threads()
+!$    call mpi_bcast(numThreads, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
+!$    call omp_set_num_threads(numThreads)
+      if(my_pet == 0) then
+         write(*,*)'Num MPI Processes: ', NPES
+!$       write(*,*)'   with ',numThreads, 'threads per process'
+      end if
       compmodelE  = ESMF_GridCompCreate(modelE_vm,"ModelE ESMF", rc=rc)
       ESMF_Layout = ESMF_DELayoutCreate(modelE_vm,
      &     deCountList = (/ 1, NPES /))
 c along with ESMF_GridCompCreate, move this somewhere into init_grid?
 c Separate atm/ocn/seaice components
 c      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
-c$$$      write(fileName,'(a,i4.4)')'trace.',my_pet
-c$$$      open(78,file=fileName,form='formatted')
 #endif
 
 #ifdef USE_MPP
