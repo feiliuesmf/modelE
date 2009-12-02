@@ -1254,11 +1254,14 @@ C**** SS clouds are considered as a block for each continuous cloud
 C****
 C**** MAIN J LOOP
 C****
+      DO J=J_0,J_1
+
 c     ICKERR=0
 c     JCKERR=0
 c     KCKERR=0
+
 !$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
-!$OMP*   I,INCH,IH,IHM,IT, J,JR, K,KR, L,LR,LFRC, N, onoff_aer,
+!$OMP*   I,INCH,IH,IHM,IT,JR, K,KR, L,LR,LFRC, N, onoff_aer,
 !$OMP*   onoff_chem, OPNSKY, CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,
 !$OMP*   taugcb,set_clayilli,set_claykaol,set_claysmec,set_claycalc,
 !$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
@@ -1267,10 +1270,10 @@ c     KCKERR=0
 #endif
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
-!$OMP*   SHARED(ITWRITE)
+!$OMP*   SHARED(ITWRITE, J)
 !$OMP    DO SCHEDULE(DYNAMIC,2)
 !!OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
-      DO 600 J=J_0,J_1
+         
 C****
 C**** MAIN I LOOP
 C****
@@ -2210,12 +2213,13 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
 C****
 C**** END OF MAIN LOOP FOR I INDEX
 C****
- 600  CONTINUE
+!$OMP  END DO
+!$OMP  END PARALLEL
+
+      END DO
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
-!$OMP  END DO
-!$OMP  END PARALLEL
 
 
       if(kradia.gt.0) then
