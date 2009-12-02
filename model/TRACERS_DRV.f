@@ -4907,6 +4907,9 @@ c Oxidants
       USE CLOUDS, ONLY : diag_wetdep
 #endif
 #endif
+#ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only: AMP_DIAG_FC
+#endif
       implicit none
       integer k,n,n1,kr
       character*50 :: unit_string

@@ -2121,8 +2121,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       if(str(1:n1-1) /= 'name')error=4
       n2 = scan( str,' ')
       read(str(n1+1:n2-1),*)nameT(n,ns)
+#ifndef TRACERS_AMP
       if(trim(trname(n)) /= trim(nameT(n,ns)))error=5
-
+#endif
       str = str(n2+1:)            ! source name
       n1 = scan( str,'=')
       if(str(1:n1-1) /= 'source')error=6
