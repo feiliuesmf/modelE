@@ -1882,7 +1882,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         if(qexist) then
           nsrc=nsrc+1
           call openunit(fname,iu,.true.)
-          call read_emis_header(nt,n,iu)
+          call read_emis_header(nt,n,iu,.true.)
           call closeunit(iu)
 ! -- begin sector  stuff --
           tr_sectors_are = ' '
@@ -1982,7 +1982,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         endif
         fname=trim(trname(n))//'_'//fnum
         call openunit(fname,iu,.true.)
-        call read_emis_header(n,ns,iu) ! maybe just ROOT should do?
+        call read_emis_header(n,ns,iu,.true.)
 
 ! now read the data: (should be in kg/m2/s please)
  
@@ -2051,7 +2051,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       end subroutine read_sfc_sources
 
 
-      subroutine read_emis_header(n,ns,iu)
+      subroutine read_emis_header(n,ns,iu,checkname)
 !@sum read_emis_header reads the emissions file's header and
 !@+   reports back the meta-data. 
 !@auth Greg Faluvegi
@@ -2066,6 +2066,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       integer :: error
       character*80 :: message,header
       character(len=300) :: out_line
+      logical :: checkname
 
       error=0
       read(iu)header
@@ -2087,11 +2088,15 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       case(10); message='read_emis_header: trans yrs not 10 years apart'
       end select
       if(error > 0) then
-        write(out_line,*) trim(header)
-        call write_parallel(trim(out_line))
-        write(out_line,*) trim(message)
-        call write_parallel(trim(out_line))
-        call stop_model('problem reading emissions',255)
+        if(error == 5 .and. checkname==.false.)then
+          continue
+        else
+          write(out_line,*) trim(header)
+          call write_parallel(trim(out_line))
+          write(out_line,*) trim(message)
+          call write_parallel(trim(out_line))
+          call stop_model('problem reading emissions',255)
+        endif
       endif
 
       end subroutine read_emis_header
@@ -2121,9 +2126,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       if(str(1:n1-1) /= 'name')error=4
       n2 = scan( str,' ')
       read(str(n1+1:n2-1),*)nameT(n,ns)
-#ifndef TRACERS_AMP
       if(trim(trname(n)) /= trim(nameT(n,ns)))error=5
-#endif
+
       str = str(n2+1:)            ! source name
       n1 = scan( str,'=')
       if(str(1:n1-1) /= 'source')error=6

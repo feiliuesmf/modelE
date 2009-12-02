@@ -708,9 +708,14 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) ::
      * hBC_all,hOC_all,hSO2_all
       character*80 title
+      logical :: checkname=.true.
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+#ifdef TRACERS_AMP
+      checkname=.false.
+#endif
 c     if (iact.eq.0) then
       if (aer_int_yr.eq.0) then
       ihyr=jyear
@@ -734,7 +739,7 @@ c     if (iact.eq.0) then
  111  format(a7,i1)
       write(title,111) 'BCB_EM_',nc
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc)
+      call read_emis_header(n,ns,iuc,checkname)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
           select case(freq(n,ns))
@@ -751,7 +756,7 @@ c     if (iact.eq.0) then
       hbc_read(:,:)=0.0
       write(title,111) 'OCB_EM_',nc
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc)
+      call read_emis_header(n,ns,iuc,checkname)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
           select case(freq(n,ns))
@@ -768,7 +773,7 @@ c     if (iact.eq.0) then
  112  format(a8,i1)
       write(title,112) 'SO2B_EM_',nc
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc)
+      call read_emis_header(n,ns,iuc,checkname)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
           select case(freq(n,ns))
@@ -882,11 +887,15 @@ c Carbonaceous aerosol emissions
       real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
      * hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm,tot
+      logical :: checkname=.true.
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
+#ifdef TRACERS_AMP
+      checkname=.false.
+#endif
 c if run just starting or if it is a new year
 c   then open new files
 c     if (iact.eq.0.or.jday.eq.1) then
@@ -912,7 +921,7 @@ c for now we assume the number of decades BC and OC are the same
       hbc_read(:,:)=0.0
       write(title,111) 'BC_EM_',nc
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc)
+      call read_emis_header(n,ns,iuc,checkname)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
           select case(freq(n,ns))
@@ -939,7 +948,7 @@ c
       write(title,111) 'OC_EM_',nc
  111  format(a6,i1)
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc)
+      call read_emis_header(n,ns,iuc,checkname)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
           select case(freq(n,ns))
@@ -1023,11 +1032,15 @@ c historic BC emissions
      * hso2_all
       real*8 d1,d2,d3,xso2ff,ff
       character*20 title
+      logical :: checkname=.true.
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
+#ifdef TRACERS_AMP
+      checkname=.false.
+#endif
 c if run just starting or if it is a new year
 c   then open new files
 c     if (iact.eq.0.or.jday.eq.1) then
@@ -1052,7 +1065,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
       write(title,111) 'SO2_EM_',nc
  111  format(a7,i1)
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns,iuc)
+      call read_emis_header(n,ns,iuc,checkname)
       ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
       do iy=1,ndec
        select case(freq(n,ns))
@@ -1127,11 +1140,15 @@ c historic BC emissions
       character*2 :: nu(10)=(/'01','02','03','04','05','06','07',
      *  '08','09','10'/)
       character*20 title
+      logical :: checkname=.true.
       save jb1,jb2,ihyr
       
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
+#ifdef TRACERS_AMP
+      checkname=.false.
+#endif
 c if run just starting or if it is a new year
 c   then open new files
 c     if (iact.eq.0.or.jday.eq.1) then
@@ -1162,7 +1179,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
        write(title,111) 'NH3_CYC_',nu(nc)
  111   format(a8,a2)
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns1,iuc)
+      call read_emis_header(n,ns1,iuc,checkname)
       ndec=(ty_end(n,ns1)-ty_start(n,ns1))/10+1
       do iy=1,ndec
        select case(freq(n,ns1))
@@ -1180,7 +1197,7 @@ c
        hnh3_read(:,:)=0.d0
        write(title,111) 'NH3_CON_',nu(nc)
       call openunit(title,iuc, .true.,.true.)
-      call read_emis_header(n,ns2,iuc)
+      call read_emis_header(n,ns2,iuc,checkname)
       ndec=(ty_end(n,ns2)-ty_start(n,ns2))/10+1
       do iy=1,ndec
        select case(freq(n,ns2))
