@@ -1410,8 +1410,6 @@ c want kg seasalt/m2/s, for now in 2 size bins
       REAL*8, INTENT(IN)::swind
       REAL*8, INTENT(OUT)::ss
 c
-      call sync_param("tune_ss1",tune_ss1)
-      call sync_param("tune_ss2",tune_ss2)
       ss=0.
         erate=0.d0
        if (imAER.ne.1) then

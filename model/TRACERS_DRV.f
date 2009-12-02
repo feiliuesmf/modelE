@@ -180,6 +180,10 @@ C**** Get itime_tr0 from rundeck if it exists
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      call sync_param("tune_ss1",tune_ss1)
+      call sync_param("tune_ss2",tune_ss2)
+#endif
 #ifdef TRACERS_SPECIAL_O18
 C**** set super saturation parameter for isotopes if needed
       call sync_param("supsatfac",supsatfac)
@@ -7628,7 +7632,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
-     * BCB_src,OCB_src,
+     * BCB_src,OCB_src, tune_ss1, tune_ss2
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
