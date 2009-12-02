@@ -1764,10 +1764,6 @@ C--------------------------------
         FULGAS(3)=1.d0
       endif
                       CALL GETGAS
-      if(use_tracer_chem(2) > 0) then
-        U0GAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
-        FULGAS(7)=1.d0 ! CH4
-      endif
 C--------------------------------
 
 
@@ -2833,6 +2829,9 @@ C****
   339 CONTINUE
       ULGAS(L,13)=U0GAS(L,13)*FULGAS(13)
   340 CONTINUE
+
+      if(use_tracer_chem(2) > 0) ! allow use of tracer CH4.
+     * ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
 
       IF(KPFCO2==1) ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
 
