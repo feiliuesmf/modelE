@@ -335,12 +335,14 @@ C**** Set up tracers for PBL calculation if required
 C****
 C**** OUTSIDE LOOP OVER J AND I, EXECUTED ONCE FOR EACH GRID POINT
 C****
+      DO J=J_0,J_1
+
 !$OMP   PARALLEL DO PRIVATE (MSI2, CM,CH,CQ,
 !$OMP*  CDTERM,CDENOM,DSHDTG,DQGDTG,DEVDTG,DTRDTG,
 !$OMP*  DF0DTG,DFDTG,DTG,DQ1X,DF1DTG,DSNDTG,
 !$OMP*  DT2, EVAP,EVAPLIM,ELHX,EVHDT,EVHEAT,EVHDT0,
 !$OMP*  F0DT,F1DT,F0,F1,F2,FSRI, HCG1,HCG2,
-!$OMP*  HTLIM,I,ITYPE,IDTYPE, J,K,
+!$OMP*  HTLIM,I,ITYPE,IDTYPE, K,
 !$OMP*  KR, MA1,MSI1, PS,P1K,PLAND,PWATER,
 !$OMP*  PLICE,PIJ,POICE,POCEAN,PTYPE,PSK, Q1,
 !$OMP*  RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS, SHEAT,SRHEAT,
@@ -366,11 +368,6 @@ C****
 !$OMP&   needtrs,trm,byam,byaxyp,ijdd,idd_pt5,idd_q5,adiurn,
 !$OMP&   idx1,MODDD,IDD_SPR,ih, aij,FOCEAN)
 !$OMP*  SCHEDULE(DYNAMIC,2)
-
-C**** Start loop over grid points
-      DO J=J_0,J_1
-c      POLE= (J.EQ.1 .or. J.EQ.JM)
-
       DO I=I_0,IMAXJ(J)
 
       EVAPLIM = 0. ; HTLIM=0.  ! need initialisation
@@ -1341,9 +1338,8 @@ C****
       END IF
       END DO   ! end of itype loop
       END DO   ! end of I loop
-
-      END DO   ! end of J loop
 !$OMP  END PARALLEL DO 
+      END DO   ! end of J loop
 
 
 C****
