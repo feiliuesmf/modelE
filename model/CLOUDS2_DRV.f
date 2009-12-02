@@ -1557,20 +1557,11 @@ c     ..........
       END DO
 C**** END OF MAIN LOOP FOR INDEX I
 
-      END DO ! loop over threads
-!xOMP  END PARALLEL DO
-
-       ! Burn random numbers for later longitudes here.
-       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
-      if (isccp_diags.eq.1) then
-        CALL BURN_RANDOM(nij_after_i1(I_1)*NCOL*(LM+1))
-      end if
-
 C****
 Cred*           Reduced Arrays 3
 C****
          DO L=1,LM
-         DO I=I_0,I_1
+         DO I=I_0thread,I_1thread
             WM(I,J,L) = WMIL(I,L)
             T3MOM(:,I,J,L) = TMOMIL(:,I,L)
             Q3MOM(:,I,J,L) = QMOMIL(:,I,L)
@@ -1579,7 +1570,7 @@ C****
 #ifdef TRACERS_ON
          do n=1,ntm
          do l=1,lm
-         do i=i_0,imaxj(j)
+         do i=i_0thread,imaxj_thread
            trm(i,j,l,n) = trm_lni(l,n,i)
 #ifdef TRACERS_WATER
            trwm(i,j,l,n) = trwm_lni(l,n,i)
@@ -1590,6 +1581,16 @@ C****
          enddo
 #endif
 Cred*       end Reduced Arrays 3
+
+      END DO ! loop over threads
+!xOMP  END PARALLEL DO
+
+
+       ! Burn random numbers for later longitudes here.
+       ! Actual generation of random numbers is in CLOUDS2.f::ISCCP_CLOUD_TYPES
+      if (isccp_diags.eq.1) then
+        CALL BURN_RANDOM(nij_after_i1(I_1)*NCOL*(LM+1))
+      end if
 
       END DO
 C**** END OF MAIN LOOP FOR INDEX J
