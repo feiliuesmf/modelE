@@ -91,6 +91,9 @@
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      USE AEROSOL_SOURCES, only: tune_ss1, tune_ss2
+#endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
       integer :: l,k,n,kr,m
@@ -7632,7 +7635,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only: DMSinput,BCI_src,OCI_src,
-     * BCB_src,OCB_src, tune_ss1, tune_ss2
+     * BCB_src,OCB_src
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
