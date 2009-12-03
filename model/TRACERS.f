@@ -617,7 +617,9 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
-!$OMP PARALLEL DO PRIVATE (L,I,J,fred)
+!$OMP PARALLEL DO DEFAULT(NONE) PRIVATE (L,I,J,fred)
+!$OMP&  SHARED(trm, dtrm, tr3Dsource, dtsrc, domom, naij, taijs, 
+!$OMP&         imaxj, eps, j_0, j_1, i_0, ns, n, trmom)
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
@@ -799,6 +801,11 @@ C**** air density + relative humidity (wrt water) + air viscosity
       end do
 
 C**** Gravitational settling
+!$OMP  PARALLEL DO DEFAULT (NONE)
+!$OMP&   SHARED(J_0,J_1,I_0,IMAXJ,trm,trpdens,trradius,dtsrc,
+!$OMP&          airden,rh,visc,gbygz,trmom,itime,itime_tr0,jls_grav )
+!$OMP&   PRIVATE (n,l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius,
+!$OMP&      hydrate, fluxd, fluxu, told, najl)
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** need to hydrate the sea salt before determining settling
@@ -807,47 +814,44 @@ C**** need to hydrate the sea salt before determining settling
      *         .or.trname(n).eq.'M_SSS_SS')
 
           fluxd=0.
-!$OMP  PARALLEL DO PRIVATE (l,i,j,stokevdt,fgrfluxd,tr_dens,tr_radius)
           do l=lm,1,-1          ! loop down
-          do j=J_0,J_1
-          do i=I_0,imaxj(j)
+            do j=J_0,J_1
+              do i=I_0,imaxj(j)
 
 C*** save original tracer mass
-            told(i,j,l)=trm(i,j,l,n)
+                told(i,j,l)=trm(i,j,l,n)
 C**** set incoming flux from previous level
-            fluxu(i,j)=fluxd(i,j)
+                fluxu(i,j)=fluxd(i,j)
 
 C**** set particle properties
-            tr_dens = trpdens(n)
-            tr_radius = trradius(n)
+                tr_dens = trpdens(n)
+                tr_radius = trradius(n)
 
 #ifdef TRACERS_AMP
-            if (n.le.ntmAMP) then
-              if(AMP_MODES_MAP(n).gt.0) then
-                if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
-     &               tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
-                call AMPtrdens(i,j,l,n)
-                tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
-              endif   
-            endif 
+                if (n.le.ntmAMP) then
+                  if(AMP_MODES_MAP(n).gt.0) then
+                    if(DIAM(i,j,l,AMP_MODES_MAP(n)).gt.0.) 
+     &                    tr_radius =DIAM(i,j,l,AMP_MODES_MAP(n)) *0.5
+                    call AMPtrdens(i,j,l,n)
+                    tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(n))
+                  endif   
+                endif 
 #endif  
 
 C**** calculate stoke's velocity (including possible hydration effects
 C**** and slip correction factor)
-            stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
-     *           ,tr_dens,visc(i,j,l),hydrate)
+                stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
+     *               ,tr_dens,visc(i,j,l),hydrate)
 
 C**** Calculate height differences using geopotential
-            fgrfluxd=stokevdt*gbygz(i,j,l) 
-            fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
-            trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu(i,j)
-            if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu(i,j)
-            trmom(zmoms,i,j,l,n) = trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
-              
+                fgrfluxd=stokevdt*gbygz(i,j,l) 
+                fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
+                trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu(i,j)
+                if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu(i,j)
+                trmom(zmoms,i,j,l,n)=trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
+              end do
+            end do
           end do
-          end do
-          end do
-!$OMP END PARALLEL DO
           najl = jls_grav(n)
           IF (najl > 0) THEN
             do l=1,lm
@@ -860,7 +864,10 @@ C**** Calculate height differences using geopotential
           END IF
         end if
       end do
+!$OMP END PARALLEL DO
+
 C****
+
       return
       end subroutine trgrav
 
