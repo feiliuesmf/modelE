@@ -147,16 +147,21 @@ c      call ave_uv_to_agrid(u_3d,v_3d,u_3d_agrid,v_3d_agrid,lm)
       call getdz(t_3d_virtual,dz_3d,dze_3d,rho_3d,rhoe_3d,tvsurf
      &     ,lm)
 
-!$OMP  PARALLEL DO PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
+!$OMP  PARALLEL DO DEFAULT(NONE)
+!$OMP&  PRIVATE (L,I,J,u,v,t,q,e,rho,rhoe,t0,q0,e0,qturb,
 !$OMP*   dze,dz,bydzerho,rhobydze,bydzrhoe,rhoebydz,tvs,uflx,vflx,
 !$OMP*   qflx,tvflx,ustar,ustar2,alpha1,dudz,dvdz,dtdz,dqdz,g_alpha,
 !$OMP*   an2,as2,ze,lscale,dbl,ldbl,wstar,kh,km,ke,wt,wq,w2,uw,vw,
 !$OMP*   wt_nl,wq_nl,lmonin,p3,p4,x_surf,flux_bot,flux_top,t0ijl,tijl,
-!$OMP*   tpe0,tpe1,ediff
+!$OMP*   tpe0,tpe1,ediff,byamkg,amkg,dtrm
 #ifdef TRACERS_ON
 !$OMP*   ,n,nx,trij,tr0ij,trflx,wc_nl
 #endif
-!$OMP*    ) SHARED(dtime
+!$OMP*    ) SHARED(dtime,J_0,J_1,I_0,imaxj,u_3d_agrid,v_3d_agrid,
+!$OMP*   uasv,t_3d_virtual,q_3d,e_3d,rho_3d,rhoe_3d,dz_3d,byam,ntix,
+!$OMP*   trm, pek, tvsurf,uflux1,vflux1,qflux1,tflux1,qsavg,tsavg,
+!$OMP*   trflux1,prt,t_qlimit,dze_3d,byaxyp,dclev,t_3d,pk,pdsig,w2_3d,
+!$OMP*   JL_TRBHR,JL_TRBDLHT,JL_TRBKE,am,axyp,jlnt_turb,km_3d
 #ifdef TRACERS_ON
 !$OMP*    ,nta
 #endif
