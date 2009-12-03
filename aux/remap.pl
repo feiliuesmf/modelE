@@ -15,11 +15,12 @@ open(PARFILE, "$rfile") or die "can't open $rfile";
 $exist=1;
 $lexist=0;
 $mtexist=0;
+$netcdf=0;
 
 while (<PARFILE>) {
     if ( /End/ ) { last; }
     s/!.*//;
-    push @parameter, /([\w.+_-]+\s*=\s*[\w.\/+_-]+)/g;
+    push @parameter, /([\w.,+_-]+\s*=\s*[\w.,\/+_-]+)/g;
 }
 
 foreach $_ ( @parameter ) {
@@ -76,6 +77,11 @@ foreach $_ ( @parameter ) {
 }
 
 if ( $exist) {
+
+if ( $filesource =~ m/.nc/i) {
+   print "netcdf input file \n";
+   $netcdf=1;
+}
   $files1="$filedir/$filesource";
   print "$files1\n";
   `cp $files1 .`;
@@ -91,8 +97,11 @@ if ( $exist) {
     $maintitle='no';
   }
 
+if ($netcdf) {
+  `./ncll2cs $filesource $filetarget $regridfile $ntilessource $imtarget $jmtarget $ntilestarget $format > output`;
+} else {
   `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget $format $nfields $title $levels $maintitle > output`;
-
+}
   open( FILE, "< output" ) or die "Can't open output file : $!";
   while( <FILE> ) {
     print;
