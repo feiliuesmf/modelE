@@ -249,8 +249,7 @@ c    search for commas and separate different dimensions
       if(status .ne. nf_noerr) write(*,*)
      &     "ERROR CREATING ",trim(filetarget)
 
-c     read dimensions from input netcdf file
-      
+c     read dimensions from input netcdf file     
       do i=1,imax
          status = nf_inq_dimid(fid,cdim(i),vid)
          status = nf_inq_dimlen(fid,vid,dim(i))
@@ -288,26 +287,25 @@ c***  first loop to define variables which have format == cformat
 
       do i = 1, nvars
          status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
-
+         
          if (cform .eq. 'ijl') then
 c     find ids of the different dimensions
-         if (cval .eq. 'lon')   idims=ishape(1)
-         if (cval .eq. 'lat')   idjms=ishape(1)
-         if (cval .eq. cdim(1)) idlms=ishape(1)
+            if (cval .eq. 'lon')   idims=ishape(1)
+            if (cval .eq. 'lat')   idjms=ishape(1)
+            if (cval .eq. cdim(1)) idlms=ishape(1)
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idims .and. 
      &           ishape(2) .eq. idjms .and. 
      &           ishape(3) .eq. idlms .and. ndim .eq. 3) then
-
+               
                allocate(tijl(imt,jmt,lms,ntt))
                status = nf_inq_varid(fid,cval,vid)
                
 c     define each remaped variable to netcdf output file
                vname=trim(cval)//'(im,jm,lm,tile)'
                write(*,*) vname
-               call defvar(fidt,imt,jmt,ntt,tijl,trim(vname), 
-     &              r4_on_disk=r4_on_disk)
-                 deallocate(tijl)
+               call defvar(fidt,imt,jmt,ntt,tijl,trim(vname))
+               deallocate(tijl)
             endif
          endif
 
@@ -315,23 +313,22 @@ c     define each remaped variable to netcdf output file
 c     find ids of the different dimensions
             if (cval .eq. 'lon')   idims=ishape(1)
             if (cval .eq. 'lat')   idjms=ishape(1)
-
+            
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idjms .and. 
      &           ishape(2) .eq. idims ) then
-
+               
                allocate(tij(imt,jmt,ntt))
                status = nf_inq_varid(fid,cval,vid)
-
+               
 c     define each remaped variable to netcdf output file
                vname=trim(cval)//'(im,jm,tile)'
                write(*,*) vname
-               call defvar(fidt,imt,jmt,ntt,tij,trim(vname), 
-     &              r4_on_disk=r4_on_disk)    
+               call defvar(fidt,imt,jmt,ntt,tij,trim(vname))
                deallocate(tij)
             endif
          endif       
-      enddo    !end of first loop
+      enddo                     !end of first loop
 
       status = nf_close(fid)
 
@@ -364,6 +361,7 @@ c     extract values of variables having correct format
                
 c     remap variables with correct format
                sijl=sijl4
+               write(*,*) "shape=",shape(sijl)
                do n=1,lms
                   call do_regrid(x2grids,sijl(:,:,n,:),tijl(:,:,n,:))
                enddo

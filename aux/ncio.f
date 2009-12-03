@@ -128,85 +128,85 @@ c
       end subroutine write_nc_1D_array_of_strings
 
       subroutine defvar_0D(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       real*8 :: arr
-      integer, parameter :: dtype=nf_double
+      integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_0D
       subroutine defvar_1D(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       real*8 :: arr(:)
-      integer, parameter :: dtype=nf_double
+      integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_1D
       subroutine defvar_2D(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       real*8 :: arr(:,:)
-      integer, parameter :: dtype=nf_double
+      integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc' 
       return
       end subroutine defvar_2D
       subroutine defvar_3D(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       real*8 :: arr(:,:,:)
-      integer, parameter :: dtype=nf_double
+      integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_3D
       subroutine defvar_4D(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       real*8 :: arr(:,:,:,:)
-      integer, parameter :: dtype=nf_double
+      integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_4D
       subroutine defvar_5D(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       real*8 :: arr(:,:,:,:,:)
-      integer, parameter :: dtype=nf_double
+      integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_5D
 
       subroutine defvar_0D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       integer :: arr
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_0D_int
       subroutine defvar_1D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       integer :: arr(:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_1D_int
       subroutine defvar_2D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       integer :: arr(:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_2D_int
       subroutine defvar_3D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       integer :: arr(:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_3D_int
       subroutine defvar_4D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       integer :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_4D_int
       subroutine defvar_5D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,defby)
+     &     arr,varinfo,defby)
       integer :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
@@ -214,7 +214,7 @@ c
       end subroutine defvar_5D_int
 
       subroutine defvar_2D_logical(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,
+     &     arr,varinfo,
      &     defby)
       logical :: arr(:,:)
 c netcdf file will represent logical as 0/1 int
@@ -224,7 +224,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine defvar_2D_logical
 
       subroutine defvar_2D_char(fid,npx,npy,ntiles,
-     &     arr,varinfo,r4_on_disk,
+     &     arr,varinfo,
      &     defby)
       character :: arr(:,:)
       integer, parameter :: dtype=nf_char
