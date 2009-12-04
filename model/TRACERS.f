@@ -1124,6 +1124,7 @@ C**** check whether air mass is conserved
       USE fluxes,ONLY : nstype,pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
+      USE param, only : sync_param
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write

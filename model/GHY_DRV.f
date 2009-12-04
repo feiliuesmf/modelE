@@ -2444,7 +2444,7 @@ c**** fix initial conditions for soil heat if necessry
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 #ifdef USE_ENT
             !call stop_model("fix*_ic not implemented for Ent",255)
-            !shc_can = 1.d30 ! i.e. don't check canopy heat
+            !shc_can = 1.d30 ! i.e. don''t check canopy heat
             call ent_get_exports( entcells(i,j),
      &           canopy_heat_capacity=shc_can )
 
@@ -3666,7 +3666,7 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
      &     im, jm, 1, im, J_0, J_1, jday, jyear )
 
       !if(cond_scheme.eq.2) call updsur (0,jday)
-      ! we don't use cond_scheme==1 any more, so call it always
+      ! we don''t use cond_scheme==1 any more, so call it always
       call updsur (0,jday)
 c****
 #else
