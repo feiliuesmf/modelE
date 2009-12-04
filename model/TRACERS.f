@@ -1177,6 +1177,12 @@ C**** check whether air mass is conserved
          img = 1
          jmg = 1
       end if
+
+      ! update database parameters which are needed for reading
+#ifdef TRACERS_ON
+      call sync_param( "coupled_chem", coupled_chem )
+#endif
+
       allocate(
      &     TRM_GLOB(img,jmg,LM)
      &     ,TRMOM_GLOB(NMOM,img,jmg,LM)
