@@ -213,7 +213,7 @@ C****
 #endif
 
       total(:,:) = 0.
-!$OMP PARALLEL DO PRIVATE (J,L,I)
+
       do l=1,ltop
         do j=J_0,J_1
           do i=I_0,imaxj(j)
@@ -224,7 +224,7 @@ C****
           end do
         end do
       end do
-!$OMP END PARALLEL DO
+
       IF (HAVE_SOUTH_POLE) total(2:im,1) = total(1,1)
       IF (HAVE_NORTH_POLE) total(2:im,jm)= total(1,jm)
       return
