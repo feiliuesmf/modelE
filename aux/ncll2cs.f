@@ -331,8 +331,8 @@ c     define each remaped variable to netcdf output file
       enddo      !end of first loop
 
       status = nf_close(fid)
-
       status = nf_enddef(fidt)
+
       if (status .ne. NF_NOERR) 
      &     write(*,*) "Problem with enddef"
 
@@ -371,7 +371,7 @@ c     shift by 180 degrees if data aligned on Greenwich meridian
                endif
 c     remap variables with correct format
                sijl=sijl4
-               write(*,*) "shape=",shape(sijl)
+
                do n=1,lms
                   call do_regrid(x2grids,sijl(:,:,n,:),tijl(:,:,n,:))
                enddo
@@ -413,45 +413,46 @@ c     write each remaped variable to netcdf output file
                deallocate(tij4, tij)
             endif
          endif       
-      enddo      !end of 2nd loop
 
-      stop
+         if (cformat .eq. 'kij') then
+c     find ids of the different dimensions
+            if (cval .eq. 'lon')   idims=ishape(1)
+            if (cval .eq. 'lat')   idjms=ishape(1)
+            if (cval .eq. cdim(1)) idlms=ishape(1)
 
-      if (cformat .eq. 'lij' .or. cformat .eq. 'LIJ') then
-         
-         allocate(slij(lms,ims,jms,nts),slij4(lms,ims,jms,nts))
-         allocate(tlij(lms,imt,jmt,ntt),tlij4(lms,imt,jmt,ntt))         
-         
-         do 
-            read(unit=iuin,end=80) slij4
-            slij=slij4
-            do n=1,lms
-               call do_regrid(x2grids,slij(n,:,:,:),tlij(n,:,:,:))
-            enddo
-            tlij4=tlij
-            write(unit=iuout) tlij4
-            maxrec=maxrec+1
-         enddo
- 80      continue
-         
-         deallocate(slij4, slij) 
-         deallocate(tlij4, tlij)
-         
-      endif
+c     extract values of variables having correct format 
+            if (ishape(1) .eq. idlms .and. 
+     &           ishape(2) .eq. idims .and. 
+     &           ishape(3) .eq. idjms .and. ndim .eq. 3) then
+               
+               allocate(slij(lms,ims,jms,nts),slij4(lms,ims,jms,nts))
+               allocate(tlij(lms,imt,jmt,ntt),tlij4(lms,imt,jmt,ntt))    
+               
+               status = nf_inq_varid(fid,cval,vid)
+               status = nf_get_var_real(fid,vid,slij4)
+               
+c     remap variables with correct format
+               slij=slij4
+               
+               do n=1,lms
+                  call do_regrid(x2grids,slij(n,:,:,:),tlij(n,:,:,:))
+               enddo
+               tlij4=tlij
+               
+c     write each remaped variable to netcdf output file  
+               write(*,*) "write ",adjustl(trim(cval))," in output file"
+               call write_data(fidt,trim(cval),tlij4)
+               
+               deallocate(slij4, slij) 
+               deallocate(tlij4, tlij)
+               
+            endif
+         endif
+      enddo    !end of 2nd loop
+
+      status = nf_close(fidt)
+      status = nf_close(fid)
       
-      close(iuin)
-      close(iuout)
-
- 
-      write(6,*) "remapped file contains:"
-      write(6,100) maxrec," records"
-      write(6,200) "record format ",trim(cformat)
-
- 100  format(3X, I2, A)
- 200  format(4X, A, A)
-
-
+      write(6,*) "remapped file contains:",nvars,"records"
+      
       end program ncll2cs
-
-
-
