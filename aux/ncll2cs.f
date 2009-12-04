@@ -361,7 +361,7 @@ c     extract values of variables having correct format
                status = nf_get_var_real(fid,vid,sijl4)
                
 c     shift by 180 degrees if data aligned on Greenwich meridian
-               if (trim(cidl) .ne. 'y' .or. trim(cidl) .ne. 'Y') then
+               if (trim(cidl) .ne. 'y' .and. trim(cidl) .ne. 'Y') then
                   is=ims/2
                   do n=1,is
                      sijl4shift(n,:,:,:)=sijl4(n+is,:,:,:)
