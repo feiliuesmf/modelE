@@ -238,7 +238,8 @@ CCC      real*8 :: bgrid
 
       CONTAINS
 
-      subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
+      subroutine advanc(pbl_args,numPBLlayers,ntm
+     &     ,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,ilong,jlat,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,u,v,t,q,e
@@ -360,6 +361,8 @@ c  internals:
       !-- in/out structure
       type (t_pbl_args), intent(inout) :: pbl_args
       !-- input:
+      integer, intent(in) :: numPBLlayers
+      integer, intent(in) :: ntm
       real*8, intent(in) :: coriol,utop,vtop,qtop,ztop,ts_guess
       real*8, intent(in) :: mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
@@ -369,13 +372,13 @@ c  internals:
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
       !-- inout:
       real*8, intent(inout) :: z0m
-      real*8, dimension(n),   intent(inout) :: u,v,t,q
-      real*8, dimension(n-1), intent(inout) :: e
+      real*8, dimension(numPBLlayers),   intent(inout) :: u,v,t,q
+      real*8, dimension(numPBLlayers-1), intent(inout) :: e
 #if defined(TRACERS_ON)
 !@var  tr local tracer profile (passive scalars)
       real*8, intent(in) :: ptype
       real*8, dimension(ntm), intent(in) :: trnradius,trndens,trnmm
-      real*8, dimension(n,ntm), intent(inout) :: tr
+      real*8, dimension(numPBLlayers,ntm), intent(inout) :: tr
 #endif
 
 c**** local vars for input from pbl_args
@@ -395,18 +398,19 @@ c**** other local vars
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
-      real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
+      real*8, dimension(numPBLlayers) :: dz,xi,usave,vsave,tsave,qsave
      *       ,usave1,vsave1,tsave1,qsave1
-      real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
+      real*8, dimension(numPBLlayers-1) :: lscale,dzh,xihat,kh,kq,ke,
+     *     esave,esave1
       integer :: i,iter,ierr  !@var i,iter loop variable
 C****
-      REAL*8,DIMENSION(n) :: z
-      REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
+      REAL*8,DIMENSION(numPBLlayers) :: z
+      REAL*8,DIMENSION(numPBLlayers-1) :: zhat,km,gm,gh
       REAL*8 :: lmonin,snow
 #ifdef TRACERS_ON
-      real*8, dimension(n,ntm) :: trsave
+      real*8, dimension(numPBLlayers,ntm) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
-      real*8, dimension(n-1) :: kqsave
+      real*8, dimension(numPBLlayers-1) :: kqsave
       integer itr
 #ifdef TRACERS_WATER
       real*8 :: trc2         ! could be passed out....
@@ -427,7 +431,9 @@ C****
       REAL*8 :: dsrcflx,dsrcflx2
       real*8 wspdf,delt
 #endif
+      integer :: n ! not host associated
 
+      n = numPBLlayers
 c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
       tgrnd0 = pbl_args%tgv
