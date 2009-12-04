@@ -5,3 +5,4 @@ ntilestarget=6
 imtarget=90
 jmtarget=90
 format=time,lat,lon
+intdateline=y

@@ -19,7 +19,7 @@
 !@+  jmtarget     =  jm resolution of target (cubed sphere) grid
 !@+  format       =  format of the variable that the user wants to regrid (e.g. time,lat,lon)
 !@+                  note that with netcdf the dimensions are declared in reverse order 
-!@+                  ( == C ordering == column major) with respect to fortran ( == row major)
+!@+                  ( == C ordering == row major) with respect to fortran ( == column major)
       private
       public :: x_2grids, init_regrid, do_regrid
 
@@ -134,7 +134,6 @@ c
      &     x2grids%ntilestarget)
       integer :: n,icub,jcub,i,j,itile,icc,jcc,il,jl
 
-
       if ((x2grids%ntilessource .eq. 1) .and.
      &     (x2grids%ntilestarget .eq. 6)) then
 
@@ -183,11 +182,12 @@ c     ll2cs
       implicit none
       include 'netcdf.inc'
       character*150 :: filesource,filetarget,regridfile,cnts,
-     &     cimt,cjmt,cntt,cformat,ccopy
+     &     cimt,cjmt,cntt,cformat,ccopy,cidl
       character*80 :: title
       real*4, allocatable :: sij4(:,:,:) , tij4(:,:,:)   ! ij arrays
       real*8, allocatable :: sij(:,:,:)  , tij(:,:,:)
-      real*4, allocatable :: sijl4(:,:,:,:) , tijl4(:,:,:,:)  !ijl arrays
+      real*4, allocatable :: sijl4(:,:,:,:), sijl4shift(:,:,:,:) 
+     &     , tijl4(:,:,:,:)     !ijl arrays
       real*8, allocatable :: sijl(:,:,:,:)  , tijl(:,:,:,:)
       real*4, allocatable :: slij4(:,:,:,:) , tlij4(:,:,:,:)  !lij arrays
       real*8, allocatable :: slij(:,:,:,:)  , tlij(:,:,:,:)
@@ -196,7 +196,7 @@ c     ll2cs
       type (x_2grids) :: x2grids
       integer :: offset(10),dim(10)
       integer :: ndims, nvars, ngatts, itype, ndim, natt, UNLIMDIMID,
-     &     idlms,idjms,idims
+     &     idlms,idjms,idims,is
       character*20 :: cdim(10),cform
       character*80 :: cval,vname
       integer ::  ishape(3)   ! variable shape
@@ -205,7 +205,7 @@ c     ll2cs
       
 
       nargs = IARGC()
-      IF(nargs.lt.8) write(*,*) "ncll2cs needs 8 arguments";
+      IF(nargs.lt.9) write(*,*) "ncll2cs needs 9 arguments";
 
       call getarg(1,filesource)
       call getarg(2,filetarget)
@@ -215,6 +215,7 @@ c     ll2cs
       call getarg(6,cjmt)
       call getarg(7,cntt)
       call getarg(8,cformat)
+      call getarg(9,cidl)
       read(cnts,'(I4)') nts
       read(cimt,'(I4)') imt
       read(cjmt,'(I4)') jmt
@@ -277,8 +278,6 @@ c     find if format is 'ij', 'ijl', 'kij'
       write(*,*) "array format=",cform
       if (cform .eq. 'ijl') write(*,*) "i j l=",ims,jms,lms
 
-
-
 c***  Initialize exchange grid
       call init_regrid(regridfile,x2grids,ims,jms,nts,imt,jmt,ntt)
 
@@ -293,10 +292,11 @@ c     find ids of the different dimensions
             if (cval .eq. 'lon')   idims=ishape(1)
             if (cval .eq. 'lat')   idjms=ishape(1)
             if (cval .eq. cdim(1)) idlms=ishape(1)
+
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idims .and. 
-     &           ishape(2) .eq. idjms .and. 
-     &           ishape(3) .eq. idlms .and. ndim .eq. 3) then
+     &          ishape(2) .eq. idjms .and. 
+     &          ishape(3) .eq. idlms .and. ndim .eq. 3) then
                
                allocate(tijl(imt,jmt,lms,ntt))
                status = nf_inq_varid(fid,cval,vid)
@@ -316,7 +316,7 @@ c     find ids of the different dimensions
             
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idjms .and. 
-     &           ishape(2) .eq. idims ) then
+     &          ishape(2) .eq. idims ) then
                
                allocate(tij(imt,jmt,ntt))
                status = nf_inq_varid(fid,cval,vid)
@@ -328,7 +328,7 @@ c     define each remaped variable to netcdf output file
                deallocate(tij)
             endif
          endif       
-      enddo                     !end of first loop
+      enddo      !end of first loop
 
       status = nf_close(fid)
 
@@ -350,15 +350,25 @@ c     find ids of the different dimensions
 
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idims .and. 
-     &           ishape(2) .eq. idjms .and. 
-     &           ishape(3) .eq. idlms .and. ndim .eq. 3) then
+     &          ishape(2) .eq. idjms .and. 
+     &          ishape(3) .eq. idlms .and. ndim .eq. 3) then
 
                allocate(sijl(ims,jms,lms,nts),sijl4(ims,jms,lms,nts),
+     &              sijl4shift(ims,jms,lms,nts),
      &              tijl(imt,jmt,lms,ntt),tijl4(imt,jmt,lms,ntt))
                
                status = nf_inq_varid(fid,cval,vid)
                status = nf_get_var_real(fid,vid,sijl4)
                
+c     shift by 180 degrees if data aligned on Greenwich meridian
+               if (trim(cidl) .ne. 'y' .or. trim(cidl) .ne. 'Y') then
+                  is=ims/2
+                  do n=1,is
+                     sijl4shift(n,:,:,:)=sijl4(n+is,:,:,:)
+                     sijl4shift(n+is,:,:,:)=sijl4(n,:,:,:)
+                  enddo
+                  sijl4=sijl4shift
+               endif
 c     remap variables with correct format
                sijl=sijl4
                write(*,*) "shape=",shape(sijl)
@@ -371,7 +381,7 @@ c     write each remaped variable to netcdf output file
                write(*,*) "write ",adjustl(trim(cval))," in output file"
                call write_data(fidt,trim(cval),tijl4)
 
-               deallocate(sijl4, sijl) 
+               deallocate(sijl4, sijl4shift, sijl) 
                deallocate(tijl4, tijl)
             endif
          endif
@@ -403,7 +413,7 @@ c     write each remaped variable to netcdf output file
                deallocate(tij4, tij)
             endif
          endif       
-      enddo    !end of 2nd loop
+      enddo      !end of 2nd loop
 
       stop
 

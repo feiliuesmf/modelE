@@ -25,7 +25,7 @@ while (<PARFILE>) {
 
 foreach $_ ( @parameter ) {
   ($name, $dest) = split /\s*=\s*/;
-  if ( $name !~ /^(filedir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|nfields|title|levels|maintitle)$/ ) {
+  if ( $name !~ /^(filedir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|intdateline|nfields|title|levels|maintitle)$/ ) {
     print "parameter $name doesn't exist\n";
     $exist=0
     #exit 1;
@@ -71,6 +71,9 @@ foreach $_ ( @parameter ) {
       $maintitle=$dest;
       $mtexist=1;
     }
+    elsif ($name =~ "intdateline"){
+      $idl=$dest;
+    }
 
   }
 
@@ -98,7 +101,7 @@ if ( $filesource =~ m/.nc/i) {
   }
 
 if ($netcdf) {
-  `./ncll2cs $filesource $filetarget $regridfile $ntilessource $imtarget $jmtarget $ntilestarget $format > output`;
+  `./ncll2cs $filesource $filetarget $regridfile $ntilessource $imtarget $jmtarget $ntilestarget $format $idl > output`;
 } else {
   `./ll2cs $filesource $filetarget $regridfile $imsource $jmsource $ntilessource $imtarget $jmtarget $ntilestarget $format $nfields $title $levels $maintitle > output`;
 }
