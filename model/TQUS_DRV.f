@@ -443,7 +443,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
      &                                         rmom
       logical ::  qlimit
       REAL*8  AM(IM), F_I(IM), FMOM_I(NMOM,IM)
-      REAL*8, intent(out),
+      REAL*8, intent(inout),
      *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: safv
       character*8 tname
       integer :: nstep(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
@@ -452,6 +452,7 @@ ccc   use QUSCOM, only : im,jm,lm, xstride,am,f_i,fmom_i
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      REAL*8 :: safvl(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -463,6 +464,7 @@ C****
 
 c**** loop over layers and latitudes
       ICKERR_LOC=0
+      safvl = 0
 !$OMP  PARALLEL DO PRIVATE (J,L,NS,AM,F_I,FMOM_I,IERR,NERR)
 !$OMP* SHARED(IM,QLIMIT,XSTRIDE)
 !$OMP* REDUCTION(+:ICKERR_LOC)
@@ -482,12 +484,13 @@ c****
       end if
 
 ! store tracer flux in safv array
-      safv(:,j) = safv(:,j) + f_i(:) 
+      safvl(:,j,l) = safvl(:,j,l) + f_i(:) 
 
       enddo ! ns
       enddo ! j
       enddo ! l
 !$OMP  END PARALLEL DO
+      safv = safv + sum(safvl,3)
 
       If (HAVE_NORTH_POLE) safv(:,jm) = 0. ! no horizontal flux at poles
       If (HAVE_SOUTH_POLE) safv(:,1) = 0.  
@@ -531,10 +534,10 @@ ccc   use QUSCOM, only : im,jm,lm, ystride,bm,f_j,fmom_j, byim
       REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         rmom
       logical ::  qlimit
-      REAL*8, intent(out), 
+      REAL*8, intent(inout), 
      &        dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
      &                                         sfbm,sbm,sbf
-      REAL*8, intent(out),
+      REAL*8, intent(inout),
      *        dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: sbfv
       character*8 tname
       integer :: i,j,l,ierr,ns,nstep(lm),ICKERR, ICKERR_LOC
@@ -723,7 +726,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      &                                         rmom
       INTEGER, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: nstep
-      REAL*8, intent(out),
+      REAL*8, intent(inout),
      &               dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      &                                         sfcm,scm,scf
       logical ::  qlimit
