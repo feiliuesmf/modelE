@@ -4061,14 +4061,14 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
+     *     ,tl(l),LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
 #ifndef NO_WASHOUT_IN_CLOUDS
           precip_mm = prebar(l+1)*100.*dtsrc
           wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
           IF (precip_mm < 0.) precip_mm=0.
           IF (wmxtr < 0.) wmxtr=0.
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tl(l),lhx,
      &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
 #endif
           WMXTR = WMX(L)
@@ -4103,7 +4103,7 @@ c**** washout in clouds
           wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
           IF (precip_mm < 0.) precip_mm=0.
           IF (wmxtr < 0.) wmxtr=0.
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tl(l),lhx,
      &         wmxtr,cldprec,l,tm_temp,trprbar(1,l),thwash,pl(l),ntix) !washout
 c         saves cloud fraction at lowest precipitating level for washout
           cldprec=cldsavt

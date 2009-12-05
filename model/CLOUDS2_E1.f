@@ -3355,7 +3355,7 @@ c precip. tracer evap
           if (wmxtr.lt.0.) wmxtr=0.
 cdmk change GET_WASH below - extra arguments
           CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *     ,TEMP,LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
+     *     ,tl(l),LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
         ELSE
           WMXTR = WMX(L)
 c         b_beta_DT is needed at the lowest precipitating level,
@@ -3385,7 +3385,7 @@ c**** washout in clouds
           wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
           IF (precip_mm < 0.) precip_mm=0.
           IF (wmxtr < 0.) wmxtr=0.
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,temp,lhx,
+          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tl(l),lhx,
      &         wmxtr,cldprec,l,tm_temp,trprbar(1,l),thwash,pl(l),ntix) !washout
 c         saves cloud fraction at lowest precipitating level for washout
           cldprec=cldsavt
@@ -4005,7 +4005,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.35 2009/09/21 22:02:41 smenon Exp $
+!$Id: CLOUDS2_E1.f,v 1.36 2009/12/05 21:00:46 jan Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
