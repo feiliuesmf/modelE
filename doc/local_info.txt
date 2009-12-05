@@ -326,3 +326,13 @@ To use any of these utilities, do in ...../giss/exec
 
 If staying within 100 GB is a real hardship, you might consider asking support
 (support@nccs.nasa.gov) to double your cap.
+
+Monitoring standard-error output of in-progress noninteractive
+batch jobs on Discover (as of Dec. 2009):
+==============================================================
+
+Messages written to "standard error" do not appear in your_run_name.PRT;
+they are usually directed to the file job_number.borgmg.OU .
+While a batch job runs, this output can be seen in
+/discover/pbs_spool/job_number.borgmg.OU; after completion, the file is
+moved to the run directory.
