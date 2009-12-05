@@ -304,7 +304,7 @@ c     ENDIF
 #endif
       endif
 
-      call advanc(pbl_args,n,ntm,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
+      call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,i,j,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,upbl,vpbl,tpbl,qpbl,epbl
