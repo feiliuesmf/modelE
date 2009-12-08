@@ -184,7 +184,8 @@ c     ll2cs
       character*150 :: filesource,filetarget,regridfile,cnts,
      &     cimt,cjmt,cntt,cformat,ccopy,cidl
       character*80 :: title
-      real*4, allocatable :: sij4(:,:,:) , tij4(:,:,:)   ! ij arrays
+      real*4, allocatable :: sij4(:,:,:) , sij4shift(:,:,:) 
+     &     , tij4(:,:,:)   ! ij arrays
       real*8, allocatable :: sij(:,:,:)  , tij(:,:,:)
       real*4, allocatable :: sijl4(:,:,:,:), sijl4shift(:,:,:,:) 
      &     , tijl4(:,:,:,:)     !ijl arrays
@@ -277,22 +278,34 @@ c     find if format is 'ij', 'ijl', 'kij'
 
       write(*,*) "array format=",cform
       if (cform .eq. 'ijl') write(*,*) "i j l=",ims,jms,lms
+      if (cform .eq. 'ij') write(*,*) "i j=",ims,jms
 
 c***  Initialize exchange grid
       call init_regrid(regridfile,x2grids,ims,jms,nts,imt,jmt,ntt)
 
-c***  first loop to define variables which have format == cformat 
+c***  first loop to find ids of the different dimensions
+      idims=0;idjms=0;idlms=0
       status = nf_inq(fid, ndims, nvars, ngatts, UNLIMDIMID)
+      do i = 1, nvars
+         status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
+         if (cform .eq. 'ijl') then
+            if (cval .eq. 'lon')   idims=ishape(1)
+            if (cval .eq. 'lat')   idjms=ishape(1)
+            if (cval .eq. cdim(1)) idlms=ishape(1)
+         endif
+         if (cform .eq. 'ij') then
+            if (cval .eq. 'lon')   idims=ishape(1)
+            if (cval .eq. 'lat')   idjms=ishape(1)
+         endif
+      enddo
+      write(*,*) "idims idjms idlms",idims,idjms,idlms
+
+c***  2nd loop to define variables which have format == cformat 
 
       do i = 1, nvars
          status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
          
          if (cform .eq. 'ijl') then
-c     find ids of the different dimensions
-            if (cval .eq. 'lon')   idims=ishape(1)
-            if (cval .eq. 'lat')   idjms=ishape(1)
-            if (cval .eq. cdim(1)) idlms=ishape(1)
-
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idims .and. 
      &          ishape(2) .eq. idjms .and. 
@@ -303,27 +316,21 @@ c     extract values of variables having correct format
                
 c     define each remaped variable to netcdf output file
                vname=trim(cval)//'(im,jm,lm,tile)'
-               write(*,*) vname
                call defvar(fidt,imt,jmt,ntt,tijl,trim(vname))
                deallocate(tijl)
             endif
          endif
 
          if (cform .eq. 'ij') then
-c     find ids of the different dimensions
-            if (cval .eq. 'lon')   idims=ishape(1)
-            if (cval .eq. 'lat')   idjms=ishape(1)
-            
 c     extract values of variables having correct format 
-            if (ishape(1) .eq. idjms .and. 
-     &          ishape(2) .eq. idims ) then
-               
+            if (ishape(1) .eq. idims .and. 
+     &          ishape(2) .eq. idjms .and. ndim .eq. 2) then
+
                allocate(tij(imt,jmt,ntt))
                status = nf_inq_varid(fid,cval,vid)
                
 c     define each remaped variable to netcdf output file
                vname=trim(cval)//'(im,jm,tile)'
-               write(*,*) vname
                call defvar(fidt,imt,jmt,ntt,tij,trim(vname))
                deallocate(tij)
             endif
@@ -336,7 +343,7 @@ c     define each remaped variable to netcdf output file
       if (status .ne. NF_NOERR) 
      &     write(*,*) "Problem with enddef"
 
-c***  second loop to write variables which have format == cformat 
+c***  3rd loop to write variables which have format == cformat 
       status = nf_open(trim(filesource),nf_nowrite,fid)
       status = nf_inq(fid, ndims, nvars, ngatts, UNLIMDIMID)
 
@@ -395,21 +402,33 @@ c     extract values of variables having correct format
             if (ishape(1) .eq. idjms .and. 
      &           ishape(2) .eq. idims .and. ndim .eq. 2) then
 
-               allocate(sij(ims,jms,nts),sij4(ims,jms,nts))
-               allocate(tij(imt,jmt,ntt),tij4(imt,jmt,ntt))    
+               allocate(sij(ims,jms,nts),sij4(ims,jms,nts),
+     &              sij4shift(ims,jms,nts),
+     &          tij(imt,jmt,ntt),tij4(imt,jmt,ntt))    
                
                status = nf_inq_varid(fid,cval,vid)
                status = nf_get_var_real(fid,vid,sij4)
-               
+
+c     shift by 180 degrees if data aligned on Greenwich meridian
+               if (trim(cidl) .ne. 'y' .and. trim(cidl) .ne. 'Y') then
+                  is=ims/2
+                  do n=1,is
+                     sij4shift(n,:,:)=sij4(n+is,:,:)
+                     sij4shift(n+is,:,:)=sij4(n,:,:)
+                  enddo
+                  sij4=sij4shift
+               endif
+
 c     remap variables with correct format
                sij=sij4
                call do_regrid(x2grids,sij(:,:,:),tij(:,:,:))
                tij4=tij
 
 c     write each remaped variable to netcdf output file  
+               write(*,*) "write ",adjustl(trim(cval))," in output file"
                call write_data(fidt,trim(cval),tij4)
 
-               deallocate(sij4, sij) 
+               deallocate(sij4, sij,sij4shift) 
                deallocate(tij4, tij)
             endif
          endif       
@@ -453,6 +472,7 @@ c     write each remaped variable to netcdf output file
       status = nf_close(fidt)
       status = nf_close(fid)
       
-      write(6,*) "remapped file contains:",nvars,"records"
+      write(6,*) "wrote:",trim(filetarget),">>>>>>>>>>>>"
+      write(6,*) ""
       
       end program ncll2cs
