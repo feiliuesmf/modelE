@@ -17,12 +17,12 @@
      &     xll2cs_OSST,xll2cs_GIC,xll2cs_SICE,xll2cs_CDN,xll2cs_3,
      &     xll2cs_CROPS,xll2cs_TOPINDEX,xll2cs_SOIL,xll2cs_GLMELT,
      &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC,xll2cs_SOILCARB,
-     &     xll2cs_VEG
+     &     xll2cs_VEG,xll2cs_COMMON3
 
       integer :: ims_TOPO,jms_TOPO,ims_RVR,jms_RVR,
      &     ims_COMMON,jms_COMMON,ims_GIC,jms_GIC,ims_STN,
      &     jms_STN,ims_OSST,jms_OSST,ims_3,jms_3,imt,jmt,
-     &     ims_COMMON2,jms_COMMON2
+     &     ims_COMMON2,jms_COMMON2,ims_COMMON3,jms_COMMON3
       integer, parameter :: ntilessource=1,ntilestarget=6
 
       call fms_init( )
@@ -113,28 +113,35 @@ c now VEG 288x180 -> C90
 c-      xll2cs_VEG=xll2cs_COMMON
 
 c     360x180 for TOPINDEX, SOIL, GIC, AIC
-      ims_COMMON2=360
-      jms_COMMON2=180
+c-      ims_COMMON2=360
+c-      jms_COMMON2=180
 
 c-      write(*,*) "bef init xgrid 360 180"
-      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+c-      call init_regrid_root(xll2cs_COMMON2,ims_COMMON2,jms_COMMON2,
+c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
 
 c-      write(*,*) "after init xgrid 360 180"
 
 c-      xll2cs_CDN=xll2cs_COMMON2
 c-      xll2cs_TOPINDEX=xll2cs_COMMON2
 c-      xll2cs_SOIL=xll2cs_COMMON2
-       xll2cs_GIC=xll2cs_COMMON2
+c-       xll2cs_GIC=xll2cs_COMMON2
 c-      xll2cs_AIC=xll2cs_COMMON2
 c-      xll2cs_GLMELT=xll2cs_COMMON2 
 
-c VEG 144x90 -> C90  
-      ims_3=144
-      jms_3=90
-      call init_regrid_root(xll2cs_3,ims_3,jms_3,
+c     VEGFRAC, LAI : 4x5->CS90
+      ims_COMMON3=72
+      jms_COMMON3=46
+
+      call init_regrid_root(xll2cs_COMMON3,ims_COMMON3,jms_COMMON3,
      &     ntilessource,imt,jmt,ntilestarget,.true.)
-ccc      xll2cs_VEG=xll2cs_3
+
+c VEG 144x90 -> C90  
+c-      ims_3=144
+c-      jms_3=90
+c-      call init_regrid_root(xll2cs_3,ims_3,jms_3,
+c-     &     ntilessource,imt,jmt,ntilestarget,.true.)
+c-      xll2cs_VEG=xll2cs_3
       endif
 
 c-      xll2cs_SOILCARB=xll2cs_VEG
@@ -149,7 +156,7 @@ c***   The last letters indicate the name of the input file using
 c***   its alias (TOPO, VEG, AIC...) 
       write(*,*) "IN REGRID INPUT"
 
-c      if (AM_I_ROOT()) then
+      if (AM_I_ROOT()) then
 c         call regridTOPO(xll2cs_TOPO)
 c         call regridOSST(xll2cs_OSST)
 cc         call testOSST()
@@ -161,10 +168,10 @@ c         call regridCROPS(xll2cs_CROPS)
 c         call regridTOPINDEX(xll2cs_TOPINDEX)
 c         call regridSOIL(xll2cs_SOIL)
 c         call regridGLMELT(xll2cs_GLMELT)
-cc         call regridVEGFRAC(xll2cs_VEGFRAC)
-cc         call regridLAI(xll2cs_LAI)
-c      endif
-      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
+         call regridVEGFRAC(xll2cs_COMMON3)
+         call regridLAI(xll2cs_COMMON3)
+      endif
+c      call regridGIC(xll2cs_GIC,xll2cs_3,grid)
 c      call regridAIC(xll2cs_AIC,grid)
 
 c  Workflow for computation of river directions on cubed sphere
@@ -2821,10 +2828,6 @@ c*
 
       maxrec=irec-1
 
-      
-c      call read_recs_1R(tsource,iuin,TITLE,
-c     &        maxrec,ims,jms,nts)
-      
       write(*,*) "maxrec",maxrec
       
       outunformat=trim(name)//".CS"
@@ -2836,17 +2839,16 @@ c     &        maxrec,ims,jms,nts)
       open( iuout, FILE=outunformat,
      &     FORM='unformatted', STATUS="UNKNOWN")
 
-
       do ir=1,maxrec
          call root_regrid(x2grids,tsource(:,:,:,ir),ttargglob)
-         tout(:,:,:)=ttargglob(:,:,:)
-         write(unit=iuout) TITLE(ir),tout(:,:,:)
+         tout=ttargglob
+         write(unit=iuout) TITLE(ir),tout
          write(*,*) "TITLE",TITLE(ir)
       enddo
 
       close(iuout) 
 
-      deallocate(tsource,ttargglob,tout)
+      deallocate(tsource,ttargglob,tout,tsourc4)
 
       end subroutine read_regrid_write_4D_1R
 c*
