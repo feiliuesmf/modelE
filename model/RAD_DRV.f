@@ -1789,6 +1789,9 @@ C**** Methane: (if there are initial RCOMPX calls, they
 #ifdef TRACERS_SPECIAL_Shindell
 ! final (main) RCOMPX call can use tracer methane (or not):
       use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
+#ifdef INITIAL_GHG_SETUP
+      use_tracer_chem(2)=0 ! special case; model outputs climatology
+#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef BC_ALB
