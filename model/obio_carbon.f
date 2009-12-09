@@ -268,7 +268,7 @@ c Update DIC for sea-air flux of CO2
       tk = 273.15+Ts
       tk100 = tk*0.01
       tk1002 = tk100*tk100
-      ff = exp(-162.8301 + 218.2968/tk100  +    
+      ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/m3/picoatm
      .         90.9241*log(tk100) - 1.47696*tk1002 +
      .         saln1d(k) * (.025695 - .025225*tk100 +
      .         0.0049867*tk1002))
@@ -451,12 +451,19 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.34 $
-c_ $Date: 2009/10/14 20:56:47 $   ;  $State: Exp $
+c_ $Revision: 2.35 $
+c_ $Date: 2009/12/09 22:24:47 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.35  2009/12/09 22:24:47  aromanou
+c_
+c_ SURFACE: gas exchange diagnostics moved from taijn arrays into AIJ arrays
+c_          and are now computed only over open ocean
+c_
+c_ hycom clean up
+c_
 c_ Revision 2.34  2009/10/14 20:56:47  aromanou
 c_
 c_ broadcast tracer array before diagnostics.
@@ -955,12 +962,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.34 $
-c_ $Date: 2009/10/14 20:56:47 $   ;  $State: Exp $
+c_ $Revision: 2.35 $
+c_ $Date: 2009/12/09 22:24:47 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.35  2009/12/09 22:24:47  aromanou
+c_
+c_ SURFACE: gas exchange diagnostics moved from taijn arrays into AIJ arrays
+c_          and are now computed only over open ocean
+c_
+c_ hycom clean up
+c_
 c_ Revision 2.34  2009/10/14 20:56:47  aromanou
 c_
 c_ broadcast tracer array before diagnostics.
@@ -1204,12 +1218,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.34 $
-c_ $Date: 2009/10/14 20:56:47 $   ;  $State: Exp $
+c_ $Revision: 2.35 $
+c_ $Date: 2009/12/09 22:24:47 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.35  2009/12/09 22:24:47  aromanou
+c_
+c_ SURFACE: gas exchange diagnostics moved from taijn arrays into AIJ arrays
+c_          and are now computed only over open ocean
+c_
+c_ hycom clean up
+c_
 c_ Revision 2.34  2009/10/14 20:56:47  aromanou
 c_
 c_ broadcast tracer array before diagnostics.

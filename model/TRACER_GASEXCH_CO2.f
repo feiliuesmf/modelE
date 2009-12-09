@@ -208,7 +208,7 @@ c ---------------------------------------------------------------------
       !alpha --solubility of CO2 in seawater
       alpha_gas=sol_co2(tg1,alati)    !mol/m^3/picoatm
       alpha_gas = alpha_gas * 1.d-6   !mol,CO2/m3/uatm
-      alpha_gas = alpha_gas * 1024.5  !
+      alpha_gas = alpha_gas * 1024.5  !Watson Gregg
       !---------------------------------------------------------------
       !psurf is in mb. 
       beta_gas = alpha_gas * psurf/1013.25      !stdslp and psurf in mb, no need to change units

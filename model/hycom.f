@@ -309,6 +309,7 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
  29   continue
 c$OMP END PARALLEL DO
 
+      !gather here tracer related arrays as well
       call gather2_atm
 c
       nsavea=nsavea+1
@@ -1200,19 +1201,16 @@ c$OMP PARALLEL DO
       !define the tracer that participates in the gas exchange flux.
 #ifdef TRACERS_GASEXCH_ocean_CFC
             do nt=1,ntm
-              otrac(i,j,nt)=otrac(i,j,nt)  !???? do we need to accumulate here?
+              otrac(i,j,nt)=otrac(i,j,nt)  
      .             +tracer(i,j,1,nt)
      .             *baclin/(3600.*real(nhr))
             enddo
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-      !in this case, the tracer is not really active ocean tracer, because it is being
-      !handled by the bgcm and it is only at the surface
             do nt=1,ntm
-              otrac(i,j,nt)=otrac(i,j,nt)      !???? do we need to accumulate here?
-                                               !it's ok because otrac_before=0
-     .             +pCO2(i,j)   !pCO2 is in ppmv(uatm)
-     .             *baclin/(3600.*real(nhr))
+              otrac(i,j,nt)= otrac(i,j,nt)
+     .             + pCO2(i,j)                !pCO2 is in ppmv(uatm)
+     .             * baclin/(3600.*real(nhr))
             enddo
 #endif
           enddo

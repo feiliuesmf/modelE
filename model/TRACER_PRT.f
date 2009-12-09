@@ -1202,10 +1202,6 @@ C****
      *     ,jyear,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       USE TRACER_COM
       USE DIAG_COM
-#ifdef TRACERS_GASEXCH_ocean
-      USE MODEL_COM, only: nstep=>itime
-      USE DIAG_SERIAL, only : FOCEAN_glob
-#endif
 
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
@@ -1213,9 +1209,6 @@ C****
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
      *     tij_uflx, tij_vflx, ijs_NO2_1030, ijs_NO2_1030c,
      *     ijs_NO2_1330, ijs_NO2_1330c
-#ifdef TRACERS_GASEXCH_ocean
-     *    ,tij_kw,tij_alpha,tij_gasx
-#endif
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1293,20 +1286,6 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         ijtype(k) = 3
         end if
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-        if (kx.eq.tij_kw .or. kx.eq.tij_alpha) then
-           write(*,'(a,3i5,e12.4)')'TRACER_PRT, focean_glob',
-     .               nstep,45,1,focean_glob(45,1)
-           aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
-           aij2(:,:,k)=focean_glob(:,:)
-           ijtype(k) = 3
-        endif
-        if (kx.eq.tij_gasx) then 
-           aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
-           aij2(:,:,k)=focean_glob(:,:)
-           ijtype(k) = 3
-        endif
-#endif
       end do
 
 #if (defined TRACERS_WATER) && (defined TRACERS_DRYDEP)
@@ -1364,14 +1343,6 @@ C**** Fill in maplet indices for sources and sinks
      *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:6).eq.
      *    'J_H2O2')ijtype(k)=2
         
-#ifdef TRACERS_GASEXCH_ocean
-        if (name(k)=='CO2_O_GASX')then
-           aij1(:,:,k)=taijn(:,:,kx,n)*focean_glob(:,:)
-           aij2(:,:,k)=focean_glob(:,:)
-           ijtype(k)=3
-        endif
-#endif
-
         if (name(k)=='NO2_1030c' .or. name(k)=='NO2_1330c')then
           ijtype(k)=2
           scale(k)=real(idacc(iacc(k)))+teeny

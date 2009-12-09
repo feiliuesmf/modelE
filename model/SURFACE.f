@@ -66,6 +66,9 @@ C****
 #ifndef NO_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+     *     ,ij_kw,ij_alpha,ij_gasx
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -119,7 +122,7 @@ C****
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
-     *      tij_surfbv, tij_kw, tij_alpha, tij_evap, tij_gasx,
+     *      tij_surfbv, tij_evap,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd,itcon_surf
@@ -1272,20 +1275,19 @@ C**** Save surface tracer concentration whether calculated or not
             trcsurf(i,j,n)=trcsurf(i,j,n)+max((trm(i,j,1,n)-trmom(mz,i,j
      *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype*byNIsurf
           end if
-#ifdef TRACERS_GASEXCH_ocean
-          if (focean(i,j).gt.0.) then
-            taijn(i,j,tij_kw,n) = taijn(i,j,tij_kw,n)
-     *                          + pbl_args%Kw_gas*ptype        !m/s
-            taijn(i,j,tij_alpha,n) = taijn(i,j,tij_alpha,n)
-     *                             + pbl_args%alpha_gas
-     *                               *ptype
-     *                               / 1024.5   !mol,CO2/m3/uatm
-            taijn(i,j,tij_gasx,n) = taijn(i,j,tij_gasx,n)
-     *                            + TRGASEX(n,ITYPE,I,J)       !mol,CO2/m2/s
-     *                               / 1024.5 
-     *                               * ptype
-     *                               * 3600.*24.*365.          !mol,CO2/m2/yr
-          endif
+
+       if (POCEAN.gt.0) then
+          AIJ(i,j,ij_kw) = AIJ(i,j,ij_kw)  
+     .                   + pbl_args%Kw_gas * focean(i,j)        ! m/s
+                         * (1.d0 - RSI(i,j))                    ! only over open water
+          AIJ(i,j,ij_alpha) = AIJ(i,j,ij_alpha) 
+     .                   + pbl_args%alpha_gas * focean(i,j)     ! mol,CO2/m3/uatm
+                         * (1.d0 - RSI(i,j))                    ! only over open water
+          AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
+     .                     + TRGASEX(n,ITYPE,I,J) * focean(i,j)
+     .                   * 3600.*24.*365.                       ! mol,CO2/m2/yr
+                         * (1.d0 - RSI(i,j))                    ! only over open water
+       endif   !pocean
 #endif
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then

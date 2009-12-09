@@ -31,6 +31,10 @@
       real :: arraySum
       real :: sumtrac(idm,jdm,kdm)
 
+#ifndef OBIO_ON_GARYocean
+      call gather_dpinit   !ONLY for hycom
+#endif
+
       !!! need to gather tracer etc. before calling this routine
       if ( AM_I_ROOT() ) then
 
