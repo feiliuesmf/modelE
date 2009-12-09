@@ -25,13 +25,16 @@ while (<PARFILE>) {
 
 foreach $_ ( @parameter ) {
   ($name, $dest) = split /\s*=\s*/;
-  if ( $name !~ /^(filedir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|intdateline|nfields|title|levels|maintitle)$/ ) {
+  if ( $name !~ /^(filedir|remapdir|regridfile|imsource|jmsource|ntilessource|imtarget|jmtarget|ntilestarget|format|intdateline|nfields|title|levels|maintitle)$/ ) {
     print "parameter $name doesn't exist\n";
     $exist=0
     #exit 1;
   } else {
     if ($name =~ "filedir") {
       $filedir=$dest;
+    }
+    elsif ($name =~ "remapdir") {
+      $remapdir=$dest;
     }
     elsif  ($name =~ "regridfile") {
       $regridfile=$dest;
@@ -88,7 +91,7 @@ if ( $filesource =~ m/.nc/i) {
   $files1="$filedir/$filesource";
   print "$files1\n";
   `cp $files1 .`;
-  $rfile1="$filedir/$regridfile";
+  $rfile1="$remapdir/$regridfile";
   print "$rfile1\n";
   `cp $rfile1 .`;
 

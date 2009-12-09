@@ -1,6 +1,11 @@
 #!/bin/bash
 # Regridding IPCC emissions files to the C90 cubed sphere grid
 
+#-- CH4 Natural sources
+./remap.pl -par regridCH4natural.par -in CH4WETL+TUNDRA_1X1 -out CH4WETL+TUNDRA_C90_Dec_2009
+./remap.pl -par regridCH4natural.par -in CH4TRMITE_1X1 -out CH4TRMITE_C90_Dec_2009
+./remap.pl -par regridCH4natural.par -in CH4SOILABS_1X1 -out CH4SOILABS_C90_Dec_2009
+
 #-- CO
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_anthropogenic_1850_C90_Dec_2009.nc
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_ships_1850_C90_Dec_2009.nc
