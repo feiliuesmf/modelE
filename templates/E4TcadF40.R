@@ -196,6 +196,7 @@ CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc
 CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc
 Ox_IC=gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc
 CO_IC=gsin/CO_init_cond_M23_conc_2x2.5_conc
+Ox_ref=gsin/O3ref_O3JDAY_1850_182.dat
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
@@ -498,8 +499,8 @@ rad_FL=0           ! use rad code insolation getting fastj2 photon flux
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=0    ! for setting fixed methane value for chemistry:
-ch4_init_sh=1.750      ! init cond/fixed conditions SH CH4 ppmv
-ch4_init_nh=1.855      ! init cond/fixed conditions NH CH4 ppmv
+ch4_init_sh=0.791      ! init cond/fixed conditions SH CH4 ppmv
+ch4_init_nh=0.791      ! init cond/fixed conditions NH CH4 ppmv
 scale_ch4_IC_file=1.d0 ! multiplicative factor on CH4 IC file (fix_CH4_chemistry=-1)
 
 ! For altering tracer initial conditions and overwriting by a factor:
