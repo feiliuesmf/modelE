@@ -383,8 +383,8 @@ VTRSH=fake_144x90_dust_wind_speed_thresholds ! modelIIprime varying thresholds (
 FRCLAY=fake_144x90_dust_FrClay ! modelIIprime soil clay fractin (obsolete)
 FRSILT=fake_144x90_dust_FrSilt ! modelIIprime model silt fraction (obsolete)
 DRYHR=fake_144x90_dust_DryHrPminusE ! emission only if E exceeds P (obsolete)
-ERS=ERS1_1993_MONTHLY.144x90.threshold-13         ! ERS data
-GIN=Ginoux2001_source.144x90             ! preferred sources
+ERS=ERS1_1993_MONTHLY.72x46.threshold-13 ! ERS data
+GIN=Ginoux2001_source_VegMask_72x46      ! preferred sources
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 
