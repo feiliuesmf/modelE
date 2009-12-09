@@ -128,23 +128,6 @@ O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
 
-!------- Needed for dry deposition ---------
-VEGTYPE=chem_files/vegtype.global_2x2.5gf
-OLSON=chem_files/drydep.table
-DRYCOEFF=chem_files/drydep.coef
-LAI01=chem_files/lai01.global_2x2.5gf
-LAI02=chem_files/lai02.global_2x2.5gf
-LAI03=chem_files/lai03.global_2x2.5gf
-LAI04=chem_files/lai04.global_2x2.5gf
-LAI05=chem_files/lai05.global_2x2.5gf
-LAI06=chem_files/lai06.global_2x2.5gf
-LAI07=chem_files/lai07.global_2x2.5gf
-LAI08=chem_files/lai08.global_2x2.5gf
-LAI09=chem_files/lai09.global_2x2.5gf
-LAI10=chem_files/lai10.global_2x2.5gf
-LAI11=chem_files/lai11.global_2x2.5gf
-LAI12=chem_files/lai12.global_2x2.5gf
-
 ! sulfate+black carbon files:
 !  MADAER=1 (default) needs:
 !TAero_PRE=dec2003_PRE_Koch_kg_m2_ChinSEA_Liao_1850 ! pre-industr trop. aerosols
@@ -166,10 +149,27 @@ obsolete)
 FRCLAY=fake_144x90_dust_FrClay ! modelIIprime soil clay fractin (obsolete)
 FRSILT=fake_144x90_dust_FrSilt ! modelIIprime model silt fraction (obsolete)
 DRYHR=fake_144x90_dust_DryHrPminusE ! emission only if E exceeds P (obsolete)
-ERS=ERS1_1993_MONTHLY.144x90.threshold-13         ! ERS data
-GIN=Ginoux2001_source.144x90             ! preferred sources
+ERS=ERS1_1993_MONTHLY.144x90.threshold-13 ! ERS data
+GIN=Ginoux2001_source_VegMask_144x90      ! preferred sources
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
+
+!------- Needed for dry deposition ---------
+VEGTYPE=chem_files/vegtype.global_2x2.5gf ! really 4x5
+OLSON=chem_files/drydep.table
+DRYCOEFF=chem_files/drydep.coef
+LAI01=chem_files/lai01.global_2x2.5gf ! really 4x5
+LAI02=chem_files/lai02.global_2x2.5gf ! really 4x5
+LAI03=chem_files/lai03.global_2x2.5gf ! really 4x5
+LAI04=chem_files/lai04.global_2x2.5gf ! really 4x5
+LAI05=chem_files/lai05.global_2x2.5gf ! really 4x5
+LAI06=chem_files/lai06.global_2x2.5gf ! really 4x5
+LAI07=chem_files/lai07.global_2x2.5gf ! really 4x5
+LAI08=chem_files/lai08.global_2x2.5gf ! really 4x5
+LAI09=chem_files/lai09.global_2x2.5gf ! really 4x5
+LAI10=chem_files/lai10.global_2x2.5gf ! really 4x5
+LAI11=chem_files/lai11.global_2x2.5gf ! really 4x5
+LAI12=chem_files/lai12.global_2x2.5gf ! really 4x5
 
 Label and Namelist:  (next 2 lines)
 E4TdusF40 (modelE4 2x2.5 hor., 40 lyrs, 2000 atm., 1996-2005 clim ocn, dust tracers)
