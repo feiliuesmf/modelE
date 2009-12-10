@@ -144,11 +144,6 @@ TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h
 BC_dep=BC.Dry+Wet.depositions.ann
 
 ! files for dust tracers
-VTRSH=fake_144x90_dust_wind_speed_thresholds ! modelIIprime varying thresholds (
-obsolete)
-FRCLAY=fake_144x90_dust_FrClay ! modelIIprime soil clay fractin (obsolete)
-FRSILT=fake_144x90_dust_FrSilt ! modelIIprime model silt fraction (obsolete)
-DRYHR=fake_144x90_dust_DryHrPminusE ! emission only if E exceeds P (obsolete)
 ERS=ERS1_1993_MONTHLY.144x90.threshold-13 ! ERS data
 GIN=Ginoux2001_source_VegMask_144x90      ! preferred sources
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
