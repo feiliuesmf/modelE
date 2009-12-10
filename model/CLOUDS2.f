@@ -4126,7 +4126,6 @@ cdmk2   dtwrt=fwasht*(tm(l,n)-dtqwt)
         dtwrt=fwasht*tm(l,n)
 #endif
 c ---------------------- apply fluxes ------------------------
-        TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) THEN
           trevap_ls(l,n)=dtert
@@ -4136,6 +4135,7 @@ c ---------------------- apply fluxes ------------------------
           trclwe_ls(l,n)=fwtoqt*trwml(n,l)*(1.-fprt)
         END IF
 #endif
+        TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
         TM(L,N)    = TM(L,N)  + DTERT - DTWRT - DTQWT - THLAW - THWASH
         if (TM(L,N).lt.0) TM(L,N)=0.
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT) + DTPRT+DTWRT+THWASH
