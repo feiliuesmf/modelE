@@ -339,8 +339,11 @@ c**** prescribed AEROCOM dust emissions
 
         DEALLOCATE(work,d_dust_glob)
 
-      ELSE IF (imDust == 0 .OR. imDust == 2) THEN
-c**** interactive dust emissions
+      ELSE IF (imDust == 2) THEN
+c**** legacy emission scheme
+        IF (Im /= 72 .OR. Jm /= 46) CALL stop_model
+     & ('Stopped in init_dust: imDust=2 works only for Im=72 and Jm=46'
+     &       ,255)
 
 c**** Read input: threshold speed
         CALL openunit('VTRSH',io_data,.TRUE.,.TRUE.)
@@ -361,6 +364,9 @@ c**** Read input: prec-evap data
         CALL openunit('DRYHR',io_data,.TRUE.,.TRUE.)
         CALL dread_parallel(grid,io_data,nameunit(io_data),dryhr)
         CALL closeunit(io_data)
+
+      ELSE IF (imDust == 0) THEN
+c**** Probability density function scheme for dust emission
 
 c**** Read input: ERS data
         CALL openunit('ERS',io_data,.TRUE.,.TRUE.)
@@ -418,7 +424,7 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
         x1(:)=x2(:)
       ELSE
         CALL stop_model
-     &     ('Stopped in tracer_IC: parameter imDUST must be <= 2',255)
+     &     ('Stopped in init_dust: parameter imDUST must be <= 2',255)
       END IF
 
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
