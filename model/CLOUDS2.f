@@ -1256,7 +1256,7 @@ C**** CONDENSING TRACERS
      *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
      *     AIRM,LHX,DT_SULF_MC(1,L),CLDSAVT)
 #endif
-      TM_dum(1:ntx) = TM(L,1:ntx)
+      TM_dum(1:ntx) = TMP(1:ntx)
       DO N=1,NTX
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(ntix(n)))
@@ -1268,6 +1268,8 @@ C**** CONDENSING TRACERS
 c first apply chemistry
 c removal of precursers
             TMP(N)=TMP(N)*(1.+SULFIN(N))
+c updating TM_dum as in corresponding section of LSCOND
+            TM_dum(n) = TMP(n)
             TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
 c formation of sulfate
             TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
