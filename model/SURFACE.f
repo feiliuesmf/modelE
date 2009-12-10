@@ -1287,7 +1287,7 @@ C**** Save surface tracer concentration whether calculated or not
           AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
      .                     + TRGASEX(n,ITYPE,I,J) * focean(i,j)
      .                   * 3600.*24.*365.                       ! mol,CO2/m2/yr
-                         * (1.d0 - RSI(i,j))                    ! only over open water
+     .                   * (1.d0 - RSI(i,j))                    ! only over open water
        endif   !pocean
 #endif
 #ifdef TRACERS_WATER
