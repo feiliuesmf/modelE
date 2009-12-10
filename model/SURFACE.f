@@ -1276,6 +1276,7 @@ C**** Save surface tracer concentration whether calculated or not
      *           ,1,n))*byam(1,i,j)*byaxyp(i,j),0d0)*ptype*byNIsurf
           end if
 
+#ifdef TRACERS_GASEXCH_ocean
        if (POCEAN.gt.0) then
           AIJ(i,j,ij_kw) = AIJ(i,j,ij_kw)  
      .                   + pbl_args%Kw_gas * focean(i,j)        ! m/s
