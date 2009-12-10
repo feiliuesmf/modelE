@@ -433,7 +433,7 @@ c emission according to cubic scheme, but with pdf sheme parameters
 c (only used as diagnostic variable)
 c ..........
           IF (soilvtrsh > 0. .AND. wsgcm > soilvtrsh) THEN
-            dsrcflx2=CWiPdf*frtrac*src_fnct*ers_data*(soilvtrsh-vtrsh)
+            dsrcflx2=CWiPdf*frtrac*src_fnct*ers_data*(wsgcm-soilvtrsh)
      &           *wsgcm**2
           END IF
         END IF
