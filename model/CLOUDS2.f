@@ -1759,11 +1759,11 @@ C**** (If 100% evaporation, allow all tracers to evaporate completely.)
         ELSE ! otherwise, tracers evaporate dependent on type of tracer
           CALL GET_EVAP_FACTOR(N,TNX1,LHX,.FALSE.,1d0,FQEVP,FQEVPT,ntix)
           TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
-          TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
 #ifdef TRDIAG_WETDEPO
           IF (diag_wetdep == 1)
      &         trdvap_mc(l,n)=trdvap_mc(l,n)+fqevpt*trcond(n,l)
 #endif
+          TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
         END IF
       END DO
 #endif
@@ -2341,11 +2341,11 @@ C**** estimate effective humidity
           TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
 c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
 c     *         ,FPRCPT,TRPRCP(N)
-          TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
 #ifdef TRDIAG_WETDEPO
           IF (diag_wetdep == 1)
      &         trnvap_mc(l,n)=trnvap_mc(l,n)+fprcpt*trprcp(n)
 #endif
+          TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
         END DO
       END IF
 #ifndef NO_WASHOUT_IN_CLOUDS
@@ -4245,12 +4245,12 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
         ELSE
           TMFAC=0.
         END IF
-        TRWML(N,L)  =TRWML(N,L)+ FQCONDT*TM(L,N)+THLAW
-        TM(L,N)     =TM(L,N)    *(1.-FQCONDT)   -THLAW
-        TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT - TMFAC)
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) trcond_ls(l,n)=fqcondt*tm(l,n)+thlaw
 #endif
+        TRWML(N,L)  =TRWML(N,L)+ FQCONDT*TM(L,N)+THLAW
+        TM(L,N)     =TM(L,N)    *(1.-FQCONDT)   -THLAW
+        TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT - TMFAC)
       END DO
 #endif
       END IF
