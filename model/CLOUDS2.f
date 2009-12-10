@@ -403,7 +403,7 @@ C**** functions
 !@var DTM,DTMR: Vertical profiles of Tracers mass and changes
       REAL*8, DIMENSION(LM,NTM)      :: TMOLD, DTM, DTMR, TM1, TMDNL
       REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR, TMOMDNL
-      REAL*8, DIMENSION(NTM)      :: TMP, TMPMAX, TENV, TMDN
+      REAL*8, DIMENSION(NTM)      :: TMP, TMPMAX, TENV, TMDN, TM_dum
       REAL*8, DIMENSION(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
 !@var TPOLD saved plume temperature after condensation for tracers
 !@+   (this is slightly different from TPSAV)
@@ -1256,6 +1256,7 @@ C**** CONDENSING TRACERS
      *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
      *     AIRM,LHX,DT_SULF_MC(1,L),CLDSAVT)
 #endif
+      TM_dum(1:ntx) = TM(L,1:ntx)
       DO N=1,NTX
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         select case (trname(ntix(n)))
@@ -1274,9 +1275,9 @@ c formation of sulfate
         end select
 #endif
         TR_LEF=1.D0
-        CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
-     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
-     *       ,CLDSAVT)
+        CALL GET_COND_FACTOR2(N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+     *       ,FQCOND,FQCONDT,.true.,TRCOND(N,L),TM_dum,THLAW,TR_LEF
+     *       ,PL(L),ntix,CLDSAVT)
         TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L) + TRCONDV(N,L-1)
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1)
@@ -2707,6 +2708,7 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
 !@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
+      REAL*8 :: TM_dum(NTM)
 c for tracers in general, added by Koch
       REAL*8 THLAW,THWASH,TR_LEF,TMFAC,TMFAC2,TR_LEFT(ntm),CLDSAVT
 !@var TR_LEF limits precurser dissolution following sulfate formation
@@ -4029,6 +4031,7 @@ c CLDSAVT is current FCLD
 
       END DO
 #endif
+      TM_dum(1:ntx) = TM(L,1:ntx)
       DO N=1,NTX
 c ---------------------- initialize fractions ------------------------
         FPRT  =0.
@@ -4077,8 +4080,9 @@ c         so saving it here for below cloud case:
           b_beta_DT = cldsavt*CM*dtsrc
 c         saves cloud fraction at lowest precipitating level for washout
           cldprec=cldsavt
-          CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
-     *         ,FQTOWT,.false.,TRWML,TM,THLAW,TR_LEF,PL(L),ntix,CLDSAVT)
+          CALL GET_COND_FACTOR2(N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
+     *         ,FQTOWT,.false.,TRWML(N,L),TM_dum,THLAW,TR_LEF,PL(L)
+     *         ,ntix,CLDSAVT)
 cdmk added arguments above; THLAW added below (no way to factor this)
         END IF
         IF (TM(L,N).GT.teeny) THEN
@@ -4219,6 +4223,7 @@ c   processes - this should be all in-cloud
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
      *     DT_SULF_SS(1,L),FCLD)
 #endif
+      TM_dum(1:ntx) = TM(L,1:ntx)
       DO N=1,NTX
         TR_LEF=1.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -4233,13 +4238,15 @@ c   processes - this should be all in-cloud
           TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(N))
           TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
           TR_LEF=TR_LEFT(N)
+          TM_dum(n) = TM(L,n)
         end if
       end select
 #endif
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
-        CALL GET_COND_FACTOR(L,N,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
-     *       ,FQCONDT,.false.,TRWML,TM,THLAW,TR_LEF,pl(l),ntix,CLDSAVT)
+        CALL GET_COND_FACTOR2(N,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
+     *     ,FQCONDT,.false.,TRWML(N,L),TM_dum,THLAW,TR_LEF,pl(l)
+     *     ,ntix,CLDSAVT)
         IF (TM(L,N).GT.teeny) THEN
           TMFAC=THLAW/TM(L,N)
         ELSE
