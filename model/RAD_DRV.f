@@ -1251,6 +1251,9 @@ C**** SS clouds are considered as a block for each continuous cloud
       if(XGHGX.ne.1.) call stop_model('XGHGx.ne.1 accmip diags',255)
 #endif
 
+      aj_alb_inds = (/ J_PLAVIS, J_PLANIR, J_ALBVIS, J_ALBNIR,
+     &                 J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR /)
+
 C****
 C**** MAIN J LOOP
 C****
@@ -1260,18 +1263,56 @@ c     ICKERR=0
 c     JCKERR=0
 c     KCKERR=0
 
-!$OMP  PARALLEL PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
+!$OMP  PARALLEL DEFAULT(NONE)
+!$OMP*   PRIVATE(CSS,CMC,CLDCV, DEPTH,OPTDW,OPTDI, ELHX,
+!$OMP*   tmp,tmpS,tmpT,StauL,dALBsn1,
 !$OMP*   I,INCH,IH,IHM,IT,JR, K,KR, L,LR,LFRC, N, onoff_aer,
 !$OMP*   onoff_chem, OPNSKY, CSZ2, PLAND,ptype4,tauex5,tauex6,tausct,
 !$OMP*   taugcb,set_clayilli,set_claykaol,set_claysmec,set_claycalc,
-!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,
+!$OMP*   set_clayquar,dcc_cdncl,dod_cdncl,dCDNC,n1,pvt0,
 #ifdef ALTER_RADF_BY_LAT
-!$OMP*   fulgas,fulgas_orig,FS8OPX,FS8OPX_orig,FT8OPX,FT8OPX_orig,
+!$OMP*   fulgas,FS8OPX,FT8OPX,
 #endif
 !$OMP*   PIJ, QSS, TOTCLD,TAUSSL,TAUMCL,tauup,taudn,taucl,wtlin)
 !$OMP*   COPYIN(/RADPAR_hybrid/)
-!$OMP*   SHARED(ITWRITE, J)
-!$OMP    DO SCHEDULE(DYNAMIC,2)
+!$OMP*   SHARED(ITWRITE, J,I_0,IMAXJ,lon2d,lat2d,jreg,fland,rsi,
+!$OMP*    flake,flice,fearth,gtempr,itime,ltropo,t,pk,qr,cldx,cldinfo,
+!$OMP*    cc_cdncx,cdncl,od_cdncx,PLIJ,q,rhsav,fss,cldsav,cldss,rdss,
+!$OMP*    tauss,kradia,cldmc,rdmc,pdsig,taumc,pmid,
+!$OMP*   AIJL,CSIZMC,svlat,csizss,svlhx,cfrac,ftype,
+!$OMP*   AIJ,llow,lmid,lhi,
+!$OMP*   nrad,jtime,nday,
+!$OMP*   idx,pedn,rhfix,ntrace,ntrix,n_ocb, trm,n_ocii,n_ocia,
+!$OMP*   idd_cl7,idd_ccv,adiurn,byaxyp,n_oci1,n_oca1,n_oci2,
+!$OMP*   n_oca3,n_oca4,n_bcii,n_bcia,wttr,rqt,plb0,shl0,tchg,aflx_st, 
+!$OMP*   cosza, tsavg, snowi, snowli_com,snowe_com,fr_snow_rad_ij,
+!$OMP*   snoage,xdalbs,depobc,msi,n_oca2,n_oci3,flag_dsws,
+!$OMP*   pond_melt,fmp_com,mwl,axyp,bare_soil_wetness,wsoil,
+!$OMP*   entcells,wsavg,rad_forc_lev,rad_interact_aer, 
+!$OMP*   rad_interact_chem,chem_tracer_save,lmax_rad_o3,lmax_rad_ch4,
+!$OMP*   kliq,snfst,tnfst,snfst_ozone,tnfst_ozone,nfsnbc,albnbc,
+!$OMP*   cloud_rad_forc,snfscrf,tnfscrf,
+#ifdef ALTER_RADF_BY_LAT
+!$OMP*   fulgas_orig,FS8OPX_orig,FT8OPX_orig,
+#endif
+!$OMP*   cosz2,aer_rad_forc,
+!$OMP*   FS8OPX,FT8OPX,SNFSAERRF,TNFSAERRF,nrad_clay,diag_rad,
+!$OMP*   ttausv_cs_save, iwrite, jwrite, rad_to_chem, srhra,trhra,
+!$OMP*   DTsrc,byam,byaml00,fsf,srhr,trhr,trsurf,srhrs,trhrs,snfs,tnfs,
+!$OMP*   trincg,btmpw,alb,aj_alb_inds,srnflb_save,trnflb_save,srdn,
+!$OMP*   FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR,taijls,taijs,
+!$OMP*   ttausv_sum,ttausv_sum_cs,adiurn_dust,ttausv_save,rcld,
+!$OMP*   IJ_PMCCLD,ij_cldcv,ij_pcldl,ij_pcldh,jl_sscld,jl_mccld,
+!$OMP*   jl_totcld,IJL_CF,jl_wcld,jl_wcldwt,jl_icld,ij_swdcls,ij_frmp,
+!$OMP*   jl_icldwt,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz,ijdd,ij_pcldm,
+!$OMP*   j_pcldss,j_pcldmc,j_clddep,j_pcld,ij_swnclt,ij_lwnclt,
+!$OMP*   ijts_tausub,ijlt_3dtau,ijts_sqexsub,ij_swncls,ij_lwdcls,
+!$OMP*   ijts_sqscsub,ijts_sqcbsub,ijts_tau,ijts_sqex,ijts_sqsc,
+!$OMP*   IJ_CLR_SRINCG,ijts_sqcb,ij_optdw,ij_wtrcld,ij_optdi,ij_icecld,
+!$OMP*   IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,IJ_CLR_TRUPTOA,
+!$OMP*   IJ_CLR_SRNTP,IJ_CLR_TRNTP,IJ_SRNTP,IJ_TRNTP,J_CLRTOA,J_CLRTRP,
+!$OMP*   IJ_CLDTPT,IJ_CLDCV1,IJ_CLDT1T,IJ_CLDT1P,IJ_CLDTPPR,J_TOTTRP)
+!$OMP    DO SCHEDULE(dynamic,8)
 !!OMP*   REDUCTION(+:ICKERR,JCKERR,KCKERR)
          
 C****
@@ -2137,9 +2178,6 @@ C****
       ALB(I,J,7)=SRRNIR
       ALB(I,J,8)=SRAVIS
       ALB(I,J,9)=SRANIR
-
-      aj_alb_inds = (/ J_PLAVIS, J_PLANIR, J_ALBVIS, J_ALBNIR,
-     &                 J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR /)
 
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
