@@ -154,7 +154,7 @@ c     &             sigma,soilvtrsh,ans,dy)
 c     When there is moist convection, the sigma is the combination of
 c     all three subgrid scale parameters (i.e. independent or dependent)
 c     Takes into account that the moist convective velocity scale acts
-c     only over 5% of the area.
+c     only over the area with downdrafts (mcfrac).
 
           sigma=wsubtke+wsubwd+wsubwm
 c     No need to calculate the emission below these values since

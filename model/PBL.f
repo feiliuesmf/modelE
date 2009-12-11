@@ -3368,7 +3368,7 @@ c          CALL polint2dcub(x11,x21,table1,kim,kjm,wsgcm1,sigma,ans,dy)
 c     When there is moist convection, the sigma is the combination of
 c     all three subgrid scale parameters (i.e. independent or dependent)
 c     Takes into account that the moist convective velocity scale acts
-c     only over 5% (mcfrac) of the area.
+c     only over the area with downdrafts (mcfrac).
 
         work_wspdf1=0.D0
         sigma=wsubtke+wsubwd+wsubwm
