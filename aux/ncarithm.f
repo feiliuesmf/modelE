@@ -29,7 +29,7 @@
 
       if(iargc().ne.6) then
         write(6,*) 
-     &        'usage: ncarithm cformat a1 a2 file1 file2 fileout'
+     &        'usage: ncarithm cformat a1 a2 file1 file2 fileout' 
         stop
       endif
 
