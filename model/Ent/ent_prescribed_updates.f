@@ -531,7 +531,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
          !* Summarize for patch level. - NOTE:This is total flux, not just the growth increment.
          resp_growth_patch = resp_growth_patch + cop%R_auto
          ! the following is not used anywhere
-         !resp_growth_root_patch = resp_growth_root_patch + cop%R_root
+         !resp_growth_root = resp_growth_root + cop%R_root
 
           cop => cop%shorter
         end do
