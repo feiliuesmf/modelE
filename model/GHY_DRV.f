@@ -197,9 +197,9 @@ ccc extra stuff which was present in "earth" by default
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE constant,ONLY : sday
+      USE constant,ONLY : By3,sday
       USE model_com,ONLY : jday,jmon,wfcs
-      USE clouds_com,ONLY : fss
+      USE clouds_com,ONLY : ddml,fss
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth
       USE tracers_dust,ONLY : d_dust,ers_data,hbaij,ricntd,src_fnct
@@ -326,16 +326,21 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       pbl_args%ricntd=ricntd(i,j)
       pbl_args%pprec=pprec(i,j)
       pbl_args%pevap=pevap(i,j,itype)
+c**** fractional area of moist convection * fraction of downdrafts
+c**** (=1/3), but only if downdrafts reach the lowest atmospheric
+c**** layer. Needed to constrain dust emission due to downdrafts. Also
+c**** used in PBL.f to calculate wspdf
+      IF (ddml(i,j) == 1) THEN
+        pbl_args%mcfrac=(1.D0-fss(1,i,j))*By3
+      ELSE
+        pbl_args%mcfrac=0.D0
+      END IF
 c**** prescribed dust emission
       pbl_args%d_dust(1:Ntm_dust)=d_dust(i,j,1:Ntm_dust,jday)/Sday
      &     /axyp(i,j)/ptype
 #endif
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       pbl_args%minfr(:)=minfr(i,j,:)
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      pbl_args%mcfrac=1.-fss(1,i,j)
 #endif
 
       end subroutine ghy_tracers_set_cell
