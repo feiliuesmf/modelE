@@ -44,7 +44,7 @@ qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 odeep: $(BIN_DIR)/mkdeep.exe
 rvr: $(BIN_DIR)/RDconvert
 input: $(BIN_DIR)/inputll2cs
-regrid: ll2cs ncll2cs
+regrid: ll2cs ncll2cs ncarithm
 
 # include file with implicit rules
 include $(CONFIG_DIR)/rules.mk
@@ -153,6 +153,9 @@ ll2cs: ll2cs.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 ncll2cs: ncio.o ncll2cs.o
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
+
+ncarithm: ncio.o ncarithm.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 status:

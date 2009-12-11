@@ -1,4 +1,4 @@
-filedir=/gpfsm/dnb53/projects/p01/prod_input_files/methane/gcm_data/
+filedir=/discover/nobackup/gfaluveg/PRE/make_1x1_nat_sources/CH4/
 remapdir=/discover/nobackup/projects/giss/prod_input_files/
 regridfile=remap360-180C90-90.nc
 imsource=360

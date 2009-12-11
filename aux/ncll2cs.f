@@ -193,7 +193,7 @@ c     ll2cs
       real*4, allocatable :: slij4(:,:,:,:) , tlij4(:,:,:,:)  !lij arrays
       real*8, allocatable :: slij(:,:,:,:)  , tlij(:,:,:,:)
       integer :: ims,jms,lms,kms,nts,imt,jmt,ntt,nfields,nlevels,n,
-     &     nargs,maxrec,iuin,iuout,i,imax,status,fid,fidt,vid
+     &     maxrec,iuin,iuout,i,imax,status,fid,fidt,vid
       type (x_2grids) :: x2grids
       integer :: offset(10),dim(10)
       integer :: ndims, nvars, ngatts, itype, ndim, natt, UNLIMDIMID,
@@ -202,11 +202,9 @@ c     ll2cs
       character*80 :: cval,vname
       integer ::  ishape(3)   ! variable shape
       integer :: dtype,nd,shp(7)
-      logical :: r4_on_disk !real*8 stored as real*4
       
 
-      nargs = IARGC()
-      IF(nargs.lt.9) write(*,*) "ncll2cs needs 9 arguments";
+      IF(iargc().ne.9) write(*,*) "ncll2cs needs 9 arguments";
 
       call getarg(1,filesource)
       call getarg(2,filetarget)
