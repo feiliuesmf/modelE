@@ -68,6 +68,7 @@
 #endif
 #endif
 #ifdef TRACERS_ON
+      USE TRACER_COM, only : remake_tracer_lists
       USE TRACER_COM, only: itime_tr0,TRM,TRMOM,NTM,trname,trdn1
 #ifdef TRACERS_COSMO
      *     ,n_Be10,n_Be7
@@ -379,6 +380,7 @@ C**** Find the ntx active tracers ntix(1->ntx)
         ntix(nx) = n
       end do
       ntx = nx
+      call remake_tracer_lists()
 
 #ifdef TRACERS_AMP
       AQsulfRATE = 0.d0
@@ -937,15 +939,17 @@ C**** TRACERS: Use only the active ones
         n = ntix(nx)
 
 #ifndef SKIP_TRACER_DIAGS
-        do l=1,lm
-          dtrm(l) = (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
+        if(lmcmax > 0) then
+          do l=1,lmcmax
+            dtrm(l) = (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
 #ifdef TRACERS_WATER
      *         + trsvwml(nx,l)
 #endif
-        enddo
-        if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm),
-     &       itcon_mc(n),n)
-        call inc_tajln_column(i,j,1,lm,lm,jlnt_mc,n,dtrm)
+          enddo
+          if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lmcmax)),
+     &         itcon_mc(n),n)
+          call inc_tajln_column(i,j,1,lmcmax,lm,jlnt_mc,n,dtrm)
+        endif
 #endif  /*SKIP_TRACER_DIAGS*/
 
         do l=1,lm

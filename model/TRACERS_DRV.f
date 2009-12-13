@@ -10470,18 +10470,24 @@ c
       RETURN
       END SUBROUTINE GET_COND_FACTOR
 
-      SUBROUTINE GET_COND_FACTOR2(
-     &     N,WMXTR,TEMP,TEMP0,LHX,FCLOUD,FQ0,fq,
-     *     TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
-!@sum  TEMPORARY version of GET_COND_FACTOR without L index
+      SUBROUTINE GET_COND_FACTOR_array(
+     &     NTX,WMXTR,TEMP,TEMP0,LHX,FCLOUD,
+     &     FQ0,fq,TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
 !@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on CB436TdsM23 CLOUDCHCC and CLOUDCHEM subroutines)
+! NOTE: THLAW is only computed for the tracers in gases_list!
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
+
+      USE TRACER_COM, only :
+     &     gases_count,aero_count,water_count,hlawt_count,
+! NB: these lists are often used for implicit loops
+     &     gases_list,aero_list,water_list,hlawt_list
+
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
      *     ,trname,ntm,t_qlimit,fq_aer,trpdens
 #ifdef TRACERS_SPECIAL_O18
@@ -10489,7 +10495,7 @@ C**** GLOBAL parameters and variables:
 #endif
 #ifdef TRACERS_HETCHEM
      *     ,trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
-     *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p
+     *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p, n_Clay,n_Silt1,n_Silt2
       USE MODEL_COM, only  : dtsrc
 #endif
       IMPLICIT NONE
@@ -10509,66 +10515,68 @@ C**** Local parameters and variables and arguments:
 !@var LHX latent heat flag for whether condensation is to ice or water
 !@var RKD dummy variable (= tr_RKD*EXP[ ])
       REAL*8, PARAMETER :: BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, ssfac, RKD,CLDINC
+      REAL*8 Ppas, tfac, RKD,CLDINC
 #ifdef TRACERS_SPECIAL_O18
-      real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice,fqi,gint
-      integer i
-!@param nstep no. of steps for integration of Rayleigh condensation
-      integer, parameter :: nstep=6   !8
-!@param wgt weightings for simpson's rule integration
-      real*8, parameter, dimension(nstep+1) ::
-     *     wgt = (/ by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3, by3 /)
-c     *     wgt = (/ by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3, 2*by3, 4*by3
-c     *     , by3 /)
+      real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice
 #endif
-      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX, TR_LEF
-     *     , pl,CLDSAVT
-      REAL*8,  INTENT(IN) :: trwml
+      REAL*8,  INTENT(IN) :: fq0, FCLOUD, WMXTR, TEMP, TEMP0,LHX
+     &     , TR_LEF(NTM), pl,CLDSAVT
+      REAL*8,  INTENT(IN), DIMENSION(ntm) :: trwml
       REAL*8,  INTENT(IN), DIMENSION(ntm) :: TM
-      REAL*8,  INTENT(OUT):: fq,thlaw
-      INTEGER, INTENT(IN) :: N, ntix(ntm)
+      REAL*8,  INTENT(OUT):: fq(ntm),thlaw(ntm)
+      INTEGER, INTENT(IN) :: NTX, ntix(ntm)
       LOGICAL TR_CONV
-      REAL*8 :: SUPSAT
-c
-C**** CALCULATE the fraction of tracer mass that becomes condensate:
-c
-      thlaw=0.
-      SELECT CASE(tr_wd_TYPE(NTIX(N)))
-        CASE(nGAS)                            ! gas tracer
-          fq = 0.D0                           ! frozen and default case
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+      REAL*8 :: FQ0FAC,SUPSAT,SSFAC(NTM),SSFAC0
+      INTEGER :: N,IGAS,IAERO,IWAT
+
+c      thlaw(:) = 0. ! default
+
+#if (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP)
-          IF(LHX.eq.LHE) THEN                 ! if not frozen then:
-            Ppas = PL*1.D2                 ! pressure to pascals
-            tfac = (1.D0/TEMP - BY298K)*BYGASC
-            ssfac = WMXTR*MAIR*1.D-3*Ppas/(CLDSAVT+teeny)
-            IF(tr_DHD(NTIX(N)).ne.0.D0) THEN
-              ssfac=(ssfac*tr_RKD(NTIX(N)))*DEXP(-tr_DHD(NTIX(N))*tfac)
-            ELSE
-              ssfac=(ssfac*tr_RKD(NTIX(N)))
-            END IF
-c           clwc=WMXTR*MAIR*1.D-3*Ppas*BYGASC/(TEMP*FCLOUD)
-c           ssfac=RKD*GASC*TEMP*clwc   ! Henry's Law
-c           ssfac=RKD*WMXTR*MAIR*1.D-3*Ppas/(CLDSAVT+teeny)
-            if (.not.tr_conv) then  !stratiform
-              thlaw=(ssfac*tr_lef*tm(NTIX(N))
-     *        -TRWML)/(1.D0+ssfac)
-              if (thlaw.lt.0.) thlaw=0.d0
-              if (thlaw.gt.tm(NTIX(N))) thlaw=tm(NTIX(N))
-            else  !if convection
-              fq=ssfac / (1.D0 + ssfac)
-              if (fq.ge.1.) fq=1.d0
-              thlaw=0.
-            endif
-            if (FCLOUD.LT.1.D-16) fq=0.d0
-            if (FCLOUD.LT.1.D-16) thlaw=0.d0
-            if (fq0.eq.0.) fq=0.d0
-#ifdef TRACERS_SPECIAL_Shindell
-            if(t_qlimit(NTIX(N)).and.fq.gt.1.)fq=1.!no negative tracers
-#endif
-          END IF
-#endif
-        CASE(nWATER)                          ! water tracer
+c
+c gases
+c
+      if(lhx.eq.lhe .and. fcloud.ge.1d-16) then
+        Ppas = PL*1.D2          ! pressure to pascals
+        tfac = (1.D0/TEMP - BY298K)*BYGASC
+        ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(CLDSAVT+teeny)
+        ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
+        do igas=1,hlawt_count
+          n = hlawt_list(igas)
+          ssfac(n) = ssfac(n)*exp(-tr_DHD(n)*tfac)
+        enddo
+        if(tr_conv) then ! convective cloud
+          fq0fac = 1.
+          if (fq0.eq.0.) fq0fac=0.d0
+          do igas=1,gases_count
+            n = gases_list(igas)
+c not sure why the min was necessary here
+c            fq(n) = min(1d0, fq0fac*ssfac(n) / (1d0 + ssfac(n)))
+            fq(n) = fq0fac*ssfac(n) / (1d0 + ssfac(n))
+            thlaw(n) = 0.
+          enddo
+        else             ! stratiform cloud
+          do igas=1,gases_count
+            n = gases_list(igas)
+            fq(n) = 0.
+            thlaw(n) = min(tm(n),max(0d0,
+     &           (ssfac(n)*tr_lef(n)*tm(n)-TRWML(n))
+     &           /(1.D0+ssfac(n)) ))
+          enddo
+        endif
+      else
+        fq(gases_list) = 0.
+        thlaw(gases_list) = 0.
+      endif
+#endif /* dissolved gases */
+
+c
+c loop over water species
+c
+      do iwat=1,water_count
+        n = water_list(iwat)
+        fq(n) = fq0
 #ifdef TRACERS_SPECIAL_O18
           if (fq0.gt.0. .and. fq0.lt.1.) then
 C**** If process occurs at constant temperature, calculate condensate
@@ -10589,7 +10597,7 @@ C**** this is a parameterisation from Georg Hoffmann
                   if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
      *                 ,ntix(n))
                 end if
-                fq = 1.- (1.-fq0)**alph
+                fq(n) = 1.- (1.-fq0)**alph
             else
 C**** assume condensate in equilibrium with vapour at temp
               tdegc=temp -tf
@@ -10603,106 +10611,138 @@ C**** this is a parameterisation from Georg Hoffmann
                 if (supsat .gt. 1.) alph=kin_cond_ice(alph,supsat
      *               ,ntix(n))
               end if
-              fq = alph * fq0/(1.+(alph-1.)*fq0)
+              fq(n) = alph * fq0/(1.+(alph-1.)*fq0)
             end if
           else
-            fq = fq0
+            fq(n) = fq0
           end if
-#else
-          fq = fq0
 #endif
-        CASE(nPART)                           ! particulate tracer
-          fq = 0.D0                           ! defaults to zero.
+      enddo ! end loop over water species
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
     (defined TRACERS_AMP) || (defined TRACERS_RADON)
-c only dissolve if the cloud has grown
+c
+c aerosols
+c
+ 
+      if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
+        fq(aero_list) = 0.      ! defaults to zero
+      else
+
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST) &&\
     (defined TRACERS_HETCHEM)
-      select case(trname(ntix(n)))
-      case('Clay')
-         if ( ( TM(ntix(n_SO4_d1)) /trpdens(n_SO4)) >
-     *      (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-         endif
+
+      n = n_Clay
+      if ( ( TM(ntix(n_SO4_d1)) /trpdens(n_SO4)) >
+     *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
+        fq_aer(NTIX(N))  = 1.
+      else
+        fq_aer(NTIX(N))  = 0.
+      endif
 #ifdef TRACERS_NITRATE
-         if ( ( TM(ntix(n_N_d1)) /trpdens(n_NO3p)) >
-     *      (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
-         endif
+      if ( ( TM(ntix(n_N_d1)) /trpdens(n_NO3p)) >
+     *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
+        fq_aer(NTIX(N))  = 1.
+      endif
 #endif
 
-      case('Silt1')
-        if ( ( TM(ntix(n_SO4_d2)) /trpdens(n_SO4)) >
-     *      (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-        endif
+      n = n_Silt1
+      if ( ( TM(ntix(n_SO4_d2)) /trpdens(n_SO4)) >
+     *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
+        fq_aer(NTIX(N))  = 1.
+      else
+        fq_aer(NTIX(N))  = 0.
+      endif
 #ifdef TRACERS_NITRATE
-         if ( ( TM(ntix(n_N_d2)) /trpdens(n_NO3p)) >
-     *      (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
-         endif
+      if ( ( TM(ntix(n_N_d2)) /trpdens(n_NO3p)) >
+     *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
+        fq_aer(NTIX(N))  = 1.
+      endif
 #endif
 
-      case('Silt2')
-        if ( ( TM(ntix(n_SO4_d3)) /trpdens(n_SO4)) >
-     *      (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
-         else
-            fq_aer(NTIX(N))  = 0.
-        endif
+      n = n_Silt2
+      if ( ( TM(ntix(n_SO4_d3)) /trpdens(n_SO4)) >
+     *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
+        fq_aer(NTIX(N))  = 1.
+      else
+        fq_aer(NTIX(N))  = 0.
+      endif
 #ifdef TRACERS_NITRATE
-         if ( ( TM(ntix(n_N_d3)) /trpdens(n_NO3p)) >
-     *      (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
-            fq_aer(NTIX(N))  = 1.
-         endif
+      if ( ( TM(ntix(n_N_d3)) /trpdens(n_NO3p)) >
+     *     (( TM(ntix(n))  /trpdens(n)) * 0.03 ) ) then
+        fq_aer(NTIX(N))  = 1.
+      endif
 #endif
-      end select
+
 #endif
-           CLDINC=CLDSAVT-FCLOUD
-          if (fq0.gt.0.and.CLDINC.gt.0.) then
-          if(LHX.EQ.LHE) then !liquid cloud
-            fq = fq_aer(NTIX(N))*CLDINC
-           else ! ice cloud - small dissolution
-            fq = fq_aer(NTIX(N))*CLDINC*0.12d0
-           endif
-          endif
+
+      cldinc=cldsavt-fcloud
+      if(tr_conv) then          ! convective cloud
 c complete dissolution in convective clouds
 c with double dissolution if partially soluble
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-          IF (fq_aer(ntix(n)) > 0. .AND. tr_conv) THEN
-#else
-          if (TR_CONV) then
-#endif
-           if (LHX.EQ.LHE) then !liquid cloud
+        if(lhx.eq.lhe) then
+          fq(aero_list) = fq_aer(aero_list)
+        else
+          fq(aero_list) = fq_aer(aero_list)*0.12d0
+        endif
+      elseif(fq0.gt.0 .and. cldinc.gt.0.) then ! growing stratiform cloud
+        if(lhx.eq.lhe) then
+          fq(aero_list) = fq_aer(aero_list)*cldinc
+        else
+          fq(aero_list) = fq_aer(aero_list)*cldinc*0.12d0
+        endif
+      else
+        fq(aero_list) = 0.
+      endif
+      where(fq(aero_list).ge.1.d0) fq(aero_list)=0.9999
 c
-               fq=fq_aer(ntix(n))
-c              fq=(1.d0+fq_aer(ntix(n)))/2.d0
-c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
-           else
-               fq=fq_aer(ntix(n))*0.12d0
-c              fq=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
-c              fq=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
-           endif
-          endif
-          if (FCLOUD.LT.1.D-16) fq=0.d0
-          if (fq.ge.1.d0) fq=0.9999
-          if (fq0.eq.0.) fq=0.d0
-#endif
+c use this code in place of the above if the commented-out formulas
+c for (dust?) fq are reinstated
+c
 
-        CASE DEFAULT                                ! error
-          call stop_model(
-     &    'tr_wd_TYPE(NTIX(N)) out of range in GET_COND_FACTOR',255)
-      END SELECT
+c      do iaero=1,aero_count ! loop over aerosols
+c        n = aero_list(iaero)
+cc complete dissolution in convective clouds
+cc with double dissolution if partially soluble
+c          if (TR_CONV) then ! convective cloud
+c            if (LHX.EQ.LHE) then !liquid cloud
+ccdust #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+ccdust     (defined TRACERS_QUARZHEM)
+ccdust           IF (fq_aer(ntix(n)) > 0.)
+ccdust #endif
+c              fq(n)=fq_aer(ntix(n))
+ccdust?              fq(n)=(1.d0+fq_aer(ntix(n)))/2.d0
+ccdust?              fq(n)=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
+c            else
+ccdust #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+ccdust     (defined TRACERS_QUARZHEM)
+ccdust           IF (fq_aer(ntix(n)) > 0.)
+ccdust #endif
+c              fq(n)=fq_aer(ntix(n))*0.12d0
+ccdust?              fq(n)=(1.d0+fq_aer(ntix(n)))/2.d0*0.05d0
+ccdust?              fq(n)=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0*0.05d0
 c
+c            endif
+c          elseif (fq0.gt.0.and.CLDINC.gt.0.) then ! stratiform cloud.
+cc only dissolve if the cloud has grown
+c            if(LHX.EQ.LHE) then !liquid cloud
+c              fq(n) = fq_aer(ntix(n))*CLDINC
+c            else                ! ice cloud - small dissolution
+c              fq(n) = fq_aer(ntix(n))*CLDINC*0.12d0
+c            endif
+c          endif
+c          if (fq(n).ge.1.d0) fq(n)=0.9999
+c      enddo ! end loop over aerosols
+
+      endif ! fcloud>0 and fq0.ne.0
+
+#endif /* aerosols */
+
       RETURN
-      END SUBROUTINE GET_COND_FACTOR2
+      END SUBROUTINE GET_COND_FACTOR_array
+
 
       SUBROUTINE GET_WASH_FACTOR(N,b_beta_DT,PREC,fq
      * ,TEMP,LHX,WMXTR,FCLOUD,L,TM,TRPR,THLAW,pl,ntix)
@@ -10790,6 +10830,113 @@ c
       RETURN
       END SUBROUTINE GET_WASH_FACTOR
 
+      SUBROUTINE GET_WASH_FACTOR_array(NTX,b_beta_DT,PREC,fq
+     * ,TEMP,LHX,WMXTR,FCLOUD,TM,TRPR,THLAW,pl,ntix)
+!@sum  GET_WASH_FACTOR calculation of the fraction of tracer
+!@+    scavanged by precipitation below convective clouds ("washout").
+!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436TdsM23 CWASH and WASH_EVAP routines)
+! NOTE: THLAW is only computed for the tracers in gases_list!
+! NOTE: FQ is only computed for the tracers in aero_list!
+c
+C**** GLOBAL parameters and variables:
+      USE TRACER_COM, only: nWATER, nGAS, nPART, tr_wd_TYPE,
+     * tr_RKD,tr_DHD,NTM,rc_washt
+#ifdef TRACERS_AEROSOLS_Koch
+     * ,trname,n_seasalt1,n_seasalt2
+c     USE PBLCOM, only: wsavg
+#endif
+
+      USE TRACER_COM, only :
+     &     gases_count,aero_count,water_count,hlawt_count,
+! NB: these lists are often used for implicit loops
+     &     gases_list,aero_list,water_list,hlawt_list
+
+c      USE CLOUDS, only: NTIX,PL
+      USE CONSTANT, only: BYGASC,LHE,MAIR,teeny
+c
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments:
+!@var FQ fraction of tracer scavenged by below-cloud precipitation
+!@param rc_wash aerosol washout rate constant (mm-1)
+!@var PREC precipitation amount from layer above for washout (mm)
+!@var b_beta_DT precipitating grid box fraction from lowest
+!@+   percipitating layer.
+!@+   The name was chosen to correspond to Koch et al. p. 23,802.
+!@var N index for tracer number loop
+      INTEGER, INTENT(IN) :: NTX,ntix(ntm)
+      REAL*8, INTENT(OUT), DIMENSION(NTM) :: FQ,THLAW
+      REAL*8, INTENT(IN) :: PREC,b_beta_DT,TEMP,LHX,WMXTR,FCLOUD,
+     *  TM(NTM),pl, TRPR(ntm)
+      REAL*8, PARAMETER :: BY298K=3.3557D-3
+      REAL*8 Ppas, tfac, ssfac0, ssfac(ntm), bb_tmp
+      INTEGER :: N,IGAS,IAERO
+C
+
+c      thlaw(:)=0.
+
+c
+c gases
+c
+c      fq(gases_list) = 0.D0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+    (defined TRACERS_AMP)
+      if(      LHX.EQ.LHE ! if not frozen
+     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0.) THEN 
+        Ppas = PL*1.D2          ! pressure to pascals
+        tfac = (1.D0/TEMP - BY298K)*BYGASC
+        ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+        ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
+        do igas=1,hlawt_count
+          n = hlawt_list(igas)
+          ssfac(n) = ssfac(n)*exp(-tr_DHD(n)*tfac)
+        enddo
+        do igas=1,gases_count
+          n = gases_list(igas)
+          thlaw(n) = min(tm(n),max(0d0,
+     &         (ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
+        enddo
+      else
+        thlaw(gases_list) = 0.
+      endif
+#endif
+
+c
+c water species
+c
+c      fq(water_list) = 0d0
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
+    (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_OM_SP) ||\
+    (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_RADON)
+c
+c aerosols
+c
+      if(FCLOUD.GE.1.D-16 .and. prec.gt.0.) then
+        bb_tmp = max(b_beta_DT,0.) ! necessary check?
+        do iaero=1,aero_count
+          n = aero_list(iaero)
+          fq(n) = bb_tmp*(1d0-exp(-prec*rc_washt(n)))
+c         if (wsavg(i,j).gt.10.and.PREC.gt.0.and.l.eq.1) then
+c         select case (trname(n))
+c          case('seasalt1')
+c          fq(n)=0.
+c          case('seasalt2')
+c          fq(n)=0.
+c         end select
+c         endif
+        enddo
+      else
+        fq(aero_list) = 0.
+      endif
+#endif
+
+      RETURN
+      END SUBROUTINE GET_WASH_FACTOR_array
+
       SUBROUTINE GET_EVAP_FACTOR(N,TEMP,LHX,QBELOW,HEFF,FQ0,fq,ntix)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
@@ -10847,6 +10994,70 @@ C**** no fractionation for ice evap
       end select
       RETURN
       END SUBROUTINE GET_EVAP_FACTOR
+
+      SUBROUTINE GET_EVAP_FACTOR_array(
+     &     NTX,TEMP,LHX,QBELOW,HEFF,FQ0,fq,ntix)
+!@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
+!@+    for tracers.
+!@auth Dorothy Koch (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on CB436TdsM23 EVAPD and WASH_EVAP routines)
+c
+C**** GLOBAL parameters and variables:
+      USE CONSTANT, only : tf,lhe
+      USE TRACER_COM, only: ntm,tr_evap_fact, tr_wd_TYPE,nwater,trname
+     &     ,water_count,water_list
+c      USE CLOUDS, only: NTIX
+c
+      IMPLICIT NONE
+c
+C**** Local parameters and variables and arguments:
+!@var FQ            fraction of tracer evaporated
+!@var FQ0 [default] fraction of tracer evaporated
+!@var N index for tracer number loop
+      INTEGER, INTENT(IN) :: NTX,ntix(ntm)
+      REAL*8,  INTENT(OUT):: FQ(NTM)
+      REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
+!@var QBELOW true if evap is occuring below cloud
+      LOGICAL, INTENT(IN) :: QBELOW
+!@var HEFF effective relative humidity for evap occuring below cloud
+      REAL*8, INTENT(IN) :: HEFF
+#ifdef TRACERS_SPECIAL_O18
+      real*8 tdegc,alph,fracvl,fracvs,kin_evap_prec
+      integer :: iwat,n
+#endif
+c
+
+      if(fq0.ge.1d0) then
+        fq(1:ntx) = 1d0 ! total evaporation
+      else
+        fq(1:ntx) = fq0*tr_evap_fact(tr_wd_type(ntix(1:ntx)))
+      endif
+
+#ifdef TRACERS_SPECIAL_O18
+c overwrite fq for water isotopes
+      tdegc=temp-tf
+      do iwat=1,water_count
+        n = water_list(iwat)
+        if (lhx.eq.lhe) then
+          alph=fracvl(tdegc,ntix(n))
+C**** below clouds kinetic effects with evap into unsaturated air
+          if (QBELOW.and.heff.lt.1.)
+     &         alph=kin_evap_prec(alph,heff,ntix(n))
+        else
+C**** no fractionation for ice evap
+          alph=1.
+        end if
+        if (fq0.ne.1.) then
+          fq(n) = 1. - (1.-fq0)**alph
+        else
+          fq(n) = fq0
+        end if
+      enddo
+#endif
+
+      RETURN
+      END SUBROUTINE GET_EVAP_FACTOR_array
+
 #endif
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\

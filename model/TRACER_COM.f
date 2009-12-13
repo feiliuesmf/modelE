@@ -1018,6 +1018,100 @@ C**** arrays that could be general, but are only used by chemistry
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: krate
 #endif
 
+!@var xyz_count,xyz_list count/list of tracers in category xyz.
+!@+   A tracer can belong to more than one list.
+c note: not applying CPP when declaring counts/lists.
+      integer ::  ! counts of tracers meeting the following criteria:
+     &      active_count  ! itime_tr0 <= itime
+     &     ,gases_count   ! tr_wd_type == nGas
+     &     ,aero_count    ! tr_wd_type == nPart
+     &     ,water_count   ! tr_wd_type == nWater
+     &     ,hlawt_count   ! tr_wd_type == nGas and tr_DHD != 0
+     &     ,aqchem_count  ! participates in cloud aqueous chemistry
+      integer, dimension(:), allocatable ::
+     &     active_list,gases_list,aero_list,water_list,
+     &     hlawt_list,aqchem_list
+
+      contains
+
+      subroutine remake_tracer_lists()
+!@sum regenerates the counts and lists of tracers in various categories
+      use model_com, only : itime,coupled_chem
+      implicit none
+      integer :: n,nactive
+      integer, dimension(1000) ::
+     &     tmplist_active,tmplist_gases,tmplist_aero,tmplist_water,
+     &     tmplist_hlawt,tmplist_aqchem
+      active_count = 0
+      gases_count = 0
+      aero_count = 0
+      water_count = 0
+      hlawt_count = 0
+      aqchem_count = 0
+      do n=1,ntm
+
+        if(itime.lt.itime_tr0(n)) cycle
+
+        active_count = active_count + 1
+        tmplist_active(active_count) = n
+
+        select case(tr_wd_type(n))
+        case(nGAS)
+          gases_count = gases_count + 1
+          tmplist_gases(gases_count) = active_count
+          if(tr_DHD(n).ne.0.) then
+            hlawt_count = hlawt_count + 1
+            tmplist_hlawt(hlawt_count) = active_count
+          endif
+        case(nPART)
+          aero_count = aero_count + 1
+          tmplist_aero(aero_count) = active_count
+        case(nWATER)
+          water_count = water_count + 1
+          tmplist_water(water_count) = active_count
+        end select
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+        select case (trname(n))
+        case('SO2','SO4','H2O2_s','H2O2')
+          if ( .not.(
+     *         (trname(n).eq."H2O2" .and. coupled_chem.eq.0).or.
+     *         (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1)) )
+     *         then
+            aqchem_count = aqchem_count + 1
+            tmplist_aqchem(aqchem_count) = active_count
+          end if
+        end select
+#endif
+      enddo
+      if(allocated(active_list)) deallocate(active_list)
+      allocate(active_list(active_count))
+      active_list = tmplist_active(1:active_count)
+
+      if(allocated(gases_list)) deallocate(gases_list)
+      allocate(gases_list(gases_count))
+      gases_list = tmplist_gases(1:gases_count)
+
+      if(allocated(aero_list )) deallocate(aero_list )
+      allocate(aero_list(aero_count))
+      aero_list  = tmplist_aero(1:aero_count)
+
+      if(allocated(water_list)) deallocate(water_list)
+      allocate(water_list(water_count))
+      water_list = tmplist_water(1:water_count)
+
+      if(allocated(hlawt_list)) deallocate(hlawt_list)
+      allocate(hlawt_list(hlawt_count))
+      hlawt_list = tmplist_hlawt(1:hlawt_count)
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+      if(allocated(aqchem_list)) deallocate(aqchem_list)
+      allocate(aqchem_list(aqchem_count))
+      aqchem_list = tmplist_aqchem(1:aqchem_count)
+#endif
+
+      return
+      end subroutine remake_tracer_lists
+
       END MODULE TRACER_COM
 
       SUBROUTINE ALLOC_TRACER_COM(grid)

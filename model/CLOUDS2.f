@@ -34,6 +34,10 @@
 #ifdef TRACERS_WATER
      &     ,nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD,
      *     tr_evap_fact
+     &     ,gases_list,gases_count
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
+     &     ,aqchem_list,aqchem_count
+#endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -361,6 +365,25 @@ c$$$!$OMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,prebar1,LMCMAX,LMCMIN,KMAX,DCL,DEBUG  ! int/logic last (alignment)
 !$OMP  THREADPRIVATE (/CLDPRV/)
 
+#ifdef TRACERS_ON
+! The following tracer arrays are workspace for MSTCNV.  They are
+! declared as permanent arrays here to avoid the expense of initializing
+! temporary LM,NTM arrays to zero each time MSTCNV is called.  After
+! completion of MC calculations, MSTCNV resets these arrays to zero in
+! the layers in which they were used.
+!@var DTM,DTMR: Vertical profiles of Tracers changes
+      REAL*8, DIMENSION(LM,NTM)      :: DTM=0, DTMR=0, TMDNL=0
+      REAL*8, DIMENSION(NMOM,LM,NTM) :: DTMOM=0, DTMOMR=0, TMOMDNL=0
+!@var TPOLD saved plume temperature after condensation for tracers
+!@+   (this is slightly different from TPSAV)
+      REAL*8, DIMENSION(LM)       :: TPOLD=0
+#ifdef TRACERS_WATER
+!@var TRCOND tracer mass in condensate
+!@var TRCONDV tracer mass in lofted condensate
+      REAL*8, DIMENSION(NTM,LM)   :: TRCOND=0,TRCONDV=0
+#endif
+#endif
+
       CONTAINS
 
       SUBROUTINE MSTCNV(IERR,LERR,i_debug,j_debug)
@@ -401,33 +424,27 @@ C**** functions
 
 #ifdef TRACERS_ON
 !@var TMOLD: old TM (tracer mass)
-!@var DTM,DTMR: Vertical profiles of Tracers mass and changes
-      REAL*8, DIMENSION(LM,NTM)      :: TMOLD, DTM, DTMR, TM1, TMDNL
-      REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD,DTMOM,DTMOMR, TMOMDNL
-      REAL*8, DIMENSION(NTM)      :: TMP, TMPMAX, TENV, TMDN, TM_dum
+      REAL*8, DIMENSION(LM,NTM)      :: TMOLD, TM1
+      REAL*8, DIMENSION(NMOM,LM,NTM) :: TMOMOLD
+      REAL*8, DIMENSION(NTM) :: TMP, TMPMAX, TENV, TMDN, TM_dum, DTR
       REAL*8, DIMENSION(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
-!@var TPOLD saved plume temperature after condensation for tracers
-!@+   (this is slightly different from TPSAV)
-      REAL*8, DIMENSION(LM)       :: TPOLD
 #ifdef TRACERS_WATER
 !@var TRPCRP tracer mass in precip
-!@var TRCOND tracer mass in condensate
-!@var TRCONDV tracer mass in lofted condensate
       REAL*8, DIMENSION(NTM)      :: TRPRCP
-      REAL*8, DIMENSION(NTM,LM)   :: TRCOND
-      REAL*8, DIMENSION(NTM,LM)   :: TRCONDV
 !@var FQCONDT fraction of tracer that condenses
 !@var FQEVPT  fraction of tracer that evaporates (in downdrafts)
 !@var FPRCPT fraction of tracer that evaporates (in net re-evaporation)
 !@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
-      REAL*8 :: FQCONDT, FWASHT, FPRCPT, FQEVPT
+      REAL*8 :: FQCONDT(NTM), FWASHT(NTM), FPRCPT(NTM), FQEVPT(NTM)
 !@var WMXTR available water mixing ratio for tracer condensation ( )?
 !@var b_beta_DT precipitating gridbox fraction from lowest precipitating
 !@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
 !@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
 c for tracers in general, added by Koch
-      REAL*8 THLAW,TR_LEF,TMFAC,TR_LEFT(ntm),CLDSAVT
+      REAL*8, DIMENSION(NTM) :: THLAW,THWASH,TR_LEF,TMFAC,TR_LEFT
+      REAL*8 CLDSAVT
+      INTEGER :: IGAS
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
@@ -437,6 +454,7 @@ c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
       REAL*8, DIMENSION(NTM) ::SULFOUT,SULFIN,SULFINC
+      INTEGER :: IAQCH
 #endif
       REAL*8 HEFF
 #endif
@@ -719,6 +737,13 @@ C**** SAVE ORIG PROFILES
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_MC(1:NTM,:)=0.
 #endif
+! TR_LEF is an input to get_cond_factor not currently used for MC clouds
+      TR_LEF(:)=1.D0
+      thlaw(:) = 0.  ! nonzero only for gas tracers
+      thwash(:) = 0. ! nonzero only for gas tracers
+      tmfac(:) = 0.  ! nonzero only for gas tracers
+      fwasht(:) = 0. ! nonzero only for aerosols
+      fqcondt(:) = 0.
 #endif
 C**** CALULATE PBL HEIGHT AND MASS
       PBLM=0.
@@ -920,15 +945,17 @@ C**** guard against possibility of too big a plume
       DUM(1:KMAX,:)=0.    ;  DVM(1:KMAX,:)=0.
       DSM(:) = 0. ; DSMOM(:,:) = 0. ; DSMR(:) = 0. ; DSMOMR(:,:) = 0.
       DQM(:) = 0. ; DQMOM(:,:) = 0. ; DQMR(:) = 0. ; DQMOMR(:,:) = 0.
-#ifdef TRACERS_ON
-      DTM(:,1:NTX) = 0.   ;   DTMOM(:,:,1:NTX) = 0.
-      DTMR(:,1:NTX) = 0.  ;  DTMOMR(:,:,1:NTX) = 0.
-      TMDNL(:,1:NTX) = 0.  ;  TMOMDNL(:,:,1:NTX) = 0.
-      TPOLD = 0.
-#endif
-#ifdef TRACERS_WATER
-      TRCOND = 0.  ; TRCONDV = 0.
-#endif
+c#ifdef TRACERS_ON
+c (re)zeroing now done post-calculation with calls to
+c reset_tracer_work_arrays
+c      DTM(:,1:NTX) = 0.   ;   DTMOM(:,:,1:NTX) = 0.
+c      DTMR(:,1:NTX) = 0.  ;  DTMOMR(:,:,1:NTX) = 0.
+c      TMDNL(:,1:NTX) = 0.  ;  TMOMDNL(:,:,1:NTX) = 0.
+c      TPOLD = 0.
+c#endif
+c#ifdef TRACERS_WATER
+c      TRCOND = 0.  ; TRCONDV = 0.
+c#endif
 
 C**** adjust MPLUME to take account of restricted area of subsidence
 C**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
@@ -1234,60 +1261,46 @@ c      TAUMCL(L)=TAUMCL(L)+COND(L)*FMC1
 #ifdef TRACERS_WATER
 C**** CONDENSING TRACERS
       WMXTR=DQSUM*BYAM(L)
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
 
-      DO N=1,NTX
-        select case (trname(ntix(n)))
-        case('SO2','SO4','H2O2_s','H2O2')
-          if ( .not.(
-     *         (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0).or.
-     *         (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1)) )
-     *         then
-            IF (FPLUME.GT.teeny) then
-              TMP_SUL(L,N)=TMP(N)/FPLUME
-            else
-              TMP_SUL(L,N)=0.
-            END IF
-          end if
-        end select
-      END DO
+      IF (FPLUME.GT.teeny) then
+        TMP_SUL(L,aqchem_list)=TMP(aqchem_list)/FPLUME
+      else
+        TMP_SUL(L,aqchem_list)=0.
+      END IF
 
       CALL GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L),
      *     AIRM,LHX,DT_SULF_MC(1,L),CLDSAVT)
-#endif
-      TM_dum(1:ntx) = TMP(1:ntx)
-      DO N=1,NTX
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-        select case (trname(ntix(n)))
-        case('SO2','SO4','H2O2_s','H2O2')
-          if ( .not.(
-     *         (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0).or.
-     *         (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1)) )
-     *         then
+
+      do iaqch=1,aqchem_count
+        n = aqchem_list(iaqch)
 c first apply chemistry
 c removal of precursers
-            TMP(N)=TMP(N)*(1.+SULFIN(N))
-c updating TM_dum as in corresponding section of LSCOND
-            TM_dum(n) = TMP(n)
-            TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
+        TMP(N)=TMP(N)*(1.+SULFIN(N))
+        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
 c formation of sulfate
-            TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
-          end if
-        end select
+        TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
+      enddo
+
 #endif
-        TR_LEF=1.D0
-        CALL GET_COND_FACTOR2(N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
-     *       ,FQCOND,FQCONDT,.true.,TRCOND(N,L),TM_dum,THLAW,TR_LEF
-     *       ,PL(L),ntix,CLDSAVT)
-        TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L) + TRCONDV(N,L-1)
+
+      TM_dum(:) = TMP(:)
+      CALL GET_COND_FACTOR_array(
+     &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+     &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
+     &     ,ntix,CLDSAVT)
+      dtr(1:ntx) = fqcondt(1:ntx)*tmp(1:ntx)
 #ifdef TRDIAG_WETDEPO
-        IF (diag_wetdep == 1)
-     *        trcond_mc(l,n)=trcond_mc(l,n)+fqcondt*tmp(n)
+      IF (diag_wetdep == 1) trcond_mc(l,1:ntx)=trcond_mc(l,1:ntx)
+     &     +dtr(1:ntx)
 #endif
-        TMP(N)         = TMP(N)         *(1.-FQCONDT)
-        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT)
+      DO N=1,NTX
+        TRCOND(N,L) = DTR(N) + TRCOND(N,L) + TRCONDV(N,L-1)
+        TMP(N)         = TMP(N)         *(1.-FQCONDT(N))
+        TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.-FQCONDT(N))
       END DO
 #endif
 
@@ -1612,12 +1625,22 @@ c#endif
 #endif
       IF (LMAX.LT.LM) GO TO 220   ! CHECK FOR NEXT POSSIBLE LMAX
 
-  340 IF(LMIN.EQ.LMAX) CYCLE
+  340 IF(LMIN.EQ.LMAX) THEN
+#ifdef TRACERS_ON
+        call reset_tracer_work_arrays(lmin,lmin)
+#endif
+        CYCLE
+      ENDIF
 
 C**** To test code with only one estimate of plume calculation comment
 C**** out this next line
 C**** repeat plume calculation if MC has gone more than 2 layers
-      IF((MC1.AND.MCCONT.GT.1).AND. .NOT.RFMC1) GO TO 160
+      IF((MC1.AND.MCCONT.GT.1).AND. .NOT.RFMC1) THEN
+#ifdef TRACERS_ON
+        call reset_tracer_work_arrays(lmin,lmax)
+#endif
+        GO TO 160
+      ENDIF
 
 C**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
       TAUMCL(LMIN:LMAX)=TAUMCL(LMIN:LMAX)+TAUMC1(LMIN:LMAX)
@@ -1752,24 +1775,24 @@ C****
 #ifdef TRACERS_WATER
 C**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
 C**** (If 100% evaporation, allow all tracers to evaporate completely.)
-      DO N=1,NTX
-        IF(FQEVP.eq.1.) THEN                 ! total evaporation
-          TMDN(N)     = TMDN(N) + TRCOND(N,L)
+      IF(FQEVP.eq.1.) THEN  ! total evaporation
+          TMDN(1:NTX)     = TMDN(1:NTX) + TRCOND(1:NTX,L)
 #ifdef TRDIAG_WETDEPO
           IF (diag_wetdep == 1)
-     &         trdvap_mc(l,n)=trdvap_mc(l,n)+trcond(n,l)
+     &         trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx)+trcond(1:ntx,l)
 #endif
-          TRCOND(N,L) = 0.d0
-        ELSE ! otherwise, tracers evaporate dependent on type of tracer
-          CALL GET_EVAP_FACTOR(N,TNX1,LHX,.FALSE.,1d0,FQEVP,FQEVPT,ntix)
-          TMDN(N)     = TMDN(N)     + FQEVPT * TRCOND(N,L)
+          TRCOND(1:NTX,L) = 0.d0
+      ELSE            ! otherwise, tracers evaporate dependent on type of tracer
+        CALL GET_EVAP_FACTOR_array(
+     &         NTX,TNX1,LHX,.FALSE.,1d0,FQEVP,FQEVPT,ntix)
+        dtr(1:ntx) = fqevpt(1:ntx)*trcond(1:ntx,l)
 #ifdef TRDIAG_WETDEPO
-          IF (diag_wetdep == 1)
-     &         trdvap_mc(l,n)=trdvap_mc(l,n)+fqevpt*trcond(n,l)
+        IF (diag_wetdep == 1) trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx)
+     &       +dtr(1:ntx)
 #endif
-          TRCOND(N,L) = TRCOND(N,L) - FQEVPT * TRCOND(N,L)
-        END IF
-      END DO
+        TMDN(1:NTX)     = TMDN(1:NTX)     + DTR(1:NTX)
+        TRCOND(1:NTX,L) = TRCOND(1:NTX,L) - DTR(1:NTX)
+      END IF
 #endif
 C**** ENTRAINMENT OF DOWNDRAFTS
       IF(L.LT.LDRAFT.AND.L.GT.1) THEN
@@ -2029,10 +2052,13 @@ C**** corresponding water tracer adjustment
 #endif
           END IF
         END IF
+      END DO
 #ifdef TRACERS_ON
 C**** check for independent tracer errors
-        DO N=1,NTX
-          IF (t_qlimit(n) .and. TM(L,N).lt.0.) then
+      DO N=1,NTX
+        IF (.not.t_qlimit(n)) cycle
+        DO L=LDMIN,LMAX
+          IF (TM(L,N).lt.0.) then
             WRITE(0,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug
      $             ,j_debug,l,tm(l,n),cmneg(l)
 C**** reduce subsidence post hoc.
@@ -2044,8 +2070,8 @@ C**** reduce subsidence post hoc.
             END IF
           END IF
         END DO
-#endif
       END DO
+#endif
 C**** diagnostics
       DO L=LDMIN,LMAX
         FCDH=0.
@@ -2320,14 +2346,14 @@ C**** Tracer net re-evaporation
 C**** (If 100% evaporation, allow all tracers to evaporate completely.)
       BELOW_CLOUD = L.lt.LMIN
       IF(FPRCP.eq.1.) THEN      !total evaporation
+#ifdef TRDIAG_WETDEPO
+        IF (diag_wetdep == 1) trnvap_mc(l,1:ntx) = trnvap_mc(l,1:ntx)
+     &       +trprcp(1:ntx)
+#endif
         DO N=1,NTX
           TM(L,N)   = TM(L,N)  + TRPRCP(N)
 c         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
 c     *         *FEVAP
-#ifdef TRDIAG_WETDEPO
-          IF (diag_wetdep == 1)
-     &         trnvap_mc(l,n)=trnvap_mc(l,n)+trprcp(n)
-#endif
           TRPRCP(N) = 0.d0
         END DO
       ELSE ! otherwise, tracers evaporate dependent on type of tracer
@@ -2339,18 +2365,17 @@ C**** estimate effective humidity
         else
           heff=1.
         end if
-        DO N=1,NTX
-          CALL GET_EVAP_FACTOR(N,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT
-     *         ,ntix)
-          TM(L,N) = TM(L,N)     + FPRCPT*TRPRCP(N)
-c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
-c     *         ,FPRCPT,TRPRCP(N)
+        CALL GET_EVAP_FACTOR_array(
+     &         NTX,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT,ntix)
+        dtr(1:ntx) = fprcpt(1:ntx)*trprcp(1:ntx)
 #ifdef TRDIAG_WETDEPO
-          IF (diag_wetdep == 1)
-     &         trnvap_mc(l,n)=trnvap_mc(l,n)+fprcpt*trprcp(n)
+        IF (diag_wetdep == 1) trnvap_mc(l,1:ntx)=trnvap_mc(l,1:ntx)
+     &       +dtr(1:ntx)
 #endif
-          TRPRCP(N) = TRPRCP(N) - FPRCPT*TRPRCP(N)
-        END DO
+        TM(L,1:NTX) = TM(L,1:NTX)     + DTR(1:NTX)
+c          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
+c     *         ,FPRCPT(N),TRPRCP(N)
+        TRPRCP(1:NTX) = TRPRCP(1:NTX) - DTR(1:NTX)
       END IF
 #ifndef NO_WASHOUT_IN_CLOUDS
       IF (.NOT. below_cloud .AND. prcp > teeny) THEN
@@ -2358,21 +2383,27 @@ c**** Washout of tracers in cloud
         wmxtr=prcp*byam(l)
         precip_mm=prcp*100.*bygrav
         b_beta_DT=fplume
-        DO n=1,ntx
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,told,lhx,
-     &         wmxtr,fplume,l,tm,trprcp,thlaw,pl(l),ntix)
-          trprcp(n)=fwasht*tm(l,n)+trprcp(n)+thlaw
+        TM_dum(:) = TM(L,:)
+        CALL get_wash_factor_array(
+     &       ntx,b_beta_dt,precip_mm,fwasht,told,lhx,
+     &       wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix)
+        dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
-          IF (diag_wetdep == 1)
-     &         trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
+        IF (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)
+     &       +dtr(1:ntx)+thwash(1:ntx)
 #endif
+        do igas=1,gases_count
+          n = gases_list(igas)
           IF (tm(l,n) > teeny) THEN
-            tmfac=thlaw/tm(l,n)
+            tmfac(n)=thwash(n)/tm(l,n)
           ELSE
-            tmfac=0.
+            tmfac(n)=0.
           END IF
-          tm(l,n)=tm(l,n)*(1.-fwasht)-thlaw
-          tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht-tmfac)
+        enddo
+        DO n=1,ntx
+          trprcp(n)=dtr(n)+trprcp(n)+thwash(n)
+          tm(l,n)=tm(l,n)*(1.-fwasht(n))-thwash(n)
+          tmom(xymoms,l,n)=tmom(xymoms,l,n)*(1.-fwasht(n)-tmfac(n))
         END DO
       ELSE IF (below_cloud .AND. prcp > teeny) THEN
 #else
@@ -2387,42 +2418,41 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         CALL GET_SULFATE(L,TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
-#endif
-        DO N=1,NTX
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
-        if ( .not.(
-     *       (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0).or.
-     *       (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1)) )
-     *       then
+
+        do iaqch=1,aqchem_count
+          n = aqchem_list(iaqch)
           TRPRCP(N)=TRPRCP(N)*(1.+SULFINC(N))
           TM(L,N)=TM(L,N)*(1.+SULFIN(N))
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *(1.+SULFIN(N))
           TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
-        end if
-      end select
-
+        enddo
 #endif
+
 cdmk Here I took out GET_COND, since we are below cloud.
 cdmk GET_WASH now has gas dissolution, extra arguments
-          CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *         ,TOLD,LHX,WMXTR,FPLUME,L,TM,TRPRCP,THLAW,pl(l),ntix)
-          TRPRCP(N) = FWASHT*TM(L,N)+TRPRCP(N)+THLAW
+        TM_dum(:) = TM(L,:)
+        CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
+     *       TOLD,LHX,WMXTR,FPLUME,TM_dum,TRPRCP,THWASH,pl(l),ntix)
+        dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
-          IF (diag_wetdep == 1)
-     &         trwash_mc(l,n)=trwash_mc(l,n)+fwasht*tm(l,n)+thlaw
+        IF (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)
+     &       +dtr(1:ntx)+thwash(1:ntx)
 #endif
+        do igas=1,gases_count
+          n = gases_list(igas)
           IF (TM(L,N).GT.teeny) THEN
-            TMFAC=THLAW/TM(L,N)
+            TMFAC(N)=THWASH(N)/TM(L,N)
           ELSE
-            TMFAC=0.
+            TMFAC(N)=0.
           END IF
-          TM(L,N)=TM(L,N)*(1.-FWASHT)-THLAW
-c          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT
-c     *         ,THLAW
+        enddo
+        DO N=1,NTX
+          TRPRCP(N) = DTR(N)+TRPRCP(N)+THWASH(N)
+          TM(L,N)=TM(L,N)*(1.-FWASHT(N))-THWASH(N)
+c          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT(N)
+c     *         ,THWASH(N)
           TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *
-     &                (1.-FWASHT-TMFAC)
+     &                (1.-FWASHT(N)-TMFAC(N))
         END DO
       END IF
 
@@ -2470,6 +2500,11 @@ C****
 C**** END OF LOOP OVER CLOUD TYPES
 C****
       MC1=.FALSE.
+
+#ifdef TRACERS_ON
+      call reset_tracer_work_arrays(ldmin,lmax)
+#endif
+
   570 CONTINUE
 C****
 C**** END OF OUTER LOOP OVER CLOUD BASE
@@ -2477,20 +2512,25 @@ C****
   600 CONTINUE
 
       IF(LMCMIN.GT.0) THEN
+
 C**** set fssl array
         DO L=1,LM
           FSSL(L)=1.-FMC1
-#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
-          IF (diag_wetdep == 1) THEN
-            trcond_mc(l,1:ntx)=trcond_mc(l,1:ntx)*fmc1
-            trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx)*fmc1
-            trflcw_mc(l,1:ntx)=trflcw_mc(l,1:ntx)*fmc1
-            trprcp_mc(l,1:ntx)=trprcp_mc(l,1:ntx)*fmc1
-            trnvap_mc(l,1:ntx)=trnvap_mc(l,1:ntx)*fmc1
-            trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)*fmc1
-          END IF
-#endif
         END DO
+#if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
+        IF (diag_wetdep == 1) THEN
+          do n=1,ntx
+            do l=1,lmcmax
+              trcond_mc(l,n)=trcond_mc(l,n)*fmc1
+              trdvap_mc(l,n)=trdvap_mc(l,n)*fmc1
+              trflcw_mc(l,n)=trflcw_mc(l,n)*fmc1
+              trprcp_mc(l,n)=trprcp_mc(l,n)*fmc1
+              trnvap_mc(l,n)=trnvap_mc(l,n)*fmc1
+              trwash_mc(l,n)=trwash_mc(l,n)*fmc1
+            enddo
+          enddo
+        END IF
+#endif
 
 C**** ADJUSTMENT TO CONSERVE CP*T DURING SUBSIDENCE
         SUMAJ=0.
@@ -2626,6 +2666,34 @@ c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
       END IF
 
       RETURN
+
+#ifdef TRACERS_ON
+
+      CONTAINS
+
+      subroutine reset_tracer_work_arrays(l1,l2)
+      integer :: l1,l2
+      integer :: l,n
+      tpold(1:l2) = 0.
+      do n=1,ntx
+        do l=l1,l2
+          dtm(l,n) = 0.
+          dtmom(:,l,n) = 0.
+          dtmr(l,n) = 0.
+          dtmomr(:,l,n) = 0.
+          tmdnl(l,n) = 0.
+          tmomdnl(:,l,n) = 0.
+        enddo
+      enddo
+#ifdef TRACERS_WATER
+      do l=1,l2
+        trcond(1:ntx,l) = 0.
+        trcondv(1:ntx,l) = 0.
+      enddo
+#endif
+      end subroutine reset_tracer_work_arrays
+#endif
+
       END SUBROUTINE MSTCNV
 
       SUBROUTINE LSCOND(IERR,WMERR,LERR,i_debug,j_debug)
@@ -2699,21 +2767,24 @@ C**** -cooled rain, increasing COEFM enhances probability of snow.
 !@var FQTOWT tracer-specific fraction of gas tracer condensing in CLW
 !@var FPRT tracer-specific fraction of tracer in CLW that precipitates
 !@var FERT tracer-specific fraction of tracer in precipitate evaporating
-      REAL*8 :: DTWRT,DTPRT,DTERT,DTQWT,FWTOQT,FQTOWT,FPRT,FERT,PRLIQ
+!@var FQCONDT fraction of tracer that condenses
+      REAL*8, DIMENSION(NTM) ::
+     &     FQTOWT,FQCONDT,FERT,FWTOQT,DTERT,DTPRT,DTQWT
+      REAL*8 :: DTWRT,FPRT,PRLIQ
 !@var BELOW_CLOUD logical- is the current level below cloud?
 !@var CLOUD_YET logical- in L loop, has there been any cloud so far?
       LOGICAL BELOW_CLOUD,CLOUD_YET
-!@var FQCONDT fraction of tracer that condenses
 !@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
-      REAL*8 :: FQCONDT, FWASHT
+      REAL*8 :: FWASHT(NTM),TM_dum(NTM), DTR(NTM)
 !@var WMXTR available water mixing ratio for tracer condensation ( )?
 !@var b_beta_DT precipitating gridbox fraction from lowest precipitating
 !@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
 !@var precip_mm precipitation (mm) from the grid box above for washout
       REAL*8 WMXTR, b_beta_DT, precip_mm
-      REAL*8 :: TM_dum(NTM)
 c for tracers in general, added by Koch
-      REAL*8 THLAW,THWASH,TR_LEF,TMFAC,TMFAC2,TR_LEFT(ntm),CLDSAVT
+      real*8, dimension(ntm) :: THLAW,TR_LEF,TR_LEFT
+      REAL*8 THWASH(NTM),TMFAC(NTM),TMFAC2(NTM),CLDSAVT
+      INTEGER :: IGAS
 !@var TR_LEF limits precurser dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var THWASH Henry's Law for below cloud dissolution
@@ -2721,18 +2792,12 @@ c for tracers in general, added by Koch
 !@var CLDSAVT is present cloud fraction, saved for tracer use
 !@var cldprec cloud fraction at lowest precipitating level
       REAL*8 :: cldprec
-cdmk2
-#ifndef NO_WASHOUT_IN_CLOUDS
-!@var tm_temp temporary array for tracer mass after applying other removal
-!@+           and re-evaporation processes to calculate washout in clouds
-      REAL*8,DIMENSION(Lm,Ntm) :: tm_temp
-#endif
-cdmk2
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
 c for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
       REAL*8 WA_VOL
       REAL*8, DIMENSION(NTM) ::SULFOUT,SULFIN,SULFINC
+      INTEGER :: IAQCH
 #endif
 #endif
 
@@ -2893,6 +2958,14 @@ C**** initialise vertical arrays
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_SS(1:NTM,:)=0.
 #endif
+      TR_LEF(:)=1. ! currently, only aqchem_list elements vary with layer
+      thlaw(:) = 0.  ! nonzero only for gas tracers
+      thwash(:) = 0. ! nonzero only for gas tracers
+      tmfac(:) = 0.  ! nonzero only for gas tracers
+      tmfac2(:) = 0. ! nonzero only for gas tracers
+      fwasht(:) = 0. ! nonzero only for aerosols
+      fqcondt(:) = 0.
+      fqtowt(:) = 0.
 #endif
 #ifdef CLD_AER_CDNC
        CTEML=0.
@@ -4014,136 +4087,141 @@ c CLDSAVT is current FCLD
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
      * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
      *  ,DT_SULF_SS(1,L),FCLD)
-      DO N=1,NTX
-      select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
-        if ( .not.(
-     *       (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0).or.
-     *       (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1)) )
-     *       then
-          TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
-          TM(L,N)=TM(L,N)*(1.+SULFIN(N))
-          TMOM(:,L,N)  = TMOM(:,L,N)*(1. +SULFIN(N))
-          if (WMX(L).LT.teeny.and.BELOW_CLOUD) then
-            TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(N)
-          else
-            TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
-          endif
-        end if
-      end select
 
-      END DO
+      do iaqch=1,aqchem_count
+        n = aqchem_list(iaqch)
+        TR_LEF(n)=TR_LEFT(N)
+        TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
+        TM(L,N)=TM(L,N)*(1.+SULFIN(N))
+        TMOM(:,L,N)  = TMOM(:,L,N)*(1. +SULFIN(N))
+        if (WMX(L).LT.teeny.and.BELOW_CLOUD) then
+          TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(N)
+        else
+          TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
+        endif
+      enddo
+
 #endif
-      TM_dum(1:ntx) = TM(L,1:ntx)
-      DO N=1,NTX
-c ---------------------- initialize fractions ------------------------
-        FPRT  =0.
-        FERT  =0.
-        FWASHT=0.
-        FQTOWT=0.
-        FWTOQT=0.
-        THLAW=0.
-        THWASH=0.
-c ----------------------- calculate fractions --------------------------
+
 c precip. tracer evap
-        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FER,FERT,ntix)
-        CALL GET_EVAP_FACTOR(N,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
-        TR_LEF=1.D0
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
-        if ( .not.(
-     *       (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0).or.
-     *       (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1)) )
-     *       then
-          TR_LEF=TR_LEFT(N)
-        end if
-      end select
-#endif
-        IF(BELOW_CLOUD.and.WMX(L).lt.teeny) THEN
-          precip_mm = PREBAR(L+1)*100.*dtsrc
-          WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
-          if (precip_mm.lt.0.) precip_mm=0.
-          if (wmxtr.lt.0.) wmxtr=0.
-cdmk change GET_WASH below - extra arguments
-          CALL GET_WASH_FACTOR(N,b_beta_DT,precip_mm,FWASHT
-     *     ,tl(l),LHX,WMXTR,cldprec,L,TM,TRPRBAR(1,l),THWASH,pl(l),ntix) !washout
-        ELSE
-#ifndef NO_WASHOUT_IN_CLOUDS
-          precip_mm = prebar(l+1)*100.*dtsrc
-          wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
-          IF (precip_mm < 0.) precip_mm=0.
-          IF (wmxtr < 0.) wmxtr=0.
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tl(l),lhx,
-     &         wmxtr,cldprec,l,tm,trprbar(1,l),thwash,pl(l),ntix) !washout
-#endif
-          WMXTR = WMX(L)
+      FPRT = FPR
+      DTPRT(1:NTX) = FPRT  *TRWML(1:NTX,L)
+
+      if(fer.ne.0.) then
+        CALL GET_EVAP_FACTOR_array(
+     &       NTX,TL(L),LHX,.FALSE.,1d0,FER,FERT,ntix)
+        DTERT(1:NTX) = FERT(1:NTX)  *TRPRBAR(1:NTX,L+1)
+      else
+        FERT(1:NTX) = 0.
+        DTERT(1:NTX) = 0.
+      endif
+
+      if(fwtoq.ne.0.) then
+        CALL GET_EVAP_FACTOR_array(
+     &       NTX,TL(L),LHX,.FALSE.,1d0,FWTOQ,FWTOQT,ntix)
+        FPRT=FPR
+        DO N=1,NTX
+          DTQWT(N) = -FWTOQT(N)*TRWML(N,L)*(1.-FPRT)
+        ENDDO
+      else
+        FWTOQT(1:NTX) = 0.
+        DTQWT(1:NTX) = 0.
+      endif
+
+      TM_dum(:) = TM(L,:)
+      IF(BELOW_CLOUD.and.WMX(L).lt.teeny) THEN
+        FQTOWT(:)=0.
+        THLAW(gases_list)=0.
+        precip_mm = PREBAR(L+1)*100.*dtsrc
+        WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
+        if (precip_mm.lt.0.) precip_mm=0.
+        if (wmxtr.lt.0.) wmxtr=0.
+        CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
+     &       tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l),
+     &       THWASH,pl(l),ntix) !washout
+      ELSE
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
-          b_beta_DT = cldsavt*CM*dtsrc
+        b_beta_DT = cldsavt*CM*dtsrc
 c         saves cloud fraction at lowest precipitating level for washout
-          cldprec=cldsavt
-          CALL GET_COND_FACTOR2(N,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
-     *         ,FQTOWT,.false.,TRWML(N,L),TM_dum,THLAW,TR_LEF,PL(L)
-     *         ,ntix,CLDSAVT)
+        cldprec=cldsavt
 cdmk added arguments above; THLAW added below (no way to factor this)
-        END IF
-        IF (TM(L,N).GT.teeny) THEN
-          TMFAC=THLAW/TM(L,N)
-cdmk2     TMFAC2=THWASH/TM(L,N)
-        ELSE
-          TMFAC=0.
-cdmk2     TMFAC2=0.
-        END IF
-        FPRT=FPR
-c ---------------------- calculate fluxes ------------------------
-        DTERT = FERT  *TRPRBAR(N,L+1)
-        DTPRT = FPRT  *TRWML(N,L)
-        DTQWT =
-     &  FQTOWT*TR_LEF*(TM(L,N)+DTERT)-FWTOQT*TRWML(N,L)*(1.-FPRT)
+        WMXTR = WMX(L)
+        CALL GET_COND_FACTOR_array(
+     &        NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW
+     &       ,FQTOWT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,PL(L)
+     &       ,ntix,CLDSAVT)
+        DO N=1,NTX
+          DTQWT(N) = DTQWT(N)
+     &         +FQTOWT(N)*TR_LEF(N)*(TM_dum(N)+DTERT(N))
+        ENDDO
+#ifdef NO_WASHOUT_IN_CLOUDS
+        THWASH(:)=0.
+        FWASHT(:)=0.
+#endif
+      ENDIF
+
 #ifndef NO_WASHOUT_IN_CLOUDS
-cdmk2 added this:
 c**** washout in clouds
-        tm_temp(l,n)=tm(l,n)-dtqwt-thlaw
-        IF(.NOT.(BELOW_CLOUD.and.WMX(L).lt.teeny)) THEN
-          precip_mm = prebar(l+1)*100.*dtsrc
-          wmxtr=prebar(l+1)*grav*byam(l)*dtsrc
-          IF (precip_mm < 0.) precip_mm=0.
-          IF (wmxtr < 0.) wmxtr=0.
-          CALL get_wash_factor(n,b_beta_dt,precip_mm,fwasht,tl(l),lhx,
-     &         wmxtr,cldprec,l,tm_temp,trprbar(1,l),thwash,pl(l),ntix) !washout
-c         saves cloud fraction at lowest precipitating level for washout
-          cldprec=cldsavt
-        END IF
-        dtwrt=fwasht*tm_temp(l,n)
-        IF (tm_temp(l,n).GT.teeny) THEN
-          TMFAC2=THWASH/tm_temp(l,n)
-        ELSE
-          TMFAC2=0.
-        END IF
-cdmk2
-cdmk2   dtwrt=fwasht*(tm(l,n)-dtqwt)
-#else
-        dtwrt=fwasht*tm(l,n)
+c apply certain removal processes before calculating washout in clouds
+      tm_dum(1:ntx)=tm_dum(1:ntx)-dtqwt(1:ntx)-thlaw(1:ntx)
+      IF(.NOT.(BELOW_CLOUD.and.WMX(L).lt.teeny)) THEN
+        precip_mm = PREBAR(L+1)*100.*dtsrc
+        WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
+        if (precip_mm.lt.0.) precip_mm=0.
+        if (wmxtr.lt.0.) wmxtr=0.
+        CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
+     &       tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l),
+     &       THWASH,pl(l),ntix) !washout
+      END IF
 #endif
-c ---------------------- apply fluxes ------------------------
+
 #ifdef TRDIAG_WETDEPO
-        IF (diag_wetdep == 1) THEN
-          trevap_ls(l,n)=dtert
-          trwash_ls(l,n)=dtwrt+thwash
-          trclwc_ls(l,n)=fqtowt*tr_lef*(tm(l,n)+dtert)+thlaw
-          trprcp_ls(l,n)=dtprt
-          trclwe_ls(l,n)=fwtoqt*trwml(n,l)*(1.-fprt)
+      IF (diag_wetdep == 1) THEN
+        FPRT=FPR
+        DO N=1,NTX
+          trevap_ls(l,n)=dtert(n)
+          trwash_ls(l,n)=fwasht(n)*tm_dum(n)+thwash(n)
+          trclwc_ls(l,n)=fqtowt(n)*tr_lef(n)*(tm(l,n)+dtert(n))+thlaw(n)
+          trprcp_ls(l,n)=dtprt(n)
+          trclwe_ls(l,n)=fwtoqt(n)*trwml(n,l)*(1.-fprt)
+        ENDDO
+      ENDIF
+#endif
+
+      do igas=1,gases_count
+        n = gases_list(igas)
+        IF (TM(L,N).GT.teeny) THEN
+          TMFAC(N)=THLAW(N)/TM(L,N)
+        ELSE
+          TMFAC(N)=0.
+        END IF
+#ifndef NO_WASHOUT_IN_CLOUDS
+        IF (tm_dum(n).GT.teeny) THEN
+          TMFAC2(N)=THWASH(N)/tm_dum(n) ! use tm instead?
+        ELSE
+          TMFAC2(N)=0.
         END IF
 #endif
-        TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT+THLAW
-        TM(L,N)    = TM(L,N)  + DTERT - DTWRT - DTQWT - THLAW - THWASH
-        if (TM(L,N).lt.0) TM(L,N)=0.
-        TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT) + DTPRT+DTWRT+THWASH
-        IF (PREBAR(L).eq.0) TRPRBAR(N,L)=0.  ! remove round off error
-        IF (WMX(L).eq.0) TRWML(N,L)=0.       ! remove round off error
-        TMOM(:,L,N)  = TMOM(:,L,N)*(1. - FQTOWT - FWASHT
-     *    - TMFAC - TMFAC2)
+      enddo
+
+      DO N=1,NTX
+
+        dtwrt=fwasht(n)*tm_dum(n)
+
+c ---------------------- apply fluxes ------------------------
+        FPRT=FPR
+        TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT(N)+THLAW(N)
+
+        TM(L,N) = MAX(0., TM(L,N)
+     &       + DTERT(N) - DTWRT - DTQWT(N) - THLAW(N) - THWASH(N) )
+
+        TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT(N))
+     &       +DTPRT(N)+DTWRT+THWASH(N)
+
+        TMOM(:,L,N)  = TMOM(:,L,N)*
+     &       (1. - FQTOWT(N) - FWASHT(N) - TMFAC(N) - TMFAC2(N))
+
 #ifdef TRACERS_SPECIAL_O18
 C**** Isotopic equilibration of the CLW and water vapour
         IF (LHX.eq.LHE .and. WMX(L).gt.0) THEN  ! only if liquid
@@ -4159,6 +4237,8 @@ C**** Note that precip is either all water or all ice
         END IF
 #endif
       END DO
+      IF (PREBAR(L).eq.0) TRPRBAR(1:ntx,L)=0. ! remove round off error
+      IF (WMX(L).eq.0)    TRWML(1:ntx,L)=0.   ! remove round off error
 #endif
 C**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
 C     QSATL(L)=QSAT(TL(L),LHX,PL(L))   ! =QSATC
@@ -4225,42 +4305,41 @@ c   processes - this should be all in-cloud
       CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
      *     DT_SULF_SS(1,L),FCLD)
-#endif
-      TM_dum(1:ntx) = TM(L,1:ntx)
-      DO N=1,NTX
-        TR_LEF=1.
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      select case (trname(ntix(n)))
-      case('SO2','SO4','H2O2_s','H2O2')
-        if ( .not.(
-     *       (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0).or.
-     *       (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1)) )
-     *       then
-          TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
-          TM(L,N)=TM(L,N)*(1.+SULFIN(N))
-          TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(N))
-          TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
-          TR_LEF=TR_LEFT(N)
-          TM_dum(n) = TM(L,n)
-        end if
-      end select
+
+      do iaqch=1,aqchem_count
+        n = aqchem_list(iaqch)
+        TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
+        TM(L,N)=TM(L,N)*(1.+SULFIN(N))
+        TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(N))
+        TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
+        TR_LEF(N)=TR_LEFT(N)
+      enddo
+
 #endif
 c below TR_LEFT(N) limits the amount of available tracer in gridbox
 cdmkf and below, extra arguments for GET_COND, addition of THLAW
-        CALL GET_COND_FACTOR2(N,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
-     *     ,FQCONDT,.false.,TRWML(N,L),TM_dum,THLAW,TR_LEF,pl(l)
-     *     ,ntix,CLDSAVT)
-        IF (TM(L,N).GT.teeny) THEN
-          TMFAC=THLAW/TM(L,N)
-        ELSE
-          TMFAC=0.
-        END IF
+      TM_dum(:) = TM(L,:)
+      CALL GET_COND_FACTOR_array(NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND
+     &     ,FQCONDT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,pl(l)
+     &     ,ntix,CLDSAVT)
+      dtr(1:ntx) = fqcondt(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
-        IF (diag_wetdep == 1) trcond_ls(l,n)=fqcondt*tm(l,n)+thlaw
+      IF (diag_wetdep == 1) trcond_ls(l,1:ntx) = 
+     &     dtr(1:ntx)+thlaw(1:ntx)
 #endif
-        TRWML(N,L)  =TRWML(N,L)+ FQCONDT*TM(L,N)+THLAW
-        TM(L,N)     =TM(L,N)    *(1.-FQCONDT)   -THLAW
-        TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT - TMFAC)
+      do igas=1,gases_count
+        n = gases_list(igas)
+        IF (TM_dum(N).GT.teeny) THEN
+          TMFAC(N)=THLAW(N)/TM_dum(N)
+        ELSE
+          TMFAC(N)=0.
+        END IF
+      enddo
+
+      DO N=1,NTX
+        TRWML(N,L)  =TRWML(N,L)+ DTR(N)+THLAW(N)
+        TM(L,N)     =TM(L,N)    *(1.-FQCONDT(N))   -THLAW(N)
+        TMOM(:,L,N) =TMOM(:,L,N)*(1.-FQCONDT(N) - TMFAC(N))
       END DO
 #endif
       END IF
