@@ -1963,7 +1963,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
    
       implicit none
       
-      integer :: iu,ns,k,ipos
+      integer :: iu,ns,k,ipos,kx
       integer, intent(in) :: nsrc,n
       character*80 :: fname
       character*2 :: fnum
@@ -2024,10 +2024,12 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           case('a')        ! annual file, only read first time + new steps
             ipos=1
             alpha=0.d0 ! before start year, use start year value
+            kx=ty_start(n,ns) ! just for printing
             if(xyear>ty_end(n,ns).or.
      &      (xyear==ty_end(n,ns).and.xday>=183))then
               alpha=1.d0 ! after end year, use end year value     
               ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+              kx=ty_end(n,ns)-kstep
             endif
             do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
 !should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
@@ -2036,6 +2038,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
                   ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
                   alpha=(365.d0*(0.5+real(xyear-1-k))+xday) / 
      &                  (365.d0*real(kstep))
+                  kx=k
                   exit
                 endif
               endif
@@ -2048,7 +2051,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
             write(out_line,*)
      &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-     &      100.d0*alpha,' % of period ',k,' to ',k+kstep
+     &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
             call write_parallel(trim(out_line))
             ifirst2(n,ns) = .false.
 
@@ -2200,7 +2203,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     tlca,tlcb,data
       real*8 :: frac,alpha
-      integer ::  imon,iu,n,ns,ipos,k,nn
+      integer ::  imon,iu,n,ns,ipos,k,nn,kx
       character*80 :: junk
       character(len=300) :: out_line
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -2241,10 +2244,12 @@ c****   Interpolate two months of data to current day
       else 
         ipos=1
         alpha=0.d0 ! before start year, use start year value
+        kx=ty_start(n,ns) ! just for printing
         if(xyear>ty_end(n,ns).or.
      &  (xyear==ty_end(n,ns).and.xday>=183))then
           alpha=1.d0 ! after end year, use end year value
           ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+          kx=ty_end(n,ns)-kstep
         endif
         do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
           if(xyear>k .or. (xyear==k.and.xday>=183)) then
@@ -2252,6 +2257,7 @@ c****   Interpolate two months of data to current day
               ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
               alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
      &              (365.d0*real(kstep))
+              kx=k
               exit
             endif
           endif
@@ -2308,7 +2314,7 @@ c****   Interpolate two months of data to current day
 
         write(out_line,*)
      &  trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
-     &  100.d0*alpha,' % of period ',k,' to ',k+kstep,
+     &  100.d0*alpha,' % of period ',kx,' to ',kx+kstep,
      &  ' and monthly fraction= ',frac
         call write_parallel(trim(out_line))
  
