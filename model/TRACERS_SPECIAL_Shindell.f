@@ -708,20 +708,18 @@ C
       REAL*8 P1,P2,P3,VLAT,VLON,TIMEC,FACT,temp
       REAL*8, INTENT(OUT) :: tempsza
       INTEGER, INTENT(IN) :: I,J
-      INTEGER DX,DY
+      INTEGER DY
 
-      DX   = NINT(360./REAL(IM))
-      DY   = NINT(180./REAL(JM))       
+      DY   = NINT(180./REAL(JM)) ! only used for latlon grid
       vlat = lat2d_dg(i,j)
-c full polar box throws off this vlat calc 1/2 box
-c      vlat = -90. + REAL((J-1)*DY)
-      vlat = vlat - .5*real(dy) ! delete this line in next commit
       if (J == 1  .and. grid%have_south_pole)
      &     vlat= -90. + 0.5*REAL(DY)
       if (j == JM .and. grid%have_north_pole)
      &     vlat=  90. - 0.5*REAL(DY)
-c      vlon = -lon2d_dg(i,j)
-      VLON = 180. - REAL((I-1)*DX)
+c vlon in original code decreases eastward, so we take MINUS lon2d_dg
+c      DX   = NINT(360./REAL(IM))
+c      VLON = 180. - REAL((I-1)*DX)
+      vlon = -lon2d_dg(i,j) ! i=1 in lon2d_dg is -180 + dlon/2
 C     This added 0.5 is to make the instantaneous zenith angle
 C     more representative throughout the 1 hour time step:
 !old  TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
