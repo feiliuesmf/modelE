@@ -657,11 +657,9 @@ c     mixing ratios to 1.79 (observed):
         ELSE                        ! Northern Hemisphere
           CH4INIT=ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6
         ENDIF
-        IF(LAT2D_DG(I,J) <= -29. .OR. LAT2D_DG(I,J) > 30.) THEN
-C        IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics
-c        IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
+        IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
           CH4INIT=CH4INIT*CH4altX(L)
-        ELSE !IF((J > JS).AND.(J <= JN)) THEN           ! tropics
+        ELSE                              ! tropics
           CH4INIT=CH4INIT*CH4altT(L)
         END IF
         select case(icall)

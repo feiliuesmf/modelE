@@ -71,9 +71,6 @@ c
 
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
-!@param JN J around 30 N
-!@param JS J around 30 S
-c      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
       REAL*8, PARAMETER  :: bymair = 1.d0/mair
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
@@ -1964,16 +1961,14 @@ C extratropics and scale by the ratio of near-569hPa mixing ratios
 C to 1.79:
           if (fix_CH4_chemistry == 0) then ! -------------------------
           CH4FACT=CH4_569*r179
-          IF(LAT2D_DG(I,J) <= -29. .OR. LAT2D_DG(I,J) > 30.) THEN
-c        IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
-c          IF((J <= JS).OR.(J > JN)) THEN               ! extratropics
+          IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
             DO L2=L,maxl+1,-1
               IF(CH4altX(L2) /= 0.d0) THEN
                 CH4FACT=CH4FACT*CH4altX(L2)
                 EXIT
               END IF
             END DO
-          ELSE !IF((J > JS).AND.(J <= JN)) THEN         ! tropics
+          ELSE                              ! tropics
             DO L2=L,maxl+1,-1
               IF(CH4altT(L2) /= 0.d0) THEN
                 CH4FACT=CH4FACT*CH4altT(L2)
@@ -2146,9 +2141,6 @@ C**** GLOBAL parameters and variables:
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
-!@param JN J around 30 N
-!@param JS J around 30 S
-c      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
 !@var I,J passed horizontal position indicies
 !@var dd,pp,fw,rkp,rk2,rk3M,nb,rrrr,temp dummy "working" variables
 !@var L,jj dummy loop variables
@@ -2314,11 +2306,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             endif
           endif
 
-          IF(PRES(L) < 90. .and.
-     &         LAT2D_DG(I,J) > -29. .AND. LAT2D_DG(I,J) <= 29.
-c     &         ABS(LAT2D_DG(I,J)) < 30. ! tropics
-c     &         J > JS .and. J <= JN
-     &         )
+          IF(PRES(L) < 90. .and. ABS(LAT2D_DG(I,J)) < 30.) ! tropics
      &    rkext(l)=rkext(l)*0.1d0   !<<<<<<<<<<< NOTE <<<<<<<<<<<
            
           if(rkext(l) /= 0.)aero(l) = 1
