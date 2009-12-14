@@ -738,6 +738,7 @@ C**** SAVE ORIG PROFILES
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       DT_SULF_MC(1:NTM,:)=0.
 #endif
+#ifdef TRACERS_WATER
 ! TR_LEF is an input to get_cond_factor not currently used for MC clouds
       TR_LEF(:)=1.D0
       thlaw(:) = 0.  ! nonzero only for gas tracers
@@ -745,6 +746,7 @@ C**** SAVE ORIG PROFILES
       tmfac(:) = 0.  ! nonzero only for gas tracers
       fwasht(:) = 0. ! nonzero only for aerosols
       fqcondt(:) = 0.
+#endif
 #endif
 C**** CALULATE PBL HEIGHT AND MASS
       PBLM=0.
