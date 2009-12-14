@@ -690,7 +690,7 @@ C****
 c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE AEROSOL_SOURCES, only: BCB_src,OCB_src,BCBt_src,OCBt_src,lmAER
      * ,SO2_biosrc_3D,SO2t_src
-      USE MODEL_COM, only: jyear,im,jm,jmon
+      USE MODEL_COM, only: jyear,im,jm,jmon,jday
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE GEOM, only: axyp
       USE TRACER_COM, only: aer_int_yr,imAER,n_bcb,n_ocb,n_so2
@@ -744,7 +744,7 @@ c     if (iact.eq.0) then
       do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
           end select
       hBC_all(:,:,iy)=hBC_all(:,:,iy)+hbc_read(:,:)
       end do
@@ -761,7 +761,7 @@ c     if (iact.eq.0) then
       do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
           end select
       hOC_all(:,:,iy)=hOC_all(:,:,iy)+hbc_read(:,:)
       end do
@@ -778,7 +778,7 @@ c     if (iact.eq.0) then
       do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
           end select
       hSO2_all(:,:,iy)=hSO2_all(:,:,iy)+hbc_read(:,:)
       end do
@@ -926,7 +926,7 @@ c for now we assume the number of decades BC and OC are the same
       do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:))
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
           case('a')        ! annual file, only read first time
        call readt_parallel(grid,iuc,nameunit(iuc),hbc_read(:,:),0)
 c hardcoding - old sources are kg/year
@@ -953,7 +953,7 @@ c
       do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hoc_read(:,:))
+         call read_mon_src_2(n,ns,iuc,hoc_read(:,:),jyear,jday)
           case('a')
        call readt_parallel(grid,iuc,nameunit(iuc),hoc_read(:,:),0)
 c hardcoding - old sources are kg/year
@@ -1070,7 +1070,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
       do iy=1,ndec
        select case(freq(n,ns))
        case('m')
-       call read_mon_src_2(n,ns,iuc,hso2_read(:,:))
+       call read_mon_src_2(n,ns,iuc,hso2_read(:,:),jyear,jday)
        case('a')
        call readt_parallel(grid,iuc,nameunit(iuc),hso2_read(:,:),0)
        end select
@@ -1184,7 +1184,7 @@ c     if (iact.eq.0.or.jday.eq.1) then
       do iy=1,ndec
        select case(freq(n,ns1))
        case('m')
-       call read_mon_src_2(n,ns1,iuc,hnh3_read(:,:))
+       call read_mon_src_2(n,ns1,iuc,hnh3_read(:,:),jyear,jday)
        case('a')
        call readt_parallel(grid,iuc,nameunit(iuc),hnh3_read(:,:),0)
        end select
@@ -1202,7 +1202,7 @@ c
       do iy=1,ndec
        select case(freq(n,ns2))
        case('m')
-       call read_mon_src_2(n,ns2,iuc,hnh3_read(:,:))
+       call read_mon_src_2(n,ns2,iuc,hnh3_read(:,:),jyear,jday)
        case('a')
        if (imAER.eq.5.and.nc.eq.1) then
        call readt_parallel(grid,iuc,nameunit(iuc),hnh3_ocean(:,:),0)
@@ -1264,7 +1264,7 @@ c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
 !@sum reads in  biomass SO2 source
 !@auth Koch
 c want kg SO2/m2/s
-      USE MODEL_COM, only: im,jm,jmon,jday
+      USE MODEL_COM, only: im,jm,jmon,jday,jyear
       USE DOMAIN_DECOMP_ATM, only : GRID, GET
       USE TRACER_COM
       USE FILEMANAGER, only: openunit,closeunit
@@ -1353,7 +1353,7 @@ c want kg DMS/m2/s
       USE CONSTANT, only: sday
       USE GEOM, only: axyp
       USE TRACER_COM, only: tr_mm,n_DMS,imAER
-      USE MODEL_COM, only: jmon,jday,lm
+      USE MODEL_COM, only: jmon,jday,lm,jyear
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
       implicit none
       integer jread
