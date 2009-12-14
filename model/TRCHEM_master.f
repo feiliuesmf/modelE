@@ -73,7 +73,7 @@ C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
 !@param JN J around 30 N
 !@param JS J around 30 S
-      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+c      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
       REAL*8, PARAMETER  :: bymair = 1.d0/mair
 !@var FASTJ_PFACT temp factor for vertical pressure-weighting
@@ -163,7 +163,7 @@ C**** Local parameters and variables and arguments:
      &                 GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(JM)         :: DU_O3_glob
 #ifdef SHINDELL_STRAT_CHEM
-      real*8, dimension(JM,LM)      :: photO2_glob
+c      real*8, dimension(JM,LM)      :: photO2_glob
 #ifdef TRACERS_TERP
       integer, parameter :: iN2O5plusH2O=109,iNO3plusNO2=103,
      &                      iN2O5decomp=96,iClOplusNO2=107,
@@ -459,9 +459,9 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
 c If desired, fix the methane concentration used in chemistry:
 C WHY IS THIS NECESSARY ANY MORE, NOW THAT GET_CH4_IC IS CALLED?
        if(fix_CH4_chemistry == 1) THEN
-         if(J < JEQ)then ! SH
+         if(LAT2D_DG(I,J) < 0.) THEN ! SH
            y(n_CH4,L)=y(nM,L)*ch4_init_sh*1.d-6
-         else            ! NH
+         else                        ! NH
            y(n_CH4,L)=y(nM,L)*ch4_init_nh*1.d-6
          endif
        end if
@@ -1964,14 +1964,16 @@ C extratropics and scale by the ratio of near-569hPa mixing ratios
 C to 1.79:
           if (fix_CH4_chemistry == 0) then ! -------------------------
           CH4FACT=CH4_569*r179
-          IF((J <= JS).OR.(J > JN)) THEN               ! extratropics
+          IF(LAT2D_DG(I,J) <= -29. .OR. LAT2D_DG(I,J) > 30.) THEN
+c        IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
+c          IF((J <= JS).OR.(J > JN)) THEN               ! extratropics
             DO L2=L,maxl+1,-1
               IF(CH4altX(L2) /= 0.d0) THEN
                 CH4FACT=CH4FACT*CH4altX(L2)
                 EXIT
               END IF
             END DO
-          ELSE IF((J > JS).AND.(J <= JN)) THEN         ! tropics
+          ELSE !IF((J > JS).AND.(J <= JN)) THEN         ! tropics
             DO L2=L,maxl+1,-1
               IF(CH4altT(L2) /= 0.d0) THEN
                 CH4FACT=CH4FACT*CH4altT(L2)
@@ -2125,7 +2127,7 @@ c (radiation code wants atm*cm units):
 !@ver  1.0 (based on masterchem000_M23p)
 
 C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: LM,JM,LS1,JEQ,ptop,psf,sig,Itime,ItimeI
+      USE MODEL_COM, only: LM,JM,LS1,ptop,psf,sig,Itime,ItimeI
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI
       USE DYNAMICS, only : LTROPO
@@ -2140,13 +2142,13 @@ C**** GLOBAL parameters and variables:
       USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
      &                       whichsoa,dH_isoprene,dH_apinene
 #endif  /* TRACERS_AEROSOLS_SOA */
-
+      USE GEOM, only : lat2d_dg
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
 !@param JN J around 30 N
 !@param JS J around 30 S
-      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
+c      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
 !@var I,J passed horizontal position indicies
 !@var dd,pp,fw,rkp,rk2,rk3M,nb,rrrr,temp dummy "working" variables
 !@var L,jj dummy loop variables
@@ -2312,7 +2314,11 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             endif
           endif
 
-          IF(PRES(L) < 90. .and. J > JS .and. J <= JN)
+          IF(PRES(L) < 90. .and.
+     &         LAT2D_DG(I,J) > -29. .AND. LAT2D_DG(I,J) <= 29.
+c     &         ABS(LAT2D_DG(I,J)) < 30. ! tropics
+c     &         J > JS .and. J <= JN
+     &         )
      &    rkext(l)=rkext(l)*0.1d0   !<<<<<<<<<<< NOTE <<<<<<<<<<<
            
           if(rkext(l) /= 0.)aero(l) = 1

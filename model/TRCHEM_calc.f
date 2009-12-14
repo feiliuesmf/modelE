@@ -105,9 +105,6 @@ C**** Local parameters and variables and arguments:
      &,iPANdecomp=29,iClOplusNO2=104,iBrOplusNO2=105,iClOplusClO=103
      &,iOHplusNO2=98,iNOplusO=96
 #endif  /* TRACERS_TERP */
-!@param JN J around 30 N
-!@param JS J around 30 S
-      INTEGER, PARAMETER :: JS = JM/3 + 1, JN = 2*JM/3
 #else
       INTEGER, PARAMETER :: iHO2NO2_OH=18,iPANdecomp=29
 #ifdef TRACERS_TERP

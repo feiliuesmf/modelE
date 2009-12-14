@@ -591,9 +591,9 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only  : im,jm,lm,ls1,JEQ,DTsrc
+      USE MODEL_COM, only  : im,jm,lm,ls1,DTsrc
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, write_parallel,am_i_root
-      USE GEOM, only       : axyp
+      USE GEOM, only       : axyp,lat2d_dg
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
       USE TRACER_COM, only : trm, n_CH4, nStratwrite, vol2mass
@@ -611,31 +611,35 @@ c
 !@var JN J around 30 N
 !@var JS J arount 30 S
 !@var icall =1 (during run) =0 (first time)
-      INTEGER, PARAMETER:: JS = JM/3 + 1, JN = 2*JM/3
+c      INTEGER, PARAMETER:: JS = JM/3 + 1, JN = 2*JM/3
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT,bydtsrc
       INTEGER I, J, L, icall
       integer :: J_0, J_1, I_0, I_1
 
-      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)   
-      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)   
-      
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
+      CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
+
       bydtsrc=1.d0/DTsrc
 C     First, the troposphere:
-      DO L=1,LS1-1
       DO J=J_0,J_1
+      DO I=I_0,I_1
 C       Initial latitudinal gradient for CH4:
-        IF(J < JEQ)THEN ! Southern Hemisphere
+        IF(LAT2D_DG(I,J) < 0.) THEN ! Southern Hemisphere
           CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6
-        ELSE             ! Northern Hemisphere
+        ELSE                        ! Northern Hemisphere
           CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6
         ENDIF
         select case(icall)
         case(0) ! initial conditions
-          trm(I_0:I_1,j,l,n_CH4)=am(L,I_0:I_1,J)*CH4INIT*AXYP(I_0:I_1,J)
+          DO L=1,LS1-1
+            trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT*AXYP(I,J)
+          END DO
         case(1) ! overwriting
-          tr3Dsource(I_0:I_1,j,l,nStratwrite,n_CH4) = (am(L,I_0:I_1,J)*
-     &    CH4INIT*AXYP(I_0:I_1,J)-trm(I_0:I_1,j,l,n_CH4))*bydtsrc
+          DO L=1,LS1-1
+            tr3Dsource(i,j,l,nStratwrite,n_CH4) = (am(L,I,J)*
+     &           CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
+          END DO
         end select
       END DO
       END DO
@@ -643,27 +647,31 @@ c
 C     Now, the stratosphere:
       do L=LS1,LM
       do j=J_0,J_1
+      do i=I_0,I_1
 c
 c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
-        IF(J < JEQ)THEN ! Southern Hemisphere
+        IF(LAT2D_DG(I,J) < 0.) THEN ! Southern Hemisphere
           CH4INIT=ch4_init_sh/1.79d0*vol2mass(n_CH4)*1.E-6
-        ELSE             ! Northern Hemisphere
+        ELSE                        ! Northern Hemisphere
           CH4INIT=ch4_init_nh/1.79d0*vol2mass(n_CH4)*1.E-6
         ENDIF
-        IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics
+        IF(LAT2D_DG(I,J) <= -29. .OR. LAT2D_DG(I,J) > 30.) THEN
+C        IF((J <= JS).OR.(J > JN)) THEN                 ! extratropics
+c        IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
           CH4INIT=CH4INIT*CH4altX(L)
-        ELSE IF((J > JS).AND.(J <= JN)) THEN           ! tropics
+        ELSE !IF((J > JS).AND.(J <= JN)) THEN           ! tropics
           CH4INIT=CH4INIT*CH4altT(L)
         END IF
         select case(icall)
         case(0) ! initial conditions
-          trm(I_0:I_1,j,l,n_CH4)=am(L,I_0:I_1,J)*CH4INIT*AXYP(I_0:I_1,J)
+          trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT*AXYP(I,J)
         case(1) ! overwriting
-          tr3Dsource(I_0:I_1,j,l,nStratwrite,n_CH4) = (am(L,I_0:I_1,J)*
-     &    CH4INIT*AXYP(I_0:I_1,J)-trm(I_0:I_1,j,l,n_CH4))*bydtsrc
+          tr3Dsource(i,j,l,nStratwrite,n_CH4) = (am(L,I,J)*
+     &    CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
         end select
+      end do   ! i
       end do   ! j
       end do   ! l
  
@@ -684,6 +692,8 @@ C
       USE MODEL_COM, only: IM,JM,nday,Itime,DTsrc 
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
+      use geom, only : lon2d_dg,lat2d_dg
+      use domain_decomp_atm, only : grid
       IMPLICIT NONE
 c
 C**** Local parameters and variables and arguments
@@ -704,9 +714,15 @@ C
 
       DX   = NINT(360./REAL(IM))
       DY   = NINT(180./REAL(JM))       
-      vlat = -90. + REAL((J-1)*DY)
-      if (J == 1)  vlat= -90. + 0.5*REAL(DY)
-      if (j == JM) vlat=  90. - 0.5*REAL(DY)
+      vlat = lat2d_dg(i,j)
+c full polar box throws off this vlat calc 1/2 box
+c      vlat = -90. + REAL((J-1)*DY)
+      vlat = vlat - .5*real(dy) ! delete this line in next commit
+      if (J == 1  .and. grid%have_south_pole)
+     &     vlat= -90. + 0.5*REAL(DY)
+      if (j == JM .and. grid%have_north_pole)
+     &     vlat=  90. - 0.5*REAL(DY)
+c      vlon = -lon2d_dg(i,j)
       VLON = 180. - REAL((I-1)*DX)
 C     This added 0.5 is to make the instantaneous zenith angle
 C     more representative throughout the 1 hour time step:

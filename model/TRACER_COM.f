@@ -928,7 +928,7 @@ c  2 Bond/Streets past, present, future using sector inputs; 3 historic
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
 !@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
-      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
+c      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
 #endif
 
 C**** tracer specific switches

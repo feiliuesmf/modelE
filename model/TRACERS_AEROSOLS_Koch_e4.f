@@ -699,18 +699,21 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       IMPLICIT NONE
       integer ihyr,iuc,mm,iact,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
      * ,ndec,tye
-      integer J_0,J_1,J_0H,J_1H
+      integer I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 tfac,d3,d1,d2,tot
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     * hBC_read
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,2) ::
-     * hBC,hOC,hSO2
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) ::
-     * hBC_all,hOC_all,hSO2_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     hBC_read
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,2) ::
+     &     hBC,hOC,hSO2
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) ::
+     &     hBC_all,hOC_all,hSO2_all
       character*80 title
       logical :: checkname=.true.
       
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
 #ifdef TRACERS_AMP
@@ -803,8 +806,8 @@ c
       hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
       hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
 c  the AR5 emissions are kg/m2/s
-      do i=1,im
       do j=j_0,j_1
+      do i=i_0,i_1
 c boosting the carbonaceous so they are closer to
 c   correct present-day levels
       hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)*1.4d0
@@ -880,17 +883,19 @@ c Carbonaceous aerosol emissions
       implicit none
       character*20 title
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,nn,
-     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
+     * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
      * ,n,tys,tye,ns,nc 
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     * hOC_read,hBC_read
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
-     * hOC_all,hBC_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &     hOC_read,hBC_read
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
+     &     hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm,tot
       logical :: checkname=.true.
       save jb1,jb2,ihyr
       
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
 #ifdef TRACERS_AMP
@@ -982,8 +987,8 @@ c hardcoding - old sources are kg/year
       hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
       if (imAER.eq.5) then
 c  the AR5 emissions are kg/m2/s
-      do i=1,im
       do j=j_0,j_1
+      do i=i_0,i_1
       hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)
       hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)
       end do
@@ -1024,18 +1029,20 @@ c historic BC emissions
      * ,hso2
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
-     * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
+     * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
      * ,n,tys,tye,ns,nc
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     * hso2_read
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
-     * hso2_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &     hso2_read
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
+     &     hso2_all
       real*8 d1,d2,d3,xso2ff,ff
       character*20 title
       logical :: checkname=.true.
       save jb1,jb2,ihyr
       
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
 #ifdef TRACERS_AMP
@@ -1098,8 +1105,8 @@ c
       if (imAER.eq.5) then
 c  the AR5 emissions are kg SO2/m2/s
 c no they aren't they are in kgS/m2/s, all except for ship
-      do i=1,im
       do j=j_0,j_1
+      do i=i_0,i_1
       hso2(i,j,:)=hso2(i,j,:)*axyp(i,j)   !*2.d0
       end do
       end do
@@ -1132,10 +1139,12 @@ c historic BC emissions
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec,ns1,ns2,n,nc
      * ,tys,tye,ns
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
-     * hnh3_con_all,hnh3_cyc_all
-      real*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     * hnh3_read,hnh3_ocean
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
+     &     hnh3_con_all,hnh3_cyc_all
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+     &     hnh3_read,hnh3_ocean
       real*8 d1,d2,d3,xso2ff,tot
       character*2 :: nu(10)=(/'01','02','03','04','05','06','07',
      *  '08','09','10'/)

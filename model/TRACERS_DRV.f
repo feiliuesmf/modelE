@@ -7583,7 +7583,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog
       USE resolution,ONLY : Im,Jm,Lm,Ls1
-      USE MODEL_COM, only: itime,jday,JEQ,dtsrc,q,wm,flice,jyear,
+      USE MODEL_COM, only: itime,jday,dtsrc,q,wm,flice,jyear,
      & PMIDL00
 #ifdef TRACERS_WATER
      &     ,focean

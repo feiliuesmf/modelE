@@ -8,7 +8,7 @@
 c
 #ifdef TRACERS_ON
       USE MODEL_COM, only  : im,jm,lm,psf,ptop,sig,sige,dsig,bydsig,
-     &                       dtsrc,Itime,ItimeI,T,JEQ
+     &                       dtsrc,Itime,ItimeI,T
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE DYNAMICS, only   : am, byam, PMID, PK
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
