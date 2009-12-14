@@ -964,7 +964,12 @@ C**** surface tracer concentration
          CALL INT_OG2AG(opCO2_loc,aTRAC(:,:,NT), oWEIGHT, .FALSE.)
 
          !opco2 is in uatm, convert to kg,CO2/kg,air
-         aTRAC(:,:,NT) = aTRAC(:,:,NT) * vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
+         DO J=oJ_0,oJ_1
+         DO I=oI_0,oIMAXJ(J)
+             aTRAC(I,J,NT) = aTRAC(I,J,NT) 
+     .                 * vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
+         ENDDO
+         ENDDO
 
          !gtracer is first set in TRACER_DRV, then atrac is interpolated
          !here from pco2 in the ocean and later OCNDYN sets gtracer=atrac
