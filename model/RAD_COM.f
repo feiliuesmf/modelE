@@ -127,6 +127,10 @@ C**** does not produce exactly the same as the default values.
 
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ1
+!@var COSZ_day Mean Solar Zenith angle for current day
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: COSZ_day
+!@var SUNSET Time of sunset for current day (radians from local noon)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SUNSET
 !@dbparam S0X solar constant multiplication factor
       REAL*8 :: S0X = 1.
 !@dbparam S0_yr,S0_day obs.date of solar constant (if 0: time var)
@@ -244,8 +248,8 @@ C**** Local variables initialised in init_RAD
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
-     *     ,KLIQ, COSZ1, dH2O, ALB, SALB, SINJ, COSJ,srnflb_save,
-     *     trnflb_save, ttausv_save, ttausv_cs_save
+     *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SINJ, COSJ
+     *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
      *     ,FSRDIF,DIRNIR,DIFNIR
 #ifdef CHL_from_SeaWIFs
      *     ,achl,echl1,echl0,bchl,cchl
@@ -293,7 +297,9 @@ C**** Local variables initialised in init_RAD
      *     stratO3_tracer_save(LM, I_0H:I_1H, J_0H:J_1H),
 #endif
      *     KLIQ(LM,4, I_0H:I_1H, J_0H:J_1H),
-     *     COSZ1(I_0H:I_1H, J_0H:J_1H),
+     *     COSZ1   (I_0H:I_1H, J_0H:J_1H),
+     *     COSZ_day(I_0H:I_1H, J_0H:J_1H),
+     *     SUNSET  (I_0H:I_1H, J_0H:J_1H),
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
      *     dH2O(JM_DH2O, LM, 12),
 #else

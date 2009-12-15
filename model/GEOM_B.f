@@ -458,11 +458,37 @@ c this version is for the latlon grid.
 
       contains
 
-      subroutine daily_cosz(SIND_in,COSD_in)
-c Resets parameters needed for zenith angle calculations.
+      subroutine daily_cosz(SIND_in,COSD_in, COSZ_day,DUSK)
+c Resets parameters needed for zenith angle calculations, and calculates
+c daily-average cosz and the hour of dusk
+      USE DOMAIN_DECOMP_ATM, ONLY: grid
+      USE MODEL_COM
+      USE CONSTANT, only : PI
+      implicit none
       REAL*8 SIND_in,COSD_in
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     COSZ_day, ! average of cos(zenith angle) for the current day
+     &     DUSK      ! hour of dusk, radians from local noon
+      INTEGER :: J
+      REAL*8 :: SJSD,CJCD,CJCD_SDUSK
       SIND = SIND_in
       COSD = COSD_in
+      do j=grid%j_strt,grid%j_stop
+        SJSD=SINJ(J)*SIND
+        CJCD=COSJ(J)*COSD
+        IF(CJCD-SJSD.LT.0.) THEN     ! constant daylight
+          DUSK(:,J) = PI
+          COSZ_day(:,J) = SJSD
+        ELSEIF(CJCD+SJSD.LT.0.) THEN ! constant darkness
+          DUSK(:,J) = 0D0
+          COSZ_day(:,J) = 0D0
+        ELSE
+          DUSK(:,J) = ACOS(-SJSD/CJCD)
+          CJCD_SDUSK = SQRT((CJCD-SJSD)*(CJCD+SJSD))
+          COSZ_day(:,J) = max(0d0,(SJSD*DUSK(1,J)+CJCD_SDUSK)/PI)
+        ENDIF
+      enddo
+      return
       end subroutine daily_cosz
 
       subroutine cosz_init

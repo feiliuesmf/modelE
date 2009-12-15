@@ -9024,7 +9024,7 @@ C**** at the start of any day
       USE FLUXES, only: trsource
       USE SEAICE_COM, only: rsi
       USE GHY_COM, only : fearth
-      USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi
+      USE CONSTANT, only: tf,sday,hrday,bygrav,mair,pi,teeny
       USE PBLCOM, only: tsavg
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
@@ -9049,7 +9049,7 @@ C**** at the start of any day
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) || \
     (defined TRACERS_SPECIAL_Shindell)
       USE apply3d, only : apply_tracer_3Dsource
-      USE RAD_COM,  only : cosz1
+      USE RAD_COM,  only : cosz1,cosz_day
 #endif
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
@@ -9064,8 +9064,8 @@ C**** at the start of any day
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 #ifdef TRACERS_SPECIAL_Shindell
-      real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      real*8 :: nlight, max_COSZ1, fact0
+c      real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+c      real*8 :: nlight, max_COSZ1, fact0
 #endif
       INTEGER ie,iw,js,jn
 
@@ -9490,17 +9490,18 @@ C****
 ! for COSZ1 not necessarily maxing out at 1.0. And im/nlight (the
 ! number of lons to daylit lons) to try to get most of the base
 ! emissions out during daylight. The 1.274 factor is a secret.
-        fact0=1.274d0*4.d0*real(im)/pi
-        do j=j_0,j_1
-          max_COSZ1=0.d0 ; nlight=0.d0
-          max_COSZ1 = maxval(COSZ1(1:im,j))
-          nlight = count(COSZ1(:,j) > 0.)
-          factj(j)=fact0/(nlight*max_COSZ1)
-        enddo
+c        fact0=1.274d0*4.d0*real(im)/pi
+c        do j=j_0,j_1
+c          max_COSZ1=0.d0 ; nlight=0.d0
+c          max_COSZ1 = maxval(COSZ1(1:im,j))
+c          nlight = count(COSZ1(:,j) > 0.)
+c          factj(j)=fact0/(nlight*max_COSZ1)
+c        enddo
 
         do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
           if(COSZ1(i,j)>0.)then
-            trsource(i,j,ns,n)=factj(j)*COSZ1(i,j)*
+c            trsource(i,j,ns,n)=factj(j)*COSZ1(i,j)*
+            trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
      &      sfc_src(i,j,n,ns)*axyp(i,j)
           else
             trsource(i,j,ns,n)=0.d0

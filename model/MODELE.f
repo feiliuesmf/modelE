@@ -2133,7 +2133,8 @@ C****
       USE GEOM, only : areag,axyp,imaxj,lat2d
       USE DYNAMICS, only : byAM
       USE RADPAR, only : ghgam,ghgyr2,ghgyr1
-      USE RAD_COM, only : RSDIST,COSD,SIND, dh2o,H2ObyCH4,ghg_yr,
+      USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,SUNSET,
+     *     dh2o,H2ObyCH4,ghg_yr,
      *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
      *     calc_orb_par_year
 #ifdef TRACERS_WATER
@@ -2214,7 +2215,7 @@ C**** Set orbital parameters appropriately
       end if
       CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(JDAY,KIND=8)-.5
      *     ,RSDIST,SIND,COSD,SUNLON,SUNLAT,LAM)
-      call daily_cosz(sind,cosd)
+      call daily_cosz(sind,cosd,cosz_day,sunset)
 
       IF (.not.(end_of_day.or.itime.eq.itimei)) RETURN
 

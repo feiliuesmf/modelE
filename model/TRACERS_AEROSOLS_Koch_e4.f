@@ -1904,56 +1904,55 @@ c     endif
       END SUBROUTINE aerosol_gas_chem
 
       SUBROUTINE SCALERAD
+      use constant, only : pi
       use MODEL_COM, only: im,jm,lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID,GET
-      use RAD_COM, only: cosz1
+      use RAD_COM, only: cosz1,cosz_day,sunset
       implicit none
-      real*8, DIMENSION(IM,JM) :: suncos
-      real*8, DIMENSION(JM) :: tczen
-      real*8 stfac
-      integer i,j,l,j_0,j_1,j_0h,j_1h,
-     * j_0s,j_1s
-      integer, DIMENSION(JM) :: nradn
-      LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      real*8, parameter ::
+     &     night_frac_min=.01d0 ! minimum night_frac for tno3 scaling
+      real*8 stfac,night_frac
+      integer i,j,l,i_0,i_1,j_0,j_1
+c      real*8, DIMENSION(JM) :: tczen
+c      integer, DIMENSION(JM) :: nradn
 
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
-     *               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
-     *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
 
-      nradn(:)=0
-      tczen(:)=0.d0
-      do 100 j = j_0,j_1
-      do 100 i = 1, im
-      if (cosz1(i,j).gt.0.) then
-      tczen(j)=tczen(j)+cosz1(i,j)
-      else
-      nradn(j)=nradn(j)+1
-      endif
- 100  continue
-          do j = j_0,j_1
-           do l = 1,lm
-            do i = 1,im
+c      nradn(:)=0
+c      tczen(:)=0.d0
+c      do 100 j = j_0,j_1
+c      do 100 i = 1, im
+c      if (cosz1(i,j).gt.0.) then
+c      tczen(j)=tczen(j)+cosz1(i,j)
+c      else
+c      nradn(j)=nradn(j)+1
+c      endif
+c 100  continue
+
+      do j = j_0,j_1
+      do i = i_0,i_1
 c Get NO3 only if dark, weighted by number of dark hours
-c        if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
-            if (cosz1(i,j).le.0.and.nradn(j).gt.0) then
-            tno3(i,j,l)=tno3r(i,j,l)*real(IM)/real(nradn(j))  !DMK jmon
-            else
-            tno3(i,j,l)=0.d0
-            endif
-             if (cosz1(i,j).gt.0.) then
-                stfac=cosz1(i,j)/tczen(j)*real(IM)
-                 oh(i,j,l)=ohr(i,j,l)*stfac
-                 perj(i,j,l)=perjr(i,j,l)*stfac
-                 dho2(i,j,l)=dho2r(i,j,l)*stfac
-              end if
-c            if (l.eq.1.and.j.eq.23.and.i.eq.10) write(6,*)
-c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
-           end do
-         end do
+        night_frac = 1.-sunset(i,j)/pi
+c        night_frac = real(nradn(j))/real(im)
+        if (cosz1(i,j).le.0.and.night_frac.gt.night_frac_min) then
+          tno3(i,j,:)=tno3r(i,j,:)/night_frac !DMK jmon
+        else
+          tno3(i,j,:)=0.d0
+        endif
+        if (cosz1(i,j).gt.0.) then
+c          stfac=cosz1(i,j)/tczen(j)*real(IM)
+          stfac=cosz1(i,j)/cosz_day(i,j)
+          oh(i,j,:)=ohr(i,j,:)*stfac
+          perj(i,j,:)=perjr(i,j,:)*stfac
+          dho2(i,j,:)=dho2r(i,j,:)*stfac
+        end if
+      end do
       end do
 
+c        if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
+c            if (l.eq.1.and.j.eq.23.and.i.eq.10) write(6,*)
+c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       RETURN
       END SUBROUTINE SCALERAD
 
