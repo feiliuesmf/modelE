@@ -43,7 +43,7 @@ c  Carbon type 2    = DIC
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax,tracer_loc,tracer
 #ifdef TRACERS_Alkalinity
-      USE obio_forc, only: alk
+      USE obio_forc, only: alk => alk_glob
 #endif
 
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
@@ -254,7 +254,7 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
 #ifdef TRACERS_Alkalinity
           do nt = ntyp+n_inert+ndet+ncar,ntyp+n_inert+ndet+ncar+nalk
-           tracer(i,j,k,nt) = alk_glob(i,j,k)
+           tracer(i,j,k,nt) = alk(i,j,k)
           enddo
 #endif
 
