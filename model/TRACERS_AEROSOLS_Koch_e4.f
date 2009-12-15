@@ -381,15 +381,16 @@ c**** Interpolate two months of data to current day
 
       SUBROUTINE READ_OFFHNO3(OUT)
       USE MODEL_COM, only : im,jm,lm,jdate,JDendOFM,jmon
-      USE DOMAIN_DECOMP_ATM, only : grid,unpack_data,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
       INTEGER, PARAMETER :: nlevnc =23
-      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
-      REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
+      REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,nlevnc) ::
+     &     IN1_nohalo, IN2_nohalo
       REAL*8, DIMENSION(:,:,:), pointer, save :: IN1, IN2
 !@var netcdf integer
       INTEGER :: ncid,id
@@ -397,6 +398,7 @@ c**** Interpolate two months of data to current day
 !@var time interpoltation
       REAL*8 :: tau
       integer start(4),count(4),status,l
+      integer :: i_0,i_1,j_0,j_1
 c -----------------------------------------------------------------
 c   Initialisation of the files to be read
 c ----------------------------------------------------------------     
@@ -412,37 +414,41 @@ c ----------------------------------------------------------------
         step_rea = JMON
         if ( am_i_root() ) then
           print*,'READING HNO3 OFFLINE ',jmon, step_rea
+        endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
 c -----------------------------------------------------------------
-          status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
-          status=NF_INQ_VARID(ncid,'FELD',id)
+        status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+        status=NF_INQ_VARID(ncid,'FELD',id)
 C------------------------------------------------------------------
 c -----------------------------------------------------------------
 c   read
+c   this is still latlon-specific.
+c   will call read_dist_data for cubed sphere compatibility
 c -----------------------------------------------------------------
-          start(1)=1
-          start(2)=1
-          start(3)=1
-          start(4)=step_rea
+        i_0 = grid%i_strt
+        i_1 = grid%i_stop
+        j_0 = grid%j_strt
+        j_1 = grid%j_stop
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        start(4)=step_rea
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=nlevnc
+        count(4)=1
 
-          count(1)=im
-          count(2)=jm
-          count(3)=nlevnc
-          count(4)=1
+        status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_nohalo)
+        start(4)=step_rea+1
+        if (start(4).gt.12) start(4)=1
+        status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_nohalo)
 
-          status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_glob4)
-          start(4)=step_rea+1
-          if (start(4).gt.12) start(4)=1
-          status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_glob4)
+        status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
 
-          status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+        IN1(I_0:I_1,J_0:J_1,:) = IN1_nohalo(I_0:I_1,J_0:J_1,:)
+        IN2(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)
 
-          IN1_glob = IN1_glob4
-          IN2_glob = IN2_glob4
-        endif ! am_i_root
-        call UNPACK_DATA(grid, IN1_glob, IN1)
-        call UNPACK_DATA(grid, IN2_glob, IN2)
       endif
 
 C-----------------------------------------------------------------------
@@ -457,15 +463,16 @@ c -----------------------------------------------------------------
 
       SUBROUTINE READ_OFFSS(OUT)
       USE MODEL_COM, only : im,jm,lm,jdate,jmon,JDendOFM
-      USE DOMAIN_DECOMP_ATM, only : grid,unpack_data,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
 !@param  nlevnc vertical levels of off-line data  
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
       INTEGER, PARAMETER :: nlevnc =23
-      REAL*4, DIMENSION(IM,JM,nlevnc) :: IN1_glob4, IN2_glob4
-      REAL*8, DIMENSION(IM,JM,nlevnc) :: IN1_glob, IN2_glob
+      REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,nlevnc) ::
+     &     IN1_nohalo, IN2_nohalo
       REAL*8, DIMENSION(:,:,:), pointer, save :: IN1_ss, IN2_ss
 !@var netcdf integer
       INTEGER :: ncid,id
@@ -473,6 +480,7 @@ c -----------------------------------------------------------------
 !@var time interpoltation
       REAL*8 :: tau
       integer start(4),count(4),status,l,i,j
+      integer :: i_0,i_1,j_0,j_1
 c -----------------------------------------------------------------
 c   Initialisation of the files to be read
 c ----------------------------------------------------------------     
@@ -488,37 +496,42 @@ c ----------------------------------------------------------------
         step_rea_ss = JMON
         if ( am_i_root() ) then
           print*,'READING SEAS OFFLINE ',jmon, step_rea_ss
+        endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
 c -----------------------------------------------------------------
-          status=NF_OPEN('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
-          status=NF_INQ_VARID(ncid,'FELD',id)
+        status=NF_OPEN('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
+        status=NF_INQ_VARID(ncid,'FELD',id)
 C------------------------------------------------------------------
 c -----------------------------------------------------------------
 c   read
+c   this is still latlon-specific.
+c   will call read_dist_data for cubed sphere compatibility
 c -----------------------------------------------------------------
-          start(1)=1
-          start(2)=1
-          start(3)=1
-          start(4)=step_rea_ss
+        i_0 = grid%i_strt
+        i_1 = grid%i_stop
+        j_0 = grid%j_strt
+        j_1 = grid%j_stop
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        start(4)=step_rea_ss
 
-          count(1)=im
-          count(2)=jm
-          count(3)=nlevnc
-          count(4)=1
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=nlevnc
+        count(4)=1
 
-          status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_glob4)
-          start(4)=step_rea_ss+1
-          if (start(4).gt.12) start(4)=1
-          status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_glob4)
+        status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_nohalo)
+        start(4)=step_rea_ss+1
+        if (start(4).gt.12) start(4)=1
+        status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_nohalo)
 
-          status=NF_CLOSE('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
+        status=NF_CLOSE('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
 
-          IN1_glob = IN1_glob4
-          IN2_glob = IN2_glob4
-        endif ! am_i_root
-        call UNPACK_DATA(grid, IN1_glob, IN1_ss)
-        call UNPACK_DATA(grid, IN2_glob, IN2_ss)
+        IN1_ss(I_0:I_1,J_0:J_1,:) = IN1_nohalo(I_0:I_1,J_0:J_1,:)
+        IN2_ss(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)
+
       endif
 
 C-----------------------------------------------------------------------

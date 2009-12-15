@@ -7695,8 +7695,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       REAL*8 stratm,xlat,pdn,pup
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      REAL*4, DIMENSION(im,jm,366) :: DMS_AER_global, SS1_AER_global
-     *                             , SS2_AER_global
+      REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,366) ::
+     &     DMS_AER_nohalo, SS1_AER_nohalo, SS2_AER_nohalo
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       REAL*8 :: dummy
@@ -8490,44 +8491,46 @@ c read in DMS source
        end do
        call closeunit(iudms)
       else  ! AEROCOM DMS
-         status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
-         status=NF_INQ_VARID(ncidu,'dms',id1)
-         start(1)=1
-         start(2)=1
-         start(3)=1
-         count(1)=im
-         count(2)=jm
-         count(3)=366
-         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER_global)
-         status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
-         DMS_AER(:,J_0:J_1,:) = DMS_AER_global(:,J_0:J_1,:)
+c these netcdf reads are still latlon-specific.
+c will call read_dist_data for cubed sphere compatibility
+        status=NF_OPEN('DMS_SEA',NCNOWRIT,ncidu)
+        status=NF_INQ_VARID(ncidu,'dms',id1)
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=366
+        status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER_nohalo)
+        status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
+        DMS_AER(I_0:I_1,J_0:J_1,:) = DMS_AER_nohalo(I_0:I_1,J_0:J_1,:)
       endif
  901  FORMAT(3X,3(I4),E11.3)
 c read in AEROCOM seasalt
       if (imAER.eq.1) then
-         status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
-         status=NF_INQ_VARID(ncidu,'salt',id1)
-         start(1)=1
-         start(2)=1
-         start(3)=1
-         count(1)=im
-         count(2)=jm
-         count(3)=366
-         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_global)
-         status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
-         SS1_AER(:,J_0:J_1,:) = SS1_AER_global(:,J_0:J_1,:)
+        status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
+        status=NF_INQ_VARID(ncidu,'salt',id1)
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=366
+        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_nohalo)
+        status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
+        SS1_AER(I_0:I_1,J_0:J_1,:) = SS1_AER_nohalo(I_0:I_1,J_0:J_1,:)
 
         status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
         status=NF_INQ_VARID(ncidu,'salt',id1)
-         start(1)=1
-         start(2)=1
-         start(3)=1
-         count(1)=im
-         count(2)=jm
-         count(3)=366
-         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_global)
-         status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
-         SS2_AER(:,J_0:J_1,:) = SS2_AER_global(:,J_0:J_1,:)
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=366
+        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_nohalo)
+        status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
+        SS2_AER(I_0:I_1,J_0:J_1,:) = SS2_AER_nohalo(I_0:I_1,J_0:J_1,:)
       endif
 
 c read in SO2 emissions
