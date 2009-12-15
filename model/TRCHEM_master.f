@@ -130,7 +130,7 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_AEROSOLS_SOA
      & changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &  changeOx,fraQ,CH4_569,count_569,thick, changeCO,avgIso
+     &  changeOx,fraQ,CH4_569,count_569,thick, changeCO
 #ifdef TRACERS_HETCHEM
       REAL*8 :: changeN_d1,changeN_d2,changeN_d3
 #endif
@@ -185,6 +185,10 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     avgTT_CH4_part,avgTT_H2O_part,countTT_part,
      &     CH4_569_part,count_569_part
+
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     surfIsop,zonalIsop
       
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
@@ -352,16 +356,15 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
 
 ! Define acetone in terms of Isoprene:
 !kt Terpenes should also be included here in the future
-! NOTE: this must be changed if switching to 2D decomposition
-! as there is a zonal mean here:
       do j=J_0,J_1
-        avgIso=0.d0
-        do i=1,IMAXJ(j)
-          avgIso=avgIso+trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byaxyp(i,j)*byAM(1,i,j)
+        do i=I_0,IMAXJ(j)
+          surfIsop(i,j)=trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
+     &         byaxyp(i,j)*byAM(1,i,j)
         enddo
-        avgIso=avgIso/real(IMAXJ(j))
-        do i=1,IMAXJ(j)
+      enddo
+      call zonalmean_ij2ij(surfIsop,zonalIsop)
+      do j=J_0,J_1
+        do i=I_0,IMAXJ(j)
           select case(which_trop)
           case(0); maxl=ltropo(I,J)
           case(1); maxl=ls1-1
@@ -369,8 +372,9 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
           end select
           do L=1,maxl
             acetone(i,j,L)=max(0.d0, ! in molec/cm3
-     &      (1.25d0*(avgIso-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &      byaxyp(i,j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+     &      (1.25d0*(
+     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &        byaxyp(i,j)*byAM(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
           enddo
           do L=maxl+1,LM
             acetone(i,j,L)=0.d0

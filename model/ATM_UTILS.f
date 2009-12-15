@@ -511,6 +511,23 @@ c****
       return
       end subroutine tropwmo
 
+      subroutine zonalmean_ij2ij(arr,arr_zonal)
+c Computes zonal means of arr and stores the result in arr_zonal.
+c Lat-lon version.
+      use model_com, only : im
+      use domain_decomp_atm, only : grid
+      use geom, only : imaxj
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     arr,         ! input
+     &     arr_zonal    ! output
+      integer :: j
+      do j=grid%j_strt,grid%j_stop
+        arr_zonal(:,j)=sum(arr(1:imaxj(j),j))/real(imaxj(j),kind=8)
+      enddo
+      return
+      end subroutine zonalmean_ij2ij
+
 !If running SCM use dummy routines
 #ifndef SCM
 
