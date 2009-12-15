@@ -121,7 +121,7 @@ c
       USE obio_forc, only:    avisdir,avisdif,anirdir,anirdif
      &     ,ovisdir=>ovisdir_glob,ovisdif=>ovisdif_glob
      &     ,onirdir=>onirdir_glob,onirdif=>onirdif_glob
-#ifdef CHL_from_OBIO
+#ifdef TRACERS_OceanBiology
       USE FLUXES, only: chl
       USE obio_com, only: tot_chlo
 #endif
@@ -1267,7 +1267,7 @@ css   call iceo2a(omlhc,mlhc)
             atrac(:,:,nt) =  aTRAC(:,:,NT) * vol2mass(nt)* 1.d-6
       enddo
 #endif
-#ifdef CHL_from_OBIO
+#ifdef TRACERS_OceanBiology
       call ssto2a(tot_chlo,chl)
 #endif
 c
