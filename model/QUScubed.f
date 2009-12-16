@@ -1839,3 +1839,18 @@ c vertical transport
       RETURN
       END SUBROUTINE AADVQ
 
+#ifdef TRACERS_ON
+      SUBROUTINE TrDYNAM
+      USE MODEL_COM, only: itime
+      USE TRACER_COM, only: itime_tr0,trm,trmom,trname,t_qlimit,ntm
+      IMPLICIT NONE
+      INTEGER N
+
+      DO N=1,NTM
+        IF (itime.LT.itime_tr0(N)) cycle
+        CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
+      ENDDO
+
+      RETURN
+      END SUBROUTINE TrDYNAM
+#endif
