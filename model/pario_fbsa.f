@@ -42,9 +42,11 @@
       PUBLIC :: DREAD_PARALLEL
       PUBLIC :: MREAD_PARALLEL
       PUBLIC :: READT_PARALLEL,READT_PARALLEL_COLUMN
+      PUBLIC :: READT8_PARALLEL,READT8_COLUMN,WRITET8_COLUMN
       PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITEI8_PARALLEL
       PUBLIC :: DREAD8_PARALLEL,DWRITE8_PARALLEL
+      PUBLIC :: WRITET_PARALLEL
 
       INTERFACE DREAD_PARALLEL
         MODULE PROCEDURE DREAD_PARALLEL_2D
@@ -65,6 +67,19 @@
         MODULE PROCEDURE READT_PARALLEL_COLUMN_3D
       END INTERFACE
 
+      INTERFACE READT8_PARALLEL
+c        MODULE PROCEDURE READT8_PARALLEL_2D
+        MODULE PROCEDURE READT8_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE READT8_COLUMN
+        MODULE PROCEDURE READT8_COLUMN_3D
+      END INTERFACE
+
+      INTERFACE WRITET8_COLUMN
+        MODULE PROCEDURE WRITET8_COLUMN_3D
+      END INTERFACE
+
       interface READ_PARALLEL
          module procedure READ_PARALLEL_INTEGER_0
       end interface
@@ -79,6 +94,11 @@
 
       INTERFACE DWRITE8_PARALLEL
         MODULE PROCEDURE DWRITE8_PARALLEL_3D
+      END INTERFACE
+
+      INTERFACE WRITET_PARALLEL
+        MODULE PROCEDURE WRITET_PARALLEL_2D
+c        MODULE PROCEDURE READT_PARALLEL_3D
       END INTERFACE
 
       contains
@@ -391,6 +411,46 @@ C****  convert from real*4 to real*8
       return
       END SUBROUTINE READT_PARALLEL_3D
 
+      SUBROUTINE READT8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
+!@sum READT8_PARALLEL  Parallel version of UTILDBL.f:READT for (im,jm) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME         !@var  NAME  name of record being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,:,:)  !@var  AOUT real*8 array
+      INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
+      real*8, allocatable :: aout(:,:,:,:)!@var  AOUT real*8 array for read/scatter
+      INTEGER :: N                        !@var  N loop variable
+      CHARACTER*80 :: TITLE               !@var  TITLE title of file record
+      INTEGER :: IERR
+
+      If (AM_I_ROOT()) then
+         allocate(
+     &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
+     &       grd_dum%ntiles)   )
+         DO N=1,IPOS-1
+            READ (IUNIT,IOSTAT=IERR)
+         END DO
+         READ (IUNIT, IOSTAT=IERR) TITLE, AOUT
+      EndIf
+
+      call unpack_data(grd_dum,aout,avar)
+
+      if (am_i_root()) then
+         deallocate(aout)
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT8_PARALLEL: READ ERROR',255)
+         EndIf
+      end if
+      return
+      END SUBROUTINE READT8_PARALLEL_3D
+
       SUBROUTINE READT_PARALLEL_COLUMN_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
 !@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (:,im,jm) arrays
 !@auth NCCS-ESMF Development Team
@@ -436,6 +496,46 @@ C****  convert from real*4 to real*8
       end if
       return
       END SUBROUTINE READT_PARALLEL_COLUMN_3D
+
+      SUBROUTINE READT8_COLUMN_3D (grd_dum,IUNIT,NAME,AVAR,IPOS)
+!@sum READT_PARALLEL  Parallel version of UTILDBL.f:READT for (:,im,jm) arrays
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT        !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME         !@var  NAME  name of record being read
+      REAL*8,       INTENT(OUT) :: AVAR(:,:,:)  !@var  AOUT real*8 array
+      INTEGER,      INTENT(IN)  :: IPOS         !@var  IPOS  no. of recs. to advance
+      real*8, allocatable :: aout(:,:,:,:)!@var  AOUT real*8 array for read/scatter
+      INTEGER :: N                        !@var  N loop variable
+      CHARACTER*80 :: TITLE               !@var  TITLE title of file record
+      INTEGER :: IERR
+
+      If (AM_I_ROOT()) then
+         allocate(
+     &       AOUT(size(AVAR,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%ntiles)   )
+         DO N=1,IPOS-1
+            READ (IUNIT,IOSTAT=IERR)
+         END DO
+         READ (IUNIT, IOSTAT=IERR) TITLE, AOUT
+      EndIf
+
+      call unpack_data(grd_dum,aout,avar,jdim=3)
+
+      if (am_i_root()) then
+         deallocate(aout)
+         If (IERR==0) Then
+            WRITE(6,*) "Read from file ",TRIM(NAME),": ",TRIM(TITLE)
+            RETURN
+         Else
+            WRITE(6,*) 'READ ERROR ON FILE ',NAME, ':
+     &           ',TRIM(TITLE),' IOSTAT=',IERR
+            call stop_model('READT8_COLUMN: READ ERROR',255)
+         EndIf
+      end if
+      return
+      END SUBROUTINE READT8_COLUMN_3D
 
       subroutine read_parallel_integer_0 (data_int, unit)
       integer, intent(out) :: data_int
@@ -507,5 +607,69 @@ C****  convert from real*4 to real*8
       end if
 
       END SUBROUTINE DWRITE8_PARALLEL_3D
+
+      SUBROUTINE WRITET_PARALLEL_2D (grd_dum,IUNIT,NAME,buf,title)
+!@sum WRITET_PARALLEL  write character*80 title, real(buf(1:im,1:jm),kind=4)
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var  IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME   !@var  NAME  name of file being written
+      REAL*8,       INTENT(IN) :: buf(:,:)    !@var  buf real*8 input array
+      CHARACTER*80,  INTENT(IN)  :: title     !@var title title written to disk
+      REAL*8, dimension(:,:,:), allocatable :: buf_glob
+      INTEGER :: rc
+
+      if(am_i_root()) then
+        allocate(buf_glob(grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%ntiles))
+      endif
+      call pack_data(grd_dum,buf,buf_glob)
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=rc) title, real(buf_glob,kind=4)
+        deallocate(buf_glob)
+        If (rc==0) Then
+          WRITE(6,*) "Wrote to file ",TRIM(NAME)
+          RETURN
+        Else
+          WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
+          call stop_model('WRITET_PARALLEL: WRITE ERROR',255)
+        EndIf
+      end if
+
+      END SUBROUTINE WRITET_PARALLEL_2D
+
+      SUBROUTINE WRITET8_COLUMN_3D (grd_dum,IUNIT,NAME,buf,title)
+!@sum WRITET8_COLUMN write title*80, real*8 buf(:,im,jm)
+!@auth NCCS-ESMF Development Team
+      IMPLICIT NONE
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      INTEGER,      INTENT(IN)  :: IUNIT      !@var IUNIT file unit number
+      CHARACTER(len=*), INTENT(IN)  :: NAME   !@var NAME  name of file being written
+      REAL*8,       INTENT(IN) :: buf(:,:,:)  !@var buf real*8 array
+      CHARACTER*80,  INTENT(IN)  :: title     !@var title title written to disk
+      REAL*8, dimension(:,:,:,:), allocatable :: buf_glob
+      INTEGER :: rc
+
+      if(am_i_root()) then
+        allocate(buf_glob(size(buf,1),grd_dum%IM_WORLD,grd_dum%JM_WORLD,
+     &       grd_dum%ntiles))
+      endif
+      call pack_data(grd_dum,buf,buf_glob,jdim=3)
+
+      If (AM_I_ROOT()) then
+        WRITE (IUNIT, IOSTAT=rc) title, buf_glob
+        deallocate(buf_glob)
+        If (rc==0) Then
+          WRITE(6,*) "Wrote to file ",TRIM(NAME)
+          RETURN
+        Else
+          WRITE(6,*) 'WRITE ERROR ON FILE ', NAME, ' IOSTAT=',rc
+          call stop_model('WRITET8_COLUMN: WRITE ERROR',255)
+        EndIf
+      end if
+
+      END SUBROUTINE WRITET8_COLUMN_3D
 
       end module pario_fbsa
