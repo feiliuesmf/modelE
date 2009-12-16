@@ -11,8 +11,10 @@ c
 C**** GLOBAL parameters and variables:
 c
       USE SOMTQ_COM, only   : qmom
+      USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
+     &     ,globalmax ! for now
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
-     &                        GLOBALSUM, PACK_DATA,
+     &                        GLOBALSUM,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
       USE MODEL_COM, only   : Q,JDAY,IM,JM,sig,ptop,psf,ls1,JYEAR,
@@ -1736,7 +1738,7 @@ CCCCC!$OMP END PARALLEL DO
 
       ! check if there was that error in certain section of chemstep
       ! anywhere in the world; if so, stop the model (all processors):
-      call globalsum(grid,ierr_loc,ierr,all=.true.)
+      call globalmax(grid,ierr_loc,ierr)
       if(ierr > 0) then ! all processors call stop_model
         if(am_i_root()) write(6,*) 'chemstep Oxcorr fault'  
         call stop_model('chemstep Oxcorr fault',255)
