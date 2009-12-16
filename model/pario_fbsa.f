@@ -127,7 +127,8 @@ c        MODULE PROCEDURE READT_PARALLEL_3D
 
       END SUBROUTINE SKIP_PARALLEL
 
-      SUBROUTINE DREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR)
+      SUBROUTINE DREAD_PARALLEL_2D (grd_dum,IUNIT,NAME,AVAR,
+     &     recs_to_skip)
 !@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
@@ -135,12 +136,18 @@ c        MODULE PROCEDURE READT_PARALLEL_3D
       INTEGER,      INTENT(IN)  :: IUNIT     !@var  IUNIT file unit number
       CHARACTER(len=*), INTENT(IN)  :: NAME      !@var  NAME  name of record being read
       REAL*8,INTENT(OUT) :: AVAR(:,:)
+      INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       REAL*4,allocatable :: AIN(:,:,:)  !@var  AIN  real*4 array for reading
       REAL*8,allocatable :: AOUT(:,:,:) !@var  AOUT real*8 array for scatter
-      INTEGER :: IERR
+      INTEGER :: N,IERR
     ! now local
 
       If (AM_I_ROOT()) then
+        if(present(recs_to_skip)) then
+          do n=1,recs_to_skip
+            READ (IUNIT,IOSTAT=ierr)
+          enddo
+        endif
         allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,
      &       grd_dum%ntiles),
@@ -166,7 +173,8 @@ C****  convert from real*4 to real*8
       return
       END SUBROUTINE DREAD_PARALLEL_2D
 
-      SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR)
+      SUBROUTINE DREAD_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,
+     &     recs_to_skip)
 !@sum DREAD_PARALLEL  Parallel version of UTILDBL.f:DREAD for (im,jm) arrays
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
@@ -174,19 +182,25 @@ C****  convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
       CHARACTER(len=*), INTENT(IN)  :: NAME        !@var  NAME  name of record being read
       REAL*8, INTENT(OUT) :: AVAR(:,:,:) !@var  AOUT real*8 array
+      INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       real*4, allocatable :: ain(:,:,:,:)  !@var  AIN  real*4 array for reading
       real*8, allocatable :: aout(:,:,:,:) !@var  AOUT real*8 array for scatter
-      INTEGER :: IERR
+      INTEGER :: N,IERR
 
       If (AM_I_ROOT()) then
-         allocate(
+        if(present(recs_to_skip)) then
+          do n=1,recs_to_skip
+            READ (IUNIT,IOSTAT=ierr)
+          enddo
+        endif
+        allocate(
      &       AIN (grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
      &       grd_dum%ntiles),
      &       AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
      &       grd_dum%ntiles)   )
-         READ (IUNIT,IOSTAT=IERR) AIN
+        READ (IUNIT,IOSTAT=IERR) AIN
 C**** convert from real*4 to real*8
-         AOUT=AIN
+        AOUT=AIN
       EndIf
 
       call unpack_data(grd_dum,aout,avar)
@@ -204,7 +218,8 @@ C**** convert from real*4 to real*8
       return
       END SUBROUTINE DREAD_PARALLEL_3D
 
-      SUBROUTINE DREAD8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR)
+      SUBROUTINE DREAD8_PARALLEL_3D (grd_dum,IUNIT,NAME,AVAR,
+     &     recs_to_skip)
 !@sum DREAD_PARALLEL  read real*8 avar(im,jm,:) from disk
 !@auth NCCS-ESMF Development Team
       IMPLICIT NONE
@@ -212,14 +227,20 @@ C**** convert from real*4 to real*8
       INTEGER,      INTENT(IN)  :: IUNIT       !@var  IUNIT file unit number
       CHARACTER(len=*), INTENT(IN)  :: NAME    !@var NAME name of file being read
       REAL*8, INTENT(OUT) :: AVAR(:,:,:)       !@var  AVAR array to be read
+      INTEGER, INTENT(IN), OPTIONAL :: recs_to_skip
       real*8, allocatable :: aglob(:,:,:,:) !@var AGLOB real*8 array for read/scatter
-      INTEGER :: IERR
+      INTEGER :: N,IERR
 
       If (AM_I_ROOT()) then
-         allocate(
+        if(present(recs_to_skip)) then
+          do n=1,recs_to_skip
+            READ (IUNIT,IOSTAT=ierr)
+          enddo
+        endif
+        allocate(
      &       AGLOB(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3),
      &       grd_dum%ntiles)   )
-         READ (IUNIT,IOSTAT=IERR) AGLOB
+        READ (IUNIT,IOSTAT=IERR) AGLOB
       EndIf
 
       call unpack_data(grd_dum,aglob,avar)
