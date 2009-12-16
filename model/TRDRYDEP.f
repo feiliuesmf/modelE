@@ -749,8 +749,11 @@ C--   read polynomial coefficients for drydep:
 C
 C**** GLOBAL parameters and variables:  
 C
-      use domain_decomp_atm, only : grid, get, AM_I_ROOT, UNPACK_DATA,
+      use domain_decomp_atm, only : grid, get, AM_I_ROOT,
      & write_parallel,readt_parallel
+#ifndef BIN_TRACERS
+     &     ,UNPACK_DATA
+#endif
       USE FILEMANAGER, only   : openunit,closeunit,nameunit
       USE MODEL_COM, only     : im,jm 
       USE tracers_DRYDEP, only: IJREG,IJLAND,IJUSE,IREG,NTYPE,IDEP,
@@ -978,8 +981,10 @@ C**** Local parameters and variables and arguments
 !@calls openunit
 
 C**** GLOBAL parameters and variables:  
-      use domain_decomp_atm, only : grid,get,am_i_root,unpack_data,
-     & pack_data,readt_parallel
+      use domain_decomp_atm, only : grid,get,am_i_root,readt_parallel
+#ifndef BIN_TRACERS
+     &     ,UNPACK_DATA
+#endif
       use tracers_drydep, only: xlai,xlai2,ireg,ntype,nvegtype
 #ifdef BIN_TRACERS
      &                         ,xolai_loc,xolai2_loc,iland
