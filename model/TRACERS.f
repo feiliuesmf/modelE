@@ -540,8 +540,7 @@ C****
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel, pack_data
-     &     ,am_i_root
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, am_i_root
       IMPLICIT NONE
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
@@ -990,7 +989,7 @@ c**** Interpolate two months of data to current day
       USE DYNAMICS, only : am
       USE FLUXES, only : gtracer
       USE TRACER_COM
-      USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, HERE, AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, ONLY: GRID, GET, AM_I_ROOT
       IMPLICIT NONE
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
