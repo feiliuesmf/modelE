@@ -444,7 +444,7 @@ c -----------------------------------------------------------------
         if (start(4).gt.12) start(4)=1
         status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_nohalo)
 
-        status=NF_CLOSE('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
+        status=NF_CLOSE(ncid)
 
         IN1(I_0:I_1,J_0:J_1,:) = IN1_nohalo(I_0:I_1,J_0:J_1,:)
         IN2(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)
@@ -527,7 +527,7 @@ c -----------------------------------------------------------------
         if (start(4).gt.12) start(4)=1
         status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_nohalo)
 
-        status=NF_CLOSE('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
+        status=NF_CLOSE(ncid)
 
         IN1_ss(I_0:I_1,J_0:J_1,:) = IN1_nohalo(I_0:I_1,J_0:J_1,:)
         IN2_ss(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)

@@ -8502,7 +8502,7 @@ c will call read_dist_data for cubed sphere compatibility
         count(2)=1+(j_1-j_0)
         count(3)=366
         status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER_nohalo)
-        status=NF_CLOSE('DMS_SEA',NCNOWRIT,ncidu)
+        status=NF_CLOSE(ncidu)
         DMS_AER(I_0:I_1,J_0:J_1,:) = DMS_AER_nohalo(I_0:I_1,J_0:J_1,:)
       endif
  901  FORMAT(3X,3(I4),E11.3)
@@ -8517,7 +8517,7 @@ c read in AEROCOM seasalt
         count(2)=1+(j_1-j_0)
         count(3)=366
         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_nohalo)
-        status=NF_CLOSE('SALT1',NCNOWRIT,ncidu)
+        status=NF_CLOSE(ncidu)
         SS1_AER(I_0:I_1,J_0:J_1,:) = SS1_AER_nohalo(I_0:I_1,J_0:J_1,:)
 
         status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
@@ -8529,7 +8529,7 @@ c read in AEROCOM seasalt
         count(2)=1+(j_1-j_0)
         count(3)=366
         status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_nohalo)
-        status=NF_CLOSE('SALT2',NCNOWRIT,ncidu)
+        status=NF_CLOSE(ncidu)
         SS2_AER(I_0:I_1,J_0:J_1,:) = SS2_AER_nohalo(I_0:I_1,J_0:J_1,:)
       endif
 

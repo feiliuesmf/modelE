@@ -220,7 +220,7 @@ c**** Parameters for dust/mineral tracer specific diagnostics
 
       USE filemanager,ONLY: nameunit,openunit,closeunit
       USE domain_decomp_atm, ONLY: am_i_root,dread_parallel,esmf_bcast,
-     &     grid,unpack_data,write_parallel
+     &     grid,write_parallel,get
       USE resolution, ONLY : Im,Jm
       USE model_com,ONLY : JDperY,JMperY
       USE tracer_com,ONLY : Ntm_dust
@@ -236,18 +236,21 @@ c**** Parameters for dust/mineral tracer specific diagnostics
       INCLUDE 'netcdf.inc'
 
       INTEGER :: i,ierr,j,io_data,k
+      INTEGER :: i_0,i_1,j_0,j_1
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
       REAL*8 :: zsum,tabsum
-c**** temporary arrays to read in global data; deallocated after read in
-      REAL*4,ALLOCATABLE,DIMENSION(:,:) :: work
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: d_dust_glob
+c**** temporary array to read in data
+      REAL*4,DIMENSION(grid%i_strt:grid%i_stop,
+     &                 grid%j_strt:grid%j_stop) :: work ! no halo
 
       LOGICAL,SAVE :: qfirst=.TRUE.
       CHARACTER :: cierr*3,name*256
 
       IF (.NOT. qfirst) RETURN
       qfirst=.FALSE.
+
+      CALL GET(grid, J_STRT=J_0, J_STOP=J_1, I_STRT=I_0, I_STOP=I_1)
 
       ierr=0
 c**** read in lookup table for calculation of mean surface wind speed from PDF
@@ -287,57 +290,51 @@ c**** index of table for GCM surface wind speed from 0.0001 to 50 m/s
 c**** prescribed AEROCOM dust emissions
       IF (imDust == 1) THEN
 
-        ALLOCATE(work(Im,Jm),d_dust_glob(Im,Jm,Ntm_dust,JDperY))
+c these netcdf reads are still latlon-specific.
+c will call read_dist_data for cubed sphere compatibility
 
-        IF (am_i_root()) THEN
+        statusd=NF_OPEN('dust_bin1',NCNOWRIT,ncidd1)
+        statusd=NF_OPEN('dust_bin2',NCNOWRIT,ncidd2)
+        statusd=NF_OPEN('dust_bin3',NCNOWRIT,ncidd3)
+        statusd=NF_OPEN('dust_bin4',NCNOWRIT,ncidd4)
 
-          statusd=NF_OPEN('dust_bin1',NCNOWRIT,ncidd1)
-          statusd=NF_OPEN('dust_bin2',NCNOWRIT,ncidd2)
-          statusd=NF_OPEN('dust_bin3',NCNOWRIT,ncidd3)
-          statusd=NF_OPEN('dust_bin4',NCNOWRIT,ncidd4)
+        statusd=NF_INQ_VARID(ncidd1,'dust',idd1)
+        statusd=NF_INQ_VARID(ncidd2,'dust',idd2)
+        statusd=NF_INQ_VARID(ncidd3,'dust',idd3)
+        statusd=NF_INQ_VARID(ncidd4,'dust',idd4)
 
-          statusd=NF_INQ_VARID(ncidd1,'dust',idd1)
-          statusd=NF_INQ_VARID(ncidd2,'dust',idd2)
-          statusd=NF_INQ_VARID(ncidd3,'dust',idd3)
-          statusd=NF_INQ_VARID(ncidd4,'dust',idd4)
+        startd(1)=i_0
+        startd(2)=j_0
 
-          startd(1)=1
-          startd(2)=1
+        countd(1)=1+(i_1-i_0)
+        countd(2)=1+(j_1-j_0)
+        countd(3)=1
 
-          countd(1)=Im
-          countd(2)=Jm
-          countd(3)=1
+        DO k=1,JDperY
 
-          DO k=1,JDperY
+          IF (k > 59) THEN
+            startd(3)=k+1
+          ELSE
+            startd(3)=k
+          END IF
 
-            IF (k > 59) THEN
-              startd(3)=k+1
-            ELSE
-              startd(3)=k
-            END IF
+          statusd=NF_GET_VARA_REAL(ncidd1,idd1,startd,countd,work)
+          d_dust(i_0:i_1,j_0:j_1,1,k)=DBLE(work(i_0:i_1,j_0:j_1))
+          statusd=NF_GET_VARA_REAL(ncidd2,idd2,startd,countd,work)
+          d_dust(i_0:i_1,j_0:j_1,2,k)=DBLE(work(i_0:i_1,j_0:j_1))
+          statusd=NF_GET_VARA_REAL(ncidd3,idd3,startd,countd,work)
+          d_dust(i_0:i_1,j_0:j_1,3,k)=DBLE(work(i_0:i_1,j_0:j_1))
+          statusd=NF_GET_VARA_REAL(ncidd4,idd4,startd,countd,work)
+          d_dust(i_0:i_1,j_0:j_1,4,k)=DBLE(work(i_0:i_1,j_0:j_1))
 
-            statusd=NF_GET_VARA_REAL(ncidd1,idd1,startd,countd,work)
-            d_dust_glob(:,:,1,k)=DBLE(work(:,:))
-            statusd=NF_GET_VARA_REAL(ncidd2,idd2,startd,countd,work)
-            d_dust_glob(:,:,2,k)=DBLE(work(:,:))
-            statusd=NF_GET_VARA_REAL(ncidd3,idd3,startd,countd,work)
-            d_dust_glob(:,:,3,k)=DBLE(work(:,:))
-            statusd=NF_GET_VARA_REAL(ncidd4,idd4,startd,countd,work)
-            d_dust_glob(:,:,4,k)=DBLE(work(:,:))
+        END DO
 
-          END DO
-
-          statusd=NF_CLOSE('dust_bin1',NCNOWRIT,ncidd1)
-          statusd=NF_CLOSE('dust_bin2',NCNOWRIT,ncidd2)
-          statusd=NF_CLOSE('dust_bin3',NCNOWRIT,ncidd3)
-          statusd=NF_CLOSE('dust_bin4',NCNOWRIT,ncidd4)
-
-        END IF                  ! end am_i_root
+        statusd=NF_CLOSE(ncidd1)
+        statusd=NF_CLOSE(ncidd2)
+        statusd=NF_CLOSE(ncidd3)
+        statusd=NF_CLOSE(ncidd4)
 
         CALL write_parallel(' Read from file dust_bin[1-4]',unit=6)
-        CALL unpack_data(grid,d_dust_glob,d_dust)
-
-        DEALLOCATE(work,d_dust_glob)
 
       ELSE IF (imDust == 2) THEN
 c**** legacy emission scheme
