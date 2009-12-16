@@ -232,7 +232,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
         MODULE PROCEDURE SUMXPE_1D_I
         MODULE PROCEDURE SUMXPE_2D
         MODULE PROCEDURE SUMXPE_3D
-c        MODULE PROCEDURE SUMXPE_4D
+        MODULE PROCEDURE SUMXPE_4D
 c        MODULE PROCEDURE SUMXPE_5D
       END INTERFACE
 
@@ -1971,6 +1971,67 @@ c**** arr  is overwritten by itself after reduction
 #endif
       endif
       END SUBROUTINE SUMXPE_3D
+
+      SUBROUTINE SUMXPE_4D(arr, arr_master, increment)
+      IMPLICIT NONE
+      REAL*8, DIMENSION(:,:,:,:) :: arr
+      REAL*8, DIMENSION(:,:,:,:), optional :: arr_master
+      logical, intent(in), optional :: increment
+      REAL*8, DIMENSION(:), ALLOCATABLE :: arr_tmp
+      logical :: increment_
+      logical :: loc_
+      integer :: ierr,arr_size
+      if(present(increment)) then
+        increment_ = increment
+      else
+        increment_ = .false.
+      endif
+      if (present(arr_master)) then
+         loc_ = .true.
+      else
+         loc_ = .false.
+         increment_ = .false.
+      endif
+      if (loc_) then
+#ifdef USE_ESMF
+      arr_size = size(arr)
+      if(increment_) then
+        if(am_i_root()) then
+           allocate(arr_tmp(arr_size))
+        else
+           allocate(arr_tmp(1))
+        end if
+        call mpi_reduce(arr,arr_tmp,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+        if(am_i_root()) then
+          arr_master = arr_master + reshape(arr_tmp,shape(arr))
+        endif
+        deallocate(arr_tmp)
+      else
+        call mpi_reduce(arr,arr_master,arr_size,MPI_DOUBLE_PRECISION,
+     &       MPI_SUM,root,MPI_COMM_WORLD, ierr)
+      endif
+#else
+      if(increment_) then
+        arr_master = arr_master + arr
+      else
+        arr_master = arr
+      endif
+#endif
+      else  
+c**** arr plays both roles of local and global array
+c**** arr  is overwritten by itself after reduction
+#ifdef USE_ESMF
+         arr_size = size(arr)
+         allocate(arr_tmp(arr_size))
+         call mpi_reduce(arr,arr_tmp,arr_size,
+     &        MPI_DOUBLE_PRECISION,MPI_SUM,root,
+     &        MPI_COMM_WORLD, ierr)
+         arr=reshape(arr_tmp,shape(arr))
+         deallocate(arr_tmp)
+#endif
+      endif
+      END SUBROUTINE SUMXPE_4D
 
 
 

@@ -34,13 +34,13 @@
       interface pack_lc
         module procedure pack_lc_2d
         module procedure pack_lc_3d
-c        module procedure pack_lc_4d
+        module procedure pack_lc_4d
       end interface pack_lc
 
       interface unpack_lc
         module procedure unpack_lc_2d
         module procedure unpack_lc_3d
-c        module procedure unpack_lc_4d
+        module procedure unpack_lc_4d
       end interface unpack_lc
 
       contains
@@ -91,15 +91,15 @@ c      end subroutine get_bounds
       arr_loc=0
       return
       end subroutine pack_lc_3d
-c      subroutine pack_lc_4d(grid,arr_loc,arr_glob)
-c      type(dist_grid), intent(in) :: grid
-c      real*8, intent(inout) :: arr_loc(:,:,:,:)
-c      real*8, intent(inout) :: arr_glob(:,:,:,:)
-c      call sumxpe(arr_loc, arr_glob, increment=.true.)
-c      if(am_i_root()) call reduce_precision(arr_glob,1d-8)
-c      arr_loc=0
-c      return
-c      end subroutine pack_lc_4d
+      subroutine pack_lc_4d(grid,arr_loc,arr_glob)
+      type(dist_grid), intent(in) :: grid
+      real*8, intent(inout) :: arr_loc(:,:,:,:)
+      real*8, intent(inout) :: arr_glob(:,:,:,:)
+      call sumxpe(arr_loc, arr_glob, increment=.true.)
+      if(am_i_root()) call reduce_precision(arr_glob,1d-8)
+      arr_loc=0
+      return
+      end subroutine pack_lc_4d
 
       subroutine unpack_lc_2d(grid,arr_glob,arr_loc)
       type(dist_grid), intent(in) :: grid
