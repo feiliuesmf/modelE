@@ -16,7 +16,7 @@
       USE MODEL_COM, only: im,jm,lm,itime,wm,t
       USE DYNAMICS, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
-      USE GEOM, only: imaxj,bydxyp
+      USE GEOM, only: imaxj,byaxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
@@ -84,7 +84,7 @@ C**** Average concentration; surface concentration; total mass
 !$OMP PARALLEL DO PRIVATE (J,I,TSUM,ASUM)
       do j=J_0,J_1
       do i=I_0,I_1
-        tsum = sum(trm(i,j,:,n))*bydxyp(j)  !sum over l
+        tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
         asum = sum(am(:,i,j))     !sum over l
         taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
         taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
@@ -348,6 +348,8 @@ C**** No need to save current value
       return
       end subroutine diagtcb
 
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID) /* skip prt routines */
+
       SUBROUTINE DIAGTCP
 !@sum  DIAGCP produces tables of the conservation diagnostics
 !@auth Gary Russell/Gavin Schmidt
@@ -486,7 +488,6 @@ C****
   905 FORMAT (A38,2F9.2,1X,13I6)
   906 FORMAT ('0AREA (10^10 M^2)',F30.1,F9.1,1X,13I6)
       END SUBROUTINE DIAGTCP
-
 
       MODULE BDjlt
 !@sum  stores info for outputting lat-sig/pressure diags for tracers
@@ -1023,7 +1024,6 @@ C**** Concentration in cloud water
 
       RETURN
       END SUBROUTINE DIAGJLT
-#endif
 
       SUBROUTINE JLMAP_t (LNAME,SNAME,UNITS,
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,JG)
@@ -1190,7 +1190,6 @@ C****
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END
 
-#ifdef TRACERS_ON
       SUBROUTINE DIAGIJt
 !@sum  DIAGIJt produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
@@ -1813,7 +1812,6 @@ C****
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
      *  'Dif:',F7.2,' Days')
       END SUBROUTINE DIAGIJLt
-#endif
 
       subroutine IJt_MAPk(nmap,aij1,aij2,smap,smapj,gm,jgrid
      *     ,scale,iacc,irange,name,lname,units)
@@ -1891,3 +1889,12 @@ c**** Find final field and zonal, global, and hemispheric means
       return
       end subroutine ijt_mapk
 
+#endif /* cubed sphere skipping prt routines */
+
+#else  /* TRACERS_ON */
+
+      subroutine tracers_are_off
+      return
+      end subroutine tracers_are_off
+
+#endif /* TRACERS_ON */
