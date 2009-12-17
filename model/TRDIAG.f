@@ -14,9 +14,12 @@
 ! comments to be added
       use constant, only : teeny,grav
       USE MODEL_COM, only: lm,idacc,fim
-      USE GEOM, only: bydxyp,dxyp
-      USE TRACER_COM
-      USE DIAG_COM, only: jm=>jm_budg
+      USE TRACER_COM, only : ntm,ntm_power,trname
+     &     ,n_Water,n_CH4,n_O3
+#ifdef TRACERS_WATER
+     &     ,trw0,dowetdep
+#endif
+      USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
      &     ia_dga,ia_src,ajl
      &     ,jl_dpa,jl_dpasrc,jl_dwasrc
       USE TRDIAG_COM, only : tajln, tajls, lname_jln, sname_jln,
@@ -34,10 +37,12 @@
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
 #endif
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       USE BDJLT
+#endif
       use domain_decomp_atm, only : am_i_root
       IMPLICIT NONE
-      real*8 :: byapo(jm),onespo(jm)
+      real*8 :: bydxyp(jm),byapo(jm),onespo(jm)
       INTEGER :: J,L,N,K,KK,KKK,jtpow,n1,n2,k_dpa,k_dwa,k_vap,k_cnd
       REAL*8 :: dD, d18O, d17O, byiacc
       real*8, dimension(:,:,:), allocatable :: tajl_tmp
@@ -45,11 +50,14 @@
 
       if(.not. am_i_root()) return
 
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       call JLt_TITLEX ! needed for some extra titles
+#endif
 
       onespo = 1.
       onespo(1) = fim
       onespo(jm) = fim
+      bydxyp = 1d0/dxyp
       byapo = bydxyp*onespo/fim
 
       do k=1,ktajl_
@@ -188,6 +196,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
 C****
 C**** NORTHWARD TRANSPORTS: Total and eddies
 C****
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       k = k + 1
       kk = jlnt_nt_tot
       sname_tajl(k) = sname_jln(kk,n)
@@ -210,9 +219,11 @@ c
       scale_tajl(k) = scale_jlq(kk)*10.**(-jtpow)
       tajl(2:jm,:,k) = tajln(1:jm-1,:,jlnt_nt_tot,n)
      &                -tajln(1:jm-1,:,jlnt_nt_mm ,n)
+#endif
 C****
 C**** VERTICAL TRANSPORTS: Total and eddies
 C****
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       k = k + 1
       kk = jlnt_vt_tot
       sname_tajl(k) = sname_jln(kk,n)
@@ -236,7 +247,7 @@ c
       jtpow = ntm_power(n)+jlq_power(kk)
       scale_tajl(k) = scale_jlq(kk)*10.**(-jtpow)
       tajl(:,:,k) = tajln(:,:,jlnt_vt_tot,n)-tajln(:,:,jlnt_vt_mm,n)
-
+#endif
 c
 c tendencies from various processes
 c
@@ -887,18 +898,6 @@ c ijt_mapk does not apply the scale factor to ratios.  workaround.
           denom_taij(k) = k_clr
         endif
 
-        if(sname_taij(k)=='CO2_O_GASX') then
-          do j=j_0,j_1
-          do i=i_0,i_1
-            taij(i,j,k+1) = focean(i,j)*idacc(ia_taij(k))
-            taij(i,j,k) = taij(i,j,k)*focean(i,j)
-          enddo
-          enddo
-          ia_taij(k+1) = ia_taij(k)
-          denom_taij(k) = k+1
-          k=k+1
-        endif
-
         if(sname_taij(k)=='NO2_1030c') k_no2_1030c = k
         if(sname_taij(k)=='NO2_1030') k_no2_1030 = k
         if(sname_taij(k)=='NO2_1330c') k_no2_1330c = k
@@ -1331,10 +1330,14 @@ c
       SUBROUTINE DIAGTCP_prep
 ! comments to be added
       USE CONSTANT, only: teeny
-      USE MODEL_COM, only : jm,fim,idacc
-      USE GEOM, only: areag,dxyp,lat_dg
+      USE MODEL_COM, only : fim,idacc
+      USE GEOM, only: areag
+      USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,lat_dg=>lat_budg
       USE TRACER_COM, only: ntm
-      USE TRDIAG_COM
+      USE TRDIAG_COM, only : tconsrv,
+     &     ktcon,ktcon_out,ntmxcon,nsum_tcon,scale_tcon,
+     &     ia_tcon,title_tcon,hemis_tconsrv,name_tconsrv,tconsrv_out,
+     &     ia_tcon_out,scale_tcon_out,sname_tconsrv_out,cdl_tconsrv
       use domain_decomp_atm, only : am_i_root
       IMPLICIT NONE
       INTEGER :: j,n,k,kk,KTCON_max,j1,j2
