@@ -183,24 +183,35 @@ c        cosza(i,j) = 0d0
       return
       end subroutine COSZS
 
-      subroutine daily_cosz(SIND_in,COSD_in)
-c Resets parameters needed for zenith angle calculations.
+      subroutine daily_cosz(SIND_in,COSD_in, COSZ_day,DUSK)
+c Resets parameters needed for zenith angle calculations, and calculates
+c daily-average cosz and the hour of dusk
       implicit none
       REAL*8 :: SIND_in,COSD_in
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     COSZ_day, ! average of cos(zenith angle) for the current day
+     &     DUSK      ! hour of dusk, radians from local noon
+      REAL*8 :: CJCD_SDUSK
       SIND = SIND_in
       COSD = COSD_in
-C**** COMPUTE DUSK FOR EACH GRID CELL
+C**** COMPUTE DUSK FOR EACH GRID CELL AND DAILY-AVERAGE COSZ
       DO J=J_0,J_1
       DO I=I_0,I_1
         SJSD=SINLATIJ(I,J)*SIND
         CJCD=COSLATIJ(I,J)*COSD
-        IF(SJSD-CJCD.GT.0.) THEN ! constant daylight
+        IF(CJCD-SJSD.LT.0.) THEN     ! constant daylight
           DUSKIJ(I,J) = PI
-        ELSEIF(SJSD+CJCD.LT.0.) THEN ! constant darkness
+          COSZ_day(I,J) = SJSD
+        ELSEIF(CJCD+SJSD.LT.0.) THEN ! constant darkness
           DUSKIJ(I,J) = 0D0
+          COSZ_day(I,J) = 0D0
         ELSE
-          DUSKIJ(I,J)=ACOS(-SJSD/CJCD)
+          DUSKIJ(I,J) = ACOS(-SJSD/CJCD)
+          CJCD_SDUSK = SQRT((CJCD-SJSD)*(CJCD+SJSD))
+          COSZ_day(I,J) = max(0d0,(SJSD*DUSKIJ(I,J)+CJCD_SDUSK)/PI)
         ENDIF
+        DUSK(I,J) = DUSKIJ(I,J)
       ENDDO
       ENDDO
       return
