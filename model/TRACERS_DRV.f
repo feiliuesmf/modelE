@@ -9147,7 +9147,7 @@ C**** Source over Europe and Russia
         ie = lon_to_i(45.d0)
         iw = lon_to_i(-10.d0)
         jn = lat_to_j(65.d0)
-        js = lat_to_j(35.d0)
+        js = lat_to_j(36.1d0) ! 0.1 deg offset avoids overlap with Middle East
         sarea_prt(:,:)  = 0.
         do j=max(js,j_0),min(jn,j_1)
           do i=max(iw,i_0),min(ie,i_1)
@@ -9182,7 +9182,7 @@ C**** Source over Middle East
         source = .05d0*anngas*steppy
         ie = lon_to_i(75.d0)
         iw = lon_to_i(30.d0)
-        jn = lat_to_j(35.d0)
+        jn = lat_to_j(35.9d0) ! 0.1 deg offset avoids overlap with Europe
         js = lat_to_j(15.d0)
         sarea_prt  = 0.
         do j=max(js,j_0),min(jn,j_1)
