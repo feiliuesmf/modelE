@@ -8,7 +8,7 @@ rm -f paraffin_anthropogenic.nc propane+pentanes_anthropogenic.nc propane+pentan
 rm -f propane+pentanes+butanes+hexanes_ships.nc propane+pentanes_ships.nc propene+oalkenes_anthropogenic.nc propene+oalkenes_Biomass.nc
 rm -f propene+oalkenes_ships.nc alkenes_anthropogenic.nc alkenes_Biomass.nc alkenes_ships.nc 
 rm -f butanes+hexanes_* ethane+ketones_*nc propane+pentanes+butanes+hexanes_Biomass.nc paraffin_Biomass.nc
-rm -f paraffin_ships.nc
+rm -f paraffin_ships.nc NOx*.nc
 
 #-- Gas tracers - initial conditions -
 ./remap.pl -par ICgastracers.par -in N2O_IC_M23_4x5_6.17_conc_2x2.5_conc -out N2O_IC_from_2x2.5_C90_Dec_2009 
@@ -21,12 +21,19 @@ rm -f paraffin_ships.nc
 
 
 #-- CH4 Natural sources - have been adjusted and rescaled during pre-processing step in /discover/nobackup/gfaluveg/PRE/make_1x1_nat_sources/CH4
+
 ./remap.pl -par regridCH4natural.par -in CH4WETL+TUNDRA_1X1_temp -out CH4WETL+TUNDRA_C90_Dec_2009
 ./remap.pl -par regridCH4natural.par -in CH4TRMITE_1X1_temp -out CH4TRMITE_C90_Dec_2009
 ./remap.pl -par regridCH4natural.par -in CH4SOILABS_1X1_temp -out CH4SOILABS_C90_Dec_2009
 
 #-- NOx natural sources - have been adjusted and rescaled during pre-processing step in /discover/nobackup/gfaluveg/PRE/make_1x1_nat_sources/NOx
 ./remap.pl -par regridNOxnatural.par -in NOx_Soil_GEIA_1x1_half -out NOx_Soil_GEIA_C90_Dec_2009
+
+#-- convert to GISS and add headers
+./add_header2.ksh NOx_soil_AR5_1850_C90 m NOx soil C90 N 1850
+./add_header2.ksh CH4_termites_AR5_1850_C90 a CH4 termites C90 N 1850
+./add_header2.ksh CH4_soil_absorption_AR5_1850_C90 a CH4 soil_absorption C90 N 1850
+./add_header2.ksh CH4_Wetlands_and_Tundra_AR5_1850_C90 m CH4 Wetlands_and_Tundra C90 N 1850
 
 #-- CO
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_anthropogenic_1850_C90_Dec_2009.nc
@@ -39,9 +46,13 @@ rm -f paraffin_ships.nc
 ./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_CH4_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_CH4_decadalmonthlymean1850_C90_Dec_2009.nc 
 
 #-- NOx
-./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_NO_anthropogenic_1850_0.5x0.5_v1_07_05_2009.nc -out IPCC_emissions_NO_anthropogenic_1850_C90_Dec_2009.nc
-./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_NO_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_NO_ships_1850_C90_Dec_2009.nc
-./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_NOx_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_NOx_decadalmonthlymean1850_C90_Dec_2009.nc
+# first perform NOx=NO*14./30.
+ncflint -c -v emiss_agr,emiss_awb,emiss_dom,emiss_ene,emiss_ind,emiss_tra,emiss_wst -w .46666666666666666666,0.0 IPCC_emissions_NO_anthropogenic_1850_0.5x0.5_v1_07_05_2009.nc IPCC_emissions_NO_anthropogenic_1850_0.5x0.5_v1_07_05_2009.nc -o NOx_anthropo.nc
+ncflint -c -v emiss_shp -w .46666666666666666666,0.0 IPCC_emissions_NO_ships_1850_0.5x0.5_v1_20_04_2009.nc IPCC_emissions_NO_ships_1850_0.5x0.5_v1_20_04_2009.nc -o NOx_ships.nc
+ncflint -c -v grassfire,forestfire -w .46666666666666666666,0.0  IPCC_GriddedBiomassBurningEmissions_NOx_decadalmonthlymean1850_v1.nc IPCC_GriddedBiomassBurningEmissions_NOx_decadalmonthlymean1850_v1.nc -o NOx_Biomass.nc
+./remap.pl -par ncregrid-ijl.par -in NOx_anthropo.nc -out IPCC_emissions_NOx_anthropogenic_1850_C90_Dec_2009.nc
+./remap.pl -par ncregrid-ijl.par -in NOx_ships.nc -out IPCC_emissions_NOx_ships_1850_C90_Dec_2009.nc
+./remap.pl -par ncregrid-ijl.par -in NOx_Biomass.nc -out IPCC_GriddedBiomassBurningEmissions_NOx_decadalmonthlymean1850_C90_Dec_2009.nc
 
 #-- Alkenes
 # first perform Alkenes = propene/42.0 + other_alkenes_and_alkynes/67.0 + ethene/28.0
@@ -96,3 +107,4 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     ./run_1850_anthro_CS.ksh
     ./run_1850_ships_CS.ksh
     ./run_1850_BiomassBurning_CS.ksh
+    ./run_1850_anthro_alkenes_paraffin_CS.ksh
