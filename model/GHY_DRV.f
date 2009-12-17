@@ -660,7 +660,7 @@ ccc not sure about the code below. hopefully that''s what is meant above
      &       fv*(sum( ghy_tr%tr_wsn(nx,1:nsn(2),2) ))
      *       )
         if (tr_wd_TYPE(n).eq.nWATER .and. jls_isrc(1,n)>0) call
-     *       inc_tajls(i,j,1,jls_isrc(1,n),trevapor(n,itype,i,j)*ptype)
+     *       inc_tajls2(i,j,1,jls_isrc(1,n),trevapor(n,itype,i,j)*ptype)
       TRE_acc(n,i,j)=TRE_acc(n,i,j)+trevapor(n,itype,i,j)*ptype
       enddo
 #endif
@@ -671,13 +671,13 @@ c Accumulates dust events. One diagnostic field for all dust tracers
 c ..........
       taijs(i,j,ijts_spec(nDustEv1ij))=taijs(i,j,ijts_spec(nDustEv1ij))
      &     +pbl_args%dust_event1
-      call inc_tajls(i,j,1,jls_spec(nDustEv1jl),pbl_args%dust_event1)
+      call inc_tajls2(i,j,1,jls_spec(nDustEv1jl),pbl_args%dust_event1)
       taijs(i,j,ijts_spec(nDustEv2ij))=taijs(i,j,ijts_spec(nDustEv2ij))
      &     +pbl_args%dust_event2
-      call inc_tajls(i,j,1,jls_spec(nDustEv2jl),pbl_args%dust_event2)
+      call inc_tajls2(i,j,1,jls_spec(nDustEv2jl),pbl_args%dust_event2)
       taijs(i,j,ijts_spec(nDustWthij))=taijs(i,j,ijts_spec(nDustWthij))
      &     +pbl_args%wtrsh*ptype
-      call inc_tajls(i,j,1,jls_spec(nDustWthjl),pbl_args%wtrsh*ptype)
+      call inc_tajls2(i,j,1,jls_spec(nDustWthjl),pbl_args%wtrsh*ptype)
 #endif
 
 c     ..........

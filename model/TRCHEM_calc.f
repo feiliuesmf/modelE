@@ -540,7 +540,7 @@ C       -- Qmom --:
       enddo
 
 C       -- diags --:
-      call inc_tajls_column(i,j,1,maxl,lm,jls_H2Ochem,dQM)
+      call inc_tajls2_column(i,j,1,maxl,lm,jls_H2Ochem,dQM)
       dQMsum = sum(dQM(1:maxl))/axyp(i,j)
       do it=1,ntype
         call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
@@ -1593,12 +1593,12 @@ C**** special diags not associated with a particular tracer
      &       conH2O(l) = y(nH2O,L)/y(nM,L)
 #endif
       END DO
-      call inc_tajls_column(i,j,1,maxl,lm,jls_OHcon,conOH)
+      call inc_tajls2_column(i,j,1,maxl,lm,jls_OHcon,conOH)
 #ifdef SHINDELL_STRAT_CHEM
-      call inc_tajls_column(i,j,1,maxl,lm,jls_ClOcon,conClO)
-      call inc_tajls_column(i,j,1,maxl,lm,jls_H2Ocon,conH2O)
+      call inc_tajls2_column(i,j,1,maxl,lm,jls_ClOcon,conClO)
+      call inc_tajls2_column(i,j,1,maxl,lm,jls_H2Ocon,conH2O)
 #endif
-      CALL INC_TAJLS(I,J,1,jls_day,1.d0)
+      CALL INC_TAJLS2(I,J,1,jls_day,1.d0)
 
  155  format(1x,a8,a2,e13.3,a21,f10.0,a11,2x,e13.3,3x,a1,f12.5,a6)
  156  format(1x,a8,a2,e13.3,a16)

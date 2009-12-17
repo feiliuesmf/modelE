@@ -1319,9 +1319,9 @@ C**** Save surface tracer concentration whether calculated or not
           if (tr_wd_type(n).eq.nWater) then
             taijn(i,j,tij_evap,n)=taijn(i,j,tij_evap,n)+
      *           trevapor(n,itype,i,j)*ptype
-            if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+            if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
      *           trevapor(n,itype,i,j)*ptype)
-            if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls
+            if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
      *           (i,j,1,jls_isrc(2,n),trevapor(n,itype,i,j)*ptype)
           end if
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+

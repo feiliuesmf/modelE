@@ -1520,9 +1520,9 @@ C       ACCUMULATE 3D NO3 diagnostic:
 
 #ifdef SHINDELL_STRAT_CHEM
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
-     &  CALL INC_TAJLS(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
+     &  CALL INC_TAJLS2(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
-     &  CALL INC_TAJLS(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
+     &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
 #endif
      
 !       Accumulate NO2 10:30am/1:30pm tropo column diags in darkness:

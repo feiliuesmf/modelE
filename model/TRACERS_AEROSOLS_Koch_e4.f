@@ -1747,7 +1747,7 @@ c SO2 production from DMS
           
           
           najl = jls_NO3
-          call inc_tajls(i,j,l,najl,ttno3)
+          call inc_tajls2(i,j,l,najl,ttno3)
 #endif
         end select
         
@@ -1814,9 +1814,9 @@ c         najl = jls_OHcon
 c#else
           najl = jls_OHconk
 c#endif
-          if (najl > 0) call inc_tajls(i,j,l,najl,oh(i,j,l))
+          if (najl > 0) call inc_tajls2(i,j,l,najl,oh(i,j,l))
           najl = jls_HO2con
-          if (najl > 0) call inc_tajls(i,j,l,najl,dho2(i,j,l))
+          if (najl > 0) call inc_tajls2(i,j,l,najl,dho2(i,j,l))
 
 #ifdef TRACERS_HETCHEM
        case ('SO4_d1')

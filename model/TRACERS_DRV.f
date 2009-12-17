@@ -3649,7 +3649,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
+        scale_jls(k) = SDAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_isrc(2,n)=k
@@ -3657,7 +3657,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
+        scale_jls(k) = SDAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_prec(1,n)=k
@@ -3665,7 +3665,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'PRECIPITATION OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
+        scale_jls(k) = SDAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
         jls_prec(2,n)=k
@@ -3673,7 +3673,7 @@ C**** generic ones for many water tracers
         lname_jls(k) = 'OCEAN PRECIP OF '//trname(n)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+4
-        scale_jls(k) = SDAY*byim/DTsrc
+        scale_jls(k) = SDAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
 
 C**** special one unique to HTO
@@ -4714,7 +4714,7 @@ C**** (not necessary associated with a particular tracer)
         lname_jls(k) = 'ClO concentration'
         jls_ltop(k)  = LTOP
         jls_power(k) = -11
-        scale_jls(k) = byim
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'V/V air')
         k = k + 1
         jls_H2Ocon=k
@@ -4722,7 +4722,7 @@ C**** (not necessary associated with a particular tracer)
         lname_jls(k) = 'H2O concentration'
         jls_ltop(k)  = LTOP
         jls_power(k) = -7
-        scale_jls(k) = byim
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'V/V air')
         k = k + 1
         jls_H2Ochem=k
@@ -4730,7 +4730,7 @@ C**** (not necessary associated with a particular tracer)
         lname_jls(k) = 'H2O change due to chemistry'
         jls_ltop(k)  = LTOP
         jls_power(k) = -4
-        scale_jls(k) = byim/DTsrc
+        scale_jls(k) = 1./DTsrc
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
         k = k + 1
@@ -4787,7 +4787,7 @@ C**** (not necessary associated with a particular tracer)
         lname_jls(k) = 'OH concentration'
         jls_ltop(k)  = LTOP
         jls_power(k) = 5
-        scale_jls(k) = byim
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'molecules/cm3')
 c
         k = k + 1
@@ -4805,7 +4805,7 @@ c
         lname_jls(k) = 'Daylight weighting'
         jls_ltop(k)  = 1
         jls_power(k) = 0
-        scale_jls(k) = 100.*byim
+        scale_jls(k) = 100.
         units_jls(k) = unit_string(jls_power(k),'%')
 c
         k = k + 1
@@ -4827,7 +4827,7 @@ c Oxidants
         lname_jls(k) = 'OH Concentration'
         jls_ltop(k) = LM
         jls_power(k) =5
-        scale_jls(k) =byim
+        scale_jls(k) = 1.
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 #endif
         k = k + 1
@@ -4836,7 +4836,7 @@ c Oxidants
         lname_jls(k) = 'HO2 Concentration'
         jls_ltop(k) =LM
         jls_power(k) =7
-        scale_jls(k) =byim
+        scale_jls(k) =1.
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 
         k = k + 1
@@ -4845,7 +4845,7 @@ c Oxidants
         lname_jls(k) = 'NO3 Concentration'
         jls_ltop(k) =LM
         jls_power(k) =5
-        scale_jls(k) =byim
+        scale_jls(k) =1.
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 #endif  /* TRACERS_AEROSOLS_Koch || TRACERS_AMP */
 
@@ -4856,21 +4856,21 @@ c Oxidants
       lname_jls(k)='No. dust events'
       sname_jls(k)='no_dust_ev1'
       jls_ltop(k)=1
-      scale_jls(k)=Sday*byim/Dtsrc
+      scale_jls(k)=Sday/Dtsrc
       units_jls(k)='1/d'
       k = k + 1
       jls_spec(nDustEv2jl)=k
       lname_jls(k)='No. dust events above threshold wind'
       sname_jls(k)='no_dust_ev2'
       jls_ltop(k)=1
-      scale_jls(k)=Sday*byim/Dtsrc
+      scale_jls(k)=Sday/Dtsrc
       units_jls(k)='1/d'
       k = k + 1
       jls_spec(nDustWthjl)=k
       lname_jls(k)='Threshold velocity for dust emission'
       sname_jls(k)='wtrsh'
       jls_ltop(k)=1
-      scale_jls(k)=byim
+      scale_jls(k)=1.
       units_jls(k)='m/s'
 #endif
 

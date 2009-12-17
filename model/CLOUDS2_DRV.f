@@ -1427,9 +1427,9 @@ C**** TRACERS: Use only the active ones
 C**** diagnostics
         if (dowetdep(n)) then
 #ifndef SKIP_TRACER_DIAGS
-          if (jls_prec(1,n).gt.0) call inc_tajls(i,j,1,jls_prec(1,n),
+          if (jls_prec(1,n).gt.0) call inc_tajls2(i,j,1,jls_prec(1,n),
      *         trprec(n,i,j)*byaxyp(i,j))
-          if (jls_prec(2,n).gt.0) call inc_tajls(i,j,1,jls_prec(2,n),
+          if (jls_prec(2,n).gt.0) call inc_tajls2(i,j,1,jls_prec(2,n),
      *         trprec(n,i,j)*focean(i,j)*byaxyp(i,j))
           taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) +
      *         trprec(n,i,j)*byaxyp(i,j)

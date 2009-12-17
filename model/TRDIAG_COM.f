@@ -1091,6 +1091,28 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       RETURN
       END SUBROUTINE INC_TAJLS
 
+      SUBROUTINE INC_TAJLS2(I,J,L,TJL_INDEX,ACC)
+!@sum inc_tajl adds ACC located at atmospheric gridpoint I,J,L
+!@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
+!@auth M. Kelley
+      USE TRDIAG_COM, only : tajls=>tajls_loc
+      USE DIAG_COM, only : wtbudg2
+      USE GEOM, only : j_budg
+      IMPLICIT NONE
+!@var I,J,L atm gridpoint indices for the accumulation
+      INTEGER, INTENT(IN) :: I,J,L
+!@var JL_INDEX index of the diagnostic being accumulated
+      INTEGER, INTENT(IN) :: TJL_INDEX
+!@var ACC increment of the diagnostic being accumulated
+      REAL*8, INTENT(IN) :: ACC
+C**** accumulate I,J value on the budget grid using j_budg to assign
+C**** each point to a zonal mean (not bitwise reproducible for MPI).
+      TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
+     *     ACC*wtbudg2(I,J)
+
+      RETURN
+      END SUBROUTINE INC_TAJLS2
+
       SUBROUTINE INC_TAJLS_COLUMN(I,J,L1,L2,NL,TJL_INDEX,ACC)
 !@sum inc_tajl_column adds ACC(L1:L2) located at atmospheric gridpoint I,J
 !@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
@@ -1115,6 +1137,31 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       ENDDO
       RETURN
       END SUBROUTINE INC_TAJLS_COLUMN
+
+      SUBROUTINE INC_TAJLS2_COLUMN(I,J,L1,L2,NL,TJL_INDEX,ACC)
+!@sum inc_tajl_column adds ACC(L1:L2) located at atmospheric gridpoint I,J
+!@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
+!@auth M. Kelley
+      USE TRDIAG_COM, only : tajls=>tajls_loc
+      USE DIAG_COM, only : wtbudg2
+      USE GEOM, only : j_budg
+      IMPLICIT NONE
+!@var I,J,L1,L2 atm gridpoint indices for the accumulation
+      INTEGER, INTENT(IN) :: I,J,L1,L2,NL
+!@var JL_INDEX index of the diagnostic being accumulated
+      INTEGER, INTENT(IN) :: TJL_INDEX
+!@var ACC increment of the diagnostic being accumulated
+      REAL*8, INTENT(IN) :: ACC(NL)
+      INTEGER :: JB,L
+C**** accumulate I,J value on the budget grid using j_budg to assign
+C**** each point to a zonal mean (not bitwise reproducible for MPI).
+      JB = J_BUDG(I,J)
+      DO L=L1,L2
+        TAJLS(JB,L,TJL_INDEX) = TAJLS(JB,L,TJL_INDEX) +
+     *     ACC(L)*wtbudg2(I,J)
+      ENDDO
+      RETURN
+      END SUBROUTINE INC_TAJLS2_COLUMN
 
       SUBROUTINE INC_TAJLN(I,J,L,TJL_INDEX,N,ACC)
 !@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L

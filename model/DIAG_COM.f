@@ -27,7 +27,7 @@ c**** area of zig-zag bands on budget grid
       REAL*8, ALLOCATABLE, DIMENSION(:), public :: axypband_loc,
      &   axypband
 c**** area weight for zig-zag diagnostics on budget grid
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: wtbudg,wtbudg2
 
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER, public :: KAJ=85
@@ -1520,7 +1520,7 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       USE GEOM, only : dxyp, lat_dg
 #endif
       use model_com, only : fim
-      USE DIAG_COM, only : jm_budg, wtbudg,axypband,axypband_loc,
+      USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,axypband,axypband_loc,
      &     lat_budg,dxyp_budg
       USE DOMAIN_DECOMP_ATM, only :GRID,GET
       IMPLICIT NONE
@@ -1534,6 +1534,7 @@ C****    beg=ANn where the period ends with month n if n<10 (except 4)
       I_0 = grid%I_STRT ; I_1 = grid%I_STOP
 
       ALLOCATE( wtbudg(I_0:I_1, J_0:J_1), STAT = IER)  !deallocated near very end, stays in memory all the time
+      ALLOCATE( wtbudg2(I_0:I_1, J_0:J_1), STAT = IER)
 
 #ifdef CUBE_GRID   /* temporary */
 c**** Compute area weights of zig-zag grid cells
@@ -1542,6 +1543,7 @@ c**** Compute area weights of zig-zag grid cells
       do J=J_0,J_1
          do I=I_0,I_1
             wtbudg(I,J)=axyp(I,J)/axypband(J_BUDG(I,J))
+            wtbudg2(I,J)=wtbudg(I,J)
          enddo
       enddo
       dxyp_budg(:) = axypband(:)
@@ -1559,6 +1561,7 @@ c get the nominal latitudes of the budget grid
       dxyp_budg(:) = fim*dxyp(:)
       do J=J_0,J_1
         wtbudg(:,j)=1d0/imaxj(j)
+        wtbudg2(:,j)=1d0/fim
       enddo
 #endif
 
