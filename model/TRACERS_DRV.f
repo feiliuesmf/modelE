@@ -9013,11 +9013,9 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc,jmon,nday,flice,focean,im,jm
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM, write_parallel
-     * ,AM_I_ROOT, pack_data, unpack_data
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM,AM_I_ROOT
 
-      USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,
-     &     lon_to_i,lat_to_j,lat2d
+      USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM
@@ -9058,7 +9056,6 @@ C**** at the start of any day
       USE LAKES_COM, only : flake
       implicit none
       integer :: i,j,ns,l,ky,n,nsect,kreg
-      REAL*8, PARAMETER ::  byjm =1.d0/JM
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im),fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -9067,7 +9064,7 @@ C**** at the start of any day
 c      real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 c      real*8 :: nlight, max_COSZ1, fact0
 #endif
-      INTEGER ie,iw,js,jn
+      real*8 :: lon_w,lon_e,lat_s,lat_n
 
 #ifdef TRACERS_TERP
 !@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
@@ -9118,138 +9115,116 @@ C         Make sure index KY=1 in year that tracer turns on
         else if (trname(n).eq.'CFC11') then
           anngas = 310.d6
         endif
-C GISS-ESMF EXCEPTIONAL CASE
-c   Several regions defined need to be addressed with domain decomposition
-c     We can use lat_dg to distinguish regions in resolution independent
-c     manner (also lon_dg for the i index), but we get a 'gather' for
-c     the area sums (sarea).
+
+c Could the masks for latlon rectangles be precomputed at
+c initialization and their areas saved? (Or do whenever
+c fearth changes.)
 
 C**** Source over United States and Canada
         source = .37d0*anngas*steppy
-        ie = lon_to_i(-70.d0)
-        iw = lon_to_i(-125.d0)
-        jn = lat_to_j(50.d0)
-        js = lat_to_j(30.d0)
-        sarea_prt(:,:)  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lon_e =  -70.d0
+        lon_w = -125.d0
+        lat_n =   50.d0
+        lat_s =   30.d0
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 C**** Source over Europe and Russia
         source = .37d0*anngas*steppy
-        ie = lon_to_i(45.d0)
-        iw = lon_to_i(-10.d0)
-        jn = lat_to_j(65.d0)
-        js = lat_to_j(36.1d0) ! 0.1 deg offset avoids overlap with Middle East
-        sarea_prt(:,:)  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lon_e =  45.d0
+        lon_w = -10.d0
+        lat_n =  65.d0
+        lat_s =  36.1d0 ! 0.1 deg offset avoids overlap with Middle East
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 C**** Source over Far East
         source = .13d0*anngas*steppy
-        ie = lon_to_i(150.d0)
-        iw = lon_to_i(120.d0)
-        jn = lat_to_j(45.d0)
-        js = lat_to_j(20.d0)
-        sarea_prt(:,:)  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lon_e = 150.d0
+        lon_w = 120.d0
+        lat_n =  45.d0
+        lat_s =  20.d0
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 C**** Source over Middle East
         source = .05d0*anngas*steppy
-        ie = lon_to_i(75.d0)
-        iw = lon_to_i(30.d0)
-        jn = lat_to_j(35.9d0) ! 0.1 deg offset avoids overlap with Europe
-        js = lat_to_j(15.d0)
-        sarea_prt  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lon_e = 75.d0
+        lon_w = 30.d0
+        lat_n = 35.9d0 ! 0.1 deg offset avoids overlap with Europe
+        lat_s = 15.d0
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 C**** Source over South America
         source = .04d0*anngas*steppy
-        ie = lon_to_i(-40.d0)
-        iw = lon_to_i(-50.d0)
-        jn = lat_to_j(-22.5d0)
-        js = lat_to_j(-23.5d0)
-        sarea_prt  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lon_e = -40.d0
+        lon_w = -50.d0
+        lat_n = -22.5d0
+        lat_s = -23.5d0
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 C**** Source over South Africa
         source = .02d0*anngas*steppy
-        jn = lat_to_j(-33.d0)
-        js = lat_to_j(-34.d0)
-        ie = lon_to_i(19.d0)
-        iw = lon_to_i(18.d0)
-        sarea_prt  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lat_n = -33.d0
+        lat_s = -34.d0
+        lon_e =  19.d0
+        lon_w =  18.d0
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
-        jn = lat_to_j(-33.5d0)
-        js = lat_to_j(-34.5d0)
-        ie = lon_to_i(150.5d0)
-        iw = lon_to_i(149.5d0)
-        sarea_prt  = 0.
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            sarea_prt(i,j) = axyp(i,j)*fearth(i,j)
-          enddo
-        enddo
-        CALL GLOBALSUM(grid, sarea_prt, sarea, all=.true.)
-        do j=max(js,j_0),min(jn,j_1)
-          do i=max(iw,i_0),min(ie,i_1)
-            trsource(i,j,1,n) = source*axyp(i,j)*fearth(i,j)/sarea
-          enddo
-        enddo
+        lat_n = -33.5d0
+        lat_s = -34.5d0
+        lon_e = 150.5d0
+        lon_w = 149.5d0
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
         !print out global average for each time step before weighing
@@ -9652,6 +9627,69 @@ c!OMSP
 
       END SUBROUTINE set_tracer_2Dsource
 
+      subroutine get_latlon_mask(lon_w,lon_e,lat_s,lat_n,latlon_mask)
+!@sum Set mask array to 1 for all cells overlapping a lat-lon rectangle
+!@auth Kelley
+      use domain_decomp_atm, only : get,grid
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      use geom, only : lon2d_dg,lat2d_dg
+#else
+      use geom, only : lon_to_i,lat_to_j
+#endif
+      implicit none
+      real*8 :: lon_w,lon_e,lat_s,lat_n
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &     latlon_mask
+      integer :: i,j, i_0,i_1,j_0,j_1
+      integer :: ie,iw,js,jn
+
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+
+      latlon_mask(:,:) = 0d0
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      do j=j_0,j_1
+      do i=i_0,i_1
+        if(lon2d_dg(i,j) >= lon_w .and.
+     &     lon2d_dg(i,j) <= lon_e .and.
+     &     lat2d_dg(i,j) >= lat_s .and.
+     &     lat2d_dg(i,j) <= lat_n) then
+          latlon_mask(i,j) = 1d0
+        endif
+      enddo
+      enddo
+c The above approach to defining masks does not work for latlon
+c rectangles whose lon and/or lat lengths are less than the
+c gridsize.  Solution: if a rectangle is narrow in either
+c dimension, trace a discretized path from its SW to its NE
+c corner and call lonlat_to_ij for each latlon point along the
+c path, setting the mask to 1 for the returned i,j that are in
+c the local domain.  Or, trace all 4 edges of the rectangle.
+c      if(narrow rectangle) then
+c        lon = lon_w
+c        lat = lat_s
+c        do point=1,npoints_traverse
+c          lon = lon + (lon_e-lon_w)/npoints_traverse
+c          lat = lat + (lat_n-lat_s)/npoints_traverse
+c          call lonlat_to_ij((/lon,lat/),ij)
+c          if(i,j in local domain) then
+c            latlon_mask(i,j) = 1d0
+c          endif
+c        enddo
+c      endif
+#else
+c latlon grid
+      ie = lon_to_i(lon_e)
+      iw = lon_to_i(lon_w)
+      jn = lat_to_j(lat_n)
+      js = lat_to_j(lat_s)
+      do j=max(js,j_0),min(jn,j_1)
+        latlon_mask(iw:ie,j) = 1d0
+      enddo
+#endif
+      return
+      end subroutine get_latlon_mask
 
       SUBROUTINE tracer_3Dsource
 !@sum tracer_3Dsource calculates interactive sources for tracers
