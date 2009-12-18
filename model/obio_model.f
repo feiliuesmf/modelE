@@ -36,7 +36,7 @@
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,bn3d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
-     .                    ,tot_chlo,acdom3d,pnoice
+     .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
@@ -918,6 +918,7 @@ c$OMP END PARALLEL DO
       call pack_data( ogrid,  tracer, tracer_glob )
       !gather primary productivity
       call pack_data( ogrid,  pp2tot_day, pp2tot_day_glob )
+      call pack_data( ogrid,  tot_chlo,   tot_chlo_glob )
 
 #ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
       !gather ao_co2flux

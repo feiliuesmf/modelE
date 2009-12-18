@@ -123,7 +123,7 @@ c
      &     ,onirdir=>onirdir_glob,onirdif=>onirdif_glob
 #ifdef TRACERS_OceanBiology
       USE FLUXES, only: chl
-      USE obio_com, only: tot_chlo
+      USE obio_com, only: tot_chlo_glob
 #endif
 #endif
       USE HYCOM_DIM_GLOB
@@ -1268,7 +1268,7 @@ css   call iceo2a(omlhc,mlhc)
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
-      call ssto2a(tot_chlo,chl)
+      call ssto2a(tot_chlo_glob,achl)
 #endif
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')
@@ -1416,6 +1416,9 @@ c------------------------------------------------------------------
       subroutine scatter2_atm
 
       USE HYCOM_ATM
+#ifdef TRACERS_OceanBiology
+      USE FLUXES, ONLY: chl
+#endif
       USE DOMAIN_DECOMP_1D, ONLY: grid, UNPACK_DATA, UNPACK_COLUMN,
      &     UNPACK_BLOCK
       implicit none 
@@ -1439,6 +1442,9 @@ c copy of UOSURF,VOSURF can be used.
        call unpack_column( grid,  DSSI, DSSI_loc )
 #ifdef TRACERS_GASEXCH_ocean
       call unpack_block( grid,GTRACER_glob,GTRACER_loc)
+#endif
+#ifdef TRACERS_OceanBiology 
+      call unpack_data( grid,aCHL,chl)
 #endif
 
       end subroutine scatter2_atm

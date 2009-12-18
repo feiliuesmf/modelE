@@ -180,6 +180,7 @@
       public DIRNIR, DIRNIR_loc
       public DIFNIR, DIFNIR_loc
       public SRVISSURF, SRVISSURF_loc
+      public aCHL
 #endif
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
@@ -253,6 +254,7 @@
       real, ALLOCATABLE, DIMENSION(:,:) :: FSRDIR,FSRDIF
       real, ALLOCATABLE, DIMENSION(:,:) :: DIRNIR,DIFNIR
       real, ALLOCATABLE, DIMENSION(:,:) :: SRVISSURF    
+      real, ALLOCATABLE, DIMENSION(:,:) :: aCHL
 #endif
 
 
@@ -331,6 +333,7 @@
       ALLOCATE(DIRNIR(im,jm) )
       ALLOCATE(DIFNIR(im,jm) )
       ALLOCATE(SRVISSURF(im,jm) )
+      ALLOCATE(aCHL(im,jm) )
 #endif
 
       end subroutine alloc_hycom_atm
