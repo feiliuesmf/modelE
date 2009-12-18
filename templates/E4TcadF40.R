@@ -262,9 +262,12 @@ CH4_10=AR5_emis/F/NOV09/1850/CH4_tra_AR5_1850_2x2.5_h
 CH4_11=AR5_emis/F/NAT/CH4SOILABS_2x2.5_h
 CH4_12=AR5_emis/F/NAT/CH4TRMITE_2x2.5_h
 CH4_13=AR5_emis/F/NAT/CH4WETL+TUNDRA_2x2.5_h
-Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
-Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h 
-Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
+!!Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
+!!Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h 
+!!Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
+Isoprene_01=temp_2x2.5/ORCHIDEE_Isoprene_1990_4x5_h_2x2.5gf_h
+Terpenes_01=temp_2x2.5/ORCHIDEE_Terpenes_1990_4x5_h_2x2.5gf_h
+Terpenes_02=temp_2x2.5/ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h
 ! ========= please remember that Alkenes =================
 ! ========= and Paraffin emissions files =================
 ! ========= must now be in Kmole units,  =================
