@@ -112,6 +112,7 @@ C**** This information is now read in from the GLMELT file.
 
 C**** Read in GLMELT file to distribute glacial melt (CGLM is global)
       IF (JM.gt.24) THEN ! for finer that old 8x10
+         do_glmelt=.true.
 
 #ifdef CUBE_GRID
 c read a binary version of GLMELT
