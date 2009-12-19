@@ -45,6 +45,31 @@ rm -f paraffin_ships.nc NOx*.nc
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CH4_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CH4_ships_1850_C90_Dec_2009.nc  
 ./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_CH4_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_CH4_decadalmonthlymean1850_C90_Dec_2009.nc 
 
+#-- NH3
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_NH3_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_NH3_anthropogenic_1850_C90_Dec_2009.nc
+./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_NH3_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_NH3_decadalmonthlymean1850_C90_Dec_2009.nc 
+
+#-- BCII
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_BCII_anthropogenic_1850_0.5x0.5_v1_21_05_2009.nc -out IPCC_emissions_BCII_anthropogenic_1850_C90_Dec_2009.nc
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_BCII_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_BCII_ships_1850_C90_Dec_2009.nc  
+
+#-- OCII
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_OCII_anthropogenic_1850_0.5x0.5_v1_21_05_2009.nc -out IPCC_emissions_OCII_anthropogenic_1850_C90_Dec_2009.nc
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_OCII_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_OCII_ships_1850_C90_Dec_2009.nc  
+
+#-- SO2
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_SO2_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_SO2_anthropogenic_1850_C90_Dec_2009.nc
+./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_SO2_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_SO2_ships_1850_C90_Dec_2009.nc  
+./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_SO2_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_SO2_decadalmonthlymean1850_C90_Dec_2009.nc 
+
+#-- BCB
+./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_BCB_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_BCB_decadalmonthlymean1850_C90_Dec_2009.nc 
+
+#-- OCB
+./remap.pl -par ncregrid-ijl.par -in IPCC_GriddedBiomassBurningEmissions_OCB_decadalmonthlymean1850_v1.nc -out IPCC_GriddedBiomassBurningEmissions_OCB_decadalmonthlymean1850_C90_Dec_2009.nc 
+
+
+
 #-- NOx
 # first perform NOx=NO*14./30.
 ncflint -c -v emiss_agr,emiss_awb,emiss_dom,emiss_ene,emiss_ind,emiss_tra,emiss_wst -w .46666666666666666666,0.0 IPCC_emissions_NO_anthropogenic_1850_0.5x0.5_v1_07_05_2009.nc IPCC_emissions_NO_anthropogenic_1850_0.5x0.5_v1_07_05_2009.nc -o NOx_anthropo.nc
@@ -108,3 +133,5 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     ./run_1850_ships_CS.ksh
     ./run_1850_BiomassBurning_CS.ksh
     ./run_1850_anthro_alkenes_paraffin_CS.ksh
+    ./zero_veg_CS.ksh
+    ./zero_aircraft_CS.ksh 
