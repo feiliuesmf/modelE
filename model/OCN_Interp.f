@@ -1568,6 +1568,7 @@ c*   polar values are replaced by their longitudinal mean
 c*
 
       oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
+       oGMELT(:,:) =  oGMELT(:,:)*OXYP(:,:)
 
       oE0(:,:,1)=oE0tmp(:,:)  
 
@@ -1839,7 +1840,7 @@ c*
      * DIMENSION(aGRID%I_STRT:aGRID%I_STOP,aGRID%J_STRT:aGRID%J_STOP)::
      * aFact
 
-      REAL*8, allocatable :: aweight(:,:)
+      REAL*8, allocatable :: aweight(:,:),atmp(:,:),atmp2(:,:,:)
       real*8, dimension(oIM,oJM) :: otest_glob
       real*4, dimension(oIM,oJM) :: tr4
 
@@ -1857,71 +1858,100 @@ c*
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(aRSI,oRSI, aWEIGHT)
       
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
-            aFLOWO(I,J) = aFLOWO(I,J)*aFact(I,J)
+            atmp(I,J) = aFLOWO(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aFLOWO,oFLOWO, aWEIGHT)
+      CALL INT_AG2OG(atmp,oFLOWO, aWEIGHT)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aEFLOWO(I,J) = aEFLOWO(I,J)*aFact(I,J)
+            atmp(I,J) = aEFLOWO(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aEFLOWO,oEFLOWO, aWEIGHT)
+      CALL INT_AG2OG(atmp,oEFLOWO, aWEIGHT)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aMELTI(I,J) = aMELTI(I,J)*aFact(I,J)
+            atmp(I,J) = aMELTI(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aMELTI,oMELTI, aWEIGHT)
+      CALL INT_AG2OG(atmp,oMELTI, aWEIGHT)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aEMELTI(I,J) = aEMELTI(I,J)*aFact(I,J)
+            atmp(I,J) = aEMELTI(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aEMELTI,oEMELTI, aWEIGHT)
+      CALL INT_AG2OG(atmp,oEMELTI, aWEIGHT)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aSMELTI(I,J) = aSMELTI(I,J)*aFact(I,J)
+            atmp(I,J) = aSMELTI(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aSMELTI,oSMELTI, aWEIGHT)
+      CALL INT_AG2OG(atmp,oSMELTI, aWEIGHT)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aGMELT(I,J) = aGMELT(I,J)*aFact(I,J)
+            atmp(I,J) = aGMELT(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aGMELT,oGMELT, aWEIGHT)
+      CALL INT_AG2OG(atmp,oGMELT, aWEIGHT)
+      oGMELT(:,:) = oGMELT(:,:)*OXYP(:,:)
+      deallocate(atmp)
+
+      allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aFact(I,J) = 1.d0/AXYP(I,J)
-            aEGMELT(I,J) = aEGMELT(I,J)*aFact(I,J)
+            atmp(I,J) = aEGMELT(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
-      CALL INT_AG2OG(aEGMELT,oEGMELT, aWEIGHT)
+      CALL INT_AG2OG(atmp,oEGMELT, aWEIGHT)
       oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
+      deallocate(atmp)
 
       aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aRUNOSI,oRUNOSI, aWEIGHT)
@@ -1946,44 +1976,53 @@ c*
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
       aWEIGHT(:,:) = 1.d0
+
+      allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
               aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
-              aTRFLOWO(N,I,J) = aTRFLOWO(N,I,J)*aFact(I,J)
+              atmp2(N,I,J) = aTRFLOWO(N,I,J)*aFact(I,J)
             END IF
           END DO
         END DO
       END DO
-      CALL INT_AG2OG(aTRFLOWO,oTRFLOWO, aWEIGHT, NTM)
+      CALL INT_AG2OG(atmp2,oTRFLOWO, aWEIGHT, NTM)
+      deallocate(atmp)
 
+      allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
-              aTRMELTI(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
+              atmp2(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
             END IF
           END DO
         END DO
       END DO
-      CALL INT_AG2OG(aTRMELTI,oTRMELTI, aWEIGHT, NTM)
+      CALL INT_AG2OG(atmp2,oTRMELTI, aWEIGHT, NTM)
+      deallocate(atmp)
 
       aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aTRUNOSI,oTRUNOSI, aWEIGHT, NTM)
 
       aWEIGHT(:,:) = 1.d0
+      allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
               aFact(I,J) = 1.d0/AXYP(I,J)
-              aTRGMELT(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
+              atmp2(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
             END IF
           END DO
         END DO
       END DO
-      CALL INT_AG2OG(aTRGMELT,oTRGMELT, aWEIGHT, NTM)
+      CALL INT_AG2OG(atmp2,oTRGMELT, aWEIGHT, NTM)
       DO N=1,NTM
         oTRGMELT(N,:,:) = oTRGMELT(N,:,:)*OXYP(:,:)
       END DO
