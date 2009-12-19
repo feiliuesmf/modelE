@@ -12,6 +12,10 @@ C****
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
      *     ,deltx,teeny,rhows,grav
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+     &     ,By3
+#endif
       USE MODEL_COM, only : dtsrc,nisurf,u,v,t,p,q
      *     ,idacc,ndasf,fland,flice,focean
      *     ,nday,itime,jhour,itocean
@@ -148,6 +152,10 @@ C****
 
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
       USE CLOUDS_COM, only : DDMS
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+     &     ,ddml,fss
+#endif
       USE Timer_mod, only: Timer_type
       USE TimerList_mod, only: startTimer => start
       USE TimerList_mod, only: stopTimer => stop
@@ -696,6 +704,16 @@ c      pbl_args%pole = pole
       pbl_args%ricntd=ricntd(i,j)
       pbl_args%pprec=pprec(i,j)
       pbl_args%pevap=pevap(i,j,itype)
+c**** fractional area of moist convection * fraction of downdrafts
+c**** (=1/3), but only if downdrafts reach the lowest atmospheric
+c**** layer. It's only needed to constrain dust emission due to
+c**** downdrafts for soil type earth, but it's needed here to calculate
+c**** wspdf in PBL.f for the other soil types.
+      IF (ddml(i,j) == 1) THEN
+        pbl_args%mcfrac=(1.D0-fss(1,i,j))*By3
+      ELSE
+        pbl_args%mcfrac=0.D0
+      END IF
 #endif
 
 C**** Call pbl to calculate near surface profile
