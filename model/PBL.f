@@ -1943,7 +1943,8 @@ c     rhs(n-1)=0.
 !@+   downdraft temperature perturbation
 !@+   kh * dt/dz = ch * ( usurf*(t1 - tgrnd)
 !@+                      +(1+deltx*q1)*(usurf-usurf0)*tprime )
-!@+                + deltx * t1/(1+deltx*q1) * kq * dqdz
+!@+          ### the following term was removed from BC at the bottom
+!@+          ###   + deltx * t1/(1+deltx*q1) * kq * dqdz
 !@+   where tprime=tdns-t1/(1+deltx*q1), t1 is at surf
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
@@ -2011,11 +2012,11 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       if(ddml_eq_1) then
          rat = usurf0/(usurf+teeny)
          dia(1) = 1+facth*rat
-     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
+!     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
          rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*q(1))*tdns)
       else
          dia(1) = 1+facth
-     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
+!     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
          rhs(1) = facth*tgrnd
       endif
 
