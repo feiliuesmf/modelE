@@ -13,7 +13,7 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-     &     ,frost_hardiness
+     &     ,frost_hardiness, fbb_night
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
@@ -103,14 +103,24 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
 c      endif
         
-      !Biological limits for gs - cuticular conductance?
-      if(gsout.lt.(0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN)))) then
-        gsout=0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN))
-      endif
+cddd      !Biological limits for gs - cuticular conductance?
+cddd      if(gsout.lt.(0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN)))) then
+cddd        gsout=0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN))
+cddd      endif
 
       end subroutine pscondleaf
 
 !-----------------------------------------------------------------------------
+
+      subroutine fbb_night(Atot,Gs,Rd,Iso)
+      real*8, intent(out) :: Atot,Gs,Rd,Iso
+
+      Atot = 0.d0
+      Gs = BallBerry(0.d0, 1.d0, 1.d0, pspar)
+      Rd = 0.015d0 * pspar%Vcmax
+      Iso = 0.d0
+
+      end subroutine fbb_night
 
       subroutine Photosynth_analyticsoln(pft,IPAR,ca,ci,Tl,Pa,rh,gb,
      o     gs,Atot,Rd,sunlitshaded,isp)
@@ -194,21 +204,22 @@ c      endif
       if (Atot.lt.0.d0) then
         ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
 #ifdef OFFLINE
-        write(997,*) "Error, Atot<0.0:",Ae,Ac,As,ca,gb,rh,IPAR,Pa,
-     &       pspar,sunlitshaded
+        write(997,*) "Error, Atot<0.0:",Atot,Ae,Ac,As,ca,gb,rh,IPAR,Pa,
+     &       pspar,sunlitshaded, pspar%Gammastar * 1.d06/Pa
 #endif
         Atot = 0.d0
         Anet = - Rd
-        ci = pspar%Gammastar * 1.d06/Pa  
-        gs = 0. ! MK: setting to 0 to avoid erratic results
+!!        ci = pspar%Gammastar * 1.d06/Pa  
+!!        gs = 0. ! MK: setting to 0 to avoid erratic results
 
-       else
+!!       else
+      endif
 
       cs = ca - Anet*1.37d0/gb
       gs = BallBerry(Anet, rh, cs, pspar)
       ci = cs - Anet/(gs/1.65d0)
 
-        endif
+!!!        endif
 
 #ifdef PS_BVOC
          call Voccalc(pft,pa,ca,ci,Tl,pspar%Gammastar,
