@@ -1017,8 +1017,8 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
       do k=1,ntt
          do j=1,jmt
             do i=1,imt
-               if ( (ttargglob(i,j,k,1) .gt. 1.e-6) .and.
-     &              (ttargglob(i,j,k,2) .gt. 1.e-6 ) ) then
+               if ( (ttargglob(i,j,k,1) .gt. 0.) .and.
+     &              (ttargglob(i,j,k,2) .gt. 0. ) ) then
                   write(*,*) "FGRND=FGRND+FLAKE, FLAKE=0"
                   ttargglob(i,j,k,3)=ttargglob(i,j,k,2)
      &                 +ttargglob(i,j,k,3)
