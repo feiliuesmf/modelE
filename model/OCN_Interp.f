@@ -1106,6 +1106,12 @@ C**** surface tracer concentration
      &     aSOLAR3tmp(:,:),oSOLAR3tmp(:,:),
      &     aDMUA1tmp(:,:),oDMUA1tmp(:,:),
      &     aDMVA1tmp(:,:),oDMVA1tmp(:,:),
+     &     atmp01(:,:),atmp02(:,:),
+     &     atmp03(:,:),atmp04(:,:),
+     &     atmp05(:,:),atmp06(:,:),
+     &     atmp07(:,:),
+     &     atmp08(:,:,:),
+     &     atmp09(:,:,:),atmp10(:,:,:),
      &     atmp(:,:,:),otmp(:,:,:),
      &     atmp2(:,:,:),otmp2(:,:,:),
      &     atmp3(:,:,:),otmp3(:,:,:),
@@ -1171,49 +1177,72 @@ C**** surface tracer concentration
      &     call copy_pole(aRSI(:,aJM),aIM)
       call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
 
+      allocate(atmp01(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp02(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp03(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp04(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp05(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp06(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp07(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)  )
+
+      atmp01=0.d0
+      atmp02=0.d0
+      atmp03=0.d0
+      atmp04=0.d0
+      atmp05=0.d0
+      atmp06=0.d0
+      atmp07=0.d0
+
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
-            aFLOWO(I,J) = aFLOWO(I,J)*aFact(I,J)
-            aEFLOWO(I,J) = aEFLOWO(I,J)*aFact(I,J)
-            aMELTI(I,J) = aMELTI(I,J)*aFact(I,J)
-            aEMELTI(I,J) = aEMELTI(I,J)*aFact(I,J)
-            aSMELTI(I,J) = aSMELTI(I,J)*aFact(I,J)
-            aGMELT(I,J) = aGMELT(I,J)*aFact(I,J)
+            atmp01(I,J) = aFLOWO(I,J)*aFact(I,J)
+            atmp02(I,J) = aEFLOWO(I,J)*aFact(I,J)
+            atmp03(I,J) = aMELTI(I,J)*aFact(I,J)
+            atmp04(I,J) = aEMELTI(I,J)*aFact(I,J)
+            atmp05(I,J) = aSMELTI(I,J)*aFact(I,J)
+            atmp06(I,J) = aGMELT(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
 
       if ( (agrid%HAVE_NORTH_POLE)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
-        call copy_pole(aFLOWO(:,aJM),aIM)
-        call copy_pole(aEFLOWO(:,aJM),aIM)
-        call copy_pole(aMELTI(:,aJM),aIM)
-        call copy_pole(aEMELTI(:,aJM),aIM)
-        call copy_pole(aSMELTI(:,aJM),aIM)
-        call copy_pole(aGMELT(:,aJM),aIM)
+        call copy_pole(atmp01(:,aJM),aIM)
+        call copy_pole(atmp02(:,aJM),aIM)
+        call copy_pole(atmp03(:,aJM),aIM)
+        call copy_pole(atmp04(:,aJM),aIM)
+        call copy_pole(atmp05(:,aJM),aIM)
+        call copy_pole(atmp06(:,aJM),aIM)
       endif
 
-      call ab_add( lstr, aFLOWO, oFLOWO, shape(aFLOWO), 'ij')
-      call ab_add( lstr, aEFLOWO, oEFLOWO, shape(aEFLOWO), 'ij')
-      call ab_add( lstr, aMELTI, oMELTI, shape(aMELTI), 'ij')
-      call ab_add( lstr, aEMELTI, oEMELTI, shape(aEMELTI), 'ij')
-      call ab_add( lstr, aSMELTI, oSMELTI, shape(aSMELTI), 'ij')
-      call ab_add(lstr, aGMELT, oGMELT, shape(aGMELT), 'ij')
+      call ab_add( lstr, atmp01, oFLOWO, shape(atmp01), 'ij')
+      call ab_add( lstr, atmp02, oEFLOWO, shape(atmp02), 'ij')
+      call ab_add( lstr, atmp03, oMELTI, shape(atmp03), 'ij')
+      call ab_add( lstr, atmp04, oEMELTI, shape(atmp04), 'ij')
+      call ab_add( lstr, atmp05, oSMELTI, shape(atmp05), 'ij')
+      call ab_add(lstr, atmp06, oGMELT, shape(atmp06), 'ij')
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
             aFact(I,J) = 1.d0/AXYP(I,J)
-            aEGMELT(I,J) = aEGMELT(I,J)*aFact(I,J)
+            atmp07(I,J) = aEGMELT(I,J)*aFact(I,J)
           END IF
         END DO
       END DO
       if ( (agrid%HAVE_NORTH_POLE)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aEGMELT(:,aJM),aIM)
-      call ab_add( lstr, aEGMELT, oEGMELT, shape(aEGMELT), 'ij')
+     &     call copy_pole(atmp07(:,aJM),aIM)
+      call ab_add( lstr, atmp07, oEGMELT, shape(atmp07), 'ij')
 
       if ( (agrid%HAVE_NORTH_POLE)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
@@ -1306,35 +1335,45 @@ C**** surface tracer concentration
 
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
+      allocate(atmp08(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp09(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO),
+     &     atmp10(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
+     &     ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO)      )
+      atmp08=0.d0
+      atmp09=0.d0
+      atmp10=0.d0
+
       aWEIGHT(:,:) = 1.d0
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
               aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
-              aTRFLOWO(N,I,J) = aTRFLOWO(N,I,J)*aFact(I,J)
+              atmp08(N,I,J) = aTRFLOWO(N,I,J)*aFact(I,J)
             END IF
           END DO
         END DO
       if ( (agrid%HAVE_NORTH_POLE)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aTRFLOWO(N,:,aJM),aIM)
+     &     call copy_pole(atmp08(N,:,aJM),aIM)
       END DO
-      call ab_add( lstr, aTRFLOWO,oTRFLOWO,shape(aTRFLOWO),'lij')
+      call ab_add( lstr, atmp08,oTRFLOWO,shape(atmp08),'lij')
 
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
-              aTRMELTI(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
+              atmp09(N,I,J) = aTRMELTI(N,I,J)*aFact(I,J)
             END IF
           END DO
         END DO
       if ( (agrid%HAVE_NORTH_POLE)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &     call copy_pole(aTRMELTI(N,:,aJM),aIM)
+     &     call copy_pole(atmp09(N,:,aJM),aIM)
       END DO
-      call ab_add( lstr, aTRMELTI,oTRMELTI,shape(aTRMELTI),'lij')
+      call ab_add( lstr, atmp09,oTRMELTI,shape(atmp09),'lij')
 
 
       DO N=1,NTM
@@ -1342,15 +1381,15 @@ C**** surface tracer concentration
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
               aFact(I,J) = 1.d0/AXYP(I,J)
-              aTRGMELT(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
+              atmp10(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
             END IF
           END DO
         END DO
         if ( (agrid%HAVE_NORTH_POLE)
      &       .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
-     &       call copy_pole(aTRGMELT(N,:,aJM),aIM)
+     &       call copy_pole(atmp10(N,:,aJM),aIM)
       END DO
-      call ab_add( lstr, aTRGMELT,oTRGMELT,shape(aTRGMELT),'lij')
+      call ab_add( lstr, atmp10,oTRGMELT,shape(atmp10),'lij')
 
       aWEIGHT3(:,:) = aRSI(:,:)
       call ab_add(lstr, aWEIGHT3, oWEIGHT3, shape(aWEIGHT3), 'ij')
@@ -1568,7 +1607,7 @@ c*   polar values are replaced by their longitudinal mean
 c*
 
       oEGMELT(:,:) = oEGMELT(:,:)*OXYP(:,:)
-       oGMELT(:,:) =  oGMELT(:,:)*OXYP(:,:)
+      oGMELT(:,:) =  oGMELT(:,:)*OXYP(:,:)
 
       oE0(:,:,1)=oE0tmp(:,:)  
 
@@ -1642,7 +1681,7 @@ c*
       do N=1,NTM
          oTREVAPOR(N,1,:,:)=otmp(N,:,:)
       enddo
-      deallocate(atmp,otmp)
+      deallocate(atmp,otmp,atmp08,atmp09,atmp10)
 
 #ifdef TRACERS_DRYDEP
       if ( (agrid%HAVE_NORTH_POLE)
@@ -1727,7 +1766,11 @@ c*
      &     aweight6,oweight6)
 
 
-      deallocate(aE0tmp, oE0tmp,
+      deallocate(atmp01,atmp02,
+     &     atmp03,atmp04,
+     &     atmp05,atmp06,
+     &     atmp07,
+     &     aE0tmp, oE0tmp,
      &     aEVAPORtmp,oEVAPORtmp,
      &     aSOLAR1tmp,oSOLAR1tmp,
      &     aSOLAR3tmp,oSOLAR3tmp,
