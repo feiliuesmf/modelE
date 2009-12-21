@@ -1926,8 +1926,7 @@ C**** ocean/lake inconsistency. Adjust FLAKE0 and FLICE if necessary.
         IF (FOCEAN(I,J).gt.0) THEN
           FLAND(I,J)=1.-FOCEAN(I,J) ! Land fraction if focean>0
           IF (FLAKE0(I,J).gt.0) THEN
-           IF (AM_I_ROOT()) WRITE(6,*)
-     *            "Ocean and lake cannot co-exist in same grid box"
+            WRITE(6,*) "Ocean and lake cannot co-exist in same grid box"
      *       ,i,j,FOCEAN(I,J),FLAKE0(I,J)
             FLAKE0(I,J)=0
           END IF
