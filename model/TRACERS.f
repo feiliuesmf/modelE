@@ -2155,7 +2155,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       n1 = scan( str,'=')
       if(str(1:n1-1) /= 'res')error=7
       read(str(n1+1:n1+1),*)res(n,ns)
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F')error=8
+#endif
 
       str = str(n1+3:)            ! optional transient years
       n1 = scan( str, '=')
