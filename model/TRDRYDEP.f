@@ -1,8 +1,10 @@
 #include "rundeck_opts.h"
 
 #ifdef CUBE_GRID
-#define BIN_TRACERS
+#define BIN_OLSON
 #endif
+
+!#undef BIN_OLSON
 
       MODULE tracers_DRYDEP
 
@@ -81,7 +83,15 @@ C*********************************************************************
 !@var IUSE per mil fraction of grid area with by land type element LDT
 !@var FRCLND land fraction 
       INTEGER, PARAMETER :: NPOLY   = 20,
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! Regridding causes the max. number of Olson types in a single gridcell to
+! increase relative to the original 4x5 input file.  Temporarily increasing
+! NTYPE for the cubed sphere until the Olson vegetation types are collapsed
+! to the 11 dry-deposition types in drydep.table
+     &                      NTYPE   = 21,
+#else
      &                      NTYPE   = 16,
+#endif
      &                      NVEGTYPE= 74
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: XYLAI,XLAI,XLAI2
       REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: FRCLND,IREG_loc 
@@ -91,8 +101,8 @@ C*********************************************************************
       INTEGER, DIMENSION(NVEGTYPE)           :: IDEP
       INTEGER, DIMENSION(NTYPE)              :: IRI,IRLU,IRAC,IRGSS,
      &                                      IRGSO,IRCLS,IRCLO,IVSMAX
-#ifdef BIN_TRACERS
-      real*8 , allocatable, dimension(:,:,:) :: FUSE_loc,order_loc
+#ifdef BIN_OLSON
+      real*8 , allocatable, dimension(:,:,:) :: FUSE_loc
       real*8 , allocatable, dimension(:,:,:) :: XOLAI_loc,XOLAI2_loc
 #endif       
       END MODULE tracers_DRYDEP
@@ -107,8 +117,8 @@ C*********************************************************************
       use domain_decomp_atm, only : dist_grid, get
       use tracers_DRYDEP, only: ntype,XYLAI,XLAI,XLAI2,IJREG,
      &     IREG_loc,IREG,IJLAND,IJUSE,ILAND,IUSE,FRCLND,nvegtype
-#ifdef BIN_TRACERS
-     &     ,FUSE_loc,order_loc,XOLAI_loc,XOLAI2_loc
+#ifdef BIN_OLSON
+     &     ,FUSE_loc,XOLAI_loc,XOLAI2_loc
 #endif
       use tracer_com, only    : ntm
       use model_com, only     : im
@@ -137,11 +147,10 @@ C*********************************************************************
       allocate(   IJUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(   ILAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
       allocate(    IUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-#ifdef BIN_TRACERS
+#ifdef BIN_OLSON
       allocate(XOLAI_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
       allocate(XOLAI2_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
       allocate(FUSE_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
-      allocate(order_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
 #endif              
       return
       end subroutine alloc_trdrydep 
@@ -751,7 +760,7 @@ C**** GLOBAL parameters and variables:
 C
       use domain_decomp_atm, only : grid, get, AM_I_ROOT,
      & write_parallel,readt_parallel
-#ifndef BIN_TRACERS
+#ifndef BIN_OLSON
      &     ,UNPACK_DATA
 #endif
       USE FILEMANAGER, only   : openunit,closeunit,nameunit
@@ -759,7 +768,7 @@ C
       USE tracers_DRYDEP, only: IJREG,IJLAND,IJUSE,IREG,NTYPE,IDEP,
      & IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX,NVEGTYPE,FRCLND,
      & ILAND,IUSE,IREG_loc
-#ifdef BIN_TRACERS
+#ifdef BIN_OLSON
      &     ,FUSE_loc
 #endif
       IMPLICIT NONE
@@ -776,15 +785,14 @@ C
 !@var iu_data unit number for read
 !@var iols temp read in index
 !@var IZO roughness height for given surface type
+#ifdef BIN_OLSON
+      integer, dimension(NVEGTYPE) :: icol
+      integer, allocatable, dimension(:,:,:) :: IUSE_dbg,ILAND_dbg
+      integer :: regcount
+#else
       integer, dimension(IM,JM) :: IREG_glob
       real*8 , dimension(IM,JM) :: IREG_real
       integer, dimension(IM,JM,NTYPE) :: ILAND_glob,IUSE_glob
-#ifdef BIN_TRACERS
-      integer, dimension(IM,JM,NVEGTYPE) :: iord_loc
-      integer, dimension(NVEGTYPE) :: icol
-      integer, allocatable, dimension(:,:,:) :: IUSE_dbg,ILAND_dbg
-      integer :: I_0h, I_1h
-      integer, dimension(IM,JM) :: regcount
 #endif
       INTEGER, PARAMETER :: NWAT=6
       CHARACTER*1, dimension(70) :: COM
@@ -800,34 +808,31 @@ C
       I_1 = GRID%I_STOP
       
 
-#ifdef BIN_TRACERS
+#ifdef BIN_OLSON
+c     Read binary file 
 c***  Read VEGTYPEt2b.f for documentation about the binary format
-      I_0h= GRID%I_STRT_HALO
-      I_1h= GRID%I_STOP_HALO
    
       if ( AM_I_ROOT() ) then
-c     Read binary file 
          write(6,*) 'READING land fractions from binary file'
-         call openunit('VEGTYPEBIN',iu_data,.true.,.true.)
-         do K=1,NVEGTYPE
-            call readt_parallel(grid,iu_data,nameunit(iu_data),
-     &           FUSE_loc(:,:,K),1)
-         enddo
-
-         call closeunit(iu_data)
       endif
+      call openunit('VEGTYPEBIN',iu_data,.true.,.true.)
+      do K=1,NVEGTYPE
+        call readt_parallel(grid,iu_data,nameunit(iu_data),
+     &       FUSE_loc(:,:,K),1)
+      enddo
+      call closeunit(iu_data)
       do J=J_0,J_1
          do I=I_0,I_1
-            regcount(I,J)=0
+            regcount=0
             do K=1,NVEGTYPE
                if (FUSE_loc(I,J,K) .gt. 1.e-6) then
-                   regcount(I,J)=regcount(I,J)+1
-                   ILAND(I,J,regcount(I,J))=K-1
-                   IUSE(I,J,regcount(I,J))=
+                   regcount=regcount+1
+                   ILAND(I,J,regcount)=K-1
+                   IUSE(I,J,regcount)=
      &                  NINT(1000.*FUSE_loc(I,J,K))
                 endif
              enddo
-             IREG(I,J)=regcount(I,J)
+             IREG(I,J)=regcount
 c             write(*,*) "IREG(",I,",",J,")=",IREG(I,J)
           enddo
        enddo
@@ -982,11 +987,11 @@ C**** Local parameters and variables and arguments
 
 C**** GLOBAL parameters and variables:  
       use domain_decomp_atm, only : grid,get,am_i_root,readt_parallel
-#ifndef BIN_TRACERS
+#ifndef BIN_OLSON
      &     ,UNPACK_DATA
 #endif
       use tracers_drydep, only: xlai,xlai2,ireg,ntype,nvegtype
-#ifdef BIN_TRACERS
+#ifdef BIN_OLSON
      &                         ,xolai_loc,xolai2_loc,iland
 #endif
       use model_com, only: im,jm,jmon,JMperY
@@ -1007,7 +1012,9 @@ C**** Local parameters and variables and arguments
      &(/'12','01','02','03','04','05','06','07','08','09','10',
      &  '11','12','01'/)
       integer :: i,j,k,iunit,index
+#ifndef BIN_OLSON
       real*8, dimension(im,jm,ntype) :: xlai_glob, xlai2_glob
+#endif
       character*80 :: fbin
       integer :: J_0, J_1, I_0, I_1
 
@@ -1016,32 +1023,34 @@ C**** Local parameters and variables and arguments
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
 
-#ifdef BIN_TRACERS
+#ifdef BIN_OLSON
 ! Binary reading of LAIs (converted by Denis). Read VEGTYPEt2b.f for 
 ! documentation about the binary format.
 ! (Greg Faluvegi altering to include offset):
 
 ! read first month's LAI's:
       fbin='LAI'//cmonth(jmon+offset)//"BIN"
-      write(6,*) fbin
+c      write(6,*) fbin
       call openunit(trim(fbin),iunit,.true.,.true.)
       do k=1,nvegtype
         call readt_parallel(grid,iunit,fbin,xolai_loc(:,:,k),1)
       enddo
+      xlai(:,:,:) = 0.
       do j=J_0,J_1 ; do i=I_0,I_1 ; do k=1,ireg(i,j)
-        xlai(i,j,k)=xolai_loc(i,j,iland(i,j,k))
+        xlai(i,j,k)=xolai_loc(i,j,1+iland(i,j,k))
       enddo        ; enddo        ; enddo
       call closeunit(iunit)
 
 ! read second month's LAI's:
       fbin='LAI'//cmonth(jmon+offset+1)//"BIN"
-      write(6,*) fbin
+c      write(6,*) fbin
       call openunit(trim(fbin),iunit,.true.,.true.)
       do k=1,nvegtype
         call readt_parallel(grid,iunit,fbin,xolai2_loc(:,:,k),1)
       enddo
+      xlai2(:,:,:) = 0.
       do J=J_0,J_1 ; do I=I_0,I_1 ; do K=1,IREG(I,J)
-        xlai2(i,j,k)=xolai2_loc(i,j,iland(i,j,k))
+        xlai2(i,j,k)=xolai2_loc(i,j,1+iland(i,j,k))
       enddo        ; enddo        ;  enddo
       call closeunit(iunit)
 

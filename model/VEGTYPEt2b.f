@@ -108,6 +108,9 @@ C     Read lai:
          fname='lai'//c2month//'.global'
          write(*,*) fname
          open(20,FILE=fname,FORM="FORMATTED",status="UNKNOWN")
+
+         XLAI_glob(:,:,:)=0.
+
  10      READ(20,"(3I3,20F5.1)",END=20) I,J,INDEX,
      &        (XLAI_glob(I,J,K),K=1,INDEX)
          GOTO 10
