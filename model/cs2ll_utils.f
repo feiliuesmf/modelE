@@ -1323,8 +1323,8 @@ c adjust for grid discontinuity near cube edges using angle coordinate
 c
 c CS PEs inform LL PEs about the interpolation pts they will be sending
 c
-      npts = imlon*(1+min(grid_ll%je,jlat_max)
-     &               -max(grid_ll%js,jlat_min))
+      npts = max(0,imlon*(1+min(grid_ll%je,jlat_max)
+     &                     -max(grid_ll%js,jlat_min)))
       cs2llint%npts_unpack = npts
       call mpi_alltoall(cs2llint%send_cnts,1,MPI_INTEGER,
      &                  cs2llint%recv_cnts,1,MPI_INTEGER,
