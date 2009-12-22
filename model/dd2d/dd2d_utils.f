@@ -375,8 +375,8 @@ c
       end subroutine init_dist_grid
 
 #else
-      write(*,*) "init_dist_grid, is, ie, js, je"
-      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
+c      write(*,*) "init_dist_grid, is, ie, js, je"
+c      write(*,*) "/ isd, ied, jsd, jed=",is,ie,js,je,isd,ied,jsd,jed
 
       call mpi_comm_rank(MPI_COMM_WORLD,grid%gid,ierr)
       call mpi_comm_size(MPI_COMM_WORLD,grid%nproc,ierr)

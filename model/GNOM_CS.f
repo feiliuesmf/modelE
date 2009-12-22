@@ -116,8 +116,8 @@ c     shift grid 10 degrees West to avoid corner over Japan
      &     I_STRT_HALO=i0h, I_STOP_HALO=i1h, 
      &     I_STRT=i0,I_STOP=i1)
 
-      write(*,*) "geom  i0h,i1h,i1,j0h,j1h,j0,j1=",
-     &     i0h,i1h,i1,j0h,j1h,j0,j1
+c      write(*,*) "geom  i0h,i1h,i1,j0h,j1h,j0,j1=",
+c     &     i0h,i1h,i1,j0h,j1h,j0,j1
 
       allocate(lat2d(i0h:i1h, j0h:j1h))
       allocate(lon2d(i0h:i1h, j0h:j1h))
