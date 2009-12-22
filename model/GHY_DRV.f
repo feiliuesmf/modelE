@@ -1057,7 +1057,7 @@ c****
 
        ! moved to daily_earth
 !      call update_vegetation_data( entcells,
-!     &     im, jm, 1, im, J_0, J_1, jday, jyear )
+!     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 #endif
 
 c$$$!$OMP  PARALLEL DO DEFAULT(NONE) PRIVATE
@@ -1092,7 +1092,7 @@ c$$$!$OMP*   SCHEDULE(DYNAMIC,2)
       !call ent_cell_print(900+counter, entcells)
 
 !!      call update_vegetation_data( entcells,
-!!     &     im, jm, 1, im, J_0, J_1, jday, jyear )
+!!     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 
       loop_j: do j=J_0,J_1
   !    hemi=1.
@@ -3668,7 +3668,7 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
 
       if (end_of_day )
      &     call update_vegetation_data( entcells,
-     &     im, jm, 1, im, J_0, J_1, jday, jyear )
+     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
 
       !if(cond_scheme.eq.2) call updsur (0,jday)
       ! we don''t use cond_scheme==1 any more, so call it always
