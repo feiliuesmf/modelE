@@ -17,7 +17,7 @@ C****
      *      LMO =  32, !  maximum number of ocean layers in a column
      *  LMO_MIN =   2, !  minimum number of ocean layers in a column
      *    LSRPD =   4, !  deepest layer for penetrating solar radiation
-     *    MAXGL =  12, !  maximum no. layers for depositing glac. melt
+     *    MAXGL =   6, !  maximum no. layers for depositing glac. melt (<200m)
      *   NOCEAN =   2  !  NDYNO must be multiple of 2*NOCEAN
      * , NORDER=4      !  order of Alternating Binomial Filter (must be even)
 C***
