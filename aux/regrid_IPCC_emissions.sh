@@ -35,6 +35,24 @@ rm -f paraffin_ships.nc NOx*.nc
 ./add_header2.ksh CH4_soil_absorption_AR5_1850_C90 a CH4 soil_absorption C90 N 1850
 ./add_header2.ksh CH4_Wetlands_and_Tundra_AR5_1850_C90 m CH4 Wetlands_and_Tundra C90 N 1850
 
+#-- Isoprene and terpenes from vegetation - titles must be modified using change_title.f (not performed here)
+./remap.pl -par regridNat.par -in ORCHIDEE_Isoprene_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_Isoprene_1990_C90from2x2.5_h
+./remap.pl -par regridNat.par -in ORCHIDEE_Terpenes_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_Terpenes_1990_C90from2x2.5_h
+./remap.pl -par regridNat.par -in ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_ORVOC_1990_C90from2x2.5_h
+
+
+#-- volcanoes
+./remap.pl -par ncregrid-ij.par -in SO2_volc_2000_1x1_AEROCOM.nc -out SO2_volc_2000_AEROCOM_C90.nc
+
+#-- NH3 oceanic source
+./remap.pl -par regridNH3oc.par -in NH3hCON_OCEAN_Apr09_1x1_h -out NH3hCON_OCEAN_Apr09_C90_h
+
+#-- DMS water conc. Kettle & Andreae 1996
+./remap.pl -par regrida1x1.par -in DMS_Kettle_Andeae_1x1 -out DMS_Kettle_Andeae_C90
+
+#-- Terpene from Guenther
+./remap.pl -par regrida1x1.par -in terp_Guenther_1x1 -out terp_Guenther_C90
+
 #-- CO
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_anthropogenic_1850_C90_Dec_2009.nc
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_ships_1850_C90_Dec_2009.nc
@@ -133,5 +151,5 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     ./run_1850_ships_CS.ksh
     ./run_1850_BiomassBurning_CS.ksh
     ./run_1850_anthro_alkenes_paraffin_CS.ksh
-    ./zero_veg_CS.ksh
+#    ./zero_veg_CS.ksh
     ./zero_aircraft_CS.ksh 
