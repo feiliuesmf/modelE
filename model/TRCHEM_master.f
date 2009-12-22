@@ -68,7 +68,7 @@ c
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_aerosolphase
 #endif  /* TRACERS_AEROSOLS_SOA */
-
+      use zonalmean_mod, only : zonalmean_ij2ij
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:

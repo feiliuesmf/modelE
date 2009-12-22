@@ -511,6 +511,9 @@ c****
       return
       end subroutine tropwmo
 
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+      module zonalmean_mod
+      contains
       subroutine zonalmean_ij2ij(arr,arr_zonal)
 c Computes zonal means of arr and stores the result in arr_zonal.
 c Lat-lon version.
@@ -527,6 +530,8 @@ c Lat-lon version.
       enddo
       return
       end subroutine zonalmean_ij2ij
+      end module zonalmean_mod
+#endif
 
 !If running SCM use dummy routines
 #ifndef SCM
