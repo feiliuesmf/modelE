@@ -679,3 +679,180 @@ c      RETURN
 c      END SUBROUTINE DUMMY_STRAT
 
 #endif
+
+      module zonalmean_mod
+!@auth M. Kelley
+!@ver  1.0
+!@sum  Mini-module for longitudinal averaging of a field on a
+!@+    domain-decomposed cubed-sphere grid.
+      use model_com, only : im
+      use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : dist_grid,init_grid,sumxpe,esmf_bcast
+      use cs2ll_utils, only : cs2llint_type,
+     &     init_cs2llint_type,cs2llint_ij
+      implicit none
+      save
+      private
+
+      public :: zonalmean_ij2ij
+
+!@param imlon,jmlat number of lons/lats for temporary field used for
+!@+     longitudinal averages.  imlon is chosen to give roughly equivalent
+!@+     east-west resolution, and jmlat is chosen as double the
+!@+     equivalent north-south resolution to improve the accuracy of
+!@+     final interpolations to the latitudes of cubed-sphere gridcells
+      integer, parameter :: imlon=4*im,jmlat=4*im
+!@var lons,lats lons/lats of temporary field used for lon avgs
+      real*8 :: lons(imlon), lats(jmlat)
+!@var have_latlon indicates whether this PE computes any lon avgs
+!@+   (true only for min(NPES,jmlat) PEs
+      logical :: have_latlon
+      real*8 :: dlon,dlat
+      real*8 :: byimlon
+!@var arr_latlon temporary lat-lon field for lon avgs
+!@var jlatwt weights for interpolating lon avgs to the latitudes
+!@+   of local gridcells
+      real*8, dimension(:,:), allocatable :: arr_latlon,jlatwt
+
+!@var grid_zonal grid info for temporary latlon field
+      type(dist_grid) :: grid_zonal
+
+!@var cs2llint_info used during CS -> latlon interpolations
+      type(cs2llint_type) :: cs2llint_info
+
+      contains
+
+      subroutine zonalmean_ij2ij(arr,arr_zonal)
+!@sum Computes zonal means of arr and stores the result in arr_zonal.
+!@+   Uses the cs2llint_ij procedure to obtain a temporary lat-lon
+!@+   instance of the field, which is then averaged in longitude and
+!@+   interpolated to the latitude of each cubed sphere gridcell.
+      implicit none
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &     arr,         ! input
+     &     arr_zonal    ! output
+      integer :: i_0,i_1,j_0,j_1,i,j,jlat
+      real*8 :: wtjlat
+      real*8, dimension(jmlat) :: arr_loc,arr_jlat
+
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+
+c
+c check whether grid and interp info need initializing
+c
+      if(.not.allocated(arr_latlon)) then
+        call init_zonalmean_info
+      endif
+
+c
+c interpolate to obtain latlon array
+c
+      call cs2llint_ij(grid,cs2llint_info,arr,arr_latlon)
+
+c
+c average in longitude and broadcast to all PEs
+c
+      arr_loc = 0.
+      if(have_latlon) then
+        do jlat=grid_zonal%js,grid_zonal%je
+          arr_loc(jlat) = sum(arr_latlon(:,jlat))*byimlon
+        enddo
+      endif
+c pack_dataj unavailable since domain_decomp_1d refuses NPES > jmlat,
+      call sumxpe(arr_loc,arr_jlat) ! so using sumxpe for now
+      call esmf_bcast(grid, arr_jlat)
+
+c
+c interpolate to the latitudes of CS gridcells
+c
+      do j=j_0,j_1
+        do i=i_0,i_1
+          wtjlat = jlatwt(i,j)
+          jlat = wtjlat
+          wtjlat = wtjlat-jlat
+          arr_zonal(i,j) =
+     &         wtjlat*arr_jlat(jlat+1)+(1.-wtjlat)*arr_jlat(jlat)
+        enddo
+      enddo
+
+      return
+      end subroutine zonalmean_ij2ij
+
+      subroutine init_zonalmean_info
+      use constant, only : pi
+      use geom, only : lat2d
+      implicit none
+      integer :: ilon,jlat,i,j,jn
+      integer :: i_0,i_1,j_0,j_1
+      integer :: i_0h,i_1h,j_0h,j_1h
+
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+
+      byimlon = 1d0/real(imlon,kind=8)
+      have_latlon = .true.
+
+c
+c coordinates of latlon grid on which zonal means are calculated
+c
+      dlon = 2.*pi*byimlon
+      do ilon=1,imlon
+        lons(ilon) = -pi + dlon*(real(ilon,kind=8)-.5)
+      enddo
+      dlat = pi/real(jmlat,kind=8)
+      do jlat=1,jmlat
+        lats(jlat) = -pi/2. + dlat*(real(jlat,kind=8)-.5)
+      enddo
+
+c
+c initialize a latlon dist_grid
+c
+      if(grid%nproc .le. jmlat-2) then
+        call init_grid(grid_zonal,imlon,jmlat,1)
+      elseif(grid%nproc .ge. jmlat) then
+! domain_decomp_1d will refuse this many PEs.  Temporary workaround:
+! fill the dist_grid elements needed by init_cs2llint_type, assign
+! 1 j per processor, with imaginary lats beyond the north pole
+        grid_zonal%gid = grid%gid
+        grid_zonal%npx = imlon
+        grid_zonal%npy = jmlat
+        grid_zonal%js = 1+grid%gid
+        grid_zonal%je = grid_zonal%js
+        grid_zonal%jsd = grid_zonal%js-1
+        grid_zonal%jed = grid_zonal%je+1
+        have_latlon = grid_zonal%je <= jmlat
+      else
+        call stop_model('jmlat prob in init_zonalmean_info',255)
+      endif
+
+c
+c set up CS -> latlon interp info
+c
+      allocate(arr_latlon(imlon,grid_zonal%jsd:grid_zonal%jed))
+      call init_cs2llint_type(grid,grid_zonal,lons,lats,1,jmlat,
+     &     cs2llint_info)
+
+c
+c weights for interpolation in latitude
+c
+      allocate(jlatwt(i_0:i_1,j_0:j_1))
+      do j=j_0,j_1
+        do i=i_0,i_1
+          jn = min(jmlat,1+int((lat2d(i,j)-lats(1))/dlat))
+          do jlat=jn,1,-1
+            if(lat2d(i,j) .ge. lats(jlat)) exit
+          enddo
+          jlatwt(i,j) = jlat + (lat2d(i,j)-lats(jlat))/dlat
+        enddo
+      enddo
+
+      return
+      end subroutine init_zonalmean_info
+
+      end module zonalmean_mod
