@@ -386,7 +386,7 @@ c       Set value for XO2:
         end do
 #ifdef ACCMIP_LIKE_DIAGS
         TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)+
-     &  y(nXO2,L)*XO2_NO
+     &  y(nXO2,L)*XO2_NO*cpd
 #endif
 
 c       Set value for XO2N:
