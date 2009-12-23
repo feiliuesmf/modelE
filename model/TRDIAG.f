@@ -869,11 +869,7 @@ c
         if(sname_taij(k)(1:8).eq.'SO2_con_') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'SO4_con_') div_by_area = .false.
         select case (trim(sname_taij(k)))
-        case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
-     &  'J_H2O2','NO2_1030c','NO2_1330c','NO2_1030','NO2_1330',
-     &  'COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
-     &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
-     &  'pOH','NO_vmr','NO2_vmr')
+        case('NO2_1030c','NO2_1330c','NO2_1030','NO2_1330')
           div_by_area = .false.
         end select
 
