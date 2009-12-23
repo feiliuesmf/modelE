@@ -146,7 +146,7 @@ C----------------
 !@+   fields from rest of model
 !@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
       REAL*8 :: chem_IN(2,LX)
-      INTEGER :: use_tracer_chem(2)
+      INTEGER :: use_tracer_chem(2),use_o3_ref
       LOGICAL*4 :: flags
 !@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional)
       REAL*8    :: LOC_CHL
@@ -410,8 +410,8 @@ C--------------------------------------   have to handle 1 point in time
       INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
 !@var O3YR_max last year before O3 data repeat last ann. cycle
       INTEGER :: O3YR_max=1997
-      REAL*8 :: O3JDAY(NLO3,MLON72,MLAT46)
-      COMMON/O3JCOM/O3JDAY
+      REAL*8, dimension(NLO3,MLON72,MLAT46) :: O3JDAY,O3JREF
+      COMMON/O3JCOM/O3JDAY,O3JREF
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
       REAL*8 :: PLBO3(NLO3+1) = (/ ! plbo3(1) depends on plb0  ! ??
      *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
@@ -1664,7 +1664,6 @@ C----------------------------------------------
       IF(MADGHG > 0) CALL UPDGHG(JYEARG,JJDAYG)
 C----------------------------------------------
 
-
       JJDAYO=JDAY
       JYEARO=JYEAR
       IF(KJDAYO.ne.0)             JJDAYO=KJDAYO
@@ -1757,11 +1756,17 @@ C      -----------------------------------------------------------------
 
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
-      CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
-     *                      U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-      if(use_tracer_chem(1) > 0) then
-        U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
+      if(use_o3_ref > 0 )then
+        CALL REPART (O3JREF(1,ILON,JLAT),PLBO3,NLO3+1, ! in
+     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
         FULGAS(3)=1.d0
+      else
+        CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
+     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+        if(use_tracer_chem(1) > 0) then
+          U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
+          FULGAS(3)=1.d0
+        endif
       endif
                       CALL GETGAS
 C--------------------------------
@@ -2212,7 +2217,8 @@ C
       INTEGER LJTTRO(MLAT46)
       real*4, dimension(MLON72,MLAT46,NLO3,0:12) :: delta_O3_max_min
       real*4, dimension(NLO3) :: delta_O3_now
-!!!   COMMON/O3JCOM/O3JDAY(NLO3,MLON72,MLAT46)   !  for offline testing
+!!!   COMMON/O3JCOM/O3JDAY(NLO3,MLON72,MLAT46),
+!!!  * O3JREF(NLO3,MLON72,MLAT46)   !  for offline testing
 
 C     UPDO3D CALLs GTREND to get CH4 to interpolate tropospheric O3
 C     -----------------------------------------------------------------
@@ -2339,6 +2345,12 @@ C**** Prior to first year of data, cycle through first year of data
         JYRNOW=-JYEARO  ! insures that O3YEAR is no longer changed
       end if
 
+#ifdef TRACERS_SPECIAL_Shindell
+! read the 3D field for O3 RCOMPX reference calls
+      call openunit ('Ox_ref',ifile,.true.,.true.)
+      read(ifile)O3JREF
+      call closeunit(ifile)
+#endif
       IFIRST=0
       ENDIF
 
@@ -2498,7 +2510,7 @@ C     the formula below yields M near the middle of month M
       MJ=MI+1
       if(use_sol_Ox_cycle==1)then
         add_sol = (S00WM2*RATLS0-0.5d0*(S0min+S0max))/(S0max-S0min)
-        write(661,661)JJDAYO,S00WM2*RATLS0,S0min,S0max,add_sol
+        write(6,661)JJDAYO,S00WM2*RATLS0,S0min,S0max,add_sol
       endif
   661 format('JJDAYO,S00WM2*RATLS0,S0min,S0max,frac=',I4,3F9.2,F7.3)
       DO 510 J=1,MLAT46
