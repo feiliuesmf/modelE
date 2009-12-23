@@ -187,13 +187,15 @@ c     ll2cs
 !@+   The latlon input file has to conform to the GISS file format:
 !@+   char*80 title, real*4 data
 !@+
+!@+   if the parameter real is set to real8 then the program expects
+!@+   char*80 title, real*8 data
 !@+
 !@auth Denis Gueyffier
       use regrid, only : init_regrid, x_2grids, do_regrid
       implicit none
       character*150 :: filesource,filetarget,regridfile,cims,cjms,cnts,
      &     cimt,cjmt,cntt,cformat,cfields,fsource,ftarget,ctitle,
-     &     clevels,cmaintitle
+     &     clevels,cmaintitle,creal
       character*80 :: title
       real*4, allocatable :: sij4(:,:,:,:) , tij4(:,:,:,:)   ! ij arrays
       real*8, allocatable :: sij(:,:,:,:)  , tij(:,:,:,:)
@@ -206,7 +208,7 @@ c     ll2cs
       type (x_2grids) :: x2grids
 
       nargs = IARGC()
-      IF(nargs.lt.14) write(*,*) "ll2cs needs 14 arguments";
+      IF(nargs.lt.15) write(*,*) "ll2cs needs 15 arguments";
 
       call getarg(1,filesource)
       call getarg(2,filetarget)
@@ -222,6 +224,7 @@ c     ll2cs
       call getarg(12,ctitle)
       call getarg(13,clevels)
       call getarg(14,cmaintitle)
+      call getarg(15,creal)
       read(cims,'(I4)') ims
       read(cjms,'(I4)') jms
       read(cnts,'(I4)') nts
@@ -231,6 +234,9 @@ c     ll2cs
       read(cfields,'(I4)') nfields
       read(clevels,'(I4)') nlevels
 
+      write(*,*) filesource,filetarget,regridfile,cims,cjms,cnts,
+     &     cimt,cjmt,cntt,cformat,cfields,ctitle,clevels,cmaintitle,
+     &     creal
 
 c***  Initialize exchange grid
       call init_regrid(regridfile,x2grids,ims,jms,nts,imt,jmt,ntt)
@@ -265,13 +271,22 @@ c***  Read data (must be in GISS format)
          if (ctitle .eq. 'yes' .or. ctitle .eq. 'YES'
      &        .or. ctitle .eq. 'y' .or. ctitle .eq. 'Y') then
             do 
-               read(unit=iuin,end=30) title,sij4
-               sij=sij4
-               do n=1,nfields
-                  call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
-               enddo
-               tij4=tij
-               write(unit=iuout) title,tij4
+               if (creal.ne.'real8') then
+                  read(unit=iuin,end=30) title,sij4
+                  sij=sij4
+                  do n=1,nfields
+                     call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
+                  enddo
+                  tij4=tij
+                  write(unit=iuout) title,tij4
+               else
+                  read(unit=iuin,end=30) title,sij
+                  do n=1,nfields
+                     call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
+                  enddo
+                  write(unit=iuout) title,tij
+               endif
+
                maxrec=maxrec+1
             enddo
  30      continue
@@ -279,13 +294,22 @@ c***  Read data (must be in GISS format)
          else if (ctitle .eq. 'no' .or. ctitle .eq. 'NO'
      &        .or. ctitle .eq. 'n' .or. ctitle .eq. 'N') then
             do 
-               read(unit=iuin,end=40) sij4
-               sij=sij4
-               do n=1,nfields
-                  call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
-               enddo
-               tij4=tij
-               write(unit=iuout) tij4
+               if (creal.ne.'real8') then
+                  read(unit=iuin,end=40) sij4
+                  sij=sij4
+                  do n=1,nfields
+                     call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
+                  enddo
+                  tij4=tij
+                  write(unit=iuout) tij4
+               else
+                  read(unit=iuin,end=40) sij
+                  do n=1,nfields
+                     call do_regrid(x2grids,sij(:,:,:,n),tij(:,:,:,n))
+                  enddo
+                  write(unit=iuout) tij
+               endif
+
                maxrec=maxrec+1
             enddo
  40      continue
@@ -303,30 +327,55 @@ c***  Read data (must be in GISS format)
          if (ctitle .eq. 'yes' .or. ctitle .eq. 'YES'
      &        .or. ctitle .eq. 'y' .or. ctitle .eq. 'Y') then
             do 
-               read(unit=iuin,end=50) title,sijl4
-               sijl=sijl4
-               do n=1,nlevels
-                  call do_regrid(x2grids,sijl(:,:,n,:),tijl(:,:,n,:))
-               enddo
-               tijl4=tijl
-               write(unit=iuout) title,tijl4
+               if (creal.ne.'real8') then
+                  read(unit=iuin,end=50) title,sijl4
+                  sijl=sijl4
+                  do n=1,nlevels
+                     call do_regrid(x2grids,
+     &                    sijl(:,:,n,:),tijl(:,:,n,:))
+                  enddo
+                  tijl4=tijl
+                  write(unit=iuout) title,tijl4
+               else
+                  read(unit=iuin,end=50) title,sijl
+                  do n=1,nlevels
+                     call do_regrid(x2grids,
+     &                    sijl(:,:,n,:),tijl(:,:,n,:))
+                  enddo
+                  write(unit=iuout) title,tijl
+               endif
                maxrec=maxrec+1
             enddo
  50      continue
-
          else if (ctitle .eq. 'no' .or. ctitle .eq. 'NO'
      &        .or. ctitle .eq. 'n' .or. ctitle .eq. 'N') then
+c            write(*,*) "NOTITLE IJL"
+c            open(777,FILE='tc90',FORM='unformatted', STATUS='unknown')
             do 
-               read(unit=iuin,end=60) sijl4
-               sijl=sijl4
-               do n=1,nlevels
-                  call do_regrid(x2grids,sijl(:,:,n,:),tijl(:,:,n,:))
-               enddo
-               tijl4=tijl
-               write(unit=iuout) tijl4
+               if (creal.ne.'real8') then
+                  read(unit=iuin,end=60) sijl4
+                  sijl=sijl4
+                  do n=1,nlevels
+                     call do_regrid(x2grids,
+     &                    sijl(:,:,n,:),tijl(:,:,n,:))
+                  enddo
+                  tijl4=tijl
+                  write(unit=iuout) tijl4
+               else
+                  read(unit=iuin,end=60) sijl
+                  do n=1,nlevels
+                     call do_regrid(x2grids,
+     &                    sijl(:,:,n,:),tijl(:,:,n,:))
+c                     sijl4(:,:,1,:)=sijl(:,:,n,:)
+c                     title="toto"
+c                  write(unit=777) title,sijl4(:,:,1,:)
+                  enddo
+                  write(unit=iuout) tijl
+               endif
                maxrec=maxrec+1
             enddo
  60      continue
+c         close(777)
          endif
 
          deallocate(sijl4, sijl) 
@@ -353,19 +402,33 @@ c***  Read data (must be in GISS format)
 
          else if (ctitle .eq. 'no' .or. ctitle .eq. 'NO'
      &           .or. ctitle .eq. 'n' .or. ctitle .eq. 'N') then
+            open(777,FILE='tc90',FORM='unformatted', STATUS='unknown')
             do 
-               read(unit=iuin,end=80) slij4
-               slij=slij4
-               do n=1,nlevels
-                  call do_regrid(x2grids,slij(n,:,:,:),tlij(n,:,:,:))
-               enddo
-               tlij4=tlij
-               write(unit=iuout) tlij4
+               if (creal.ne.'real8') then
+                  read(unit=iuin,end=80) slij4
+                  slij=slij4
+                  do n=1,nlevels
+                     call do_regrid(x2grids,
+     &                    slij(n,:,:,:),tlij(n,:,:,:))
+                  enddo
+                  tlij4=tlij
+                  write(unit=iuout) tlij4
+               else
+                  read(unit=iuin,end=80) slij
+                  do n=1,nlevels
+                     call do_regrid(x2grids,
+     &                    slij(n,:,:,:),tlij(n,:,:,:))
+                     slij4(1,:,:,:)=slij(1,:,:,:)
+                     title="toto"
+                     write(unit=777) title,slij4(1,:,:,:)
+                  enddo
+                  write(unit=iuout) tlij
+               endif
                maxrec=maxrec+1
             enddo
  80         continue
          endif
-         
+         close(777)
          deallocate(slij4, slij) 
          deallocate(tlij4, tlij)
          
@@ -383,7 +446,7 @@ c***  Read data (must be in GISS format)
       write(6,200) "records contains title? ", ctitle
       write(6,200) "file contains main title? ", cmaintitle
 
- 100  format(3X, I2, A)
+ 100  format(3X, I3, A)
  200  format(4X, A, A)
 
 
