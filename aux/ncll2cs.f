@@ -284,8 +284,10 @@ c***  Initialize exchange grid
 c***  first loop to find ids of the different dimensions
       idims=0;idjms=0;idlms=0
       status = nf_inq(fid, ndims, nvars, ngatts, UNLIMDIMID)
+      write(*,*) "nvar=",nvars
       do i = 1, nvars
          status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
+
          if (cform .eq. 'ijl') then
             if (cval .eq. 'lon')   idims=ishape(1)
             if (cval .eq. 'lat')   idjms=ishape(1)
@@ -320,6 +322,18 @@ c     define each remaped variable to netcdf output file
          endif
 
          if (cform .eq. 'ij') then
+            if (idims .eq. 0 .and. idjms .eq. 0 .and. ndim .eq. 2) then
+               if(ishape(1) .eq. 1 .and. ishape(2) .eq. 2) then
+               allocate(tij(imt,jmt,ntt))
+               status = nf_inq_varid(fid,cval,vid)
+
+c     define each remaped variable to netcdf output file
+               vname=trim(cval)//'(im,jm,tile)'
+               call defvar(fidt,imt,jmt,ntt,tij,trim(vname))
+               deallocate(tij)
+               endif
+            endif
+
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idims .and. 
      &          ishape(2) .eq. idjms .and. ndim .eq. 2) then
@@ -395,6 +409,41 @@ c     write each remaped variable to netcdf output file
 c     find ids of the different dimensions
             if (cval .eq. 'lon')   idims=ishape(1)
             if (cval .eq. 'lat')   idjms=ishape(1)
+
+            if (idims .eq. 0 .and. idjms .eq. 0 .and. ndim .eq. 2) then
+               if(ishape(1) .eq. 1 .and. ishape(2) .eq. 2) then
+
+               allocate(sij(ims,jms,nts),sij4(ims,jms,nts),
+     &              sij4shift(ims,jms,nts),
+     &          tij(imt,jmt,ntt),tij4(imt,jmt,ntt))    
+               
+               status = nf_inq_varid(fid,cval,vid)
+               status = nf_get_var_real(fid,vid,sij4)
+
+c     shift by 180 degrees if data aligned on Greenwich meridian
+               if (trim(cidl) .ne. 'y' .and. trim(cidl) .ne. 'Y') then
+                  is=ims/2
+                  do n=1,is
+                     sij4shift(n,:,:)=sij4(n+is,:,:)
+                     sij4shift(n+is,:,:)=sij4(n,:,:)
+                  enddo
+                  sij4=sij4shift
+               endif
+
+c     remap variables with correct format
+               sij=sij4
+               call do_regrid(x2grids,sij(:,:,:),tij(:,:,:))
+               tij4=tij
+
+c     write each remaped variable to netcdf output file  
+               write(*,*) "write ",adjustl(trim(cval))," in output file"
+               call write_data(fidt,trim(cval),tij4)
+
+               deallocate(sij4, sij,sij4shift) 
+               deallocate(tij4, tij)
+
+               endif
+            endif
 
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idjms .and. 
