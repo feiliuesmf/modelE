@@ -53,6 +53,16 @@ rm -f paraffin_ships.nc NOx*.nc
 #-- Terpene from Guenther
 ./remap.pl -par regrida1x1.par -in terp_Guenther_1x1 -out terp_Guenther_C90
 
+#-- SULFATE_SA, DMS_FIELD, SO2_FIELD
+./remap.pl -par regridM.par -in sulfate_fakeM23_M_SA -out sulfate_fakeM23_M_SA_C90
+./remap.pl -par regridM.par -in sulfate_pi_fakeM23_M_SA -out sulfate_pi_fakeM23_M_SA_C90
+./remap.pl -par regrida2x2.5.par -in sulfate_fakeM23_M_SA_2x2.5gf -out sulfate_fakeM23_M_SA_2x2.5gf_C90
+./remap.pl -par regrida2x2.5.par -in sulfate_pi_fakeM23_M_SA_2x2.5gf -out sulfate_pi_fakeM23_M_SA_2x2.5gf_C90
+./remap.pl -par regridM.par -in dms_conc -out dms_conc_C90
+./remap.pl -par regridM.par -in so2_conc -out so2_conc_C90
+./remap.pl -par regrida2x2.5.par -in so2_conc_2x2.5gf -out so2_conc_2x2.5gf_C90
+./remap.pl -par regrida2x2.5.par -in dms_conc_2x2.5gf -out dms_conc_2x2.5gf_C90
+
 #-- CO
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_anthropogenic_1850_C90_Dec_2009.nc
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_ships_1850_C90_Dec_2009.nc
