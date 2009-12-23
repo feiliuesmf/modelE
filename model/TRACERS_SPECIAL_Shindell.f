@@ -1309,8 +1309,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
        do j=J_0,J_1
        if(j == 1 .or. j==jm) cycle ! skip the poles
-       if(fearth(i,j) <= 0.) cycle ! and boxes with no land
        do i=I_0,imaxj(j)
+         if(fearth(i,j) <= 0.) cycle ! and boxes with no land
 
          ! if either {(point is not in U.S. or E.U.) .or. (it is but 
          ! the exclusion of U.S. and E.U. wetlands is OFF)} AND
@@ -1386,7 +1386,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
         enddo
       enddo
 
-! Optionally disallow  emissions over glacier latitudes:
+! Optionally disallow emissions over glacier latitudes:
       if(ice_age /= 0.) then
         do j=J_0,J_1 
         do i=I_0,imaxj(j)
