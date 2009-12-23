@@ -175,7 +175,7 @@
 !@auth Colin Price / Greg Faluvegi
 !@ver  1.0 (based on CB436Tds3M23 & DB396Tds3M23)
  
-      use geom, only       : lat2d_dg
+      use geom, only       : lat2d_dg,byaxyp
       use fluxes, only     : tr3Dsource
       use tracer_com, only : n_NOx,nOther
       use lightning, only  : HGT_lgt,JSlight,JNlight,srclight,RNOx_lgt
@@ -256,7 +256,7 @@
 #ifdef ACCMIP_LIKE_DIAGS
          do L=1,LM
            taijls(i,j,L,ijlt_NOxLgt)=taijls(i,j,L,ijlt_NOxLgt) +
-     &     tr3Dsource(i,j,L,nOther,n_NOx)
+     &     tr3Dsource(i,j,L,nOther,n_NOx)*byaxyp(i,j)
          enddo
 #endif
       enddo  ! I

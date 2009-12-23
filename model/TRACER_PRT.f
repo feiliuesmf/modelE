@@ -1691,7 +1691,7 @@ C**** Fill in maplet indices for 3D tracer specials
         case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
      &  'J_H2O2','COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
      &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
-     &  'pOH','NO_vmr','NO2_vmr')
+     &  'pOH','NO_vmr','NO2_vmr','NOx_Lightn')
            ijtype(k)=2 ! div_by_area = .false.
         end select
 
