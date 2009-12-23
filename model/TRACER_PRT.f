@@ -1337,14 +1337,6 @@ C**** Fill in maplet indices for sources and sinks
           scale(k)=1.
         endif
 
-        select case (trim(name(k)))
-        case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
-     &  'J_H2O2','COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
-     &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
-     &  'pOH','NO_vmr','NO2_vmr')
-          ijtype(k)=2 ! div_by_area = .false.
-        end select
-        
         if (name(k)=='NO2_1030c' .or. name(k)=='NO2_1330c')then
           ijtype(k)=2
           scale(k)=real(idacc(iacc(k)))+teeny
@@ -1694,6 +1686,15 @@ C**** Fill in maplet indices for 3D tracer specials
           aijl1(:,:,l,k) = taijls(:,:,l,kx)
           aijl2(:,:,l,k) = 1.
         end do
+
+        select case (trim(name(k)))
+        case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
+     &  'J_H2O2','COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
+     &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
+     &  'pOH','NO_vmr','NO2_vmr')
+           ijtype(k)=2 ! div_by_area = .false.
+        end select
+
       end do
 
 #ifdef TRACERS_SPECIAL_O18
