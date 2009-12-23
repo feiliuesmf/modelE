@@ -755,6 +755,13 @@ C Save 3D radical arrays to pass to aerosol code:
        enddo
       endif
 
+#ifdef ACCMIP_LIKE_DIAGS
+      do L=1,LM
+        !Save 3D NO separately from NOx (pppv here):
+        taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
+     &  (1.d0-pNOx(i,j,l))*y(n_NOx,l)/y(nM,l)
+      enddo
+#endif
 CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
       if(prnchg .and. J == jprn .and. I == iprn) then
        jay = (J >= J_0 .and. J <= J_1) 
@@ -1699,13 +1706,10 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+
      &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*cpd ! (positive)
 
-        !Save 3D NO separately from NOx (pppv here):
-        taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
-     &  y(nNO,l)/y(nM,L)
-
         !Save 3D NO2 separately from NOx (pppv here):
+        !Note NO accumulation was moved to sunlight section
         taijls(i,j,l,ijlt_NO2vmr)=taijls(i,j,l,ijlt_NO2vmr)+
-     &  y(nNO2,l)/y(nM,L)
+     &  pNOx(i,j,l)*y(n_NOx,l)/y(nM,l)
 #endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
