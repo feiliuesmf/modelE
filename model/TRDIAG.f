@@ -864,20 +864,18 @@ c
         if(sname_taij(k)(1:8).eq.'ext_band') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'sct_band') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'asf_band') div_by_area = .false.
-        if(sname_taij(k)     .eq.'Ox_loss') div_by_area = .false.
-        if(sname_taij(k)     .eq.'Ox_prod') div_by_area = .false.
-        if(sname_taij(k)(1:7).eq.'OH_con_') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'NO3_con_') div_by_area = .false.
-        if(sname_taij(k)(1:8).eq.'HO2_con_') div_by_area = .false.
-        if(sname_taij(k)(1:6).eq.'J_H2O2') div_by_area = .false.
         if(sname_taij(k)(1:4).eq.'DIAM') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'DMS_con_') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'SO2_con_') div_by_area = .false.
         if(sname_taij(k)(1:8).eq.'SO4_con_') div_by_area = .false.
-        if(sname_taij(k).eq.'NO2_1030c') div_by_area = .false.
-        if(sname_taij(k).eq.'NO2_1330c') div_by_area = .false.
-        if(sname_taij(k).eq.'NO2_1030') div_by_area = .false.
-        if(sname_taij(k).eq.'NO2_1330') div_by_area = .false.
+        select case (trim(sname_taij(k)))
+        case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
+     &  'J_H2O2','NO2_1030c','NO2_1330c','NO2_1030','NO2_1330',
+     &  'COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
+     &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
+     &  'pOH','NO_vmr','NO2_vmr')
+          div_by_area = .false.
+        end select
 
         if(div_by_area) then
           do j=j_0,j_1

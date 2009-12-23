@@ -1337,10 +1337,13 @@ C**** Fill in maplet indices for sources and sinks
           scale(k)=1.
         endif
 
-        if (name(k).eq.'Ox_loss' .or. name(k).eq.'Ox_prod' .or.
-     *    name(k)(1:7).eq.'OH_con_'.or. name(k)(1:8).eq.'NO3_con_'
-     *    .or.name(k)(1:8).eq.'HO2_con_'.or.name(k)(1:6).eq.
-     *    'J_H2O2')ijtype(k)=2
+        select case (trim(name(k)))
+        case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
+     &  'J_H2O2','COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
+     &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
+     &  'pOH','NO_vmr','NO2_vmr')
+          ijtype(k)=2 ! div_by_area = .false.
+        end select
         
         if (name(k)=='NO2_1030c' .or. name(k)=='NO2_1330c')then
           ijtype(k)=2
