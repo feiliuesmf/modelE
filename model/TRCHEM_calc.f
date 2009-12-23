@@ -945,9 +945,13 @@ c Loops to calculate tracer changes:
          endif
          if(igas == n_Ox)then
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-           changeL(L,n_stratOx)=dest(igas,L)*conc2mass
-           if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+ 
-     &     prod(igas,L)*conc2mass
+!NEED      if(trm(i,j,l,n_Ox)==0.)call stop_model('zero ozone',255)
+!NEED      changeL(L,n_stratOx)=dest(igas,L)*conc2mass*
+!NEED&     trm(i,j,l,n_stratOx)/trm(i,j,l,n_Ox)
+!NEED      if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+ 
+!NEED&     prod(igas,L)*conc2mass*trm(i,j,l,n_stratOx)/trm(i,j,l,n_Ox)
+!NEED      if((trm(i,j,l,n_stratOx)+changeL(l,n_stratOx)) < 1.d0)
+!NEED&     changeL(l,n_stratOx) = 1.d0 - trm(i,j,l,n_stratOx)
 #endif
 #ifdef HTAP_LIKE_DIAGS
            TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+prod(igas,L)
@@ -1439,8 +1443,12 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
         conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
         changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        if(L>maxT .or. NprodOx<0.)changeL(L,n_stratOx)=
-     &  changeL(L,n_stratOx)+NprodOx*conc2mass
+!NEED   if(L>maxT .or. NprodOx<0.)then
+!NEED     changeL(L,n_stratOx)=changeL(L,n_stratOx)+
+!NEED&    NprodOx*conc2mass*trm(i,j,l,n_stratOx)/trm(i,j,l,n_Ox)
+!NEED     if((trm(i,j,l,n_stratOx)+changeL(l,n_stratOx)) < 1.d0)
+!NEED&    changeL(l,n_stratOx) = 1.d0 - trm(i,j,l,n_stratOx)
+!NEED   endif
 #endif
         if(NprodOx <  0.) then ! necessary?
           NprodOx_pos(l) = 0.

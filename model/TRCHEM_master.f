@@ -1305,9 +1305,11 @@ c --  Ox --   ( Ox from gas phase rxns)
             changeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*bypfactor
           END IF
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-          if(changeL(L,n_Ox)>0.)changeL(L,n_stratOx)=changeL(L,n_Ox)
-          if((trm(i,j,l,n_stratOx)+changeL(l,n_stratOx)) < 1.d0)
-     &    changeL(l,n_stratOx) = 1.d0 - trm(i,j,l,n_stratOx)
+!NEED     if(trm(i,j,l,n_Ox)==0.)call stop_model('zero Ox denom',255)
+!NEED     changeL(L,n_stratOx)=changeL(L,n_Ox)*
+!NEED&    trm(i,j,l,n_stratOx)/trm(i,j,l,n_Ox)
+!NEED     if((trm(i,j,l,n_stratOx)+changeL(l,n_stratOx)) < 1.d0)
+!NEED&    changeL(l,n_stratOx) = 1.d0 - trm(i,j,l,n_stratOx)
 #endif
           ! then come diags:
           if(changeL(L,n_Ox) >= 0.) then  
@@ -1671,31 +1673,31 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
-     &  ss(2,l,i,j)*y(n_Ox,l)*byavog*1.d6
+     &  ss(2,l,i,j)*y(n_Ox,l)*cpd
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
-     &  2.d0*rr(10,l)*y(nH2O,l)*y(nO1D,l)*byavog*1.d6
+     &  2.d0*rr(10,l)*y(nH2O,l)*y(nO1D,l)*cpd
 
         ! chemical_production_rate_of_ozone_by_HO2_plus_NO:
         taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
-     &  rr(10,l)*y(nHO2,l)*y(nNO,l)*byavog*1.d6
+     &  rr(10,l)*y(nHO2,l)*y(nNO,l)*cpd
    
         ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
         taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
-     &  rr(20,l)*y(nCH3O2,l)*y(nNO,l)*byavog*1.d6
+     &  rr(20,l)*y(nCH3O2,l)*y(nNO,l)*cpd
     
         ! chemical_destruction_rate_of_ozone_by_OH:
         taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
-     &  rr(2,l)*y(nOH,l)*y(nO3,l)*byavog*1.d6 ! (positive)
+     &  rr(2,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_HO2:
         taijls(i,j,l,ijlt_OxlHO2)=taijls(i,j,l,ijlt_OxlHO2)+
-     &  rr(4,l)*y(nOH,l)*y(nO3,l)*byavog*1.d6 ! (positive)
+     &  rr(4,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_Alkenes:
         taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+
-     &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*byavog*1.d6 ! (positive)
+     &  rr(35,l)*y(n_Alkenes,l)*y(nO3,l)*cpd ! (positive)
 
         !Save 3D NO separately from NOx (pppv here):
         taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
@@ -1714,8 +1716,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           tr3Dsource(i,j,l,nChemistry,n) = changeL(l,n) * bydtsrc
         END DO
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        tr3Dsource(i,j,l,nChemistry,n_stratOx)=
-     &  changeL(l,n_stratOx)*bydtsrc
+!NEED   tr3Dsource(i,j,l,nChemistry,n_stratOx)=
+!NEED&  changeL(l,n_stratOx)*bydtsrc
 #endif
 
         ! save NO2 mass for sub-daily diagnosic:
@@ -1834,11 +1836,11 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
             tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
      &      axyp(i,j)*O3MULT - trm(i,j,L,n_Ox))*bydtsrc
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-            ! -- stratOx --
-            tr3Dsource(i,j,L,nChemistry,n_stratOx)=0.d0
-            tr3Dsource(i,j,L,nStratwrite,n_stratOx)=
-     &      (rad_to_chem(1,L,i,j)*axyp(i,j)*O3MULT 
-     &      -trm(i,j,L,n_stratOx))*bydtsrc
+!NEED       ! -- stratOx --
+!NEED       tr3Dsource(i,j,L,nChemistry,n_stratOx)=0.d0
+!NEED       tr3Dsource(i,j,L,nStratwrite,n_stratOx)=
+!NEED&      (rad_to_chem(1,L,i,j)*axyp(i,j)*O3MULT 
+!NEED&      -trm(i,j,L,n_stratOx))*bydtsrc
 #endif
             ! -- ClOx --
             tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
@@ -2047,12 +2049,12 @@ c (radiation code wants atm*cm units):
          end if
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-         strato3_tracer_save(1:maxl,i,j)=(trm(i,j,1:maxl,n_stratOx) +
-     &   (tr3Dsource(i,j,1:maxl,nChemistry,n_stratOx) +
-     &   tr3Dsource(i,j,1:maxl,nStratwrite,n_stratOx))*dtsrc)
-     &   *byaxyp(i,j)*byO3MULT
-         if(maxl < LM)strato3_tracer_save(maxl+1:LM,i,j)=
-     &   rad_to_chem(1,maxl+1:LM,i,j)
+!NEED    strato3_tracer_save(1:maxl,i,j)=(trm(i,j,1:maxl,n_stratOx) +
+!NEED&   (tr3Dsource(i,j,1:maxl,nChemistry,n_stratOx) +
+!NEED&   tr3Dsource(i,j,1:maxl,nStratwrite,n_stratOx))*dtsrc)
+!NEED&   *byaxyp(i,j)*byO3MULT
+!NEED    if(maxl < LM)strato3_tracer_save(maxl+1:LM,i,j)=
+!NEED&   rad_to_chem(1,maxl+1:LM,i,j)
 #endif
 
         end do ! i
