@@ -407,6 +407,7 @@ ccc use fresh_snow only to change the depth of the first layer
      &                * min(pr*dt-evaporation*dt, -htpr*dt/lat_fusion)
       if(fresh_snow > 0.d0) then
         dz(1) = dz(1) + fresh_snow
+        nl = max(nl,1) ! make sure that we create a layer if first snowfall
       else
         if ( wsn(1) < EPS ) goto 1000
         !goto 1000
@@ -580,6 +581,7 @@ ccc    limited. Check later.
       if ( radiation_out > 500.d0 ) call stop_model("SNOW:T>0",255)
       wsn(1:nl) = 0.d0
       hsn(1:nl) = 0.d0
+      dz(1:nl) = 0.d0
       nl = 1
       return
       end subroutine snow_adv_1
