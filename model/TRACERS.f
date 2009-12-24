@@ -2126,7 +2126,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      
       use TRACER_COM, only : trname,freq,nameT,res,ssname,Tyears,
      & ty_start,ty_end
-
+      use string_funcs, only : lowercase
       implicit none
 
       integer, intent(in) :: n,ns
@@ -2143,7 +2143,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       if(str(1:n1-1) /= 'name')error=4
       n2 = scan( str,' ')
       read(str(n1+1:n2-1),*)nameT(n,ns)
-      if(trim(trname(n)) /= trim(nameT(n,ns)))error=5
+      if(lowercase(trim(trname(n))) /=
+     &   lowercase(trim(nameT(n,ns))) )error=5
 
       str = str(n2+1:)            ! source name
       n1 = scan( str,'=')
