@@ -2322,10 +2322,10 @@ C**** set some defaults
           qcon(itcon_3Dsrc(nChemistry,N))=.true.; conpts(g-12)=
      *         'Chemistry'
           qsum(itcon_3Dsrc(nChemistry,N))=.true.
-          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-          qcon(itcon_3Dsrc(nStratwrite,N))=.true.; conpts(g-12)
+          g=g+1; itcon_3Dsrc(nOverwrite,N) = g
+          qcon(itcon_3Dsrc(nOverwrite,N))=.true.; conpts(g-12)
      *         ='Overwrite'
-          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
           do kk=1,ntsurfsrc(n)
             g=g+1; itcon_surf(kk,N) = g
             qcon(itcon_surf(kk,N))=.true.; conpts(g-12)=trim(ssname(N,kk
@@ -2352,10 +2352,10 @@ C**** set some defaults
           qcon(itcon_3Dsrc(nChemistry,N)) =.true.
           conpts(g-12)='Chemistry'
           qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-          qcon(itcon_3Dsrc(nStratwrite,N))=.true.
+          g=g+1; itcon_3Dsrc(nOverwrite,N) = g
+          qcon(itcon_3Dsrc(nOverwrite,N))=.true.
           conpts(g-12)='Overwrite'
-          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
           do kk=1,ntsurfsrc(n)
             g=g+1; itcon_surf(kk,N) = g
             qcon(itcon_surf(kk,N))=.true.
@@ -2447,10 +2447,10 @@ C**** set some defaults
           qcon(itcon_3Dsrc(nChemistry,N)) = .true.
           conpts(g-12) = 'Chemistry'
           qsum(itcon_3Dsrc(nChemistry,N)) = .true.
-          g=g+1; itcon_3Dsrc(nStratwrite,N) = g
-          qcon(itcon_3Dsrc(nStratwrite,N)) = .true.
+          g=g+1; itcon_3Dsrc(nOverwrite,N) = g
+          qcon(itcon_3Dsrc(nOverwrite,N)) = .true.
           conpts(g-12)='Overwrite'
-          qsum(itcon_3Dsrc(nStratwrite,N)) = .true.
+          qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
           select case(trname(n))
             case ('NOx')
               g=g+1; itcon_3Dsrc(nOther,N) = g
@@ -3411,7 +3411,7 @@ C**** set defaults for some precip/wet-dep related diags
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
-        jls_3Dsource(nStratwrite,n) = k
+        jls_3Dsource(nOverwrite,n) = k
         sname_jls(k) = 'overwrite_source_of'//trname(n)
         lname_jls(k) =
      &  'CHANGE OF '//trname(n)//' BY OVERWRITE'
@@ -3480,7 +3480,7 @@ C**** set defaults for some precip/wet-dep related diags
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
-        jls_3Dsource(nStratwrite,n) = k
+        jls_3Dsource(nOverwrite,n) = k
         sname_jls(k) = 'overwrite_source_of'//trname(n)
         lname_jls(k) = 'CHANGE OF CH4 BY OVERWRITE'
         jls_ltop(k) = LM
@@ -3763,18 +3763,18 @@ C**** special one unique to HTO
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
-     &  'Terpenes','NOx','stratOx')
+     &  'Terpenes','NOx','stratOx','BrOx','ClOx')
           k = k + 1
-          jls_3Dsource(nStratwrite,n) = k
+          jls_3Dsource(nOverwrite,n) = k
           sname_jls(k) = 'overwrite_source_of'//trname(n)
           lname_jls(k) =
      &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
           jls_ltop(k) = LM
           jls_power(k) = -1
           units_jls(k) = unit_string(jls_power(k),'kg/s')
-        case ('CFC','BrOx','ClOx')  ! L=1 overwrite only.
+        case ('CFC')  ! L=1 overwrite only.
           k = k + 1
-          jls_3Dsource(nStratwrite,n) = k
+          jls_3Dsource(nOverwrite,n) = k
           sname_jls(k) = 'overwrite_source_of'//trname(n)
           lname_jls(k) =
      &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
@@ -5052,7 +5052,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
-        ijts_3Dsource(nStratwrite,n) = k
+        ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
         sname_ijts(k) = trim(trname(n))//'_overw'
@@ -5146,7 +5146,7 @@ C**** This needs to be 'hand coded' depending on circumstances
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
      &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx')
           k = k + 1
-          ijts_3Dsource(nStratwrite,n) = k
+          ijts_3Dsource(nOverwrite,n) = k
           ia_ijts(k) = ia_src
           lname_ijts(k) = trname(n)//' Overwrite'
           sname_ijts(k) = trim(trname(n))//'_overw'
@@ -5255,7 +5255,7 @@ c chemical production
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
-        ijts_3Dsource(nStratwrite,n) = k
+        ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trname(n)//' Overwrite'
         sname_ijts(k) = trim(trname(n))//'_overw'
@@ -10134,10 +10134,10 @@ c
 
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,1:ntm_chem) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,1:ntm_chem) = 0.d0
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_stratOx)  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nStratwrite,n_stratOx) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n_stratOx) = 0.d0
 #endif
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
@@ -10155,11 +10155,11 @@ C**** Call the model CHEMISTRY and OVERWRITEs:
 C**** Apply chemistry and overwrite changes:
       do n=1,ntm_chem
         call apply_tracer_3Dsource(nChemistry,n)
-        call apply_tracer_3Dsource(nStratwrite,n)
+        call apply_tracer_3Dsource(nOverwrite,n)
       end do
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call apply_tracer_3Dsource(nChemistry,n_stratOx)
-      call apply_tracer_3Dsource(nStratwrite,n_stratOx)
+      call apply_tracer_3Dsource(nOverwrite,n_stratOx)
 #endif
 #if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
        call apply_tracer_3Dsource(nChemistry,n_N_d1) ! NO3 chem prod on dust

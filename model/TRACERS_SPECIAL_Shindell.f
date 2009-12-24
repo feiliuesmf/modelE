@@ -596,7 +596,7 @@ C
       USE GEOM, only       : axyp,lat2d_dg
       USE DYNAMICS, only   : am
       USE CONSTANT, only: mair
-      USE TRACER_COM, only : trm, n_CH4, nStratwrite, vol2mass
+      USE TRACER_COM, only : trm, n_CH4, nOverwrite, vol2mass
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry
@@ -637,7 +637,7 @@ C       Initial latitudinal gradient for CH4:
           END DO
         case(1) ! overwriting
           DO L=1,LS1-1
-            tr3Dsource(i,j,l,nStratwrite,n_CH4) = (am(L,I,J)*
+            tr3Dsource(i,j,l,nOverwrite,n_CH4) = (am(L,I,J)*
      &           CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
           END DO
         end select
@@ -666,7 +666,7 @@ c     mixing ratios to 1.79 (observed):
         case(0) ! initial conditions
           trm(i,j,l,n_CH4)=am(L,I,J)*CH4INIT*AXYP(I,J)
         case(1) ! overwriting
-          tr3Dsource(i,j,l,nStratwrite,n_CH4) = (am(L,I,J)*
+          tr3Dsource(i,j,l,nOverwrite,n_CH4) = (am(L,I,J)*
      &    CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
         end select
       end do   ! i

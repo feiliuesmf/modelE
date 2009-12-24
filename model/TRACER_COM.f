@@ -991,13 +991,13 @@ C**** arrays that could be general, but are only used by chemistry
 ! --- end of source-altering section ----------------------------
 
 !@param nChemistry index for tracer chemistry 3D source
-!@param nStratwrite index for tracer stratosphic overwrite 3D source
+!@param nOverwrite index for tracer overwrite 3D source
 !@param nOther index for tracer misc. 3D source
 !@param nAircraft index for tracer aircraft 3D source
 !@param nVolcanic index for tracer volcano 3D source
 ! Must be a better way to do this, but for now, it is better than
 ! hardcoding indicies with a number like "3":
-      INTEGER, PARAMETER :: nChemistry  = 1, nStratwrite = 2,
+      INTEGER, PARAMETER :: nChemistry  = 1, nOverwrite = 2,
      &     nOther  = 3, nAircraft   = 4, nBiomass    = 5,
      &     nVolcanic = 6
 

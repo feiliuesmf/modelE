@@ -42,7 +42,7 @@ c
      &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                        n_SO4,n_H2O2_s,oh_live,no3_live,
-     &                        nChemistry,nStratwrite,rsulf1,rsulf2,
+     &                        nChemistry,nOverwrite,rsulf1,rsulf2,
      &                        rsulf3,rsulf4,TR_MM,trname
      *                        ,mass2vol,vol2mass
 #ifdef SHINDELL_STRAT_CHEM
@@ -1813,21 +1813,21 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
         if(use_rad_cfc == 0)fact5=fact1
         if(use_rad_n2o > 0)fact2=rad_to_chem(3,1,i,j)
         if(use_rad_cfc > 0)fact3=rad_to_chem(5,1,i,j)
-        tr3Dsource(i,j,1,nChemistry,n_N2O)=0.d0
-        tr3Dsource(i,j,1,nChemistry,n_CFC)=0.d0
-        tr3Dsource(i,j,1,nStratwrite,n_N2O)=(fact2*fact4*
-     &  tr_mm(n_N2O)*PIfact(n_N2O) - trm(i,j,1,n_N2O))*bydtsrc
-        tr3Dsource(i,j,1,nStratwrite,n_CFC)=(fact3*fact5*fact7*
-     &  tr_mm(n_CFC)*PIfact(n_CFC) - trm(i,j,1,n_CFC))*bydtsrc
+        tr3Dsource(i,j,1,nOverwrite,n_N2O)=(fact2*fact4*
+     &  tr_mm(n_N2O)*PIfact(n_N2O) - (trm(i,j,1,n_N2O)+ 
+     &  tr3Dsource(i,j,1,nChemistry,n_N2O)*dtsrc))*bydtsrc
+        tr3Dsource(i,j,1,nOverwrite,n_CFC)=(fact3*fact5*fact7*
+     &  tr_mm(n_CFC)*PIfact(n_CFC) - (trm(i,j,1,n_CFC)+
+     &  tr3Dsource(i,j,1,nChemistry,n_CFC)*dtsrc))*bydtsrc
         if(use_rad_ch4 > 0)then
-          tr3Dsource(i,j,1,nChemistry,n_CH4)=0.d0
-          tr3Dsource(i,j,1,nStratwrite,n_CH4)=(rad_to_chem(4,1,i,j)*
-     &    fact6*tr_mm(n_CH4)-trm(i,j,1,n_CH4))*bydtsrc
+          tr3Dsource(i,j,1,nOverwrite,n_CH4)=(rad_to_chem(4,1,i,j)*
+     &    fact6*tr_mm(n_CH4)-(trm(i,j,1,n_CH4)+
+     &    tr3Dsource(i,j,1,nChemistry,n_CH4)*dtsrc))*bydtsrc
         endif
        end do
       end do
 
-C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
+! Ox, stratOx, NOx, BrOx and ClOx, have overwriting where P<0.1mb:
       !(Interpolate BrOx & ClOx altitude-dependence to model resolution)
       CALL LOGPINT(LCOalt,PCOalt,BrOxaltIN,LM,PRES2,BrOxalt,.true.)
       CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES2,ClOxalt,.true.)
@@ -1836,31 +1836,30 @@ C For Ox, NOx, BrOx, and ClOx, we have overwriting where P < 0.1mb:
         do j=J_0,J_1         
           do i=I_0,IMAXJ(j)
             ! -- Ox --
-            tr3Dsource(i,j,L,nChemistry,n_Ox)=0.d0
-            tr3Dsource(i,j,L,nStratwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
-     &      axyp(i,j)*O3MULT - trm(i,j,L,n_Ox))*bydtsrc
+            tr3Dsource(i,j,L,nOverwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
+     &      axyp(i,j)*O3MULT - (trm(i,j,L,n_Ox)+
+     &      tr3Dsource(i,j,L,nChemistry,n_Ox)*dtsrc))*bydtsrc
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
 !NEED       ! -- stratOx --
-!NEED       tr3Dsource(i,j,L,nChemistry,n_stratOx)=0.d0
-!NEED       tr3Dsource(i,j,L,nStratwrite,n_stratOx)=
-!NEED&      (rad_to_chem(1,L,i,j)*axyp(i,j)*O3MULT 
-!NEED&      -trm(i,j,L,n_stratOx))*bydtsrc
+!NEED       tr3Dsource(i,j,L,nOverwrite,n_stratOx)=
+!NEED&      (rad_to_chem(1,L,i,j)*axyp(i,j)*O3MULT - (
+!NEED&      trm(i,j,L,n_stratOx)+tr3Dsource(i,j,L,nChemistry,n_stratOx)
+!NEED&      *dtsrc))*bydtsrc
 #endif
             ! -- ClOx --
-            tr3Dsource(i,j,L,nChemistry,n_ClOx)=0.d0
-            tr3Dsource(i,j,L,nStratwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &      *vol2mass(n_CLOx)*am(L,i,j)*axyp(i,j)
-     &      -trm(i,j,L,n_ClOx))*bydtsrc    
+            tr3Dsource(i,j,L,nOverwrite,n_ClOx)=(1.d-11*ClOxalt(l)
+     &      *vol2mass(n_CLOx)*am(L,i,j)*axyp(i,j) - (
+     &      trm(i,j,L,n_ClOx)+tr3Dsource(i,j,L,nChemistry,n_ClOx)*dtsrc
+     &      ))*bydtsrc    
             ! -- BrOx --
-            tr3Dsource(i,j,L,nChemistry,n_BrOx)=0.d0
-            tr3Dsource(i,j,L,nStratwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &      *vol2mass(n_BrOx)*am(L,i,j)*axyp(i,j)
-     &      -trm(i,j,L,n_BrOx))*bydtsrc
+            tr3Dsource(i,j,L,nOverwrite,n_BrOx)=(1.d-11*BrOxalt(l)
+     &      *vol2mass(n_BrOx)*am(L,i,j)*axyp(i,j) - (
+     &      trm(i,j,L,n_BrOx)+tr3Dsource(i,j,L,nChemistry,n_BrOx)*dtsrc
+     &      ))*bydtsrc
             ! -- NOx --
-            if(PIfact(n_NOx) /= 1.) ! what's this for? I forget.
-     &      tr3Dsource(i,j,L,nChemistry,n_NOx)=0.d0 !75=1*300*2.5*.1
-            tr3Dsource(i,j,L,nStratwrite,n_NOx)=(75.d-11
-     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-trm(i,j,L,n_NOx))*bydtsrc
+            tr3Dsource(i,j,L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
+     &      *am(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm(i,j,L,n_NOx)+ 
+     &      tr3Dsource(i,j,L,nChemistry,n_NOx)*dtsrc))*bydtsrc
           end do ! I 
         end do   ! J
        end if    ! pressure
@@ -2009,7 +2008,7 @@ C Save overwrite changes for applying in apply_tracer_3Dsource.  C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
           DO N=1,NTM_CHEM
-            tr3Dsource(i,j,l,nStratwrite,n) = changeL(l,n)*bydtsrc
+            tr3Dsource(i,j,l,nOverwrite,n) = changeL(l,n)*bydtsrc
           END DO
 
         end do ! >> END LOOP OVER STRATOSPHERE <<
@@ -2036,11 +2035,11 @@ c (radiation code wants atm*cm units):
          do l=1,maxl
            chem_tracer_save(1,l,i,j)=(trm(i,j,l,n_Ox) +
      &     (tr3Dsource(i,j,l,nChemistry,n_Ox) + 
-     &     tr3Dsource(i,j,l,nStratwrite,n_Ox))*dtsrc)
+     &     tr3Dsource(i,j,l,nOverwrite,n_Ox))*dtsrc)
      &     *byaxyp(i,j)*byO3MULT
            chem_tracer_save(2,l,i,j)=(trm(i,j,l,n_CH4) +
      &     (tr3Dsource(i,j,l,nChemistry,n_CH4) + 
-     &     tr3Dsource(i,j,l,nStratwrite,n_CH4))*dtsrc)
+     &     tr3Dsource(i,j,l,nOverwrite,n_CH4))*dtsrc)
      &     *byaxyp(i,j)*avog/(tr_mm(n_CH4)*2.69e20)
            if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,l,i,j)
          end do
@@ -2055,7 +2054,7 @@ c (radiation code wants atm*cm units):
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
 !NEED    strato3_tracer_save(1:maxl,i,j)=(trm(i,j,1:maxl,n_stratOx) +
 !NEED&   (tr3Dsource(i,j,1:maxl,nChemistry,n_stratOx) +
-!NEED&   tr3Dsource(i,j,1:maxl,nStratwrite,n_stratOx))*dtsrc)
+!NEED&   tr3Dsource(i,j,1:maxl,nOverwrite,n_stratOx))*dtsrc)
 !NEED&   *byaxyp(i,j)*byO3MULT
 !NEED    if(maxl < LM)strato3_tracer_save(maxl+1:LM,i,j)=
 !NEED&   rad_to_chem(1,maxl+1:LM,i,j)
