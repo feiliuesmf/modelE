@@ -8325,6 +8325,7 @@ c**** earth
 #ifdef constCO2
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
+             trmom(:,i,j,l,n)=0.d0
              gtracer(n,1,i,j) = vol2mass(n)
      .                    * atmCO2 * 1.d-6      !initialize gtracer
 #else
@@ -8762,12 +8763,17 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE AEROSOL_SOURCES, only: SO2_biosrc_3D
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
-#ifdef constCO2
-     * ,trm,vol2mass
       USE resolution,ONLY : lm
-      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE GEOM, only: axyp
+      USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
+      USE TRACER_COM, only: trm,vol2mass,trmom
+#ifdef constCO2
       USE obio_forc, only : atmCO2
+#else
+      USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
+      USE MODEL_COM, only : nstep=>itime,psf
+      USE CONSTANT, only: grav
+      USE RADPAR, only : xnow
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
@@ -8788,6 +8794,19 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifdef constCO2
       integer i,j,l
+#else
+      integer i,j,l
+      real*8 :: sarea,trm_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                        GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &          sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &          trm_glbavg,factor,atm_glbavg,
+     &           trm_vert(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &              dtrm1(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &               ftrm(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 #endif
 #endif
       data last_month/-1/
@@ -8990,7 +9009,11 @@ C**** at the start of any day
 
       call tracer_IC
 
-!for the constCO2 case reset trm here
+
+!gas exchange CO2 case reset trm here
+!for the constCO2 case just reset to atmCO2 which is defined in the rundeck
+!for the variable case (presently default) reset to the value scaled by 
+!the xnow value. 
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifdef constCO2
       do n=1,ntm
@@ -8999,8 +9022,51 @@ C**** at the start of any day
       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
+             trmom(:,i,j,l,n)=0.d0
       end do; end do; end do
       enddo
+#else
+
+      !!if (itime.ne.0.and.mod(itime,Nday).eq.0) then ! only at end of day
+      do n=1,ntm
+
+         !area weighted tracer global average
+         do j=J_0,J_1 ; do i=I_0,I_1
+             trm_vert(i,j) = sum(trm(i,j,1:lm,n))*axyp(i,j)
+         enddo; enddo
+
+         CALL GLOBALSUM(grid,axyp,    sarea,     all=.true.)
+         CALL GLOBALSUM(grid,trm_vert,trm_glbavg,all=.true.)
+
+         trm_glbavg=trm_glbavg/sarea
+
+         !total atm mass
+         atm_glbavg = PSF*sarea*100.d0/grav
+
+         !current concentration to new concentration
+         factor = xnow(1)*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
+
+         if(AM_I_ROOT( ))then
+         write(*,'(a,i5,8e12.4)')
+     .           "TRACER_DRV, factor", nstep,factor,
+     .            atm_glbavg,vol2mass(n),
+     .            xnow(1),sarea,
+     .            PSF,grav,
+     .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
+         endif
+         do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+             trm(i,j,l,n) = factor*trm(i,j,l,n)
+         enddo; enddo; enddo
+
+         if (factor .lt. 1.d0) then ! adjust moments
+           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+             trmom(:,i,j,l,n)=factor*trmom(:,i,j,l,n)
+           enddo; end do; end do
+         end if
+
+      enddo  !n
+      !!endif
+
 #endif
 #endif
 
