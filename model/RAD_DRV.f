@@ -3348,6 +3348,7 @@ C****                tropical year = 365.2425 (Gregorgian Calendar)
 C****                tropical year = 365      (Generic Year)
 C****        VEDAY = Vernal equinox
 C****                79.0 (Generic year Mar 21 hour 0)
+C****                79.5 (Generic year Mar 21 hour 12 - PMIP standard)
 C****                79.3125d0 for days from 2000 January 1, hour 0 till vernal
 C****                     equinox of year 2000 = 31 + 29 + 19 + 7.5/24
 C****

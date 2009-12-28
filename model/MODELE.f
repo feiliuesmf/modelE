@@ -2182,7 +2182,9 @@ C**** of days from Jan 1 2000AD.
 c      EDPY=365.2425d0, VEDAY=79.3125d0  ! YR 2000AD
 c      JDAY => JDAY + 365 * (JYEAR-2000) + appropriate number of leaps
 C**** Default calculation (no leap, VE=Mar 21 hr 0)
-      EDPY=365d0 ; VEDAY=79d0           ! Generic year
+c      EDPY=365d0 ; VEDAY=79d0           ! Generic year
+C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
+      EDPY=365d0 ; VEDAY=79.5d0           ! Generic year
 C**** Set orbital parameters appropriately
       if (calc_orb_par_year.ne.0.and.JDAY.eq.1) then ! calculate from paleo-year
         pyear = 1950.+JYEAR-IYEAR1-calc_orb_par_year
