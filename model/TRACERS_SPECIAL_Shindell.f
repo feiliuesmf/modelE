@@ -1136,7 +1136,7 @@ c
 
 
 #ifdef INTERACTIVE_WETLANDS_CH4
-      subroutine read_ncep_for_wetlands(iact)
+      subroutine read_ncep_for_wetlands(end_of_day)
 !@sum reads NCEP precip and temperature data and the coefficients
 !@+ used to parameterize CH4 wetlands emissions from these. Keeps
 !@+ running average of these. Calculated the portion to add to
@@ -1153,7 +1153,8 @@ c
  
       implicit none
       
-      integer :: n,m,iact,i,j,k
+      integer :: n,m,i,j,k
+      logical, intent(in) :: end_of_day
       character(len=300) :: out_line
       real*8 :: frac
       character*10, dimension(nncep) :: ncep_files =
@@ -1196,7 +1197,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 
 ! Then update running averages of NCEP Precip(m=1) & Temp(m=2)
 
-      IF(IACT <= 0) return ! avoid redundant accumulation on restarts
+      IF(.not. end_of_day) return ! avoid redundant accumulation on restarts
 
       do m=1,nra_ncep
         if(m > nra_ncep)call stop_model('check on ncep index m',255)
@@ -1262,7 +1263,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       implicit none
       
       integer, intent(in) :: n,ns_wet
-      integer i,j,nt,iact,iu,k
+      integer i,j,nt,iu,k
       character(len=300) :: out_line
       integer m,ii,ix,jj
       real*8 :: zm,zmcount

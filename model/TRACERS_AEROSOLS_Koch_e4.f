@@ -545,7 +545,7 @@ c -----------------------------------------------------------------
 c -----------------------------------------------------------------
 
 
-      SUBROUTINE read_E95_SO2_source(nt,iact)
+      SUBROUTINE read_E95_SO2_source(nt)
 !@sum reads in SO2 surface sources: Edgar 1995 (RIVM)
 C**** There are 2 monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
@@ -577,7 +577,7 @@ c    *  ,SO2_biosrc_3D
       real*8, allocatable, dimension(:,:,:) :: tlca,tlcb  ! for monthly sources
       real*8 frac,bySperHr
       integer :: imon(nmons)
-      integer i,j,jj,nt,iact,iu,k,j_0,j_1,i_0,i_1
+      integer i,j,jj,nt,iu,k,j_0,j_1,i_0,i_1
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
@@ -661,19 +661,20 @@ c           endif
 C****
       END SUBROUTINE read_E95_SO2_source
  
-      SUBROUTINE get_ships(iact)
+      SUBROUTINE get_ships(end_of_day)
       USE AEROSOL_SOURCES, only: BC_ship,POM_ship,SO2_ship
       USE MODEL_COM, only: im,jm,jmon
       USE TRACER_COM, only: imPI
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
-      integer J_0,J_1,J_0H,J_1H,ii,jj,mm,iuc,iact
+      integer J_0,J_1,J_0H,J_1H,ii,jj,mm,iuc
+      logical, intent(in) :: end_of_day
       real*8 carbstuff
       CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      if (iact.eq.0) then
+      if (.not. end_of_day) then
       BC_ship(:,:,:)=0.d0
       POM_ship(:,:,:)=0.d0
       SO2_ship(:,:,:)=0.d0
@@ -699,7 +700,7 @@ C****
       endif
       END SUBROUTINE get_ships
 
-      SUBROUTINE get_hist_BMB(iact)
+      SUBROUTINE get_hist_BMB(end_of_day)
 c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE AEROSOL_SOURCES, only: BCB_src,OCB_src,BCBt_src,OCBt_src,lmAER
      * ,SO2_biosrc_3D,SO2t_src
@@ -710,8 +711,9 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
      * ,ty_start,ty_end,trname,freq
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
-      integer ihyr,iuc,mm,iact,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
+      integer ihyr,iuc,mm,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
      * ,ndec,tye
+      logical, intent(in) :: end_of_day
       integer I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 tfac,d3,d1,d2,tot
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -732,7 +734,7 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
 #ifdef TRACERS_AMP
       checkname=.false.
 #endif
-c     if (iact.eq.0) then
+c     if (.not. end_of_day) then
       if (aer_int_yr.eq.0) then
       ihyr=jyear
       else
@@ -882,7 +884,7 @@ c
       endif
       end SUBROUTINE get_hist_BMB
 
-      SUBROUTINE get_BCOC(iact)
+      SUBROUTINE get_BCOC(end_of_day)
 c Carbonaceous aerosol emissions
       USE CONSTANT, only : syr
       USE GEOM, only: AXYP
@@ -895,9 +897,10 @@ c Carbonaceous aerosol emissions
      * ,hbc,hoc
       implicit none
       character*20 title
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,nn,
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,nn,
      * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
      * ,n,tys,tye,ns,nc 
+      logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
      &     hOC_read,hBC_read
@@ -916,7 +919,7 @@ c Carbonaceous aerosol emissions
 #endif
 c if run just starting or if it is a new year
 c   then open new files
-c     if (iact.eq.0.or.jday.eq.1) then
+c     if (.not. end_of_day .or.jday.eq.1) then
       BCI_src(:,:)=0.d0
       OCI_src(:,:,:)=0.d0
       if (aer_int_yr.eq.0) then
@@ -1029,7 +1032,7 @@ c
   
       end SUBROUTINE get_BCOC
       
-      SUBROUTINE read_hist_SO2(iact)
+      SUBROUTINE read_hist_SO2(end_of_day)
 c historic BC emissions
       USE CONSTANT, only : syr
       USE GEOM, only: AXYP
@@ -1041,9 +1044,10 @@ c historic BC emissions
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
       implicit none
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
      * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
      * ,n,tys,tye,ns,nc
+      logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
      &     hso2_read
@@ -1063,7 +1067,7 @@ c historic BC emissions
 #endif
 c if run just starting or if it is a new year
 c   then open new files
-c     if (iact.eq.0.or.jday.eq.1) then
+c     if (.not. end_of_day .or.jday.eq.1) then
       SO2_src(:,:,:)=0.d0
       hso2_all(:,:,:)=0.d0 
        hso2(:,:,:)=0.0
@@ -1137,7 +1141,7 @@ c
   
       end SUBROUTINE read_hist_SO2    
       
-      SUBROUTINE read_hist_NH3(iact)
+      SUBROUTINE read_hist_NH3(end_of_day)
 c historic BC emissions
       USE MODEL_COM, only: jyear, jday,im,jm
       USE CONSTANT, only: sday
@@ -1149,9 +1153,10 @@ c historic BC emissions
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
       implicit none
-      integer iuc,irr,ihyr,i,j,id,jb1,jb2,iact,ii,jj,nn,
+      integer iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec,ns1,ns2,n,nc
      * ,tys,tye,ns
+      logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
      &     hnh3_con_all,hnh3_cyc_all
@@ -1173,7 +1178,7 @@ c historic BC emissions
 #endif
 c if run just starting or if it is a new year
 c   then open new files
-c     if (iact.eq.0.or.jday.eq.1) then
+c     if (.not. end_of_day .or.jday.eq.1) then
       NH3_src_con(:,:)=0.d0
       NH3_src_cyc(:,:)=0.d0
       if (aer_int_yr.eq.0) then

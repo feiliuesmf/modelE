@@ -921,7 +921,7 @@ c -=-=- cae: apply sign
       END SUBROUTINE SOMLFQ
 
 
-      subroutine read_CH4_sources(nt,iact)
+      subroutine read_CH4_sources(nt)
 !@sum reads in CH4 sources and sinks
 !@auth Jean Lerner
 C****
@@ -959,8 +959,8 @@ C**** Monthly sources are interpolated each day
 c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
       real*8, allocatable :: tlca(:,:,:), tlcb(:,:,:)   ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,imon(nmons)
-      logical :: ifirst=.true.
+      integer i,j,nt,iu,k,imon(nmons)
+      logical :: ifirst=.true. 
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
 
@@ -1047,7 +1047,7 @@ C****
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: co2_src
       END MODULE CO2_SOURCES
 
-      subroutine read_CO2_sources(nt,iact)
+      subroutine read_CO2_sources(nt)
 !@sum reads in CO2 sources and sinks
 !@auth Jean Lerner
 C****
@@ -1079,7 +1079,7 @@ C**** Monthly sources are interpolated each day
 c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
       real*8, Allocatable, DIMENSION(:,:,:) :: tlca, tlcb ! for monthly sources
       real*8 frac
-      integer i,j,nt,iact,iu,k,imon(nmons)
+      integer i,j,nt,iu,k,imon(nmons)
       logical :: ifirst=.true.
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon

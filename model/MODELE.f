@@ -248,7 +248,7 @@ C**** INITIALIZE TIME PARAMETERS
         CALL daily_OCEAN(.false.)          ! not end_of_day
         CALL CALC_AMPK(LS1-1)
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-        CALL daily_tracer(0)
+        CALL daily_tracer(.false.)
 #endif
            if (kradia.le.0) CALL CHECKT ('INPUT ')
       end if
@@ -664,7 +664,7 @@ C****
         call daily_ICE
         call daily_LI
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-        call daily_tracer(1)
+        call daily_tracer(.true.)
            CALL TIMER (NOW,MTRACE)
 #endif
            CALL CHECKT ('DAILY ')

@@ -2285,8 +2285,12 @@ C**** set some defaults
       do n=1,ntm
         select case (trname(n))
 
-        case ('Air','CO2n','CFCn', 'SF6', 'SF6_c')
+        case ('Air','CFCn', 'SF6', 'SF6_c')
                ! nothing to do: use defaults
+
+        case ('CO2n')
+          qcon(10) = .true.
+          qsum(10) = .true.
 
         case ('Rn222')
           itcon_decay(n) = 13
@@ -3260,6 +3264,8 @@ c     Processes AMP Budget
      *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
         qcon(13:) = .false.     ! reset to defaults for next tracer
         qsum(13:) = .false.     ! reset to defaults for next tracer
+        qcon(10)  = .false.     ! reset to defaults for next tracer
+        qsum(10)  = .false.     ! reset to defaults for next tracer
 
       end do
 #endif /* TRACERS_ON */
@@ -8340,7 +8346,6 @@ c**** earth
           end do; end do; end do
 #endif
 
-
 #ifdef TRACERS_GASEXCH_ocean_CFC
         case ('CFCn')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
@@ -8741,7 +8746,7 @@ c **** reads in files for dust/mineral tracers
       end subroutine tracer_IC
 
 
-      subroutine daily_tracer(iact)
+      subroutine daily_tracer(end_of_day)
 !@sum daily_tracer is called once a day for tracers
 !@+   SUBROUTINE tracer_IC is called from daily_tracer to allow for
 !@+     tracers that 'turn on' on different dates.
@@ -8790,7 +8795,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 
       IMPLICIT NONE
-      INTEGER n,iact,last_month,kk,nread
+      INTEGER n,last_month,kk,nread
+      LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_GASEXCH_ocean_CO2
 #ifdef constCO2
       integer i,j,l
@@ -8819,7 +8825,7 @@ C****
       I_1 = grid%I_STOP
 
 #ifdef TRACERS_SPECIAL_Lerner
-      if (iact.eq.0) then
+      if (.not. end_of_day) then
 C**** Initialize tables for linoz
       do n=1,ntm
         if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
@@ -8834,7 +8840,7 @@ C**** Initialize tables for Prather StratChem tracers
      *      trname(n).eq."CFC11")
      *    call stratchem_setup(n_MPtable(n),trname(n))
       end do
-      end if  ! iact=0
+      end if  ! not end of day 
 
 C**** Prather StratChem tracers and linoz tables change each month
       IF (JMON.NE.last_month) THEN
@@ -8857,7 +8863,7 @@ C**** Prather StratChem tracers and linoz tables change each month
 C**** Tracer specific call for CO2
       do n=1,ntm
         if (trname(n).eq."CO2") then
-          call read_CO2_sources(n,iact)
+          call read_CO2_sources(n)
           exit
         end if
       end do
@@ -8865,7 +8871,7 @@ C**** Tracer specific call for CO2
 C**** Tracer specific call for CH4
       do n=1,ntm
         if (trname(n).eq."CH4") then
-          call read_CH4_sources(n,iact)
+          call read_CH4_sources(n)
           exit
         end if
       end do
@@ -8883,7 +8889,7 @@ C**** Tracer specific call for CH4
       end if
 
       if (variable_phi .eq. 2) then
-         if ((jday .eq. 1) .or. (iact .eq. 0)) then
+         if ((jday .eq. 1) .or. (.not. end_of_day)) then
             call update_annual_phi
             print*, "called update_annual_phi"
          end if
@@ -8898,7 +8904,7 @@ C**** Tracer specific call for CH4
 
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Next line for fastj photon fluxes to vary with time:
-      if(rad_FL.gt.0) call READ_FL(IACT)
+      if(rad_FL.gt.0) call READ_FL(end_of_day)
 C**** Daily tracer-specific calls to read 2D and 3D sources:
       if (COUPLED_CHEM.ne.1) then
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
@@ -8922,7 +8928,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
          if(nread>0) call read_sfc_sources(n,nread,jyear,jday)
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-         if(nread>0) call read_ncep_for_wetlands(iact)
+         if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #ifdef GFED_3D_BIOMASS
          if(fix_CH4_chemistry/=1.or.ntsurfsrc(n)/=0)
@@ -8971,7 +8977,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       do n=1,ntm
         select case (trname(n))
         case ('SO2')
-        call read_E95_SO2_source(n,iact)
+        call read_E95_SO2_source(n,end_of_day)
         end select
       end do
 #endif
@@ -8981,27 +8987,27 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('SO2')
         if (imPI.ne.1) then    ! these are all pollution
-        call read_hist_SO2(iact)
-c       if (imAER.eq.3) call get_ships(iact)  !reads in SO2, BC and POM sources
+        call read_hist_SO2(end_of_day)
+c       if (imAER.eq.3) call get_ships(end_of_day)  !reads in SO2, BC and POM sources
 c       if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
         endif
         case ('BCII')  !this does BC and OC
-        if (imPI.ne.1) call get_BCOC(iact)
+        if (imPI.ne.1) call get_BCOC(end_of_day)
         case ('M_BC1_BC')  !this does BC and OC
-        if (imPI.ne.1) call get_BCOC(iact)
+        if (imPI.ne.1) call get_BCOC(end_of_day)
         case ('BCB')  ! this does BCB and OCB and SO2
-        call get_hist_BMB(iact)
+        call get_hist_BMB(end_of_day)
         case ('M_BOC_BC')  ! this does BCB and OCB and SO2
-        call get_hist_BMB(iact)
+        call get_hist_BMB(end_of_day)
         case ('NH3')
-        call read_hist_NH3(iact)
+        call read_hist_NH3(end_of_day)
         end select
         end do
         endif
 c      if (COUPLED_CHEM.ne.1) call get_O3_offline
 #endif
 #ifdef TRACERS_OM_SP
-        call get_hist_BMB(iact)
+        call get_hist_BMB(end_of_day)
 #endif
 C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
@@ -9027,18 +9033,16 @@ C**** at the start of any day
       enddo
 #else
 
-      !!if (itime.ne.0.and.mod(itime,Nday).eq.0) then ! only at end of day
+      if (end_of_day) then ! only at end of day
       do n=1,ntm
 
          !area weighted tracer global average
          do j=J_0,J_1 ; do i=I_0,I_1
-             trm_vert(i,j) = sum(trm(i,j,1:lm,n))*axyp(i,j)
+             trm_vert(i,j) = sum(trm(i,j,1:lm,n))
          enddo; enddo
 
          CALL GLOBALSUM(grid,axyp,    sarea,     all=.true.)
          CALL GLOBALSUM(grid,trm_vert,trm_glbavg,all=.true.)
-
-         trm_glbavg=trm_glbavg/sarea
 
          !total atm mass
          atm_glbavg = PSF*sarea*100.d0/grav
@@ -9065,7 +9069,7 @@ C**** at the start of any day
          end if
 
       enddo  !n
-      !!endif
+      endif
 
 #endif
 #endif
