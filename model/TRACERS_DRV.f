@@ -8331,7 +8331,7 @@ c**** earth
 #ifdef constCO2
              trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
      .                    * atmCO2*1.d-6
-             trmom(:,i,j,l,n)=0.d0
+             !!!!trmom(:,i,j,l,n)=0.d0
              gtracer(n,1,i,j) = vol2mass(n)
      .                    * atmCO2 * 1.d-6      !initialize gtracer
 #else
@@ -8772,12 +8772,12 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE GEOM, only: axyp
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
       USE TRACER_COM, only: trm,vol2mass,trmom
+      USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
+      USE MODEL_COM, only : nday,nstep=>itime,psf
+      USE CONSTANT, only: grav
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else
-      USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
-      USE MODEL_COM, only : nstep=>itime,psf
-      USE CONSTANT, only: grav
       USE RADPAR, only : xnow
 #endif
 #endif
@@ -8798,22 +8798,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
       INTEGER n,last_month,kk,nread
       LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_GASEXCH_ocean_CO2
-#ifdef constCO2
       integer i,j,l
-#else
-      integer i,j,l
-      real*8 :: sarea,trm_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                        GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &          sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &          trm_glbavg,factor,atm_glbavg,
-     &           trm_vert(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &              dtrm1(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &               ftrm(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-#endif
+      real*8 :: sarea,
+     &          trm_vert(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &          trm_glbavg,factor,atm_glbavg
 #endif
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1
@@ -9021,17 +9010,6 @@ C**** at the start of any day
 !for the variable case (presently default) reset to the value scaled by 
 !the xnow value. 
 #ifdef TRACERS_GASEXCH_ocean_CO2
-#ifdef constCO2
-      do n=1,ntm
-      if (am_i_root())
-     .    print*,'TRACERS_DRV, reseting daily trm'
-      do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-             trm(i,j,l,n) = am(l,i,j)*axyp(i,j)*vol2mass(n)
-     .                    * atmCO2*1.d-6
-             trmom(:,i,j,l,n)=0.d0
-      end do; end do; end do
-      enddo
-#else
 
       if (end_of_day) then ! only at end of day
       do n=1,ntm
@@ -9047,6 +9025,18 @@ C**** at the start of any day
          !total atm mass
          atm_glbavg = PSF*sarea*100.d0/grav
 
+#ifdef constCO2
+         !current concentration to new concentration
+         factor = atmCO2*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
+
+         if(AM_I_ROOT( ))then
+         write(*,'(a,i5,8e12.4)')
+     .           "TRACER_DRV, factor", nstep,factor,
+     .            atm_glbavg,vol2mass(n),
+     .            atmCO2,sarea,
+     .            PSF,grav,
+     .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
+#else
          !current concentration to new concentration
          factor = xnow(1)*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
 
@@ -9057,6 +9047,7 @@ C**** at the start of any day
      .            xnow(1),sarea,
      .            PSF,grav,
      .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
+#endif
          endif
          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              trm(i,j,l,n) = factor*trm(i,j,l,n)
@@ -9065,13 +9056,12 @@ C**** at the start of any day
          if (factor .lt. 1.d0) then ! adjust moments
            do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              trmom(:,i,j,l,n)=factor*trmom(:,i,j,l,n)
+             !?? do we need trmom=0 for the atmco2 case?
            enddo; end do; end do
          end if
 
       enddo  !n
       endif
-
-#endif
 #endif
 
       return
