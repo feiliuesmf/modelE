@@ -1657,7 +1657,7 @@ c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
         zoice=(ace1i+msi(i,j))/rhoi
         flags=flag_dsws(i,j)
         if (kradia .le. 0) then
-          fmp=min(1.118d0*sqrt(pond_melt(i,j)/rhow),1d0)
+          fmp=min(1.6d0*sqrt(pond_melt(i,j)/rhow),1d0)
              AIJ(I,J,IJ_FRMP) = AIJ(I,J,IJ_FRMP) + fmp*POICE
         else
           fmp = fmp_com(i,j)
@@ -2701,6 +2701,15 @@ C**** daily diagnostics
 !@var ftype_orig, ftype_now original and current fracs of the 'new' type
       real*8, intent(in) :: ftype_orig, ftype_now
       real*8 :: delf ! change in fraction from old to new
+
+      if (( (ITYPE_OLD==1 .and. ITYPE_NEW==2)  
+     *  .or.(ITYPE_OLD==2 .and. ITYPE_NEW==1)) 
+     *  .and. (FTYPE_NOW .le. 0. .or. FTYPE_NOW .gt. 1.)) then 
+        write (6,*) ' RESET_SURF_FLUXES: 
+     *    I, J, ITYPE_OLD, ITYPE_NEW, FTYPE_ORIG, FTYPE_NOW = ',
+     *    I, J, ITYPE_OLD, ITYPE_NEW, FTYPE_ORIG, FTYPE_NOW 
+        call stop_model('RESET_SURF_FLUXES: INCORRECT RESET',255) 
+      end if 
 
       delf = FTYPE_NOW-FTYPE_ORIG
 C**** Constrain fsf_1*ftype_1+fsf_2*ftype_2 to be constant
