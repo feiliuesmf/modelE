@@ -62,7 +62,7 @@ C****
      *           .7d0, .7d0,-.7d0,-.7d0, .7d0,
      *     1.d0, .7d0, .0d0,-.7d0,-.7d0,-.7d0,
      *          -.7d0,-.7d0, .7d0, .7d0,-.7d0 /), (/ NMST,2 /) ),
-     *  WIST(NMST) = (/ 32d3, 25d3, 15d3, 30d3, 15d3, 35d3,
+     *  WIST(NMST) = (/ 32d3, 25d3, 15d3, 10d3, 15d3, 35d3,
      *                   1d3,  2d3, 25d3, 40d3, 25d3 /)
       Character*20,Parameter :: NAME_ST(NMST) = (/
      *  'Dolphin & Union', 'Dease  ', 'Fury & Hecla', 'Nares',
