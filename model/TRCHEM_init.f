@@ -898,7 +898,7 @@ C Read aerosol phase functions:
 
 
 
-      SUBROUTINE READ_FL(IACT)
+      SUBROUTINE READ_FL(end_of_day)
 !@sum READ_FL Instead of reading the photon fluxes (FL) once from the 
 !@+   SPECFJ file, this now varyies year-to-year as read from FLTRAN file.
 !@+   Format is like the SPECFJ file, data should be consistent with the   
@@ -921,10 +921,11 @@ C**** Local parameters and variables and arguments:
 C bin4_1988 fastj2 bin#4 photon flux for year 1988
 C bin4_1991 fastj2 bin#4 photon flux for year 1991
 C bin5_1988 fastj2 bin#5 photon flux for year 1988
-      integer :: yearx,iunit,i,iw,iact
+      integer :: yearx,iunit,i,iw
+      logical, intent(in) :: end_of_day
       character(len=300) :: out_line
  
-      if(IACT == 0 .or. JDAY == 1) then
+      if(.not. end_of_day .or. JDAY == 1) then
         write(out_line,*) 'In READ_FL, JYEAR=',JYEAR
         call write_parallel(trim(out_line))
         CALL openunit('FLTRAN',iunit,.false.,.true.)
