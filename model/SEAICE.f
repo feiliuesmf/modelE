@@ -59,7 +59,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
 !@dbparam oi_ustar0 default ice-ocean friction velocity (m/s)
       REAL*8 :: oi_ustar0 = 1d-3  ! 5d-3 ! not used if ice dynamics is
 !@dbparam silmfac factor controlling lateral melt of ocean ice
-      REAL*8 :: silmfac = 1.4d-8 ! = pi*(3d-6)/0.66/1000
+      REAL*8 :: silmfac = 1.d-7 ! = pi*(3d-6)/0.66/1000
 !@var silmpow exponent for temperature dependence of lateral melt
       REAL*8 :: silmpow = 1.36d0
 !@dbparam snow_ice =1 to allow for snow ice formation (default=1)
