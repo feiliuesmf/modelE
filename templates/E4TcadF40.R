@@ -28,6 +28,7 @@ Preprocessor Options
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
+#define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
 #define TRACERS_NITRATE
@@ -67,6 +68,7 @@ TRCHEM_init                         ! chemistry initialization, I/O
 TRCHEM_family                       ! tracer family chemistry
 TRCHEM_fastj2                       ! used for trop+strat chem version
 TRCHEM_master                       ! trop chem "driver"/strat prescrioption
+BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene
 ! ----------------------------------
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
 TRACER_NITRATE                      ! Nitrate aerosol
@@ -254,6 +256,9 @@ NOx_11=AR5_emis/F/T/NOx_agr_AR5_1850-2000_2x2.5_h
 !! Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
 !! Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
 !! Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
+! Kostas will replace these files maybe after spinup...
+! Note that the Isoprene one is ignored when BIOGENIC_EMISSIONS
+! directive is on.
 Isoprene_01=temp_2x2.5/ORCHIDEE_Isoprene_1990_4x5_h_2x2.5gf_h
 Terpenes_01=temp_2x2.5/ORCHIDEE_Terpenes_1990_4x5_h_2x2.5gf_h
 Terpenes_02=temp_2x2.5/ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h
