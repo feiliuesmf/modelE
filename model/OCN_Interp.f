@@ -1903,6 +1903,7 @@ c*
       
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1917,6 +1918,7 @@ c*
 
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1930,6 +1932,7 @@ c*
 
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1943,6 +1946,7 @@ c*
 
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1956,6 +1960,7 @@ c*
 
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1969,6 +1974,7 @@ c*
 
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -1983,6 +1989,7 @@ c*
 
       allocate (atmp(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp=0.
 
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
@@ -2022,6 +2029,8 @@ c*
 
       allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp2=0.
+
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
@@ -2037,6 +2046,8 @@ c*
 
       allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp2=0.
+
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
@@ -2055,6 +2066,8 @@ c*
       aWEIGHT(:,:) = 1.d0
       allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
+      atmp2=0.
+
       DO N=1,NTM
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
