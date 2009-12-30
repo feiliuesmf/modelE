@@ -53,8 +53,7 @@ ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-!! QUS3D !<<<<<<<<<TQUS_DRV         ! advection of Q
-TQUS_DRV                            ! advection of Q and tracer gases
+QUS3D                               ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code 
 TRACERS                             ! generic tracer code 
 TRDRYDEP                            ! dry deposition of tracers 
