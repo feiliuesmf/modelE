@@ -1724,8 +1724,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !NEED&  changeL(l,n_stratOx)*bydtsrc
 #endif
 
-        ! save NO2 mass for sub-daily diagnosic:
-        mNO2(i,j,L)=y(nNO2,L)*46.0055*AXYP(I,J)*AM(L,i,j)*bymair/y(nM,L)
+        ! save NO2 volume mixing ratio for sub-daily diagnosic:
+        mNO2(i,j,L)=pNOx(i,j,L)*y(n_NOx,L)/y(nM,L)
      
 #ifdef TRACERS_HETCHEM
         tr3Dsource(i,j,l,nChemistry,n_N_d1) = changeL(l,n_N_d1) *bydtsrc
