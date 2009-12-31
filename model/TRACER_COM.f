@@ -946,11 +946,16 @@ C**** arrays that could be general, but are only used by chemistry
 !@var nameT tracer name read from emis file header (should match trname)
 !@var ty_start starting year/decade for a transient emissions file
 !@var ty_end     ending year/decade for a transient emissions file
+!! dbparam trans_emis_overr_yr year for overriding tracer transient emis
+!! dbparam trans_emis_overr_day day for overriding tracer transient emis
+!@var trans_emis_overr_yr year for overriding tracer transient emis
+!@var trans_emis_overr_day day for overriding tracer transient emis
       character*30, dimension(ntm,ntsurfsrcmax) :: ssname ! some maybe
       character*10, dimension(ntm,ntsurfsrcmax) :: nameT  ! need not be
       character*1, dimension(ntm,ntsurfsrcmax) :: freq,res ! arrays
       character*9, dimension(ntm,ntsurfsrcmax) :: Tyears   ! here...
       integer, dimension(ntm,ntsurfsrcmax) :: ty_start,ty_end
+      integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
 !@param kstep number of years assumed between transient emissions slices
       integer, parameter :: kstep=10 ! assume decadal transient emissions
 

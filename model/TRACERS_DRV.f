@@ -200,6 +200,8 @@ C**** set super saturation parameter for isotopes if needed
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif
+!not params call sync_param("trans_emis_overr_day",trans_emis_overr_day)
+!not params call sync_param("trans_emis_overr_yr", trans_emis_overr_yr )
 #endif /* TRACERS_ON */
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param("which_trop",which_trop)
@@ -8755,11 +8757,13 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE MODEL_COM, only:jmon,jday,itime,coupled_chem,fearth0,focean
      $     ,flake0,jyear
       USE DOMAIN_DECOMP_ATM, only : grid, get, write_parallel, am_i_root
+      USE RAD_COM, only: o3_yr
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE TRACER_COM, only: ntm,trname,itime_tr0,nOther,nAircraft,
-     & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire
+     & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,ssname,do_fire,
+     & trans_emis_overr_yr,trans_emis_overr_day
 #ifdef TRACERS_SPECIAL_Shindell
      & ,ntm_chem
 #endif
@@ -8795,7 +8799,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 
       IMPLICIT NONE
-      INTEGER n,last_month,kk,nread
+      INTEGER n,last_month,kk,nread,xday,xyear
       LOGICAL, INTENT(IN) :: end_of_day
 #ifdef TRACERS_GASEXCH_ocean_CO2
       integer i,j,l
@@ -8892,6 +8896,21 @@ C**** Tracer specific call for CH4
 
 
 #ifdef TRACERS_SPECIAL_Shindell
+C**** Allow overriding of transient emissions date:
+! for now, tying this to O3_yr becasue Gavin
+! didn't want a new parameter, also not allowing
+! day overriding yet, because of that.
+      trans_emis_overr_yr=ABS(o3_yr)
+      if(trans_emis_overr_yr > 0)then 
+        xyear=trans_emis_overr_yr
+      else 
+        xyear=jyear
+      endif
+!!    if(trans_emis_overr_day > 0)then 
+!!      xday=trans_emis_overr_day
+!!    else 
+        xday=jday
+!!    endif
 C**** Next line for fastj photon fluxes to vary with time:
       if(rad_FL.gt.0) call READ_FL(end_of_day)
 C**** Daily tracer-specific calls to read 2D and 3D sources:
@@ -8904,7 +8923,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef WATER_MISC_GRND_CH4_SRC
          nread=ntsurfsrc(n)-3
          if(do_fire(n))nread=nread-1
-         call read_sfc_sources(n,nread,jyear,jday)
+         call read_sfc_sources(n,nread,xyear,xday)
          sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)  )=
      &   1.698d-12*fearth0(I_0:I_1,J_0:J_1) ! 5.3558e-5 Jean
          sfc_src(I_0:I_1,J_0:J_1,n,ntsurfsrc(n)-1)=
@@ -8914,14 +8933,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #else
          nread=ntsurfsrc(n)
          if(do_fire(n))nread=nread-1
-         if(nread>0) call read_sfc_sources(n,nread,jyear,jday)
+         if(nread>0) call read_sfc_sources(n,nread,xyear,xday)
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
          if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #ifdef GFED_3D_BIOMASS
          if(fix_CH4_chemistry/=1.or.ntsurfsrc(n)/=0)
-     &   call get_GFED_biomass_burning(n)
+     &   call get_GFED_biomass_burning(n,xyear,xday)
 #endif
 #if (defined BIOGENIC_EMISSIONS) || (defined PS_BVOC)
         else if (n==n_Isoprene)then ! ------------- isoprene ---------
@@ -8933,7 +8952,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         else !-------------------------------------- general ---------
           nread=ntsurfsrc(n)
           if(do_fire(n))nread=nread-1
-          if(nread>0) call read_sfc_sources(n,nread,jyear,jday)
+          if(nread>0) call read_sfc_sources(n,nread,xyear,xday)
           select case (trname(n))
           case ('NOx')
 !           (lightning and aircraft called from tracer_3Dsource)
@@ -8945,7 +8964,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef GFED_3D_BIOMASS
           select case (trname(n))
           case ('NOx','CO','Alkenes','Paraffin')
-            call get_GFED_biomass_burning(n)
+            call get_GFED_biomass_burning(n,xyear,xday)
           end select
 #endif
         endif !------------------------------------------------------
@@ -8955,7 +8974,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       end do
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      call read_sfc_sources(n_codirect,ntsurfsrc(n_codirect),jyear,jday)
+      call read_sfc_sources(n_codirect,ntsurfsrc(n_codirect),xyear,xday)
 #endif
 
 
@@ -9761,10 +9780,11 @@ c latlon grid
       USE TRACER_COM
       USE CONSTANT, only : mair
       USE FLUXES, only: tr3Dsource,trcsurf
-      USE MODEL_COM, only: itime,jmon, dtsrc
+      USE MODEL_COM, only: itime,jmon, dtsrc,jday,jyear
       USE DYNAMICS, only: am,byam ! Air mass of each box (kg/m^2)
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp
+      USE RAD_COM, only: o3_yr
 CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
@@ -9799,7 +9819,7 @@ c     USE LAKI_SOURCE, only: LAKI_MON,LAKI_DAY,LAKI_AMT_T,LAKI_AMT_S
 #endif
 
       implicit none
-      INTEGER n,ns,najl,i,j,l,blay   ; real*8 now
+      INTEGER n,ns,najl,i,j,l,blay,xyear,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
 
 C****
@@ -10161,13 +10181,28 @@ C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
       CALL TIMER (NOW,MTRACE)
+C**** Allow overriding of transient emissions date:
+! for now, tying this to o3_yr becasue Gavin
+! didn't want a new parameter, also not allowing
+! day overriding yet, because of that.
+      trans_emis_overr_yr=ABS(o3_yr)
+      if(trans_emis_overr_yr > 0)then
+        xyear=trans_emis_overr_yr
+      else
+        xyear=jyear
+      endif
+!!    if(trans_emis_overr_day > 0)then
+!!      xday=trans_emis_overr_day
+!!    else
+        xday=jday
+!!    endif
 #ifdef SHINDELL_STRAT_EXTRA
       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_GLT) = 0.d0
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
-      call get_aircraft_NOx
+      call get_aircraft_NOx(xyear,xday)
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
@@ -10328,8 +10363,7 @@ C**** Apply chemistry and overwrite changes:
           L1Ox_acc(:,:)=L1Ox_acc(:,:)+trm(:,:,1,n)*byam(1,:,:)*
      &    byaxyp(:,:)*1.d6*mass2vol(n)
         case('NOx') ! but doing NO2 not NOx
-          L1NO_acc(:,:)=L1NO_acc(:,:)+mNO2(:,:,1)*byam(1,:,:)*
-     &    byaxyp(:,:)*1.d6*mair*2.173653d-2 ! 1/46.0055 mol wt
+          L1NO_acc(:,:)=L1NO_acc(:,:)+mNO2(:,:,1)*1.d6
 #endif
         end select
       enddo

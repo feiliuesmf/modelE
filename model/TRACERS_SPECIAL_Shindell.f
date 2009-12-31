@@ -195,11 +195,11 @@ C we change that.)
 #endif
 
 
-      SUBROUTINE get_aircraft_NOx
+      SUBROUTINE get_aircraft_NOx(xyear,xday)
 !@sum  get_aircraft_NOx to define the 3D source of NOx from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
 !@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
-      use model_com, only: itime,jday,JDperY,im,jm,lm
+      use model_com, only: itime,JDperY,im,jm,lm
       use domain_decomp_atm, only: GRID, GET, write_parallel
       use dynamics, only: phi
       use constant, only: bygrav
@@ -215,6 +215,7 @@ C we change that.)
  
       IMPLICIT NONE
  
+      integer, intent(IN) :: xyear,xday
       character(len=300) :: out_line
       integer, parameter :: nanns=0,nmons=1
       integer, dimension(nmons) :: mon_units, imon
@@ -240,6 +241,7 @@ C we change that.)
 ! Read it in here and interpolated each day.
 
       if (itime < itime_tr0(n_NOx)) return
+      if (xyear < 1900) return !<<< hardcode for NO AIRCRAFT before 1900
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1) 
 
@@ -256,7 +258,7 @@ C we change that.)
       endif
       call openunit(mon_files(k),mon_units(k),mon_bins(k))
       call read_monthly_3Dsources(Laircr,mon_units(k),
-     & src(:,:,:,k),trans_emis,yr1,yr2)
+     & src(:,:,:,k),trans_emis,yr1,yr2,xyear,xday)
       call closeunit(mon_units(k))
 
 ! Place aircraft sources onto model levels:
@@ -336,7 +338,7 @@ C we change that.)
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: jday,im,jm,lm,ptop,psf,sig
+      USE MODEL_COM, only: jyear,jday,im,jm,lm,ptop,psf,sig
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
@@ -388,7 +390,7 @@ C     Interpolation in the vertical.
 C
       call openunit(trim(fn),mon_units(nc),mon_bins(nc))
       call read_monthly_3Dsources(Lsulf,mon_units(nc),
-     &   src(:,:,:,nc),trans_emis,0,0)
+     &   src(:,:,:,nc),trans_emis,0,0,jyear,jday)
       call closeunit(mon_units(nc))
 C====
 C====   Place field onto model levels
@@ -406,10 +408,10 @@ C
 C
 
       SUBROUTINE read_monthly_3Dsources
-     & (Ldim,iu,data1,trans_emis,yr1,yr2)
+     & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)
 !@sum Read in monthly sources and interpolate to current day
 !@auth Jean Lerner and others / Greg Faluvegi
-      USE MODEL_COM, only: jday,jyear,im,jm,idofm=>JDmidOfM
+      USE MODEL_COM, only: im,jm,idofm=>JDmidOfM
       USE TRACER_COM, only: kstep
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,READT_PARALLEL
@@ -427,7 +429,7 @@ C
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
      *     ,sfc_a,sfc_b
       logical, intent(in):: trans_emis
-      integer, intent(in):: yr1,yr2
+      integer, intent(in):: yr1,yr2,xyear,xday
      
       integer :: J_0, J_1, I_0, I_1
 
@@ -441,7 +443,7 @@ C do the transient and non-transient cases separately for the moment:
       if(.not.trans_emis) then
 C
       imon=1                ! imon=January
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
         if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
         do L=1,Ldim
@@ -449,8 +451,8 @@ C
           tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo  
         call rewind_parallel(iu)
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+      else              ! DAY is in Jan 16 to Dec 16, get first month
+        do while(xday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         if(am_i_root())write(6,*) 'Not using this first record:'
@@ -466,7 +468,7 @@ C
         tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
       enddo 
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
       data1(I_0:I_1,J_0:J_1,:) =
      & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
       write(out_line,*) '3D source monthly factor=',frac
@@ -477,16 +479,16 @@ c**** Interpolate two months of data to current day
         ipos=1
         k2=yr1
         alpha=0.d0 ! before start year, use start year value
-        if(jyear>yr2.or.(jyear==yr2.and.jday>=183))then
+        if(xyear>yr2.or.(xyear==yr2.and.xday>=183))then
           alpha=1.d0 ! after end year, use end year value
           ipos=(yr2-yr1)/kstep
           k2=yr2-kstep
         endif
         do k=yr1,yr2-kstep,kstep
-          if(jyear>k .or. (jyear==k.and.jday>=183)) then
-            if(jyear<k+kstep .or. (jyear==k+kstep.and.jday<183))then
+          if(xyear>k .or. (xyear==k.and.xday>=183)) then
+            if(xyear<k+kstep .or. (xyear==k+kstep.and.xday<183))then
               ipos=1+(k-yr1)/kstep ! (integer artithmatic)
-              alpha=(365.d0*(0.5+real(jyear-1-k))+jday) /
+              alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
      &              (365.d0*real(kstep))
               k2=k
               exit
@@ -497,7 +499,7 @@ c**** Interpolate two months of data to current day
 ! read the two necessary months from the first decade:
 !
       imon=1                ! imon=January
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
         if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
@@ -506,8 +508,8 @@ c**** Interpolate two months of data to current day
           tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+      else              ! DAY is in Jan 16 to Dec 16, get first month
+        do while(xday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         if(am_i_root())write(6,*) 'Not using this first record:' 
@@ -527,14 +529,14 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
       enddo
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
       sfc_a(I_0:I_1,J_0:J_1,:) =
      & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
       call rewind_parallel( iu )
 
       ipos=ipos+1
       imon=1                ! imon=January
-      if (jday <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
         if(am_i_root())write(6,*) 'Not using this first record:'
         call readt_parallel
      &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
@@ -543,8 +545,8 @@ CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
           tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
         enddo
         do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(jday > idofm(imon) .AND. imon <= 12)
+      else              ! DAY is in Jan 16 to Dec 16, get first month
+        do while(xday > idofm(imon) .AND. imon <= 12)
           imon=imon+1
         enddo
         if(am_i_root())write(6,*) 'Not using this first record:'
@@ -564,7 +566,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
         call readt_parallel(grid,iu,nameunit(iu),B2D,1)
         tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
       enddo
-      frac = float(idofm(imon)-jday)/(idofm(imon)-idofm(imon-1))
+      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
       sfc_b(I_0:I_1,J_0:J_1,:) =
      & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
 
@@ -938,7 +940,7 @@ C
 #endif
 
 #ifdef GFED_3D_BIOMASS
-      SUBROUTINE get_GFED_biomass_burning(nt)
+      SUBROUTINE get_GFED_biomass_burning(nt,xyear,xday)
 !@sum  get_GFED_biomass_burning to read the
 !@+    3D source of various tracers from biomass burning
 !@auth Greg Faluvegi / Jean Learner
@@ -946,7 +948,7 @@ C
 c
 C**** GLOBAL parameters and variables:
 C
-      USE MODEL_COM, only: itime,jday,JDperY,im,jm,lm
+      USE MODEL_COM, only: itime,JDperY,im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE DYNAMICS, only: GZ
       USE CONSTANT, only: sday,hrday,byGRAV
@@ -962,7 +964,7 @@ C
 c
 !@var pres local pressure variable
       integer :: mon_units,l,i,j,iu,k,ll,luse,ns,nsect,nn
-      integer, intent(in) :: nt ! the tracer index
+      integer, intent(in) :: nt,xyear,xday
       character*80 :: title
       character*40 :: mon_files
       character(len=300) :: out_line
@@ -1002,7 +1004,7 @@ C**** Conversion is from KG/4x5grid/HR to KG/m2/s:
 C****
       call openunit(mon_files,mon_units,mon_bins)
       call read_monthly_3Dsources(LbbGFED,mon_units,
-     & src(:,:,:,nt),trans_emis,yr1,yr2)
+     & src(:,:,:,nt),trans_emis,yr1,yr2,xyear,xday)
       call closeunit(mon_units)
 
       do L=1,LbbGFED; do j=j_0,j_1; do i=I_0, I_1
@@ -1411,7 +1413,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,GET,AM_I_ROOT,write_parallel,
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
-      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM,jyear
+      USE MODEL_COM, only: jday,im,jm,idofm=>JDmidOfM
 
       implicit none
 
