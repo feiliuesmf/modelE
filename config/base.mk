@@ -17,7 +17,7 @@ sinclude $(MODELERC)
 
 # the name for main target:
 THIS := $(shell basename `pwd`)
-LIB  = lib.a
+LIB  = lib$(THIS).a
 
 # directory for html documents
 ifneq ($(THIS),model)
@@ -99,7 +99,7 @@ endif
 	@echo
 
 clean:
-	-rm -f lib.a *.o *.mod *.smod .depend* .current_options rundeck_opts.h
+	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options rundeck_opts.h
 
 deplist:
 	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)
