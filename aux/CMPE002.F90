@@ -456,18 +456,18 @@
         check("ogeoz",ogeoz)
         check("ogeoz_sv",ogeoz_sv)
         ! straits
-        check("must",must)
-        check("g0mst",g0mst)
-        check("gxmst",gxmst)
-        check("gzmst",gzmst)
-        check("s0mst",s0mst)
-        check("sxmst",sxmst)
-        check("szmst",szmst)
-        check("rsist",rsist)
-        check("rsixst",rsixst)
-        check("msist",msist)
-        check("hsist",hsist)
-        check("ssist",ssist)
+        checkx("must",must)
+        checkx("g0mst",g0mst)
+        checkx("gxmst",gxmst)
+        checkx("gzmst",gzmst)
+        checkx("s0mst",s0mst)
+        checkx("sxmst",sxmst)
+        checkx("szmst",szmst)
+        checkx("rsist",rsist)
+        checkx("rsixst",rsixst)
+        checkx("msist",msist)
+        checkx("hsist",hsist)
+        checkx("ssist",ssist)
 #endif
         ! lakes
         check("mldlk",mldlk)
@@ -609,7 +609,7 @@
         check("aijk",aijk)
         checkx("aisccp",aisccp)
 #ifndef NO_HDIURN
-        check("hdiurn",hdiurn)
+        checkx("hdiurn",hdiurn)
 #endif
         ! diags
         checkx("KEYNR",KEYNR)
@@ -626,8 +626,8 @@
 #ifdef CHECK_OCEAN
         check("oij",oij)
         check("oijl",oijl)
-        check("ol",ol)
-        check("olnst",olnst)
+        checkx("ol",ol)
+        checkx("olnst",olnst)
 #endif
 #endif
 
