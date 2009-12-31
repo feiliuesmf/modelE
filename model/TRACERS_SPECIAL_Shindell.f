@@ -241,7 +241,6 @@ C we change that.)
 ! Read it in here and interpolated each day.
 
       if (itime < itime_tr0(n_NOx)) return
-      if (xyear < 1900) return !<<< hardcode for NO AIRCRAFT before 1900
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1) 
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1) 
 
@@ -256,6 +255,7 @@ C we change that.)
       else
         trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
       endif
+      if (trans_emis .and. xyear < 1900) return !<-- hardcode for NO AIRCRAFT before 1900
       call openunit(mon_files(k),mon_units(k),mon_bins(k))
       call read_monthly_3Dsources(Laircr,mon_units(k),
      & src(:,:,:,k),trans_emis,yr1,yr2,xyear,xday)
