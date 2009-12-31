@@ -404,6 +404,11 @@ cc_cdncx=0.        ! don't include 2nd indirect effect (used 0.0036)
 albsn_yr=1850
 dalbsnX=.024
 o3_yr=-1850
+!!!!!!!!!!!!!!!!!!!!!!!
+! Please note that making o3_yr non-zero tells the model
+! to override the transient chemistry tracer emissions'
+! use of model year and use abs(o3_yr) instead!
+!!!!!!!!!!!!!!!!!!!!!!!
 CO2X=1.
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
