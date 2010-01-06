@@ -3789,10 +3789,10 @@ c     REAL*4  SULDD(72,46,20,12,12),NITDD(72,46,20,12,12)
 c     REAL*4  OCADD(72,46,20,12,12),BCADD(72,46,20,12,12)
 c     REAL*4  BCBDD(72,46,20,12,12),SSADD(72,46,20,12)
 c     REAL*8  md1850(4,72,46,0:12),anfix(72,46,0:12)
-      REAL*4, dimension(:,:,:,:,:), allocatable :: SULDD,NITDD,
+      REAL*4, dimension(:,:,:,:,:), save, allocatable :: SULDD,NITDD,
      *        OCADD,BCADD,BCBDD
-      REAL*4, dimension(:,:,:,:), allocatable :: SSADD
-      integer :: ndeca, fdeca, ldeca ! dimensions needed for aerosols
+      REAL*4, dimension(:,:,:,:), save, allocatable :: SSADD
+      integer, save :: ndeca, fdeca, ldeca ! dimensions needed for aerosols
       REAL*8, SAVE, allocatable :: md1850(:,:,:,:),anfix(:,:,:)
 c     save A6YEAR2,SULDD,NITDD,OCADD,BCADD,BCBDD,SSADD,md1850,anfix ! ,mddust
 
