@@ -14,13 +14,6 @@ C Adapted for GISS coupled model Jiping Liu/Gavin Schmidt 2000
 C - Further modularised May 2001
 C*************************************************************
 
-!#define TRIDIAG_CYCLIC
-!#define TEST_THIS
-
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-#define TRIDIAG_CYCLIC /* for debug, remove cold-start kinks at IDL */
-#endif
-
       MODULE ICEDYN
 !@sum  ICEDYN holds local variables for dynamic sea ice
 !@auth Gavin Schmidt (based on code from Jinlun Zhang)
@@ -390,10 +383,7 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
-      USE TRIDIAG_MOD, only : TRIDIAG, TRIDIAG_new
-#ifdef TRIDIAG_CYCLIC
-      USE TRIDIAG_MOD, only : TRIDIAG_cyclic
-#endif
+      USE TRIDIAG_MOD, only : TRIDIAG_new, TRIDIAG_cyclic
       IMPLICIT NONE
 
       REAL*8, DIMENSION(NX1,grid_ICDYN%J_STRT_HALO:
@@ -557,10 +547,7 @@ C**Update halos for UICE and TNG as needed for loop 1200
 C**(ETA and ZETA were updted above)
       CALL HALO_UPDATE(grid_ICDYN, UICE, FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid_ICDYN, TNG, FROM=SOUTH+NORTH)
-
-#ifdef TEST_THIS
       CALL HALO_UPDATE(grid_ICDYN, UICEC, FROM=SOUTH+NORTH)
-#endif
 
       DO 1200 J=J_0S,J_NYP
       DO I=2,NXLCYC
@@ -579,48 +566,21 @@ C**(ETA and ZETA were updted above)
       AA5=-(ETA(I,J+1)+ETA(I+1,J+1)-ETA(I,J)-ETA(I+1,J))*TNG(J)
       AA6=2.0*ETAMEAN*TNG(J)*TNG(J)
 
-#ifdef TEST_THIS
       URT(I)=FXY(I,J)-AA5*DELYR*UICEC(I,J)
      1-(AA3+AA4)*DELY2*UICEC(I,J)
      1+(ETA(I,J+1)+ETA(I+1,J+1))*UICEC(I,J+1)*DELY2
      2+(ETA(I,J)+ETA(I+1,J))*UICEC(I,J-1)*DELY2
      3+ETAMEAN*DELYR*(UICEC(I,J+1)*TNG(J+1)-UICEC(I,J-1)*TNG(J-1))
      4-ETAMEAN*DELYR*2.0*TNG(J)*(UICEC(I,J+1)-UICEC(I,J-1))
-#else
-      URT(I)=FXY(I,J)-AA5*DELYR*UICE(I,J,2)
-     1-(AA3+AA4)*DELY2*UICE(I,J,2)
-     1+(ETA(I,J+1)+ETA(I+1,J+1))*UICE(I,J+1,2)*DELY2
-     2+(ETA(I,J)+ETA(I+1,J))*UICE(I,J-1,2)*DELY2
-     3+ETAMEAN*DELYR*(UICE(I,J+1,2)*TNG(J+1)-UICE(I,J-1,2)*TNG(J-1))
-     4-ETAMEAN*DELYR*2.0*TNG(J)*(UICE(I,J+1,2)-UICE(I,J-1,2))
-#endif
-
-#ifndef TRIDIAG_CYCLIC
-      IF(I.EQ.2) THEN
-        AU(2,J)=0.0
-        AA9=AA2*DELX2*UICEC(I-1,J)*UVM(I,J)*FLOAT(LCYC-0)
-        URT(I) = URT(I) + AA9
-      ELSE IF(I.EQ.NXLCYC) THEN
-        CU(NXLCYC,J)=0.0
-        AA9=AA1*DELX2*UICEC(I+1,J)*UVM(I,J)*FLOAT(LCYC-0)
-        URT(I) = URT(I) + AA9
-      END IF
-#endif
 
       URT(I)=(URT(I)+AMASS(I,J)*BYDTS*UICE(I,J,2)*2.0)*UVM(I,J)
 
       END DO
 
-#ifdef TRIDIAG_CYCLIC
       CALL TRIDIAG_cyclic(AU(2,J),BU(2,J),CU(2,J),URT(2),UICE(2,J,1),
      &               NXLCYC-1)
-c these two lines are probably needed for all cases
       UICE(1,J,1)   = UICE(NX1-1,J,1)
       UICE(NX1,J,1) = UICE(2,J,1)
-#else
-      CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),UICE(2,J,1),
-     &               NXLCYC-1)
-#endif
 
  1200 CONTINUE
 
@@ -713,7 +673,6 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
 C NOW DO VICE
 C THE FIRST HALF
 
-      CALL HALO_UPDATE(grid_ICDYN, UICEC, FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(GRID_ICDYN,  ETA,FROM=NORTH)
       CALL HALO_UPDATE(GRID_ICDYN, ZETA,FROM=NORTH)
 
@@ -815,17 +774,10 @@ c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
           AA9=0.0
         END IF
 
-#ifdef TEST_THIS
         VRT(I,J)=AA9+FXYa(I,J)-(AA3+AA4)*DELX2*VICEC(I,J)
      6 +((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICEC(I+1,J)*DELX2
      7    +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICEC(I-1,J)*DELX2)
      *       *BYCSU(J)
-#else
-        VRT(I,J)=AA9+FXYa(I,J)-(AA3+AA4)*DELX2*VICE(I,J,2)
-     6 +((ETA(I+1,J)*BYCSU(J)+ETA(I+1,J+1)*BYCSU(J))*VICE(I+1,J,2)*DELX2
-     7    +(ETA(I,J)*BYCSU(J)+ETA(I,J+1)*BYCSU(J))*VICE(I-1,J,2)*DELX2)
-     *       *BYCSU(J)
-#endif
         VRT(I,J)=(VRT(I,J)+AMASS(I,J)*BYDTS*VICE(I,J,2)*2.0)*UVM(I,J)
       END DO
       END DO
@@ -894,18 +846,6 @@ C NOW THE SECOND HALF
      2  +AA2*DELY2*VICE(I,J-1,1)+((ZETAMEAN-ETAMEAN)*TNG(J-1)*DELYR
      2  +ETAMEAN*2.0*TNG(J)*DELYR)*VICE(I,J-1,1)
 
-#ifndef TRIDIAG_CYCLIC
-        IF(I.EQ.2) THEN
-          AU(2,J)=0.0
-          AA9=AA4*DELX2*VICEC(I-1,J)*UVM(I,J)*FLOAT(LCYC-0)
-          FXY1(I,J) = FXY1(I,J) + AA9
-        ELSE IF(I.EQ.NXLCYC) THEN
-          CU(NXLCYC,J)=0.0
-          AA9=AA3*DELX2*VICEC(I+1,J)*UVM(I,J)*FLOAT(LCYC-0)
-          FXY1(I,J) = FXY1(I,J) + AA9
-        END IF
-#endif
-
       END DO
       END DO
 
@@ -915,13 +855,8 @@ C NOW THE SECOND HALF
           URT(I)=URT(I)*UVM(I,J)
         END DO
 
-#ifdef TRIDIAG_CYCLIC
         CALL TRIDIAG_cyclic(AU(2,J),BU(2,J),CU(2,J),URT(2),VICE(2,J,1),
      &               NXLCYC-1)
-#else
-        CALL TRIDIAG(AU(2,J),BU(2,J),CU(2,J),URT(2),VICE(2,J,1),
-     &               NXLCYC-1)
-#endif
 
  1201 CONTINUE
 
