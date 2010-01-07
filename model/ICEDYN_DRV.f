@@ -619,6 +619,8 @@ c temporarily empty.
       use icedyn_com, only : CS2ICEint_a,CS2ICEint_b,ICE2CSint
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
       use cs2ll_utils, only : ll2csint_ij
+#else
+      USE GEOM, only : cosip,sinip
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
@@ -873,6 +875,12 @@ c**** getting instance of (DMUA, DVMA) on the icedyn grid
 #else
       CALL ICE_HALO(grid_ICDYN, DMUA(:,:,2), from=NORTH)
       CALL ICE_HALO(grid_ICDYN, DMVA(:,:,2), from=NORTH)
+c needs evaluation      if (grid_icdyn%HAVE_NORTH_POLE) then
+c needs evaluation        dua = dmua(1,jmicdyn,2)
+c needs evaluation        dva = dmva(1,jmicdyn,2)
+c needs evaluation        dmua(:,jmicdyn,2)=dua*cosip(:)+dva*sinip(:)
+c needs evaluation        dmva(:,jmicdyn,2)=dva*cosip(:)-dua*sinip(:)
+c needs evaluation      end if
       do j=iJ_0,iJ_1S
         im1=imicdyn
         do i=1,imicdyn
