@@ -384,10 +384,10 @@ c**** Interpolate two months of data to current day
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
-!@param  nlevnc vertical levels of off-line data  
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
-      INTEGER, PARAMETER :: nlevnc =23
+!@param  nlevnc vertical levels of off-line data  - 4x5 model=23, 2x2.5 model = 40
+      INTEGER, PARAMETER :: nlevnc =40
       REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
      &                  GRID%J_STRT:GRID%J_STOP,nlevnc) ::
      &     IN1_nohalo, IN2_nohalo
@@ -450,8 +450,7 @@ c -----------------------------------------------------------------
         IN2(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)
 
       endif
-
-C-----------------------------------------------------------------------
+C-----------------------------------------------------------------
       tau=(jdate-.5)/(JDendOFM(jmon)-JDendOFM(jmon-1))
          do l=1,lm
          OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
