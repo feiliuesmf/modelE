@@ -42,6 +42,10 @@
       USE tracers_dust,ONLY : imDust
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+      use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
+#ifdef GFED_3D_BIOMASS
+     & ,biomass_Tyr1,biomass_Tyr2
+#endif
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,checktracer_on,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
@@ -215,6 +219,12 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("use_rad_ch4",use_rad_ch4)
       call sync_param("Lmax_rad_O3",Lmax_rad_O3)
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
+      call sync_param("aircraft_Tyr1",aircraft_Tyr1)
+      call sync_param("aircraft_Tyr2",aircraft_Tyr2)
+#ifdef GFED_3D_BIOMASS
+      call sync_param("biomass_Tyr1",biomass_Tyr1)
+      call sync_param("biomass_Tyr2",biomass_Tyr2)
+#endif
 #ifdef SHINDELL_STRAT_CHEM
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)

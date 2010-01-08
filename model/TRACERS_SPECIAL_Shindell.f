@@ -247,8 +247,6 @@ C we change that.)
 ! Monthly sources are interpolated to the current day
 ! Units are KG(N)/m2/s, so no conversion is necessary:
 
-      call sync_param("aircraft_Tyr1",aircraft_Tyr1)
-      call sync_param("aircraft_Tyr2",aircraft_Tyr2)
       k = 1
       if(aircraft_Tyr1==aircraft_Tyr2)then
         trans_emis=.false.; yr1=0; yr2=0
@@ -990,8 +988,6 @@ c
       mon_files=trim(trname(nt))//'_IIASA_BBURN'
       bySperHr=1.d0/3600.d0
 
-      call sync_param("biomass_Tyr1",biomass_Tyr1)
-      call sync_param("biomass_Tyr2",biomass_Tyr2)
       if(biomass_Tyr1==biomass_Tyr2)then
         trans_emis=.false.; yr1=0; yr2=0
       else
