@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-!#define UPWIND_HALOS
+#define UPWIND_HALOS
 
       MODULE TRACER_ADV
 !@sum MODULE TRACER_ADV arrays needed for tracer advection
