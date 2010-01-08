@@ -176,7 +176,9 @@ c          rc = nf_open(trim(fname),nf_write,fid)
           if(rc.ne.nf_noerr) write(6,*)
      &         'error opening ',trim(fname)
         elseif(trim(mode).eq.'read') then
-          rc = nf_open(trim(fname),nf_nowrite,fid)
+c          rc = nf_open(trim(fname),nf_nowrite,fid)
+          chunksize = 1024*1024*128
+          rc = nf__open(trim(fname),nf_nowrite,chunksize,fid)
           if(rc.ne.nf_noerr) then
             write(6,*) 'error opening ',trim(fname)
           else
