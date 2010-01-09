@@ -289,6 +289,7 @@ Paraffin_09=AR5_emis/F/T/Paraffin_slv_AR5_1860-2000_2x2.5_h
 Paraffin_10=AR5_emis/F/T/Paraffin_ene_AR5_1850-2000_2x2.5_h
 Paraffin_11=AR5_emis/F/T/Paraffin_awb_AR5_1890-2000_2x2.5_h
 Paraffin_12=AR5_emis/F/T/Paraffin_agr_AR5_1990-2000_2x2.5_h
+codirect_01=AR5_emis/F/HTAP_codirect_emissions_2x2.5_h
 !------------ end of chem emissions files ---------------
 
 !-------Aerosol inputs, for imAER=5 --------------
