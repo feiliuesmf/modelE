@@ -229,27 +229,30 @@ LAI10=chem_files/lai10.global_2x2.5gf ! really 4x5
 LAI11=chem_files/lai11.global_2x2.5gf ! really 4x5
 LAI12=chem_files/lai12.global_2x2.5gf ! really 4x5
 
-!--------- 1850 (mostly AR5) tracer emissions ------------------
-CO_01=AR5_emis/F/NOV09/1850/CO_ind_AR5_1850_2x2.5_h
-CO_02=AR5_emis/F/NOV09/1850/CO_tra_AR5_1850_2x2.5_h
-CO_03=AR5_emis/F/NOV09/1850/CO_wst_AR5_1850_2x2.5_h
-CO_04=AR5_emis/F/NOV09/1850/CO_awb_AR5_1850_2x2.5_h
-CO_05=AR5_emis/F/NOV09/1850/CO_dom_AR5_1850_2x2.5_h
-CO_06=AR5_emis/F/NOV09/1850/CO_forestfire_AR5_1850_2x2.5_h
-CO_07=AR5_emis/F/NOV09/1850/CO_grassfire_AR5_1850_2x2.5_h
-CO_08=AR5_emis/F/NOV09/1850/m_CO_shp_AR5_1850_2x2.5_h
-NOx_AIRC=AR5_emis/F/NOV09/1850/NOx_air_AR5_1850_2x2.5
+!---------- mostly transient, mostly AR5 gas tracer emissions ------------------
+CO_01=AR5_emis/F/T/CO_ind_AR5_1850-2000_2x2.5_h
+CO_02=AR5_emis/F/T/CO_tra_AR5_1850-2000_2x2.5_h
+CO_03=AR5_emis/F/T/CO_wst_AR5_1850-2000_2x2.5_h
+CO_04=AR5_emis/F/T/CO_awb_AR5_1850-2000_2x2.5_h 
+CO_05=AR5_emis/F/T/CO_dom_AR5_1850-2000_2x2.5_h
+CO_06=AR5_emis/F/T/CO_forestfire_AR5_1900-2000_2x2.5_h
+CO_07=AR5_emis/F/T/CO_grassfire_AR5_1900-2000_2x2.5_h
+CO_08=AR5_emis/F/T/m_CO_shp_AR5_1850-2000_2x2.5_h
+CO_09=AR5_emis/F/T/CO_slv_AR5_1990-2000_2x2.5_h
+CO_10=AR5_emis/F/T/CO_ene_AR5_1850-2000_2x2.5_h
+CO_11=AR5_emis/F/T/CO_agr_AR5_1990-2000_2x2.5_h
+NOx_AIRC=AR5_emis/F/T/NOx_air_AR5_1910-2000_2x2.5
 NOx_01=AR5_emis/F/NAT/NOx_Soil_GEIA_2x2.5_HALF_h ! half because we have ag source
-NOx_02=AR5_emis/F/NOV09/1850/NOx_awb_AR5_1850_2x2.5_h
-NOx_03=AR5_emis/F/NOV09/1850/NOx_dom_AR5_1850_2x2.5_h
-NOx_04=AR5_emis/F/NOV09/1850/NOx_ene_AR5_1850_2x2.5_h
-NOx_05=AR5_emis/F/NOV09/1850/NOx_forestfire_AR5_1850_2x2.5_h
-NOx_06=AR5_emis/F/NOV09/1850/NOx_grassfire_AR5_1850_2x2.5_h
-NOx_07=AR5_emis/F/NOV09/1850/NOx_ind_AR5_1850_2x2.5_h
-NOx_08=AR5_emis/F/NOV09/1850/m_NOx_shp_AR5_1850_2x2.5_h
-NOx_09=AR5_emis/F/NOV09/1850/NOx_tra_AR5_1850_2x2.5_h
-NOx_10=AR5_emis/F/NOV09/1850/NOx_wst_AR5_1850_2x2.5_h
-NOx_11=AR5_emis/F/NOV09/1850/NOx_agr_AR5_1850_2x2.5_h
+NOx_02=AR5_emis/F/T/NOx_awb_AR5_1850-2000_2x2.5_h
+NOx_03=AR5_emis/F/T/NOx_dom_AR5_1850-2000_2x2.5_h
+NOx_04=AR5_emis/F/T/NOx_ene_AR5_1850-2000_2x2.5_h
+NOx_05=AR5_emis/F/T/NOx_forestfire_AR5_1900-2000_2x2.5_h
+NOx_06=AR5_emis/F/T/NOx_grassfire_AR5_1900-2000_2x2.5_h
+NOx_07=AR5_emis/F/T/NOx_ind_AR5_1850-2000_2x2.5_h
+NOx_08=AR5_emis/F/T/m_NOx_shp_AR5_1850-2000_2x2.5_h
+NOx_09=AR5_emis/F/T/NOx_tra_AR5_1850-2000_2x2.5_h
+NOx_10=AR5_emis/F/T/NOx_wst_AR5_1850-2000_2x2.5_h
+NOx_11=AR5_emis/F/T/NOx_agr_AR5_1850-2000_2x2.5_h
 !! Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
 !! Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
 !! Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
@@ -264,19 +267,28 @@ Terpenes_02=temp_2x2.5/ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h
 ! ========= must now be in Kmole units,  =================
 ! ========= not Kg units ...             =================
 Alkenes_01=AR5_emis/F/NAT/Alkenes_vegetation_GEIA_2x2.5_h_1
-Alkenes_02=AR5_emis/F/NOV09/1850/m_Alkenes_shp_AR5_1850_2x2.5_h
-Alkenes_03=AR5_emis/F/NOV09/1850/Alkenes_wst_AR5_1850_2x2.5_h
-Alkenes_04=AR5_emis/F/NOV09/1850/Alkenes_dom_AR5_1850_2x2.5_h
-Alkenes_05=AR5_emis/F/NOV09/1850/Alkenes_forestfire_AR5_1850_2x2.5_h
-Alkenes_06=AR5_emis/F/NOV09/1850/Alkenes_grassfire_AR5_1850_2x2.5_h
-Alkenes_07=AR5_emis/F/NOV09/1850/Alkenes_ind_AR5_1850_2x2.5_h
+Alkenes_02=AR5_emis/F/T/m_Alkenes_shp_AR5_1850-2000_2x2.5_h
+Alkenes_03=AR5_emis/F/T/Alkenes_wst_AR5_1850-2000_2x2.5_h
+Alkenes_04=AR5_emis/F/T/Alkenes_dom_AR5_1850-2000_2x2.5_h
+Alkenes_05=AR5_emis/F/T/Alkenes_forestfire_AR5_1900-2000_2x2.5_h
+Alkenes_06=AR5_emis/F/T/Alkenes_grassfire_AR5_1900-2000_2x2.5_h
+Alkenes_07=AR5_emis/F/T/Alkenes_ind_AR5_1850-2000_2x2.5_h
+Alkenes_08=AR5_emis/F/T/Alkenes_tra_AR5_1850-2000_2x2.5_h
+Alkenes_09=AR5_emis/F/T/Alkenes_ene_AR5_1850-2000_2x2.5_h
+Alkenes_10=AR5_emis/F/T/Alkenes_awb_AR5_1890-2000_2x2.5_h
+Alkenes_11=AR5_emis/F/T/Alkenes_agr_AR5_1990-2000_2x2.5_h
 Paraffin_01=AR5_emis/F/NAT/Paraffin_vegetation_GEIA_2x2.5_h_1
-Paraffin_02=AR5_emis/F/NOV09/1850/m_Paraffin_shp_AR5_1850_2x2.5_h
-Paraffin_03=AR5_emis/F/NOV09/1850/Paraffin_wst_AR5_1850_2x2.5_h
-Paraffin_04=AR5_emis/F/NOV09/1850/Paraffin_dom_AR5_1850_2x2.5_h
-Paraffin_05=AR5_emis/F/NOV09/1850/Paraffin_forestfire_AR5_1850_2x2.5_h
-Paraffin_06=AR5_emis/F/NOV09/1850/Paraffin_grassfire_AR5_1850_2x2.5_h
-Paraffin_07=AR5_emis/F/NOV09/1850/Paraffin_ind_AR5_1850_2x2.5_h
+Paraffin_02=AR5_emis/F/T/m_Paraffin_shp_AR5_1850-2000_2x2.5_h
+Paraffin_03=AR5_emis/F/T/Paraffin_wst_AR5_1850-2000_2x2.5_h
+Paraffin_04=AR5_emis/F/T/Paraffin_dom_AR5_1850-2000_2x2.5_h
+Paraffin_05=AR5_emis/F/T/Paraffin_forestfire_AR5_1900-2000_2x2.5_h
+Paraffin_06=AR5_emis/F/T/Paraffin_grassfire_AR5_1900-2000_2x2.5_h
+Paraffin_07=AR5_emis/F/T/Paraffin_ind_AR5_1850-2000_2x2.5_h
+Paraffin_08=AR5_emis/F/T/Paraffin_tra_AR5_1850-2000_2x2.5_h
+Paraffin_09=AR5_emis/F/T/Paraffin_slv_AR5_1860-2000_2x2.5_h
+Paraffin_10=AR5_emis/F/T/Paraffin_ene_AR5_1850-2000_2x2.5_h
+Paraffin_11=AR5_emis/F/T/Paraffin_awb_AR5_1890-2000_2x2.5_h
+Paraffin_12=AR5_emis/F/T/Paraffin_agr_AR5_1990-2000_2x2.5_h
 !------------ end of chem emissions files ---------------
 
 !-------Aerosol inputs, for imAER=5 --------------
@@ -462,8 +474,8 @@ SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! WET (for example)
 SECTORS_ARE='WET'
 !-fit-here--|                                                              |---
 !-----
-! aircraft_Tyr1=0 ! for non-transient emissions,
-! aircraft_Tyr2=0 ! set these two equal or omit them.
+aircraft_Tyr1=1910 ! for non-transient emissions,
+aircraft_Tyr2=2000 ! set these two equal or omit them.
 ! biomass_Tyr1= 0 ! for non-transient emissions,
 ! biomass_Tyr2= 0 ! set these two equal or omit them.
 
