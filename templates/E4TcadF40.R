@@ -457,7 +457,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 !-----------------------------------------------
 !--- define emission sectors above files belong to ---
 ! example: CH4_13_sect='WET'
-NOx_AIRC_sect=' '
+                 
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
