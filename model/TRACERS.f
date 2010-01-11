@@ -536,7 +536,7 @@ C****
       USE QUSDEF, only: nmom
       USE TRACER_COM, only : ntm,trm,trmom,trname,alter_sources,
      * num_regions,reg_S,reg_N,reg_E,reg_W,ef_FACT3d,num_tr_sectors
-     * ,tr_sect_index3D,num_tr_sectors3d,nBiomass
+     * ,tr_sect_index3D,num_tr_sectors3d
       USE FLUXES, only : tr3Dsource
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
