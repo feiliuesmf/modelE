@@ -206,12 +206,8 @@ C we change that.)
       use filemanager, only: openunit,closeunit
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use tracer_com, only: itime_tr0,trname,n_NOx,nAircraft, 
-     & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
-     & num_sectors,n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
-     & ,kstep
+      use tracer_com, only: itime_tr0,trname,n_NOx,nAircraft,kstep
       use tracer_sources, only: Laircr,aircraft_Tyr1,aircraft_Tyr2
-      use param, only: sync_param
  
       IMPLICIT NONE
  
@@ -219,10 +215,8 @@ C we change that.)
       character(len=300) :: out_line
       integer, parameter :: nanns=0,nmons=1
       integer, dimension(nmons) :: mon_units, imon
-      integer l,i,j,k,ll,nt,ns,nsect,nn
+      integer l,i,j,k,ll
       character*12, dimension(nmons) :: mon_files=(/'NOx_AIRC'/)
-      character*124 :: tr_sectors_are
-      character*32 :: pname
       logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr,1):: src
@@ -281,8 +275,26 @@ C we change that.)
        enddo    ! I
       enddo     ! J
  
-! Now, check for a sector definition:
-! -- begin sector  stuff --
+      return
+      end subroutine get_aircraft_NOx
+ 
+
+      subroutine check_aircraft_sectors
+!@sum check_aircraft_sectors checks parameters for user-
+!@+ set sector for NOx aircraft source.
+!@auth Greg Faluvegi
+!@ver  1.0
+      use tracer_com, only: n_NOx,nAircraft,num_tr_sectors3D,
+     & tr_sect_name3D,tr_sect_index3D,sect_name,num_sectors,
+     & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
+      use param, only: sync_param
+
+      IMPLICIT NONE
+
+      integer :: i,j,ns,nsect,nn
+      character*124 :: tr_sectors_are
+      character*32 :: pname
+
       tr_sectors_are = ' '
       pname='NOx_AIRC_sect'
       call sync_param(pname,tr_sectors_are)
@@ -299,7 +311,7 @@ C we change that.)
         end if
       enddo
       ns=num_tr_sectors3D(n_NOX,nAircraft)
-      if(ns > n_max_sect) 
+      if(ns > n_max_sect)
      &call stop_model("num_tr_sectors3D problem",255)
       if(ns > 0)then
         read(tr_sectors_are,*)tr_sect_name3D(n_NOx,nAircraft,1:ns)
@@ -316,12 +328,11 @@ C we change that.)
           enddo loop_nn
         enddo
       endif
-! -- end sector stuff --
 
       return
-      end subroutine get_aircraft_NOx
+      end subroutine check_aircraft_sectors
  
- 
+
       SUBROUTINE read_aero(field,fn)
 !@sum read_aero, read in monthly mean fields of SO2 concentration or
 !@+ DMS concentration or sulfate surface area for use in chemistry.
@@ -333,18 +344,14 @@ C we change that.)
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
 !@ver  1.0 
-c
-C**** GLOBAL parameters and variables:
-C
+
       USE MODEL_COM, only: jyear,jday,im,jm,lm,ptop,psf,sig
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       use TRACER_SOURCES, only: Lsulf
-C
+ 
       IMPLICIT NONE
 
-C**** Local parameters and variables and arguments:
-c
 !@var nmons: number of monthly input files
 !@param Psulf pressure levels of the input file
       real*8, parameter, dimension(Lsulf) :: Psulf = (/
@@ -381,11 +388,11 @@ c
       case default
         call stop_model('please address filename in read_aero',255)
       end select
-c
+ 
 C**** Input file is monthly, on LM levels.
 C     Read it in here and interpolated each day.
 C     Interpolation in the vertical.
-C
+  
       call openunit(trim(fn),mon_units(nc),mon_bins(nc))
       call read_monthly_3Dsources(Lsulf,mon_units(nc),
      &   src(:,:,:,nc),trans_emis,0,0,jyear,jday)
@@ -399,11 +406,10 @@ C====
         call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
         field(I,J,1:LM)=srcLout(1:LM)
       END DO   ; END DO    
-C
+  
       return
       END SUBROUTINE read_aero
-C
-C
+ 
 
       SUBROUTINE read_monthly_3Dsources
      & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)
@@ -588,9 +594,7 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
 !@sum get_CH4_IC to generate initial conditions for methane.
 !@auth Greg Faluvegi/Drew Shindell
 !@ver  1.0 (based on DB396Tds3M23)
-c
-C**** GLOBAL parameters and variables:
-C
+
       USE MODEL_COM, only  : im,jm,lm,ls1,DTsrc
       USE DOMAIN_DECOMP_ATM, only : GRID,GET, write_parallel,am_i_root
       USE GEOM, only       : axyp,lat2d_dg
@@ -600,18 +604,13 @@ C
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry
-c
+ 
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments:
-c
+ 
 !@var CH4INIT temp variable for ch4 initial conditions
 !@var I,J,L dummy loop variables
 !@param bymair 1/molecular wt. of air = 1/mair
-!@var JN J around 30 N
-!@var JS J arount 30 S
 !@var icall =1 (during run) =0 (first time)
-c      INTEGER, PARAMETER:: JS = JM/3 + 1, JN = 2*JM/3
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT,bydtsrc
       INTEGER I, J, L, icall
@@ -643,12 +642,12 @@ C       Initial latitudinal gradient for CH4:
         end select
       END DO
       END DO
-c
+ 
 C     Now, the stratosphere:
       do L=LS1,LM
       do j=J_0,J_1
       do i=I_0,I_1
-c
+ 
 c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
@@ -684,18 +683,14 @@ c     mixing ratios to 1.79 (observed):
 !@auth Greg Faluvegi, based on the Harvard CTM routine SCALERAD
 !@ver 1.0
 
-c
-C**** GLOBAL parameters and variables:  
-C
       USE MODEL_COM, only: IM,JM,nday,Itime,DTsrc 
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
       use geom, only : lon2d_dg,lat2d_dg
       use domain_decomp_atm, only : grid
+
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments
-C
+
 !@param ANG1 ?
 !@var DX degree width of a model grid cell (360/IM)
 !@var DY degree width of a model grid cell ~(180/JM)
@@ -716,16 +711,8 @@ C
      &     vlat= -90. + 0.5*REAL(DY)
       if (j == JM .and. grid%have_north_pole)
      &     vlat=  90. - 0.5*REAL(DY)
-c vlon in original code decreases eastward, so we take MINUS lon2d_dg
-c      DX   = NINT(360./REAL(IM))
-c      VLON = 180. - REAL((I-1)*DX)
       vlon = -lon2d_dg(i,j) ! i=1 in lon2d_dg is -180 + dlon/2
-C     This added 0.5 is to make the instantaneous zenith angle
-C     more representative throughout the 1 hour time step:
-!old  TIMEC = ((JDAY*24.0) + JHOUR  + 0.5)*3600.
       TIMEC = (mod(itime,365*nday) + nday + 0.5)*DTsrc  
-!     if(DTsrc /= 3600.)call stop_model
-!    &('DTsrc has changed. Please check on get_sza subroutine',255)
       P1 = 15.*(TIMEC/3600. - VLON/15. - 12.)
       FACT = (TIMEC/86400. - 81.1875)*ANG1
       P2 = 23.5*SIN(FACT*radian)
@@ -743,11 +730,9 @@ C     more representative throughout the 1 hour time step:
 !@+   linearly in ln(P).
 !@auth Greg Faluvegi
 !@ver 1.0
-C
+ 
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments
-C
+
 !@var LIN number of levels for initial input variable
 !@var LOUT number of levels for output variable
 !@var PIN pressures at LIN levels
@@ -758,7 +743,7 @@ C
 !@var LNPOUT natural log of POUT
 !@var min_zero if true, don't allow negatives
 !@var slope slope of line used for extrapolations
-C
+ 
       LOGICAL, INTENT(IN)                 :: min_zero
       INTEGER, INTENT(IN)                 :: LIN, LOUT
       REAL*8, INTENT(IN), DIMENSION(LIN)  :: PIN, AIN
@@ -810,28 +795,24 @@ C
 !@+ vertical resolutions.
 !@auth Greg Faluvegi
 !@ver 1.0
-C
-C**** Global variables:
-c
+
       USE MODEL_COM, only : LM,SIG,PSF,PTOP
       USE TRCHEM_Shindell_COM, only: L75P,L75M,F75P,F75M, ! FACT1
      &                           L569P,L569M,F569P,F569M  ! CH4
-C
+ 
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments
-C
+
 !@var natural log of nominal pressure for verticle interpolations
 !@var log75 natural log of 75 hPa
 !@var log569 natural log of 569 hPa
       REAL*8 log75,log569
       REAL*8, DIMENSION(LM) :: LOGP
       INTEGER L
-c      
+       
       LOGP(:)=LOG(SIG(:)*(PSF-PTOP)+PTOP)
       log75=LOG(75.d0)
       log569=LOG(569.d0)
-c 
+  
       DO L=1,LM-1
         IF(LOGP(L) > log75 .and. LOGP(L+1) < log75) THEN
           L75P=L+1 ! these are for FACT1 variable in strat overwrite
@@ -846,7 +827,7 @@ c
           F569M=(LOGP(L569P)-log569)/(LOGP(L569P)-LOGP(L569M))
         END IF
       END DO
-c      
+       
       RETURN
       END SUBROUTINE special_layers_init
 #endif
@@ -934,8 +915,8 @@ C
 
   
       END SUBROUTINE running_average
-
 #endif
+
 
 #ifdef GFED_3D_BIOMASS
       SUBROUTINE get_GFED_biomass_burning(nt,xyear,xday)
@@ -943,31 +924,23 @@ C
 !@+    3D source of various tracers from biomass burning
 !@auth Greg Faluvegi / Jean Learner
 !@ver  1.0 (based on DB396Tds3M23 aircraft reading)
-c
-C**** GLOBAL parameters and variables:
-C
+
       USE MODEL_COM, only: itime,JDperY,im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE DYNAMICS, only: GZ
       USE CONSTANT, only: sday,hrday,byGRAV
       USE FILEMANAGER, only: openunit,closeunit
-      USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm,
-     & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
-     & num_sectors,n_max_sect,num_regions,ef_fact,ef_fact3D
+      USE TRACER_COM, only: itime_tr0,trname,nBiomass,ntm
       use TRACER_SOURCES, only: LbbGFED,GFED_BB,biomass_Tyr1,
      & biomass_Tyr2
-      use param, only: sync_param
-C
+ 
       IMPLICIT NONE
-c
-!@var pres local pressure variable
-      integer :: mon_units,l,i,j,iu,k,ll,luse,ns,nsect,nn
+ 
+      integer :: mon_units,l,i,j,iu,k,ll,luse
       integer, intent(in) :: nt,xyear,xday
       character*80 :: title
       character*40 :: mon_files
       character(len=300) :: out_line
-      character*124 :: tr_sectors_are
-      character*32 :: pname
       logical :: mon_bins=.true. ! binary file?
       logical :: trans_emis=.false.
       integer :: yr1=0, yr2=0
@@ -1006,60 +979,65 @@ C****
       do L=1,LbbGFED; do j=j_0,j_1; do i=I_0, I_1
         GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
       enddo         ; enddo       ; enddo
-cDMK hardwire to reduce tropical burning for 1890
-c     do L=1,LbbGFED 
-c     do i=I_0,I_1
-c     do j=j_0,MIN(j_1,15) 
-c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
-c     enddo          
-c     do j=MAX(j_0,15),MIN(j_1,29) 
-c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr*0.5d0
-c     enddo          
-c     do j=MAX(j_0,29),j_1 
-c       GFED_BB(i,j,l,nt)=src(i,j,l,nt)*bySperHr
-c     enddo          
-c     enddo        
-c     enddo
-
-! Now, check for a sector definition:
-! -- begin sector  stuff --
-          tr_sectors_are = ' '
-          pname=trim(trname(nt))//'_IIASA_BBURN_sect'
-          call sync_param(pname,tr_sectors_are)
-          num_tr_sectors3D(nt,nBiomass)=0
-          i=1
-          do while(i < len(tr_sectors_are))
-            j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
-            if (j > 1) then
-              num_tr_sectors3D(nt,nBiomass)=
-     &        num_tr_sectors3D(nt,nBiomass) + 1
-              i=i+j
-            else
-              i=i+1
-            end if
-          enddo
-          ns=num_tr_sectors3D(nt,nBiomass)
-          if(ns > n_max_sect)
-     &    call stop_model("num_tr_sectors3D problem",255)
-          if(ns > 0)then
-            read(tr_sectors_are,*)tr_sect_name3D(nt,nBiomass,1:ns)
-            do nsect=1,ns
-              tr_sect_index3D(nt,nBiomass,nsect)=0
-              loop_nn: do nn=1,num_sectors
-                if(trim(tr_sect_name3D(nt,nBiomass,nsect)) ==
-     &          trim(sect_name(nn))) then
-                  tr_sect_index3D(nt,nBiomass,nsect)=nn
-                  ef_fact3d(nn,1:num_regions)=
-     &            ef_fact(nn,1:num_regions)
-                  exit loop_nn
-                endif
-              enddo loop_nn
-            enddo
-          endif
-! -- end sector stuff --
 
       return
       END SUBROUTINE get_GFED_biomass_burning
+
+
+      SUBROUTINE check_GFED_sectors(nt)
+!@sum  check_GFED_sectors checks whether any user-defined
+!@+ sectors were set for the 3D GFED biomss burning source.
+!@auth Greg Faluvegi 
+!@ver  1.0 
+
+      USE TRACER_COM, only: trname,nBiomass,
+     & num_tr_sectors3D,tr_sect_name3D,tr_sect_index3D,sect_name,
+     & num_sectors,n_max_sect,num_regions,ef_fact,ef_fact3D
+      use param, only: sync_param
+ 
+      IMPLICIT NONE
+  
+      integer :: i,j,,ns,nsect,nn
+      integer, intent(in) :: nt
+      character*124 :: tr_sectors_are
+      character*32 :: pname
+
+      tr_sectors_are = ' '
+      pname=trim(trname(nt))//'_IIASA_BBURN_sect'
+      call sync_param(pname,tr_sectors_are)
+      num_tr_sectors3D(nt,nBiomass)=0
+      i=1
+      do while(i < len(tr_sectors_are))
+        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+        if (j > 1) then
+          num_tr_sectors3D(nt,nBiomass)=
+     &    num_tr_sectors3D(nt,nBiomass) + 1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      ns=num_tr_sectors3D(nt,nBiomass)
+      if(ns > n_max_sect)
+     &call stop_model("num_tr_sectors3D problem",255)
+      if(ns > 0)then
+        read(tr_sectors_are,*)tr_sect_name3D(nt,nBiomass,1:ns)
+        do nsect=1,ns
+          tr_sect_index3D(nt,nBiomass,nsect)=0
+          loop_nn: do nn=1,num_sectors
+            if(trim(tr_sect_name3D(nt,nBiomass,nsect)) ==
+     &      trim(sect_name(nn))) then
+              tr_sect_index3D(nt,nBiomass,nsect)=nn
+              ef_fact3d(nn,1:num_regions)=
+     &        ef_fact(nn,1:num_regions)
+              exit loop_nn
+            endif
+          enddo loop_nn
+        enddo
+      endif
+
+      return
+      END SUBROUTINE check_GFED_sectors
 
 
       SUBROUTINE dist_GFED_biomass_burning(nt)
@@ -1067,9 +1045,7 @@ c     enddo
 !@+    3D source of various tracers from biomass burning
 !@auth Greg Faluvegi / Jean Learner
 !@ver  1.0 (based on DB396Tds3M23 aircraft reading)
-c
-C**** GLOBAL parameters and variables:
-C
+ 
       USE MODEL_COM, only: im,jm,lm
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, write_parallel
       USE DYNAMICS, only: GZ
@@ -1078,9 +1054,9 @@ C
      & ,n_SO2
       use TRACER_SOURCES, only: LbbGFED,GFED_BB
       USE FLUXES, only : tr3Dsource
-C
+ 
       IMPLICIT NONE
-c
+ 
 !@var pres local pressure variable
       integer :: l,i,j,k,ll,luse
       integer, intent(in) :: nt ! the tracer index

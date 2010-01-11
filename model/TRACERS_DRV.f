@@ -324,6 +324,9 @@ C**** get rundeck parameter for cosmogenic source factor
          endif
         endif
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) && (defined GFED_3D_BIOMASS)
+      call check_GFED_sectors(n) ! possible special 3D source sector
+#endif
       enddo
 
 C**** Define individual tracer characteristics
@@ -579,6 +582,7 @@ C**** Get solar variability coefficient from namelist if it exits
           F0(n) = 1.d-1
           HSTAR(n) = 1.d-2
 #endif
+          call check_aircraft_sectors ! special 3D source case
 
       case ('N2O5')
       n_N2O5 = n
