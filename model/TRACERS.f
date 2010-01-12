@@ -808,9 +808,7 @@ C**** Gravitational settling
       do n=1,ntm
         if (trradius(n).gt.0. .and. itime.ge.itime_tr0(n)) then
 C**** need to hydrate the sea salt before determining settling
-          hydrate = (trname(n).eq.'seasalt1'.or.trname(n).eq.'seasalt2'
-     *         .or.trname(n).eq.'M_SSA_SS'.or. trname(n).eq.'M_SSC_SS'
-     *         .or.trname(n).eq.'M_SSS_SS')
+          hydrate = (trname(n).eq.'seasalt1'.or.trname(n).eq.'seasalt2')
 
           fluxd=0.
           do l=lm,1,-1          ! loop down

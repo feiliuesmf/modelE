@@ -47,7 +47,7 @@
 #endif
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only: NACTC,NAERC
+      USE CLOUDS_COM, only: NACTC,NAERC
       USE AERO_CONFIG, only: NMODES
 #endif
 #endif
@@ -521,16 +521,6 @@ c for sulfur chemistry
 #ifdef BLK_2MOM
 #ifdef TRACERS_AMP
       real*8                    :: ncaero (nmodes)
-C** To get the model to work with right dependencies uncomment the following declaration
-C** and for nactc dimension declaration
-CC* Comment the stmt in MODULE CLOUDS beginning part  USE AMP_AEROSOL, only: NACTC,NAERC
-C** Once you save the right dependency (cp amp_aerosol.mod amp_aerosol.modsave)
-C** (this needs to be done only once)
-C** recomment the declaration below and for nactc and uncomment the USE AMP_AEROSOL stmt
-C** and after gmake clean vclean
-C** you will need to cp amp_aerosol.modsave as amp_aerosol.mod
-C** This fix is till MATRIX dependencies solved
-c     real*8,dimension(lm,nmodes)   :: naerc
       integer                   ::nm
 #endif
 #endif
@@ -1247,7 +1237,7 @@ C** This is for the old mass to number calculations nc. is
       MNdI = 0.06417127d0
       MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
       MCDNCI=MNdI
-      if(MCDNCW.gt.0.)write(6,*)"Mst CDNC,a",MCDNCW,MNdO,MNdL,L
+c      if(MCDNCW.gt.0.)write(6,*)"Mst CDNC,a",MCDNCW,MNdO,MNdL,L
       if (MCDNCW.le.20.d0) MCDNCW=20.d0     !set min CDNC, sensitivity test
       if (MCDNCW.ge.2000.d0) MCDNCW=2000.d0     !set max CDNC, sensitivity test
 C** Using the Liu and Daum paramet, Nature, 2002, Oct 10, Vol 419

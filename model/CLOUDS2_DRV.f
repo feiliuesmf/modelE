@@ -28,6 +28,11 @@
 #ifdef CLD_AER_CDNC
      *     ,oldnl,oldni,ctem,cd3d,cl3d,ci3d,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+     *      ,NACTC
+#endif
+#endif
      *     ,tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1
      *     ,tls,qls,tmc,qmc,ddm1,airx,lmc
      *     ,ddms,tdn1,qdn1,ddml
@@ -64,7 +69,7 @@
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
       USE AERO_CONFIG, only: NMODES
-      USE AMP_AEROSOL, only: NACTV, NACTC
+      USE AMP_AEROSOL, only: NACTV
 #endif
 #endif
 #ifdef TRACERS_ON

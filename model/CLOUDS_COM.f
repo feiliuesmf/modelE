@@ -68,7 +68,10 @@ C**** variables used (and saved) for gravity wave drag calculations
 
 !@var UKM,VKM arrays for vertical momentum mixing
       REAL*8, dimension(:,:,:,:), allocatable :: UKM,VKM
-
+#ifdef BLK_2MOM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: NACTC      ! = 1.0D-30  ![#/m3](l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: NAERC      ! = 1.0D-30  ![#/m3](l,nmodes)
+#endif
       END MODULE CLOUDS_COM
 
       SUBROUTINE ALLOC_CLOUDS_COM(grid)
@@ -78,6 +81,9 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@ver  1.0
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE MODEL_COM, ONLY : IM,LM
+#ifdef BLK_2MOM
+      USE AERO_CONFIG, ONLY: NMODES
+#endif
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
 #ifdef CLD_AER_CDNC
@@ -87,6 +93,9 @@ C**** variables used (and saved) for gravity wave drag calculations
      *                       TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS,
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
+#ifdef BLK_2MOM
+     *                       ,NACTC,NAERC
+#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -159,6 +168,12 @@ C**** Initialise some output used in dynamics
       LMC(:,:,J_0H:J_1H)=0
       AIRX(:,J_0H:J_1H)=0.
 
+#ifdef BLK_2MOM
+      allocate(  NACTC(LM,nmodes) )
+      NACTC      = 1.0D-30
+      allocate(  NAERC(LM,nmodes) )
+      NAERC      = 1.0D-30
+#endif
       END SUBROUTINE ALLOC_CLOUDS_COM
 
       SUBROUTINE io_clouds(kunit,iaction,ioerr)
