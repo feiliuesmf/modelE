@@ -1610,9 +1610,11 @@ C**** GHAT terms must be zero for consistency with OSOURC
 C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
       DO K=1,KMUV
-        CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
+        IF(LMUV(K).GT.1) THEN
+          CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
 c     *       ,LMIJ,UL0(1,K))
-     *       ,LMUV(K),UL0(1,K))
+     *         ,LMUV(K),UL0(1,K))
+        ENDIF
       END DO
 C**** Enthalpy
       Call OVDIFFS (G0ML(1),AKVG(1),GHATG,DTBYDZ,BYDZ2,DTS,LMIJ,
@@ -1635,8 +1637,10 @@ C**** G,S horizontal slopes are diffused like G,S; after iteration
      *                SYML(1),FLDUM)
 
         DO K=1,KMUV
-          CALL OVDIFF(ULD(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
-     *         ,LMUV(K),ULD0(1,K))
+          IF(LMUV(K).GT.1) THEN
+            CALL OVDIFF(ULD(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
+     *           ,LMUV(K),ULD0(1,K))
+          ENDIF
         END DO
 
       EndIf
