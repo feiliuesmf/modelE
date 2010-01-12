@@ -3,7 +3,7 @@
 #undef TRACERS_WATER
 #endif
 
-      SUBROUTINE OCEANS
+      SUBROUTINE OCEANS_old
 C****
 !@sum  OCEANS integrates ocean source terms and dynamics
 !@auth Gary Russell / Gavin Schmidt
@@ -292,7 +292,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       call OG2IG_uvsurf
 
       RETURN
-      END SUBROUTINE OCEANS
+      END SUBROUTINE OCEANS_old
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
 !@sum init_OCEAN initializes ocean variables
@@ -303,8 +303,9 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE CONSTANT, only : twopi,radius,by3,grav,rhow
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,focean_loc,lmm
-     *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo,s0m,sxmo
-     *     ,symo,szmo,uo,vo,dxypo,ogeoz,dts,dtolf,dto,dtofs,mdyno,msgso
+     *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,gxmo,gymo,gzmo
+     *     ,s0m,sxmo,symo,szmo,uo,vo,uod,vod,dxypo,ogeoz
+     *     ,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
       USE OCEAN, only : nbyzmax,
@@ -615,6 +616,8 @@ C**** Initialize velocity field and slopes of pot. heat and salinity to
 C**** zero
       UO=0
       VO=0
+      UOD=0
+      VOD=0
       GXMO=0
       GYMO=0
       SXMO=0
@@ -855,7 +858,7 @@ C****
 !@auth Gavin Schmidt
 !@ver  1.0
       USE OCEAN, only: scatter_ocean,
-     *      LMO, MO_glob, UO_glob, VO_glob,
+     *      LMO, MO_glob, UO_glob, VO_glob, UOD_glob, VOD_glob,
      *      G0M_glob, GXMO_glob, GYMO_glob, GZMO_glob,
      *      SXMO_glob, SYMO_glob, SZMO_glob,
      *      OGEOZ_glob, OGEOZ_SV_glob,
@@ -943,13 +946,14 @@ C****
 
 
       write (MODULE_HEADER(lhead+1:80),'(a13,i2,a)') 'R8 dim(im,jm,',
-     *   LMO,'):M,U,V,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
+     *   LMO,'):M,U,V,UD,VD,G0,GX,GY,GZ,S0,SX,SY,SZ, OGZ,OGZSV'
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE)            ! output to standard restart file
         call gather_ocean(0) ! mo,uo,vo,g0m,gx-z,s0m,sx-z,ogz's,tr
         if(AM_I_ROOT()) then
-          WRITE (kunit,err=10) MODULE_HEADER,MO_glob,UO_glob,VO_glob
+          WRITE (kunit,err=10) MODULE_HEADER,MO_glob
+     *     ,UO_glob,VO_glob,UOD_glob,VOD_glob
      *     ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
      *     ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
      *     ,OGEOZ_glob,OGEOZ_SV_glob
@@ -1003,7 +1007,8 @@ C****
             if(AM_I_ROOT()) READ (kunit)
           CASE (ioread,irerun,irsfic) ! restarts
            if(AM_I_ROOT()) then
-            READ (kunit,err=10) HEADER,MO_glob,UO_glob,VO_glob
+            READ (kunit,err=10) HEADER,MO_glob
+     *        ,UO_glob,VO_glob,UOD_glob,VOD_glob
      *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
      *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
      *        ,OGEOZ_glob,OGEOZ_SV_glob
@@ -1077,7 +1082,8 @@ C****
            call scatter_ocean (0)  ! mo,uo,vo,g0m,x-z,s0m,x-z,ogz's,tr
           CASE (irsficnt) ! restarts (never any tracer data)
            if(AM_I_ROOT()) then
-            READ (kunit,err=10) HEADER,MO_glob,UO_glob,VO_glob
+            READ (kunit,err=10) HEADER,MO_glob
+     *        ,UO_glob,VO_glob,UOD_glob,VOD_glob
      *        ,G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob
      *        ,S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
      *        ,OGEOZ_glob,OGEOZ_SV_glob
@@ -1130,6 +1136,8 @@ C****
       call defvar(grid,fid,mo,'mo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,uo,'uo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,vo,'vo(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,uod,'uod(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,vod,'vod(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,g0m,'g0m(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,gxmo,'gxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,gymo,'gymo(dist_imo,dist_jmo,lmo)')
@@ -1188,6 +1196,8 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'mo',mo)
         call write_dist_data(grid,fid,'uo',uo)
         call write_dist_data(grid,fid,'vo',vo)
+        call write_dist_data(grid,fid,'uod',uod)
+        call write_dist_data(grid,fid,'vod',vod)
         call write_dist_data(grid,fid,'g0m',g0m)
         call write_dist_data(grid,fid,'gxmo',gxmo)
         call write_dist_data(grid,fid,'gymo',gymo)
@@ -1229,6 +1239,8 @@ c tracer arrays in straits
         call read_dist_data(grid,fid,'mo',mo)
         call read_dist_data(grid,fid,'uo',uo)
         call read_dist_data(grid,fid,'vo',vo)
+        call read_dist_data(grid,fid,'uod',uod)
+        call read_dist_data(grid,fid,'vod',vod)
         call read_dist_data(grid,fid,'g0m',g0m)
         call read_dist_data(grid,fid,'gxmo',gxmo)
         call read_dist_data(grid,fid,'gymo',gymo)

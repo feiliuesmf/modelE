@@ -1,20 +1,23 @@
 #include "rundeck_opts.h"
 
+!#define LUS_VERT_ADV
+
 c Will add more documentation if this version becomes the modelE default.
 
-      SUBROUTINE OCEANS2
+      SUBROUTINE OCEANS
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : idacc,modd5s,msurf
+      USE MODEL_COM, only : idacc,modd5s,msurf,itime
       USE OCEANRES, only : NOCEAN
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VO,VONP,IVNP, ! VOSP,IVSP,
-     *    OBottom_drag,OCoastal_drag
+     *    OBottom_drag,OCoastal_drag,uod,vod,lmu,lmv
       USE OCEAN, only :
      &     nbyzm,nbyzu,nbyzv, i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT, halo_update
+      USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT, halo_update,
+     &     south,north
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
@@ -37,11 +40,12 @@ C****
 #endif
 
       IMPLICIT NONE
-      Integer*4 I,J,L,N,NS,NO,NEVEN ; real*8 now
+      Integer*4 I,J,L,N,NS,NST,NO,NEVEN ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
-     &     MO1,MO2, UO1,UO2, VO1,VO2
+     &     MO1,MO2, UO1,UO2,UOD1,UOD2, VO1,VO2,VOD1,VOD2
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     OPBOT1,OPBOT2
+      real*8 :: relfac,dt_odiff
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
@@ -75,7 +79,7 @@ C**** Add ocean biology
 
 
 C**** Apply ice/ocean and air/ocean stress to ocean
-      CALL OSTRES
+      CALL OSTRES2
          CALL CHECKO('OSTRES')
          CALL TIMER (NOW,MSURF)
          IF (MODD5S == 0) CALL DIAGCA (11)
@@ -85,17 +89,58 @@ C**** Apply ocean vertical mixing
          CALL CHECKO('OCONV ')
 
 C**** Apply bottom and coastal drags
-      if (OBottom_drag  == 1) CALL OBDRAG
+      if (OBottom_drag  == 1) CALL OBDRAG2
       if (OCoastal_drag == 1) CALL OCOAST
          CALL TIMER (NOW,MSGSO)
+
+c relax UOD,VOD toward 4-pt avgs of UO,VO
+      call halo_update(grid,uo,from=north)
+      call halo_update(grid,vo,from=south)
+      relfac = .005d0
+      do l=1,lmo
+        do j=j_0s,min(jm-2,j_1s)
+          i=1
+          if(l.le.lmv(i,j)) then
+            uod(i,j,l) = (1.-relfac)*uod(i,j,l) + relfac*.25*(
+     &           uo(im,j,l)+uo(i,j,l)+uo(im,j+1,l)+uo(i,j+1,l)
+     &           )
+          endif
+          do n=1,nbyzv(j,l)
+            do i=max(2,i1yzv(n,j,l)),i2yzv(n,j,l)
+              uod(i,j,l) = (1.-relfac)*uod(i,j,l) + relfac*.25*(
+     &             uo(i-1,j,l)+uo(i,j,l)+uo(i-1,j+1,l)+uo(i,j+1,l)
+     &             )
+            enddo
+          enddo
+        enddo
+        do j=j_0s,j_1s
+          do n=1,nbyzu(j,l)
+            do i=i1yzu(n,j,l),min(im-1,i2yzu(n,j,l))
+              vod(i,j,l) = (1.-relfac)*vod(i,j,l) + relfac*.25*(
+     &             vo(i,j-1,l)+vo(i+1,j-1,l)+vo(i,j,l)+vo(i+1,j,l)
+     &             )
+            enddo
+          enddo
+          i=im
+          if(l.le.lmu(i,j)) then
+            vod(i,j,l) = (1.-relfac)*vod(i,j,l) + relfac*.25*(
+     &           vo(i,j-1,l)+vo(1,j-1,l)+vo(i,j,l)+vo(1,j,l)
+     &           )
+          endif
+        enddo
+      enddo
 
       DO L=1,LMO
         MO1(:,:,L) = 0
         UO1(:,:,L) = 0
         VO1(:,:,L) = 0
+        UOD1(:,:,L) = 0
+        VOD1(:,:,L) = 0
         MO2(:,:,L) = 0
         UO2(:,:,L) = 0
         VO2(:,:,L) = 0
+        UOD2(:,:,L) = 0
+        VOD2(:,:,L) = 0
       EndDo
 
 C****
@@ -126,12 +171,16 @@ c        SMW(:,J_0:J_1H,L) = 0 ! not summed
             do i=i1yzu(n,j,l),i2yzu(n,j,l)
               uo1(i,j,l) = uo(i,j,l)
               uo2(i,j,l) = uo(i,j,l)
+              vod1(i,j,l) = vod(i,j,l)
+              vod2(i,j,l) = vod(i,j,l)
             enddo
           enddo
           do n=1,nbyzv(j,l)
             do i=i1yzv(n,j,l),i2yzv(n,j,l)
               vo1(i,j,l) = vo(i,j,l)
               vo2(i,j,l) = vo(i,j,l)
+              uod1(i,j,l) = uod(i,j,l)
+              uod2(i,j,l) = uod(i,j,l)
             enddo
           enddo
         enddo
@@ -157,16 +206,20 @@ c
 c advance the short-timestep horizontal dynamics
 c
 c initialize the odd state
-      Call ODHORZ(MO,UO,VO,OPBOT, MO2,UO2,VO2,OPBOT2, DTOFS,.false.)
-      Call ODHORZ(MO2,UO2,VO2,OPBOT2, MO1,UO1,VO1,OPBOT1, DTO,.false.)
+      Call ODHORZ(MO ,UO ,VO ,UOD ,VOD ,OPBOT ,
+     &            MO2,UO2,VO2,UOD2,VOD2,OPBOT2, DTOFS,.false.)
+      Call ODHORZ(MO2,UO2,VO2,UOD2,VOD2,OPBOT2,
+     &            MO1,UO1,VO1,UOD1,VOD1,OPBOT1, DTO,.false.)
 c loop over the leapfrog steps
       neven = NDYNO / (2*NOCEAN)
       do n=1,neven
 c update the even state
-        Call ODHORZ(MO1,UO1,VO1,OPBOT1, MO,UO,VO,OPBOT, DTOLF,.true.)
+        Call ODHORZ(MO1,UO1,VO1,UOD1,VOD1,OPBOT1,
+     &              MO ,UO ,VO ,UOD ,VOD ,OPBOT , DTOLF,.true.)
         if(n == neven) exit ! no need to further update the odd state
 c update the odd state
-        Call ODHORZ(MO,UO,VO,OPBOT, MO1,UO1,VO1,OPBOT1, DTOLF,.false.)
+        Call ODHORZ(MO ,UO ,VO ,UOD ,VOD ,OPBOT ,
+     &              MO1,UO1,VO1,UOD1,VOD1,OPBOT1, DTOLF,.false.)
       enddo
 
 c is this still needed?
@@ -246,8 +299,8 @@ c
 C****
 C**** Acceleration and advection of tracers through ocean straits
 C****
-        CALL STPGF(DTS/NOCEAN)
-        CALL STADV(DTS/NOCEAN)
+          CALL STPGF(DTS/NOCEAN)
+          CALL STADV(DTS/NOCEAN)
           CALL CHECKO_serial ('STADV0')
         IF (NO .EQ. NOCEAN) THEN
           CALL STCONV
@@ -269,10 +322,14 @@ c
       CALL ODHORZ0
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
-      CALL ODIFF(DTS)
-      CALL OABFILx ! binomial filter
-      CALL OABFILy ! binomial filter
-      CALL CHECKO ('ODIFF0')
+C**** every 3 hours
+      dt_odiff = 3.*3600.
+      if(mod(itime,int(dt_odiff/dts)).eq.0) then
+        CALL ODIFF(dt_odiff)
+      endif
+c      CALL OABFILx ! binomial filter
+c      CALL OABFILy ! binomial filter
+c      CALL CHECKO ('ODIFF0')
 
 C**** Apply GM + Redi tracer fluxes
       CALL GMKDIF
@@ -303,7 +360,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       call OG2IG_uvsurf
 
       RETURN
-      END SUBROUTINE OCEANS2
+      END SUBROUTINE OCEANS
 
       Subroutine OFLUXV
       use constant, only : grav
@@ -646,7 +703,8 @@ C**** Copy X to temporary array Y and filter X in place.
       Return
       EndSubroutine OPFIL2
 
-      Subroutine ODHORZ(MOH,UOH,VOH,OPBOTH, MO,UO,VO,OPBOT, DT,qeven)
+      Subroutine ODHORZ(MOH,UOH,VOH,UODH,VODH,OPBOTH,
+     &                  MO ,UO ,VO ,UOD ,VOD ,OPBOT, DT,qeven)
       Use CONSTANT, Only: GRAV,omega
       Use OCEAN, Only: IM,JM,LMO,
      *                 LMOM=>LMM,LMOU=>LMU,LMOV=>LMV,
@@ -661,22 +719,24 @@ C**** Copy X to temporary array Y and filter X in place.
       Implicit None
       Real*8, Intent(In),
      &     Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
-     &     MOH,UOH,VOH
+     &     MOH,UOH,VOH,UODH,VODH
       Real*8, Intent(In),
      &     Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OPBOTH
       Real*8, Intent(Inout),
-     &  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) :: MO,UO,VO
+     &  Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
+     &     MO,UO,VO,UOD,VOD
       Real*8, Intent(Inout),
      &     Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: OPBOT
       Real*8,Intent(In) :: DT
       Logical, Intent(In) :: qeven
 c
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     ZG,P,PDN,DH,KE,VORT,UA,VA,USMOOTH,PGFX,MU,MV
-      Real*8 corofj,mufac,mvfac,bydx,bydy,mmid,xeven,vatu,uatv,
-     &     convij,convfac,pgfy,dp,absvort,uasmooth
+     &     ZG,P,PDN,DH,USMOOTH,PGFX,PGFY,MU,MV,UA,VA,VORT,KE
+      Real*8 corofj,mufac,mvfac,bydx,bydy,mmid,xeven,
+     &     convij,convfac,dp,pgf4pt,pgfac,uq,vq,uasmooth
       Integer*4 I,J,L, J1,JN,J1P,JNP,J1H,JNH, j1a, jminpfu,jmaxpfu, N
       Logical QNP
+
 C****
 C**** Extract domain decomposition band parameters
 C**** ASSUME THAT J1 NEVER EQUALS 2 AND JN NEVER EQUALS JM-1
@@ -701,7 +761,7 @@ C****                          Band1  Band2  BandM
 c
 c initialize pressure and geopotential at the ocean bottom
 c
-      do j=j1,jnh
+      do j=j1h,jnh
         do n=1,nbyzm(j,1)
           do i=i1yzm(n,j,1),i2yzm(n,j,1)
             pdn(i,j) = opboth(i,j)
@@ -716,6 +776,7 @@ c
       mu(:,:) = 0.
       mv(:,:) = 0.
       pgfx(:,:) = 0.
+      pgfy(:,:) = 0.
       vort(:,:) = 0.
 
 c
@@ -741,7 +802,7 @@ C**** Apply polar filter to West-East velocity
 c
 c calculate pressure, geopotential, and kinetic energy
 c
-      do j=j1,jnh
+      do j=j1h,jnh
         i = 1
         if(l <= lmom(i,j)) then
           dp = moh(i,j,l)*grav
@@ -750,10 +811,6 @@ c
           zg(i,j) = ogeoz(i,j) + dp*.5*dzgdp(i,j,l)
           pdn(i,j) = pdn(i,j) - dp
           ogeoz(i,j) = ogeoz(i,j) + dh(i,j)*grav
-          uasmooth = .5*(usmooth(im,j)+usmooth(i,j))
-          ua(i,j) = .5*(uoh(im,j,l)+uoh(i,j,l))
-          va(i,j) = .5*(voh(i,j-1,l)+voh(i,j,l))
-          ke(i,j) = .5*(ua(i,j)*uasmooth + va(i,j)**2)
         endif
         do n=1,nbyzm(j,l)
           do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
@@ -763,6 +820,19 @@ c
             zg(i,j) = ogeoz(i,j) + dp*.5*dzgdp(i,j,l)
             pdn(i,j) = pdn(i,j) - dp
             ogeoz(i,j) = ogeoz(i,j) + dh(i,j)*grav
+          enddo
+        enddo
+      enddo
+      do j=j1,jnh
+        i = 1
+        if(l <= lmom(i,j)) then
+          uasmooth = .5*(usmooth(im,j)+usmooth(i,j))
+          ua(i,j) = .5*(uoh(im,j,l)+uoh(i,j,l))
+          va(i,j) = .5*(voh(i,j-1,l)+voh(i,j,l))
+          ke(i,j) = .5*(ua(i,j)*uasmooth + va(i,j)**2)
+        endif
+        do n=1,nbyzm(j,l)
+          do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
             uasmooth = .5*(usmooth(i-1,j)+usmooth(i,j))
             ua(i,j) = .5*(uoh(i-1,j,l)+uoh(i,j,l))
             va(i,j) = .5*(voh(i,j-1,l)+voh(i,j,l))
@@ -786,9 +856,54 @@ c
       endif
 
 c
+c store, and smooth, the east-west pressure gradient
+c
+      DO J=J1P,JMAXpfu
+        mufac = .5*dypo(j)
+        bydx = 1d0/dxpo(j)
+        do n=1,nbyzu(j,l)
+          do i=i1yzu(n,j,l),min(im-1,i2yzu(n,j,l))
+            mmid = MOH(I,J,L)+MOH(I+1,J,L)
+            MU(I,J) = mufac*usmooth(i,j)*mmid
+            SMU(I,J,L) = SMU(I,J,L) + MU(I,J)*xeven
+            pgfx(i,j) =
+     &           (ZG(I,J)-ZG(I+1,J))+(P(I,J)-P(I+1,J))*
+     &           (dH(I,J)+dH(I+1,J))/mmid
+            pgfx(i,j) = pgfx(i,j)*bydx
+          enddo
+        enddo
+        I=IM
+        if(l <= lmou(i,j)) then
+          mmid = MOH(I,J,L)+MOH(1,J,L)
+          MU(I,J) = mufac*usmooth(i,j)*mmid
+          SMU(I,J,L) = SMU(I,J,L) + MU(I,J)*xeven
+          pgfx(i,j) =
+     &         (ZG(I,J)-ZG(1,J))+(P(I,J)-P(1,J))*
+     &         (dH(I,J)+dH(1,J))/mmid
+          pgfx(i,j) = pgfx(i,j)*bydx
+        endif
+      ENDDO
+      if(any(nbyzu(j1p:JMAXpfu,l).gt.0)) then
+        Call OPFIL2(pgfx,l,J1P,JMAXpfu)
+      endif
+
+      do j=j1p-1,jnp
+        bydy = 1d0/dyvo(j)
+        if(j == jm-1) bydy = bydy*2./3.
+        do n=1,nbyzv(j,l)
+          do i=i1yzv(n,j,l),i2yzv(n,j,l)
+            mmid = (moh(i,j,l)+moh(i,j+1,l))
+            pgfy(i,j) = (ZG(I,J)-ZG(I,J+1))+(P(I,J)-P(I,J+1))*
+     &             (dH(I,J)+dH(I,J+1))/mmid
+            pgfy(i,j) = pgfy(i,j)*bydy
+          enddo
+        enddo
+      enddo
+
+c
 c calculate vorticity at cell corners
 c
-      do j=j1p-1,jnp
+      do j=j1p-1,jnp  ! merge with pgfy loop
         do n=1,nbyzc(j,l)
           do i=i1yzc(n,j,l),min(im-1,i2yzc(n,j,l))
             vort(i,j) = (dxpo(j)*usmooth(i,j)-dxpo(j+1)*usmooth(i,j+1)
@@ -801,59 +916,34 @@ c
       enddo
 
 c
-c store, and smooth, the east-west pressure gradient
-c
-      DO J=J1P,JNP
-        mufac = .5*dypo(j)
-        do n=1,nbyzu(j,l)
-          do i=i1yzu(n,j,l),min(im-1,i2yzu(n,j,l))
-            mmid = MOH(I,J,L)+MOH(I+1,J,L)
-            MU(I,J) = mufac*usmooth(i,j)*mmid
-            SMU(I,J,L) = SMU(I,J,L) + MU(I,J)*xeven
-            pgfx(i,j) =
-     &           (ZG(I,J)-ZG(I+1,J))+(P(I,J)-P(I+1,J))*
-     &           (dH(I,J)+dH(I+1,J))/mmid
-          enddo
-        enddo
-        I=IM
-        if(l <= lmou(i,j)) then
-          mmid = MOH(I,J,L)+MOH(1,J,L)
-          MU(I,J) = mufac*usmooth(i,j)*mmid
-          SMU(I,J,L) = SMU(I,J,L) + MU(I,J)*xeven
-          pgfx(i,j) =
-     &         (ZG(I,J)-ZG(1,J))+(P(I,J)-P(1,J))*
-     &         (dH(I,J)+dH(1,J))/mmid
-        endif
-      ENDDO
-      if(any(nbyzu(j1p:jnp,l).gt.0)) then
-        Call OPFIL2(pgfx,l,J1P,JNP)
-      endif
-
-c
-c update UO
+c update UO, VOD
 c
       Do J=J1P,JNP
         bydx = 1d0/dxpo(j)
         corofj = 2.*omega*sinpo(j)
         do n=1,nbyzu(j,l)
           do i=i1yzu(n,j,l),min(im-1,i2yzu(n,j,l))
-            absvort = corofj + .5*(vort(i,j-1)+vort(i,j))
-            vatu = .5*(va(i,j)+va(i+1,j))
+            vq = .25*(va(i,j)+va(i+1,j))*(vort(i,j-1)+vort(i,j))
             uo(i,j,l) = uo(i,j,l) + dt*(
-     &           bydx*(pgfx(i,j)+ke(i,j)-ke(i+1,j)) +vatu*absvort)
+     &           pgfx(i,j) +(ke(i,j)-ke(i+1,j))*bydx
+     &           +vodh(i,j,l)*corofj + vq)
+            pgf4pt=.25*(pgfy(i,j)+pgfy(i+1,j)+pgfy(i,j-1)+pgfy(i+1,j-1))
+            vod(i,j,l) = vod(i,j,l) + dt*(pgf4pt - uoh(i,j,l)*corofj)
           enddo
         enddo
         i = im
         if(l <= lmou(i,j)) then
-          absvort = corofj + .5*(vort(i,j-1)+vort(i,j))
-          vatu = .5*(va(i,j)+va(1,j))
+          vq = .25*(va(i,j)+va(1,j))*(vort(i,j-1)+vort(i,j))
           uo(i,j,l) = uo(i,j,l) + dt*(
-     &         bydx*(pgfx(i,j)+ke(i,j)-ke(1,j)) +vatu*absvort)
+     &         pgfx(i,j) +(ke(i,j)-ke(1,j))*bydx
+     &         +vodh(i,j,l)*corofj + vq)
+          pgf4pt = .25*(pgfy(i,j)+pgfy(1,j)+pgfy(i,j-1)+pgfy(1,j-1))
+          vod(i,j,l) = vod(i,j,l) + dt*(pgf4pt - uoh(i,j,l)*corofj)
         endif
       enddo
 
 c
-c update VO
+c update VO, UOD
 c
 
       do j=j1h,jnp
@@ -861,29 +951,33 @@ c
         if(j == jm-1) bydy = bydy*2./3.
         corofj = 2.*omega*sinvo(j)
         mvfac = .5*dxvo(j)
+        pgfac = .25
+        if(j == jm-1) pgfac = .5
         i = 1
         if(l <= lmov(i,j)) then
           mmid = (moh(i,j,l)+moh(i,j+1,l))
           mv(i,j) = mvfac*voh(i,j,l)*mmid
           smv(i,j,l) = smv(i,j,l) + mv(i,j)*xeven
-          absvort = corofj + .5*(vort(im,j)+vort(i,j))
-          uatv = .5*(ua(i,j)+ua(i,j+1))
-          pgfy = (ZG(I,J)-ZG(I,J+1))+(P(I,J)-P(I,J+1))*
-     &           (dH(I,J)+dH(I,J+1))/mmid
+          uq = .25*(ua(i,j)+ua(i,j+1))*(vort(im,j)+vort(i,j))
           vo(i,j,l) = vo(i,j,l) + dt*(
-     &         bydy*(pgfy+ke(i,j)-ke(i,j+1)) -uatv*absvort)
+     &         pgfy(i,j) +(ke(i,j)-ke(i,j+1))*bydy
+     &         -uodh(i,j,l)*corofj -uq)
+          pgf4pt = pgfac*
+     &         (pgfx(im,j)+pgfx(i,j)+pgfx(im,j+1)+pgfx(i,j+1))
+          uod(i,j,l) = uod(i,j,l) + dt*(pgf4pt + voh(i,j,l)*corofj)
         endif
         do n=1,nbyzv(j,l)
           do i=max(2,i1yzv(n,j,l)),i2yzv(n,j,l)
             mmid = (moh(i,j,l)+moh(i,j+1,l))
             mv(i,j) = mvfac*voh(i,j,l)*mmid
             smv(i,j,l) = smv(i,j,l) + mv(i,j)*xeven
-            absvort = corofj + .5*(vort(i-1,j)+vort(i,j))
-            uatv = .5*(ua(i,j)+ua(i,j+1))
-            pgfy = (ZG(I,J)-ZG(I,J+1))+(P(I,J)-P(I,J+1))*
-     &             (dH(I,J)+dH(I,J+1))/mmid
+            uq = .25*(ua(i,j)+ua(i,j+1))*(vort(i-1,j)+vort(i,j))
             vo(i,j,l) = vo(i,j,l) + dt*(
-     &           bydy*(pgfy+ke(i,j)-ke(i,j+1)) -uatv*absvort)
+     &           pgfy(i,j) +(ke(i,j)-ke(i,j+1))*bydy
+     &           -uodh(i,j,l)*corofj -uq)
+            pgf4pt = pgfac*
+     &           (pgfx(i-1,j)+pgfx(i,j)+pgfx(i-1,j+1)+pgfx(i,j+1))
+            uod(i,j,l) = uod(i,j,l) + dt*(pgf4pt + voh(i,j,l)*corofj)
           enddo
         enddo
       enddo
@@ -900,9 +994,11 @@ c
       Do J=J1P,JNP
         convfac = dt/dxypo(j)
         i = 1
-        convij = convfac*(MU(IM ,J)-MU(I,J) + MV(I,J-1)-MV(I,J))
-        mo(i,j,l) = mo(i,j,l) + convij
-        opbot(i,j) = opbot(i,j) + convij*grav
+        if(l <= lmom(i,j)) then
+          convij = convfac*(MU(IM ,J)-MU(I,J) + MV(I,J-1)-MV(I,J))
+          mo(i,j,l) = mo(i,j,l) + convij
+          opbot(i,j) = opbot(i,j) + convij*grav
+        endif
         do n=1,nbyzm(j,l)
           do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
             convij = convfac*(MU(I-1,J)-MU(I,J) +MV(I,J-1)-MV(I,J))
@@ -989,7 +1085,7 @@ C****
 
       Implicit None
       Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
-      Integer*4 I,J,L, J1,JN,J1A,JNH, N
+      Integer*4 I,J,L, J1,J1H,JN,J1A,JNH, N
       Logical :: QNP
       Real*8,External   :: VOLGSP
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
@@ -999,21 +1095,22 @@ C****
 C**** Extract domain decomposition band parameters
 C****                          Band1  Band2  BandM
       J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
+      J1H = Max(J1-1,1)     !    1      4     JM-4   Halo minimum
       JN  = GRID%J_STOP     !    4      8     JM     Band maximum
       JNH = Min(JN+1,JM)    !    5      9     JM     Halo maximum
       QNP = JN==JM          !    F      F      T
       j1a = grid%j_strt_halo
 
 C****
-      Call HALO_UPDATE (GRID, G0M, FROM=NORTH)
-      Call HALO_UPDATE (GRID, GZM, FROM=NORTH)
-      Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
-      Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
+      Call HALO_UPDATE (GRID, G0M)
+      Call HALO_UPDATE (GRID, GZM)
+      Call HALO_UPDATE (GRID, S0M)
+      Call HALO_UPDATE (GRID, SZM)
 
 C**** Calculate pressure by integrating from the top down
-      Call HALO_UPDATE (GRID,OPRESS,FROM=NORTH)
+      Call HALO_UPDATE (GRID,OPRESS)
       l=1
-      do j=j1,jnh
+      do j=j1h,jnh
         do n=1,nbyzm(j,l)
           do i=i1yzm(n,j,l),i2yzm(n,j,l)
             opbot(i,j) = OPRESS(I,J)
@@ -1021,7 +1118,7 @@ C**** Calculate pressure by integrating from the top down
         enddo
       enddo
       do l=1,lmo
-      do j=j1,jnh
+      do j=j1h,jnh
         do n=1,nbyzm(j,l)
           do i=i1yzm(n,j,l),i2yzm(n,j,l)
             P(I,J,L) = opbot(i,j)  + MO(I,J,L)*GRAV*.5
@@ -1033,7 +1130,7 @@ C**** Calculate pressure by integrating from the top down
 
 C****
       do l=lmo,1,-1
-        Do J=J1,JNH
+        Do J=J1H,JNH
           do n=1,nbyzm(j,l)
             do i=i1yzm(n,j,l),i2yzm(n,j,l)
               MMI(I,J,L) = MO(I,J,L)*DXYPO(J)
@@ -1546,19 +1643,25 @@ C****
       LOGICAL, INTENT(IN) :: QLIMIT
 c
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     CMUP,FMUP,FXUP,FYUP,FZUP
-      REAL*8 :: CM,C,FM,FX,FY,FZ,MNEW,rzlimit
-      INTEGER :: I,J,L,N
+     &     CMUP,FMUP,FXUP,FYUP,FZUP,FMUP_ctr
+      REAL*8 :: CM,C,FM,FX,FY,FZ,MNEW,rzlim,no_rzlim
+      real*8 :: fm_ctr,r_edge,wtdn,rdn,rup
+c Applied when qlimit is true, edgmax is the maximum allowed ratio of
+c r_edge to gridbox-mean r.  edgmax = 2 can be used if there is never
+c flow out of the bottom and top edges simultaneously.
+      real*8, parameter :: edgmax=1.5
+      INTEGER :: I,J,L,N,LDN
 
       INTEGER :: J_0,J_1
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
 
       if(qlimit) then
-        rzlimit = 1d0
+        rzlim = 1d0
       else
-        rzlimit = 0d0
+        rzlim = 0d0
       endif
+      no_rzlim = 1d0-rzlim
 
       do j=j_0,j_1
         do n=1,nbyzm(j,1)
@@ -1568,6 +1671,7 @@ c
             fxup(i,j) = 0.
             fyup(i,j) = 0.
             fzup(i,j) = 0.
+            fmup_ctr(i,j) = 0.
           enddo
         enddo
       enddo
@@ -1577,26 +1681,38 @@ c
           do n=1,nbyzm(j,l)
             do i=i1yzm(n,j,l),i2yzm(n,j,l)
               CM = DT*MW(I,J,L)
+              ldn = min(l+1,lmm(i,j))
+              wtdn = mo(i,j,l)/(mo(i,j,l)+mo(i,j,ldn)) ! use dzo instead?
+              rdn = rm(i,j,ldn)/mo(i,j,ldn)
+              rup = rm(i,j,l  )/mo(i,j,l  )
+              R_edge = wtdn*rdn+(1.-wtdn)*rup
               if(cm.ge.0.) then ! mass flux is downward or zero
                 C  = CM/MO(I,J,L)
                 IF(C.GT.1d0)  WRITE (6,*) 'C>1:',I,J,L,C,MO(I,J,L)
-                rz(i,j,l) = rz(i,j,l)-rzlimit*sign(min(0d0,
+                rz(i,j,l) = rz(i,j,l)-rzlim*sign(min(0d0,
      &               rm(i,j,l)-abs(rz(i,j,l))),rz(i,j,l))
                 FM = C*(RM(I,J,L)+(1d0-C)*RZ(I,J,L))
                 FX = C*RX(I,J,L)
                 FY = C*RY(I,J,L)
                 FZ = CM*(C*C*RZ(I,J,L)-3d0*FM)
+                R_edge = R_edge*no_rzlim+rzlim*min(R_edge,edgmax*rup)
+                fm_ctr = cm*(c*rup + (1.-c)*r_edge)
               else              ! mass flux is upward
                 C  = CM/MO(I,J,L+1)
                 IF(C.LT.-1d0)  WRITE (6,*) 'C<-1:',I,J,L,C,MO(I,J,L+1)
-                rz(i,j,l+1) = rz(i,j,l+1)-rzlimit*sign(min(0d0,
+                rz(i,j,l+1) = rz(i,j,l+1)-rzlim*sign(min(0d0,
      &               rm(i,j,l+1)-abs(rz(i,j,l+1))),rz(i,j,l+1))
                 FM = C*(RM(I,J,L+1)-(1d0+C)*RZ(I,J,L+1))
                 FX = C*RX(I,J,L+1)
                 FY = C*RY(I,J,L+1)
                 FZ = CM*(C*C*RZ(I,J,L+1)-3d0*FM)
+                R_edge = R_edge*no_rzlim+rzlim*min(R_edge,edgmax*rdn)
+                fm_ctr = cm*(-c*rdn + (1.+c)*r_edge)
               endif
-              RM(I,J,L) = RM(I,J,L) + (FMUP(I,J)-FM)
+#ifdef LUS_VERT_ADV
+              fm_ctr = fm
+#endif
+              RM(I,J,L) = RM(I,J,L) + (FMUP_ctr(I,J)-FM_ctr)
               mnew = MO(I,J,L) + CMUP(I,J)-CM
               RZ(I,J,L) = (RZ(I,J,L)*MO(I,J,L) + (FZUP(I,J)-FZ) +3d0*
      &             +((CMUP(I,J)+CM)*RM(I,J,L)-MO(I,J,L)*(FMUP(I,J)+FM)))
@@ -1604,12 +1720,13 @@ c
               MO(I,J,L) = mnew
               cmup(i,j) = cm
               fmup(i,j) = fm
+              fmup_ctr(i,j) = fm_ctr
               fzup(i,j) = fz
               RX(I,J,L) = RX(I,J,L) + (FXUP(I,J)-FX)
               fxup(i,j) = fx
               RY(I,J,L) = RY(I,J,L) + (FYUP(I,J)-FY)
               fyup(i,j) = fy
-              OIJL(I,J,L) = OIJL(I,J,L) + FM
+              OIJL(I,J,L) = OIJL(I,J,L) + FM_ctr
             enddo
           enddo
         enddo
@@ -1626,9 +1743,9 @@ c simplest upstream scheme, for vertical direction
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: R
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: R,M
       REAL*8, INTENT(IN),
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: M,MW
+     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MW
       REAL*8, INTENT(IN) :: DT
       INTEGER, INTENT(IN) :: jmin,jmax
       INTEGER, INTENT(IN),
@@ -1663,9 +1780,167 @@ c
               R(I,J,L) = (R(I,J,L)*M(I,J,L) + (FMUP(I,J)-FM))/mnew
               cmup(i,j) = cm
               fmup(i,j) = fm
+              M(I,J,L) = mnew
             enddo
           enddo
         enddo
       enddo
       return
       END SUBROUTINE OADVUZ
+
+      SUBROUTINE OSTRES2
+!@sum OSTRES applies the atmospheric surface stress over open ocean
+!@sum and the sea ice stress to the layer 1 ocean velocities
+!@auth Gary Russell
+!@ver  1.0
+
+      USE OCEAN, only : IMO=>IM,JMO=>JM
+     *     , IVNP, UO,VO, UOD,VOD, MO,DXYSO,DXYNO,DXYVO
+     *     , LMU,LMV, COSIC,SINIC
+
+      USE DOMAIN_DECOMP_1D, only : get, halo_update, north,south
+
+      USE OCEANR_DIM, only : ogrid
+
+      USE OFLUXES, only : oDMUA,oDMVA, oDMUI,oDMVI
+
+      IMPLICIT NONE
+      INTEGER I,J,IM1,IP1
+
+C****
+C**** All stress now defined for whole box, not just ocn or ice fraction
+C**** FLUXCB  DMUA(1)  U momentum downward into open ocean (kg/m*s)
+C****         DMVA(1)  V momentum downward into open ocean (kg/m*s)
+C****         DMUA(2,JM,1)  polar atmo. mass slowed to zero (kg/m**2)
+C****         DMUI     U momentum downward from sea ice (kg/m*s)
+C****         DMVI     V momentum downward from sea ice (kg/m*s)
+
+      integer :: J_0, J_1, J_0S, J_1S  ; logical :: have_north_pole
+
+      call get (ogrid, J_STRT=J_0, J_STOP=J_1,
+     *                 J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
+     *                 have_north_pole=have_north_pole)
+
+C****
+C**** Surface stress is applied to U component
+C****
+      DO J=J_0S,J_1S
+      I=IMO
+      DO IP1=1,IMO
+        IF(LMU(I,J).gt.0.)  UO(I,J,1) = UO(I,J,1) +
+     *       (oDMUA(I,J,1) + oDMUA(IP1,J,1) + 2d0*oDMUI(I,J)) /
+     *       (  MO(I,J,1) +   MO(IP1,J,1))
+        I=IP1
+      END DO
+      END DO
+      if (have_north_pole) then
+        UO(IMO ,JMO,1) = UO(IMO ,JMO,1) + oDMUA(1,JMO,1)/MO(1,JMO,1)
+        UO(IVNP,JMO,1) = UO(IVNP,JMO,1) + oDMVA(1,JMO,1)/MO(1,JMO,1)
+      end if
+      call halo_update(ogrid, odmvi, from=south)
+      DO J=J_0S,J_1S
+        I=IMO
+        DO IP1=1,IMO
+          IF(LMU(I,J).gt.0.) THEN
+            VOD(I,J,1) = VOD(I,J,1) + (
+     *           oDMVA(I,J,1)+oDMVA(IP1,J,1)
+     *        +.5*(oDMVI(I,J-1)+oDMVI(IP1,J-1)+oDMVI(I,J)+oDMVI(IP1,J))
+     *           )/(MO(I,J,1)+MO(IP1,J,1))
+          ENDIF
+          I=IP1
+        END DO
+      END DO
+C****
+C**** Surface stress is applied to V component
+C****
+      call halo_update(ogrid, odmva, from=north)
+      call halo_update(ogrid,    mo, from=north)
+      DO J=J_0S,min(J_1S,JMO-2)
+      DO I=1,IMO
+        IF(LMV(I,J).GT.0.)  VO(I,J,1) = VO(I,J,1) +
+     *       (oDMVA(I,J  ,1)*DXYNO(J) + oDMVA(I,J+1,1)*DXYSO(J+1)
+     *      + oDMVI(I,J)*DXYVO(J))  !!  2d0*oDMVI(I,J)*DXYVO(J) - error
+     * / (MO(I,J,1)*DXYNO(J) + MO(I,J+1,1)*DXYSO(J+1))
+      END DO
+      END DO
+C**** Surface stress is applied to V component at the North Pole
+      if (have_north_pole) then
+      DO I=1,IMO
+        VO(I,JMO-1,1) = VO(I,JMO-1,1) +
+     *    (oDMVA(I,JMO-1,1)*DXYNO(JMO-1)+
+     *    (oDMVA(1,JMO,1)*COSIC(I) - oDMUA(1,JMO,1)*SINIC(I))*DXYSO(JMO)
+     *   + oDMVI(I,JMO-1)*DXYVO(JMO-1)) /
+     *  (MO(I,JMO-1,1)*DXYNO(JMO-1) + MO(I,JMO,1)*DXYSO(JMO))
+      END DO
+      end if
+      call halo_update(ogrid, odmua, from=north)
+      call halo_update(ogrid, odmui, from=north)
+      DO J=J_0S,min(J_1S,JMO-2)
+        IM1=IMO
+        DO I=1,IMO
+          IF(LMV(I,J).GT.0.) THEN
+            UOD(I,J,1) = UOD(I,J,1) + (
+     *           oDMUA(I,J,1)+oDMUA(I,J+1,1)
+     *     +.5*(oDMUI(IM1,J)+oDMUI(I,J)+oDMUI(IM1,J+1)+oDMUI(I,J+1))
+     *           )/(MO(I,J,1)+MO(I,J+1,1))
+          ENDIF
+          IM1=I
+        END DO
+      END DO
+      RETURN
+      END SUBROUTINE OSTRES2
+
+      Subroutine OBDRAG2
+!@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
+!@auth Gary Russell
+!@ver  2010/01/08
+      Use OCEAN, Only: IM,JM,LMO,IVNP,J1O, MO,UO,VO,UOD,VOD, LMU,LMV,
+     *                 DTS, COSI=>COSIC,SINI=>SINIC
+      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, SOUTH,NORTH
+      Use OCEANR_DIM,       Only: oGRID
+
+      Implicit None
+      REAL*8, PARAMETER :: BDRAGX=1d0, SDRAGX=1d-1
+      Integer*4 I,IP1,J,L,J1,JN,JNP
+      Real*8    WSQ
+
+C**** Define decomposition band parameters
+      J1 = oGRID%J_STRT
+      JN = oGRID%J_STOP
+      JNP = JN  ;  If(JN==JM) JNP = JM-1
+      
+      Call HALO_UPDATE (oGRID, MO, From=NORTH)
+C****
+C**** Reduce ocean current at east edges of cells
+C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
+C**** 
+      Do J=Max(J1O,J1),JNP
+      I=IM
+      DO IP1=1,IM
+      IF(LMU(I,J) <= 0)  CYCLE
+      L=LMU(I,J)
+      WSQ = UO(I,J,L)**2 + VOD(I,J,L)**2 + 1d-20
+      UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
+     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+      VOD(I,J,L) = VOD(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
+     *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+      I=IP1
+      ENDDO
+      ENDDO
+C****
+C**** Reduce ocean current at north edges of cells
+C****
+      Do J=Max(J1O,J1),JNP
+      DO I=1,IM
+      IF(LMV(I,J) <= 0)  CYCLE
+      L=LMV(I,J)   
+      WSQ = VO(I,J,L)**2 + UOD(I,J,L)**2 + 1d-20
+      VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
+     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0) 
+      UOD(I,J,L) = UOD(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
+     *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
+      ENDDO
+      ENDDO
+      RETURN
+C****
+      END Subroutine OBDRAG2

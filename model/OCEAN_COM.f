@@ -43,13 +43,15 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
 !@var MO mass of ocean (kg/m^2)
 !@var UO E-W velocity on C-grid (m/s)
 !@var VO N-S velocity on C-grid (m/s)
+!@var UOD E-W velocity on D-grid (m/s)
+!@var VOD N-S velocity on D-grid (m/s)
 !@var G0M,GXMO,GYMO,GZMO pot. enthalpy of ocean (+moments) (J)
 !@var S0M,SXMO,SYMO,SZMO salinity of ocean (+moments) (kg)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,UOD,VOD,
      *     G0M,GXMO,GYMO,GZMO, S0M,SXMO,SYMO,SZMO
 C**** Global arrays needed for i/o, GM,straits,odiff ?
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
-     *     MO_glob,UO_glob,VO_glob,
+     *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
 
@@ -149,6 +151,8 @@ c**** icase=0:full i/o, 1:ini_straits, 2:serialized ocn dynamics
       if (icase.ne.1) then      ! needed for i/o and ODIFF only
         CALL PACK_DATA(grid,   UO   ,    UO_glob)
         CALL PACK_DATA(grid,   VO   ,    VO_glob)
+        CALL PACK_DATA(grid,   UOD   ,    UOD_glob)
+        CALL PACK_DATA(grid,   VOD   ,    VOD_glob)
       end if
       if (icase.lt.1) then      ! needed for i/o only
         CALL PACK_DATA(grid,OGEOZ   , OGEOZ_glob)
@@ -192,6 +196,8 @@ c**** icase=-1: i/o no_trc 0:full i/o, 1:ini_straits, 2:serial ocn dyn
       if (icase.lt.1) then            ! needed for i/o only
         CALL UNPACK_DATA(grid,       UO_glob,   UO )
         CALL UNPACK_DATA(grid,       VO_glob,   VO )
+        CALL UNPACK_DATA(grid,       UOD_glob,   UOD )
+        CALL UNPACK_DATA(grid,       VOD_glob,   VOD )
         CALL UNPACK_DATA(grid,    OGEOZ_glob, OGEOZ   )
         CALL UNPACK_DATA(grid, OGEOZ_SV_glob, OGEOZ_SV)
       end if
@@ -374,9 +380,10 @@ C****
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
 
       USE OCEAN, only : MO,UO,VO,G0M,GXMO,GYMO,GZMO, OGEOZ,OGEOZ_SV
+      USE OCEAN, only : UOD,VOD
       USE OCEAN, only :          S0M,SXMO,SYMO,SZMO, OPRESS,OPBOT
       USE OCEAN, only :
-     *     MO_glob,UO_glob,VO_glob,
+     *     MO_glob,UO_glob,VO_glob,UOD_glob,VOD_glob,
      *     G0M_glob,GXMO_glob,GYMO_glob,GZMO_glob,
      *     S0M_glob,SXMO_glob,SYMO_glob,SZMO_glob
       USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG,FOCEAN_loc
@@ -415,6 +422,8 @@ C****
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   VO(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   UOD(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   VOD(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( G0M (IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( GXMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( GYMO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -427,6 +436,8 @@ C****
         ALLOCATE(   MO_glob(IM,JM,LMO), STAT = IER)
         ALLOCATE(   UO_glob(IM,JM,LMO), STAT = IER)
         ALLOCATE(   VO_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   UOD_glob(IM,JM,LMO), STAT = IER)
+        ALLOCATE(   VOD_glob(IM,JM,LMO), STAT = IER)
         ALLOCATE(   G0M_glob(IM,JM,LMO), STAT = IER)
         ALLOCATE(   GXMO_glob(IM,JM,LMO), STAT = IER)
         ALLOCATE(   GYMO_glob(IM,JM,LMO), STAT = IER)

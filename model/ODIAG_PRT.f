@@ -89,9 +89,9 @@ C**** Calculate number of points in average
       WRITE(6,*) " Ocean Mean quantities:"
       WRITE(6,*) " Level   Rho0       Temp    Salinity"
       DO L=1,LMO
-        WRITE(6,'(2X,I4,10F10.3)') L,OL(L,L_RHO)/(4.*NOL(L)*IDACC(1)),
-     *       OL(L,L_TEMP)/(4.*NOL(L)*IDACC(1)),
-     *       1d3*OL(L,L_SALT)/(4.*NOL(L)*IDACC(1))
+        WRITE(6,'(2X,I4,10F10.3)') L,OL(L,L_RHO)/(NOL(L)*IDACC(1)),
+     *           OL(L,L_TEMP)/(NOL(L)*IDACC(1)),
+     *       1d3*OL(L,L_SALT)/(NOL(L)*IDACC(1))
       END DO
       call sys_flush(6)
 C****

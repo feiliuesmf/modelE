@@ -848,7 +848,7 @@ c
       sname_oijl(k) = 'kvm'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'VERT. MOM. DIFF.'
-      scale_oijl(k) = 1d4*byrho2*.25 ! avg over quarter boxes
+      scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -856,7 +856,7 @@ c
       sname_oijl(k) = 'kvg'
       units_oijl(k) = 'cm^2/s'
       lname_oijl(k) = 'Vertical heat diffusivity'
-      scale_oijl(k) = 1d4*byrho2*.25 ! avg over quarter boxes
+      scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
 c
       k=k+1
@@ -954,7 +954,7 @@ c
       sname_oij(k)="oij_hbl"
       units_oij(k)="m"
       ia_oij(k)=ia_src
-      scale_oij(k)=0.25
+      scale_oij(k) = 1
 
       k=k+1
       IJ_BO=k
@@ -962,7 +962,7 @@ c
       sname_oij(k)="oij_bo"
       units_oij(k)="10^-7 m^2/s^3"
       ia_oij(k)=ia_src
-      scale_oij(k)=0.25*1d7
+      scale_oij(k) = 1d7
 
       k=k+1
       IJ_BOSOL=k
@@ -970,7 +970,7 @@ c
       sname_oij(k)="oij_bosol"
       units_oij(k)="10^-7 m^2/s^3"
       ia_oij(k)=ia_src
-      scale_oij(k)=0.25*1d7
+      scale_oij(k) = 1d7
 
       k=k+1
       IJ_USTAR=k
@@ -978,7 +978,7 @@ c
       sname_oij(k)="oij_ustar"
       units_oij(k)="m/s"
       ia_oij(k)=ia_src
-      scale_oij(k)=0.25
+      scale_oij(k) = 1
 
 #ifdef TRACERS_OceanBiology
       k=k+1

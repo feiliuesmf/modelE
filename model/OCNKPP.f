@@ -1,5 +1,5 @@
-C****
-C**** OCNKPP.f    KPP OCeaN vertical mixing scheme    2006/11/06
+C****  
+C**** OCNKPP.f    KPP OCeaN vertical mixing scheme    2009/08/25
 C****
 #include "rundeck_opts.h"
 
@@ -19,8 +19,8 @@ C****
       INTEGER, DIMENSION(IM,JM) :: KPL_glob    ! for serial ocnGM ???
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::    G0M1
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::  MO1,GXM1,SXM1, UO1
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: S0M1,GYM1,SYM1, VO1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) ::  MO1,GXM1,SXM1, UO1,UOD1
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: S0M1,GYM1,SYM1, VO1,VOD1
 #ifdef TRACERS_OCEAN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 #endif
@@ -34,7 +34,7 @@ C****
 c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
-      USE OCEANRES, only : fkph, fkpm 
+      USE OCEANRES, only : fkph, fkpm
       USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
       IMPLICIT NONE
       SAVE
@@ -90,7 +90,7 @@ c note, that in this scheme temperature diffusvity might be
 c different from the diffusivity of all other tracers due to double
 c diffusion.
 c
-      real*8, parameter :: vvcric=50d0, vdcric=50d0 
+      real*8, parameter :: vvcric=50d0, vdcric=50d0
      *     ,vvclim = 1000d0, vdclim = 1000d0
 
 c====================== include file "KMIX_CLEAN.COM" =================
@@ -1070,11 +1070,12 @@ C**** Is this still necessary now that fluxes are saved?
 !@sum KVINIT Initialise KMIX and save pre-source term surface values of
 !@+   enthalpy, mass and horizontal gradients for kppmix calculation
       USE OCEAN, only : im,jm,lmo,gxmo,sxmo,gymo,symo,g0m,s0m,mo,uo,vo
+     &     ,uod,vod
 #ifdef TRACERS_OCEAN
      *     ,trmo,txmo,tymo
 #endif
       USE KPP_COM, only : G0M1,MO1,GXM1,GYM1,S0M1,SXM1,SYM1,UO1,VO1
-     *     ,lsrpd
+     *     ,UOD1,VOD1,lsrpd
 #ifdef TRACERS_OCEAN
      *     ,trmo1,txmo1,tymo1
 #endif
@@ -1099,6 +1100,8 @@ C**** Save surface values
             MO1(I,J)  = MO(I,J,1)
             UO1(I,J)  = UO(I,J,1)
             VO1(I,J)  = VO(I,J,1)
+            UOD1(I,J)  = UOD(I,J,1)
+            VOD1(I,J)  = VOD(I,J,1)
 #ifdef TRACERS_OCEAN
             TRMO1(:,I,J) = TRMO(I,J,1,:)
             TXMO1(:,I,J) = TXMO(I,J,1,:)
@@ -1110,58 +1113,48 @@ C**** Save surface values
       END SUBROUTINE KVINIT
 
       SUBROUTINE OCONV
+C****
 !@sum  OCONV does vertical mixing using coefficients from KPP scheme
 !@auth Gavin Schmidt/Gary Russell
-!@ver  1.0
+!@ver  2009/08/25
+C****
       USE CONSTANT, only : grav,omega
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : t_qlimit, ntm
-      USE OCEAN, only : trmo,txmo,tymo,tzmo
-#endif
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
-     *     ,dxypo,cosic,sinic,uo,vo,ramvn,bydts, IVNP
-
+     *     ,dxypo,cosic,sinic,uo,vo,uod,vod,ramvn,bydts, IVNP
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc
      *     ,ij_hbl,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
-#ifdef TRACERS_OCEAN
-     *     ,toijl=>toijl_loc,toijl_wtfl
-#endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
-#ifdef TRACERS_OCEAN
-     *     ,trmo1,txmo1,tymo1
-#endif
-
+     &     ,uod1,vod1
       USE OFLUXES, only : oRSI, oSOLAR, oDMUA,oDMVA, oDMUI,oDMVI
-
       USE SW2OCEAN, only : fsr,lsrpd
-
-      use domain_decomp_1d, only : get
+      Use DOMAIN_DECOMP_1d, Only: GET, HALO_UPDATE, NORTH, SOUTH,
+     *    HALO_UPDATE_BLOCK, AM_I_ROOT, GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
-      use domain_decomp_1d, only : HALO_UPDATE, NORTH, SOUTH
-      use domain_decomp_1d, only : HALO_UPDATE_COLUMN
-      use domain_decomp_1d, only : am_i_root,globalsum
+
+#ifdef TRACERS_OCEAN
+      USE OCEAN, only : trmo,txmo,tymo,tzmo
+      Use KPP_COM, Only: trmo1,txmo1,tymo1
+      Use ODIAG, Only: toijl=>toijl_loc,toijl_wtfl
+      USE OCN_TRACER_COM, only : t_qlimit, ntm
+#endif
 
       IMPLICIT NONE
 
-      LOGICAL*4 QPOLE  
-      REAL*8,
-     *   DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: UT,VT
-      REAL*8 UL(LMO,IM+2),MML(LMO),
-     *     G0ML(LMO,2,2),S0ML(LMO,2,2),GZML(LMO,2,2),SZML(LMO,2,2),
-     *     BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+2),RAMV(IM+2),
-     *     UL0(LMO,IM+2),G0ML0(LMO,2,2),S0ML0(LMO,2,2),MML0(LMO),
-     *     BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
-     *     AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
-     *     GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO),TXY
-#ifdef TRACERS_OCEAN
-     *     ,TRML(LMO,NTM,2,2),TZML(LMO,NTM,2,2),TRML1(NTM,2,2)
-     *     ,DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
-      INTEGER NSIGT,N
-#endif
+      LOGICAL*4 QPOLE
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+     &     UT,VT, UTD,VTD
+      Real*8 MML0(LMO), MML(LMO), UL0(LMO,IM+2),UL(LMO,IM+2),
+     &      ULD0(LMO,IM+2),ULD(LMO,IM+2),
+     *      G0ML0(LMO),G0ML(LMO), GXML(LMO),GYML(LMO),GZML(LMO),
+     *      S0ML0(LMO),S0ML(LMO), SXML(LMO),SYML(LMO),SZML(LMO),
+     *      BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+2),RAMV(IM+2),
+     *      BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
+     *      AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
+     *      GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO),TXY,
+     *      FLDUM(LMO),GHATDUM(LMO)
       INTEGER LMUV(IM+2)
-
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1, BYBETA=1d0/BETA
 C**** KPP variables
@@ -1170,32 +1163,45 @@ C**** KPP variables
      *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
      *     alphaDT(LMO),betaDS(LMO),ghat(LMO),byhwide(0:LMO+1)
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
-      REAL*8 UKJM(LMO,IM+2)  !  ,UKM(LMO,4,2,2,IM,2:JM-1),OLJ(3,LMO,JM)
-      REAL*8 UKM(LMO,4,2,2,IM,grid%J_STRT_HALO:grid%J_STOP_HALO),
+      REAL*8 UKJM(LMO,IM+2)  !  ,UKM(LMO,4,IM,2:JM-1),OLJ(3,LMO,JM)
+      REAL*8, DIMENSION(LMO,4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     UKM,UKMD
+      REAL*8
      *     OLJ(3,LMO,grid%J_STRT_HALO:grid%J_STOP_HALO),OLtemp(LMO,3)
 
       LOGICAL, PARAMETER :: LDD = .FALSE.
-      INTEGER I,J,K,L,IQ,JQ,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
+      INTEGER I,J,K,L,LMIJ,KMUV,IM1,ITER,NSIGG,NSIGS,KBL,II
       REAL*8 CORIOL,UISTR,VISTR,U2rho,DELTAM,DELTAE,DELTASR,ANSTR
-     *     ,RJ,RI,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
+     *     ,ZSCALE,HBL,HBLP,Ustar,BYSHC,B0,Bosol,R,R2,DTBYDZ2,DM
      *     ,RHOM,RHO1,Bo,DELTAS
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS,TEMGS
       integer :: j_1,j_0s,j_1s
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
+#ifdef TRACERS_OCEAN
+      Real*8 TRML(LMO,NTM),TRML1(NTM), TXML(LMO,NTM),TYML(LMO,NTM),
+     *       TZML(LMO,NTM),
+     *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
+      INTEGER NSIGT,N
+#endif
+
       call get (grid, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-
 
 C**** initialise diagnostics saved over quarter boxes and longitude
       OLJ = 0.
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
       call halo_update (grid, VO, from=south)
+      call halo_update (grid, UOD, from=south)
 !$OMP PARALLEL DO PRIVATE(L)
+      ukm = 0
+      ukmd = 0
       DO L=1,LMO
         UT(:,:,L) = UO(:,:,L)
         VT(:,:,L) = VO(:,:,L)
+        UTD(:,:,L) = UOD(:,:,L)
+        VTD(:,:,L) = VOD(:,:,L)
       END DO
 !$OMP END PARALLEL DO
 C****
@@ -1208,11 +1214,12 @@ C****
 !$OMP&  BYMML0,BYHWIDE,BYRHO,BYSHC,BO,BOSOL,BETADS,BYDZ2, CORIOL,DBLOC,
 !$OMP&  DBSFC,DELTAE,DELTAM,DELTAS,DELTASR,DM,DTBYDZ,DTBYDZ2,DVSQ,
 !$OMP&  FLG,FLS,G,G0ML0,G0ML,GHAT,GHATM,GHATG,GHATS,GZML, HBL,HBLP,
-!$OMP&  HWIDE,I,II,IM1,ITER,IQ,J,JQ,K,KBL,KMUV,L,LMIJ,LMUV,MML,MML0,
-!$OMP&  MMLT, NSIGG,NSIGS, PO, QPOLE, R,R2,RAVM,RAMV,RJ,RI,RITOP,
+!$OMP&  GXML,GYML, SXML,SYML,
+!$OMP&  HWIDE,I,II,IM1,ITER,J,K,KBL,KMUV,L,LMIJ,LMUV,MML,MML0,
+!$OMP&  MMLT, NSIGG,NSIGS, PO, QPOLE, R,R2,RAVM,RAMV,RITOP,
 !$OMP&  RHO,RHO1,RHOM, S,S0ML0,S0ML,SBETA,SHSQ,SZML, TO,TALPHA,TXY,
 #ifdef TRACERS_OCEAN
-!$OMP&  N,TRML,TZML,TRML1,DELTATR,GHATT,FLT,NSIGT,
+!$OMP&  N,TRML,TZML,TRML1,DELTATR,GHATT,FLT,NSIGT, TXML,TYML,
 #endif
 !$OMP&  UL,UL0, U2RHO,UISTR,USTAR, VISTR, ZGRID,ZSCALE)
 !$OMP&  SHARED(DTS)
@@ -1226,8 +1233,6 @@ C****
 C**** Define parameters and currents at the North Pole
 C****
       LMIJ=LMM(1,JM)
-      IQ=1
-      JQ=1
       KMUV=IM+2
       DO I=1,IM
         LMUV(I) = LMV(I,JM-1)
@@ -1253,13 +1258,13 @@ C****
       MML0(1)     = MO(1,JM,1)*DXYPO(JM)
       BYMML0(1)   = 1d0/MML0(1)
       DTBYDZ(1)   = DTS/MO(1,JM,1)
-      G0ML0(1,1,1)= G0M(1,JM,1)
-      S0ML0(1,1,1)= S0M(1,JM,1)
-      GZML(1,1,1) = GZMO(1,JM,1)
-      SZML(1,1,1) = SZMO(1,JM,1)
+      G0ML0(1)    = G0M(1,JM,1)
+      S0ML0(1)    = S0M(1,JM,1)
+      GZML(1)     = GZMO(1,JM,1)
+      SZML(1)     = SZMO(1,JM,1)
       MMLT(1)     = MO1(1,JM)*DXYPO(JM)
       BYMMLT(1)   = 1d0/MMLT(1)
-      S0ML(1,1,1) = S0M1(1,JM)
+      S0ML(1)     = S0M1(1,JM)
       DO L=2,LMIJ
         UL0(L,IM+1) = UT(IM,JM,L)
         UL(L,IM+1)  = UL0(L,IM+1)
@@ -1269,25 +1274,25 @@ C****
         BYMML0(L)   = 1d0/MML0(L)
         DTBYDZ(L)   = DTS/MO(1,JM,L)
         BYDZ2(L-1)  = 2d0/(MO(1,JM,L-1)+MO(1,JM,L))
-        G0ML0(L,1,1)= G0M(1,JM,L)
-        S0ML0(L,1,1)= S0M(1,JM,L)
-        GZML(L,1,1) = GZMO(1,JM,L)
-        SZML(L,1,1) = SZMO(1,JM,L)
+        G0ML0(L)    = G0M(1,JM,L)
+        S0ML0(L)    = S0M(1,JM,L)
+        GZML(L)     = GZMO(1,JM,L)
+        SZML(L)     = SZMO(1,JM,L)
         MMLT(L)     = MML0(L)
         BYMMLT(L)   = BYMML0(L)
-        S0ML(L,1,1) = S0ML0(L,1,1)
+        S0ML(L)     = S0ML0(L)
       END DO
       DO L=1,MIN(LSRPD,LMIJ)
-        G0ML(L,1,1) = G0M1(1,JM,L)
+        G0ML(L) = G0M1(1,JM,L)
       END DO
       DO L=LSRPD+1,LMIJ
-        G0ML(L,1,1) = G0ML0(L,1,1)
+        G0ML(L) = G0ML0(L)
       END DO
 #ifdef TRACERS_OCEAN
-      TRML1(:,1,1)=TRMO1(:,1,JM)
+      TRML1(:)=TRMO1(:,1,JM)
       DO L = 1,LMIJ
-        TRML(L,:,1,1) = TRMO(1,JM,L,:)
-        TZML(L,:,1,1) = TZMO(1,JM,L,:)
+        TRML(L,:) = TRMO(1,JM,L,:)
+        TZML(L,:) = TZMO(1,JM,L,:)
       END DO
 #endif
 C**** Calculate whole box turbulent stresses sqrt(|tau_0|/rho_0)
@@ -1308,12 +1313,12 @@ C**** DMUA/I now defined over whole box, not just surface type
      *     (oDMVA(1,JM,1) + VISTR)**2)*BYDTS
 C**** Calculate surface mass, salt and heat fluxes
       DELTAM = (MO(1,JM,1) -  MO1(1,JM))*BYDTS
-      DELTAE = (G0ML0(1,1,1) - G0ML(1,1,1))*BYDXYPO(JM)*BYDTS
-      DELTAS = (S0ML0(1,1,1) - S0ML(1,1,1))*BYDXYPO(JM)*BYDTS
+      DELTAE = (G0ML0(1) - G0ML(1))*BYDXYPO(JM)*BYDTS
+      DELTAS = (S0ML0(1) - S0ML(1))*BYDXYPO(JM)*BYDTS
       DELTASR= (oSOLAR(1,1,JM)*(1d0-oRSI(1,JM))+oSOLAR(3,1,JM)
      *     *oRSI(1,JM))*BYDTS               ! W/m^2
 #ifdef TRACERS_OCEAN
-      DELTATR(:)=(TRML(1,:,1,1)-TRML1(:,1,1))*BYDXYPO(JM)*BYDTS !kg/m2/s
+      DELTATR(:) = (TRML(1,:)-TRML1(:))*BYDXYPO(JM)*BYDTS  !  kg/m2*s
 #endif
       KPL(1,JM) = 1  ! Initialize mixed layer depth
       I=1
@@ -1331,13 +1336,13 @@ C****
       LMUV(2) = LMU(I  ,J)
       LMUV(3) = LMV(I,J-1)
       LMUV(4) = LMV(I,J  )
-      MML0(1)   = 2.5d-1*MO(I,J,1)*DXYPO(J)
-      BYMML0(1) = 1d0/MML0(1)
+      MML0(1)   = MO(I,J,1)*DXYPO(J)
+      BYMML0(1) = 1 / MML0(1)
       DTBYDZ(1) = DTS/MO(I,J,1)
-      MMLT(1)   = 2.5d-1*MO1(I,J)*DXYPO(J)
-      BYMMLT(1) = 1d0/MMLT(1)
+      MMLT(1)   = MO1(I,J)*DXYPO(J)
+      BYMMLT(1) = 1 / MMLT(1)
       DO L=2,LMIJ
-        MML0(L)   = 2.5d-1*MO(I,J,L)*DXYPO(J)
+        MML0(L)   = MO(I,J,L)*DXYPO(J)
         BYMML0(L) = 1d0/MML0(L)
         DTBYDZ(L) = DTS/MO(I,J,L)
         BYDZ2(L-1)= 2d0/(MO(I,J,L)+MO(I,J,L-1))
@@ -1368,89 +1373,104 @@ C**** Calculate surface mass flux and Solar forcing
      *     *BYDTS               ! W/m^2
       KPL(I,J) = 1  ! Initialize mixed layer depth
 
-C**** Loop over quarter boxes
-      JQ=1
-  230 RJ = BETA*(2d0*JQ-3d0)
-      RAVM(3) = (1.25d0-5d-1*JQ)
-      RAMV(3) = (1.25d0-5d-1*JQ)*RAMVS(J)*5d-1
-      RAVM(4) = (5d-1*JQ-2.5d-1)
-      RAMV(4) = (5d-1*JQ-2.5d-1)*RAMVN(J)*5d-1
-      IQ=1
-  240 RI = BETA*(2d0*IQ-3d0)
-      RAVM(1) = (1.25d0 - 5d-1*IQ)
-      RAMV(1) = (1.25d0 - 5d-1*IQ)*2.5d-1
-      RAVM(2) = (5d-1*IQ-2.5d-1)
-      RAMV(2) = (5d-1*IQ-2.5d-1)*2.5d-1
+      RAVM(1:4) = .5
+      RAMV(1:2) = .5
+      RAMV(3) = RAMVS(J)
+      RAMV(4) = RAMVN(J)
       UL0(1,1) = UT(IM1,J,1)
       UL0(1,2) = UT(I  ,J,1)
       UL0(1,3) = VT(I,J-1,1)
       UL0(1,4) = VT(I,J  ,1)
-      G0ML0(1,IQ,JQ)=2.5d-1*(G0M(I,J,1)+RI*GXMO(I,J,1)+RJ*GYMO(I,J,1))
-      S0ML0(1,IQ,JQ)=2.5d-1*(S0M(I,J,1)+RI*SXMO(I,J,1)+RJ*SYMO(I,J,1))
-      GZML(1,IQ,JQ)=2.5d-1* GZMO(I,J,1)
-      SZML(1,IQ,JQ)=2.5d-1* SZMO(I,J,1)
+
+      ULD0(1,1) = VTD(IM1,J,1)
+      ULD0(1,2) = VTD(I  ,J,1)
+      ULD0(1,3) = UTD(I,J-1,1)
+      ULD0(1,4) = UTD(I,J  ,1)
+
+      G0ML0(1) = G0M(I,J,1)
+      GXML(1)  = GXMO(I,J,1)
+      GYML(1)  = GYMO(I,J,1)
+      S0ML0(1) = S0M(I,J,1)
+      SXML(1)  = SXMO(I,J,1)
+      SYML(1)  = SYMO(I,J,1)
+      GZML(1)  = GZMO(I,J,1)
+      SZML(1)  = SZMO(I,J,1)
       UL(1,1) = UO1(IM1,J)
       UL(1,2) = UO1(I  ,J)
       UL(1,3) = VO1(I,J-1)
       UL(1,4) = VO1(I,J  )
-      S0ML(1,IQ,JQ)=2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I,J))
-      if (abs(SZML(1,IQ,JQ))>S0ML(1,IQ,JQ))
-     *     SZML(1,IQ,JQ) = sign(S0ML(1,IQ,JQ),SZML(1,IQ,JQ))
+
+      ULD(1,1) = VOD1(IM1,J)
+      ULD(1,2) = VOD1(I  ,J)
+      ULD(1,3) = UOD1(I,J-1)
+      ULD(1,4) = UOD1(I,J  )
+
+      S0ML(1) = S0M1(I,J)
+      If (Abs(SZML(1)) > S0ML(1))  SZML(1) = Sign (S0ML(1),SZML(1))
       DO 250 L=2,LMIJ
       UL0(L,1) = UT(IM1,J,L)
       UL0(L,2) = UT(I  ,J,L)
       UL0(L,3) = VT(I,J-1,L)
       UL0(L,4) = VT(I,J  ,L)
-      G0ML0(L,IQ,JQ)=2.5d-1*(G0M(I,J,L)+RI*GXMO(I,J,L)+RJ*GYMO(I,J,L))
-      S0ML0(L,IQ,JQ)=2.5d-1*(S0M(I,J,L)+RI*SXMO(I,J,L)+RJ*SYMO(I,J,L))
-      GZML(L,IQ,JQ)=2.5d-1* GZMO(I,J,L)
-      SZML(L,IQ,JQ)=2.5d-1* SZMO(I,J,L)
+
+      ULD0(L,1) = VTD(IM1,J,L)
+      ULD0(L,2) = VTD(I  ,J,L)
+      ULD0(L,3) = UTD(I,J-1,L)
+      ULD0(L,4) = UTD(I,J  ,L)
+
+      G0ML0(L) = G0M(I,J,L)
+      GXML(L)  = GXMO(I,J,L)
+      GYML(L)  = GYMO(I,J,L)
+      S0ML0(L) = S0M(I,J,L)
+      SXML(L)  = SXMO(I,J,L)
+      SYML(L)  = SYMO(I,J,L)
+      GZML(L)  = GZMO(I,J,L)
+      SZML(L)  = SZMO(I,J,L)
       UL(L,1) = UL0(L,1)
       UL(L,2) = UL0(L,2)
       UL(L,3) = UL0(L,3)
       UL(L,4) = UL0(L,4)
-      S0ML(L,IQ,JQ) = S0ML0(L,IQ,JQ)
-      if (abs(SZML(L,IQ,JQ))>S0ML(L,IQ,JQ))
-     *     SZML(L,IQ,JQ) = sign(S0ML(L,IQ,JQ),SZML(L,IQ,JQ))
+
+      ULD(L,1) = ULD0(L,1)
+      ULD(L,2) = ULD0(L,2)
+      ULD(L,3) = ULD0(L,3)
+      ULD(L,4) = ULD0(L,4)
+
+      S0ML(L) = S0ML0(L)
+      If (Abs(SZML(L)) > S0ML(L))  SZML(L) = Sign (S0ML(L),SZML(L))
   250 CONTINUE
-      G0ML(1,IQ,JQ)=2.5d-1*(G0M1(I,J,1)+ RI*GXM1(I,J) + RJ*GYM1(I,J))
+      G0ML(1) = G0M1(I,J,1)
       DO L=2,MIN(LSRPD,LMIJ)
-        G0ML(L,IQ,JQ)=2.5d-1*(G0M1(I,J,L)+RI*GXMO(I,J,L)+RJ*GYMO(I,J,L))
-      END DO
+        G0ML(L) = G0M1(I,J,L)  ;  END DO
       DO L=LSRPD+1,LMIJ
-        G0ML(L,IQ,JQ) = G0ML0(L,IQ,JQ)
-      END DO
+        G0ML(L) = G0ML0(L)  ;  END DO
 #ifdef TRACERS_OCEAN
       DO N=1,NTM
-        TRML1(N,IQ,JQ) = 2.5d-1*(TRMO1(N,I,J)+RI*TXMO1(N,I,J)
-     *       + RJ*TYMO1(N,I,J))
+        TRML1(N) = TRMO1(N,I,J)
         DO L=1,LMIJ
-          TRML(L,N,IQ,JQ) = 2.5d-1*(TRMO(I,J,L,N)+RI*TXMO(I,J,L,N)
-     *         + RJ*TYMO(I,J,L,N))
-          TZML(L,N,IQ,JQ) = 2.5d-1* TZMO(I,J,L,N)
+          TRML(L,N) = TRMO(I,J,L,N)
+          TXML(L,N) = TXMO(I,J,L,N)
+          TYML(L,N) = TYMO(I,J,L,N)
+          TZML(L,N) = TZMO(I,J,L,N)
 C****
           if (t_qlimit(N)) then
-            TRML(L,N,IQ,JQ) = MAX(0d0,TRML(L,N,IQ,JQ))
-            if (abs(TZML(L,N,IQ,JQ))>TRML(L,N,IQ,JQ))
-     *           TZML(L,N,IQ,JQ) = sign(TRML(L,N,IQ,JQ),TZML(L,N,IQ,JQ))
-          end if
+            TRML(L,N) = Max (0d0,TRML(L,N))
+            If (Abs(TZML(L,N)) > TRML(L,N))
+     *              TZML(L,N) = Sign(TRML(L,N),TZML(L,N))  ;  end if
         END DO
       END DO
 #endif
 
 C**** Calculate surface heat and salt flux: dE(W/m^2);dS,dTr(kg/m^2/s)
-      DELTAE=4d0*(G0ML0(1,IQ,JQ)-G0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS
-      DELTAS=4d0*(S0ML0(1,IQ,JQ)-S0ML(1,IQ,JQ))*BYDXYPO(J)*BYDTS
+      DELTAE = (G0ML0(1)-G0ML(1))*BYDXYPO(J)*BYDTS
+      DELTAS = (S0ML0(1)-S0ML(1))*BYDXYPO(J)*BYDTS
 #ifdef TRACERS_OCEAN
-      DELTATR(:)=4d0*(TRML(1,:,IQ,JQ)-TRML1(:,IQ,JQ))*BYDXYPO(J)*BYDTS
+      DELTATR(:) = (TRML(1,:)-TRML1(:))*BYDXYPO(J)*BYDTS
 #endif
 C****
 C**** Vertical mixing dependent on KPP boundary layer scheme
 C****
   500 IF(LMIJ.LE.1)  GO TO 725
-C**** Do not recalculate quantities good for all quarter boxes
-      IF(IQ+JQ.EQ.2)  THEN
-
 C**** Z0 = OGEOZ/GRAV+HOCEAN Ocean depth (m)
 C****      scale depths using Z0/ZE(LMIJ)
 
@@ -1472,8 +1492,6 @@ c       OIJ(I,J,IJ_OGEOZ)=OIJ(I,J,IJ_OGEOZ)+OGEOZ(I,J)
       zgrid(LMO+1) = -ZE(LMO)*ZSCALE
       hwide(LMO+1) = epsln
       byhwide(LMO+1) = 0.
-
-      END IF
 
 C**** If swfrac is not used add solar from next two levels to Bo
 C      DELTAE = DELTAE + FSR(2)*DELTASR
@@ -1523,8 +1541,8 @@ C****    salt expansion coefficient without 1/rho factor     (kg/m3/PSU)
 C****          sbeta = d(rho{k,k})/d(S(k))
 
       DO L=1,LMIJ
-         G(L)     = G0ML(L,IQ,JQ)*BYMML(L)
-         S(L)     = S0ML(L,IQ,JQ)*BYMML(L)
+         G(L)     = G0ML(L)*BYMML(L)
+         S(L)     = S0ML(L)*BYMML(L)
          BYRHO(L) = VOLGSP(G(L),S(L),PO(L))
          RHO(L)   = 1d0/BYRHO(L)
          IF (L.ge.2) THEN
@@ -1546,9 +1564,7 @@ C**** surface buoyancy forcing turbulent and solar (m^2/s^3)
 C****    Bo    = -g*(talpha * wtsfc - sbeta * wssfc)/rho
 C****    Bosol = -g*(talpha * wtsol                )/rho
 C**** Bo includes all buoyancy and heat forcing
-
       BYSHC = 1d0/SHCGS(G(1),S(1))
-
       Bo    = - GRAV*BYRHO(1)**2 *(
      *       sbeta(1)*DELTAS*1d3 + talpha(1)*BYSHC*DELTAE -
      *     ( sbeta(1)*S(1)*1d3   + talpha(1)*BYSHC*G(1) )*DELTAM)
@@ -1584,8 +1600,8 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
          R2 = R**2
          GHATM(L) = 0.          ! no non-local momentum transport
 C**** GHAT terms must be zero for consistency with OSOURC
-         GHATG(L) = 0. !AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
-         GHATS(L) = 0. !AKVS(L)*GHAT(L)*DELTAM*S(1)*DXYPO(J) CHECK!
+         GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
+         GHATS(L) = AKVS(L)*GHAT(L)*DELTAM*S(1)*DXYPO(J) !CHECK!
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
          AKVS(L) = AKVS(L)*R2
@@ -1595,24 +1611,48 @@ C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
       DO K=1,KMUV
         CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
-     *       ,LMIJ,UL0(1,K))
+c     *       ,LMIJ,UL0(1,K))
+     *       ,LMUV(K),UL0(1,K))
       END DO
 C**** Enthalpy
-      CALL OVDIFFS(G0ML(1,IQ,JQ),AKVG(1),GHATG,DTBYDZ,BYDZ2,DTS
-     *     ,LMIJ,G0ML0(1,IQ,JQ),FLG)
+      Call OVDIFFS (G0ML(1),AKVG(1),GHATG,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *             G0ML0(1),FLG)
 C**** Salinity
-      CALL OVDIFFS(S0ML(1,IQ,JQ),AKVS(1),GHATS,DTBYDZ,BYDZ2,DTS
-     *     ,LMIJ,S0ML0(1,IQ,JQ),FLS)
+      Call OVDIFFS (S0ML(1),AKVS(1),GHATS,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *              S0ML0(1),FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
+C**** G,S horizontal slopes are diffused like G,S; after iteration
+      If (.not.QPOLE)  Then
+        GHATDUM(:) = 0. ! change this if GHATG/GHATS are nonzero
+        Call OVDIFFS (GXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GXML(1),FLDUM)
+        Call OVDIFFS (GYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                GYML(1),FLDUM)
+        Call OVDIFFS (SXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SXML(1),FLDUM)
+        Call OVDIFFS (SYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
+     *                SYML(1),FLDUM)
+
+        DO K=1,KMUV
+          CALL OVDIFF(ULD(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
+     *         ,LMUV(K),ULD0(1,K))
+        END DO
+
+      EndIf
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration and follow salinity
       DO L=1,LMIJ
         GHATT(L,:)=0.         !AKVS(L)*GHAT(L)*DELTATR(:)*DXYP(J)*0.25
       END DO
       DO N=1,NTM
-        CALL OVDIFFS(TRML(1,N,IQ,JQ),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2
-     *       ,DTS,LMIJ,TRML(1,N,IQ,JQ),FLT(1,N))
+        If (.not.QPOLE)  Then
+        Call OVDIFFS (TXML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
+     *       DTS,LMIJ,TXML(1,N),FLT(1,N))
+        Call OVDIFFS (TYML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
+     *       DTS,LMIJ,TYML(1,N),FLT(1,N))  ;  EndIf
+        Call OVDIFFS (TRML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
+     *       DTS,LMIJ,TRML(1,N),FLT(1,N))
       END DO
 #endif
 C**** Gradients of scalars
@@ -1621,34 +1661,33 @@ C**** Surface tracer + mass fluxes included (no solar flux)
 C**** Note that FL[GS] are upward fluxes.
       DTBYDZ2 = 12d0*DTBYDZ(1)**2*BYDTS
       DM = DELTAM*DTBYDZ(1)
-      GZML(1,IQ,JQ)=(GZML(1,IQ,JQ)+3d0*(FLG(1)
-     *     +0.25*DTS*DELTAE*DXYPO(J)))/(1d0+DTBYDZ2*AKVG(1))
-      SZML(1,IQ,JQ)=(SZML(1,IQ,JQ)+3d0*(FLS(1)-DELTAS*(1-DM)*0.25
-     *     *DXYPO(J)*DTS+DM*2.5d-1*(S0M1(I,J) + RI*SXM1(I,J) + RJ*SYM1(I
-     *     ,J))))/(1d0+DTBYDZ2*AKVS(1))
+      GZML(1) = (GZML(1) + 3*(FLG(1) + DTS*DELTAE*DXYPO(J))) /
+     /          (1 + DTBYDZ2*AKVG(1))
+      SZML(1) = (SZML(1) + 3*(FLS(1) - DTS*DELTAS*DXYPO(J)*(1-DM) +
+     +                        DM*S0M1(I,J))) / (1 + DTBYDZ2*AKVS(1))
 #ifdef TRACERS_OCEAN
-      TZML(1,:,IQ,JQ)=(TZML(1,:,IQ,JQ)+3d0*(FLT(1,:)-
-     *     DELTATR(:)*(1-DM)*0.25*DXYPO(J)*DTS+DM*2.5d-1*(TRMO1(:,I,J)
-     *     +RI*TXMO1(:,I,J)+ RJ*TYMO1(:,I,J))))/(1d0+DTBYDZ2*AKVS(1))
+      TZML(1,:) = (TZML(1,:) + 3*(FLT(1,:) -
+     +  DTS*DELTATR(:)*DXYPO(J)*(1-DM) + DM*TRMO1(:,I,J))) /
+     /  (1 + DTBYDZ2*AKVS(1))
 #endif
       DO L=2,LMIJ-1
         DTBYDZ2 = 6d0*DTBYDZ(L)**2*BYDTS
-        GZML(L,IQ,JQ)=(GZML(L,IQ,JQ)+3d0*(FLG(L-1)+FLG(L)))
+        GZML(L)=(GZML(L)+3d0*(FLG(L-1)+FLG(L)))
      *       /(1d0+DTBYDZ2*(AKVG(L-1)+AKVG(L)))
-        SZML(L,IQ,JQ)=(SZML(L,IQ,JQ)+3d0*(FLS(L-1)+FLS(L)))
+        SZML(L)=(SZML(L)+3d0*(FLS(L-1)+FLS(L)))
      *       /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
 #ifdef TRACERS_OCEAN
-        TZML(L,:,IQ,JQ)=(TZML(L,:,IQ,JQ)+3d0*(FLT(L-1,:)+
+        TZML(L,:)=(TZML(L,:)+3d0*(FLT(L-1,:)+
      *       FLT(L,:))) /(1d0+DTBYDZ2*(AKVS(L-1)+AKVS(L)))
 #endif
       END DO
       DTBYDZ2 = 12d0*DTBYDZ(LMIJ)**2*BYDTS
-      GZML(LMIJ,IQ,JQ)=(GZML(LMIJ,IQ,JQ)+3d0*FLG(LMIJ-1))
+      GZML(LMIJ)=(GZML(LMIJ)+3d0*FLG(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVG(LMIJ-1))
-      SZML(LMIJ,IQ,JQ)=(SZML(LMIJ,IQ,JQ)+3d0*FLS(LMIJ-1))
+      SZML(LMIJ)=(SZML(LMIJ)+3d0*FLS(LMIJ-1))
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
 #ifdef TRACERS_OCEAN
-      TZML(LMIJ,:,IQ,JQ)=(TZML(LMIJ,:,IQ,JQ)+3d0*FLT(LMIJ-1,:))
+      TZML(LMIJ,:)=(TZML(LMIJ,:)+3d0*FLT(LMIJ-1,:))
      *     /(1d0+DTBYDZ2*AKVS(LMIJ-1))
 #endif
 
@@ -1676,17 +1715,10 @@ CCC         OL(L,L_SALT)= OL(L,L_SALT)+ S(L)
          OLJ(3,L,J)= OLJ(3,L,J) + S(L) ! L_SALT
        END DO
 C**** Set diagnostics
-       if(qpole) then ! compensate for lack of quarter-box treatment
-       OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL*4. ! boundary layer depth
-       OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo*4. ! surface buoyancy forcing
-       OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol*4. ! solar buoy frcg
-       OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar*4. ! turb fric speed
-       else
        OIJ(I,J,IJ_HBL) = OIJ(I,J,IJ_HBL) + HBL ! boundary layer depth
        OIJ(I,J,IJ_BO) = OIJ(I,J,IJ_BO) + Bo ! surface buoyancy forcing
        OIJ(I,J,IJ_BOSOL) = OIJ(I,J,IJ_BOSOL) + Bosol ! solar buoy frcg
        OIJ(I,J,IJ_USTAR) = OIJ(I,J,IJ_USTAR) + Ustar ! turb fric speed
-       endif
 
        IF(KBL.gt.KPL(I,J)) KPL(I,J)=KBL ! save max. mixed layer depth
 C****
@@ -1722,45 +1754,45 @@ CCC      END IF
          UKJM(1:LMIJ,IM+2)= RAMV(IM+2)*(UL(1:LMIJ,IM+2)-
      *        UT(IVNP,JM,1:LMIJ))
       ELSE
-        UKM(1:LMUV(1),1,IQ,JQ,I,J) = RAMV(1)*(UL(1:LMUV(1),1)
+        UKM(1:LMUV(1),1,I,J) = RAMV(1)*(UL(1:LMUV(1),1)
      *          -UT(IM1,J,1:LMUV(1)))
-        UKM(1:LMUV(2),2,IQ,JQ,I,J) = RAMV(2)*(UL(1:LMUV(2),2)
+        UKM(1:LMUV(2),2,I,J) = RAMV(2)*(UL(1:LMUV(2),2)
      *          -UT(I  ,J,1:LMUV(2)))
-        UKM(1:LMUV(3),3,IQ,JQ,I,J) = RAMV(3)*(UL(1:LMUV(3),3)
+        UKM(1:LMUV(3),3,I,J) = RAMV(3)*(UL(1:LMUV(3),3)
      *          -VT(I,J-1,1:LMUV(3)))
-        UKM(1:LMUV(4),4,IQ,JQ,I,J) = RAMV(4)*(UL(1:LMUV(4),4)
+        UKM(1:LMUV(4),4,I,J) = RAMV(4)*(UL(1:LMUV(4),4)
      *          -VT(I,J  ,1:LMUV(4)))
+
+        UKMD(1:LMUV(1),1,I,J) = RAMV(1)*(ULD(1:LMUV(1),1)
+     *          -VTD(IM1,J,1:LMUV(1)))
+        UKMD(1:LMUV(2),2,I,J) = RAMV(2)*(ULD(1:LMUV(2),2)
+     *          -VTD(I  ,J,1:LMUV(2)))
+        UKMD(1:LMUV(3),3,I,J) = RAMV(3)*(ULD(1:LMUV(3),3)
+     *          -UTD(I,J-1,1:LMUV(3)))
+        UKMD(1:LMUV(4),4,I,J) = RAMV(4)*(ULD(1:LMUV(4),4)
+     *          -UTD(I,J  ,1:LMUV(4)))
       END IF
 
   725 IF(QPOLE)  GO TO 750
-C**** End of quarter box loops
-      IQ=IQ+1
-      IF(IQ.LE.2)  GO TO 240
-      JQ=JQ+1
-      IF(JQ.LE.2)  GO TO 230
 C****
 C**** Recreate main prognostic variables of potential enthalpy and
 C**** salt from those on the quarter boxes
 C****
       DO L=1,LMIJ
-      G0M(I,J,L)= G0ML(L,2,2)+G0ML(L,2,1)+G0ML(L,1,2)+G0ML(L,1,1)
+      G0M(I,J,L) = G0ML(L)
+      GXMO(I,J,L) = GXML(L)
+      GYMO(I,J,L) = GYML(L)
+      GZMO(I,J,L) = GZML(L)
       NSIGG = EXPONENT(G0M(I,J,L)) -2 - 42
-      GXMO(I,J,L)=(G0ML(L,2,2)+G0ML(L,2,1)-G0ML(L,1,2)-G0ML(L,1,1))
-     *     *BYBETA
-      GYMO(I,J,L)=(G0ML(L,2,2)-G0ML(L,2,1)+G0ML(L,1,2)-G0ML(L,1,1))
-     *     *BYBETA
       CALL REDUCE_FIG(NSIGG,GXMO(I,J,L))
       CALL REDUCE_FIG(NSIGG,GYMO(I,J,L))
-      GZMO(I,J,L)= GZML(L,2,2)+GZML(L,2,1)+GZML(L,1,2)+GZML(L,1,1)
-      S0M(I,J,L)= S0ML(L,2,2)+S0ML(L,2,1)+S0ML(L,1,2)+S0ML(L,1,1)
+      S0M(I,J,L)  = S0ML(L)
+      SXMO(I,J,L) = SXML(L)
+      SYMO(I,J,L) = SYML(L)
+      SZMO(I,J,L) = SZML(L)
       NSIGS = EXPONENT(S0M(I,J,L)) - 2 - 42 + 4
-      SXMO(I,J,L)=(S0ML(L,2,2)+S0ML(L,2,1)-S0ML(L,1,2)-S0ML(L,1,1))
-     *     *BYBETA
-      SYMO(I,J,L)=(S0ML(L,2,2)-S0ML(L,2,1)+S0ML(L,1,2)-S0ML(L,1,1))
-     *     *BYBETA
       CALL REDUCE_FIG(NSIGS,SXMO(I,J,L))
       CALL REDUCE_FIG(NSIGS,SYMO(I,J,L))
-      SZMO(I,J,L)= SZML(L,2,2)+SZML(L,2,1)+SZML(L,1,2)+SZML(L,1,1)
 C**** limit salinity gradients
       TXY = abs(SXMO(I,J,L)) + abs(SYMO(I,J,L))
       if ( TXY > S0M(I,J,L) ) then
@@ -1774,17 +1806,13 @@ C****
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
         DO L = 1,LMIJ
-        TRMO(I,J,L,N) = TRML(L,N,2,2) + TRML(L,N,2,1) +
-     *                  TRML(L,N,1,2) + TRML(L,N,1,1)
+        TRMO(I,J,L,N) = TRML(L,N)
+        TXMO(I,J,L,N) = TXML(L,N)
+        TYMO(I,J,L,N) = TYML(L,N)
+        TZMO(I,J,L,N) = TZML(L,N)
         NSIGT = EXPONENT(TRMO(I,J,L,N)) - 2 - 42
-        TXMO(I,J,L,N) =(TRML(L,N,2,2) + TRML(L,N,2,1) -
-     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
-        TYMO(I,J,L,N) =(TRML(L,N,2,2) - TRML(L,N,2,1) +
-     *                  TRML(L,N,1,2) - TRML(L,N,1,1))*BYBETA
         CALL REDUCE_FIG(NSIGT,TXMO(I,J,L,N))
         CALL REDUCE_FIG(NSIGT,TYMO(I,J,L,N))
-        TZMO(I,J,L,N) = TZML(L,N,2,2) + TZML(L,N,2,1) +
-     *                  TZML(L,N,1,2) + TZML(L,N,1,1)
 C****
         if (t_qlimit(n)) then   ! limit gradients
           TXY = abs(TXMO(I,J,L,N)) + abs(TYMO(I,J,L,N))
@@ -1811,13 +1839,13 @@ C**** Load the prognostic variables of potential enthalpy and
 C**** salt from the column arrays at the poles
 C****
   750 DO L=1,LMIJ
-      G0M(1,JM,L) = G0ML(L,1,1)
-      GZMO(1,JM,L) = GZML(L,1,1)
-      S0M(1,JM,L) = S0ML(L,1,1)
-      SZMO(1,JM,L) = SZML(L,1,1)
+      G0M(1,JM,L)  = G0ML(L)
+      GZMO(1,JM,L) = GZML(L)
+      S0M(1,JM,L)  = S0ML(L)
+      SZMO(1,JM,L) = SZML(L)
 #ifdef TRACERS_OCEAN
-      TRMO(1,JM,L,:) = TRML(L,:,1,1)
-      TZMO(1,JM,L,:) = TZML(L,:,1,1)
+      TRMO(1,JM,L,:) = TRML(L,:)
+      TZMO(1,JM,L,:) = TZML(L,:)
 #endif
       END DO
 C**** End of outside J loop
@@ -1825,50 +1853,55 @@ C**** End of outside J loop
 !$OMP END PARALLEL DO
 
 C**** Update velocities outside parallel region
+      call halo_update_block (grid, UKM, from=north)
+      call halo_update_block (grid, UKMD, from=north)
 
 C**** North pole
-      if (have_north_pole) then
-      DO I=1,IM
-        VO(I,JM-1,1:LMV(I,JM-1))=VO(I,JM-1,1:LMV(I,JM-1))+
-     *       UKJM(1:LMV(I,JM-1),I)
-      END DO
-      UO(IM,JM,1:LMU(1,JM))=UO(IM,JM,1:LMU(1,JM))+UKJM(1:LMU(1,JM),IM+1)
-      UO(IVNP,JM,1:LMU(1,JM)) = UO(IVNP,JM,1:LMU(1,JM)) + 
-     +                          UKJM(1:LMU(1,JM),IM+2)
-      end if
+c      if (have_north_pole) then
+c      DO I=1,IM
+c        VO(I,JM-1,1:LMV(I,JM-1))=VO(I,JM-1,1:LMV(I,JM-1))+
+c     *       UKJM(1:LMV(I,JM-1),I)
+c      END DO
+c      UO(IM,JM,1:LMU(1,JM))=UO(IM,JM,1:LMU(1,JM))+UKJM(1:LMU(1,JM),IM+1)
+c      UO(IVNP,JM,1:LMU(1,JM)) = UO(IVNP,JM,1:LMU(1,JM)) +
+c     +                          UKJM(1:LMU(1,JM),IM+2)
+c      end if
+
 C**** Everywhere else
       DO J=j_0s,j_1s
         IM1=IM
         DO I=1,IM
-          DO IQ=1,2
-          DO JQ=1,2
-            UO(IM1,J,1:LMU(IM1,J))=UO(IM1,J,1:LMU(IM1,J)) +
-     *           UKM(1:LMU(IM1,J),1,IQ,JQ,I,J)
-            UO(I  ,J,1:LMU(I  ,J))=UO(I  ,J,1:LMU(I  ,J)) +
-     *           UKM(1:LMU(I  ,J),2,IQ,JQ,I,J)
-            VO(I,J-1,1:LMV(I,J-1))=VO(I,J-1,1:LMV(I,J-1)) +
-     *           UKM(1:LMV(I,J-1),3,IQ,JQ,I,J)
-            VO(I,J  ,1:LMV(I,J  ))=VO(I,J  ,1:LMV(I,J  )) +
-     *           UKM(1:LMV(I,J  ),4,IQ,JQ,I,J)
-          END DO
-          END DO
+          UO(IM1,J,1:LMU(IM1,J)) = UO(IM1,J,1:LMU(IM1,J)) +
+     +                             UKM(1:LMU(IM1,J),1,I,J)
+          UO(I  ,J,1:LMU(I  ,J)) = UO(I  ,J,1:LMU(I  ,J)) +
+     +                             UKM(1:LMU(I  ,J),2,I,J)
+          VO(I,J-1,1:LMV(I,J-1)) = VO(I,J-1,1:LMV(I,J-1)) +
+     +                             UKM(1:LMV(I,J-1),3,I,J)
+          VO(I,J  ,1:LMV(I,J  )) = VO(I,J  ,1:LMV(I,J  )) +
+     +                             UKM(1:LMV(I,J  ),4,I,J)
+
+          VOD(IM1,J,1:LMU(IM1,J)) = VOD(IM1,J,1:LMU(IM1,J)) +
+     +                             UKMD(1:LMU(IM1,J),1,I,J)
+          VOD(I  ,J,1:LMU(I  ,J)) = VOD(I  ,J,1:LMU(I  ,J)) +
+     +                             UKMD(1:LMU(I  ,J),2,I,J)
+          UOD(I,J-1,1:LMV(I,J-1)) = UOD(I,J-1,1:LMV(I,J-1)) +
+     +                             UKMD(1:LMV(I,J-1),3,I,J)
+          UOD(I,J  ,1:LMV(I,J  )) = UOD(I,J  ,1:LMV(I,J  )) +
+     +                             UKMD(1:LMV(I,J  ),4,I,J)
+
           IM1=I
         END DO
       END DO
-      call halo_update_column (grid, UKM, from=north)
       if (.not.have_north_pole) then
         j=j_1s+1
-        IM1=IM
         DO I=1,IM
-          DO IQ=1,2
-          DO JQ=1,2
-            VO(I,J-1,1:LMV(I,J-1))=VO(I,J-1,1:LMV(I,J-1)) +
-     *           UKM(1:LMV(I,J-1),3,IQ,JQ,I,J)
-          END DO
-          END DO
-          IM1=I
+          VO(I,J-1,1:LMV(I,J-1)) = VO(I,J-1,1:LMV(I,J-1)) +
+     *                             UKM(1:LMV(I,J-1),3,I,J)
+          UOD(I,J-1,1:LMV(I,J-1)) = UOD(I,J-1,1:LMV(I,J-1)) +
+     *                             UKMD(1:LMV(I,J-1),3,I,J)
         END DO
       end if
+
 C**** sum global mean diagnostics
 c     DO J=j_0s,j_1
 c       DO L=1,LMO
@@ -1881,7 +1914,7 @@ c     END DO
       call globalsum(grid,OLJ(1,:,:),OLtemp(:,L_RHO)  ,jband=(/1,jm/) )
       call globalsum(grid,OLJ(2,:,:),OLtemp(:,L_TEMP) ,jband=(/1,jm/) )
       call globalsum(grid,OLJ(3,:,:),OLtemp(:,L_SALT) ,jband=(/1,jm/) )
-      OL(:,L_RHO ) = OL(:,L_RHO ) + OLtemp(:,L_RHO) 
+      OL(:,L_RHO ) = OL(:,L_RHO ) + OLtemp(:,L_RHO)
       OL(:,L_TEMP) = OL(:,L_TEMP) + OLtemp(:,L_TEMP)
       OL(:,L_SALT) = OL(:,L_SALT) + OLtemp(:,L_SALT)
 
@@ -2288,7 +2321,7 @@ C****
 !@ver  1.0
 
       USE DOMAIN_DECOMP_1D, only : dist_grid,get
-!      USE OCEANR_DIM 
+!      USE OCEANR_DIM
 
       USE KPP_COM
 
@@ -2308,6 +2341,7 @@ C****
      *          GXM1(IM,J_0H:J_1H),    SXM1(IM,J_0H:J_1H),
      *          GYM1(IM,J_0H:J_1H),    SYM1(IM,J_0H:J_1H),
      *           UO1(IM,J_0H:J_1H),     VO1(IM,J_0H:J_1H),
+     *           UOD1(IM,J_0H:J_1H),    VOD1(IM,J_0H:J_1H),
      *   STAT = IER)
 
 #ifdef TRACERS_OCEAN
