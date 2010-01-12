@@ -35,13 +35,15 @@
 
 
       SUBROUTINE ORTHOG(N,ANU,A,B)
+
+      IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !----------------------------------------------------------------------------------------------------------------------
-      IMPLICIT REAL(8) (A-H,O-Z)
-      DIMENSION A(N),ANU(2*N),B(N)
+      INTEGER :: L,N,K,NMAX
       PARAMETER (NMAX=30)
-      DIMENSION SIG(2*NMAX+1,2*NMAX+1)
+      REAL(8) :: A(N),ANU(2*N),B(N),SIG(2*NMAX+1,2*NMAX+1)
+
       DO 11 L=3,2*N
         SIG(1,L)=0.D+00
 11    CONTINUE
@@ -63,13 +65,14 @@
 
 
       SUBROUTINE GAUCOF(N,A,B,AMU0,X,W,IFAILTQL)
+
+      IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !----------------------------------------------------------------------------------------------------------------------
-      IMPLICIT REAL(8) (A-H,O-Z)
-      DIMENSION A(N),B(N),W(N),X(N)
+      INTEGER :: I,J,N,NMAX, IFAILTQL
       PARAMETER (NMAX=30)
-      DIMENSION Z(NMAX,NMAX)
+      REAL(8) :: A(N),B(N),W(N),X(N),Z(NMAX,NMAX),AMU0
       IFAILTQL = 0
       DO 12 I=1,N
         IF(I.NE.1)B(I)=SQRT(B(I))
@@ -102,11 +105,12 @@
 
 
       SUBROUTINE TQLI(D,E,N,NP,Z,IFAILTQL)
+      IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !----------------------------------------------------------------------------------------------------------------------
-      IMPLICIT REAL(8) (A-H,O-Z)
-      DIMENSION D(NP),E(NP),Z(NP,NP)
+      INTEGER :: I,N,NP,M,L,K,ITER,IFAILTQL
+      REAL(8) :: D(NP),E(NP),Z(NP,NP),DD,G,R,S,C,P,F,B,PYTHAG
       DO 11 I=2,N
         E(I-1)=E(I)
 11    CONTINUE
@@ -166,10 +170,12 @@ C     ... TO HERE WHEN FINDING ONLY EIGENVALUES.
 
 
       DOUBLE PRECISION FUNCTION PYTHAG(A,B)
+
+      IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !----------------------------------------------------------------------------------------------------------------------
-      IMPLICIT REAL(8) (A-H,O-Z)
+      REAL(8) :: ABSA,ABSB, A,B,PHYTAG
       ABSA=ABS(A)
       ABSB=ABS(B)
       IF(ABSA.GT.ABSB)THEN
@@ -186,11 +192,13 @@ C     ... TO HERE WHEN FINDING ONLY EIGENVALUES.
 
 
       SUBROUTINE EIGSRT(D,V,N,NP)
+
+      IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !----------------------------------------------------------------------------------------------------------------------
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      DIMENSION D(NP),V(NP,NP)
+      INTEGER :: N,NP,K,J,I
+      REAL(8) :: D(NP),V(NP,NP),P
       DO 13 I=1,N-1
         K=I
         P=D(I)

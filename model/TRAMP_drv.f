@@ -84,9 +84,9 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_CONFIG
       USE AERO_INIT
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
-      USE AERO_SETUP
+      USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
-      USE DOMAIN_DECOMP_ATM,only: GRID, GET
+      USE DOMAIN_DECOMP_ATM,only: GRID, GET, am_i_root
 
       IMPLICIT NONE
 
@@ -113,12 +113,12 @@ c***  daily output
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
 
-      NACTV(:,J_0:J_1,:,:)      = 0.d0 
-      VDDEP_AERO(:,J_0:J_1,:,:) = 0.d0 
-      DIAM(:,J_0:J_1,:,:)       = 0.d0
-      AMP_dens(:,J_0:J_1,:,:)   = 0.d0
-      AMP_TR_MM(:,J_0:J_1,:,:)  = 0.d0
-      NUMB_SS(:,J_0:J_1,:,:)    = 0.d0
+      NACTV(I_0:I_1,J_0:J_1,:,:)      = 0.d0 
+      VDDEP_AERO(I_0:I_1,J_0:J_1,:,:) = 0.d0 
+      DIAM(I_0:I_1,J_0:J_1,:,:)       = 0.d0
+      AMP_dens(I_0:I_1,J_0:J_1,:,:)   = 0.d0
+      AMP_TR_MM(I_0:I_1,J_0:J_1,:,:)  = 0.d0
+      NUMB_SS(I_0:I_1,J_0:J_1,:,:)    = 0.d0
 
 
       DO L=1,LM                            
@@ -294,7 +294,7 @@ c -----------------------------------------------------------------
          if(AMP_MODES_MAP(n).gt.0)
      &   AMP_dens(i,j,l,AMP_MODES_MAP(n)) = 
      &   sum(trpdens(AMP_trm_nm1(n):AMP_trm_nm2(n)) * trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) 
-     & / sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n)))
+     & / (sum(trm(i,j,l,AMP_trm_nm1(n):AMP_trm_nm2(n))) + 1.0D-30)
          if (AMP_dens(i,j,l,AMP_MODES_MAP(n)).le.0) AMP_dens(i,j,l,AMP_MODES_MAP(n)) = trpdens(AMP_MODES_MAP(n))
 
       RETURN

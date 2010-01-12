@@ -198,6 +198,7 @@
 ! 
 !     This routine is for the multiple-aerosol type parameterization. 
 !----------------------------------------------------------------------------------------------------------------------
+      USE DOMAIN_DECOMP_ATM,only: am_i_root
       IMPLICIT NONE
 
       ! Arguments.
@@ -272,7 +273,7 @@
       REAL(8)            :: SM(NMODEX)                     ! [1]   
       REAL(8)            :: DUM                            ! [1/m]    
       REAL(8)            :: U                              ! argument to error function [1]
-!     REAL(8)            :: ERF                            ! error function [1], but not declared in an f90 module 
+      REAL(8)            :: ERF                            ! error function [1], but not declared in an f90 module 
       REAL(8)            :: SMAX                           ! maximum supersaturation [1]
       
 !----------------------------------------------------------------------------------------------------------------------
@@ -342,6 +343,8 @@
 
 
       SUBROUTINE GCF(GAMMCF,A,X,GLN)
+
+      IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !-----------------------------------------------------------------------------------------------------------------------
@@ -351,7 +354,7 @@
       REAL(8) :: A,GAMMCF,GLN,X
       INTEGER :: I
       REAL(8) :: AN,B,C,D,DEL,H
-!     REAL(8) :: GAMMLN   ! function names not declared in an f90 module 
+      REAL(8) :: GAMMLN   ! function names not declared in an f90 module 
       GLN=GAMMLN(A)
       B=X+1.0D+00-A
       C=1.0D+00/FPMIN
@@ -369,13 +372,15 @@
         H=H*DEL
         IF(ABS(DEL-1.0D+00).LT.EPS)GOTO 1
       ENDDO
-      WRITE(*,*)'AERO_ACTV: SUBROUTINE GCF: A TOO LARGE, ITMAX TOO SMALL'
+      WRITE(*,*)'AERO_ACTV: SUBROUTINE GCF: A TOO LARGE, ITMAX TOO SMALL', GAMMCF,A,X,GLN
 1     GAMMCF=EXP(-X+A*LOG(X)-GLN)*H
       RETURN
       END SUBROUTINE GCF
 
 
       SUBROUTINE GSER(GAMSER,A,X,GLN)
+
+      IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !-----------------------------------------------------------------------------------------------------------------------
@@ -384,7 +389,7 @@
       REAL(8) :: A,GAMSER,GLN,X
       INTEGER :: N
       REAL(8) :: AP,DEL,SUM
-!     REAL(8) :: GAMMLN   ! function names not declared in an f90 module 
+      REAL(8) :: GAMMLN   ! function names not declared in an f90 module 
       GLN=GAMMLN(A)
       IF(X.LE.0.D+00)THEN
         IF(X.LT.0.)STOP 'AERO_ACTV: SUBROUTINE GSER: X < 0 IN GSER'
@@ -407,6 +412,8 @@
 
 
       DOUBLE PRECISION FUNCTION GAMMLN(XX)
+
+      IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !-----------------------------------------------------------------------------------------------------------------------
@@ -432,12 +439,14 @@
 
 
       DOUBLE PRECISION FUNCTION ERF(X)
+      IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !-----------------------------------------------------------------------------------------------------------------------
       REAL(8) :: X
 !U    USES GAMMP
-!     REAL(8) :: GAMMP   ! function names not declared in an f90 module 
+      REAL(8) :: GAMMP   ! function names not declared in an f90 module 
+      ERF = 0.d0
       IF(X.LT.0.0D+00)THEN
         ERF=-GAMMP(0.5D0,X**2)
       ELSE
@@ -448,6 +457,7 @@
 
 
       DOUBLE PRECISION FUNCTION GAMMP(A,X)
+      IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------
 !     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
 !-----------------------------------------------------------------------------------------------------------------------
