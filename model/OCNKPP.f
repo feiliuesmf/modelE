@@ -1647,7 +1647,7 @@ C**** G,S horizontal slopes are diffused like G,S; after iteration
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration and follow salinity
       DO L=1,LMIJ
-        GHATT(L,:)=0.         !AKVS(L)*GHAT(L)*DELTATR(:)*DXYP(J)*0.25
+        GHATT(L,:)=AKVS(L)*GHAT(L)*DELTATR(:)*DXYP(J)
       END DO
       DO N=1,NTM
         If (.not.QPOLE)  Then
