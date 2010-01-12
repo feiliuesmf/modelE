@@ -63,6 +63,16 @@ rm -f paraffin_ships.nc NOx*.nc
 ./remap.pl -par regrida2x2.5.par -in so2_conc_2x2.5gf -out so2_conc_2x2.5gf_C90
 ./remap.pl -par regrida2x2.5.par -in dms_conc_2x2.5gf -out dms_conc_2x2.5gf_C90
 
+#-- Dust tracers
+#ERS
+#./remap.pl -par regridd2x2.5.par -in ERS1_1993_MONTHLY.72x46.threshold-13 -out ERS1_1993_MONTHLY.72x46.threshold-13_C90
+./remap.pl -par regrid0.5x0.5.par -in ERS1_1993_MONTHLY.720x360.threshold-13 -out ERS1_1993_MONTHLY.720x360.threshold-13_C90
+
+#GIN
+#./remap.pl -par regridb2x2.5.par -in Ginoux2001_source_VegMask_144x90 -out Ginoux2001_source_VegMask_144x90_C90
+#./remap.pl -par regridb2x2.5.par -in Ginoux_source_v2009_VegMask_144x90 -out Ginoux_source_v2009_VegMask_144x90_C90
+#./remap.pl -par regridb2x2.5.par -in Ginoux_source_v2009_NoVegMask_144x90 -out Ginoux_source_v2009_NoVegMask_144x90_C90
+./remap.pl -par regrid0.5x0.5.par -in Ginoux_2001_updated_hires_withVegMask_v2009_0.5x0.5 -out Ginoux_2001_updated_hires_withVegMask_v2009_C90
 #-- CO
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_anthropogenic_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_anthropogenic_1850_C90_Dec_2009.nc
 ./remap.pl -par ncregrid-ijl.par -in IPCC_emissions_CO_ships_1850_0.5x0.5_v1_20_04_2009.nc -out IPCC_emissions_CO_ships_1850_C90_Dec_2009.nc
