@@ -434,7 +434,11 @@ c manage the reading/writing of timing information. could be done better
       select case (iaction)
       case (:iowrite)
         tsum = sum(timing(1:ntimeacc))+1d-20
-        min_per_day = (tsum/60.)*nday/(dble(itime-itime0)+1d-6)
+        if(itime.gt.itime0) then
+          min_per_day = (tsum/60.)*nday/dble(itime-itime0)
+        else
+          min_per_day = 0.
+        endif
         min_per_day = int(min_per_day*100d0)*.01d0
         call write_attr(grid,fid,'cputime','minutes_per_day',
      &       min_per_day)
