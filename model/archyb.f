@@ -8,7 +8,7 @@ c
      *  itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
      * ,xlabel,lrunid
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
-     &     ,thref
+     &     ,thref,nhr
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
@@ -29,6 +29,7 @@ c
       data unused/0./
 c
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
+      print *,'stamp',Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
         write(flnm,'(a3,i4.4,2a)') amon,0,'.out',xlabel(1:lrunid)
@@ -64,15 +65,18 @@ c
       no=1
       length4=length
       idm4=idm
-      jdm4=JDM
+      jdm4=jdm
       kdm4=kdm
       nstep4=nstep
       time4=time
       do k=1,kk
         theta4(k)=theta(k)
       end do
+      write(flnm(1:17),'(1x,2(i2.2,a),i4.4,a,i2)')
+     .             jmon,'/',jdate,'/',jyear,' hr ',jhour+nhr
+      print *,' flnm(1:17)=',flnm(1:17)
       write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
-     .      ,unused,theta4
+     .      ,unused,theta4,flnm(1:17)
 c
       if (smooth) then
 c
