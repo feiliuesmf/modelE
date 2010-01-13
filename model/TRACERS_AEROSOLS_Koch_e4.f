@@ -699,7 +699,7 @@ C****
       endif
       END SUBROUTINE get_ships
 
-      SUBROUTINE get_hist_BMB(end_of_day)
+      SUBROUTINE get_hist_BMB(end_of_day,xday)
 c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE AEROSOL_SOURCES, only: BCB_src,OCB_src,BCBt_src,OCBt_src,lmAER
      * ,SO2_biosrc_3D,SO2t_src
@@ -707,11 +707,11 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
       USE DOMAIN_DECOMP_ATM, only : GRID, GET,readt_parallel
       USE GEOM, only: axyp
       USE TRACER_COM, only: aer_int_yr,imAER,n_bcb,n_ocb,n_so2
-     * ,ty_start,ty_end,trname,freq
+     * ,ty_start,ty_end,trname,freq,kstep
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       IMPLICIT NONE
-      integer ihyr,iuc,mm,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
-     * ,ndec,tye
+      integer ihyr,iuc,mm,iact,j,ns,nc,n,iy,i,jbt,tys,jb1,jb2,irr
+     * ,ndec,tye,ipos,kx,k,xyear
       logical, intent(in) :: end_of_day
       integer I_0,I_1,J_0,J_1,J_0H,J_1H
       real*8 tfac,d3,d1,d2,tot
@@ -719,11 +719,13 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     hBC_read
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,2) ::
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     hBC,hOC,hSO2
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) ::
-     &     hBC_all,hOC_all,hSO2_all
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     &     hBC_all,hOC_all,hSO2_all,sfc_a,sfc_b
+      real*8 alpha
+      integer, intent(IN) :: xday
       character*80 title
       logical :: checkname=.true.
       
@@ -735,19 +737,20 @@ c historic biomass: linear increase in tropics from 1/2 present day in 1875
 #endif
 c     if (.not. end_of_day) then
       if (aer_int_yr.eq.0) then
-      ihyr=jyear
+      xyear=jyear
       else
-      ihyr=aer_int_yr
+      xyear=aer_int_yr
       endif
+      ihyr=xyear
       so2_biosrc_3D(:,:,:,:)= 0.d0
       BCB_src(:,:,:,:)=0.d0
       OCB_src(:,:,:,:)=0.d0
-      hbc(:,:,:)=0.d0
-      hoc(:,:,:)=0.d0
-      hso2(:,:,:)=0.d0
-      hbc_all(:,:,:)=0.d0
-      hoc_all(:,:,:)=0.d0
-      hso2_all(:,:,:)=0.d0
+      hbc(:,:)=0.d0
+      hoc(:,:)=0.d0
+      hso2(:,:)=0.d0
+      hbc_all(:,:)=0.d0
+      hoc_all(:,:)=0.d0
+      hso2_all(:,:)=0.d0
       if (imAER.eq.5) then
       ns=2
       n=n_BCB 
@@ -757,14 +760,25 @@ c     if (.not. end_of_day) then
       write(title,111) 'BCB_EM_',nc
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc,checkname)
-      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then
+c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+c     do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),ihyr,xday)
           end select
-      hBC_all(:,:,iy)=hBC_all(:,:,iy)+hbc_read(:,:)
-      end do
+      hBC_all(:,:)=hBC_all(:,:)+hbc_read(:,:)
+c     end de
+        else
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hbc_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+       hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)+
+     *  hbc_read(I_0:I_1,J_0:J_1)
+          end select
+        endif
       call closeunit(iuc)
       end do
       tot=0
@@ -774,14 +788,26 @@ c     if (.not. end_of_day) then
       write(title,111) 'OCB_EM_',nc
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc,checkname)
-      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then
+c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+c     do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
+       call read_mon_src_2(n,ns,iuc,hbc_read(:,:),ihyr,xday)
           end select
-      hOC_all(:,:,iy)=hOC_all(:,:,iy)+hbc_read(:,:)
-      end do
+      hOC_all(:,:)=hOC_all(:,:)+hbc_read(:,:)
+c     end do
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hbc_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+       hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)+
+     *  hbc_read(I_0:I_1,J_0:J_1)
+          end select
+        endif
       call closeunit(iuc)
       end do
       n=n_SO2 
@@ -791,58 +817,65 @@ c     if (.not. end_of_day) then
       write(title,112) 'SO2B_EM_',nc
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc,checkname)
-      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then
+c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+c     do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
-         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
+         call read_mon_src_2(n,ns,iuc,hbc_read(:,:),ihyr,xday)
           end select
-      hSO2_all(:,:,iy)=hSO2_all(:,:,iy)+hbc_read(:,:)
-      end do
+      hSO2_all(:,:)=hSO2_all(:,:)+hbc_read(:,:)
+c     end do
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns))
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hbc_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+       hso2_all(I_0:I_1,J_0:J_1)=hso2_all(I_0:I_1,J_0:J_1)+
+     *  hbc_read(I_0:I_1,J_0:J_1)
+          end select
+        endif
       call closeunit(iuc)
       end do
-      tye=ty_end(n,ns)
-      tys=ty_start(n,ns)
-      if (ihyr.lt.tys) ihyr=tys
-      if (ihyr.ge.tye) ihyr=tye
+c     tye=ty_end(n,ns)
+c     tys=ty_start(n,ns)
+c     if (ihyr.lt.tys) ihyr=tys
+c     if (ihyr.ge.tye) ihyr=tye
 c
-      do i=1,ndec
-      jbt=tys+(i-1)*10
-      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
-      jb1=jbt
-      jb2=jbt+10
-      irr=i
-      go to 23
-      endif
-      end do
-  23  continue
-      hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
-      hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
-      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+c     do i=1,ndec
+c     jbt=tys+(i-1)*10
+c     if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+c     jb1=jbt
+c     jb2=jbt+10
+c     irr=i
+c     go to 23
+c     endif
+c     end do
+c 23  continue
 c  the AR5 emissions are kg/m2/s
       do j=j_0,j_1
       do i=i_0,i_1
 c boosting the carbonaceous so they are closer to
 c   correct present-day levels
-      hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)*1.4d0
-      hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)*1.4d0
-      hso2(i,j,:)=hso2(i,j,:)*axyp(i,j)
+c and OM=1.4 x OC
+      BCBt_src(i,j)=hbc_all(i,j)*axyp(i,j)*1.4d0
+      OCBt_src(i,j)=hoc_all(i,j)*axyp(i,j)*1.4d0*1.4d0
+      SO2t_src(i,j,1)=hso2_all(i,j)*axyp(i,j)
       end do
       end do
-c kg/year to kg/s
-c OM=1.4 x OC
-      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)*1.4d0
 c interpolate to model year
 c
-      d1=real(ihyr-jb1)
-      d2=real(jb2-ihyr)
-      d3=real(jb2-jb1)
-      BCBt_src(:,j_0:j_1)=(d1*hbc(:,j_0:j_1,2)
-     * +d2*hbc(:,j_0:j_1,1))/d3
-      OCBt_src(:,j_0:j_1)=(d1*hoc(:,j_0:j_1,2)
-     * +d2*hoc(:,j_0:j_1,1))/d3
-      SO2t_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
-     * +d2*hso2(:,j_0:j_1,1))/d3
+c     d1=real(ihyr-jb1)
+c     d2=real(jb2-ihyr)
+c     d3=real(jb2-jb1)
+c     BCBt_src(:,j_0:j_1)=(d1*hbc(:,j_0:j_1,2)
+c    * +d2*hbc(:,j_0:j_1,1))/d3
+c     OCBt_src(:,j_0:j_1)=(d1*hoc(:,j_0:j_1,2)
+c    * +d2*hoc(:,j_0:j_1,1))/d3
+c     SO2t_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
+c    * +d2*hso2(:,j_0:j_1,1))/d3
       endif
 
       if (imAER.eq.3) then
@@ -883,7 +916,7 @@ c
       endif
       end SUBROUTINE get_hist_BMB
 
-      SUBROUTINE get_BCOC(end_of_day)
+      SUBROUTINE get_BCOC(end_of_day,xday)
 c Carbonaceous aerosol emissions
       USE CONSTANT, only : syr
       USE GEOM, only: AXYP
@@ -891,23 +924,25 @@ c Carbonaceous aerosol emissions
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_bcii,n_ocii,imAER
+     * ty_start,ty_end,n_bcii,n_ocii,imAER,kstep
       USE AEROSOL_SOURCES, only: BCI_src,OCI_src,nomsrc
      * ,hbc,hoc
       implicit none
       character*20 title
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,nn,
      * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idecl,idec1,ndec
-     * ,n,tys,tye,ns,nc 
+     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear 
       logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     &     hOC_read,hBC_read
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
-     &     hOC_all,hBC_all
+     &     hOC_read,hBC_read,hOC_all,hBC_all,sfc_a,sfc_b
+c     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+c    &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,19) :: 
+c    &     hOC_all,hBC_all
       real*8 d1,d2,d3,xbcff,xbcbm,xombm,tot
+      real*8 alpha
       logical :: checkname=.true.
+      integer, intent(IN) :: xday
       save jb1,jb2,ihyr
       
       CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
@@ -922,14 +957,15 @@ c     if (.not. end_of_day .or.jday.eq.1) then
       BCI_src(:,:)=0.d0
       OCI_src(:,:,:)=0.d0
       if (aer_int_yr.eq.0) then
-      ihyr=jyear
+      xyear=jyear
       else
-      ihyr=aer_int_yr
+      xyear=aer_int_yr
       endif
+      ihyr=xyear  ! don't need both of these
       hbc(:,:,:)=0.0
       hoc(:,:,:)=0.0
-      hoc_all(:,:,:)=0.0
-      hbc_all(:,:,:)=0.0
+      hoc_all(:,:)=0.0
+      hbc_all(:,:)=0.0
 c for now we assume the number of decades BC and OC are the same   
       if (imAER.eq.5) then
       ns=7
@@ -942,18 +978,69 @@ c for now we assume the number of decades BC and OC are the same
       write(title,111) 'BC_EM_',nc
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc,checkname)
-      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then
+
+c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+c     do iy=1,ndec
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
          call read_mon_src_2(n,ns,iuc,hbc_read(:,:),jyear,jday)
           case('a')        ! annual file, only read first time
        call readt_parallel(grid,iuc,nameunit(iuc),hbc_read(:,:),0)
 c hardcoding - old sources are kg/year
-           hbc_read(:,:)=hbc_read(:,:)/syr
+         if(imAER.ne.5)  hbc_read(:,:)=hbc_read(:,:)/syr
           end select
-      hbc_all(:,:,iy)=hbc_all(:,:,iy)+hbc_read(:,:)
+      hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)
+     *    +hbc_read(I_0:I_1,J_0:J_1)
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns))
+          case('a')        ! annual file, only read first time + new steps
+            ipos=1
+            alpha=0.d0 ! before start year, use start year value
+            kx=ty_start(n,ns) ! just for printing
+            if(xyear>ty_end(n,ns).or.
+     &      (xyear==ty_end(n,ns).and.xday>=183))then
+              alpha=1.d0 ! after end year, use end year value
+              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+              kx=ty_end(n,ns)-kstep
+            endif
+            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
+!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
+              if(xyear>k .or. (xyear==k.and.xday>=183)) then
+                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
+                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
+                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
+     &                  (365.d0*real(kstep))
+                  kx=k
+                  exit
+                endif
+              endif
       end do
+
+!should do! if(ifirst2(n,ns)) then
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
+!should do! endif
+            hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)
+     *      +sfc_a(I_0:I_1,J_0:J_1)*
+     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
+c           write(out_line,*)
+c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
+c           call write_parallel(trim(out_line))
+c           ifirst2(n,ns) = .false.
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hbc_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+       hbc_all(I_0:I_1,J_0:J_1)=hbc_all(I_0:I_1,J_0:J_1)+
+     *  hbc_read(I_0:I_1,J_0:J_1)
+          end select
+
+        endif
+
+c     end do
       call closeunit(iuc)
       end do
 c 
@@ -969,43 +1056,94 @@ c
  111  format(a6,i1)
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc,checkname)
-      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-      do iy=1,ndec
+c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+c     do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then
+
           select case(freq(n,ns))
           case('m')        ! monthly file, interpolate to now
          call read_mon_src_2(n,ns,iuc,hoc_read(:,:),jyear,jday)
           case('a')
        call readt_parallel(grid,iuc,nameunit(iuc),hoc_read(:,:),0)
 c hardcoding - old sources are kg/year
-           hoc_read(:,:)=hoc_read(:,:)/syr
+          if(imAER.ne.5) hoc_read(:,:)=hoc_read(:,:)/syr
           end select
-      hoc_all(:,:,iy)=hoc_all(:,:,iy)+hoc_read(:,:)
+      hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)
+     *    +hoc_read(I_0:I_1,J_0:J_1)
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns))
+          case('a')        ! annual file, only read first time + new steps
+            ipos=1
+            alpha=0.d0 ! before start year, use start year value
+            kx=ty_start(n,ns) ! just for printing
+            if(xyear>ty_end(n,ns).or.
+     &      (xyear==ty_end(n,ns).and.xday>=183))then
+              alpha=1.d0 ! after end year, use end year value
+              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+              kx=ty_end(n,ns)-kstep
+            endif
+            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
+!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
+              if(xyear>k .or. (xyear==k.and.xday>=183)) then
+                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
+                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
+                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
+     &                  (365.d0*real(kstep))
+                  kx=k
+                  exit
+                endif
+              endif
       end do
+
+!should do! if(ifirst2(n,ns)) then
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
+!should do! endif
+            hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)
+     *      +sfc_a(I_0:I_1,J_0:J_1)*
+     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
+c           write(out_line,*)
+c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
+c           call write_parallel(trim(out_line))
+c           ifirst2(n,ns) = .false.
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hoc_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+       hoc_all(I_0:I_1,J_0:J_1)=hoc_all(I_0:I_1,J_0:J_1)+
+     *  hoc_read(I_0:I_1,J_0:J_1)
+          end select
+
+        endif
+
+c     end do
       call closeunit(iuc)
       end do
-      tye=ty_end(n,ns)
-      tys=ty_start(n,ns)
-      if (ihyr.lt.tys) ihyr=tys
-      if (ihyr.ge.tye) ihyr=tye
+c     tye=ty_end(n,ns)
+c     tys=ty_start(n,ns)
+c     if (ihyr.lt.tys) ihyr=tys
+c     if (ihyr.ge.tye) ihyr=tye
 
-      do i=1,ndec
-      jbt=tys+(i-1)*10
-      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
-      jb1=jbt
-      jb2=jbt+10
-      irr=i
-      go to 23
-      endif
-      end do
-  23  continue
-      hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
-      hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
+c     do i=1,ndec
+c     jbt=tys+(i-1)*10
+c     if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+c     jb1=jbt
+c     jb2=jbt+10
+c     irr=i
+c     go to 23
+c     endif
+c     end do
+c 23  continue
+c     hbc(:,j_0:j_1,1:2)=hbc_all(:,j_0:j_1,irr:irr+1)
+c     hoc(:,j_0:j_1,1:2)=hoc_all(:,j_0:j_1,irr:irr+1)
       if (imAER.eq.5) then
 c  the AR5 emissions are kg/m2/s
       do j=j_0,j_1
       do i=i_0,i_1
-      hbc(i,j,:)=hbc(i,j,:)*axyp(i,j)
-      hoc(i,j,:)=hoc(i,j,:)*axyp(i,j)
+      hbc_all(i,j)=hbc_all(i,j)*axyp(i,j)
+      hoc_all(i,j)=hoc_all(i,j)*axyp(i,j)
       end do
       end do
       endif
@@ -1018,20 +1156,22 @@ c      end do
 c kg/year to kg/s
 c     hbc(:,j_0:j_1,1:2)=hbc(:,j_0:j_1,1:2)/syr
 c OM=1.4 x OC
-      hoc(:,j_0:j_1,1:2)=hoc(:,j_0:j_1,1:2)*1.4d0
+      hoc_all(i_0:i_1,j_0:j_1)=hoc_all(i_0:i_1,j_0:j_1)*1.4d0
 c interpolate to model year
 c    
-      d1=real(ihyr-jb1)
-      d2=real(jb2-ihyr)
-      d3=real(jb2-jb1)
-      BCI_src(:,j_0:j_1)=(d1*hbc(:,j_0:j_1,2)
-     * +d2*hbc(:,j_0:j_1,1))/d3
-      OCI_src(:,j_0:j_1,1)=(d1*hoc(:,j_0:j_1,2)
-     * +d2*hoc(:,j_0:j_1,1))/d3
+c     d1=real(ihyr-jb1)
+c     d2=real(jb2-ihyr)
+c     d3=real(jb2-jb1)
+      BCI_src(i_0:i_1,j_0:j_1)=hbc_all(i_0:i_1,j_0:j_1)
+      OCI_src(i_0:i_1,j_0:j_1,1)=hoc_all(i_0:i_1,j_0:j_1)
+c     BCI_src(:,j_0:j_1)=(d1*hbc(:,j_0:j_1,2)
+c    * +d2*hbc(:,j_0:j_1,1))/d3
+c     OCI_src(:,j_0:j_1,1)=(d1*hoc(:,j_0:j_1,2)
+c    * +d2*hoc(:,j_0:j_1,1))/d3
   
       end SUBROUTINE get_BCOC
       
-      SUBROUTINE read_hist_SO2(end_of_day)
+      SUBROUTINE read_hist_SO2(end_of_day,xday)
 c historic BC emissions
       USE CONSTANT, only : syr
       USE GEOM, only: AXYP
@@ -1039,23 +1179,26 @@ c historic BC emissions
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,trname,freq,nameT,ssname,
-     * ty_start,ty_end,n_so2,imAER
+     * ty_start,ty_end,n_so2,imAER,kstep
       USE AEROSOL_SOURCES, only: SO2_src,nomsrc
      * ,hso2
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
      * iy,ip, i_0,i_1,j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec
-     * ,n,tys,tye,ns,nc
+     * ,n,tys,tye,ns,nc,ipos,kx,k,xyear
       logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     &     hso2_read
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
-     &     hso2_all
+     &     hso2_read,hso2_all,sfc_a,sfc_b
+c     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+c    &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
+c    &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
+c    &     hso2_all
       real*8 d1,d2,d3,xso2ff,ff
+      real*8 alpha
       character*20 title
       logical :: checkname=.true.
+      integer, intent(IN) :: xday
       save jb1,jb2,ihyr
       
       CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
@@ -1068,17 +1211,15 @@ c if run just starting or if it is a new year
 c   then open new files
 c     if (.not. end_of_day .or.jday.eq.1) then
       SO2_src(:,:,:)=0.d0
-      hso2_all(:,:,:)=0.d0 
-       hso2(:,:,:)=0.0
+      hso2_all(:,:)=0.d0 
       ff=1.d0
       if (aer_int_yr.eq.0) then
-        ihyr=jyear
+        xyear=jyear
       else
-        ihyr=aer_int_yr
+        xyear=aer_int_yr
       endif
       if (imAER.eq.5) then
       ns=7
-      if (ihyr.eq.1850) ns=6
       else
       ns=1
       endif
@@ -1089,87 +1230,143 @@ c     if (.not. end_of_day .or.jday.eq.1) then
  111  format(a7,i1)
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns,iuc,checkname)
-      ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns)==ty_end(n,ns))then
+
+c     ndec=(ty_end(n,ns)-ty_start(n,ns))/10+1
+c     do iy=1,ndec
        select case(freq(n,ns))
        case('m')
        call read_mon_src_2(n,ns,iuc,hso2_read(:,:),jyear,jday)
        case('a')
        call readt_parallel(grid,iuc,nameunit(iuc),hso2_read(:,:),0)
        end select
-      hso2_all(:,:,iy)=hso2_all(:,:,iy)+hso2_read(:,:)*ff
+       hso2_all(I_0:I_1,J_0:J_1)=hso2_all(I_0:I_1,J_0:J_1)+
+     *  hso2_read(I_0:I_1,J_0:J_1)
+
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns))
+          case('a')        ! annual file, only read first time + new steps
+            ipos=1
+            alpha=0.d0 ! before start year, use start year value
+            kx=ty_start(n,ns) ! just for printing
+            if(xyear>ty_end(n,ns).or.
+     &      (xyear==ty_end(n,ns).and.xday>=183))then
+              alpha=1.d0 ! after end year, use end year value
+              ipos=(ty_end(n,ns)-ty_start(n,ns))/kstep
+              kx=ty_end(n,ns)-kstep
+            endif
+            do k=ty_start(n,ns),ty_end(n,ns)-kstep,kstep
+!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns)=.true.
+              if(xyear>k .or. (xyear==k.and.xday>=183)) then
+                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
+                  ipos=1+(k-ty_start(n,ns))/kstep ! (integer artithmatic)
+                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
+     &                  (365.d0*real(kstep))
+                  kx=k
+                  exit
+                endif
+              endif
       end do
+
+!should do! if(ifirst2(n,ns)) then
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
+!should do! endif
+            hso2_all(I_0:I_1,J_0:J_1)=hso2_all(I_0:I_1,J_0:J_1)
+     *      +sfc_a(I_0:I_1,J_0:J_1)*
+     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
+c           write(out_line,*)
+c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
+c           call write_parallel(trim(out_line))
+c           ifirst2(n,ns) = .false.
+
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hso2_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+       hso2_all(I_0:I_1,J_0:J_1)=hso2_all(I_0:I_1,J_0:J_1)+
+     *  hso2_read(I_0:I_1,J_0:J_1)
+          end select
+
+        endif
+
       call closeunit(iuc)
       end do
-      tye=ty_end(n,ns)
-      tys=ty_start(n,ns)
-      if (ihyr.lt.tys) ihyr=tys
-      if (ihyr.ge.tye) ihyr=tye
+c     tye=ty_end(n,ns)
+c     tys=ty_start(n,ns)
+c     if (ihyr.lt.tys) ihyr=tys
+c     if (ihyr.ge.tye) ihyr=tye
 
-      do i=1,ndec
-      jbt=tys+(i-1)*10
-      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
-      jb1=jbt
-      jb2=jbt+10
-      irr=i
-      go to 23
-      endif
-      end do
-  23  continue
+c     do i=1,ndec
+c     jbt=tys+(i-1)*10
+c     if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+c     jb1=jbt
+c     jb2=jbt+10
+c     irr=i
+c     go to 23
+c     endif
+c     end do
+c 23  continue
 c
-      hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
+c     hso2(:,j_0:j_1,1:2)=hso2_all(:,j_0:j_1,irr:irr+1)
       if (imAER.eq.5) then
 c  the AR5 emissions are kg SO2/m2/s
 c no they aren't they are in kgS/m2/s, all except for ship
       do j=j_0,j_1
       do i=i_0,i_1
-      hso2(i,j,:)=hso2(i,j,:)*axyp(i,j)   !*2.d0
+      hso2_all(i,j)=hso2_all(i,j)*axyp(i,j)   !*2.d0
       end do
       end do
       else
 c kg/year to kg/s and x2 to convert from S to SO2
-        hso2(:,j_0:j_1,1:2)=hso2(:,j_0:j_1,1:2)*2.d0/syr
+      hso2_all(i_0:i_1,j_0:j_1)=hso2_all(i_0:i_1,j_0:j_1)*2.d0/syr
       endif
 c interpolate to model year
 c    
-      d1=real(ihyr-jb1)
-      d2=real(jb2-ihyr)
-      d3=real(jb2-jb1)
-      SO2_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
-     *     +d2*hso2(:,j_0:j_1,1))/d3
+      
+      SO2_src(:,j_0:j_1,1)=hso2_all(:,j_0:j_1)
+c     d1=real(ihyr-jb1)
+c     d2=real(jb2-ihyr)
+c     d3=real(jb2-jb1)
+c     SO2_src(:,j_0:j_1,1)=(d1*hso2(:,j_0:j_1,2)
+c    *     +d2*hso2(:,j_0:j_1,1))/d3
   
       end SUBROUTINE read_hist_SO2    
       
-      SUBROUTINE read_hist_NH3(end_of_day)
-c historic BC emissions
+      SUBROUTINE read_hist_NH3(end_of_day,xday)
+c historic NH3 emissions
       USE MODEL_COM, only: jyear, jday,im,jm
       USE CONSTANT, only: sday
       USE GEOM, only: AXYP
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only :  GRID, GET,readt_parallel 
       USE TRACER_COM, only: aer_int_yr,imAER,n_NH3,imPI
-     * ,trname,freq,nameT,ty_start,ty_end,ssname
+     * ,trname,freq,nameT,ty_start,ty_end,ssname,kstep
       USE AEROSOL_SOURCES, only: NH3_src_con,
      * NH3_src_cyc,hnh3_cyc,hnh3_con
       implicit none
       integer iuc,irr,ihyr,i,j,id,jb1,jb2,ii,jj,nn,
      * iy,ip, j_0,j_1,j_0h,j_1h,jbt,idec1,idecl,ndec,ns1,ns2,n,nc
-     * ,tys,tye,ns
+     * ,tys,tye,ns,ipos,kx,k,i_0,i_1,xyear
+c     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+c    &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
+c    &     hnh3_con_all,hnh3_cyc_all
       logical, intent(in) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,15) :: 
-     &     hnh3_con_all,hnh3_cyc_all
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: 
-     &     hnh3_read,hnh3_ocean
+     & hnh3_read,hnh3_con_all,hnh3_cyc_all,sfc_a,sfc_b
       real*8 d1,d2,d3,xso2ff,tot
+      real*8 alpha
       character*2 :: nu(10)=(/'01','02','03','04','05','06','07',
      *  '08','09','10'/)
       character*20 title
       logical :: checkname=.true.
+      integer, intent(IN) :: xday
       save jb1,jb2,ihyr
       
-      CALL GET(grid, J_STRT=J_0,       J_STOP=J_1,
+      CALL GET(grid, I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1,
      *             J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       
 #ifdef TRACERS_AMP
@@ -1181,41 +1378,90 @@ c     if (.not. end_of_day .or.jday.eq.1) then
       NH3_src_con(:,:)=0.d0
       NH3_src_cyc(:,:)=0.d0
       if (aer_int_yr.eq.0) then
-      ihyr=jyear
+      xyear=jyear
       else
-      ihyr=aer_int_yr
+      xyear=aer_int_yr
       endif
-       hnh3_con_all(:,:,:)=0.0
-       hnh3_con(:,:,:)=0.0
-       hnh3_cyc_all(:,:,:)=0.0
-       hnh3_cyc(:,:,:)=0.0
-       hnh3_ocean(:,:)=0.d0
+       hnh3_con_all(:,:)=0.0
+       hnh3_cyc_all(:,:)=0.0
        n=n_NH3
        if (imAER.eq.5) then
        ns1=0
-       ns2=7
-       if (aer_int_yr.eq.2000) ns2=9
+       ns2=9
+c      if (aer_int_yr.eq.2000) ns2=9
        if (imPI.eq.1) ns2=3  !biomass, ocean only
        else
        ns1=1
        ns2=1
        endif
+
        do nc=1,ns1
        hnh3_read(:,:)=0.d0
        write(title,111) 'NH3_CYC_',nu(nc)
  111   format(a8,a2)
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns1,iuc,checkname)
-      ndec=(ty_end(n,ns1)-ty_start(n,ns1))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns1)==ty_end(n,ns1))then
+
+c     ndec=(ty_end(n,ns1)-ty_start(n,ns1))/10+1
+c     do iy=1,ndec
        select case(freq(n,ns1))
        case('m')
        call read_mon_src_2(n,ns1,iuc,hnh3_read(:,:),jyear,jday)
        case('a')
        call readt_parallel(grid,iuc,nameunit(iuc),hnh3_read(:,:),0)
        end select
-       hnh3_cyc_all(:,:,iy)=hnh3_cyc_all(:,:,iy)+hnh3_read(:,:)
+       hnh3_cyc_all(i_0:i_1,J_0:J_1)=hnh3_cyc_all(i_0:i_1,J_0:J_1)
+     *   +hnh3_read(i_0:i_1,J_0:J_1)
+c     end do
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns1))
+          case('a')        ! annual file, only read first time + new steps
+            ipos=1
+            alpha=0.d0 ! before start year, use start year value
+            kx=ty_start(n,ns1) ! just for printing
+            if(xyear>ty_end(n,ns1).or.
+     &      (xyear==ty_end(n,ns1).and.xday>=183))then
+              alpha=1.d0 ! after end year, use end year value
+              ipos=(ty_end(n,ns1)-ty_start(n,ns1))/kstep
+              kx=ty_end(n,ns1)-kstep
+            endif
+            do k=ty_start(n,ns1),ty_end(n,ns1)-kstep,kstep
+!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns1)=.true.
+              if(xyear>k .or. (xyear==k.and.xday>=183)) then
+                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
+                  ipos=1+(k-ty_start(n,ns1))/kstep ! (integer artithmatic)
+                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
+     &                  (365.d0*real(kstep))
+                  kx=k
+                  exit
+                endif
+              endif
       end do
+
+!should do! if(ifirst2(n,ns)) then
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
+!should do! endif
+            hnh3_cyc_all(I_0:I_1,J_0:J_1)=hnh3_cyc_all(I_0:I_1,J_0:J_1)
+     *      +sfc_a(I_0:I_1,J_0:J_1)*
+     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
+c           write(out_line,*)
+c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
+c           call write_parallel(trim(out_line))
+c           ifirst2(n,ns) = .false.
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns,iuc,hnh3_read(:,:),xyear,xday)
+c           ifirst2(n,ns) = .false. ! needed?
+          hnh3_cyc_all(I_0:I_1,J_0:J_1)=hnh3_cyc_all(I_0:I_1,J_0:J_1)+
+     *  hnh3_read(I_0:I_1,J_0:J_1)
+          end select
+
+        endif
+
       call closeunit(iuc)
       end do
 c
@@ -1224,61 +1470,110 @@ c
        write(title,111) 'NH3_CON_',nu(nc)
       call openunit(title,iuc, .true.,.true.)
       call read_emis_header(n,ns2,iuc,checkname)
-      ndec=(ty_end(n,ns2)-ty_start(n,ns2))/10+1
-      do iy=1,ndec
+! -------------- non-transient emissions ----------------------------!
+        if(ty_start(n,ns2)==ty_end(n,ns2))then
+
+c     ndec=(ty_end(n,ns2)-ty_start(n,ns2))/10+1
+c     do iy=1,ndec
        select case(freq(n,ns2))
        case('m')
        call read_mon_src_2(n,ns2,iuc,hnh3_read(:,:),jyear,jday)
        case('a')
-       if (imAER.eq.5.and.nc.eq.1) then
-       call readt_parallel(grid,iuc,nameunit(iuc),hnh3_ocean(:,:),0)
-       else
        call readt_parallel(grid,iuc,nameunit(iuc),hnh3_read(:,:),0)
-       endif
        end select
-      hnh3_con_all(:,:,iy)=hnh3_con_all(:,:,iy)+hnh3_read(:,:)
+      hnh3_con_all(I_0:I_1,J_0:J_1)=hnh3_con_all(I_0:I_1,J_0:J_1)
+     *    +hnh3_read(I_0:I_1,J_0:J_1)
+c     end do
+! --------------- transient emissions -------------------------------!
+        else
+          select case(freq(n,ns2))
+          case('a')        ! annual file, only read first time + new steps
+            ipos=1
+            alpha=0.d0 ! before start year, use start year value
+            kx=ty_start(n,ns2) ! just for printing
+            if(xyear>ty_end(n,ns2).or.
+     &      (xyear==ty_end(n,ns2).and.xday>=183))then
+              alpha=1.d0 ! after end year, use end year value
+              ipos=(ty_end(n,ns2)-ty_start(n,ns2))/kstep
+              kx=ty_end(n,ns2)-kstep
+            endif
+            do k=ty_start(n,ns2),ty_end(n,ns2)-kstep,kstep
+!should do!   if(xyear==k .and. xday==183)ifirst2(n,ns2)=.true.
+              if(xyear>k .or. (xyear==k.and.xday>=183)) then
+                if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
+                  ipos=1+(k-ty_start(n,ns2))/kstep ! (integer artithmatic)
+                  alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /
+     &                  (365.d0*real(kstep))
+                  kx=k
+                  exit
+                endif
+              endif
       end do
+
+!should do! if(ifirst2(n,ns2)) then
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_a(:,:),ipos)
+            call readt_parallel(grid,iuc,nameunit(iuc),sfc_b(:,:),1)
+!should do! endif
+            hnh3_con_all(I_0:I_1,J_0:J_1)=hnh3_con_all(I_0:I_1,J_0:J_1)
+     *      +sfc_a(I_0:I_1,J_0:J_1)*
+     &      (1.d0-alpha)+sfc_b(I_0:I_1,J_0:J_1)*alpha
+c           write(out_line,*)
+c    &      trim(nameT(n,ns)),' ',trim(ssname(n,ns)),' at ',
+c    &      100.d0*alpha,' % of period ',kx,' to ',kx+kstep
+c           call write_parallel(trim(out_line))
+c           ifirst2(n,ns) = .false.
+          case('m')        ! monthly file, interpolate to now
+            call read_mon_src_2(n,ns2,iuc,hnh3_read(:,:),xyear,xday)
+c           ifirst2(n,ns2) = .false. ! needed?
+       hnh3_con_all(I_0:I_1,J_0:J_1)=hnh3_con_all(I_0:I_1,J_0:J_1)+
+     *  hnh3_read(I_0:I_1,J_0:J_1)
+          end select
+
+        endif
+
       call closeunit(iuc)
       end do
 c this is sloppy
-      ns=ns1
-      if (ns2.gt.ns1) ns=ns2
-      tye=ty_end(n,ns)
-      tys=ty_start(n,ns)
-      if (ihyr.lt.tys) ihyr=tys
-      if (ihyr.ge.tye) ihyr=tye
+c     ns=ns1
+c     if (ns2.gt.ns1) ns=ns2
+c     tye=ty_end(n,ns)
+c     tys=ty_start(n,ns)
+c     if (ihyr.lt.tys) ihyr=tys
+c     if (ihyr.ge.tye) ihyr=tye
 
-      do i=1,ndec
-      jbt=tys+(i-1)*10
-      if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
-      jb1=jbt
-      jb2=jbt+10
-      irr=i
-      go to 23
-      endif
-      end do
-  23  continue
+c     do i=1,ndec
+c     jbt=tys+(i-1)*10
+c     if (ihyr.ge.jbt.and.ihyr.lt.jbt+10) then
+c     jb1=jbt
+c     jb2=jbt+10
+c     irr=i
+c     go to 23
+c     endif
+c     end do
+c 23  continue
 c interpolate to model year
 c    
-      d1=real(ihyr-jb1)
-      d2=real(jb2-ihyr)
-      d3=real(jb2-jb1)
-      NH3_src_con(:,j_0:j_1)=(d1*hnh3_con_all(:,j_0:j_1,irr+1)
-     * +d2*hnh3_con_all(:,j_0:j_1,irr))/d3
-      NH3_src_cyc(:,j_0:j_1)=(d1*hnh3_cyc_all(:,j_0:j_1,irr+1)
-     * +d2*hnh3_cyc_all(:,j_0:j_1,irr))/d3
+c     d1=real(ihyr-jb1)
+c     d2=real(jb2-ihyr)
+c     d3=real(jb2-jb1)
+      NH3_src_con(i_0:i_1,j_0:j_1)=hnh3_con_all(i_0:i_1,j_0:j_1)
+      NH3_src_cyc(i_0:i_1,j_0:j_1)=hnh3_cyc_all(i_0:i_1,j_0:j_1)
+c     NH3_src_con(:,j_0:j_1)=(d1*hnh3_con_all(:,j_0:j_1,irr+1)
+c    * +d2*hnh3_con_all(:,j_0:j_1,irr))/d3
+c     NH3_src_cyc(:,j_0:j_1)=(d1*hnh3_cyc_all(:,j_0:j_1,irr+1)
+c    * +d2*hnh3_cyc_all(:,j_0:j_1,irr))/d3
 
       if (imAER.eq.5) then
 c already in units of NH3
-      nh3_src_con(:,j_0:j_1)=nh3_src_con(:,j_0:j_1)
-     *  *axyp(:,j_0:j_1)+hnh3_ocean(:,j_0:j_1)/(sday*30.4*12.)
-      nh3_src_cyc(:,j_0:j_1)=nh3_src_cyc(:,j_0:j_1)
-     *  *axyp(:,j_0:j_1)
+      nh3_src_con(i_0:i_1,j_0:j_1)=nh3_src_con(i_0:i_1,j_0:j_1)
+     *  *axyp(i_0:i_1,j_0:j_1)
+      nh3_src_cyc(i_0:i_1,j_0:j_1)=nh3_src_cyc(i_0:i_1,j_0:j_1)
+     *  *axyp(i_0:i_1,j_0:j_1)
       else
 c conversion [kg N/gb/a] -> [kg NH3 /gb/s]
-      nh3_src_con(:,j_0:j_1)=nh3_src_con(:,j_0:j_1)
+      nh3_src_con(i_0:i_1,j_0:j_1)=nh3_src_con(i_0:i_1,j_0:j_1)
      *  *1.2142/(sday*30.4*12.)
-      nh3_src_cyc(:,j_0:j_1)=nh3_src_cyc(:,j_0:j_1)
+      nh3_src_cyc(i_0:i_1,j_0:j_1)=nh3_src_cyc(i_0:i_1,j_0:j_1)
      *  *1.2142/(sday*30.4*12.)
       endif
       
@@ -1447,7 +1742,7 @@ c want kg seasalt/m2/s, for now in 2 size bins
       USE AEROSOL_SOURCES, only: SS1_AER,SS2_AER,tune_ss1,tune_ss2
       use param, only: sync_param
       implicit none
-      REAL*8 erate
+      REAL*8 erate,swind_cap
       integer jread
       integer, INTENT(IN)::itype,ibin,i,j
       REAL*8, INTENT(IN)::swind
@@ -1458,7 +1753,9 @@ c
        if (imAER.ne.1) then
        if (itype.eq.1) then
 c Monahan 1971, bubble source, important for small (<10um) particles
-        erate= 1.373d0 * swind**(3.41d0)
+        swind_cap=swind
+        if (swind.gt.10.d0) swind_cap=10.d0
+        erate= 1.373d0 * swind_cap**(3.41d0)
         if (ibin.eq.1) then
           ss=tune_ss1*erate*2.11d-14 ! submicron (0.1 < r_d < 1.)
         else

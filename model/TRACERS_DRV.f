@@ -9009,20 +9009,20 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         select case (trname(n))
         case ('SO2')
         if (imPI.ne.1) then    ! these are all pollution
-        call read_hist_SO2(end_of_day)
-c       if (imAER.eq.3) call get_ships(end_of_day)  !reads in SO2, BC and POM sources
+        call read_hist_SO2(end_of_day,jday)
+c       if (imAER.eq.3) call get_ships(end_of_day,jday)  !reads in SO2, BC and POM sources
 c       if (imAER.eq.3) call get_aircraft_SO2   ! this does SO2 and BCIA
         endif
         case ('BCII')  !this does BC and OC
-        if (imPI.ne.1) call get_BCOC(end_of_day)
+        if (imPI.ne.1) call get_BCOC(end_of_day,jday)
         case ('M_BC1_BC')  !this does BC and OC
-        if (imPI.ne.1) call get_BCOC(end_of_day)
+        if (imPI.ne.1) call get_BCOC(end_of_day,jday)
         case ('BCB')  ! this does BCB and OCB and SO2
-        call get_hist_BMB(end_of_day)
+        call get_hist_BMB(end_of_day,jday)
         case ('M_BOC_BC')  ! this does BCB and OCB and SO2
-        call get_hist_BMB(end_of_day)
+        call get_hist_BMB(end_of_day,jday)
         case ('NH3')
-        call read_hist_NH3(end_of_day)
+        call read_hist_NH3(end_of_day,jday)
         end select
         end do
         endif

@@ -140,7 +140,8 @@ C----------------
       INTEGER, PARAMETER :: ITRMAX=50
 !@var TRACER array to add up to ITRMAX additional aerosol species
       REAL*8    :: TRACER(LX,ITRMAX)
-!@var FSTOPX,FTTOPX scales optional aerosols (solar,thermal component)
+!@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
+!@var FSTASC,FTASC scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
 !@var chem_IN column variable for importing ozone(1) and methane(2)
 !@+   fields from rest of model
@@ -874,6 +875,8 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
      * ,TRADEN= 1.d0
 !loc * ,FSTOPX= 1.d0
 !loc * ,FTTOPX= 1.d0
+     * ,FSTASC= 1.d0
+     * ,FTTASC= 1.d0
 
       SAVE
 
@@ -3397,7 +3400,7 @@ C     ------------------------------------------------------------------
       DO 700 L=L1,NL
       RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FSXTAU
       IF (FSTOPX(NT) > 0) THEN
-        RHFTAU=RHFTAU*FSTOPX(NT)
+        RHFTAU=RHFTAU*FSTOPX(NT)*FSTASC(NT)
         DO K=1,6
           SRBEXT(L,K)=SRBEXT(L,K)+SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
           SRBGQL =SRBGCB(L,K)*SRBSCT(L,K)+SRTQCB(K,NRHNAN(L,NA),NT)
@@ -3416,6 +3419,7 @@ C     ------------------------------------------------------------------
       NA=ITR(NT)
       DO 750 L=L1,NL
       RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FTXTAU*FTTOPX(NT)
+     *  *FTTASC(NT)
       TRBALK(L,:)=TRBALK(L,:)+TRTQAB(:,NRHNAN(L,NA),NT)*RHFTAU ! 1:33
   750 CONTINUE
 #endif

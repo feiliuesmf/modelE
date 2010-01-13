@@ -52,6 +52,7 @@ C****
      *     ,ITR,NTRACE        ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX,AERMIX, TRRDRY,KRHTRA,TRADEN,REFDRY
      *     ,rcomp1, writer, writet
+     *     ,FSTASC,FTTASC
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
@@ -395,6 +396,8 @@ c       FS8OPX = (/0d0, 0d0, 1d0, 0d0, 2d0, 2d0,  1d0 , 1d0/)
 #else
       NTRACE=6
       TRRDRY(1:NTRACE)=(/ .15d0, .44d0, 1.7d0, .2d0, .08d0, .08d0/)
+c augment BC by 50%
+      FSTASC(1:NTRACE)=(/1.d0,   1.d0 , 1.d0 , 1.d0, 1.5d0, 1.5d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4, 5,6/)
       KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0/)
@@ -414,6 +417,8 @@ C**** define weighting (only used for clays so far)
         FS8OPX(3) = 0. ; FT8OPX(3) = 0.
       end if
       TRRDRY(1:NTRACE)=(/.15d0,.44d0, 1.7d0, .2d0, .08d0, .08d0,0.15d0/)
+c augment BC by 50%
+      FSTASC(1:NTRACE)=(/1.d0,   1.d0 , 1.d0 , 1.d0, 1.5d0, 1.5d0,1.d0/)
 cc tracer 1 is sulfate, tracers 2 and 3 are seasalt
       ITR(1:NTRACE) = (/ 1,2,2,4, 5,6,3/)
       KRHTRA(1:NTRACE)=(/1,1,1,1, 0,0,1/)
@@ -822,6 +827,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,FTAUC,LOC_CHL
+     *             ,FSTASC,FTTASC
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
