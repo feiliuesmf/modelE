@@ -253,15 +253,11 @@ NOx_08=AR5_emis/F/T/m_NOx_shp_AR5_1850-2000_2x2.5_h
 NOx_09=AR5_emis/F/T/NOx_tra_AR5_1850-2000_2x2.5_h
 NOx_10=AR5_emis/F/T/NOx_wst_AR5_1850-2000_2x2.5_h
 NOx_11=AR5_emis/F/T/NOx_agr_AR5_1850-2000_2x2.5_h
-!! Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
-!! Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
-!! Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
-! Kostas will replace these files maybe after spinup...
-! Note that the Isoprene one is ignored when BIOGENIC_EMISSIONS
-! directive is on:
-Isoprene_01=temp_2x2.5/ORCHIDEE_Isoprene_1990_4x5_h_2x2.5gf_h
-Terpenes_01=temp_2x2.5/ORCHIDEE_Terpenes_1990_4x5_h_2x2.5gf_h
-Terpenes_02=temp_2x2.5/ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h
+! Note that the Isoprene emis file is ignored when BIOGENIC_EMISSIONS
+! directive is on. But I am commenting it anyway.
+! Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
+Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
+Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
 ! ========= please remember that Alkenes =================
 ! ========= and Paraffin emissions files =================
 ! ========= must now be in Kmole units,  =================
