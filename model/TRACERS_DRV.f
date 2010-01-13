@@ -9521,14 +9521,22 @@ C****
 #ifdef TRACERS_TERP
       case ('Terpenes')
         do ns=1,ntsurfsrc(n)
-          if(ns==1) then ! No orvoc file provided, scale up the terpenes one instead
+          if(ns==1) then 
             do j=J_0,J_1
 ! 0.4371 is the ratio of orvoc/isoprene emissions in the Lathiere et al. (2005) results
               trsource(I_0:I_1,j,ns,n)=
-     &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)+
-     &        orvoc_fact*0.4371*
-     &        sfc_src(I_0:I_1,j,n_Isoprene,ns)*axyp(I_0:I_1,j)
+     &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
             end do
+#ifndef BIOGENIC_EMISSIONS
+            ! If no orvoc file provided, scale up the terpenes one instead:
+            if(ntsurfsrc(n)==1) then
+              do j=J_0,J_1
+                trsource(I_0:I_1,j,ns,n)=trsource(I_0:I_1,j,ns,n)+
+     &          orvoc_fact*0.4371*axyp(I_0:I_1,j)*
+     &          sfc_src(I_0:I_1,j,n_Isoprene,ns)
+              end do
+            end if
+#endif
           else ! use the orvoc file
             do j=J_0,J_1
               trsource(I_0:I_1,j,ns,n)=orvoc_fact*
@@ -9552,23 +9560,10 @@ C****
         endif
 #endif
       case ('Isoprene')
-! Attempt to emit just during sunlight. factj composed of:
-! 4/pi= ratio of step-function emissions (square of area 1) to
-! area under cosine curve from 0 to pi/2. 1/max_COSZ1 = to account
-! for COSZ1 not necessarily maxing out at 1.0. And im/nlight (the
-! number of lons to daylit lons) to try to get most of the base
-! emissions out during daylight. The 1.274 factor is a secret.
-c        fact0=1.274d0*4.d0*real(im)/pi
-c        do j=j_0,j_1
-c          max_COSZ1=0.d0 ; nlight=0.d0
-c          max_COSZ1 = maxval(COSZ1(1:im,j))
-c          nlight = count(COSZ1(:,j) > 0.)
-c          factj(j)=fact0/(nlight*max_COSZ1)
-c        enddo
-
+! Isoprene sources to be emitted only during sunlight, and
+! weighted by cos of solar zenith angle:
         do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
           if(COSZ1(i,j)>0.)then
-c            trsource(i,j,ns,n)=factj(j)*COSZ1(i,j)*
             trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
      &      sfc_src(i,j,n,ns)*axyp(i,j)
           else
