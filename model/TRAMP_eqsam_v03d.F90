@@ -1,4 +1,4 @@
-subroutine eqsam_v03d(yi,yo,nca,nco,iopt,loop,imax,ipunit,in)
+subroutine eqsam_v03d(yi,yo,nca,nco,iopt,loop,imax,ipunit)!,in)
 !
 implicit none
 !
@@ -161,7 +161,7 @@ integer                                       :: ii,il,IHYST
 integer,intent(in)                            :: nca,nco,imax,loop,ipunit
 integer,intent(inout)                         :: iopt
 !______________________________________________
-integer,dimension(6),intent(in)               :: in
+!integer,dimension(6),intent(in)               :: in
 !______________________________________________
 real                                          :: T0T,TT,RH,PX,RHD,KAN,KAC,ZIONIC,RH_HIST,GAMA,GG,GF,GFN
 real                                          :: X00,X01,X02,X03,X04,X05,X08,X09,X10,X11
@@ -559,7 +559,10 @@ do il=1,loop
 
          ! Calculate pH
 
-         PH=-ALOG10(HPLUS)                             ! aerosol pH 
+! PH is not used in modelE, so this line is commented out until the HPLUS calculation is rewritten for
+! robustness with respect to real*4 roundoff errors.  These errors might be associated with the inputs
+! to this subroutine, so no rewrite yet.
+!         PH=-ALOG10(HPLUS)                             ! aerosol pH 
 
          ! Calculate ionic strength [mol/kg]
 
