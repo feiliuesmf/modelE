@@ -9148,7 +9148,7 @@ C**** at the start of any day
 #endif
       USE LAKES_COM, only : flake
       implicit none
-      integer :: i,j,ns,l,ky,n,nsect,kreg
+      integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,scca(im),fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -9530,10 +9530,12 @@ C****
 #ifndef BIOGENIC_EMISSIONS
             ! If no orvoc file provided, scale up the terpenes one instead:
             if(ntsurfsrc(n)==1) then
-              do j=J_0,J_1
-                trsource(I_0:I_1,j,ns,n)=trsource(I_0:I_1,j,ns,n)+
-     &          orvoc_fact*0.4371*axyp(I_0:I_1,j)*
-     &          sfc_src(I_0:I_1,j,n_Isoprene,ns)
+              do ns_isop=1,ntsurfsrc(n_Isoprene) ! use all Isoprene sources for orvoc scaling
+                do j=J_0,J_1
+                  trsource(I_0:I_1,j,ns,n)=trsource(I_0:I_1,j,ns,n)+
+     &            orvoc_fact*0.4371*axyp(I_0:I_1,j)*
+     &            sfc_src(I_0:I_1,j,n_Isoprene,ns_isop)
+                end do
               end do
             end if
 #endif
