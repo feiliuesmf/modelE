@@ -18,7 +18,7 @@
       character :: check
 
       read(iu_entstruct,*) check
-      write(*,*) check
+      write(*,*) 'ss',check
       do while (check.eq.'*') 
         read(iu_entstruct,*) check
       end do
@@ -47,12 +47,13 @@
 !************************************************************************
       
 
-      subroutine read_patch_struct ( pp,iu_entstruct )
-      type(patch),pointer :: pp
+      subroutine read_patch_struct (pp,iu_entstruct )
+      type(patch) :: pp
       integer :: iu_entstruct
       !---
       integer :: layer
-!      real*8 :: age, area
+!      real*8 :: age, area, soil_type
+!     real*8 :: May also add soil texture
 !      real*8 :: tc1,tc2,tc3,tc4,tc5,tc6,tc7,tc8,tc9,tc10,tc11,tc12 !TpoolC
 !      real*8 :: tn1,tn2,tn3,tn4,tn5,tn6,tn7,tn8,tn9,tn10,tn11,tn12 !TpoolN
 
@@ -89,7 +90,41 @@
      &     C_froot,cop%N_froot,cop%C_croot,cop%N_croot
 
       end subroutine read_cohort_struct
+
 !************************************************************************
+      subroutine calc_cohort_allometry(cop)
+!@sum calc_cohort_allometry.  cop comes initialized with pft, n, h.
+!+    This subroutine calculates other allometry and biomass pools.      
+      use ent_prescr_veg, only : Ent_dbh, crown_radius_hw,
+     &     prescr_plant_cpools, prescr_calc_rootprof, prescr_init_Clab
+      use phenology, only : height2dbh
+      use ent_pfts, only : COVEROFFSET,nmv
+      implicit none
+      type(cohort),pointer :: cop
+      !---Local------
+      real*8 :: cpool(N_BPOOLS) !g-C/pool/plant
+
+      cop%dbh = height2dbh(cop%pft,cop%h)
+      cop%crown_dx = crown_radius_hw(cop%dbh) !## Eventually need to make pft-specific
+      !cop%crown_dy = 0.66d0*cop%h !* Temporary estimate
+      cop%nm = nmv(cop%pft+COVEROFFSET)
+      !if (.not.FORCE_VEG)
+      !cop%LAI = No need to assign LAI here, because max is used for allometry.
+      call prescr_plant_cpools(cop%pft,0.d0,cop%h,cop%dbh,cop%n,cpool)
+      !if .not.FORCE_INIT_CLAB 
+      call prescr_init_Clab(cop%pft,cop%n,cpool)
+      !else *ent_struct_readcsv should provide Clab
+      call prescr_calc_rootprof(cop%fracroot,cop%pft + COVEROFFSET)
+      cop%C_fol = cpool(FOL)
+      cop%C_sw = cpool(SW)
+      cop%C_hw = cpool(HW)
+      cop%C_lab = cpool(LABILE) 
+      cop%C_froot = cpool(FR)
+      cop%C_croot = cpool(CR)
+      
+      end subroutine calc_cohort_allometry
+!************************************************************************
+
 
 ! left the old program for a reference - should be removed
 cddd      subroutine ent_struct_readcsv (IM,JM,I0,I1,J0,J1)
@@ -143,7 +178,7 @@ cddd          call read_entcell_struct( ecp,iu_entstruct )
 cddd          cells(i,j) = ecp
 cddd        else if (next.eq.'p') then !new patch
 cddd          write(*,*) 'p'
-cddd          call insert_patch(ecp,0.d0,0)
+cddd          call insert_patch(ecp,0.d0)
 cddd          pp => ecp%youngest
 cddd          call read_patch_struct(pp,iu_entstruct)
 cddd          write(*,*) 'patch area age soil',pp%area,pp%age,pp%soil_type
@@ -191,70 +226,108 @@ cddd      write(*,*) 'Done with creating Ent vegetation structure.'
 cddd      end subroutine ent_struct_readcsv
 
 
-      subroutine ent_struct_readcsv (ecp, iu_entstruct)
+      subroutine ent_struct_readcsv (ec, iu_entstruct)
 !@sum Read ent vegetation structure from ASCII CSV file
-!@sum Called by do_ent_struct:
+!@sum Called by do_ent_struct or ent_prog:
 !@sum    - do_ent_struct loops through entcells and checks ij bounds
-!@sum    - ent_struct_read_csv allocates an entcell and loops 
-!@sum         through patches and cohorts
+!@sum    - ent_struct_read_csv loops through reading patches and cohorts
 !@sum Order in CSV file must be:
 !@sum First line:  N_CASA_LAYERS
 !@sum e, entcells in any order spanning dimension IM,JM
 !@sum p, patches in order from oldest to youngest
-!@sum c, cohorts in order from tallest to shortest
+!@sum c, cohorts any order (insert_cohort sorts by height)
 !@sum *, comment line
 !@sum $, end of entcell
 !@sum #, end of file
-!@sum The ordering is not critical, because the CSV file must give the
-!@sum ij indices of the entcell, and the insert routines will
-!@sum sort the patches and cohorts, given age and height.
 
       implicit none
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ec
       integer :: iu_entstruct      
       !----
-      type(patch),pointer :: pp
-      type(cohort),pointer :: cop
-      real*8 :: fracroot(N_DEPTH)
+      type(patch),pointer :: pp, tpp
+      type(cohort),pointer :: cop,tcp
       character :: next
-      integer :: counter
+      integer :: counter, pk
+      logical :: end_of_entcell
 
-      fracroot(1:N_DEPTH) = 0.d0
-
-      call entcell_construct(ecp)
-      call zero_entcell( ecp )
-      call read_entcell_struct( ecp,iu_entstruct )
-      
+      !* Set up pointers.
+!      call entcell_construct(ec)
+!      call zero_entcell( ec )
+      call patch_construct(pp,null(),1.d0,2) !Blank patch to hold values.
+      call zero_patch(pp)
+      call cohort_construct(cop,null())
+      call zero_cohort(cop)
+          
       counter = 0
-      do
+      pk = 0
+      end_of_entcell = .false.
+      do while (.not.end_of_entcell) 
         counter = counter + 1
         if ( counter >= 1000) 
      &       call stop_model("ent_readcsv: infinite loop",255)
         read(iu_entstruct,*) next
         if (next.eq.'$') then
-           write(*,*) 'Ent of entcell.'
+           write(*,*) 'End of entcell.'
+           end_of_entcell = .true.
            exit
         else if (next.eq.'*') then !skip comment
         else if (next.eq.'p') then !new patch
           write(*,*) 'p'
-          call insert_patch(ecp,0.d0,0)
-          pp => ecp%youngest
+          pk = pk + 1
           call read_patch_struct(pp,iu_entstruct)
-          write(*,*) 'patch area age soil',pp%area,pp%age,pp%soil_type
+          if (pk.gt.1) then !First patch overwrites any default initial dummy.
+             write(*,*) 'pk = ', pk
+             call insert_patch(ec,pp%area,pp%soil_type) 
+             write(*,*) 'inserted patch'
+          endif
+          call patch_copy(pp,ec%youngest) !Copy read-in patch data.
+
+          write(*,*) 'patch age area soil',pp%age,pp%area,pp%soil_type
         else if (next.eq.'c') then !new cohort
           write(*,*) 'c'
-          call insert_cohort(pp,0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         fracroot,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
-          cop => pp%shortest
           call read_cohort_struct(cop,iu_entstruct)
+          call calc_cohort_allometry(cop)
+          !## Assumes last patch is youngest 
+          !## (insert_patch does not currently sort by age).
+          call insert_cohort(ec%youngest,cop%pft,
+     &         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,0.d0,
+     &         cop%dbh,0.d0,0.d0,0.d0,
+     &         cop%fracroot,cop%C_fol,0.d0,cop%C_sw,0.d0,cop%C_hw,
+     &         0.d0,cop%C_lab,0.d0,cop%C_froot,
+     &         0.d0,cop%C_croot,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
+     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
+          tcp=>ec%oldest%tallest
+          do while (associated(tcp))
+             write(*,*) '1 cohort: pft, h',tcp%pft,tcp%h
+             tcp=>tcp%shorter
+          enddo
+          
+          !Do pheno factors need to be initialized?  ##-NK
+!     &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, 
+!     &     betad_10d, CB_d,
+!     &     turnover_amp, llspan
+
           write(*,*) 'cohort pft height',cop%pft,cop%h
         end if
       end do
 
-      call summarize_entcell(ecp)
+      call summarize_entcell(ec)
+
+      !## Check entcell structure ----------
+      write(*,*) 'ENTSTRUCT entcell summary -'
+      write(*,*) 'entcell: area sum C_w =',ec%area,ec%C_w
+      tpp => ec%oldest
+      do while (associated(tpp))
+         write(*,*) '  patch: area soil_type =',tpp%area,tpp%soil_type
+         tcp=>ec%oldest%tallest
+         do while (associated(tcp))
+            write(*,*) '  cohort: pft, h = ',tcp%pft,tcp%h
+            tcp=>tcp%shorter
+         enddo
+         tpp=>tpp%younger
+      enddo
+      !##-----------------------------------
+
 
       end subroutine ent_struct_readcsv
 
