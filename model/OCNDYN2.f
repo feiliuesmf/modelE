@@ -1915,31 +1915,33 @@ C**** Reduce ocean current at east edges of cells
 C**** UO = UO*(1-x/y)  is approximated by  UO*y/(y+x)  for stability
 C**** 
       Do J=Max(J1O,J1),JNP
-      I=IM
-      DO IP1=1,IM
-      IF(LMU(I,J) <= 0)  CYCLE
-      L=LMU(I,J)
-      WSQ = UO(I,J,L)**2 + VOD(I,J,L)**2 + 1d-20
-      UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
+        I=IM
+        DO IP1=1,IM
+          IF(LMU(I,J) > 0) THEN
+            L=LMU(I,J)
+            WSQ = UO(I,J,L)**2 + VOD(I,J,L)**2 + 1d-20
+            UO(I,J,L) = UO(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
      *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
-      VOD(I,J,L) = VOD(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
+            VOD(I,J,L) = VOD(I,J,L) * (MO(I,J,L)+MO(IP1,J,L)) /
      *           (MO(I,J,L)+MO(IP1,J,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
-      I=IP1
-      ENDDO
+          ENDIF
+          I=IP1
+        ENDDO
       ENDDO
 C****
 C**** Reduce ocean current at north edges of cells
 C****
       Do J=Max(J1O,J1),JNP
-      DO I=1,IM
-      IF(LMV(I,J) <= 0)  CYCLE
-      L=LMV(I,J)   
-      WSQ = VO(I,J,L)**2 + UOD(I,J,L)**2 + 1d-20
-      VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
+        DO I=1,IM
+          IF(LMV(I,J) > 0) THEN
+            L=LMV(I,J)   
+            WSQ = VO(I,J,L)**2 + UOD(I,J,L)**2 + 1d-20
+            VO(I,J,L) = VO(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
      *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0) 
-      UOD(I,J,L) = UOD(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
+            UOD(I,J,L) = UOD(I,J,L) * (MO(I,J,L)+MO(I,J+1,L)) /
      *           (MO(I,J,L)+MO(I,J+1,L) + DTS*BDRAGX*SQRT(WSQ)*2d0)
-      ENDDO
+          ENDIF
+        ENDDO
       ENDDO
       RETURN
 C****
