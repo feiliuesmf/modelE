@@ -1866,7 +1866,7 @@ c
         k=k+1
         lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF N='//char(N+48)
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwaer_surf_'//char(n+48)
+        name_ij(k) = 'lwaerrf_surf_'//char(n+48)
         ia_ij(k) = ia_rad
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
@@ -1925,7 +1925,7 @@ c
       IJ_LWAERSRFNT = k   ! NET Surf LW aerosol rad forcing (W/m**2)
       lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF NET'
       units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwaer_surf_net'
+      name_ij(k) = 'lwaerrf_surf_net'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
