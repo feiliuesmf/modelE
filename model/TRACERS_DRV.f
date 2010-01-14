@@ -9527,7 +9527,7 @@ C****
               trsource(I_0:I_1,j,ns,n)=
      &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
             end do
-#ifndef BIOGENIC_EMISSIONS
+#if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
             ! If no orvoc file provided, scale up the terpenes one instead:
             if(ntsurfsrc(n)==1) then
               do ns_isop=1,ntsurfsrc(n_Isoprene) ! use all Isoprene sources for orvoc scaling
@@ -9561,6 +9561,7 @@ C****
           enddo
         endif
 #endif
+#if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
       case ('Isoprene')
 ! Isoprene sources to be emitted only during sunlight, and
 ! weighted by cos of solar zenith angle:
@@ -9572,7 +9573,8 @@ C****
             trsource(i,j,ns,n)=0.d0
           endif  
         end do ; end do; enddo
-#endif
+#endif 
+#endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
       case ('SO2')
