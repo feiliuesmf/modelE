@@ -78,7 +78,7 @@ REG=REG2X2.5                      ! special regions-diag
 RVR=RD_modelE_Fa.RVR.bin          ! river direction file
 TOP_INDEX=top_index_144x90_a.ij.ext
 ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
-GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat

@@ -95,7 +95,7 @@ dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90_a.ij.ext
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90.OCN   ! glacial melt distribution
+GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
 
 Label and Namelist:
 E3aF40 (ModelE 2x2.5, 40 lyrs, 1979 atm; use up to 72 (or 80) columns and     ??
