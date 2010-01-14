@@ -1626,7 +1626,7 @@ C**** Salinity
      *     .and. ITER.lt.4) GO TO 510
 C**** G,S horizontal slopes are diffused like G,S; after iteration
       If (.not.QPOLE)  Then
-        GHATDUM(:) = 0. ! change this if GHATG/GHATS are nonzero
+        GHATDUM(:) = 0.
         Call OVDIFFS (GXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
      *                GXML(1),FLDUM)
         Call OVDIFFS (GYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
@@ -1647,13 +1647,14 @@ C**** G,S horizontal slopes are diffused like G,S; after iteration
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration and follow salinity
       DO L=1,LMIJ
-        GHATT(L,:)=AKVS(L)*GHAT(L)*DELTATR(:)*DXYP(J)
+        GHATT(L,:)=AKVS(L)*GHAT(L)*DELTATR(:)*DXYPO(J)
       END DO
+      GHATDUM(:) = 0.
       DO N=1,NTM
         If (.not.QPOLE)  Then
-        Call OVDIFFS (TXML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
+        Call OVDIFFS (TXML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
      *       DTS,LMIJ,TXML(1,N),FLT(1,N))
-        Call OVDIFFS (TYML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
+        Call OVDIFFS (TYML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
      *       DTS,LMIJ,TYML(1,N),FLT(1,N))  ;  EndIf
         Call OVDIFFS (TRML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
      *       DTS,LMIJ,TRML(1,N),FLT(1,N))
