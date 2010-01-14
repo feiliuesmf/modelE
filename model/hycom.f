@@ -608,7 +608,15 @@ c$OMP PARALLEL DO
         do 12 j=J_0, J_1
         do 12 l=1,isp_loc(j)
         do 12 i=ifp_loc(j,l),ilp_loc(j,l)
+#ifdef TRACERS_AGE_OCEAN
+           tracer_loc(i,j,1,1)=0.
+           do k=2,kdm
+           tracer_loc(i,j,k,1)=tracer_loc(i,j,k,1)+1.
+           enddo
+ 12     continue
+#else
 12      tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
+#endif
 c$OMP END PARALLEL DO
 #endif
         call system_clock(after)        ! time elapsed since last system_clock
