@@ -2399,7 +2399,7 @@ C****
       WRITE (6,905) (DASH,J=J1,JM,INC)
          DO 40 L=1,LM+LM_REQ+1
          DO 40 J=1,JM+3
-   40    XJL(J,L) = -1.E30
+   40    XJL(J,L) = -1.D30
          KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
       CX = 0.0
   100 DO 110 J=J1,JM
@@ -2414,7 +2414,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
                FLAT(J)  = CX(J,K)/(DPJK(J,K,J1)+teeny)
                XJL(J,K) = FLAT(J)*PRTFAC
                FLAT(J)  = FLAT(J)*PRTFAC
-               IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
+               IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.D30
                MLAT(J)=NINT(MIN(1d5,MAX(-1d5,FLAT(J)))) ! prevent too large int?
             END DO
             CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC,
@@ -2424,7 +2424,7 @@ C**** HORIZONTAL SUMS AND TABLE ENTRIES
                FLAT(J)  = CX(J,K)/(DPJK(J,K,J1)+teeny)
                XJL(J,K) = FLAT(J)*PRTFAC
                FLAT(J)  = FLAT(J)*PRTFAC
-               IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.E30
+               IF (DPJK(J,K,J1).EQ.0.) XJL(J,K) = -1.D30
                MLAT(J)=NINT(MIN(1d5,MAX(-1d5,FLAT(J)))) ! prevent too large int?
             END DO
             CALL GLOBALSUM(GRID, CX(:,K)*WTJ(:,JWT,J1)*PRTFAC,
@@ -2500,7 +2500,7 @@ C form title string
          KSX = 3
          DO 205 L=1,LM+LM_REQ+1
          DO 205 J=1,JM+3
-  205    XJL(J,L) = -1.E30
+  205    XJL(J,L) = -1.D30
       LINECT=LINECT+KMAX+10
       IF (LINECT.LE.60) GO TO 230
       WRITE (6,907)
@@ -2634,7 +2634,7 @@ C****
       WRITE (6,905) (DASH,J=J1,JM,INC)
          DO 40 L=1,LM+LM_REQ+1
          DO 40 J=1,JM+3
-   40    XJL(J,L) = -1.E30
+   40    XJL(J,L) = -1.D30
          KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
   100 SDSIG=1.-SIGE(LMAX+1)
          KLMAX = LMAX+KSX
@@ -2721,7 +2721,7 @@ C form title string
          KSX = 3
          DO 205 L=1,LM+LM_REQ
          DO 205 J=1,JM
-  205    XJL(J,L) = -1.E30
+  205    XJL(J,L) = -1.D30
       LINECT=LINECT+LMAX+10
       IF (LINECT.LE.60) GO TO 200
       WRITE (6,907) XLABEL(1:105),JDATE0,AMON0,JYEAR0,JDATE,AMON,JYEAR
@@ -2847,7 +2847,7 @@ C****
       WRITE (6,905) (DASH,J=J1,JM,INC)
          DO 40 L=1,LM+LM_REQ+1
          DO 40 J=1,JM+3
-   40    XJL(J,L) = -1.E30
+   40    XJL(J,L) = -1.D30
 
       SUMFAC=1.
       IWORD=3
