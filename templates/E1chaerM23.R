@@ -283,6 +283,8 @@ CH4_10=methane/gcm_data/CH4_GEIA_Termites_header
 CH4_11=AR5_emis/M/2000/CH4_forestfire_AR5_2000_4x5_h
 CH4_12=AR5_emis/M/2000/CH4_grassfire_AR5_2000_4x5_h
 CH4_13=methane/gcm_data/CH4_GEIA_Wetlands_and_Tundra_header
+! if BIOGENIC_EMISSIONS or PS_BVOC are defined, and only one
+! Terpenes file is available, the Isoprene file is needed too
 Isoprene_01=ORCHIDEE_Isoprene_1990_4x5_h
 Terpenes_01=ORCHIDEE_Terpenes_1990_4x5_h
 Terpenes_02=ORCHIDEE_ORVOC_1990_4x5_h

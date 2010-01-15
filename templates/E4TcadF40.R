@@ -255,6 +255,8 @@ NOx_10=AR5_emis/F/T/NOx_wst_AR5_1850-2000_2x2.5_h
 NOx_11=AR5_emis/F/T/NOx_agr_AR5_1850-2000_2x2.5_h
 ! Note that the Isoprene emis file is ignored when BIOGENIC_EMISSIONS
 ! directive is on. But I am commenting it anyway.
+! if BIOGENIC_EMISSIONS or PS_BVOC are defined, and only one
+! Terpenes file is available, the Isoprene file is needed too
 ! Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
 Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
 Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
