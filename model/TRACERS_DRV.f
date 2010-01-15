@@ -8956,13 +8956,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
          if(fix_CH4_chemistry/=1.or.ntsurfsrc(n)/=0)
      &   call get_GFED_biomass_burning(n,xyear,xday)
 #endif
-#if (defined BIOGENIC_EMISSIONS) || (defined PS_BVOC)
-        else if (n==n_Isoprene)then ! ------------- isoprene ---------
-         nread=ntsurfsrc(n)
-         if(do_fire(n))nread=nread-1
-         if(nread > 0 .and. am_i_root( ) )write(6,*)
-     &    'NOT reading Isoprene source because BIOGENIC_EMISSIONS on.'
-#endif
         else !-------------------------------------- general ---------
           nread=ntsurfsrc(n)
           if(do_fire(n))nread=nread-1
@@ -9107,6 +9100,7 @@ C**** at the start of any day
       USE MODEL_COM, only: itime,JDperY,fland,psf,pmtop,jmpery
      *  ,dtsrc,jmon,nday,flice,focean,im,jm
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, GLOBALSUM,AM_I_ROOT
+     *   ,globalmax
 
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
@@ -9162,6 +9156,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
 #ifdef TRACERS_TERP
 !@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
       real*8, parameter :: orvoc_fact=0.32d0
+      real*8 :: max_isop_flux
 #endif  /* TRACERS_TERP */
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer :: i_ocmip,imax
@@ -9523,13 +9518,18 @@ C****
         do ns=1,ntsurfsrc(n)
           if(ns==1) then 
             do j=J_0,J_1
-! 0.4371 is the ratio of orvoc/isoprene emissions in the Lathiere et al. (2005) results
               trsource(I_0:I_1,j,ns,n)=
      &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
             end do
-#if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
-            ! If no orvoc file provided, scale up the terpenes one instead:
+! If no orvoc file provided, scale up the terpenes one instead.
+! 0.4371 is the ratio of orvoc/isoprene emissions in the Lathiere et al. (2005) results
             if(ntsurfsrc(n)==1) then
+              call globalmax(grid,
+     &             maxval(sfc_src(I_0:I_1,J_0:J_1,n_Isoprene,
+     &                            1:ntsurfsrc(n_Isoprene))),
+     &             max_isop_flux)
+              if (max_isop_flux <= 0.d0) call stop_model(
+     &          'Offline isoprene sources are needed', 255)
               do ns_isop=1,ntsurfsrc(n_Isoprene) ! use all Isoprene sources for orvoc scaling
                 do j=J_0,J_1
                   trsource(I_0:I_1,j,ns,n)=trsource(I_0:I_1,j,ns,n)+
@@ -9538,7 +9538,6 @@ C****
                 end do
               end do
             end if
-#endif
           else ! use the orvoc file
             do j=J_0,J_1
               trsource(I_0:I_1,j,ns,n)=orvoc_fact*
