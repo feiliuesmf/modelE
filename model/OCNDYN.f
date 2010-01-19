@@ -103,7 +103,6 @@ C**** Apply bottom and coastal drags
 C****
 C**** Integrate Ocean Dynamics
 C****
-      IDACC(11) = IDACC(11) + 1
       Do 500 NO=1,NOCEAN
 
 C**** initialize summed mass fluxes
