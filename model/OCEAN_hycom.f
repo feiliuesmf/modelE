@@ -442,7 +442,14 @@ c
             !!call geopar
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
-     . ,uflxav,vflxav,diaflx,tracer,dpinit,oddev,uav,vav,dpuav,dpvav
+     . ,uflxav,vflxav,diaflx
+#ifdef TRACERS_OceanBiology
+     . ,tracer(:,:,:,1)
+#else
+!Shan Sun's rsf files have one dimensional tracer
+     . ,tracer
+#endif
+     . ,dpinit,oddev,uav,vav,dpuav,dpvav
      . ,dpav,temav,salav,th3av,ubavav,vbavav,pbavav,sfhtav,eminpav
      . ,surflav,salflav,brineav,tauxav,tauyav,dpmxav,oiceav
      . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi         ! agcm grid

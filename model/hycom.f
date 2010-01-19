@@ -106,6 +106,9 @@ c
       !USE MODEL_COM, only : focean
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
+#ifdef TRACERS_AGE_OCEAN    
+     .  ,sday,JDperY
+#endif
 #ifdef TRACERS_OceanBiology 
       USE obio_dim
       USE obio_forc, only: awind,owind=>owind_glob,
@@ -157,6 +160,10 @@ c
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
       real plev
+#endif
+#ifdef TRACERS_AGE_OCEAN    
+      real plev
+      integer nt
 #endif
       external rename
       logical master,slave,diag_ape
@@ -603,16 +610,23 @@ c     call findmx(ip,temp(1,1,k1n),idm,ii,jj,'sst')
 c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
-#if defined(TRACERS_HYCOM_Ventilation)
+#if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN)
 c$OMP PARALLEL DO
         do 12 j=J_0, J_1
         do 12 l=1,isp_loc(j)
         do 12 i=ifp_loc(j,l),ilp_loc(j,l)
 #ifdef TRACERS_AGE_OCEAN
+!for consistency with Gary's ocean need to 
+!multiply here by trcfrq*baclin/(JDperY*SDAY) 
            tracer_loc(i,j,1,1)=0.
            do k=2,kdm
-           tracer_loc(i,j,k,1)=tracer_loc(i,j,k,1)+1.
+           tracer_loc(i,j,k,1)=tracer_loc(i,j,k,1)
+     .           + 1.*trcfrq*baclin/(JDperY*SDAY)
            enddo
+!          do k=1,kdm
+!          if(i.eq.itest.and.j.eq.jtest)print*,
+!    .     'hycom, age:', nsetp,i,j,k,tracer_loc(i,j,k,1)
+!          enddo
  12     continue
 #else
 12      tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
@@ -875,7 +889,8 @@ c
 ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 
-#ifdef TRACERS_OceanBiology
+
+#if (defined TRACERS_OceanBiology) ||  (defined TRACERS_AGE_OCEAN)
 cdiag  do k=1,kdm
 cdiag  km=k+mm
 cdiag   if (k.eq.1)
@@ -909,18 +924,20 @@ cdiag  call obio_limits('aftr hybgen')
          if (plev.lt.1.e30) then
            plevav(i,j,k)=plevav(i,j,k)+plev
 
-           do nt=1,ntrac
+           do nt=1,ntrcr
               tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer(i,j,k,nt)*plev
            enddo   !nt
 
          endif
       enddo  !k
 
+#ifdef TRACERS_OceanBiology
       !pco2
          pCO2av(i,j)=pCO2av(i,j)+pCO2(i,j)
 
       !ao_co2flux
          ao_co2fluxav(i,j)=ao_co2fluxav(i,j)+ao_co2flux_glob(i,j)
+#endif
 
       enddo
       enddo

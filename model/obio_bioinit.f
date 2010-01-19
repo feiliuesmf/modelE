@@ -101,8 +101,8 @@ c  Initialize
       do i=1,idm
          if(alk_glob(i,j,k).lt.0.) alk_glob(i,j,k)=0.
 
-         write(*,'(a,3i5,e12.4)')'obio_bioinit: ',
-     .         i,j,k,alk_glob(i,j,k)
+!        write(*,'(a,3i5,e12.4)')'obio_bioinit: ',
+!    .         i,j,k,alk_glob(i,j,k)
       enddo
       enddo
       enddo

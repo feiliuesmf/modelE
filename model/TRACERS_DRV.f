@@ -9062,6 +9062,7 @@ C**** at the start of any day
      .            atmCO2,sarea,
      .            PSF,grav,
      .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
+         endif
 #else
          !current concentration to new concentration
          factor = xnow(1)*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
@@ -9073,8 +9074,8 @@ C**** at the start of any day
      .            xnow(1),sarea,
      .            PSF,grav,
      .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
-#endif
          endif
+#endif
          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              trm(i,j,l,n) = factor*trm(i,j,l,n)
          enddo; enddo; enddo
@@ -9087,7 +9088,7 @@ C**** at the start of any day
          end if
 
       enddo  !n
-      endif
+      endif  ! end_of_day
 #endif
 
       return

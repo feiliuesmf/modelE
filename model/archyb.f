@@ -362,7 +362,7 @@ c
 c
 
 
-#ifdef TRACERS_OceanBiology
+#if (defined TRACERS_OceanBiology) || (defined TRACERS_AGE_OCEAN)
       call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
 #endif
 

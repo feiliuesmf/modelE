@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 c   -----------------------------------------------------------------------------
       module hycom_arrays_glob
 
@@ -171,6 +172,9 @@ cddd      public msk
       public diafor
       public klist
       public ijlist
+#ifdef TRACERS_AGE_OCEAN
+      public plevav,tracav
+#endif
 
 
 !!      include 'bering.h'
@@ -231,6 +235,10 @@ c
      .,tauxav(:,:),tauyav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
+#ifdef TRACERS_AGE_OCEAN
+      real*8, allocatable ::
+     . plevav(:,:,:),tracav(:,:,:,:)
+#endif
 c
 !!      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
 !!     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,salflav,brineav,eminpav
@@ -660,7 +668,11 @@ c
      .,salflav(idm,jdm),brineav(idm,jdm),eminpav(idm,jdm)
      .,surflav(idm,jdm),tauxav(idm,jdm),tauyav(idm,jdm)
      .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm) 
-     .,dpmxav(idm,jdm),oiceav(idm,jdm) ) 
+     .,dpmxav(idm,jdm),oiceav(idm,jdm)  
+#ifdef TRACERS_AGE_OCEAN
+     .,plevav(idm,jdm,kdm),tracav(idm,jdm,kdm,ntrcr)
+#endif
+     .)
 c 
       allocate( 
      . util1(idm,jdm),util2(idm,jdm) 

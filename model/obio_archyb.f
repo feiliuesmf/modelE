@@ -1,4 +1,5 @@
-!#include "hycom_mpi_hacks.h"
+#include "hycom_mpi_hacks.h"
+#include "rundeck_opts.h"
       subroutine obio_archyb(nn,dpav,temav,salav,th3av,
      .                       dpmxav,oiceav)
 c
@@ -10,21 +11,29 @@ c
 
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
      &     ,thref,baclin
+#ifdef TRACERS_AGE_OCEAN   
+     .     ,diag_counter
+#endif
       USE HYCOM_DIM_GLOB, only : jj,jdm,kk,ntrcr,ii,idm,kdm,iia,jja
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
+#ifdef TRACERS_AGE_OCEAN   
+     .  ,plevav,tracav
+#endif
+#ifdef TRACERS_OceanBiology    
       USE obio_com, only : pCO2_glob,ao_co2flux_glob,pCO2av, 
      .                     ao_co2fluxav,diag_counter,tracav,plevav
+#endif
 c
       implicit none
       real*8, dimension(idm,jdm) :: dpmxav,oiceav
       real*8, dimension(idm,jdm,kdm) :: dpav,temav,salav,th3av
       real factor
       integer i,j,k,l,kn,nn
-     
 c
       integer no,nop,nt
       character flnm*40,intvl*3,title*80
 c
+     
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
@@ -83,6 +92,7 @@ c
       enddo
       enddo
 
+#ifdef TRACERS_OceanBiology    
       !pco2
         write(title,'(a)')'pCO2, water'
         call write2giss(nop,pCO2_glob,title)
@@ -90,6 +100,7 @@ c
       !ao co2 flux
         write(title,'(a)')'AO CO2 flux'
         call write2giss(nop,ao_co2flux_glob,title)
+#endif
 
 
 ! time averaged arrays
@@ -130,7 +141,7 @@ c
       !no need to divide by diag_counter because pressumably
       !this is already done when divide by plevav
       do nt=1,ntrcr
-      where(plevav(:,:,:) .ne. 0.d0)
+      where(plevav(:,:,:).ne.0.d0)
        tracav(:,:,:,nt)=tracav(:,:,:,nt)/plevav(:,:,:)
       endwhere
       do k=1,kk
@@ -139,6 +150,7 @@ c
       enddo
       enddo
    
+#ifdef TRACERS_OceanBiology    
       !pco2av
       if (diag_counter .ne. 0.d0) then
         pco2av=pco2av/diag_counter
@@ -152,13 +164,16 @@ c
       endif
         write(title,'(a)')'ao_co2fluxav'
         call write2giss(nop,ao_co2fluxav,title)
+#endif
 
 !zero out for next diagnostic period
       diag_counter= 0.
       tracav = 0.
       plevav = 0.
+#ifdef TRACERS_OceanBiology    
       pco2av = 0.
       ao_co2fluxav = 0.
+#endif
 
       return
       end subroutine obio_archyb

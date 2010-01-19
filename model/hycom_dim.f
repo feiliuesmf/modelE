@@ -33,7 +33,7 @@ c-----------------------------------------------------------------------------
 #endif
 
 #ifndef TRACERS_OceanBiology
-#ifdef TRACERS_HYCOM_Ventilation
+#if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN)
       integer, parameter :: ntrcr = 1
 #else
       integer, parameter :: ntrcr = 1
