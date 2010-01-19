@@ -805,7 +805,7 @@ C**** weighting functions for surface types
 c idacc-indices of various processes
       integer, parameter, public ::
      &     ia_src=1, ia_rad=2, ia_srf=3, ia_dga=4, ia_d4a=5, ia_d5f=6,
-     *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_ocn=11,
+     *     ia_d5d=7, ia_d5s=8, ia_12hr=9, ia_filt=10, ia_rad_frc=11,
      *     ia_inst=12
 
 !@var PLE,PLM, PLE_DN ref pressures at upper, middle and lower edge
@@ -951,7 +951,7 @@ c allocate master copies of budget- and JK-arrays on root
         allocate(hemis_gc(1,1,1))
         allocate(vmean_gc(1,1,1))
         allocate(hemis_ij(1,1,1))
-         
+
       endif
 
       RETURN

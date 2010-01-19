@@ -1815,7 +1815,7 @@ c
       lname_ij(k) = 'SW CLOUD RADIATIVE FORCING, TOA'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swcrf_toa'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m265_95
 c
@@ -1824,7 +1824,7 @@ c
       lname_ij(k) = 'LW CLOUD RADIATIVE FORCING, TOA'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwcrf_toa'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -1834,7 +1834,7 @@ c
         lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA N='//char(N+48)
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swaerrf_toa_'//char(n+48)
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
       END DO
@@ -1845,7 +1845,7 @@ c
         lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA N='//char(N+48)
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwaerrf_toa_'//char(n+48)
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
       END DO
@@ -1856,7 +1856,7 @@ c
         lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF N='//char(N+48)
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swaerrf_surf_'//char(n+48)
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
       END DO
@@ -1867,7 +1867,7 @@ c
         lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF N='//char(N+48)
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwaerrf_surf_'//char(n+48)
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
       END DO
@@ -1878,7 +1878,7 @@ c
         lname_ij(k) = 'SW AER ATMOS. ABSORPTION N='//char(N+48)
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swaeraa_toa_'//char(n+48)
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
       END DO
@@ -1889,7 +1889,7 @@ c
         lname_ij(k) = 'LW AER ATMOS. ABSORPTION N='//char(N+48)
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwaeraa_toa_'//char(n+48)
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
       END DO
@@ -1899,7 +1899,7 @@ c
       lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swaerrf_toa_net'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -1908,7 +1908,7 @@ c
       lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwaerrf_toa_net'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -1917,7 +1917,7 @@ c
       lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swaerrf_surf_net'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -1926,11 +1926,11 @@ c
       lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF NET'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwaerrf_surf_net'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
-      k=k+1
+      k=k+1               ! unused ????
       IJ_SWAERABSNT = k   ! NET Atm. abs. by aerosol (W/m**2)
       lname_ij(k) = 'SW AER ATMOS. ABSORPTION NET'
       units_ij(k) = 'W/m^2'
@@ -1939,7 +1939,7 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
-      k=k+1
+      k=k+1                     ! unused ????
       IJ_LWAERABSNT = k         ! NET Atm. abs. by aerosol (W/m**2)
       lname_ij(k) = 'LW AER ATMOS. ABSORPTION NET'
       units_ij(k) = 'W/m^2'
@@ -3267,47 +3267,47 @@ c
       denom_ij(k) = 0
 c
       k=k+1
-      IJ_MWL = k 
+      IJ_MWL = k
       lname_ij(k) = 'MASS OF LAKE AND RIVER WATER'
       units_ij(k) = '10^10 kg'
       name_ij(k) = 'mwl'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-10
       !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0 
+      denom_ij(k) = 0
 c
       k=k+1
-      IJ_GML = k 
+      IJ_GML = k
       lname_ij(k) = 'ENTHALPY OF LAKE AND RIVER WATER'
       units_ij(k) = '10^15 J'
       name_ij(k) = 'gml'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-15
       !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0 
+      denom_ij(k) = 0
 c
       k=k+1
-      IJ_MWLir = k 
+      IJ_MWLir = k
       lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
       units_ij(k) = 'kg'
       name_ij(k) = 'mwl_irrigate'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0
       !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0 
+      denom_ij(k) = 0
 c
       k=k+1
-      IJ_GMLir = k 
+      IJ_GMLir = k
       lname_ij(k) = 'ENTHALPY OF LAKE/RIVER LOST TO IRRIGATION'
       units_ij(k) = 'J'
       name_ij(k) = 'gml_irrigate'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d0
       !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0 
+      denom_ij(k) = 0
 c
       k=k+1
-      IJ_irrgw = k 
+      IJ_irrgw = k
       lname_ij(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
       units_ij(k) = 'mm/d'
       name_ij(k) = 'irrig_gw'
@@ -3317,7 +3317,7 @@ c
       denom_ij(k) = 0
 c
       k=k+1
-      IJ_irrgwE = k 
+      IJ_irrgwE = k
       lname_ij(k) = 'HEAT OF EXTERNALLY ADDED IRRIGATION'
       units_ij(k) = 'W/m2'
       name_ij(k) = 'irrig_gwE'
@@ -3917,7 +3917,7 @@ c
       lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swdcls'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -3926,7 +3926,7 @@ c
       lname_ij(k) = 'SW CLR-SKY NET RADIATION, SURFACE METHOD 2'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swncls'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -3935,7 +3935,7 @@ c
       lname_ij(k) = 'LW CLR-SKY DOWNWARD RADIATION SURFACE METHOD 2'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwdcls'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -3944,7 +3944,7 @@ c
       lname_ij(k) = 'SW CLR-SKY NET RADIATION TOA METHOD 2'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'swnclt'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -3953,7 +3953,7 @@ c
       lname_ij(k) = 'LW CLR-SKY NET RADIATION TOA METHOD 2'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'lwnclt'
-      ia_ij(k) = ia_rad
+      ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
@@ -4064,61 +4064,61 @@ c
         scale_ij(k) = 1.e10/DTsrc
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
-      k=k+1     
-        ij_fcghg(1,1) = k 
-        lname_ij(k) = 'SW TOA CH4 RADIATIVE FORCING' 
+      k=k+1
+        ij_fcghg(1,1) = k
+        lname_ij(k) = 'SW TOA CH4 RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swch4_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1    
-        ij_fcghg(2,1) = k 
-        lname_ij(k) = 'LW TOA CH4 RADIATIVE FORCING' 
+      k=k+1
+        ij_fcghg(2,1) = k
+        lname_ij(k) = 'LW TOA CH4 RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwch4_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1   
-        ij_fcghg(1,2) = k 
-        lname_ij(k) = 'SW TOA N2O RADIATIVE FORCING' 
+      k=k+1
+        ij_fcghg(1,2) = k
+        lname_ij(k) = 'SW TOA N2O RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swn2o_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1  
-        ij_fcghg(2,2) = k 
-        lname_ij(k) = 'LW TOA N2O RADIATIVE FORCING' 
+      k=k+1
+        ij_fcghg(2,2) = k
+        lname_ij(k) = 'LW TOA N2O RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwn2o_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1        
+      k=k+1
         ij_fcghg(1,3) = k
         lname_ij(k) = 'SW TOA CFC11 RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swc11_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1        
+      k=k+1
         ij_fcghg(2,3) = k
         lname_ij(k) = 'LW TOA CFC11 RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwc11_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1        
+      k=k+1
         ij_fcghg(1,4) = k
         lname_ij(k) = 'SW TOA CFC12 RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'swc12_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-      k=k+1        
+      k=k+1
         ij_fcghg(2,4) = k
         lname_ij(k) = 'LW TOA CFC12 RADIATIVE FORCING'
         units_ij(k) = 'W/m^2'
         name_ij(k) = 'lwc12_toa'
-        ia_ij(k) = ia_rad
+        ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
 #endif /* ACCMIP_LIKE_DIAGS */
 
@@ -5327,12 +5327,12 @@ c
       k=k+1
       IJL_U = k   ! no 3D output yet - presently used only in DIAGIL
       ia_ijl(k) = ia_dga
-      jgrid_ijl(k) = 2 
+      jgrid_ijl(k) = 2
 c
       k=k+1
       IJL_V = k   ! no 3D output yet - presently used only in DIAGIL
       ia_ijl(k) = ia_dga
-      jgrid_ijl(k) = 2 
+      jgrid_ijl(k) = 2
 c
       k=k+1
       IJK_TX = k

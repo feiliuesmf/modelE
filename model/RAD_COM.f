@@ -81,7 +81,7 @@ C**** does not produce exactly the same as the default values.
 !@var ttausv_cs_save  Tracer optical thickness clear sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_save,
      &     ttausv_cs_save
-#ifdef TRACERS_ON     
+#ifdef TRACERS_ON
 !@var ttausv_sum(_cs) daily sum opt depth by tracer, all (clear) sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum,ttausv_sum_cs
       real*8 :: ttausv_count = 0.d0
@@ -186,6 +186,10 @@ C**** does not produce exactly the same as the default values.
       INTEGER :: rad_interact_aer = 0  ! defaults to 0
 !@dbparam rad_interact_chem=1 for radiatively active chem tracers
       INTEGER :: rad_interact_chem= 0  ! defaults to 0
+
+!@dbparam nradfrc sets frequency of inst. rad. forcing calculations
+      INTEGER :: nradfrc=1 ! do them every nrad*nradfrc physics steps
+!                nradfrc=0: skip all, no repeated radiation calculations
 C**** the radiative forcing level for instantaneous forcing calcs is set
 C**** using the rad_forc_lev parameter.
 !@dbparam rad_forc_lev = 0 for TOA, 1 for LTROPO (default=0)
@@ -257,7 +261,7 @@ C**** Local variables initialised in init_RAD
 #if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
      *     ,wfac
 #endif
-#ifdef TRACERS_ON     
+#ifdef TRACERS_ON
      *     ,ttausv_sum,ttausv_sum_cs,ttausv_count
 #endif
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
@@ -439,7 +443,7 @@ C**** Local variables initialised in init_RAD
       allocate(ttausv_sum_glob(img,jmg,Ntm))
       allocate(ttausv_sum_cs_glob(img,jmg,Ntm))
 #endif
-      
+
       if (kradia.gt.0) then
         write (MODULE_HEADER_F(lhead+1:80),'(a8,i2,a15,i2,a7)')
      *    'R8 Tchg(',lm+LM_REQ,',ijm), I4 KLIQ(',lm,',4,ijm)'
@@ -528,7 +532,7 @@ C**** Local variables initialised in init_RAD
      &      ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
      &      ,ttausv_cs_save_glob
 #endif
-#ifdef TRACERS_ON      
+#ifdef TRACERS_ON
      &      ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
 #endif
       CASE (IOREAD:)
@@ -552,7 +556,7 @@ C**** Local variables initialised in init_RAD
      &       ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
      &       ,ttausv_cs_save_glob
 #endif
-#ifdef TRACERS_ON      
+#ifdef TRACERS_ON
      &       ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
 #endif
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -562,7 +566,7 @@ C**** Local variables initialised in init_RAD
             END IF
           end if
 
-#ifdef TRACERS_ON      
+#ifdef TRACERS_ON
           CALL ESMF_BCAST(grid, ttausv_count)
 #endif
           CALL ESMF_BCAST(grid, S0)

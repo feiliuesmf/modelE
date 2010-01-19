@@ -5197,7 +5197,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         case('Ox','stratOx')
           k = k + 1
           ijts_fc(1,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trname(n)//' tropopause SW rad forc'
           sname_ijts(k) = 'swf_tp_'//trim(trname(n))
           ijts_power(k) = -2
@@ -5205,7 +5205,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
           ijts_fc(2,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trname(n)//' tropopause LW rad forc'
           sname_ijts(k) = 'lwf_tp_'//trim(trname(n))
           ijts_power(k) = -2
@@ -5213,7 +5213,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
           ijts_fc(3,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trname(n)//' TOA SW rad forc'
           sname_ijts(k) = 'swf_toa_'//trim(trname(n))
           ijts_power(k) = -2
@@ -5221,7 +5221,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           scale_ijts(k) = 10.**(-ijts_power(k))
           k = k + 1
           ijts_fc(4,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trname(n)//' TOA LW rad forc'
           sname_ijts(k) = 'lwf_toa_'//trim(trname(n))
           ijts_power(k) = -2
@@ -5525,7 +5525,7 @@ c chemical production
 c BC impact on grain size
 c         k = k + 1
 c         ijts_alb(2,n) = k
-c         ia_ijts(k) = ia_rad
+c         ia_ijts(k) = ia_rad????
 c         lname_ijts(k) = 'BC impact on grain size'
 c         sname_ijts(k) = 'grain_BC'
 c         ijts_power(k) = -9
@@ -5534,7 +5534,7 @@ c         scale_ijts(k) = 10.**(-ijts_power(k))
 c BC impact on albedo
         k = k + 1
         ijts_alb(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BC impact on albedo (%)'
         sname_ijts(k) = 'alb_BC'
         ijts_power(k) = -12
@@ -5544,7 +5544,7 @@ c BC impact on albedo
 c SW forcing from albedo change
         k = k + 1
         ijts_alb(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCalb SW radiative forcing'
         sname_ijts(k) = 'swf_BCALB'
         ijts_power(k) = -2
@@ -5558,7 +5558,7 @@ c SW forcing from albedo change
 c BCI shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI SW radiative forcing'
         sname_ijts(k) = 'swf_BCI'
         ijts_power(k) = -2
@@ -5567,7 +5567,7 @@ c BCI shortwave radiative forcing
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI LW radiative forcing'
         sname_ijts(k) = 'lwf_BCI'
         ijts_power(k) = -2
@@ -5576,7 +5576,7 @@ c BCI longwave radiative forcing
 c BCI shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_BCI'
         ijts_power(k) = -2
@@ -5585,7 +5585,7 @@ c BCI shortwave surface radiative forcing
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_BCI'
         ijts_power(k) = -2
@@ -5594,7 +5594,7 @@ c BCI longwave radiative forcing
 c BCI clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCI'
         ijts_power(k) = -2
@@ -5603,7 +5603,7 @@ c BCI clear sky shortwave radiative forcing
 c BCI longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCI clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCI'
         ijts_power(k) = -2
@@ -5627,7 +5627,7 @@ c BCI longwave radiative forcing
 c BCB shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCB SW radiative forcing'
         sname_ijts(k) = 'swf_BCB'
         ijts_power(k) = -2
@@ -5636,7 +5636,7 @@ c BCB shortwave radiative forcing
 c BCB longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCB LW radiative forcing'
         sname_ijts(k) = 'lwf_BCB'
         ijts_power(k) = -2
@@ -5645,7 +5645,7 @@ c BCB longwave radiative forcing
 c BCB shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCB SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_BCB'
         ijts_power(k) = -2
@@ -5654,7 +5654,7 @@ c BCB shortwave surface radiative forcing
 c BCB longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCB LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_BCB'
         ijts_power(k) = -2
@@ -5663,7 +5663,7 @@ c BCB longwave surface radiative forcing
 c BCB clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCB clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_BCB'
         ijts_power(k) = -2
@@ -5672,7 +5672,7 @@ c BCB clear sky shortwave radiative forcing
 c BCB clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'BCB clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_BCB'
         ijts_power(k) = -2
@@ -5776,7 +5776,7 @@ c BCB clear sky longwave radiative forcing
 c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5785,7 +5785,7 @@ c OC shortwave radiative forcing
 c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5794,7 +5794,7 @@ c OC longwave radiative forcing
 c OC shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5803,7 +5803,7 @@ c OC shortwave surface radiative forcing
 c OC longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5812,7 +5812,7 @@ c OC longwave surface radiative forcing
 c OC clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
         ijts_power(k) = -2
@@ -5821,7 +5821,7 @@ c OC clear sky shortwave radiative forcing
 c OC clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5845,7 +5845,7 @@ c OC clear sky longwave radiative forcing
 c OC shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5854,7 +5854,7 @@ c OC shortwave radiative forcing
 c OC longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5863,7 +5863,7 @@ c OC longwave radiative forcing
 c OC shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW surf rad forcing'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5872,7 +5872,7 @@ c OC shortwave surface radiative forcing
 c OC longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW surf rad forcing'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -5881,7 +5881,7 @@ c OC longwave surface radiative forcing
 c OC clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_OC'
         ijts_power(k) = -2
@@ -5890,7 +5890,7 @@ c OC clear sky shortwave radiative forcing
 c OC clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
         ijts_power(k) = -2
@@ -6145,7 +6145,7 @@ c put in source of SO4 from aqueous chem
 c SO4 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 SW radiative forcing'
         sname_ijts(k) = 'swf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6154,7 +6154,7 @@ c SO4 shortwave radiative forcing
 c SO4 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 LW radiative forcing'
         sname_ijts(k) = 'lwf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6163,7 +6163,7 @@ c SO4 longwave radiative forcing
 c SO4 shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6172,7 +6172,7 @@ c SO4 shortwave surface radiative forcing
 c SO4 longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6181,7 +6181,7 @@ c SO4 longwave surface radiative forcing
 c SO4 clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
         ijts_power(k) = -2
@@ -6190,7 +6190,7 @@ c SO4 clear sky shortwave radiative forcing
 c SO4 clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SO4 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
         ijts_power(k) = -2
@@ -6232,7 +6232,7 @@ c NO3 clear sky optical thickness
 c NO3 shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 SW radiative forcing'
         sname_ijts(k) = 'swf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6241,7 +6241,7 @@ c NO3 shortwave radiative forcing
 c NO3 longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 LW radiative forcing'
         sname_ijts(k) = 'lwf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6250,7 +6250,7 @@ c NO3 longwave radiative forcing
 c NO3 shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6259,7 +6259,7 @@ c NO3 shortwave surface radiative forcing
 c NO3 longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
         ijts_power(k) = -2
@@ -6268,7 +6268,7 @@ c NO3 longwave surface radiative forcing
 c NO3 clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS'//trim(trname(n))
         ijts_power(k) = -2
@@ -6277,7 +6277,7 @@ c NO3 clear sky shortwave radiative forcing
 c NO3 clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'NO3 clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS'//trim(trname(n))
         ijts_power(k) = -2
@@ -6451,7 +6451,7 @@ c source of Pb210 from Rn222 decay
 c SS shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS SW radiative forcing'
         sname_ijts(k) = 'swf_SS'
         ijts_power(k) = -2
@@ -6460,7 +6460,7 @@ c SS shortwave radiative forcing
 c SS longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS LW radiative forcing'
         sname_ijts(k) = 'lwf_SS'
         ijts_power(k) = -2
@@ -6469,7 +6469,7 @@ c SS longwave radiative forcing
 c SS shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_SS'
         ijts_power(k) = -2
@@ -6478,7 +6478,7 @@ c SS shortwave surface radiative forcing
 c SS longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_SS'
         ijts_power(k) = -2
@@ -6487,7 +6487,7 @@ c SS longwave surface radiative forcing
 c SS clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_SS'
         ijts_power(k) = -2
@@ -6496,7 +6496,7 @@ c SS clear sky shortwave radiative forcing
 c SS clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'SS clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_SS'
         ijts_power(k) = -2
@@ -6697,7 +6697,7 @@ c dust shortwave radiative forcing of four clay sub size classes
           do kr=1,4
             k = k + 1
             ijts_fcsub(1,n,kr) = k
-            ia_ijts(k) = ia_rad
+            ia_ijts(k) = ia_rad_frc
             lname_ijts(k) = trim(trname(n))//char(48+kr)/
      *           /' SW radiative forcing'
             sname_ijts(k) = 'swf_'//trim(trname(n))//char(48+kr)
@@ -6709,7 +6709,7 @@ c dust longwave radiative forcing of four clay sub size classes
           do kr=1,4
             k = k + 1
             ijts_fcsub(2,n,kr) = k
-            ia_ijts(k) = ia_rad
+            ia_ijts(k) = ia_rad_frc
             lname_ijts(k) = trim(trname(n))//char(48+kr)/
      *           /' LW radiative forcing'
             sname_ijts(k) = 'lwf_'//trim(trname(n))//char(48+kr)
@@ -6721,7 +6721,7 @@ c dust shortwave radiative forcing at surface of four clay sub size classes
           do kr=1,4
             k = k + 1
             ijts_fcsub(3,n,kr) = k
-            ia_ijts(k) = ia_rad
+            ia_ijts(k) = ia_rad_frc
             lname_ijts(k) = trim(trname(n))//char(48+kr)/
      *           /' SW Surf radiative forcing'
             sname_ijts(k) = 'swf_surf_'//trim(trname(n))//char(48+kr)
@@ -6733,7 +6733,7 @@ c dust longwave radiative forcing at surface of four sub size classes
           do kr=1,4
             k = k + 1
             ijts_fcsub(4,n,kr) = k
-            ia_ijts(k) = ia_rad
+            ia_ijts(k) = ia_rad_frc
             lname_ijts(k) = trim(trname(n))//char(48+kr)/
      *           /' LW Surf radiative forcing'
             sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//char(48+kr)
@@ -6753,7 +6753,7 @@ c dust longwave radiative forcing at surface of four sub size classes
 c dust shortwave radiative forcing
           k = k + 1
           ijts_fc(1,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
           sname_ijts(k) = 'swf_'//trim(trname(n))
           ijts_power(k) = -2
@@ -6762,7 +6762,7 @@ c dust shortwave radiative forcing
 c dust longwave radiative forcing
           k = k + 1
           ijts_fc(2,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
           sname_ijts(k) = 'lwf_'//trim(trname(n))
           ijts_power(k) = -2
@@ -6771,7 +6771,7 @@ c dust longwave radiative forcing
 c dust shortwave radiative forcing at surface
           k = k + 1
           ijts_fc(3,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trim(trname(n))//' SW Surf radiative forcing'
           sname_ijts(k) = 'swf_surf_'//trim(trname(n))
           ijts_power(k) = -2
@@ -6780,7 +6780,7 @@ c dust shortwave radiative forcing at surface
 c dust longwave radiative forcing at surface
           k = k + 1
           ijts_fc(4,n) = k
-          ia_ijts(k) = ia_rad
+          ia_ijts(k) = ia_rad_frc
           lname_ijts(k) = trim(trname(n))//' LW Surf radiative forcing'
           sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
           ijts_power(k) = -2
@@ -6903,7 +6903,7 @@ C**** (not necessary associated with a particular tracer)
 #ifdef TRACERS_AEROSOLS_Koch
       IF (diag_rad.eq.1) THEN
         k = k + 1
-          ijs_ai = k
+          ijs_ai = k           ! unused ?????
           ia_ijts(k) = ia_rad
           lname_ijts(k) = 'Aerosol Index'
           sname_ijts(k) = 'ain_CSN'
@@ -7031,7 +7031,7 @@ c- interactive sources diagnostic
 cc shortwave radiative forcing
       k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW rad forcing'
         sname_ijts(k) = 'swf_'//TRIM(trname(n))
         ijts_power(k) = -2.
@@ -7040,7 +7040,7 @@ cc shortwave radiative forcing
 c longwave radiative forcing
       k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW rad forcing'
         sname_ijts(k) = 'lwf_'//TRIM(trname(n))
         ijts_power(k) = -2.
@@ -7049,7 +7049,7 @@ c longwave radiative forcing
 c shortwave surface radiative forcing
       k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW surf forc'
         sname_ijts(k) = 'swf_surf_'//TRIM(trname(n))
         ijts_power(k) = -2.
@@ -7058,7 +7058,7 @@ c shortwave surface radiative forcing
 c longwave surface radiative forcing
       k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW surf forc'
         sname_ijts(k) = 'lwf_surf_'//TRIM(trname(n))
         ijts_power(k) = -2.
@@ -7067,7 +7067,7 @@ c longwave surface radiative forcing
 c clear sky shortwave radiative forcing
       k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' SW cs forc'
         sname_ijts(k) = 'swf_CS_'//TRIM(trname(n))
         ijts_power(k) = -2.
@@ -7076,7 +7076,7 @@ c clear sky shortwave radiative forcing
 c clear sky longwave radiative forcing
       k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = TRIM(trname(n))//' LW CS forc'
         sname_ijts(k) = 'lwf_CS_'//TRIM(trname(n))
         ijts_power(k) = -2.
@@ -7096,7 +7096,7 @@ c - Tracer independent Diagnostic
 cc shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP SW radiative forcing'
         sname_ijts(k) = 'swf_AMP'
         ijts_power(k) = -2.
@@ -7105,7 +7105,7 @@ cc shortwave radiative forcing
 c longwave radiative forcing
         k = k + 1
         ijts_fc(2,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP LW radiative forcing'
         sname_ijts(k) = 'lwf_AMP'
         ijts_power(k) = -2.
@@ -7114,7 +7114,7 @@ c longwave radiative forcing
 c shortwave surface radiative forcing
         k = k + 1
         ijts_fc(3,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP SW surface rad forcing'
         sname_ijts(k) = 'swf_surf_AMP'
         ijts_power(k) = -2.
@@ -7123,7 +7123,7 @@ c shortwave surface radiative forcing
 c longwave surface radiative forcing
         k = k + 1
         ijts_fc(4,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP LW surface rad forcing'
         sname_ijts(k) = 'lwf_surf_AMP'
         ijts_power(k) = -2.
@@ -7132,7 +7132,7 @@ c longwave surface radiative forcing
 c clear sky shortwave radiative forcing
         k = k + 1
         ijts_fc(5,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP clr sky SW rad forcing'
         sname_ijts(k) = 'swf_CS_AMP'
         ijts_power(k) = -2.
@@ -7141,7 +7141,7 @@ c clear sky shortwave radiative forcing
 c clear sky longwave radiative forcing
         k = k + 1
         ijts_fc(6,n) = k
-        ia_ijts(k) = ia_rad
+        ia_ijts(k) = ia_rad_frc
         lname_ijts(k) = 'AMP clr sky LW rad forcing'
         sname_ijts(k) = 'lwf_CS_AMP'
         ijts_power(k) = -2.
@@ -7532,7 +7532,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         scale_ijlt(k) = 10.**(-ijlt_power(k))
       k = k + 1
         ijlt_NO2vmr=k
-        lname_ijlt(k) = 'NO2 mixing ratio' 
+        lname_ijlt(k) = 'NO2 mixing ratio'
         sname_ijlt(k) = 'NO2_vmr'
         ijlt_power(k) = -10 ! to match NOx
         units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
@@ -8847,7 +8847,7 @@ C**** Initialize tables for Prather StratChem tracers
      *      trname(n).eq."CFC11")
      *    call stratchem_setup(n_MPtable(n),trname(n))
       end do
-      end if  ! not end of day 
+      end if  ! not end of day
 
 C**** Prather StratChem tracers and linoz tables change each month
       IF (JMON.NE.last_month) THEN
@@ -8915,14 +8915,14 @@ C**** Allow overriding of transient emissions date:
 ! didn't want a new parameter, also not allowing
 ! day overriding yet, because of that.
       trans_emis_overr_yr=ABS(o3_yr)
-      if(trans_emis_overr_yr > 0)then 
+      if(trans_emis_overr_yr > 0)then
         xyear=trans_emis_overr_yr
-      else 
+      else
         xyear=jyear
       endif
-!!    if(trans_emis_overr_day > 0)then 
+!!    if(trans_emis_overr_day > 0)then
 !!      xday=trans_emis_overr_day
-!!    else 
+!!    else
         xday=jday
 !!    endif
 C**** Next line for fastj photon fluxes to vary with time:
@@ -9033,8 +9033,8 @@ C**** at the start of any day
 
 !gas exchange CO2 case reset trm here
 !for the constCO2 case just reset to atmCO2 which is defined in the rundeck
-!for the variable case (presently default) reset to the value scaled by 
-!the xnow value. 
+!for the variable case (presently default) reset to the value scaled by
+!the xnow value.
 #ifdef TRACERS_GASEXCH_ocean_CO2
 
       if (end_of_day) then ! only at end of day
@@ -9517,7 +9517,7 @@ C****
 #ifdef TRACERS_TERP
       case ('Terpenes')
         do ns=1,ntsurfsrc(n)
-          if(ns==1) then 
+          if(ns==1) then
             do j=J_0,J_1
               trsource(I_0:I_1,j,ns,n)=
      &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
@@ -9571,9 +9571,9 @@ C****
      &      sfc_src(i,j,n,ns)*axyp(i,j)
           else
             trsource(i,j,ns,n)=0.d0
-          endif  
+          endif
         end do ; end do; enddo
-#endif 
+#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
@@ -10775,7 +10775,7 @@ C**** this is a parameterisation from Georg Hoffmann
 c
 c aerosols
 c
- 
+
       if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
         fq(aero_list) = 0.      ! defaults to zero
       else
@@ -11032,7 +11032,7 @@ c      fq(gases_list) = 0.D0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP)
       if(      LHX.EQ.LHE ! if not frozen
-     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0.) THEN 
+     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0.) THEN
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
         ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
