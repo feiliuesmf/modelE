@@ -277,9 +277,9 @@ c      CALL STADVI
 c        CALL CHECKO ('STADVI')
 
 #ifdef TRACERS_OCEAN
-      CALL OC_TDECAY
+      CALL OC_TDECAY(DTS)
 #ifdef TRACERS_AGE_OCEAN
-      CALL OCN_TR_AGE
+      CALL OCN_TR_AGE(DTS)
 #endif
 #endif
 
@@ -1442,7 +1442,7 @@ C****
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
+      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit, n_age
 #endif
       USE OCEAN
 !      USE DOMAIN_DECOMP_1D, only : grid, GET, AM_I_ROOT
@@ -4306,13 +4306,13 @@ C****
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : oGRID
 
-#ifdef TRACERS_WATER
-      USE OFLUXES, only : oTRPREC, oTRUNPSI
-#endif
       USE SEAICE_COM, only : aRSI=>RSI
 
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
+#ifdef TRACERS_WATER
+     *     , oTRPREC, oTRUNPSI
+#endif
 
       IMPLICIT NONE
 

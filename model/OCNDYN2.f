@@ -345,9 +345,9 @@ C**** Apply GM + Redi tracer fluxes
       CALL TIMER (NOW,MSGSO)
 
 #ifdef TRACERS_OCEAN
-      CALL OC_TDECAY
+      CALL OC_TDECAY(DTS)
 #ifdef TRACERS_AGE_OCEAN
-      CALL OCN_TR_AGE
+      CALL OCN_TR_AGE(DTS)
 #endif
 #endif
 

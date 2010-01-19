@@ -63,6 +63,8 @@ C**** only TRACERS_WATER is true.
 
       do n=1,ntm
 
+        if (trname(n).eq.'Age') n_age=n
+
         if (itime.eq.itime_tr0(n)) then
         select case (trname(n))
 
@@ -72,6 +74,20 @@ C**** only TRACERS_WATER is true.
           txmo(:,:,:,n)=0.
           tymo(:,:,:,n)=0.
           tzmo(:,:,:,n)=0.
+C**** straits
+          if (am_i_root()) then
+            trmst(:,:,n)=0.
+            txmst(:,:,n)=0.
+            tzmst(:,:,n)=0.
+          end if
+          CALL ESMF_BCAST(grid, trmst)
+          CALL ESMF_BCAST(grid, txmst)
+          CALL ESMF_BCAST(grid, tzmst)
+
+#endif
+#ifdef TRACERS_WATER
+          if (am_i_root()) trsist(:,:,n)=0.
+          CALL ESMF_BCAST(grid, trsist)
 #endif
 
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
@@ -279,12 +295,6 @@ C**** Check
           end if
 #endif
 C****
-#ifdef TRACERS_AGE_OCEAN
-        case ('Age')
-          n_age=n
-          trmo=0. ; txmo=0. ; tymo=0. ; tzmo=0.
-#endif
-
         end select
         write(6,*) trname(n)," tracer initialised in ocean"
         end if
@@ -302,20 +312,21 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
 #endif
 
 #ifdef TRACERS_OCEAN
-      SUBROUTINE OC_TDECAY
+      SUBROUTINE OC_TDECAY(DTS)
 !@sum OC_TDECAY decays radioactive tracers in ocean
 !@auth Gavin Schmidt/Jean Lerner
-      USE MODEL_COM, only : itime,dtsrc
+      USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       IMPLICIT NONE
       real*8, save, dimension(ntm) :: expdec = 1.
+      real*8, intent(in) :: dts
       logical, save :: ifirst=.true.
       integer n
 
       if (ifirst) then               
         do n=1,ntm
-          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dtsrc)
+          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dts)
         end do
         ifirst = .false.
       end if
@@ -334,20 +345,22 @@ C****
       end subroutine oc_tdecay
 
 #ifdef TRACERS_AGE_OCEAN
-      SUBROUTINE OCN_TR_AGE
+      SUBROUTINE OCN_TR_AGE(DTS)
 !@sum OCN_TR_AGE age tracers in ocean
 !@auth Gavin Schmidt/Natassa Romanou
       USE CONSTANT, only : sday
-      USE MODEL_COM, only : itime,dtsrc,JDperY
+      USE MODEL_COM, only : itime,JDperY
       USE OCN_TRACER_COM, only : n_age
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, dxypo, mo, imaxj, focean,
-     *     lmm
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
+     *     lmm, lmo
 
 !      USE DOMAIN_DECOMP_1D, only : grid,get
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
+      real*8, intent(in) :: dts
+      real*8 age_inc
       integer i,j,l
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1
@@ -357,17 +370,21 @@ c**** Extract domain decomposition info
 C**** at each time step set surface tracer conc=0 and add 1 below
 C**** this is mass*age (kg*year)
 C**** age=1/(JDperY*24*3600) in years
-      DO J=J_0,J_1
-      DO I=1,IMAXJ(J)
-      TRMO(I,J,1,n_age)=0
-      TXMO(I,J,1,n_age)=0 ; TYMO(I,J,1,n_age)=0 ; TZMO(I,J,1,n_age)=0
-        IF (FOCEAN(I,J).gt.0) THEN
-        DO L=2,LMM(I,J)
-           TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age) +
-     +                   dtsrc/(JDperY*SDAY) * MO(I,J,L) * DXYPO(J)
+      age_inc=dts/(JDperY*SDAY)
+      DO L=1,LMO
+        DO J=J_0,J_1
+          DO I=1,IMAXJ(J)
+            if (l.le.lmm(i,j)) then
+              if (L.eq.1) then
+                TRMO(I,J,1,n_age)=0 ; TXMO(I,J,1,n_age)=0 
+                TYMO(I,J,1,n_age)=0 ; TZMO(I,J,1,n_age)=0
+              else
+                TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age) +
+     +                age_inc * MO(I,J,L) * oXYP(I,J)
+              end if
+            end if
+          ENDDO
         ENDDO
-        ENDIF
-      ENDDO
       ENDDO
 C****
       return
