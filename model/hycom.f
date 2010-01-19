@@ -107,7 +107,8 @@ c
       USE MODEL_COM, only: dtsrc
      *  ,itime,iyear1,nday,jdendofm,jyear,jmon,jday,jdate,jhour,aMON
 #ifdef TRACERS_AGE_OCEAN    
-     .  ,sday,JDperY
+     .  ,JDperY
+      USE CONSTANT, only : sday
 #endif
 #ifdef TRACERS_OceanBiology 
       USE obio_dim
