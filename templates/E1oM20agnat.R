@@ -47,6 +47,7 @@ ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
 OCNDYN OCNDYN2                           ! dynamic ocean routines
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
+OCEANR_DIM AFLUXES OFLUXES
 ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 SNOW_DRV SNOW                       ! snow model
@@ -57,12 +58,14 @@ DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_M                          ! diagnostics (resolution dependent)
       FFT72 OFFT72E                 ! utilities
 POUT                                ! post-processing output
+SparseCommunicator_mod              ! sparse gather/scatter module
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TRACER_COM TRACERS_DRV              ! configurable tracer code
 TRACERS                             ! generic tracer code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 OCN_TRACER
+OCN_TRACER_COM
 !!!!!!!!!!!!!!!!!!!!!!!!!!!  tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
