@@ -357,10 +357,10 @@ c**** Extract domain decomposition info
 C**** at each time step set surface tracer conc=0 and add 1 below
 C**** this is mass*age (kg*year)
 C**** age=1/(JDperY*24*3600) in years
-      TRMO(:,:,1,n_age)=0
-      TXMO(:,:,1,n_age)=0 ; TYMO(:,:,1,n_age)=0 ; TZMO(:,:,1,n_age)=0
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
+      TRMO(I,J,1,n_age)=0
+      TXMO(I,J,1,n_age)=0 ; TYMO(I,J,1,n_age)=0 ; TZMO(I,J,1,n_age)=0
         IF (FOCEAN(I,J).gt.0) THEN
         DO L=2,LMM(I,J)
            TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age) +

@@ -315,9 +315,9 @@ C**** do igas=1,ntm_chem instances get corrected.
      *     'Sil1QuHe','Sil2QuHe','Sil3QuHe',
 #endif  /* TRACERS_QUARZHEM */
 #ifdef TRACERS_OCEAN
-#ifdef TRACERS_AGE_OCEAN
-     *     'Age     ',
-#endif  /* TRACERS_AGE_OCEAN */
+!#ifdef TRACERS_AGE_OCEAN
+!     *     'Age     ',
+!#endif  /* TRACERS_AGE_OCEAN */
 #endif  /* TRACERS_OCEAN */
 #if defined TRACERS_AIR || defined HTAP_LIKE_DIAGS
      *     'Air     ',

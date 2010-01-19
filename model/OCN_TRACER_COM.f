@@ -26,6 +26,8 @@ C**** this defines tracer parameters that are local to ocean code
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Age       '/)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
+      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
+      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #else
 #ifdef TRACERS_OceanBiology
 #ifdef TRACERS_Alkalinity
