@@ -195,7 +195,8 @@ sst,sss,dic,alk
                                             ! if not defined pCO2_ONLINE
 nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
 silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
-dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
+!!!dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
+dic_inicond=preindustrial_ocean_tco2.asc       ! initial cond for dic (GLODAP)
 alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
