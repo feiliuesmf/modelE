@@ -156,7 +156,7 @@
 #endif
 #ifdef SCM
       USE SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T,
-     *                    SCM_ATURB_FLAG,iu_scm_prt
+     *                    SCM_ATURB_FLAG,iu_scm_prt,NRINIT
       USE SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
      &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
      &                    ENTSCM,ENTALL,ENTDEEP,
@@ -992,8 +992,12 @@ C****
       WMX(:)=WML(:)+SVWMXL(:)
       AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
 #ifdef SCM
-      if (I.eq.I_TARG .and. J.eq.J_TARG) AQ(:) = ((SCM_SAVE_Q(:)
-     *     +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
+      if (I.eq.I_TARG .and. J.eq.J_TARG) then
+          if (NRINIT.ne.0) then
+              AQ(:) = ((SCM_SAVE_Q(:)
+     *              +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
+          endif
+      endif
 #endif
       RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
       FSSL(:)=FSS(:,I,J)

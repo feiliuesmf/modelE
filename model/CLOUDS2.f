@@ -16,7 +16,7 @@
 #ifdef SCM
      &                      ,I_TARG,J_TARG
       USE SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T,
-     &                   SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt
+     &                   SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
       USE SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP,
      &                    MPLUMESCM,MPLUMEALL,MPLUMEDEEP,
      &                    ENTSCM,ENTALL,ENTDEEP,DETRAINDEEP,
@@ -3118,9 +3118,11 @@ C**** PHASE CHANGE OF CLOUD WATER CONTENT
 #ifdef SCM
 c     preserving T for difference from before updating with ARM data
       if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-          TH(L) = SCM_SAVE_T(L)*PLK(L)+SCM_DEL_T(L)+
+          if (NRINIT.ne.0) then
+             TH(L) = SCM_SAVE_T(L)*PLK(L)+SCM_DEL_T(L)+
      &            HCHANG/(SHA*FSSL(L)+teeny)
-          TH(L) = TH(L)/PLK(L)
+             TH(L) = TH(L)/PLK(L)
+          endif
       endif
 #endif
 
