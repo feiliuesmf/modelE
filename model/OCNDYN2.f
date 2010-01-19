@@ -7,7 +7,7 @@ c Will add more documentation if this version becomes the modelE default.
       SUBROUTINE OCEANS
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : idacc,modd5s,msurf,itime
+      USE MODEL_COM, only : modd5s,msurf,itime
       USE OCEANRES, only : NOCEAN
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,gxmo,gymo,gzmo,
      *    s0m,sxmo,symo,szmo,dts,dtofs,dto,dtolf,mdyno,msgso,
@@ -146,7 +146,6 @@ c relax UOD,VOD toward 4-pt avgs of UO,VO
 C****
 C**** Integrate Ocean Dynamics
 C****
-      IDACC(11) = IDACC(11) + 1
       Do NO=1,NOCEAN
 
 c check which of these are necessary
