@@ -542,6 +542,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          !@var lookup_pet index of PET for a given J
          INTEGER, DIMENSION(:), POINTER :: lookup_pet
          LOGICAL :: BC_PERIODIC         
+         INTEGER :: mpiCommunicator
       END TYPE DIST_GRID
 #endif
 
@@ -799,6 +800,9 @@ c fms_init() has already been called.  Move that call here?
 
       vm_ => modelE_vm
       If (Present(vm)) vm_ => vm
+
+      call ESMF_VMGet(vm_, mpiCommunicator=grd_dum%mpiCommunicator,
+     &     rc=rc)
 
       Call ESMF_VMGet(vm_, localPET = my_pet, petCount = NPES, rc=rc)
       ! The default layout is not what we want - it splits in the "I" direction.
@@ -1139,8 +1143,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1,
+     &     grd_dum%mpiCommunicator, from,grd_dum%BC_PERIODIC)
 #endif
 
       END SUBROUTINE HALO_UPDATE_1D
@@ -1153,8 +1157,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, 
+     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_2D
 
@@ -1166,8 +1170,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv_int(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv_int(grd_dum%ESMF_GRID, arr, shape(arr), 2, 
+     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_2Dint
 
@@ -1179,8 +1183,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, 
+     &     grd_dum%mpiCommunicator, from,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATEj_2D
 
@@ -1199,8 +1203,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       else
         jd = 2
       endif
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), jd, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), jd, 
+     &     grd_dum%mpiCommunicator, from,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_3D
 
@@ -1235,14 +1239,14 @@ c need to initialize the dd2d version of dist_grid for I/O
       call MPI_sendrecv(sBufS, numSendSouth, MPI_DOUBLE_PRECISION,
      &     pe_south, tag,
      &     rBufN, numRecvNorth, MPI_DOUBLE_PRECISION, pe_north, tag,
-     &     MPI_COMM_WORLD, status, ier)
+     &     grd_dum%mpiCommunicator, status, ier)
 
       tag = 1 + mod(tag - 1, NUM_TAGS)
 
       call MPI_sendrecv(sBufN, numSendNorth, MPI_DOUBLE_PRECISION,
      &     pe_north, tag,
      &     rBufS, numRecvSouth, MPI_DOUBLE_PRECISION, pe_south, tag,
-     &     MPI_COMM_WORLD, status, ier)
+     &     grd_dum%mpiCommunicator, status, ier)
 
 #endif
       END SUBROUTINE HALO_UPDATE_mask
@@ -1256,8 +1260,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, 
+     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_2D
 
@@ -1271,8 +1275,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, 
+     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_3D
 
@@ -1303,7 +1307,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, 
+     &     grd_dum%mpiCommunicator, from )
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_4D
 
@@ -1317,7 +1322,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 4, from)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 4,
+     &     grd_dum%mpiCommunicator, from)
 #endif
       END SUBROUTINE HALO_UPDATE_BLOCK_4D
 
@@ -1331,8 +1337,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, from
-     &     ,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, 
+     &      grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_7D
 
@@ -2052,10 +2058,10 @@ c**** arr  is overwritten by itself after reduction
 #ifdef USE_MPI
       If (all_) Then
          call MPI_Allreduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM,
-     &        MPI_COMM_WORLD, ierr)
+     &        grd_dum%mpiCommunicator, ierr)
       Else
          call MPI_Reduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM, root,
-     &        MPI_COMM_WORLD, ierr)
+     &        grd_dum%mpiCommunicator, ierr)
       End If
 #else
       isum = ivar
@@ -2149,9 +2155,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) THEN
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
-     &           MPI_COMM_WORLD, ierr)
+     &           grd_dum%mpiCommunicator, ierr)
             If (Present(hsum)) Call MPI_BCAST(hsum,2,
-     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ierr)
+     &           MPI_DOUBLE_PRECISION,root,grd_dum%mpiCommunicator,ierr)
          End If
       End If
 #endif
@@ -2241,9 +2247,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
-     &           MPI_COMM_WORLD, ierr)
+     &           grd_dum%mpiCommunicator, ierr)
             If (Present(hsum))     Call MPI_BCAST(hsum,2,
-     &           MPI_DOUBLE_PRECISION,root, MPI_COMM_WORLD, ierr)
+     &           MPI_DOUBLE_PRECISION,root,grd_dum%mpiCommunicator,ierr)
          End If
       End If
 #endif
@@ -2369,7 +2375,7 @@ c**** arr  is overwritten by itself after reduction
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        MPI_COMM_WORLD, ierr)
+     &        grd_dum%mpiCommunicator, ierr)
       End If
 #else
       gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ),2)
@@ -2414,7 +2420,7 @@ c**** arr  is overwritten by itself after reduction
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2,:),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        MPI_COMM_WORLD, ierr)
+     &        grd_dum%mpiCommunicator, ierr)
       End If
 #else
       gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ,:),2)
@@ -2508,7 +2514,7 @@ c**** arr  is overwritten by itself after reduction
 
       Call MPI_ALLTOALLV(send_buf, scnts, sdspl, mpi_double_precision,
      &             recv_buf, rcnts, rdspl, mpi_double_precision,
-     &             mpi_comm_world, ierr)
+     &             grd_dum%mpiCommunicator, ierr)
 
       tsum=sum(recv_buf,2)
 
@@ -2520,7 +2526,7 @@ c**** arr  is overwritten by itself after reduction
 
       Call MPI_GatherV(tsum, dik, mpi_double_precision,
      & gsum, dik_map, rdspl, mpi_double_precision,
-     & root, mpi_comm_world, ierr)
+     & root, grd_dum%mpiCommunicator, ierr)
 
       Deallocate(recv_buf)
       Deallocate(send_buf)
@@ -2528,7 +2534,7 @@ c**** arr  is overwritten by itself after reduction
 
       if (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        MPI_COMM_WORLD, ierr)
+     &        grd_dum%mpiCommunicator, ierr)
       End If
 #else
       gsum = Sum(arr(:,j_0:j_1,:),2)
@@ -2593,9 +2599,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,Size(gsum),MPI_DOUBLE_PRECISION,root,
-     &           MPI_COMM_WORLD, ierr)
+     &           grd_dum%mpiCommunicator, ierr)
             If (Present(hsum)) Call MPI_BCAST(hsum,size(hsum),
-     &           MPI_DOUBLE_PRECISION, root, MPI_COMM_WORLD, ierr)
+     &           MPI_DOUBLE_PRECISION,root,grd_dum%mpiCommunicator,ierr)
          End If
       End If
 #endif
@@ -3338,7 +3344,6 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)
       integer      , dimension (:,:) :: local_array, global_array
-!     type (ESMF_Grid)      :: egrid
       type (DIST_GRID)      :: egrid
 
 #ifdef USE_MPI
@@ -3399,7 +3404,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_ScatterV(var, sendcounts, displs,
      &     MPI_INTEGER         , local_array, recvcount,
-     &     MPI_INTEGER         , root, MPI_COMM_WORLD, ierr)
+     &     MPI_INTEGER         , root, egrid%mpiCommunicator, ierr)
 
         deallocate(VAR, stat=rc)
 
@@ -3477,7 +3482,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_ScatterV(var, sendcounts, displs,
      &     MPI_LOGICAL         , local_array, recvcount,
-     &     MPI_LOGICAL         , root, MPI_COMM_WORLD, ierr)
+     &     MPI_LOGICAL         , root, egrid%mpiCommunicator, ierr)
 
         deallocate(VAR, stat=rc)
 
@@ -3543,7 +3548,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array, sendcount, MPI_INTEGER         ,
      &     var, recvcounts, displs,
-     &     MPI_INTEGER         , root, MPI_COMM_WORLD, ierr)
+     &     MPI_INTEGER         , root, grid%mpiCommunicator, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3617,7 +3622,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array, sendcount, MPI_LOGICAL,
      &     var, recvcounts, displs,
-     &     MPI_LOGICAL, root, MPI_COMM_WORLD, ierr)
+     &     MPI_LOGICAL, root, e_grid%mpiCommunicator, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3691,7 +3696,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array,sendcount,MPI_INTEGER,
      &     var, recvcounts, displs,
-     &     MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+     &     MPI_INTEGER, root, grid%mpiCommunicator, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -4570,7 +4575,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_min, 1, MPI_DOUBLE_PRECISION,MPI_MIN,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #else
       val_min = val
 #endif
@@ -4587,7 +4592,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION,MPI_MAX,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #else
       val_max = val
 #endif
@@ -4604,7 +4609,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #else
       val_max = val
 #endif
@@ -4622,7 +4627,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_MPI
       n = size(val)
       CALL MPI_Allreduce(val, val_max, n, MPI_INTEGER, MPI_MAX,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #else
       val_max(:) = val(:)
 #endif
@@ -5808,13 +5813,13 @@ c
 c Set up the MPI send/receive information
 c
       call mpi_allgather(grd_dum%j_strt,1,MPI_INTEGER,j0_have,1,
-     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
       call mpi_allgather(grd_dum%j_stop,1,MPI_INTEGER,j1_have,1,
-     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
       call mpi_allgather(band_j0,1,MPI_INTEGER,j0_requested,1,
-     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
       call mpi_allgather(band_j1,1,MPI_INTEGER,j1_requested,1,
-     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
       do p=0,npes-1
         j0send = max(grd_dum%j_strt,j0_requested(p))
         j1send = min(grd_dum%j_stop,j1_requested(p))
@@ -5966,7 +5971,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_0D
@@ -5980,7 +5985,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_1D
@@ -5994,7 +5999,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_2D
@@ -6008,7 +6013,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_3D
@@ -6022,7 +6027,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_4D
@@ -6034,7 +6039,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_INTEGER,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_0D
 
@@ -6045,7 +6050,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_1D
 
@@ -6056,7 +6061,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_2D
 
@@ -6067,7 +6072,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_3D
 
@@ -6078,7 +6083,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
-     &     MPI_COMM_WORLD, ierr)
+     &     GRD_DUM%MPICOMMUNICATOR, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_4D
 
@@ -6171,11 +6176,11 @@ c
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ierr)
+     &        grid%mpiCommunicator, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ierr)
+     &        grid%mpiCommunicator, ierr)
       End If
 
       icnt = 0
@@ -6290,11 +6295,11 @@ c
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ierr)
+     &        grid%mpiCommunicator, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ierr)
+     &        grid%mpiCommunicator, ierr)
       End If
 
       icnt = 0
@@ -6416,11 +6421,11 @@ c
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ierr)
+     &        grid%mpiCommunicator, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        MPI_COMM_WORLD, ierr)
+     &        grid%mpiCommunicator, ierr)
       End If
 
       icnt = 0
@@ -6552,11 +6557,13 @@ cddd      End If
 
       End Subroutine GetNeighbors
 
-      Subroutine sendrecv(grid, arr, shp, dist_idx, from, bc_periodic_)
+      Subroutine sendrecv(grid, arr, shp, dist_idx, comm, 
+     &     from, bc_periodic_)
       Type (Esmf_Grid) :: grid
       Real(Kind=8) :: arr(*)
       Integer :: shp(:)
       Integer :: dist_idx
+      integer, intent(in) :: comm
       Integer, optional :: from
       Logical, optional :: bc_periodic_
 
@@ -6608,7 +6615,7 @@ cddd      End If
         if (pe_south /= MPI_PROC_NULL) then
            nSendMessages = nSendMessages + 1
            call MPI_Isend(arr(off(2)), 1, new_type, pe_south, tag, 
-     &          MPI_COMM_WORLD, requests(nSendMessages), ierr)
+     &          comm, requests(nSendMessages), ierr)
         end if
       end if
 
@@ -6617,19 +6624,19 @@ cddd      End If
         if (pe_north /= MPI_PROC_NULL) then
            nSendMessages = nSendMessages + 1
            call MPI_Isend(arr(off(3)), 1, new_type, pe_north, tag, 
-     &          MPI_COMM_WORLD, requests(nSendMessages), ierr)
+     &          comm, requests(nSendMessages), ierr)
         end if
       end if
 
       do i = 1, nRecvMessages
-         call MPI_Probe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, 
+         call MPI_Probe(MPI_ANY_SOURCE, tag, comm, 
      &        status, ierr)
          if (status(MPI_SOURCE) == pe_north) then
             call MPI_Recv( arr(off(4)), 1, new_type, pe_north, tag,
-     &           MPI_COMM_WORLD, status, ierr)
+     &           comm, status, ierr)
          else
             call MPI_Recv( arr(off(1)), 1, new_type, pe_south, tag,
-     &           MPI_COMM_WORLD, status, ierr)
+     &           comm, status, ierr)
          end If
       end do
 
@@ -6649,12 +6656,13 @@ cddd      End If
 
       End SUBROUTINE SendRecv
 
-      Subroutine sendrecv_int(grid, arr, shp, dist_idx, from,
+      Subroutine sendrecv_int(grid, arr, shp, dist_idx, comm, from,
      &     bc_periodic_)
       Type (Esmf_Grid) :: grid
       Integer :: arr(*)
       Integer :: shp(:)
       Integer :: dist_idx
+      integer, intent(in) :: comm
       Integer, optional :: from
       Logical, optional :: bc_periodic_
 
@@ -6689,14 +6697,14 @@ cddd      End If
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
      &                    arr(off(4)), 1, new_type, pe_north, tag,
-     &                    MPI_COMM_WORLD, status, ierr)
+     &                    comm, status, ierr)
       End If
 
       IF(FILL(SOUTH)) THEN
         tag = max(MOD(tag,128),10) + 1
         Call MPI_SendRecv(arr(off(3)), 1, new_type, pe_north, tag,
      &                    arr(off(1)), 1, new_type, pe_south, tag,
-     &                    MPI_COMM_WORLD, status, ierr)
+     &                    comm, status, ierr)
       End If
 
 #ifndef MPITYPE_LOOKUP_HACK
@@ -6761,11 +6769,11 @@ cddd      End If
       If (all_) Then
         Call MPI_AllGatherV(arr_loc(offset), scount, orig_type,
      &       arr_glob(1), rcounts, displs, new_type,
-     &       MPI_COMM_WORLD, ierr)
+     &       grid%mpiCommunicator, ierr)
       Else
         Call MPI_GatherV(arr_loc(offset), scount, orig_type,
      &       arr_glob(1), rcounts, displs, new_type,
-     &       root, MPI_COMM_WORLD, ierr)
+     &       root, grid%mpiCommunicator, ierr)
       End If
 
       End Do
@@ -6828,7 +6836,7 @@ cddd      End If
 
       Call MPI_ScatterV(arr_glob(1), scounts, displs, orig_type,
      &     arr_loc(offset), rcount, new_type,
-     &     root, MPI_COMM_WORLD, ierr)
+     &     root, grid%mpiCommunicator, ierr)
 
 #ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ierr)
@@ -6858,7 +6866,7 @@ cddd      End If
       INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
+     &     grd_dum%lookup_pet(j_dest), tag,grd_dum%mpiCommunicator,ierr)
 #endif
       end subroutine SEND_TO_J_1D
 
@@ -6870,7 +6878,7 @@ cddd      End If
       INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, 1, MPI_INTEGER,
-     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
+     &     grd_dum%lookup_pet(j_dest), tag,grd_dum%mpiCommunicator,ierr)
 #endif
       end subroutine ISEND_TO_J_0D
 
@@ -6882,7 +6890,8 @@ cddd      End If
 #ifdef USE_MPI
       INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
+     &     grd_dum%lookup_pet(j_src), tag, grd_dum%mpiCommunicator, 
+     &     status, ierr)
 #endif
       end subroutine RECV_FROM_J_1D
 
@@ -6894,7 +6903,8 @@ cddd      End If
 #ifdef USE_MPI
       INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER,
-     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
+     &     grd_dum%lookup_pet(j_src), tag, grd_dum%mpiCommunicator, 
+     &     status, ierr)
 #endif
       end subroutine IRECV_FROM_J_0D
 
