@@ -827,8 +827,8 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,FTAUC,LOC_CHL
-     *             ,FSTASC,FTTASC
+     *             ,TRACER,NTRACE,FSTOPX,FTTOPX,chem_IN,O3natL,O3natLref
+     *             ,FTAUC,LOC_CHL,FSTASC,FTTASC
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
@@ -943,6 +943,9 @@ c    *     ,SNFST0,TNFST0
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
       USE AMP_AEROSOL, only: AMP_DIAG_FC
+#endif
+#ifdef RAD_O3_GCM_HRES
+      use RAD_native_O3, only: O3JDAY_native,O3JREF_native
 #endif
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       IMPLICIT NONE
@@ -1726,6 +1729,10 @@ C**** or not.
       if (rad_interact_aer > 0) onoff_aer=1
       if (rad_interact_chem > 0) onoff_chem=1
 
+#ifdef RAD_O3_GCM_HRES
+      O3natL(:)=O3JDAY_native(:,I,J)
+      O3natLref(:)=O3JREF_native(:,I,J)
+#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_OM_SP)

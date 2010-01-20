@@ -143,6 +143,8 @@ C----------------
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
 !@var FSTASC,FTASC scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
+      INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
+      REAL*8, dimension(NLO3) :: O3natL,O3natLref
 !@var chem_IN column variable for importing ozone(1) and methane(2)
 !@+   fields from rest of model
 !@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
@@ -158,7 +160,8 @@ C----------------
      C             ,TRACER,SRBALB,SRXALB,dalbsn
      D             ,PVT,AGESN,SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG
      E             ,POCEAN,PEARTH,POICE,PLICE,PLAKE
-     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX,chem_IN
+     F             ,TGO,TGE,TGOI,TGLI,TSL,COSZ,FSTOPX,FTTOPX
+     _             ,chem_IN,O3natL,O3natLref
      X             ,zsnwoi,zoice,zmp,fmp,snow_frac,zlake,FTAUC
 C      integer variables start here, followed by logicals
      Y             ,JLAT,ILON, L1,NL, LS1_loc, use_tracer_chem, flags
@@ -408,11 +411,14 @@ C--------------------------------------   have to handle 1 point in time
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
-      INTEGER, PARAMETER :: NLO3=49 !  # of layers in ozone data files
 !@var O3YR_max last year before O3 data repeat last ann. cycle
+#ifdef RAD_O3_GCM_HRES
+      INTEGER :: O3YR_max=2000
+#else
       INTEGER :: O3YR_max=1997
       REAL*8, dimension(NLO3,MLON72,MLAT46) :: O3JDAY,O3JREF
       COMMON/O3JCOM/O3JDAY,O3JREF
+#endif
 C**** PLBO3(NLO3+1) could be read off the titles of the decadal files
       REAL*8 :: PLBO3(NLO3+1) = (/ ! plbo3(1) depends on plb0  ! ??
      *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
@@ -1672,7 +1678,11 @@ C----------------------------------------------
       IF(KJDAYO.ne.0)             JJDAYO=KJDAYO
       IF(KYEARO.ne.0)             JYEARO=KYEARO
 C----------------------------------------------
+#ifdef RAD_O3_GCM_HRES
+               CALL native_UPDO3D(JYEARO,JJDAYO)
+#else
                       CALL UPDO3D(JYEARO,JJDAYO)
+#endif
 C----------------------------------------------
 
       JJDAYA=JDAY
@@ -1760,12 +1770,22 @@ C      -----------------------------------------------------------------
 C--------------------------------
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       if(use_o3_ref > 0 )then
+#ifdef RAD_O3_GCM_HRES
+        CALL REPART (O3natLref          ,PLBO3,NLO3+1, ! in
+     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+#else
         CALL REPART (O3JREF(1,ILON,JLAT),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+#endif
         FULGAS(3)=1.d0
       else
+#ifdef RAD_O3_GCM_HRES
+        CALL REPART (O3natL             ,PLBO3,NLO3+1, ! in
+     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+#else
         CALL REPART (O3JDAY(1,ILON,JLAT),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+#endif
         if(use_tracer_chem(1) > 0) then
           U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
           FULGAS(3)=1.d0
@@ -2197,6 +2217,9 @@ C
       RETURN
       end subroutine UPDGHG
 
+
+#ifndef RAD_O3_GCM_HRES /* note NOT defined */
+
       SUBROUTINE UPDO3D(JYEARO,JJDAYO)
 
 !!!   use RADPAR, only : MLON72,MLAT46,NL,PLB0,U0GAS,MADO3M
@@ -2585,6 +2608,8 @@ c     write(0,*) 'WTTI,WTTJ, WTSI,WTSJ',WTTI,WTTJ, WTSI,WTSJ
 
       RETURN
       END SUBROUTINE O3_WTS
+
+#endif  /* RAD_O3_GCM_HRES NOT defined */
 
 
       subroutine GETGAS
@@ -9984,6 +10009,7 @@ C-------------
   400 CONTINUE
 C-------------
 C
+#ifndef RAD_O3_GCM_HRES
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO)
@@ -10055,6 +10081,7 @@ C
       IF(KLIMIT < 1) WRITE(KW,6402)
       WRITE(KW,6405) O3COL(49),(O3(49,L),L=1,NL)
  6405 FORMAT( 7X,'GLOBAL',F9.5,4X,15(1x,F6.5)/26X,15(1x,F6.5))
+#endif /* skipping this for now for RAD_O3_GCM_HRES */
       GO TO 9999
 C
 C
@@ -10062,6 +10089,7 @@ C-------------
   500 CONTINUE
 C-------------
 C
+#ifndef RAD_O3_GCM_HRES
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO)
@@ -10130,6 +10158,7 @@ C
  6501 FORMAT(I4,1X,36I4)
   580 CONTINUE
   590 CONTINUE
+#endif /* skipping this for now for RAD_O3_GCM_HRES */
 C
       GO TO 9999
 C
