@@ -27,6 +27,7 @@ Preprocessor Options
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
+#define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
@@ -92,6 +93,7 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO                    ! radiation and albedo
+RAD_native_O3                       ! for reading ozone to rad code at native GCM horiz res.
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_RES_F                          ! diagnostics (resolution dependent)
@@ -154,17 +156,35 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
-! ozone files (minimum 1, maximum 9 files + 1 trend file)
-O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
-O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
-O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
-O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
-O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
-O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
-O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
-O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
-O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
-O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+! ozone files (minimum 1, maximum 12 files )
+! this set for #defined RAD_O3_GCM_HRES 
+O3file_01=jan2010_o3_shindell_144x90x49x12_1850
+O3file_02=jan2010_o3_shindell_144x90x49x12_1870
+O3file_03=jan2010_o3_shindell_144x90x49x12_1890
+O3file_04=jan2010_o3_shindell_144x90x49x12_1910
+O3file_05=jan2010_o3_shindell_144x90x49x12_1930
+O3file_06=jan2010_o3_shindell_144x90x49x12_1940
+O3file_07=jan2010_o3_shindell_144x90x49x12_1950
+O3file_08=jan2010_o3_shindell_144x90x49x12_1960
+O3file_09=jan2010_o3_shindell_144x90x49x12_1970
+O3file_10=jan2010_o3_shindell_144x90x49x12_1980
+O3file_11=jan2010_o3_shindell_144x90x49x12_1990
+O3file_12=jan2010_o3_shindell_144x90x49x12_2000
+Ox_ref=jan2010_o3_shindell_144x90x49x12_April1850 ! for radiative forcing reference
+
+!! ozone files (minimum 1, maximum 9 files + 1 trend file)
+!! leaving commented files for NOT #defined RAD_O3_GCM_HRES:
+!! O3file_01=mar2004_o3_shindelltrop_72x46x49x12_1850
+!! O3file_02=mar2004_o3_shindelltrop_72x46x49x12_1890
+!! O3file_03=mar2004_o3_shindelltrop_72x46x49x12_1910
+!! O3file_04=mar2004_o3_shindelltrop_72x46x49x12_1930
+!! O3file_05=mar2004_o3_shindelltrop_72x46x49x12_1950
+!! O3file_06=mar2004_o3_shindelltrop_72x46x49x12_1960
+!! O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
+!! O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
+!! O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
+!! O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
+!! Ox_ref=gsin/O3ref_O3JDAY_1850_182.dat
 
 ! sulfate+black carbon files:
 !  MADAER=1 (default) needs:
@@ -197,7 +217,6 @@ CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc
 CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc
 Ox_IC=gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc
 CO_IC=gsin/CO_init_cond_M23_conc_2x2.5_conc
-Ox_ref=gsin/O3ref_O3JDAY_1850_182.dat
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
 ! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
