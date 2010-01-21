@@ -4909,20 +4909,22 @@ C     ----------------------------------------------------------
      *     ULMNCH=-.8105d0, ULMNN2=-1.521d0, ULMNF1=-4.780d0,
      *     ULMNO3=-1.393d0, ULMNCO= 1.529d0, ULMNF2=-4.524d0,
      *     USO2S=.042d0
-      REAL*8 XTU(24,3),XTD(24,3),DXUP(24,15,3),DXDN(24,15,3)
+      REAL*8 XTU(24,3),XTD(24,3),DXUP(24,15,3),DXDN(24,15,3),PRAT24(24)
       INTEGER MLGAS(21)
-      INTEGER I,IM,L,LL,IP,IULOW,IU,IPX,IAA,ITX
-     *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA
+      INTEGER I,IM,L,LL,L24,L24dn,L24up,NLPrat,IULOW,IU,IPX,IAA,ITX
+     *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA,nsum
      *     ,IUB,IH2O0,IG  ,ICDlow,ICO20, IUW,IU1,IU2
      *     ,i2u1,i2u2,i3u1,i3u2,i6u1,i6u2,i7u1,i7u2,i8u1,i8u2,i9u1,i9u2
 
       REAL*8 UH2O, UH2OL,UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
      *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
-     *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2
+     *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2,sumPR
      *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
-     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PRAT,PRATT,PU2, U,UP,UGAS, FNU1
-     *     ,UAA,UAB,UBA,UBB, WPB, WT,WTB,WTPU, XA,XB,XK,XUA,XUB
+     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PU2, U,UP,UGAS, FNU1
+     *     ,UAA,UAB,UBA,UBB, WPB, WTB,WTPU, XA,XB,XK,XUA,XUB
      *     ,WAA,WAB,WBA,WBB,WAAA,WAAB,WABA,WABB,WBAA,WBAB,WBBA,WBBB
+      REAL*8 PRAT(LX),WT(LX)
+      INTEGER L24ofL(LX)
 
 C                          MLGAS DEF.
 C                          ----------
@@ -4935,7 +4937,26 @@ C              KWVCON = ON/OFF flag for water vapor continuum absorption
 C              ---------------------------------------------------------
       IF(KWVCON < 1) MLGAS(21)=0
 
-C**** Find XTU and XTD
+C**** Find correction factors XTU and XTD
+!     Prepare interpolation from PL to P24 pressure levels
+      L24=2
+      NLPrat = NL
+      DO L=L1,NL
+        PLL = PL(L)
+!       Find L24 s.t. PLLmid is between P24(L24) and P24(L24-1)
+        DO WHILE (PLL < P24(L24))
+          L24 = L24 + 1
+          IF (L24 > 24) THEN      ! PL-levels higher than P24_top
+            NLPrat = L-1
+            GO TO 100
+          END IF
+        END DO
+        L24ofL(L) = L24
+        WT(L) = (PLL - P24(L24))/(P24(L24-1) - P24(L24))
+        Prat(L) = DPL(L) / (DP24(L24-1)*WT(L) + DP24(L24)*(1-WT(L)))
+      END DO
+  100 CONTINUE
+
       UH2O = 1d-10 + SUM(ULGAS(L1:NL,1))
       IF (UH2O < 1.1d-10) THEN  ! low water vapor
         IUlow    = 1
@@ -5024,21 +5045,47 @@ C**** Find XTU and XTD
       D9U1=DUF2-(I9U1-1)*DLSQ2
       D9U2=DLSQ2-D9U1
 
+!     Find pressure ratios on P24 levels by averaging Prat
+!     Fill missed layers copying from the nearest layer above
+      L24dn = 1                ! bottom of current segment
+      L24up = L24ofL(L1)       ! top of current segment
+      sumPR = Prat(L1)
+      Prat24(L24dn:L24up) = sumPR
+      nsum = 1
+      DO L=L1+1,NLPrat
+        L24=L24ofL(L)
+        IF(L24 == L24up) THEN  ! update the current PratL24 segment
+          sumPR=sumPR+Prat(L)
+          NSUM=NSUM+1
+          Prat24(L24dn:L24up)=sumPR/DFLOAT(NSUM)
+        ELSE                   ! start next PratL24 segment
+          sumPR=Prat(L)
+          Prat24(L24up+1:L24)=sumPR
+          NSUM=1
+          L24dn=L24up+1
+          L24up=L24
+        END IF
+      END DO
+      Prat24(L24up+1:24)=Prat24(L24up) ! at top fill from below
+
       DO 160 IM=1,3
       DO 160 IUW=IU1,IU2
       DO 160 I=1,24
-      SUM1=DXUP2(I,IUW,I2U2,IM)*D2U1+DXUP2(I,IUW,I2U1,IM)*D2U2+
-     $     DXUP3(I,IUW,I3U2,IM)*D3U1+DXUP3(I,IUW,I3U1,IM)*D3U2+
-     $     DXUP7(I,IUW,I7U2,IM)*D7U1+DXUP7(I,IUW,I7U1,IM)*D7U2+
-     $     DXUP6(I,IUW,I6U2,IM)*D6U1+DXUP6(I,IUW,I6U1,IM)*D6U2+
-     $     DXUP8(I,IUW,I8U2,IM)*D8U1+DXUP8(I,IUW,I8U1,IM)*D8U2+
-     $     DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2
-      SUM2=DXDN2(I,IUW,I2U2,IM)*D2U1+DXDN2(I,IUW,I2U1,IM)*D2U2+
-     $     DXDN3(I,IUW,I3U2,IM)*D3U1+DXDN3(I,IUW,I3U1,IM)*D3U2+
-     $     DXDN7(I,IUW,I7U2,IM)*D7U1+DXDN7(I,IUW,I7U1,IM)*D7U2+
-     $     DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2+
-     $     DXDN8(I,IUW,I8U2,IM)*D8U1+DXDN8(I,IUW,I8U1,IM)*D8U2+
-     $     DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2
+      SUM1=(DXUP2(I,IUW,I2U2,IM)*D2U1+DXUP2(I,IUW,I2U1,IM)*D2U2)+
+     $     (DXUP3(I,IUW,I3U2,IM)*D3U1+DXUP3(I,IUW,I3U1,IM)*D3U2)+
+
+     $     Prat24(I)*(
+     $     (DXUP7(I,IUW,I7U2,IM)*D7U1+DXUP7(I,IUW,I7U1,IM)*D7U2)+
+     $     (DXUP6(I,IUW,I6U2,IM)*D6U1+DXUP6(I,IUW,I6U1,IM)*D6U2) )+
+
+     $     (DXUP8(I,IUW,I8U2,IM)*D8U1+DXUP8(I,IUW,I8U1,IM)*D8U2)+
+     $     (DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2)
+      SUM2=(DXDN2(I,IUW,I2U2,IM)*D2U1+DXDN2(I,IUW,I2U1,IM)*D2U2)+
+     $     (DXDN3(I,IUW,I3U2,IM)*D3U1+DXDN3(I,IUW,I3U1,IM)*D3U2)+
+     $     (DXDN7(I,IUW,I7U2,IM)*D7U1+DXDN7(I,IUW,I7U1,IM)*D7U2)+
+     $     (DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2)+
+     $     (DXDN8(I,IUW,I8U2,IM)*D8U1+DXDN8(I,IUW,I8U1,IM)*D8U2)+
+     $     (DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2)
 
       DXUP(I,IUW,IM)=SUM1/DLSQ2+DXUP13(I,IUW,IM)*USO2/USO2S
       DXDN(I,IUW,IM)=SUM2/DLSQ2+DXDN13(I,IUW,IM)*USO2/USO2S
@@ -5052,27 +5099,26 @@ C**** Find XTU and XTD
      $           (XTRDN(I,IU1,IM)+DXDN(I,IU1,IM))*DU2)/DLSQ2
   170 CONTINUE
 
-C**** Find XTRU and XTRD from XTU and XTD
-  180 XTRU(L1:NL,1:4)=1. ; XTRD(L1:NL,1:4)=1.            ! defaults
-      IP=2
-      DO 190 L=L1,NL
-      PLL=PL(L)
-      IF(PLL >= P24(1)) THEN                             ! PLL>P24_bot
-        PRAT = DPL(L)/DP24(1)
-        XTRU(L,2:4)=1-PRAT*(1 - XTU(1,1:3))
-        XTRD(L,2:4)=1-PRAT*(1 - XTD(1,1:3))
-        GO TO 190
-      ENDIF
-      DO WHILE (PLL < P24(IP))
-        IP=IP+1
-        IF(IP > 24) GO TO 200                 ! deflts for PLL<P24_top
-      END DO                                     ! P24(IP)<PLL<P24(IP-1)
-      WT = (P24(IP) - PLL) / (P24(IP) - P24(IP-1))
-      PRAT        = DPL(L) / (DP24(IP-1)*WT + DP24(IP)*(1-WT))
-      XTRU(L,2:4) = 1-PRAT*(1 - (XTU(IP-1,1:3)*WT + XTU(IP,1:3)*(1-WT)))
-      XTRD(L,2:4) = 1-PRAT*(1 - (XTD(IP-1,1:3)*WT + XTD(IP,1:3)*(1-WT)))
-  190 CONTINUE
-      XTRD(NL,2:4)= 1
+!**** Interpolate correction factors to model grid: XTU/D=>XTRU/D
+  180 CONTINUE
+      XTRU(:,1)=1.
+      XTRD(:,1)=1.
+
+      DO L=L1,min(NLPrat,NL-1)
+        L24=L24ofL(L)
+        XTRU(L,2:4)=
+     *    1.-PRAT(L)*(1.-XTU(L24-1,1:3)*WT(L)-XTU(L24,1:3)*(1.-WT(L)))
+        XTRD(L,2:4)=
+     *    1.-PRAT(L)*(1.-XTD(L24-1,1:3)*WT(L)-XTD(L24,1:3)*(1.-WT(L)))
+      END DO
+
+      DO L=NLPrat+1,NL-1
+        XTRU(L,2:4)=XTU(24,1:3)
+        XTRD(L,2:4)=XTD(24,1:3)
+      END DO
+
+      XTRU(NL,2:4) = 1.
+      XTRD(NL,2:4) = 1.
 
 C**** Find TRGXLK
   200 TRGXLK(L1:NL,1:33)=0.D0
