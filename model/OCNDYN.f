@@ -27,8 +27,7 @@ C****
      *    ,trmo_glob,txmo_glob,tymo_glob,tzmo_glob
 #endif
       USE OCEAN_DYN, only : mmi,smu,smv,smw
-      USE DOMAIN_DECOMP_1D, only : get, haveLatitude,
-     *    AM_I_ROOT, pack_data, unpack_data
+      USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
@@ -401,46 +400,6 @@ C****
 C**** Arrays needed each ocean model run
 C****
 
-      CALL GEOMO
-      CALL OFFT0(IM)
-
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
-c*** fill in vector full of ones
-      allocate(ones(xA2O_root%xgridroot%ncells))
-      ones=1
-c*** initialize remapping derived types
-      call init_xgridremap_type(agrid,grid,
-     &     xA2O_root%xgridroot%ncells,
-     &     xA2O_root%xgridroot%ijcub(1,:),
-     &     xA2O_root%xgridroot%ijcub(2,:),
-     &     xA2O_root%xgridroot%tile,
-     &     xA2O_root%xgridroot%ijlatlon(1,:),
-     &     xA2O_root%xgridroot%ijlatlon(2,:),
-     &     ones,
-     &     xA2O_root%xgridroot%xgrid_area,remap_a2o)
-
-      call init_xgridremap_type(grid,agrid,
-     &     xA2O_root%xgridroot%ncells,
-     &     xA2O_root%xgridroot%ijlatlon(1,:),
-     &     xA2O_root%xgridroot%ijlatlon(2,:),
-     &     ones,
-     &     xA2O_root%xgridroot%ijcub(1,:),
-     &     xA2O_root%xgridroot%ijcub(2,:),
-     &     xA2O_root%xgridroot%tile,
-     &     xA2O_root%xgridroot%xgrid_area,remap_o2a)
-
-      deallocate(ones)
-#else
-      call Init_Hntrp_Type(remap_a2o,
-     &     aGRID, 0.d0,aDLATM,
-     &      GRID, 0.d0,oDLATM,
-     &     0.d0)
-      call Init_Hntrp_Type(remap_o2a,
-     &      GRID, 0.d0,oDLATM,
-     &     aGRID, 0.d0,aDLATM,
-     &     0.d0)
-#endif
 C**** Calculate ZE
       ZE(0) = 0d0
       DO L = 1,LMO
@@ -469,6 +428,14 @@ C**** READ IN LANDMASKS AND TOPOGRAPHIC DATA
       CALL READT (iu_TOPO,0,IM*JM,HATMO ,4) ! Atmo. Topography
       CALL READT (iu_TOPO,0,IM*JM,HOCEAN,1) ! Ocean depths
       call closeunit(iu_TOPO)
+
+c-------------------------------------------------------------------
+c Begin ocean-processors-only code region
+      ocean_processors_only: if(grid%have_domain) then
+c-------------------------------------------------------------------
+
+      CALL GEOMO
+      CALL OFFT0(IM)
 
       FOCEAN_loc(:,j_0:j_1) = FOCEAN(:,j_0:j_1)
       call halo_update(grid,focean_loc)
@@ -751,11 +718,54 @@ C**** Adjust global mean salinity if required (only at first start up)
 C**** Initialize solar radiation penetration arrays
       call init_solar
 
-C**** Initialize ocean diagnostics
-      call init_ODIAG
-
 C**** Initialize KPP mixing scheme
       call kmixinit(ZE)
+
+c-------------------------------------------------------------------
+c End ocean-processors-only code region
+      endif ocean_processors_only
+c-------------------------------------------------------------------
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
+c*** fill in vector full of ones
+      allocate(ones(xA2O_root%xgridroot%ncells))
+      ones=1
+c*** initialize remapping derived types
+      call init_xgridremap_type(agrid,grid,
+     &     xA2O_root%xgridroot%ncells,
+     &     xA2O_root%xgridroot%ijcub(1,:),
+     &     xA2O_root%xgridroot%ijcub(2,:),
+     &     xA2O_root%xgridroot%tile,
+     &     xA2O_root%xgridroot%ijlatlon(1,:),
+     &     xA2O_root%xgridroot%ijlatlon(2,:),
+     &     ones,
+     &     xA2O_root%xgridroot%xgrid_area,remap_a2o)
+
+      call init_xgridremap_type(grid,agrid,
+     &     xA2O_root%xgridroot%ncells,
+     &     xA2O_root%xgridroot%ijlatlon(1,:),
+     &     xA2O_root%xgridroot%ijlatlon(2,:),
+     &     ones,
+     &     xA2O_root%xgridroot%ijcub(1,:),
+     &     xA2O_root%xgridroot%ijcub(2,:),
+     &     xA2O_root%xgridroot%tile,
+     &     xA2O_root%xgridroot%xgrid_area,remap_o2a)
+
+      deallocate(ones)
+#else
+      call Init_Hntrp_Type(remap_a2o,
+     &     aGRID, 0.d0,aDLATM,
+     &      GRID, 0.d0,oDLATM,
+     &     0.d0)
+      call Init_Hntrp_Type(remap_o2a,
+     &      GRID, 0.d0,oDLATM,
+     &     aGRID, 0.d0,aDLATM,
+     &     0.d0)
+#endif
+
+C**** Initialize ocean diagnostics metadata
+      call init_ODIAG
 
 C**** Initialize some info passed to atmsophere
       uosurf=0 ; vosurf=0. ; ogeoza=0.
@@ -4322,7 +4332,7 @@ C****
       call get (ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** save surface variables before any fluxes are added
-      CALL KVINIT
+      if(ogrid%have_domain) CALL KVINIT
 C*
 
       CALL AG2OG_precip
@@ -4347,6 +4357,7 @@ c#endif
 c        END DO
 c      END DO
 C****
+      ocean_processors_only: if(ogrid%have_domain) then
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF(FOCEAN(I,J).gt.0. .and. oPREC(I,J).gt.0.)  THEN
@@ -4362,6 +4373,7 @@ C****
           END IF
         END DO
       END DO
+      endif ocean_processors_only
 
 C**** Convert ocean surface temp to atmospheric SST array
       CALL TOC2SST
@@ -4393,7 +4405,6 @@ C****
       USE DOMAIN_DECOMP_1D, ONLY : GET, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, ESMF_BCAST
-      USE DOMAIN_DECOMP_1D, ONLY : haveLatitude
       USE MODEL_COM, only: nstep=>itime
 
       IMPLICIT NONE
@@ -5045,7 +5056,6 @@ C****
      *     , aOGEOZ, aOGEOZ_SV
       Use DOMAIN_DECOMP_ATM, Only: agrid=>grid, get
       USE MODEL_COM, only: nstep=>itime
-      USE DOMAIN_DECOMP_1D, only : unpack_data
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       USE OCN_TRACER_COM, only : trw0, ntm
@@ -5350,6 +5360,8 @@ C****
       INTEGER I,J,L
 
       integer :: j_0,j_1
+
+      if(.not. ogrid%have_domain) return
 
       call get (ogrid, J_STRT=j_0, J_STOP=j_1)
 

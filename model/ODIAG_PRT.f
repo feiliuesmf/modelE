@@ -1,7 +1,9 @@
 #include "rundeck_opts.h"
 
       subroutine diag_ocean_prep
+      use oceanr_dim, only : grid=>ogrid
       implicit none
+      if(.not. grid%have_domain) return
       call basin_prep
       call oijl_prep
       return

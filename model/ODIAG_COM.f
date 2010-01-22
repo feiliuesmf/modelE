@@ -574,11 +574,14 @@ c instances of the arrays containing derived quantities
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE ODIAG, only : icon_OCE,icon_OKE,icon_OMS,icon_OSL,icon_OAM
+      USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE
 !@var M index denoting from where DIAGCO is called (see DIAGCA)
       INTEGER, INTENT(IN) :: M
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
+
+      if(.not. oGRID%have_domain) return
 
 C**** OCEAN MASS
       CALL conserv_ODIAG(M,conserv_OMS,icon_OMS)

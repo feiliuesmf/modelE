@@ -55,11 +55,17 @@ c**** Extract domain decomposition info
 
 C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans
-      OGEOZ_SV(:,:)=OGEOZ(:,:)
 
 C***  Interpolate DYNSI outputs to the ocean grid
 C***  (at present, only the ice-ocean stress is used)
       call IG2OG_oceans
+
+c-------------------------------------------------------------------
+c Begin ocean-processors-only code region
+      ocean_processors_only: if(grid%have_domain) then
+c-------------------------------------------------------------------
+
+      OGEOZ_SV(:,:)=OGEOZ(:,:)
 
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
@@ -82,7 +88,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES2
          CALL CHECKO('OSTRES')
          CALL TIMER (NOW,MSURF)
-         IF (MODD5S == 0) CALL DIAGCA (11)
+         IF (MODD5S == 0) CALL DIAGCO (11)
 
 C**** Apply ocean vertical mixing
       CALL OCONV
@@ -313,7 +319,7 @@ C****
       ENDDO  !  End of Do-loop NO=1,NOCEAN
 
         CALL TIMER (NOW,MDYNO)
-        IF (MODD5S == 0) CALL DIAGCA (12)
+        IF (MODD5S == 0) CALL DIAGCO (12)
 
 c
 c recalculate vbar etc. for ocean physics
@@ -341,7 +347,6 @@ C**** Apply GM + Redi tracer fluxes
       END DO
 #endif
       CALL CHECKO ('GMDIFF')
-      CALL TIMER (NOW,MSGSO)
 
 #ifdef TRACERS_OCEAN
       CALL OC_TDECAY(DTS)
@@ -350,7 +355,19 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 #endif
 
+      CALL TIMER (NOW,MSGSO)
+
+c-------------------------------------------------------------------
+c End ocean-processors-only code region
+c-------------------------------------------------------------------
+
+      else ! no ocean domain, call the timers anyway
+        CALL TIMER (NOW,MSURF)
         CALL TIMER (NOW,MSGSO)
+        CALL TIMER (NOW,MDYNO)
+        CALL TIMER (NOW,MSGSO)
+      endif ocean_processors_only
+
 C***  Get the data from the ocean grid to the atmospheric grid
       CALL TOC2SST
       call OG2AG_oceans
