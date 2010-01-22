@@ -785,6 +785,8 @@ c fms_init() has already been called.  Move that call here?
       range_min(1)=0.;   range_min(2)=-90.
       range_max(1)=360.; range_max(2)=90.
 
+      npes_used = 1
+
 #ifndef USE_MPP
 #ifdef USE_ESMF
       grd_dum%ESMF_GRID = ESMF_GridCreateHorzLatLonUni(counts=grid_size,
@@ -819,6 +821,7 @@ c fms_init() has already been called.  Move that call here?
       ! Set minimum requirements per processor
       ! Currently this is 1 lat/proc away from poles
       ! and 2 lat/proc at poles
+      npes_used = npes_world
       select case (npes_world)
       case (1)
          jms(:) = JM
@@ -2500,9 +2503,9 @@ c**** arr  is overwritten by itself after reduction
       IM = SIZE(arr,1)
       JM   = grd_dum%JM_WORLD
       LM =  SIZE(arr,3)
-      npes = grd_dum%NPES_COMM
 
 #ifdef USE_MPI
+      npes = grd_dum%NPES_COMM
 ! Number of sums each processor computes is dik
       Do p = 0, npes-1
          dik_map(p)=(IM*LM)/npes
