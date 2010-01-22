@@ -35,9 +35,13 @@ c-----------------------------------------------------------------------------
 #ifndef TRACERS_OceanBiology
 #if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN)
       integer, parameter :: ntrcr = 1
-#else
-      integer, parameter :: ntrcr = 1
 #endif
+#ifdef TRACERS_OCEAN_WATER_MASSES 
+      integer, parameter :: ntrcr = 2
+#endif
+#else
+      !default
+      integer, parameter :: ntrcr = 1
 #endif
 #ifdef TRACERS_OceanBiology
 #ifdef TRACERS_Alkalinity

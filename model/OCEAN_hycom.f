@@ -20,6 +20,9 @@
      &  , nstep0, nstep, time0, time, itest, jtest
      &  , iocnmx, brntop, brnbot, ocnmx_factor_s, ocnmx_factor_t
      &  , diapyn, diapyc, jerlv0
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+     .  , diag_counter
+#endif
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
       USE param
@@ -192,6 +195,9 @@ c
       USE HYCOM_DIM, only : ogrid
       USE HYCOM_SCALARS, only : nstep,time,oddev,nstep0,time0,baclin
      &     ,onem,itest,jtest
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+     .     ,diag_counter
+#endif
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : atrac
 #endif
@@ -217,6 +223,11 @@ c
       integer i,j,k
 !@var TRNHEADER Character string label for individual records
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOh"
+#endif
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+      integer i,j,k
+!@var TRNHEADER Character string label for individual records
+      CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "OCideal trcrs"
 #endif
 #ifdef TRACERS_OceanBiology
       real, allocatable :: avgq_glob(:,:,:),tirrq3d_glob(:,:,:),
@@ -277,6 +288,13 @@ c
 #endif
 #endif
 
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+      write(*,'(a,i9,f9.0)')'chk OCN BIO write at nstep/day=',nstep,time
+      write (TRNMODULE_HEADER(lhead+1:80),'(a63)')
+     *'tracav,plevav,diag_counter'
+#endif
+
+
       SELECT CASE (IACTION)
 c---------------------------------------------------------------------------------
       CASE (:IOWRITE)            ! output to standard restart file
@@ -333,6 +351,20 @@ css#endif
      .    ihra_glob(i,j)
       enddo
 #endif
+#endif
+
+#if (defined TRACERS_AGE_OCEAN) || defined(TRACERS_OCEAN_WATER_MASSES)
+      WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
+     . ,tracav,plevav,diag_counter
+      i=itest
+      j=jtest
+      print*,'test point at:',itest,jtest
+
+      do k=1,kdm
+      write(*,'(a,i2,6(e12.4,1x))') ' tst1a k=',k,
+     .    dp(i,j,k)/onem,temp(i,j,k),tracer(i,j,k,1),
+     .    plevav(i,j,k),tracav(i,j,k,1),diag_counter
+      enddo
 #endif
 
 c---------------------------------------------------------------------------------
@@ -424,6 +456,20 @@ c
 #endif
 #endif
 
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,tracav,plevav,diag_counter
+      i=itest
+      j=jtest
+      print*,'test point at:',itest,jtest
+
+      do k=1,kdm
+      write(*,'(a,i2,6(e12.4,1x))') ' tst1b k=',k,
+     .    dp(i,j,k)/onem,temp(i,j,k),tracer(i,j,k,1),
+     .    plevav(i,j,k),tracav(i,j,k,1)
+      enddo
+#endif
+
 #ifdef TRACERS_OCEAN
             READ (kunit,err=10) TRHEADER,TRMO,TXMO,TYMO,TZMO
             IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
@@ -443,7 +489,7 @@ c
             READ (kunit,err=10) HEADER,nstep0,time0
      . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
      . ,uflxav,vflxav,diaflx
-#ifdef TRACERS_OceanBiology
+#if (defined TRACERS_OceanBiology) || (defined TRACERS_OCEAN_WATER_MASSES)
      . ,tracer(:,:,:,1)
 #else
 !Shan Sun's rsf files have one dimensional tracer
@@ -519,6 +565,20 @@ c
               GO TO 10
             END IF
 #endif
+#endif
+
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+      READ (kunit,err=10) TRNHEADER,nstep0,time0
+     . ,tracav,plevav,diag_counter
+      i=itest
+      j=jtest
+      print*,'test point at:',itest,jtest
+
+      do k=1,kdm
+      write(*,'(a,i2,6(e12.4,1x))') ' tst2 k=',k,
+     .    dp(i,j,k)/onem,temp(i,j,k),tracer(i,j,k,1),
+     .    plevav(i,j,k),tracav(i,j,k,1)
+      enddo
 #endif
 
  222  continue

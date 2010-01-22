@@ -362,7 +362,8 @@ c
 c
 
 
-#if (defined TRACERS_OceanBiology) || (defined TRACERS_AGE_OCEAN)
+#if (defined TRACERS_OceanBiology) || (defined TRACERS_AGE_OCEAN) \
+    || defined(TRACERS_OCEAN_WATER_MASSES)
       call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
 #endif
 

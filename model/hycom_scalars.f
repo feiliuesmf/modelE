@@ -195,7 +195,7 @@ c --- relax       activate lateral boundary nudging
 c
 #if defined(TRACERS_HYCOM_Ventilation) \
  || defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_OceanBiology) \
- || defined(TRACERS_AGE_OCEAN)
+ || defined(TRACERS_AGE_OCEAN) || defined(TRACERS_OCEAN_WATER_MASSES)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
 #else     
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
@@ -265,7 +265,7 @@ c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'diapyc' = diapycnal diffusivity (m^2/s)
       real, public ::  diapyn=3.e-7, diapyc=1.e-4
 c
-#ifdef TRACERS_AGE_OCEAN
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
       real*8, public :: diag_counter
 #endif
       end module HYCOM_SCALARS

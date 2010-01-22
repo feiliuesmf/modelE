@@ -172,7 +172,7 @@ cddd      public msk
       public diafor
       public klist
       public ijlist
-#ifdef TRACERS_AGE_OCEAN
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
       public plevav,tracav
 #endif
 
@@ -235,7 +235,7 @@ c
      .,tauxav(:,:),tauyav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
-#ifdef TRACERS_AGE_OCEAN
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
       real*8, allocatable ::
      . plevav(:,:,:),tracav(:,:,:,:)
 #endif
@@ -669,7 +669,7 @@ c
      .,surflav(idm,jdm),tauxav(idm,jdm),tauyav(idm,jdm)
      .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm) 
      .,dpmxav(idm,jdm),oiceav(idm,jdm)  
-#ifdef TRACERS_AGE_OCEAN
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
      .,plevav(idm,jdm,kdm),tracav(idm,jdm,kdm,ntrcr)
 #endif
      .)

@@ -162,7 +162,7 @@ c
       integer bef,aft                   !  bio routine timing variables
       real plev
 #endif
-#ifdef TRACERS_AGE_OCEAN    
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       real plev
       integer nt
 #endif
@@ -611,7 +611,8 @@ c     call findmx(ip,temp(1,1,k1n),idm,ii,jj,'sst')
 c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
-#if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN)
+#if defined(TRACERS_HYCOM_Ventilation) || defined(TRACERS_AGE_OCEAN) \
+    || defined(TRACERS_OCEAN_WATER_MASSES)
 c$OMP PARALLEL DO
         do 12 j=J_0, J_1
         do 12 l=1,isp_loc(j)
@@ -624,12 +625,26 @@ c$OMP PARALLEL DO
            tracer_loc(i,j,k,1)=tracer_loc(i,j,k,1)
      .           + 1.*trcfrq*baclin/(JDperY*SDAY)
            enddo
-!          do k=1,kdm
-!          if(i.eq.itest.and.j.eq.jtest)print*,
-!    .     'hycom, age:', nsetp,i,j,k,tracer_loc(i,j,k,1)
-!          enddo
  12     continue
-#else
+#endif
+#ifdef TRACERS_OCEAN_WATER_MASSES
+            tracer_loc(i,j,1,1)=0.; 
+            tracer_loc(i,j,1,2)=0.; 
+            !North Atlantic; 
+              if (i.ge.100.and.i.le.190) then
+              if (j.ge.250.and.j.le.360) then
+                tracer_loc(i,j,1,1)=1.; 
+              endif
+              endif
+            !ACC            
+              if (i.ge.289.and.i.le.386) then
+              if (j.ge.1.and.j.le.360) then
+                      tracer_loc(i,j,1,2)=1.; 
+              endif
+              endif
+ 12     continue
+#endif
+#ifdef TRACERS_HYCOM_Ventilation
 12      tracer_loc(i,j,1,1)=1.              !  surface ventilation tracer
 #endif
 c$OMP END PARALLEL DO
@@ -891,7 +906,8 @@ ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 
 
-#if (defined TRACERS_OceanBiology) ||  (defined TRACERS_AGE_OCEAN)
+#if (defined TRACERS_OceanBiology) ||  (defined TRACERS_AGE_OCEAN) \
+     || (defined TRACERS_OCEAN_WATER_MASSES)
 cdiag  do k=1,kdm
 cdiag  km=k+mm
 cdiag   if (k.eq.1)
@@ -909,6 +925,7 @@ cdiag  enddo
 cdiag  call obio_limits('aftr hybgen')
 
 !accumulate fields for diagnostic output
+      call gather_dpinit 
       if (AM_I_ROOT()) then
       if (mod(nstep,trcfrq).eq.0) then
 
@@ -921,7 +938,8 @@ cdiag  call obio_limits('aftr hybgen')
       !tracer
       do k=1,kk
         kn=k+nn
-         plev=max(0.,dp(i,j,kn))
+       !!plev=max(0.,dp(i,j,kn))
+         plev=max(0.,dpinit(i,j,k))
          if (plev.lt.1.e30) then
            plevav(i,j,k)=plevav(i,j,k)+plev
 

@@ -11,12 +11,12 @@ c
 
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,onem
      &     ,thref,baclin
-#ifdef TRACERS_AGE_OCEAN   
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
      .     ,diag_counter
 #endif
       USE HYCOM_DIM_GLOB, only : jj,jdm,kk,ntrcr,ii,idm,kdm,iia,jja
       USE HYCOM_ARRAYS_GLOB, only: tracer,temp,saln,p,dpmixl
-#ifdef TRACERS_AGE_OCEAN   
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
      .  ,plevav,tracav
 #endif
 #ifdef TRACERS_OceanBiology    
