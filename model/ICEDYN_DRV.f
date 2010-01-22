@@ -677,6 +677,69 @@ C**** Replicate polar boxes
         DMVA(2:aIM,aJM,2) = DMVA(1,aJM,2)
       end if
 
+c**** interpolate air stress from A grid in atmos, to B grid in ice
+C**** change of unit from change of momentum, to flux
+
+C**** DMUA is defined over the whole box (not just over ptype)
+C**** Convert to stress over ice fraction only (on atmospheric grid)
+      DO J=aJ_0,aJ_1
+        do i=aI_0,aI_1 
+          IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
+            DMUA(I,J,2) = DMUA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
+            DMVA(I,J,2) = DMVA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
+          ELSE
+            DMUA(I,J,2) = 0.
+            DMVA(I,J,2) = 0.
+          END IF
+        END DO
+      END DO
+
+c**** getting instance of (DMUA, DVMA) on the icedyn grid
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      allocate(iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
+     &         iDMVA(1:IMICDYN,iJ_0H:iJ_1H))
+      call cs2llint_lluv(agrid,CS2ICEint_b,dmua(:,:,2),dmva(:,:,2),
+     &     idmua,idmva)
+      do j=iJ_0,iJ_1S
+        do i=1,imicdyn
+          gairx(i+1,j) = idmua(i,j)*bydts
+          gairy(i+1,j) = idmva(i,j)*bydts
+        enddo
+        gairx((/1,nx1/),j) = gairx((/nx1-1,2/),j)
+        gairy((/1,nx1/),j) = gairy((/nx1-1,2/),j)
+      enddo
+      deallocate(iDMUA,iDMVA)
+#else
+      CALL ICE_HALO(grid_ICDYN, DMUA(:,:,2), from=NORTH)
+      CALL ICE_HALO(grid_ICDYN, DMVA(:,:,2), from=NORTH)
+c needs evaluation      if (grid_icdyn%HAVE_NORTH_POLE) then
+c needs evaluation        dua = dmua(1,jmicdyn,2)
+c needs evaluation        dva = dmva(1,jmicdyn,2)
+c needs evaluation        dmua(:,jmicdyn,2)=dua*cosip(:)+dva*sinip(:)
+c needs evaluation        dmva(:,jmicdyn,2)=dva*cosip(:)-dua*sinip(:)
+c needs evaluation      end if
+      do j=iJ_0,iJ_1S
+        im1=imicdyn
+        do i=1,imicdyn
+          GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)
+     &                    +dmua(im1,j+1,2)+dmua(i,j+1,2))*bydts  
+          GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)
+     &                    +dmva(im1,j+1,2)+dmva(i,j+1,2))*bydts  
+          im1=i
+        enddo
+      enddo
+      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
+        GAIRX(1:nx1,jmicdyn)=dmua(1,jmicdyn,2)*bydts
+        GAIRY(1:nx1,jmicdyn)=dmva(1,jmicdyn,2)*bydts
+      END IF
+      do j=iJ_0,iJ_1S
+       GAIRX(nx1-1,j)=GAIRX(1,j)
+       GAIRY(nx1-1,j)=GAIRY(1,j)
+       GAIRX(nx1,j)=GAIRX(2,j)
+       GAIRY(nx1,j)=GAIRY(2,j)
+      enddo
+#endif
+
 C**** save current value of sea ice concentration for ADVSI
 C**** RSISAVE is on atmospheric grid
       RSISAVE(:,:)=RSI(:,:)
@@ -694,8 +757,6 @@ C**** surface due to presence of ice). This is ignored in favour of
 C**** geostrophy if osurf_tilt=0.
 C**** PGF is an accelaration
 
-      if (grid_ICDYN%HAVE_NORTH_POLE) PGFU(1:IMICDYN,JMICDYN)=0
-      if (grid_ICDYN%HAVE_SOUTH_POLE) PGFU(1:IMICDYN, 1)=0  !RKF
 C****  define scalar pressure on atm grid then regrid it to the icedyn grid  
       DO J=aJ_0,aJ_1            
          DO I=aI_0,aI_1           
@@ -729,10 +790,19 @@ c bundle the qtys to be interpolated
       iRSI = RSI
       iMSI = MSI
 #endif
+
+
+c-------------------------------------------------------------------
+c Begin icedyn-processors-only code region
+      icedyn_processors_only: if(grid_ICDYN%have_domain) then
+c-------------------------------------------------------------------
+
       CALL ICE_HALO(grid_ICDYN, iPtmp , from=NORTH )
       CALL ICE_HALO(grid_ICDYN, iRSI   , from=NORTH )
 
 c*** Calculate gradient on ice dyn. grid
+      if (grid_ICDYN%HAVE_NORTH_POLE) PGFU(1:IMICDYN,JMICDYN)=0
+      if (grid_ICDYN%HAVE_SOUTH_POLE) PGFU(1:IMICDYN, 1)=0  !RKF
       DO J=iJ_0S,iJ_1S
         I=IMICDYN
         DO IP1=1,IMICDYN
@@ -840,69 +910,6 @@ c**** set north pole
         PGFVB(nx1,J)=PGFVB(2,J)
       END DO
 
-c**** interpolate air stress from A grid in atmos, to B grid in ice
-C**** change of unit from change of momentum, to flux
-
-C**** DMUA is defined over the whole box (not just over ptype)
-C**** Convert to stress over ice fraction only (on atmospheric grid)
-      DO J=aJ_0,aJ_1
-        do i=aI_0,aI_1 
-          IF (FOCEAN(I,J)*RSI(I,J).gt.0) THEN
-            DMUA(I,J,2) = DMUA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
-            DMVA(I,J,2) = DMVA(I,J,2)/(FOCEAN(I,J)*RSI(I,J))
-          ELSE
-            DMUA(I,J,2) = 0.
-            DMVA(I,J,2) = 0.
-          END IF
-        END DO
-      END DO
-
-c**** getting instance of (DMUA, DVMA) on the icedyn grid
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      allocate(iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
-     &         iDMVA(1:IMICDYN,iJ_0H:iJ_1H))
-      call cs2llint_lluv(agrid,CS2ICEint_b,dmua(:,:,2),dmva(:,:,2),
-     &     idmua,idmva)
-      do j=iJ_0,iJ_1S
-        do i=1,imicdyn
-          gairx(i+1,j) = idmua(i,j)*bydts
-          gairy(i+1,j) = idmva(i,j)*bydts
-        enddo
-        gairx((/1,nx1/),j) = gairx((/nx1-1,2/),j)
-        gairy((/1,nx1/),j) = gairy((/nx1-1,2/),j)
-      enddo
-      deallocate(iDMUA,iDMVA)
-#else
-      CALL ICE_HALO(grid_ICDYN, DMUA(:,:,2), from=NORTH)
-      CALL ICE_HALO(grid_ICDYN, DMVA(:,:,2), from=NORTH)
-c needs evaluation      if (grid_icdyn%HAVE_NORTH_POLE) then
-c needs evaluation        dua = dmua(1,jmicdyn,2)
-c needs evaluation        dva = dmva(1,jmicdyn,2)
-c needs evaluation        dmua(:,jmicdyn,2)=dua*cosip(:)+dva*sinip(:)
-c needs evaluation        dmva(:,jmicdyn,2)=dva*cosip(:)-dua*sinip(:)
-c needs evaluation      end if
-      do j=iJ_0,iJ_1S
-        im1=imicdyn
-        do i=1,imicdyn
-          GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)
-     &                    +dmua(im1,j+1,2)+dmua(i,j+1,2))*bydts  
-          GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)
-     &                    +dmva(im1,j+1,2)+dmva(i,j+1,2))*bydts  
-          im1=i
-        enddo
-      enddo
-      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
-        GAIRX(1:nx1,jmicdyn)=dmua(1,jmicdyn,2)*bydts
-        GAIRY(1:nx1,jmicdyn)=dmva(1,jmicdyn,2)*bydts
-      END IF
-      do j=iJ_0,iJ_1S
-       GAIRX(nx1-1,j)=GAIRX(1,j)
-       GAIRY(nx1-1,j)=GAIRY(1,j)
-       GAIRX(nx1,j)=GAIRX(2,j)
-       GAIRY(nx1,j)=GAIRY(2,j)
-      enddo
-#endif
-
 c**** read in sea ice velocity
       DO J=iJ_0,iJ_1
         DO I=1,IMICDYN
@@ -994,6 +1001,11 @@ C**** set north pole
         DMVI(:,jmicdyn)=0.
       END IF
 
+c-------------------------------------------------------------------
+c End icedyn-processors-only code region
+      endif icedyn_processors_only
+c-------------------------------------------------------------------
+
 C**** Calculate ustar*2*rho for ice-ocean fluxes on atmosphere grid
 C**** UI2rho = | tau |
 
@@ -1055,6 +1067,11 @@ c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlo
       END IF
 #endif
 
+c-------------------------------------------------------------------
+c Begin icedyn-processors-only code region
+      icedyn_processors_only_part2: if(grid_ICDYN%have_domain) then
+c-------------------------------------------------------------------
+
 c*** diagnostics
       DO J=iJ_0,iJ_1S
         DO I=1,imicdyn
@@ -1085,6 +1102,10 @@ c*** diagnostics
      &       +iRSI(1,JMICDYN)*press(1,JMICDYN)
       END IF
 
+c-------------------------------------------------------------------
+c End icedyn-processors-only code region
+      endif icedyn_processors_only_part2
+c-------------------------------------------------------------------
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       call get_uisurf(usi,vsi,uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
@@ -1247,8 +1268,13 @@ C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
 
       CALL HALO_UPDATE(grid, VSIDT, FROM=SOUTH)
 
-      CALL HALO_UPDATE(grid_MIC, RSIY, FROM=NORTH)
-      CALL HALO_UPDATE(grid_MIC, RSIX, FROM=NORTH)
+cmpi MPI tag sequences in "grid_MIC" and "grid" occasionally collide
+cmpi since "grid_MIC" is initialized to "grid" (so, same communicator).
+cmpi Use "grid" everywhere
+cmpi      CALL HALO_UPDATE(grid_MIC, RSIY, FROM=NORTH)
+cmpi      CALL HALO_UPDATE(grid_MIC, RSIX, FROM=NORTH)
+      CALL HALO_UPDATE(grid, RSIY, FROM=NORTH)
+      CALL HALO_UPDATE(grid, RSIX, FROM=NORTH)
 
       DO I=1,IM
 C****
@@ -1865,8 +1891,10 @@ C**** The ice dynamics land mask is that of the atmosphere
       ifocean(:,:) = afocean(:,:)
 #endif
 
-      call ICE_HALO(grid_ICDYN, iFOCEAN)
-      call ICDYN_MASKS()
+      icedyn_processors_only: if(grid_ICDYN%have_domain) then
+        call ICE_HALO(grid_ICDYN, iFOCEAN)
+        call ICDYN_MASKS()
+      endif icedyn_processors_only
 
       bydts = 1./dtsrc
 
