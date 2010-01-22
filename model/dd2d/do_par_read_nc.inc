@@ -16,6 +16,7 @@
       endif
       call mpi_bcast(rc,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       if(rc.ne.nf_noerr) return
+      if(grid%je.lt.grid%js) return ! empty domain
       tag=1024
       if(present(jdim)) then
         jd=jdim
@@ -51,6 +52,7 @@ c read from netcdf file
           modpe=mod(dst_pe,grid%nproc_tile)+1
           srt(jd) = grid%jsr(modpe)
           cnt(jd) = 1+grid%jer(modpe)-grid%jsr(modpe)
+          if(cnt(jd).le.0) cycle ! no data to send to this PE
           srt(nd+1) = 1 + dst_pe/grid%nproc_tile
           rc = nf_get_vara_double(fid,vid,srt,cnt,arr1d)
           if(dst_pe.gt.0) then
