@@ -32,24 +32,31 @@ c-----------------------------------------------------------------------------
       integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
 #endif
 
-#ifndef TRACERS_OceanBiology
+#if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN) \
+    || (defined TRACERS_OCEAN_WATER_MASSES) || (defined TRACERS_OceanBiology)
+
+
 #if (defined TRACERS_HYCOM_Ventilation) || (defined TRACERS_AGE_OCEAN)
       integer, parameter :: ntrcr = 1
 #endif
+
 #ifdef TRACERS_OCEAN_WATER_MASSES 
       integer, parameter :: ntrcr = 2
 #endif
-#else
-      !default
-      integer, parameter :: ntrcr = 1
-#endif
+
 #ifdef TRACERS_OceanBiology
 #ifdef TRACERS_Alkalinity
       integer, parameter :: ntrcr = 16
 #else
       integer, parameter :: ntrcr = 15
 #endif
-#endif
+#endif  /*oceanbiology*/
+
+#else
+      !default
+      integer, parameter :: ntrcr = 1
+#endif   /*ventilatioin,age,water masses,ocean biology*/
+
 
 c
 c --- ms-1  = max. number of interruptions of any grid row or column by land
