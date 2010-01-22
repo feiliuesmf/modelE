@@ -1329,8 +1329,17 @@ c***     both defined in the ICEDYN module
 c***   - grid_ICDYN is the same grid as grid_NXY, with dimensions IMICDYN and JMICDYN, 
 c***     the two boundary ghost cells in the longitudinal direction have been removed
 
-      CALL INIT_GRID(grid_NXY,NX1,NY1,1)
-      CALL INIT_GRID(grid_ICDYN,IMICDYN,JMICDYN,1)
+      CALL INIT_GRID(grid_NXY,NX1,NY1,1
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+     &     ,npes_max=JMICDYN/3
+#endif
+     &     )
+
+      CALL INIT_GRID(grid_ICDYN,IMICDYN,JMICDYN,1
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+     &     ,npes_max=JMICDYN/3
+#endif
+     &     )
 
       CALL GET( grid_NXY, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &                J_STRT_HALO=J_0H, J_STOP_HALO=J_1H  )
