@@ -154,6 +154,8 @@ c these routines are only needed when running on multiple CPUs
 
       integer, parameter :: success = 0, fail = -1
 
+      real*8, parameter :: impossible_int=huge(1d0)
+
       contains
 
       function par_open(grid,fname,mode)
@@ -285,8 +287,9 @@ c define/overwrite the success flag for error checking
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2))
+      arr = impossible_int
       call read_dist_data(grid,fid,varname,arr)
-      iarr = arr
+      where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_2D_int
       subroutine par_read_nc_3D_int(grid,fid,varname,iarr,jdim)
       integer :: fid
@@ -295,12 +298,13 @@ c define/overwrite the success flag for error checking
       integer :: iarr(:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
+      arr = impossible_int
       if(present(jdim)) then
         call read_dist_data(grid,fid,varname,arr,jdim=jdim)
       else
         call read_dist_data(grid,fid,varname,arr)
       endif
-      iarr = arr
+      where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_3D_int
       subroutine par_read_nc_4D_int(grid,fid,varname,iarr,jdim)
       integer :: fid
@@ -309,12 +313,13 @@ c define/overwrite the success flag for error checking
       integer :: iarr(:,:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3),size(iarr,4))
+      arr = impossible_int
       if(present(jdim)) then
         call read_dist_data(grid,fid,varname,arr,jdim=jdim)
       else
         call read_dist_data(grid,fid,varname,arr)
       endif
-      iarr = arr
+      where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_4D_int
 
       subroutine par_write_nc_2D_int(grid,fid,varname,iarr)
