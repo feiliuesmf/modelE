@@ -211,6 +211,11 @@ c special processors for a cubed sphere layout
 c
 c the following is for use in modelE only:
 c
+        logical :: have_domain ! whether this PE has any of the domain
+        integer :: mpi_comm    ! MPI communicator for PEs having this domain
+        integer :: npes_comm   ! number of PEs having this domain
+        integer :: mpi_tag     ! for MPI book-keeping
+
 #ifdef USE_ESMF
         TYPE (ESMF_Grid) :: ESMF_GRID
 #endif
