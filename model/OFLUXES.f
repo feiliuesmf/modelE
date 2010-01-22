@@ -356,50 +356,73 @@ C****
       htype%SINB(0)  = -1
       htype%SINB(JMB) = 1
 C****
-C**** Calculate JMIN(J1B) and GMIN(J1B)
+C**** Calculate JMIN,GMIN,JMAX,GMAX
 C****
-      If (htype%SINB(J1B-1) < htype%SINA(J1A-1))  GoTo 830
-      If (htype%SINB(JNB)   > htype%SINA(JNA)  )  GoTo 840
-      JA = J1A-1
-      JB = J1B-1
-  300 If (htype%SINA(JA)-htype%SINB(JB))  310,320,330
-  310 JA = JA+1
-      GoTo 300
+      htype%JMIN(1) = 1
+      htype%GMIN(1) = 0
+      JA = 1
+      Do 350 JB=1,JMB-1
+  310 If (htype%SINA(JA)-htype%SINB(JB))  320,330,340
+  320 JA = JA + 1
+      GoTo 310
 C**** Northern edges of cells JA of grid A and JB of grid B coincide
-  320 JA = JA+1
-      JB = JB+1
-      htype%JMIN(JB) = JA
-      htype%GMIN(JB) = 0
-      GoTo 400
-C**** Cell JA of grid A contains northern edge of cell JB of grid B
-  330 JB = JB+1
-      htype%JMIN(JB) = JA
-      htype%GMIN(JB) = htype%SINB(JB-1) - htype%SINA(JA-1)
-C****
-C**** Calculate JMIN(J1B+1:JNB), GMIN(J1B+1:JNB),
-C****       and JMAX(J1B:JNB-1), GMAX(J1B:JNB-1)
-C****
-  400 If (htype%SINA(JA)-htype%SINB(JB))  410,420,430
-  410 JA = JA+1
-      GoTo 400
-C**** Northern edges of cells JA of grid A and JB of grid B coincide
-  420 htype%JMAX(JB) = JA
+  330 htype%JMAX(JB) = JA
       htype%GMAX(JB) = 0
-      If (JB == JNB)  GoTo 500
-      JA = JA+1
-      JB = JB+1
-      htype%JMIN(JB) = JA
-      htype%GMIN(JB) = 0
-      GoTo 400
+      JA = JA + 1
+      htype%JMIN(JB+1) = JA
+      htype%GMIN(JB+1) = 0
+      GoTo 350
 C**** Cell JA of grid A contains northern edge of cell JB of grid B
-  430 htype%JMAX(JB) = JA
+  340 htype%JMAX(JB) = JA
       htype%GMAX(JB) = htype%SINA(JA) - htype%SINB(JB)
-      If (JB == JNB)  GoTo 500
-      JB = JB+1
-      htype%JMIN(JB) = JA
-      htype%GMIN(JB) = htype%SINB(JB-1) - htype%SINA(JA-1)
-      GoTo 400
-  500 Continue
+      htype%JMIN(JB+1) = JA
+      htype%GMIN(JB+1) = htype%SINB(JB) - htype%SINA(JA-1)
+  350 Continue
+      htype%JMAX(JMB) = JMA
+      htype%GMAX(JMB) = 0
+
+c      If (htype%SINB(J1B-1) < htype%SINA(J1A-1))  GoTo 830
+c      If (htype%SINB(JNB)   > htype%SINA(JNA)  )  GoTo 840
+c      JA = J1A-1
+c      JB = J1B-1
+c  300 If (htype%SINA(JA)-htype%SINB(JB))  310,320,330
+c  310 JA = JA+1
+c      GoTo 300
+cC**** Northern edges of cells JA of grid A and JB of grid B coincide
+c  320 JA = JA+1
+c      JB = JB+1
+c      htype%JMIN(JB) = JA
+c      htype%GMIN(JB) = 0
+c      GoTo 400
+cC**** Cell JA of grid A contains northern edge of cell JB of grid B
+c  330 JB = JB+1
+c      htype%JMIN(JB) = JA
+c      htype%GMIN(JB) = htype%SINB(JB-1) - htype%SINA(JA-1)
+cC****
+cC**** Calculate JMIN(J1B+1:JNB), GMIN(J1B+1:JNB),
+cC****       and JMAX(J1B:JNB-1), GMAX(J1B:JNB-1)
+cC****
+c  400 If (htype%SINA(JA)-htype%SINB(JB))  410,420,430
+c  410 JA = JA+1
+c      GoTo 400
+cC**** Northern edges of cells JA of grid A and JB of grid B coincide
+c  420 htype%JMAX(JB) = JA
+c      htype%GMAX(JB) = 0
+c      If (JB == JNB)  GoTo 500
+c      JA = JA+1
+c      JB = JB+1
+c      htype%JMIN(JB) = JA
+c      htype%GMIN(JB) = 0
+c      GoTo 400
+cC**** Cell JA of grid A contains northern edge of cell JB of grid B
+c  430 htype%JMAX(JB) = JA
+c      htype%GMAX(JB) = htype%SINA(JA) - htype%SINB(JB)
+c      If (JB == JNB)  GoTo 500
+c      JB = JB+1
+c      htype%JMIN(JB) = JA
+c      htype%GMIN(JB) = htype%SINB(JB-1) - htype%SINA(JA-1)
+c      GoTo 400
+c  500 Continue
 C 500   WRITE (0,951) 'JMIN=',htype%JMIN(1:JMB)
 C       WRITE (0,951) 'JMAX=',htype%JMAX(1:JMB)
 C       WRITE (0,952) 'GMIN=',htype%GMIN(1:JMB)
@@ -407,9 +430,15 @@ C       WRITE (0,952) 'GMAX=',htype%GMAX(1:JMB)
 C 951   FORMAT (/ 1X,A5 / (20I6))
 C 952   FORMAT (/ 1X,A5 / (20(1X,F5.4)))
 
-      jmin_pack = minval(htype%jmin(j1b:jnb))
-      jmax_pack = maxval(htype%jmax(j1b:jnb))
-      call init_band_pack_type(grid_A, jmin_pack,jmax_pack, htype%bpack)
+      if(grid_B%have_domain) then
+        jmin_pack = minval(htype%jmin(j1b:jnb))
+        jmax_pack = maxval(htype%jmax(j1b:jnb))
+      else ! request nonexistent data which will not be sent
+        jmin_pack = grid_B%JM_WORLD+1
+        jmax_pack = grid_B%JM_WORLD+1
+      endif
+      call init_band_pack_type(grid_A, grid_B, jmin_pack,jmax_pack,
+     &     htype%bpack)
 
       RETURN
 C****
@@ -468,6 +497,7 @@ C****
 C**** Local vars
       Integer :: IA,JA,IAREV,IB,JB,IAMIN,IAMAX,JAMIN,JAMAX
       Real*8 :: WEIGHT,VALUE,F,G
+      if(htype%J1B > htype%JNB) return
 C****
 C**** Interpolate from grid A to grid B
 C****
@@ -520,6 +550,7 @@ C****
 C**** Local vars
       Integer :: IA,JA,IAREV,IB,JB,IAMIN,IAMAX,JAMIN,JAMAX
       Real*8 :: WEIGHT,F,G
+      if(htype%J1B > htype%JNB) return
 C****
 C**** Interpolate from grid A to grid B
 C****
@@ -565,6 +596,7 @@ C**** Local vars
       Integer :: I, IMB,JMB,J1B,JNB
       Real*8 :: WEIGHT,VALUE,BMEAN,DATMIS
 C****
+      if(htype%J1B > htype%JNB) return
       Call HNTR8_band (WTA,A,htype,B)
 C****
 C**** Replace individual values at a pole by longitudinal mean
