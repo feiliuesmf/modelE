@@ -584,6 +584,7 @@ c
       if(grid_dst%ntiles.eq.6 .and. grid_src%ntiles.eq.1 .and.
      &     mod(grid_dst%nprocx,2).eq.1) then
           nbmax = 4 ! 4 corners of the CS PEs centered on the NP/SP
+     &           +1 ! +1 for wraparound (needed if nprocx>=5)
       endif
       allocate(redist%is_pack(nbmax,js:je,npdst),
      &         redist%ie_pack(nbmax,js:je,npdst))
@@ -856,6 +857,11 @@ c
       remap%jed = grid_dst%jed
 
 c
+c if this destination PE has a zero-sized domain, nothing more to do
+c
+      if(grid_dst%js .gt. grid_dst%je) return
+
+c
 c count the number of xgrid polygons in the domain of this destination
 c PE and allocate the remap arrays having this size
 c
@@ -1020,10 +1026,11 @@ c
 c
 c remap using the contents of the 1D receive buffer
 c
+      arr_out = 0.
       m = 0
       do j=remap%js,remap%je
         do i=remap%is,remap%ie
-          arr_out(i,j) = 0.
+c          arr_out(i,j) = 0.
           do k=1,remap%kpoly(i,j)
             m = m + 1
             n = remap%recv_index(m)
@@ -1091,10 +1098,11 @@ c
 c
 c remap using the contents of the 1D receive buffer
 c
+      arr_out = 0.
       m = 0
       do j=remap%js,remap%je
         do i=remap%is,remap%ie
-          arr_out(:,i,j) = 0.
+c          arr_out(:,i,j) = 0.
           do k=1,remap%kpoly(i,j)
             m = m + 1
             n = lm*(remap%recv_index(m)-1)
@@ -1237,8 +1245,8 @@ c for now, assume cs pe set same as ll pe set and
 c that grid_ll has a j-only decomp
       allocate(jell(nproc))
 
-      call mpi_allgather(grid_ll%je,1,MPI_INTEGER,jell,1,
-     &     MPI_INTEGER,MPI_COMM_WORLD,ierr)
+      call mpi_allgather(max(grid_ll%je,grid_ll%js),1,MPI_INTEGER,
+     &     jell,1,MPI_INTEGER,MPI_COMM_WORLD,ierr)
 
 c
 c Set up the list of ll points that will be handled by this CS PE.
@@ -1718,6 +1726,9 @@ c local vars
       allocate(ll2csint%send_cnts(nproc),ll2csint%send_displs(nproc))
       allocate(ll2csint%recv_cnts(nproc),ll2csint%recv_displs(nproc))
 
+      ll2csint%send_cnts(:) = 0
+      ll2csint%send_displs(:) = 0
+
 c
 c CS PEs inform LL PEs about the interpolation pts they want
 c
@@ -1776,65 +1787,69 @@ c
 c LL PE checks which requested points lie in its interp domain,
 c which ranges from lats(js) (included) to lats(je+1) (not included)
 c
-      allocate(ix(npts_glob), jy(npts_glob))
-      if(grid_ll%have_south_pole) then
-        latmin=-pi/2.
-      else
-        latmin = lats(grid_ll%js)
-      endif
-      if(grid_ll%have_north_pole) then
-        latmax=+pi/2.
-      else
-        latmax = lats(grid_ll%je+1)
-      endif
-      jmax_search = min(grid_ll%je,jlat_max)
-      jmin_search = max(grid_ll%js,jlat_min)
-      n = 0
-      npts = 0
-      do csproc=1,nproc
-        ll2csint%send_cnts(csproc) = 0
-        do k=1,req_cnts(csproc)
-          n = n + 1
-          if(req_lats(n) .lt. latmin) cycle
-          if(req_lats(n) .ge. latmax) cycle
-          ll2csint%send_cnts(csproc) = ll2csint%send_cnts(csproc) + 1
-          npts = npts + 1
-          do j=jmax_search,jmin_search,-1
-            if(req_lats(n) .ge. lats(j)) exit
+      if(grid_ll%have_domain) then
+        allocate(ix(npts_glob), jy(npts_glob))
+        if(grid_ll%have_south_pole) then
+          latmin=-pi/2.
+        else
+          latmin = lats(grid_ll%js)
+        endif
+        if(grid_ll%have_north_pole) then
+          latmax=+pi/2.
+        else
+          latmax = lats(grid_ll%je+1)
+        endif
+        jmax_search = min(grid_ll%je,jlat_max)
+        jmin_search = max(grid_ll%js,jlat_min)
+        n = 0
+        npts = 0
+        do csproc=1,nproc
+          ll2csint%send_cnts(csproc) = 0
+          do k=1,req_cnts(csproc)
+            n = n + 1
+            if(req_lats(n) .lt. latmin) cycle
+            if(req_lats(n) .ge. latmax) cycle
+            ll2csint%send_cnts(csproc) = ll2csint%send_cnts(csproc) + 1
+            npts = npts + 1
+            do j=jmax_search,jmin_search,-1
+              if(req_lats(n) .ge. lats(j)) exit
+            enddo
+            if(j.eq.jlat_max) then
+              jy(npts) = j + (req_lats(n)-lats(j))/(pi/2.-lats(j))
+            elseif(j.lt.jlat_min) then
+              jy(npts) = j + (req_lats(n)+pi/2.)/(lats(j+1)+pi/2.)
+            else
+              jy(npts) = j + (req_lats(n)-lats(j))/(lats(j+1)-lats(j))
+            endif
+            do i=imlon,1,-1
+              if(req_lons(n) .ge. lons(i)) exit
+            enddo
+            if(i.eq.imlon) then
+              ix(npts) = i + (req_lons(n)-lons(i))/
+     &             (twopi+lons(1)-lons(i))
+            elseif(i.eq.0) then
+              ix(npts) = i + (twopi+req_lons(n)-lons(imlon))/
+     &             (twopi+lons(1)-lons(imlon))
+            else
+              ix(npts) = i + (req_lons(n)-lons(i))/(lons(i+1)-lons(i))
+            endif
+            ilist(npts) = req_i(n)
+            jlist(npts) = req_j(n)
           enddo
-          if(j.eq.jlat_max) then
-            jy(npts) = j + (req_lats(n)-lats(j))/(pi/2.-lats(j))
-          elseif(j.lt.jlat_min) then
-            jy(npts) = j + (req_lats(n)+pi/2.)/(lats(j+1)+pi/2.)
-          else
-            jy(npts) = j + (req_lats(n)-lats(j))/(lats(j+1)-lats(j))
-          endif
-          do i=imlon,1,-1
-            if(req_lons(n) .ge. lons(i)) exit
-          enddo
-          if(i.eq.imlon) then
-            ix(npts) = i + (req_lons(n)-lons(i))/(twopi+lons(1)-lons(i))
-          elseif(i.eq.0) then
-            ix(npts) = i + (twopi+req_lons(n)-lons(imlon))/
-     &                  (twopi+lons(1)-lons(imlon))
-          else
-            ix(npts) = i + (req_lons(n)-lons(i))/(lons(i+1)-lons(i))
-          endif
-          ilist(npts) = req_i(n)
-          jlist(npts) = req_j(n)
         enddo
-      enddo
-      ll2csint%npts_interp = npts
-      allocate(ll2csint%ix(npts),ll2csint%jy(npts))
-      ll2csint%ix(1:npts) = ix(1:npts)
-      ll2csint%jy(1:npts) = jy(1:npts)
-      ll2csint%need_sp = any(jy(1:npts).lt.jlat_min)
-      ll2csint%need_np = any(jy(1:npts).ge.jlat_max)
-      ll2csint%send_displs(1) = 0
-      do csproc=2,nproc
-        ll2csint%send_displs(csproc) =
-     &       ll2csint%send_displs(csproc-1)+ll2csint%send_cnts(csproc-1)
-      enddo
+        ll2csint%npts_interp = npts
+        allocate(ll2csint%ix(npts),ll2csint%jy(npts))
+        ll2csint%ix(1:npts) = ix(1:npts)
+        ll2csint%jy(1:npts) = jy(1:npts)
+        ll2csint%need_sp = any(jy(1:npts).lt.jlat_min)
+        ll2csint%need_np = any(jy(1:npts).ge.jlat_max)
+        ll2csint%send_displs(1) = 0
+        do csproc=2,nproc
+          ll2csint%send_displs(csproc) = ll2csint%send_displs(csproc-1)
+     &         +ll2csint%send_cnts(csproc-1)
+        enddo
+        deallocate(ix,jy)
+      endif
 
 c
 c LL PEs inform CS PEs about the interpolation pts they will be sending
@@ -1876,7 +1891,7 @@ c deallocate workspace
 c
       deallocate(req_cnts,displs)
       deallocate(ilist,jlist,ilist_loc,jlist_loc,req_i,req_j)
-      deallocate(ix,jy,req_lons,req_lats,loncs_loc,latcs_loc)
+      deallocate(req_lons,req_lats,loncs_loc,latcs_loc)
 
       return
       end subroutine init_ll2csint_type
@@ -1911,42 +1926,47 @@ c
 
       allocate(bufsend(ll2csint%npts_interp),
      &         bufrecv(ll2csint%npts_unpack))
-      im = grid_ll%npx
-      allocate(arr_pad(0:im+1,grid_ll%jsd:grid_ll%jed))
+
+
+      if(grid_ll%have_domain) then
+        im = grid_ll%npx
+        allocate(arr_pad(0:im+1,grid_ll%jsd:grid_ll%jed))
 
 c
 c Set up wraparound and polar values
 c
-      call halo_update(grid_ll,arrll,from=north)
-      do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
-        do i=1,im
-          arr_pad(i,j) = arrll(i,j)
+        call halo_update(grid_ll,arrll,from=north)
+        do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
+          do i=1,im
+            arr_pad(i,j) = arrll(i,j)
+          enddo
+          arr_pad(0,j) = arr_pad(im,j)
+          arr_pad(im+1,j) = arr_pad(1,j)
         enddo
-        arr_pad(0,j) = arr_pad(im,j)
-        arr_pad(im+1,j) = arr_pad(1,j)
-      enddo
-      if(ll2csint%need_sp) then ! define a single value at the SP
-        j = ll2csint%jlat_min
-        arr_pad(:,j-1) = sum(arrll(:,j))/im
-      endif
-      if(ll2csint%need_np) then ! define a single value at the NP
-        j = ll2csint%jlat_max
-        arr_pad(:,j+1) = sum(arrll(:,j))/im
-      endif
+        if(ll2csint%need_sp) then ! define a single value at the SP
+          j = ll2csint%jlat_min
+          arr_pad(:,j-1) = sum(arrll(:,j))/im
+        endif
+        if(ll2csint%need_np) then ! define a single value at the NP
+          j = ll2csint%jlat_max
+          arr_pad(:,j+1) = sum(arrll(:,j))/im
+        endif
 c
 c Interpolate and store in 1D send buffer
 c
-      do n=1,ll2csint%npts_interp
-        wti = ll2csint%ix(n)
-        wtj = ll2csint%jy(n)
-        i = wti
-        j = wtj
-        wti = wti-i
-        wtj = wtj-j
-        bufsend(n) = 
+        do n=1,ll2csint%npts_interp
+          wti = ll2csint%ix(n)
+          wtj = ll2csint%jy(n)
+          i = wti
+          j = wtj
+          wti = wti-i
+          wtj = wtj-j
+          bufsend(n) = 
      &         wtj*(wti*arr_pad(i+1,j+1)+(1.-wti)*arr_pad(i,j+1))
      &   +(1.-wtj)*(wti*arr_pad(i+1,j  )+(1.-wti)*arr_pad(i,j  ))
-      enddo
+        enddo
+        deallocate(arr_pad)
+      endif
 
 c
 c send interpolants to CS PEs
@@ -1965,7 +1985,7 @@ c
 c
 c deallocate workspace
 c
-      deallocate(bufsend,bufrecv,arr_pad)
+      deallocate(bufsend,bufrecv)
       deallocate(scnts,sdspl,rcnts,rdspl)
 
       return
@@ -2011,84 +2031,88 @@ c
       allocate(bufsend(lm*ll2csint%npts_interp),
      &         bufrecv(lm*ll2csint%npts_unpack))
 
-      im = grid_ll%npx
-      allocate(arr_pad(lm,0:im+1,grid_ll%jsd:grid_ll%jed))
+
+      if(grid_ll%have_domain) then
+        im = grid_ll%npx
+        allocate(arr_pad(lm,0:im+1,grid_ll%jsd:grid_ll%jed))
 
 c
 c Set up wraparound and polar values
 c
-      call halo_update_column(grid_ll,arrll,from=north)
-      do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
-        do i=1,im
-          arr_pad(:,i,j) = arrll(:,i,j)
+        call halo_update_column(grid_ll,arrll,from=north)
+        do j=grid_ll%js,min(grid_ll%jed,grid_ll%npy)
+          do i=1,im
+            arr_pad(:,i,j) = arrll(:,i,j)
+          enddo
+          arr_pad(:,0,j) = arr_pad(:,im,j)
+          arr_pad(:,im+1,j) = arr_pad(:,1,j)
         enddo
-        arr_pad(:,0,j) = arr_pad(:,im,j)
-        arr_pad(:,im+1,j) = arr_pad(:,1,j)
-      enddo
-      if(ll2csint%need_sp) then ! define a single value at the SP
-        j = ll2csint%jlat_min
-        if(is_ll_vector_) then
-          upol = 0.; vpol = 0.
-          do i=1,im
-            upol = upol +arrll(1,i,j)*ll2csint%coslon(i)
-     &                  +arrll(2,i,j)*ll2csint%sinlon(i)
-            vpol = vpol +arrll(2,i,j)*ll2csint%coslon(i)
-     &                  -arrll(1,i,j)*ll2csint%sinlon(i)
-          enddo
-          upol = upol/im; vpol = vpol/im
-          do i=1,im
-            arr_pad(1,i,j-1) = upol*ll2csint%coslon(i)
-     &                        -vpol*ll2csint%sinlon(i)
-            arr_pad(2,i,j-1) = vpol*ll2csint%coslon(i)
-     &                        +upol*ll2csint%sinlon(i)
-          enddo
-        else
-          do l=1,lm
-            arr_pad(l,:,j-1) = sum(arrll(l,:,j))/im
-          enddo
+        if(ll2csint%need_sp) then ! define a single value at the SP
+          j = ll2csint%jlat_min
+          if(is_ll_vector_) then
+            upol = 0.; vpol = 0.
+            do i=1,im
+              upol = upol +arrll(1,i,j)*ll2csint%coslon(i)
+     &                    +arrll(2,i,j)*ll2csint%sinlon(i)
+              vpol = vpol +arrll(2,i,j)*ll2csint%coslon(i)
+     &                    -arrll(1,i,j)*ll2csint%sinlon(i)
+            enddo
+            upol = upol/im; vpol = vpol/im
+            do i=1,im
+              arr_pad(1,i,j-1) = upol*ll2csint%coslon(i)
+     &                          -vpol*ll2csint%sinlon(i)
+              arr_pad(2,i,j-1) = vpol*ll2csint%coslon(i)
+     &                          +upol*ll2csint%sinlon(i)
+            enddo
+          else
+            do l=1,lm
+              arr_pad(l,:,j-1) = sum(arrll(l,:,j))/im
+            enddo
+          endif
         endif
-      endif
-      if(ll2csint%need_np) then ! define a single value at the NP
-        j = ll2csint%jlat_max
-        if(is_ll_vector_) then
-          upol = 0.; vpol = 0.
-          do i=1,im
-            upol = upol +arrll(1,i,j)*ll2csint%coslon(i)
-     &                  -arrll(2,i,j)*ll2csint%sinlon(i)
-            vpol = vpol +arrll(2,i,j)*ll2csint%coslon(i)
-     &                  +arrll(1,i,j)*ll2csint%sinlon(i)
-          enddo
-          upol = upol/im; vpol = vpol/im
-          do i=1,im
-            arr_pad(1,i,j+1) = upol*ll2csint%coslon(i)
-     &                        +vpol*ll2csint%sinlon(i)
-            arr_pad(2,i,j+1) = vpol*ll2csint%coslon(i)
-     &                        -upol*ll2csint%sinlon(i)
-          enddo
-        else
-          do l=1,lm
-            arr_pad(l,:,j+1) = sum(arrll(l,:,j))/im
-          enddo
+        if(ll2csint%need_np) then ! define a single value at the NP
+          j = ll2csint%jlat_max
+          if(is_ll_vector_) then
+            upol = 0.; vpol = 0.
+            do i=1,im
+              upol = upol +arrll(1,i,j)*ll2csint%coslon(i)
+     &                    -arrll(2,i,j)*ll2csint%sinlon(i)
+              vpol = vpol +arrll(2,i,j)*ll2csint%coslon(i)
+     &                    +arrll(1,i,j)*ll2csint%sinlon(i)
+            enddo
+            upol = upol/im; vpol = vpol/im
+            do i=1,im
+              arr_pad(1,i,j+1) = upol*ll2csint%coslon(i)
+     &                          +vpol*ll2csint%sinlon(i)
+              arr_pad(2,i,j+1) = vpol*ll2csint%coslon(i)
+     &                          -upol*ll2csint%sinlon(i)
+            enddo
+          else
+            do l=1,lm
+              arr_pad(l,:,j+1) = sum(arrll(l,:,j))/im
+            enddo
+          endif
         endif
-      endif
 c
 c Interpolate and store in 1D send buffer
 c
-      m = 0
-      do n=1,ll2csint%npts_interp
-        wti = ll2csint%ix(n)
-        wtj = ll2csint%jy(n)
-        i = wti
-        j = wtj
-        wti = wti-i
-        wtj = wtj-j
-        do l=1,lm
-          m = m + 1
-          bufsend(m) = 
-     &         wtj*(wti*arr_pad(l,i+1,j+1)+(1.-wti)*arr_pad(l,i,j+1))
-     &   +(1.-wtj)*(wti*arr_pad(l,i+1,j  )+(1.-wti)*arr_pad(l,i,j  ))
+        m = 0
+        do n=1,ll2csint%npts_interp
+          wti = ll2csint%ix(n)
+          wtj = ll2csint%jy(n)
+          i = wti
+          j = wtj
+          wti = wti-i
+          wtj = wtj-j
+          do l=1,lm
+            m = m + 1
+            bufsend(m) = 
+     &           wtj*(wti*arr_pad(l,i+1,j+1)+(1.-wti)*arr_pad(l,i,j+1))
+     &     +(1.-wtj)*(wti*arr_pad(l,i+1,j  )+(1.-wti)*arr_pad(l,i,j  ))
+          enddo
         enddo
-      enddo
+        deallocate(arr_pad)
+      endif
 
 c
 c send interpolants to CS PEs
@@ -2113,7 +2137,7 @@ c
 c
 c deallocate workspace
 c
-      deallocate(bufsend,bufrecv,arr_pad)
+      deallocate(bufsend,bufrecv)
       deallocate(scnts,sdspl,rcnts,rdspl)
 
       return
