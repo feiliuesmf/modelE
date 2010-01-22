@@ -374,7 +374,8 @@ c The two ends of each strait must be adjacent in the list of points!
       globLB(2)=1; globUB(2)=grid%JM_WORLD;
 
       mySparseComm_type = SparseCommunicator(points,
-     &                  locLB  , locUB  , globLB , globUB )
+     &                  locLB  , locUB  , globLB , globUB,
+     &                  comm = grid%MPI_COMM)
       deallocate(points)
 
 C****
