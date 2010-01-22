@@ -42,8 +42,8 @@ Preprocessor Options
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define GFED_3D_BIOMASS          ! turns on IIASA AR4 GFED biomass burning
-!  OFF #define SULF_ONLY_AEROSOLS        ! when using Koch aerosols,omit BC,OC,SS
 !  OFF #define HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
+!  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
