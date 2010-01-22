@@ -57,6 +57,7 @@ c local variables:
       integer, parameter :: npesx_max=100
       integer, dimension(npesx_max) :: istrt,istop
 c      integer :: ntiles, npx, npy, ng, isd, ied , jsd, jed ! for MPP
+      include 'mpif.h' ! temporary to see MPI_COMM_WORLD
 
 c sanity checks
       if(jm.ne.im)
@@ -124,6 +125,7 @@ c set these to something huge to trigger segfaults if accidentlly used?
       grd_dum%HAVE_NORTH_POLE = .false.
       grd_dum%HAVE_EQUATOR    = .false. ! not used anywhere in modelE
 
+
 c
 c initialize compoments of dist_grid specific to dd2d_utils routines
 c
@@ -133,6 +135,10 @@ c
      &     grd_dum%J_STRT,grd_dum%J_STOP,
      &     grd_dum%I_STRT_HALO,grd_dum%I_STOP_HALO,
      &     grd_dum%J_STRT_HALO,grd_dum%J_STOP_HALO,grd_dum)
+
+      grd_dum%have_domain = .true.
+      grd_dum%mpi_comm = MPI_COMM_WORLD
+      grd_dum%npes_comm = grd_dum%nproc
 
 c
 c create the configuration file needed by the FVcubed core
