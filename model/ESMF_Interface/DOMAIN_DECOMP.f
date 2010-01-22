@@ -221,7 +221,7 @@ c retaining for now, but disabling, the MPP+FVCUBED coding in this file
         MODULE PROCEDURE GLOBALSUM_IJK
         MODULE PROCEDURE GLOBALSUM_IJK_IK
         MODULE PROCEDURE GLOBALSUM_OTHER_IJK
-        MODULE PROCEDURE GLOBALSUM_OTHER_IJK_IK
+        MODULE PROCEDURE GLOBALSUM_OTHER_IJK_IK ! not used?
         MODULE PROCEDURE GLOBALSUM_JK
         MODULE PROCEDURE GLOBALSUM_XXXJ_XXX
         MODULE PROCEDURE GLOBALSUM_XXXIJ_XXX
@@ -471,6 +471,8 @@ c        MODULE PROCEDURE READT8_PARALLEL_2D
         integer, dimension(:), pointer :: rcnts,rdspl,rdspl_inplace
         integer, dimension(:), pointer :: j0_send,j1_send
         integer, dimension(:), pointer :: j0_recv,j1_recv
+        integer :: mpi_comm
+        integer :: npes_comm
       end type band_pack_type
 !@var INIT_BAND_PACK_TYPE initialization routine during which each PE
 !@+   requests a range of J indices and sets up the necessary send/receive
@@ -515,6 +517,7 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          INTEGER :: IM_WORLD        ! Number of Longitudes
          INTEGER :: JM_WORLD        ! Number of latitudes
          ! Parameters for local domain
+         LOGICAL :: HAVE_DOMAIN     ! Whether this PE has any of the domain
          INTEGER :: I_STRT          ! Begin local domain longitude index
          INTEGER :: I_STOP          ! End   local domain longitude index
          INTEGER :: J_STRT          ! Begin local domain latitude  index
@@ -542,18 +545,22 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
          !@var lookup_pet index of PET for a given J
          INTEGER, DIMENSION(:), POINTER :: lookup_pet
          LOGICAL :: BC_PERIODIC         
-         INTEGER :: mpiCommunicator
+         ! MPI info
+         INTEGER :: MPI_COMM  ! MPI communicator for PEs having a domain
+         INTEGER :: NPES_COMM ! number of PEs having a domain
+         INTEGER :: MPI_TAG   ! for MPI book-keeping
       END TYPE DIST_GRID
 #endif
 
-      TYPE (DIST_GRID) :: GRID, GRID_TRANS
+      TYPE (DIST_GRID) :: GRID
+!not used      TYPE (DIST_GRID) :: GRID_TRANS
 
       public :: haveLatitude
 
 ! Remaining variables are private to the module.
 
-!@var NPES number of processes upon which work is to be distributed
-      INTEGER :: NPES
+!@var NPES_WORLD number of total processes
+      INTEGER :: NPES_WORLD
 !@var NP_LON number of azimuthal processes.
       INTEGER :: NP_LON
 !@var NP_LAT number of meridional     processes.
@@ -567,8 +574,6 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 
       integer, parameter :: ROOT_ID=0
       INTEGER, PUBLIC :: CHECKSUM_UNIT
-
-      Integer :: tag = 10
 
       CONTAINS
 
@@ -589,22 +594,23 @@ c***      INTEGER, PARAMETER :: EAST  = 2**2, WEST  = 2**3
 !$    external omp_get_thread_num
 !$    integer :: numThreads
       integer :: myUnit
-      NPES = 1                  ! default NPES = 1 for serial run
+      NPES_WORLD = 1                  ! default NPES = 1 for serial run
 
 #ifdef USE_ESMF
       Call ESMF_Initialize(vm=modelE_vm, rc=rc)
-      Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES, rc=rc)
+      Call ESMF_VMGet(modelE_vm, localPET=my_pet, petCount=NPES_WORLD,
+     &     rc=rc)
 !$    call omp_set_dynamic(.false.)
 !$    numThreads = omp_get_max_threads()
 !$    call mpi_bcast(numThreads, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
 !$    call omp_set_num_threads(numThreads)
       if(my_pet == 0) then
-         write(*,*)'Num MPI Processes: ', NPES
+         write(*,*)'Num MPI Processes: ', NPES_WORLD
 !$       write(*,*)'   with ',numThreads, 'threads per process'
       end if
       compmodelE  = ESMF_GridCompCreate(modelE_vm,"ModelE ESMF", rc=rc)
       ESMF_Layout = ESMF_DELayoutCreate(modelE_vm,
-     &     deCountList = (/ 1, NPES /))
+     &     deCountList = (/ 1, NPES_WORLD /))
 c along with ESMF_GridCompCreate, move this somewhere into init_grid?
 c Separate atm/ocn/seaice components
 c      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
@@ -614,13 +620,13 @@ c      Call ESMF_GridCompSet(compmodelE, grid=grd_dum%ESMF_GRID, rc=rc)
 c fms_init() has already been called.  Move that call here?
 #ifndef USE_ESMF
       MY_PET = mpp_pe()
-      NPES   = mpp_npes()
+      NPES_WORLD   = mpp_npes()
 #endif
 #endif
 
       NP_LON   = 1
       RANK_LON = 0
-      NP_LAT   = NPES
+      NP_LAT   = NPES_WORLD
       RANK_LAT = my_pet
       return
       end subroutine init_app
@@ -649,20 +655,20 @@ c fms_init() has already been called.  Move that call here?
 !      ! Initialize ESMF
 !      Call Initialize_App(IM, JM, LM,rc=rc)
 !
-!      Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES, rc=rc)
+!      Call ESMF_VMGet(vm, localPET = my_pet, petCount = NPES_WORLD, rc=rc)
 !      root = ROOT_ID
 !      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 !
 !      ! The default layout is not what we want - it splits in the "I" direction.
-!      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
+!      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES_WORLD /))
 !
 !      NP_LON = 1
-!      NP_LAT = NPES
+!      NP_LAT = NPES_WORLD
 !      RANK_LAT = my_pet
 !      RANK_LON = 0
 !#else
 !      MY_PET = 0
-!      NPES = 1
+!      NPES_WORLD = 1
 !      NP_LON = 1
 !      NP_LAT = 1
 !      RANK_LON = 0
@@ -687,7 +693,7 @@ c fms_init() has already been called.  Move that call here?
 !      RANK_LAT = mpp_pe()
 !      RANK_LON = 0
 !      MY_PET=mpp_pe()
-!      NPES=mpp_npes()
+!      NPES_WORLD=mpp_npes()
 !      root=mpp_root_pe()
 !
 !#ifdef USE_ESMF
@@ -695,7 +701,7 @@ c fms_init() has already been called.  Move that call here?
 !      Call Initialize_App(IM, JM, LM,rc=rc)
 !      compmodelE  = ESMF_GridCompCreate(vm,"ModelE ESMF", rc=rc)
 !
-!      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES /))
+!      ESMF_Layout = ESMF_DELayoutCreate(vm, deCountList = (/ 1, NPES_WORLD /))
 !#endif
 !      !! write(*,*) "INIT_GRID 3"
 !      call INIT_GRID(grd_dum,IM,JM,LM, J_SCM=J_SCM,CREATE_CAP=.true.)
@@ -718,11 +724,11 @@ c fms_init() has already been called.  Move that call here?
 
 #ifdef USE_ESMF
       SUBROUTINE INIT_GRID(grd_dum,IM,JM, LM,width,vm,J_SCM,bc_periodic,
-     &                     CREATE_CAP)
+     &                     CREATE_CAP,npes_max,excess_on_pe0)
       USE ESMF_CUSTOM_MOD, Only : modelE_vm
 #else
       SUBROUTINE INIT_GRID(grd_dum,IM,JM,LM,width,J_SCM,bc_periodic,
-     &                     CREATE_CAP)
+     &                     CREATE_CAP,npes_max,excess_on_pe0)
 #endif
       USE FILEMANAGER, Only : openunit
       IMPLICIT NONE
@@ -732,6 +738,8 @@ c fms_init() has already been called.  Move that call here?
       INTEGER, OPTIONAL :: width
       LOGICAL, OPTIONAL, INTENT(IN) :: bc_periodic
       LOGICAL, OPTIONAL, INTENT(IN) :: CREATE_CAP
+      INTEGER, OPTIONAL, INTENT(IN) :: npes_max
+      LOGICAL, OPTIONAL, INTENT(IN) :: excess_on_pe0
       integer, parameter :: numDims=2
 #ifdef USE_ESMF
       TYPE (ESMF_VM), INTENT(IN), Target, Optional :: vm
@@ -765,9 +773,9 @@ c fms_init() has already been called.  Move that call here?
       integer :: isd, ied , jsd, jed
       integer :: capnx, capny
 #endif
-      integer :: excess
-      
-      !! write(*,*) "BEGIN INIT_GRID"
+      integer :: excess,npes_used
+      integer, dimension(:), allocatable :: pelist
+      integer :: group_world,group_used,ierr
 
 #ifdef USE_FVCUBED
       grid_size(1)=IM;   grid_size(2)=JM*6
@@ -785,7 +793,7 @@ c fms_init() has already been called.  Move that call here?
      &     horzStagger=ESMF_GRID_HORZ_STAGGER_A,
      &     name="source grid", rc=rc)
 
-      Allocate(grd_dum%dj_map(0:npes-1))
+      Allocate(grd_dum%dj_map(0:npes_world-1))
 
       if (LM > 1) then
          deltaZ = 1.0d0
@@ -801,37 +809,48 @@ c fms_init() has already been called.  Move that call here?
       vm_ => modelE_vm
       If (Present(vm)) vm_ => vm
 
-      call ESMF_VMGet(vm_, mpiCommunicator=grd_dum%mpiCommunicator,
+      Call ESMF_VMGet(vm_, localPET = my_pet, petCount = NPES_WORLD,
      &     rc=rc)
-
-      Call ESMF_VMGet(vm_, localPET = my_pet, petCount = NPES, rc=rc)
       ! The default layout is not what we want - it splits in the "I" direction.
-      layout = ESMF_DELayoutCreate(vm_, deCountList = (/ 1, NPES /))
+      layout = ESMF_DELayoutCreate(vm_,
+     &     deCountList = (/ 1, NPES_WORLD /))
 
-      if(npes > jm-2)
-     &     call stop_model('init_grid: jm too large',255)
-
-      allocate(ims(0:0), jms(0:npes-1))
+      allocate(ims(0:0), jms(0:npes_world-1))
       ! Set minimum requirements per processor
       ! Currently this is 1 lat/proc away from poles
       ! and 2 lat/proc at poles
-      select case (npes)
+      select case (npes_world)
       case (1)
          jms(:) = JM
       case (2)
          jms(0) = JM/2
          jms(1) = JM - (JM/2)
       case (3:)
-         jms(:) = max(1,JM/npes)        ! round down
-         jms(0) = max(2, 1+(JM-1)/npes) ! round up
-         jms(npes-1) = max(2, 1+(JM-1)/npes)
-
-         ! distribute execess among interior processors
-         excess = JM - sum(jms)
-         do p = 1, npes - 2
+         npes_used = min(npes_world, JM-2)
+         if(present(npes_max)) then
+           if(npes_max >= 3)
+     &          npes_used = min(npes_used, npes_max)
+         endif
+         jms(0:npes_used-1) = max(1,JM/npes_used)  ! round down
+!         jms(0) = max(2, 1+(JM-1)/npes_used)       ! round up
+!         jms(npes_used-1) = max(2, 1+(JM-1)/npes_used)
+         jms(0) = max(2, jms(0))
+         jms(npes_used-1) = max(2, jms(npes_used-1))
+         ! distribute excess among interior processors
+         excess = JM - sum(jms(0:npes_used-1))
+         if(present(excess_on_pe0)) then
+           if(excess_on_pe0) then
+             jms(0) = jms(0) + excess
+             excess = 0
+           endif
+         endif
+         do p = 1, npes_used - 2
             jms(p) = jms(p) + 
-     &           (p+1)*excess/(npes-2) - (p*excess)/(npes-2)
+     &           (p+1)*excess/(npes_used-2) - (p*excess)/(npes_used-2)
          end do
+         do p = npes_used, npes_world-1 ! zero-sized domains on idled PEs
+           jms(p) = 0
+         enddo
       end select
 
       ims(0) = im
@@ -883,7 +902,7 @@ c fms_init() has already been called.  Move that call here?
       RANK_LON=0
       RANK_LAT=mpp_pe()
       my_pet = mpp_pe()
-      NPES = mpp_npes()
+      NPES_WORLD = mpp_npes()
       root   = mpp_root_pe()
       call mpp_get_compute_domain( grd_dum%domain,
      &                         I0_DUM, I1_DUM, J0_DUM, J1_DUM)
@@ -900,13 +919,14 @@ c fms_init() has already been called.  Move that call here?
       grd_dum%I_STOP        = I1_DUM
       grd_dum%I_STRT_HALO   = MAX( 1, I0_DUM-width_)
       grd_dum%I_STOP_HALO   = MIN(IM, I1_DUM+width_)
-      grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES - RANK_LAT*IM/NPES
+      grd_dum%ni_loc = (RANK_LAT+1)*IM/NPES_used - RANK_LAT*IM/NPES_used
 
       grd_dum%J_STRT        = J0_DUM
       grd_dum%J_STOP        = J1_DUM
 #ifdef USE_ESMF
       call ESMF_DElayoutBarrier(layout, rc)
 #endif
+      grd_dum%HAVE_DOMAIN   = J0_DUM <= JM
 
 cddd      IF (RANK_LAT > 0) THEN
 cddd        grd_dum%J_STRT_SKP = J0_DUM
@@ -926,6 +946,24 @@ ccc I think the following will do the same and will be compatible with SCM
 #ifdef USE_MPI
       grd_dum%J_STRT_HALO   = J0_DUM - width_
       grd_dum%J_STOP_HALO   = J1_DUM + width_
+      grd_dum%MPI_COMM = MPI_COMM_WORLD
+      grd_dum%NPES_COMM = npes_used
+      grd_dum%MPI_TAG = 10  ! initial value
+
+c Create a new MPI communicator including all the PEs with a nonzero
+c domain size.  Even when NPES_USED == NPES_WORLD, this is convenient for
+c avoiding collisions of MPI tag sequences.
+
+      call mpi_comm_group(MPI_COMM_WORLD,group_world,ierr)
+      allocate(pelist(0:npes_used-1))
+      do p=0,npes_used-1
+        pelist(p) = p
+      enddo
+      call mpi_group_incl(group_world,npes_used,pelist,group_used,ierr)
+      deallocate(pelist)
+      call mpi_comm_create(MPI_COMM_WORLD,group_used,
+     &     grd_dum%MPI_COMM,ierr)
+      if(.not. grd_dum%HAVE_DOMAIN) grd_dum%MPI_COMM = MPI_COMM_NULL
 #else
       ! I guess we don't need HALO in SCM mode...
       !grd_dum%J_STRT_HALO = MAX(1,  grd_dum % J_STRT - 1)
@@ -942,8 +980,9 @@ cddd      ENDIF
       grd_dum%J_STRT_STGR   = max(2,J0_DUM)
       grd_dum%J_STOP_STGR   = J1_DUM
 
-      grd_dum%HAVE_SOUTH_POLE = (RANK_LAT == 0)
-      grd_dum%HAVE_NORTH_POLE = (RANK_LAT == NP_LAT - 1)
+      grd_dum%HAVE_SOUTH_POLE = J0_DUM == 1  !(RANK_LAT == 0)
+      grd_dum%HAVE_NORTH_POLE = J1_DUM == JM !(RANK_LAT == NP_LAT - 1)
+     &                    .and. J0_DUM <= JM
 
       J_EQUATOR = JM/2
       grd_dum%HAVE_EQUATOR    =
@@ -973,21 +1012,21 @@ c need to initialize the dd2d version of dist_grid for I/O
       grd_dum%lookup_pet(:) = 0
 
 #ifdef USE_MPI
-      Allocate(AI(NPES,3))
+      Allocate(AI(NPES_WORLD,3))
 
 #ifdef USE_MPP
-      Allocate(grd_dum%dj_map(0:npes-1))
+      Allocate(grd_dum%dj_map(0:npes_world-1))
       Call GridGetAllAxisIndex(grd_dum%domain, AI)
 #else
       Call ESMF_GridGetAllAxisIndex(grd_dum%ESMF_GRID, globalAI=AI,
      &     horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
 #endif
-      Do p = 1, npes
+      Do p = 1, npes_world
         grd_dum%lookup_pet( AI(p,2)%min : AI(p,2)%max ) = p-1
       End Do
 
-      do p=0, npes-1
+      do p=0, npes_world-1
          grd_dum%dj_map(p)=AI(p+1,2)%max - AI(p+1,2)%min + 1
       end do
       grd_dum%dj=grd_dum%dj_map(my_pet)
@@ -1001,8 +1040,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       if (present(CREATE_CAP)) then
          if (CREATE_CAP) then
 
-            capnx = int(floor(sqrt(real(NPES/6))))
-            capny = NPES / capnx
+            capnx = int(floor(sqrt(real(NPES_WORLD/6))))
+            capny = NPES_WORLD / capnx
 
             cf = load_cap_config('cap.rc',IM,JM*6,LM,capnx,capny)
             vm_ => modelE_vm
@@ -1033,9 +1072,9 @@ c need to initialize the dd2d version of dist_grid for I/O
      &        255)
       end if
 
-      allocate( IMS(0:0) ); allocate( JMS(0:NPES-1) );
+      allocate( IMS(0:0) ); allocate( JMS(0:NPES_WORLD-1) );
       IMS(0)=im;
-      do p=0, npes-1
+      do p=0, npes_world-1
         JMS(p) = grd_dum%dj_map(p)
       end do
       write(*,*)'mkbhat: IMS are ',IMS
@@ -1045,7 +1084,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       If (Present(vm)) vm_ => vm
 
       ! The default layout is not what we want - it splits in the "I" direction.
-      layout = ESMF_DELayoutCreate(vm_, deCountList = (/ 1, NPES /))
+      layout = ESMF_DELayoutCreate(vm_,
+     &     deCountList = (/ 1, NPES_WORLD /))
       Call ESMF_GridDistribute(grid=grd_dum%ESMF_GRID,
      &     delayout = layout, 
      &     countsPerDEDim1=ims, 
@@ -1068,7 +1108,7 @@ c need to initialize the dd2d version of dist_grid for I/O
 
       implicit none
       TYPE (domain2D ) :: domain
-      Type (ESMF_Axisindex) :: AI(npes,3)
+      Type (ESMF_Axisindex) :: AI(npes_world,3)
 
       integer :: is, ie , js, je, myRank, ierr
       integer :: Axistype, oldtypes(1), blockcounts(1)
@@ -1143,8 +1183,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1,
-     &     grd_dum%mpiCommunicator, from,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), 1, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
 
       END SUBROUTINE HALO_UPDATE_1D
@@ -1157,8 +1197,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, 
-     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_2D
 
@@ -1170,8 +1210,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv_int(grd_dum%ESMF_GRID, arr, shape(arr), 2, 
-     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
+      Call sendrecv_int(grd_dum, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_2Dint
 
@@ -1183,8 +1223,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 1, 
-     &     grd_dum%mpiCommunicator, from,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), 1, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATEj_2D
 
@@ -1203,8 +1243,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       else
         jd = 2
       endif
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), jd, 
-     &     grd_dum%mpiCommunicator, from,grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), jd, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_3D
 
@@ -1233,20 +1273,20 @@ c need to initialize the dd2d version of dist_grid for I/O
       numRecvSouth = size(rBufS)
       numRecvNorth = size(rBufN)
 
-      call getNeighbors(my_pet, npes, pe_south, pe_north, .false.)
+      call getNeighbors(my_pet, npes_world, pe_south, pe_north, .false.)
 
       tag = 1 + mod(tag - 1, NUM_TAGS)
       call MPI_sendrecv(sBufS, numSendSouth, MPI_DOUBLE_PRECISION,
      &     pe_south, tag,
      &     rBufN, numRecvNorth, MPI_DOUBLE_PRECISION, pe_north, tag,
-     &     grd_dum%mpiCommunicator, status, ier)
+     &     MPI_COMM_WORLD, status, ier)
 
       tag = 1 + mod(tag - 1, NUM_TAGS)
 
       call MPI_sendrecv(sBufN, numSendNorth, MPI_DOUBLE_PRECISION,
      &     pe_north, tag,
      &     rBufS, numRecvSouth, MPI_DOUBLE_PRECISION, pe_south, tag,
-     &     grd_dum%mpiCommunicator, status, ier)
+     &     MPI_COMM_WORLD, status, ier)
 
 #endif
       END SUBROUTINE HALO_UPDATE_mask
@@ -1260,8 +1300,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER, OPTIONAL, INTENT(IN)    :: from
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 2, 
-     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), 2, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_2D
 
@@ -1275,8 +1315,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, 
-     &     grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), 3, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_3D
 
@@ -1307,8 +1347,7 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 3, 
-     &     grd_dum%mpiCommunicator, from )
+      Call sendrecv(grd_dum, arr, shape(arr), 3, from)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_4D
 
@@ -1322,8 +1361,7 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 4,
-     &     grd_dum%mpiCommunicator, from)
+      Call sendrecv(grd_dum, arr, shape(arr), 4, from)
 #endif
       END SUBROUTINE HALO_UPDATE_BLOCK_4D
 
@@ -1337,8 +1375,8 @@ c need to initialize the dd2d version of dist_grid for I/O
       INTEGER :: L
 
 #ifdef USE_MPI
-      Call sendrecv(grd_dum%ESMF_GRID, arr, shape(arr), 6, 
-     &      grd_dum%mpiCommunicator, from, grd_dum%BC_PERIODIC)
+      Call sendrecv(grd_dum, arr, shape(arr), 6, from
+     &     ,grd_dum%BC_PERIODIC)
 #endif
       END SUBROUTINE HALO_UPDATE_COLUMN_7D
 
@@ -2058,10 +2096,10 @@ c**** arr  is overwritten by itself after reduction
 #ifdef USE_MPI
       If (all_) Then
          call MPI_Allreduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM,
-     &        grd_dum%mpiCommunicator, ierr)
+     &        grd_dum%MPI_COMM, ierr)
       Else
          call MPI_Reduce(ivar, isum, 1, MPI_INTEGER, MPI_SUM, root,
-     &        grd_dum%mpiCommunicator, ierr)
+     &        grd_dum%MPI_COMM, ierr)
       End If
 #else
       isum = ivar
@@ -2155,9 +2193,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) THEN
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
-     &           grd_dum%mpiCommunicator, ierr)
+     &           grd_dum%MPI_COMM, ierr)
             If (Present(hsum)) Call MPI_BCAST(hsum,2,
-     &           MPI_DOUBLE_PRECISION,root,grd_dum%mpiCommunicator,ierr)
+     &           MPI_DOUBLE_PRECISION,root, grd_dum%MPI_COMM, ierr)
          End If
       End If
 #endif
@@ -2247,9 +2285,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,1,MPI_DOUBLE_PRECISION,root,
-     &           grd_dum%mpiCommunicator, ierr)
+     &           grd_dum%MPI_COMM, ierr)
             If (Present(hsum))     Call MPI_BCAST(hsum,2,
-     &           MPI_DOUBLE_PRECISION,root,grd_dum%mpiCommunicator,ierr)
+     &           MPI_DOUBLE_PRECISION,root, grd_dum%MPI_COMM, ierr)
          End If
       End If
 #endif
@@ -2375,7 +2413,7 @@ c**** arr  is overwritten by itself after reduction
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        grd_dum%mpiCommunicator, ierr)
+     &        grd_dum%MPI_COMM, ierr)
       End If
 #else
       gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ),2)
@@ -2420,7 +2458,7 @@ c**** arr  is overwritten by itself after reduction
       IF (AM_I_ROOT()) gsum = Sum(garr(:,jb1:jb2,:),2)
       If (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        grd_dum%mpiCommunicator, ierr)
+     &        grd_dum%MPI_COMM, ierr)
       End If
 #else
       gsum = Sum(arr(:, max(jb1,j_0):min(jb2,j_1) ,:),2)
@@ -2443,10 +2481,10 @@ c**** arr  is overwritten by itself after reduction
     ! now local
 #ifdef USE_MPI
 !     type (ESMF_Grid)                           :: GRID
-      Integer :: scnts(0:npes-1), sdspl(0:npes-1)
-      Integer :: rcnts(0:npes-1), rdspl(0:npes-1)
-      Integer ::  dik_map(0:npes-1), dik, dik_sum
-      Integer :: nik, i,k,j,p, ik, ijk, iremain
+      Integer :: scnts(0:npes_world-1), sdspl(0:npes_world-1)
+      Integer :: rcnts(0:npes_world-1), rdspl(0:npes_world-1)
+      Integer ::  dik_map(0:npes_world-1), dik, dik_sum
+      Integer :: npes, nik, i,k,j,p, ik, ijk, iremain
       Real*8, Allocatable :: tsum(:)
       Real*8, Allocatable :: send_buf(:)
       Real*8, Allocatable :: recv_buf(:,:)
@@ -2462,6 +2500,7 @@ c**** arr  is overwritten by itself after reduction
       IM = SIZE(arr,1)
       JM   = grd_dum%JM_WORLD
       LM =  SIZE(arr,3)
+      npes = grd_dum%NPES_COMM
 
 #ifdef USE_MPI
 ! Number of sums each processor computes is dik
@@ -2514,7 +2553,7 @@ c**** arr  is overwritten by itself after reduction
 
       Call MPI_ALLTOALLV(send_buf, scnts, sdspl, mpi_double_precision,
      &             recv_buf, rcnts, rdspl, mpi_double_precision,
-     &             grd_dum%mpiCommunicator, ierr)
+     &             grid%mpi_comm, ierr)
 
       tsum=sum(recv_buf,2)
 
@@ -2526,7 +2565,7 @@ c**** arr  is overwritten by itself after reduction
 
       Call MPI_GatherV(tsum, dik, mpi_double_precision,
      & gsum, dik_map, rdspl, mpi_double_precision,
-     & root, grd_dum%mpiCommunicator, ierr)
+     & root, grid%mpi_comm, ierr)
 
       Deallocate(recv_buf)
       Deallocate(send_buf)
@@ -2534,7 +2573,7 @@ c**** arr  is overwritten by itself after reduction
 
       if (all_) Then
          call MPI_BCAST(gsum, Size(gsum), MPI_DOUBLE_PRECISION, root,
-     &        grd_dum%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       End If
 #else
       gsum = Sum(arr(:,j_0:j_1,:),2)
@@ -2599,9 +2638,9 @@ c**** arr  is overwritten by itself after reduction
       If (Present(all)) Then
          If (all) Then
             Call MPI_BCAST(gsum,Size(gsum),MPI_DOUBLE_PRECISION,root,
-     &           grd_dum%mpiCommunicator, ierr)
+     &           grd_dum%MPI_COMM, ierr)
             If (Present(hsum)) Call MPI_BCAST(hsum,size(hsum),
-     &           MPI_DOUBLE_PRECISION,root,grd_dum%mpiCommunicator,ierr)
+     &           MPI_DOUBLE_PRECISION, root, grd_dum%MPI_COMM, ierr)
          End If
       End If
 #endif
@@ -3344,6 +3383,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       subroutine ESMF_IArrayScatter_IJ(egrid, local_array, global_array)
       integer      , dimension (:,:) :: local_array, global_array
+!     type (ESMF_Grid)      :: egrid
       type (DIST_GRID)      :: egrid
 
 #ifdef USE_MPI
@@ -3351,7 +3391,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            ::
      &     sendcounts, displs
-      integer                                       :: nDEs
+      integer                                       :: nPEs
       integer                                       :: rc
       integer                                       :: ierr
       integer                                       :: recvcount
@@ -3364,7 +3404,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       integer      , allocatable                    :: var(:)
 
-      Allocate(AI(1:NPES,3))
+      npes = egrid%NPES_COMM
+      Allocate(AI(1:NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(egrid%domain, AI)
 #else
@@ -3404,7 +3445,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_ScatterV(var, sendcounts, displs,
      &     MPI_INTEGER         , local_array, recvcount,
-     &     MPI_INTEGER         , root, egrid%mpiCommunicator, ierr)
+     &     MPI_INTEGER         , root, egrid%MPI_COMM, ierr)
 
         deallocate(VAR, stat=rc)
 
@@ -3427,7 +3468,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       type (ESMF_DELayout)                          :: layout
       integer, allocatable, dimension(:)            ::
      &     sendcounts, displs
-      integer                                       :: nDEs
+      integer                                       :: nPEs
       integer                                       :: rc
       integer                                       :: ierr
       integer                                       :: recvcount
@@ -3440,7 +3481,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       Logical      , allocatable                    :: var(:)
 
-      Allocate(AI(1:NPES,3))
+      npes = egrid%NPES_COMM
+      Allocate(AI(1:NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(egrid%domain, AI)
 #else
@@ -3482,7 +3524,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_ScatterV(var, sendcounts, displs,
      &     MPI_LOGICAL         , local_array, recvcount,
-     &     MPI_LOGICAL         , root, egrid%mpiCommunicator, ierr)
+     &     MPI_LOGICAL         , root, egrid%MPI_COMM, ierr)
 
         deallocate(VAR, stat=rc)
 
@@ -3503,7 +3545,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
-      integer                                       :: nDEs
+      integer                                       :: nPEs
       integer                                       :: rc
       integer                                       :: ierr
       integer                                       :: sendcount
@@ -3517,7 +3559,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer      , allocatable                    :: var(:)
 
 
-      Allocate(AI(1:NPES,3))
+      npes = grid%NPES_COMM
+      Allocate(AI(1:NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -3548,7 +3591,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array, sendcount, MPI_INTEGER         ,
      &     var, recvcounts, displs,
-     &     MPI_INTEGER         , root, grid%mpiCommunicator, ierr)
+     &     MPI_INTEGER         , root, grid%MPI_COMM, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3580,7 +3623,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
-      integer                                       :: nDEs
+      integer                                       :: nPEs
       integer                                       :: rc
       integer                                       :: ierr
       integer                                       :: sendcount
@@ -3592,7 +3635,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       logical      , allocatable                    :: var(:)
 
-      Allocate(AI(1:NPES,3))
+      npes = e_grid%NPES_COMM
+      Allocate(AI(1:NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(e_grid%domain, AI)
 #else
@@ -3622,7 +3666,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array, sendcount, MPI_LOGICAL,
      &     var, recvcounts, displs,
-     &     MPI_LOGICAL, root, e_grid%mpiCommunicator, ierr)
+     &     MPI_LOGICAL, root, e_grid%MPI_COMM, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3654,7 +3698,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       integer, allocatable, dimension(:)            ::
      &     recvcounts, displs
-      integer                                       :: nDEs
+      integer                                       :: nPEs
       integer                                       :: rc 
       integer                                       :: ierr
       integer                                       :: sendcount
@@ -3667,7 +3711,8 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
       integer, allocatable                    :: var(:)
 
 
-      Allocate(AI(1:NPES,3))
+      npes = grid%NPES_COMM
+      Allocate(AI(1:NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -3696,7 +3741,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
       call MPI_GatherV(local_array,sendcount,MPI_INTEGER,
      &     var, recvcounts, displs,
-     &     MPI_INTEGER, root, grid%mpiCommunicator, ierr)
+     &     MPI_INTEGER, root, grid%MPI_COMM, ierr)
 
       if (AM_I_ROOT()) then
         do I = 1,NPES
@@ -3881,28 +3926,26 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
     !---------------------------
 #ifdef USE_MPI
       subroutine ESMF_GRID_PE_LAYOUT  (GRID, NX, NY)
-        type (ESMF_Grid), intent(IN) :: grid
+        type (Dist_Grid), intent(IN) :: grid
         integer, intent(OUT)         :: NX, NY
 
         NX = 1
-        NY = NPES
+        NY = grid%NPES_COMM
 
       end subroutine ESMF_GRID_PE_LAYOUT
 
     !---------------------------
 
       subroutine ESMF_GRID_MY_PE_LOC  (GRID,NX0,NY0)
-        type (ESMF_Grid), intent(IN) :: grid
+        type (Dist_Grid), intent(IN) :: grid
         integer, intent(OUT)          :: NX0, NY0
 
     ! local vars
-        type (ESMF_DELayout) :: layout
-
-        integer :: rc
-
-#ifdef USE_ESMF
-        call ESMF_GridGet(grid, delayout=layout, rc=rc)
-#endif
+!        type (ESMF_DELayout) :: layout
+!        integer :: rc
+!#ifdef USE_ESMF
+!        call ESMF_GridGet(grid%ESMF_GRID, delayout=layout, rc=rc)
+!#endif
         NX0 = 0
         NY0 = my_pet
 
@@ -4368,7 +4411,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
         type(ESMF_AxisIndex), dimension(:,:), pointer :: AI
 
-        Allocate(AI(1:NPES,3))
+        Allocate(AI(1:NPES_WORLD,3))
         call ESMF_GridGetAllAxisIndex(grid%ESMF_GRID, AI,
      &       horzRelLoc=ESMF_CELL_CENTER,
      &       vertRelLoc=ESMF_CELL_CELL, rc=rc)
@@ -4383,7 +4426,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
         J1 = AI(deId,2)%min
         JN = AI(deId,2)%max
 
-        do i=0, npes-1
+        do i=0, npes_world-1
           grid%dj_map(i)=AI(i+1,2)%max - AI(i+1,2)%min + 1
         end do
         grid%dj=grid%dj_map(deid-1)
@@ -4518,7 +4561,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
          CALL SYS_FLUSH(CHECKSUM_UNIT)
        End If
 #ifdef USE_MPI
-       ALLOCATE(lines(npes))
+       ALLOCATE(lines(npes_world))
        Call MPI_Allgather(line, 1, MPI_INTEGER, lines, 1, MPI_INTEGER,
      &      MPI_COMM_WORLD, ierr)
        If (Any(lines /= line))
@@ -4575,7 +4618,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_min, 1, MPI_DOUBLE_PRECISION,MPI_MIN,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #else
       val_min = val
 #endif
@@ -4592,7 +4635,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_DOUBLE_PRECISION,MPI_MAX,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #else
       val_max = val
 #endif
@@ -4609,7 +4652,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 
 #ifdef USE_MPI
       CALL MPI_Allreduce(val, val_max, 1, MPI_INTEGER, MPI_MAX,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #else
       val_max = val
 #endif
@@ -4627,7 +4670,7 @@ c***      Call gather(grd_dum%ESMF_GRID, buf, buf_glob, shape(buf), 2)
 #ifdef USE_MPI
       n = size(val)
       CALL MPI_Allreduce(val, val_max, n, MPI_INTEGER, MPI_MAX,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #else
       val_max(:) = val(:)
 #endif
@@ -5779,55 +5822,74 @@ C--------------------------------
       RETURN
       END SUBROUTINE UNPACK_J_4D
 
-      SUBROUTINE INIT_BAND_PACK_TYPE(grd_dum, band_j0,band_j1, bandpack)
+      SUBROUTINE INIT_BAND_PACK_TYPE(grd_src, grd_dst, band_j0,band_j1,
+     &     bandpack)
 c initialize the bandpack derived type with the information needed
 c for the band_pack procedure to fill output arrays with data from
 c J indices band_j0 to band_j1
       IMPLICIT NONE
-      TYPE (DIST_GRID),  INTENT(IN) :: grd_dum
+      TYPE (DIST_GRID),  INTENT(IN) :: grd_src,grd_dst
       INTEGER, INTENT(IN) :: band_j0,band_j1
       TYPE (BAND_PACK_TYPE), intent(OUT) :: bandpack
 #ifdef USE_MPI
-      integer, dimension(0:npes-1) ::
+      integer, dimension(0:npes_world-1) ::
      &     j0_have,j1_have,j0_requested,j1_requested
-      integer :: p, ierr, im,jm, j0send,j1send,j0recv,j1recv
+      integer :: p, ierr, im,jm, j0send,j1send,j0recv,j1recv,npes
 
-      allocate(bandpack%j0_send(0:npes-1), bandpack%j1_send(0:npes-1))
-      allocate(bandpack%j0_recv(0:npes-1), bandpack%j1_recv(0:npes-1))
-      allocate(bandpack%scnts(0:npes-1), bandpack%sdspl(0:npes-1))
-      allocate(bandpack%rcnts(0:npes-1), bandpack%rdspl(0:npes-1))
-      allocate(bandpack%sdspl_inplace(0:npes-1))
-      allocate(bandpack%rdspl_inplace(0:npes-1))
+c
+c Store some general MPI info (NOTE: for now we assume that the process
+c set of grd_src is a subset of that in grd_dst, or vice versa, which
+c allows us to take this info from the larger set).
+c
+      if(grd_src%npes_comm > grd_dst%npes_comm) then
+        npes = grd_src%npes_comm
+        bandpack%mpi_comm = grd_src%mpi_comm
+      else
+        npes = grd_dst%npes_comm
+        bandpack%mpi_comm = grd_dst%mpi_comm
+      endif
+      bandpack%npes_comm = npes
+      allocate(bandpack%j0_send(0:npes-1),
+     &         bandpack%j1_send(0:npes-1),
+     &         bandpack%j0_recv(0:npes-1),
+     &         bandpack%j1_recv(0:npes-1),
+     &         bandpack%scnts(0:npes-1),
+     &         bandpack%sdspl(0:npes-1),
+     &         bandpack%rcnts(0:npes-1),
+     &         bandpack%rdspl(0:npes-1),
+     &         bandpack%sdspl_inplace(0:npes-1),
+     &         bandpack%rdspl_inplace(0:npes-1)
+     &     )
 #endif
-      bandpack%im_world = grd_dum%im_world
-      bandpack%j_strt = grd_dum%j_strt
-      bandpack%j_stop = grd_dum%j_stop
-      bandpack%j_strt_halo = grd_dum%j_strt_halo
-      bandpack%j_stop_halo = grd_dum%j_stop_halo
+      bandpack%im_world = grd_src%im_world
+      bandpack%j_strt = grd_src%j_strt
+      bandpack%j_stop = grd_src%j_stop
+      bandpack%j_strt_halo = grd_src%j_strt_halo
+      bandpack%j_stop_halo = grd_src%j_stop_halo
       bandpack%jband_strt = band_j0
       bandpack%jband_stop = band_j1
 #ifdef USE_MPI
-      im = grd_dum%im_world
-      jm = grd_dum%jm_world
+      im = grd_src%im_world
+      jm = grd_src%jm_world
 c
 c Set up the MPI send/receive information
 c
-      call mpi_allgather(grd_dum%j_strt,1,MPI_INTEGER,j0_have,1,
-     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
-      call mpi_allgather(grd_dum%j_stop,1,MPI_INTEGER,j1_have,1,
-     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
+      call mpi_allgather(grd_src%j_strt,1,MPI_INTEGER,j0_have,1,
+     &     MPI_INTEGER,bandpack%MPI_COMM,ierr)
+      call mpi_allgather(grd_src%j_stop,1,MPI_INTEGER,j1_have,1,
+     &     MPI_INTEGER,bandpack%MPI_COMM,ierr)
       call mpi_allgather(band_j0,1,MPI_INTEGER,j0_requested,1,
-     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
+     &     MPI_INTEGER,bandpack%MPI_COMM,ierr)
       call mpi_allgather(band_j1,1,MPI_INTEGER,j1_requested,1,
-     &     MPI_INTEGER,GRD_DUM%MPICOMMUNICATOR,ierr)
+     &     MPI_INTEGER,bandpack%MPI_COMM,ierr)
       do p=0,npes-1
-        j0send = max(grd_dum%j_strt,j0_requested(p))
-        j1send = min(grd_dum%j_stop,j1_requested(p))
+        j0send = max(grd_src%j_strt,j0_requested(p))
+        j1send = min(grd_src%j_stop,j1_requested(p))
         bandpack%j0_send(p) = j0send
         bandpack%j1_send(p) = j1send
         if(j0send <= j1send) then
           bandpack%scnts(p) = im*(j1send-j0send+1)
-          bandpack%sdspl_inplace(p) = im*(j0send-grd_dum%j_strt_halo)
+          bandpack%sdspl_inplace(p) = im*(j0send-grd_src%j_strt_halo)
         else
           bandpack%scnts(p) = 0
           bandpack%sdspl_inplace(p) = 0
@@ -5865,15 +5927,17 @@ c
       REAL*8, INTENT(IN) :: ARR(:,bandpack%j_strt_halo:)
       REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:)
 #ifdef USE_MPI
-      integer, dimension(0:npes-1) :: scnts,sdspl, rcnts,rdspl
+      integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
       integer :: ierr
-      scnts = bandpack%scnts
-      sdspl = bandpack%sdspl_inplace
-      rcnts = bandpack%rcnts
-      rdspl = bandpack%rdspl_inplace
+      integer :: npes
+      npes = bandpack%npes_comm
+      scnts(0:npes-1) = bandpack%scnts
+      sdspl(0:npes-1) = bandpack%sdspl_inplace
+      rcnts(0:npes-1) = bandpack%rcnts
+      rdspl(0:npes-1) = bandpack%rdspl_inplace
       call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
      &                   arr_band, rcnts, rdspl, mpi_double_precision,
-     &                   mpi_comm_world, ierr)
+     &                   bandpack%mpi_comm, ierr)
 #else
       arr_band(:,bandpack%J_STRT:bandpack%J_STOP) =
      &     arr(:,bandpack%J_STRT:bandpack%J_STOP)
@@ -5892,9 +5956,11 @@ c
       REAL*8, INTENT(IN) :: ARR(:,bandpack%j_strt_halo:,:)
       REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:,:)
 #ifdef USE_MPI
-      integer, dimension(0:npes-1) :: scnts,sdspl, rcnts,rdspl
+      integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
       integer :: ierr,lm,i,j,l,n,p
       real*8, dimension(:), allocatable :: bufsend,bufrecv
+      integer :: npes
+      npes = bandpack%npes_comm
       lm = size(arr,3)
       scnts = lm*bandpack%scnts
       sdspl = lm*bandpack%sdspl
@@ -5914,7 +5980,7 @@ c
       enddo
       call mpi_alltoallv(bufsend, scnts, sdspl, mpi_double_precision,
      &                   bufrecv, rcnts, rdspl, mpi_double_precision,
-     &                   mpi_comm_world, ierr)
+     &                   bandpack%mpi_comm, ierr)
       n = 0
       do p=0,npes-1
         do l=1,lm
@@ -5945,16 +6011,18 @@ c
       REAL*8, INTENT(IN) :: ARR(:,:,bandpack%j_strt_halo:)
       REAL*8, INTENT(INOUT) :: ARR_band(:,:,bandpack%jband_strt:)
 #ifdef USE_MPI
-      integer, dimension(0:npes-1) :: scnts,sdspl, rcnts,rdspl
+      integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
       integer :: ierr,lm
+      integer :: npes
+      npes = bandpack%npes_comm
       lm = size(arr,1)
-      scnts = lm*bandpack%scnts
-      sdspl = lm*bandpack%sdspl_inplace
-      rcnts = lm*bandpack%rcnts
-      rdspl = lm*bandpack%rdspl_inplace
+      scnts(0:npes-1) = lm*bandpack%scnts
+      sdspl(0:npes-1) = lm*bandpack%sdspl_inplace
+      rcnts(0:npes-1) = lm*bandpack%rcnts
+      rdspl(0:npes-1) = lm*bandpack%rdspl_inplace
       call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
      &                   arr_band, rcnts, rdspl, mpi_double_precision,
-     &                   mpi_comm_world, ierr)
+     &                   bandpack%mpi_comm, ierr)
 #else
       arr_band(:,:,bandpack%J_STRT:bandpack%J_STOP) =
      &     arr(:,:,bandpack%J_STRT:bandpack%J_STOP)
@@ -5971,7 +6039,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_DOUBLE_PRECISION,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_0D
@@ -5985,7 +6053,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_1D
@@ -5999,7 +6067,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_2D
@@ -6013,7 +6081,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_3D
@@ -6027,7 +6095,7 @@ c
 
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_DOUBLE_PRECISION,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
 
       END SUBROUTINE ESMF_BCAST_4D
@@ -6039,7 +6107,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,1,MPI_INTEGER,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_0D
 
@@ -6050,7 +6118,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_1D
 
@@ -6061,7 +6129,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_2D
 
@@ -6072,7 +6140,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER, root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_3D
 
@@ -6083,7 +6151,7 @@ c
       INTEGER :: ierr
 #ifdef USE_MPI
       Call MPI_BCAST(arr,Size(arr),MPI_INTEGER ,root,
-     &     GRD_DUM%MPICOMMUNICATOR, ierr)
+     &     grd_dum%MPI_COMM, ierr)
 #endif
       END SUBROUTINE ESMF_IBCAST_4D
 
@@ -6094,16 +6162,16 @@ c
       REAL*8 :: x_out(:,:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
-      INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
-      INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
+      INTEGER :: I0(0:NPES_WORLD-1), I1(0:NPES_WORLD-1)
+      INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
 #ifdef USE_MPI
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,nk,k
       INTEGER :: ierr, p, rc
-      INTEGER :: ni_loc, nj_loc, nip, njp, icnt
-      INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
+      INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
+      INTEGER, DIMENSION(0:NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       LOGICAL :: reverse_
 
       reverse_=.false.
@@ -6116,12 +6184,14 @@ c
          X_OUT(:,1:grid%JM_WORLD,:) = X_IN(:,1:grid%JM_WORLD,:)
       End If
 #else
+      npes = grid%NPES_COMM
+
       DO p = 0, npes - 1
          I0(p) = 1 + p * grid%IM_WORLD / NPES
          I1(p) = (p+1) * grid%IM_WORLD / NPES
       END DO
 
-      ALLOCATE(AI(0:npes-1,3))
+      ALLOCATE(AI(0:npes_world-1,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -6176,11 +6246,11 @@ c
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        grid%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        grid%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       End If
 
       icnt = 0
@@ -6216,16 +6286,16 @@ c
       REAL*8 :: x_out(:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
-      INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
-      INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
+      INTEGER :: I0(0:NPES_WORLD-1), I1(0:NPES_WORLD-1)
+      INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
       REAL*8, ALLOCATABLE :: sbuf(:), rbuf(:)
 #ifdef USE_MPI
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ
       INTEGER :: ierr, p, rc
-      INTEGER :: ni_loc, nj_loc, nip, njp, icnt
-      INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
+      INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
+      INTEGER, DIMENSION(0:NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       LOGICAL :: reverse_
 
       reverse_=.false.
@@ -6238,12 +6308,14 @@ c
          X_OUT(:,1:grid%JM_WORLD) = X_IN(:,1:grid%JM_WORLD)
       End If
 #else
+      npes = grid%NPES_COMM
+
       DO p = 0, npes - 1
          I0(p) = 1 + p * grid%IM_WORLD / NPES
          I1(p) = (p+1) * grid%IM_WORLD / NPES
       END DO
 
-      ALLOCATE(AI(0:npes-1,3))
+      ALLOCATE(AI(0:npes_world-1,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -6295,11 +6367,11 @@ c
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        grid%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        grid%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       End If
 
       icnt = 0
@@ -6336,16 +6408,16 @@ c
       REAL*8 :: x_tr(:,:,:,:)
       Logical, Optional, INTENT(IN) :: reverse
 
-      INTEGER :: I0(0:NPES-1), I1(0:NPES-1)
-      INTEGER :: J0(0:NPES-1), J1(0:NPES-1)
+      INTEGER :: I0(0:NPES_WORLD-1), I1(0:NPES_WORLD-1)
+      INTEGER :: J0(0:NPES_WORLD-1), J1(0:NPES_WORLD-1)
       REAL*8, ALLOCATABLE :: sbuf(:,:), rbuf(:,:)
 #ifdef USE_MPI
       TYPE (ESMF_AXISINDEX), Pointer :: AI(:,:)
 #endif
       INTEGER :: I,J, II,JJ,k
       INTEGER :: ierr, p, rc
-      INTEGER :: ni_loc, nj_loc, nip, njp, icnt
-      INTEGER, DIMENSION(0:NPES-1) :: scnts, rcnts, sdspl, rdspl
+      INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
+      INTEGER, DIMENSION(0:NPES_WORLD-1) :: scnts, rcnts, sdspl, rdspl
       INTEGER :: n, nk
       LOGICAL :: reverse_
 
@@ -6359,13 +6431,14 @@ c
          X_TR(:,:,1:grid%JM_WORLD,:) = X(:,:,1:grid%JM_WORLD,:)
       End If
 #else
+      npes = grid%NPES_COMM
 
       DO p = 0, npes - 1
          I0(p) = 1 + p * grid%IM_WORLD / NPES
          I1(p) = (p+1) * grid%IM_WORLD / NPES
       END DO
 
-      ALLOCATE(AI(0:npes-1,3))
+      ALLOCATE(AI(0:npes_world-1,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -6421,11 +6494,11 @@ c
       If (reverse_) Then
          CALL MPI_ALLTOALLV(rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
      &        sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
-     &        grid%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       Else
          CALL MPI_ALLTOALLV(sbuf, scnts, sdspl, MPI_DOUBLE_PRECISION,
      &        rbuf, rcnts, rdspl, MPI_DOUBLE_PRECISION,
-     &        grid%mpiCommunicator, ierr)
+     &        grid%MPI_COMM, ierr)
       End If
 
       icnt = 0
@@ -6557,13 +6630,11 @@ cddd      End If
 
       End Subroutine GetNeighbors
 
-      Subroutine sendrecv(grid, arr, shp, dist_idx, comm, 
-     &     from, bc_periodic_)
-      Type (Esmf_Grid) :: grid
+      Subroutine sendrecv(grid, arr, shp, dist_idx, from, bc_periodic_)
+      Type (Dist_Grid) :: grid
       Real(Kind=8) :: arr(*)
       Integer :: shp(:)
       Integer :: dist_idx
-      integer, intent(in) :: comm
       Integer, optional :: from
       Logical, optional :: bc_periodic_
 
@@ -6609,13 +6680,14 @@ cddd      End If
 #endif
       nSendMessages = 0
       nRecvMessages = 0
-      tag = max(MOD(tag,128),10) + 1
+      grid%MPI_TAG = max(MOD(grid%MPI_TAG,128),10) + 1
       IF(FILL(NORTH)) THEN
         if (pe_north /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
         if (pe_south /= MPI_PROC_NULL) then
            nSendMessages = nSendMessages + 1
-           call MPI_Isend(arr(off(2)), 1, new_type, pe_south, tag, 
-     &          comm, requests(nSendMessages), ierr)
+           call MPI_Isend(arr(off(2)), 1, new_type, pe_south,
+     &          grid%MPI_TAG, grid%MPI_COMM, requests(nSendMessages),
+     &          ierr)
         end if
       end if
 
@@ -6623,20 +6695,21 @@ cddd      End If
         if (pe_south /= MPI_PROC_NULL) nRecvMessages = nRecvMessages + 1
         if (pe_north /= MPI_PROC_NULL) then
            nSendMessages = nSendMessages + 1
-           call MPI_Isend(arr(off(3)), 1, new_type, pe_north, tag, 
-     &          comm, requests(nSendMessages), ierr)
+           call MPI_Isend(arr(off(3)), 1, new_type, pe_north,
+     &          grid%MPI_TAG, grid%MPI_COMM, requests(nSendMessages),
+     &          ierr)
         end if
       end if
 
       do i = 1, nRecvMessages
-         call MPI_Probe(MPI_ANY_SOURCE, tag, comm, 
+         call MPI_Probe(MPI_ANY_SOURCE, grid%MPI_TAG, grid%MPI_COMM, 
      &        status, ierr)
          if (status(MPI_SOURCE) == pe_north) then
-            call MPI_Recv( arr(off(4)), 1, new_type, pe_north, tag,
-     &           comm, status, ierr)
+            call MPI_Recv( arr(off(4)), 1, new_type, pe_north,
+     &          grid%MPI_TAG, grid%MPI_COMM, status, ierr)
          else
-            call MPI_Recv( arr(off(1)), 1, new_type, pe_south, tag,
-     &           comm, status, ierr)
+            call MPI_Recv( arr(off(1)), 1, new_type, pe_south,
+     &          grid%MPI_TAG, grid%MPI_COMM, status, ierr)
          end If
       end do
 
@@ -6656,13 +6729,12 @@ cddd      End If
 
       End SUBROUTINE SendRecv
 
-      Subroutine sendrecv_int(grid, arr, shp, dist_idx, comm, from,
+      Subroutine sendrecv_int(grid, arr, shp, dist_idx, from,
      &     bc_periodic_)
-      Type (Esmf_Grid) :: grid
+      Type (Dist_Grid) :: grid
       Integer :: arr(*)
       Integer :: shp(:)
       Integer :: dist_idx
-      integer, intent(in) :: comm
       Integer, optional :: from
       Logical, optional :: bc_periodic_
 
@@ -6694,17 +6766,19 @@ cddd      End If
       off(4) = 1+sz*(n-1)
 
       IF(FILL(NORTH)) THEN
-        tag = max(MOD(tag,128),10) + 1
-        Call MPI_SendRecv(arr(off(2)), 1, new_type, pe_south, tag,
-     &                    arr(off(4)), 1, new_type, pe_north, tag,
-     &                    comm, status, ierr)
+        grid%MPI_TAG = max(MOD(grid%MPI_TAG,128),10) + 1
+        Call MPI_SendRecv(
+     &       arr(off(2)), 1, new_type, pe_south, grid%MPI_TAG,
+     &       arr(off(4)), 1, new_type, pe_north, grid%MPI_TAG,
+     &       grid%MPI_COMM, status, ierr)
       End If
 
       IF(FILL(SOUTH)) THEN
-        tag = max(MOD(tag,128),10) + 1
-        Call MPI_SendRecv(arr(off(3)), 1, new_type, pe_north, tag,
-     &                    arr(off(1)), 1, new_type, pe_south, tag,
-     &                    comm, status, ierr)
+        grid%MPI_TAG = max(MOD(grid%MPI_TAG,128),10) + 1
+        Call MPI_SendRecv(
+     &       arr(off(3)), 1, new_type, pe_north, grid%MPI_TAG,
+     &       arr(off(1)), 1, new_type, pe_south, grid%MPI_TAG,
+     &       grid%MPI_COMM, status, ierr)
       End If
 
 #ifndef MPITYPE_LOOKUP_HACK
@@ -6725,7 +6799,7 @@ cddd      End If
       Logical :: all_
       Integer :: new_type, orig_type
       Integer :: ierr, rc
-      Integer :: p, scount, offset
+      Integer :: p, scount, offset, npes
       Integer, Allocatable :: rcounts(:), displs(:)
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
       Integer :: i, n_its = 1
@@ -6733,8 +6807,9 @@ cddd      End If
       !-------------------------------
       orig_type = CreateDist_MPI_Type(MPI_DOUBLE_PRECISION,shp,dist_idx)
 
+      npes = grid%NPES_COMM
 
-      Allocate(AI(NPES,3))
+      Allocate(AI(NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -6769,11 +6844,11 @@ cddd      End If
       If (all_) Then
         Call MPI_AllGatherV(arr_loc(offset), scount, orig_type,
      &       arr_glob(1), rcounts, displs, new_type,
-     &       grid%mpiCommunicator, ierr)
+     &       grid%MPI_COMM, ierr)
       Else
         Call MPI_GatherV(arr_loc(offset), scount, orig_type,
      &       arr_glob(1), rcounts, displs, new_type,
-     &       root, grid%mpiCommunicator, ierr)
+     &       root, grid%MPI_COMM, ierr)
       End If
 
       End Do
@@ -6799,7 +6874,7 @@ cddd      End If
 
       Integer :: new_type, orig_type
       Integer :: rc, ierr
-      Integer :: p, rcount, offset
+      Integer :: p, rcount, offset, npes
       Integer, Allocatable :: scounts(:), displs(:)
       Type (ESMF_Axisindex), Pointer :: AI(:,:)
 
@@ -6807,8 +6882,9 @@ cddd      End If
       !-------------------------------
       new_type = CreateDist_MPI_Type(MPI_DOUBLE_PRECISION,shp,dist_idx)
 
+      npes = grid%NPES_COMM
 
-      Allocate(AI(NPES,3))
+      Allocate(AI(NPES_WORLD,3))
 #ifdef USE_MPP
       Call GridGetAllAxisIndex(grid%domain, AI)
 #else
@@ -6836,7 +6912,7 @@ cddd      End If
 
       Call MPI_ScatterV(arr_glob(1), scounts, displs, orig_type,
      &     arr_loc(offset), rcount, new_type,
-     &     root, grid%mpiCommunicator, ierr)
+     &     root, grid%MPI_COMM, ierr)
 
 #ifndef MPITYPE_LOOKUP_HACK
       Call MPI_Type_Free(new_type, ierr)
@@ -6866,7 +6942,7 @@ cddd      End If
       INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     grd_dum%lookup_pet(j_dest), tag,grd_dum%mpiCommunicator,ierr)
+     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
 #endif
       end subroutine SEND_TO_J_1D
 
@@ -6878,7 +6954,7 @@ cddd      End If
       INTEGER :: ierr
 #ifdef USE_MPI
       call MPI_Send(arr, 1, MPI_INTEGER,
-     &     grd_dum%lookup_pet(j_dest), tag,grd_dum%mpiCommunicator,ierr)
+     &     grd_dum%lookup_pet(j_dest), tag, MPI_COMM_WORLD, ierr)
 #endif
       end subroutine ISEND_TO_J_0D
 
@@ -6890,8 +6966,7 @@ cddd      End If
 #ifdef USE_MPI
       INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, Size(arr), MPI_DOUBLE_PRECISION,
-     &     grd_dum%lookup_pet(j_src), tag, grd_dum%mpiCommunicator, 
-     &     status, ierr)
+     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
 #endif
       end subroutine RECV_FROM_J_1D
 
@@ -6903,8 +6978,7 @@ cddd      End If
 #ifdef USE_MPI
       INTEGER :: ierr, status(MPI_STATUS_SIZE)
       call MPI_Recv(arr, 1, MPI_INTEGER,
-     &     grd_dum%lookup_pet(j_src), tag, grd_dum%mpiCommunicator, 
-     &     status, ierr)
+     &     grd_dum%lookup_pet(j_src), tag, MPI_COMM_WORLD, status, ierr)
 #endif
       end subroutine IRECV_FROM_J_0D
 
