@@ -110,7 +110,8 @@ OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 !!! AIC=AIC.RES_F40.D771201         ! observed init cond (atm. only) ISTART=2
-AIC=1JAN1931.rsfE8F40o32        ! Larissa's restart              ISTART=8
+!!! AIC=1JAN1931.rsfE8F40o32        ! Larissa's restart              ISTART=8
+AIC=1JAN1918.rsfE31F40o32       ! XXXXXXXXX dont use this AIC, just for test purposess
 GIC=GIC.144X90.DEC01.1.ext      ! initial ground conditions      ISTART=2
 OIC=OIC.E2HX2.L32.D1201         ! Levitus ocean intial conditions
 TOPO=Z144X90N_nocasp.1          ! surface fractions and topography
