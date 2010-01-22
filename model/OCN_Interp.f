@@ -535,7 +535,9 @@ c
 c ocean C-grid -> atm A-grid method requiring fewer INT_OG2AG variants:
 c ocean C -> ocean A followed by ocean A -> atm A via INT_OG2AG
 c
-      call halo_update(ogrid,vo(:,:,1),from=south)
+      ocean_processors_only: if(oGRID%have_domain) then
+        call halo_update(ogrid,vo(:,:,1),from=south)
+      endif ocean_processors_only
       do j=oJ_0S,oJ_1S
 c area weights that would have been used by HNTRP for ocean C -> ocean A
         awt1 = (sinpo(j)-sinvo(j-1))/(sinvo(j)-sinvo(j-1))
@@ -2414,6 +2416,9 @@ C**** do something in here
      &     ones_band,idmui_band,idmvi_band
       integer :: jmin,jmax
 
+c assumption: every dynsi PE is an ocean PE
+      if(.not. oGRID%have_domain) return
+
       if(iIM.eq.oIM .and. iJM.eq.oJM) then
         oDMUI(:,:) = iDMUI(:,:)
         oDMVI(:,:) = iDMVI(:,:)
@@ -2439,7 +2444,7 @@ c regrid DMUI from ice C to ocn C
       ALLOCATE(iDMUI_band(iIM,jmin:jmax),ones_band(iIM,jmin:jmax))
       ones_band(:,:) = 1d0
       call BAND_PACK (hntrp_i2o_u%bpack, iDMUI, iDMUI_band)
-      if(iGRID%have_north_pole) then
+      if(jmax == iJM) then
         iDMUI_band(:,iJM) = 0.
       endif
       call HNTR8_band (ones_band, iDMUI_band, hntrp_i2o_u, oDMUI)
@@ -2451,7 +2456,7 @@ c regrid DMVI from ice C to ocn C
       ALLOCATE(iDMVI_band(iIM,jmin:jmax),ones_band(iIM,jmin:jmax))
       ones_band(:,:) = 1d0
       call BAND_PACK (hntrp_i2o_v%bpack, iDMVI, iDMVI_band)
-      if(iGRID%have_north_pole) then
+      if(jmax == iJM) then
         iDMVI_band(:,iJM) = 0.
       endif
       call HNTR8_band (ones_band, iDMVI_band, hntrp_i2o_v, oDMVI)
@@ -2486,6 +2491,9 @@ c regrid DMVI from ice C to ocn C
       real*8, dimension(:,:), allocatable ::
      &     ones_band,ocnu_band,ocnv_band
       integer :: jmin,jmax
+
+c assumption: every dynsi PE is an ocean PE
+      if(.not. oGRID%have_domain) return
 
 c If DYNSI grid == ATM grid, simply replicate ATM copy
 c (Note this requires that TOC2SST has been called first)
