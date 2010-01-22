@@ -19,7 +19,7 @@ Preprocessor Options
 #define USE_ENT                  ! include dynamic vegetation model
 #define ROUGHL_HACK
 #define TRACERS_ON               ! include tracers code
-#define TRACERS_WATER            ! wet deposition and water tracer 
+#define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DUST             ! include dust tracers
 #define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_DRYDEP           ! default dry deposition
@@ -56,9 +56,9 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
 QUS3D                               ! advection of Q and tracer gases
-TRACER_COM TRACERS_DRV              ! configurable tracer code 
-TRACERS                             ! generic tracer code 
-TRDRYDEP                            ! dry deposition of tracers 
+TRACER_COM TRACERS_DRV              ! configurable tracer code
+TRACERS                             ! generic tracer code
+TRDRYDEP                            ! dry deposition of tracers
 TRDUST_COM TRDUST                   ! dust tracer specific code
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 ! ---TRACER SPECIFIC CODES----------
@@ -122,7 +122,7 @@ SICE=SICE_144x90.1876-1885avg.HadISST1.1   ! prescr. climatological sea ice
 OCNML=Z1O.B144x90                    ! mixed layer depth (not used if KOCEAN=0)
 CDN=CD144X90.ext
 VEG=V144X90_no_crops.ext
-CROPS=CROPS_144X90N_nocasp.ext
+CROPS=CROPS2007_144X90N_nocasp
 SOIL=S144X900098M.ext
 TOPO=Z144X90N_nocasp              ! bdy.cond
 REG=REG2X2.5                      ! special regions-diag
@@ -152,12 +152,12 @@ RADN8=cloud.epsilon4.72x46
 RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
-GHG=GHG.Mar2004.txt
+GHG=GHG.Mar2009.txt ! use GHG.Jul2009.txt for runs that start before 1850
 dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
 ! ozone files (minimum 1, maximum 12 files )
-! this set for #defined RAD_O3_GCM_HRES 
+! this set for #defined RAD_O3_GCM_HRES
 O3file_01=jan2010_o3_shindell_144x90x49x12_1850
 O3file_02=jan2010_o3_shindell_144x90x49x12_1870
 O3file_03=jan2010_o3_shindell_144x90x49x12_1890
@@ -252,7 +252,7 @@ LAI12=chem_files/lai12.global_2x2.5gf ! really 4x5
 CO_01=AR5_emis/F/T/CO_ind_AR5_1850-2000_2x2.5_h
 CO_02=AR5_emis/F/T/CO_tra_AR5_1850-2000_2x2.5_h
 CO_03=AR5_emis/F/T/CO_wst_AR5_1850-2000_2x2.5_h
-CO_04=AR5_emis/F/T/CO_awb_AR5_1850-2000_2x2.5_h 
+CO_04=AR5_emis/F/T/CO_awb_AR5_1850-2000_2x2.5_h
 CO_05=AR5_emis/F/T/CO_dom_AR5_1850-2000_2x2.5_h
 CO_06=AR5_emis/F/T/CO_forestfire_AR5_1900-2000_2x2.5_h
 CO_07=AR5_emis/F/T/CO_grassfire_AR5_1900-2000_2x2.5_h
@@ -474,7 +474,7 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 !-----------------------------------------------
 !--- define emission sectors above files belong to ---
 ! example: CH4_13_sect='WET'
-                 
+
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
 !        global S.Asia E.Asia Europe N.Amer
