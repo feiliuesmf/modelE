@@ -5942,8 +5942,8 @@ c
      &                   arr_band, rcnts, rdspl, mpi_double_precision,
      &                   bandpack%mpi_comm, ierr)
 #else
-      arr_band(:,bandpack%J_STRT:bandpack%J_STOP) =
-     &     arr(:,bandpack%J_STRT:bandpack%J_STOP)
+      arr_band(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP) =
+     &     arr(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP)
 #endif
       RETURN
       END SUBROUTINE BAND_PACK_ij
@@ -5997,8 +5997,8 @@ c
       enddo
       deallocate(bufsend,bufrecv)
 #else
-      arr_band(:,bandpack%J_STRT:bandpack%J_STOP,:) =
-     &     arr(:,bandpack%J_STRT:bandpack%J_STOP,:)
+      arr_band(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP,:) =
+     &     arr(:,bandpack%JBAND_STRT:bandpack%JBAND_STOP,:)
 #endif
       RETURN
       END SUBROUTINE BAND_PACK_ijl
@@ -6027,8 +6027,8 @@ c
      &                   arr_band, rcnts, rdspl, mpi_double_precision,
      &                   bandpack%mpi_comm, ierr)
 #else
-      arr_band(:,:,bandpack%J_STRT:bandpack%J_STOP) =
-     &     arr(:,:,bandpack%J_STRT:bandpack%J_STOP)
+      arr_band(:,:,bandpack%JBAND_STRT:bandpack%JBAND_STOP) =
+     &     arr(:,:,bandpack%JBAND_STRT:bandpack%JBAND_STOP)
 #endif
       RETURN
       END SUBROUTINE BAND_PACK_COLUMN
