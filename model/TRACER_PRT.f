@@ -16,7 +16,7 @@
       USE MODEL_COM, only: im,jm,lm,itime,wm,t
       USE DYNAMICS, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
-      USE GEOM, only: imaxj,byaxyp
+      USE GEOM, only: imaxj,axyp,byaxyp
       USE SOMTQ_COM, only: mz
       USE TRACER_COM
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
@@ -54,8 +54,8 @@ C**** save some basic model diags for weighting
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_ajl2(i,j,l,jl_dpasrc,am(l,i,j))
-            call inc_ajl2(i,j,l,jl_dwasrc,am(l,i,j)*wm(i,j,l))
+            call inc_ajl2(i,j,l,jl_dpasrc,axyp(i,j)*am(l,i,j))
+            call inc_ajl2(i,j,l,jl_dwasrc,axyp(i,j)*am(l,i,j)*wm(i,j,l))
           end do
         end do
       end do
@@ -676,7 +676,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end do
       end do
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *     plm,a,scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+     *     plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
 
 #ifdef TRACERS_WATER
       end if
@@ -739,7 +739,7 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
           end do
         end do
         CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
-     *       plm,a,scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
+     *       plm,a,scalet,ones,ones,lm,2,jgrid_jlq(k))
 c        CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),
 c     *       plm,tajln(1,1,k,n),scalet,bydxyp,ones,lm,2,jgrid_jlq(k))
       end if
