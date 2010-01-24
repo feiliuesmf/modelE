@@ -400,6 +400,7 @@ C**** include some extra troposphere only ones
       character(len=units_strlen), dimension(ktaij_) :: units_taij
       real*8, dimension(ktaij_) :: scale_taij
       character(len=100), dimension(:), allocatable :: cdl_taij
+      real*8, dimension(:,:,:), allocatable :: hemis_taij
 
       integer, parameter :: ktaijl_ = (ntm+ktaijl
 #ifdef TRACERS_SPECIAL_O18
@@ -432,6 +433,7 @@ C**** include some extra troposphere only ones
       character(len=units_strlen), dimension(ktajl_) :: units_tajl
       real*8, dimension(ktajl_) :: scale_tajl
       character(len=100), dimension(:), allocatable :: cdl_tajl
+      real*8, dimension(:,:,:), allocatable :: hemis_tajl,vmean_tajl
 
       integer :: ktcon_out ! actual number of qtys in tconsrv_out
       real*8, dimension(:,:), allocatable :: tconsrv_out,hemis_tconsrv
@@ -849,6 +851,9 @@ C*** Unpack read global data into local distributed arrays
       call defvar(grid,fid,sname_taij(1:ktaij_out),
      &     'sname_taij(sname_strlen,ktaij)')
       call defvar(grid,fid,cdl_taij,'cdl_taij(cdl_strlen,kcdl_taij)')
+      call defvar(grid,fid,hemis_taij,'hemis_taij(one,shnhgm,ktaij)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_taij','reduction','sum')
 
       call write_attr(grid,fid,'taijl','reduction','sum')
       call write_attr(grid,fid,'taijl','split_dim',4)
@@ -875,6 +880,12 @@ C*** Unpack read global data into local distributed arrays
      &     'sname_tajl(sname_strlen,ktajl)')
       call defvar(grid,fid,cdl_tajl,
      &     'cdl_tajl(cdl_strlen,kcdl_tajl)')
+      call defvar(grid,fid,hemis_tajl,'hemis_tajl(shnhgm,lm,ktajl)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_tajl','reduction','sum')
+      call defvar(grid,fid,vmean_tajl,
+     &     'vmean_tajl(jm_budg_plus3,one,ktajl)',r4_on_disk=.true.)
+      call write_attr(grid,fid,'vmean_tajl','reduction','sum')
 
       call write_attr(grid,fid,'tconsrv','reduction','sum')
       call write_attr(grid,fid,'tconsrv','split_dim',2)
@@ -900,6 +911,7 @@ C*** Unpack read global data into local distributed arrays
       implicit none
       integer :: fid         !@var fid file id
 
+      call write_data(grid,fid,'hemis_taij',hemis_taij)
       call write_data(grid,fid,'ia_taij',ia_taij(1:ktaij_out))
       call write_data(grid,fid,'denom_taij',denom_taij(1:ktaij_out))
       call write_data(grid,fid,'scale_taij',scale_taij(1:ktaij_out))
@@ -912,6 +924,8 @@ C*** Unpack read global data into local distributed arrays
       call write_data(grid,fid,'sname_taijl',sname_taijl(1:ktaijl_out))
       call write_data(grid,fid,'cdl_taijl',cdl_taijl)
 
+      call write_data(grid,fid,'hemis_tajl',hemis_tajl)
+      call write_data(grid,fid,'vmean_tajl',vmean_tajl)
       call write_data(grid,fid,'ia_tajl',ia_tajl(1:ktajl_out))
       call write_data(grid,fid,'denom_tajl',denom_tajl(1:ktajl_out))
       call write_data(grid,fid,'scale_tajl',scale_tajl(1:ktajl_out))

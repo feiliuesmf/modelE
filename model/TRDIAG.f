@@ -19,6 +19,7 @@
 #ifdef TRACERS_WATER
      &     ,trw0,dowetdep
 #endif
+      USE GEOM, only : areag
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
      &     ia_dga,ia_src,ajl
      &     ,jl_dpa,jl_dpasrc,jl_dwasrc
@@ -31,9 +32,10 @@
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
-     &     ,tajl=>tajl_out, ktajl_, ktajl_out, cdl_tajl
-     &     ,denom_tajl,ia_tajl,sname_tajl,lname_tajl,ltop_tajl
-     &     ,units_tajl,scale_tajl,pow_tajl,jgrid_tajl,lgrid_tajl
+     &     ,tajl=>tajl_out, ktajl_, ktajl_out, cdl_tajl, hemis_tajl
+     &     ,vmean_tajl, denom_tajl,ia_tajl,sname_tajl,lname_tajl
+     &     ,ltop_tajl,units_tajl,scale_tajl,pow_tajl
+     &     ,jgrid_tajl,lgrid_tajl
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
       USE TRDIAG_COM, only : to_per_mil
 #endif
@@ -42,23 +44,27 @@
 #endif
       use domain_decomp_atm, only : am_i_root
       IMPLICIT NONE
-      real*8 :: bydxyp(jm),byapo(jm),onespo(jm)
-      INTEGER :: J,L,N,K,KK,KKK,jtpow,n1,n2,k_dpa,k_dwa,k_vap,k_cnd
-      REAL*8 :: dD, d18O, d17O, byiacc
+      real*8 :: bydxyp(jm),byapo(jm),onespo(jm),fj(jm)
+      INTEGER :: J,L,N,K,KK,KKK,jtpow,n1,n2,k_dpa,k_dwa,k_vap,k_cnd,
+     &     j1,j2
+      REAL*8 :: dD, d18O, d17O, byiacc, hemfac
       real*8, dimension(:,:,:), allocatable :: tajl_tmp
       character(len=10) :: zstr
+      logical, dimension(ktajl_) :: per_area,output_vsum
 
       if(.not. am_i_root()) return
 
+      onespo = 1.
+      bydxyp = 1d0/dxyp
+      byapo = bydxyp
+
 #if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       call JLt_TITLEX ! needed for some extra titles
+      onespo(1)  = fim
+      onespo(jm) = fim
+      byapo = bydxyp*onespo/fim
 #endif
 
-      onespo = 1.
-      onespo(1) = fim
-      onespo(jm) = fim
-      bydxyp = 1d0/dxyp
-      byapo = bydxyp*onespo/fim
 
       do k=1,ktajl_
         denom_tajl(k) = 0
@@ -71,6 +77,8 @@
         jgrid_tajl(k) = 1
         lgrid_tajl(k) = 1
         ltop_tajl(k) = lm
+        per_area(k) = .true.
+        output_vsum(k) = .false. ! whether to output vertical sums
       enddo
 
       k = 0
@@ -78,11 +86,15 @@
 c
       k = k + 1
       k_dpa = k
-      tajl(:,:,k) = ajl(:,:,jl_dpasrc)
+      do l=1,lm
+        tajl(:,l,k) = ajl(:,l,jl_dpasrc)*bydxyp(:)
+      enddo
 c
       k = k + 1
       k_dwa = k
-      tajl(:,:,k) = ajl(:,:,jl_dwasrc)
+      do l=1,lm
+        tajl(:,l,k) = ajl(:,l,jl_dwasrc)*bydxyp(:)
+      enddo
 
 #ifdef TRACERS_WATER
 c
@@ -147,7 +159,8 @@ C**** for Dorothy and Drew for the time being)
 C****
       k = k + 1
       kk=jlnt_mass
-
+      per_area(k) = .false.
+      output_vsum(k) = .true.
       sname_tajl(k) = sname_jln(kk,n)
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
@@ -164,7 +177,6 @@ C****
       enddo
 #endif
       scale_tajl(k) = scale_jlq(kk)*10.**(-jtpow)
-
 #endif
 
 #ifdef TRACERS_WATER
@@ -199,6 +211,8 @@ C****
 #if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       k = k + 1
       kk = jlnt_nt_tot
+      per_area(k) = .false.
+      output_vsum(k) = .true.
       sname_tajl(k) = sname_jln(kk,n)
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
@@ -210,6 +224,8 @@ C****
 c
       k = k + 1
       kk = jlnt_nt_eddy
+      per_area(k) = .false.
+      output_vsum(k) = .true.
       sname_tajl(k) = sname_jln(kk,n)
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
@@ -226,6 +242,7 @@ C****
 #if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       k = k + 1
       kk = jlnt_vt_tot
+      per_area(k) = .false.
       sname_tajl(k) = sname_jln(kk,n)
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
@@ -238,6 +255,7 @@ C****
 c
       k = k + 1
       kk = jlnt_vt_eddy
+      per_area(k) = .false.
       sname_tajl(k) = sname_jln(kk,n)
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
@@ -256,6 +274,8 @@ c
         if(kkk.eq.1) kk = jlnt_mc
         if(kkk.eq.2) kk = jlnt_lscond
         if(kkk.eq.3) kk = jlnt_turb
+        per_area(k) = .false.
+        output_vsum(k) = .true.
         sname_tajl(k) = sname_jln(kk,n)
         lname_tajl(k) = lname_jln(kk,n)
         units_tajl(k) = units_jln(kk,n)
@@ -290,6 +310,8 @@ C****
         tajl(:,:,k) = tajls(:,:,kk)
         byiacc = 1d0/(idacc(ia_tajl(k))+teeny)
         if(jwt_jls(kk).eq.1) then
+          per_area(k) = .false.
+          output_vsum(k) = .true.
           do l=1,lm
             tajl(:,l,k) = tajl(:,l,k)*onespo(:)
           enddo
@@ -340,6 +362,8 @@ C**** total chemical change for CH4
         do l=1,lm
           tajl(:,l,k) = tajl(:,l,k)*onespo(:)
         enddo
+        per_area(k) = .false.
+        output_vsum(k) = .true.
       end if
 C**** total chemical change for O3
       if (n_O3.gt.0) then
@@ -358,6 +382,8 @@ C**** total chemical change for O3
         do l=1,lm
           tajl(:,l,k) = tajl(:,l,k)*onespo(:)
         enddo
+        per_area(k) = .false.
+        output_vsum(k) = .true.
       end if
 #endif
 
@@ -508,6 +534,35 @@ c adjust sname elements beginning with 14C
 #endif
 
 c
+c compute hemispheric, global, vertical means/sums
+c
+      if(.not.allocated(hemis_tajl)) then
+        allocate(hemis_tajl(3,lm,ktajl_out))
+        allocate(vmean_tajl(jm+3,1,ktajl_out))
+      endif
+      hemis_tajl = 0.
+      vmean_tajl = 0.
+      do k=1,ktajl_out
+        if(per_area(k)) then
+          hemfac = 2./areag
+        else
+          hemfac = 1.
+        endif
+        do l=1,lm
+          fj(:) = tajl(:,l,k)
+          if(.not. per_area(k)) fj(:) = fj(:)/dxyp(:)
+          j1 = 1; j2 = jm/2
+          hemis_tajl(1,l,k) = hemfac*sum(fj(j1:j2)*dxyp(j1:j2))
+          j1 = jm/2+1; j2 = jm
+          hemis_tajl(2,l,k) = hemfac*sum(fj(j1:j2)*dxyp(j1:j2))
+          hemis_tajl(3,l,k) = hemis_tajl(1,l,k)+hemis_tajl(2,l,k)
+        enddo
+        if(per_area(k)) hemis_tajl(3,:,k) = .5*hemis_tajl(3,:,k)
+        vmean_tajl(1:jm,1,k) = sum(tajl(:,:,k),dim=2)
+        vmean_tajl(jm+1:jm+3,1,k) = sum(hemis_tajl(:,:,k),dim=2)
+      enddo
+
+c
 c Declare the dimensions and metadata of TAJL output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).  Information needed for
@@ -557,7 +612,7 @@ c
         kk = kk + 1
         cdl_tajl(kk) = 'float '//trim(sname_tajl(k))//'_hemis('//
      &       trim(zstr)//',shnhgm) ;'
-        if(denom_tajl(k).gt.0) then
+        if(denom_tajl(k).gt.0 .or. output_vsum(k)) then
           kk = kk + 1
           cdl_tajl(kk) = 'float '//trim(sname_tajl(k))//
      &         '_vmean(lat_budg_plus3) ;'
@@ -581,7 +636,8 @@ c
       use tracer_com
       use diag_com
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
-     &     ktaij_,ktaij_out,taij=>taij_out,scale_taij,cdl_taij,
+     &     ktaij_,ktaij_out,taij=>taij_out,
+     &     scale_taij,cdl_taij,hemis_taij,
      &     ir_taij,ia_taij,denom_taij,lname_taij,sname_taij,units_taij,
      &     sname_tij, lname_tij,
      &     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
@@ -593,16 +649,17 @@ c
      &     ,to_per_mil
 #endif
       use constant, only : teeny
-      use domain_decomp_atm, only : grid,am_i_root
-      use geom, only : byaxyp
+      use domain_decomp_atm, only : grid,am_i_root,sumxpe
+      use geom, only : byaxyp,axyp,lat2d,areag
       implicit none
-      integer ::  i,j,k,kk,kx,n,n1,n2
+      integer ::  i,j,k,kk,kx,n,n1,n2,khem
       integer :: k_water(ktaij),k_Be7,k_Pb210,k_clr,
      & k_no2_1030=0,k_no2_1330=0,k_no2_1030c=0,k_no2_1330c=0
       logical :: div_by_area
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
       real*8, dimension(:,:,:), allocatable :: taij_tmp
       character(len=16) :: ijstr
+      real*8, dimension(:,:), allocatable :: shnh_loc,shnh
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
@@ -950,6 +1007,32 @@ c adjust sname elements beginning with 14C
         endif
       enddo
 #endif
+
+c
+c hemispheric and global averages
+c
+      allocate(shnh_loc(2,ktaij_out),shnh(2,ktaij_out))
+      shnh_loc = 0.
+      do k=1,ktaij_out
+        do j=j_0,j_1
+        do i=i_0,i_1
+          khem = 1
+          if(lat2d(i,j).ge.0.) khem = 2
+          shnh_loc(khem,k) = shnh_loc(khem,k) + axyp(i,j)*taij(i,j,k)
+        enddo
+        enddo
+      enddo
+      call sumxpe(shnh_loc,shnh)
+      if(am_i_root()) then
+        if(.not. allocated(hemis_taij)) then
+          allocate(hemis_taij(1,3,ktaij_out))
+        endif
+        do k=1,ktaij_out
+          shnh(:,k) = 2.*shnh(:,k)/areag
+          hemis_taij(1,1:2,k) = shnh(1:2,k)
+          hemis_taij(1,3,k) = .5*(shnh(1,k)+shnh(2,k))
+        enddo
+      endif
 
 c
 c Declare the dimensions and metadata of TAIJ output fields using
@@ -1324,7 +1407,7 @@ c
       SUBROUTINE DIAGTCP_prep
 ! comments to be added
       USE CONSTANT, only: teeny
-      USE MODEL_COM, only : fim,idacc
+      USE MODEL_COM, only : idacc
       USE GEOM, only: areag
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,lat_dg=>lat_budg
       USE TRACER_COM, only: ntm
@@ -1416,7 +1499,7 @@ c
 c copy the nonzero contents of tconsrv into tconsrv_out
 c also calculate sums of changes, hemispheric/global avgs
 c
-      hemfac = 2./(fim*sum(dxyp))
+      hemfac = 2./sum(dxyp)
       kk = 0
       do n=1,ntm
         do k=ktcon,1,-1
@@ -1438,7 +1521,7 @@ C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
           j1 = jm/2+1; j2 = jm
           hemis_tconsrv(2,kk) = hemfac*sum(tconsrv_out(j1:j2,kk))
           hemis_tconsrv(3,kk) = .5*sum(hemis_tconsrv(1:2,kk))
-          tconsrv_out(:,kk) = tconsrv_out(:,kk)/(fim*dxyp)
+          tconsrv_out(:,kk) = tconsrv_out(:,kk)/dxyp
         enddo
       enddo
 
