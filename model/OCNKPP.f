@@ -1183,6 +1183,7 @@ C**** KPP variables
      *       TZML(LMO,NTM),
      *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
       INTEGER NSIGT,N
+      REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
 
       call get (grid, j_stop=j_1, j_strt_skp=j_0s, j_stop_skp=j_1s,
@@ -1600,8 +1601,13 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
          R2 = R**2
          GHATM(L) = 0.          ! no non-local momentum transport
 C**** GHAT terms must be zero for consistency with OSOURC
+! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
+! sometimes > 1?       IF(AKVS(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVS(L)
          GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
          GHATS(L) = AKVS(L)*GHAT(L)*DELTAM*S(1)*DXYPO(J) !CHECK!
+#ifdef TRACERS_OCEAN
+         GHATT(L,:)=AKVS(L)*GHAT(L)*DELTATR(:)*DXYPO(J)
+#endif
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
          AKVS(L) = AKVS(L)*R2
@@ -1646,16 +1652,36 @@ C**** G,S horizontal slopes are diffused like G,S; after iteration
       EndIf
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration and follow salinity
-      DO L=1,LMIJ
-        GHATT(L,:)=AKVS(L)*GHAT(L)*DELTATR(:)*DXYPO(J)
-      END DO
       GHATDUM(:) = 0.
       DO N=1,NTM
         If (.not.QPOLE)  Then
-        Call OVDIFFS (TXML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
-     *       DTS,LMIJ,TXML(1,N),FLT(1,N))
-        Call OVDIFFS (TYML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
-     *       DTS,LMIJ,TYML(1,N),FLT(1,N))  ;  EndIf
+          Call OVDIFFS (TXML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ,TXML(1,N),FLT(1,N))
+          Call OVDIFFS (TYML(1,N),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,
+     *         DTS,LMIJ,TYML(1,N),FLT(1,N))
+        EndIf
+        if(t_qlimit(n)) then
+          ! Modify GHATT to prevent negative tracer.  Method: apply
+          ! a single multiplicative factor to the GHATT profile.
+          ! Might switch to alternative method (local flux adjustments).
+          minrat = 1.
+          dflux = ghatt(1,n)*dts
+          if(dflux.gt.0. .and. trml(1,n).lt.dflux) then
+            minrat = trml(1,n)/dflux
+          endif
+          do l=2,lmij-1
+            dflux = (ghatt(l,n)-ghatt(l-1,n))*dts
+            if(dflux.gt.0. .and. trml(l,n).lt.dflux) then
+              minrat = min(minrat, trml(l,n)/dflux)
+            endif
+          enddo
+          minrat = max(minrat, 0.) ! in case min tracer was already < 0
+          if(minrat .lt. 1.) then
+            minrat = minrat*0.95d0 ! leave min tracer slightly > 0
+            ghatt(1:lmij-1,n) = ghatt(1:lmij-1,n)*minrat
+          endif
+        endif
+        ! diffuse
         Call OVDIFFS (TRML(1,N),AKVS(1),GHATT(1,N),DTBYDZ,BYDZ2,
      *       DTS,LMIJ,TRML(1,N),FLT(1,N))
       END DO
