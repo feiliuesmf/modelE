@@ -21,7 +21,7 @@ c
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n,ja
 c
       real delp,dp0,dp0abv,dpsum,zinteg,tinteg,sinteg,uvintg,
-     .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,tapr,q1,q2,
+     .     uvscl,phi,plo,pa,pb,dsgdt,dsgds,q1,q2,
      .     rho_lo,tem_lo,sal_lo,rho_up,tem_up,sal_up,tem,sal,p_hat,q,
      .     torho,totem,tosal,totrc,totuv,tndrho,tndtem,tndsal,tndtrc,
      .     tdcyuv,scale,displ(kdm+1),sumrho,sumtem,sumsal
@@ -44,8 +44,6 @@ c
       data uvscl/0.02/			!  2 cm/s
       real,parameter :: tfreez=-1.8
       real,parameter :: scalt=-30.,scals=10.	! oceanic t/s range
-ccc   real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
-      real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
 c
 #ifdef HYCOM_RESOLUTION_2deg
       data dplist/
@@ -66,8 +64,15 @@ c    .    60., 68., 77., 87., 98.,110./
      .   100.,113.,127.,142.,158.,175./
 #endif
 c
-c --- linear taper function for slak
-      tapr(q)=1.+9.*max(0.,1.-.02e-4*q)		!  q = pressure (Pa)
+      real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
+ccc   real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
+ccc   real,parameter :: slak=2./86400.	! intfc nudging time scale: 12 hrs
+c --- linear taper functions (latitude and depth-dependent) for slak
+      real tapr,wgtf,slakf
+      tapr(q)=1.+9.*max(0.,1.-.02e-4*q)			! q = pressure (Pa)
+      wgtf(q)=(abs(q)-50.)*.1				! 0->1 for q=50->60
+      slakf(q)=min(0.7,max(    tapr(p_hat)*slak*delt1,	! q = latitude (deg)
+     .             0.7*wgtf(q)+tapr(p_hat)*slak*delt1*(1.-wgtf(q))))
 c
 c$OMP PARALLEL DO PRIVATE(vrbos) SCHEDULE(STATIC,jchunk)
       do 32 j=J_0,J_1
@@ -312,13 +317,13 @@ c --- maintain constant thickness in layer 1
         if (p_hat.gt.pres(2)) then
 c --- layer 1 is too thin. entrain water from layers below
           p_hat=min(p_hat,pres(2)+
-     .          max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(2))))
+     .          max(onecm,slakf(latij(i,j,3))*(p_hat-pres(2))))
           info='layer too thin  '
           go to 5
         else if (p_hat.lt.pres(2)) then
 c --- layer 1 is too thick. expell layer 1 water into layer 2
           p_hat=max(p_hat,pres(2)+
-     .          min(-onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(2))))
+     .          min(-onecm,slakf(latij(i,j,3))*(p_hat-pres(2))))
           info='layer too thick '
 c
           if (vrbos) write (lp,105)
@@ -353,7 +358,7 @@ c --- is lower intfc too close to the surface?
       p_hat=dpsum
       if (k.lt.kk .and. p_hat.gt.pres(k+1)) then
         p_hat=min(p_hat,pres(k+1)+
-     .        max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k+1))))
+     .        max(onecm,slakf(latij(i,j,3))*(p_hat-pres(k+1))))
         info='too close to srf'
         go to 5
       end if
@@ -382,7 +387,7 @@ c
 c --- upper intfc moves up. entrain layer k-1 water into layer k
 c
         p_hat=max(p_hat,pres(k-1),pres(k)+
-     .        min(-onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k))))
+     .        min(-onecm,slakf(latij(i,j,3))*(p_hat-pres(k))))
         if (useppm .and. 
      .    abs(dens(k-1)-targt(k-1)).gt..1*sigjmp) then		!  use ppm
           displ(1)=0.
@@ -426,7 +431,7 @@ c --- layer k-1 is too thin for allowing upper intfc to move up.  instead,
 c --- move upper interface down and entrain layer k water into layer k-1
 c
         p_hat=min(p_hat,pres(k+1),pres(k)+
-     .        max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k))))
+     .        max(onecm,slakf(latij(i,j,3))*(p_hat-pres(k))))
         if (useppm .and. k.lt.kk) then				!  use ppm
           if (vrbos)
      .    write (lp,'(2i5,i3,a)') i,j,k,'  detrain into layer above'
@@ -470,7 +475,7 @@ c
       if (k.lt.kk .and. pres(k+1).lt.pres(kk+1)-onemm .and.
      .    pres(k+1).lt.p_hat) then
         p_hat=min(p_hat,pres(k+1)+
-     .        max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k+1))))
+     .        max(onecm,slakf(latij(i,j,3))*(p_hat-pres(k+1))))
         go to 5
       end if
       go to 8
@@ -485,7 +490,7 @@ c
 c --- curtail downward growth of layers (esp. lowest hybrid layer)
       p_hat=max(pres(k+1),min(p_hat,.5*(pres(k)+pres(k+2))))
       p_hat=min(p_hat,pres(k+1)+
-     .      max(onecm,tapr(p_hat)*slak*delt1*(p_hat-pres(k+1))))
+     .      max(onecm,slakf(latij(i,j,3))*(p_hat-pres(k+1))))
       info='layer too light '
 c
  5    p_hat=min(p_hat,pres(k+2))
@@ -1192,3 +1197,4 @@ c> Mar. 2006 - changed pres(k) to pres(k+1) in p_hat calc'n after stmt label 6
 c> June 2006 - if layer 1 touches sea floor, don't split it to restore target
 c> July 2006 - introduced depth-dependent tapering function for 'slak'
 c> Jan. 2007 - disallow dens(k-1) < theta(k-1) in upper sublayer
+
