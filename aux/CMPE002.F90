@@ -346,7 +346,6 @@
       use ghy_com, only : tr_w_ij, tr_wsn_ij, trsnowbv0
       use landice_com, only : trsnowli,trlndi
       use tracer_com, only : trwm
-      use icedyn_com, only : ticij
 #  endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -654,7 +653,6 @@
         check("trlndi",trlndi)
         check("trabl",trabl)
         check("trwm",trwm)
-        check("ticij",ticij)
 #  endif
 
 #  ifdef TRACERS_SPECIAL_Shindell
