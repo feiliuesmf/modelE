@@ -7600,7 +7600,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 !@sum tracer_IC initializes tracers when they are first switched on
 !@auth Jean Lerner
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,readt_parallel,
-     &     readt8_column
+     &     readt8_column, skip_parallel
       USE PARAM, only : get_param
 #ifdef TRACERS_ON
       USE CONSTANT, only: mair,rhow,sday,grav,tf,avog
@@ -8685,30 +8685,30 @@ c  (otherwise it is done in get_hist_BM, across boundary layer)
 c Terpenes
       if (imAER.ne.1) then
         OCT_src(:,:,:)=0.d0
-      call openunit('TERPENE',iuc,.true.,.true.)
-       do mm=1,12
-       call readt_parallel(grid,iuc,nameunit(iuc),OCT_src(:,:,mm),0)
-       end do
-       call closeunit(iuc)
+        call openunit('Terpenes_01',iuc,.true.,.true.)
+        call skip_parallel(iuc)
+        do mm=1,12
+          call readt_parallel(grid,iuc,nameunit(iuc),OCT_src(:,:,mm),0)
+        end do
+        call closeunit(iuc)
 c units are mg Terpene/m2/month
-      do j=J_0,J_1; do mm=1,12; do i=I_0,I_1
-       OCT_src(i,j,mm) = OCT_src(i,j,mm)
-     *  *axyp(i,j)*0.1d0*1.3d0/(1.D6*sday*30.4d0)
-      end do; end do; end do
-      endif
+        do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
+! 10% of terpenes end up being SOA, and 1.4 is OM/OC
+          OCT_src(i,j,mm) = OCT_src(i,j,mm)*axyp(i,j)*0.1d0*1.4d0
+        end do; end do; end do
+      else ! AEROCOM
 c This assumes 10% emission yield (Chin, Penner)
 c 1.3 converts OC to OM
-      if (imAER.eq.1) then! AEROCOM
         OCT_src(:,:,:)=0.d0
-      call openunit('TERPENE',mon_unit,.false.,.true.)
-      do
-      read(mon_unit,*) ii,jj,mm,carbstuff
-      if (ii.eq.0) exit
-      if (jj<j_0 .or. jj>j_1) cycle
-      carbstuff=carbstuff/(sday*30.4d0)
-      OCT_src(ii,jj,mm)=carbstuff   !*1.3d0
-      end do
-      call closeunit(mon_unit)
+        call openunit('TERPENE',mon_unit,.false.,.true.)
+        do
+          read(mon_unit,*) ii,jj,mm,carbstuff
+          if (ii.eq.0) exit
+          if (jj<j_0 .or. jj>j_1) cycle
+          carbstuff=carbstuff/(sday*30.4d0)
+          OCT_src(ii,jj,mm)=carbstuff   !*1.3d0
+        end do
+        call closeunit(mon_unit)
       endif
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
