@@ -32,6 +32,7 @@ Preprocessor Options
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+!#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 #define TRACERS_NITRATE
 #define TRACERS_HETCHEM
 #define BC_ALB                      !optional tracer BC affects snow albedo
@@ -72,6 +73,7 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene
 ! ----------------------------------
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
+!TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 TRACER_NITRATE                      ! Nitrate aerosol
 TRAMP_eqsam_v03d                    ! EQSAM module for inorganic aerosol thermodynamic equilibrium
 TRACER_HETCHEM
@@ -206,7 +208,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 !-----------------------------------------------
 !  full-atmosphere chemistry model files:
 !-----------------------------------------------
-MOLEC=chem_files/ds4_moleculesE_terp
+MOLEC=chem_files/ds4_moleculesE_terp!_soa
 JPLRX=chem_files/jpl00_T25_SEP08_fastterp
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
@@ -331,7 +333,10 @@ NH3_CON_09=NH3_tra_AR5_1850-2000_2x2.5_h
 SO2_VOLCANO=SO2_volc_conti2000_HR2x2.5.AEROCOM
 ! -------- aerosol, needed for imAER = 3 or 5 --------------
 DMS_SEA=DMS_Kettle_Andreae_2x2.5
-TERPENE=terp_Guenther_2x2.5
+! The following line is only needed for imAER=1
+! Note that if gas-phase chemistry is enabled, both
+! TERPENE and Terpenes_01 are used, which differ significantly
+!TERPENE=terp_Guenther_2x2.5
 !SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
 !--------AR5 inputs for imAER=5 --------------------
 BC_EM_1=BCII_awb_AR5_1850-2000_2x2.5_h

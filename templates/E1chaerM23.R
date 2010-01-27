@@ -313,6 +313,9 @@ DMS_SEA=DMS_Night_4x5
 !AER_CHEM=Sulf_chem_drewE_20      ! 20 layer version
 AER_CHEM=trace_gas_3D_fields_E   ! 23 layer version
 AER_OH_STRAT=Strat_OH_drewE_20
+! The following line is only needed for imAER=1
+! Note that if gas-phase chemistry is enabled, both
+! TERPENE and Terpenes_01 are used, which differ significantly
 !TERPENE=terp_Guenther_4x5
 ! ------Dorothy's inputs needed for imAER = 3 -old historic emissions------------
 !SO2_EM_1=SO2_EDGAR_Feb09_4x5_h_1890-2000 
