@@ -12,9 +12,6 @@ C****
 !@ver  1.0
       USE MODEL_COM, only : im,jm
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm
-#endif
       USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
 #ifdef CUBE_GRID
       USE cs2ll_utils, only : cs2llint_type,ll2csint_type
@@ -58,11 +55,10 @@ c arrays for sea ice advection
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: UVMATUC,UVMATVC
 #endif
 
-C**** Ice advection diagnostics
-      INTEGER, PARAMETER :: KICIJ=12
+C**** Ice dynamics diagnostics
+      INTEGER, PARAMETER :: KICIJ=6
 !@var IJ_xxx Names for ICIJ diagnostics
-      INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_MUSI,IJ_MVSI
-     *     ,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_RSI
+      INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_RSI
 !@var ICIJ lat-lon ice dynamic diagnostics (on ice dyn. grid)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ,ICIJg
 !@var lname_icij Long names for ICIJ diagnostics
@@ -81,26 +77,6 @@ C**** Ice advection diagnostics
        INTEGER, DIMENSION(KICIJ) :: DENOM_ICIJ
 !@var cdl_icij consolidated metadata for ICIJ output fields in CDL notation
        character(len=100), dimension(kicij*6) :: cdl_icij
-#ifdef TRACERS_WATER
-!@var KTICIJ number of lat/lon ice dynamic tracer diagnostics
-      INTEGER, PARAMETER :: KTICIJ=2
-!@var TICIJ  lat/lon ice dynamic tracer diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)  :: TICIJ,TICIJg
-!@var ticij_xxx indices for TICIJ diags
-      INTEGER :: tICIJ_tusi,tICIJ_tvsi
-!@var lname_ticij Long names for TICIJ diagnostics
-      CHARACTER(len=lname_strlen), DIMENSION(KTICIJ) :: LNAME_TICIJ
-!@var sname_ticij Short names for TICIJ diagnostics
-      CHARACTER(len=sname_strlen), DIMENSION(KTICIJ) :: SNAME_TICIJ
-!@var units_ticij Units for TICIJ diagnostics
-      CHARACTER(len=units_strlen), DIMENSION(KTICIJ) :: UNITS_TICIJ
-!@var ia_ticij IDACC numbers for TICIJ diagnostics
-      INTEGER, DIMENSION(KTICIJ) :: IA_TICIJ
-!@var scale_ticij scales for TICIJ diagnostics
-      REAL*8, DIMENSION(KTICIJ) :: SCALE_TICIJ
-!@var ijgrid_ticij Grid descriptor for TICIJ diagnostics
-      INTEGER, DIMENSION(KTICIJ) :: IJGRID_TICIJ
-#endif
 
       END MODULE ICEDYN_COM
 
@@ -114,9 +90,6 @@ C**** Ice advection diagnostics
       USE ICEDYN_COM, only : KICIJ
       USE ICEDYN_COM, only : RSIX,RSIY,USIDT,VSIDT,RSISAVE,ICIJ,ICIJg
      &     ,DMUI,DMVI,UOSURF,VOSURF
-#ifdef TRACERS_WATER
-      USE ICEDYN_COM, only : TICIJ,KTICIJ,NTM,TICIJg
-#endif
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
 #endif
@@ -159,16 +132,6 @@ C**** Allocate arrays defined on the ice rheology grid
       end if
 
 
-#ifdef TRACERS_WATER
-      ALLOCATE( TICIJ(I_0H:I_1H, J_0H:J_1H,KTICIJ, NTM),
-     &     STAT = IER)
-      if(am_I_root()) then
-         allocate(TICIJg(imic,jmic,KTICIJ,NTM))
-      else
-         allocate(TICIJg(1,1,1,1))
-      end if
-#endif
-
 C**** Allocate ice advection arrays defined on the atmospheric grid
       grid_MIC=grid_atm
 
@@ -208,10 +171,6 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
        IMPLICIT NONE
 
        call pack_data (grid_mic, ICIJ  , ICIJg)
-
-#ifdef TRACERS_WATER
-       call pack_data (grid_mic, TICIJ, TICIJg)
-#endif
 
        END SUBROUTINE gather_icdiags
 
@@ -301,17 +260,6 @@ C****
       REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ_GLOB
       INTEGER :: J_0H_MIC, J_1H_MIC
 
-#ifdef TRACERS_WATER
-      REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ4
-      REAL*4, DIMENSION(:,:,:,:), allocatable  :: TICIJ4_GLOB
-      REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ4_GLOB8
-      REAL*8, DIMENSION(:,:,:,:), allocatable  :: TICIJ_GLOB
-!@var TR_HEADER Character string label for individual tracer records
-      CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TRICDIAG01"
-
-      write(TR_MODULE_HEADER(lhead+1:80),'(a9,i3,a1,i3,a1,i2,a1,i2,a4)')
-     *     'R8 Ticij(',imic,',',jmic,',',kticij,',',ntm,'),it'
-#endif
       write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
      *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
 
@@ -320,19 +268,9 @@ C****
       if(am_I_root()) then
         allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
      &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
-#ifdef TRACERS_WATER
-        allocate(TICIJ4_GLOB(IMIC,JMIC,KTICIJ,NTM),
-     &          TICIJ4_GLOB8(IMIC,JMIC,KTICIJ,NTM),
-     &            TICIJ_GLOB(IMIC,JMIC,KTICIJ,NTM))
-#endif
       else
         allocate(ICIJ4_GLOB(1,1,1),
      &    ICIJ4_GLOB8(1,1,1),ICIJ_GLOB(1,1,1))
-#ifdef TRACERS_WATER
-        allocate(TICIJ4_GLOB(1,1,1,1),
-     &          TICIJ4_GLOB8(1,1,1,1),
-     &            TICIJ_GLOB(1,1,1,1))
-#endif
       end if
 
       SELECT CASE (IACTION)
@@ -340,23 +278,11 @@ C****
         CALL PACK_DATA(grid_mic, icij, icij_glob)
         IF (AM_I_ROOT())
      &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
-#ifdef TRACERS_WATER
-        CALL PACK_DATA(grid_mic, TICIJ, TICIJ_GLOB)
-        IF (AM_I_ROOT())
-     &     WRITE (kunit,err=10) TR_MODULE_HEADER,TICIJ_GLOB,it
-#endif
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
         CALL PACK_DATA(grid_mic, icij, icij_glob)
         IF (AM_I_ROOT())
      &     WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ_GLOB,KIND=4),it
-#ifdef TRACERS_WATER
-        TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        CALL PACK_DATA(grid_mic, TICIJ, TICIJ_GLOB)
-        IF (AM_I_ROOT())
-     &     WRITE (kunit,err=10) TR_MODULE_HEADER
-     &          ,REAL(TICIJ_GLOB,KIND=4),it
-#endif
       CASE (IOREAD:)            ! input from restart file
         SELECT CASE (IACTION)
         CASE (ioread_single)    ! accumulate diagnostic files
@@ -377,25 +303,6 @@ C**** accumulate diagnostics
           ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
      &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
           deallocate( ICIJ4 )
-#ifdef TRACERS_WATER
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) TR_HEADER,TICIJ4_GLOB,it
-            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TR_HEADER
-     *             ,TR_MODULE_HEADER
-              GO TO 10
-            END IF
-          endif
-C**** accumulate diagnostics
-          allocate( TICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KTICIJ, NTM) )
-          TICIJ4 = 0.d0 ! should do "halo_ipdate" instead?
-          TICIJ4_GLOB8 = TICIJ4_GLOB ! convert to real*8
-          CALL UNPACK_DATA(grid_MIC, TICIJ4_GLOB8, TICIJ4)
-          call ESMF_BCAST(grid_MIC, it)
-          TICIJ(:,J_0H_MIC:J_1H_MIC,:,:)=TICIJ(:,J_0H_MIC:J_1H_MIC,:,:)
-     &                                 +TICIJ4(:,J_0H_MIC:J_1H_MIC,:,:)
-          deallocate( TICIJ4 )
-#endif
         CASE (ioread)    ! restarts
           if ( AM_I_ROOT() ) then
             READ (kunit,err=10) HEADER,ICIJ_GLOB,it
@@ -407,25 +314,10 @@ C**** accumulate diagnostics
           end if
           CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ)
           call ESMF_BCAST(grid_MIC, it)
-#ifdef TRACERS_WATER
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) TR_HEADER,TICIJ_GLOB,it
-            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TR_HEADER
-     *             ,TR_MODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-          CALL UNPACK_DATA(grid_MIC, TICIJ_GLOB, TICIJ)
-          call ESMF_BCAST(grid_MIC, it)
-#endif
         END SELECT
       END SELECT
 
       deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
-#ifdef TRACERS_WATER
-      deallocate (TICIJ4_GLOB,TICIJ4_GLOB8,TICIJ_GLOB)
-#endif
 
       RETURN
  10   IOERR=1
@@ -582,9 +474,6 @@ c temporarily empty.
       IMPLICIT NONE
 
       ICIJ=0.
-#ifdef TRACERS_WATER
-      TICIJ=0.
-#endif
       RETURN
       END SUBROUTINE reset_icdiag
 
@@ -1131,10 +1020,9 @@ C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
-      USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave,icij,ij_musi
-     *     ,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
+      USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave
 #ifdef TRACERS_WATER
-     *     ,ticij,ticij_tusi,ticij_tvsi
+      USE TRDIAG_COM, only : taijn=>taijn_loc,tij_tusi,tij_tvsi
 #endif
       USE ICEDYN_COM, only : grid_MIC
       USE SEAICE, only : ace1i,xsi,Ti,Ei
@@ -1146,7 +1034,8 @@ C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
-      USE DIAG_COM, only : oa
+      USE DIAG_COM, only : oa,aij=>aij_loc,
+     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
       IMPLICIT NONE
 !      REAL*8, DIMENSION(IM) :: FAW,FASI,FXSI,FYSI
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1301,12 +1190,12 @@ C**** Sea ice velocity is northward at grid box edge
      *       -3d0*FASI(I,J))
         FMSJ(I,1:NTRICE,J) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
-        ICIJ(I,J,IJ_MVSI)=ICIJ(I,J,IJ_MVSI)+SUM(FMSJ(I,1:2,J))
-        ICIJ(I,J,IJ_HVSI)=ICIJ(I,J,IJ_HVSI)+SUM(FMSJ(I,3:2+LMI,J))
-        ICIJ(I,J,IJ_SVSI)=ICIJ(I,J,IJ_SVSI)+SUM(FMSJ(I,3+LMI:2+2*LMI,J))
+        AIJ(I,J,IJ_MVSI)=AIJ(I,J,IJ_MVSI)+SUM(FMSJ(I,1:2,J))
+        AIJ(I,J,IJ_HVSI)=AIJ(I,J,IJ_HVSI)+SUM(FMSJ(I,3:2+LMI,J))
+        AIJ(I,J,IJ_SVSI)=AIJ(I,J,IJ_SVSI)+SUM(FMSJ(I,3+LMI:2+2*LMI,J))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
-           TICIJ(I,J,TICIJ_TVSI,ITR)=TICIJ(I,J,TICIJ_TVSI,ITR)+
+           TAIJN(I,J,TIJ_TVSI,ITR)=TAIJN(I,J,TIJ_TVSI,ITR)+
      *          SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
          END DO
 #endif
@@ -1335,14 +1224,14 @@ C**** Sea ice velocity is northward into North Pole box
 C**** Accumulate sea ice leaving and entering North Pole box
         SFASI = SFASI + FASI(I,JM-1)
         SFMSI(1:NTRICE) = SFMSI(1:NTRICE) + FMSJ(I,1:NTRICE,JM-1)
-         ICIJ(I,JM-1,IJ_MVSI)=ICIJ(I,JM-1,IJ_MVSI)+SUM(FMSJ(I,1:2,JM-1))
-         ICIJ(I,JM-1,IJ_HVSI)=ICIJ(I,JM-1,IJ_HVSI)
+         AIJ(I,JM-1,IJ_MVSI)=AIJ(I,JM-1,IJ_MVSI)+SUM(FMSJ(I,1:2,JM-1))
+         AIJ(I,JM-1,IJ_HVSI)=AIJ(I,JM-1,IJ_HVSI)
      &                        +SUM(FMSJ(I,3:2+LMI,JM-1))
-         ICIJ(I,JM-1,IJ_SVSI)=ICIJ(I,JM-1,IJ_SVSI)+
+         AIJ(I,JM-1,IJ_SVSI)=AIJ(I,JM-1,IJ_SVSI)+
      *      SUM(FMSJ(I,3+LMI:2+2*LMI,JM-1))
 #ifdef TRACERS_WATER
            DO ITR=1,NTM
-             TICIJ(I,JM-1,TICIJ_TVSI,ITR)=TICIJ(I,JM-1,TICIJ_TVSI,ITR)+
+             TAIJN(I,JM-1,TIJ_TVSI,ITR)=TAIJN(I,JM-1,TIJ_TVSI,ITR)+
      *            SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
            END DO
 #endif
@@ -1514,12 +1403,12 @@ C**** Sea ice velocity is eastward at grid box edge
         FYSI(I,J)=FAW(I,J)*RSIY(I,J)*FOCEAN(I,J)
         FMSI(1:NTRICE,I) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
-         ICIJ(I,J,IJ_MUSI)=ICIJ(I,J,IJ_MUSI)+SUM(FMSI(1:2,I))
-         ICIJ(I,J,IJ_HUSI)=ICIJ(I,J,IJ_HUSI)+SUM(FMSI(3:2+LMI,I))
-         ICIJ(I,J,IJ_SUSI)=ICIJ(I,J,IJ_SUSI)+SUM(FMSI(3+LMI:2+2*LMI,I))
+         AIJ(I,J,IJ_MUSI)=AIJ(I,J,IJ_MUSI)+SUM(FMSI(1:2,I))
+         AIJ(I,J,IJ_HUSI)=AIJ(I,J,IJ_HUSI)+SUM(FMSI(3:2+LMI,I))
+         AIJ(I,J,IJ_SUSI)=AIJ(I,J,IJ_SUSI)+SUM(FMSI(3+LMI:2+2*LMI,I))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
-           TICIJ(I,J,TICIJ_TUSI,ITR)=TICIJ(I,J,TICIJ_TUSI,ITR)+
+           TAIJN(I,J,TIJ_TUSI,ITR)=TAIJN(I,J,TIJ_TUSI,ITR)+
      *          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
          END DO
 #endif
@@ -2036,89 +1925,11 @@ c      denom_icij(k)=IJ_RSIV ! need to add IJ_RSIV
       units_icij(k)="10^3 kg/m s^2"
       scale_icij(k)=1d-3
 
-      k=k+1
-      IJ_MUSI=k
-      lname_icij(k)="Sea ice EW mass flux"
-      sname_icij(k)="icij_musi"
-      units_icij(k)="10^7 kg/s"
-      scale_icij(k)=1d-7/dtsrc
-      igrid_icij(k)=2
-
-      k=k+1
-      IJ_MVSI=k
-      lname_icij(k)="Sea ice NS mass flux"
-      sname_icij(k)="icij_mvsi"
-      units_icij(k)="10^7 kg/s"
-      scale_icij(k)=1d-7/dtsrc
-      jgrid_icij(k)=2
-
-      k=k+1
-      IJ_HUSI=k
-      lname_icij(k)="Sea ice EW heat flux"
-      sname_icij(k)="icij_husi"
-      units_icij(k)="10^12 W"
-      scale_icij(k)=1d-12/dtsrc
-      igrid_icij(k)=2
-
-      k=k+1
-      IJ_HVSI=k
-      lname_icij(k)="Sea ice NS heat flux"
-      sname_icij(k)="icij_hvsi"
-      units_icij(k)="10^12 W"
-      scale_icij(k)=1d-12/dtsrc
-      jgrid_icij(k)=2
-
-      k=k+1
-      IJ_SUSI=k
-      lname_icij(k)="Sea ice EW salt flux"
-      sname_icij(k)="icij_susi"
-      units_icij(k)="10^3 kg/s"
-      scale_icij(k)=1d-3/dtsrc
-      igrid_icij(k)=2
-
-      k=k+1
-      IJ_SVSI=k
-      lname_icij(k)="Sea ice NS salt flux"
-      sname_icij(k)="icij_svsi"
-      units_icij(k)="10^3 kg/s"
-      scale_icij(k)=1d-3/dtsrc
-      jgrid_icij(k)=2
-
       if (k.gt.KICIJ) then
         write(6,*) "Too many ICIJ diags: increase KICIJ to at least"
      *       ,k
         call stop_model("ICIJ diagnostic error",255)
       end if
-
-#ifdef TRACERS_WATER
-C**** simple tracer diags same description for all tracers
-C**** set properties for TICIJ diagnostics
-      k=0
-
-      k=k+1
-      TICIJ_TUSI=k
-      lname_ticij(k)="Sea ice NS tracer flux"
-      sname_ticij(k)="ticij_tusi"
-      units_ticij(k)="kg/s"
-      ia_ticij(k)=ia_src
-      scale_ticij(k)=1./dtsrc
-      ijgrid_ticij(k)=2
-
-      k=k+1
-      TICIJ_TVSI=k
-      lname_ticij(k)="Sea ice EW tracer flux"
-      sname_ticij(k)="ticij_tvsi"
-      units_ticij(k)="kg/s"
-      ia_ticij(k)=ia_src
-      scale_ticij(k)=1./dtsrc
-      ijgrid_ticij(k)=2
-
-      if (k.gt.KTICIJ) then
-        write(6,*) "Too many TICIJ diags: increase KTICIJ to at least"
-     *       ,k
-        call stop_model("TICIJ diagnostic error",255)
-      end if
-#endif
 
 #ifdef NEW_IO
 c
@@ -2178,9 +1989,6 @@ c
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,jdate,amon,jyear
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm,trname,ntrocn
-#endif
       USE DIAG_COM, only : qdiag,acc_period,
      &     lname_strlen,sname_strlen,units_strlen
       USE ICEDYN_COM
@@ -2194,7 +2002,6 @@ c
       CHARACTER(len=lname_strlen) :: lname
       CHARACTER(len=sname_strlen) :: sname
       CHARACTER(len=units_strlen) :: units
-      character*50 :: unit_string
       REAL*8 QJ(JM),QSUM
       REAL*8 byiacc
 
@@ -2258,32 +2065,6 @@ C****
 
       END DO
 
-#ifdef TRACERS_WATER
-C**** simple tracer diags (no need for weighting)
-C**** Name and scale are tracer dependent
-      DO K=1,KTICIJ
-        byiacc=1./(IDACC(IA_TICIJ(K))+teeny)
-
-        DO N=1,NTM
-        lname=trim(trname(n))//" "//lname_ticij(k)
-        sname=trim(trname(n))//"_"//sname_ticij(k)
-        Q=UNDEF
-        DO J=1,JMIC
-          DO I=1,IMIC
-            IF (FOCEAN(I,J).gt.0.5) Q(I,J)=10**(-ntrocn(n))*
-     *           SCALE_TICIJ(K)*TICIJg(I,J,K,N)*byiacc
-          END DO
-        END DO
-        Q(2:IMIC,JMIC)=Q(1,JMIC)
-        Q(2:IMIC,1)=Q(1,1)
-        UNITS=unit_string(ntrocn(n),UNITS_TICIJ(K))
-        TITLE=trim(LNAME)//" ("//trim(UNITS)//")"
-        TITLE(51:80)=XLB
-        CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,
-     &       IJGRID_TICIJ(K),IJGRID_TICIJ(K)) ! assume igrid=jgrid
-      END DO
-      END DO
-#endif
       call close_ij
 C****
       RETURN

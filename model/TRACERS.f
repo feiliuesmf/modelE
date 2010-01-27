@@ -394,7 +394,7 @@ C**** Tracers integrated E-W atmospheric flux
      *       ' E-W Atmos Flux'
         units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
-C**** Tracers integrated E-W atmospheric flux
+C**** Tracers integrated N-S atmospheric flux
       k = k+1
       tij_vflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_vflx'
@@ -402,6 +402,20 @@ C**** Tracers integrated E-W atmospheric flux
      *       ' N-S Atmos Flux'
         units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
+C**** Tracers integrated E-W sea ice flux
+      k = k+1
+      tij_tusi = k
+        sname_tij(k,n) = trim(TRNAME(n))//'_tusi'
+        lname_tij(k,n) = trim(TRNAME(n))//' E-W Ice Flux'
+        units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
+        scale_tij(k,n) = (10.**-ntrocn(n))/DTsrc
+C**** Tracers integrated N-S sea ice flux
+      k = k+1
+      tij_tvsi = k
+        sname_tij(k,n) = trim(TRNAME(n))//'_tvsi'
+        lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
+        units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
+        scale_tij(k,n) = (10.**-ntrocn(n))/DTsrc
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.

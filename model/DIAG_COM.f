@@ -64,7 +64,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=380
+      INTEGER, PARAMETER, public :: KAIJ=386
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -496,6 +496,9 @@ C****      names, indices, units, idacc-numbers, etc.
       INTEGER, public ::
      &     IJ_GW1,IJ_GW2,IJ_GW3,IJ_GW4,IJ_GW5,IJ_GW6,IJ_GW7,IJ_GW8
      *     ,IJ_GW9
+!@var IJ_[MHS][UV]SI indices for sea ice mass/heat/salt transport diags
+      INTEGER, public ::
+     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI

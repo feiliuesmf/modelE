@@ -4005,6 +4005,55 @@ c
       name_ij(k) = 'p_500_freq'
       ia_ij(k) = ia_dga
       scale_ij(k) = 100.
+c
+      k=k+1
+      IJ_MUSI=k
+      lname_ij(k)="Sea ice EW mass flux"
+      name_ij(k)="musi"
+      units_ij(k)="10^7 kg/s"
+      scale_ij(k)=1d-7/dtsrc
+      igrid_ij(k)=2
+c
+      k=k+1
+      IJ_MVSI=k
+      lname_ij(k)="Sea ice NS mass flux"
+      name_ij(k)="mvsi"
+      units_ij(k)="10^7 kg/s"
+      scale_ij(k)=1d-7/dtsrc
+      jgrid_ij(k)=2
+c
+      k=k+1
+      IJ_HUSI=k
+      lname_ij(k)="Sea ice EW heat flux"
+      name_ij(k)="husi"
+      units_ij(k)="10^12 W"
+      scale_ij(k)=1d-12/dtsrc
+      igrid_ij(k)=2
+c
+      k=k+1
+      IJ_HVSI=k
+      lname_ij(k)="Sea ice NS heat flux"
+      name_ij(k)="hvsi"
+      units_ij(k)="10^12 W"
+      scale_ij(k)=1d-12/dtsrc
+      jgrid_ij(k)=2
+c
+      k=k+1
+      IJ_SUSI=k
+      lname_ij(k)="Sea ice EW salt flux"
+      name_ij(k)="susi"
+      units_ij(k)="10^3 kg/s"
+      scale_ij(k)=1d-3/dtsrc
+      igrid_ij(k)=2
+c
+      k=k+1
+      IJ_SVSI=k
+      lname_ij(k)="Sea ice NS salt flux"
+      name_ij(k)="svsi"
+      units_ij(k)="10^3 kg/s"
+      scale_ij(k)=1d-3/dtsrc
+      jgrid_ij(k)=2
+c
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       k=k+1

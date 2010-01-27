@@ -62,13 +62,14 @@ C**** TAIJLN
 C**** TAIJN
 !@param KTAIJ number of 2D diags describing surface and column load along with wet and dry deposition
 !@+   please just increase this if needed - don't bother with pp options
-      integer, parameter :: ktaij=18
+      integer, parameter :: ktaij=20
 
 !@var IJT_XX names for taijn diagnostics
       integer tij_conc,tij_surf,tij_surfbv,tij_mass
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
-     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx   
+     *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx
+     *     ,tij_tusi,tij_tvsi
       integer tij_kw,tij_alpha,tij_gasx  ! TRACERS_GASEXCH_ocean
       integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
 
