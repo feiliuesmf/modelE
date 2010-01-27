@@ -1635,7 +1635,7 @@ C**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
           tr_wd_TYPE(n) = nPART
       case ('M_H2O')
       n_M_H2O = n
-          ntm_power(n) = -4
+          ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = mwat
           trpdens(n)=1.d3
