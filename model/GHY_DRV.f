@@ -802,6 +802,12 @@ c***********************************************************************
 #ifdef USE_ENT
       integer :: vegCO2X_off = 0
 #endif
+!@dbparam land_CO2_bc_flag type of CO2 BC to be used by Land Surface
+!@+   0 - fixed, 1 - transient (from radiation), 2 - interactive
+      integer :: land_CO2_bc_flag = 0
+!@dbparam land_CO2_bc CO2 concentration (ppm) to be used by Land Surfacw
+!@+   in "fixed" case (for land_CO2_bc_flag = 0)
+      real*8 :: land_CO2_bc = 280.d0
 
       integer variable_lk
 
@@ -911,6 +917,9 @@ c****
 #endif
 #ifdef TRACERS_WATER
       use GHY_h, only : ghy_tr_str
+#endif
+#ifdef TRACERS_GASEXCH_land_CO2
+      use tracer_com, only : n_CO2n
 #endif
       implicit none
 
@@ -1254,12 +1263,22 @@ c     call qsbal
 
 #ifdef USE_ENT
 ccc stuff needed for dynamic vegetation
-ccc switch to Ca from tracers
-!!! HACK : assume n==1 is CO2
-!      Ca = trm(i,j,1,1)*byaxyp(i,j)/ma1*29.d0/44.d0
-!     &     *ps*100.0/gasc/ts
-      Ca = CO2X*CO2ppm*(1.0D-06)*ps*100.0/gasc/ts
-      if (vegCO2X_off==0) Ca = Ca * CO2X
+!!! changed units of Ca from mol/m^3 to ppm (also in advnc() )
+      select case(land_CO2_bc_flag)
+      case(2)
+#ifdef TRACERS_GASEXCH_land_CO2
+        Ca = trm(i,j,1,n_CO2n)*byaxyp(i,j)/ma1*29.d0/44.d0 *1.d6
+!     &       *ps*100.0/gasc/ts
+#else
+        call stop_model("land_CO2_bc_flag==2 with no C02 tracers",255)
+#endif
+      case(1)
+        Ca = CO2ppm  !*(1.0D-06)*ps*100.0/gasc/ts
+        if (vegCO2X_off==0) Ca = Ca * CO2X
+      case(0)
+        Ca = land_CO2_bc !*(1.0D-06)*ps*100.0/gasc/ts
+      end select
+      
 !!      vis_rad        = SRVISSURF(i,j)
       vis_rad        = SRVISSURF(i,j)*cosz1(i,j)*.82
       direct_vis_rad = vis_rad * FSRDIR(i,j)
@@ -2128,6 +2147,9 @@ c**** read rundeck parameters
 #ifdef USE_ENT
       call sync_param( "vegCO2X_off", vegCO2X_off)
 #endif
+      call sync_param( "land_CO2_bc_flag", land_CO2_bc_flag )
+      call sync_param( "land_CO2_bc", land_CO2_bc )
+
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
