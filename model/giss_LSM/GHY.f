@@ -26,7 +26,7 @@
       module sle001
 
       use constant, only : stbo,tfrz=>tf,sha,lhe,one,zero,rhow
-     &     ,shw_kg=>shw,shi_kg=>shi,lhm
+     &     ,shw_kg=>shw,shi_kg=>shi,lhm, gasc
       use ghy_h, only : ngm, imt, nlsn, LS_NFRAC
      
 #ifdef TRACERS_WATER
@@ -2312,7 +2312,8 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         canopy_temperature=tp(0,2),
      &         canopy_air_humidity=Qf,  ! qsat(tp(0,2),lhe,pres),
      &         surf_pressure=pres,
-     &         surf_CO2=Ca, ! fol_CO2=1.d30,
+!     &         surf_CO2=Ca, ! fol_CO2=1.d30,
+     &         surf_CO2=Ca*(1.0D-06)*pres*100.0/gasc/(tp(0,2)+tfrz),
  !    &       precip=pr,
      &         heat_transfer_coef=ch,
      &         wind_speed=vs,
