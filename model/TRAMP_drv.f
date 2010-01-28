@@ -253,7 +253,7 @@ c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL*byam(l,i,j))
 
 c - 2d PRT Diagnostic
-        if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6*1d18),itcon_AMPm(1,n),n) 
+        if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6),itcon_AMPm(1,n),n) 
         if (itcon_AMPm(2,n) .gt.0) call inc_diagtcb(i,j,NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL ,itcon_AMPm(2,n),n) 
        end select
 
@@ -270,6 +270,8 @@ c - N_SSA, N_SSC, M_SSA_SU
       ENDDO !i
       ENDDO !j
       ENDDO !l
+
+   
 
 c      diam_1='diam_1'
 c      call INST_ncoutd(diam_1,DIAM(:,:,:,1))

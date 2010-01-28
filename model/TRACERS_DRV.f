@@ -3239,33 +3239,30 @@ c Processes AMP Budget
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
-          itcon_AMPm(1,n)=18
-          qcon(itcon_AMPm(1,n)) = .true. ; conpts(6) = 'Mode Diameter'
-          qsum(itcon_AMPm(1,n)) = .false.
-          itcon_AMPm(2,n)=19
+          itcon_AMPm(2,n)=18
           qcon(itcon_AMPm(2,n)) = .true. ; conpts(7) =
      *         'Mode AktivPart'
           qsum(itcon_AMPm(2,n)) = .false.
 c     Processes AMP Budget
-          itcon_AMP(1,n)=20
+          itcon_AMP(1,n)=19
           qcon(itcon_AMP(1,n)) = .true. ; conpts(8) = 'P1 Nucleation'
           qsum(itcon_AMP(1,n)) = .true.
-          itcon_AMP(2,n)=21
+          itcon_AMP(2,n)=20
           qcon(itcon_AMP(2,n)) = .true. ; conpts(9) = 'P2 Coagulation'
           qsum(itcon_AMP(2,n)) = .true.
-          itcon_AMP(3,n)=22
+          itcon_AMP(3,n)=21
           qcon(itcon_AMP(3,n)) = .true.;conpts(10) ='P3 NOTHING'
           qsum(itcon_AMP(3,n)) = .true.
-          itcon_AMP(4,n)=23
+          itcon_AMP(4,n)=22
           qcon(itcon_AMP(4,n)) = .true.;conpts(11)='P4 Intermode Coag'
           qsum(itcon_AMP(4,n)) = .true.
-          itcon_AMP(5,n)=24
+          itcon_AMP(5,n)=23
           qcon(itcon_AMP(5,n)) = .true.;conpts(12)='P5 Intramode Tr'
           qsum(itcon_AMP(5,n)) = .true.
-          itcon_AMP(6,n)=25
+          itcon_AMP(6,n)=24
           qcon(itcon_AMP(6,n)) = .true.;conpts(13)='P6 Mode Transf'
           qsum(itcon_AMP(6,n)) = .true.
-          itcon_AMP(7,n)=26
+          itcon_AMP(7,n)=25
           qcon(itcon_AMP(7,n)) = .true. ; conpts(14) = 'P7 AMP Budget'
           qsum(itcon_AMP(7,n)) = .true.
 
@@ -7544,28 +7541,28 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       k = k + 1
         ijlt_AMPext(1)=k
         lname_ijlt(k) = 'N_SSA ACTI'
-        sname_ijlt(k) = 'ACTI3D_N_SSA'
+        sname_ijlt(k) = 'ACTI3D_N_SSA_1'
         ijlt_power(k) = -2
         units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
       k = k + 1
         ijlt_AMPext(2)=k
         lname_ijlt(k) = 'N_SSC ACTI'
-        sname_ijlt(k) = 'ACTI3D_N_SSC'
+        sname_ijlt(k) = 'ACTI3D_N_SSC_1'
         ijlt_power(k) = -2
         units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
       k = k + 1
         ijlt_AMPext(3)=k
         lname_ijlt(k) = 'N_SSA DIAM'
-        sname_ijlt(k) = 'DIAM___N_SSA'
+        sname_ijlt(k) = 'DIAM_N_SSA_1'
         ijlt_power(k) = -2
         units_ijlt(k) = unit_string(ijlt_power(k),'m')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
       k = k + 1
         ijlt_AMPext(4)=k
         lname_ijlt(k) = 'N_SSC DIAM'
-        sname_ijlt(k) = 'DIAM___N_SSC'
+        sname_ijlt(k) = 'DIAM_N_SSC_1'
         ijlt_power(k) = -2
         units_ijlt(k) = unit_string(ijlt_power(k),'m')
         scale_ijlt(k) = 10.**(-ijlt_power(k))

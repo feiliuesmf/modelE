@@ -1693,7 +1693,10 @@ C**** Fill in maplet indices for 3D tracer specials
      &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
      &  'pOH','NO_vmr','NO2_vmr','NOx_Lightn')
            ijtype(k)=2 ! div_by_area = .false.
+
         end select
+       if (name(k)(1:4).eq.'DIAM') ijtype(k)=2
+
 
       end do
 
