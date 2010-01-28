@@ -13,7 +13,7 @@
       logical, dimension(:), allocatable :: is_inst_qty,is_sumchg_qty
       integer, dimension(:), allocatable :: hemis_ids,var_ids,n1,n2
       real*4, dimension(3) :: xj_hemis
-      character(len=32) :: title
+      character(len=38) :: title
       character(len=40) :: vname,vname_hemis
       real*4 :: fglob,fhem,aglob
       integer :: j,jm,inc,lstr,jhemi,jp1,jpm,jeq,n,nqty,iqty,nconsrv
@@ -142,8 +142,8 @@ c
 
       return
   901 FORMAT ('1',A)
-  903 FORMAT (1X,25('--'),13(A4,'--'))
-  904 FORMAT (35X,'GLOBAL',A7,2X,13I6)
-  905 FORMAT (A32,2F9.2,1X,13I6)
-  906 FORMAT ('0AREA (10**10 m^2)',14X,2F9.1,1X,13I6)
+  903 FORMAT (1X,28('--'),13(A4,'--'))
+  904 FORMAT (41X,'GLOBAL',A7,2X,13I6)
+  905 FORMAT (A38,2F9.2,1X,13I6)
+  906 FORMAT ('0AREA (10**10 m^2)',20X,2F9.1,1X,13I6)
       end subroutine prtconsrv
