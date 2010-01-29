@@ -3563,10 +3563,10 @@ c
      *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_ervr,
-     *     ia_src,ia_rad,
+     *     ia_src,ia_rad,ia_inst,
      &     sarea=>sarea_reg,
      &     hemis_j,dxyp_budg,
-     &     consrv,hemis_consrv,kcon
+     &     consrv,hemis_consrv,kcon,nsum_con,scale_con,ia_con
       IMPLICIT NONE
       REAL*8 :: A1BYA2,hemfac
       INTEGER :: J,JR,J1,J2,K,M,IT
@@ -3612,6 +3612,19 @@ c
         do it=1,ntype
           aj_out(:,:,m) = aj_out(:,:,m) + aj(:,:,it)*wt(m,it)
         enddo
+      enddo
+
+
+C**** CALCULATE SUM OF CONSRV CHANGES
+C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
+      do k=kcon,1,-1
+        if(nsum_con(k).eq.0) then
+          consrv(:,k)=0.
+        elseif(nsum_con(k).gt.0) then
+          consrv(:,nsum_con(k)) = consrv(:,nsum_con(k)) + 
+     &         +consrv(:,k)*scale_con(k)*
+     &         max(1,idacc(ia_inst))/(idacc(ia_con(k))+1d-20)
+        endif
       enddo
 
 c
