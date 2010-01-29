@@ -436,6 +436,36 @@ idl ./AR5.bat
 done 
 
 
+
+for year in 1870 1880 1890 1900 1910 1920 1930 1940 1950 1960 1970 1980 1990 2000
+do
+  cd /discover/nobackup/dgueyffi/modelE/aux
+
+  # dmget -v /nfs3m/archive/g08/gfaluveg/AR5_emissions/RAW/${year}/IPCC_emissions_hexanes_and_higher_alkanes_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc.gz  
+  # cp /nfs3m/archive/g08/gfaluveg/AR5_emissions/RAW/${year}/IPCC_emissions_hexanes_and_higher_alkanes_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc.gz .
+  # gunzip -f IPCC_emissions_hexanes_and_higher_alkanes_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc.gz 
+
+  # dmget -v /nfs3m/archive/g08/gfaluveg/AR5_emissions/RAW/${year}/IPCC_emissions_ketones_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc.gz  
+  # cp /nfs3m/archive/g08/gfaluveg/AR5_emissions/RAW/${year}/IPCC_emissions_ketones_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc.gz .
+  # gunzip -f IPCC_emissions_ketones_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc.gz 
+
+  ncflint -O -c -v emiss_slv -w 0.00936329588014981273,0.01328021248339973439 IPCC_emissions_hexanes_and_higher_alkanes_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc IPCC_emissions_ketones_anthropogenic_${year}_0.5x0.5_v1_20_04_2009.nc -o paraffin_slv.nc
+
+# then do regridding
+./remap.pl -par ncregrid-ijl.par -in paraffin_slv.nc -out IPCC_emissions_Paraffin_anthropogenic_${year}_C90_Dec_2009.nc
+
+cd /gpfsm/dnb53/gfaluveg/AR5_emissions/v5_anthro
+rm -f AR5.bat
+./make_AR5_program_${res}.ksh ${spec} ${year} ${group} C90_Dec_2009 slv
+echo ".com convert_${spec}.pro" >> ./AR5.bat
+echo ".run convert_${spec}.pro" >> ./AR5.bat
+#now run the idl batch file:
+echo "exit" >> ./AR5.bat
+idl ./AR5.bat
+
+done 
+
+
 for src in dom ind wst shp
 do
 for year in 1850 1860 1870 1880 1890 1900 1910 1920 1930 1940 1950 1960 1970 1980 1990 2000
@@ -455,14 +485,14 @@ done
 
 
 
-#for src in slv
-#do          
-#fcop ./out_auto_C90/zero_annual_${res} ${spec}_${src}_AR5_1860-2000_${res}
-#for year in 1870 1880 1890 1900 1910 1920 1930 1940 1950 1960 1970 1980 1990 2000
-#do
-#  fcop ./out_auto_C90/${year}/${res}/${spec}_${src}_AR5_${year}_${res}_h ${spec}_${src}_AR5_1860-2000_${res} 1
-#done
-#done
+for src in slv
+do          
+fcop ./out_auto_C90/zero_annual_${res} ${spec}_${src}_AR5_1860-2000_${res}
+for year in 1870 1880 1890 1900 1910 1920 1930 1940 1950 1960 1970 1980 1990 2000
+do
+  fcop ./out_auto_C90/${year}/${res}/${spec}_${src}_AR5_${year}_${res}_h ${spec}_${src}_AR5_1860-2000_${res} 1
+done
+done
 
 
 for src in awb
