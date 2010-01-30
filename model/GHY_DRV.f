@@ -804,7 +804,7 @@ c***********************************************************************
 #endif
 !@dbparam land_CO2_bc_flag type of CO2 BC to be used by Land Surface
 !@+   0 - fixed, 1 - transient (from radiation), 2 - interactive
-      integer :: land_CO2_bc_flag = 0
+      integer :: land_CO2_bc_flag = 1
 !@dbparam land_CO2_bc CO2 concentration (ppm) to be used by Land Surfacw
 !@+   in "fixed" case (for land_CO2_bc_flag = 0)
       real*8 :: land_CO2_bc = 280.d0
