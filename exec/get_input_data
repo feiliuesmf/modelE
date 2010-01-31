@@ -1,18 +1,26 @@
 #!/usr/bin/perl
 
 use File::Copy;
+use Getopt::Long;         #module to process command line options
+
+GetOptions("w") || die "problem in GetOptions";
 
 if ( $#ARGV < 0 ) { 
-    print "Usage: $0 RunID [data_dir]\n"; 
+    print "Usage: $0 [-w] RunID [data_dir]\n"; 
     print "  Creates a directory 'data_dir' (or 'RunID_data' by default)\n";
     print "  and copies there all input files required to run RunID.\n";
-    print "  Itended to be used when taking the model off-site.\n";
+    print "  Intended to be used when taking the model off-site.\n";
+    print "  Options:\n";
+    print "  -w  instead of using local repository try to download\n";
+    print "      necessary files from central storage (using wget).\n";
     exit; 
 }
 
 ## default settings
 $DECKS_REPOSITORY='';
 $GCMSEARCHPATH='';
+$DATA_PORTAL_URL = 
+    "http://portal-dev.nccs.nasa.gov/GISS_modelE/modelE_input_data";
 
 $modelerc = (getpwuid($>))[7]."/.modelErc";
 
@@ -28,7 +36,11 @@ if ( -f $modelerc ) {
 $runID = shift;
 ($data_dir = shift) or $data_dir = $runID.'_data';
 
-print "Will search for data files in: $GCMSEARCHPATH\n";
+if ( $opt_w ) {
+    print "Will search for data files in: $DATA_PORTAL_URL\n";
+} else {
+    print "Will search for data files in: $GCMSEARCHPATH\n";
+}
 print "Will store the data files  in: $data_dir\n";
 
 if ( -f "$runID.R" ) { $rundeck = "$runID.R"; }
@@ -56,10 +68,22 @@ if ( ! -d $data_dir ) {
 foreach $str (@a) {
     #print "$str\n";
     ($tag,$filename) = split / *= */, $str;
-    print "Copying:     $filename\n";
-    create_path( "$data_dir/$filename" );
-    copy( "$GCMSEARCHPATH/$filename", "$data_dir/$filename") or
-	die "Can't copy $GCMSEARCHPATH/$filename\n";
+    if ( ! -f "$data_dir/$filename" ) {
+	print "Copying:     $filename\n";
+	create_path( "$data_dir/$filename" );
+	if ( $opt_w ) {
+	    my $file_dir = `dirname $data_dir/$filename`;
+	    chop $file_dir;
+	    `cd $file_dir &&  wget $DATA_PORTAL_URL/$filename`;
+	    $rcode = $? >> 8;
+	    if ( $rcode != 0 ) { die "download failed\n"; }
+	} else {
+	    copy( "$GCMSEARCHPATH/$filename", "$data_dir/$filename") or
+		die "Can't copy $GCMSEARCHPATH/$filename\n";
+	}
+    } else {
+	print "Already present:     $filename\n";
+    }
 }
 
 
