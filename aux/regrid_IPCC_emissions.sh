@@ -19,6 +19,20 @@ rm -f paraffin_ships.nc NOx*.nc
 ./remap.pl -par ICOxref.par -in O3ref_O3JDAY_1850_182.dat -out O3ref_O3JDAY_1850_from_2x2.5_C90_Dec_2009  #check this one
 ./remap.pl -par ICsulfate.par -in sulfate_pi_fakeM23_M_SA_2x2.5gf -out sulfate_from_2x2.5_C90_Dec_2009
 
+#-- Ozone
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1850 -out jan2010_o3_shindell_144x90x49x12_1850_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1870 -out jan2010_o3_shindell_144x90x49x12_1870_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1890 -out jan2010_o3_shindell_144x90x49x12_1890_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1910 -out jan2010_o3_shindell_144x90x49x12_1910_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1930 -out jan2010_o3_shindell_144x90x49x12_1930_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1940 -out jan2010_o3_shindell_144x90x49x12_1940_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1950 -out jan2010_o3_shindell_144x90x49x12_1950_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1960 -out jan2010_o3_shindell_144x90x49x12_1960_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1970 -out jan2010_o3_shindell_144x90x49x12_1970_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1980 -out jan2010_o3_shindell_144x90x49x12_1980_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_1990 -out jan2010_o3_shindell_144x90x49x12_1990_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_2000 -out jan2010_o3_shindell_144x90x49x12_2000_C90
+./remap.pl -par regrida2x2.5.par -in jan2010_o3_shindell_144x90x49x12_April1850 -out jan2010_o3_shindell_144x90x49x12_April1850_C90
 
 #-- CH4 Natural sources - have been adjusted and rescaled during pre-processing step in /discover/nobackup/gfaluveg/PRE/make_1x1_nat_sources/CH4
 
@@ -36,16 +50,21 @@ rm -f paraffin_ships.nc NOx*.nc
 ./add_header2.ksh CH4_Wetlands_and_Tundra_AR5_1850_C90 m CH4 Wetlands_and_Tundra C90 N 1850
 
 #-- Isoprene and terpenes from vegetation - titles must be modified using change_title.f (not performed here)
-./remap.pl -par regridNat.par -in ORCHIDEE_Isoprene_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_Isoprene_1990_C90from2x2.5_h
-./remap.pl -par regridNat.par -in ORCHIDEE_Terpenes_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_Terpenes_1990_C90from2x2.5_h
-./remap.pl -par regridNat.par -in ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_ORVOC_1990_C90from2x2.5_h
+#./remap.pl -par regridNat.par -in ORCHIDEE_Isoprene_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_Isoprene_1990_C90from2x2.5_h
+#./remap.pl -par regridNat.par -in ORCHIDEE_Terpenes_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_Terpenes_1990_C90from2x2.5_h
+#./remap.pl -par regridNat.par -in ORCHIDEE_ORVOC_1990_4x5_h_2x2.5gf_h -out ORCHIDEE_ORVOC_1990_C90from2x2.5_h
+./remap.pl -par ncregrid-up.par -in bvoc_pr.nc -out bvoc_pr_C90.nc
 
+#-- Alkenes and Paraffin from vegetation (*forC90 are obtained using /gpfsm/dnb53/gfaluveg/PRE/make_F_nat_sources/VOCs/convert1x1.f90)
+./remap.pl -par regridb1x1.par -in Alkenes_vegetation_GEIA_1x1_forC90 -out Alkenes_vegetation_GEIA_1x1_C90_h
+./remap.pl -par regridb1x1.par -in Paraffin_vegetation_GEIA_1x1_forC90 -out Paraffin_vegetation_GEIA_1x1_C90_h
 
 #-- volcanoes
 ./remap.pl -par ncregrid-ij.par -in SO2_volc_2000_1x1_AEROCOM.nc -out SO2_volc_2000_AEROCOM_C90.nc
 
 #-- NH3 oceanic source
-./remap.pl -par regridNH3oc.par -in NH3hCON_OCEAN_Apr09_1x1_h -out NH3hCON_OCEAN_Apr09_C90_h
+#./remap.pl -par regridNH3oc.par -in NH3hCON_OCEAN_Apr09_1x1_h -out NH3hCON_OCEAN_Apr09_C90_h
+./remap.pl -par regridNH3oc.par -in NH3hCON_OCEANflux_Jan10_1x1_h -out NH3hCON_OCEANflux_Jan10_C90_h 
 
 #-- DMS water conc. Kettle & Andreae 1996
 ./remap.pl -par regrida1x1.par -in DMS_Kettle_Andeae_1x1 -out DMS_Kettle_Andeae_C90
@@ -166,6 +185,7 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     module load tool/idl-6.4
     ulimit -s 6000000
     ulimit -v unlimited
+    idl ./nc2giss.pro    # terpene isoprene
     cd /gpfsm/dnb53/gfaluveg/AR5_emissions/v5_anthro
     ./run_1850_anthro_CS.ksh
     ./run_1850_ships_CS.ksh
