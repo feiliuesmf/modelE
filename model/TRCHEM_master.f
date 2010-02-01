@@ -243,13 +243,13 @@ C-------- special section for ghg runs ---------
         call closeunit(iu)          
         if(AM_I_ROOT( ))then
           write(6,*)'Stopping in masterchem to output inital'
-          write(6,*)'conditions for ghgs. You must now recompile'
+          write(6,*)'conditions for ghgs.: ',trim(ghg_file)
+          write(6,*)'You must now recompile'
           write(6,*)'(rerun setup) after removing the'
           write(6,*)'INITIAL_GHG_SETUP directive from your rundeck'
-          write(6,*)' & linking the GHGic file to: ',trim(ghg_file)
           write(6,*)'Address questions to Greg Faluvegi. Thanks.'
         endif
-        call stop_model('Normal INITIAL_GHG_SETUP stop.',255)
+        call stop_model('Normal INITIAL_GHG_SETUP stop.',13)
       endif 
 #endif
 
