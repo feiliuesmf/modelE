@@ -384,10 +384,6 @@ c       Set value for XO2:
           yXO2(I,J,L)=y(nXO2,L)
           iter=iter+1
         end do
-#ifdef ACCMIP_LIKE_DIAGS
-        TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)+
-     &  y(nXO2,L)*XO2_NO*cpd
-#endif
 
 c       Set value for XO2N:
         XO2Nprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.13d0+
@@ -403,6 +399,11 @@ c       Set value for XO2N:
           y(nXO2N,L)=1.d0
         endif
         yXO2N(I,J,L)=y(nXO2N,L)
+
+#ifdef ACCMIP_LIKE_DIAGS
+        TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)+
+     &  (y(nXO2,L)*XO2_NO+y(nXO2N,L)*y(nNO,L)*rr(44,L))*cpd
+#endif
 
 c       Set value for RXPAR:
         RXPARprod=rr(37,L)*y(n_Paraffin,L)*y(nOH,L)*0.11d0+

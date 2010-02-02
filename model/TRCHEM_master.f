@@ -1680,7 +1680,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
-     &  ss(2,l,i,j)*y(n_Ox,l)*cpd
+     &  ss(2,l,i,j)*y(nO3,l)*cpd
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
@@ -1688,7 +1688,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 
         ! chemical_production_rate_of_ozone_by_HO2_plus_NO:
         taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
-     &  rr(10,l)*y(nHO2,l)*y(nNO,l)*cpd
+     &  rr(6,l)*y(nHO2,l)*y(nNO,l)*cpd
    
         ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
         taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
