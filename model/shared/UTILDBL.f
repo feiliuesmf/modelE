@@ -735,6 +735,12 @@ C****      '(' is required, so it is inserted
 
       if ( retcode > 13 ) then
 #ifdef USE_MPI
+!??? bad: the next line will prevent a job from terminating unless
+!???          all processors reach this point
+!??? bug: without it, jobs don't terminate even if
+!???          all processors reach this point
+        call mpi_finalize(mpi_err)  
+!??? hopefully, we can get rid of the above line soon
         call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
 #else
         call sys_abort
