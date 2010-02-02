@@ -932,6 +932,15 @@ c$OMP END PARALLEL DO
       call obio_trint(nn)
 #endif
 
+#ifdef OBIO_ON_GARYocean
+! Hack for the "setup" period right after a cold start, before the
+! first restart file is written:
+! Set nstep0 > itimei so that the obio tracer array is copied from
+! trmo.  Setting nstep0 to a huge number bypasses the check for
+! a warm start (nstep0 > itimei .and. nstep == nstep0).
+      if(nstep0 <= itimei) nstep0 = huge(nstep0)
+#endif
+
       return
 
       end subroutine obio_model
