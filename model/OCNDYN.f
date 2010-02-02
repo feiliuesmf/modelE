@@ -71,19 +71,6 @@ C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
 
-C**** Add ocean biology
-#ifdef TRACERS_OceanBiology
-#ifdef TRACERS_GASEXCH_ocean
-      call scatter_gasexch_com_arrays
-#endif
-      call obio_model
-      call gather_chl
-#ifdef TRACERS_GASEXCH_ocean
-      call gather_pco2
-#endif
-#endif
-
-
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
@@ -97,6 +84,19 @@ C**** Apply ocean vertical mixing
 C**** Apply bottom and coastal drags
       if (OBottom_drag  == 1) CALL OBDRAG
       if (OCoastal_drag == 1) CALL OCOAST
+
+C**** Add ocean biology
+#ifdef TRACERS_OceanBiology
+#ifdef TRACERS_GASEXCH_ocean
+      call scatter_gasexch_com_arrays
+#endif
+      call obio_model
+      call gather_chl
+#ifdef TRACERS_GASEXCH_ocean
+      call gather_pco2
+#endif
+#endif
+
          CALL TIMER (NOW,MSGSO)
 
 C****
