@@ -848,12 +848,13 @@ cdiag     endif
        if (hour_of_day.eq.1) then
           pp2tot_day(i,j)=0.
         else
+          if (p1d(kdm+1).gt.200.) then    !total depth > 200m
           do nt=1,nchl
           do k=1,kdm
-            if (p1d(kdm+1).gt.200.)     !total depth > 200m
-     .        pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)
+              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)
           enddo
           enddo
+          endif
        endif
        if (vrbos) then
        do nt=1,nchl
@@ -864,6 +865,8 @@ cdiag     endif
        enddo
        enddo
        endif
+!      write(*,'(a,3i5,e12.4)')'obio_model, pp:',
+!    .    nstep,i,j,pp2tot_day(i,j)
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij

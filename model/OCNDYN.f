@@ -888,7 +888,7 @@ C****
      *                    ,tracer=>tracer_loc,tracer_glob=>tracer
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-     *                    ,pCO2, pCO2_glob,pp2tot_day=>pp2tot_day_glob
+     *                    ,pCO2, pCO2_glob,pp2tot_day,pp2tot_day_glob
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE FLUXES, only: gtracer
 #endif
@@ -929,13 +929,14 @@ C****
 #ifdef TRACERS_OceanBiology
       if (AM_I_ROOT()) then
         allocate( avgq_glob(idm,jdm,kdm),tirrq3d_glob(idm,jdm,kdm),
-     &       ihra_glob(idm,jdm), gcmax_glob(idm,jdm,kdm))
+     &       ihra_glob(idm,jdm),gcmax_glob(idm,jdm,kdm))
       endif
       call pack_data(ogrid, avgq,       avgq_glob)
       call pack_data(ogrid, tirrq3d, tirrq3d_glob)
       call pack_data(ogrid, ihra,       ihra_glob)
       call pack_data(ogrid, gcmax,     gcmax_glob)
       call pack_data(ogrid, tracer,   tracer_glob)
+      call pack_data(ogrid, pp2tot_day,pp2tot_day_glob)
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
       call pack_data(ogrid, pCO2,      pCO2_glob)
@@ -973,15 +974,15 @@ C****
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER
      . ,nstep,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,pCO2_glob,pp2tot_day
+     . ,pCO2_glob,pp2tot_day_glob
       print*,'nstep0= ',nstep
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,3e12.4)') ' tst1a k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,4e12.4)') ' tst1a k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k),tirrq3d_glob(i,j,k),
      .       ihra_glob(i,j),tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .      ,pCO2_glob(i,j)
+     .      ,pCO2_glob(i,j),pp2tot_day_glob(i,j)
       enddo
 #else
 #ifdef TRACERS_GASEXCH_ocean
@@ -1040,17 +1041,17 @@ C****
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER
      . ,nstep0,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob,tracer_glob
-     . ,pco2_glob,pp2tot_day
+     . ,pco2_glob,pp2tot_day_glob
 
       print*,'nstep0= ',nstep0
       i=itest
       j=jtest
       do k=1,kdm
-      write(*,'(a,3i5,3(e12.4,1x),i3,1x,3e12.4)') ' tst1b k=',i,j,k,
+      write(*,'(a,3i5,3(e12.4,1x),i3,1x,4e12.4)') ' tst1b k=',i,j,k,
      .    avgq_glob(i,j,k),gcmax_glob(i,j,k)
      .   ,tirrq3d_glob(i,j,k),ihra_glob(i,j)
      .   ,tracer_glob(i,j,k,1),tracer_glob(i,j,k,11)
-     .   ,pco2_glob(i,j)
+     .   ,pco2_glob(i,j),pp2tot_day_glob(i,j)
       enddo
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
@@ -1113,6 +1114,7 @@ C****
       call unpack_data(ogrid, ihra_glob,       ihra)
       call unpack_data(ogrid, gcmax_glob,     gcmax)
       call unpack_data(ogrid, tracer_glob,   tracer)
+      call unpack_data(ogrid, pp2tot_day_glob,pp2tot_day)
 
       call ESMF_BCAST(ogrid,nstep0)
 
