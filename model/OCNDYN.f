@@ -888,7 +888,7 @@ C****
      *                    ,tracer=>tracer_loc,tracer_glob=>tracer
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-     *                    ,pCO2, pCO2_glob,pp2tot_day
+     *                    ,pCO2, pCO2_glob,pp2tot_day=>pp2tot_day_glob
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE FLUXES, only: gtracer
 #endif
