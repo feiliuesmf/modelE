@@ -369,7 +369,7 @@ SO2B_EM_2=SO2_grassfire_AR5_1900-2000_2x2.5_h
 
 
 Label and Namelist:  (next 2 lines)
-E4TcadF40 (modelE4 2x2.5 hor., 40 lyrs, 1850 atm., 1996-2005 clim ocn, aer,chem,dust tracers)
+E4TcadF40 (modelE4 2x2.5 hor., 40 lyrs, 1850 atm., 1876-1885 clim ocn, aer,chem,dust tracers)
 
 &&PARAMETERS
 ! parameters set for choice of ocean model:
