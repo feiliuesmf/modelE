@@ -89,7 +89,7 @@
       partialIntegration = 0
       do k = 1, kdm
          do j = j_0, j_1
-            do l = 1, isp(j)
+            do l = 1, isu(j)
                do i= ifu(j,l), ilu(j,l)
                   if (dpinit(i,j,k) < huge) then
                      partialIntegration(j) = partialIntegration(j) + 
