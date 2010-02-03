@@ -38,7 +38,7 @@
 #endif
 
 !#define ENT_IO_PLAIN_ARRAY
-#ifdef ENT_IO_PLAIN_ARRAY
+!!!#ifdef ENT_IO_PLAIN_ARRAY
 
       subroutine copy_array_to_ent_state( array )
 !@sum get ent state from a simple k-IJ array
@@ -93,17 +93,19 @@
       return
       end subroutine copy_ent_state_to_array
 
-      subroutine ent_read_state( kunit )
+      subroutine ent_read_state_plain( kunit, retcode )
 !@sum read ent state from the file
       use domain_decomp_1d, only : grid, am_i_root, get
-      use domain_decomp_1d, only : UNPACK_COLUMN
+      use domain_decomp_1d, only : UNPACK_COLUMN, ESMF_BCAST
       !type(entcelltype_public), intent(out) :: entcells(:,:)
       integer, intent(in) :: kunit
+      integer, intent(out) :: retcode
       !---
       CHARACTER*80 :: HEADER
       real*8, allocatable ::  buf(:,:,:), buf_glob(:,:,:)
       integer i, j, J_0H, J_1H, I_0H, I_1H 
 
+      retcode = 0
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
@@ -111,25 +113,29 @@
 
       if (AM_I_ROOT()) then
         allocate( buf_glob(ENT_IO_MAXBUF,im,jm) )
-        READ(kunit,err=10) HEADER
-        if (HEADER .ne. ENT_HEADER )
-     &       call stop_model("ent_read_state: incompatimle header",255)
+        HEADER = "        "
+        READ(kunit,err=10,end=5) HEADER(1:4)
+ 5      continue
+        if (HEADER(1:4) .ne. ENT_HEADER(1:4) ) retcode = 1
+!     &       call stop_model("ent_read_state: incompatimle header",255)
         BACKSPACE kunit
-        READ (kunit,err=10) HEADER, buf_glob
+        if ( retcode == 0 ) READ (kunit,err=10) HEADER, buf_glob
       endif
+      call ESMF_BCAST(grid, retcode)
+      if ( retcode == 0 ) then
         CALL UNPACK_COLUMN(grid, buf_glob, buf)
+        call copy_array_to_ent_state( buf )
+      endif
       if (AM_I_ROOT()) deallocate( buf_glob )
-
-      call copy_array_to_ent_state( buf )
       deallocate( buf )
 
       return
  10   continue
       call stop_model("ent_read_state: error reading",255)
 
-      end subroutine ent_read_state
+      end subroutine ent_read_state_plain
 
-      subroutine ent_write_state( kunit )
+      subroutine ent_write_state_plain( kunit )
 !@sum write ent state to the file
       use domain_decomp_1d, only : grid, am_i_root, get
       use domain_decomp_1d, only : PACK_COLUMN
@@ -158,9 +164,9 @@
  10   continue
       call stop_model("ent_read_state: error writing",255)
 
-      end subroutine ent_write_state
+      end subroutine ent_write_state_plain
 
-#else
+!!!#else
 
       subroutine ent_read_state( kunit )
 !@sum read ent state from the file
@@ -269,7 +275,7 @@
 
       end subroutine ent_write_state
 
-#endif
+!!!#endif
 
       end module ent_com
 
@@ -283,7 +289,8 @@
       use domain_decomp_1d, only : grid, am_i_root
       use domain_decomp_1d, only : pack_data, unpack_data
       use ent_com, only : Cint, Qfol, cnc_ij,
-     &     ent_read_state,ent_write_state
+     &     ent_read_state,ent_write_state,
+     &     ent_read_state_plain,ent_write_state_plain
       use ent_mod
       use param
       
@@ -300,9 +307,14 @@
 !@var cnc_ij_glob work array for parallel_io
       real*8, dimension(im,jm) :: cint_glob, qfol_glob, cnc_ij_glob
       integer :: force_init_ent=0
+!@dbparam ent_io_plain_array controls format of Ent record in rsf file
+!@+   0 - one record per cell, 1 - single plain array with "header"
+      integer :: ent_io_plain_array=1
+      integer :: retcode
 
 !!! hack
       call sync_param( "init_ent", force_init_ent)
+      call sync_param( "ent_io_plain_array", ent_io_plain_array)
 
 
       write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij'
@@ -315,7 +327,11 @@
         if (am_i_root())
      &    write (kunit,err=10) module_header,cint_glob,qfol_glob,
      &                         cnc_ij_glob
-        call ent_write_state( kunit )
+        if ( ent_io_plain_array .ne. 0 ) then
+          call ent_write_state_plain( kunit )
+        else
+          call ent_write_state( kunit )
+        endif
       case (ioread:)            ! input from restart file
         if ( AM_I_ROOT() ) then
           read (kunit,err=10) header, cint_glob, qfol_glob, cnc_ij_glob
@@ -328,7 +344,10 @@
         call unpack_data(grid, qfol_glob,   qfol)
         call unpack_data(grid, cnc_ij_glob, cnc_ij)
         if ( force_init_ent .ne. 1 ) then
-           call  ent_read_state( kunit )
+           call  ent_read_state_plain( kunit, retcode )
+           if ( retcode .ne. 0 ) then
+             call  ent_read_state( kunit )
+           endif
         endif
       end select
 
