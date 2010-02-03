@@ -13,7 +13,7 @@
 !@sum tracer_ic_ocean initialise ocean tracers
 !@auth Gavin Schmidt
 !@ver 1.0
-      USE GEOM, only : dxyp
+c      USE GEOM, only : dxyp ! anl
       USE MODEL_COM, only: itime
       USE OCN_TRACER_COM, only : itime_tr0, ntm, trname, trw0, n_age
 #ifdef TRACERS_SPECIAL_O18
@@ -231,7 +231,7 @@ C**** Balance tracers so that average concentration is TRW0
 C**** or oc_tracer_mean
           
           CALL CONSERV_OTR(OTRACJ,N)
-          OTRACJ(:)=OTRACJ(:)*DXYP(:)
+          OTRACJ(:)=OTRACJ(:)*DXYPO(:)
 
           CALL GLOBALSUM(grid, OTRACJ, trsum, ALL=.true.)
 
@@ -284,7 +284,8 @@ C**** straits
 
 C**** Check
             CALL CONSERV_OTR(OTRACJ,N)
-            OTRACJ(:)=OTRACJ(:)*DXYP(:)
+            OTRACJ(:)=OTRACJ(:)*DXYPO(:)
+
             CALL GLOBALSUM(grid, OTRACJ, trsum, ALL=.true.)
 
             if (AM_I_ROOT()) then
@@ -396,8 +397,8 @@ C****
 !@sum  conserv_OTR calculates zonal ocean tracer on atmos grid
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE GEOM, only : bydxyp
       USE OCEAN, only : im,jm,fim,imaxj,focean,mo,lmm,trmo
+     *    ,bydxypo
       USE STRAITS, only : nmst,jst,trmst
 
 !      USE DOMAIN_DECOMP_1D, only : GET, GRID
@@ -419,7 +420,7 @@ C****
         OTR(J)=0
         DO I=1,IMAXJ(J)
           DO L=1,LMM(I,J)
-            OTR(J) = OTR(J) + TRMO(I,J,L,ITR)*FOCEAN(I,J)*BYDXYP(J)
+            OTR(J) = OTR(J) + TRMO(I,J,L,ITR)*FOCEAN(I,J)*BYDXYPO(J)
           END DO
         END DO
       END DO
@@ -429,7 +430,7 @@ C**** include straits variables
       DO N=1,NMST
         J=JST(N,1)
         if(j.lt.j_0 .or. j.gt.j_1) cycle
-        OTR(J)=OTR(J)+SUM(TRMST(:,N,ITR))*BYDXYP(J)
+        OTR(J)=OTR(J)+SUM(TRMST(:,N,ITR))*BYDXYPO(J)
       END DO
 C****
       RETURN
