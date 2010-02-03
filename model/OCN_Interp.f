@@ -2044,7 +2044,7 @@ c*
         END DO
       END DO
       CALL INT_AG2OG(atmp2,oTRFLOWO, aWEIGHT, NTM)
-      deallocate(atmp)
+      deallocate(atmp2)
 
       allocate (atmp2(NTM,aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &           ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO) )
@@ -2060,7 +2060,7 @@ c*
         END DO
       END DO
       CALL INT_AG2OG(atmp2,oTRMELTI, aWEIGHT, NTM)
-      deallocate(atmp)
+      deallocate(atmp2)
 
       aWEIGHT(:,:) = aRSI(:,:)
       CALL INT_AG2OG(aTRUNOSI,oTRUNOSI, aWEIGHT, NTM)
