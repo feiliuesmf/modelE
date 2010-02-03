@@ -722,9 +722,9 @@ C****      '(' is required, so it is inserted
 #else
       rank =0
 #endif
+      if ( retcode >= 0 )       ! skip writing status file for retcode<0
+     &     call write_run_status( message, retcode )
       if (rank == 0) then
-        if ( retcode >= 0 ) ! skip writing status file for retcode<0
-     &       call write_run_status( message, retcode )
         write (6,'(//2(" ",132("*")/))')
         write (6,*) ' Program terminated due to the following reason:'
         write (6,*) ' >>  ', message, '  <<'
@@ -741,7 +741,7 @@ C****      '(' is required, so it is inserted
 !???          all processors reach this point
         call mpi_finalize(mpi_err)  
 !??? hopefully, we can get rid of the above line soon
-        call mpi_abort(MPI_COMM_WORLD, retcode,iu_err)
+        call mpi_abort(MPI_COMM_WORLD, retcode, iu_err)
 #else
         call sys_abort
 #endif
