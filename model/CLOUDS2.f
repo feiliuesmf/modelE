@@ -2377,9 +2377,9 @@ c**** Washout of tracers in cloud
         precip_mm=prcp*100.*bygrav
         b_beta_DT=fplume
         TM_dum(:) = TM(L,:)
-        CALL get_wash_factor_array(
+        CALL GET_WASH_factor_array(
      &       ntx,b_beta_dt,precip_mm,fwasht,told,lhx,
-     &       wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix)
+     &   wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix,.false.)
         dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)
@@ -2425,7 +2425,7 @@ cdmk Here I took out GET_COND, since we are below cloud.
 cdmk GET_WASH now has gas dissolution, extra arguments
         TM_dum(:) = TM(L,:)
         CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
-     *       TOLD,LHX,WMXTR,FPLUME,TM_dum,TRPRCP,THWASH,pl(l),ntix)
+     *  TOLD,LHX,WMXTR,FPLUME,TM_dum,TRPRCP,THWASH,pl(l),ntix,.true.)
         dtr(1:ntx) = fwasht(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1) trwash_mc(l,1:ntx)=trwash_mc(l,1:ntx)
@@ -4133,7 +4133,7 @@ c precip. tracer evap
         if (wmxtr.lt.0.) wmxtr=0.
         CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
      &       tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l),
-     &       THWASH,pl(l),ntix) !washout
+     &       THWASH,pl(l),ntix,.true.) !washout
       ELSE
 c         b_beta_DT is needed at the lowest precipitating level,
 c         so saving it here for below cloud case:
@@ -4167,7 +4167,7 @@ c apply certain removal processes before calculating washout in clouds
         if (wmxtr.lt.0.) wmxtr=0.
         CALL GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT,
      &       tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l),
-     &       THWASH,pl(l),ntix) !washout
+     &       THWASH,pl(l),ntix,.false.) !washout
       END IF
 #endif
 

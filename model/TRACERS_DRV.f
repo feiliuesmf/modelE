@@ -10977,7 +10977,7 @@ c
       END SUBROUTINE GET_WASH_FACTOR
 
       SUBROUTINE GET_WASH_FACTOR_array(NTX,b_beta_DT,PREC,fq
-     * ,TEMP,LHX,WMXTR,FCLOUD,TM,TRPR,THLAW,pl,ntix)
+     * ,TEMP,LHX,WMXTR,FCLOUD,TM,TRPR,THLAW,pl,ntix,BELOW_CLOUD)
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -11018,6 +11018,7 @@ C**** Local parameters and variables and arguments:
       REAL*8, PARAMETER :: BY298K=3.3557D-3
       REAL*8 Ppas, tfac, ssfac0, ssfac(ntm), bb_tmp
       INTEGER :: N,IGAS,IAERO
+      LOGICAL BELOW_CLOUD
 C
 
 c      thlaw(:)=0.
@@ -11029,7 +11030,8 @@ c      fq(gases_list) = 0.D0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP)
       if(      LHX.EQ.LHE ! if not frozen
-     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0.) THEN
+     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0. AND . BELOW_CLOUD) THEN 
+        bb_tmp = max(b_beta_DT,0.) ! necessary check?
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
         ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
@@ -11041,7 +11043,7 @@ c      fq(gases_list) = 0.D0
         do igas=1,gases_count
           n = gases_list(igas)
           thlaw(n) = min(tm(n),max(0d0,
-     &         (ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
+     &     bb_tmp*(ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
         enddo
       else
         thlaw(gases_list) = 0.
