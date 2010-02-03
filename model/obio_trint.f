@@ -56,7 +56,7 @@
 
 #ifdef OBIO_ON_GARYocean
       function partialIntegration(quantity)
-      use geomo, only : dxyp
+      use ocean, only : dxypo, focean
       use oceanres, only: dzo
       real*8, intent(in) :: quantity(:,j_0h:,:)
       real*8 :: partialIntegration(j_0h:j_1h)
@@ -66,9 +66,9 @@
       partialIntegration = 0
       do k = 1, kdm
          do j = j_0, j_1
-            gridCellVolume = dzo(k) * dxyp(j)
+            gridCellVolume = dzo(k) * dxypo(j)
             do i= 1, idm
-               if (FOCEAN(i,j) > 0) then
+               if (focean(i,j) > 0) then
                   partialIntegration(j) = partialIntegration(j) + 
      &                 quantity(i,j,k) * gridCellVolume
                end if
