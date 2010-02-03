@@ -80,7 +80,7 @@
 #else
       function partialIntegration(quantity)
       use hycom_scalars, only : huge
-      use hycom_dim, only: ifu, ilu, isu
+      use hycom_dim, only: ifp, ilp, isp
       real*8, intent(in) :: quantity(:,j_0h:,:)
       real*8 :: partialIntegration(j_0h:j_1h)
       
@@ -89,13 +89,11 @@
       partialIntegration = 0
       do k = 1, kdm
          do j = j_0, j_1
-            do l = 1, isu(j)
-               do i= ifu(j,l), ilu(j,l)
-                  if (dpinit(i,j,k) < huge) then
-                     partialIntegration(j) = partialIntegration(j) + 
-     &                    quantity(i,j,k) * dpinit(i,j,k)*scp2(i,j)
-                  end if
-               end do
+            do i = 1, idm
+               if (dpinit(i,j,k) < huge) then
+                  partialIntegration(j) = partialIntegration(j) + 
+     &                 quantity(i,j,k) * dpinit(i,j,k)*scp2(i,j)
+               end if
             end do
          end do
       end do
