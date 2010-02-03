@@ -30,7 +30,7 @@ do
 done
 
 
-for year in 1870 1880 1920 1930 1940 1950 1960 1970 1980 1990 2000
+for year in 1870 1880 1920 1940 1950 1960 1970 1980 1990 2000
 do
   cd /discover/nobackup/dgueyffi/modelE/aux
 
@@ -50,7 +50,7 @@ do
 
 done
 
-for year in 1890 1900 1910
+for year in 1890 1900 1910 1930
 do
   cd /discover/nobackup/dgueyffi/modelE/aux
 
@@ -61,7 +61,7 @@ do
 
   cd /gpfsm/dnb53/gfaluveg/AR5_emissions/v5_anthro
   rm -f AR5-NH3.bat
-  ./make_AR5_program_${res}.ksh ${spec} ${year} anthropogenic C90_Dec_2009 agr awb dom ene ind tra
+  ./make_AR5_program_${res}.ksh ${spec} ${year} anthropogenic C90_Dec_2009 agr awb ene ind tra
   echo ".com convert_${spec}.pro" >> ./AR5-NH3.bat
   echo ".run convert_${spec}.pro" >> ./AR5-NH3.bat
 #now run the idl batch file:
@@ -110,7 +110,27 @@ do
 done
 done
 
-for year in 1920 1930 1940 1950 1960 1970 1980 1990 2000
+for year in 1920 
+do
+for src in agr awb dom ind
+do
+  fcop ./out_auto_C90/${year}/${res}/${spec}_${src}_AR5_${year}_${res}_h ${spec}_${src}_AR5_1850-2000_${res} 1
+done
+done
+
+for year in 1930
+do
+for src in dom
+do
+fcop ./out_auto_C90/zero_annual_${res} ${spec}_${src}_AR5_1850-2000_${res}
+done
+for src in agr awb ind
+do
+  fcop ./out_auto_C90/${year}/${res}/${spec}_${src}_AR5_${year}_${res}_h ${spec}_${src}_AR5_1850-2000_${res} 1
+done
+done
+
+for year in 1940 1950 1960 1970 1980 1990 2000
 do
 for src in agr awb dom ind
 do
