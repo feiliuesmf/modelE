@@ -5,14 +5,14 @@
 #ifdef OBIO_ON_GARYocean
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
       use oceanr_dim, only : ogrid
-      use obio_com, only: tracer       !use global array
+      use obio_com, only: tracer => tracer_loc ! rename local
       use ocn_tracer_com, only : ntrcr=>ntm
       use model_com, only : nstep=>itime
 #else
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid, ifu, ilu, isu
       use hycom_arrays, only : tracer,dpinit,scp2
-      use hycom_scalars, only : nstep,huge
+      use hycom_scalars, only : nstep
 #endif
       use domain_decomp_1d, only: am_i_root, globalsum, get
 
@@ -56,7 +56,7 @@
 
 #ifdef OBIO_ON_GARYocean
       function partialIntegration(quantity)
-      use geom, only : dxyp
+      use geomo, only : dxyp
       use oceanres, only: dzo
       real*8, intent(in) :: quantity(:,j_0h:,:)
       real*8 :: partialIntegration(j_0h:j_1h)
@@ -67,9 +67,11 @@
       do k = 1, kdm
          do j = j_0, j_1
             gridCellVolume = dzo(k) * dxyp(j)
-            do i= 1, size(quantity, 1)
-               partialIntegration(j) = partialIntegration(j) + 
-     &              quantity(i,j,k) * gridCellVolume
+            do i= 1, idm
+               if (FOCEAN(i,j) > 0) then
+                  partialIntegration(j) = partialIntegration(j) + 
+     &                 quantity(i,j,k) * gridCellVolume
+               end if
             end do
          end do
       end do
@@ -77,6 +79,7 @@
       end function partialIntegration
 #else
       function partialIntegration(quantity)
+      use hycom_scalars, only : huge
       real*8, intent(in) :: quantity(:,j_0h:,:)
       real*8 :: partialIntegration(j_0h:j_1h)
       
@@ -87,8 +90,10 @@
          do j = j_0, j_1
             do l = 1, isu(j)
                do i= ifu(j,l), ilu(j,l)
-                  partialIntegration(j) = partialIntegration(j) + 
-     &                 quantity(i,j,k)) * dpinit(i,j,j)*scp2(i,j)
+                  if (dpinit(i,j,k) < huge) then
+                     partialIntegration(j) = partialIntegration(j) + 
+     &                    quantity(i,j,k) * dpinit(i,j,k)*scp2(i,j)
+                  end if
                end do
             end do
          end do
