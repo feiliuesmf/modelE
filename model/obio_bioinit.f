@@ -358,7 +358,7 @@ c  Coccolithophore max growth rate
       enddo
  
       !save initialization
-!     if (AM_I_ROOT()) then
+      if (AM_I_ROOT()) then
 !when uncommenting these lines careful with parallelization
 !     do nt=1,ntrac
         nt=1
@@ -380,8 +380,9 @@ c  Coccolithophore max growth rate
 !     enddo
 
       print*,'bioinit: COLD INITIALIZATION'
+      endif     ! if am_i_root
       call obio_trint
-!     endif     ! if am_i_root
+
 
       return
       end
