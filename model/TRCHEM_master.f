@@ -66,7 +66,8 @@ c
 #endif
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: soa_aerosolphase
+      USE TRACERS_SOA, only: soa_aerosolphase,voc2nox,soa_apart,
+     &                       whichsoa,apartmolar
 #endif  /* TRACERS_AEROSOLS_SOA */
       use zonalmean_mod, only : zonalmean_ij2ij
       IMPLICIT NONE
@@ -843,6 +844,23 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 #else
       LL=maxl
 #endif
+#ifdef TRACERS_AEROSOLS_SOA
+! calculate voc2nox and apart for SOA precursor chemistry
+      do L=1,LL
+        if (y(nNO,L)==0.d0) then
+          voc2nox(L)=0.d0
+        else
+          voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
+     &              (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
+     &               rr(43,L)*y(nHO2,L)+
+     &               1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
+        endif
+      enddo
+      call soa_apart ! calculate current apartmolar factors
+#ifdef SOA_DIAGS
+     &                (I,J)
+#endif  /* SOA_DIAGS */
+#endif  /* TRACERS_AEROSOLS_SOA */
       DO L=1,LL  
 
 ! ----------------- RGAMMASULF ---------------------------------------
@@ -984,12 +1002,25 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &  -0.75d0*y(n_Alkenes,L)
 
 #ifdef TRACERS_AEROSOLS_SOA
+! WARNING!!!
 ! No nighttime production from OH reactions, since no nighttime OH exist.
 ! This should be improved in the future.
-        changeisopp1g=0.d0
-        changeisopp2g=0.d0
-        changeapinp1g=0.d0
-        changeapinp2g=0.d0
+        changeisopp1g=apartmolar(L,whichsoa(n_isopp1a))*
+     &                (rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
+        if(-changeisopp1g > 0.75d0*y(n_isopp1g,L))changeisopp1g=
+     &  -0.75d0*y(n_isopp1g,L)
+        changeisopp2g=apartmolar(L,whichsoa(n_isopp1a))*
+     &                (rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
+        if(-changeisopp2g > 0.75d0*y(n_isopp2g,L))changeisopp2g=
+     &  -0.75d0*y(n_isopp2g,L)
+        changeapinp1g=apartmolar(L,whichsoa(n_apinp1a))*
+     &                (rr(iTerpenesO3,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
+        if(-changeapinp1g > 0.75d0*y(n_apinp1g,L))changeapinp1g=
+     &  -0.75d0*y(n_apinp1g,L)
+        changeapinp2g=apartmolar(L,whichsoa(n_apinp1a))*
+     &                (rr(iTerpenesO3,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
+        if(-changeapinp2g > 0.75d0*y(n_apinp2g,L))changeapinp2g=
+     &  -0.75d0*y(n_apinp2g,L)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         changeIsoprene=-(rr(32,L)*yNO3(I,J,L)

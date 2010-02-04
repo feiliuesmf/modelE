@@ -34,10 +34,11 @@ real*8, dimension(LM,nsoa) :: apartmass,apartmolar
 !@+           as described by Lane et al., 2008 (ratio B). A value close to one means that
 !@+           the high-NOx pathway dominates, while a value close to zero means that the
 !@+           low-NOx pathway prevails. CH3O2 radical is not taken into account.
+real*8, dimension(LM)      :: voc2nox
 !@var apartmass_ref the low-NOx mass-based yield of semivolatile species from chemistry
 !@var apartmass_nox_ref the high-NOx mass-based yield of semivolatile species from chemistry
-real*8, dimension(nsoa)    :: voc2nox,apartmass_ref,apartmass_nox_ref
-!@var  molec2ug converts molec/cm3 to ug/m3. 1/molec2ug converts ug/m3 to molec/cm3
+real*8, dimension(nsoa)    :: apartmass_ref,apartmass_nox_ref
+!@var  molec2ug converts molec/cm3 to ug/m3. 1.d0/molec2ug converts ug/m3 to molec/cm3
 real*8, dimension(ntm) :: molec2ug
 
 !
@@ -235,12 +236,12 @@ mw(n_Isoprene)=5.d0*mw_c+8.d0*mw_h ! C5H8
 #ifdef TRACERS_TERP
 mw(n_Terpenes)=10.d0*mw_c+16.d0*mw_h ! C10H16
 #endif  /* TRACERS_TERP */
-mw(n_bcii)=170.d0
-mw(n_bcia)=170.d0
-mw(n_bcb)=170.d0
-mw(n_ocii)=170.d0
-mw(n_ocia)=170.d0
-mw(n_ocb)=170.d0
+!mw(n_bcii)=170.d0
+!mw(n_bcia)=170.d0
+!mw(n_bcb)=170.d0
+!mw(n_ocii)=170.d0
+!mw(n_ocia)=170.d0
+!mw(n_ocb)=170.d0
 
 !
 ! High and low-NOx mass based stoicheiometric coefficients
@@ -318,7 +319,7 @@ do i=1,soacomp
 enddo
 
 do i=1,ntm
-  molec2ug(i)=mw(i)*1.d12/avog
+  molec2ug(i)=tr_mm(i)*1.d12/avog
 enddo
 
 out_line="Initialization of SOA formation completed"
@@ -327,11 +328,22 @@ call write_parallel(trim(out_line),crit=.true.)
 end subroutine soa_init
 
 
+#ifdef SOA_DIAGS
+subroutine soa_apart(III,JJJ)
+#else
 subroutine soa_apart
+#endif  /* SOA_DIAGS */
 
+use TRDIAG_COM, only: taijls=>taijls_loc,&
+                      ijlt_soa_voc2nox,&
+                      ijlt_soa_apartmass_isopp1a,ijlt_soa_apartmass_isopp2a,&
+                      ijlt_soa_apartmass_apinp1a,ijlt_soa_apartmass_apinp2a
 implicit none
 
-integer :: jl,i
+#ifdef SOA_DIAGS
+integer, intent(in) :: III,JJJ
+#endif  /* SOA_DIAGS */
+integer             :: jl,i
 
 apartmass=0.d0
 apartmolar=0.d0
@@ -341,8 +353,15 @@ apartmolar=0.d0
 !
 do jl=1,LM
   do i=1,nsoa
-    apartmass(jl,i)=voc2nox(jl)*apartmass_nox_ref(i)+(1.-voc2nox(jl))*apartmass_ref(i)
+    apartmass(jl,i)=voc2nox(jl)*apartmass_nox_ref(i)+(1.d0-voc2nox(jl))*apartmass_ref(i)
   enddo
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_voc2nox)=taijls(III,JJJ,jl,ijlt_soa_voc2nox)+voc2nox(jl)
+  taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp1a)+apartmass(jl,whichsoa(n_isopp1a))
+  taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp2a)+apartmass(jl,whichsoa(n_isopp2a))
+  taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp1a)+apartmass(jl,whichsoa(n_apinp1a))
+  taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp2a)+apartmass(jl,whichsoa(n_apinp2a))
+#endif  /* SOA_DIAGS */
 enddo
 
 !
@@ -354,8 +373,8 @@ apartmolar(:,whichsoa(n_isopp2a))=apartmass(:,whichsoa(n_isopp2a))*mw(n_Isoprene
 apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*mw(n_Terpenes)/tr_mm(n_apinp1a)
 apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*mw(n_Terpenes)/tr_mm(n_apinp2a)
 #else
-apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*136.24d0/tr_mm(n_apinp1a)
-apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*136.24d0/tr_mm(n_apinp2a)
+apartmolar(:,whichsoa(n_apinp1a))=apartmass(:,whichsoa(n_apinp1a))*(10.d0*mw_c+16.d0*mw_h)/tr_mm(n_apinp1a)
+apartmolar(:,whichsoa(n_apinp2a))=apartmass(:,whichsoa(n_apinp2a))*(10.d0*mw_c+16.d0*mw_h)/tr_mm(n_apinp2a)
 #endif  /* TRACERS_TERP */
 
 end subroutine soa_apart
@@ -369,7 +388,19 @@ use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,&
 #endif
                       n_msa,n_so4,&
                       mass2vol
-use TRCHEM_Shindell_COM, only: y
+#ifdef SOA_DIAGS
+use TRDIAG_COM, only: taijls=>taijls_loc,&
+                      ijlt_soa_pcp,ijlt_soa_aerotot,ijlt_soa_aerotot_gas,&
+                      ijlt_soa_xmf_isop,ijlt_soa_xmf_apin,&
+                      ijlt_soa_zcoef_isop,ijlt_soa_zcoef_apin,ijlt_soa_meanmw,&
+                      ijlt_soa_kp_isopp1a,ijlt_soa_kp_isopp2a,ijlt_soa_kp_apinp1a,&
+                      ijlt_soa_kp_apinp2a,ijlt_soa_iternum,&
+                      ijlt_soa_soamass_isopp1a,ijlt_soa_soamass_isopp2a,&
+                      ijlt_soa_soamass_apinp1a,ijlt_soa_soamass_apinp2a,&
+                      ijlt_soa_partfact_isopp1a,ijlt_soa_partfact_isopp2a,&
+                      ijlt_soa_partfact_apinp1a,ijlt_soa_partfact_apinp2a,&
+                      ijlt_soa_m0
+#endif  /* SOA_DIAGS */
 implicit none
 
 !@var y0_ug concentration of species (in molecules/cm3) before chemistry and partitioning
@@ -423,10 +454,10 @@ integer                     :: i,iternum
 real*8                      :: x1,x2,y1,y2,a,b
 
 !@var SO4part set to true if partitioning can occur in sulfur-containing aerosols
-logical, parameter :: SO4part=.true.
+logical, parameter :: SO4part=.false.
 #ifdef TRACERS_NITRATE
 !@var NH4part set to true if partitioning can occur in nitrogen-containing aerosols
-logical, parameter :: NH4part=.true.
+logical, parameter :: NH4part=.false.
 #endif
 !@var SOAevap set to true if SOA can evaporate after condensation
 logical, parameter :: SOAevap=.true.
@@ -440,8 +471,8 @@ DO JL=L,L
 ! thus we apply changeL artificially (but not hardcoded)
 !
   do i=1,ntm
-    y0_ug(i)=trm(III,JJJ,L,i)*bypfactor*mass2vol(i)*molec2ug(i)
-    y_ug(i)=(trm(III,JJJ,L,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
+    y0_ug(i)=trm(III,JJJ,jl,i)*bypfactor*mass2vol(i)*molec2ug(i)
+    y_ug(i)=(trm(III,JJJ,jl,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
   enddo
 
 !
@@ -455,12 +486,15 @@ DO JL=L,L
 #ifdef TRACERS_NITRATE
   if(NH4part) PCP=PCP+y_ug(n_nh4)+y_ug(n_no3p)
 #endif
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_pcp)=taijls(III,JJJ,jl,ijlt_soa_pcp)+PCP
+#endif  /* SOA_DIAGS */
 !
 ! Correct the Kp to take into account the change of activity coefficient due to change in composition
 ! using the Wilson equation. Method described in Bowman and Karamalegos, EST, 2002, 36, 2701-2707.
 !
   do i=1,ntm
-    y_mw(i)=y(i,jl)/tr_mm(i)*mw(i)
+    y_mw(i)=y_ug(i)/mw(i)
   enddo
   AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)+&
           y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
@@ -471,12 +505,18 @@ DO JL=L,L
   do i=1,nsoa
     AEROtot=AEROtot+y_mw(issoa(i))
   enddo
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_aerotot)=taijls(III,JJJ,jl,ijlt_soa_aerotot)+AEROtot
+#endif  /* SOA_DIAGS */
   if (AEROtot <= 0.d0) then ! also grabs cases with negative aerosol concentrations, which should never occur
     AEROtot_gas=0.d0
     do i=1,nsoa
       AEROtot_gas=AEROtot_gas+y_mw(issoa(i)-1)
     enddo
     if (AEROtot_gas <= 0.d0) goto 60 ! Neither aerosols nor semivolatile gases exist, do nothing.
+#ifdef SOA_DIAGS
+    taijls(III,JJJ,jl,ijlt_soa_aerotot_gas)=taijls(III,JJJ,jl,ijlt_soa_aerotot_gas)+AEROtot_gas
+#endif  /* SOA_DIAGS */
   endif
 !ktt  if (AEROtot.le.0.d0) goto 60 ! This part will be important on nucleation in the future versions
 !
@@ -529,6 +569,10 @@ DO JL=L,L
     xmf(imfisop)=(y_mw(n_isopp1g)+y_mw(n_isopp2g))/AEROtot_gas
     xmf(imfapin)=(y_mw(n_apinp1g)+y_mw(n_apinp2g))/AEROtot_gas
   endif ! AEROtot > 0.d0
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_xmf_isop)=taijls(III,JJJ,jl,ijlt_soa_xmf_isop)+xmf(imfisop)
+  taijls(III,JJJ,jl,ijlt_soa_xmf_apin)=taijls(III,JJJ,jl,ijlt_soa_xmf_apin)+xmf(imfapin)
+#endif  /* SOA_DIAGS */
 !
 ! Calculate activity coefficient zcoef
 !
@@ -554,6 +598,10 @@ DO JL=L,L
       call write_parallel(trim(out_line),crit=.true.)
     endif
   enddo
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_zcoef_isop)=taijls(III,JJJ,jl,ijlt_soa_zcoef_isop)+zcoef(imfisop)
+  taijls(III,JJJ,jl,ijlt_soa_zcoef_apin)=taijls(III,JJJ,jl,ijlt_soa_zcoef_apin)+zcoef(imfapin)
+#endif  /* SOA_DIAGS */
 !
 ! Calculate mean molecular weight
 !
@@ -583,6 +631,9 @@ DO JL=L,L
       meanmw=meanmw+y_mw(issoa(i)-1)*mw(issoa(i))/AEROtot_gas
     enddo
   endif ! AEROtot > 0.d0
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_meanmw)=taijls(III,JJJ,jl,ijlt_soa_meanmw)+meanmw
+#endif  /* SOA_DIAGS */
 !
 ! Calculate final value of partitioning coefficient
 !
@@ -590,6 +641,12 @@ DO JL=L,L
   kp(n_isopp2a)=kpart(jl,whichsoa(n_isopp2a))/zcoef(imfisop)*mw(n_isopp2a)/meanmw
   kp(n_apinp1a)=kpart(jl,whichsoa(n_apinp1a))/zcoef(imfapin)*mw(n_apinp1a)/meanmw
   kp(n_apinp2a)=kpart(jl,whichsoa(n_apinp2a))/zcoef(imfapin)*mw(n_apinp2a)/meanmw
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_kp_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_kp_isopp1a)+kp(n_isopp1a)
+  taijls(III,JJJ,jl,ijlt_soa_kp_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_kp_isopp2a)+kp(n_isopp2a)
+  taijls(III,JJJ,jl,ijlt_soa_kp_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_kp_apinp1a)+kp(n_apinp1a)
+  taijls(III,JJJ,jl,ijlt_soa_kp_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_kp_apinp2a)+kp(n_apinp2a)
+#endif  /* SOA_DIAGS */
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
 !modelE!  kp(ibpinp1a_nox)=kpart(jl,whichsoa(ibpinp1a_nox))/zcoef(imfapin)*mw(ibpinp1a_nox)/meanmw
@@ -620,6 +677,12 @@ DO JL=L,L
     soamass(i)=y_ug(issoa(i)-1)
     if (SOAevap) soamass(i)=soamass(i)+y_ug(issoa(i))
   enddo
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_soamass_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_soamass_isopp1a)+soamass(whichsoa(n_isopp1a))
+  taijls(III,JJJ,jl,ijlt_soa_soamass_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_soamass_isopp2a)+soamass(whichsoa(n_isopp2a))
+  taijls(III,JJJ,jl,ijlt_soa_soamass_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_soamass_apinp1a)+soamass(whichsoa(n_apinp1a))
+  taijls(III,JJJ,jl,ijlt_soa_soamass_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_soamass_apinp2a)+soamass(whichsoa(n_apinp2a))
+#endif  /* SOA_DIAGS */
   if (sum(soamass)==0.d0) goto 60 ! no semivolatiles, nothing to do
   M0a=PCP
   M0b=PCP
@@ -703,6 +766,14 @@ DO JL=L,L
 ! Found solution for M0
 !
 20 continue
+#ifdef SOA_DIAGS
+  taijls(III,JJJ,jl,ijlt_soa_iternum)=taijls(III,JJJ,jl,ijlt_soa_iternum)+float(iternum)
+  taijls(III,JJJ,jl,ijlt_soa_partfact_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_partfact_isopp1a)+partfact(whichsoa(n_isopp1a))
+  taijls(III,JJJ,jl,ijlt_soa_partfact_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_partfact_isopp2a)+partfact(whichsoa(n_isopp2a))
+  taijls(III,JJJ,jl,ijlt_soa_partfact_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_partfact_apinp1a)+partfact(whichsoa(n_apinp1a))
+  taijls(III,JJJ,jl,ijlt_soa_partfact_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_partfact_apinp2a)+partfact(whichsoa(n_apinp2a))
+  taijls(III,JJJ,jl,ijlt_soa_m0)=taijls(III,JJJ,jl,ijlt_soa_m0)+M0
+#endif  /* SOA_DIAGS */
   if (M0.ne.0.d0) then
     do i=1,nsoa
       if(SOAevap) then

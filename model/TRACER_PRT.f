@@ -1691,6 +1691,21 @@ C**** Fill in maplet indices for 3D tracer specials
         case('Ox_loss','Ox_prod','OH_vmr','OH_con','NO3_con','HO2_con',
      &  'J_H2O2','COprod','COdest','Oxprod','Oxdest','CH4dest','OxpHO2',
      &  'OxpCH3O2','OxpRO2','OxlOH','OxlHO2','OxlALK','phO1d','pO1d',
+#ifdef SOA_DIAGS
+     &  'SOA_voc2nox',
+     &  'SOA_apartmass_isopp1a','SOA_apartmass_isopp2a',
+     &  'SOA_apartmass_apinp1a','SOA_apartmass_apinp2a',
+     &  'SOA_pcp','SOA_aerotot','SOA_aerotot_gas',
+     &  'SOA_xmf_isop','SOA_xmf_apin',
+     &  'SOA_zcoef_isop','SOA_zcoef_apin','SOA_meanmw',
+     &  'SOA_kp_isopp1a','SOA_kp_isopp2a','SOA_kp_apinp1a',
+     &  'SOA_kp_apinp2a','SOA_iternum',
+     &  'SOA_soamass_isopp1a','SOA_soamass_isopp2a',
+     &  'SOA_soamass_apinp1a','SOA_soamass_apinp2a',
+     &  'SOA_partfact_isopp1a','SOA_partfact_isopp2a',
+     &  'SOA_partfact_apinp1a','SOA_partfact_apinp2a',
+     &  'SOA_M0',
+#endif  /* SOA_DIAGS */
      &  'pOH','NO_vmr','NO2_vmr','NOx_Lightn')
            ijtype(k)=2 ! div_by_area = .false.
 

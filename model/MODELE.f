@@ -2541,6 +2541,13 @@ C**** check tracers
       call stop_model('SOA version needs tropo chemistry',255)
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef SOA_DIAGS
+#ifdef TRACERS_AEROSOLS_SOA
+      write(6,*) '...and additional SOA diagnostics'
+#else
+      call stop_model('SOA_DIAGS needs TRACERS_AEROSOLS_SOA',255)
+#endif  /* TRACERS_AEROSOLS_SOA */
+#endif  /* SOA_DIAGS */
 #ifdef TRACERS_DRYDEP
       write(6,*) '...and tracer dry deposition'
 #endif

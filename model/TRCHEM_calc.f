@@ -215,6 +215,21 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #endif
       enddo
 #ifdef TRACERS_AEROSOLS_SOA
+! calculate voc2nox and apart for SOA precursor chemistry
+      do L=1,LM
+        if (y(nNO,L)==0.d0) then
+          voc2nox(L)=0.d0
+        else
+          voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
+     &              (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
+     &               rr(43,L)*y(nHO2,L)+
+     &               1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
+        endif
+      enddo
+      call soa_apart ! calculate current apartmolar factors
+#ifdef SOA_DIAGS
+     &              (I,J)
+#endif  /* SOA_DIAGS */
 !WRONG ON PURPOSE
 ! SOA production from chemistry should be allowed everywhere, but
 ! due to convection Isoprene and Terpenes have a local maximum in the
@@ -222,11 +237,6 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 ! thus chemical (but not partitioning) production is disabled above level 7
 !      do L=1,LM ! SOA chemistry goes always to the model top
       do L=1,7!LM ! SOA chemistry goes always to the model top
-        voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
-     &            (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
-     &             rr(43,L)*y(nHO2,L)+
-     &             1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
-        call soa_apart ! calculate current apartmolar factors
         prod(n_isopp1g,L)=prod(n_isopp1g,L)+
      &                    apartmolar(L,whichsoa(n_isopp1a))*
      &                    (chemrate(30,L)+chemrate(31,L))
