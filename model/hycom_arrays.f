@@ -62,6 +62,10 @@ c
      .,tauxav(:,:),tauyav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+      real*8, allocatable ::
+     . plevav(:,:,:),tracav(:,:,:,:)
+#endif
 c
 !!      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
 !!     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,salflav,brineav,eminpav
@@ -212,7 +216,12 @@ c
      .,tauxav(I_0H:I_1H,J_0H:J_1H),tauyav(I_0H:I_1H,J_0H:J_1H) 
      .,ufxcum(I_0H:I_1H,J_0H:J_1H,kdm),vfxcum(I_0H:I_1H,J_0H:J_1H,kdm)
      &     ,dpinit(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,dpmxav(I_0H:I_1H,J_0H:J_1H),oiceav(I_0H:I_1H,J_0H:J_1H) ) 
+     .,dpmxav(I_0H:I_1H,J_0H:J_1H),oiceav(I_0H:I_1H,J_0H:J_1H)
+#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
+     .,plevav(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,tracav(I_0H:I_1H,J_0H:J_1H,kdm,ntrcr)
+#endif
+     .)
 c 
       allocate( 
      . util1(I_0H:I_1H,J_0H:J_1H),util2(I_0H:I_1H,J_0H:J_1H) 
