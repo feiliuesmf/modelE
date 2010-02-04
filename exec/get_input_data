@@ -20,7 +20,7 @@ if ( $#ARGV < 0 ) {
 $DECKS_REPOSITORY='';
 $GCMSEARCHPATH='';
 $DATA_PORTAL_URL = 
-    "http://portal-dev.nccs.nasa.gov/GISS_modelE/modelE_input_data";
+    "http://portal.nccs.nasa.gov/GISS_modelE/modelE_input_data";
 
 $modelerc = (getpwuid($>))[7]."/.modelErc";
 
