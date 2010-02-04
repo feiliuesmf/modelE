@@ -110,7 +110,7 @@ c
      .  ,JDperY
       USE CONSTANT, only : sday
 #endif
-#ifdef TRACERS_OceanBiology 
+#if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
       USE obio_dim
       USE obio_forc, only: awind,owind=>owind_glob,
      &     asolz,osolz=>osolz_glob
@@ -1131,7 +1131,7 @@ c
 
 #ifdef TRACERS_OceanBiology
 !     if (AM_I_ROOT()) then
-!       if (dobio .or. diagno) call obio_trint(nn)
+!       if (dobio .or. diagno) call obio_trint
 !     endif
 #endif
 

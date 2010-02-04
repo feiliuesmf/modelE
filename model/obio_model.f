@@ -192,7 +192,7 @@
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint(nn)
+         call obio_trint
        endif !for restart only
 #endif
 
@@ -845,7 +845,7 @@ cdiag     endif
        endif
 
        !compute total primary production per day
-       if (hour_of_day.eq.1) then
+       if (hour_of_day.eq.0) then
           pp2tot_day(i,j)=0.
         else
           if (p1d(kdm+1).gt.200.) then    !total depth > 200m
@@ -865,8 +865,8 @@ cdiag     endif
        enddo
        enddo
        endif
-!      write(*,'(a,3i5,e12.4)')'obio_model, pp:',
-!    .    nstep,i,j,pp2tot_day(i,j)
+       write(*,'(a,3i5,e12.4)')'obio_model, pp:',
+     .    nstep,i,j,pp2tot_day(i,j)
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
@@ -932,7 +932,7 @@ c$OMP END PARALLEL DO
 #ifdef OBIO_ON_GARYocean
       call obio_trint
 #else
-      call obio_trint(nn)
+      call obio_trint
 #endif
 
 #ifdef OBIO_ON_GARYocean

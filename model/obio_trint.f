@@ -18,7 +18,7 @@
 
       implicit none
 
-      integer i,j,k,l,kn,nn
+      integer i,j,k,l
       integer ntr
       real sumo
 
