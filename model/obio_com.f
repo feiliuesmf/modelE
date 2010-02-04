@@ -33,10 +33,10 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo_glob !tot chlorophyl at surf. layer
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
-      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav
-      real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav
-      real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av
-      real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav
+      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav, tracav_loc
+      real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav, plevav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av, pCO2av_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav,ao_co2fluxav_loc
       real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
       real, ALLOCATABLE, DIMENSION(:,:)    :: ao_co2flux_glob
 #endif
@@ -255,9 +255,13 @@ c**** Extract domain decomposition info
       ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2flux_glob(idm,jdm))
       ALLOCATE(tracav(idm,jdm,kdm,ntrac))
+      ALLOCATE(tracav_loc(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
       ALLOCATE(plevav(idm,jdm,kdm))
+      ALLOCATE(plevav_loc(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(pCO2av(idm,jdm))
+      ALLOCATE(pCO2av_loc(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(ao_co2fluxav(idm,jdm))
+      ALLOCATE(ao_co2fluxav_loc(i_0h:i_1h,j_0h:j_1h))
 #endif
 
       end subroutine alloc_obio_com
