@@ -182,29 +182,32 @@ c     ll2cs
       implicit none
       include 'netcdf.inc'
       character*150 :: filesource,filetarget,regridfile,cnts,
-     &     cimt,cjmt,cntt,cformat,ccopy,cidl
+     &     cimt,cjmt,cntt,cformat,ccopy,cidl,cups
       character*80 :: title
       real*4, allocatable :: sij4(:,:,:) , sij4shift(:,:,:) 
      &     , tij4(:,:,:)   ! ij arrays
       real*8, allocatable :: sij(:,:,:)  , tij(:,:,:)
       real*4, allocatable :: sijl4(:,:,:,:), sijl4shift(:,:,:,:) 
      &     , tijl4(:,:,:,:)     !ijl arrays
-      real*8, allocatable :: sijl(:,:,:,:)  , tijl(:,:,:,:)
-      real*4, allocatable :: slij4(:,:,:,:) , tlij4(:,:,:,:)  !lij arrays
-      real*8, allocatable :: slij(:,:,:,:)  , tlij(:,:,:,:)
-      integer :: ims,jms,lms,kms,nts,imt,jmt,ntt,nfields,nlevels,n,
+      real*8, allocatable :: sijl(:,:,:,:)    ,  tijl(:,:,:,:) 
+      real*8, allocatable :: sijkl(:,:,:,:,:) ,  tijkl(:,:,:,:,:)
+      real*4, allocatable :: slij4(:,:,:,:)   ,  tlij4(:,:,:,:)
+      real*4, allocatable :: sijkl4(:,:,:,:,:),  
+     &     sijkl4shift(:,:,:,:,:), tijkl4(:,:,:,:,:)       
+      real*8, allocatable :: slij(:,:,:,:)    ,  tlij(:,:,:,:)
+      integer :: ims,jms,lms,kms,nts,imt,jmt,ntt,nfields,nlevels,m,n,
      &     maxrec,iuin,iuout,i,imax,status,fid,fidt,vid
       type (x_2grids) :: x2grids
       integer :: offset(10),dim(10)
       integer :: ndims, nvars, ngatts, itype, ndim, natt, UNLIMDIMID,
-     &     idlms,idjms,idims,is
+     &     idkms,idlms,idjms,idims,is,j
       character*20 :: cdim(10),cform
       character*80 :: cval,vname
-      integer ::  ishape(3)   ! variable shape
+      integer ::  ishape(4)   ! variable shape
       integer :: dtype,nd,shp(7)
       
 
-      IF(iargc().ne.9) write(*,*) "ncll2cs needs 9 arguments";
+      IF(iargc().ne. 10) write(*,*) "ncll2cs needs 10 arguments";
 
       call getarg(1,filesource)
       call getarg(2,filetarget)
@@ -215,12 +218,15 @@ c     ll2cs
       call getarg(7,cntt)
       call getarg(8,cformat)
       call getarg(9,cidl)
+      call getarg(10,cups)
       read(cnts,'(I4)') nts
       read(cimt,'(I4)') imt
       read(cjmt,'(I4)') jmt
       read(cntt,'(I4)') ntt
 
       write(*,*) "netcdf format=",cformat
+      write(*,*) "ups=",cups
+      write(*,*) "idl=",cidl
 
 c*** Parse format
       i=1
@@ -255,7 +261,16 @@ c     read dimensions from input netcdf file
          status = nf_inq_dimlen(fid,vid,dim(i))
       enddo
      
-c     find if format is 'ij', 'ijl', 'kij'
+c     find if format is 'ij', 'ijl', 'kij', 'ijkl'
+      if (imax .eq. 4) then
+         if (cdim(imax) .eq. 'lon' .and. cdim(imax-1) .eq. 'lat') then 
+            cform='ijkl'
+            ims=dim(4)
+            jms=dim(3)
+            kms=dim(2)
+            lms=dim(1)
+         endif
+      endif
       if (imax .eq. 3) then
          if (cdim(imax) .eq. 'lon' .and. cdim(imax-1) .eq. 'lat') then 
             cform='ijl'
@@ -275,6 +290,7 @@ c     find if format is 'ij', 'ijl', 'kij'
       endif
 
       write(*,*) "array format=",cform
+      if (cform .eq. 'ijkl') write(*,*) "i j k l=",ims,jms,kms,lms
       if (cform .eq. 'ijl') write(*,*) "i j l=",ims,jms,lms
       if (cform .eq. 'ij') write(*,*) "i j=",ims,jms
 
@@ -282,12 +298,17 @@ c***  Initialize exchange grid
       call init_regrid(regridfile,x2grids,ims,jms,nts,imt,jmt,ntt)
 
 c***  first loop to find ids of the different dimensions
-      idims=0;idjms=0;idlms=0
+      idims=0;idjms=0;idlms=0;idkms=0
       status = nf_inq(fid, ndims, nvars, ngatts, UNLIMDIMID)
       write(*,*) "nvar=",nvars
       do i = 1, nvars
          status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
-
+         if (cform .eq. 'ijkl') then
+            if (cval .eq. 'lon')   idims=ishape(1)
+            if (cval .eq. 'lat')   idjms=ishape(1)
+            if (cval .eq. cdim(2)) idkms=ishape(1)
+            if (cval .eq. cdim(1)) idlms=ishape(1)
+         endif
          if (cform .eq. 'ijl') then
             if (cval .eq. 'lon')   idims=ishape(1)
             if (cval .eq. 'lat')   idjms=ishape(1)
@@ -298,13 +319,32 @@ c***  first loop to find ids of the different dimensions
             if (cval .eq. 'lat')   idjms=ishape(1)
          endif
       enddo
-      write(*,*) "idims idjms idlms",idims,idjms,idlms
+      write(*,*) "idims idjms idkms idlms",idims,idjms,idkms,idlms
 
 c***  2nd loop to define variables which have format == cformat 
 
       do i = 1, nvars
          status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
-         
+c         write(*,*) cval,ishape
+         if (cform .eq. 'ijkl') then
+c     extract values of variables having correct format 
+            if (ishape(1) .eq. idims .and. 
+     &          ishape(2) .eq. idjms .and. 
+     &          ishape(3) .eq. idkms .and. 
+     &          ishape(4) .eq. idlms .and.
+     &           ndim .eq. 4) then
+               
+               allocate(tijkl(imt,jmt,kms,lms,ntt))
+               status = nf_inq_varid(fid,cval,vid)
+               
+c     define each remaped variable to netcdf output file
+               vname=trim(cval)//'(im,jm,km,lm,tile)'
+               write(*,*) vname
+               call defvar(fidt,imt,jmt,ntt,tijkl,trim(vname))
+               deallocate(tijkl)
+            endif
+         endif
+
          if (cform .eq. 'ijl') then
 c     extract values of variables having correct format 
             if (ishape(1) .eq. idims .and. 
@@ -361,6 +401,65 @@ c***  3rd loop to write variables which have format == cformat
 
       do i = 1, nvars
          status = nf_inq_var(fid, i, cval, itype, ndim, ishape, natt)
+
+cccccc
+         if (cform .eq. 'ijkl') then
+c     find ids of the different dimensions
+
+         if (cval .eq. 'lon')   idims=ishape(1)
+         if (cval .eq. 'lat')   idjms=ishape(1)
+         if (cval .eq. cdim(2)) idkms=ishape(1)
+         if (cval .eq. cdim(1)) idlms=ishape(1)
+
+
+c     extract values of variables having correct format 
+            if (ishape(1) .eq. idims .and. 
+     &          ishape(2) .eq. idjms .and. 
+     &          ishape(3) .eq. idkms .and. 
+     &          ishape(4) .eq. idlms .and.
+     &           ndim .eq. 4) then
+              
+               allocate(sijkl(ims,jms,kms,lms,nts),
+     &              sijkl4(ims,jms,kms,lms,nts),
+     &              sijkl4shift(ims,jms,kms,lms,nts),
+     &              tijkl(imt,jmt,kms,lms,ntt),
+     &              tijkl4(imt,jmt,kms,lms,ntt))
+               
+               status = nf_inq_varid(fid,cval,vid)
+               status = nf_get_var_real(fid,vid,sijkl4)
+               
+c     shift by 180 degrees if data aligned on Greenwich meridian
+               if (trim(cidl) .ne. 'y' .and. trim(cidl) .ne. 'Y') then
+                  write(*,*) "IDL"
+                  is=ims/2
+                  do n=1,is
+                     sijkl4shift(n,:,:,:,:)=sijkl4(n+is,:,:,:,:)
+                     sijkl4shift(n+is,:,:,:,:)=sijkl4(n,:,:,:,:)
+                  enddo
+                  sijkl4=sijkl4shift
+               endif
+
+c     remap variables with correct format
+               sijkl=sijkl4
+
+               do n=1,lms
+                  do m=1,kms
+                     call do_regrid(x2grids,sijkl(:,:,m,n,:),
+     &                    tijkl(:,:,m,n,:))
+                  enddo
+               enddo
+               tijkl4=tijkl
+
+c               write(*,*) tijkl
+c     write each remaped variable to netcdf output file  
+               write(*,*) "write ",adjustl(trim(cval))," in output file"
+               call write_data(fidt,trim(cval),tijkl4)
+
+               deallocate(sijkl4, sijkl) 
+               deallocate(tijkl4, tijkl)
+            endif
+         endif
+
          if (cform .eq. 'ijl') then
 c     find ids of the different dimensions
          if (cval .eq. 'lon')   idims=ishape(1)
@@ -388,6 +487,14 @@ c     shift by 180 degrees if data aligned on Greenwich meridian
                   enddo
                   sijl4=sijl4shift
                endif
+c    is data upside down 
+               if (trim(cups) .eq. 'y' .or. trim(cidl) .eq. 'Y') then
+                  do j=1,jms
+                     sijl4shift(:,j,:,:)=sijl4(:,jms+1-j,:,:)
+                  enddo
+                  sijl4=sijl4shift
+               endif
+
 c     remap variables with correct format
                sijl=sijl4
 
