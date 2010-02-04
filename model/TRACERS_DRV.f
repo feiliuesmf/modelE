@@ -11219,28 +11219,28 @@ c
 c gases
 c
 c      fq(gases_list) = 0.D0
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
-    (defined TRACERS_AMP)
-      if(      LHX.EQ.LHE ! if not frozen
-     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0. AND . BELOW_CLOUD) THEN 
-        bb_tmp = max(b_beta_DT,0.) ! necessary check?
-        Ppas = PL*1.D2          ! pressure to pascals
-        tfac = (1.D0/TEMP - BY298K)*BYGASC
-        ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
-        ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
-        do igas=1,hlawt_count
-          n = hlawt_list(igas)
-          ssfac(n) = ssfac(n)*exp(-tr_DHD(n)*tfac)
-        enddo
-        do igas=1,gases_count
-          n = gases_list(igas)
-          thlaw(n) = min(tm(n),max(0d0,
-     &     bb_tmp*(ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
-        enddo
-      else
+c#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+c   (defined TRACERS_AMP)
+c     if(      LHX.EQ.LHE ! if not frozen
+c    &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0. AND . BELOW_CLOUD) THEN 
+c       bb_tmp = max(b_beta_DT,0.) ! necessary check?
+c       Ppas = PL*1.D2          ! pressure to pascals
+c       tfac = (1.D0/TEMP - BY298K)*BYGASC
+c       ssfac0 = WMXTR*MAIR*1.D-3*Ppas/(FCLOUD+teeny)
+c       ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
+c       do igas=1,hlawt_count
+c         n = hlawt_list(igas)
+c         ssfac(n) = ssfac(n)*exp(-tr_DHD(n)*tfac)
+c       enddo
+c       do igas=1,gases_count
+c         n = gases_list(igas)
+c         thlaw(n) = min(tm(n),max(0d0,
+c    &     bb_tmp*(ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
+c       enddo
+c     else
         thlaw(gases_list) = 0.
-      endif
-#endif
+c     endif
+c#endif
 
 c
 c water species
