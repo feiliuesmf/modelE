@@ -9,7 +9,7 @@
 c get grid-independent procedures from domain_decomp_1d
       use domain_decomp_1d, only : get, am_i_root, sumxpe,
      &     write_parallel,esmf_bcast,
-     &     load_cap_config
+     &     load_cap_config,globalmax
 
 c get dist_grid, halo_update, globalsum, etc. from the dd2d_utils module
       use dd2d_utils, only : dist_grid,init_dist_grid
