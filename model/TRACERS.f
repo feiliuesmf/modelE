@@ -1674,9 +1674,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     'iHch4(dist_im,dist_jm,nra_ch4)')
       call defvar(grid,fid,first_mod,
      &     'first_mod(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,iday_ncep,'iday_ncep')
-      call defvar(grid,fid,i0_ncep,'i0_ncep')
-      call defvar(grid,fid,first_ncep,'first_ncep')
+      call defvar(grid,fid,iday_ncep,'iday_ncep(nra_ncep)')
+      call defvar(grid,fid,i0_ncep,'i0_ncep(nra_ncep)')
+      call defvar(grid,fid,first_ncep,'first_ncep(nra_ncep)')
 #endif
 #endif
 
@@ -1716,7 +1716,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
       use domain_decomp_atm, only : grid
-      use pario, only : write_dist_data,read_dist_data
+      use pario, only : write_dist_data,read_dist_data,read_data,
+     & write_data
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
