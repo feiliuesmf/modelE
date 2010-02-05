@@ -14,6 +14,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
+#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! default wet deposition or water tracers 
@@ -32,7 +33,7 @@ ALLOC_DRV                           ! allocate global distributed arrays
 ATMDYN_COM ATMDYN MOMEN2ND          ! atmospheric dynamics
 ATM_UTILS                           ! utilities for some atmospheric quantities
 QUS_COM QUSDEF QUS_DRV              ! advection of tracers
-TQUS_DRV                            ! advection of Q and tracer gases
+QUS3D                               ! advection of Q and tracer gases
 TRACER_COM TRACERS_DRV              ! configurable tracer code 
 TRACERS                             ! generic tracer code 
 TRDRYDEP                            ! dry deposition of tracers 
