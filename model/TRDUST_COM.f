@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
       MODULE tracers_dust
-!@sum  dust/mineral tracer parameters and variables
+!@sum  dust/mineral tracer parameter and variable declarations
 !@auth Reha Cakmur, Jan Perlwitz, Ina Tegen
 !@ver 2.0
 
@@ -17,7 +17,7 @@
 !@param By4 1D0/4D0
       REAL*8,PARAMETER :: By4=1D0/4D0
 
-c****
+
 c**** rundeck parameter to switch between different emission schemes
 c****
 !@dbparam imDust: 0: scheme using PDF of wind speed (default)
@@ -55,16 +55,63 @@ c**** declaration for simple wet deposition scheme
 c**** current default emission scheme (Cakmur, R. et al. (2004))
 c**** declarations for emission scheme using probability density function of
 c**** wind speed
-c****
+
+!@dbparam prefDustSources  rundeck parameter to choose preferred source file
+!+                         and according parameter settings for the fractions
+!+                         of uplifted clay and silt
+!+                         0: Ginoux 2001 with overlaid annual vegetation mask
+!+                         1: Ginoux 2009 with overlaid annual vegetation mask
+!+                         2: Ginoux 2009 w/o overlaid vegetation mask
+!+                         3: Grini/Zender preferred sources
+!+                         4: Tegen preferred sources
+!+                        >4: Free choice of file
+      integer :: prefDustSources=1
+
+!@param numDustSourceOpt number of options for preferred dust sources
+      integer,parameter :: numDustSourceOpt = 5
+!@param numResolutionOpt number of resolution options for preferred dust sources
+      integer,parameter :: numResolutionOpt = 5
+!@param dustSourceFile default files with preferred dust sources for output
+!@+                    info
+      character(len=71),parameter
+     &    ,dimension(0:numDustSourceOpt-1,numResolutionOpt) ::
+     &    dustSourceFile = reshape((/
+     &    'Ginoux2001_source_VegMask_72x46    (optimized for old model)'
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'Ginoux2001_source_VegMask_144x90         (01/11/10,19:10EST)'
+     &   ,'Ginoux_source_v2009_VegMask_144x90       (01/11/10,19:10EST)'
+     &   ,'Ginoux_source_v2009_NoVegMask_144x90     (01/11/10,19:10EST)'
+     &   ,'GriniZender_source_144x90                (01/11/10,19:10EST)'
+     &   ,'Tegen_source_144x90                      (01/11/10,19:10EST)'
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'No file available yet                                       '
+     &   ,'Ginoux2001_source_VegMask_144x90_C90    (uses 144x90 params)'
+     &   ,'Ginoux_source_v2009_VegMask_144x90_C90  (uses 144x90 params)'
+     &   ,'Ginoux_source_v2009_NoVegMask_144x90_C90(uses 144x90 params)'
+     &   ,'GriniZender_DustSources_144x90_C90      (uses 144x90 params)'
+     &   ,'Tegen_DustSources_144x90_C90            (uses 144x90 params)'
+     &   /),(/numDustSourceOpt,numResolutionOpt/))
+
 !@param CWiPdf uplift factor [kg*s**2/m**5] for all size classes of soil dust
       REAL*8,PARAMETER :: CWiPdf=12.068996D-9
-!@param FClWiPdf fraction [1] of uplifted clay
-!@param FSiWiPdf fractions [1] of uplifted silt
-      REAL*8 :: FClWiPdf=0.092335D0,FSiWiPdf=0.226916D0
+!@dparam FracClayPDFscheme fraction [1] of uplifted clay
+!@dparam FracSiltPDFscheme fractions [1] of uplifted silt
+      real(kind=8) :: fracClayPDFscheme = 1.D0, fracSiltPDFscheme = 1.D0
 !@var ers_data field of ERS data
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ers_data
-!@var src_fnct distribution of preferred sources
-      REAL*8,ALLOCATABLE,DIMENSION(:,:) :: src_fnct
+!@var dustSourceFunction distribution of preferred dust sources
+      real(kind=8),allocatable,dimension(:,:) :: dustSourceFunction
       INTEGER,PARAMETER :: Lim=234,Ljm=234,Lkm=22
 !@param kim dimension 1 of lookup table for mean surface wind speed integration
 !@param kjm dimension 2 of lookup table for mean surface wind speed integration
@@ -164,9 +211,9 @@ c**** Parameters for dust/mineral tracer specific diagnostics
       USE resolution,ONLY : Lm
       USE model_com,ONLY : JMperY,JDperY
       USE tracer_com,ONLY : Ntm_dust
-      USE tracers_dust,ONLY : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh,
-     &     src_fnct,ers_data,wsubtke_com,wsubwd_com,wsubwm_com,prelay,
-     &     d_dust,lim,ljm,lkm,table
+      use tracers_dust,only : hbaij,ricntd,dryhr,frclay,frsilt,vtrsh
+     &     ,dustSourceFunction,ers_data,wsubtke_com,wsubwd_com
+     &     ,wsubwm_com,prelay,d_dust,lim,ljm,lkm,table
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,Mtrac,minfr
 #endif
@@ -190,7 +237,7 @@ c**** Parameters for dust/mineral tracer specific diagnostics
       ALLOCATE(hbaij(i_0h:i_1h,j_0h:j_1h),ricntd(i_0h:i_1h,j_0h:j_1h),
      &     dryhr(i_0h:i_1h,j_0h:j_1h),frclay(i_0h:i_1h,j_0h:j_1h),
      &     frsilt(i_0h:i_1h,j_0h:j_1h),vtrsh(i_0h:i_1h,j_0h:j_1h),
-     &     src_fnct(i_0h:i_1h,j_0h:j_1h),
+     &     dustSourceFunction(i_0h:i_1h,j_0h:j_1h),
      &     ers_data(i_0h:i_1h,j_0h:j_1h,JMperY),
      &     wsubtke_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwd_com(i_0h:i_1h,j_0h:j_1h),
@@ -222,20 +269,15 @@ c**** Parameters for dust/mineral tracer specific diagnostics
       USE domain_decomp_atm, ONLY: am_i_root,dread_parallel,esmf_bcast,
      &     grid,write_parallel,get
       USE resolution, ONLY : Im,Jm
-      USE model_com,ONLY : JDperY,JMperY
+      use model_com,only : coupled_chem,JDperY,JMperY
       USE tracer_com,ONLY : Ntm_dust
-      USE tracers_dust,ONLY : dryhr,frclay,frsilt,vtrsh,ers_data
-     &   ,src_fnct,kim,kjm,table1,x11,x21,table,x1,x2,x3,lim,ljm,lkm
-     &   ,imDust,d_dust
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-     &   ,Mtrac,minfr
-#endif
+      USE tracers_dust
 
       IMPLICIT NONE
 
       INCLUDE 'netcdf.inc'
 
-      INTEGER :: i,ierr,j,io_data,k
+      integer :: i,ierr,j,io_data,k,ires
       INTEGER :: i_0,i_1,j_0,j_1
       INTEGER startd(3),countd(3),statusd
       INTEGER idd1,idd2,idd3,idd4,ncidd1,ncidd2,ncidd3,ncidd4
@@ -374,9 +416,205 @@ c**** Read input: ERS data
         CALL closeunit(io_data)
 
 c**** Read input: source function data
-        CALL openunit('GIN',io_data,.TRUE.,.TRUE.)
-        CALL dread_parallel(grid,io_data,nameunit(io_data),src_fnct)
+        call openunit('DSRC',io_data,.true.,.true.)
+        call dread_parallel(grid,io_data,nameunit(io_data)
+     &       ,dustSourceFunction)
         CALL closeunit(io_data)
+
+c**** set parameters depending on the preferred sources chosen
+        select case(prefDustSources)
+        case(0)                 ! Ginoux 2001 sources w/ vegetation mask
+          select case(im)
+          case(72)              ! uses old values for Ginoux 2001 source file
+            fracClayPDFscheme = 0.092335D0 ! not optimized yet
+            fracSiltPDFscheme = 0.226916D0 ! not optimized yet
+            ires=1
+          case(144)
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.099017658D0
+              fracSiltPDFscheme = 0.072244382D0
+            else
+              fracClayPDFscheme = 0.092714686D0
+              fracSiltPDFscheme = 0.11636162D0
+            end if
+            ires=2
+          case(288)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.092714686D0 ! not optimized yet
+            fracSiltPDFscheme = 0.11636162D0  ! not optimized yet
+            ires=3
+          case(360)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.092714686D0 ! not optimized yet
+            fracSiltPDFscheme = 0.11636162D0  ! not optimized yet
+            ires=4
+          case(90)              ! uses values for im=144 for now
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.099017658D0  ! not optimized yet
+              fracSiltPDFscheme = 0.072244382D0  ! not optimized yet
+            else
+              fracClayPDFscheme = 0.092714686D0  ! not optimized yet
+              fracSiltPDFscheme = 0.11636162D0   ! not optimized yet
+            end if
+            ires=5
+          end select
+        case(1)                 ! Ginoux 2009 sources w/ vegetation mask
+          select case(im)
+          case(72)              ! uses old values for Ginoux 2001 source file
+            fracClayPDFscheme = 0.092335D0 ! not optimized yet
+            fracSiltPDFscheme = 0.226916D0 ! not optimized yet
+            ires=1
+          case(144)
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.092321704D0
+              fracSiltPDFscheme = 0.075609092D0
+            else
+              fracClayPDFscheme = 0.091387274D0
+              fracSiltPDFscheme = 0.11525676D0
+            end if
+            ires=2
+          case(288)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.091387274D0 ! not optimized yet
+            fracSiltPDFscheme = 0.11525676D0  ! not optimized yet
+            ires=3
+          case(360)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.091387274D0 ! not optimized yet
+            fracSiltPDFscheme = 0.11525676D0  ! not optimized yet
+            ires=4
+          case(90)              ! uses values for im=144 for now
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.092321704D0 ! not optimized yet
+              fracSiltPDFscheme = 0.075609092D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.091387274D0 ! not optimized yet
+              fracSiltPDFscheme = 0.11525676D0  ! not optimized yet
+            end if
+            ires=5
+          end select
+        case(2)                 ! Ginoux 2009 sources w/o vegetation mask
+          select case(im)
+          case(72)              ! uses old values for Ginoux 2001 source file
+            fracClayPDFscheme = 0.092335D0 ! not optimized yet
+            fracSiltPDFscheme = 0.226916D0 ! not optimized yet
+            ires=1
+          case(144)
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.054054294D0
+              fracSiltPDFscheme = 0.041997386D0
+            else
+              fracClayPDFscheme = 0.057676781D0
+              fracSiltPDFscheme = 0.049452031D0
+            end if
+            ires=2
+          case(288)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.057676781D0 ! not optimized yet
+            fracSiltPDFscheme = 0.049452031D0 ! not optimized yet
+            ires=3
+          case(360)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.057676781D0 ! not optimized yet
+            fracSiltPDFscheme = 0.049452031D0 ! not optimized yet
+            ires=4
+          case(90)              ! uses values for im=144 for now
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.054054294D0 ! not optimized yet
+              fracSiltPDFscheme = 0.041997386D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.057676781D0 ! not optimized yet
+              fracSiltPDFscheme = 0.049452031D0 ! not optimized yet
+            end if
+            ires=5
+          end select
+        case(3)                 ! Grini/Zender sources
+          select case(im)
+          case(72)              ! uses old values for Ginoux 2001 source file
+            fracClayPDFscheme = 0.092335D0 ! not optimized yet
+            fracSiltPDFscheme = 0.226916D0 ! not optimized yet
+            ires=1
+          case(144)
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.035367998D0
+              fracSiltPDFscheme = 0.029040256D0
+            else
+              fracClayPDFscheme = 0.038794273D0
+              fracSiltPDFscheme = 0.023586557D0
+            end if
+            ires=2
+          case(288)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.038794273D0 ! not optimized yet
+            fracSiltPDFscheme = 0.023586557D0 ! not optimized yet
+            ires=3
+          case(360)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.038794273D0 ! not optimized yet
+            fracSiltPDFscheme = 0.023586557D0 ! not optimized yet
+            ires=4
+          case(90)              ! uses values for im=144 for now
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.035367998D0 ! not optimized yet
+              fracSiltPDFscheme = 0.029040256D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.038794273D0 ! not optimized yet
+              fracSiltPDFscheme = 0.023586557D0 ! not optimized yet
+            end if
+            ires=5
+          end select
+        case(4)                 ! Tegen sources
+          select case(im)
+          case(72)              ! uses old values for Ginoux 2001 source file
+            fracClayPDFscheme = 0.092335D0 ! not optimized yet
+            fracSiltPDFscheme = 0.226916D0 ! not optimized yet
+            ires=1
+          case(144)
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.080945478D0
+              fracSiltPDFscheme = 0.060172677D0
+            else
+              fracClayPDFscheme = 0.088998936D0
+              fracSiltPDFscheme = 0.0604359D0
+            end if
+            ires=2
+          case(288)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.088998936D0 ! not optimized yet
+            fracSiltPDFscheme = 0.0604359D0   ! not optimized yet
+            ires=3
+          case(360)             ! uses values for im=144 for now
+            fracClayPDFscheme = 0.088998936D0 ! not optimized yet
+            fracSiltPDFscheme = 0.0604359D0   ! not optimized yet
+            ires=4
+          case(90)              ! uses values for im=144 for now
+            if (coupled_chem == 1) then
+              fracClayPDFscheme = 0.080945478D0 ! not optimized yet
+              fracSiltPDFscheme = 0.060172677D0 ! not optimized yet
+            else
+              fracClayPDFscheme = 0.088998936D0 ! not optimized yet
+              fracSiltPDFscheme = 0.0604359D0   ! not optimized yet
+            end if
+            ires=5
+          end select
+        end select
+  
+        if (am_i_root()) then
+          write(6,*) ' Actually used parameters for soil dust emission:'
+          write(6,'(1x,a28,f12.9)') '  Clay: fracClayPDFscheme = '
+     &         ,fracClayPDFscheme
+          write(6,'(1x,a28,f12.9)') '  Silt: fracSiltPDFscheme = '
+     &         ,fracSiltPDFscheme
+          if (prefDustSources <= numDustSourceOpt-1) then
+            write(6,*) '  For prefDustSources =',prefDustSources,','
+            write(6,*) '  these parameters are the optimized values for'
+            write(6,*) '  following file with preferred dust sources:'
+            write(6,*) '  >> '
+     &           ,trim(dustSourceFile(prefDustSources,ires)),' <<'
+            write(6,*) '  Parentheses: Optimized model version.'
+            if (coupled_chem == 1) then
+              write(6,*) '  for all aerosols and chemistry'
+            else
+              write(6,*) '  for dust aerosols w/o other aerosols and'
+     &             ,' chemistry'
+            end if
+            write(6,*) '  For a free choice of emission parameters set'
+            write(6,*) '  prefDustSources >',numDustSourceOpt-1
+            write(6,*) '  and set fracClayPDFscheme and'
+     &           ,' fracSiltPDFscheme in rundeck'
+          end if
+        end if
 
 c**** Read input: EMISSION LOOKUP TABLE data
         IF (am_i_root()) THEN

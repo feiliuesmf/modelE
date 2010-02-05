@@ -39,7 +39,8 @@
 #endif /* TRACERS_WATER */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      USE tracers_dust,ONLY : imDust
+      use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
+     &   ,fracSiltPDFscheme
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
@@ -273,6 +274,9 @@ C**** determine year of emissions
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
 C**** decide on AEROCOM or interactive emissions
       CALL sync_param('imDUST',imDUST)
+      call sync_param('prefDustSources', prefDustSources)
+      call sync_param('fracClayPDFscheme', fracClayPDFscheme)
+      call sync_param('fracSiltPDFscheme', fracSiltPDFscheme)
 #endif
 #ifdef TRACERS_QUARZHEM
       CALL sync_param('FreeFe',FreeFe)

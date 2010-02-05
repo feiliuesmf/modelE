@@ -295,7 +295,7 @@ c**** output
       USE socpbl,ONLY : t_pbl_args
       USE tracer_com,ONLY : Ntm_dust,trname,n_clay,n_clayilli
       USE tracers_dust,ONLY : CWiCub,FClWiCub,FSiWiCub,
-     &     CWiPdf,FClWiPdf,FSiWiPdf,imDust
+     &     CWiPdf,FracClayPDFscheme,FracSiltPDFscheme,imDust
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,Mtrac
 #endif
@@ -317,7 +317,7 @@ c**** output
       REAL*8 :: frtrac
       LOGICAL :: qdust
       REAL*8 :: frclay,frsilt
-      REAL*8 :: ers_data,src_fnct,soilvtrsh,pdfint
+      real(kind=8) :: ers_data,dustSourceFunction,soilvtrsh,pdfint
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       REAL*8 :: minfr(Mtrac)
 #endif
@@ -329,7 +329,7 @@ c**** input
       frclay=pbl_args%frclay
       frsilt=pbl_args%frsilt
       ers_data=pbl_args%ers_data
-      src_fnct=pbl_args%src_fnct
+      dustSourceFunction = pbl_args%dustSourceFunction
       soilvtrsh=pbl_args%wtrsh
       pdfint=pbl_args%pdfint
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -351,7 +351,7 @@ c**** Interactive dust emission
         CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc',
      &        'ClayQuar')
           IF (imDust == 0) THEN
-            frtrac=FClWiPdf
+            frtrac = FracClayPDFscheme
           ELSE IF (imDust == 2) THEN
             frtrac=FClWiCub*frclay
           END IF
@@ -361,7 +361,7 @@ c**** Interactive dust emission
      &        'Sil3Calc','Sil3Hema','Sil3Gyps','Sil1QuHe','Sil2QuHe',
      &        'Sil3QuHe')
           IF (imDust == 0) THEN
-            frtrac=FSiWiPdf
+            frtrac = FracSiltPDFscheme
           ELSE IF (imDust == 2) THEN
             frtrac=FSiWiCub*frsilt
           END IF
@@ -403,13 +403,13 @@ c**** Interactive dust emission
         SELECT CASE (n)
         CASE (1)
           IF (imDust == 0) THEN
-            frtrac=FClWiPdf
+            frtrac = FracClayPDFscheme
           ELSE IF (imDust == 2) THEN
             frtrac=FClWiCub*frclay
           END IF
         CASE (2,3,4)
           IF (imDust == 0) THEN
-            frtrac=FSiWiPdf
+            frtrac = FracSiltPDFscheme
           ELSE IF (imDust == 2) THEN
             frtrac=FSiWiCub*frsilt
           END IF
@@ -427,14 +427,14 @@ c ..........
 c dust emission above threshold from sub grid scale wind fluctuations
 c ..........
         ELSE IF (imDust == 0) THEN
-          dsrcflx=CWiPdf*frtrac*ers_data*src_fnct*pdfint
+          dsrcflx = CWiPdf*frtrac*ers_data*dustSourceFunction*pdfint
 c ..........
 c emission according to cubic scheme, but with pdf sheme parameters
 c (only used as diagnostic variable)
 c ..........
           IF (soilvtrsh > 0. .AND. wsgcm > soilvtrsh) THEN
-            dsrcflx2=CWiPdf*frtrac*src_fnct*ers_data*(wsgcm-soilvtrsh)
-     &           *wsgcm**2
+            dsrcflx2 = CWiPdf*frtrac*dustSourceFunction*ers_data
+     &           *(wsgcm-soilvtrsh)*wsgcm**2
           END IF
         END IF
 

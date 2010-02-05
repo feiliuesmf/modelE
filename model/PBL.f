@@ -121,8 +121,8 @@ c**** input
 !@var pbl_args%wfcs water field capacity of first ground layer [kg/m^2]
         REAL*8 :: wearth,aiearth,wfcs
 !@var pbl_args%ers_data ERS data
-!@var pbl_args%src_fnct distribution of preferred sources
-        REAL*8 :: ers_data,src_fnct
+!@var pbl_args%dustSourceFunction distribution of preferred sources
+        real(kind=8) :: ers_data,dustSourceFunction
 !@var pbl_args%frclay fraction of clay
 !@var pbl_args%frsilt fraction of silt
 !@var pbl_args%dryhr number of hours with evaporation-precipitation greater

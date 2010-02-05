@@ -202,8 +202,8 @@ ccc extra stuff which was present in "earth" by default
       USE clouds_com,ONLY : ddml,fss
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : snowe,wearth,aiearth
-      USE tracers_dust,ONLY : d_dust,ers_data,hbaij,ricntd,src_fnct
-     &     ,frclay,frsilt,dryhr,vtrsh
+      use tracers_dust,only : d_dust,ers_data,hbaij,ricntd
+     &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,minfr
 #endif
@@ -317,7 +317,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       pbl_args%aiearth=aiearth(i,j)
       pbl_args%wfcs=wfcs(i,j)
       pbl_args%ers_data=ers_data(i,j,jmon)
-      pbl_args%src_fnct=src_fnct(i,j)
+      pbl_args%dustSourceFunction = dustSourceFunction(i,j)
       pbl_args%frclay=frclay(i,j)
       pbl_args%frsilt=frsilt(i,j)
       pbl_args%vtrsh=vtrsh(i,j)
