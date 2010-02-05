@@ -1,13 +1,12 @@
 E4TcadF40.R GISS Model E  1850 ocn/atm   jan perlwitz  07/2009
  Template for setting up simulations using the E4F40 model with dust,chemistry,aerosol tracers
 
-E4TcadF40: Chemistry, aerosols and dust
-E4TdusF40: E4F40 + dust tracers
+E4TcadF40: E4F40 + Chemistry and aerosols
 
 E4F40: modelE as frozen (or not yet) in July 2009
 modelE4 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
-atmospheric composition from year 2000
-ocean data: prescribed, 1996-2005 climatology
+atmospheric composition from year 1850
+ocean data: prescribed, 1876-1885 climatology
 uses turbulence scheme (no dry conv), grav.wave drag
 time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
 filters: U,V in E-W and N-S direction (after every physics time step)
@@ -17,7 +16,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define TRAC_ADV_CPU
 #define USE_ENT                  ! include dynamic vegetation model
-#define ROUGHL_HACK
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DUST             ! include dust tracers
