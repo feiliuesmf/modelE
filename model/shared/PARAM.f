@@ -71,7 +71,7 @@
       public query_param
 
       integer, parameter :: MAX_PARAMS = 310
-      integer, parameter :: MAX_RPARAMS = 283
+      integer, parameter :: MAX_RPARAMS = 286
       integer, parameter :: MAX_IPARAMS = 425
       integer, parameter :: MAX_CPARAMS = 200
       integer, parameter :: MAX_NAME_LEN = 32
