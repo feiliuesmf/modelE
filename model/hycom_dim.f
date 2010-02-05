@@ -21,12 +21,17 @@ c-----------------------------------------------------------------------------
      .ifv,ilv,isv,jfv,jlv,jsv,
      .msk
 
-#ifdef HYCOM_RESOLUTION_2deg
+#ifdef ATM4x5_HYCOM2deg
       integer, public, parameter :: idm=195,jdm=180,kdm=20,ms=15
      .                             ,iold=181
       integer, public, parameter :: iia=72,jja=46,iio=idm,jjo=jdm
 #endif
-#ifdef HYCOM_RESOLUTION_1deg
+#ifdef ATM2x2h_HYCOM2deg
+      integer, public, parameter :: idm=195,jdm=180,kdm=26,ms=15
+     .                             ,iold=181
+      integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
+#endif
+#ifdef ATM2x2h_HYCOM1deg
       integer, public, parameter :: idm=387,jdm=360,kdm=26,ms=15
      .                             ,iold=359
       integer, public, parameter :: iia=144,jja=90,iio=idm,jjo=jdm
@@ -56,7 +61,6 @@ c-----------------------------------------------------------------------------
       !default
       integer, parameter :: ntrcr = 1
 #endif   /*ventilatioin,age,water masses,ocean biology*/
-
 
 c
 c --- ms-1  = max. number of interruptions of any grid row or column by land

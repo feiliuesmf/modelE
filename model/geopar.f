@@ -473,11 +473,15 @@ c --- add glue in coastal areas
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- add glue to mediterranean:
-#ifdef HYCOM_RESOLUTION_2deg
+#ifdef ATM4x5_HYCOM2deg
         if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
 #endif
-#ifdef HYCOM_RESOLUTION_1deg
+#ifdef ATM2x2h_HYCOM2deg
+        if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
+     .        glue(i,j)=glufac
+#endif
+#ifdef ATM2x2h_HYCOM1deg
         if ((i.ge. 180 .and. i.le. 198 .and. j.le.  37)
      . .or. (i .ge.188 .and. i.le. 191 .and. j.ge. 356))
      .        glue(i,j)=glufac
@@ -488,13 +492,19 @@ c$OMP END PARALLEL DO
 c
 c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       open (34,file=flnmbas,form='formatted',status='old')
-#ifdef HYCOM_RESOLUTION_2deg
+#ifdef ATM4x5_HYCOM2deg
         do n=1,2
         read(34,*)
         read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
         enddo 
 #endif
-#ifdef HYCOM_RESOLUTION_1deg
+#ifdef ATM2x2h_HYCOM2deg
+        do n=1,2
+        read(34,*)
+        read(34,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
+        enddo 
+#endif
+#ifdef ATM2x2h_HYCOM1deg
         do n=1,3
         read(34,*)
         read(34,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)

@@ -290,17 +290,19 @@ c
      .  (k,temp(i,j,k),saln(i,j,k),thstar(i,j,k),dp(i,j,k)/onem,
      .  p(i,j,k+1)/onem,montg(i,j,k)/g,k=1,kk)
 c
-c --- read-in monthly kpar file
-      write(lp,*) 'opening kpar '
-      real4=0.
-      open(21,file='kpar',form='unformatted',status='old')
-      do k=1,12
-      write(lp,*) 'reading kpar mo=',k
-      read(21) title,real4
-      write(lp,*)'title=',title(1:60)
-      akpar(:,:,k)=real4(:,:)
-      enddo
-      close(21)
+      if (jerlv0.eq.0) then
+c ---   read-in monthly kpar file
+        write(lp,*) 'opening kpar '
+        real4=0.
+        open(21,file='kpar',form='unformatted',status='old')
+        do k=1,12
+        write(lp,*) 'reading kpar mo=',k
+        read(21) title,real4
+        write(lp,*)'title=',title(1:60)
+        akpar(:,:,k)=real4(:,:)
+        enddo
+        close(21)
+      endif
 c
 c     call zebra(akpar,idm,idm,jdm)
  103  format (i7,2i4,a/(24x,i3,2f8.2,f8.2,2f8.1,f8.3))

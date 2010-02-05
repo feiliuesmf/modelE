@@ -1355,7 +1355,18 @@ c --- with respect to the ice/openwater flux ratio?
       endif
  204  continue
 c$OMP END PARALLEL DO
-#ifdef HYCOM_RESOLUTION_2deg
+#ifdef ATM4x5_HYCOM2deg
+c --- enhance flow through Denmark Strait
+      do j=39,43
+      do i=j-10,j-8
+      den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
+      uosurf(i,j)=uosurf(i,j)-den_str
+      vosurf(i,j)=vosurf(i,j)-den_str
+      if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
+      enddo
+      enddo
+#endif  
+#ifdef ATM2x2h_HYCOM2deg
 c --- enhance flow through Denmark Strait
       do j=39,43
       do i=j-10,j-8

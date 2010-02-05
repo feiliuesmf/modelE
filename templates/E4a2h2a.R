@@ -1,7 +1,7 @@
-E4hyc00.R GISS Model E  coupled version          tnl   05/17/2009
+E4a2h2a.R GISS Model E  coupled version          ssun   01/26/2010
 
-E4hyc00: 2x2.5x40 layers modelE version, 1850 atm.; 
-	   1x1x26 layers in the HYCOM ocean
+E4a2h2a: a2 stands for 2x2.5deg agcm: 2x2.5x40 layers modelE, 1850 atm.; 
+         h2 stands for 2deg hycom: 26 layers, 195x180 grid points
 
 modelE1 (3.0) 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)     
 atmospheric composition from year 1850                               
@@ -17,9 +17,9 @@ Preprocessor Options
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 ! #define TRACERS_GASEXCH_Natassa    ! special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
-!#define  ATM4x5_HYCOM2deg  !  4x5 20 layer atm & 20 layer 2deg hycom (195x180)
-!#define  ATM2x2h_HYCOM2deg !2x2.5 40 layer atm & 26 layer 2deg hycom (195x180)
-#define ATM2x2h_HYCOM1deg   !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
+! #define  ATM4x5_HYCOM2deg          !  4x5 20 layer atm & 20 layer 2deg hycom (195x180)
+#define  ATM2x2h_HYCOM2deg          !2x2.5 40 layer atm & 26 layer 2deg hycom (195x180)
+! #define ATM2x2h_HYCOM1deg         !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360) 
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -86,15 +86,15 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB
 OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
-AIC=AIC.RES_F40.D771201      ! observed init cond (atm. only) ISTART=2
-GIC=GIC.144X90.DEC01.1.ext   ! initial ground conditions      ISTART=2
-TOPO=Z144X90N.1deghycom_1
-CDN=CD144X90.ext                 ! neutral drag coefficient
-VEG=V144X90_no_crops.ext         ! vegatation file 
-CROPS=CROPS2007_144X90N_nocasp   ! crops
-SOIL=S144X900098M.ext            ! soil properties
-REG=REG2X2.5                     ! special regions-diag
-RVR=RD_modelE_Fa.RVR_1deghycom_1.bin
+AIC=AIC.RES_F40.D771201           ! observed init cond (atm. only) ISTART=2
+GIC=GIC.144X90.DEC01.1.ext        ! initial ground conditions      ISTART=2
+TOPO=Z144X90N.2deghycom           ! 2deg hycom
+CDN=CD144X90.ext                  ! neutral drag coefficient
+VEG=V144X90_no_crops.ext          ! vegatation file 
+CROPS=CROPS2007_144X90N_nocasp    ! crops
+SOIL=S144X900098M.ext             ! soil properties
+REG=REG2X2.5                      ! special regions-diag
+RVR=rvr_atm2x2h_hycom2deg.bin     ! 2deg hycom
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
 RADN4=LWTables33k.1b              ! rad.tables and history files
@@ -129,30 +129,29 @@ GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90_a.ij.ext
-ZVAR=ZVAR2X25A             ! topographic variation for gwdrag
+ZVAR=ZVAR2X25A               ! topographic variation for gwdrag
 MSU_wts=MSU.RSS.weights.data
-GLMELT=GLMELT_144X90_gas.OCN   ! glacial melt distribution
-latlonij=latlon387x360.4bin             ! lat & lon at each i,j
-hycomtopo=depth387x360.4bin_1  ! topography used in ocean model, NO Baltic
-temp_ini=temp387x360x26jan_hv_z1.txt ! 3-d temperature as initial condition
-salt_ini=salt387x360x26jan_hv_z1.txt ! 3-d salinity as initial condition
-pout_ini=pout387x360x26jan_hv_z1.txt ! 3-d layer pressure as initial condition
-ibasin=ibasin387x360.txt_1  ! basin mask, Baltic
-flxa2o=flxa2o387x360.8bin_1 ! coupler weights for flux from atm to ocean, NO Baltic
-flxo2a=flxo2a387x360.8bin_1 ! coupler weights for flux from atm to ocean, NO Baltic
-taua2o=taua2o387x360.8bin_1 ! coupler weights for vector from atm to ocean
-ssta2o=sata2o387x360.8bin_1 ! interp weights for scalar located in the center atm grid to the center hycom grid
-ssto2a=ssto2a387x360.8bin_1 ! coupler weights for sst from ocean to atm
-e_o2a=e_o2a387x360.8bin_1   ! coupler weights for eastward vel from ocean to atm
-n_o2a=n_o2a387x360.8bin_1   ! coupler weights for northward vel from ocean to atm
-cososino=cososino387x360.8bin           ! cos/sin of i,j axis angle on ocean grid
-kpar=seawifs_kpar_387x360.tbin          ! monthly/annual seawifs_kpar data
+GLMELT=GLMELT_144X90.OCN     ! glacial melt distribution
+latlonij=latlon195x180.4bin  ! lat & lon at each i,j
+hycomtopo=depth195x180.4bin  ! topography used in ocean model, NO Baltic
+temp_ini=temp195x180x26jan_hv_z1.txt  !3-d temperature as initial condition
+salt_ini=salt195x180x26jan_hv_z1.txt  !3-d salinity as initial condition
+pout_ini=pout195x180x26jan_hv_z1.txt  !3-d layer pressure as initial condition
+ibasin=ibasin195x180.txt              !basin mask
+flxa2o=flxa2o_atm2x2.5_hycom2deg.8bin !flux weights from atm B-grid to ocean
+taua2o=taua2o_atm2x2.5_hycom2deg.8bin !vector weights from atm B-grid to ocean
+ssto2a=ssto2a_atm2x2.5_hycom2deg.8bin !sst weights from ocean to atm B-grid
+e_o2a=e_o2a_atm2x2.5_hycom2deg.8bin   !E vel weights from ocean to atm C-grid
+n_o2a=n_o2a_atm2x2.5_hycom2deg.8bin   !N vel weights from ocean to atm C-grid
+cososino=cososino195x180.8bin         !cos/sin of i,j axis angle on ocean grid
+kpar=seawifs_kpar_195x180.tbin        !monthly/annual seawifs_kpar data
+
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_nmaps_2x2.5bin.dat
 
 Label and Namelist:
-E4hyc00 (2x2.5x40, 1850 atm.;  1x1x26 HYCOM ocean)
+E4a2h2a (2x2.5x40, 1850 atm.;  26 layer 2deg HYCOM ocean)
 
 DTFIX=180.
 &&PARAMETERS
@@ -263,7 +262,7 @@ jerlv0=1        ! default is 1
 &&END_PARAMETERS
 
  &INPUTZ
-   YEARI=1900,MONTHI=01,DATEI=01,HOURI=00, !  from default: IYEAR1=YEARI
-   YEARE=1900,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=1900,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
+   YEARI=1800,MONTHI=01,DATEI=01,HOURI=00, !  from default: IYEAR1=YEARI
+   YEARE=1800,MONTHE=01,DATEE=02,HOURE=00, KDIAG=13*0,
+   ISTART=2,IRANDI=0, YEARE=1800,MONTHE=01,DATEE=02,HOURE=00,IWRITE=1,JWRITE=1,
  &END

@@ -22,11 +22,14 @@ c
      .     ,ilisto2a_n,jlisto2a_n,nlisto2a_n
 
       integer nwgta2o,nwgto2a
-#ifdef HYCOM_RESOLUTION_2deg
-      parameter (nwgta2o=18,nwgto2a=39)      ! 2deg: 195x180
+#ifdef ATM4x5_HYCOM2deg
+      parameter (nwgta2o=18,nwgto2a=39)
 #endif
-#ifdef HYCOM_RESOLUTION_1deg
-      parameter (nwgta2o=37,nwgto2a=48)      ! 1deg: 387x360
+#ifdef ATM2x2h_HYCOM2deg
+      parameter (nwgta2o=36,nwgto2a=19)
+#endif
+#ifdef ATM2x2h_HYCOM1deg
+      parameter (nwgta2o=37,nwgto2a=48)
 #endif
 c
       real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o)
@@ -269,13 +272,15 @@ c
       implicit none
       integer :: iz,jz
 c
-#ifdef HYCOM_RESOLUTION_2deg
+#ifdef  ATM4x5_HYCOM2deg
        integer, parameter :: nsize1=10249200, nsize2=2079936
-#endif  
-#ifdef HYCOM_RESOLUTION_1deg
+#endif     
+#ifdef ATM2x2h_HYCOM2deg
+       integer, parameter :: nsize1=20358000, nsize2=3991680
+#endif
+#ifdef ATM2x2h_HYCOM1deg
        integer, parameter :: nsize1=83034720, nsize2=10005120
 #endif
-
 c --- read in all weights
       if (iio*jjo*((nwgta2o*2+1)*4+nwgta2o*8).ne.nsize1 .or.
      .    iia*jja*((nwgto2a*2+1)*4+nwgto2a*8).ne.nsize2) then
@@ -286,10 +291,12 @@ c --- read in all weights
         stop ' wrong size in cpler'
       endif
 c
+#ifdef ATM2x2h_HYCOM1deg
       open(21,file=flnma2o_s,form='unformatted',status='old',   ! TNL
      .  access='direct',recl=nsize1)
       read(21,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
       close(21)
+#endif
 c
       open(22,file=flnma2o,form='unformatted',status='old',
      .  access='direct',recl=nsize1)
@@ -306,10 +313,12 @@ c
       read(24,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
       close(24)
 c
+#ifdef ATM2x2h_HYCOM1deg
       open(25,file=flnmo2a_f,form='unformatted',status='old',     ! TNL
      .  access='direct',recl=nsize2)
       read(25,rec=1) ilisto2a_f,jlisto2a_f,wlisto2a_f,nlisto2a_f
       close(25)
+#endif
 c
       open(26,file=flnmo2a_e,form='unformatted',status='old',
      .  access='direct',recl=nsize2)
