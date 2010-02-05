@@ -167,8 +167,8 @@ xCDpbl=1.
 cond_scheme=2    ! more elaborate conduction scheme (GHY, Nancy Kiang)
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.74 ! affects clouds above 850mb w/o MC region;  tune this first to get about 30% high cloud
-U00b=1.65 ! affects clouds below 850mb and MC regions; tune this last  to get rad.balance
+U00a=0.73 ! affects clouds above 850mb w/o MC region;  tune this first to get about 30% high cloud
+U00b=1.68 ! affects clouds below 850mb and MC regions; tune this last  to get rad.balance
 ! U00a,U00b replace the U00 parameters below - U00ice/U00wtrX are kept only for the _E1 version
 U00ice=.57      ! tune this first to get: glob. ann. mean plan.alb=30%   (U00ice up=>albedo down)
 U00wtrX=1.46    ! this to get: glob. ann. mean net heat at surf. = 0   (U00wtrX+.01=>NetHtSrf+.7)
