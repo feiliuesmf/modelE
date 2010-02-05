@@ -7803,7 +7803,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     readt8_column, skip_parallel
       USE PARAM, only : get_param
 #ifdef TRACERS_ON
-      USE CONSTANT, only: mair,rhow,sday,grav,tf,avog
+      USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
       USE resolution,ONLY : Im,Jm,Lm,Ls1
       USE MODEL_COM, only: itime,jday,dtsrc,q,wm,flice,jyear,
      & PMIDL00
@@ -7829,8 +7829,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : gtracer
 #endif
-      USE GEOM, only: axyp,byaxyp,lat2d_dg
+      USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
+     &     ,pedn ! pressure at bottom of each layer (mb)
       USE PBLCOM, only: npbl,trabl,qabl,tsavg
 #ifdef TRACERS_SPECIAL_Lerner
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
@@ -7896,6 +7897,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE FLUXES, only : gtracer
       USE RADPAR, only : xnow
 #endif
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      use pario, only : par_open,par_close,read_data
+#endif
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt
@@ -7959,6 +7963,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       INTEGER mon_unit, mont,ii,jj,ir,mm,iuc,mmm,ll,iudms
       INTEGER iuc2,lmax
       real*8 carbstuff,ccnv,carb(8)
+#endif
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      real*8 :: volc_press,volc_lons(360),volc_lats(180),
+     &     volc_height(360,180),volc_emiss(360,180)
+      integer :: file_id,ilon,jlat,volc_ij(2)
 #endif
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
@@ -8812,6 +8821,40 @@ c divide by 2 because BC = 0.1 x S, not SO2
 c volcano - continuous
 C    Initialize:
       so2_src_3D(:,:,:,1)= 0.d0
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+c read 1-degree lat-lon netcdf file and convert lat,lon,height to i,j,l.
+c NOTE: the input file specifies integrals over its 1-degree gridboxes.
+c Converting height to model level using a simple formula for now.
+c Eventually the atm. state module will make height available during
+c initialization, at which point actual heights can be used.
+      file_id = par_open(grid,'SO2_VOLCANO','read')
+      call read_data(grid,file_id,'lon',volc_lons,bcast_all=.true.)
+      call read_data(grid,file_id,'lat',volc_lats,bcast_all=.true.)
+      call read_data(grid,file_id,'HEIGHT_CONT',volc_height,
+     &     bcast_all=.true.)
+      call read_data(grid,file_id,'VOLC_CONT',volc_emiss,
+     &     bcast_all=.true.)
+      call par_close(grid,file_id)
+      do jlat=1,180
+        do ilon=1,360
+          if(volc_emiss(ilon,jlat) <= 0.) cycle
+          call lonlat_to_ij(
+     &         (/volc_lons(ilon),volc_lats(jlat)/),volc_ij)
+          ii = volc_ij(1); jj = volc_ij(2)
+          if(jj<j_0 .or. jj>j_1) cycle
+          if(ii<i_0 .or. ii>i_1) cycle
+          volc_press = 1000.* ! mb
+     &         exp(-(grav*volc_height(ilon,jlat))/(rgas*280.)) ! 280 K
+          ll = 1
+          do while(pedn(ll,ii,jj) > volc_press)
+            ll = ll + 1
+          enddo
+          so2_src_3d(ii,jj,ll,1) = so2_src_3d(ii,jj,ll,1)
+     &         +volc_emiss(ilon,jlat)/(sday*30.4d0)/12.d0
+        enddo
+      enddo
+#else
+c read ASCII file specifying the i,j,l of point sources
       call openunit('SO2_VOLCANO',iuc,.false.,.true.)
       do
       read(iuc,*) ii,jj,ll,carbstuff
@@ -8820,7 +8863,7 @@ C    Initialize:
       so2_src_3d(ii,jj,ll,1)=carbstuff/(sday*30.4d0)/12.d0
       end do
       call closeunit(iuc)
-
+#endif
 c Biomass for AeroCom
       if (imAER.eq.1) then
        so2_biosrc_3D(:,:,:,:)= 0.d0
