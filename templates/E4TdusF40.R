@@ -145,7 +145,13 @@ BC_dep=BC.Dry+Wet.depositions.ann
 
 ! files for dust tracers
 ERS=ERS1_1993_MONTHLY.144x90.threshold-13 ! ERS data
-GIN=Ginoux2001_source_VegMask_144x90      ! preferred sources
+DSRC=Ginoux_source_v2009_VegMask_144x90   ! preferred dust sources
+                                          ! optimized use: prefDustSources=1
+! alternative preferred dust source files:
+!  Ginoux2001_source_VegMask_144x90     (optimized use: prefDustSources=0)
+!  Ginoux_source_v2009_NoVegMask_144x90 (optimized use: prefDustSources=2)
+!  GriniZender_DustSources_144x90       (optimized use: prefDustSources=3)
+!  Tegen_DustSources_144x90             (optimized use: prefDustSources=4)
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 
@@ -245,7 +251,7 @@ paleo_orb_yr=-50.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 !--------- general aerosol parameters-------------
 aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
 rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
-rad_interact_aer=0 ! 1: couples aerosols to radiation, 0: use climatology
+rad_interact_aer=1 ! 1: couples aerosols to radiation, 0: use climatology
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
@@ -257,6 +263,14 @@ madaer=3           ! 1: default sulfate and carbon aerosol 3: updated aerosols
 !--------- dust aerosol parameters----------------
 imDust=0           ! 0: PDF emission scheme, 1: AEROCOM
 adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
+prefDustSources=1     ! 0: Ginoux 2001 w/ vegetation mask
+                      ! 1: Ginoux 2009 w/ vegetation mask (current default)
+                      ! 2: Ginoux 2009 w/o vegetation, 3: Grini/Zender sources
+                      ! 4: Tegen sources, >4: Free choice of emis. parameters
+!fracClayPDFscheme=1. ! Frac. clay emis, only effective for prefDustSources > 4
+!fracSiltPDFscheme=1. ! Frac. silt emis, only effective for prefDustSources > 4
+                      ! set internally for 0-4
+
 !-------------------------------------------------
 
 ! parameters that control the Shapiro filter
@@ -271,7 +285,7 @@ DT=225.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=480
+Ndisk=960
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags 0hrly
 KCOPY=2         ! saving acc + rsf

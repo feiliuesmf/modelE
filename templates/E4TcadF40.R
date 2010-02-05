@@ -229,7 +229,13 @@ SO2_FIELD=temp_2x2.5/so2_conc_2x2.5gf ! really 4x5
 
 ! files for dust tracers
 ERS=ERS1_1993_MONTHLY.144x90.threshold-13 ! ERS data
-GIN=Ginoux2001_source_VegMask_144x90      ! preferred sources
+DSRC=Ginoux_source_v2009_VegMask_144x90   ! preferred dust sources
+                                          ! optimized use: prefDustSources=1
+! alternative preferred dust source files:
+!  Ginoux2001_source_VegMask_144x90     (optimized use: prefDustSources=0)
+!  Ginoux_source_v2009_NoVegMask_144x90 (optimized use: prefDustSources=2)
+!  GriniZender_DustSources_144x90       (optimized use: prefDustSources=3)
+!  Tegen_DustSources_144x90             (optimized use: prefDustSources=4)
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 
@@ -554,13 +560,22 @@ rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
+!to_conc=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0 ! 1: taijln diags as concentration, 0: as mixing ratio (default), needs to be exactly set according to the number and order of tracers, if used
 
 !--------- sulfate and carbon aerosol parameters -----
 madaer=3           ! 1: default sulfate and carbon aerosol 3: updated aerosols
 
 !--------- dust aerosol parameters----------------
-imDust=0           ! 0: PDF emission scheme, 1: AEROCOM
-adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
+imDust=0              ! 0: PDF emission scheme, 1: AEROCOM
+adiurn_dust=0         ! 1: daily dust diagnostics at certain grid points
+prefDustSources=1     ! 0: Ginoux 2001 w/ vegetation mask
+                      ! 1: Ginoux 2009 w/ vegetation mask (current default)
+                      ! 2: Ginoux 2009 w/o vegetation, 3: Grini/Zender sources
+                      ! 4: Tegen sources, >4: Free choice of emis. parameters
+!fracClayPDFscheme=1. ! Frac. clay emis, only effective for prefDustSources > 4
+!fracSiltPDFscheme=1. ! Frac. silt emis, only effective for prefDustSources > 4
+                      ! set internally for 0-4
+
 !-------------------------------------------------
 !----------------------------------------------------------------------
 !  End tracer code parameters.
