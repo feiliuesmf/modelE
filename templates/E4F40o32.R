@@ -104,7 +104,7 @@ O3file_07=mar2004_o3_shindelltrop_72x46x49x12_1970
 O3file_08=mar2005_o3_shindelltrop_72x46x49x12_1980
 O3file_09=mar2005_o3_shindelltrop_72x46x49x12_1990
 O3trend=mar2005_o3timetrend_46x49x2412_1850_2050
-GHG=GHG.Mar2004.txt
+GHG=GHG.Mar2009.txt ! use GHG.Jul2009.txt for runs that start before 1850
 dH2O=dH2O_by_CH4_monthly
 BC_dep=BC.Dry+Wet.depositions.ann
 TOP_INDEX=top_index_144x90_a.ij.ext
@@ -194,6 +194,9 @@ albsn_yr=1850
 dalbsnX=.024
 o3_yr=-1850
 
+calc_orb_par=1
+paleo_orb_yr=100.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
+ 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)
 DT_XVfilter=225. ! Shapiro filter on V in E-W direction; usually same as DT (below)
@@ -204,7 +207,7 @@ DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 DTsrc=1800.
 DT=225.
 DTO=225.
-NIsurf=2        ! increase as layer 1 gets thinner
+NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
 Ndisk=480       ! use =48 except on halem
@@ -217,6 +220,7 @@ nda5s=13        ! use =1 to get more accurate energy cons. diag (increases CPU t
 ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
+Nssw=2          ! until diurnal diags are fixed, Nssw has to be even
 &&END_PARAMETERS
 
  &INPUTZ
