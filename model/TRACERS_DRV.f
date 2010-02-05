@@ -2249,6 +2249,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       character*50 :: unit_string
 #ifdef TRACERS_ON
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
+      logical :: Qf
       integer n,k,g,kk
 
 C**** To add a new conservation diagnostic:
@@ -2270,12 +2271,18 @@ c      itcon_ss(n)=xx
 c      qcon(itcon_ss(n))=.true.  ; conpts(yy) = 'LS COND'
 c      qsum(itcon_ss(n)) = .false.
 
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      Qf = .false.  ! no SLP filter
+#else
+      Qf = .true.   ! SLP filter on
+#endif
+
       QCON=(/ t,                                           !instant.
-     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
       QSUM=(/ f,                                           !instant.
-     *        T,  T,  F,  F,  T,  T,  T,  T,  F,  F,  F,   !2-12 (npts)
+     *        T,  T,  F,  F,  T,  T, Qf,  T,  F,  F,  F,   !2-12 (npts)
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F,       !13-22
      *        F,  F,  F,  F,  F,  F,  F,  F,  F,  F  /)    !21-ktcon-1
       do n=1,ntm
