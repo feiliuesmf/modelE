@@ -684,12 +684,12 @@
         check("sum_ncep",sum_ncep)
         check("PRS_ch4",PRS_ch4)
         check("HRA_ch4",HRA_ch4)
-        check("iday_ncep",iday_ncep)
-        check("i0_ncep",i0_ncep)
+        checkx("iday_ncep",iday_ncep)
+        checkx("i0_ncep",i0_ncep)
         check("iHch4",iHch4)
         check("iDch4",iDch4)
         check("i0ch4",i0ch4)
-        check("first_ncep",first_ncep)
+        checkx("first_ncep",first_ncep)
         check("first_mod",first_mod)
 #  endif
 #  endif
