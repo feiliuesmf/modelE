@@ -102,8 +102,6 @@ C**************  Latitude-Dependant (allocatable) *******************
       INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1, m
 C**** functions
       REAL(8):: QSAT
-c***  daily output
-      character*30 diam_1
 
       CALL GET(grid, J_STRT =J_0, J_STOP =J_1)
       I_0 = grid%I_STRT
@@ -250,7 +248,7 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(n))
-        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL*byam(l,i,j))
+        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(n))*AVOL*byam(l,i,j)/axyp(i,j))
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(n))*1d6),itcon_AMPm(1,n),n) 
@@ -261,20 +259,15 @@ c - 2d PRT Diagnostic
 c - special diag: Size distribution pdfs
 c       if (l.eq.1) taijs(i,j,ijts_AMPpdf(l,:))=taijs(i,j,ijts_AMPpdf(l,:)) + (PDF1(:)*AVOL*byam(l,i,j))
 c - N_SSA, N_SSC, M_SSA_SU
-        taijls(i,j,l,ijlt_AMPext(1))=taijls(i,j,l,ijlt_AMPext(1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j))
-        taijls(i,j,l,ijlt_AMPext(2))=taijls(i,j,l,ijlt_AMPext(2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j))
+        taijls(i,j,l,ijlt_AMPext(1))=taijls(i,j,l,ijlt_AMPext(1)) + (NACTV(i,j,l,SEAS_MODE_MAP(1))*AVOL*byam(l,i,j)/axyp(i,j))
+        taijls(i,j,l,ijlt_AMPext(2))=taijls(i,j,l,ijlt_AMPext(2)) + (NACTV(i,j,l,SEAS_MODE_MAP(2))*AVOL*byam(l,i,j)/axyp(i,j))
         taijls(i,j,l,ijlt_AMPext(3))=taijls(i,j,l,ijlt_AMPext(3)) +  DIAM(i,j,l,SEAS_MODE_MAP(1)) 
         taijls(i,j,l,ijlt_AMPext(4))=taijls(i,j,l,ijlt_AMPext(4)) +  DIAM(i,j,l,SEAS_MODE_MAP(2)) 
-        taijls(i,j,l,ijlt_AMPext(5))=taijls(i,j,l,ijlt_AMPext(5)) + (AERO(22) *AVOL *byam(l,i,j)) 
-        taijls(i,j,l,ijlt_AMPext(6))=taijls(i,j,l,ijlt_AMPext(6)) + (AERO(25) *AVOL *byam(l,i,j)) 
+        taijls(i,j,l,ijlt_AMPext(5))=taijls(i,j,l,ijlt_AMPext(5)) + (AERO(22) *AVOL*byam(l,i,j)/axyp(i,j)) 
+        taijls(i,j,l,ijlt_AMPext(6))=taijls(i,j,l,ijlt_AMPext(6)) + (AERO(25) *AVOL*byam(l,i,j)/axyp(i,j)) 
       ENDDO !i
       ENDDO !j
       ENDDO !l
-
-   
-
-c      diam_1='diam_1'
-c      call INST_ncoutd(diam_1,DIAM(:,:,:,1))
 
       RETURN
       END SUBROUTINE MATRIX_DRV
