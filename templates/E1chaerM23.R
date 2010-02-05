@@ -390,7 +390,9 @@ FRCLAY=fake_144x90_dust_FrClay ! modelIIprime soil clay fractin (obsolete)
 FRSILT=fake_144x90_dust_FrSilt ! modelIIprime model silt fraction (obsolete)
 DRYHR=fake_144x90_dust_DryHrPminusE ! emission only if E exceeds P (obsolete)
 ERS=ERS1_1993_MONTHLY.72x46.threshold-13 ! ERS data
-GIN=Ginoux2001_source_VegMask_72x46      ! preferred sources
+DSRC=Ginoux2001_source_VegMask_72x46     ! preferred dust sources
+                                         ! optimized use: prefDustSources=0
+                                         ! (only choice so far)
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 
@@ -554,6 +556,19 @@ rad_interact_aer=1 ! 1=couples aerosols to radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! 0 for TOA, 1 for tropopause for rad forcing diags.
                    ! use LTROPO(I,J) level for rad forcing diags.
+diag_rad=0         ! 1: additional radiation diagnostics
+diag_wetdep=0      ! 1: additional wet deposition diagnostics
+
+!--------- dust aerosol parameters----------------
+imDust=0              ! 0: PDF emission scheme, 1: AEROCOM
+adiurn_dust=0         ! 1: daily dust diagnostics at certain grid points
+prefDustSources=0     ! 0: Ginoux 2001 w/ vegetation mask
+                      ! 1-4: No files and optimization available yet
+                      ! >4: Free choice of emis. parameters
+!fracClayPDFscheme=1. ! Frac. clay emis, only effective for prefDustSources > 4
+!fracSiltPDFscheme=1. ! Frac. silt emis, only effective for prefDustSources > 4
+                      ! set internally for 0-4
+
 !-------------------------------------------------------------------------
 !-------------------------------------------------------------------------
 COUPLED_CHEM=1     ! to couple chemistry and aerosols

@@ -1,4 +1,5 @@
 E4TdusM20.R GISS Model E  2004 modelE    jan perlwitz 10/27/2009
+ Template for setting up simulations using the E4M20 model with dust tracers
 
 E4TdusM20.R: E4M20 + dust tracers
 
@@ -161,7 +162,9 @@ FRCLAY=claygcm-f               ! clay fraction for old emission scheme
 FRSILT=siltgcm-f               ! silt fraction for old emission scheme
 DRYHR=text5hr-f                ! threshold of dry hours for old emission scheme
 ERS=ERS1_1993_MONTHLY.72x46.threshold-13 ! ERS data
-GIN=Ginoux2001_source_VegMask_72x46      ! preferred sources
+DSRC=Ginoux2001_source_VegMask_72x46     ! preferred dust sources
+                                         ! optimized use: prefDustSources=0
+                                         ! (only choice so far)
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
 dust_bin1=DUST_bin1_2000_new.nc  ! for AEROCOM
@@ -236,18 +239,25 @@ paleo_orb_yr=-50.  !  BP i.e. 1950-paleo_orb_yr AD = 1850 AD
 !--------- general aerosol parameters-------------
 aer_rad_forc=0     ! 1: calculate aerosol radiative forcing
 rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
-rad_interact_aer=0 ! 1: couples aerosols to radiation, 0: use climatology
+rad_interact_aer=1 ! 1: couples aerosols to radiation, 0: use climatology
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
-to_conc=0,1,1,1,1,1 ! 1: taijln diags as concentration; 0: as mixing ratio
+to_conc=0,1,1,1,1,1 ! 1: taijln diags as concentration, 0: as mixing ratio (default), needs to be exactly set according to the number and order of tracers, if used
 
 !--------- sulfate and carbon aerosol parameters -----
 madaer=3           ! 1: default sulfate and carbon aerosol, 3: updated aerosols
 
 !--------- dust aerosol parameters----------------
-imDust=0           ! 0: PDF emission scheme, 1: AEROCOM, 2: legacy emission scheme
-adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
+imDust=0              ! 0: PDF emission scheme, 1: AEROCOM, 2: legacy emission scheme
+adiurn_dust=0         ! 1: daily dust diagnostics at certain grid points
+prefDustSources=0     ! 0: Ginoux 2001 w/ vegetation mask
+                      ! 1-4: No files and optimization available yet
+                      ! >4: Free choice of emis. parameters
+!fracClayPDFscheme=1. ! Frac. clay emis, only effective for prefDustSources > 4
+!fracSiltPDFscheme=1. ! Frac. silt emis, only effective for prefDustSources > 4
+                      ! set internally for 0-4
+
 !-------------------------------------------------
 
 ! parameters that control the Shapiro filter
@@ -262,7 +272,7 @@ DT=450.
 NIsurf=1        ! increase as layer 1 gets thinner
 
 ! parameters that affect at most diagn. output:
-Ndisk=480
+Ndisk=1920
 SUBDD=' '       ! no sub-daily frequency diags
 NSUBDD=0        ! saving sub-daily diags every NSUBDD*DTsrc/3600. hour(s)
 KCOPY=2         ! saving acc + rsf   =3 to also save "oda"-files
