@@ -2173,7 +2173,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       if(res(n,ns) /= 'M' .and. res(n,ns) /= 'F')error=8
 #endif
 
-      str = str(n1+3:)            ! optional transient years
+      n1 = scan( str, ' ')
+      str = str(n1+1:)            ! optional transient years
       n1 = scan( str, '=')
       if(str(1:n1-1) /= 'y')then
         ty_start(n,ns)=0; ty_end(n,ns)=0
