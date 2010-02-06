@@ -289,7 +289,7 @@ C**** Initialize to zero
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE_glob, TEARTH_glob,
      &     WEARTH_glob, AIEARTH_GLOB,evap_max_ij_glob, fr_sat_ij_glob,
-     &     qg_ij_glob
+     &     qg_ij_glob,canopy_temp_ij_glob
       REAL*8, ALLOCATABLE :: SNOAGE_glob(:,:,:)
       REAL*8, ALLOCATABLE :: tsns_ij_glob(:,:)
 
@@ -310,14 +310,15 @@ C**** Initialize to zero
         CALL PACK_DATA(grid, qg_ij       , qg_ij_glob)
         CALL PACK_COLUMN(grid, SNOAGE    , SNOAGE_glob)
         CALL PACK_DATA(grid, tsns_ij     , tsns_ij_glob)
+        CALL PACK_DATA(grid, canopy_temp_ij , canopy_temp_ij_glob)
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
      *       ,WEARTH_glob,AIEARTH_glob
-     *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
-     &       ,tsns_ij_glob
+     *       ,SNOAGE_glob,evap_max_ij_glob,canopy_temp_ij_glob
+     *       ,fr_sat_ij_glob,qg_ij_glob,tsns_ij_glob
       CASE (IOREAD:)            ! input from restart file
 cgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
-cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
+cgsfc     &       ,SNOAGE,evap_max_ij,canopy_temp_ij,fr_sat_ij,qg_ij
         if (AM_I_ROOT()) then
           READ(kunit,err=10) HEADER
           BACKSPACE kunit
@@ -326,11 +327,14 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &         ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
      &         ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
             tsns_ij_glob(:,:) = TEARTH_glob
+#ifdef BIOGENIC_EMISSIONS
+            call stop_model('need saved canopy_temp_ij',255)
+#endif
           else if (HEADER(1:lhead) == MODULE_HEADER(1:lhead)) then
             READ(kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
      &           ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
-     &           ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
-     &           ,tsns_ij_glob
+     &           ,evap_max_ij_glob,canopy_temp_ij_glob,fr_sat_ij_glob
+     &           ,qg_ij_glob,tsns_ij_glob
           else
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
             GO TO 10
@@ -346,6 +350,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )
         CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )
         CALL UNPACK_DATA(grid, tsns_ij_glob     , tsns_ij      )
+        CALL UNPACK_DATA(grid, canopy_temp_ij_glob , canopy_temp_ij)
 
       END SELECT
 
@@ -373,6 +378,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     WEARTH_glob(img,jmg),
      &     AIEARTH_GLOB(img,jmg),
      &     evap_max_ij_glob(img,jmg),
+     &     canopy_temp_ij_glob(img,jmg),
      &     fr_sat_ij_glob(img,jmg),
      &     qg_ij_glob(img,jmg) )
       end subroutine allocate_me
@@ -386,6 +392,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &       WEARTH_glob,
      &       AIEARTH_GLOB,
      &       evap_max_ij_glob,
+     &       canopy_temp_ij_glob,
      &       fr_sat_ij_glob,
      &       qg_ij_glob )
 
@@ -698,6 +705,8 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       call defvar(grid,fid,aiearth,'aiearth(dist_im,dist_jm)')
       call defvar(grid,fid,evap_max_ij,
      &     'evap_max_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,canopy_temp_ij,
+     &     'canopy_temp_ij(dist_im,dist_jm)')
       call defvar(grid,fid,fr_sat_ij,
      &     'fr_sat_ij(dist_im,dist_jm)')
       call defvar(grid,fid,qg_ij,'qg_ij(dist_im,dist_jm)')
@@ -724,6 +733,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call write_dist_data(grid,fid,'wearth',wearth)
         call write_dist_data(grid,fid,'aiearth',aiearth)
         call write_dist_data(grid,fid,'evap_max_ij',evap_max_ij)
+        call write_dist_data(grid,fid,'canopy_temp_ij',canopy_temp_ij)
         call write_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
         call write_dist_data(grid,fid,'qg_ij',qg_ij)
         call write_dist_data(grid,fid,'snoage',snoage,jdim=3)
@@ -734,6 +744,7 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
         call read_dist_data(grid,fid,'wearth',wearth)
         call read_dist_data(grid,fid,'aiearth',aiearth)
         call read_dist_data(grid,fid,'evap_max_ij',evap_max_ij)
+        call read_dist_data(grid,fid,'canopy_temp_ij',canopy_temp_ij)
         call read_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
         call read_dist_data(grid,fid,'qg_ij',qg_ij)
         call read_dist_data(grid,fid,'snoage',snoage,jdim=3)
