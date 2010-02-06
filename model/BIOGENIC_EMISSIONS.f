@@ -55,8 +55,7 @@
       type (t_pbl_args) :: pbl_args
       integer :: inveg
       integer, intent(in) :: i,j,itype  
-      real*8 :: tlai,embio,clight,biofit,tcorr,sfdens
-      real*8, dimension(i,j) :: tmmpk
+      real*8 :: tlai,embio,clight,biofit,tcorr,sfdens,tmmpk
       real*8, intent(out) :: emisop
 
       select case(itype)
@@ -71,7 +70,7 @@
 
         ! estimated surface density
         sfdens=100.d0*pbl_args%psurf/(rgas*pbl_args%tgv) 
-        tmmpk(i,j) = canopy_temp_ij(i,j) + tf
+        tmmpk = canopy_temp_ij(i,j) + tf
 
         emisop=0.d0
         tlai=0.d0
@@ -97,8 +96,8 @@
 
 ! Temperature correction
 
-          if(tmmpk(i,j) > tf) THEN
-            emisop=tcorr(tmmpk(i,j))*embio
+          if(tmmpk > tf) THEN
+            emisop=tcorr(tmmpk)*embio
           else
             emisop=0.d0
           endif
