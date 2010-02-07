@@ -285,7 +285,7 @@
       use lakes_com, only : mldlk,mwl,tlake,gml,flake
       use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
       use ghy_com, only : snowe,tearth,wearth,aiearth,snoage &
-           ,evap_max_ij,fr_sat_ij,qg_ij,tsns_ij
+           ,evap_max_ij,fr_sat_ij,qg_ij,tsns_ij,canopy_temp_ij
       use ghy_com, only : w_ij,ht_ij,snowbv, &
         nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
 #ifndef USE_ENT
@@ -311,6 +311,9 @@
 #endif
 #ifdef TRACERS_ON
       use rad_com, only : ttausv_sum,ttausv_sum_cs,ttausv_count
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only : snosiz
 #endif
 
       use icedyn_com, only : imic,rsix,rsiy,icij
@@ -489,6 +492,7 @@
         check("aiearth",aiearth)
         check("snoage",snoage)
         check("evap_max_ij",evap_max_ij)
+        check("canopy_temp_ij",canopy_temp_ij)
         check("fr_sat_ij",fr_sat_ij)
         check("qg_ij",qg_ij)
         check("tsns_ij",tsns_ij)
@@ -655,6 +659,10 @@
         check("trwm",trwm)
 #  endif
 
+#  ifdef TRACERS_AEROSOLS_Koch
+        check("snosiz",snosiz)
+#  endif
+
 #  ifdef TRACERS_SPECIAL_Shindell
         check("yNO3",yNO3)
         check("pHOx",pHOx)
@@ -678,7 +686,7 @@
         check("yCl2",yCl2)
         check("yCl2O2",yCl2O2)
 #  endif
-#ifdef INTERACTIVE_WETLANDS_CH4
+#  ifdef INTERACTIVE_WETLANDS_CH4
         check("day_ncep",day_ncep)
         check("DRA_ch4",DRA_ch4)
         check("sum_ncep",sum_ncep)
