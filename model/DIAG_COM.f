@@ -173,7 +173,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 #else
       INTEGER, PARAMETER, public :: NDIUPT=4
 #endif
-!@dpparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
+!@dbparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
 !@+                    default=0 (off)
       INTEGER, public :: adiurn_dust=0
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
