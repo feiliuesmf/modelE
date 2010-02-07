@@ -327,9 +327,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,canopy_temp_ij,fr_sat_ij,qg_ij
      &         ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
      &         ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
             tsns_ij_glob(:,:) = TEARTH_glob
-#ifdef BIOGENIC_EMISSIONS
-            call stop_model('need saved canopy_temp_ij',255)
-#endif
           else if (HEADER(1:lhead) == MODULE_HEADER(1:lhead)) then
             READ(kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
      &           ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
