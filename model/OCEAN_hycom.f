@@ -204,7 +204,7 @@ c
 
 #ifdef TRACERS_OceanBiology
       USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com,  only : gcmax,tracav,plevav,pCO2av
+      USE obio_com,  only : gcmax,tracav,plevav,pCO2av,pp2tot_day
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
       USE obio_com,  only : tracav_loc, plevav_loc
 #endif
@@ -264,6 +264,7 @@ c
 
       call pack_data(ogrid, tracav_loc, tracav)
       call pack_data(ogrid, plevav_loc, plevav)
+      call pack_data(ogrid, pp2tot_day, pp2tot_day_glob)
 
       if (AM_I_ROOT()) then ! work on global grids here
 

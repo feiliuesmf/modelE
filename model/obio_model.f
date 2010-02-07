@@ -217,8 +217,6 @@
 #endif
        endif
 
-      !scatter primary productivity
-      call unpack_data( ogrid,pp2tot_day_glob,pp2tot_day)
 !--------------------------------------------------------
 
        day_of_month=jdate
@@ -256,6 +254,7 @@
 #endif
 
 
+      call start('  obio main loop')
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
 c$OMP. SHARED(hour_of_day,day_of_month,JMON)
 
@@ -919,10 +918,11 @@ cdiag     endif
 
  1000 continue
 c$OMP END PARALLEL DO
+      call stop('  obio main loop')
 
-      !gather primary productivity
-      call pack_data( ogrid,  pp2tot_day, pp2tot_day_glob )
+      call start('  obio gather')
       call pack_data( ogrid,  tot_chlo,   tot_chlo_glob )
+      call stop('  obio gather')
 
       call start('   obio_trint')
 #ifdef OBIO_ON_GARYocean

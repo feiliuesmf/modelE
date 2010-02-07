@@ -1537,8 +1537,14 @@ c------------------------------------------------------------------
       USE obio_com, only: tracav,tracav_loc,
      .    plevav,plevav_loc
 #endif
+#ifdef TRACERS_OceanBiology
+      USE obio_com, only: gather_chl
+#endif
       implicit none 
 
+#ifdef TRACERS_OceanBiology
+      call gather_chl
+#endif
       call pack_data( ogrid,  tracav_loc, tracav )
       call pack_data( ogrid,  plevav_loc, plevav )
 
