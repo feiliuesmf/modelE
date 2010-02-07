@@ -920,8 +920,6 @@ cdiag     endif
  1000 continue
 c$OMP END PARALLEL DO
 
-      !gather tracer
-      call pack_data( ogrid,  tracer, tracer_glob )
       !gather primary productivity
       call pack_data( ogrid,  pp2tot_day, pp2tot_day_glob )
       call pack_data( ogrid,  tot_chlo,   tot_chlo_glob )
