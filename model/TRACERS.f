@@ -1135,6 +1135,9 @@ C**** check whether air mass is conserved
       USE fluxes,ONLY : nstype,pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only : snosiz
+#endif
       USE param, only : sync_param
       IMPLICIT NONE
 
@@ -1150,6 +1153,9 @@ C**** check whether air mass is conserved
      &     ,TRWM_GLOB
 #endif
   
+#ifdef TRACERS_AEROSOLS_Koch
+      REAL*8, DIMENSION(:,:), ALLOCATABLE :: snosiz_glob
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
@@ -1202,6 +1208,10 @@ C**** check whether air mass is conserved
      &    ,TRWM_GLOB(img,jmg,LM)
 #endif
      &     )
+
+#ifdef TRACERS_AEROSOLS_Koch
+      allocate( snosiz_glob(img,jmg) )
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
@@ -1258,6 +1268,12 @@ C**** check whether air mass is conserved
        header='For dust tracers: hbaij,ricntd,pprec,pevap'
        IF (am_i_root()) WRITE(kunit,ERR=10) header,hbaij_glob,
      &      ricntd_glob,pprec_glob,pevap_glob
+#endif
+
+#ifdef TRACERS_AEROSOLS_Koch
+       header='TRACERS_AEROSOLS_Koch: snosiz(i,j)'
+        call pack_data(grid,snosiz(:,:),snosiz_glob(:,:))
+        if(am_i_root())write(kunit,err=10)header,snosiz_glob
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
@@ -1435,6 +1451,11 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
           CALL unpack_data(grid,pevap_glob,pevap)
 #endif
 
+#ifdef TRACERS_AEROSOLS_Koch
+          if(am_i_root())read(kunit,err=10)header,snosiz_glob
+          call unpack_data(grid,snosiz_glob(:,:),snosiz(:,:))
+#endif
+
 #ifdef TRACERS_SPECIAL_Shindell       
           if(am_i_root())read(kunit,err=10)header,ss_glob
           call unpack_block(grid,ss_glob(:,:,:,:),ss(:,:,:,:))
@@ -1557,6 +1578,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     ,TRWM_GLOB
 #endif
      &     )
+
+#ifdef TRACERS_AEROSOLS_Koch
+      deallocate(snosiz_glob)
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
       deallocate(Aijl_glob,ss_glob)
