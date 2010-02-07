@@ -929,7 +929,7 @@ c$OMP END PARALLEL DO
 #ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
       !gather ao_co2flux
       call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
-      call gather_dpinit
+c$$$      call gather_dpinit
 #endif
 
       call start('   obio_trint')
