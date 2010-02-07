@@ -682,9 +682,10 @@ C****
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, GRID
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATEj, HALO_UPDATE_COLUMN
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH, GLOBALSUM
+      USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST
       USE GETTIME_MOD
       IMPLICIT NONE
-      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE
+      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,KE_jsum
       REAL*8, DIMENSION
      &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -1694,7 +1695,10 @@ C**** ACCUMULATE HERE
         ENDDO
       ENDDO
 
-      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.)
+c      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.) ! uses transposes
+      KE_jsum = sum(KE_part(:,J_0:J_1,:),2)
+      CALL SUMXPE(KE_jsum, KE)  ! not bitwise reproducible
+      call ESMF_BCAST(grid, KE)
 
       DO 2150 KS=1,NSPHER
       DO 2150 N=1,NM
@@ -1745,14 +1749,15 @@ C****
       USE DYNAMICS, only : sqrtp,pk
       USE DOMAIN_DECOMP_1D, only : GRID,GET,HALO_UPDATE, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : GLOBALSUM, SOUTH, WRITE_PARALLEL
+      USE DOMAIN_DECOMP_1D, only : SUMXPE, ESMF_BCAST
 
       IMPLICIT NONE
       INTEGER :: M5,NDT
       REAL*8, DIMENSION(IM) :: X, Xtmp
-      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,APE
+      REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,KE_jsum,APE
       REAL*8, DIMENSION
      &  (IMH+1,GRID%J_STRT_HALO:GRID%J_STOP_HALO,NSPHER) :: KE_part
-      REAL*8, DIMENSION(IMH+1,4,LM) :: VAR
+      REAL*8, DIMENSION(IMH+1,4,LM) :: VAR,VAR_jsum
       REAL*8, DIMENSION(IMH+1,4,LM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      &     :: VAR_part
       REAL*8, DIMENSION(2) :: TPE
@@ -1879,7 +1884,10 @@ cgsfc              IF(K.EQ.LM)KSPHER=KSPHER+1
         ENDDO
       ENDDO
 
-      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.)
+c      CALL GLOBALSUM(grid, KE_part, KE, ALL=.true.) ! uses transposes
+      KE_jsum = sum(KE_part(:,J_0:J_1,:),2)
+      CALL SUMXPE(KE_jsum, KE) ! not bitwise reproducible
+      call ESMF_BCAST(grid, KE)
 
       IF (NDT /= 0) THEN
 C**** TRANSFER RATES AS DIFFERENCES OF KINETIC ENERGY
@@ -1981,7 +1989,9 @@ C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
         END DO ! J
       END DO ! L
 
-      CALL GLOBALSUM(grid, VAR_part, VAR)
+c      CALL GLOBALSUM(grid, VAR_part, VAR) ! not parallelized
+      VAR_jsum = sum(VAR_part(:,:,:,J_0:J_1),4)
+      CALL SUMXPE(VAR_jsum, VAR) ! not bitwise reproducible
 
       IF (AM_I_ROOT()) THEN
         DO L = 1, LM
