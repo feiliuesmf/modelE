@@ -1598,6 +1598,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only : snosiz
+#endif
       implicit none
       integer fid   !@var fid file id
       integer :: n
@@ -1689,6 +1692,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       call defvar(grid,fid,pevap,'pevap(dist_im,dist_jm,nstype)')
 #endif
 
+#ifdef TRACERS_AEROSOLS_Koch
+      call defvar(grid,fid,snosiz,'snosiz(dist_im,dist_jm)')
+#endif
+
       return
       end subroutine def_rsf_tracer
 
@@ -1714,6 +1721,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
     (defined TRACERS_QUARZHEM)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      USE AEROSOL_SOURCES, only : snosiz
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,read_data,
@@ -1790,6 +1800,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call write_dist_data(grid,fid,'pevap',pevap)
 #endif
 
+#ifdef TRACERS_AEROSOLS_Koch
+        call write_dist_data(grid,fid,'snosiz',snosiz)
+#endif
+
       case (ioread)            ! input from restart file
         do n=1,ntm
           call read_dist_data(grid,fid, 'trm_'//trim(trname(n)),
@@ -1858,6 +1872,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call read_dist_data(grid,fid,'ricntd',ricntd)
         call read_dist_data(grid,fid,'pprec',pprec)
         call read_dist_data(grid,fid,'pevap',pevap)
+#endif
+
+#ifdef TRACERS_AEROSOLS_Koch
+        call read_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 
       end select
