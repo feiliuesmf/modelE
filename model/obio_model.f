@@ -89,11 +89,13 @@
      .                        tracer_glob=>tracer, dp_glob=>dp
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest,baclin
-      USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob,tracav,pCO2av,
-     .                    ao_co2fluxav,pCO2_glob,diag_counter,plevav
+      USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob,tracav_loc,
+     .     pCO2av,ao_co2fluxav,pCO2_glob,diag_counter,plevav_loc
+      
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
+      use TimerPackage_mod
 
 
       implicit none
@@ -118,6 +120,7 @@
 
       logical vrbos,noon,errcon
 
+      call start(' obio_model')
 !--------------------------------------------------------
       diagno_bio=.false.
 #ifdef OBIO_ON_GARYocean
@@ -161,9 +164,9 @@
 #ifdef OBIO_ON_GARYocean
       call obio_bioinit_g
 #else
+      tracav_loc = 0.
+      plevav_loc=0.
       if (AM_I_ROOT()) then
-      tracav = 0.
-      plevav=0.
       pCO2av=0.
       ao_co2fluxav  = 0.
       endif
@@ -929,11 +932,13 @@ c$OMP END PARALLEL DO
       call gather_dpinit
 #endif
 
+      call start('   obio_trint')
 #ifdef OBIO_ON_GARYocean
       call obio_trint
 #else
       call obio_trint
 #endif
+      call stop('   obio_trint')
 
 #ifdef OBIO_ON_GARYocean
 ! Hack for the "setup" period right after a cold start, before the
@@ -944,6 +949,7 @@ c$OMP END PARALLEL DO
       if(nstep0 <= itimei) nstep0 = huge(nstep0)
 #endif
 
+      call stop(' obio_model')
       return
 
       end subroutine obio_model

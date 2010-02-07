@@ -86,6 +86,7 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
      &                         haveLatitude, GLOBALSUM, ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: pack_data, unpack_data
       USE HYCOM_ATM 
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -117,8 +118,8 @@ c
      &     ,scatter_obio_forc_arrays
 
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
-     .    ,tracav,pCO2av,ao_co2flux_glob
-     .    ,ao_co2fluxav,diag_counter,plevav 
+     .    ,tracav,tracav_loc,pCO2av,ao_co2flux_glob
+     .    ,ao_co2fluxav,diag_counter,plevav,plevav_loc
 #endif 
 #ifdef OBIO_RAD_coupling
       !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
@@ -140,6 +141,7 @@ c
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
+      use TimerPackage_mod
       implicit none
 c
       integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb
@@ -206,7 +208,7 @@ ccc      if (slave) call pipe_init(.false.)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       ! move to global atm grid
-
+      call start('hycom')
       call getdte(Itime,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour,amon)
 
 cdiag write(*,'(a,i8,7i5,a)')'chk=',Itime,Nday,Iyear1,Jyear,Jmon
@@ -935,21 +937,6 @@ cdiag  call obio_limits('aftr hybgen')
       do j=1,jdm
       do i=1,idm
 
-      !tracer
-      do k=1,kk
-        kn=k+nn
-       !!plev=max(0.,dp(i,j,kn))
-         plev=max(0.,dpinit(i,j,k))
-         if (plev.lt.1.e30) then
-           plevav(i,j,k)=plevav(i,j,k)+plev
-
-           do nt=1,ntrcr
-              tracav(i,j,k,nt)=tracav(i,j,k,nt)+tracer(i,j,k,nt)*plev
-           enddo   !nt
-
-         endif
-      enddo  !k
-
 #ifdef TRACERS_OceanBiology
       !pco2
          pCO2av(i,j)=pCO2av(i,j)+pCO2(i,j)
@@ -963,6 +950,31 @@ cdiag  call obio_limits('aftr hybgen')
 
       endif  !trcfrq
       endif  !AM_I_ROOT
+
+      call start('  tracav')
+      if (mod(nstep,trcfrq).eq.0) then
+
+        do j=j_0,j_1
+          do i=1,idm
+
+            do k=1,kk
+              plev = max(0.,dpinit_loc(i,j,k))
+              if (plev.lt.1.e30) then
+                plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
+                
+                do nt=1,ntrcr
+                  tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) + 
+     &                 tracer_loc(i,j,k,nt)*plev
+                enddo !nt
+
+              endif
+            enddo  !k
+
+          end do
+        end do
+
+        call stop('  tracav')
+         end if
 
 #endif
 
@@ -1211,6 +1223,8 @@ ccc     .     'barotrop. v vel. (mm/s)')
 
       endif  !  AM_I_ROOT
       call set_data_after_archiv()
+      tracav_loc = 0
+      plevav_loc = 0
 
  23   continue
 
@@ -1400,6 +1414,7 @@ c
  9666 continue
       call scatter2_atm
 
+      call stop('hycom')
       return
       end
 c
@@ -1509,8 +1524,14 @@ c------------------------------------------------------------------
       use hycom_arrays_glob_renamer
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
+#if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
+      USE obio_com, only: tracav,tracav_loc,
+     .    plevav,plevav_loc
+#endif
       implicit none 
 
+      call pack_data( ogrid,  tracav_loc, tracav )
+      call pack_data( ogrid,  plevav_loc, plevav )
 
       call pack_data( ogrid,  u_loc, u )
       call pack_data( ogrid,  v_loc, v )

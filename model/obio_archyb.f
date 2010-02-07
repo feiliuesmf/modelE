@@ -168,8 +168,6 @@ c
 
 !zero out for next diagnostic period
       diag_counter= 0.
-      tracav = 0.
-      plevav = 0.
 #ifdef TRACERS_OceanBiology    
       pco2av = 0.
       ao_co2fluxav = 0.

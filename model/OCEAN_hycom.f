@@ -206,6 +206,7 @@ c
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
+      USE obio_com,  only : tracav_loc, plevav_loc
 #endif
       USE HYCOM_ARRAYS_GLOB
       USE param
@@ -260,6 +261,9 @@ c
       ! move to global atm grid
       call gather_atm
       call gather_hycom_arrays   !mkb Jun  6
+
+      call pack_data(ogrid, tracav_loc, tracav)
+      call pack_data(ogrid, plevav_loc, plevav)
 
       if (AM_I_ROOT()) then ! work on global grids here
 
