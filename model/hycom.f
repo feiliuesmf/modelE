@@ -118,8 +118,8 @@ c
      &     ,scatter_obio_forc_arrays
 
       USE obio_com, only: pCO2=>pCO2_glob,dobio, gather_pCO2
-     .    ,tracav,tracav_loc,pCO2av,ao_co2flux_glob
-     .    ,ao_co2fluxav,diag_counter,plevav,plevav_loc
+     .    ,tracav,tracav_loc,pCO2av,ao_co2flux_loc,ao_co2flux_glob
+     .    ,ao_co2fluxav,ao_co2fluxav_loc,diag_counter,plevav,plevav_loc
 #endif 
 #ifdef OBIO_RAD_coupling
       !USE RAD_COM, only: FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR
@@ -941,8 +941,6 @@ cdiag  call obio_limits('aftr hybgen')
       !pco2
          pCO2av(i,j)=pCO2av(i,j)+pCO2(i,j)
 
-      !ao_co2flux
-         ao_co2fluxav(i,j)=ao_co2fluxav(i,j)+ao_co2flux_glob(i,j)
 #endif
 
       enddo
@@ -970,11 +968,21 @@ cdiag  call obio_limits('aftr hybgen')
               endif
             enddo  !k
 
+#ifdef TRACERS_OceanBiology
+      !ao_co2flux
+            ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + 
+     &           ao_co2flux_loc(i,j)
+#endif
           end do
         end do
 
         call stop('  tracav')
          end if
+
+#ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
+      !gather ao_co2flux
+      call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
+#endif
 
 #endif
 
@@ -1225,6 +1233,7 @@ ccc     .     'barotrop. v vel. (mm/s)')
       call set_data_after_archiv()
       tracav_loc = 0
       plevav_loc = 0
+      ao_co2fluxav_loc = 0
 
  23   continue
 

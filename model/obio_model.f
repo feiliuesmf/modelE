@@ -90,7 +90,7 @@
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest,baclin
       USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob,tracav_loc,
-     .     pCO2av,ao_co2fluxav,pCO2_glob,diag_counter,plevav_loc
+     .     pCO2av,pCO2_glob,diag_counter,plevav_loc, ao_co2fluxav_loc
       
 #endif
 
@@ -166,9 +166,9 @@
 #else
       tracav_loc = 0.
       plevav_loc=0.
+      ao_co2fluxav_loc  = 0.
       if (AM_I_ROOT()) then
       pCO2av=0.
-      ao_co2fluxav  = 0.
       endif
 
       call obio_bioinit(nn)
@@ -925,12 +925,6 @@ c$OMP END PARALLEL DO
       !gather primary productivity
       call pack_data( ogrid,  pp2tot_day, pp2tot_day_glob )
       call pack_data( ogrid,  tot_chlo,   tot_chlo_glob )
-
-#ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
-      !gather ao_co2flux
-      call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
-c$$$      call gather_dpinit
-#endif
 
       call start('   obio_trint')
 #ifdef OBIO_ON_GARYocean

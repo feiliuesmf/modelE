@@ -170,7 +170,6 @@ c
       diag_counter= 0.
 #ifdef TRACERS_OceanBiology    
       pco2av = 0.
-      ao_co2fluxav = 0.
 #endif
 
       return
