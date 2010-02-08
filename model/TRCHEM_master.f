@@ -857,7 +857,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
       enddo
       call soa_apart ! calculate current apartmolar factors
 #ifdef SOA_DIAGS
-     &                (I,J)
+     &              (I,J)
 #endif  /* SOA_DIAGS */
 #endif  /* TRACERS_AEROSOLS_SOA */
       DO L=1,LL  
@@ -1004,11 +1004,17 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 ! WARNING!!!
 ! No nighttime production from OH reactions, since no nighttime OH exist.
 ! This should be improved in the future.
+!WRONG ON PURPOSE
+! SOA production from chemistry should be allowed everywhere, but
+! due to convection Isoprene and Terpenes have a local maximum in the
+! upper layers. This is unlikely to be the case in the real atmosphere,
+! thus chemical (but not partitioning) production is disabled above level 7
+      if (L<=7) then
         changeisopp1g=apartmolar(L,whichsoa(n_isopp1a))*
      &                (rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
         if(-changeisopp1g > 0.75d0*y(n_isopp1g,L))changeisopp1g=
      &  -0.75d0*y(n_isopp1g,L)
-        changeisopp2g=apartmolar(L,whichsoa(n_isopp1a))*
+        changeisopp2g=apartmolar(L,whichsoa(n_isopp2a))*
      &                (rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
         if(-changeisopp2g > 0.75d0*y(n_isopp2g,L))changeisopp2g=
      &  -0.75d0*y(n_isopp2g,L)
@@ -1016,10 +1022,16 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &                (rr(iTerpenesO3,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
         if(-changeapinp1g > 0.75d0*y(n_apinp1g,L))changeapinp1g=
      &  -0.75d0*y(n_apinp1g,L)
-        changeapinp2g=apartmolar(L,whichsoa(n_apinp1a))*
+        changeapinp2g=apartmolar(L,whichsoa(n_apinp2a))*
      &                (rr(iTerpenesO3,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
         if(-changeapinp2g > 0.75d0*y(n_apinp2g,L))changeapinp2g=
      &  -0.75d0*y(n_apinp2g,L)
+      else
+        changeisopp1g=0.d0
+        changeisopp2g=0.d0
+        changeapinp1g=0.d0
+        changeapinp2g=0.d0
+      endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         changeIsoprene=-(rr(32,L)*yNO3(I,J,L)
