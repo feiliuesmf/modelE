@@ -16,6 +16,9 @@
       USE DOMAIN_DECOMP_ATM, only:GRID,GET,AM_I_ROOT,
      &     write_parallel,readt8_parallel
       USE CONSTANT, only: mair,mwat,sday
+#ifdef TRACERS_AEROSOLS_SOA
+     &                   ,gasc
+#endif  /* TRACERS_AEROSOLS_SOA */
       USE MODEL_COM, only: dtsrc,byim,lm,jm,itime,pmidl00,nisurf
       USE GEOM, only: axyp,byaxyp
       USE DYNAMICS, only: am,byam  ! Air mass of each box (kg/m^2)
@@ -815,78 +818,78 @@ C          read the CFC initial conditions:
           n_soa_i = n_isopp1g        !the first from the soa species
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
-          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_mm(n) = 15.6d0
+          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 1.d6
+          HSTAR(n) = tr_RKD(n) * convert_HSTAR
 #endif
 
       case ('isopp1a')
           n_isopp1a = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          tr_mm(n) = 15.6d0
           trpdens(n) = 1.5d3         !kg/m3
           trradius(n) = 3.d-7        !m
-          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
       case ('isopp2g')
           n_isopp2g = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
-          tr_RKD(n) = 1.d6/101.325d0 !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_mm(n) = 15.6d0
+          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 1.d6
+          HSTAR(n) = tr_RKD(n) * convert_HSTAR
 #endif
 
       case ('isopp2a')
           n_isopp2a = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 136.0d0         !assuming methyltetrols from isoprene
+          tr_mm(n) = 15.6d0
           trpdens(n) = 1.5d3         !kg/m3
           trradius(n) = 3.d-7        !m
-          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
       case ('apinp1g')
           n_apinp1g = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 170.0d0
-          tr_RKD(n) = 1.d5/101.325d0 !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_mm(n) = 15.6d0
+          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 1.d6
+          HSTAR(n) = tr_RKD(n) * convert_HSTAR
 #endif
 
       case ('apinp1a')
           n_apinp1a = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 170.0d0
+          tr_mm(n) = 15.6d0
           trpdens(n) = 1.5d3         !kg/m3
           trradius(n) = 3.d-7        !m
-          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
       case ('apinp2g')
           n_apinp2g = n
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 170.0d0
-          tr_RKD(n) = 1.d5/101.325d0 !Henry; from mole/(L atm) to mole/J
-          tr_DHD(n) = 0.d0           !Henry temp dependence (J/mole)
+          tr_mm(n) = 15.6d0
+          tr_RKD(n) = 1.d3 / convert_HSTAR !Henry; from mole/(L atm) to mole/J
+          tr_DHD(n) = -12.d0 * gasc        !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
           tr_wd_TYPE(n) = nGAS
 #ifdef TRACERS_DRYDEP
-          HSTAR(n) = 1.d6
+          HSTAR(n) = tr_RKD(n) * convert_HSTAR
 #endif
 
       case ('apinp2a')
@@ -894,10 +897,10 @@ C          read the CFC initial conditions:
           n_soa_e = n_apinp2a        !the last from the soa species
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
-          tr_mm(n) = 170.0d0
+          tr_mm(n) = 15.6d0
           trpdens(n) = 1.5d3         !kg/m3
           trradius(n) = 3.d-7        !m
-          fq_aer(n) = 1.d0           !fraction of aerosol that dissolves
+          fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
 #endif  /* TRACERS_AEROSOLS_SOA */
