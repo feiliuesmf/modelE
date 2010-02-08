@@ -759,7 +759,7 @@ c derived/composite diagnostics
       real*8, dimension(ndiuvar), public :: scale_dd
       integer, dimension(ndiuvar), public :: denom_dd
 !@var CDL_DD consolidated metadata for ADIURN output fields in CDL notation
-      character(len=100), dimension(ndiuvar*6), public :: cdl_dd
+      character(len=100), dimension(ndiuvar*6), public :: cdl_dd,cdl_hd
 
 !@var IDD_xxx names for diurnal diagnostics
       INTEGER, public ::
@@ -1950,7 +1950,8 @@ c for which scalars is bcast_all=.true. necessary?
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
      &     name_consrv,sname_gc,
-     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
+     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_hd,
+     &     cdl_consrv,cdl_gc,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
@@ -2072,15 +2073,20 @@ c for which scalars is bcast_all=.true. necessary?
 
       call write_attr(grid,fid,'adiurn','reduction','sum')
       call write_attr(grid,fid,'adiurn','split_dim',1)
-#ifndef NO_HDIURN
-      call write_attr(grid,fid,'hdiurn','reduction','sum')
-#endif
       call defvar(grid,fid,int_dummy,'ntime_adiurn')
       call write_attr(grid,fid,'ntime_adiurn','reduction','sum')
       call defvar(grid,fid,denom_dd,'denom_adiurn(ndiuvar)')
       call defvar(grid,fid,scale_dd,'scale_adiurn(ndiuvar)')
       call defvar(grid,fid,name_dd,'sname_adiurn(sname_strlen,ndiuvar)')
       call defvar(grid,fid,cdl_dd,'cdl_adiurn(cdl_strlen,kcdl_adiurn)')
+#ifndef NO_HDIURN
+      call write_attr(grid,fid,'hdiurn','split_dim',1)
+      call defvar(grid,fid,int_dummy,'ntime_hdiurn')
+      call defvar(grid,fid,denom_dd,'denom_hdiurn(ndiuvar)')
+      call defvar(grid,fid,scale_dd,'scale_hdiurn(ndiuvar)')
+      call defvar(grid,fid,name_dd,'sname_hdiurn(sname_strlen,ndiuvar)')
+      call defvar(grid,fid,cdl_hd,'cdl_hdiurn(cdl_strlen,kcdl_hdiurn)')
+#endif
 
       call write_attr(grid,fid,'aisccp','reduction','sum')
       call defvar(grid,fid,wisccp,'wisccp(nisccp)')
@@ -2100,7 +2106,8 @@ c for which scalars is bcast_all=.true. necessary?
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
      &     name_consrv,sname_gc,
-     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_consrv,cdl_gc,
+     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_hd,
+     &     cdl_consrv,cdl_gc,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
@@ -2117,7 +2124,7 @@ c for which scalars is bcast_all=.true. necessary?
       use pario, only : write_data,write_dist_data
       implicit none
       integer fid   !@var fid unit number of read/write
-      integer :: i,n,ntime_dd
+      integer :: i,n,ntime_dd,ntime_hd
 #ifdef CUBE_GRID
       real*8 :: x_dummy(im)
 #endif
@@ -2197,6 +2204,15 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'denom_adiurn',denom_dd)
       call write_data(grid,fid,'sname_adiurn',name_dd)
       call write_data(grid,fid,'cdl_adiurn',cdl_dd)
+
+#ifndef NO_HDIURN
+      ntime_hd = nday/24
+      call write_data(grid,fid,'ntime_hdiurn',ntime_hd)
+      call write_data(grid,fid,'scale_hdiurn',scale_dd)
+      call write_data(grid,fid,'denom_hdiurn',denom_dd)
+      call write_data(grid,fid,'sname_hdiurn',name_dd)
+      call write_data(grid,fid,'cdl_hdiurn',cdl_hd)
+#endif
 
       call write_data(grid,fid,'isccp_press',isccp_press)
       call write_data(grid,fid,'isccp_tau',isccp_tau)

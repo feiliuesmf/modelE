@@ -6736,6 +6736,12 @@ c
       enddo
       kk = kk + 1
       cdl_dd(kk) = '}'
+
+#ifndef NO_HDIURN
+c Declare the dimensions and metadata of HDIURN output fields
+      cdl_hd = cdl_dd
+      write(cdl_hd(3),'(a,i4,a)') '   hour = ',hr_in_month,' ;'
+#endif
 #endif
 
       return
