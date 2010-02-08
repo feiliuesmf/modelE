@@ -50,15 +50,15 @@ C****
      *  JST(NMST,2) = Reshape ( (/
      *    126,104,
      *    126,103/),(/NMST,2/) ),
-     *  LMST(NMST) = (/ 4, 2/)
+     *  LMST(NMST) = (/ 6, 2/)
       Real*8,Parameter ::
      *  XST(NMST,2) = Reshape ( (/
-     *      .7d0, .7d0, 
+     *      .7d0, .7d0,
      *     -.7d0,-.7d0 /), (/ NMST,2 /) ),
      *  YST(NMST,2) = Reshape ( (/
-     *      .7d0, -.7d0, 
-     *     -.7d0,  .7d0/), (/ NMST,2 /) ),
-     *     WIST(NMST) = (/ 15d3, 25d3 /)
+     *      .7d0,-.7d0,
+     *     -.7d0, .7d0/), (/ NMST,2 /) ),
+     *  WIST(NMST) = (/ 15d3, 25d3 /)
       Character*20,Parameter :: NAME_ST(NMST) = (/
      *     'Gibraltar'   , 'Bab al Mandab' /)
 
