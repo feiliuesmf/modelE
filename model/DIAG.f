@@ -411,8 +411,8 @@ C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
 c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             call inc_ajl(i,j,l,jl_dtdyn,tx(i,j,l)*pdsig(l,i,j))
             AIJ(I,J,IJ_QM)=AIJ(I,J,IJ_QM)+Q(I,J,L)*AM(L,I,J)
-#ifdef HTAP_LIKE_DIAGS
             aijl(i,j,L,ijl_tempL)=aijl(i,j,L,ijl_tempL)+TX(i,j,L)
+#ifdef HTAP_LIKE_DIAGS
             aijl(i,j,L,ijl_husL)=aijl(i,j,L,ijl_husL)+Q(i,j,L)
             aijl(i,j,L,ijl_gridH)=aijl(i,j,L,ijl_gridH)+
      &      rgas/grav*TX(i,j,L)*log(pedn(l,i,j)/pedn(L+1,i,j))

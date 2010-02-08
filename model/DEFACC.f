@@ -5591,7 +5591,6 @@ c
       ia_ijl(k) = ia_src
 
 #endif
-#ifdef HTAP_LIKE_DIAGS
       k=k+1        ! temperature (model layers)
       ijl_tempL    = k
       name_ijl(k)  = 'TempL'
@@ -5601,6 +5600,7 @@ c
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
 c
+#ifdef HTAP_LIKE_DIAGS
       k=k+1        ! grid box geometric height (model layers)
       ijl_gridh    = k
       name_ijl(k)  = 'GridH'
