@@ -285,7 +285,7 @@ C**** Initialize to zero
 !@var IOERR 1 (or -1) if there is (or is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH02"
+      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH03"
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE_glob, TEARTH_glob,
      &     WEARTH_glob, AIEARTH_GLOB,evap_max_ij_glob, fr_sat_ij_glob,
