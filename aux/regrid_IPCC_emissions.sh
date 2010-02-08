@@ -10,6 +10,24 @@ rm -f propene+oalkenes_ships.nc alkenes_anthropogenic.nc alkenes_Biomass.nc alke
 rm -f butanes+hexanes_* ethane+ketones_*nc propane+pentanes+butanes+hexanes_Biomass.nc paraffin_Biomass.nc
 rm -f paraffin_ships.nc NOx*.nc
 
+#-- vegetation density
+./remap.pl -par regrida2x2.5.par -in veg_dense_2x2.5 -out veg_dense_C90_from_2x2.5
+
+#-- interactive wetland
+./remap.pl -par regrida2x2.5.par -in beta_p_ch4_4x5_2x2.5gf -out beta_p_ch4_4x5_2x2.5gf_C90
+./remap.pl -par regrida2x2.5.par -in alpha_t_ch4_4x5_2x2.5gf -out alpha_t_ch4_4x5_2x2.5gf_C90
+./remap.pl -par regrida2x2.5.par -in ncep_g1temp_2x2.5 -out ncep_g1temp_2x2.5_C90
+./remap.pl -par regrida2x2.5.par -in ncep_prec_w_2wk_lag_2x2.5 -out ncep_prec_w_2wk_lag_2x2.5_C90
+
+#-- interactive fire emissions
+./remap.pl -par regrida2x2.5.par -in OC_emmissions_per_fire_count_2x2.5 -out OC_emmissions_per_fire_count_C90_from_2x2.5
+./remap.pl -par regrida2x2.5.par -in BC_emmissions_per_fire_count_2x2.5 -out BC_emmissions_per_fire_count_C90_from_2x2.5
+./remap.pl -par regrida2x2.5.par -in Paraffin_emmissions_per_fire_count_2x2.5 -out Paraffin_emmissions_per_fire_count_C90_from_2x2.5
+./remap.pl -par regrida2x2.5.par -in Alkenes_emmissions_per_fire_count_2x2.5 -out Alkenes_emmissions_per_fire_count_C90_from_2x2.5
+./remap.pl -par regrida2x2.5.par -in CH4_emmissions_per_fire_count_2x2.5 -out CH4_emmissions_per_fire_count_C90_from_2x2.5
+./remap.pl -par regrida2x2.5.par -in CO_emmissions_per_fire_count_2x2.5 -out CO_emmissions_per_fire_count_C90_from_2x2.5
+./remap.pl -par regrida2x2.5.par -in NOx_emmissions_per_fire_count_2x2.5 -out NOx_emmissions_per_fire_count_C90_from_2x2.5
+
 #-- Gas tracers - initial conditions -
 ./remap.pl -par ICgastracers.par -in N2O_IC_M23_4x5_6.17_conc_2x2.5_conc -out N2O_IC_from_2x2.5_C90_Dec_2009 
 ./remap.pl -par ICgastracers.par -in CFC_IC_M23_4x5_6.17_conc_2x2.5_conc -out CFC_IC_from_2x2.5_C90_Dec_2009 
