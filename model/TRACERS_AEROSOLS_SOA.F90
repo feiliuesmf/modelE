@@ -334,10 +334,12 @@ subroutine soa_apart(III,JJJ)
 subroutine soa_apart
 #endif  /* SOA_DIAGS */
 
+#ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
                       ijlt_soa_voc2nox,&
                       ijlt_soa_apartmass_isopp1a,ijlt_soa_apartmass_isopp2a,&
                       ijlt_soa_apartmass_apinp1a,ijlt_soa_apartmass_apinp2a
+#endif  /* SOA_DIAGS */
 implicit none
 
 #ifdef SOA_DIAGS
@@ -740,6 +742,7 @@ DO JL=L,L
   endif
 !
 ! Stop iteration after 100 iterations (no solution found)
+! This number should typically be below 5
 !
   iternum=iternum+1
   if(iternum.ge.100) goto 30
