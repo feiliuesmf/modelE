@@ -1233,9 +1233,15 @@ ccc     .     'barotrop. v vel. (mm/s)')
 
       endif  !  AM_I_ROOT
       call set_data_after_archiv()
+
+#if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       tracav_loc = 0
       plevav_loc = 0
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CO2
       ao_co2fluxav_loc = 0
+#endif
 
  23   continue
 
@@ -1547,8 +1553,12 @@ c------------------------------------------------------------------
 #ifdef TRACERS_OceanBiology
       call gather_chl
 #endif
+
+#if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       call pack_data( ogrid,  tracav_loc, tracav )
       call pack_data( ogrid,  plevav_loc, plevav )
+#endif
 
       call pack_data( ogrid,  u_loc, u )
       call pack_data( ogrid,  v_loc, v )
