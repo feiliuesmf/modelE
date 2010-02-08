@@ -612,6 +612,15 @@ c
       endif
 #endif
 
+#if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
+      || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
+      call unpack_data(ogrid, tracav, tracav_loc)
+      call unpack_data(ogrid, plevav, plevav_loc)
+#endif
+#ifdef TRACERS_OceanBiology
+      call unpack_data(ogrid, pp2tot_day_glob, pp2tot_day)
+#endif
+
       RETURN
  10   IOERR=1
       call scatter_atm
