@@ -266,7 +266,6 @@ c
       || (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)   
       call pack_data(ogrid, tracav_loc, tracav)
       call pack_data(ogrid, plevav_loc, plevav)
-      call pack_data(ogrid, pp2tot_day, pp2tot_day_glob)
 #endif
 #ifdef TRACERS_OceanBiology
       call pack_data(ogrid, pp2tot_day, pp2tot_day_glob)
