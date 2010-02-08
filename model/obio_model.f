@@ -137,6 +137,7 @@
 
 !Cold initialization
 
+      call start(' obio_init')
 #ifdef OBIO_ON_GARYocean
       !nstep0=0 : cold initialization
       !nstep0>0 : warm initialization, is the timestep of current restart run
@@ -198,6 +199,7 @@
          call obio_trint
        endif !for restart only
 #endif
+      call stop(' obio_init')
 
 #ifdef OBIO_ON_GARYocean
       time = float(nstep)
@@ -866,9 +868,9 @@ cdiag     endif
      .       p1d(kdm+1),pp2_1d(k,nt),pp2tot_day(i,j)
        enddo
        enddo
-       endif
        write(*,'(a,3i5,e12.4)')'obio_model, pp:',
      .    nstep,i,j,pp2tot_day(i,j)
+       endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
@@ -925,11 +927,7 @@ c$OMP END PARALLEL DO
       call stop('  obio gather')
 
       call start('   obio_trint')
-#ifdef OBIO_ON_GARYocean
       call obio_trint
-#else
-      call obio_trint
-#endif
       call stop('   obio_trint')
 
 #ifdef OBIO_ON_GARYocean
