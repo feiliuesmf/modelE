@@ -352,9 +352,7 @@ c
 #endif
 #ifdef TRACERS_OceanBiology
       call flxa2o(asolz,osolz)
-      write(701,*) awind
       call flxa2o(awind,owind)
-      write(702,*) owind
 #endif
 #ifdef OBIO_RAD_coupling
       call flxa2o(avisdir,ovisdir)

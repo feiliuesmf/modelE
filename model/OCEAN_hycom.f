@@ -230,6 +230,10 @@ c
       integer i,j,k
 !@var TRNHEADER Character string label for individual records
       CHARACTER*80 :: TRNHEADER, TRNMODULE_HEADER = "TRGASEX-OBIOh"
+#ifdef TRACERS_OceanBiology
+      CHARACTER*80 :: TRN2HEADER,
+     .     TRN2MODULE_HEADER = "TRGASXOBIOhdiags"
+#endif 
 #endif
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
       integer i,j,k
@@ -291,6 +295,8 @@ c
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a29)')
      *     'atrac,avgq,gcmax,tirrq3d,ihra,tracav,pCO2av,diag_counter'
+      write (TRN2MODULE_HEADER(lhead+1:80),'(a29)')
+     *     'pp2tot_day'
 #else
 #ifdef TRACERS_GASEXCH_ocean
       write(*,'(a,i9,f9.0)')'chk GASEXCH write at nstep/day=',nstep,time
@@ -301,6 +307,8 @@ c
       write(*,'(a,i9,f9.0)')'chk OCN BIO write at nstep/day=',nstep,time
       write (TRNMODULE_HEADER(lhead+1:80),'(a63)')
      *'avgq,gcmax,tirrq3d,ihra,tracav,pCO2av,diag_counter,ao_co2fluxav'
+      write (TRN2MODULE_HEADER(lhead+1:80),'(a29)')
+     *     'pp2tot_day'
 #endif
 #endif
 
@@ -329,7 +337,9 @@ css#endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,pp2tot_day_glob
+     . ,tracav,plevav,pCO2av,diag_counter
+      WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
+     . ,pp2tot_day_glob
       i=itest
       j=jtest
       do k=1,kdm
@@ -354,7 +364,9 @@ css#endif
 #ifdef TRACERS_OceanBiology
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav,pp2tot_day_glob
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+      WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
+     . ,pp2tot_day_glob
       i=itest
       j=jtest
       print*,'test point at:',itest,jtest
@@ -416,7 +428,9 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,pp2tot_day_glob
+     . ,tracav,plevav,pCO2av,diag_counter
+      READ (kunit,err=10) TRN2HEADER,nstep0,time0
+     . ,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest
       j=jtest
@@ -430,6 +444,11 @@ c
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRN2HEADER
+     .             ,TRN2MODULE_HEADER
               GO TO 10
             END IF
 #else
@@ -453,7 +472,9 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav,pp2tot_day_glob
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+      READ (kunit,err=10) TRN2HEADER,nstep0,time0
+     . ,pp2tot_day_glob
       i=itest
       j=jtest
       print*, 'itest, jtest=',itest,jtest
@@ -467,6 +488,11 @@ c
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRN2HEADER
+     .             ,TRN2MODULE_HEADER
               GO TO 10
             END IF
 #endif
@@ -529,7 +555,9 @@ c
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,pp2tot_day_glob
+     . ,tracav,plevav,pCO2av,diag_counter
+      READ (kunit,err=10) TRN2HEADER,nstep0,time0
+     . ,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')
      &     'chk GASEXCH read at nstep/day=',nstep0,time0
       i=itest
@@ -543,6 +571,11 @@ c
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRN2HEADER
+     .             ,TRN2MODULE_HEADER
               GO TO 10
             END IF
 #else
@@ -566,7 +599,9 @@ c
 #ifdef TRACERS_OceanBiology
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,avgq_glob,gcmax_glob,tirrq3d_glob,ihra_glob
-     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav,pp2tot_day_glob
+     . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
+      READ (kunit,err=10) TRN2HEADER,nstep0,time0
+     . ,pp2tot_day_glob
       i=itest
       j=jtest
       do k=1,kdm
@@ -578,6 +613,11 @@ c
             IF (TRNHEADER(1:LHEAD).NE.TRNMODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TRNHEADER
      .             ,TRNMODULE_HEADER
+              GO TO 10
+            END IF
+            IF (TRN2HEADER(1:LHEAD).NE.TRN2MODULE_HEADER(1:LHEAD)) THEN
+              PRINT*,"Discrepancy in module version ",TRN2HEADER
+     .             ,TRN2MODULE_HEADER
               GO TO 10
             END IF
 #endif
