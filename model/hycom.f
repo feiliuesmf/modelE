@@ -293,9 +293,11 @@ c --- dmua on B-grid, dmui on C-grid; Nick aug04
      .             + TRGASEX_loc(nt,1,ia,ja) ! in mol/m2/s
      .             * dtsrc/(real(nhr)*3600.)
 
-c$$$                 write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
-c$$$     .          itime,jhour,ia,ja,TRGASEX_loc(nt,1,ia,ja),
-c$$$     .                       atracflx_loc(ia,ja,nt)
+              if (ia == itest .and. ja == jtest) then
+                write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
+     .          itime,jhour,ia,ja,TRGASEX_loc(nt,1,ia,ja),
+     .                       atracflx_loc(ia,ja,nt)
+              end if
             enddo
 #endif
 #ifdef TRACERS_OceanBiology
