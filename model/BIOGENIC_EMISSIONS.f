@@ -37,12 +37,9 @@
       end subroutine alloc_biogenic_emis
 
 
-      subroutine isoprene_emission(i,j,itype,emisop)
+      subroutine isoprene_emission(i,j,itype,emisop,CanTemp)
 
       use biogenic_emis
-      use ghy_com, only: canopy_temp_ij  
-               !canopy_temp_ij = array(im,jm) of canopy temperatures (C)
-               !Same temperature for all veg types over grid cell.
       use rad_com, only : cosz1,cfrac
       use geom, only : byaxyp
       use pbl_drv, only : t_pbl_args
@@ -52,6 +49,7 @@
     
       implicit none
  
+      real*8 :: intent(in) :: CanTemp !@var CanTemp canopy temperature (C)
       type (t_pbl_args) :: pbl_args
       integer :: inveg
       integer, intent(in) :: i,j,itype  
@@ -70,7 +68,7 @@
 
         ! estimated surface density
         sfdens=100.d0*pbl_args%psurf/(rgas*pbl_args%tgv) 
-        tmmpk = canopy_temp_ij(i,j) + tf
+        tmmpk = CanTemp + tf
 
         emisop=0.d0
         tlai=0.d0

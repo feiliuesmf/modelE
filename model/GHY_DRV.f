@@ -869,7 +869,7 @@ c****
      *     ,runoe,erunoe,gtemp,precss,gtempr,bare_soil_wetness
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
-     *     canopy_temp_ij,snowe,tearth,tsns_ij,wearth,aiearth,
+     *     snowe,tearth,tsns_ij,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij,
      &     soil_surf_moist
 #ifndef USE_ENT
@@ -1218,6 +1218,8 @@ c**** call tracers stuff
       pbl_args%ntx = 0  ! tracers are activated in PBL, but GHY has none
 #endif
 
+      call get_canopy_temperaure(pbl_args%canopy_temperature, i, j)
+
       call pbl(i,j,itype,ptype,pbl_args)
 
 c****
@@ -1402,7 +1404,12 @@ c**** computing ground humidity to be used on next time step
 
 ccc Save canopy temperature.
 ccc canopy_temp_ij is not used so far... do we need it?
-      canopy_temp_ij(i,j) = tp(0,2)  !nyk
+cddd      canopy_temp_ij(i,j) = tp(0,2)  !nyk
+cddd
+cddd      call get_canopy_temperaure(pbl_args%canopy_temperature, i, j)
+cddd
+cddd      write(951,*) pbl_args%canopy_temperature,canopy_temp_ij(i,j),i,j
+
 
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       if ( snow_cover_same_as_rad == 0 ) then
@@ -4535,6 +4542,44 @@ cddd      sinday=sin(twopi/edpery*jday)
 
       end subroutine init_underwater_soil
 
+      subroutine get_canopy_temperaure(CanTemp, i, j)
+!@sum returns canopy temperature for the cell i,j 
+!@+   returns -1d30 for a cell with no vegetation
+      use constant, only : rhow, shw_kg=>shw
+      use ghy_com, only : w_ij, ht_ij, fearth
+#ifdef USE_ENT
+      use ent_com, only : entcells
+      use ent_mod, only : ent_get_exports
+#else
+      use veg_com, only : ala
+#endif
+      real*8, intent(out) :: CanTemp
+      integer, intent(in) :: i, j
+      real*8 :: fb, fv, fice, can_ht_cap
+
+      if ( fearth(i,j) <= 0.d0 ) then
+        CanTemp = -1.d30
+        return
+      endif
+
+      call get_fb_fv( fb, fv, i, j )
+      if ( fv <= 0.d0 ) then
+        CanTemp = -1.d30
+        return
+      endif
+      
+#ifdef USE_ENT
+      call ent_get_exports( entcells(i,j),
+     &     canopy_heat_capacity=can_ht_cap )
+#else
+      aa=ala(1,i,j)
+      can_ht_cap=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
+#endif
+      call heat_to_temperature( CanTemp, fice,
+     &     ht_ij(0,2,i,j), w_ij(0,2,i,j), can_ht_cap)
+
+      end subroutine get_canopy_temperaure
+
 
       subroutine heat_to_temperature(tp, fice, ht, w, ht_cap)
       use constant, only : rhow, lhm, shw_kg=>shw, shi_kg=>shi
@@ -4863,7 +4908,7 @@ c**** Also reset snow fraction for albedo computation
       use constant, only : rhow,tf,lhe,lhs
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth,qg_ij,fr_snow_rad_ij
-     &     ,shc_soil_texture,canopy_temp_ij,snowe,tearth,wearth,aiearth
+     &     ,shc_soil_texture,snowe,tearth,wearth,aiearth
      &     ,tsns_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
@@ -4940,8 +4985,6 @@ c**** Also reset snow fraction for albedo computation
           qg_ij(i,j) = qsat(tg1+tf,elhx,ps) ! all saturated
       ! snow fraction same as in snow model
           fr_snow_rad_ij(:,i,j) = 0.d0 ! no snow in new cell
-      ! canopy_temp_ij is not used so far... do we need it?
-          canopy_temp_ij(i,j) = 0.d0 ! canopy at 0C
 
 c**** snowe used in RADIATION
           snowe(i,j) = 1000.*0.d0

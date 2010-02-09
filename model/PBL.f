@@ -92,6 +92,7 @@ c**** Do not use global variables for that purpose !
         real*8 us,vs,ws,tsv,qsrf,cm,ch,cq,dskin,ws0
         ! the following args needed for diagnostics
         real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
+        real*8 canopy_temperature
 #ifdef TRACERS_ON
 c**** Attention: tracer arrays in this structure have dim 1:ntm
 c**** while local arrays in PBL code have dim 1:ntx
@@ -110,7 +111,7 @@ c**** Tracer input/output
         real*8, dimension(maxntm) :: frack
 #endif
 #ifdef BIOGENIC_EMISSIONS
-        real*8 :: emisop 
+        real*8 :: emisop
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -769,7 +770,8 @@ C****   4) tracers with interactive sources
 ! emisop is in units kg C/m2/s
         select case (trname(pbl_args%ntix(itr)))
         case ('Isoprene')
-          call isoprene_emission(ilong,jlat,itype,pbl_args%emisop)
+          call isoprene_emission(ilong,jlat,itype,pbl_args%emisop
+     &         ,pbl_args%canopy_temperature)
           trcnst=pbl_args%emisop*byrho
         end select
 #endif
