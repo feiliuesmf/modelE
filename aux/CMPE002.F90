@@ -285,7 +285,7 @@
       use lakes_com, only : mldlk,mwl,tlake,gml,flake
       use seaice_com, only : rsi,hsi,snowi,msi,ssi,pond_melt,flag_dsws
       use ghy_com, only : snowe,tearth,wearth,aiearth,snoage &
-           ,evap_max_ij,fr_sat_ij,qg_ij,tsns_ij,canopy_temp_ij
+           ,evap_max_ij,fr_sat_ij,qg_ij,tsns_ij
       use ghy_com, only : w_ij,ht_ij,snowbv, &
         nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
 #ifndef USE_ENT
@@ -492,7 +492,6 @@
         check("aiearth",aiearth)
         check("snoage",snoage)
         check("evap_max_ij",evap_max_ij)
-        check("canopy_temp_ij",canopy_temp_ij)
         check("fr_sat_ij",fr_sat_ij)
         check("qg_ij",qg_ij)
         check("tsns_ij",tsns_ij)
