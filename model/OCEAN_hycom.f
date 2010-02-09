@@ -150,6 +150,12 @@ css   ENTRY ODYNAM
 
       ENTRY ODIFS
       ENTRY io_ocdiag
+      ENTRY new_io_ocdiag
+      ENTRY def_rsf_ocdiag
+      ENTRY def_meta_ocdiag
+      ENTRY write_meta_ocdiag
+      ENTRY set_ioptrs_ocnacc_default
+      ENTRY set_ioptrs_ocnacc_extended
       ENTRY init_ODEEP
       ENTRY reset_ODIAG
       ENTRY diag_OCEAN
@@ -629,6 +635,238 @@ c
       RETURN
 C****
       END SUBROUTINE io_ocean
+
+#ifdef NEW_IO
+      subroutine def_rsf_ocean(fid)
+!@sum  def_rsf_ocean defines ocean array structure in restart files
+!@auth M. Kelley
+!@ver  beta
+      USE HYCOM_DIM, only : grid=>ogrid
+      use domain_decomp_1d, only : agrid=>grid
+      use pario, only : defvar
+      USE HYCOM_ATM, only :
+     &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
+      USE HYCOM_SCALARS, only : nstep,time,oddev
+      USE HYCOM_ARRAYS
+      implicit none
+      integer fid   !@var fid file id
+      character(len=14) :: str2d
+      character(len=18) :: str3d
+      character(len=20) :: str3d2
+      str2d ='(idm,dist_jdm)'
+      str3d ='(idm,dist_jdm,kdm)'
+      str3d2='(idm,dist_jdm,kdmx2)'
+
+      call defvar(grid,fid,nstep,'nstep')
+      call defvar(grid,fid,time,'time')
+
+      call defvar(grid,fid,u,'uo'//str3d2)
+      call defvar(grid,fid,v,'vo'//str3d2)
+      call defvar(grid,fid,dp,'dp'//str3d2)
+      call defvar(grid,fid,temp,'temp'//str3d2)
+      call defvar(grid,fid,saln,'saln'//str3d2)
+      call defvar(grid,fid,th3d,'th3d'//str3d2)
+      call defvar(grid,fid,ubavg,'ubavg(idm,dist_jdm,three)')
+      call defvar(grid,fid,vbavg,'vbavg(idm,dist_jdm,three)')
+      call defvar(grid,fid,pbavg,'pbavg(idm,dist_jdm,three)')
+      call defvar(grid,fid,pbot,'pbot'//str2d)
+      call defvar(grid,fid,psikk,'psikk'//str2d)
+      call defvar(grid,fid,thkk,'thkk'//str2d)
+      call defvar(grid,fid,dpmixl,'dpmixl(idm,dist_jdm,two)')
+      call defvar(grid,fid,uflxav,'uflxav'//str3d)
+      call defvar(grid,fid,vflxav,'vflxav'//str3d)
+      call defvar(grid,fid,diaflx,'diaflx'//str3d)
+      call defvar(grid,fid,tracer,'tracer(idm,dist_jdm,kdm,ntrcr)')
+      call defvar(grid,fid,dpinit,'dpinit'//str3d)
+      call defvar(grid,fid,oddev,'oddev')
+      call defvar(grid,fid,uav,'uav'//str3d)
+      call defvar(grid,fid,vav,'vav'//str3d)
+      call defvar(grid,fid,dpuav,'dpuav'//str3d)
+      call defvar(grid,fid,dpvav,'dpvav'//str3d)
+      call defvar(grid,fid,dpav,'dpav'//str3d)
+      call defvar(grid,fid,temav,'temav'//str3d)
+      call defvar(grid,fid,salav,'salav'//str3d)
+      call defvar(grid,fid,th3av,'th3av'//str3d)
+      call defvar(grid,fid,ubavav,'ubavav'//str2d)
+      call defvar(grid,fid,vbavav,'vbavav'//str2d)
+      call defvar(grid,fid,pbavav,'pbavav'//str2d)
+      call defvar(grid,fid,sfhtav,'sfhtav'//str2d)
+      call defvar(grid,fid,eminpav,'eminpav'//str2d)
+      call defvar(grid,fid,surflav,'surflav'//str2d)
+      call defvar(grid,fid,salflav,'salflav'//str2d)
+      call defvar(grid,fid,brineav,'brineav'//str2d)
+      call defvar(grid,fid,tauxav,'tauxav'//str2d)
+      call defvar(grid,fid,tauyav,'tauyav'//str2d)
+      call defvar(grid,fid,dpmxav,'dpmxav'//str2d)
+      call defvar(grid,fid,oiceav,'oiceav'//str2d)
+c for now, these are global-sized arrays
+      call defvar(agrid,fid,asst,'asst(im,jm)')
+      call defvar(agrid,fid,atempr,'atempr(im,jm)')
+      call defvar(agrid,fid,sss,'sss(im,jm)')
+      call defvar(agrid,fid,ogeoza,'ogeoza(im,jm)')
+      call defvar(agrid,fid,uosurf,'uosurf(im,jm)')
+      call defvar(agrid,fid,vosurf,'vosurf(im,jm)')
+      call defvar(agrid,fid,dhsi,'dhsi(two,im,jm)')
+      call defvar(agrid,fid,dmsi,'dmsi(two,im,jm)')
+      call defvar(agrid,fid,dssi,'dssi(two,im,jm)')
+
+c write:
+c        WRITE (kunit,err=10) nstep,time
+c     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
+c     . ,uflxav,vflxav,diaflx,tracer,dpinit,oddev,uav,vav,dpuav,dpvav
+c     . ,dpav,temav,salav,th3av,ubavav,vbavav,pbavav,sfhtav,eminpav
+c     . ,surflav,salflav,brineav,tauxav,tauyav,dpmxav,oiceav
+c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
+
+c read: note it reads in nstep0,time0 instead of nstep,time
+c            READ (kunit,err=10) HEADER,nstep0,time0
+c     . ,u,v,dp,temp,saln,th3d,ubavg,vbavg,pbavg,pbot,psikk,thkk,dpmixl
+c     . ,uflxav,vflxav,diaflx,tracer,dpinit,oddev,uav,vav,dpuav,dpvav
+c     . ,dpav,temav,salav,th3av,ubavav,vbavav,pbavav,sfhtav,eminpav
+c     . ,surflav,salflav,brineav,tauxav,tauyav,dpmxav,oiceav
+c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
+
+      return
+      end subroutine def_rsf_ocean
+
+      subroutine new_io_ocean(fid,iaction)
+!@sum  new_io_ocean read/write ocean arrays from/to restart files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      USE HYCOM_DIM, only : grid=>ogrid
+      use domain_decomp_1d, only : agrid=>grid
+      use pario, only : defvar
+      USE HYCOM_ATM, only : gather_atm,scatter_atm,
+     &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
+      USE HYCOM_SCALARS, only : nstep,time,nstep0,time0,baclin,oddev
+      USE HYCOM_ARRAYS
+      USE HYCOM_ARRAYS_GLOB, only : gather_hycom_arrays   ! for now
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file
+        call write_data(grid,fid,'nstep',nstep)
+        call write_data(grid,fid,'time',time)
+        call write_dist_data(grid,fid,'uo',u)
+        call write_dist_data(grid,fid,'vo',v)
+        call write_dist_data(grid,fid,'dp',dp)
+        call write_dist_data(grid,fid,'temp',temp)
+        call write_dist_data(grid,fid,'saln',saln)
+        call write_dist_data(grid,fid,'th3d',th3d)
+        call write_dist_data(grid,fid,'ubavg',ubavg)
+        call write_dist_data(grid,fid,'vbavg',vbavg)
+        call write_dist_data(grid,fid,'pbavg',pbavg)
+        call write_dist_data(grid,fid,'pbot',pbot)
+        call write_dist_data(grid,fid,'psikk',psikk)
+        call write_dist_data(grid,fid,'thkk',thkk)
+        call write_dist_data(grid,fid,'dpmixl',dpmixl)
+        call write_dist_data(grid,fid,'uflxav',uflxav)
+        call write_dist_data(grid,fid,'vflxav',vflxav)
+        call write_dist_data(grid,fid,'diaflx',diaflx)
+        call write_dist_data(grid,fid,'tracer',tracer)
+        call write_dist_data(grid,fid,'dpinit',dpinit)
+        call write_data(grid,fid,'oddev',oddev)
+        call write_dist_data(grid,fid,'uav',uav)
+        call write_dist_data(grid,fid,'vav',vav)
+        call write_dist_data(grid,fid,'dpuav',dpuav)
+        call write_dist_data(grid,fid,'dpvav',dpvav)
+        call write_dist_data(grid,fid,'dpav',dpav)
+        call write_dist_data(grid,fid,'temav',temav)
+        call write_dist_data(grid,fid,'salav',salav)
+        call write_dist_data(grid,fid,'th3av',th3av)
+        call write_dist_data(grid,fid,'ubavav',ubavav)
+        call write_dist_data(grid,fid,'vbavav',vbavav)
+        call write_dist_data(grid,fid,'pbavav',pbavav)
+        call write_dist_data(grid,fid,'sfhtav',sfhtav)
+        call write_dist_data(grid,fid,'eminpav',eminpav)
+        call write_dist_data(grid,fid,'surflav',surflav)
+        call write_dist_data(grid,fid,'salflav',salflav)
+        call write_dist_data(grid,fid,'brineav',brineav)
+        call write_dist_data(grid,fid,'tauxav',tauxav)
+        call write_dist_data(grid,fid,'tauyav',tauyav)
+        call write_dist_data(grid,fid,'dpmxav',dpmxav)
+        call write_dist_data(grid,fid,'oiceav',oiceav)
+c for now, sticking with the global-sized atm-grid arrays
+        call gather_atm
+        call write_data(agrid,fid,'asst',asst)
+        call write_data(agrid,fid,'atempr',atempr)
+        call write_data(agrid,fid,'sss',sss)
+        call write_data(agrid,fid,'ogeoza',ogeoza)
+        call write_data(agrid,fid,'uosurf',uosurf)
+        call write_data(agrid,fid,'vosurf',vosurf)
+        call write_data(agrid,fid,'dhsi',dhsi)
+        call write_data(agrid,fid,'dmsi',dmsi)
+        call write_data(agrid,fid,'dssi',dssi)
+      case (ioread)            ! input from restart file
+        call read_data(grid,fid,'nstep',nstep0,bcast_all=.true.)
+        call read_data(grid,fid,'time',time0,bcast_all=.true.)
+        nstep0=time0*86400./baclin+.0001
+        write(*,'(a,i9,f9.0)')
+     &       'chk ocean read at nstep/day=',nstep0,time0
+        nstep=nstep0
+        time=time0
+        call read_dist_data(grid,fid,'uo',u)
+        call read_dist_data(grid,fid,'vo',v)
+        call read_dist_data(grid,fid,'dp',dp)
+        call read_dist_data(grid,fid,'temp',temp)
+        call read_dist_data(grid,fid,'saln',saln)
+        call read_dist_data(grid,fid,'th3d',th3d)
+        call read_dist_data(grid,fid,'ubavg',ubavg)
+        call read_dist_data(grid,fid,'vbavg',vbavg)
+        call read_dist_data(grid,fid,'pbavg',pbavg)
+        call read_dist_data(grid,fid,'pbot',pbot)
+        call read_dist_data(grid,fid,'psikk',psikk)
+        call read_dist_data(grid,fid,'thkk',thkk)
+        call read_dist_data(grid,fid,'dpmixl',dpmixl)
+        call read_dist_data(grid,fid,'uflxav',uflxav)
+        call read_dist_data(grid,fid,'vflxav',vflxav)
+        call read_dist_data(grid,fid,'diaflx',diaflx)
+        call read_dist_data(grid,fid,'tracer',tracer)
+        call read_dist_data(grid,fid,'dpinit',dpinit)
+        call read_data(grid,fid,'oddev',oddev,bcast_all=.true.)
+        call read_dist_data(grid,fid,'uav',uav)
+        call read_dist_data(grid,fid,'vav',vav)
+        call read_dist_data(grid,fid,'dpuav',dpuav)
+        call read_dist_data(grid,fid,'dpvav',dpvav)
+        call read_dist_data(grid,fid,'dpav',dpav)
+        call read_dist_data(grid,fid,'temav',temav)
+        call read_dist_data(grid,fid,'salav',salav)
+        call read_dist_data(grid,fid,'th3av',th3av)
+        call read_dist_data(grid,fid,'ubavav',ubavav)
+        call read_dist_data(grid,fid,'vbavav',vbavav)
+        call read_dist_data(grid,fid,'pbavav',pbavav)
+        call read_dist_data(grid,fid,'sfhtav',sfhtav)
+        call read_dist_data(grid,fid,'eminpav',eminpav)
+        call read_dist_data(grid,fid,'surflav',surflav)
+        call read_dist_data(grid,fid,'salflav',salflav)
+        call read_dist_data(grid,fid,'brineav',brineav)
+        call read_dist_data(grid,fid,'tauxav',tauxav)
+        call read_dist_data(grid,fid,'tauyav',tauyav)
+        call read_dist_data(grid,fid,'dpmxav',dpmxav)
+        call read_dist_data(grid,fid,'oiceav',oiceav)
+c certain initialization routines still work with global
+c arrays, so we have to gather
+        call gather_hycom_arrays
+c for now, sticking with the global-sized atm-grid arrays
+        call read_data(agrid,fid,'asst',asst)
+        call read_data(agrid,fid,'atempr',atempr)
+        call read_data(agrid,fid,'sss',sss)
+        call read_data(agrid,fid,'ogeoza',ogeoza)
+        call read_data(agrid,fid,'uosurf',uosurf)
+        call read_data(agrid,fid,'vosurf',vosurf)
+        call read_data(agrid,fid,'dhsi',dhsi)
+        call read_data(agrid,fid,'dmsi',dmsi)
+        call read_data(agrid,fid,'dssi',dssi)
+        call scatter_atm
+      end select
+      return
+      end subroutine new_io_ocean
+#endif /* NEW_IO */
+
 c
       SUBROUTINE CHECKO(SUBR)
 !@sum  CHECKO Checks whether Ocean are reasonable
