@@ -761,7 +761,7 @@
      *     ) then
         print *, 'PARAM: parameter list in input file too long'
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
-        print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
+        print *,'PARAM: ',lnum_param,lnum_rparam,lnum_iparam,lnum_cparam
         call stop_model(
      &       'PARAM: parameter list in input file too long',255)
       endif
@@ -983,7 +983,7 @@
      *     ) then
         print *, 'PARAM: parameter list in input file too long'
         print *, 'PARAM: please recompile param with bigger MAX_?PARAMS'
-        print *, 'PARAM: ',num_param,num_rparam,num_iparam,num_cparam
+        print *,'PARAM: ',lnum_param,lnum_rparam,lnum_iparam,lnum_cparam
         call stop_model(
      &       'PARAM: parameter list in input file too long',255)
       endif
