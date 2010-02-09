@@ -49,7 +49,7 @@
     
       implicit none
  
-      real*8 :: intent(in) :: CanTemp !@var CanTemp canopy temperature (C)
+      real*8, intent(in) :: CanTemp !@var CanTemp canopy temperature (C)
       type (t_pbl_args) :: pbl_args
       integer :: inveg
       integer, intent(in) :: i,j,itype  
