@@ -45,7 +45,6 @@
 #ifdef OBIO_ON_GARYocean
      .                    ,itest,jtest,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
-     .                    ,tracer_glob => tracer
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es
@@ -78,19 +77,17 @@
       USE OFLUXES,    only : oRSI,oAPRESS
       USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
-      USE KPP_COM,    only : kpl,kpl_glob
+      USE KPP_COM,    only : kpl
       USE OCN_TRACER_COM,    only : obio_tr_mm
 #else
       USE hycom_dim
-      USE hycom_dim_glob, only : iio,jjo
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij
-      USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij,
-     .                        tracer_glob=>tracer, dp_glob=>dp
+      USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,itest,jtest,baclin
-      USE obio_com, only: ao_co2flux_loc,ao_co2flux_glob,tracav_loc,
-     .     pCO2av,pCO2_glob,diag_counter,plevav_loc, ao_co2fluxav_loc
+      USE obio_com, only: ao_co2flux_loc,tracav_loc,
+     .     pCO2av,plevav_loc, ao_co2fluxav_loc
       
 #endif
 
