@@ -1178,7 +1178,7 @@ C**** Thus, this code slows model and should be removed if not wanted
 C**** Instead of if(trname...) could use n=n_air and avoid the IF-test
 C**** But if n_air=0 this will cause problems...
       do n=1,ntm
-      if (trname(n).ne.'Air') cycle
+      if (trname(n).ne.'Air' .and. trname(n).ne.'CO2n') cycle
 !     if (itime.lt.itime_tr0(n)) cycle   !probably not needed
 !$OMP  PARALLEL DO PRIVATE (I,J,L)
       DO L=1,LS1-1
