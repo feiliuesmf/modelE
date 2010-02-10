@@ -13,6 +13,12 @@ rm -f paraffin_ships.nc NOx*.nc
 #-- vegetation density
 ./remap.pl -par regrida2x2.5.par -in veg_dense_2x2.5 -out veg_dense_C90_from_2x2.5
 
+#-- codirect
+./remap.pl -par ncregrid-ijl.par -in HTAP_surface_co_2001_aggregated.0.5x0.5.nc -out HTAP_surface_co_2001_aggregated_C90.nc 
+
+#- some dust files
+./remap.pl -par regridb2x2.5.par -in GriniZender_DustSources_144x90 -out GriniZender_DustSources_C90_from_144x90 
+./remap.pl -par regridb2x2.5.par -in Tegen_DustSources_144x90 -out Tegen_DustSources_C90_from_144x90
 #-- interactive wetland
 ./remap.pl -par regrida2x2.5.par -in beta_p_ch4_4x5_2x2.5gf -out beta_p_ch4_4x5_2x2.5gf_C90
 ./remap.pl -par regrida2x2.5.par -in alpha_t_ch4_4x5_2x2.5gf -out alpha_t_ch4_4x5_2x2.5gf_C90
@@ -211,3 +217,7 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     ./run_1850_anthro_alkenes_paraffin_CS.ksh
 #    ./zero_veg_CS.ksh
     ./zero_aircraft_CS.ksh 
+
+    cp HTAP_surface_co_2001_aggregated_C90.nc /archive/u/dgueyffi/codirect_for_ACCMIP/
+    cd /archive/u/dgueyffi/codirect_for_ACCMIP
+    idl convert_co_htap_for_accmip_C90.pro 
