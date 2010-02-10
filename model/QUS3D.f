@@ -1851,90 +1851,108 @@ c****
       real*8 :: frac1,fracm,fn,mold,mnew,bymnew,dm2
 
 c****Get relevant local distributed parameters
-      INTEGER J_0,J_1,J_0H,J_1H
+      INTEGER J_0,J_1,J_0H,J_1H,J_0S,J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      CALL GET(grid, J_STRT = J_0,
-     &               J_STOP = J_1,
+      CALL GET(grid, J_STRT = J_0, J_STRT_SKP = J_0S,
+     &               J_STOP = J_1, J_STOP_SKP = J_1S,
      &               J_STRT_HALO = J_0H,
      &               J_STOP_HALO = J_1H,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-c**** scale polar boxes to their full extent
+c      if(rehalo_mom) then
+c        CALL HALO_UPDATE_COLUMN(grid, rmom, FROM=NORTH+SOUTH)
+c      endif
+
+c**** scale polar boxes to their full extent and copy to all lons
 ! set horizontal moments to zero at pole
       if (HAVE_SOUTH_POLE) then
-        mass(:,1)=mass(:,1)*im
-        m_sp = mass(1,1 )
-        rm(:,1)=rm(:,1)*im
-        rm_sp = rm(1,1 )
+        m_sp = mass(1,1 )*im
+        rm_sp = rm(1,1 )*im
+        rzm_sp  = rmom(mz ,1,1 )*im
+        rzzm_sp = rmom(mzz,1,1 )*im
         do i=1,im
-           rmom(:,i,1 )=rmom(:,i,1 )*im
+          if(mv(i,1).lt.0.) cycle ! no outflow at this lon
+          mass(i,1) = m_sp
+            rm(i,1) = rm_sp
+          rmom(zomoms,i,1) = (/ rzm_sp, rzzm_sp /)
+          rmom(ihmoms,i,1) = 0.
         enddo
-        rzm_sp  = rmom(mz ,1,1 )
-        rzzm_sp = rmom(mzz,1,1 )
-c        rmom(ihmoms,:,1) = 0.
-        rmom((/mx,mxx,myy,mxy,mzx/),:,1) = 0.
       end if                       !SOUTH POLE
 
       if (HAVE_NORTH_POLE) then
-        mass(:,jm)=mass(:,jm)*im
-        m_np = mass(1,jm)
-        rm(:,jm)=rm(:,jm)*im
-        rm_np = rm(1,jm)
+        m_np = mass(1,jm)*im
+        rm_np = rm(1,jm)*im
+        rzm_np  = rmom(mz ,1,jm)*im
+        rzzm_np = rmom(mzz,1,jm)*im
         do i=1,im
-           rmom(:,i,jm)=rmom(:,i,jm)*im
+          if(mv(i,jm-1).ge.0.) cycle ! no outflow at this lon
+          mass(i,jm) = m_np
+            rm(i,jm) = rm_np
+          rmom(zomoms,i,jm) = (/ rzm_np, rzzm_np /)
+          rmom(ihmoms,i,jm) = 0.
         enddo
-        rzm_np  = rmom(mz ,1,jm)
-        rzzm_np = rmom(mzz,1,jm)
-c        rmom(ihmoms,:,jm) = 0.
-        rmom((/mx,mxx,myy,mxy,mzx/),:,jm) = 0.
       end if                       !NORTH POLE
 
-      if(have_north_pole) then
-        mv(:,jm) = 0.
-      endif
-      if(have_south_pole) then
-        mvs(:) = 0.
-        fs(:) = 0.
-        fmoms(:,:) = 0.
-      else
-        j=j_0-1
+c compute fluxes at s. edge of local domain, or at edge of SP cap
+      j = max(1,j_0-1)
+      do i=1,im
+        if(mv(i,j).lt.0.) then  ! air mass flux is negative
+          jj=j+1
+          frac1=+1.
+        else                    ! air mass flux is positive
+          jj=j
+          frac1=-1.
+        endif
+        fracm=mv(i,j)/mass(i,jj)
+        frac1=fracm+frac1
+        fn=fracm*(rm(i,jj)-frac1*(rmom(my,i,jj)-
+     &       (frac1+fracm)*rmom(myy,i,jj)))
+        fmoms(my,i)=mv(i,j)*(fracm*fracm*(rmom(my,i,jj)
+     &       -3.*frac1*rmom(myy,i,jj))-3.*fn)
+        fmoms(myy,i)=mv(i,j)*(mv(i,j)*fracm**3 *rmom(myy,i,jj)
+     &       -5.*(mv(i,j)*fn+fmoms(my,i)))
+        fmoms(mz,i)  = fracm*(rmom(mz,i,jj)-frac1*rmom(myz,i,jj))
+        fmoms(myz,i) = mv(i,j)*
+     &       (fracm*fracm*rmom(myz,i,jj)-3.*fmoms(mz,i))
+        fmoms(mx,i)  = fracm*(rmom(mx,i,jj)-frac1*rmom(mxy,i,jj))
+        fmoms(mxy,i) = mv(i,j)*
+     &       (fracm*fracm*rmom(mxy,i,jj)-3.*fmoms(mx,i))
+        fmoms(mzz,i) = fracm*rmom(mzz,i,jj)
+        fmoms(mxx,i) = fracm*rmom(mxx,i,jj)
+        fmoms(mzx,i) = fracm*rmom(mzx,i,jj)
+        mvs(i) = mv(i,j)
+        fs(i) = fn
+      enddo
+
+c update south polar cap
+      if (have_south_pole) then
+        j = 1
+         m_sp =  m_sp - sum(mvs(:))
+        rm_sp = rm_sp - sum(fs(:))
         do i=1,im
-          if(mv(i,j).lt.0.) then ! air mass flux is negative
-            jj=j+1
-            frac1=+1.
-          else                  ! air mass flux is positive
-            jj=j
-            frac1=-1.
-          endif
-          fracm=mv(i,j)/mass(i,jj)
-          frac1=fracm+frac1
-          fn=fracm*(rm(i,jj)-frac1*(rmom(my,i,jj)-
-     &         (frac1+fracm)*rmom(myy,i,jj)))
-          fmomn(my)=mv(i,j)*(fracm*fracm*(rmom(my,i,jj)
-     &         -3.*frac1*rmom(myy,i,jj))-3.*fn)
-          fmomn(myy)=mv(i,j)*(mv(i,j)*fracm**3 *rmom(myy,i,jj)
-     &         -5.*(mv(i,j)*fn+fmomn(my)))
-          fmomn(mz)  = fracm*(rmom(mz,i,jj)-frac1*rmom(myz,i,jj))
-          fmomn(myz) = mv(i,j)*
-     &         (fracm*fracm*rmom(myz,i,jj)-3.*fmomn(mz))
-          fmomn(mx)  = fracm*(rmom(mx,i,jj)-frac1*rmom(mxy,i,jj))
-          fmomn(mxy) = mv(i,j)*
-     &         (fracm*fracm*rmom(mxy,i,jj)-3.*fmomn(mx))
-          fmomn(mzz) = fracm*rmom(mzz,i,jj)
-          fmomn(mxx) = fracm*rmom(mxx,i,jj)
-          fmomn(mzx) = fracm*rmom(mzx,i,jj)
-          mvs(i) = mv(i,j)
-          fs(i) = fn
-          fmoms(:,i) = fmomn(:)
-        enddo ! i
-      endif
-      do j=j_0,j_1
+           rzm_sp =  rzm_sp - fmoms(mz,i)
+          rzzm_sp = rzzm_sp - fmoms(mzz,i)
+          fn = fs(i)
+          sbfv(i,j) = sbfv(i,j) + fn
+          sbf(j) = sbf(j) + fn
+          sbm(j) = sbm(j) + mv(i,j)
+          if(mv(i,j).ne.0.) sfbm(j) = sfbm(j) + fn/mv(i,j)
+        enddo
+        mass(1,1 ) = m_sp*byim
+        rm(1,1 ) = rm_sp*byim
+        rmom(mz ,1,1 ) = rzm_sp*byim
+        rmom(mzz,1,1 ) = rzzm_sp*byim
+        rmom(ihmoms,1,1) = 0
+      end if
+
+c loop over non-polar rows
+      do j=j_0s,j_1s
       do i=1,im
          if(mv(i,j).lt.0.) then ! air mass flux is negative
             jj=j+1
             frac1=+1.
-          else                   ! air mass flux is positive
+          else                  ! air mass flux is positive
             jj=j
             frac1=-1.
          endif
@@ -1997,27 +2015,20 @@ c        rmom(ihmoms,:,jm) = 0.
       enddo ! i
       enddo ! j
 
-c**** average and unscale polar boxes
-! horizontal moments are zero at pole
-      if (HAVE_SOUTH_POLE) then
-        mass(:,1 ) = (m_sp + sum(mass(:,1 )-m_sp))*byim
-        rm(:,1 ) = (rm_sp + sum(rm(:,1 )-rm_sp))*byim
-        rmom(mz ,:,1 ) = (rzm_sp + 
-     *       sum(rmom(mz ,:,1 )-rzm_sp ))*byim
-        rmom(mzz,:,1 ) = (rzzm_sp+ 
-     *       sum(rmom(mzz,:,1 )-rzzm_sp))*byim
-        rmom(ihmoms,:,1) = 0
-      end if   !SOUTH POLE
-
-      if (HAVE_NORTH_POLE) then
-        mass(:,jm) = (m_np + sum(mass(:,jm)-m_np))*byim
-        rm(:,jm) = (rm_np + sum(rm(:,jm)-rm_np))*byim
-        rmom(mz ,:,jm) = (rzm_np + 
-     &       sum(rmom(mz ,:,jm)-rzm_np ))*byim
-        rmom(mzz,:,jm) = (rzzm_np+ 
-     &       sum(rmom(mzz,:,jm)-rzzm_np))*byim
-        rmom(ihmoms,:,jm) = 0.
-      end if  !NORTH POLE
+c update north polar cap
+      if (have_north_pole) then
+         m_np =  m_np + sum(mvs(:))
+        rm_np = rm_np + sum(fs(:))
+        do i=1,im
+           rzm_np =  rzm_np + fmoms(mz,i)
+          rzzm_np = rzzm_np + fmoms(mzz,i)
+        enddo
+        mass(1,jm) = m_np*byim
+        rm(1,jm) = rm_np*byim
+        rmom(mz ,1,jm) = rzm_np*byim
+        rmom(mzz,1,jm) = rzzm_np*byim
+        rmom(ihmoms,1,jm) = 0.
+      endif
 
       return
       end subroutine aadvqy2
