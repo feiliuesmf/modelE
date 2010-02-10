@@ -306,15 +306,15 @@
 !@var qfol_glob work array for parallel_io
 !@var cnc_ij_glob work array for parallel_io
       real*8, dimension(im,jm) :: cint_glob, qfol_glob, cnc_ij_glob
-      integer :: force_init_ent=0
+      integer :: force_init_ent
 !@dbparam ent_io_plain_array controls format of Ent record in rsf file
 !@+   0 - one record per cell, 1 - single plain array with "header"
-      integer :: ent_io_plain_array=1
+      integer :: ent_io_plain_array
       integer :: retcode
 
 !!! hack
-      call sync_param( "init_ent", force_init_ent)
-      call sync_param( "ent_io_plain_array", ent_io_plain_array)
+      call get_param( "init_ent", force_init_ent)
+      call get_param( "ent_io_plain_array", ent_io_plain_array)
 
 
       write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij'

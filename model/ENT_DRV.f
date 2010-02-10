@@ -39,6 +39,7 @@
       ! passed to ent (and used there)
       integer year
       integer :: force_init_ent=0
+      integer :: ent_io_plain_array=1
       logical iniENT
 
       if ( initialized ) return
@@ -52,6 +53,8 @@
 !!! hack
       call sync_param( "init_ent", force_init_ent)
       if ( force_init_ent == 1 ) iniENT = .true.
+
+      call sync_param( "ent_io_plain_array", ent_io_plain_array)
 
       !YKIM - default parameters
       do_soilresp = 1 !true
