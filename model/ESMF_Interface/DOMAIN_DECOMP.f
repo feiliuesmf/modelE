@@ -463,7 +463,7 @@ c        MODULE PROCEDURE READT8_PARALLEL_2D
 !@var BAND_PACK_TYPE a data structure needed by BAND_PACK, initialized
 !@var via INIT_BAND_PACK_TYPE
       type band_pack_type
-        integer :: im_world
+!        integer :: im_world
         integer :: j_strt,j_stop
         integer :: j_strt_halo,j_stop_halo
         integer :: jband_strt,jband_stop
@@ -5864,7 +5864,7 @@ c
      &         bandpack%rdspl_inplace(0:npes-1)
      &     )
 #endif
-      bandpack%im_world = grd_src%im_world
+!      bandpack%im_world = grd_src%im_world
       bandpack%j_strt = grd_src%j_strt
       bandpack%j_stop = grd_src%j_stop
       bandpack%j_strt_halo = grd_src%j_strt_halo
@@ -5872,7 +5872,7 @@ c
       bandpack%jband_strt = band_j0
       bandpack%jband_stop = band_j1
 #ifdef USE_MPI
-      im = grd_src%im_world
+      im = 1!grd_src%im_world
       jm = grd_src%jm_world
 c
 c Set up the MPI send/receive information
@@ -5932,12 +5932,13 @@ c
 #ifdef USE_MPI
       integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
       integer :: ierr
-      integer :: npes
+      integer :: im,npes
       npes = bandpack%npes_comm
-      scnts(0:npes-1) = bandpack%scnts
-      sdspl(0:npes-1) = bandpack%sdspl_inplace
-      rcnts(0:npes-1) = bandpack%rcnts
-      rdspl(0:npes-1) = bandpack%rdspl_inplace
+      im = size(arr,1)
+      scnts(0:npes-1) = im*bandpack%scnts
+      sdspl(0:npes-1) = im*bandpack%sdspl_inplace
+      rcnts(0:npes-1) = im*bandpack%rcnts
+      rdspl(0:npes-1) = im*bandpack%rdspl_inplace
       call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
      &                   arr_band, rcnts, rdspl, mpi_double_precision,
      &                   bandpack%mpi_comm, ierr)
@@ -5960,21 +5961,22 @@ c
       REAL*8, INTENT(INOUT) :: ARR_band(:,bandpack%jband_strt:,:)
 #ifdef USE_MPI
       integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
-      integer :: ierr,lm,i,j,l,n,p
+      integer :: ierr,im,lm,i,j,l,n,p
       real*8, dimension(:), allocatable :: bufsend,bufrecv
       integer :: npes
       npes = bandpack%npes_comm
+      im = size(arr,1)
       lm = size(arr,3)
-      scnts = lm*bandpack%scnts
-      sdspl = lm*bandpack%sdspl
-      rcnts = lm*bandpack%rcnts
-      rdspl = lm*bandpack%rdspl
+      scnts = im*lm*bandpack%scnts
+      sdspl = im*lm*bandpack%sdspl
+      rcnts = im*lm*bandpack%rcnts
+      rdspl = im*lm*bandpack%rdspl
       allocate(bufsend(sum(scnts)),bufrecv(sum(rcnts)))
       n = 0
       do p=0,npes-1
         do l=1,lm
           do j=bandpack%j0_send(p),bandpack%j1_send(p)
-            do i=1,bandpack%im_world
+            do i=1,im
               n = n + 1
               bufsend(n) = arr(i,j,l)
             enddo
@@ -5988,7 +5990,7 @@ c
       do p=0,npes-1
         do l=1,lm
           do j=bandpack%j0_recv(p),bandpack%j1_recv(p)
-            do i=1,bandpack%im_world
+            do i=1,im
               n = n + 1
               arr_band(i,j,l) = bufrecv(n)
             enddo
@@ -6015,14 +6017,15 @@ c
       REAL*8, INTENT(INOUT) :: ARR_band(:,:,bandpack%jband_strt:)
 #ifdef USE_MPI
       integer, dimension(0:npes_world-1) :: scnts,sdspl, rcnts,rdspl
-      integer :: ierr,lm
+      integer :: ierr,im,lm
       integer :: npes
       npes = bandpack%npes_comm
+      im = size(arr,2)
       lm = size(arr,1)
-      scnts(0:npes-1) = lm*bandpack%scnts
-      sdspl(0:npes-1) = lm*bandpack%sdspl_inplace
-      rcnts(0:npes-1) = lm*bandpack%rcnts
-      rdspl(0:npes-1) = lm*bandpack%rdspl_inplace
+      scnts(0:npes-1) = im*lm*bandpack%scnts
+      sdspl(0:npes-1) = im*lm*bandpack%sdspl_inplace
+      rcnts(0:npes-1) = im*lm*bandpack%rcnts
+      rdspl(0:npes-1) = im*lm*bandpack%rdspl_inplace
       call mpi_alltoallv(arr, scnts, sdspl, mpi_double_precision,
      &                   arr_band, rcnts, rdspl, mpi_double_precision,
      &                   bandpack%mpi_comm, ierr)
