@@ -15,6 +15,8 @@ C****
       USE DIAG_COM, only : lname_strlen,sname_strlen,units_strlen
 #ifdef CUBE_GRID
       USE cs2ll_utils, only : cs2llint_type,ll2csint_type
+#else
+      use domain_decomp_1d, only : band_pack_type
 #endif
       IMPLICIT NONE
       SAVE
@@ -53,7 +55,16 @@ c arrays for sea ice advection
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FOA,BYFOA,CONNECT
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: UVLLATUC,UVLLATVC
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: UVMATUC,UVMATVC
+#else
+! To allow the ice dynamics to run on a subset of processors:
+!@var pack_a2i,pack_i2a contain info for redistributing data from
+!@+   atmos. domains to icedyn domains and vice versa.
+      type(band_pack_type) :: pack_a2i,pack_i2a
 #endif
+
+!@var aUSI,aVSI sea ice velocities (B-grid) having atmos. domain bounds,
+!@+   needed in the lat-lon version of ADVSI
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: aUSI,aVSI
 
 C**** Ice dynamics diagnostics
       INTEGER, PARAMETER :: KICIJ=6
@@ -92,6 +103,8 @@ C**** Ice dynamics diagnostics
      &     ,DMUI,DMVI,UOSURF,VOSURF
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
+#else
+      USE ICEDYN_COM, only : aUSI, aVSI
 #endif
       USE ICEDYN, only : grid_icdyn
       IMPLICIT NONE
@@ -153,6 +166,9 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
       ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &        CONNECT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
+#else
+      ALLOCATE(aUSI(IM, J_0H_MIC:J_1H_MIC),
+     &         aVSI(IM, J_0H_MIC:J_1H_MIC))
 #endif
 
       return
@@ -202,8 +218,10 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
       CASE (:IOWRITE)            ! output to standard restart file
         CALL PACK_DATA(grid_MIC, RSIX, RSIX_GLOB)
         CALL PACK_DATA(grid_MIC, RSIY, RSIY_GLOB)
-        CALL PACK_DATA(grid_ICDYN,  USI,  USI_GLOB)    ! TODO: usi/vsi not on atm grid anymore
-        CALL PACK_DATA(grid_ICDYN,  VSI,  VSI_GLOB)    ! idem
+        if(grid_ICDYN%have_domain) then
+          CALL PACK_DATA(grid_ICDYN,  USI,  USI_GLOB) ! TODO: usi/vsi not on atm grid anymore
+          CALL PACK_DATA(grid_ICDYN,  VSI,  VSI_GLOB) ! idem
+        endif
         IF (AM_I_ROOT())
      &   WRITE (kunit,err=10) MODULE_HEADER,RSIX_glob,RSIY_glob
      &                                     , USI_glob, VSI_glob
@@ -222,8 +240,10 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
           end if
           CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX)
           CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY)
-          CALL UNPACK_DATA(grid_MIC,  USI_GLOB,  USI)
-          CALL UNPACK_DATA(grid_MIC,  VSI_GLOB,  VSI)
+          if(grid_ICDYN%have_domain) then
+            CALL UNPACK_DATA(grid_ICDYN,  USI_GLOB,  USI)
+            CALL UNPACK_DATA(grid_ICDYN,  VSI_GLOB,  VSI)
+          endif
         END SELECT
       END SELECT
 
@@ -242,6 +262,7 @@ C****
       USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
       USE DOMAIN_DECOMP_1D, only : ESMF_BCAST
+      use icedyn, only : grid=>grid_icdyn
       USE ICEDYN_COM
       IMPLICIT NONE
 
@@ -260,10 +281,12 @@ C****
       REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ_GLOB
       INTEGER :: J_0H_MIC, J_1H_MIC
 
+      if(.not. grid%have_domain) return
+
       write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
      *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
 
-      CALL GET(grid_MIC, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
+      CALL GET(grid, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 
       if(am_I_root()) then
         allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
@@ -275,12 +298,12 @@ C****
 
       SELECT CASE (IACTION)
       CASE (IOWRITE)  ! output to standard restart file
-        CALL PACK_DATA(grid_mic, icij, icij_glob)
+        CALL PACK_DATA(grid, icij, icij_glob)
         IF (AM_I_ROOT())
      &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-        CALL PACK_DATA(grid_mic, icij, icij_glob)
+        CALL PACK_DATA(grid, icij, icij_glob)
         IF (AM_I_ROOT())
      &     WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ_GLOB,KIND=4),it
       CASE (IOREAD:)            ! input from restart file
@@ -298,8 +321,8 @@ C**** accumulate diagnostics
           allocate( ICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KICIJ) )
           ICIJ4 = 0.d0 ! should do "halo_update" instead?
           ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
-          CALL UNPACK_DATA(grid_MIC, ICIJ4_GLOB8, ICIJ4)
-          call ESMF_BCAST(grid_MIC, it)   !MPI_BCAST instead
+          CALL UNPACK_DATA(grid, ICIJ4_GLOB8, ICIJ4)
+          call ESMF_BCAST(grid, it)   !MPI_BCAST instead
           ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
      &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
           deallocate( ICIJ4 )
@@ -312,8 +335,8 @@ C**** accumulate diagnostics
               GO TO 10
             END IF
           end if
-          CALL UNPACK_DATA(grid_MIC, ICIJ_GLOB, ICIJ)
-          call ESMF_BCAST(grid_MIC, it)
+          CALL UNPACK_DATA(grid, ICIJ_GLOB, ICIJ)
+          call ESMF_BCAST(grid, it)
         END SELECT
       END SELECT
 
@@ -498,8 +521,9 @@ c temporarily empty.
      *     ,sinwat,coswat,bydts,sinen,uice,vice,heff,area,gairx,gairy
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,dmu,dmv
      *     ,usi,vsi,iFOCEAN=>FOCEAN
-      USE ICEDYN_COM, only : usidt,vsidt,rsisave,dmui,dmvi,icij,ij_usi
+      USE ICEDYN_COM, only : rsisave,dmui,dmvi,icij,ij_usi
      *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,uosurf,vosurf
+     &     ,ausi,avsi
       USE FLUXES, only : dmua,dmva,UI2rho,ogeoza
      *     ,apress,uisurf,visurf
       USE SEAICE, only : ace1i
@@ -509,7 +533,9 @@ c temporarily empty.
       use cs2ll_utils, only : cs2llint_lij,cs2llint_lluv
       use cs2ll_utils, only : ll2csint_ij
 #else
+      USE DOMAIN_DECOMP_1D, only : band_pack
       USE GEOM, only : cosip,sinip
+      use icedyn_com, only : pack_a2i,pack_i2a
 #endif
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
@@ -521,7 +547,7 @@ C**** intermediate calculation for pressure gradient terms
      &                            PGFU,PGFV
 C****
       real*8, allocatable, dimension(:,:) ::
-     &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho
+     &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho,admu,admv
       real*8, allocatable, dimension(:,:,:) :: alij_tmp,ilij_tmp
 
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
@@ -584,9 +610,9 @@ C**** Convert to stress over ice fraction only (on atmospheric grid)
       END DO
 
 c**** getting instance of (DMUA, DVMA) on the icedyn grid
-#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       allocate(iDMUA(1:IMICDYN,iJ_0H:iJ_1H),
      &         iDMVA(1:IMICDYN,iJ_0H:iJ_1H))
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call cs2llint_lluv(agrid,CS2ICEint_b,dmua(:,:,2),dmva(:,:,2),
      &     idmua,idmva)
       do j=iJ_0,iJ_1S
@@ -597,29 +623,29 @@ c**** getting instance of (DMUA, DVMA) on the icedyn grid
         gairx((/1,nx1/),j) = gairx((/nx1-1,2/),j)
         gairy((/1,nx1/),j) = gairy((/nx1-1,2/),j)
       enddo
-      deallocate(iDMUA,iDMVA)
 #else
-      CALL ICE_HALO(grid_ICDYN, DMUA(:,:,2), from=NORTH)
-      CALL ICE_HALO(grid_ICDYN, DMVA(:,:,2), from=NORTH)
+      call band_pack(pack_a2i, DMUA(:,:,2), iDMUA) ! fills halo
+      call band_pack(pack_a2i, DMVA(:,:,2), iDMVA) ! fills halo
+
 c needs evaluation      if (grid_icdyn%HAVE_NORTH_POLE) then
-c needs evaluation        dua = dmua(1,jmicdyn,2)
-c needs evaluation        dva = dmva(1,jmicdyn,2)
-c needs evaluation        dmua(:,jmicdyn,2)=dua*cosip(:)+dva*sinip(:)
-c needs evaluation        dmva(:,jmicdyn,2)=dva*cosip(:)-dua*sinip(:)
+c needs evaluation        dua = idmua(1,jmicdyn)
+c needs evaluation        dva = idmva(1,jmicdyn)
+c needs evaluation        idmua(:,jmicdyn)=dua*cosip(:)+dva*sinip(:)
+c needs evaluation        idmva(:,jmicdyn)=dva*cosip(:)-dua*sinip(:)
 c needs evaluation      end if
       do j=iJ_0,iJ_1S
         im1=imicdyn
         do i=1,imicdyn
-          GAIRX(i,j)=0.25*(dmua(i,j,2)+dmua(im1,j,2)
-     &                    +dmua(im1,j+1,2)+dmua(i,j+1,2))*bydts  
-          GAIRY(i,j)=0.25*(dmva(i,j,2)+dmva(im1,j,2)
-     &                    +dmva(im1,j+1,2)+dmva(i,j+1,2))*bydts  
+          GAIRX(i,j)=0.25*(idmua(i,j)+idmua(im1,j)
+     &                    +idmua(im1,j+1)+idmua(i,j+1))*bydts  
+          GAIRY(i,j)=0.25*(idmva(i,j)+idmva(im1,j)
+     &                    +idmva(im1,j+1)+idmva(i,j+1))*bydts  
           im1=i
         enddo
       enddo
       IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
-        GAIRX(1:nx1,jmicdyn)=dmua(1,jmicdyn,2)*bydts
-        GAIRY(1:nx1,jmicdyn)=dmva(1,jmicdyn,2)*bydts
+        GAIRX(1:nx1,jmicdyn)=idmua(1,jmicdyn)*bydts
+        GAIRY(1:nx1,jmicdyn)=idmva(1,jmicdyn)*bydts
       END IF
       do j=iJ_0,iJ_1S
        GAIRX(nx1-1,j)=GAIRX(1,j)
@@ -628,6 +654,7 @@ c needs evaluation      end if
        GAIRY(nx1,j)=GAIRY(2,j)
       enddo
 #endif
+      deallocate(iDMUA,iDMVA)
 
 C**** save current value of sea ice concentration for ADVSI
 C**** RSISAVE is on atmospheric grid
@@ -675,9 +702,9 @@ c bundle the qtys to be interpolated
       enddo
       deallocate(alij_tmp,ilij_tmp)
 #else
-      iPtmp = aPtmp
-      iRSI = RSI
-      iMSI = MSI
+      call band_pack(pack_a2i, aPtmp, iPtmp) ! like iPtmp = aPtmp
+      call band_pack(pack_a2i, RSI, iRSI)    !      iRSI = RSI
+      call band_pack(pack_a2i, MSI, iMSI)    !      iMSI = MSI
 #endif
 
 
@@ -890,6 +917,35 @@ C**** set north pole
         DMVI(:,jmicdyn)=0.
       END IF
 
+c*** diagnostics
+      DO J=iJ_0,iJ_1S
+        DO I=1,imicdyn
+         ip1=i+1
+         if (ip1 .eq. IMICDYN+1) ip1=1
+          IF (iFOCEAN(I,J).gt.0 .and. iFOCEAN(IP1,J).gt.0. .and.
+     *         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) THEN
+            ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(iRSI(I,J)+iRSI(IP1,J))
+     *           *0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))
+            ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
+          END IF
+          IF (iFOCEAN(I,J+1).gt.0 .and. iFOCEAN(I,J).gt.0. .and.
+     *         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) THEN
+            ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(iRSI(I,J)+iRSI(I,J+1))
+     *           *0.5*(vice(i,j,1)+vice(i+1,j,1))
+            ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
+          END IF
+          ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ iRSI(I,J)*press(i+1,j)
+          ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + iRSI(I,J)
+        END DO
+      END DO
+      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
+        ICIJ(1,JMICDYN,IJ_DMUI)=ICIJ(1,JMICDYN,IJ_DMUI)+DMUI(1,JMICDYN)
+        ICIJ(1,JMICDYN,IJ_RSI) =ICIJ(1,JMICDYN,IJ_RSI) +iRSI(1,JMICDYN)
+        ICIJ(1,JMICDYN,IJ_PICE)=ICIJ(1,JMICDYN,IJ_PICE)
+     &       +iRSI(1,JMICDYN)*press(1,JMICDYN)
+      END IF
+
+
 c-------------------------------------------------------------------
 c End icedyn-processors-only code region
       endif icedyn_processors_only
@@ -915,89 +971,28 @@ C**** UI2rho = | tau |
       enddo
 #else /* calculate stress magnitude after regrid */
 C**** calculate 4 point average of B grid values of stresses
-C**** Update halos for DMU, and DMV
-      CALL ICE_HALO(grid_ICDYN,  DMU   , from=SOUTH     )
-      CALL ICE_HALO(grid_ICDYN,  DMV   , from=SOUTH     )
-      do j=iJ_0,iJ_1
-        do i=1,imicdyn
+      allocate(admu(nx1,aJ_0H:aJ_1H))
+      allocate(admv(nx1,aJ_0H:aJ_1H))
+      call band_pack(pack_i2a, dmu, admu) ! fills halo
+      call band_pack(pack_i2a, dmv, admv) ! fills halo
+      do j=aJ_0,aJ_1
+        do i=1,aim
           UI2rho(i,j)=0
           if (FOCEAN(I,J)*RSI(i,j).gt.0) THEN
-            duA = 0.5*(DXYN(J)*(dmu(i+1,j)+dmu(i,j))
-     *           +DXYS(j)*(dmu(i+1,j-1)+dmu(i,j-1)))*BYDXYP(J)
-            dvA = 0.5*(DXYN(J)*(dmv(i+1,j)+dmv(i,j))
-     *           +DXYS(j)*(dmv(i+1,j-1)+dmv(i,j-1)))*BYDXYP(J)
+            duA = 0.5*(DXYN(J)*(admu(i+1,j)+admu(i,j))
+     *           +DXYS(j)*(admu(i+1,j-1)+admu(i,j-1)))*BYDXYP(J)
+            dvA = 0.5*(DXYN(J)*(admv(i+1,j)+admv(i,j))
+     *           +DXYS(j)*(admv(i+1,j-1)+admv(i,j-1)))*BYDXYP(J)
             UI2rho(i,j)= sqrt (duA**2 + dvA**2) * bydts
           endif
         enddo
       enddo
+      deallocate(admu,admv)
 #endif
-
-C**** calculate mass fluxes for the ice advection
-
-#ifndef CUBE_GRID
-c*** Computation of usidt/vsidt: note that usidt/vsidt is seen only by the latlon version of ADVSI 
-      DO J=aJ_0,aJ_1S
-        DO I=1,IMICDYN
-         ip1=i+1
-         if (ip1 .eq. aIM+1) ip1=1
-          USIDT(I,J)=0.
-          VSIDT(I,J)=0.
-          IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
-     &         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) 
-     &       USIDT(I,J)=0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))*dts
-          IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
-     &         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) 
-     &       VSIDT(I,J)=0.5*(vice(i,j,1)+vice(i+1,j,1))*dts
-        END DO
-      END DO
-      IF (agrid%HAVE_NORTH_POLE) THEN
-        VSIDT(1:aIM,aJM)=0.
-        USIDT(1:aIM,aJM)=USI(1,aJM)*DTS
-      END IF
-#endif
-
-c-------------------------------------------------------------------
-c Begin icedyn-processors-only code region
-      icedyn_processors_only_part2: if(grid_ICDYN%have_domain) then
-c-------------------------------------------------------------------
-
-c*** diagnostics
-      DO J=iJ_0,iJ_1S
-        DO I=1,imicdyn
-         ip1=i+1
-         if (ip1 .eq. IMICDYN+1) ip1=1
-          IF (iFOCEAN(I,J).gt.0 .and. iFOCEAN(IP1,J).gt.0. .and.
-     *         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) THEN
-            ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(iRSI(I,J)+iRSI(IP1,J))
-     *           *0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))
-            ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
-          END IF
-          IF (iFOCEAN(I,J+1).gt.0 .and. iFOCEAN(I,J).gt.0. .and.
-     *         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) THEN
-            ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(iRSI(I,J)+iRSI(I,J+1))
-     *           *0.5*(vice(i,j,1)+vice(i+1,j,1))
-            ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
-          END IF
-          ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ iRSI(I,J)*press(i+1,j)
-          ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + iRSI(I,J)
-        END DO
-      END DO
-      IF (agrid%HAVE_NORTH_POLE) THEN
-        ICIJ(1,JMICDYN,IJ_USI) =ICIJ(1,JMICDYN,IJ_USI) 
-     &       +iRSI(1,JMICDYN)*USIDT(1,JMICDYN)/DTS
-        ICIJ(1,JMICDYN,IJ_DMUI)=ICIJ(1,JMICDYN,IJ_DMUI)+DMUI(1,JMICDYN)
-        ICIJ(1,JMICDYN,IJ_RSI) =ICIJ(1,JMICDYN,IJ_RSI) +iRSI(1,JMICDYN)
-        ICIJ(1,JMICDYN,IJ_PICE)=ICIJ(1,JMICDYN,IJ_PICE)
-     &       +iRSI(1,JMICDYN)*press(1,JMICDYN)
-      END IF
-
-c-------------------------------------------------------------------
-c End icedyn-processors-only code region
-      endif icedyn_processors_only_part2
-c-------------------------------------------------------------------
 
 C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
-      call get_uisurf(usi,vsi,uisurf,visurf) !uisurf/visurf are on atm grid but are latlon oriented
+C**** uisurf/visurf are on atm grid but are latlon oriented
+      call get_uisurf(usi,vsi,uisurf,visurf,ausi,avsi)
 
       deallocate(aPtmp,iPtmp,iRSI,iMSI)
 
@@ -1014,13 +1009,13 @@ C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
 !@+    etc. will need to be interpolated back and forth).
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : grav,tf
-      USE MODEL_COM, only :  im,jm,focean,p,ptop,kocean
-      USE DOMAIN_DECOMP_ATM, only : grid, GET
-      USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE
+      USE MODEL_COM, only :  im,jm,focean,p,ptop,kocean,dts=>dtsrc
+      USE DOMAIN_DECOMP_1D, only : grid, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN
       USE GEOM, only : dxyp,dyp,dxp,dxv,bydxyp,imaxj   !atmosphere grid geom
-      USE ICEDYN_COM, only : usidt,vsidt,rsix,rsiy,rsisave
+      USE ICEDYN_COM, only : usidt,vsidt,ausi,avsi,rsix,rsiy,rsisave
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn=>taijn_loc,tij_tusi,tij_tvsi
 #endif
@@ -1100,9 +1095,6 @@ C**** Regularise ice concentration gradients to prevent advection errors
       END DO
       END DO
 
-C**** update RSISAVE for diagnostics
-      RSISAVE(:,:)=RSI(:,:)
-
 C**** set up local MHS array to contain all advected quantities
 C**** MHS(1:2) = MASS, MHS(3:2+LMI) = HEAT, MHS(3+LMI:2+2*LMI)=SALT
 C**** Currently this is on atmospheric grid
@@ -1150,9 +1142,40 @@ C**** North-South Advection of Sea Ice
 C****
       SFASI  = 0.
       SFMSI(1:NTRICE) = 0.
-C**** Update halo of DXV,RSIY,RSI,RSIX,FOCEAN,BYDXYP,and MHS
+
+C**** Update halo of RSI,FOCEAN
       CALL HALO_UPDATE(grid, RSI  , FROM=NORTH)
+      CALL HALO_UPDATE(grid, RSISAVE  , FROM=NORTH)
       CALL HALO_UPDATE(grid,FOCEAN, FROM=NORTH+SOUTH)
+
+C**** calculate mass fluxes for the ice advection
+      DO J=J_0,J_1S
+        I=IM
+        DO IP1=1,IM
+          USIDT(I,J)=0.
+          IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
+     &         RSISAVE(I,J)+RSISAVE(IP1,J).gt.1d-4) 
+     &       USIDT(I,J)=0.5*(ausi(i,j-1)+ausi(i,j))*dts
+          I=IP1
+        END DO
+        IM1=IM
+        DO I=1,IM
+          VSIDT(I,J)=0.
+          IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
+     &         RSISAVE(I,J)+RSISAVE(I,J+1).gt.1d-4) 
+     &       VSIDT(I,J)=0.5*(avsi(im1,j)+avsi(i,j))*dts
+          IM1=I
+        END DO
+      END DO
+      IF (grid%HAVE_NORTH_POLE) THEN
+        VSIDT(1:IM,JM)=0.
+        USIDT(1:IM,JM)=AUSI(1,JM)*DTS
+      END IF
+
+C**** update RSISAVE for diagnostics
+      RSISAVE(:,:)=RSI(:,:)
+
+C**** Update halo of RSIY,RSIX,and MHS
       CALL HALO_UPDATE_COLUMN(grid, MHS  , FROM=NORTH)
 
       CALL HALO_UPDATE(grid, VSIDT, FROM=SOUTH)
@@ -1726,7 +1749,13 @@ c      end subroutine INT_IceB2AtmA
       USE DIAG_COM, only : ia_src
       USE DOMAIN_DECOMP_1D, only : GET,ICE_HALO=>HALO_UPDATE
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid,ATM_HALO=>HALO_UPDATE
-      USE ICEDYN_COM
+      USE ICEDYN_COM, only : imic,jmic,rsix,rsiy,ausi,avsi
+     &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
+     &     ,sname_icij,units_icij,scale_icij,ij_usi,ij_vsi,ij_dmui
+     &     ,ij_dmvi,ij_rsi,ij_pice
+#ifdef NEW_IO
+     &     ,cdl_icij
+#endif
       USE ICEDYN, only : ifocean=>focean,
      &     osurf_tilt,bydts,usi,vsi,uice,vice
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
@@ -1735,12 +1764,16 @@ c      end subroutine INT_IceB2AtmA
       USE ICEDYN, only : lon,lat,lonb,latb,uvm
       USE ICEDYN_COM, only : CS2ICEint_a,CS2ICEint_b,i2a_uc,i2a_vc
      &     ,ICE2CSint ,UVLLATUC,UVLLATVC,UVMATUC,UVMATVC,CONNECT
+     &     ,FOA,BYFOA
       USE cs2ll_utils, only : init_cs2llint_type,init_ll2csint_type,
      &     ll2csint_ij
       USE GEOM, only : AXYP,BYAXYP,lon2d,lat2d,lonuc,latuc,lonvc,latvc
       use constant, only : pi
 c      USE DOMAIN_DECOMP_1D, only : READT_PARALLEL
 c      USE FILEMANAGER, only : openunit,closeunit,nameunit
+#else
+      use domain_decomp_1d, only : init_band_pack_type,band_pack
+      use icedyn_com, only : pack_a2i,pack_i2a,ausi,avsi
 #endif
       USE FLUXES, only : uisurf,visurf
       USE PARAM
@@ -1776,8 +1809,16 @@ c**** set up CS2ICEint, a data structure for CS to latlon interpolation
 C**** Derive the ice dynamics land mask from the atmosphere mask
       call INT_AtmA2IceA_XY(aFocean,iFocean)
 #else
+C**** Initialize derived types used for passing arrays between the
+C**** atmosphere and ice dynamics
+      call init_band_pack_type(agrid, grid_ICDYN,
+     &     grid_ICDYN%J_STRT_HALO,grid_ICDYN%J_STOP_HALO,
+     &     pack_a2i)
+      call init_band_pack_type(grid_ICDYN, agrid,
+     &     agrid%J_STRT_HALO,agrid%J_STOP_HALO,
+     &     pack_i2a)
 C**** The ice dynamics land mask is that of the atmosphere      
-      ifocean(:,:) = afocean(:,:)
+      call band_pack(pack_a2i, afocean, ifocean) ! ifocean = afocean
 #endif
 
       icedyn_processors_only: if(grid_ICDYN%have_domain) then
@@ -1867,7 +1908,7 @@ c Gridcells whose ocean fraction is <10% are not ocean-connected.
 #endif
 
 C**** set uisurf,visurf for atmospheric drag calculations
-      call get_uisurf(usi,vsi,uisurf,visurf)
+      call get_uisurf(usi,vsi,uisurf,visurf,ausi,avsi)
 
 C**** set properties for ICIJ diagnostics
       do k=1,kicij
@@ -2071,17 +2112,20 @@ C****
       END SUBROUTINE diag_ICEDYN
 #endif /* not CUBE_GRID */
 
-      SUBROUTINE GET_UISURF(UICE,VICE,UISURF,VISURF)
+      SUBROUTINE GET_UISURF(UICE,VICE,UISURF,VISURF,AUSI,AVSI)
 !@sum calculate atmos. A grid winds from B grid
 !@auth Gavin Schmidt, Denis Gueyffier
+!@auth M. Kelley
       USE MODEL_COM, only : im,jm
-      USE DOMAIN_DECOMP_1D, only : get, halo_update_column, south
+      USE DOMAIN_DECOMP_1D, only : get
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE ICEDYN, only : grid=>grid_icdyn,IMICDYN,JMICDYN
 #ifdef CUBE_GRID
       use cs2ll_utils, only : ll2csint_lij
       use icedyn_com, only : ICE2CSint
 #else
+      USE DOMAIN_DECOMP_1D, only : band_pack
+      use icedyn_com, only : pack_i2a
       use GEOM,only : cosu,sinu
 #endif
       IMPLICIT NONE
@@ -2089,26 +2133,24 @@ C****
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: UICE,VICE
       REAL*8, DIMENSION(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &                  agrid%J_STRT_HALO:agrid%J_STOP_HALO),
-     &     INTENT(OUT) :: UISURF,VISURF
+     &     INTENT(INOUT) :: UISURF,VISURF
+     &     ,AUSI,AVSI ! latlon-only: UICE,VICE with atm. domain decomp.
       INTEGER :: J_0S,J_1S,I,J,IM1
       LOGICAL :: pole
       REAL*8 :: hemi
       real*8, allocatable :: uvice(:,:,:),uvice_cs(:,:,:)
 
-      CALL GET(grid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
-
+#ifdef CUBE_GRID
       allocate(uvice(2,IMICDYN,grid%J_STRT_HALO:grid%J_STOP_HALO))
-
       do j=max(1,grid%J_STRT),min(grid%J_STOP,JMICDYN-1)
         do i=1,IMICDYN
           uvice(1,i,j) = uice(i,j)
           uvice(2,i,j) = vice(i,j)
+c this is not necessary since usi,vsi already have this
           IF (abs(uvice(1,i,j)).lt.1d-10) uvice(1,i,j)=0.
           IF (abs(uvice(2,i,j)).lt.1d-10) uvice(2,i,j)=0.
         enddo
       enddo
-
-#ifdef CUBE_GRID
       allocate(uvice_cs(2,agrid%I_STRT_HALO:agrid%I_STOP_HALO,
      &                    agrid%J_STRT_HALO:agrid%J_STOP_HALO))
       call ll2csint_lij(grid,ICE2CSint,uvice,uvice_cs,
@@ -2120,26 +2162,29 @@ C****
         enddo
       enddo
       deallocate(uvice_cs)
+      deallocate(uvice)
 #else
 c**** We assume that ice grid and latlon atm grid have same resolution 
-      Call HALO_UPDATE_COLUMN(GRID, uvice, from=south)
+      call band_pack(pack_i2a, uice, ausi) ! fills halos
+      call band_pack(pack_i2a, vice, avsi) ! fills halos
+      CALL GET(agrid,J_STRT_SKP=J_0S,J_STOP_SKP=J_1S)
       do j=J_0S,J_1S
-         im1 = IMICDYN
-         do i=1,IMICDYN
+         im1 = IM
+         do i=1,IM
 c*** B->A : 4 points averaging
-            uisurf(i,j) = 0.25*(uvice(1,i,j)+uvice(1,i,j-1)+
-     &           uvice(1,im1,j)+uvice(1,im1,j-1))
-            visurf(i,j) = 0.25*(uvice(2,i,j)+uvice(2,i,j-1)+
-     &           uvice(2,im1,j)+uvice(2,im1,j-1))
+            uisurf(i,j) = 0.25*(ausi(i  ,j)+ausi(i  ,j-1)+
+     &                          ausi(im1,j)+ausi(im1,j-1))
+            visurf(i,j) = 0.25*(avsi(i  ,j)+avsi(i  ,j-1)+
+     &                          avsi(im1,j)+avsi(im1,j-1))
             im1 = i
          enddo
       enddo
 c*** Poles
       if (aGRID%have_south_pole) then
          uisurf(1,1) = 0. ; visurf(1,1) = 0.
-         do i=1,IMICDYN
-            uisurf(1,1) = uisurf(1,1)+(uvice(2,i,1)*sinu(i))*2./IM
-            visurf(1,1) = visurf(1,1)+(uvice(2,i,1)*cosu(i))*2./IM
+         do i=1,IM
+            uisurf(1,1) = uisurf(1,1)+(avsi(i,1)*sinu(i))*2./IM
+            visurf(1,1) = visurf(1,1)+(avsi(i,1)*cosu(i))*2./IM
          end do
          uisurf(:,1)=uisurf(1,1)
          visurf(:,1)=visurf(1,1)
@@ -2148,17 +2193,15 @@ c*** Poles
       if (aGRID%have_north_pole) then
          uisurf(1,JM) = 0. ; visurf(1,JM) = 0.
          do i=1,IM
-            uisurf(1,JM) = uisurf(1,JM)-(uvice(2,i,JM-1)*sinu(i))
+            uisurf(1,JM) = uisurf(1,JM)-(avsi(i,JM-1)*sinu(i))
      &           *2./IM
-            visurf(1,JM) = visurf(1,JM)+(uvice(2,i,JM-1)*cosu(i))
+            visurf(1,JM) = visurf(1,JM)+(avsi(i,JM-1)*cosu(i))
      &           *2./IM
          end do
          uisurf(:,JM)=uisurf(1,JM)
          visurf(:,JM)=visurf(1,JM)
       endif
 #endif
-
-      deallocate(uvice)
 
       RETURN
       END SUBROUTINE GET_UISURF

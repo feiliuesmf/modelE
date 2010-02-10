@@ -2419,11 +2419,11 @@ C**** do something in here
 c assumption: every dynsi PE is an ocean PE
       if(.not. oGRID%have_domain) return
 
-      if(iIM.eq.oIM .and. iJM.eq.oJM) then
-        oDMUI(:,:) = iDMUI(:,:)
-        oDMVI(:,:) = iDMVI(:,:)
-        return
-      endif
+c      if(iIM.eq.oIM .and. iJM.eq.oJM) then
+c        oDMUI(:,:) = iDMUI(:,:)
+c        oDMVI(:,:) = iDMVI(:,:)
+c        return
+c      endif
 
       if(hntrp_i2o_uv_need_init) then
         call Init_Hntrp_Type(hntrp_i2o_u,
@@ -2447,7 +2447,11 @@ c regrid DMUI from ice C to ocn C
       if(jmax == iJM) then
         iDMUI_band(:,iJM) = 0.
       endif
-      call HNTR8_band (ones_band, iDMUI_band, hntrp_i2o_u, oDMUI)
+      if(iIM.eq.oIM .and. iJM.eq.oJM) then ! no interp necessary
+        oDMUI(:,jmin:jmax) = iDMUI_band(:,jmin:jmax)
+      else
+        call HNTR8_band (ones_band, iDMUI_band, hntrp_i2o_u, oDMUI)
+      endif
       deallocate(iDMUI_band,ones_band)
 
 c regrid DMVI from ice C to ocn C
@@ -2459,7 +2463,11 @@ c regrid DMVI from ice C to ocn C
       if(jmax == iJM) then
         iDMVI_band(:,iJM) = 0.
       endif
-      call HNTR8_band (ones_band, iDMVI_band, hntrp_i2o_v, oDMVI)
+      if(iIM.eq.oIM .and. iJM.eq.oJM) then ! no interp necessary
+        oDMVI(:,jmin:jmax) = iDMVI_band(:,jmin:jmax)
+      else
+        call HNTR8_band (ones_band, iDMVI_band, hntrp_i2o_v, oDMVI)
+      endif
       deallocate(iDMVI_band,ones_band)
 
       if(oGRID%have_north_pole) then ! INT_AG2OG_Vector2 set them to zero
@@ -2487,6 +2495,9 @@ c regrid DMVI from ice C to ocn C
       USE OCEANR_DIM, only : oGRID
       USE DOMAIN_DECOMP_1D, only : BAND_PACK
       USE OCEAN, only : UO,VO
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+      USE ICEDYN_COM, only : pack_a2i
+#endif
       implicit none
       real*8, dimension(:,:), allocatable ::
      &     ones_band,ocnu_band,ocnv_band
@@ -2495,14 +2506,13 @@ c regrid DMVI from ice C to ocn C
 c assumption: every dynsi PE is an ocean PE
       if(.not. oGRID%have_domain) return
 
-c If DYNSI grid == ATM grid, simply replicate ATM copy
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+c DYNSI grid == ATM grid, so simply replicate ATM copy
 c (Note this requires that TOC2SST has been called first)
-      if(aIM.ne.aJM .and. ! extra check if the atm is lat-lon
-     &     aIM.eq.iIM .and. aJM.eq.iJM) then
-        uosurf(:,:) = atm_uosurf(:,:)
-        vosurf(:,:) = atm_vosurf(:,:)
-        return
-      endif
+      call band_pack(pack_a2i, atm_uosurf, uosurf)
+      call band_pack(pack_a2i, atm_vosurf, vosurf)
+      return
+#endif
 
 c call HNTRP
       if(hntrp_o2i_uv_need_init) then

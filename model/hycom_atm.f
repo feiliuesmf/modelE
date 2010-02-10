@@ -26,6 +26,8 @@
       USE FLUXES, only : SMELTI_loc => SMELTI
       USE FLUXES, only : DMUA_loc => DMUA
       USE FLUXES, only : DMVA_loc => DMVA
+      USE ICEDYN, only : grid_icdyn
+      USE ICEDYN_COM, only : pack_i2a ! to send dmui,dmvi to the atm grid
       USE ICEDYN_COM, only : DMUI_loc => DMUI
       USE ICEDYN_COM, only : DMVI_loc => DMVI
       USE FLUXES, only : SOLAR_loc => SOLAR
@@ -85,6 +87,8 @@
       public SRUNPSI_loc
       public SMELTI_loc
       public DMUA_loc
+      public grid_icdyn
+      public pack_i2a
       public DMUI_loc
       public DMVA_loc
       public DMVI_loc
@@ -152,6 +156,7 @@
       public ataux_loc,atauy_loc,aflxa2o_loc
      .     ,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
+     .     ,admui_loc,admvi_loc
 
 #ifdef TRACERS_GASEXCH_ocean
       public atracflx_loc
@@ -233,6 +238,7 @@
       real*8, allocatable, dimension(:,:) :: ataux_loc,atauy_loc
      .     ,aflxa2o_loc,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
+     .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
 
 #ifdef TRACERS_GASEXCH_ocean
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
@@ -308,7 +314,8 @@
      .     ,aflxa2o_loc(iia,aJ_0H:aJ_1H)
      .     ,aemnp_loc(iia,aJ_0H:aJ_1H),aice_loc(iia,aJ_0H:aJ_1H),
      .      asalt_loc(iia,aJ_0H:aJ_1H)
-     .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H) )
+     .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H)
+     .     ,admui_loc(im,aJ_0H:aJ_1H),admvi_loc(im,aJ_0H:aJ_1H) )
 
 #ifdef TRACERS_GASEXCH_ocean
       ALLOCATE( atracflx_loc(iia,aJ_0H:aJ_1H,ntm) )
@@ -400,9 +407,11 @@ cddd      end subroutine alloc_locals
       call pack_data( grid,  SRUNPSI_loc, SRUNPSI )
       call pack_data( grid,  SMELTI_loc, SMELTI )
       call pack_data( grid,  DMUA_loc, DMUA )
-      call pack_data( grid,  DMUI_loc, DMUI )
       call pack_data( grid,  DMVA_loc, DMVA )
-      call pack_data( grid,  DMVI_loc, DMVI )
+      if(grid_icdyn%have_domain) then ! dmui,dmvi may be on subset of PEs
+        call pack_data( grid_icdyn,  DMUI_loc, DMUI )
+        call pack_data( grid_icdyn,  DMVI_loc, DMVI )
+      endif
        call pack_column( grid,  SOLAR_loc, SOLAR )
       call pack_data( grid,  SSS_loc, SSS )
       call pack_data( grid,  UOSURF_loc, UOSURF )
@@ -459,9 +468,11 @@ cddd      end subroutine alloc_locals
       call unpack_data( grid,  SRUNPSI, SRUNPSI_loc )
       call unpack_data( grid,  SMELTI, SMELTI_loc )
       call unpack_data( grid,  DMUA, DMUA_loc )
-      call unpack_data( grid,  DMUI, DMUI_loc )
       call unpack_data( grid,  DMVA, DMVA_loc )
-      call unpack_data( grid,  DMVI, DMVI_loc )
+      if(grid_icdyn%have_domain) then ! dmui,dmvi may be on subset of PEs
+        call unpack_data( grid_icdyn,  DMUI, DMUI_loc )
+        call unpack_data( grid_icdyn,  DMVI, DMVI_loc )
+      endif
        call unpack_column( grid,  SOLAR, SOLAR_loc )
       call unpack_data( grid,  SSS, SSS_loc )
       call unpack_data( grid,  UOSURF, UOSURF_loc )
@@ -470,8 +481,10 @@ c UOSURF and VOSURF are also needed on the ice dynamics A-grid.
 c For the moment, HYCOM only runs with modelE configurations having
 c identical atmosphere and ice dynamics grids, so the atmospheric
 c copy of UOSURF,VOSURF can be used.
-      UOSURF_4DYNSI_loc(:,:) = UOSURF_loc(:,:)
-      VOSURF_4DYNSI_loc(:,:) = VOSURF_loc(:,:)
+      if(grid_icdyn%have_domain) then ! ice dyn may run on subset of PEs
+        call unpack_data( grid_icdyn,  UOSURF, UOSURF_4DYNSI_loc)
+        call unpack_data( grid_icdyn,  VOSURF, VOSURF_4DYNSI_loc) 
+      endif
       call unpack_data( grid,  OGEOZA, OGEOZA_loc )
        call unpack_block( grid,  GTEMP, GTEMP_loc )
        call unpack_column( grid,  GTEMPR, GTEMPR_loc )

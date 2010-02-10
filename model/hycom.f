@@ -86,7 +86,8 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH,
      &                         haveLatitude, GLOBALSUM, ESMF_BCAST
-      USE DOMAIN_DECOMP_1D, only: pack_data, unpack_data
+      USE DOMAIN_DECOMP_1D, only: pack_data, unpack_data,
+     &     band_pack
       USE HYCOM_ATM 
 !      USE FLUXES, only : e0,prec,eprec,evapor,flowo,eflowo,dmua,dmva
 !     . ,erunosi,runosi,srunosi,runpsi,srunpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -248,6 +249,11 @@ c$OMP END PARALLEL DO
 c
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c --- accumulate agcm fields over nhr 
+
+c first redistribute ice-ocean stresses to the atmospheric grid
+      call band_pack(pack_i2a, dmui_loc, admui_loc)
+      call band_pack(pack_i2a, dmvi_loc, admvi_loc)
+
       do 29 ia=1,iia
       do 29 ja=aJ_0,aJ_1
       ipa_loc(ia,ja)=0
@@ -274,14 +280,14 @@ c --- accumulate
      .                                  dtsrc/(real(nhr)*3600.)
 c --- dmua on B-grid, dmui on C-grid; Nick aug04
       ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja,1)+
-     .                                         dmui_loc(ia,ja))    ! scaled by rsi 
+     .                                        admui_loc(ia,ja))    ! scaled by rsi 
      .                                     /(3600.*real(nhr))  ! kg/ms => N/m*m
       atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja,1)+
-     .                                         dmvi_loc(ia,ja))
+     .                                        admvi_loc(ia,ja))
      .                                     /(3600.*real(nhr))  ! kg/ms => N/m*m
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
-     . sqrt(sqrt((dmua_loc(ia,ja,1)+dmui_loc(ia,ja))**2
-     .          +(dmva_loc(ia,ja,1)+dmvi_loc(ia,ja))**2)/dtsrc*thref)) ! sqrt(T/r)=>m/s
+     . sqrt(sqrt((dmua_loc(ia,ja,1)+admui_loc(ia,ja))**2
+     .          +(dmva_loc(ia,ja,1)+admvi_loc(ia,ja))**2)/dtsrc*thref)) ! sqrt(T/r)=>m/s
      .                               *dtsrc/(real(nhr)*3600.)
       aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(solar_loc(1,ia,ja)*
      .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m
@@ -1519,9 +1525,10 @@ c UOSURF and VOSURF are also needed on the ice dynamics A-grid.
 c For the moment, HYCOM only runs with modelE configurations having
 c identical atmosphere and ice dynamics grids, so the atmospheric
 c copy of UOSURF,VOSURF can be used.
-      UOSURF_4DYNSI_loc(:,:) = UOSURF_loc(:,:)
-      VOSURF_4DYNSI_loc(:,:) = VOSURF_loc(:,:)
-
+      if(grid_icdyn%have_domain) then ! ice dyn may run on subset of PEs
+        call unpack_data( grid_icdyn,  UOSURF, UOSURF_4DYNSI_loc)
+        call unpack_data( grid_icdyn,  VOSURF, VOSURF_4DYNSI_loc) 
+      endif
        call unpack_block( grid,  GTEMP, GTEMP_loc )
        call unpack_column( grid,  GTEMPR, GTEMPR_loc )
        call unpack_column( grid,  DMSI, DMSI_loc )
