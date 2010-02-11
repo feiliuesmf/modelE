@@ -101,9 +101,8 @@ real*8, dimension(LM,nsoa)         :: kpart
 !@param kpart_ref Low-NOx partitioning coefficient of SOA species (m3/ug) at the reference temperature kpart_temp_ref
 real*8, dimension(nsoa), parameter :: kpart_ref=(/&
 ! isoprene + OH low NOx SOAb formation, Henze and Seinfeld, 2006
-! WARNING!!! Species indices are inverted compared to the paper, for consistency:
-!            less volatile first, more volatile second
-1.62d0, 0.00862d0,       & ! iisopp1a, iisopp2a
+1.62d0, 0.00862d0,       & ! iisopp1a, iisopp2a ! WARNING!!! Species indices are inverted compared to the paper, for consistency:
+                                                !            less volatile first, more volatile second
 ! a-pinene + O3 low NOx SOAb formation, Presto et al., 2005
 1.d0/15.7d0, 1.d0/385d0  & ! iapinp1a, iapinp2a
 !modelE!#ifndef SOA_MINIMUM
