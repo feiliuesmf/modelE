@@ -30,7 +30,8 @@ Preprocessor Options
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
-!#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
 #define TRACERS_NITRATE
 #define TRACERS_HETCHEM
 #define BC_ALB                      !optional tracer BC affects snow albedo
@@ -71,7 +72,7 @@ TRCHEM_master                       ! trop chem "driver"/strat prescrioption
 BIOGENIC_EMISSIONS                  ! old N.Unger interactive isoprene
 ! ----------------------------------
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
-!TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
+TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 TRACER_NITRATE                      ! Nitrate aerosol
 TRAMP_eqsam_v03d                    ! EQSAM module for inorganic aerosol thermodynamic equilibrium
 TRACER_HETCHEM
@@ -206,7 +207,7 @@ BC_dep=BC.Dry+Wet.depositions.ann
 !-----------------------------------------------
 !  full-atmosphere chemistry model files:
 !-----------------------------------------------
-MOLEC=chem_files/ds4_moleculesE_terp!_soa
+MOLEC=chem_files/ds4_moleculesE_terp_soa
 JPLRX=chem_files/jpl00_T25_SEP08_fastterp
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
