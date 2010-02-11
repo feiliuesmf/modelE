@@ -14,7 +14,7 @@ filters: U,V in E-W direction (after every dynamics time step)
 Preprocessor Options
 #define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-#define HYCOM_RESOLUTION_1deg
+#define ATM2x2h_HYCOM1deg   !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
 #define TRACERS_OceanBiology
 #define OBIO_RAD_coupling
 #define pCO2_ONLINE
@@ -23,7 +23,6 @@ Preprocessor Options
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
-! #define HYCOM_RESOLUTION_2deg
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -310,8 +309,8 @@ nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2         ! until diurnal diags are fixed, Nssw has to be even
 nssw=48         ! until diurnal diags are fixed, Nssw has to be even
-itest=316       ! (220,320) equator Atlant;   (316,258)=257.5E;-50.7S
-jtest=258       ! (245,275) 0.6S;274.5E Nino3
+itest=-1        
+jtest=-1       
 iocnmx=2        ! default is 0
 brntop=50.      ! default is 0.
 brnbot=200.     ! default is 300.
