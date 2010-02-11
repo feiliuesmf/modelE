@@ -104,7 +104,10 @@ C**** Local parameters and variables and arguments:
 !@+   changeTerpenes,
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_AEROSOLS_SOA
-!@+   changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
+!@+   changeisopp1g,changeisopp2g
+#ifdef TRACERS_TERP
+!@+  ,changeapinp1g,changeapinp2g,
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@+   changeHNO3,changeNOx,changeN2O5,wprodHCHO working variables to 
 !@+   calculate nighttime chemistry changes
@@ -130,7 +133,10 @@ C**** Local parameters and variables and arguments:
      &  changeTerpenes,
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_AEROSOLS_SOA
-     & changeisopp1g,changeisopp2g,changeapinp1g,changeapinp2g,
+     & changeisopp1g,changeisopp2g,
+#ifdef TRACERS_TERP
+     & changeapinp1g,changeapinp2g,
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
      &  changeOx,fraQ,CH4_569,count_569,thick, changeCO
 #ifdef TRACERS_HETCHEM
@@ -1018,6 +1024,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &                (rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
         if(-changeisopp2g > 0.75d0*y(n_isopp2g,L))changeisopp2g=
      &  -0.75d0*y(n_isopp2g,L)
+#ifdef TRACERS_TERP
         changeapinp1g=apartmolar(L,whichsoa(n_apinp1a))*
      &                (rr(iTerpenesO3,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
         if(-changeapinp1g > 0.75d0*y(n_apinp1g,L))changeapinp1g=
@@ -1026,11 +1033,14 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &                (rr(iTerpenesO3,L)*y(nO3,L))*y(n_Terpenes,L)*dt2
         if(-changeapinp2g > 0.75d0*y(n_apinp2g,L))changeapinp2g=
      &  -0.75d0*y(n_apinp2g,L)
+#endif  /* TRACERS_TERP */
       else
         changeisopp1g=0.d0
         changeisopp2g=0.d0
+#ifdef TRACERS_TERP
         changeapinp1g=0.d0
         changeapinp2g=0.d0
+#endif  /* TRACERS_TERP */
       endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
@@ -1187,8 +1197,10 @@ C Apply Alkenes, AlkyNit, and Aldehyde changes here:
 #ifdef TRACERS_AEROSOLS_SOA
         y(n_isopp1g,L)  =y(n_isopp1g,L)  +changeisopp1g
         y(n_isopp2g,L)  =y(n_isopp2g,L)  +changeisopp2g
+#ifdef TRACERS_TERP
         y(n_apinp1g,L)  =y(n_apinp1g,L)  +changeapinp1g
         y(n_apinp2g,L)  =y(n_apinp2g,L)  +changeapinp2g
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 C Note: the lower limit of 1 placed on the resulting tracer mass
@@ -1289,6 +1301,7 @@ C -- isopp2g --  (isopp2g from gas phase rxns)
           changeisopp2g=changeL(L,n_isopp2g)*mass2vol(n_isopp2g)
      &    *bypfactor
         END IF
+#ifdef TRACERS_TERP
 C -- apinp1g --  (apinp1g from gas phase rxns)
         changeL(L,n_apinp1g)=
      &  changeapinp1g*pfactor*vol2mass(n_apinp1g)
@@ -1305,6 +1318,7 @@ C -- apinp2g --  (apinp2g from gas phase rxns)
           changeapinp2g=changeL(L,n_apinp2g)*mass2vol(n_apinp2g)
      &    *bypfactor
         END IF
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 c -- Isoprene -- (Isoprene from gas phase rxns)
         changeL(L,n_Isoprene)=
@@ -1479,6 +1493,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeisopp2g)/y(n_isopp2g,L),' percent of'
      &    ,y(n_isopp2g,L),'(',1.d9*y(n_isopp2g,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_TERP
           write(out_line,198) 'apinp1g ',': ',
      &    changeapinp1g,' molecules produced; ',
      &    100.d0*(changeapinp1g)/y(n_apinp1g,L),' percent of'
@@ -1489,6 +1504,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeapinp2g)/y(n_apinp2g,L),' percent of'
      &    ,y(n_apinp2g,L),'(',1.d9*y(n_apinp2g,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
           write(out_line,198) 'Isoprene',': ',
      &    changeIsoprene,' molecules produced; ',
