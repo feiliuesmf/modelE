@@ -850,6 +850,9 @@ C          read the CFC initial conditions:
 
       case ('isopp2a')
           n_isopp2a = n
+#ifndef TRACERS_TERP
+          n_soa_e = n_isopp2a        !the last from the soa species
+#endif  /* TRACERS_TERP */
           ntm_power(n) = -11
           ntsurfsrc(n) = 0
           tr_mm(n) = 15.6d0
