@@ -14,6 +14,7 @@
       USE obio_forc, only : avgq,tirrq3d,ihra,atmco2
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
+     .                     ,itest_bio=>itest,jtest_bio=>jtest
 #endif
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : delt1, salmin
@@ -212,6 +213,7 @@ c
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com,  only : gcmax,tracav,plevav,pCO2av,pp2tot_day
      .                     ,ao_co2fluxav,diag_counter,pp2tot_day_glob
+     .                     ,itest_bio=>itest,jtest_bio=>jtest
       USE obio_com,  only : tracav_loc, plevav_loc
 #endif
       USE HYCOM_ARRAYS_GLOB
@@ -340,8 +342,8 @@ css#endif
      . ,tracav,plevav,pCO2av,diag_counter
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
      . ,pp2tot_day_glob
-      i=itest
-      j=jtest
+      i=itest_bio
+      j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,2(e12.4,1x))') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -352,8 +354,8 @@ css#endif
 #ifdef TRACERS_GASEXCH_ocean
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,atrac
-      i=itest
-      j=jtest
+      i=itest_bio
+      j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1a k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -367,9 +369,9 @@ css#endif
      . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
       WRITE (kunit,err=10) TRN2MODULE_HEADER,nstep,time
      . ,pp2tot_day_glob
-      i=itest
-      j=jtest
-      print*,'test point at:',itest,jtest
+      i=itest_bio
+      j=jtest_bio
+      print*,'test point at:',itest_bio,jtest_bio
 
       do k=1,kdm
       write(*,'(a,i2,8(e12.4,1x),i3)') ' tst1a k=',k,
@@ -384,9 +386,9 @@ css#endif
 #if (defined TRACERS_AGE_OCEAN) || defined(TRACERS_OCEAN_WATER_MASSES)
       WRITE (kunit,err=10) TRNMODULE_HEADER,nstep,time
      . ,tracav,plevav,diag_counter
-      i=itest
-      j=jtest
-      print*,'test point at:',itest,jtest
+      i=itest_bio
+      j=jtest_bio
+      print*,'test point at:',itest_bio,jtest_bio
 
       do k=1,kdm
       write(*,'(a,i2,6(e12.4,1x))') ' tst1a k=',k,
@@ -432,8 +434,8 @@ c
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')'chk GASEXCH read at nstep/day=',nstep0,time0
-      i=itest
-      j=jtest
+      i=itest_bio
+      j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,2(e12.4,1x))') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -455,7 +457,7 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac
-      i=itest
+      i=itest_bio
       j=jtest
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst1b k=',k,
@@ -475,9 +477,9 @@ c
      . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
-      i=itest
-      j=jtest
-      print*, 'itest, jtest=',itest,jtest
+      i=itest_bio
+      j=jtest_bio
+      print*, 'itest, jtest=',itest_bio,jtest_bio
       do k=1,kdm
       write(*,'(a,i2,8(e12.4,1x),i3)') ' tst1b k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -501,9 +503,9 @@ c
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,tracav,plevav,diag_counter
-      i=itest
-      j=jtest
-      print*,'test point at:',itest,jtest
+      i=itest_bio
+      j=jtest_bio
+      print*,'test point at:',itest_bio,jtest_bio
 
       do k=1,kdm
       write(*,'(a,i2,6(e12.4,1x))') ' tst1b k=',k,
@@ -560,8 +562,8 @@ c
      . ,pp2tot_day_glob
       write(*,'(a,i9,f9.0)')
      &     'chk GASEXCH read at nstep/day=',nstep0,time0
-      i=itest
-      j=jtest
+      i=itest_bio
+      j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -582,8 +584,8 @@ c
 #ifdef TRACERS_GASEXCH_ocean
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,atrac
-      i=itest
-      j=jtest
+      i=itest_bio
+      j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3,1x,e12.4)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -602,8 +604,8 @@ c
      . ,tracav,plevav,pCO2av,diag_counter,ao_co2fluxav
       READ (kunit,err=10) TRN2HEADER,nstep0,time0
      . ,pp2tot_day_glob
-      i=itest
-      j=jtest
+      i=itest_bio
+      j=jtest_bio
       do k=1,kdm
       write(*,'(a,i2,7(e12.4,1x),i3)') ' tst2 k=',k,
      .    dp(i,j,k)/onem,temp(i,j,k),avgq_glob(i,j,k),gcmax_glob(i,j,k),
@@ -626,9 +628,9 @@ c
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
       READ (kunit,err=10) TRNHEADER,nstep0,time0
      . ,tracav,plevav,diag_counter
-      i=itest
-      j=jtest
-      print*,'test point at:',itest,jtest
+      i=itest_bio
+      j=jtest_bio
+      print*,'test point at:',itest_bio,jtest_bio
 
       do k=1,kdm
       write(*,'(a,i2,6(e12.4,1x))') ' tst2 k=',k,

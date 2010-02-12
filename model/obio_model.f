@@ -37,13 +37,14 @@
      .                    ,bn3d,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
+     .                    ,itest,jtest
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
 #endif
 #endif
 #ifdef OBIO_ON_GARYocean
-     .                    ,itest,jtest,obio_deltat,nstep0
+     .                    ,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
@@ -85,7 +86,7 @@
      .                            ,p,dpmixl,latij,lonij
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
-     .                        ,time,lp,itest,jtest,baclin
+     .                        ,time,lp,baclin
       USE obio_com, only: ao_co2flux_loc,tracav_loc,
      .     pCO2av,plevav_loc, ao_co2fluxav_loc
       
@@ -422,8 +423,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        onirdir_ij=onirdir(i,j)
        onirdif_ij=onirdif(i,j)
 
-       !!if (vrbos)write(*,'(/,a,3i5,4e12.4)')
-       if (vrbos)write(*,*)
+       if (vrbos)write(*,'(/,a,3i5,4e12.4)')
      .    'obio_model, radiation: ',
      .    nstep,i,j,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 #else
@@ -471,8 +471,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        atmFe_ij=atmFe_all(i,j,JMON)*solFe
 
        if (vrbos) then
-         !!write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
-         write(*,*)'obio_model, forcing: ',
+         write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
@@ -672,11 +671,10 @@ cdiag.       '           k   avgq    tirrq',
 cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
-         do k=1,kdm
-         !!!write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
-         write(*,*)'obio_model,k,avgq,tirrq:',
-     .       nstep,i,j,k,avgq1d(k),tirrq(k)
-         enddo
+cdiag    do k=1,kdm
+cdiag    write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
+cdiag.       nstep,i,j,k,avgq1d(k),tirrq(k)
+cdiag    enddo
          endif
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
@@ -858,13 +856,6 @@ cdiag     endif
           endif
        endif
        if (vrbos) then
-       do nt=1,nchl
-       do k=1,kdm
-         write(*,'(a,7i5,3e12.4)')'PRIMARY PRODUCTIVITY ',
-     .       nstep,day_of_month,hour_of_day,i,j,k,nt,
-     .       p1d(kdm+1),pp2_1d(k,nt),pp2tot_day(i,j)
-       enddo
-       enddo
        write(*,'(a,3i5,e12.4)')'obio_model, pp:',
      .    nstep,i,j,pp2tot_day(i,j)
        endif
