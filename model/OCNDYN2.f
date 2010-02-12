@@ -104,6 +104,23 @@ c relax UOD,VOD toward 4-pt avgs of UO,VO
       call halo_update(grid,vo,from=south)
       relfac = .005d0
       do l=1,lmo
+        if(grid%have_north_pole) then
+          j = jm-1
+          call polevel(uo(1,j_0h,l),vo(1,j_0h,l),l)
+          i=1
+          if(l.le.lmv(i,j)) then
+            uod(i,j,l) = (1.-relfac)*uod(i,j,l) + relfac*.25*(
+     &           uo(im,j,l)+uo(i,j,l)+2.*uo(i,j+1,l)
+     &           )
+          endif
+          do n=1,nbyzv(j,l)
+            do i=max(2,i1yzv(n,j,l)),i2yzv(n,j,l)
+              uod(i,j,l) = (1.-relfac)*uod(i,j,l) + relfac*.25*(
+     &             uo(i-1,j,l)+uo(i,j,l)+2.*uo(i,j+1,l)
+     &             )
+            enddo
+          enddo
+        endif
         do j=j_0s,min(jm-2,j_1s)
           i=1
           if(l.le.lmv(i,j)) then
@@ -731,6 +748,7 @@ C**** Copy X to temporary array Y and filter X in place.
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc
       Use OCEAN_DYN, Only: SMU,SMV,VBAR,dZGdP,MMI
       Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH, SOUTH
+     &     ,GLOBALMAX
       USE OCEANR_DIM, only : grid=>ogrid
       Implicit None
       Real*8, Intent(In),
@@ -751,6 +769,7 @@ c
       Real*8 corofj,mufac,mvfac,bydx,bydy,mmid,xeven,
      &     convij,convfac,dp,pgf4pt,pgfac,uq,vq,uasmooth
       Integer*4 I,J,L, J1,JN,J1P,JNP,J1H,JNH, j1a, jminpfu,jmaxpfu, N
+      integer :: smallmo_loc,smallmo
       Logical QNP
 
 C****
@@ -795,6 +814,7 @@ c
       pgfy(:,:) = 0.
       vort(:,:) = 0.
 
+      smallmo_loc = 0
 c
 c loop over layers, starting at the ocean bottom
 c
@@ -1014,15 +1034,22 @@ c
           convij = convfac*(MU(IM ,J)-MU(I,J) + MV(I,J-1)-MV(I,J))
           mo(i,j,l) = mo(i,j,l) + convij
           opbot(i,j) = opbot(i,j) + convij*grav
+          if(mo(i,j,l)*dxypo(j) < 0.75d0*mmi(i,j,l)) then
+            write(6,*) 'small mo',i,j,l,
+     &           mo(i,j,l)*dxypo(j)/mmi(i,j,l)
+            smallmo_loc = 1
+          endif
         endif
         do n=1,nbyzm(j,l)
           do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
             convij = convfac*(MU(I-1,J)-MU(I,J) +MV(I,J-1)-MV(I,J))
             mo(i,j,l) = mo(i,j,l) + convij
             opbot(i,j) = opbot(i,j) + convij*grav
-            if(mo(i,j,l)*dxypo(j) < 0.93*mmi(i,j,l))
-     &           write(6,*) 'small mo',i,j,l,
-     &           mo(i,j,l)*dxypo(j)/mmi(i,j,l)
+            if(mo(i,j,l)*dxypo(j) < 0.75d0*mmi(i,j,l)) then
+              write(6,*) 'small mo',i,j,l,
+     &             mo(i,j,l)*dxypo(j)/mmi(i,j,l)
+              smallmo_loc = 1
+            endif
           enddo
         enddo
       enddo
@@ -1037,6 +1064,9 @@ c
       endif
 
       enddo ! end loop over layers
+
+      CALL GLOBALMAX(grid, smallmo_loc, smallmo)
+      if(smallmo .gt. 0) call stop_model('small mo',255)
 
 c emergency vertical regrid
 c      Call OFLUXV(opbot,mo,qeven)
@@ -1661,7 +1691,7 @@ c
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     CMUP,FMUP,FXUP,FYUP,FZUP,FMUP_ctr
       REAL*8 :: CM,C,FM,FX,FY,FZ,MNEW,rzlim,no_rzlim
-      real*8 :: fm_ctr,r_edge,wtdn,rdn,rup
+      real*8 :: fm_ctr,r_edge,wtdn,rdn,rup,rm_lus
 c Applied when qlimit is true, edgmax is the maximum allowed ratio of
 c r_edge to gridbox-mean r.  edgmax = 2 can be used if there is never
 c flow out of the bottom and top edges simultaneously.
@@ -1728,10 +1758,11 @@ c flow out of the bottom and top edges simultaneously.
 #ifdef LUS_VERT_ADV
               fm_ctr = fm
 #endif
+              RM_lus = RM(I,J,L) + (FMUP(I,J)-FM)
               RM(I,J,L) = RM(I,J,L) + (FMUP_ctr(I,J)-FM_ctr)
               mnew = MO(I,J,L) + CMUP(I,J)-CM
               RZ(I,J,L) = (RZ(I,J,L)*MO(I,J,L) + (FZUP(I,J)-FZ) +3d0*
-     &             +((CMUP(I,J)+CM)*RM(I,J,L)-MO(I,J,L)*(FMUP(I,J)+FM)))
+     &             +((CMUP(I,J)+CM)*RM_lus-MO(I,J,L)*(FMUP(I,J)+FM)))
      &             / mnew
               MO(I,J,L) = mnew
               cmup(i,j) = cm
