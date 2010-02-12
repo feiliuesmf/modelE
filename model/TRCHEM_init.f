@@ -233,6 +233,9 @@ C**** Local parameters and variables and arguments:
         endif
       enddo 
       ks = nc + 1
+      if (at /= 'N2' .and. at /= 'H')
+     &  call stop_model('ERROR: Tracer '//trim(at)//
+     &    ' does not exist in the MOLEC file',255)
 
       return
       end SUBROUTINE lstnum
