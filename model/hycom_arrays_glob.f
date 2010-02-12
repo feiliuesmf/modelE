@@ -621,8 +621,8 @@ c
       call pack_data( ogrid,  klist_loc, klist )
       call pack_data( ogrid,  ijlist_loc, ijlist )
 #if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES)
-     call pack_data(ogrid, ,plevav_loc, plevav)
-     call pack_data(ogrid, ,tracav_loc, tracav)
+      call pack_data(ogrid, ,plevav_loc, plevav)
+      call pack_data(ogrid, ,tracav_loc, tracav)
 #endif
 
       end subroutine gather_hycom_arrays
