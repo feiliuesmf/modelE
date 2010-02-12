@@ -858,6 +858,7 @@ C          read the CFC initial conditions:
           fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
 
+#ifdef TRACERS_TERP
       case ('apinp1g')
           n_apinp1g = n
           ntm_power(n) = -11
@@ -902,7 +903,7 @@ C          read the CFC initial conditions:
           trradius(n) = 3.d-7        !m
           fq_aer(n) = 0.8d0          !fraction of aerosol that dissolves
           tr_wd_TYPE(n) = nPART
-
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 
       case ('DMS')
@@ -7573,6 +7574,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#ifdef TRACERS_TERP
       k = k + 1
         ijlt_soa_apartmass_apinp1a=k
         lname_ijlt(k) = 'Effective apartmass of apinp1a'
@@ -7587,6 +7589,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif  /* TRACERS_TERP */
       k = k + 1
         ijlt_soa_pcp=k
         lname_ijlt(k) = 'Total non-volatile SOA-absorbing mass'
@@ -7657,6 +7660,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'m3/ug')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#ifdef TRACERS_TERP
       k = k + 1
         ijlt_soa_kp_apinp1a=k
         lname_ijlt(k) = 'Partitioning coefficient of apinp1a'
@@ -7671,6 +7675,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'m3/ug')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif  /* TRACERS_TERP */
       k = k + 1
         ijlt_soa_iternum=k
         lname_ijlt(k) = 'Total iterations for SOA calculations'
@@ -7692,6 +7697,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#ifdef TRACERS_TERP
       k = k + 1
         ijlt_soa_soamass_apinp1a=k
         lname_ijlt(k) = 'Potential SOA mass'
@@ -7706,6 +7712,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif  /* TRACERS_TERP */
       k = k + 1
         ijlt_soa_partfact_isopp1a=k
         lname_ijlt(k) = 'Final partfact value'
@@ -7720,6 +7727,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#ifdef TRACERS_TERP
       k = k + 1
         ijlt_soa_partfact_apinp1a=k
         lname_ijlt(k) = 'Final partfact value'
@@ -7734,6 +7742,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif  /* TRACERS_TERP */
       k = k + 1
         ijlt_soa_m0=k
         lname_ijlt(k) = 'Final M0 value'

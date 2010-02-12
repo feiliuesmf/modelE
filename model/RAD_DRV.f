@@ -924,7 +924,10 @@ C     OUTPUT DATA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,trpdens,n_SO4,n_stratOx
      *     ,n_OCI1,n_OCI2,n_OCI3,n_OCA1,n_OCA2,n_OCA3,n_OCA4,n_N_AKK_1
 #ifdef TRACERS_AEROSOLS_SOA
-     *     ,n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
+     *     ,n_isopp1a,n_isopp2a
+#ifdef TRACERS_TERP
+     *     ,n_apinp1a,n_apinp2a
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_Koch
 c    *     ,SNFST0,TNFST0
@@ -1594,7 +1597,9 @@ C**** more than one tracer is lumped together for radiation purposes
            TRACER(L,n)=(trm(i,j,l,n_OCB)+trm(i,j,l,n_OCII)+
 #ifdef TRACERS_AEROSOLS_SOA
      *           trm(i,j,l,n_isopp1a)+trm(i,j,l,n_isopp2a)+
+#ifdef TRACERS_TERP
      *           trm(i,j,l,n_apinp1a)+trm(i,j,l,n_apinp2a)+
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
      *           trm(i,j,l,n_OCIA))*BYAXYP(I,J)
           case ("OCA4")

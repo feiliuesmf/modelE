@@ -38,7 +38,9 @@ c
      &                        tr_wd_type,nWater,trm,trmom,
 #ifdef TRACERS_AEROSOLS_SOA
      &                        n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+#ifdef TRACERS_TERP
      &                        n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                        n_SO4,n_H2O2_s,oh_live,no3_live,
      &                        nChemistry,nOverwrite,rsulf1,rsulf2,
@@ -2202,7 +2204,10 @@ C**** GLOBAL parameters and variables:
 #endif
 
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
+      USE TRACER_COM, only: n_isopp1a,n_isopp2a
+#ifdef TRACERS_TERP
+     &                     ,n_apinp1a,n_apinp2a
+#endif  /* TRACERS_TERP */
       USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
      &                       whichsoa,dH_isoprene,dH_apinene
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -2419,12 +2424,14 @@ c         Reaction 2 on sulfate and PSCs:
         kpart(L,whichsoa(n_isopp2a))=
      &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp2a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_isopp2a)))
+#ifdef TRACERS_TERP
         kpart(L,whichsoa(n_apinp1a))=
      &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp1a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_apinp1a)))
         kpart(L,whichsoa(n_apinp2a))=
      &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp2a)),ta(L),
      &              kpart_temp_ref(whichsoa(n_apinp2a)))
+#endif  /* TRACERS_TERP */
       enddo
 #endif  /* TRACERS_AEROSOLS_SOA */
  

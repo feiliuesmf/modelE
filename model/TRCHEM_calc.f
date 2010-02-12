@@ -27,7 +27,9 @@ C
      &                   n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
 #ifdef TRACERS_AEROSOLS_SOA
      &                   n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
+#ifdef TRACERS_TERP
      &                   n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                   n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,trm,ntm,n_N2O,
      &                   n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
@@ -250,9 +252,6 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(n_apinp2g,L)=prod(n_apinp2g,L)+
      &                    apartmolar(L,whichsoa(n_apinp2a))*
      &                    chemrate(iTerpenesO3,L)
-#else
-        prod(n_apinp1g,L)=0.d0
-        prod(n_apinp2g,L)=0.d0
 #endif  /* TRACERS_TERP */
       enddo
 #endif  /* TRACERS_AEROSOLS_SOA */

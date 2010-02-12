@@ -12,9 +12,9 @@ use TRACER_COM, only: ntm,ntm_soa,tr_mm,&
                       n_Isoprene,&
 #ifdef TRACERS_TERP
                       n_Terpenes,&
+                      n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,&
 #endif  /* TRACERS_TERP */
-                      n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,&
-                      n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a
+                      n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a
 implicit none
 
 !@var n_soa_i the first SOA-related species
@@ -101,10 +101,12 @@ real*8, dimension(LM,nsoa)         :: kpart
 !@param kpart_ref Low-NOx partitioning coefficient of SOA species (m3/ug) at the reference temperature kpart_temp_ref
 real*8, dimension(nsoa), parameter :: kpart_ref=(/&
 ! isoprene + OH low NOx SOAb formation, Henze and Seinfeld, 2006
-1.62d0, 0.00862d0,       & ! iisopp1a, iisopp2a ! WARNING!!! Species indices are inverted compared to the paper, for consistency:
+1.62d0, 0.00862d0         & ! iisopp1a, iisopp2a ! WARNING!!! Species indices are inverted compared to the paper, for consistency:
                                                 !            less volatile first, more volatile second
+#ifdef TRACERS_TERP
 ! a-pinene + O3 low NOx SOAb formation, Presto et al., 2005
-1.d0/15.7d0, 1.d0/385d0  & ! iapinp1a, iapinp2a
+,1.d0/15.7d0, 1.d0/385d0  & ! iapinp1a, iapinp2a
+#endif  /* TRACERS_TERP */
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
 !modelE!0.195,   0.003, & ! ibpinp1a_nox, ibpinp2a_nox: Griffin et al., JGR, 1999
@@ -135,9 +137,11 @@ real*8, dimension(nsoa), parameter :: kpart_ref=(/&
 
 !@param kpart_nox_ref High-NOx partitioning coefficient of SOA species (m3/ug) at the reference temperature kpart_temp_nox_ref
 real, dimension(nsoa), parameter :: kpart_nox_ref=(/&
-1.62d0, 0.00862d0,       & ! iisopp1a, iisopp2a ! WARNING!!! Species indices are inverted compared to the paper, for consistency:
+1.62d0, 0.00862d0         & ! iisopp1a, iisopp2a ! WARNING!!! Species indices are inverted compared to the paper, for consistency:
                                                 !            less volatile first, more volatile second
-1.d0/15.7d0, 1.d0/385.d0 & ! iapinp1a, iapinp2a: Presto et al., EST, 2005
+#ifdef TRACERS_TERP
+,1.d0/15.7d0, 1.d0/385.d0 & ! iapinp1a, iapinp2a: Presto et al., EST, 2005
+#endif  /* TRACERS_TERP */
 !modelE!0.195,   0.003, & ! ibpinp1a_nox, ibpinp2a_nox: Griffin et al., JGR, 1999
 !modelE!0.053,   0.0019,& ! itolp1a_nox,  itolp2a_nox: Odum et al., Science, 1997
 !modelE!0.301,   0.008  & ! ixylp1a_nox,  ixylp2a_nox: Song et al., EST, 2005
@@ -148,8 +152,10 @@ real, dimension(nsoa), parameter :: kpart_nox_ref=(/&
 !@param kpart_temp_ref reference temperature where kpart_ref was derived
 real*8, dimension(nsoa), parameter :: kpart_temp_ref=(/&
 ! isoprene + OH low NOx SOAb formation, Henze and Seinfeld, GRL 2006
-295.d0,295.d0, & ! iisopp1a_hox, iisopp2a_hox
-295.d0,295.d0  & ! iapinp1a_hox, iapinp2a_hox: Presto et al., EST, 2005
+295.d0,295.d0   & ! iisopp1a_hox, iisopp2a_hox
+#ifdef TRACERS_TERP
+,295.d0,295.d0  & ! iapinp1a_hox, iapinp2a_hox: Presto et al., EST, 2005
+#endif  /* TRACERS_TERP */
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
 !modelE!298.,298., & ! ibpinp1a_nox, ibpinp2a_nox: Griffin et al., JGR, 1999
@@ -180,8 +186,10 @@ real*8, dimension(nsoa), parameter :: kpart_temp_ref=(/&
 
 !@param kpart_temp_nox_ref reference temperature where kpart_nox_ref was derived
 real, dimension(nsoa), parameter :: kpart_temp_nox_ref=(/&
-295.d0,295.d0, & ! iisopp1a_nox, iisopp2a_nox
-295.d0,295.d0  & ! iapinp1a_nox, iapinp2a_nox: Presto et al., EST, 2005
+295.d0,295.d0   & ! iisopp1a_nox, iisopp2a_nox
+#ifdef TRACERS_TERP
+,295.d0,295.d0  & ! iapinp1a_nox, iapinp2a_nox: Presto et al., EST, 2005
+#endif  /* TRACERS_TERP */
 !modelE!298.,298., & ! ibpinp1a_nox, ibpinp2a_nox: Griffin et al., JGR, 1999
 !modelE!298.,298., & ! itolp1a_nox,  itolp2a_nox: Odum et al., Science, 1997
 !modelE!300.,300.  & ! ixylp1a_nox,  ixylp2a_nox: Song et al., EST, 2005
@@ -214,8 +222,10 @@ real, parameter :: mw_o=15.99943d0
 !
 issoa(1)=n_isopp1a
 issoa(2)=n_isopp2a
+#ifdef TRACERS_TERP
 issoa(3)=n_apinp1a
 issoa(4)=n_apinp2a
+#endif  /* TRACERS_TERP */
 
 !
 ! create whichsoa from issoa, in order to correlate the two variables
@@ -247,11 +257,14 @@ mw(n_Terpenes)=10.d0*mw_c+16.d0*mw_h ! C10H16
 !
 apartmass_ref=0.d0
 apartmass_nox_ref=0.d0
+#ifdef TRACERS_TERP
+!!! WARNING !!! Change also isoprene values for the case where TRACERS_TERP are off
 ! a-pinene SOAb formation, Presto et al., EST, 2005
 apartmass_ref(whichsoa(n_apinp1a))=0.192d0
 apartmass_ref(whichsoa(n_apinp2a))=0.215d0
 apartmass_nox_ref(whichsoa(n_apinp1a))=0.0138d0
 apartmass_nox_ref(whichsoa(n_apinp2a))=0.461d0
+#endif  /* TRACERS_TERP */
 !modelE!! xylene SOAa formation, Song et al., EST, 2005 (first two lines) or Ng et al., ACP, 2007 (latter two lines)
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
@@ -276,10 +289,15 @@ apartmass_nox_ref(whichsoa(n_apinp2a))=0.461d0
 !            less volatile first, more volatile second
 apartmass_ref(whichsoa(n_isopp1a))=0.0288d0
 apartmass_ref(whichsoa(n_isopp2a))=0.232d0
+#ifdef TRACERS_TERP
 apartmass_nox_ref(whichsoa(n_isopp1a))=apartmass_ref(whichsoa(n_isopp1a))*apartmass_nox_ref(whichsoa(n_apinp1a))/&
                                                                           apartmass_ref(whichsoa(n_apinp1a))
 apartmass_nox_ref(whichsoa(n_isopp2a))=apartmass_ref(whichsoa(n_isopp2a))*apartmass_nox_ref(whichsoa(n_apinp2a))/&
                                                                           apartmass_ref(whichsoa(n_apinp2a))
+#else
+apartmass_nox_ref(whichsoa(n_isopp1a))=apartmass_ref(whichsoa(n_isopp1a))*0.0138d0/0.192d0 !!! HARDCODED !!!
+apartmass_nox_ref(whichsoa(n_isopp2a))=apartmass_ref(whichsoa(n_isopp2a))*0.461d0/0.215d0  !!! HARDCODED !!!
+#endif  /* TRACERS_TERP */
 !modelE!! b-pinene SOAb formation, Griffin et al., JGR, 1999; scaled, based on a-pinene
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
@@ -336,8 +354,10 @@ subroutine soa_apart
 #ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
                       ijlt_soa_voc2nox,&
-                      ijlt_soa_apartmass_isopp1a,ijlt_soa_apartmass_isopp2a,&
-                      ijlt_soa_apartmass_apinp1a,ijlt_soa_apartmass_apinp2a
+#ifdef TRACERS_TERP
+                      ijlt_soa_apartmass_apinp1a,ijlt_soa_apartmass_apinp2a,&
+#endif  /* TRACERS_TERP */
+                      ijlt_soa_apartmass_isopp1a,ijlt_soa_apartmass_isopp2a
 #endif  /* SOA_DIAGS */
 implicit none
 
@@ -360,8 +380,10 @@ do jl=1,LM
   taijls(III,JJJ,jl,ijlt_soa_voc2nox)=taijls(III,JJJ,jl,ijlt_soa_voc2nox)+voc2nox(jl)
   taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp1a)+apartmass(jl,whichsoa(n_isopp1a))
   taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp2a)+apartmass(jl,whichsoa(n_isopp2a))
+#ifdef TRACERS_TERP
   taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp1a)+apartmass(jl,whichsoa(n_apinp1a))
   taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp2a)+apartmass(jl,whichsoa(n_apinp2a))
+#endif  /* TRACERS_TERP */
 #endif  /* SOA_DIAGS */
 enddo
 
@@ -391,12 +413,19 @@ use TRDIAG_COM, only: taijls=>taijls_loc,&
                       ijlt_soa_pcp,ijlt_soa_aerotot,ijlt_soa_aerotot_gas,&
                       ijlt_soa_xmf_isop,ijlt_soa_xmf_apin,&
                       ijlt_soa_zcoef_isop,ijlt_soa_zcoef_apin,ijlt_soa_meanmw,&
-                      ijlt_soa_kp_isopp1a,ijlt_soa_kp_isopp2a,ijlt_soa_kp_apinp1a,&
-                      ijlt_soa_kp_apinp2a,ijlt_soa_iternum,&
+                      ijlt_soa_kp_isopp1a,ijlt_soa_kp_isopp2a,&
+#ifdef TRACERS_TERP
+                      ijlt_soa_kp_apinp1a,ijlt_soa_kp_apinp2a,&
+#endif  /* TRACERS_TERP */
+                      ijlt_soa_iternum,&
                       ijlt_soa_soamass_isopp1a,ijlt_soa_soamass_isopp2a,&
+#ifdef TRACERS_TERP
                       ijlt_soa_soamass_apinp1a,ijlt_soa_soamass_apinp2a,&
+#endif  /* TRACERS_TERP */
                       ijlt_soa_partfact_isopp1a,ijlt_soa_partfact_isopp2a,&
+#ifdef TRACERS_TERP
                       ijlt_soa_partfact_apinp1a,ijlt_soa_partfact_apinp2a,&
+#endif  /* TRACERS_TERP */
                       ijlt_soa_m0
 #endif  /* SOA_DIAGS */
 implicit none
@@ -523,7 +552,9 @@ DO JL=L,L
   xmf=0.d0
   if (AEROtot > 0.d0) then
     xmf(imfisop)=(y_mw(n_isopp1a)+y_mw(n_isopp2a))/AEROtot
+#ifdef TRACERS_TERP
     xmf(imfapin)=(y_mw(n_apinp1a)+y_mw(n_apinp2a))/AEROtot
+#endif  /* TRACERS_TERP */
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
 !modelE!              +y(jl,ibpinp1a_nox)/tr_mm(ibpinp1a_nox)*mw(ibpinp1a_nox)+y(jl,ibpinp2a_nox)/tr_mm(ibpinp2a_nox)*mw(ibpinp2a_nox)&
@@ -565,7 +596,9 @@ DO JL=L,L
 #endif
   else
     xmf(imfisop)=(y_mw(n_isopp1g)+y_mw(n_isopp2g))/AEROtot_gas
+#ifdef TRACERS_TERP
     xmf(imfapin)=(y_mw(n_apinp1g)+y_mw(n_apinp2g))/AEROtot_gas
+#endif  /* TRACERS_TERP */
   endif ! AEROtot > 0.d0
 #ifdef SOA_DIAGS
   taijls(III,JJJ,jl,ijlt_soa_xmf_isop)=taijls(III,JJJ,jl,ijlt_soa_xmf_isop)+xmf(imfisop)
@@ -637,13 +670,17 @@ DO JL=L,L
 !
   kp(n_isopp1a)=kpart(jl,whichsoa(n_isopp1a))/zcoef(imfisop)*mw(n_isopp1a)/meanmw
   kp(n_isopp2a)=kpart(jl,whichsoa(n_isopp2a))/zcoef(imfisop)*mw(n_isopp2a)/meanmw
+#ifdef TRACERS_TERP
   kp(n_apinp1a)=kpart(jl,whichsoa(n_apinp1a))/zcoef(imfapin)*mw(n_apinp1a)/meanmw
   kp(n_apinp2a)=kpart(jl,whichsoa(n_apinp2a))/zcoef(imfapin)*mw(n_apinp2a)/meanmw
+#endif  /* TRACERS_TERP */
 #ifdef SOA_DIAGS
   taijls(III,JJJ,jl,ijlt_soa_kp_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_kp_isopp1a)+kp(n_isopp1a)
   taijls(III,JJJ,jl,ijlt_soa_kp_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_kp_isopp2a)+kp(n_isopp2a)
+#ifdef TRACERS_TERP
   taijls(III,JJJ,jl,ijlt_soa_kp_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_kp_apinp1a)+kp(n_apinp1a)
   taijls(III,JJJ,jl,ijlt_soa_kp_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_kp_apinp2a)+kp(n_apinp2a)
+#endif  /* TRACERS_TERP */
 #endif  /* SOA_DIAGS */
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
@@ -678,8 +715,10 @@ DO JL=L,L
 #ifdef SOA_DIAGS
   taijls(III,JJJ,jl,ijlt_soa_soamass_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_soamass_isopp1a)+soamass(whichsoa(n_isopp1a))
   taijls(III,JJJ,jl,ijlt_soa_soamass_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_soamass_isopp2a)+soamass(whichsoa(n_isopp2a))
+#ifdef TRACERS_TERP
   taijls(III,JJJ,jl,ijlt_soa_soamass_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_soamass_apinp1a)+soamass(whichsoa(n_apinp1a))
   taijls(III,JJJ,jl,ijlt_soa_soamass_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_soamass_apinp2a)+soamass(whichsoa(n_apinp2a))
+#endif  /* TRACERS_TERP */
 #endif  /* SOA_DIAGS */
   if (sum(soamass)==0.d0) goto 60 ! no semivolatiles, nothing to do
   M0a=PCP
@@ -769,8 +808,10 @@ DO JL=L,L
   taijls(III,JJJ,jl,ijlt_soa_iternum)=taijls(III,JJJ,jl,ijlt_soa_iternum)+float(iternum)
   taijls(III,JJJ,jl,ijlt_soa_partfact_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_partfact_isopp1a)+partfact(whichsoa(n_isopp1a))
   taijls(III,JJJ,jl,ijlt_soa_partfact_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_partfact_isopp2a)+partfact(whichsoa(n_isopp2a))
+#ifdef TRACERS_TERP
   taijls(III,JJJ,jl,ijlt_soa_partfact_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_partfact_apinp1a)+partfact(whichsoa(n_apinp1a))
   taijls(III,JJJ,jl,ijlt_soa_partfact_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_partfact_apinp2a)+partfact(whichsoa(n_apinp2a))
+#endif  /* TRACERS_TERP */
   taijls(III,JJJ,jl,ijlt_soa_m0)=taijls(III,JJJ,jl,ijlt_soa_m0)+M0
 #endif  /* SOA_DIAGS */
   if (M0.ne.0.d0) then

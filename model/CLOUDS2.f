@@ -1208,12 +1208,14 @@ C**** Here are dust particles coated with sulfate
         case('isopp2a')
           DSGL(L,19)=tm(l,n)
           DSS(19) = DSGL(L,19)
+#ifdef TRACERS_TERP
         case('apinp1a')
           DSGL(L,20)=tm(l,n)
           DSS(20) = DSGL(L,20)
         case('apinp2a')
           DSGL(L,21)=tm(l,n)
           DSS(21) = DSGL(L,21)
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
@@ -3246,12 +3248,14 @@ C**** Here are dust particles coated with sulfate
         case('isopp2a')
           DSGL(L,19)=tm(l,n)
           DSS(19) = DSGL(L,19)
+#ifdef TRACERS_TERP
         case('apinp1a')
           DSGL(L,20)=tm(l,n)
           DSS(20) = DSGL(L,20)
         case('apinp2a')
           DSGL(L,21)=tm(l,n)
           DSS(21) = DSGL(L,21)
+#endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
         end select
       END DO      !end of n loop for tracers
