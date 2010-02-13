@@ -50,6 +50,9 @@ c
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific
       integer, parameter :: itest=32, jtest=20    !southern ocean; Pacific             
+#else
+!     integer, parameter :: itest=(220,320) equator Atlant; (245,275) 0.6S;274.5E Nino3
+      integer, parameter :: itest=316, jtest=258    !257.5E;-50.7S
 #endif
 
 #ifdef OBIO_ON_GARYocean
