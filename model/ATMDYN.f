@@ -2421,9 +2421,9 @@ c      contains
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
 !@ver  1.0
-      USE CONSTANT, only : omega,mb2kg
+      USE CONSTANT, only : omega,mb2kg, radius
       USE MODEL_COM, only : im,jm,lm,fim,byim,mdiag,mdyn
-      USE GEOM, only : cosv,radius,ravpn,ravps,bydxyp
+      USE GEOM, only : cosv, ravpn,ravps,bydxyp
       USE DIAG_COM, only : consrv=>consrv_loc
       USE DYNAMICS, only : PIT
       USE DOMAIN_DECOMP_1D, only : GET, CHECKSUM, HALO_UPDATE, DIST_GRID

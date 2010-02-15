@@ -661,7 +661,7 @@ C****
 C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
 C****   See ijks_defs for contents
 C****
-      USE CONSTANT, only : lhe,omega,sha,tf,teeny
+      USE CONSTANT, only : lhe,omega,sha,tf,teeny, radius
       USE MODEL_COM, only :
      &     im,imh,fim,byim,jm,jeq,lm,ls1,idacc,ptop,jdate,
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm

@@ -7,6 +7,14 @@
       USE CONSTANT, only : OMEGA,RADIUS,TWOPI,SDAY,radian
       USE MODEL_COM, only : IM,JM,LM,FIM,BYIM
       IMPLICIT NONE
+      PRIVATE
+
+      public :: GEOM_B
+      public :: lonlat_to_ij
+      public :: lonlat_to_tile
+      public :: lon_to_I
+      public :: lat_to_J
+
 C**** The primary grid is the A grid (including both poles)
 C**** The secondary grid is for the B grid velocities, located on the
 C**** vertices of the A grid (Note: first velocity point is J=2)
@@ -14,87 +22,88 @@ C**** Polar boxes can have different latitudinal size and are treated
 C**** as though they were 1/IM of their actual area
       SAVE
 !@param  DLON grid spacing in longitude (deg)
-      REAL*8, PARAMETER :: DLON = TWOPI*BYIM
+      REAL*8, PUBLIC, PARAMETER :: DLON = TWOPI*BYIM
 C**** For the wonderland model set DLON=DLON/3
-c      REAL*8, PARAMETER :: DLON=TWOPI/(IM*3)
+c      REAL*8, PUBLIC, PARAMETER :: DLON=TWOPI/(IM*3)
 !@var DLAT,DLAT_DG,DLATM grid spacing in latitude (rad,deg,minutes)
-      REAL*8  :: DLAT,DLAT_DG, DLATM
+      REAL*8, PUBLIC  :: DLAT,DLAT_DG, DLATM
 !@param FJEQ equatorial value of J
-      REAL*8, PARAMETER :: FJEQ=.5*(1+JM)
+      REAL*8, PUBLIC, PARAMETER :: FJEQ=.5*(1+JM)
 !@var  J1U index of southernmost latitude (currently 2, later 1)
       INTEGER, parameter :: J1U = 2
 !@var  JRANGE_HEMI lowest,highest lat index for SH,NH for A,B grid
-      INTEGER, parameter, dimension(2,2,2) :: JRANGE_HEMI = reshape(
+      INTEGER, PUBLIC, parameter, dimension(2,2,2) :: JRANGE_HEMI = 
+     *     reshape(
      *  (/1,JM/2,  1+JM/2,JM,  J1U,J1U-1+JM/2, J1U-1+JM/2,JM+J1U-2/),
      *  (/2,2,2/))
 !@var  LAT latitude of mid point of primary grid box (radians)
 !@var  LATV latitude of southern edge of primary grid box (radians)
-      REAL*8, DIMENSION(JM) :: LAT,LATV
+      REAL*8, PUBLIC, DIMENSION(JM) :: LAT,LATV
 !@var  LAT_DG latitude of mid points of primary and sec. grid boxs (deg)
-      REAL*8, DIMENSION(JM,2) :: LAT_DG
+      REAL*8, PUBLIC, DIMENSION(JM,2) :: LAT_DG
 !@var  LON longitude of mid points of primary grid box (radians)
 !@var  LONV longitude of east edge of primary grid box (radians)
-      REAL*8, DIMENSION(IM) :: LON,LONV
+      REAL*8, PUBLIC, DIMENSION(IM) :: LON,LONV
 !@var  LON_DG longitude of mid points of prim. and sec. grid boxes (deg)
-      REAL*8, DIMENSION(IM,2) :: LON_DG
+      REAL*8, PUBLIC, DIMENSION(IM,2) :: LON_DG
 !@var  DXYP,BYDXYP area of grid box (+inverse) (m^2)
 C**** Note that this is not the exact area, but is what is required for
 C**** some B-grid conservation quantities
-      REAL*8, DIMENSION(JM) :: DXYP,BYDXYP
-      REAL*8, DIMENSION(IM,JM) :: aDXYP
-      REAL*8, DIMENSION(:,:), ALLOCATABLE ::
+      REAL*8, PUBLIC, DIMENSION(JM) :: DXYP,BYDXYP
+      REAL*8, PUBLIC, DIMENSION(IM,JM) :: aDXYP
+      REAL*8, PUBLIC, DIMENSION(:,:), ALLOCATABLE ::
      &     AXYP,BYAXYP,LAT2D,LON2D,LAT2D_DG,LON2D_DG,SINLAT2D,COSLAT2D
      &    ,ddx_ci,ddx_cj,ddy_ci,ddy_cj
 !@var AREAG global integral of area (m^2)
-      REAL*8 :: AREAG
+      REAL*8, PUBLIC :: AREAG
 !@var WTJ area weighting used in JLMAP, JKMAP (for hemispheric means)
-      REAL*8, DIMENSION(JM,2,2) :: WTJ
+      REAL*8, PUBLIC, DIMENSION(JM,2,2) :: WTJ
 
 !@var DXYV,BYDXYV area of grid box around velocity point (recip.)(m^2)
-      REAL*8, DIMENSION(JM) :: DXYV,BYDXYV
+      REAL*8, PUBLIC, DIMENSION(JM) :: DXYV,BYDXYV
 
 !@var  DXP,DYP,BYDXP,BYDYP distance between points on primary grid
 !@+     (+inverse)
-      REAL*8, DIMENSION(JM) :: DXP,DYP,BYDXP,BYDYP
+      REAL*8, PUBLIC, DIMENSION(JM) :: DXP,DYP,BYDXP,BYDYP
 !@var  DXV,DYV distance between velocity points (secondary grid)
-      REAL*8, DIMENSION(JM) :: DXV,DYV
+      REAL*8, PUBLIC, DIMENSION(JM) :: DXV,DYV
 !@var  DXYN,DXYS half box areas to the North,South of primary grid point
-      REAL*8, DIMENSION(JM) :: DXYS,DXYN
+      REAL*8, PUBLIC, DIMENSION(JM) :: DXYS,DXYN
 !@var  SINP sin of latitude at primary grid points
 !@var  SINLATV,COSLATV sin(latv), cos(latv)
 !@var  COSP, COSV cos of latitude at primary, secondary latitudes
-      REAL*8, DIMENSION(JM) :: SINP,SINLATV
-      REAL*8, DIMENSION(JM) :: COSP,COSV,COSLATV,DXLATV
+      REAL*8, PUBLIC, DIMENSION(JM) :: SINP,SINLATV
+      REAL*8, PUBLIC, DIMENSION(JM) :: COSP,COSV,COSLATV,DXLATV
 !@var  RAPVS,RAPVN,RAVPS,RAVPN area scalings for primary and sec. grid
-      REAL*8, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
+      REAL*8, PUBLIC, DIMENSION(JM) :: RAPVS,RAPVN,RAVPS,RAVPN
 
 !@var SINIV,COSIV,SINIP,COSIP longitud. sin,cos for wind,pressure grid
-      REAL*8, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP,SINU,COSU
+      REAL*8, PUBLIC, DIMENSION(IM) :: SINIV,COSIV,SINIP,COSIP,SINU,COSU
 !@var  RAVJ scaling for A grid U/V to B grid points (func. of lat. j)
 !@var  RAPJ scaling for B grid -> A grid conversion (1/4,1/im at poles)
-      REAL*8, DIMENSION(IM,JM) :: RAPJ,RAVJ
+      REAL*8, PUBLIC, DIMENSION(IM,JM) :: RAPJ,RAVJ
 !@var  IDJJ J index of adjacent U/V points for A grid (func. of lat. j)
-      INTEGER, DIMENSION(IM,JM) :: IDJJ
+      INTEGER, PUBLIC, DIMENSION(IM,JM) :: IDJJ
 !@var  IDIJ I index of adjacent U/V points for A grid (func. of lat/lon)
-      INTEGER, DIMENSION(:,:,:), allocatable :: IDIJ
+      INTEGER, PUBLIC, DIMENSION(:,:,:), allocatable :: IDIJ
 !@var  KMAXJ varying number of adjacent velocity points
-      INTEGER, DIMENSION(JM) :: KMAXJ
+      INTEGER, PUBLIC, DIMENSION(JM) :: KMAXJ
 !@var  IMAXJ varying number of used longitudes
-      INTEGER, DIMENSION(JM) :: IMAXJ
+      INTEGER, PUBLIC, DIMENSION(JM) :: IMAXJ
 !@var  FCOR latitudinally varying coriolis parameter
-      REAL*8, DIMENSION(JM) :: FCOR
+      REAL*8, PUBLIC, DIMENSION(JM) :: FCOR
 
 !@var JG_U, JG_KE lat. grids on which U-wind and KE are defined
 !@+   (1 for primary latitudes, 2 for secondary latitudes)
 !@+   Information for diagnostics.
       integer, parameter :: jg_u=2, jg_ke=2
 
-      real*8 :: acor,acor2,polwt
+      real*8, public :: acor,acor2,polwt
 !@var J_BUDG a mapping array that takes every grid point to the 
 !@+   zonal mean budget array
-      integer, allocatable, dimension(:,:) :: J_BUDG
+      integer, public, allocatable, dimension(:,:) :: J_BUDG
 !@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
-      integer :: j_0b, j_1b
+      integer, public :: j_0b, j_1b
 
       CONTAINS
 

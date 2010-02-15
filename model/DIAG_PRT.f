@@ -1227,14 +1227,15 @@ c Check the count
 
       SUBROUTINE DIAGJK
       USE CONSTANT, only :
-     &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny
+     &     grav,rgas,kapa,sday,lhe,twopi,omega,sha,bygrav,tf,teeny,
+     &     radius
       USE DOMAIN_DECOMP_1D, only : GRID
       USE MODEL_COM, only :
      &     im,jm,lm,fim, xlabel,lrunid,DO_GWDRAG,lm_req,
      &     BYIM,DSIG,BYDSIG,DT,DTsrc,IDACC,IMH,LS1,NDAA,nidyn,
      &     PMTOP,PSFMPT,JHOUR,kep,req_fac_d,req_fac_m
-      USE GEOM, only : JRANGE_HEMI,IMAXJ,
-     &     AREAG,BYDXYP,COSP,COSV,DXV,DXYP,DXYV,DYP,FCOR,RADIUS,WTJ
+      USE GEOM, only : IMAXJ,
+     &     AREAG,BYDXYP,COSP,COSV,DXV,DXYP,DXYV,DYP,FCOR,WTJ
      &    ,BYDXYV,lat_dg
 #ifdef USE_FFTW
       use fftw_com
@@ -2331,7 +2332,7 @@ C****
      &     jm,lm,JDATE,JDATE0,JMON0,JMON,AMON0,AMON,JYEAR,JYEAR0,XLABEL
       USE WORKJK
       USE GEOM, only :
-     &     LAT_DG,WTJ,JRANGE_HEMI
+     &     LAT_DG,WTJ
       USE DIAG_COM, only : QDIAG,acc_period,lm_req,inc=>incj,linect,
      &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -2570,7 +2571,7 @@ C****
       USE MODEL_COM, only :
      &     jm,lm,DSIG,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,SIGE,XLABEL
       USE GEOM, only :
-     &     LAT_DG,WTJ,JRANGE_HEMI
+     &     LAT_DG,WTJ
       USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
      *     ,jmby2,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -2783,7 +2784,7 @@ C****
       USE MODEL_COM, only :
      &     jm,lm,JDATE,JDATE0,AMON,AMON0,JYEAR,JYEAR0,XLABEL
       USE GEOM, only :
-     &     LAT_DG,WTJ,JRANGE_HEMI
+     &     LAT_DG,WTJ
       USE DIAG_COM, only : QDIAG,acc_period,LM_REQ,inc=>incj,linect
      *     ,jmby2,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -3791,7 +3792,7 @@ c**** fill in some key numbers
       USE DOMAIN_DECOMP_1D, only : GRID
       USE CONSTANT, only :  undef
       USE MODEL_COM, only :  im,jm,fim,jeq
-      USE GEOM, only : wtj,Jrange_hemi
+      USE GEOM, only : wtj
 
       IMPLICIT NONE
 
