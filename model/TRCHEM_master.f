@@ -156,7 +156,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(LM)    :: aero
 #endif
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
-     &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,
+     &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,ii,
      &                          ih1030,ih1330,m,istep,index1,index2
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
@@ -560,8 +560,82 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
        
 c       define column temperatures to be sent to FASTJ:
         TFASTJ = ta
+        RFASTJ = rh
 
 #ifdef SHINDELL_STRAT_CHEM
+c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
+c       aerosol types that we are going to use in Fast-J2 (indexes
+c       in look-up table), taking humidity into account. The different 
+c       aerosols used are:
+c
+c        1 = Sulfate (n_SO4)
+c        2 = Sea-Salt (fine) (n_seasalt1)
+c        3 = Sea-Salt (coarse) (n_seasalt2)
+c        4 = Organic Carbon (n_OCIA)
+c        5 = Black Carbon (aged) (n_BCIA)
+c        6 = Black Carbon (biomass burning) (n_BCB)
+c        7 = Nitrate (n_NO3p)
+c        8 = Dust (Clay, 1-st size bin) (n_clay)
+c        9 = Dust (Clay, 2-nd size bin) (n_clay)
+c       10 = Dust (Clay, 3-rd size bin) (n_clay)
+c       11 = Dust (Clay, 4-th size bin) (n_clay)
+c       12 = Dust (Clay, 1-st size bin) (n_silt1)
+c       13 = Dust (Clay, 2-nd size bin) (n_silt2)
+c       14 = Dust (Clay, 3-rd size bin) (n_silt3)
+c       15 = Liquid Clouds
+c       16 = Ice Clouds
+
+        DO LL=1,LM 
+         if (RFASTJ(LL) .lt. 0.15) then
+           MIEDX2(LL,:)=(/12,20,28,36,44,44,45,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if ((RFASTJ(LL) .ge. 0.15) .and. (RFASTJ(LL) .lt. 
+     &   0.4)) then
+           MIEDX2(LL,:)=(/13,21,29,37,44,44,46,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if ((RFASTJ(LL) .ge. 0.4) .and. (RFASTJ(LL) .lt.
+     &   0.6)) then
+           MIEDX2(LL,:)=(/14,22,30,38,44,44,47,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if ((RFASTJ(LL) .ge. 0.6) .and. (RFASTJ(LL) .lt.
+     &   0.75)) then
+           MIEDX2(LL,:)=(/15,23,31,39,44,44,48,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if ((RFASTJ(LL) .ge. 0.75) .and. (RFASTJ(LL) .lt.
+     &   0.85)) then
+           MIEDX2(LL,:)=(/16,24,32,40,44,44,49,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if ((RFASTJ(LL) .ge. 0.85) .and. (RFASTJ(LL) .lt.
+     &   0.925)) then
+           MIEDX2(LL,:)=(/17,25,33,41,44,44,50,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if ((RFASTJ(LL) .ge. 0.925) .and. (RFASTJ(LL) .lt.
+     &   0.97)) then
+          MIEDX2(LL,:)=(/18,26,34,42,44,44,51,53,54,55,56,
+     &                   57,58,59,7,11/)
+         else if (RFASTJ(LL) .ge. 0.97) then
+           MIEDX2(LL,:)=(/19,27,35,43,44,44,52,53,54,55,56,
+     &                   57,58,59,7,11/)
+         endif
+        ENDDO 
+c Now force extra level (top of the atmosphere) used in Fast-J
+c to have the same MIEDX2 as the top model level
+        do ii=1,MXFASTJ 
+         MIEDX2(LM+1,ii)=MIEDX2(LM,ii)
+        enddo
+c  Ensure all aerosol types are valid selections:
+        do LL=1,LM+1
+         do ii=1,MXFASTJ
+          if(MIEDX2(LL,ii) > NAA.or.MIEDX2(LL,ii) <= 0) then
+            write(out_line,1201) MIEDX2(LL,ii),NAA
+            call write_parallel(trim(out_line),crit=.true.)
+            call stop_model('Problem with MIEDX2 aerosol types',13)
+          endif
+         enddo
+        enddo
+ 1201 format('Aerosol type ',i2,' unsuitable; supplied values must be',
+     &       ' between 1 and ',i2)
+
 c       define pressures to be sent to FASTJ (centers):
         PFASTJ2(1:LM) = PMID(1:LM,I,J)
         PFASTJ2(LM+1)=PEDN(LM+1,I,J)  ! P at SIGE(LM+1)

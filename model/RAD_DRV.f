@@ -66,6 +66,7 @@ C****
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
      *     ,rad_interact_aer,rad_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
+     *     ,useRadAerInFastJ
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -86,7 +87,7 @@ C****
 #endif
       IMPLICIT NONE
 
-      INTEGER L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
+      INTEGER L,LR,n1,istart,n,nn,iu2,errRadAerInFastJ ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
@@ -160,6 +161,9 @@ C**** sync radiation parameters from input
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
+#ifdef TRACERS_ON
+      call sync_param("useRadAerInFastJ", useRadAerInFastJ)
+#endif
       REFdry = REFdry*ref_mult
       if (istart.le.0) return
 
@@ -538,6 +542,31 @@ C**** define weighting
 #endif
 #endif
 
+C Currently feedback of aerosols to the photolysis code
+C is only for a specific setup tested here. This will be
+C made more flexible in the future and this test removed:
+C Check if all aerosol tracers are in place. 
+      if(useRadAerInFastJ==1)then
+        errRadAerInFastJ=0
+        if(NTRACE .lt. 14)       errRadAerInFastJ=1
+        if(ntrix( 1)/=n_SO4     )errRadAerInFastJ=1
+        if(ntrix( 2)/=n_seasalt1)errRadAerInFastJ=1
+        if(ntrix( 3)/=n_seasalt2)errRadAerInFastJ=1
+        if(ntrix( 4)/=n_OCIA    )errRadAerInFastJ=1
+        if(ntrix( 5)/=n_BCIA    )errRadAerInFastJ=1
+        if(ntrix( 6)/=n_BCB     )errRadAerInFastJ=1
+        if(ntrix( 7)/=n_NO3p    )errRadAerInFastJ=1
+        if(ntrix( 8)/=n_clay    )errRadAerInFastJ=1
+        if(ntrix( 9)/=n_clay    )errRadAerInFastJ=1
+        if(ntrix(10)/=n_clay    )errRadAerInFastJ=1
+        if(ntrix(11)/=n_clay    )errRadAerInFastJ=1
+        if(ntrix(12)/=n_silt1   )errRadAerInFastJ=1
+        if(ntrix(13)/=n_silt2   )errRadAerInFastJ=1
+        if(ntrix(14)/=n_silt3   )errRadAerInFastJ=1
+        if(errRadAerInFastJ==1)call stop_model
+     &  ("useRadAerInFastJ=1 inconsistent with rad code tracers",13)
+      endif
+
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -850,10 +879,11 @@ C     OUTPUT DATA
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
 #ifdef TRACERS_DUST
-     &     ,srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
+     &     ,srnflb_save,trnflb_save
 #endif
 #ifdef TRACERS_ON
-     &     ,ttausv_sum,ttausv_sum_cs,ttausv_count
+     &     ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save
+     &     ,ttausv_cs_save
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
@@ -2078,23 +2108,21 @@ C**** Save optical depth diags
           ttausv_sum_cs(i,j,n)=ttausv_sum_cs(i,j,n)+StauL*OPNSKY
         endif
       enddo
-#endif
-
-#ifdef TRACERS_DUST
+#ifndef TRACERS_SPECIAL_Shindell /* note NOT defined */
       IF (adiurn_dust == 1) THEN
+#endif
         DO n=1,NTRACE
           IF (ntrix(n) > 0) THEN
-            SELECT CASE (trname(ntrix(n)))
-            CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-              do k=1,11
+              do k=1,LM
                 ttausv_save(i,j,ntrix(n),k)=ttausv(k,n)
                 ttausv_cs_save(i,j,ntrix(n),k)=ttausv(k,n)*OPNSKY
               end do
-            END SELECT
           END IF
         END DO
+#ifndef TRACERS_SPECIAL_Shindell /* note NOT defined */
       END IF
 #endif
+#endif /* TRACERS_ON */
 
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
@@ -2298,7 +2326,6 @@ C****
 C****
 C**** END OF MAIN LOOP FOR J INDEX
 C****
-
 
       if(kradia.gt.0) then
          call stopTimer('RADIA()')

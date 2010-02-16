@@ -85,6 +85,9 @@ C**** does not produce exactly the same as the default values.
 !@var ttausv_sum(_cs) daily sum opt depth by tracer, all (clear) sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum,ttausv_sum_cs
       real*8 :: ttausv_count = 0.d0
+!@dbparam useRadAerInFastJ to decide whether tracer optical depths will be
+!@+   used in chemistry photolysis code, Fast-J2  (default is 0=NO)
+      INTEGER :: useRadAerInFastJ=0 
 #endif
 !@var CFRAC Total cloud fraction as seen be radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CFRAC ! saved in rsf
@@ -529,11 +532,11 @@ C**** Local variables initialised in init_RAD
      *      ,stratO3_tracer_save_GLOB
 #endif
 #ifdef TRACERS_DUST
-     &      ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
-     &      ,ttausv_cs_save_glob
+     &      ,srnflb_save_glob,trnflb_save_glob
 #endif
 #ifdef TRACERS_ON
      &      ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
+     &      ,ttausv_save_glob,ttausv_cs_save_glob
 #endif
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
@@ -553,11 +556,11 @@ C**** Local variables initialised in init_RAD
      *       ,stratO3_tracer_save_GLOB
 #endif
 #ifdef TRACERS_DUST
-     &       ,srnflb_save_glob,trnflb_save_glob,ttausv_save_glob
-     &       ,ttausv_cs_save_glob
+     &       ,srnflb_save_glob,trnflb_save_glob
 #endif
 #ifdef TRACERS_ON
      &       ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
+     &       ,ttausv_save_glob,ttausv_cs_save_glob
 #endif
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,

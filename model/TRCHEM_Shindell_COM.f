@@ -152,12 +152,10 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & JPNL   =   LM,      ! OK? used to be set to 23
      & NCFASTJ2 = 2*LM+2,  ! fastj2
      & NBFASTJ  = LM+1,    ! fastj2
-     & MXFASTJ  =  3,      ! fastj2
+     & MXFASTJ  =  16,     ! fastj2 
      & n_fam =     5,      ! fastj2
-     & NP       = 21       ! fastj2
-      INTEGER, PARAMETER, DIMENSION(MXFASTJ) :: MIEDX2 = (/3,10,14/)
-!     (/black carbon absorber, water cloud (Deirmenjian 8 micron), 
-!      irregular ice cloud (Mishchenko)/)
+     & NP       = 60       ! fastj2
+       INTEGER, DIMENSION(LM+1,MXFASTJ) :: MIEDX2
 #else
       INTEGER, PARAMETER ::
      & p_2   =   111,
@@ -534,7 +532,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
 !@var ta, pres local arrays to hold temperature,pressure
-!@var TFASTJ temperature rpofile sent to FASTJ
+!@var TFASTJ temperature profile sent to FASTJ
+!@var RFASTJ humidity profile used to choose scattering input for FASTJ2
 !@var O3_FASTJ ozone sent to fastj
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var SZA the solar zenith angle (degrees)
@@ -663,7 +662,8 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(31,18,12)      :: OREF
       REAL*8, DIMENSION(41,18,12)      :: TREF
       REAL*8, DIMENSION(41)            :: BREF
-      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,TFASTJ,Jacet
+      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,TFASTJ,Jacet,
+     &                                    RFASTJ
       REAL*8, DIMENSION(NS)            :: VALJ
       REAL*8, DIMENSION(N__)           :: FJFASTJ
       REAL*8, DIMENSION(NWFASTJ,2,NS-3):: QQQ

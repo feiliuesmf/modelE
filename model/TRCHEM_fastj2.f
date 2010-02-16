@@ -70,15 +70,18 @@ c
 !@+  (may be overwritten with values directly from the CTM, if desired)
 !@+  and then black carbon and aerosol profiles are constructed.
 !@+  Oliver Wild (04/07/99)
+!@+  Modifications by Apostolos Voulgarakis (Feb 2010) to take aerosol
+!@+  tracers from the model into account.
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
-!@+ modelEifications: Greg Faluvegi
+!@+ modelEifications: Greg Faluvegi, Apostolos Voulgarakis
 !@ver  1.0 (based on ds4p_fastj2_M23)
 c
 C**** GLOBAL parameters and variables:
-      USE MODEL_COM, only: IM,JM,LM,month=>JMON
+      USE MODEL_COM, only: IM,JM,LM,Itime,month=>JMON
       USE TRCHEM_Shindell_COM, only: TFASTJ,odcol,O3_FASTJ,PFASTJ2,
      &     dlogp,masfac,oref2,tref2,bref2,TJ2,DO32,DBC2,zfastj2,
-     &     dmfastj2,NBFASTJ,AER2
+     &     dmfastj2,NBFASTJ,AER2,MXFASTJ
+      USE RAD_COM,only:  ttausv_save,ntrix,useRadAerInFastJ
 
       IMPLICIT NONE
 
@@ -86,7 +89,7 @@ C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var pstd Approximate pressures of levels for supplied climatology
       INTEGER, INTENT(IN) :: nslon, nslat
-      integer             :: l, k, i, m
+      integer             :: l, k, i, ii, m, j
       real*8, dimension(52) :: pstd
       real*8, dimension(51) :: oref3, tref3
       real*8              :: ydgrd,f0,t0,b0,pb,pc,xc,scaleh
@@ -147,19 +150,47 @@ c  Calculate effective altitudes using scale height at each level
         zfastj2(i+1) = zfastj2(i)-(log(PFASTJ2(i+1)/PFASTJ2(i))*scaleh)
       enddo
 
-c  Add Aerosol Column - include aerosol types here. Currently use soot
-c  water and ice; assume black carbon x-section of 10 m2/g, independent
-c  of wavelength; assume limiting temperature for ice of -40 deg C :
+c  Add Aerosol Column - include aerosol types here. 
+
+c  LAST two are clouds (liquid or ice)
+c  Assume limiting temperature for ice of -40 deg C :
       do i=1,LM
-        AER2(1,i) = DBC2(i)*10.d0*(zfastj2(i+1)-zfastj2(i))
         if(TFASTJ(I) > 233.d0) then
-          AER2(2,i) = odcol(i)
-          AER2(3,i) = 0.d0
+          AER2(15,i) = odcol(i)
+          AER2(16,i) = 0.d0
         else
-          AER2(2,i) = 0.d0
-          AER2(3,i) = odcol(i)
+          AER2(15,i) = 0.d0
+          AER2(16,i) = odcol(i)
         endif          
       enddo
+
+c Now do the rest of the aerosols
+
+c If we don't have the full set of aerosol tracers that are usually
+c in the radiation code of GISS, don't use aerosols in photolysis
+c (that will change in the future to use subsets of aerosols
+c and not just have this "all-tracer" case).
+c Note that the 14 types of particles that we had in RAD_DRV.f are
+c now increased to 16, since we add liquid and ice clouds as well. 
+      if (useRadAerInFastJ == 1) then
+        do i=1,LM
+          do j=1,MXFASTJ-2
+            AER2(j,i)=ttausv_save(NSLON,NSLAT,ntrix(j),i)
+          enddo
+        enddo
+      else
+        do i=1,LM
+          do j=1,MXFASTJ-2
+            AER2(j,i)=0.d0
+          enddo
+c         + background black carbon (placeholder that existed before).
+c         Assume black carbon x-section of 10 m2/g, independent of
+c         wavelength.
+          AER2(5,i) = DBC2(i)*10.d0*(zfastj2(i+1)-zfastj2(i))
+        enddo
+      endif
+
+c Top of the atmosphere
       AER2(:,LM+1) = 0.d0
 
 c  Calculate column quantities for Fast-J2:
@@ -673,31 +704,66 @@ C @ 1000 nm
 C  
 C  Pick Mie-wavelength with phase function and Qext:
 C
-C  01 RAYLE = Rayleigh phase
-C  02 ISOTR = isotropic
-C  03 ABSRB = fully absorbing 'soot', wavelength indep.
-C  04 S_Bkg = backgrnd stratospheric sulfate
-C             (n=1.46,log-norm:r=.09um/sigma=.6)
-C  05 S_Vol = volcanic stratospheric sulfate
-C             (n=1.46,log-norm:r=.08um/sigma=.8)
-C  06 W_H01 = water haze (H1/Deirm.)
-C             (n=1.335, gamma:  r-mode=0.1um /alpha=2)
-C  07 W_H04 = water haze (H1/Deirm.)
-C             (n=1.335, gamma:  r-mode=0.4um /alpha=2)
-C  08 W_C02 = water cloud (C1/Deirm.)
-C             (n=1.335, gamma:  r-mode=2.0um /alpha=6)
-C  09 W_C04 = water cloud (C1/Deirm.)
-C             (n=1.335, gamma:  r-mode=4.0um /alpha=6)
-C  10 W_C08 = water cloud (C1/Deirm.)
-C             (n=1.335, gamma:  r-mode=8.0um /alpha=6)
-C  11 W_C13 = water cloud (C1/Deirm.)
-C             (n=1.335, gamma:  r-mode=13.3um /alpha=6)
-C  12 W_L06 = water cloud (Lacis) (n=1.335, r-mode=5.5um / alpha=11/3)
-C  13 Ice-H = hexagonal ice cloud (Mishchenko)
-C  14 Ice-I = irregular ice cloud (Mishchenko)
-C
-C  Choice of aerosol index MIEDX2 is made in TRCHEM_Shindell_COM.f
-C  Optical depths are apportioned to the AER2 array in SET_PROF
+c 01 RAYLE  = Rayleigh phase
+c 02 ISOTR  = isotropic
+c 03 W_H01 = water haze (H1/Deirm.) (n=1.335, gamma:  r-mode=0.1um / alpha=2)
+c 04 W_H04 = water haze (H1/Deirm.) (n=1.335, gamma:  r-mode=0.4um / alpha=2)
+c 05 W_C02 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=2.0um / alpha=6)
+c 06 W_C04 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=4.0um / alpha=6)
+c 07 W_C08 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=8.0um / alpha=6)
+c 08 W_C13 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=13.3um / alpha=6)
+c 09 W_L06 = water cloud (Lacis) (n=1.335, r-mode=5.5um / alpha=11/3)
+c 10 Ice-H = hexagonal ice cloud (Mishchenko)
+c 11 Ice-I = irregular ice cloud (Mishchenko)
+c 12 SO4   RH=00%  (A. Voulgarakis - Jan 2010)
+c 13 SO4   RH=30%  (A. Voulgarakis - Jan 2010)
+c 14 SO4   RH=50%  (A. Voulgarakis - Jan 2010)
+c 15 SO4   RH=70%  (A. Voulgarakis - Jan 2010)
+c 16 SO4   RH=80%  (A. Voulgarakis - Jan 2010)
+c 17 SO4   RH=90%  (A. Voulgarakis - Jan 2010)
+c 18 SO4   RH=95%  (A. Voulgarakis - Jan 2010)
+c 19 SO4   RH=99%  (A. Voulgarakis - Jan 2010)
+c 20 SS1   RH=00%  (A. Voulgarakis - Jan 2010)
+c 21 SS1   RH=30%  (A. Voulgarakis - Jan 2010)
+c 22 SS1   RH=50%  (A. Voulgarakis - Jan 2010)
+c 23 SS1   RH=70%  (A. Voulgarakis - Jan 2010)
+c 24 SS1   RH=80%  (A. Voulgarakis - Jan 2010)
+c 25 SS1   RH=90%  (A. Voulgarakis - Jan 2010)
+c 26 SS1   RH=95%  (A. Voulgarakis - Jan 2010)
+c 27 SS1   RH=99%  (A. Voulgarakis - Jan 2010)
+c 28 SS2   RH=00%  (A. Voulgarakis - Jan 2010)
+c 29 SS2   RH=30%  (A. Voulgarakis - Jan 2010)
+c 30 SS2   RH=50%  (A. Voulgarakis - Jan 2010)
+c 31 SS2   RH=70%  (A. Voulgarakis - Jan 2010)
+c 32 SS2   RH=80%  (A. Voulgarakis - Jan 2010)
+c 33 SS2   RH=90%  (A. Voulgarakis - Jan 2010)
+c 34 SS2   RH=95%  (A. Voulgarakis - Jan 2010)
+c 35 SS2   RH=99%  (A. Voulgarakis - Jan 2010)
+c 36 O_C   RH=00%  (A. Voulgarakis - Jan 2010)
+c 37 O_C   RH=30%  (A. Voulgarakis - Jan 2010)
+c 38 O_C   RH=50%  (A. Voulgarakis - Jan 2010)
+c 39 O_C   RH=70%  (A. Voulgarakis - Jan 2010)
+c 40 O_C   RH=80%  (A. Voulgarakis - Jan 2010)
+c 41 O_C   RH=90%  (A. Voulgarakis - Jan 2010)
+c 42 O_C   RH=95%  (A. Voulgarakis - Jan 2010)
+c 43 O_C   RH=99%  (A. Voulgarakis - Jan 2010)
+c 44 B_C  (A. Voulgarakis - Jan 2010)
+c 45 NO3   RH=00%  (A. Voulgarakis - Jan 2010)
+c 46 NO3   RH=30%  (A. Voulgarakis - Jan 2010)
+c 47 NO3   RH=50%  (A. Voulgarakis - Jan 2010)
+c 48 NO3   RH=70%  (A. Voulgarakis - Jan 2010)
+c 49 NO3   RH=80%  (A. Voulgarakis - Jan 2010)
+c 50 NO3   RH=90%  (A. Voulgarakis - Jan 2010)
+c 51 NO3   RH=95%  (A. Voulgarakis - Jan 2010)
+c 52 NO3   RH=99%  (A. Voulgarakis - Jan 2010)
+c 53 DU1  (A. Voulgarakis - Jan 2010)
+c 54 DU2  (A. Voulgarakis - Jan 2010)
+c 55 DU3  (A. Voulgarakis - Jan 2010)
+c 56 DU4  (A. Voulgarakis - Jan 2010)
+c 57 DU5  (A. Voulgarakis - Jan 2010)
+c 58 DU6  (A. Voulgarakis - Jan 2010)
+c 59 DU7  (A. Voulgarakis - Jan 2010)
+c 60 DU8  (A. Voulgarakis - Jan 2010)
 C
 C---------------------------------------------------------------------
 C  FUNCTION RAYLAY(WAVE)---RAYLEIGH CROSS-SECTION for wave > 170 nm
@@ -709,7 +775,7 @@ C
 C**** GLOBAL parameters and variables:
 C
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE MODEL_COM, only: LM
+      USE MODEL_COM, only: LM,itime
       USE TRCHEM_Shindell_COM, only: NBFASTJ,POMEGA,NCFASTJ2,
      & POMEGAJ,MIEDX2,QAAFASTJ,SSA,NLBATM,DO32,DMFASTJ2,QRAYL,
      & AMF,PAA,jaddlv,dtaumax,dtausub,dsubdiv,U0,RFLECT,MXFASTJ,
@@ -742,7 +808,8 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: PIAER2
       REAL*8, DIMENSION(NCFASTJ2+1) :: TTAU,FTAU
       REAL*8, INTENT(OUT), DIMENSION(LM) :: FMEAN
-      REAL*8, DIMENSION(MXFASTJ) :: QXMIE,XLAER,SSALB
+      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: QXMIE,SSALB
+      REAL*8, DIMENSION(MXFASTJ) :: XLAER
       REAL*8, INTENT(IN) :: WAVEL
       REAL*8, DIMENSION(2*M__) :: dpomega,dpomega2
       REAL*8 xlo2,xlo3,xlray,xltau2,zk,zk2,taudn,tauup,
@@ -752,12 +819,15 @@ C---Pick nearest Mie wavelength, no interpolation--------------
                              KM=1
       if( WAVEL  >  355.d0 ) KM=2
       if( WAVEL  >  500.d0 ) KM=3
-C     if( WAVEL  >  800.d0 ) KM=4  !drop the 1000 nm wavelength
+      if( WAVEL  >  800.d0 ) KM=4 
 
 C---For Mie code scale extinction at 1000 nm to wavelength WAVEL(QXMIE)
-      QXMIE(1:MXFASTJ) =
-     & QAAFASTJ(KM,MIEDX2(1:MXFASTJ))/QAAFASTJ(4,MIEDX2(1:MXFASTJ))
-      SSALB(1:MXFASTJ) = SSA(KM,MIEDX2(1:MXFASTJ))
+      do j=1,NBFASTJ
+        QXMIE(1:MXFASTJ,j) =
+     &  QAAFASTJ(KM,MIEDX2(j,1:MXFASTJ))/
+     &  QAAFASTJ(4,MIEDX2(j,1:MXFASTJ))
+        SSALB(1:MXFASTJ,j) = SSA(KM,MIEDX2(j,1:MXFASTJ))
+      enddo
 
 C---Reinitialize arrays: ! loop 1,NCFASTJ2+1
       ttau(:)=0.d0
@@ -771,7 +841,7 @@ C---Set up total optical depth over each CTM level, DTAUX:
         XLRAY=DMFASTJ2(J)*QRAYL(KW)
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
 c Zero absorption for testing purposes:
-        XLAER(:)=AER2(:,J)*QXMIE(:) ! MXFASTJ
+        XLAER(:)=AER2(:,J)*QXMIE(:,J) ! MXFASTJ
 c Total optical depth from all elements:
         DTAUX(J)=XLO3+XLO2+XLRAY
         do I=1,MXFASTJ
@@ -779,7 +849,7 @@ c Total optical depth from all elements:
         enddo
 c Fractional extinction for Rayleigh scattering and each aerosol type:
         PIRAY2(J)=XLRAY/DTAUX(J)
-        PIAER2(:,J)=SSALB(:)*XLAER(:)/DTAUX(J) ! MXFASTJ
+        PIAER2(:,J)=SSALB(:,J)*XLAER(:)/DTAUX(J) ! MXFASTJ
       enddo ! J
 
 C---Calculate attenuated incident beam EXP(-TTAU/U0) & flux on surface:
@@ -814,14 +884,14 @@ C---In visible region, consider scattering. Define the scattering
 C---phase function with mix of Rayleigh(1) & Mie(MIEDX2).
 C No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
       else 
-        do j=j1,NBFASTJ
-          do i=1,MFIT
-            pomegaj(i,j) = PIRAY2(J)*PAA(i,KM,1)
-            do k=1,MXFASTJ
-              pomegaj(i,j)=pomegaj(i,j)+PIAER2(K,j)*PAA(i,KM,MIEDX2(K))
-            enddo
-          enddo
+       do j=j1,NBFASTJ
+        do i=1,MFIT
+         pomegaj(i,j) = PIRAY2(J)*PAA(i,KM,1)
+         do k=1,MXFASTJ
+          pomegaj(i,j)=pomegaj(i,j)+PIAER2(K,j)*PAA(i,KM,MIEDX2(j,K))
+         enddo
         enddo
+       enddo
         
 C--------------------------------------------------------------------
 c  Take optical properties on GCM layers and convert to a photolysis

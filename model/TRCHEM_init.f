@@ -617,6 +617,7 @@ C**** GLOBAL parameters and variables:
 #ifdef SHINDELL_STRAT_CHEM
      &                  ,MXFASTJ,MIEDX2,title_aer_pf,NAA
 #endif
+      use model_com, only: LM
 
       IMPLICIT NONE
 
@@ -627,7 +628,7 @@ C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
 !@var temp1 temp variable to read in jfacta
 !@var temp2 temp variable to read in jlabel
-      integer            :: iu_data, ipr, i
+      integer            :: iu_data, ipr, i, L
       character*120      :: cline
       character(len=300) :: out_line
       character*7        :: temp2
@@ -676,21 +677,6 @@ c Read in T & O3 climatology:
       call RD_PROF(iu_data)
       call closeunit(iu_data)
 
-#ifdef SHINDELL_STRAT_CHEM
-c  Ensure all aerosol types are valid selections:
-      do i=1,MXFASTJ
-        write(out_line,1001) MIEDX2(i),title_aer_pf(MIEDX2(i))
-        call write_parallel(trim(out_line))
-        if(MIEDX2(i) > NAA.or.MIEDX2(i) <= 0) then
-          write(out_line,1201) MIEDX2(i),NAA
-          call write_parallel(trim(out_line),crit=.true.)
-          call stop_model('Problem in inphot.',255)
-        endif
-      enddo
- 1001 format('Using Aerosol type: ',i2,1x,a)
- 1201 format('Aerosol type ',i1,' unsuitable; supplied values must be',
-     &       ' between 1 and ',i1)
-#endif
  1000 format(' Error: ',i3,' photolysis labels but ',i3,' reactions')
  1100 format(' Fast-J Photolysis Scheme: considering ',i2,' reactions')
  1200 format(3x,i2,': ',a7,' (Q.Y. ',f5.3,') ')
@@ -846,8 +832,8 @@ C Read aerosol phase functions:
       do j=1,NAA
         read(NJ1,110) title_aer_pf(j)
         do k=1,NK
-          read(NJ1,*) WAAFASTJ(k,j),QAAFASTJ(k,j),RAA(k,j),SSA(k,j),
-     &    (PAA(i,k,j),i=1,8)
+          read(NJ1,'(A5,F8.4,F7.3,F8.4,1x,8F6.3)') WAAFASTJ(k,j),
+     &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,8)
         enddo
       enddo
 #else
@@ -892,7 +878,7 @@ C Read aerosol phase functions:
 #endif
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
-  110 format(3x,a20)
+  110 format(3x,a5)
   200 format(1x,' x-sect:',a10,3(3x,f6.2))
   201 format(1x,' pr.dep:',a10,7(1pE10.3))
   350 format(' Too many phase functions supplied; increase NP to ',i2)
