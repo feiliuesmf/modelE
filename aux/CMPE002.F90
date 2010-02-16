@@ -307,10 +307,11 @@
       use rad_com, only : stratO3_trac=>stratO3_tracer_save
 #endif
 #ifdef TRACERS_DUST
-      use rad_com, only : srnflb_save,trnflb_save,ttausv_save,ttausv_cs_save
+      use rad_com, only : srnflb_save,trnflb_save
 #endif
 #ifdef TRACERS_ON
-      use rad_com, only : ttausv_sum,ttausv_sum_cs,ttausv_count
+      use rad_com, only : ttausv_sum,ttausv_sum_cs,ttausv_count, &
+                          ttausv_save,ttausv_cs_save                         
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : snosiz
@@ -577,10 +578,10 @@
 #ifdef TRACERS_DUST
         check("srnflb_save",srnflb_save)
         check("trnflb_save",trnflb_save)
-        check("ttausv_save",ttausv_save)
-        check("ttausv_cs_save",ttausv_cs_save)
 #endif
 #ifdef TRACERS_ON
+        check("ttausv_save",ttausv_save)
+        check("ttausv_cs_save",ttausv_cs_save)
         check("ttausv_sum",ttausv_sum)
         check("ttausv_sum_cs",ttausv_sum_cs)
         checks("ttausv_count",ttausv_count)
