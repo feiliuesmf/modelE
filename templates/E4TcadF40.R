@@ -211,7 +211,7 @@ MOLEC=chem_files/ds4_moleculesE_terp_soa
 JPLRX=chem_files/jpl00_T25_SEP08_fastterp
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
-SPECFJ=chem_files/jv_spec00_25.dat
+SPECFJ=chem_files/jv_spec_AV.dat
 ATMFJ=chem_files/jv_atms.dat
 N2O_IC=gsin/N2O_IC_M23_4x5_6.17_conc_2x2.5_conc
 CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc
@@ -530,6 +530,7 @@ use_rad_n2o=1      ! use the radiation code's N2O
 use_rad_cfc=1      ! use rad code cfc11+cfc12, adjusted
 use_rad_ch4=1      ! use rad code CH4, shut off sfc sources
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
+useRadAerInFastJ=1 ! use rad code aerosols in chem photolysis code (fastj2)
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=0    ! for setting fixed methane value for chemistry:
