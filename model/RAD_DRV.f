@@ -66,7 +66,9 @@ C****
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
      *     ,rad_interact_aer,rad_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
+#ifdef TRACERS_ON
      *     ,useRadAerInFastJ
+#endif
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -542,6 +544,7 @@ C**** define weighting
 #endif
 #endif
 
+#ifdef TRACERS_ON
 C Currently feedback of aerosols to the photolysis code
 C is only for a specific setup tested here. This will be
 C made more flexible in the future and this test removed:
@@ -566,6 +569,7 @@ C Check if all aerosol tracers are in place.
         if(errRadAerInFastJ==1)call stop_model
      &  ("useRadAerInFastJ=1 inconsistent with rad code tracers",13)
       endif
+#endif
 
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
