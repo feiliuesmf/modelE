@@ -1828,6 +1828,25 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
+      k=k+1 !
+      IJ_SWCRF2 = k ! SW cloud radiative forcing (W/m**2) without aerosols and Ozone
+      lname_ij(k) = 'SW CLOUD RF NO AER NO OX, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swcrf_toa'
+      ia_ij(k) = ia_rad_frc
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m265_95
+c
+      k=k+1 !
+      IJ_LWCRF2 = k ! LW cloud radiative forcing (W/m**2) without aerosols and Ozone
+      lname_ij(k) = 'LW CLOUD RF NO AER NO Ox, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwcrf_toa'
+      ia_ij(k) = ia_rad_frc
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m95_265
+
+c
       IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2)
       DO N=1,8
         k=k+1
@@ -6299,7 +6318,7 @@ c
 !!    name_dd(k)='VERTVEL'
 !!    units_dd(k)='1d-5 m/s'
 !!    scale_dd(k)=1.
-!!    lname_dd(k)=' W TO-5 '
+!!    lname_dd(k)=' W TO-5 ' 
 c
       k=k+1
       IDD_CCV=k
@@ -6321,6 +6340,19 @@ c
       units_dd(k)='0.01 mm/day'
       scale_dd(k)=100.*100.*SDAY/(DTsrc*GRAV)
       lname_dd(k)=' MCP*100'
+
+#ifdef TRACERS_AMP
+       idd_diam=k+1
+c        do l=1,lmax_dd2   first only one point later output co
+        do l=1,1
+          k=k+1
+          name_dd(k)='DIAM_L'//lst(l)
+          units_dd(k)='m'
+          scale_dd(k)=1.
+          lname_dd(k)=' DIAM_L'//lst(l)
+        end do
+#endif 
+
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       IF (adiurn_dust == 1) THEN

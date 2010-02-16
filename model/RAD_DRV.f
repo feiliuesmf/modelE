@@ -363,7 +363,7 @@ C                  SO4    SEA    NO3    OCX    BCI    BCB    DST   VOL
         FS8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0 , 1d0/)
         FT8OPX = (/0d0,   0d0,   0d0,   0d0,   0d0,   0d0,   0d0,  1d0/)
       end if
-      NTRACE=0
+      NTRACE=nmodes
       NTRIX(1:NMODES)=
      *     (/ n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
      *        n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
@@ -927,6 +927,7 @@ C     OUTPUT DATA
      *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
      *     ,ij_chl, ij_swaerrf, ij_lwaerrf,ij_swaersrf,ij_lwaersrf
      *     ,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt
+     *     ,ij_swcrf2,ij_lwcrf2
 #ifdef ACCMIP_LIKE_DIAGS
      *     ,ij_fcghg ! array
 #endif
@@ -1003,7 +1004,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     SNFS,TNFS
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     SNFSCRF,TNFSCRF
+     *     SNFSCRF,TNFSCRF,SNFSCRF2,TNFSCRF2
       REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
@@ -1904,6 +1905,7 @@ C**** Ozone:
 #endif /* INITIAL_GHG_SETUP */
 #endif /* TRACERS_SPECIAL_Shindell */
 
+
       if (moddrf==0) then
 #ifdef BC_ALB
         dalbsn=0.d0
@@ -1930,7 +1932,7 @@ c set for BC-albedo effect
             FTTOPX(:) = onoff_aer !
           ENDDO
         ELSE
-          n = 1
+           n = 1
           FSTOPX(:) = 1-onoff_aer !turns off online tracer
           FTTOPX(:) = 1-onoff_aer !
           CALL RCOMPX
@@ -1946,7 +1948,19 @@ C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+#ifdef TRACERS_AMP
+c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
+       FSTOPX(:) = 1-onoff_aer !turns off online tracer
+       FTTOPX(:) = 1-onoff_aer !
+c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
+        CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
+c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
+       FSTOPX(:) = onoff_aer !turns on online tracer
+       FTTOPX(:) = onoff_aer !
+c Including turn off of aerosols during crf calc.+++++++++++++++++++ 
+#else
           CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
+#endif
           SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
           TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
 C         BEGIN AMIP
@@ -1959,6 +1973,34 @@ C         BEGIN AMIP
 C       END AMIP
         end if
         FTAUC=1.     ! default: turn on cloud tau
+
+
+C**** 2nd Optional calculation of CRF using a clear sky calc. without aerosols and Ox
+        if (cloud_rad_forc.gt.0) then
+          FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
+          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++ 
+
+       use_o3_ref=1 ; use_tracer_chem(1)=0  !turns off ozone
+       FSTOPX(:) = 1-onoff_aer !turns off aerosol tracer
+       FTTOPX(:) = 1-onoff_aer !
+        CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
+       FSTOPX(:) = onoff_aer !turns on aerosol tracer
+       FTTOPX(:) = onoff_aer !
+       use_o3_ref=0 ; use_tracer_chem(1)=onoff_chem*Lmax_rad_O3 ! turns on ozone tracers
+
+          SNFSCRF2(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
+          TNFSCRF2(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+
+c          AIJ(I,J,IJ_SWDCLS2)=AIJ(I,J,IJ_SWDCLS2)+SRDFLB(1)*COSZ2(I,J)
+c          AIJ(I,J,IJ_SWNCLS2)=AIJ(I,J,IJ_SWNCLS2)+SRNFLB(1)*COSZ2(I,J)
+c          AIJ(I,J,IJ_LWDCLS2)=AIJ(I,J,IJ_LWDCLS2)+TRDFLB(1)
+c          AIJ(I,J,IJ_SWNCLT2)=AIJ(I,J,IJ_SWNCLT2)+SRNFLB(LM+LM_REQ+1)
+c     *     *COSZ2(I,J)
+c          AIJ(I,J,IJ_LWNCLT2)=AIJ(I,J,IJ_LWNCLT2)+TRNFLB(LM+LM_REQ+1)
+        end if
+        FTAUC=1.     ! default: turn on cloud tau
+
 
 C**** Optional calculation of the impact of default aerosols
         if (aer_rad_forc.gt.0) then
@@ -2069,6 +2111,7 @@ C**** Save optical depth diags
      &           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
+c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
                 IF (ijts_sqex(1,kr,ntrix(n)) > 0)
      &               taijs(i,j,ijts_sqex(1,kr,ntrix(n)))
      &               =taijs(i,j,ijts_sqex(1,kr,ntrix(n)))
@@ -2451,10 +2494,16 @@ C****
 C**** CRF diags if required
          if (moddrf .ne. 0) go to 770
          if (cloud_rad_forc > 0) then
+c    CRF diagnostics 
            AIJ(I,J,IJ_SWCRF)=AIJ(I,J,IJ_SWCRF)+
      +          (SNFS(3,I,J)-SNFSCRF(I,J))*CSZ2
            AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
      -          (TNFS(3,I,J)-TNFSCRF(I,J))
+c    CRF diagnostics without aerosols and Ox
+           AIJ(I,J,IJ_SWCRF2)=AIJ(I,J,IJ_SWCRF2)+
+     +          (SNFS(3,I,J)-SNFSCRF2(I,J))*CSZ2
+           AIJ(I,J,IJ_LWCRF2)=AIJ(I,J,IJ_LWCRF2)-
+     -          (TNFS(3,I,J)-TNFSCRF2(I,J))
          end if
 
 C**** AERRF diags if required

@@ -444,6 +444,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_CLDTPT, IJ_CLDCV1, IJ_CLDT1T,IJ_CLDT1P, IJ_T700, IJ_Q700,
      *     ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,IJ_PBLHT, IJ_RH700,
      *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300, IJ_SWCRF, IJ_LWCRF,
+     *     IJ_SWCRF2, IJ_LWCRF2,
      *     IJ_TRNFP0, IJ_SRTR, IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
      *     IJ_SRINCG, IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
      *     IJ_RUNE, IJ_TS1, IJ_RUNLI, IJ_WS, IJ_TS, IJ_US, IJ_VS,
@@ -777,6 +778,8 @@ c derived/composite diagnostics
      *     idd_lmon,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,
      *     idd_tabl1,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,
      *     idd_wet,idd_grav,idd_turb
+c    hourly AMP diagnostics
+     *     ,idd_diam
 
 !@var tf_xxx tsfrez diagnostic names
       INTEGER, public :: tf_day1,tf_last,tf_lkon,tf_lkoff
