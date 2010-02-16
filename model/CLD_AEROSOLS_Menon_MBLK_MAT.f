@@ -169,7 +169,15 @@ c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility
-      SSM8 = 1.70d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
+#ifdef TRACERS_AEROSOLS_SOA
+      SSM8 = 1.70d12*(DSU(18)+DSU(19)
+#ifdef TRACERS_TERP
+     &       +DSU(20)+DSU(21)
+#endif
+     &       )! SOA with 100% solubility
+#else
+      SSM8=0.d0
+#endif
 c
 C** Land Na (cm-3) is from sulfate+OC+BC + NO3 and is SSMAL
 C** Ocean Na (cm-3) is from sulfate+OC+BC+Seasalt and is SSMAO
@@ -258,7 +266,15 @@ c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility                   
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility 
-      SSM8 = 1.70d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility 
+#ifdef TRACERS_AEROSOLS_SOA
+      SSM8 = 1.70d12*(DSU(18)+DSU(19)
+#ifdef TRACERS_TERP
+     &       +DSU(20)+DSU(21)
+#endif
+     &       )! SOA with 100% solubility
+#else
+      SSM8=0.d0
+#endif
 c
 C** Na (cm-3) is from sulfate+OC+BC+sea-salt 
       SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
@@ -426,7 +442,15 @@ c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
       SSM5 = 1.70d12*DSU(5)*0.8     ! OCB with 80% solubility
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
       SSM7 = 1.70d12*DSU(7)*0.6     ! BCB with 80% solubility
-      SSM8 = 1.70d12*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
+#ifdef TRACERS_AEROSOLS_SOA
+      SSM8 = 1.70d12*(DSU(18)+DSU(19)
+#ifdef TRACERS_TERP
+     &       +DSU(20)+DSU(21)
+#endif
+     &       )! SOA with 100% solubility
+#else
+      SSM8=0.d0
+#endif
 c
 C** Land Na (cm-3) is from sulfate+OC+BC+seasalt 
       SSMAL=SSM1+SSM2+SSM4+SSM5+SSM6+SSM7+SSM8+SSM1a     !SO4,OCIA,BCIA,BCB,OCB,SS1,SOA,NO3
