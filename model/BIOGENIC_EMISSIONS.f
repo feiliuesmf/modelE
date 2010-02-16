@@ -67,7 +67,7 @@
 ! Temperature of canpoy 
 
         ! estimated surface density
-        sfdens=100.d0*pbl_args%psurf/(rgas*pbl_args%tgv) 
+!        sfdens=100.d0*pbl_args%psurf/(rgas*pbl_args%tgv) 
         tmmpk = CanTemp + tf
 
         emisop=0.d0
