@@ -43,8 +43,8 @@ qflux: $(BIN_DIR)/vertflux.exe $(BIN_DIR)/ocnIC.exe $(BIN_DIR)/otspec.E001.exe
 # $(BIN_DIR)/rsfE001.addO.exe $(BIN_DIR)/conv_rsf $(BIN_DIR)/conv_strat_rsf $(BIN_DIR)/conv_gic !! all obsolete
 odeep: $(BIN_DIR)/mkdeep.exe
 rvr: $(BIN_DIR)/RDconvert
-input: $(BIN_DIR)/inputll2cs
-regrid: ll2cs ncll2cs ncarithm
+input: inputll2cs
+regrid: ll2cs ncll2cs ncGinoux
 
 # include file with implicit rules
 include $(CONFIG_DIR)/rules.mk
@@ -144,18 +144,16 @@ RDconvert.o: $(GCMLIB)
 $(BIN_DIR)/RDconvert: RDconvert.o $(GCMLIB)
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
-inputLL2CS.o: $(GCMLIB)
+inputll2cs: regrid.o ncio.o inputLL2CS.o 
+	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ ../model/shared/libshared.a ../model/DOMAIN_DECOMPcs.o $(LIBS)
 
-$(BIN_DIR)/inputll2cs: inputLL2CS.o $(GCMLIB)
+ll2cs: regrid.o ll2cs.o  
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
-ll2cs: ll2cs.o 
+ncll2cs: regrid.o ncio.o ncll2cs.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
-ncll2cs: ncio.o ncll2cs.o
-	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
-
-ncarithm: ncio.o ncarithm.o
+ncGinoux: ncio.o ncGinoux.o
 	$(F90) $(LFLAGS) $(EXTRA_LFLAGS) -o $@ $^ $(LIBS)
 
 status:
