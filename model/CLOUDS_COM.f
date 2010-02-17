@@ -318,6 +318,8 @@ C***ESMF: Unpack global arrays into distributed local arrays.
       call defvar(grid,fid,oldnl,'oldnl'//lijstr)
       call defvar(grid,fid,oldni,'oldni'//lijstr)
 #endif
+      call defvar(grid,fid,airx,'airx(dist_im,dist_jm)')
+      call defvar(grid,fid,lmc,'lmc(two,dist_im,dist_jm)')
       return
       end subroutine def_rsf_clouds
 
@@ -343,6 +345,8 @@ C***ESMF: Unpack global arrays into distributed local arrays.
         call write_dist_data(grid, fid, 'oldnl', oldnl, jdim=3)
         call write_dist_data(grid, fid, 'oldni', oldni, jdim=3)
 #endif
+        call write_dist_data(grid, fid, 'airx', airx)
+        call write_dist_data(grid, fid, 'lmc', lmc, jdim=3)
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'ttold', ttold, jdim=3)
         call read_dist_data(grid, fid, 'qtold', qtold, jdim=3)
@@ -353,6 +357,8 @@ C***ESMF: Unpack global arrays into distributed local arrays.
         call read_dist_data(grid, fid, 'oldnl', oldnl, jdim=3)
         call read_dist_data(grid, fid, 'oldni', oldni, jdim=3)
 #endif
+        call read_dist_data(grid, fid, 'airx', airx)
+        call read_dist_data(grid, fid, 'lmc', lmc, jdim=3)
       end select
       return
       end subroutine new_io_clouds
