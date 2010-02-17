@@ -69,13 +69,15 @@ cat > driver.f << EOF
       program driver
       implicit none
       include 'netcdf.inc'
-      integer :: status,ifid
+      integer :: status,ifids(2)
       character(len=80) :: ifile,ofile_base
+      character(len=200) :: remap_file
       character(len=20) :: accname
-      integer :: i1,i2
+      integer :: i1,i2,nargs
       integer, external :: iargc
-      if(iargc().ne.2) then
-         stop 'usage: scaleacc infile acc_array_name'
+      nargs = iargc()
+      if(nargs.ne.2 .and. nargs.ne.3) then
+         stop 'usage: scaleacc infile acc_array_name [remap_file]'
       endif
       call getarg(1,ifile)
       call getarg(2,accname)
@@ -86,28 +88,39 @@ cat > driver.f << EOF
       else
         stop 'expecting acc-file name of the form *.acc*.nc'
       endif
-      status = nf_open(trim(ifile),nf_nowrite,ifid)
+      status = nf_open(trim(ifile),nf_nowrite,ifids(1))
       if(status.ne.nf_noerr) then
         write(6,*) 'nonexistent/non-netcdf input file ',trim(ifile)
         stop
       endif
-      call ${progname}(ifid,accname,ofile_base)
-      status = nf_close(ifid)
+      ifids(2) = -99
+      if(nargs.eq.3) then
+        call getarg(3,remap_file)
+        status = nf_open(trim(remap_file),nf_nowrite,ifids(2))
+        if(status.ne.nf_noerr) then
+          write(6,*) 'nonexistent/non-netcdf remap file ',
+     &          trim(remap_file)
+          stop
+        endif
+      endif
+      call ${progname}(ifids,accname,ofile_base)
+      status = nf_close(ifids(1))
+      if(ifids(2).ne.-99) status = nf_close(ifids(2))
       end program driver
 EOF
 
-cmpcmd="${fccmd} miscnc.f ${progname}.f driver.f -o ${progname} ${ncinc} ${nclib}"
+cmpcmd="${fccmd} csregrid.f miscnc.f ${progname}.f driver.f -o ${progname} ${ncinc} ${nclib}"
 echo $cmpcmd
 $cmpcmd  || exit  # terminate the script if any compilation fails
 rm -f driver.f
 
 #
-# Compile the generic summation and cs->latlon regridding routines
-# Compile format conversion routines
+# Compile other miscellaneous routines
 #
-for progname in sumfiles csregrid write_giss2d write_2d_as_giss4d prtostat diffreport
+for progname in sumfiles write_giss2d write_2d_as_giss4d diffreport prtostat
 do
   cmpcmd="${fccmd} miscnc.f ${progname}.f -o ${progname} ${ncinc} ${nclib}"
   echo $cmpcmd
   $cmpcmd  || exit  # terminate the script if any compilation fails
 done
+

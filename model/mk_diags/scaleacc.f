@@ -1,31 +1,40 @@
 !@sum scaleacc is a generic scaling routine for modelE acc-files.
 !@+   See conventions.txt for documentation.
 !@auth M. Kelley
-      subroutine scaleacc(fid,accname,ofile_base)
+      subroutine scaleacc(fids,accname,ofile_base)
+      use regrid_to_latlon_mod, only : setup_remap,regrid_4d
       implicit none
       include 'netcdf.inc'
-      integer :: fid                  ! input file ID
+      integer :: fids(2)              ! input file IDs
       character(len=*) :: accname     ! name of acc-array to scale
       character(len=80) :: ofile_base ! basename of output file
 c
-      character(len=20) :: dcat
-      character(len=80) :: cdlfile
-      character(len=100), dimension(:), allocatable :: cdl
+      character(len=20) :: dcat,dcat_cdl
       real*4, dimension(:), allocatable :: scale_acc
       integer, dimension(:), allocatable :: ia_acc,denom_acc
       character(len=30), dimension(:), allocatable :: sname_acc
       real*4, dimension(:), allocatable :: xout,xden
+      real*4, dimension(:,:,:,:,:), allocatable :: xcs
+      real*4, dimension(:,:,:,:), allocatable :: xll
       real*4, dimension(:), allocatable :: xout_hemis,xden_hemis
       real*4, dimension(:), allocatable :: xout_vmean,xden_vmean
       integer :: idacc(12)
-      integer :: k,kd,kacc,kcdl,kgw,kend,arrsize,ndims,ndimsh,sdim,jdim
+      integer :: n,k,kd,kacc,arrsize,arrsize_out,ndims,ndimsh,sdim,jdim
       integer, dimension(7) :: srt,cnt,accsizes,dimids,hemi_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
-      integer :: status,ofid,accid,varid,accid_hemis,jdimid,accid_vmean
+      integer :: fid,status,ofid,accid,varid,accid_hemis,
+     &     jdimid,accid_vmean
       real*4, parameter :: undef=-1.e30
       character(len=132) :: xlabel
       character(len=100) :: fromto
       logical :: do_hemis,do_vmean
+      integer :: remap_fid,jmdid,nl,nk,imlon,jmlat,im,order
+      logical :: remap_output
+
+      fid = fids(1)
+      remap_fid = fids(2)
+      remap_output = .false.
+      if(remap_fid.ne.-99) remap_output = .true.
 
       xlabel=''; fromto=''
       status = nf_get_att_text(fid,nf_global,'xlabel',xlabel)
@@ -33,11 +42,52 @@ c
 
       dcat = trim(accname)
 
+      dcat_cdl = dcat
+
       call handle_err(nf_inq_varid(fid,trim(dcat),accid),
      &     'finding '//trim(dcat)//' in input file')
       call get_vdimsizes(fid,trim(dcat),ndims,accsizes)
       srt(:) = 1
       cnt(1:ndims) = accsizes(1:ndims)
+
+c
+c Find the size of the dimension along which to split the data
+c
+      status = nf_get_att_int(fid,accid,'split_dim',sdim)
+      if(status.eq.nf_noerr) then
+        kacc = accsizes(sdim)
+        cnt(sdim) = 1
+      else
+        sdim = 7 ! necessary?
+        kacc = 1
+      endif
+c
+c Calculate the size of one input array
+c
+      arrsize = product(cnt(1:ndims))
+      arrsize_out = arrsize
+
+c
+c Setup some regridding info
+c
+      if(remap_output) then
+        call setup_remap(remap_fid,imlon,jmlat)
+        call get_dimsize(fid,'im',im)
+        dcat_cdl = trim(dcat)//'_latlon'
+        status = nf_inq_dimid(fid,'jm',jmdid)
+        status = nf_inq_vardimid(fid,accid,dimids)
+        do n=1,ndims
+          if(dimids(n).eq.jmdid) jdim=n
+        enddo
+        nl = 1
+        if(jdim.gt.2) nl = product(accsizes(1:jdim-2))
+        if(sdim.lt.jdim-1) nl = nl/kacc
+        nk = 1
+        if(jdim.lt.ndims-1) nk = product(accsizes(jdim+1:ndims-1))
+        if(sdim.gt.jdim) nk = nk/kacc
+        arrsize_out = imlon*jmlat*nl*nk
+        allocate(xcs(nl,im,im,nk,6),xll(nl,imlon,jmlat,nk))
+      endif
 
       status = nf_inq_varid(fid,'hemis_'//trim(dcat),accid_hemis)
       do_hemis = status.eq.nf_noerr
@@ -51,28 +101,11 @@ c
      &     .and. (index(dcat,'ajl').gt.0 .or. index(dcat,'agc').gt.0)
 
 c
-c Find the size of the dimension along which to split the data
-c
-      status = nf_get_att_int(fid,accid,'split_dim',sdim)
-      if(status.eq.nf_noerr) then
-        kacc = accsizes(sdim)
-        cnt(sdim) = 1
-      else
-        sdim = 7 ! necessary?
-        kacc = 1
-      endif
-
-c
-c Allocate space for metadata
+c Allocate space for metadata and output arrays
 c
       allocate(ia_acc(kacc),denom_acc(kacc),scale_acc(kacc))
       allocate(sname_acc(kacc))
-
-c
-c Calculate the size of one output array, allocate workspace
-c
-      arrsize = product(cnt(1:ndims))
-      allocate(xout(arrsize),xden(arrsize))
+      allocate(xout(arrsize_out),xden(arrsize_out))
 
 c
 c Some setup for hemispheric/global means.
@@ -104,37 +137,10 @@ c
       endif
 
 c
-c Define the output file using the ncgen utility
+c Define the output file
 c
-      call get_dimsize(fid,'kcdl_'//trim(dcat),kcdl)      
-      allocate(cdl(kcdl))
-      cdl = ''
-      call get_var_text(fid,'cdl_'//trim(dcat),cdl)
-      cdl(1) = 'netcdf '//trim(ofile_base)//' { '
-      cdlfile = trim(ofile_base)//'.cdl'
-      open(10,file=cdlfile)
-      do k=kcdl,1,-1
-        if(index(cdl(k),'}').gt.0) then
-          kend = k; exit
-        endif
-      enddo
-      kgw = kend
-      do k=kend,1,-1
-        if(index(cdl(k),'data:').gt.0) then
-          kgw = k; exit
-        endif
-      enddo
-      do k=1,kend
-        if(k.eq.kgw) then
-          write(10,*) '// global attributes:'
-          write(10,'(a)') '    :xlabel = "'//trim(xlabel)//'" ;'
-          write(10,'(a)') '    :fromto = "'//fromto//'" ;'
-        endif
-        write(10,'(a)') cdl(k)
-      enddo
-      close(10)
-      call system('ncgen -b '//trim(cdlfile))
-      call system('rm -f '//trim(cdlfile))
+      call parse_cdl(fid,dcat_cdl,ofile_base,xlabel,fromto,
+     &     remap_output,remap_fid)
 
 c
 c Read acc metadata needed for scaling
@@ -156,6 +162,7 @@ c Put the counter value into idacc(1)
         call get_var_int(fid,'ntime_'//trim(dcat),idacc(1))
         ia_acc(:) = 1
       endif
+
 c
 c open output file
 c
@@ -165,6 +172,7 @@ c
 c copy coordinate and other info from the acc file to the output file
 c
       call copy_shared_vars(fid,ofid)
+      if(remap_output) call copy_shared_vars(remap_fid,ofid)
 
 c
 c loop over outputs
@@ -177,12 +185,26 @@ c
 c scale this field
 c
         srt(sdim) = k
-        status = nf_get_vara_real(fid,accid,srt,cnt,xout)
+        if(remap_output) then ! accumulation needs regridding first
+          status = nf_get_vara_real(fid,accid,srt,cnt,xcs)
+          order = 1
+          status = nf_get_att_int(ofid,varid,'regrid_order',order)
+          call regrid_4d(xcs,xll,nl,nk,order)
+          xout = reshape(xll,shape(xout))
+        else
+          status = nf_get_vara_real(fid,accid,srt,cnt,xout)
+        endif
         xout = xout*scale_acc(k)/idacc(ia_acc(k))
         kd = denom_acc(k)
         if(kd.gt.0) then
           srt(sdim) = kd
-          status = nf_get_vara_real(fid,accid,srt,cnt,xden)
+          if(remap_output) then
+            status = nf_get_vara_real(fid,accid,srt,cnt,xcs)
+            call regrid_4d(xcs,xll,nl,nk,order)
+            xden = reshape(xll,shape(xden))
+          else
+            status = nf_get_vara_real(fid,accid,srt,cnt,xden)
+          endif
           where(xden.ne.0.)
             xout = xout*idacc(ia_acc(kd))/xden
           elsewhere
@@ -246,3 +268,69 @@ c
 
       return
       end subroutine scaleacc
+
+      subroutine parse_cdl(fid,dcat,ofile_base,xlabel,fromto,
+c Fow now, using the ncgen utility to parse the metadata
+     &     define_lonlat,lonlat_defs_fid)
+      implicit none
+      integer :: fid,lonlat_defs_fid
+      character(len=*) :: dcat,ofile_base,xlabel,fromto
+      logical :: define_lonlat
+      character(len=3) :: llstr
+      character(len=100), dimension(:), allocatable :: cdl
+      character(len=200) :: cdlfile
+      integer :: k,kcdl,kgw,kend,imlon,jmlat
+      
+      if(define_lonlat) then
+        call get_dimsize(lonlat_defs_fid,'lon',imlon)
+        call get_dimsize(lonlat_defs_fid,'lat',jmlat)
+      endif
+
+      call get_dimsize(fid,'kcdl_'//trim(dcat),kcdl)      
+      allocate(cdl(kcdl))
+      cdl = ''
+      call get_var_text(fid,'cdl_'//trim(dcat),cdl)
+      cdl(1) = 'netcdf '//trim(ofile_base)//' { '
+      cdlfile = trim(ofile_base)//'.cdl'
+      open(10,file=cdlfile)
+      if(define_lonlat) then ! fill in appropriate dim sizes
+        do k=1,kcdl
+          if(index(cdl(k),' lon = ').gt.0) then
+            write(llstr,'(i3)') imlon
+            cdl(k) = ' lon = '//trim(llstr)//';'
+            exit
+          endif
+        enddo
+        do k=1,kcdl
+          if(index(cdl(k),' lat = ').gt.0) then
+            write(llstr,'(i3)') jmlat
+            cdl(k) = ' lat = '//trim(llstr)//';'
+            exit
+          endif
+        enddo
+      endif
+      do k=kcdl,1,-1
+        if(index(cdl(k),'}').gt.0) then
+          kend = k; exit
+        endif
+      enddo
+      kgw = kend
+      do k=kend,1,-1
+        if(index(cdl(k),'data:').gt.0) then
+          kgw = k; exit
+        endif
+      enddo
+      do k=1,kend
+        if(k.eq.kgw) then
+          write(10,*) '// global attributes:'
+          write(10,'(a)') '    :xlabel = "'//trim(xlabel)//'" ;'
+          write(10,'(a)') '    :fromto = "'//fromto//'" ;'
+        endif
+        write(10,'(a)') cdl(k)
+      enddo
+      close(10)
+      deallocate(cdl)
+      call system('ncgen -b '//trim(cdlfile))
+      call system('rm -f '//trim(cdlfile))
+      return
+      end subroutine parse_cdl
