@@ -583,8 +583,8 @@ cdiag   enddo
 #endif
       write(*,'(a,4e12.4)')'obio_init, sinking rates for chlorophyll: ',
      .    obio_wsd(1),obio_wsd(2),obio_wsd(3),obio_wsd(4)
-      write(*,'(a,4e12.4)')'obio_init, settling rates for detritus: ',
-     .      wsdeth(1),  wsdeth(2),  wsdeth(3),  wsdeth(4)
+      write(*,'(a,3e12.4)')'obio_init, settling rates for detritus: ',
+     .      wsdeth(1),  wsdeth(2),  wsdeth(3)
 
 #ifdef limitDIC1
       print*,'limit DIC to +0.5%'
