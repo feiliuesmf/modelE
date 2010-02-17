@@ -2640,7 +2640,7 @@ c     write(6,*)"RCLD",RCLDE,RCLD,Rbeta,WTEM,L,MCDNCW
             AREWM(L) = RCLDE
             ALWWM(L)= WTEM      ! cld water density in g m-3
             NMCW  = NMCW+1
-            if(MCDNCW.gt.0.) write(6,*)"MST CDNC b",ACDNWM(L),MCDNCW,L
+c           if(MCDNCW.gt.0.) write(6,*)"MST CDNC b",ACDNWM(L),MCDNCW,L
           elseif(FCLD.gt.1.d-5.and.SVLATL(L).eq.LHS) then
             ACDNIM(L)= MCDNCI
             AREIM(L) = RCLDE
@@ -2823,6 +2823,7 @@ c for sulfur chemistry
       real*8,PARAMETER          :: mi0 = 2.094395148947515E-15
       logical, PARAMETER        :: lSCM=.false.
       logical, PARAMETER        :: wSCM=.false.
+      REAL(8), PARAMETER        :: tiny = 1.0D-30 
       REAL*8,dimension(mkx)     :: tk0,qk0,pk0,w0,v0,r0,rablk
       REAL*8,dimension(mkx)     :: tk0new,qk0new
       REAL*8,dimension(mkx)     :: ndrop,mdrop,ncrys,mcrys
@@ -3278,7 +3279,7 @@ C     IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
 cC** Pass old and new cloud droplet number
       NEWCDN=SNd
       OLDCDN=CDNL0
-      if(SNd.gt.2000.) write(6,*)"SM CDNC",NEWCDN,OLDCDN,L
+c     if(SNd.gt.2000.) write(6,*)"SM CDNC",NEWCDN,OLDCDN,L
 #endif
 #ifdef BLK_2MOM
 C Microphysical time step
@@ -3782,7 +3783,7 @@ c GCM logics...........  SNd0, SNdL [No/cc; ]SNdI Units also in /cc
 c
        SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
 c      if(SNdI.gt.0.) write(6,*)"ICE CRY",SNdI, SNdI/dtB2M
-       if(SNDI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
+       if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
        SNd=ndrop(mkx)*1.d-6                 ! ndrop, [No/m^3]
 C**** Old treatment to get CDNC for cloud changes within time steps
        DCLD(L) = FCLD-CLDSAVL(L) ! cloud fraction change
@@ -3802,8 +3803,9 @@ C* If using an alternate definition for QAUT
       SCDNCW=SNd      ! we have already passed the grid box value
       SCDNCI=SNdI
 c     if (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0 !set min ice crystal, do we need this, please check
-      if (SCDNCW.le.20.d0) SCDNCW=20.d0         !set min CDNC, sensitivity test
-      if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
+      if (SCDNCI.le.0.0d0) SCDNCI=tiny          !set min ice crystal, do we need this, please check
+      if (SCDNCW.le.10.d0) SCDNCW=10.d0         !set min CDNC, sensitivity test
+c     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
 c     write(6,*)"CDNC LSS",SCDNCW,SNd,L
 #endif
@@ -3821,39 +3823,39 @@ C    *    /(WMUSI*FCLD+teeny)
         IF(LHX.EQ.LHS) CM1=CM0
         CM=CM1*(1.-1./EXP(TEM*TEM))+100.*(PREBAR(L+1)+
      *       PRECNVL(L+1)*BYDTsrc)
-#ifdef CLD_AER_CDNC
+CC#ifdef CLD_AER_CDNC
 C** Choice of 2 different routines to get the autoconversion rate
-#ifdef BLK_2MOM
+CC#ifdef BLK_2MOM
 C*** using an alternate QAUT definition based on Beheng (1994)
-        CM=QAUT_B2M/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
-     *     PRECNVL(L+1)*BYDTsrc)
+CC        CM=QAUT_B2M/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
+CC     *     PRECNVL(L+1)*BYDTsrc)
 c     if (QAUT_B2M.lt.0.) write(6,*)"QAUT BLK_2M",QAUT_B2M,CM,WMX(L),L
 c       if(L.eq.1) write(6,*)"4th check BLK_2M",CM,QAUT_B2M,WMX(L)
-#else
+CC#else
 C** Use Qaut definition based on Rotstayn and Liu (2005, GRL)
-         WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-          IF(LHX.EQ.LHE)  THEN
-            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
-          ELSE
-            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+CC         WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
+CC          IF(LHX.EQ.LHE)  THEN
+CC            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+CC          ELSE
+CC            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
 C    *         *(1.+pl(l)*xRICld)
-          END IF
-       CALL GET_QAUT(L,PL(L),TL(L),FCLD,WMX(L),SCDNCW,RCLD,RHOW,
-     *r6,r6c,QCRIT,QAUT)
+CC          END IF
+CC       CALL GET_QAUT(L,PL(L),TL(L),FCLD,WMX(L),SCDNCW,RCLD,RHOW,
+CC     *r6,r6c,QCRIT,QAUT)
 C** Can also use other Qaut definitions if BLK_2MOM is not defined by switching to this call
 !     CALL GET_QAUT(L,TL(L),FCLD,WMX(L),SCDNCW,RHO,QCRIT,QAUT)
 !      CALL GET_QAUT(L,FCLD,WMX(L),SCDNCW,RHO,QAUT)
 C*** If 6th moment of DSD is greater than critical radius r6c start QAUT
 !     if (r6.gt.r6c) then
-      if ((WMX(L)/(FCLD+teeny)).GT.QCRIT) then
-        CM=QAUT/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
-     *     PRECNVL(L+1)*BYDTsrc)
-      else
-        CM=0.d0
-      endif
+CC      if ((WMX(L)/(FCLD+teeny)).GT.QCRIT) then
+CC        CM=QAUT/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
+CC     *     PRECNVL(L+1)*BYDTsrc)
+CC      else
+CC        CM=0.d0
+CC      endif
 C** end routine for QAUT as a function of N,LWC
-#endif
-#endif
+CC#endif
+CC#endif
         CM=CM*CMX
         IF(CM.GT.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
@@ -4641,7 +4643,7 @@ C** Pass old and new cloud droplet number
       NEWCDN=SNd
       OLDCDN=CDNL0
 c     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
-      if(SCDNCW.gt.2000.) write(6,*)"PROBLEM UPD",NEWCDN,OLDCDN,L
+c     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM UPD",NEWCDN,OLDCDN,L
 #endif
 #ifdef BLK_2MOM
 c Update thermo if environment was changed
@@ -4715,7 +4717,7 @@ c      nnucmt              ! change n cont freezing Meyer's (prim ice nuc)
      * +execute_bulk2m_driver('get','nnucmt')
 
        SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
-       if(SNDI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
+       if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
       OLDCDL(L) = SNd
       OLDCDI(L) = SNdI
 #ifdef TRACERS_AMP
@@ -4732,8 +4734,9 @@ c To get effective radii in micron
 #ifdef CLD_AER_CDNC
       SCDNCW=SNd
       SCDNCI=SNdI
-      If (SCDNCW.le.20.d0) SCDNCW=20.d0   !set min CDNC sensitivity test
+      If (SCDNCW.le.10.d0) SCDNCW=10.d0   !set min CDNC sensitivity test
 c     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
+      If (SCDNCI.le.0.0d0) SCDNCI=tiny            !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
 c     write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l),l
 #endif
@@ -4746,6 +4749,16 @@ c     write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l),l
 C         IF(RCLD.GT.20..AND.PREP(L).GT.QHEATC) RCLD=20.
           IF(RCLD.GT.RWMAX.AND.PREP(L).GT.QHEATC) RCLD=RWMAX
           RCLDE=RCLD/BYBR
+#ifdef CLD_AER_CDNC
+C** Using the Liu and Daum paramet
+C** for spectral dispersion effects on droplet size distribution
+      Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
+      Repsis=Repsi*Repsi
+      Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
+!     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
+      RCLDE=RCLD*Rbeta
+!@auth Menon    end of addition  comment out the RCLDE definition below
+#endif
 #ifdef BLK_2MOM
 c        if(l.eq.1) write(6,*)"7th check BLK_2M",RCLDE,RCLD
 c    *   ,SCDNCW,WTEM
@@ -4767,16 +4780,6 @@ c        if(l.eq.1) write(6,*)"10th check BLK_2M",RCLDE
 #endif
         END IF
         RCLDE1=5.*RCLDE          ! for precip optical thickness
-#ifdef CLD_AER_CDNC
-C** Using the Liu and Daum paramet
-C** for spectral dispersion effects on droplet size distribution
-      Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
-      Repsis=Repsi*Repsi
-      Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
-!     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
-      RCLDE=RCLD*Rbeta
-!@auth Menon    end of addition  comment out the RCLDE definition below
-#endif
         CSIZEL(L)=RCLDE
 #ifdef CLD_AER_CDNC  /* save for diag purposesi */
         IF (FCLD.gt.1.d-5.and.LHX.eq.LHE) then

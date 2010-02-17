@@ -69,8 +69,10 @@ C**** variables used (and saved) for gravity wave drag calculations
 !@var UKM,VKM arrays for vertical momentum mixing
       REAL*8, dimension(:,:,:,:), allocatable :: UKM,VKM
 #ifdef BLK_2MOM
+#ifdef TRACERS_AMP
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: NACTC      ! = 1.0D-30  ![#/m3](l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: NAERC      ! = 1.0D-30  ![#/m3](l,nmodes)
+#endif
 #endif
       END MODULE CLOUDS_COM
 
@@ -82,7 +84,9 @@ C**** variables used (and saved) for gravity wave drag calculations
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID
       USE MODEL_COM, ONLY : IM,LM
 #ifdef BLK_2MOM
+#ifdef TRACERS_AMP
       USE AERO_CONFIG, ONLY: NMODES
+#endif
 #endif
       USE CLOUDS_COM, ONLY : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,
      *                       CLDSAV1,FSS,
@@ -94,7 +98,9 @@ C**** variables used (and saved) for gravity wave drag calculations
      *                       ULS,VLS,UMC,VMC,TLS,QLS,
      *                       TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
 #ifdef BLK_2MOM
+#ifdef TRACERS_AMP
      *                       ,NACTC,NAERC
+#endif
 #endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -169,10 +175,12 @@ C**** Initialise some output used in dynamics
       AIRX(:,J_0H:J_1H)=0.
 
 #ifdef BLK_2MOM
+#ifdef TRACERS_AMP
       allocate(  NACTC(LM,nmodes) )
       NACTC      = 1.0D-30
       allocate(  NAERC(LM,nmodes) )
       NAERC      = 1.0D-30
+#endif
 #endif
       END SUBROUTINE ALLOC_CLOUDS_COM
 
