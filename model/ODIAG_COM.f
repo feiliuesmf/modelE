@@ -11,6 +11,9 @@
       USE STRAITS, only : nmst
       USE DIAG_COM, only : npts  ! needed for conservation diags
      &     ,sname_strlen,units_strlen,lname_strlen
+#ifdef NEW_IO
+      use cdl_mod
+#endif
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=23,KOIJL=26,KOL=6,KOLNST=8
@@ -50,8 +53,6 @@
      .           ,ij_cocc,ij_doc,IJ_alk
      .           ,ij_flux,ij_Ed,ij_Es
 #endif
-!@var CDL_OIJ consolidated metadata for OIJ output fields in CDL notation
-      character(len=100), dimension(koij*6) :: cdl_oij
 
 !@var IJL_xxx Names for OIJL diagnostics
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
@@ -71,8 +72,6 @@
       REAL*8, DIMENSION(KOIJL) :: SCALE_OIJL
 !@var [ijl]grid_oijl Grid descriptors for OIJL diagnostics
       INTEGER, DIMENSION(KOIJL) :: IGRID_OIJL,JGRID_OIJL,LGRID_OIJL
-!@var CDL_OIJL consolidated metadata for OIJL output fields in CDL notation
-      character(len=100), dimension(koijl*6) :: cdl_oijl
 
 !@var LN_xxx Names for OLNST diagnostics
       INTEGER LN_KVM,LN_KVG,LN_WGFL,LN_WSFL,LN_MFLX,LN_GFLX,LN_SFLX
@@ -89,8 +88,6 @@
       REAL*8, DIMENSION(KOLNST) :: SCALE_OLNST
 !@var lgrid_olnst Grid descriptors for OLNST diagnostics
       INTEGER, DIMENSION(KOLNST) :: LGRID_OLNST
-!@var CDL_OLNST consolidated metadata for OLNST output fields in CDL notation
-      character(len=100), dimension(kolnst*6) :: cdl_olnst
 
 !@var L_xxx Names for OL diagnostics
       INTEGER L_RHO,L_TEMP,L_SALT
@@ -145,8 +142,6 @@
       REAL*8, DIMENSION(KOJL) :: SCALE_OJL
 !@var [jl]grid_ojl Grid descriptors for OJL diagnostics
       INTEGER, DIMENSION(KOJL) :: JGRID_OJL,LGRID_OJL
-!@var CDL_OJL consolidated metadata for OJL output fields in CDL notation
-      character(len=100), dimension(KOJL*6) :: cdl_ojl
 
 !@var NSEC number of lat/lon sections for diags
       INTEGER, PARAMETER :: NSEC=3
@@ -178,8 +173,6 @@ C****
       character(len=lname_strlen), dimension(kotj) :: lname_otj
 !@var units_otj units for OTJ diagnostics
       character(len=units_strlen), dimension(kotj) :: units_otj
-!@var CDL_OTJ consolidated metadata for OTJ output fields in CDL notation
-      character(len=100), dimension(kotj*6) :: cdl_otj
 
 !@var SFM meridional overturning stream function for each basin
       REAL*8, DIMENSION(JM,0:LMO,4) :: SFM!,SFS SFS is for salt
@@ -200,6 +193,16 @@ C****
 #endif
 
 #ifdef NEW_IO
+
+      type(cdl_type) :: cdl_olons,cdl_olats,cdl_odepths
+
+!@var CDL_OIJ consolidated metadata for OIJ output fields in CDL notation
+!@var CDL_OIJL consolidated metadata for OIJL output fields in CDL notation
+!@var CDL_OLNST consolidated metadata for OLNST output fields in CDL notation
+!@var CDL_OJL consolidated metadata for OJL output fields in CDL notation
+!@var CDL_OTJ consolidated metadata for OTJ output fields in CDL notation
+      type(cdl_type) :: cdl_oij,cdl_oijl,cdl_olnst,cdl_ojl,cdl_otj
+
 c declarations that facilitate switching between restart and acc
 c instances of arrays
       target :: oijl_loc,oijl_out
@@ -431,28 +434,17 @@ c straits arrays
       use odiag
       use pario, only : defvar,write_attr
       USE OCEANR_DIM, only : grid=>ogrid
-      use diag_com, only : zoc,zoc1
-      use ocean, only : olat_dg,olon_dg
-      use straits, only : nmst,lmst,name_st
+      use cdl_mod, only : defvar_cdl
       implicit none
       integer :: fid         !@var fid file id
-
-      call defvar(grid,fid,name_st,'strait_name(strait_strlen,nmst)')
-      call defvar(grid,fid,lmst,'lmst(nmst)')
-
-      call defvar(grid,fid,olat_dg(:,1),'lato(jmo)')
-      call defvar(grid,fid,olat_dg(:,2),'lato2(jmo)')
-      call defvar(grid,fid,olon_dg(:,1),'lono(imo)')
-      call defvar(grid,fid,olon_dg(:,2),'lono2(imo)')
-      call defvar(grid,fid,zoc(1:lmo),'zoc(lmo)')
-      call defvar(grid,fid,zoc1(1:lmo),'zoce(lmo)')
 
       call write_attr(grid,fid,'oij','reduction','sum')
       call write_attr(grid,fid,'oij','split_dim',3)
       call defvar(grid,fid,ia_oij,'ia_oij(koij)')
       call defvar(grid,fid,scale_oij,'scale_oij(koij)')
       call defvar(grid,fid,sname_oij,'sname_oij(sname_strlen,koij)')
-      call defvar(grid,fid,cdl_oij,'cdl_oij(cdl_strlen,kcdl_oij)')
+      call defvar_cdl(grid,fid,cdl_oij,
+     &     'cdl_oij(cdl_strlen,kcdl_oij)')
 
       call write_attr(grid,fid,'oijl','reduction','sum')
       call write_attr(grid,fid,'oijl','split_dim',4)
@@ -460,7 +452,8 @@ c straits arrays
       call defvar(grid,fid,denom_oijl,'denom_oijl(koijl)')
       call defvar(grid,fid,scale_oijl,'scale_oijl(koijl)')
       call defvar(grid,fid,sname_oijl,'sname_oijl(sname_strlen,koijl)')
-      call defvar(grid,fid,cdl_oijl,'cdl_oijl(cdl_strlen,kcdl_oijl)')
+      call defvar_cdl(grid,fid,cdl_oijl,
+     &     'cdl_oijl(cdl_strlen,kcdl_oijl)')
 
       call write_attr(grid,fid,'ol','reduction','sum')
       call write_attr(grid,fid,'ol','split_dim',2)
@@ -471,7 +464,8 @@ c straits arrays
       call defvar(grid,fid,scale_olnst,'scale_olnst(kolnst)')
       call defvar(grid,fid,sname_olnst,
      &     'sname_olnst(sname_strlen,kolnst)')
-      call defvar(grid,fid,cdl_olnst,'cdl_olnst(cdl_strlen,kcdl_olnst)')
+      call defvar_cdl(grid,fid,cdl_olnst,
+     &     'cdl_olnst(cdl_strlen,kcdl_olnst)')
 
       call defvar(grid,fid,ojl_out,'ojl(jmo,lmo,kojl)',
      &     r4_on_disk=.true.)
@@ -481,7 +475,8 @@ c straits arrays
       call defvar(grid,fid,denom_ojl,'denom_ojl(kojl)')
       call defvar(grid,fid,scale_ojl,'scale_ojl(kojl)')
       call defvar(grid,fid,sname_ojl,'sname_ojl(sname_strlen,kojl)')
-      call defvar(grid,fid,cdl_ojl,'cdl_ojl(cdl_strlen,kcdl_ojl)')
+      call defvar_cdl(grid,fid,cdl_ojl,
+     &     'cdl_ojl(cdl_strlen,kcdl_ojl)')
 
       call defvar(grid,fid,otj_out,'otj(jmo,kotj)',
      &     r4_on_disk=.true.)
@@ -490,7 +485,8 @@ c straits arrays
       call defvar(grid,fid,ia_otj,'ia_otj(kotj)')
       call defvar(grid,fid,scale_otj,'scale_otj(kotj)')
       call defvar(grid,fid,sname_otj,'sname_otj(sname_strlen,kotj)')
-      call defvar(grid,fid,cdl_otj,'cdl_otj(cdl_strlen,kcdl_otj)')
+      call defvar_cdl(grid,fid,cdl_otj,
+     &     'cdl_otj(cdl_strlen,kcdl_otj)')
 
       return
       end subroutine def_meta_ocdiag
@@ -501,50 +497,38 @@ c straits arrays
       use odiag
       use pario, only : write_dist_data,write_data
       USE OCEANR_DIM, only : grid=>ogrid
-      use diag_com, only : zoc,zoc1
-      use ocean, only : olat_dg,olon_dg
-      use straits, only : nmst,lmst,name_st
+      use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
-
-      call write_data(grid,fid,'strait_name',name_st)
-      call write_data(grid,fid,'lmst',lmst)
-
-      call write_data(grid,fid,'lato',olat_dg(:,1))
-      call write_data(grid,fid,'lato2',olat_dg(:,2))
-      call write_data(grid,fid,'lono',olon_dg(:,1))
-      call write_data(grid,fid,'lono2',olon_dg(:,2))
-      call write_data(grid,fid,'zoc',zoc(1:lmo))
-      call write_data(grid,fid,'zoce',zoc1(2:lmo+1))
 
       call write_data(grid,fid,'ia_oij',ia_oij)
       call write_data(grid,fid,'scale_oij',scale_oij)
       call write_data(grid,fid,'sname_oij',sname_oij)
-      call write_data(grid,fid,'cdl_oij',cdl_oij)
+      call write_cdl(grid,fid,'cdl_oij',cdl_oij)
 
       call write_data(grid,fid,'ia_oijl',ia_oijl)
       call write_data(grid,fid,'denom_oijl',denom_oijl)
       call write_data(grid,fid,'scale_oijl',scale_oijl)
       call write_data(grid,fid,'sname_oijl',sname_oijl)
-      call write_data(grid,fid,'cdl_oijl',cdl_oijl)
+      call write_cdl(grid,fid,'cdl_oijl',cdl_oijl)
 
       call write_data(grid,fid,'ojl',ojl_out)
       call write_data(grid,fid,'ia_ojl',ia_ojl)
       call write_data(grid,fid,'denom_ojl',denom_ojl)
       call write_data(grid,fid,'scale_ojl',scale_ojl)
       call write_data(grid,fid,'sname_ojl',sname_ojl)
-      call write_data(grid,fid,'cdl_ojl',cdl_ojl)
+      call write_cdl(grid,fid,'cdl_ojl',cdl_ojl)
 
       call write_data(grid,fid,'otj',otj_out)
       call write_data(grid,fid,'ia_otj',ia_otj)
       call write_data(grid,fid,'scale_otj',scale_otj)
       call write_data(grid,fid,'sname_otj',sname_otj)
-      call write_data(grid,fid,'cdl_otj',cdl_otj)
+      call write_cdl(grid,fid,'cdl_otj',cdl_otj)
 
       call write_data(grid,fid,'ia_olnst',ia_olnst)
       call write_data(grid,fid,'scale_olnst',scale_olnst)
       call write_data(grid,fid,'sname_olnst',sname_olnst)
-      call write_data(grid,fid,'cdl_olnst',cdl_olnst)
+      call write_cdl(grid,fid,'cdl_olnst',cdl_olnst)
 
       return
       end subroutine write_meta_ocdiag
@@ -667,10 +651,10 @@ C****
       USE CONSTANT, only : rhows
       USE CONSTANT, only : bygrav
       USE MODEL_COM, only : dtsrc
-      USE OCEAN, only : ze,dts,ndyno
+      USE OCEAN, only : ze,dts,ndyno,olat_dg,olon_dg
       USE DIAG_COM, only : ia_src,conpt0,zoc,zoc1
       USE ODIAG
-      use straits, only : nmst,name_st
+      use straits, only : lmst,nmst,name_st
       IMPLICIT NONE
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
       CHARACTER CONPT(NPTS)*10
@@ -1258,70 +1242,39 @@ c Declare the dimensions and metadata of output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
+      call init_cdl_type('cdl_olons',cdl_olons)
+      call add_coord(cdl_olons,'lono',im,
+     &     units='degrees_east',coordvalues=olon_dg(:,1))
+      call add_coord(cdl_olons,'lono2',im,
+     &     units='degrees_east',coordvalues=olon_dg(:,2))
 
-      cdl_oij = ''
-      cdl_oij(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_oij(3),'(a,i3,a)') '   lono = ',im,' ;'
-      write(cdl_oij(4),'(a,i3,a)') '   lato = ',jm,' ;'
-      write(cdl_oij(5),'(a,i3,a)') '   lono2 = ',im,' ;'
-      write(cdl_oij(6),'(a,i3,a)') '   lato2 = ',jm,' ;'
-      cdl_oij(7:15)(:) = (/
-     &     'variables:                       ',
-     &     'float lono(lono) ;               ',
-     &     '   lono:units = "degrees_east" ; ',
-     &     'float lato(lato) ;               ',
-     &     '   lato:units = "degrees_north" ;',
-     &     'float lono2(lono2) ;             ',
-     &     '   lono2:units = "degrees_east" ;',
-     &     'float lato2(lato2) ;             ',
-     &     '   lato2:units = "degrees_north" ;'
-     &     /)
-      kk = count(len_trim(cdl_oij).gt.0)
+      call init_cdl_type('cdl_olats',cdl_olats)
+      call add_coord(cdl_olats,'lato',jm,
+     &     units='degrees_north',coordvalues=olat_dg(:,1))
+      call add_coord(cdl_olats,'lato2',jm,
+     &     units='degrees_north',coordvalues=olat_dg(:,2))
+
+      call init_cdl_type('cdl_odepths',cdl_odepths)
+      call add_coord(cdl_odepths,'zoc',lmo,
+     &     units='m',coordvalues=zoc(1:lmo))
+      call add_coord(cdl_odepths,'zoce',lmo,
+     &     units='m',coordvalues=zoc1(2:lmo+1))
+
+      call merge_cdl(cdl_olons,cdl_olats,cdl_oij)
+      call merge_cdl(cdl_oij,cdl_odepths,cdl_oijl)
+
       do k=1,koij
         if(trim(sname_oij(k)).eq.'unused') cycle
         xstr='lono) ;'
         if(igrid_oij(k).eq.2) xstr='lono2) ;'
         ystr='(lato,'
         if(jgrid_oij(k).eq.2) ystr='(lato2,'
-        kk = kk + 1
-        cdl_oij(kk) = 'float '//trim(sname_oij(k))//
-     &       trim(ystr)//trim(xstr)
-        kk = kk + 1
-        cdl_oij(kk) = '   '//trim(sname_oij(k))//':long_name = "'//
-     &       trim(lname_oij(k))//'" ;'
-        kk = kk + 1
-        cdl_oij(kk) = '   '//trim(sname_oij(k))//':units = "'//
-     &       trim(units_oij(k))//'" ;'
+        call add_var(cdl_oij,
+     &       'float '//trim(sname_oij(k))//trim(ystr)//trim(xstr),
+     &       long_name=trim(lname_oij(k)),
+     &       units=trim(units_oij(k)) )
       enddo
-      kk = kk + 1
-      cdl_oij(kk) = '}'
 
-      cdl_oijl = ''
-      cdl_oijl(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_oijl(3),'(a,i3,a)') '   lono = ',im,' ;'
-      write(cdl_oijl(4),'(a,i3,a)') '   lato = ',jm,' ;'
-      write(cdl_oijl(5),'(a,i3,a)') '   lono2 = ',im,' ;'
-      write(cdl_oijl(6),'(a,i3,a)') '   lato2 = ',jm,' ;'
-      write(cdl_oijl(7),'(a,i3,a)') '   zoc = ',lmo,' ;'
-      write(cdl_oijl(8),'(a,i3,a)') '   zoce = ',lmo,' ;'
-      cdl_oijl(9:21)(:) = (/
-     &     'variables:                        ',
-     &     'float lono(lono) ;                ',
-     &     '   lono:units = "degrees_east" ;  ',
-     &     'float lato(lato) ;                ',
-     &     '   lato:units = "degrees_north" ; ',
-     &     'float lono2(lono2) ;              ',
-     &     '   lono2:units = "degrees_east" ; ',
-     &     'float lato2(lato2) ;              ',
-     &     '   lato2:units = "degrees_north" ;',
-     &     'float zoc(zoc) ;                  ',
-     &     '   zoc:units = "m" ;              ',
-     &     'float zoce(zoce) ;                ',
-     &     '   zoce:units = "m" ;             '
-     &     /)
-      kk = count(len_trim(cdl_oijl).gt.0)
       do k=1,koijl
         if(trim(sname_oijl(k)).eq.'unused') cycle
         if(trim(lname_oijl(k)).eq.'no output') cycle
@@ -1331,38 +1284,14 @@ c
         if(jgrid_oijl(k).eq.2) ystr='lato2,'
         zstr='(zoc,'
         if(lgrid_oijl(k).eq.2) zstr='(zoce,'
-        kk = kk + 1
-        cdl_oijl(kk) = 'float '//trim(sname_oijl(k))//
-     &       trim(zstr)//trim(ystr)//trim(xstr)
-        kk = kk + 1
-        cdl_oijl(kk) = '   '//trim(sname_oijl(k))//':long_name = "'//
-     &       trim(lname_oijl(k))//'" ;'
-        kk = kk + 1
-        cdl_oijl(kk) = '   '//trim(sname_oijl(k))//':units = "'//
-     &       trim(units_oijl(k))//'" ;'
+        call add_var(cdl_oijl,
+     &       'float '//trim(sname_oijl(k))//trim(zstr)//
+     &       trim(ystr)//trim(xstr),
+     &       long_name=trim(lname_oijl(k)),
+     &       units=trim(units_oijl(k)) )
       enddo
-      kk = kk + 1
-      cdl_oijl(kk) = '}'
 
-      cdl_ojl = ''
-      cdl_ojl(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_ojl(3),'(a,i3,a)') '   lato = ',jm,' ;'
-      write(cdl_ojl(4),'(a,i3,a)') '   lato2 = ',jm,' ;'
-      write(cdl_ojl(5),'(a,i3,a)') '   zoc = ',lmo,' ;'
-      write(cdl_ojl(6),'(a,i3,a)') '   zoce = ',lmo,' ;'
-      cdl_ojl(7:15)(:) = (/
-     &     'variables:                          ',
-     &     'float lato(lato) ;                  ',
-     &     '   lato:units = "degrees_north" ;   ',
-     &     'float lato2(lato2) ;                ',
-     &     '   lato2:units = "degrees_north" ;  ',
-     &     'float zoc(zoc) ;                    ',
-     &     '   zoc:units = "m" ;                ',
-     &     'float zoce(zoce) ;                  ',
-     &     '   zoce:units = "m" ;               '
-     &     /)
-      kk = count(len_trim(cdl_ojl).gt.0)
+      call merge_cdl(cdl_olats,cdl_odepths,cdl_ojl)
       do k=1,kojl
         if(trim(sname_ojl(k)).eq.'unused') cycle
         if(trim(lname_ojl(k)).eq.'no output') cycle
@@ -1370,78 +1299,40 @@ c
         if(jgrid_ojl(k).eq.2) ystr='lato2) ;'
         zstr='(zoc,'
         if(lgrid_ojl(k).eq.2) zstr='(zoce,'
-        kk = kk + 1
-        cdl_ojl(kk) = 'float '//trim(sname_ojl(k))//
-     &       trim(zstr)//trim(ystr)
-        kk = kk + 1
-        cdl_ojl(kk) = '   '//trim(sname_ojl(k))//':long_name = "'//
-     &       trim(lname_ojl(k))//'" ;'
-        kk = kk + 1
-        cdl_ojl(kk) = '   '//trim(sname_ojl(k))//':units = "'//
-     &       trim(units_ojl(k))//'" ;'
+        call add_var(cdl_ojl,
+     &       'float '//trim(sname_ojl(k))//trim(zstr)//trim(ystr),
+     &       long_name=trim(lname_ojl(k)),
+     &       units=trim(units_ojl(k)) )
       enddo
-      kk = kk + 1
-      cdl_ojl(kk) = '}'
 
-      cdl_olnst = ''
-      cdl_olnst(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_olnst(3),'(a,i3,a)') '   zoc = ',lmo,' ;'
-      write(cdl_olnst(4),'(a,i3,a)') '   zoce = ',lmo,' ;'
-      write(cdl_olnst(5),'(a,i3,a)') '   nmst = ',nmst,' ;'
-      write(cdl_olnst(6),'(a,i3,a)') '   strait_strlen = ',
-     &     len(name_st(1)),' ;'
-      cdl_olnst(7:13)(:) = (/
-     &     'variables:                            ',
-     &     'float zoc(zoc) ;                      ',
-     &     '   zoc:units = "m" ;                  ',
-     &     'float zoce(zoce) ;                    ',
-     &     '   zoce:units = "m" ;                 ',
-     &     'char strait_name(nmst,strait_strlen) ;',
-     &     'int lmst(nmst) ;                      '
-     &     /)
-      kk = count(len_trim(cdl_olnst).gt.0)
+      cdl_olnst = cdl_odepths
+      call add_dim(cdl_olnst,'nmst',nmst)
+      call add_dim(cdl_olnst,'strait_strlen',len(name_st(1)))
+      call add_var(cdl_olnst,'int lmst(nmst) ;')
+      call add_vardata(cdl_olnst,'lmst',lmst)
+      call add_var(cdl_olnst,
+     &     'char strait_name(nmst,strait_strlen) ;' )
+      call add_vardata(cdl_olnst,'strait_name',name_st)
+
       do k=1,kolnst
         if(trim(sname_olnst(k)).eq.'unused') cycle
         if(trim(lname_olnst(k)).eq.'no output') cycle
         zstr='zoc) ;'
         if(lgrid_olnst(k).eq.2) zstr='zoce) ;'
-        kk = kk + 1
-        cdl_olnst(kk) = 'float '//trim(sname_olnst(k))//
-     &       '(nmst,'//trim(zstr)
-        kk = kk + 1
-        cdl_olnst(kk) = '   '//trim(sname_olnst(k))//':long_name = "'//
-     &       trim(lname_olnst(k))//'" ;'
-        kk = kk + 1
-        cdl_olnst(kk) = '   '//trim(sname_olnst(k))//':units = "'//
-     &       trim(units_olnst(k))//'" ;'
+        call add_var(cdl_olnst,
+     &       'float '//trim(sname_olnst(k))//'(nmst,'//trim(zstr),
+     &       long_name=trim(lname_olnst(k)),
+     &       units=trim(units_olnst(k)) )
       enddo
-      kk = kk + 1
-      cdl_olnst(kk) = '}'
 
-      cdl_otj = ''
-      cdl_otj(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_otj(3),'(a,i3,a)') '   lato2 = ',jm,' ;'
-      cdl_otj(4:6)(:) = (/
-     &     'variables:                        ',
-     &     'float lato2(lato2) ;              ',
-     &     '   lato2:units = "degrees_north" ;'
-     &     /)
-      kk = count(len_trim(cdl_otj).gt.0)
+      cdl_otj = cdl_olats
       do k=1,kotj
         if(trim(sname_otj(k)).eq.'unused') cycle
-        kk = kk + 1
-        cdl_otj(kk) = 'float '//trim(sname_otj(k))//'(lato2) ;'
-        kk = kk + 1
-        cdl_otj(kk) = '   '//trim(sname_otj(k))//':long_name = "'//
-     &       trim(lname_otj(k))//'" ;'
-        kk = kk + 1
-        cdl_otj(kk) = '   '//trim(sname_otj(k))//':units = "'//
-     &       trim(units_otj(k))//'" ;'
+        call add_var(cdl_otj,
+     &       'float '//trim(sname_otj(k))//'(lato2) ;',
+     &       long_name=trim(lname_otj(k)),
+     &       units=trim(units_otj(k)) )
       enddo
-      kk = kk + 1
-      cdl_otj(kk) = '}'
 #endif
 
       RETURN

@@ -35,9 +35,15 @@
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use GEOM, only : lat_dg
+#ifdef NEW_IO
+      use cdl_mod
+#endif
       implicit none
       integer :: k,kk
-      character(len=10) :: ystr,zstr
+      character(len=10) :: ystr,zstr,powstr
+#ifdef NEW_IO
+      type(cdl_type) :: cdl_dum
+#endif
 c
       do k=1,kagcx
          write(sname_gc(k),'(a3,i3.3)') 'AGC',k
@@ -588,65 +594,46 @@ c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).  Information needed for
 c printing ASCII tables of the output is stored here as well.
 c
-      cdl_gc = ''
-      cdl_gc(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_gc(3),'(a,i3,a)') '   lat_gc = ',jmlat,' ;'
-      write(cdl_gc(4),'(a,i3,a)') '   lat_gc_plus3 = ',jmlat+3,' ;'
-      write(cdl_gc(5),'(a,i3,a)') '   lat_gc2 = ',jmlat,' ;'
-      write(cdl_gc(6),'(a,i3,a)') '   lat_gc2_plus3 = ',jmlat+3,' ;'
-      write(cdl_gc(7),'(a,i3,a)') '   plm = ',lm,' ;'
-      write(cdl_gc(8),'(a,i3,a)') '   ple = ',lm,' ;'
-      write(cdl_gc(9),'(a,i3,a)') '   shnhgm = 3 ;'
-      cdl_gc(10:18)(:) = (/
-     &     'variables:                           ',
-     &     'float lat_gc(lat_gc) ;               ',
-     &     '   lat_gc:units = "degrees_north" ;  ',
-     &     'float lat_gc2(lat_gc2) ;             ',
-     &     '   lat_gc2:units = "degrees_north" ; ',
-     &     'float plm(plm) ;                     ',
-     &     '   plm:units = "mb" ;                ',
-     &     'float ple(ple) ;                     ',
-     &     '   ple:units = "mb" ;                '
-     &     /)
-      kk = count(len_trim(cdl_gc).gt.0)
+      call init_cdl_type('cdl_gc',cdl_gc)
+      call add_coord(cdl_gc,'lat',jmlat,units='degrees_north',
+     &     coordvalues=lat_gc)
+      call add_coord(cdl_gc,'lat2',jmlat,units='degrees_north',
+     &     coordvalues=lat_gc2)
+      call add_dim(cdl_gc,'shnhgm',3)
+      call add_dim(cdl_gc,'lat_plus3',jmlat+3)
+      call add_dim(cdl_gc,'lat2_plus3',jmlat+3)
+      cdl_dum = cdl_gc
+      call merge_cdl(cdl_dum,cdl_heights,cdl_gc)
+
       do k=1,kagc
         if(trim(units_gc(k)).eq.'unused') cycle
         if(jgrid_gc(k).eq.1) then
-          ystr='lat_gc'
+          ystr='lat'
         else
-          ystr='lat_gc2'
+          ystr='lat2'
         endif
         if(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
           zstr='(plm,'
         else
           zstr='(ple,'
         endif
-        kk = kk + 1
-        cdl_gc(kk) = 'float '//trim(sname_gc(k))//
-     &       trim(zstr)//trim(ystr)//') ;'
-        kk = kk + 1
-        cdl_gc(kk) = '   '//trim(sname_gc(k))//':long_name = "'//
-     &       trim(lname_gc(k))//'" ;'
-        kk = kk + 1
-        cdl_gc(kk) = '   '//trim(sname_gc(k))//':units = "'//
-     &       trim(units_gc(k))//'" ;'
+        call add_var(cdl_gc,
+     &       'float '//trim(sname_gc(k))//trim(zstr)//trim(ystr)//') ;',
+     &       units=trim(units_gc(k)),
+     &       long_name=trim(lname_gc(k))
+     &       )
         if(pow_gc(k).ne.0) then
-          kk = kk + 1
-          write(cdl_gc(kk),'(a,i3,a)')
-     &         '   '//trim(sname_gc(k))//':prtpow = ',pow_gc(k),' ;'
+          write(powstr,'(i2)') pow_gc(k)
+          call add_varline(cdl_gc,
+     &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
-        kk = kk + 1
-        cdl_gc(kk) = 'float '//trim(sname_gc(k))//'_hemis'//
-     &       trim(zstr)//'shnhgm) ;'
+        call add_var(cdl_gc,'float '//trim(sname_gc(k))//'_hemis'//
+     &       trim(zstr)//'shnhgm) ;')
         if(denom_gc(k).gt.0) then
-          kk = kk + 1
-          cdl_gc(kk) = 'float '//trim(sname_gc(k))//
-     &         '_vmean('//trim(ystr)//'_plus3) ;'
+          call add_var(cdl_gc,'float '//trim(sname_gc(k))//
+     &         '_vmean('//trim(ystr)//'_plus3) ;')
         endif
       enddo
-      kk = kk + 1
-      cdl_gc(kk) = '}'
 #endif
 
       return

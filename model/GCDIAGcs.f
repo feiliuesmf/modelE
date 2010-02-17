@@ -52,11 +52,12 @@
       use GCDIAG
       use DIAG_COM
       use domain_decomp_atm, only : grid,am_i_root
+      use cdl_mod
       implicit none
       integer :: ilon,jlat,k,kk
       real*8 :: byim,dlon,dlat,sins,sinn
-      character(len=10) :: zstr
-
+      character(len=10) :: zstr,powstr
+      type(cdl_type) :: cdl_dum
       byim = 1./imlon
 
       dlon = 2.*pi/imlon
@@ -323,24 +324,14 @@ c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).  Information needed for
 c printing ASCII tables of the output is stored here as well.
 c
-      cdl_gc = ''
-      cdl_gc(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_gc(3),'(a,i3,a)') '   lat_gc = ',jmlat,' ;'
-      write(cdl_gc(4),'(a,i3,a)') '   lat_gc_plus3 = ',jmlat+3,' ;'
-      write(cdl_gc(5),'(a,i3,a)') '   plm = ',lm,' ;'
-      write(cdl_gc(6),'(a,i3,a)') '   ple = ',lm,' ;'
-      write(cdl_gc(7),'(a,i3,a)') '   shnhgm = 3 ;'
-      cdl_gc(8:14)(:) = (/
-     &     'variables:                           ',
-     &     'float lat_gc(lat_gc) ;               ',
-     &     '   lat_gc:units = "degrees_north" ;  ',
-     &     'float plm(plm) ;                     ',
-     &     '   plm:units = "mb" ;                ',
-     &     'float ple(ple) ;                     ',
-     &     '   ple:units = "mb" ;                '
-     &     /)
-      kk = count(len_trim(cdl_gc).gt.0)
+      call init_cdl_type('cdl_gc',cdl_gc)
+      call add_coord(cdl_gc,'lat',jmlat,units='degrees_north',
+     &     coordvalues=lat_gc)
+      call add_dim(cdl_gc,'shnhgm',3)
+      call add_dim(cdl_gc,'lat_plus3',jmlat+3)
+      cdl_dum = cdl_gc
+      call merge_cdl(cdl_dum,cdl_heights,cdl_gc)
+
       do k=1,kagc
         if(trim(units_gc(k)).eq.'unused') cycle
         if(lgrid_gc(k).eq.ctr_ml .or. lgrid_gc(k).eq.ctr_cp) then
@@ -348,31 +339,24 @@ c
         else
           zstr='ple'
         endif
-        kk = kk + 1
-        cdl_gc(kk) = 'float '//trim(sname_gc(k))//'('//
-     &       trim(zstr)//',lat_gc) ;'
-        kk = kk + 1
-        cdl_gc(kk) = '   '//trim(sname_gc(k))//':long_name = "'//
-     &       trim(lname_gc(k))//'" ;'
-        kk = kk + 1
-        cdl_gc(kk) = '   '//trim(sname_gc(k))//':units = "'//
-     &       trim(units_gc(k))//'" ;'
+        call add_var(cdl_gc,
+     &       'float '//trim(sname_gc(k))//'('//trim(zstr)//',lat) ;',
+     &       long_name=trim(lname_gc(k)),
+     &       units=trim(units_gc(k))
+     &       )
         if(pow_gc(k).ne.0) then
-          kk = kk + 1
-          write(cdl_gc(kk),'(a,i3,a)')
-     &         '   '//trim(sname_gc(k))//':prtpow = ',pow_gc(k),' ;'
+          write(powstr,'(i2)') pow_gc(k)
+          call add_varline(cdl_gc,
+     &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
-        kk = kk + 1
-        cdl_gc(kk) = 'float '//trim(sname_gc(k))//'_hemis('//
-     &       trim(zstr)//',shnhgm) ;'
+        call add_var(cdl_gc,
+     &       'float '//trim(sname_gc(k))//'_hemis('//
+     &       trim(zstr)//',shnhgm) ;')
         if(denom_gc(k).gt.0) then
-          kk = kk + 1
-          cdl_gc(kk) = 'float '//trim(sname_gc(k))//
-     &         '_vmean(lat_gc_plus3) ;'
+          call add_var(cdl_gc,
+     &         'float '//trim(sname_gc(k))//'_vmean(lat_plus3) ;')
         endif
       enddo
-      kk = kk + 1
-      cdl_gc(kk) = '}'
 
       return
       end subroutine gc_defs

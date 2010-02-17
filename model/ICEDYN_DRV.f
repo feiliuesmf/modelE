@@ -18,6 +18,9 @@ C****
 #else
       use domain_decomp_1d, only : band_pack_type
 #endif
+#ifdef NEW_IO
+      use cdl_mod
+#endif
       IMPLICIT NONE
       SAVE
 
@@ -86,8 +89,11 @@ C**** Ice dynamics diagnostics
        INTEGER, DIMENSION(KICIJ) :: IGRID_ICIJ,JGRID_ICIJ
 !@var denom_icij denominators for ICIJ diagnostics
        INTEGER, DIMENSION(KICIJ) :: DENOM_ICIJ
+
+#ifdef NEW_IO
 !@var cdl_icij consolidated metadata for ICIJ output fields in CDL notation
-       character(len=100), dimension(kicij*6) :: cdl_icij
+       type(cdl_type) :: cdl_icij
+#endif
 
       END MODULE ICEDYN_COM
 
@@ -434,14 +440,9 @@ C****
       use icedyn_com, only :
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : defvar,write_attr
-      use icedyn, only : lon_dg,lat_dg
+      use cdl_mod, only : defvar_cdl
       implicit none
       integer :: fid         !@var fid file id
-
-      call defvar(grid,fid,lat_dg(:,1),'latic(jmic)')
-      call defvar(grid,fid,lat_dg(:,2),'latic2(jmic)')
-      call defvar(grid,fid,lon_dg(:,1),'lonic(imic)')
-      call defvar(grid,fid,lon_dg(:,2),'lonic2(imic)')
 
       call write_attr(grid,fid,'icij','reduction','sum')
       call write_attr(grid,fid,'icij','split_dim',3)
@@ -449,7 +450,8 @@ C****
       call defvar(grid,fid,denom_icij,'denom_icij(kicij)')
       call defvar(grid,fid,scale_icij,'scale_icij(kicij)')
       call defvar(grid,fid,sname_icij,'sname_icij(sname_strlen,kicij)')
-      call defvar(grid,fid,cdl_icij,'cdl_icij(cdl_strlen,kcdl_icij)')
+      call defvar_cdl(grid,fid,cdl_icij,
+     &     'cdl_icij(cdl_strlen,kcdl_icij)')
 
       return
       end subroutine def_meta_icdiag
@@ -462,20 +464,15 @@ C****
       use icedyn_com, only :
      &     ia_icij,denom_icij,scale_icij,sname_icij,cdl_icij
       use pario, only : write_dist_data,write_data
-      use icedyn, only : lon_dg,lat_dg
+      use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
-
-      call write_data(grid,fid,'latic',lat_dg(:,1))
-      call write_data(grid,fid,'latic2',lat_dg(:,2))
-      call write_data(grid,fid,'lonic',lon_dg(:,1))
-      call write_data(grid,fid,'lonic2',lon_dg(:,2))
 
       call write_data(grid,fid,'ia_icij',ia_icij)
       call write_data(grid,fid,'denom_icij',denom_icij)
       call write_data(grid,fid,'scale_icij',scale_icij)
       call write_data(grid,fid,'sname_icij',sname_icij)
-      call write_data(grid,fid,'cdl_icij',cdl_icij)
+      call write_cdl(grid,fid,'cdl_icij',cdl_icij)
 
       return
       end subroutine write_meta_icdiag
@@ -1757,7 +1754,7 @@ c      end subroutine INT_IceB2AtmA
      &     ,cdl_icij
 #endif
       USE ICEDYN, only : ifocean=>focean,
-     &     osurf_tilt,bydts,usi,vsi,uice,vice
+     &     osurf_tilt,bydts,usi,vsi,uice,vice,lon_dg,lat_dg
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
      &     GEOMICDYN,ICDYN_MASKS
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
@@ -1777,6 +1774,9 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
 #endif
       USE FLUXES, only : uisurf,visurf
       USE PARAM
+#ifdef NEW_IO
+      use cdl_mod
+#endif
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
@@ -1978,44 +1978,26 @@ c Declare the dimensions and metadata of output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
-
-      cdl_icij = ''
-      cdl_icij(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_icij(3),'(a,i3,a)') '   lonic = ',imic,' ;'
-      write(cdl_icij(4),'(a,i3,a)') '   latic = ',jmic,' ;'
-      write(cdl_icij(5),'(a,i3,a)') '   lonic2 = ',imic,' ;'
-      write(cdl_icij(6),'(a,i3,a)') '   latic2 = ',jmic,' ;'
-      cdl_icij(7:15)(:) = (/
-     &     'variables:                       ',
-     &     'float lonic(lonic) ;               ',
-     &     '   lonic:units = "degrees_east" ; ',
-     &     'float latic(latic) ;               ',
-     &     '   latic:units = "degrees_north" ;',
-     &     'float lonic2(lonic2) ;             ',
-     &     '   lonic2:units = "degrees_east" ;',
-     &     'float latic2(latic2) ;             ',
-     &     '   latic2:units = "degrees_north" ;'
-     &     /)
-      kk = count(len_trim(cdl_icij).gt.0)
+      call init_cdl_type('cdl_icij',cdl_icij)
+      call add_coord(cdl_icij,'lon',imic,units='degrees_east',
+     &     coordvalues=lon_dg(:,1))
+      call add_coord(cdl_icij,'lat',jmic,units='degrees_north',
+     &     coordvalues=lat_dg(:,1))
+      call add_coord(cdl_icij,'lon2',imic,units='degrees_east',
+     &     coordvalues=lon_dg(:,2))
+      call add_coord(cdl_icij,'lat2',jmic,units='degrees_north',
+     &     coordvalues=lat_dg(:,2))
       do k=1,kicij
         if(trim(sname_icij(k)).eq.'unused') cycle
-        xstr='lonic) ;'
-        if(igrid_icij(k).eq.2) xstr='lonic2) ;'
-        ystr='(latic,'
-        if(jgrid_icij(k).eq.2) ystr='(latic2,'
-        kk = kk + 1
-        cdl_icij(kk) = 'float '//trim(sname_icij(k))//
-     &       trim(ystr)//trim(xstr)
-        kk = kk + 1
-        cdl_icij(kk) = '   '//trim(sname_icij(k))//':long_name = "'//
-     &       trim(lname_icij(k))//'" ;'
-        kk = kk + 1
-        cdl_icij(kk) = '   '//trim(sname_icij(k))//':units = "'//
-     &       trim(units_icij(k))//'" ;'
+        xstr='lon) ;'
+        if(igrid_icij(k).eq.2) xstr='lon2) ;'
+        ystr='(lat,'
+        if(jgrid_icij(k).eq.2) ystr='(lat2,'
+        call add_var(cdl_icij,
+     &       'float '//trim(sname_icij(k))//trim(ystr)//trim(xstr),
+     &       units=trim(units_icij(k)),
+     &       long_name=trim(lname_icij(k)))
       enddo
-      kk = kk + 1
-      cdl_icij(kk) = '}'
 #endif
 
       RETURN

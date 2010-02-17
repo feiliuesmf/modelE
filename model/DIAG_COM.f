@@ -5,6 +5,9 @@
 !@ver  1.0
       USE MODEL_COM, only : im,jm,lm,ntype,kep,istrat,lm_req
       use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
+#ifdef NEW_IO
+      use cdl_mod
+#endif
       IMPLICIT NONE
       SAVE
       private
@@ -425,9 +428,6 @@ C****      names, indices, units, idacc-numbers, etc.
       character(len=30), dimension(kaj), public :: fmt_j,fmt_reg
 !@var iden_j denominators for zonal J diagnostics
       integer, dimension(kaj), public :: iden_j,iden_reg
-!@var CDL_J consolidated metadata for AJ output fields in CDL notation
-!@+   CDL_REG                         AREG
-      character(len=100), dimension(kaj*8), public :: cdl_j,cdl_reg
 !@var HEMIS_J hemispheric/global averages of AJ
       real*8, dimension(:,:,:), allocatable, public :: hemis_j
 
@@ -587,8 +587,6 @@ c derived/composite diagnostics
       character(len=units_strlen), dimension(kaij), public :: units_ij
 !@var LNAME_IJ Long names of lat/lon IJ diagnostics
       character(len=lname_strlen), dimension(kaij), public :: lname_ij
-!@var CDL_IJ consolidated metadata for AIJ output fields in CDL notation
-      character(len=100), dimension(kaij*6), public :: cdl_ij
 !@var HEMIS_IJ hemispheric/global averages of AIJ
       real*8, dimension(:,:,:), allocatable, public :: hemis_ij
 !@var nwts_ij = number of weight-ij-arrays used in IJ-diagnostics
@@ -654,8 +652,6 @@ c derived/composite diagnostics
       integer, dimension(kajl), public :: pow_jl
 !@var DENOM_JL index of AJL element to use as weight
       integer, dimension(kajl), public :: denom_jl
-!@var CDL_JL consolidated metadata for AJL output fields in CDL notation
-      character(len=100), dimension(kajl*7), public :: cdl_jl
 !@var HEMIS_JL hemispheric/global averages of AJL
 !@var VMEAN_JL vertical sums of AJL
       real*8, dimension(:,:,:), allocatable, public :: hemis_jl,vmean_jl
@@ -686,8 +682,6 @@ c derived/composite diagnostics
       integer, dimension(kagcx), public :: denom_gc
 !@var POW_GC printed output scaled by 10**(-pow_gc)
       integer, dimension(kagcx), public :: pow_gc
-!@var CDL_GC consolidated metadata for AGC output fields in CDL notation
-      character(len=100), dimension(kagc*6), public :: cdl_gc
 !@var HEMIS_GC hemispheric/global averages of AGC
 !@var VMEAN_GC vertical sums of AGC
       real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
@@ -725,8 +719,6 @@ c derived/composite diagnostics
      &     lname_ijl
       character(len=units_strlen), dimension(kaijl), public ::
      &     units_ijl
-!@var CDL_IJL consolidated metadata for AIJL output fields in CDL notation
-      character(len=100), dimension(kaijl*6), public :: cdl_ijl
 
       character(len=sname_strlen), dimension(kwp), public :: name_wave
       character(len=units_strlen), dimension(kwp), public :: units_wave
@@ -738,9 +730,6 @@ c derived/composite diagnostics
      &     units_consrv
       character(len=lname_strlen), dimension(kcon), public ::
      &     lname_consrv
-!@var CDL_CONSRV consolidated metadata for CONSRV output fields in
-!@+   CDL notation
-      character(len=100), dimension(kcon*4), public :: cdl_consrv
 !@var HEMIS_CONSRV hemispheric/global averages of CONSRV
       real*8, dimension(:,:), allocatable, public :: hemis_consrv
 
@@ -759,8 +748,6 @@ c derived/composite diagnostics
      &     lname_dd
       real*8, dimension(ndiuvar), public :: scale_dd
       integer, dimension(ndiuvar), public :: denom_dd
-!@var CDL_DD consolidated metadata for ADIURN output fields in CDL notation
-      character(len=100), dimension(ndiuvar*6), public :: cdl_dd,cdl_hd
 
 !@var IDD_xxx names for diurnal diagnostics
       INTEGER, public ::
@@ -835,7 +822,32 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 !@param L_ROSSBY_NUMBER length scale for budget-page Rossby number
       real*8, parameter, public :: l_rossby_number=1d6 ! 1000 km
 
+
 #ifdef NEW_IO
+      type(cdl_type), public :: cdl_latbudg,cdl_heights
+
+!@var CDL_J consolidated metadata for AJ output fields in CDL notation
+!@+   CDL_REG                         AREG
+      type(cdl_type), public :: cdl_j,cdl_reg
+!@var CDL_IJ consolidated metadata for AIJ output fields in CDL notation
+      type(cdl_type), public ::
+     &     cdl_ij_template,cdl_ij_latlon_template,
+     &     cdl_ij,cdl_ij_latlon
+!@var CDL_JL consolidated metadata for AJL output fields in CDL notation
+      type(cdl_type), public :: cdl_jl,cdl_jl_template
+!@var CDL_GC consolidated metadata for AGC output fields in CDL notation
+      type(cdl_type), public :: cdl_gc
+!@var CDL_IJL consolidated metadata for AIJL output fields in CDL notation
+      type(cdl_type), public ::
+     &     cdl_ijl_template,cdl_ijl_latlon_template,
+     &     cdl_ijl,cdl_ijl_latlon
+!@var CDL_CONSRV consolidated metadata for CONSRV output fields in
+!@+   CDL notation
+      type(cdl_type), public :: cdl_consrv
+!@var CDL_DD consolidated metadata for ADIURN output fields in CDL notation
+      type(cdl_type), public :: cdl_dd,cdl_hd
+
+
 c declarations that facilitate switching between restart and acc
 c instances of arrays
       target :: aj,aj_out,areg,areg_out
@@ -1953,46 +1965,31 @@ c for which scalars is bcast_all=.true. necessary?
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
      &     name_consrv,sname_gc,
-     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_hd,
-     &     cdl_consrv,cdl_gc,
+     &     cdl_j,cdl_reg,cdl_jl,
+     &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
+     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
      &     denom_gc,
-     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,lat_gc2,
+     &     lm,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
-#ifndef CUBE_GRID
-      use geom, only : lon_dg,lat_dg
-#endif
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
+      use cdl_mod, only : defvar_cdl
       implicit none
       integer :: fid         !@var fid file id
       integer :: int_dummy
-#ifdef CUBE_GRID
-      real*8 :: x_dummy(im)
-#endif
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      call defvar(grid,fid,x_dummy,'x(im)')
-      call defvar(grid,fid,x_dummy,'y(jm)')
       call defvar(grid,fid,lon2d_dg,'lon(dist_im,dist_jm)')
       call defvar(grid,fid,lat2d_dg,'lat(dist_im,dist_jm)')
-#else
-      call defvar(grid,fid,lon_dg(:,1),'lon(lon)')
-      call defvar(grid,fid,lat_dg(:,1),'lat(lat)')
 #endif
 
       call defvar(grid,fid,axyp,'axyp(dist_im,dist_jm)')
-      call defvar(grid,fid,lat_budg,'lat_budg(jm_budg)')
-      call defvar(grid,fid,dxyp_budg,'area_budg(jm_budg)')
-      call defvar(grid,fid,plm(1:lm),'plm(lm)')
-      call defvar(grid,fid,ple,'ple(lm)')
-      call defvar(grid,fid,lat_gc,'lat_gc(jmlat)')
-      call defvar(grid,fid,lat_gc2,'lat_gc2(jmlat)')
 
       call write_attr(grid,fid,'aj','reduction','sum')
       call write_attr(grid,fid,'aj','split_dim',2)
@@ -2003,7 +2000,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,scale_j,'scale_aj(kaj)')
       call defvar(grid,fid,iden_j,'denom_aj(kaj)')
       call defvar(grid,fid,name_j,'sname_aj(sname_strlen,kaj)')
-      call defvar(grid,fid,cdl_j,'cdl_aj(cdl_strlen,kcdl_aj)')
+      call defvar_cdl(grid,fid,cdl_j,'cdl_aj(cdl_strlen,kcdl_aj)')
 
       call write_attr(grid,fid,'areg','reduction','sum')
       call write_attr(grid,fid,'areg','split_dim',2)
@@ -2011,7 +2008,8 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,scale_j,'scale_areg(kaj)')
       call defvar(grid,fid,iden_reg,'denom_areg(kaj)')
       call defvar(grid,fid,name_reg,'sname_areg(sname_strlen,kaj)')
-      call defvar(grid,fid,cdl_reg,'cdl_areg(cdl_strlen,kcdl_areg)')
+      call defvar_cdl(grid,fid,cdl_reg,
+     &     'cdl_areg(cdl_strlen,kcdl_areg)')
 
       call write_attr(grid,fid,'consrv','reduction','sum')
       call write_attr(grid,fid,'consrv','split_dim',2)
@@ -2022,7 +2020,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,scale_con,'scale_consrv(kcon)')
       call defvar(grid,fid,name_consrv,
      &     'sname_consrv(sname_strlen,kcon)')
-      call defvar(grid,fid,cdl_consrv,
+      call defvar_cdl(grid,fid,cdl_consrv,
      &     'cdl_consrv(cdl_strlen,kcdl_consrv)')
 
       call write_attr(grid,fid,'ajl','reduction','sum')
@@ -2037,7 +2035,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,scale_jl,'scale_ajl(kajl)')
       call defvar(grid,fid,denom_jl,'denom_ajl(kajl)')
       call defvar(grid,fid,sname_jl,'sname_ajl(sname_strlen,kajl)')
-      call defvar(grid,fid,cdl_jl,'cdl_ajl(cdl_strlen,kcdl_ajl)')
+      call defvar_cdl(grid,fid,cdl_jl,'cdl_ajl(cdl_strlen,kcdl_ajl)')
 
       call write_attr(grid,fid,'agc','reduction','sum')
       call write_attr(grid,fid,'agc','split_dim',3)
@@ -2052,7 +2050,7 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,denom_gc(1:kagc),'denom_agc(kagc)')
       call defvar(grid,fid,sname_gc(1:kagc),
      &     'sname_agc(sname_strlen,kagc)')
-      call defvar(grid,fid,cdl_gc,
+      call defvar_cdl(grid,fid,cdl_gc,
      &     'cdl_agc(cdl_strlen,kcdl_agc)')
 
       call write_attr(grid,fid,'aij','reduction','sum')
@@ -2061,10 +2059,14 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,scale_ij,'scale_aij(kaij)')
       call defvar(grid,fid,denom_ij,'denom_aij(kaij)')
       call defvar(grid,fid,name_ij,'sname_aij(sname_strlen,kaij)')
-      call defvar(grid,fid,cdl_ij,'cdl_aij(cdl_strlen,kcdl_aij)')
+      call defvar_cdl(grid,fid,cdl_ij,'cdl_aij(cdl_strlen,kcdl_aij)')
       call defvar(grid,fid,hemis_ij,'hemis_aij(one,shnhgm,kaij)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_aij','reduction','sum')
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call defvar_cdl(grid,fid,cdl_ij_latlon,
+     &     'cdl_aij_latlon(cdl_strlen,kcdl_aij_latlon)')
+#endif
 
       call write_attr(grid,fid,'aijl','reduction','sum')
       call write_attr(grid,fid,'aijl','split_dim',4)
@@ -2072,7 +2074,12 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,scale_ijl,'scale_aijl(kaijl)')
       call defvar(grid,fid,denom_ijl,'denom_aijl(kaijl)')
       call defvar(grid,fid,name_ijl,'sname_aijl(sname_strlen,kaijl)')
-      call defvar(grid,fid,cdl_ijl,'cdl_aijl(cdl_strlen,kcdl_aijl)')
+      call defvar_cdl(grid,fid,cdl_ijl,
+     &     'cdl_aijl(cdl_strlen,kcdl_aijl)')
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call defvar_cdl(grid,fid,cdl_ijl_latlon,
+     &     'cdl_aijl_latlon(cdl_strlen,kcdl_aijl_latlon)')
+#endif
 
       call write_attr(grid,fid,'adiurn','reduction','sum')
       call write_attr(grid,fid,'adiurn','split_dim',1)
@@ -2081,14 +2088,16 @@ c for which scalars is bcast_all=.true. necessary?
       call defvar(grid,fid,denom_dd,'denom_adiurn(ndiuvar)')
       call defvar(grid,fid,scale_dd,'scale_adiurn(ndiuvar)')
       call defvar(grid,fid,name_dd,'sname_adiurn(sname_strlen,ndiuvar)')
-      call defvar(grid,fid,cdl_dd,'cdl_adiurn(cdl_strlen,kcdl_adiurn)')
+      call defvar_cdl(grid,fid,cdl_dd,
+     &     'cdl_adiurn(cdl_strlen,kcdl_adiurn)')
 #ifndef NO_HDIURN
       call write_attr(grid,fid,'hdiurn','split_dim',1)
       call defvar(grid,fid,int_dummy,'ntime_hdiurn')
       call defvar(grid,fid,denom_dd,'denom_hdiurn(ndiuvar)')
       call defvar(grid,fid,scale_dd,'scale_hdiurn(ndiuvar)')
       call defvar(grid,fid,name_dd,'sname_hdiurn(sname_strlen,ndiuvar)')
-      call defvar(grid,fid,cdl_hd,'cdl_hdiurn(cdl_strlen,kcdl_hdiurn)')
+      call defvar_cdl(grid,fid,cdl_hd,
+     &     'cdl_hdiurn(cdl_strlen,kcdl_hdiurn)')
 #endif
 
       call write_attr(grid,fid,'aisccp','reduction','sum')
@@ -2109,68 +2118,50 @@ c for which scalars is bcast_all=.true. necessary?
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
      &     name_consrv,sname_gc,
-     &     cdl_j,cdl_reg,cdl_jl,cdl_ij,cdl_ijl,cdl_dd,cdl_hd,
-     &     cdl_consrv,cdl_gc,
+     &     cdl_j,cdl_reg,cdl_jl,
+     &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
+     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
      &     scale_gc,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
      &     denom_gc,
-     &     lat_budg,dxyp_budg,lm,ple,plm,lat_gc,lat_gc2,ia_12hr,
+     &     lm,ia_12hr,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
-#ifndef CUBE_GRID
-      use geom, only : lon_dg,lat_dg
-#endif
       use domain_decomp_atm, only : grid
       use pario, only : write_data,write_dist_data
+      use cdl_mod, only : write_cdl
       implicit none
       integer fid   !@var fid unit number of read/write
       integer :: i,n,ntime_dd,ntime_hd
-#ifdef CUBE_GRID
-      real*8 :: x_dummy(im)
-#endif
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call write_dist_data(grid,fid,'lon',lon2d_dg)
       call write_dist_data(grid,fid,'lat',lat2d_dg)
-      do i=1,im
-        x_dummy(i) = -1d0 + 2d0*(dble(i)-.5d0)/im
-      enddo
-      call write_data(grid,fid,'x',x_dummy)
-      call write_data(grid,fid,'y',x_dummy)
-#else
-      call write_data(grid,fid,'lon',lon_dg(:,1))
-      call write_data(grid,fid,'lat',lat_dg(:,1))
 #endif
 
       call write_dist_data(grid,fid,'axyp',axyp)
-      call write_data(grid,fid,'lat_budg',lat_budg)
-      call write_data(grid,fid,'area_budg',dxyp_budg)
-      call write_data(grid,fid,'plm',plm(1:lm))
-      call write_data(grid,fid,'ple',ple)
-      call write_data(grid,fid,'lat_gc',lat_gc)
-      call write_data(grid,fid,'lat_gc2',lat_gc2)
 
       call write_data(grid,fid,'hemis_aj',hemis_j)
       call write_data(grid,fid,'ia_aj',ia_j)
       call write_data(grid,fid,'scale_aj',scale_j)
       call write_data(grid,fid,'denom_aj',iden_j)
       call write_data(grid,fid,'sname_aj',name_j)
-      call write_data(grid,fid,'cdl_aj',cdl_j)
+      call write_cdl(grid,fid,'cdl_aj',cdl_j)
 
       call write_data(grid,fid,'ia_areg',ia_j)
       call write_data(grid,fid,'scale_areg',scale_j)
       call write_data(grid,fid,'denom_areg',iden_reg)
       call write_data(grid,fid,'sname_areg',name_reg)
-      call write_data(grid,fid,'cdl_areg',cdl_reg)
+      call write_cdl(grid,fid,'cdl_areg',cdl_reg)
 
       call write_data(grid,fid,'hemis_consrv',hemis_consrv)
       call write_data(grid,fid,'ia_consrv',ia_con)
       call write_data(grid,fid,'scale_consrv',scale_con)
       call write_data(grid,fid,'sname_consrv',name_consrv)
-      call write_data(grid,fid,'cdl_consrv',cdl_consrv)
+      call write_cdl(grid,fid,'cdl_consrv',cdl_consrv)
 
       call write_data(grid,fid,'hemis_ajl',hemis_jl)
       call write_data(grid,fid,'vmean_ajl',vmean_jl)
@@ -2178,7 +2169,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'scale_ajl',scale_jl)
       call write_data(grid,fid,'denom_ajl',denom_jl)
       call write_data(grid,fid,'sname_ajl',sname_jl)
-      call write_data(grid,fid,'cdl_ajl',cdl_jl)
+      call write_cdl(grid,fid,'cdl_ajl',cdl_jl)
 
       call write_data(grid,fid,'hemis_agc',hemis_gc)
       call write_data(grid,fid,'vmean_agc',vmean_gc)
@@ -2186,27 +2177,33 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'scale_agc',scale_gc(1:kagc))
       call write_data(grid,fid,'denom_agc',denom_gc(1:kagc))
       call write_data(grid,fid,'sname_agc',sname_gc(1:kagc))
-      call write_data(grid,fid,'cdl_agc',cdl_gc)
+      call write_cdl(grid,fid,'cdl_agc',cdl_gc)
 
       call write_data(grid,fid,'hemis_aij',hemis_ij)
       call write_data(grid,fid,'ia_aij',ia_ij)
       call write_data(grid,fid,'scale_aij',scale_ij)
       call write_data(grid,fid,'denom_aij',denom_ij)
       call write_data(grid,fid,'sname_aij',name_ij)
-      call write_data(grid,fid,'cdl_aij',cdl_ij)
+      call write_cdl(grid,fid,'cdl_aij',cdl_ij)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call write_cdl(grid,fid,'cdl_aij_latlon',cdl_ij_latlon)
+#endif
 
       call write_data(grid,fid,'ia_aijl',ia_ijl)
       call write_data(grid,fid,'scale_aijl',scale_ijl)
       call write_data(grid,fid,'denom_aijl',denom_ijl)
       call write_data(grid,fid,'sname_aijl',name_ijl)
-      call write_data(grid,fid,'cdl_aijl',cdl_ijl)
+      call write_cdl(grid,fid,'cdl_aijl',cdl_ijl)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call write_cdl(grid,fid,'cdl_aijl_latlon',cdl_ijl_latlon)
+#endif
 
       ntime_dd = (idacc(ia_12hr)/2)*(nday/24)
       call write_data(grid,fid,'ntime_adiurn',ntime_dd)
       call write_data(grid,fid,'scale_adiurn',scale_dd)
       call write_data(grid,fid,'denom_adiurn',denom_dd)
       call write_data(grid,fid,'sname_adiurn',name_dd)
-      call write_data(grid,fid,'cdl_adiurn',cdl_dd)
+      call write_cdl(grid,fid,'cdl_adiurn',cdl_dd)
 
 #ifndef NO_HDIURN
       ntime_hd = nday/24
@@ -2214,7 +2211,7 @@ c for which scalars is bcast_all=.true. necessary?
       call write_data(grid,fid,'scale_hdiurn',scale_dd)
       call write_data(grid,fid,'denom_hdiurn',denom_dd)
       call write_data(grid,fid,'sname_hdiurn',name_dd)
-      call write_data(grid,fid,'cdl_hdiurn',cdl_hd)
+      call write_cdl(grid,fid,'cdl_hdiurn',cdl_hd)
 #endif
 
       call write_data(grid,fid,'isccp_press',isccp_press)

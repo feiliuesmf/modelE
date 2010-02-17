@@ -21,7 +21,7 @@
 #endif
       USE GEOM, only : areag
       USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,
-     &     ia_dga,ia_src,ajl
+     &     ia_dga,ia_src,ajl,cdl_jl_template
      &     ,jl_dpa,jl_dpasrc,jl_dwasrc
       USE TRDIAG_COM, only : tajln, tajls, lname_jln, sname_jln,
      *     units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
@@ -43,6 +43,7 @@
       USE BDJLT
 #endif
       use domain_decomp_atm, only : am_i_root
+      use cdl_mod
       IMPLICIT NONE
       real*8 :: bydxyp(jm),byapo(jm),onespo(jm),fj(jm)
       INTEGER :: J,L,N,K,KK,KKK,jtpow,n1,n2,k_dpa,k_dwa,k_vap,k_cnd,
@@ -50,6 +51,7 @@
       REAL*8 :: dD, d18O, d17O, byiacc, hemfac
       real*8, dimension(:,:,:), allocatable :: tajl_tmp
       character(len=10) :: zstr
+      character(len=3) :: ltopstr,powstr
       logical, dimension(ktajl_) :: per_area,output_vsum
 
       if(.not. am_i_root()) return
@@ -568,26 +570,7 @@ c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).  Information needed for
 c printing ASCII tables of the output is stored here as well.
 c
-      if(.not.allocated(cdl_tajl)) then
-      allocate(cdl_tajl(6*ktajl_out))
-      cdl_tajl = ''
-      cdl_tajl(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_tajl(3),'(a,i3,a)') '   lat_budg = ',jm,' ;'
-      write(cdl_tajl(4),'(a,i3,a)') '   lat_budg_plus3 = ',jm+3,' ;'
-      write(cdl_tajl(5),'(a,i3,a)') '   plm = ',lm,' ;'
-      write(cdl_tajl(6),'(a,i3,a)') '   ple = ',lm,' ;'
-      write(cdl_tajl(7),'(a,i3,a)') '   shnhgm = 3 ;'
-      cdl_tajl(8:14)(:) = (/
-     &     'variables:                           ',
-     &     'float lat_budg(lat_budg) ;           ',
-     &     '   lat_budg:units = "degrees_north" ;',
-     &     'float plm(plm) ;                     ',
-     &     '   plm:units = "mb" ;                ',
-     &     'float ple(ple) ;                     ',
-     &     '   ple:units = "mb" ;                '
-     &     /)
-      kk = count(len_trim(cdl_tajl).gt.0)
+      cdl_tajl = cdl_jl_template ! invoke a copy method later
       do k=1,ktajl_out
         if(trim(units_tajl(k)).eq.'unused') cycle
         if(lgrid_tajl(k).eq.1) then
@@ -595,37 +578,28 @@ c
         else
           zstr='ple'
         endif
-        kk = kk + 1
-        cdl_tajl(kk) = 'float '//trim(sname_tajl(k))//'('//
-     &       trim(zstr)//',lat_budg) ;'
-        kk = kk + 1
-        cdl_tajl(kk) = '   '//trim(sname_tajl(k))//':long_name = "'//
-     &       trim(lname_tajl(k))//'" ;'
-        kk = kk + 1
-        cdl_tajl(kk) = '   '//trim(sname_tajl(k))//':units = "'//
-     &       trim(units_tajl(k))//'" ;'
+        call add_var(cdl_tajl,'float '//trim(sname_tajl(k))//'('//
+     &       trim(zstr)//',lat_budg) ;',
+     &       long_name=trim(lname_tajl(k)),
+     &       units=trim(units_tajl(k)) )
         if(pow_tajl(k).ne.0) then
-          kk = kk + 1
-          write(cdl_tajl(kk),'(a,i3,a)')
-     &         '   '//trim(sname_tajl(k))//':prtpow = ',pow_tajl(k),' ;'
-        endif
-        kk = kk + 1
-        cdl_tajl(kk) = 'float '//trim(sname_tajl(k))//'_hemis('//
-     &       trim(zstr)//',shnhgm) ;'
-        if(denom_tajl(k).gt.0 .or. output_vsum(k)) then
-          kk = kk + 1
-          cdl_tajl(kk) = 'float '//trim(sname_tajl(k))//
-     &         '_vmean(lat_budg_plus3) ;'
+          write(powstr,'(i2)') pow_tajl(k)
+          call add_varline(cdl_tajl,
+     &         trim(sname_tajl(k))//':prtpow = '//trim(powstr)//' ;')
         endif
         if(ltop_tajl(k).ne.lm) then
-          kk = kk + 1
-          write(cdl_tajl(kk),'(a,i3,a)')
-     &         trim(sname_tajl(k))//':ltop = ',ltop_tajl(k),' ;'
+          write(ltopstr,'(i3)') ltop_tajl(k)
+          call add_varline(cdl_tajl,
+     &         trim(sname_tajl(k))//':ltop = '//trim(ltopstr)//' ;')
+        endif
+        call add_var(cdl_tajl,
+     &       'float '//trim(sname_tajl(k))//'_hemis('//
+     &       trim(zstr)//',shnhgm) ;')
+        if(denom_tajl(k).gt.0 .or. output_vsum(k)) then
+          call add_var(cdl_tajl, 'float '//trim(sname_tajl(k))//
+     &         '_vmean(lat_budg_plus3) ;')
         endif
       enddo
-      kk = kk + 1
-      cdl_tajl(kk) = '}'
-      endif
 
       RETURN
       END SUBROUTINE DIAGJLT_prep
@@ -637,7 +611,7 @@ c
       use diag_com
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
      &     ktaij_,ktaij_out,taij=>taij_out,
-     &     scale_taij,cdl_taij,hemis_taij,
+     &     scale_taij,cdl_taij,cdl_taij_latlon,hemis_taij,
      &     ir_taij,ia_taij,denom_taij,lname_taij,sname_taij,units_taij,
      &     sname_tij, lname_tij,
      &     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
@@ -651,6 +625,7 @@ c
       use constant, only : teeny
       use domain_decomp_atm, only : grid,am_i_root,sumxpe
       use geom, only : byaxyp,axyp,lat2d,areag
+      use cdl_mod
       implicit none
       integer ::  i,j,k,kk,kx,n,n1,n2,khem
       integer :: k_water(ktaij),k_Be7,k_Pb210,k_clr,
@@ -1039,78 +1014,31 @@ c Declare the dimensions and metadata of TAIJ output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
-      if(.not.allocated(cdl_taij)) then
-      allocate(cdl_taij(6*ktaij_out))
-      cdl_taij = ''
-      cdl_taij(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      cdl_taij(3) = '   shnhgm = 3 ;'
+      cdl_taij = cdl_ij_template ! invoke a copy method later
+
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      cdl_taij_latlon = cdl_ij_latlon_template ! invoke a copy method later
       ijstr='(tile,y,x) ;'
-      write(cdl_taij(4),'(a,i3,a)') '   x = ',im,' ;'
-      write(cdl_taij(5),'(a,i3,a)') '   y = ',im,' ;'
-      write(cdl_taij(6),'(a,i3,a)') '   tile = 6 ;'
-      do k=4,6
-        cdl_taij(k)=trim(cdl_taij(k))//' // remove_from_latlon'
-      enddo
-      cdl_taij(7) = '// add_to_latlon    lon = xxx ;'
-      cdl_taij(8) = '// add_to_latlon    lat = xxx ;'
-      cdl_taij(9) = 'variables:'
-      cdl_taij(10:17)(:) = (/
-     &     'float x(x) ;                                        ',
-     &     '   x:long_name = "nondimensional cube coordinate" ; ',
-     &     'float y(y) ;                                        ',
-     &     '   y:long_name = "nondimensional cube coordinate" ; ',
-     &     'float lon(tile,y,x) ;                               ',
-     &     '   lon:units = "degrees_east" ;                     ',
-     &     'float lat(tile,y,x) ;                               ',
-     &     '   lat:units = "degrees_north" ;                    '
-     &     /)
-      do k=10,17
-        cdl_taij(k)=trim(cdl_taij(k))//' // remove_from_latlon'
-      enddo
-      cdl_taij(18:21)(:) = (/
-     &     '// add_to_latlon float lon(lon) ;               ',
-     &     '// add_to_latlon   lon:units = "degrees_east" ; ',
-     &     '// add_to_latlon float lat(lat) ;               ',
-     &     '// add_to_latlon   lat:units = "degrees_north" ;'
-     &     /)
 #else
       ijstr='(lat,lon) ;'
-      write(cdl_taij(4),'(a,i3,a)') '   lon = ',im,' ;'
-      write(cdl_taij(5),'(a,i3,a)') '   lat = ',jm,' ;'
-      cdl_taij(6:10)(:) = (/
-     &     'variables:                      ',
-     &     'float lon(lon) ;                ',
-     &     '   lon:units = "degrees_east" ; ',
-     &     'float lat(lat) ;                ',
-     &     '   lat:units = "degrees_north" ;'
-     &     /)
 #endif
-      kk = count(len_trim(cdl_taij).gt.0)
       do k=1,ktaij_out
         if(trim(sname_taij(k)).eq.'unused') cycle
-        kk = kk + 1
-        cdl_taij(kk) = 'float '//trim(sname_taij(k))//trim(ijstr)
+        call add_var(cdl_taij,
+     &       'float '//trim(sname_taij(k))//trim(ijstr),
+     &       long_name=trim(lname_taij(k)),
+     &       units=trim(units_taij(k)) )
+        call add_var(cdl_taij,
+     &       'float '//trim(sname_taij(k))//'_hemis(shnhgm) ;')
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-        cdl_taij(kk)=trim(cdl_taij(kk))//' // remove_from_latlon'
-        kk = kk + 1
-        cdl_taij(kk) = '// add_to_latlon float '//
-     &       trim(sname_taij(k))//'(lat,lon);'
+        call add_var(cdl_taij_latlon,
+     &       'float '//trim(sname_taij(k))//'(lat,lon);',
+     &       long_name=trim(lname_taij(k)),
+     &       units=trim(units_taij(k)) )
+        call add_var(cdl_taij_latlon,
+     &       'float '//trim(sname_taij(k))//'_hemis(shnhgm) ;')
 #endif
-        kk = kk + 1
-        cdl_taij(kk) = '   '//trim(sname_taij(k))//':long_name = "'//
-     &       trim(lname_taij(k))//'" ;'
-        kk = kk + 1
-        cdl_taij(kk) = '   '//trim(sname_taij(k))//':units = "'//
-     &       trim(units_taij(k))//'" ;'
-        kk = kk + 1
-        cdl_taij(kk) = 'float '//trim(sname_taij(k))//
-     &       '_hemis(shnhgm) ;'
       enddo
-      kk = kk + 1
-      cdl_taij(kk) = '}'
-      endif
 
       return
       end subroutine diagijt_prep
@@ -1123,7 +1051,7 @@ c
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,
      &     ktaijl_,ktaijl_out,taijl=>taijl_out,scale_taijl,ir_taijl,
      &     ia_taijl,denom_taijl,lname_taijl,sname_taijl,units_taijl,
-     &     cdl_taijl, sname_ijlt, lname_ijlt,
+     &     cdl_taijl, cdl_taijl_latlon, sname_ijlt, lname_ijlt,
      &     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
      &     ir_ijlt, ia_ijlt, scale_ijlt, ktaijl
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
@@ -1132,6 +1060,7 @@ c
       use constant, only : teeny
       use domain_decomp_atm, only : grid,am_i_root
       use geom, only : byaxyp
+      use cdl_mod
       implicit none
       integer i,j,l,k,kx,kk,n,n1,n2
       real*8 :: r1,r2
@@ -1320,86 +1249,32 @@ c Declare the dimensions and metadata of TAIJL output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
-      if(.not.allocated(cdl_taijl)) then
-      allocate(cdl_taijl(50+6*ktaijl_out))
-      cdl_taijl = ''
-      cdl_taijl(1:2)(:) = (/
-     &     'netcdf xxx { ', 'dimensions:  ' /)
-      write(cdl_taijl(3),'(a,i3,a)') '   plm = ',lm,' ;'
+      cdl_taijl = cdl_ijl_template ! invoke a copy method later
+
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      cdl_taijl_latlon = cdl_ijl_latlon_template ! invoke a copy method later
       tstr='(tile,'
       hstr=',y,x) ;'
-      write(cdl_taijl(4),'(a,i3,a)') '   x = ',im,' ;'
-      write(cdl_taijl(5),'(a,i3,a)') '   y = ',im,' ;'
-      write(cdl_taijl(6),'(a,i3,a)') '   tile = 6 ;'
-      do k=4,6
-        cdl_taijl(k)=trim(cdl_taijl(k))//' // remove_from_latlon'
-      enddo
-      cdl_taijl(7)  = '// add_to_latlon    lon = xxx ;'
-      cdl_taijl(8)  = '// add_to_latlon    lat = xxx ;'
-      cdl_taijl(9) = 'variables:'
-      cdl_taijl(10:17)(:) = (/
-     &     'float x(x) ;                                        ',
-     &     '   x:long_name = "nondimensional cube coordinate" ; ',
-     &     'float y(y) ;                                        ',
-     &     '   y:long_name = "nondimensional cube coordinate" ; ',
-     &     'float lon(tile,y,x) ;                               ',
-     &     '   lon:units = "degrees_east" ;                     ',
-     &     'float lat(tile,y,x) ;                               ',
-     &     '   lat:units = "degrees_north" ;                    '
-     &     /)
-      do k=10,17
-        cdl_taijl(k)=trim(cdl_taijl(k))//' // remove_from_latlon'
-      enddo
-      cdl_taijl(18:21)(:) = (/
-     &     '// add_to_latlon float lon(lon) ;               ',
-     &     '// add_to_latlon   lon:units = "degrees_east" ; ',
-     &     '// add_to_latlon float lat(lat) ;               ',
-     &     '// add_to_latlon   lat:units = "degrees_north" ;'
-     &     /)
 #else
       tstr='('
       hstr=',lat,lon) ;'
-      write(cdl_taijl(4),'(a,i3,a)') '   lon = ',im,' ;'
-      write(cdl_taijl(5),'(a,i3,a)') '   lat = ',jm,' ;'
-      cdl_taijl(6:10)(:) = (/
-     &     'variables:                      ',
-     &     'float lon(lon) ;                ',
-     &     '   lon:units = "degrees_east" ; ',
-     &     'float lat(lat) ;                ',
-     &     '   lat:units = "degrees_north" ;'
-     &     /)
 #endif
-      kk = 1+count(len_trim(cdl_taijl).gt.0)
-      cdl_taijl(kk) = '// vertical_coords: plm'
-      kk = kk + 1
-      cdl_taijl(kk:kk+1)(:) = (/
-     &     'float plm(plm) ;                ',
-     &     '   plm:units = "mb" ;           '
-     &     /)
-      kk = count(len_trim(cdl_taijl).gt.0)
       do k=1,ktaijl_out
         if(trim(sname_taijl(k)).eq.'unused') cycle
         zstr='plm'
-        kk = kk + 1
-        cdl_taijl(kk) = 'float '//trim(sname_taijl(k))//
-     &       trim(tstr)//trim(zstr)//trim(hstr)
+        call add_var(cdl_taijl,
+     &       'float '//trim(sname_taijl(k))//
+     &       trim(tstr)//trim(zstr)//trim(hstr),
+     &       long_name=trim(lname_taijl(k)),
+     &       units=trim(units_taijl(k)) )
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-        cdl_taijl(kk)=trim(cdl_taijl(kk))//' // remove_from_latlon'
-        kk = kk + 1
-        cdl_taijl(kk) = '// add_to_latlon float '//
-     &       trim(sname_taijl(k))//'('//trim(zstr)//',lat,lon);'
+        call add_var(cdl_taijl_latlon,
+     &       'float '//trim(sname_taijl(k))//
+     &       '('//trim(zstr)//',lat,lon);',
+     &       long_name=trim(lname_taijl(k)),
+     &       units=trim(units_taijl(k)) )
 #endif
-        kk = kk + 1
-        cdl_taijl(kk) = '   '//trim(sname_taijl(k))//':long_name = "'//
-     &       trim(lname_taijl(k))//'" ;'
-        kk = kk + 1
-        cdl_taijl(kk) = '   '//trim(sname_taijl(k))//':units = "'//
-     &       trim(units_taijl(k))//'" ;'
       enddo
-      kk = kk + 1
-      cdl_taijl(kk) = '}'
-      endif
 
       return
       end subroutine diagijlt_prep
@@ -1409,13 +1284,14 @@ c
       USE CONSTANT, only: teeny
       USE MODEL_COM, only : idacc
       USE GEOM, only: areag
-      USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,lat_dg=>lat_budg
+      USE DIAG_COM, only: jm=>jm_budg,dxyp=>dxyp_budg,cdl_latbudg
       USE TRACER_COM, only: ntm
       USE TRDIAG_COM, only : tconsrv,
      &     ktcon,ktcon_out,ntmxcon,nsum_tcon,scale_tcon,
      &     ia_tcon,title_tcon,hemis_tconsrv,name_tconsrv,tconsrv_out,
      &     ia_tcon_out,scale_tcon_out,sname_tconsrv_out,cdl_tconsrv
       use domain_decomp_atm, only : am_i_root
+      use cdl_mod
       IMPLICIT NONE
       INTEGER :: j,n,k,kk,KTCON_max,j1,j2
       real*8 :: hemfac
@@ -1444,7 +1320,6 @@ c
         allocate(ia_tcon_out(ktcon_out))
         allocate(scale_tcon_out(ktcon_out))
         allocate(sname_tconsrv_out(ktcon_out))
-        allocate(cdl_tconsrv(5*ktcon_out))
 c
 c copy metadata
 c
@@ -1467,31 +1342,15 @@ c Declare the dimensions and metadata of TCONSRV output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
-        cdl_tconsrv = ''
-        cdl_tconsrv(1:2)(:) = (/
-     &       'netcdf xxx { ', 'dimensions:  ' /)
-        write(cdl_tconsrv(3),'(a,i3,a)') '   lat_budg = ',jm,' ;'
-        write(cdl_tconsrv(4),'(a,i3,a)') '   shnhgm = 3 ;'
-        cdl_tconsrv(5:9)(:) = (/
-     &       'variables:                           ',
-     &       'float lat_budg(lat_budg) ;           ',
-     &       '   lat_budg:units = "degrees_north" ;',
-     &       'float area_budg(lat_budg) ;          ',
-     &       '   area_budg:units = "m^2" ;         '
-     &       /)
-        kk = count(len_trim(cdl_tconsrv).gt.0)
+        cdl_tconsrv = cdl_latbudg ! invoke a copy method later
         do k=1,ktcon_out
           sname = trim(sname_tconsrv_out(k))
-          kk = kk + 1
-          cdl_tconsrv(kk) = 'float '//trim(sname)//'(lat_budg) ;'
-          kk = kk + 1
-          cdl_tconsrv(kk) = '   '//trim(sname)//':long_name = "'//
-     &         trim(titles(k))//'" ;'
-          kk = kk + 1
-          cdl_tconsrv(kk) = 'float '//trim(sname)//'_hemis(shnhgm) ;'
+          call add_var(cdl_tconsrv,
+     &         'float '//trim(sname)//'(lat_budg) ;',
+     &         long_name=trim(titles(k)))
+          call add_var(cdl_tconsrv,
+     &         'float '//trim(sname)//'_hemis(shnhgm) ;')
         enddo
-        kk = kk + 1
-        cdl_tconsrv(kk) = '}'
 
       endif ! memory allocation and setup
 

@@ -16,6 +16,9 @@
       USE AERO_CONFIG,only: nbins
 #endif
 #endif
+#ifdef NEW_IO
+      use cdl_mod
+#endif
       IMPLICIT NONE
       SAVE
 
@@ -475,7 +478,7 @@ C**** include some extra troposphere only ones
       character(len=sname_strlen), dimension(ktaij_) :: sname_taij
       character(len=units_strlen), dimension(ktaij_) :: units_taij
       real*8, dimension(ktaij_) :: scale_taij
-      character(len=100), dimension(:), allocatable :: cdl_taij
+      type(cdl_type) :: cdl_taij,cdl_taij_latlon
       real*8, dimension(:,:,:), allocatable :: hemis_taij
 
       integer, parameter :: ktaijl_ = (ntm+ktaijl
@@ -490,7 +493,7 @@ C**** include some extra troposphere only ones
       character(len=sname_strlen), dimension(ktaijl_) :: sname_taijl
       character(len=units_strlen), dimension(ktaijl_) :: units_taijl
       real*8, dimension(ktaijl_) :: scale_taijl
-      character(len=100), dimension(:), allocatable :: cdl_taijl
+      type(cdl_type) :: cdl_taijl,cdl_taijl_latlon
 
       integer, parameter :: ktajl_ = (ktajlx*ntm+ktajls
 #ifdef TRACERS_SPECIAL_O18
@@ -508,7 +511,7 @@ C**** include some extra troposphere only ones
       character(len=sname_strlen), dimension(ktajl_) :: sname_tajl
       character(len=units_strlen), dimension(ktajl_) :: units_tajl
       real*8, dimension(ktajl_) :: scale_tajl
-      character(len=100), dimension(:), allocatable :: cdl_tajl
+      type(cdl_type) :: cdl_tajl
       real*8, dimension(:,:,:), allocatable :: hemis_tajl,vmean_tajl
 
       integer :: ktcon_out ! actual number of qtys in tconsrv_out
@@ -517,7 +520,7 @@ C**** include some extra troposphere only ones
       integer, dimension(:), allocatable ::  ia_tcon_out
       character(len=sname_strlen), dimension(:), allocatable ::
      &     sname_tconsrv_out
-      character(len=100), dimension(:), allocatable :: cdl_tconsrv
+      type(cdl_type) :: cdl_tconsrv
 #endif
 
       END MODULE TRDIAG_COM
@@ -913,6 +916,7 @@ C*** Unpack read global data into local distributed arrays
       use trdiag_com
       use pario, only : defvar,write_attr
       use domain_decomp_atm, only : grid
+      use cdl_mod, only : defvar_cdl
       implicit none
       integer :: fid         !@var fid file id
 
@@ -926,10 +930,15 @@ C*** Unpack read global data into local distributed arrays
      &     'scale_taij(ktaij)')
       call defvar(grid,fid,sname_taij(1:ktaij_out),
      &     'sname_taij(sname_strlen,ktaij)')
-      call defvar(grid,fid,cdl_taij,'cdl_taij(cdl_strlen,kcdl_taij)')
       call defvar(grid,fid,hemis_taij,'hemis_taij(one,shnhgm,ktaij)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_taij','reduction','sum')
+      call defvar_cdl(grid,fid,cdl_taij,
+     &     'cdl_taij(cdl_strlen,kcdl_taij)')
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call defvar_cdl(grid,fid,cdl_taij_latlon,
+     &     'cdl_taij_latlon(cdl_strlen,kcdl_taij_latlon)')
+#endif
 
       call write_attr(grid,fid,'taijl','reduction','sum')
       call write_attr(grid,fid,'taijl','split_dim',4)
@@ -941,8 +950,12 @@ C*** Unpack read global data into local distributed arrays
      &     'scale_taijl(ktaijl)')
       call defvar(grid,fid,sname_taijl(1:ktaijl_out),
      &     'sname_taijl(sname_strlen,ktaijl)')
-      call defvar(grid,fid,cdl_taijl,
+      call defvar_cdl(grid,fid,cdl_taijl,
      &     'cdl_taijl(cdl_strlen,kcdl_taijl)')
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call defvar_cdl(grid,fid,cdl_taijl_latlon,
+     &     'cdl_taijl_latlon(cdl_strlen,kcdl_taijl_latlon)')
+#endif
 
       call write_attr(grid,fid,'tajl','reduction','sum')
       call write_attr(grid,fid,'tajl','split_dim',3)
@@ -954,7 +967,7 @@ C*** Unpack read global data into local distributed arrays
      &     'scale_tajl(ktajl)')
       call defvar(grid,fid,sname_tajl(1:ktajl_out),
      &     'sname_tajl(sname_strlen,ktajl)')
-      call defvar(grid,fid,cdl_tajl,
+      call defvar_cdl(grid,fid,cdl_tajl,
      &     'cdl_tajl(cdl_strlen,kcdl_tajl)')
       call defvar(grid,fid,hemis_tajl,'hemis_tajl(shnhgm,lm,ktajl)',
      &     r4_on_disk=.true.)
@@ -972,7 +985,7 @@ C*** Unpack read global data into local distributed arrays
       call defvar(grid,fid,scale_tcon_out,'scale_tconsrv(ktcon)')
       call defvar(grid,fid,sname_tconsrv_out,
      &     'sname_tconsrv(sname_strlen,ktcon)')
-      call defvar(grid,fid,cdl_tconsrv,
+      call defvar_cdl(grid,fid,cdl_tconsrv,
      &     'cdl_tconsrv(cdl_strlen,kcdl_tconsrv)')
 
       return
@@ -984,6 +997,7 @@ C*** Unpack read global data into local distributed arrays
       use trdiag_com
       use pario, only : write_dist_data,write_data
       use domain_decomp_atm, only : grid
+      use cdl_mod, only : write_cdl
       implicit none
       integer :: fid         !@var fid file id
 
@@ -992,13 +1006,19 @@ C*** Unpack read global data into local distributed arrays
       call write_data(grid,fid,'denom_taij',denom_taij(1:ktaij_out))
       call write_data(grid,fid,'scale_taij',scale_taij(1:ktaij_out))
       call write_data(grid,fid,'sname_taij',sname_taij(1:ktaij_out))
-      call write_data(grid,fid,'cdl_taij',cdl_taij)
+      call write_cdl(grid,fid,'cdl_taij',cdl_taij)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call write_cdl(grid,fid,'cdl_taij_latlon',cdl_taij_latlon)
+#endif
 
       call write_data(grid,fid,'ia_taijl',ia_taijl(1:ktaijl_out))
       call write_data(grid,fid,'denom_taijl',denom_taijl(1:ktaijl_out))
       call write_data(grid,fid,'scale_taijl',scale_taijl(1:ktaijl_out))
       call write_data(grid,fid,'sname_taijl',sname_taijl(1:ktaijl_out))
-      call write_data(grid,fid,'cdl_taijl',cdl_taijl)
+      call write_cdl(grid,fid,'cdl_taijl',cdl_taijl)
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      call write_cdl(grid,fid,'cdl_taijl_latlon',cdl_taijl_latlon)
+#endif
 
       call write_data(grid,fid,'hemis_tajl',hemis_tajl)
       call write_data(grid,fid,'vmean_tajl',vmean_tajl)
@@ -1006,13 +1026,13 @@ C*** Unpack read global data into local distributed arrays
       call write_data(grid,fid,'denom_tajl',denom_tajl(1:ktajl_out))
       call write_data(grid,fid,'scale_tajl',scale_tajl(1:ktajl_out))
       call write_data(grid,fid,'sname_tajl',sname_tajl(1:ktajl_out))
-      call write_data(grid,fid,'cdl_tajl',cdl_tajl)
+      call write_cdl(grid,fid,'cdl_tajl',cdl_tajl)
 
       call write_data(grid,fid,'hemis_tconsrv',hemis_tconsrv)
       call write_data(grid,fid,'ia_tconsrv',ia_tcon_out)
       call write_data(grid,fid,'scale_tconsrv',scale_tcon_out)
       call write_data(grid,fid,'sname_tconsrv',sname_tconsrv_out)
-      call write_data(grid,fid,'cdl_tconsrv',cdl_tconsrv)
+      call write_cdl(grid,fid,'cdl_tconsrv',cdl_tconsrv)
 
       return
       end subroutine write_meta_trdiag
