@@ -52,6 +52,7 @@
       integer :: ierr,i
       character(len=10) :: imch,jmch,icch,jcch
       character(len=30), optional :: fname
+      character(len=30) :: fnamefinal
 
       x2grids%imsource=imsource
       x2grids%jmsource=jmsource
@@ -59,6 +60,7 @@
       x2grids%imtarget=imtarget
       x2grids%jmtarget=jmtarget
       x2grids%ntilestarget=ntilestarget
+
 
 
       if (present(fname) .eq. .false.) then
@@ -70,16 +72,19 @@
          jmch=trim(adjustl(jmch))
          icch=trim(adjustl(icch))
          jcch=trim(adjustl(jcch))
-         fname="remap"//trim(imch)//"-"//trim(jmch)
+         fnamefinal="remap"//trim(imch)//"-"//trim(jmch)
      *        //"C"//trim(icch)//"-"//trim(jcch)//".nc"
+         write(*,*) "remap file=",fnamefinal
+      else
+         fnamefinal=fname
       endif
 c     
 c     Read weights
 c     
-      status = nf_open(trim(fname),nf_nowrite,fid)
+      status = nf_open(trim(fnamefinal),nf_nowrite,fid)
       
       if (status .ne. NF_NOERR) write(*,*) 
-     *     "UNABLE TO OPEN REMAP FILE",trim(fname)
+     *     "UNABLE TO OPEN REMAP FILE",trim(fnamefinal)
       
       status = nf_inq_dimid(fid,'ncells',vid)
       status = nf_inq_dimlen(fid,vid,ncells)

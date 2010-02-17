@@ -20,6 +20,12 @@ c
         module procedure write_nc_3D
         module procedure write_nc_4D
         module procedure write_nc_5D
+        module procedure write_nc_0D_r8
+        module procedure write_nc_1D_r8
+        module procedure write_nc_2D_r8
+        module procedure write_nc_3D_r8
+        module procedure write_nc_4D_r8
+        module procedure write_nc_5D_r8
         module procedure write_nc_0D_int
         module procedure write_nc_1D_int
         module procedure write_nc_2D_int
@@ -72,6 +78,32 @@ c
       real*4 :: arr(:,:,:,:,:)
 #include "do_write_nc.inc"
       end subroutine write_nc_5D
+
+      subroutine write_nc_0D_r8(fid,varname,arr)
+      real*8 :: arr
+#include "do_write_nc.inc"
+      end subroutine write_nc_0D_r8
+      subroutine write_nc_1D_r8(fid,varname,arr)
+      real*8 :: arr(:)
+#include "do_write_nc.inc"
+      end subroutine write_nc_1D_r8
+      subroutine write_nc_2D_r8(fid,varname,arr)
+      real*8 :: arr(:,:)
+#include "do_write_nc.inc"
+      end subroutine write_nc_2D_r8
+      subroutine write_nc_3D_r8(fid,varname,arr)
+      real*8 :: arr(:,:,:)
+#include "do_write_nc.inc" 
+      end subroutine write_nc_3D_r8
+      subroutine write_nc_4D_r8(fid,varname,arr)
+      real*8 :: arr(:,:,:,:)
+#include "do_write_nc.inc"
+      end subroutine write_nc_4D_r8
+      subroutine write_nc_5D_r8(fid,varname,arr)
+      real*8 :: arr(:,:,:,:,:)
+#include "do_write_nc.inc"
+      end subroutine write_nc_5D_r8
+
       subroutine write_nc_0D_int(fid,varname,iarr)
       integer :: fid
       character(len=*) :: varname
