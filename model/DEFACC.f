@@ -1832,7 +1832,7 @@ c
       IJ_SWCRF2 = k ! SW cloud radiative forcing (W/m**2) without aerosols and Ozone
       lname_ij(k) = 'SW CLOUD RF NO AER NO OX, TOA'
       units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swcrf_toa'
+      name_ij(k) = 'swcrf_toa2'
       ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m265_95
@@ -1841,7 +1841,7 @@ c
       IJ_LWCRF2 = k ! LW cloud radiative forcing (W/m**2) without aerosols and Ozone
       lname_ij(k) = 'LW CLOUD RF NO AER NO Ox, TOA'
       units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwcrf_toa'
+      name_ij(k) = 'lwcrf_toa2'
       ia_ij(k) = ia_rad_frc
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
