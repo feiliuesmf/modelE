@@ -42,6 +42,12 @@ c
         module procedure defvar_3D
         module procedure defvar_4D
         module procedure defvar_5D
+        module procedure defvar_0D_r8
+        module procedure defvar_1D_r8
+        module procedure defvar_2D_r8
+        module procedure defvar_3D_r8
+        module procedure defvar_4D_r8
+        module procedure defvar_5D_r8
         module procedure defvar_0D_int
         module procedure defvar_1D_int
         module procedure defvar_2D_int
@@ -81,27 +87,27 @@ c
 
       subroutine write_nc_0D_r8(fid,varname,arr)
       real*8 :: arr
-#include "do_write_nc.inc"
+#include "do_write_nc_r8.inc"
       end subroutine write_nc_0D_r8
       subroutine write_nc_1D_r8(fid,varname,arr)
       real*8 :: arr(:)
-#include "do_write_nc.inc"
+#include "do_write_nc_r8.inc"
       end subroutine write_nc_1D_r8
       subroutine write_nc_2D_r8(fid,varname,arr)
       real*8 :: arr(:,:)
-#include "do_write_nc.inc"
+#include "do_write_nc_r8.inc"
       end subroutine write_nc_2D_r8
       subroutine write_nc_3D_r8(fid,varname,arr)
       real*8 :: arr(:,:,:)
-#include "do_write_nc.inc" 
+#include "do_write_nc_r8.inc" 
       end subroutine write_nc_3D_r8
       subroutine write_nc_4D_r8(fid,varname,arr)
       real*8 :: arr(:,:,:,:)
-#include "do_write_nc.inc"
+#include "do_write_nc_r8.inc"
       end subroutine write_nc_4D_r8
       subroutine write_nc_5D_r8(fid,varname,arr)
       real*8 :: arr(:,:,:,:,:)
-#include "do_write_nc.inc"
+#include "do_write_nc_r8.inc"
       end subroutine write_nc_5D_r8
 
       subroutine write_nc_0D_int(fid,varname,iarr)
@@ -160,85 +166,134 @@ c
       end subroutine write_nc_1D_array_of_strings
 
       subroutine defvar_0D(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       real*8 :: arr
       integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_0D
       subroutine defvar_1D(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       real*8 :: arr(:)
       integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_1D
       subroutine defvar_2D(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       real*8 :: arr(:,:)
       integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc' 
       return
       end subroutine defvar_2D
       subroutine defvar_3D(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       real*8 :: arr(:,:,:)
       integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_3D
       subroutine defvar_4D(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       real*8 :: arr(:,:,:,:)
       integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_4D
       subroutine defvar_5D(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       real*8 :: arr(:,:,:,:,:)
       integer, parameter :: dtype = nf_float
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_5D
 
+      subroutine defvar_0D_r8(fid,npx,npy,ntiles,
+     &     arr,varinfo,dbl)
+      real*8 :: arr
+      logical :: dbl
+      integer, parameter :: dtype = nf_double
+      include 'do_defvar_nc.inc'
+      return
+      end subroutine defvar_0D_r8
+      subroutine defvar_1D_r8(fid,npx,npy,ntiles,
+     &     arr,varinfo,dbl)
+      real*8 :: arr(:)
+      logical :: dbl
+      integer, parameter :: dtype = nf_double
+      include 'do_defvar_nc.inc'
+      return
+      end subroutine defvar_1D_r8
+      subroutine defvar_2D_r8(fid,npx,npy,ntiles,
+     &     arr,varinfo,dbl)
+      real*8 :: arr(:,:)
+      logical :: dbl
+      integer, parameter :: dtype = nf_double
+      include 'do_defvar_nc.inc' 
+      return
+      end subroutine defvar_2D_r8
+      subroutine defvar_3D_r8(fid,npx,npy,ntiles,
+     &     arr,varinfo,dbl)
+      real*8 :: arr(:,:,:)
+      logical :: dbl
+      integer, parameter :: dtype = nf_double
+      include 'do_defvar_nc.inc'
+      return
+      end subroutine defvar_3D_r8
+      subroutine defvar_4D_r8(fid,npx,npy,ntiles,
+     &     arr,varinfo,dbl)
+      real*8 :: arr(:,:,:,:)
+      logical :: dbl
+      integer, parameter :: dtype = nf_double
+      include 'do_defvar_nc.inc'
+      return
+      end subroutine defvar_4D_r8
+      subroutine defvar_5D_r8(fid,npx,npy,ntiles,
+     &     arr,varinfo,dbl)
+      real*8 :: arr(:,:,:,:,:)
+      logical :: dbl
+      integer, parameter :: dtype = nf_double
+      include 'do_defvar_nc.inc'
+      return
+      end subroutine defvar_5D_r8
+
       subroutine defvar_0D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       integer :: arr
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_0D_int
       subroutine defvar_1D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       integer :: arr(:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_1D_int
       subroutine defvar_2D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       integer :: arr(:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_2D_int
       subroutine defvar_3D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       integer :: arr(:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_3D_int
       subroutine defvar_4D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       integer :: arr(:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
       return
       end subroutine defvar_4D_int
       subroutine defvar_5D_int(fid,npx,npy,ntiles,
-     &     arr,varinfo,defby)
+     &     arr,varinfo)
       integer :: arr(:,:,:,:,:)
       integer, parameter :: dtype=nf_int
       include 'do_defvar_nc.inc'
@@ -246,8 +301,7 @@ c
       end subroutine defvar_5D_int
 
       subroutine defvar_2D_logical(fid,npx,npy,ntiles,
-     &     arr,varinfo,
-     &     defby)
+     &     arr,varinfo)
       logical :: arr(:,:)
 c netcdf file will represent logical as 0/1 int
       integer, parameter :: dtype=nf_int
@@ -256,8 +310,7 @@ c netcdf file will represent logical as 0/1 int
       end subroutine defvar_2D_logical
 
       subroutine defvar_2D_char(fid,npx,npy,ntiles,
-     &     arr,varinfo,
-     &     defby)
+     &     arr,varinfo)
       character :: arr(:,:)
       integer, parameter :: dtype=nf_char
       include 'do_defvar_nc.inc'

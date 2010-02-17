@@ -1230,44 +1230,70 @@ c***  Write Netcdf file
       
     
 c***  Define OCN variables
-      call defvar(fid,imt,jmt,ntt,Tocn_out,'tocean(d3,im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,MixLD_out,'z1o(im,jm,tile)')
+      call defvar(fid,imt,jmt,ntt,Tocn_out,'tocean(d3,im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,MixLD_out,'z1o(im,jm,tile)'
+     &     ,.true.)
 c***  Define SICE variables
-      call defvar(fid,imt,jmt,ntt,F_out,'rsi(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,H_out,'hsi(lmi,im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,snw_out,'snowi(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,msi_out,'msi(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,ssi_out,'ssi(lmi,im,jm,tile)')
+      call defvar(fid,imt,jmt,ntt,F_out,'rsi(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,H_out,'hsi(lmi,im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,snw_out,'snowi(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,msi_out,'msi(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,ssi_out,'ssi(lmi,im,jm,tile)'
+     &     ,.true.)
       call defvar(fid,imt,jmt,ntt,pond_melt_out,
-     &     'pond_melt(im,jm,tile)')
+     &     'pond_melt(im,jm,tile)',.true.)
       call defvar(fid,imt,jmt,ntt,flag_dsws_out,
-     &     'flag_dsws(im,jm,tile)')
+     &     'flag_dsws(im,jm,tile)',.true.)
 c***  Define EARTH variables
-      call defvar(fid,imt,jmt,ntt,snowe_out,'snowe(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,Te_out,'tearth(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,WTRe_out,'wearth(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,ICEe_out,'aiearth(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,SNOage_out,'snoage(d3,im,jm,tile)')
+      call defvar(fid,imt,jmt,ntt,snowe_out,'snowe(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,Te_out,'tearth(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,WTRe_out,'wearth(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,ICEe_out,'aiearth(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,SNOage_out,'snoage(d3,im,jm,tile)'
+     &     ,.true.)
       call defvar(fid,imt,jmt,ntt,evmax_out,
-     &     'evap_max_ij(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,fsat_out,'fr_sat_ij(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,gq_out,'qg_ij(im,jm,tile)')
+     &     'evap_max_ij(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,fsat_out,'fr_sat_ij(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,gq_out,'qg_ij(im,jm,tile)'
+     &     ,.true.)
 c***  Define SOIL variables     ! this is the old SOIL02 version, implement the new version
       call defvar(fid,imt,jmt,ntt,W_out,
-     &     'w_ij(zero_to_ngm,ls_nfrac,im,jm,tile)')
+     &     'w_ij(zero_to_ngm,ls_nfrac,im,jm,tile)'
+     &     ,.true.)
       call defvar(fid,imt,jmt,ntt,HT_out,
-     &     'ht_ij(zero_to_ngm,ls_nfrac,im,jm,tile)')
+     &     'ht_ij(zero_to_ngm,ls_nfrac,im,jm,tile)'
+     &     ,.true.)
       call defvar(fid,imt,jmt,ntt,SNWbv_out,
-     &     'snowbv(ls_nfrac,im,jm,tile)')
+     &     'snowbv(ls_nfrac,im,jm,tile)'
+     &     ,.true.)
 c***  Define GLAIC variables
-      call defvar(fid,imt,jmt,ntt,SNOW_out,'snowli(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,T_out,'tlandi(d2,im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,MDWN_out,'mdwnimp(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,EDWN_out,'edwnimp(im,jm,tile)')
-      call defvar(fid,imt,jmt,ntt,ACCPDA,'accpda')
-      call defvar(fid,imt,jmt,ntt,ACCPDG,'accpdg')
-      call defvar(fid,imt,jmt,ntt,EACCPDA,'eaccpda')
-      call defvar(fid,imt,jmt,ntt,EACCPDG,'eaccpdg')
+      call defvar(fid,imt,jmt,ntt,SNOW_out,'snowli(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,T_out,'tlandi(d2,im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,MDWN_out,'mdwnimp(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,EDWN_out,'edwnimp(im,jm,tile)'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,ACCPDA,'accpda'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,ACCPDG,'accpdg'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,EACCPDA,'eaccpda'
+     &     ,.true.)
+      call defvar(fid,imt,jmt,ntt,EACCPDG,'eaccpdg'
+     &     ,.true.)
 
       status = nf_enddef(fid)
       if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
