@@ -3,7 +3,7 @@
 
 SUPPORTED_OPTIONS = ESMF
 
-FSRCS = dd2d_utils.f pario_nc.f
+FSRCS = dd2d_utils.f pario_nc.f cdl_mod.f
 
 
 ifndef GISSCLIM_DIR
