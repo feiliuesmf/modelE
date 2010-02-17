@@ -1980,15 +1980,17 @@ C**** 2nd Optional calculation of CRF using a clear sky calc. without aerosols a
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++ 
-
+#ifdef TRACERS_SPECIAL_Shindell
        use_o3_ref=1 ; use_tracer_chem(1)=0  !turns off ozone
+#endif
        FSTOPX(:) = 1-onoff_aer !turns off aerosol tracer
        FTTOPX(:) = 1-onoff_aer !
         CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
        FSTOPX(:) = onoff_aer !turns on aerosol tracer
        FTTOPX(:) = onoff_aer !
+#ifdef TRACERS_SPECIAL_Shindell
        use_o3_ref=0 ; use_tracer_chem(1)=onoff_chem*Lmax_rad_O3 ! turns on ozone tracers
-
+#endif
           SNFSCRF2(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
           TNFSCRF2(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
 
