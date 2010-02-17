@@ -59,11 +59,11 @@ c     VEGFRAC, LAI : 4x5
 
       call regridTOPO(xll2cs_TOPO)
       call regridOSST(xll2cs_OSST)
-      call testOSST()
+ccc      call testOSST()
       call regridSICE(xll2cs_SICE)
       call regridVEG(xll2cs_VEG)
       call regridSOIL(xll2cs_SOIL)
-      call regridGLMELT(xll2cs_GLMELT)
+c      call regridGLMELT(xll2cs_GLMELT)
       call regridVEGFRAC(xll2cs_4x5)
       call regridLAI(xll2cs_4x5)
       call regridGIC(xll2cs_GIC,xll2cs_GIC2)
@@ -103,8 +103,6 @@ c*
       
       iu_TOPO=20
       name="Z1QX1N"
-c      name="Z288X180N"   !atm only
-c      name="Z72X46N_gas.1_nocasp"
 
       write(*,*) name
       open( iu_TOPO, FILE=name,FORM='unformatted', STATUS='old')
@@ -167,11 +165,7 @@ c                         2) IF FOCEAN(i,j) > 0 set FGRND=FGRND+FLAKE, FLAKE=0
 
       close(iu_TOPO)
 
-      if (imt .eq. 32) then
-         name="Z_CS32"
-      elseif (imt .eq. 90) then
-         name="Z_CS90"
-      endif
+      name="Z_CS90"
 
       write(*,*) name
 
@@ -399,12 +393,7 @@ c     was just transfered to 360X180 grid without any change)
       integer iu_VEG
 	
       iu_VEG=20
-c      if (x2grids%imtarget .eq. 32) then
-c         name="V72X46.1.cor2_no_crops.ext"
-c      elseif (x2grids%imtarget .eq. 90) then
-c         name=" V144X90_no_crops.ext"
-         name=" V288X180_no_crops.ext"
-c      endif
+      name=" V288X180_no_crops.ext"
 
       open(iu_VEG,FILE=name,FORM='unformatted', STATUS='old')
       
@@ -654,11 +643,7 @@ c
       write(*,*) "ims,jms,nts,imt,jmt,ntt",ims,jms,nts,imt,jmt,ntt
 
       iu_SOIL=20
-      if (ims .eq. 72 .and. jms .eq. 46) then
-         name="S4X50093.ext"
-      elseif (ims .eq. 360 .and. jms .eq. 180) then
-         name="S360X180_0098M.rep"
-      endif
+      name="S360X180_0098M.rep"
       
       open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
       
@@ -761,12 +746,7 @@ c     convert it to binary using GLMELTt2b.f
       jmt=x2grids%jmtarget
       
  
-      if (imt .eq. 32) then
-         name="GLMELT_4X5.OCN.bin"
-      elseif (imt .eq. 90) then
-         name="GLMELT_360X180.OCN.bin"
-      endif
-      write(*,*) name
+      name="GLMELT_360X180.OCN.bin"
 
       iu_GLMELT=20
       
@@ -1029,7 +1009,6 @@ c*    write
       write(*,*) "ims2,jms2,nts2",ims2,jms2,nts2
 
       name="GIC.360X180.DEC01.1.rep"
-c      name2="1DEC1976.iceE42F40oQ32"
       name2="1DEC1971.iceE44F40oQ32"
       iu_GIC=20
       iu_ICE=30
@@ -1130,8 +1109,8 @@ c      name2="1DEC1976.iceE42F40oQ32"
 
       tsource2(:,:,1) = 0.d0
 
-      do j=1,jms
-         do i=1,ims
+      do j=1,jms2
+         do i=1,ims2
             if (flag_dsws(i,j) .eq. .true.) then
                tsource2(i,j,1)=1.d0
             else
@@ -1293,9 +1272,12 @@ c***  Define GLAIC variables
       status = nf_enddef(fid)
       if (status .ne. NF_NOERR) write(*,*) "Problem with enddef"
 
+      write(*,*) "finished defvar"
+
 c***  Write OCN variables
       call write_data(fid,'tocean',Tocn_out)
       call write_data(fid,'z1o',MixLD_out)
+      write(*,*) "finished writing OCN variables"
 c***  Write SICE variables
       call write_data(fid,'rsi',F_out)
       call write_data(fid,'hsi',H_out)
@@ -1304,6 +1286,7 @@ c***  Write SICE variables
       call write_data(fid,'ssi',ssi_out)
       call write_data(fid,'pond_melt',pond_melt_out)
       call write_data(fid,'flag_dsws',flag_dsws_out)
+      write(*,*) "finished writing SICE variables"
 c***  Write EARTH variables
       call write_data(fid,'snowe',snowe_out)
       call write_data(fid,'tearth',Te_out)
@@ -1313,10 +1296,12 @@ c***  Write EARTH variables
       call write_data(fid,'evap_max_ij',evmax_out)
       call write_data(fid,'fr_sat_ij',fsat_out)
       call write_data(fid,'qg_ij',gq_out)
+      write(*,*) "finished writing EARTH variables"
 c***  Write SOIL variables     ! this is the old SOIL02 version, implement the new version
       call write_data(fid,'w_ij',W_out)
       call write_data(fid,'ht_ij',HT_out)
       call write_data(fid,'snowbv',SNWbv_out)
+      write(*,*) "finished writing SOIL variables"
 c***  Write GLAIC variables
       call write_data(fid,'snowli',SNOW_out)
       call write_data(fid,'tlandi',T_out)
@@ -1326,7 +1311,7 @@ c***  Write GLAIC variables
       call write_data(fid,'accpdg',ACCPDG)
       call write_data(fid,'eaccpda',EACCPDA)
       call write_data(fid,'eaccpdg',EACCPDG)
-
+      write(*,*) "finished writing GLAIC variables"
 
       deallocate (Tocn_out,MixLD_out,F_out,H_out,
      &     snw_out,msi_out,ssi_out,pond_melt_out,
@@ -1335,15 +1320,18 @@ c***  Write GLAIC variables
      &     fsat_out,gq_out,W_out,
      &     HT_out,SNWbv_out,
      &     SNOW_out,T_out,MDWN_out,EDWN_out )
-      
-      status = nf_close(fid)
 
+      status = nf_close(fid)
       deallocate (Tocn,MixLD,
      &     F0,H0,snw0,msi0,
-     &     ssi0,pond_melt0,flag_dsws0,
-     &     F,H,snw,msi,
-     &     ssi,pond_melt,flag_dsws,
-     &     snowe,Te,WTRe,ICEe, 
+     &     ssi0,pond_melt0,flag_dsws0)
+
+      deallocate (F,H,snw,msi,
+     &     ssi,pond_melt)
+
+      deallocate(flag_dsws)
+
+      deallocate (snowe,Te,WTRe,ICEe, 
      &     SNOage,evmax,fsat,gq,
      &     W,HT,SNWbv,SNOW,T,MDWN,EDWN )
 
@@ -1418,11 +1406,6 @@ c
          tsource=ts4
          write(*,*) "TITLE, irec",TITLE,irec
          call do_regrid(x2grids,tsource,ttargglob)
-
-c         if (irec .eq. 1) tcopy=ttargglob
-c         if (irec .eq. 82) tcopy2=ttargglob
-c         if (irec .eq. 2) tcopy3=ttargglob
-c         if (irec .eq. 22) tcopy4=ttargglob
 
          write(unit=iuout) TITLE,real(ttargglob,KIND=4)
          irec=irec+1
