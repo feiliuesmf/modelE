@@ -119,7 +119,11 @@ c  Diatoms
       nt = 1
       rmumax(nt) = 1.50       !u max in /day at 20C
 #ifdef OBIO_ON_GARYocean
+#ifdef unlimitDIATOMS
+      obio_wsd(nt)    = 0.50  !sinking rate in m/day
+#else
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
+#endif
 #else
       obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008
 #endif
@@ -203,7 +207,12 @@ c  Dinoflagellates
       enddo
 
 c  Detrital sinking rates m/h
+#ifdef limitEXPORT
+      wsdeth(1) = 50.0/24.0     !nitrogen
+#else
+      !default
       wsdeth(1) = 30.0/24.0     !nitrogen
+#endif
       wsdeth(2) = 50.0/24.0     !silica
       wsdeth(3) = 20.0/24.0     !iron
 c
@@ -572,6 +581,18 @@ cdiag   enddo
 #else
       print*, 'PCO2 is computed through lookup table'
 #endif
+      write(*,'(a,4e12.4)')'obio_init, sinking rates for chlorophyll: ',
+     .    obio_wsd(1),obio_wsd(2),obio_wsd(3),obio_wsd(4)
+      write(*,'(a,4e12.4)')'obio_init, settling rates for detritus: ',
+     .      wsdeth(1),  wsdeth(2),  wsdeth(3),  wsdeth(4)
+
+#ifdef limitDIC1
+      print*,'limit DIC to +0.5%'
+#endif
+#ifdef limitDIC2
+      print*,'limit DIC to +0.2%'
+#endif
+
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'

@@ -252,6 +252,15 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           !read earlier from file
           dicmod(i,j,k)=dic(i,j,k)
 
+#ifdef limitDIC1
+!!!       dic(i,j,k)=dmax1(1837d0,0.99*dic(i,j,k))  !!! g6hh
+          dic(i,j,k)=dmax1(1837d0,1.005*dic(i,j,k))  !!! g6hh2
+#endif
+#ifdef limitDIC2
+          dic(i,j,k)=dmax1(1837d0,1.002*dic(i,j,k))  !!! g6hh3
+#endif
+          dicmod(i,j,k)=dic(i,j,k)
+
 #ifdef TRACERS_Alkalinity
           do nt = ntyp+n_inert+ndet+ncar,ntyp+n_inert+ndet+ncar+nalk
            tracer(i,j,k,nt) = alk(i,j,k)
@@ -339,22 +348,21 @@ c  Coccolithophore max growth rate
  
 !     !save initialization
 !     do nt=1,ntyp+n_inert+ndet+ncar
-        nt=1
-        ntchar='00'
-        if(nt.le.9)write(ntchar,'(i1)')nt
-        if(nt.gt.9)write(ntchar,'(i2)')nt
-        print*,'BIO: saving initial tracer fields '
-     .        ,'bioinit_tracer'//ntchar
-        call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-      do k=1,kdm
-      do j=1,jdm
-      do i=1,idm
-           write(iu_bioinit,'(3i4,4e12.4)')
-     .           i,j,k,dzo(k),tracer(i,j,k,nt),focean(i,j),hocean(i,j)
-        enddo
-        enddo
-        enddo
-      call closeunit(iu_bioinit)
+!       ntchar='00'
+!       if(nt.le.9)write(ntchar,'(i1)')nt
+!       if(nt.gt.9)write(ntchar,'(i2)')nt
+!       print*,'BIO: saving initial tracer fields '
+!    .        ,'bioinit_tracer'//ntchar
+!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
+!     do k=1,kdm
+!     do j=1,jdm
+!     do i=1,idm
+!          write(iu_bioinit,'(3i4,4e12.4)')
+!    .           i,j,k,dzo(k),tracer(i,j,k,nt),focean(i,j),hocean(i,j)
+!       enddo
+!       enddo
+!       enddo
+!     call closeunit(iu_bioinit)
 !     enddo
 
       print*,'bioinit: COLD INITIALIZATION'
