@@ -301,7 +301,8 @@
       use rad_com, only : tchg,rqt,kliq,  s0,srhr,trhr,fsf, &
            fsrdir,srvissurf,srdn,cfrac,rcld,salb,trsurf
 #ifdef TRACERS_SPECIAL_Shindell
-      use rad_com, only : chem_trac=>chem_tracer_save, rad_to_chem
+      use rad_com, only : chem_trac=>chem_tracer_save, rad_to_chem, &
+           ttausv_ntrace
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       use rad_com, only : stratO3_trac=>stratO3_tracer_save
@@ -571,6 +572,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
         check("rad_to_chem",rad_to_chem)
         check("chem_trac",chem_trac)
+        check("ttausv_ntrace",ttausv_ntrace)
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         check("stratO3_trac",stratO3_trac)
