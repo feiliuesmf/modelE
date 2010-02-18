@@ -5040,10 +5040,16 @@ C**** Find correction factors XTU and XTD
       IF(DUF2.LT.-.2) DUF2=-.2
       I9U1=DUF2/DLSQ2+1
       IF(I9U1.LT.1) I9U1=1
-      IF(I9U1.GT.10) I9U1=10
-      I9U2=I9U1+1
-      D9U1=DUF2-(I9U1-1)*DLSQ2
-      D9U2=DLSQ2-D9U1
+      IF(I9U1.GT.9) THEN
+        I9U1=1
+        I9U2=2
+        D9U1=0.
+        D9U2=0.
+      else
+        I9U2=I9U1+1
+        D9U1=DUF2-(I9U1-1)*DLSQ2
+        D9U2=DLSQ2-D9U1
+      end if
 
 !     Find pressure ratios on P24 levels by averaging Prat
 !     Fill missed layers copying from the nearest layer above
@@ -5082,8 +5088,11 @@ C**** Find correction factors XTU and XTD
      $     (DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2)
       SUM2=(DXDN2(I,IUW,I2U2,IM)*D2U1+DXDN2(I,IUW,I2U1,IM)*D2U2)+
      $     (DXDN3(I,IUW,I3U2,IM)*D3U1+DXDN3(I,IUW,I3U1,IM)*D3U2)+
+
+     $     Prat24(I)*(
      $     (DXDN7(I,IUW,I7U2,IM)*D7U1+DXDN7(I,IUW,I7U1,IM)*D7U2)+
-     $     (DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2)+
+     $     (DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2) )+
+
      $     (DXDN8(I,IUW,I8U2,IM)*D8U1+DXDN8(I,IUW,I8U1,IM)*D8U2)+
      $     (DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2)
 
