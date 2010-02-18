@@ -14,6 +14,9 @@
       use hycom_arrays, only : tracer,dpinit,scp2
       use hycom_scalars, only : nstep
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+      USE TRACER_GASEXCH_COM, only : tracflx
+#endif
       use domain_decomp_1d, only: am_i_root, globalsum, get
 
       implicit none
@@ -27,6 +30,8 @@
 
       real*8, allocatable :: summ(:)
       real*8, allocatable :: partialTracerSums(:,:)
+      real*8, allocatable :: partialfluxsum(:)
+      real*8 :: sumflux
 
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
@@ -50,7 +55,18 @@
          end do
       end if
 
+      !integrate flux
+      allocate(partialfluxsum(j_0h:j_1h))
+      partialfluxsum(:) = partialIntegration(tracflx(:,:,1))
+
+      call globalSum(ogrid, partialfluxsum, sumflux)
+
+      if (am_i_root()) then
+       write(*,*)'global averaged flux=',sumflux
+      endif
+
       deallocate(partialTracerSums, summ)
+      deallocate(partialfluxsum)
 
       contains
 
