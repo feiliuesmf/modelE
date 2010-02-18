@@ -1979,13 +1979,13 @@ c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
       call init_cdl_type('cdl_icij',cdl_icij)
-      call add_coord(cdl_icij,'lon',imic,units='degrees_east',
+      call add_coord(cdl_icij,'lon',imicdyn,units='degrees_east',
      &     coordvalues=lon_dg(:,1))
-      call add_coord(cdl_icij,'lat',jmic,units='degrees_north',
+      call add_coord(cdl_icij,'lat',jmicdyn,units='degrees_north',
      &     coordvalues=lat_dg(:,1))
-      call add_coord(cdl_icij,'lon2',imic,units='degrees_east',
+      call add_coord(cdl_icij,'lon2',imicdyn,units='degrees_east',
      &     coordvalues=lon_dg(:,2))
-      call add_coord(cdl_icij,'lat2',jmic,units='degrees_north',
+      call add_coord(cdl_icij,'lat2',jmicdyn,units='degrees_north',
      &     coordvalues=lat_dg(:,2))
       do k=1,kicij
         if(trim(sname_icij(k)).eq.'unused') cycle
