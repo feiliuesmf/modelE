@@ -66,8 +66,8 @@ C****
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
      *     ,rad_interact_aer,rad_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
-#ifdef TRACERS_ON
-     *     ,useRadAerInFastJ
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,maxNtraceFastj
 #endif
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
@@ -89,7 +89,7 @@ C****
 #endif
       IMPLICIT NONE
 
-      INTEGER L,LR,n1,istart,n,nn,iu2,errRadAerInFastJ ! LONR,LATR
+      INTEGER L,LR,n1,istart,n,nn,iu2 ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
       INTEGER NRFUN(14),IU
@@ -163,9 +163,6 @@ C**** sync radiation parameters from input
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
-#ifdef TRACERS_ON
-      call sync_param("useRadAerInFastJ", useRadAerInFastJ)
-#endif
       REFdry = REFdry*ref_mult
       if (istart.le.0) return
 
@@ -544,31 +541,9 @@ C**** define weighting
 #endif
 #endif
 
-#ifdef TRACERS_ON
-C Currently feedback of aerosols to the photolysis code
-C is only for a specific setup tested here. This will be
-C made more flexible in the future and this test removed:
-C Check if all aerosol tracers are in place. 
-      if(useRadAerInFastJ==1)then
-        errRadAerInFastJ=0
-        if(NTRACE .lt. 14)       errRadAerInFastJ=1
-        if(ntrix( 1)/=n_SO4     )errRadAerInFastJ=1
-        if(ntrix( 2)/=n_seasalt1)errRadAerInFastJ=1
-        if(ntrix( 3)/=n_seasalt2)errRadAerInFastJ=1
-        if(ntrix( 4)/=n_OCIA    )errRadAerInFastJ=1
-        if(ntrix( 5)/=n_BCIA    )errRadAerInFastJ=1
-        if(ntrix( 6)/=n_BCB     )errRadAerInFastJ=1
-        if(ntrix( 7)/=n_NO3p    )errRadAerInFastJ=1
-        if(ntrix( 8)/=n_clay    )errRadAerInFastJ=1
-        if(ntrix( 9)/=n_clay    )errRadAerInFastJ=1
-        if(ntrix(10)/=n_clay    )errRadAerInFastJ=1
-        if(ntrix(11)/=n_clay    )errRadAerInFastJ=1
-        if(ntrix(12)/=n_silt1   )errRadAerInFastJ=1
-        if(ntrix(13)/=n_silt2   )errRadAerInFastJ=1
-        if(ntrix(14)/=n_silt3   )errRadAerInFastJ=1
-        if(errRadAerInFastJ==1)call stop_model
-     &  ("useRadAerInFastJ=1 inconsistent with rad code tracers",13)
-      endif
+#ifdef TRACERS_SPECIAL_Shindell
+      if(NTRACE > maxNtraceFastj)
+     &call stop_model("NTRACE > maxNtraceFastj in init_Rad",13)
 #endif
 
       if (ktrend.ne.0) then
@@ -888,6 +863,9 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
      &     ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save
      &     ,ttausv_cs_save
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     &     ,ttausv_ntrace
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
@@ -1360,8 +1338,11 @@ c     KCKERR=0
 !$OMP*   DTsrc,byam,byaml00,fsf,srhr,trhr,trsurf,srhrs,trhrs,snfs,tnfs,
 !$OMP*   trincg,btmpw,alb,aj_alb_inds,srnflb_save,trnflb_save,srdn,
 !$OMP*   FSRDIR,SRVISSURF,FSRDIF,DIRNIR,DIFNIR,taijls,taijs,
-!$OMP*   ttausv_sum,ttausv_sum_cs,adiurn_dust,ttausv_save,rcld,
-!$OMP*   IJ_PMCCLD,ij_cldcv,ij_pcldl,ij_pcldh,jl_sscld,jl_mccld,
+!$OMP*   ttausv_sum,ttausv_sum_cs,adiurn_dust,ttausv_save,
+#ifdef TRACERS_SPECIAL_Shindell
+!$OMP*   ttausv_ntrace,
+#endif
+!$OMP*   rcld,IJ_PMCCLD,ij_cldcv,ij_pcldl,ij_pcldh,jl_sscld,jl_mccld,
 !$OMP*   jl_totcld,IJL_CF,jl_wcld,jl_wcldwt,jl_icld,ij_swdcls,ij_frmp,
 !$OMP*   jl_icldwt,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz,ijdd,ij_pcldm,
 !$OMP*   j_pcldss,j_pcldmc,j_clddep,j_pcld,ij_swnclt,ij_lwnclt,
@@ -2157,19 +2138,24 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
           ttausv_sum_cs(i,j,n)=ttausv_sum_cs(i,j,n)+StauL*OPNSKY
         endif
       enddo
-#ifndef TRACERS_SPECIAL_Shindell /* note NOT defined */
       IF (adiurn_dust == 1) THEN
-#endif
         DO n=1,NTRACE
           IF (ntrix(n) > 0) THEN
-              do k=1,LM
-                ttausv_save(i,j,ntrix(n),k)=ttausv(k,n)
-                ttausv_cs_save(i,j,ntrix(n),k)=ttausv(k,n)*OPNSKY
-              end do
+            do k=1,LM
+              ttausv_save(i,j,ntrix(n),k)=ttausv(k,n)
+              ttausv_cs_save(i,j,ntrix(n),k)=ttausv(k,n)*OPNSKY
+            end do
           END IF
         END DO
-#ifndef TRACERS_SPECIAL_Shindell /* note NOT defined */
       END IF
+#ifdef TRACERS_SPECIAL_Shindell
+      do n=1,NTRACE
+        if(ntrix(n) > 0) then
+          do k=1,LM
+            ttausv_ntrace(i,j,n,k)=ttausv(k,n)
+          end do
+        end if
+      end do
 #endif
 #endif /* TRACERS_ON */
 

@@ -152,7 +152,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & JPNL   =   LM,      ! OK? used to be set to 23
      & NCFASTJ2 = 2*LM+2,  ! fastj2
      & NBFASTJ  = LM+1,    ! fastj2
-     & MXFASTJ  =  16,     ! fastj2 
+     & MXFASTJ  =  17,     ! fastj2 
      & n_fam =     5,      ! fastj2
      & NP       = 60       ! fastj2
        INTEGER, DIMENSION(LM+1,MXFASTJ) :: MIEDX2

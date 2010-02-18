@@ -81,18 +81,22 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: TFASTJ,odcol,O3_FASTJ,PFASTJ2,
      &     dlogp,masfac,oref2,tref2,bref2,TJ2,DO32,DBC2,zfastj2,
      &     dmfastj2,NBFASTJ,AER2,MXFASTJ
-      USE RAD_COM,only:  ttausv_save,ntrix,useRadAerInFastJ
+      USE RAD_COM,only: ttausv_ntrace,ntrix
+      USE RADPAR, only : NTRACE
+      USE TRACER_COM, only : trname
 
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var pstd Approximate pressures of levels for supplied climatology
+!@var skip_tracer logical to not define aer2 for a rad code tracer
       INTEGER, INTENT(IN) :: nslon, nslat
-      integer             :: l, k, i, ii, m, j
+      integer             :: l, k, i, ii, m, j, iclay, n
       real*8, dimension(52) :: pstd
       real*8, dimension(51) :: oref3, tref3
       real*8              :: ydgrd,f0,t0,b0,pb,pc,xc,scaleh
+      logical             :: skip_tracer
 
 c  Set up cloud and surface properties
       call CLDSRF(NSLON,NSLAT)
@@ -150,45 +154,49 @@ c  Calculate effective altitudes using scale height at each level
         zfastj2(i+1) = zfastj2(i)-(log(PFASTJ2(i+1)/PFASTJ2(i))*scaleh)
       enddo
 
-c  Add Aerosol Column - include aerosol types here. 
+c  Add Aerosol Column - include aerosol (+cloud) types here. 
+
+      AER2(:,:)=0.d0
 
 c  LAST two are clouds (liquid or ice)
 c  Assume limiting temperature for ice of -40 deg C :
       do i=1,LM
         if(TFASTJ(I) > 233.d0) then
-          AER2(15,i) = odcol(i)
-          AER2(16,i) = 0.d0
-        else
-          AER2(15,i) = 0.d0
           AER2(16,i) = odcol(i)
-        endif          
+          AER2(17,i) = 0.d0
+        else
+          AER2(16,i) = 0.d0
+          AER2(17,i) = odcol(i)
+        endif
       enddo
 
 c Now do the rest of the aerosols
-
-c If we don't have the full set of aerosol tracers that are usually
-c in the radiation code of GISS, don't use aerosols in photolysis
-c (that will change in the future to use subsets of aerosols
-c and not just have this "all-tracer" case).
-c Note that the 14 types of particles that we had in RAD_DRV.f are
-c now increased to 16, since we add liquid and ice clouds as well. 
-      if (useRadAerInFastJ == 1) then
-        do i=1,LM
-          do j=1,MXFASTJ-2
-            AER2(j,i)=ttausv_save(NSLON,NSLAT,ntrix(j),i)
+      iclay=0  
+      do n=1,NTRACE
+        skip_tracer=.false.
+        select case (trname(ntrix(n)))
+        case ('SO4')      ; j=1
+        case ('seasalt1') ; j=2
+        case ('seasalt2') ; j=3
+        case ('OCIA')     ; j=4
+        case ('BCIA')     ; j=5
+        case ('BCB')      ; j=6
+        case ('NO3p')     ; j=7
+        case ('Clay')     ; j=8+iclay ; iclay=iclay+1
+        case ('Silt1')    ; j=12
+        case ('Silt2')    ; j=13
+        case ('Silt3')    ; j=14
+        case ('Silt4')    ; j=15
+        case default      ; skip_tracer=.true.
+        end select
+        if(j>15)call stop_model("set_prof: too many opt depths",13)
+        if(iclay>4)call stop_model("set_prof: too many clays",13)
+        if(.not.skip_tracer)then
+          do i=1,LM
+            AER2(j,i)=ttausv_ntrace(NSLON,NSLAT,j,i)
           enddo
-        enddo
-      else
-        do i=1,LM
-          do j=1,MXFASTJ-2
-            AER2(j,i)=0.d0
-          enddo
-c         + background black carbon (placeholder that existed before).
-c         Assume black carbon x-section of 10 m2/g, independent of
-c         wavelength.
-          AER2(5,i) = DBC2(i)*10.d0*(zfastj2(i+1)-zfastj2(i))
-        enddo
-      endif
+        endif
+      enddo
 
 c Top of the atmosphere
       AER2(:,LM+1) = 0.d0

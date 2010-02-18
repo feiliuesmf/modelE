@@ -582,40 +582,41 @@ c       11 = Dust (Clay, 4-th size bin) (n_clay)
 c       12 = Dust (Clay, 1-st size bin) (n_silt1)
 c       13 = Dust (Clay, 2-nd size bin) (n_silt2)
 c       14 = Dust (Clay, 3-rd size bin) (n_silt3)
-c       15 = Liquid Clouds
-c       16 = Ice Clouds
+c       15 = Dust (Clay, 4-rd size bin) (n_silt4)
+c       16 = Liquid Clouds
+c       17 = Ice Clouds
 
         DO LL=1,LM 
          if (RFASTJ(LL) .lt. 0.15) then
            MIEDX2(LL,:)=(/12,20,28,36,44,44,45,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.15) .and. (RFASTJ(LL) .lt. 
      &   0.4)) then
            MIEDX2(LL,:)=(/13,21,29,37,44,44,46,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.4) .and. (RFASTJ(LL) .lt.
      &   0.6)) then
            MIEDX2(LL,:)=(/14,22,30,38,44,44,47,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.6) .and. (RFASTJ(LL) .lt.
      &   0.75)) then
            MIEDX2(LL,:)=(/15,23,31,39,44,44,48,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.75) .and. (RFASTJ(LL) .lt.
      &   0.85)) then
            MIEDX2(LL,:)=(/16,24,32,40,44,44,49,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.85) .and. (RFASTJ(LL) .lt.
      &   0.925)) then
            MIEDX2(LL,:)=(/17,25,33,41,44,44,50,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.925) .and. (RFASTJ(LL) .lt.
      &   0.97)) then
           MIEDX2(LL,:)=(/18,26,34,42,44,44,51,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          else if (RFASTJ(LL) .ge. 0.97) then
            MIEDX2(LL,:)=(/19,27,35,43,44,44,52,53,54,55,56,
-     &                   57,58,59,7,11/)
+     &                   57,58,59,60,7,11/)
          endif
         ENDDO 
 c Now force extra level (top of the atmosphere) used in Fast-J

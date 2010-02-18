@@ -85,9 +85,13 @@ C**** does not produce exactly the same as the default values.
 !@var ttausv_sum(_cs) daily sum opt depth by tracer, all (clear) sky
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: ttausv_sum,ttausv_sum_cs
       real*8 :: ttausv_count = 0.d0
-!@dbparam useRadAerInFastJ to decide whether tracer optical depths will be
-!@+   used in chemistry photolysis code, Fast-J2  (default is 0=NO)
-      INTEGER :: useRadAerInFastJ=0 
+#ifdef TRACERS_SPECIAL_Shindell
+!@var maxNtraceFastj max expected rad code tracers passed to photolysis
+!@var ttausv_ntrace Tracer optical thickness saved 1:NTRACE not 1:NTM
+!@+   This is so clays are separate. Only needed for chemistry on.
+      integer, parameter :: maxNtraceFastj=15
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_ntrace
+#endif
 #endif
 !@var CFRAC Total cloud fraction as seen be radiation
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CFRAC ! saved in rsf
@@ -258,6 +262,9 @@ C**** Local variables initialised in init_RAD
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SINJ, COSJ
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
      *     ,FSRDIF,DIRNIR,DIFNIR
+#ifdef TRACERS_SPECIAL_Shindell
+     *     ,ttausv_ntrace,maxNtraceFastj
+#endif
 #ifdef CHL_from_SeaWIFs
      *     ,achl,echl1,echl0,bchl,cchl
 #endif
@@ -322,6 +329,9 @@ C**** Local variables initialised in init_RAD
      &     ttausv_cs_save(I_0H:I_1H,J_0H:J_1H,Ntm,Lm),
      &     ttausv_sum(I_0H:I_1H,J_0H:J_1H,Ntm),
      &     ttausv_sum_cs(I_0H:I_1H,J_0H:J_1H,Ntm),
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,maxNtraceFastj,Lm),
 #endif
 #ifdef CHL_from_SeaWIFs
      &         ACHL(I_0H:I_1H,J_0H:J_1H),
@@ -396,6 +406,9 @@ C**** Local variables initialised in init_RAD
 #endif
       REAL*8,DIMENSION(:,:,:,:), allocatable :: ! (Im,Jm,Ntm,Lm)
      &     ttausv_save_glob,ttausv_cs_save_glob
+#ifdef TRACERS_SPECIAL_Shindell
+      REAL*8,DIMENSION(:,:,:,:), allocatable :: ttausv_ntrace_glob
+#endif
       REAL*8,DIMENSION(:,:,:), allocatable ::   !(Im,Jm,Ntm)
      &     ttausv_sum_glob,ttausv_sum_cs_glob
 #endif
@@ -433,6 +446,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(chem_tracer_save_GLOB(2,lmg, img,jmg))
       allocate(rad_to_chem_GLOB(5,lmg,img,jmg))
+      allocate(ttausv_ntrace_glob(img,jmg,maxNtraceFastj,lmg))
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       allocate(stratO3_tracer_save_GLOB(lmg, img, jmg))
 #endif
@@ -517,6 +531,9 @@ C**** Local variables initialised in init_RAD
         CALL PACK_DATA(grid,ttausv_sum,ttausv_sum_glob)
         CALL PACK_DATA(grid,ttausv_sum_cs,ttausv_sum_cs_glob)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+        CALL PACK_DATA(grid,ttausv_ntrace,ttausv_ntrace_glob)
+#endif
 
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,RQT_GLOB,KLIQ_GLOB
@@ -537,6 +554,9 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      &      ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
      &      ,ttausv_save_glob,ttausv_cs_save_glob
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     &      ,ttausv_ntrace_glob
 #endif
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
@@ -561,6 +581,9 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      &       ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
      &       ,ttausv_save_glob,ttausv_cs_save_glob
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+     &       ,ttausv_ntrace_glob
 #endif
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,
@@ -609,6 +632,9 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_DATA(grid,ttausv_sum_glob,ttausv_sum)
           CALL UNPACK_DATA(grid,ttausv_sum_cs_glob,ttausv_sum_cs)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+          CALL UNPACK_DATA(grid,ttausv_ntrace_glob,ttausv_ntrace)
+#endif
 
 
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
@@ -649,6 +675,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
       deallocate(chem_tracer_save_GLOB)
       deallocate(rad_to_chem_GLOB)
+      deallocate(ttausv_ntrace_glob)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       deallocate(stratO3_tracer_save_GLOB)
 #endif
@@ -698,6 +725,8 @@ C**** Local variables initialised in init_RAD
      &     'chem_tracer_save(two,lm,dist_im,dist_jm)')
       call defvar(grid,fid,rad_to_chem,
      &     'rad_to_chem(five,lm,dist_im,dist_jm)')
+      call defvar(grid,fid,ttausv_ntrace,
+     &     'ttausv_ntrace(dist_im,dist_jm,maxNtraceFastj,lm)')
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call defvar(grid,fid,strato3_tracer_save,
      &     'strato3_tracer_save(lm,dist_im,dist_jm)')
@@ -777,6 +806,9 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
         call write_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+        call write_dist_data(grid,fid,'ttausv_ntrace',ttausv_ntrace)
+#endif
       case (ioread)
         call read_data(grid, fid,'s0', s0, bcast_all=.true.)
         call read_dist_data(grid, fid,'rqt',  rqt, jdim=3)
@@ -816,6 +848,9 @@ C**** Local variables initialised in init_RAD
      &       bcast_all=.true.)
         call read_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
         call read_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+        call read_dist_data(grid,fid,'ttausv_ntrace',ttausv_ntrace)
 #endif
       end select
       return
