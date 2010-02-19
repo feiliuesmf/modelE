@@ -23,7 +23,7 @@
 
       integer i,j,k,l
       integer ntr
-      real sumo
+      real sumo, areao
 
       integer :: iTracer
       integer :: j_0, j_1, j_0h, j_1h
@@ -36,7 +36,7 @@
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
 
-      sumo = getTotalOceanVolume()
+      call getOceanVolumeAndArea(sumo, areao)
 
       ! Form partial sum for each latitude for each tracer
       allocate(partialTracerSums(j_0h:j_1h, ntrcr))
@@ -57,12 +57,12 @@
 
       !integrate flux
       allocate(partialfluxsum(j_0h:j_1h))
-      partialfluxsum(:) = partialIntegration(tracflx(:,:,1))
+      partialfluxsum(:) = partialIntegration(tracflx(:,:,1:1))
 
       call globalSum(ogrid, partialfluxsum, sumflux)
 
       if (am_i_root()) then
-       write(*,*)'global averaged flux=',sumflux
+       write(*,*)'global averaged flux=',sumflux/areao
       endif
 
       deallocate(partialTracerSums, summ)
@@ -78,9 +78,11 @@
       real*8 :: partialIntegration(j_0h:j_1h)
       
       real*8 :: gridCellVolume
+      integer :: numLevels
 
       partialIntegration = 0
-      do k = 1, kdm
+      numLevels = size(quantity,3)
+      do k = 1, numLevels
          do j = j_0, j_1
             gridCellVolume = dzo(k) * dxypo(j)
             do i= 1, idm
@@ -101,9 +103,11 @@
       real*8 :: partialIntegration(j_0h:j_1h)
       
       integer :: i, j, l, k
+      integer :: numLevels
 
       partialIntegration = 0
-      do k = 1, kdm
+      numLevels = size(quantity,3)
+      do k = 1, numLevels
          do j = j_0, j_1
             do i = 1, idm
                if (dpinit(i,j,k) < huge) then
@@ -117,7 +121,10 @@
       end function partialIntegration
 #endif
 
-      real*8 function getTotalOceanVolume() result(oceanVolume)
+      subroutine getOceanVolumeAndArea(oceanVolume, oceanArea)
+      real*8, intent(out) :: oceanVolume
+      real*8, intent(out) :: oceanArea
+
       real*8, allocatable :: partialOceanVolumes(:)
       real*8, allocatable :: ones(:,:,:)
 
@@ -127,9 +134,10 @@
       ones = 1
       partialOceanVolumes(:) = partialIntegration(ones)
       call globalSum(ogrid, partialOceanVolumes, oceanVolume)
+      oceanArea = partialOceanVolumes(1)
 
       deallocate(ones)
 
-      end function getTotalOceanVolume
+      end subroutine getOceanVolumeAndArea
 
       end subroutine obio_trint
