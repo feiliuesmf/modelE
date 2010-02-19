@@ -17,9 +17,6 @@ C**** GLOBAL parameters and variables:
 #ifdef SHINDELL_STRAT_CHEM
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 #endif
-#ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: soa_init
-#endif  /* TRACERS_AEROSOLS_SOA */
 
       IMPLICIT NONE
 
@@ -81,10 +78,6 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
         yCl2O2(I_0:I_1,J_0:J_1,:)   =0.d0
 #endif
       END IF
-
-#ifdef TRACERS_AEROSOLS_SOA
-      call soa_init
-#endif  /* TRACERS_AEROSOLS_SOA */
 
  100  format(/3(50x,l1/),3(50x,i8/))
 #ifdef SHINDELL_STRAT_CHEM

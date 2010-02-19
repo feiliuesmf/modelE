@@ -10,6 +10,9 @@
      &     ,sname_strlen,units_strlen,lname_strlen
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE TRACER_COM, only: ntm
+#ifdef TRACERS_AEROSOLS_SOA
+     &                     ,nsoa
+#endif  /* TRACERS_AEROSOLS_SOA */
      *     , ntsurfsrcmax, nt3Dsrcmax
 #ifdef TRACERS_AMP
      *     ,ntmAMP
@@ -185,7 +188,12 @@ C**** TAIJLS 3D special tracer diagnostics
      &                            + 10
 #endif
 #ifdef SOA_DIAGS
-     &                            + 27
+#ifdef TRACERS_TERP
+     &                            + 29
+#else
+     &                            + 20
+#endif  /* TRACERS_TERP */
+     &                            + 8*nsoa
 #endif  /* SOA_DIAGS */
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
@@ -199,9 +207,9 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var SCALE_IJLT: printout scaling factor for 3D tracer diagnostics
       REAL*8, dimension(ktaijl) :: scale_ijlt
 !@var IR_IJLT: range index of IJL diagnostics
-      integer, dimension(ntm) :: ir_ijlt
+      integer, dimension(ktaijl) :: ir_ijlt
 !@var IA_IJLT: accumulation index for IJL diagnostics
-      integer, dimension(ntm) :: ia_ijlt
+      integer, dimension(ktaijl) :: ia_ijlt
 !@var ijlt_power: power of 10 used for tracer IJL 3D diags
       INTEGER, DIMENSION(ktaijs) :: ijlt_power
 !@var ijlt_XXX diag names associated with 3D tracer special diags
@@ -210,6 +218,18 @@ C**** TAIJLS 3D special tracer diagnostics
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr
 #ifdef SOA_DIAGS
+!@var ijlt_soa_changeL_isoprene gas-phase changeL of isoprene SOA (ug/m3)
+#ifdef TRACERS_TERP
+!@var ijlt_soa_changeL_terpenes gas-phase changeL of terpenes (ug/m3)
+#endif  /* TRACERS_TERP */
+!@var ijlt_soa_y0_ug_g gas-phase y0_ug (ug/m3)
+!@var ijlt_soa_y0_ug_a aerosol-phase y0_ug (ug/m3)
+!@var ijlt_soa_y_ug_g gas-phase y_ug (ug/m3)
+!@var ijlt_soa_y_ug_a aerosol-phase y_ug (ug/m3)
+!@var ijlt_soa_changeL_g_before gas-phase changeL before SOA (ug/m3)
+!@var ijlt_soa_changeL_a_before aerosol-phase changeL before SOA (ug/m3)
+!@var ijlt_soa_changeL_g_after gas-phase changeL after SOA (ug/m3)
+!@var ijlt_soa_changeL_a_after aerosol-phase changeL after SOA (ug/m3)
 !@var ijlt_soa_voc2nox VOC/NOx ratio (ppbC/ppb)
 !@var ijlt_soa_apartmass_isopp1a Effective apartmass of isopp1a
 !@var ijlt_soa_apartmass_isopp2a Effective apartmass of isopp2a
@@ -245,6 +265,18 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_soa_partfact_apinp2a Final partfact value
 #endif  /* TRACERS_TERP */
 !@var ijlt_soa_M0 Final M0 value
+      integer :: ijlt_soa_changeL_isoprene
+#ifdef TRACERS_TERP
+      integer :: ijlt_soa_changeL_terpenes
+#endif  /* TRACERS_TERP */
+      integer, dimension(nsoa) :: ijlt_soa_y0_ug_g
+      integer, dimension(nsoa) :: ijlt_soa_y0_ug_a
+      integer, dimension(nsoa) :: ijlt_soa_y_ug_g
+      integer, dimension(nsoa) :: ijlt_soa_y_ug_a
+      integer, dimension(nsoa) :: ijlt_soa_changeL_g_before
+      integer, dimension(nsoa) :: ijlt_soa_changeL_a_before
+      integer, dimension(nsoa) :: ijlt_soa_changeL_g_after
+      integer, dimension(nsoa) :: ijlt_soa_changeL_a_after
       integer :: ijlt_soa_voc2nox
       integer :: ijlt_soa_apartmass_isopp1a
       integer :: ijlt_soa_apartmass_isopp2a

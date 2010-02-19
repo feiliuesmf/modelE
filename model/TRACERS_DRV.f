@@ -75,7 +75,7 @@
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: n_soa_i,n_soa_e
+      USE TRACERS_SOA, only: n_soa_i,n_soa_e,soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_param
@@ -2179,6 +2179,9 @@ C**** Aerosol tracer output should be mass mixing ratio
 
       end do
 #ifdef TRACERS_ON
+#ifdef TRACERS_AEROSOLS_SOA
+      call soa_init
+#endif  /* TRACERS_AEROSOLS_SOA */
 C**** Get to_volume_MixRat from rundecks if it exists
       call sync_param("to_volume_MixRat",to_volume_MixRat,ntm)
 C**** Get to_conc from rundecks if it exists
@@ -7334,8 +7337,11 @@ c clear sky scattering asymmetry factor in six solar bands
       USE MODEL_COM, only: dtsrc
 #endif
       USE DIAG_COM
+#ifdef SOA_DIAGS
+      use tracers_soa, only: issoa
+#endif  /* SOA_DIAGS */
       implicit none
-      integer k,n
+      integer k,n,i
       character*50 :: unit_string
 
 #ifdef TRACERS_ON
@@ -7556,6 +7562,96 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef SOA_DIAGS
+      k = k + 1
+        ijlt_soa_changeL_isoprene=k
+        lname_ijlt(k) = 'changeL of isoprene'
+        sname_ijlt(k) = 'SOA_changeL_isoprene'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_soa_changeL_terpenes=k
+        lname_ijlt(k) = 'changeL of terpenes'
+        sname_ijlt(k) = 'SOA_changeL_terpenes'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      do i=1,nsoa
+        k = k + 1
+          ijlt_soa_y0_ug_g(i)=k
+          lname_ijlt(k) = 'y0_ug of '//trim(trname(issoa(i)-1))
+          sname_ijlt(k) = 'SOA_y0_ug_'//trim(trname(issoa(i)-1))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_y0_ug_a(i)=k
+          lname_ijlt(k) = 'y0_ug of '//trim(trname(issoa(i)))
+          sname_ijlt(k) = 'SOA_y0_ug_'//trim(trname(issoa(i)))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_y_ug_g(i)=k
+          lname_ijlt(k) = 'y_ug of '//trim(trname(issoa(i)-1))
+          sname_ijlt(k) = 'SOA_y_ug_'//trim(trname(issoa(i)-1))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_y_ug_a(i)=k
+          lname_ijlt(k) = 'y_ug of '//trim(trname(issoa(i)))
+          sname_ijlt(k) = 'SOA_y_ug_'//trim(trname(issoa(i)))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_changeL_g_before(i)=k
+          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)-1))//
+     &                    ' before SOA'
+          sname_ijlt(k) = 'SOA_changeL_before_'//
+     &                    trim(trname(issoa(i)-1))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_changeL_a_before(i)=k
+          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)))//
+     &                    ' before SOA'
+          sname_ijlt(k) = 'SOA_changeL_before_'//
+     &                    trim(trname(issoa(i)))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_changeL_g_after(i)=k
+          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)-1))//
+     &                    ' after SOA'
+          sname_ijlt(k) = 'SOA_changeL_after_'//
+     &                    trim(trname(issoa(i)-1))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_changeL_a_after(i)=k
+          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)))//
+     &                    ' after SOA'
+          sname_ijlt(k) = 'SOA_changeL_after_'//
+     &                    trim(trname(issoa(i)))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        print*,'KOSTAS',k
+      enddo
+      print*,'KOSTAS',ktaijl
+      print*,'KOSTAS',ijlt_soa_y0_ug_g
+      print*,'KOSTAS',ijlt_soa_y0_ug_a
+      print*,'KOSTAS',ijlt_soa_y_ug_g
+      print*,'KOSTAS',ijlt_soa_y_ug_a
+      print*,'KOSTAS',ijlt_soa_changeL_g_before
+      print*,'KOSTAS',ijlt_soa_changeL_a_before
+      print*,'KOSTAS',ijlt_soa_changeL_g_after
+      print*,'KOSTAS',ijlt_soa_changeL_a_after
       k = k + 1
         ijlt_soa_voc2nox=k
         lname_ijlt(k) = 'VOC/NOx ratio'

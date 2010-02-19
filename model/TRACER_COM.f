@@ -110,7 +110,7 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_nitrate=0
 #endif  /* TRACERS_NITRATE */
-!@var ntm_soa: Number of SOA tracers.
+!@param ntm_soa: Number of SOA tracers.
 #ifdef TRACERS_AEROSOLS_SOA
 !@+            Index g means gas phase, index p means particulate
 !@+            (aerosol) phase. g should ALWAYS be EXACTLY BEFORE
@@ -122,6 +122,8 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_soa=4
 #endif  /* TRACERS_TERP */
+!@param nsoa the total number of aerosol-phase SOA related species (=ntm_soa/2)
+      integer, parameter :: nsoa=ntm_soa/2
 #else
       integer, parameter :: ntm_soa=0
 #endif  /* TRACERS_AEROSOLS_SOA */

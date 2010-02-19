@@ -8,7 +8,7 @@ module TRACERS_SOA
 !@auth Kostas Tsigaridis (ktsigaridis@giss.nasa.gov)
 use RESOLUTION, only: LM
 use DOMAIN_DECOMP_ATM,only: write_parallel
-use TRACER_COM, only: ntm,ntm_soa,tr_mm,&
+use TRACER_COM, only: ntm,nsoa,tr_mm,&
                       n_Isoprene,&
 #ifdef TRACERS_TERP
                       n_Terpenes,&
@@ -20,8 +20,6 @@ implicit none
 !@var n_soa_i the first SOA-related species
 !@var n_soa_e the last SOA-related species
 integer                    :: n_soa_i,n_soa_e
-!@param nsoa the total number of aerosol-phase SOA related species (=ntm_soa/2)
-integer, parameter         :: nsoa=ntm_soa/2
 !@var mw the molecular weight of all tracers, in units of tracer mass per mole
 !@+      in order to replace the tm_mm which in some exceptional cases is in units of
 !@+      a certain atom (typically C or S) per mole.
@@ -44,9 +42,9 @@ real*8, dimension(ntm) :: molec2ug
 !
 ! soa semivolatile products in aerosol phase
 !
-!@var whichsoa converts species index to soa index
+!@var whichsoa converts tracer index to soa index
 integer, dimension(ntm)  :: whichsoa
-!@var issoa converts soa index to species index
+!@var issoa converts soa index to tracer index
 integer, dimension(nsoa) :: issoa
 
 !@param soacomp number of different cases in Lambda calculations
@@ -410,6 +408,14 @@ use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,&
                       mass2vol
 #ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
+                      ijlt_soa_changeL_isoprene,&
+#ifdef TRACERS_TERP
+                      ijlt_soa_changeL_terpenes,&
+#endif  /* TRACERS_TERP */
+                      ijlt_soa_y0_ug_g,ijlt_soa_y0_ug_a,&
+                      ijlt_soa_y_ug_g,ijlt_soa_y_ug_a,&
+                      ijlt_soa_changeL_g_before,ijlt_soa_changeL_a_before,&
+                      ijlt_soa_changeL_g_after,ijlt_soa_changeL_a_after,&
                       ijlt_soa_pcp,ijlt_soa_aerotot,ijlt_soa_aerotot_gas,&
                       ijlt_soa_xmf_isop,ijlt_soa_xmf_apin,&
                       ijlt_soa_zcoef_isop,ijlt_soa_zcoef_apin,ijlt_soa_meanmw,&
@@ -497,10 +503,28 @@ DO JL=L,L
 ! Note that we want the concentrations AFTER chemistry, 
 ! thus we apply changeL artificially (but not hardcoded)
 !
+  taijls(III,JJJ,jl,ijlt_soa_changeL_isoprene)=taijls(III,JJJ,jl,ijlt_soa_changeL_isoprene)+&
+                                               changeL(jl,n_isoprene)*bypfactor*mass2vol(n_isoprene)*molec2ug(n_isoprene)
+#ifdef TRACERS_TERP
+  taijls(III,JJJ,jl,ijlt_soa_changeL_terpenes)=taijls(III,JJJ,jl,ijlt_soa_changeL_terpenes)+&
+                                               changeL(jl,n_terpenes)*bypfactor*mass2vol(n_terpenes)*molec2ug(n_terpenes)
+#endif  /* TRACERS_TERP */
   do i=1,ntm
     y0_ug(i)=trm(III,JJJ,jl,i)*bypfactor*mass2vol(i)*molec2ug(i)
     y_ug(i)=(trm(III,JJJ,jl,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
   enddo
+#ifdef SOA_DIAGS
+  do i=1,nsoa
+    taijls(III,JJJ,jl,ijlt_soa_y0_ug_g(i))=taijls(III,JJJ,jl,ijlt_soa_y0_ug_g(i))+y0_ug(issoa(i)-1)
+    taijls(III,JJJ,jl,ijlt_soa_y_ug_g(i))=taijls(III,JJJ,jl,ijlt_soa_y_ug_g(i))+y_ug(issoa(i)-1)
+    taijls(III,JJJ,jl,ijlt_soa_changeL_g_before(i))=taijls(III,JJJ,jl,ijlt_soa_changeL_g_before(i))+&
+                                                    changeL(jl,issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1)*molec2ug(issoa(i)-1)
+    taijls(III,JJJ,jl,ijlt_soa_y0_ug_a(i))=taijls(III,JJJ,jl,ijlt_soa_y0_ug_a(i))+y0_ug(issoa(i))
+    taijls(III,JJJ,jl,ijlt_soa_y_ug_a(i))=taijls(III,JJJ,jl,ijlt_soa_y_ug_a(i))+y_ug(issoa(i))
+    taijls(III,JJJ,jl,ijlt_soa_changeL_a_before(i))=taijls(III,JJJ,jl,ijlt_soa_changeL_a_before(i))+&
+                                                    changeL(jl,issoa(i))*bypfactor*mass2vol(issoa(i))*molec2ug(issoa(i))
+  enddo
+#endif  /* SOA_DIAGS */
 
 !
 ! Calculate the primary aerosol able to absorb semivolatile compounds
@@ -798,7 +822,8 @@ DO JL=L,L
 ! No solution found, aerosol phase set to previous values, chemistry still applies to gas-phase species
 !
 30 continue
-  write(*,"('WARNING: Too many iteration steps. SOA forced to the previous values. M0=',e,' PCP=',e)") M0,PCP
+  write(out_line,"('WARNING: Too many iteration steps. SOA forced to previous values. M0=',e,' PCP=',e)") M0,PCP
+  call write_parallel(trim(out_line),crit=.true.)
   goto 60
 !
 ! Found solution for M0
@@ -835,6 +860,12 @@ DO JL=L,L
                            (molec2ug(issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1))
     changeL(jl,issoa(i))=(y_ug(issoa(i))-y0_ug(issoa(i)))/&
                          (molec2ug(issoa(i))*bypfactor*mass2vol(issoa(i)))
+#ifdef SOA_DIAGS
+    taijls(III,JJJ,jl,ijlt_soa_changeL_g_after(i))=taijls(III,JJJ,jl,ijlt_soa_changeL_g_after(i))+&
+                                                   changeL(jl,issoa(i)-1)*bypfactor*mass2vol(issoa(i)-1)*molec2ug(issoa(i)-1)
+    taijls(III,JJJ,jl,ijlt_soa_changeL_a_after(i))=taijls(III,JJJ,jl,ijlt_soa_changeL_a_after(i))+&
+                                                   changeL(jl,issoa(i))*bypfactor*mass2vol(issoa(i))*molec2ug(issoa(i))
+#endif  /* SOA_DIAGS */
   enddo
 
 ENDDO !JL
