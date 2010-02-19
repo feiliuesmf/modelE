@@ -45,7 +45,7 @@
       ! using resize to force tracflx to act as 4D array with
       ! size 1 in the uninteresting directions to match
       ! expected interface.
-      fluxNorm = sumDepthOfTopLayer()
+      fluxNorm = avgDepthOfTopLayer()
       sumFlux = volumeIntegration(reshape(tracflx(:,:,1),
      &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
       sumFlux = sumFlux / fluxNorm
@@ -60,15 +60,25 @@
       sumFlux = areaIntegration(tracflx(:,:,1))
       if (AM_I_ROOT()) then
          write(*,*)'original: ', sumFlux
-         write(*,*)'    norm: ', fluxNorm
-         write(*,*)'   areao: ', areao
-         write(*,*)'    sumo: ', sumo
       end if
       
 
       deallocate(summ)
 
       contains
+
+      real*8 function avgDepthOfTopLayer()
+      real*8, allocatable :: ones(:,:,:,:)
+      real*8 :: volumeOfTopLayer(1), area
+
+      allocate(ones(idm, J_0H:J_1H, 1, 1))
+      ones = 1
+      volumeOfTopLayer = volumeIntegration(ones)
+      area = areaIntegration(ones(:,:,1,1))
+      deallocate(ones)
+
+      if (am_i_root()) avgDepthOfTopLayer = volumeOfTopLayer(1)/area
+      end function avgDepthOfTopLayer
 
 #ifdef OBIO_ON_GARYocean
       function volumeIntegration(quantity)
@@ -129,21 +139,6 @@
 
       end function areaIntegration
 
-      real*8 function sumDepthOfTopLayer()
-      use oceanres, only: dzo
-      use ocean, only : focean
-      real*8 :: partialSum(j_0h:j_1h)
-
-      partialSum = 0
-      do j = j_0, j_1
-        do i = 1, idm
-          if (focean(i,j) > 0) then
-             partialSum = partialSum + dzo(1)
-          end if
-        end do
-      end do
-      call globalSum(ogrid, partialSum, sumDepthOfTopLayer)
-      end function sumDepthOfTopLayer
 #else
       function volumeIntegration(quantity)
       use hycom_scalars, only : huge
@@ -197,22 +192,6 @@
 
       end function areaIntegration
 
-      real*8 function sumDepthOfTopLayer()
-      use hycom_scalars, only : huge
-      real*8 :: partialSum(j_0h:j_1h)
-
-      partialSum = 0
-      do j = j_0, j_1
-        do i = 1, idm
-          if (dpinit(i,j,1) < huge) then
-            partialSum = partialSum + dpinit(i,j,1)
-          end if
-        end do
-      end do
-      call globalSum(ogrid, partialSum, sumDepthOfTopLayer)
-
-      end function sumDepthOfTopLayer
-
 #endif
 
       real*8 function getTotalOceanVolume() result(oceanVolume)
@@ -220,7 +199,6 @@
 
       real*8 :: volumeAsArray(1)
       allocate(ones(idm, J_0H:J_1H, kdm, 1))
-      
 
       ones = 1
       volumeAsArray = volumeIntegration(ones)
