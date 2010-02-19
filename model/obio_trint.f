@@ -56,14 +56,22 @@
       end if
 
       !integrate flux
+      if (am_i_root()) write(*,*)'HERE:',__LINE__, areao
+      
       allocate(partialfluxsum(j_0h:j_1h))
+      if (am_i_root()) write(*,*)'HERE:',__LINE__
       partialfluxsum(:) = partialIntegration(tracflx(:,:,1:1))
+      do j = j_0h, j_1h
+         write(40+j_0,*)j,'HERE:',__LINE__, partialfluxsum(j)
+      end do
 
       call globalSum(ogrid, partialfluxsum, sumflux)
+      if (am_i_root()) write(*,*)'HERE:',__LINE__
 
       if (am_i_root()) then
        write(*,*)'global averaged flux=',sumflux/areao
       endif
+      if (am_i_root()) write(*,*)'HERE',__LINE__
 
       deallocate(partialTracerSums, summ)
       deallocate(partialfluxsum)
@@ -134,9 +142,12 @@
       ones = 1
       partialOceanVolumes(:) = partialIntegration(ones)
       call globalSum(ogrid, partialOceanVolumes, oceanVolume)
-      oceanArea = partialOceanVolumes(1)
+
+      partialOceanVolumes(:) = partialIntegration(ones(:,:,1:1))
+      call globalSum(ogrid, partialOceanVolumes, oceanArea)
 
       deallocate(ones)
+      deallocate(partialOceanVolumes)
 
       end subroutine getOceanVolumeAndArea
 
