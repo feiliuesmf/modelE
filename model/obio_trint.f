@@ -29,7 +29,7 @@
       integer :: j_0, j_1, j_0h, j_1h
 
       real*8, allocatable :: summ(:)
-      real*8 :: sumflux
+      real*8 :: sumFlux(1), fluxNorm
 
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
@@ -41,19 +41,30 @@
       allocate(summ(ntrcr))
       summ = volumeIntegration(tracer)
 
+      !integrate flux
+      ! using resize to force tracflx to act as 4D array with
+      ! size 1 in the uninteresting directions to match
+      ! expected interface.
+      fluxNorm = sumDepthOfTopLayer()
+      sumFlux = volumeIntegration(reshape(tracflx(:,:,1),
+     &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
+      sumFlux = sumFlux / fluxNorm
+
       if (am_i_root()) then
          do iTracer = 1, ntrcr
             write(*,*) 'total intgrl tracer:', iTracer, nstep, 
      &           summ(iTracer), summ(iTracer)/sumo
          end do
-      end if
-
-      !integrate flux
-      sumFlux = areaIntegration(tracflx(:,:,1))
-
-      if (am_i_root()) then
-       write(*,*)'global averaged flux=',sumflux, sumflux/areao
+       write(*,*)'global averaged flux=',sumFlux, sumFlux/areao
       endif
+      sumFlux = areaIntegration(tracflx(:,:,1))
+      if (AM_I_ROOT()) then
+         write(*,*)'original: ', sumFlux
+         write(*,*)'    norm: ', fluxNorm
+         write(*,*)'   areao: ', areao
+         write(*,*)'    sumo: ', sumo
+      end if
+      
 
       deallocate(summ)
 
@@ -95,7 +106,6 @@
 
       real*8 function areaIntegration(quantity)
       use ocean, only : dxypo, focean
-      use oceanres, only: dzo
       real*8, intent(in) :: quantity(:,j_0h:)
       real*8 :: partialAreaIntegration(j_0h:j_1h)
       
@@ -109,7 +119,7 @@
         gridCellArea = dxypo(j)
         do i= 1, idm
           if (focean(i,j) > 0) then
-             partialAreaIntegration(j) = partialAreaIntegration(j) + 
+            partialAreaIntegration(j) = partialAreaIntegration(j) + 
      &            quantity(i,j,k) * gridCellArea
           end if
         end do
@@ -118,10 +128,24 @@
       call globalSum(ogrid, partialAreaIntegration, areaIntegration)
 
       end function areaIntegration
+
+      real*8 function sumDepthOfTopLayer()
+      use oceanres, only: dzo
+      real*8 :: partialSum(j_0h:j_1h)
+
+      partialSum = 0
+      do j = j_0, j_1
+        do i = 1, idm
+          if (focean(i,j) > 0) then
+             sumDepthOfTopLayer = sumDepthOfTopLayer + dzo(1)
+          end if
+        end do
+      end do
+      call globalSum(ogrid, partialSum, sumDepthOfTopLayer)
+      end function sumDepthOfTopLayer
 #else
       function volumeIntegration(quantity)
       use hycom_scalars, only : huge
-      use hycom_dim, only: ifp, ilp, isp
       real*8, intent(in) :: quantity(:,j_0h:,:,:)
       real*8 :: volumeIntegration(size(quantity,4))
       
@@ -152,7 +176,6 @@
 
       real*8 function areaIntegration(quantity)
       use hycom_scalars, only : huge
-      use hycom_dim, only: ifp, ilp, isp
       real*8, intent(in) :: quantity(:,j_0h:)
       real*8 :: partialAreaIntegration(j_0h:j_1h)
       
@@ -171,6 +194,23 @@
       call globalSum(ogrid, partialAreaIntegration, areaIntegration)
 
       end function areaIntegration
+
+      real*8 function sumDepthOfTopLayer()
+      use hycom_scalars, only : huge
+      real*8 :: partialSum(j_0h:j_1h)
+
+      partialSum = 0
+      do j = j_0, j_1
+        do i = 1, idm
+          if (dpinit(i,j,1) < huge) then
+            partialSum = partialSum + dpinit(i,j,1)
+          end if
+        end do
+      end do
+      call globalSum(ogrid, partialSum, sumDepthOfTopLayer)
+
+      end function sumDepthOfTopLayer
+
 #endif
 
       real*8 function getTotalOceanVolume() result(oceanVolume)
