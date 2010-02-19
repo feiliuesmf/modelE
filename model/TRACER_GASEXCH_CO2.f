@@ -53,16 +53,19 @@
       USE HYCOM_DIM, only : ogrid
 #endif
       integer i_0,i_1,j_0,j_1
+      integer j_0h,j_1h
 
       i_0=ogrid%I_STRT
       i_1=ogrid%I_STOP
       j_0=ogrid%J_STRT
       j_1=ogrid%J_STOP
+      j_0h=ogrid%J_STRT_HALO
+      j_1h=ogrid%J_STOP_HALO
 
       print*,'alloc_gasexch_com:',i_0,i_1,j_0,j_1
       print*, ntm
 
-      ALLOCATE(tracflx(i_0:i_1,j_0:j_1,ntm))
+      ALLOCATE(tracflx(i_0:i_1,j_0h:j_1h,ntm))
       ALLOCATE(tracflx_glob(idm,jdm,ntm))
 
       ALLOCATE(atracflx(iia,jja,ntm))
