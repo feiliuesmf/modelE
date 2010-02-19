@@ -120,7 +120,7 @@
         do i= 1, idm
           if (focean(i,j) > 0) then
             partialAreaIntegration(j) = partialAreaIntegration(j) + 
-     &            quantity(i,j,k) * gridCellArea
+     &            quantity(i,j) * gridCellArea
           end if
         end do
       end do
@@ -137,7 +137,7 @@
       do j = j_0, j_1
         do i = 1, idm
           if (focean(i,j) > 0) then
-             sumDepthOfTopLayer = sumDepthOfTopLayer + dzo(1)
+             partialSum = partialSum + dzo(1)
           end if
         end do
       end do
@@ -156,6 +156,7 @@
       partialVolumeIntegration = 0
       numLevels = size(quantity,3)
       numTracers = size(quantity,4)
+
       do k = 1, numLevels
         do j = j_0, j_1
           do i = 1, idm
