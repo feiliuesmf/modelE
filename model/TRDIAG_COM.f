@@ -188,12 +188,11 @@ C**** TAIJLS 3D special tracer diagnostics
      &                            + 10
 #endif
 #ifdef SOA_DIAGS
+     &                            + 12
 #ifdef TRACERS_TERP
-     &                            + 29
-#else
-     &                            + 20
+     &                            + 1
 #endif  /* TRACERS_TERP */
-     &                            + 8*nsoa
+     &                            + 13*nsoa
 #endif  /* SOA_DIAGS */
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
@@ -222,21 +221,7 @@ C**** TAIJLS 3D special tracer diagnostics
 #ifdef TRACERS_TERP
 !@var ijlt_soa_changeL_terpenes gas-phase changeL of terpenes (ug/m3)
 #endif  /* TRACERS_TERP */
-!@var ijlt_soa_y0_ug_g gas-phase y0_ug (ug/m3)
-!@var ijlt_soa_y0_ug_a aerosol-phase y0_ug (ug/m3)
-!@var ijlt_soa_y_ug_g gas-phase y_ug (ug/m3)
-!@var ijlt_soa_y_ug_a aerosol-phase y_ug (ug/m3)
-!@var ijlt_soa_changeL_g_before gas-phase changeL before SOA (ug/m3)
-!@var ijlt_soa_changeL_a_before aerosol-phase changeL before SOA (ug/m3)
-!@var ijlt_soa_changeL_g_after gas-phase changeL after SOA (ug/m3)
-!@var ijlt_soa_changeL_a_after aerosol-phase changeL after SOA (ug/m3)
 !@var ijlt_soa_voc2nox VOC/NOx ratio (ppbC/ppb)
-!@var ijlt_soa_apartmass_isopp1a Effective apartmass of isopp1a
-!@var ijlt_soa_apartmass_isopp2a Effective apartmass of isopp2a
-#ifdef TRACERS_TERP
-!@var ijlt_soa_apartmass_apinp1a Effective apartmass of apinp1a
-!@var ijlt_soa_apartmass_apinp2a Effective apartmass of apinp2a
-#endif  /* TRACERS_TERP */
 !@var ijlt_soa_pcp Total non-volatile SOA-absorbing mass (ug/m3)
 !@var ijlt_soa_aerotot PCP plus SOA (g+a) (ug/m3)
 !@var ijlt_soa_aerotot_gas Gas-phase semivolatile potential SOA (g+a) (ug/m3)
@@ -245,45 +230,26 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_soa_zcoef_isop Activity coefficient for isoprene SOA
 !@var ijlt_soa_zcoef_apin Activity coefficient for a-pinene SOA
 !@var ijlt_soa_meanmw Mean organic aerosol molecular weight (g/mol)
-!@var ijlt_soa_kp_isopp1a Partitioning coefficient of isopp1a (m3/ug)
-!@var ijlt_soa_kp_isopp2a Partitioning coefficient of isopp2a (m3/ug)
-#ifdef TRACERS_TERP
-!@var ijlt_soa_kp_apinp1a Partitioning coefficient of apinp1a (m3/ug)
-!@var ijlt_soa_kp_apinp2a Partitioning coefficient of apinp2a (m3/ug)
-#endif  /* TRACERS_TERP */
 !@var ijlt_soa_iternum Total iterations for SOA calculations (count)
-!@var ijlt_soa_soamass_isopp1a Final soamass value
-!@var ijlt_soa_soamass_isopp2a Final soamass value
-#ifdef TRACERS_TERP
-!@var ijlt_soa_soamass_apinp1a Final soamass value
-!@var ijlt_soa_soamass_apinp2a Final soamass value
-#endif  /* TRACERS_TERP */
-!@var ijlt_soa_partfact_isopp1a Final partfact value
-!@var ijlt_soa_partfact_isopp2a Final partfact value
-#ifdef TRACERS_TERP
-!@var ijlt_soa_partfact_apinp1a Final partfact value
-!@var ijlt_soa_partfact_apinp2a Final partfact value
-#endif  /* TRACERS_TERP */
 !@var ijlt_soa_M0 Final M0 value
+!@var ijlt_soa_y0_ug_g gas-phase y0_ug (ug/m3)
+!@var ijlt_soa_y0_ug_a aerosol-phase y0_ug (ug/m3)
+!@var ijlt_soa_y_ug_g gas-phase y_ug (ug/m3)
+!@var ijlt_soa_y_ug_a aerosol-phase y_ug (ug/m3)
+!@var ijlt_soa_changeL_g_before gas-phase changeL before SOA (ug/m3)
+!@var ijlt_soa_changeL_a_before aerosol-phase changeL before SOA (ug/m3)
+!@var ijlt_soa_changeL_g_after gas-phase changeL after SOA (ug/m3)
+!@var ijlt_soa_changeL_a_after aerosol-phase changeL after SOA (ug/m3)
+!@var ijlt_soa_apartmass Effective apartmass
+!@var ijlt_soa_kpart Partitioning coefficient (m3/ug)
+!@var ijlt_soa_kp Final partitioning coefficient (m3/ug)
+!@var ijlt_soa_soamass Final soamass value
+!@var ijlt_soa_partfact Final partfact value
       integer :: ijlt_soa_changeL_isoprene
 #ifdef TRACERS_TERP
       integer :: ijlt_soa_changeL_terpenes
 #endif  /* TRACERS_TERP */
-      integer, dimension(nsoa) :: ijlt_soa_y0_ug_g
-      integer, dimension(nsoa) :: ijlt_soa_y0_ug_a
-      integer, dimension(nsoa) :: ijlt_soa_y_ug_g
-      integer, dimension(nsoa) :: ijlt_soa_y_ug_a
-      integer, dimension(nsoa) :: ijlt_soa_changeL_g_before
-      integer, dimension(nsoa) :: ijlt_soa_changeL_a_before
-      integer, dimension(nsoa) :: ijlt_soa_changeL_g_after
-      integer, dimension(nsoa) :: ijlt_soa_changeL_a_after
       integer :: ijlt_soa_voc2nox
-      integer :: ijlt_soa_apartmass_isopp1a
-      integer :: ijlt_soa_apartmass_isopp2a
-#ifdef TRACERS_TERP
-      integer :: ijlt_soa_apartmass_apinp1a
-      integer :: ijlt_soa_apartmass_apinp2a
-#endif  /* TRACERS_TERP */
       integer :: ijlt_soa_pcp
       integer :: ijlt_soa_aerotot
       integer :: ijlt_soa_aerotot_gas
@@ -292,26 +258,21 @@ C**** TAIJLS 3D special tracer diagnostics
       integer :: ijlt_soa_zcoef_isop
       integer :: ijlt_soa_zcoef_apin
       integer :: ijlt_soa_meanmw
-      integer :: ijlt_soa_kp_isopp1a
-      integer :: ijlt_soa_kp_isopp2a
-#ifdef TRACERS_TERP
-      integer :: ijlt_soa_kp_apinp1a
-      integer :: ijlt_soa_kp_apinp2a
-#endif  /* TRACERS_TERP */
       integer :: ijlt_soa_iternum
-      integer :: ijlt_soa_soamass_isopp1a
-      integer :: ijlt_soa_soamass_isopp2a
-#ifdef TRACERS_TERP
-      integer :: ijlt_soa_soamass_apinp1a
-      integer :: ijlt_soa_soamass_apinp2a
-#endif  /* TRACERS_TERP */
-      integer :: ijlt_soa_partfact_isopp1a
-      integer :: ijlt_soa_partfact_isopp2a
-#ifdef TRACERS_TERP
-      integer :: ijlt_soa_partfact_apinp1a
-      integer :: ijlt_soa_partfact_apinp2a
-#endif  /* TRACERS_TERP */
       integer :: ijlt_soa_m0
+      integer, dimension(nsoa) :: ijlt_soa_y0_ug_g
+      integer, dimension(nsoa) :: ijlt_soa_y0_ug_a
+      integer, dimension(nsoa) :: ijlt_soa_y_ug_g
+      integer, dimension(nsoa) :: ijlt_soa_y_ug_a
+      integer, dimension(nsoa) :: ijlt_soa_changeL_g_before
+      integer, dimension(nsoa) :: ijlt_soa_changeL_a_before
+      integer, dimension(nsoa) :: ijlt_soa_changeL_g_after
+      integer, dimension(nsoa) :: ijlt_soa_changeL_a_after
+      integer, dimension(nsoa) :: ijlt_soa_apartmass
+      integer, dimension(nsoa) :: ijlt_soa_kpart
+      integer, dimension(nsoa) :: ijlt_soa_kp
+      integer, dimension(nsoa) :: ijlt_soa_soamass
+      integer, dimension(nsoa) :: ijlt_soa_partfact
 #endif  /* SOA_DIAGS */
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers

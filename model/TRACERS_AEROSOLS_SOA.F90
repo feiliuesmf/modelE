@@ -351,11 +351,7 @@ subroutine soa_apart
 
 #ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
-                      ijlt_soa_voc2nox,&
-#ifdef TRACERS_TERP
-                      ijlt_soa_apartmass_apinp1a,ijlt_soa_apartmass_apinp2a,&
-#endif  /* TRACERS_TERP */
-                      ijlt_soa_apartmass_isopp1a,ijlt_soa_apartmass_isopp2a
+                      ijlt_soa_voc2nox,ijlt_soa_apartmass
 #endif  /* SOA_DIAGS */
 implicit none
 
@@ -371,18 +367,15 @@ apartmolar=0.d0
 ! mass based stoicheiometric coefficients
 !
 do jl=1,LM
-  do i=1,nsoa
-    apartmass(jl,i)=voc2nox(jl)*apartmass_nox_ref(i)+(1.d0-voc2nox(jl))*apartmass_ref(i)
-  enddo
 #ifdef SOA_DIAGS
   taijls(III,JJJ,jl,ijlt_soa_voc2nox)=taijls(III,JJJ,jl,ijlt_soa_voc2nox)+voc2nox(jl)
-  taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp1a)+apartmass(jl,whichsoa(n_isopp1a))
-  taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_isopp2a)+apartmass(jl,whichsoa(n_isopp2a))
-#ifdef TRACERS_TERP
-  taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp1a)+apartmass(jl,whichsoa(n_apinp1a))
-  taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_apartmass_apinp2a)+apartmass(jl,whichsoa(n_apinp2a))
-#endif  /* TRACERS_TERP */
 #endif  /* SOA_DIAGS */
+  do i=1,nsoa
+    apartmass(jl,i)=voc2nox(jl)*apartmass_nox_ref(i)+(1.d0-voc2nox(jl))*apartmass_ref(i)
+#ifdef SOA_DIAGS
+    taijls(III,JJJ,jl,ijlt_soa_apartmass(i))=taijls(III,JJJ,jl,ijlt_soa_apartmass(i))+apartmass(jl,i)
+#endif  /* SOA_DIAGS */
+  enddo
 enddo
 
 !
@@ -412,27 +405,15 @@ use TRDIAG_COM, only: taijls=>taijls_loc,&
 #ifdef TRACERS_TERP
                       ijlt_soa_changeL_terpenes,&
 #endif  /* TRACERS_TERP */
+                      ijlt_soa_pcp,ijlt_soa_aerotot,ijlt_soa_aerotot_gas,&
+                      ijlt_soa_xmf_isop,ijlt_soa_xmf_apin,&
+                      ijlt_soa_zcoef_isop,ijlt_soa_zcoef_apin,ijlt_soa_meanmw,&
+                      ijlt_soa_iternum,ijlt_soa_m0,&
                       ijlt_soa_y0_ug_g,ijlt_soa_y0_ug_a,&
                       ijlt_soa_y_ug_g,ijlt_soa_y_ug_a,&
                       ijlt_soa_changeL_g_before,ijlt_soa_changeL_a_before,&
                       ijlt_soa_changeL_g_after,ijlt_soa_changeL_a_after,&
-                      ijlt_soa_pcp,ijlt_soa_aerotot,ijlt_soa_aerotot_gas,&
-                      ijlt_soa_xmf_isop,ijlt_soa_xmf_apin,&
-                      ijlt_soa_zcoef_isop,ijlt_soa_zcoef_apin,ijlt_soa_meanmw,&
-                      ijlt_soa_kp_isopp1a,ijlt_soa_kp_isopp2a,&
-#ifdef TRACERS_TERP
-                      ijlt_soa_kp_apinp1a,ijlt_soa_kp_apinp2a,&
-#endif  /* TRACERS_TERP */
-                      ijlt_soa_iternum,&
-                      ijlt_soa_soamass_isopp1a,ijlt_soa_soamass_isopp2a,&
-#ifdef TRACERS_TERP
-                      ijlt_soa_soamass_apinp1a,ijlt_soa_soamass_apinp2a,&
-#endif  /* TRACERS_TERP */
-                      ijlt_soa_partfact_isopp1a,ijlt_soa_partfact_isopp2a,&
-#ifdef TRACERS_TERP
-                      ijlt_soa_partfact_apinp1a,ijlt_soa_partfact_apinp2a,&
-#endif  /* TRACERS_TERP */
-                      ijlt_soa_m0
+                      ijlt_soa_kpart,ijlt_soa_kp,ijlt_soa_soamass,ijlt_soa_partfact
 #endif  /* SOA_DIAGS */
 implicit none
 
@@ -464,7 +445,7 @@ integer                     :: imf,jmf,kmf
 !@+         going to be used). The allowed range is 0.3 < zcoef < 5.0
 real*8, dimension(soacomp)  :: xmf,zcoef
 !@var kp final value of partitioning coefficient after applying all relevant parameters to the reference case kpart_ref
-real*8,dimension(n_soa_i:n_soa_e) :: kp
+real*8, dimension(nsoa)     :: kp
 ! Other SOA parameters
 !@var M0err maximum error requested by the iterative solution. THIS IS COMPUTER ARCHITECTURE DEPENDENT!
 !@+   For single precision computers, 1.e-6 is the lowest it can go. For double precision this number
@@ -692,41 +673,39 @@ DO JL=L,L
 !
 ! Calculate final value of partitioning coefficient
 !
-  kp(n_isopp1a)=kpart(jl,whichsoa(n_isopp1a))/zcoef(imfisop)*mw(n_isopp1a)/meanmw
-  kp(n_isopp2a)=kpart(jl,whichsoa(n_isopp2a))/zcoef(imfisop)*mw(n_isopp2a)/meanmw
+  kp(whichsoa(n_isopp1a))=kpart(jl,whichsoa(n_isopp1a))/zcoef(imfisop)*mw(n_isopp1a)/meanmw
+  kp(whichsoa(n_isopp2a))=kpart(jl,whichsoa(n_isopp2a))/zcoef(imfisop)*mw(n_isopp2a)/meanmw
 #ifdef TRACERS_TERP
-  kp(n_apinp1a)=kpart(jl,whichsoa(n_apinp1a))/zcoef(imfapin)*mw(n_apinp1a)/meanmw
-  kp(n_apinp2a)=kpart(jl,whichsoa(n_apinp2a))/zcoef(imfapin)*mw(n_apinp2a)/meanmw
+  kp(whichsoa(n_apinp1a))=kpart(jl,whichsoa(n_apinp1a))/zcoef(imfapin)*mw(n_apinp1a)/meanmw
+  kp(whichsoa(n_apinp2a))=kpart(jl,whichsoa(n_apinp2a))/zcoef(imfapin)*mw(n_apinp2a)/meanmw
 #endif  /* TRACERS_TERP */
 #ifdef SOA_DIAGS
-  taijls(III,JJJ,jl,ijlt_soa_kp_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_kp_isopp1a)+kp(n_isopp1a)
-  taijls(III,JJJ,jl,ijlt_soa_kp_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_kp_isopp2a)+kp(n_isopp2a)
-#ifdef TRACERS_TERP
-  taijls(III,JJJ,jl,ijlt_soa_kp_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_kp_apinp1a)+kp(n_apinp1a)
-  taijls(III,JJJ,jl,ijlt_soa_kp_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_kp_apinp2a)+kp(n_apinp2a)
-#endif  /* TRACERS_TERP */
+  do i=1,nsoa
+    taijls(III,JJJ,jl,ijlt_soa_kpart(i))=taijls(III,JJJ,jl,ijlt_soa_kpart(i))+kpart(jl,i)
+    taijls(III,JJJ,jl,ijlt_soa_kp(i))=taijls(III,JJJ,jl,ijlt_soa_kp(i))+kp(i)
+  enddo
 #endif  /* SOA_DIAGS */
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
-!modelE!  kp(ibpinp1a_nox)=kpart(jl,whichsoa(ibpinp1a_nox))/zcoef(imfapin)*mw(ibpinp1a_nox)/meanmw
-!modelE!  kp(ibpinp2a_nox)=kpart(jl,whichsoa(ibpinp2a_nox))/zcoef(imfapin)*mw(ibpinp2a_nox)/meanmw
+!modelE!  kp(whichsoa(ibpinp1a_nox))=kpart(jl,whichsoa(ibpinp1a_nox))/zcoef(imfapin)*mw(ibpinp1a_nox)/meanmw
+!modelE!  kp(whichsoa(ibpinp2a_nox))=kpart(jl,whichsoa(ibpinp2a_nox))/zcoef(imfapin)*mw(ibpinp2a_nox)/meanmw
 !modelE!#  endif
-!modelE!  kp(ibpinp1a_hox)=kpart(jl,whichsoa(ibpinp1a_hox))/zcoef(imfapin)*mw(ibpinp1a_hox)/meanmw
-!modelE!  kp(ibpinp2a_hox)=kpart(jl,whichsoa(ibpinp2a_hox))/zcoef(imfapin)*mw(ibpinp2a_hox)/meanmw
+!modelE!  kp(whichsoa(ibpinp1a_hox))=kpart(jl,whichsoa(ibpinp1a_hox))/zcoef(imfapin)*mw(ibpinp1a_hox)/meanmw
+!modelE!  kp(whichsoa(ibpinp2a_hox))=kpart(jl,whichsoa(ibpinp2a_hox))/zcoef(imfapin)*mw(ibpinp2a_hox)/meanmw
 !modelE!#endif
 !modelE!#ifdef SOA_FULL
-!modelE!  kp(itolp1a_nox)=kpart(jl,whichsoa(itolp1a_nox))/zcoef(imfaro)*mw(itolp1a_nox)/meanmw
-!modelE!  kp(itolp2a_nox)=kpart(jl,whichsoa(itolp2a_nox))/zcoef(imfaro)*mw(itolp2a_nox)/meanmw
+!modelE!  kp(whichsoa(itolp1a_nox))=kpart(jl,whichsoa(itolp1a_nox))/zcoef(imfaro)*mw(itolp1a_nox)/meanmw
+!modelE!  kp(whichsoa(itolp2a_nox))=kpart(jl,whichsoa(itolp2a_nox))/zcoef(imfaro)*mw(itolp2a_nox)/meanmw
 !modelE!#endif
-!modelE!  kp(itolp1a_hox)=kpart(jl,whichsoa(itolp1a_hox))/zcoef(imfaro)*mw(itolp1a_hox)/meanmw
-!modelE!  kp(itolp2a_hox)=kpart(jl,whichsoa(itolp2a_hox))/zcoef(imfaro)*mw(itolp2a_hox)/meanmw
+!modelE!  kp(whichsoa(itolp1a_hox))=kpart(jl,whichsoa(itolp1a_hox))/zcoef(imfaro)*mw(itolp1a_hox)/meanmw
+!modelE!  kp(whichsoa(itolp2a_hox))=kpart(jl,whichsoa(itolp2a_hox))/zcoef(imfaro)*mw(itolp2a_hox)/meanmw
 !modelE!#ifndef SOA_MINIMUM
 !modelE!#  ifdef SOA_FULL
-!modelE!  kp(ixylp1a_nox)=kpart(jl,whichsoa(ixylp1a_nox))/zcoef(imfaro)*mw(ixylp1a_nox)/meanmw
-!modelE!  kp(ixylp2a_nox)=kpart(jl,whichsoa(ixylp2a_nox))/zcoef(imfaro)*mw(ixylp2a_nox)/meanmw
+!modelE!  kp(whichsoa(ixylp1a_nox))=kpart(jl,whichsoa(ixylp1a_nox))/zcoef(imfaro)*mw(ixylp1a_nox)/meanmw
+!modelE!  kp(whichsoa(ixylp2a_nox))=kpart(jl,whichsoa(ixylp2a_nox))/zcoef(imfaro)*mw(ixylp2a_nox)/meanmw
 !modelE!#  endif
-!modelE!  kp(ixylp1a_hox)=kpart(jl,whichsoa(ixylp1a_hox))/zcoef(imfaro)*mw(ixylp1a_hox)/meanmw
-!modelE!  kp(ixylp2a_hox)=kpart(jl,whichsoa(ixylp2a_hox))/zcoef(imfaro)*mw(ixylp2a_hox)/meanmw
+!modelE!  kp(whichsoa(ixylp1a_hox))=kpart(jl,whichsoa(ixylp1a_hox))/zcoef(imfaro)*mw(ixylp1a_hox)/meanmw
+!modelE!  kp(whichsoa(ixylp2a_hox))=kpart(jl,whichsoa(ixylp2a_hox))/zcoef(imfaro)*mw(ixylp2a_hox)/meanmw
 !modelE!#endif
 !
 ! Add soa species gas and particulate phase in variable soamass (ug m-3)
@@ -735,15 +714,10 @@ DO JL=L,L
   do i=1,nsoa
     soamass(i)=y_ug(issoa(i)-1)
     if (SOAevap) soamass(i)=soamass(i)+y_ug(issoa(i))
-  enddo
 #ifdef SOA_DIAGS
-  taijls(III,JJJ,jl,ijlt_soa_soamass_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_soamass_isopp1a)+soamass(whichsoa(n_isopp1a))
-  taijls(III,JJJ,jl,ijlt_soa_soamass_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_soamass_isopp2a)+soamass(whichsoa(n_isopp2a))
-#ifdef TRACERS_TERP
-  taijls(III,JJJ,jl,ijlt_soa_soamass_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_soamass_apinp1a)+soamass(whichsoa(n_apinp1a))
-  taijls(III,JJJ,jl,ijlt_soa_soamass_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_soamass_apinp2a)+soamass(whichsoa(n_apinp2a))
-#endif  /* TRACERS_TERP */
+    taijls(III,JJJ,jl,ijlt_soa_soamass(i))=taijls(III,JJJ,jl,ijlt_soa_soamass(i))+soamass(i)
 #endif  /* SOA_DIAGS */
+  enddo
   if (sum(soamass)==0.d0) goto 60 ! no semivolatiles, nothing to do
   M0a=PCP
   M0b=PCP
@@ -779,9 +753,9 @@ DO JL=L,L
   y1=PCP-x1
   y2=PCP-x2
   do i=1,nsoa
-    partfact2(i)=kp(issoa(i))*x2/(1.d0+kp(issoa(i))*x2)
+    partfact2(i)=kp(i)*x2/(1.d0+kp(i)*x2)
     y2=y2+soamass(i)*partfact2(i)
-    partfact1(i)=kp(issoa(i))*x1/(1.d0+kp(issoa(i))*x1)
+    partfact1(i)=kp(i)*x1/(1.d0+kp(i)*x1)
     y1=y1+soamass(i)*partfact1(i)
   enddo
   if(abs(y1).lt.M0err) then
@@ -831,19 +805,16 @@ DO JL=L,L
 20 continue
 #ifdef SOA_DIAGS
   taijls(III,JJJ,jl,ijlt_soa_iternum)=taijls(III,JJJ,jl,ijlt_soa_iternum)+float(iternum)
-  taijls(III,JJJ,jl,ijlt_soa_partfact_isopp1a)=taijls(III,JJJ,jl,ijlt_soa_partfact_isopp1a)+partfact(whichsoa(n_isopp1a))
-  taijls(III,JJJ,jl,ijlt_soa_partfact_isopp2a)=taijls(III,JJJ,jl,ijlt_soa_partfact_isopp2a)+partfact(whichsoa(n_isopp2a))
-#ifdef TRACERS_TERP
-  taijls(III,JJJ,jl,ijlt_soa_partfact_apinp1a)=taijls(III,JJJ,jl,ijlt_soa_partfact_apinp1a)+partfact(whichsoa(n_apinp1a))
-  taijls(III,JJJ,jl,ijlt_soa_partfact_apinp2a)=taijls(III,JJJ,jl,ijlt_soa_partfact_apinp2a)+partfact(whichsoa(n_apinp2a))
-#endif  /* TRACERS_TERP */
+  do i=1,nsoa
+    taijls(III,JJJ,jl,ijlt_soa_partfact(i))=taijls(III,JJJ,jl,ijlt_soa_partfact(i))+partfact(i)
+  enddo
   taijls(III,JJJ,jl,ijlt_soa_m0)=taijls(III,JJJ,jl,ijlt_soa_m0)+M0
 #endif  /* SOA_DIAGS */
   if (M0.ne.0.d0) then
     do i=1,nsoa
       if(SOAevap) then
-        y_ug(issoa(i))=soamass(i)*partfact(i)             ! Calculate new aerosol-phase concentration
-        y_ug(issoa(i)-1)=y_ug(issoa(i))/(kp(issoa(i))*M0) ! Calculate new gas-phase concentration
+        y_ug(issoa(i))=soamass(i)*partfact(i)      ! Calculate new aerosol-phase concentration
+        y_ug(issoa(i)-1)=y_ug(issoa(i))/(kp(i)*M0) ! Calculate new gas-phase concentration
       else
         y_ug(issoa(i))=y_ug(issoa(i))+soamass(i)*partfact(i)
         y_ug(issoa(i)-1)=max(0.d0,y_ug(issoa(i)-1)-soamass(i)*partfact(i))
