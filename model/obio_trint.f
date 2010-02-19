@@ -75,13 +75,14 @@
       use ocean, only : dxypo, focean
       use oceanres, only: dzo
       real*8, intent(in) :: quantity(:,j_0h:,:,:)
-      real*8 :: volumeIntegration(size(quantity,4)
+      real*8 :: volumeIntegration(size(quantity,4))
       
       real*8 :: partialIntegration(j_0h:j_1h,size(quantity,4))
       real*8 :: gridCellVolume
       integer :: numLevels, numTracers
+      integer :: i,j,k,n
 
-      partialVolumeIntegration = 0
+      partialIntegration = 0
       numLevels = size(quantity,3)
       numTracers = size(quantity,4)
 
@@ -91,8 +92,7 @@
           do i= 1, idm
             do n = 1, numTracers
                if (focean(i,j) > 0) then
-                 partialVolumeIntegration(j,n) = 
-     &                 partialVolumeIntegration(j,n) + 
+                 partialIntegration(j,n) = partialIntegration(j,n) + 
      &                 quantity(i,j,k,n) * gridCellVolume
               end if
             end do
@@ -100,7 +100,7 @@
         end do
       end do
       
-      call globalSum(ogrid, partialVolumeIntegration, volumeIntegration)
+      call globalSum(ogrid, partialIntegration, volumeIntegration)
 
       end function volumeIntegration
 
@@ -131,6 +131,7 @@
 
       real*8 function sumDepthOfTopLayer()
       use oceanres, only: dzo
+      use ocean, only : focean
       real*8 :: partialSum(j_0h:j_1h)
 
       partialSum = 0
