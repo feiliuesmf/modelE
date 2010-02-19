@@ -45,9 +45,10 @@
       ! using resize to force tracflx to act as 4D array with
       ! size 1 in the uninteresting directions to match
       ! expected interface.
-      fluxNorm = avgDepthOfTopLayer()
       sumFlux = volumeIntegration(reshape(tracflx(:,:,1),
      &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
+c$$$      fluxNorm = avgDepthOfTopLayer()
+      fluxNorm = sumDepthOfTopLayer()
       sumFlux = sumFlux / fluxNorm
 
       if (am_i_root()) then
@@ -55,13 +56,9 @@
             write(*,*) 'total intgrl tracer:', iTracer, nstep, 
      &           summ(iTracer), summ(iTracer)/sumo
          end do
+
        write(*,*)'global averaged flux=',sumFlux, sumFlux/areao
       endif
-      sumFlux = areaIntegration(tracflx(:,:,1))
-      if (AM_I_ROOT()) then
-         write(*,*)'original: ', sumFlux
-      end if
-      
 
       deallocate(summ)
 
@@ -139,6 +136,26 @@
 
       end function areaIntegration
 
+      real*8 function sumDepthOfTopLayer()
+      use oceanres, only: dzo
+      use ocean, only : focean
+      real*8 :: partialIntegration(j_0h:j_1h)
+      
+      integer :: i, j
+
+      partialIntegration = 0
+      do j = j_0, j_1
+        do i= 1, idm
+          if (focean(i,j) > 0) then
+            partialIntegration(j) = partialIntegration(j) + dzo(1)
+          end if
+        end do
+      end do
+
+      call globalSum(ogrid, partialIntegration, sumDepthOfTopLayer, 
+     &     all=.true.)
+
+      end function sumDepthOfTopLayer
 #else
       function volumeIntegration(quantity)
       use hycom_scalars, only : huge
@@ -191,6 +208,26 @@
       call globalSum(ogrid, partialAreaIntegration, areaIntegration)
 
       end function areaIntegration
+
+      real*8 function sumDepthOfTopLayer()
+      use hycom_scalars, only : huge
+      
+      real*8 :: partialIntegration(j_0h:j_1h)
+      integer :: i, j
+
+      partialIntegration = 0
+      do j = j_0, j_1
+        do i = 1, idm
+          if (dpinit(i,j,1) < huge) then
+            partialIntegration(j) = partialIntegration(j)+dpinit(i,j,1)
+          end if
+        end do
+      end do
+
+      call globalSum(ogrid, partialIntegration, sumDepthOfTopLayer,
+     &     all=.true.)
+
+      end function sumDepthOfTopLayer
 
 #endif
 
