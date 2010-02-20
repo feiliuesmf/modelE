@@ -100,7 +100,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktaijs=1477
+      INTEGER,PARAMETER :: ktaijs=1533
 
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
@@ -313,7 +313,7 @@ C**** TAJLN
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - don't bother with pp options
-      INTEGER,PARAMETER :: ktajls=945
+      INTEGER,PARAMETER :: ktajls=998
 
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3
