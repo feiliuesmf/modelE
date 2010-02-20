@@ -484,12 +484,14 @@ DO JL=L,L
 ! Note that we want the concentrations AFTER chemistry, 
 ! thus we apply changeL artificially (but not hardcoded)
 !
+#ifdef SOA_DIAGS
   taijls(III,JJJ,jl,ijlt_soa_changeL_isoprene)=taijls(III,JJJ,jl,ijlt_soa_changeL_isoprene)+&
                                                changeL(jl,n_isoprene)*bypfactor*mass2vol(n_isoprene)*molec2ug(n_isoprene)
 #ifdef TRACERS_TERP
   taijls(III,JJJ,jl,ijlt_soa_changeL_terpenes)=taijls(III,JJJ,jl,ijlt_soa_changeL_terpenes)+&
                                                changeL(jl,n_terpenes)*bypfactor*mass2vol(n_terpenes)*molec2ug(n_terpenes)
 #endif  /* TRACERS_TERP */
+#endif  /* SOA_DIAGS */
   do i=1,ntm
     y0_ug(i)=trm(III,JJJ,jl,i)*bypfactor*mass2vol(i)*molec2ug(i)
     y_ug(i)=(trm(III,JJJ,jl,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
