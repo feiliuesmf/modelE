@@ -10,6 +10,7 @@ C VARIABLE IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
+      use precision_mod, only : reduce_precision 
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
@@ -612,7 +613,7 @@ c       17 = Ice Clouds
      &                   57,58,59,60,7,11/)
          else if ((RFASTJ(LL) .ge. 0.925) .and. (RFASTJ(LL) .lt.
      &   0.97)) then
-          MIEDX2(LL,:)=(/18,26,34,42,44,44,51,53,54,55,56,
+           MIEDX2(LL,:)=(/18,26,34,42,44,44,51,53,54,55,56,
      &                   57,58,59,60,7,11/)
          else if (RFASTJ(LL) .ge. 0.97) then
            MIEDX2(LL,:)=(/19,27,35,43,44,44,52,53,54,55,56,
@@ -700,6 +701,14 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
         colmO2=5.6d20 
         colmO3=5.0d16 
 #endif
+
+  ! This call to reduce the significant digits on the photolysis rates
+  ! is because Apostolos and Greg noticed that the order of the aerosols
+  ! being passed to it, slightly changed the photolysis rates. 
+  ! We could provide much more detail on the investigation (week of
+  ! Feb 19th 2010):
+        call reduce_precision(zj,1.d-9)
+
         DO L=min(JPNL,LM),1,-1
           do inss=1,JPPJ
             ss(inss,L,I,J)=zj(L,inss)
