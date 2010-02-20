@@ -848,7 +848,6 @@ C---Set up total optical depth over each CTM level, DTAUX:
         XLO2=DMFASTJ2(J)*XQO2_2(J)*0.20948d0
         XLRAY=DMFASTJ2(J)*QRAYL(KW)
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
-c Zero absorption for testing purposes:
         XLAER(:)=AER2(:,J)*QXMIE(:,J) ! MXFASTJ
 c Total optical depth from all elements:
         DTAUX(J)=XLO3+XLO2+XLRAY
