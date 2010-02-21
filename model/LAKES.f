@@ -1501,6 +1501,7 @@ C****
      &     ,tottr(ntm)
 #endif
       real*8 :: a,b,c,d, x(3), mwtot1, y, mwsat
+      real*8 :: m1,m2,m1t1,m2t2,f_entr,new_tlake
       integer :: n_roots
 
       CALL GET(grid, J_STRT=J_0, J_STOP=J_1)
@@ -1707,13 +1708,20 @@ C**** adjust layering if necessary
                     TRLAKE(:,1,I,J)=TOTTR(:)*     MLDLK(I,J) /HLK
 #endif
                   ELSE
+c transfer of mass from layer 2 to layer 1. adjust layer-1 properties
+                    f_entr = (new_flake*new_MLD-MLDLK(I,J)*FLAKE(I,J))/
+     &                       (new_flake*HLK    -MLDLK(I,J)*FLAKE(I,J))
 #ifdef TRACERS_WATER
-                    DTR(:)=TRLAKE(:,2,I,J)*(new_flake*new_MLD-MLDLK(I
-     *                   ,J)*FLAKE(I,J))/(HLK*new_flake-MLDLK(I,J)
-     *                   *FLAKE(I,J))
+                    DTR(:)=TRLAKE(:,2,I,J)*f_entr
                     TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DTR(:)
                     TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DTR(:)
 #endif
+c                    M1 = MLDLK(I,J)*RHOW
+c                    M2 = MAX(MWL(I,J)/(FLAKE(I,J)*AXYP(I,J))-M1,0d0)
+c                    M1T1 = M1*TLAKE(I,J)
+c                    M2T2 = GML(I,J)/(SHW*FLAKE(I,J)*AXYP(I,J))-M1T1
+c                    new_TLAKE = (M1T1+f_entr*M2T2)/(M1+f_entr*M2)
+c                    TLAKE(I,J) = new_TLAKE
                     MLDLK(I,J)=new_MLD
                   END IF
                 ELSE
