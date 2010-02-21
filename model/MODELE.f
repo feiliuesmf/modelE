@@ -256,19 +256,13 @@ C**** INITIALIZE TIME PARAMETERS
 
 #endif
 
+#ifdef USE_FVCORE
 C****
 C**** Initialize FV dynamical core (ESMF component) if requested
+C**** For restarts/continuations, FV state and import files are
+C**** assumed to have been copied to the appropriate names by INPUT().
+C**** For cold starts the FV interface code generates the required files.
 C****
-#ifdef USE_FVCORE
-
-#ifdef USE_FVCUBED
-        if(AM_I_ROOT()) then
-         write(suffix,'(i1)') kdisk
-         call system('cp  fv.'// suffix // ' dyncore_internal_restart')
-         call system('cp dfv.'// suffix // ' dyncore_import_restart')
-        end if
-#endif
-
       Call Initialize(fv, istart, vm, grid%esmf_grid, clock,fv_config)
 #endif
 
@@ -1743,8 +1737,10 @@ C****        mainly used for REPEATS and delayed EXTENSIONS
       CASE (1:9)                      !  diag.arrays are not read in
         if(istart.eq.9) call io_rsf("AIC",Itime,irerun,ioerr)
 #ifdef USE_FVCORE
-        call system('cp AICfv  fv_internal_restart.dat')
-        call system('cp AICdfv tendencies_checkpoint')
+        if(AM_I_ROOT()) then
+          call system('cp AICfv  dyncore_internal_restart')
+          call system('cp AICdfv tendencies_checkpoint')
+        endif
 #endif
         if(istart.le.8) then         !  initial start of rad.forcing run
           call openunit("AIC",iu_AIC,.true.,.true.)
@@ -1788,9 +1784,11 @@ C**** CHOOSE DATA SET TO RESTART ON
       END SELECT
   430 continue
 #ifdef USE_FVCORE
-        write(suffix,'(i1)') kdisk
-        call system('cp  fv.'// suffix // ' dyncore_internal_restart')
-        call system('cp dfv.'// suffix // ' tendencies_checkpoint')
+        if(AM_I_ROOT()) then
+          write(suffix,'(i1)') kdisk
+          call system('cp  fv.'// suffix // ' dyncore_internal_restart')
+          call system('cp dfv.'// suffix // ' tendencies_checkpoint')
+        endif
 #endif
       CALL HERE(__FILE__//'::io_rsf',__LINE__ + 10000*KDISK)
       call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
