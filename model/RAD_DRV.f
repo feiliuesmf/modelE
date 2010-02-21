@@ -2134,16 +2134,20 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
       do n=1,NTRACE
         if(ntrix(n) > 0) then
           StauL=sum(ttausv(1:LM,n))
-          ttausv_sum(i,j,n)=ttausv_sum(i,j,n)+StauL
-          ttausv_sum_cs(i,j,n)=ttausv_sum_cs(i,j,n)+StauL*OPNSKY
+          ttausv_sum(i,j,ntrix(n))=ttausv_sum(i,j,ntrix(n))+StauL
+          ttausv_sum_cs(i,j,ntrix(n))=ttausv_sum_cs(i,j,ntrix(n))
+     &         +StauL*OPNSKY
         endif
       enddo
       IF (adiurn_dust == 1) THEN
+        ttausv_save(i,j,:,:)=0.D0
         DO n=1,NTRACE
           IF (ntrix(n) > 0) THEN
             do k=1,LM
-              ttausv_save(i,j,ntrix(n),k)=ttausv(k,n)
-              ttausv_cs_save(i,j,ntrix(n),k)=ttausv(k,n)*OPNSKY
+              ttausv_save(i,j,ntrix(n),k)=ttausv_save(i,j,ntrix(n),k)
+     &             +ttausv(k,n)
+              ttausv_cs_save(i,j,ntrix(n),k)
+     &             =ttausv_cs_save(i,j,ntrix(n),k)+ttausv(k,n)*OPNSKY
             end do
           END IF
         END DO
@@ -2281,8 +2285,8 @@ C****
 
 #ifdef TRACERS_DUST
       IF (adiurn_dust == 1) THEN
-        srnflb_save(i,j,1:11)=srnflb(1:11)
-        trnflb_save(i,j,1:11)=trnflb(1:11)
+        srnflb_save(i,j,1:lm)=srnflb(1:lm)
+        trnflb_save(i,j,1:lm)=trnflb(1:lm)
       END IF
 #endif
 
