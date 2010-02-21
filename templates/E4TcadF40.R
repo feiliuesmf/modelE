@@ -559,7 +559,7 @@ rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
-!to_conc=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0 ! 1: taijln diags as concentration, 0: as mixing ratio (default), needs to be exactly set according to the number and order of tracers, if used
+!to_conc=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0 ! 1: taijln diags as concentration, 0: as mixing ratio (default), needs to be exactly set according to the number and order of tracers, if used
 
 !--------- sulfate and carbon aerosol parameters -----
 madaer=3           ! 1: default sulfate and carbon aerosol 3: updated aerosols
