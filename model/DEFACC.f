@@ -5901,7 +5901,7 @@ c
       use cdl_mod
 #endif
       implicit none
-      integer :: k,kk,l, lmax_dd0=5, lmax_dd2=11  ! why?
+      integer :: k,kk,l, lmax_dd0=5 ! why?
       character*2 lst(lm)
       real*8 :: dummy_hrs(hr_in_month)
 

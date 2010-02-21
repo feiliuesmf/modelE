@@ -712,6 +712,8 @@ c**** quantities accumulated hourly for diagDD
         if ( moddd == 0 ) then
           do kr=1,ndiupt
             if(i.eq.ijdd(1,kr).and.j.eq.ijdd(2,kr)) then
+              tmp(idd_turb)=0.D0
+              tmp(idd_grav)=0.D0
               DO n=1,Ntm_dust
                 n1=n_clay+n-1
                 IF (dodrydep(n1)) THEN
@@ -817,7 +819,7 @@ c***********************************************************************
       INTEGER,PARAMETER :: n_idxd=6
 #else
 #ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idxd=12+10*npbl
+      INTEGER,PARAMETER :: n_idxd=16+6*npbl+4*(npbl-1)
 #endif
 #endif
 
@@ -1968,8 +1970,6 @@ c**** quantities accumulated hourly for diagDD
 #ifdef TRACERS_DUST
               tmp(idd_emis)=0.D0
               tmp(idd_emis2)=0.D0
-              tmp(idd_turb)=0.D0
-              tmp(idd_grav)=0.D0
               DO n=1,Ntm_dust
                 n1=n_clay+n-1
                 tmp(idd_emis)=tmp(idd_emis)+pbl_args%dust_flux(n)*ptype

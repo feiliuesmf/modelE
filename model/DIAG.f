@@ -2406,7 +2406,7 @@ c**** fix polar values
       USE DYNAMICS, only : phi,wsave,pek,byam
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
-      USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,ijdd
+      USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
      &     ,adiurn=>adiurn_loc
 #ifndef NO_HDIURN
      &     ,hdiurn=>hdiurn_loc
@@ -2426,7 +2426,7 @@ c**** fix polar values
 
       INTEGER :: i,j,ih,ihm,kr,n,n1
       REAL*8 :: psk
-      INTEGER,PARAMETER :: lmax_dd2=11, n_idxd=14*lmax_dd2
+      INTEGER,PARAMETER :: n_idxd=14*lmax_dd2
       INTEGER :: idxd(n_idxd)
       REAL*8 :: tmp(NDIUVAR)
 

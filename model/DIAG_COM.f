@@ -3,8 +3,10 @@
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  1.0
+      use resolution, only : ls1
       USE MODEL_COM, only : im,jm,lm,ntype,kep,istrat,lm_req
       use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
+      use socpbl, only : npbl=>n
 #ifdef NEW_IO
       use cdl_mod
 #endif
@@ -159,9 +161,13 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 
 !@param HR_IN_DAY hours in day
       INTEGER, PARAMETER, public :: HR_IN_DAY=24
+!@param lmax_dd2 most upper layer for which multilayer diurnal diagnostics
+!+               is written, currently: up to first constant pressure layer
+      integer, parameter, public :: lmax_dd2=ls1
 !@param NDIUVAR number of diurnal diagnostics
 #ifdef TRACERS_DUST
-      INTEGER, PARAMETER, public :: NDIUVAR=302
+      INTEGER, PARAMETER, public :: NDIUVAR=73+14*lmax_dd2+6*npbl
+     &     +4*(npbl-1)
 #else
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
       INTEGER, PARAMETER, public :: NDIUVAR=61
@@ -751,20 +757,26 @@ c derived/composite diagnostics
 
 !@var IDD_xxx names for diurnal diagnostics
       INTEGER, public ::
+c     standard set of names
      &     IDD_ISW, IDD_PALB, IDD_GALB, IDD_ABSA, IDD_ECND,
      *     IDD_SPR, IDD_PT5, IDD_TS, IDD_TG1, IDD_Q5, IDD_QS,
      *     IDD_QG, IDD_SWG, IDD_LWG, IDD_SH, IDD_LH, IDD_HZ0, IDD_UG,
      *     IDD_VG, IDD_WG, IDD_US, IDD_VS, IDD_WS, IDD_CIA, IDD_RIS,
      *     IDD_RIG, IDD_CM, IDD_CH, IDD_CQ, IDD_EDS, IDD_DBL, IDD_DCF,
      *     IDD_LDC, IDD_PR, IDD_EV, IDD_DMC, IDD_SMC, IDD_CL7, IDD_W,
-     *     IDD_CCV, IDD_SSP, IDD_MCP,
-     &     idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh,
-     &     idd_u1,idd_v1,idd_uv1,idd_t1,idd_qq1,idd_p1,idd_w1,idd_phi1,
-     *     idd_load1,idd_conc1,idd_emis,idd_emis2,idd_tau1,idd_tau_cs1,
-     *     idd_sr1,idd_tr1,idd_ws2,idd_ustar,idd_us3,idd_stress,
-     *     idd_lmon,idd_rifl,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,
-     *     idd_tabl1,idd_qabl1,idd_zhat1,idd_e1,idd_km1,idd_ri1,
-     *     idd_wet,idd_grav,idd_turb
+     *     IDD_CCV, IDD_SSP, IDD_MCP ! 56
+c     names for one layer dust diagnostics
+     &     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
+     &     ,idd_emis,idd_emis2,idd_ws2,idd_ustar,idd_us3,idd_stress
+     &     ,idd_lmon,idd_rifl,idd_wet,idd_grav,idd_turb ! +17
+c     names for llmax_dd2 layers dust diagnostics
+     &     ,idd_u1,idd_v1,idd_uv1,idd_t1,idd_qq1,idd_p1,idd_w1,idd_phi1
+     &     ,idd_sr1,idd_tr1,idd_load1,idd_conc1,idd_tau1,idd_tau_cs1 ! +14*ls1
+c     names for npbl layers dust diagnostics
+     &     ,idd_zpbl1,idd_uabl1,idd_vabl1,idd_uvabl1,idd_tabl1
+     &     ,idd_qabl1           ! +6*npbl
+c     names for npbl-1 layers dust diagnostics
+     &     ,idd_zhat1,idd_e1,idd_km1,idd_ri1 ! +4*(npbl-1)
 c    hourly AMP diagnostics
      *     ,idd_diam
 

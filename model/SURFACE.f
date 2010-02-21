@@ -217,7 +217,7 @@ C**** some shorthand indices and arrays for diurn diags
       INTEGER,PARAMETER :: n_idxd=5
 #else
 #ifdef TRACERS_DUST
-      INTEGER,PARAMETER :: n_idxd=9+10*npbl
+      INTEGER,PARAMETER :: n_idxd=13+6*npbl+4*(npbl-1)
 #endif
 #endif
 
@@ -257,14 +257,13 @@ C**** Initialise constant indices
       IF (adiurn_dust == 1) THEN
         idxd=(/idd_wtke, idd_wd, idd_wm, idd_wsgcm, idd_wspdf
 #ifdef TRACERS_DUST
-     *       ,idd_ws2, idd_ustar, idd_us3, idd_stress, idd_lmon,
-     *       idd_rifl,
+     *       ,idd_grav, idd_turb, idd_ws2, idd_ustar, idd_us3
+     *       ,idd_stress, idd_lmon, idd_rifl,
      *       (idd_zpbl1+ii-1,ii=1,npbl), (idd_uabl1+ii-1,ii=1,npbl),
      *       (idd_vabl1+ii-1,ii=1,npbl), (idd_uvabl1+ii-1,ii=1,npbl),
      *       (idd_tabl1+ii-1,ii=1,npbl), (idd_qabl1+ii-1,ii=1,npbl),
      *       (idd_zhat1+ii-1,ii=1,npbl-1), (idd_e1+ii-1,ii=1,npbl-1),
-     *       (idd_km1+ii-1,ii=1,npbl-1), (idd_ri1+ii-1,ii=1,npbl-1),
-     *       idd_grav,   idd_turb
+     *       (idd_km1+ii-1,ii=1,npbl-1), (idd_ri1+ii-1,ii=1,npbl-1)
 #endif
      &       /)
       END IF
@@ -1252,8 +1251,10 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
                 DO n=1,Ntm_dust
                   n1=n_clay+n-1
                   IF (dodrydep(n1)) THEN
-                    tmp(idd_turb)=ptype*rts*pbl_args%dep_vel(n1)
-                    tmp(idd_grav)=ptype*rts*pbl_args%gs_vel(n1)
+                    tmp(idd_turb)=tmp(idd_turb)+ptype*rts
+     &                   *pbl_args%dep_vel(n1)
+                    tmp(idd_grav)=tmp(idd_grav)+ptype*rts
+     &                   *pbl_args%gs_vel(n1)
                   END IF
                 END DO 
 #endif
