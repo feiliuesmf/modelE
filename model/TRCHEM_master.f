@@ -707,7 +707,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
   ! being passed to it, slightly changed the photolysis rates. 
   ! We could provide much more detail on the investigation (week of
   ! Feb 19th 2010):
-        call reduce_precision(zj,1.d-9)
+        call reduce_precision(zj,1.d-6)
 
         DO L=min(JPNL,LM),1,-1
           do inss=1,JPPJ
