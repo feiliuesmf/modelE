@@ -3804,7 +3804,7 @@ C* If using an alternate definition for QAUT
       SCDNCI=SNdI
 c     if (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0 !set min ice crystal, do we need this, please check
       if (SCDNCI.le.0.0d0) SCDNCI=tiny          !set min ice crystal, do we need this, please check
-      if (SCDNCW.le.10.d0) SCDNCW=10.d0         !set min CDNC, sensitivity test
+      if (SCDNCW.le.20.d0) SCDNCW=20.d0         !set min CDNC, sensitivity test
 c     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
 c     write(6,*)"CDNC LSS",SCDNCW,SNd,L
@@ -4734,7 +4734,7 @@ c To get effective radii in micron
 #ifdef CLD_AER_CDNC
       SCDNCW=SNd
       SCDNCI=SNdI
-      If (SCDNCW.le.10.d0) SCDNCW=10.d0   !set min CDNC sensitivity test
+      If (SCDNCW.le.20.d0) SCDNCW=20.d0   !set min CDNC sensitivity test
 c     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
       If (SCDNCI.le.0.0d0) SCDNCI=tiny            !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
