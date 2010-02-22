@@ -107,7 +107,7 @@ c     shift grid 10 degrees West to avoid corner over Japan
       integer :: i0h, i1h, i0, i1
       integer :: j0h, j1h, j0, j1
       integer :: i,j,imin,imax,jmin,jmax
-      real*8 :: dloni,dlonj,dlati,dlatj,bydet
+      real*8 :: dloni,dlonj,dlati,dlatj,bydet,distx,disty
 
       real*8, dimension(grid%i_strt:grid%i_stop+1,
      &                  grid%j_strt:grid%j_stop+1) :: axyp_int
@@ -201,20 +201,37 @@ c halo everything just in case
       imaxj(:)=i1
 
       do j=j0,j1
-      do i=i0,i1
-        dloni = lon2d(i+1,j)-lon2d(i-1,j)
-        dlati = lat2d(i+1,j)-lat2d(i-1,j)
-        dlonj = lon2d(i,j+1)-lon2d(i,j-1)
-        dlatj = lat2d(i,j+1)-lat2d(i,j-1)
+        y1 = -1d0 + 2d0*(j-1-.5)/im
+        y2 = -1d0 + 2d0*(j+1-.5)/im
+        y  = -1d0 + 2d0*(j  -.5)/im
+        do i=i0,i1
+          if(j>1 .and. j<jm .and. i>1 .and. i<im) then
+            x1 = -1d0 + 2d0*(i-1-.5)/im
+            x2 = -1d0 + 2d0*(i+1-.5)/im
+            x  = -1d0 + 2d0*(i  -.5)/im
+            call e1e2(x,y,grid%tile,e1,e2)
+            bydet = 1d0/(e1(1)*e2(2)-e1(2)*e2(1))
+            distx = gcdist(x1,x2,y,y)*radius
+            disty = gcdist(x,x,y1,y2)*radius
+            ddx_ci(i,j) =  e2(2)*bydet/distx
+            ddx_cj(i,j) = -e1(2)*bydet/disty
+            ddy_ci(i,j) = -e2(1)*bydet/distx
+            ddy_cj(i,j) =  e1(1)*bydet/disty
+          else
+            dloni = lon2d(i+1,j)-lon2d(i-1,j)
+            dlati = lat2d(i+1,j)-lat2d(i-1,j)
+            dlonj = lon2d(i,j+1)-lon2d(i,j-1)
+            dlatj = lat2d(i,j+1)-lat2d(i,j-1)
 c account for discontinuity of lon2d at the international date line
-        if(abs(dloni).gt.pi) dloni=dloni-twopi*sign(1d0,dloni)
-        if(abs(dlonj).gt.pi) dlonj=dlonj-twopi*sign(1d0,dlonj)
-        bydet = 1d0/(dloni*dlatj-dlonj*dlati)
-        ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
-        ddx_cj(i,j) = -dlati*bydet/(radius*coslat2d(i,j))
-        ddy_ci(i,j) = -dlonj*bydet/radius
-        ddy_cj(i,j) =  dloni*bydet/radius
-      enddo
+            if(abs(dloni).gt.pi) dloni=dloni-twopi*sign(1d0,dloni)
+            if(abs(dlonj).gt.pi) dlonj=dlonj-twopi*sign(1d0,dlonj)
+            bydet = 1d0/(dloni*dlatj-dlonj*dlati)
+            ddx_ci(i,j) =  dlatj*bydet/(radius*coslat2d(i,j))
+            ddx_cj(i,j) = -dlati*bydet/(radius*coslat2d(i,j))
+            ddy_ci(i,j) = -dlonj*bydet/radius
+            ddy_cj(i,j) =  dloni*bydet/radius
+          endif
+        enddo
       enddo
 
       kmaxj(:)= 2
