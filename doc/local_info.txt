@@ -2,6 +2,12 @@ Running on Discover (Reto Ruedy)
 +++++++++++++++++++
 News:
 ====
+runpbs was modified to not resubmit jobs that bombed - touch "I" to
+       resubmit such a job anyway.
+
+The automatic restart procedure was changed to try to avoid submitting
+runs that got into trouble, or submitting the same job repeatedly.
+
 The more efficient (by a factor of 1.5-2) nehalem nodes are available;
 you may access them using     "runpbs runID nh #cpus"  (new_highspeed)
 These nodes have 8 cpus and do NOT support scaliMPI    (use intelMPI)
