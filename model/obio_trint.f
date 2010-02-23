@@ -12,7 +12,7 @@
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid
       use hycom_arrays, only : tracer,dpinit,scp2
-      use hycom_scalars, only : nstep
+      use hycom_scalars, only : nstep,onem
 #endif
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : tracflx
@@ -177,7 +177,8 @@ c$$$      fluxNorm = avgDepthOfTopLayer()
               do n = 1, numTracers
                  partialVolumeIntegration(j,n) = 
      &                partialVolumeIntegration(j,n) + 
-     &                quantity(i,j,k,n) * dpinit(i,j,k)*scp2(i,j)
+     &                quantity(i,j,k,n)
+     &                    *dpinit(i,j,k)/onem*scp2(i,j)
               end do
             end if
           end do
@@ -219,7 +220,8 @@ c$$$      fluxNorm = avgDepthOfTopLayer()
       do j = j_0, j_1
         do i = 1, idm
           if (dpinit(i,j,1) < huge) then
-            partialIntegration(j) = partialIntegration(j)+dpinit(i,j,1)
+            partialIntegration(j) = partialIntegration(j)
+     .                            + dpinit(i,j,1)/onem
           end if
         end do
       end do
