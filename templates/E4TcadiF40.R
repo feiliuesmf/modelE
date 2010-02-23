@@ -533,7 +533,6 @@ use_rad_n2o=1      ! use the radiation code's N2O
 use_rad_cfc=1      ! use rad code cfc11+cfc12, adjusted
 use_rad_ch4=1      ! use rad code CH4, shut off sfc sources
 rad_FL=0           ! use rad code insolation getting fastj2 photon flux
-useRadAerInFastJ=1 ! use rad code aerosols in chem photolysis code(fastj2)
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
 fix_CH4_chemistry=0    ! for setting fixed methane value for chemistry:
