@@ -5970,7 +5970,7 @@ c production of SO2 from aircraft
         ijts_3Dsource(2,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO2 source from aircraft'
-        sname_ijts(k) = 'SO2_source_from_aricraft'
+        sname_ijts(k) = 'SO2_source_from_aircraft'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
