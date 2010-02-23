@@ -4359,7 +4359,7 @@ c      scale_ij(k) = 1.
       K = K+1
       IJ_RTSE = K
        NAME_IJ(K) = 'RTSE'
-      LNAME_IJ(K) = 'THERMAL RADIATION EMITTED by SURFACE'
+      LNAME_IJ(K) = 'NET THERMAL RADIATION, SURFACE'    ! >0 if up !
       UNITS_IJ(K) = 'W/m^2'
       ia_ij(k) = IA_IJ(IJ_TRSUP)
 
