@@ -3301,6 +3301,7 @@ c     Processes AMP Budget
         qcon(10)  = .false.     ! reset to defaults for next tracer
         qsum(10)  = .false.     ! reset to defaults for next tracer
 
+        natmtrcons=N
       end do
 #endif /* TRACERS_ON */
 

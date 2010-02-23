@@ -559,11 +559,18 @@ c instances of the arrays containing derived quantities
 !@ver  1.0
       USE ODIAG, only : icon_OCE,icon_OKE,icon_OMS,icon_OSL,icon_OAM
       USE OCEANR_DIM, only : oGRID
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : ntm
+#endif
       IMPLICIT NONE
 !@var M index denoting from where DIAGCO is called (see DIAGCA)
       INTEGER, INTENT(IN) :: M
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
+#ifdef TRACERS_OCEAN
+      INTEGER NT
+#endif
+
 
       if(.not. oGRID%have_domain) return
 
@@ -582,6 +589,14 @@ C**** OCEAN POTENTIAL ENTHALPY
 C**** OCEAN SALT
       CALL conserv_ODIAG(M,conserv_OSL,icon_OSL)
 C****
+
+#ifdef TRACERS_OCEAN
+C**** Tracer calls are dealt with separately
+      do nt=1,ntm
+        CALL DIAGTCO(M,NT)
+      end do
+#endif
+
       RETURN
       END SUBROUTINE DIAGCO
 
@@ -655,12 +670,17 @@ C****
       USE DIAG_COM, only : ia_src,conpt0,zoc,zoc1
       USE ODIAG
       use straits, only : lmst,nmst,name_st
+#ifdef TRACERS_OCEAN
+      USE TRDIAG_COM, only : nocntrcons
+      USE OCN_TRACER_COM, only : ntrocn,trname
+#endif
       IMPLICIT NONE
-      LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE.
-      CHARACTER CONPT(NPTS)*10
-      INTEGER k,kb,kq,kc,kk,n
+      LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE., QSUM(NPTS)
+      CHARACTER CONPT(NPTS)*10,CONPTs(20)*10,UNITS*20,UNITS_INST*20,
+     *     unit_string*50
+      INTEGER k,kb,kq,kc,kk,n,nt
       character(len=10) :: xstr,ystr,zstr
-      real*8 :: byrho2
+      real*8 :: byrho2,inst_sc,chng_sc
 
       byrho2 = .00097d0**2 ! reciprocal**2 of mean ocean density
 
@@ -1153,6 +1173,25 @@ C**** Oceanic salt mass
       QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
       CALL SET_CON(QCON,CONPT,"OCN SALT","(10 KG/M^2)     ",
      *     "(10**-9 KG/SM^2)",1d-1,1d9,icon_OSL)
+
+#ifdef TRACERS_OCEAN 
+C**** Oceanic tracers 
+      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      QSUM= T
+#ifdef TRACERS_OceanBiology
+      CONPT(4)="OCN BIOL"
+#endif
+      do nt=1,ntm
+        UNITS_INST="("//trim(unit_string(ntrocn(nt),'kg/m^2'))//")"
+        UNITS="("//trim(unit_string(ntrocn(nt)-3,'kg/m^2/s'))//")"
+        INST_SC=10.**(-ntrocn(nt))
+        CHNG_SC=10.**(-ntrocn(nt)+3)
+        CALL SET_TCONO(QCON,CONPT,trname(nt)(1:8),QSUM,UNITS_INST,UNITS,
+     *      INST_SC,CHNG_SC,nt)
+      end do
+      nocntrcons=ntm
+#endif
+
 C**** Initialise ocean basins
       CALL OBASIN
 

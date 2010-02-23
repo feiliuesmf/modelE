@@ -25,7 +25,7 @@ C**** this defines tracer parameters that are local to ocean code
 #ifdef TRACERS_AGE_OCEAN
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Age       '/)
-      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
+      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0, ntrocn=0
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #else
@@ -35,45 +35,29 @@ C**** this defines tracer parameters that are local to ocean code
 #else
       INTEGER, PARAMETER :: ntm=15
 #endif
-      CHARACTER*10 :: trname(ntm) = (/ 'Nitr      '
-     .                                ,'Ammo      '
-     .                                ,'Sili      '
-     .                                ,'Iron      '
-     .                                ,'Diat      '
-     .                                ,'Chlo      '
-     .                                ,'Cyan      '
-     .                                ,'Cocc      '
-     .                                ,'Herb      '
-     .                                ,'Inert     '
-     .                                ,'N_det     '
-     .                                ,'S_det     '
-     .                                ,'I_det     '
-     .                                ,'DOC       '
-     .                                ,'DIC       '
+      CHARACTER*10 :: trname(ntm) = (/ 'Nitr      ', 'Ammo      ', 
+     .     'Sili      ', 'Iron      ', 'Diat      ', 'Chlo      ', 
+     .     'Cyan      ', 'Cocc      ', 'Herb      ', 'Inert     ',
+     .     'N_det     ', 'S_det     ', 'I_det     ', 'DOC       ',
+     .     'DIC       '
 #ifdef TRACERS_Alkalinity
-     .                                ,'Alk       '
+     .     ,'Alk       '
 #endif
-     .                                  /)
+     .     /)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
-      REAL*8  :: obio_tr_mm(ntm)= (/ 14.
-     .                             , 14.
-     .                             , 28.055
-     .                             , 55.845
-     .                             , 1.
-     .                             , 1.
-     .                             , 1.
-     .                             , 1.
-     .                             , 1.
-     .                             , 14.
-     .                             , 14.
-     .                             , 28.055
-     .                             , 55.845
-     .                             , 12.
-     .                             , 12.
+      REAL*8  :: obio_tr_mm(ntm)= (/ 14., 14., 28.055, 55.845, 1., 1., 
+     .     1., 1., 1., 14., 14., 28.055, 55.845, 12., 12.
 #ifdef TRACERS_Alkalinity
-     .                             , 1.
+     .     , 1.
 #endif
-     .                                  /)
+     .     /)
+!@var ntrocn scaling exponent for tracers
+      INTEGER :: ntrocn(ntm) = (/ -16,-18,-16,-20,-20,-20,-20,-20,-20,
+     .     -16,-18,-20,-22,-20,-14
+#ifdef TRACERS_Alkalinity
+     .     ,-16
+#endif
+     .     /)
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 !@param conc_from_fw definition for defining surface ocean conc
@@ -81,14 +65,14 @@ C**** this defines tracer parameters that are local to ocean code
 #else
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Water     '/)
-      REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
+      REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0, ntrocn=0
 !@param conc_from_fw definition for defining surface ocean conc
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .true.
 #endif  /* TRACERS_OceanBiology */
 #endif  /*TRACERS_AGE_OCEAN */
 
       LOGICAL, DIMENSION(ntm) :: t_qlimit=.true. 
-      INTEGER, DIMENSION(ntm) :: itime_tr0 = 0, ntrocn = 0
+      INTEGER, DIMENSION(ntm) :: itime_tr0 = 0
       INTEGER :: n_water = 0
 
 #else   /* not tracers_ocean_indep */

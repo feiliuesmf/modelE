@@ -373,7 +373,11 @@ C**** TCONSRV
 C**** include some extra troposphere only ones
       INTEGER, PARAMETER :: ntmxcon = ntm+3
 #else
+#ifdef TRACERS_OCEAN
+      INTEGER, PARAMETER :: ntmxcon = ntm+20 ! arbitrary increase, may change
+#else
       INTEGER, PARAMETER :: ntmxcon = ntm
+#endif
 #endif
 !@var TCONSRV conservation diagnostics for tracers
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TCONSRV
@@ -420,7 +424,9 @@ C**** include some extra troposphere only ones
 !@var itcon_dd Index array for dry deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon,2) :: itcon_dd
 !@var itcon_wt Index array for dust/mineral dust deposition conserv. diags
-      INTEGER,DIMENSION(ntmxcon) :: itcon_wt
+      INTEGER, DIMENSION(ntmxcon) :: itcon_wt
+!@var natmtrcons, nocntrcons number of atmospheric/ocean tcon diags
+      INTEGER :: natmtrcons, nocntrcons
 #endif
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
@@ -560,27 +566,15 @@ C**** include some extra troposphere only ones
       CHARACTER*10, DIMENSION(npts) :: CONPT0_sname
       CHARACTER*11 CHGSTR
       INTEGER NI,NM,NS,N,k
+      CHARACTER*40 clean_str
 
-C**** remove spaces in NAME_CON for netcdf names
-      sname=TRIM(NAME_CON)
-      do k=1,len_trim(NAME_CON)
-        if (sname(k:k).eq." ") sname(k:k)="_"
-      end do
-
-C**** remove spaces, invalid characters in CONPTS, CONPT0 for netcdf names
-      conpts_sname = conpts
+C**** make nice netcdf names
+      sname=trim(clean_str(name_con))
       do n=1,ntcons
-      do k=1,len_trim(conpts_sname(n))
-         if (conpts_sname(n)(k:k).eq." ") conpts_sname(n)(k:k)="_"
-         if (conpts_sname(n)(k:k).eq."+") conpts_sname(n)(k:k)="_"
+         conpts_sname(n) = trim(clean_str(conpts(n)))
       enddo
-      enddo
-      conpt0_sname = conpt0
       do n=1,npts
-      do k=1,len_trim(conpt0_sname(n))
-         if (conpt0_sname(n)(k:k).eq." ") conpt0_sname(n)(k:k)="_"
-         if (conpt0_sname(n)(k:k).eq."+") conpt0_sname(n)(k:k)="_"
-      enddo
+         conpt0_sname(n) = trim(clean_str(conpt0(n)))
       enddo
 C****
       NI=1

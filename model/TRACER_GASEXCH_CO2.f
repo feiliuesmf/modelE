@@ -107,7 +107,8 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
-#ifndef OBIO_ON_GARYocean         !ONLY FOR HYCOM
+         !ONLY FOR HYCOM
+#ifndef OBIO_ON_GARYocean
       subroutine init_gasexch_co2
 
 !this routine is called from inside OCEAN_hycom.f and only from ROOT 
