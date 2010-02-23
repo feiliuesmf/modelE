@@ -6544,7 +6544,8 @@ c
 
       Integer :: stride, n_blocks, blocklen
       Integer :: new_len
-      INTEGER(KIND=MPI_ADDRESS_KIND) disp(2), ext_lb, base_byte_len
+      !INTEGER(KIND=MPI_ADDRESS_KIND) disp(2), ext_lb, base_byte_len
+      integer :: base_byte_len
       Integer :: vtype1, vtype2
       Integer :: ierr
 
@@ -6565,7 +6566,7 @@ c
       n_blocks = Product(counts(dist_idx+1:))
       blocklen = Product(counts(:dist_idx-1))
       stride = counts(dist_idx) * blocklen
-      ext_lb = 0
+      !!ext_lb = 0
 
 #ifdef MPITYPE_LOOKUP_HACK
       do m=1,mt_count
@@ -6581,13 +6582,14 @@ c
 
       Call MPI_Type_vector(n_blocks, blocklen, stride, base_type,
      &     vtype1, ierr)
-      !Call MPI_Type_extent(base_type, base_byte_len, ierr)
-      Call MPI_Type_get_extent(base_type, ext_lb, base_byte_len, ierr)
+      Call MPI_Type_extent(base_type, base_byte_len, ierr)
+      !!Call MPI_Type_get_extent(base_type, ext_lb, base_byte_len, ierr)
       new_len = base_byte_len * blocklen
-      !Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /),
-      disp(1)=0; disp(2)=new_len;
-      Call MPI_Type_create_struct(2, (/ 1, 1 /), disp,
+      Call MPI_Type_struct(2, (/ 1, 1 /), (/ 0, new_len /),
      &     (/ vtype1, MPI_UB /), vtype2, ierr)
+      !!disp(1)=0; disp(2)=new_len;
+      !!Call MPI_Type_create_struct(2, (/ 1, 1 /), disp,
+      !!&     (/ vtype1, MPI_UB /), vtype2, ierr)
       Call MPI_Type_Free(vtype1, ierr)
 
       Call MPI_Type_Commit(vtype2, ierr)
