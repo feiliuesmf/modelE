@@ -787,8 +787,6 @@ C****      '(' is required, so it is inserted
       end subroutine write_run_status
 
       module precision_mod
-      implicit none
-
 !@sum  The reduce_precision routines truncate the number of
 !@+    significant digits in a real*8 number x to an approximate
 !@+    precision of relacc (1d-16 < relacc << 1).  Fortran functions
@@ -797,6 +795,7 @@ C****      '(' is required, so it is inserted
 !@+    relacc is discarded.
 !@auth M. Kelley
 !@ver  1.0
+      implicit none
       public :: reduce_precision
       interface reduce_precision
         module procedure reduce_precision_0d
@@ -833,3 +832,19 @@ C****      '(' is required, so it is inserted
       end subroutine reduce_precision_4d
 
       end module precision_mod
+
+      function clean_str(string)
+!@sum clean_str utility to clean strings of netcdf-unfriendly characters
+      implicit none
+      character(len=*), intent(in) :: string
+      character(len=40) :: clean_str
+      integer :: k
+
+      clean_str=trim(string)
+      do k=1,len_trim(string)
+         if (clean_str(k:k).eq." " .or. clean_str(k:k).eq."+")
+     $        clean_str(k:k)="_" 
+      end do
+      return
+      end function clean_str
+
