@@ -2571,7 +2571,7 @@ C**** CALCULATE OPTICAL THICKNESS
             SCM_WM_MC(L) = TAUMCL(L)*BYAM(L)-SVWMXL(L)
             if (TL(L).GE.TF) SCM_LWP_MC = SCM_LWP_MC + TEMWM
             if (TL(L).LT.TF) SCM_IWP_MC = SCM_IWP_MC + TEMWM
-        endif   
+        endif
 #endif
 
 
@@ -2823,7 +2823,7 @@ c for sulfur chemistry
       real*8,PARAMETER          :: mi0 = 2.094395148947515E-15
       logical, PARAMETER        :: lSCM=.false.
       logical, PARAMETER        :: wSCM=.false.
-      REAL(8), PARAMETER        :: tiny = 1.0D-30 
+      REAL(8), PARAMETER        :: tiny = 1.0D-30
       REAL*8,dimension(mkx)     :: tk0,qk0,pk0,w0,v0,r0,rablk
       REAL*8,dimension(mkx)     :: tk0new,qk0new
       REAL*8,dimension(mkx)     :: ndrop,mdrop,ncrys,mcrys
@@ -3173,8 +3173,10 @@ C**** Set precip phase to be the same as the cloud, unless precip above
 C**** is ice and temperatures after ice melt would still be below TFrez
       LHP(L)=LHX
       IF (LHP(L+1).eq.LHS .and.
-     *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
-     *     +teeny)) LHP(L)=LHP(L+1)
+C    *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA/(FSSL(L)
+C    *     +teeny)) LHP(L)=LHP(L+1)
+     *     TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA)
+     *     LHP(L)=LHP(L+1)
 #ifdef CLD_AER_CDNC
 !@auth Menon  saving aerosols mass for CDNC prediction
       DO N=1,SNTM
@@ -4325,7 +4327,7 @@ cdmkf and below, extra arguments for GET_COND, addition of THLAW
      &     ,ntix,CLDSAVT)
       dtr(1:ntx) = fqcondt(1:ntx)*tm_dum(1:ntx)
 #ifdef TRDIAG_WETDEPO
-      IF (diag_wetdep == 1) trcond_ls(l,1:ntx) = 
+      IF (diag_wetdep == 1) trcond_ls(l,1:ntx) =
      &     dtr(1:ntx)+thlaw(1:ntx)
 #endif
       do igas=1,gases_count
