@@ -10,7 +10,7 @@ C VARIABLE IN THE STRATOSPHERIC OVERWRITE SECTION.
 c
 C**** GLOBAL parameters and variables:
 c
-      use precision_mod, only : reduce_precision 
+!!    use precision_mod, only : reduce_precision 
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_1D, only : PACK_DATA ! for DU_O3
       USE DOMAIN_DECOMP_ATM,only: GRID,GET,AM_I_ROOT,
@@ -707,7 +707,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
   ! being passed to it, slightly changed the photolysis rates. 
   ! We could provide much more detail on the investigation (week of
   ! Feb 19th 2010):
-        call reduce_precision(zj,1.d-6)
+!! NO:  call reduce_precision(zj,1.d-6)
 
         DO L=min(JPNL,LM),1,-1
           do inss=1,JPPJ
