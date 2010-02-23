@@ -3254,7 +3254,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
       character(len=300) :: out_line
 !@var CONPT_us CONPT with blanks replaced by underscores
       CHARACTER*10 :: CONPT_us
-
+      CHARACTER*40 :: clean_str
       INTEGER NI,NM,NS,N,k
       INTEGER, SAVE :: NQ = 2   ! first 2 special cases AM + KE
 
@@ -3266,11 +3266,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
         CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
         call stop_model("Change NQUANT in diagnostic common block",255)
       END IF
-C**** remove spaces in NAME_CON for netcdf names
-      sname=TRIM(NAME_CON)
-      do k=1,len_trim(NAME_CON)
-        if (sname(k:k).eq." ") sname(k:k)="_"
-      end do
+C**** make nice netcdf names
+      sname=trim(clean_str(name_CON))
 C****
       NI=KCMX+1
       NOFM(1,NQ) = NI
