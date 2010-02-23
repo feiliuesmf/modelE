@@ -19,6 +19,9 @@ rm -f paraffin_ships.nc NOx*.nc
 #- some dust files
 ./remap.pl -par regridb2x2.5.par -in GriniZender_DustSources_144x90 -out GriniZender_DustSources_C90_from_144x90 
 ./remap.pl -par regridb2x2.5.par -in Tegen_DustSources_144x90 -out Tegen_DustSources_C90_from_144x90
+#- Tegen from high res 0.5x0.5 source file
+./remap.pl -par ncregrid-tegen.par -in Tegen_source_redresse.nc -out Tegen02_C90.nc
+
 #-- interactive wetland
 ./remap.pl -par regrida2x2.5.par -in beta_p_ch4_4x5_2x2.5gf -out beta_p_ch4_4x5_2x2.5gf_C90
 ./remap.pl -par regrida2x2.5.par -in alpha_t_ch4_4x5_2x2.5gf -out alpha_t_ch4_4x5_2x2.5gf_C90
