@@ -225,6 +225,22 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     cd /archive/u/dgueyffi/codirect_for_ACCMIP
     idl convert_co_htap_for_accmip_C90.pro 
 
+#-- transient files
+cd /gpfsm/dnb53/gfaluveg/AR5_emissions/v5_anthro/out_auto_C90
+./make_surface_transient_Alkenes_C90.sh
+./make_surface_transient_Paraffin_C90.sh
+./make_surface_transient_NOx_C90.sh
+./make_surface_transient_CO_C90.sh
+./make_surface_transient_CH4_C90.sh
+./make_surface_transient_BCB.sh
+./make_surface_transient_BCII.sh
+./make_surface_transient_NH3.sh
+./make_surface_transient_OCB.sh
+./make_surface_transient_OCII.sh
+./make_surface_transient_SO2.sh
+./loop_headers.ksh
+
+
 #-- check that global integrals  are conserved through regridding
     cd /gpfsm/dnb53/gfaluveg/AR5_emissions/v5_anthro/
 idl -e "testint1r8" -args gsin/N2O_IC_M23_4x5_6.17_conc_2x2.5_conc AR5_C90/N2O_IC_from_2x2.5_C90_Dec_2009
