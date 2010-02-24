@@ -3619,7 +3619,7 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
           consrv(:,k)=0.
         elseif(nsum_con(k).gt.0) then
           consrv(:,nsum_con(k)) = consrv(:,nsum_con(k)) + 
-     &         +consrv(:,k)*scale_con(k)*
+     &         consrv(:,k)*scale_con(k)*
      &         max(1,idacc(ia_inst))/(idacc(ia_con(k))+1d-20)
         endif
       enddo
