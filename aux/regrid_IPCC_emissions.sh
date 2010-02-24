@@ -224,3 +224,103 @@ ncflint -c -v grassfire,forestfire -w 1.0,1.0 propane+pentanes+butanes+hexanes_B
     cp HTAP_surface_co_2001_aggregated_C90.nc /archive/u/dgueyffi/codirect_for_ACCMIP/
     cd /archive/u/dgueyffi/codirect_for_ACCMIP
     idl convert_co_htap_for_accmip_C90.pro 
+
+#-- check that global integrals  are conserved through regridding
+    cd /gpfsm/dnb53/gfaluveg/AR5_emissions/v5_anthro/
+idl -e "testint1r8" -args gsin/N2O_IC_M23_4x5_6.17_conc_2x2.5_conc AR5_C90/N2O_IC_from_2x2.5_C90_Dec_2009
+idl -e "testint1r8" -args gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc AR5_C90/CFC_IC_from_2x2.5_C90_Dec_2009
+idl -e "testint1r8" -args gsin/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc AR5_C90/CH4_IC_from_2x2.5_C90_Dec_2009
+idl -e "testint1r8" -args gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc AR5_C90/Ox_IC_from_2x2.5_C90_Dec_2009
+idl -e "testint1r8" -args gsin/CO_init_cond_M23_conc_2x2.5_conc AR5_C90/CO_IC_from_2x2.5_C90_Dec_2009
+idl -e "testint" -args temp_2x2.5/sulfate_pi_fakeM23_M_SA_2x2.5gf AR5_C90/sulfate_pi_fakeM23_M_SA_2x2.5gf_C90
+idl -e "testint" -args temp_2x2.5/dms_conc_2x2.5gf AR5_C90/dms_conc_2x2.5gf_C90
+idl -e "testint" -args temp_2x2.5/so2_conc_2x2.5gf AR5_C90/so2_conc_2x2.5gf_C90 
+idl -e "testint0" -args ERS1_1993_MONTHLY.144x90.threshold-13 AR5_C90/ERS1_1993_MONTHLY.720x360.threshold-13_C90
+idl -e "testint0" -args Ginoux_source_v2009_VegMask_144x90 AR5_C90/Ginoux_2001_updated_hires_withVegMask_v2009_C90
+idl -e "testint" -args AR5_emis/F/T/CO_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_ind_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/CO_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_tra_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/CO_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_wst_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/CO_awb_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_awb_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/CO_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_dom_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/CO_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/CO_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/CO_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/CO_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/m_CO_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_shp_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/CO_slv_AR5_1990-2000_2x2.5_h AR5_C90/transient/CO_slv_AR5_1990-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/CO_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/CO_ene_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/CO_agr_AR5_1990-2000_2x2.5_h AR5_C90/transient/CO_agr_AR5_1990-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/NOx_air_AR5_1910-2000_2x2.5 AR5_C90/NOx_air_AR5_1910-2000_C90
+idl -e "testint" -args AR5_emis/F/NAT/NOx_Soil_GEIA_2x2.5_HALF_h AR5_C90/NOx_soil_AR5_1850_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_awb_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_awb_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_dom_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_ene_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/NOx_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/NOx_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_ind_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/m_NOx_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_shp_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_tra_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/NOx_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_wst_AR5_1850-2000_C90_h
+idl -e "testint4" -args AR5_emis/F/T/NOx_agr_AR5_1850-2000_2x2.5_h AR5_C90/transient/NOx_agr_AR5_1850-2000_C90_h
+#idl -e "testint" -args ORCHIDEE_Terpenes_1990_2x2.5_h 
+#idl -e "testint" -args ORCHIDEE_ORVOC_1990_2x2.5_h 
+idl -e "testint" -args AR5_emis/F/NAT/Alkenes_vegetation_GEIA_2x2.5_h_1 AR5_C90/Alkenes_vegetation_GEIA_1x1_C90_h
+idl -e "testint" -args AR5_emis/F/T/m_Alkenes_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/Alkenes_shp_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Alkenes_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/Alkenes_wst_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Alkenes_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/Alkenes_dom_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Alkenes_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/Alkenes_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Alkenes_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/Alkenes_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Alkenes_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/Alkenes_ind_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Alkenes_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/Alkenes_tra_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Alkenes_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/Alkenes_ene_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Alkenes_awb_AR5_1890-2000_2x2.5_h AR5_C90/transient/Alkenes_awb_AR5_1890-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Alkenes_agr_AR5_1990-2000_2x2.5_h AR5_C90/transient/Alkenes_agr_AR5_1990-2000_C90_h
+idl -e "testint" -args AR5_emis/F/NAT/Paraffin_vegetation_GEIA_2x2.5_h_1 AR5_C90/Paraffin_vegetation_GEIA_1x1_C90_h
+idl -e "testint" -args AR5_emis/F/T/m_Paraffin_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/Paraffin_shp_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Paraffin_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/Paraffin_wst_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Paraffin_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/Paraffin_dom_AR5_1850-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Paraffin_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/Paraffin_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Paraffin_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/Paraffin_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args AR5_emis/F/T/Paraffin_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/Paraffin_ind_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Paraffin_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/Paraffin_tra_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Paraffin_slv_AR5_1860-2000_2x2.5_h AR5_C90/transient/Paraffin_slv_AR5_1860-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Paraffin_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/Paraffin_ene_AR5_1850-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Paraffin_awb_AR5_1890-2000_2x2.5_h AR5_C90/transient/Paraffin_awb_AR5_1890-2000_C90_h
+idl -e "testint3" -args AR5_emis/F/T/Paraffin_agr_AR5_1990-2000_2x2.5_h AR5_C90/transient/Paraffin_agr_AR5_1990-2000_C90_h
+idl -e "testint" -args AR5_emis/F/HTAP_codirect_emissions_2x2.5_h AR5_C90/HTAP_codirect_emissions_C90_h
+idl -e "testint" -args NH3hCON_OCEANflux_Jan10_2x2.5_h AR5_C90/NH3hCON_OCEANflux_Jan10_C90title_h
+idl -e "testint" -args NH3_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/NH3_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args NH3_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/NH3_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args NH3_agr_AR5_1850-2000_2x2.5_h AR5_C90/transient/NH3_agr_AR5_1850-2000_C90_h
+idl -e "testint" -args NH3_awb_AR5_1850-2000_2x2.5_h AR5_C90/transient/NH3_awb_AR5_1850-2000_C90_h
+idl -e "testint" -args NH3_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/NH3_dom_AR5_1850-2000_C90_h
+idl -e "testint" -args NH3_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/NH3_ind_AR5_1850-2000_C90_h
+idl -e "testint4" -args NH3_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/NH3_ene_AR5_1850-2000_C90_h
+idl -e "testint4" -args NH3_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/NH3_tra_AR5_1850-2000_C90_h
+#idl -e "testint" -args SO2_volc_conti2000_HR2x2.5.AEROCOM 
+idl -e "testint" -args DMS_Kettle_Andreae_2x2.5 AR5_C90/DMS_Kettle_Andeae_C90
+idl -e "testint" -args BCII_awb_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_awb_AR5_1850-2000_C90_h
+idl -e "testint" -args BCII_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_dom_AR5_1850-2000_C90_h
+idl -e "testint3" -args BCII_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_ene_AR5_1850-2000_C90_h
+idl -e "testint" -args BCII_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_ind_AR5_1850-2000_C90_h
+idl -e "testint" -args BCII_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_tra_AR5_1850-2000_C90_h
+idl -e "testint" -args BCII_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_wst_AR5_1850-2000_C90_h
+idl -e "testint" -args BCII_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/BCII_shp_AR5_1850-2000_C90_h
+idl -e "testint" -args OCII_awb_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_awb_AR5_1850-2000_C90_h
+idl -e "testint" -args OCII_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_dom_AR5_1850-2000_C90_h
+idl -e "testint3" -args OCII_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_ene_AR5_1850-2000_C90_h
+idl -e "testint" -args OCII_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_ind_AR5_1850-2000_C90_h
+idl -e "testint" -args OCII_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_tra_AR5_1850-2000_C90_h
+idl -e "testint" -args OCII_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_wst_AR5_1850-2000_C90_h
+idl -e "testint" -args OCII_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/OCII_shp_AR5_1850-2000_C90_h
+idl -e "testint" -args SO2_shp_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_shp_AR5_1850-2000_C90_h
+idl -e "testint" -args SO2_awb_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_awb_AR5_1850-2000_C90_h
+idl -e "testint" -args SO2_dom_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_dom_AR5_1850-2000_C90_h
+idl -e "testint" -args SO2_ind_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_ind_AR5_1850-2000_C90_h
+idl -e "testint" -args SO2_tra_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_tra_AR5_1850-2000_C90_h
+idl -e "testint" -args SO2_wst_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_wst_AR5_1850-2000_C90_h
+idl -e "testint3" -args SO2_ene_AR5_1850-2000_2x2.5_h AR5_C90/transient/SO2_ene_AR5_1850-2000_C90_h
+idl -e "testint" -args BCB_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/BCB_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args BCB_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/BCB_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args OCB_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/OCB_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args OCB_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/OCB_grassfire_AR5_1900-2000_C90_h
+idl -e "testint" -args SO2_forestfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/SO2_forestfire_AR5_1900-2000_C90_h
+idl -e "testint" -args SO2_grassfire_AR5_1900-2000_2x2.5_h AR5_C90/transient/SO2_grassfire_AR5_1900-2000_C90_h
