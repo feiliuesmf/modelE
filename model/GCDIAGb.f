@@ -654,7 +654,7 @@ C****
      &     mdyn,mdiag, ndaa,sig,sige,dsig,Jhour,u,v,t,p,q,wm
      &     ,psfmpt
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
-     &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ,RADIUS
+     &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
       USE DIAG_COM, only : ia_dga
      &    ,agc=>agc_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
      &     nwav_dag,ndiupt,hr_in_day,ijk_ub,ijk_vb,ijk_tb,ijk_dpb
