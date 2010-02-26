@@ -228,8 +228,6 @@ C**** Balance tracers so that average concentration is TRW0
 C**** or oc_tracer_mean
           
           CALL CONSERV_OTR(OTRACJ,N)
-          OTRACJ(:,:)=OTRACJ(:,:)*oXYP(:,:)
-
           CALL GLOBALSUM(grid, OTRACJ, trsum, ALL=.true.)
 
           if (AM_I_ROOT()) then
@@ -281,8 +279,6 @@ C**** straits
 
 C**** Check
             CALL CONSERV_OTR(OTRACJ,N)
-            OTRACJ(:,:)=OTRACJ(:,:)*oXYP(:,:)
-
             CALL GLOBALSUM(grid, OTRACJ, trsum, ALL=.true.)
 
             if (AM_I_ROOT()) then
@@ -394,7 +390,7 @@ C****
 !@sum  DIAGTCO Keeps track of the conservation properties of ocean tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
 !@ver  1.0
-      USE OCEAN, only : oJ_BUDG, oWTBUDG, oJ_0B, oJ_1B,imaxj
+      USE OCEAN, only : IMO=>IM, oJ_BUDG, oJ_0B, oJ_1B
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon,
      *     natmtrcons
@@ -407,13 +403,15 @@ C****
       INTEGER, INTENT(IN) :: nt0
       INTEGER :: nt
 !@var TOTAL amount of conserved quantity at this time
-      REAL*8, DIMENSION(oGRID%I_STRT_HALO:oGRID%I_STOP_HALO,
+      REAL*8, DIMENSION(IMO,
      &                  oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) :: TOTAL
       REAL*8, DIMENSION(JM_BUDG) :: TOTALJ
       INTEGER :: nm,ni
-      INTEGER :: I, J, J_0, J_1
+      INTEGER :: I, J, J_0, J_1, I_0, I_1
 
       CALL GET(ogrid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = oGRID%I_STRT
+      I_1 = oGRID%I_STOP
 C****
 C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
 C**** M=1,2...12:  See DIAGCA in DIAG.f
@@ -425,7 +423,7 @@ C**** no calculation is done.
 C**** NOFMT(1,NT) is the index for the instantaneous value.
       nt=nt0+natmtrcons
       if (nofmt(m,nt).gt.0) then
-C**** Calculate current value TOTAL
+C**** Calculate current value TOTAL (kg)
         call conserv_otr(total,nt0)
         nm=nofmt(m,nt)
         ni=nofmt(1,nt)
@@ -433,14 +431,10 @@ C**** Calculate current value TOTAL
 C**** Calculate zonal sums
         totalj(oj_0b:oj_1b)=0.
         do j=j_0,j_1
-        do i=1,IMAXJ(J)
+        do i=i_0,i_1
           totalj(oj_budg(i,j)) = totalj(oj_budg(i,j)) + total(i,j)
-     &           *oWTBUDG(I,J)
         end do
         end do
-
-c        print*,"in diagtco",nt,nt0,oJ_0b,oJ_1b,nm,ni,totalj(:),
-c     *       tconsrv(oJ_0b:oJ_1b,nm,nt)
 
 c**** Accumulate difference from last time in TCONSRV(NM)
         if (m.gt.1) then
@@ -455,19 +449,19 @@ C**** Save current value in TCONSRV(NI)
       end subroutine diagtco
 
       SUBROUTINE conserv_OTR(OTR,ITR)
-!@sum  conserv_OTR calculates zonal ocean tracer on atmos grid
+!@sum  conserv_OTR calculates zonal ocean tracer (kg) on ocean grid
 !@auth Gavin Schmidt
 !@ver  1.0
-      USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, S0M, imaxj, focean,mo,
-     *     lmm,trmo,bydxypo
-      USE STRAITS, only : nmst,jst,ist,trmst
+      USE OCEAN, only : IMO=>IM,JMO=>JM,oXYP,LMM, imaxj,trmo
+      USE STRAITS, only : nmst,jst,ist,lmst,trmst
       USE DOMAIN_DECOMP_1D, only : GET
       USE OCEANR_DIM, only : ogrid
 
       IMPLICIT NONE
-!@var OSALT zonal ocean tracer (kg/m^2)
-      REAL*8, DIMENSION(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) :: OTR
-      INTEGER I,J,L,N,ITR
+!@var OTR zonal ocean tracer (kg)
+      REAL*8, DIMENSION(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) :: OTR 
+      INTEGER, INTENT(IN) :: ITR
+      INTEGER I,J,L,N
 
       INTEGER :: J_0, J_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -477,20 +471,17 @@ C**** Save current value in TCONSRV(NI)
 
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
-          OTR(I,J)=0.
-          DO L=1,LMM(I,J)
-            OTR(I,J) = OTR(I,J) + TRMO(I,J,L,ITR)*FOCEAN(I,J)*BYDXYPO(J)
-          END DO
+          OTR(I,J) = SUM(TRMO(I,J,:LMM(I,J),ITR))
         END DO
       END DO
-      if (HAVE_SOUTH_POLE) OTR(2:IMO,1) = OTR(1,1)
-      if (HAVE_NORTH_POLE) OTR(2:IMO,JMO)= OTR(1,JMO)
+      if (HAVE_SOUTH_POLE) OTR(2:IMO,1)   = OTR(1,1)
+      if (HAVE_NORTH_POLE) OTR(2:IMO,JMO) = OTR(1,JMO)
 C**** include straits variables
       DO N=1,NMST
         I=IST(N,1)
         J=JST(N,1)
-        if(j.lt.j_0 .or. j.gt.j_1) cycle
-        OTR(I,J)=OTR(I,J)+SUM(TRMST(:,N,ITR))*BYDXYPO(J)
+        If (J >= J_0 .and. J <= J_1)
+     &       OTR(I,J)=OTR(I,J)+SUM(TRMST(:LMST(N),N,ITR))
       END DO
 C****
       RETURN
