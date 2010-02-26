@@ -1183,9 +1183,9 @@ C**** Oceanic tracers
 #endif
       do nt=1,ntm
         UNITS_INST="("//trim(unit_string(ntrocn(nt),'kg/m^2'))//")"
-        UNITS="("//trim(unit_string(ntrocn(nt)-3,'kg/m^2/s'))//")"
+        UNITS="("//trim(unit_string(ntrocn(nt)-10,'kg/m^2/s'))//")"
         INST_SC=10.**(-ntrocn(nt))
-        CHNG_SC=10.**(-ntrocn(nt)+3)
+        CHNG_SC=10.**(-ntrocn(nt)+10)
         CALL SET_TCONO(QCON,CONPT,trname(nt)(1:8),QSUM,UNITS_INST,UNITS,
      *      INST_SC,CHNG_SC,nt)
       end do
