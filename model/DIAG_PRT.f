@@ -3165,7 +3165,7 @@ c      deallocate(anum,aden,xjl)
       character(len=lname_strlen), dimension(kailx) :: lname_il
       real*8, dimension(kailx) :: scale_il
       integer, dimension(kailx) :: ia_il,j1_il,j2_il,qty_il
-      real*8 :: bydj,bydjuv,daeq
+      real*8 :: bydj,bydjuv
       integer :: k,kd,j
 c
       do k=1,kailx
@@ -3179,10 +3179,6 @@ c
 C**** some scaling numbers for the equatorial diags.
       bydj   = 1./REAL(j5n-j5s+1,KIND=8)
       bydjuv = 1./REAL(j5nuv-j5suv+1,KIND=8)
-      daeq=0.
-      do j=j5s,j5n
-        daeq=daeq+DXYP(J)
-      end do
 C****
       k=0
 c
@@ -3209,7 +3205,7 @@ c
       name_il(k) = 'vvel_equator'
       lname_il(k) = 'VERTICAL VELOCITY AROUND +/- 5 DEG'
       units_il(k) = '10**-4 m/s'
-      scale_il(k) = -1d4*RGAS*BYGRAV/daeq
+      scale_il(k) = -1d4*RGAS*BYGRAV*bydj
       ia_il(k)    = ia_dga
       j1_il(k) = j5s
       j2_il(k) = j5n
@@ -3254,7 +3250,7 @@ c
       name_il(k) = 'vvel_50N'
       lname_il(k) = 'VERTICAL VELOCITY AT 50 N'
       units_il(k) = '10**-4 m/s'
-      scale_il(k) = 1d4*RGAS/(GRAV*DXYP(J50N))
+      scale_il(k) = -1d4*RGAS*BYGRAV
       ia_il(k)    = ia_dga
       j1_il(k) = j50n
       j2_il(k) = j50n
@@ -3290,7 +3286,7 @@ c
       name_il(k) = 'vvel_70N'
       lname_il(k) = 'VERTICAL VELOCITY AT 70 N'
       units_il(k) = '10**-4 m/s'
-      scale_il(k) = -1d4*RGAS/(GRAV*DXYP(J70N))
+      scale_il(k) = -1d4*RGAS*BYGRAV
       ia_il(k)    = ia_dga
       j1_il(k) = j70n
       j2_il(k) = j70n

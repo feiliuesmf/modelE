@@ -649,7 +649,7 @@ c
       DO L=1,LM-1
       DO J=J_0,J_1
       DO I=I_0,I_1
-        AIJL(I,J,L,IJL_W) = AIJL(I,J,L,IJL_W) + W(I,J,L)
+        AIJL(I,J,L,IJL_W) = AIJL(I,J,L,IJL_W) + W(I,J,L)*BYAXYP(I,J)
       ENDDO
       ENDDO
       ENDDO

@@ -5355,7 +5355,7 @@ c
       name_ijl(k) = 'w'
       lname_ijl(k) = 'vertical velocity'
       units_ijl(k) = 'm/s'
-      scale_ijl(k) = -RGAS*BYGRAV ! still need to divide by axyp
+      scale_ijl(k) = -RGAS*BYGRAV
 #endif
 c
       k=k+1
