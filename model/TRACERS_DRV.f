@@ -478,7 +478,7 @@ C**** Get solar variability coefficient from namelist if it exits
       n_Water = n
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
           trw0(n) = 1.
-          ntrocn(n)= 0
+          ntrocn(n)= 2
 #endif
 #ifdef TRACERS_WATER
           ntm_power(n) = -4
@@ -509,7 +509,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.980d0*trw0(n)  ! d=-20
           trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
-          ntrocn(n) = -3
+          ntrocn(n) = -1
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98d0   ! d=-20
 #endif
@@ -525,7 +525,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.830d0*trw0(n)  ! d=-170
           trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
-          ntrocn(n) = -4
+          ntrocn(n) = -2
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.84d0   ! d=-160
 #endif
@@ -542,7 +542,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trsi0(n) = 0.
           tr_H2ObyCH4(n) = 0.
           trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
-          ntrocn(n) = -18
+          ntrocn(n) = -16
 #ifdef TRACERS_OCEAN
           trglac(n) = 0.
 #endif
@@ -558,7 +558,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.98937d0*trw0(n)  ! d=-10.63 D17O=0
           trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.011596d0 ! d=+11.596 (some frac from O2)
-          ntrocn(n) = -3
+          ntrocn(n) = -1
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98937d0   ! d=-10.63 D17O=
 #endif
