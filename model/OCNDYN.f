@@ -75,7 +75,7 @@ C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES
          CALL CHECKO('OSTRES')
          CALL TIMER (NOW,MSURF)
-         IF (MODD5S == 0) CALL DIAGC0 (11)
+         IF (MODD5S == 0) CALL DIAGCO (11)
 
 C**** Apply ocean vertical mixing
       CALL OCONV
@@ -95,7 +95,7 @@ C**** Add ocean biology
 #ifdef TRACERS_GASEXCH_ocean
       call gather_pco2
 #endif
-      IF (MODD5S.EQ.0) CALL DIAGC0 (5)
+      IF (MODD5S.EQ.0) CALL DIAGCO (5)
 #endif
 
          CALL TIMER (NOW,MSGSO)
@@ -250,7 +250,7 @@ C****
   500 Continue  !  End of Do-loop NO=1,NOCEAN
 
         CALL TIMER (NOW,MDYNO)
-        IF (MODD5S == 0) CALL DIAGC0 (12)
+        IF (MODD5S == 0) CALL DIAGCO (12)
 
 C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
       CALL ODIFF(DTS)
