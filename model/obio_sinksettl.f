@@ -33,39 +33,38 @@
 !  dz(k+1) * P_tend(k+1) = dz(k+1) * P_tend(k+1) + trnd
 !this way we ensure conservation of tracer after vertical adjustment
 
+      !phyto sinking
       do nt = nnut+1,ntyp-nzoo
         do k = 1,kmax-1
          trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
          P_tend(k,nt)   = P_tend(k,nt)   - trnd/dzo(k)
          P_tend(k+1,nt) = P_tend(k+1,nt) + trnd/dzo(k+1)
+
+         rhs(k,nnut+nt,16)= - trnd/dzo(k)
         enddo  ! k
          k = kmax
          trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
          P_tend(k,nt)   = P_tend(k,nt)   - trnd/dzo(k)
+
+         rhs(k,nnut+nt,16)= - trnd/dzo(k)
       enddo ! n
 
+      !detritus settling
       do nt = 1,ndet
         do k = 1,kmax-1
          trnd = det(k,nt)*wsdet(k,nt)
          D_tend(k,nt)   = D_tend(k,nt)   - trnd/dzo(k)
          D_tend(k+1,nt) = D_tend(k+1,nt) + trnd/dzo(k+1)
+
+         rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
         enddo  ! k
          k = kmax
          trnd = det(k,nt)*wsdet(k,nt)
          D_tend(k,nt)   = D_tend(k,nt)   - trnd/dzo(k)
+
+         rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
       enddo ! nt
 
-
-
-!fill in the tendency table
-      do k=1,kmax
-      do nt=1,nchl
-        rhs(k,nnut+nt,16)= P_tend(k,nnut+nt)
-      enddo
-      do nt=1,ndet
-        rhs(k,nnut+nchl+nzoo+nt,16)= D_tend(k,nt)
-      enddo
-      enddo
 
 
 #else     /* HYCOM */
