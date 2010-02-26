@@ -87,7 +87,6 @@ C**** Apply bottom and coastal drags
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
-      IF (MODD5S.EQ.0) CALL DIAGCA (1)
 #ifdef TRACERS_GASEXCH_ocean
       call scatter_gasexch_com_arrays
 #endif
@@ -96,7 +95,7 @@ C**** Add ocean biology
 #ifdef TRACERS_GASEXCH_ocean
       call gather_pco2
 #endif
-      IF (MODD5S.EQ.0) CALL DIAGCA (5)
+      IF (MODD5S.EQ.0) CALL DIAGCO (5)
 #endif
 
          CALL TIMER (NOW,MSGSO)
