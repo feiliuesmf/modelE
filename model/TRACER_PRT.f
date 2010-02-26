@@ -365,7 +365,8 @@ C**** No need to save current value
       USE TRACER_COM, only: ntm ,itime_tr0
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
-     &     lname_tconsrv,name_tconsrv,units_tconsrv
+     &     lname_tconsrv,name_tconsrv,units_tconsrv,
+     &     natmtrcons,nocntrcons 
       USE DIAG_COM, only: inc=>incj,xwon,kdiag,qdiag,acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -404,8 +405,7 @@ C****
 C**** Outer loop over tracers
 C****
       ktcon_max=0
-      DO 900 N=1,NTM
-      IF (itime.LT.itime_tr0(N)) cycle
+      DO 900 N=1,natmtrcons+nocntrcons 
 C**** CALCULATE SUM OF CHANGES
 C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
       DO J=1,JM
@@ -416,7 +416,7 @@ C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
             TCONSRV(J,NSUM_TCON(K,N),N)=
      *      TCONSRV(J,NSUM_TCON(K,N),N)+TCONSRV(J,K,N)
      *           *SCALE_TCON(K,N)*IDACC(12)/(IDACC(IA_TCON(K,N))+teeny)
-          KTCON_max = NSUM_TCON(K,N)
+            KTCON_max = NSUM_TCON(K,N)
           END IF
         END DO
       END DO
@@ -460,8 +460,13 @@ C**** LOOP OVER HEMISPHERES
       WRITE (6,'(''1'')')
       DO JHEMI=2,1,-1
         WRITE (6,'(''0'',A)') XLABEL
-        WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
-     *       JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+        if (n.le.natmtrcons) then
+           WRITE (6,901) JYEAR0,AMON0,JDATE0,JHOUR0,
+     *          JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+        else
+           WRITE (6,902) JYEAR0,AMON0,JDATE0,JHOUR0,
+     *          JYEAR,AMON,JDATE,JHOUR,ITIME,DAYS
+        end if
         JP1=1+(JHEMI-1)*(JEQ-1)
         JPM=JHEMI*(JEQ-1)
 C**** PRODUCE TABLES
@@ -480,7 +485,10 @@ C**** PRODUCE TABLES
       if(qdiag) call close_JC
       RETURN
 C****
-  902 FORMAT ('0Conservation Quantities       From:',
+  901 FORMAT ('0Conservation Quantities       From:',
+     *  I6,A6,I2,',  Hr',I3,  6X,  'To:',I6,A6,I2,', Hr',I3,
+     *  '  Model-Time:',I9,5X,'Dif:',F7.2,' Days')
+  902 FORMAT ('0Ocean Consrv Quantities       From:',
      *  I6,A6,I2,',  Hr',I3,  6X,  'To:',I6,A6,I2,', Hr',I3,
      *  '  Model-Time:',I9,5X,'Dif:',F7.2,' Days')
   903 FORMAT (1X,28('--'),13(A4,'--'))
