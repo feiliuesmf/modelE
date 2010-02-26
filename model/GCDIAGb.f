@@ -639,6 +639,205 @@ c
       return
       end subroutine gc_defs
 
+      subroutine ijk_defs
+      use CONSTANT, only : bygrav,tf,sha
+      use MODEL_COM, only : qcheck,dtsrc
+      use DIAG_COM
+      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE GEOM, only : lon_dg,lat_dg
+#ifdef NEW_IO
+      use cdl_mod
+#endif
+      implicit none
+      integer :: k,kk
+#ifdef NEW_IO
+      type(cdl_type) :: cdl_dum
+#endif
+c igrid,jgrid,kgrid = 1 for centers, 2 for edges
+      integer :: igrid,jgrid,kgrid,ijkg
+      character(len=8) :: xstr,ystr,zstr
+c
+      do k=1,kaijk
+         write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
+         lname_ijk(k) = 'unused'
+         units_ijk(k) = 'unused'
+         scale_ijk(k) = 1.
+         jgrid_ijk(k) = igride+jgride+kgridc
+         off_ijk(k)   = 0.
+         denom_ijk(k) = 0
+         ia_ijk(k) = ia_dga
+      enddo
+c
+      k=0
+c
+      k=k+1
+      IJK_DPB=k
+      name_ijk(k) = 'dpb' !'DPB'
+      lname_ijk(k) = 'DELTA-P'!           b-grid'
+      units_ijk(k) = '100 PA'
+c
+      k=k+1
+      IJK_UB=k
+      name_ijk(k) = 'ub' !'UDPB'
+      lname_ijk(k) = 'U-WIND'!            x delta p, b-grid'
+      units_ijk(k) = 'm/s'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_VB=k
+      name_ijk(k) = 'vb' !'VDPB'
+      lname_ijk(k) = 'V-WIND'!            x delta p, b-grid'
+      units_ijk(k) = 'm/s'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_DSE=k
+      name_ijk(k) = 'dse' !'DSEDPB'
+      lname_ijk(k) = 'DRY STAT. ENERGY'!  x delta p x 4, b-grid'
+      units_ijk(k) = 'm^2/s^2'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_TB=k
+      name_ijk(k) = 'tb' !'TDPB'
+      lname_ijk(k) = 'TEMPERATURE'!       x delta p x 4, b-grid'
+      units_ijk(k) = 'C'
+      off_ijk(k)   = -TF
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_W=k
+      name_ijk(k) = 'w' !'WDPB'
+      lname_ijk(k) = 'OMEGA'!  a-grid
+      units_ijk(k) = 'Pa/s'
+      scale_ijk(k) = 100.
+      jgrid_ijk(k) = igridc+jgridc+kgridc ! eventually use kgride instead
+c
+      k=k+1
+      IJK_PF=k
+      name_ijk(k) = 'pf'
+      lname_ijk(k) = 'FRAC ABOVE SURF'
+      units_ijk(k) = '%'
+      scale_ijk(k) = 100.0
+c
+      k=k+1
+      IJK_UV=k
+      name_ijk(k) = 'UxV'
+      lname_ijk(k) = 'U-WIND*V-WIND'
+      units_ijk(k) = 'm**2/s**2'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_VQ=k
+      name_ijk(k) = 'VxQ'
+      lname_ijk(k) = 'V-WIND*SPECIFIC HUMIDITY'
+      units_ijk(k) = '(m/s)*kg/kg'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_VT=k
+      name_ijk(k) = 'VxT'
+      lname_ijk(k) = 'V-WIND*TEMPERATURE'
+      units_ijk(k) = '(m/s)*K'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_UU=k
+      name_ijk(k) = 'UxU'
+      lname_ijk(k) = 'U-WIND*U-WIND'
+      units_ijk(k) = 'm**2/s**2'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_VV=k
+      name_ijk(k) = 'VxV'
+      lname_ijk(k) = 'V-WIND*V-WIND'
+      units_ijk(k) = 'm**2/s**2'
+      denom_ijk(k) = IJK_DPB
+c
+      k=k+1
+      IJK_TT=k
+      name_ijk(k) = 'TxT'
+      lname_ijk(k) = 'TEMPERATURE*TEMPERATURE'
+      units_ijk(k) = 'K**2'
+      denom_ijk(k) = IJK_DPB
+c
+c composite outputs
+c
+      k = k + 1
+      IJK_PHI = k
+      name_ijk(k) = 'z'
+      lname_ijk(k) = 'HEIGHT'
+      units_ijk(k) = 'm'
+      scale_ijk(k) = BYGRAV
+      denom_ijk(k) = IJK_DPB
+
+      if (AM_I_ROOT()) then
+         if (k .gt. kaijk) then
+            write (6,*) 'ijk_defs: Increase kaijk=',kaijk,' to ',k
+            call stop_model( 'kaijk too small', 255 )
+         end if
+         write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
+         if(qcheck) then
+           do kk=1,k
+             write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
+           end do
+         endif
+      end if
+
+#ifdef NEW_IO
+c
+c Declare the dimensions and metadata of AIJK output fields using
+c netcdf CDL notation.  The C convention for dimension ordering
+c must be used (reversed wrt Fortran).
+c
+      call init_cdl_type('cdl_ijk',cdl_ijk)
+      call add_coord(cdl_ijk,'lon',im,units='degrees_east',
+     &     coordvalues=lon_dg(:,1))
+      call add_coord(cdl_ijk,'lon2',im,units='degrees_east',
+     &     coordvalues=lon_dg(:,2))
+      call add_coord(cdl_ijk,'lat',jm,units='degrees_north',
+     &     coordvalues=lat_dg(:,1))
+      call add_coord(cdl_ijk,'lat2',jm,units='degrees_north',
+     &     coordvalues=lat_dg(:,2))
+      cdl_dum = cdl_ijk
+      call merge_cdl(cdl_dum,cdl_heights,cdl_ijk)
+
+      do k=1,kaijk
+        if(trim(units_ijk(k)).eq.'unused') cycle
+        ijkg = jgrid_ijk(k) ! contains igrid,jgrid,kgrid in successive bits
+        kgrid = ijkg/kgride
+        ijkg = ijkg - kgride*kgrid
+        jgrid = ijkg/jgride
+        ijkg = ijkg - jgride*jgrid
+        igrid = ijkg
+        if(igrid.eq.0) then
+          xstr='lon) ;'
+        else
+          xstr='lon2) ;'
+        endif
+        if(jgrid.eq.0) then
+          ystr='lat,'
+        else
+          ystr='lat2,'
+        endif
+        if(kgrid.eq.0) then
+          zstr='(plm,'
+        else
+          zstr='(ple,'
+        endif
+        call add_var(cdl_ijk,
+     &       'float '//trim(name_ijk(k))//
+     &       trim(zstr)//trim(ystr)//trim(xstr),
+     &       units=trim(units_ijk(k)),
+     &       long_name=trim(lname_ijk(k)))
+      enddo
+
+#endif
+
+      return
+      end subroutine ijk_defs
+
       SUBROUTINE DIAGB
 !@sum DIAGB calculate constant pressure diagnostics from within DYNAM
 C****
@@ -2213,3 +2412,29 @@ c
       enddo
       return
       end subroutine diaggc_prep
+
+      subroutine calc_derived_aijk
+!@sum Calculate derived AIJK diagnostics prior to printing
+!@auth Group
+      use constant, only : sha
+      use model_com, only : im,lm
+      use diag_com, only : aijk => aijk_loc,
+     &     ijk_dse,ijk_tb,ijk_phi
+      use domain_decomp_1d, only : grid
+      implicit none
+      integer :: i,j,l,j_0stg,j_1stg
+
+      j_0stg = grid%j_strt_stgr
+      j_1stg = grid%j_stop_stgr
+
+      do l=1,lm
+        do j=j_0stg,j_1stg
+          do i=1,im
+            aijk(i,j,l,ijk_phi) =
+     &           aijk(i,j,l,ijk_dse) - sha*aijk(i,j,l,ijk_tb) 
+          enddo
+        enddo
+      enddo
+
+      return
+      end subroutine calc_derived_aijk

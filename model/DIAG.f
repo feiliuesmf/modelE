@@ -3784,6 +3784,7 @@ C****
       call gather_zonal_diags
       call collect_scalars
       call calc_derived_aij
+      call calc_derived_aijk
       call diagj_prep
       call diagjl_prep
       call diaggc_prep

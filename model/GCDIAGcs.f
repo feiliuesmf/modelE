@@ -361,6 +361,11 @@ c
       return
       end subroutine gc_defs
 
+      subroutine ijk_defs
+c empty for now
+      return
+      end subroutine ijk_defs
+      
       subroutine diagb
 !@sum DIAGB calculate constant-pressure latitude-circle diagnostics.
 !@+   This version is for a cubed sphere grid.
@@ -1317,3 +1322,9 @@ c
 
       return
       end subroutine diaggc_prep
+
+      subroutine calc_derived_aijk
+c empty for now
+      implicit none
+      return
+      end subroutine calc_derived_aijk

@@ -210,9 +210,9 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@var AGC latitude-height General Circulation diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
 
-!@param KAIJK,KAIJKX number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER, public :: KAIJK=13, kaijkx=kaijk+400
-!@var KAIJK lat/lon constant pressure diagnostics
+!@param KAIJK number of lat/lon constant pressure diagnostics
+      INTEGER, PARAMETER, public :: KAIJK=14
+!@var AIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK,AIJK_loc
 
 !@param NWAV_DAG number of components in spectral diagnostics
@@ -697,21 +697,21 @@ c derived/composite diagnostics
 !@var IJK_xxx AIJK diagnostic names
       INTEGER, public ::
      &     IJK_UB, IJK_VB, IJK_DSE, IJK_DPB, IJK_TB, IJK_W, IJK_PF,
-     &     IJK_UV, IJK_VQ, IJK_VT, IJK_UU, IJK_VV, IJK_TT
+     &     IJK_UV, IJK_VQ, IJK_VT, IJK_UU, IJK_VV, IJK_TT, IJK_PHI
 
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
-      REAL*8, DIMENSION(KAIJKx), public :: SCALE_IJK
+      REAL*8, DIMENSION(Kaijk), public :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
-      REAL*8, DIMENSION(KAIJKx), public :: OFF_IJK
+      REAL*8, DIMENSION(Kaijk), public :: OFF_IJK
 !@var NAME_IJK Names of lon-lat-pressure IJK diagnostics
-      character(len=sname_strlen), dimension(kaijkx), public :: name_ijk
+      character(len=sname_strlen), dimension(kaijk), public :: name_ijk
 !@var LNAME_IJK,UNITS_IJK Descriptions/Units of IJK diagnostics
-      character(len=lname_strlen), dimension(kaijkx), public ::
+      character(len=lname_strlen), dimension(kaijk), public ::
      &     lname_ijk
-      character(len=units_strlen), dimension(kaijkx), public ::
+      character(len=units_strlen), dimension(kaijk), public ::
      &     units_ijk
 !@var jgrid_ijk 1=primary grid  2=secondary grid
-      integer, dimension(KAIJKx), public :: jgrid_ijk
+      integer, dimension(Kaijk), public :: jgrid_ijk,denom_ijk,ia_ijk
 
 !@var SCALE_IJL scale factor for AIJL diagnostics
       REAL*8, DIMENSION(KAIJL), public :: SCALE_IJL
@@ -853,6 +853,9 @@ CXXXX inci,incj NOT GRID-INDPENDENT
       type(cdl_type), public ::
      &     cdl_ijl_template,cdl_ijl_latlon_template,
      &     cdl_ijl,cdl_ijl_latlon
+!@var CDL_IJK consolidated metadata for AIJK output fields in CDL notation
+!@+   (latlon-only for the moment)
+      type(cdl_type), public :: cdl_ijk
 !@var CDL_CONSRV consolidated metadata for CONSRV output fields in
 !@+   CDL notation
       type(cdl_type), public :: cdl_consrv
@@ -1974,18 +1977,18 @@ c for which scalars is bcast_all=.true. necessary?
 !@ver  beta
       use model_com, only : im
       use diag_com, only : kagc,
-     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
-     &     name_consrv,sname_gc,
+     &     name_consrv,sname_gc,name_ijk,
      &     cdl_j,cdl_reg,cdl_jl,
      &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
-     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,
+     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,cdl_ijk,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
-     &     scale_gc,
+     &     scale_gc,scale_ijk,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
-     &     denom_gc,
+     &     denom_gc,denom_ijk,
      &     lm,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
@@ -2093,6 +2096,17 @@ c for which scalars is bcast_all=.true. necessary?
      &     'cdl_aijl_latlon(cdl_strlen,kcdl_aijl_latlon)')
 #endif
 
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+      call write_attr(grid,fid,'aijk','reduction','sum')
+      call write_attr(grid,fid,'aijk','split_dim',4)
+      call defvar(grid,fid,ia_ijk,'ia_aijk(kaijk)')
+      call defvar(grid,fid,scale_ijk,'scale_aijk(kaijk)')
+      call defvar(grid,fid,denom_ijk,'denom_aijk(kaijk)')
+      call defvar(grid,fid,name_ijk,'sname_aijk(sname_strlen,kaijk)')
+      call defvar_cdl(grid,fid,cdl_ijk,
+     &     'cdl_aijk(cdl_strlen,kcdl_aijk)')
+#endif
+
       call write_attr(grid,fid,'adiurn','reduction','sum')
       call write_attr(grid,fid,'adiurn','split_dim',1)
       call defvar(grid,fid,int_dummy,'ntime_adiurn')
@@ -2127,18 +2141,18 @@ c for which scalars is bcast_all=.true. necessary?
 !@auth M. Kelley
       use model_com, only : im,nday,idacc
       use diag_com, only : kagc,
-     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
-     &     name_consrv,sname_gc,
+     &     name_consrv,sname_gc,name_ijk,
      &     cdl_j,cdl_reg,cdl_jl,
      &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
-     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,
+     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,cdl_ijk,
      &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
-     &     scale_gc,
+     &     scale_gc,scale_ijk,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
-     &     denom_gc,
+     &     denom_gc,denom_ijk,
      &     lm,ia_12hr,
      &     isccp_press,isccp_tau,isccp_late,wisccp
       use geom, only : lon2d_dg,lat2d_dg,axyp
@@ -2208,6 +2222,14 @@ c for which scalars is bcast_all=.true. necessary?
       call write_cdl(grid,fid,'cdl_aijl',cdl_ijl)
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call write_cdl(grid,fid,'cdl_aijl_latlon',cdl_ijl_latlon)
+#endif
+
+#if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
+      call write_data(grid,fid,'ia_aijk',ia_ijk)
+      call write_data(grid,fid,'scale_aijk',scale_ijk)
+      call write_data(grid,fid,'denom_aijk',denom_ijk)
+      call write_data(grid,fid,'sname_aijk',name_ijk)
+      call write_cdl(grid,fid,'cdl_aijk',cdl_ijk)
 #endif
 
       ntime_dd = (idacc(ia_12hr)/2)*(nday/24)

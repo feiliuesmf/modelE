@@ -4470,8 +4470,9 @@ c
       use cdl_mod
 #endif
       implicit none
-      integer :: k,kk
+      integer :: l,k,kk
       character(len=10) :: zstr,powstr
+      real*8, dimension(lm) :: one_to_lm
 c
       do k=1,kajl
          write(sname_jl(k),'(a3,i3.3)') 'AJL',k
@@ -5193,7 +5194,11 @@ c
      &     coordvalues=plm(1:lm))
       call add_coord(cdl_heights,'ple',lm,units='mb',
      &     coordvalues=ple)
-      call add_coord(cdl_heights,'level',lm)
+      do l=1,lm
+        one_to_lm(l) = l
+      enddo
+      call add_coord(cdl_heights,'level',lm,
+     &     coordvalues=one_to_lm)
       call merge_cdl(cdl_latbudg,cdl_heights,cdl_jl_template)
 
       cdl_jl = cdl_jl_template ! invoke a copy method later
@@ -5288,7 +5293,7 @@ c
       end subroutine sjl_defs
 
       subroutine ijl_defs
-      use CONSTANT, only : bygrav,sha
+      use CONSTANT, only : bygrav,sha,rgas
       use MODEL_COM, only : dtsrc
       use DIAG_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -5323,14 +5328,35 @@ c
       lgrid_ijl(k) = ctr_cp ! constant pressure levels
 c
       k=k+1
-      IJL_U = k   ! no 3D output yet - presently used only in DIAGIL
+      IJL_U = k   ! e-w wind on model layers
       ia_ijl(k) = ia_dga
-      jgrid_ijl(k) = 2
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! latlon B-grid config only wants this in DIAGIL
+      name_ijl(k) = 'u'
+      lname_ijl(k) = 'east-west velocity'
+      units_ijl(k) = 'm/s'
+#endif
 c
       k=k+1
-      IJL_V = k   ! no 3D output yet - presently used only in DIAGIL
+      IJL_V = k   ! n-s wind on model layers
       ia_ijl(k) = ia_dga
-      jgrid_ijl(k) = 2
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! latlon B-grid config only wants this in DIAGIL
+      name_ijl(k) = 'v'
+      lname_ijl(k) = 'north-south velocity'
+      units_ijl(k) = 'm/s'
+#endif
+c
+      k=k+1
+      IJL_W = k   ! vertical velocity on model layers
+      ia_ijl(k) = ia_dga
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! latlon B-grid config only wants this in DIAGIL
+      name_ijl(k) = 'w'
+      lname_ijl(k) = 'vertical velocity'
+      units_ijl(k) = 'm/s'
+      scale_ijl(k) = -RGAS*BYGRAV ! still need to divide by axyp
+#endif
 c
       k=k+1
       IJK_TX = k
@@ -5349,10 +5375,6 @@ c
       denom_ijl(k) = IJK_DP
       ia_ijl(k) = ia_dga
       lgrid_ijl(k) = ctr_cp ! constant pressure levels
-c
-      k=k+1
-      IJL_W = k   ! no 3D output yet - presently used only in DIAGIL
-      ia_ijl(k) = ia_dga
 c
       k=k+1
       IJK_RH = k
@@ -5599,13 +5621,6 @@ c
       do k=1,kaijl
         if(trim(units_ijl(k)).eq.'unused') cycle
         call get_zstr(lgrid_ijl(k),zstr)
-c        if(lgrid_ijl(k).eq.ctr_ml .or. lgrid_ijl(k).eq.edg_ml) then
-c          zstr='level'
-c        elseif(lgrid_ijl(k).eq.ctr_cp) then
-c          zstr='plm'
-c        else
-c          zstr='ple'
-c        endif
         call add_var(cdl_ijl,
      &       'float '//trim(name_ijl(k))//
      &       trim(tstr)//trim(zstr)//trim(hstr),
@@ -5623,145 +5638,6 @@ c        endif
 
       return
       end subroutine ijl_defs
-
-      subroutine ijk_defs
-      use CONSTANT, only : bygrav,tf,sha
-      use MODEL_COM, only : qcheck,dtsrc
-      use DIAG_COM
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      implicit none
-      integer :: k,kk
-c
-      do k=1,kaijkx
-         write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
-         lname_ijk(k) = 'unused'
-         units_ijk(k) = 'unused'
-         scale_ijk(k) = 1.
-         jgrid_ijk(k) = igride+jgride+kgridc
-         off_ijk(k)   = 0.
-      enddo
-c
-      k=0
-c
-      k=k+1
-      IJK_UB=k
-      name_ijk(k) = 'ub' !'UDPB'
-      lname_ijk(k) = 'U-WIND'!            x delta p, b-grid'
-      units_ijk(k) = 'm/s'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_VB=k
-      name_ijk(k) = 'vb' !'VDPB'
-      lname_ijk(k) = 'V-WIND'!            x delta p, b-grid'
-      units_ijk(k) = 'm/s'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_DSE=k
-      name_ijk(k) = 'dse' !'DSEDPB'
-      lname_ijk(k) = 'DRY STAT. ENERGY'!  x delta p x 4, b-grid'
-      units_ijk(k) = 'm^2/s^2'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_DPB=k
-      name_ijk(k) = 'dpb' !'DPB'
-      lname_ijk(k) = 'DELTA-P'!           b-grid'
-      units_ijk(k) = '100 PA'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_TB=k
-      name_ijk(k) = 'tb' !'TDPB'
-      lname_ijk(k) = 'TEMPERATURE'!       x delta p x 4, b-grid'
-      units_ijk(k) = 'C'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = -TF
-c
-      k=k+1
-      IJK_W=k
-      name_ijk(k) = 'w' !'WDPB'
-      lname_ijk(k) = 'OMEGA'!  a-grid
-      units_ijk(k) = 'Pa/s'
-      scale_ijk(k) = 100.
-      off_ijk(k)   = 0.
-      jgrid_ijk(k) = igridc+jgridc+kgridc ! eventually use kgride instead
-c
-      k=k+1
-      IJK_PF=k
-      name_ijk(k) = 'pf'
-      lname_ijk(k) = 'FRAC ABOVE SURF'
-      units_ijk(k) = '%'
-      scale_ijk(k) = 100.0
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_UV=k
-      name_ijk(k) = 'UxV'
-      lname_ijk(k) = 'U-WIND*V-WIND'
-      units_ijk(k) = 'm**2/s**2'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_VQ=k
-      name_ijk(k) = 'VxQ'
-      lname_ijk(k) = 'V-WIND*SPECIFIC HUMIDITY'
-      units_ijk(k) = '(m/s)*kg/kg'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_VT=k
-      name_ijk(k) = 'VxT'
-      lname_ijk(k) = 'V-WIND*TEMPERATURE'
-      units_ijk(k) = '(m/s)*K'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_UU=k
-      name_ijk(k) = 'UxU'
-      lname_ijk(k) = 'U-WIND*U-WIND'
-      units_ijk(k) = 'm**2/s**2'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_VV=k
-      name_ijk(k) = 'VxV'
-      lname_ijk(k) = 'V-WIND*V-WIND'
-      units_ijk(k) = 'm**2/s**2'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-c
-      k=k+1
-      IJK_TT=k
-      name_ijk(k) = 'TxT'
-      lname_ijk(k) = 'TEMPERATURE*TEMPERATURE'
-      units_ijk(k) = 'K**2'
-      scale_ijk(k) = 1.
-      off_ijk(k)   = 0.
-
-      if (AM_I_ROOT()) then
-         if (k .gt. kaijk) then
-            write (6,*) 'ijk_defs: Increase kaijk=',kaijk,' to ',k
-            call stop_model( 'kaijk too small', 255 )
-         end if
-         write (6,*) 'Number of AIJK diagnostics defined: kaijkmax=',k
-         if(.not.qcheck) return
-         do kk=1,k
-            write (6,'(i4,'':'',a)') kk,trim(lname_ijk(kk))
-         end do
-      end if
-      return
-      end subroutine ijk_defs
-
 
       subroutine wave_defs
       use DIAG_COM

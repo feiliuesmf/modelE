@@ -673,6 +673,7 @@ c     write(0,*) 'SCM no diags   print_diags'
 #endif
 
       call calc_derived_aij
+      call calc_derived_aijk
       if(isccp_diags.eq.1) call diag_isccp_prep
       IF (KDIAG(12).LT.9) CALL diag_OCEAN_prep
 
@@ -5027,31 +5028,6 @@ C****
       return
       end subroutine keynrl
 
-
-
-
-      SUBROUTINE IJK_TITLES
-!@sum  IJK_TITLES extra titles for composite ijk output
-!@auth G. Schmidt
-!@ver  1.0
-      USE CONSTANT, only : bygrav
-      USE DIAG_COM, only : kaijk,kaijkx,
-     *   units_ijk,name_ijk,lname_ijk,scale_ijk  !  diag_com
-      IMPLICIT NONE
-      INTEGER :: K
-c
-      k = kaijk
-c
-      k = k + 1
-      name_ijk(k) = 'z'
-      lname_ijk(k) = 'HEIGHT'
-      units_ijk(k) = 'm'
-      scale_ijk(k) = BYGRAV
-
-      return
-      END SUBROUTINE IJK_TITLES
-
-
       SUBROUTINE IJKMAP (iu_Iij)
 !@sum  IJKMAP output 3-D constant pressure output fields
 !@auth G. Schmidt
@@ -5063,7 +5039,7 @@ C**** All titles/names etc. implicitly assume that this will be done.
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
       USE DIAG_COM, only : kdiag,jgrid_ijk,
      &     aijk,acc_period,ijk_tb,ijk_dpb,ijk_dse
-     *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk,kaijkx
+     *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk
      *     ,ia_dga
       use filemanager
       IMPLICIT NONE
@@ -5074,20 +5050,19 @@ C**** All titles/names etc. implicitly assume that this will be done.
       REAL*8 flat,dp
       CHARACTER*8 CPRESS(LM)
       INTEGER i,j,l,kxlb,ni,k,iu_Iij
-      logical, dimension (kaijkx) :: Qk
+      logical, dimension (kaijk) :: Qk
 
 C****
 C**** INITIALIZE CERTAIN QUANTITIES
 C****
-      call ijk_titles
 
       Qk = .true.
-      do k=1,kaijkx
+      do k=1,kaijk
         if (lname_ijk(k).eq.'unused') Qk(k) = .false.
       end do
       if (kdiag(3).eq.9) then
          write (iu_Iij,'(a)') 'list of 3-d fields'
-         do k=1,kaijkx
+         do k=1,kaijk
            if (lname_ijk(k).ne.'unused')
      *        write (iu_Iij,'(i3,1x,a)') k,lname_ijk(k)
          end do
@@ -5117,7 +5092,7 @@ C****
       END DO
 
 C**** Select fields
-      DO K=1,KAIJKx
+      DO K=1,Kaijk
         if (.not.Qk(k).or.k.eq.ijk_dpb) cycle
         SMAP(:,:,:) = UNDEF
         SMAPJK(:,:) = UNDEF
@@ -5129,26 +5104,7 @@ C**** Select fields
           TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
      *         trim(units_ijk(k))//", UV grid)"
         end if
-        IF (name_ijk(K).eq.'z') THEN ! special compound case
-          DO L=1,LM
-            DO J=2,JM
-              NI = 0
-              FLAT = 0.
-              DO I=1,IM
-                DP=AIJK(I,J,L,IJK_DPB)
-                IF(DP.GT.0.) THEN
-                  SMAP(I,J,L) = SCALE_IJK(k)*(AIJK(I,J,L,IJK_DSE)-
-     *                 SHA*AIJK(I,J,L,IJK_TB))/DP
-                  FLAT = FLAT+SMAP(I,J,L)
-                  NI = NI+1
-                END IF
-              END DO
-              IF (NI.GT.0) SMAPJK(J,L) = FLAT/NI
-            END DO
-            WRITE(TITLEX(23:30),'(A)') CPRESS(L)
-            TITLEL(L) = TITLEX//XLB
-          END DO
-        ELSEIF (jgrid_ijk(k).eq.1 .or. name_ijk(k).eq."p") THEN ! no dp weight
+        IF (jgrid_ijk(k).eq.1 .or. name_ijk(k).eq."p") THEN ! no dp weight
           DO L=1,LM
             DO J=1,JM
               NI = 0
