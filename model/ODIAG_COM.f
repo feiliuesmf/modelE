@@ -678,7 +678,7 @@ C****
       LOGICAL :: QCON(NPTS), T = .TRUE. , F = .FALSE., QSUM(NPTS)
       CHARACTER CONPT(NPTS)*10,CONPTs(20)*10,UNITS*20,UNITS_INST*20,
      *     unit_string*50
-      INTEGER k,kb,kq,kc,kk,n,nt
+      INTEGER k,kb,kq,kc,kk,n,nt,ndel
       character(len=10) :: xstr,ystr,zstr
       real*8 :: byrho2,inst_sc,chng_sc
 
@@ -1178,14 +1178,16 @@ C**** Oceanic salt mass
 C**** Oceanic tracers 
       QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
       QSUM= T
+      ndel=10
 #ifdef TRACERS_OceanBiology
       CONPT(4)="OCN BIOL"
+      ndel=8
 #endif
       do nt=1,ntm
         UNITS_INST="("//trim(unit_string(ntrocn(nt),'kg/m^2'))//")"
-        UNITS="("//trim(unit_string(ntrocn(nt)-10,'kg/m^2/s'))//")"
+        UNITS="("//trim(unit_string(ntrocn(nt)-ndel,'kg/m^2/s'))//")"
         INST_SC=10.**(-ntrocn(nt))
-        CHNG_SC=10.**(-ntrocn(nt)+10)
+        CHNG_SC=10.**(-ntrocn(nt)+ndel)
         CALL SET_TCONO(QCON,CONPT,trname(nt)(1:8),QSUM,UNITS_INST,UNITS,
      *      INST_SC,CHNG_SC,nt)
       end do
