@@ -284,7 +284,11 @@ if ( $uname =~ /IRIX64/ ) {
     $omp_run = "export MP_SET_NUMTHREADS=\$NP; "; #?? check
 } elsif ( $uname =~ /Linux/ ) {
     $omp_run = "export OMP_NUM_THREADS=\$NP; ";
-    $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
+    if ( $MPIDISTR =~ /mvapich2/ ) {
+        $mpi_run = "mpirun_rsh -np \$NP -hostfile \\\$PBS_NODEFILE ";
+    } else {
+        $mpi_run = "mpirun \$MPI_FLAGS -np \$NP ";
+    }
     if ( $MPIDISTR =~ /SCALI/ ) {
 	$mpi_run .= "-inherit_limits ";
     }
