@@ -211,7 +211,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
 
 !@param KAIJK number of lat/lon constant pressure diagnostics
-      INTEGER, PARAMETER, public :: KAIJK=14
+      INTEGER, PARAMETER, public :: KAIJK=15
 !@var AIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK,AIJK_loc
 
@@ -693,11 +693,6 @@ c derived/composite diagnostics
       real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
 !@var lat_gc latitudes of the primary grid for GC diagnostics
       real*8, dimension(jmlat), public :: lat_gc,lat_gc2
-
-!@var IJK_xxx AIJK diagnostic names
-      INTEGER, public ::
-     &     IJK_UB, IJK_VB, IJK_DSE, IJK_DPB, IJK_TB, IJK_W, IJK_PF,
-     &     IJK_UV, IJK_VQ, IJK_VT, IJK_UU, IJK_VV, IJK_TT, IJK_PHI
 
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(Kaijk), public :: SCALE_IJK

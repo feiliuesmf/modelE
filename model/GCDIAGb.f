@@ -26,6 +26,13 @@
      &     jl_epflxv,jl_epflxn,jl_40,jl_47,jl_zmfntmom,jl_totntmom,
      &     jl_dpb
 
+
+!@var IJK_xxx AIJK diagnostic names
+      INTEGER ::
+     &     IJK_UB, IJK_VB, IJK_DSE, IJK_DPB, IJK_TB, IJK_W, IJK_PF,
+     &     IJK_UV, IJK_VQ, IJK_VT, IJK_UU, IJK_VV, IJK_TT, IJK_PHI,
+     &     IJK_BAREKEGEN
+
       end module gcdiag
 
       subroutine gc_defs
@@ -640,9 +647,13 @@ c
       end subroutine gc_defs
 
       subroutine ijk_defs
-      use CONSTANT, only : bygrav,tf,sha
-      use MODEL_COM, only : qcheck,dtsrc
-      use DIAG_COM
+      use CONSTANT, only : bygrav,tf,sha,rgas
+      use MODEL_COM, only : im,jm,lm,qcheck,dtsrc
+      USE GCDIAG
+      use DIAG_COM, only : ia_dga,kaijk,cdl_ijk,cdl_heights,
+     &     name_ijk,scale_ijk,
+     &     lname_ijk,units_ijk,jgrid_ijk,off_ijk,denom_ijk,ia_ijk,
+     &     igridc,igride,jgridc,jgride,kgridc,kgride,ijkgridc
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE GEOM, only : lon_dg,lat_dg
 #ifdef NEW_IO
@@ -762,6 +773,15 @@ c
       units_ijk(k) = 'K**2'
       denom_ijk(k) = IJK_DPB
 c
+      k=k+1
+      IJK_BAREKEGEN = k ! JK version is average of this over longitude.
+      name_ijk(k) = 'baroc_eddy_ke_gen' ! Caveat Interpretor.
+      lname_ijk(k) = 'BAROCLINIC EDDY KINETIC ENERGY GEN.'
+      units_ijk(k) = 'W/m^2'
+      scale_ijk(k) = .5*RGAS*1d2*BYGRAV
+      jgrid_ijk(k) = ijkgridc
+!      denom_ijk(k) = IJK_DP ! for res-independent W/(mb*m^2) units
+c
 c composite outputs
 c
       k = k + 1
@@ -856,9 +876,8 @@ C****
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
       USE DIAG_COM, only : ia_dga
      &    ,agc=>agc_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
-     &     nwav_dag,ndiupt,hr_in_day,ijk_ub,ijk_vb,ijk_tb,ijk_dpb
-     *     ,ijk_dse,klayer,idd_w,ijdd,ijk_w,ijk_pf
-     *     ,ijk_uv,ijk_vt,ijk_vq,ijk_vv,ijk_uu,ijk_tt
+     &     nwav_dag,ndiupt,hr_in_day
+     *     ,klayer,idd_w,ijdd
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
       USE GCDIAG
       USE DYNAMICS, only : phi,dut,dvt,plij,SD,pmid,pedn
@@ -879,7 +898,7 @@ C****
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
-      REAL*8, DIMENSION(IM) :: PSEC,X1,X1tmp
+      REAL*8, DIMENSION(IM) :: PSEC,X1,X1tmp,WPA2_of_lon
       REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,P00,AML,PDSIGL,PMIDL
       REAL*8, DIMENSION(LM+1) :: PEDNL
 
@@ -1568,8 +1587,8 @@ C     AGC(J,K-1,JK_BAREKEGEN)=AGC(J,K-1,JK_BAREKEGEN)+WTI-BYFIM*WI*TKI
 C****
 C**** BAROCLINIC EDDY KINETIC ENERGY GENERATION
 C****
-      DO 630 J=J_0S,J_1S
-      DO 630 K=1,KM
+      DO J=J_0S,J_1S
+      DO K=1,KM
       FIMI=0.
       W2I=0.
       PAI=0.
@@ -1612,9 +1631,16 @@ C**** ACCUMULATE HERE
       PAK=PTK/PY
       PAI=PAI+PAK
       WPA2I=WPA2I+(W(I,J,K)+WUP)*PAK
+      WPA2_of_lon(I)=(W(I,J,K)+WUP)*PAK
   626 CONTINUE
-  630 AGC(J,K,JK_BAREKEGEN)=AGC(J,K,JK_BAREKEGEN)-
+      AGC(J,K,JK_BAREKEGEN)=AGC(J,K,JK_BAREKEGEN)-
      &     (WPA2I-W2I*PAI/(FIMI+teeny))
+      DO I=1,IMAXJ(J)
+        AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
+     &       (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
+      ENDDO
+      ENDDO ! K
+      ENDDO ! J
 C****
 C**** ACCUMULATE UV VERTICAL TRANSPORTS
 C****
@@ -2418,8 +2444,8 @@ c
 !@auth Group
       use constant, only : sha
       use model_com, only : im,lm
-      use diag_com, only : aijk => aijk_loc,
-     &     ijk_dse,ijk_tb,ijk_phi
+      use diag_com, only : aijk => aijk_loc
+      use gcdiag, only : ijk_dse,ijk_tb,ijk_phi
       use domain_decomp_1d, only : grid
       implicit none
       integer :: i,j,l,j_0stg,j_1stg

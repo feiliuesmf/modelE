@@ -4500,7 +4500,7 @@ C****
      &     AMON,AMON0,JYEAR,JYEAR0,LS1,JEQ,XLABEL,istrat
       USE GEOM, only : DXYV
       USE DIAG_COM, only :
-     &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,ijk_ub,klayer
+     &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,klayer
      &     ,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
       USE GCDIAG
@@ -5033,10 +5033,10 @@ C**** diagnostics must be divided by the accumulated pressure
 C**** All titles/names etc. implicitly assume that this will be done.
       USE CONSTANT, only : grav,sha,undef
       USE MODEL_COM, only : im,jm,lm,pmidl00,XLABEL,LRUNID,idacc
-      USE DIAG_COM, only : kdiag,jgrid_ijk,
-     &     aijk,acc_period,ijk_tb,ijk_dpb,ijk_dse
+      USE DIAG_COM, only : kdiag,jgrid_ijk,aijk,acc_period,denom_ijk
      *     ,scale_ijk,off_ijk,name_ijk,lname_ijk,units_ijk,kaijk
      *     ,ia_dga
+      use gcdiag, only : ijk_dpb
       use filemanager
       IMPLICIT NONE
 
@@ -5093,14 +5093,9 @@ C**** Select fields
         SMAP(:,:,:) = UNDEF
         SMAPJK(:,:) = UNDEF
         SMAPK(:)    = UNDEF
-        if (jgrid_ijk(k).eq.1) then
+        IF(denom_ijk(k).eq.0) THEN ! no weighting, assuming qty on a-grid
           TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
      *         trim(units_ijk(k))//")"
-        else
-          TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
-     *         trim(units_ijk(k))//", UV grid)"
-        end if
-        IF (jgrid_ijk(k).eq.1 .or. name_ijk(k).eq."p") THEN ! no dp weight
           DO L=1,LM
             DO J=1,JM
               NI = 0
@@ -5115,7 +5110,9 @@ C**** Select fields
             WRITE(TITLEX(23:30),'(A)') CPRESS(L)
             TITLEL(L) = TITLEX//XLB
           END DO
-        ELSE    !  simple b-grid cases
+        ELSE    ! for now, assuming weight is b-grid dp
+          TITLEX = lname_ijk(k)(1:17)//"   at        mb ("//
+     *         trim(units_ijk(k))//", UV grid)"
           DO L=1,LM
             DO J=2,JM
               NI = 0
