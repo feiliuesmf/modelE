@@ -37,6 +37,9 @@
      &           QMOM(NMOM , I_0H:I_1H , J_0H:J_1H , LM),
      &   STAT=IER )
 
+      TMOM = 0.
+      QMOM = 0.
+
       END SUBROUTINE ALLOC_SMOMTQ
 
       SUBROUTINE io_somtq(kunit,iaction,ioerr)
