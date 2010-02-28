@@ -31,7 +31,7 @@ c
  
 !      TYPE(DIST_GRID) :: ogrid   ! ocean (Russell) grid
 
-      call init_grid( ogrid, imo, jmo, lmo, bc_periodic=.true. )
+      call init_grid( ogrid, imo, jmo, lmo )
       call get(ogrid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H,   J_STOP_HALO=J_1H ,
      &               I_STRT     =I_0,    I_STOP     =I_1,
