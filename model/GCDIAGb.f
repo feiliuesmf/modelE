@@ -650,13 +650,13 @@ c
       use CONSTANT, only : bygrav,tf,sha,rgas
       use MODEL_COM, only : im,jm,lm,qcheck,dtsrc
       USE GCDIAG
-      use DIAG_COM, only : ia_dga,kaijk,cdl_ijk,cdl_heights,
-     &     name_ijk,scale_ijk,
+      use DIAG_COM, only : ia_dga,kaijk,name_ijk,scale_ijk,
      &     lname_ijk,units_ijk,jgrid_ijk,off_ijk,denom_ijk,ia_ijk,
      &     igridc,igride,jgridc,jgride,kgridc,kgride,ijkgridc
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE GEOM, only : lon_dg,lat_dg
 #ifdef NEW_IO
+      use DIAG_COM, only : cdl_ijk,cdl_heights
       use cdl_mod
 #endif
       implicit none
