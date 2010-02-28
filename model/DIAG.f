@@ -3,6 +3,10 @@
 #undef TRACERS_SPECIAL_O18
 #endif
 
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#define SLP_FROM_T1
+#endif
+
 !@sum  DIAG ModelE diagnostic calculations
 !@auth G. Schmidt/J. Lerner/R. Ruedy/M. Kelley
 !@ver  1.0
@@ -128,7 +132,7 @@ C**** Some local constants
       USE TRACER_COM, only: trm,mass2vol,n_CO,n_Ox,n_NOx
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
-      USE DYNAMICS, only : pk,phi,pmid,pdsig,plij, SD,pedn,am
+      USE DYNAMICS, only : pk,pek,phi,pmid,pdsig,plij, SD,pedn,am
      &     ,ua=>ualij,va=>valij
       USE PBLCOM, only : tsavg
       USE CLOUDS_COM, only : svlhx
@@ -157,7 +161,7 @@ C**** Some local constants
       INTEGER nT,nQ,nRH
       REAL*8, PARAMETER :: EPSLON=1.
 
-      REAL*8 QSAT, SLP, PS, ZS, QLH, begin
+      REAL*8 QSAT, SLP, PS, ZS, TS_SLP, QLH, begin
 
       real*8, dimension(lm+1) :: pecp,pedge
       real*8, dimension(lm) :: dpwt,txdp,phidp,qdp,rhdp,wmdp,rh
@@ -256,11 +260,16 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
           PS=P(I,J)+PTOP
           ZS=BYGRAV*ZATMO(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ PS
-          AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TSAVG(I,J),ZS)-P1000
+#ifdef SLP_FROM_T1
+          TS_SLP=T(I,J,1)*PEK(1,I,J) ! todo: check if tmom(mz) helps
+#else
+          TS_SLP=TSAVG(I,J)
+#endif
+          AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TS_SLP,ZS)-P1000
 C**** calculate pressure diags including water
           PS=PS+SUM((Q(I,J,:)+WM(I,J,:))*AM(:,I,J))*kg2mb
           AIJ(I,J,IJ_PRESQ)=AIJ(I,J,IJ_PRESQ)+ PS
-          AIJ(I,J,IJ_SLPQ)=AIJ(I,J,IJ_SLPQ)+SLP(PS,TSAVG(I,J),ZS)-P1000
+          AIJ(I,J,IJ_SLPQ)=AIJ(I,J,IJ_SLPQ)+SLP(PS,TS_SLP,ZS)-P1000
 
           AIJ(I,J,IJ_RH1)=AIJ(I,J,IJ_RH1)+Q(I,J,1)/QSAT(TX(I,J,1),LHE,
      *        PMID(1,I,J))
