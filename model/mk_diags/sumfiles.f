@@ -19,6 +19,8 @@
       character(len=132) :: xlabel
       integer, dimension(12) :: monacc,monacc1
       real*8, dimension(:), allocatable :: acc,acc_part
+      integer :: chunksize
+
 c
 c get the number of input files
 c
@@ -33,6 +35,8 @@ c
       endif
       allocate(fids(nfiles))
 
+      chunksize = 1024*1024*32
+
 c
 c open each input file and find the min/max itime
 c
@@ -42,6 +46,7 @@ c
       do n=1,nfiles
         call getarg(n,ifile)
         status = nf_open(trim(ifile),nf_nowrite,fids(n))
+c        status = nf__open(trim(ifile),nf_nowrite,chunksize,fids(n))
         if(status.ne.nf_noerr) then
           write(6,*) 'nonexistent/non-netcdf input file ',trim(ifile)
           stop
@@ -195,7 +200,11 @@ c
       do m=1,12
         if(monacc(m).eq.0) cycle
         nmo = nmo + 1
-        mostr(nmo:nmo)=amonth(m)(1:1)
+        if(nmo.eq.1) then
+          mostr(1:3)=amonth(m)
+        else
+          mostr(nmo:nmo)=amonth(m)(1:1)
+        endif
         mons(nmo) = m
       enddo
 
