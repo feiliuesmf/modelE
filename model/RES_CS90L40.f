@@ -40,25 +40,3 @@ C****         PMTOP <   1 mb,    ISTRAT = 2
       INTEGER, PARAMETER :: ISTRAT = 2
 
       END MODULE RESOLUTION
-
-C**** The vertical resolution also determines whether
-C**** stratospheric wave drag will be applied or not.
-C**** Hence also included here are some dummy routines for non-strat
-C**** models.
-
-      SUBROUTINE DUMMY_STRAT
-!@sum DUMMY dummy routines for non-stratospheric models
-C**** Dummy routines in place of STRATDYN
-      ENTRY init_GWDRAG
-      ENTRY GWDRAG
-      ENTRY VDIFF
-      ENTRY io_strat
-      ENTRY alloc_strat_com
-C**** Dummy routines in place of STRAT_DIAG (EP flux calculations)
-C**** Note that KEP=0 is set to zero above for the dummy versions.
-      ENTRY EPFLUX
-      ENTRY EPFLXI
-      ENTRY EPFLXP
-C****
-      RETURN
-      END SUBROUTINE DUMMY_STRAT

@@ -478,8 +478,9 @@ c calculate KE before atmospheric column physics
          call calc_kea_3d(kea)
 
 #ifdef USE_FVCUBED
-c SDRAG considered as column physics so that its KE
+c GWDRAG, SDRAG considered as column physics so that their KE
 c dissipation gets included in the KE->PE adjustment
+      CALL GWDRAG
       CALL SDRAG (DTsrc)
 #endif
 

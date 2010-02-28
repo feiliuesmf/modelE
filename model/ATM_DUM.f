@@ -668,15 +668,17 @@ c      CALL DIAGCD (GRID,6,UT,VT,DUT3,DVT3,DT1)
 
 #else
 
-c      SUBROUTINE DUMMY_STRAT
-c!@sum DUMMY dummy routines for non-stratospheric models
-cC**** Dummy routines in place of STRATDYN
-c      ENTRY init_GWDRAG
-c      ENTRY GWDRAG
-c      ENTRY VDIFF
-c      ENTRY alloc_strat_com
-c      RETURN
-c      END SUBROUTINE DUMMY_STRAT
+      SUBROUTINE GWDRAG
+      RETURN
+      END SUBROUTINE GWDRAG
+
+      SUBROUTINE init_GWDRAG
+      RETURN
+      END SUBROUTINE init_GWDRAG
+
+      SUBROUTINE ALLOC_STRAT_COM
+      RETURN
+      END SUBROUTINE ALLOC_STRAT_COM
 
 #endif
 
