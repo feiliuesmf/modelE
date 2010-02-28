@@ -1986,7 +1986,10 @@ c for which scalars is bcast_all=.true. necessary?
      &     denom_gc,denom_ijk,
      &     lm,
      &     isccp_press,isccp_tau,isccp_late,wisccp
-      use geom, only : lon2d_dg,lat2d_dg,axyp
+      use geom, only : axyp
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
+#endif
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
       use cdl_mod, only : defvar_cdl
@@ -1997,6 +2000,8 @@ c for which scalars is bcast_all=.true. necessary?
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call defvar(grid,fid,lon2d_dg,'lon(dist_im,dist_jm)')
       call defvar(grid,fid,lat2d_dg,'lat(dist_im,dist_jm)')
+      call defvar(grid,fid,lonbds,'lonbds(four,dist_im,dist_jm)')
+      call defvar(grid,fid,latbds,'latbds(four,dist_im,dist_jm)')
 #endif
 
       call defvar(grid,fid,axyp,'axyp(dist_im,dist_jm)')
@@ -2150,7 +2155,10 @@ c for which scalars is bcast_all=.true. necessary?
      &     denom_gc,denom_ijk,
      &     lm,ia_12hr,
      &     isccp_press,isccp_tau,isccp_late,wisccp
-      use geom, only : lon2d_dg,lat2d_dg,axyp
+      use geom, only : axyp
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+      use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
+#endif
       use domain_decomp_atm, only : grid
       use pario, only : write_data,write_dist_data
       use cdl_mod, only : write_cdl
@@ -2161,6 +2169,8 @@ c for which scalars is bcast_all=.true. necessary?
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       call write_dist_data(grid,fid,'lon',lon2d_dg)
       call write_dist_data(grid,fid,'lat',lat2d_dg)
+      call write_dist_data(grid,fid,'lonbds',lonbds,jdim=3)
+      call write_dist_data(grid,fid,'latbds',latbds,jdim=3)
 #endif
 
       call write_dist_data(grid,fid,'axyp',axyp)

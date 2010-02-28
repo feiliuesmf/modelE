@@ -4413,9 +4413,16 @@ c
      &     long_name='nondimensional cube coordinate',
      &     coordvalues=x_dummy)
       call add_dim(cdl_ij_template,'tile',6)
+      call add_dim(cdl_ij_template,'nv',4)
       call add_var(cdl_ij_template,'float lon'//trim(ijstr),
      &     units='degrees_east')
+      call add_varline(cdl_ij_template,'lon:bounds = "lonbds" ;')
       call add_var(cdl_ij_template,'float lat'//trim(ijstr),
+     &     units='degrees_north')
+      call add_varline(cdl_ij_template,'lat:bounds = "latbds" ;')
+      call add_var(cdl_ij_template,'float lonbds(tile,y,x,nv) ;',
+     &     units='degrees_east')
+      call add_var(cdl_ij_template,'float latbds(tile,y,x,nv) ;',
      &     units='degrees_north')
 
       call init_cdl_type('cdl_aij_latlon',cdl_ij_latlon_template)

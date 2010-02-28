@@ -47,10 +47,16 @@ c
 !@var  lon2d_dg longitude of mid point of primary grid box (degrees)
       REAL*8, ALLOCATABLE :: lon2d_dg(:,:)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: sinlon2d, coslon2d
-!@var  lat2d_corner latitude of corner point (radians)
+!@var  lat2d_corner latitude  of lower left corner point (radians)
+!@var  lon2d_corner longitude of lower left corner point (radians)
       REAL*8, ALLOCATABLE :: lat2d_corner(:,:)
-!@var  lon2d_corner longitude of mid point of primary grid box (radians)
       REAL*8, ALLOCATABLE :: lon2d_corner(:,:)
+
+!@var lonbds,latbds (degrees)
+!@+   lonbds,      latbds      (   1 |     2 |       3 |     4 ,i,j) =
+!@+   lon2d_corner,lat2d_corner( i,j | i+1,j | i+1,j+1 | i,j+1 )/radian
+      REAL*8, ALLOCATABLE :: latbds(:,:,:),lonbds(:,:,:)
+
 !@var ddx_ci, ddx_cj,ddy_ci ddy_cj coeffs for obtaining N-S and E-W
 !@+   gradients from centered differences in the I and J directions
       REAL*8, ALLOCATABLE :: ddx_ci(:,:),ddx_cj(:,:)
@@ -134,6 +140,9 @@ c     &     i0h,i1h,i1,j0h,j1h,j0,j1
       allocate(lat2d_corner(i0h:i1h+1, j0h:j1h+1))
       allocate(lon2d_corner(i0h:i1h+1, j0h:j1h+1))
 
+      allocate(latbds(4, i0h:i1h, j0h:j1h))
+      allocate(lonbds(4, i0h:i1h, j0h:j1h))
+
       allocate(
      &     ddx_ci(i0h:i1h,j0h:j1h)
      &    ,ddx_cj(i0h:i1h,j0h:j1h)
@@ -182,6 +191,10 @@ c
         coslat2d(i,j) = cos(lat2d(i,j))
         lon2d(i,j) = lon2d(i,j) + pi ! IDL has a value of zero
         if(lon2d(i,j) .lt. 0.) lon2d(i,j)= lon2d(i,j) + twopi
+        lonbds(1:2,i,j) = lon2d_corner(i:i+1:+1,j)/radian
+        lonbds(3:4,i,j) = lon2d_corner(i+1:i:-1,j+1)/radian
+        latbds(1:2,i,j) = lat2d_corner(i:i+1:+1,j)/radian
+        latbds(3:4,i,j) = lat2d_corner(i+1:i:-1,j+1)/radian
       enddo
       enddo
 
