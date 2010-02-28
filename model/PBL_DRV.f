@@ -110,7 +110,8 @@ c      logical pole
 !@var MDF    = downdraft mass flux (m/s)
 !@var WINT   = integrated surface wind speed over sgs wind distribution
       real*8 :: dbl,kms,kqs,cm,ch,cq,z0m,z0h,z0q,ug,vg,w2_1,mdf
-      real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
+!@var dtdt_gcm temp. tendency from processes other than turbulence (K/s)
+      real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0,dtdt_gcm
       real*8 ::  mdn  ! ,mup
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
       real*8, dimension(npbl-1) :: epbl
@@ -304,8 +305,12 @@ c     ENDIF
 #endif
       endif
 
+      dtdt_gcm = (pbl_args%tkv - t1_after_aturb(i,j)*pek(1,i,j))/
+     &     pbl_args%dtsurf
       call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,i,j,itype
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &     ,dtdt_gcm,u1_after_aturb(i,j),v1_after_aturb(i,j)
+     &     ,i,j,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,upbl,vpbl,tpbl,qpbl,epbl
 #if defined(TRACERS_ON)
@@ -540,6 +545,9 @@ C**** fix roughness length for ocean ice that turned to land ice
             vtop = va(1,i,j)
             qtop=q(i,j,1)
             ttop=t(i,j,1)*(1.+qtop*deltx)*psk
+            t1_after_aturb(i,j) = ttop/psk
+            u1_after_aturb(i,j) = utop
+            v1_after_aturb(i,j) = vtop
 
             zgrnd=.1d0 ! formal initialization
             if (itype.gt.2) zgrnd=roughl(i,j) !         30./(10.**roughl(i,j))

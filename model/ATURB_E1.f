@@ -35,6 +35,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE SOCPBL, only : b1,b123,prt,kappa,zgs
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
      *     ,e_3d=>egcm,w2_3d=>w2gcm !,t2_3d=>t2gcm
+     &     ,t1_after_aturb,u1_after_aturb,v1_after_aturb
       USE FLUXES, only : uflux1,vflux1,tflux1,qflux1
 
 
@@ -413,6 +414,8 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             call inc_ajl(i,j,l,JL_TRBKE,e(l))
           end do
 
+          t1_after_aturb(i,j) = t(1)
+
 #ifdef TRACERS_ON
           do l=1,lm
             amkg(l) = am(l,i,j)*axyp(i,j)
@@ -553,6 +556,13 @@ c
      &       (u_3d_agrid(L,I,J)-uasv(L,I,J))*PDSIG(L,I,J))
       END DO
       END DO
+      END DO
+
+      DO J=J_0,J_1
+        DO I=I_0,I_1
+          u1_after_aturb(i,j) = u_3d_agrid(1,i,j)
+          v1_after_aturb(i,j) = v_3d_agrid(1,i,j)
+        END DO
       END DO
 
       return

@@ -1,5 +1,8 @@
 #include "rundeck_opts.h"
 
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+#define PBL_USES_GCM_TENDENCIES
+#endif
 
       MODULE SOCPBL
 !@sum  SOCPBL deals with boundary layer physics
@@ -240,7 +243,9 @@ CCC      real*8 :: bgrid
       CONTAINS
 
       subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,ilong,jlat,itype
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
+     &     ,dtdt_gcm,utop_old,vtop_old
+     &     ,ilong,jlat,itype
      &     ,kms,kqs,z0m,z0h,z0q,w2_1,ufluxs,vfluxs,tfluxs,qfluxs
      &     ,u,v,t,q,e
 #if defined(TRACERS_ON)
@@ -271,6 +276,9 @@ c    input:
 !@var  psurf surface pressure
 !@var  trhr0 incident long wave radiation
 !@var  sss_loc SSS at i,j
+!@var  dtdt_gcm ttop tendency from processes other than turbulence (K/s)
+!@var  utop_old  utop after turb. diffusion during previous timestep
+!@var  vtop_old  vtop after turb. diffusion during previous timestep
 c   output:
 !@var  us  x component of the surface wind (i.e., due east)
 !@var  vs  y component of the surface wind (i.e., due north)
@@ -365,6 +373,7 @@ c  internals:
       real*8, intent(in) :: mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       integer, intent(in) :: ilong,jlat,itype
+      real*8, intent(in) :: dtdt_gcm,utop_old,vtop_old
       !-- output:
       real*8, intent(out) :: kms,kqs,z0h,z0q,w2_1
       real*8, intent(out) :: ufluxs,vfluxs,tfluxs,qfluxs
@@ -584,12 +593,14 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         call q_eqn(qsave,q,kq,dz,dzh,cq,ws,qgrnd_sat,qtop,dtime,n
      &       ,evap_max,fr_sat,ws0,qprime,qdns,ddml_eq_1)
 
-        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh,ch,ws,tgrnd,ttop,dtime
-     *       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns,ddml_eq_1)
+        call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh
+     &       ,ch,ws,tgrnd,ttop,dtdt_gcm,dtime
+     &       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns,ddml_eq_1)
 
-        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh,ustar,cm,z0m,utop,vtop
-     *       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
-     *       ,dpdyr0)
+        call uv_eqn(usave,vsave,u,v,z,km,dz,dzh
+     &       ,ustar,cm,z0m,utop,vtop,utop_old,vtop_old
+     &       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
+     &       ,dpdyr0)
 
         if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) call tfix(t,z,ttop,tgrnd
      *       ,lmonin,tstar,ustar,kh(1),ts_guess,n)
@@ -1933,7 +1944,7 @@ c     rhs(n-1)=0.
       end subroutine e_les
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
-     &     ,ttop,dtime,n
+     &     ,ttop,dtdt_gcm,dtime,n
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns,ddml_eq_1)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
@@ -1965,6 +1976,7 @@ c     rhs(n-1)=0.
 !@var usurf effective surface velocity
 !@var tgrnd virtual potential temperature at the ground
 !@var ttop virtual potential temperature at the first GCM layer
+!@var dtdt_gcm ttop tendency from processes other than turbulence
 !@var dtime time step
 !@var n number of vertical subgrid main layers
 
@@ -1977,7 +1989,7 @@ c     rhs(n-1)=0.
       real*8, dimension(n-1), intent(in) :: dzh,kh,kq
       real*8, dimension(n), intent(inout) :: t
       real*8, intent(in) :: ch,tgrnd
-      real*8, intent(in) :: ttop,dtime,usurf
+      real*8, intent(in) :: ttop,dtdt_gcm,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8, intent(in) ::  usurf0,tprime,tdns
       logical, intent(in) :: ddml_eq_1
@@ -2004,7 +2016,11 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
       do i=2,n-1
+#ifdef PBL_USES_GCM_TENDENCIES
+        rhs(i)=t0(i)+dtime*dtdt_gcm ! maybe scale by a function of height
+#else
         rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
+#endif
       end do
 #endif
 
@@ -2247,7 +2263,8 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
       end subroutine tr_eqn
 
       subroutine uv_eqn(u0,v0,u,v,z,km,dz,dzh,
-     2                  ustar,cm,z0m,utop,vtop,dtime,coriol,
+     2                  ustar,cm,z0m,utop,vtop,utop_old,vtop_old,
+     &                  dtime,coriol,
      3                  ug,vg,uocean,vocean,n
      &                  ,dpdxr,dpdyr,dpdxr0,dpdyr0)
 !@sum uv_eqn integrates differential eqns for u & v (tridiagonal method)
@@ -2277,6 +2294,8 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
 !@var coriol the Coriolis parameter
 !@var ug due east component of the geostrophic wind
 !@var vg due north component of the geostrophic wind
+!@var utop_old utop after turb. diffusion during previous timestep
+!@var vtop_old vtop after turb. diffusion during previous timestep
 !@var n number of vertical subgrid main layers
       implicit none
 
@@ -2286,8 +2305,9 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
       real*8, dimension(n), intent(in) :: u0,v0,z,dz
       real*8, dimension(n), intent(inout) :: u,v
       real*8, dimension(n-1), intent(in) :: km,dzh
-      real*8, intent(in) :: ustar,cm,z0m,utop,vtop,dtime,coriol,ug,vg
-     &                     ,uocean,vocean
+      real*8, intent(in) :: ustar,cm,z0m,utop,vtop,utop_old,vtop_old
+     &     ,dtime,coriol,ug,vg
+     &     ,uocean,vocean
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
@@ -2299,6 +2319,15 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
          dia(i)=1.-(sub(i)+sup(i))
       end do
 
+c#ifdef PBL_USES_GCM_TENDENCIES
+cc Estimate the sum of non-coriolis non-PBL terms in the
+cc momentum equations, termed here "dpdx" and "dpdy":
+cc (utop-utop_old)/dtime = -dpdx + coriol*(vtop+vtop_old)/2
+cc (vtop-vtop_old)/dtime = -dpdy - coriol*(utop+utop_old)/2
+c      dpdx = +coriol*.5*(vtop+vtop_old) - (utop-utop_old)/dtime
+c      dpdy = -coriol*.5*(utop+utop_old) - (vtop-vtop_old)/dtime
+c#endif
+
 #ifndef SCM
       factx=(dpdxr-dpdxr0)/(z(n)-z(1))
       facty=(dpdyr-dpdyr0)/(z(n)-z(1))
@@ -2309,10 +2338,17 @@ ccc for SCM use ug and vg and not dpdx,dpdy
         rhs(i)=u0(i)+dtime*coriol*(v(i)-vg)
         rhs1(i)=v0(i)-dtime*coriol*(u(i)-ug)
 #else
+c#ifdef PBL_USES_GCM_TENDENCIES
+cc        rhs(i)=u0(i)+dtime*(coriol*v(i)-dpdx)
+cc        rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
+c        rhs(i) =u0(i)+(utop-utop_old)
+c        rhs1(i)=v0(i)+(vtop-vtop_old)
+c#else
         dpdx=factx*(z(i)-z(1))+dpdxr0
         dpdy=facty*(z(i)-z(1))+dpdyr0
         rhs(i)=u0(i)+dtime*(coriol*v(i)-dpdx)
         rhs1(i)=v0(i)-dtime*(coriol*u(i)+dpdy)
+c#endif /* PBL_USES_GCM_TENDENCIES */
 #endif
       end do
 

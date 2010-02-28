@@ -47,6 +47,11 @@
      &    ,w2_l1,gustiwind
       REAL*8, allocatable, dimension(:,:,:) :: ustar_pbl
 
+!@var [tuv]1_after_aturb first-layer temp/winds after ATURB completes
+!@+   (used to compute tendencies seen by the PBL code)
+      REAL*8, allocatable, dimension(:,:) ::
+     &     t1_after_aturb,u1_after_aturb,v1_after_aturb
+
 !@var egcm  3-d turbulent kinetic energy in the whole atmosphere
 !@var w2gcm vertical component of egcm
 !@var t2gcm 3-d turbulent temperature variance in the whole atmosphere
@@ -94,6 +99,10 @@
       REAL*8, DIMENSION(:,:,:,:), allocatable :: trabl_glob,trabl_loc
 #endif
       integer :: img, jmg
+
+#ifdef PBL_USES_GCM_TENDENCIES
+      call stop_model('io_pbl: need to save [tuv]1_after_aturb',255)
+#endif
 
       write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)') 'R8 dim(',npbl,
      *  ',4,ijm):Ut,Vt,Tt,Qt,Et dim(4,ijm,3):Cmhq, I:Ipb(4,ijm)'
@@ -331,6 +340,10 @@
       call defvar(grid,fid,trabl,
      &     'trabl(npbl,ntm,nstype,dist_im,dist_jm)')
 #endif
+      dimstr='(dist_im,dist_jm)'
+      call defvar(grid,fid,t1_after_aturb,'t1_after_aturb'//dimstr)
+      call defvar(grid,fid,u1_after_aturb,'u1_after_aturb'//dimstr)
+      call defvar(grid,fid,v1_after_aturb,'v1_after_aturb'//dimstr)
       return
       end subroutine def_rsf_pbl
 
@@ -359,6 +372,9 @@
 #ifdef TRACERS_ON
         call write_dist_data(grid, fid, 'trabl', trabl, jdim=5)
 #endif
+        call write_dist_data(grid, fid, 't1_after_aturb',t1_after_aturb)
+        call write_dist_data(grid, fid, 'u1_after_aturb',u1_after_aturb)
+        call write_dist_data(grid, fid, 'v1_after_aturb',v1_after_aturb)
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'uabl', uabl, jdim=4)
         call read_dist_data(grid, fid, 'vabl', vabl, jdim=4)
@@ -372,6 +388,9 @@
 #ifdef TRACERS_ON
         call read_dist_data(grid, fid, 'trabl', trabl, jdim=5)
 #endif
+        call read_dist_data(grid, fid, 't1_after_aturb',t1_after_aturb)
+        call read_dist_data(grid, fid, 'u1_after_aturb',u1_after_aturb)
+        call read_dist_data(grid, fid, 'v1_after_aturb',v1_after_aturb)
       end select
       return
       end subroutine new_io_pbl
@@ -518,6 +537,10 @@ C****
 
       ALLOCATE( gustiwind(I_0H:I_1H,J_0H:J_1H),STAT=IER)
       gustiwind(:,J_0H:J_1H) = 0.
+
+      ALLOCATE(t1_after_aturb(I_0H:I_1H,J_0H:J_1H),
+     &         u1_after_aturb(I_0H:I_1H,J_0H:J_1H),
+     &         v1_after_aturb(I_0H:I_1H,J_0H:J_1H))
 
       END SUBROUTINE ALLOC_PBL_COM
 
