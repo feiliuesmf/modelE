@@ -192,7 +192,7 @@ C**** TAIJLS 3D special tracer diagnostics
 #ifdef TRACERS_TERP
      &                            + 1
 #endif  /* TRACERS_TERP */
-     &                            + 13*nsoa
+     &                            + 16*nsoa
 #endif  /* SOA_DIAGS */
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
@@ -245,6 +245,9 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_soa_kp Final partitioning coefficient (m3/ug)
 !@var ijlt_soa_soamass Final soamass value
 !@var ijlt_soa_partfact Final partfact value
+!@var ijlt_soa_evap Previous time-step soa that survived evaporation (ug/m3)
+!@var ijlt_soa_cond Previous time-step soa precursor that condensed (ug/m3)
+!@var ijlt_soa_chem Condensed soa precursor that was produced chemically at this time-step (ug/m3)
       integer :: ijlt_soa_changeL_isoprene
 #ifdef TRACERS_TERP
       integer :: ijlt_soa_changeL_terpenes
@@ -273,6 +276,9 @@ C**** TAIJLS 3D special tracer diagnostics
       integer, dimension(nsoa) :: ijlt_soa_kp
       integer, dimension(nsoa) :: ijlt_soa_soamass
       integer, dimension(nsoa) :: ijlt_soa_partfact
+      integer, dimension(nsoa) :: ijlt_soa_evap
+      integer, dimension(nsoa) :: ijlt_soa_cond
+      integer, dimension(nsoa) :: ijlt_soa_chem
 #endif  /* SOA_DIAGS */
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers

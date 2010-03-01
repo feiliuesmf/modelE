@@ -413,7 +413,8 @@ use TRDIAG_COM, only: taijls=>taijls_loc,&
                       ijlt_soa_y_ug_g,ijlt_soa_y_ug_a,&
                       ijlt_soa_changeL_g_before,ijlt_soa_changeL_a_before,&
                       ijlt_soa_changeL_g_after,ijlt_soa_changeL_a_after,&
-                      ijlt_soa_kpart,ijlt_soa_kp,ijlt_soa_soamass,ijlt_soa_partfact
+                      ijlt_soa_kpart,ijlt_soa_kp,ijlt_soa_soamass,ijlt_soa_partfact,&
+                      ijlt_soa_evap,ijlt_soa_cond,ijlt_soa_chem
 #endif  /* SOA_DIAGS */
 implicit none
 
@@ -459,7 +460,7 @@ real*8, parameter           :: M0err=1.d-10
 !@var M0b upper limit of M0 during iteration
 !@var M0err_curr the M0 error for the current iteration, based on M0a, M0b, M0err and computer architecture
 real*8                      :: M0,PCP,M0temp,M0a,M0b,M0err_curr
-!@var soamass the total concentration that can partition
+!@var soamass the total concentration that can partition (ug m-3)
 !@var partfact,partfact1,partfact2 help variable for the M0 calculation
 real*8, dimension(nsoa)     :: soamass,partfact,partfact1,partfact2
 !@var iternum counter for the number of iterations per box (not saved)
@@ -821,6 +822,14 @@ DO JL=L,L
         y_ug(issoa(i))=y_ug(issoa(i))+soamass(i)*partfact(i)
         y_ug(issoa(i)-1)=max(0.d0,y_ug(issoa(i)-1)-soamass(i)*partfact(i))
       endif
+#ifdef SOA_DIAGS
+    taijls(III,JJJ,jl,ijlt_soa_evap(i))=taijls(III,JJJ,jl,ijlt_soa_evap(i))+&
+                                        y0_ug(issoa(i))*(1.d0-partfact(i))
+    taijls(III,JJJ,jl,ijlt_soa_cond(i))=taijls(III,JJJ,jl,ijlt_soa_cond(i))+&
+                                        y0_ug(issoa(i)-1)*partfact(i)
+    taijls(III,JJJ,jl,ijlt_soa_chem(i))=taijls(III,JJJ,jl,ijlt_soa_chem(i))+&
+                                        (y_ug(issoa(i)-1)-y0_ug(issoa(i)-1))*partfact(i)
+#endif  /* SOA_DIAGS */
     enddo
   endif
 

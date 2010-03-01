@@ -7759,6 +7759,30 @@ C**** 3D tracer-related arrays but not attached to any one tracer
           ijlt_power(k) = 0
           units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
           scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_evap(i)=k
+          lname_ijlt(k) = 'Evaporation of '//
+     &                    trim(trname(issoa(i)))
+          sname_ijlt(k) = 'SOA_evap_'//trim(trname(issoa(i)))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_cond(i)=k
+          lname_ijlt(k) = 'Condensation of pre-existing '//
+     &                    trim(trname(issoa(i)-1))
+          sname_ijlt(k) = 'SOA_cond_'//trim(trname(issoa(i)-1))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+          ijlt_soa_chem(i)=k
+          lname_ijlt(k) = 'Condensation of same-step produced '//
+     &                    trim(trname(issoa(i)-1))
+          sname_ijlt(k) = 'SOA_chem_'//trim(trname(issoa(i)-1))
+          ijlt_power(k) = 0
+          units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
       enddo
 #endif  /* SOA_DIAGS */
 
