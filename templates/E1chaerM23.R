@@ -573,8 +573,9 @@ prefDustSources=0     ! 0: Ginoux 2001 w/ vegetation mask
 !-------------------------------------------------------------------------
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
-rad_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
+clim_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
+                   ! 0 also turns off chem(H2O)-->Q( ) feedback
 rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
 use_rad_n2o=0      ! use the radiation code's N2O 
 use_rad_cfc=0      ! use rad code cfc11+cfc12, adjusted 

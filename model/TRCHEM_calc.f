@@ -8,6 +8,7 @@ c
 C**** GLOBAL parameters and variables:
 C
       USE SOMTQ_COM, only       : qmom
+      USE RAD_COM, only         : clim_interact_chem
       USE MODEL_COM, only       : im,jm,lm,ls1,Q,ftype,ntype,pmidl00
       USE DOMAIN_DECOMP_ATM,only    : grid,get,write_parallel
       USE DYNAMICS, only        : am, byam,ltropo
@@ -529,46 +530,49 @@ c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
         changeH2O(L)=(2.d0*y(n_CH4,L)*
      *  (rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L)+rr(82,L)*y(nCl,L))
      *  -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
-        fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)     
 C       And apply that change here and accumulate a diagnostic:
 C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
 C       --- Q --- :
         dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
         dQM(L) = dQ(L)*AM(L,I,J)*axyp(I,J)
-        Q(I,J,L) = Q(I,J,L) + dQ(L)
+        if(clim_interact_chem > 0)then
+          fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
+          Q(I,J,L) = Q(I,J,L) + dQ(L)
 C       -- Qmom --:
-        if(changeH2O(L) < 0.)then
-           qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2(l)
-           if(fraQ2(l) <= 0.98)then
-             write(out_line,*)'> 2% Q change in calc IJL,change='
-     &       ,I,J,L,fraQ2(l)
-             call write_parallel(trim(out_line),crit=.true.)
-             call stop_model('big Q change in calc',255)
-           endif
-         endif
+          if(changeH2O(L) < 0.)then
+            qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2(l)
+            if(fraQ2(l) <= 0.98)then
+              write(out_line,*)'> 2% Q change in calc IJL,change='
+     &        ,I,J,L,fraQ2(l)
+              call write_parallel(trim(out_line),crit=.true.)
+              call stop_model('big Q change in calc',255)
+            endif
+          endif
+        endif
       enddo
 
-C       -- diags --:
+C     -- diags --:
       call inc_tajls2_column(i,j,1,maxl,lm,jls_H2Ochem,dQM)
-      dQMsum = sum(dQM(1:maxl))/axyp(i,j)
-      do it=1,ntype
-        call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
-      enddo
-
+      if(clim_interact_chem > 0)then
+        dQMsum = sum(dQM(1:maxl))/axyp(i,j)
+        do it=1,ntype
+          call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
+        enddo
 #ifdef TRACERS_WATER
-C       -- water tracers --:
-      do n=1,ntm
-        select case (tr_wd_type(n))
-        case (nWater)           ! water: add CH4-sourced water to tracers
-          do l=1,maxl
-            trm(i,j,l,n) = trm(i,j,l,n) + tr_H2ObyCH4(n)*dQM(l)
-            if(changeH2O(L) < 0.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)
-     *           *fraQ2(l)
-          enddo
-        end select
-      end do
+C     -- water tracers --:
+        do n=1,ntm
+          select case (tr_wd_type(n))
+          case (nWater)           ! water: add CH4-sourced water to tracers
+            do l=1,maxl
+              trm(i,j,l,n) = trm(i,j,l,n) + tr_H2ObyCH4(n)*dQM(l)
+              if(changeH2O(L) < 0.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)
+     *             *fraQ2(l)
+            enddo
+          end select
+        end do
 #endif
+      endif
 
 c Calculate ozone change due to within-NOx partitioning:
       do L=1,LM

@@ -25,7 +25,7 @@ c
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
-     &                        SRDN,rad_to_file,ghg_yr
+     &                        SRDN,rad_to_file,ghg_yr,clim_interact_chem
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &                        ,stratO3_tracer_save
 #endif
@@ -494,20 +494,22 @@ c based on tropical tropopause H2O and CH4:
        if(Itime == ItimeI .and. L > LTROPO(I,J)) then
          y(nH2O,L) =  y(nM,L)*(avgTT_H2O/countTT +
      &   2.d0*(avgTT_CH4/countTT-y(n_CH4,L)/y(nM,L)))
-         fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
-         Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
-         if(fraQ < 1.)qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ
+         if(clim_interact_chem > 0)then 
+           fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
+           Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
+           if(fraQ < 1.)qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
-          do n=1,ntm
-            select case (tr_wd_type(n))
-            case (nWater)       ! water: initialise tracers
-              trm(i,j,l,n) = trm(i,j,l,n)*fraQ
-              if (fraQ < 1.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fraQ
-            end select
-          end do
+            do n=1,ntm
+              select case (tr_wd_type(n))
+              case (nWater)       ! water: initialise tracers
+                trm(i,j,l,n) = trm(i,j,l,n)*fraQ
+                if (fraQ < 1.) trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fraQ
+              end select
+            end do
 #endif
-       end if 
+         end if
+       end if
 #endif
 
 c Initialize various other species:

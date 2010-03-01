@@ -380,7 +380,8 @@ aer_int_yr=1995
 COUPLED_CHEM=0     ! to couple chemistry and aerosols
 imAER=0
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
-rad_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
+clim_interact_chem=1 ! use calculated Ox/CH4 in radiation, 0=use climatology
+                   !   0 also turns off chem(H2O)-->Q( ) feedback.
                    ! (either case does the rad-forcing calculation)
 rad_forc_lev=1     ! use LTROPO(I,J) level for rad forcing diags.
 use_rad_n2o=0      ! use the radiation code's N2O 

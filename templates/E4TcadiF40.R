@@ -525,8 +525,11 @@ Tpsc_offset_S=0.d0 ! pol.strat.cloud temperature offset SH
 
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
-rad_interact_chem=1! 1=use calculated Ox/CH4 in radiation, 0=use climatology
+clim_interact_chem=1 ! 1=use calculated Ox/CH4 in radiation, 0=use climatology
                    ! (either case does the rad-forcing calculation)
+                   ! Note: 0 also turns off chemistry(H2O)-->Q(humidity) feedback
+                   ! if you want humidity feedback on but radiation feedback off
+                   ! you could do: clim_interact_chem=1, Lmax_rad_{O3,CH4}=0...
 ! Lmax_rad_O3=0    ! Ox levels used in rad code default is LM
 ! Lmax_rad_CH4=0   ! CH4 levels used in rad code default is LM
 use_rad_n2o=1      ! use the radiation code's N2O

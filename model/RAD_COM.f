@@ -191,8 +191,9 @@ C**** does not produce exactly the same as the default values.
 #endif
 !@dbparam rad_interact_aer =1 for radiatively active non-chem tracers
       INTEGER :: rad_interact_aer = 0  ! defaults to 0
-!@dbparam rad_interact_chem=1 for radiatively active chem tracers
-      INTEGER :: rad_interact_chem= 0  ! defaults to 0
+!@dbparam clim_interact_chem=1 for radiatively active chem tracers
+!@+ also affects chemisty to humidity feedback
+      INTEGER :: clim_interact_chem= 0  ! defaults to 0
 
 !@dbparam nradfrc sets frequency of inst. rad. forcing calculations
       INTEGER :: nradfrc=1 ! do them every nrad*nradfrc physics steps

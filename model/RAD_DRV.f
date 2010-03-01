@@ -64,7 +64,7 @@ C****
      *     ,calc_orb_par,paleo_orb_yr,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,depoBC,depoBC_1990, nradfrc
-     *     ,rad_interact_aer,rad_interact_chem,rad_forc_lev,ntrix,wttr
+     *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,calc_orb_par_sp,paleo_orb_par,calc_orb_par_year
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,maxNtraceFastj
@@ -158,7 +158,7 @@ C**** sync radiation parameters from input
         call stop_model('init_RAD: snoage_fac_max out of range',255)
       end if
       call sync_param( "rad_interact_aer", rad_interact_aer )
-      call sync_param( "rad_interact_chem", rad_interact_chem )
+      call sync_param( "clim_interact_chem", clim_interact_chem )
       call sync_param( "rad_forc_lev", rad_forc_lev )
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
@@ -853,7 +853,7 @@ C     OUTPUT DATA
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
      *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
      *     ,dALBsnX,depoBC,depoBC_1990,rad_to_chem,trsurf
-     *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,rad_interact_chem
+     *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -1326,7 +1326,7 @@ c     KCKERR=0
 !$OMP*   snoage,xdalbs,depobc,msi,n_oca2,n_oci3,flag_dsws,
 !$OMP*   pond_melt,fmp_com,mwl,axyp,bare_soil_wetness,wsoil,
 !$OMP*   entcells,wsavg,rad_forc_lev,rad_interact_aer,
-!$OMP*   rad_interact_chem,chem_tracer_save,lmax_rad_o3,lmax_rad_ch4,
+!$OMP*   clim_interact_chem,chem_tracer_save,lmax_rad_o3,lmax_rad_ch4,
 !$OMP*   kliq,snfst,tnfst,snfst_ozone,tnfst_ozone,nfsnbc,albnbc,
 !$OMP*   cloud_rad_forc,snfscrf,tnfscrf,
 #ifdef ALTER_RADF_BY_LAT
@@ -1748,7 +1748,7 @@ C**** depending on whether full radiative interaction is turned on
 C**** or not.
       onoff_aer=0; onoff_chem=0
       if (rad_interact_aer > 0) onoff_aer=1
-      if (rad_interact_chem > 0) onoff_chem=1
+      if (clim_interact_chem > 0) onoff_chem=1
 
 #ifdef RAD_O3_GCM_HRES
       O3natL(:)=O3JDAY_native(:,I,J)
@@ -1762,13 +1762,13 @@ C**** or not.
 c if ozone also interacts with radiation it needs to be set
 c to default here:
 C**** Ozone and Methane:
-      if (rad_interact_chem > 0) then
+      if (clim_interact_chem > 0) then
         CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
         use_tracer_chem(1)=Lmax_rad_O3  ! O3
         use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       else
-        call stop_model("stratOx RADF on, rad_interact_chem<=0",255)
+        call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
 #endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
       endif
 #endif /* TRACERS_SPECIAL_Shindell */
@@ -2699,7 +2699,7 @@ c longwave forcing at TOA
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
                       ! ------ diag stratOx tracer -------
 ! note for now for this diag, there is a failsafe that stops model
-! if rad_interact_chem .le. 0 when the below would be wrong:
+! if clim_interact_chem .le. 0 when the below would be wrong:
 c shortwave forcing at tropopause
          if (ijts_fc(1,n_stratOx).gt.0)
      &   taijs(i,j,ijts_fc(1,n_stratOx))=taijs(i,j,ijts_fc(1,n_stratOx))
