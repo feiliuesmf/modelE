@@ -478,7 +478,7 @@ C**** Get solar variability coefficient from namelist if it exits
       n_Water = n
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
           trw0(n) = 1.
-          ntrocn(n)= 2
+          ntrocn(n)= 0
 #endif
 #ifdef TRACERS_WATER
           ntm_power(n) = -4
@@ -509,7 +509,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.980d0*trw0(n)  ! d=-20
           trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.023d0 ! d=+23 (ie. no frac from O2)
-          ntrocn(n) = -1
+          ntrocn(n) = -3
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98d0   ! d=-20
 #endif
@@ -525,7 +525,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.830d0*trw0(n)  ! d=-170
           trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*0.93d0  ! d=-70
-          ntrocn(n) = -2
+          ntrocn(n) = -4
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.84d0   ! d=-160
 #endif
@@ -542,7 +542,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trsi0(n) = 0.
           tr_H2ObyCH4(n) = 0.
           trdecay(n) = 1.77d-9      ! =5.59d-2 /yr
-          ntrocn(n) = -16
+          ntrocn(n) = -18
 #ifdef TRACERS_OCEAN
           trglac(n) = 0.
 #endif
@@ -558,7 +558,7 @@ C**** Get solar variability coefficient from namelist if it exits
           trli0(n) = 0.98937d0*trw0(n)  ! d=-10.63 D17O=0
           trsi0(n) = fracls(n)*trw0(n)
           tr_H2ObyCH4(n) = trw0(n)*1.011596d0 ! d=+11.596 (some frac from O2)
-          ntrocn(n) = -1
+          ntrocn(n) = -3
 #ifdef TRACERS_OCEAN
           trglac(n) = trw0(n)*0.98937d0   ! d=-10.63 D17O=
 #endif
@@ -10903,7 +10903,7 @@ C**** GLOBAL parameters and variables:
      &     gases_list,aero_list,water_list,hlawt_list
 
       USE TRACER_COM, only: tr_RKD,tr_DHD,nWATER,nGAS,nPART,tr_wd_TYPE
-     *     ,trname,ntm,t_qlimit,fq_aer,trpdens
+     *     ,trname,ntm,t_qlimit,fq_aer,trpdens,n_SO2,n_H2O2,n_H2O2_s
 #ifdef TRACERS_SPECIAL_O18
      &     ,supsatfac
 #endif
@@ -10929,7 +10929,7 @@ C**** Local parameters and variables and arguments:
 !@var LHX latent heat flag for whether condensation is to ice or water
 !@var RKD dummy variable (= tr_RKD*EXP[ ])
       REAL*8, PARAMETER :: BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, RKD,CLDINC
+      REAL*8 Ppas, tfac, RKD,CLDINC,trlef
 #ifdef TRACERS_SPECIAL_O18
       real*8 tdegc,alph,fracvs,fracvl,kin_cond_ice
 #endif
@@ -10951,6 +10951,7 @@ c      thlaw(:) = 0. ! default
 c
 c gases
 c
+c     cldinc=max(0.,cldsavt-fcloud)
       if(lhx.eq.lhe .and. fcloud.ge.1d-16) then
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
@@ -10974,8 +10975,16 @@ c            fq(n) = min(1d0, fq0fac*ssfac(n) / (1d0 + ssfac(n)))
           do igas=1,gases_count
             n = gases_list(igas)
             fq(n) = 0.
+c limit gas dissolution to incremental cloud change after cloud forms
+c   only apply to non-aqueous sulfur species since this is already
+c   done in GET_SULFATE
+c but H2O2 should be limited if not coupled with sulfate, haven't done this 
+c           if (n.ne.n_h2O2.and.n.ne.n_so2.and.n.ne.n_h2O2_s) then
+c           if (FCLOUD.ne.0.) tr_lef(n)=cldinc
+c           endif
+            trlef=min(tr_lef(n),cldsavt)
             thlaw(n) = min(tm(n),max(0d0,
-     &           (ssfac(n)*tr_lef(n)*tm(n)-TRWML(n))
+     &           (ssfac(n)*trlef*tm(n)-TRWML(n))
      &           /(1.D0+ssfac(n)) ))
           enddo
         endif
@@ -11041,7 +11050,8 @@ c
 c aerosols
 c
 
-      if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
+c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
+      if (CLDSAVT.lt.1.D-16 .or. fq0.eq.0.) then
         fq(aero_list) = 0.      ! defaults to zero
       else
 
@@ -11101,6 +11111,8 @@ c with double dissolution if partially soluble
         else
           fq(aero_list) = fq_aer(aero_list)*0.12d0
         endif
+c this shouldn't work because cldinc should be fcld for
+c    when cloud first forms
       elseif(fq0.gt.0 .and. cldinc.gt.0.) then ! growing stratiform cloud
         if(lhx.eq.lhe) then
           fq(aero_list) = fq_aer(aero_list)*cldinc

@@ -1283,10 +1283,14 @@ c formation of sulfate
 #endif
 
       TM_dum(:) = TMP(:)
+c     CALL GET_COND_FACTOR_array(
+c    &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+c    &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
+c    &     ,ntix,CLDSAVT)
       CALL GET_COND_FACTOR_array(
-     &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+     &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,0.
      &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
-     &     ,ntix,CLDSAVT)
+     &     ,ntix,FPLUME)
       dtr(1:ntx) = fqcondt(1:ntx)*tmp(1:ntx)
 #ifdef TRDIAG_WETDEPO
       IF (diag_wetdep == 1) trcond_mc(l,1:ntx)=trcond_mc(l,1:ntx)
@@ -2410,6 +2414,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         b_beta_DT = FPLUME
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         WA_VOL= precip_mm*DXYPIJ
+
         CALL GET_SULFATE(L,TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
@@ -4087,9 +4092,10 @@ c CLDSAVT is current FCLD
         if (wmxtr.lt.0.) wmxtr=0.
         WA_VOL=precip_mm*DXYPIJ
       END IF
-      CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
+
+      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL
      * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
-     *  ,DT_SULF_SS(1,L),FCLD)
+     *  ,DT_SULF_SS(1,L),CLDSAVT)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
@@ -4305,9 +4311,10 @@ C**** CONDENSING MORE TRACERS
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
+
+      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
-     *     DT_SULF_SS(1,L),FCLD)
+     *     DT_SULF_SS(1,L),CLDSAVT)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
