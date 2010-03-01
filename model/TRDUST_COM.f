@@ -81,11 +81,11 @@ c**** wind speed
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
-     &   ,'Ginoux2001_source_VegMask_144x90         (01/11/10,19:10EST)'
-     &   ,'Ginoux_source_v2009_VegMask_144x90       (01/11/10,19:10EST)'
-     &   ,'Ginoux_source_v2009_NoVegMask_144x90     (01/11/10,19:10EST)'
-     &   ,'GriniZender_source_144x90                (01/11/10,19:10EST)'
-     &   ,'Tegen_source_144x90                      (01/11/10,19:10EST)'
+     &   ,'Ginoux2001_source_VegMask_144x90                            '
+     &   ,'Ginoux_source_v2009_VegMask_144x90                          '
+     &   ,'Ginoux_source_v2009_NoVegMask_144x90                        '
+     &   ,'GriniZender_source_144x90                                   '
+     &   ,'Tegen_source_144x90                                         '
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
      &   ,'No file available yet                                       '
@@ -288,6 +288,7 @@ c**** temporary array to read in data
 
       LOGICAL,SAVE :: qfirst=.TRUE.
       CHARACTER :: cierr*3,name*256
+      CHARACTER(50) :: OptModelVers='No Entry'
 
       IF (.NOT. qfirst) RETURN
       qfirst=.FALSE.
@@ -431,8 +432,9 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.099017658D0
-              fracSiltPDFscheme = 0.072244382D0
+              fracClayPDFscheme = 0.091393298D0
+              fracSiltPDFscheme = 0.10973922D0
+              OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.092714686D0
               fracSiltPDFscheme = 0.11636162D0
@@ -464,8 +466,9 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.092321704D0
-              fracSiltPDFscheme = 0.075609092D0
+              fracClayPDFscheme = 0.086874723D0
+              fracSiltPDFscheme = 0.097082074D0
+              OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.091387274D0
               fracSiltPDFscheme = 0.11525676D0
@@ -497,8 +500,9 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.054054294D0
-              fracSiltPDFscheme = 0.041997386D0
+              fracClayPDFscheme = 0.051027254D0
+              fracSiltPDFscheme = 0.047415049D0
+              OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.057676781D0
               fracSiltPDFscheme = 0.049452031D0
@@ -530,8 +534,9 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.035367998D0
-              fracSiltPDFscheme = 0.029040256D0
+              fracClayPDFscheme = 0.03586315D0
+              fracSiltPDFscheme = 0.028140008D0
+              OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.038794273D0
               fracSiltPDFscheme = 0.023586557D0
@@ -563,8 +568,9 @@ c**** set parameters depending on the preferred sources chosen
             ires=1
           case(144)
             if (coupled_chem == 1) then
-              fracClayPDFscheme = 0.080945478D0
-              fracSiltPDFscheme = 0.060172677D0
+              fracClayPDFscheme = 0.083940461D0
+              fracSiltPDFscheme = 0.06811547D0
+              OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.088998936D0
               fracSiltPDFscheme = 0.0604359D0
@@ -602,7 +608,7 @@ c**** set parameters depending on the preferred sources chosen
             write(6,*) '  following file with preferred dust sources:'
             write(6,*) '  >> '
      &           ,trim(dustSourceFile(prefDustSources,ires)),' <<'
-            write(6,*) '  Parentheses: Optimized model version.'
+            write(6,*) '  for model version from ',trim(OptModelVers)
             if (coupled_chem == 1) then
               write(6,*) '  for all aerosols and chemistry'
             else
