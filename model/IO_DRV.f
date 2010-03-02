@@ -22,6 +22,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       INTEGER, INTENT(INOUT) :: IOERR
       integer :: fid,k,iorw
       logical :: do_io_prog,do_io_acc,do_io_longacc
+      character(len=200) :: tmpname
 
       call set_ioptrs_acc_default
 
@@ -93,10 +94,12 @@ c
       if(iaction.le.iowrite) then
         fid = par_open(grid,trim(fname)//'.nc','write')
       elseif(iaction.ge.ioread) then
-        fid = par_open(grid,trim(fname)//'.nc','read')
+        tmpname = trim(fname)//'.nc'
+        if(fname == 'AIC') tmpname=fname ! symbolic link w/o .nc suffix
+        fid = par_open(grid,trim(tmpname),'read')
       endif
 
-      call new_io_label  (fid,iaction)
+      call new_io_label  (fid,iaction,it)
 
 c
 c prognostic arrays
@@ -330,7 +333,7 @@ c parameters that are defined.
       return
       end subroutine def_rsf_label
 
-      subroutine new_io_label(fid,iaction)
+      subroutine new_io_label(fid,iaction,ihrX)
 !@sum  new_io_label read/write control info from/to restart,acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
@@ -342,10 +345,9 @@ c parameters that are defined.
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      integer :: ihrX !@var ihrX a dummy itime read from IC files
       integer :: idum,nday_dummy
       logical :: is_ic
-! the case in which ihrX is used is not yet handled properly
-      integer :: ihrX
 
       select case (iaction)
       case (:iowrite) ! output to restart or acc file
