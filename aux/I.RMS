@@ -24,8 +24,8 @@ RTPE  ERBE      Global    1 7  10  -1.      0.    NET THERMAL RADIATION, TOA (W/
 RTPE  ISCCP     Global    1 7   7  -1.      0.    NET THERMAL RADIATION, TOA (W/m^2)
 RTSD  LANGLEY   Glob60    1 7   4   1.      0.    THERMAL RADIATION DOWN, SURF (W/m^2)
 RTSD  ISCCP     Glob60    1 7   4   1.      0.    THERMAL RADIATION DOWN, SURF (W/m^2)
-RTSE  ISCCP     Glob60    1 7   5   1.      0.    THERMAL RADIATION EMITTED by SURFACE (W/m^2)
-RTSE  LANGLEY   Glob60    1 7   5   1.      0.    THERMAL RADIATION EMITTED by SURFACE (W/m^2)
+RTSE  ISCCP     Glob60    1 7   5   1.      0.    NET THERMAL RADIATION from SURFACE (W/m^2)
+RTSE  LANGLEY   Glob60    1 7   5   1.      0.    NET THERMAL RADIATION from SURFACE (W/m^2)
                           1 7
 RSPA  ERBE      Global    1 7  10   1.      0.    NET SOLAR RADIATION, TOA (W/m^2)
 RSPA  ISCCP     Global    1 7   7   1.      0.    NET SOLAR RADIATION, TOA (W/m^2)
