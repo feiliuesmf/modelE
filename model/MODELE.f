@@ -315,9 +315,11 @@ C**** write restart information alternately onto 2 disk files
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
          call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
+#if defined( USE_FVCORE )
          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
          call Checkpoint(fv, clock, fv_fname, fv_dfname)
+#endif
          if (AM_I_ROOT())
      *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
@@ -743,7 +745,7 @@ C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
             call set_param( "IRAND", IRAND, 'o' )
             filenm='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
             call io_rsf(filenm,Itime,iowrite_mon,ioerr)
-#if defined( USE_FVCORE ) && !defined( USE_FVCUBED )
+#if defined( USE_FVCORE )
             fv_fname  = '1'//aDATE(8:14)//'.fv'//XLABEL(1:LRUNID)
             fv_dfname = '1'//aDATE(8:14)//'.dfv'//XLABEL(1:LRUNID)
             call Checkpoint(fv, clock, fv_fname, fv_dfname)
