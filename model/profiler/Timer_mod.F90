@@ -6,6 +6,12 @@
 ! Perhaps eventually, this module could be used as an interface to
 ! other libraries so that the user need not modify their interfaces.
 
+#ifdef USE_ESMF
+#ifndef USE_MPI
+#define USE_MPI
+#endif
+#endif
+
 module Timer_mod
    implicit none
    private
