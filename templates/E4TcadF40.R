@@ -26,6 +26,7 @@ Preprocessor Options
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define SHINDELL_STRAT_CHEM         ! turns on stratospheric chemistry
 #define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
+!  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define INITIAL_GHG_SETUP        ! only for setup hour to get ghg IC file
@@ -523,7 +524,7 @@ Tpsc_offset_S=0.d0 ! pol.strat.cloud temperature offset SH
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
 clim_interact_chem=1 ! 1=use calculated Ox/CH4 in radiation, 0=use climatology
-                   ! (either case does the rad-forcing calculation)
+                   ! If = 0, consider turning on AUXILIARY_OX_RADF CPP directive.
                    ! Note: 0 also turns off chemistry(H2O)-->Q(humidity) feedback
                    ! if you want humidity feedback on but radiation feedback off
                    ! you could do: clim_interact_chem=1, Lmax_rad_{O3,CH4}=0...
