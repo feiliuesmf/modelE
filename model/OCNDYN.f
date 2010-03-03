@@ -4041,7 +4041,6 @@ C**** Surface stress is applied to V component at the North Pole
      *     , oTRGASEX
 #endif
 #endif
-
       IMPLICIT NONE
       INTEGER I,J,L,n
       REAL*8 DXYPJ,BYDXYPJ,RUNO,RUNI,ERUNO,ERUNI,SROX(2),G0ML(LMO)
@@ -4062,10 +4061,22 @@ C**** Surface stress is applied to V component at the North Pole
       call get (ogrid, J_STOP=J_1, J_STRT=J_0,
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
+
+C**** define tracer behaviour for ice formation
+        do n=1,ntm
+#ifdef TRACERS_SPECIAL_O18
+          FRAC(n)=fracls(n)
+#else
+#ifdef TRACERS_GASEXCH_ocean
+          FRAC(n)=0.    ! no removal of obio tracers with ice formation
+#else
+          FRAC(n)=1.
+#endif
+#endif
+        end do
 C****
 C**** Add surface source of fresh water and heat
 C****
-c      write(*,*) "start ground_oc"
       DO J=J_0,J_1
         DXYPJ=DXYPO(J)
         BYDXYPJ=BYDXYPO(J)
@@ -4107,14 +4118,14 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         !TRUNO, while TREVAPOR is positive up.
         TRUNO(:) = 0.
 !       TRUNO(:) = oTRGASEX(:,1,I,J)  !  mol,co2/m2/s
-!    .           * tr_mm(:) * dtsrc      !  kg/m^2
+!     .       * tr_mm(:) * dtsrc !  kg/m^2
 #endif
 #endif
 
         CALL OSOURC(ROICE,MO1,G0ML,GZML,SO1,DXYPJ,BYDXYPJ,LMM(I,J),RUNO
      *         ,RUNI,ERUNO,ERUNI,SRUNO,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
-     *         TRO1,TRUNO,TRUNI,DTROO,DTROI,
+     *         TRO1,TRUNO,TRUNI,DTROO,DTROI,FRAC,
 #endif
      *         DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 
@@ -4133,13 +4144,6 @@ C**** Add evenly over open ocean and ice covered areas
         DM0(:)=0 ; DS0(:)=0. ; DE0(:)=0.
 #ifdef TRACERS_OCEAN
         DTR0(:,:)=0.
-        do n=1,ntm
-#ifdef TRACERS_SPECIAL_O18
-          FRAC(n)=fracls(n)
-#else
-          FRAC(n)=1.
-#endif
-        end do
 #endif
         P0L=MO(I,J,1)*GRAV
         DO L=2,LMM(I,J)
@@ -4200,7 +4204,7 @@ C**** is consistent for OGEOZ calculation).
       SUBROUTINE OSOURC (ROICE,MO,G0ML,GZML,S0M,DXYPJ,BYDXYPJ,LMIJ,RUNO
      *     ,RUNI,ERUNO,ERUNI,SRUNO,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
-     *     TROM,TRUNO,TRUNI,DTROO,DTROI,
+     *     TROM,TRUNO,TRUNI,DTROO,DTROI,FRAC,
 #endif
      *     DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
@@ -4226,26 +4230,16 @@ C**** is consistent for OGEOZ calculation).
       INTEGER L,LSR,N
 
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM
+      REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM,FRAC
       REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI
       REAL*8, DIMENSION(NTM), INTENT(OUT) :: DTROO,DTROI
-      REAL*8, DIMENSION(NTM) :: TMOO,TMOI,FRAC
-#ifdef TRACERS_SPECIAL_O18
-      REAL*8 fracls
-#endif
+      REAL*8, DIMENSION(NTM) :: TMOO,TMOI
 #endif
 
       DMOO=0. ; DEOO=0. ; DMOI=0. ; DEOI=0. ; DSOO=0. ; DSOI=0.
 
 #ifdef TRACERS_OCEAN
       DTROI(:) = 0. ; DTROO(:) = 0.
-      do n=1,ntm
-#ifdef TRACERS_SPECIAL_O18
-        FRAC(n)=fracls(n)
-#else
-        FRAC(n)=1.
-#endif
-      end do
 #endif
 
       LSR = MIN(LSRPD,LMIJ)
