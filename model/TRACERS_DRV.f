@@ -5246,6 +5246,42 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),'W/m2')
           scale_ijts(k) = 10.**(-ijts_power(k))
+#ifdef AUXILIARY_OX_RADF
+          if(trname(n)=='Ox')then
+            k = k + 1
+            ijts_auxfc(1) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//' AUX tropp SW rad forc'
+            sname_ijts(k) = 'swfauxtp_'//trim(trname(n))
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_auxfc(2) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//' AUX tropp LW rad forc'
+            sname_ijts(k) = 'lwfauxtp_'//trim(trname(n))
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_auxfc(3) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//' AUX TOA SW rad forc'
+            sname_ijts(k) = 'swfauxtoa_'//trim(trname(n))
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            k = k + 1
+            ijts_auxfc(4) = k
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(trname(n))//' AUX TOA LW rad forc'
+            sname_ijts(k) = 'lwfauxtoa_'//trim(trname(n))
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+          endif
+#endif /* AUXILIARY_OX_RADF */
         end select
 #ifdef GFED_3D_BIOMASS
         select case(trname(n))

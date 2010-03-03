@@ -146,6 +146,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER ijts_sqcbsub(2,6,Ntm,MaxSubCl)
 !@var ijts_fc tracer independent array for TAIJS SW/LW rad. forcings
       INTEGER ijts_fc(6,ntm)
+#ifdef AUXILIARY_OX_RADF
+!@var ijts_auxfc auxiliary Ox array for TAIJS SW/LW rad. forcings
+      INTEGER ijts_auxfc(4)
+#endif
 !@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes
       INTEGER ijts_fcsub(6,Ntm,MaxSubCl)
 !@var ijts_spec index for TAIJS for special diags. not associated with single
