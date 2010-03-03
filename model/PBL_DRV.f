@@ -561,6 +561,8 @@ C**** fix roughness length for ocean ice that turned to land ice
 #ifdef SCM
             utop = u(i,j,1)
             vtop = v(i,j,1)
+            ug = utop
+            vg = vtop
 #endif
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
      2                 ttop,qtop,coriol,cm,ch,cq,ustar,
