@@ -3810,7 +3810,7 @@ C* If using an alternate definition for QAUT
       SCDNCW=SNd      ! we have already passed the grid box value
       SCDNCI=SNdI
 c     if (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0 !set min ice crystal, do we need this, please check
-      if (SCDNCI.le.0.0d0) SCDNCI=tiny          !set min ice crystal, do we need this, please check
+      if (SCDNCI.le.0.0d0) SCDNCI=teeny         !set min ice crystal, do we need this, please check
       if (SCDNCW.le.20.d0) SCDNCW=20.d0         !set min CDNC, sensitivity test
 c     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
@@ -4745,7 +4745,7 @@ c To get effective radii in micron
       SCDNCI=SNdI
       If (SCDNCW.le.20.d0) SCDNCW=20.d0   !set min CDNC sensitivity test
 c     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
-      If (SCDNCI.le.0.0d0) SCDNCI=tiny            !set min ice crystal
+      If (SCDNCI.le.0.0d0) SCDNCI=teeny           !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
 c     write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),OLDCDO(l),l
 #endif
