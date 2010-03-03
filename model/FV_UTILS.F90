@@ -484,13 +484,54 @@ contains
     VERIFY_(status)
 
   end subroutine AllocateFvExport3D
+#ifdef CUBE_GRID
+#define USE_MAPL
+#endif
+
+#ifdef USE_MAPL
+  subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
+    use MAPL_mod, only: MAPL_MetaComp
+    use MAPL_mod, only: MAPL_InternalStateGet
+    use MAPL_mod, only: MAPL_Get
+    use MAPL_mod, only: MAPL_ESMFStateWriteToFile
+    use MAPL_mod, only: MAPL_GetResource
+    use domain_decomp_atm, only: AM_I_ROOT
+
+    Type (FV_CORE),    intent(inout) :: fv
+    type (esmf_clock), intent(in) :: clock
+    character(len=*), intent(in) :: fv_fname, fv_dfname, suffix
+    logical, intent(in) :: isFinalize
+
+    type (MAPL_MetaComp), pointer :: internalState
+    type (ESMF_State) :: esmfInternalState
+    integer :: hdr
+
+    call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
+
+    if(isFinalize) then
+       call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
+    else
+       ! workaround for RecordPhase since modelE is not using MAPL interface for alarms
+       call MAPL_InternalStateGet( fv % gc, internalSTate, rc=rc)
+       call MAPL_Get(internalState, internal_esmf_state=esmfInternalState, rc=rc)
+       call MAPL_GetResource( internalState   , hdr,         &
+                               default=0, &
+                               LABEL="INTERNAL_HEADER:", &
+                               RC=rc)
+       call MAPL_ESMFStateWriteToFile(esmfInternalState, clock, FVCORE_INTERNAL_RESTART // suffix, &
+            & 'binary',internalState,hdr==1, rc=rc)
+    endif
+
+    ! Now move the file into a more useful name
+    if (AM_I_ROOT()) then
+      call MoveFile(fv_fname, fv_dfname, suffix)
+    end if
+
+  end subroutine DumpState
+#else
 
   subroutine DumpState(fv, clock, fv_fname, fv_dfname, suffix, isFinalize)
-#ifdef USE_FVCUBED
-    use MAPL_mod, only: GEOS_RecordPhase=>MAPL_RecordPhase
-#else
-    use GEOS_mod, only: GEOS_RecordPhase
-#endif
+    use GEOS_mod, only: RecordPhase=>GEOS_RecordPhae
     use domain_decomp_atm, only: AM_I_ROOT
 
     Type (FV_CORE),    intent(inout) :: fv
@@ -501,11 +542,10 @@ contains
     call SaveTendencies(fv, FVCORE_IMPORT_RESTART)
 
     if(isFinalize) then
-       call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, &
-            &                      clock, rc=rc)
+       call ESMF_GridCompFinalize( fv % gc, fv%import, fv%export, clock, rc=rc)
     else
-       call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, &
-            &                      clock, GEOS_RecordPhase, rc=rc)
+       call ESMF_GridCompFinalize( fv % gc, fv % import, fv % export, clock, &
+            &  phase=RecordPhase, rc=rc)
     endif
 
     ! Now move the file into a more useful name
@@ -514,6 +554,7 @@ contains
     end if
 
   end subroutine DumpState
+#endif
 
   function load_configuration(config_file) result( config )
     use ESMF_mod

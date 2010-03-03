@@ -315,11 +315,9 @@ C**** write restart information alternately onto 2 disk files
          CALL RFINAL (IRAND)
          call set_param( "IRAND", IRAND, 'o' )
          call io_rsf(rsf_file_name(KDISK),Itime,iowrite,ioerr)
-#if defined( USE_FVCORE ) && !defined( USE_FVCUBED )
          fv_fname='fv.'   ; write(fv_fname(4:4),'(i1)') kdisk
          fv_dfname='dfv.' ; write(fv_dfname(5:5),'(i1)') kdisk
          call Checkpoint(fv, clock, fv_fname, fv_dfname)
-#endif
          if (AM_I_ROOT())
      *        WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
