@@ -77,7 +77,7 @@ C**** set GTEMP array for landice
             GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
-                if (SCM_SURFACE_FLAG.eq.1) then
+                if (SCM_SURFACE_FLAG.ge.1) then
                     GTEMP(1,3,I,J) = ATSKIN
                     GTEMP(2,3,I,J) = ATSKIN
                     GTEMPR(3,I,J) = ATSKIN + TF
@@ -336,7 +336,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.eq.1) then
+            if (SCM_SURFACE_FLAG.ge.1) then
                 GTEMP(1,3,I,J) = ATSKIN
                 GTEMP(2,3,I,J) = ATSKIN
                 GTEMPR(3,I,J) = ATSKIN + TF
@@ -478,7 +478,7 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         GTEMPR(3,I,J)   =TLANDI(1,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.eq.1) then
+            if (SCM_SURFACE_FLAG.ge.1) then
                 GTEMP(1,3,I,J) = ATSKIN
                 GTEMP(2,3,I,J) = ATSKIN
                 GTEMPR(3,I,J) = ATSKIN + TF

@@ -125,7 +125,7 @@ C**** set gtemp array
         GTEMPR(2,I,J)   =TSIL(1)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-           if (SCM_SURFACE_FLAG.eq.1) then
+           if (SCM_SURFACE_FLAG.ge.1) then
                GTEMP(1,2,I,J) = ATSKIN
                GTEMP(2,2,I,J) = ATSKIN
                GTEMPR(2,I,J) = ATSKIN + TF
@@ -454,7 +454,7 @@ C**** Reset some defaults if all ice is gone
             GTEMPR(2,I,J) = GTEMP(1,2,I,J) + TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
-              if (SCM_SURFACE_FLAG.eq.1) then
+              if (SCM_SURFACE_FLAG.ge.1) then
                   GTEMP(1,2,I,J) = ATSKIN
                   GTEMP(2,2,I,J) = ATSKIN
                   GTEMPR(2,I,J) = ATSKIN + TF
@@ -893,7 +893,7 @@ C**** set gtemp array
         GTEMPR(2,I,J)   =TSIL(1)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.eq.1) then
+            if (SCM_SURFACE_FLAG.ge.1) then
                 GTEMP(1,2,I,J) = ATSKIN
                 GTEMP(2,2,I,J) = ATSKIN
                 GTEMPR(2,I,J) = ATSKIN + TF
@@ -1126,7 +1126,7 @@ C**** set GTEMP etc. array for ice
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.eq.1) then
+            if (SCM_SURFACE_FLAG.ge.1) then
                 GTEMP(1,2,I,J) = ATSKIN
                 GTEMP(2,2,I,J) = ATSKIN
                 GTEMPR(2,I,J) = ATSKIN + TF
@@ -1392,7 +1392,7 @@ C**** set GTEMP etc. array for ice (to deal with daily_lake changes)
         GTEMPR(2,I,J) = GTEMP(1,2,I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.eq.1) then
+            if (SCM_SURFACE_FLAG.ge.1) then
                 GTEMP(1,2,I,J) = ATSKIN
                 GTEMP(2,2,I,J) = ATSKIN
                 GTEMPR(2,I,J) = ATSKIN + TF

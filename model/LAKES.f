@@ -560,7 +560,7 @@ C**** Set GTEMP arrays for lakes
             GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
-                if (SCM_SURFACE_FLAG.eq.1) then
+                if (SCM_SURFACE_FLAG.ge.1) then
                     GTEMP(1,1,I,J) = ATSKIN
                     GTEMPR(1,I,J) = ATSKIN + TF
                 endif
@@ -584,7 +584,7 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
             END IF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
-                if (SCM_SURFACE_FLAG.eq.1) then
+                if (SCM_SURFACE_FLAG.ge.1) then
                     GTEMP(2,1,I,J) = GTEMP(1,1,I,J)
                 endif
             endif
@@ -1172,7 +1172,7 @@ C**** Set GTEMP array for lakes
             GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
-                if (SCM_SURFACE_FLAG.eq.1) then
+                if (SCM_SURFACE_FLAG.ge.1) then
                     GTEMP(1,1,I,J) = ATSKIN
                     GTEMPR(1,I,J) = ATSKIN + TF
                 endif
@@ -1775,7 +1775,7 @@ C****
                   GTEMPR(1,I,J)=TF
 #ifdef SCM
                   if ((I.eq.I_TARG.and.J.eq.J_TARG).and.
-     &                 SCM_SURFACE_FLAG.eq.1) then
+     &                 SCM_SURFACE_FLAG.ge.1) then
                         GTEMPR(1,I,J) = ATSKIN + TF
                   endif
 #endif
@@ -1815,7 +1815,7 @@ C**** Set GTEMP array for lakes
             GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
             if (I.eq.I_TARG.and.J.eq.J_TARG) then
-                if (SCM_SURFACE_FLAG.eq.1) then
+                if (SCM_SURFACE_FLAG.ge.1) then
                     GTEMP(1,1,I,J) = ATSKIN
                     GTEMPR(1,I,J) = ATSKIN + TF
                 endif
@@ -1911,7 +1911,7 @@ C**** simelt is given as kg, so divide by area
           GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
-              if (SCM_SURFACE_FLAG.eq.1) then
+              if (SCM_SURFACE_FLAG.ge.1) then
                   GTEMP(1,1,I,J) = ATSKIN
                   GTEMPR(1,I,J) = ATSKIN + TF
               endif
@@ -1927,7 +1927,7 @@ C**** simelt is given as kg, so divide by area
           END IF
 #ifdef SCM
           if (I.eq.I_TARG.and.J.eq.J_TARG) then
-              if (SCM_SURFACE_FLAG.eq.1) then
+              if (SCM_SURFACE_FLAG.ge.1) then
                   GTEMP(2,1,I,J) = GTEMP(1,1,I,J)
               endif
           endif
@@ -2189,7 +2189,7 @@ C**** Resave prognostic variables
         GTEMPR(1,I,J) =TLAKE(I,J)+TF
 #ifdef SCM
         if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.eq.1) then
+            if (SCM_SURFACE_FLAG.ge.1) then
                 GTEMP(1,1,I,J) = ATSKIN
                 GTEMP(2,1,I,J) = ATSKIN
                 GTEMPR(1,I,J) = ATSKIN + TF
