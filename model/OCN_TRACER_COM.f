@@ -53,7 +53,7 @@ C**** this defines tracer parameters that are local to ocean code
      .     /)
 !@var ntrocn scaling exponent for tracers
       INTEGER :: ntrocn(ntm) = (/ -4,-6,-4,-8,-8,-8,-8,-8,-8,
-     .     -4,-6,-8,-10,-8,-2
+     .     -4,-6,-6,-10,-6,-3
 #ifdef TRACERS_Alkalinity
      .     ,-6
 #endif
