@@ -75,7 +75,7 @@ SparseCommunicator_mod              ! sparse gather/scatter module used for stra
 ! Utilities
 !
 cs2ll_utils                         ! CS utilities for diags/flux coupler/regrids
-regrid regrid_com                   ! more regrid routines
+regrid_com                          ! more regrid routines
 FFTW_COM OFFT72E                    ! FFTs
 pario_fbsa                          ! fortran-style I/O
 

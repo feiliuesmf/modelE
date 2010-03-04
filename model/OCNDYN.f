@@ -321,7 +321,8 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE OCEAN, only : remap_a2o,remap_o2a
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
       use cs2ll_utils, only : init_xgridremap_type
-      use regrid_com, only : xA2O_root
+      use regrid_com, only : xA2O_root,
+     &     read_xgrid_file=>init_regrid_root
 #else
       use hntrp_mod, only : init_hntrp_type
       USE OCEAN, only : oDLATM=>DLATM
@@ -728,7 +729,7 @@ c End ocean-processors-only code region
 c-------------------------------------------------------------------
 
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
-      call init_regrid_root(xA2O_root,aim,ajm,6,im,jm,1)
+      call read_xgrid_file(xA2O_root,aim,ajm,6,im,jm,1)
 c*** fill in vector full of ones
       allocate(ones(xA2O_root%xgridroot%ncells))
       ones=1
