@@ -1146,7 +1146,7 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
         SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
         SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
-        IF (L.gt.KPL(I,J).and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
+        IF (L.ge.KPL(I,J).and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX0sq = DZV(I,J,L)**2 * byAIDT
           DSX2sq = DZV(I,J,L)**2 * byAIDT
@@ -1183,7 +1183,7 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
-        IF (L.gt.KPL(I,J)+1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
+        IF (L.ge.KPL(I,J)+1.and.AINV(I,J).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J)+ARIV(I,J)))
           DSX1sq = DZV(I,J,L-1)**2 * byAIDT
           DSX3sq = DZV(I,J,L-1)**2 * byAIDT
@@ -1344,7 +1344,8 @@ C**** Skip non-ocean grid points
             IF(LMM(I,J).lt.L) GO TO 931
 C**** minus vertical gradient
             IF(L.gt.1) THEN
-              RHOMZ(I,J,L-1)=(RHO(I,J,L)-RHO(I,J,L-1))*BYDZV(I,J,L-1)
+              RHOMZ(I,J,L-1)=MAX(0d0,
+     *           (RHO(I,J,L)-RHO(I,J,L-1))*BYDZV(I,J,L-1))
               IF(RHOMZ(I,J,L-1).ne.0.)
      *             BYRHOZ(I,J,L-1)=1./RHOMZ(I,J,L-1)
             END IF
