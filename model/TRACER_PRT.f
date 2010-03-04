@@ -475,7 +475,7 @@ C**** PRODUCE TABLES
         WRITE (6,903) (DASH,J=JP1,JPM,INC)
         DO K=1,KTCON_max
         WRITE (6,905) TITLE_TCON(K,N),FGLOB(K),FHEM(JHEMI,K),
-     *         (NINT(CNSLAT(JX,K)),JX=JPM,JP1,-INC)
+     *         (NINT(MAX(-1d5,MIN(CNSLAT(JX,K),1d5))),JX=JPM,JP1,-INC)
         END DO
         WRITE (6,906) AGLOB,AHEM,(MAREA(JX),JX=JPM,JP1,-INC)
       END DO
