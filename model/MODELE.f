@@ -1003,7 +1003,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       USE MODEL_COM, only : JM,LM,NIPRNT,MFILTR,NFILTR,NRAD
      *     ,NDASF,NDA4,NDA5S,NDA5K,NDA5D,NDAA,Kvflxo,kradia
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,NIsurf,iyear1
-     $     ,LS1,IRAND,ItimeI,PSTRAT,UOdrag
+     $     ,LS1,IRAND,ItimeI,PSTRAT,UOdrag,USE_UNR_DRAG
      $     ,X_SDRAG,C_SDRAG,LSDRAG,P_SDRAG,LPSDRAG,PP_SDRAG,ang_sdrag
      $     ,P_CSDRAG,CSDRAGL,Wc_Jdrag,wmax,VSDRAGL,COUPLED_CHEM,dt
      *     ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter,QUVfilter
@@ -1023,6 +1023,7 @@ C**** Rundeck parameters:
       call sync_param( "DT_YVfilter", DT_YVfilter )
       call sync_param( "DT_YUfilter", DT_YUfilter )
       call sync_param( "MFILTR", MFILTR )
+      call sync_param( "USE_UNR_DRAG", USE_UNR_DRAG )
       call sync_param( "X_SDRAG", X_SDRAG, 2 )
       call sync_param( "C_SDRAG", C_SDRAG )
       call sync_param( "P_CSDRAG", P_CSDRAG )
@@ -1141,6 +1142,7 @@ C****
      *     ,irsficno,mdyn,mcnds,mrad,msurf,mdiag,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name,lm_req
      *     ,pl00,aml00,pednl00,pdsigl00,pmidl00,byaml00,coupled_chem
+     *     ,USE_UNR_DRAG
 
 #ifdef SCM
      *     ,I_TARG,J_TARG
@@ -2076,6 +2078,8 @@ C**** Initialize nudging
       CALL SETUP_DIAM
       CALL SETUP_RAD
 #endif
+
+      if (USE_UNR_DRAG==1) CALL init_UNRDRAG
 
 C****
       if(istart.gt.0) CALL RINIT (IRAND)

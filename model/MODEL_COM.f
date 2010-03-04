@@ -103,7 +103,10 @@ c$$$#endif
 !@dbparam VSDRAGL layer dependent tuning factor for stratospheric drag
 !@+   (not =1 e.g. if used with explicit grav.wave drag scheme)
       real*8 :: VSDRAGL(LS1:LM) = 1d0
-
+!@dbparam  USE_UNR_DRAG   if 1 =>SDRAG is turned off and GWD is applied.
+!@+    if 0 => SDRAG is kept intact and alternative GWD is not employed.
+      INTEGER :: USE_UNR_DRAG=0  ! default: SDRAG is kept intact.
+      
 !**** Diagnostic control parameters
 !@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
 !@dbparam NMONAV number of months in a diagnostic accuml. period

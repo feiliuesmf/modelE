@@ -32,7 +32,7 @@ C**** Variables used in DIAG5 calculations
 !@ver  1.0
       USE CONSTANT, only : by3,sha,mb2kg,rgas,bygrav
       USE MODEL_COM, only : im,jm,lm,u,v,t,p,q,wm,NIdyn,dt,MODD5K
-     *     ,NSTEP,NDA5K,ndaa,mrch,ls1,byim,QUVfilter
+     *     ,NSTEP,NDA5K,ndaa,mrch,ls1,byim,QUVfilter,DTsrc,USE_UNR_DRAG
       USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
       USE SOMTQ_COM, only : tmom,mz
       USE DYNAMICS, only : ptold,pu,pv,sd,phi,dut,dvt
@@ -51,6 +51,7 @@ C**** Variables used in DIAG5 calculations
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     UT,VT,TT,TZ,TZT,MA,
      &     UX,VX,PIJL
+     &    ,UNRDRAG_x,UNRDRAG_y
 
       REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
@@ -214,7 +215,7 @@ c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
 c      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       call isotropuv(u,v,COS_LIMIT)
       PC(:,:) = P(:,:)      ! LOAD P TO PC
-      CALL SDRAG (DTLF)
+      if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
          IF (MOD(NSTEP+NS-NIdyn+NDAA*NIdyn+2,NDAA*NIdyn+2).LT.MRCH) THEN
            CALL DIAGA
            CALL DIAGB
@@ -224,6 +225,12 @@ C**** Restart after 8 steps due to divergence of solutions
       IF (NS-NSOLD.LT.8 .AND. NS.LT.NIdyn) GO TO 340
       NSOLD=NS
       IF (NS.LT.NIdyn) GO TO 300
+
+      if (USE_UNR_DRAG==1) then
+      CALL UNRDRAG (P,U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
+      U(:,:,:) = U(:,:,:) + UNRDRAG_x(:,:,:) * DTsrc
+      V(:,:,:) = V(:,:,:) + UNRDRAG_y(:,:,:) * DTsrc
+      end if
 
       PUA = PUA * DTLF
       PVA = PVA * DTLF
@@ -2809,3 +2816,714 @@ c Switch the sign convention back to "positive downward".
       RETURN
       END SUBROUTINE TrDYNAM
 #endif
+      module UNRDRAG_COM
+      !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      !@ver  1.0
+
+      USE MODEL_COM, only: JDPERY
+      USE RESOLUTION, only: IM, JM
+      implicit none
+      save
+      !@var r8: kind parameter of real*8
+            integer, parameter :: r8 = selected_real_kind(12)
+      !@var Z4var: Subgrid-scale orographic variances multiplied by 4 at uv grids
+      !@+          of 2.5 x 2 resolution. It is real*4 rather than real*8.
+      !@+          Its unit is m^2.
+            real :: Z4var(IM, 2:JM)
+      !@var Eke_by2: It is a tunable parameter from Eq.(3.1b) in McFarlane (JAS, 1987).
+      !@+            Its unit is m^(-1).
+            real(r8) :: Eke_by2(JM)
+      !
+      !@  Following parameters/variables are related to calculating nonorogrphic drag.
+      !@+ The parameterization is described in Alexander and Dunkerton (JAS, 1999).
+      !
+      !   A. Parameters related to gravity wave source (assumed Gaussian shape in C):
+      !
+      !@var flag = 1 for B1 ( peak flux at c0 = 0 )
+      !@+   flag = 0 for B2 ( peak flux at ci = 0 )
+            integer, parameter :: flag = 0
+      !@var Bt: sum of |momentum flux| for all +/-c (kg/m/s^2)
+            real(r8) :: Bt(JM,JDPERY)
+      !@var N_Kh: number of horizontal wavenumbers
+            integer, parameter :: N_Kh = 1
+      !@var Bm: amplitude for the spectrum (m^2/s^2) ~ u'w'
+            real(r8), parameter :: Bm(N_Kh) = (/0.02_r8/)
+      !@var Cw: half-width for the spectrum in C (m/s)
+            real(r8), parameter :: Cw(N_Kh) = (/10.0_r8/)
+      !@var [C_inf, C_sup]: the range of phase velocities for the Gaussian exp(-(C/Cw)**2)
+            real(r8), parameter :: C_inf(N_Kh) = -3.0_r8 * Cw
+            real(r8), parameter :: C_sup(N_Kh) =  3.0_r8 * Cw
+      !@var N_C: number of C samples in source spectrum
+            integer, parameter :: N_C = 100
+      !@var dc: spectral resolution (m/s)
+            real(r8), parameter :: dc(N_Kh) = (C_sup - C_inf)/(N_C - 1)
+      !@var C: horizontal phase speed grid
+            real(r8) :: C(N_C, N_Kh)
+      !@var IZ0: vertical grid index of GW source (function of latitude)
+            integer::IZ0(2:JM)
+      !@var Wavelenth: wavelength of included gravity wave
+      !@+              Unit of Wavelenth is km.
+            real(r8), parameter :: Wavelenth(N_Kh) = (/100.0_r8/)
+      !
+      !    B. Other parameters and variables:
+      !
+      !@var N_Az: number of azimuths which is even.
+            integer, parameter :: N_Az = 2
+      !@var Kh: horizontal wave number grid
+            real(r8) :: Kh(N_Kh)
+      !@var Ah1, Ah2: used to compute components of velocity in azimuthal directions
+            real(r8) :: Ah1(N_Az), Ah2(N_Az)
+      !@param aLn2: ln(2.0)
+            real(r8), parameter :: aLn2 = 0.69314718055994529_r8
+      !@var L_min:
+            integer :: L_min
+      end module UNRDRAG_COM
+      subroutine UNRDRAG (PB,U,V,T,SZ,UNRDRAG_x,UNRDRAG_y)
+      !@sum  UNRDRAG is the driver for (alternative) gravity wave drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      !@ver  1.0
+      USE UNRDRAG_COM
+      USE CONSTANT, only : grav, bygrav, kapa, rgas
+      USE GEOM, only: RAPVS, RAPVN
+      USE MODEL_COM, only: IM, JM, LM, LS1
+     *         , SIG, DSIG, SIGE, PSFMPT, PTOP, JDAY
+      USE DOMAIN_DECOMP_1D, Only : GRID, GET
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
+
+      implicit none
+      real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     *                  U, V, T, SZ, UNRDRAG_x, UNRDRAG_y
+      real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PB
+      intent(inout) :: PB, T, SZ
+      intent(in) :: U, V
+      intent(out) :: UNRDRAG_x, UNRDRAG_y
+      real(r8), parameter :: byrgas = 1.0_r8/rgas
+      real(r8), parameter :: dkapa = 1.0_r8 - kapa
+      real(r8), parameter :: g_sq = grav * grav
+      real(r8), parameter :: byPSFMPT = 1.0_r8/PSFMPT
+      real(r8), dimension(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *                      T2, SZ2
+      real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PB2
+      real(r8), dimension(LM) :: dp, P_mid
+      real(r8), dimension(LM+1) :: P_edge
+      real(r8), dimension(LM) :: uc, vc, rho, bvf_sq, drag_x, drag_y
+      real(r8), dimension(2:LM) :: ue, ve, rhoe, bvfe
+      real(r8), dimension(2:LM) :: hb, U_Comp
+      real(r8), dimension(LM) :: GW, GWF_X, GWF_Y
+      real(r8) :: bvf_sqe
+      !@var Eps: intermittency factor
+            real(r8) :: Eps
+      integer :: I, J, L, IP1
+      integer :: Ikh, IC, IAZ
+      integer :: IC0, MC
+      real :: h_4sq
+      real(r8) :: byPB2, by_dp_sum
+            real(r8) :: Bsum
+            real(r8) :: Ugw_S, Vgw_S, U_Comp_S
+            real(r8) :: SGN, x
+
+            real(r8) :: B(N_C,N_Az,N_kh)
+            real(r8) :: C_actual(N_C)
+      !
+      !Extract domain decomposition info
+      !
+      integer :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
+      logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      call GET(grid, J_STRT = J_0, J_STOP = J_1,             !&
+     &         J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,   !&
+     &         J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,     !&
+     &         J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,     !&
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,            !&
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+
+      if (HAVE_SOUTH_POLE) then
+      do I = 2, IM
+      PB(I,1) = PB(1,1)
+      end do
+      do L = 1, LM
+      do I = 2, IM
+      T(I,1,L) = T(1,1,L)
+      SZ(I,1,L) = SZ(1,1,L)
+      end do
+      end do
+      end if
+
+      if (HAVE_NORTH_POLE) then
+      do I = 2, IM
+      PB(I,JM) = PB(1,JM)
+      end do
+      do L = 1, LM
+      do I = 2, IM
+      T(I,JM,L) = T(1,JM,L)
+      SZ(I,JM,L) = SZ(1,JM,L)
+      end do
+      end do
+      end if
+
+      call HALO_UPDATE(GRID, T,  from=SOUTH)
+      call HALO_UPDATE(GRID, SZ, from=SOUTH)
+      call HALO_UPDATE(GRID, PB, from=SOUTH)
+
+      do L= LS1, LM
+      dp(L) = PSFMPT * DSIG(L)
+      P_mid(L) = SIG(L) * PSFMPT + PTOP
+      P_edge(L) = SIGE(L) * PSFMPT + PTOP
+      end do
+      P_edge(LM+1) = SIGE(LM+1) * PSFMPT + PTOP
+
+      do J = J_0S, J_1
+         I = IM
+         do IP1 = 1, IM
+            PB2(I,J) = (PB(I,J-1) + PB(IP1,J-1))*RAPVN(J-1)     !&
+     &                  + (PB(I,J) + PB(IP1,J))*RAPVS(J)
+            do L= 1, LM
+            T2(L,I,J) = 0.25_r8 *
+     *          (T(I,J-1,L) + T(IP1,J-1,L) + T(I,J,L) + T(IP1,J,L))
+            SZ2(L,I,J) = 0.25_r8 *
+     *       (SZ(I,J-1,L) + SZ(IP1,J-1,L) + SZ(I,J,L) + SZ(IP1,J,L))
+            end do
+         I = IP1
+         end do
+      end do
+
+      Latitude:  do J = J_0STG, J_1STG
+      Longitude: do I = 1, IM
+      byPB2 = 1.0_r8/PB2(I,J)
+      h_4sq = Z4var(I,J)
+      !
+      !Following loop calculates dp(1:LS1-1), P_mid(1:LS1-1), P_edge(1:LS1-1)
+      !
+      do L= 1, LS1-1
+      dp(L) = PB2(I,J) * DSIG(L)
+      P_mid(L) = SIG(L) * PB2(I,J) + PTOP
+      P_edge(L) = SIGE(L) * PB2(I,J) + PTOP
+      end do
+      !
+      !Following loop calculates rho(:) ,bvf_sq(:), uc(:), vc(:) at the middle levels.
+      !
+      do L= 1, LM
+      rho(L) = P_mid(L)**dkapa / T2(L,I,J) * byrgas
+      bvf_sq(L) = 2.0_r8*SZ2(L,I,J) / (dp(L)*T2(L,I,J)) * g_sq*rho(L)
+      uc(L) = U(I,J,L)
+      vc(L) = V(I,J,L)
+      end do
+      !
+      !Following loop calculates rhoe(:) ,bvf_sqe(:), ue(:), ve(:) at the edge levels.
+      !
+      do L= 2, LM
+      by_dp_sum = 1.0_r8 / (dp(L) + dp(L-1))
+      rhoe(L) = (rho(L) * dp(L-1) + rho(L-1) * dp(L)) * by_dp_sum
+      bvf_sqe = (bvf_sq(L) * dp(L-1) + bvf_sq(L-1) * dp(L)) * by_dp_sum
+      if (bvf_sqe <= 0.0_r8) then
+          bvfe(L) = -1.0
+      else
+          bvfe(L) = sqrt (bvf_sqe)
+      end if
+      ue(L) = (uc(L) * dp(L-1) + uc(L-1) * dp(L)) * by_dp_sum
+      ve(L) = (vc(L) * dp(L-1) + vc(L-1) * dp(L)) * by_dp_sum
+      hb(L) = P_edge(L) / rhoe(L) * bygrav
+      end do
+
+      if (h_4sq <= 0.0) then
+          drag_x(:) = 0.0_r8
+          drag_y(:) = 0.0_r8
+      else
+          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2(J)
+     *                           , drag_x, drag_y)
+      end if
+          UNRDRAG_x(I,J,1:LS1-1) = drag_x(1:LS1-1) * byPB2
+          UNRDRAG_y(I,J,1:LS1-1) = drag_y(1:LS1-1) * byPB2
+          UNRDRAG_x(I,J,LS1:LM) = drag_x(LS1:LM) * byPSFMPT
+          UNRDRAG_y(I,J,LS1:LM) = drag_y(LS1:LM) * byPSFMPT
+
+      !...Calculating Eps
+      Eps = 0.0_r8
+      do Ikh = 1, N_Kh
+         Bsum = 0.0_r8
+         do IC = 1, N_C
+            Bsum = Bsum + Bm(Ikh) * exp(-(C(IC,Ikh)/Cw(Ikh))**2 * aLn2)
+         end do
+         Eps = Eps + Bsum * dc(Ikh) * ( rhoe(IZ0(J)) * 100.0_r8 )
+                                                       !!!100.0_r8 arises from the units of P and rho.
+      end do
+      Eps = Bt(J,JDAY) / Eps
+
+      !...Calculating source spectra (function of azimuth, horizontal wave number)
+      do IAZ = 1, N_Az
+         Ugw_S = ue(IZ0(J))
+         Vgw_S = ve(IZ0(J))
+         U_Comp_S = Ugw_S * Ah1(IAZ) + Vgw_S * Ah2(IAZ)
+         do Ikh = 1, N_Kh
+            do IC = 1, N_C
+               x = C(IC,Ikh)*(1-flag) + (C(IC,Ikh) - U_Comp_S)*flag
+               if ( x == 0.0_r8 ) then
+                  SGN = 0.0_r8
+               else
+                  SGN = sign(1.0_r8, x)
+               end if
+               B(IC,IAZ,Ikh) = SGN * Bm(Ikh) *
+     *            exp( -(C(IC,Ikh)/Cw(Ikh))**2 * aLn2 ) * rhoe(IZ0(J))
+            end do
+         end do
+      end do
+
+      GWF_X(:) = 0.0_r8
+      GWF_Y(:) = 0.0_r8
+      !...Loop over azimuth
+      do IAZ = 1, N_Az
+         U_Comp(:) = ue(:) * Ah1(IAZ) + ve(:) * Ah2(IAZ)
+         !...Loop over horizontal wave number
+         do Ikh = 1, N_kh
+            IC = N_C
+            IC0 = 1
+            MC = 0
+            do while ( B(IC,IAZ,Ikh) > 0.0_r8 )
+               MC = MC + 1
+               IC0 = IC
+               IC = IC - 1
+               if ( IC == 0) exit
+            end do
+         !...if flag == 0 then parameterize spectrum with c_actual = c - ucomp(iz0)
+         C_actual(:) = C(:,Ikh) * real(flag, r8)  !&
+     &          + ( C(:,Ikh) + U_Comp(IZ0(J)) ) * real(1 - flag, r8)
+         call nonorographic_drag (C_actual(IC0), dc(Ikh), B(IC,IAZ,Ikh)
+     &           , Eps, Kh(Ikh), hb, rhoe, U_Comp, bvfe, MC, IZ0(J), GW)
+         GWF_X(:) = GWF_X(:) + GW(:) * Ah1(IAZ)
+         GWF_Y(:) = GWF_Y(:) + GW(:) * Ah2(IAZ)
+         end do      !horizontal wavenumber grid
+      end do      !azimuth grid
+      do L = L_min, LM
+      if (L < LS1) then
+         UNRDRAG_x(I,J,L) = UNRDRAG_x(I,J,L) + GWF_X(L) * byPB2
+         UNRDRAG_y(I,J,L) = UNRDRAG_y(I,J,L) + GWF_Y(L) * byPB2
+      else
+         UNRDRAG_x(I,J,L) = UNRDRAG_x(I,J,L) + GWF_X(L) * byPSFMPT
+         UNRDRAG_y(I,J,L) = UNRDRAG_y(I,J,L) + GWF_Y(L) * byPSFMPT
+      end if
+      end do
+
+      end do Longitude
+      end do Latitude
+
+      end subroutine UNRDRAG
+
+
+      subroutine init_UNRDRAG
+      !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      !@ver  1.0
+      USE RESOLUTION, only: JM, LM, PLbot
+      USE CONSTANT, only : pi, twopi
+      USE GEOM, only: LAT_DG
+      USE MODEL_COM, only: JDPERY
+      USE UNRDRAG_COM, only: Z4var, Eke_by2, Bt
+      USE UNRDRAG_COM, only: r8, N_C, C_inf, dc, C, IZ0, N_Kh, Wavelenth
+      USE UNRDRAG_COM, only: Kh, Ah1, Ah2, N_Az, aLn2, L_min
+      USE FILEMANAGER, only: openunit, closeunit
+      implicit none
+      integer :: iu_Z4var, I, IAZ, J, IT
+      real(r8) :: x
+      real(r8) :: Phi, Eke_S, Eke_N
+      real(r8) :: Bt_Smax, Bt_Nmax
+      real(r8) :: Bt_Tmax
+      character(Len=80) :: Title
+      call openunit("Z4var", iu_Z4var, .true., .true.)
+      read(iu_Z4var) Title, Z4var
+      call closeunit(iu_Z4var)
+
+      Phi = -30.0_r8
+      Eke_S = 5.5_r8
+      Eke_N = 5.5_r8
+      do J = 1, JM
+         if ( LAT_DG(J,2) <= Phi ) then
+            Eke_by2(J) = Eke_S
+         elseif ( LAT_DG(J,2) > Phi .AND. LAT_DG(J,2) < 0.0 ) then
+            Eke_by2(J) = 0.5_r8 * ( Eke_S + Eke_N +
+     *             (Eke_S-Eke_N) * cos(pi/Phi * (LAT_DG(J,2)-Phi)) )
+         else
+            Eke_by2(J) = Eke_N
+         end if
+         Eke_by2(J) = Eke_by2(J) * 1.0E-6_r8
+      end do
+
+      Bt_Smax = 2.0_r8 * 0.001_r8
+      Bt_Nmax = 0.5_r8 * 0.001_r8
+      do IT = 1, JDPERY
+         x = cos ( twopi * real(IT - 16, r8) / real(JDPERY, r8) )
+         do J = 1, JM
+            if ( LAT_DG(J,2) <= 1.0E-8 .and. x <= 0.0_r8 ) then
+               Bt(J,IT) = -Bt_Smax *
+     *          exp(-((LAT_DG(J,2) + 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
+            elseif ( LAT_DG(J,2) > 1.0E-8 .and. x >= 0.0_r8 ) then
+               Bt(J,IT) =  Bt_Nmax *
+     *          exp(-((LAT_DG(J,2) - 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
+            else
+               Bt(J,IT) = 0.0_r8
+            end if
+         end do
+      end do
+
+      Bt_Tmax = 0.5_r8 * 0.001_r8
+      do IT = 1, JDPERY
+         x = cos ( twopi * real(IT - 16, r8) / real(JDPERY, r8) )
+         Phi = -10.0_r8 * x
+         do J = 1, JM
+            Bt(J,IT) = Bt(J,IT) + Bt_Tmax *
+     *          exp(-( (LAT_DG(J,2) - Phi)/5.0_r8 )**2 * aLn2 ) *
+     *          0.25_r8 * ( 3.0_r8 - x )
+         end do
+      end do
+
+      !!!
+         Bt = Bt + 1.0_r8 * 0.001_r8
+      !!!
+
+      do I = 1, N_C
+         C(I, :) = C_inf(:) + real(I - 1, r8) * dc(:)
+      end do
+      do I = 1, N_Kh
+      Kh(I) = twopi / (Wavelenth(I) * 1000.0_r8)
+                            !!!Factor 1000.0 arises from the unit of Wavelenth.
+      end do
+      do IAZ = 1, N_Az
+      x = twopi / real(N_Az, r8) * real(IAZ - 1, r8)
+      Ah1(IAZ) = cos(x)
+      Ah2(IAZ) = sin(x)
+      end do
+      I = 1
+      do while ( PLbot(I) >= 100.0_r8 )
+         I = I + 1
+         if ( I == LM + 2 ) exit
+      end do
+         IZ0(:) = I - 1
+      L_min = minval(IZ0)
+      end subroutine init_UNRDRAG
+      subroutine orographic_drag (u,v,rho, bvf,h_4sq,coef,drag_x,drag_y)
+      !@sum   orographic_drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      !@ver  1.0
+      USE CONSTANT, only : grav
+      USE MODEL_COM, only: LM, byDSIG
+      USE UNRDRAG_COM, only : r8
+      implicit none
+      real(r8), intent(in) :: coef
+      real(r8), dimension(2:LM), intent(in) :: u, v, rho, bvf
+      real(r8), dimension(LM), intent(out) :: drag_x, drag_y
+      real, intent(in) :: h_4sq
+      !@param  byFc_sq: inverse Froude number squared
+            real(r8), parameter :: byFc_sq = 0.5_r8
+            real(r8), parameter :: Fc_sq = 1.0_r8/byFc_sq
+      real(r8) :: flux(2:LM+1)
+      real(r8) :: wind(2:LM)
+      real(r8) :: he_sq, u0_sq, u0, flux_temp
+      real(r8) :: Fr_sq, const, Fr_sq_min
+      real(r8) :: drag, proj_x, proj_y
+      integer :: L
+      do L = 1, LM
+      flux(L+1) = 0.0_r8
+      drag_x(L) = 0.0_r8
+      drag_y(L) = 0.0_r8
+      end do
+      Fr_sq_min = Fc_sq
+      u0_sq = u(2) * u(2) + v(2) * v(2)
+      u0 = sqrt(u0_sq)
+      if (u0 < 1.0E-8_r8) then
+          return
+      else
+          wind(2) = u0
+          do L = 3, LM
+          wind(L) = (u(L) * u(2) + v(L) * v(2)) / u0
+          end do
+      end if
+
+      if (bvf(2) <= 0.0_r8) then
+          return
+      else
+          he_sq = min(h_4sq, byFc_sq * u0_sq / ( bvf(2) * bvf(2) ) )
+      end if
+
+      const = he_sq * rho(2) * bvf(2) * wind(2)
+      flux(2) = -coef * const
+      flux_temp = flux(2) * byFc_sq
+
+      do L = 3, LM
+      if (wind(L) < 1.0E-8_r8) then
+          flux(L) = 0.0_r8
+          exit
+      elseif (bvf(L) <= 0.0_r8) then
+          flux(L) = flux(L-1)
+      else
+          Fr_sq = rho(L) * wind(L)**3 / ( const * bvf(L) )
+          if (Fr_sq >= Fr_sq_min) then
+          flux(L) = flux(L-1)
+          else
+          flux(L) = flux_temp * Fr_sq
+          Fr_sq_min = Fr_sq
+          end if
+      end if
+      end do
+
+      proj_x = u(2) / u0
+      proj_y = v(2) / u0
+
+      do L = 2, LM
+      drag = -grav * (flux(L+1) - flux(L)) * byDSIG(L)
+      drag_x(L) = drag * proj_x
+      drag_y(L) = drag * proj_y
+      end do
+      end subroutine orographic_drag
+
+
+      subroutine nonorographic_drag (c,dc,b,eps,kh,hb,rho
+     *                                ,u,bf,nc,iz0, gwfrc)
+      !@sum   nonorographic_drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      !@ver  1.0
+      USE CONSTANT, only : grav, by3
+      USE MODEL_COM, only: LM, byDSIG
+      USE UNRDRAG_COM, only : r8
+      !===============================================
+      !...AD parameterizaion with arbitrary tabulated
+      !...momentum flux (phase speed) spectrum: rho*u'*v' = b(c)*dc
+      !...computes force gwfrc in a single azimuthal direction
+      !
+      !...Input:
+      !...c(1:nc) phase speed (m/s)
+      !...b(1:nc) mom flux density (kg/m**2/s)
+      !...kh=horizontal wavenumber (1/m)
+      !...eps=intermittency factor
+      !...rho(2:LM)=density profile (kg/m**3)
+      !...u(2:LM)=wind profile (m/s)
+      !...bf(2:LM)=bouyancy frequency (1/s)
+      !...iz0=source grid level
+      !
+      !...gwfrc(1:LM)=output force
+      !
+
+      implicit none
+
+      !...arguements
+      integer, intent(in) :: nc, iz0
+      real(r8), intent(in), dimension(nc) :: c, b                  !global variables
+      real(r8), intent(in), dimension(2:LM+1) :: hb, rho, u, bf    !global variables
+      real(r8), intent(out) :: gwfrc(LM)                        !global variables
+      real(r8), intent(in) :: kh, dc                            !global variables
+      real(r8), intent(in) :: eps                               !intermittency factor
+      !...The following are global variables
+      real(r8) :: crfl(iz0:LM+1)      !phase speed of turning point at z
+      integer :: n_rfl(iz0:LM+1)
+      real(r8) :: dc3(iz0:LM+1), total_flux(iz0:LM+1)
+      real(r8) :: k2, alp2, cm
+      !!!...The following are local variables
+      integer :: i, j, number, n1, n2, n3, n_end
+      real(r8)::unsat              !unsat > 0 if unsaturated at z
+      real(r8)::const, dc1, dc2, s1, s2, ratio, dc_end
+      !------------------------------------------------------------------
+      gwfrc(:) = 0.0_r8  !necessary when the subroutine 'unsaturated' returns quickly.
+
+      if ( nc == 0 ) return
+
+      k2 = kh * kh
+      total_flux(:) = 0.0_r8
+
+      !find the turning point, which must decrease with altitude
+      cm = 2000.0
+      do i = iz0, LM
+      alp2 = 1.0_r8 / (4.0_r8 * hb(i) * hb(i) )
+      if (bf(i) < 0.0_r8) then
+         crfl(i) = u(i)
+      else
+         crfl(i) = u(i) + bf(i) / sqrt( k2 + alp2 )
+      end if
+      crfl(i) = min ( crfl(i), cm )
+      cm = crfl(i)
+      end do
+      n_rfl(:) = int( ( crfl(:) - c(1) ) / dc ) + 1
+      dc3(:) = crfl(:) - ( c(1) + dc * real ( n_rfl(:) - 1 ) )
+      i = iz0
+      if ( crfl(i) < c(nc) .and. c(1) < crfl(i) ) then
+         n_end = n_rfl(i)
+         dc_end = dc3(i)
+      else if ( crfl(i) >= c(nc) ) then
+         n_end = nc - 1
+         dc_end = dc
+      else
+         return
+      end if
+
+      !...find unsaturated waves in the spectrum at z(i)
+      if (bf(i) > 0.0_r8) then
+         const = kh * rho(i) / bf(i) / 2.0_r8
+         number = 0
+         SOURCE: do j = 1, n_end
+            unsat = const * ( c(j) - u(i) )**3 - b(j)
+            if ( number == 0 .and. unsat > 0.0_r8 ) then
+               number = 1
+               if ( j == 1 ) then
+                  n1 = j
+                  dc1 = 0.0_r8
+               else
+                  n1 = j -1
+                  s2 = const * ( c(n1) - u(i) )**3 - b(n1)
+                  s1 = const * ( c(n1+1) - u(i) )**3 - b(n1+1)
+                  ratio = s2 / ( s2 - s1 )
+                  dc1 = ratio * dc
+               end if
+            else if ( number == 1 .and. unsat <= 0.0_r8 ) then
+               number = 2
+               n2 = j - 1
+               s2 = const * ( c(n2) - u(i) )**3 - b(n2)
+               s1 = const * ( c(n2+1) - u(i) )**3 - b(n2+1)
+               ratio = s2 / ( s2 - s1 )
+               dc2 = ratio * dc
+            else if( ( number == 2 ) .and. ( unsat > 0.0_r8 ) ) then
+               number = 3
+               n3 = j - 1
+               exit SOURCE
+            end if
+         end do SOURCE
+      else
+         number = 1
+         n1 = 1
+         dc1 = 0.0_r8
+      end if
+
+      if ( number == 0 ) return
+
+      BAND_1_2: if ( number == 1 ) then
+         n2 = n_end
+         dc2 = dc_end
+         call unsaturated ( n1, dc1, n2, dc2, i )
+      else if ( number >= 2 ) then BAND_1_2
+         call unsaturated ( n1, dc1, n2, dc2, i )
+         BAND_2:if ( number == 3 ) then
+            n1 = n3
+            s2 = const * ( c(n1) - u(i) )**3 - b(n1)
+            s1 = const * ( c(n1+1) - u(i) )**3 - b(n1+1)
+            ratio = s2 / ( s2 - s1 )
+            dc1 = ratio * dc
+            n2 = n_end
+            dc2 = dc_end
+            call unsaturated ( n1, dc1, n2, dc2, i )
+         end if BAND_2
+      end if BAND_1_2
+
+      total_flux(LM) = total_flux(LM-2) * by3
+      total_flux(LM-1) = total_flux(LM-2) * 2.0_r8 * by3
+
+      do i = iz0, LM
+         gwfrc(i) = -grav * ( total_flux(i+1) - total_flux(i) ) *
+     *                                          byDSIG(i) * eps
+      end do
+
+      contains
+
+      recursive subroutine unsaturated ( nz1, dcz1, nz2, dcz2, level)
+      implicit none
+      integer, intent(in)::nz1, nz2, level
+      real(r8), intent(in)::dcz1, dcz2
+      integer::number, n1, n2, n3, n_end, n_start
+      integer::i, j
+      real(r8)::const, unsat, dc1, dc2, s1, s2, ratio, flux_rfl, dc_end
+
+      i = level
+      do j = nz1, nz2 - 1
+         total_flux(i) = total_flux(i) + b(j) * dc
+      end do
+      total_flux(i) = total_flux(i) - b(nz1) * dcz1 + b(nz2) * dcz2
+
+      if (level == LM) return
+
+      i = level + 1
+      if ( c(nz1) + dcz1 < crfl(i) .and. crfl(i) < c(nz2) + dcz2 ) then
+         n_end = n_rfl(i)
+         dc_end = dc3(i)
+      else if ( crfl(i) >= c(nz2) + dcz2 ) then
+         n_end = nz2
+         dc_end = dcz2
+      else
+         n_end = nz1
+         dc_end = dcz1
+      end if
+
+      flux_rfl = 0.0_r8
+      do j = n_end, nz2 - 1
+      flux_rfl =  flux_rfl + b(j) * dc
+      end do
+      flux_rfl = flux_rfl - b(n_end) * dc_end + b(nz2) * dcz2
+      total_flux(:level) = total_flux(:level) - flux_rfl
+
+      if ( crfl(i) <= c(nz1) + dcz1 ) return
+
+      if (bf(i) > 0.0_r8) then
+         const = kh * rho(i) / bf(i) / 2.0_r8
+         number = 0
+         if ( nz1 == 1 .and. dcz1 == 0.0_r8 ) then
+            n_start = nz1
+         else
+            n_start = nz1 + 1
+         end if
+         find_bands: do j = n_start, n_end
+            unsat = const * ( c(j) - u(i) )**3 - b(j)
+            upward: if ( number == 0 .and. unsat > 0.0_r8 ) then
+               number = 1
+               if ( j == 1 ) then
+                  n1 = j
+                  dc1 = 0.0_r8
+               else
+                  n1 = j - 1
+                  s2 = const * ( c(n1) - u(i) )**3 - b(n1)
+                  s1 = const * ( c(n1+1) - u(i) )**3 - b(n1+1)
+                  ratio = s2 / ( s2 - s1 )
+                  dc1 = ratio * dc
+                  if ( n1 == nz1 .and. s1 * s2 <= 0.0_r8 ) then
+                     dc1 = max ( dc1, dcz1 )
+                  else if ( n1 == nz1 .and. s1 * s2 > 0.0_r8 ) then
+                     dc1 = dcz1
+                  end if
+               end if
+            else if ( number == 1 .and. unsat <= 0.0_r8 ) then upward
+               number = 2
+               n2 = j - 1
+               s2 = const * ( c(n2) -u(i) )**3 - b(n2)
+               s1 = const * ( c(n2+1) - u(i) )**3 - b(n2+1)
+               ratio = s2 / ( s2 - s1 )
+               dc2 = ratio * dc
+               if ( n2 == n_end ) dc2 = min ( dc2, dc_end )
+            else if ( number == 2 .and. unsat > 0.0_r8 ) then upward
+               number = 3
+               n3 = j - 1
+               exit find_bands
+            end if upward
+         end do find_bands
+      else
+         number = 1
+         n1 = nz1
+         dc1 = dcz1
+      end if
+
+      if ( number == 0 ) return
+
+      outgoing_1_2: if ( number == 1 ) then
+         n2 = n_end
+         dc2 = dc_end
+         call unsaturated ( n1, dc1, n2, dc2, i )
+      else if ( number >= 2 ) then outgoing_1_2
+         call unsaturated ( n1, dc1, n2, dc2, i )
+         outgoing_2: if ( number == 3 ) then
+            n1 = n3
+            s2 = const * ( c(n1) - u(i) )**3 - b(n1)
+            s1 = const * ( c(n1+1) - u(i) )**3 - b(n1+1)
+            ratio = s2 / ( s2 - s1 )
+            dc1 = ratio * dc
+            n2 = n_end
+            dc2 = dc_end
+            call unsaturated ( n1, dc1, n2, dc2, i )
+         end if outgoing_2
+      end if outgoing_1_2
+
+      end subroutine unsaturated
+      end subroutine nonorographic_drag
