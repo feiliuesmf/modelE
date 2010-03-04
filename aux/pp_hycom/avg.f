@@ -29,11 +29,31 @@ c
       integer, allocatable :: im(:,:)
 c
       real year(ntime),dpav(ntime,kdm),dpavav(kdm),heatot
-      character flnm*80,runid*10,flnmout*30
+      character flnm*132,runid*10,flnmout*30
 c
       integer mo,ny1,ny2,dcd,mon1,i70,i45,ieq,status
       logical timav,cnvert
-
+c
+      character(len=*), parameter :: FMT1=
+     & '(a,         t10,a,     t24,a,     t38,a,      t52, a,      
+     &  t66,a,      t80,a,     t94,a,     t108,a,     t122,a)' 
+C
+      character(len=*), parameter :: FMT2=
+     & '(f7.2,sp,t10,es12.5,t24,es12.5,t38,es12.5, t52, es12.5,
+     &  t66,es12.5, t80,es12.5,t94,es12.5,t108,es12.5,t122,es12.5)'
+c
+      character(len=*), parameter :: FMT3=
+     & '(a,         t10,a,     t22,a,     t34,a,      t46, a,      
+     &  t58,a,      t70,a,     t82,a,     t94,a,      t106,a)' 
+C
+      character(len=*), parameter :: FMT4=
+     & '(f7.2,sp,t10,es10.3,t22,es10.3,t34,es10.3, t46, es10.3,
+     &  t58,es10.3, t70,es10.3,t82,es10.3,t94,es10.3,t106,es10.3)'
+CTNL  open (10,file="hycomdata.nl")
+CTNL  read (10,nml=hycomdata_nl)
+CTNL  write (*,nml=hycomdata_nl)
+CTNL  close(10)
+c
       read(*,'(a/i4/i4)') runid,ny1,ny2
       write(*,'(3a,i4,a,i4)')
      .   'processing ',runid,' from yr ',ny1,' to ',ny2
@@ -94,7 +114,26 @@ c
       open(303,file=flnmout,form='formatted',status='unknown')
       write(flnmout,'(3a,i3,a)') 'avg_hf_',trim(runid),'_',dcd,'.txt'
       open(304,file=flnmout,form='formatted',status='unknown')
+
+      write(301,fmt=FMT1) 
+     & "Time  ","NINO3","Ice Extent","Ice Extent","Heat Total",
+     & "SST","SSS", "T global","S global"
+      write(301,fmt=FMT1) 
+     & "---- ","Index","Arctic","Antarctic","???",
+     & " "," "," "," "," "
+      write(301,fmt=FMT1) 
+     & "Year","    ","Mln.Sq.km","Mln.Sq.km","???",
+     & "degC","PSU","degC","PSU"
 c
+      write(302,fmt=FMT3) 
+     & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Heat_Flux", 
+     & "Atl (45N)","Indonesian","Drake"
+      write(302,fmt=FMT3) 
+     & "---- ","Surf_Temp","Surf_Saln","Glob_Temp",
+     & "Glob_Saln","Srf_Hght","*1.E-6","Max Overt","Throughfl","Passage"
+      write(302,fmt=FMT3) 
+     & "Year","degC","PSU","degC","PSU","cm","Pw","Sv","Sv","Sv"
+C
       n=0
 
       do 151 ny=ny1,ny2
@@ -174,9 +213,9 @@ c
 c$OMP END PARALLEL DO
 c
       heatot=spcifh*rho*tsum/area
-      write(301,'(f8.2,3f6.2,f9.1,4f8.4,e9.3)') year(n)
-     .   ,nino3/arean3,iceextn*1.e-12,iceexts*1.e-12,heatot*1.e-6
-     .   ,sstsum/area,ssssum/area,tsum/vol,ssum/vol
+      write(301,fmt=FMT2)
+     . year(n),nino3/arean3,iceextn*1.e-12,iceexts*1.e-12,heatot*1.e-6
+     . ,sstsum/area,ssssum/area,tsum/vol,ssum/vol
 c
 c --- save annual field
       mon1=monlg(mod(n-1,12)+1)
@@ -232,7 +271,7 @@ c     write(lp,*) ' yr n=',n,' flxmax_i45 =',i45,flxmax,' at k=',k00
       x1=thrufl(idrk1,jdrk1,idrk2,jdrk2,'(Drake Passage)')
       x2=thrufl(indoi,indoj1,indoi,indoj2,'(Indonesia)')
 c
-      write(302,'(f8.1,4f8.4,f7.2,f10.1,3f7.2)') year(n)-.5
+      write(302,fmt=FMT4) year(n)-0.5 
      .   ,annsst/area,annsss/area,anntem/vol,annsal/vol
      .   ,annssh/area,annht*1.e-6,flxmax,-x2,x1
  151  continue
