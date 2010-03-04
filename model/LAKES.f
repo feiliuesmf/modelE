@@ -1716,12 +1716,12 @@ c transfer of mass from layer 2 to layer 1. adjust layer-1 properties
                     TRLAKE(:,1,I,J)=TRLAKE(:,1,I,J)+DTR(:)
                     TRLAKE(:,2,I,J)=TRLAKE(:,2,I,J)-DTR(:)
 #endif
-c                    M1 = MLDLK(I,J)*RHOW
-c                    M2 = MAX(MWL(I,J)/(FLAKE(I,J)*AXYP(I,J))-M1,0d0)
-c                    M1T1 = M1*TLAKE(I,J)
-c                    M2T2 = GML(I,J)/(SHW*FLAKE(I,J)*AXYP(I,J))-M1T1
-c                    new_TLAKE = (M1T1+f_entr*M2T2)/(M1+f_entr*M2)
-c                    TLAKE(I,J) = new_TLAKE
+                    M1 = MLDLK(I,J)*RHOW
+                    M2 = MAX(MWL(I,J)/(FLAKE(I,J)*AXYP(I,J))-M1,0d0)
+                    M1T1 = M1*TLAKE(I,J)
+                    M2T2 = GML(I,J)/(SHW*FLAKE(I,J)*AXYP(I,J))-M1T1
+                    new_TLAKE = (M1T1+f_entr*M2T2)/(M1+f_entr*M2)
+                    TLAKE(I,J) = new_TLAKE
                     MLDLK(I,J)=new_MLD
                   END IF
                 ELSE
