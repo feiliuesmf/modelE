@@ -4062,6 +4062,7 @@ C**** Surface stress is applied to V component at the North Pole
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
 
+#ifdef TRACERS_OCEAN
 C**** define tracer behaviour for ice formation
         do n=1,ntm
 #ifdef TRACERS_SPECIAL_O18
@@ -4074,6 +4075,7 @@ C**** define tracer behaviour for ice formation
 #endif
 #endif
         end do
+#endif
 C****
 C**** Add surface source of fresh water and heat
 C****
