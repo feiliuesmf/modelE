@@ -3135,8 +3135,8 @@ c Switch the sign convention back to "positive downward".
       call closeunit(iu_Z4var)
 
       Phi = -30.0_r8
-      Eke_S = 5.5_r8
-      Eke_N = 5.5_r8
+      Eke_S = 5.0_r8
+      Eke_N = 5.0_r8
       do J = 1, JM
          if ( LAT_DG(J,2) <= Phi ) then
             Eke_by2(J) = Eke_S
