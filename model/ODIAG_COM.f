@@ -760,7 +760,9 @@ C**** set properties for OIJL diagnostics
 c
       k=k+1
       IJL_MO = k
-      sname_oijl(k) = 'mo' ! gridbox mass; serves as a denominator
+      sname_oijl(k) = 'mo' ! gridbox mass in kg
+      units_oijl(k) = 'kg'
+      lname_oijl(k) = 'OCEAN MASS'
 c
       k=k+1
       IJL_MOU = k
@@ -776,9 +778,9 @@ c
       IJL_G0M = k
       denom_oijl(k) = IJL_MO
       sname_oijl(k) = 'heat'
-      units_oijl(k) = '10^6 J/m^2'
+      units_oijl(k) = 'J/kg'
       lname_oijl(k) = 'OCEAN HEAT CONTENT'
-      scale_oijl(k) = 1d-6
+      scale_oijl(k) = 1.
 c
       k=k+1
       IJL_S0M = k
@@ -1330,6 +1332,10 @@ c
      &       trim(ystr)//trim(xstr),
      &       long_name=trim(lname_oijl(k)),
      &       units=trim(units_oijl(k)) )
+        if(denom_oijl(k) .ne. 0) then
+          call add_varline(cdl_oijl,trim(sname_oijl(k))//
+     &         ':missing_value = -1.e30f ;')
+        endif
       enddo
 
       call merge_cdl(cdl_olats,cdl_odepths,cdl_ojl)

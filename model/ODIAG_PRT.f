@@ -150,6 +150,7 @@ c for now we are assuming that igrid=jgrid in arguments to pout_ij
       CHARACTER(len=units_strlen) :: units
       character*50 :: unit_string
       character(len=2), dimension(lmo) :: levstr
+      real*8 :: scale_jm2
 
       QJ=0.
       QSUM=0.
@@ -836,7 +837,8 @@ C**** Ocean Heat Content (J/m^2)
 C****
       K=IJL_G0M
       LNAME=LNAME_OIJL(K)
-      UNITS=UNITS_OIJL(K)
+      UNITS='10^6 J/m^2' ! UNITS_OIJL(K) is J/kg and SCALE_OIJL(K) is 1
+      scale_jm2 = 1d-6
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
 C**** Loop over layers
@@ -846,7 +848,7 @@ C**** Loop over layers
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)  THEN
-          Q(I,J) = SCALE_OIJL(K)*OIJL(I,J,L,K) / (DXYPO(J)*IDACC(1))
+          Q(I,J) = SCALE_JM2*OIJL(I,J,L,K) / (DXYPO(J)*IDACC(1))
           QS(I,J) = QS(I,J)+OIJL(I,J,L,K) / DXYPO(J)
           IF (ZE(L-1).LE.700) QS700(I,J)=QS700(I,J)+OIJL(I,J,L,K)
      *         /DXYPO(J)
@@ -863,7 +865,7 @@ C**** Loop over layers
 C**** sum to 700m
       QS700(2:IM,JM)=QS700(1,JM)
       QS700(2:IM,1)=QS700(1,1)
-      QS700 = SCALE_OIJL(K)*QS700/REAL(IDACC(1))
+      QS700 = SCALE_JM2*QS700/REAL(IDACC(1))
       WRITE (LNAME(40:47),'(A8)') 'SUM 700m'
       WRITE (TITLE(40:47),'(A8)') 'SUM 700m'
       SNAME="oc_ht_700m"
@@ -871,7 +873,7 @@ C**** sum to 700m
 C**** total sum
       QS(2:IM,JM)=QS(1,JM)
       QS(2:IM,1)=QS(1,1)
-      QS = SCALE_OIJL(K)*QS/REAL(IDACC(1))
+      QS = SCALE_JM2*QS/REAL(IDACC(1))
       WRITE (LNAME(40:47),'(A8)') '  SUM  '
       WRITE (TITLE(40:47),'(A8)') '  SUM  '
       SNAME="oc_ht_total"
@@ -1724,16 +1726,16 @@ c
       do l=1,lmo
       do j=j_0,j_1
       do i=1,imaxj(j)
-        mass = oijl(i,j,l,ijl_mo)
+        mass = oijl(i,j,l,ijl_mo)*dxypo(j)
         if(focean(i,j).le..5 .or. mass.le.0.) cycle
         oijl_out(i,j,l,ijl_mo) = mass
-        oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)/dxypo(j)
-        oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)/dxypo(j)
+        oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)
+        oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)
 c
 c compute potential temperature and potential density
 c
-        gos = oijl_out(i,j,l,ijl_g0m) / mass
-        sos = oijl_out(i,j,l,ijl_s0m) / mass
+        gos = oijl(i,j,l,ijl_g0m) / mass
+        sos = oijl(i,j,l,ijl_s0m) / mass
         oijl_out(i,j,l,ijl_ptm) = mass*temgs(gos,sos)
         oijl_out(i,j,l,ijl_pdm) = mass/volgs(gos,sos)
       enddo
