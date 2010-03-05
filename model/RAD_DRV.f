@@ -1765,8 +1765,10 @@ C**** or not.
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane: 
       CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
-      use_tracer_chem(1)=Lmax_rad_O3  ! O3
-      use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
+      if (clim_interact_chem > 0) then
+        use_tracer_chem(1)=Lmax_rad_O3  ! O3
+        use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
+      endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       if(clim_interact_chem<=0)
      &call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
