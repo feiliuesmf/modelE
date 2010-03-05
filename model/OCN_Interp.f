@@ -1236,8 +1236,8 @@ C**** surface tracer concentration
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aFact(I,J) = 1.d0/AXYP(I,J)
             atmp07(I,J) = aEGMELT(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/AXYP(I,J)
           END IF
         END DO
       END DO
@@ -1996,8 +1996,8 @@ c*
       DO J=aJ_0,aJ_1
         DO I=aI_0,aIMAXJ(J)
           IF (aFOCEAN_loc(I,J).gt.0.) THEN
-            aFact(I,J) = 1.d0/AXYP(I,J)
             atmp(I,J) = aEGMELT(I,J)*aFact(I,J)
+            aFact(I,J) = 1.d0/AXYP(I,J)
           END IF
         END DO
       END DO
