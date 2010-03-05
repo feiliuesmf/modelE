@@ -92,8 +92,8 @@ c     check at some point into passing mean surface winds.
 
       
       do L=1,LM
-         write(iu_scm_prt,'(a10,i3,i5,i5,2(f9.3))') 
-     &       'L I J u v ',l,I_TARG,J_TARG,sg_u(L),sg_v(l)
+c        write(iu_scm_prt,'(a10,i3,i5,i5,2(f9.3))') 
+c    &       'L I J u v ',l,I_TARG,J_TARG,sg_u(L),sg_v(l)
          U(I_TARG,J_TARG,L) = SG_U(L)
          V(I_TARG,J_TARG,L) = SG_V(L)
       enddo 
@@ -749,8 +749,8 @@ ccc calculate SG_HGT
       do L=1,LM
          DZ(L) = ((SGE_P(L)-SGE_P(L+1))/SG_P(L))*((RGAS/GRAV)*SG_T(L))
          SG_HGT(L) = ZE + DZ(L)/2.0
-         write(iu_scm_prt,120) L,SG_P(L),SG_T(L),ZE,SG_HGT(L)
- 120     format(1x,'l p t ze z ',i5,f10.2,f10.2,f12.2,f12.2)
+c        write(iu_scm_prt,120) L,SG_P(L),SG_T(L),ZE,SG_HGT(L)
+c120     format(1x,'l p t ze z ',i5,f10.2,f10.2,f12.2,f12.2)
          ZE = ZE + DZ(L)
       enddo
 
@@ -792,7 +792,7 @@ c     find L of 13k and 15k layers
           if (15000.0.ge.SG_HGT(L).and.15000.0.lt.SG_HGT(L+1)) L15K=L+1
       enddo
       LDIFF = L15K-L13K
-      write(iu_scm_prt,130) L13K,L15K,LDIFF
+c     write(iu_scm_prt,130) L13K,L15K,LDIFF
 130   format(1x,'HGT    save L13K L15K DIFF',i5,i5,i5)
 
 
@@ -825,13 +825,13 @@ c
          SG_VER_Q_ADV(L) = VQA_HR(L,KT)
       enddo
 
-      do L = 1,LM
-         write(iu_scm_prt,140) L,SG_HGT(L),SG_HOR_TMP_ADV(L),
-     &      SG_VER_S_ADV(L),SG_HOR_Q_ADV(L)*1000.,
-     &      SG_VER_Q_ADV(L)*1000.
- 140     format(1x,'before L HGT  HTA VSA HQA VQA ',
-     &     i5,f10.2,2(f12.6),2(f12.8))
-      enddo
+c     do L = 1,LM
+c        write(iu_scm_prt,140) L,SG_HGT(L),SG_HOR_TMP_ADV(L),
+c    &      SG_VER_S_ADV(L),SG_HOR_Q_ADV(L)*1000.,
+c    &      SG_VER_Q_ADV(L)*1000.
+c140     format(1x,'before L HGT  HTA VSA HQA VQA ',
+c    &     i5,f10.2,2(f12.6),2(f12.8))
+c     enddo
 
       do L=1,L13K-1
          SG_HOR_TMP_ADV(L) = HTA_HR(L,KT)
@@ -857,13 +857,13 @@ c
           enddo  
       endif
 
-      do L = 1,LM
-         write(iu_scm_prt,150) L,SG_HGT(L),SG_HOR_TMP_ADV(L),
-     &       SG_VER_S_ADV(L),SG_HOR_Q_ADV(L)*1000.,
-     &       SG_VER_Q_ADV(L)*1000.
- 150     format(1x,'after  L HGT  HTA VSA HQA VQA ',
-     &       i5,f10.2,2(f12.6),2(f12.8))
-      enddo
+c     do L = 1,LM
+c        write(iu_scm_prt,150) L,SG_HGT(L),SG_HOR_TMP_ADV(L),
+c    &       SG_VER_S_ADV(L),SG_HOR_Q_ADV(L)*1000.,
+c    &       SG_VER_Q_ADV(L)*1000.
+c150     format(1x,'after  L HGT  HTA VSA HQA VQA ',
+c    &       i5,f10.2,2(f12.6),2(f12.8))
+c     enddo
 
       do L=1,LM
          SG_ARSCL(L) = ACLDHR(L,KT)
@@ -890,8 +890,9 @@ c
 C     
 C
       INTEGER MODINT
-      INTEGER I,J,L,L13K,L15K
+      INTEGER I,J,L,L13K,L15K,L500M
       REAL*8 SG_PT(LM),PTDIFF(LM),QDIFF(LM),HFAC
+      REAL*8 UDIFF(LM),VDIFF(LM)
  
 C                
       MODINT = 9999
@@ -971,14 +972,14 @@ c
          SG_PT(L) = SG_T(L)/PK(L,I_TARG,J_TARG)
          PTDIFF(L) = T(I_TARG,J_TARG,L) - SG_PT(L)
          QDIFF(L) = Q(I_TARG,J_TARG,L) - SG_Q(L)
-         write(iu_scm_prt,315)  L,SG_HGT(L),T(I_TARG,J_TARG,L),SG_PT(L),
-     &          PK(L,I_TARG,J_TARG),PTDIFF(L)
-315      format(1x,'L PT SGPT PK PTDIFF ',i5,f10.2,2(f10.4),2(f10.5))
+c        write(iu_scm_prt,315)  L,SG_HGT(L),T(I_TARG,J_TARG,L),SG_PT(L),
+c    &          PK(L,I_TARG,J_TARG),PTDIFF(L)
+c315     format(1x,'L PT SGPT PK PTDIFF ',i5,f10.2,2(f10.4),2(f10.5))
          if (13000.0.ge.SG_HGT(L).and.13000.0.lt.SG_HGT(L+1)) L13K=L+1
          if (15000.0.ge.SG_HGT(L).and.15000.0.lt.SG_HGT(L+1)) L15K=L+1
       enddo
-      write(iu_scm_prt,320) L13K,L15K
-320   format(1x,'L13k L15K ',i5,i5)
+c     write(iu_scm_prt,320) L13K,L15K
+c320   format(1x,'L13k L15K ',i5,i5)
       do L=1,L13k-1
          PTDIFF(L) = 0.0
          QDIFF(L) = 0.0
@@ -987,8 +988,8 @@ c
          HFAC = (SG_HGT(L)-13000.0)/2000.0
          PTDIFF(L) = (PTDIFF(L)/12.0) * HFAC
          QDIFF(L) = (QDIFF(L)/12.0) * HFAC
-         write(iu_scm_prt,321) L,SG_HGT(L),HFAC
- 321     format(1x,'frctn nudge for PT,Q   L HGT FAC ',i5,f10.2,f10.5)
+c        write(iu_scm_prt,321) L,SG_HGT(L),HFAC
+c321     format(1x,'frctn nudge for PT,Q   L HGT FAC ',i5,f10.2,f10.5)
       enddo
       do L=L15K,LM
          PTDIFF(L) = PTDIFF(L)/12.0
@@ -997,32 +998,63 @@ c
       do L=1,LM
          T(I_TARG,J_TARG,L) = T(I_TARG,J_TARG,L) - PTDIFF(L)
          Q(I_TARG,J_TARG,L) = Q(I_TARG,J_TARG,L) - QDIFF(L)
-         write(iu_scm_prt,325) L,PTDIFF(L),T(I_TARG,J_TARG,L)
- 325     format(1x,'L PTDIFF PT ',i5,f10.5,f10.4)
+c        write(iu_scm_prt,325) L,PTDIFF(L),T(I_TARG,J_TARG,L)
+c325     format(1x,'L PTDIFF PT ',i5,f10.5,f10.4)
       enddo
 
+c
+c     for TWP new CRM case nudge U,V back to data above 500m on a 2 hour time scale 
+c
+      L500M = 0
       do L=1,LM
-         U(I_TARG,J_TARG,L) = SG_U(L)
-         V(I_TARG,J_TARG,L) = SG_V(L)
-         write(iu_scm_prt,330) L,SG_U(L),SG_V(L)
- 330     format(1x,'L SGU SGV ',i5,2(f10.3))
-      enddo 
+         UDIFF(L) = U(I_TARG,J_TARG,L) - SG_U(L)
+         VDIFF(L) = V(I_TARG,J_TARG,L) - SG_V(L)
+c        write(iu_scm_prt,345)  L,SG_HGT(L),U(I_TARG,J_TARG,L),SG_U(L),
+c    &          V(I_TARG,J_TARG,L),SG_V(L),UDIFF(L),VDIFF(L)
+c345      format(1x,'L U SGU V SGV UDIFF VDIFF ',i5,f10.2,4(f10.4),
+c    &          2(f10.5))
+         if (500.0.ge.SG_HGT(L).and.500.0.lt.SG_HGT(L+1)) L500M=L+1
+      enddo
+c     write(iu_scm_prt,350) L500M
+c350  format(1x,'L500M ',i5)
+      do L=1,L500M-1
+         UDIFF(L) = 0.0
+         VDIFF(L) = 0.0
+      enddo
+      do L=L500M,LM
+         UDIFF(L) = (UDIFF(L)/4.0) 
+         VDIFF(L) = (VDIFF(L)/4.0) 
+      enddo
+      do L=1,LM
+         U(I_TARG,J_TARG,L) = U(I_TARG,J_TARG,L) - UDIFF(L)
+         V(I_TARG,J_TARG,L) = V(I_TARG,J_TARG,L) - VDIFF(L)
+c        write(iu_scm_prt,375) L,U(I_TARG,J_TARG,L),UDIFF(L),
+c    &        V(I_TARG,J_TARG,L),VDIFF(L)
+c375     format(1x,'L U UDIF V VDIF  ',i5,f10.4,f10.5,f10.4,f10.5)
+      enddo
+
+c     do L=1,LM
+c        U(I_TARG,J_TARG,L) = SG_U(L)
+c        V(I_TARG,J_TARG,L) = SG_V(L)
+c        write(iu_scm_prt,330) L,SG_U(L),SG_V(L)
+c330     format(1x,'L SGU SGV ',i5,2(f10.3))
+c     enddo 
 c
 c     set surface variables 
 c    
 
-      WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)
-      USAVG(I_TARG,J_TARG) = AUS
-      VSAVG(I_TARG,J_TARG) = AVS
+c     WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)
+c     USAVG(I_TARG,J_TARG) = AUS
+c     VSAVG(I_TARG,J_TARG) = AVS
       if (SCM_SURFACE_FLAG.ge.1) then
           GTEMP(1,4,I_TARG,J_TARG) = ATSKIN        !GDATA(4)
           GTEMP(1:2,1,I_TARG,J_TARG) = ATSKIN   
           GTEMPR(1,I_TARG,J_TARG) = ATSKIN+TF
           GTEMPR(4,I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,360) GTEMP(1,4,I_TARG,J_TARG),
+          write(iu_scm_prt,460) GTEMP(1,4,I_TARG,J_TARG),
      &       GTEMP(1,1,I_TARG,J_TARG),GTEMP(2,1,I_TARG,J_TARG),
      &       GTEMPR(1,I_TARG,J_TARG),GTEMPR(4,I_TARG,J_TARG)
- 360      format(1x,
+ 460      format(1x,
      &      'pass SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 GTEMPR4',
      &        5(f10.3))
 
