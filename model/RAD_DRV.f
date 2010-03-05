@@ -1763,18 +1763,14 @@ C**** or not.
     (defined TRACERS_OM_SP)
 
 #ifdef TRACERS_SPECIAL_Shindell
-c if ozone also interacts with radiation it needs to be set
-c to default here:
-C**** Ozone and Methane:
-      if (clim_interact_chem > 0) then
-        CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
-        use_tracer_chem(1)=Lmax_rad_O3  ! O3
-        use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
+C**** Ozone and Methane: 
+      CHEM_IN(1:2,1:LM)=chem_tracer_save(1:2,1:LM,I,J)
+      use_tracer_chem(1)=Lmax_rad_O3  ! O3
+      use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      else
-        call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
+      if(clim_interact_chem<=0)
+     &call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
 #endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
-      endif
 #endif /* TRACERS_SPECIAL_Shindell */
 C**** Aerosols incl. Dust:        set up for radiative forcing diagnostics
       if (NTRACE>0 .and. moddrf==0) then
