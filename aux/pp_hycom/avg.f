@@ -49,6 +49,11 @@ C
       character(len=*), parameter :: FMT4=
      & '(f7.2,sp,t10,es10.3,t22,es10.3,t34,es10.3, t46, es10.3,
      &  t58,es10.3, t70,es10.3,t82,es10.3,t94,es10.3,t106,es10.3)'
+
+      character(len=*), parameter :: FMT5=
+     & '(1x,a,t6,a,t16,a,t28,a,t40,a,t52,a)'
+      character(len=*), parameter :: FMT6=
+     & '(1x,i3,sp,t6,f6.1,t16,es10.3,t28,es10.3,t40,es10.3,t52,es10.3)'
 CTNL  open (10,file="hycomdata.nl")
 CTNL  read (10,nml=hycomdata_nl)
 CTNL  write (*,nml=hycomdata_nl)
@@ -97,7 +102,8 @@ c
       endif
 c
       do i=1,idm
-      lat(i)=latij(i,1,3)
+      lat(i)=latij(i,340,3)
+C     write(*,'(a,i3,a,E12.5)') "lat(",i,")=",lat(i)
       enddo
 c
       do i=2,idm-1
@@ -108,32 +114,42 @@ c
 c
       write(flnmout,'(3a,i3,a)') 'mon_',trim(runid),'_',dcd,'.txt'
       open(301,file=flnmout,form='formatted',status='unknown')
+
       write(flnmout,'(3a,i3,a)') 'ann_',trim(runid),'_',dcd,'.txt'
       open(302,file=flnmout,form='formatted',status='unknown')
+
       write(flnmout,'(3a,i3,a)') 'avg_ov_',trim(runid),'_',dcd,'.txt'
       open(303,file=flnmout,form='formatted',status='unknown')
+
       write(flnmout,'(3a,i3,a)') 'avg_hf_',trim(runid),'_',dcd,'.txt'
       open(304,file=flnmout,form='formatted',status='unknown')
 
       write(301,fmt=FMT1) 
-     & "Time  ","NINO3","Ice Extent","Ice Extent","Heat Total",
-     & "SST","SSS", "T global","S global"
+     & "Time  ","NINO3","Ice Extent","Ice Extent","Ocean Heat",
+     & "Sea Surface","Sea Surface", "Global Ocean","Global Ocean"
       write(301,fmt=FMT1) 
-     & "---- ","Index","Arctic","Antarctic","???",
-     & " "," "," "," "," "
+     & "---- ","Index","Arctic","Antarctic","Content",
+     & "Temperature","Salinity","Temperature","Salinity"
       write(301,fmt=FMT1) 
-     & "Year","    ","Mln.Sq.km","Mln.Sq.km","???",
+     & "Year","    ","Mln.Sq.km","Mln.Sq.km","*1.E6 J/m2",
      & "degC","PSU","degC","PSU"
 c
       write(302,fmt=FMT3) 
-     & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Heat_Flux", 
+     & "Time  ","SST","SSS","Tavrg","Savrg","SSH","Ocean Heat", 
      & "Atl (45N)","Indonesian","Drake"
       write(302,fmt=FMT3) 
      & "---- ","Surf_Temp","Surf_Saln","Glob_Temp",
-     & "Glob_Saln","Srf_Hght","*1.E-6","Max Overt","Throughfl","Passage"
+     & "Glob_Saln","Srf_Hght","Content","Max Overt",
+     & "Throughfl","Passage"
       write(302,fmt=FMT3) 
-     & "Year","degC","PSU","degC","PSU","cm","Pw","Sv","Sv","Sv"
+     & "Year","degC","PSU","degC","PSU","cm","*1.E6 J/m2","Sv","Sv","Sv"
 C
+      write(304,'(a)') "North Poleward Ocean Heat Transport" 
+      write(304,fmt=FMT5) 
+     & "Num","Latitude","Atlantic","Indian","Pacifiq","Global"
+      write(304,fmt=FMT5) " ","degr(N)","pWatts","pWatts",
+     &  "pWatts","pWatts"
+
       n=0
 
       do 151 ny=ny1,ny2
@@ -442,7 +458,7 @@ c
       end do
       close (303)
       do i=1,idm
-      write(304,'(i3,f6.1,8f8.2)') i,lat(i),(heatfl(i,k),k=1,4)
+      write(304,fmt=FMT6) i,lat(i),(heatfl(i,k),k=1,4)
       end do
       close (304)
 
