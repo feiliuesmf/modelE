@@ -2391,6 +2391,39 @@ c
       denom_ij(k) = IJ_POCEAN
 c
 #endif
+   	 
+#ifdef TRACERS_GASEXCH_ocean 	 
+      k=k+1 	 
+      IJ_Kw = k 	 
+      lname_ij(k) = 'Transfer Velocity' 	 
+      units_ij(k) = 'm/s' 	 
+      scale_ij(k) = 1. 	 
+      name_ij(k) = 'Kw_gas' 	 
+      ia_ij(k) = ia_srf 	 
+      scale_ij(k) = 1. 	 
+      denom_ij(k) = IJ_POCEAN 	 
+ 	 
+      k=k+1 	 
+      IJ_alpha = k 	 
+      lname_ij(k) = 'Solubility' 	 
+      units_ij(k) = 'mol/m3/uatm' 	 
+      scale_ij(k) = 1. 	 
+      name_ij(k) = 'alpha_gas' 	 
+      ia_ij(k) = ia_srf 	 
+      scale_ij(k) = 1. 	 
+      denom_ij(k) = IJ_POCEAN 	 
+ 	 
+      k=k+1 	 
+      IJ_gasx = k 	 
+      lname_ij(k) = 'Gas Exchange Flux' 	 
+      units_ij(k) = 'mol/m2/yr' 	 
+      scale_ij(k) = 1. 	 
+      name_ij(k) = 'trgasex' 	 
+      ia_ij(k) = ia_srf 	 
+      scale_ij(k) = 1. 	 
+      denom_ij(k) = IJ_POCEAN 	 
+#endif 	 
+c
       k=k+1 !
       IJ_TGO  = k               !      3 SF
       lname_ij(k) = 'SEA SURFACE TEMPERATURE'    ! layer 1

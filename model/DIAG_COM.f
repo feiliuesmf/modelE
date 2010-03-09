@@ -489,6 +489,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
+     *     ,ij_kw, ij_alpha, ij_gasx
 !@var IJ_Gxx names for old AIJG arrays (should be more specific!)
       INTEGER, public ::
      &   IJ_G01,IJ_G02,IJ_G03,IJ_G04,IJ_G05,IJ_G06,IJ_G07,

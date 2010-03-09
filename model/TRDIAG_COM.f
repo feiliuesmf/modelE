@@ -332,7 +332,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS_loc
 !@var jls_source tracer independent array for TAJLS surface src. diags
       INTEGER jls_source(ntsurfsrcmax,ntm)
-!@var jls_isrc tracer independent array for TAJLS interactive surface src. diags
+!@var jls_isrc tracer indep. array for TAJLS interactive surface src. diags
       INTEGER jls_isrc(ntsurfsrcmax,ntm)
 !@var jls_3Dsource tracer independent array for TAJLS 3D source diags
       INTEGER jls_3Dsource(nt3Dsrcmax,ntm)

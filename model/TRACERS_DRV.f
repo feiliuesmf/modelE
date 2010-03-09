@@ -3366,6 +3366,15 @@ C**** set defaults for some precip/wet-dep related diags
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
+      case ('CO2n')
+        k = k + 1
+        jls_isrc(1,n) = k
+        sname_jls(k) = 'Ocean_Gas_Exchange_'//trname(n)
+        lname_jls(k) = trim(trname(n))//' Ocean/Atmos. Gas Exchange'
+        jls_ltop(k) = 1
+        jls_power(k) = 3
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+
       case ('Rn222')
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
@@ -3681,7 +3690,7 @@ C**** set defaults for some precip/wet-dep related diags
 C**** generic ones for many water tracers
       case ('Water', 'H2O18', 'HDO', 'HTO', 'H2O17' )
        k = k + 1
-        jls_isrc(1,n)=k
+        jls_isrc(1,n) = k
         sname_jls(k) = 'Evap_'//trname(n)
         lname_jls(k) = 'EVAPORATION OF '//trname(n)
         jls_ltop(k) = 1
@@ -3689,7 +3698,7 @@ C**** generic ones for many water tracers
         scale_jls(k) = SDAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm/day')
        k = k + 1
-        jls_isrc(2,n)=k
+        jls_isrc(2,n) = k
         sname_jls(k) = 'Ocn_Evap_'//trname(n)
         lname_jls(k) = 'OCEAN EVAP OF '//trname(n)
         jls_ltop(k) = 1
@@ -4990,16 +4999,16 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       k = k+1  ! Gas Exchange Coefficient (piston velocity) (open ocean only)
         ijts_gasex(1,n)  = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
-        lname_ijts(k) = trim(trname(n))//' Piston Veloc'
+        lname_ijts(k) = trim(trname(n))//' Piston Velocity'
         ijtc_power(n) = 0
         units_ijts(k) = unit_string(ijtc_power(n),'m/s')
         scale_ijts(k) = 10.**(-ijtc_power(n))
 
       k = k+1  ! Gas Exchange Solubility coefficient
         ijts_gasex(2,n)  = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Solubility_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Solubility'
         ijtc_power(n) = 0
@@ -5008,7 +5017,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       k = k+1  ! Gas exchange 
         ijts_gasex(3,n)  = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Gas Exchange'
         ijtc_power(n) = 0
@@ -5018,7 +5027,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('CO2n')
       k = k + 1
         ijts_isrc(1,n) = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'CO2_O_GASX'
         lname_ijts(k) = 'AO GASEX CO2'
         ijts_power(k) = -11
@@ -5027,16 +5036,16 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       k = k+1  ! Gas Exchange Coefficient (piston velocity) (open ocean only)
         ijts_gasex(1,n)  = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
-        lname_ijts(k) = trim(trname(n))//' Piston Veloc'
+        lname_ijts(k) = trim(trname(n))//' Piston Velocity'
         ijtc_power(n) = 0
         units_ijts(k) = unit_string(ijtc_power(n),'m/s')
         scale_ijts(k) = 10.**(-ijtc_power(n))
 
       k = k+1  ! Gas Exchange Solubility coefficient
         ijts_gasex(2,n)  = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Solubility_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Solubility'
         ijtc_power(n) = 0
@@ -5045,7 +5054,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       
       k = k+1  ! Gas exchange 
         ijts_gasex(3,n)  = k
-        ia_ijts(k) = ia_src
+        ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Gas Exchange'
         ijtc_power(n) = 0
@@ -9165,7 +9174,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE resolution,ONLY : lm
       USE GEOM, only: axyp
       USE DYNAMICS, only: am  ! Air mass of each box (kg/m^2)
-      USE TRACER_COM, only: trm,vol2mass,trmom
+      USE TRACER_COM, only: trm,vol2mass,trmom,n_CO2n
       USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
       USE MODEL_COM, only : nday,nstep=>itime,psf
       USE CONSTANT, only: grav
@@ -9414,7 +9423,7 @@ C**** at the start of any day
 #ifdef TRACERS_GASEXCH_ocean_CO2
 
       if (end_of_day) then ! only at end of day
-      do n=1,ntm
+         n=n_CO2n
 
          !area weighted tracer global average
          do j=J_0,J_1 ; do i=I_0,I_1
@@ -9463,7 +9472,6 @@ C**** at the start of any day
            enddo; end do; end do
          end if
 
-      enddo  !n
       endif  ! end_of_day
 #endif
 
