@@ -24,7 +24,7 @@ module TimerList_mod
 
    public :: gather
 
-   integer, parameter :: MAX_NAME_LENGTH = 20
+   integer, parameter :: MAX_NAME_LENGTH = 30
 
    type NamedTimer_type
       private
