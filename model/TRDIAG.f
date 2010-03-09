@@ -1261,7 +1261,7 @@ c
 #endif
       do k=1,ktaijl_out
         if(trim(sname_taijl(k)).eq.'unused') cycle
-        zstr='plm'
+        zstr='level'
         call add_var(cdl_taijl,
      &       'float '//trim(sname_taijl(k))//
      &       trim(tstr)//trim(zstr)//trim(hstr),
