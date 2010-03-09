@@ -436,8 +436,9 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.10973922D0
               OptModelVers='02/20/2010, 23:30 EST'
             else
-              fracClayPDFscheme = 0.092714686D0
-              fracSiltPDFscheme = 0.11636162D0
+              fracClayPDFscheme = 0.10309873D0
+              fracSiltPDFscheme = 0.080987688D0
+              OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
@@ -471,7 +472,8 @@ c**** set parameters depending on the preferred sources chosen
               OptModelVers='02/20/2010, 23:30 EST'
             else
               fracClayPDFscheme = 0.091387274D0
-              fracSiltPDFscheme = 0.11525676D0
+              fracSiltPDFscheme = 0.15582714D0
+              OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
@@ -504,8 +506,9 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.047415049D0
               OptModelVers='02/20/2010, 23:30 EST'
             else
-              fracClayPDFscheme = 0.057676781D0
-              fracSiltPDFscheme = 0.049452031D0
+              fracClayPDFscheme = 0.059176377D0
+              fracSiltPDFscheme = 0.056770932D0
+              OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
@@ -538,8 +541,9 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.028140008D0
               OptModelVers='02/20/2010, 23:30 EST'
             else
-              fracClayPDFscheme = 0.038794273D0
-              fracSiltPDFscheme = 0.023586557D0
+              fracClayPDFscheme = 0.036893354D0
+              fracSiltPDFscheme = 0.039649002D0
+              OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
@@ -572,8 +576,9 @@ c**** set parameters depending on the preferred sources chosen
               fracSiltPDFscheme = 0.06811547D0
               OptModelVers='02/20/2010, 23:30 EST'
             else
-              fracClayPDFscheme = 0.088998936D0
-              fracSiltPDFscheme = 0.0604359D0
+              fracClayPDFscheme = 0.09620785D0
+              fracSiltPDFscheme = 0.058139336D0
+              OptModelVers='02/20/2010, 23:30 EST'
             end if
             ires=2
           case(288)             ! uses values for im=144 for now
