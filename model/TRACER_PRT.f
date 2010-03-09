@@ -1338,6 +1338,7 @@ C**** Fill in maplet indices for sources and sinks
      &   name(k)(1:5) .EQ. 'wtrsh' .OR. name(k)(1:8) .EQ. 'ext_band'
      &   .OR. name(k)(1:8) .EQ. 'sct_band' .OR. name(k)(1:8) .EQ.
      &   'asf_band') ijtype(k)=2
+
         if (name(k)(5:6).eq.'CS') then
           ijtype(k)=3
           aij1(:,:,k)=aij1(:,:,k)*scale(k)
@@ -1363,6 +1364,17 @@ C**** Fill in maplet indices for sources and sinks
         if (name(k)(1:8).eq.'DMS_con_' .or. name(k)(1:8).eq.
      *    'SO2_con_' .or. name(k)(1:8).eq.'SO4_con_') ijtype(k)=2
 
+        if (name(k)(1:5).eq."Gas_E") ijtype(k)=2  ! no division by area
+        if (name(k)(1:5).eq."Solub") then  ! ocean only
+           ijtype(k)=3
+           aij2(:,:,k) = aij(:,:,ij_pocean)*idacc(iacc(k))/
+     *          (idacc(ia_ij(ij_pocean))+teeny)
+        end if
+        if (name(k)(1:5).eq."Pisto") then  ! open ocean only
+           ijtype(k)=3
+           aij2(:,:,k) = aij(:,:,ij_popocn)*idacc(iacc(k))/
+     *          (idacc(ia_ij(ij_popocn))+teeny)
+        end if
       end do
 
 #ifdef TRACERS_COSMO
@@ -1856,7 +1868,7 @@ c**** tracer sums and means (no division by area)
       else if (nmap.eq.2) then
         if (index(lname,' x POICE') .gt. 0) then  ! weight by sea ice
           k1 = index(lname,' x ')
-          adenom(:,:)=aij(:,:,ij_rsoi)*byiacc
+          adenom(:,:)=aij(:,:,ij_rsoi)/(idacc(ia_ij(ij_rsoi))+teeny)
           lname(k1:80)=''
         end if
         do j=1,JM

@@ -617,8 +617,8 @@ c
      &     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      &     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      &     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     &     tij_uflx, tij_vflx, tij_kw, ijs_NO2_1330c, ijs_NO2_1030c, 
-     &     ijs_NO2_1330, ijs_NO2_1030, tij_alpha
+     &     tij_uflx, tij_vflx, ijs_NO2_1330c, ijs_NO2_1030c, 
+     &     ijs_NO2_1330, ijs_NO2_1030
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif

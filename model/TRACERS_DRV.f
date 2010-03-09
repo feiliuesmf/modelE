@@ -347,7 +347,6 @@ C**** Define individual tracer characteristics
           ntm_power(n) = -2
           tr_mm(n) = mair
 
-#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
       case ('CO2n')
       n_CO2n = n
           ntm_power(n) = -6
@@ -355,9 +354,7 @@ C**** Define individual tracer characteristics
           t_qlimit(n) = .false.
           ntsurfsrc(n) = 1
           needtrs(n)=.true.
-#endif
 
-#ifdef TRACERS_GASEXCH_ocean_CFC
       case ('CFCn')
       n_CFCn = n
           ntm_power(n) = -12
@@ -365,7 +362,6 @@ C**** Define individual tracer characteristics
           tr_mm(n) = 137.37d0     !note units are in gr
           ntsurfsrc(n) = 1
           needtrs(n)=.true.
-#endif
 
       case ('SF6')
       n_SF6 = n
@@ -4962,6 +4958,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_3Dsource(:,:)=0
       ijts_aq(:)=0
       ijts_isrc(:,:)=0
+      ijts_gasex(:,:)=0
 #ifdef TRACERS_AMP
       ijts_AMPe(:)=0
       ijts_AMPp(:,:)=0
@@ -4991,6 +4988,33 @@ C**** This needs to be 'hand coded' depending on circumstances
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
+      k = k+1  ! Gas Exchange Coefficient (piston velocity) (open ocean only)
+        ijts_gasex(1,n)  = k
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Piston Veloc'
+        ijtc_power(n) = 0
+        units_ijts(k) = unit_string(ijtc_power(n),'m/s')
+        scale_ijts(k) = 10.**(-ijtc_power(n))
+
+      k = k+1  ! Gas Exchange Solubility coefficient
+        ijts_gasex(2,n)  = k
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'Solubility_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Solubility'
+        ijtc_power(n) = 0
+        units_ijts(k) = unit_string(ijtc_power(n),'mol/m3/uatm')
+        scale_ijts(k) = 10.**(-ijtc_power(n))
+
+      k = k+1  ! Gas exchange 
+        ijts_gasex(3,n)  = k
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Gas Exchange'
+        ijtc_power(n) = 0
+        units_ijts(k) = unit_string(ijtc_power(n),'molCFC/m2/yr')
+        scale_ijts(k) = 10.**(-ijtc_power(n))
+
       case ('CO2n')
       k = k + 1
         ijts_isrc(1,n) = k
@@ -5000,6 +5024,33 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg,CO2/m2/s')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+      k = k+1  ! Gas Exchange Coefficient (piston velocity) (open ocean only)
+        ijts_gasex(1,n)  = k
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Piston Veloc'
+        ijtc_power(n) = 0
+        units_ijts(k) = unit_string(ijtc_power(n),'m/s')
+        scale_ijts(k) = 10.**(-ijtc_power(n))
+
+      k = k+1  ! Gas Exchange Solubility coefficient
+        ijts_gasex(2,n)  = k
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'Solubility_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Solubility'
+        ijtc_power(n) = 0
+        units_ijts(k) = unit_string(ijtc_power(n),'mol/m3/uatm')
+        scale_ijts(k) = 10.**(-ijtc_power(n))
+      
+      k = k+1  ! Gas exchange 
+        ijts_gasex(3,n)  = k
+        ia_ijts(k) = ia_src
+        sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Gas Exchange'
+        ijtc_power(n) = 0
+        units_ijts(k) = unit_string(ijtc_power(n),'molCO2/m2/yr')
+        scale_ijts(k) = 10.**(-ijtc_power(n))
 
       case ('SF6','SF6_c')
       k = k+1

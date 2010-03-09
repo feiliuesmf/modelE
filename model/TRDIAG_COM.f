@@ -63,10 +63,10 @@ C**** TAIJLN
       integer, dimension(ntm) :: ijtc_power
 !@var IJTM_POWER: power of 10 used for tracer IJ mass unit diags
       integer, dimension(ntm) :: ijtm_power
-!@var IJT_XX Names for TAIJLN diagnostics (Not currently used)
 
 C**** TAIJN
-!@param KTAIJ number of 2D diags describing surface and column load along with wet and dry deposition
+!@param KTAIJ number of 2D diags describing surface and column load along 
+!@+   with wet and dry deposition
 !@+   please just increase this if needed - don't bother with pp options
       integer, parameter :: ktaij=20
 
@@ -76,14 +76,11 @@ C**** TAIJN
       integer tij_rvr,tij_seaice,tij_prec,tij_evap,tij_grnd,tij_lk1
      *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx,tij_icocflx
      *     ,tij_tusi,tij_tvsi
-      integer tij_kw,tij_alpha,tij_gasx  ! TRACERS_GASEXCH_ocean
       integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
 
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc
-      !real*4, dimension(IM,JM,ktaij,ntm)      :: taijn4
-      !real*8, allocatable, dimension(:,:,:,:) :: taijn4_loc
 !@var SCALE_TIJ: printout scaling factor for tracer IJK diagnostics
       REAL*8, dimension(ktaij,ntm) :: scale_tij
 !@var SNAME_TIJ,UNITS_TIJ: Names and units of lat-sigma tracer diags
@@ -115,8 +112,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
-      !REAL*4, DIMENSION(IM,JM,ktaijs)       :: TAIJS4
-      !REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS4_loc
 !@var ijts_source tracer independent array for TAIJS surface src. diags
       INTEGER ijts_source(ntsurfsrcmax,ntm)
 !@var ijts_isrc tracer independent array for TAIJS interactive srf. src.
@@ -152,9 +147,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 #endif
 !@var ijts_fcsub index for TAIJS SW/LW rad. forc. for tracer sub classes
       INTEGER ijts_fcsub(6,Ntm,MaxSubCl)
-!@var ijts_spec index for TAIJS for special diags. not associated with single
-!@var ijts_spec tracer
+!@var ijts_spec index for TAIJS diags. not associated with single tracer
       INTEGER :: ijts_spec(MaxSpec)
+!@var ijts_gasex index for TAIJS associated with atm/oc gas exchange
+      INTEGER :: ijts_gasex(3,Ntm)
 #ifdef TRACERS_AMP
 !@var ijts_AMPpdf special diagnostic for not-transported tracers
       INTEGER ijts_AMPpdf(1,nbins)
