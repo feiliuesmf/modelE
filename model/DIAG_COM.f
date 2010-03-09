@@ -1835,12 +1835,12 @@ c*
 !@sum  new_io_acc read/write accumulation arrays from/to restart/acc files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite,iowrite_single,
+      use model_com, only : im,jm,lm,ioread,iowrite,iowrite_single,
      &     idacc
 c i/o pointers point to:
 c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
-      use diag_com, only : monacc,
+      use diag_com, only : monacc,kaijl,
      &     aj=>aj_ioptr,areg=>areg_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,                                  ! dist
@@ -1855,11 +1855,23 @@ c    extended/rescaled instances of arrays when writing acc files
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+      integer :: k,l
       select case (iaction)
       case (iowrite,iowrite_single) ! output to restart or acc file
         if(iaction.eq.iowrite) then ! already done for iowrite_single
           call gather_zonal_diags
           call collect_scalars
+        else  ! pole fills needed for acc-files
+          do k=1,kaijl
+            do l=1,lm
+              if(grid%have_south_pole) then
+                aijl(2:im, 1,l,k) = aijl(1, 1,l,k)
+              endif
+              if(grid%have_north_pole) then
+                aijl(2:im,jm,l,k) = aijl(1,jm,l,k)
+              endif
+            enddo
+          enddo
         endif
         call write_data(grid,fid,'monacc',monacc)
         call write_data(grid,fid,'idacc',idacc)
