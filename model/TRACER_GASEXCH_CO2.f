@@ -123,7 +123,7 @@
       USE PARAM, only: get_param
 
 
-      USE TRACER_COM, only : ntm    !tracers involved in air-sea gas exch
+      USE TRACER_COM, only : n_CO2n,ntm  !tracers involved in air-sea gas exch
 
       USE TRACER_GASEXCH_COM, only : atrac
 
@@ -140,9 +140,9 @@
       do j=1,jja
       do i=1,iia
       if (focean(i,j).gt.0.) then
-         do nt=1,ntm
-            GTRACER(nt,1,i,j)=atrac(i,j,nt)
-         enddo
+c         do nt=1,ntm
+            GTRACER(n_CO2n,1,i,j)=atrac(i,j,n_CO2n)
+c         enddo
       endif
       enddo
       enddo
@@ -163,7 +163,7 @@ c ---------------------------------------------------------------------
   
 
       USE CONSTANT, only:    rhows,mair
-      USE TRACER_COM, only : ntm,trname,tr_mm,vol2mass
+      USE TRACER_COM, only : trname,tr_mm,vol2mass,n_CO2n
       USE obio_incom, only : awan
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM,  only : nstep=>itime
@@ -218,14 +218,14 @@ c ---------------------------------------------------------------------
       beta_gas = alpha_gas * psurf/1013.25      !stdslp and psurf in mb, no need to change units
 
       !trsf is really sfac = Kw_gas * beta_gas
-      !the term 1.0d6 / vol2mass(ntm) is needed to convert uatm -> kg,co2/kg,air 
+      !the term 1.0d6 / vol2mass(n_CO2n) is needed to convert uatm -> kg,co2/kg,air 
       !in the denominator of alpha
-      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(ntm)
+      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(n_CO2n)
 
       !trconstflx comes in from SURFACE.f and has units kg,co2/kg,air/m2
       !therefore trcnst needs to be myltiplied by byrho before it is sent to  PBL.f
       trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
-     .                * 1.0d6 / vol2mass(ntm)     !ntm=1 here
+     .                * 1.0d6 / vol2mass(n_CO2n)    
 
         if (ilong.eq.1. .and. jlat.eq.45) then
         write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2:',
@@ -268,6 +268,25 @@ c-------------------------------------------------------------------
 
       END
 
+      REAL*8 FUNCTION alpha_gas2(pt,ps)
+c-------------------------------------------------------------------
+c
+c     CO2 Solubility in seawater
+c
+c     pt:       temperature (degrees Celcius)
+c     ps:       salinity    (o/oo)
+c     sol_co2:  in mol/m3/pptv
+c               1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
+c     Scaled by 1024.5 (density of sea water) and 10^6 to get
+c     alpha_gas in  mol/m3/uatm
+c-------------------------------------------------------------------
+
+      REAL*8    pt,ps,sol_CO2
+
+      alpha_gas2=sol_CO2(pt,ps) * 1.d-6 * 1024.5  !mol,CO2/m3/uatm
+      
+      END
+
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
@@ -286,3 +305,4 @@ c
 c
       RETURN 
       END 
+

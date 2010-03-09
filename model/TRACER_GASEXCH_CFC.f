@@ -118,12 +118,17 @@ c ---------------------------------------------------------------------
 c used with TRACERS_GASEXCH_ocean_CFC to compute transfer velocity for CFCs
 c
 c $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c $Revision: 2.5 $
-c $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
-c $Author: aromanou $ ;  $Locker:  $
+c $Revision: 2.6 $
+c $Date: 2010/03/09 04:13:37 $   ;  $State: Exp $
+c $Author: gavin $ ;  $Locker:  $
 c
 c ---------------------------------------------------------------------
 c $Log: TRACER_GASEXCH_CFC.f,v $
+c Revision 2.6  2010/03/09 04:13:37  gavin
+c
+c addition of stand alone alpha_gas2 routines to return solubility for
+c CO2 and CFC-11.
+c
 c Revision 2.5  2009/03/22 19:01:07  aromanou
 c CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
 c Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
@@ -246,6 +251,15 @@ c     --------------------------------------------------
 
       END
 
+      REAL*8 FUNCTION alpha_gas2(pt,ps)
+!@sum helper function for SURFACE calculation
+      real*8,pt,ps,sol_cfc
+
+      alpha_gas2=1e12*sol_cfc(pt,ps,11) !convert to mol/m^3/atm
+
+      return
+      end
+
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
@@ -253,12 +267,17 @@ c-----------------------------------------------------------------------
 c used with TRACERS_GASEXCH_ocean_CFC to compute transfer velocity for CFCs
 c
 c  $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/TRACER_GASEXCH_CFC.f,v $
-c  $Revision: 2.5 $
-c  $Date: 2009/03/22 19:01:07 $   ;  $State: Exp $
-c  $Author: aromanou $ ;  $Locker:  $
+c  $Revision: 2.6 $
+c  $Date: 2010/03/09 04:13:37 $   ;  $State: Exp $
+c  $Author: gavin $ ;  $Locker:  $
 c 
 c  ---------------------------------------------------------------------
 c  $Log: TRACER_GASEXCH_CFC.f,v $
+c  Revision 2.6  2010/03/09 04:13:37  gavin
+c
+c  addition of stand alone alpha_gas2 routines to return solubility for
+c  CO2 and CFC-11.
+c
 c  Revision 2.5  2009/03/22 19:01:07  aromanou
 c  CO2 gas exchange in Russell ocean. Needs checking, particularly wrt units.
 c  Renamed some of the fossil rundeck options, set atrac=pco2 and interpolate onto
