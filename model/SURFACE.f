@@ -122,7 +122,7 @@ C****
 #endif
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc,
-     *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
+     *      taijs=>taijs_loc,ijts_isrc, jls_isrc, tij_surf,
      *      tij_surfbv, tij_evap,ijts_gasex,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
@@ -1008,7 +1008,7 @@ C****
             end select
 #else
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j),ptype*dtsurf) ! why not for all aerosols?
+     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
 #endif
 #endif
 
