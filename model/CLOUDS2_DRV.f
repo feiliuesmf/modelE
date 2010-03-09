@@ -441,7 +441,7 @@ C****
 !$omp*  LP600,LP850,CSC,DIFT, WM1,WMI,sunlit,
 cECON !$omp*  E,E1,W1,ep,ep1,q0,q1,q2,
 !$omp*  roice,dtrm
-!$omp*   ) 
+!$omp*   )
 !$omp*  shared(I_0,I_1,IMAXJ,GZ,SDA,DTsrc,WM,T3MOM,Q3MOM,trm_lni,
 !$omp*  trm,trwm_lni,trwm,trmom_lni,trmom,kmaxj,axyp,jreg,fearth,
 !$omp*  fland,rsi,tsavg,numThreads,QSAVG,USAVG,VSAVG,TGVAVG,QGAVG,
@@ -932,7 +932,7 @@ C**** level 1 downfdraft mass flux/rho (m/s)
           do L=1,LM
              dTHmc(L) = T(I,J,L)-dTHmc(L)
              dqmc(L) = Q(I,J,L)-dqmc(L)
-             dTHss(L) = T(I,J,L) 
+             dTHss(L) = T(I,J,L)
              dqss(L) = Q(I,J,L)
           enddo
       endif
@@ -1713,7 +1713,7 @@ C**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
      *  ,U00a,U00b       ! tuning knobs to replace U00ice and U00wtrX
      *  ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau
      *  ,funio_denominator,autoconv_multiplier,radius_multiplier
-     *  ,entrainment_cont1,entrainment_cont2
+     *  ,entrainment_cont1,entrainment_cont2,wmui_multiplier
      &  ,RA,UM,VM,UM1,VM1,U_0,V_0
       USE CLOUDS_COM, only : llow,lmid,lhi
      &     ,isccp_reg2d,UKM,VKM
@@ -1765,6 +1765,7 @@ c
       call sync_param( "funio_denominator",funio_denominator)
       call sync_param( "autoconv_multiplier",autoconv_multiplier)
       call sync_param( "radius_multiplier",radius_multiplier)
+      call sync_param( "wmui_multiplier",wmui_multiplier)
       call sync_param( "entrainment_cont1",entrainment_cont1)
       call sync_param( "entrainment_cont2",entrainment_cont2)
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)

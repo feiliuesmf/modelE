@@ -74,7 +74,7 @@ C     REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
 !@param COETAU multiplier for convective cloud optical thickness
       REAL*8, PARAMETER :: CCMUL=2.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
-      REAL*8 :: RTEMP,CMX,RCLDX,CONTCE1,CONTCE2,TNX,QNX
+      REAL*8 :: RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2,TNX,QNX
       REAL*8 :: BYBR,BYDTsrc,XMASS,PLAND
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
@@ -100,6 +100,8 @@ C     REAL*8 :: U00MAX = .99d0      ! maximum U00 for water clouds
       REAL*8 :: autoconv_multiplier=1.d0 ! default
 !@dbparam radius_multiplier cloud particle radius multiplier
       REAL*8 :: radius_multiplier=1.d0   ! default
+!@dbparam wmui_multiplier critical ice cloud water multiplier
+      REAL*8 :: wmui_multiplier=1.d0     ! default
 !@dbparam entrainment_cont1 constant for entrainment rate, plume 1
       REAL*8 :: entrainment_cont1=.3d0   ! default
 !@dbparam entrainment_cont2 constant for entrainment rate, plume 2
@@ -357,7 +359,7 @@ c$$$!$OMP*  ,LMCMIN,KMAX,DEBUG)
      *  ,CTEML,CD3DL,CL3DL,CI3DL,SMLWP,CDN3DL,CRE3DL
      *  ,WMCLWP,WMCTWP
 #endif
-     *  ,TNX,QNX,RTEMP,CMX,RCLDX,CONTCE1,CONTCE2
+     *  ,TNX,QNX,RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2
      *  ,FSSL,FMCL,WTURB,TVL,W2L,GZL
      *  ,SAVWL,SAVWL1,SAVE1L,SAVE2L
 #ifdef CLD_AER_CDNC
@@ -2937,6 +2939,7 @@ C****
       RCLDX=radius_multiplier
       RTEMP=funio_denominator
       CMX=autoconv_multiplier
+      WMUIX=wmui_multiplier
 C**** initialise vertical arrays
       ER=0.
       EC=0.
@@ -3275,7 +3278,7 @@ C***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
       SNdI = 0.06417127d0
       SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
       SCDNCI=SNdI
-      WMUI=.001                    ! .0001
+      WMUI=WMUIX*.001         ! .0001
       WMUSI=0.1
 C     IF(SVWMXL(L).GT.0d0) WMUI=.01     ! .1
 #ifdef CLD_AER_CDNC
