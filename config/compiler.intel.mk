@@ -27,8 +27,8 @@ F90FLAGS += -assume protect_parens -fp-model strict
 endif
 
 ifeq ($(IFORT_RELEASE),10.1)
-FFLAGS += -assume protect_parens -fp-model strict
-F90FLAGS += -assume protect_parens -fp-model strict
+FFLAGS += -assume protect_parens -fp-model strict -diag-disable vec
+F90FLAGS += -assume protect_parens -fp-model strict -diag-disable vec
 endif
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
