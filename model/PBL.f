@@ -189,7 +189,7 @@ c**** output
 
 
 #ifdef TRACERS_GASEXCH_ocean
-        real*8  :: alati,Kw_gas,alpha_gas,beta_gas
+        real*8  :: Kw_gas,alpha_gas,beta_gas
 #endif
 #endif
 
@@ -335,7 +335,6 @@ c   output:
 !@var  ntix index of tracers used in pbl
 #endif
 #if defined(TRACERS_ON) && defined(TRACERS_GASEXCH_ocean)
-!@var  alati SSS at i,j
 !@var  Kw_gas  gas exchange transfer velocity at i,j only over ocean
 !@var  alpha_gas  solubility of gas
 !@var  beta_gas  conversion term  that includes solubility
@@ -860,12 +859,12 @@ ccc dust emission from earth
           !note trcnst is already multiplied by byrho in TRACERS_GASEXCH_ocean_CO2_PBL
 
           call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
-     .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
+     .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
 
 !     write(*,'(a,2i5,4e12.4,i5,7e12.4)')'PBL:', 
-!    .  ilong,jlat,tg1,ws,pbl_args%alati,psurf,itr,
+!    .  ilong,jlat,tg1,ws,pbl_args%sss_loc,psurf,itr,
 !    .             pbl_args%trconstflx(itr),
 !    .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
 !    .          pbl_args%beta_gas,trsf,trcnst
@@ -878,7 +877,7 @@ ccc dust emission from earth
 #ifdef TRACERS_GASEXCH_ocean_CFC
       IF (ocean) THEN  ! OCEAN only
        call TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
-     .          pbl_args%alati,psurf,itr,pbl_args%trconstflx(itr),
+     .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
      .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
       ENDIF

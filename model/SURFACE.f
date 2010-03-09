@@ -11,7 +11,7 @@ C****
 !@auth Nobody will claim responsibilty
       USE CONSTANT, only : rgas,lhm,lhe,lhs
      *     ,sha,tf,rhow,shv,shi,stbo,bygrav,by6
-     *     ,deltx,teeny,rhows,grav
+     *     ,deltx,teeny,rhows,grav,syr
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
      &     ,By3
@@ -70,9 +70,6 @@ C****
 #ifndef NO_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-     *     ,ij_kw,ij_alpha,ij_gasx
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
@@ -126,7 +123,7 @@ C****
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,ijts_isrc,jls_isrc, jls_isrc, tij_surf,
-     *      tij_surfbv, tij_evap,
+     *      tij_surfbv, tij_evap,ijts_gasex,
      *      tij_grnd, tij_drydep, tij_gsdep
 #ifdef TRACERS_DRYDEP
      *      , itcon_dd,itcon_surf
@@ -172,7 +169,7 @@ C****
      *     ,PSK,Q1,THV1,PTYPE,TG1,SRHEAT,SNOW,TG2
      *     ,SHDT,TRHDT,TG,TS,RHOSRF,RCDMWS,RCDHWS,RCDQWS,RCDHDWS,RCDQDWS
      *     ,SHEAT,TRHEAT,T2DEN,T2CON,T2MUL,FQEVAP,Z1BY6L,EVAPLIM,F2
-     *     ,FSRI(2),HTLIM,dlwdt,byNIsurf
+     *     ,FSRI(2),HTLIM,dlwdt,byNIsurf,TGO
 
       REAL*8 MA1, MSI1
       REAL*8, DIMENSION(NSTYPE,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -201,6 +198,9 @@ c
      *     ,FRACVL,FRACVS
 #endif
 #endif
+#ifdef TRACERS_GASEXCH_ocean
+      real*8 alpha_gas2
+#endif      
 #ifdef TRACERS_DRYDEP
       real*8 tdryd, tdd, td1, rtsdt, rts
 #endif
@@ -309,7 +309,7 @@ C**** Zero out fluxes summed over type and surface time step
       EVPFLX= 0.0d0
       SHFLX = 0.0d0
 #endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#ifdef TRACERS_GASEXCH_ocean
       TRGASEX = 0.0d0
 #endif
 
@@ -399,7 +399,7 @@ C****
 !$OMP&   depo_turb_glob,depo_grav_glob,uabl,vabl,tabl,qabl,eabl,
 !$OMP&   trcsurf,trmom,tij_evap,tij_grnd,ij_fwoc,tdiurn,ij_f0oi,
 !$OMP&   ij_evapi,ij_tsli,ij_shdtli,ij_evapo,ij_f0oc,ij_evhdt,ij_trhdt,
-!$OMP&   ij_f0li,ij_evapli,
+!$OMP&   ij_f0li,ij_evapli,tgo,
 #ifdef TRACERS_ON
 !$OMP&    ntx, ntix, trm, itime_tr0, needtrs,
 #endif
@@ -462,7 +462,8 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
          END IF
 C**** save some ocean diags regardless of PTYPE
 C**** SSH does not work for qflux/fixed SST configurations
-         if(ns.eq.1) aij(i,j,ij_popocn) = aij(i,j,ij_popocn) + pocean
+         if(ns.eq.1) aij(i,j,ij_popocn) = aij(i,j,ij_popocn) + 
+     *        pocean*focean(i,j)
          IF (FOCEAN(I,J).gt.0. .and. MODDSF.eq.0) THEN
            AIJ(I,J,IJ_TGO)=AIJ(I,J,IJ_TGO)+GTEMP(1,1,I,J)*FOCEAN(I,J)
            AIJ(I,J,IJ_SSS)=AIJ(I,J,IJ_SSS)+SSS(I,J)*FOCEAN(I,J)
@@ -562,6 +563,13 @@ C**** fraction of solar radiation leaving layer 1 and 2
             OA(I,J,12)=OA(I,J,12)+SRHEAT*DTSURF
       ELHX=LHS
 
+C**** pass salinity in underlying water (zero for lakes)
+      pbl_args%sss_loc=sss(i,j)
+C**** Underlying ocean temperature with sanity check 
+C**** (to prevent rare anomalies that will be dealt with by
+C**** addice next time)
+      TGO=max(GTEMP(1,1,I,J),tfrez(sss(i,j)))
+      
       END IF
 C****
 C**** LAND ICE
@@ -619,13 +627,12 @@ C**** set defaults
         trconstflx(nx)=0.
 #ifdef TRACERS_GASEXCH_ocean
        IF (ITYPE.EQ.1 .and. focean(i,j).gt.0.) THEN  ! OCEAN
-          pbl_args%alati=sss(I,J)
-          trgrnd(nx)=gtracer(n,itype,i,j)    
-          trsfac(nx)=1.
-          trconstflx(nx)=trgrnd(nx)
-          if (i.eq.1.and.j.eq.45)
-     .   write(*,'(a,3i5,3e12.4)') 'in SURFACE, gtracer:',
-     .    nstep,I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
+         trgrnd(nx)=gtracer(n,itype,i,j)    
+         trsfac(nx)=1.
+         trconstflx(nx)=trgrnd(nx)
+         if (i.eq.1.and.j.eq.45)
+     .        write(*,'(a,3i5,3e12.4)') 'in SURFACE, gtracer:',
+     .        nstep,I,J,sss(I,J),gtracer(n,itype,i,j),trgrnd(nx)
        END IF
 #endif
 C**** Set surface boundary conditions for tracers depending on whether
@@ -736,6 +743,7 @@ C**** Call pbl to calculate near surface profile
       CQ = pbl_args%cq
       TS=pbl_args%TSV/(1.+QSRF*deltx)
 C =====================================================================
+
 C**** Adjust ground variables to account for skin effects
       TG = TG + pbl_args%dskin
       QG_SAT=QSAT(TG,ELHX,PS)
@@ -861,7 +869,7 @@ C****
           ELSE                  ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
             IF (EVAP.GE.0) THEN ! EVAPORATION
-              IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or. ITYPE.eq.2) THEN
+              IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or. ITYPE.ne.3) THEN
                 TEVAP=EVAP*trgrnd(nx)
               ELSE ! special treatment for landice when EVAP>SNOW>SNMIN
                 TEVAP=SNOW*(trgrnd(nx)-trgrnd2(nx))+EVAP*trgrnd2(nx)
@@ -926,39 +934,32 @@ C****
 #ifdef TRACERS_GASEXCH_ocean_CO2
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
-! because obio_carbon needs mol,CO2/m2/s:
+! because obio_carbon needs mol,CO2/m2/s (accumulated over itype)
 
-          TRGASEX(n,ITYPE,I,J) =      !accumulate over itype
-     .                         TRGASEX(n,ITYPE,I,J) +
-     .    (   pbl_args%Kw_gas * pbl_args%beta_gas 
-     .            * trs(nx) * 1.d6/ vol2mass(nx)
-     .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
-     .            * trgrnd(nx)
-     .            * 1.0d6/vol2mass(nx) )
-     .   * dtsurf/dtsrc      !in order to accumulate properly over time
-     .   * ptype             !units mol,co2/m2/s
+          TRGASEX(n,ITYPE,I,J) = TRGASEX(n,ITYPE,I,J) +
+     .         (   pbl_args%Kw_gas * pbl_args%beta_gas  * trs(nx) 
+     .         - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) ) 
+     .         * 1d6/vol2mass(nx)
+     .         * dtsurf/dtsrc   !in order to accumulate properly over time
+     .         * ptype          !units mol,co2/m2/s
 
 ! trsrfflx is positive up 
 ! units are kg,CO2/s
           trsrfflx(i,j,n)=trsrfflx(i,j,n)
-     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas 
-     .          * trs(nx) * 1.d6 / vol2mass(nx)
-     .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
-     .          * trgrnd(nx) 
-     .          * 1.0d6/vol2mass(nx) )
-     .   * tr_mm(nx)*1.0d-3       
-     .   * ptype
-     .   * axyp(i,j)           !units kg,co2/s
+     .         -( pbl_args%Kw_gas * pbl_args%beta_gas  * trs(nx) 
+     .         - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) )
+     .         * 1.0d6/vol2mass(nx) 
+     .         * tr_mm(nx)*1.0d-3       
+     .         * ptype
+     .         * axyp(i,j)      !units kg,co2/s
 
 !units are kg,co2
           taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     .   -(   pbl_args%Kw_gas * pbl_args%beta_gas 
-     .          * trs(nx) * 1.d6 / vol2mass(nx)
-     .      - pbl_args%Kw_gas * pbl_args%alpha_gas 
-     .          * trgrnd(nx)
-     .          * 1.0d6/vol2mass(nx) )
-     .   * ptype
-     .   * axyp(i,j) * dtsurf   
+     .         -( pbl_args%Kw_gas * pbl_args%beta_gas * trs(nx) 
+     .         - pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd(nx) )
+     .         * 1.0d6/vol2mass(nx) 
+     .         * ptype
+     .         * axyp(i,j) * dtsurf   
 
       if(i.eq.1 .and. j.eq.45) then
        write(*,'(a,3i5,11e12.4)')'SURFACE, trgasex:',
@@ -1321,18 +1322,28 @@ C**** Save surface tracer concentration whether calculated or not
           end if
 
 #ifdef TRACERS_GASEXCH_ocean
-       if (POCEAN.gt.0) then
-          AIJ(i,j,ij_kw) = AIJ(i,j,ij_kw)  
-     .                   + pbl_args%Kw_gas * focean(i,j)        ! m/s
-     .                   * (1.d0 - RSI(i,j))                    ! only over open water
-          AIJ(i,j,ij_alpha) = AIJ(i,j,ij_alpha) 
-     .                   + pbl_args%alpha_gas * focean(i,j)     ! mol,CO2/m3/uatm
-     .                   * (1.d0 - RSI(i,j))                    ! only over open water
-          AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
-     .                     + TRGASEX(n,ITYPE,I,J) * focean(i,j)
-     .                   * 3600.*24.*365.                       ! mol,CO2/m2/yr
-     .                   * (1.d0 - RSI(i,j))                    ! only over open water
-       endif   !pocean
+          if (focean(i,j).gt.0) then
+            if (POCEAN.gt.0) then ! some open ocean
+! piston velocity
+              taijs(i,j,ijts_gasex(1,n)) = taijs(i,j,ijts_gasex(1,n))  
+     .              + pbl_args%Kw_gas * focean(i,j) ! m/s
+     .              * (1.d0 - RSI(i,j)) ! only over open water
+! solubility
+              taijs(i,j,ijts_gasex(2,n)) = taijs(i,j,ijts_gasex(2,n)) 
+     .             + pbl_args%alpha_gas * focean(i,j) ! mol/m3/uatm
+     .             * (1.d0 - RSI(i,j)) ! only over open water
+! gas exchange
+              taijs(i,j,ijts_gasex(3,n)) = taijs(i,j,ijts_gasex(3,n)) 
+     .             + TRGASEX(n,ITYPE,I,J) * focean(i,j)
+     .             * syr        ! mol/m2/yr
+     .             * (1.d0 - RSI(i,j)) ! only over open water
+            else                 ! all ice covered
+! solubility
+              taijs(i,j,ijts_gasex(2,n)) = taijs(i,j,ijts_gasex(2,n)) 
+     .              + alpha_gas2(tgo,pbl_args%sss_loc) * focean(i,j) 
+     .              * RSI(i,j)  !  mol/m3/uatm ice covered area
+            endif                !pocean
+          endif                  !focean
 #endif
 #ifdef TRACERS_WATER
           if (tr_wd_type(n).eq.nWater) then

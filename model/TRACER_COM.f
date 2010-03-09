@@ -727,12 +727,8 @@ C**** do igas=1,ntm_chem instances get corrected.
      *     n_HO2NO2=0, n_CO=0,    n_PAN=0,   n_H2O17=0,
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
      *     n_stratOx=0, n_Terpenes=0,n_codirect=0,
-#ifdef TRACERS_AEROSOLS_SOA
      *     n_isopp1g=0,n_isopp1a=0,n_isopp2g=0,n_isopp2a=0,
-#ifdef TRACERS_TERP
      *     n_apinp1g=0,n_apinp1a=0,n_apinp2g=0,n_apinp2a=0,
-#endif  /* TRACERS_TERP */
-#endif  /* TRACERS_AEROSOLS_SOA */
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
