@@ -1327,9 +1327,12 @@ c formation of sulfate
 
 #endif
         TR_LEF=1.D0
-       CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+!       CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
+!     *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
+!     *       ,CLDSAVT)
+       CALL GET_COND_FACTOR(L,N,WMXTR,TPOLD(L),TPOLD(L-1),LHX,0.
      *       ,FQCOND,FQCONDT,.true.,TRCOND,TM,THLAW,TR_LEF,PL(L),ntix
-     *       ,CLDSAVT)
+     *       ,FPLUME)
         TRCOND(N,L) = FQCONDT * TMP(N) + TRCOND(N,L)
 #ifdef TRDIAG_WETDEPO
         IF (diag_wetdep == 1)
@@ -1792,6 +1795,7 @@ C**** WASHOUT of TRACERS BELOW CLOUD
         b_beta_DT = FPLUME
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
         WA_VOL= precip_mm*DXYPIJ
+
         CALL GET_SULFATE(L,TNX,FPLUME,WA_VOL,WMXTR,SULFIN,
      *       SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX,
      *       DT_SULF_MC(1,L),CLDSAVT)
@@ -3303,9 +3307,9 @@ c CLDSAVT is current FCLD
         if (wmxtr.lt.0.) wmxtr=0.
         WA_VOL=precip_mm*DXYPIJ
       ENDIF
-      CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL
+      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL
      * ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX
-     *  ,DT_SULF_SS(1,L),FCLD)
+     *  ,DT_SULF_SS(1,L),CLDSAVT)
 
       DO N=1,NTX
       select case (trname(ntix(n)))
@@ -3477,9 +3481,9 @@ C**** CONDENSING MORE TRACERS
 cdmks  I took out some code above this that was for below cloud
 c   processes - this should be all in-cloud
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      CALL GET_SULFATE(L,TL(L),CLDSAVT,WA_VOL,WMXTR,SULFIN,
+      CALL GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN,
      *     SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX,
-     *     DT_SULF_SS(1,L),FCLD)
+     *     DT_SULF_SS(1,L),CLDSAVT)
 #endif
       DO N=1,NTX
         TR_LEF=1.
@@ -4011,7 +4015,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.38 2010/03/10 16:05:07 kostas Exp $
+!$Id: CLOUDS2_E1.f,v 1.39 2010/03/10 19:20:11 kostas Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
