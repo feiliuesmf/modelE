@@ -87,6 +87,8 @@ C**** Set-able variables
       REAL*8 :: autoconv_multiplier=1.d0 ! default
 !@dbparam radius_multiplier cloud particle radius multiplier
       REAL*8 :: radius_multiplier=1.d0   ! default
+!@dbparam wmui_multiplier critical ice cloud water multiplier
+      REAL*8 :: wmui_multiplier=1.d0     ! default
 !@dbparam entrainment_cont1 constant for entrainment rate, plume 1
       REAL*8 :: entrainment_cont1=.2d0   ! default
 !@dbparam entrainment_cont2 constant for entrainment rate, plume 2
@@ -4009,7 +4011,7 @@ C----------
 !@       7) tautab/invtau from module
 !@       8) removed boxtau,boxptop from output
 !@       9) added back nbox for backwards compatibility
-!$Id: CLOUDS2_E1.f,v 1.37 2010/02/12 00:31:38 kostas Exp $
+!$Id: CLOUDS2_E1.f,v 1.38 2010/03/10 16:05:07 kostas Exp $
 ! *****************************COPYRIGHT*******************************
 ! (c) COPYRIGHT Steve Klein and Mark Webb 2004, All Rights Reserved.
 ! Steve Klein klein21@mail.llnl.gov
