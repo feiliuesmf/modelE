@@ -103,6 +103,10 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      *   oh,dho2,perj,tno3,o3_offline  !im,jm,lm
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ohr,dho2r,perjr,
      *   tno3r,ohsr  !im,jm,lm,12   DMK jmon
+      integer, save :: JmonthCache = -1
+      real*8, save, allocatable, dimension(:,:,:) :: 
+     &     ohrCache, dho2rCache, perjrCache, tno3rCache
+      
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: craft  !(im,jm,lm)
       real*8, ALLOCATABLE, DIMENSION(:,:) :: snosiz
 #ifdef TRACERS_RADON
@@ -145,8 +149,9 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
      * OCB_src,OCBt_src,BCI_src_3D,
      * hbc,hoc,hso2,
      * nsssrc,ss_src,nso2src_3d,SO2_src_3D,SO2_biosrc_3D,
-     * ohr,dho2r,perjr,
-     * tno3r,oh,dho2,perj,tno3,ohsr
+     * ohr,dho2r,perjr, tno3r, 
+     * ohrCache, dho2rCache, perjrCache, tno3rCache,
+     * oh,dho2,perj,tno3,ohsr
      * ,o3_offline
      * ,snosiz
      * ,BC_ship,SO2_ship,POM_ship
@@ -204,6 +209,10 @@ c     endif
      * dho2r(I_0H:I_1H,J_0H:J_1H,lm),
      * perjr(I_0H:I_1H,J_0H:J_1H,lm),tno3r(I_0H:I_1H,J_0H:J_1H,lm),
      * ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+      allocate( ohrCache(I_0H:I_1H,J_0H:J_1H,lm),
+     * dho2rCache(I_0H:I_1H,J_0H:J_1H,lm),
+     * perjrCache(I_0H:I_1H,J_0H:J_1H,lm),
+     *     tno3rCache(I_0H:I_1H,J_0H:J_1H,lm))
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
       allocate( BC_ship(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
       allocate( POM_ship(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
@@ -1791,7 +1800,7 @@ c if after Feb 28 skip the leapyear day
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, write_parallel
-      USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,
+      USE MODEL_COM, only: im,jm,jmon,ls1,lm,dtsrc,t,q,jday,jmon,
      * coupled_chem
       USE DYNAMICS, only: pmid,am,pk,LTROPO,byam
       USE PBLCOM, only : dclev
@@ -1799,7 +1808,8 @@ c if after Feb 28 skip the leapyear day
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
-     & dho2,perj,tno3,ohsr,o3_offline
+     & dho2,perj,tno3,ohsr,o3_offline, JmonthCache,
+     &      ohrCache, dho2rCache, perjrCache, tno3rCache
        USE CONSTANT, only : mair
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: which_trop
@@ -1825,8 +1835,9 @@ c Aerosol chemistry
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
       integer maxl,nrecs_skip
+      logical :: newMonth
       save ifirst
-      
+
       CALL GET(grid, J_STRT=J_0,J_STOP=J_1,
      *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
      * J_STOP_SKP=J_1S)
@@ -1888,13 +1899,21 @@ ccOMP END PARALLEL DO
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-        call openunit('AER_CHEM',iuc,.true.)
-        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),ohr,recs_to_skip=
-     &       5*(jmon-1)+1)      ! 5 recs/month + ichemi for this month
-        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),dho2r)
-        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjr)
-        call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3r)
-        call closeunit(iuc)
+        newMonth = jMonthCache /= Jmon
+        if (newMonth) then
+          jMonthCache = Jmon
+          call openunit('AER_CHEM',iuc,.true.)
+          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),ohrCache,
+     &         recs_to_skip=5*(jmon-1)+1)    ! 5 recs/month + ichemi for this month
+          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),dho2rCache)
+          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjrCache)
+          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3rCache)
+          call closeunit(iuc)
+        end if
+        ohr   = ohrCache  
+        dho2r = dho2rCache
+        perjr = perjrCache
+        tno3r = tno3rCache
         if (im.eq.72) then
         call openunit('AER_OH_STRAT',iuc2,.true.)
         nrecs_skip=lm*(jmon-1) ! skip all the preceding months
