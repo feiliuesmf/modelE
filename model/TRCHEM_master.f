@@ -69,7 +69,7 @@ c
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_aerosolphase,voc2nox,soa_apart,
-     &                       whichsoa,apartmolar
+     &                       whichsoa,apartmolar,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
       use zonalmean_mod, only : zonalmean_ij2ij
       IMPLICIT NONE
@@ -1098,12 +1098,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 ! WARNING!!!
 ! No nighttime production from OH reactions, since no nighttime OH exist.
 ! This should be improved in the future.
-!WRONG ON PURPOSE
-! SOA production from chemistry should be allowed everywhere, but
-! due to convection Isoprene and Terpenes have a local maximum in the
-! upper layers. This is unlikely to be the case in the real atmosphere,
-! thus chemical (but not partitioning) production is disabled above level 7
-      if (L<=7) then
+      if (L<=LM_soa) then
         changeisopp1g=apartmolar(L,whichsoa(n_isopp1a))*
      &                (rr(31,L)*y(nO3,L))*y(n_Isoprene,L)*dt2
         if(-changeisopp1g > 0.75d0*y(n_isopp1g,L))changeisopp1g=

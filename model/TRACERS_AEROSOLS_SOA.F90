@@ -38,6 +38,13 @@ real*8, dimension(LM)      :: voc2nox
 real*8, dimension(nsoa)    :: apartmass_ref,apartmass_nox_ref
 !@var  molec2ug converts molec/cm3 to ug/m3. 1.d0/molec2ug converts ug/m3 to molec/cm3
 real*8, dimension(ntm) :: molec2ug
+!@param LM_soa the uppermost level where chemical production of semivolatile gases is allowed
+!WRONG ON PURPOSE
+! SOA production from chemistry should be allowed everywhere, but
+! due to convection Isoprene and Terpenes have a local maximum in the
+! upper layers. This is unlikely to be the case in the real atmosphere,
+! thus chemical (but not partitioning) production is disabled above level 7
+integer, parameter :: LM_soa=floor(float(LM)/3.)
 
 !
 ! soa semivolatile products in aerosol phase

@@ -57,7 +57,8 @@ C
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-       USE TRACERS_SOA, only: apartmolar,whichsoa,voc2nox,soa_apart
+       USE TRACERS_SOA, only: apartmolar,whichsoa,voc2nox,soa_apart,
+     &                        LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
       USE DIAG_COM, only : aj,j_h2och4
 c
@@ -233,13 +234,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef SOA_DIAGS
      &              (I,J)
 #endif  /* SOA_DIAGS */
-!WRONG ON PURPOSE
-! SOA production from chemistry should be allowed everywhere, but
-! due to convection Isoprene and Terpenes have a local maximum in the
-! upper layers. This is unlikely to be the case in the real atmosphere,
-! thus chemical (but not partitioning) production is disabled above level 7
-!      do L=1,LM ! SOA chemistry goes always to the model top
-      do L=1,7!LM ! SOA chemistry goes always to the model top
+      do L=1,LM_soa
         prod(n_isopp1g,L)=prod(n_isopp1g,L)+
      &                    apartmolar(L,whichsoa(n_isopp1a))*
      &                    (chemrate(30,L)+chemrate(31,L))
