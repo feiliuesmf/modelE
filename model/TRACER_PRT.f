@@ -1286,11 +1286,12 @@ C**** Fill in maplet indices for tracer sums/means and ground conc
         aij1(:,:,k) = taijn(:,:,kx,n)
         aij2(:,:,k) = 1.
 #ifdef TRACERS_WATER
-      if (to_per_mil(n).gt.0 .and. kx.ne.tij_mass .and. kx.ne.tij_uflx
+        if (to_per_mil(n).gt.0 .and. kx.ne.tij_mass .and. kx.ne.tij_uflx
      *         .and. kx.ne.tij_vflx) then
         aij1(:,:,k)=1d3*(taijn(:,:,kx,n)-taijn(:,:,kx,n_water)*trw0(n))
         aij2(:,:,k)=taijn(:,:,kx,n_water)*trw0(n)
         ijtype(k) = 3
+        scale(k) = 1
         end if
 #endif
       end do
@@ -1341,9 +1342,7 @@ C**** Fill in maplet indices for sources and sinks
 
         if (name(k)(5:6).eq.'CS') then
           ijtype(k)=3
-          aij1(:,:,k)=aij1(:,:,k)*scale(k)
           aij2(:,:,k)=real(idacc(iacc(k)))-aij(:,:,ij_cldcv)
-          scale(k)=1.
         endif
 
         if (name(k)=='NO2_1030c' .or. name(k)=='NO2_1330c')then
@@ -1352,12 +1351,10 @@ C**** Fill in maplet indices for sources and sinks
         endif
         if (name(k).eq.'NO2_1030') then
           ijtype(k)=3
-          aij1(:,:,k) = aij1(:,:,k)*scale(k)     ! numerator
           aij2(:,:,k) = taijs(:,:,ijs_NO2_1030c) ! denominator
         endif
         if (name(k).eq.'NO2_1330') then
           ijtype(k)=3
-          aij1(:,:,k) = aij1(:,:,k)*scale(k)     ! numerator
           aij2(:,:,k) = taijs(:,:,ijs_NO2_1330c) ! denominator
         endif
 
@@ -1400,7 +1397,7 @@ C**** Be7/Pb210
         irange(k) = ir_0_180
         iacc(k) = ia_srf
         iord(k) = 2
-        scale(k) = 1.d0 ! should be 1/units
+        scale(k) = 1.d0 
         aij1(:,:,k) = taijn(:,:,tij_surf,n_Be7) !numerator
 C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
         aij1(:,:,k)=aij1(:,:,k)*trdecay(n_Be7)*tr_mm(n_Pb210)
@@ -1666,15 +1663,18 @@ C**** Fill in maplet indices for tracer concentrations
         k = k+1
         iord(k) = n
         ijtype(k) = 1
-#ifdef TRACERS_WATER
-        if (to_per_mil(n).gt.0) ijtype(k) = 3
-#endif
         name(k) = sname_ijt(n)
         lname(k) = lname_ijt(n)
         units(k) = units_ijt(n)
         irange(k) = ir_log2
         iacc(k) = ia_src
         scale(k) = scale_ijt(n)
+#ifdef TRACERS_WATER
+        if (to_per_mil(n).gt.0) then
+           ijtype(k) = 3
+           scale(k) = 1.
+        end if
+#endif
         do l=1,lm
           aijl1(:,:,l,k) = taijln(:,:,l,n)
           aijl2(:,:,l,k) = 1.
@@ -1884,7 +1884,7 @@ c**** ratios (i.e. per mil diags)
         end if
         do j=1,JM
         do i=1,im
-          anum(i,j)=aij1(i,j)
+          anum(i,j)=aij1(i,j)*scale
           adenom(i,j)=aij2(i,j)
         end do
         end do
