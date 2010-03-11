@@ -36,9 +36,26 @@
       INTEGER, SAVE :: NM(NWEIGHTS)                                 ! [1]
       CHARACTER(LEN=4), SAVE :: NM_SPC_NAME(NWEIGHTS,NMASS_SPCS)
 
+      type GIKLQ_type
+        integer :: n
+        integer, allocatable :: l(:), k(:)
+        integer, allocatable :: qq(:)
+      end type GIKLQ_type
+
+      type DIKL_type
+        integer :: i
+        integer :: k
+        integer :: l
+      end type DIKL_type
+      
+      type (GIKLQ_type), allocatable, save :: GIKLQ_control(:)
+      type (DIKL_type), allocatable, save :: DIKL_control(:)
+      integer, save :: nDIKL
+
       INTEGER, SAVE :: GIKLQ(NWEIGHTS,NWEIGHTS,NWEIGHTS,NMASS_SPCS) ! [1]
       INTEGER, SAVE :: DIKL (NWEIGHTS,NWEIGHTS,NWEIGHTS)            ! [1]
       INTEGER, SAVE :: DIJ  (NWEIGHTS,NWEIGHTS)                     ! [1]
+      REAL(8), SAVE :: xDIJ (NWEIGHTS,NWEIGHTS) ! [1]
       REAL(8), SAVE :: RECIP_PART_MASS(NEMIS_SPCS)                  ! [1/ug]
       REAL(8), SAVE :: KCI_COEF_DP     (NWEIGHTS,NLAYS)             ! [m^3/s]
       REAL(8), SAVE :: KCI_COEF_DP_AEQ1(NWEIGHTS,NLAYS)             ! [m^3/s]
@@ -1241,7 +1258,7 @@
 !     NM_SPC_NAME(I,:) contains the names of the mass species defined for mode I.
 !-------------------------------------------------------------------------------------------------------------------
       IMPLICIT NONE
-      INTEGER :: I,J,K,L,Q,QQ
+      INTEGER :: I,J,K,L,Q,QQ, ntot, n
       LOGICAL, PARAMETER :: WRITE_TENSORS = .FALSE.
 
       IF ( WRITE_TENSORS ) THEN
@@ -1298,6 +1315,86 @@
       ENDDO
       ENDDO
 
+      if (allocated(dikl_control)) then
+        deallocate(dikl_control)
+      end if
+      allocate(dikl_control(count(dikl /= 0)))
+      n = 0
+      do k = 1, NWEIGHTS
+        do l = k+1, NWEIGHTS
+          do i = 1, NWEIGHTS
+            if (dikl(i,k,l) /= 0) then
+              n = n + 1
+              dikl_control(n)%i = i
+              dikl_control(n)%k = k
+              dikl_control(n)%l = l
+            end if          
+          end do
+        end do
+      end do
+      NDIKL = n
+
+      if (allocated(giklq_control)) then
+        do i = 1, nweights
+          deallocate(giklq_control(i)%k)
+          deallocate(giklq_control(i)%l)
+          deallocate(giklq_control(i)%qq)
+        end do
+      else
+        allocate(GIKLQ_control(NWEIGHTS))
+      end if
+
+      ! count contributing cases
+      do i = 1, NWEIGHTS
+        n = 0
+        do q = 1, nm(i)
+          do k = 1, nmodes
+            do l = k+1, nmodes
+              if (GIKLQ(i,k,l,q) /= 0) then
+                if (i /= l) then
+                  n = n + 1
+                end if
+                if (i /= k) then
+                  n = n + 1
+                end if
+              end if
+            end do
+          end do
+        end do
+        nTot = n
+        GIKLQ_control(i)%n = nTot
+        allocate(GIKLQ_control(i)%k(nTot))
+        allocate(GIKLQ_control(i)%l(nTot))
+        allocate(GIKLQ_control(i)%qq(nTot))
+      end do
+      
+      do i = 1, NWEIGHTS
+        n = 0
+        do q = 1, nm(i)
+          do k = 1, nmodes
+            do l = k+1, nmodes
+              if (GIKLQ(i,k,l,q) /= 0) then
+                if (i /= l) then
+                  n = n + 1
+                  GIKLQ_control(i)%k(n) = k
+                  GIKLQ_control(i)%l(n) = l
+                  qq = prod_index(i,q)
+                  GIKLQ_control(i)%qq(n) = qq
+                end if
+                if (i /= k) then
+                  n = n + 1
+                  GIKLQ_control(i)%k(n) = l
+                  GIKLQ_control(i)%l(n) = k
+                  qq = prod_index(i,q)
+                  GIKLQ_control(i)%qq(n) = qq
+                end if
+              end if
+            end do
+          end do
+        end do
+        GIKLQ_control(i)%n = n
+      end do
+
       !-------------------------------------------------------------------------------------------------------------
       ! The tensor d_ij is not symmetric in I,J.
       !
@@ -1314,6 +1411,7 @@
         ENDDO
       ENDDO
       ENDDO
+      xDIJ = DIJ
 
       IF( .NOT. WRITE_TENSORS ) RETURN
 

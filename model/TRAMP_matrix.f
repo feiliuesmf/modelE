@@ -158,6 +158,8 @@
 
       ! These variables and parameters are used in nucleation and new particle formation.
 
+      integer :: klq
+      integer :: ikl
       INTEGER :: IH2SO4_PATH               ! index for branch in the [H2SO4] calc. for nucl and GR [1]
       REAL(8) :: XH2SO4_SS                 ! steady-state H2SO4 (as SO4) conc. [ugSO4/m^3]
       REAL(8) :: XH2SO4_SS_WNPF            ! steady-state H2SO4 (as SO4) conc. including NPF [ugSO4/m^3]
@@ -682,16 +684,17 @@
       !----------------------------------------------------------------------------------------------------------------
       BI(:) = 0.0D+00
       RI(:) = 0.0D+00
-      DO I=1, NWEIGHTS
-        DO K=1, NWEIGHTS
-          IF ( K.EQ.I ) CYCLE                                     ! Omit intramodal interactions.
-          DO L=K+1, NWEIGHTS                                      ! DIKL is symmetric in K,L; use either half of (K,L)
-            IF ( L.EQ.I .OR. DIKL(I,K,L).EQ.0 ) CYCLE             ! No intramodal interactions and see above ...
-            RI(I) = RI(I) + KBAR0IJ(K,L)*NI(K)*NI(L)              ! Modes K and L coagulate to form mode I. 
-          ENDDO
-          IF ( DIJ(I,K).GT.0 ) BI(I) = BI(I) + KBAR0IJ(I,K)*NI(K) ! Coagulation of modes I and J removes
-        ENDDO                                                     !   particles from mode I.
-      ENDDO
+      do ikl = 1, nDIKL
+        i = dikl_control(ikl)%i
+        k = dikl_control(ikl)%k
+        l = dikl_control(ikl)%l
+        RI(i) = RI(i) + KBAR0IJ(k,l) * ni(k) * ni(l)
+      end do
+      do k=1, NWEIGHTS
+        do i = 1, NWEIGHTS
+          BI(i) = BI(i) + KBAR0IJ(i,k)*NI(k)*xDIJ(i,k) ! Coagulation of modes I and J removes
+        end do
+      end do
       CI(:) = RI(:) + P_EMIS_NUMB(:)                              ! all source terms for number concentration 
       DIAGTMP1(3,NUMB_MAP(:)) = RI(:)  
 
@@ -762,9 +765,7 @@
       !-------------------------------------------------------------------------------------------------------------------
 
       PIQTMP(:,:) = 0.0D+00
-      DO I=1, NWEIGHTS                     ! loop over all modes or quadrature points receiving mass species Q
-      DO Q=1, NM(I)                        ! loop over all principal mass species defined for this mode
-        QQ = PROD_INDEX(I,Q)               ! the principal mass species index, ranging from 1 to NMASS_SPCS=5. 
+
         !-----------------------------------------------------------------------------------------------------------------
         ! Sum over all K-L interactions and identify which interactions produce species Q in mode I.
         !
@@ -782,21 +783,18 @@
         ! superdiagonal or subdiagonal part of the 'matrix', but not both. Note that 
         ! KBAR3IJ(K,L) is not symmetric in K-L, so KBAR3IJ(K,L) and KBAR3IJ(L,K) are not interchangeable.
         !---------------------------------------------------------------------------------------------------------------
-        DO K=1, NWEIGHTS                   ! Donor mode - Modes K and L are never the same mode.
-        DO L=K+1, NWEIGHTS                 ! Donor mode - Modes K and L are never the same mode.
-          IF( GIKLQ(I,K,L,Q).GT.0 ) THEN   ! Coagulation of modes K and L produces mass of Q (or QQ) in mode I.
-            ! IBRANCH = 0
-            IF (     I .EQ. K ) THEN       ! Mode I=K potentially acquires Q-mass from mode L (but not from itself).
-              PIQTMP(I,QQ) = PIQTMP(I,QQ) + NI(K)*NI(L)*(                          KBAR3IJ(L,K)*MJQ(L,QQ) )
-              ! IBRANCH = 1
-            ELSEIF ( I .EQ. L ) THEN       ! Mode I=L potentially acquires Q-mass from mode K (but not from itself).
-              PIQTMP(I,QQ) = PIQTMP(I,QQ) + NI(K)*NI(L)*( KBAR3IJ(K,L)*MJQ(K,QQ)          )
-              ! IBRANCH = 2
-            ELSE                           ! Mode I (.NE.L and .NE.K) potentially acquires Q-mass from both K and L.
-              PIQTMP(I,QQ) = PIQTMP(I,QQ) + NI(K)*NI(L)*( KBAR3IJ(K,L)*MJQ(K,QQ) + KBAR3IJ(L,K)*MJQ(L,QQ) )
-              ! IBRANCH = 3
-            ENDIF
-          ENDIF
+
+      do I=1, NWEIGHTS          ! loop over all modes or quadrature points receiving mass species Q
+        do klq = 1, giklq_control(i)%n
+          k = giklq_control(i)%k(klq)
+          l = giklq_control(i)%l(klq)
+          qq = giklq_control(i)%qq(klq)
+
+          PIQTMP(i,qq) = PIQTMP(i,qq) + 
+     &         ni(k)*ni(l) *KBAR3IJ(l,k) * MJQ(l,qq)
+        end do
+      end do
+
           !-------------------------------------------------------------------------------------------------------------
           ! IF( I.EQ.15 .AND. K.LE.2 .AND. L.EQ.10 ) THEN
           !   WRITE(36,'(4I3,3D15.6,I6)') I,Q,K,L,PIQTMP(I,QQ),NI(K),NI(L),IBRANCH
@@ -806,10 +804,6 @@
           !   WRITE(36,'(12X,5D15.6)')NI(K)*NI(L)*(KBAR3IJ(K,L)*MJQ(K,QQ)+KBAR3IJ(L,K)*MJQ(L,QQ))
           ! ENDIF
           !-------------------------------------------------------------------------------------------------------------
-        ENDDO
-        ENDDO
-      ENDDO
-      ENDDO
       DO I=1, NMODES
         DO Q=1, NM(I)
           DIAGTMP1( 8,MASS_MAP(I,Q)) = PIQ   (I,PROD_INDEX(I,Q))  ! Due to mass emissions
@@ -817,7 +811,6 @@
         ENDDO
       ENDDO      
       PIQ(:,:) = PIQ(:,:) + PIQTMP(:,:)
-      
 
       IF( WRITE_LOG ) THEN
         WRITE(AUNIT1,'(/A/)') 'I, Q, QQ, PIQ(I,QQ) [ug/m^3/s] - after coagulation mass terms'
