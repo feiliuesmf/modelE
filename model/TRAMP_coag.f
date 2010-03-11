@@ -365,6 +365,9 @@
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
       LOGICAL       :: FLAG
 
+      integer :: arrindex_diam(NWEIGHTS)
+      real(4) :: arrxinterp(NWEIGHTS)
+
       IF( FIRSTIME ) THEN
         FIRSTIME = .FALSE.
         !------------------------------------------------------------------------------------------------------------
@@ -392,6 +395,18 @@
       ! ENDIF
       !--------------------------------------------------------------------------------------------------------------
 
+      ! precompute common elements
+      DO I=1, NWEIGHTS
+        !----------------------------------------------------------------------------------------------------------
+        ! For mode I, get the lower and upper bounding table diameters and the interpolation variable XINTERPI.
+        !----------------------------------------------------------------------------------------------------------
+        INDEX_DIAMI = ( log( DIAM(I) / KIJ_DGMIN ) / DELTALNDG ) + 1
+        INDEX_DIAMI = MIN( MAX( INDEX_DIAMI, 1 ), KIJ_NDGS-1 )
+        arrindex_diam(I) = INDEX_DIAMI
+
+        XINTERPI = log( DIAM(I) / KIJ_DIAMETERS(INDEX_DIAMI) ) / DELTALNDG 
+        arrxinterp(I) = XINTERPI
+      END DO
       !--------------------------------------------------------------------------------------------------------------
       ! IUPDATE .EQ. 0: The mode-average coagulation coefficients are held constant throughout the simulation.
       !--------------------------------------------------------------------------------------------------------------
@@ -401,35 +416,40 @@
           !----------------------------------------------------------------------------------------------------------
           ! For mode I, get the lower and upper bounding table diameters and the interpolation variable XINTERPI.
           !----------------------------------------------------------------------------------------------------------
-          INDEX_DIAMI = ( LOG( DIAM(I) / KIJ_DGMIN ) / DELTALNDG ) + 1
-          INDEX_DIAMI = MIN( MAX( INDEX_DIAMI, 1 ), KIJ_NDGS-1 )
+          INDEX_DIAMI = arrindex_diam(I)
           INDEX_DIAMIP1 = INDEX_DIAMI+1
           IF(DIAM(I) .LT. KIJ_DIAMETERS(INDEX_DIAMI  )) FLAG = .TRUE.
           IF(DIAM(I) .GT. KIJ_DIAMETERS(INDEX_DIAMIP1)) FLAG = .TRUE.  
-          XINTERPI = LOG( DIAM(I) / KIJ_DIAMETERS(INDEX_DIAMI) ) / DELTALNDG 
+
+          IF( FLAG ) THEN
+            WRITE(*,*)'Problem in GET_KBARNIJ for IUPDATE = 0'
+            WRITE(*,'(2I6,8F11.5)')I,KIJ_DIAMETERS(INDEX_DIAMI),DIAM(I),KIJ_DIAMETERS(INDEX_DIAMIP1)
+            STOP
+          ENDIF
+!--------------------------------------------------------------------------------------------------------------------
+!           The lower and upper table diameters bounding DIAM(I)), and the interpolation variables
+!           XINTERPI were checked and found correct.
+!--------------------------------------------------------------------------------------------------------------------
+!           WRITE(AUNIT2,'(2I6,8F11.5)')I,KIJ_DIAMETERS(INDEX_DIAMI),DIAM(I),KIJ_DIAMETERS(INDEX_DIAMIP1),XINTERPI
+!--------------------------------------------------------------------------------------------------------------------
+        END DO
+
+        DO I=1, NWEIGHTS
+          !----------------------------------------------------------------------------------------------------------
+          ! For mode I, get the lower and upper bounding table diameters and the interpolation variable XINTERPI.
+          !----------------------------------------------------------------------------------------------------------
+          INDEX_DIAMI = arrindex_diam(I)
+          INDEX_DIAMIP1 = INDEX_DIAMI+1
+          XINTERPI = arrxinterp(I)
+
           DO J=1, NWEIGHTS
             !--------------------------------------------------------------------------------------------------------
             ! For mode J, get the lower and upper bounding table diameters and the interpolation variable XINTERPJ.
             !--------------------------------------------------------------------------------------------------------
-            INDEX_DIAMJ = ( LOG( DIAM(J) / KIJ_DGMIN ) / DELTALNDG ) + 1
-            INDEX_DIAMJ = MIN( MAX( INDEX_DIAMJ, 1 ), KIJ_NDGS-1 )
+            INDEX_DIAMJ = arrindex_diam(J)
             INDEX_DIAMJP1 = INDEX_DIAMJ+1
-            IF(DIAM(J) .LT. KIJ_DIAMETERS(INDEX_DIAMJ  )) FLAG = .TRUE.
-            IF(DIAM(J) .GT. KIJ_DIAMETERS(INDEX_DIAMJP1)) FLAG = .TRUE.
-            XINTERPJ = LOG( DIAM(J) / KIJ_DIAMETERS(INDEX_DIAMJ) ) / DELTALNDG 
-            IF( FLAG ) THEN
-              WRITE(*,*)'Problem in GET_KBARNIJ for IUPDATE = 0'
-              WRITE(*,'(2I6,8F11.5)')I,J,KIJ_DIAMETERS(INDEX_DIAMI),DIAM(I),KIJ_DIAMETERS(INDEX_DIAMIP1),
-     &                                   KIJ_DIAMETERS(INDEX_DIAMJ),DIAM(J),KIJ_DIAMETERS(INDEX_DIAMJP1) 
-              STOP
-            ENDIF
-!--------------------------------------------------------------------------------------------------------------------
-!           The lower and upper table diameters bounding DIAM(I) and DIAM(J), and the interpolation variables
-!           XINTERPI and XINTERPJ were checked and found correct.
-!--------------------------------------------------------------------------------------------------------------------
-!           WRITE(AUNIT2,'(2I6,8F11.5)')I,J,KIJ_DIAMETERS(INDEX_DIAMI),DIAM(I),KIJ_DIAMETERS(INDEX_DIAMIP1),XINTERPI,
-!    &                                      KIJ_DIAMETERS(INDEX_DIAMJ),DIAM(J),KIJ_DIAMETERS(INDEX_DIAMJP1),XINTERPJ
-!--------------------------------------------------------------------------------------------------------------------
+            XINTERPJ = arrxinterp(J)
+            !--------------------------------------------------------------------------------------------------------
             ! For each of the four points needed for bilinear interpolation, get the mode-average coagulation
             ! coefficients at the selected temperature and pressure.
             !--------------------------------------------------------------------------------------------------------
@@ -501,18 +521,23 @@
           !----------------------------------------------------------------------------------------------------------
           ! For mode I, get the lower and upper bounding table diameters and the interpolation variable XINTERPI.
           !----------------------------------------------------------------------------------------------------------
-          INDEX_DIAMI = ( LOG( DIAM(I) / KIJ_DGMIN ) / DELTALNDG ) + 1
-          INDEX_DIAMI = MIN( MAX( INDEX_DIAMI, 1 ), KIJ_NDGS-1 )
+          INDEX_DIAMI = arrindex_diam(I)
           INDEX_DIAMIP1 = INDEX_DIAMI+1
-          XINTERPI = LOG( DIAM(I) / KIJ_DIAMETERS(INDEX_DIAMI) ) / DELTALNDG 
+          XINTERPI = arrxinterp(I)
           DO J=1, NWEIGHTS
+
+            if (CITABLE(I,J) == 'OFF') then ! Turn off coagulation between selected modes.
+              KBAR0IJ(I,J) = 1.0D-30
+              KBAR3IJ(I,J) = 1.0D-30
+              cycle
+            end if
+
             !--------------------------------------------------------------------------------------------------------
             ! For mode J, get the lower and upper bounding table diameters and the interpolation variable XINTERPJ.
             !--------------------------------------------------------------------------------------------------------
-            INDEX_DIAMJ = ( LOG( DIAM(J) / KIJ_DGMIN ) / DELTALNDG ) + 1
-            INDEX_DIAMJ = MIN( MAX( INDEX_DIAMJ, 1 ), KIJ_NDGS-1 )
+            INDEX_DIAMJ = arrindex_diam(J)
             INDEX_DIAMJP1 = INDEX_DIAMJ+1
-            XINTERPJ = LOG( DIAM(J) / KIJ_DIAMETERS(INDEX_DIAMJ) ) / DELTALNDG 
+            XINTERPJ = arrxinterp(J)
             !--------------------------------------------------------------------------------------------------------
             ! For each of the four points needed for bilinear interpolation in Dg(I) and Dg(J), get the 
             ! mode-average coagulation coefficients at each of the four temperature-pressure points.
@@ -716,13 +741,8 @@
      &                   + KBAR3IJ_LU*(1.0-XINTERPI)*(    XINTERPJ)
      &                   + KBAR3IJ_UL*(    XINTERPI)*(1.0-XINTERPJ)
      &                   + KBAR3IJ_UU*(    XINTERPI)*(    XINTERPJ)
-            IF( CITABLE( I,J ) .NE. 'OFF' ) THEN
-              KBAR0IJ(I,J) = DBLE( TMP0 )
-              KBAR3IJ(I,J) = DBLE( TMP3 )
-            ELSE                                  ! Turn off coagulation between selected modes.
-              KBAR0IJ(I,J) = 1.0D-30
-              KBAR3IJ(I,J) = 1.0D-30
-            ENDIF
+            KBAR0IJ(I,J) = DBLE( TMP0 )
+            KBAR3IJ(I,J) = DBLE( TMP3 )
             !--------------------------------------------------------------------------------------------------------
             ! For narrow distributions, KBAR0IJ and KBAR3IJ should be nearly equal, and were found to be so
             ! with Sigmag = 1.1 for all modes.
