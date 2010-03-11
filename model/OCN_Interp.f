@@ -1383,7 +1383,7 @@ C**** surface tracer concentration
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
               aFact(I,J) = 1.d0/AXYP(I,J)
-              atmp10(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
+              atmp10(N,I,J) = aTRGMELT(N,I,J)*(aFact(I,J)*aFOCEAN_loc(I,J))
             END IF
           END DO
         END DO
@@ -2074,7 +2074,7 @@ c*
         DO J=aJ_0,aJ_1
           DO I=aI_0,aIMAXJ(J)
             IF (aFOCEAN_loc(I,J).gt.0.) THEN
-              aFact(I,J) = 1.d0/AXYP(I,J)
+              aFact(I,J) = 1.d0/(AXYP(I,J)*aFOCEAN_loc(I,J))
               atmp2(N,I,J) = aTRGMELT(N,I,J)*aFact(I,J)
             END IF
           END DO
