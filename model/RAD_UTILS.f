@@ -748,6 +748,208 @@ C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
       END SUBROUTINE SPLINE
 
 
+      SUBROUTINE SPLINEVector(X,F,NVEC,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
+      IMPLICIT NONE
+
+      INTEGER, intent(in)  :: NVEC, NXF,              KXTRAP
+      REAL*8 , intent(in)  :: X(NXF),F(NVEC,NXF),XX, CUSPWM,CUSPWE
+      REAL*8 , intent(out) :: FF(NVEC)
+
+C---------------------------------------------------------------------
+C
+C    SPLINEVector is identical to SPLINE, except operates on vector functions
+C    rather than scalar functions.  More efficient than calling in a loop.
+C
+C---------------------------------------------------------------------
+C
+C    Custom Control Parameters:  CUSPWM,CUSPWE,KXTRAP
+C------------------------------
+C
+C    In cases where data points are unevenly spaced and/or data points
+C    exhibit abrupt changes in value, Spline Interpolation may produce
+C    undesirable bulging of interpolated values. In more extreme cases
+C    Linear Interpolation may be less problematic to use.
+C
+C    Interpolation can be weighted between: Cubic Spline and Linear by
+C    adjusting weights CUSPWM and CUSPWE to values between 1.0 and 0.0
+C
+C    CUSPWM = Cubic Spline Weight at the (X2-X3) Interval Mid-point
+C    CUSPWE = Cubic Spline Weight at the (X2-X3) Interval End-points
+C
+C    For example, with:
+C
+C    CUSPWM=1.0,CUSPWE=1.0  FF returns Cubic Spline interpolated value
+C    CUSPWM=0.0,CUSPWE=0.0  FF returns   Linearly   interpolated value
+C
+C---------------------------------------------------------------------
+C
+C     Extrapolation for XX outside of defined interval:  X(1)<->X(NXF)
+C
+C               KXTRAP = 0    No Extrapolation  (i.e., sets F(XX)=0.0)
+C                        1    Fixed Extrapolation (F(XX) = edge value)
+C                        2    Linear Extrapolation using 2 edge points
+C
+C---------------------------------------------------------------------
+
+      REAL*8 x1,x2,x3,x4, x21,x32,x43,x31,x42, betw,CUSPWT
+      REAL*8, dimension(NVEC) :: f1, f2, f3, f4
+      REAL*8, dimension(NVEC) :: f21, f32, f43, f3221, f4332
+      REAL*8, dimension(NVEC) :: A, B, C, D, FFCUSP, FFLINR
+      REAL*8 xf,xe,xexm
+      INTEGER K
+
+      K=2
+      X2=X(K)
+      X3=X(NXF-1)
+      BETW=(XX-X2)*(X3-XX)
+      IF(BETW <= 0.D0) GO TO 120
+
+  100 CONTINUE
+      K=K+1
+      X3=X(K)
+      BETW=(XX-X2)*(X3-XX)
+      IF(BETW >= 0.D0) GO TO 110
+      X2=X3
+      GO TO 100
+
+  110 CONTINUE
+      F3(:)=F(:,K)
+      F4(:)=F(:,K+1)
+      X4=X(K+1)
+      F2(:)=F(:,K-1)
+      X2=X(K-1)
+      F1(:)=F(:,K-2)
+      X1=X(K-2)
+      X21=X2-X1
+      X31=X3-X1
+      X32=X3-X2
+      X43=X4-X3
+      X42=X4-X2
+      F21(:)=(F2(:)-F1(:))/(X21*X21)
+      F32(:)=(F3(:)-F2(:))/(X32*X32)
+      F43(:)=(F4(:)-F3(:))/(X43*X43)
+      F3221(:)=(F32(:)+F21(:))/X31*X21
+      F4332(:)=(F43(:)+F32(:))/X42*X43
+      A=F2
+      B=X32*F3221
+      C=3.D0*F32-F3221-F3221-F4332
+      D=(F3221+F4332-F32-F32)/X32
+      XF=XX-X2
+
+C                             FFCUSP= Cubic Spline Interpolation Result
+C                             -----------------------------------------
+
+      FFCUSP=A+XF*(B+XF*(C+XF*D))
+      XE=(X3+X2-XX-XX)/X32
+      IF(XE < 0.D0) XE=-XE
+      XEXM=XE**2
+      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+
+C                                   FFLINR= Linear Interpolation Result
+C                                   -----------------------------------
+      FFLINR=A+XF*F32*X32
+      FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      GO TO 160
+
+C                Edge Point Interval Interpolation and/or Extrapolation
+C                ------------------------------------------------------
+  120 CONTINUE
+      BETW=(X2-XX)*(X3-X2)
+      IF(BETW < 0.D0) GO TO 140
+
+C                          X(1),X(2)  Edge Point Interval Interpolation
+C                          --------------------------------------------
+      X1=X(1)
+      F1=F(:,1)
+      F2=F(:,2)
+      X21=X2-X1
+      F21=(F2-F1)/X21
+      XF=XX-X1
+      BETW=(X2-XX)*XF
+      IF(BETW < 0.D0) GO TO 130
+      F3=F(:,3)
+      X3=X(3)
+      X32=X3-X2
+      X31=X3-X1
+      C=((F3-F2)/X32-F21)/X31
+      B=F21-X21*C
+      A=F1
+      FFCUSP=A+XF*(B+XF*C)
+      FFLINR=A+XF*F21
+      XE=1.D0-2.D0*XF/X21
+      IF(XE < 0.D0) XE=-XE
+      XEXM=XE**2
+      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+      FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      GO TO 160
+
+  130 CONTINUE
+C                  Extrapolation for XX Outside of Interval X(1) - X(2)
+C                  ----------------------------------------------------
+C                  IF(KXTRAP == 0)  (No Extrapolation:  sets F(XX)=0.0)
+C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
+
+      IF(KXTRAP == 0) FF=0.D0
+      IF(KXTRAP == 1) FF=F1
+      IF(KXTRAP == 2) FF=F1+XF*F21
+      GO TO 160
+
+  140 CONTINUE
+C                    X(NXF-1),X(NXF)  Edge Point Interval Interpolation
+C                    --------------------------------------------------
+      F3=F(:,NXF)
+      X3=X(NXF)
+      F2=F(:,NXF-1)
+      X2=X(NXF-1)
+      X32=X3-X2
+      F32=(F3-F2)/X32
+      XF=XX-X3
+      BETW=(X2-XX)*(XX-X3)
+      IF(BETW < 0.D0) GO TO 150
+      F1=F(:,NXF-2)
+      X1=X(NXF-2)
+      X21=X2-X1
+      X31=X3-X1
+      F21=(F2-F1)/X21
+      XF=XX-X2
+
+C                    3-Point Quadratic Interpolation for Edge Intervals
+C                    --------------------------------------------------
+C
+C      (Edge Option)     ----------------------------------------------
+C                        For Linear Interpolation within Edge Intervals
+C                        between X(1),X(2), and between X(NXF-1),X(NXF)
+C                        set the value of coefficient C below, to C=0.0
+C                        ----------------------------------------------
+
+      C=(F32-F21)/X31
+      B=F21+X21*C
+      A=F2
+      FFCUSP=A+XF*(B+XF*C)
+      FFLINR=A+XF*F32
+      XE=1.D0-2.D0*XF/X32
+      IF(XE < 0.D0) XE=-XE
+      XEXM=XE**2
+      CUSPWT=(1.D0-XEXM)*CUSPWM+XEXM*CUSPWE
+      FF=FFCUSP*CUSPWT+FFLINR*(1.D0-CUSPWT)
+      GO TO 160
+
+  150 CONTINUE
+C              Extrapolation for X Outside of Interval  X(NXF-1)-X(NXF)
+C              --------------------------------------------------------
+C                  IF(KXTRAP == 0)  (No Extrapolation:  sets F(XX)=0.0)
+C                  IF(KXTRAP == 1)  (Extrapolation at Fixed Edge Value)
+C                  IF(KXTRAP == 2)  (2 Edge Point Linear Extrapolation)
+
+      IF(KXTRAP == 0) FF=0.D0
+      IF(KXTRAP == 1) FF=F3
+      IF(KXTRAP == 2) FF=F3+XF*(F3-F2)/(X3-X2)
+
+  160 CONTINUE
+      RETURN
+      END SUBROUTINE SPLINEVector
+
 ccc the following subroutines were just moved from RADIATION.f to
 ccc reduce its size. Only MODULE RADPAR subroutines or those that
 ccc USE RADPAR module were left.
