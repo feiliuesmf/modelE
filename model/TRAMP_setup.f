@@ -1319,20 +1319,8 @@
         deallocate(dikl_control)
       end if
       allocate(dikl_control(count(dikl /= 0)))
-      n = 0
-      do k = 1, NWEIGHTS
-        do l = k+1, NWEIGHTS
-          do i = 1, NWEIGHTS
-            if (dikl(i,k,l) /= 0) then
-              n = n + 1
-              dikl_control(n)%i = i
-              dikl_control(n)%k = k
-              dikl_control(n)%l = l
-            end if          
-          end do
-        end do
-      end do
-      NDIKL = n
+
+      call initializeDiklControl(dikl_control, DIKL)
 
       if (allocated(giklq_control)) then
         do i = 1, nweights
@@ -1344,56 +1332,7 @@
         allocate(GIKLQ_control(NWEIGHTS))
       end if
 
-      ! count contributing cases
-      do i = 1, NWEIGHTS
-        n = 0
-        do q = 1, nm(i)
-          do k = 1, nmodes
-            do l = k+1, nmodes
-              if (GIKLQ(i,k,l,q) /= 0) then
-                if (i /= l) then
-                  n = n + 1
-                end if
-                if (i /= k) then
-                  n = n + 1
-                end if
-              end if
-            end do
-          end do
-        end do
-        nTot = n
-        GIKLQ_control(i)%n = nTot
-        allocate(GIKLQ_control(i)%k(nTot))
-        allocate(GIKLQ_control(i)%l(nTot))
-        allocate(GIKLQ_control(i)%qq(nTot))
-      end do
-      
-      do i = 1, NWEIGHTS
-        n = 0
-        do q = 1, nm(i)
-          do k = 1, nmodes
-            do l = k+1, nmodes
-              if (GIKLQ(i,k,l,q) /= 0) then
-                if (i /= l) then
-                  n = n + 1
-                  GIKLQ_control(i)%k(n) = k
-                  GIKLQ_control(i)%l(n) = l
-                  qq = prod_index(i,q)
-                  GIKLQ_control(i)%qq(n) = qq
-                end if
-                if (i /= k) then
-                  n = n + 1
-                  GIKLQ_control(i)%k(n) = l
-                  GIKLQ_control(i)%l(n) = k
-                  qq = prod_index(i,q)
-                  GIKLQ_control(i)%qq(n) = qq
-                end if
-              end if
-            end do
-          end do
-        end do
-        GIKLQ_control(i)%n = n
-      end do
+      call initializeGiklqControl(GIKLQ_control, GIKLQ)
 
       !-------------------------------------------------------------------------------------------------------------
       ! The tensor d_ij is not symmetric in I,J.
@@ -1454,6 +1393,90 @@
 
 90000 FORMAT(14A4)
       RETURN
+
+      contains
+
+      subroutine initializeDiklControl(control, mask)
+      type (dikl_type) :: control(:)
+      integer, intent(in) :: mask(:,:,:)
+      integer :: i, k, l, n
+
+      n = 0
+      do k = 1, NWEIGHTS
+        do l = k+1, NWEIGHTS
+          do i = 1, NWEIGHTS
+            if (mask(i,k,l) /= 0) then
+              n = n + 1
+              control(n)%i = i
+              control(n)%k = k
+              control(n)%l = l
+            end if          
+          end do
+        end do
+      end do
+      NDIKL = n
+      end subroutine initializeDiklControl
+
+      subroutine initializeGiklqControl(control, mask)
+      type (GIKLQ_type) :: control(:)
+      integer, intent(in) :: mask(:,:,:,:)
+
+      integer :: i, q, k, l, n, nTotal
+
+      do i = 1, NWEIGHTS
+        ! 1) count contributing cases for mode i
+        n = 0
+        do q = 1, nm(i)
+          do k = 1, nmodes
+            do l = k+1, nmodes
+              if (mask(i,k,l,q) /= 0) then
+                if (i /= l) then
+                  n = n + 1
+                end if
+                if (i /= k) then
+                  n = n + 1
+                end if
+              end if
+            end do
+          end do
+        end do
+        nTotal = n
+        ! 2) allocate nTotal entries
+        control(i)%n = nTotal
+        allocate(control(i)%k(nTotal))
+        allocate(control(i)%l(nTotal))
+        allocate(control(i)%qq(nTotal))
+
+        ! 3) repeat sweep, but now assign k,l,qq
+        n = 0
+        do q = 1, nm(i)
+          do k = 1, nmodes
+            do l = k+1, nmodes
+              if (mask(i,k,l,q) /= 0) then
+                if (i /= l) then
+                  n = n + 1
+                  control(i)%k(n) = k
+                  control(i)%l(n) = l
+                  qq = prod_index(i,q)
+                  control(i)%qq(n) = qq
+                end if
+                if (i /= k) then
+                  n = n + 1
+                  control(i)%k(n) = l
+                  control(i)%l(n) = k
+                  qq = prod_index(i,q)
+                  control(i)%qq(n) = qq
+                end if
+              end if
+            end do
+          end do
+        end do
+        control(i)%n = n
+      end do
+
+      end subroutine initializeGiklqControl
+
+
       END SUBROUTINE SETUP_COAG_TENSORS
 
 
