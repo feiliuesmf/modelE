@@ -42,7 +42,7 @@ avg.o: avg.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c avg.f
 bigrid.o: bigrid.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c bigrid.f
-const_proc.o: const_proc.f
+const_proc.o: const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c const_proc.f
 extrct.o: extrct.f const_proc.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c extrct.f
@@ -56,7 +56,7 @@ grdtrns.o: grdtrns.f
 	$(LD) $(LDFLAGS) -c grdtrns.f
 hycom_dimen.o: hycom_dimen.f
 	$(LD) $(LDFLAGS) -c hycom_dimen.f
-hycom_arrays.o: hycom_arrays.f
+hycom_arrays.o: hycom_arrays.f hycom_dimen.f
 	$(LD) $(LDFLAGS) -c hycom_arrays.f
 latlonz.o: latlonz.f const_proc.f hycom_dimen.f hycom_arrays.f
 	$(LD) $(LDFLAGS) -c latlonz.f

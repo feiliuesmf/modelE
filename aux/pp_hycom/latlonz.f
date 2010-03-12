@@ -267,7 +267,11 @@ c
           avg3d(i,j,k)=flag
         endif
  44     continue
-        write(ttl,'(a,6x,a)') ttl0(n),trim(ttl2)
+        if (n.le.8) then
+          write(ttl,'(a,6x,a)') ttl0(n),trim(ttl2)
+        else
+          write(ttl,'(a,6x,a)') ttlt(n-8),trim(ttl2)
+        endif
         write(93) ttl,avg3d
         if (diag) then
         write(*,*) trim(ttl)
