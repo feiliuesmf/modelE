@@ -5002,7 +5002,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Piston Velocity'
-        ijtc_power(n) = 0
+        ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'m/s')
         scale_ijts(k) = 10.**(-ijtc_power(n))
 
@@ -5011,13 +5011,13 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Solubility_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Solubility'
-        ijtc_power(n) = 0
+        ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'mol/m3/uatm')
         scale_ijts(k) = 10.**(-ijtc_power(n))
 
       k = k+1  ! Gas exchange 
         ijts_gasex(3,n)  = k
-        ia_ijts(k) = ia_srf
+        ia_ijts(k) = ia_src
         sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Gas Exchange'
         ijtc_power(n) = 0
@@ -5027,7 +5027,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('CO2n')
       k = k + 1
         ijts_isrc(1,n) = k
-        ia_ijts(k) = ia_srf
+        ia_ijts(k) = ia_src
         sname_ijts(k) = 'CO2_O_GASX'
         lname_ijts(k) = 'AO GASEX CO2'
         ijts_power(k) = -11
@@ -5039,7 +5039,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Piston_Veloc_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Piston Velocity'
-        ijtc_power(n) = 0
+        ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'m/s')
         scale_ijts(k) = 10.**(-ijtc_power(n))
 
@@ -5048,13 +5048,13 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_srf
         sname_ijts(k) = 'Solubility_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Solubility'
-        ijtc_power(n) = 0
+        ijtc_power(n) = -5
         units_ijts(k) = unit_string(ijtc_power(n),'mol/m3/uatm')
         scale_ijts(k) = 10.**(-ijtc_power(n))
       
       k = k+1  ! Gas exchange 
         ijts_gasex(3,n)  = k
-        ia_ijts(k) = ia_srf
+        ia_ijts(k) = ia_src
         sname_ijts(k) = 'Gas_Exchange_'//trim(trname(n))
         lname_ijts(k) = trim(trname(n))//' Gas Exchange'
         ijtc_power(n) = 0
