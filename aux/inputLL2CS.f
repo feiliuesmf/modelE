@@ -11,12 +11,13 @@
      &     xll2cs_VEGFRAC,xll2cs_LAI,xll2cs_AIC,
      &     xll2cs_VEG,xll2cs_GIC2,
      &     xll2cs_4x5,xll2cs_2x2h,
-     &     xll2cs_1x1q,xll2cs_1x1
+     &     xll2cs_1x1q,xll2cs_1x1,xll2cs_halfdeg
 
       integer ::  ims_4x5, jms_4x5,
      &     ims_2x2h, jms_2x2h,
      &     ims_1x1q, jms_1x1q,
-     &     ims_1x1, jms_1x1
+     &     ims_1x1, jms_1x1,
+     &     ims_halfdeg, jms_halfdeg
       integer, parameter :: ntilessource=1,ntilestarget=6
 
       ims_4x5=72
@@ -27,6 +28,8 @@
       jms_1x1q=180
       ims_1x1=360
       jms_1x1=180
+      ims_halfdeg=720
+      jms_halfdeg=360
 
       call init_regrid(xll2cs_4x5,ims_4x5,jms_4x5,
      &     ntilessource,imt,jmt,ntilestarget)
@@ -35,6 +38,8 @@
       call init_regrid(xll2cs_1x1q,ims_1x1q,jms_1x1q,
      &     ntilessource,imt,jmt,ntilestarget)
       call init_regrid(xll2cs_1x1,ims_1x1,jms_1x1,
+     &     ntilessource,imt,jmt,ntilestarget)
+      call init_regrid(xll2cs_halfdeg,ims_halfdeg,jms_halfdeg,
      &     ntilessource,imt,jmt,ntilestarget)
 
 c     288x180 for SICE, OSST, TOPO, VEG
@@ -64,8 +69,8 @@ ccc      call testOSST()
       call regridVEG(xll2cs_VEG)
       call regridSOIL(xll2cs_SOIL)
 c      call regridGLMELT(xll2cs_GLMELT)
-      call regridVEGFRAC(xll2cs_4x5)
-      call regridLAI(xll2cs_4x5)
+      call regridVEGFRAC(xll2cs_halfdeg)
+      call regridLAI(xll2cs_halfdeg)
       call regridGIC(xll2cs_GIC,xll2cs_GIC2)
       call regridAIC(xll2cs_AIC)
 
@@ -647,10 +652,10 @@ c
       
       open(iu_SOIL,FILE=name,FORM='unformatted', STATUS='old')
       
-      allocate (dz(ims,jms,6),ftext(ims,jms,6,5),
-     &     ftextk(ims,jms,6,5),sl(ims,jms),
-     &     dzout(imt,jmt,6,ntt),ftextout(imt,jmt,6,5,ntt),
-     &     ftextkout(imt,jmt,6,5,ntt),
+      allocate (dz(ims,jms,6),ftext(ims,jms,5,6),
+     &     ftextk(ims,jms,5,6),sl(ims,jms),
+     &     dzout(imt,jmt,6,ntt),ftextout(imt,jmt,5,6,ntt),
+     &     ftextkout(imt,jmt,5,6,ntt),
      &     slout(imt,jmt,ntt),bigarrout(imt,jmt,67,ntt) )
 
       allocate (tsource(ims,jms,nts),
@@ -683,18 +688,18 @@ c      write(*,*) dz
 
       do k=1,6
          do l=1,5
-            tsource(:,:,1)=ftext(:,:,k,l)
+            tsource(:,:,1)=ftext(:,:,l,k)
             call do_regrid(x2grids,tsource,ttargglob)
-            ftextout(:,:,k,l,:)=ttargglob(:,:,:)
+            ftextout(:,:,l,k,:)=ttargglob(:,:,:)
          enddo
       enddo
 
 
       do k=1,6
          do l=1,5
-            tsource(:,:,1)=ftextk(:,:,k,l)
+            tsource(:,:,1)=ftextk(:,:,l,k)
             call do_regrid(x2grids,tsource,ttargglob)
-            ftextkout(:,:,k,l,:)=ttargglob(:,:,:)
+            ftextkout(:,:,l,k,:)=ttargglob(:,:,:)
          enddo
       enddo
 
@@ -709,14 +714,14 @@ c      write(*,*) dz
       inds=6
       do k=1,6
          do l=1,5
-            bigarrout(:,:,inds+k+6*(l-1),:)=ftextout(:,:,k,l,:)
+            bigarrout(:,:,inds+l+5*(k-1),:)=ftextout(:,:,l,k,:)
          enddo
       enddo
 
       inds=inds+30
       do k=1,6
          do l=1,5
-            bigarrout(:,:,inds+k+6*(l-1),:)=ftextkout(:,:,k,l,:)
+            bigarrout(:,:,inds+l+5*(k-1),:)=ftextkout(:,:,l,k,:)
          enddo
       enddo
 
@@ -857,7 +862,7 @@ c
       ttargglob(:,:,:,:) = 0.0
      
       iu_VEGFRAC=20
-      name="vegtype.global4X5.bin"
+      name="vegtype.global.bin"
       write(*,*) name
       open( iu_VEGFRAC, FILE=name,FORM='unformatted', STATUS='old')
       
@@ -931,8 +936,7 @@ c
          else
             write(c2month,'(i2)') imonth
          endif
-         name='lai'//c2month//'.4x5.bin'
-c         name='lai'//c2month//'.global.bin'
+         name='lai'//c2month//'.global.bin'
          write(*,*) name
       
          open( iu_LAI, FILE=name,FORM='unformatted', STATUS='old')
