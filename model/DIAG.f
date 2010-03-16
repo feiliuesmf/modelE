@@ -1659,23 +1659,22 @@ c          data=sday*prec/dtsrc
           PM_acc=0.
 #ifdef TRACERS_WATER
         case ("TRP1")
-          data=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
-!          write(6,*) k,' TRP1::',trp_acc(1,64,7), Nsubdd,dtsrc
+          data=sday*TRP_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(1,:,:)=0.
         case ("TRE1")
-          data=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          data=sday*TRE_acc(1,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(1,:,:)=0.
         case ("TRP2")
-          data=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          data=sday*TRP_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(2,:,:)=0.
         case ("TRE2")
-          data=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          data=sday*TRE_acc(2,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(2,:,:)=0.
         case ("TRP3")
-          data=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          data=sday*TRP_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRP_acc(3,:,:)=0.
         case ("TRE3")
-          data=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(i,j)) ! accum over Nsubdd steps
+          data=sday*TRE_acc(3,:,:)/(Nsubdd*dtsrc*axyp(:,:)) ! accum over Nsubdd steps
           TRE_acc(3,:,:)=0.
 #endif
         case ("SNOWD")     ! snow depth (w.e. mm)
