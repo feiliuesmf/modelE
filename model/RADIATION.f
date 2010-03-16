@@ -1973,11 +1973,11 @@ C                                           ----------------------------
       else                    ! annual data
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
-        write(6,*) 'SOLAR::A::',is0x,lmo,JYEARS,JJDAYS,JMO
+c        write(6,*) 'SOLAR::A::',is0x,lmo,JYEARS,JJDAYS,JMO
         IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
-        write(6,*) 'SOLAR::B::',lmo,icycs0,Is0X
+c        write(6,*) 'SOLAR::B::',lmo,icycs0,Is0X
         IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
-        write(6,*) 'SOLAR::C::',lmo
+c        write(6,*) 'SOLAR::C::',lmo
       end if
       LMOREF=LMO
 
@@ -2085,7 +2085,7 @@ C--------------------------------
         lmo = nint( jyears - yr1s0 + 1.5 )
         IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
         IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
-        write(6,*) 'UPDSOLAR::A::',LMO,JYEARS,JJDAYS,JMO
+c        write(6,*) 'UPDSOLAR::A::',LMO,JYEARS,JJDAYS,JMO
       end if
 
       IF(LMO==LMOREF) RETURN  ! solar constant up-to-date
@@ -2098,7 +2098,7 @@ C                                               ------------------------
       ELSE
         FLXSUM=TSI2(LMO)
       END IF
-        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
+c        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
 
       IF(KSOLAR.ne.9) THEN
         I=0
