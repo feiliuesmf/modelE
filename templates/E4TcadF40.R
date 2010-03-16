@@ -151,7 +151,7 @@ RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux       ! need KSOLAR=2
+RADN9=solar.lean02.ann.uvflux_hdr       ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
 GHG=GHG.Mar2009.txt ! use GHG.Jul2009.txt for runs that start before 1850
@@ -221,7 +221,7 @@ Ox_IC=gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc
 CO_IC=gsin/CO_init_cond_M23_conc_2x2.5_conc
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
-! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
+! FLTRAN=chem_files/solar.lean02.ann.uvflux_hdr_fastj2  ! KSOLAR=2
 !-----------------------------------------------
 SULFATE_SA=temp_2x2.5/sulfate_pi_fakeM23_M_SA_2x2.5gf ! really 4x5 and 9-layer
 DMS_FIELD=temp_2x2.5/dms_conc_2x2.5gf ! really 4x5

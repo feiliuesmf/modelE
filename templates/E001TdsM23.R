@@ -117,7 +117,7 @@ RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux    ! need KSOLAR=2
+RADN9=solar.lean02.ann.uvflux_hdr    ! need KSOLAR=2
 ! RADN9=Solar_spectrum.1500-2004_gsf ! need KSOLAR=9
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
@@ -182,7 +182,7 @@ CO_IC=gsin/CO_init_cond_M23_conc
 Ox_ref=gsin/O3ref_O3JDAY_1850_182.dat
 ! fltran file used if rad_FL.ne.0:
 ! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
-! FLTRAN=chem_files/solar.lean02.ann.uvflux_fastj2  ! KSOLAR=2
+! FLTRAN=chem_files/solar.lean02.ann.uvflux_hdr_fastj2  ! KSOLAR=2
 !----------Default emissions case (mostly AR5 late apr 09)------------
 CO_01=AR5_emis/M/NOV09/2000/CO_agr_AR5_2000_4x5_h
 CO_02=AR5_emis/M/NOV09/2000/CO_awb_AR5_2000_4x5_h

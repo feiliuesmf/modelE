@@ -143,7 +143,7 @@ RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN6=dust_mass_CakmurMillerJGR06_72x46x20x7x12
 RADN7=STRATAER.VOL.1850-1999.Apr02
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux     ! need KSOLAR=2
+RADN9=solar.lean02.ann.uvflux_hdr     ! need KSOLAR=2
 RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
 ! ozone files (minimum 1, maximum 9 files + 1 trend file)
