@@ -469,8 +469,12 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 
       INTEGER, PARAMETER :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
       INTEGER, PARAMETER :: icycs0=11,  mcycs0=icycs0*12
-      REAL*4 UVLEAN(Ms0X,190),yr1S0,yr2S0
-      REAL*8 TSI1(Ms0X),TSI2(Ms0X),FSLEAN(190),W1LEAN(190)
+      INTEGER  iMS0X
+      REAL*4 rMS0X
+      REAL*4 yr1S0,yr2S0
+      real,    ALLOCATABLE, DIMENSION(:,:):: UVLEAN
+      real,    ALLOCATABLE, DIMENSION(:)  :: TSI1,TSI2
+      REAL*8 FSLEAN(190),W1LEAN(190)
 
       REAL*8 :: S00WM2=1366.2911d0, S0=1366.d0, RATLS0=1.
 
@@ -1432,6 +1436,7 @@ C-----------------------------------------------------------------------
 CR(9)         Read Judith Lean's Solar UV and Solar Constant Variability
 C                                      Monthly-Mean Solar UV (1882-1998)
 C                                      ---------------------------------
+      iMS0X = MS0X
 
       IF(KSOLAR < 0) GO TO 949
       IF(MADLUV < 1) THEN
@@ -1458,10 +1463,17 @@ C                                      ---------------------------------
 
         READ(NRFU,'(a80)') TITLE
         READ(NRFU,'(a80)') TITLE
+        READ(NRFU,'(a5,f4.0)',err=910) TITLE(1:5),rMs0X
+        if (TITLE(1:5).ne.'MS0X=')
+     &    call stop_model('rcomp1: Number of Records missing'//
+     &    ' in solar file.',255)
+        iMS0X = rMs0X
+        write(6,*) 'CHECK MS0X::',TITLE(1:5)//'<<<',iMS0X
       END IF
+      ALLOCATE (UVLEAN(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
       IF(KSOLAR < 2) THEN
 C****   Read in monthly-mean data
-        DO I=1,Ms0X
+        DO I=1,iMs0X
           READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
           READ(NRFU,'(5E14.6)')     FSLEAN    ! 1:190
           SFNORM = TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
@@ -1469,7 +1481,7 @@ C****   Read in monthly-mean data
         END DO
       ELSE
 C****   Read in annual-mean data
-        DO I=1,Ms0X
+        DO I=1,iMs0X
           IF(KSOLAR.ne.9) THEN
             READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
           ELSE
@@ -1486,6 +1498,11 @@ C****   Read in annual-mean data
           ENDIF
         END DO
   908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
+        GOTO 949
+  910   call stop_model('rcomp1: Number of Records missing'//
+     &    ' in solar file.',255)
+  909   call stop_model('rcomp1: Unexpected EOF: '//
+     &    'Check MS0X in solar file.',255)
       END IF
 
   949 CONTINUE
@@ -1951,13 +1968,16 @@ C                                           ----------------------------
         JMO=1+JJDAYS/30.5D0
         IF(JMO > 12) JMO=12
         LMO=(JYEARS-iy1S0)*12+JMO
-        IF(LMO > Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
+        IF(LMO > iMs0X) LMO=LMO-mcycs0*((LMO-iMs0X+mcycs0-1)/mcycs0)
         IF(LMO < 1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
       else                    ! annual data
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
+        write(6,*) 'SOLAR::A::',is0x,lmo,JYEARS,JJDAYS,JMO
         IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
+        write(6,*) 'SOLAR::B::',lmo,icycs0,Is0X
         IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
+        write(6,*) 'SOLAR::C::',lmo
       end if
       LMOREF=LMO
 
@@ -2058,13 +2078,14 @@ C--------------------------------
         JMO=1+JJDAYS/30.5D0
         IF(JMO > 12) JMO=12
         LMO=(JYEARS-iy1S0)*12+JMO
-        IF(LMO > Ms0X) LMO=LMO-mcycs0*((LMO-Ms0X+mcycs0-1)/mcycs0)
+        IF(LMO > iMs0X) LMO=LMO-mcycs0*((LMO-iMs0X+mcycs0-1)/mcycs0)
         IF(LMO < 1) LMO=LMO+mcycs0*((mcycs0-lmo)/mcycs0)
       else                    ! annual data        ksolar=2,9
         Is0x = nint( yr2s0-yr1s0+1 )
         lmo = nint( jyears - yr1s0 + 1.5 )
         IF(LMO > Is0X) LMO=LMO-icycs0*((LMO-Is0X+icycs0-1)/icycs0)
         IF(LMO < 1) LMO=LMO+icycs0*((icycs0-lmo)/icycs0)
+        write(6,*) 'UPDSOLAR::A::',LMO,JYEARS,JJDAYS,JMO
       end if
 
       IF(LMO==LMOREF) RETURN  ! solar constant up-to-date
@@ -2077,6 +2098,7 @@ C                                               ------------------------
       ELSE
         FLXSUM=TSI2(LMO)
       END IF
+        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
 
       IF(KSOLAR.ne.9) THEN
         I=0
