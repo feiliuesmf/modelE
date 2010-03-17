@@ -204,6 +204,9 @@ c      real*8, dimension(JM,LM)      :: photO2_glob
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0, I_1
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
       real*8 :: qsat ! this is a function in UTILDBL.f
+#ifdef TRACERS_AEROSOLS_SOA
+      real*8 voc2nox_denom
+#endif  /* TRACERS_AEROSOLS_SOA */
 
       CALL GET(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
@@ -800,6 +803,9 @@ c Calculate the chemical reaction rates:
 #endif
      &                     )      
 
+#ifdef TRACERS_AEROSOLS_SOA
+      voc2nox(:)=0.d0
+#endif  /* TRACERS_AEROSOLS_SOA */
 
       if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
 CCCCCCCCCCCCCCCCCCCC   SUNLIGHT   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -817,6 +823,20 @@ CCCCCCCCCCCCCCCCC FAMILY PARTITIONING CCCCCCCCCCCCCCCCCCCCCCCCCC
        call NOxfam(maxl,I,J)
 #endif
 CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
+#ifdef TRACERS_AEROSOLS_SOA
+! calculate voc2nox for SOA precursor chemistry
+      do L=1,LM
+        voc2nox_denom=(4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
+     &                 rr(43,L)*y(nHO2,L)+
+     &                 1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
+        if (voc2nox_denom==0.d0) then
+          voc2nox(L)=0.d0
+        else
+          voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
+     &               voc2nox_denom
+        endif
+      enddo
+#endif  /* TRACERS_AEROSOLS_SOA */
 
       call chemstep(I,J,changeL,ierr_loc)
       if(ierr_loc > 0) cycle i_loop
@@ -938,17 +958,6 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
       LL=maxl
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
-! calculate voc2nox and apart for SOA precursor chemistry
-      do L=1,LL
-        if (y(nNO,L)==0.d0) then
-          voc2nox(L)=0.d0
-        else
-          voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
-     &              (4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
-     &               rr(43,L)*y(nHO2,L)+
-     &               1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
-        endif
-      enddo
       call soa_apart ! calculate current apartmolar factors
 #ifdef SOA_DIAGS
      &              (I,J)
