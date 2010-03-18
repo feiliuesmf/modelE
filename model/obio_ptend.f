@@ -15,11 +15,12 @@ c  P(8) = coccolithophores (mg chl m-3)
 c  P(9) = herbivores (mg chl m-3)
  
       USE obio_dim
-      USE obio_incom,only: cnratio,cfratio,remin,obio_wsh
-     .                    ,wsdeth,rkn,rks,rkf,Rm,phygross
+      USE obio_incom,only: cnratio,cfratio,remin,obio_wsh,bf,cchlratio
+     .                    ,wsdeth,rkn,rks,rkf,Rm,phygross,bn,solFe
+     .                    ,mgchltouMC,uMtomgm3
       USE obio_forc, only: tirrq
-      USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend
-     .                    ,gro,rlamz,dratez1,dratez2,bn
+      USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend,C_tend
+     .                    ,gro,rlamz,dratez1,dratez2
      .                    ,greff,pnoice,drate,tfac,regen,Fescav
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
@@ -49,7 +50,7 @@ c  P(9) = herbivores (mg chl m-3)
 
 
 
-      real bs,cchlratio,bf,ptot
+      real bs,ptot
       real Pzoo,Gzoo,Dzoo1,Dzoo2,exc
       real tirrqice,upn,upa,upf,ups
 
@@ -69,6 +70,7 @@ c  P(9) = herbivores (mg chl m-3)
        rhs=0.0
        obio_ws = 0.0
        P_tend = 0.0
+       C_tend = 0.0
        D_tend = 0.0
        wsdet = 0.0
        rmu4 = 0.0
@@ -79,11 +81,14 @@ c  P(9) = herbivores (mg chl m-3)
        dphy = 0.0
        gro = 0.0
        viscfac = 0.0
+       pp2_1d = 0.0
 
 
 
 !define no ice points based on covice (here: covice_ij)
       pnoice=1.-covice_ij
+
+      bs = 2.0*bn
 
 !tendency terms are computed in the mid-level (m)
 
@@ -92,22 +97,21 @@ c  Start Model Space Loop
 
 !Iron + atm iron: disperse in layer and convert to nM
        k = 1
-       term = atmFe_ij*1.d-3/max(p1d(k+1),1.e-3)
+       term = atmFe_ij*solFe*1.d-3/max(p1d(k+1),1.e-3)
        rhs(k,4,4) = term
        P_tend(k,4) = term
 
-       do k=2,kmax
-          rhs(k,4,4) = 0.0
-          P_tend(k,4) = 0.0
-       enddo
+!change: March 15, 2010
+!      do k=2,kmax
+!         rhs(k,4,4) = 0.0
+!         P_tend(k,4) = 0.0
+!      enddo
 
 !Grazing/regeneration of ammonium
        do k = 1,kmax
 
-         bs = 2.0*bn(k)
-         cchlratio = bn(k)*cnratio
-         bf = cchlratio/cfratio  !Fe:chl ratio (nM/ugl)
- 
+         mgchltouMC = cchlratio/uMtomgm3
+
          ptot = 0.0
          do nt = nnut+1,ntyp-nzoo
           ptot = ptot + obio_P(k,nt)
@@ -168,7 +172,7 @@ cdiag      endif
          P_tend(k,1) = term
 
          !regeneration from zooplankton
-         term = bn(k)*(exc + regen*dzoo2) * pnoice
+         term = bn*(exc + regen*dzoo2) * pnoice
          rhs(k,2,ntyp) = term
          P_tend(k,2) = term
 
@@ -191,17 +195,22 @@ cdiag      endif
          rhs(k,4,13) = term             !this should actually be rhs(4,4) but we
                                         !have already defined it so let it be rhs(4,13)
          P_tend(k,4) = P_tend(k,4) + term
+
+         term = exc*mgchltouMC*pnoice
+     *                  + regen*dzoo2*mgchltouMC*pnoice
+         rhs(k,13,ntyp) = term             
+         C_tend(k,1) = term
  
 cdiag    if (vrbos) then
 cdiag     if(k.eq.1) write(102,'(a,a)')
-cdiag.    'nstep    k  dp1d(k) tfac(k)   det(k,1) bn(k)    exc   ',
+cdiag.    'nstep    k  dp1d(k) tfac(k)   det(k,1) bn    exc   ',
 cdiag.    ' det(3)   P_t(1)   P_t(2)   P_t(3) P_t(4) '
 cdiag       write(102,'(2i5,10(1x,es8.2))')nstep,k,
-cdiag.         dp1d(k),tfac(k),det(k,1),bn(k),exc,det(k,3),
+cdiag.         dp1d(k),tfac(k),det(k,1),bn,exc,det(k,3),
 cdiag.         P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4)
 cdiag    endif
 cdiag    if (vrbos) write(*,*)'ptend4: ',
-cdiag.     nstep,i,j,k,dp1d(k),tfac(k),det(k,1),bn(k),exc,det(k,3),
+cdiag.     nstep,i,j,k,dp1d(k),tfac(k),det(k,1),bn,exc,det(k,3),
 cdiag.     P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4)
 
 
@@ -277,8 +286,6 @@ cdiag if(vrbos)
 cdiag.write(*,*)'obio_ptend6: ',nstep,i,j,k,tirrq(k)
 
       if (tirrq(k) .gt. 0.0)then
-        bs = 2.0*bn(k)
-        cchlratio = bn(k)*cnratio
         tirrqice = tirrq(k)*0.01  !reduce light in ice by half
         bf = cchlratio/cfratio  !Fe:chl ratio (nM/ugl)
 
@@ -342,7 +349,7 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt) / phygross 
+        pp2_1d(k,nt) = gro(k,nt) * phygross 
      .               * p1d(k+1) * cchlratio
 
 cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
@@ -406,7 +413,7 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt) / phygross 
+        pp2_1d(k,nt) = gro(k,nt) * phygross 
      .               * p1d(k+1) * cchlratio
 
 cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
@@ -441,9 +448,9 @@ cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
         rlimnfix = min(rmml,rmmf)         !limitation for N2 fixation
         rlimrkn = min(rmml,rkn(nt),rmmf)   !limitation at kn
 
-        grate = rmuplsr(k,nt)*rlim
-        rmu4(nt) = grate*framm*pnoice
-        rmu3(nt) = grate*(1.0-framm)*pnoice
+        grate = rmuplsr(k,nt)*rlim*pnoice
+        rmu4(nt) = grate*framm
+        rmu3(nt) = grate*(1.0-framm)
         rfix = 0.25*exp(-(75.0*obio_P(k,nt+nnut)))
         rfix = max(rfix,0.0)
 c        rfix = min(rfix,0.2)
@@ -452,14 +459,14 @@ c        rfix = min(rfix,0.2)
         graterkn = rmuplsr(k,nt)*rlimrkn
         gratenlim = graterkn - grate
         gratenfix = min(gratenlim,gratenfix1)  !N fix cannot exceed kn
-        gratenfix = max(gratenfix,0.0)
+        gratenfix = max(gratenfix,0.0) * pnoice
 
-        rmuf(nt) = (grate+gratenfix)*rmmf * pnoice
+        rmuf(nt) = (grate+gratenfix)*rmmf 
         gron = grate*obio_P(k,nt+nnut)
         gronfix = gratenfix*obio_P(k,nt+nnut)
         gro(k,nt) = gron + gronfix
 
-        term = gro(k,nt) * pnoice
+        term = gro(k,nt)
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
@@ -474,8 +481,8 @@ cdiag.   rkf(nt),rmmf,rkn(nt),rnut1,rnut2,tmp,tnit,rmmn,obio_P(k,1),
 cdiag.   obio_P(k,2)
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt) / phygross 
-     .               * p1d(k+1) * cchlratio * pnoice
+        pp2_1d(k,nt) = gro(k,nt) * phygross 
+     .               * p1d(k+1) * cchlratio
 
 cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
 cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
@@ -507,9 +514,9 @@ cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
            !rhs(k,nt+nnut,2) = rmmn
            !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
-        grate = rmuplsr(k,nt)*rlim
-        rmu4(nt) = grate*framm * pnoice
-        rmu3(nt) = grate*(1.0-framm) * pnoice
+        grate = rmuplsr(k,nt)*rlim*pnoice
+        rmu4(nt) = grate*framm 
+        rmu3(nt) = grate*(1.0-framm)
         rmuf(nt) = grate*rmmf * pnoice
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
@@ -555,15 +562,15 @@ cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
         grate = rmuplsr(k,nt)*rlim
         rmu4(nt) = grate*framm * pnoice
         rmu3(nt) = grate*(1.0-framm) * pnoice
-        rmuf(nt) = grate*rmmf * pnoice
+        rmuf(nt) = grate*rmmf
         gro(k,nt) = grate*obio_P(k,nt+nnut)
 
-        term = gro(k,nt) * pnoice
+        term = gro(k,nt)
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
         !Net primary production
-        pp2_1d(k,nt) = gro(k,nt) / phygross 
+        pp2_1d(k,nt) = gro(k,nt) * phygross 
      .               * p1d(k+1) * cchlratio * pnoice
 
 cdiag   write(*,'(a,5i5,4e12.4)')'obio_ptend, pp:',
@@ -588,11 +595,11 @@ cdiag.  ,P_tend(k,8),P_tend(k,9)
         upa = 0.0
         upf = 0.0
         do nt = 1,nchl
-         term = bn(k)*(rmu3(nt)*obio_P(k,nnut+nt))
+         term = bn*(rmu3(nt)*obio_P(k,nnut+nt))
          rhs(k,1,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upn = upn + term
 
-         term = bn(k)*(rmu4(nt)*obio_P(k,nnut+nt))
+         term = bn*(rmu4(nt)*obio_P(k,nnut+nt))
          rhs(k,2,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upa = upa + term
 
@@ -607,16 +614,16 @@ cdiag.  ,P_tend(k,8),P_tend(k,9)
 
 cdiag  if(vrbos)then
 cdiag     if(k.eq.1) write(106,'(a,a)')
-cdiag.'nstep    k  dp1d(k)   bn(k)   rmu3(1)  rmu3(2)   rmu3(3)',
+cdiag.'nstep    k  dp1d(k)   bn   rmu3(1)  rmu3(2)   rmu3(3)',
 cdiag.'rmu3(4)  P(5)   P(6)   P(7)   P(8)     P_t(1)bef P_t(1) '
 cdiag   write(106,'(2i5,12(1x,es8.2))')
-cdiag. nstep,k,dp1d(k),bn(k),rmu3(1),rmu3(2),rmu3(3),
+cdiag. nstep,k,dp1d(k),bn,rmu3(1),rmu3(2),rmu3(3),
 cdiag. rmu3(4),obio_P(k,nnut+1),obio_P(k,nnut+2),obio_P(k,nnut+3),
 cdiag. obio_P(k,nnut+4),P_tend(k,1),P_tend(k,1) - upn
 cdiag  endif
 
 cdiag  if(vrbos)write(*,*)'obio_ptend12: ',
-cdiag. nstep,i,j,k,dp1d(k),bn(k),rmu3(1),rmu3(2),rmu3(3),rmu3(4),
+cdiag. nstep,i,j,k,dp1d(k),bn,rmu3(1),rmu3(2),rmu3(3),rmu3(4),
 cdiag. obio_P(k,5),obio_P(k,6),obio_P(k,7),obio_P(k,8),
 cdiag. P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4),
 cdiag. upn,upa,upf,ups

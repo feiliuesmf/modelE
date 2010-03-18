@@ -32,9 +32,9 @@
      .                    ,P_tend,D_tend,C_tend,saln1d
      .                    ,pCO2,pCO2_ij,p1d,wsdet
      .                    ,rhs,alk1d
-     .                    ,tzoo,tfac,rmuplsr,rikd,bn,wshc,Fescav
+     .                    ,tzoo,tfac,rmuplsr,rikd,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
-     .                    ,bn3d,wshc3d,Fescav3d 
+     .                    ,wshc3d,Fescav3d 
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
      .                    ,itest,jtest
@@ -354,7 +354,6 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
                 rmuplsr(k,nt)=rmuplsr3d(i,j,k,nt)
                 rikd(k,nt)=rikd3d(i,j,k,nt)
               enddo
-              bn(k)=bn3d(i,j,k)
               wshc(k)=wshc3d(i,j,k)
               Fescav(k)=Fescav3d(i,j,k)
               do nt=1,nlt
@@ -505,7 +504,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
                rmuplsr3d(i,j,k,nt)=rmuplsr(k,nt)
                rikd3d(i,j,k,nt)=rikd(k,nt)
              enddo
-               bn3d(i,j,k)=bn(k)
                wshc3d(i,j,k)=wshc(k)
                Fescav3d(i,j,k)=Fescav(k)
              do nt=1,nlt

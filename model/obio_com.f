@@ -21,7 +21,7 @@ c --- dobio       activate Watson Gregg's ocean biology code
 c
 
       real, ALLOCATABLE, DIMENSION(:,:)    :: tzoo2d
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: tfac3d,bn3d,wshc3d
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: tfac3d,wshc3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: Fescav3d
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rmuplsr3d,rikd3d
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
@@ -139,10 +139,6 @@ c
       common /bkws/ obio_ws(kdm+1,nchl)   
 !$OMP THREADPRIVATE(/bkws/)
 
-      real bn                                 !N:chl ratio
-      common /bbn/ bn(kdm)              
-!$OMP THREADPRIVATE(/bbn/)
-
       real tfac                               !phyto T-dependence
       common /btfac/ tfac(kdm)          
 !$OMP THREADPRIVATE(/btfac/)
@@ -241,7 +237,6 @@ c**** Extract domain decomposition info
 
       ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(tfac3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(bn3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(Fescav3d(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(rmuplsr3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl),

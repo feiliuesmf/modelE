@@ -8,7 +8,7 @@ c
       USE obio_dim
       USE obio_incom, only : rmumax,cchl,cnratio,obio_wsd,obio_wsh
      .                      ,Fescavrate,rik
-      USE obio_com,   only : tfac,rmuplsr,rikd,bn,wshc,Fescav
+      USE obio_com,   only : tfac,rmuplsr,rikd,wshc,Fescav
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo
 
 #ifdef OBIO_ON_GARYocean
@@ -30,18 +30,21 @@ c
 
       logical vrbos
 
+!change: March 15, 2010
       tfac20 = 0.34722*0.851*1.066**20.0
+      tfac20 = 0.81*exp(0.0631*20.0)    !Bissinger et al., 2008
 
 c  Compute daily variables
       do k = 1,kdm
 
-c   Compute new max growth; use Eppley 1972,
 c    adjusted to convert to units of /day (instead of doublings/day)
 c    (divide by 1.44), and to account for 12-hour photoperiod
 c    (divide by 2), making the total factor 0.34722
 c    Finally convert to /hr units (instead of /day) by dividing by
 c    24.  Normalized to the max growth rate of diatoms
-       tfact = 0.34722*0.851*1.066**temp1d(k)
+!change: March 15, 2010
+       tfact = 0.34722*0.851*1.066**temp1d(k)     !Eppley, 1972
+       tfact = 0.81*exp(0.0631*temp1d(k))    !Bissinger et al., 2008
        tfac(k) = tfact/tfac20
        do nt = 1,nchl
 c       rmuplsr(i,k,nt) = rmumax(nt)*rmut*1.12
@@ -87,13 +90,13 @@ c  Set N:chl ratio and photoadaptation
 
         if (avgq1d(k) .gt. rlighthi)then
          ikd = 3
-         cchld = cchl(ikd)
+         !!! cchld = cchl(ikd)    !change: March 15, 2010
          do nt = 1,nchl
           rikd(k,nt) = rik(ikd,nt)
          enddo
         else if (avgq1d(k) .lt. rlightlo)then
          ikd = 1
-         cchld = cchl(ikd)
+         !!! cchld = cchl(ikd)    !change: March 15, 2010
          do nt = 1,nchl
           rikd(k,nt) = rik(ikd,nt)
          enddo
@@ -101,7 +104,7 @@ c  Set N:chl ratio and photoadaptation
          ikd = 2
          if (avgq1d(k) .gt. rmidq)then
           fac = (avgq1d(k)-rmidq)/(rlighthi-rmidq)
-          cchld = (1.0-fac)*cchl(2) + fac*cchl(3)
+          !!! cchld = (1.0-fac)*cchl(2) + fac*cchl(3)  !change: March 15, 2010
           do nt = 1,nchl
            rikd(k,nt) = (1.0-fac)*rik(2,nt) + fac*rik(3,nt)
           enddo
@@ -116,13 +119,16 @@ c  Set N:chl ratio and photoadaptation
 
        else   !avgq<=0
         ikd = 1
-        cchld = cchl(ikd)
+        !!! cchld = cchl(ikd)  !change: March 15, 2010
         do nt = 1,nchl
          rikd(k,nt) = rik(ikd,nt)
         enddo
        endif
 
-       bn(k) = cchld/cnratio  !N:chl ratio (uM/ugl)
+
+!change: March15, 2010
+!now bn const and in obio_init.f
+!      bn(k) = cchld/cnratio  !N:chl ratio (uM/ugl)
 
       avgq1d(k) = 0.0
       enddo

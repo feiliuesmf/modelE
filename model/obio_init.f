@@ -112,12 +112,19 @@ c      cchl(3) = 100.0
       cnratio = 106.0/16.0*12.0    !C:N ratio (ugl:uM)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
+
+!change: March 15, 2010
+       bn = cchl(2)/cnratio         !N:chl ratio (uM/ugl)
+       bf = cchl(2)/cfratio         !Fe:chl ratio (nM/ugl)
+       cchlratio = cchl(2)          !C:chl ratio (ugl/ugl)
 c
 !!#if NCHL_DEFINED > 0
       if (nchl > 0) then
 c  Diatoms
       nt = 1
-      rmumax(nt) = 1.50       !u max in /day at 20C
+!change: March 15, 2010
+!     rmumax(nt) = 1.50       !u max in /day at 20C
+      rmumax(nt) = 2.00       !u max in /day at 20C
 #ifdef OBIO_ON_GARYocean
 #ifdef unlimitDIATOMS
       obio_wsd(nt)    = 0.50  !sinking rate in m/day
@@ -211,13 +218,17 @@ c  Detrital sinking rates m/h
       wsdeth(1) = 50.0/24.0     !nitrogen
 #else
       !default
-      wsdeth(1) = 30.0/24.0     !nitrogen
+!change: March 10, 2010
+!     wsdeth(1) = 30.0/24.0     !nitrogen
+      wsdeth(1) = 20.0/24.0     !nitrogen
 #endif
       wsdeth(2) = 50.0/24.0     !silica
       wsdeth(3) = 20.0/24.0     !iron
 c
 c  Detrital remineralization rates /hr
-      remin(1) = 0.010/24.0            !nitrogen
+!change: March 10, 2010
+!     remin(1) = 0.010/24.0            !nitrogen
+      remin(1) = 0.020/24.0            !nitrogen
       remin(2) = 0.0001/24.0           !silica
       remin(3) = 0.020/24.0            !iron
       fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/hr

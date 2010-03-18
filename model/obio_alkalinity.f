@@ -44,9 +44,9 @@
 
       USE obio_dim
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
-     .      npratio,uMtomgm3,cnratio,kappa_Ca
+     .      npratio,uMtomgm3,cnratio,kappa_Ca,bn
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,zc,alk1d,bn,pnoice
+     .      rhs,zc,alk1d,pnoice
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
@@ -107,11 +107,11 @@
         if (p1d(k+1) .le. zc)  then
           pp=0.
           do nt=nchl1,nchl2
-             pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.d-3)/bn(k)/cnratio   
+             pp=pp+pp2_1d(k,nt)/max(p1d(k+1),1.d-3)/bn/cnratio   
 
 cdiag        write(*,'(a,6i5,4e12.4)')'obio_alkalinity, pp:',
 cdiag.        nstep,i,j,k,nchl1,nchl2,pp2_1d(k,nt),
-cdiag.                    p1d(k+1),bn(k),cnratio
+cdiag.                    p1d(k+1),bn,cnratio
           enddo
           DOP = pp/uMtomgm3/cpratio     !convert to uM C
                                         !Jprod units uM/hr

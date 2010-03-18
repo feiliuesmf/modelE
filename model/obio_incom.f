@@ -45,6 +45,8 @@
       real :: cfratio     !C:Fe ratio
       common /beratio/ cnratio,csratio,cfratio
 
+      real :: mgchltouMC
+
       real :: wsdeth      !sinking rate of detritus (m/d)
       real :: remin       !detrital remineralization rate /d
       common /bkwsdet/ wsdeth(ndet),remin(ndet)
@@ -59,7 +61,10 @@ C if CARBON == 1
       real, parameter :: resz=0.05/24.0         !respiration of DIC by zoopl/hr
       real, parameter :: phygross=1.0-(excp+resp) !factor to derive gross PP!
 
-      real, parameter :: rlamdoc=0.017/24.0    !N-dependent DOC remin/hr
+!change: March 15, 2010
+!     real, parameter :: rlamdoc=0.017/24.0    !N-dependent DOC remin/hr
+      real, parameter :: rlamdoc=0.005/24.0    !N-dependent DOC remin/hr
+
       real, parameter :: rkdoc1=0.3*10.0       !N-dep half sat uM(PO4) modified
                                                !for nitrate by mult*10.0,
                                                !based on Conkright et al. 1994
@@ -96,6 +101,8 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
       real, parameter :: solFe=0.02    !solubility of iron
 
 c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
+      
+      real bn,bf,cchlratio
 
 !save from moved ifst parts
        integer, parameter :: it0inc=1,nt0=80/it0inc,isalinc=1,nsal=20

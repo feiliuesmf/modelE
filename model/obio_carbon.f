@@ -14,9 +14,10 @@ c
       USE obio_dim
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
      .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
-     .                      ,excz,resz,remin,excp,resp
-      USE obio_forc, only: wind,atmCO2
-      USE obio_com, only : bn,C_tend,obio_P,P_tend,car
+     .                      ,excz,resz,remin,excp,resp,bn,cchlratio
+     .                      ,mgchltouMC
+      USE obio_forc, only: wind,atmCO2,tirrq
+      USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 
@@ -46,7 +47,7 @@ c
       integer :: i,j,k
 
       integer :: nt,kmax
-      real  :: cchlratio,mgchltouMC,rmmzoo,docexcz,rndep,docdep
+      real  :: rmmzoo,docexcz,rndep,docdep
       real  :: docbac,docdet,dicresz,sumdoc,sumutk,sumres,totgro
       real  :: docexcp,dicresp,scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
@@ -57,16 +58,11 @@ c
       logical vrbos
 
 
-      do nt=1,ncar
-       do k=1,kdm
-        C_tend(k,nt) = 0.0
-       enddo
-      enddo
-
 ! Detrital, bacterial, and grazing components
       do k = 1,kmax
 
-        cchlratio = bn(k)*cnratio
+!change: March 15, 2010
+!       cchlratio = bn*cnratio
         mgchltouMC = cchlratio/uMtomgm3
 
         !---------------------------------------------------------------
@@ -86,16 +82,16 @@ c
         term = (docexcz*mgchltouMC
      .                   +  docdet/uMtomgm3-docbac)*pnoice
         rhs(k,13,14) = term
-        C_tend(k,1) = term
+        C_tend(k,1) = C_tend(k,1) + term
 
         !adjust detritus
-        term = - docdet !carbon/nitrogen detritus
+        term = - docdet * pnoice !carbon/nitrogen detritus
         rhs(k,10,14) = term
         D_tend(k,1) = D_tend(k,1) + term  
 
         !equivalent amount of DOC from detritus goes into 
         !nitrate, bypassing DON
-        term = docdet/cnratio
+        term = docdet/cnratio * pnoice
         rhs(k,1,14) = term
         P_tend(k,1) = P_tend(k,1) + term 
 
@@ -142,7 +138,10 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
 ! Phytoplankton components related to growth
       do k = 1,kmax
 
-        cchlratio = bn(k)*cnratio
+      if (tirrq(k) .gt. 0.d0)then
+
+!change: March 15, 2010
+!       cchlratio = bn*cnratio
         mgchltouMC = cchlratio/uMtomgm3
         sumdoc = 0.0
         sumutk = 0.0
@@ -153,12 +152,14 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
          totgro = gro(k,nt)
           docexcp = excp*totgro   !phyto production DOC
            dicresp = resp*totgro   !phyto production DIC
+!change: March 15, 2010
+!dont account for ice here -- it is incorporated in gro/totgro
 
-            term = - docexcp * pnoice
+            term = - docexcp 
             rhs(k,nt+nnut,14) = term
             P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-            term = - dicresp * pnoice
+            term = - dicresp 
             rhs(k,nt+nnut,15) = term
             P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
@@ -168,11 +169,11 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
 
         enddo !nt
 
-        term = sumdoc * mgchltouMC * pnoice     !phyto prod DOC
+        term = sumdoc * mgchltouMC              !phyto prod DOC
         rhs(k,13,5) = term        
         C_tend(k,1) = C_tend(k,1) + term
 
-        term = ((sumres-sumutk)*mgchltouMC) * pnoice     !phyto prod DIC
+        term = ((sumres-sumutk)*mgchltouMC)     !phyto prod DIC
         rhs(k,14,5) = term
         C_tend(k,2) = C_tend(k,2) + term
 
@@ -181,6 +182,7 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
 !    .     nstep,i,j,term
 
 
+      endif !tirrq>0
       enddo !k=1,kmax
 
 cdiag if (vrbos) write(*,'(a,i7,e12.4)')
@@ -268,13 +270,13 @@ c Update DIC for sea-air flux of CO2
       tk = 273.15+Ts
       tk100 = tk*0.01
       tk1002 = tk100*tk100
-      ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/m3/picoatm
+      ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/kg/picoatm
      .         90.9241*log(tk100) - 1.47696*tk1002 +
      .         saln1d(k) * (.025695 - .025225*tk100 +
      .         0.0049867*tk1002))
 
       xco2 = atmCO2*1013.D0/stdslp
-      deltco2 = (xco2-pCO2_ij)*ff*1.0245D-3
+      deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
       flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
       flxmolm3h = flxmolm3*3600.D0          !units of mol/m3/hr
       term = flxmolm3h*1000.D0*pnoice       !units of uM/hr (=mili-mol/m^3/hr)
@@ -451,12 +453,19 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.35 $
-c_ $Date: 2009/12/09 22:24:47 $   ;  $State: Exp $
+c_ $Revision: 2.36 $
+c_ $Date: 2010/03/18 19:12:36 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.36  2010/03/18 19:12:36  aromanou
+c_ changes in ocean carbon model to ensure tracer mass conservation:
+c_
+c_ 1) removal of variable C:chl ratio (but keep photoadaptation)
+c_ 2) inclusion of missing source term to DOC from herbivore grazing
+c_ 3) minor changes to make sure ice processes occur properly
+c_
 c_ Revision 2.35  2009/12/09 22:24:47  aromanou
 c_
 c_ SURFACE: gas exchange diagnostics moved from taijn arrays into AIJ arrays
@@ -962,12 +971,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.35 $
-c_ $Date: 2009/12/09 22:24:47 $   ;  $State: Exp $
+c_ $Revision: 2.36 $
+c_ $Date: 2010/03/18 19:12:36 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.36  2010/03/18 19:12:36  aromanou
+c_ changes in ocean carbon model to ensure tracer mass conservation:
+c_
+c_ 1) removal of variable C:chl ratio (but keep photoadaptation)
+c_ 2) inclusion of missing source term to DOC from herbivore grazing
+c_ 3) minor changes to make sure ice processes occur properly
+c_
 c_ Revision 2.35  2009/12/09 22:24:47  aromanou
 c_
 c_ SURFACE: gas exchange diagnostics moved from taijn arrays into AIJ arrays
@@ -1218,12 +1234,19 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.35 $
-c_ $Date: 2009/12/09 22:24:47 $   ;  $State: Exp $
+c_ $Revision: 2.36 $
+c_ $Date: 2010/03/18 19:12:36 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.36  2010/03/18 19:12:36  aromanou
+c_ changes in ocean carbon model to ensure tracer mass conservation:
+c_
+c_ 1) removal of variable C:chl ratio (but keep photoadaptation)
+c_ 2) inclusion of missing source term to DOC from herbivore grazing
+c_ 3) minor changes to make sure ice processes occur properly
+c_
 c_ Revision 2.35  2009/12/09 22:24:47  aromanou
 c_
 c_ SURFACE: gas exchange diagnostics moved from taijn arrays into AIJ arrays
