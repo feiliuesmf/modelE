@@ -21,11 +21,15 @@
 (4) get2d: read monthly output from "latlonz" and generate 2d fields 
            of ij,ik,jk section. 
 
-Note: one needs to add the name of runid and starting/ending year 
-in "input" and run it under the dir where the data are. The input 
-data is located in "path1" in const_proc.f, and is set to be the 
-current directory by default. Also make sure the number of tracer 
-"ntrcr" in hycom_dimen.f is consistent with that in the dataset. 
+Note: one needs to add the name of runid, starting/ending year 
+and if multi-year monthly mean is required before conversion
+in "input" and run it under the dir where the data are. The location
+of the data on the native grid is in "path1" in const_proc.f, and 
+is set to be the current directory by default. Also make sure the 
+number of tracer "ntrcr" in hycom_dimen.f is consistent with that 
+in the dataset. 
+
+To run the code:
 
 $ make avg
 $ avg <input
@@ -38,4 +42,3 @@ $ latlonz <input
 
 $ make get2d
 $ get2d <input
-
