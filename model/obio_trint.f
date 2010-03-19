@@ -1,6 +1,8 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_trint
+      subroutine obio_trint(iflg)
+!iflg - 0 compute  trac_old  (before obio)
+!iflg - 1 zero-out trac_old  (after  obio)
 
 #ifdef OBIO_ON_GARYocean
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
@@ -8,6 +10,7 @@
       use obio_com, only: tracer => tracer_loc ! rename local
       use ocn_tracer_com, only : ntrcr=>ntm
       use model_com, only : nstep=>itime
+      use ocean, only: trmo
 #else
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid
@@ -17,15 +20,17 @@
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : tracflx
 #endif
+      USE obio_incom, only: mgchltouMC
+      USE obio_com,   only: trac_old,obio_deltath
       use domain_decomp_1d, only: am_i_root, globalsum, get
 
       implicit none
 
       integer i,j,k,l
       integer ntr
-      real sumo, areao
+      real sumo, areao, glb_carbon_invntry
 
-      integer :: iTracer
+      integer :: iTracer, iflg
       integer :: j_0, j_1, j_0h, j_1h
 
       real*8, allocatable :: summ(:)
@@ -49,7 +54,7 @@
      &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
 c$$$      fluxNorm = avgDepthOfTopLayer()
       fluxNorm = sumDepthOfTopLayer()
-      sumFlux = sumFlux / fluxNorm
+!     sumFlux = sumFlux / fluxNorm
 
       if (am_i_root()) then
          do iTracer = 1, ntrcr
@@ -57,8 +62,56 @@ c$$$      fluxNorm = avgDepthOfTopLayer()
      &           summ(iTracer), summ(iTracer)/sumo
          end do
 
-       write(*,*)'global averaged flux=',sumFlux, sumFlux/areao
+       write(*,*)'---------- tracer conservation--------------------'
+       print*, 'mgchltouMC=',mgchltouMC
+       print*, 'area, volume ocean=', areao, sumo
+       write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
+       !volume integrated carbon inventory:
+        glb_carbon_invntry = 
+     .                         ((summ(5)+summ(6)
+     .                          +summ(7)+summ(8)
+     .                          +summ(9)) * mgchltouMC   !mgm3*m3 to uM*m3=mili,molC
+     .                          +summ(11) *1e3 /12 !micro-grC/lt*m3 to mili,molC
+     .                          +summ(14)+summ(15)
+     .                         )*1e-3 !mol,C (or mol,CO2)
+       write(*,*)'glb carbon inventory bfre=',nstep,trac_old
+       write(*,*)'glb carbon inventory aftr=',nstep,glb_carbon_invntry
+       if (iflg.eq.0) then
+        trac_old = glb_carbon_invntry
+       else
+        trac_old = 0.d0
+        write(*,'(a,i5,1x,2(e18.11,1x))')'carbon conserv.',nstep,
+     .       (trac_old-glb_carbon_invntry)/(obio_deltath*3600.d0),
+     .       sumFlux/areao
+        write(*,'(a,i5,1x,e18.11)')'carbon residual',nstep,
+     .       (trac_old-glb_carbon_invntry)/(obio_deltath*3600.d0)
+     .       -sumFlux/areao 
+       endif
+
+       write(*,*)'----------------------------------------------------'
       endif
+
+#ifdef OBIO_ON_GARYocean
+      summ = volumeIntegration(trmo)
+
+      if (am_i_root()) then
+         do iTracer = 1, ntrcr
+            write(*,*) 'total intgrl trmo:', iTracer, nstep, 
+     &           summ(iTracer), summ(iTracer)/sumo
+         end do
+       write(*,*)'----------   trmo conservation--------------------'
+       write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
+       !volume integrated carbon inventory:
+       !trmo units are Kg
+       write(*,*)'global carbon inventory=',nstep,
+     .                                     ((summ(5)+summ(6)
+     .                                       +summ(7)+summ(8)
+     .                                       +summ(9))* mgchltouMC   !mol,C
+     .                                       +summ(11)
+     .                                       +summ(14)+summ(15))     !mol,C
+       write(*,*)'----------------------------------------------------'
+      endif
+#endif
 
       deallocate(summ)
 

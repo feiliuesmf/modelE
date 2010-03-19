@@ -183,7 +183,7 @@
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint
+         call obio_trint(0)
 
       endif !for restart only
 #else
@@ -194,7 +194,7 @@
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint
+         call obio_trint(0)
        endif !for restart only
 #endif
       call stop(' obio_init')
@@ -253,6 +253,8 @@
      .      itest,jtest,LON_DG(itest,1),LAT_DG(jtest,1)
 #endif
 
+      !print out tracer integrals just before main loop
+      call obio_trint(0)
 
       call start('  obio main loop')
 c$OMP PARALLEL DO PRIVATE(km,iyear,kmax,vrbos,errcon,tot,noon,rod,ros)
@@ -913,7 +915,7 @@ c$OMP END PARALLEL DO
       call stop('  obio gather')
 
       call start('   obio_trint')
-      call obio_trint
+      call obio_trint(1)
       call stop('   obio_trint')
 
 #ifdef OBIO_ON_GARYocean

@@ -11,6 +11,7 @@
       USE OCEANRES, only : kdm=>lmo
 #else
       USE hycom_dim_glob
+      USE hycom_scalars, only: baclin
 #endif
 
       implicit none
@@ -53,20 +54,9 @@ c
 #else
 !     integer, parameter :: itest=(220,320) equator Atlant; (245,275) 0.6S;274.5E Nino3
       integer, parameter :: itest=316, jtest=258    !257.5E;-50.7S
-#endif
-
-#ifdef OBIO_ON_GARYocean
-      real, parameter :: obio_deltath = 0.5  !time step in hours
-      real, parameter :: obio_deltat = obio_deltath    !time step in hrs 
-                                                       !because all rates are in hrs
-#else
-      real, parameter :: obio_deltath = 1.0  !time step in hours
-      !!real, parameter :: obio_deltat = obio_deltath*3600.0 !time step in seconds
-      real, parameter :: obio_deltat = obio_deltath    !time step in hrs 
-                                                       !because all rates are in hrs
       real :: diag_counter
 #endif
- 
+
 
       integer, parameter :: EUZ_DEFINED=1
 
@@ -77,7 +67,8 @@ c
       real, parameter :: dratez2=0.5/24.0     !zooplankton death rate/hr
       real, parameter :: regen=0.25           !regeneration fraction
 
-      real co2mon(26,12)        !26 years 1979-2004, 12 months
+      real ::  obio_deltath,obio_deltat       !time steps in hours because all rates are in hrs
+      real ::  co2mon(26,12)        !26 years 1979-2004, 12 months
 
       integer npst,npnd   !starting and ending array index for PAR
       data npst,npnd /3,17/
@@ -202,6 +193,7 @@ C endif
 #endif
 #endif
 
+      real*8 :: trac_old    !prev timesetep total carbon inventory
 
       contains
 

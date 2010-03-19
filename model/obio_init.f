@@ -17,14 +17,15 @@ c
      .                      ,Eda,Esa
 #endif
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
-     .                    ,C_tend,wsdet,gro
+     .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
+      USE MODEL_COM, only: dtsrc
 #else
       USE hycom_dim_glob, only : idm,jdm,kdm
-      USE hycom_scalars, only : nstep
+      USE hycom_scalars, only : nstep,baclin
 #endif
 
 
@@ -58,6 +59,18 @@ c
 
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
+
+! time steps
+#ifdef OBIO_ON_GARYocean
+      obio_deltath = dtsrc/3600.d0  !time step in hours
+      obio_deltat = obio_deltath    !time step in hrs because all rates are in hrs
+#else
+      obio_deltath = baclin/3600.d0  !time step in hours
+      obio_deltat = obio_deltath    !time step in hrs because all rates are in hrs
+#endif
+
+      if (AM_I_ROOT()) 
+     . print*, 'Ocean Biology time step(per hour)=',obio_deltath
 
 c  Read in constants, light data
 c  Computes constants over entire run of model, reads in required

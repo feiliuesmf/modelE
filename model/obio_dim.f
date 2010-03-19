@@ -14,7 +14,7 @@
 !  P(9) = herbivores (mg chl m-3)
 !  P(10)= inert tracer modelled after nitrate
 !  Detrital components
-!  det(1) = N/C detritus (uM)
+!  det(1) = N/C detritus (ugC/l)
 !  det(2) = silica detritus (uM)
 !  det(3) = iron detritus (nM)
 !  Carbon components

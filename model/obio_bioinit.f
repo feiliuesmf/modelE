@@ -381,7 +381,7 @@ c  Coccolithophore max growth rate
 !     print*,'bioinit: COLD INITIALIZATION'
 !     endif     ! if am_i_root
 
-      call obio_trint
+      call obio_trint(0)
 
 
       return
