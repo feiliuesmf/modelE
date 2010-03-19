@@ -331,8 +331,9 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
 
          if (nt.ge.5.and.nt.le.9) 
-     .          trmo_unit_factor(k,nt) =  mgchltouMC*1d-3*1d-3*obio_tr_mm(nt) ! miligr,chl/m3=> kg/m3
-     .                          *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+     .          trmo_unit_factor(k,nt) =  
+     .               mgchltouMC*1d-3*1d-3*obio_tr_mm(nt)                  ! miligr,chl/m3=> kg/m3
+     .                       *  MO(I,J,k)*DXYPO(J)/rho_water              ! kg/m3 => kg
 
 #ifdef TRACERS_Alkalinity
            if (nt.eq.16)    !factor for alkalinity
