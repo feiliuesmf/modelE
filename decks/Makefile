@@ -68,7 +68,10 @@ rundeck:
 	exit 1; fi
 	@echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----'
 	@if [ $(RUNDECK) != $(RUNDECKSRC) ]; then  \
-	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) > $(RUNDECK); \
+	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
+	| $(SCRIPTS_DIR)/protect_ccp_options.pl | $(CPP) -I$(TEMPLATES_DIR) \
+	| $(SCRIPTS_DIR)/protect_ccp_options.pl -u \
+	> $(RUNDECK); \
 	fi;
 	@echo '---------             Rundeck  created               ---------' 
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
