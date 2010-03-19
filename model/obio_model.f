@@ -318,16 +318,25 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
 
          do nt=1,ntrac
-           trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)        ! milimoles/m3=> kg/m3
-     .                            *  MO(I,J,k)*DXYPO(J)/rho_water   ! kg/m3 => kg
-           if (nt.eq.4.or.nt.eq.13)
-     .         trmo_unit_factor(k,nt) = 1d-3*trmo_unit_factor(k,nt) !nanomoles/m3 => kg
-           if (nt.ge.5.and.nt.le.9)
-     .         trmo_unit_factor(k,nt) =  1d-3*1d-3 
-     .                                *  MO(I,J,k)*DXYPO(J)/rho_water ! mg/m3 => kg
+         
+                trmo_unit_factor(k,nt) =  1d-3*1d-3*obio_tr_mm(nt)        ! milimoles/m3=> kg/m3
+     .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+
+         if (nt.eq.4.or.nt.eq.13) 
+     .          trmo_unit_factor(k,nt) =  1d-9*1d-3*obio_tr_mm(nt)        ! nanomoles/m3=> kg/m3
+     .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+
+         if (nt.eq.11)
+     .          trmo_unit_factor(k,nt) =  1d-6 *1d-3/1d-3                 ! micro-grC/lt -> kg/m3
+     .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+
+         if (nt.ge.5.and.nt.le.9) 
+     .          trmo_unit_factor(k,nt) =  mgchltouMC*1d-3*1d-3*obio_tr_mm(nt) ! miligr,chl/m3=> kg/m3
+     .                          *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+
 #ifdef TRACERS_Alkalinity
            if (nt.eq.16)    !factor for alkalinity
-     .         trmo_unit_factor(k,nt) = 1d-3*1d-3*1d-3*obio_tr_mm(nt) ! umol/kg=micro-mol/kg=> kg,trac/kg,air
+     .         trmo_unit_factor(k,nt) = 1d-6*1d-3*obio_tr_mm(nt)      ! umol/kg=micro-mol/kg=> kg,trac/kg,air
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
 #endif
 

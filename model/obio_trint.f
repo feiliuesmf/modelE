@@ -34,7 +34,7 @@
       integer :: j_0, j_1, j_0h, j_1h
 
       real*8, allocatable :: summ(:)
-      real*8 :: sumFlux(1), fluxNorm
+      real*8 :: sumFlux(1), fluxNorm1, fluxNorm2
 
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
@@ -52,8 +52,8 @@
       ! expected interface.
       sumFlux = volumeIntegration(reshape(tracflx(:,:,1),
      &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
-c$$$      fluxNorm = avgDepthOfTopLayer()
-      fluxNorm = sumDepthOfTopLayer()
+      fluxNorm1 = avgDepthOfTopLayer()
+      fluxNorm2 = sumDepthOfTopLayer()
 !     sumFlux = sumFlux / fluxNorm
 
       if (am_i_root()) then
@@ -66,14 +66,15 @@ c$$$      fluxNorm = avgDepthOfTopLayer()
        print*, 'mgchltouMC=',mgchltouMC
        print*, 'area, volume ocean=', areao, sumo
        write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
+       write(*,*)'global averaged flux2=',
+     .            nstep,sumFlux/fluxNorm1,sumFlux/fluxNorm2
        !volume integrated carbon inventory:
         glb_carbon_invntry = 
-     .                         ((summ(5)+summ(6)
-     .                          +summ(7)+summ(8)
-     .                          +summ(9)) * mgchltouMC   !mgm3*m3 to uM*m3=mili,molC
-     .                          +summ(11) *1e3 /12 !micro-grC/lt*m3 to mili,molC
-     .                          +summ(14)+summ(15)
-     .                         )*1e-3 !mol,C (or mol,CO2)
+     .                     (summ(5)+summ(6)
+     .                    + summ(7)+summ(8)
+     .                    + summ(9)) * mgchltouMC * 1e-3     !mgm3*m3 -> uM*m3=mili,molC -> mol,C
+     .                    + summ(11) *1e-3 /12               !micro-grC/lt*m3 -> mili,grC-> mol,C
+     .                    +(summ(14)+summ(15))*1e-3          !mol,C (or mol,CO2)
        write(*,*)'glb carbon inventory bfre=',nstep,trac_old
        write(*,*)'glb carbon inventory aftr=',nstep,glb_carbon_invntry
        if (iflg.eq.0) then
@@ -82,10 +83,10 @@ c$$$      fluxNorm = avgDepthOfTopLayer()
         trac_old = 0.d0
         write(*,'(a,i5,1x,2(e18.11,1x))')'carbon conserv.',nstep,
      .       (trac_old-glb_carbon_invntry)/(obio_deltath*3600.d0),
-     .       sumFlux/areao
+     .       sumFlux
         write(*,'(a,i5,1x,e18.11)')'carbon residual',nstep,
      .       (trac_old-glb_carbon_invntry)/(obio_deltath*3600.d0)
-     .       -sumFlux/areao 
+     .       -sumFlux 
        endif
 
        write(*,*)'----------------------------------------------------'
@@ -105,6 +106,28 @@ c$$$      fluxNorm = avgDepthOfTopLayer()
        !trmo units are Kg
        write(*,*)'global carbon inventory=',nstep,
      .                                     ((summ(5)+summ(6)
+     .                                       +summ(7)+summ(8)
+     .                                       +summ(9))* mgchltouMC   !mol,C
+     .                                       +summ(11)
+     .                                       +summ(14)+summ(15))     !mol,C
+       write(*,*)'----------------------------------------------------'
+      endif
+#endif
+
+#ifdef OBIO_ON_GARYocean
+      summ = volumeIntegration(trmo)
+
+      if (am_i_root()) then
+         do iTracer = 1, ntrcr
+            write(*,*) 'total intgrl trmo:', iTracer, nstep, 
+     &           summ(iTracer), summ(iTracer)/sumo
+         end do
+       write(*,*)'----------   trmo conservation--------------------'
+       write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
+       !volume integrated carbon inventory:
+       !trmo units are Kg
+       write(*,*)'global carbon inventory=',nstep,
+     .                                      ((summ(5)+summ(6)
      .                                       +summ(7)+summ(8)
      .                                       +summ(9))* mgchltouMC   !mol,C
      .                                       +summ(11)
