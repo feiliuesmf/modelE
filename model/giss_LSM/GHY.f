@@ -1406,11 +1406,12 @@ c**** surface runoff
         ! for all water (drip, snowmelt etc.)
         rnf(ibv) = satfrac * max( -f(1,ibv), 0.d0 )
         ! for convective drip (to snow-free unsaturated fraction)
-        if ( f1_conv(ibv) > 1.d-30 )
+        water_down = max(0.d0, -f1_conv(ibv))
+        if ( water_down > 1.d-30 )
      &       rnf(ibv) = rnf(ibv) + (1.d0-fr_snow(ibv)) * (1.d0-satfrac)
-     &       * f1_conv(ibv) * exp( -xinfc(ibv)*prfr/f1_conv(ibv) )
+     &       * water_down * exp( -xinfc(ibv)*prfr/water_down )
         ! the rest of water of water falls on entire unsaturated fraction
-        water_down = -f(1,ibv) - rnf(ibv)
+        water_down = -f(1,ibv) - water_down
         water_down = max( water_down, 0.d0 )
         if ( water_down > 1.d-30 )
      &       rnf(ibv) = rnf(ibv) + (1.d0-satfrac)
