@@ -2816,11 +2816,11 @@ c Switch the sign convention back to "positive downward".
       RETURN
       END SUBROUTINE TrDYNAM
 #endif
+
       module UNRDRAG_COM
       !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
       !@ver  1.0
-
       USE MODEL_COM, only: JDPERY
       USE RESOLUTION, only: IM, JM
       implicit none
@@ -2833,7 +2833,7 @@ c Switch the sign convention back to "positive downward".
             real :: Z4var(IM, 2:JM)
       !@var Eke_by2: It is a tunable parameter from Eq.(3.1b) in McFarlane (JAS, 1987).
       !@+            Its unit is m^(-1).
-            real(r8) :: Eke_by2(JM)
+            real(r8) :: Eke_by2 = 5.5E-6_r8
       !
       !@  Following parameters/variables are related to calculating nonorogrphic drag.
       !@+ The parameterization is described in Alexander and Dunkerton (JAS, 1999).
@@ -2848,7 +2848,7 @@ c Switch the sign convention back to "positive downward".
       !@var N_Kh: number of horizontal wavenumbers
             integer, parameter :: N_Kh = 1
       !@var Bm: amplitude for the spectrum (m^2/s^2) ~ u'w'
-            real(r8), parameter :: Bm(N_Kh) = (/0.02_r8/)
+            real(r8), parameter :: Bm(N_Kh) = (/0.01_r8/)
       !@var Cw: half-width for the spectrum in C (m/s)
             real(r8), parameter :: Cw(N_Kh) = (/10.0_r8/)
       !@var [C_inf, C_sup]: the range of phase velocities for the Gaussian exp(-(C/Cw)**2)
@@ -2869,7 +2869,7 @@ c Switch the sign convention back to "positive downward".
       !    B. Other parameters and variables:
       !
       !@var N_Az: number of azimuths which is even.
-            integer, parameter :: N_Az = 2
+            integer, parameter :: N_Az = 4
       !@var Kh: horizontal wave number grid
             real(r8) :: Kh(N_Kh)
       !@var Ah1, Ah2: used to compute components of velocity in azimuthal directions
@@ -2895,7 +2895,7 @@ c Switch the sign convention back to "positive downward".
 
       implicit none
       real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     *                  U, V, T, SZ, UNRDRAG_x, UNRDRAG_y
+     *                   U, V, T, SZ, UNRDRAG_x, UNRDRAG_y
       real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PB
       intent(inout) :: PB, T, SZ
       intent(in) :: U, V
@@ -2905,7 +2905,7 @@ c Switch the sign convention back to "positive downward".
       real(r8), parameter :: g_sq = grav * grav
       real(r8), parameter :: byPSFMPT = 1.0_r8/PSFMPT
       real(r8), dimension(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *                      T2, SZ2
+     *                   T2, SZ2
       real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PB2
       real(r8), dimension(LM) :: dp, P_mid
       real(r8), dimension(LM+1) :: P_edge
@@ -2915,18 +2915,17 @@ c Switch the sign convention back to "positive downward".
       real(r8), dimension(LM) :: GW, GWF_X, GWF_Y
       real(r8) :: bvf_sqe
       !@var Eps: intermittency factor
-            real(r8) :: Eps
+      real(r8) :: Eps
       integer :: I, J, L, IP1
       integer :: Ikh, IC, IAZ
       integer :: IC0, MC
       real :: h_4sq
       real(r8) :: byPB2, by_dp_sum
-            real(r8) :: Bsum
-            real(r8) :: Ugw_S, Vgw_S, U_Comp_S
-            real(r8) :: SGN, x
-
-            real(r8) :: B(N_C,N_Az,N_kh)
-            real(r8) :: C_actual(N_C)
+      real(r8) :: Bsum
+      real(r8) :: Ugw_S, Vgw_S, U_Comp_S
+      real(r8) :: SGN, x
+      real(r8) :: B(N_C,N_Az,N_kh)
+      real(r8) :: C_actual(N_C)
       !
       !Extract domain decomposition info
       !
@@ -3027,11 +3026,12 @@ c Switch the sign convention back to "positive downward".
       hb(L) = P_edge(L) / rhoe(L) * bygrav
       end do
 
-      if (h_4sq <= 0.0) then
+      if (h_4sq <= 0.0) then 
+          !For efficiency, orogrphic variances over oceans were set to a negative value. 
           drag_x(:) = 0.0_r8
           drag_y(:) = 0.0_r8
       else
-          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2(J)
+          call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2 
      *                           , drag_x, drag_y)
       end if
           UNRDRAG_x(I,J,1:LS1-1) = drag_x(1:LS1-1) * byPB2
@@ -3050,7 +3050,6 @@ c Switch the sign convention back to "positive downward".
                                                        !!!100.0_r8 arises from the units of P and rho.
       end do
       Eps = Bt(J,JDAY) / Eps
-
       !...Calculating source spectra (function of azimuth, horizontal wave number)
       do IAZ = 1, N_Az
          Ugw_S = ue(IZ0(J))
@@ -3107,9 +3106,7 @@ c Switch the sign convention back to "positive downward".
 
       end do Longitude
       end do Latitude
-
       end subroutine UNRDRAG
-
 
       subroutine init_UNRDRAG
       !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
@@ -3119,14 +3116,13 @@ c Switch the sign convention back to "positive downward".
       USE CONSTANT, only : pi, twopi
       USE GEOM, only: LAT_DG
       USE MODEL_COM, only: JDPERY
-      USE UNRDRAG_COM, only: Z4var, Eke_by2, Bt
+      USE UNRDRAG_COM, only: Z4var, Bt
       USE UNRDRAG_COM, only: r8, N_C, C_inf, dc, C, IZ0, N_Kh, Wavelenth
       USE UNRDRAG_COM, only: Kh, Ah1, Ah2, N_Az, aLn2, L_min
       USE FILEMANAGER, only: openunit, closeunit
       implicit none
       integer :: iu_Z4var, I, IAZ, J, IT
-      real(r8) :: x
-      real(r8) :: Phi, Eke_S, Eke_N
+      real(r8) :: x, Phi
       real(r8) :: Bt_Smax, Bt_Nmax
       real(r8) :: Bt_Tmax
       character(Len=80) :: Title
@@ -3134,22 +3130,7 @@ c Switch the sign convention back to "positive downward".
       read(iu_Z4var) Title, Z4var
       call closeunit(iu_Z4var)
 
-      Phi = -30.0_r8
-      Eke_S = 5.0_r8
-      Eke_N = 5.0_r8
-      do J = 1, JM
-         if ( LAT_DG(J,2) <= Phi ) then
-            Eke_by2(J) = Eke_S
-         elseif ( LAT_DG(J,2) > Phi .AND. LAT_DG(J,2) < 0.0 ) then
-            Eke_by2(J) = 0.5_r8 * ( Eke_S + Eke_N +
-     *             (Eke_S-Eke_N) * cos(pi/Phi * (LAT_DG(J,2)-Phi)) )
-         else
-            Eke_by2(J) = Eke_N
-         end if
-         Eke_by2(J) = Eke_by2(J) * 1.0E-6_r8
-      end do
-
-      Bt_Smax = 2.0_r8 * 0.001_r8
+      Bt_Smax = 6.0_r8 * 0.001_r8
       Bt_Nmax = 0.5_r8 * 0.001_r8
       do IT = 1, JDPERY
          x = cos ( twopi * real(IT - 16, r8) / real(JDPERY, r8) )
@@ -3177,9 +3158,7 @@ c Switch the sign convention back to "positive downward".
          end do
       end do
 
-      !!!
-         Bt = Bt + 1.0_r8 * 0.001_r8
-      !!!
+      Bt = Bt + 1.0_r8 * 0.001_r8
 
       do I = 1, N_C
          C(I, :) = C_inf(:) + real(I - 1, r8) * dc(:)
@@ -3201,6 +3180,7 @@ c Switch the sign convention back to "positive downward".
          IZ0(:) = I - 1
       L_min = minval(IZ0)
       end subroutine init_UNRDRAG
+
       subroutine orographic_drag (u,v,rho, bvf,h_4sq,coef,drag_x,drag_y)
       !@sum   orographic_drag
       !@auth Tiehan Zhou / Marvin A. Geller
@@ -3214,8 +3194,8 @@ c Switch the sign convention back to "positive downward".
       real(r8), dimension(LM), intent(out) :: drag_x, drag_y
       real, intent(in) :: h_4sq
       !@param  byFc_sq: inverse Froude number squared
-            real(r8), parameter :: byFc_sq = 0.5_r8
-            real(r8), parameter :: Fc_sq = 1.0_r8/byFc_sq
+      real(r8), parameter :: byFc_sq = 0.5_r8
+      real(r8), parameter :: Fc_sq = 1.0_r8/byFc_sq
       real(r8) :: flux(2:LM+1)
       real(r8) :: wind(2:LM)
       real(r8) :: he_sq, u0_sq, u0, flux_temp
@@ -3275,7 +3255,6 @@ c Switch the sign convention back to "positive downward".
       drag_y(L) = drag * proj_y
       end do
       end subroutine orographic_drag
-
 
       subroutine nonorographic_drag (c,dc,b,eps,kh,hb,rho
      *                                ,u,bf,nc,iz0, gwfrc)
