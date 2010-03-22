@@ -150,7 +150,7 @@
       area = areaIntegration(ones(:,:,1,1))
       deallocate(ones)
 
-      if (am_i_root()) avgDepthOfTopLayer = volumeOfTopLayer(1)/area
+      avgDepthOfTopLayer = volumeOfTopLayer(1)/area
       end function avgDepthOfTopLayer
 
 #ifdef OBIO_ON_GARYocean
@@ -183,7 +183,8 @@
         end do
       end do
       
-      call globalSum(ogrid, partialIntegration, volumeIntegration)
+      call globalSum(ogrid, partialIntegration, volumeIntegration,
+     &     all=.true.)
 
       end function volumeIntegration
 
@@ -208,7 +209,8 @@
         end do
       end do
 
-      call globalSum(ogrid, partialAreaIntegration, areaIntegration)
+      call globalSum(ogrid, partialAreaIntegration, areaIntegration,
+     &     all=.true.)
 
       end function areaIntegration
 
@@ -261,7 +263,8 @@
         end do
       end do
 
-      call globalSum(ogrid, partialVolumeIntegration, volumeIntegration)
+      call globalSum(ogrid, partialVolumeIntegration, volumeIntegration,
+     &     all=.true.)
 
       end function volumeIntegration
 
@@ -282,7 +285,8 @@
          end do
       end do
 
-      call globalSum(ogrid, partialAreaIntegration, areaIntegration)
+      call globalSum(ogrid, partialAreaIntegration, areaIntegration,
+     &     all=.true.)
 
       end function areaIntegration
 
