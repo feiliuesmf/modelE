@@ -46,6 +46,7 @@
 #ifdef OBIO_ON_GARYocean
      .                    ,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
+     .                    ,obio_ws,wsdet
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es
@@ -388,6 +389,8 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
 #endif
        enddo  !k=1,kdm or lmm
 
+       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS0:',
+     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
        p1d(1)=0.
        do k=2,kdm+1
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
@@ -742,7 +745,20 @@ cdiag  endif
        !also do phyto sinking and detrital settling here
        !MUST CALL sinksettl BEFORE update
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
+#ifdef noBIO
+       do k=1,kmax
+       P_tend(k,:)= 0.d0
+       C_tend(k,1)= 0.d0     !C_tend(k,2) not set to zero only flux term
+       D_tend(k,:)= 0.d0
+       obio_ws(k,:) = 0.d0
+       wsdet(k,:) = 0.d0
+       enddo
+#endif
+       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS1:',
+     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
        call obio_update(vrbos,kmax,i,j)
+       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS2:',
+     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
 #else
        !update biology from m to n level
        !also do phyto sinking and detrital settling here
@@ -817,6 +833,8 @@ cdiag     endif
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
+       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS3:',
+     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
 
 
 #ifdef OBIO_ON_GARYocean

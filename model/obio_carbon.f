@@ -105,6 +105,9 @@ c
         term = dicresz*mgchltouMC * pnoice
         rhs(k,14,15) = term
         C_tend(k,2) = term
+#ifdef noBIO
+        C_tend(k,2) = 0.d0
+#endif
 
 !       if(k.eq.1)
 !    .     write(*,'(a,3i5,e12.4)')'dicterm1',
@@ -113,6 +116,9 @@ c
         term = docbac * pnoice
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
+#ifdef noBIO
+        C_tend(k,2) = 0.d0
+#endif
      
 !       if(k.eq.1)
 !    .     write(*,'(a,3i5,e12.4)')'dicterm2',
@@ -121,6 +127,9 @@ c
         term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
+#ifdef noBIO
+        C_tend(k,2) = 0.d0
+#endif
 
 !       if(k.eq.1)
 !    .     write(*,'(a,3i5,e12.4)')'dicterm3',
@@ -176,6 +185,9 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
         term = ((sumres-sumutk)*mgchltouMC)     !phyto prod DIC
         rhs(k,14,5) = term
         C_tend(k,2) = C_tend(k,2) + term
+#ifdef noBIO
+        C_tend(k,2) = 0.d0
+#endif
 
 !       if(k.eq.1)
 !    .     write(*,'(a,3i5,e12.4)')'dicterm4',
@@ -240,6 +252,9 @@ c Update DIC for sea-air flux of CO2
      .     * 1000.D0*pnoice          !units of uM/hr (=mili-mol/m3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
+#ifdef noBIO
+      C_tend(k,2) = term
+#endif
 
          if (vrbos) then
          write(*,'(a,3i7,i3,4e12.4)')
@@ -282,6 +297,9 @@ c Update DIC for sea-air flux of CO2
       term = flxmolm3h*1000.D0*pnoice       !units of uM/hr (=mili-mol/m^3/hr)
       rhs(k,14,16) = term
       C_tend(k,2) = C_tend(k,2) + term
+#ifdef noBIO
+      C_tend(k,2) = term
+#endif
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
       ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice  ! air-sea co2 flux
@@ -453,12 +471,20 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.37 $
-c_ $Date: 2010/03/23 01:00:23 $   ;  $State: Exp $
+c_ $Revision: 2.38 $
+c_ $Date: 2010/03/23 03:17:10 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.38  2010/03/23 03:17:10  aromanou
+c_
+c_ setup for test case: carbon flux into the ocean changes only DIC. No other bio-geochem
+c_ interaction allowed.
+c_
+c_ To use: define CPP noBIO
+c_ (look at E4arobio_new2.R) in the prod_decks directory
+c_
 c_ Revision 2.37  2010/03/23 01:00:23  aromanou
 c_
 c_ stoichiometric constants moved into obio_init rather than in carbon and ptend.
@@ -976,12 +1002,20 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.37 $
-c_ $Date: 2010/03/23 01:00:23 $   ;  $State: Exp $
+c_ $Revision: 2.38 $
+c_ $Date: 2010/03/23 03:17:10 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.38  2010/03/23 03:17:10  aromanou
+c_
+c_ setup for test case: carbon flux into the ocean changes only DIC. No other bio-geochem
+c_ interaction allowed.
+c_
+c_ To use: define CPP noBIO
+c_ (look at E4arobio_new2.R) in the prod_decks directory
+c_
 c_ Revision 2.37  2010/03/23 01:00:23  aromanou
 c_
 c_ stoichiometric constants moved into obio_init rather than in carbon and ptend.
@@ -1244,12 +1278,20 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.37 $
-c_ $Date: 2010/03/23 01:00:23 $   ;  $State: Exp $
+c_ $Revision: 2.38 $
+c_ $Date: 2010/03/23 03:17:10 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.38  2010/03/23 03:17:10  aromanou
+c_
+c_ setup for test case: carbon flux into the ocean changes only DIC. No other bio-geochem
+c_ interaction allowed.
+c_
+c_ To use: define CPP noBIO
+c_ (look at E4arobio_new2.R) in the prod_decks directory
+c_
 c_ Revision 2.37  2010/03/23 01:00:23  aromanou
 c_
 c_ stoichiometric constants moved into obio_init rather than in carbon and ptend.
