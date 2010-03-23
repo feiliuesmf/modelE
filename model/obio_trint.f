@@ -8,7 +8,7 @@
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
       use oceanr_dim, only : ogrid
       use obio_com, only: tracer => tracer_loc ! rename local
-      use ocn_tracer_com, only : ntrcr=>ntm
+      use ocn_tracer_com, only : ntrcr=>ntm, obio_tr_mm
       use model_com, only : nstep=>itime
       use ocean, only: trmo
 #else
@@ -107,36 +107,17 @@
          end do
        write(*,*)'----------   trmo conservation--------------------'
        write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
+       write(*,*)'global averaged flux2=',
+     .            nstep,sumFlux/fluxNorm1,sumFlux/fluxNorm2
+       write(*,*)'global averaged flux3=',
+     .            nstep,sumFlux2
        !volume integrated carbon inventory:
-       !trmo units are Kg
+       !trmo units are Kg, summ is in Kg*m3
        write(*,*)'global carbon inventory=',nstep,
-     .                                     ((summ(5)+summ(6)
-     .                                       +summ(7)+summ(8)
-     .                                       +summ(9))* mgchltouMC   !mol,C
-     .                                       +summ(11)
-     .                                       +summ(14)+summ(15))     !mol,C
-       write(*,*)'----------------------------------------------------'
-      endif
-#endif
-
-#ifdef OBIO_ON_GARYocean
-      summ = volumeIntegration(trmo)
-
-      if (am_i_root()) then
-         do iTracer = 1, ntrcr
-            write(*,*) 'total intgrl trmo:', iTracer, nstep, 
-     &           summ(iTracer), summ(iTracer)/sumo
-         end do
-       write(*,*)'----------   trmo conservation--------------------'
-       write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
-       !volume integrated carbon inventory:
-       !trmo units are Kg
-       write(*,*)'global carbon inventory=',nstep,
-     .                                      ((summ(5)+summ(6)
-     .                                       +summ(7)+summ(8)
-     .                                       +summ(9))* mgchltouMC   !mol,C
-     .                                       +summ(11)
-     .                                       +summ(14)+summ(15))     !mol,C
+     .  ((summ(5)+summ(6)+summ(7)+summ(8)+summ(9)) * 1.d3/obio_tr_mm(5) !mol,C*m3
+     .  + summ(11) * 1.d3/obio_tr_mm(11)                                !mol,C*m3
+     .  +(summ(14)+summ(15))* 1.d3/obio_tr_mm(14)                       !mol,C*m3
+     .   )/sumo     !mol,C
        write(*,*)'----------------------------------------------------'
       endif
 #endif
