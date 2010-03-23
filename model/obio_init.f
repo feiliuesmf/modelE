@@ -130,6 +130,7 @@ c      cchl(3) = 100.0
        bn = cchl(2)/cnratio         !N:chl ratio (uM/ugl)
        bf = cchl(2)/cfratio         !Fe:chl ratio (nM/ugl)
        cchlratio = cchl(2)          !C:chl ratio (ugl/ugl)
+       mgchltouMC = cchlratio/uMtomgm3
 c
 !!#if NCHL_DEFINED > 0
       if (nchl > 0) then

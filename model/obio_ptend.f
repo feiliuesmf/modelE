@@ -110,8 +110,6 @@ c  Start Model Space Loop
 !Grazing/regeneration of ammonium
        do k = 1,kmax
 
-         mgchltouMC = cchlratio/uMtomgm3
-
          ptot = 0.0
          do nt = nnut+1,ntyp-nzoo
           ptot = ptot + obio_P(k,nt)
@@ -195,6 +193,7 @@ cdiag      endif
          rhs(k,4,13) = term             !this should actually be rhs(4,4) but we
                                         !have already defined it so let it be rhs(4,13)
          P_tend(k,4) = P_tend(k,4) + term
+
 
          term = exc*mgchltouMC*pnoice
      *                  + regen*dzoo2*mgchltouMC*pnoice
@@ -635,6 +634,17 @@ cdiag. upn,upa,upf,ups
 
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
+
+!iron bottom sink
+!restoring term to balance surface deposition at time scales of about 30years
+      do k=1,kmax
+        if (p1d(kmax) > 3500. .and. p1d(kmax)-p1d(k) < 200.) then        !for the lower 200m
+            term =  - obio_P(k,4) / (200/(0.002*3700))
+            rhs(k,4,14) = term
+            P_tend(k,4) = P_tend(k,4) + term
+        endif
+      enddo
+
 
 #ifdef TRACERS_Alkalinity
       call obio_alkalinity(vrbos,kmax,i,j)

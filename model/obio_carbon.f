@@ -63,7 +63,7 @@ c
 
 !change: March 15, 2010
 !       cchlratio = bn*cnratio
-        mgchltouMC = cchlratio/uMtomgm3
+!       mgchltouMC = cchlratio/uMtomgm3
 
         !---------------------------------------------------------------
         !DOC
@@ -142,7 +142,7 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
 
 !change: March 15, 2010
 !       cchlratio = bn*cnratio
-        mgchltouMC = cchlratio/uMtomgm3
+!       mgchltouMC = cchlratio/uMtomgm3
         sumdoc = 0.0
         sumutk = 0.0
         sumres = 0.0
@@ -453,12 +453,17 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.36 $
-c_ $Date: 2010/03/18 19:12:36 $   ;  $State: Exp $
+c_ $Revision: 2.37 $
+c_ $Date: 2010/03/23 01:00:23 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.37  2010/03/23 01:00:23  aromanou
+c_
+c_ stoichiometric constants moved into obio_init rather than in carbon and ptend.
+c_ more diagnostics on total carbon conservation within the carbon model.
+c_
 c_ Revision 2.36  2010/03/18 19:12:36  aromanou
 c_ changes in ocean carbon model to ensure tracer mass conservation:
 c_
@@ -971,12 +976,17 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.36 $
-c_ $Date: 2010/03/18 19:12:36 $   ;  $State: Exp $
+c_ $Revision: 2.37 $
+c_ $Date: 2010/03/23 01:00:23 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.37  2010/03/23 01:00:23  aromanou
+c_
+c_ stoichiometric constants moved into obio_init rather than in carbon and ptend.
+c_ more diagnostics on total carbon conservation within the carbon model.
+c_
 c_ Revision 2.36  2010/03/18 19:12:36  aromanou
 c_ changes in ocean carbon model to ensure tracer mass conservation:
 c_
@@ -1234,12 +1244,17 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.36 $
-c_ $Date: 2010/03/18 19:12:36 $   ;  $State: Exp $
+c_ $Revision: 2.37 $
+c_ $Date: 2010/03/23 01:00:23 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.37  2010/03/23 01:00:23  aromanou
+c_
+c_ stoichiometric constants moved into obio_init rather than in carbon and ptend.
+c_ more diagnostics on total carbon conservation within the carbon model.
+c_
 c_ Revision 2.36  2010/03/18 19:12:36  aromanou
 c_ changes in ocean carbon model to ensure tracer mass conservation:
 c_

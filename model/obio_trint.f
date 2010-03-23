@@ -35,6 +35,7 @@
 
       real*8, allocatable :: summ(:)
       real*8 :: sumFlux(1), fluxNorm1, fluxNorm2
+      real*8 :: sumFlux2(1)
 
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
@@ -56,6 +57,8 @@
       fluxNorm2 = sumDepthOfTopLayer()
 !     sumFlux = sumFlux / fluxNorm
 
+      sumFlux2= areaIntegration(tracflx(:,:,1))
+
       if (am_i_root()) then
          do iTracer = 1, ntrcr
             write(*,*) 'total intgrl tracer:', iTracer, nstep, 
@@ -68,6 +71,8 @@
        write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
        write(*,*)'global averaged flux2=',
      .            nstep,sumFlux/fluxNorm1,sumFlux/fluxNorm2
+       write(*,*)'global averaged flux3=',
+     .            nstep,sumFlux2
        !volume integrated carbon inventory:
         glb_carbon_invntry = 
      .                     (summ(5)+summ(6)
@@ -80,13 +85,13 @@
        if (iflg.eq.0) then
         trac_old = glb_carbon_invntry
        else
-        trac_old = 0.d0
         write(*,'(a,i5,1x,2(e18.11,1x))')'carbon conserv.',nstep,
-     .       (trac_old-glb_carbon_invntry)/(obio_deltath*3600.d0),
-     .       sumFlux
+     .       (glb_carbon_invntry-trac_old)/(obio_deltath*3600.d0),
+     .       sumFlux2
         write(*,'(a,i5,1x,e18.11)')'carbon residual',nstep,
-     .       (trac_old-glb_carbon_invntry)/(obio_deltath*3600.d0)
-     .       -sumFlux 
+     .       (glb_carbon_invntry-trac_old)/(obio_deltath*3600.d0)
+     .       -sumFlux2 
+        trac_old = 0.d0
        endif
 
        write(*,*)'----------------------------------------------------'
