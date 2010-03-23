@@ -1934,7 +1934,7 @@ C**** get pressure level
               end select
               polefix=.true.
               call write_data(data,kunit,polefix)
-              cycle
+              cycle nameloop
             end if
           end do
 
