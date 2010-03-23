@@ -484,9 +484,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 #ifdef zeroFLUX
        atmFe_ij=0.d0
 #endif
-!      write(*,'(a,4i5,2e12.4)')'obio_model, atmFe:',
-!    .    nstep,JMON,i,j,atmFe(i,j,JMON),atmFe_ij
-
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij

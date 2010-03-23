@@ -95,7 +95,7 @@
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
 #else
       USE hycom_dim_glob
-      USE hycom_dim, only : i_0h,i_1h,j_0h,j_1h
+      USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
 #endif
 
 

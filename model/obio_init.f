@@ -5,7 +5,7 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE PARAM, only: get_param
 
       USE obio_dim
@@ -744,9 +744,10 @@ c     input: flda (W/m*m), output: fldo (W/m*m)
 c
 
       USE FILEMANAGER, only: openunit,closeunit
+      USE GEOM, only : DLATM
 
       USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
-      USE hycom_dim, only : ogrid,j_0h,j_1h
+      USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
       USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
       implicit none
@@ -756,12 +757,13 @@ c
       integer iu_file,lgth
       integer i1,j1,iii,jjj,isum,kmax
 
+      real data_mask(igrd,jgrd)
       real data(igrd,jgrd,kgrd)
       real data2(iia,jja,kgrd)
       real data_min(kgrd),data_max(kgrd)
       real sum1
       real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
-      real fldo(iio,j_0h:j_1h,kgrd)
+      real fldo(i_0h:i_1h,j_0h:j_1h,kgrd)
       real fldo_glob(iio,jjo,kgrd)
 
       logical vrbos,dateline
@@ -796,34 +798,25 @@ c
       call closeunit(iu_file)
 
 !--------------------------------------------------------------
+! convert to the atmospheric grid
+! this code is also present in obio_bioinit_g
       do k=1,kgrd
-       i1=0
-       do i=1,igrd,5
-       i1=i1+1
-       j1=0
-       do j=1,jgrd,4
-       j1=j1+1
+      do i=1,igrd
+      do j=1,jgrd
+        !mask
+        data_mask(i,j)=0.d0
+        if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
+cdiag   if (k.eq.1)
+cdiag.    write(*,'(a,3i5,2e12.4)')'before hntr80 ',
+cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
+      enddo    ! i-loop
+      enddo    ! j-loop
 
-        sum1=0.
-        isum=0
-        do iii=1,5
-        do jjj=1,4
-
-            if (data(i+iii-1,j+jjj-1,k).ge.0.) then
-               sum1=sum1+data(i+iii-1,j+jjj-1,k)
-               isum=isum+1
-            endif
-         enddo
-         enddo
-
-          if (isum.gt.0) then
-             data2(i1,j1,k)=sum1/float(isum)
-          else
-             data2(i1,j1,k)=-9999.
-          endif
-      enddo
-      enddo
-      enddo
+      !compute glb average and replace missing data
+      call HNTR80(igrd,jgrd,180.d0,60.d0,
+     .             iia,jja,0.d0,DLATM,-9999.d0)
+      call HNTR8P (data_mask,data(:,:,k),data2(:,:,k))
+      enddo    ! k-loop
 
 !     !this is needed for dic
 !     do k=1,kgrd
@@ -837,26 +830,15 @@ c
 !     enddo
 !     enddo
 
-      !set to zero so that interpolation works
-      do k=1,kgrd
-      do i=1,iia
-      do j=1,jja
-        if (data2(i,j,k)<0.)data2(i,j,k)=0.
-      enddo
-      !make it 72x46x33
-      data2(i,46,k)=data2(i,45,k)
-      enddo
-      enddo
-
       !--------------------------------------------------------
       !***************** important! start from dateline
-      if (.not.dateline) then
-      !move to dateline
-      dummy1=data2(1:36,:,:);
-      dummy2=data2(37:72,:,:);
-      data2(1:36,:,:)=dummy2;
-      data2(37:72,:,:)=dummy1;
-      endif
+!     if (.not.dateline) then
+!     !move to dateline
+!     dummy1=data2(1:36,:,:);
+!     dummy2=data2(37:72,:,:);
+!     data2(1:36,:,:)=dummy2;
+!     data2(37:72,:,:)=dummy1;
+!     endif
 
       !--------------------------------------------------------
 c$OMP PARALLEL DO
@@ -887,7 +869,7 @@ c$OMP END PARALLEL DO
 !     enddo
 
       !--------------------------------------------------------
-      endif
+      endif   !if am-i-root
 
       !call ESMF_BCAST(ogrid, fldo)
       call unpack_data(ogrid, fldo_glob, fldo)

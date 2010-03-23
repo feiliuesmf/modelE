@@ -88,7 +88,7 @@
         write(*,'(a,i5,1x,2(e18.11,1x))')'carbon conserv.',nstep,
      .       (glb_carbon_invntry-trac_old)/(obio_deltath*3600.d0),
      .       sumFlux2
-        write(*,'(a,i5,1x,e18.11)')'carbon residual',nstep,
+        write(*,'(a,i5,1x,e18.11)')'carbon residual (mol,C/s)',nstep,
      .       (glb_carbon_invntry-trac_old)/(obio_deltath*3600.d0)
      .       -sumFlux2 
         trac_old = 0.d0
