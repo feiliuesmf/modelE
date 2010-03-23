@@ -21,7 +21,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 !@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
       integer :: fid,k,iorw
-      logical :: do_io_prog,do_io_acc,do_io_longacc
+      logical :: do_io_prog,do_io_acc,do_io_longacc,define_checkpoint
       character(len=200) :: tmpname
 
       call set_ioptrs_acc_default
@@ -61,6 +61,9 @@ c for routines designed to accept only iowrite or ioread:
 c
 c create/define file contents if necessary
 c
+      define_checkpoint =
+     &     (iaction.eq.iowrite .and. it.eq.itimei) ! istart=2
+     &     .or. trim(fname) == 'AIC'               ! istart=8,9
       if(iaction.eq.iowrite_mon .or. iaction.eq.iowrite_single) then
         fid = par_open(grid,trim(fname)//'.nc','create')
         if(iaction.eq.iowrite_mon) then
@@ -76,7 +79,7 @@ c end-of-month acc file, no prognostic arrays
           call def_acc_meta(fid)
         endif
         call par_close(grid,fid)!if(am_i_root())status=nf_enddef(fid)
-      elseif(iaction.eq.iowrite .and. it.eq.itimei) then
+      elseif(define_checkpoint) then
 c rsf_file_name(1:2).nc at the beginning of a run
         do k=1,2
           fid=par_open(grid,trim(rsf_file_name(k))//'.nc','create')
@@ -95,7 +98,7 @@ c
         fid = par_open(grid,trim(fname)//'.nc','write')
       elseif(iaction.ge.ioread) then
         tmpname = trim(fname)//'.nc'
-        if(fname == 'AIC') tmpname=fname ! symbolic link w/o .nc suffix
+        if(trim(fname) == 'AIC') tmpname=fname ! symbolic link w/o .nc suffix
         fid = par_open(grid,trim(tmpname),'read')
       endif
 
