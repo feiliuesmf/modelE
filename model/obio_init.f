@@ -5,12 +5,12 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data !ESMF_BCAST
       USE PARAM, only: get_param
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,atmFe_all,alk
+      USE obio_forc, only : ihra,atmFe_glob,atmFe,alk
 #ifdef OBIO_RAD_coupling
      .                      ,eda_frac,esa_frac
 #else
@@ -23,9 +23,11 @@ c
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCEAN, only : LMOM=>LMM,ZOE=>ZE,focean,hocean
       USE MODEL_COM, only: dtsrc
+      USE OCEANR_DIM, only : ogrid
 #else
       USE hycom_dim_glob, only : idm,jdm,kdm
       USE hycom_scalars, only : nstep,baclin
+      USE hycom_dim, only : ogrid
 #endif
 
 
@@ -503,23 +505,15 @@ c  Read in factors to compute average irradiance
 !    . ,recl=idm*jdm*8/4)
 !     do imon=1,12  !1 year of monthly values
 !      nrec=imon
-!      read (iu_bio,rec=nrec)((atmFe_all(i,j,imon),i=1,idm),j=1,jdm)
+!      read (iu_bio,rec=nrec)((atmFe_glob(i,j,imon),i=1,idm),j=1,jdm)
 !     enddo
 !     close(iu_bio)
         filename='atmFe_inicond'
 #ifdef OBIO_ON_GARYocean
-        call bio_inicond2D_g(filename,atmFe_all(:,:,:),.true.)
+        call bio_inicond2D_g(filename,atmFe(:,:,:),.true.)
 #else
-        call bio_inicond2D(filename,atmFe_all(:,:,:),.true.)
+        call bio_inicond2D(filename,atmFe(:,:,:),.true.)
 #endif
-cdiag   do k=1,12
-cdiag   do j=1,jdm
-cdiag   do i=1,idm
-cdiag   write(*,'(a,3i5,e12.4)')'obio_bioinit, atmFe:',
-cdiag.          i,j,k,atmFe_all(i,j,k)
-cdiag   enddo
-cdiag   enddo
-cdiag   enddo
       endif
 
 !     if (IRON_from.eq.1) then
@@ -530,7 +524,7 @@ cdiag   enddo
 !     do imon=1,12  !1 year of monthly values
 !      do j=1,jdm
 !       do i=1,idm
-!       read(iu_bio,'(e12.4)')atmFe_all(i,j,imon)
+!       read(iu_bio,'(e12.4)')atmFe_glob(i,j,imon)
 !       enddo
 !      enddo
 !     enddo

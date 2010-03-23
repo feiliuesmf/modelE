@@ -15,7 +15,6 @@
       USE obio_forc, only: solz,tirrq,Ed,Es
      .                    ,rmud,atmFe,avgq,ihra,sunz
      .                    ,wind
-     .                    ,atmFe_all
      .                    ,owind,osolz
      .                    ,alk
      .                    ,tirrq3d
@@ -277,12 +276,8 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
 
-       !surface forcing atmFe test case
-       !atmFe(i,j)=0.
-
        !fill in reduced rank arrays
        ihra_ij=ihra(i,j)
-       atmFe_ij=atmFe(i,j)
 #ifdef OBIO_ON_GARYocean
        covice_ij=oRSI(i,j)
 #else
@@ -313,6 +308,9 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
 ! because then trmo=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          rho_water = 1d0/VOLGSP(g,s,pres)
+
+       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS-1:',
+     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
 
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
@@ -481,8 +479,13 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !      atmFe_ij=atmFe_all(i,j,l0)*w0 + atmFe_all(i,j,l1)*w1
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
 
-       !atmospheric deposition iron * solubility
-       atmFe_ij=atmFe_all(i,j,JMON)*solFe
+       !atmospheric deposition iron 
+       atmFe_ij=atmFe(i,j,JMON)
+#ifdef zeroFLUX
+       atmFe_ij=0.d0
+#endif
+!      write(*,'(a,4i5,2e12.4)')'obio_model, atmFe:',
+!    .    nstep,JMON,i,j,atmFe(i,j,JMON),atmFe_ij
 
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
@@ -495,6 +498,9 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !         write(*,'(/,a,3i5,2e12.4)')'obio_model, tracflx:',
 !    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
        enddo
+#ifdef zeroFLUX
+          tracflx1d(nt) = 0.d0
+#endif
 #endif
 
        !------------------------------------------------------------

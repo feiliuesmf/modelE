@@ -44,6 +44,7 @@ C****
       USE TRACER_GASEXCH_COM, only: scatter_gasexch_com_arrays
 #endif
 #ifdef TRACERS_OceanBiology
+      USE obio_forc, only: scatter_obio_forc_arrays
       USE obio_com, only: gather_chl
 #endif
 #ifdef TRACERS_GASEXCH_ocean_CO2
