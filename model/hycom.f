@@ -142,6 +142,7 @@ c
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
+      use ObioDiff_mod
       use TimerPackage_mod
       implicit none
 c
@@ -688,7 +689,9 @@ c
 #endif
         call scatter_obio_forc_arrays
         call stop('  hycom scatter obio')
+        call obio_listDifferences('obio_model', 'before')
         call obio_model(nn,mm)
+        call obio_listDifferences('obio_model', 'after')
         call gather_pCO2
 c
 cdiag  do k=1,kdm
@@ -722,7 +725,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       call system_clock(before)
 
+        call obio_listDifferences('cnuity', 'before')
       call cnuity(m,n,mm,nn,k1m,k1n)
+        call obio_listDifferences('cnuity', 'after')
 c
 CTNL  call hycom_arrays_checksum     ! save CPU's time
       call system_clock(after)
@@ -737,7 +742,9 @@ c
         before = after
 c --- long time step tracer advection: build up mass flux time integral
         if (n.eq.oddev) then
+            call obio_listDifferences('tradv1','before')
           call tradv1(n,nn)
+            call obio_listDifferences('tradv1','after')
         endif
 c
         if (mod(nstep,trcfrq).eq.0) then
@@ -746,7 +753,9 @@ c
      .    write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
+            call obio_listDifferences('tradv2','before')
           call tradv2(n,nn)
+            call obio_listDifferences('tradv2','after')
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
 
@@ -779,7 +788,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
+        call obio_listDifferences('tsadvc','before')
       call tsadvc(m,n,mm,nn,k1m,k1n)
+        call obio_listDifferences('tsadvc','after')
 cdiag if (AM_I_ROOT()) print *,'passed tsadvc'
 
       call system_clock(after)
@@ -957,8 +968,8 @@ cdiag  call obio_limits('aftr hybgen')
       endif  !trcfrq
       endif  !AM_I_ROOT
 
-      call start('  tracav')
       if (mod(nstep,trcfrq).eq.0) then
+        call start('  tracav')
 
         do j=j_0,j_1
           do i=1,idm
@@ -985,7 +996,7 @@ cdiag  call obio_limits('aftr hybgen')
         end do
 
         call stop('  tracav')
-         end if
+      end if
 
 #ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
       !gather ao_co2flux
