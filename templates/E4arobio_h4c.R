@@ -102,6 +102,7 @@ obio_trint|-r8|                     !
 obio_reflectance|-r8|
 obio_sinksettl|-r8|
 obio_archyb
+obio_diffmod|-r8|
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TRACER_COM  TRACERS_DRV              ! configurable tracer code

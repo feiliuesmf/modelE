@@ -102,6 +102,7 @@ obio_trint|-r8|                     !
 obio_reflectance|-r8|
 obio_sinksettl|-r8|
 obio_archyb
+obio_diffmod|-r8|
 
 Components:
 Ent shared ESMF_Interface solvers giss_LSM
@@ -307,8 +308,8 @@ nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
 
-itest=308       ! default is -1
-jtest=42        ! default is -1
+itest=-1        ! default is -1
+jtest=-1        ! default is -1
 iocnmx=2        ! default is 0
 brntop=30.      ! default is 0.
 brnbot=200.     ! default is 300.

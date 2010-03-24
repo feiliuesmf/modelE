@@ -103,6 +103,7 @@ obio_trint|-r8|                     !
 obio_reflectance|-r8|
 obio_sinksettl|-r8|
 obio_archyb
+obio_diffmod|-r8|
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!  atmos tracer part  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TRACER_COM  TRACERS_DRV              ! configurable tracer code
@@ -312,8 +313,8 @@ nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2         ! until diurnal diags are fixed, Nssw has to be even
 nssw=48         ! until diurnal diags are fixed, Nssw has to be even
-itest=316       ! (220,320) equator Atlant;   (316,258)=257.5E;-50.7S
-jtest=258       ! (245,275) 0.6S;274.5E Nino3
+itest=-1        ! (220,320) equator Atlant;   (316,258)=257.5E;-50.7S
+jtest=-1        ! (245,275) 0.6S;274.5E Nino3
 iocnmx=2        ! default is 0
 brntop=50.      ! default is 0.
 brnbot=200.     ! default is 300.

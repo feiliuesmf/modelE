@@ -274,8 +274,8 @@ nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=48
 !!!!!!!!!! H Y C O M parameters !!!!!!!!!!!!!!
-itest=160           ! default is -1
-jtest=40            ! default is -1
+itest=-1            ! default is -1
+jtest=-1            ! default is -1
 iocnmx=2            ! default is 0
 brntop=20.          ! default is 0.
 brnbot=200.         ! default is 300.

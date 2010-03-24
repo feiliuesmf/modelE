@@ -100,6 +100,8 @@ obio_trint|-r8|                     !
 obio_reflectance|-r8|
 obio_sinksettl|-r8|
 obio_archyb
+obio_diffmod|-r8|
+
 
 Components:
 Ent shared ESMF_Interface solvers giss_LSM
@@ -306,8 +308,8 @@ nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
-itest=220       ! default is -1 !latitude index
-jtest=320       ! default is -1 !longitude index
+itest=-1        ! default is -1 !latitude index
+jtest=-1        ! default is -1 !longitude index
 iocnmx=2        ! default is 0
 brntop=30.      ! default is 0.
 brnbot=200.     ! default is 300.
