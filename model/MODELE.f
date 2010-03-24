@@ -2079,7 +2079,9 @@ C**** Initialize nudging
       CALL SETUP_RAD
 #endif
 
+#ifndef CUBE_GRID
       if (USE_UNR_DRAG==1) CALL init_UNRDRAG
+#endif
 
 C****
       if(istart.gt.0) CALL RINIT (IRAND)
