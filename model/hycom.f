@@ -142,7 +142,7 @@ c
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
-      use obiodiff_mod
+      use obio_diffmod
       use TimerPackage_mod
       implicit none
 c
