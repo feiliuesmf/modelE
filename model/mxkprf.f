@@ -220,7 +220,7 @@ c
 !$OMP PARALLEL DO PRIVATE(j)
 !$OMP&         SCHEDULE(STATIC,jchunk)
         do j=J_0,J_1
-          call mxkprfbj(nn, j)
+          call mxkprfbj(nn,k1n,j)
         enddo
 !$OMP END PARALLEL DO
 c
@@ -237,6 +237,8 @@ c
         enddo
 !$OMP END PARALLEL DO
       end if				! carry out mixing
+
+      if (dotrcr) write (lp,'(a)') 'tracer kpp mixing done'
 c
 c --- mixed layer diagnostics
 c
@@ -562,21 +564,21 @@ c
       end subroutine mxkprfaj
 c
 c
-      subroutine mxkprfbj(nn, j)
+      subroutine mxkprfbj(nn,k1n,j)
 c
 c --- final mixing at p points
 c
       USE HYCOM_DIM, only : isp,ifp,ilp
       USE HYCOM_SCALARS, only : itest,jtest
       implicit none
-      integer,intent(IN) :: nn,j
+      integer,intent(IN) :: nn,j,k1n
       integer i,l
       logical vrbos
 c
       do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
           vrbos=i.eq.itest .and. j.eq.jtest
-          call mxkprfbij(nn, i,j,vrbos)
+          call mxkprfbij(nn,k1n, i,j,vrbos)
         enddo
       enddo
 c
@@ -2939,7 +2941,7 @@ c
       end subroutine mxgissaij
 c
 c
-      subroutine mxkprfbij(nn, i,j,vrbos)
+      subroutine mxkprfbij(nn,k1n, i,j,vrbos)
 c
 c --- hycom version 1.0
 c -------------------------------------------------------------
@@ -2954,7 +2956,7 @@ c
      +    zgrid, dift, difs, ghats,  sswflx
 c
       implicit none
-      integer,intent(IN) :: nn,i,j
+      integer,intent(IN) :: nn,i,j,k1n
       logical,intent(IN) :: vrbos
 c
 c --- perform the final vertical mixing at p points
@@ -2963,7 +2965,9 @@ c --- local 1-d arrays for matrix solution
       real t1do(kdm+1),t1dn(kdm+1),s1do(kdm+1),s1dn(kdm+1),
      &     tr1do(kdm+1,ntrcr),tr1dn(kdm+1,ntrcr),
      &     difft(kdm+1),diffs(kdm+1),difftr(kdm+1),
-     &     ghat(kdm+1),zm(kdm+1),hm(kdm),dzb(kdm)
+     &     ghat(kdm+1),zm(kdm+1),hm(kdm),dzb(kdm),
+     &     totemo,totemn,tosalo,tosaln,tndcyt,tndcys,
+     &     totrco(ntrcr),totrcn(ntrcr),trscal(ntrcr)
 c
 c --- tridiagonal matrix solution arrays
       real tri(kdm,0:1)      ! dt/dz/dz factors in trid. matrix
@@ -2997,27 +3001,38 @@ c
         ghat(k+1)= ghats(i,j,k+1)
         t1do(k)=temp(i,j,kn)
         s1do(k)=saln(i,j,kn)
+        t1dn(k)=t1do(k)
+        s1dn(k)=s1do(k)
+        if (dotrcr) then
         do ktr= 1,ntrcr
           tr1do(k,ktr)=tracer(i,j,k,ktr)
+          tr1dn(k,ktr)=tr1do(k,ktr)
         enddo
+        endif
         hm(k)=max(onemm,dp(i,j,kn))/onem
         zm(k)=zgrid(i,j,k)
       enddo !k
 c
-      k=nlayer+1
-      ka=min(k,kk)
-      kn=k+nn
-      kan=ka+nn
-      difft( k)=0.0
-      diffs( k)=0.0
-      difftr(k)=0.0
-      ghat(k)=0.0
-      t1do(k)=temp(i,j,kan)
-      s1do(k)=saln(i,j,kan)
-      do ktr= 1,ntrcr
-        tr1do(k,ktr)=tracer(i,j,ka,ktr)
+      do k=nlayer+1,kk+1
+        ka=min(k,kk)
+        kn=k+nn
+        kan=ka+nn
+        difft( k)=0.0
+        diffs( k)=0.0
+        difftr(k)=0.0
+        ghat(k)=0.0
+        t1do(k)=temp(i,j,kan)
+        s1do(k)=saln(i,j,kan)
+        t1dn(k)=t1do(k)
+        s1dn(k)=s1do(k)
+          if (dotrcr) then
+            do ktr=1,ntrcr
+              tr1do(k,ktr)=tracer(i,j,ka,ktr)
+              tr1dn(k,ktr)=tr1do(k,ktr)
+            enddo
+          end if
+        zm(k)=zm(k-1)-0.001
       enddo
-      zm(k)=zm(k-1)-0.001
 c
       if (vrbos) then
           write (lp,102) (nstep,i,j,k,
@@ -3095,20 +3110,77 @@ c
      &     /(i9,2i5,i3,2x,f9.2,4f8.3))
       endif !test
 c
-c --- standard tracer solution
-      if     (ntrcr.gt.0) then
-        call tridcof(difftr,tri,nlayer,tcu,tcc,tcl)
-      endif
+      if (dotrcr) then
+c --- tracer solution (using time step trcfrq*baclin)
+c
+      tri(1,1)=trcfrq*baclin/(hm(1)*dzb(1))
+      tri(1,0)=0.
+      do k=2,nlayer
+        tri(k,1)=trcfrq*baclin/(hm(k)*dzb(k))
+        tri(k,0)=trcfrq*baclin/(hm(k)*dzb(k-1))
+      enddo
+c
+      call tridcof(difftr,tri,nlayer,tcu,tcc,tcl)
+
       do ktr= 1,ntrcr
-ccc        if     (trcflg(ktr).ne.2) then
+cdiag     if (i.eq.itest .and. j.eq.jtest) write (*,'(a,i2/1p(8e10.1))')
+cdiag.      'old tracer',ktr,(tr1do(k,ktr),k=1,nlayer)
           ghatflux=0.
           call tridrhs(hm,
      &                 tr1do(1,ktr),difftr,ghat,ghatflux,tri,nlayer,rhs,
-     &                 delt1)
+     &                 trcfrq*baclin)
           call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,
      &                 tr1do(1,ktr),tr1dn(1,ktr),difftr)
-ccc        endif
+cdiag     if (i.eq.itest .and. j.eq.jtest) write (*,'(a,i2/1p(8e10.1))')
+cdiag.      'new tracer',ktr,(tr1dn(k,ktr),k=1,nlayer)
       enddo
+      endif
+c
+c --- check conservation of column integrals
+      totemo=t1do(1)*dp(i,j,k1n)
+      totemn=t1dn(1)*dp(i,j,k1n)
+      tosalo=s1do(1)*dp(i,j,k1n)
+      tosaln=s1dn(1)*dp(i,j,k1n)
+      if (dotrcr) then
+        do ktr=1,ntrcr
+          totrco(ktr)=tr1do(1,ktr)*dp(i,j,k1n)
+          totrcn(ktr)=tr1dn(1,ktr)*dp(i,j,k1n)
+          trscal(ktr)=max(abs(tr1do(1,ktr)),abs(tr1dn(1,ktr)))
+        end do
+      end if
+      do k=2,kk
+        kn=k+nn
+        totemo=totemo+t1do(k)*dp(i,j,kn)
+        totemn=totemn+t1dn(k)*dp(i,j,kn)
+        tosalo=tosalo+s1do(k)*dp(i,j,kn)
+        tosaln=tosaln+s1dn(k)*dp(i,j,kn)
+        if (dotrcr) then
+          do ktr=1,ntrcr
+            totrco(ktr)=totrco(ktr)+tr1do(k,ktr)*dp(i,j,kn)
+            totrcn(ktr)=totrcn(ktr)+tr1dn(k,ktr)*dp(i,j,kn)
+            trscal(ktr)=max(trscal(ktr),abs(tr1do(k,ktr)),
+     &                                  abs(tr1dn(k,ktr)))
+          end do
+        end if                        !  dotrcr
+      end do
+      tndcyt=totemn-totemo
+      tndcys=tosaln-tosalo
+      totemn=10.*pbot(i,j)
+      tosaln=35.*pbot(i,j)
+      if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+     .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
+      if (abs(tndcys).gt.1.e-6*tosaln) write (lp,101) i,j,
+     .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
+      if (dotrcr) then
+        do ktr=1,ntrcr
+          tndcyt=totrcn(ktr)-totrco(ktr)
+          if (abs(tndcyt).lt.1.e-199) tndcyt=0.
+          totemn=trscal(ktr)*pbot(i,j)
+          if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+     .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
+        end do
+      end if
+ 101  format (2i5,a,1p,2e16.8,e9.1)
 c
 c --- adjust t, s, th, arrays
 c
@@ -3121,9 +3193,11 @@ c
           temp(i,j,kn)=t1dn(k)
           saln(i,j,kn)=s1dn(k)
           th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
+          if (dotrcr) then
           do ktr= 1,ntrcr
             tracer(i,j,k,ktr)=tr1dn(k,ktr)
           enddo !ktr
+          endif
         enddo !k
       else  !include [ts]ofset drift correction
         do k=1,klist(i,j)

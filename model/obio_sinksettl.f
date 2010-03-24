@@ -68,6 +68,7 @@
 
 
 #else     /* HYCOM */
+#ifndef noBIO            /****** for all runs except noBIO tests ********/
       if (kmax.le.1) return
 
 
@@ -173,6 +174,9 @@ cdiag      endif
 
        end do  !ndet
 
+#else
+       errcon = .false.
+#endif
 #endif
 
       end subroutine obio_sinksettl

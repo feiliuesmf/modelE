@@ -37,6 +37,7 @@
      .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
      .                    ,tot_chlo,acdom3d,pnoice,tot_chlo_glob
      .                    ,itest,jtest
+     .                    ,obio_ws,wsdet
 #ifndef TRACERS_GASEXCH_ocean_CO2
 #ifdef TRACERS_OceanBiology
      .                    ,ao_co2flux
@@ -45,7 +46,6 @@
 #ifdef OBIO_ON_GARYocean
      .                    ,obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
-     .                    ,obio_ws,wsdet
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es
@@ -309,9 +309,6 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          rho_water = 1d0/VOLGSP(g,s,pres)
 
-       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS-1:',
-     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
-
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
@@ -387,8 +384,6 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
 #endif
        enddo  !k=1,kdm or lmm
 
-       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS0:',
-     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
        p1d(1)=0.
        do k=2,kdm+1
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
@@ -757,15 +752,20 @@ cdiag  endif
        wsdet(k,:) = 0.d0
        enddo
 #endif
-       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS1:',
-     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
        call obio_update(vrbos,kmax,i,j)
-       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS2:',
-     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
 #else
        !update biology from m to n level
        !also do phyto sinking and detrital settling here
        !MUST CALL sinksettl AFTER update
+#ifdef noBIO
+       do k=1,kmax
+       P_tend(k,:)= 0.d0
+       C_tend(k,1)= 0.d0     !C_tend(k,2) not set to zero only flux term
+       D_tend(k,:)= 0.d0
+       obio_ws(k,:) = 0.d0
+       wsdet(k,:) = 0.d0
+       enddo
+#endif
        call obio_update(vrbos,kmax,i,j)
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
        if (errcon) then
@@ -836,9 +836,6 @@ cdiag     endif
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
-       if(vrbos) write(*,'(a,3i5,2e20.10)')'CHECK CONS3:',
-     .           nstep,i,j,P_tend(1,1),obio_P(1,1)
-
 
 #ifdef OBIO_ON_GARYocean
       !update trmo etc arrays

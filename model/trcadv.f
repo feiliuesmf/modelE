@@ -292,7 +292,7 @@ c
       integer iord,ip1,im1,jp1,jm1,kp,jaa
       character string*16
       logical wrap,recovr
-      data recovr/.false./
+      data recovr/.true./
       parameter (athird=1./3.)
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.

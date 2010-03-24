@@ -142,7 +142,7 @@ c
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
-      use ObioDiff_mod
+      use obiodiff_mod
       use TimerPackage_mod
       implicit none
 c
@@ -613,6 +613,7 @@ c
 c --- initialization of tracer transport arrays (incl. dpinit):
         call tradv0(m,mm)
         dotrcr=.false.
+
 c
 c --- inject tracer into ogcm
 c     write(*,*) 'nstep=',nstep
@@ -667,21 +668,6 @@ c
       trcout = .true.
 c
       if (dobio) then
-cdiag  do k=1,kdm
-cdiag  km=k+mm
-cdiag   if (k.eq.1)
-cdiag.   write(lp,'(a,3i5,a,a)')'bfre obio ',nstep,itest,jtest
-cdiag.   ,'    dp       nitr      ammo      sili      iron  '
-cdiag.   ,'    diat      chlo      cyan      cocco     herb'
-cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
-cdiag.     k,dp(itest,jtest,km)/onem,
-cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
-cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
-cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
-cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
-cdiag.     tracer(itest,jtest,k,9)
-cdiag  enddo
-cdiag  call obio_limits('bfre obio_model')
 c
         call start('  hycom scatter obio')
 #ifdef TRACERS_GASEXCH_ocean
@@ -689,27 +675,11 @@ c
 #endif
         call scatter_obio_forc_arrays
         call stop('  hycom scatter obio')
-        call obio_listDifferences('obio_model', 'before')
+          call obio_listDifferences('obio_model', 'before')
         call obio_model(nn,mm)
-        call obio_listDifferences('obio_model', 'after')
+          call obio_listDifferences('obio_model', 'after')
         call gather_pCO2
 c
-cdiag  do k=1,kdm
-cdiag  km=k+mm
-cdiag   if (k.eq.1)
-cdiag.   write(lp,'(a,3i5,a,a)')'aftr obio ',nstep,itest,jtest
-cdiag.   ,'    dp       nitr      ammo      sili      iron  '
-cdiag.   ,'    diat      chlo      cyan      cocco     herb'
-cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
-cdiag.     k,dp(itest,jtest,km)/onem,
-cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
-cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
-cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
-cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
-cdiag.     tracer(itest,jtest,k,9)
-cdiag  enddo
-cdiag  call obio_limits('aftr obio_model')
-
       endif
 #endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -742,9 +712,9 @@ c
         before = after
 c --- long time step tracer advection: build up mass flux time integral
         if (n.eq.oddev) then
-            call obio_listDifferences('tradv1','before')
+          call obio_listDifferences('tradv1','before')
           call tradv1(n,nn)
-            call obio_listDifferences('tradv1','after')
+          call obio_listDifferences('tradv1','after')
         endif
 c
         if (mod(nstep,trcfrq).eq.0) then
@@ -753,30 +723,11 @@ c
      .    write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
-            call obio_listDifferences('tradv2','before')
+          call obio_listDifferences('tradv2','before')
           call tradv2(n,nn)
-            call obio_listDifferences('tradv2','after')
+          call obio_listDifferences('tradv2','after')
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
-
-#ifdef TRACERS_OceanBiology
-cdiag  do k=1,kdm
-cdiag  km=k+mm
-cdiag   if (k.eq.1)
-cdiag.   write(lp,'(a,3i5,a,a)')'aftr tadv ',nstep,itest,jtest
-cdiag.   ,'    dp       nitr      ammo      sili      iron  '
-cdiag.   ,'    diat      chlo      cyan      cocco     herb'
-cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
-cdiag.     k,dp(itest,jtest,km)/onem,
-cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
-cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
-cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
-cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
-cdiag.     tracer(itest,jtest,k,9)
-cdiag  enddo
-cdiag  call obio_limits('aftr trcadv')
-#endif
-
       end if !trcout
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -788,9 +739,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
-        call obio_listDifferences('tsadvc','before')
+      call obio_listDifferences('tsadvc','before')
       call tsadvc(m,n,mm,nn,k1m,k1n)
-        call obio_listDifferences('tsadvc','after')
+      call obio_listDifferences('tsadvc','after')
 cdiag if (AM_I_ROOT()) print *,'passed tsadvc'
 
       call system_clock(after)
@@ -809,7 +760,9 @@ ccc      write (string,'(a12,i8)') 'tsadvc, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+          call obio_listDifferences('momtum', 'before')
       call momtum(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('momtum', 'after')
 cdiag if (AM_I_ROOT()) print *,'passed momtum'
 c
       call system_clock(after)
@@ -819,7 +772,9 @@ ccc      write (string,'(a12,i8)') 'momtum, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+          call obio_listDifferences('barotp', 'before')
       call barotp(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('barotp', 'after')
 
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
@@ -828,8 +783,10 @@ ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+          call obio_listDifferences('convec', 'before')
 c     if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
       call convec(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('convec', 'after')
 c
       call system_clock(after)
       convec_time = real(after-before)/real(rate)
@@ -848,9 +805,11 @@ ccc      call comparall(m,n,mm,nn,string)
 c
 c     before = after
 
+          call obio_listDifferences('diapfl', 'before')
       if ((iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) .and.
      .                          nstep*baclin.ge.12.*3600) 
      .      call diapfl(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('diapfl', 'after')
 c
 c     call system_clock(after)
 c     diapfl_time = real(after-before)/real(rate)
@@ -860,7 +819,9 @@ ccc      write (string,'(a12,i8)') 'diapfl, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+          call obio_listDifferences('thermf', 'before')
       call thermf(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('thermf', 'after')
 c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
@@ -869,7 +830,9 @@ ccc      write (string,'(a12,i8)') 'thermf, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
+          call obio_listDifferences('eice', 'before')
       call eice(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('eice', 'after')
       call system_clock(after)
       enloan_time = real(after-before)/real(rate)
 c
@@ -877,7 +840,9 @@ c
 c     if (nstep*baclin.le.12.*3600) then
 c       call mxlayr(m,n,mm,nn,k1m,k1n)
 c     else
+          call obio_listDifferences('mxkprf', 'before')
          call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hrs
+          call obio_listDifferences('mxkprf', 'after')
 c     end if
 c     if (AM_I_ROOT())  print *,'passed mxkprf'
 c
@@ -887,23 +852,6 @@ c
 c     call sstbud(4,'  air-sea fluxes',tprime)
 c     call sstbud(5,'     entrainment',temp(1,1,k1n))
 
-#ifdef TRACERS_OceanBiology
-cdiag  do k=1,kdm
-cdiag  km=k+mm
-cdiag  if (k.eq.1)
-cdiag.   write(lp,'(a,3i5,a,a)')'aftr kpp  ',nstep,itest,jtest
-cdiag.   ,'    dp       nitr      ammo      sili      iron  '
-cdiag.   ,'    diat      chlo      cyan      cocco     herb'
-cdiag   write(lp,'(22x,i3,10(1x,es9.2))')
-cdiag.     k,dp(itest,jtest,km)/onem,
-cdiag.     tracer(itest,jtest,k,1),tracer(itest,jtest,k,2),
-cdiag.     tracer(itest,jtest,k,3),tracer(itest,jtest,k,4),
-cdiag.     tracer(itest,jtest,k,5),tracer(itest,jtest,k,6),
-cdiag.     tracer(itest,jtest,k,7),tracer(itest,jtest,k,8),
-cdiag.     tracer(itest,jtest,k,9)
-cdiag  enddo
-cdiag  call obio_limits('aftr kpp')
-#endif
       if (AM_I_ROOT()) then
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -918,7 +866,9 @@ c
       end if ! AM_I_ROOT
       before = after
 
+          call obio_listDifferences('hybgen', 'before')
       call hybgen(m,n,mm,nn,k1m,k1n)
+          call obio_listDifferences('hybgen', 'after')
 
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
