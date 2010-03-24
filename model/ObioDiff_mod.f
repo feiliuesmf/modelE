@@ -31,27 +31,27 @@
       real*8, allocatable, save :: previousTracers(:,:,:,:)
       real*8, allocatable, save :: previousdpinit(:,:,:)
 
-      integer :: j_0, j_1, j_0h
+      integer :: j_0, j_1, j_0h, j_1h
       integer :: iTracer
       character(len=20) :: name
 
       call get(ogrid, j_strt = j_0, j_stop = j_1,
-     &     j_strt_halo=j_0h)
+     &     j_strt_halo=j_0h, j_stop_halo = j_1h)
 
       if (.not. init) then
         init = .true.
 
-        allocate(previousTracers(idm, j_0:j_1, kdm, numTracers)) ! no halo
-        previousTracers(:,j_0:j_1,:,:) = tracers(:,j_0:j_1,:,:)
+        allocate(previousTracers(idm, j_0h:j_1h, kdm, numTracers))
+        previousTracers = tracers
 
 #ifndef OBIO_ON_GARYocean
-        allocate(previousdpinit(idm,j_0:j_1, kdm))
-        previousdpinit(:,j_0:j_1,:) = dpinit(:,j_0:j_1,:)
+        allocate(previousdpinit(idm,j_0h:j_1h, kdm))
+        previousdpinit = dpinit
 #endif
         return ! nothing to compare on the 1st trip
       end if
 
-      select case (phase)
+      select case (trim(phase))
       case ('before')
 
         previousTracers = tracers
@@ -81,36 +81,24 @@
 !@+   locations of min and max differences in an array from the
 !@+   previous call.
 !@auth T. Clune <Thomas.L.Clune@nasa.gov>
-#ifdef OBIO_ON_GARYocean
-      use oceanres,  only: idm=>imo, kdm=>lmo
-      use oceanr_dim, only : ogrid
-#else
-      use hycom_dim_glob, only : idm, kdm
-      use hycom_dim, only: ogrid
-#endif
       use domain_decomp_1d, only: am_i_root, get
-
 
 c
 c --- this routine compares 'array' with an earlier version of 'array'
 c --- saved during a previous call to this routine
 c
       character(len=*), intent(in) :: name
-      real*8, intent(in) :: array(:,ogrid%j_strt_halo:,:)
-      real*8, intent(out) :: previous(:,ogrid%j_strt_halo:,:)
+      real*8, intent(in) :: array(:,:,:)
+      real*8, intent(out) :: previous(:,:,:)
       real*8               :: valMax, valMin
       integer            :: ijkAtMax(3), ijkAtMin(3)
 
-      integer :: j_0, j_1, j_0h
       integer :: nk
 
 #ifdef USE_ESMF
       include 'mpif.h'
 #endif
 c
-      call get(ogrid, j_strt = j_0, j_stop = j_1,
-     &     j_strt_halo=j_0h)
-
       call getLocalMaxMin(array, previous, 
      &     ijkAtMax, valMax, ijkAtMin, valMin)
       call getGlobalExtreme(valMax, ijkAtMax, MPI_MAXLOC)
@@ -118,8 +106,8 @@ c
 
       if (am_i_root()) then
         print*,'  ', trim(name), ':'
-        print 100,'largest pos change',valMax,' at i,j,k=',ijkAtMax
-        print 100,'largest neg change',valMin,' at i,j,k=',ijkAtMin
+        print 100,'largest pos change', valMax,' at i,j,k=', ijkAtMax
+        print 100,'largest neg change', valMin,' at i,j,k=', ijkAtMin
       end if
 
  100  format (5x,a,es11.2,a,3i5)
@@ -129,8 +117,15 @@ c
 
       subroutine getLocalMaxMin(a, b, 
      &     ijkAtMax, valMax, ijkAtMin, valMin)
-      real*8, intent(in) :: a(:,j_0h:,:)
-      real*8, intent(inout) :: b(:,j_0:,:) ! not halo'd
+#ifdef OBIO_ON_GARYocean
+      use oceanres,  only: idm=>imo, kdm=>lmo
+      use oceanr_dim, only : ogrid
+#else
+      use hycom_dim_glob, only : idm, kdm
+      use hycom_dim, only: ogrid
+#endif
+      real*8, intent(in) :: a(:,ogrid%j_strt_halo:,:)
+      real*8, intent(inout) :: b(:,ogrid%j_strt_halo:,:)
       integer, intent(out) :: ijkAtMax(3)
       real*8, intent(out) :: valMax
       integer, intent(out) :: ijkAtMin(3)
@@ -138,11 +133,14 @@ c
 
       integer :: i, j, k
       real*8 :: diff
+      integer :: j_0, j_1
+
+      call get(ogrid, j_strt=j_0, j_stop=j_1)
 
       valMax=-1.e33
       valMin=+1.e33
 
-      do k = 1, nk
+      do k = 1, kdm
         do j = j_0, j_1
           do i = 1, idm
             diff = a(i,j,k)-b(i,j,k)
