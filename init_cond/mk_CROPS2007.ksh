@@ -25,7 +25,7 @@ topo_name=$( basename $topo ) ; out=CROPS2007_${topo_name#Z} ; # strip leading Z
 if [[ $grid != *[xX]* ]] ; then echo "$grid - not of the form IMxJM" ;    exit ; fi
 if [[ ! -s $topo ]] ; then echo "topogr_file $topo not found" ;           exit ; fi
   echo
-  echo "processing vegetation files archived on /archive/u/mjpuma/Globalveg"
+  echo "processing vegetation files archived on /archive/u/mpuma/Globalveg"
   echo "  the following needs to have been done before using this script:"
   echo "  copy them, unzip them and move them to the current directory"
   echo "checking whether all the needed files are present ..."
