@@ -43,7 +43,6 @@
       PUBLIC :: MREAD_PARALLEL
       PUBLIC :: READT_PARALLEL,READT_PARALLEL_COLUMN
       PUBLIC :: READT8_PARALLEL,READT8_COLUMN,WRITET8_COLUMN
-      PUBLIC :: READ_PARALLEL
       PUBLIC :: WRITEI8_PARALLEL
       PUBLIC :: DREAD8_PARALLEL,DWRITE8_PARALLEL
       PUBLIC :: WRITET_PARALLEL
@@ -79,10 +78,6 @@ c        MODULE PROCEDURE READT8_PARALLEL_2D
       INTERFACE WRITET8_COLUMN
         MODULE PROCEDURE WRITET8_COLUMN_3D
       END INTERFACE
-
-      interface READ_PARALLEL
-         module procedure READ_PARALLEL_INTEGER_0
-      end interface
 
       interface WRITEI8_PARALLEL
         module procedure WRITEI8_PARALLEL_3D
@@ -557,14 +552,6 @@ C****  convert from real*4 to real*8
       end if
       return
       END SUBROUTINE READT8_COLUMN_3D
-
-      subroutine read_parallel_integer_0 (data_int, unit)
-      integer, intent(out) :: data_int
-      integer, intent(in) :: unit
-      type(dist_grid) :: grd_dum ! only used to satisfy esmf_bcast interface
-      if(am_i_root()) read(unit) data_int
-      CALL ESMF_BCAST(grd_dum, data_int)
-      end subroutine read_parallel_integer_0
 
       SUBROUTINE WRITEI8_PARALLEL_3D (grd_dum,IUNIT,NAME,buf,it)
 !@sum WRITEI8_PARALLEL  Parallel version of UTILDBL.f:WRITEI8 for (im,jm,:) arrays
