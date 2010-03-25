@@ -97,6 +97,8 @@ obio_ptend       |-r8|
 obio_carbon      |-r8|
 obio_update      |-r8|
 obio_sinksettl   |-r8|
+obio_diffmod     |-r8|
+obio_diffmod     |-r8|
 
 !!!ar!!!obio_oasimhr     |-r8|
 !!!ar!!!obio_limits      |-r8|

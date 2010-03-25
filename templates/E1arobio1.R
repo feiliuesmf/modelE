@@ -119,6 +119,7 @@ obio_carbon|-r8|                    !
 obio_trint|-r8|                     ! 
 obio_reflectance|-r8|
 obio_sinksettl|-r8|
+obio_diffmod|-r8|
 
 
 Components:
