@@ -58,7 +58,7 @@
 
       REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
       real*8, parameter :: S1byG1=.57735d0
-      REAL*8 Ts,ts_guess
+      REAL*8 Ts
 
 #ifdef TRACERS_ON
       integer nx,n
@@ -266,8 +266,6 @@ c     ENDIF
       dpdxr0 = DPDX_BY_RHO_0(i,j)
       dpdyr0 = DPDY_BY_RHO_0(i,j)
 
-      ts_guess = (t(i,j,1)-tmom(mz,i,j,1)*S1byG1)*pek(1,i,j)
-     2          *(1+q(i,j,1)*deltx)
       mdf = ddm1(i,j)
 
 !!! put some results from above to pbl_args
@@ -307,7 +305,7 @@ c     ENDIF
 
       dtdt_gcm = (pbl_args%tkv - t1_after_aturb(i,j)*pek(1,i,j))/
      &     pbl_args%dtsurf
-      call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
+      call advanc( pbl_args,coriol,utop,vtop,qtop,ztop,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &     ,dtdt_gcm,u1_after_aturb(i,j),v1_after_aturb(i,j)
      &     ,i,j,itype

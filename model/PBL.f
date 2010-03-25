@@ -57,6 +57,7 @@
 
       ! public parameters
       public n,zgs,XCDpbl,kappa,emax,skin_effect,ustar_min
+     &   ,lmonin_min,lmonin_max
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -232,7 +233,8 @@ CCC      real*8 :: bgrid
 !@var emax limit on turbulent kinetic energy
 !@var ustar_min limit on surface friction speed 
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
-     *     cmin=smin*smin,emax=1.d5,ustar_min=5d-2
+     *     cmin=smin*smin,emax=1.d5,ustar_min=1d-1
+     *    ,lmonin_min=1d-4,lmonin_max=1d4
 
 !@param twoby3 2/3 constant
       real*8, parameter :: twoby3 = 2d0/3d0
@@ -242,7 +244,7 @@ CCC      real*8 :: bgrid
 
       CONTAINS
 
-      subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,ts_guess,mdf
+      subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,mdf
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &     ,dtdt_gcm,utop_old,vtop_old
      &     ,ilong,jlat,itype
@@ -368,7 +370,7 @@ c  internals:
       !-- in/out structure
       type (t_pbl_args), intent(inout) :: pbl_args
       !-- input:
-      real*8, intent(in) :: coriol,utop,vtop,qtop,ztop,ts_guess
+      real*8, intent(in) :: coriol,utop,vtop,qtop,ztop
       real*8, intent(in) :: mdf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       integer, intent(in) :: ilong,jlat,itype
@@ -594,15 +596,19 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh
      &       ,ch,ws,tgrnd,ttop,dtdt_gcm,dtime
-     &       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns,ddml_eq_1)
+     &       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns
+     &       ,qdns,ddml_eq_1)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh
      &       ,ustar,cm,z0m,utop,vtop,utop_old,vtop_old
      &       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
      &       ,dpdyr0)
 
-        if ((ttop.gt.tgrnd).and.(lmonin.lt.0.)) call tfix(t,z,ttop,tgrnd
-     *       ,lmonin,tstar,ustar,kh(1),ts_guess,n)
+        if ( ((ttop.ge.tgrnd).and.(lmonin.le.0.)).or.
+     &       ((ttop.le.tgrnd).and.(lmonin.ge.0.)) )
+     &     call tfix(t,z,ttop,tgrnd
+     &              ,lmonin,tstar,ustar,kh(1),n)
+
 
         if(ddml_eq_1) then
           tprime=tdns-t(1)/(1.+deltx*q(1))
@@ -1050,7 +1056,9 @@ C**** tracer code output
       if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
-      if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
+      if(abs(lmonin).lt.lmonin_min) lmonin=sign(lmonin_min,lmonin)
+      if(abs(lmonin).gt.lmonin_max) lmonin=sign(lmonin_max,lmonin)
+
 c**** To compute the drag coefficient,Stanton number and Dalton number
       call dflux(lmonin,ustar,vel1,ts,z0m,z0h,z0q,zgs,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
@@ -1576,7 +1584,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       return
       end subroutine griddr
 
-      subroutine tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,khs,ts_guess,n)
+      subroutine tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,khs,n)
 !@sum   tfix
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
@@ -1586,15 +1594,14 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       integer, intent(in) :: n    !@var n  array dimension
       real*8, dimension(n),intent(in) :: z
       real*8, dimension(n),intent(inout) :: t
-      real*8, intent(in) :: ttop,tgrnd,ustar,khs,ts_guess
+      real*8, intent(in) :: ttop,tgrnd,ustar,khs
       real*8, intent(inout) :: lmonin,tstar
 
       real*8 dtdz
       integer i  !@var i loop variable
 
-      t(1)=ts_guess
-      do i=2,n-1
-        t(i)=t(1)+(z(i)-z(1))*(ttop-t(1))/(z(n)-z(1))
+      do i=1,n-1
+        t(i)=tgrnd+(ttop-tgrnd)*z(i)/z(n)
       end do
 
       dtdz   = (t(2)-t(1))/(z(2)-z(1))
@@ -1603,7 +1610,8 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
 
       lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
-      if(abs(lmonin).lt.teeny) lmonin=sign(teeny,lmonin)
+      if(abs(lmonin).lt.lmonin_min) lmonin=sign(lmonin_min,lmonin)
+      if(abs(lmonin).gt.lmonin_max) lmonin=sign(lmonin_max,lmonin)
 
       return
       end subroutine tfix
@@ -1944,7 +1952,8 @@ c     rhs(n-1)=0.
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
      &     ,ttop,dtdt_gcm,dtime,n
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns,ddml_eq_1)
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns
+     &     ,qdns,ddml_eq_1)
 !@sum t_eqn integrates differential eqn for t (tridiagonal method)
 !@+   between the surface and the first GCM layer.
 !@+   Boundary conditions at bottom: Mellor and Yamada 1982, Eq(72),
@@ -1990,7 +1999,7 @@ c     rhs(n-1)=0.
       real*8, intent(in) :: ch,tgrnd
       real*8, intent(in) :: ttop,dtdt_gcm,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8, intent(in) ::  usurf0,tprime,tdns
+      real*8, intent(in) ::  usurf0,tprime,tdns,qdns
       logical, intent(in) :: ddml_eq_1
 
       real*8 :: facth,factx,facty,rat
@@ -2030,7 +2039,7 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
          rat = usurf0/(usurf+teeny)
          dia(1) = 1+facth*rat
 !     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
-         rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*q(1))*tdns)
+         rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*qdns)*tdns)
       else
          dia(1) = 1+facth
 !     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))

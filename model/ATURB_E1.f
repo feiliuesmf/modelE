@@ -33,6 +33,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE FLUXES, only : trflux1
 #endif
       USE SOCPBL, only : b1,b123,prt,kappa,zgs
+     &     ,ustar_min,lmonin_min,lmonin_max
       USE PBLCOM, only : tsavg,qsavg,dclev,uflux,vflux,tflux,qflux
      *     ,e_3d=>egcm,w2_3d=>w2gcm !,t2_3d=>t2gcm
      &     ,t1_after_aturb,u1_after_aturb,v1_after_aturb
@@ -237,6 +238,7 @@ C**** minus sign needed for ATURB conventions
           if(abs(uflx).lt.teeny) uflx=sign(teeny,uflx)
           if(abs(vflx).lt.teeny) vflx=sign(teeny,vflx)
           ustar=(uflx*uflx+vflx*vflx)**(0.25d0)
+          ustar=max(ustar,ustar_min)
           ustar2=ustar*ustar
           alpha1=atan2(vflx,uflx)
 
@@ -1103,6 +1105,7 @@ C****
 !@var g_alpha grav*alpha
       USE CONSTANT, only : teeny,by3
       USE SOCPBL, only : kappa,emax,rimax,b1,c1,c2,c3,c4,c5
+     &   ,lmonin_min,lmonin_max
 
       implicit none
 
@@ -1118,6 +1121,9 @@ C****
       ustar3=ustar*ustar*ustar
       wstar3=wstar*wstar*wstar
       lmonin=ustar3/(kappa*g_alpha(1)*tvflx)  ! tvflx=-(wtv)_0
+      if(abs(lmonin).lt.lmonin_min) lmonin=sign(lmonin_min,lmonin)
+      if(abs(lmonin).gt.lmonin_max) lmonin=sign(lmonin_max,lmonin)
+
       do j=1,n   ! Dyer 1974
         zj=ze(j)
         if(zj.le.dbl) then
