@@ -11,10 +11,11 @@
       use ocn_tracer_com, only : ntrcr=>ntm, obio_tr_mm
       use model_com, only : nstep=>itime
       use ocean, only: trmo
+      use ofluxes, only: oRSI
 #else
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid
-      use hycom_arrays, only : tracer,dpinit,scp2
+      use hycom_arrays, only : tracer,dpinit,scp2,oice
       use hycom_scalars, only : nstep,onem
 #endif
 #ifdef TRACERS_GASEXCH_ocean
@@ -51,13 +52,21 @@
       ! using resize to force tracflx to act as 4D array with
       ! size 1 in the uninteresting directions to match
       ! expected interface.
-      sumFlux = volumeIntegration(reshape(tracflx(:,:,1),
+#ifdef OBIO_ON_GARYocean
+      sumFlux = volumeIntegration(reshape(tracflx(:,:,1)*(1-oRSI),
+#else
+      sumFlux = volumeIntegration(reshape(tracflx(:,:,1)*(1-oice),
+#endif
      &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
       fluxNorm1 = avgDepthOfTopLayer()
       fluxNorm2 = sumDepthOfTopLayer()
 !     sumFlux = sumFlux / fluxNorm
 
-      sumFlux2= areaIntegration(tracflx(:,:,1))
+#ifdef OBIO_ON_GARYocean
+      sumFlux2= areaIntegration(tracflx(:,:,1)*(1-oRSI))
+#else
+      sumFlux2= areaIntegration(tracflx(:,:,1)*(1-oice))
+#endif
 
       if (am_i_root()) then
          do iTracer = 1, ntrcr
