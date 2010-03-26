@@ -7994,7 +7994,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &  ,PIratio_N2O,PIratio_CFC
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-      USE TRACER_SOURCES, only:first_mod,first_ncep
+      USE TRACER_SOURCES, only:first_mod,first_ncep,avg_model,avg_ncep,
+     & PRS_ch4,sum_ncep
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
       USE TRACER_SOURCES, only:GLTic
@@ -8280,6 +8281,10 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
 #ifdef INTERACTIVE_WETLANDS_CH4
           first_mod(:,:,:)=1
           first_ncep(:)=1
+          avg_model(:,:,:)=0.d0
+          avg_ncep(:,:,:)=0.d0
+          PRS_ch4(:,:,:)=0.d0
+          sum_ncep(:,:,:)=0.d0
 #endif
          else
 #ifdef INITIAL_GHG_SETUP

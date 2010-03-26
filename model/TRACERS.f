@@ -1101,7 +1101,8 @@ C**** check whether air mass is conserved
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
-     *     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4
+     &     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4,avg_model,
+     &     avg_ncep
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1138,9 +1139,8 @@ C**** check whether air mass is conserved
      &     rHch4,rDch4,r0ch4,rfirst_mod
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE ::
      &     day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob
-      REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
-     &     sum_ncep_glob,PRS_ch4_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijch4_glob
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijncep_glob
 #endif
 #endif     
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1195,9 +1195,8 @@ C**** check whether air mass is conserved
       allocate(
      &     day_ncep_glob(img,jmg,max_days,nra_ncep)
      &    ,DRA_ch4_glob(img,jmg,max_days,nra_ch4)
-     &    ,sum_ncep_glob(img,jmg,nra_ncep)
-     &    ,PRS_ch4_glob(img,jmg,nra_ch4)
      &    ,HRA_ch4_glob(img,jmg,maxHR_ch4,nra_ch4)
+     &    ,Rijncep_glob(img,jmg,nra_ncep)
      &    ,Rijch4_glob(img,jmg,nra_ch4) )
       allocate( 
      &     rfirst_mod(IM,J_0H:J_1H,nra_ch4) 
@@ -1351,15 +1350,11 @@ C**** check whether air mass is conserved
         end do
         if(am_i_root())write(kunit,err=10)header,dra_ch4_glob
        header='INTERACTIVE_WETLANDS_CH4: sum_ncep(i,j,#raN)'
-        do itm1=1,nra_ncep
-         call pack_data(grid,sum_ncep(:,:,itm1),sum_ncep_glob(:,:,itm1))
-        end do
-        if(am_i_root())write(kunit,err=10)header,sum_ncep_glob
+        call pack_data(grid,sum_ncep(:,:,:),Rijncep_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijncep_glob
        header='INTERACTIVE_WETLANDS_CH4: prs_ch4(i,j,#raC)'
-        do itm1=1,nra_ch4
-         call pack_data(grid,prs_ch4(:,:,itm1),prs_ch4_glob(:,:,itm1))
-        end do
-        if(am_i_root())write(kunit,err=10)header,prs_ch4_glob
+        call pack_data(grid,prs_ch4(:,:,:),Rijch4_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijch4_glob
        header='INTERACTIVE_WETLANDS_CH4: HRA_ch4(i,j,mxHc,#raC)'
         do itm=1,maxHR_ch4
           do itm2=1,nra_ch4
@@ -1384,6 +1379,12 @@ C**** check whether air mass is conserved
         rfirst_mod(I_0:I_1,J_0:J_1,:)=REAL(first_mod(I_0:I_1,J_0:J_1,:))
         call pack_data(grid,rfirst_mod(:,:,:),Rijch4_glob(:,:,:))
         if(am_i_root())write(kunit,err=10)header,Rijch4_glob
+       header='INTERACTIVE_WETLANDS_CH4: avg_model(i,j,#raC)'
+        call pack_data(grid,avg_model(:,:,:),Rijch4_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijch4_glob
+       header='INTERACTIVE_WETLANDS_CH4: avg_ncep(i,j,#raN)'
+        call pack_data(grid,avg_ncep(:,:,:),Rijncep_glob(:,:,:))
+        if(am_i_root())write(kunit,err=10)header,Rijncep_glob
        header='INTERACTIVE_WETLANDS_CH4: iday_ncep,i0_ncep,first_ncep'
         if(am_i_root())write(kunit,err=10)
      &  header,iday_ncep,i0_ncep,first_ncep
@@ -1498,16 +1499,10 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
             call unpack_data
      &      (grid,dra_ch4_glob(:,:,itm,itm2),dra_ch4(:,:,itm,itm2))
           end do            ;end do
-          if(am_i_root())read(kunit,err=10)header,sum_ncep_glob
-          do itm1=1,nra_ncep
-            call unpack_data
-     &      (grid,sum_ncep_glob(:,:,itm1),sum_ncep(:,:,itm1))
-          end do
-          if(am_i_root())read(kunit,err=10)header,prs_ch4_glob
-          do itm1=1,nra_ch4
-            call unpack_data
-     &      (grid,prs_ch4_glob(:,:,itm1),prs_ch4(:,:,itm1))
-          end do
+          if(am_i_root())read(kunit,err=10)header,Rijncep_glob   
+          call unpack_data(grid,Rijncep_glob(:,:,:),sum_ncep(:,:,:))
+          if(am_i_root())read(kunit,err=10)header,Rijch4_glob 
+          call unpack_data(grid,Rijch4_glob(:,:,:),prs_ch4(:,:,:))
           if(am_i_root())read(kunit,err=10)header,HRA_ch4_glob
           do itm=1,maxHR_ch4 ;do itm2=1,nra_ch4
             call unpack_data
@@ -1526,6 +1521,10 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
           call unpack_data(grid,Rijch4_glob(:,:,:),rfirst_mod(:,:,:))
           first_mod(I_0:I_1,J_0:J_1,:)=
      &    NINT(rfirst_mod(I_0:I_1,J_0:J_1,:))
+          if(am_i_root())read(kunit,err=10)header,Rijch4_glob
+          call unpack_data(grid,Rijch4_glob(:,:,:),avg_model(:,:,:))
+          if(am_i_root())read(kunit,err=10)header,Rijncep_glob
+          call unpack_data(grid,Rijncep_glob(:,:,:),avg_ncep(:,:,:))
           if(am_i_root())read(kunit,err=10)
      &    header,iday_ncep,i0_ncep,first_ncep
 C**** ESMF: Broadcast all non-distributed read arrays.
@@ -1560,9 +1559,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_SPECIAL_Shindell
       deallocate(Aijl_glob,ss_glob)
 #ifdef INTERACTIVE_WETLANDS_CH4 
-      deallocate(day_ncep_glob,DRA_ch4_glob,
-     & sum_ncep_glob,PRS_ch4_glob,HRA_ch4_glob,Rijch4_glob )
-      deallocate( rfirst_mod,rHch4,rDch4,r0ch4)
+      deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
+     & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
 #endif
       end subroutine freemem
@@ -1589,7 +1587,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
-     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod
+     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
+     & avg_model,avg_ncep
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1676,6 +1675,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     'iHch4(dist_im,dist_jm,nra_ch4)')
       call defvar(grid,fid,first_mod,
      &     'first_mod(dist_im,dist_jm,nra_ch4)')
+      call defvar(grid,fid,avg_model,
+     &     'avg_model(dist_im,dist_jm,nra_ch4)')
+      call defvar(grid,fid,avg_ncep, 
+     &     'avg_ncep(dist_im,dist_jm,nra_ncep)')
       call defvar(grid,fid,iday_ncep,'iday_ncep(nra_ncep)')
       call defvar(grid,fid,i0_ncep,'i0_ncep(nra_ncep)')
       call defvar(grid,fid,first_ncep,'first_ncep(nra_ncep)')
@@ -1713,7 +1716,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
-     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod
+     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
+     & avg_model,avg_ncep
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -1785,6 +1789,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call write_dist_data(grid,fid,'iDch4',iDch4)
         call write_dist_data(grid,fid,'iHch4',iHch4)
         call write_dist_data(grid,fid,'first_mod',first_mod)
+        call write_dist_data(grid,fid,'avg_model',avg_model)
+        call write_dist_data(grid,fid,'avg_ncep',avg_ncep)
         call write_data(grid,fid,'iday_ncep',iday_ncep)
         call write_data(grid,fid,'i0_ncep',i0_ncep)
         call write_data(grid,fid,'first_ncep',first_ncep)
@@ -1856,6 +1862,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         call read_dist_data(grid,fid,'iDch4',iDch4)
         call read_dist_data(grid,fid,'iHch4',iHch4)
         call read_dist_data(grid,fid,'first_mod',first_mod)
+        call read_dist_data(grid,fid,'avg_model',avg_model)
+        call read_dist_data(grid,fid,'avg_ncep',avg_ncep)
         call read_data(grid,fid,'iday_ncep',iday_ncep,
      &       bcast_all=.true.)
         call read_data(grid,fid,'i0_ncep',i0_ncep,

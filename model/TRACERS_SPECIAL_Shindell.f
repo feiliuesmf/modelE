@@ -845,7 +845,7 @@ C
 C
 C**** Global variables:
 c
-      USE MODEL_COM, only: DTsrc,Itime,ItimeI
+      USE MODEL_COM, only: DTsrc
       USE TRACER_SOURCES, only: iH=>iHch4,iD=>iDch4,i0=>i0ch4,
      & first_mod,HRA=>HRA_ch4,DRA=>DRA_ch4,PRS=>PRS_ch4,
      & nday_ch4,by_nday_ch4,nra_ch4,maxHR_ch4,avg_model
@@ -865,9 +865,6 @@ C
       integer, intent(IN):: m, I, J
       integer n, nmax
       
-      ! overzealous initialization, but OK I think:
-      if(Itime == ItimeI)first_mod(:,:,m)=1 
-            
       if(m > nra_ch4.or.m < 1)call stop_model('nra_ch4 problem',255)
       if(iH(I,J,m) < 0.or.iH(I,J,m) > maxHR_ch4) then
         write(6,*) 'IJM iH maxHR_ch4=',I,J,m,iH(I,J,m),maxHR_ch4
@@ -1117,7 +1114,7 @@ C****
 !@+ the CH4 source to be used later in subroutine alter_wetlands_source.
 !@auth Greg Faluvegi based on Jean Lerner
 
-      USE MODEL_COM, only: itime,im,jm,jday,itimei
+      USE MODEL_COM, only: im,jm,jday
       USE DOMAIN_DECOMP_ATM, only: GRID, GET, am_i_root, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
@@ -1144,8 +1141,6 @@ C****
       CALL GET(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (fix_CH4_chemistry == 1) return ! don't bother if no CH4 chem
-
-      if(Itime == ItimeI)first_ncep(:)=1 ! initialize
 
       by_nday_ncep(:)=1.d0/real(nday_ncep(:))
 
