@@ -142,7 +142,9 @@ c
 c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
+#ifdef TRACERS_GASEXCH_ocean_CO2
       use obio_diffmod
+#endif
       use TimerPackage_mod
       implicit none
 c
@@ -695,9 +697,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       call system_clock(before)
 
-        call obio_listDifferences('cnuity', 'before')
+        !call obio_listDifferences('cnuity', 'before')
       call cnuity(m,n,mm,nn,k1m,k1n)
-        call obio_listDifferences('cnuity', 'after')
+        !call obio_listDifferences('cnuity', 'after')
 c
 CTNL  call hycom_arrays_checksum     ! save CPU's time
       call system_clock(after)
@@ -739,9 +741,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       before = after
-      call obio_listDifferences('tsadvc','before')
+      !call obio_listDifferences('tsadvc','before')
       call tsadvc(m,n,mm,nn,k1m,k1n)
-      call obio_listDifferences('tsadvc','after')
+      !call obio_listDifferences('tsadvc','after')
 cdiag if (AM_I_ROOT()) print *,'passed tsadvc'
 
       call system_clock(after)
@@ -760,9 +762,9 @@ ccc      write (string,'(a12,i8)') 'tsadvc, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-          call obio_listDifferences('momtum', 'before')
+          !call obio_listDifferences('momtum', 'before')
       call momtum(m,n,mm,nn,k1m,k1n)
-          call obio_listDifferences('momtum', 'after')
+          !call obio_listDifferences('momtum', 'after')
 cdiag if (AM_I_ROOT()) print *,'passed momtum'
 c
       call system_clock(after)
@@ -772,9 +774,9 @@ ccc      write (string,'(a12,i8)') 'momtum, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-          call obio_listDifferences('barotp', 'before')
+          !call obio_listDifferences('barotp', 'before')
       call barotp(m,n,mm,nn,k1m,k1n)
-          call obio_listDifferences('barotp', 'after')
+          !call obio_listDifferences('barotp', 'after')
 
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
@@ -819,9 +821,9 @@ ccc      write (string,'(a12,i8)') 'diapfl, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-          call obio_listDifferences('thermf', 'before')
+          !call obio_listDifferences('thermf', 'before')
       call thermf(m,n,mm,nn,k1m,k1n)
-          call obio_listDifferences('thermf', 'after')
+          !call obio_listDifferences('thermf', 'after')
 c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
@@ -830,9 +832,9 @@ ccc      write (string,'(a12,i8)') 'thermf, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-          call obio_listDifferences('eice', 'before')
+          !call obio_listDifferences('eice', 'before')
       call eice(m,n,mm,nn,k1m,k1n)
-          call obio_listDifferences('eice', 'after')
+          !call obio_listDifferences('eice', 'after')
       call system_clock(after)
       enloan_time = real(after-before)/real(rate)
 c
