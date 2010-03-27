@@ -16,10 +16,6 @@ c EQUATORIAL CUBE FACES.  WILL UPGRADE AS NEEDED.
       USE GEOM, only : axyp,byaxyp,
      &     dlxsina,dlysina, ull2ucs,vll2ucs, ull2vcs,vll2vcs
       USE ICEDYN_COM, only : rsix,rsiy,rsisave,foa,byfoa
-c     &     ,icij,ij_musi,ij_mvsi,ij_husi,ij_hvsi,ij_susi,ij_svsi
-c#ifdef TRACERS_WATER
-c     *     ,ticij,ticij_tusi,ticij_tvsi
-c#endif
       USE SEAICE, only : ace1i,xsi
       USE SEAICE_COM, only : rsi,msi,snowi,hsi,ssi,lmi
 #ifdef TRACERS_WATER
@@ -29,7 +25,11 @@ c#endif
 #ifdef TRACERS_WATER
      *     ,gtracer
 #endif
-      USE DIAG_COM, only : oa
+      USE DIAG_COM, only : oa,aij=>aij_loc,
+     &     IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
+#ifdef TRACERS_WATER
+      USE TRDIAG_COM, only : taijn=>taijn_loc,tij_tusi,tij_tvsi
+#endif
       USE ICEDYN, only : grid_icdyn,usi,vsi
       USE ICEDYN_COM, only : i2a_uc,i2a_vc,UVLLATUC,UVLLATVC,CONNECT
       use cs2ll_utils, only : ll2csint_lij
@@ -255,13 +255,13 @@ c**** sea ice velocity is northward at grid box edge
           fysi(i)=faw(i)*(cour*fao*rsiy(i,j)-3d0*fasi(i))
           fmsi(1:ntrice,i) = fasi(i)*mhs(1:ntrice,i,j)
         end if
-c put these into atm-grid acc arrays
-c        icij(i,j,ij_mvsi)=icij(i,j,ij_mvsi)+sum(fmsi(1:2,i))
-c        icij(i,j,ij_hvsi)=icij(i,j,ij_hvsi)+sum(fmsi(3:2+lmi,i))
-c        icij(i,j,ij_svsi)=icij(i,j,ij_svsi)+sum(fmsi(3+lmi:2+2*lmi,i))
+c accumulate transports
+        aij(i,j,ij_mvsi)=aij(i,j,ij_mvsi)+sum(fmsi(1:2,i))
+        aij(i,j,ij_hvsi)=aij(i,j,ij_hvsi)+sum(fmsi(3:2+lmi,i))
+        aij(i,j,ij_svsi)=aij(i,j,ij_svsi)+sum(fmsi(3+lmi:2+2*lmi,i))
 c#ifdef TRACERS_WATER
 c        do itr=1,ntm
-c          ticij(i,j,ticij_tvsi,itr)=ticij(i,j,ticij_tvsi,itr)+
+c          taijn(i,j,ticij_tvsi,itr)=taijn(i,j,ticij_tvsi,itr)+
 c     &         sum(fmsi(3+(1+itr)*lmi:2+(2+itr)*lmi,i))
 c        end do
 c#endif
@@ -386,16 +386,16 @@ c**** sea ice velocity is eastward at grid box edge
           fysi(i)=fao*rsiy(i,j)
           fmsi(1:ntrice,i) = fasi(i)*mhs(1:ntrice,i,j)
         endif
-c put these into atm-grid acc arrays
-c        icij(i,j,ij_musi)=icij(i,j,ij_musi)+sum(fmsi(1:2,i))
-c        icij(i,j,ij_husi)=icij(i,j,ij_husi)+sum(fmsi(3:2+lmi,i))
-c        icij(i,j,ij_susi)=icij(i,j,ij_susi)+sum(fmsi(3+lmi:2+2*lmi,i))
+c accumulate transports
+        aij(i,j,ij_musi)=aij(i,j,ij_musi)+sum(fmsi(1:2,i))
+        aij(i,j,ij_husi)=aij(i,j,ij_husi)+sum(fmsi(3:2+lmi,i))
+        aij(i,j,ij_susi)=aij(i,j,ij_susi)+sum(fmsi(3+lmi:2+2*lmi,i))
 c#ifdef TRACERS_WATER
 c        do itr=1,ntm
-c          ticij(i,j,ticij_tusi,itr)=ticij(i,j,ticij_tusi,itr)+
+c          taijn(i,j,ticij_tusi,itr)=taijn(i,j,ticij_tusi,itr)+
 c     &         sum(fmsi(3+(1+itr)*lmi:2+(2+itr)*lmi,i))
 c        enddo
-
+c#endif
         if(faw_im1.gt.0. .or. faw(i).lt.0.) then
 ! when there is inflow, use general-case formulas
           asi = rsi(i,j)*foa(i,j)
