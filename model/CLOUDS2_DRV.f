@@ -166,7 +166,7 @@
       USE PBLCOM, only : tsavg,qsavg,usavg,vsavg,tgvavg,qgavg,dclev,egcm
      *  ,w2gcm
       USE DYNAMICS, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,sda
-     *     ,ltropo
+     *     ,ltropo,wcpsig
      &     ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : rsi
       USE GHY_COM, only : snoage,fearth
@@ -493,6 +493,10 @@ C
         QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
       END DO
       END DO
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! note: clouds2 assumes w(l) is at the lower edge of layer l
+      sd_cldil(I_0:I_1,2:lm) = wcpsig(I_0:I_1,j,1:lm-1)/DTsrc
+#endif
 #ifdef TRACERS_ON
       do n=1,ntm
       do l=1,lm
