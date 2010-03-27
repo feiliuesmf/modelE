@@ -133,7 +133,7 @@ C**** Some local constants
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
       USE DYNAMICS, only : pk,pek,phi,pmid,pdsig,plij, SD,pedn,am
-     &     ,ua=>ualij,va=>valij
+     &     ,ua=>ualij,va=>valij,wcp
       USE PBLCOM, only : tsavg
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
@@ -658,7 +658,12 @@ c
       DO L=1,LM-1
       DO J=J_0,J_1
       DO I=I_0,I_1
-        AIJL(I,J,L,IJL_W) = AIJL(I,J,L,IJL_W) + W(I,J,L)*BYAXYP(I,J)
+        AIJL(I,J,L,IJL_W) = AIJL(I,J,L,IJL_W) + BYAXYP(I,J)*
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+     &       WCP(I,J,L)
+#else
+     &       W(I,J,L)
+#endif
       ENDDO
       ENDDO
       ENDDO

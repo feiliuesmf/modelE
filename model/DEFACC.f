@@ -5355,14 +5355,15 @@ c
 #endif
 c
       k=k+1
-      IJL_W = k   ! vertical velocity on model layers
+      IJL_W = k   ! vertical velocity
       ia_ijl(k) = ia_dga
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
 ! latlon B-grid config only wants this in DIAGIL
       name_ijl(k) = 'w'
       lname_ijl(k) = 'vertical velocity'
-      units_ijl(k) = 'm/s'
-      scale_ijl(k) = -RGAS*BYGRAV
+      units_ijl(k) = 'Pa/s'
+      scale_ijl(k) = 100./DTsrc
+      lgrid_ijl(k) = edg_cp ! constant pressure levels
 #endif
 c
       k=k+1
