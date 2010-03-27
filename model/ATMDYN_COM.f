@@ -62,6 +62,13 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PUA,PVA,SDA,MB,MA
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
+!@var WCP vertical mass flux in a constant-pressure vertical
+!@+   coordinate whose pressure levels are the global means of
+!@+   each layer.
+!@var WCPsig: WCP interpolated to terrain-following coordinate
+!@+   surfaces (sigma levels)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: WCP,WCPsig
+
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DKE
 !@var KEA KE on the A grid (m^2/s^2)
@@ -92,7 +99,7 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
      $                     DVT,PUA,PVA,SDA,MB,MA,DKE,WSAVE,SD,PIT,
      $                     SQRTP,PTROPO,LTROPO,PTOLD,DPDX_BY_RHO,
      $                     DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0,
-     $                     PS,SMASS,KEA,UALIJ,VALIJ
+     $                     PS,SMASS,KEA,UALIJ,VALIJ,WCP,WCPsig
       USE DYNAMICS, only : t_dyn_a, t_dyn_b, t_dyn_c, t_dyn_d
       USE DYNAMICS, only : t_aflux, t_advecm, t_advecv
 
@@ -154,6 +161,8 @@ cgsfc      EQUIVALENCE (SD(1,1,1),CONV(1,1,2))
      $          DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H), 
      $          DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
      $          PS(I_0H:I_1H,J_0H:J_1H),
+     $          WCP(I_0H:I_1H,J_0H:J_1H,LM),
+     $          WCPsig(I_0H:I_1H,J_0H:J_1H,LM),
      $   STAT = IER)
 
       ! J arrays

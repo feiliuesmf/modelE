@@ -858,3 +858,144 @@ c
       end subroutine init_zonalmean_info
 
       end module zonalmean_mod
+
+      subroutine compute_cp_vvel(pu,pv,sd,p)
+c From horizontal mass fluxes pu/pv, computes vertical mass flux in
+c a constant-pressure vertical coordinate whose pressure levels are
+c the global means of each layer, and interpolates them to
+c terrain-following coordinate surfaces.
+c Values for the model's constant-pressure layers are copied from sd.
+c Outputs are placed in arrays wcp,wcpsig in the DYNAMICS module.
+      use MODEL_COM, only: im,lm,ls1,ptop,pednl00,sige,dsig
+      use DOMAIN_DECOMP_ATM, only: grid, get, halo_update
+      USE DYNAMICS, only : wcp,wcpsig
+      implicit none
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     pu,pv
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm-1) ::
+     &     sd
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: p
+      real*8, dimension(lm,grid%i_strt_halo:grid%i_stop_halo,
+     &                     grid%j_strt_halo:grid%j_stop_halo) ::
+     &     pucp,pvcp
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &     dpsdt
+      real*8 :: patu,patv,wtdn
+      integer :: i,j,l,ldn,lup
+      real*8, dimension(lm+1) :: pecp,pedge
+      real*8, dimension(lm) :: uofl,vofl,bydpcp
+      integer, parameter :: lmxmax=2*lm
+      integer :: ltop,lmx
+      real*8, dimension(lmxmax) :: dpx
+      integer, dimension(lmxmax) :: lmod,lcp
+      integer :: I_0, I_1, J_0, J_1
+
+      I_0 = GRID%I_STRT
+      I_1 = GRID%I_STOP
+      J_0 = GRID%J_STRT
+      J_1 = GRID%J_STOP
+
+      call halo_update(grid,pu)
+      call halo_update(grid,pv)
+      call halo_update(grid,p)
+
+c at the top edge of an odd face, mv is the halo mu
+      if(mod(grid%tile,2).eq.1 .and. j_1.eq.im) then
+        pv(i_0:i_1,im+1,:) = pu(i_0:i_1,im+1,:)
+      endif
+c at the right edge of an even face, mu is the halo mv
+      if(mod(grid%tile,2).eq.0 .and. i_1.eq.im) then
+        pu(im+1,j_0:j_1,:) = pv(im+1,j_0:j_1,:)
+      endif
+
+c redistribute pu,pv to constant-pressure reference layers
+      ltop = ls1-1
+      pecp(2:lm+1) = pednl00(2:lm+1)
+      pecp(1) = 1d30            ! ensure that all column mass is included
+      pedge(ls1) = ptop
+      bydpcp(:) = 1d0/(pecp(1:lm)-pecp(2:lm+1))
+
+      do j=j_0,j_1
+        do i=i_0,i_1+1
+          patu = .5*(p(i-1,j)+p(i,j))
+          do l=1,ls1-1
+            pedge(l) = patu*sige(l)+ptop
+            pucp(l,i,j) = 0d0
+            uofl(l) = pu(i,j,l)/(patu*dsig(l))
+          enddo
+          call get_dx_intervals(
+     &         pedge,ltop,pecp,ltop,dpx,lmod,lcp,lmx,lmxmax)
+          do l=1,lmx
+            pucp(lcp(l),i,j)  = pucp(lcp(l),i,j)  + dpx(l)*uofl(lmod(l))
+          enddo
+        enddo
+      enddo
+      do j=j_0,j_1+1
+        do i=i_0,i_1
+          patv = .5*(p(i,j-1)+p(i,j))
+          do l=1,ls1-1
+            pedge(l) = patv*sige(l)+ptop
+            pvcp(l,i,j) = 0d0
+            vofl(l) = pv(i,j,l)/(patv*dsig(l))
+          enddo
+          call get_dx_intervals(
+     &         pedge,ltop,pecp,ltop,dpx,lmod,lcp,lmx,lmxmax)
+          do l=1,lmx
+            pvcp(lcp(l),i,j)  = pvcp(lcp(l),i,j)  + dpx(l)*vofl(lmod(l))
+          enddo
+        enddo
+      enddo
+
+c compute vertical velocity in the constant-pressure coordinate
+      do l=ls1-1,lm-1
+        wcp(i_0:i_1,j_0:j_1,l) = sd(i_0:i_1,j_0:j_1,l)
+      enddo
+      wcp(i_0:i_1,j_0:j_1,lm) = 0.
+      do l=ls1-1,2,-1
+        do j=j_0,j_1
+          do i=i_0,i_1
+            wcp(i,j,l-1) = wcp(i,j,l)
+     &          +(pucp(l,i,j)-pucp(l,i+1,j))
+     &          +(pvcp(l,i,j)-pvcp(l,i,j+1))
+          enddo
+        enddo
+      enddo
+      l=1
+      do j=j_0,j_1
+        do i=i_0,i_1
+          dpsdt(i,j) = wcp(i,j,l)
+     &         +(pucp(l,i,j)-pucp(l,i+1,j))
+     &         +(pvcp(l,i,j)-pvcp(l,i,j+1))
+        enddo
+      enddo
+
+c interpolate constant-pressure vertical velocity to sigma-layer edges
+c and subtract the contribution from the tendency of surface pressure
+      pecp(1:ls1) = pecp(2:ls1+1)
+      do j=j_0,j_1
+        do i=i_0,i_1
+          lup = 2
+          do l=1,ls1-2
+            pedge(l) = p(i,j)*sige(l+1)+ptop
+            do while(pecp(lup) .gt. pedge(l))
+              lup = lup + 1
+            enddo
+            ldn = lup - 1
+            wtdn = (pedge(l)-pecp(lup))*bydpcp(lup)
+            wcpsig(i,j,l) =
+     &           wtdn*wcp(i,j,ldn)+(1.-wtdn)*wcp(i,j,lup)
+     &           -sige(l+1)*dpsdt(i,j)
+          enddo
+        enddo
+      enddo
+      do l=ls1-1,lm-1
+        wcpsig(i_0:i_1,j_0:j_1,l) = sd(i_0:i_1,j_0:j_1,l)
+      enddo
+      wcpsig(i_0:i_1,j_0:j_1,lm) = 0.
+
+      return
+      end subroutine compute_cp_vvel

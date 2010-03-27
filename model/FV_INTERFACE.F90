@@ -144,6 +144,8 @@ contains
 
     end do
 
+    call compute_cp_vvel(pua,pva,sda,p)
+
     gz  = phi
 
     contains
