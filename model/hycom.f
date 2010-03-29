@@ -1377,18 +1377,6 @@ c --- enhance flow through Denmark Strait
       if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
       enddo
       enddo
-#endif  
-#ifdef ATM2x2h_HYCOM2deg
-c --- enhance flow through Denmark Strait
-      do j=39,43
-      do i=j-10,j-8
-      den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
-      uosurf(i,j)=uosurf(i,j)-den_str
-      vosurf(i,j)=vosurf(i,j)-den_str
-      if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
-      enddo
-      enddo
-#endif  
 c
 cdiag if (time.le.1)
 cdiag.write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
@@ -1399,6 +1387,7 @@ cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
 cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c     call prtmsk(ipa,uosurf,util3(31,31),iia,10,15,0.,1000.,'uo(mm/s)')
 c     call prtmsk(ipa,vosurf,util3(31,31),iia,10,15,0.,1000.,'vo(mm/s)')
+#endif  
 c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then
