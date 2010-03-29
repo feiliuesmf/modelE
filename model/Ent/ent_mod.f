@@ -268,6 +268,8 @@ cddd      end interface ent_cell_update
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
      &     do_patchdynamics
 
+      print *,"ent_initialize: do_soilresp = ", config%do_soilresp
+
       end subroutine ent_initialize
 
 !*************************************************************************
@@ -2489,7 +2491,8 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
-     &     C_total
+     &     C_total,
+     &     C_entcell
      &     )
       type(entcelltype_public), intent(in) :: entcell
       real*8,  optional, intent(out) ::
@@ -2510,7 +2513,8 @@ C NADINE
      &     fraction_of_vegetated_soil,
      &     soilresp,
      &     leaf_area_index,
-     &     C_total
+     &     C_total,
+     &     C_entcell
       real*8, dimension(:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2641,6 +2645,10 @@ C NADINE
      &     C_total = 
      &     entcell%entcell%C_total
 
+      if ( present(C_entcell) )
+     &     C_entcell = 
+     &     entcell_carbon( entcell%entcell )
+
       
 
       end subroutine ent_get_exports_r8_0
@@ -2667,7 +2675,8 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
-     &     C_total
+     &     C_total,
+     &     C_entcell
      &     )
       type(entcelltype_public), intent(in) :: entcell(:)
       real*8, dimension(:), optional, intent(out) ::
@@ -2688,7 +2697,8 @@ C NADINE
      &     fraction_of_vegetated_soil,
      &     soilresp,
      &     leaf_area_index,
-     &     C_total
+     &     C_total,
+     &     C_entcell
       real*8, dimension(:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2823,6 +2833,10 @@ C NADINE
      &     C_total(i1) = 
      &     entcell(i1)%entcell%C_total
 
+      if ( present(C_entcell) )
+     &     C_entcell(i1) = 
+     &     entcell_carbon( entcell(i1)%entcell )
+
       
       enddo
 
@@ -2850,7 +2864,8 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
-     &     C_total
+     &     C_total,
+     &     C_entcell
      &     )
       type(entcelltype_public), intent(in) :: entcell(:,:)
       real*8, dimension(:,:), optional, intent(out) ::
@@ -2871,7 +2886,8 @@ C NADINE
      &     fraction_of_vegetated_soil,
      &     soilresp,
      &     leaf_area_index,
-     &     C_total
+     &     C_total,
+     &     C_entcell
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -3006,6 +3022,10 @@ C NADINE
       if ( present(C_total) )
      &     C_total(i1,i2) = 
      &     entcell(i1,i2)%entcell%C_total
+
+      if ( present(C_entcell) )
+     &     C_entcell(i1,i2) = 
+     &     entcell_carbon( entcell(i1,i2)%entcell )
 
       
       enddo
