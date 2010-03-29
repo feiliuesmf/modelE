@@ -16,7 +16,7 @@
 
       public zero_entcell, summarize_entcell, entcell_print
       public init_simple_entcell, entcell_construct, entcell_destruct
-      public entcell_extract_pfts
+      public entcell_extract_pfts, entcell_carbon
 
       contains
 !**************************************************************************
