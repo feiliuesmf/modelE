@@ -635,6 +635,7 @@ cdiag. upn,upa,upf,ups
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
 
+#ifdef restoreIRON
 !iron bottom sink
 !restoring term to balance surface deposition at time scales of about 30years
       do k=1,kmax
@@ -644,6 +645,7 @@ cdiag. upn,upa,upf,ups
             P_tend(k,4) = P_tend(k,4) + term
         endif
       enddo
+#endif
 
 
 #ifdef TRACERS_Alkalinity

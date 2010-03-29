@@ -255,11 +255,9 @@ c Update DIC for sea-air flux of CO2
 #ifdef noBIO
       C_tend(k,2) = term
 #endif
-
          if (vrbos) then
          write(*,'(a,3i7,i3,4e12.4)')
      .     'obio_carbon (coupled):',
-!    .     '9999999999999999999999',
      .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term     !this flux should be mol,co2/m2/s
          endif
 
@@ -471,12 +469,21 @@ c_ RCS lines preceded by "c_ "
 c_ --------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.38 $
-c_ $Date: 2010/03/23 03:17:10 $   ;  $State: Exp $
+c_ $Revision: 2.39 $
+c_ $Date: 2010/03/29 20:42:00 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.39  2010/03/29 20:42:00  aromanou
+c_
+c_ introducing cpp's for special cases with ocean carbon model runs:
+c_ no CO2 flux at the surface (ifdef zeroFLUX)
+c_ define bottom iron sink (restoreIRON
+c_
+c_ total carbon conservation in HYCOM is done in the zeroFLUX case without the need of
+c_ a bottom iron sink.
+c_
 c_ Revision 2.38  2010/03/23 03:17:10  aromanou
 c_
 c_ setup for test case: carbon flux into the ocean changes only DIC. No other bio-geochem
@@ -1002,12 +1009,21 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.38 $
-c_ $Date: 2010/03/23 03:17:10 $   ;  $State: Exp $
+c_ $Revision: 2.39 $
+c_ $Date: 2010/03/29 20:42:00 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.39  2010/03/29 20:42:00  aromanou
+c_
+c_ introducing cpp's for special cases with ocean carbon model runs:
+c_ no CO2 flux at the surface (ifdef zeroFLUX)
+c_ define bottom iron sink (restoreIRON
+c_
+c_ total carbon conservation in HYCOM is done in the zeroFLUX case without the need of
+c_ a bottom iron sink.
+c_
 c_ Revision 2.38  2010/03/23 03:17:10  aromanou
 c_
 c_ setup for test case: carbon flux into the ocean changes only DIC. No other bio-geochem
@@ -1278,12 +1294,21 @@ c_ RCS lines preceded by "c_ "
 c_ ---------------------------------------------------------------------
 c_
 c_ $Source: /home/ialeinov/GIT_transition/cvsroot_fixed/modelE/model/obio_carbon.f,v $ 
-c_ $Revision: 2.38 $
-c_ $Date: 2010/03/23 03:17:10 $   ;  $State: Exp $
+c_ $Revision: 2.39 $
+c_ $Date: 2010/03/29 20:42:00 $   ;  $State: Exp $
 c_ $Author: aromanou $ ;  $Locker:  $
 c_
 c_ ---------------------------------------------------------------------
 c_ $Log: obio_carbon.f,v $
+c_ Revision 2.39  2010/03/29 20:42:00  aromanou
+c_
+c_ introducing cpp's for special cases with ocean carbon model runs:
+c_ no CO2 flux at the surface (ifdef zeroFLUX)
+c_ define bottom iron sink (restoreIRON
+c_
+c_ total carbon conservation in HYCOM is done in the zeroFLUX case without the need of
+c_ a bottom iron sink.
+c_
 c_ Revision 2.38  2010/03/23 03:17:10  aromanou
 c_
 c_ setup for test case: carbon flux into the ocean changes only DIC. No other bio-geochem

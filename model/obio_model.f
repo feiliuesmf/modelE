@@ -83,10 +83,10 @@
 #else
       USE hycom_dim
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
-     .                            ,p,dpmixl,latij,lonij
+     .                            ,p,dpmixl,latij,lonij,scp2
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
-     .                        ,time,lp,baclin
+     .                        ,time,lp,baclin,huge
       USE obio_com, only: ao_co2flux_loc,tracav_loc,
      .     pCO2av,plevav_loc, ao_co2fluxav_loc
       
@@ -113,11 +113,13 @@
 #else
       integer kn
 #endif
+      real*8, allocatable :: rhs_glob(:,:,:,:)
       character string*80
       character jstring*3
 
       logical vrbos,noon,errcon
 
+      allocate(rhs_glob(idm,jdm,ntrac,16))
       call start(' obio_model')
 !--------------------------------------------------------
       diagno_bio=.false.
@@ -476,9 +478,9 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        !atmospheric deposition iron 
        atmFe_ij=atmFe(i,j,JMON)
-#ifdef zeroFLUX
-       atmFe_ij=0.d0
-#endif
+!#ifdef zeroFLUX
+!       atmFe_ij=0.d0
+!#endif
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
@@ -486,13 +488,13 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
        do nt=1,ntm
+#ifdef zeroFLUX
+          tracflx(i,j,nt) = 0.d0
+#endif
           tracflx1d(nt) = tracflx(i,j,nt)
 !         write(*,'(/,a,3i5,2e12.4)')'obio_model, tracflx:',
 !    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
        enddo
-#ifdef zeroFLUX
-          tracflx1d(nt) = 0.d0
-#endif
 #endif
 
        !------------------------------------------------------------
@@ -799,7 +801,27 @@ cdiag.                       car(k,1),car(k,2),k=1,kdm)
 cdiag     endif
 
 
-       !------------------------------------------------------------
+      !------------------------------------------------------------
+      !integrate rhs vertically (volume integration)
+      do ll= 1, 16
+      do nt= 1, ntrac
+      rhs_glob(i,j,nt,ll) = 0.d0
+      do k = 1, kdm
+#ifdef OBIO_ON_GARYocean
+          rhs_glob(i,j,nt,ll) = rhs_glob(i,j,nt,ll) +
+     .                 rhs(k,nt,ll)*dp1d(k)
+#else
+        if (dp1d(k) < huge) then
+          rhs_glob(i,j,nt,ll) = rhs_glob(i,j,nt,ll) +
+     .                 rhs(k,nt,ll)*dp1d(k)
+        endif
+#endif
+      enddo  !k
+      if (vrbos)
+     .write(*,'(a,5i5,1x,e20.13)')'rhs_glob:',
+     .      nstep,i,j,nt,ll,rhs_glob(i,j,nt,ll)
+      enddo  !ntrac
+      enddo  !ll
 
       if (vrbos) then
        print*, 'OBIO TENDENCIES, 1-16, 1,7'
