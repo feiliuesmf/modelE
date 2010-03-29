@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
       module obio_diffmod
       implicit none
       private
