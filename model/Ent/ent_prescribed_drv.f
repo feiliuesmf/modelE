@@ -388,16 +388,12 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       subroutine prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
       !* This version reads in crop distribution from prescr data set.
       !* And calculates crop fraction for given year.
-#define tempdebug
-#ifdef tempdebug
       use FILEMANAGER, only : openunit,closeunit,nameunit
-#endif
       integer, intent(in) :: year
       integer, intent(in) :: IM, JM, I0, I1, J0, J1
       real*8, intent(out) :: cropdata(I0:I1,J0:J1)
       integer i
       !----------
-#ifdef tempdebug
       integer :: iu_CROPS
       integer :: year1, year2
       real*4 crop4(im,jm)
@@ -412,12 +408,10 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
       call openunit("CROPS",iu_CROPS,.true.,.true.)
       do while( year2 < year )
-        !print *, "Got here in prescr_get_cropdata"
         year1 = year2
         crop1(:,:) = crop2(:,:)
         read (iu_CROPS,end=10) title , crop4
         read(title,*) year2 !Read year integer out of character array title
-        !print *,"read CROPS:",title,year2
         crop2(I0:I1,J0:J1) = crop4(I0:I1,J0:J1)
       enddo
       wt = (year-year1)/(real(year2-year1,kind=8))
@@ -426,13 +420,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
       cropdata(:,:) = max(0.d0, crop1(:,:)
      &     + wt * (crop2(:,:) - crop1(:,:)))  !Set min to zero, since no land mask yet -nyk 1/22/08
-#else
-      !*TEMPORARY ZERO OUT CROPDATA IFDEF *!
-      do i=I0,I1
-          cropdata(i,J0:J1) = 0.0
-      end do
-#endif
-      !* Return cropdata single layer crop fraction.
+
       end subroutine prescr_get_cropdata
 
 !**************************************************************************
