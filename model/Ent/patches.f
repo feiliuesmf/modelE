@@ -847,11 +847,11 @@
       real*8 :: cohort_kgC, cohort_kgCm2
 
       integer :: i,k
-      real*8 :: soil_kgCm2
+      real*8 :: soil_gCm2
 
       cohort_kgC = 0.d0
       cohort_kgCm2 = 0.d0
-      soil_kgCm2 = 0.d0
+      soil_gCm2 = 0.d0
 
       if (present(pp_Cfol)) pp_Cfol = 0.d0
       if (present(pp_Cstem)) pp_Cstem = 0.d0
@@ -874,13 +874,13 @@
       !* Soil.
       do i=1,N_CASA_LAYERS
          do k=(NLIVE+1),NPOOLS
-            soil_kgCm2 = soil_kgCm2 + pp%Tpool(CARBON,k,i)
+            soil_gCm2 = soil_gCm2 + pp%Tpool(CARBON,k,i)
          enddo
       enddo
-      if (present(pp_Csoil)) pp_Csoil = soil_kgCm2
+      if (present(pp_Csoil)) pp_Csoil = soil_gCm2*1.d-3
 
       !* Total patch carbon per m2-ground.
-      patch_carbon = cohort_kgCm2 + soil_kgCm2
+      patch_carbon = cohort_kgCm2 + soil_gCm2*1.d-3
 
       end function patch_carbon
 !----------------------------------------------------------------------
