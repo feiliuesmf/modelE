@@ -164,9 +164,11 @@
           end if
         endif
 
-        call soil_bgc(dtsec, pp)
+        if (config%do_soilresp) then
+          call soil_bgc(dtsec, pp)
+        endif
         pp%CO2flux = -pp%NPP + pp%Soil_resp
-
+        
         pp%age = pp%age + dtsec
 
           !*********** DIAGNOSTICS FOR PLOTTING ********************!
