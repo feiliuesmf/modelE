@@ -74,7 +74,7 @@
       USE GEOM,       only : LON_DG,LAT_DG
       USE CONSTANT,   only : grav
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES,   only : kdm=>lmo,dzo
+      USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS
       USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
