@@ -962,7 +962,7 @@ cdiag  call obio_limits('aftr hybgen')
         call stop('  tracav')
       end if
 
-#ifndef OBIO_ON_GARYocean            /* NOT for Gary's ocean */
+#ifndef OBIO_ON_GARYocean            /* NOT for Garys ocean */
       !gather ao_co2flux
       call pack_data( ogrid,  ao_co2flux_loc, ao_co2flux_glob )
 #endif
