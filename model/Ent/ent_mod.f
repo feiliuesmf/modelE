@@ -268,8 +268,6 @@ cddd      end interface ent_cell_update
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
      &     do_patchdynamics
 
-      print *,"ent_initialize: do_soilresp = ", config%do_soilresp
-
       end subroutine ent_initialize
 
 !*************************************************************************
@@ -337,6 +335,8 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
+      if ( present(do_giss_albedo) )
+     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -427,6 +427,8 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
+      if ( present(do_giss_albedo) )
+     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -519,6 +521,8 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
+      if ( present(do_giss_albedo) )
+     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -750,6 +754,7 @@ cddd      end interface ent_cell_update
       ! now set optional arguments
           do_giss_phenology_1 = do_giss_phenology
           do_giss_lai_1 = do_giss_lai
+          do_giss_albedo_1 = do_giss_albedo
           jday_1 = jday
          
       
@@ -811,6 +816,7 @@ cddd      end interface ent_cell_update
       ! now set optional arguments
           do_giss_phenology_1 = do_giss_phenology
           do_giss_lai_1 = do_giss_lai
+          do_giss_albedo_1 = do_giss_albedo
           jday_1 = jday
          
       
@@ -874,6 +880,7 @@ cddd      end interface ent_cell_update
       ! now set optional arguments
           do_giss_phenology_1 = do_giss_phenology
           do_giss_lai_1 = do_giss_lai
+          do_giss_albedo_1 = do_giss_albedo
           jday_1 = jday
          
       
