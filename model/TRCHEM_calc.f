@@ -369,7 +369,7 @@ c       Set value for XO2:
         do while (iter <= 7)
           XO2_XO2=yXO2(I,J,L)*tempiter2
           XO2dest=tempiter+XO2_XO2
-          if(XO2dest > 1.d-7.and.ss(16,L,I,J) > 5.d-5)then
+          if(XO2dest > 1.d-7.and.ss(16,L,I,J) > 1.d-6)then
             y(nXO2,L)=(XO2prod/XO2dest)
           else
             y(nXO2,L)=1.d0
