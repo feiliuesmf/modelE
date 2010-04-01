@@ -1,0 +1,16 @@
+temp_ini=temp387x360x26dec_hv_z1.txt ! 3-d temperature as initial condition
+salt_ini=salt387x360x26dec_hv_z1.txt ! 3-d salinity as initial condition
+pout_ini=pout387x360x26dec_hv_z1.txt ! 3-d layer pressure as initial condition
+latlonij=latlon387x360.4bin             ! lat & lon at each i,j
+ibasin=ibasin387x360.txt_1  ! basin mask, Baltic
+flxa2o=flxa2o387x360.8bin_1 ! coupler weights for flux from atm to ocean, NO Baltic
+flxo2a=flxo2a387x360.8bin_1 ! coupler weights for flux from atm to ocean, NO Baltic
+taua2o=taua2o387x360.8bin_1 ! coupler weights for vector from atm to ocean
+ssta2o=sata2o387x360.8bin_1 ! interp weights for scalar located in the center atm grid to the center hycom grid
+ssto2a=ssto2a387x360.8bin_1 ! coupler weights for sst from ocean to atm
+e_o2a=e_o2a387x360.8bin_1   ! coupler weights for eastward vel from ocean to atm
+n_o2a=n_o2a387x360.8bin_1   ! coupler weights for northward vel from ocean to atm
+cososino=cososino387x360.8bin           ! cos/sin of i,j axis angle on ocean grid
+kpar=seawifs_kpar_387x360.tbin          ! monthly/annual seawifs_kpar data
+hycomtopo=depth387x360.4bin_1  ! topography used in ocean model, NO Baltic
+TOPO=Z144X90N.1deghycom_1      ! surface fractions and topography

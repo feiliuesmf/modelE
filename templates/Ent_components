@@ -1,0 +1,5 @@
+Ent 
+
+Component Options:
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB
+OPTS_giss_LSM = USE_ENT=YES
