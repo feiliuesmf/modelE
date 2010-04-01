@@ -3,11 +3,17 @@
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       USE HYCOM_SCALARS, only : flnma2o,flnma2o_s,flnmo2a,flnmo2a_f
      &   ,flnmo2a_e,flnmo2a_n,flnma2o_tau,flnmcoso,lp
+      USE HYCOM_DIM, only : agrid,ogrid
+     &    ,aJ_0, aJ_1, aJ_0H, aJ_1H,
+     &      J_0,  J_1,  J_0H,  J_1H
+      USE DOMAIN_DECOMP_1D, only : am_i_root,pack_data,unpack_data
+      USE HYCOM_DIM, only : agrid,ogrid
 c
       implicit none
       private
 
       public ssta2o,ssto2a,veca2o,flxa2o,flxo2a,veco2a,tempro2a,cpl_wgt
+      public ssto2a_global,flxa2o_global
 
       public nwgta2o,nwgto2a
 
@@ -79,7 +85,38 @@ c
       return
       end subroutine ssta2o
 
-      subroutine ssto2a(fldo,flda)
+      subroutine ssto2a(fldo_loc,flda_loc)
+c --- mapping sst from 'o' grid to 'a' grd
+c
+c --- fldo:  input field from ogcm grid
+c     flda: output field onto agcm grid
+c
+      implicit none
+      integer n,ia,ja
+      real*8 fldo_loc(iio,J_0H:J_1H),flda_loc(iia,aJ_0H:aJ_1H)
+      real*8, allocatable :: flda(:,:),fldo(:,:)
+      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      call pack_data(ogrid,fldo_loc,fldo)
+      if(am_i_root()) then
+c
+c$OMP PARALLEL DO
+      do 16 ja=1,jja
+      do 16 ia=1,iia
+      flda(ia,ja)=0.
+c
+      do 17 n=1,nlisto2a(ia,ja)
+ 17   flda(ia,ja)=flda(ia,ja)+fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
+     .                                              *wlisto2a(ia,ja,n)
+ 16   continue
+c$OMP END PARALLEL DO             
+c
+      endif ! am_i_root
+      call unpack_data(agrid,flda,flda_loc)
+      if(am_i_root()) deallocate(flda,fldo)
+      return
+      end subroutine ssto2a
+
+      subroutine ssto2a_global(fldo,flda)
 c --- mapping sst from 'o' grid to 'a' grd
 c
 c --- fldo:  input field from ogcm grid
@@ -101,16 +138,30 @@ c
 c$OMP END PARALLEL DO             
 c
       return
-      end subroutine ssto2a
+      end subroutine ssto2a_global
 c
-      subroutine veca2o(tauxa,tauya,tauxo,tauyo)
+c
+      subroutine veca2o(tauxa_loc,tauya_loc,tauxo_loc,tauyo_loc)
 c --- tauxa/tauya: input taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
 c --- tauxo/tauyo:output taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
 c    
       implicit none
       integer i,j,l,n
-      real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
-     .    ,sward(iio,jjo),eward(iio,jjo),tta,tto
+      real*8, dimension(iia,aJ_0H:aJ_1H) :: tauxa_loc,tauya_loc
+      real*8, dimension(iio, J_0H: J_1H) :: tauxo_loc,tauyo_loc
+      real*8, dimension(:,:), allocatable :: tauxa,tauya,tauxo,tauyo,
+     &     sward,eward
+      real*8 tta,tto
+      if(am_i_root()) then
+        allocate(
+     &       tauxa(iia,jja),tauya(iia,jja),
+     &       tauxo(iio,jjo),tauyo(iio,jjo),
+     &       sward(iio,jjo),eward(iio,jjo)
+     &       )
+      endif
+      call pack_data(agrid,tauxa_loc,tauxa)
+      call pack_data(agrid,tauya_loc,tauya)
+      if(am_i_root()) then
 c
 cdiag tto=0.
 c --- mapping tauxa/tauya to ogcm grid
@@ -138,10 +189,47 @@ c$OMP PARALLEL DO
       tauyo(i,j)= eward(i,j)*coso(i,j)-sward(i,j)*sino(i,j)
  9    continue
 c$OMP END PARALLEL DO           
+      endif ! am_i_root
+      call unpack_data(ogrid,tauxo,tauxo_loc)
+      call unpack_data(ogrid,tauyo,tauyo_loc)
+      if(am_i_root()) then
+        deallocate(tauxa,tauya,tauxo,tauyo,sward,eward)
+      endif
       return
       end subroutine veca2o
 c
-      subroutine flxa2o(flda,fldo)
+      subroutine flxa2o(flda_loc,fldo_loc)
+c --- mapping flux-like field from agcm to ogcm
+c     input: flda (W/m*m), output: fldo (W/m*m)
+c
+      implicit none
+      integer i,j,l,n
+      real*8 flda_loc(iia,aJ_0H:aJ_1H),fldo_loc(iio,J_0H:J_1H)
+      real*8, allocatable :: flda(:,:),fldo(:,:)
+      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      call pack_data(agrid,flda_loc,flda)
+c
+      if(am_i_root()) then
+c$OMP PARALLEL DO
+      do 8 j=1,jj
+      do 8 l=1,isp(j)
+      do 8 i=ifp(j,l),ilp(j,l)
+      fldo(i,j)=0.
+c
+      do 9 n=1,nlista2o(i,j)
+      fldo(i,j)=fldo(i,j)+flda(ilista2o(i,j,n),jlista2o(i,j,n))
+     .                        *wlista2o(i,j,n)
+ 9    continue
+ 8    continue
+c$OMP END PARALLEL DO
+      endif ! am_i_root
+c
+      call unpack_data(ogrid,fldo,fldo_loc)
+      if(am_i_root()) deallocate(flda,fldo)
+      return
+      end subroutine flxa2o
+
+      subroutine flxa2o_global(flda,fldo)
 c --- mapping flux-like field from agcm to ogcm
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
@@ -163,7 +251,7 @@ c
 c$OMP END PARALLEL DO
 c
       return
-      end subroutine flxa2o
+      end subroutine flxa2o_global
 c
       subroutine flxo2a(fldo,flda)
 c --- mapping flux-like field from ogcm to agcm 
@@ -189,14 +277,27 @@ c
       return
       end subroutine flxo2a
 c
-      subroutine veco2a(tauxo,tauyo,tauxa,tauya)
+      subroutine veco2a(tauxo_loc,tauyo_loc,tauxa_loc,tauya_loc)
 c --- tauxo/tauyo: input taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
 c --- tauxa/tauya:output taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
 c    
       implicit none
       integer i,j,l,n,ia,ja,jb
-      real*8 tauxa(iia,jja),tauya(iia,jja),tauxo(iio,jjo),tauyo(iio,jjo)
-     .      ,nward(iio,jjo),eward(iio,jjo),tta,tto,sine
+      real*8, dimension(iia,aJ_0H:aJ_1H) :: tauxa_loc,tauya_loc
+      real*8, dimension(iio, J_0H: J_1H) :: tauxo_loc,tauyo_loc
+      real*8, dimension(:,:), allocatable :: tauxa,tauya,tauxo,tauyo,
+     &     nward,eward
+      real*8 tta,tto,sine
+      if(am_i_root()) then
+        allocate(
+     &       tauxa(iia,jja),tauya(iia,jja),
+     &       tauxo(iio,jjo),tauyo(iio,jjo),
+     &       nward(iio,jjo),eward(iio,jjo)
+     &       )
+      endif
+      call pack_data(ogrid,tauxo_loc,tauxo)
+      call pack_data(ogrid,tauyo_loc,tauyo)
+      if(am_i_root()) then
 c
 c$OMP PARALLEL DO
       do 10 j=1,jj
@@ -240,10 +341,16 @@ c
  16   continue
 c$OMP END PARALLEL DO
 c
+      endif ! am_i_root
+      call unpack_data(agrid,tauxa,tauxa_loc)
+      call unpack_data(agrid,tauya,tauya_loc)
+      if(am_i_root()) then
+        deallocate(tauxa,tauya,tauxo,tauyo,nward,eward)
+      endif
       return
       end subroutine veco2a
 c
-      subroutine tempro2a(fldo,flda)
+      subroutine tempro2a(fldo_loc,flda_loc)
 c --- mapping sqrt(sqrt(temp**4)) from 'o' grid to 'a' grid, unit: K
 c
 c --- fldo:  input field from ogcm grid
@@ -251,7 +358,11 @@ c     flda: output field onto agcm grid
 c
       implicit none
       integer n,ia,ja
-      real*8 flda(iia,jja),fldo(iio,jjo),tto,tta
+      real*8 fldo_loc(iio,J_0H:J_1H),flda_loc(iia,aJ_0H:aJ_1H)
+      real*8, allocatable :: flda(:,:),fldo(:,:)
+      if(am_i_root()) allocate(flda(iia,jja),fldo(iio,jjo))
+      call pack_data(ogrid,fldo_loc,fldo)
+      if(am_i_root()) then
 c
 c$OMP PARALLEL DO
       do 16 ja=1,jja
@@ -265,6 +376,9 @@ c
  16   continue
 c$OMP END PARALLEL DO             
 c
+      endif ! am_i_root
+      call unpack_data(agrid,flda,flda_loc)
+      if(am_i_root()) deallocate(flda,fldo)
       return
       end subroutine tempro2a
 c

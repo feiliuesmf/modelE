@@ -5,9 +5,6 @@ c --- hycom version 0.9
 
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS
-      use hycom_atm, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
-     .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
-     .      ,gtemp,sss,gtempr,focean,asst,atempr
 
 !      USE FLUXES, only : e0,prec,evapor,flowo,eflowo,dmua,dmva
 !     .      ,erunosi,runosi,runpsi,dmui,dmvi,dmsi,dhsi,dssi
@@ -15,7 +12,6 @@ c --- hycom version 0.9
 !      USE MODEL_COM, only : focean
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS, only : akpar
-      USE HYCOM_CPLER, only : tempro2a, ssto2a
       implicit none
 c
       integer i,j,k,l,m,n,mm,ia,ja
@@ -203,27 +199,6 @@ c     do 21 i=ifp(j,l),ilp(j,l)
 css   omlhc(i,j)=spcifh*p(i,j,2)/(onem *thref)           ! J/m*m C
 c21   continue
 cc$OMP END PARALLEL DO
-      call ssto2a(temp,asst)
-      call tempro2a(temp,atempr)
-      call ssto2a(saln,sss)
-c     call ssto2a(omlhc,mlhc)
-c
-c     call findmx(ip,temp,ii,ii,jj,'ini sst')
-c     call findmx(ip,saln,ii,ii,jj,'ini sss')
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-      do 22 ja=1,jja
-      do 22 ia=1,iia
-      if (focean(ia,ja).gt.0.) then
-        gtemp(1,1,ia,ja)=asst(ia,ja)
-        gtempr(1,ia,ja)=atempr(ia,ja)
-        if (sss(ia,ja).le.1.) then
-          write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja
-     . ,' sss=',sss(ia,ja),' sst=',asst(ia,ja),' focean=',focean(ia,ja)
-          stop 'wrong sss in agcm'
-        endif
-      endif
- 22   continue
-c$OMP END PARALLEL DO
 c
       else                                !  nstep0 > 0
 c

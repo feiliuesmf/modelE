@@ -1,5 +1,11 @@
 #include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID) || defined(NEW_IO)
+#else
+#define USE_ATM_GLOBAL_ARRAYS
+#endif
+
       subroutine OCEANS
 c
 c --- ------------------------------
@@ -134,6 +140,7 @@ c
 #endif
       USE HYCOM_DIM_GLOB
       USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H,
+     &                      aI_0, aI_1, aI_0H, aI_1H,
      &                       J_0,  J_1,  J_0H,  J_1H,
      &      ogrid, isp_loc => isp, ifp_loc => ifp, ilp_loc => ilp
       USE HYCOM_SCALARS
@@ -160,8 +167,8 @@ c
       real totlj(J_0H:J_1H), sumj(J_0H:J_1H), sumicej(J_0H:J_1H)
       logical doThis
       integer jj1,no,index,nflip,mo0,mo1,mo2,mo3,rename,iatest,jatest
-     .       ,OMP_GET_NUM_THREADS,io,jo,ipa(iia,jja),nsub
-      integer ipa_loc(iia,aJ_0H:aJ_1H)
+     .       ,OMP_GET_NUM_THREADS,io,jo,nsub
+      integer ipa_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),ipa(iia,jja)
 #ifdef TRACERS_OceanBiology
       integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
@@ -189,9 +196,10 @@ c
 #endif
       integer after,before,rate,bfogcm
 c
+      real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
-     . ,utila(iia,jja),usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
+     . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
 #ifdef TRACERS_GASEXCH_ocean
@@ -220,8 +228,8 @@ cdiag.        ,Jday,Jdate,Jhour,amon
 c
       if (mod(jhour,nhr).eq.0.and.mod(itime,nday/24).eq.0) then
 c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
-        do 28 ia=1,iia
         do 28 ja=aJ_0,aJ_1
+        do 28 ia=aI_0,aI_1
           ataux_loc(ia,ja)=0.
           atauy_loc(ia,ja)=0.
         aflxa2o_loc(ia,ja)=0.
@@ -254,10 +262,12 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
 c --- accumulate agcm fields over nhr 
 
 c first redistribute ice-ocean stresses to the atmospheric grid
+c Eventually we will call veci2o and combine atm- and ice-ocean
+c stresses after the respective regrids to HYCOM
       call band_pack(pack_i2a, dmui_loc, admui_loc)
       call band_pack(pack_i2a, dmvi_loc, admvi_loc)
 
-      do 29 ia=1,iia
+      do 29 ia=aI_0,aI_1
       do 29 ja=aJ_0,aJ_1
       ipa_loc(ia,ja)=0
       if (focean_loc(ia,ja).eq.0.) goto 29
@@ -345,33 +355,30 @@ c
       end if
       nsavea=0
 c
-      if (AM_I_ROOT()) then
-
-      call veca2o(ataux,atauy,taux,tauy)          !wind stress
-      call flxa2o(aice,oice)                      !ice coverage
-      call flxa2o(aflxa2o,oflxa2o)                !heatflux everywhere
-      call flxa2o(asalt,osalt)                    !saltflux from SI
-      call flxa2o(aemnp,oemnp)                    !E - P everywhere
-      call flxa2o(austar,ustar)                   !friction velocity
-      call flxa2o(aswflx,sswflx)                  ! shortwave flux
+      call veca2o(ataux_loc,atauy_loc,taux_loc,tauy_loc) !wind stress
+      call flxa2o(aice_loc,oice_loc)              !ice coverage
+      call flxa2o(aflxa2o_loc,oflxa2o_loc)        !heatflux everywhere
+      call flxa2o(asalt_loc,osalt_loc)            !saltflux from SI
+      call flxa2o(aemnp_loc,oemnp_loc)            !E - P everywhere
+      call flxa2o(austar_loc,ustar_loc)           !friction velocity
+      call flxa2o(aswflx_loc,sswflx_loc)          ! shortwave flux
+      if(am_i_root()) then ! still using global grid for tracers
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
-      call flxa2o(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
+      call flxa2o_global(atracflx(:,:,nt),tracflx(:,:,nt)) !tracer flux
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
-      call flxa2o(asolz,osolz)
-      call flxa2o(awind,owind)
+      call flxa2o_global(asolz,osolz)
+      call flxa2o_global(awind,owind)
 #endif
 #ifdef OBIO_RAD_coupling
-      call flxa2o(avisdir,ovisdir)
-      call flxa2o(avisdif,ovisdif)
-      call flxa2o(anirdir,onirdir)
-      call flxa2o(anirdif,onirdif)
+      call flxa2o_global(avisdir,ovisdir)
+      call flxa2o_global(avisdif,ovisdif)
+      call flxa2o_global(anirdir,onirdir)
+      call flxa2o_global(anirdif,onirdif)
 #endif
-
-      endif ! AM_I_ROOT
-
+      endif ! am_i_root
       call scatter1_hycom_arrays
 #ifdef TRACERS_GASEXCH_ocean
         call scatter_gasexch_com_arrays
@@ -1192,7 +1199,9 @@ ccc     .     'mx.lay. salin. (.01 mil)')
 
       call prtmsk(ip,oice,util3,idm,ii1,jj1,0.,100.,
      .     'ice coverage (cm)')
+#ifdef USE_ATM_GLOBAL_ARRAYS
         call prtmsk(ipa,asst,util3,iia,iia,jja,0.,1.,'asst ')
+#endif
 
       do 77 j=1,jj1
       do 77 l=1,isu(j)
@@ -1302,30 +1311,47 @@ c$OMP END PARALLEL DO
 
       call gather7hycom(usf_loc,vsf_loc,usf,vsf)
 
-      if (AM_I_ROOT()) then ! global grid
+c      if (AM_I_ROOT()) then ! global grid
 c
 c     call findmx(ip,osst,ii,ii,jj,'osst')
 c     call findmx(ip,osss,ii,ii,jj,'osss')
 c     call findmx(iu,usf,ii,ii,jj,'u_ocn')
 c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
-      call ssto2a(osst,asst)
-      call tempro2a(osst,atempr)
-      call ssto2a(osss,sss)
+c      endif
+
+      call ssto2a(osst_loc,asst_loc)
+      call tempro2a(osst_loc,atempr_loc)
+      call ssto2a(osss_loc,sss_loc)
 css   call iceo2a(omlhc,mlhc)
-      call ssto2a(oogeoza,ogeoza)
-      call ssto2a(osiav,utila)                 !kg/m*m per agcm time step
-      call veco2a(usf,vsf,uosurf,vosurf)
+      call ssto2a(oogeoza_loc,ogeoza_loc)
+      call ssto2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
+      call veco2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
+c these are latlonatm-specific.  eventually call veco2i instead.
+      call band_pack(pack_a2i, uosurf_loc, UOSURF_4DYNSI_loc)
+      call band_pack(pack_a2i, vosurf_loc, VOSURF_4DYNSI_loc)
+
+      if(am_i_root()) then  ! still using global grid for tracers
 #ifdef TRACERS_GASEXCH_ocean
       do nt=1,ntm
-         call ssto2a(otrac(:,:,nt),atrac(:,:,nt))
+         call ssto2a_global(otrac(:,:,nt),atrac(:,:,nt))
             !change units ppmv (uatm) -> kg,CO2/kg,air
             atrac(:,:,nt) =  aTRAC(:,:,NT) * vol2mass(nt)* 1.d-6
       enddo
+      do ja=1,jja
+        do ia=1,iia
+          if (focean(ia,ja).gt.0.) then
+            do nt=1,ntm
+              GTRACER_glob(nt,1,ia,ja)=atrac(ia,ja,nt)
+            enddo
+          endif
+        enddo
+      enddo
 #endif
 #ifdef TRACERS_OceanBiology
-      call ssto2a(tot_chlo_glob,achl)
+      call ssto2a_global(tot_chlo_glob,achl)
 #endif
+      endif ! am_i_root
 c
 c     call findmx(ipa,asst,iia,iia,jja,'asst')
 c     call findmx(ipa,sss,iia,iia,jja,'osss')
@@ -1341,39 +1367,35 @@ cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
 cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c
 c$OMP PARALLEL DO PRIVATE(tf)
-      do 204 ia=1,iia
-      do 204 ja=1,jja
-      if (focean(ia,ja).gt.0.) then
-        gtemp(1,1,ia,ja)=asst(ia,ja)
-        gtempr(1,ia,ja)=atempr(ia,ja)
-#ifdef TRACERS_GASEXCH_ocean
-        do nt=1,ntm
-           GTRACER_glob(nt,1,ia,ja)=atrac(ia,ja,nt)
-        enddo
-#endif
-        tf=tfrez(sss(ia,ja),0.)
-        dmsi(1,ia,ja)=utila(ia,ja)                        !kg/m2 per agcm step
+      do 204 ja=aJ_0,aJ_1
+      do 204 ia=aI_0,aI_1
+      if (focean_loc(ia,ja).gt.0.) then
+        gtemp_loc(1,1,ia,ja)=asst_loc(ia,ja)
+        gtempr_loc(1,ia,ja)=atempr_loc(ia,ja)
+        tf=tfrez(sss_loc(ia,ja),0.)
+        dmsi_loc(1,ia,ja)=utila_loc(ia,ja)                        !kg/m2 per agcm step
 c --- this should be accumulated separately, no?
-        dhsi(1,ia,ja)=utila(ia,ja)*Ei(tf,fsss*sss(ia,ja)) !J/m2 per agcm step
-        dssi(1,ia,ja)=1.d-3*dmsi(1,ia,ja)*sss(ia,ja)*fsss !kg/m2 per agcm step
+        dhsi_loc(1,ia,ja)=utila_loc(ia,ja)*Ei(tf,fsss*sss_loc(ia,ja)) !J/m2 per agcm step
+        dssi_loc(1,ia,ja)=1.d-3*dmsi_loc(1,ia,ja)*sss_loc(ia,ja)*fsss !kg/m2 per agcm step
 c --- evenly distribute new ice over open water and sea ice
 c --- this is not necessarily a good idea. What about weighting it
 c --- with respect to the ice/openwater flux ratio?
-        if (aice(ia,ja).gt.1.e-3) then
-          dhsi(2,ia,ja)=dhsi(1,ia,ja)
-          dmsi(2,ia,ja)=dmsi(1,ia,ja)
-          dssi(2,ia,ja)=dssi(1,ia,ja)
+        if (aice_loc(ia,ja).gt.1.e-3) then
+          dhsi_loc(2,ia,ja)=dhsi_loc(1,ia,ja)
+          dmsi_loc(2,ia,ja)=dmsi_loc(1,ia,ja)
+          dssi_loc(2,ia,ja)=dssi_loc(1,ia,ja)
         endif
       endif
  204  continue
+
 c$OMP END PARALLEL DO
 #ifdef ATM4x5_HYCOM2deg
 c --- enhance flow through Denmark Strait
-      do j=39,43
+      do j=max(aJ_0,39),min(aJ_1,43)
       do i=j-10,j-8
       den_str=.08/(2.**(abs(j-41)+abs(i-(j-9))))
-      uosurf(i,j)=uosurf(i,j)-den_str
-      vosurf(i,j)=vosurf(i,j)-den_str
+      uosurf_loc(i,j)=uosurf_loc(i,j)-den_str
+      vosurf_loc(i,j)=vosurf_loc(i,j)-den_str
       if (time.le.1) write(*,'(a,2i4,f8.2)') 'enhanced i,j=',i,j,den_str
       enddo
       enddo
@@ -1387,7 +1409,7 @@ cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
 cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c     call prtmsk(ipa,uosurf,util3(31,31),iia,10,15,0.,1000.,'uo(mm/s)')
 c     call prtmsk(ipa,vosurf,util3(31,31),iia,10,15,0.,1000.,'vo(mm/s)')
-#endif  
+#endif
 c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then
@@ -1397,7 +1419,6 @@ c
       end if
 c
 
-      endif ! AM_I_ROOT
  9666 continue
       call scatter2_atm
 
@@ -1418,10 +1439,9 @@ c> July 2001 - replaced archiving statements by 'call archiv'
 c> Oct  2004 - map ice mass to agcm, and then calculate E
 c------------------------------------------------------------------
       subroutine gather2_atm
-
+#ifdef USE_ATM_GLOBAL_ARRAYS
       USE HYCOM_ATM
-      USE DOMAIN_DECOMP_1D, ONLY: GRID, PACK_DATA
-     &      ,PACK_COLUMN, PACK_BLOCK
+      USE DOMAIN_DECOMP_1D, ONLY: GRID, PACK_DATA, PACK_BLOCK
 #ifdef TRACERS_OceanBiology 
       USE obio_forc, only: awind,asolz
 #endif
@@ -1430,28 +1450,9 @@ c------------------------------------------------------------------
 #endif
       implicit none 
 
-      call pack_data( grid,  ataux_loc,   ataux )
-      call pack_data( grid,  atauy_loc,   atauy )
-      call pack_data( grid,  aflxa2o_loc, aflxa2o )
-      call pack_data( grid,  aemnp_loc,   aemnp )
-      call pack_data( grid,  aice_loc,    aice )
-      call pack_data( grid,  asalt_loc,   asalt )
-      call pack_data( grid,  austar_loc,  austar )
-      call pack_data( grid,  aswflx_loc,  aswflx )
-
-
-      call pack_block( grid,  GTEMP_loc, GTEMP )
-      call pack_column( grid,  GTEMPR_loc, GTEMPR )
-
-      call pack_column( grid,  DMSI_loc, DMSI )
-      call pack_column( grid,  DHSI_loc, DHSI )
-      call pack_column( grid,  DSSI_loc, DSSI )
-
-      call pack_data( grid,  FOCEAN_loc, FOCEAN )
 #ifdef TRACERS_GASEXCH_ocean
       call pack_block( grid,GTRACER_loc,GTRACER_glob)
 #endif
-
 
 
 #ifdef TRACERS_GASEXCH_ocean
@@ -1467,7 +1468,7 @@ c------------------------------------------------------------------
       call pack_data( grid, anirdir_loc, anirdir )
       call pack_data( grid, anirdif_loc, anirdif )
 #endif
-
+#endif /* USE_ATM_GLOBAL_ARRAYS */
       end subroutine gather2_atm
 c------------------------------------------------------------------
       subroutine scatter2_atm
@@ -1476,28 +1477,9 @@ c------------------------------------------------------------------
 #ifdef TRACERS_OceanBiology
       USE FLUXES, ONLY: chl
 #endif
-      USE DOMAIN_DECOMP_1D, ONLY: grid, UNPACK_DATA, UNPACK_COLUMN,
-     &     UNPACK_BLOCK
+      USE DOMAIN_DECOMP_1D, ONLY: grid, UNPACK_DATA, UNPACK_BLOCK
       implicit none 
 
-
-      call unpack_data( grid,  SSS, SSS_loc )
-      call unpack_data( grid,  OGEOZA, OGEOZA_loc )
-      call unpack_data( grid,  UOSURF, UOSURF_loc )
-      call unpack_data( grid,  VOSURF, VOSURF_loc )
-c UOSURF and VOSURF are also needed on the ice dynamics A-grid.
-c For the moment, HYCOM only runs with modelE configurations having
-c identical atmosphere and ice dynamics grids, so the atmospheric
-c copy of UOSURF,VOSURF can be used.
-      if(grid_icdyn%have_domain) then ! ice dyn may run on subset of PEs
-        call unpack_data( grid_icdyn,  UOSURF, UOSURF_4DYNSI_loc)
-        call unpack_data( grid_icdyn,  VOSURF, VOSURF_4DYNSI_loc) 
-      endif
-       call unpack_block( grid,  GTEMP, GTEMP_loc )
-       call unpack_column( grid,  GTEMPR, GTEMPR_loc )
-       call unpack_column( grid,  DMSI, DMSI_loc )
-       call unpack_column( grid,  DHSI, DHSI_loc )
-       call unpack_column( grid,  DSSI, DSSI_loc )
 #ifdef TRACERS_GASEXCH_ocean
       call unpack_block( grid,GTRACER_glob,GTRACER_loc)
 #endif
@@ -2062,15 +2044,6 @@ c------------------------------------------------------------------
 
       implicit none 
 
-      call unpack_data( ogrid,  taux, taux_loc )
-      call unpack_data( ogrid,  tauy, tauy_loc )
-      call unpack_data( ogrid,  oice, oice_loc )
-      call unpack_data( ogrid,  oflxa2o, oflxa2o_loc )
-      call unpack_data( ogrid,  osalt, osalt_loc )
-      call unpack_data( ogrid,  oemnp, oemnp_loc )
-      call unpack_data( ogrid,  ustar, ustar_loc )
-
-      call unpack_data( ogrid,  sswflx, sswflx_loc )
       call unpack_data( ogrid,  akpar,  akpar_loc )
 
       end subroutine scatter1_hycom_arrays

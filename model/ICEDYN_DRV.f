@@ -360,7 +360,7 @@ C****
 !@auth M. Kelley
 !@ver  beta
       use icedyn, only : grid_icdyn,usi,vsi
-      use icedyn_com, only : grid_mic,rsix,rsiy
+      use icedyn_com, only : grid_mic,rsix,rsiy,uosurf,vosurf
       use pario, only : defvar
       implicit none
       integer fid   !@var fid file id
@@ -368,6 +368,10 @@ C****
       call defvar(grid_mic,fid,rsiy,'rsiy(dist_im,dist_jm)')
       call defvar(grid_icdyn,fid,usi,'usi(dist_imic,dist_jmic)')
       call defvar(grid_icdyn,fid,vsi,'vsi(dist_imic,dist_jmic)')
+      call defvar(grid_icdyn,fid,uosurf,
+     &     'uosurf_icdyn(dist_imic,dist_jmic)')
+      call defvar(grid_icdyn,fid,vosurf,
+     &     'vosurf_icdyn(dist_imic,dist_jmic)')
       return
       end subroutine def_rsf_icedyn
 
@@ -376,7 +380,7 @@ C****
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use icedyn, only : grid_icdyn,usi,vsi
-      use icedyn_com, only : grid_mic,rsix,rsiy
+      use icedyn_com, only : grid_mic,rsix,rsiy,uosurf,vosurf
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data
       implicit none
@@ -388,11 +392,15 @@ C****
         call write_dist_data(grid_mic, fid, 'rsiy', rsiy)
         call write_dist_data(grid_icdyn, fid, 'usi', usi)
         call write_dist_data(grid_icdyn, fid, 'vsi', vsi)
+        call write_dist_data(grid_icdyn, fid, 'uosurf_icdyn', uosurf)
+        call write_dist_data(grid_icdyn, fid, 'vosurf_icdyn', vosurf)
       case (ioread)            ! input from restart file
         call read_dist_data(grid_mic, fid, 'rsix', rsix)
         call read_dist_data(grid_mic, fid, 'rsiy', rsiy)
         call read_dist_data(grid_icdyn, fid, 'usi', usi)
         call read_dist_data(grid_icdyn, fid, 'vsi', vsi)
+        call read_dist_data(grid_icdyn, fid, 'uosurf_icdyn', uosurf)
+        call read_dist_data(grid_icdyn, fid, 'vosurf_icdyn', vosurf)
       end select
       return      
       end subroutine new_io_icedyn

@@ -117,7 +117,7 @@
 
       USE HYCOM_DIM_GLOB, only : kk,iia,jja,kdm,idm,jdm
       USE HYCOM_DIM, only : ogrid
-      USE hycom_atm, only : gtracer => gtracer_glob,focean
+      USE hycom_atm, only : gtracer => gtracer_glob,gtracer_loc,focean
       USE HYCOM_SCALARS, only : nstep
 
       USE PARAM, only: get_param
@@ -128,12 +128,13 @@
       USE TRACER_GASEXCH_COM, only : atrac
 
       USE obio_com, only : pCO2,pCO2_glob
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data
-
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, agrid => grid,
+     &     pack_data, unpack_data, pack_block, unpack_block
       implicit none
       integer nt,i,j
 
       call pack_data(ogrid, pCO2, pCO2_glob)
+      call pack_block( agrid,GTRACER_loc,GTRACER)
 
       if (AM_I_ROOT()) then
 
@@ -150,7 +151,7 @@ c         enddo
       endif ! i am root
 
       call unpack_data(ogrid, pCO2_glob, pCO2)
-
+      call unpack_block( agrid,GTRACER,GTRACER_loc)
 
       end subroutine init_gasexch_co2
 #endif

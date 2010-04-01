@@ -1,8 +1,19 @@
 #include "rundeck_opts.h"
+
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID) || defined(NEW_IO)
+#else
+#define USE_ATM_GLOBAL_ARRAYS
+#endif
+
       SUBROUTINE init_OCEAN(iniOCEAN,istart)
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,ESMF_BCAST
-      USE HYCOM_ATM, only : gather_atm,scatter_atm, focean,gtemp,gtempr,
-     &     asst,atempr,im,jm
+      USE HYCOM_ATM, only :
+     &     focean_loc,gtemp_loc,gtempr_loc,
+     &     asst_loc,atempr_loc,sss_loc,im,jm
+#ifdef USE_ATM_GLOBAL_ARRAYS
+      USE DOMAIN_DECOMP_1D, only : agrid=>grid,pack_data
+      USE HYCOM_ATM, only : focean
+#endif
 !!      USE MODEL_COM, only : im,jm,focean
 !!      USE FLUXES, only : gtemp
 #ifdef TRACERS_GASEXCH_ocean
@@ -26,15 +37,21 @@
 #endif
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
+      USE HYCOM_CPLER, only : tempro2a, ssto2a
+
+      USE hycom_arrays_glob_renamer, only : temp_loc,saln_loc
+
       USE param
       implicit none
 
       logical, intent(in) :: iniOCEAN
       integer, intent(in) :: istart
-      integer i,j
+      integer i,j,ia,ja
 
-      ! move to global atm grid
-      call gather_atm
+#ifdef USE_ATM_GLOBAL_ARRAYS
+c gather ocean fraction on atm grid into a global array for tracer code
+      call pack_data(agrid,  FOCEAN_loc, FOCEAN )
+#endif
 
       call sync_param( "itest", itest)
       call sync_param( "jtest", jtest)
@@ -89,16 +106,6 @@ c       endif
 c21   continue
 c
 
-      if (istart.gt.2) then               !istart=2 has done this inicon
-      DO J=1,JM
-      DO I=1,IM
-        IF (FOCEAN(I,J).gt.0.) THEN
-          GTEMP(1,1,I,J)=asst(I,J)
-          gtempr(1,I,J)=atempr(I,J)
-        END IF
-      END DO
-      END DO
-      endif
 
 !!! I guess I had a good reason for commenting this out... 
 !!! (probably should done in inicon) IA
@@ -126,7 +133,6 @@ c
       call init_gasexch_co2
 #endif
 
-      call scatter_atm
       call scatter_hycom_arrays
 
 !!! hack needed for serial inicon
@@ -138,6 +144,31 @@ c
       CALL ESMF_BCAST(ogrid, time0 )
       CALL ESMF_BCAST(ogrid, time )
 
+c moved here from inicon:
+      if (nstep0.eq.0) then     ! starting from Levitus
+        call ssto2a(temp_loc(:,:,1),asst_loc)
+        call tempro2a(temp_loc(:,:,1),atempr_loc)
+        call ssto2a(saln_loc(:,:,1),sss_loc)
+c        call ssto2a(omlhc,mlhc)
+c
+c     call findmx(ip,temp,ii,ii,jj,'ini sst')
+c     call findmx(ip,saln,ii,ii,jj,'ini sss')
+      endif
+
+      do ja=aJ_0,aJ_1
+        do ia=aI_0,aI_1
+          if (focean_loc(ia,ja).gt.0.) then
+            gtemp_loc(1,1,ia,ja)=asst_loc(ia,ja)
+            gtempr_loc(1,ia,ja)=atempr_loc(ia,ja)
+            if (nstep0.eq.0 .and. sss_loc(ia,ja).le.1.) then
+              write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja,
+     &             ' sss=',sss_loc(ia,ja),
+     &             ' sst=',asst_loc(ia,ja),' focean=',focean_loc(ia,ja)
+              stop 'wrong sss in agcm'
+            endif
+          endif
+        enddo
+      enddo
 
 c
       END SUBROUTINE init_OCEAN
@@ -188,12 +219,15 @@ c
       RETURN
       END SUBROUTINE DUMMY_OCN
 c
+#ifndef NEW_IO
       SUBROUTINE io_ocean(kunit,iaction,ioerr)
 !@sum  io_ocean outputs ocean related fields for restart
 !@ver  1.0       
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data, unpack_data,
      &     ESMF_BCAST
-      USE HYCOM_ATM, only : gather_atm,scatter_atm,
+      USE HYCOM_ATM, only :
+     &     gather_atm_before_checkpoint,
+     &     scatter_atm_after_checkpoint,
      &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
       USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
      *     ,irsficnt,irerun,lhead
@@ -271,7 +305,7 @@ c
 #endif
 
       ! move to global atm grid
-      call gather_atm
+      call gather_atm_before_checkpoint
       call gather_hycom_arrays   !mkb Jun  6
 
 #if (defined TRACERS_OceanBiology) || defined (TRACERS_GASEXCH_ocean) \
@@ -645,7 +679,7 @@ c
       END SELECT
 
       endif ! AM_I_ROOT
-      call scatter_atm
+      call scatter_atm_after_checkpoint
       CALL ESMF_BCAST(ogrid, nstep0 )
       CALL ESMF_BCAST(ogrid, time0 )
 
@@ -671,12 +705,13 @@ c
 
       RETURN
  10   IOERR=1
-      call scatter_atm
+      call scatter_atm_after_checkpoint
       ! why do we need return after error?
       call stop_model("error i/o in io_ocean",255)
       RETURN
 C****
       END SUBROUTINE io_ocean
+#endif /* not NEW_IO */
 
 #ifdef NEW_IO
       subroutine def_rsf_ocean(fid)
@@ -687,7 +722,8 @@ C****
       use domain_decomp_1d, only : agrid=>grid
       use pario, only : defvar
       USE HYCOM_ATM, only :
-     &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
+     &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,
+     &     dmsi_loc,dhsi_loc,dssi_loc,asst_loc,atempr_loc
       USE HYCOM_SCALARS, only : nstep,time,oddev
       USE HYCOM_ARRAYS
       implicit none
@@ -741,16 +777,16 @@ C****
       call defvar(grid,fid,tauyav,'tauyav'//str2d)
       call defvar(grid,fid,dpmxav,'dpmxav'//str2d)
       call defvar(grid,fid,oiceav,'oiceav'//str2d)
-c for now, these are global-sized arrays
-      call defvar(agrid,fid,asst,'asst(im,jm)')
-      call defvar(agrid,fid,atempr,'atempr(im,jm)')
-      call defvar(agrid,fid,sss,'sss(im,jm)')
-      call defvar(agrid,fid,ogeoza,'ogeoza(im,jm)')
-      call defvar(agrid,fid,uosurf,'uosurf(im,jm)')
-      call defvar(agrid,fid,vosurf,'vosurf(im,jm)')
-      call defvar(agrid,fid,dhsi,'dhsi(two,im,jm)')
-      call defvar(agrid,fid,dmsi,'dmsi(two,im,jm)')
-      call defvar(agrid,fid,dssi,'dssi(two,im,jm)')
+c exports to agcm on agcm grid
+      call defvar(agrid,fid,asst_loc,'asst(dist_im,dist_jm)')
+      call defvar(agrid,fid,atempr_loc,'atempr(dist_im,dist_jm)')
+      call defvar(agrid,fid,sss_loc,'sss(dist_im,dist_jm)')
+      call defvar(agrid,fid,ogeoza_loc,'ogeoza(dist_im,dist_jm)')
+      call defvar(agrid,fid,uosurf_loc,'uosurf(dist_im,dist_jm)')
+      call defvar(agrid,fid,vosurf_loc,'vosurf(dist_im,dist_jm)')
+      call defvar(agrid,fid,dhsi_loc,'dhsi(two,dist_im,dist_jm)')
+      call defvar(agrid,fid,dmsi_loc,'dmsi(two,dist_im,dist_jm)')
+      call defvar(agrid,fid,dssi_loc,'dssi(two,dist_im,dist_jm)')
 
 c write:
 c        WRITE (kunit,err=10) nstep,time
@@ -782,7 +818,8 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       use domain_decomp_1d, only : agrid=>grid
       use pario, only : defvar
       USE HYCOM_ATM, only : gather_atm,scatter_atm,
-     &     sss,ogeoza,uosurf,vosurf,dmsi,dhsi,dssi,asst,atempr
+     &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,
+     &     dmsi_loc,dhsi_loc,dssi_loc,asst_loc,atempr_loc
       USE HYCOM_SCALARS, only : nstep,time,nstep0,time0,baclin,oddev
       USE HYCOM_ARRAYS
       USE HYCOM_ARRAYS_GLOB, only : gather_hycom_arrays   ! for now
@@ -832,17 +869,16 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'tauyav',tauyav)
         call write_dist_data(grid,fid,'dpmxav',dpmxav)
         call write_dist_data(grid,fid,'oiceav',oiceav)
-c for now, sticking with the global-sized atm-grid arrays
-        call gather_atm
-        call write_data(agrid,fid,'asst',asst)
-        call write_data(agrid,fid,'atempr',atempr)
-        call write_data(agrid,fid,'sss',sss)
-        call write_data(agrid,fid,'ogeoza',ogeoza)
-        call write_data(agrid,fid,'uosurf',uosurf)
-        call write_data(agrid,fid,'vosurf',vosurf)
-        call write_data(agrid,fid,'dhsi',dhsi)
-        call write_data(agrid,fid,'dmsi',dmsi)
-        call write_data(agrid,fid,'dssi',dssi)
+c exports to agcm, sea ice components
+        call write_dist_data(agrid,fid,'asst',asst_loc)
+        call write_dist_data(agrid,fid,'atempr',atempr_loc)
+        call write_dist_data(agrid,fid,'sss',sss_loc)
+        call write_dist_data(agrid,fid,'ogeoza',ogeoza_loc)
+        call write_dist_data(agrid,fid,'uosurf',uosurf_loc)
+        call write_dist_data(agrid,fid,'vosurf',vosurf_loc)
+        call write_dist_data(agrid,fid,'dhsi',dhsi_loc,jdim=3)
+        call write_dist_data(agrid,fid,'dmsi',dmsi_loc,jdim=3)
+        call write_dist_data(agrid,fid,'dssi',dssi_loc,jdim=3)
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'nstep',nstep0,bcast_all=.true.)
         call read_data(grid,fid,'time',time0,bcast_all=.true.)
@@ -893,17 +929,16 @@ c for now, sticking with the global-sized atm-grid arrays
 c certain initialization routines still work with global
 c arrays, so we have to gather
         call gather_hycom_arrays
-c for now, sticking with the global-sized atm-grid arrays
-        call read_data(agrid,fid,'asst',asst)
-        call read_data(agrid,fid,'atempr',atempr)
-        call read_data(agrid,fid,'sss',sss)
-        call read_data(agrid,fid,'ogeoza',ogeoza)
-        call read_data(agrid,fid,'uosurf',uosurf)
-        call read_data(agrid,fid,'vosurf',vosurf)
-        call read_data(agrid,fid,'dhsi',dhsi)
-        call read_data(agrid,fid,'dmsi',dmsi)
-        call read_data(agrid,fid,'dssi',dssi)
-        call scatter_atm
+c exports to agcm, sea ice components
+        call read_dist_data(agrid,fid,'asst',asst_loc)
+        call read_dist_data(agrid,fid,'atempr',atempr_loc)
+        call read_dist_data(agrid,fid,'sss',sss_loc)
+        call read_dist_data(agrid,fid,'ogeoza',ogeoza_loc)
+        call read_dist_data(agrid,fid,'uosurf',uosurf_loc)
+        call read_dist_data(agrid,fid,'vosurf',vosurf_loc)
+        call read_dist_data(agrid,fid,'dhsi',dhsi_loc,jdim=3)
+        call read_dist_data(agrid,fid,'dmsi',dmsi_loc,jdim=3)
+        call read_dist_data(agrid,fid,'dssi',dssi_loc,jdim=3)
       end select
       return
       end subroutine new_io_ocean
@@ -911,20 +946,21 @@ c for now, sticking with the global-sized atm-grid arrays
 
 c
       SUBROUTINE CHECKO(SUBR)
+#ifdef USE_ATM_GLOBAL_ARRAYS
 !@sum  CHECKO Checks whether Ocean are reasonable
 !@ver  1.0
 !!      USE MODEL_COM, only : im,jm
 !!      USE FLUXES, only : gtemp
 !!      USE MODEL_COM, only : focean
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-      USE HYCOM_ATM, only : gather_atm, focean,gtemp,im,jm
+      USE DOMAIN_DECOMP_1D, only: grid,pack_block,AM_I_ROOT
+      USE HYCOM_ATM, only : focean,gtemp,gtemp_loc,im,jm
       IMPLICIT NONE
       integer i,j
 
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
 
-      call gather_atm
+      call pack_block( grid,  GTEMP_loc, GTEMP )
       if (AM_I_ROOT()) then
 
       print *,'SUBR=',SUBR
@@ -934,7 +970,7 @@ c
 
       endif ! AM_I_ROOT
       ! no need to sctter since nothing changed
-
+#endif /* USE_ATM_GLOBAL_ARRAYS */
       END SUBROUTINE CHECKO
 c
 

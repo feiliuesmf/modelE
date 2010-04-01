@@ -178,7 +178,7 @@ c
       subroutine write2giss(nop,array_o,title)
 
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo
-      USE HYCOM_CPLER, only: ssto2a
+      USE HYCOM_CPLER, only: ssto2a_global
       USE HYCOM_SCALARS, only : onem
       USE hycom_atm, only: focean
 
@@ -188,7 +188,7 @@ c
       character title*80
 
         !convert to atmosgrid
-        call ssto2a(array_o,array8)
+        call ssto2a_global(array_o,array8)
         array4=array8
         do j=1,jja
         do i=1,iia

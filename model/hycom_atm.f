@@ -1,9 +1,15 @@
 #include "rundeck_opts.h"
 
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID) || defined(NEW_IO)
+#else
+#define USE_ATM_GLOBAL_ARRAYS
+#endif
+
       module hycom_atm
 !@sum module for atmospheric variables to be passed to/from hylom.
 !@+   hycom will see them as global arrays
       USE MODEL_COM, only : im,jm
+      USE HYCOM_DIM, only : aI_0, aI_1, aI_0H, aI_1H
       USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H
       use FLUXES, only: NSTYPE
 
@@ -28,6 +34,7 @@
       USE FLUXES, only : DMVA_loc => DMVA
       USE ICEDYN, only : grid_icdyn
       USE ICEDYN_COM, only : pack_i2a ! to send dmui,dmvi to the atm grid
+      USE ICEDYN_COM, only : pack_a2i
       USE ICEDYN_COM, only : DMUI_loc => DMUI
       USE ICEDYN_COM, only : DMVI_loc => DMVI
       USE FLUXES, only : SOLAR_loc => SOLAR
@@ -89,6 +96,7 @@
       public DMUA_loc
       public grid_icdyn
       public pack_i2a
+      public pack_a2i
       public DMUI_loc
       public DMVA_loc
       public DMVI_loc
@@ -108,32 +116,12 @@
       public RSI_loc
       public FOCEAN_loc
 
-      public alloc_hycom_atm, gather_atm, scatter_atm
+      public alloc_hycom_atm,
+     &     gather_atm_before_checkpoint, scatter_atm_after_checkpoint
 
       public im,jm
 
-      public PREC
-      public EVAPOR
-      public FLOWO
-      public GMELT
-      public MELTI
-      public RUNOSI
-      public RUNPSI
-      public E0
-      public EPREC
-      public EFLOWO
-      public EGMELT
-      public EMELTI
-      public ERUNOSI
-      public SRUNOSI
-      public SRUNPSI
-      public ERUNPSI
-      public SMELTI
-      public DMUA
-      public DMUI
-      public DMVA
-      public DMVI
-      public SOLAR
+#ifdef USE_ATM_GLOBAL_ARRAYS
       public SSS
       public UOSURF
       public VOSURF
@@ -143,20 +131,16 @@
       public DMSI
       public DHSI
       public DSSI
-
-      public RSI
       public FOCEAN
-
       public asst
       public atempr
+#endif
 
-      public ataux,atauy,aflxa2o
-     .     ,aemnp,aice,asalt
-     .     ,austar,aswflx
       public ataux_loc,atauy_loc,aflxa2o_loc
      .     ,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc
+     .     ,asst_loc,atempr_loc
 
 #ifdef TRACERS_GASEXCH_ocean
       public atracflx_loc
@@ -188,28 +172,7 @@
       public aCHL
 #endif
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: EVAPOR
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: FLOWO
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: GMELT
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: MELTI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNOSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RUNPSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: E0
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EPREC
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EFLOWO
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EGMELT
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EMELTI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ERUNOSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ERUNPSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRUNOSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SRUNPSI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SMELTI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMUA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMUI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMVA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DMVI
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SOLAR
+#ifdef USE_ATM_GLOBAL_ARRAYS
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSS
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: UOSURF
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: VOSURF
@@ -219,26 +182,22 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DHSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DSSI
-
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RSI
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FOCEAN
-
       ! arrays from cpl.h
       ! so far they should stay global since they are needed only 
       ! for coupling
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: asst
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: atempr
+#endif
 
       ! accumulators for output on atmospheric grid
       ! (shouldn't these actually be accumulated on ocean grid
       !  and then interpolated to atmospheric grid?)
-      real*8, allocatable, dimension(:,:) :: ataux,atauy,aflxa2o
-     .     ,aemnp,aice,asalt
-     .     ,austar,aswflx
       real*8, allocatable, dimension(:,:) :: ataux_loc,atauy_loc
      .     ,aflxa2o_loc,aemnp_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
+     .     ,asst_loc,atempr_loc
 
 #ifdef TRACERS_GASEXCH_ocean
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
@@ -269,28 +228,7 @@
       subroutine alloc_hycom_atm
       USE HYCOM_DIM, only : iia,jja ! actually should use IM,JM !!
 
-      ALLOCATE( PREC( im, jm ) )
-      ALLOCATE( EVAPOR( im, jm , NSTYPE ) )
-      ALLOCATE( FLOWO( im, jm ) )
-      ALLOCATE( GMELT( im, jm ) )
-      ALLOCATE( MELTI( im, jm ) )
-      ALLOCATE( RUNOSI( im, jm ) )
-      ALLOCATE( RUNPSI( im, jm ) )
-      ALLOCATE( E0( im, jm , NSTYPE ) )
-      ALLOCATE( EPREC( im, jm ) )
-      ALLOCATE( EFLOWO( im, jm ) )
-      ALLOCATE( EGMELT( im, jm ) )
-      ALLOCATE( EMELTI( im, jm ) )
-      ALLOCATE( ERUNOSI( im, jm ) )
-      ALLOCATE( ERUNPSI( im, jm ) )
-      ALLOCATE( SRUNOSI( im, jm ) )
-      ALLOCATE( SRUNPSI( im, jm ) )
-      ALLOCATE( SMELTI( im, jm ) )
-      ALLOCATE( DMUA( im, jm , NSTYPE ) )
-      ALLOCATE( DMUI( im, jm ) )
-      ALLOCATE( DMVA( im, jm, NSTYPE ) )
-      ALLOCATE( DMVI( im, jm ) )
-      ALLOCATE( SOLAR(  3  , im, jm ) )
+#ifdef USE_ATM_GLOBAL_ARRAYS
       ALLOCATE( SSS( im, jm ) )
       ALLOCATE( UOSURF( im, jm ) )
       ALLOCATE( VOSURF( im, jm ) )
@@ -300,22 +238,25 @@
       ALLOCATE( DMSI(  2  , im, jm ) )
       ALLOCATE( DHSI(  2  , im, jm ) )
       ALLOCATE( DSSI(  2  , im, jm ) )
-
-      ALLOCATE( RSI( im, jm ) )
       ALLOCATE( FOCEAN( im, jm ) )
-
       ALLOCATE( asst( im, jm ) )
       ALLOCATE( atempr( im, jm ) )
+#endif
 
-      ALLOCATE( ataux(iia,jja),atauy(iia,jja),aflxa2o(iia,jja)
-     .     ,aemnp(iia,jja),aice(iia,jja),asalt(iia,jja)
-     .     ,austar(iia,jja),aswflx(iia,jja) )
-      ALLOCATE( ataux_loc(iia,aJ_0H:aJ_1H),atauy_loc(iia,aJ_0H:aJ_1H)
-     .     ,aflxa2o_loc(iia,aJ_0H:aJ_1H)
-     .     ,aemnp_loc(iia,aJ_0H:aJ_1H),aice_loc(iia,aJ_0H:aJ_1H),
-     .      asalt_loc(iia,aJ_0H:aJ_1H)
-     .     ,austar_loc(iia,aJ_0H:aJ_1H),aswflx_loc(iia,aJ_0H:aJ_1H)
-     .     ,admui_loc(im,aJ_0H:aJ_1H),admvi_loc(im,aJ_0H:aJ_1H) )
+      ALLOCATE(
+     &     ataux_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     atauy_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aflxa2o_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aemnp_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aice_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     asalt_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     austar_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aswflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     asst_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     atempr_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     admui_loc(im,aJ_0H:aJ_1H),
+     &     admvi_loc(im,aJ_0H:aJ_1H)
+     &     )
 
 #ifdef TRACERS_GASEXCH_ocean
       ALLOCATE( atracflx_loc(iia,aJ_0H:aJ_1H,ntm) )
@@ -383,49 +324,22 @@ cddd
 cddd      end subroutine alloc_locals
 
 
-!!!!!!! probably over-kill: need to check what actually needs 
-!!!!!!! packing and what needs unpacking
-
-      subroutine gather_atm
+      subroutine gather_atm_before_checkpoint
+#ifdef USE_ATM_GLOBAL_ARRAYS
       USE DOMAIN_DECOMP_1D, ONLY: GRID,PACK_DATA,PACK_COLUMN,PACK_BLOCK
 
-      call pack_data( grid,  PREC_loc, PREC )
-      call pack_data( grid,  EVAPOR_loc, EVAPOR )
-      call pack_data( grid,  FLOWO_loc, FLOWO )
-      call pack_data( grid,  GMELT_loc, GMELT )
-      call pack_data( grid,  MELTI_loc, MELTI )
-      call pack_data( grid,  RUNOSI_loc, RUNOSI )
-      call pack_data( grid,  RUNPSI_loc, RUNPSI )
-      call pack_data( grid,  E0_loc, E0 )
-      call pack_data( grid,  EPREC_loc, EPREC )
-      call pack_data( grid,  EFLOWO_loc, EFLOWO )
-      call pack_data( grid,  EGMELT_loc, EGMELT )
-      call pack_data( grid,  EMELTI_loc, EMELTI )
-      call pack_data( grid,  ERUNOSI_loc, ERUNOSI )
-      call pack_data( grid,  ERUNPSI_loc, ERUNPSI )
-      call pack_data( grid,  SRUNOSI_loc, SRUNOSI )
-      call pack_data( grid,  SRUNPSI_loc, SRUNPSI )
-      call pack_data( grid,  SMELTI_loc, SMELTI )
-      call pack_data( grid,  DMUA_loc, DMUA )
-      call pack_data( grid,  DMVA_loc, DMVA )
-      if(grid_icdyn%have_domain) then ! dmui,dmvi may be on subset of PEs
-        call pack_data( grid_icdyn,  DMUI_loc, DMUI )
-        call pack_data( grid_icdyn,  DMVI_loc, DMVI )
-      endif
-       call pack_column( grid,  SOLAR_loc, SOLAR )
+      call pack_data( grid,  ASST_loc, ASST )
+      call pack_data( grid,  ATEMPR_loc, ATEMPR )
       call pack_data( grid,  SSS_loc, SSS )
       call pack_data( grid,  UOSURF_loc, UOSURF )
       call pack_data( grid,  VOSURF_loc, VOSURF )
       call pack_data( grid,  OGEOZA_loc, OGEOZA )
-       call pack_block( grid,  GTEMP_loc, GTEMP )
-       call pack_column( grid,  GTEMPR_loc, GTEMPR )
        call pack_column( grid,  DMSI_loc, DMSI )
        call pack_column( grid,  DHSI_loc, DHSI )
        call pack_column( grid,  DSSI_loc, DSSI )
 
-#ifdef TRACERS_GASEXCH_ocean
-      call pack_block( grid,GTRACER_loc,GTRACER_glob)
-#endif
+c these arrays are not referenced by io_ocean.  why gather?
+
 #ifdef TRACERS_OceanBiology
       call pack_data(  grid,wsavg_loc,wsavg)
       call pack_data(  grid,COSZ1_loc,COSZ1)
@@ -438,42 +352,17 @@ cddd      end subroutine alloc_locals
       call pack_data(grid,SRVISSURF_loc,SRVISSURF)
 #endif
 
-      ! these are not changed by hycom - no need to scatter
-      call pack_data( grid,  RSI_loc, RSI )
-      call pack_data( grid,  FOCEAN_loc, FOCEAN )
-
-
-      end subroutine gather_atm
+#endif /* USE_ATM_GLOBAL_ARRAYS */
+      end subroutine gather_atm_before_checkpoint
 
       
-      subroutine scatter_atm
+      subroutine scatter_atm_after_checkpoint
+#ifdef USE_ATM_GLOBAL_ARRAYS
       USE DOMAIN_DECOMP_1D, ONLY: GRID, UNPACK_DATA, UNPACK_COLUMN,
      &     UNPACK_BLOCK
 
-      call unpack_data( grid,  PREC, PREC_loc )
-      call unpack_data( grid,  EVAPOR, EVAPOR_loc )
-      call unpack_data( grid,  FLOWO, FLOWO_loc )
-      call unpack_data( grid,  GMELT, GMELT_loc )
-      call unpack_data( grid,  MELTI, MELTI_loc )
-      call unpack_data( grid,  RUNOSI, RUNOSI_loc )
-      call unpack_data( grid,  RUNPSI, RUNPSI_loc )
-      call unpack_data( grid,  E0, E0_loc )
-      call unpack_data( grid,  EPREC, EPREC_loc )
-      call unpack_data( grid,  EFLOWO, EFLOWO_loc )
-      call unpack_data( grid,  EGMELT, EGMELT_loc )
-      call unpack_data( grid,  EMELTI, EMELTI_loc )
-      call unpack_data( grid,  ERUNOSI, ERUNOSI_loc )
-      call unpack_data( grid,  ERUNPSI, ERUNPSI_loc )
-      call unpack_data( grid,  SRUNOSI, SRUNOSI_loc )
-      call unpack_data( grid,  SRUNPSI, SRUNPSI_loc )
-      call unpack_data( grid,  SMELTI, SMELTI_loc )
-      call unpack_data( grid,  DMUA, DMUA_loc )
-      call unpack_data( grid,  DMVA, DMVA_loc )
-      if(grid_icdyn%have_domain) then ! dmui,dmvi may be on subset of PEs
-        call unpack_data( grid_icdyn,  DMUI, DMUI_loc )
-        call unpack_data( grid_icdyn,  DMVI, DMVI_loc )
-      endif
-       call unpack_column( grid,  SOLAR, SOLAR_loc )
+      call unpack_data( grid,  ASST, ASST_loc )
+      call unpack_data( grid,  ATEMPR, ATEMPR_loc )
       call unpack_data( grid,  SSS, SSS_loc )
       call unpack_data( grid,  UOSURF, UOSURF_loc )
       call unpack_data( grid,  VOSURF, VOSURF_loc )
@@ -486,16 +375,11 @@ c copy of UOSURF,VOSURF can be used.
         call unpack_data( grid_icdyn,  VOSURF, VOSURF_4DYNSI_loc) 
       endif
       call unpack_data( grid,  OGEOZA, OGEOZA_loc )
-       call unpack_block( grid,  GTEMP, GTEMP_loc )
-       call unpack_column( grid,  GTEMPR, GTEMPR_loc )
        call unpack_column( grid,  DMSI, DMSI_loc )
        call unpack_column( grid,  DHSI, DHSI_loc )
        call unpack_column( grid,  DSSI, DSSI_loc )
 
-#ifdef TRACERS_GASEXCH_ocean
-      call unpack_block( grid,GTRACER_glob,GTRACER_loc)
-#endif
-
-      end subroutine scatter_atm
+#endif /* USE_ATM_GLOBAL_ARRAYS */
+      end subroutine scatter_atm_after_checkpoint
 
       end module hycom_atm
