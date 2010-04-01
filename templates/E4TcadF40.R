@@ -135,6 +135,9 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
+imAER=5         !3 historic; 1 AEROCOM ; 0,2 for standard or sector inputs (not working)
+imPI=0          !for pre-industrial aerosols (natural-only) use imPI=1, imAER=5, aer_int_yr=1850
+aer_int_yr=1850    !used for imAER=3, select desired year (1890 to 2000) or 0 to use JYEAR
 #include "dust_params"
 #include "chemistry_params"
 
