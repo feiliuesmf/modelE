@@ -155,7 +155,7 @@ c
       use TimerPackage_mod
       implicit none
 c
-      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb
+      integer i,j,k,l,m,n,mm,nn,km,kn,k1m,k1n,ia,ja,jb,iam1
 !!! afogcm,nsavea should be initialized properly !
       integer :: afogcm=0,nsavea=0,nsaveo
 #include "kprf_scalars.h"
@@ -268,39 +268,43 @@ c stresses after the respective regrids to HYCOM
       call band_pack(pack_i2a, dmvi_loc, admvi_loc)
 
       do 29 ia=aI_0,aI_1
+      iam1=mod(ia-2+iia,iia)+1
       do 29 ja=aJ_0,aJ_1
       ipa_loc(ia,ja)=0
       if (focean_loc(ia,ja).eq.0.) goto 29
       ipa_loc(ia,ja)=1
 c --- accumulate
-      aemnp_loc(ia,ja)=aemnp_loc(ia,ja)                               ! kg/m*m => m/s
-     .+((prec_loc(ia,ja)-evapor_loc(ia,ja,1))*(1.-rsi_loc(ia,ja))         ! open water
+      aemnp_loc(ia,ja)=aemnp_loc(ia,ja)                                  ! kg/m2 => m/s
+     .+((prec_loc(ia,ja)-evapor_loc(ia,ja,1))*(1.-rsi_loc(ia,ja))        ! open water
      .+(flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja))/
      .                       (axyp(ia,ja)*focean_loc(ia,ja))!ocn/ice
-     .+(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref        ! ice
+     .+(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref       ! ice
      .                                /(3600.*real(nhr))
-      aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                           ! J/m*m => W/m*m
-     . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))           ! ocean water
+      aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                              ! J/m2 => W/m2
+     . +((e0_loc(ia,ja,1)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))          ! ocean water
      . +(eflowo_loc(ia,ja)+egmelt_loc(ia,ja)+emelti_loc(ia,ja))
-     .                              /(axyp(ia,ja)*focean_loc(ia,ja)) ! ocn or ice
-     . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))    ! ice
+     .                              /(axyp(ia,ja)*focean_loc(ia,ja))     ! ocn or ice
+     . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))          ! ice
      .                                 /(3600.*real(nhr))
-      asalt_loc(ia,ja)=asalt_loc(ia,ja)                            ! kg/m*m/sec salt
-     .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)         !
-     .   +smelti_loc(ia,ja)/(axyp(ia,ja)*focean_loc(ia,ja)))          !
+      asalt_loc(ia,ja)=asalt_loc(ia,ja)                                  ! kg/m2/sec salt
+     .+((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)           !
+     .   +smelti_loc(ia,ja)/(axyp(ia,ja)*focean_loc(ia,ja)))             !
      .                             /(3600.*real(nhr))
        aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
      .                                  dtsrc/(real(nhr)*3600.)
-c --- dmua on B-grid, dmui on C-grid; Nick aug04
-      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja,1)+
-     .                                        admui_loc(ia,ja))    ! scaled by rsi 
-     .                                     /(3600.*real(nhr))  ! kg/ms => N/m*m
+c --- dmua on A-grid, admui on C-grid
+      ataux_loc(ia,ja)=ataux_loc(ia,ja)+(dmua_loc(ia,ja,1)
+     .               +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)          ! scaled by rsi
+     .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
       atauy_loc(ia,ja)=atauy_loc(ia,ja)+(dmva_loc(ia,ja,1)+
-     .                                        admvi_loc(ia,ja))
-     .                                     /(3600.*real(nhr))  ! kg/ms => N/m*m
+     .               +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)   ! scaled by rsi
+     .                                     /(3600.*real(nhr))            ! kg/ms => N/m2
       austar_loc(ia,ja)=austar_loc(ia,ja)+(
-     . sqrt(sqrt((dmua_loc(ia,ja,1)+admui_loc(ia,ja))**2
-     .          +(dmva_loc(ia,ja,1)+admvi_loc(ia,ja))**2)/dtsrc*thref)) ! sqrt(T/r)=>m/s
+     . sqrt(sqrt((dmua_loc(ia,ja,1)
+     .          +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)**2
+     .          +(dmva_loc(ia,ja,1)
+     .          +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)**2)
+     .                               /dtsrc*thref))                      ! sqrt(T/r)=>m/s
      .                               *dtsrc/(real(nhr)*3600.)
       aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(solar_loc(1,ia,ja)*
      .                               (1.-rsi_loc(ia,ja))!J/m*m=>W/m*m

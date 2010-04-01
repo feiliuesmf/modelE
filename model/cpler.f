@@ -2,7 +2,7 @@
       module hycom_cpler
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       USE HYCOM_SCALARS, only : flnma2o,flnma2o_s,flnmo2a,flnmo2a_f
-     &   ,flnmo2a_e,flnmo2a_n,flnma2o_tau,flnmcoso,lp
+     &   ,flnma2o_tau,flnmcoso,lp
       USE HYCOM_DIM, only : agrid,ogrid
      &    ,aJ_0, aJ_1, aJ_0H, aJ_1H,
      &      J_0,  J_1,  J_0H,  J_1H
@@ -18,14 +18,11 @@ c
       public nwgta2o,nwgto2a
 
       public wlista2o, wtaua2o, wlista2o_s, wlisto2a, wlisto2a_f
-     .    ,wlisto2a_e, wlisto2a_n, coso, sino
-     .    ,ilista2o_s, jlista2o_s,nlista2o_s
+     .    ,ilista2o_s, jlista2o_s,nlista2o_s, coso, sino
      .     ,ilista2o,  jlista2o,  nlista2o
      .     ,itaua2o,   jtaua2o,   ntaua2o
      .     ,ilisto2a,  jlisto2a,  nlisto2a
      .     ,ilisto2a_f,jlisto2a_f,nlisto2a_f
-     .     ,ilisto2a_e,jlisto2a_e,nlisto2a_e
-     .     ,ilisto2a_n,jlisto2a_n,nlisto2a_n
 
       integer nwgta2o,nwgto2a
 #ifdef ATM4x5_HYCOM2deg
@@ -41,8 +38,6 @@ c
       real*8 wlista2o(iio,jjo,nwgta2o),wtaua2o(iio,jjo,nwgta2o)
      .    ,wlista2o_s(iio,jjo,nwgta2o)
      .    ,wlisto2a(iia,jja,nwgto2a), wlisto2a_f(iia,jja,nwgto2a)
-     .    ,wlisto2a_e(iia,jja,nwgto2a)
-     .    ,wlisto2a_n(iia,jja,nwgto2a)
      .    ,coso(iio,jjo),sino(iio,jjo)
       integer ilista2o_s(iio,jjo,nwgta2o),jlista2o_s(iio,jjo,nwgta2o)
      .                                 ,nlista2o_s(iio,jjo)
@@ -54,14 +49,10 @@ c
      .                                 ,nlisto2a    (iia,jja)
      .       ,ilisto2a_f(iia,jja,nwgto2a),jlisto2a_f(iia,jja,nwgto2a)
      .                                 ,nlisto2a_f  (iia,jja)
-     .       ,ilisto2a_e(iia,jja,nwgto2a),jlisto2a_e(iia,jja,nwgto2a)
-     .                                 ,nlisto2a_e(iia,jja)
-     .       ,ilisto2a_n(iia,jja,nwgto2a),jlisto2a_n(iia,jja,nwgto2a)
-     .                                 ,nlisto2a_n(iia,jja)
 
       contains
       subroutine ssta2o(flda,fldo)
-c --- mapping scalar-like field from agcm to ogcm
+c --- mapping scalar-like field from agcm A grid to ogcm A grid
 c     input: flda, output: fldo 
 c
       implicit none
@@ -86,10 +77,8 @@ c
       end subroutine ssta2o
 
       subroutine ssto2a(fldo_loc,flda_loc)
-c --- mapping sst from 'o' grid to 'a' grd
-c
-c --- fldo:  input field from ogcm grid
-c     flda: output field onto agcm grid
+c --- mapping sst from ogcm A grid to agcm A grid
+c     input: fldo_loc, output: flda_loc
 c
       implicit none
       integer n,ia,ja
@@ -117,10 +106,8 @@ c
       end subroutine ssto2a
 
       subroutine ssto2a_global(fldo,flda)
-c --- mapping sst from 'o' grid to 'a' grd
-c
-c --- fldo:  input field from ogcm grid
-c     flda: output field onto agcm grid
+c --- mapping sst from ogcm A grid to agcm A grid
+c     input: fldo, output: flda
 c
       implicit none
       integer n,ia,ja
@@ -142,16 +129,16 @@ c
 c
 c
       subroutine veca2o(tauxa_loc,tauya_loc,tauxo_loc,tauyo_loc)
-c --- tauxa/tauya: input taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
-c --- tauxo/tauyo:output taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
-c    
+c --- mapping vector from agcm A grid to ogcm A grid
+c --- input  tauxa/tauya (N/m2): E_/N_ward on agcm A grid
+c --- output tauxo/tauyo (N/m2): +i_/+j_ward on ogcm A grid (S_/E_ward in Mercador domain)
+c
       implicit none
       integer i,j,l,n
       real*8, dimension(iia,aJ_0H:aJ_1H) :: tauxa_loc,tauya_loc
       real*8, dimension(iio, J_0H: J_1H) :: tauxo_loc,tauyo_loc
       real*8, dimension(:,:), allocatable :: tauxa,tauya,tauxo,tauyo,
      &     sward,eward
-      real*8 tta,tto
       if(am_i_root()) then
         allocate(
      &       tauxa(iia,jja),tauya(iia,jja),
@@ -163,7 +150,6 @@ c
       call pack_data(agrid,tauya_loc,tauya)
       if(am_i_root()) then
 c
-cdiag tto=0.
 c --- mapping tauxa/tauya to ogcm grid
 c$OMP PARALLEL DO
       do 6 j=1,jj               
@@ -199,7 +185,7 @@ c$OMP END PARALLEL DO
       end subroutine veca2o
 c
       subroutine flxa2o(flda_loc,fldo_loc)
-c --- mapping flux-like field from agcm to ogcm
+c --- mapping flux-like field from agcm A grid to ogcm A grid
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
       implicit none
@@ -230,12 +216,13 @@ c
       end subroutine flxa2o
 
       subroutine flxa2o_global(flda,fldo)
-c --- mapping flux-like field from agcm to ogcm
+c --- mapping flux-like field from agcm A grid to ogcm A grid
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
       implicit none
       integer i,j,l,n
-      real*8 flda(iia,jja),fldo(iio,jjo),tta,tto
+      real*8, intent(in)  :: flda(iia,jja)
+      real*8, intent(out) :: fldo(iio,jjo)
 c
 c$OMP PARALLEL DO
       do 8 j=1,jj
@@ -254,7 +241,7 @@ c
       end subroutine flxa2o_global
 c
       subroutine flxo2a(fldo,flda)
-c --- mapping flux-like field from ogcm to agcm 
+c --- mapping flux-like field from ogcm A grid to agcm A grid
 c     input: fldo (W/m*m), output: flda (W/m*m)
 c
       implicit none
@@ -278,16 +265,17 @@ c
       end subroutine flxo2a
 c
       subroutine veco2a(tauxo_loc,tauyo_loc,tauxa_loc,tauya_loc)
-c --- tauxo/tauyo: input taux (S-ward)/tauy (E-ward) on ogcm grid (N/m*m)
-c --- tauxa/tauya:output taux (E-ward)/tauy (N-ward) on agcm grid (N/m*m)
-c    
+c --- mapping vector from ogcm C grid to agcm A grid
+c --- input  tauxo/tauyo (N/m2): +i_/+j_ward on ogcm C grid (S_/E_ward in Mercador domain)
+c --- output tauxa/tauya (N/m2): E_/N_ward on agcm A grid
+c
       implicit none
       integer i,j,l,n,ia,ja,jb
       real*8, dimension(iia,aJ_0H:aJ_1H) :: tauxa_loc,tauya_loc
       real*8, dimension(iio, J_0H: J_1H) :: tauxo_loc,tauyo_loc
       real*8, dimension(:,:), allocatable :: tauxa,tauya,tauxo,tauyo,
      &     nward,eward
-      real*8 tta,tto,sine
+      real*8 sine
       if(am_i_root()) then
         allocate(
      &       tauxa(iia,jja),tauya(iia,jja),
@@ -306,7 +294,7 @@ c$OMP PARALLEL DO
  10   eward(i,j)=0.
 c$OMP END PARALLEL DO
 c
-c --- rotate taux/tauy to n/e orientation at local p point on panam grid
+c --- rotate taux/tauy to n/e orientation at ocean A grid
 c --- check velocity bounds
 c$OMP PARALLEL DO PRIVATE(jb,sine)
       do 12 j=1,jj
@@ -323,7 +311,7 @@ c$OMP PARALLEL DO PRIVATE(jb,sine)
  12   continue
 c$OMP END PARALLEL DO           
 c
-c --- mapping nward/eward from ogcm grid to agcm grid
+c --- mapping nward/eward from ogcm to agcm, both on A grid
 c
 c$OMP PARALLEL DO
       do 16 ja=1,jja
@@ -331,13 +319,11 @@ c$OMP PARALLEL DO
       tauxa(ia,ja)=0.
       tauya(ia,ja)=0.
 c
-      do 17 n=1,nlisto2a_e(ia,ja)
- 17   tauxa(ia,ja)=tauxa(ia,ja)+eward(ilisto2a_e(ia,ja,n)
-     .          ,jlisto2a_e(ia,ja,n))*wlisto2a_e(ia,ja,n)
-c
-      do 18 n=1,nlisto2a_n(ia,ja)
- 18   tauya(ia,ja)=tauya(ia,ja)+nward(ilisto2a_n(ia,ja,n)
-     .          ,jlisto2a_n(ia,ja,n))*wlisto2a_n(ia,ja,n)
+      do 17 n=1,nlisto2a(ia,ja)
+      tauxa(ia,ja)=tauxa(ia,ja)+eward(ilisto2a(ia,ja,n)
+     .            ,jlisto2a(ia,ja,n))*wlisto2a(ia,ja,n)
+ 17   tauya(ia,ja)=tauya(ia,ja)+nward(ilisto2a(ia,ja,n)
+     .            ,jlisto2a(ia,ja,n))*wlisto2a(ia,ja,n)
  16   continue
 c$OMP END PARALLEL DO
 c
@@ -351,10 +337,8 @@ c
       end subroutine veco2a
 c
       subroutine tempro2a(fldo_loc,flda_loc)
-c --- mapping sqrt(sqrt(temp**4)) from 'o' grid to 'a' grid, unit: K
-c
-c --- fldo:  input field from ogcm grid
-c     flda: output field onto agcm grid
+c --- mapping sqrt(sqrt(temp**4)) from ogcm A grid to agcm A grid
+c --- input: fldo in deg C; outout: flda in deg K
 c
       implicit none
       integer n,ia,ja
@@ -405,52 +389,40 @@ c --- read in all weights
         stop ' wrong size in cpler'
       endif
 c
-#ifdef ATM2x2h_HYCOM1deg
-      open(21,file=flnma2o_s,form='unformatted',status='old',   ! TNL
+      open(21,file=flnma2o,form='unformatted',status='old',
      .  access='direct',recl=nsize1)
-      read(21,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
+      read(21,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
       close(21)
-#endif
 c
-      open(22,file=flnma2o,form='unformatted',status='old',
+      open(22,file=flnma2o_tau,form='unformatted',status='old',
      .  access='direct',recl=nsize1)
-      read(22,rec=1) ilista2o,jlista2o,wlista2o,nlista2o
+      read(22,rec=1) itaua2o,jtaua2o,wtaua2o,ntaua2o
       close(22)
 c
-      open(23,file=flnma2o_tau,form='unformatted',status='old',
-     .  access='direct',recl=nsize1)
-      read(23,rec=1) itaua2o,jtaua2o,wtaua2o,ntaua2o
+      open(23,file=flnmo2a,form='unformatted',status='old',
+     .  access='direct',recl=nsize2)
+      read(23,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
       close(23)
 c
-      open(24,file=flnmo2a,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
-      read(24,rec=1) ilisto2a,jlisto2a,wlisto2a,nlisto2a
+      open(24,file=flnmcoso,form='unformatted',status='old')
+      read(24) iz,jz,coso,sino
       close(24)
+      if (iz.ne.iio .or. jz.ne.jjo) then
+        write(lp,*) ' iz,jz=',iz,jz
+        stop '(wrong iz/jz in cososino.8bin)'
+      endif
 c
 #ifdef ATM2x2h_HYCOM1deg
       open(25,file=flnmo2a_f,form='unformatted',status='old',     ! TNL
      .  access='direct',recl=nsize2)
       read(25,rec=1) ilisto2a_f,jlisto2a_f,wlisto2a_f,nlisto2a_f
       close(25)
-#endif
 c
-      open(26,file=flnmo2a_e,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
-      read(26,rec=1) ilisto2a_e,jlisto2a_e,wlisto2a_e,nlisto2a_e
+      open(26,file=flnma2o_s,form='unformatted',status='old',   ! TNL
+     .  access='direct',recl=nsize1)
+      read(26,rec=1) ilista2o_s,jlista2o_s,wlista2o_s,nlista2o_s
       close(26)
-c
-      open(27,file=flnmo2a_n,form='unformatted',status='old',
-     .  access='direct',recl=nsize2)
-      read(27,rec=1) ilisto2a_n,jlisto2a_n,wlisto2a_n,nlisto2a_n
-      close(27)
-c
-      open(28,file=flnmcoso,form='unformatted',status='old')
-      read(28) iz,jz,coso,sino
-      close(28)
-      if (iz.ne.iio .or. jz.ne.jjo) then
-        write(lp,*) ' iz,jz=',iz,jz
-        stop '(wrong iz/jz in cososino.8bin)'
-      endif
+#endif
 c
       return
       end subroutine cpl_wgt

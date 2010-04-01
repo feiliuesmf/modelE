@@ -74,7 +74,7 @@ c
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
      .            ,flnminp,flnmint,flnmins
      .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_s,flnma2o_tau
-     .            ,flnmo2a,flnmo2a_f,flnmo2a_e,flnmo2a_n
+     .            ,flnmo2a,flnmo2a_f
 
 c --- opening the bering strait requires information exchange across a
 c --- 'u' face represented in 2 different locations in the tri-pole grid.
@@ -250,8 +250,6 @@ c
       data flnma2o_tau/'taua2o'/
       data flnmo2a    /'ssto2a'/
       data flnmo2a_f  /'flxo2a'/      ! TNL weights for fluxes
-      data flnmo2a_e  /'e_o2a'/
-      data flnmo2a_n  /'n_o2a'/
       data flnmcoso   /'cososino'/
       data flnmovt/'./'/
 
