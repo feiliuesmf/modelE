@@ -18,7 +18,7 @@
      *     ,ntmAMP
       USE AERO_CONFIG,only: nbins
 #endif
-#endif
+#endif   /* TRACERS_ON or OCEAN */
 #ifdef NEW_IO
       use cdl_mod
 #endif
@@ -37,7 +37,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@+   to_conc=0: printout is as defined by to_volume_MixRat
 !@+   to_conc=1: printout is in kg/m3
       INTEGER, DIMENSION(NTM) :: to_conc=0
-#endif
+#endif  /* TRACERS_ON */
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
 !@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
@@ -368,7 +368,9 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       integer jls_power(ktajls)
 !@var jls_ltop: Top layer for this diagnostic
       integer jls_ltop(ktajls)
+#endif  /* TRACERS_ON */
 
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** TCONSRV
 !@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
@@ -378,7 +380,7 @@ C**** TCONSRV
 #ifdef TRACERS_SPECIAL_Shindell
 C**** include some extra troposphere only ones
       INTEGER, PARAMETER :: ntmxcon = ntm+3
-#else
+#else 
 #ifdef TRACERS_OCEAN
       INTEGER, PARAMETER :: ntmxcon = ntm+20 ! arbitrary increase, may change
 #else
@@ -433,7 +435,7 @@ C**** include some extra troposphere only ones
       INTEGER, DIMENSION(ntmxcon) :: itcon_wt
 !@var natmtrcons, nocntrcons number of atmospheric/ocean tcon diags
       INTEGER :: natmtrcons, nocntrcons
-#endif
+#endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
 
