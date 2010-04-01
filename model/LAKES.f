@@ -1587,7 +1587,7 @@ C**** do not flood more than 4.9% of land per day
             if (new_flake.ne.FLAKE(I,J)) THEN ! something to do
               IF (new_flake.gt.0 .and. (hlk.gt.1. .or. (hlk.gt.0.5 
      *             .and. hlkic.gt.1.)) ) THEN ! new or surviving lake
-                HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it wasn't set
+                HLAKE(I,J)=MAX(HLAKE(I,J),1d0)  ! in case it was not set
 C**** adjust for fearth changes
                 FRSAT=0.
                 IF (new_flake.gt.FLAKE(I,J)) THEN ! some water used to saturate
