@@ -128,7 +128,6 @@
      &                            missing
       use tracer_com, only: sfc_src
       use model_com, only: nday,DTsrc
-      use ghy_com, only: fearth
 
       implicit none
    
@@ -145,8 +144,7 @@
 
       do j=J_0S,J_1S
         do i=I_0H,I_1H
-          if(fearth(i,j) > 0. .and. first_prec(i,j)==0 
-     &      .and. flammability(i,j)/=missing)then
+          if(first_prec(i,j)==0 .and. flammability(i,j)/=missing)then
             sfc_src(i,j,n,ns)=
      &      epfc(i,j,n)*flammability(i,j)*mfcc/(nday*DTsrc)
           else
