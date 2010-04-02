@@ -34,12 +34,13 @@ C**** this defines tracer parameters that are local to ocean code
 #endif  /*TRACERS_AGE_OCEAN */
 
 #ifdef TRACERS_ZEBRA
-      INTEGER, PARAMETER ::  ntm=16
-      CHARACTER*10 :: trname(ntm) =   (/ 'zebraL09   ', 'zebraL10   ',
-     .     'zebraL11   ', 'zebraL12   ', 'zebraL13   ', 'zebraL14   ',
-     .     'zebraL15   ', 'zebraL16   ', 'zebraL17   ', 'zebraL19   ',
-     .     'zebraL21   ', 'zebraL23   ', 'zebraL25   ', 'zebraL27   ',
-     .     'zebraL29   ', 'zebraL32   '/)
+      INTEGER, PARAMETER ::  ntm=20
+      CHARACTER*10 :: trname(ntm) =   (/ 'zebraL06   ', 'zebraL07   ',
+     .     'zebraL08   ', 'zebraL09   ', 'zebraL10   ', 'zebraL11   ',
+     .     'zebraL12   ', 'zebraL13   ', 'zebraL14   ', 'zebraL15   ',
+     .     'zebraL16   ', 'zebraL17   ', 'zebraL18   ', 'zebraL19   ',
+     .     'zebraL20   ', 'zebraL21   ', 'zebraL22   ', 'zebraL23   ',
+     .     'zebraL24   ', 'zebraL26   '/)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
       INTEGER, DIMENSION(ntm) :: ntrocn=0
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
