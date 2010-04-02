@@ -1547,7 +1547,13 @@ c$$$      end subroutine senesce_cpools
 !     &     max(0.d0,dC_croot), loss_leaf,loss_hw,
 !     &     max(0.d0,dC_fol), max(0.d0,dC_sw) !New biomass growth
 
-      !* Calculate litter from turnover and from senescence*!
+      !* Recalculate dC_lab in case adj < 1.0.
+      dC_lab = 
+     &     - (1-l_fract)*(loss_leaf + loss_froot) !Retranslocated carbon from turnover
+     &     - dClab_dbiomass       !Growth (new growth or senescence)
+          !- resp_growth          !Distrib resp_growth in cop%C_growth over day.
+
+      !* Calculate litter to soil from turnover and from senescence*!
       !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
       ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
       do i=1,N_CASA_LAYERS   
