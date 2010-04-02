@@ -27,7 +27,8 @@ C**** this defines tracer parameters that are local to ocean code
 #ifdef TRACERS_AGE_OCEAN
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Age       '/)
-      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0, ntrocn=0
+      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
+      INTEGER, DIMENSION(ntm) :: ntrocn=0
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #endif  /*TRACERS_AGE_OCEAN */
@@ -39,7 +40,8 @@ C**** this defines tracer parameters that are local to ocean code
      .     'zebraL15   ', 'zebraL16   ', 'zebraL17   ', 'zebraL19   ',
      .     'zebraL21   ', 'zebraL23   ', 'zebraL25   ', 'zebraL27   ',
      .     'zebraL29   ', 'zebraL32   '/)
-      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0, ntrocn=0
+      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
+      INTEGER, DIMENSION(ntm) :: ntrocn=0
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
 #endif    /*zebra*/
@@ -67,7 +69,7 @@ C**** this defines tracer parameters that are local to ocean code
 #endif
      .     /)
 !@var ntrocn scaling exponent for tracers
-      INTEGER :: ntrocn(ntm) = (/ -4,-6,-4,-8,-8,-8,-8,-8,-8,
+      INTEGER, DIMENSION(ntm) :: ntrocn = (/ -4,-6,-4,-8,-8,-8,-8,-8,-8,
      .     -4,-6,-6,-10,-6,-3
 #ifdef TRACERS_Alkalinity
      .     ,-6
@@ -77,7 +79,8 @@ C**** this defines tracer parameters that are local to ocean code
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
 #endif  /* TRACERS_OceanBiology */
 
-#ifdef TRACERS_WATER
+C**** a default tracer if nothing else is defined
+#if ! (defined TRACERS_OceanBiology || defined TRACERS_AGE_OCEAN || defined TRACERS_ZEBRA)
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Water     '/)
       REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
