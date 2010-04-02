@@ -86,7 +86,7 @@
         character(1) :: attrib = 'u'        ! type: real ('r') or int ('i')
         character(1) :: is_accessed = 'n'   ! was it accessed with get_*
         character(1) :: source = 'u'        ! where it came from (r=rundeck)
-        character(1) :: reserved(1)
+        character(1) :: reserved(1) = 'u'
       end type ParamStr
 
       type (ParamStr), target :: Params(MAX_PARAMS)
@@ -191,7 +191,6 @@
       PStr%name = name
       PStr%attrib = attrib
       PStr%dim = dim
-      PStr%reserved(1:3) = (/ ' ', ' ', ' ' /)
 
       select case (attrib)
         case ('i')
