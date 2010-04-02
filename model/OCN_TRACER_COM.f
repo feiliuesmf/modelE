@@ -33,7 +33,7 @@ C**** this defines tracer parameters that are local to ocean code
 #endif  /*TRACERS_AGE_OCEAN */
 
 #ifdef TRACERS_ZEBRA
-      INTEGER, PARAMETER :: ntm=16
+      INTEGER, PARAMETER ::  ntm=16
       CHARACTER*10 :: trname(ntm) =   (/ 'zebraL09   ', 'zebraL10   ',
      .     'zebraL11   ', 'zebraL12   ', 'zebraL13   ', 'zebraL14   ',
      .     'zebraL15   ', 'zebraL16   ', 'zebraL17   ', 'zebraL19   ',
