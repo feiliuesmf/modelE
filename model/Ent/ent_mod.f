@@ -2652,9 +2652,14 @@ C NADINE
      &     C_total = 
      &     entcell%entcell%C_total
 
-      if ( present(C_entcell) )
-     &     C_entcell = 
+      if ( present(C_entcell) ) then
+        if ( associated(entcell%entcell) ) then
+          C_entcell = 
      &     entcell_carbon( entcell%entcell )
+        else
+	  C_entcell = 0.d0
+	endif
+      endif 
 
       
 
@@ -2840,9 +2845,14 @@ C NADINE
      &     C_total(i1) = 
      &     entcell(i1)%entcell%C_total
 
-      if ( present(C_entcell) )
-     &     C_entcell(i1) = 
+      if ( present(C_entcell) ) then
+        if ( associated(entcell(i1)%entcell) ) then
+          C_entcell(i1) = 
      &     entcell_carbon( entcell(i1)%entcell )
+        else
+	  C_entcell(i1) = 0.d0
+	endif
+      endif 
 
       
       enddo
@@ -3030,9 +3040,14 @@ C NADINE
      &     C_total(i1,i2) = 
      &     entcell(i1,i2)%entcell%C_total
 
-      if ( present(C_entcell) )
-     &     C_entcell(i1,i2) = 
+      if ( present(C_entcell) ) then
+        if ( associated(entcell(i1,i2)%entcell) ) then
+          C_entcell(i1,i2) = 
      &     entcell_carbon( entcell(i1,i2)%entcell )
+        else
+	  C_entcell(i1,i2) = 0.d0
+	endif
+      endif 
 
       
       enddo
