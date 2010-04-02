@@ -1489,8 +1489,6 @@ c
       ALLOCATE(    TCONSRV_loc(J_0BUDG:J_1BUDG,KTCON,NTMXCON), STAT=IER)
 #endif
 #endif
-      print*,"in alloc diag",size(tconsrv_loc)
-      call sys_flush(6)
 
       if(am_i_root()) then
         ALLOCATE( OIJ (IM,JM,KOIJ), STAT=IER )
