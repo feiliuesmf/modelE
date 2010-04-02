@@ -299,7 +299,6 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
          temp1d(k)=TEMGSP(g,s,pres)     !in situ   temperature
           saln1d(k)=s*1000.             !convert to psu (eg. ocean mean salinity=35psu)
           !dp1d(k)=dzo(k)               !thickenss of each layer in meters
-           dp1d(k)=MO(I,J,k)/rho_water  !thickenss of each layer in meters
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! array tracer has units [mole]/m3. convert to/from trmo with units kg as follows:
 ! trmo = tracer * MB*1e-3/rho_water     * mo * dxypo
@@ -311,6 +310,7 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
 ! because then trmo=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          rho_water = 1d0/VOLGSP(g,s,pres)
+         dp1d(k)=MO(I,J,K)/rho_water   !local thickenss of each layer in meters
 
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
