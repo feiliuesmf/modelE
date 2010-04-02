@@ -82,9 +82,27 @@ C**** straits
           CALL ESMF_BCAST(grid, tzmst)
 
 #endif
+
 #ifdef TRACERS_WATER
           if (am_i_root()) trsist(:,:,n)=0.
           CALL ESMF_BCAST(grid, trsist)
+#endif
+
+#if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
+!initialize zebra tracers
+          trmo(:,:,:,n)=100.
+          txmo(:,:,:,n)=100.
+          tymo(:,:,:,n)=100.
+          tzmo(:,:,:,n)=100.
+C**** straits
+          if (am_i_root()) then
+            trmst(:,:,n)=100.
+            txmst(:,:,n)=100.
+            tzmst(:,:,n)=100.
+          end if
+          CALL ESMF_BCAST(grid, trmst)
+          CALL ESMF_BCAST(grid, txmst)
+          CALL ESMF_BCAST(grid, tzmst)
 #endif
 
         case ('Water', 'H2O18', 'HDO', 'H2O17' )

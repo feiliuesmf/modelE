@@ -16,6 +16,8 @@
 !@+         condition is all that is required)
 !@+   Use "TRACERS_OCEAN_INDEP" for independently defined ocn tracers
 !@+        "TRACERS_AGE_OCEAN" is one partciularly case
+!@param conc_from_fw definition for defining surface ocean conc
+!@dbparam to_per_mil For printout of tracer concentration in permil
 
 
 #ifdef TRACERS_OCEAN_INDEP
@@ -28,7 +30,20 @@ C**** this defines tracer parameters that are local to ocean code
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0, ntrocn=0
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
-#else
+#endif  /*TRACERS_AGE_OCEAN */
+
+#ifdef TRACERS_ZEBRA
+      INTEGER, PARAMETER :: ntm=16
+      CHARACTER*10 :: trname(ntm) =   (/ 'zebraL09   ', 'zebraL10   ',
+     .     'zebraL11   ', 'zebraL12   ', 'zebraL13   ', 'zebraL14   ',
+     .     'zebraL15   ', 'zebraL16   ', 'zebraL17   ', 'zebraL19   ',
+     .     'zebraL21   ', 'zebraL23   ', 'zebraL25   ', 'zebraL27   ',
+     .     'zebraL29   ', 'zebraL32   '/)
+      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0, ntrocn=0
+      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
+      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
+#endif    /*zebra*/
+
 #ifdef TRACERS_OceanBiology
 #ifdef TRACERS_Alkalinity
       INTEGER, PARAMETER :: ntm=16
@@ -58,19 +73,17 @@ C**** this defines tracer parameters that are local to ocean code
      .     ,-6
 #endif
      .     /)
-!@dbparam to_per_mil For printout of tracer concentration in permil
       INTEGER, DIMENSION(NTM) :: to_per_mil = 0
-!@param conc_from_fw definition for defining surface ocean conc
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
-#else
+#endif  /* TRACERS_OceanBiology */
+
+#ifdef TRACERS_WATER
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Water     '/)
       REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
       INTEGER, DIMENSION(ntm) :: ntrocn=2
-!@param conc_from_fw definition for defining surface ocean conc
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .true.
-#endif  /* TRACERS_OceanBiology */
-#endif  /*TRACERS_AGE_OCEAN */
+#endif
 
       LOGICAL, DIMENSION(ntm) :: t_qlimit=.true. 
       INTEGER, DIMENSION(ntm) :: itime_tr0 = 0

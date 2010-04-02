@@ -298,7 +298,8 @@ cdiag.          lon_dg(i,1),lat_dg(j,1)
 !!!!     temp1d(k)=TEMGS(g,s)           !potential temperature
          temp1d(k)=TEMGSP(g,s,pres)     !in situ   temperature
           saln1d(k)=s*1000.             !convert to psu (eg. ocean mean salinity=35psu)
-           dp1d(k)=dzo(k)               !thickenss of each layer in meters
+          !dp1d(k)=dzo(k)               !thickenss of each layer in meters
+           dp1d(k)=MO(I,J,k)/rho_water  !thickenss of each layer in meters
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! array tracer has units [mole]/m3. convert to/from trmo with units kg as follows:
 ! trmo = tracer * MB*1e-3/rho_water     * mo * dxypo
