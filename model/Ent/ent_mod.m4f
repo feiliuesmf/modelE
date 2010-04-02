@@ -1452,9 +1452,14 @@ C NADINE
      &     C_total`'m4_brkts(m4_ind)`' = 
      &     entcell`'m4_brkts(m4_ind)`'%entcell%C_total
 
-      if ( present(C_entcell) )
-     &     C_entcell`'m4_brkts(m4_ind)`' = 
+      if ( present(C_entcell) ) then
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+          C_entcell`'m4_brkts(m4_ind)`' = 
      &     entcell_carbon( entcell`'m4_brkts(m4_ind)`'%entcell )
+        else
+	  C_entcell`'m4_brkts(m4_ind)`' = 0.d0
+	endif
+      endif 
 
       m4_enddo
 
