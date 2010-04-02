@@ -42,11 +42,11 @@
 
          rhs(k,nnut+nt,16)= - trnd/dzo(k)
         enddo  ! k
-         k = kmax
-         trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
-         P_tend(k,nt)   = P_tend(k,nt)   - trnd/dzo(k)
-
-         rhs(k,nnut+nt,16)= - trnd/dzo(k)
+!let phytoplankton that reaches the bottom, disappear in the sediment
+!        k = kmax
+!        trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
+!        P_tend(k,nt)   = P_tend(k,nt)   - trnd/dzo(k)
+!        rhs(k,nnut+nt,16)= - trnd/dzo(k)
       enddo ! n
 
       !detritus settling
@@ -58,11 +58,11 @@
 
          rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
         enddo  ! k
-         k = kmax
-         trnd = det(k,nt)*wsdet(k,nt)
-         D_tend(k,nt)   = D_tend(k,nt)   - trnd/dzo(k)
-
-         rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
+!let detritus that reaches the bottom, disappear in the sediment
+!        k = kmax
+!        trnd = det(k,nt)*wsdet(k,nt)
+!        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dzo(k)
+!        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dzo(k)
       enddo ! nt
 
 
@@ -145,9 +145,9 @@ cdiag        enddo
 cdiag      endif
 
           !no flux through the sea floor
-!         do k=1,kmax
-!            wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
-!         enddo
+          do k=1,kmax
+             wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
+          enddo
 !for the moment let flux go through the sea floor.
 !need to change that and create an array that will actually
 !hold the excess stuff (sediment array) to be used in
