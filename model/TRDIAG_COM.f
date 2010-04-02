@@ -436,6 +436,7 @@ C**** include some extra troposphere only ones
 #endif 
 
 #ifdef NEW_IO
+#ifdef TRACERS_ON
 ! This section declares arrays used to write tracer
 ! diagnostics accumulations in a format suitable for offline
 ! postprocessing.  The size of these arrays cannot be known
@@ -504,7 +505,9 @@ C**** include some extra troposphere only ones
       real*8, dimension(ktajl_) :: scale_tajl
       type(cdl_type) :: cdl_tajl
       real*8, dimension(:,:,:), allocatable :: hemis_tajl,vmean_tajl
+#endif /* TRACERS_ON */
 
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       integer :: ktcon_out ! actual number of qtys in tconsrv_out
       real*8, dimension(:,:), allocatable :: tconsrv_out,hemis_tconsrv
       real*8, dimension(:), allocatable :: scale_tcon_out
@@ -513,6 +516,7 @@ C**** include some extra troposphere only ones
      &     sname_tconsrv_out
       type(cdl_type) :: cdl_tconsrv
 #endif
+#endif  /* NEW IO */
 
       END MODULE TRDIAG_COM
 
@@ -643,8 +647,6 @@ C****
       RETURN
       END SUBROUTINE set_tcon
 
-#endif
-#ifdef TRACERS_ON
       SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
 !@sum  io_trdiag reads and writes tracer diagnostics arrays to file
 !@auth Jean Lerner
@@ -675,7 +677,7 @@ C****
       INTEGER, PARAMETER ::
      *     ktacc=IM*JM*LM*NTM + IM*JM*LM*ktaijl + IM*JM*ktaij*NTM + IM
      *     *JM*ktaijs +JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls +
-     *     JM_BUDG*ntmxcon*ktcon
+     *     JM_BUDG*ktcon*ntmxcon
 !@var TA..4(...) dummy arrays for reading diagnostics files
       real*4, allocatable, dimension(:,:,:,:) :: taijln4
       real*4, allocatable, dimension(:,:,:,:) :: taijls4
@@ -805,11 +807,9 @@ C*** Unpack read global data into local distributed arrays
      &     TAIJS=>TAIJS_loc,
      &     TAJLN,
      &     TAJLS,
-     &     TCONSRV,
      &     TAIJL=>TAIJL_out,
      &     TAIJ=>TAIJ_out,
      &     TAJL=>TAJL_out,
-     &     TCONSRV_out
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
@@ -822,8 +822,6 @@ C*** Unpack read global data into local distributed arrays
      &       'taij(dist_im,dist_jm,ktaij)',r4_on_disk=.true.)
         call defvar(grid,fid,tajl,
      &       'tajl(jm_budg,lm,ktajl)',r4_on_disk=.true.)
-        call defvar(grid,fid,tconsrv_out,
-     &       'tconsrv(jm_budg,ktcon)',r4_on_disk=.true.)
       else
         call defvar(grid,fid,taijln,'taijln(dist_im,dist_jm,lm,ntm)')
         call defvar(grid,fid,taijls,'taijls(dist_im,dist_jm,lm,ktaijl)')
@@ -831,9 +829,10 @@ C*** Unpack read global data into local distributed arrays
         call defvar(grid,fid,taijn,'taijn(dist_im,dist_jm,ktaij,ntm)')
         call defvar(grid,fid,tajln,'tajln(jm_budg,lm,ktajlx,ntm)')
         call defvar(grid,fid,tajls,'tajls(jm_budg,lm,ktajls)')
-        call defvar(grid,fid,tconsrv,
-     &       'tconsrv(jm_budg,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
       endif
+
+      call def_rsf_tcons(fid,r4_on_disk)
+
       return
       end subroutine def_rsf_trdiag
 
@@ -849,11 +848,9 @@ C*** Unpack read global data into local distributed arrays
      &     TAIJS=>TAIJS_loc,
      &     TAJLN,
      &     TAJLS,
-     &     TCONSRV,
      &     TAIJL=>TAIJL_out,
      &     TAIJ=>TAIJ_out,
      &     TAJL=>TAJL_out,
-     &     TCONSRV_out
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
@@ -865,7 +862,6 @@ C*** Unpack read global data into local distributed arrays
         call write_dist_data(grid,fid,'taijl',taijl)
         call write_dist_data(grid,fid,'taij',taij)
         call write_data(grid,fid,'tajl',tajl)
-        call write_data(grid,fid,'tconsrv',tconsrv_out)
       case (iowrite)            ! output to restart file
         call gather_zonal_trdiag
         call write_dist_data(grid,fid,'taijln',taijln)
@@ -874,7 +870,6 @@ C*** Unpack read global data into local distributed arrays
         call write_dist_data(grid,fid,'taijn',taijn)
         call write_data(grid,fid,'tajln',tajln)
         call write_data(grid,fid,'tajls',tajls)
-        call write_data(grid,fid,'tconsrv',tconsrv)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'taijln',taijln)
         call read_dist_data(grid,fid,'taijls',taijls)
@@ -882,9 +877,11 @@ C*** Unpack read global data into local distributed arrays
         call read_dist_data(grid,fid,'taijn',taijn)
         call read_data(grid,fid,'tajln',tajln)
         call read_data(grid,fid,'tajls',tajls)
-        call read_data(grid,fid,'tconsrv',tconsrv)
         call scatter_zonal_trdiag
       end select
+
+      call new_io_tcons(fid,iaction)
+
       return
       end subroutine new_io_trdiag
 
@@ -955,17 +952,7 @@ C*** Unpack read global data into local distributed arrays
      &     'vmean_tajl(jm_budg_plus3,one,ktajl)',r4_on_disk=.true.)
       call write_attr(grid,fid,'vmean_tajl','reduction','sum')
 
-      call write_attr(grid,fid,'tconsrv','reduction','sum')
-      call write_attr(grid,fid,'tconsrv','split_dim',2)
-      call defvar(grid,fid,hemis_tconsrv,'hemis_tconsrv(shnhgm,ktcon)',
-     &     r4_on_disk=.true.)
-      call write_attr(grid,fid,'hemis_tconsrv','reduction','sum')
-      call defvar(grid,fid,ia_tcon_out,'ia_tconsrv(ktcon)')
-      call defvar(grid,fid,scale_tcon_out,'scale_tconsrv(ktcon)')
-      call defvar(grid,fid,sname_tconsrv_out,
-     &     'sname_tconsrv(sname_strlen,ktcon)')
-      call defvar_cdl(grid,fid,cdl_tconsrv,
-     &     'cdl_tconsrv(cdl_strlen,kcdl_tconsrv)')
+      call def_meta_tcons(fid)
 
       return
       end subroutine def_meta_trdiag
@@ -1007,6 +994,100 @@ C*** Unpack read global data into local distributed arrays
       call write_data(grid,fid,'sname_tajl',sname_tajl(1:ktajl_out))
       call write_cdl(grid,fid,'cdl_tajl',cdl_tajl)
 
+      call write_meta_tcons(fid)
+
+      return
+      end subroutine write_meta_trdiag
+
+#endif /* TRACERS_ON */
+
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+
+      subroutine def_rsf_tcons(fid,r4_on_disk)
+!@sum  def_rsf_tcons defines tracer diag array structure in restart+acc files
+!@auth M. Kelley
+!@ver  beta
+      use trdiag_com, only :
+     &     TCONSRV,
+     &     TCONSRV_out
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid           !@var fid file id
+      logical :: r4_on_disk !@var r4_on_disk if true, real*8 stored as real*4
+      if(r4_on_disk) then ! acc file
+        call defvar(grid,fid,tconsrv_out,
+     &       'tconsrv(jm_budg,ktcon)',r4_on_disk=.true.)
+      else
+        call defvar(grid,fid,tconsrv,
+     &       'tconsrv(jm_budg,ktcon,ntmxcon)',r4_on_disk=r4_on_disk)
+      endif
+      return
+      end subroutine def_rsf_tcons
+
+      subroutine new_io_tcons(fid,iaction)
+!@sum  new_io_tcons read/write tconsrv arrays from/to restart+acc files
+!@auth M. Kelley
+!@ver  beta new_ prefix avoids name clash with the default version
+      use model_com, only : ioread,iowrite,iowrite_single
+      use trdiag_com, only :
+     &     TCONSRV,
+     &     TCONSRV_out
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data,
+     &     write_data,read_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite_single)     ! output to acc file
+        call write_data(grid,fid,'tconsrv',tconsrv_out)
+      case (iowrite)            ! output to restart file
+        call gather_zonal_tcons
+        call write_data(grid,fid,'tconsrv',tconsrv)
+      case (ioread)            ! input from restart file
+        call read_data(grid,fid,'tconsrv',tconsrv)
+        call scatter_zonal_tcons
+      end select
+      return
+      end subroutine new_io_tcons
+
+      subroutine def_meta_tcons(fid)
+!@sum  def_meta_trdiag defines tconsrv metadata in acc files
+!@auth M. Kelley
+!@ver  beta
+      use trdiag_com
+      use pario, only : defvar,write_attr
+      use domain_decomp_atm, only : grid
+      use cdl_mod, only : defvar_cdl
+      implicit none
+      integer :: fid         !@var fid file id
+
+      call write_attr(grid,fid,'tconsrv','reduction','sum')
+      call write_attr(grid,fid,'tconsrv','split_dim',2)
+      call defvar(grid,fid,hemis_tconsrv,'hemis_tconsrv(shnhgm,ktcon)',
+     &     r4_on_disk=.true.)
+      call write_attr(grid,fid,'hemis_tconsrv','reduction','sum')
+      call defvar(grid,fid,ia_tcon_out,'ia_tconsrv(ktcon)')
+      call defvar(grid,fid,scale_tcon_out,'scale_tconsrv(ktcon)')
+      call defvar(grid,fid,sname_tconsrv_out,
+     &     'sname_tconsrv(sname_strlen,ktcon)')
+      call defvar_cdl(grid,fid,cdl_tconsrv,
+     &     'cdl_tconsrv(cdl_strlen,kcdl_tconsrv)')
+
+      return
+      end subroutine def_meta_tcons
+
+      subroutine write_meta_tcons(fid)
+!@sum  write_meta_tcons write tconsrv accumulation metadata to file
+!@auth M. Kelley
+      use trdiag_com
+      use pario, only : write_dist_data,write_data
+      use domain_decomp_atm, only : grid
+      use cdl_mod, only : write_cdl
+      implicit none
+      integer :: fid         !@var fid file id
+
       call write_data(grid,fid,'hemis_tconsrv',hemis_tconsrv)
       call write_data(grid,fid,'ia_tconsrv',ia_tcon_out)
       call write_data(grid,fid,'scale_tconsrv',scale_tcon_out)
@@ -1014,9 +1095,9 @@ C*** Unpack read global data into local distributed arrays
       call write_cdl(grid,fid,'cdl_tconsrv',cdl_tconsrv)
 
       return
-      end subroutine write_meta_trdiag
+      end subroutine write_meta_tcons
 
-#endif /* TRACERS_ON */
+#endif /* TRACERS_ON or TRACERS_OCEAN */
 #endif /* NEW_IO */
 
 
@@ -1083,10 +1164,11 @@ C*** Unpack read global data into local distributed arrays
       endif
 #endif
 
-#endif
+#endif  /* TRACERS_ON */
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM
 
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** reset/gather/scatter routines for tconsrv special case
 C**** can be called from both ocean tracer or atm tracer code
       subroutine reset_tcons
@@ -1115,6 +1197,7 @@ C**** can be called from both ocean tracer or atm tracer code
       call unpack_lc   (grid, TCONSRV_loc,TCONSRV )
       return
       end subroutine scatter_zonal_tcons
+#endif
 
 #ifdef TRACERS_ON
       subroutine reset_trdiag
@@ -1287,7 +1370,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       USE DIAG_COM, only : wtbudg
       USE GEOM, only : j_budg
       IMPLICIT NONE
-!@var I,J,L atm gridpoint indices, N tracer # for the accumulation
+!@var I,J,L atm gridpoint indices, N tracer no. for the accumulation
       INTEGER, INTENT(IN) :: I,J,L,N
 !@var TJL_INDEX index of the diagnostic being accumulated
       INTEGER, INTENT(IN) :: TJL_INDEX
@@ -1307,7 +1390,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       USE DIAG_COM, only : wtbudg
       USE GEOM, only : j_budg
       IMPLICIT NONE
-!@var I,J,L atm gridpoint indices, N tracer # for the accumulation
+!@var I,J,L atm gridpoint indices, N tracer no. for the accumulation
       INTEGER, INTENT(IN) :: I,J,L1,L2,NL,N
 !@var TJL_INDEX index of the diagnostic being accumulated
       INTEGER, INTENT(IN) :: TJL_INDEX
@@ -1321,4 +1404,4 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       ENDDO
       RETURN
       END SUBROUTINE INC_TAJLN_COLUMN
-#endif
+#endif   /* TRACERS_ON */

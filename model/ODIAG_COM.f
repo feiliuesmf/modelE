@@ -256,7 +256,7 @@ C**** NOT ALREADY BEING DONE IN THE ATM TRACER CODE
      $     ) 'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
      $     LMO*NMST*KOLNST*NTM,
 #ifndef TRACERS_ON
-     *     '), Tcons(',JM_BUDG*NTMXCON*NPTS,
+     *     '), Tcons(',JM_BUDG*KTCON*NTMXCON,
 #endif
      *     '),it'
 #endif
@@ -395,7 +395,7 @@ C****
 !@ver  beta
       use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl=>toijl_loc,tconsrv=>tconsrv_loc
+      use odiag, only : tlnst,toijl=>toijl_loc
 #endif
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
@@ -417,8 +417,7 @@ C****
       call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntm)',
      &     r4_on_disk=r4_on_disk)
 #ifndef TRACERS_ON
-      call defvar(grid,fid,tconsrv,'tconsrv(jm_budg,ktcon,ntmxcon)',
-     &     r4_on_disk=r4_on_disk)
+      call def_rsf_tcons(fid,r4_on_disk)
 #endif
 #endif
       return
@@ -436,7 +435,7 @@ c    extended/rescaled instances of arrays when writing acc files
       use odiag, only : ol,olnst,
      &     oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl=>toijl_loc,tconsrv=>tconsrv_loc
+      use odiag, only : tlnst,toijl=>toijl_loc
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
@@ -453,9 +452,6 @@ c straits arrays
 #ifdef TRACERS_OCEAN
         call write_dist_data(grid,fid,'toijl',toijl)
         call write_data(grid,fid,'tlnst',tlnst)
-#ifndef TRACERS_ON
-        call write_dist_data(grid,fid,'tconsrv',tconsrv)
-#endif
 #endif
       case (ioread)            ! input from restart or acc file
         call read_dist_data(grid,fid,'oij',oij)
@@ -466,11 +462,14 @@ c straits arrays
 #ifdef TRACERS_OCEAN
         call read_dist_data(grid,fid,'toijl',toijl)
         call read_data(grid,fid,'tlnst',tlnst,bcast_all=.true.)
-#ifndef TRACERS_ON
-        call read_dist_data(grid,fid,'tconsrv',tconsrv)
-#endif
 #endif
       end select
+
+#ifdef TRACERS_OCEAN
+#ifndef TRACERS_ON
+      call new_io_tcons(fid,iaction)
+#endif
+#endif
       return
       end subroutine new_io_ocdiag
 
@@ -535,6 +534,12 @@ c straits arrays
       call defvar_cdl(grid,fid,cdl_otj,
      &     'cdl_otj(cdl_strlen,kcdl_otj)')
 
+#ifdef TRACERS_OCEAN
+#ifndef TRACERS_ON
+      call def_meta_tcons(fid)
+#endif
+#endif      
+
       return
       end subroutine def_meta_ocdiag
 
@@ -576,6 +581,12 @@ c straits arrays
       call write_data(grid,fid,'scale_olnst',scale_olnst)
       call write_data(grid,fid,'sname_olnst',sname_olnst)
       call write_cdl(grid,fid,'cdl_olnst',cdl_olnst)
+
+#ifdef TRACERS_OCEAN
+#ifndef TRACERS_ON
+      call write_meta_tcons(fid)
+#endif
+#endif      
 
       return
       end subroutine write_meta_ocdiag
