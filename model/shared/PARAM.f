@@ -68,7 +68,7 @@
 
       public set_param, get_param, get_pparam, read_param, write_param
       public is_set_param, alloc_param, sync_param, print_param
-      public query_param
+      public query_param, print_unused_param
 
       integer, parameter :: MAX_PARAMS = 310
       integer, parameter :: MAX_RPARAMS = 286
@@ -80,11 +80,13 @@
       character*80 :: MODULE_HEADER='PARAM02 '
 
       type ParamStr
-        character(MAX_NAME_LEN) name  ! parameter name
-        integer indx                 ! storage for its value
-        integer dim                   ! number of elements
-        character(1) attrib            ! type: real ('r') or int ('i')
-        character(1) reserved(3)
+        character(MAX_NAME_LEN) :: name = 'EMPTY'  ! parameter name
+        integer :: indx = 0                 ! storage for its value
+        integer :: dim = 0                  ! number of elements
+        character(1) :: attrib = 'u'        ! type: real ('r') or int ('i')
+        character(1) :: is_accessed = 'n'   ! was it accessed with get_*
+        character(1) :: source = 'u'        ! where it came from (r=rundeck)
+        character(1) :: reserved(1)
       end type ParamStr
 
       type (ParamStr), target :: Params(MAX_PARAMS)
@@ -285,14 +287,18 @@
       character(len=*), optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       logical flag
+      character*1 source
 
       flag = .false.
+      source = 'u'
       if ( present(opt) ) then
-        if ( opt=='o' ) flag = .true.
+        if ( scan(opt,'o') .ne. 0 ) flag = .true.
+        if ( scan(opt,'r') .ne. 0 ) source = 'r'
       endif
 
       call set_pstr( name, np, 'i', PStr, flag )
       Idata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
+      PStr%source = source
       return
       end subroutine set_aiparam
 
@@ -323,6 +329,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       value(1:np) = Idata( PStr%indx : PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_aiparam
 
@@ -340,6 +347,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Idata( PStr%indx )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_piparam
 
@@ -357,6 +365,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Idata( PStr%indx:PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_paiparam
 
@@ -384,14 +393,18 @@
       character(len=*), optional, intent(in) :: opt
       type (ParamStr), pointer :: PStr
       logical flag
+      character*1 source
 
       flag = .false.
+      source = 'u'
       if ( present(opt) ) then
-        if ( opt=='o' ) flag = .true.
+        if ( scan(opt,'o') .ne. 0 ) flag = .true.
+        if ( scan(opt,'r') .ne. 0 ) source = 'r'
       endif
 
       call set_pstr( name, np, 'r', PStr, flag )
       Rdata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
+      PStr%source = source
       return
       end subroutine set_arparam
 
@@ -422,6 +435,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_arparam
 
@@ -439,6 +453,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Rdata( PStr%indx )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_prparam
 
@@ -456,6 +471,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Rdata( PStr%indx:PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_parparam
 
@@ -487,10 +503,13 @@
       type (ParamStr), pointer :: PStr
       integer n
       logical flag
+      character*1 source
 
       flag = .false.
+      source = 'u'
       if ( present(opt) ) then
-        if ( opt=='o' ) flag = .true.
+        if ( scan(opt,'o') .ne. 0 ) flag = .true.
+        if ( scan(opt,'r') .ne. 0 ) source = 'r'
       endif
 
       do n=1,np
@@ -502,6 +521,7 @@
       enddo
       call set_pstr( name, np, 'c', PStr, flag )
       Cdata( PStr%indx : PStr%indx+np-1 ) = value(1:np)
+      PStr%source = source
       return
       end subroutine set_acparam
 
@@ -532,6 +552,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_acparam
 
@@ -549,6 +570,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Cdata( PStr%indx )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_pcparam
 
@@ -566,6 +588,7 @@
      &       'PARAM: Can''t get parameter - not in database',255)
       endif
       pvalue => Cdata( PStr%indx:PStr%indx+np-1 )
+      PStr%is_accessed = 'y'
       return
       end subroutine get_pacparam
 
@@ -902,6 +925,34 @@
       enddo
       write( kunit, * ) '&&END_PARAMETERS'
       end subroutine print_param
+
+
+      subroutine print_unused_param( kunit )
+      implicit none
+      integer, intent(in) :: kunit
+      integer, parameter :: nf = 7
+      integer n, i
+
+      do n=1, num_param
+        if ( Params(n)%source .ne. 'r' ) cycle
+        if ( Params(n)%is_accessed == 'y' ) cycle
+        select case( Params(n)%attrib )
+        case ('i')
+          write(kunit, *) 'WARNING: defined in rundeck but not used: ',
+     $         trim(Params(n)%name), ' = ',
+     $        ( Idata(Params(n)%indx+i), i=0,Params(n)%dim-1 )
+       case ('r')
+          write(kunit, *) 'WARNING: defined in rundeck but not used: ',
+     $         trim(Params(n)%name), ' = ',
+     $        ( Rdata(Params(n)%indx+i), i=0,Params(n)%dim-1 )
+        case ('c')
+          write(kunit, *) 'WARNING: defined in rundeck but not used: ',
+     $         trim(Params(n)%name), ' = ',
+     $        ( Cdata(Params(n)%indx+i), i=0,Params(n)%dim-1 )
+        end select
+      enddo
+      end subroutine print_unused_param
+
 
 
       subroutine query_param( n, name, dim, ptype )

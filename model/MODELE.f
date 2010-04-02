@@ -869,6 +869,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       IF (Itime.ge.ItimeE) then
          call reportProfile((itimee-itimei)*dtSRC)
+         if (AM_I_ROOT()) call print_unused_param(6)
          CALL stop_model (
      &     'Terminated normally (reached maximum time)',13)
       END IF

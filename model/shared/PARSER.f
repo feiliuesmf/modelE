@@ -153,21 +153,21 @@
             np = np+1
             call sread_int( bufs, ivars(np) )
           end do
-          call set_param( name, ivars, np, 'o' )
+          call set_param( name, ivars, np, 'or' )
         case ('r')
           np = 0
           do while ( len_trim(bufs) > 0 )
             np = np+1
             call sread_real( bufs, rvars(np) )
           end do
-          call set_param( name, rvars, np, 'o' )
+          call set_param( name, rvars, np, 'or' )
         case ('c')
           np = 0
           do while ( len_trim(bufs) > 0 )
             np = np+1
             call sread_char( bufs, cvars(np) )
           end do
-          call set_param( name, cvars, np, 'o' )
+          call set_param( name, cvars, np, 'or' )
         end select
 
       enddo

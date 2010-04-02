@@ -401,6 +401,13 @@ print <<`EOC`;
     exit \$rc
 EOC
 
+# print warning if any
+open(PRTFILE, "$runID.PRT") or die "can't open $runID.PRT\n";
+while(<PRTFILE>) {
+    if ( /^ ?WARNING/ ) { print ; }
+}
+	close PRTFILE;
+
 $rcode = $? >> 8;
 # mpirun returns 0 on success...
 if ( $rcode != 13 && $rcode != 12 ) {
