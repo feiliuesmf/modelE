@@ -286,6 +286,9 @@ ccc be computed (i.e. f[bv] is not zero)
       integer :: i_bare, i_vege
       logical :: process_bare, process_vege
 
+!!! the following variable is for debugging only (total carbon in entcell)
+      real*8 :: C_entcell_start, C_entcell
+
 C***
 C***   Thread Private Common Block GHYTPC
 C***
@@ -2221,6 +2224,9 @@ ccc get necessary data from ent
      &     fraction_of_vegetated_soil=fv,
      &     canopy_height=height_can,
      &     albedo=albedo_6b
+#ifdef CHECK_CARBON_CONSERVATION
+     &     ,C_entcell=C_entcell_start
+#endif
      &     )
 ccc make sure there are no round-off errors in fractions
       if ( fv < 1.d-6 ) fv = 0.d0
@@ -2629,6 +2635,7 @@ c**** reth, and hydra.
 #ifdef TRACERS_WATER
       real*8 tot_w1
 #endif
+      real*8 dC
 
       if ( present(flag) ) then
         if ( flag == 0 ) goto 778
@@ -2685,7 +2692,11 @@ ccc   max in the following expression removes extra drip because of dew
       if ( present(entcell) ) then
       if ( process_vege ) then
         call ent_get_exports(entcell,C_labile=clab,R_auto=rauto,
-     &       soilresp=R_soil, soilcpools=soilCpools)
+     &       soilresp=R_soil, soilcpools=soilCpools
+#ifdef CHECK_CARBON_CONSERVATION
+     &       ,C_entcell=C_entcell
+#endif
+     &       )
       endif
       endif
         !fv is already factored in in Ent. Accumulate GPP, nyk, like evap_tot(2)
@@ -2833,6 +2844,15 @@ ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       ! convert to kg/m^2
       wtr2av = wtr2av * 1000.d0
       ace2av = ace2av * 1000.d0
+#ifdef CHECK_CARBON_CONSERVATION
+!!! check carbon conservation
+      if ( process_vege ) then
+        dC = C_entcell-C_entcell_start-agpp+arauto+asoilresp
+        if ( abs(dC) > 1.d-13 ) then
+          write(700+mod(ijdebug,100),*) "dC", ijdebug, dC
+        endif
+      endif
+#endif
       return
 !      entry accm0
  778  continue

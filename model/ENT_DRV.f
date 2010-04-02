@@ -294,8 +294,14 @@
       integer, save :: year_old = -1
       real*8 :: cropdata_H(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
+#ifdef CHECK_CARBON_CONSERVATION
+      real*8, dimension(I0:I1,J0:J1) :: C_entcell_start, C_entcell
+      real*8 :: dC
 
-
+      call ent_get_exports( entcells,
+     &     C_entcell=C_entcell_start
+     &     )
+#endif
 ! update crops here 
 !          year1 = 1965
       if ( crops_yr .ne. 0 ) then
@@ -330,6 +336,21 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       
       ! hack to avoid descrepancy with ent_standalone setup
       ! but really should do update as below
+
+#ifdef CHECK_CARBON_CONSERVATION
+      call ent_get_exports( entcells,
+     &     C_entcell=C_entcell
+     &     )
+      do j=j0,j1
+        do i=i0,i1
+          dC = C_entcell(i,j) - C_entcell_start(i,j)
+          if( abs(dC) > 1.d-13 ) then
+            write(700+j0,*) jday,i,j, dC
+          endif
+        enddo
+      enddo
+#endif
+
       return
 
       call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
