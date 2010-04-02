@@ -1604,9 +1604,11 @@ C**** GHAT terms must be zero for consistency with OSOURC
 ! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
 ! sometimes > 1?       IF(AKVS(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVS(L)
          GHATG(L) = AKVG(L)*GHAT(L)*DELTAE*DXYPO(J)
-         GHATS(L) = AKVS(L)*GHAT(L)*DELTAM*S(1)*DXYPO(J) !CHECK!
+         GHATS(L) = AKVS(L)*GHAT(L)*(DELTAS-S0ML0(1)*BYMML(1)*DELTAM)
+     *        *DXYPO(J)
 #ifdef TRACERS_OCEAN
-         GHATT(L,:)=AKVS(L)*GHAT(L)*DELTATR(:)*DXYPO(J)
+         GHATT(L,:)= AKVS(L)*GHAT(L)*(DELTATR(:)-
+     *        TRML(1,:)*DELTAM*BYMML(1))*DXYPO(J)
 #endif
          AKVM(L) = AKVM(L)*R2
          AKVG(L) = AKVG(L)*R2
@@ -1618,7 +1620,6 @@ C**** Momentum
       DO K=1,KMUV
         IF(LMUV(K).GT.1) THEN
           CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
-c     *       ,LMIJ,UL0(1,K))
      *         ,LMUV(K),UL0(1,K))
         ENDIF
       END DO
