@@ -11,6 +11,9 @@
       USE STRAITS, only : nmst
       USE DIAG_COM, only : npts  ! needed for conservation diags
      &     ,sname_strlen,units_strlen,lname_strlen
+#ifdef TRACERS_OCEAN
+      USE TRDIAG_COM, only : tconsrv,tconsrv_loc,ntmxcon,ktcon
+#endif
 #ifdef NEW_IO
       use cdl_mod
 #endif
@@ -216,12 +219,10 @@ c instances of arrays
 !@ver  1.0
       USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
      *     ,irsfic,irerun,irsficno,ioread_single,lhead
+      USE DIAG_COM, only : jm_budg
       USE ODIAG
-
-!      USE DOMAIN_DECOMP_1D, only: grid, AM_I_ROOT
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
-
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -239,15 +240,25 @@ c instances of arrays
       REAL*4, DIMENSION(LMO,KOL)   :: OL4
       REAL*4, DIMENSION(LMO,NMST,KOLNST):: OLNST4
 #ifdef TRACERS_OCEAN
-!@var TOIJL4 work array for read/wrote operations
+!@var TOIJL4 work array for read/write operations
       REAL*4, DIMENSION(:,:,:,:,:), ALLOCATABLE :: TOIJL4
       REAL*4, DIMENSION(LMO,NMST,KOLNST,NTM)  :: TLNST4
+#ifndef TRACERS_ON
+C**** NOTE: THE TCONSRV ARRAY USE HERE IS ONLY IF THIS IS
+C**** NOT ALREADY BEING DONE IN THE ATM TRACER CODE
+!@var TCONSRV4 work array for read/write operations
+      REAL*4, DIMENSION(:,:,:), ALLOCATABLE :: TCONSRV4
+#endif
 !@var TR_HEADER Character string label for individual tracer records
       CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TROCDIAG01"
 
-      write(TR_MODULE_HEADER(lhead+1:80),'(a19,i2,a1,i2,a9,i4,a4)')
-     *     'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
-     *     LMO*NMST*KOLNST*NTM,'),it'
+      write(TR_MODULE_HEADER(lhead+1:80),'(a19,i2,a1,i2,a9,i6,a9,i6,a4)'
+     $     ) 'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
+     $     LMO*NMST*KOLNST*NTM,
+#ifndef TRACERS_ON
+     *     '), Tcons(',JM_BUDG*NTMXCON*NPTS,
+#endif
+     *     '),it'
 #endif
       write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
      *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
@@ -266,7 +277,11 @@ c instances of arrays
      *      OIJ,OIJL,OL,OLNST,it
 #ifdef TRACERS_OCEAN
         IF (AM_I_ROOT())
-     *    WRITE (kunit,err=10) TR_MODULE_HEADER,TOIJL,TLNST,it
+     *    WRITE (kunit,err=10) TR_MODULE_HEADER,TOIJL,TLNST
+#ifndef TRACERS_ON
+     *       ,TCONSRV
+#endif
+     *       ,it
 #endif
       CASE (IOWRITE_SINGLE)    ! output to acc file
         MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
@@ -278,7 +293,11 @@ c instances of arrays
         TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
         IF (AM_I_ROOT())
      *    WRITE (kunit,err=10) TR_MODULE_HEADER,
-     *      REAL(TOIJL,KIND=4),REAL(TLNST,KIND=4),it
+     *      REAL(TOIJL,KIND=4),REAL(TLNST,KIND=4)
+#ifndef TRACERS_ON
+     *       ,REAL(TCONSRV,KIND=4)
+#endif
+     *       ,it
 #endif
       CASE (IOREAD:)            ! input from acc/restart file
         SELECT CASE (IACTION)
@@ -292,6 +311,9 @@ C**** accumulate diagnostics
                 de_alloc = .false. ; OIJ=0. ; OIJL=0.
 #ifdef TRACERS_OCEAN
                                    TOIJL=0.
+#ifndef TRACERS_ON
+                                   TCONSRV=0.
+#endif
 #endif
             end if
             OIJ=OIJ+OIJ4
@@ -306,11 +328,22 @@ C**** accumulate diagnostics
             END IF
 #ifdef TRACERS_OCEAN
             allocate(TOIJL4(IM,JM,LMO,KTOIJL,NTM))
-            READ (kunit,err=10) TR_HEADER,TOIJL4,TLNST4,it
+#ifndef TRACERS_ON
+            allocate (TCONSRV4(JM_BUDG,ktcon,ntmxcon))
+#endif
+            READ (kunit,err=10) TR_HEADER,TOIJL4,TLNST4
+#ifndef TRACERS_ON
+     *       ,TCONSRV4
+#endif
+     *       ,it
 C**** accumulate diagnostics
             TOIJL=TOIJL+TOIJL4
             TLNST=TLNST+TLNST4
             deallocate(TOIJL4)
+#ifndef TRACERS_ON
+            TCONSRV=TCONSRV+TCONSRV4
+            deallocate(TCONSRV4)
+#endif
             IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
@@ -328,7 +361,11 @@ C**** accumulate diagnostics
               GO TO 10
             END IF
 #ifdef TRACERS_OCEAN
-            READ (kunit,err=10) TR_HEADER,TOIJL,TLNST,it
+            READ (kunit,err=10) TR_HEADER,TOIJL,TLNST
+#ifndef TRACERS_ON
+     *           ,TCONSRV
+#endif
+     *           ,it
             IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",TR_HEADER
      *           ,TR_MODULE_HEADER
@@ -358,7 +395,7 @@ C****
 !@ver  beta
       use odiag, only : ol,olnst,oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl=>toijl_loc
+      use odiag, only : tlnst,toijl=>toijl_loc,tconsrv=>tconsrv_loc
 #endif
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
@@ -379,6 +416,10 @@ C****
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntm)',
      &     r4_on_disk=r4_on_disk)
+#ifndef TRACERS_ON
+      call defvar(grid,fid,tconsrv,'tconsrv(jm_budg,ktcon,ntmxcon)',
+     &     r4_on_disk=r4_on_disk)
+#endif
 #endif
       return
       end subroutine def_rsf_ocdiag
@@ -395,7 +436,7 @@ c    extended/rescaled instances of arrays when writing acc files
       use odiag, only : ol,olnst,
      &     oij=>oij_loc,oijl=>oijl_ioptr
 #ifdef TRACERS_OCEAN
-      use odiag, only : tlnst,toijl=>toijl_loc
+      use odiag, only : tlnst,toijl=>toijl_loc,tconsrv=>tconsrv_loc
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
@@ -412,6 +453,9 @@ c straits arrays
 #ifdef TRACERS_OCEAN
         call write_dist_data(grid,fid,'toijl',toijl)
         call write_data(grid,fid,'tlnst',tlnst)
+#ifndef TRACERS_ON
+        call write_dist_data(grid,fid,'tconsrv',tconsrv)
+#endif
 #endif
       case (ioread)            ! input from restart or acc file
         call read_dist_data(grid,fid,'oij',oij)
@@ -422,6 +466,9 @@ c straits arrays
 #ifdef TRACERS_OCEAN
         call read_dist_data(grid,fid,'toijl',toijl)
         call read_data(grid,fid,'tlnst',tlnst,bcast_all=.true.)
+#ifndef TRACERS_ON
+        call read_dist_data(grid,fid,'tconsrv',tconsrv)
+#endif
 #endif
       end select
       return
@@ -1389,19 +1436,26 @@ c
 !@sum  reset_odiag zeros out ocean diagnostics if needed
 !@auth G. Schmidt
 !@ver  1.0
-      USE ODIAG, only : oij=>oij_loc,oijl=>oijl_loc,ol,olnst
+      USE DOMAIN_DECOMP_ATM, only: am_i_root
+      USE ODIAG, only : oij,oij_loc,oijl,oijl_loc,ol,olnst
 #ifdef TRACERS_OCEAN
-     *     ,toijl=>toijl_loc,tlnst
+     *     ,toijl,toijl_loc,tlnst
 #endif
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: isum  ! needed for plug-play compatibility
 
-      OIJ=0. ; OIJL=0. ; OL=0. ; OLNST=0.
+      if (am_i_root()) then
+         OIJ=0. ; OIJL=0. 
+      end if
+      OIJ_loc=0. ; OIJL_loc=0. ; OL=0. ; OLNST=0.
 
 #ifdef TRACERS_OCEAN
-      TOIJL=0. ; TLNST = 0.
+      if (am_i_root()) TOIJL=0. 
+      TOIJL_loc=0. ; TLNST = 0.
+#ifndef TRACERS_ON
+      call reset_tcons
 #endif
-
+#endif
       return
       END SUBROUTINE reset_odiag
 
@@ -1410,31 +1464,42 @@ c
 !@+    run-time
 !@auth Reto Ruedy
 !@ver  1.0
-
+      USE DIAG_COM, only : jm_budg
       USE DOMAIN_DECOMP_1D, only : dist_grid,get,am_i_root
-
+      USE DOMAIN_DECOMP_ATM, only : aGRID=>grid
       USE ODIAG
-
+      use diag_zonal, only : get_alloc_bounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
       INTEGER :: J_1H, J_0H
+      integer :: j_0budg,j_1budg
       INTEGER :: IER
 
       CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call get_alloc_bounds(agrid,
+     &     j_strt_budg=j_0budg,j_stop_budg=j_1budg)
 
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
       ALLOCATE(       OIJL_loc (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
       ALLOCATE(       OIJL_out (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN
       ALLOCATE(      TOIJL_loc (IM,J_0H:J_1H,LMO,KTOIJL,NTM), STAT=IER )
+#ifndef TRACERS_ON
+      ALLOCATE(    TCONSRV_loc(J_0BUDG:J_1BUDG,KTCON,NTMXCON), STAT=IER)
 #endif
+#endif
+      print*,"in alloc diag",size(tconsrv_loc)
+      call sys_flush(6)
 
       if(am_i_root()) then
         ALLOCATE( OIJ (IM,JM,KOIJ), STAT=IER )
         ALLOCATE(OIJL (IM,JM,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN
         ALLOCATE(TOIJL (IM,JM,LMO,KTOIJL,NTM), STAT=IER )
+#ifndef TRACERS_ON
+        ALLOCATE(TCONSRV (JM_BUDG,KTCON,NTMXCON), STAT=IER )
+#endif
 #endif
       endif
 
@@ -1477,38 +1542,32 @@ c
 !ny?  END SUBROUTINE de_alloc_odiag_glob
 
       SUBROUTINE gather_odiags ()
-!@sum  collect the local acc-arrays into global arrays
-!@+    run-time
+!@sum  collect the local acc-arrays into global arrays run-time
 !@auth Reto Ruedy
 !@ver  1.0
-
       USE ODIAG
-
-!      use domain_decomp_1d, only : grid, pack_data
       use domain_decomp_1d, only : pack_data
       USE OCEANR_DIM, only : grid=>ogrid
-
       IMPLICIT NONE
 
       call pack_data (grid, OIJ_loc  , OIJ)
       call pack_data (grid, OIJL_loc , OIJL)
 #ifdef TRACERS_OCEAN
       call pack_data (grid, TOIJL_loc, TOIJL)
+#ifndef TRACERS_ON
+      call gather_zonal_tcons
 #endif
-
+#endif
+      return
       END SUBROUTINE gather_odiags
 
       SUBROUTINE scatter_odiags ()
 !@sum  To distribute the global acc-arrays to the local pieces
 !@auth Reto Ruedy
 !@ver  1.0
-
       USE ODIAG
-
-!      use domain_decomp_1d, only : grid, unpack_data, ESMF_BCAST
       use domain_decomp_1d, only : unpack_data, ESMF_BCAST
       USE OCEANR_DIM, only : grid=>ogrid
-
       IMPLICIT NONE
 
       call unpack_data (grid, OIJ  , OIJ_loc)
@@ -1518,8 +1577,11 @@ c
 #ifdef TRACERS_OCEAN
       call unpack_data (grid, TOIJL, TOIJL_loc)
       CALL ESMF_BCAST(grid, TLNST)
+#ifndef TRACERS_ON
+      call scatter_zonal_tcons
 #endif
-
+#endif
+      return
       END SUBROUTINE scatter_odiags
 
 

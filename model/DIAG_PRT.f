@@ -714,8 +714,10 @@ c     write(0,*) 'SCM no diags   print_diags'
         CALL DIAGJLT
         CALL DIAGIJT
         CALL DIAGIJLT
-        CALL DIAGTCP
       end if
+#endif
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      IF (KDIAG(8).LT.9) CALL DIAGTCP
 #endif
       END IF ! AM_I_ROOT
 

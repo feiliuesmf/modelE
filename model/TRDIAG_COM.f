@@ -252,33 +252,16 @@ C**** TAIJLS 3D special tracer diagnostics
 #ifdef TRACERS_TERP
       integer :: ijlt_soa_changeL_terpenes
 #endif  /* TRACERS_TERP */
-      integer :: ijlt_soa_voc2nox
-      integer :: ijlt_soa_pcp
-      integer :: ijlt_soa_aerotot
-      integer :: ijlt_soa_aerotot_gas
-      integer :: ijlt_soa_xmf_isop
-      integer :: ijlt_soa_xmf_apin
-      integer :: ijlt_soa_zcoef_isop
-      integer :: ijlt_soa_zcoef_apin
-      integer :: ijlt_soa_meanmw
-      integer :: ijlt_soa_iternum
-      integer :: ijlt_soa_m0
-      integer, dimension(nsoa) :: ijlt_soa_y0_ug_g
-      integer, dimension(nsoa) :: ijlt_soa_y0_ug_a
-      integer, dimension(nsoa) :: ijlt_soa_y_ug_g
-      integer, dimension(nsoa) :: ijlt_soa_y_ug_a
-      integer, dimension(nsoa) :: ijlt_soa_changeL_g_before
-      integer, dimension(nsoa) :: ijlt_soa_changeL_a_before
-      integer, dimension(nsoa) :: ijlt_soa_changeL_g_after
-      integer, dimension(nsoa) :: ijlt_soa_changeL_a_after
-      integer, dimension(nsoa) :: ijlt_soa_apartmass
-      integer, dimension(nsoa) :: ijlt_soa_kpart
-      integer, dimension(nsoa) :: ijlt_soa_kp
-      integer, dimension(nsoa) :: ijlt_soa_soamass
-      integer, dimension(nsoa) :: ijlt_soa_partfact
-      integer, dimension(nsoa) :: ijlt_soa_evap
-      integer, dimension(nsoa) :: ijlt_soa_cond
-      integer, dimension(nsoa) :: ijlt_soa_chem
+      integer :: ijlt_soa_voc2nox, ijlt_soa_pcp, ijlt_soa_aerotot,
+     $     ijlt_soa_aerotot_gas, ijlt_soa_xmf_isop, ijlt_soa_xmf_apin,
+     $     ijlt_soa_zcoef_isop, ijlt_soa_zcoef_apin, ijlt_soa_meanmw,
+     $     ijlt_soa_iternum,  ijlt_soa_m0
+      integer, dimension(nsoa) :: ijlt_soa_y0_ug_g,  ijlt_soa_y0_ug_a,
+     $     ijlt_soa_y_ug_g, ijlt_soa_y_ug_a, ijlt_soa_changeL_g_before,
+     $     ijlt_soa_changeL_a_before, ijlt_soa_changeL_g_after,
+     $     ijlt_soa_changeL_a_after, ijlt_soa_apartmass, ijlt_soa_kpart,
+     $     ijlt_soa_kp, ijlt_soa_soamass, ijlt_soa_partfact,
+     $     ijlt_soa_evap, ijlt_soa_cond, ijlt_soa_chem
 #endif  /* SOA_DIAGS */
 #ifdef TRACERS_AMP
 !@var ijlt_AMPext special diagnostic for not-transported tracers
@@ -434,8 +417,9 @@ C**** include some extra troposphere only ones
 !@var itcon_wt Index array for dust/mineral dust deposition conserv. diags
       INTEGER, DIMENSION(ntmxcon) :: itcon_wt
 !@var natmtrcons, nocntrcons number of atmospheric/ocean tcon diags
-      INTEGER :: natmtrcons, nocntrcons
+      INTEGER :: natmtrcons=0, nocntrcons=0
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
+
 !@var PDSIGJL temporary storage for mean pressures for jl diags
       REAL*8, DIMENSION(JM,LM)            :: PDSIGJL
 
@@ -1103,19 +1087,48 @@ C*** Unpack read global data into local distributed arrays
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM
 
+C**** reset/gather/scatter routines for tconsrv special case
+C**** can be called from both ocean tracer or atm tracer code
+      subroutine reset_tcons
+      USE TRDIAG_COM, only: TCONSRV_loc, TCONSRV
+      USE DOMAIN_DECOMP_ATM, only : am_i_root
+      implicit none
+      TCONSRV_loc=0.
+      if(am_i_root()) TCONSRV=0.
+      return
+      end subroutine reset_tcons
+
+      subroutine gather_zonal_tcons
+      USE TRDIAG_COM, only: TCONSRV_loc, TCONSRV
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DIAG_ZONAL, only : pack_lc
+      implicit none
+      call pack_lc   (grid, TCONSRV_loc,TCONSRV )
+      return
+      end subroutine gather_zonal_tcons
+
+      subroutine scatter_zonal_tcons
+      USE TRDIAG_COM, only: TCONSRV_loc, TCONSRV
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      USE DIAG_ZONAL, only : unpack_lc
+      implicit none
+      call unpack_lc   (grid, TCONSRV_loc,TCONSRV )
+      return
+      end subroutine scatter_zonal_tcons
+
 #ifdef TRACERS_ON
       subroutine reset_trdiag
       USE TRDIAG_COM, only: TAIJLN_loc, TAIJLS_loc, TAIJN_loc, 
-     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TCONSRV_loc,
-     *     TAJLN, TAJLS, TCONSRV
+     *     TAIJS_loc, TAJLN_loc, TAJLS_loc, TAJLN, TAJLS
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       implicit none
 
-       TAJLN_loc=0. ; TAJLS_loc=0. ; TCONSRV_loc=0.
+       TAJLN_loc=0. ; TAJLS_loc=0. 
       TAIJLN_loc=0. ; TAIJLS_loc=0. ; TAIJN_loc=0. ; TAIJS_loc=0.
       if(am_i_root()) then
-        TAJLN=0. ; TAJLS=0. ; TCONSRV=0.
+        TAJLN=0. ; TAJLS=0. 
       endif
+      call reset_tcons
 
       return
       end subroutine reset_trdiag
@@ -1131,19 +1144,18 @@ C*** Unpack read global data into local distributed arrays
       CALL PACK_DATA (GRID, TAIJN_loc , TAIJN)
       CALL PACK_DATA (GRID, TAIJS_loc , TAIJS)
       call gather_zonal_trdiag
+      call gather_zonal_tcons
 
       return
       end subroutine gather_trdiag
 
       subroutine gather_zonal_trdiag
-      USE TRDIAG_COM, only : TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc
+      USE TRDIAG_COM, only : TAJLN , TAJLN_loc, TAJLS, TAJLS_loc
       USE DOMAIN_DECOMP_ATM, ONLY : GRID
       USE DIAG_ZONAL, only : pack_lc
       implicit none
       call pack_lc   (grid, TAJLN_loc,  TAJLN )
       call pack_lc   (grid, TAJLS_loc,  TAJLS )
-      call pack_lc   (grid, TCONSRV_loc,TCONSRV )
       return
       end subroutine gather_zonal_trdiag
 
@@ -1157,18 +1169,17 @@ C*** Unpack read global data into local distributed arrays
       CALL UNPACK_DATA (GRID, TAIJN , TAIJN_loc)
       CALL UNPACK_DATA (GRID, TAIJS , TAIJS_loc)
       call scatter_zonal_trdiag
+      call scatter_zonal_tcons
       return
       end subroutine scatter_trdiag
 
       subroutine scatter_zonal_trdiag
-      USE TRDIAG_COM, only : TAJLN , TAJLN_loc, TAJLS, TAJLS_loc,
-     *     TCONSRV, TCONSRV_loc
+      USE TRDIAG_COM, only : TAJLN , TAJLN_loc, TAJLS, TAJLS_loc
       USE DOMAIN_DECOMP_ATM, ONLY : GRID
       USE DIAG_ZONAL, only : unpack_lc
       implicit none
       call unpack_lc (grid, TAJLN,  TAJLN_loc )
       call unpack_lc (grid, TAJLS,  TAJLS_loc )
-      call unpack_lc (grid, TCONSRV,TCONSRV_loc )
       return
       end subroutine scatter_zonal_trdiag
 

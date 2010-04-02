@@ -21,7 +21,7 @@ C**** have to wait.
 !@var iu_ij,iu_jl,iu_il,iu_j,iu_diurn,iu_hdiurn !units for selected diag. output
       integer iu_ij,iu_ijk,iu_il,iu_j,iu_jl,iu_diurn,iu_hdiurn,iu_isccp
      *     ,iu_ijl
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 !@var iu_jc unit for tracer conservation diagnostics
       integer iu_jc
 #endif
@@ -748,7 +748,7 @@ C**** Try simply removing spaces for compactness
       return
       end subroutine POUT_hdiurn
 
-#ifdef TRACERS_ON
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       subroutine close_jc
 !@sum  CLOSE_jc closes the conservation quantity ascii output file
 !@auth J. Lerner

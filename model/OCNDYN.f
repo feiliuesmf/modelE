@@ -4028,6 +4028,7 @@ C**** Surface stress is applied to V component at the North Pole
      *     , oDMSI, oDHSI, oDSSI
 
 #ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : trw0
       Use OCEAN, Only: TRMO, NTM
 #endif
 #ifdef TRACERS_OCEAN
@@ -4039,9 +4040,9 @@ C**** Surface stress is applied to V component at the North Pole
 #ifdef TRACERS_DRYDEP
      *     , oTRDRYDEP
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-     *     , oTRGASEX
-#endif
+!#ifdef TRACERS_GASEXCH_ocean
+!     *     , oTRGASEX
+!#endif
 #endif
       IMPLICIT NONE
       INTEGER I,J,L,n
@@ -4113,16 +4114,14 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
 #endif
         TRUNI(:)=oTRFLOWO(:,I,J)+ oTRMELTI(:,I,J) + oTRUNOSI(:,I,J)
 #else
-        TRUNO(:)=0. ; TRUNI(:)=0.
+! default freshwater tracer
+        TRUNO(:)=trw0(:)*(RUNO-SRUNO)
+        TRUNI(:)=trw0(:)*(RUNI-SRUNI)
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-!not yet flux from river runoff -- to be implemented soon
-        !note that TRGASEX is positive down i.e. same sign as
-        !TRGASEX has units mol,co2/m2/s, so we need to convert to kg/m2
-        !TRUNO, while TREVAPOR is positive up.
-        TRUNO(:) = 0.
-!       TRUNO(:) = oTRGASEX(:,1,I,J)  !  mol,co2/m2/s
-!     .       * tr_mm(:) * dtsrc !  kg/m^2
+! note: TRGASEX is added in obio rather than here
+! not yet flux from river runoff -- to be implemented soon
+        TRUNO(:) = 0.  ; TRUNI(:) = 0.
 #endif
 #endif
 
@@ -4332,57 +4331,31 @@ C****
 !@auth Gary Russell/Gavin Schmidt
 !@ver  1.0
       USE RESOLUTION, only : ima=>im,jma=>jm
-
       USE OCEAN, only : imo=>im,jmo=>jm
-     *     , mo,g0m,s0m,bydxypo,focean,imaxj
+     *     , mo,g0m,s0m,focean,imaxj,dxypo
 #ifdef TRACERS_OCEAN
-     *     , trmo,dxypo
+     *     , trmo
+      USE OCN_TRACER_COM, only : trw0
 #endif
-
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : oGRID
-
       USE SEAICE_COM, only : aRSI=>RSI
-
       USE OFLUXES, only : oRSI, oPREC, oEPREC
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
 #ifdef TRACERS_WATER
      *     , oTRPREC, oTRUNPSI
 #endif
-
       IMPLICIT NONE
-
       INTEGER I,J
-
       integer :: J_0, J_1
 
       call get (ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** save surface variables before any fluxes are added
       if(ogrid%have_domain) CALL KVINIT
-C*
-
-      CALL AG2OG_precip
 
 C**** Convert fluxes on atmospheric grid to oceanic grid
-C**** build in enough code to allow a different ocean grid.
-C**** Since the geometry differs on B and C grids, some processing
-C**** of fluxes is necessary anyway
-C****
-c      DO J=J_0,J_1
-c        DO I=1,IMAXJ(J)
-c          PREC   (I,J)=oPREC   (I,J)         ! kg/m^2
-c          EPREC  (I,J)=oEPREC  (I,J)         ! J
-c          RUNPSI (I,J)=oRUNPSI (I,J)         ! kg/m^2
-c          SRUNPSI(I,J)=oSRUNPSI(I,J)         ! kg
-c          ERUNPSI(I,J)=oERUNPSI(I,J)         ! J
-c          RSI    (I,J)=oRSI    (I,J)
-c#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
-c          TRPREC(:,I,J)=oTRPREC(:,I,J)       ! kg
-c          TRUNPSI(:,I,J)=oTRUNPSI(:,I,J)     ! kg
-c#endif
-c        END DO
-c      END DO
+      CALL AG2OG_precip
 C****
       ocean_processors_only: if(ogrid%have_domain) then
       DO J=J_0,J_1
@@ -4393,9 +4366,16 @@ C****
             G0M(I,J,1)=G0M(I,J,1)+ ((1d0-oRSI(I,J))*oEPREC(I,J) +
      *           oRSI(I,J)*oERUNPSI(I,J))*FOCEAN(I,J)
             S0M(I,J,1)=S0M(I,J,1) + oRSI(I,J)*oSRUNPSI(I,J)*FOCEAN(I,J)
-#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
             TRMO(I,J,1,:)=TRMO(I,J,1,:)+((1d0-oRSI(I,J))*oTRPREC(:,I,J)
      *             +oRSI(I,J)*oTRUNPSI(:,I,J))*FOCEAN(I,J)
+#else
+#ifndef TRACERS_OceanBiology
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)+trw0(:)*((1d0-oRSI(I,J))*oPREC(I
+     $           ,J)+oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)*DXYPO(J) 
+#endif
+#endif
 #endif
           END IF
         END DO

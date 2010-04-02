@@ -338,7 +338,6 @@ C****
       return
       end subroutine oc_tdecay
 
-#ifdef TRACERS_AGE_OCEAN
       SUBROUTINE OCN_TR_AGE(DTS)
 !@sum OCN_TR_AGE age tracers in ocean
 !@auth Gavin Schmidt/Natassa Romanou
@@ -348,7 +347,6 @@ C****
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
 
-!      USE DOMAIN_DECOMP_1D, only : grid,get
       USE DOMAIN_DECOMP_1D, only : get
       USE OCEANR_DIM, only : grid=>ogrid
 
@@ -384,7 +382,6 @@ C****
       return
       end subroutine ocn_tr_age
 #endif
-#endif
 
       SUBROUTINE DIAGTCO (M,NT0)
 !@sum  DIAGTCO Keeps track of the conservation properties of ocean tracers
@@ -393,7 +390,7 @@ C****
       USE OCEAN, only : IMO=>IM, oJ_BUDG, oJ_0B, oJ_1B
       USE DIAG_COM, only : jm_budg
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon,
-     *     natmtrcons
+     *     natmtrcons,ntmxcon
       USE DOMAIN_DECOMP_1D, only : GET
       USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE

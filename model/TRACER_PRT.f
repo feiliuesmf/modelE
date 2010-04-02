@@ -117,8 +117,9 @@ C**** Zonal mean cloud water concentration
   600 continue
       return
       end SUBROUTINE TRACEA
+#endif
 
-
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       SUBROUTINE DIAGTCA (M,NT)
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
@@ -496,7 +497,9 @@ C****
   905 FORMAT (A38,2F9.2,1X,13I6)
   906 FORMAT ('0AREA (10^10 M^2)',F30.1,F9.1,1X,13I6)
       END SUBROUTINE DIAGTCP
+#endif
 
+#ifdef TRACERS_ON
       MODULE BDjlt
 !@sum  stores info for outputting lat-sig/pressure diags for tracers
 !@auth J. Lerner

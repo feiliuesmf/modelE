@@ -65,7 +65,8 @@ C**** this defines tracer parameters that are local to ocean code
 #else
       INTEGER, PARAMETER :: ntm=1
       CHARACTER*10 :: trname(ntm) = (/ 'Water     '/)
-      REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0, ntrocn=0
+      REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
+      INTEGER, DIMENSION(ntm) :: ntrocn=2
 !@param conc_from_fw definition for defining surface ocean conc
       LOGICAL, DIMENSION(NTM) :: conc_from_fw = .true.
 #endif  /* TRACERS_OceanBiology */
