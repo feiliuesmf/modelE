@@ -96,6 +96,9 @@ c  Start Model Space Loop
 !      m = indext2     !index of "past" (t-1)
 
 !Iron + atm iron: disperse in layer and convert to nM
+!we do not need to multiply this by pnoice, because iron
+!is deposited over ice and presumably when ice melts will enter
+!the ocean
        k = 1
        term = atmFe_ij*solFe*1.d-3/max(p1d(k+1),1.e-3)
        rhs(k,4,4) = term
@@ -316,23 +319,17 @@ cdiag.                       obio_P(k,4),rkn(nt),rks(nt),rkf(nt)
           tmp = 1.0 - rnut2
         ! Enforce preferential utilization of ammonium
           rnut1 = min(tmp,tnit)
-           rmmn = rnut1 + rnut2
+           rmmn = rnut1 + rnut2         !nitrate limitation
           if ( rmmn .ne. 0.d0 ) then
             framm = rnut2/rmmn
           else
             framm = 0.d0
           endif
-           rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
+           rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))         !light limitation
         rmmlice = tirrqice/(tirrqice+0.5*rikd(k,nt))
 
-
-        ! Silicate
-        rmms = obio_P(k,3)/(rks(nt)+obio_P(k,3)) 
-        rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           !rhs(k,nt+nnut,1) = rmml
-           !rhs(k,nt+nnut,2) = rmmn
-           !rhs(k,nt+nnut,3) = rmms
-           !rhs(k,nt+nnut,4) = rmmf
+        rmms = obio_P(k,3)/(rks(nt)+obio_P(k,3))      !silicate limitation
+        rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron limitation
         rlim = min(rmml,rmmn,rmms,rmmf)
         rlimice = min(rmmlice,rmmn,rmms,rmmf)
         grate = rmuplsr(k,nt)*rlim*pnoice
@@ -386,18 +383,15 @@ cdiag.                       rkf(nt), gro(k,nt),obio_P(k,nt+nnut)
 
         ! Enforce preferential utilization of ammonium
         rnut1 = min(tmp,tnit)
-        rmmn = rnut1 + rnut2                         
+        rmmn = rnut1 + rnut2         !nitrate limitation                
         if ( rmmn .ne. 0.d0 ) then
           framm = rnut2/rmmn                           
         else
           framm = 0.d0
         endif
-        rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
+        rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))     !light limitation
         rmmlice = tirrqice/(tirrqice+0.5*rikd(k,nt))
-        rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           !rhs(k,nt+nnut,1) = rmml
-           !rhs(k,nt+nnut,2) = rmmn
-           !rhs(k,nt+nnut,4) = rmmf
+        rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron limitation
         rlim = min(rmml,rmmn,rmmf)
         rlimice = min(rmmlice,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim * pnoice
@@ -440,9 +434,6 @@ cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
         endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           !rhs(k,nt+nnut,1) = rmml
-           !rhs(k,nt+nnut,2) = rmmn
-           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         rlimnfix = min(rmml,rmmf)         !limitation for N2 fixation
         rlimrkn = min(rmml,rkn(nt),rmmf)   !limitation at kn
@@ -509,9 +500,6 @@ cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
         endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           !rhs(k,nt+nnut,1) = rmml
-           !rhs(k,nt+nnut,2) = rmmn
-           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim*pnoice
         rmu4(nt) = grate*framm 
@@ -554,9 +542,6 @@ cdiag.  nstep,i,j,k,nt,gro(k,nt), phygross,p1d(k+1),cchlratio
         endif
         rmml = tirrq(k)/(tirrq(k)+0.5*rikd(k,nt))
         rmmf = obio_P(k,4)/(rkf(nt)+obio_P(k,4))      !iron
-           !rhs(k,nt+nnut,1) = rmml
-           !rhs(k,nt+nnut,2) = rmmn
-           !rhs(k,nt+nnut,4) = rmmf
         rlim = min(rmml,rmmn,rmmf)
         grate = rmuplsr(k,nt)*rlim
         rmu4(nt) = grate*framm * pnoice

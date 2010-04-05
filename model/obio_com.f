@@ -193,7 +193,7 @@ C endif
 #endif
 #endif
 
-      real*8 :: trac_old    !prev timesetep total carbon inventory
+      real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
 
       contains
 

@@ -1,8 +1,8 @@
 #include "rundeck_opts.h"
 
       subroutine obio_trint(iflg)
-!iflg - 0 compute  trac_old  (before obio)
-!iflg - 1 zero-out trac_old  (after  obio)
+!iflg - 0 compute  carb_old  (before obio)
+!iflg - 1 zero-out carb_old  (after  obio)
 
 #ifdef OBIO_ON_GARYocean
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
@@ -21,22 +21,23 @@
 #ifdef TRACERS_GASEXCH_ocean
       USE TRACER_GASEXCH_COM, only : tracflx
 #endif
-      USE obio_incom, only: mgchltouMC
-      USE obio_com,   only: trac_old,obio_deltath
+      USE MODEL_COM, only: JMON
+      USE obio_incom, only: mgchltouMC,solFe
+      USE obio_forc, only: atmFe
+      USE obio_com,   only: carb_old,obio_deltath,iron_old,p1d
       use domain_decomp_1d, only: am_i_root, globalsum, get
 
       implicit none
 
       integer i,j,k,l
       integer ntr
-      real sumo, areao, glb_carbon_invntry
+      real sumo,areao,glb_carbon_invntry,ironFlux,glb_iron_invntry
 
       integer :: iTracer, iflg
       integer :: j_0, j_1, j_0h, j_1h
 
       real*8, allocatable :: summ(:)
-      real*8 :: sumFlux(1), fluxNorm1, fluxNorm2
-      real*8 :: sumFlux2(1)
+      real*8 :: sumFlux(1)
 
       call get(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
@@ -53,20 +54,12 @@
       ! size 1 in the uninteresting directions to match
       ! expected interface.
 #ifdef OBIO_ON_GARYocean
-      sumFlux = volumeIntegration(reshape(tracflx(:,:,1)*(1-oRSI),
+      sumFlux= areaIntegration(tracflx(:,:,1)*(1-oRSI))
 #else
-      sumFlux = volumeIntegration(reshape(tracflx(:,:,1)*(1-oice),
+      sumFlux= areaIntegration(tracflx(:,:,1)*(1-oice))
 #endif
-     &     (/size(tracflx,1), size(tracflx,2), 1, 1/) ))
-      fluxNorm1 = avgDepthOfTopLayer()
-      fluxNorm2 = sumDepthOfTopLayer()
-!     sumFlux = sumFlux / fluxNorm
-
-#ifdef OBIO_ON_GARYocean
-      sumFlux2= areaIntegration(tracflx(:,:,1)*(1-oRSI))
-#else
-      sumFlux2= areaIntegration(tracflx(:,:,1)*(1-oice))
-#endif
+      ironFlux= areaIntegration(atmFe(:,:,JMON))
+      ironFlux= ironFlux*solFe*1.d-3/max(p1d(2),1.e-3)
 
       if (am_i_root()) then
          do iTracer = 1, ntrcr
@@ -74,14 +67,10 @@
      &           summ(iTracer), summ(iTracer)/sumo
          end do
 
-       write(*,*)'---------- tracer conservation--------------------'
-       print*, 'mgchltouMC=',mgchltouMC
+       write(*,*)'---------- carbon conservation--------------------'
        print*, 'area, volume ocean=', areao, sumo
-       write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
-       write(*,*)'global averaged flux2=',
-     .            nstep,sumFlux/fluxNorm1,sumFlux/fluxNorm2
-       write(*,*)'global averaged flux3=',
-     .            nstep,sumFlux2
+       write(*,*)'global averaged carbon flux=',
+     .            nstep,sumFlux
        !volume integrated carbon inventory:
         glb_carbon_invntry = 
      .                     (summ(5)+summ(6)
@@ -89,20 +78,40 @@
      .                    + summ(9)) * mgchltouMC * 1e-3     !mgm3*m3 -> uM*m3=mili,molC -> mol,C
      .                    + summ(11) *1e-3 /12               !micro-grC/lt*m3 -> mili,grC-> mol,C
      .                    +(summ(14)+summ(15))*1e-3          !mol,C (or mol,CO2)
-       write(*,*)'glb carbon inventory bfre=',nstep,trac_old
+       write(*,*)'glb carbon inventory bfre=',nstep,carb_old
        write(*,*)'glb carbon inventory aftr=',nstep,glb_carbon_invntry
        if (iflg.eq.0) then
-        trac_old = glb_carbon_invntry
+        carb_old = glb_carbon_invntry
        else
         write(*,'(a,i5,1x,2(e18.11,1x))')'carbon conserv.',nstep,
-     .       (glb_carbon_invntry-trac_old)/(obio_deltath*3600.d0),
-     .       sumFlux2
+     .       (glb_carbon_invntry-carb_old)/(obio_deltath*3600.d0),
+     .       sumFlux
         write(*,'(a,i5,1x,e18.11)')'carbon residual (no units)',nstep,
-     .       ((glb_carbon_invntry-trac_old)/(obio_deltath*3600.d0)
-     .       -sumFlux2)/glb_carbon_invntry
-        trac_old = 0.d0
+     .       ((glb_carbon_invntry-carb_old)/(obio_deltath*3600.d0)
+     .       -sumFlux)/glb_carbon_invntry
+        carb_old = 0.d0
        endif
+       write(*,*)'----------------------------------------------------'
 
+       write(*,*)'------------- iron  conservation--------------------'
+       print*, 'area, volume ocean=', areao, sumo
+       write(*,*)'global averaged iron deposition flux=',
+     .            nstep,ironFlux
+       !volume integrated iron inventory:
+        glb_iron_invntry = (summ(4) + summ(13))    !nano-mol,Iron/m3
+       write(*,*)'glb iron inventory bfre=',nstep,iron_old
+       write(*,*)'glb iron inventory aftr=',nstep,glb_iron_invntry
+       if (iflg.eq.0) then
+        iron_old = glb_iron_invntry
+       else
+        write(*,'(a,i5,1x,2(e18.11,1x))')'iron conserv.',nstep,
+     .       (glb_iron_invntry-iron_old)/(obio_deltath*3600.d0),
+     .       ironFlux
+        write(*,'(a,i5,1x,e18.11)')'iron residual (no units)',nstep,
+     .       ((glb_iron_invntry-iron_old)/(obio_deltath*3600.d0)
+     .       -ironFlux)/glb_iron_invntry
+        iron_old = 0.d0
+       endif
        write(*,*)'----------------------------------------------------'
       endif
 
@@ -115,11 +124,8 @@
      &           summ(iTracer), summ(iTracer)/sumo
          end do
        write(*,*)'----------   trmo conservation--------------------'
-       write(*,*)'global averaged flux=',nstep,sumFlux, sumFlux/areao
-       write(*,*)'global averaged flux2=',
-     .            nstep,sumFlux/fluxNorm1,sumFlux/fluxNorm2
-       write(*,*)'global averaged flux3=',
-     .            nstep,sumFlux2
+       write(*,*)'global averaged flux=',
+     .            nstep,sumFlux
        !volume integrated carbon inventory:
        !trmo units are Kg, summ is in Kg*m3
        write(*,*)'global carbon inventory=',nstep,
