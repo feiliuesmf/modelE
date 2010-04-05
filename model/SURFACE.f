@@ -50,7 +50,7 @@ C****
 #endif
       USE PBLCOM, only : tsavg,dclev,eabl,uabl,vabl,tabl,qabl
       USE SOCPBL, only : npbl=>n
-      USE PBL_DRV, only : pbl, t_pbl_args
+      USE PBL_DRV, only : pbl, t_pbl_args, xdelt
       USE DIAG_COM, only : ia_srf,ia_src,oa,aij=>aij_loc
      *     ,tdiurn,adiurn=>adiurn_loc,ndiupt,jreg
      *     ,ij_tsli,ij_shdtli,ij_evhdt,ij_trhdt,ij_shdt,ij_popocn
@@ -231,6 +231,7 @@ C****
       LOGICAL :: debug
 
       type (Timer_type), pointer :: aTimer
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -426,7 +427,7 @@ C****
       PSK=PEK(1,I,J)
       P1K=PK(1,I,J)
       Q1=Q(I,J,1)
-      THV1=T(I,J,1)*(1.+Q1*deltx)
+      THV1=T(I,J,1)*(1.+Q1*xdelt)
       JR=JREG(I,J)
       MA1=AM(1,I,J) !@var MA1 mass of lowest atmospheric layer (kg/m^2)
 
@@ -613,7 +614,7 @@ C****
       pbl_args%TR4=TR4 ! radiative temperature K^4
       pbl_args%ELHX=ELHX   ! relevant latent heat
       pbl_args%QSOL=SRHEAT   ! solar heating
-      pbl_args%TGV=TG*(1.+QG_SAT*deltx)
+      pbl_args%TGV=TG*(1.+QG_SAT*xdelt)
 
 #ifdef TRACERS_ON
 C**** Set up b.c. for tracer PBL calculation if required
@@ -739,7 +740,7 @@ C**** Call pbl to calculate near surface profile
       CM = pbl_args%cm
       CH = pbl_args%ch
       CQ = pbl_args%cq
-      TS=pbl_args%TSV/(1.+QSRF*deltx)
+      TS=pbl_args%TSV/(1.+QSRF*xdelt)
 C =====================================================================
 
 C**** Adjust ground variables to account for skin effects

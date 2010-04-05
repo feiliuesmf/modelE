@@ -3,12 +3,12 @@
 !#define ROUGHL_HACK
 
       module PBL_DRV
-      use SOCPBL, only : t_pbl_args
+      use SOCPBL, only : t_pbl_args, xdelt
       implicit none
 
       private
 
-      public t_pbl_args, pbl
+      public t_pbl_args, pbl, xdelt
 
       contains
 
@@ -72,7 +72,9 @@ c
 !@var  fr_sat fraction of saturated soil
 !@var ZS1    = height of the first model layer (m)
 !@var TGV    = virtual potential temperature of the ground (K)
+!@+            (if xdelt=0, TGV is the actual temperature)
 !@var TKV    = virtual potential temperature of first model layer (K)
+!@+            (if xdelt=0, TKV is the actual temperature)
 !@var WS     = magnitude of the surface wind (m/s)
 !@var PSI    = angular diff. btw geostrophic and surface winds (rads)
 !@var WG     = magnitude of the geostrophic wind (m/s)
@@ -92,6 +94,7 @@ c      logical pole
 !@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
 !@var WS     = magn. of GCM surf wind - ocean curr + buoyancy + gust (m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
+!@+            (if xdelt=0, TSV is the actual temperature)
 !@var QS     = surface value of the specific moisture
 !@var DBL    = boundary layer height (m)
 !@var KMS    = momentum transport coefficient at ZGS (m**2/s)
@@ -168,10 +171,10 @@ c           ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
 c           ! COMPUTE Ug and Vg THERE:
 c           zpbl=ztop
 c           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-c           tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)
+c           tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
 c           do l=2,ls1
 c             pl=pmid(l,i,j)        !pij*sig(l)+ptop
-c             tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) !virtual,absolute
+c             tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
 c             tbar=thbar(tl1,tl)
 c             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
 c             if (zpbl.ge.dbl) exit
@@ -195,11 +198,11 @@ c     ELSE
         else
           zpbl=ztop
           pl1=pmid(1,i,j)                             ! pij*sig(1)+ptop
-          tl1=t(i,j,1)*(1.+deltx*q(i,j,1))*pk(1,i,j)  ! expbyk(pl1)
+          tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)  ! expbyk(pl1)
           zpbl1=ztop
           do l=2,ldc
             pl=pmid(l,i,j)                            ! pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+deltx*q(i,j,l))*pk(l,i,j) ! expbyk(pl)
+            tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) ! expbyk(pl)
             tbar=thbar(tl1,tl)
             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
             if (zpbl.ge.dbl_max) then
@@ -337,7 +340,7 @@ c     ENDIF
       psi   =psisrf-psitop
       ustar_pbl(itype,i,j)=pbl_args%ustar
 C ******************************************************************
-      TS=pbl_args%TSV/(1.+pbl_args%QSRF*deltx)
+      TS=pbl_args%TSV/(1.+pbl_args%QSRF*xdelt)
       if ( ts.lt.152d0 .or. ts.gt.423d0 ) then
         write(6,*) 'PBL: Ts bad at',i,j,' itype',itype,ts
         if (ts.gt.1d3) call stop_model("PBL: Ts out of range",255)
@@ -387,6 +390,7 @@ c -------------------------------------------------------------
 !      USE SOCPBL, only : dpdxr,dpdyr,dpdxr0,dpdyr0
 
       USE SOCPBL, only : npbl=>n,zgs,inits,XCDpbl,ccoeff0,skin_effect
+     &     ,xdelt
       USE GHY_COM, only : fearth
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
@@ -542,7 +546,7 @@ C**** fix roughness length for ocean ice that turned to land ice
             utop = ua(1,i,j)
             vtop = va(1,i,j)
             qtop=q(i,j,1)
-            ttop=t(i,j,1)*(1.+qtop*deltx)*psk
+            ttop=t(i,j,1)*(1.+qtop*xdelt)*psk
             t1_after_aturb(i,j) = ttop/psk
             u1_after_aturb(i,j) = utop
             v1_after_aturb(i,j) = vtop

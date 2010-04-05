@@ -879,7 +879,7 @@ c****
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
      &    t_vegcell
 #endif
-      use pbl_drv, only : pbl, t_pbl_args
+      use pbl_drv, only : pbl, t_pbl_args, xdelt
 
       use snow_drvm, only : snow_cover_same_as_rad
 
@@ -1128,7 +1128,7 @@ c****
       p1k=pk(1,i,j)
       th1=t(i,j,1)
       q1=q(i,j,1)
-      thv1=th1*(1.+q1*deltx)
+      thv1=th1*(1.+q1*xdelt)
       pbl_args%tkv=thv1*psk
   !    tkv=thv1*psk
 
@@ -1179,8 +1179,8 @@ c**** loop over ground time steps
       pbl_args%qg_aver = qg
   !    qg_aver = qg
 
-      pbl_args%tgv=tg*(1.+qg*deltx)
-  !    tgv=tg*(1.+qg*deltx)
+      pbl_args%tgv=tg*(1.+qg*xdelt)
+  !    tgv=tg*(1.+qg*xdelt)
 
       pbl_args%psurf=ps
   !    psurf=ps
@@ -1231,7 +1231,7 @@ c****
 c***********************************************************************
 c**** calculate qs
       qs=pbl_args%qsrf
-      ts=pbl_args%tsv/(1.+qs*deltx)
+      ts=pbl_args%tsv/(1.+qs*xdelt)
 c**** calculate rhosrf*cdm*ws
       rhosrf=100.*ps/(rgas*pbl_args%tsv)
       rcdmws=cdm*pbl_args%ws*rhosrf
@@ -1305,7 +1305,7 @@ ccc stuff needed for dynamic vegetation
 #else
       !call ghinij (i,j)
       !snowd(1:2) = snowbv(1:2,i,j)
-      call veg_set_cell( vegcell, i,j, ps, pbl_args%tsv/(1.+qs*deltx) )
+      call veg_set_cell( vegcell, i,j, ps, pbl_args%tsv/(1.+qs*xdelt) )
       !call veg_set_cell(  i,j  )
 #endif
 ! snow / var lakes problem at this cell (underwater snow in initial data)
@@ -1357,7 +1357,7 @@ ccc stuff needed for dynamic vegetation
      &     htirrig,
      &     srheat,
      &     trheat,
-     &     pbl_args%tsv/(1.+qs*deltx),
+     &     pbl_args%tsv/(1.+qs*xdelt),
      &     pbl_args%qsrf,
      &     ps,
      &     rhosrf,

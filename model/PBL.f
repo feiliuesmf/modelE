@@ -57,7 +57,7 @@
 
       ! public parameters
       public n,zgs,XCDpbl,kappa,emax,skin_effect,ustar_min
-     &   ,lmonin_min,lmonin_max
+     &   ,lmonin_min,lmonin_max,xdelt
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -236,6 +236,15 @@ CCC      real*8 :: bgrid
      *     cmin=smin*smin,emax=1.d5,ustar_min=1d-1
      *    ,lmonin_min=1d-4,lmonin_max=1d4
 
+!@param xdelt When used in place of deltx in expressions involving
+!@+     virtual temperature T, xdelt=0 switches off virtual T effects.
+!@+     This allows the PBL module to control the definition of its
+!@+     input/output T; internally it always uses virtual T when
+!@+     calculating stratification but may use actual T as a
+!@+     prognostic variable.
+      real*8, parameter :: xdelt=0d0    ! input/output is actual T
+!                          xdelt=deltx  !                 virtual T
+
 !@param twoby3 2/3 constant
       real*8, parameter :: twoby3 = 2d0/3d0
 
@@ -262,8 +271,10 @@ c    input:
 !@var  utop  x component of wind at the top of the layer
 !@var  vtop  y component of wind at the top of the layer
 !@var  ttop  virtual potential temperature at the top of the layer
+!@+          (if xdelt=0, ttop is the actual temperature)
 !@var  qtop  moisture at the top of the layer
 !@var  tgrnd0 bulk virt. pot. temp. of the ground, at the roughness height
+!@+          (if xdelt=0, tgrnd0 is the actual temperature)
 !@var  tg  actual ground temp
 !@var  elhx relevant latent heat for qg calc
 !@var  qgrnd0 initial moisture at the ground, at the roughness height
@@ -285,6 +296,7 @@ c   output:
 !@var  us  x component of the surface wind (i.e., due east)
 !@var  vs  y component of the surface wind (i.e., due north)
 !@var  tsv  virtual potential surface temperature
+!@+          (if xdelt=0, tsv is the actual temperature)
 !@var  qsrf  surface specific moisture
 !@var  kms  surface value of km
 !@var  khs  surface value of kh
@@ -305,6 +317,7 @@ c   output:
 !@var WSPDF  = mean surface wind calculated from PDF of wind speed (m/s)
 !@var WS     = magn of GCM surf wind - ocean curr + buoyancy + gust (m/s)
 !@var TSV    = virtual potential temperature of the surface (K)
+!@+            (if xdelt=0, tsv is the actual temperature)
 !@var QS     = surface value of the specific moisture
 !@var DBL    = boundary layer height (m)
 !@var KMS    = momentum transport coefficient at ZGS (m**2/s)
@@ -326,6 +339,7 @@ c   output:
 !@var  u  local due east component of wind
 !@var  v  local due north component of wind
 !@var  t  local virtual potential temperature
+!@+          (if xdelt=0, t is the actual temperature)
 !@var  q  local specific humidity (a passive scalar)
 !@var  e  local turbulent kinetic energy
 #if defined(TRACERS_ON)
@@ -355,6 +369,7 @@ c  internals:
 !@var  km    turbulent momentum tranport coefficient.
 !@var  kh    turbulent thermometric conductivity. computed
 !@var  ke    transport coefficient for the turbulent kinetic energy.
+!@var  tv    local virtual potential temperature
 
 #ifdef TRACERS_GASEXCH_ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
@@ -407,13 +422,13 @@ c**** other local vars
       integer, parameter ::  itmax=50
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
       real*8, dimension(n) :: dz,xi,usave,vsave,tsave,qsave
-     *       ,usave1,vsave1,tsave1,qsave1
+     *       ,usave1,vsave1,tsave1,qsave1,tv
       real*8, dimension(n-1) :: lscale,dzh,xihat,kh,kq,ke,esave,esave1
       integer :: i,iter,ierr  !@var i,iter loop variable
 C****
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
-      REAL*8 :: lmonin,snow
+      REAL*8 :: lmonin,lmonin_dry,snow
 #ifdef TRACERS_ON
       real*8, dimension(n,ntm) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
@@ -438,6 +453,9 @@ C****
       REAL*8 :: dsrcflx,dsrcflx2
       real*8 wspdf,delt
 #endif
+
+      if(xdelt /= 0d0) call stop_model(
+     &     'PBL.f is not yet compatible with xdelt==deltx')
 
 c**** get input from pbl_args structure
       dtime = pbl_args%dtsurf
@@ -496,14 +514,14 @@ c**** get input from pbl_args structure
       tgskin=tg                 ! initially assume no skin/bulk difference
       tgr4skin=tr4              ! initially assume no skin/bulk difference
       dskin=0
-      ts=t(1)/(1+q(1)*deltx)
+      ts=t(1)/(1+q(1)*xdelt)
 
       call getl1(e,zhat,dzh,lscale,n)
 
       if(ddml_eq_1) then
         tdns=pbl_args%tdns
         qdns=pbl_args%qdns
-        tprime=tdns-t(1)/(1.+deltx*q(1))
+        tprime=tdns-t(1)/(1.+xdelt*q(1))
         qprime=qdns-q(1)
       else ! either ddml(ilong,jlat).ne.1 or USE_PBL_E1
         tdns=0.d0
@@ -517,12 +535,14 @@ c**** get input from pbl_args structure
 
       do iter=1,itmax
 
+        call get_tv(t,q,tv,n)
+
         if(iter.gt.1) then
-          call getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
+          call getl(e,u,v,tv,zhat,dzh,lmonin,ustar,lscale,dbl,n)
 C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
           if (itype.eq.1 .and. skin_effect.gt.0) then
 c estimate net flux and ustar_oc from current tg,qg etc.
-            ts=t(1)/(1+q(1)*deltx)
+            ts=t(1)/(1+q(1)*xdelt)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
             Qnet= (lhe+tgskin*shv)*cq*rhosrf*(ws*(q(1)-qgrnd)
      &           +(ws-ws0)*qprime)        ! Latent
@@ -537,12 +557,12 @@ c estimate net flux and ustar_oc from current tg,qg etc.
             tgr4skin=(sqrt(sqrt(tr4))+dskin)**4
             qgrnd=qsat(tgskin,elhx,psurf)
             if (ocean) qgrnd=0.98d0*qgrnd  ! use ocean adjustment
-            tgrnd=tgskin*(1.+qgrnd*deltx)
+            tgrnd=tgskin*(1.+qgrnd*xdelt)
           endif
         endif
 
-        call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,ts,
+        call getk(km,kh,kq,ke,gm,gh,u,v,tv,e,lscale,dzh,n)
+        call stars(ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
@@ -554,7 +574,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 #endif
 
 #ifdef USE_PBL_E1
-        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
+        call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 #endif
 
@@ -562,8 +582,8 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
 
-        if(t(2).lt.t(1)) then !convective
-          wstar3=-dbl*grav*2.*(t(2)-t(1))*kh(1)/((t(2)+t(1))*dzh(1))
+        if(tv(2).lt.tv(1)) then !convective
+          wstar3=-dbl*grav*2.*(tv(2)-tv(1))*kh(1)/((tv(2)+tv(1))*dzh(1))
           wstar2h = wstar3**twoby3
 #ifdef USE_PBL_E1
           gusti=0.
@@ -578,7 +598,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         endif
 
 #ifndef USE_PBL_E1
-        call e_eqn(esave,e,u,v,t,km,kh,ke,lscale,dz,dzh,
+        call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
         call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
@@ -604,14 +624,13 @@ c estimate net flux and ustar_oc from current tg,qg etc.
      &       ,dtime,coriol,ug,vg,uocean,vocean,n,dpdxr,dpdyr,dpdxr0
      &       ,dpdyr0)
 
-        if ( ((ttop.ge.tgrnd).and.(lmonin.le.0.)).or.
-     &       ((ttop.le.tgrnd).and.(lmonin.ge.0.)) )
+        if ( ((ttop.ge.tgrnd).and.(lmonin_dry.le.0.)).or.
+     &       ((ttop.le.tgrnd).and.(lmonin_dry.ge.0.)) )
      &     call tfix(t,z,ttop,tgrnd
-     &              ,lmonin,tstar,ustar,kh(1),n)
-
+     &              ,lmonin_dry,tstar,ustar,kh(1),n)
 
         if(ddml_eq_1) then
-          tprime=tdns-t(1)/(1.+deltx*q(1))
+          tprime=tdns-t(1)/(1.+xdelt*q(1))
           qprime=qdns-q(1)
         endif
 
@@ -637,6 +656,8 @@ cc      WRITE(0,*) 'advanc iter t(1),q(1) ',iter,t(1),q(1)
 
       end do ! end of iter loop
 
+      call get_tv(t,q,tv,n)
+
 c**** cannot update ws without taking care that ws used for tracers is
 c**** the same as that used for q
       wsgcm=sqrt((u(1)-uocean)**2+(v(1)-vocean)**2)
@@ -648,7 +669,7 @@ C**** your tracers. The integrated wind value is passed back to SURFACE
 C**** and GHY_DRV. This may need to be tracer dependent?
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
-      delt = t(1)/(1.+q(1)*deltx) - tgrnd/(1.+qgrnd*deltx)
+      delt = t(1)/(1.+q(1)*xdelt) - tgrnd/(1.+qgrnd*xdelt)
       CALL sig(e(1),mdf,dbl,delt,ch,wsgcm,t(1),pbl_args%wsubtke
      &     ,pbl_args%wsubwd,pbl_args%wsubwm)
       CALL get_wspdf(pbl_args%wsubtke,pbl_args%wsubwd,pbl_args%wsubwm
@@ -666,7 +687,7 @@ csgs      call integrate_sgswind(sig0,wt,wmin,wmax,ws,icase,wint)
 C**** tracer calculations are passive and therefore do not need to
 C**** be inside the iteration. Use moisture diffusivity.
 C**** First, define some useful quantities
-      ts=t(1)/(1.+q(1)*deltx)   ! surface air temp (K)
+      ts=t(1)/(1.+q(1)*xdelt)   ! surface air temp (K)
       visc=visc_air(ts)         ! viscosity
       rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
       byrho=1d0/rhosrf
@@ -929,7 +950,7 @@ C**** with maximum allowed flux.
       tfluxs=kh(1)*(t(2)-t(1))/dzh(1)
       qfluxs=kq(1)*(q(2)-q(1))/dzh(1)
 
-      an2=2.*grav*(t(n)-t(n-1))/((t(n)+t(n-1))*dzh(n-1))
+      an2=2.*grav*(tv(n)-tv(n-1))/((tv(n)+tv(n-1))*dzh(n-1))
       dudz=(u(n)-u(n-1))/dzh(n-1)
       dvdz=(v(n)-v(n-1))/dzh(n-1)
       as2=dudz*dudz+dvdz*dvdz
@@ -992,7 +1013,8 @@ C**** tracer code output
       return
       end subroutine advanc
 
-      subroutine stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,ts,
+      subroutine stars(
+     &     ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
      2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
@@ -1016,7 +1038,7 @@ C**** tracer code output
       real*8, dimension(n-1), intent(in) :: km,kh,kq,dzh
       real*8, intent(in) :: tgrnd,qgrnd,ts
       real*8, intent(inout) :: z0m
-      real*8, intent(out) :: ustar,tstar,qstar,lmonin
+      real*8, intent(out) :: ustar,tstar,qstar,lmonin,lmonin_dry
       real*8, intent(out) :: z0h,z0q,cm,ch,cq
 #ifdef TRACERS_SPECIAL_O18
       real*8, intent(out) :: fac_cq_tr(ntm)
@@ -1024,38 +1046,55 @@ C**** tracer code output
 
 
       real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
+      real*8 tflx,qflx,tvflx,tgrndv,tv(2),tstarv,dtv1
+
+      tgrndv = tgrnd*(1.+deltx*qgrnd)
+      call get_tv(t,q,tv,2)
 
       dz     = dzh(1)
       vel1   = sqrt(u(1)*u(1)+v(1)*v(1))
       du1=u(2)-u(1)
       dv1=v(2)-v(1)
       dudz=sqrt(du1*du1+dv1*dv1)/dz
-      dtdz   = (t(2)-t(1))/dz
-      dqdz   = (q(2)-q(1))/dz
+      tflx   = kh(1)*(t(2)-t(1))/dz
+      qflx   = kq(1)*(q(2)-q(1))/dz
+      tvflx = tflx*(1.+deltx*q(1)) + t(1)*deltx*qflx
       ustar  = sqrt(km(1)*dudz)
 #ifdef USE_PBL_E1
       ustar  = max(ustar,teeny)
 #else
       ustar  = max(ustar,ustar_min)
 #endif
-      tstar  = kh(1)*dtdz/ustar
-      qstar  = kq(1)*dqdz/ustar
+      tstar  = tflx/ustar
+      if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
+      if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
+      qstar  = qflx/ustar
+      if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
+      if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
+      tstarv  = tvflx/ustar
+      dtv1 = tv(1)-tgrndv
+      if (abs(tstarv).gt.smax*abs(dtv1)) tstarv=smax*dtv1
+      if (abs(tstarv).lt.smin*abs(dtv1)) tstarv=smin*dtv1
+
       zgs    = z(1)
 
       if (ustar.gt.smax*vel1) ustar=smax*vel1
       if (ustar.lt.smin*vel1) ustar=smin*vel1
-      if (abs(tstar).gt.smax*abs(t(1)-tgrnd)) tstar=smax*(t(1)-tgrnd)
-      if (abs(tstar).lt.smin*abs(t(1)-tgrnd)) tstar=smin*(t(1)-tgrnd)
 #ifdef USE_PBL_E1
       ! do nothing
 #else
       if (tstar.eq.0.) tstar=teeny
+      if (tstarv.eq.0.) tstarv=teeny
       ustar  = max(ustar,ustar_min)
 #endif
-      if (abs(qstar).gt.smax*abs(q(1)-qgrnd)) qstar=smax*(q(1)-qgrnd)
-      if (abs(qstar).lt.smin*abs(q(1)-qgrnd)) qstar=smin*(q(1)-qgrnd)
 
-      lmonin = ustar*ustar*tgrnd/(kappa*grav*tstar)
+      lmonin_dry = ustar*ustar*tgrnd/(kappa*grav*tstar)
+      if(abs(lmonin_dry).lt.lmonin_min)
+     &     lmonin_dry=sign(lmonin_min,lmonin_dry)
+      if(abs(lmonin_dry).gt.lmonin_max)
+     &     lmonin_dry=sign(lmonin_max,lmonin_dry)
+      
+      lmonin = ustar*ustar*tgrndv/(kappa*grav*tstarv)
       if(abs(lmonin).lt.lmonin_min) lmonin=sign(lmonin_min,lmonin)
       if(abs(lmonin).gt.lmonin_max) lmonin=sign(lmonin_max,lmonin)
 
@@ -1715,6 +1754,19 @@ c     find ghmin,ghmax,gmmax0:
       return
       end subroutine ccoeff0
 
+      subroutine get_tv(t,q,tv,n)
+      USE CONSTANT, only : deltx
+      implicit none
+      integer, intent(in) :: n    !@var n  array dimension
+      real*8, dimension(n), intent(in) :: t,q
+      real*8, dimension(n), intent(out) :: tv
+      integer :: i
+      do i=1,n
+        tv(i) = t(i)*(1.+deltx*q(i))
+      enddo
+      return
+      end subroutine get_tv
+
       subroutine getk(km,kh,kq,ke,gma,gha,u,v,t,e,lscale,dzh,n)
 !@sum   getk calculates eddy diffusivities Km, Kh and Ke
 !@+     Giss 2000 turbulence model at level 2.5
@@ -1963,16 +2015,17 @@ c     rhs(n-1)=0.
 !@+   due to the moist convection wind gustiness and the
 !@+   downdraft temperature perturbation
 !@+   kh * dt/dz = ch * ( usurf*(t1 - tgrnd)
-!@+                      +(1+deltx*q1)*(usurf-usurf0)*tprime )
+!@+                      +(1+xdelt*q1)*(usurf-usurf0)*tprime )
 !@+          ### the following term was removed from BC at the bottom
-!@+          ###   + deltx * t1/(1+deltx*q1) * kq * dqdz
-!@+   where tprime=tdns-t1/(1+deltx*q1), t1 is at surf
+!@+          ###   + xdelt * t1/(1+xdelt*q1) * kq * dqdz
+!@+   where tprime=tdns-t1/(1+xdelt*q1), t1 is at surf
 !@+   at the top, the virtual potential temperature is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var t z-profle of virtual potential temperature ref. to the surface
+!@+          (if xdelt=0, t is the actual temperature)
 !@var q z-profle of specific humidity
 !@var t0 z-profle of t at previous time step
 !@var kh z-profile of heat conductivity
@@ -1983,7 +2036,9 @@ c     rhs(n-1)=0.
 !@var ch  dimensionless heat flux at surface (stanton number)
 !@var usurf effective surface velocity
 !@var tgrnd virtual potential temperature at the ground
+!@+          (if xdelt=0, tgrnd is the actual temperature)
 !@var ttop virtual potential temperature at the first GCM layer
+!@+          (if xdelt=0, ttop is the actual temperature)
 !@var dtdt_gcm ttop tendency from processes other than turbulence
 !@var dtime time step
 !@var n number of vertical subgrid main layers
@@ -2038,11 +2093,11 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       if(ddml_eq_1) then
          rat = usurf0/(usurf+teeny)
          dia(1) = 1+facth*rat
-!     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
-         rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+deltx*qdns)*tdns)
+!     &             +xdelt*kq(1)*(q(2)-q(1))/(kh(1)*(1.+xdelt*q(1)))
+         rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+xdelt*qdns)*tdns)
       else
          dia(1) = 1+facth
-!     &             +deltx*kq(1)*(q(2)-q(1))/(kh(1)*(1.+deltx*q(1)))
+!     &             +xdelt*kq(1)*(q(2)-q(1))/(kh(1)*(1.+xdelt*q(1)))
          rhs(1) = facth*tgrnd
       endif
 
@@ -2427,7 +2482,7 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
       facth  = ch*usurf*dzh(1)/kh(1)
 
       dia(1) = 1.+facth
-     &        +deltx*kq(1)/kh(1)*(q(2)-q(1))/(1.+deltx*q(1))
+     &        +xdelt*kq(1)/kh(1)*(q(2)-q(1))/(1.+xdelt*q(1))
       sup(1) = -1.
       rhs(1) = facth*tgrnd
 
@@ -2674,7 +2729,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       real*8, dimension(n-1) :: km,kh,kq,ke,gm,gh
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: zhat,xihat,dzh,lscale,esave
-      real*8 :: lmonin,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
+      real*8 :: lmonin,lmonin_dry,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
      *     ,wstar3,wstar2h,usurfq,usurfh,ts
 
@@ -2766,13 +2821,14 @@ c Initialization for iteration:
 
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
 
-        ts=t(1)/(1+q(1)*deltx)
-        call stars(ustar,tstar,qstar,lmonin,tgrnd,qgrnd,ts,
+        ts=t(1)/(1+q(1)*xdelt)
+        call stars(ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
      2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
 #endif
      3             km,kh,kq,dzh,itype,n)
+        lmonin = lmonin_dry ! inits always sees dry temps
         !! dbl=.375d0*sqrt(ustar*abs(lmonin)/omega)
         !@+ M.J.Miller et al. 1992, J. Climate, 5(5), 418-434, Eqs(6-7),
         !@+ for heat and mositure
