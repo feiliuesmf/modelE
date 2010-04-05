@@ -63,7 +63,7 @@ C**** only TRACERS_WATER is true.
         if (trname(n).eq.'Age') n_age=n
 
         if (itime.eq.itime_tr0(n)) then
-        select case (trname(n))
+        select case (trname(n)(1:6))
 
         case default
 #ifdef TRACERS_OCEAN
@@ -89,36 +89,41 @@ C**** straits
 #endif
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
-      read(trname(n)(7:8),'(I2)') ll      ! gets level from name
-      do l=1,lmo
-      do j=1,jm
-      do i=1,im
-          if (l.eq.ll .and. l.le.lmm(i,j)) then
-            trmo(i,j,l,n) = mo(i,j,l)*dxypo(j)     ! set conc=1 for l=ll
-        else
-            trmo(i,j,l,n) = 0.
-        end if
-      end do
-      end do
-      end do
+        case ('zebraL')
 
-      if (am_i_root()) then
-      do nst=1,nmst
-      do l=1,lmst(nst)
-        if (l.eq.ll) then
-          trmst(nst,l,n)= mmst(nst,l)
-        else
-          trmst(nst,l,n)= 0.
-        endif
-      end do
-      end do
-      end if
+           read(trname(n)(7:8),'(I2)') ll ! gets level from name
+           do l=1,lmo
+             do j=J_0,J_1
+               do i=1,im
+                 if (l.eq.ll .and. l.le.lmm(i,j)) then
+                   trmo(i,j,l,n) = mo(i,j,l)*dxypo(j) ! set conc=1 for l=ll
+                 else
+                   trmo(i,j,l,n) = 0.   ! zero otherwise
+                 end if
+               end do
+             end do
+           end do
+
+           if (am_i_root()) then
+             do nst=1,nmst
+               do l=1,lmst(nst)
+                 if (l.eq.ll) then
+                   trmst(nst,l,n)= mmst(nst,l)
+                 else
+                   trmst(nst,l,n)= 0.
+                 endif
+               end do
+             end do
+           end if
 
 ! set all gradients to zero initially
-      txmo(:,:,:,n) = 0; tymo(:,:,:,n)= 0. ; tzmo(:,:,:,n)=0.
-      if (am_i_root()) then
-          txmst(:,:,n)=0. ; tzmst(:,:,n)=0.
-      endif
+           txmo(:,:,:,n) = 0; tymo(:,:,:,n)= 0. ; tzmo(:,:,:,n)=0.
+           if (am_i_root()) then
+             txmst(:,:,n)=0. ; tzmst(:,:,n)=0.
+          endif
+          CALL ESMF_BCAST(grid, trmst)
+          CALL ESMF_BCAST(grid, txmst)
+          CALL ESMF_BCAST(grid, tzmst)
 #endif
 
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
@@ -253,10 +258,9 @@ C**** Initiallise strait values based on adjacent ocean boxes
      *           -ssist(3:lmi,nst))
 #endif
           end do
+          end if
 
-        end if
-
-        call bcast_straits(.false.) ! bcst tracers
+          call bcast_straits(.false.) ! bcst tracers
 
 C**** Balance tracers so that average concentration is TRW0 
 C**** or oc_tracer_mean
