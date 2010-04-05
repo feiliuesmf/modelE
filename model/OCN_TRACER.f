@@ -41,7 +41,7 @@
       USE OCEAN, only : scatter_ocean, gather_ocean
 
       IMPLICIT NONE
-      integer n,i,j,l,nst,i1,j1,i2,j2
+      integer n,i,j,l,nst,i1,j1,i2,j2,ll
 #ifdef TRACERS_SPECIAL_O18
       integer iu_O18ic,ip1,im1
       character*80 title
@@ -89,20 +89,36 @@ C**** straits
 #endif
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
-!initialize zebra tracers
-          trmo(:,:,:,n)=100.
-          txmo(:,:,:,n)=100.
-          tymo(:,:,:,n)=100.
-          tzmo(:,:,:,n)=100.
-C**** straits
-          if (am_i_root()) then
-            trmst(:,:,n)=100.
-            txmst(:,:,n)=100.
-            tzmst(:,:,n)=100.
-          end if
-          CALL ESMF_BCAST(grid, trmst)
-          CALL ESMF_BCAST(grid, txmst)
-          CALL ESMF_BCAST(grid, tzmst)
+      read(trname(n)(7:8),'(I2)') ll      ! gets level from name
+      do l=1,lmo
+      do j=1,jm
+      do i=1,im
+          if (l.eq.ll .and. l.le.lmm(i,j)) then
+            trmo(i,j,l,n) = mo(i,j,l)*dxypo(j)     ! set conc=1 for l=ll
+        else
+            trmo(i,j,l,n) = 0.
+        end if
+      end do
+      end do
+      end do
+
+      if (am_i_root()) then
+      do nst=1,nmst
+      do l=1,lmst(nst)
+        if (l.eq.ll) then
+          trmst(nst,l,n)= mmst(nst,l)
+        else
+          trmst(nst,l,n)= 0.
+        endif
+      end do
+      end do
+      end if
+
+! set all gradients to zero initially
+      txmo(:,:,:,n) = 0; tymo(:,:,:,n)= 0. ; tzmo(:,:,:,n)=0.
+      if (am_i_root()) then
+          txmst(:,:,n)=0. ; tzmst(:,:,n)=0.
+      endif
 #endif
 
         case ('Water', 'H2O18', 'HDO', 'H2O17' )
