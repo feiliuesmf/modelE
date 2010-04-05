@@ -1194,7 +1194,7 @@ C**** can be called from both ocean tracer or atm tracer code
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DIAG_ZONAL, only : unpack_lc
       implicit none
-      call unpack_lc   (grid, TCONSRV_loc,TCONSRV )
+      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
       return
       end subroutine scatter_zonal_tcons
 #endif
