@@ -416,7 +416,7 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
             call inc_ajl(i,j,l,JL_TRBKE,e(l))
           end do
 
-          t1_after_aturb(i,j) = t(1)
+          t1_after_aturb(i,j) = t_3d(i,j,1)
 
 #ifdef TRACERS_ON
           do l=1,lm
