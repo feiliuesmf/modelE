@@ -4068,14 +4068,14 @@ C**** Surface stress is applied to V component at the North Pole
 #ifdef TRACERS_OCEAN
 C**** define tracer behaviour for ice formation
         do n=1,ntm
+#ifdef TRACERS_WATER
 #ifdef TRACERS_SPECIAL_O18
           FRAC(n)=fracls(n)
 #else
-#if (defined TRACERS_GASEXCH_ocean) || (defined TRACERS_ZEBRA)
-          FRAC(n)=0.    ! no removal of obio tracers with ice formation
-#else
-          FRAC(n)=1.
+          FRAC(n)=trw0(n)       ! removal based on default conc.  
 #endif
+#else
+          FRAC(n)=0.            ! no removal of non-water tracers
 #endif
         end do
 #endif
