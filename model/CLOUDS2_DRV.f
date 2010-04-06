@@ -1840,7 +1840,7 @@ c
 c Modifies "horizontal" moments of humidity and temperature above steep
 c topographic slopes to prevent large supersaturations in upslope flow.
 c
-      use constant, only : tf,lhe,bysha
+      use constant, only : tf,lhe,lhs,bysha
       use model_com, only : im,jm,lm,ls1,zatmo,t,q
       use dynamics, only : pua,pva,pk,pmid
       use qusdef, only : mx,mxx,my,myy
@@ -1849,11 +1849,12 @@ c
 #ifdef TRACERS_WATER
       use tracer_com, only: trm,trmom,ntm,tr_wd_type,nwater
 #endif
+      use clouds_com, only : svlhx
       implicit none
       integer :: i,j,l
       integer :: iloop_min,iloop_max,jloop_min,jloop_max,
      &     ioff_pua,joff_pva
-      real*8 :: ttmp,qtmp,slh,zthresh,
+      real*8 :: ttmp,qtmp,slh,zthresh,lhx,
      &     qe1,qe2,qe1_sv,qe2_sv,
      &     te1,te2,te1_sv,te2_sv
       real*8, dimension(lm) :: tl,pl
@@ -1874,12 +1875,15 @@ C**** define local grid
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      slh=lhe*bysha
-
       call halo_update(grid,t)
       call halo_update(grid,pk,jdim=3)   ! already haloed?
       call halo_update(grid,pmid,jdim=3) ! already haloed?
-      call halo_update(grid,pva)         ! already haloed?
+#if defined(CUBED_SPHERE) || defined(CUBE_GRID)
+! pva is already haloed
+#else
+      call halo_update(grid,pva)
+#endif
+      call halo_update(grid,svlhx,jdim=3)
 
       if(have_south_pole) then
         jloop_min=2 ! horizontal gradients are zero on polar caps
@@ -1911,7 +1915,7 @@ c
         if(zatmo(i,j-1).gt.zthresh .or. zatmo(i,j+1).gt.zthresh) then
           do l=1,ls1-1
             tl(l) = t(i,j,l)*pk(l,i,j)
-            if(tl(l).lt.tf) exit ! only apply to relatively moist layers
+!            if(tl(l).lt.tf) exit ! only apply to relatively moist layers
             if(q(i,j,l).le.0.) cycle
             pl(l) = pmid(l,i,j)
             qe1_sv = q(i,j,l)-qmom(my,i,j,l)+qmom(myy,i,j,l)
@@ -1923,7 +1927,16 @@ c
             if(zatmo(i,j-1).gt.zthresh .and.
      &         pva(i,j-1+joff_pva,l).lt.0.) then
               ttmp = t(i,j,l)*pk(l,i,j-1); qtmp = q(i,j,l)
-              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i,j-1))
+              lhx = svlhx(l,i,j-1)
+              if(lhx.eq.0.) then
+                if(tl(l).gt.tf) then
+                  lhx = lhe
+                else
+                  lhx = lhs
+                endif
+              endif
+              slh=lhx*bysha
+              call moist_adiabat_tq(ttmp,qtmp,lhx,pmid(l,i,j-1))
               ttmp = ttmp-qxs*qtmp*slh
               qtmp = qtmp*(1.+qxs)
               if(qtmp.lt.qe1) then
@@ -1934,7 +1947,16 @@ c
             if(zatmo(i,j+1).gt.zthresh .and.
      &         pva(i,j+joff_pva,l).gt.0.) then
               ttmp = t(i,j,l)*pk(l,i,j+1); qtmp = q(i,j,l)
-              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i,j+1))
+              lhx = svlhx(l,i,j+1)
+              if(lhx.eq.0.) then
+                if(tl(l).gt.tf) then
+                  lhx = lhe
+                else
+                  lhx = lhs
+                endif
+              endif
+              slh=lhx*bysha
+              call moist_adiabat_tq(ttmp,qtmp,lhx,pmid(l,i,j+1))
               ttmp = ttmp-qxs*qtmp*slh
               qtmp = qtmp*(1.+qxs)
               if(qtmp.lt.qe2) then
@@ -1965,7 +1987,7 @@ c
         if(zatmo(i-1,j).gt.zthresh .or. zatmo(i+1,j).gt.zthresh) then
           do l=1,ls1-1
             tl(l) = t(i,j,l)*pk(l,i,j)
-            if(tl(l).lt.tf) exit ! only apply to relatively moist layers
+!            if(tl(l).lt.tf) exit ! only apply to relatively moist layers
             if(q(i,j,l).le.0.) cycle
             pl(l) = pmid(l,i,j)
             qe1_sv = q(i,j,l)-qmom(mx,i,j,l)+qmom(mxx,i,j,l)
@@ -1977,7 +1999,16 @@ c
             if(zatmo(i-1,j).gt.zthresh .and.
      &         pua(i-1+ioff_pua,j,l).lt.0.) then
               ttmp = t(i,j,l)*pk(l,i-1,j); qtmp = q(i,j,l)
-              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i-1,j))
+              lhx = svlhx(l,i-1,j)
+              if(lhx.eq.0.) then
+                if(tl(l).gt.tf) then
+                  lhx = lhe
+                else
+                  lhx = lhs
+                endif
+              endif
+              slh=lhx*bysha
+              call moist_adiabat_tq(ttmp,qtmp,lhx,pmid(l,i-1,j))
               ttmp = ttmp-qxs*qtmp*slh
               qtmp = qtmp*(1.+qxs)
               if(qtmp.lt.qe1) then
@@ -1988,7 +2019,16 @@ c
             if(zatmo(i+1,j).gt.zthresh .and.
      &         pua(i+ioff_pua,j,l).gt.0.) then
               ttmp = t(i,j,l)*pk(l,i+1,j); qtmp = q(i,j,l)
-              call moist_adiabat_tq(ttmp,qtmp,lhe,pmid(l,i+1,j))
+              lhx = svlhx(l,i+1,j)
+              if(lhx.eq.0.) then
+                if(tl(l).gt.tf) then
+                  lhx = lhe
+                else
+                  lhx = lhs
+                endif
+              endif
+              slh=lhx*bysha
+              call moist_adiabat_tq(ttmp,qtmp,lhx,pmid(l,i+1,j))
               ttmp = ttmp-qxs*qtmp*slh
               qtmp = qtmp*(1.+qxs)
               if(qtmp.lt.qe2) then
