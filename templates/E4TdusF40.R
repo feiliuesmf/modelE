@@ -39,13 +39,10 @@ IORSF                               ! old i/o
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV                             ! advection of T
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
+QUS3D                               ! advection of Q and tracers
 
-QUS3D                               ! advection of Q and tracer gases
-TRACER_COM TRACERS_DRV              ! configurable tracer code
-TRACERS                             ! generic tracer code
-TRDRYDEP                            ! dry deposition of tracers
 TRDUST_COM TRDUST                   ! dust tracer specific code
-TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
+#include "tracer_shared_source_files"
 
 #include "modelE4_source_files"
 #include "static_ocn_source_files"
