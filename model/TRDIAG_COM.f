@@ -809,7 +809,7 @@ C*** Unpack read global data into local distributed arrays
      &     TAJLS,
      &     TAIJL=>TAIJL_out,
      &     TAIJ=>TAIJ_out,
-     &     TAJL=>TAJL_out,
+     &     TAJL=>TAJL_out
       use domain_decomp_atm, only : grid
       use pario, only : defvar
       implicit none
@@ -850,7 +850,7 @@ C*** Unpack read global data into local distributed arrays
      &     TAJLS,
      &     TAIJL=>TAIJL_out,
      &     TAIJ=>TAIJ_out,
-     &     TAJL=>TAJL_out,
+     &     TAJL=>TAJL_out
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data

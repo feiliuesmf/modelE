@@ -3,6 +3,7 @@
       subroutine diag_trac_prep
       implicit none
       call gather_zonal_trdiag
+      call gather_zonal_tcons
       call diagjlt_prep
       call diagijt_prep
       call diagijlt_prep
