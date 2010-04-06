@@ -93,7 +93,7 @@
        endif
        write(*,*)'----------------------------------------------------'
 
-       write(*,*)'------------- iron  conservation--------------------'
+       write(*,*)'-------------- iron conservation--------------------'
        print*, 'area, volume ocean=', areao, sumo
        write(*,*)'global averaged iron deposition flux=',
      .            nstep,ironFlux

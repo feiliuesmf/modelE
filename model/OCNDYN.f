@@ -4071,7 +4071,7 @@ C**** define tracer behaviour for ice formation
 #ifdef TRACERS_SPECIAL_O18
           FRAC(n)=fracls(n)
 #else
-#ifdef TRACERS_GASEXCH_ocean
+#if (defined TRACERS_GASEXCH_ocean) || (defined TRACERS_ZEBRA)
           FRAC(n)=0.    ! no removal of obio tracers with ice formation
 #else
           FRAC(n)=1.

@@ -250,20 +250,20 @@ cdiag.     P_tend(k,1),P_tend(k,2),P_tend(k,3),P_tend(k,4)
 
 !3rd detrital fraction is iron
          term = bf*dphyt * pnoice
-         rhs(k,ntyp+3,nnut+1) = term
+         rhs(k,12,nnut+1) = term
          D_tend(k,3) = term
 
          term = bf*dzoo1 * pnoice
      .        + bf*(1.0-regen)*dzoo2 * pnoice
-         rhs(k,ntyp+3,ntyp) = term
+         rhs(k,12,ntyp) = term
          D_tend(k,3) = D_tend(k,3) + term
 
          term = -tfac(k)*remin(3)*det(k,3) * pnoice
-         rhs(k,ntyp+3,ntyp+3) = term
+         rhs(k,12,ntyp+3) = term
          D_tend(k,3) = D_tend(k,3) + term
 
          term = Fescav(k)
-         rhs(k,ntyp+3,4) = term
+         rhs(k,12,4) = term
          D_tend(k,3) = D_tend(k,3) + term
 
 cdiag    if (vrbos) then
@@ -580,21 +580,21 @@ cdiag.  ,P_tend(k,8),P_tend(k,9)
         upf = 0.0
         do nt = 1,nchl
          term = bn*(rmu3(nt)*obio_P(k,nnut+nt))
-         rhs(k,1,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upn = upn + term
+         rhs(k,1,nnut+nt) = -upn    !use - sign here because that is how it goes in P_tend
 
          term = bn*(rmu4(nt)*obio_P(k,nnut+nt))
-         rhs(k,2,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upa = upa + term
+         rhs(k,2,nnut+nt) = -upa    !use - sign here because that is how it goes in P_tend
 
          term = bf*(rmuf(nt)*obio_P(k,nnut+nt))
-         rhs(k,4,nnut+nt) = -term   !use - sign here because that is how it goes in P_tend
          upf = upf + term
+         rhs(k,4,nnut+nt) = -upf    !use - sign here because that is how it goes in P_tend
         enddo
 
         term = bs*(rmu5(1)*obio_P(k,nnut+1))    
-        rhs(k,3,nnut+1) = -term   !use - sign here because that is how it goes in P_tend
         ups = term
+        rhs(k,3,nnut+1) = -ups    !use - sign here because that is how it goes in P_tend
 
 cdiag  if(vrbos)then
 cdiag     if(k.eq.1) write(106,'(a,a)')
@@ -620,17 +620,18 @@ cdiag. upn,upa,upf,ups
        endif !tirrq(k) .gt. 0.0
       enddo  !kmax
 
-#ifdef restoreIRON
+!#ifdef restoreIRON
 !iron bottom sink
 !restoring term to balance surface deposition at time scales of about 30years
       do k=1,kmax
-        if (p1d(kmax) > 3500. .and. p1d(kmax)-p1d(k) < 200.) then        !for the lower 200m
+        if (p1d(kmax) > 3700. .and. p1d(kmax)-p1d(k) < 200.) then        !for the lower 200m
             term =  - obio_P(k,4) / (200/(0.002*3700))
+            term = term/(365*24)     !convert to per hr
             rhs(k,4,14) = term
             P_tend(k,4) = P_tend(k,4) + term
         endif
       enddo
-#endif
+!#endif
 
 
 #ifdef TRACERS_Alkalinity
