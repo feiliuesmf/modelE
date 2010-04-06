@@ -92,6 +92,7 @@ RVR=RD_modelE_Fa.RVR.bin          ! river direction file
 #include "O3_2010_144x90_input_files"
 !#include "O3_2005_input_files"
 
+#include "chemistry_input_files"
 #include "chemistry_144x90_input_files"
 
 #include "dust_tracer_144x90_input_files"

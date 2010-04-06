@@ -1,23 +1,11 @@
 !-----------------------------------------------
-!  Start tracer code files:
+!  3D chemistry input files:
 !-----------------------------------------------
-!  full-atmosphere chemistry model files:
-!-----------------------------------------------
-MOLEC=chem_files/ds4_moleculesE_terp_soa
-JPLRX=chem_files/jpl00_T25_SEP08_fastterp
-JPLPH=chem_files/ds4_photlist_T25
-RATJ=chem_files/ratj.giss_25
-SPECFJ=chem_files/jv_spec_AV.dat
-ATMFJ=chem_files/jv_atms.dat
 N2O_IC=gsin/N2O_IC_M23_4x5_6.17_conc_2x2.5_conc
 CFC_IC=gsin/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc
 CH4_IC=gsin/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc
 Ox_IC=gsin/Ox_init_cond_M23_4x5_conc_2x2.5_conc
 CO_IC=gsin/CO_init_cond_M23_conc_2x2.5_conc
-! fltran file used if rad_FL.ne.0:
-! FLTRAN=chem_files/Solar_spectrum.1500-2004_fastj2 ! KSOLAR=9
-! FLTRAN=chem_files/solar.lean02.ann.uvflux_hdr_fastj2  ! KSOLAR=2
-!-----------------------------------------------
 SULFATE_SA=temp_2x2.5/sulfate_pi_fakeM23_M_SA_2x2.5gf ! really 4x5 and 9-layer
 DMS_FIELD=temp_2x2.5/dms_conc_2x2.5gf ! really 4x5
 SO2_FIELD=temp_2x2.5/so2_conc_2x2.5gf ! really 4x5
