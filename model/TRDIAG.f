@@ -1063,7 +1063,7 @@ c
      &     ,to_per_mil
 #endif
       use constant, only : teeny
-      use domain_decomp_atm, only : grid,am_i_root
+      use domain_decomp_atm, only : grid,get,am_i_root
       use geom, only : byaxyp
       use cdl_mod
       implicit none
