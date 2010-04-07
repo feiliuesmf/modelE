@@ -1515,8 +1515,11 @@ c update north polar cap
       real*8 :: fup0,fup_pass,rm0,fupz_pass,fupzz_pass
 
 c**** Get useful local parameters for domain decomposition
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: J_0, J_1
-      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
+      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       do j=j_0,j_1
       do i=1,imaxj(j)
@@ -1626,7 +1629,7 @@ c**** Get useful local parameters for domain decomposition
       enddo ! j
 
 c fill poles.  skip if pole-filling not needed.
-      if(grid%have_south_pole) then
+      if(have_south_pole) then
         j=1
         do i=2,im
           mass(i,j,1) = mass(1,j,1)
@@ -1634,7 +1637,7 @@ c fill poles.  skip if pole-filling not needed.
           rmom(:,i,j,1) = rmom(:,1,j,1)
         enddo
       endif
-      if(grid%have_north_pole) then
+      if(have_north_pole) then
         j=jm
         do i=2,im
           mass(i,j,1) = mass(1,j,1)
@@ -2058,7 +2061,10 @@ c update north polar cap
 
 c**** Get useful local parameters for domain decomposition
       integer :: J_0, J_1
-      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1 )
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL GET( grid, J_STRT=J_0 , J_STOP=J_1,
+     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       do j=j_0,j_1
       do i=1,imaxj(j)
@@ -2128,7 +2134,7 @@ c**** Get useful local parameters for domain decomposition
       enddo ! j
 
 c fill poles.  skip if pole-filling not needed.
-      if(grid%have_south_pole) then
+      if(have_south_pole) then
         j=1
         do i=2,im
           mass(i,j,1) = mass(1,j,1)
@@ -2136,7 +2142,7 @@ c fill poles.  skip if pole-filling not needed.
           rmom(:,i,j,1) = rmom(:,1,j,1)
         enddo
       endif
-      if(grid%have_north_pole) then
+      if(have_north_pole) then
         j=jm
         do i=2,im
           mass(i,j,1) = mass(1,j,1)
