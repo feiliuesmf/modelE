@@ -687,7 +687,7 @@ c     mixing ratios to 1.79 (observed):
       USE CONSTANT, only: PI, radian
       USE TRCHEM_Shindell_COM, only: byradian
       use geom, only : lon2d_dg,lat2d_dg
-      use domain_decomp_atm, only : grid
+      use domain_decomp_atm, only : grid,hasSouthPole, hasNorthPole
 
       IMPLICIT NONE
 
@@ -707,9 +707,9 @@ c     mixing ratios to 1.79 (observed):
 
       DY   = NINT(180./REAL(JM)) ! only used for latlon grid
       vlat = lat2d_dg(i,j)
-      if (J == 1  .and. grid%have_south_pole)
+      if (J == 1  .and. hasSouthPole(grid))
      &     vlat= -90. + 0.5*REAL(DY)
-      if (j == JM .and. grid%have_north_pole)
+      if (j == JM .and. hasNorthPole(grid))
      &     vlat=  90. - 0.5*REAL(DY)
       vlon = -lon2d_dg(i,j) ! i=1 in lon2d_dg is -180 + dlon/2
       TIMEC = (mod(itime,365*nday) + nday + 0.5)*DTsrc  
