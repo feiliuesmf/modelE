@@ -876,7 +876,7 @@ contains
     type (dist_grid),  intent(in) :: grd_dum
     real*8, intent(in) :: arr_glob(:,:,:,:)
     real*8, intent(out) :: arr(grd_dum%j_strt_halo:,:,:,:)
-    logical, intent(in) :: local
+    logical, optional :: local
 
     call scatterReal8(grd_dum, arr_glob, arr, shape(arr), 1, local=local)
     
