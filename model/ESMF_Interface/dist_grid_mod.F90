@@ -272,8 +272,9 @@
   public :: ESMF_DELayout
   public :: ESMF_MAXSTR
 
-      CONTAINS
+  public :: getLogUnit
 
+      CONTAINS
 
       ! This routine initializes the quantities described above.
       ! The initialization should proceed prior to any grid computations.
@@ -2128,6 +2129,23 @@
         type (dist_grid), intent(in) :: this
         hasPeriodicBC = this%private%periodicBC
       end function hasPeriodicBC
+
+      integer function getLogUnit()
+        use FileManager, only: openUnit
+        integer :: unit
+        character(len=40) :: logFileName
+
+        integer, parameter :: UNINITIALIZED = -1
+        integer, save :: logUnit = UNINITIALIZED
+
+        if (logUnit == UNINITIALIZED) then
+          write(logFileName,'(a,i4.4)') 'debug.', my_pet
+          call openUnit(logFileName, logUnit, qbin=.false., qold=.false.)
+        end if
+
+        getLogUnit = logUnit
+
+      end function getLogUnit
 
     end module dist_grid_mod
 
