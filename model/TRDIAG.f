@@ -624,7 +624,7 @@ c
      &     ,to_per_mil
 #endif
       use constant, only : teeny
-      use domain_decomp_atm, only : grid,am_i_root,sumxpe
+      use domain_decomp_atm, only : grid,get,am_i_root,sumxpe
       use geom, only : byaxyp,axyp,lat2d,areag
       use cdl_mod
       implicit none
@@ -637,6 +637,10 @@ c
       character(len=16) :: ijstr
       real*8, dimension(:,:), allocatable :: shnh_loc,shnh
 
+      logical :: have_south_pole, have_north_pole
+      call get(grid, have_south_pole = have_south_pole,
+     &               have_north_pole = have_north_pole)
+
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
       j_0h = grid%j_strt_halo
@@ -648,13 +652,13 @@ c
       j_1 = grid%j_stop
 
 C**** Fill in the undefined pole box duplicates
-      if(grid%have_south_pole) then
+      if(have_south_pole) then
         do i=2,im
           taijn(i,1,:,:) = taijn(1,1,:,:)
           taijs(i,1,:) = taijs(1,1,:)
         enddo
       endif
-      if(grid%have_north_pole) then
+      if(have_north_pole) then
         do i=2,im
           taijn(i,jm,:,:) = taijn(1,jm,:,:)
           taijs(i,jm,:) = taijs(1,jm,:)
@@ -1070,6 +1074,10 @@ c
       real*8, dimension(:,:,:,:), allocatable :: taijl_tmp
       character(len=16) :: zstr,hstr,tstr
 
+      logical :: have_south_pole, have_north_pole
+      call get(grid, have_south_pole = have_south_pole,
+     &               have_north_pole = have_north_pole)
+
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
       j_0h = grid%j_strt_halo
@@ -1081,13 +1089,13 @@ c
       j_1 = grid%j_stop
 
 C**** Fill in the undefined pole box duplicates
-      if(grid%have_south_pole) then
+      if(have_south_pole) then
         do i=2,im
           taijln(i,1,:,:) = taijln(1,1,:,:)
           taijls(i,1,:,:) = taijls(1,1,:,:)
         enddo
       endif
-      if(grid%have_north_pole) then
+      if(have_north_pole) then
         do i=2,im
           taijln(i,jm,:,:) = taijln(1,jm,:,:)
           taijls(i,jm,:,:) = taijls(1,jm,:,:)
