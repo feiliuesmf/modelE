@@ -85,7 +85,7 @@ do_main $(RUN).bin:   $(OBJS) #  $(COMPONENTS:=_dir)
 main gcm: $(MOD_DIR)
 	-rm .liblist
 	touch .liblist
-	+$(MAKE) do_components
+	+$(MAKE) -j do_components
 	+$(MAKE) do_main
 
 echo_vars:

@@ -43,6 +43,7 @@ C**** Variables used in DIAG5 calculations
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GLOBALSUM
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE MOMENTS, only : advecv
       IMPLICIT NONE
 
@@ -2207,7 +2208,8 @@ C****
 
       subroutine replicate_uv_to_agrid(ur,vr,k,ursp,vrsp,urnp,vrnp)
       USE MODEL_COM, only : im,jm,lm,u,v
-      USE DOMAIN_DECOMP_1D, only : GRID
+      USE DOMAIN_DECOMP_1D, only : GRID,
+     &     hasSouthPole, hasNorthPole
       implicit none
       integer :: k
       REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -2244,11 +2246,11 @@ C****
         vr(4,l,i,j) = v(i  ,j+1,l)
       enddo ! l
       enddo ! j
-      if(grid%have_south_pole) then
+      if(hasSouthPole(grid)) then
         ursp(:,:) = u(:,2,:)
         vrsp(:,:) = v(:,2,:)
       endif
-      if(grid%have_north_pole) then
+      if(hasNorthPole(grid)) then
         urnp(:,:) = u(:,jm,:)
         vrnp(:,:) = v(:,jm,:)
       endif
@@ -2258,7 +2260,8 @@ C****
       subroutine avg_replicated_duv_to_vgrid(du,dv,k,
      &     dusp,dvsp,dunp,dvnp)
       USE MODEL_COM, only : im,jm,lm,u,v
-      USE DOMAIN_DECOMP_1D, only : GRID, HALO_UPDATE_BLOCK,SOUTH
+      USE DOMAIN_DECOMP_1D, only : GRID, HALO_UPDATE_BLOCK,SOUTH,
+     &     hasSouthPole, hasNorthPole
       implicit none
       integer :: k
       REAL*8, DIMENSION(k,LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -2275,7 +2278,7 @@ C****
 c
 c copy circumpolar data into the appropriate spots in du,dv
 c
-      if(grid%have_south_pole) then
+      if(hasSouthPole(grid)) then
         j=1
         do i=2,im
         do l=1,lm
@@ -2298,7 +2301,7 @@ c compensate for the factor of 2 in ravj(1).  change ravj(1) later.
         dv(3:4,:,:,j) = dv(3:4,:,:,j)*.5
 #endif
       endif
-      if(grid%have_north_pole) then
+      if(hasNorthPole(grid)) then
         j=jm
         do i=2,im
         do l=1,lm
@@ -2359,14 +2362,15 @@ c
       SUBROUTINE regrid_btoa_3d(x)
       USE MODEL_COM, only : im,jm,lm,byim
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID
-      USE DOMAIN_DECOMP_1D, only : NORTH
+      USE DOMAIN_DECOMP_1D, only : NORTH,
+     &     hasSouthPole, hasNorthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: X
       INTEGER :: I,IM1,J,L
       REAL*8 :: XIM1J,XIJ
       call halo_update(grid,x,from=north)
       DO L=1,LM
-      if(grid%have_south_pole) then
+      if(hasSouthPole(grid)) then
         x(:,1,l) = sum(x(:,2,l))*byim
       endif
       DO J=GRID%J_STRT_SKP,GRID%J_STOP_SKP
@@ -2380,7 +2384,7 @@ c
         IM1=I
       ENDDO
       ENDDO
-      if(grid%have_north_pole) then
+      if(hasNorthPole(grid)) then
         x(:,jm,l) = sum(x(:,jm,l))*byim
       endif
       ENDDO
@@ -2391,7 +2395,8 @@ c
 c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       USE MODEL_COM, only : im,jm,byim
       USE GEOM, only : rapvs,rapvn,dxyp,dxyv
-      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, GRID, NORTH
+      USE DOMAIN_DECOMP_1D, only : GET, HALO_UPDATE, GRID, NORTH,
+     &     hasSouthPole, hasNorthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X
       INTEGER :: I,IM1,J
@@ -2399,7 +2404,7 @@ c regrids scalar x_bgrid*dxyv -> x_agrid*dxyp
       REAL*8 :: XIM1J,XIJ
       CALL GET(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
       call halo_update(grid,x,from=north)
-      if(grid%have_south_pole) then
+      if(hasSouthPole(grid)) then
         X(:,1) = SUM(X(:,2))*BYIM*(DXYP(1)/DXYV(2))
       endif
       DO J=J_0S,J_1S
@@ -2415,7 +2420,7 @@ c        X(I,J) = .25*(XIM1J+X(I,J)+X(IM1,J+1)+X(I,J+1))
         IM1 = I
       ENDDO
       ENDDO
-      if(grid%have_north_pole) then
+      if(hasNorthPole(grid)) then
         X(:,JM) = SUM(X(:,JM))*BYIM*(DXYP(JM)/DXYV(JM))
       endif
       return
@@ -2546,16 +2551,18 @@ c      end module DIAG
 
       subroutine regrid_to_primary_1d(x)
       USE MODEL_COM, only : jm
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID, NORTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, GRID, NORTH,
+     &     hasSouthPole, hasNorthPole
+
       implicit none
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: X
       integer :: j
       CALL HALO_UPDATE(grid, X, FROM=NORTH)
-      if(grid%have_south_pole) X(1)=0.
+      if(hasSouthPole(grid)) X(1)=0.
       DO J=GRID%J_STRT,GRID%J_STOP_SKP
         X(J)=.5*(X(J)+X(J+1))
       ENDDO
-      if(grid%have_north_pole) X(JM)=.5*X(JM)
+      if(hasNorthPole(grid)) X(JM)=.5*X(JM)
       return
       end subroutine regrid_to_primary_1d
 

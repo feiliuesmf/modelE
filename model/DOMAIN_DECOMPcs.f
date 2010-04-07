@@ -9,7 +9,7 @@
 c get grid-independent procedures from domain_decomp_1d
       use domain_decomp_1d, only : get, am_i_root, sumxpe,
      &     read_parallel,write_parallel,esmf_bcast,
-     &     load_cap_config,globalmax
+     &     load_cap_config,globalmax, setMpiCommunicator
 
 c get dist_grid, halo_update, globalsum, etc. from the dd2d_utils module
       use dd2d_utils, only : dist_grid,init_dist_grid
@@ -68,7 +68,10 @@ c sanity checks
       width_ = 1
       If (Present(width)) width_=width
 
-      grd_dum % BC_PERIODIC = .false.
+      grd_dum%private%PERIODICBC = .false.
+      grd_dum%private%hasSouthPole = .false.
+      grd_dum%private%hasNorthPole = .false.
+      grd_dum%private%hasEquator = .false.
 
       Call ESMF_VMGet(modelE_vm, petCount=NPES, localPET=rank_glob)
 
@@ -121,10 +124,7 @@ c set these to something huge to trigger segfaults if accidentlly used?
       grd_dum%J_STRT_STGR   = grd_dum%J_STRT
       grd_dum%J_STOP_STGR   = grd_dum%J_STOP
 
-      grd_dum%HAVE_SOUTH_POLE = .false.
-      grd_dum%HAVE_NORTH_POLE = .false.
-      grd_dum%HAVE_EQUATOR    = .false. ! not used anywhere in modelE
-
+      call setMpiCommunicator(grd_dum, MPI_COMM_WORLD)
 
 c
 c initialize compoments of dist_grid specific to dd2d_utils routines

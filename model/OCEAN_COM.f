@@ -410,6 +410,7 @@ C****
       IMPLICIT NONE
 
       INTEGER :: IER
+      integer :: img, jmg, lmg
 
 C*
 C**** Define the ocean (Russell) grid 
@@ -432,21 +433,31 @@ C****
       ALLOCATE( SXMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SYMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SZMO(IM,J_0H:J_1H,LMO), STAT = IER)
-      if(am_i_root()) then
-        ALLOCATE(   MO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   UO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   VO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   UOD_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   VOD_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   G0M_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   GXMO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   GYMO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   GZMO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   S0M_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   SXMO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   SYMO_glob(IM,JM,LMO), STAT = IER)
-        ALLOCATE(   SZMO_glob(IM,JM,LMO), STAT = IER)
-      endif
+
+      if (am_i_root()) then
+        img = im
+        jmg = jm
+        lmg = lmo
+      else
+        img = 1
+        jmg = 1
+        lmg = 1
+      end if
+
+      ALLOCATE(   MO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   UO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   VO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   UOD_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   VOD_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   G0M_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   GXMO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   GYMO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   GZMO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   S0M_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   SXMO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   SYMO_glob(IMG,JMG,LMG), STAT = IER)
+      ALLOCATE(   SZMO_glob(IMG,JMG,LMG), STAT = IER)
+      
       ALLOCATE( FOCEAN_loc(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPRESS(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
@@ -461,12 +472,11 @@ C****
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
       ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      if(am_i_root()) then
-        ALLOCATE( TRMO_glob(IM,JM,LMO,NTM), STAT = IER)
-        ALLOCATE( TXMO_glob(IM,JM,LMO,NTM), STAT = IER)
-        ALLOCATE( TYMO_glob(IM,JM,LMO,NTM), STAT = IER)
-        ALLOCATE( TZMO_glob(IM,JM,LMO,NTM), STAT = IER)
-      endif
+
+      ALLOCATE( TRMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+      ALLOCATE( TXMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+      ALLOCATE( TYMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
+      ALLOCATE( TZMO_glob(IMG,JMG,LMG,NTM), STAT = IER)
 #endif
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
 !!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)

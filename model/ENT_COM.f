@@ -149,7 +149,11 @@
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       allocate( buf     (ENT_IO_MAXBUF, I_0H:I_1H, J_0H:J_1H) )
-      if(AM_I_ROOT()) allocate( buf_glob(ENT_IO_MAXBUF,im,jm) )
+      if(AM_I_ROOT()) then
+        allocate( buf_glob(ENT_IO_MAXBUF,im,jm) )
+      else
+        allocate( buf_glob(1,1,1) )
+      end if
 
       call copy_ent_state_to_array( buf )
       CALL PACK_COLUMN(grid, buf, buf_glob)
@@ -157,8 +161,8 @@
 
       if (AM_I_ROOT()) then
         WRITE (kunit,err=10) ENT_HEADER, buf_glob
-        deallocate( buf_glob )
       endif
+      deallocate( buf_glob )
 
       return
  10   continue

@@ -145,7 +145,8 @@ C**** some B-grid conservation quantities
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
+     &     hasSouthPole, hasNorthPole
       IMPLICIT NONE
       INTEGER I,J
       REAL*8 AAA
@@ -228,7 +229,7 @@ c       ZMIN(I,J)=0.0D+00
 
       CALL PLAST
 
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
        AAA=0.0
        DO I=2,NX1-1
          AAA=AAA+PRESS(I,NY1-1)
@@ -286,7 +287,8 @@ C NOW PUT IN MINIMAL MASS FOR TIME STEPPING CALCULATIONS
 !@auth Jiping Liu/Gavin Schmidt (based on code from J. Zhang)
 !@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
-      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE,
+     &     hasSouthPole, hasNorthPole
       IMPLICIT NONE
       REAL*8, DIMENSION(NX1,grid_ICDYN%j_strt_halo:
      &     grid_ICDYN%j_stop_halo) :: E11,E22,E12
@@ -337,7 +339,7 @@ C NOW PUT MIN AND MAX VISCOSITIES IN
         END DO
       END DO
 
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
         AAA=0.0
         DO I=2,NX1-1
           AAA=AAA+ZETA(I,NY1-1)
@@ -348,7 +350,7 @@ C NOW PUT MIN AND MAX VISCOSITIES IN
         END DO
       end if
 
-      if (grid_ICDYN%HAVE_SOUTH_POLE) then
+      if (hasSouthPole(grid_ICDYN)) then
         AAA=0.0
         DO I=2,NX1-1
           AAA=AAA+ZETA(I,2)
@@ -382,7 +384,8 @@ c         SS11=(ZETA(I,J)-ETA(I,J))*(E11(I,J)+E22(I,J))-PRESS(I,J)*0.5
 !@ver  1.0
       USE DOMAIN_DECOMP_1D, only : GET, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, ONLY : PACK_DATA, UNPACK_DATA, AM_I_ROOT,
+     &     hasSouthPole, hasNorthPole
       USE TRIDIAG_MOD, only : TRIDIAG_new, TRIDIAG_cyclic
       IMPLICIT NONE
 
@@ -436,7 +439,7 @@ C NOW MAKE SURE BDRY PTS ARE EQUAL TO ZERO
         END DO
       END DO
 
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
         DO I=1,NX1/2
          UICE(I,NY1,1)=-UICEC(I+(NX1-2)/2,NY1-1)
          VICE(I,NY1,1)=-VICEC(I+(NX1-2)/2,NY1-1)
@@ -612,14 +615,14 @@ C NOW THE SECOND HALF
       END DO
       END DO
 
-      if (grid_ICDYN%HAVE_SOUTH_POLE) then
+      if (hasSouthPole(grid_ICDYN)) then
         DO I=2,NXLCYC
           AV(I,2)=0.0
 c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
         DO I=2,NXLCYC
           CV(I,NYPOLE)=0.0
         END DO
@@ -737,14 +740,14 @@ C THE FIRST HALF
       END DO
       END DO
 
-      if (grid_ICDYN%HAVE_SOUTH_POLE) then
+      if (hasSouthPole(grid_ICDYN)) then
         DO I=2,NXLCYC
           AV(I,2)=0.0
 c         CV(2,I)=CV(2,I)/BV(2,I)  ! absorbed into TRIDIAG
         END DO
       end if
 
-      if (grid_ICDYN%HAVE_NORTH_POLE) then
+      if (hasNorthPole(grid_ICDYN)) then
         DO I=2,NXLCYC
           CV(I,NYPOLE)=0.0
         END DO
@@ -872,7 +875,8 @@ C NOW THE SECOND HALF
 
 
       Subroutine GEOMICDYN
-      use DOMAIN_DECOMP_1D, only : GET
+      use DOMAIN_DECOMP_1D, only : GET,
+     &     hasSouthPole, hasNorthPole
       USE CONSTANT, only : OMEGA,RADIUS,PI,TWOPI,SDAY,radian
       IMPLICIT NONE
       INTEGER :: J_0,J_1,J_0S,J_1S
@@ -919,11 +923,11 @@ c****
       enddo
 
 C**** polar box corrections
-      IF (grid_ICDYN%HAVE_NORTH_POLE) THEN
+      IF (hasNorthPole(grid_ICDYN)) THEN
         dyt(ny1)=dyt(ny1)*acor
         dyu(ny1)=dyu(ny1)*acoru
       END IF
-      IF (grid_ICDYN%HAVE_SOUTH_POLE) THEN
+      IF (hasSouthPole(grid_ICDYN)) THEN
         dyt(1)=dyt(1)*acor
         dyu(1)=dyu(1)*acoru
       END IF

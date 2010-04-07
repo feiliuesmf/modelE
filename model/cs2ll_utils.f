@@ -1682,6 +1682,7 @@ c
      &     ll2csint,skip_halos)
       use constant, only : pi,twopi
       use dd2d_utils, only : dist_grid
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       type(dist_grid), intent(in) :: grid_ll,grid_cs
 !@var lons,lats global coordinates of LL grid
       real*8, dimension(grid_ll%npx) :: lons
@@ -1789,12 +1790,12 @@ c which ranges from lats(js) (included) to lats(je+1) (not included)
 c
       if(grid_ll%have_domain) then
         allocate(ix(npts_glob), jy(npts_glob))
-        if(grid_ll%have_south_pole) then
+        if(hasSouthPole(grid_ll)) then
           latmin=-pi/2.
         else
           latmin = lats(grid_ll%js)
         endif
-        if(grid_ll%have_north_pole) then
+        if(hasNorthPole(grid_ll)) then
           latmax=+pi/2.
         else
           latmax = lats(grid_ll%je+1)

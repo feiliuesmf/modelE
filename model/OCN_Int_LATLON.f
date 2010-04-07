@@ -801,7 +801,8 @@ C***  Scatter global array oA_glob to the ocean grid
       USE OCEAN,      only : oIM=>im,oJM=>jm
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID, 
+     &     hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
       IMPLICIT NONE
 
@@ -838,7 +839,7 @@ C***  Gather the requisite atm latitude bands
 C***  Interpolate aA from atmospheric grid to ocean grid 
       copypole_ = .true.
       if(present(copypole)) copypole_ = copypole
-      if(copypole_ .and. aGRID%have_north_pole) then
+      if(copypole_ .and. hasNorthPole(aGRID)) then
         aA_band(2:aIM,aJM) = aA_band(1,aJM)
       endif
       if(copypole_) then
@@ -911,7 +912,8 @@ C***  Interpolate aA from atmospheric grid to ocean grid
       USE GEOM,  only : aDLATM=>DLATM,aIMAXJ=>IMAXJ,aSINI=>SINIP,
      &                  aCOSI=>COSIP
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
+     &     hasNorthPole, hasSouthPole
       USE OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -950,11 +952,11 @@ C***  Local vars
           endif
         enddo
       enddo
-      if(aGRID%have_south_pole) then
+      if(hasSouthPole(aGRID)) then
         aUtmp(:,1) = 0.
         aVtmp(:,1) = 0.
       endif
-      if(aGRID%have_north_pole) then
+      if(hasNorthPole(aGRID)) then
         aUnp = aU(1,aJM,oN)
         aVnp = aV(1,aJM,oN)
         aUtmp(:,aJM) = aUnp*aCOSI(:) + aVnp*aSINI(:)
@@ -964,7 +966,7 @@ c      call INT_AG2OG(aUtmp,oU(:,:,oN),aWEIGHT,copypole=.false.)
 c      call INT_AG2OG(aVtmp,oV(:,:,oN),aWEIGHT,copypole=.false.)
       call INT_AG2OG_2Da_par(aUtmp,oU(:,:,oN),aWEIGHT,copypole=.false.)
       call INT_AG2OG_2Da_par(aVtmp,oV(:,:,oN),aWEIGHT,copypole=.false.)
-      if(oGRID%have_north_pole) then
+      if(hasNorthPole(oGRID)) then
         oUnp = SUM(oU(:,oJM,oN)*oCOSI(:))*2/oIM
         oVnp = SUM(oU(:,oJM,oN)*oSINI(:))*2/oIM
         oU(1,oJM,oN) = oUnp
@@ -1507,7 +1509,8 @@ C***  Scatter global arrays to the atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
+     &     hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -1550,7 +1553,7 @@ C***  Gather the requisite ocean latitude bands
 
 C***  Interpolate oA_band from ocean grid to atmospheric grid 
 
-      if(oGRID%have_north_pole) then
+      if(hasNorthPole(oGRID)) then
         if(CopyPole) oWEIGHT_band(2:oIM,oJM) = oWEIGHT_band(1,oJM)
         if(AvgPole_) oA_band(2:oIM,oJM) = oA_band(1,oJM)
       endif
@@ -1575,7 +1578,8 @@ C***  Interpolate oA_band from ocean grid to atmospheric grid
 
       USE MODEL_COM, only : aFOCEAN_loc=>FOCEAN
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
+     &     hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -1628,7 +1632,7 @@ C***  Gather the requisite ocean latitude bands
 C***  Interpolate oA from ocean grid to atmospheric grid 
       do n=1,NT
         oA2d = oA_band(n,:,:)
-        if(oGRID%have_north_pole) then
+        if(hasNorthPole(oGRID)) then
           oA2D(2:oIM,oJM) = oA2D(1,oJM)
         endif
         call HNTR8P_band(oWEIGHT_band, oA2D, hntrp_o2a, aA2d)
@@ -1655,7 +1659,8 @@ C***  Interpolate oA from ocean grid to atmospheric grid
       USE OCEAN, only : oDLATM=>DLATM
       Use GEOM,  only : aDLATM=>DLATM
 
-      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID
+      USE DOMAIN_DECOMP_1D, only : aGRID=>GRID,
+     &     hasNorthPole, hasSouthPole
       Use OCEANR_DIM,       only : oGRID
 
       IMPLICIT NONE
@@ -1694,13 +1699,13 @@ C***  Interpolate oA from ocean grid to atmospheric grid
 C***  Gather the requisite ocean latitude bands
       CALL BAND_PACK (hntrp_o2a%bpack, oA(:,:,1:aN), oA_band)
       CALL BAND_PACK (hntrp_o2a%bpack, oWEIGHT, oWEIGHT_band)
-      if(CopyPole .and. oGRID%have_north_pole) then
+      if(CopyPole .and. hasNorthPole(oGRID)) then
         oWEIGHT_band(2:oIM,oJM) = oWEIGHT_band(1,oJM)
       endif
 
 C***  Interpolate oA from ocean grid to atmospheric grid 
       do n=1,aN
-        if(oGRID%have_north_pole) then
+        if(hasNorthPole(oGRID)) then
           oA_band(2:oIM,oJM,n) = oA_band(1,oJM,n)
         endif
         call HNTR8P_band(oWEIGHT_band,oA_band(:,:,n),hntrp_o2a,

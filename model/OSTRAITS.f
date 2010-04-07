@@ -338,7 +338,7 @@ C****
      *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
      *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
      *                   kn2
-      use domain_decomp_1d, only: am_i_root, get
+      use domain_decomp_1d, only: am_i_root, get, getMpiCommunicator
       USE OCEANR_DIM, only : grid=>ogrid
       Use SparseCommunicator_mod
       IMPLICIT NONE
@@ -375,7 +375,7 @@ c The two ends of each strait must be adjacent in the list of points!
 
       mySparseComm_type = SparseCommunicator(points,
      &                  locLB  , locUB  , globLB , globUB,
-     &                  comm = grid%MPI_COMM)
+     &                  comm = getMpiCommunicator(grid))
       deallocate(points)
 
 C****

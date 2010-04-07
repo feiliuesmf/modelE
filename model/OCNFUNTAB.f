@@ -39,6 +39,7 @@ C****
       REAL*8 GG,SS,PP
       INTEGER IG,JS,KP
 C****
+      if (S < 0) write(*,*)__LINE__,__FILE__,SS
       GG = G*2.5d-4   ! /4000.
       SS = S*1000.
       PP = P*5d-7     ! /2.D6

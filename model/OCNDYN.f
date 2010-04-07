@@ -318,6 +318,7 @@ C***  Interpolate ocean surface velocity to the DYNSI grid
       USE FLUXES, only : ogeoza, uosurf, vosurf
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       USE DOMAIN_DECOMP_1D, only : get,halo_update
+      use DOMAIN_DECOMP_1D, only: hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
       USE OCEAN, only : remap_a2o,remap_o2a
 #if defined(CUBED_SPHERE) || defined(CUBE_GRID)
@@ -502,13 +503,13 @@ C****
           call get_i1i2(qexist,im,nbyzc(j,l),
      &         i1yzc(1,j,l),i2yzc(1,j,l),nbyzmax)
         enddo
-        if(grid%have_south_pole) then
+        if(hasSouthPole(grid)) then
           nbyzm(1,l) = 0
           nbyzu(1,l) = 0
           nbyzv(1,l) = 0
           nbyzc(1,l) = 0
         endif
-        if(have_north_pole) then
+        if(hasNorthPole(grid)) then
           nbyzm(jm,l) = 0
           nbyzu(jm,l) = 0
           nbyzv(jm,l) = 0

@@ -111,7 +111,7 @@ C**** some B-grid conservation quantities
 !@sum  GEOM_B Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
 !@ver  1.0 (B grid version)
-      use domain_decomp_atm, only : grid
+      use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       IMPLICIT NONE
       REAL*8, PARAMETER :: EDPERD=1.,EDPERY = 365.
 
@@ -501,7 +501,7 @@ c daily-average cosz and the hour of dusk
       end subroutine daily_cosz
 
       subroutine cosz_init
-      use domain_decomp_atm, only : grid
+      use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       use constant, only : twopi
       use model_com, only : jm
       use geom, only : dlat
@@ -518,7 +518,7 @@ c daily-average cosz and the hour of dusk
       allocate(sinj(j_0h:j_1h),cosj(j_0h:j_1h))
 
 C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
-      if (GRID%HAVE_SOUTH_POLE) then
+      if (hasSouthPole(GRID)) then
         PHIS=-.25*TWOPI
         SPHIS=-1.
         CPHIS=0.
@@ -538,7 +538,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
         SPHIS=SPHIN
         CPHIS=CPHIN
       END DO
-      IF (GRID%HAVE_NORTH_POLE) THEN
+      IF (hasNorthPole(GRID)) THEN
         PHIN=.25*TWOPI
         SPHIN=1.
         CPHIN=0.
@@ -565,7 +565,7 @@ C**** COMPUTE THE AREA WEIGHTED LATITUDES AND THEIR SINES AND COSINES
       USE MODEL_COM
       USE GEOM, only : lon,sinip,cosip
 c      USE RAD_COM, only : cosd,sind
-      USE DOMAIN_DECOMP_ATM, ONLY: grid
+      USE DOMAIN_DECOMP_ATM, ONLY: grid, hasSouthPole, hasNorthPole
       IMPLICIT NONE
       SAVE
       REAL*8 ROT1,ROT2
@@ -615,8 +615,8 @@ C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
       DO J=1,JM,JM-1
-        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR.
-     *     ((J .EQ. JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
+        IF(((J .EQ. 1) .AND. (hasSouthPole(grid))) .OR.
+     *     ((J .EQ. JM) .AND. (hasNorthPole(grid)))) THEN
            SJSD=SINJ(J)*SIND
            CJCD=COSJ(J)*COSD
            IF (SJSD+CJCD.GT.ZERO1) THEN
@@ -726,8 +726,8 @@ C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
       DO J=1,JM,JM-1
-        IF(((J .EQ. 1) .AND. (grid%HAVE_SOUTH_POLE)) .OR.
-     *     ((J .EQ. JM) .AND. (grid%HAVE_NORTH_POLE))) THEN
+        IF(((J .EQ. 1) .AND. (hasSouthPole(grid))) .OR.
+     *     ((J .EQ. JM) .AND. (hasNorthPole(grid)))) THEN
            SJSD=SINJ(J)*SIND
            CJCD=COSJ(J)*COSD
            IF (SJSD+CJCD.GT.ZERO1) THEN

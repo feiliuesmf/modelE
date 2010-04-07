@@ -1851,6 +1851,7 @@ c    extended/rescaled instances of arrays when writing acc files
       use diag_com, only :  hdiurn
 #endif
       use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only : hasNorthPole, hasSouthPole
       use pario, only : write_dist_data,read_dist_data
      &     ,write_data,read_data
       implicit none
@@ -1865,10 +1866,10 @@ c    extended/rescaled instances of arrays when writing acc files
         else  ! pole fills needed for acc-files
           do k=1,kaijl
             do l=1,lm
-              if(grid%have_south_pole) then
+              if(hasSouthPole(grid)) then
                 aijl(2:im, 1,l,k) = aijl(1, 1,l,k)
               endif
-              if(grid%have_north_pole) then
+              if(hasNorthPole(grid)) then
                 aijl(2:im,jm,l,k) = aijl(1,jm,l,k)
               endif
             enddo

@@ -118,6 +118,7 @@ c
      *     , oRUNPSI, oSRUNPSI, oERUNPSI
       use ocean, only : remap_a2o
       USE array_bundle
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 
       IMPLICIT NONE
       INTEGER N
@@ -147,7 +148,7 @@ c
       aWEIGHT(:,:) = 1.-aRSI(:,:) !!  open ocean fraction
       call ab_add(lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij' )
 
-      if (agrid%HAVE_NORTH_POLE
+      if (hasNorthPole(agrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call copy_pole(aPREC(:,aJM),aIM)
          call copy_pole(aEPREC(:,aJM),aIM)
@@ -169,7 +170,7 @@ c
 
       do N=1,NTM
         atmp(N,:,:) = aTRPREC(N,:,:)/AXYP(:,:)
-        if (agrid%HAVE_NORTH_POLE
+        if (hasNorthPole(agrid)
      &       .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &       call copy_pole(atmp(N,:,aJM),aIM)
       enddo
@@ -193,7 +194,7 @@ c
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       do N=1,NTM
-         if (agrid%HAVE_NORTH_POLE
+         if (hasNorthPole(agrid)
      &        .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &        call copy_pole(aTRUNPSI(N,:,aJM),aIM)
       enddo
@@ -207,7 +208,7 @@ c*   actual interpolation here
       call bundle_interpolation(lstr,remap_A2O)
 
 c*   polar values are replaced by their longitudinal mean
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(ogrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg(oPREC(:,oJM), oIM)
          call lon_avg(oEPREC(:,oJM), oIM)
@@ -216,7 +217,7 @@ c*   polar values are replaced by their longitudinal mean
          call lon_avg(oERUNPSI(:,oJM), oIM)
          call lon_avg(oRSI(:,oJM), oIM)
       endif
-      if (ogrid%HAVE_SOUTH_POLE
+      if (hasSouthPole(ogrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM)) then
          call lon_avg(oPREC(:,1), oIM)
          call lon_avg(oEPREC(:,1), oIM)
@@ -232,12 +233,12 @@ c*   polar values are replaced by their longitudinal mean
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       DO N=1,NTM
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(ogrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg(oTRPREC(N,:,oJM), oIM)
          call lon_avg(oTRUNPSI(N,:,oJM), oIM)
       endif
-      if (ogrid%HAVE_SOUTH_POLE
+      if (hasSouthPole(ogrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM)) then
          call lon_avg(oTRPREC(N,:,1), oIM)
          call lon_avg(oTRUNPSI(N,:,1), oIM)
@@ -364,7 +365,8 @@ c*   polar values are replaced by their longitudinal mean
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,
+     &     hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : MO, UO,VO, G0M
@@ -397,6 +399,7 @@ c*   polar values are replaced by their longitudinal mean
 #endif
       use ocean, only : remap_O2A
       USE array_bundle
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 
       IMPLICIT NONE
       INTEGER N
@@ -471,7 +474,7 @@ c*   polar values are replaced by their longitudinal mean
 
       do L=1,2
       oMOtmp(:,:,L) = MO(:,:,L)
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(oMOtmp(:,oJM,L),oIM)
       enddo
@@ -479,21 +482,21 @@ c*   polar values are replaced by their longitudinal mean
      &     'ijk', oWEIGHT, aWEIGHT) 
 
       OGEOZtmp=OGEOZ
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(OGEOZtmp(:,oJM),oIM)
       call ab_add( lstr, OGEOZtmp, aOGEOZ, shape(OGEOZtmp),'ij',
      &     oWEIGHT, aWEIGHT)
 
       OGEOZ_SVtmp=OGEOZ_SV
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(OGEOZ_SVtmp(:,oJM),oIM)
       call ab_add( lstr, OGEOZ_SVtmp, aOGEOZ_SV, shape(OGEOZ_SVtmp),
      &     'ij',oWEIGHT, aWEIGHT)
 
       oWEIGHT1(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(oWEIGHT1(:,oJM),oIM)
       call ab_add( lstr, oWEIGHT1, aWEIGHT1, shape(oWEIGHT1),'ij')
@@ -510,7 +513,7 @@ c*   polar values are replaced by their longitudinal mean
           END DO
         END DO
       END DO
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &        .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
         do L=1,2
           call copy_pole(oG0(:,oJM,L),oIM)
@@ -550,10 +553,10 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
           oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
         enddo
       enddo
-      if(oGRID%have_south_pole) then
+      if(hasSouthPole(oGRID)) then
         oUO1(:,1) = 0.; oVO1(:,1) = 0.
       endif
-      if(oGRID%have_north_pole) then ! NP U,V from prognostic polar U,V
+      if(hasNorthPole(oGRID)) then ! NP U,V from prognostic polar U,V
         oUO1(:,oJM) = UO(oIM,oJM,1)*oCOSI(:) + UO(IVNPO,oJM,1)*oSINI(:)
 ! oVO1 currently has no effect when atm is lat-lon
         oVO1(:,oJM) = UO(IVNPO,oJM,1)*oCOSI(:) - UO(oIM,oJM,1)*oSINI(:)
@@ -587,7 +590,7 @@ C**** surface tracer concentration
           END DO
         END DO
         end if
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(oTRAC(:,oJM,NT),oIM)
       END DO
@@ -611,7 +614,7 @@ C**** surface tracer concentration
         END DO
       END DO
 
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(oTOT_CHLO_loc(:,oJM),oIM)
 
@@ -635,7 +638,7 @@ C**** surface tracer concentration
         END DO
       END DO
 
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(opCO2_loc(:,oJM),oIM)
 
@@ -652,7 +655,7 @@ c*    actual interpolation here
 
 
 #ifndef CUBE_GRID
-      if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
+      if(hasNorthPole(agrid)) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
         aUO1(1,aJM) = UNP
@@ -660,7 +663,7 @@ c*    actual interpolation here
       endif
 #endif
 
-      if(agrid%have_north_pole .and.
+      if(hasNorthPole(agrid) .and.
      &     (aIM .ne. oIM .or. aJM .ne. oJM)) then
          call lon_avg(aOGEOZ(:,aJM),aIM)
          call lon_avg(aOGEOZ_sv(:,aJM),aIM)
@@ -671,7 +674,7 @@ c*    actual interpolation here
         enddo
       endif
 
-      if(agrid%have_south_pole .and.
+      if(hasSouthPole(agrid) .and.
      &     (aIM .ne. oIM .or. aJM .ne. oJM)) then
          call lon_avg(aOGEOZ(:,1),aIM)
          call lon_avg(aOGEOZ_sv(:,1),aIM)
@@ -687,10 +690,10 @@ c*    actual interpolation here
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
       do l=1,NTM
-         if(agrid%have_north_pole .and.
+         if(hasNorthPole(agrid) .and.
      &        (aIM .ne. oIM .or. aJM .ne. oJM))
      &        call lon_avg(aTRAC(:,aJM,l),aIM)
-         if(agrid%have_south_pole .and.
+         if(hasSouthPole(agrid) .and.
      &        (aIM .ne. oIM .or. aJM .ne. oJM)) 
      &        call lon_avg(aTRAC(:,1,l),aIM)
          
@@ -699,20 +702,20 @@ c*    actual interpolation here
       enddo
 #endif
 #ifdef TRACERS_OceanBiology
-      if(agrid%have_north_pole .and.
+      if(hasNorthPole(agrid) .and.
      &     (aIM .ne. oIM .or. aJM .ne. oJM))
      &     call lon_avg(CHL(:,aJM),aIM)
-      if(agrid%have_south_pole .and.
+      if(hasSouthPole(agrid) .and.
      &     (aIM .ne. oIM .or. aJM .ne. oJM))
      &     call lon_avg(CHL(:,1),aIM)
 #endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
       DO l = 1,NTM
-         if(agrid%have_north_pole .and.
+         if(hasNorthPole(agrid) .and.
      &        (aIM .ne. oIM .or. aJM .ne. oJM))
      &        call lon_avg(aTRAC(:,aJM,l),aIM)
-         if(agrid%have_south_pole .and.
+         if(hasSouthPole(agrid) .and.
      &        (aIM .ne. oIM .or. aJM .ne. oJM)) 
      &        call lon_avg(aTRAC(:,1,l),aIM)
       END DO
@@ -751,7 +754,8 @@ c*    actual interpolation here
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,
+     &     hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
       USE OCEAN, only : MO, UO,VO, G0M
@@ -882,10 +886,10 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
           oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
         enddo
       enddo
-      if(oGRID%have_south_pole) then
+      if(hasSouthPole(oGRID)) then
         oUO1(:,1) = 0.; oVO1(:,1) = 0.
       endif
-      if(oGRID%have_north_pole) then ! NP U,V from prognostic polar U,V
+      if(hasNorthPole(oGRID)) then ! NP U,V from prognostic polar U,V
         oUO1(:,oJM) = UO(oIM,oJM,1)*oCOSI(:) + UO(IVNPO,oJM,1)*oSINI(:)
 ! oVO1 currently has no effect when atm is lat-lon
         oVO1(:,oJM) = UO(IVNPO,oJM,1)*oCOSI(:) - UO(oIM,oJM,1)*oSINI(:)
@@ -894,7 +898,7 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       CALL INT_OG2AG(oUO1, aUO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
       CALL INT_OG2AG(oVO1, aVO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
 #ifndef CUBE_GRID
-      if(aGRID%have_north_pole) then ! latlon atm needs single polar vector
+      if(hasNorthPole(aGRID)) then ! latlon atm needs single polar vector
         UNP = SUM(aUO1(:,aJM)*aCOSI(:))*2/aIM
         VNP = SUM(aUO1(:,aJM)*aSINI(:))*2/aIM
         aUO1(1,aJM) = UNP
@@ -1021,6 +1025,7 @@ C**** surface tracer concentration
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
       USE SEAICE_COM, only : aRSI=>RSI
@@ -1086,6 +1091,7 @@ C**** surface tracer concentration
 #endif
 
       Use GEOM,  only : AXYP,aIMAXJ=>IMAXJ
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 #ifndef CUBE_GRID
        Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
@@ -1174,7 +1180,7 @@ C**** surface tracer concentration
       oJ_0 = oGRID%j_STRT
       oJ_1 = oGRID%j_STOP
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aRSI(:,aJM),aIM)
       call ab_add( lstr, aRSI, oRSI, shape(aRSI),'ij')
@@ -1216,7 +1222,7 @@ C**** surface tracer concentration
         END DO
       END DO
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
         call copy_pole(atmp01(:,aJM),aIM)
         call copy_pole(atmp02(:,aJM),aIM)
@@ -1241,12 +1247,12 @@ C**** surface tracer concentration
           END IF
         END DO
       END DO
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(atmp07(:,aJM),aIM)
       call ab_add( lstr, atmp07, oEGMELT, shape(atmp07), 'ij')
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aAPRESS(:,aJM),aIM)
       call ab_add( lstr, aAPRESS, oAPRESS, shape(aAPRESS), 'ij')
@@ -1254,7 +1260,7 @@ C**** surface tracer concentration
       aWEIGHT(:,:) = aRSI(:,:)
       call ab_add( lstr, aWEIGHT, oWEIGHT, shape(aWEIGHT), 'ij')
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
         call copy_pole(aRUNOSI(:,aJM),aIM)
         call copy_pole(aERUNOSI(:,aJM),aIM)
@@ -1299,7 +1305,7 @@ C**** surface tracer concentration
 !     copy E0(:,:,1) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aE0tmp(:,:)=aE0(:,:,1)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aE0tmp(:,aJM),aIM)
       call ab_add(lstr, aE0tmp, oE0tmp, shape(aE0tmp), 'ij',
@@ -1308,7 +1314,7 @@ C**** surface tracer concentration
 !     copy EVAPOR(:,:,1) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aEVAPORtmp(:,:)=aEVAPOR(:,:,1)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aEVAPORtmp(:,aJM),aIM)
       call ab_add(lstr, aEVAPORtmp, oEVAPORtmp, shape(aEVAPORtmp),
@@ -1317,7 +1323,7 @@ C**** surface tracer concentration
 !     copy SOLAR(1,:,:) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aSOLAR1tmp(:,:)=aSOLAR(1,:,:)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aSOLAR1tmp(:,aJM),aIM)
       call ab_add(lstr, aSOLAR1tmp, oSOLAR1tmp, shape(aSOLAR1tmp),
@@ -1329,7 +1335,7 @@ C**** surface tracer concentration
 !     copy SOLAR(1,:,:) in temporary 2d array on atm grid, 
 !     and return temporary 2d array on ocean grid
       aSOLAR3tmp(:,:)=aSOLAR(3,:,:)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aSOLAR3tmp(:,aJM),aIM)
       call ab_add( lstr, aSOLAR3tmp, oSOLAR3tmp, shape(aSOLAR3tmp), 
@@ -1357,7 +1363,7 @@ C**** surface tracer concentration
             END IF
           END DO
         END DO
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(atmp08(N,:,aJM),aIM)
       END DO
@@ -1371,7 +1377,7 @@ C**** surface tracer concentration
             END IF
           END DO
         END DO
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(atmp09(N,:,aJM),aIM)
       END DO
@@ -1387,7 +1393,7 @@ C**** surface tracer concentration
             END IF
           END DO
         END DO
-        if ( (agrid%HAVE_NORTH_POLE)
+        if ( (hasNorthPole(agrid))
      &       .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &       call copy_pole(atmp10(N,:,aJM),aIM)
       END DO
@@ -1397,7 +1403,7 @@ C**** surface tracer concentration
       call ab_add(lstr, aWEIGHT3, oWEIGHT3, shape(aWEIGHT3), 'ij')
 
       DO N=1,NTM
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aTRUNOSI(N,:,aJM),aIM)
       END DO
@@ -1413,7 +1419,7 @@ C**** surface tracer concentration
       call ab_add(lstr, aWEIGHT4, oWEIGHT4, shape(aWEIGHT4), 'ij')
       do N=1,NTM
          atmp(N,:,:)=aTREVAPOR(N,1,:,:)
-         if ( (agrid%HAVE_NORTH_POLE)
+         if ( (hasNorthPole(agrid))
      &        .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &        call copy_pole(atmp(N,:,aJM),aIM)
       enddo
@@ -1428,7 +1434,7 @@ C**** surface tracer concentration
 
       do N=1,NTM
       atmp2(N,:,:)=aTRDRYDEP(N,1,:,:)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(atmp2(N,:,aJM),aIM)
       enddo
@@ -1445,7 +1451,7 @@ C**** surface tracer concentration
 
       do N=1,NTM
        atmp3(N,:,:)=aTRGASEX(N,1,:,:)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(atmp3(N,:,aJM),aIM)
       enddo
@@ -1462,28 +1468,28 @@ C**** surface tracer concentration
       call ab_add(lstr, aWEIGHT5, oWEIGHT5, shape(aWEIGHT5), 'ij')
 
       atmp4(:,:)=aVISDIR(:,:)*aSRVISSURF(:,:)
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(atmp4(:,aJM),aIM)
 
       call ab_add( lstr,atmp4,oVISDIR,shape(atmp4),'ij',
      &     aWEIGHT5,oWEIGHT5)
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aVISDIF(:,aJM),aIM)
 
       call ab_add( lstr,aVISDIF,oVISDIF,shape(aVISDIF),'ij',
      &     aWEIGHT5,oWEIGHT5)
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aNIRDIR(:,aJM),aIM)
 
       call ab_add( lstr,aNIRDIR,oNIRDIR,shape(aNIRDIR),'ij',
      &     aWEIGHT5,oWEIGHT5)
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) )
      &     call copy_pole(aNIRDIF(:,aJM),aIM)
 
@@ -1509,13 +1515,13 @@ C**** surface tracer concentration
          aDMVA1tmp(:,:) = aDMVA(:,:,1)
       else
          
-         if (agrid%HAVE_NORTH_POLE) then
+         if (hasNorthPole(agrid)) then
             aDMUAnp = aDMUA(1,aJM,1)
             aDMVAnp = aDMVA(1,aJM,1)
             aDMUA1tmp(:,aJM) = aDMUAnp*aCOSI(:) + aDMVAnp*aSINI(:)
             aDMVA1tmp(:,aJM) = aDMVAnp*aCOSI(:) - aDMUAnp*aSINI(:)
          endif
-         if (agrid%HAVE_SOUTH_POLE) then
+         if (hasSouthPole(agrid)) then
             aDMUAsp = aDMUA(1,1,1)
             aDMVAsp = aDMVA(1,1,1)
             aDMUA1tmp(:,1) = aDMUAsp*aCOSI(:) - aDMVAsp*aSINI(:)
@@ -1567,7 +1573,7 @@ c*
 
 
 c*   polar values are replaced by their longitudinal mean
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oRSI(:,oJM), oIM)
          call lon_avg( oFLOWO(:,oJM), oIM)
@@ -1587,7 +1593,7 @@ c*   polar values are replaced by their longitudinal mean
          call lon_avg( oSOLAR3tmp(:,oJM), oIM)
       endif
 
-      if ( (agrid%HAVE_SOUTH_POLE)
+      if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oRSI(:,1), oIM)
          call lon_avg( oFLOWO(:,1), oIM)
@@ -1620,13 +1626,13 @@ c*
       oSOLAR(3,:,:)=oSOLAR3tmp(:,:) 
 
 #ifdef CUBE_GRID
-      if (ogrid%HAVE_SOUTH_POLE) then
+      if (hasSouthPole(ogrid)) then
          oDMUA1sp =  SUM(oDMUA1tmp(:,  1)*oCOSI(:))*2/oIM
          oDMVA1sp = -SUM(oDMUA1tmp(:,  1)*oSINI(:))*2/oIM
          oDMUA1tmp(1,  1) = oDMUA1sp
          oDMVA1tmp(1,  1) = oDMVA1sp
       endif
-      if (ogrid%HAVE_NORTH_POLE) then
+      if (hasNorthPole(oGrid)) then
          oDMUA1np =  SUM(oDMUA1tmp(:,oJM)*oCOSI(:))*2/oIM
          oDMVA1np =  SUM(oDMUA1tmp(:,oJM)*oSINI(:))*2/oIM
          oDMUA1tmp(1,oJM) = oDMUA1np
@@ -1635,13 +1641,13 @@ c*
 #else
       if (oIM .ne. aIM .or. oJM .ne. aJM) then
          
-         if (ogrid%HAVE_SOUTH_POLE) then
+         if (hasSouthPole(ogrid)) then
             oDMUA1sp =  SUM(oDMUA1tmp(:,  1)*oCOSI(:))*2/oIM
             oDMVA1sp = -SUM(oDMUA1tmp(:,  1)*oSINI(:))*2/oIM
             oDMUA1tmp(1,  1) = oDMUA1sp
             oDMVA1tmp(1,  1) = oDMVA1sp
          endif
-         if (ogrid%HAVE_NORTH_POLE) then
+         if (hasNorthPole(oGrid) then
             oDMUA1np =  SUM(oDMUA1tmp(:,oJM)*oCOSI(:))*2/oIM
             oDMVA1np =  SUM(oDMUA1tmp(:,oJM)*oSINI(:))*2/oIM
             oDMUA1tmp(1,oJM) = oDMUA1np
@@ -1654,7 +1660,7 @@ c*
 #ifdef TRACERS_OCEAN
 #ifdef TRACERS_WATER
 
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do N=1,NTM
             call lon_avg( oTRFLOWO(N,:,oJM), oIM)
@@ -1665,7 +1671,7 @@ c*
          enddo
       endif
 
-      if ( (agrid%HAVE_SOUTH_POLE)
+      if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do N=1,NTM
             call lon_avg( oTRFLOWO(N,:,1), oIM)
@@ -1686,13 +1692,13 @@ c*
       deallocate(atmp,otmp,atmp08,atmp09,atmp10)
 
 #ifdef TRACERS_DRYDEP
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do N=1,NTM
             call lon_avg( otmp2(N,:,oJM), oIM)
          enddo
       endif
-      if ( (agrid%HAVE_SOUTH_POLE)
+      if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do N=1,NTM
             call lon_avg( otmp2(N,:,1), oIM)
@@ -1705,13 +1711,13 @@ c*
       deallocate(atmp2,otmp2)
 #endif
 #ifdef TRACERS_GASEXCH_ocean
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do N=1,NTM
             call lon_avg( otmp3(N,:,oJM), oIM)
          enddo
       endif
-      if ( (agrid%HAVE_SOUTH_POLE)
+      if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do N=1,NTM
             call lon_avg( otmp3(N,:,1), oIM)
@@ -1725,14 +1731,14 @@ c*
       deallocate(atmp3,otmp3)
 #endif
 #ifdef OBIO_RAD_coupling
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oVISDIR(:,oJM), oIM)
          call lon_avg( oVISDIF(:,oJM), oIM)
          call lon_avg( oNIRDIR(:,oJM), oIM)
          call lon_avg( oNIRDIF(:,oJM), oIM)
       endif
-      if ( (agrid%HAVE_SOUTH_POLE)
+      if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oVISDIR(:,1), oIM)
          call lon_avg( oVISDIF(:,1), oIM)
@@ -1742,12 +1748,12 @@ c*
       deallocate(atmp4,otmp4)
 #endif
 #ifdef TRACERS_OceanBiology
-      if ( (agrid%HAVE_NORTH_POLE)
+      if ( (hasNorthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oSOLZ(:,oJM), oIM)
          call lon_avg( oWIND(:,oJM), oIM)
       endif
-      if ( (agrid%HAVE_SOUTH_POLE)
+      if ( (hasSouthPole(agrid))
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          call lon_avg( oSOLZ(:,1), oIM)
          call lon_avg( oWIND(:,1), oIM)
@@ -2149,6 +2155,7 @@ c*
 #endif
 
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
       USE MODEL_COM, ONLY : aFOCEAN_loc=>FOCEAN
@@ -2166,6 +2173,7 @@ c*
 
       use ocean, only : remap_O2A
       USE array_bundle
+      use domain_decomp_1d, only: hasNorthPole, hasSouthPole
 
       IMPLICIT NONE
 
@@ -2207,7 +2215,7 @@ c*
       oDMSItmp=oDMSI
       oDHSItmp=oDHSI
       oDSSItmp=oDSSI
-      if (ogrid%HAVE_NORTH_POLE
+      if (hasNorthPole(oGrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
         do L=1,2
            call copy_pole(oDMSItmp(L,:,oJM),oIM)
@@ -2268,7 +2276,7 @@ c*   actual interpolation here
       call bundle_interpolation(lstr,remap_O2A)
 c*
 
-      if(agrid%have_north_pole
+      if(hasNorthPole(agrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do l=1,2
             call lon_avg(aDMSItmp(l,:,aJM),aIM)
@@ -2277,7 +2285,7 @@ c*
          enddo
       endif
 
-      if(agrid%have_south_pole 
+      if(hasSouthPole(agrid)
      &     .and. (aIM .ne. oIM .or. aJM .ne. oJM) ) then
          do l=1,2
             call lon_avg(aDMSItmp(l,:,1),aIM)
@@ -2410,7 +2418,8 @@ C**** do something in here
       USE OCEAN,  only : oDLATM=>DLATM
       USE ICEDYN,     only : iGRID=>grid_icdyn
       USE OCEANR_DIM, only : oGRID
-      USE DOMAIN_DECOMP_1D, only : BAND_PACK
+      USE DOMAIN_DECOMP_1D, only : BAND_PACK,
+     &      hasNorthPole, hasSouthPole
       implicit none
       real*8, dimension(:,:), allocatable ::
      &     ones_band,idmui_band,idmvi_band
@@ -2470,7 +2479,7 @@ c regrid DMVI from ice C to ocn C
       endif
       deallocate(iDMVI_band,ones_band)
 
-      if(oGRID%have_north_pole) then ! INT_AG2OG_Vector2 set them to zero
+      if(hasNorthPole(oGRID)) then ! INT_AG2OG_Vector2 set them to zero
         oDMUI(:,oJM) = 0.0
         oDMVI(:,oJM) = 0.0
       endif
@@ -2493,7 +2502,8 @@ c regrid DMVI from ice C to ocn C
       USE OCEAN,  only : oDLATM=>DLATM
       USE ICEDYN,     only : iGRID=>grid_icdyn
       USE OCEANR_DIM, only : oGRID
-      USE DOMAIN_DECOMP_1D, only : BAND_PACK
+      USE DOMAIN_DECOMP_1D, only : BAND_PACK, 
+     &     hasNorthPole, hasSouthPole
       USE OCEAN, only : UO,VO
 #if !defined(CUBED_SPHERE) && !defined(CUBE_GRID)
       USE ICEDYN_COM, only : pack_a2i
@@ -2543,7 +2553,7 @@ c regrid vosurf
       call BAND_PACK (hntrp_o2i_v%bpack, vo(:,:,1), ocnv_band)
       call HNTR8_band (ones_band, ocnv_band, hntrp_o2i_v, vosurf)
       deallocate(ocnv_band,ones_band)
-      if(igrid%have_north_pole) then
+      if(hasNorthPole(igrid)) then
 c Eventually, uosurf/vosurf will be interpolated directly to
 c the ice B grid, which has no polar point.  For now, setting
 c A-grid values at the polar point to zero

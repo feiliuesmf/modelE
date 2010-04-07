@@ -5,6 +5,8 @@ SUPPORTED_OPTIONS = ESMF
 
 FSRCS = CONST.f  PARAM.f  PARSER.f  SYSTEM.f  UTILDBL.f cubic_eq.f \
         array_bundle.f string_funcs.f
+F90SRCS = Geometry_mod.F90
+
 
 
 ifndef GISSCLIM_DIR

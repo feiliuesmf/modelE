@@ -1510,6 +1510,12 @@ c
         ALLOCATE(TCONSRV (JM_BUDG,KTCON,NTMXCON), STAT=IER )
 #endif
 #endif
+      else
+        ALLOCATE( OIJ (1,1,1), STAT=IER )
+        ALLOCATE(OIJL (1,1,1,1), STAT=IER )
+#ifdef TRACERS_OCEAN
+        ALLOCATE(TOIJL (1,1,1,1,1), STAT=IER )
+#endif
       endif
 
       END SUBROUTINE alloc_odiag
@@ -1599,7 +1605,7 @@ c
 !auth M. Kelley
       USE DIAG_COM, only : jm_budg, area_of_zone=>dxyp_budg
       USE OCEAN, only : im,jm, owtbudg, imaxj, dxypo, oJ_BUDG
-      USE DOMAIN_DECOMP_1D, only :GET
+      USE DOMAIN_DECOMP_1D, only :GET, hasSouthpole, hasNorthPole
       USE OCEANR_DIM, only : oGRID
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1
@@ -1619,8 +1625,8 @@ c native-grid areas.
       enddo
 
 c compensate for polar loops in conserv_ODIAG not going from 1 to im
-      if(ogrid%have_south_pole) owtbudg(:,1) = owtbudg(:,1)*im
-      if(ogrid%have_north_pole) owtbudg(:,jm) = owtbudg(:,jm)*im
+      if(hasSouthpole(ogrid)) owtbudg(:,1) = owtbudg(:,1)*im
+      if(hasNorthPole(ogrid)) owtbudg(:,jm) = owtbudg(:,jm)*im
         
       END SUBROUTINE set_owtbudg
 

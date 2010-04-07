@@ -775,6 +775,8 @@ C****
 
       integer function get_dir(I,J,ID,JD,IM,JM)
       use domain_decomp_atm, only : grid
+      use domain_decomp_1d, only: hasSouthPole, hasNorthPole
+
 !@sum get_dir derives the locally orientated river direction
       integer, intent(in) :: I,J,ID,JD,IM,JM
       integer ::  DI,DJ
@@ -803,22 +805,22 @@ C****
       elseif (DI.eq.1 .and. DJ.eq.1) then
         get_dir=5
       end if
-      if (grid%have_north_pole .and. J.eq.JM) then         ! north pole
+      if (hasNorthPole(grid) .and. J.eq.JM) then         ! north pole
         if (DI.eq.0) then
           get_dir=6
         else
           get_dir=8
         end if
-      elseif (grid%have_south_pole .and. J.eq.1) then      ! south pole
+      elseif (hasSouthPole(grid) .and. J.eq.1) then      ! south pole
         if (DI.eq.0) then
           get_dir=2
         else
           get_dir=8
         end if
 ! these next two cases need two latitudes to be on same processor
-      elseif (grid%have_north_pole .and. J.eq.JM-1) then
+      elseif (hasNorthPole(grid) .and. J.eq.JM-1) then
         if (JD.eq.JM) get_dir=2
-      elseif (grid%have_south_pole .and. J.eq.2) then
+      elseif (hasSouthPole(grid) .and. J.eq.2) then
         if (JD.eq.1) get_dir=6
       end if
       if (get_dir.eq.-99) then
@@ -840,6 +842,8 @@ C****
      *     ,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : HALO_UPDATE, GRID,GET
+      use domain_decomp_1d, only: hasSouthPole, hasNorthPole
+
       USE GEOM, only : axyp,byaxyp,imaxj
       USE DIAG_COM, only : aij=>aij_loc,ij_ervr,ij_mrvr,ij_f0oc,
      *     jreg,j_rvrd,j_ervr,ij_fwoc
@@ -894,8 +898,8 @@ C****
       CALL GET(grid, J_STRT=J_0,      J_STOP=J_1,
      &               J_STRT_SKP =J_0S, J_STOP_SKP =J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      have_south_pole=grid%have_south_pole
-      have_north_pole=grid%have_north_pole
+      have_south_pole=hasSouthPole(grid)
+      have_north_pole=hasNorthPole(grid)
       have_pole=have_south_pole .or. have_north_pole
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP

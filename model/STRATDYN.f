@@ -967,7 +967,7 @@ C****
       USE MODEL_COM, only : im,jm,lm,zatmo,nidyn,mrch,byim,dtsrc
       USE DOMAIN_DECOMP_1D, ONLY : GRID, GET, HALO_UPDATE,
      *                          NORTH, SOUTH
-      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE_COLUMN
+      USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE_COLUMN, am_i_root
       USE CLOUDS_COM,       ONLY : AIRX,LMC   
       USE STRAT,            ONLY : GWDCOL, NM, ZVARX,ZVARY,ZWT,DEFRM   
      *     ,QGWCNV,EKOFJ,pk,pmid 

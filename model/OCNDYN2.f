@@ -17,7 +17,7 @@ C****
      &     nbyzm,nbyzu,nbyzv, i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
       USE OCEAN_DYN, only : mmi,smu,smv,smw
       USE DOMAIN_DECOMP_1D, only : get, AM_I_ROOT, halo_update,
-     &     south,north
+     &     south,north, hasSouthPole, hasNorthPole
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx,ijl_sflx,
@@ -105,7 +105,7 @@ c relax UOD,VOD toward 4-pt avgs of UO,VO
       call halo_update(grid,vo,from=south)
       relfac = .005d0
       do l=1,lmo
-        if(grid%have_north_pole) then
+        if(hasNorthPole(grid)) then
           j = jm-1
           call polevel(uo(1,j_0h,l),vo(1,j_0h,l),l)
           i=1
@@ -207,7 +207,7 @@ c        SMW(:,J_0:J_1H,L) = 0 ! not summed
             enddo
           enddo
         enddo
-        if(grid%have_north_pole) then
+        if(hasNorthPole(grid)) then
           mo1(:,jm,l) = mo(:,jm,l)
           mo2(:,jm,l) = mo(:,jm,l)
           uo1(:,jm,l) = uo(:,jm,l)
@@ -1087,6 +1087,7 @@ c fill the halos of just-updated quantities
      &     nbyzm,nbyzu,nbyzv,
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
       USE OCEANR_DIM, only : grid=>ogrid
+      use DOMAIN_DECOMP_1D, only: hasNorthPole
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: u,v
       integer, intent(in) :: l
@@ -1095,7 +1096,7 @@ c fill the halos of just-updated quantities
 c
 c calculate U and V at the north pole
 c
-      if(grid%have_north_pole) then
+      if(hasNorthPole(grid)) then
         unp = 0.
         vnp = 0.
         j = jm-1
@@ -1513,7 +1514,8 @@ C****
       Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM, LMOV=>LMV
       USE OCEAN, only : nbyzm,i1yzm,i2yzm, nbyzv,i1yzv,i2yzv
       Use OCEANR_DIM, Only: grid=>oGRID
-      use DOMAIN_DECOMP_1D, only : halo_update
+      use DOMAIN_DECOMP_1D, only : halo_update, 
+     &     hasSouthPole, hasNorthPole
       Implicit None
 C**** Interface variables
       Logical,Intent(In) :: QLIMIT
@@ -1535,7 +1537,7 @@ C**** Extract domain decomposition band parameters
       J1P = Max (GRID%J_STRT, 2)     !  Exclude south pole
       JNP = Min (GRID%J_STOP, JM-1)  !  Exclude north pole
       JN = GRID%J_STOP
-      QNP = GRID%HAVE_NORTH_POLE
+      QNP = hasNorthPole(grid)
 
       if(qlimit) then
         rylimit = 1d0

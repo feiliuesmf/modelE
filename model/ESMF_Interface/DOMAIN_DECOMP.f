@@ -16,8 +16,6 @@
 !@+    for the message passing (ESMF) implementation.
 !@auth NCCS ASTG
 
-#define FILL(N) IAND(USABLE_FROM,N)==N
-
 #if ( defined USE_ESMF )  || ( defined USE_MPP )
 #define USE_MPI
 #endif
@@ -1106,37 +1104,6 @@ c need to initialize the dd2d version of dist_grid for I/O
 
       END SUBROUTINE INIT_GRID
 
-#ifdef USE_MPP
-      SUBROUTINE GridGetAllAxisIndex(domain, AI)
-
-      implicit none
-      TYPE (domain2D ) :: domain
-      Type (ESMF_Axisindex) :: AI(npes_world,3)
-
-      integer :: is, ie , js, je, myRank, ierr
-      integer :: Axistype, oldtypes(1), blockcounts(1)
-      INTEGER(KIND=MPI_ADDRESS_KIND):: offsets
-
-      call mpp_get_compute_domain( domain, is, ie , js, je)
-      myRank = mpp_pe()
-
-      AI(myRank+1,1)%min=is; AI(myRank+1,1)%max=ie;
-      AI(myRank+1,2)%min=js; AI(myRank+1,2)%max=je;
-
-      offsets=0
-      oldtypes(1)=MPI_INTEGER; blockcounts(1)=3;
-
-      call MPI_Type_create_struct(1,blockcounts, offsets, oldtypes,
-     &     Axistype, ierr)
-      call MPI_TYPE_COMMIT(Axistype, ierr)
-
-      call MPI_Allgather(AI(myRank+1,1),1, Axistype,
-     &          AI(1,1),1, Axistype,MPI_COMM_WORLD,ierr )
-      call MPI_Allgather(AI(myRank+1,2),1, Axistype,
-     &          AI(1,2),1, Axistype,MPI_COMM_WORLD,ierr )
-
-      END SUBROUTINE GridGetAllAxisIndex
-#endif
 
       SUBROUTINE GET(grd_dum, I_STRT, I_STOP,
      &                        I_STRT_HALO, I_STOP_HALO,

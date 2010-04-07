@@ -105,12 +105,12 @@ Module ESMF_MOD_private
      Type (AxisIndex) :: global(N_DIMENSIONS)
   End Type Grid
 
-  Type HaloDirection
-     Private
-     Integer :: direction ! NORTH, SOUTH, EAST, WEST
-  End Type HaloDirection
-  Integer, Public, Parameter :: NORTH = 2**0
-  Integer, Public, Parameter :: SOUTH = 2**1
+!!$  Type HaloDirection
+!!$     Private
+!!$     Integer :: direction ! NORTH, SOUTH, EAST, WEST
+!!$  End Type HaloDirection
+!!$  Integer, Public, Parameter :: NORTH = 2**0
+!!$  Integer, Public, Parameter :: SOUTH = 2**1
   Integer, Parameter :: MAX_RANK=5
   Type Field
      Private

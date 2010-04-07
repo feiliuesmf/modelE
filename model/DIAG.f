@@ -137,7 +137,7 @@ C**** Some local constants
       USE PBLCOM, only : tsavg
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
-      USE DOMAIN_DECOMP_ATM, only : GET, HALO_UPDATE, GRID
+      USE DOMAIN_DECOMP_ATM, only : GET, GRID, HALO_UPDATE
       USE GETTIME_MOD
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -2388,7 +2388,9 @@ c****
 
       subroutine write_data(data,kunit,polefix)
 !@sum write out subdd data array with optional pole fix
-      use domain_decomp_1d, only : grid,get,writei_parallel
+      use domain_decomp_1d, only : grid,get,writei_parallel,
+     &     hasSouthPole, hasNorthPole
+
 ! need to add writei_parallel to domain_decomp_atm
       real*4, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: data
@@ -2397,8 +2399,8 @@ c****
 
 c**** fix polar values
       if (polefix) then
-        if(grid%have_south_pole) data(2:im,1) =data(1,1)
-        if(grid%have_north_pole) data(2:im,jm)=data(1,jm)
+        if(hassouthpole(grid)) data(2:im,1) =data(1,1)
+        if(hasnorthpole(grid)) data(2:im,jm)=data(1,jm)
       end if
       call writei_parallel(grid,iu_subdd(kunit),
      *     nameunit(iu_subdd(kunit)),data,itime)
@@ -3384,6 +3386,7 @@ C****
 !@auth Group
       USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID,SUMXPE,AM_I_ROOT
+      USE Domain_decomp_1d, only: hasSouthPole, hasNorthPole
       USE MODEL_COM, only : idacc,zatmo,fearth0,flice,focean,lm,pmtop,
      &     im,jm
       USE GEOM, only : imaxj,axyp,lat2d,areag
@@ -3525,12 +3528,12 @@ C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
 c
 c fill poles
 c
-      if(grid%have_south_pole) then
+      if(hassouthpole(grid)) then
         do k=1,kaij
           if(jgrid_ij(k).eq.1) aij(2:im,1,k) = aij(1,1,k)
         enddo
       endif
-      if(grid%have_north_pole) then
+      if(hasnorthpole(grid)) then
         do k=1,kaij
           if(jgrid_ij(k).eq.1) aij(2:im,jm,k) = aij(1,jm,k)
         enddo

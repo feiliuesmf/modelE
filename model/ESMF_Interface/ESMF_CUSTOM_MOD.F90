@@ -38,7 +38,7 @@ Module ESMF_CUSTOM_MOD
 
   Use ESMF_MOD_private, Only: Field_GetDataPointer
   Use ESMF_MOD_private, Only: Field_SetDataPointer
-  Use ESMF_MOD_private, Only: NORTH, SOUTH
+!!$  Use ESMF_MOD_private, Only: NORTH, SOUTH
 
 
 #ifdef USE_ESMF
@@ -79,7 +79,7 @@ Module ESMF_CUSTOM_MOD
   Public :: KIND_R4
   Public :: KIND_R8
 !AOO  Public :: FIELD_SUM, FIELD_MAX, FIELD_MIN
-  Public :: NORTH, SOUTH
+!!$  Public :: NORTH, SOUTH
   Public :: ESMF_SUCCESS
 
   ! To avoid the need to modify modelE interfaces for passing
